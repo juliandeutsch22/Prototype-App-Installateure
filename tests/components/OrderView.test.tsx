@@ -574,13 +574,18 @@ describe('Material anfordern — gescheiterte Ladevorgänge', () => {
   it('unterscheidet einen leeren Katalog von einer erfolglosen Suche', async () => {
     materialien = [];
     zeige();
-    expect(await screen.findByText(/Materialkatalog ist noch leer/)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Noch kein Material im Katalog' })).toBeInTheDocument();
+    // Echte Leere mit dem Regal (Planlinie § 6), keine Lupe.
+    expect(document.querySelector('.lot-zeichnung-leer[data-motiv="lager"]')).not.toBeNull();
   });
 
   it('sagt bei einer erfolglosen Suche, dass es an der Suche liegt', async () => {
     zeige();
     await userEvent.type(await screen.findByRole('textbox', { name: /Suche/ }), 'Wasserhahn');
     expect(await screen.findByText('Kein Material passt zur Suche.')).toBeInTheDocument();
+    // Gegenprobe zum leeren Katalog: hier die Lupe, nicht das Regal.
+    expect(document.querySelector('.lot-zeichnung-leer[data-motiv="suche"]')).not.toBeNull();
+    expect(document.querySelector('[data-motiv="lager"]')).toBeNull();
   });
 
   it('sucht auch über Kategorie und Artikelnummer', async () => {

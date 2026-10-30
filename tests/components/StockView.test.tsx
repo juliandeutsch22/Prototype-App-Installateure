@@ -269,8 +269,8 @@ describe('Lager — der Stand im Seitenkopf (E24)', () => {
     anforderungen = [anforderung({ id: 'o1', materialId: 'm1', quantity: 18 })];
     zeige();
     const knapp = await screen.findByText('Knapp');
-    expect(knapp.closest('.seitenkopf')).not.toBeNull();
-    expect(screen.getByText('Reserviert').closest('.seitenkopf')).not.toBeNull();
+    expect(knapp.closest('.plankopf')).not.toBeNull();
+    expect(screen.getByText('Reserviert').closest('.plankopf')).not.toBeNull();
     expect(screen.queryByText(/unter Mindestmenge/)).toBeNull();
     expect(screen.queryByText('zugesagt und auf Rüstlisten')).toBeNull();
   });
@@ -278,7 +278,7 @@ describe('Lager — der Stand im Seitenkopf (E24)', () => {
   it('bleibt auf dem Reiter „Katalog“ stehen — sonst sprängen die Reiter beim Wechseln', async () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     zeige('/lager?reiter=katalog');
-    expect((await screen.findByText('Im Lager')).closest('.seitenkopf')).not.toBeNull();
+    expect((await screen.findByText('Im Lager')).closest('.plankopf')).not.toBeNull();
   });
 });
 
@@ -674,6 +674,33 @@ describe('Lager — wenn ein Ladevorgang scheitert', () => {
     // Der leere Katalog verweist auf den Reiter, der ihn füllt.
     zeige();
     expect(await screen.findAllByText(/Noch kein Material im Katalog/)).not.toHaveLength(0);
+    // Echte Leere mit dem Regal (Planlinie § 6), nicht nur ein Satz.
+    expect(document.querySelector('.lot-zeichnung-leer[data-motiv="lager"]')).not.toBeNull();
+  });
+
+  /*
+    PLANLINIE (E30): frei und reserviert gegen den Regalbestand als Maßlinie.
+    Mehr reserviert als im Regal läuft rot darüber; ein leeres Regal ist
+    keine Grenze und bekommt keine Linie.
+  */
+  it('bemaßt reserviert gegen das Regal; ohne Bestand keine Linie (Planlinie)', async () => {
+    materialien = [
+      material({ id: 'm1', name: 'Kupferrohr 15', stock: 20 }),
+      material({ id: 'm2', name: 'Pressfitting', stock: 4 }),
+      material({ id: 'm3', name: 'Eckventil', stock: 0 }),
+    ];
+    anforderungen = [
+      anforderung({ id: 'o1', materialId: 'm1', quantity: 5 }),
+      anforderung({ id: 'o2', materialId: 'm2', quantity: 6 }),
+    ];
+    zeige();
+    const rohr = (await screen.findByText('Kupferrohr 15')).closest('li') as HTMLElement;
+    const linie = await within(rohr).findByRole('img', { name: /5 reserviert von 20 m im Regal/ });
+    expect(linie).not.toHaveAttribute('data-darueber');
+    const fitting = screen.getByText('Pressfitting').closest('li') as HTMLElement;
+    expect(within(fitting).getByRole('img', { name: /6 reserviert von 4/ })).toHaveAttribute('data-darueber', 'true');
+    const ventil = screen.getByText('Eckventil').closest('li') as HTMLElement;
+    expect(within(ventil).queryByRole('img')).not.toBeInTheDocument();
   });
 });
 

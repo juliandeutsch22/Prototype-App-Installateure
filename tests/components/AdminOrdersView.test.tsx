@@ -396,10 +396,10 @@ describe('Anforderungen — die Reihenfolge der Arbeit', () => {
 
     // Nur die Gruppenüberschriften (h3), nicht der Kartentitel darüber.
     const gruppen = await screen.findAllByRole('heading', { level: 3 });
-    // Seit der Designlinie „Fassung 3" steht die Anzahl als „· 1" hinter dem
-    // Titel; geprüft werden weiter Reihenfolge, Name und Anzahl der Gruppen.
+    // Seit der Planlinie (E30) steht die Anzahl im Achskreis VOR dem Titel;
+    // geprüft werden weiter Reihenfolge, Name und Anzahl der Gruppen.
     const titel = gruppen.map((h) => (h.textContent ?? '').replace(/[·\s]/g, ''));
-    expect(titel).toEqual(['Offen1', 'Abholbereit1']);
+    expect(titel).toEqual(['1Offen', '1Abholbereit']);
   });
 
   it('hält Erledigtes und Retouren aus dem offenen Reiter heraus', async () => {

@@ -174,6 +174,34 @@ describe('Ein Angebot ansehen', () => {
     expect(within(positionen).getByText(/2 Stk × € 100,00, abzüglich 10 % Rabatt/)).toBeInTheDocument();
   });
 
+  /*
+    PLANLINIE (E30): die Positionen als Stückliste — laufende Nummer nur für
+    Positionen, die Bruttosumme unter der Doppellinie, die Angebotsnummer als
+    Stempel neben dem Titel.
+  */
+  it('stellt die Positionen als Stückliste mit Pos-Spalte und Summe dar (Planlinie)', async () => {
+    angebot = {
+      ...ANGEBOT,
+      positions: [
+        { art: 'titel', label: 'Bad', qty: 0, unit: '', unitPrice: 0, netto: 0 },
+        { label: 'Waschtisch', qty: 2, unit: 'Stk', unitPrice: 100, netto: 180, rabattProzent: 10 },
+        { art: 'text', label: 'Fliesen bauseits', qty: 0, unit: '', unitPrice: 0, netto: 0 },
+        { label: 'WC', qty: 1, unit: 'Stk', unitPrice: 300, netto: 300 },
+      ],
+    };
+    zeige();
+    const positionen = (await screen.findByText(/Positionen \(2\)/)).closest('section')!;
+    const tabelle = within(positionen).getByRole('table');
+    expect(within(tabelle).getAllByRole('columnheader').map((th) => th.textContent)).toEqual(['Pos', 'Bezeichnung', 'Netto']);
+    const zeilen = within(tabelle).getAllByRole('row').map((r) => r.querySelector('td.pos')?.textContent ?? null);
+    // Kopf, Titel, Waschtisch, Text, WC, dann die Summen: nur Positionen sind nummeriert.
+    expect(zeilen.slice(0, 5)).toEqual([null, '', '01', '', '02']);
+    expect(within(positionen).getByText('Brutto').closest('tr')).toHaveClass('summe');
+    expect(within(positionen).getByText('Netto', { selector: 'td' }).closest('tr')).not.toHaveClass('summe');
+    expect(screen.getByRole('heading', { level: 1, name: 'Angebot' })).toBeInTheDocument();
+    expect(screen.getByText(ANGEBOT.quoteNumber, { selector: '.stempel' })).toBeInTheDocument();
+  });
+
   it('verlinkt Kunde und — nach der Annahme — die Baustelle', async () => {
     angebot = { ...ANGEBOT, status: 'Angenommen', projectNumber: 'B-2026-0007', projectId: 'p9' };
     zeige();

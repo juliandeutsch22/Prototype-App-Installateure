@@ -138,6 +138,19 @@ describe('Der Einrichtungsstand', () => {
     expect(within(zeile).getByText('prüfen')).toBeInTheDocument();
   });
 
+  /*
+    PLANLINIE (E30): „5 von 6 erledigt“ ist eine Menge gegen ihre Grenze und
+    steht als Maßlinie im Kopf; der Satz bleibt als Zahl daran.
+  */
+  it('bemaßt den Stand als Maßlinie: erledigt gegen alle Punkte (Planlinie)', async () => {
+    betrieb = { ...VOLL, iban: 'AT00 1234' };
+    zeige();
+    const linie = await screen.findByRole('img', { name: 'Einrichtung: 5 von 6 Punkten erledigt' });
+    expect(linie).toHaveClass('masslinie');
+    // Fünf von sechs: die Strecke endet bei fünf Sechsteln, nicht am Ende.
+    expect((linie.querySelector('.masslinie-strecke') as HTMLElement).style.width).toBe('83.3%');
+  });
+
   it('ist bei vollständigem Briefkopf „erledigt“ und sonst „offen“', () => {
     expect(einrichtungsstand(VOLL as Company).map((p) => p.wort)).toEqual(['erledigt', 'erledigt', 'erledigt']);
     expect(einrichtungsstand({ ...VOLL, ort: '' } as Company)[0].wort).toBe('offen');

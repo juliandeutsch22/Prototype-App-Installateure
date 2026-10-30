@@ -369,6 +369,9 @@ export default function MaterialCatalog({
             </div>
           ) : visible.length === 0 ? (
             <EmptyState
+              // Echte Leere mit dem Regal, keine Treffer mit der Lupe (Planlinie § 6).
+              zeichnung={leererKatalog ? 'lager' : 'suche'}
+              titel={leererKatalog ? 'Noch kein Material im Katalog' : 'Keine passenden Artikel.'}
               action={
                 leererKatalog ? (
                   <Button onClick={neu}>
@@ -382,7 +385,7 @@ export default function MaterialCatalog({
               }
             >
               {leererKatalog
-                ? 'Noch kein Material im Katalog. Was der Monteur anfordern kann, muss hier stehen.'
+                ? 'Was der Monteur anfordern kann, muss hier stehen.'
                 : `Kein Material passt zu „${search}“.`}
             </EmptyState>
           ) : (

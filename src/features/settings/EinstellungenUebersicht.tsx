@@ -11,6 +11,7 @@ import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { Zustand, type Stand } from '@/components/Badge';
 import { EmptyState, SkeletonList } from '@/components/States';
+import { Masslinie } from '@/components/Planlinie';
 import { einrichtungZusatzLaden, einrichtungZusatzPunkte, type EinrichtungZusatz } from './einrichtungZusatz';
 
 /**
@@ -171,7 +172,22 @@ export default function EinstellungenUebersicht() {
       {stand.length > 0 && !suche.trim() && (
         <Card
           title="Einrichtungsstand"
-          action={<span className="einrichtung-zahl">{erledigt} von {stand.length} erledigt</span>}
+          /*
+            „5 von 6 erledigt“ ALS MASSLINIE (Planlinie B2): eine Menge gegen
+            ihre Grenze. Der Satz bleibt als Zahl an der Linie stehen.
+          */
+          action={
+            <div className="einrichtung-masslinie">
+              <Masslinie
+                schmal
+                ist={erledigt}
+                soll={stand.length}
+                istText={`${erledigt} von ${stand.length} erledigt`}
+                sollText={`${stand.length} Punkte`}
+                name={`Einrichtung: ${erledigt} von ${stand.length} Punkten erledigt`}
+              />
+            </div>
+          }
           buendig
         >
           <List>

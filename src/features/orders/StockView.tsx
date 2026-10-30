@@ -25,6 +25,7 @@ import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
 import BottomSheet from '@/components/BottomSheet';
 import { List, ListRow } from '@/components/ListRow';
+import { Masslinie } from '@/components/Planlinie';
 import { InputField } from '@/components/Field';
 import { Listenleiste, MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import { useToast } from '@/components/Toast';
@@ -482,12 +483,18 @@ export default function StockView() {
                 </div>
               ) : rows.length === 0 ? (
                 <EmptyState
-                  zeichnung={imKatalog !== 0 && materials.some(imLager) && search.trim() ? 'suche' : undefined}
-                  titel={imKatalog !== 0 && materials.some(imLager) && search.trim() ? 'Keine passenden Artikel.' : undefined}
+                  /*
+                    ECHTE LEERE MIT ZEICHNUNG (Planlinie § 6): ein leerer Katalog
+                    bekommt das Regal wie die anderen Bereiche ihr Motiv; die
+                    Suche ohne Treffer die Lupe. „Kein Artikel knapp“ ist keine
+                    Leere, sondern eine gute Nachricht — dort bleibt der Satz.
+                  */
+                  zeichnung={imKatalog === 0 ? 'lager' : imKatalog !== 0 && materials.some(imLager) && search.trim() ? 'suche' : undefined}
+                  titel={imKatalog === 0 ? 'Noch kein Material im Katalog' : imKatalog !== 0 && materials.some(imLager) && search.trim() ? 'Keine passenden Artikel.' : undefined}
                   action={imKatalog !== 0 && materials.some(imLager) && search.trim() ? <Button variant="secondary" onClick={() => setSearch('')}>Suche zurücksetzen</Button> : undefined}
                 >
                   {imKatalog === 0
-                    ? 'Noch kein Material im Katalog. Der Bereich „Katalog“ legt den ersten Eintrag an.'
+                    ? 'Der Bereich „Katalog“ legt den ersten Eintrag an.'
                     : !materials.some(imLager)
                       ? 'Noch kein Artikel im Lager geführt. Im Katalog beim Artikel „Im Lager führen“ anhaken.'
                       : search.trim()
@@ -530,14 +537,35 @@ export default function StockView() {
                             <Warnung>knapp</Warnung>
                           ) : undefined
                         }
-                        wert={
-                          <>
+                        pfeil
+                      >
+                        {/*
+                          FREI, RESERVIERT, REGAL ALS MASSLINIE (Planlinie B2)
+                          statt „28 Stk frei · 20 reserviert“: das Reservierte
+                          läuft gegen den Regalbestand als Grenze, frei ist der
+                          Rest der Strecke. Wird mehr reserviert, als im Regal
+                          liegt, läuft es rot darüber — das sind die „fehlen“
+                          daneben. Die Zahlen stehen weiter an der Linie.
+                        */}
+                        {(m.stock ?? 0) > 0 ? (
+                          <div className="lager-masslinie">
+                            <Masslinie
+                              schmal
+                              ist={m.reserved}
+                              soll={m.stock ?? 0}
+                              istText={<><span>{fmtMenge(Math.max(m.free, 0))} {einheit} frei</span> · {fmtMenge(m.reserved)} reserviert</>}
+                              sollText={`Regal ${fmtMenge(m.stock ?? 0)}`}
+                              name={`${fmtMenge(Math.max(m.free, 0))} ${einheit} frei, ${fmtMenge(m.reserved)} reserviert von ${fmtMenge(m.stock ?? 0)} ${einheit} im Regal`}
+                            />
+                          </div>
+                        ) : (
+                          // Ein leeres Regal ist keine Grenze: ohne sie gibt es keine Maßlinie, nur die Zahlen.
+                          <span className="zeile-wert">
                             <span>{fmtMenge(Math.max(m.free, 0))} {einheit} frei</span>
                             <span className="text-ink-muted"> · {fmtMenge(m.reserved)} reserviert</span>
-                          </>
-                        }
-                        pfeil
-                      />
+                          </span>
+                        )}
+                      </ListRow>
                     );
                   })}
                 </List>

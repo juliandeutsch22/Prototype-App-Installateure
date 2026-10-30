@@ -192,8 +192,11 @@ it('Aktenkontext 04 · ordnet die jüngsten Belege nach Datum und erhält Netto-
   const titel = await screen.findByRole('heading', { name: 'Jüngste Belege' });
   const vorschau = within(titel.closest('section')!);
   await waitFor(() => expect(vorschau.getAllByRole('listitem')).toHaveLength(3));
-  expect(vorschau.getAllByRole('link').filter((a) => !a.textContent?.includes('Alle Belege')).map((a) => a.querySelector('strong')?.textContent))
+  expect(vorschau.getAllByRole('link').filter((a) => !a.textContent?.includes('Alle Belege')).map((a) => a.querySelector('.stempel')?.textContent))
     .toEqual(['AN-neu', 'RE-neu', 'AN-mitte']);
+  // Planlinie (E30): Nummer als Stempel, Stand mit Statuszeichen — vorher stand der Stand als blankes Wort.
+  expect(vorschau.getByText('Versendet')).toHaveClass('stand', 'stand-info');
+  expect(vorschau.getByText('Offen')).toHaveClass('stand', 'stand-offen');
   expect(vorschau.getByRole('link', { name: /AN-neu/ })).toHaveTextContent('netto');
   expect(vorschau.getByRole('link', { name: /RE-neu/ })).toHaveTextContent('brutto');
   expect(vorschau.queryByText('RE-alt')).toBeNull();

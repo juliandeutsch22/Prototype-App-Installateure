@@ -598,7 +598,7 @@ describe('Wartungen auf der Linie „Lot“', () => {
     await alleZeigen(nutzer);
     expect(screen.getByText(/Familie Huber/)).toBeInTheDocument();
     expect(screen.getByText(/Gasthaus Alt/)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Alle Vereinbarungen/ })).toHaveTextContent('· 4');
+    expect(screen.getByRole('heading', { name: /Alle Vereinbarungen/ })).toHaveTextContent(/^4\s*Alle Vereinbarungen$/);
   });
 
   it('nimmt die Ansicht aus der Adresse — als Lesezeichen', async () => {
@@ -611,7 +611,7 @@ describe('Wartungen auf der Linie „Lot“', () => {
     zeichne();
     await geladen();
     const koepfe = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
-    expect(koepfe).toEqual(['Überfällig· 1', 'Fällig in den nächsten 30 Tagen· 1']);
+    expect(koepfe).toEqual(['1 Überfällig', '1 Fällig in den nächsten 30 Tagen']);
   });
 
   it('zeigt je Gruppe höchstens 20 Zeilen, dann „und N weitere anzeigen“', async () => {
