@@ -747,7 +747,7 @@ export default function WorkSheetsListView() {
             )}
             {darfZeitenSehen && (
               <Metric
-                label="Stunden ohne Buchung"
+                label="Ohne Buchung"
                 value={ohneBuchung.length}
                 tone={ohneBuchung.length > 0 ? 'warning' : 'default'}
                 hint={ohneBuchung.length === 1 ? 'Schein prüfen' : 'Scheine prüfen'}

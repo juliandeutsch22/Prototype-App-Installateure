@@ -475,40 +475,6 @@ export default function AdminProjectsView() {
     () => projects.filter((p) => p.status === 'Aktiv').map((p) => p.projectNumber).sort().join('|'),
     [projects],
   );
-  useEffect(() => {
-    if (!user || (adressFilter !== 'budget' && adressFilter !== 'ohne-einsatz')) {
-      setLage(null);
-      return;
-    }
-    let weg = false;
-    const aktiv = projects.filter((p) => p.status === 'Aktiv');
-    void (async () => {
-      try {
-        let nummern: string[];
-        if (adressFilter === 'budget') {
-          const mitBudget = aktiv.filter((p) => (p.estimatedHours ?? 0) > 0);
-          const stunden = mitBudget.length
-            ? await stundenDerBaustellen(mitBudget.map((p) => p.projectNumber))
-            : [];
-          nummern = budgetStand(mitBudget, stunden).filter((b) => b.pct >= BUDGET_AB_PROZENT).map((b) => b.projectNumber);
-        } else {
-          const heute = todayStr();
-          const { von, bis } = planFenster(heute);
-          const plan = await listAssignmentsInRange(user.companyId, von, bis);
-          nummern = ohneEinsatzListe(aktiv, plan, heute).map((x) => x.projectNumber);
-        }
-        if (!weg) setLage({ art: adressFilter, nummern: new Set(nummern) });
-      } catch {
-        if (!weg) setLage({ art: adressFilter, nummern: new Set() });
-      }
-    })();
-    return () => {
-      weg = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- an den aktiven Nummern, nicht an jeder Live-Meldung
-  }, [user, adressFilter, aktiveNummern]);
-  const lageFehlt = (adressFilter === 'budget' || adressFilter === 'ohne-einsatz') && lage?.art !== adressFilter;
-
   /*
     DER BUDGETSTAND JE BAUSTELLE (Planlinie, E30): dieselbe Rechnung wie die
     Startseite (`budgetStand` aus den Summen von `stundenDerBaustellen`) —
@@ -534,6 +500,45 @@ export default function AdminProjectsView() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- an den aktiven Nummern, nicht an jeder Live-Meldung
   }, [user, aktiveNummern]);
+  useEffect(() => {
+    if (!user || adressFilter !== 'ohne-einsatz') {
+      setLage(null);
+      return;
+    }
+    let weg = false;
+    const aktiv = projects.filter((p) => p.status === 'Aktiv');
+    void (async () => {
+      try {
+        const heute = todayStr();
+        const { von, bis } = planFenster(heute);
+        const plan = await listAssignmentsInRange(user.companyId, von, bis);
+        const nummern = ohneEinsatzListe(aktiv, plan, heute).map((x) => x.projectNumber);
+        if (!weg) setLage({ art: adressFilter, nummern: new Set(nummern) });
+      } catch {
+        if (!weg) setLage({ art: adressFilter, nummern: new Set() });
+      }
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- an den aktiven Nummern, nicht an jeder Live-Meldung
+  }, [user, adressFilter, aktiveNummern]);
+  /*
+    Der Budgetfilter liest den Budgetstand, den die Seite für Maßlinie und
+    Schriftfeld ohnehin lädt — eine zweite Abfrage derselben Stunden wäre
+    doppelt. Bis er da ist, wartet der Filter; scheitert er, bleibt die Liste
+    leer wie zuvor bei einem Fehler.
+  */
+  const budgetLage = useMemo(() => {
+    if (adressFilter !== 'budget' || budgetJe === null) return null;
+    const nummern = budgetJe === 'fehler'
+      ? []
+      : [...budgetJe.values()].filter((b) => b.pct >= BUDGET_AB_PROZENT).map((b) => b.projectNumber);
+    return { art: 'budget' as BaustellenFilter, nummern: new Set(nummern) };
+  }, [adressFilter, budgetJe]);
+  const filterLage = adressFilter === 'budget' ? budgetLage : lage;
+  const lageFehlt = (adressFilter === 'budget' || adressFilter === 'ohne-einsatz') && filterLage?.art !== adressFilter;
+
   const budgetListe = budgetJe instanceof Map ? [...budgetJe.values()] : [];
   const ueberBudget = budgetListe.filter((b) => b.pct > 100).length;
   const nahBudget = budgetListe.filter((b) => b.pct >= BUDGET_AB_PROZENT && b.pct <= 100).length;
@@ -553,7 +558,7 @@ export default function AdminProjectsView() {
           case 'ende-ueberschritten':
             return endeVorbei(p, heute);
           default:
-            return lage?.art === adressFilter && lage.nummern.has(p.projectNumber);
+            return filterLage?.art === adressFilter && filterLage.nummern.has(p.projectNumber);
         }
       });
     const meine = nurMeine && user
@@ -584,7 +589,7 @@ export default function AdminProjectsView() {
     */
     const bekannt = new Set(oertlich.map((p) => p.id));
     return [...oertlich, ...serverTreffer.filter((p) => !bekannt.has(p.id))];
-  }, [sorted, filter, suche, serverTreffer, nurMeine, user, adressFilter, lage]);
+  }, [sorted, filter, suche, serverTreffer, nurMeine, user, adressFilter, filterLage]);
 
   /** Wie viele Treffer NUR vom Server kamen — das ist die Aussage, nicht die Summe. */
   const nurVomServer = useMemo(() => {

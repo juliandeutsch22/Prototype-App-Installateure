@@ -108,7 +108,7 @@ export function Saldolinie({ minuten, massstabMinuten, name }: { minuten: number
  * und in einer Liste steht sie neben dem Namen, ohne mit ihm zu konkurrieren.
  */
 export function Stempel({ children, gross = false }: { children: ReactNode; gross?: boolean }) {
-  return <span className={gross ? 'stempel stempel-gross' : 'stempel'}>{children}</span>;
+  return <span className={gross ? 'stempel stempel-breit' : 'stempel'}>{children}</span>;
 }
 
 /** B7 ECKMARKEN — statt eines grauen Seitenkastens. Zählt als Akzent der Seite. */
