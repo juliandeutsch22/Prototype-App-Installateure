@@ -563,7 +563,9 @@ export default function KundenakteView() {
     <div className="akten-seite">
       {warnung}
       <AktenKopf art="Kunde" title={k.name} zurueck="/customers" zurueckText="Zur Kundenliste"
-        meta={<span className="akten-identitaet">{k.kundennummer && <span>Nr. {k.kundennummer}</span>}
+        /* Die Kundennummer als Stempel neben dem Namen (Planlinie B10); der Zustand bleibt in der Zeile darunter. */
+        stempel={k.kundennummer ? `Nr. ${k.kundennummer}` : undefined}
+        meta={<span className="akten-identitaet">
           <Zustand stand={k.active === false ? 'storniert' : 'gut'}>{k.active === false ? 'inaktiv' : 'aktiv'}</Zustand></span>}
         kontakt={<><TelefonLink nummer={k.contactPhone} name={k.contactName} /><MailLink adresse={k.email} /><a className="akten-verweis" href="#kunde-kontext">Kontakt</a></>}
         action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>} />

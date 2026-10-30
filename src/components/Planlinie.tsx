@@ -58,7 +58,8 @@ export function Masslinie({
   return (
     <div className={klasse} role="img" aria-label={name} data-darueber={darueber || undefined}>
       {sollText && <span className="masslinie-soll" style={{ left: sollLage }}>{sollText}</span>}
-      {darueber && ueberText && <span className="masslinie-plus">{ueberText}</span>}
+      {/* Steht die Soll-Marke weit rechts, träfe der Überhang oben auf ihre Beschriftung — dann steht er unten rechts. */}
+      {darueber && ueberText && <span className={soll / ist > 0.6 ? 'masslinie-plus masslinie-plus-unten' : 'masslinie-plus'}>{ueberText}</span>}
       <span className="masslinie-grund" />
       <span className="masslinie-strecke" style={{ width: darueber ? sollLage : prozent(ist, soll) }} />
       {darueber && <span className="masslinie-ueber" style={{ left: sollLage, width: prozent(ist - soll, ist) }} />}

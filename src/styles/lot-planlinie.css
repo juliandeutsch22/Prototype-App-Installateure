@@ -122,6 +122,8 @@
   .masslinie-plus { position: absolute; top: 0; right: 0; font-size: 0.71875rem; line-height: 0.875rem; color: var(--danger); white-space: nowrap; }
   .masslinie-ist { position: absolute; left: 0; top: 1.875rem; font-size: 0.75rem; line-height: 0.875rem; white-space: nowrap; }
   .masslinie-schmal .masslinie-soll, .masslinie-schmal .masslinie-plus { top: -0.125rem; font-size: 0.6875rem; }
+  .masslinie-plus-unten { top: 1.875rem; }
+  .masslinie-schmal .masslinie-plus-unten { top: 1.3125rem; }
   .masslinie-schmal .masslinie-ist { top: 1.3125rem; font-size: 0.6875rem; }
   /* Eine Maßlinie mit Beschriftung links (Akte): Name, dann die Linie. */
   .masslinie-zeile { display: grid; grid-template-columns: 10.5rem minmax(0, 1fr); align-items: start; gap: 0.5rem 1.5rem; padding: 0.5rem 0; }
