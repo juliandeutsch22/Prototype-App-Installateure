@@ -1,0 +1,265 @@
+/*
+ * DIE PLANLINIE (Auftrag 30.10.2026, Entscheidung E30).
+ *
+ * Senklot spricht die Sprache einer Planzeichnung — nicht durch Bilder neben
+ * den Daten, sondern durch die Form der Bedienelemente selbst. Jeder Baustein
+ * hier ERSETZT ein Element, das es schon gab: der Plankopf den Seitenkopf mit
+ * Kennzahlzeile, das Statuszeichen den farbigen Punkt, der Achskreis den
+ * Gruppentitel, die Stückliste den grauen Tabellenkopf. Zusätzlich auf die
+ * Seite kommt nichts.
+ *
+ * Zwei Strichstärken: 1 px Hilfslinie (`--border-strong`), 1,5 px Kontur
+ * (`--accent-deep`, im dunklen Satz das helle Petrol der Blaupause). Farben
+ * nur aus den Grundwerten; Rot und Ocker nur, wo etwas zu tun ist. Neue
+ * Bausteine sind eckig, Knöpfe und Felder behalten ihren Radius.
+ *
+ * Es gelten die Regeln der Linie (Protokoll 0.2, geprüft in
+ * lotGrundwerte.test.ts): keine Positionsselektoren — Trennlinien zwischen
+ * Feldern kommen aus `+` oder aus dem Rand, den der Behälter abschneidet —,
+ * Medienabfragen nur auf die Breite, keine gestrichelten Linien, keine
+ * halbtransparenten Flächen.
+ */
+/*
+  DIE FORMEN DER STATUSZEICHEN als Masken (B3). Nur Form, keine Farbe — die
+  Farbe gibt `.stand-*` aus den Grundwerten, deshalb gelten sie hell und
+  dunkel gleich. Haken und Ausrufezeichen sind ausgespart, dort scheint der
+  Grund durch.
+*/
+:root {
+  --zeichen-offen: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='5' fill='none' stroke='black' stroke-width='1.3'/%3E%3C/svg%3E");
+  --zeichen-geplant: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath d='M7 1.8 L12.2 7 L7 12.2 L1.8 7 Z' fill='none' stroke='black' stroke-width='1.3' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --zeichen-arbeit: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='5' fill='none' stroke='black' stroke-width='1.3'/%3E%3Cpath d='M7 2 A5 5 0 0 1 7 12 Z' fill='black'/%3E%3C/svg%3E");
+  --zeichen-erledigt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cmask id='m'%3E%3Crect width='14' height='14' fill='white'/%3E%3Cpath d='M4.4 7.2 L6.2 9 L9.7 5.3' fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/mask%3E%3Ccircle cx='7' cy='7' r='5.6' fill='black' mask='url(%23m)'/%3E%3C/svg%3E");
+  --zeichen-achtung: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath d='M7 1.6 L12.8 12 H1.2 Z' fill='none' stroke='black' stroke-width='1.3' stroke-linejoin='round'/%3E%3Cpath d='M7 5.6 V8.4' stroke='black' stroke-width='1.3' stroke-linecap='round'/%3E%3Ccircle cx='7' cy='10.3' r='0.75' fill='black'/%3E%3C/svg%3E");
+  --zeichen-ueberfaellig: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cmask id='m'%3E%3Crect width='14' height='14' fill='white'/%3E%3Cpath d='M7 5.4 V8.4' stroke='black' stroke-width='1.4' stroke-linecap='round'/%3E%3Ccircle cx='7' cy='10.4' r='0.8' fill='black'/%3E%3C/mask%3E%3Cpath d='M7 1.2 L13.2 12.4 H0.8 Z' fill='black' stroke='black' stroke-width='1' stroke-linejoin='round' mask='url(%23m)'/%3E%3C/svg%3E");
+  --zeichen-storniert: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='5' fill='none' stroke='black' stroke-width='1.3'/%3E%3Cpath d='M3.6 10.4 L10.4 3.6' stroke='black' stroke-width='1.3'/%3E%3C/svg%3E");
+}
+@layer components {
+  /* ── Gemessenes in Mono (B12) ─────────────────────────────────────────── */
+  /*
+    NUMMERN, BETRÄGE, STUNDEN, MENGEN in IBM Plex Mono mit gleich breiten
+    Ziffern: untereinander stehen sie wie in einer Stückliste, und eine
+    Nummer liest sich als Nummer, nicht als Wort.
+  */
+  .mono { font-family: var(--schrift-mono); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+
+  /* ── B1 Plankopf mit Schriftfeld und Lineal ───────────────────────────── */
+  .plankopf { display: flex; flex-direction: column; min-width: 0; }
+  .seitenkopf-ort { font-size: 0.6875rem; line-height: 1rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); margin-bottom: 0.375rem; }
+  .seitenkopf h1 { font-size: 1.5rem; line-height: 1.15; font-weight: 500; letter-spacing: -0.005em; color: var(--ink-deep); }
+  @media (min-width: 760px) { .seitenkopf h1 { font-size: 1.875rem; line-height: 1.15; } }
+  .seitenkopf-meta { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); margin-top: 0.5rem; }
+  .plankopf-titel { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.25rem 0.875rem; }
+  .plankopf-titel > h1 { min-width: 0; overflow-wrap: anywhere; }
+  /* Die kleine Skizze neben dem Titel: nur am Handy, wo das Schriftfeld ohne Endfeld bricht. */
+  .plankopf-skizze-klein { display: none; }
+  /*
+    DAS SCHRIFTFELD: gleich breite Felder wie im Schriftfeld einer Zeichnung.
+    Oben eine Hilfslinie, unten die Kontur — dort hängt das Lineal. Die Linie
+    zwischen den Feldern hat JEDES Feld links; der Behälter rückt einen Pixel
+    nach links und schneidet die des ersten ab. So braucht es keinen
+    Positionsselektor, und beim Umbruch am Handy verschwindet auch die Linie
+    am Anfang jeder neuen Reihe.
+  */
+  .schriftfeld { display: flex; margin-top: 1.25rem; border-top: 1px solid var(--border-strong); border-bottom: 1px solid var(--accent-deep); overflow: hidden; }
+  .schriftfeld .lage-zeile { flex: 1; min-width: 0; display: flex; flex-wrap: nowrap; gap: 0; margin: 0 0 0 -1px; padding: 0; }
+  .schriftfeld .lage-punkt { flex: 1 1 0; min-width: 0; border-left: 1px solid var(--border-strong); }
+  .schriftfeld .lage-eintrag { display: flex; flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 0.0625rem; height: 100%; min-height: 0; padding: 0.625rem 1rem 0.6875rem; }
+  .schriftfeld a.lage-eintrag:hover { background: var(--surface-2); }
+  .schriftfeld .lage-name { font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .schriftfeld .lage-wert { font-family: var(--schrift-mono); font-size: 1.0625rem; line-height: 1.375rem; font-weight: 400; color: var(--text); font-variant-numeric: tabular-nums; }
+  .schriftfeld .lage-wert-rot { color: var(--danger); }
+  .schriftfeld .lage-wert-warn { color: var(--warning); }
+  .schriftfeld .lage-zusatz { font-size: 0.71875rem; line-height: 1rem; color: var(--text-muted); overflow-wrap: anywhere; }
+  .schriftfeld-skizze { flex: 0 0 8.75rem; display: flex; align-items: center; justify-content: center; padding: 0.375rem 0; border-left: 1px solid var(--border-strong); }
+  /*
+    DAS LINEAL unter dem Schriftfeld: ein kurzer Strich alle 8 px, ein langer
+    alle 40 px, in der Farbe der Hilfslinien. Zwei Verläufe übereinander, kein
+    Bild — so trägt es die dunkle Blaupause ohne eigene Fassung.
+  */
+  .lineal { height: 6px; background-image: linear-gradient(90deg, var(--border-strong) 1px, transparent 1px), linear-gradient(90deg, var(--border-strong) 1px, transparent 1px); background-size: 40px 6px, 8px 3px; background-repeat: repeat-x, repeat-x; background-position: 0 0, 0 0; }
+  /*
+    AM HANDY höchstens zwei Felder nebeneinander, weitere umbrechen; die
+    Skizze rückt klein neben den Titel. Die Linie über jeder neuen Reihe kommt
+    wie die zwischen den Feldern aus dem Feld selbst, oben abgeschnitten.
+  */
+  @media (max-width: 759px) {
+    .schriftfeld { margin-top: 1rem; }
+    .schriftfeld .lage-zeile { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: -1px 0 0 -1px; }
+    .schriftfeld .lage-punkt { border-top: 1px solid var(--border-strong); }
+    .schriftfeld .lage-eintrag { padding: 0.5rem 0.625rem 0.5625rem; }
+    .schriftfeld-skizze { display: none; }
+    .plankopf-skizze-klein { display: block; margin-left: auto; }
+  }
+
+  /* ── B2 Maßlinie ──────────────────────────────────────────────────────── */
+  /*
+    JEDE MENGE, DIE GEGEN EINE GRENZE LÄUFT, wird bemaßt: Grundlinie über die
+    ganze Breite, die Strecke bis zum Ist, Endmarken am Anfang und am Soll.
+    Was darüber geht, läuft rot über die Soll-Marke hinaus bis an eine eigene
+    Endmarke. Die Lage kommt aus der Komponente (`left`, `width` in Prozent).
+  */
+  .masslinie { position: relative; min-width: 7.5rem; height: 2.75rem; font-family: var(--schrift-mono); font-variant-numeric: tabular-nums; color: var(--text); }
+  .masslinie-schmal { height: 2rem; }
+  .masslinie-grund { position: absolute; left: 0; right: 0; top: 1.375rem; height: 1px; background: var(--border-strong); }
+  .masslinie-schmal .masslinie-grund { top: 0.875rem; }
+  .masslinie-strecke { position: absolute; left: 0; top: 1.3125rem; height: 3px; background: var(--accent-deep); }
+  .masslinie-schmal .masslinie-strecke { top: 0.8125rem; }
+  .masslinie-ueber { position: absolute; top: 1.3125rem; height: 3px; background: var(--danger); }
+  .masslinie-schmal .masslinie-ueber { top: 0.8125rem; }
+  /* Die Endmarke: ein senkrechter Strich und ein Schrägstrich unter 45°. */
+  .masslinie-marke { position: absolute; top: 1rem; width: 1px; height: 13px; background: var(--accent-deep); }
+  .masslinie-marke::after { content: ''; position: absolute; left: 0; top: 2px; width: 1px; height: 9px; background: var(--accent-deep); transform: rotate(45deg); }
+  .masslinie-schmal .masslinie-marke { top: 0.4375rem; }
+  .masslinie-marke-ende { margin-left: -1px; }
+  .masslinie-marke-rot { background: var(--danger); }
+  .masslinie-marke-rot::after { background: var(--danger); }
+  .masslinie-soll { position: absolute; top: 0; padding-right: 0.4375rem; font-size: 0.71875rem; line-height: 0.875rem; color: var(--text-muted); white-space: nowrap; transform: translateX(-100%); }
+  .masslinie-plus { position: absolute; top: 0; right: 0; font-size: 0.71875rem; line-height: 0.875rem; color: var(--danger); white-space: nowrap; }
+  .masslinie-ist { position: absolute; left: 0; top: 1.875rem; font-size: 0.75rem; line-height: 0.875rem; white-space: nowrap; }
+  .masslinie-schmal .masslinie-soll, .masslinie-schmal .masslinie-plus { top: -0.125rem; font-size: 0.6875rem; }
+  .masslinie-schmal .masslinie-ist { top: 1.3125rem; font-size: 0.6875rem; }
+  /* Eine Maßlinie mit Beschriftung links (Akte): Name, dann die Linie. */
+  .masslinie-zeile { display: grid; grid-template-columns: 10.5rem minmax(0, 1fr); align-items: start; gap: 0.5rem 1.5rem; padding: 0.5rem 0; }
+  .masslinie-name { padding-top: 0.875rem; font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); }
+  @media (max-width: 759px) {
+    .masslinie-zeile { grid-template-columns: minmax(0, 1fr); gap: 0.25rem; }
+    .masslinie-name { padding-top: 0; }
+  }
+
+  /* ── B2a Saldolinie ───────────────────────────────────────────────────── */
+  /* Um die Nulllinie: Minus wächst nach links in Ocker, Plus nach rechts in Petrol. */
+  .saldolinie { position: relative; display: inline-block; flex: none; width: 10rem; height: 1rem; vertical-align: middle; }
+  .saldolinie-grund { position: absolute; left: 0; right: 0; top: 0.5rem; height: 1px; background: var(--border-strong); }
+  .saldolinie-null { position: absolute; left: 5rem; top: 0.125rem; width: 1px; height: 0.75rem; background: var(--accent-deep); }
+  .saldolinie-minus { position: absolute; top: 0.375rem; height: 4px; background: var(--warning); }
+  .saldolinie-plus { position: absolute; left: 5rem; top: 0.375rem; height: 4px; background: var(--accent-deep); }
+
+  /* ── B3 Statuszeichen ─────────────────────────────────────────────────── */
+  /*
+    DER PUNKT VOR DEM STATUSWORT WIRD ZUM ZEICHEN wie im Plan: Raute geplant,
+    Kreis offen, halber Kreis in Arbeit, voller Kreis mit Haken erledigt,
+    Dreieck Achtung, gefülltes Dreieck überfällig, durchgestrichener Kreis
+    storniert. Die Form kommt als Maske, die Farbe aus den Grundwerten —
+    so gilt sie überall, wo bisher `.stand` stand, auch im dunklen Satz. Der
+    Text bleibt immer daneben; das Zeichen ist erzeugt und wird nicht
+    vorgelesen.
+  */
+  .stand { gap: 0.4375rem; }
+  .stand::before { content: ''; width: 14px; height: 14px; flex: none; border: 0; border-radius: 0; background: var(--accent-deep); -webkit-mask-image: var(--zeichen-offen); mask-image: var(--zeichen-offen); -webkit-mask-size: 14px 14px; mask-size: 14px 14px; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+  .stand-offen::before { width: 14px; height: 14px; border: 0; background: var(--accent-deep); -webkit-mask-image: var(--zeichen-offen); mask-image: var(--zeichen-offen); }
+  .stand-geplant::before { -webkit-mask-image: var(--zeichen-geplant); mask-image: var(--zeichen-geplant); }
+  .stand-ok::before, .stand-info::before { background: var(--accent-deep); -webkit-mask-image: var(--zeichen-arbeit); mask-image: var(--zeichen-arbeit); }
+  .stand-leise::before, .stand-erledigt::before { background: var(--accent-deep); -webkit-mask-image: var(--zeichen-erledigt); mask-image: var(--zeichen-erledigt); }
+  .stand-warn { font-weight: 500; }
+  .stand-warn::before { background: var(--warning); -webkit-mask-image: var(--zeichen-achtung); mask-image: var(--zeichen-achtung); }
+  .stand-fehl { font-weight: 500; }
+  .stand-fehl::before { background: var(--danger); -webkit-mask-image: var(--zeichen-ueberfaellig); mask-image: var(--zeichen-ueberfaellig); }
+  .stand-storniert { color: var(--text-muted); }
+  .stand-storniert::before { background: var(--text-muted); -webkit-mask-image: var(--zeichen-storniert); mask-image: var(--zeichen-storniert); }
+
+  /* ── B4 Lot ───────────────────────────────────────────────────────────── */
+  /*
+    DAS ZEICHEN DES NAMENS markiert „hier“ und „jetzt“: eine senkrechte Linie
+    mit Senkblei. Das Senkblei ist eine Raute aus `clip-path` — keine Grafik,
+    die im dunklen Satz eine zweite Fassung bräuchte.
+  */
+  .lot-zeichen { position: relative; display: inline-block; flex: none; width: 10px; height: 2.125rem; }
+  .lot-zeichen::before { content: ''; position: absolute; left: 4.5px; top: 0; width: 1px; height: 1.25rem; background: currentColor; }
+  .lot-zeichen::after { content: ''; position: absolute; left: 2px; top: 1.25rem; width: 6px; height: 10px; background: currentColor; clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%); }
+  /* Beim Laden pendelt das Lot zweimal aus; bei reduzierter Bewegung steht es still. */
+  .lot-pendel { color: var(--accent-deep); transform-origin: 50% 0; animation: lot-pendeln 600ms ease-in-out 2; }
+  @keyframes lot-pendeln { 0% { transform: rotate(0deg); } 25% { transform: rotate(12deg); } 75% { transform: rotate(-8deg); } 100% { transform: rotate(0deg); } }
+  @media (prefers-reduced-motion: reduce) { .lot-pendel { animation: none; } }
+
+  /*
+    DIE NAVIGATION: der aktive Punkt trägt das Lot statt einer gefüllten
+    Fläche — die Linie von oben, das Senkblei darunter, der Text weiß. Die
+    Gruppen tragen eine Linie bis zum Rand wie die Achsen im Plan.
+  */
+  .navi-punkt-aktiv { background: none; font-weight: 500; }
+  .navi-punkt-aktiv:hover { color: #ffffff; }
+  .navi-lot { display: none; }
+  .navi-punkt-aktiv .navi-lot { display: block; position: absolute; left: -0.375rem; top: 0; width: 10px; height: 2.125rem; }
+  .navi-punkt-aktiv .navi-lot::before { content: ''; position: absolute; left: 4.5px; top: 0; width: 1px; height: 1.25rem; background: var(--navi-text); }
+  .navi-punkt-aktiv .navi-lot::after { content: ''; position: absolute; left: 2px; top: 1.25rem; width: 6px; height: 10px; background: #ffffff; clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%); }
+  .navi .navi-symbol { width: 1.25rem; height: 1.25rem; }
+  @media (min-width: 1200px) {
+    .navi .navi-symbol { width: 1rem; height: 1rem; }
+    .navi-gruppe { display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0.625rem 0.375rem; font-size: 0.625rem; line-height: 1rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; color: var(--navi-gruppe); }
+    .navi-gruppe::after { content: ''; flex: 1; height: 1px; background: var(--navi-linie); }
+  }
+  /* Unten am Handy: das Lot über dem aktiven Symbol statt einer Einfärbung der Fläche. */
+  .unten-punkt, .unten-punkt-aktiv { padding-top: 0.75rem; }
+  .unten-punkt-aktiv { font-weight: 500; }
+  .unten-lot { display: none; }
+  .unten-punkt-aktiv .unten-lot { display: block; position: absolute; top: 0; left: 50%; width: 6px; height: 0.6875rem; margin-left: -3px; color: var(--accent-deep); }
+  .unten-punkt-aktiv .unten-lot::before { content: ''; position: absolute; left: 2.5px; top: 0; width: 1px; height: 0.25rem; background: currentColor; }
+  .unten-punkt-aktiv .unten-lot::after { content: ''; position: absolute; left: 0; top: 0.25rem; width: 6px; height: 0.4375rem; background: currentColor; clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%); }
+
+  /* ── B5 Gruppenkopf mit Achskreis ─────────────────────────────────────── */
+  /*
+    STATT „Dringend · 2“ die Zahl im Achskreis, der Titel in Versalien und
+    eine Achslinie bis zum Rand — wie die Achsen in einem Grundriss.
+  */
+  .abschnitt { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 1rem 1rem 0.5rem; border-top: 0; background: none; }
+  .abschnitt h2, .abschnitt h3 { display: flex; align-items: center; gap: 0.625rem; min-width: 0; font-size: 0.71875rem; line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text); }
+  .abschnitt-linie { flex: 1; min-width: 1rem; height: 1px; background: var(--border-strong); }
+  .abschnitt-kopf { display: flex; align-items: center; gap: 0.625rem; font-size: 0.71875rem; line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text); }
+  .achskreis { display: inline-flex; align-items: center; justify-content: center; flex: none; min-width: 1.375rem; height: 1.375rem; padding: 0 0.25rem; border: 1px solid var(--accent-deep); border-radius: 999px; font-family: var(--schrift-mono); font-size: 0.6875rem; line-height: 1; letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--text); font-variant-numeric: tabular-nums; }
+  .abschnitt .anzahl-text { letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--text-muted); }
+
+  /* ── B6 Stückliste ────────────────────────────────────────────────────── */
+  /* Der Kopf zwischen zwei Linien statt auf grauer Fläche; Zahlen in Mono, rechtsbündig. */
+  .tabelle th { text-align: left; padding-left: 1rem; padding-right: 1rem; white-space: nowrap; font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); background: none; border-top: 1px solid var(--accent-deep); border-bottom: 1px solid var(--border-strong); padding-top: 0.75rem; padding-bottom: 0.75rem; }
+  .tabelle td.r, .tabelle td.zahl { font-family: var(--schrift-mono); font-variant-numeric: tabular-nums; }
+  .tabelle td.pos { font-family: var(--schrift-mono); color: var(--text-muted); width: 3.5rem; }
+  /* Die Summe über einer Doppellinie wie im Plan. */
+  .tabelle .summe td { border-bottom: 0; font-weight: 500; }
+  .tabelle .summe td.r, .tabelle .summe td.zahl { border-top: 3px double var(--accent-deep); }
+
+  /* ── B7 Eckmarken ─────────────────────────────────────────────────────── */
+  /*
+    STATT GRAUER SEITENKÄSTEN vier Ecken wie Passermarken, je 14 px. Acht
+    Verläufe ohne eigene Grafik; die Fläche bleibt Grund.
+  */
+  .eckmarken { position: relative; padding: 1.25rem 1.375rem; background-color: transparent; background-image: linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)); background-repeat: no-repeat; background-size: 14px 1px, 1px 14px, 14px 1px, 1px 14px, 14px 1px, 1px 14px, 14px 1px, 1px 14px; background-position: left top, left top, right top, right top, left bottom, left bottom, right bottom, right bottom; border: 0; border-radius: 0; }
+
+  /* ── B8 Hinweislinie ──────────────────────────────────────────────────── */
+  /* Eine Notiz am Feld: Punkt, Linie mit Knick, der Satz daneben. */
+  .hinweislinie { display: flex; align-items: flex-start; gap: 0.25rem; margin-top: 0.375rem; font-size: 0.8125rem; line-height: 1.25rem; color: var(--warning); }
+  .hinweislinie-fehl { color: var(--danger); }
+  .hinweislinie-strich { flex: none; width: 2.25rem; height: 1.25rem; color: inherit; }
+
+  /* ── B10 Nummernstempel ───────────────────────────────────────────────── */
+  .stempel { display: inline-block; flex: none; padding: 0.0625rem 0.375rem; border: 1px solid var(--border-strong); font-family: var(--schrift-mono); font-size: 0.71875rem; line-height: 1.125rem; letter-spacing: 0.04em; font-weight: 400; color: var(--text); white-space: nowrap; vertical-align: middle; font-variant-numeric: tabular-nums; }
+  .stempel-gross { font-size: 0.8125rem; line-height: 1.375rem; padding: 0.0625rem 0.5rem; }
+
+  /* ── B11 Schraffur, Einsatzbalken, Maßkette ───────────────────────────── */
+  /* Abwesenheit wie eine geschnittene Wand: Diagonalen unter 135°, Abstand 6 px. */
+  .schraffur { background-color: var(--bg); background-image: repeating-linear-gradient(135deg, var(--border-strong) 0, var(--border-strong) 1px, var(--bg) 1px, var(--bg) 6px); border: 1px solid var(--border-strong); color: var(--text-muted); }
+  .masskette { position: relative; height: 2.75rem; margin-top: 0.5rem; font-family: var(--schrift-mono); font-variant-numeric: tabular-nums; }
+  .masskette-grund { position: absolute; left: 0; right: 0; top: 1.25rem; height: 1px; background: var(--accent-deep); }
+  .masskette-teil { position: absolute; top: 0; height: 1.25rem; font-size: 0.75rem; line-height: 1rem; text-align: center; color: var(--text); white-space: nowrap; }
+  .masskette-pause { position: absolute; top: 1rem; height: 0.5625rem; border: 1px solid var(--border-strong); background-color: var(--bg); background-image: repeating-linear-gradient(135deg, var(--border-strong) 0, var(--border-strong) 1px, var(--bg) 1px, var(--bg) 4px); }
+  .masskette-pause-text { color: var(--text-muted); }
+  .masskette-marke { position: absolute; top: 0.875rem; width: 1px; height: 13px; background: var(--accent-deep); }
+  .masskette-marke-ende { margin-left: -1px; }
+  .masskette-zeit { position: absolute; top: 1.875rem; font-size: 0.6875rem; line-height: 0.875rem; color: var(--text-muted); white-space: nowrap; }
+  .masskette-zeit-ende { transform: translateX(-100%); }
+
+  /* ── B12 Raster ───────────────────────────────────────────────────────── */
+  /* Nur drei Orte: Planungsfläche (16 px), Anmeldung, dunkle Hauptfläche (24 px). */
+  .raster { background-image: linear-gradient(var(--surface-2) 1px, transparent 1px), linear-gradient(90deg, var(--surface-2) 1px, transparent 1px); background-size: 16px 16px; }
+
+  /* ── B9 Modulskizze ───────────────────────────────────────────────────── */
+  /* Nach den Regeln der Zeichnungen (`.lot-zeichnung`); das Rohr ist ein Werkstück, kein Strich. */
+  .lot-skizze { display: block; flex: none; width: 6.75rem; height: auto; aspect-ratio: 96 / 64; }
+  .lot-skizze-klein { width: 4.5rem; }
+  .lot-skizze .griff { stroke-width: 2.4; }
+}
+
+/* Ab dem Tablet sitzen die Aktionen auf der Grundlinie des Titelblocks, wie im Plankopf. */
+@layer components {
+  @media (min-width: 760px) { .plankopf > .seitenkopf { align-items: flex-end; } }
+}

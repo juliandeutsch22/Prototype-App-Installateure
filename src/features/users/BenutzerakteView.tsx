@@ -519,7 +519,7 @@ function StammdatenLesen({ p, teil }: { p: AppUser; teil: 'profil' | 'arbeitszei
       )}
       <Angabe wort="Zustand">
         {p.active === false
-          ? <Zustand stand="ruht">deaktiviert</Zustand>
+          ? <Zustand stand="storniert">deaktiviert</Zustand>
           : <Zustand stand="gut">aktiv</Zustand>}
       </Angabe>
     </>}

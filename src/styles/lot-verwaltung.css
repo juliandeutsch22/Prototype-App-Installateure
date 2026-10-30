@@ -14,14 +14,14 @@
     des Browsers sähe sonst versteckte Felder und hielte das Absenden still
     an — siehe UserMgmtView).
   */
-  .weiteres-knopf { display: flex; align-items: center; min-height: 2.75rem; width: 100%; padding: 0; background: none; border: 0; border-top: 1px solid var(--border); font-weight: 600; color: var(--accent-deep); text-align: left; cursor: pointer; }
+  .weiteres-knopf { display: flex; align-items: center; min-height: 2.75rem; width: 100%; padding: 0; background: none; border: 0; border-top: 1px solid var(--border); font-weight: var(--gewicht-titel); color: var(--accent-deep); text-align: left; cursor: pointer; }
 
   /* ── Überblick einer Akte ─────────────────────────────────────────────── */
   /* Name links, Wert rechts — am Handy untereinander (wie `.kurz-kopf`). */
   .ueberblick { margin: 0; }
   .ueberblick-zeile { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.125rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); }
   @media (min-width: 760px) { .ueberblick-zeile { grid-template-columns: 10rem minmax(0, 1fr); gap: 1rem; } }
-  .ueberblick-name { font-size: 0.875rem; font-weight: 600; color: var(--ink-deep); }
+  .ueberblick-name { font-size: 0.875rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .ueberblick-wert { margin: 0; font-size: 0.9375rem; color: var(--text); min-width: 0; }
 
   /* ── Rechentabelle (Zuschläge) ────────────────────────────────────────── */
@@ -54,7 +54,7 @@
     .anmelde-karte { border-color: transparent; background: none; }
   }
   .anmelde-buehne-ort { margin-top: .5rem; font-size: .8125rem; color: var(--text-muted); }
-  .anmelde-buehne-satz { max-width: 26rem; margin-top: 1.5rem; font-size: 1.5rem; line-height: 2rem; font-weight: 600; color: var(--ink-deep); hyphens: manual; text-wrap: balance; }
+  .anmelde-buehne-satz { max-width: 26rem; margin-top: 1.5rem; font-size: 1.5rem; line-height: 2rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); hyphens: manual; text-wrap: balance; }
   .anmelde-buehne-fuss { font-size: .8125rem; color: var(--text-muted); }
   /* Die Grundlinie beginnt bei x = 18 von 240: so steht sie auf der Kante von Marke und Satz. */
   .lot-zeichnung-buehne { width: 26rem; max-width: 100%; translate: -7.5% 0; }

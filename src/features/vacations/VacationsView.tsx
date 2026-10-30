@@ -148,10 +148,10 @@ type AntragstellerStand =
   entschieden, zu tun bleibt nichts.
 */
 const STAND: Record<Vacation['status'], Stand> = {
-  Genehmigt: 'gut',
+  Genehmigt: 'erledigt',
   Beantragt: 'achtung',
-  Abgelehnt: 'ruht',
-  Storniert: 'ruht',
+  Abgelehnt: 'storniert',
+  Storniert: 'storniert',
 };
 
 /**

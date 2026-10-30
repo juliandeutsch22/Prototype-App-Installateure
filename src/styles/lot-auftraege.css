@@ -48,7 +48,7 @@
   /* ── Meine Baustellen (Monteur) ───────────────────────────────────────── */
   .mb-meta { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
   .mb-vorort { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
-  .mb-route { display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 3rem; margin-top: 0.75rem; padding: 0.5rem 1rem; border-radius: var(--radius); background: var(--brand); color: var(--brand-fg); font-weight: 600; text-decoration: none; }
+  .mb-route { display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 3rem; margin-top: 0.75rem; padding: 0.5rem 1rem; border-radius: var(--radius); background: var(--brand); color: var(--brand-fg); font-weight: var(--gewicht-titel); text-decoration: none; }
   .mb-route:hover { background: var(--petrol-tief); }
 }
 

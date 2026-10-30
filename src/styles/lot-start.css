@@ -15,10 +15,9 @@
 
 /* Nur die Startseite erhält den Tageskontext; Navigation und Fachansichten bleiben unverändert. */
 @layer components {
-  .start-kopf { display: flex; align-items: center; gap: 1.5rem; padding-bottom: 0.5rem; }
-  .start-kopf .seitenkopf { flex: 1; min-width: 0; }
+  .start-kopf { padding-bottom: 0.5rem; }
   .start-kopf .seitenkopf-meta { font-size: 0.75rem; line-height: 1.5rem; }
-  .start-hauptaktion { display: inline-flex; justify-content: center; align-items: center; min-height: 3rem; padding: 0.625rem 1.125rem; border-radius: var(--radius); background: var(--brand); color: var(--brand-fg); font-size: 0.875rem; font-weight: 600; text-align: center; }
+  .start-hauptaktion { display: inline-flex; justify-content: center; align-items: center; min-height: 3rem; padding: 0.625rem 1.125rem; border-radius: var(--radius); background: var(--brand); color: var(--brand-fg); font-size: 0.875rem; font-weight: var(--gewicht-titel); text-align: center; }
   .start-planaktion { display: none; flex: none; }
   .start-rahmen { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1.75rem; padding-top: 0.5rem; }
   .start-einspaltig { padding-top: 0.5rem; }
@@ -55,7 +54,7 @@
   .start-leer { padding: 1rem 0; }
   /* Die Abschlusszeichnung steht bündig über der Überschrift, nicht mittig — die Grundlinie (x = 18 von 240) auf der Textkante. */
   .start-leer .lot-zeichnung-leer { margin-left: 0; translate: -7.5% 0; }
-  .start-leer h2 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; }
+  .start-leer h2 { font-size: 1.25rem; line-height: 1.75rem; font-weight: var(--gewicht-titel); }
   .start-leer p { color: var(--text-muted); font-size: 0.875rem; line-height: 1.375rem; max-width: 32rem; margin-top: 0.5rem; }
   .start-einsatz { padding: 1rem 0; }
   .start-einsatz-kontakt { margin-top: 0.75rem; }

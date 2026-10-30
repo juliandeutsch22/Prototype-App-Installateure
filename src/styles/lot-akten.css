@@ -20,7 +20,7 @@
   .akten-seite .zeile-meta { display: block; overflow: visible; -webkit-line-clamp: unset; }
   .akten-bereiche { display: flex; align-items: stretch; gap: 1.5rem; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
   .akten-reiter { flex: none; white-space: nowrap; min-height: 3rem; padding: 0.625rem 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-muted); font-size: 0.875rem; text-align: left; cursor: pointer; }
-  .akten-reiter[aria-selected='true'] { border-bottom-color: var(--petrol); color: var(--ink-deep); font-weight: 600; }
+  .akten-reiter[aria-selected='true'] { border-bottom-color: var(--petrol); color: var(--ink-deep); font-weight: var(--gewicht-titel); }
   .akten-bereich { min-width: 0; }
   .akten-bereich[hidden] { display: none; }
   .akten-rahmen { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem; align-items: start; }
@@ -52,7 +52,7 @@
   .akten-termin-tag { font-size: 1.5rem; line-height: 2rem; font-weight: var(--gewicht-zahl); }
   .akten-termin-inhalt { min-width: 0; overflow-wrap: anywhere; }
   .akten-termin-zeit { font-size: 0.875rem; line-height: 1.5rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .akten-termin-art { font-size: 0.875rem; font-weight: 600; }
+  .akten-termin-art { font-size: 0.875rem; font-weight: var(--gewicht-titel); }
   .akten-stunden { border-top: 1px solid var(--border); margin-top: 0.5rem; padding: 0.875rem 0; font-size: 0.875rem; line-height: 1.5rem; }
   .akten-stunden-zahl { font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
   .akten-budgetlinie { display: block; width: 100%; height: 0.25rem; margin-block: 0.75rem; fill: currentColor; }
@@ -66,13 +66,13 @@
   .akten-editor .aktionsleiste { position: sticky; bottom: 0; margin: 1rem 0 0; padding: 0.75rem 0; border-top: 1px solid var(--border); background: var(--surface); }
   @media (min-width: 760px) { .akten-editor .aktionsleiste { bottom: -1.25rem; margin: 1rem -1.25rem -1.25rem; padding-inline: 1.25rem; } }
   .akten-editor-gruppe { border-top: 1px solid var(--border); padding: 1rem 0; }
-  .akten-editor-gruppe h3 { margin-bottom: 1rem; font-size: 0.875rem; line-height: 1.25rem; font-weight: 600; color: var(--ink-deep); }
+  .akten-editor-gruppe h3 { margin-bottom: 1rem; font-size: 0.875rem; line-height: 1.25rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .akten-editor .akte-griffe { padding-inline: 0; }
   .akten-baustellen, .akten-belege { list-style: none; margin: 0; padding: 0; }
   .akten-baustellenzeile { display: grid; grid-template-columns: 6rem minmax(0, 1fr) auto 1rem; align-items: center; gap: 0.75rem; min-height: 5.5rem; padding-block: 0.875rem; border-bottom: 1px solid var(--border); text-decoration: none; }
   .akten-zeile-nummer { color: var(--text-muted); font-size: 0.75rem; overflow-wrap: anywhere; }
   .akten-zeile-inhalt { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; overflow-wrap: anywhere; }
-  .akten-zeile-inhalt strong { font-size: 0.875rem; font-weight: 600; }
+  .akten-zeile-inhalt strong { font-size: 0.875rem; font-weight: var(--gewicht-titel); }
   .akten-zeile-inhalt > span { font-size: 0.75rem; color: var(--text-muted); }
   .akten-zeile-pfeil { color: var(--accent-deep); }
   .akten-belegzeile { display: grid; grid-template-columns: minmax(0, 1fr) 6.5rem auto; align-items: center; gap: 0.75rem; min-height: 4.5rem; padding-block: 0.875rem; border-bottom: 1px solid var(--border); text-decoration: none; }

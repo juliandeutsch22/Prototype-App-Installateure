@@ -12,10 +12,10 @@ import { NachweisWahl } from './FreistellungFormular';
 import { SonderurlaubFenster } from './AntragFenster';
 
 const STAND: Record<Freistellung['status'], Stand> = {
-  Bestätigt: 'gut',
+  Bestätigt: 'erledigt',
   Beantragt: 'achtung',
-  Abgelehnt: 'ruht',
-  Storniert: 'ruht',
+  Abgelehnt: 'storniert',
+  Storniert: 'storniert',
 };
 
 /**

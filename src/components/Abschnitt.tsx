@@ -1,6 +1,24 @@
 import type { ReactNode } from 'react';
 import Icon from './Icon';
 
+/*
+  DIE ZAHL IM ACHSKREIS (Planlinie B5, 30.10.2026): statt „Dringend · 2“ steht
+  die Zahl in einem Kreis vor dem Titel, wie die Achsbezeichnung eines
+  Grundrisses, und eine Achslinie läuft bis zum Rand. Nur eine kurze Zahl oder
+  ein Buchstabe passt in den Kreis; ein längerer Zusatz bleibt Text hinter
+  dem Titel.
+*/
+function Kopf({ titel, anzahl }: { titel: ReactNode; anzahl?: ReactNode }) {
+  const imKreis = typeof anzahl === 'number' || (typeof anzahl === 'string' && anzahl.length <= 3);
+  return (
+    <>
+      {imKreis && <><span className="achskreis">{anzahl}</span>{' '}</>}
+      <span>{titel}</span>
+      {anzahl != null && !imKreis && <span className="anzahl-text">· {anzahl}</span>}
+    </>
+  );
+}
+
 /**
  * Eine getönte Abschnittszeile INNERHALB einer Karte — statt einer Karte in
  * der Karte (Designlinie „Fassung 3", docs/design/linie.md § 7).
@@ -52,10 +70,10 @@ export default function Abschnitt({
               onClick={onUmschalten}
               className="flex min-h-touch w-full items-center gap-3 px-4 py-2 text-left"
             >
-              <span className="min-w-0 flex-1">
-                {titel}
-                {anzahl != null && <span className="anzahl">· {anzahl}</span>}
+              <span className="abschnitt-kopf min-w-0">
+                <Kopf titel={titel} anzahl={anzahl} />
               </span>
+              <span className="abschnitt-linie" aria-hidden="true" />
               {link}
               <Icon
                 name="chevron"
@@ -73,9 +91,9 @@ export default function Abschnitt({
     <>
       <div className="abschnitt">
         <h3>
-          {titel}
-          {anzahl != null && <span className="anzahl">· {anzahl}</span>}
+          <Kopf titel={titel} anzahl={anzahl} />
         </h3>
+        <span className="abschnitt-linie" aria-hidden="true" />
         {link}
       </div>
       {children}

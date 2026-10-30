@@ -18,8 +18,9 @@ const STATUS_STAND: Record<string, Stand> = {
   // Bestell-Status
   Offen: 'offen',
   'In Bearbeitung': 'laeuft',
-  Abholbereit: 'laeuft',
+  Abholbereit: 'erledigt',
   Erledigt: 'ruht',
+  // Abholbereit ist für den Monteur erledigt: das Material liegt da (Planlinie).
   // Rechnungs-Status
   Überfällig: 'schlecht',
   /*
@@ -31,7 +32,7 @@ const STATUS_STAND: Record<string, Stand> = {
   Teilbezahlt: 'laeuft',
   Bezahlt: 'ruht',
   Überzahlt: 'achtung',
-  Storniert: 'ruht',
+  Storniert: 'storniert',
   // Baustellen-Status
   Aktiv: 'laeuft',
   Pausiert: 'achtung',

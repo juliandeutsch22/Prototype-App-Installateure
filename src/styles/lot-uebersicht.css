@@ -32,7 +32,7 @@
   .ue-titel { display: flex; flex-direction: column; align-items: center; min-height: 2.75rem; min-width: 10rem; padding: 0.125rem 0.5rem; background: none; border: 0; border-radius: var(--radius); color: var(--text); text-align: center; cursor: pointer; }
   @media (min-width: 760px) { .ue-titel { align-items: flex-start; text-align: left; } }
   .ue-titel:hover { background: var(--petrol-hell); }
-  .ue-titel-gross { font-size: 1rem; line-height: 1.5rem; font-weight: 600; color: var(--ink-deep); }
+  .ue-titel-gross { font-size: 1rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .ue-titel-klein { font-size: 0.75rem; line-height: 1.125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .ue-suche { flex: 1 1 10rem; min-width: 0; min-height: 2.75rem; padding: 0 0.75rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 1rem; }
   .ue-suche:focus { outline: 2px solid var(--petrol); outline-offset: -1px; border-color: var(--petrol); }
@@ -80,7 +80,7 @@
     .ue-kopf-person { display: block; }
     .ue-kopf-zahl { display: block; white-space: normal; overflow-wrap: normal; hyphens: manual; -webkit-hyphens: manual; }
   }
-  .ue-gruppe { margin: 0; padding: 0.625rem 1rem; background: var(--bg); color: var(--text-muted); border-top: 1px solid var(--border); font-size: 0.8125rem; line-height: 1.125rem; font-weight: 600; }
+  .ue-gruppe { margin: 0; padding: 0.625rem 1rem; background: var(--bg); color: var(--text-muted); border-top: 1px solid var(--border); font-size: 0.8125rem; line-height: 1.125rem; font-weight: var(--gewicht-titel); }
   @media (min-width: 1200px) { .ue-gruppe { padding: 0.625rem 1.25rem; } }
 
   /* Am Handy eine Karte je Person: Name, darunter der Streifen in voller Breite, darunter drei Zahlen. */
@@ -97,9 +97,9 @@
 
   .ue-person { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0; background: none; border: 0; color: var(--text); text-align: left; cursor: pointer; }
   @media (min-width: 760px) { .ue-person { grid-column: auto; } }
-  .ue-name { display: block; max-width: 100%; font-weight: 600; color: var(--ink-deep); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ue-name { display: block; max-width: 100%; font-weight: var(--gewicht-titel); color: var(--ink-deep); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ue-status { display: block; max-width: 100%; font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
-  .ue-status-achtung { display: block; max-width: 100%; font-size: 0.8125rem; line-height: 1.125rem; font-weight: 600; color: var(--warning); }
+  .ue-status-achtung { display: block; max-width: 100%; font-size: 0.8125rem; line-height: 1.125rem; font-weight: var(--gewicht-titel); color: var(--warning); }
   .ue-buchungen { display: contents; }
   .ue-zahl { margin: 0; font-weight: var(--gewicht-zahl); font-size: 0.875rem; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .ue-zahl-stark { margin: 0; font-size: 0.875rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -152,7 +152,7 @@
   */
   .st-kopf { font-size: 0.75rem; line-height: 1rem; color: transparent; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
   .st-kopf-mo { font-size: 0.75rem; line-height: 1rem; text-align: left; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: visible; }
-  .st-kopf-heute { font-size: 0.75rem; line-height: 1rem; text-align: center; color: var(--accent-deep); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: visible; box-shadow: inset 0 -2px 0 var(--petrol); }
+  .st-kopf-heute { font-size: 0.75rem; line-height: 1rem; text-align: center; color: var(--accent-deep); font-weight: var(--gewicht-titel); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: visible; box-shadow: inset 0 -2px 0 var(--petrol); }
 
   /* Die Felder der Legende und der Musterseite: dieselben Farben, kein Knopf. */
   .leg-ok { display: inline-block; flex: none; width: 0.75rem; height: 0.75rem; border-radius: 2px; background: var(--petrol); }
@@ -167,10 +167,10 @@
   @media (min-width: 760px) { .mw-tage { grid-column: auto; gap: 4px; } }
   @media (min-width: 1200px) { .mw-tage { gap: 4px; } }
   .mw-kopf { font-size: 0.8125rem; line-height: 1.125rem; text-align: center; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-  .mw-kopf-heute { font-size: 0.8125rem; line-height: 1.125rem; text-align: center; color: var(--accent-deep); font-weight: 600; font-variant-numeric: tabular-nums; box-shadow: inset 0 -2px 0 var(--petrol); }
+  .mw-kopf-heute { font-size: 0.8125rem; line-height: 1.125rem; text-align: center; color: var(--accent-deep); font-weight: var(--gewicht-titel); font-variant-numeric: tabular-nums; box-shadow: inset 0 -2px 0 var(--petrol); }
   .mw-zelle { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--petrol-hell); color: var(--text); font-size: 0.75rem; line-height: 1.2; text-align: center; cursor: pointer; }
   .mw-zelle-grenze { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--petrol-hell); color: var(--text); font-size: 0.75rem; line-height: 1.2; text-align: center; cursor: pointer; box-shadow: inset 0 -3px 0 var(--danger); }
-  .mw-zelle-fehlt { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--warning-bg); color: var(--warning); font-size: 0.75rem; line-height: 1.2; font-weight: 600; text-align: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--warning); }
+  .mw-zelle-fehlt { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--warning-bg); color: var(--warning); font-size: 0.75rem; line-height: 1.2; font-weight: var(--gewicht-titel); text-align: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--warning); }
   .mw-zelle-weg { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--abwesend); color: var(--text-muted); font-size: 0.75rem; line-height: 1.2; text-align: center; overflow-wrap: break-word; hyphens: auto; cursor: pointer; }
   .mw-zelle-frei { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border-radius: 6px; background: var(--bg); color: var(--text-muted); font-size: 0.75rem; line-height: 1.2; text-align: center; }
   .mw-zelle-zukunft { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--surface); color: var(--text-muted); font-size: 0.75rem; line-height: 1.2; text-align: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--border); }
@@ -186,7 +186,7 @@
   .mw-zelle-zukunft:hover { box-shadow: inset 0 0 0 1px var(--petrol); }
   .mw-zelle-weg:hover { outline: 1px solid var(--petrol); outline-offset: -1px; }
   /* Die Stunden umbrechen nie („10:4 / 5“ war der Befund) — `nowrap` und eine Schrift, die passt. */
-  .mw-std { display: block; font-size: 0.8125rem; font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mw-std { display: block; font-size: 0.8125rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   @media (min-width: 760px) { .mw-std { font-size: 0.9375rem; } }
   /* Von–Bis nur am Schreibtisch; am Tablet und Handy steht es im Seitenfenster (Auftrag 3.4). */
   .mw-von { display: none; }
@@ -202,7 +202,7 @@
   /* ── Arbeitszeitgrenzen als Arbeitsliste (Auftrag 3.2, Punkt 5) ─────── */
   .grenz-fall { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.75rem 1rem; font-size: 0.875rem; line-height: 1.375rem; }
   .grenz-inhalt { flex: 1 1 16rem; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }
-  .grenz-person { font-weight: 600; color: var(--ink-deep); }
+  .grenz-person { font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   /*
     DARF SCHMALER WERDEN ALS SEIN INHALT (Stand 18, K3): mit `flex: none`
     blieb er so breit wie alle Korrigieren-Knöpfe nebeneinander, die Zeile
@@ -211,8 +211,8 @@
   */
   .grenz-rechts { flex: 0 1 auto; min-width: 0; max-width: 100%; display: flex; align-items: center; }
   .grenz-verstoss-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
-  .grenz-verstoss { font-weight: 600; color: var(--danger); }
-  .grenz-schritt { flex: none; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); color: var(--accent-deep); border: 1px solid var(--petrol); border-radius: var(--radius); font-weight: 600; font-size: 0.875rem; white-space: nowrap; cursor: pointer; }
+  .grenz-verstoss { font-weight: var(--gewicht-titel); color: var(--danger); }
+  .grenz-schritt { flex: none; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); color: var(--accent-deep); border: 1px solid var(--petrol); border-radius: var(--radius); font-weight: var(--gewicht-titel); font-size: 0.875rem; white-space: nowrap; cursor: pointer; }
   .grenz-schritt:hover { background: var(--petrol-hell); }
 
   /* ── Seitenfenster „Person im Monat“ (Auftrag 3.5) ───────────────────── */
@@ -227,8 +227,8 @@
   .pf-kontodetails { margin-top: 1rem; border-top: 1px solid var(--border); padding-bottom: 0.5rem; }
   .pf-kontodetails summary { min-height: 2.75rem; padding-block: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); cursor: pointer; }
   .pf-fehltage, .pf-fehltage-offen { margin-top: 1rem; }
-  .pf-fehltage-titel { display: none; margin: 1.25rem 0 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--ink-deep); }
-  .pf-fehltage-schalter { background: var(--surface); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 3.25rem; border-block: 1px solid var(--border); text-align: left; font-size: 0.8125rem; font-weight: 600; color: var(--ink-deep); }
+  .pf-fehltage-titel { display: none; margin: 1.25rem 0 0.5rem; font-size: 0.9375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
+  .pf-fehltage-schalter { background: var(--surface); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 3.25rem; border-block: 1px solid var(--border); text-align: left; font-size: 0.8125rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .pf-fehltage-aktion { flex: none; font-size: 0.75rem; font-weight: 400; color: var(--accent-deep); }
   .pf-fehltage-liste { margin: 0; padding: 0; list-style: none; }
   .pf-fehltage .pf-fehltage-liste { display: none; }
@@ -239,14 +239,14 @@
   }
   .pf-text { margin-top: 0.75rem; font-size: 0.875rem; line-height: 1.375rem; color: var(--text-muted); }
   .pf-text-klein { margin-top: 0.5rem; font-size: 0.75rem; line-height: 1.125rem; color: var(--text-muted); }
-  .pf-abschnitt { margin: 1.25rem 0 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--ink-deep); }
+  .pf-abschnitt { margin: 1.25rem 0 0.5rem; font-size: 0.9375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .pf-liste { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--border); }
   .pf-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.625rem 0.25rem; border-bottom: 1px solid var(--border); }
   /* Der Tag, über den das Fenster geöffnet wurde: Petrol-hell mit 3 px Petrol links. */
   .pf-zeile-markiert { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.625rem 0.25rem 0.625rem 0.75rem; border-bottom: 1px solid var(--border); background: var(--petrol-hell); box-shadow: inset 3px 0 0 var(--petrol); }
   .pf-zeile-text { flex: 1 1 10rem; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
   .pf-zeile-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; }
-  .pf-zeile-titel { font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pf-zeile-titel { font-weight: var(--gewicht-titel); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pf-zeile-info { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .pf-zeile-wert { flex: none; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pf-aktionen { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.25rem; margin-left: auto; }

@@ -37,7 +37,7 @@
     so lesen sich die vier Teile als ein Block statt als lose Stücke.
   */
   .lot-erstnutzung { display: flex; flex-direction: column; align-items: center; max-width: 34rem; margin: 0 auto; padding: 3.5rem 1rem 4rem; text-align: center; }
-  .lot-erstnutzung h2 { font-size: 1.375rem; line-height: 1.875rem; font-weight: 600; color: var(--ink-deep); text-wrap: balance; hyphens: manual; }
+  .lot-erstnutzung h2 { font-size: 1.375rem; line-height: 1.875rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); text-wrap: balance; hyphens: manual; }
   .lot-erstnutzung p { max-width: 40ch; margin-top: .5rem; font-size: .9375rem; line-height: 1.5rem; color: var(--text-muted); text-wrap: pretty; hyphens: manual; }
   .lot-erstnutzung .lot-naechster-schritt { margin-top: 1.5rem; }
   .lot-naechster-schritt { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; }
@@ -83,7 +83,7 @@
     /* Die Grundlinie beginnt bei x = 18 von 240: verschoben steht sie auf der Textkante. */
     .lot-einrichtung .lot-zeichnung-hinweis { width: 6rem; margin-top: 0; translate: -7.5% 0; }
   }
-  .lot-einrichtung b { display: block; color: var(--ink-deep); font-weight: 600; }
+  .lot-einrichtung b { display: block; color: var(--ink-deep); font-weight: var(--gewicht-titel); }
   /*
     DIE ABLAGE (`DokumentAblage`): eine ruhige Fläche mit durchgezogener
     Linie — gestrichelt gibt es in der Linie nicht. Zieht man Dateien
@@ -107,10 +107,10 @@
     .lot-ablage[data-gefuellt] .lot-ablage-text p { grid-column: 1; margin: 0; max-width: none; text-wrap: pretty; }
     .lot-ablage[data-gefuellt] .lot-ablage-text > button { grid-column: 2; grid-row: 1 / span 2; }
   }
-  .lot-ablage-text h3 { font-size: 1rem; line-height: 1.5rem; font-weight: 600; color: var(--ink-deep); }
+  .lot-ablage-text h3 { font-size: 1rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .lot-ablage-text p { max-width: 34ch; margin: .25rem auto 1rem; font-size: .8125rem; line-height: 1.25rem; color: var(--text-muted); hyphens: manual; text-wrap: balance; }
   .lot-ablage-grob { display: none; }
-  .lot-ablage-titel { font-size: .875rem; line-height: 1.5rem; font-weight: 600; margin-bottom: .25rem; }
+  .lot-ablage-titel { font-size: .875rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); margin-bottom: .25rem; }
   .lot-ablage-liste > li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .625rem 0; border-bottom: 1px solid var(--border); }
   .lot-ablage-liste { border-top: 1px solid var(--border); }
   .lot-ablage-entfernen { flex: none; white-space: nowrap; }

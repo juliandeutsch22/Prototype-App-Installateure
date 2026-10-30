@@ -8,7 +8,7 @@
 @layer components {
   .rechnung-leseansicht { display: flex; flex-direction: column; gap: 1.5rem; }
   .rechnung-lesegruppe { min-width: 0; border-top: 1px solid var(--border); padding-top: 1rem; }
-  .rechnung-lesetitel { margin-bottom: 0.75rem; font-size: 0.9375rem; font-weight: 600; color: var(--ink-deep); }
+  .rechnung-lesetitel { margin-bottom: 0.75rem; font-size: 0.9375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .rechnung-lesegruppe td, .rechnung-lesegruppe th { padding-block: 0.625rem; overflow-wrap: anywhere; }
   .rechnung-lesegruppe dd { min-width: 0; overflow-wrap: anywhere; }
 
@@ -51,7 +51,7 @@
     Zahlenfelder daneben; die Höhe darüber setzt `WachsendesTextfeld`.
   */
   .position-bezeichnung { display: block; width: 100%; min-width: 10rem; padding-block: 0.6875rem; line-height: 1.25rem; resize: none; overflow: hidden; }
-  .position-titel { display: block; width: 100%; min-width: 10rem; padding-block: 0.6875rem; line-height: 1.25rem; resize: none; overflow: hidden; font-weight: 600; }
+  .position-titel { display: block; width: 100%; min-width: 10rem; padding-block: 0.6875rem; line-height: 1.25rem; resize: none; overflow: hidden; font-weight: var(--gewicht-titel); }
   .position-textzeile { display: block; width: 100%; min-width: 10rem; padding-block: 0.6875rem; line-height: 1.25rem; resize: none; overflow: hidden; color: var(--text-muted); }
   .position-menge { width: 6rem; text-align: right; }
   /* „Pauschale“ passt ganz hinein — bei 5rem stand „Pauscha…“ (G1, Teil B). */

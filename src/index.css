@@ -13,6 +13,7 @@
 @import './styles/lot-akten.css';
 @import './styles/lot-plattform.css';
 @import './styles/lot-feinschliff.css';
+@import './styles/lot-planlinie.css';
 
 @tailwind base;
 @tailwind components;
@@ -66,6 +67,10 @@
   --surface-2: #f3f6f6;
   --surface-3: #e9eeef;
   --gewicht-zahl: 500;
+  /* Titel und Hervorhebungen: Poppins 500 (Planlinie, E30); 600 trägt nur noch der Firmenname. */
+  --gewicht-titel: 500;
+  /* Alles Gemessene — Nummern, Beträge, Stunden, Mengen — in IBM Plex Mono (Planlinie, E30). */
+  --schrift-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --text: #13262c;
   /* 5,4:1 auf Weiss, 5,0:1 auf Papier — AA für Fliesstext. */
   --text-muted: #5a6d72;
@@ -272,7 +277,7 @@ h4 {
 /* Zwei Stärken, 400 und 600 (Linie „Lot“): auch <b> und <strong> bleiben halbfett. */
 b,
 strong {
-  font-weight: 600;
+  font-weight: var(--gewicht-titel);
 }
 
 /* Sichtbarer Tastatur-Fokus (Barrierearmut, Büro/Desktop) */
@@ -494,7 +499,7 @@ textarea:focus {
   gap: 0.5rem;
   font-size: 1rem;
   line-height: 1.5rem;
-  font-weight: 600;
+  font-weight: var(--gewicht-titel);
   color: var(--ink-deep);
 }
 
@@ -525,7 +530,7 @@ textarea:focus {
      „8 Stk"), und kleiner war es am Telefon kaum lesbar (Prüflauf
      24.09.2026, D2). */
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: var(--gewicht-titel);
   color: var(--text-muted);
 }
 
@@ -690,7 +695,7 @@ textarea {
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--ink-deep);
-  font-weight: 600;
+  font-weight: var(--gewicht-titel);
   box-shadow: var(--shadow);
 }
 .sprunglink:focus { top: 0.75rem; }
@@ -725,7 +730,7 @@ textarea {
   .link-weiter,
   .link-hinweis,
   .link-hinweis-weiter {
-    font-weight: 600;
+    font-weight: var(--gewicht-titel);
     text-decoration: none;
     text-underline-offset: 3px;
   }
@@ -817,21 +822,17 @@ textarea {
     .seitenkopf { flex-wrap: wrap; gap: 0.25rem 1rem; }
     .seitenkopf > .min-w-0 { flex: 1 1 18rem; }
   }
-  .seitenkopf h1 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; color: var(--ink-deep); }
-  @media (min-width: 760px) { .seitenkopf h1 { font-size: 1.875rem; line-height: 2.5rem; } }
-  .seitenkopf-ort { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); margin-bottom: 0.125rem; }
-  .seitenkopf-meta { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); margin-top: 0.25rem; }
+  /* Titel, Ortszeile und Meta des Seitenkopfs: Plankopf in lot-planlinie.css (E30). */
   .seitenkopf-rechts { display: flex; gap: 0.25rem 0.5rem; align-items: center; flex: none; flex-wrap: wrap; justify-content: flex-end; }
   /* Gleich groß und still wie das ⋯ daneben (`RowMenu`): 44 px Tastfläche, grau, beim Zeigen eine leise Fläche. */
   .seitenkopf-hilfe { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0; background: none; border: 0; border-radius: var(--radius); color: var(--text-muted); cursor: pointer; }
   .seitenkopf-hilfe:hover { color: var(--text); background: var(--surface-2); }
   .karte-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; }
-  .karte-kopf h2 { font-size: 1rem; line-height: 1.375rem; font-weight: 600; color: var(--ink-deep); }
+  .karte-kopf h2 { font-size: 1rem; line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .anzahl { color: var(--text-muted); font-weight: 400; margin-left: 0.375rem; }
   .karte-koerper { padding: 0 1rem 1rem; }
   .karte-fuss { border-top: 1px solid var(--border); padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; }
-  .abschnitt { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem 0.5rem; border-top: 1px solid var(--border); background: var(--surface); }
-  .abschnitt h2, .abschnitt h3 { font-size: 0.8125rem; line-height: 1.25rem; font-weight: 600; color: var(--text-muted); }
+  /* Der Gruppenkopf (Achskreis, Achslinie) steht in lot-planlinie.css (E30). */
   .abschnitt + ul > .zeile:first-child, .abschnitt + div > ul > .zeile:first-child { border-top: 1px solid var(--border); }
   .karte-koerper > .abschnitt { margin-inline: -1rem; }
   .karte-buendig > .abschnitt:first-child { border-top: 0; }
@@ -868,13 +869,15 @@ textarea {
   .zeile-ziel:focus-visible { outline: none; }
   .zeile-ganz:focus-within { outline: 3px solid var(--brand-fixed); outline-offset: -3px; }
   .zeile-text { flex: 1; min-width: 0; }
-  .zeile-titel { font-size: 0.9375rem; line-height: 1.375rem; font-weight: 600; color: var(--ink-deep); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .zeile-titel { font-size: 0.9375rem; line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .zeile-meta { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .zeile-wert { font-size: 0.9375rem; font-weight: var(--gewicht-zahl); white-space: nowrap; text-align: right; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
+  /* Beträge, Stunden, Mengen in Mono (Planlinie B12): gleich breite Ziffern fluchten untereinander. */
+  .zeile-wert { font-size: 0.9375rem; font-weight: 400; font-family: var(--schrift-mono); white-space: nowrap; text-align: right; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
   .zeile-wert small { display: block; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); }
   .zeile-pfeil { color: var(--text-muted); flex: none; width: 1rem; height: 1rem; }
   /* Die Nummer grau neben dem fetten Namen, ohne Klammer, nie umgebrochen (Design-Entwurf, Punkt 3). */
-  .zeile-nr { font-weight: 400; color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  /* Die Nummer neben dem Namen als Nummernstempel (Planlinie B10): Mono, gesperrt, feiner Rahmen. */
+  .zeile-nr { font-weight: 400; color: var(--text); white-space: nowrap; font-variant-numeric: tabular-nums; font-family: var(--schrift-mono); font-size: 0.71875rem; line-height: 1.125rem; letter-spacing: 0.04em; padding: 0.0625rem 0.375rem; border: 1px solid var(--border-strong); vertical-align: 1px; }
   /*
     Der Zustand in einer festen Spalte: ab dem Tablet gleich breit in jeder
     Zeile, damit Punkt und Wort untereinander fluchten und die Beträge
@@ -891,25 +894,18 @@ textarea {
     reicht ohnehin nicht.
   */
   .stand { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 1.375rem; font-size: 0.8125rem; font-weight: 400; white-space: nowrap; color: var(--text); }
-  .stand::before { content: ''; width: 8px; height: 8px; border-radius: 999px; background: var(--border-strong); flex: none; }
-  .stand-offen::before { background: transparent; border: 2px solid var(--text-muted); width: 9px; height: 9px; }
-  .stand-ok::before, .stand-info::before { background: var(--petrol); }
+  /* Das Zeichen vor dem Wort (Statuszeichen, Planlinie B3) steht in lot-planlinie.css (E30). */
   .stand-leise { color: var(--text-muted); }
-  .stand-leise::before { background: var(--border-strong); }
-  .stand-warn { font-weight: 600; }
-  .stand-warn::before { background: var(--warning); }
-  .stand-fehl { font-weight: 600; }
-  .stand-fehl::before { background: var(--danger); }
   .hinweiszeile { display: flex; gap: 0.625rem; align-items: flex-start; padding: 0.125rem 0.25rem; font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
   .hinweiszeile svg { width: 1rem; height: 1rem; flex: none; margin-top: 2px; }
-  .hinweiszeile b, .hinweiszeile strong { font-weight: 600; color: var(--ink-deep); }
+  .hinweiszeile b, .hinweiszeile strong { font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .hinweiszeile-warn svg { color: var(--warning); }
   .hinweiszeile-fehl svg { color: var(--danger); }
-  .hinweiszeile a { text-decoration: underline; text-underline-offset: 3px; font-weight: 600; color: var(--ink-deep); }
+  .hinweiszeile a { text-decoration: underline; text-underline-offset: 3px; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .aktionsleiste { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; background: var(--surface); border-top: 1px solid var(--border); padding: 0.625rem 1rem 0.75rem; margin: 0 -1rem; }
   @media (min-width: 760px) { .aktionsleiste { margin: 0 -1.5rem; padding-inline: 1.5rem; } }
   .aktionsleiste-summe { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.5rem; }
-  .aktionsleiste-summe b { color: var(--ink-deep); font-size: 0.9375rem; font-weight: 600; }
+  .aktionsleiste-summe b { color: var(--ink-deep); font-size: 0.9375rem; font-weight: var(--gewicht-titel); }
   .aktionsleiste-knoepfe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 0.5rem; }
   .aktionsleiste-knoepfe > :only-child { grid-column: 1 / -1; }
   /* „Abbrechen“ brach bei 390 px als „Abbreche|n“ um; ein Knopf trägt ein Wort. */
@@ -927,16 +923,16 @@ textarea {
   .schritt i { display: block; height: 3px; border-radius: 2px; background: var(--border); margin-bottom: 0.375rem; }
   .schritt-fertig i { background: var(--border-strong); }
   .schritt-jetzt i { background: var(--petrol); }
-  .schritt-jetzt { color: var(--ink-deep); font-weight: 600; }
+  .schritt-jetzt { color: var(--ink-deep); font-weight: var(--gewicht-titel); }
   .suche { display: flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; padding: 0 0.75rem; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border-strong); font-size: 0.9375rem; flex: 1; }
   .chips { display: flex; flex-wrap: wrap; column-gap: 1rem; }
   .chip { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.75rem; padding: 0 0.125rem; border-bottom: 2px solid transparent; background: none; font-size: 0.875rem; font-weight: 400; color: var(--text-muted); white-space: nowrap; }
-  .chip-an { color: var(--ink-deep); font-weight: 600; border-bottom-color: var(--petrol); }
+  .chip-an { color: var(--ink-deep); font-weight: var(--gewicht-titel); border-bottom-color: var(--petrol); }
   /* Ansichten und Filter tragen dieselbe ruhige Unterstreichung wie die Register. */
   .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0.75rem; border-bottom: 1px solid var(--border); background: var(--surface); }
   .segment > * { display: flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 0.375rem; text-align: center; hyphens: auto; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); border-bottom: 2px solid transparent; }
   @media (min-width: 760px) { .segment > * { padding: 0 0.625rem; } }
-  .segment > .segment-an { color: var(--ink-deep); border-bottom-color: var(--petrol); font-weight: 600; }
+  .segment > .segment-an { color: var(--ink-deep); border-bottom-color: var(--petrol); font-weight: var(--gewicht-titel); }
 
   /*
     EIN ROLLBEHÄLTER IST BEZUGSRAHMEN. Eine `sr-only`-Beschriftung im Kopf
@@ -946,7 +942,7 @@ textarea {
   */
   .overflow-x-auto { position: relative; }
   .tabelle { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-  .tabelle th { font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-align: left; padding: 0.625rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface); white-space: nowrap; }
+  /* Der Tabellenkopf als Stückliste (Planlinie B6) steht in lot-planlinie.css (E30). */
   .tabelle td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
   .tabelle tr:last-child td { border-bottom: 0; }
   .tabelle .r { text-align: right; }
@@ -955,7 +951,7 @@ textarea {
   @media (min-width: 1200px) { .zwei-spalten { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 1.5rem; } }
   .spalte { display: flex; flex-direction: column; gap: 1rem; }
   @media (min-width: 1200px) { .spalte { gap: 1.5rem; } }
-  .link-still { color: var(--ink-deep); font-weight: 600; font-size: 0.875rem; text-decoration: none; }
+  .link-still { color: var(--ink-deep); font-weight: var(--gewicht-titel); font-size: 0.875rem; text-decoration: none; }
   .karte-kopf .link-still, .karte-fuss .link-still, .abschnitt .link-still, .textlinks .link-still { color: var(--accent-deep); }
   .link-still-weiter::after { content: '\00a0›'; }
   .link-still:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -964,8 +960,8 @@ textarea {
 
 /* ── Startseite (Nachtest 01.10.2026, Paket B) ──────────────────────────── */
 @layer components {
-  .start-abschnitt { padding: 0.75rem 1rem 0.5rem; font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); background: var(--surface); border-bottom: 1px solid var(--border); }
-  .start-weiter { display: flex; align-items: center; min-height: 2.75rem; padding: 0.5rem 1rem; border-top: 1px solid var(--border); font-size: 0.875rem; font-weight: 600; color: var(--accent-deep); }
+  .start-abschnitt { padding: 0.75rem 1rem 0.5rem; font-size: 0.8125rem; font-weight: var(--gewicht-titel); color: var(--text-muted); background: var(--surface); border-bottom: 1px solid var(--border); }
+  .start-weiter { display: flex; align-items: center; min-height: 2.75rem; padding: 0.5rem 1rem; border-top: 1px solid var(--border); font-size: 0.875rem; font-weight: var(--gewicht-titel); color: var(--accent-deep); }
   .start-weiter:hover { background: var(--petrol-hell); }
   /* Status: in schmalen Karten vorn in der Detailzeile, in breiten rechts. */
   .start-status-rechts { display: none; }

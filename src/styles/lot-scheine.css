@@ -14,7 +14,7 @@
   */
   .schein-einsatz { min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 0.875rem; text-align: left; cursor: pointer; }
   .schein-einsatz:hover { border-color: var(--petrol); }
-  .schein-einsatz-an { min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 2px solid var(--petrol); border-radius: var(--radius); background: var(--petrol-hell); color: var(--ink-deep); font-size: 0.875rem; font-weight: 600; text-align: left; cursor: pointer; }
+  .schein-einsatz-an { min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 2px solid var(--petrol); border-radius: var(--radius); background: var(--petrol-hell); color: var(--ink-deep); font-size: 0.875rem; font-weight: var(--gewicht-titel); text-align: left; cursor: pointer; }
 
   /* ── Schein: Foto entfernen (das Kreuz auf dem Bild) ──────────────────── */
   /* Eigener heller Grund mit Linie statt Schatten — auf einem dunklen Foto

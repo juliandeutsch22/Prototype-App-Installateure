@@ -69,9 +69,10 @@ const fmtDatum = (iso?: string) =>
 const STAND: Record<Dringlichkeit, Stand> = {
   'überfällig': 'schlecht',
   'fällig': 'achtung',
-  'später': 'laeuft',
-  ruht: 'ruht',
-  unklar: 'ruht',
+  // Später heißt: der nächste Termin kommt (Planlinie: Raute).
+  'später': 'geplant',
+  ruht: 'storniert',
+  unklar: 'offen',
 };
 
 /** Hersteller, Typ, Seriennummer und Baujahr in einer Zeile — was davon da ist. */

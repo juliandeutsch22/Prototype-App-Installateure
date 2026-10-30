@@ -437,7 +437,11 @@ export default function KundenakteView() {
                       ? 'schlecht'
                       : u.stand === 'fällig'
                         ? 'achtung'
-                        : 'ruht'
+                        : u.stand === 'später'
+                          ? 'geplant'
+                          : u.stand === 'ruht'
+                            ? 'storniert'
+                            : 'offen'
                   }
                 >
                   {u.stand === 'ruht' ? 'ruht' : u.text}
@@ -558,7 +562,7 @@ export default function KundenakteView() {
       {warnung}
       <AktenKopf art="Kunde" title={k.name} zurueck="/customers" zurueckText="Zur Kundenliste"
         meta={<span className="akten-identitaet">{k.kundennummer && <span>Nr. {k.kundennummer}</span>}
-          <Zustand stand={k.active === false ? 'ruht' : 'gut'}>{k.active === false ? 'inaktiv' : 'aktiv'}</Zustand></span>}
+          <Zustand stand={k.active === false ? 'storniert' : 'gut'}>{k.active === false ? 'inaktiv' : 'aktiv'}</Zustand></span>}
         kontakt={<><TelefonLink nummer={k.contactPhone} name={k.contactName} /><MailLink adresse={k.email} /><a className="akten-verweis" href="#kunde-kontext">Kontakt</a></>}
         action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>} />
       <AktenBereiche kennung="kunde" kontext={<>

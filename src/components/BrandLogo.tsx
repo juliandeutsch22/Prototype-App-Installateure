@@ -87,7 +87,7 @@ export default function BrandLogo({ height = 28, className = '' }: Props) {
   */
   return (
     <span
-      className={`flex items-center font-semibold ${className}`}
+      className={`flex items-center font-firma ${className}`}
       style={{
         minHeight: height,
         fontSize: Math.round(height * 0.4),

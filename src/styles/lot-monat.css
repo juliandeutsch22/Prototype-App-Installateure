@@ -44,8 +44,8 @@
     .mo-kopf, .mo-kopf-we, .mo-kopf-heute, .mo-kopf-gewaehlt { font-size: 0.6875rem; line-height: 1rem; }
   }
   .mo-kopf-we { background: var(--bg); color: var(--text-muted); }
-  .mo-kopf-heute { background: var(--petrol-hell); color: var(--accent-deep); font-weight: 600; box-shadow: inset 0 -3px 0 var(--petrol); }
-  .mo-kopf-gewaehlt { background: var(--petrol-hell); color: var(--accent-deep); font-weight: 600; box-shadow: inset 0 0 0 2px var(--petrol); }
+  .mo-kopf-heute { background: var(--petrol-hell); color: var(--accent-deep); font-weight: var(--gewicht-titel); box-shadow: inset 0 -3px 0 var(--petrol); }
+  .mo-kopf-gewaehlt { background: var(--petrol-hell); color: var(--accent-deep); font-weight: var(--gewicht-titel); box-shadow: inset 0 0 0 2px var(--petrol); }
   .mo-kopf:hover, .mo-kopf-we:hover { background: var(--petrol-hell); color: var(--accent-deep); }
   /* Zwei Buchstaben am Schreibtisch, einer am Tablet („M“ allein hiesse Montag oder Mittwoch — dort steht die Zahl darunter). */
   .mo-wt { display: none; font-size: 0.75rem; }
@@ -58,11 +58,11 @@
   .mo-punkt-ohne { width: 6px; height: 6px; }
 
   /* Gruppe nach Einstufung, einklappbar. */
-  .mo-gruppe { display: flex; align-items: center; gap: 0.5rem; width: 100%; min-height: 2.75rem; padding: 0 0.75rem; background: var(--bg); border: 0; border-bottom: 1px solid var(--border); font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-align: left; cursor: pointer; }
+  .mo-gruppe { display: flex; align-items: center; gap: 0.5rem; width: 100%; min-height: 2.75rem; padding: 0 0.75rem; background: var(--bg); border: 0; border-bottom: 1px solid var(--border); font-size: 0.8125rem; font-weight: var(--gewicht-titel); color: var(--text-muted); text-align: left; cursor: pointer; }
   .mo-gruppe:hover { color: var(--text); }
 
   /* Name der Zeile: am Tablet kurz („Max M.“), der volle Name für Vorlesehilfe und `title`. */
-  .mo-name { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 0.375rem 0.75rem; border-right: 1px solid var(--border); font-size: 0.875rem; font-weight: 600; color: var(--ink-deep); background: var(--surface); }
+  .mo-name { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 0.375rem 0.75rem; border-right: 1px solid var(--border); font-size: 0.875rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); background: var(--surface); }
   /* Sicht „Baustellen“: Nummer · Ort unter dem Namen, wie `.wp-name-info` in der Woche (Runde 5, G3). */
   .mo-name-info { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; line-height: 1rem; font-weight: 400; color: var(--text-muted); }
   .mo-name-lang { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
@@ -96,8 +96,8 @@
   .mo-balken:hover { background: var(--petrol-tief); }
   .mo-balken-gewaehlt { background: var(--petrol-tief); color: #ffffff; box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--petrol); }
   /* Bernstein heißt: braucht Aufmerksamkeit — eingeteilt, aber an dem Tag weg. */
-  .mo-balken-konflikt { background: var(--warning-bg); color: var(--warning); font-weight: 600; box-shadow: inset 0 0 0 2px var(--warning); }
-  .mo-balken-konflikt-gewaehlt { background: var(--warning-bg); color: var(--warning); font-weight: 600; box-shadow: inset 0 0 0 2px var(--warning), 0 0 0 2px var(--surface), 0 0 0 4px var(--petrol); }
+  .mo-balken-konflikt { background: var(--warning-bg); color: var(--warning); font-weight: var(--gewicht-titel); box-shadow: inset 0 0 0 2px var(--warning); }
+  .mo-balken-konflikt-gewaehlt { background: var(--warning-bg); color: var(--warning); font-weight: var(--gewicht-titel); box-shadow: inset 0 0 0 2px var(--warning), 0 0 0 2px var(--surface), 0 0 0 4px var(--petrol); }
   /* Abwesend: grau, ohne Urteil. */
   .mo-balken-weg { background: var(--abwesend); color: var(--text-muted); box-shadow: inset 0 0 0 1px var(--border-strong); }
   .mo-balken-weg-gewaehlt { background: var(--abwesend); color: var(--text-muted); box-shadow: inset 0 0 0 1px var(--border-strong), 0 0 0 2px var(--surface), 0 0 0 4px var(--petrol); }
@@ -123,7 +123,7 @@
   .vorschau-kopf { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; padding: 0.75rem 0.5rem 0.625rem 1.125rem; border-bottom: 1px solid var(--border); }
   .vorschau-kopftext { min-width: 0; padding-top: 0.25rem; }
   .vorschau-ueber { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
-  .vorschau-titel { font-size: 1rem; line-height: 1.375rem; font-weight: 600; color: var(--ink-deep); overflow-wrap: break-word; hyphens: auto; }
+  .vorschau-titel { font-size: 1rem; line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); overflow-wrap: break-word; hyphens: auto; }
   .vorschau-nav { display: flex; flex: none; align-items: center; gap: 0.25rem; }
   .vorschau-pfeil { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 1.125rem; cursor: pointer; }
   .vorschau-pfeil:hover { border-color: var(--petrol); color: var(--accent-deep); }
@@ -134,7 +134,7 @@
   .vorschau-fuss { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; padding: 0.75rem 1.125rem; }
 
   .v-abschnitt { padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
-  .v-titel { font-weight: 600; color: var(--ink-deep); overflow-wrap: break-word; hyphens: auto; }
+  .v-titel { font-weight: var(--gewicht-titel); color: var(--ink-deep); overflow-wrap: break-word; hyphens: auto; }
   .v-unter { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
   .v-liste { margin: 0.5rem 0 0; }
   .v-reihe { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: 0.75rem; padding: 0.1875rem 0; font-size: 0.875rem; line-height: 1.375rem; }
@@ -142,7 +142,7 @@
   .v-wert { margin: 0; color: var(--text); overflow-wrap: break-word; }
   /* Hinweis Petrol-hell: ein Termin auf derselben Baustelle. Bernstein: jemand fehlt. */
   .v-info { margin-top: 0.5rem; padding: 0.375rem 0.625rem; background: var(--petrol-hell); color: var(--text); border-radius: var(--radius-sm); font-size: 0.875rem; line-height: 1.25rem; }
-  .v-hinweis { margin-top: 0.5rem; padding: 0.375rem 0.625rem; background: var(--warning-bg); color: var(--warning); border-radius: var(--radius-sm); font-size: 0.875rem; line-height: 1.25rem; font-weight: 600; }
+  .v-hinweis { margin-top: 0.5rem; padding: 0.375rem 0.625rem; background: var(--warning-bg); color: var(--warning); border-radius: var(--radius-sm); font-size: 0.875rem; line-height: 1.25rem; font-weight: var(--gewicht-titel); }
   .v-aktion { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1rem; margin-top: 0.375rem; }
   .v-leer { padding: 0.875rem 0; color: var(--text-muted); font-size: 0.9375rem; }
 
@@ -158,7 +158,7 @@
   .kal-tag-gewaehlt { background: var(--petrol); color: #ffffff; box-shadow: none; }
   .kal-nr { font-size: 0.875rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
   .kal-info { font-size: 0.75rem; line-height: 1rem; color: var(--text-muted); white-space: nowrap; }
-  .kal-info-achtung { font-size: 0.75rem; line-height: 1rem; color: var(--warning); font-weight: 600; white-space: nowrap; }
+  .kal-info-achtung { font-size: 0.75rem; line-height: 1rem; color: var(--warning); font-weight: var(--gewicht-titel); white-space: nowrap; }
   .kal-info-gewaehlt { font-size: 0.75rem; line-height: 1rem; color: #ffffff; white-space: nowrap; }
   .kal-balken { width: 70%; height: 5px; border-radius: 3px; background: var(--petrol); }
   .kal-balken-konflikt { width: 70%; height: 5px; border-radius: 3px; background: var(--warning); }

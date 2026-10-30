@@ -46,7 +46,7 @@
 
   /* Kopf des Antrags im Seitenfenster: Zeitraum, Umfang, Stand. */
   .antrag-kopf { display: flex; flex-direction: column; gap: 0.25rem; padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); }
-  .antrag-zeitraum { font-size: 1.0625rem; font-weight: 600; color: var(--ink-deep); }
+  .antrag-zeitraum { font-size: 1.0625rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .antrag-umfang { font-size: 0.9375rem; color: var(--text-muted); }
   .antrag-aktionen { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 1rem; margin-top: 0.25rem; border-top: 1px solid var(--border); }
 }
