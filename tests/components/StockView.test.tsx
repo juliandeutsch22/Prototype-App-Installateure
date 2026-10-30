@@ -667,7 +667,7 @@ describe('Lager — wenn ein Ladevorgang scheitert', () => {
     zeige();
 
     await userEvent.type(await screen.findByRole('searchbox', { name: /Suche/ }), 'Wasserhahn');
-    expect(await screen.findByText(/Kein Lagerartikel passt zu/)).toBeInTheDocument();
+    expect(await screen.findByText(/Gesucht wurde „.+“ in Name, Kategorie und Artikelnummer\./)).toBeInTheDocument();
 
     await userEvent.clear(screen.getByRole('searchbox', { name: /Suche/ }));
     materialien = [];

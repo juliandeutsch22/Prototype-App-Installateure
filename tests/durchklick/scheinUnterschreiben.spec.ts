@@ -63,7 +63,7 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
   await anmelden(page, MONTEUR.email);
 
   await menue(page, 'Handwerksscheine', 'Scheine');
-  await page.getByRole('link', { name: 'Neuer Schein' }).click();
+  await page.getByRole('link', { name: 'Neuer Schein' }).first().click();
 
   /*
     AB HIER AM TELEFON. Der Schein wird dort geschrieben, und dort steht er

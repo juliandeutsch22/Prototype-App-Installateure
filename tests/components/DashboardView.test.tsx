@@ -654,7 +654,7 @@ describe('Startseite — Verwaltung', () => {
     (monteur as { appStartDate?: string }).appStartDate = undefined;
     try {
       zeichne();
-      expect(await screen.findByText('Heute liegt nichts an')).toBeInTheDocument();
+      expect(await screen.findByText('Heute liegt nichts an.')).toBeInTheDocument();
       /*
         NULL ANFORDERUNGEN STEHEN NICHT MEHR DA (E22): „Anforderungen 0“ sagt
         nichts, was „Heute liegt nichts an“ nicht schon sagt. Ohne einen
@@ -666,6 +666,59 @@ describe('Startseite — Verwaltung', () => {
     } finally {
       (monteur as { appStartDate?: string }).appStartDate = eintritt;
     }
+  });
+});
+
+/*
+  DIE ABSCHLUSSZEICHNUNG NUR, WENN ALLES DA IST (Illustrationsentwurf
+  29.10.2026, Regel 5: kein Erfolgsmotiv bei Ladefehlern). Vorher stand
+  „Heute liegt nichts an“ auch dann, wenn ein Block nicht kam — und die
+  Warnung darunter widersprach der Überschrift. Ein fehlender Block ist
+  keine leere Arbeit.
+*/
+describe('Startseite — „Heute liegt nichts an“ nur mit allem geladen', () => {
+  let eintritt: string | undefined;
+  beforeEach(() => {
+    rolle.wert = 'Verwaltung';
+    // Ohne Eintritt keine fehlenden Tage — sonst stünde „Deine Tage ohne Buchung“ unter „Zu erledigen“.
+    eintritt = monteur.appStartDate;
+    (monteur as { appStartDate?: string }).appStartDate = undefined;
+  });
+  afterEach(() => {
+    (monteur as { appStartDate?: string }).appStartDate = eintritt;
+  });
+
+  const fertigZeichnung = () => document.querySelector('svg[data-motiv="fertig"]');
+
+  it('nichts zu tun und alles geladen: Überschrift mit Abschlusszeichnung', async () => {
+    zeichne();
+    const leer = await screen.findByRole('region', { name: 'Heute liegt nichts an' });
+    expect(within(leer).getByRole('heading', { name: 'Heute liegt nichts an.' })).toBeInTheDocument();
+    expect(leer.querySelector('svg[data-motiv="fertig"]')).not.toBeNull();
+    expect(screen.queryByText(/Nicht geladen/)).toBeNull();
+  });
+
+  /*
+    Gegenprobe (29.10.2026 ausgeführt): mit DashboardView.tsx aus dem Stand
+    vor f8efd2c3 steht hier „Heute liegt nichts an“ über der Warnung — rot.
+  */
+  it('nichts zu tun, aber ein Block fehlt: keine Entwarnung, keine Abschlusszeichnung', async () => {
+    scheitert.betrieblich = true;
+    zeichne();
+    expect(await screen.findByText(/Nicht geladen: Anforderungen und Lager/)).toBeInTheDocument();
+    const teil = screen.getByRole('region', { name: 'Nicht vollständig geladen' });
+    expect(within(teil).getByRole('heading', { name: 'Aus den geladenen Bereichen steht nichts an.' })).toBeInTheDocument();
+    expect(screen.queryByText('Heute liegt nichts an.')).toBeNull();
+    expect(fertigZeichnung()).toBeNull();
+  });
+
+  it('Gegenprobe: mit Arbeit keine Abschlusszeichnung', async () => {
+    anforderungen.wert = [anforderung({ id: 'a' })];
+    zeichne();
+    await screen.findByRole('region', { name: 'Offene Anforderungen' });
+    expect(screen.queryByText('Heute liegt nichts an.')).toBeNull();
+    expect(screen.queryByText('Aus den geladenen Bereichen steht nichts an.')).toBeNull();
+    expect(fertigZeichnung()).toBeNull();
   });
 });
 
@@ -794,7 +847,7 @@ describe('Wenn ein Teil der Startseite nicht kommt', () => {
   it('behauptet beim ersten Zeichnen nicht, es läge nichts an', () => {
     // Bis die Ladeblöcke gezählt sind, lädt die Seite — vorher stand dort kurz „Heute liegt nichts an“.
     zeichne();
-    expect(screen.queryByText('Heute liegt nichts an')).not.toBeInTheDocument();
+    expect(screen.queryByText('Heute liegt nichts an.')).not.toBeInTheDocument();
     expect(document.querySelector('[data-geladen="nein"]')).not.toBeNull();
   });
 

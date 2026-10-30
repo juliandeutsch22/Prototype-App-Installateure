@@ -775,9 +775,14 @@ export default function AdminOrdersView() {
               <ErrorState message={error} />
             </div>
           ) : rows.length === 0 ? (
-            <EmptyState>
+            /* Die Zeichnung nur bei „nichts offen“ im laufenden Bereich und bei einer Suche ohne Treffer. */
+            <EmptyState
+              zeichnung={suche ? 'suche' : tab === 'aktiv' && !adressFilter ? 'lager' : undefined}
+              titel={suche ? 'Keine passenden Bestellungen.' : undefined}
+              action={suche ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button> : undefined}
+            >
               {suche
-                ? `Nichts passt zu „${suche}“.`
+                ? `Gesucht wurde „${suche.trim()}“ in Material, Person und Baustelle.`
                 : tab === 'retouren'
                   ? 'Keine Retouren erfasst.'
                   : tab === 'archiv'

@@ -481,13 +481,17 @@ export default function StockView() {
                   <SkeletonList rows={5} />
                 </div>
               ) : rows.length === 0 ? (
-                <EmptyState>
+                <EmptyState
+                  zeichnung={imKatalog !== 0 && materials.some(imLager) && search.trim() ? 'suche' : undefined}
+                  titel={imKatalog !== 0 && materials.some(imLager) && search.trim() ? 'Keine passenden Artikel.' : undefined}
+                  action={imKatalog !== 0 && materials.some(imLager) && search.trim() ? <Button variant="secondary" onClick={() => setSearch('')}>Suche zurücksetzen</Button> : undefined}
+                >
                   {imKatalog === 0
                     ? 'Noch kein Material im Katalog. Der Bereich „Katalog“ legt den ersten Eintrag an.'
                     : !materials.some(imLager)
                       ? 'Noch kein Artikel im Lager geführt. Im Katalog beim Artikel „Im Lager führen“ anhaken.'
                       : search.trim()
-                        ? `Kein Lagerartikel passt zu „${search}“.`
+                        ? `Gesucht wurde „${search.trim()}“ in Name, Kategorie und Artikelnummer.`
                         : filter === 'fehlt'
                           ? 'Kein Artikel fehlt.'
                           : 'Kein Artikel ist knapp.'}

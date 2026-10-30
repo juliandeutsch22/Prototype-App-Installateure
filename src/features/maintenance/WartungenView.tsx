@@ -687,12 +687,20 @@ export default function WartungenView() {
         ]
       : [{ id: 'alle', titel: 'Alle Vereinbarungen', zeilen: gefiltert }];
   const sichtbar = gruppen.filter((g) => g.zeilen.length > 0);
-  const leer =
-    ansicht === 'anstehend' && !suche.trim()
-      ? `In den nächsten ${VORLAUF_TAGE} Tagen steht keine Wartung an.`
-      : wartungen.length === 0
-        ? 'Noch keine Wartung erfasst.'
-        : 'Kein Treffer für diese Suche.';
+  /*
+    ERST DER BESTAND, DANN DIE FRIST. Ohne eine einzige Vereinbarung stand
+    unter „Steht an“ „In den nächsten 30 Tagen steht keine Wartung an“ —
+    das klang nach einem ruhigen Monat, nicht nach einem Bereich, der noch
+    eingerichtet werden will.
+  */
+  const ersteWartung = wartungen.length === 0 && !suche.trim();
+  const leer = ersteWartung
+    ? 'Wiederkehrende Wartungen einer Anlage stehen hier — die nächste fällige zuerst.'
+    : suche.trim()
+      ? `Gesucht wurde „${suche.trim()}“ in Kunde, Anlage und Standort.`
+      : ansicht === 'anstehend'
+        ? `In den nächsten ${VORLAUF_TAGE} Tagen steht keine Wartung an.`
+        : 'Noch keine Wartung erfasst.';
 
   const einzelheiten = einzelheitenId
     ? (gefiltert.find((w) => w.id === einzelheitenId) ?? wartungen.find((w) => w.id === einzelheitenId) ?? null)
@@ -722,10 +730,13 @@ export default function WartungenView() {
 
       {/* Bündig: Wartungen als Zeilen von Kante zu Kante. */}
       <Card buendig>
-        <Listenleiste
-          reiter={<Segmente name="Wartungen zeigen" werte={ansichten} wert={ansicht} onChange={ansichtWaehlen} />}
-          suche={{ id: 'w-suche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Anlage oder Standort' }}
-        />
+        {/* Erster Besuch: noch nichts zu filtern oder zu suchen — die Leiste kommt mit dem ersten Eintrag. */}
+        {!(ersteWartung && !loading && !error) && (
+          <Listenleiste
+            reiter={<Segmente name="Wartungen zeigen" werte={ansichten} wert={ansicht} onChange={ansichtWaehlen} />}
+            suche={{ id: 'w-suche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Anlage oder Standort' }}
+          />
+        )}
         {suchFehler && suche.trim() ? (
           <ErrorState message="Die Wartungssuche konnte nicht geladen werden." onRetry={() => setSuchVersuch((n) => n + 1)} />
         ) : loading || suchtGerade ? (
@@ -742,8 +753,21 @@ export default function WartungenView() {
             <SkeletonList />
           </div>
         ) : sichtbar.length === 0 ? (
-          <div className="border-t border-line">
-            <EmptyState>{leer}</EmptyState>
+          <div className={ersteWartung ? undefined : 'border-t border-line'}>
+            <EmptyState
+              zeichnung={ersteWartung ? 'wartung' : suche.trim() ? 'suche' : undefined}
+              titel={ersteWartung ? (darfAendern ? 'Deine erste Wartung.' : 'Noch keine Wartung erfasst.') : suche.trim() ? 'Keine passenden Wartungen.' : undefined}
+              aktionImDaumen={ersteWartung}
+              action={
+                ersteWartung && darfAendern
+                  ? <Button onClick={() => formOeffnen()}>Neue Wartung</Button>
+                  : suche.trim()
+                    ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button>
+                    : undefined
+              }
+            >
+              {leer}
+            </EmptyState>
           </div>
         ) : (
           sichtbar.map((g) => <Gruppe key={`${ansicht}-${g.id}`} titel={g.titel} zeilen={g.zeilen} zeile={zeile} />)

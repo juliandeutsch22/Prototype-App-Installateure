@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import KnopfLink from '@/components/KnopfLink';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -684,6 +685,13 @@ export default function WorkSheetsListView() {
   /** Steht über der Liste etwas (Fehler, Suchauskunft, verworfene Entwürfe)? */
   const obenEtwas = !!error || !!suche.trim() || verworfene > 0;
   const suchend = !!suche.trim();
+  /*
+    DER ERSTE BESUCH: geladen werden die jüngsten Scheine ohne Datumsgrenze —
+    null heißt, es gibt noch keinen. Dann gibt es nichts zu filtern und nichts
+    zu prüfen (die Prüfung „Stunden ohne Buchung“ geht über Scheine); Leiste
+    und Prüfkarte kommen mit dem ersten Schein.
+  */
+  const ersterSchein = !loading && !error && scheine.length === 0 && !suchend && !nurUnverrechnet;
 
   return (
     <div className="space-y-4 lg:space-y-5">
@@ -712,12 +720,7 @@ export default function WorkSheetsListView() {
         }
         action={
           darfSchreiben && (
-            <Link
-              to="/worksheet"
-              className="inline-flex min-h-touch items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.98] sm:text-base"
-            >
-              Neuer Schein
-            </Link>
+            <KnopfLink to="/worksheet">Neuer Schein</KnopfLink>
           )
         }
       />
@@ -736,7 +739,7 @@ export default function WorkSheetsListView() {
         die niemand bucht, wird nie verrechnet und fehlt zugleich in der
         Arbeitszeitaufzeichnung nach § 26 AZG.
       */}
-      {darfZeitenSehen && (
+      {darfZeitenSehen && !ersterSchein && (
         <Card
           title={pruefungBereit && !pruefungFehler ? `Stunden ohne Buchung (${ohneBuchung.length})` : 'Stunden ohne Buchung'}
           hint={
@@ -945,12 +948,14 @@ export default function WorkSheetsListView() {
           und rutscht deshalb nicht unter dem Finger weg. Der Platzhalter
           nennt, was die Suche findet — auch einen Monat („09.2026“).
         */}
-        <Listenleiste
-          reiter={!suchend && !nurUnverrechnet ? (
-            <Segmente name="Ansicht" werte={ANSICHTEN} wert={ansicht} onChange={ansichtSetzen} />
-          ) : undefined}
-          suche={{ id: 'scheine-suche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Baustelle oder Monat', name: 'Scheine durchsuchen' }}
-        />
+        {!ersterSchein && (
+          <Listenleiste
+            reiter={!suchend && !nurUnverrechnet ? (
+              <Segmente name="Ansicht" werte={ANSICHTEN} wert={ansicht} onChange={ansichtSetzen} />
+            ) : undefined}
+            suche={{ id: 'scheine-suche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Baustelle oder Monat', name: 'Scheine durchsuchen' }}
+          />
+        )}
         {obenEtwas && (
           <div className="p-4 pb-1">
             {error && <div className="mb-3"><ErrorState message={error} /></div>}
@@ -1028,7 +1033,17 @@ export default function WorkSheetsListView() {
           </div>
         ) : offeneAnsicht ? (
           scheine.length === 0 ? (
-            <EmptyState>Noch kein Handwerksschein erstellt.</EmptyState>
+            /* Nicht geladen ist nicht „noch keiner“: der Fehler oben sagt, was los ist. */
+            error ? null : (
+              <EmptyState
+                zeichnung="schein"
+                titel={darfSchreiben ? 'Dein erster Handwerksschein.' : 'Noch kein Handwerksschein erstellt.'}
+                aktionImDaumen
+                action={darfSchreiben ? <KnopfLink to="/worksheet">Neuer Schein</KnopfLink> : undefined}
+              >
+                Ein Schein hält Stunden und Material einer Baustelle fest — mit Unterschrift des Kunden vor Ort.
+              </EmptyState>
+            )
           ) : (
             <>
               <Abschnitt titel="Entwürfe" anzahl={entwuerfe.length}>
@@ -1058,14 +1073,20 @@ export default function WorkSheetsListView() {
               )}
             </>
           )
+        ) : sichtbar.length === 0 && error && scheine.length === 0 && !suchend ? (
+          null
         ) : sichtbar.length === 0 ? (
-          <EmptyState>
+          <EmptyState
+            zeichnung={unverrechnet ? undefined : scheine.length === 0 ? 'schein' : suchend ? 'suche' : undefined}
+            titel={!unverrechnet && scheine.length > 0 && suchend ? 'Keine passenden Scheine.' : undefined}
+            action={!unverrechnet && scheine.length > 0 && suchend ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button> : undefined}
+          >
             {unverrechnet
               ? 'Unter den jüngsten Scheinen ist keiner unverrechnet.'
               : scheine.length === 0
               ? 'Noch kein Handwerksschein erstellt.'
               : suchend
-                ? `Kein Schein passt zu „${suche}“.`
+                ? `Gesucht wurde „${suche.trim()}“ in Kunde, Baustelle und Monat.`
                 : 'Kein offener Schein — nur verworfene Entwürfe.'}
           </EmptyState>
         ) : (

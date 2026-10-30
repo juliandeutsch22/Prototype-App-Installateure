@@ -175,7 +175,7 @@ describe('Kundenverwaltung', () => {
     zeichne();
     await screen.findByText('Hausverwaltung Nord');
 
-    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.click(screen.getAllByRole('button', { name: 'Neuer Kunde' })[0]);
     // Andere Schreibweise, derselbe Name.
     await nutzer.type(screen.getByLabelText('Name oder Firma'), '  hausverwaltung NORD ');
     await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
@@ -193,7 +193,7 @@ describe('Kundenverwaltung', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText('Hausverwaltung Nord');
-    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.click(screen.getAllByRole('button', { name: 'Neuer Kunde' })[0]);
     await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Hausverwaltung Nord');
     await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
     // Die Rückfrage liegt seit „Lot“ über dem Seitenfenster des Formulars — gemeint ist sie.
@@ -206,7 +206,7 @@ describe('Kundenverwaltung', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText('Hausverwaltung Nord');
-    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.click(screen.getAllByRole('button', { name: 'Neuer Kunde' })[0]);
     await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Familie Gruber');
     await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
     await waitFor(() => expect(createCustomer).toHaveBeenCalledTimes(1));
@@ -307,7 +307,7 @@ describe('Kundenverwaltung', () => {
 
   it('nennt die Rechnungsadresse beim Namen', async () => {
     zeichne();
-    await userEvent.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await userEvent.click((await screen.findAllByRole('button', { name: 'Neuer Kunde' }))[0]);
     /**
      * Die Abgrenzung ist der Kern des Datenmodells: hier steht die
      * Rechnungsadresse, an der Baustelle die Baustellenadresse. Ein
@@ -322,7 +322,7 @@ describe('Kundenverwaltung', () => {
   it('legt mit Straße, PLZ, Ort, Land und der vorgeschlagenen Kundennummer an (M12)', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Neuer Kunde' }))[0]);
     expect(await screen.findByDisplayValue('10042')).toBeInTheDocument();
     await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Familie Gruber');
     await nutzer.type(screen.getByLabelText('Straße und Hausnummer'), 'Gartengasse 12');
@@ -338,7 +338,7 @@ describe('Kundenverwaltung', () => {
   it('Gegenprobe: eine PLZ, die in Österreich nicht passt, wird gemeldet', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Neuer Kunde' }))[0]);
     await nutzer.type(screen.getByLabelText('PLZ'), '27000');
     expect(screen.getByText('Die PLZ hat in diesem Land vier Ziffern.')).toBeInTheDocument();
     await nutzer.selectOptions(screen.getByLabelText('Land'), 'DE');
@@ -352,7 +352,7 @@ describe('Kundenverwaltung', () => {
   it('fragt bei PLZ „82“ und einer E-Mail ohne Endung nach — und legt auf Bestätigung an (M6)', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Neuer Kunde' }))[0]);
     await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Julian Deutsch');
     await nutzer.type(screen.getByLabelText('Straße und Hausnummer'), 'Bürgergasse 7');
     await nutzer.type(screen.getByLabelText('PLZ'), '82');
@@ -373,7 +373,7 @@ describe('Kundenverwaltung', () => {
   it('Gegenprobe: wer die Rückfrage zu PLZ und E-Mail abbricht, legt nichts an (M6)', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Neuer Kunde' }))[0]);
     await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Julian Deutsch');
     await nutzer.type(screen.getByLabelText('PLZ'), '82');
     await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
@@ -410,14 +410,14 @@ describe('Kundenverwaltung', () => {
     await screen.findByText('Hausverwaltung Nord');
 
     expect(screen.queryByLabelText('Name oder Firma')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Neuer Kunde' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Neuer Kunde' })[0]).toBeInTheDocument();
   });
 
   it('und klappt das Formular auf Klick auf — mit einem Weg zurück', async () => {
     zeichne();
     await screen.findByText('Hausverwaltung Nord');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    await userEvent.click(screen.getAllByRole('button', { name: 'Neuer Kunde' })[0]);
     expect(screen.getByLabelText('Name oder Firma')).toBeInTheDocument();
 
     // „Abbrechen" galt vorher nur beim Bearbeiten — solange das Formular
@@ -516,7 +516,7 @@ describe('Wenn die Kundenliste an ihre Grenze stösst', () => {
     await screen.findByRole('button', { name: 'Weitere Kunden laden' });
 
     await nutzer.type(screen.getByLabelText('Kunden durchsuchen'), 'Zzzz');
-    expect(await screen.findByText(/Kein Kunde passt/)).toBeInTheDocument();
+    expect(await screen.findByText(/Gesucht wurde „.+“ in Name, Adresse und Telefon\./)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Weitere Kunden laden' })).toBeInTheDocument();
   });
 
@@ -613,7 +613,7 @@ describe('Kundenart und UID beim Anlegen', () => {
   it('eine UID in falscher Form hält das Anlegen auf', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Neuer Kunde' }))[0]);
     await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Baumeister Gruber');
     await nutzer.type(screen.getByLabelText('UID-Nummer'), 'ATU123');
     expect(screen.getAllByText(/„ATU“ und acht Ziffern/).length).toBeGreaterThan(0);
@@ -624,7 +624,7 @@ describe('Kundenart und UID beim Anlegen', () => {
   it('mit UID wird aus der Privatperson ein Unternehmen', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Neuer Kunde' }))[0]);
     expect(screen.getByLabelText('Kundenart')).toHaveValue('privat');
     await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Baumeister Gruber');
     await nutzer.type(screen.getByLabelText('UID-Nummer'), 'ATU12345678');
@@ -639,7 +639,7 @@ describe('Kundenart und UID beim Anlegen', () => {
   it('Gegenprobe: ein Unternehmen ohne UID bleibt Unternehmen', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Neuer Kunde' }))[0]);
     await nutzer.type(screen.getByLabelText('Name oder Firma'), 'Kleinbetrieb Moser');
     await nutzer.selectOptions(screen.getByLabelText('Kundenart'), 'unternehmen');
     await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
@@ -704,10 +704,118 @@ describe('Kundenliste in der Linie „Lot“', () => {
     expect(screen.queryByText(/Noch keine Kunden/)).toBeNull();
   });
 
-  it('Gegenprobe: ohne Kunden und ohne Auswahl bleibt der Hinweis zum Übernehmen', async () => {
+  it('Gegenprobe: ohne Kunden und ohne Auswahl bleibt der Weg zum Übernehmen', async () => {
     searchCustomers.mockResolvedValue([]);
     zeichne();
-    expect(await screen.findByText(/Noch keine Kunden\. Über „Bestehende Baustellen übernehmen“/)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Dein erster Kunde.' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bestehende Baustellen übernehmen' })).toBeInTheDocument();
+  });
+
+  /*
+    ERSTNUTZUNG MIT NÄCHSTEM SCHRITT: Zeichnung, Überschrift, „Neuer Kunde“
+    und daneben der leisere Weg „Bestehende Baustellen übernehmen“. Am Handy
+    steht „Neuer Kunde“ schon im Daumenbereich — nur er trägt die Klasse,
+    die ihn dort ausblendet; das Übernehmen bleibt auf jeder Breite.
+  */
+  it('Erstnutzung: Zeichnung „akte“, Überschrift, „Neuer Kunde“ öffnet das Formular', async () => {
+    searchCustomers.mockResolvedValue([]);
+    const nutzer = userEvent.setup();
+    zeichne();
+    const ueberschrift = await screen.findByRole('heading', { level: 2, name: 'Dein erster Kunde.' });
+    const leer = ueberschrift.parentElement!;
+    expect(leer.querySelector('svg[data-motiv]')).toHaveAttribute('data-motiv', 'akte');
+    const knopf = within(leer).getByRole('button', { name: 'Neuer Kunde' });
+    expect(knopf.parentElement).toHaveClass('lot-naechster-schritt-breit');
+    expect(within(leer).getByRole('button', { name: 'Bestehende Baustellen übernehmen' }).parentElement).toHaveClass('lot-naechster-schritt');
+    expect(within(leer).getByRole('button', { name: 'Bestehende Baustellen übernehmen' }).parentElement).not.toHaveClass('lot-naechster-schritt-breit');
+    await nutzer.click(knopf);
+    expect(screen.getByRole('dialog', { name: 'Neuen Kunden anlegen' })).toBeInTheDocument();
+  });
+
+  it('Erstnutzung: ohne Kunden weder Reiter mit Nullen noch Suchfeld', async () => {
+    searchCustomers.mockResolvedValue([]);
+    zeichne();
+    await screen.findByRole('heading', { level: 2, name: 'Dein erster Kunde.' });
+    expect(screen.queryByRole('group', { name: 'Kunden filtern' })).toBeNull();
+    expect(screen.queryByLabelText('Kunden durchsuchen')).toBeNull();
+  });
+
+  it('Gegenprobe: mit Kunden stehen Reiter und Suche da', async () => {
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+    expect(screen.getByRole('group', { name: 'Kunden filtern' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Kunden durchsuchen')).toBeInTheDocument();
+  });
+
+  it('Suche ohne Treffer: Zeichnung „suche“, Überschrift — „Suche zurücksetzen“ leert das Feld und holt die Liste', async () => {
+    searchCustomers.mockImplementation(async (_c, begriff) => (begriff.trim() ? [] : kunden));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+    await nutzer.type(screen.getByLabelText('Kunden durchsuchen'), 'Zzzz');
+    const ueberschrift = await screen.findByRole('heading', { level: 2, name: 'Keine passenden Kunden.' });
+    const leer = ueberschrift.parentElement!;
+    expect(leer.querySelector('svg[data-motiv]')).toHaveAttribute('data-motiv', 'suche');
+    expect(within(leer).getByText('Gesucht wurde „Zzzz“ in Name, Adresse und Telefon.')).toBeInTheDocument();
+    // Kein „Neuer Kunde“ im Leerzustand: der Kunde ist vielleicht nur anders geschrieben.
+    expect(within(leer).queryByRole('button', { name: 'Neuer Kunde' })).toBeNull();
+    const zuruecksetzen = within(leer).getByRole('button', { name: 'Suche zurücksetzen' });
+    // Zurücksetzen gibt es nur hier — es bleibt auf jeder Breite stehen.
+    expect(zuruecksetzen.parentElement!.className).toBe('lot-naechster-schritt');
+    await nutzer.click(zuruecksetzen);
+    expect(screen.getByLabelText('Kunden durchsuchen')).toHaveValue('');
+    expect(await screen.findByText('Hausverwaltung Nord')).toBeInTheDocument();
+  });
+
+  /*
+    WER EINE ERFOLGLOSE SUCHE LÖSCHT, BEHÄLT DIE LEISTE. Bis die neue Antwort
+    da ist, steht noch die alte, leere Trefferliste — würde die Leiste daran
+    gemessen, verschwände das Suchfeld mitten im Tippen (und mit ihm der
+    Fokus). Gegenprobe (29.10.2026 ausgeführt): mit `kunden.length === 0 &&
+    !suche.trim()` statt `listeFuer` rot.
+  */
+  it('eine erfolglose Suche löschen lässt Suchfeld und Reiter stehen', async () => {
+    searchCustomers.mockImplementation(async (_c, begriff) => (begriff.trim() ? [] : kunden));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+    const feld = screen.getByLabelText('Kunden durchsuchen');
+    await nutzer.type(feld, 'Zzzz');
+    await screen.findByRole('heading', { level: 2, name: 'Keine passenden Kunden.' });
+    await nutzer.clear(feld);
+    expect(screen.getByLabelText('Kunden durchsuchen')).toBe(feld);
+    expect(feld).toHaveFocus();
+    expect(screen.getByRole('group', { name: 'Kunden filtern' })).toBeInTheDocument();
+    expect(await screen.findByText('Hausverwaltung Nord')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: eine leere Auswahl ist der gute Fall — ohne Zeichnung, ohne Überschrift', async () => {
+    zeichne('/customers?auswahl=pruefen');
+    const satz = await screen.findByText('Keine Anschrift ist zu prüfen.');
+    const leer = satz.parentElement!;
+    expect(leer.querySelector('svg')).toBeNull();
+    expect(within(leer).queryByRole('heading')).toBeNull();
+    expect(within(leer).queryByRole('button')).toBeNull();
+  });
+
+  /*
+    DER LADEFEHLER STEHT AN DER LISTE. Vorher sagte die Liste darunter „Noch
+    keine Kunden“ — für einen Betrieb mit vierhundert Kunden eine falsche und
+    erschreckende Auskunft.
+  */
+  it('Ladefehler der Liste: Fehler an der Liste mit „Erneut versuchen“ — keine Erstnutzung', async () => {
+    searchCustomers.mockRejectedValueOnce(new Error('Failed to fetch'));
+    const nutzer = userEvent.setup();
+    zeichne();
+    const fehler = await screen.findByRole('alert');
+    expect(fehler).toHaveTextContent('Die Kunden konnten nicht geladen werden.');
+    expect(screen.queryByText(/Dein erster Kunde|Noch keine Kunden/)).toBeNull();
+    expect(document.querySelector('.lot-erstnutzung')).toBeNull();
+    const aufrufe = searchCustomers.mock.calls.length;
+    await nutzer.click(within(fehler).getByRole('button', { name: 'Erneut versuchen' }));
+    expect(await screen.findByText('Hausverwaltung Nord')).toBeInTheDocument();
+    expect(searchCustomers.mock.calls.length).toBeGreaterThan(aufrufe);
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('Gegenprobe: ohne Angabe alle Kunden über die Suche', async () => {
@@ -744,16 +852,16 @@ describe('Kundenliste in der Linie „Lot“', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText('Hausverwaltung Nord');
-    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.click(screen.getAllByRole('button', { name: 'Neuer Kunde' })[0]);
     const fenster = screen.getByRole('dialog', { name: 'Neuen Kunden anlegen' });
     await nutzer.type(within(fenster).getByLabelText('Name oder Firma'), 'Familie Gruber');
     await nutzer.click(within(fenster).getByRole('button', { name: 'Schließen' }));
     expect(screen.queryByRole('dialog')).toBeNull();
 
-    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.click(screen.getAllByRole('button', { name: 'Neuer Kunde' })[0]);
     expect(screen.getByLabelText('Name oder Firma')).toHaveValue('Familie Gruber');
     await nutzer.click(screen.getByRole('button', { name: 'Abbrechen' }));
-    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    await nutzer.click(screen.getAllByRole('button', { name: 'Neuer Kunde' })[0]);
     expect(screen.getByLabelText('Name oder Firma')).toHaveValue('');
   });
 

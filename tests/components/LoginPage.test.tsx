@@ -167,7 +167,8 @@ describe('Die Marke über dem Formular', () => {
   */
   it('nennt das Produkt und nicht einen Betrieb', () => {
     zeige();
-    expect(screen.getByText('Senklot')).toBeInTheDocument();
+    // Zweimal: auf der Bühne (Schreibtisch) und im Band der Karte (Telefon, Tablet) — je Breite ist eine sichtbar.
+    expect(screen.getAllByText('Senklot')).toHaveLength(2);
   });
 
   it('lädt vor der Anmeldung kein Logo eines Mandanten', () => {

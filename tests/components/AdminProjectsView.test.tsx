@@ -31,6 +31,8 @@ const MONTEUR: AppUser = {
 
 let baustellen: (Project & { id: string })[] = [];
 let ladefehler = false;
+/** Womit das Abo der Baustellenliste scheitert — `null` heisst: es liefert. */
+let abofehler: string | null = null;
 
 /* Was die Serversuche nach einer Nummer zurückgibt — und womit sie gefragt wurde. */
 let serverBaustellen: (Project & { id: string })[] = [];
@@ -62,8 +64,14 @@ vi.mock('@/lib/db/projects', () => ({
     _c: string,
     g: number,
     cb: (rows: (Project & { id: string })[]) => void,
+    fehler?: (e: Error) => void,
   ) => {
     letzteGrenze = g;
+    // Das Abo scheitert, bevor es eine Zeile liefert — der Fall „nicht geladen“.
+    if (abofehler) {
+      fehler?.(new Error(abofehler));
+      return () => undefined;
+    }
     if (spaet) liefern = () => cb(baustellen);
     else cb(baustellen);
     return () => undefined;
@@ -138,7 +146,7 @@ function zeilen() {
  * darüber eine leere Maske. Diese Ansicht wird zum NACHSCHLAGEN geöffnet.
  */
 async function formOeffnen() {
-  await userEvent.click(await screen.findByRole('button', { name: 'Neue Baustelle' }));
+  await userEvent.click((await screen.findAllByRole('button', { name: 'Neue Baustelle' }))[0]);
 }
 
 beforeEach(() => {
@@ -152,6 +160,7 @@ beforeEach(() => {
   baustellen = [];
   kundenBestand = [KUNDE];
   ladefehler = false;
+  abofehler = null;
   serverBaustellen = [];
   serverFehler = false;
   gefragtMit.mockClear();
@@ -176,7 +185,7 @@ describe('Baustellen — anlegen', () => {
       Ansicht mit offenem Formular für sich weiter vernünftig aussieht.
     */
     zeige();
-    await screen.findByRole('button', { name: 'Neue Baustelle' });
+    (await screen.findAllByRole('button', { name: 'Neue Baustelle' }))[0];
     expect(screen.queryByLabelText('Projektnummer')).not.toBeInTheDocument();
   });
 
@@ -769,8 +778,17 @@ describe('Baustellen — Kundenauswahl über den ganzen Bestand', () => {
 describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
   it('nennt die Auswahl „Baustellen filtern“ — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl“', async () => {
     // Seit „Lot“ Segmente statt einer Auswahlliste; der Name gilt für die Gruppe.
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: 'B-2026-0001', customerName: 'Familie Huber', status: 'Aktiv' } as Project & { id: string },
+    ];
     zeige();
     expect(await screen.findByRole('group', { name: 'Baustellen filtern' })).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: beim ersten Besuch ohne Baustelle gibt es noch nichts zu filtern', async () => {
+    zeige();
+    expect(await screen.findByRole('heading', { name: 'Deine erste Baustelle.' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Baustellen filtern' })).toBeNull();
   });
 });
 
@@ -854,7 +872,7 @@ describe('Die Suche in der Baustellenliste (G7)', () => {
 
   it('Gegenprobe: ohne Baustellen keine Suche, sondern der Hinweis', async () => {
     zeige();
-    expect(await screen.findByText('Noch keine Baustellen angelegt.')).toBeInTheDocument();
+    expect(await screen.findByText('Deine erste Baustelle.')).toBeInTheDocument();
     expect(screen.queryByLabelText('Suche')).toBeNull();
   });
 });
@@ -1124,3 +1142,48 @@ describe('Baustellen — die Zeile', () => {
   });
 });
 
+
+/*
+  LEERZUSTÄNDE MIT NÄCHSTEM SCHRITT (29.10.2026): nicht geladen ist nicht
+  „noch keine“; die erste Baustelle bekommt Zeichnung, Überschrift und
+  „Neue Baustelle“; eine Suche ohne Treffer ihr Zurücksetzen.
+*/
+describe('Baustellen — leer', () => {
+  it('nicht geladen: der Fehler steht an der Liste — nicht „Noch keine Baustellen angelegt.“', async () => {
+    abofehler = 'Die Baustellen konnten nicht geladen werden.';
+    zeige();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Die Baustellen konnten nicht geladen werden.');
+    expect(screen.queryByText(/Noch keine Baustellen/)).toBeNull();
+    expect(document.querySelector('.lot-erstnutzung')).toBeNull();
+  });
+
+  it('Erstnutzung: Zeichnung „bau“, Überschrift — und „Neue Baustelle“ öffnet das Formular', async () => {
+    zeige();
+    const ueberschrift = await screen.findByRole('heading', { level: 2, name: 'Deine erste Baustelle.' });
+    const leer = ueberschrift.parentElement!;
+    expect(leer.querySelector('svg[data-motiv]')).toHaveAttribute('data-motiv', 'bau');
+    expect(within(leer).getByText(/Auftrag, Einsätze, Pläne und Belege/)).toBeInTheDocument();
+    const knopf = within(leer).getByRole('button', { name: 'Neue Baustelle' });
+    // Am Handy steht derselbe Knopf schon im Daumenbereich des Seitenkopfs.
+    expect(knopf.parentElement).toHaveClass('lot-naechster-schritt-breit');
+    await userEvent.click(knopf);
+    expect(screen.getByRole('dialog', { name: 'Neue Baustelle' })).toBeInTheDocument();
+  });
+
+  it('Suche ohne Treffer: Zeichnung „suche“ — „Suche zurücksetzen“ leert das Feld', async () => {
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: 'B-2026-0001', customerName: 'Familie Huber',
+        bezeichnung: 'Heizungstausch', status: 'Aktiv' } as Project & { id: string },
+    ];
+    zeige();
+    const suche = await screen.findByLabelText('Suche');
+    await userEvent.type(suche, 'Zzzz');
+    const leer = (await screen.findByRole('heading', { level: 2, name: 'Keine passenden Baustellen.' })).parentElement!;
+    expect(within(leer).getByText('Gesucht wurde „Zzzz“ in Kunde, Nummer und Adresse.')).toBeInTheDocument();
+    expect(leer.querySelector('svg[data-motiv]')).toHaveAttribute('data-motiv', 'suche');
+    expect(within(leer).queryByRole('button', { name: 'Neue Baustelle' })).toBeNull();
+    await userEvent.click(within(leer).getByRole('button', { name: 'Suche zurücksetzen' }));
+    expect(screen.getByLabelText('Suche')).toHaveValue('');
+    expect(await screen.findByText(/Heizungstausch/)).toBeInTheDocument();
+  });
+});

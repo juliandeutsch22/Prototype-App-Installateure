@@ -610,7 +610,12 @@ describe('Pläne und Dokumente', () => {
     await userEvent.click(await screen.findByRole('tab', { name: 'Pläne' }));
     await bearbeite();
     await screen.findByText('Noch keine Pläne oder Dokumente.');
+    await nutzer.click(screen.getByRole('button', { name: 'Dokumente hinzufügen' }));
     await nutzer.upload(screen.getByLabelText('Dokumente auswählen'), pdf('Grundriss EG.pdf'));
+    // Erst sammeln, dann hochladen: die Wahl allein schreibt nichts.
+    expect(hochgeladen).toEqual([]);
+    expect(screen.getByText('Bereit zum Hochladen', { exact: false })).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Hochladen' }));
     expect(hochgeladen.map((d) => d.name)).toEqual(['Grundriss EG.pdf']);
     expect(await screen.findByRole('button', { name: 'Grundriss EG.pdf' })).toBeInTheDocument();
   });
@@ -621,11 +626,14 @@ describe('Pläne und Dokumente', () => {
     await userEvent.click(await screen.findByRole('tab', { name: 'Pläne' }));
     await bearbeite();
     await screen.findByText('Noch keine Pläne oder Dokumente.');
+    await nutzer.click(screen.getByRole('button', { name: 'Dokumente hinzufügen' }));
     await nutzer.upload(screen.getByLabelText('Dokumente auswählen'), [
       pdf('Plan 1.pdf'),
       new File([new Uint8Array(10)], 'Zeichnung.dwg', { type: '' }),
       pdf('Plan 2.pdf'),
     ]);
+    // Die schlechte steht schon in der Auswahl als nicht hochladbar — gezählt werden nur die guten.
+    await nutzer.click(screen.getByRole('button', { name: '2 Dateien hochladen' }));
     expect(hochgeladen.map((d) => d.name)).toEqual(['Plan 1.pdf', 'Plan 2.pdf']);
     expect(await screen.findByText(/Zeichnung.dwg.*nur PDF, Bilder/)).toBeInTheDocument();
   });
@@ -650,7 +658,7 @@ describe('Pläne und Dokumente', () => {
     zeige();
     await userEvent.click(await screen.findByRole('tab', { name: 'Pläne' }));
     expect(await screen.findByRole('button', { name: 'Alt.pdf' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Dokument hinzufügen/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Dokumente hinzufügen/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Alt.pdf löschen' })).toBeNull();
   });
 });

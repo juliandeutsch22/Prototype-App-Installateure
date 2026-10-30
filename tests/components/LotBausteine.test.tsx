@@ -18,6 +18,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import StatusBadge from '@/components/StatusBadge';
 import { ListRow, List } from '@/components/ListRow';
 import { SeitenHilfeProvider } from '@/components/SeitenHilfe';
+import { EmptyState } from '@/components/States';
 import {
   Arbeitszeile,
   Kurzzeile,
@@ -155,6 +156,75 @@ describe('Seitenkopf (Regel 2)', () => {
   it('Gegenprobe: ohne Hauptaktion keine Leiste', () => {
     const { container } = render(<PageHeader title="Lager" />);
     expect(container.querySelector('.daumen')).toBeNull();
+  });
+
+  /*
+    KEIN KOPFAKZENT: eine Zeichnung neben Titel, Hilfe und Hauptaktion stand
+    in der Prüfung des Auftraggebers (29.10.2026) willkürlich da. Zeichnungen
+    gehören zu Leerzuständen und einmaligen Hinweisen, nicht in den Seitenkopf.
+  */
+  it('der Seitenkopf trägt keine Zeichnung', () => {
+    const { container } = render(<PageHeader title="Kundenakte" action={<button type="button">Neu</button>} />);
+    expect(container.querySelector('svg[data-motiv]')).toBeNull();
+    expect(container.querySelector('.lot-zeichnung')).toBeNull();
+  });
+});
+
+/*
+  DER LEERZUSTAND MIT NÄCHSTEM SCHRITT (Konzept „Kleine Bilder. Klare nächste
+  Schritte.“, 29.10.2026). Ist die Aktion die Hauptaktion der Seite, steht
+  sie am Handy schon im Daumenbereich — der Leerzustand zeigt sie dort nicht
+  ein zweites Mal (`lot-naechster-schritt-breit`, in lot-feinschliff.css am
+  Handy ausgeblendet). Eine Suche zurücksetzen gibt es nur hier, sie bleibt
+  auf jeder Breite.
+*/
+describe('Leerzustand (Regel 5)', () => {
+  it('Erstnutzung: Zeichnung, Überschrift, Erklärung und der nächste Schritt', () => {
+    const { container } = render(
+      <EmptyState zeichnung="akte" titel="Noch keine Kunden." action={<button type="button">Neuer Kunde</button>} aktionImDaumen>
+        Kontaktdaten stehen hier zusammen.
+      </EmptyState>,
+    );
+    expect(container.firstElementChild).toHaveClass('lot-erstnutzung');
+    const zeichnung = container.querySelector('svg')!;
+    expect(zeichnung).toHaveAttribute('data-motiv', 'akte');
+    expect(zeichnung).toHaveClass('lot-zeichnung-leer');
+    expect(screen.getByRole('heading', { level: 2, name: 'Noch keine Kunden.' })).toBeInTheDocument();
+    expect(screen.getByText('Kontaktdaten stehen hier zusammen.')).toBeInTheDocument();
+  });
+
+  it('die Hauptaktion im Daumenbereich bekommt die Klasse, die sie am Handy ausblendet', () => {
+    render(<EmptyState action={<button type="button">Neuer Kunde</button>} aktionImDaumen>Leer.</EmptyState>);
+    expect(screen.getByRole('button', { name: 'Neuer Kunde' }).parentElement!.className).toBe('lot-naechster-schritt lot-naechster-schritt-breit');
+  });
+
+  it('mit Nebenaktion: nur die Hauptaktion weicht am Handy, der zweite Weg bleibt', () => {
+    render(
+      <EmptyState action={<button type="button">Neuer Kunde</button>} nebenAktion={<button type="button">Übernehmen</button>} aktionImDaumen>
+        Leer.
+      </EmptyState>,
+    );
+    const haupt = screen.getByRole('button', { name: 'Neuer Kunde' });
+    const neben = screen.getByRole('button', { name: 'Übernehmen' });
+    expect(haupt.parentElement!.className).toBe('lot-naechster-schritt-breit');
+    expect(neben.parentElement!.className).toBe('lot-naechster-schritt');
+    // Beide in derselben Reihe, die Hauptaktion zuerst.
+    expect(haupt.parentElement!.parentElement).toBe(neben.parentElement);
+  });
+
+  it('Gegenprobe: ohne `aktionImDaumen` bleibt der Schritt auf jeder Breite', () => {
+    render(<EmptyState action={<button type="button">Suche zurücksetzen</button>}>Nichts passt.</EmptyState>);
+    expect(screen.getByRole('button', { name: 'Suche zurücksetzen' }).parentElement!.className).toBe('lot-naechster-schritt');
+  });
+
+  it('gleich geblieben: ohne Zeichnung und ohne Aktion der ruhige Satz wie bisher', () => {
+    const { container } = render(<EmptyState>Keine Anschrift ist zu prüfen.</EmptyState>);
+    const leer = container.firstElementChild!;
+    expect(leer.className).toBe('flex flex-col items-center gap-3 px-4 py-6 text-center text-ink-muted');
+    expect(leer.querySelector('svg')).toBeNull();
+    expect(leer.querySelector('h2')).toBeNull();
+    expect(leer.querySelector('.lot-naechster-schritt')).toBeNull();
+    expect(leer.children).toHaveLength(1);
   });
 });
 

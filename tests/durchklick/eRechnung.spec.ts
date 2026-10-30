@@ -48,7 +48,7 @@ test('Rechnung an eine Dienststelle des Bundes als E-Rechnung laden', async ({ p
   // Die Geschäftsführung: sie verrechnet und darf Kunden pflegen — so wird auch das Merken geprüft.
   await anmelden(page, CHEFIN.email);
   await page.getByRole('link', { name: 'Rechnungen' }).first().click();
-  await page.getByRole('button', { name: 'Neue Rechnung' }).click();
+  await page.getByRole('button', { name: 'Neue Rechnung' }).first().click();
   await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
   await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
   await page.getByRole('button', { name: /Rechnung erstellen/ }).click();

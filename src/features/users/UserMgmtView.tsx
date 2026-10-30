@@ -743,14 +743,17 @@ export default function UserMgmtView() {
           <div className="p-4">
             <SkeletonList rows={4} />
           </div>
+        ) : users.length === 0 && error ? (
+          /* Nicht geladen ist nicht „noch keine“: der Fehler oben sagt, was los ist. */
+          null
         ) : users.length === 0 ? (
           <EmptyState>
             Noch keine Benutzer. Lege oben den ersten Mitarbeiter an — Name,
             E-Mail und Rolle genügen.
           </EmptyState>
         ) : gefiltert.length === 0 ? (
-          <EmptyState>
-            {suche ? `Niemand passt zu „${suche}“.` : 'Kein Benutzer in dieser Auswahl.'}
+          <EmptyState zeichnung={suche ? 'suche' : undefined} titel={suche ? 'Keine passenden Benutzer.' : undefined} action={suche ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button> : undefined}>
+            {suche ? `Gesucht wurde „${suche.trim()}“ in Name, E-Mail und Benutzername.` : 'Kein Benutzer in dieser Auswahl.'}
           </EmptyState>
         ) : (
           <div>

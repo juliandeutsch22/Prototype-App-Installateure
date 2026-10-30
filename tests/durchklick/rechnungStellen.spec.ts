@@ -61,7 +61,7 @@ test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page, bro
 
   await page.getByRole('link', { name: 'Rechnungen' }).first().click();
   // Seit der Linie „Lot“ öffnet die Hauptaktion im Seitenkopf das Formular.
-  await page.getByRole('button', { name: 'Neue Rechnung' }).click();
+  await page.getByRole('button', { name: 'Neue Rechnung' }).first().click();
   // Zwei Baustellen-Auswahlen auf der Seite: die Rechnung und daneben der
   // Zeitraum-Auszug. Gemeint ist die im Kasten „Neue Rechnung aus Baustelle".
   await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
@@ -199,7 +199,7 @@ test('Erst die Anzahlung, dann die Schlussrechnung mit Abzug', async ({ page }) 
 
   await anmelden(page, BUERO.email);
   await page.getByRole('link', { name: 'Rechnungen' }).first().click();
-  await page.getByRole('button', { name: 'Neue Rechnung' }).click();
+  await page.getByRole('button', { name: 'Neue Rechnung' }).first().click();
 
   // --- Die Anzahlung: ein Betrag, keine Stunden.
   await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
@@ -315,7 +315,7 @@ test('Das Büro verrechnet bis zum Stichtag — spätere Zeit bleibt offen', asy
 
   await anmelden(page, BUERO.email);
   await page.getByRole('link', { name: 'Rechnungen' }).first().click();
-  await page.getByRole('button', { name: 'Neue Rechnung' }).click();
+  await page.getByRole('button', { name: 'Neue Rechnung' }).first().click();
   await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
   await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
 
@@ -411,7 +411,7 @@ test('Ausgegebenes Material ohne Schein wird übernommen und kommt nicht zweimal
 
   await anmelden(page, BUERO.email);
   await page.getByRole('link', { name: 'Rechnungen' }).first().click();
-  await page.getByRole('button', { name: 'Neue Rechnung' }).click();
+  await page.getByRole('button', { name: 'Neue Rechnung' }).first().click();
   await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
   await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
 

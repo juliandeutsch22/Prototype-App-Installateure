@@ -37,6 +37,27 @@
   /* ── Anmeldung ────────────────────────────────────────────────────────── */
   /* Die Karte der Anmeldung — eine Fläche mit Rand, ohne Schatten (Linie „Lot“). */
   .anmelde-karte { width: 100%; max-width: 24rem; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  .anmelde-seite { display: flex; min-height: 100%; background: var(--bg); }
+  .anmelde-spalte { display: flex; flex: 1; min-width: 0; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; padding: 1rem; }
+  .anmelde-buehne { display: none; }
+  /*
+    AM SCHREIBTISCH ZWEI HÄLFTEN: links die Bühne (eine Fläche, eine Linie
+    als Trennung, keine Karte), rechts das Formular. Die Marke steht dann
+    auf der Bühne — das dunkle Band in der Karte entfällt, sonst stünde sie
+    zweimal da.
+  */
+  @media (min-width: 1200px) {
+    .anmelde-seite { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .anmelde-buehne { display: flex; flex-direction: column; justify-content: space-between; gap: 2rem; padding: 2.5rem 3.5rem; background: var(--surface-2); border-right: 1px solid var(--border); }
+    .anmelde-markenband { display: none; }
+    /* Neben der Bühne ist die Hälfte selbst die Fläche — ein Kasten darin wäre eine Karte auf der Karte. */
+    .anmelde-karte { border-color: transparent; background: none; }
+  }
+  .anmelde-buehne-ort { margin-top: .5rem; font-size: .8125rem; color: var(--text-muted); }
+  .anmelde-buehne-satz { max-width: 26rem; margin-top: 1.5rem; font-size: 1.5rem; line-height: 2rem; font-weight: 600; color: var(--ink-deep); hyphens: manual; text-wrap: balance; }
+  .anmelde-buehne-fuss { font-size: .8125rem; color: var(--text-muted); }
+  /* Die Grundlinie beginnt bei x = 18 von 240: so steht sie auf der Kante von Marke und Satz. */
+  .lot-zeichnung-buehne { width: 26rem; max-width: 100%; translate: -7.5% 0; }
 
   /* Sprungziele einer Akte: die mitlaufende Sprungleiste verdeckt sonst den Kartentitel. */
   .sprung-ziel { scroll-margin-top: 3.5rem; }

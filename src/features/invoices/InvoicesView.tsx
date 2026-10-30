@@ -837,6 +837,12 @@ export default function InvoicesView() {
     steht beim Tippen sofort etwas da.
   */
   const suchbegriff = rechnungSuche.trim();
+  /*
+    DER ERSTE BESUCH: `invoices` ist die geladene Grundliste, unabhängig von
+    Suche und Reiter — leer heißt, es gibt noch keine Rechnung. Dann gibt es
+    nichts zu filtern; Reiter und Suche kommen mit der ersten Rechnung.
+  */
+  const ohneRechnungen = !loading && !error && !suchbegriff && invoices.length === 0;
   useEffect(() => {
     if (!user || !suchbegriff) {
       setSuchFehler(false);
@@ -4435,7 +4441,7 @@ export default function InvoicesView() {
           <div className="p-4">
             <Adressfilter text={SICHT_TITEL[sicht]} parameter={['sicht']} />
           </div>
-        ) : (
+        ) : ohneRechnungen ? null : (
         <>
           <Listenleiste
             reiter={
@@ -4486,14 +4492,36 @@ export default function InvoicesView() {
           <div className="px-4 pb-4">
             <SkeletonList rows={4} />
           </div>
+        ) : liste.length === 0 && error && invoices.length === 0 && !suchbegriff ? (
+          /* Nicht geladen ist nicht „noch keine“: der Fehler oben sagt, was los ist. */
+          null
         ) : liste.length === 0 ? (
-          <EmptyState>
+          <EmptyState
+            zeichnung={
+              suchbegriff
+                ? serverTreffer || suchFehler ? 'suche' : undefined
+                : invoices.length === 0 ? 'beleg' : undefined
+            }
+            titel={
+              suchbegriff
+                ? serverTreffer || suchFehler ? 'Keine passenden Rechnungen.' : undefined
+                : invoices.length === 0 ? (nurLesen ? 'Noch keine Rechnungen.' : 'Deine erste Rechnung.') : undefined
+            }
+            aktionImDaumen={!suchbegriff}
+            action={
+              suchbegriff
+                ? serverTreffer || suchFehler ? <Button variant="secondary" onClick={() => sucheAendern('')}>Suche zurücksetzen</Button> : undefined
+                : invoices.length === 0 && !nurLesen
+                  ? <Button onClick={erstellenOeffnen}>Neue Rechnung</Button>
+                  : undefined
+            }
+          >
             {suchbegriff
               ? !serverTreffer && !suchFehler
                 ? 'Suche in allen Rechnungen …'
-                : `Keine Rechnung passt zu „${suchbegriff}“.`
+                : `Gesucht wurde „${suchbegriff}“ in Nummer, Kunde und Baustelle.`
               : invoices.length === 0
-                ? 'Noch keine Rechnungen.'
+                ? 'Rechnungen entstehen aus Baustellen, Scheinen und Angeboten — hier stehen sie danach mit ihrem Zahlungsstand.'
                 : filter === 'offen' && !sicht
                   ? 'Keine offene Rechnung — alles bezahlt.'
                   : 'Keine Rechnung in dieser Auswahl.'}

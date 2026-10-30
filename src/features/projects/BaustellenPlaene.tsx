@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type DragEvent } from 'react';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { dokumentHochladen, dokumentLoeschen, dokumentNurBueroSetzen, dateiPruefen } from '@/lib/db/baustellenDokumente';
 import type { BaustellenDokument } from '@/types';
@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { CheckboxField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { EmptyState, SkeletonList, TeilFehler } from '@/components/States';
+import DokumentAblage, { type AblageDatei } from '@/components/DokumentAblage';
 import PlaeneListe from './PlaeneListe';
 import { planeVon, usePlaene } from './usePlaene';
 import { klingtNachBueroBeleg } from './bueroBeleg';
@@ -21,7 +22,39 @@ import { klingtNachBueroBeleg } from './bueroBeleg';
  *
  * Hochladen und Löschen dürfen, wer die Baustelle ändern darf; die Datenbank
  * sagt dasselbe noch einmal. Alle anderen im Büro sehen nur.
+ *
+ * ERST SAMMELN, DANN HOCHLADEN (29.10.2026, `DokumentAblage`): gewählte oder
+ * hergezogene Dateien stehen mit Größe und Zustand in einer Liste, eine
+ * falsche lässt sich entfernen, bevor sie bei den Monteuren liegt.
  */
+/*
+  Der Grund steht in der Ablage unter dem Dateinamen — „„Grundriss.dwg“: nur
+  PDF …“ nannte ihn ein zweites Mal. Auf der Seite (ohne Liste) bleibt der
+  volle Satz mit Namen. `dateiPruefen` kennt zwei Formen: mit Doppelpunkt
+  (falscher Typ) und als Satz („… ist leer.“, „… ist 30 MB groß“) — beide
+  verlieren den Namen, sonst stünde er bei Größe und Leere doppelt da.
+*/
+function grundOhneName(datei: File): string | null {
+  const grund = dateiPruefen(datei);
+  if (!grund) return null;
+  const name = `„${datei.name}“`;
+  if (grund.startsWith(`${name}: `)) {
+    const rest = grund.slice(name.length + 2);
+    return rest.charAt(0).toUpperCase() + rest.slice(1);
+  }
+  if (grund.startsWith(`${name} `)) return `Die Datei ${grund.slice(name.length + 1)}`;
+  return grund;
+}
+
+/*
+  GESCHEITERT IST NICHT UNGÜLTIG: eine Datei, die am Netz scheiterte, bleibt
+  mit dem Grund stehen und geht beim nächsten „Hochladen“ wieder mit. Als
+  `problem` geführt, zählte der Knopf sie nicht mehr, und dieselbe Datei neu
+  zu wählen verhinderte die Doppelprüfung — „bitte erneut versuchen“ ginge
+  dann nur über Entfernen und neu Wählen.
+*/
+type Auswahl = AblageDatei & { gescheitert?: boolean };
+
 export default function BaustellenPlaene({
   companyId,
   projectId,
@@ -38,49 +71,100 @@ export default function BaustellenPlaene({
 }) {
   const toast = useToast();
   const { stand, neuLaden } = usePlaene(companyId, [projectId]);
-  const feld = useRef<HTMLInputElement>(null);
+  const [ablageOffen, setAblageOffen] = useState(false);
+  const [auswahl, setAuswahl] = useState<Auswahl[]>([]);
+  const [laeuft, setLaeuft] = useState(false);
   const [fortschritt, setFortschritt] = useState<string | null>(null);
   const [fehler, setFehler] = useState<string[]>([]);
   const [weg, setWeg] = useState<WithId<BaustellenDokument> | null>(null);
-  /** Dateien, die erst nach einer Rückfrage hochgehen — siehe `klingtNachBueroBeleg`. */
-  const [rueckfrage, setRueckfrage] = useState<File[] | null>(null);
+  /** Rückfrage vor dem Hochladen — siehe `klingtNachBueroBeleg`. */
+  const [rueckfrage, setRueckfrage] = useState(false);
   /**
-   * NUR FÜRS BÜRO (17 D): gilt für die nächste Auswahl. In der Rückfrage
-   * steht es vorab angekreuzt — wer dort weiterklickt, ohne zu lesen, legt
-   * den Beleg so ab, dass die Monteure ihn nicht sehen.
+   * NUR FÜRS BÜRO (17 D): gilt für diese Ablage. In der Rückfrage steht es
+   * vorab angekreuzt — wer dort weiterklickt, ohne zu lesen, legt den Beleg
+   * so ab, dass die Monteure ihn nicht sehen.
    */
   const [nurBuero, setNurBuero] = useState(false);
   const [rueckfrageNurBuero, setRueckfrageNurBuero] = useState(true);
+  const naechste = useRef(0);
+
+  const klingtNachBuero = (d: File) => klingtNachBueroBeleg(d.name, personen);
+  // Der Hinweis gilt nur, solange „Nur fürs Büro“ nicht gesetzt ist — dann sieht es ohnehin kein Monteur.
+  const liste = auswahl.map((a) => ({
+    ...a,
+    hinweis: a.gescheitert
+      ? 'Konnte nicht hochgeladen werden — bitte erneut versuchen'
+      : !a.problem && !nurBuero && klingtNachBuero(a.datei)
+        ? 'Klingt nach einem Beleg aus dem Büro — ohne „Nur fürs Büro“ sehen es die Monteure'
+        : null,
+  }));
+
+  function dazu(dateien: File[]) {
+    setFehler([]);
+    setAuswahl((alt) => {
+      // Dieselbe Datei zweimal gewählt oder hergezogen ergibt eine Zeile, nicht zwei.
+      const schon = new Set(alt.map((a) => `${a.datei.name}|${a.datei.size}|${a.datei.lastModified}`));
+      const neu = dateien
+        .filter((d) => !schon.has(`${d.name}|${d.size}|${d.lastModified}`))
+        .map((datei) => ({ id: `d${(naechste.current += 1)}`, datei, problem: grundOhneName(datei), hinweis: null }));
+      return [...alt, ...neu];
+    });
+    setAblageOffen(true);
+  }
+
+  function schliessen() {
+    setAblageOffen(false);
+    setAuswahl([]);
+    setNurBuero(false);
+    setFortschritt(null);
+  }
+
+  function hochladenStarten() {
+    const gueltig = auswahl.filter((a) => !a.problem);
+    // Fürs Büro abgelegt, sieht es kein Monteur — dann gibt es nichts nachzufragen.
+    if (!nurBuero && gueltig.some((a) => klingtNachBuero(a.datei))) {
+      setRueckfrageNurBuero(true);
+      setRueckfrage(true);
+    } else void hochladen(nurBuero);
+  }
 
   /*
     EINE NACH DER ANDEREN, und jeder Fehler wird genannt. Zehn Pläne auf
-    einmal, von denen einer zu gross ist, sollen neun Pläne ergeben und eine
-    Meldung — nicht null Pläne, und nicht neun ohne Wort über den zehnten.
+    einmal, von denen einer scheitert, sollen neun Pläne ergeben und eine
+    Zeile mit dem Grund — nicht null Pläne, und nicht neun ohne Wort über
+    den zehnten. Was angekommen ist, verschwindet aus der Liste; was
+    scheiterte, bleibt mit dem Grund stehen und lässt sich erneut hochladen.
   */
-  async function hochladen(dateien: File[], nurFuersBuero: boolean) {
-    const probleme: string[] = [];
+  async function hochladen(nurFuersBuero: boolean) {
+    const gueltig = auswahl.filter((a) => !a.problem);
+    const ungueltig = auswahl.filter((a) => a.problem);
+    const gescheitert: Auswahl[] = [];
     let geschafft = 0;
-    for (const [i, datei] of dateien.entries()) {
-      setFortschritt(dateien.length > 1 ? `Lade ${i + 1} von ${dateien.length} hoch …` : 'Lade hoch …');
-      const warum = dateiPruefen(datei);
-      if (warum) {
-        probleme.push(warum);
-        continue;
-      }
+    setLaeuft(true);
+    for (const [i, a] of gueltig.entries()) {
+      setFortschritt(gueltig.length > 1 ? `Lade ${i + 1} von ${gueltig.length} hoch …` : 'Lade hoch …');
       try {
-        await dokumentHochladen(companyId, projectId, datei, meinName, nurFuersBuero);
+        await dokumentHochladen(companyId, projectId, a.datei, meinName, nurFuersBuero);
         geschafft += 1;
       } catch {
-        probleme.push(`„${datei.name}“ konnte nicht hochgeladen werden.`);
+        gescheitert.push({ ...a, gescheitert: true });
       }
     }
+    setLaeuft(false);
     setFortschritt(null);
-    setFehler(probleme);
     if (geschafft > 0) {
       const was = geschafft === 1 ? 'Dokument hinzugefügt' : `${geschafft} Dokumente hinzugefügt`;
       toast.success(nurFuersBuero ? `${was} — nur fürs Büro` : was);
       neuLaden();
     }
+    if (gescheitert.length > 0) {
+      // Bleibt offen: was scheiterte, steht mit dem Grund in der Liste.
+      setAuswahl([...gescheitert, ...ungueltig]);
+      return;
+    }
+    // Alles Gültige ist angekommen. Was gar nicht hochging, nennt die Seite.
+    setFehler(ungueltig.map((a) => dateiPruefen(a.datei) ?? `„${a.datei.name}“ ging nicht hoch.`));
+    schliessen();
   }
 
   async function loeschen(d: WithId<BaustellenDokument>) {
@@ -107,10 +191,30 @@ export default function BaustellenPlaene({
     }
   }
 
+  /* Dateien lassen sich auch direkt auf den Bereich ziehen — die Ablage öffnet sich mit ihnen. */
+  const ablegbar = (e: DragEvent<HTMLDivElement>) => darfAendern && !laeuft && Array.from(e.dataTransfer.types).includes('Files');
+
   const dokumente = planeVon(stand, projectId);
+  // Im leeren Reiter ist es der nächste Schritt; unter einer Liste steht es ruhig darunter.
+  const hinzufuegen = (variant: 'primary' | 'secondary') => (
+    <Button variant={variant} onClick={() => setAblageOffen(true)}>
+      Dokumente hinzufügen
+    </Button>
+  );
 
   return (
-    <div className="space-y-3">
+    <div
+      className="space-y-3"
+      onDragOver={(e) => {
+        if (ablegbar(e)) e.preventDefault();
+      }}
+      onDrop={(e) => {
+        if (!ablegbar(e) || ablageOffen) return;
+        e.preventDefault();
+        const neu = Array.from(e.dataTransfer.files ?? []);
+        if (neu.length > 0) dazu(neu);
+      }}
+    >
       <p className="flex flex-wrap items-center text-sm text-ink-muted">
         Pläne, Fotos und Unterlagen dieser Baustelle
         <InfoHint about="Pläne und Dokumente">
@@ -118,7 +222,7 @@ export default function BaustellenPlaene({
           Monteure, die im Team dieser Baustelle stehen oder dort eingeteilt sind — sie finden
           sie unter „Meine Baustellen“ und im Einsatzplan. Was „Nur Büro“ trägt, sehen die
           Monteure nicht; umstellen lässt es sich jederzeit. Pläne aus einem CAD-Programm bitte
-          als PDF exportieren.
+          als PDF exportieren. Dateien lassen sich auch direkt hierher ziehen.
         </InfoHint>
       </p>
 
@@ -127,7 +231,11 @@ export default function BaustellenPlaene({
       ) : stand.zustand === 'fehler' ? (
         <TeilFehler was="Die Pläne" onRetry={neuLaden} />
       ) : dokumente.length === 0 ? (
-        <EmptyState>Noch keine Pläne oder Dokumente.</EmptyState>
+        <EmptyState zeichnung="plan" titel="Noch keine Pläne oder Dokumente." action={darfAendern ? hinzufuegen('primary') : undefined}>
+          {darfAendern
+            ? 'Pläne, Fotos und Unterlagen liegen hier für das Büro und die Monteure dieser Baustelle bereit.'
+            : 'Sobald das Büro Pläne ablegt, stehen sie hier.'}
+        </EmptyState>
       ) : (
         <PlaeneListe
           dokumente={dokumente}
@@ -146,72 +254,54 @@ export default function BaustellenPlaene({
         </Hinweiszeile>
       )}
 
+      {darfAendern && dokumente.length > 0 && <div className="flex flex-wrap items-center gap-3">{hinzufuegen('secondary')}</div>}
+
       {darfAendern && (
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            ref={feld}
-            id="plaene-datei"
-            type="file"
-            multiple
-            accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx,.eml,.msg"
-            className="sr-only"
-            aria-label="Dokumente auswählen"
-            onChange={(e) => {
-              const dateien = Array.from(e.target.files ?? []);
-              // Zurücksetzen, damit dieselbe Datei ein zweites Mal gewählt
-              // werden kann — sonst feuert das Feld nicht.
-              e.target.value = '';
-              if (dateien.length === 0) return;
-              // Fürs Büro abgelegt, sieht es kein Monteur — dann gibt es nichts nachzufragen.
-              if (!nurBuero && dateien.some((d) => klingtNachBueroBeleg(d.name, personen))) {
-                setRueckfrageNurBuero(true);
-                setRueckfrage(dateien);
-              } else void hochladen(dateien, nurBuero);
-            }}
-          />
-          <Button
-            variant="ghost"
-            loading={!!fortschritt}
-            onClick={() => feld.current?.click()}
-          >
-            Dokument hinzufügen
-          </Button>
-          <CheckboxField
-            id="plaene-nur-buero"
-            label="Nur fürs Büro"
-            checked={nurBuero}
-            onChange={(e) => setNurBuero(e.target.checked)}
-          />
-          {fortschritt ? (
-            <span className="text-sm text-ink-muted" role="status">{fortschritt}</span>
-          ) : (
-            <span className="text-xs text-ink-muted">
-              {nurBuero
-                ? 'Was jetzt dazukommt, sehen die Monteure nicht.'
-                : 'Die Monteure dieser Baustelle sehen alles ohne „Nur Büro“.'}
-            </span>
-          )}
-        </div>
+        <DokumentAblage
+          open={ablageOffen}
+          titel="Dokumente hinzufügen"
+          unterzeile="Pläne, Fotos und Unterlagen dieser Baustelle"
+          erlaubt="PDF, Bilder, Word, Excel und E-Mails bis 25 MB"
+          accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx,.eml,.msg"
+          eingabeId="plaene-datei"
+          dateien={liste}
+          laeuft={laeuft}
+          fortschritt={fortschritt}
+          onDateien={dazu}
+          onEntfernen={(id) => setAuswahl((alt) => alt.filter((a) => a.id !== id))}
+          onHochladen={hochladenStarten}
+          onClose={schliessen}
+          zusatz={
+            <div>
+              <CheckboxField
+                id="plaene-nur-buero"
+                label="Nur fürs Büro"
+                checked={nurBuero}
+                onChange={(e) => setNurBuero(e.target.checked)}
+              />
+              <p className="text-xs text-ink-muted">
+                {nurBuero
+                  ? 'Was jetzt dazukommt, sehen die Monteure nicht.'
+                  : 'Die Monteure dieser Baustelle sehen alles ohne „Nur Büro“.'}
+              </p>
+            </div>
+          }
+        />
       )}
 
       <ConfirmDialog
-        open={!!rueckfrage}
+        open={rueckfrage}
         title="Wirklich zu den Plänen?"
-        message={
-          rueckfrage
-            ? `${rueckfrage
-                .filter((d) => klingtNachBueroBeleg(d.name, personen))
-                .map((d) => d.name)
-                .join(', ')} klingt nach einem Beleg aus dem Büro oder nach Daten einer Person. Ohne „Nur fürs Büro“ sehen es auch die Monteure dieser Baustelle.`
-            : ''
-        }
+        message={`${auswahl
+          .filter((a) => !a.problem && klingtNachBuero(a.datei))
+          .map((a) => a.datei.name)
+          .join(', ')} klingt nach einem Beleg aus dem Büro oder nach Daten einer Person. Ohne „Nur fürs Büro“ sehen es auch die Monteure dieser Baustelle.`}
         confirmLabel="Hinzufügen"
         confirmTone="primary"
-        onCancel={() => setRueckfrage(null)}
+        onCancel={() => setRueckfrage(false)}
         onConfirm={() => {
-          const dateien = rueckfrage;
-          setRueckfrage(null);
-          if (dateien) void hochladen(dateien, rueckfrageNurBuero);
+          setRueckfrage(false);
+          void hochladen(rueckfrageNurBuero);
         }}
       >
         <CheckboxField

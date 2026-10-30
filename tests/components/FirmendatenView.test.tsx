@@ -328,3 +328,59 @@ describe('Premium: bestätigter Stand und offene Eingaben', () => {
     }
   });
 });
+
+/*
+  DER EINRICHTUNGSHINWEIS (Konzept „Orientierung, die Platz lässt.“,
+  29.10.2026): nur solange der GESPEICHERTE Briefkopf fehlt, und wer ihn
+  ausblendet, sieht ihn in diesem Browser für diesen Betrieb nicht wieder.
+*/
+describe('Der Einrichtungshinweis', () => {
+  beforeEach(() => {
+    try {
+      localStorage.clear();
+    } catch {
+      /* ohne Speicher gibt es nichts zu leeren */
+    }
+  });
+
+  it('steht da, solange die Anschrift fehlt', () => {
+    zeige();
+    const hinweis = screen.getByRole('note');
+    expect(hinweis).toHaveTextContent('Bereit für den ersten Beleg?');
+    expect(hinweis.querySelector('svg[data-motiv]')).toHaveAttribute('data-motiv', 'einrichtung');
+  });
+
+  it('Gegenprobe: mit Name und Anschrift kein Hinweis', () => {
+    firma = { ...firma, strasse: 'Hauptplatz 3', plz: '8010', ort: 'Graz' };
+    zeige();
+    expect(screen.queryByRole('note')).toBeNull();
+    expect(screen.queryByText('Bereit für den ersten Beleg?')).toBeNull();
+  });
+
+  it('„Hinweis ausblenden“ nimmt ihn weg — auch beim nächsten Öffnen', async () => {
+    const nutzer = userEvent.setup();
+    const { unmount } = zeige();
+    await nutzer.click(screen.getByRole('button', { name: 'Hinweis ausblenden' }));
+    expect(screen.queryByRole('note')).toBeNull();
+    unmount();
+    zeige();
+    expect(screen.queryByRole('note')).toBeNull();
+  });
+
+  it('ausgeblendet gilt nur für diesen Betrieb', async () => {
+    const nutzer = userEvent.setup();
+    const { unmount } = zeige();
+    await nutzer.click(screen.getByRole('button', { name: 'Hinweis ausblenden' }));
+    unmount();
+    firma = { id: 'anderer', name: 'Anderer Betrieb' };
+    zeige();
+    expect(screen.getByRole('note')).toHaveTextContent('Bereit für den ersten Beleg?');
+  });
+
+  it('nach dem Tippen bleibt er, bis gespeichert ist — er richtet sich nach dem gespeicherten Stand', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.type(feld('Straße und Hausnummer'), 'Hauptplatz 3');
+    expect(screen.getByRole('note')).toBeInTheDocument();
+  });
+});

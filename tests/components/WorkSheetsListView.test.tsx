@@ -592,6 +592,32 @@ describe('Fotos am Schein', () => {
  * Buchungen verborgen sind, der Kollege nicht, weil ihm dieser Schein
  * verborgen ist. Die Stunde wird nie verrechnet und nie aufgezeichnet.
  */
+/*
+  DER ERSTE BESUCH (Designprüfung 29.10.2026): ohne einen einzigen Schein gibt
+  es nichts zu filtern, zu suchen oder zu prüfen. Vorher standen Reiter, Suche
+  und die leere Karte „Stunden ohne Buchung (0)“ vor dem Leerzustand, und sein
+  nächster Schritt rutschte am Schreibtisch unter die Falz.
+*/
+describe('Handwerksscheine — der erste Besuch', () => {
+  it('ohne Schein: Zeichnung „schein“, Überschrift — keine Leiste, keine Prüfkarte', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [];
+    zeichne();
+    const ueberschrift = await screen.findByRole('heading', { level: 2, name: 'Noch kein Handwerksschein erstellt.' });
+    expect(ueberschrift.parentElement!.querySelector('svg[data-motiv]')).toHaveAttribute('data-motiv', 'schein');
+    expect(screen.queryByLabelText('Scheine durchsuchen')).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Ansicht' })).toBeNull();
+    expect(screen.queryByText(/Stunden ohne Buchung/)).toBeNull();
+  });
+
+  it('Gegenprobe: mit einem Schein stehen Suche und Prüfkarte da', async () => {
+    authWert.user.role = 'Buchhaltung';
+    zeichne();
+    expect(await screen.findByLabelText('Scheine durchsuchen')).toBeInTheDocument();
+    expect(screen.getByText(/Stunden ohne Buchung/)).toBeInTheDocument();
+  });
+});
+
 describe('Stunden ohne Buchung', () => {
   /* Tage relativ zu HEUTE — der Befund hängt am Alter des Scheins, und ein
      festes Datum im Testtext wäre nächstes Jahr ein anderer Fall.
@@ -890,7 +916,7 @@ describe('Stunden ohne Buchung', () => {
 
     await screen.findByText(/Stunden ohne Buchung \(1\)/);
     await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'zzz');
-    expect(screen.getByText(/Kein Schein passt/)).toBeInTheDocument();
+    expect(screen.getByText(/Gesucht wurde „.+“ in Kunde, Baustelle und Monat\./)).toBeInTheDocument();
 
     await nutzer.click(screen.getByRole('button', { name: /Familie Wagner/ }));
     const fenster = await screen.findByRole('dialog', { name: 'Handwerksschein' });

@@ -349,7 +349,7 @@ describe('Benutzerverwaltung — die Liste', () => {
     );
     zeige();
     await userEvent.type(await screen.findByRole('searchbox', { name: /Suche/ }), 'Wasserhahn');
-    expect(await screen.findByText(/Niemand passt zu/)).toBeInTheDocument();
+    expect(await screen.findByText(/Gesucht wurde „.+“ in Name, E-Mail und Benutzername\./)).toBeInTheDocument();
   });
 
   it('blendet deaktivierte Konten aus der Vorgabeansicht aus', async () => {

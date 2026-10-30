@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import KnopfLink from '@/components/KnopfLink';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -535,13 +536,9 @@ export default function MyScheduleView() {
                           {/* Übernimmt Baustelle und Helfer-Rolle ins
                               Zeitformular — ein vergessener Helfer-Haken
                               kostet den falschen Satz. */}
-                          <Link
-                            to="/time"
-                            state={{ projectNumber: a.projectNumber, asHelper: !!a.asHelper }}
-                            className="flex min-h-touch items-center rounded bg-brand px-4 py-2 font-semibold text-brand-fg shadow-sm"
-                          >
+                          <KnopfLink to="/time" state={{ projectNumber: a.projectNumber, asHelper: !!a.asHelper }}>
                             Zeit erfassen
-                          </Link>
+                          </KnopfLink>
                           {/*
                             Der Schein gehoert an den Einsatz, nicht in einen
                             eigenen Bereich, in dem man die Baustelle erneut

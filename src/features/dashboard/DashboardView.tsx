@@ -20,6 +20,7 @@ import {
 import { canAccess, zusatzrechte } from '@/app/navigation';
 import Card from '@/components/Card';
 import Hinweiszeile from '@/components/Hinweiszeile';
+import LotZeichnung from '@/components/LotZeichnung';
 import PageHeader from '@/components/PageHeader';
 import { SkeletonList, SkeletonMetrics } from '@/components/States';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
@@ -299,9 +300,22 @@ export default function DashboardView() {
               {monteurMitEinsatz && eigenerEinsatz}
               {hatBedarf ? (
                 <Handlungsbedarf abschnitte={seite.abschnitte} zaehlwort={seite.zaehlwort} />
+              ) : nichtGeladen.length > 0 ? (
+                /*
+                  NICHT ALLES KAM AN — DANN IST NICHTS „ERLEDIGT“. Vorher stand
+                  hier auch dann „Heute liegt nichts an“, wenn ein Block nicht
+                  geladen war; die Warnung darunter widersprach der Überschrift.
+                  Ein fehlender Block ist keine leere Arbeit (Designlinie der
+                  Zeichnungen, Regel 5: kein Erfolgsmotiv bei Ladefehlern).
+                */
+                <section className="start-leer" aria-label="Nicht vollständig geladen">
+                  <h2>Aus den geladenen Bereichen steht nichts an.</h2>
+                  <p>Nicht alles kam an — der Hinweis unten nennt, was fehlt. Ob dort etwas ansteht, zeigt erst ein neuer Versuch.</p>
+                </section>
               ) : (
                 <section className="start-leer" aria-label="Heute liegt nichts an">
-                  <h2>Heute liegt nichts an</h2>
+                  <LotZeichnung motiv="fertig" art="leer" />
+                  <h2>Heute liegt nichts an.</h2>
                   <p>{leerText(rolle)}</p>
                 </section>
               )}

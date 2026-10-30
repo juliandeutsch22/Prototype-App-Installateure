@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import Button from './Button';
 import Hinweiszeile from './Hinweiszeile';
-import LotLeerzeichnung from './LotLeerzeichnung';
+import LotZeichnung, { type LotMotiv } from './LotZeichnung';
 
 /**
  * Ladezustand — sichtbar, kein stiller Abbruch. Erst nach 200 ms
@@ -161,13 +161,41 @@ export function TeilFehler({ was, onRetry }: { was: string; onRetry?: () => void
  * da" stand in einer Karte wie eine zweite Karte und war damit lauter als
  * der Inhalt, der sonst dort steht. Ein ruhiger, zentrierter Satz genügt.
  */
-export function EmptyState({ children, action, titel, zeichnung }: { children: ReactNode; action?: ReactNode; titel?: string; zeichnung?: 'baustelle' | 'angebot' }) {
+export function EmptyState({
+  children,
+  action,
+  nebenAktion,
+  titel,
+  zeichnung,
+  aktionImDaumen = false,
+}: {
+  children: ReactNode;
+  /** Der nächste Schritt („Kunde anlegen“, „Suche zurücksetzen“). */
+  action?: ReactNode;
+  /** Ein zweiter, leiserer Weg daneben („Bestehende Baustellen übernehmen“) — auch am Handy sichtbar. */
+  nebenAktion?: ReactNode;
+  titel?: string;
+  zeichnung?: LotMotiv;
+  /**
+   * Die Aktion ist die Hauptaktion der Seite und steht am Handy schon im
+   * Daumenbereich (`PageHeader`). Dort zeigt der Leerzustand sie nicht noch
+   * einmal; ab Tablet steht sie als nächster Schritt unter der Erklärung
+   * (Konzept „Kleine Bilder. Klare nächste Schritte.“, 29.10.2026).
+   */
+  aktionImDaumen?: boolean;
+}) {
+  const schritte = action || nebenAktion;
   return (
     <div className={zeichnung ? 'lot-erstnutzung' : 'flex flex-col items-center gap-3 px-4 py-6 text-center text-ink-muted'}>
-      {zeichnung && <LotLeerzeichnung art={zeichnung} />}
+      {zeichnung && <LotZeichnung motiv={zeichnung} art="leer" />}
       {titel && <h2>{titel}</h2>}
       <p>{children}</p>
-      {action}
+      {schritte && (
+        <div className={aktionImDaumen && !nebenAktion ? 'lot-naechster-schritt lot-naechster-schritt-breit' : 'lot-naechster-schritt'}>
+          {action && aktionImDaumen && nebenAktion ? <span className="lot-naechster-schritt-breit">{action}</span> : action}
+          {nebenAktion}
+        </div>
+      )}
     </div>
   );
 }

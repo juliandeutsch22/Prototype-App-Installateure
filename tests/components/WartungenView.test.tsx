@@ -350,7 +350,7 @@ describe('Wartungen', () => {
     zeichne();
     await geladen();
 
-    await nutzer.click(screen.getByRole('button', { name: 'Neue Wartung' }));
+    await nutzer.click(screen.getAllByRole('button', { name: 'Neue Wartung' })[0]);
     await kundeWaehlen(nutzer, 'Hausverwaltung Nord');
     await nutzer.type(screen.getByLabelText('Anlage'), 'Therme im Stiegenhaus');
     await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
@@ -364,7 +364,7 @@ describe('Wartungen', () => {
     zeichne();
     await geladen();
 
-    await nutzer.click(screen.getByRole('button', { name: 'Neue Wartung' }));
+    await nutzer.click(screen.getAllByRole('button', { name: 'Neue Wartung' })[0]);
     const zuletzt = screen.getByLabelText('Zuletzt gewartet') as HTMLInputElement;
     await nutzer.type(zuletzt, '2026-03-15');
     await nutzer.tab();
@@ -377,7 +377,7 @@ describe('Wartungen', () => {
     zeichne();
     await geladen();
 
-    await nutzer.click(screen.getByRole('button', { name: 'Neue Wartung' }));
+    await nutzer.click(screen.getAllByRole('button', { name: 'Neue Wartung' })[0]);
     await nutzer.type(screen.getByLabelText('Zuletzt gewartet'), '2026-01-31');
     await nutzer.selectOptions(screen.getByLabelText('Intervall'), '6');
     // Monatsende bleibt Monatsende — wie in der Datenbank.
@@ -390,7 +390,7 @@ describe('Wartungen', () => {
     zeichne();
     await geladen();
 
-    await nutzer.click(screen.getByRole('button', { name: 'Neue Wartung' }));
+    await nutzer.click(screen.getAllByRole('button', { name: 'Neue Wartung' })[0]);
     await kundeWaehlen(nutzer, 'Hausverwaltung Nord');
     await nutzer.type(screen.getByLabelText('Anlage'), 'Therme');
     await nutzer.type(screen.getByLabelText('Zuletzt gewartet'), '2026-03-15');
@@ -416,7 +416,7 @@ describe('Wartungen', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await geladen();
-    await nutzer.click(screen.getByRole('button', { name: 'Neue Wartung' }));
+    await nutzer.click(screen.getAllByRole('button', { name: 'Neue Wartung' })[0]);
     await kundeWaehlen(nutzer, 'Hausverwaltung Nord');
     await nutzer.type(screen.getByLabelText('Anlage'), 'Therme');
     await nutzer.type(screen.getByLabelText('Zuletzt gewartet'), '2026-12-01');
@@ -430,7 +430,7 @@ describe('Wartungen', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await geladen();
-    await nutzer.click(screen.getByRole('button', { name: 'Neue Wartung' }));
+    await nutzer.click(screen.getAllByRole('button', { name: 'Neue Wartung' })[0]);
     await kundeWaehlen(nutzer, 'Hausverwaltung Nord');
     await nutzer.type(screen.getByLabelText('Anlage'), 'Therme');
     await nutzer.type(screen.getByLabelText('Zuletzt gewartet'), '2026-03-15');
@@ -873,5 +873,51 @@ describe('Die Zahl am Reiter „Steht an“', () => {
     await geladen();
     const reiter = screen.getByRole('button', { name: 'Steht an' });
     expect(reiter.querySelector('.segment-anzahl')).toBeNull();
+  });
+});
+
+/*
+  ERST DER BESTAND, DANN DIE FRIST (29.10.2026). Ohne eine einzige
+  Vereinbarung stand unter „Steht an“ „In den nächsten 30 Tagen steht keine
+  Wartung an“ — das klang nach einem ruhigen Monat, nicht nach einem Bereich,
+  der noch eingerichtet werden will.
+*/
+describe('Wartungen — der erste Bestand', () => {
+  it('ohne Vereinbarung: „Deine erste Wartung.“ mit Zeichnung und „Neue Wartung“ — nicht die Frist', async () => {
+    bestand = [];
+    const nutzer = userEvent.setup();
+    zeichne();
+    const satz = await screen.findByRole('heading', { level: 2, name: 'Deine erste Wartung.' });
+    expect(screen.queryByText(/steht keine Wartung an/)).toBeNull();
+    // Beim ersten Besuch gibt es noch nichts zu filtern: keine Reiter, keine Suche.
+    expect(screen.queryByRole('button', { name: /^Steht an/ })).toBeNull();
+    const leer = satz.parentElement!;
+    expect(leer.querySelector('svg[data-motiv]')).toHaveAttribute('data-motiv', 'wartung');
+    const knopf = within(leer).getByRole('button', { name: 'Neue Wartung' });
+    // Am Handy steht „Neue Wartung“ schon im Daumenbereich des Seitenkopfs.
+    expect(knopf.parentElement).toHaveClass('lot-naechster-schritt-breit');
+    await nutzer.click(knopf);
+    expect(await screen.findByLabelText('Anlage')).toBeInTheDocument();
+  });
+
+  it('ohne Recht zum Anlegen: derselbe Satz, aber kein Knopf', async () => {
+    bestand = [];
+    rolle = 'Verwaltung';
+    zeichne();
+    const leer = (await screen.findByRole('heading', { level: 2, name: 'Noch keine Wartung erfasst.' })).parentElement!;
+    expect(within(leer).queryByRole('button')).toBeNull();
+  });
+
+  it('gleich geblieben: mit Vereinbarungen, aber nichts fällig — die Frist, ohne Zeichnung und ohne Knopf', async () => {
+    bestand = [wartung('w3', 'Familie Huber', '2026-11-02')];
+    zeichne();
+    const satz = await screen.findByText('In den nächsten 30 Tagen steht keine Wartung an.');
+    const leer = satz.parentElement!;
+    expect(leer.querySelector('svg')).toBeNull();
+    expect(within(leer).queryByRole('button')).toBeNull();
+    expect(screen.queryByText('Noch keine Wartung erfasst.')).toBeNull();
+    expect(screen.queryByText('Deine erste Wartung.')).toBeNull();
+    // Mit Bestand stehen Reiter und Suche da.
+    expect(screen.getByRole('button', { name: /^Steht an/ })).toHaveAttribute('aria-pressed', 'true');
   });
 });

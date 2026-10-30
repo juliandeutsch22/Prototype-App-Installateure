@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { InputField, CheckboxField } from '@/components/Field';
 import ProduktMarke from '@/components/ProduktMarke';
+import LotZeichnung from '@/components/LotZeichnung';
 import RechtLinks from '@/components/RechtLinks';
 import Button from '@/components/Button';
 import { anmeldeAdresse, istBenutzerkonto, KEIN_MAILKONTO } from '@shared/benutzername';
@@ -108,122 +109,143 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center gap-4 bg-bg p-4">
-      {/* Linie „Lot“: eine Fläche mit Rand, ohne Schatten. */}
-      <div className="anmelde-karte">
-        {/* Markenband: dieselbe dunkle Trägerfläche wie Seitenleiste und
-            Tableiste. Die Marke steht ohne weitere Fassung darauf. */}
-        <div className="panel-dark px-6 py-6 text-center">
-          <ProduktMarke hoehe={44} className="text-white" />
-          {/* Volles Weiss, nicht 85 Prozent: auf dem Telefon im Freien ist der
-              abgedunkelte Text auf dem dunklen Band schlecht zu lesen.
-              `text-white` und nicht `brand-fg`, weil das Band nicht die
-              Markenfarbe des Mandanten traegt, sondern die feste dunkle
-              Flaeche — die Kontrastfarbe dazu ist Weiss, unabhaengig davon,
-              was der Betrieb als Marke hinterlegt hat. */}
-          <p className="mt-3 text-sm font-semibold text-white">
-            Mitarbeiter-Portal
-          </p>
+    <div className="anmelde-seite">
+      {/*
+        DIE BÜHNE AM SCHREIBTISCH (29.10.2026): links eine ruhige Fläche mit
+        Marke und der technischen Zeichnung der Linie, rechts das Formular wie
+        bisher. Vorher stand die schmale Karte allein auf einer großen weißen
+        Fläche. Am Handy und Tablet bleibt es bei der Karte — dort zählt, dass
+        das Formular ohne Umweg oben steht.
+      */}
+      <aside className="anmelde-buehne">
+        <div>
+          <ProduktMarke hoehe={40} className="text-accent-deep" />
+          <p className="anmelde-buehne-ort">Mitarbeiter-Portal</p>
         </div>
-        {/* KEIN STREIFEN MEHR ZWISCHEN KOPF UND FORMULAR. Hier lag die
-            leuchtende Kante aus Cyan und Mint — eine dritte Farbe, die das
-            Zeichen selbst nicht kennt. Die Kante zwischen dunkler Fläche und
-            weissem Formular ist die Trennung; ein Streifen darauf wäre eine
-            zweite für dieselbe Sache. */}
-
-        <form onSubmit={handleSubmit} className="bg-surface px-6 py-6">
-          <h1 className="mb-1 text-xl font-semibold text-ink">
-            {resetMode ? 'Passwort zurücksetzen' : 'Anmelden'}
-          </h1>
-          <p className="mb-4 text-sm text-ink-muted">
-            {resetMode
-              ? 'E-Mail-Adresse eingeben — du bekommst einen Link zugeschickt. '
-                + 'Wer sich mit Benutzernamen anmeldet, bekommt ein neues Passwort vom Büro.'
-              : 'Mit den Zugangsdaten deines Betriebs anmelden.'}
-          </p>
-
-          <div className="flex flex-col gap-4">
-            {/*
-              KEIN `type="email"` MEHR, auch nicht beim Zurücksetzen: der
-              Browser wiese einen Benutzernamen ohne `@` sonst schon vor dem
-              Absenden ab — und der Hinweis, dass es dafür keinen Link gibt,
-              käme nie an. `inputMode` behält die Tastatur mit dem `@`.
-            */}
-            <InputField
-              id="email"
-              label={resetMode ? 'E-Mail' : 'E-Mail oder Benutzername'}
-              type="text"
-              inputMode="email"
-              autoComplete="username"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder={resetMode ? 'name@firma.at' : 'name@firma.at oder benutzername'}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              pflicht
-            />
-
-            {!resetMode && (
-              <>
-                <InputField
-                  id="password"
-                  label="Passwort"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  pflicht
-                />
-                <CheckboxField
-                  id="remember"
-                  label="Angemeldet bleiben"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                />
-              </>
-            )}
-
-            {(error || authError) && (
-              <Hinweiszeile stufe="fehl" role="alert">
-                <p>{error ?? authError}</p>
-              </Hinweiszeile>
-            )}
-            {notice && (
-              <Hinweiszeile role="status">
-                <p>{notice}</p>
-              </Hinweiszeile>
-            )}
-
-            <Button
-              type="submit"
-              variant="primary"
-              loading={submitting}
-              className="w-full justify-center"
-            >
-              {resetMode ? 'Link anfordern' : 'Anmelden'}
-            </Button>
+        <div>
+          <LotZeichnung motiv="bau" art="buehne" />
+          <p className="anmelde-buehne-satz">Baustellen, Zeiten und Belege deines Betriebs — an einem Ort.</p>
+        </div>
+        <p className="anmelde-buehne-fuss">Für Installationsbetriebe in Österreich</p>
+      </aside>
+      <div className="anmelde-spalte">
+        {/* Linie „Lot“: eine Fläche mit Rand, ohne Schatten. */}
+        <div className="anmelde-karte">
+          {/* Markenband: dieselbe dunkle Trägerfläche wie Seitenleiste und
+              Tableiste. Die Marke steht ohne weitere Fassung darauf. Am
+              Schreibtisch trägt sie die Bühne daneben, hier entfällt es dann. */}
+          <div className="anmelde-markenband panel-dark px-6 py-6 text-center">
+            <ProduktMarke hoehe={44} className="text-white" />
+            {/* Volles Weiss, nicht 85 Prozent: auf dem Telefon im Freien ist der
+                abgedunkelte Text auf dem dunklen Band schlecht zu lesen.
+                `text-white` und nicht `brand-fg`, weil das Band nicht die
+                Markenfarbe des Mandanten traegt, sondern die feste dunkle
+                Flaeche — die Kontrastfarbe dazu ist Weiss, unabhaengig davon,
+                was der Betrieb als Marke hinterlegt hat. */}
+            <p className="mt-3 text-sm font-semibold text-white">
+              Mitarbeiter-Portal
+            </p>
           </div>
+          {/* KEIN STREIFEN MEHR ZWISCHEN KOPF UND FORMULAR. Hier lag die
+              leuchtende Kante aus Cyan und Mint — eine dritte Farbe, die das
+              Zeichen selbst nicht kennt. Die Kante zwischen dunkler Fläche und
+              weissem Formular ist die Trennung; ein Streifen darauf wäre eine
+              zweite für dieselbe Sache. */}
 
-          <p className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setResetMode(!resetMode);
-                setError(null);
-                setNotice(null);
-              }}
-              className="min-h-touch text-xs text-ink-muted underline underline-offset-2 hover:text-accent-deep"
-            >
-              {resetMode ? 'Zurück zur Anmeldung' : 'Passwort vergessen?'}
-            </button>
-          </p>
-        </form>
+          <form onSubmit={handleSubmit} className="px-6 py-6">
+            <h1 className="mb-1 text-xl font-semibold text-ink">
+              {resetMode ? 'Passwort zurücksetzen' : 'Anmelden'}
+            </h1>
+            <p className="mb-4 text-sm text-ink-muted">
+              {resetMode
+                ? 'E-Mail-Adresse eingeben — du bekommst einen Link zugeschickt. '
+                  + 'Wer sich mit Benutzernamen anmeldet, bekommt ein neues Passwort vom Büro.'
+                : 'Mit den Zugangsdaten deines Betriebs anmelden.'}
+            </p>
+
+            <div className="flex flex-col gap-4">
+              {/*
+                KEIN `type="email"` MEHR, auch nicht beim Zurücksetzen: der
+                Browser wiese einen Benutzernamen ohne `@` sonst schon vor dem
+                Absenden ab — und der Hinweis, dass es dafür keinen Link gibt,
+                käme nie an. `inputMode` behält die Tastatur mit dem `@`.
+              */}
+              <InputField
+                id="email"
+                label={resetMode ? 'E-Mail' : 'E-Mail oder Benutzername'}
+                type="text"
+                inputMode="email"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder={resetMode ? 'name@firma.at' : 'name@firma.at oder benutzername'}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                pflicht
+              />
+
+              {!resetMode && (
+                <>
+                  <InputField
+                    id="password"
+                    label="Passwort"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    pflicht
+                  />
+                  <CheckboxField
+                    id="remember"
+                    label="Angemeldet bleiben"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                  />
+                </>
+              )}
+
+              {(error || authError) && (
+                <Hinweiszeile stufe="fehl" role="alert">
+                  <p>{error ?? authError}</p>
+                </Hinweiszeile>
+              )}
+              {notice && (
+                <Hinweiszeile role="status">
+                  <p>{notice}</p>
+                </Hinweiszeile>
+              )}
+
+              <Button
+                type="submit"
+                variant="primary"
+                loading={submitting}
+                className="w-full justify-center"
+              >
+                {resetMode ? 'Link anfordern' : 'Anmelden'}
+              </Button>
+            </div>
+
+            <p className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setResetMode(!resetMode);
+                  setError(null);
+                  setNotice(null);
+                }}
+                className="min-h-touch text-xs text-ink-muted underline underline-offset-2 hover:text-accent-deep"
+              >
+                {resetMode ? 'Zurück zur Anmeldung' : 'Passwort vergessen?'}
+              </button>
+            </p>
+          </form>
+        </div>
+        {/* Vor der Anmeldung erreichbar — das Impressum verlangt es (§ 5 ECG). */}
+        <RechtLinks className="text-xs text-ink-muted" />
       </div>
-      {/* Vor der Anmeldung erreichbar — das Impressum verlangt es (§ 5 ECG). */}
-      <RechtLinks className="text-xs text-ink-muted" />
     </div>
   );
 }
