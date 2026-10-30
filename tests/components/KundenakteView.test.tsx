@@ -970,3 +970,23 @@ it('Aktenlinie 03 · behält bei benannten Baustellen die vollständige Baustell
   await userEvent.click(screen.getByRole('tab', { name: 'Baustellen' }));
   expect(within(document.getElementById('k-baustellen')!).getByRole('link', { name: /B-ORT.*Wärmepumpe Werkstatt.*Industriestraße 17, 8200 Gleisdorf/ })).toBeInTheDocument();
 });
+
+/*
+  PLANLINIE B10 (E30): die Kundennummer steht als Stempel neben dem Namen
+  im Plankopf, nicht mehr in der Zeile darunter.
+*/
+describe('Kundenakte — Nummernstempel', () => {
+  it('die Kundennummer als Stempel im Plankopf', async () => {
+    kunden = [{ ...KUNDE, kundennummer: '10042' }];
+    zeige();
+    const stempel = await screen.findByText('Nr. 10042', { selector: '.stempel' });
+    expect(stempel.closest('.plankopf-titel')).not.toBeNull();
+    expect(document.querySelector('.akten-identitaet')?.textContent ?? '').not.toContain('10042');
+  });
+
+  it('Gegenprobe: ohne Kundennummer kein leerer Stempel', async () => {
+    zeige();
+    await screen.findByRole('heading', { level: 1, name: /Hausverwaltung Nord/ });
+    expect(document.querySelector('.plankopf-titel .stempel')).toBeNull();
+  });
+});

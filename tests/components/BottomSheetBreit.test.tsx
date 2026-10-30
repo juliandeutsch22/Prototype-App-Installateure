@@ -24,3 +24,23 @@ describe('BottomSheet breit', () => {
     expect(screen.getByRole('dialog').className).toMatch(/^blatt /);
   });
 });
+
+/*
+  DER KLEINE PLANKOPF EINES SEITENFENSTERS (Planlinie B10, E30): die Nummer
+  steht als Stempel neben dem Titel — keine Skizze, keine Eckmarken; im
+  Fenster gibt es keinen Akzent.
+*/
+describe('BottomSheet mit Nummernstempel', () => {
+  it('der Stempel steht im Titel', () => {
+    render(<BottomSheet open onClose={() => {}} label="Rechnung RE-1" auchBreit titel="Rechnung" stempel="RE-2026-1502">Inhalt</BottomSheet>);
+    const titel = screen.getByRole('heading', { level: 2 });
+    expect(titel).toHaveClass('fenster-titel');
+    expect(titel.querySelector('.stempel')).toHaveTextContent('RE-2026-1502');
+    expect(screen.getByRole('dialog').querySelector('.lot-skizze, .eckmarken')).toBeNull();
+  });
+
+  it('Gegenprobe: ohne Angabe kein Stempel', () => {
+    render(<BottomSheet open onClose={() => {}} label="x" auchBreit titel="T">Inhalt</BottomSheet>);
+    expect(screen.getByRole('heading', { level: 2 }).querySelector('.stempel')).toBeNull();
+  });
+});
