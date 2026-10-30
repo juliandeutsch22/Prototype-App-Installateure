@@ -164,8 +164,11 @@ export default function MonthCalendar({
                 keinen Platz — 8 + 24 + 4 + 18 Pixel sind mehr als die 52, die
                 das Kaestchen hoch war, der Punkt wurde also nach unten
                 herausgedrueckt. Gemeldet aus dem Betrieb, mit Bildschirmfoto.
+                Oben seit der Planlinie 12 statt 8 Pixel: dort haengt am
+                heutigen Tag das Lot, und sein Senkblei soll ueber der Zahl
+                enden, nicht in ihrem Kreis.
               */
-              className={`flex min-h-[3.625rem] flex-col items-center gap-0.5 border-b border-r border-line py-2 transition-colors${ecke} ${
+              className={`relative flex min-h-[3.625rem] flex-col items-center gap-0.5 border-b border-r border-line pb-2 pt-3 transition-colors${ecke} ${
                 isSelected
                   ? 'bg-info-bg ring-2 ring-inset ring-accent-deep'
                   : holiday
@@ -178,14 +181,21 @@ export default function MonthCalendar({
                       : 'hover:bg-surface-2'
               }`}
             >
+              {/*
+                HEUTE TRÄGT DAS LOT (Planlinie, B4) über der Zahl statt eines
+                getönten Kreises — dasselbe Zeichen wie in der Einsatzplanung.
+                Es fällt in den oberen Rand des Kästchens, die Ziffern
+                bleiben frei.
+              */}
+              {isToday && <span className="tag-lot" aria-hidden="true" />}
               <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${
+                className={`flex h-6 w-6 items-center justify-center rounded-full font-mono text-xs ${
                   isSelected
                     ? // Schrift in der Farbe der Fläche: im dunklen Satz ist
                       // `accent-deep` hell, weiss darauf wäre unlesbar.
                       'bg-accent-deep font-semibold text-surface'
                     : isToday
-                      ? 'bg-info-bg font-semibold text-info'
+                      ? 'font-semibold text-accent-deep'
                       : // Vergangene Tage ohne Planung treten zurück — grau und
                         // dünn, aber lesbar (blass lag er bei 2,4 : 1, K2); wo
                         // etwas geplant war, bleibt der Tag kräftig.

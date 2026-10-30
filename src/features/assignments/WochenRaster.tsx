@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import type { AppUser, Assignment, Project, Termin } from '@/types';
+import { EmptyState } from '@/components/States';
 import { tagKurz, type Brett, type Gruppe, type TagStand } from './planTypen';
 import type { FensterStart } from './EinsatzFenster';
 import { GruppenKopf } from './PlanRaster';
@@ -63,9 +64,13 @@ interface RasterGrund {
   nichtEinplanbar?: ReadonlySet<string>;
 }
 
-/** Die Klasse einer Zelle: heute, Wochenende/Feiertag/Betriebsurlaub, schmal. */
+/**
+ * Die Klasse einer Zelle: heute, Wochenende/Feiertag/Betriebsurlaub, schmal.
+ * Heute trägt die Linie des Lots auch, wenn der Tag schmal ist — sonst
+ * bräche sie an einem leeren Samstag ab.
+ */
 function zellenKlasse(tag: string, g: RasterGrund): string {
-  if (g.schmal.has(tag)) return 'wp-zelle-schmal';
+  if (g.schmal.has(tag)) return tag === g.heute ? 'wp-zelle-schmal-heute' : 'wp-zelle-schmal';
   if (tag === g.heute) return 'wp-zelle-heute';
   return ruhetag(tag) || g.zuAm.has(tag) ? 'wp-zelle-ruhe' : 'wp-zelle';
 }
@@ -115,12 +120,16 @@ function TagesKopf({ ecke, g }: { ecke: string; g: RasterGrund }) {
             tag === g.markiert
               ? 'wp-kopf-markiert'
               : schmal
-                ? 'wp-kopf-schmal'
+                ? tag === g.heute
+                  ? 'wp-kopf-schmal-heute'
+                  : 'wp-kopf-schmal'
                 : tag === g.heute
                   ? 'wp-kopf-heute'
                   : ruhetag(tag) || zu
                     ? 'wp-kopf-ruhe'
                     : 'wp-kopf';
+          /* Das Senkblei des Lots (Planlinie, B4) — auch am markierten Tag, wenn er heute ist. */
+          const lot = tag === g.heute ? <span className="spalten-lot" aria-hidden="true" /> : null;
           const vorlesen = [
             info,
             ohneAnnahme > 0 ? ohneAnnahmeText(ohneAnnahme) : null,
@@ -129,6 +138,7 @@ function TagesKopf({ ecke, g }: { ecke: string; g: RasterGrund }) {
           if (g.lesen) {
             return (
               <th key={tag} className={klasse} aria-current={tag === g.heute ? 'date' : undefined}>
+                {lot}
                 <span
                   className={`${schmal ? 'wp-kopf-knopf-schmal' : 'wp-kopf-knopf'} nur-lesen`}
                   title={schmal ? (feiertag ?? undefined) : undefined}
@@ -154,6 +164,7 @@ function TagesKopf({ ecke, g }: { ecke: string; g: RasterGrund }) {
           }
           return (
             <th key={tag} className={klasse} aria-current={tag === g.heute ? 'date' : undefined}>
+              {lot}
               <button
                 type="button"
                 className={schmal ? 'wp-kopf-knopf-schmal' : 'wp-kopf-knopf'}
@@ -194,6 +205,14 @@ function TagesKopf({ ecke, g }: { ecke: string; g: RasterGrund }) {
 const RASTER = ['wp-raster-0', 'wp-raster-1', 'wp-raster-2', 'wp-raster-3', 'wp-raster-4', 'wp-raster-5', 'wp-raster-6', 'wp-raster-7'];
 const rasterKlasse = (g: RasterGrund) => RASTER[Math.max(0, Math.min(7, g.tage.length - g.schmal.size))];
 
+/*
+  DAS RASTER DER PLANUNGSFLÄCHE (Planlinie, B12) liegt unter der Tabelle —
+  der eine Akzent der Seite, darum keine Skizze im Seitenkopf. Die Zellen
+  sind durchsichtig; Kopf und Namensspalte decken es ab, weil sie beim
+  Rollen stehen bleiben.
+*/
+const tabellenKlasse = (g: RasterGrund) => `${rasterKlasse(g)} raster`;
+
 /**
  * PERSONEN × TAGE. Eine leere Zelle ist leer; ein Klick darauf öffnet
  * „Einsatz planen“ mit Tag und Person (am Schreibtisch zeigt das
@@ -222,7 +241,7 @@ export function PersonenWoche({
   const mitKoepfen = gruppen.length > 1;
   return (
     <div className="wp-huelle" role="region" aria-label="Wochenplan seitlich und nach unten scrollen" tabIndex={0}>
-      <table aria-label="Wochenplan als Tabelle" className={rasterKlasse(g)}>
+      <table aria-label="Wochenplan als Tabelle" className={tabellenKlasse(g)}>
         <Spalten g={g} />
         <TagesKopf ecke="Mitarbeiter" g={g} />
         <tbody>
@@ -383,17 +402,10 @@ export function BaustellenWoche({
 
   return (
     <div className="wp-huelle" role="region" aria-label="Baustellenplan seitlich und nach unten scrollen" tabIndex={0}>
-      <table aria-label="Wochenplan nach Baustellen" className={rasterKlasse(g)}>
+      <table aria-label="Wochenplan nach Baustellen" className={tabellenKlasse(g)}>
         <Spalten g={g} />
         <TagesKopf ecke="Baustelle" g={g} />
         <tbody>
-          {sortiert.length === 0 && (
-            <tr>
-              <td colSpan={g.tage.length + 1} className="wp-leer">
-                In dieser Woche ist keine Baustelle eingeplant.
-              </td>
-            </tr>
-          )}
           {sortiert.map(([nummer, name]) => {
             const p = projects.find((x) => x.projectNumber === nummer);
             const ort = ortAus(p?.address);
@@ -401,7 +413,11 @@ export function BaustellenWoche({
               <tr key={nummer}>
                 <th scope="row" className="wp-name">
                   <span className="wp-name-titel">{name}</span>
-                  <span className="wp-name-info">{[nummer, ort].filter(Boolean).join(' · ')}</span>
+                  {/* Die Nummer in Mono, der Ort in Schrift (Planlinie, B10). */}
+                  <span className="wp-name-info">
+                    <span className="mono">{nummer}</span>
+                    {ort ? ` · ${ort}` : ''}
+                  </span>
                 </th>
                 {g.tage.map((tag) => {
                   const { datum } = tagKurz(tag);
@@ -461,6 +477,14 @@ export function BaustellenWoche({
           })}
         </tbody>
       </table>
+      {/*
+        EINE WOCHE OHNE EINSATZ ist echte Leere (Planlinie, Seitenplan): die
+        Zeichnung „plan“ — unter der Tabelle, nie in ihr. Die Köpfe der Tage
+        bleiben darüber stehen, sie öffnen weiter das Seitenfenster „Tag“.
+      */}
+      {sortiert.length === 0 && (
+        <EmptyState zeichnung="plan">In dieser Woche ist keine Baustelle eingeplant.</EmptyState>
+      )}
     </div>
   );
 }

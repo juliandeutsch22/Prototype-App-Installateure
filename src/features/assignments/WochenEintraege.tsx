@@ -198,15 +198,15 @@ export function PersonEintraege({
     );
   }
   if (zu && baustellen.length === 0) {
-    // Der Betrieb hat zu — für alle derselbe graue Block, nicht für Ausgenommene.
+    // Der Betrieb hat zu — für alle derselbe schraffierte Block, nicht für Ausgenommene.
     teile.push(
-      <span key="zu" className="eintrag-weg">
+      <span key="zu" className="eintrag-weg schraffur">
         Betriebsurlaub
       </span>,
     );
   } else if (zelle?.imUrlaub && baustellen.length === 0) {
     teile.push(
-      <span key="weg" className="eintrag-weg">
+      <span key="weg" className="eintrag-weg schraffur">
         {zelle.abwesendText}
       </span>,
     );

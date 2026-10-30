@@ -150,6 +150,8 @@ export default function MonatsKalender({
               aria-label={`${vorlesen.join(', ')} – Vorschau`}
               onClick={(e) => onTag(tag, e.currentTarget)}
             >
+              {/* Heute trägt das Lot über der Zahl (Planlinie, B4), auch wenn der Tag gewählt ist. */}
+              {tag === heute && <span className="tag-lot" aria-hidden="true" />}
               <span className="kal-nr">{d.getDate()}</span>
               {person && <span className={zeile1.klasse} aria-hidden="true" />}
               <span className={zeile2.klasse} aria-hidden="true">

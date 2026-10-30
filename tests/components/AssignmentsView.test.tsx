@@ -1210,3 +1210,30 @@ describe('Tag planen — Auswahl erst mit der Belegschaft', () => {
     expect(await screen.findAllByText(MONTEUR.name)).not.toHaveLength(0);
   });
 });
+
+/*
+  DAS SCHRIFTFELD IN „TAG“ (Planlinie, B1): derselbe Plankopf wie in Woche
+  und Monat — der gewählte Tag, und wer verfügbar noch keinen Einsatz hat,
+  unter denselben Bedingungen wie die Zeile „Noch nicht eingeteilt“.
+*/
+describe('Einsatzplanung „Tag“ — Schriftfeld', () => {
+  const feld = () => within(screen.getByRole('list', { name: 'Stand der Planung' }));
+
+  it('nennt den Tag und wie viele verfügbar noch keinen Einsatz haben, sobald geplant ist', async () => {
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' } as Assignment & { id: string },
+    ];
+    zeige();
+    await screen.findByText(/Noch nicht eingeteilt/);
+    expect(feld().getByText('01.09.2026')).toBeInTheDocument();
+    expect(feld().getByText('Dienstag')).toBeInTheDocument();
+    expect(feld().getByText('Ohne Einsatz').closest('li')).toHaveTextContent('Ohne Einsatz 1 verfügbar, noch nicht eingeteilt');
+  });
+
+  it('Gegenprobe: ist an dem Tag nichts geplant, steht nur der Tag da', async () => {
+    zeige();
+    await screen.findByText('Keine Einsätze an diesem Tag.');
+    expect(feld().getByText('01.09.2026')).toBeInTheDocument();
+    expect(feld().queryByText('Ohne Einsatz')).toBeNull();
+  });
+});

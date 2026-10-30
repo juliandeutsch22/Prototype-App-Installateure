@@ -150,3 +150,48 @@ describe('Monatskalender in einer Karte', () => {
     expect(document.querySelector('[class*="rounded-bl-"]')).not.toBeNull();
   });
 });
+
+/*
+  HEUTE TRÄGT DAS LOT (Planlinie, B4): über der Zahl hängt das Senkblei,
+  statt dass ihr Kreis getönt ist — dasselbe Zeichen wie in der Planung.
+*/
+describe('Monatskalender — heute als Lot', () => {
+  it('das Lot hängt genau über heute, statt eines getönten Kreises', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 7, 12, 9, 0, 0));
+    try {
+      aufbauen();
+      const mitLot = () => screen.getAllByRole('button').filter((b) => b.querySelector('.tag-lot'));
+      expect(mitLot()).toHaveLength(1);
+      expect(mitLot()[0]).toHaveAttribute('aria-current', 'date');
+      expect(mitLot()[0]).toHaveAccessibleName(/12\. August/);
+      // Der getönte Kreis von heute ist weg.
+      expect(mitLot()[0].querySelector('.bg-info-bg')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('auch am gewählten Tag hängt das Lot, wenn er heute ist', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 7, 12, 9, 0, 0));
+    try {
+      aufbauen({ selected: '2026-08-12' });
+      const gewaehlt = screen.getByRole('button', { pressed: true });
+      expect(gewaehlt.querySelector('.tag-lot')).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('Gegenprobe: in einem anderen Monat hängt nirgends ein Lot', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 8, 2, 9, 0, 0));
+    try {
+      aufbauen();
+      expect(document.querySelectorAll('.tag-lot')).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
