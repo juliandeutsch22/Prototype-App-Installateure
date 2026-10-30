@@ -378,7 +378,7 @@ export default function BenutzerakteView() {
       {warnung}
       <AktenKopf art="Benutzer" zurueck="/user-mgmt" zurueckText="Zur Benutzerliste" title={p.name}
         meta={<span className="akten-identitaet"><Marke>{p.role}</Marke>
-          {p.active === false && <Marke>deaktiviert</Marke>}</span>}
+          {p.active === false && <Zustand stand="storniert">deaktiviert</Zustand>}</span>}
         action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>} />
       <AktenBereiche kennung="benutzer" kontext={<>
         <Card title="Anmeldekonto"><StammdatenLesen p={p} teil="konto" /></Card>
@@ -519,7 +519,7 @@ function StammdatenLesen({ p, teil }: { p: AppUser; teil: 'profil' | 'arbeitszei
       )}
       <Angabe wort="Zustand">
         {p.active === false
-          ? <Zustand stand="ruht">deaktiviert</Zustand>
+          ? <Zustand stand="storniert">deaktiviert</Zustand>
           : <Zustand stand="gut">aktiv</Zustand>}
       </Angabe>
     </>}

@@ -47,6 +47,7 @@ import { Wert } from '@/components/Wert';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
 import Metric, { MetricRow } from '@/components/Metric';
+import { Masslinie, MasslinieZeile } from '@/components/Planlinie';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
@@ -148,10 +149,10 @@ type AntragstellerStand =
   entschieden, zu tun bleibt nichts.
 */
 const STAND: Record<Vacation['status'], Stand> = {
-  Genehmigt: 'gut',
+  Genehmigt: 'erledigt',
   Beantragt: 'achtung',
-  Abgelehnt: 'ruht',
-  Storniert: 'ruht',
+  Abgelehnt: 'storniert',
+  Storniert: 'storniert',
 };
 
 /**
@@ -1408,17 +1409,42 @@ export default function VacationsView() {
             */}
             {!ohneKonto && (
             <span className={`block basis-full text-xs ${zeitraumGewaehlt ? 'mt-1' : ''}`}>
-              {jahresName} genehmigt: <span>{tageZahl(genommen)}</span> von{' '}
-              <span>{tageZahl(anspruch)}</span> Tagen
+              {/*
+                DIE URLAUBSTAGE ALS MASSLINIE (Planlinie B2) statt des Satzes
+                „genehmigt: 5 von 25 Tagen“: genehmigt gegen den Anspruch, mit
+                beiden Zahlen an der Linie; der Satz bleibt als Name für die
+                Vorlesehilfe. Ohne Anspruch gibt es keine Grenze und damit
+                keine Linie — dann bleibt der Satz.
+              */}
+              {anspruch > 0 ? (
+                <MasslinieZeile name={jahresName}>
+                  <Masslinie
+                    ist={genommen}
+                    soll={anspruch}
+                    istText={`${tageText(genommen)} genehmigt`}
+                    sollText={`Anspruch ${tageZahl(anspruch)}`}
+                    ueberText={`+${tageZahl(genommen - anspruch)}`}
+                    name={`${jahresName} genehmigt: ${tageZahl(genommen)} von ${tageZahl(anspruch)} Tagen`}
+                  />
+                </MasslinieZeile>
+              ) : (
+                <>
+                  {jahresName} genehmigt: <span>{tageZahl(genommen)}</span> von{' '}
+                  <span>{tageZahl(anspruch)}</span> Tagen
+                </>
+              )}
               {/* Eine richtige Zahl mit falscher Erklärung ist auch eine
                   falsche Auskunft: „von 25" stimmt weder im Umstiegsjahr
                   (dort sind es die mitgebrachten Tage) noch dort, wo ein
-                  Übertrag aus dem Vorjahr dabei ist. */}
+                  Übertrag aus dem Vorjahr dabei ist. Unter der Linie steht
+                  es als eigener Satz, am Satz als Nachsatz. */}
               {stand.ausAnfangsbestand
-                ? ' (Restanspruch beim Umstieg).'
+                ? anspruch > 0 ? 'Der Anspruch ist der Restanspruch beim Umstieg.' : ' (Restanspruch beim Umstieg).'
                 : stand.uebertrag > 0
-                  ? `, davon ${tageZahl(stand.uebertrag)} aus dem vorigen Urlaubsjahr.`
-                  : '.'}
+                  ? anspruch > 0
+                    ? `Davon ${tageZahl(stand.uebertrag)} aus dem vorigen Urlaubsjahr.`
+                    : `, davon ${tageZahl(stand.uebertrag)} aus dem vorigen Urlaubsjahr.`
+                  : anspruch > 0 ? null : '.'}
               {/* Verfallene Tage werden GENANNT. Sie lautlos abzuziehen wäre
                   genau die Sorte Zahl, über die sich jemand später beschwert
                   — und dann ist es ein Streit statt einer Auskunft. */}

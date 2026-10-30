@@ -13,7 +13,9 @@ import { einkaufspreise, kostensaetze, type Kostensaetze } from '@/lib/db/kosten
 import type { Material, Project, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
-import { Zustand } from '@/components/Badge';
+import { Zustand, type Stand } from '@/components/Badge';
+import LotZeichnung from '@/components/LotZeichnung';
+import { Masslinie } from '@/components/Planlinie';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -24,6 +26,14 @@ import { fmtStd } from '@/lib/time';
 import { euro } from '@/lib/betrag';
 
 /** Prozent mit Komma — überall sonst schreibt die App deutsch. */
+/*
+  DAS ZEICHEN ZUM TON (Planlinie B3). `margenTon` ist Geschäftslogik und
+  bleibt, wie sie ist; nur „ruht“ — kein Erlös hinterlegt — bekäme als
+  Zeichen den Kreis mit Haken, und der hieße „erledigt“. Ohne Erlös ist noch
+  nichts beurteilt: der leere Kreis sagt das.
+*/
+const zeichenVon = (ton: Stand): Stand => (ton === 'ruht' ? 'offen' : ton);
+
 const fmtProzent = (n: number) =>
   `${new Intl.NumberFormat('de-AT', { maximumFractionDigits: 1 }).format(n)} %`;
 
@@ -271,22 +281,31 @@ export default function NachkalkulationView() {
         Fehler aussieht.
       */}
       {!kosten ? (
-        <Card title="Kostensätze fehlen">
-          <p className="text-sm text-ink">
-            Für die Nachkalkulation wird gebraucht, was eine Arbeitsstunde den <strong>Betrieb
-            kostet</strong> — Lohn, Lohnnebenkosten und anteilige Gemeinkosten. Das ist eine
-            andere Zahl als der Verrechnungssatz, der den Erlös bestimmt.
-          </p>
-          <p className="mt-2 text-sm text-ink-muted">
-            Würde man den Verrechnungssatz als Kosten ansetzen, ergäbe jede Baustelle eine Marge
-            von null — und das sähe aus wie ein Ergebnis.
-          </p>
-          <p className="mt-3">
-            <Link to="/settings/saetze" className="link-weiter">
-              Einstellungen → Sätze und Kosten → Interne Kostensätze
-            </Link>
-          </p>
-        </Card>
+        /*
+          EINE FEHLENDE VORAUSSETZUNG, KEINE LEERE (Planlinie § 6): die kleine
+          Einrichtungs-Zeichnung wie bei den Firmendaten, nicht die große
+          eines Leerzustands — hier fehlt keine Baustelle, sondern ein Satz.
+        */
+        <section className="lot-einrichtung nachkalk-einrichtung" aria-labelledby="nachkalk-saetze-fehlen">
+          <LotZeichnung motiv="einrichtung" art="hinweis" />
+          <div>
+            <h2 id="nachkalk-saetze-fehlen">Kostensätze fehlen</h2>
+            <p className="mt-1">
+              Für die Nachkalkulation wird gebraucht, was eine Arbeitsstunde den <strong>Betrieb
+              kostet</strong> — Lohn, Lohnnebenkosten und anteilige Gemeinkosten. Das ist eine
+              andere Zahl als der Verrechnungssatz, der den Erlös bestimmt.
+            </p>
+            <p className="mt-2">
+              Würde man den Verrechnungssatz als Kosten ansetzen, ergäbe jede Baustelle eine Marge
+              von null — und das sähe aus wie ein Ergebnis.
+            </p>
+            <p className="mt-1">
+              <Link to="/settings/saetze" className="link-weiter inline-flex min-h-touch items-center">
+                Einstellungen → Sätze und Kosten → Interne Kostensätze
+              </Link>
+            </p>
+          </div>
+        </section>
       ) : (
         <>
           {/*
@@ -334,7 +353,18 @@ export default function NachkalkulationView() {
             ) : (
               <>
                 <List>
-                  {ergebnisse.map((k) => (
+                  {ergebnisse.map((k) => {
+                    /*
+                      KOSTEN GEGEN ERLÖS ALS MASSLINIE (Planlinie B2) statt des
+                      Satzes „Erlös − Personal − Material = …“: die Kosten
+                      laufen gegen den Erlös als Grenze, ein Verlust läuft rot
+                      über ihn hinaus. Die Kosten sind die Summe der beiden
+                      Posten, die die Zeile schon nennt; der Deckungsbeitrag
+                      steht als Betrag daneben. Ohne Erlös gibt es keine
+                      Grenze und damit keine Linie.
+                    */
+                    const kosten = k.personalkosten + k.materialkosten;
+                    return (
                     <ListRow
                       key={k.projectNumber}
                       title={k.customerName}
@@ -342,15 +372,15 @@ export default function NachkalkulationView() {
                       subtitle={
                         <>
                           <span className="block">
-                            Erlös {euro(k.erloes)} − Personal {euro(k.personalkosten)}
+                            Personal {euro(k.personalkosten)}
                             {/*
                               Material steht nur da, wenn welches bekannt ist.
-                              Ein „− 0,00 €" läse sich wie „kein Material
+                              Ein „0,00 €" läse sich wie „kein Material
                               verbaut" und wäre bei fehlenden Einkaufspreisen
                               genau die falsche Auskunft.
                             */}
-                            {k.materialkosten > 0 && <> − Material {euro(k.materialkosten)}</>} ={' '}
-                            <strong>{euro(k.deckungsbeitrag)}</strong>
+                            {k.materialkosten > 0 && <> · Material {euro(k.materialkosten)}</>}
+                            {k.erloes > 0 ? '' : ` · Erlös ${euro(k.erloes)}`}
                           </span>
                           {k.materialLuecken.length > 0 && (
                             <span className="mt-1 block text-xs text-warning">
@@ -373,11 +403,28 @@ export default function NachkalkulationView() {
                         </>
                       }
                     >
-                      <Zustand stand={margenTon(k)}>
+                      {k.erloes > 0 && (
+                        <div className="nachkalk-masslinie">
+                          <Masslinie
+                            schmal
+                            ist={kosten}
+                            soll={k.erloes}
+                            istText={`Kosten ${euro(kosten)}`}
+                            sollText={`Erlös ${euro(k.erloes)}`}
+                            name={`Kosten ${euro(kosten)} von ${euro(k.erloes)} Erlös, Deckungsbeitrag ${euro(k.deckungsbeitrag)}`}
+                          />
+                        </div>
+                      )}
+                      <span className="zeile-wert nachkalk-wert">
+                        {euro(k.deckungsbeitrag)}
+                        <small>Deckungsbeitrag</small>
+                      </span>
+                      <Zustand stand={zeichenVon(margenTon(k))}>
                         {k.margeProzent === null ? 'keine Aussage' : fmtProzent(k.margeProzent)}
                       </Zustand>
                     </ListRow>
-                  ))}
+                    );
+                  })}
                 </List>
 
                 {/*

@@ -11,8 +11,13 @@
  *   5. Keine Einträge, die einer anderen Rolle gehören.
  */
 
+/*
+  `abwesend` und `einsatz` seit der Planlinie (E30): ein Statuszeichen trägt
+  die Bedeutung — durchgestrichener Kreis für „nicht da“, halber Kreis für
+  „im Einsatz“. Als `leise` hatten beide den Haken von „erledigt“ bekommen.
+*/
 /** Wie dringend: Rot nur für Überfälliges. */
-export type Ton = 'fehl' | 'warn' | 'leise' | 'ok' | 'info';
+export type Ton = 'fehl' | 'warn' | 'leise' | 'ok' | 'info' | 'abwesend' | 'einsatz';
 
 export interface Zeile {
   key: string;

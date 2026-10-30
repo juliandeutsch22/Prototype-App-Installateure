@@ -77,12 +77,22 @@ beforeEach(() => {
   stundenDerBaustellen.mockClear();
 });
 
-it('Aktenkontext 04 · erklärt das Fachzeitbudget kompakt als Linie mit dem unveränderten Prozentwert', async () => {
+it('Aktenkontext 04 · erklärt das Fachzeitbudget kompakt als Maßlinie mit dem unveränderten Prozentwert (Planlinie B2)', async () => {
   bestand = [summe({ minuten: 480 })];
   render(<BaustellenUebersicht companyId="perl" projekt={projekt()} kompakt />);
-  const grafik = await screen.findByRole('img', { name: '20 % des Stundenbudgets verbraucht' });
-  expect(grafik.tagName.toLowerCase()).toBe('svg');
-  expect(grafik).toHaveAttribute('viewBox', '0 0 100 2');
+  const grafik = await screen.findByRole('img', { name: '8,0 h gebucht von 40 h Budget (20 %), 32,0 h verbleibend' });
+  expect(grafik).toHaveClass('masslinie');
+  expect(grafik).not.toHaveClass('masslinie-achtung');
+  expect(screen.getByText('Budget 40 h · 32,0 h verbleibend')).toBeInTheDocument();
+});
+
+it('Planlinie B2 · über dem Budget läuft die Maßlinie rot über die Marke, mit der Überschreitung als Zahl', async () => {
+  bestand = [summe({ minuten: 45 * 60 })];
+  render(<BaustellenUebersicht companyId="perl" projekt={projekt()} kompakt />);
+  const grafik = await screen.findByRole('img', { name: '45,0 h gebucht von 40 h Budget (113 %), 5,0 h über Budget' });
+  expect(grafik.querySelector('.masslinie-marke-rot')).not.toBeNull();
+  expect(screen.getByText('+5,0 h über Budget')).toBeInTheDocument();
+  expect(screen.queryByText(/verbleibend/)).toBeNull();
 });
 
 describe('Baustellenübersicht', () => {
@@ -142,7 +152,8 @@ describe('Baustellenübersicht', () => {
   it('ohne Lehrling bleibt die Summe ohne Zusatz — auch kompakt nicht „Fachzeit“ (G18)', async () => {
     bestand = [summe({ minuten: 960 })];
     render(<BaustellenUebersicht companyId="perl" projekt={projekt()} kompakt />);
-    expect(await summenzeile()).toBe('16,0 h von 40 h Budget');
+    expect(await screen.findByText('16,0 h gebucht')).toBeInTheDocument();
+    expect(screen.queryByText(/Fachzeit|Lehrling/)).toBeNull();
   });
 
   it('kompakt mit Lehrling und ohne Budget (G18)', async () => {
@@ -257,6 +268,6 @@ it('Aktenlinie 03 · zeigt den Stundenstand kompakt und hält Helfer sowie Perso
 it('Aktenlinie 03 · hält die Budgetwarnung ab 80 Prozent auch ohne Ring sichtbar', async () => {
   bestand = [summe({ minuten: 1920 })];
   render(<BaustellenUebersicht companyId="perl" projekt={projekt()} kompakt />);
-  expect(await screen.findByText(/verbleibend/)).toHaveClass('text-warning');
+  expect(await screen.findByRole('img', { name: /verbleibend/ })).toHaveClass('masslinie-achtung');
   expect(screen.queryByText('75 %')).toBeNull();
 });

@@ -38,6 +38,7 @@ import BottomSheet from '@/components/BottomSheet';
 import Abschnitt from '@/components/Abschnitt';
 import { Listenleiste, MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import PageHeader from '@/components/PageHeader';
+import Metric, { MetricRow } from '@/components/Metric';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
@@ -476,6 +477,16 @@ export default function WorkSheetsListView() {
     return (nurUnverrechnet === 'nicht-verrechnet-alt' ? zeilen.filter((z) => z.tage >= AUFFAELLIG_AB_TAGEN) : zeilen)
       .map((z) => z.schein);
   }, [mitVerrechnung, nurUnverrechnet, verrechnet, scheine]);
+  /*
+    FÜR DAS SCHRIFTFELD (Planlinie B1): dieselbe Zählung wie die Gruppe
+    „Nicht verrechnet“, nur ohne den Filter aus der Adresse — das Feld sagt,
+    wie die Liste steht, nicht, was gerade gefiltert ist.
+  */
+  const unverrechnetStand = useMemo(() => {
+    if (!mitVerrechnung || !verrechnet) return null;
+    const zeilen = unverrechneteScheine(scheine, [{ linkedWorkSheets: verrechnet, paymentStatus: 'Offen' }], todayStr());
+    return { anzahl: zeilen.length, alt: zeilen.filter((z) => z.tage >= AUFFAELLIG_AB_TAGEN).length };
+  }, [mitVerrechnung, verrechnet, scheine]);
   /** Nur für den Filter aus der Adresse: welche Scheine er durchlässt. */
   const unverrechnet = useMemo(
     () => (nurUnverrechnet && unverrechnetAlle ? new Set(unverrechnetAlle.map((s) => s.id)) : null),
@@ -723,6 +734,28 @@ export default function WorkSheetsListView() {
             <KnopfLink to="/worksheet">Neuer Schein</KnopfLink>
           )
         }
+        stand={!loading && scheine.length > 0 ? (
+          <MetricRow label="Stand der Handwerksscheine">
+            <Metric label="Entwürfe" value={entwuerfe.length} hint="noch nicht unterschrieben" />
+            {unverrechnetStand && (
+              <Metric
+                label="Nicht verrechnet"
+                value={unverrechnetStand.anzahl}
+                tone={unverrechnetStand.alt > 0 ? 'warning' : 'default'}
+                hint={unverrechnetStand.alt > 0 ? `davon ${unverrechnetStand.alt} über 4 Wochen` : 'unterschrieben, ohne Rechnung'}
+              />
+            )}
+            {darfZeitenSehen && (
+              <Metric
+                label="Ohne Buchung"
+                value={ohneBuchung.length}
+                tone={ohneBuchung.length > 0 ? 'warning' : 'default'}
+                hint={ohneBuchung.length === 1 ? 'Schein prüfen' : 'Scheine prüfen'}
+                bereit={pruefungBereit && !pruefungFehler}
+              />
+            )}
+          </MetricRow>
+        ) : undefined}
       />
 
       {/*
@@ -893,8 +926,8 @@ export default function WorkSheetsListView() {
                   pfeil
                   title={
                     <>
-                      <span>{schein.customerName}</span>
-                      <Warnung stufe={tage >= 30 ? 'dringend' : 'achtung'}>{tageWort(tage)}</Warnung>
+                      <span>{schein.customerName}</span>{' '}
+                      <span className="ml-2 inline-flex align-middle"><Warnung stufe={tage >= 30 ? 'dringend' : 'achtung'}>{tageWort(tage)}</Warnung></span>
                     </>
                   }
                   subtitle={

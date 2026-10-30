@@ -48,8 +48,9 @@ describe('Name und Nummer', () => {
     expect(container.querySelector('.zeile-nr')).toBeNull();
   });
 
-  it('die Nummer grau, normal gesetzt und nie umgebrochen', () => {
-    expect(lesen('src/index.css')).toMatch(/\.zeile-nr \{ font-weight: 400; color: var\(--text-muted\); white-space: nowrap;/);
+  it('die Nummer als Stempel (Planlinie B10): normal gesetzt, nie umgebrochen, in Mono und fein gerahmt', () => {
+    const css = lesen('src/index.css');
+    expect(css).toMatch(/\.zeile-nr \{ font-weight: 400; color: var\(--text\); white-space: nowrap;[^}]*font-family: var\(--schrift-mono\);[^}]*border: 1px solid var\(--border-strong\);/);
   });
 });
 
@@ -65,14 +66,15 @@ describe('Der Zustand in einer festen Spalte', () => {
     expect(lesen('src/index.css')).toMatch(/@media \(min-width: 760px\) \{ \.zeile-zustand \{ min-width: 8\.5rem; \} \}/);
   });
 
-  it('nur der Punkt trägt Farbe: Achtung und Fehler halbfett in Tinte', () => {
-    const css = lesen('src/index.css');
-    expect(css).toMatch(/\.stand-warn \{ font-weight: 600; \}/);
-    expect(css).toMatch(/\.stand-fehl \{ font-weight: 600; \}/);
+  it('nur das Zeichen trägt Farbe: Achtung und Fehler in 500 in Tinte', () => {
+    // Seit der Planlinie (E30): Statuszeichen statt Punkt, Gewicht 500 statt 600 (Poppins 400/500).
+    const css = lesen('src/index.css') + lesen('src/styles/lot-planlinie.css');
+    expect(css).toMatch(/\.stand-warn \{ font-weight: 500; \}/);
+    expect(css).toMatch(/\.stand-fehl \{ font-weight: 500; \}/);
     expect(css).not.toMatch(/\.stand-(warn|fehl) \{[^}]*color:/);
-    // Der Punkt behält die Farbe.
-    expect(css).toMatch(/\.stand-warn::before \{ background: var\(--warning\); \}/);
-    expect(css).toMatch(/\.stand-fehl::before \{ background: var\(--danger\); \}/);
+    // Das Zeichen behält die Farbe.
+    expect(css).toMatch(/\.stand-warn::before \{ background: var\(--warning\);/);
+    expect(css).toMatch(/\.stand-fehl::before \{ background: var\(--danger\);/);
   });
 });
 

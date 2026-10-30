@@ -113,6 +113,7 @@ import {
 import ZahlFeld, { ZahlWertFeld, ZahlZelle } from '@/components/ZahlFeld';
 import { leseZahl, unlesbareZahlIn, zahlAlsText, zahlOder } from '@/lib/zahl';
 import PageHeader from '@/components/PageHeader';
+import { Masslinie } from '@/components/Planlinie';
 import { praefixeVon } from '@/lib/praefixe';
 import { darfKundenPflegen, isTopLevel } from '@/lib/permissions';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -2563,13 +2564,25 @@ export default function InvoicesView() {
           );
         }
         if (stand.bezahlt > 0 && stand.rest > 0) {
+          /*
+            DIE TEILZAHLUNG ALS MASSLINIE (Planlinie B2) statt „x bezahlt ·
+            y offen“: bezahlt gegen den Betrag, der Rest steht an der Marke.
+          */
           return (
-            <span className="mt-1 block text-xs text-ink-muted">
-              {euro(stand.bezahlt)} bezahlt · {euro(stand.rest)} offen
+            <span className="rechnung-mass">
+              <Masslinie
+                schmal
+                ist={stand.bezahlt}
+                soll={stand.bezahlt + stand.rest}
+                istText={`${euro(stand.bezahlt)} bezahlt`}
+                sollText={`${euro(stand.rest)} offen`}
+                name={`${euro(stand.bezahlt)} bezahlt von ${euro(stand.bezahlt + stand.rest)}, ${euro(stand.rest)} offen${istUeberfaellig(inv, todayStr()) ? ', überfällig' : ''}`}
+                achtung={istUeberfaellig(inv, todayStr())}
+              />
               {/* Das Abzeichen sagt „Teilbezahlt" — dass der Rest
                   schon fällig war, sagt es nicht. */}
               {istUeberfaellig(inv, todayStr()) && (
-                <span className="text-warning"> · überfällig</span>
+                <span className="block text-xs text-warning">überfällig</span>
               )}
             </span>
           );

@@ -173,6 +173,9 @@ const MOTIVE = {
 
 export type LotMotiv = keyof typeof MOTIVE;
 
+/** Das Gebäude mit dem Lot — auch die Modulskizze der Startseite (`Planlinie`). */
+export const LOT_MOTIV_BAU = MOTIVE.bau;
+
 /*
   DIE KLASSEN STEHEN AUSGESCHRIEBEN: Tailwind behält Regeln aus
   `@layer components` nur, wenn der Klassenname wörtlich im Quelltext

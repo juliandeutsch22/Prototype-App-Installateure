@@ -437,3 +437,92 @@ Grundlage: der freigegebene Illustrationsentwurf
 - **Knopf-Links aus einem Guss** (`knopf.ts`, `KnopfLink`): ein Link in der
   Rolle eines Knopfs sieht aus wie der Knopf — ohne eigene Schatten oder
   Skalierung.
+
+**E30 — Planlinie: die Sprache der Zeichnungen in den Bedienelementen
+(30.10.2026).** Grundlage: Auftrag „Planlinie“ vom 30.10.2026 mit Entwurf
+`Senklot_Planlinie.html`. Leitsatz: ein Baustein kommt nur auf die Seite,
+wenn er ein bestehendes Element ersetzt. Funktionen, Daten, Rechte,
+Abfragen, Geschäftslogik, Farben, die Zeichnungsfamilie aus E29, die
+Navigation ohne Hamburger und die Dichte der Planung bleiben.
+
+- **Bausteine** in `src/components/Planlinie.tsx` und
+  `src/styles/lot-planlinie.css`, alle auf `/_muster`:
+  - B1 Plankopf mit Schriftfeld (die Kennzahlen des Seitenkopfs zwischen
+    zwei Linien, die Skizze des Bereichs rechts) und Lineal;
+  - B2 Maßlinie (Ist gegen Grenze, der Überhang rot bis an eine eigene
+    Endmarke) und B2a Saldolinie;
+  - B3 sieben Statuszeichen als Masken: offen, geplant, in Arbeit,
+    erledigt, Achtung, überfällig, storniert;
+  - B4 Lot (aktiver Menüpunkt, heute in der Planung, Laden);
+  - B5 Achskreis; B6 Stückliste; B7 Eckmarken; B8 Hinweislinie;
+  - B9 Modulskizzen und Menüsymbole; B10 Nummernstempel;
+  - B11 Schraffur, Einsatzbalken und Maßkette; B12 Raster.
+- **Schrift**: IBM Plex Mono für alles Gemessene, aus dem eigenen Paket
+  (`@fontsource`), weil die CSP keine fremden Schriften zulässt. Poppins in
+  400/500; `font-semibold` zeigt auf `--gewicht-titel`. Ein Wort ohne
+  Ziffer im Schriftfeld („Pauschal“, „Aktiv“) bleibt in der Textschrift.
+- **Ein Akzent je Seite**, keiner in Seitenfenstern und Dialogen:
+  - Hauptseiten mit Schriftfeld tragen die Skizze;
+  - Akten tragen Eckmarken am Kontext (Baustelle, Kunde, Beleg);
+  - die Planung trägt das Raster;
+  - Seitenfenster bekommen nur den Stempel neben dem Titel.
+- **Das Schriftfeld nur, wo es Zahlen gibt.** Angebote, Kunden, Material
+  anfordern, Anforderungen und Einstellungen haben keine Kennzahlen im
+  Kopf; dort gibt es weder Schriftfeld noch Skizze. Ein neues Feld wäre
+  eine neue Kennzahl, und die schließt § 7.8 aus.
+- **Verhältnis zu E29 („kein Kopfakzent“).** Die Skizze steht nicht frei
+  neben dem Titel, sondern als letztes Feld des Schriftfelds. So gehört
+  sie zu den Zahlen der Seite und ersetzt deren Leerraum. Ohne Schriftfeld
+  gibt es auch keine Skizze.
+- **Aktionen bleiben oben neben dem Titel.** Eine Zwischenfassung setzte
+  sie auf die Grundlinie des Titelblocks. Das widersprach der Regel aus
+  dem Design-Entwurf, Punkt 1, und dem Entwurf selbst, deshalb ist es
+  zurückgenommen; `LotAbstand.test.tsx` prüft es jetzt auch in der neuen
+  Stildatei.
+- **Baustellenliste**: Die Maßlinie je Zeile und die Budgetfelder im
+  Schriftfeld rechnen mit `stundenDerBaustellen` + `budgetStand`, wie die
+  Startseite und der Budgetfilter. Das ist eine Abfrage für alle aktiven
+  Baustellen mit Budget, und der Filter liest denselben Stand statt einer
+  zweiten Abfrage. Solange er lädt oder wenn er scheitert, steht das
+  Budget wie bisher als Zahl, und die Budgetfelder fehlen, statt eine Null
+  zu raten.
+- **Statuszeichen nach Bedeutung, nicht nach Farbe:**
+  - Genehmigt, Bestätigt, Unterschrieben, Angenommen, Abholbereit und
+    „gültig“ (UID) tragen den Haken;
+  - Abgelehnt, Storniert, Ersetzt, inaktiv, deaktiviert und abwesend den
+    durchgestrichenen Kreis;
+  - Entwurf und „noch zu tun“ den offenen Kreis;
+  - Termine heute die Raute;
+  - „Beantragt“ bleibt Achtung.
+- **Ladefehler sind nie „leer“** (§ 7.7): Die Leerzustände der Planung,
+  der Nachkalkulation und des Lagers zeigen ihre Zeichnung nur, wenn
+  wirklich nichts da ist.
+
+**Bewusst weggelassen** (jeweils mit Grund):
+- Die Maßlinie „Budgetlimit“ auf der Startseite. Sie stünde zusätzlich zu
+  den Zeilen; die Maßlinie je Baustelle steht in der Baustellenliste.
+- Eckmarken an „Mannschaft heute“: Die Startseite hat ihren Akzent schon
+  in der Skizze. Der graue Kasten ist trotzdem weg.
+- Fassungsbuchstaben A/B bei Angeboten: Geladen werden nur der direkte
+  Vorgänger und Nachfolger, eine Zählung aller Fassungen wäre eine neue
+  Abfrage.
+- Maßlinien für „gültig bis“ (Angebot), „zuletzt → nächste“ (Wartung)
+  und Offen/Umsatz beim Kunden: Dafür gibt es keine geladene Zahl (§ 7.8).
+- Wochensummen „Einsätze“ und „Abwesend“ in der Planung: Die Planung
+  kennt beides nur je Tag und Zelle.
+- Legende unter der Wochenplanung: Sie käme zusätzlich auf die Seite; die
+  Erklärung steht in der Hilfe.
+- Raster im Monat: Bei 31 schmalen Spalten wäre es unruhig.
+- Felder „Heute“ und „Kommend“ in der Zeiterfassung: „Heute“ wird nicht
+  berechnet, „Kommend“ stünde doppelt zum Abschnitt.
+- Monteur-Startseite unverändert: Ein Tagesstreifen und „Arbeitszeit
+  heute gegen Soll“ bräuchten eine neue Abfrage.
+- Schraffur im Urlaubskalender: Markierte Tage haben im gemeinsamen
+  Kalender keine eigene Klasse.
+- Pos-Nummern im Formular des Angebots: Das ist ein Formular und keine
+  Stückliste (§ 7.4).
+
+**Prüfungen.** Die Bausteine prüft `tests/components/Planlinie.test.tsx`,
+die Regeln im Stil `tests/unit/planlinieStil.test.ts`. Jede Seite hat
+eigene Prüfungen; jede neue Prüfung ist mit Gegenprobe gelaufen (mit der
+alten Fassung rot). Vorher- und Nachher-Fotos stehen in `docs/planlinie/`.

@@ -35,7 +35,7 @@ Grenze, keine Annahme über „den“ Betrieb.
   Texte nie offen auf die Seite.
 - Keine Pillen, nicht bunt, keine Emojis. Symbole sparsam, außer in der Navigation.
 - Keine halbtransparenten Farbflächen (nur der neutrale Schleier), keine
-  gestrichelten Linien, nur die Tokens der Grundwerte, Text/Titel in 400/600; Zahlen in 500 nach der Freigabe des Gesamtkonzepts 10
+  gestrichelten Linien, nur die Tokens der Grundwerte, Text/Titel in 400/500 (600 nur für den Firmennamen, Planlinie E30), Gemessenes in IBM Plex Mono; Zahlen in 500 nach der Freigabe des Gesamtkonzepts 10
   (15.10.2026, Entscheidung E16). Hell ist Standard, dunkel nur auf Wahl.
 - Breiten: Handy bis 759 px, Tablet 760–1.199 (`md:`), Schreibtisch ab 1.200 (`lg:`).
 - Markt Österreich. Oberfläche und Code-Kommentare auf Deutsch.

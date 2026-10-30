@@ -9,10 +9,10 @@ import type { Quote } from '@/types';
   Eigene Datei, weil Liste und Angebotsseite dieselbe Zuordnung brauchen.
 */
 export const STAND: Record<Quote['status'], Stand> = {
-  Entwurf: 'ruht',
+  Entwurf: 'offen',
   Versendet: 'laeuft',
-  Angenommen: 'gut',
-  Abgelehnt: 'ruht',
+  Angenommen: 'erledigt',
+  Abgelehnt: 'storniert',
   // Ein Endzustand wie „Abgelehnt“: eine andere Fassung wurde angenommen (G15).
-  Ersetzt: 'ruht',
+  Ersetzt: 'storniert',
 };

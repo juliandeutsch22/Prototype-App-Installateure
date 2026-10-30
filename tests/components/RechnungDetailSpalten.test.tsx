@@ -26,12 +26,13 @@ describe('Rechnung im Seitenfenster: Spalten (G1)', () => {
       expect(kopf.className).toContain('pl-3');
     }
     const zellen = within(tabelle).getAllByRole('cell');
-    expect(zellen.map((z) => z.textContent)).toEqual(['Therme samt Montage', '1 Stk', expect.stringContaining('7')]);
-    for (const zelle of zellen.slice(1)) {
+    // Vorne die Pos-Nummer der Stückliste (Planlinie B6).
+    expect(zellen.map((z) => z.textContent)).toEqual(['01', 'Therme samt Montage', '1 Stk', expect.stringContaining('7')]);
+    for (const zelle of zellen.slice(2)) {
       expect(zelle.className).toContain('whitespace-nowrap');
       expect(zelle.className).toContain('pl-3');
     }
     // Gleich bleibt: die Bezeichnung darf weiter umbrechen.
-    expect(zellen[0].className).not.toContain('whitespace-nowrap');
+    expect(zellen[1].className).not.toContain('whitespace-nowrap');
   });
 });

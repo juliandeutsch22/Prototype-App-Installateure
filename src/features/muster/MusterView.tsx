@@ -25,6 +25,7 @@ import { useDarstellung } from '@/lib/darstellung';
 import MusterUebersicht from './MusterUebersicht';
 import MusterPlanung from './MusterPlanung';
 import MusterMonat from './MusterMonat';
+import MusterPlanlinie from './MusterPlanlinie';
 
 /**
  * DIE MUSTERSEITE DER LINIE „LOT“ (Protokoll Abschnitt 4.2): jeder Baustein
@@ -112,6 +113,8 @@ export default function MusterView() {
         <p className="text-fliess">Fließtext 15</p>
         <p className="text-meta text-ink-muted">Nebeninfo 13</p>
       </Card>
+
+      <MusterPlanlinie />
 
       <MetricRow>
         <Metric label="Offen" value="€ 18 240,00" to="/_muster" />

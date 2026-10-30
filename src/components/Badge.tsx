@@ -52,12 +52,18 @@ import type { Role } from '@/types';
 export type Stand =
   /** Noch nicht begonnen, wartet auf jemanden. */
   | 'offen'
+  /** Kommt noch: ein Einsatz, ein Termin (Planlinie: Raute). */
+  | 'geplant'
   /** Läuft, ist in Ordnung. */
   | 'gut'
   /** In Arbeit, unterwegs, angenommen — noch nicht fertig, aber auf Kurs. */
   | 'laeuft'
+  /** Erledigt und Sache des Tages: unterschrieben, angenommen, genehmigt (Planlinie: Kreis mit Haken). */
+  | 'erledigt'
   /** Erledigt, abgeschlossen, zählt nicht mehr mit. */
   | 'ruht'
+  /** Storniert, abgelehnt, inaktiv — gilt nicht mehr (Planlinie: durchgestrichener Kreis). */
+  | 'storniert'
   /** Sollte jemand ansehen. */
   | 'achtung'
   /** Ist aus dem Ruder. */
@@ -69,9 +75,12 @@ export type Stand =
  */
 const standKlasse: Record<Stand, string> = {
   offen: 'stand-offen',
+  geplant: 'stand-geplant',
   gut: 'stand-ok',
   laeuft: 'stand-info',
+  erledigt: 'stand-erledigt',
   ruht: 'stand-leise',
+  storniert: 'stand-storniert',
   achtung: 'stand-warn',
   schlecht: 'stand-fehl',
 };

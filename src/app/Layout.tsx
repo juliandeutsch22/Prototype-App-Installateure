@@ -13,6 +13,7 @@ import { Zaehler } from '@/components/Badge';
 import Button from '@/components/Button';
 import { FASSUNG } from '@/lib/fassung';
 import Icon from '@/components/Icon';
+import NaviSymbol from '@/components/NaviSymbol';
 import Avatar from '@/components/Avatar';
 import BrandLogo from '@/components/BrandLogo';
 import ProduktMarke from '@/components/ProduktMarke';
@@ -282,7 +283,9 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const naviEintrag = (item: NavItem) => (
     <NavLink key={item.path} to={item.path} end={item.path === '/'} className={naviPunkt}>
-      <Icon name={item.icon} size={20} className="shrink-0" />
+      {/* Das Lot markiert den aktiven Punkt (Planlinie B4) — statt einer gefüllten Fläche. */}
+      <span className="navi-lot" aria-hidden="true" />
+      <NaviSymbol pfad={item.path} ersatz={item.icon} size={16} />
       <span className="navi-text-lang">{item.label}</span>
       <span className="navi-text-kurz" aria-hidden="true">{item.short}</span>
       <ZeilenHinweis item={item} posten={posten} auf="dunkel" />
@@ -407,7 +410,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         ref={inhalt}
         // Programmatisch fokussierbar (Sprunglink, Seitenwechsel), aber kein Tab-Halt.
         tabIndex={-1}
-        className="min-w-0 flex-1 pb-24 outline-none md:pb-6"
+        className="hauptflaeche min-w-0 flex-1 pb-24 outline-none md:pb-6"
       >
         {/* Ganz oben im Inhalt, nicht in der Kopfleiste: dort wäre es auf dem
             Schreibtisch gar nicht zu sehen, wo es keine mobile Top-Bar gibt. */}
@@ -442,8 +445,9 @@ export default function Layout({ children }: { children: ReactNode }) {
             end={item.path === '/'}
             className={({ isActive }) => (isActive ? 'unten-punkt-aktiv' : 'unten-punkt')}
           >
+            <span className="unten-lot" aria-hidden="true" />
             <span className="unten-symbol">
-              <Icon name={item.icon} size={22} />
+              <NaviSymbol pfad={item.path} ersatz={item.icon} size={22} />
               {item.hinweis && (
                 <span className="unten-zahl">
                   <Zaehler
@@ -503,7 +507,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                     onClick={() => setMoreOpen(false)}
                     className={mehrPunkt}
                   >
-                    <Icon name={item.icon} size={20} className="shrink-0" />
+                    <NaviSymbol pfad={item.path} ersatz={item.icon} size={20} />
                     <span className="truncate">{item.label}</span>
                     <ZeilenHinweis item={item} posten={posten} auf="hell" />
                   </NavLink>

@@ -223,7 +223,9 @@ describe('Die Stammdaten für alle, die nur lesen', () => {
   it('zeigt die Angaben, ohne ein einziges Eingabefeld', async () => {
     zeige();
     expect(await screen.findByText('2026-101')).toBeInTheDocument();
-    expect(angabe('Abrechnung')).toHaveTextContent('Pauschal');
+    // Die Abrechnung steht seit der Planlinie im Schriftfeld des Kopfes (B1), nicht mehr in den Angaben.
+    expect(screen.getByText('Abrechnung').closest('.schriftfeld')).toHaveTextContent('Pauschal');
+    expect(angabe('Stundenbudget')).toBeInTheDocument();
     expect(screen.queryByLabelText(/Projektnummer/)).not.toBeInTheDocument();
   });
   it('sagt bei einer leeren Angabe, dass sie nicht hinterlegt ist', async () => {
@@ -883,5 +885,58 @@ describe('Aktenlinie 03 · Baustelle', () => {
     await userEvent.click(within(screen.getByRole('dialog', { name: 'Ungespeicherte Änderungen verwerfen?' })).getByRole('button', { name: 'Abbrechen' }));
     expect(screen.getByLabelText(/Baustellenadresse/)).toHaveValue(BAUSTELLE.address+'!');
     expect(updateProject).not.toHaveBeenCalled();
+  });
+});
+
+/*
+  PLANLINIE (E30): der Aktenkopf als Plankopf — Nummer als Stempel, die
+  Eckdaten im Schriftfeld, der Leistungszeitraum als Maßlinie mit dem
+  überschrittenen Ende als roter Überhang.
+*/
+describe('Baustellenakte als Plankopf (Planlinie)', () => {
+  it('Nummer als Stempel, Eckdaten im Schriftfeld, das überschrittene Ende in Ocker', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 4, 15, 9, 0, 0));
+    try {
+      zeige();
+      const stempel = await screen.findByText('2026-101', { selector: '.stempel' });
+      expect(stempel.closest('.plankopf')).not.toBeNull();
+      const feld = screen.getByRole('list', { name: 'Eckdaten der Baustelle' });
+      expect(feld.closest('.schriftfeld')).not.toBeNull();
+      expect(feld).toHaveTextContent('Beginn 02.03.2026 Montag');
+      expect(within(feld).getByText('überschritten')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('der Leistungszeitraum als Maßlinie: die Tage bis heute, das Ende als Marke, der Überhang rot', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 4, 15, 9, 0, 0));
+    try {
+      zeige();
+      const linie = await screen.findByRole('img', { name: /^Leistungszeitraum 02\.03\.2026 bis 30\.04\.2026, 60 Tage, Ende seit 15 Tagen überschritten$/ });
+      expect(linie.querySelector('.masslinie-marke-rot')).not.toBeNull();
+      expect(within(linie).getByText('+15 Tage')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('Gegenprobe: vor dem Ende kein Überhang, ohne Ende keine Linie', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 2, 16, 9, 0, 0));
+    try {
+      const { unmount } = zeige();
+      const linie = await screen.findByRole('img', { name: /^Leistungszeitraum 02\.03\.2026 bis 30\.04\.2026, 60 Tage$/ });
+      expect(linie.querySelector('.masslinie-ueber')).toBeNull();
+      unmount();
+      baustellen = [{ ...BAUSTELLE, endDate: undefined }];
+      zeige();
+      await screen.findByText('2026-101', { selector: '.stempel' });
+      expect(screen.queryByRole('img', { name: /^Leistungszeitraum/ })).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

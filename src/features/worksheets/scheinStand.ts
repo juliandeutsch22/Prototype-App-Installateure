@@ -7,11 +7,12 @@ import type { WorkSheet } from '@/types';
  * aussieht.
  */
 export const SCHEIN_STAND: Record<WorkSheet['status'], Stand> = {
-  Unterschrieben: 'gut',
-  Entwurf: 'laeuft',
+  // Unterschrieben ist der Schein fertig — das Zeichen mit Haken (Planlinie B3).
+  Unterschrieben: 'erledigt',
+  Entwurf: 'offen',
   // Kein Rot: weder der Storno noch der aufgegebene Entwurf ist ein
   // Zwischenfall. Der eine ist die vorgesehene Korrektur, der andere der
   // Normalfall eines geplatzten Auftrags — beide sind abgeschlossen.
-  Storniert: 'ruht',
-  Verworfen: 'ruht',
+  Storniert: 'storniert',
+  Verworfen: 'storniert',
 };

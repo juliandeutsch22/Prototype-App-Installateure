@@ -6,6 +6,8 @@ import { todayStr } from '@/lib/time';
 import type { Project, Termin } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Metric, { MetricRow } from '@/components/Metric';
+import LotZeichnung from '@/components/LotZeichnung';
 import BottomSheet from '@/components/BottomSheet';
 import RowMenu from '@/components/RowMenu';
 import { List, ListRow } from '@/components/ListRow';
@@ -13,7 +15,7 @@ import { MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import TerminFenster from '@/features/termine/TerminFenster';
 import { montagDer, wocheAb, wocheVerschoben } from './wochenplan';
-import { kwSchluessel, monatsTage, monatsTitel, montagAusKw, wochenTitel } from './planungKopf';
+import { kwSchluessel, monatsTage, monatsTitel, montagAusKw, wochenFeld, wochenTitel } from './planungKopf';
 import MonatsAnsicht from './MonatsAnsicht';
 import EinsatzFenster, { type FensterStart } from './EinsatzFenster';
 import KalenderAboKarte from './KalenderAboKarte';
@@ -214,6 +216,37 @@ export default function Einsatzplanung() {
       : montag === montagDer(heute);
   const einheit = ansicht === 'monat' ? 'Monat' : 'Woche';
 
+  /*
+    DAS SCHRIFTFELD DES PLANKOPFS (Planlinie, B1) — nur, was die Seite
+    ohnehin rechnet: der Zeitraum und „Noch einzuplanen“ (dieselbe Liste wie
+    die Hinweiszeile und das Seitenfenster). Eine Wochensumme der Einsätze
+    oder der Abwesenden rechnet die Planung nirgends — sie kennt beides je
+    Tag und Zelle; ein Feld dafür wäre eine neue Kennzahl (Auftrag § 7.8).
+    „Noch einzuplanen“ gibt es nur für die Woche, wie die Liste selbst; und
+    nicht, wenn die Baustellen nicht kamen — dann wäre „0“ keine Auskunft.
+  */
+  const feld = wochenFeld(montag);
+  const nochZeigen = ansicht === 'woche' && d.nebenFehler !== 'Die Baustellen';
+  const stand = (
+    <MetricRow label="Stand der Planung">
+      {ansicht === 'woche' ? (
+        <Metric label="Woche" value={feld.kw} hint={feld.spanne} />
+      ) : (
+        <Metric label="Monat" value={kopf.titel} hint={kopf.klein} />
+      )}
+      {nochZeigen && (
+        <Metric
+          label="Noch einzuplanen"
+          value={ohneEinsatz.length}
+          hint={ohneEinsatz.length === 1 ? 'Baustelle ohne Einsatz' : 'Baustellen ohne Einsatz'}
+          tone={ohneEinsatz.length > 0 ? 'warning' : 'default'}
+          bereit={d.geladen}
+          zusatzMuster="Baustellen ohne Einsatz"
+        />
+      )}
+    </MetricRow>
+  );
+
   const grund: RasterGrund = {
     tage,
     heute,
@@ -250,6 +283,7 @@ export default function Einsatzplanung() {
     // `einsatzplanung` gibt der Seite die volle Inhaltsbreite (lot-planung.css).
     <div className="einsatzplanung" lang="de-AT">
       <PlanungsSeitenkopf
+        stand={stand}
         hilfe={
           <>
             <p>
@@ -284,6 +318,12 @@ export default function Einsatzplanung() {
               Feiertage sind schmal, solange dort nichts steht — an einem Notdienst wird auch
               sonntags gearbeitet, dann ist die Spalte breit. Bernstein heißt: eingeteilt, aber
               abwesend.
+            </p>
+            <p className="mt-2">
+              Ein Einsatz steht als helles Feld mit einem Strich am Anfang und am Ende; wer
+              abwesend ist (Urlaub, Krankenstand, Berufsschule, Zeitausgleich) oder wann der
+              Betrieb zu hat, steht schraffiert. Die senkrechte Linie mit dem Senkblei im Kopf
+              markiert heute.
             </p>
           </>
         }
@@ -353,9 +393,24 @@ export default function Einsatzplanung() {
         </Card>
       ) : d.gruppen.length === 0 ? (
         <Card buendig>
-          <EmptyState>
-            Keine aktiven Mitarbeiter im Außendienst. Ohne sie gibt es nichts einzuteilen.
-          </EmptyState>
+          {/*
+            NIEMAND IM AUSSENDIENST ist keine leere Woche, sondern eine
+            fehlende Voraussetzung (Planlinie, Leerzustände): die kleine
+            Einrichtungszeichnung neben dem Satz. Kam die Belegschaft gar
+            nicht an (der Betrieb hat immer mindestens den, der hier
+            schaut), steht oben der Fehler — dann ohne Zeichnung, ein
+            Ladefehler ist nie „leer“.
+          */}
+          {d.users.length === 0 ? (
+            <EmptyState>
+              Keine aktiven Mitarbeiter im Außendienst. Ohne sie gibt es nichts einzuteilen.
+            </EmptyState>
+          ) : (
+            <div className="planung-einrichtung" role="note">
+              <LotZeichnung motiv="einrichtung" art="hinweis" />
+              <p>Keine aktiven Mitarbeiter im Außendienst. Ohne sie gibt es nichts einzuteilen.</p>
+            </div>
+          )}
         </Card>
       ) : ansicht === 'monat' ? (
         <MonatsAnsicht

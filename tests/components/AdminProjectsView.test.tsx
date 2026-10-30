@@ -971,7 +971,8 @@ describe('Baustellenliste in der Linie „Lot“', () => {
     zeige();
     await screen.findByText('L-002');
     const titel = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
-    expect(titel).toEqual(['Aktiv· 1', 'Pausiert· 1']);
+    // Die Zahl steht im Achskreis vor dem Titel (Planlinie B5).
+    expect(titel).toEqual(['1 Aktiv', '1 Pausiert']);
     expect(screen.queryByText('L-003')).toBeNull();
 
     await userEvent.click(screen.getByRole('button', { name: 'Erledigt' }));
@@ -979,7 +980,7 @@ describe('Baustellenliste in der Linie „Lot“', () => {
     expect(screen.queryByText('L-002')).toBeNull();
     expect(screen.getByRole('button', { name: 'Erledigt' })).toHaveAttribute('aria-pressed', 'true');
     // Die Zahl, die bis zum Umbau hinter „Archiv (n)“ stand, steht über der Gruppe.
-    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Abgeschlossen· 1');
+    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('1 Abgeschlossen');
   });
 
   it('nimmt die Auswahl aus der Adresse — als Lesezeichen gespeichert bleibt sie', async () => {
@@ -1112,7 +1113,7 @@ describe('Baustellen — Zeilen erst mit der Belegschaft', () => {
   festen Spalten rechts — und nie „⋯“ und „›“ nebeneinander.
 */
 describe('Baustellen — die Zeile', () => {
-  it('Name und Nummer ohne Klammer, Budget als Wert, ohne Pfeil neben dem ⋯', async () => {
+  it('Name und Nummer ohne Klammer, Budget als Maßlinie, ohne Pfeil neben dem ⋯', async () => {
     baustellen = [{
       id: 'p-z', companyId: 'perl', projectNumber: '2026-077', customerName: 'Familie Zeiler', status: 'Aktiv',
       assignedEmployees: ['u1'], projectManagers: ['u1'], estimatedHours: 40,
@@ -1121,13 +1122,46 @@ describe('Baustellen — die Zeile', () => {
     const zeile = (await screen.findByText('2026-077')).closest('li')!;
     expect(within(zeile).getByText('2026-077')).toHaveClass('zeile-nr');
     expect(zeile.textContent).not.toContain('(2026-077)');
-    expect(within(zeile).getByText('Budget').closest('.zeile-wert')).toHaveTextContent('40 h');
+    // Planlinie B2: gebucht gegen das Budget, als schmale Maßlinie im Wert der Zeile.
+    const linie = await within(zeile).findByRole('img', { name: '0,0 h gebucht von 40 h Budget' });
+    expect(linie).toHaveClass('masslinie', 'masslinie-schmal');
+    expect(linie.closest('.zeile-wert')).not.toBeNull();
     expect(zeile.querySelector('.zeile-pfeil')).toBeNull();
     expect(within(zeile).getByRole('button', { name: /Weitere Aktionen/ })).toBeInTheDocument();
     // Eine Detailzeile: Leitung und Team stehen in derselben wie die Adresse.
     expect(zeile.querySelectorAll('.zeile-meta')).toHaveLength(1);
     expect(within(zeile).getByText(/Projektleitung: Max Mustermann/).closest('.zeile-meta')).not.toBeNull();
     expect(within(zeile).getByText(/Team: Max Mustermann/).closest('.zeile-meta')).not.toBeNull();
+  });
+
+  it('Planlinie B2 · über dem Budget läuft die Linie rot über die Marke, mit der Überschreitung als Zahl', async () => {
+    stundenDerBaustellen.mockImplementation(async () => [
+      { projectNumber: '2026-001', userId: 'u1', userName: 'Max Mustermann', art: 'fach' as const, minuten: 480, zuletzt: '2026-09-01' },
+    ]);
+    baustellen = [{
+      id: 'p-u', companyId: 'perl', projectNumber: '2026-001', customerName: 'Familie Über', status: 'Aktiv',
+      assignedEmployees: ['u1'], projectManagers: ['u1'], estimatedHours: 6,
+    } as unknown as Project & { id: string }];
+    zeige();
+    const zeile = (await screen.findByText('2026-001')).closest('li')!;
+    const linie = await within(zeile).findByRole('img', { name: '8,0 h gebucht von 6 h Budget, 2,0 h darüber' });
+    expect(linie.querySelector('.masslinie-marke-rot')).not.toBeNull();
+    expect(within(zeile).getByText('+2,0 h')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: kommt der Budgetstand nicht, steht das Budget wie bisher als Zahl — und keine Maßlinie', async () => {
+    stundenDerBaustellen.mockRejectedValueOnce(new Error('weg'));
+    baustellen = [{
+      id: 'p-z', companyId: 'perl', projectNumber: '2026-077', customerName: 'Familie Zeiler', status: 'Aktiv',
+      assignedEmployees: ['u1'], projectManagers: ['u1'], estimatedHours: 40,
+    } as unknown as Project & { id: string }];
+    zeige();
+    const zeile = (await screen.findByText('2026-077')).closest('li')!;
+    await waitFor(() => expect(stundenDerBaustellen).toHaveBeenCalled());
+    expect(within(zeile).getByText('Budget').closest('.zeile-wert')).toHaveTextContent('40 h');
+    expect(within(zeile).queryByRole('img', { name: /gebucht/ })).toBeNull();
+    // Ohne Stand fehlen die Budgetfelder im Schriftfeld, statt eine Null zu raten.
+    expect(screen.queryByText('Über Budget')).toBeNull();
   });
 
   it('ohne Leitung steht „ohne Projektleitung“ als Achtung in der Zustandsspalte', async () => {

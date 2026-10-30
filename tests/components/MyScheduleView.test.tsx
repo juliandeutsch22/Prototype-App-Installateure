@@ -425,3 +425,21 @@ describe('Name und Nummer (Runde 3, G4)', () => {
     expect(zeile.textContent).toBe('Familie Huber B-001');
   });
 });
+
+/*
+  PLANLINIE B3: „Genehmigt“ trägt den Haken von „erledigt“ wie auf der
+  Urlaubsseite, nicht den halben Kreis von „in Arbeit“. „Beantragt“ bleibt
+  Achtung — das ist die Gegenprobe für das, was gleich bleiben muss.
+*/
+describe('Mein Urlaub — Statuszeichen (Planlinie B3)', () => {
+  it('Genehmigt mit Haken, Beantragt als Achtung', async () => {
+    const { listOwnVacations } = await import('@/lib/db/vacations');
+    vi.mocked(listOwnVacations).mockResolvedValueOnce([
+      { id: 'v1', userId: 'm1', von: '2099-07-01', bis: '2099-07-03', tage: 3, status: 'Genehmigt' },
+      { id: 'v2', userId: 'm1', von: '2099-08-01', bis: '2099-08-01', tage: 1, status: 'Beantragt' },
+    ] as unknown as Vacation[]);
+    zeichne();
+    expect(await screen.findByText('Genehmigt')).toHaveClass('stand', 'stand-erledigt');
+    expect(screen.getByText('Beantragt')).toHaveClass('stand', 'stand-warn');
+  });
+});

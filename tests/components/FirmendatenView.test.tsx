@@ -327,6 +327,15 @@ describe('Premium: bestätigter Stand und offene Eingaben', () => {
       expect(feld(label)).toHaveAttribute('aria-invalid', 'true');
     }
   });
+  // Planlinie B8 (E30): die Warnung hängt als Hinweislinie am Feld; vorgelesen wird nur der Satz.
+  it('zeigt den Feldfehler als Hinweislinie, die Beschreibung bleibt der Satz', () => {
+    zeige();
+    fireEvent.change(feld('BIC'), { target: { value: 'ungültig' } });
+    const hinweis = document.getElementById(feld('BIC').getAttribute('aria-describedby')!)!;
+    expect(hinweis).toHaveClass('hinweislinie', 'hinweislinie-fehl');
+    expect(hinweis.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    expect(feld('BIC')).toHaveAccessibleDescription(hinweis.textContent!.trim());
+  });
 });
 
 /*

@@ -1,7 +1,36 @@
 import type { ReactNode } from 'react';
 import { useInRouterContext, useLocation } from 'react-router-dom';
 import { SeitenHilfeKnopf } from './SeitenHilfe';
+import { Modulskizze, Stempel, type SkizzenMotiv } from './Planlinie';
 import { gruppeVon } from '@/app/navigation';
+
+/*
+  DIE SKIZZE JE BEREICH (Planlinie, Seitenplan). Zentral nach der Adresse der
+  Listenseite, damit jede Hauptseite ihren Akzent ohne eigene Zeile bekommt —
+  und keine Akte, kein Unterreiter: dort ist die Adresse eine andere, und die
+  Seite hat ihren eigenen Akzent (Eckmarken) oder keinen. Die Einsatzplanung
+  fehlt mit Absicht: ihr Akzent ist das Raster der Planungsfläche.
+*/
+const SKIZZE_JE_SEITE: Record<string, SkizzenMotiv> = {
+  '/': 'bau',
+  '/admin-projects': 'baustelle',
+  '/my-projects': 'baustelle',
+  '/worksheets': 'schein',
+  '/quotes': 'angebot',
+  '/customers': 'kunde',
+  '/wartungen': 'wartung',
+  '/invoices': 'rechnung',
+  '/costing': 'waage',
+  '/time': 'zeit',
+  '/vacations': 'zeit',
+  '/sonderurlaub': 'zeit',
+  '/accounting': 'team',
+  '/user-mgmt': 'team',
+  '/material': 'lager',
+  '/anforderungen': 'lager',
+  '/lager': 'lager',
+  '/settings': 'einstellungen',
+};
 
 /**
  * DER SEITENKOPF DER LINIE „LOT“ (Regel 2): überall gleich gebaut.
@@ -22,6 +51,12 @@ import { gruppeVon } from '@/app/navigation';
  * zwei Linien stand er zwischen Kopf und Arbeit und machte aus einem Block
  * drei. Im Kopf liest er sich wie der Kopf eines Dokuments: was die Seite
  * ist, und wie sie gerade steht.
+ *
+ * SEIT DER PLANLINIE (E30, 30.10.2026) IST ER EIN PLANKOPF: der Stand steht
+ * als Schriftfeld über die ganze Breite — gleich breite Felder wie im
+ * Schriftfeld einer Zeichnung, rechts die Skizze des Bereichs, darunter das
+ * Lineal. Ohne Kennzahlen gibt es kein Schriftfeld (und keine Skizze): es
+ * wird keine Zahl erfunden, um ein Feld zu füllen.
  */
 export default function PageHeader({
   title,
@@ -31,6 +66,9 @@ export default function PageHeader({
   mehr,
   hilfe,
   stand,
+  stempel,
+  skizze,
+  nebenAktion,
 }: {
   title: string;
   subtitle?: ReactNode;
@@ -42,25 +80,62 @@ export default function PageHeader({
   mehr?: ReactNode;
   /** Einleitung für „Hilfe zu dieser Seite“, vor den gesammelten Erklärungen. */
   hilfe?: ReactNode;
-  /** Der Stand der Seite — eine `MetricRow` (oder ihr Platzhalter). */
+  /** Der Stand der Seite — eine `MetricRow` (oder ihr Platzhalter); wird zum Schriftfeld. */
   stand?: ReactNode;
+  /** Nummernstempel neben dem Titel — bei Akten (PR-, AN-, RE-Nummer). */
+  stempel?: ReactNode;
+  /**
+   * Die Skizze im Schriftfeld. Ohne Angabe die des Bereichs nach der Adresse
+   * (`SKIZZE_JE_SEITE`); `false`, wo die Seite einen anderen Akzent trägt.
+   */
+  skizze?: SkizzenMotiv | false;
+  /**
+   * Ein Weg, der nur ab dem Tablet im Kopf steht und am Handy NICHT in den
+   * Daumenbereich rückt (Start: „Einsatzplanung“ — dort ist die untere Leiste
+   * schon der Weg).
+   */
+  nebenAktion?: ReactNode;
 }) {
   const imRouter = useInRouterContext();
   return (
-    <div className="seitenkopf">
-      <div className="min-w-0">
-        {ort ? <p className="seitenkopf-ort">{ort}</p> : imRouter ? <OrtAusDemMenue /> : null}
-        <h1>{title}</h1>
-        {subtitle && <div className="seitenkopf-meta">{subtitle}</div>}
-        {stand && <div className="seitenkopf-stand">{stand}</div>}
+    <div className="plankopf">
+      <div className="seitenkopf">
+        <div className="min-w-0">
+          {ort ? <p className="seitenkopf-ort">{ort}</p> : imRouter ? <OrtAusDemMenue /> : null}
+          <div className="plankopf-titel">
+            <h1>{title}</h1>
+            {stempel && <Stempel gross>{stempel}</Stempel>}
+            {stand && imRouter && skizze !== false && <SkizzeDerSeite skizze={skizze} klein />}
+          </div>
+          {subtitle && <div className="seitenkopf-meta">{subtitle}</div>}
+        </div>
+        <div className="seitenkopf-rechts">
+          <SeitenHilfeKnopf seite={title} einleitung={hilfe} />
+          {mehr}
+          {nebenAktion}
+          {action && <div className="daumen">{action}</div>}
+        </div>
       </div>
-      <div className="seitenkopf-rechts">
-        <SeitenHilfeKnopf seite={title} einleitung={hilfe} />
-        {mehr}
-        {action && <div className="daumen">{action}</div>}
-      </div>
+      {stand && (
+        <>
+          <div className="schriftfeld seitenkopf-stand">
+            {stand}
+            {imRouter && skizze !== false && <SkizzeDerSeite skizze={skizze} />}
+          </div>
+          <div className="lineal" aria-hidden="true" />
+        </>
+      )}
     </div>
   );
+}
+
+/** Die Skizze im Endfeld des Schriftfelds — am Handy klein neben dem Titel. */
+function SkizzeDerSeite({ skizze, klein = false }: { skizze?: SkizzenMotiv; klein?: boolean }) {
+  const pfad = useLocation().pathname;
+  const motiv = skizze ?? SKIZZE_JE_SEITE[pfad];
+  if (!motiv) return null;
+  if (klein) return <span className="plankopf-skizze-klein"><Modulskizze motiv={motiv} klein /></span>;
+  return <div className="schriftfeld-skizze"><Modulskizze motiv={motiv} /></div>;
 }
 
 /*

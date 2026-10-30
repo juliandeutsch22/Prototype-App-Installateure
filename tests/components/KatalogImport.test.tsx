@@ -237,7 +237,10 @@ describe('Übernahme in Blöcken (10.10.2026)', () => {
     });
     await einlesen(SAUBER);
     await userEvent.click(screen.getByRole('button', { name: /Artikel übernehmen/ }));
-    expect(await screen.findByRole('button', { name: /2 von 5 übernommen/ })).toBeInTheDocument();
+    // Seit der Planlinie (E30) steht der Fortschritt als Maßlinie unter dem Knopf, nicht mehr im Knopf.
+    expect(await screen.findByRole('img', { name: '2 von 5 Artikeln übernommen' })).toBeInTheDocument();
+    expect(screen.getByText('2 von 5 übernommen')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Wird übernommen/ })).toBeInTheDocument();
     weiter();
     expect(await screen.findByText('Übernommen')).toBeInTheDocument();
   });

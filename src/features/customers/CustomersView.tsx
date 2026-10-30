@@ -25,6 +25,7 @@ import Button from '@/components/Button';
 import RowMenu from '@/components/RowMenu';
 import { Marke, Warnung } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import { Hinweislinie } from '@/components/Planlinie';
 import Nachladen from '@/components/Nachladen';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
@@ -757,7 +758,8 @@ export default function CustomersView() {
               aria-invalid={mailFehler(form.email) ? true : undefined}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
-            {mailFehler(form.email) && <p className="-mt-2 text-sm text-danger">{mailFehler(form.email)}</p>}
+            {/* Die Warnung am Feld als Hinweislinie (Planlinie B8). */}
+            {mailFehler(form.email) && <Hinweislinie stufe="fehl">{mailFehler(form.email)}</Hinweislinie>}
           </FormGrid>
           <KundenartUidFelder
             idPrefix="k"

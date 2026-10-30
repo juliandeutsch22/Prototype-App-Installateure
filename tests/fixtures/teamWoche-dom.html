@@ -1,8 +1,11 @@
 <div class="space-y-4 lg:space-y-5" lang="de-AT">
+<div class="plankopf">
 <div class="seitenkopf">
 <div class="min-w-0">
 <p class="seitenkopf-ort">Mein Einsatzplan</p>
+<div class="plankopf-titel">
 <h1>Team-Woche</h1>
+</div>
 <div class="seitenkopf-meta">Wer ist diese Woche wo</div>
 </div>
 <div class="seitenkopf-rechts">
@@ -12,6 +15,7 @@
 </path>
 </svg>
 </button>
+</div>
 </div>
 </div>
 <div class="planung-steuerung">
@@ -27,7 +31,7 @@
 <section class="panel karte ">
 <div class="karte-buendig ">
 <div class="wp-huelle" role="region" aria-label="Wochenplan seitlich und nach unten scrollen" tabindex="0">
-<table aria-label="Wochenplan als Tabelle" class="wp-raster-5">
+<table aria-label="Wochenplan als Tabelle" class="wp-raster-5 raster">
 <colgroup>
 <col class="wp-spalte-name">
 <col class="wp-spalte-schmal">
@@ -56,6 +60,8 @@
 </span>
 </th>
 <th class="wp-kopf-heute" aria-current="date">
+<span class="spalten-lot" aria-hidden="true">
+</span>
 <span class="wp-kopf-knopf nur-lesen">
 <span class="kopf-tag">Mi 28.10.</span>
 </span>
@@ -87,9 +93,12 @@
 </thead>
 <tbody>
 <tr>
-<th colspan="8" scope="rowgroup" class="border-b border-line bg-surface-2 p-0 text-left">
-<button type="button" class="planung-gruppe" aria-expanded="true">
-<span aria-hidden="true">▾</span>Obermonteure · 1</button>
+<th colspan="8" scope="rowgroup" class="planung-gruppe-zelle">
+<button type="button" class="planung-gruppe" aria-expanded="true" aria-label="Obermonteure · 1">
+<span class="gruppe-winkel" aria-hidden="true">▾</span>
+<span class="achskreis" aria-hidden="true">1</span>
+<span class="gruppe-name">Obermonteure</span>
+</button>
 </th>
 </tr>
 <tr>
@@ -127,9 +136,12 @@
 </td>
 </tr>
 <tr>
-<th colspan="8" scope="rowgroup" class="border-b border-line bg-surface-2 p-0 text-left">
-<button type="button" class="planung-gruppe" aria-expanded="true">
-<span aria-hidden="true">▾</span>Facharbeiter · 2</button>
+<th colspan="8" scope="rowgroup" class="planung-gruppe-zelle">
+<button type="button" class="planung-gruppe" aria-expanded="true" aria-label="Facharbeiter · 2">
+<span class="gruppe-winkel" aria-hidden="true">▾</span>
+<span class="achskreis" aria-hidden="true">2</span>
+<span class="gruppe-name">Facharbeiter</span>
+</button>
 </th>
 </tr>
 <tr>
@@ -159,7 +171,7 @@
 </td>
 <td class="wp-zelle-ruhe">
 <div class="zelle-inhalt">
-<span class="eintrag-weg">Betriebsurlaub</span>
+<span class="eintrag-weg schraffur">Betriebsurlaub</span>
 </div>
 </td>
 <td class="wp-zelle-ruhe">
@@ -197,7 +209,7 @@
 </td>
 <td class="wp-zelle-ruhe">
 <div class="zelle-inhalt">
-<span class="eintrag-weg">Betriebsurlaub</span>
+<span class="eintrag-weg schraffur">Betriebsurlaub</span>
 </div>
 </td>
 <td class="wp-zelle-ruhe">
@@ -214,9 +226,12 @@
 </td>
 </tr>
 <tr>
-<th colspan="8" scope="rowgroup" class="border-b border-line bg-surface-2 p-0 text-left">
-<button type="button" class="planung-gruppe" aria-expanded="true">
-<span aria-hidden="true">▾</span>Helfer · 1</button>
+<th colspan="8" scope="rowgroup" class="planung-gruppe-zelle">
+<button type="button" class="planung-gruppe" aria-expanded="true" aria-label="Helfer · 1">
+<span class="gruppe-winkel" aria-hidden="true">▾</span>
+<span class="achskreis" aria-hidden="true">1</span>
+<span class="gruppe-name">Helfer</span>
+</button>
 </th>
 </tr>
 <tr>
@@ -244,7 +259,7 @@
 </td>
 <td class="wp-zelle-ruhe">
 <div class="zelle-inhalt">
-<span class="eintrag-weg">Betriebsurlaub</span>
+<span class="eintrag-weg schraffur">Betriebsurlaub</span>
 </div>
 </td>
 <td class="wp-zelle-ruhe">
@@ -255,9 +270,12 @@
 </td>
 </tr>
 <tr>
-<th colspan="8" scope="rowgroup" class="border-b border-line bg-surface-2 p-0 text-left">
-<button type="button" class="planung-gruppe" aria-expanded="true">
-<span aria-hidden="true">▾</span>Lehrlinge · 1</button>
+<th colspan="8" scope="rowgroup" class="planung-gruppe-zelle">
+<button type="button" class="planung-gruppe" aria-expanded="true" aria-label="Lehrlinge · 1">
+<span class="gruppe-winkel" aria-hidden="true">▾</span>
+<span class="achskreis" aria-hidden="true">1</span>
+<span class="gruppe-name">Lehrlinge</span>
+</button>
 </th>
 </tr>
 <tr>
@@ -283,7 +301,7 @@
 </td>
 <td class="wp-zelle-ruhe">
 <div class="zelle-inhalt">
-<span class="eintrag-weg">Betriebsurlaub</span>
+<span class="eintrag-weg schraffur">Betriebsurlaub</span>
 </div>
 </td>
 <td class="wp-zelle-ruhe">
@@ -311,7 +329,9 @@
 <span class="tagwahl-punkt" aria-hidden="true">
 </span>
 </button>
-<button type="button" class="tagwahl-tag-an" aria-pressed="true" aria-label="Mittwoch 28.10.">
+<button type="button" class="tagwahl-tag-an" aria-pressed="true" aria-current="date" aria-label="Mittwoch 28.10.">
+<span class="tag-lot" aria-hidden="true">
+</span>
 <span class="tagwahl-wt">Mi</span>
 <span class="tagwahl-nr">28</span>
 <span class="tagwahl-ohne" aria-hidden="true">
@@ -352,7 +372,11 @@
 <span>Keine Termine</span>
 </div>
 <div>
-<p class="tl-gruppe">Obermonteure · 1</p>
+<p class="tl-achse">
+<span class="achskreis">1</span> <span>Obermonteure</span>
+<span class="abschnitt-linie" aria-hidden="true">
+</span>
+</p>
 <div class="tl-person">
 <p class="tl-name">Stefan Gruber</p>
 <div class="tl-eintraege">
@@ -369,7 +393,11 @@
 </div>
 </div>
 <div>
-<p class="tl-gruppe">Facharbeiter · 2</p>
+<p class="tl-achse">
+<span class="achskreis">2</span> <span>Facharbeiter</span>
+<span class="abschnitt-linie" aria-hidden="true">
+</span>
+</p>
 <div class="tl-person">
 <p class="tl-name">Erna Beispiel</p>
 <div class="tl-eintraege">
@@ -385,7 +413,11 @@
 </div>
 </div>
 <div>
-<p class="tl-gruppe">Helfer · 1</p>
+<p class="tl-achse">
+<span class="achskreis">1</span> <span>Helfer</span>
+<span class="abschnitt-linie" aria-hidden="true">
+</span>
+</p>
 <div class="tl-person">
 <p class="tl-name">Jürgen Fasching</p>
 <div class="tl-eintraege">
@@ -394,7 +426,11 @@
 </div>
 </div>
 <div>
-<p class="tl-gruppe">Lehrlinge · 1</p>
+<p class="tl-achse">
+<span class="achskreis">1</span> <span>Lehrlinge</span>
+<span class="abschnitt-linie" aria-hidden="true">
+</span>
+</p>
 <div class="tl-person">
 <p class="tl-name">Lena Pichler</p>
 <div class="tl-eintraege">

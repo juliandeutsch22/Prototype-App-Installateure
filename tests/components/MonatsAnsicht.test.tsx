@@ -197,14 +197,14 @@ describe('Monat — Balken statt Felder (Auftrag 5.1)', () => {
     expect(max.getAllByRole('button', { name: /eingeplant, CT Bau GmbH/ }).filter((b) => b.className.startsWith('mo-balken'))).toHaveLength(1);
   });
 
-  it('eingeteilt, aber abwesend: Bernstein; abwesend: grau mit der Art', () => {
+  it('eingeteilt, aber abwesend: Bernstein; abwesend: schraffiert mit der Art', () => {
     zeige();
     const erna = zeileVon('Erna Beispiel');
     expect(erna.getByRole('button', { name: /^Erna Beispiel, Do\.? 08\.10\.: eingeteilt, aber abwesend, Familie Huber \(B-2\) – eingeteilt, aber Krank/ }).className).toBe(
       'mo-balken-konflikt',
     );
     const lena = zeileVon('Lena Pichler');
-    expect(lena.getByRole('button', { name: /12\.10\. – .* 16\.10\.: abwesend, Urlaub/ }).className).toBe('mo-balken-weg');
+    expect(lena.getByRole('button', { name: /12\.10\. – .* 16\.10\.: abwesend, Urlaub/ }).className).toBe('mo-balken-weg schraffur');
   });
 
   it('der Kopf: Punkt für Termine, Bernstein bei einer Lieferung ohne Annahme', () => {
@@ -641,5 +641,49 @@ describe('Monat — Vorschau trennt keine Namen (Runde 6, G4)', () => {
     expect(v.getByText('Eingeteilt').nextElementSibling).toHaveClass('v-wert', 'kein-trennen');
     // Gegenprobe: lange Wörter in Zeit und Adresse trennen weiter wie überall.
     expect(v.getByText('Zeit').nextElementSibling).not.toHaveClass('kein-trennen');
+  });
+});
+
+/*
+  DIE PLANLINIE IM MONAT (30.10.2026): heute trägt das Lot, die Einstufung
+  steht als Achse, eine Baustellen-Sicht ohne Einsatz ist echte Leere.
+*/
+describe('Monat — Planlinie', () => {
+  beforeEach(() => {
+    einsaetze = [];
+    urlaube = [];
+    termine = [];
+  });
+
+  it('das Senkblei hängt nur im Kopf von heute', () => {
+    zeige();
+    const koepfeMitLot = raster()
+      .getAllByRole('button')
+      .filter((b) => b.className.startsWith('mo-kopf') && b.querySelector('.spalten-lot'));
+    expect(koepfeMitLot.map((b) => b.getAttribute('aria-label'))).toEqual([expect.stringMatching(/07\.10\., heute/)]);
+    // Gegenprobe: kein anderer Kopf hat eines.
+    expect(document.querySelectorAll('.mo-raster .spalten-lot')).toHaveLength(1);
+  });
+
+  it('die Einstufung als Achse: Zahl im Achskreis, die Linie bis zum Rand, der Knopf heißt wie vorher', () => {
+    zeige();
+    const lehrlinge = raster().getByRole('button', { name: 'Lehrlinge · 1' });
+    expect(lehrlinge).toHaveAttribute('aria-expanded', 'true');
+    expect(lehrlinge.querySelector('.achskreis')).toHaveTextContent('1');
+    expect(lehrlinge.querySelector('.abschnitt-linie')).not.toBeNull();
+    expect(raster().getByRole('button', { name: 'Facharbeiter · 2' }).querySelector('.achskreis')).toHaveTextContent('2');
+  });
+
+  it('Baustellen ohne Einsatz im Monat: die Zeichnung „plan“; mit Einsatz keine', () => {
+    const { container, unmount } = zeige({ sicht: 'baustellen' });
+    const region = screen.getByRole('region', { name: 'Monatsplan nach Baustellen' });
+    expect(within(region).getByText('In diesem Monat ist keine Baustelle eingeplant.')).toBeInTheDocument();
+    expect(region.querySelector('svg[data-motiv="plan"]')).not.toBeNull();
+    unmount();
+    // Gegenprobe: mit einem Einsatz steht die Baustelle da, ohne Zeichnung.
+    einsaetze = [e('2026-10-05', 'u1', 'B-1')];
+    zeige({ sicht: 'baustellen' });
+    expect(container.querySelector('svg[data-motiv="plan"]')).toBeNull();
+    expect(document.querySelector('.mo-raster svg[data-motiv="plan"]')).toBeNull();
   });
 });

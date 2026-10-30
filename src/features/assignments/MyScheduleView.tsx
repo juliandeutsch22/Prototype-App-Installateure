@@ -426,7 +426,10 @@ export default function MyScheduleView() {
                 Einsätze geplant
               </span>
               <span className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-info-bg ring-1 ring-info" />
+                {/* Dasselbe Lot wie über dem heutigen Tag im Kalender (Planlinie, B4). */}
+                <span className="lot-legende" aria-hidden="true">
+                  <span className="tag-lot" />
+                </span>
                 Heute
               </span>
               <span className="flex items-center gap-2">
@@ -648,7 +651,7 @@ export default function MyScheduleView() {
                     <ListRow
                       key={v.id}
                       title={v.von === v.bis ? fmtDay(v.von) : `${fmtDay(v.von)} – ${fmtDay(v.bis)}`}
-                      zustand={<Zustand stand={v.status === 'Genehmigt' ? 'gut' : 'achtung'}>{v.status}</Zustand>}
+                      zustand={<Zustand stand={v.status === 'Genehmigt' ? 'erledigt' : 'achtung'}>{v.status}</Zustand>}
                       wert={<span className="text-xs text-ink-muted">{tageWort(Number(v.tage))}</span>}
                     />
                   ))}

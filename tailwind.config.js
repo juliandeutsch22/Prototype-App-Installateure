@@ -128,9 +128,20 @@ export default {
         xl: ['1.375rem', { lineHeight: '1.8rem' }],
         '2xl': ['1.75rem', { lineHeight: '2.1rem' }],
       },
+      /*
+        HALBFETT IST SEIT DER PLANLINIE (E30) DAS GEWICHT DER TITEL, 500. Eine
+        Stelle statt neunzig Klassen; `font-firma` (600) bleibt dem Namen des
+        Betriebs vorbehalten.
+      */
+      fontWeight: {
+        semibold: 'var(--gewicht-titel)',
+        firma: '600',
+      },
       fontFamily: {
         // Poppins self-gehostet (siehe main.tsx), System-Schriften als Fallback.
         sans: ['Poppins', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        // Gemessenes (Nummern, Beträge, Stunden) in IBM Plex Mono, lokal ausgeliefert (main.tsx).
+        mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       minHeight: { touch: '48px' },
       minWidth: { touch: '48px' },

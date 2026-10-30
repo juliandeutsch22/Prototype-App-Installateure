@@ -256,10 +256,10 @@ export default function DashboardView() {
           stand={nochAmLaden
             ? <SkeletonMetrics />
             : seite.kennzahlen.some((k) => !k.leer) ? <Kennzahlen werte={seite.kennzahlen} /> : undefined}
+          nebenAktion={darf('/assignments/woche') ? (
+            <Link to="/assignments/woche" className="start-planaktion start-hauptaktion">Einsatzplanung</Link>
+          ) : undefined}
         />
-        {darf('/assignments/woche') && (
-          <Link to="/assignments/woche" className="start-planaktion start-hauptaktion">Einsatzplanung</Link>
-        )}
       </div>
 
       {/* Die Nachtläufe zuerst: ihr Schaden wächst mit der Zeit, statt aufzufallen. */}

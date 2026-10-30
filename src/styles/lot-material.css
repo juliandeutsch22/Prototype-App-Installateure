@@ -31,6 +31,13 @@
   .sammel-platz { display: none; }
   @media (max-width: 759px) { .sammel-platz { display: block; height: 5rem; } }
 
+  /* ── Planlinie (E30): Maßlinien im Lager und beim Einspielen ─────────── */
+  /* Frei/reserviert gegen das Regal in der Bestandszeile — schmal, wie ein Maß am Rand. */
+  .lager-masslinie { width: 15rem; }
+  @media (max-width: 759px) { .lager-masslinie { width: 13.5rem; } }
+  /* Der Fortschritt beim Einspielen unter den Knöpfen, so breit wie das Formular. */
+  .import-masslinie { max-width: 35rem; }
+
   /* ── Seitenfenster: Angaben, Kennzahlen, Aktionen ─────────────────────── */
   .angaben { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; margin: 0; }
   .angabe { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 0.75rem; align-items: baseline; }
@@ -68,7 +75,7 @@
     .korb { margin: 0; padding: 0.75rem 1.25rem; border: 1px solid var(--petrol); border-radius: var(--radius-lg); }
   }
   .korb-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-  .korb-titel { font-weight: 600; color: var(--ink-deep); text-decoration: none; }
+  .korb-titel { font-weight: var(--gewicht-titel); color: var(--ink-deep); text-decoration: none; }
   .korb-titel:hover { color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px; }
   .korb-info { font-size: 0.8125rem; color: var(--text-muted); }
   .korb-fehler { flex-basis: 100%; font-size: 0.875rem; color: var(--danger); }

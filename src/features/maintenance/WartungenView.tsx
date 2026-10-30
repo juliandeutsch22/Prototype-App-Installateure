@@ -38,6 +38,7 @@ import KundenAuswahl from '@/components/KundenAuswahl';
 import Button from '@/components/Button';
 import { Zustand, type Stand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import { Hinweislinie } from '@/components/Planlinie';
 import Abschnitt from '@/components/Abschnitt';
 import BottomSheet from '@/components/BottomSheet';
 import InfoHint from '@/components/InfoHint';
@@ -69,9 +70,10 @@ const fmtDatum = (iso?: string) =>
 const STAND: Record<Dringlichkeit, Stand> = {
   'überfällig': 'schlecht',
   'fällig': 'achtung',
-  'später': 'laeuft',
-  ruht: 'ruht',
-  unklar: 'ruht',
+  // Später heißt: der nächste Termin kommt (Planlinie: Raute).
+  'später': 'geplant',
+  ruht: 'storniert',
+  unklar: 'offen',
 };
 
 /** Hersteller, Typ, Seriennummer und Baujahr in einer Zeile — was davon da ist. */
@@ -903,7 +905,8 @@ export default function WartungenView() {
             onBlur={terminVorschlagen}
           />
           {wartungsTagFehler(form.zuletztAm, heute) && (
-            <p className="text-sm text-danger">{wartungsTagFehler(form.zuletztAm, heute)}</p>
+            // Die Warnung am Feld als Hinweislinie (Planlinie B8).
+            <Hinweislinie stufe="fehl">{wartungsTagFehler(form.zuletztAm, heute)}</Hinweislinie>
           )}
           {tagGeaendert && (
             <div className="flex flex-wrap items-center">
@@ -976,7 +979,7 @@ export default function WartungenView() {
               onWert={(n) => setForm({ ...form, baujahr: n == null ? null : Math.round(n) })}
             />
             {baujahrFehler(form.baujahr, heute) && (
-              <p className="text-sm text-danger">{baujahrFehler(form.baujahr, heute)}</p>
+              <Hinweislinie stufe="fehl">{baujahrFehler(form.baujahr, heute)}</Hinweislinie>
             )}
             <ZahlWertFeld id="w-preis"
               label="Preis je Wartung netto (€)"
@@ -1024,7 +1027,7 @@ export default function WartungenView() {
                 onChange={(e) => setErledigung({ ...erledigung, datum: e.target.value })}
               />
               {wartungsTagFehler(erledigung.datum, heute) && (
-                <p className="text-sm text-danger">{wartungsTagFehler(erledigung.datum, heute)}</p>
+                <Hinweislinie stufe="fehl">{wartungsTagFehler(erledigung.datum, heute)}</Hinweislinie>
               )}
               <SelectField id="e-intervall"
                 label="Intervall ab jetzt"

@@ -5,6 +5,7 @@ import { ImFenster } from './imFenster';
 import { useHintergrundSperre } from './hintergrundSperre';
 import { useOverlayAnwesenheit } from '@/lib/useOverlayAnwesenheit';
 import { useBlattGeste } from './useBlattGeste';
+import { Stempel } from './Planlinie';
 
 interface BottomSheetProps {
   open: boolean;
@@ -23,6 +24,11 @@ interface BottomSheetProps {
    * „Schließen“ gibt es für die Tastatur.
    */
   titel?: string;
+  /**
+   * Ein Nummernstempel neben dem Titel (Planlinie: der kleine Plankopf eines
+   * Seitenfensters — ohne Skizze und ohne Lineal).
+   */
+  stempel?: ReactNode;
   /**
    * Das breitere Seitenfenster (480 statt 440 px) — für Inhalte mit
    * Kennzahlen nebeneinander und Zeilen mit Knopf, etwa „Person im Monat“
@@ -47,7 +53,7 @@ interface BottomSheetProps {
  * Inhalt trennt ein nativer Touch-Listener die Schließgeste vom Scrollen;
  * Abbrüche und seitliche Gesten schließen das Blatt nicht.
  */
-export default function BottomSheet({ open, onClose, label, auchBreit = false, titel, breit = false, children }: BottomSheetProps) {
+export default function BottomSheet({ open, onClose, label, auchBreit = false, titel, stempel, breit = false, children }: BottomSheetProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const blattRef = useRef<HTMLDivElement>(null);
   const { sichtbar, phase } = useOverlayAnwesenheit(open);
@@ -160,7 +166,7 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
 
         {titel ? (
           <div className="fenster-kopf">
-            <h2 className="fenster-titel">{titel}</h2>
+            <h2 className="fenster-titel">{titel}{stempel && <>{' '}<Stempel>{stempel}</Stempel></>}</h2>
             <button type="button" onClick={schliessen} className="fenster-schliessen">
               Schließen
             </button>

@@ -202,12 +202,44 @@ describe('Nachtarbeit zählt von selbst (Runde 3, M4)', () => {
   });
 });
 
-it('ordnet im Zeitband Arbeit und Pause derselben Eingabe zu und blendet es bei ungültiger Dauer aus', () => {
+it('ordnet in der Maßkette Arbeit und Pause derselben Eingabe zu und blendet sie bei ungültiger Dauer aus', () => {
   zeichne();
-  expect(screen.getByRole('img', { name: 'Zeitverteilung' })).toHaveAccessibleDescription('08:30 Std Arbeit und 00:30 Std Pause');
+  expect(screen.getByRole('img', { name: 'Zeitverteilung 07:00 bis 16:00: 08:30 Std Arbeit, 00:30 Std unterbrochen' })).toBeInTheDocument();
   setze('Bis', '15:30');
   setze('Pause', '60');
-  expect(screen.getByRole('img', { name: 'Zeitverteilung' })).toHaveAccessibleDescription('07:30 Std Arbeit und 01:00 Std Pause');
+  expect(screen.getByRole('img', { name: 'Zeitverteilung 07:00 bis 15:30: 07:30 Std Arbeit, 01:00 Std unterbrochen' })).toBeInTheDocument();
   setze('Pause', '600');
-  expect(screen.queryByRole('img', { name: 'Zeitverteilung' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('img', { name: /^Zeitverteilung/ })).not.toBeInTheDocument();
+});
+
+/*
+  PLANLINIE B11: die Maßkette zeichnet die Pause in die Mitte, weil die Maske
+  nur ihre Dauer kennt. Der Satz darunter muss das sagen — sonst liest jemand
+  eine Uhrzeit hinein, die nie erfasst wurde.
+*/
+describe('Die Maßkette (Planlinie B11)', () => {
+  it('bemaßt Beginn und Ende, schraffiert die Pause und sagt, dass ihre Lage nicht erfasst wird', () => {
+    zeichne();
+    const kette = screen.getByRole('img', { name: /^Zeitverteilung/ });
+    expect(kette).toHaveClass('masskette');
+    expect(kette.querySelector('.masskette-pause')).not.toBeNull();
+    expect(kette).toHaveTextContent('07:00');
+    expect(kette).toHaveTextContent('16:00');
+    expect(zeile().textContent).toMatch(/in der Mitte gezeichnet — wann sie war, wird nicht erfasst/);
+  });
+
+  it('Gegenprobe: ohne Pause keine Schraffur und kein Satz über ihre Lage', () => {
+    zeichne();
+    setze('Pause', '0');
+    const kette = screen.getByRole('img', { name: /^Zeitverteilung/ });
+    expect(kette.querySelector('.masskette-pause')).toBeNull();
+    expect(zeile().textContent).not.toMatch(/wann sie war/);
+  });
+
+  it('ein Befund an den Zeitfeldern steht als Hinweislinie, nicht als Maßkette', () => {
+    zeichne();
+    setze('Bis', '06:00');
+    expect(screen.getByRole('alert').querySelector('.hinweislinie')).not.toBeNull();
+    expect(screen.queryByRole('img', { name: /^Zeitverteilung/ })).not.toBeInTheDocument();
+  });
 });

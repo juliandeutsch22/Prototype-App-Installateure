@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { MehrAnzeigen } from '@/components/LotBausteine';
+import Abschnitt from '@/components/Abschnitt';
+import { Zustand } from '@/components/Badge';
+import { Saldolinie } from '@/components/Planlinie';
+import { saldoMassstab } from './saldoMassstab';
 import type { AppUser } from '@/types';
 import type { Tageswert } from './tagesauswertung';
 import { Streifen, StreifenFeld, StreifenKopf, WochenKopf, WochenZellen } from './Streifen';
@@ -21,6 +25,15 @@ export interface UebersichtZeile {
   saldo: string;
   /** Der Saldo seit dem Eintritt — nur im Personenvergleich, wo Zeitkonten nebeneinander stehen. */
   gesamt?: string;
+  /** Derselbe Gesamtsaldo in Minuten, für die Saldolinie; `null`, solange er lädt oder fehlt. */
+  gesamtMinuten?: number | null;
+}
+
+/** Die Summenzeile unter der Liste: gebucht und Soll aller Personen, wie sie die Seite schon zählt. */
+export interface UebersichtSumme {
+  text: string;
+  gebucht: string;
+  soll: string;
 }
 
 /** Je Gruppe höchstens so viele Zeilen, dann „und N weitere anzeigen“ (Protokoll Regel 4). */
@@ -43,6 +56,7 @@ export default function UebersichtListe({
   zeilen,
   imSupport,
   tageZeigen = false,
+  summe,
   onOeffnen,
 }: {
   ansicht: 'monat' | 'woche';
@@ -52,6 +66,8 @@ export default function UebersichtListe({
   imSupport: boolean;
   /** Der Vergleich beginnt bei Personen; die einzelnen Monatstage bleiben zuschaltbar. */
   tageZeigen?: boolean;
+  /** Die Summenzeile unter den Personen (Stückliste); im Supportzugang keine. */
+  summe?: UebersichtSumme;
   onOeffnen: (uid: string, tag: string | null) => void;
 }) {
   const woche = ansicht === 'woche';
@@ -60,6 +76,8 @@ export default function UebersichtListe({
     .filter((z) => z.offen > 0)
     .sort((a, b) => b.offen - a.offen || a.user.name.localeCompare(b.user.name, 'de'));
   const vollstaendig = zeilen.filter((z) => z.offen === 0);
+  const massstab = vergleich ? saldoMassstab(zeilen.map((z) => z.gesamtMinuten)) : 0;
+  const zeilenKlasse = woche ? 'mw-zeile' : vergleich ? 'ue-vergleich-zeile' : 'ue-zeile';
 
   return (
     <div className={woche ? 'ue-liste-woche' : vergleich ? 'ue-vergleich' : 'ue-liste'}>
@@ -80,47 +98,88 @@ export default function UebersichtListe({
         <>
           {mitLuecken.length > 0 && (
             <Gruppe
-              titel={`${woche ? 'Mit Tagen ohne Buchung in dieser Woche' : 'Mit Tagen ohne Buchung'} · ${mitLuecken.length}`}
+              titel={woche ? 'Mit Tagen ohne Buchung in dieser Woche' : 'Mit Tagen ohne Buchung'}
+              anzahl={mitLuecken.length}
               zeilen={mitLuecken}
-              {...{ woche, vergleich, heute, imSupport, onOeffnen }}
+              {...{ woche, vergleich, heute, imSupport, massstab, onOeffnen }}
             />
           )}
           {vollstaendig.length > 0 && (
             <Gruppe
-              titel={`Vollständig · ${vollstaendig.length}`}
+              titel="Vollständig"
+              anzahl={vollstaendig.length}
               zeilen={vollstaendig}
-              {...{ woche, vergleich, heute, imSupport, onOeffnen }}
+              {...{ woche, vergleich, heute, imSupport, massstab, onOeffnen }}
             />
           )}
+          {summe && <Summenzeile klasse={zeilenKlasse} summe={summe} vergleich={vergleich} />}
           {!vergleich && <Legende woche={woche} mitZukunft={zeilen.some((z) => z.werte.some((t) => t.zustand === 'zukunft'))} />}
+          {vergleich && zeilen.some((z) => z.gesamtMinuten != null) && (
+            <p className="ue-massstab">
+              Gesamtsaldo als Strecke um die Nulllinie: links Minusstunden, rechts Plusstunden. Maßstab: halbe Breite = {massstab} Std.
+            </p>
+          )}
         </>
       )}
     </div>
   );
 }
 
+/**
+ * DIE SUMMENZEILE wie in einer Stückliste (Planlinie B6): dasselbe Raster wie
+ * die Zeilen darüber, gebucht und Soll über einer Doppellinie. Sie steht für
+ * ALLE Personen, auch wenn ein Filter Zeilen ausblendet — die Summe des
+ * Betriebs ändert sich nicht, weil man weniger ansieht. Deshalb steht
+ * „Alle Personen“ davor.
+ */
+function Summenzeile({ klasse, summe, vergleich }: { klasse: string; summe: UebersichtSumme; vergleich: boolean }) {
+  return (
+    <section className={`${klasse} ue-summe`} aria-label="Gesamt aller Personen">
+      <p className="ue-summe-name">{summe.text}</p>
+      <span className="ue-summe-leer" aria-hidden="true" />
+      <div className="ue-buchungen">
+        <p className="ue-zahl">
+          <span className="ue-zahl-name">Gebucht</span>
+          {summe.gebucht}
+        </p>
+        <p className="ue-zahl">
+          <span className="ue-zahl-name">Soll bisher</span>
+          {summe.soll}
+        </p>
+      </div>
+      <span className="ue-summe-leer" aria-hidden="true" />
+      {vergleich && <span className="ue-summe-leer" aria-hidden="true" />}
+    </section>
+  );
+}
+
 function Gruppe({
   titel,
+  anzahl,
   zeilen,
   woche,
   vergleich,
   heute,
   imSupport,
+  massstab = 0,
   onOeffnen,
 }: {
   titel: string | null;
+  anzahl?: number;
   zeilen: UebersichtZeile[];
   woche: boolean;
   vergleich: boolean;
   heute: string;
   imSupport: boolean;
+  massstab?: number;
   onOeffnen: (uid: string, tag: string | null) => void;
 }) {
   const [alle, setAlle] = useState(false);
   const sichtbar = alle ? zeilen : zeilen.slice(0, GRUPPE_HOECHSTENS);
   return (
     <section aria-label={titel ?? 'Personen'}>
-      {titel && <h3 className="ue-gruppe">{titel}</h3>}
+      {/* Die Anzahl im Achskreis vor dem Titel (Planlinie B5) statt „Vollständig · 3“. */}
+      {titel && <Abschnitt titel={titel} anzahl={anzahl} />}
       {sichtbar.map((z) =>
         imSupport ? (
           <div key={z.user.uid} className="ue-zeile-einfach" onClick={() => onOeffnen(z.user.uid, null)}>
@@ -130,7 +189,7 @@ function Gruppe({
             </button>
           </div>
         ) : (
-          <Zeile key={z.user.uid} zeile={z} woche={woche} vergleich={vergleich} heute={heute} onOeffnen={onOeffnen} />
+          <Zeile key={z.user.uid} zeile={z} woche={woche} vergleich={vergleich} heute={heute} massstab={massstab} onOeffnen={onOeffnen} />
         ),
       )}
       {zeilen.length > GRUPPE_HOECHSTENS && !alle && (
@@ -145,12 +204,14 @@ function Zeile({
   woche,
   vergleich,
   heute,
+  massstab,
   onOeffnen,
 }: {
   zeile: UebersichtZeile;
   woche: boolean;
   vergleich: boolean;
   heute: string;
+  massstab: number;
   onOeffnen: (uid: string, tag: string | null) => void;
 }) {
   const oeffneTag = (tag: string) => onOeffnen(z.user.uid, tag);
@@ -166,14 +227,19 @@ function Zeile({
         }}
       >
         <span className="ue-name">{z.user.name}</span>
-        {!vergleich && <span className={z.achtung ? 'ue-status-achtung' : 'ue-status'}>{z.status}</span>}
+        {/* Tage ohne Buchung mit dem Zeichen „Achtung“ (Planlinie B3); der Stand sonst bleibt leiser Text. */}
+        {!vergleich && (z.achtung ? (
+          <span className="ue-status-achtung"><Zustand stand="achtung">{z.status}</Zustand></span>
+        ) : (
+          <span className="ue-status">{z.status}</span>
+        ))}
       </button>
       {woche ? (
         <WochenZellen name={z.user.name} werte={z.werte} heute={heute} onTag={oeffneTag} />
       ) : vergleich ? (
-        <p className={z.achtung ? 'ue-pruefstand-achtung' : 'ue-pruefstand'}>
-          {z.status}
-          {z.grenze && <span className="ue-grenzhinweis">Arbeitszeitgrenze prüfen</span>}
+        <p className="ue-pruefstand">
+          {z.achtung ? <Zustand stand="achtung">{z.status}</Zustand> : z.status}
+          {z.grenze && <span className="ue-grenzhinweis"><Zustand stand="achtung">Arbeitszeitgrenze prüfen</Zustand></span>}
         </p>
       ) : (
         <Streifen name={z.user.name} werte={z.werte} heute={heute} onTag={oeffneTag} />
@@ -198,9 +264,21 @@ function Zeile({
         eine vierte Zahl den Tagen den Platz.
       */}
       {vergleich && (
-        <p className="ue-zahl-stark">
+        <p className="ue-zahl-stark ue-gesamtsaldo">
           <span className="ue-zahl-name">Gesamtsaldo</span>
-          {z.gesamt ?? '—'}
+          {/*
+            DIE SALDOLINIE (Planlinie B2a) neben der Zahl, nie statt ihr: um
+            die Nulllinie, im Maßstab, den die Liste unten nennt. Die Zahl
+            daneben bleibt, was vorgelesen und verglichen wird.
+          */}
+          {z.gesamtMinuten != null && massstab > 0 && (
+            <Saldolinie
+              minuten={z.gesamtMinuten}
+              massstabMinuten={massstab * 60}
+              name={`Gesamtsaldo ${z.gesamt ?? ''} Stunden, Maßstab halbe Breite ${massstab} Stunden`}
+            />
+          )}
+          <span className="ue-gesamtsaldo-zahl">{z.gesamt ?? '—'}</span>
         </p>
       )}
     </div>

@@ -461,10 +461,17 @@ export default function OrderView() {
           {loading ? (
             <LoadingState />
           ) : materials.length === 0 ? (
-            <EmptyState>
+            /*
+              ECHTE LEERE MIT ZEICHNUNG (Planlinie § 6), wie im Lager: der leere
+              Katalog bekommt das Regal, die Suche ohne Treffer die Lupe.
+            */
+            <EmptyState
+              zeichnung={!begriff ? 'lager' : 'suche'}
+              titel={!begriff ? 'Noch kein Material im Katalog' : 'Kein Material passt zur Suche.'}
+            >
               {!begriff
-                ? 'Der Materialkatalog ist noch leer. Die Verwaltung pflegt ihn im Material-Dashboard.'
-                : 'Kein Material passt zur Suche.'}
+                ? 'Die Verwaltung pflegt ihn im Material-Dashboard.'
+                : `Gesucht wurde „${begriff}“ in Name, Kategorie und Artikelnummer.`}
             </EmptyState>
           ) : (
             <List>

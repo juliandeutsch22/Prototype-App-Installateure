@@ -43,7 +43,7 @@ export default function HeuteLeitung({
           : a.bis > heute
             ? `bis ${datumAT(a.bis)}`
             : 'heute',
-      status: { text: a.grund ?? 'abwesend', ton: a.grund === 'Krank' ? 'warn' : 'leise' },
+      status: { text: a.grund ?? 'abwesend', ton: a.grund === 'Krank' ? 'warn' : 'abwesend' },
       to: ziel,
     })),
     ziel,
@@ -55,7 +55,7 @@ export default function HeuteLeitung({
       key: `da-${b.projectNumber}`,
       titel: b.customerName,
       detail: [b.namen.join(', '), b.fehlen.length ? `fehlt: ${fehlenText(b.fehlen)}` : ''].filter(Boolean).join(' · '),
-      status: { text: b.namen.length === 1 ? '1 Person' : `${b.namen.length} Personen`, ton: 'leise' },
+      status: { text: b.namen.length === 1 ? '1 Person' : `${b.namen.length} Personen`, ton: 'einsatz' },
       to: ziel,
     })),
     ziel,

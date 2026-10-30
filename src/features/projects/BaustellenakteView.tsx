@@ -33,7 +33,8 @@ import Button from '@/components/Button';
 import { Zustand } from '@/components/Badge';
 import { LotVerlauf, type LotPunkt } from '@/components/LotBausteine';
 import { endeVorbei } from './baustellenLage';
-import StatusBadge from '@/components/StatusBadge';
+import Metric, { MetricRow } from '@/components/Metric';
+import { Masslinie, MasslinieZeile } from '@/components/Planlinie';
 import PageHeader from '@/components/PageHeader';
 import PersonPicker from '@/components/PersonPicker';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -366,16 +367,15 @@ export default function BaustellenakteView() {
     <Card title="Auftrag" id="b-ueberblick">
       <AktenAngaben>
         <AktenAngabe wort="Auftragsumfang" breit><span className="whitespace-pre-line">{b.description?.trim() || 'nicht hinterlegt'}</span></AktenAngabe>
-        <AktenAngabe wort="Abrechnung">{b.billingMode ? abrechnungText(b.billingMode) : 'nicht festgelegt'}</AktenAngabe>
+        {/* Abrechnung, Beginn und Ende stehen seit der Planlinie im Schriftfeld des Aktenkopfs. */}
         <AktenAngabe wort="Stundenbudget">{b.estimatedHours ? `${fmtStunden(b.estimatedHours)} h` : 'nicht festgelegt'}</AktenAngabe>
-        <AktenAngabe wort="Beginn">{fmtDatum(b.startDate)}</AktenAngabe>
-        <AktenAngabe wort="Ende (geplant)">{fmtDatum(b.endDate)}</AktenAngabe>
       </AktenAngaben>
       {(b.billingMode === 'Pauschal' || b.billingMode === 'Einheitspreis') &&
         <PauschalHinweis angebote={angebote} sichtbar={angeboteSichtbar} art={b.billingMode} />}
       {user && <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
         <BaustellenUebersicht companyId={user.companyId} projekt={b} kompakt />
       </Suspense>}
+      <Leistungszeitraum beginn={b.startDate} ende={b.endDate} heute={todayStr()} />
       <div className="flex flex-wrap items-center gap-x-4">
         {angebote.map((q) => <Link key={q.id} to={`/quotes/${q.id}`} className="link akten-verweis">Angebot {q.quoteNumber}</Link>)}
       </div>
@@ -455,11 +455,24 @@ export default function BaustellenakteView() {
     <div className="akten-seite">
       {warnung}
       <AktenKopf art="Baustelle" zurueck="/admin-projects" zurueckText="Zur Baustellenliste"
-        meta={<span className="akten-identitaet">
-            <span className="nr">{b.projectNumber}</span>
-            {b.billingMode ? ` · ${abrechnungText(b.billingMode)}` : ''}
-            <StatusBadge status={b.status} />
-          </span>}
+        /*
+          DER AKTENKOPF ALS PLANKOPF (E30): die Nummer als Stempel neben dem
+          Titel, darunter die Anschrift; Abrechnung, Beginn, Ende und Stand im
+          Schriftfeld — vorher standen sie verstreut in Kopfzeile und Karte.
+        */
+        stempel={b.projectNumber}
+        meta={b.address?.trim() ? <span className="akten-identitaet">{b.address}</span> : undefined}
+        stand={<MetricRow label="Eckdaten der Baustelle">
+          <Metric label="Abrechnung" value={b.billingMode ? abrechnungText(b.billingMode) : 'offen'} hint={b.billingMode ? undefined : 'nicht festgelegt'} />
+          <Metric label="Beginn" value={fmtDatum(b.startDate) || '—'} hint={wochentag(b.startDate)} />
+          <Metric
+            label="Ende geplant"
+            value={fmtDatum(b.endDate) || '—'}
+            tone={endeVorbei(b, todayStr()) ? 'warning' : 'default'}
+            hint={endeVorbei(b, todayStr()) ? 'überschritten' : b.endDate === todayStr() ? 'heute' : wochentag(b.endDate)}
+          />
+          <Metric label="Stand" value={b.status} />
+        </MetricRow>}
         title={baustellenTitel(b)}
         kontakt={<><TelefonLink nummer={b.contactPhone} name={b.contactName} /><a className="akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a></>}
         action={(scheineSichtbar || darfAendern) && <div className="akten-aktionen">
@@ -510,6 +523,43 @@ export default function BaustellenakteView() {
       />
 
     </div>
+  );
+}
+
+/** Der Wochentag zu einem Tag ('YYYY-MM-DD'), für den Zusatz im Schriftfeld. */
+function wochentag(iso?: string | null): string | undefined {
+  if (!iso) return undefined;
+  return new Intl.DateTimeFormat('de-AT', { weekday: 'long', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
+}
+
+/** Tage von a bis b, beide als 'YYYY-MM-DD'. */
+function tageZwischen(a: string, b: string): number {
+  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+}
+
+/**
+ * DER LEISTUNGSZEITRAUM ALS MASSLINIE (Planlinie B2): Beginn bis geplantes
+ * Ende, die Strecke bis heute. Liegt heute hinter dem Ende, läuft der
+ * Überhang rot über die Marke — dieselbe Regel wie „Ende überschritten“.
+ * Ohne beide Daten keine Linie.
+ */
+function Leistungszeitraum({ beginn, ende, heute }: { beginn?: string | null; ende?: string | null; heute: string }) {
+  if (!beginn || !ende || ende < beginn) return null;
+  const gesamt = tageZwischen(beginn, ende) + 1;
+  const bisHeute = heute < beginn ? 0 : tageZwischen(beginn, heute) + 1;
+  const ueber = Math.max(0, tageZwischen(ende, heute));
+  const kurz = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.`;
+  return (
+    <MasslinieZeile name="Leistungszeitraum">
+      <Masslinie
+        ist={Math.min(bisHeute, gesamt + ueber)}
+        soll={gesamt}
+        istText={`${kurz(beginn)} bis ${fmtDatum(ende)} · ${gesamt} ${gesamt === 1 ? 'Tag' : 'Tage'}`}
+        sollText={ende === heute ? 'geplantes Ende heute' : `geplantes Ende ${kurz(ende)}`}
+        ueberText={`+${ueber} ${ueber === 1 ? 'Tag' : 'Tage'}`}
+        name={`Leistungszeitraum ${fmtDatum(beginn)} bis ${fmtDatum(ende)}, ${gesamt} Tage${ueber > 0 ? `, Ende seit ${ueber} ${ueber === 1 ? 'Tag' : 'Tagen'} überschritten` : ''}`}
+      />
+    </MasslinieZeile>
   );
 }
 

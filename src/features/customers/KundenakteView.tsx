@@ -32,6 +32,8 @@ import { InputField, FormGrid, CheckboxField } from '@/components/Field';
 import Button from '@/components/Button';
 import { Warnung, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import { Hinweislinie, Stempel } from '@/components/Planlinie';
+import { STAND as ANGEBOT_STAND } from '@/features/quotes/stand';
 import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, MailLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
@@ -437,7 +439,11 @@ export default function KundenakteView() {
                       ? 'schlecht'
                       : u.stand === 'fällig'
                         ? 'achtung'
-                        : 'ruht'
+                        : u.stand === 'später'
+                          ? 'geplant'
+                          : u.stand === 'ruht'
+                            ? 'storniert'
+                            : 'offen'
                   }
                 >
                   {u.stand === 'ruht' ? 'ruht' : u.text}
@@ -557,8 +563,10 @@ export default function KundenakteView() {
     <div className="akten-seite">
       {warnung}
       <AktenKopf art="Kunde" title={k.name} zurueck="/customers" zurueckText="Zur Kundenliste"
-        meta={<span className="akten-identitaet">{k.kundennummer && <span>Nr. {k.kundennummer}</span>}
-          <Zustand stand={k.active === false ? 'ruht' : 'gut'}>{k.active === false ? 'inaktiv' : 'aktiv'}</Zustand></span>}
+        /* Die Kundennummer als Stempel neben dem Namen (Planlinie B10); der Zustand bleibt in der Zeile darunter. */
+        stempel={k.kundennummer ? `Nr. ${k.kundennummer}` : undefined}
+        meta={<span className="akten-identitaet">
+          <Zustand stand={k.active === false ? 'storniert' : 'gut'}>{k.active === false ? 'inaktiv' : 'aktiv'}</Zustand></span>}
         kontakt={<><TelefonLink nummer={k.contactPhone} name={k.contactName} /><MailLink adresse={k.email} /><a className="akten-verweis" href="#kunde-kontext">Kontakt</a></>}
         action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>} />
       <AktenBereiche kennung="kunde" kontext={<>
@@ -636,9 +644,9 @@ function BaustellenZeilen({ daten, sichtbar }: { daten: WithId<Project>[]; sicht
 function BelegeVorschau({ rechnungen, angebote }: { rechnungen: Teil<WithId<Invoice>[]> | null; angebote: Teil<WithId<Quote>[]> | null }) {
   const zeilen = [
     ...(rechnungen?.zustand === 'bereit' ? rechnungen.daten.map((r) => ({ key: `r-${r.id}`, nummer: r.invoiceNumber, datum: r.invoiceDate ?? '',
-      art: 'Rechnung', betrag: r.totalBrutto, einheit: 'brutto', stand: r.paymentStatus, to: `/invoices?suche=${encodeURIComponent(r.invoiceNumber)}` })) : []),
+      art: 'Rechnung', betrag: r.totalBrutto, einheit: 'brutto', stand: <StatusBadge status={r.paymentStatus} />, to: `/invoices?suche=${encodeURIComponent(r.invoiceNumber)}` })) : []),
     ...(angebote?.zustand === 'bereit' ? angebote.daten.map((q) => ({ key: `a-${q.id}`, nummer: q.quoteNumber, datum: q.quoteDate ?? '',
-      art: 'Angebot', betrag: q.totalNetto, einheit: 'netto', stand: q.status, to: `/quotes/${q.id}` })) : []),
+      art: 'Angebot', betrag: q.totalNetto, einheit: 'netto', stand: <Zustand stand={ANGEBOT_STAND[q.status]}>{q.status}</Zustand>, to: `/quotes/${q.id}` })) : []),
   ].sort((a, b) => b.datum.localeCompare(a.datum)).slice(0, 3);
   const laedt = rechnungen?.zustand === 'laedt' || angebote?.zustand === 'laedt';
   const fehler = rechnungen?.zustand === 'fehler' || angebote?.zustand === 'fehler';
@@ -647,7 +655,8 @@ function BelegeVorschau({ rechnungen, angebote }: { rechnungen: Teil<WithId<Invo
     {angebote?.zustand === 'fehler' && <TeilFehler was="die Angebote" />}
     {!laedt && !fehler && zeilen.length === 0 && <EmptyState>Noch keine Belege.</EmptyState>}
     <ul className="akten-belege">{zeilen.map((z) => <li key={z.key}><Link className="akten-belegzeile" to={z.to}>
-      <span className="akten-zeile-inhalt"><span>{z.art} · {fmtDatum(z.datum)}</span><strong>{z.nummer}</strong></span>
+      {/* Nummer als Stempel, Stand mit Statuszeichen (Planlinie B10, B3) — wie in den Listen der Belege. */}
+      <span className="akten-zeile-inhalt"><span>{z.art} · {fmtDatum(z.datum)}</span><span><Stempel>{z.nummer}</Stempel></span></span>
       <span className="akten-belegstand">{z.stand}</span><span className="akten-belegbetrag">{euro(z.betrag)} <small>{z.einheit}</small></span>
     </Link></li>)}</ul></>;
 }
@@ -773,7 +782,8 @@ function StammdatenFormular({
               onChange={(e) => setze('email', e.target.value)}
             />
           </FormGrid>
-          {mailFehler(entwurf.email) && <p className="text-sm text-danger">{mailFehler(entwurf.email)}</p>}
+          {/* Die Warnung am Feld als Hinweislinie (Planlinie B8). */}
+          {mailFehler(entwurf.email) && <Hinweislinie stufe="fehl">{mailFehler(entwurf.email)}</Hinweislinie>}
         </Gruppe>
         <Gruppe name="Kundenart und UID">
           <KundenartUidFelder

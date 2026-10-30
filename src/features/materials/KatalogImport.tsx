@@ -4,6 +4,7 @@ import * as dn from '@/lib/db/pg/datanorm';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import { Masslinie } from '@/components/Planlinie';
 import Metric, { MetricRow } from '@/components/Metric';
 import { InputField, SelectField } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
@@ -458,7 +459,7 @@ export default function KatalogImport() {
               className="w-full sm:w-auto"
             >
               {fortschritt !== null
-                ? `${fortschritt} von ${zahlen.artikel} ${phase === 'senden' ? 'übertragen' : 'übernommen'} …`
+                ? `Wird ${phase === 'senden' ? 'übertragen' : 'übernommen'} …`
                 : laufInArbeit
                   ? 'Weiter übernehmen'
                   : `${zahlen.artikel} Artikel übernehmen`}
@@ -467,6 +468,22 @@ export default function KatalogImport() {
               Verwerfen
             </Button>
           </div>
+          {/*
+            DER FORTSCHRITT ALS MASSLINIE (Planlinie B2) statt „3 von 10 …“ im
+            Knopf: übertragene Artikel gegen alle der Datei. Die Zahl steht
+            weiter daran; der Knopf sagt nur noch, was gerade geschieht.
+          */}
+          {fortschritt !== null && (
+            <div className="import-masslinie">
+              <Masslinie
+                ist={fortschritt}
+                soll={zahlen.artikel}
+                istText={`${fortschritt} von ${zahlen.artikel} ${phase === 'senden' ? 'übertragen' : 'übernommen'}`}
+                sollText={`${zahlen.artikel} Artikel`}
+                name={`${fortschritt} von ${zahlen.artikel} Artikeln ${phase === 'senden' ? 'übertragen' : 'übernommen'}`}
+              />
+            </div>
+          )}
         </>
       )}
 

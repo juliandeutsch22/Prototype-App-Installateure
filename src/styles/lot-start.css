@@ -15,15 +15,19 @@
 
 /* Nur die Startseite erhält den Tageskontext; Navigation und Fachansichten bleiben unverändert. */
 @layer components {
-  .start-kopf { display: flex; align-items: center; gap: 1.5rem; padding-bottom: 0.5rem; }
-  .start-kopf .seitenkopf { flex: 1; min-width: 0; }
+  .start-kopf { padding-bottom: 0.5rem; }
   .start-kopf .seitenkopf-meta { font-size: 0.75rem; line-height: 1.5rem; }
-  .start-hauptaktion { display: inline-flex; justify-content: center; align-items: center; min-height: 3rem; padding: 0.625rem 1.125rem; border-radius: var(--radius); background: var(--brand); color: var(--brand-fg); font-size: 0.875rem; font-weight: 600; text-align: center; }
+  .start-hauptaktion { display: inline-flex; justify-content: center; align-items: center; min-height: 3rem; padding: 0.625rem 1.125rem; border-radius: var(--radius); background: var(--brand); color: var(--brand-fg); font-size: 0.875rem; font-weight: var(--gewicht-titel); text-align: center; }
   .start-planaktion { display: none; flex: none; }
   .start-rahmen { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1.75rem; padding-top: 0.5rem; }
   .start-einspaltig { padding-top: 0.5rem; }
   .start-arbeit { min-width: 0; display: flex; flex-direction: column; gap: 1.5rem; }
-  .start-kontext { min-width: 0; padding: 0.5rem 1.25rem 1rem; background: var(--surface-2); border-top: 1px solid var(--border); }
+  /*
+    DIE MANNSCHAFT OHNE GRAUEN KASTEN (Planlinie, E30). Der Akzent der
+    Startseite ist die Skizze im Plankopf — höchstens einer je Seite; die
+    Spalte steht deshalb auf dem Grund, getrennt durch eine Hilfslinie.
+  */
+  .start-kontext { min-width: 0; padding: 0.5rem 0 1rem; background: none; border-top: 1px solid var(--border-strong); }
   .start-seite .start-karte { background: transparent; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
   .start-seite .start-karte-kopf { padding: 0.5rem 0 1rem; border: 0; }
   .start-seite .start-karte-inhalt { border: 0; }
@@ -37,7 +41,8 @@
   .start-kontext .start-karte-kopf h2 .start-karte-zusatz { flex: none; white-space: nowrap; font-weight: 400; font-size: 0.6875rem; margin-left: 0; }
   .start-karte-verweis { display: inline-flex; align-items: center; min-height: 2.75rem; margin-top: 0.5rem; font-size: 0.75rem; }
   .start-seite .start-gruppe { padding-bottom: 0.875rem; }
-  .start-seite .start-abschnitt { padding: 0.625rem 0; background: transparent; font-size: 0.75rem; color: var(--text-muted); }
+  .start-seite .start-abschnitt { display: flex; align-items: center; gap: 0.625rem; padding: 1rem 0 0.5rem; background: transparent; font-size: 0.71875rem; line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text); }
+  .stand-leise-wort { color: var(--text-muted); }
   .start-seite .start-zeile { padding: 0.875rem 0; font-size: 0.875rem; }
   .start-seite .start-zeile .text-meta { font-size: 0.75rem; line-height: 1.25rem; }
   .start-seite .start-zeile .stand { font-size: 0.6875rem; }
@@ -55,7 +60,7 @@
   .start-leer { padding: 1rem 0; }
   /* Die Abschlusszeichnung steht bündig über der Überschrift, nicht mittig — die Grundlinie (x = 18 von 240) auf der Textkante. */
   .start-leer .lot-zeichnung-leer { margin-left: 0; translate: -7.5% 0; }
-  .start-leer h2 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; }
+  .start-leer h2 { font-size: 1.25rem; line-height: 1.75rem; font-weight: var(--gewicht-titel); }
   .start-leer p { color: var(--text-muted); font-size: 0.875rem; line-height: 1.375rem; max-width: 32rem; margin-top: 0.5rem; }
   .start-einsatz { padding: 1rem 0; }
   .start-einsatz-kontakt { margin-top: 0.75rem; }
@@ -69,7 +74,7 @@
   @media (min-width: 760px) {
     .start-planaktion { display: inline-flex; }
     .start-rahmen { grid-template-columns: minmax(0, 1fr) 15.5rem; gap: 1.5rem; }
-    .start-kontext { border-top: 0; border-left: 1px solid var(--border); }
+    .start-kontext { border-top: 0; border-left: 1px solid var(--border-strong); padding-left: 1.5rem; }
   }
   @media (min-width: 1200px) {
     .start-rahmen { grid-template-columns: minmax(0, 1fr) 19.125rem; gap: 2.25rem; }

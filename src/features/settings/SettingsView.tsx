@@ -753,19 +753,19 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               <tbody>
                 <tr className="rechen-zeile">
                   <td className="py-1">Regulär</td>
-                  <td className="py-1 text-right">{euroBetrag(rates.fach)} €/h</td>
+                  <td className="py-1 text-right font-mono">{euroBetrag(rates.fach)} €/h</td>
                 </tr>
                 <tr className="rechen-zeile">
                   <td className="py-1">Nachtarbeit</td>
-                  <td className="py-1 text-right">{euroBetrag(nightFach)} €/h</td>
+                  <td className="py-1 text-right font-mono">{euroBetrag(nightFach)} €/h</td>
                 </tr>
                 <tr className="rechen-zeile">
                   <td className="py-1">Notdienst</td>
-                  <td className="py-1 text-right">{euroBetrag(emergencyFach)} €/h</td>
+                  <td className="py-1 text-right font-mono">{euroBetrag(emergencyFach)} €/h</td>
                 </tr>
                 <tr>
                   <td className="py-1">Notdienst in der Nacht</td>
-                  <td className="py-1 text-right">{euroBetrag(bothFach)} €/h</td>
+                  <td className="py-1 text-right font-mono">{euroBetrag(bothFach)} €/h</td>
                 </tr>
               </tbody>
             </table>

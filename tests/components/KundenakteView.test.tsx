@@ -192,8 +192,11 @@ it('Aktenkontext 04 · ordnet die jüngsten Belege nach Datum und erhält Netto-
   const titel = await screen.findByRole('heading', { name: 'Jüngste Belege' });
   const vorschau = within(titel.closest('section')!);
   await waitFor(() => expect(vorschau.getAllByRole('listitem')).toHaveLength(3));
-  expect(vorschau.getAllByRole('link').filter((a) => !a.textContent?.includes('Alle Belege')).map((a) => a.querySelector('strong')?.textContent))
+  expect(vorschau.getAllByRole('link').filter((a) => !a.textContent?.includes('Alle Belege')).map((a) => a.querySelector('.stempel')?.textContent))
     .toEqual(['AN-neu', 'RE-neu', 'AN-mitte']);
+  // Planlinie (E30): Nummer als Stempel, Stand mit Statuszeichen — vorher stand der Stand als blankes Wort.
+  expect(vorschau.getByText('Versendet')).toHaveClass('stand', 'stand-info');
+  expect(vorschau.getByText('Offen')).toHaveClass('stand', 'stand-offen');
   expect(vorschau.getByRole('link', { name: /AN-neu/ })).toHaveTextContent('netto');
   expect(vorschau.getByRole('link', { name: /RE-neu/ })).toHaveTextContent('brutto');
   expect(vorschau.queryByText('RE-alt')).toBeNull();
@@ -966,4 +969,24 @@ it('Aktenlinie 03 · behält bei benannten Baustellen die vollständige Baustell
   expect(await screen.findByRole('link', { name: /B-ORT.*Wärmepumpe Werkstatt.*Industriestraße 17, 8200 Gleisdorf/ })).toBeInTheDocument();
   await userEvent.click(screen.getByRole('tab', { name: 'Baustellen' }));
   expect(within(document.getElementById('k-baustellen')!).getByRole('link', { name: /B-ORT.*Wärmepumpe Werkstatt.*Industriestraße 17, 8200 Gleisdorf/ })).toBeInTheDocument();
+});
+
+/*
+  PLANLINIE B10 (E30): die Kundennummer steht als Stempel neben dem Namen
+  im Plankopf, nicht mehr in der Zeile darunter.
+*/
+describe('Kundenakte — Nummernstempel', () => {
+  it('die Kundennummer als Stempel im Plankopf', async () => {
+    kunden = [{ ...KUNDE, kundennummer: '10042' }];
+    zeige();
+    const stempel = await screen.findByText('Nr. 10042', { selector: '.stempel' });
+    expect(stempel.closest('.plankopf-titel')).not.toBeNull();
+    expect(document.querySelector('.akten-identitaet')?.textContent ?? '').not.toContain('10042');
+  });
+
+  it('Gegenprobe: ohne Kundennummer kein leerer Stempel', async () => {
+    zeige();
+    await screen.findByRole('heading', { level: 1, name: /Hausverwaltung Nord/ });
+    expect(document.querySelector('.plankopf-titel .stempel')).toBeNull();
+  });
 });

@@ -17,6 +17,9 @@ import { sitzungVermutlich } from './lib/supabase';
 import '@fontsource/poppins/latin-400.css';
 import '@fontsource/poppins/latin-500.css';
 import '@fontsource/poppins/latin-600.css';
+// IBM Plex Mono für alles Gemessene (Planlinie, E30) — ebenfalls lokal, die CSP lässt keine fremden Schriften zu.
+import '@fontsource/ibm-plex-mono/latin-400.css';
+import '@fontsource/ibm-plex-mono/latin-500.css';
 import './index.css';
 
 // Die Schlüssel im Browser heissen nach dem Produkt, nicht nach dem

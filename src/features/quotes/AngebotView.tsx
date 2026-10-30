@@ -407,45 +407,70 @@ export default function AngebotView() {
     </Card>
   );
   const titel = titelSummen(q.positions);
+  /*
+    DIE POSITIONEN ALS STÜCKLISTE (Planlinie B6): Kopf zwischen zwei Linien,
+    die laufende Nummer vorn, Beträge in Mono rechtsbündig, die Summe unter
+    einer Doppellinie. Gezählt werden nur Positionen — Titel und Text tragen
+    keine Nummer, so wie sie auch keinen Betrag tragen (M18). Die Nummer ist
+    die Reihenfolge auf dem Angebot, keine gespeicherte Angabe.
+  */
+  const posNummer = new Map<number, string>();
+  q.positions.forEach((p, i) => {
+    if ((p.art ?? 'position') === 'position') posNummer.set(i, String(posNummer.size + 1).padStart(2, '0'));
+  });
   const positionen = (
-    <Card title={`Positionen (${q.positions.filter((p) => (p.art ?? 'position') === 'position').length})`} id="angebot-positionen">
-      <ul className="divide-y divide-line">
-        {q.positions.map((p, i) =>
-          // Titel mit der Summe seiner Positionen, Text ohne Beträge (M18).
-          p.art === 'titel' ? (
-            <li key={i} className="flex items-start justify-between gap-3 pb-1 pt-3">
-              <p className="text-sm font-semibold text-ink">{p.label}</p>
-              {titel.has(i) && <span className="shrink-0 text-sm text-ink-muted">Summe {euro(titel.get(i)!)}</span>}
-            </li>
-          ) : p.art === 'text' ? (
-            <li key={i} className="py-2">
-              <p className="whitespace-pre-line text-sm text-ink-muted">{p.label}</p>
-            </li>
-          ) : (
-            <li key={i} className="flex items-start justify-between gap-3 py-2">
-              <div className="min-w-0">
-                <p className="text-sm text-ink">{p.label}</p>
-                <p className="text-xs text-ink-muted">
-                  {fmtMenge(p.qty)} {p.unit} × {euro(p.unitPrice)}
-                  {positionsRabattText(p.rabattProzent) ? `, ${positionsRabattText(p.rabattProzent)}` : ''}
-                </p>
-              </div>
-              <span className="shrink-0 text-sm text-ink">{euro(p.netto)}</span>
-            </li>
-          ),
-        )}
-      </ul>
-      <dl className="mt-3 space-y-1 border-t border-ink pt-3 text-sm">
-        {(q.discountAmount ?? 0) > 0 && q.discount && (
-          <>
-            <Summe wort="Zwischensumme">{euro(q.subtotalNetto)}</Summe>
-            <Summe wort={discountLabel(q.discount)}>- {euro(q.discountAmount ?? 0)}</Summe>
-          </>
-        )}
-        <Summe wort="Netto">{euro(q.totalNetto)}</Summe>
-        <Summe wort={`USt. ${Math.round(q.vatRate * 100)}%`}>{euro(q.totalVat)}</Summe>
-        <Summe wort="Brutto" fett>{euro(q.totalBrutto)}</Summe>
-      </dl>
+    <Card title={`Positionen (${posNummer.size})`} id="angebot-positionen">
+      <div className="overflow-x-auto">
+        <table className="tabelle stueckliste">
+          <thead>
+            <tr>
+              <th scope="col">Pos</th>
+              <th scope="col">Bezeichnung</th>
+              <th scope="col" className="r">Netto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {q.positions.map((p, i) =>
+              // Titel mit der Summe seiner Positionen, Text ohne Beträge (M18).
+              p.art === 'titel' ? (
+                <tr key={i} className="stueckliste-titel">
+                  <td className="pos" />
+                  <td>{p.label}</td>
+                  <td className="r">{titel.has(i) && <>Summe {euro(titel.get(i)!)}</>}</td>
+                </tr>
+              ) : p.art === 'text' ? (
+                <tr key={i}>
+                  <td className="pos" />
+                  <td colSpan={2} className="whitespace-pre-line text-ink-muted">{p.label}</td>
+                </tr>
+              ) : (
+                <tr key={i}>
+                  <td className="pos">{posNummer.get(i)}</td>
+                  <td>
+                    {p.label}
+                    <span className="stueckliste-menge">
+                      {fmtMenge(p.qty)} {p.unit} × {euro(p.unitPrice)}
+                      {positionsRabattText(p.rabattProzent) ? `, ${positionsRabattText(p.rabattProzent)}` : ''}
+                    </span>
+                  </td>
+                  <td className="r">{euro(p.netto)}</td>
+                </tr>
+              ),
+            )}
+          </tbody>
+          <tfoot>
+            {(q.discountAmount ?? 0) > 0 && q.discount && (
+              <>
+                <Summe wort="Zwischensumme">{euro(q.subtotalNetto)}</Summe>
+                <Summe wort={discountLabel(q.discount)}>- {euro(q.discountAmount ?? 0)}</Summe>
+              </>
+            )}
+            <Summe wort="Netto">{euro(q.totalNetto)}</Summe>
+            <Summe wort={`USt. ${Math.round(q.vatRate * 100)}%`}>{euro(q.totalVat)}</Summe>
+            <Summe wort="Brutto" fett>{euro(q.totalBrutto)}</Summe>
+          </tfoot>
+        </table>
+      </div>
     </Card>
   );
   const anmerkungen = q.notes?.trim() ? (
@@ -479,7 +504,9 @@ export default function AngebotView() {
     <div className="space-y-6">
       <PageHeader
         ort={zurueck}
-        title={`Angebot ${q.quoteNumber}`}
+        // Die Nummer als Nummernstempel neben dem Titel (Planlinie B10), wie in jeder Akte.
+        title="Angebot"
+        stempel={q.quoteNumber}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>{q.customerName}</span>
@@ -591,11 +618,13 @@ function Angabe({ wort, children }: { wort: string; children: React.ReactNode })
   );
 }
 
+/** Eine Zeile unter den Positionen; die Bruttosumme steht als `summe` unter der Doppellinie. */
 function Summe({ wort, fett, children }: { wort: string; fett?: boolean; children: React.ReactNode }) {
   return (
-    <div className={`flex justify-between gap-3 ${fett ? 'font-semibold text-ink' : 'text-ink-muted'}`}>
-      <dt>{wort}</dt>
-      <dd>{children}</dd>
-    </div>
+    <tr className={fett ? 'summe' : 'stueckliste-zwischen'}>
+      <td className="pos" />
+      <td>{wort}</td>
+      <td className="r">{children}</td>
+    </tr>
   );
 }

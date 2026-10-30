@@ -31,6 +31,7 @@ import { fuehrtZeitkonto } from '@/lib/permissions';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
+import Metric, { MetricRow } from '@/components/Metric';
 import RowMenu from '@/components/RowMenu';
 import BottomSheet from '@/components/BottomSheet';
 import { Segmente } from '@/components/LotBausteine';
@@ -701,6 +702,8 @@ export default function AccountingView() {
             : gesamt === 'fehler' || !gesamt.has(u.uid)
               ? '—'
               : saldoText(Math.round(gesamt.get(u.uid)! * 60)),
+        /* Dieselbe Zahl für die Saldolinie — gerundet wie im Text, damit Strecke und Zahl übereinstimmen. */
+        gesamtMinuten: gesamt instanceof Map && gesamt.has(u.uid) ? Math.round(gesamt.get(u.uid)! * 60) : null,
       };
     });
   }, [rows, imSupport, ansicht, wochenWerte, monatsWerte, heute, grenzenJePerson, gesamt]);
@@ -919,6 +922,40 @@ export default function AccountingView() {
             <RowMenu about="Mitarbeiterübersicht" items={[{ label: 'Monats-CSV', onSelect: exportMonthCsv }]} />
           ) : undefined
         }
+        /*
+          DAS SCHRIFTFELD (Planlinie B1): was vorher als Satz über der Liste
+          („3 Tage ohne Buchung bei 2 von 5 Personen“) und als Zeile darunter
+          („Gebucht bisher … von … Soll“) stand, steht jetzt im Kopf — dieselben
+          Zahlen, nichts neu gerechnet. Im Supportzugang gibt es sie nicht
+          (Zeitbuchungen verschlossen), bei einem Ladefehler auch nicht: dort
+          stünde sonst eine Null, die keine ist.
+        */
+        stand={
+          !imSupport && !error && (!bereit || alleRows.length > 0) ? (
+            <MetricRow label="Stand der Auswertung">
+              <Metric label={ansicht === 'woche' ? 'Woche' : 'Monat'} value={titel} hint={unterzeile || undefined} />
+              <Metric
+                label="Gebucht"
+                value={fmtMin(angezeigteSumme.ist)}
+                hint={`von ${fmtMin(angezeigteSumme.soll)} Soll`}
+                bereit={bereit}
+                zusatzMuster="von 000:00 Soll"
+              />
+              <Metric
+                label="Tage ohne Buchung"
+                value={String(offeneTage)}
+                tone={offeneTage > 0 ? 'warning' : 'default'}
+                hint={
+                  luecken === 0
+                    ? 'Alle Zeitkonten vollständig'
+                    : `bei ${luecken} von ${alleRows.length} ${alleRows.length === 1 ? 'Person' : 'Personen'}${ansicht === 'woche' ? ' im Monat' : ''}`
+                }
+                bereit={bereit}
+                zusatzMuster="bei 00 von 00 Personen"
+              />
+            </MetricRow>
+          ) : undefined
+        }
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
@@ -1001,11 +1038,6 @@ export default function AccountingView() {
               <input type="checkbox" checked={nurLuecken} onChange={filterUmschalten} />
               Nur Tage ohne Buchung{ansicht === 'woche' ? ' (im Monat)' : ''}
             </label>
-            <p className="ue-pruefung-stand">
-              {luecken === 0
-                ? 'Alle Zeitkonten vollständig'
-                : `${offeneTage} ${offeneTage === 1 ? 'Tag' : 'Tage'} ohne Buchung bei ${luecken} von ${alleRows.length} ${alleRows.length === 1 ? 'Person' : 'Personen'}`}
-            </p>
           </div>
         )}
 
@@ -1053,7 +1085,12 @@ export default function AccountingView() {
         </div>
       ) : rows.length === 0 ? (
         <div className="ue-liste">
-          <EmptyState>
+          {/*
+            „ALLE TAGE GEBUCHT“ IST EIN ERLEDIGT, KEIN LEER: nur dieser Fall
+            trägt die Zeichnung `fertig`. Keine Benutzer, kein Konto in der
+            Auswertung oder keine Treffer der Suche bleiben Text.
+          */}
+          <EmptyState zeichnung={alleRows.length > 0 && !suche ? 'fertig' : undefined}>
             {/*
               WARUM DIESE UNTERSCHEIDUNG. „Keine aktiven Mitarbeiter mit
               Zeitkonto" stand hier auch dann, wenn der Betrieb sehr wohl
@@ -1085,19 +1122,20 @@ export default function AccountingView() {
           heute={heute}
           zeilen={zeilen}
           imSupport={imSupport}
+          summe={
+            !imSupport
+              ? {
+                  text: 'Alle Personen',
+                  gebucht: fmtMin(angezeigteSumme.ist),
+                  soll: fmtMin(angezeigteSumme.soll),
+                }
+              : undefined
+          }
           onOeffnen={(uid, tag) => {
             setAufgabe(null);
             setPerson({ uid, tag });
           }}
         />
-      )}
-
-      {!imSupport && bereit && !error && alleRows.length > 0 && (
-        <section className="ue-gesamt" aria-label="Gesamt aller Personen">
-          <span>Gebucht {ansicht === 'woche' ? 'in dieser Woche' : 'bisher'}</span>
-          <span className="ue-gesamt-wert">{fmtMin(angezeigteSumme.ist)}</span>
-          <span>von {fmtMin(angezeigteSumme.soll)} Soll · alle Personen</span>
-        </section>
       )}
 
       {/*

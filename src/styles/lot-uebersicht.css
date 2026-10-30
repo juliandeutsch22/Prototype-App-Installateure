@@ -13,9 +13,6 @@
   .ue-pruefung { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 1.5rem; }
   .ue-fehlfilter { display: inline-flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; cursor: pointer; font-size: 0.8125rem; }
   .ue-fehlfilter input { width: 1.125rem; height: 1.125rem; accent-color: var(--petrol); }
-  .ue-pruefung-stand { font-size: 0.75rem; color: var(--text-muted); }
-  .ue-gesamt { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.5rem; padding-block: 0.75rem; font-size: 0.75rem; color: var(--text-muted); }
-  .ue-gesamt-wert { color: var(--ink-deep); font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
 
   /* ── Steuerung: ‹ Titel ›, Suche, Monat | Woche (Auftrag 3.2, Punkt 3) ─ */
   .ue-steuerung { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
@@ -32,7 +29,7 @@
   .ue-titel { display: flex; flex-direction: column; align-items: center; min-height: 2.75rem; min-width: 10rem; padding: 0.125rem 0.5rem; background: none; border: 0; border-radius: var(--radius); color: var(--text); text-align: center; cursor: pointer; }
   @media (min-width: 760px) { .ue-titel { align-items: flex-start; text-align: left; } }
   .ue-titel:hover { background: var(--petrol-hell); }
-  .ue-titel-gross { font-size: 1rem; line-height: 1.5rem; font-weight: 600; color: var(--ink-deep); }
+  .ue-titel-gross { font-size: 1rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .ue-titel-klein { font-size: 0.75rem; line-height: 1.125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .ue-suche { flex: 1 1 10rem; min-width: 0; min-height: 2.75rem; padding: 0 0.75rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 1rem; }
   .ue-suche:focus { outline: 2px solid var(--petrol); outline-offset: -1px; border-color: var(--petrol); }
@@ -80,8 +77,6 @@
     .ue-kopf-person { display: block; }
     .ue-kopf-zahl { display: block; white-space: normal; overflow-wrap: normal; hyphens: manual; -webkit-hyphens: manual; }
   }
-  .ue-gruppe { margin: 0; padding: 0.625rem 1rem; background: var(--bg); color: var(--text-muted); border-top: 1px solid var(--border); font-size: 0.8125rem; line-height: 1.125rem; font-weight: 600; }
-  @media (min-width: 1200px) { .ue-gruppe { padding: 0.625rem 1.25rem; } }
 
   /* Am Handy eine Karte je Person: Name, darunter der Streifen in voller Breite, darunter drei Zahlen. */
   .ue-zeile { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; align-items: center; padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: var(--surface); cursor: pointer; }
@@ -97,18 +92,18 @@
 
   .ue-person { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0; background: none; border: 0; color: var(--text); text-align: left; cursor: pointer; }
   @media (min-width: 760px) { .ue-person { grid-column: auto; } }
-  .ue-name { display: block; max-width: 100%; font-weight: 600; color: var(--ink-deep); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ue-name { display: block; max-width: 100%; font-weight: var(--gewicht-titel); color: var(--ink-deep); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ue-status { display: block; max-width: 100%; font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
-  .ue-status-achtung { display: block; max-width: 100%; font-size: 0.8125rem; line-height: 1.125rem; font-weight: 600; color: var(--warning); }
+  .ue-status-achtung { display: block; max-width: 100%; font-size: 0.8125rem; line-height: 1.125rem; }
   .ue-buchungen { display: contents; }
-  .ue-zahl { margin: 0; font-weight: var(--gewicht-zahl); font-size: 0.875rem; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .ue-zahl-stark { margin: 0; font-size: 0.875rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ue-zahl { margin: 0; font-family: var(--schrift-mono); font-weight: 400; font-size: 0.875rem; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ue-zahl-stark { margin: 0; font-family: var(--schrift-mono); font-size: 0.875rem; font-weight: 400; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   @media (min-width: 760px) {
     .ue-zahl { text-align: right; font-size: 0.9375rem; }
     .ue-zahl-stark { text-align: right; font-size: 0.9375rem; }
   }
   /* Am Handy steht über jeder Zahl ihr Name; ab dem Tablet trägt ihn die Kopfzeile. */
-  .ue-zahl-name { display: block; font-size: 0.75rem; line-height: 1rem; font-weight: 400; color: var(--text-muted); }
+  .ue-zahl-name { display: block; font-family: Poppins, ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; line-height: 1rem; font-weight: 400; color: var(--text-muted); }
   @media (min-width: 760px) { .ue-zahl-name { display: none; } }
 
   /* Eine Zeile (am Handy höchstens zwei), die Erklärung steht in der Seitenhilfe. */
@@ -152,7 +147,7 @@
   */
   .st-kopf { font-size: 0.75rem; line-height: 1rem; color: transparent; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
   .st-kopf-mo { font-size: 0.75rem; line-height: 1rem; text-align: left; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: visible; }
-  .st-kopf-heute { font-size: 0.75rem; line-height: 1rem; text-align: center; color: var(--accent-deep); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: visible; box-shadow: inset 0 -2px 0 var(--petrol); }
+  .st-kopf-heute { font-size: 0.75rem; line-height: 1rem; text-align: center; color: var(--accent-deep); font-weight: var(--gewicht-titel); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: visible; box-shadow: inset 0 -2px 0 var(--petrol); }
 
   /* Die Felder der Legende und der Musterseite: dieselben Farben, kein Knopf. */
   .leg-ok { display: inline-block; flex: none; width: 0.75rem; height: 0.75rem; border-radius: 2px; background: var(--petrol); }
@@ -167,10 +162,10 @@
   @media (min-width: 760px) { .mw-tage { grid-column: auto; gap: 4px; } }
   @media (min-width: 1200px) { .mw-tage { gap: 4px; } }
   .mw-kopf { font-size: 0.8125rem; line-height: 1.125rem; text-align: center; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-  .mw-kopf-heute { font-size: 0.8125rem; line-height: 1.125rem; text-align: center; color: var(--accent-deep); font-weight: 600; font-variant-numeric: tabular-nums; box-shadow: inset 0 -2px 0 var(--petrol); }
+  .mw-kopf-heute { font-size: 0.8125rem; line-height: 1.125rem; text-align: center; color: var(--accent-deep); font-weight: var(--gewicht-titel); font-variant-numeric: tabular-nums; box-shadow: inset 0 -2px 0 var(--petrol); }
   .mw-zelle { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--petrol-hell); color: var(--text); font-size: 0.75rem; line-height: 1.2; text-align: center; cursor: pointer; }
   .mw-zelle-grenze { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--petrol-hell); color: var(--text); font-size: 0.75rem; line-height: 1.2; text-align: center; cursor: pointer; box-shadow: inset 0 -3px 0 var(--danger); }
-  .mw-zelle-fehlt { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--warning-bg); color: var(--warning); font-size: 0.75rem; line-height: 1.2; font-weight: 600; text-align: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--warning); }
+  .mw-zelle-fehlt { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--warning-bg); color: var(--warning); font-size: 0.75rem; line-height: 1.2; font-weight: var(--gewicht-titel); text-align: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--warning); }
   .mw-zelle-weg { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--abwesend); color: var(--text-muted); font-size: 0.75rem; line-height: 1.2; text-align: center; overflow-wrap: break-word; hyphens: auto; cursor: pointer; }
   .mw-zelle-frei { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border-radius: 6px; background: var(--bg); color: var(--text-muted); font-size: 0.75rem; line-height: 1.2; text-align: center; }
   .mw-zelle-zukunft { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--surface); color: var(--text-muted); font-size: 0.75rem; line-height: 1.2; text-align: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--border); }
@@ -186,7 +181,7 @@
   .mw-zelle-zukunft:hover { box-shadow: inset 0 0 0 1px var(--petrol); }
   .mw-zelle-weg:hover { outline: 1px solid var(--petrol); outline-offset: -1px; }
   /* Die Stunden umbrechen nie („10:4 / 5“ war der Befund) — `nowrap` und eine Schrift, die passt. */
-  .mw-std { display: block; font-size: 0.8125rem; font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mw-std { display: block; font-size: 0.8125rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   @media (min-width: 760px) { .mw-std { font-size: 0.9375rem; } }
   /* Von–Bis nur am Schreibtisch; am Tablet und Handy steht es im Seitenfenster (Auftrag 3.4). */
   .mw-von { display: none; }
@@ -202,7 +197,7 @@
   /* ── Arbeitszeitgrenzen als Arbeitsliste (Auftrag 3.2, Punkt 5) ─────── */
   .grenz-fall { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.75rem 1rem; font-size: 0.875rem; line-height: 1.375rem; }
   .grenz-inhalt { flex: 1 1 16rem; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }
-  .grenz-person { font-weight: 600; color: var(--ink-deep); }
+  .grenz-person { font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   /*
     DARF SCHMALER WERDEN ALS SEIN INHALT (Stand 18, K3): mit `flex: none`
     blieb er so breit wie alle Korrigieren-Knöpfe nebeneinander, die Zeile
@@ -211,8 +206,8 @@
   */
   .grenz-rechts { flex: 0 1 auto; min-width: 0; max-width: 100%; display: flex; align-items: center; }
   .grenz-verstoss-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
-  .grenz-verstoss { font-weight: 600; color: var(--danger); }
-  .grenz-schritt { flex: none; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); color: var(--accent-deep); border: 1px solid var(--petrol); border-radius: var(--radius); font-weight: 600; font-size: 0.875rem; white-space: nowrap; cursor: pointer; }
+  .grenz-verstoss { font-weight: var(--gewicht-titel); color: var(--danger); }
+  .grenz-schritt { flex: none; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); color: var(--accent-deep); border: 1px solid var(--petrol); border-radius: var(--radius); font-weight: var(--gewicht-titel); font-size: 0.875rem; white-space: nowrap; cursor: pointer; }
   .grenz-schritt:hover { background: var(--petrol-hell); }
 
   /* ── Seitenfenster „Person im Monat“ (Auftrag 3.5) ───────────────────── */
@@ -227,8 +222,8 @@
   .pf-kontodetails { margin-top: 1rem; border-top: 1px solid var(--border); padding-bottom: 0.5rem; }
   .pf-kontodetails summary { min-height: 2.75rem; padding-block: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); cursor: pointer; }
   .pf-fehltage, .pf-fehltage-offen { margin-top: 1rem; }
-  .pf-fehltage-titel { display: none; margin: 1.25rem 0 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--ink-deep); }
-  .pf-fehltage-schalter { background: var(--surface); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 3.25rem; border-block: 1px solid var(--border); text-align: left; font-size: 0.8125rem; font-weight: 600; color: var(--ink-deep); }
+  .pf-fehltage-titel { display: none; margin: 1.25rem 0 0.5rem; font-size: 0.9375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
+  .pf-fehltage-schalter { background: var(--surface); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 3.25rem; border-block: 1px solid var(--border); text-align: left; font-size: 0.8125rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .pf-fehltage-aktion { flex: none; font-size: 0.75rem; font-weight: 400; color: var(--accent-deep); }
   .pf-fehltage-liste { margin: 0; padding: 0; list-style: none; }
   .pf-fehltage .pf-fehltage-liste { display: none; }
@@ -239,14 +234,14 @@
   }
   .pf-text { margin-top: 0.75rem; font-size: 0.875rem; line-height: 1.375rem; color: var(--text-muted); }
   .pf-text-klein { margin-top: 0.5rem; font-size: 0.75rem; line-height: 1.125rem; color: var(--text-muted); }
-  .pf-abschnitt { margin: 1.25rem 0 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--ink-deep); }
+  .pf-abschnitt { margin: 1.25rem 0 0.5rem; font-size: 0.9375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .pf-liste { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--border); }
   .pf-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.625rem 0.25rem; border-bottom: 1px solid var(--border); }
   /* Der Tag, über den das Fenster geöffnet wurde: Petrol-hell mit 3 px Petrol links. */
   .pf-zeile-markiert { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.625rem 0.25rem 0.625rem 0.75rem; border-bottom: 1px solid var(--border); background: var(--petrol-hell); box-shadow: inset 3px 0 0 var(--petrol); }
   .pf-zeile-text { flex: 1 1 10rem; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
   .pf-zeile-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; }
-  .pf-zeile-titel { font-weight: 600; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pf-zeile-titel { font-weight: var(--gewicht-titel); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pf-zeile-info { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .pf-zeile-wert { flex: none; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pf-aktionen { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.25rem; margin-left: auto; }
@@ -269,26 +264,22 @@
   .ue-vergleich-kopf { display: none; }
   .ue-vergleich-zeile { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem 1rem; align-items: center; padding: 1rem 0; border-top: 1px solid var(--border); cursor: pointer; }
   .ue-vergleich-zeile:hover { background: var(--surface-2); }
-  .ue-pruefstand, .ue-pruefstand-achtung { grid-column: 1 / -1; font-size: 0.8125rem; line-height: 1.375rem; color: var(--text-muted); }
-  .ue-pruefstand-achtung { color: var(--warning); }
+  .ue-pruefstand { grid-column: 1 / -1; font-size: 0.8125rem; line-height: 1.375rem; color: var(--text-muted); }
   .ue-vergleich-wahl { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; font-size: 0.8125rem; color: var(--text-muted); }
   .ue-vergleich-wahl button { min-height: 2.75rem; }
   .ue-vergleich .ue-name { white-space: normal; overflow: visible; }
-  .ue-vergleich .ue-gruppe { background: var(--surface); font-weight: 400; }
   .ue-vergleich .ue-buchungen { display: flex; flex-wrap: wrap; grid-column: 1 / -1; grid-row: 4; gap: 0.375rem 1rem; }
   .ue-vergleich .ue-buchungen .ue-zahl { display: flex; flex-direction: row-reverse; gap: 0.375rem; font-size: 0.75rem; color: var(--text-muted); }
   .ue-vergleich .ue-zahl-stark { padding-block: 0.25rem; font-size: 1.125rem; }
   .ue-vergleich .ue-zahl-name { margin-bottom: 0.25rem; }
   .ue-vergleich .ue-person { min-height: 2rem; }
-  .ue-vergleich .ue-gruppe { padding-inline: 0; }
   @media (min-width: 760px) {
     .ue-vergleich .ue-buchungen { display: contents; }
     .ue-vergleich .ue-buchungen .ue-zahl { display: block; font-size: 0.9375rem; color: var(--text); }
     .ue-vergleich .ue-zahl-stark { font-size: 0.9375rem; }
-    .ue-vergleich .ue-gruppe { padding-inline: 1rem; }
     .ue-vergleich-kopf, .ue-vergleich-zeile { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.6fr) repeat(4, minmax(4.5rem, 0.65fr)); gap: 0.875rem; padding: 1rem; }
     .ue-vergleich-kopf { align-items: end; font-size: 0.75rem; color: var(--text-muted); }
-    .ue-pruefstand, .ue-pruefstand-achtung { grid-column: auto; }
+    .ue-pruefstand { grid-column: auto; }
     .ue-vergleich .ue-person { grid-column: auto; }
   }
 }
@@ -310,11 +301,90 @@
   .pk-wert { font-size: 0.625rem; line-height: 1rem; font-variant-numeric: tabular-nums; }
 }
 @layer components {
-  .ue-grenzhinweis { display: block; margin-top: 0.25rem; color: var(--warning); }
+  .ue-grenzhinweis { display: block; margin-top: 0.25rem; }
+}
+
+/*
+  DIE PLANLINIE IN DER MITARBEITERÜBERSICHT (Auftrag 30.10.2026, E30).
+
+  STÜCKLISTE: der Kopf der Liste steht zwischen zwei Linien (oben Kontur,
+  unten Hilfslinie), in Versalien und ohne Fläche; die Zahlen in Mono,
+  rechtsbündig. Der Behälter verliert dafür seine obere Linie — sonst lägen
+  zwei übereinander. Im Supportzugang ohne Kopf trägt die erste Zeile ihre
+  eigene Linie.
+*/
+@layer components {
+  .ue-liste, .ue-liste-woche, .ue-vergleich { border-top: 0; }
+  .ue-kopfzeile, .mw-kopfzeile { border-top: 1px solid var(--accent-deep); border-bottom: 1px solid var(--border-strong); border-radius: 0; }
+  @media (min-width: 760px) {
+    .ue-vergleich-kopf { border-top: 1px solid var(--accent-deep); border-bottom: 1px solid var(--border-strong); }
+    .ue-kopf-person, .ue-kopf-zahl, .ue-vergleich-kopf { font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; }
+  }
+
+  /* Die Gruppen tragen den Achskreis (`Abschnitt`); ihr Rand folgt den Zeilen der jeweiligen Liste. */
+  .ue-liste .abschnitt, .ue-liste-woche .abschnitt { padding: 1rem 1rem 0.5rem; }
+  .ue-vergleich .abschnitt { padding: 1rem 0 0.5rem; }
+  @media (min-width: 760px) { .ue-vergleich .abschnitt { padding: 1rem 1rem 0.5rem; } }
+  @media (min-width: 1200px) { .ue-liste .abschnitt, .ue-liste-woche .abschnitt { padding: 1rem 1.25rem 0.5rem; } }
+
+  /*
+    DIE SUMMENZEILE: dasselbe Raster wie die Zeilen, aber kein Ziel — keine
+    Hand, keine Tönung beim Überfahren. Gebucht und Soll stehen über einer
+    Doppellinie wie die Summe einer Stückliste. Am Handy steht nur, was
+    eine Zahl trägt; die leeren Spalten sind erst ab dem Tablet Platzhalter.
+  */
+  .ue-summe { cursor: default; }
+  .ue-summe:hover { background: var(--surface); }
+  .ue-vergleich-zeile.ue-summe:hover { background: none; }
+  .ue-summe-name { grid-column: 1 / -1; margin: 0; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
+  .ue-summe-leer { display: none; }
+  .ue-summe .ue-zahl { padding-top: 0.375rem; border-top: 3px double var(--accent-deep); font-weight: 500; }
+  .ue-vergleich .ue-summe .ue-buchungen { grid-row: auto; }
+  @media (min-width: 760px) {
+    .ue-summe-name { grid-column: auto; }
+    .ue-summe-leer { display: block; }
+    .ue-vergleich .ue-summe .ue-buchungen .ue-zahl { font-weight: 500; }
+  }
+
+  /*
+    DIE SALDOLINIE neben dem Gesamtsaldo — erst am Schreibtisch, wo die
+    Spalte Platz für Strecke und Zahl hat. Darunter steht die Zahl allein,
+    wie bisher; der Satz zum Maßstab gehört zur Linie und fehlt mit ihr.
+  */
+  .ue-gesamtsaldo .saldolinie { display: none; }
+  .ue-massstab { display: none; }
+  @media (min-width: 1200px) {
+    .ue-vergleich-kopf, .ue-vergleich-zeile { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.5fr) repeat(3, minmax(4.5rem, 0.6fr)) minmax(15.5rem, 1.1fr); }
+    .ue-gesamtsaldo { display: flex; align-items: center; justify-content: flex-end; gap: 0.875rem; }
+    .ue-gesamtsaldo .saldolinie { display: inline-block; }
+    .ue-gesamtsaldo-zahl { min-width: 4.5rem; text-align: right; }
+    .ue-massstab { display: block; margin: 0; padding: 0.75rem 0 0.25rem; font-size: 0.75rem; line-height: 1rem; color: var(--text-muted); }
+  }
 }
 @layer components {
   /* Am breiten Bildschirm ordnen die Spalten; die Vorlesehilfe behält den Namen an jedem Wert. */
   @media (min-width: 760px) {
     .ue-vergleich .ue-zahl-name { display: block; position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   }
+}
+
+/* Die Maßlinie des Stundenbudgets in der Projektauswertung: unter dem Satz, über die ganze Zeile. */
+@layer components {
+  .ps-masslinie { margin-top: 0.375rem; }
+}
+
+/*
+  ABWESENHEIT SCHRAFFIERT (Planlinie B11) statt der grauen Fläche: im
+  Streifen, in seiner Legende, in der Woche und im Kalender der Person —
+  Diagonalen unter 135° auf Grund, ein Rand in der Hilfslinie. So liest sich
+  „abwesend“ wie eine geschnittene Wand im Plan und nicht wie ein blasser
+  Arbeitstag. Das Wort steht weiter in der Woche, im Tipp und in der Legende.
+*/
+@layer components {
+  .st-weg, .leg-weg, .mw-zelle-weg, .pk-tag-weg {
+    background-color: var(--bg);
+    background-image: repeating-linear-gradient(135deg, var(--border-strong) 0, var(--border-strong) 1px, var(--bg) 1px, var(--bg) 6px);
+    border: 1px solid var(--border-strong);
+  }
+  .st-weg, .leg-weg { background-image: repeating-linear-gradient(135deg, var(--border-strong) 0, var(--border-strong) 1px, var(--bg) 1px, var(--bg) 4px); }
 }

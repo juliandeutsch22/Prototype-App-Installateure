@@ -61,6 +61,7 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Lange Namen brechen mitten im Wort in einem Browser ohne deutsches Trennwörterbuch (A16, 24.10.2026) | Die Trennregel gilt überall; das Wörterbuch bringt der Browser mit oder nicht — liegt beim Gerät |
 | Der Rücklauf hält einen Stand beim Einspielen ganz im Speicher des Rechners, auf dem er läuft (N1, 24.10.2026; geprüft mit 288 MB) | Liegt beim Gerät: der Rücklauf läuft im Ernstfall auf dem Rechner eines Menschen, nicht im Projekt; Node bekommt mit `--max-old-space-size` mehr Speicher |
 | „E-Mail an …“ (Bestellung, Angebot) öffnet das Mailprogramm; die App verschickt nichts an Kunden oder Großhändler und führt keinen Versandnachweis (Stand 24.5, Testbericht Runde 6, Hinweis 12) | Sicherheit und Betrieb: gesendet wird aus dem eigenen Postfach, damit Antworten und die gesendete Nachricht beim Betrieb liegen; die App hält keine Zugangsdaten zu diesem Postfach |
+| Planlinie: Felder und Maßlinien ohne geladene Zahl fehlen — kein Schriftfeld auf Angeboten, Kunden, Material anfordern, Anforderungen, Einstellungen; keine Fassungsbuchstaben, „gültig bis“, Wartung „zuletzt → nächste“, Kunde Offen/Umsatz, Wochensummen der Planung, „Heute/Kommend“ der Zeiterfassung (Stand 26, E30) | Fachlich: Die Zahl wird heute nicht geladen. Sie zu laden wäre eine neue Abfrage, und die schließt der Auftrag aus (§ 7.8) |
 
 ## X – Liegt bei jemand anderem
 

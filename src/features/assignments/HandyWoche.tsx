@@ -105,13 +105,16 @@ export default function HandyWoche({
             <button
               key={tag}
               type="button"
-              className={an ? 'tagwahl-tag-an' : tag === heute ? 'tagwahl-tag-heute' : 'tagwahl-tag'}
+              className={an ? 'tagwahl-tag-an' : 'tagwahl-tag'}
               aria-pressed={an}
+              aria-current={tag === heute ? 'date' : undefined}
               aria-label={[tagLang(tag), ts.length ? termineText(ts.length) : null, ohne ? ohneAnnahmeText(ohne) : null]
                 .filter(Boolean)
                 .join(', ')}
               onClick={() => onWahl(tag)}
             >
+              {/* Heute trägt das Lot (Planlinie, B4) — auch, wenn der Tag gewählt ist. */}
+              {tag === heute && <span className="tag-lot" aria-hidden="true" />}
               <span className="tagwahl-wt">{wochentag.replace('.', '')}</span>
               <span className="tagwahl-nr">{new Date(`${tag}T00:00:00`).getDate()}</span>
               <span className={ohne ? 'tagwahl-punkt-achtung' : ts.length ? 'tagwahl-punkt' : 'tagwahl-ohne'} aria-hidden="true" />
@@ -171,8 +174,10 @@ export default function HandyWoche({
       {lesen && ruhetag(gewaehlt) && sichtbar(gruppen).length === 0 && <p className="tl-person tl-leer">Niemand eingeteilt.</p>}
       {(lesen && ruhetag(gewaehlt) ? sichtbar(gruppen) : gruppen).map((g) => (
         <div key={g.name}>
-          <p className="tl-gruppe">
-            {g.name} · {g.leute.length}
+          {/* Die Einstufung als Achse wie im Raster (Planlinie, B5): Zahl im Achskreis, Name, Achslinie. */}
+          <p className="tl-achse">
+            <span className="achskreis">{g.leute.length}</span> <span>{g.name}</span>
+            <span className="abschnitt-linie" aria-hidden="true" />
           </p>
           {g.leute.map((u) => (
             <TagesPerson

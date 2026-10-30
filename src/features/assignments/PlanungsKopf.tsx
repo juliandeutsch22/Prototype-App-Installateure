@@ -25,7 +25,18 @@ export type PlanAnsicht = 'woche' | 'monat' | 'tag';
  * „Einsatz planen“. Vorher fand man den Weg am Schreibtisch nur über den
  * Kopf eines Tages und im Monat gar nicht.
  */
-export function PlanungsSeitenkopf({ action, hilfe, mehr }: { action?: ReactNode; hilfe?: ReactNode; mehr?: ReactNode }) {
+export function PlanungsSeitenkopf({
+  action,
+  hilfe,
+  mehr,
+  stand,
+}: {
+  action?: ReactNode;
+  hilfe?: ReactNode;
+  mehr?: ReactNode;
+  /** Das Schriftfeld des Plankopfs (Planlinie, B1) — eine `MetricRow`. */
+  stand?: ReactNode;
+}) {
   return (
     <PageHeader
       ort="Aufträge"
@@ -34,6 +45,13 @@ export function PlanungsSeitenkopf({ action, hilfe, mehr }: { action?: ReactNode
       hilfe={hilfe}
       mehr={mehr}
       action={action}
+      stand={stand}
+      /*
+        KEINE SKIZZE IM SCHRIFTFELD: der eine Akzent dieser Seite ist das
+        Raster der Planungsfläche (Planlinie, B12) — zwei Akzente machten
+        aus dem Plankopf eine Bühne.
+      */
+      skizze={false}
     />
   );
 }
