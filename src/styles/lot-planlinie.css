@@ -92,6 +92,9 @@
     .plankopf-skizze-klein { display: block; margin-left: auto; }
   }
 
+  /* Der kleine Plankopf eines Seitenfensters: Titel 20 px, Stempel daneben, ohne Skizze und Lineal. */
+  .fenster-titel { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.625rem; font-size: 1.25rem; line-height: 1.5rem; font-weight: 500; }
+
   /* ── B2 Maßlinie ──────────────────────────────────────────────────────── */
   /*
     JEDE MENGE, DIE GEGEN EINE GRENZE LÄUFT, wird bemaßt: Grundlinie über die

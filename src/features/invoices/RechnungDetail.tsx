@@ -82,7 +82,7 @@ export default function RechnungDetail({
     ) : null;
 
   return (
-    <BottomSheet open auchBreit breit onClose={onClose} label={name} titel={name}>
+    <BottomSheet open auchBreit breit onClose={onClose} label={name} titel={ARTNAME[inv.art ?? 'einzel'] ?? 'Rechnung'} stempel={inv.invoiceNumber}>
       <div className="rechnung-leseansicht text-sm">
         <p className="text-ink-muted">
           {inv.customerName}{inv.customerVatId ? ` · UID ${inv.customerVatId}` : ''}
