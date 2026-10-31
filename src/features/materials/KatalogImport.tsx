@@ -291,7 +291,7 @@ export default function KatalogImport() {
                     pflicht
                   />
                 </div>
-                <InfoHint about="den Lieferanten">
+                <InfoHint about="der Lieferant">
                   Der Preis eines Artikels gehört zum Lieferanten, nicht zum Artikel: derselbe
                   Kugelhahn kostet bei zwei Großhändlern zwei verschiedene Beträge. Deshalb
                   gehört jeder Katalog zu genau einem Lieferanten.

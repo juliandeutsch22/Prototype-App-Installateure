@@ -86,7 +86,7 @@ export default function BasiszinsVerlauf({
         </ul>
       )}
       {zentral.length > 0 && (
-        <InfoHint about="den Basiszinssatz">
+        <InfoHint about="der Basiszinssatz">
           Mit „zentral“ markierte Sätze pflegt der Betreiber von Senklot für alle Betriebe. Eintragen
           lässt sich hier nur ein Halbjahr, für das zentral noch keiner hinterlegt ist.
         </InfoHint>

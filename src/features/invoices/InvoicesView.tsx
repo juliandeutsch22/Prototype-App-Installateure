@@ -3968,7 +3968,7 @@ export default function InvoicesView() {
             <div className="mt-4 border-t border-line pt-4">
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <span className="section-label">Bereits verrechnet — abziehen</span>
-                <InfoHint about="den Abzug der Vorrechnungen">
+                <InfoHint about="der Abzug der Vorrechnungen">
                   Eine Anzahlung ist samt ihrer Umsatzsteuer schon in Rechnung gestellt. Steht sie
                   hier nicht mit Abzug, weist der Betrieb dieselbe Steuer zweimal aus und schuldet
                   sie zweimal (§ 11 Abs 12 UStG). Angeboten wird nur, was keine Stunden und kein
@@ -4184,7 +4184,7 @@ export default function InvoicesView() {
                   bemisst sich am tatsaechlich vereinbarten Entgelt. */}
               <div className="flex flex-wrap items-center gap-2">
                 <span className="section-label">Rabatt</span>
-                <InfoHint about="den Rabatt">
+                <InfoHint about="der Rabatt">
                   Der Rabatt geht auf das NETTO, nicht auf das Brutto — die Umsatzsteuer bemisst
                   sich am tatsächlich vereinbarten Entgelt. Die Bezeichnung steht auf der
                   Rechnung; bleibt sie leer, erscheint dort nur „Rabatt“.
@@ -4237,7 +4237,7 @@ export default function InvoicesView() {
                         }
                       }}
                     />
-                    <InfoHint about="den Rücklass">
+                    <InfoHint about="der Rücklass">
                       Der Kunde behält einen Teil des Betrags ein: der Haftrücklass bis zum Ende der
                       Gewährleistung (vorgeschlagen sind drei Jahre), der Deckungsrücklass einer
                       Teilrechnung, bis abgerechnet ist. Die Umsatzsteuer steht voll auf der Rechnung.
@@ -4803,7 +4803,7 @@ export default function InvoicesView() {
                       >
                         Buchungsstapel für BMD
                       </Button>
-                      <InfoHint about="den Buchungsstapel">
+                      <InfoHint about="der Buchungsstapel">
                         Soll- und Habenkonto je Vorgang, brutto mit Steuercode — so, wie BMD es
                         einliest. Anzahlungen gehen auf das Konto der erhaltenen Anzahlungen und
                         werden mit der Schlussrechnung in den Erlös umgebucht; ein Storno kommt
@@ -4823,7 +4823,7 @@ export default function InvoicesView() {
                           >
                             Zahlungen und Skonto für BMD
                           </Button>
-                          <InfoHint about="den Zahlungsstapel">
+                          <InfoHint about="der Zahlungsstapel">
                             Zahlungseingänge (Bank an Debitoren), Rückzahlungen (Debitoren an Bank) und
                             gewährte Skonti (Erlösschmälerung an Debitoren, mit dem Steuercode der
                             Rechnung) im gewählten Zeitraum, als eigene Datei. <strong>Nur weitergeben,
@@ -5130,7 +5130,7 @@ export default function InvoicesView() {
             />
           </div>
         )}
-        <InfoHint about="den Betrag">
+        <InfoHint about="der Betrag">
           Vorausgefüllt steht der offene Rest, weil er fast immer stimmt. Bei einer Teilzahlung
           wird er überschrieben. Ein Guthaben des Kunden wird als Rückzahlung gebucht; ein
           negativer Eingang ist eine Rücklastschrift.

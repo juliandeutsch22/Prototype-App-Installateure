@@ -402,7 +402,7 @@ export default function PersonFenster({
           {stats.hasConfig && stats.istLaufend && (
             <>
               {' · laufend'}
-              <InfoHint about="den laufenden Monat">
+              <InfoHint about="der laufende Monat">
                 Gezählt sind die Solltage bis gestern. Die Zahl wächst mit jedem
                 Arbeitstag und ist erst nach Monatsende endgültig — ein Rückstand
                 mitten im Monat ist deshalb noch keine Aussage.
