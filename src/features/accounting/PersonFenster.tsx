@@ -8,6 +8,7 @@ import {
   fmtMin,
   getAustrianHolidayName,
   hatTagessoll,
+  schultagAngaben,
   tagesStatusName,
   tageZahl,
   vorzeichenTage,
@@ -342,13 +343,25 @@ export default function PersonFenster({
                     {/* Notdienst und Nachtarbeit gehören NEBEN den Status: sie hängen an einem Zuschlag. */}
                     {x.entry && <Zeitmarker eintrag={x.entry} nacht={nacht} />}
                   </span>
-                  {x.entry && (
-                    <span className="pf-zeile-info">
-                      <span>{x.zeit ?? '—'}</span>
-                      {' · '}
-                      <span>{x.entry.customerName ?? '—'}</span>
-                    </span>
-                  )}
+                  {x.entry && (() => {
+                    /*
+                      WAS DER EINTRAG HAT, NICHT ZWEI STRICHE (Testbericht
+                      Runde 7, R7-G3): der Schultag stand als „— · —“ da,
+                      Unterricht und Weg fehlten. Eine Arbeitszeit behält
+                      Zeit und Kunde (ohne Angabe ein Strich, wie bisher);
+                      eine Abwesenheit zeigt nur, was sie mitbringt.
+                    */
+                    const teile = x.entry.status === 'Anwesend'
+                      ? [x.zeit ?? '—', x.entry.customerName ?? '—']
+                      : x.entry.status === 'Berufsschule'
+                        ? schultagAngaben(x.entry)
+                        : [x.zeit].filter((t): t is string => !!t);
+                    return teile.length > 0 && (
+                      <span className="pf-zeile-info">
+                        {teile.map((t, i) => <span key={i}>{i > 0 && ' · '}<span>{t}</span></span>)}
+                      </span>
+                    );
+                  })()}
                 </span>
                 <span className="pf-zeile-wert">{x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}</span>
                 {x.entry && <span className="pf-aktionen">{actions(x.entry)}</span>}
