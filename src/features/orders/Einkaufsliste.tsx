@@ -38,6 +38,7 @@ import {
   anmerkungText,
   einkaufsliste,
   lieferterminText,
+  nichtAlleGetroffen,
   type EinkaufsGruppe,
   type EinkaufsZeile,
   type Unterwegs,
@@ -82,6 +83,7 @@ export default function Einkaufsliste({
   grosshaendler,
   onGrosshaendlerGeaendert,
   onLagerGeaendert,
+  onVeraltet,
 }: {
   company: Company;
   meinUid: string;
@@ -93,6 +95,8 @@ export default function Einkaufsliste({
   onGrosshaendlerGeaendert: () => void;
   /** Eigene Posten haben sich geändert — neu laden. */
   onLagerGeaendert: () => void;
+  /** Eine Aktion traf einen veralteten Stand — die Anforderungen neu holen (R7-M3). */
+  onVeraltet: () => void;
 }) {
   const toast = useToast();
   const [katalog, setKatalog] = useState<Map<string, Pick<Material, 'articleNumber' | 'unit'>>>(new Map());
@@ -138,17 +142,23 @@ export default function Einkaufsliste({
   );
   const nachId = useMemo(() => new Map(grosshaendler.map((g) => [g.id, g])), [grosshaendler]);
 
-  async function tun(schluessel: string, was: () => Promise<unknown>, erfolg: string) {
+  /** `was` gibt einen Satz zurück, wenn es nicht alles traf (`nichtAlleGetroffen`). */
+  async function tun(schluessel: string, was: () => Promise<string | undefined | void>, erfolg: string) {
     setLaeuft(schluessel);
     setFehler(null);
     try {
-      await was();
+      const hinweis = await was();
       // „Zurück von der Liste" macht eine Anforderung wieder offen — der
       // Zähler am Menü soll das gleich wissen, nicht erst beim nächsten Laden.
       void postenNeuLaden();
       // Die eigenen Posten kommen nicht über das Live-Abo der Anforderungen.
       onLagerGeaendert();
-      toast.success(erfolg);
+      if (hinweis) {
+        toast.info(hinweis);
+        onVeraltet();
+      } else {
+        toast.success(erfolg);
+      }
     } catch (e) {
       setFehler(grundAus(e, 'Das hat nicht geklappt.'));
     } finally {
@@ -235,8 +245,15 @@ export default function Einkaufsliste({
                               void tun(
                                 z.schluessel,
                                 async () => {
-                                  await grosshaendlerZuordnen(z.anforderungen, ziel);
-                                  await lagerPostenZuordnen(z.posten, ziel);
+                                  const getroffen =
+                                    (await grosshaendlerZuordnen(z.anforderungen, ziel)) +
+                                    (await lagerPostenZuordnen(z.posten, ziel));
+                                  return nichtAlleGetroffen(
+                                    getroffen,
+                                    z.anforderungen.length + z.posten.length,
+                                    'Inzwischen von jemand anderem zugeordnet',
+                                    (rest) => `Großhändler zugeordnet — ${rest} hatte inzwischen schon einen.`,
+                                  );
                                 },
                                 'Großhändler zugeordnet',
                               );
@@ -255,8 +272,15 @@ export default function Einkaufsliste({
                             void tun(
                               z.schluessel,
                               async () => {
-                                for (const id of z.anforderungen) await vonEinkaufslisteNehmen(id);
-                                await lagerPostenLoeschen(z.posten);
+                                let getroffen = 0;
+                                for (const id of z.anforderungen) if (await vonEinkaufslisteNehmen(id)) getroffen += 1;
+                                getroffen += await lagerPostenLoeschen(z.posten);
+                                return nichtAlleGetroffen(
+                                  getroffen,
+                                  z.anforderungen.length + z.posten.length,
+                                  'Inzwischen von jemand anderem bestellt oder von der Liste genommen',
+                                  (rest) => `Von der Liste genommen — ${rest} hatte inzwischen jemand anderes bestellt oder schon genommen.`,
+                                );
                               },
                               z.anforderungen.length > 0
                                 ? 'Von der Liste genommen — Anforderungen wieder offen'
@@ -344,7 +368,13 @@ export default function Einkaufsliste({
                         onClick={() =>
                           void tun(
                             `alle-${g.supplierId}`,
-                            () => geliefert(g.unterwegs.map((o) => o.id)),
+                            async () =>
+                              nichtAlleGetroffen(
+                                await geliefert(g.unterwegs.map((o) => o.id)),
+                                g.unterwegs.length,
+                                'Inzwischen von jemand anderem als geliefert gebucht',
+                                (rest) => `Geliefert gebucht — ${rest} hatte inzwischen jemand anderes gebucht.`,
+                              ),
                             'Alles geliefert — im Lager, Anforderungen abholbereit',
                           )
                         }
@@ -386,7 +416,13 @@ export default function Einkaufsliste({
                           onClick={() =>
                             void tun(
                               o.id,
-                              () => geliefert([o.id]),
+                              async () =>
+                                nichtAlleGetroffen(
+                                  await geliefert([o.id]),
+                                  1,
+                                  'Inzwischen von jemand anderem als geliefert gebucht',
+                                  () => '',
+                                ),
                               o.art === 'lager'
                                 ? `${o.bezeichnung} ist da — im Lager`
                                 : `${o.bezeichnung} ist da — abholbereit`,
@@ -438,11 +474,23 @@ export default function Einkaufsliste({
           await tun(
             `bestellt-${g.supplierId}`,
             async () => {
-              await alsBestelltMarkieren(anforderungen);
-              await lagerPostenBestellt(posten);
-              // Erst bestellt, dann der Termin: die Datenbank nimmt ihn nur an
-              // einer bestellten Zeile an.
-              if (datum) await lieferterminSetzen(anforderungen, posten, datum);
+              const bestellteA = await alsBestelltMarkieren(anforderungen);
+              const bestellteP = await lagerPostenBestellt(posten);
+              /*
+                Erst bestellt, dann der Termin: die Datenbank nimmt ihn nur an
+                einer bestellten Zeile an. Und nur an den Zeilen, die DIESER
+                Aufruf bestellt hat — was inzwischen jemand anderes bestellt
+                hat, behält seinen Termin (R7-M3).
+              */
+              if (datum && bestellteA.length + bestellteP.length > 0) {
+                await lieferterminSetzen(bestellteA, bestellteP, datum);
+              }
+              return nichtAlleGetroffen(
+                bestellteA.length + bestellteP.length,
+                anforderungen.length + posten.length,
+                'Inzwischen von jemand anderem bestellt',
+                (rest) => `${bestellteA.length + bestellteP.length} als bestellt markiert — ${rest} hatte inzwischen jemand anderes bestellt.`,
+              );
             },
             datum ? `Als bestellt markiert — Liefertermin ${datumAT(datum)}` : 'Als bestellt markiert',
           );

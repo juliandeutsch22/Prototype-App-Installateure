@@ -144,6 +144,90 @@ describe('M1 — Arbeit nach der Berufsschule', () => {
   });
 });
 
+/*
+  TESTBERICHT RUNDE 7, R7-M1: Test Lehrling (Mo–Do 8:30, Fr 6:00 — also bis
+  9 Std.) bucht am Di 20.10. in DERSELBEN Maske erst die Berufsschule
+  (Unterricht 6, Weg 1), dann Arbeit 16:00–17:30, dann 17:30–19:30. Die
+  Rückfrage blieb aus: die Maske prüfte gegen die Buchungen, die sie beim
+  Öffnen des Tages geladen hatte — ohne Schultag und ohne die erste Arbeit.
+*/
+describe('R7-M1 — Rückfrage am Berufsschultag mit dem Stand beim Speichern', () => {
+  const LANG_KURZ = { ...LENA, tagessoll: { 1: 8.5, 2: 8.5, 3: 8.5, 4: 8.5, 5: 6 } } as AppUser;
+  const ARBEIT_1: Zeile = {
+    ...SCHULE, id: 'a1', status: 'Anwesend', unterrichtMin: null, wegzeitMin: null,
+    startTime: '16:00', endTime: '17:30', breakDuration: 0, projectNumber: 'PR-2026-0193', comment: '',
+  };
+
+  function zeichneZweiteArbeit() {
+    return render(
+      <MemoryRouter>
+        <ToastProvider>
+          <TimeForm
+            onSaved={vi.fn()}
+            besitzerProfil={LANG_KURZ}
+            vorbelegung={{ date: TAG, projectNumber: 'PR-2026-0193', startTime: '17:30', endTime: '19:30', breakDuration: 0 }}
+          />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+  }
+
+  it('fragt nach, wenn Schultag und erste Arbeit erst nach dem Öffnen gebucht wurden', async () => {
+    // Beim Öffnen: noch nichts gebucht.
+    amTag = [];
+    umfeld = [];
+    const nutzer = userEvent.setup();
+    zeichneZweiteArbeit();
+    await act(async () => { await Promise.resolve(); });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Zeit buchen' })).toBeEnabled());
+    // Inzwischen gebucht: die Berufsschule und 16:00–17:30.
+    amTag = [SCHULE, ARBEIT_1];
+    umfeld = [SCHULE, ARBEIT_1];
+    await nutzer.click(screen.getByRole('button', { name: 'Zeit buchen' }));
+    const dialog = await screen.findByRole('dialog');
+    // 6:00 Unterricht + 1:00 Weg + 1:30 + 2:00 Arbeit = 10:30, bei anders verteilter Woche höchstens 9.
+    expect(dialog).toHaveTextContent('10:30 Std. am 20.10. samt 1:00 Std. Weg Schule–Betrieb — höchstens 9 Std.');
+    expect(anlegen).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: 6 Unterricht, 1 Weg, 1:30 Arbeit bleiben unter 9 Std. — keine Rückfrage', async () => {
+    amTag = [SCHULE];
+    umfeld = [SCHULE];
+    const nutzer = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <TimeForm
+            onSaved={vi.fn()}
+            besitzerProfil={LANG_KURZ}
+            vorbelegung={{ date: TAG, projectNumber: 'PR-2026-0193', startTime: '16:00', endTime: '17:30', breakDuration: 0 }}
+          />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    await act(async () => { await Promise.resolve(); });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Zeit buchen' })).toBeEnabled());
+    await nutzer.click(screen.getByRole('button', { name: 'Zeit buchen' }));
+    await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('bucht das Büro für den Lehrling, gilt dasselbe', async () => {
+    authWert.user = { uid: 'bea', name: 'Bea Büro', role: 'Buchhaltung', companyId: 'perl', einstufung: null };
+    amTag = [];
+    umfeld = [];
+    const nutzer = userEvent.setup();
+    zeichneZweiteArbeit();
+    await act(async () => { await Promise.resolve(); });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Zeit buchen' })).toBeEnabled());
+    amTag = [SCHULE, ARBEIT_1];
+    umfeld = [SCHULE, ARBEIT_1];
+    await nutzer.click(screen.getByRole('button', { name: 'Zeit buchen' }));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('10:30 Std. am 20.10.');
+    expect(anlegen).not.toHaveBeenCalled();
+  });
+});
+
 describe('M3 und G12 — das Ende zieht mit dem Datum mit', () => {
   it.each([
     ['Krank', /^Krank bis/],

@@ -950,6 +950,17 @@ describe('Aktenlinie 03 · Kunde', () => {
     expect(await screen.findByRole('dialog', { name: 'Kunde bearbeiten' })).toBeInTheDocument();
     expect(screen.getByLabelText('UID-Nummer')).toHaveValue('ATU12345678');
   });
+  it('Runde 7, R7-G4: auch im Formular heißt sie „Rechnungsanschrift“, nicht „Rechnungsadresse“', async () => {
+    zeige();
+    await screen.findByRole('heading', { name: KUNDE.name });
+    await userEvent.click(screen.getByRole('button', { name: 'Bearbeiten' }));
+    await screen.findByRole('dialog', { name: 'Kunde bearbeiten' });
+    expect(screen.getByRole('group', { name: 'Rechnungsanschrift' })).toBeInTheDocument();
+    expect(screen.queryByText('Rechnungsadresse')).toBeNull();
+    // Der Abschnitt nennt die Anschrift nicht ein zweites Mal für sich.
+    expect(screen.getByRole('heading', { name: 'Name und Anschrift' })).toBeInTheDocument();
+  });
+
   it('hält Belege für die Verwaltung fern und lässt ihre Kundenfreigabe bestehen', async () => {
     rolle = 'Verwaltung'; freigabe = true; nutzer = NUTZER();
     zeige();

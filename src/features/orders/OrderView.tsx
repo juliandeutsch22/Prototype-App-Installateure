@@ -164,7 +164,8 @@ export default function OrderView() {
   const [toPickUp, setToPickUp] = useState<WithId<MaterialOrder> | null>(null);
   /** Nachträglich eilig (17 F) — mit Rückfrage, weil andere davon eine Meldung bekommen. */
   const [eilFrage, setEilFrage] = useState<WithId<MaterialOrder> | null>(null);
-
+  /** Neu holen, wenn „Abgeholt“ einen veralteten Stand traf (Runde 7, R7-M3). */
+  const [neuLaden, setNeuLaden] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -188,7 +189,7 @@ export default function OrderView() {
       },
     );
     return unsubO;
-  }, [user]);
+  }, [user, neuLaden]);
 
   /** Der Suchbegriff, wie er an den Server geht — kurz nach dem letzten Tastendruck, nicht je Taste. */
   const [begriff, setBegriff] = useState('');
@@ -809,8 +810,14 @@ export default function OrderView() {
         onConfirm={async () => {
           if (toPickUp) {
             try {
-              await updateOrderStatus(toPickUp.id, 'Erledigt');
-              toast.success('Abholung bestätigt');
+              const r = await updateOrderStatus(toPickUp.id, 'Erledigt', { von: toPickUp.status });
+              if (r.art === 'geaendert') {
+                toast.success('Abholung bestätigt');
+              } else {
+                // Schon gebucht oder vom Lager geändert: keine Erfolgsmeldung für nichts (R7-M3).
+                toast.info('Inzwischen schon als abgeholt gebucht oder vom Lager geändert — die Liste zeigt jetzt den neuen Stand.');
+                setNeuLaden((n) => n + 1);
+              }
             } catch (err) {
               toast.error(grundAus(err, 'Die Abholung konnte nicht gebucht werden.'));
             }

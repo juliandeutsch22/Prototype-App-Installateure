@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -33,7 +34,7 @@ describe('Info-Hinweis', () => {
     const knopf = screen.getByRole('button', { name: 'Was bedeutet Eilzustellung?' });
     await userEvent.click(knopf);
     await userEvent.click(
-      screen.getByRole('button', { name: 'Erklärung zu Eilzustellung schließen' }),
+      screen.getByRole('button', { name: 'Erklärung „Eilzustellung“ schließen' }),
     );
     expect(screen.queryByText('Erklärung.')).not.toBeInTheDocument();
   });
@@ -100,3 +101,25 @@ describe('Info-Hinweis', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });
+
+/*
+  TESTBERICHT RUNDE 7, R7-G5: neben „Betrag (€)“ hieß der Knopf für die
+  Vorlesehilfe „Was bedeutet den Betrag?“. Die Erklärungen nennen ihren
+  Gegenstand im Nominativ — dann trägt er beide Sätze: „Was bedeutet der
+  Betrag?“ und „Erklärung „der Betrag“ schließen“.
+*/
+describe('Der Gegenstand im Nominativ (R7-G5)', () => {
+  it('fragt richtig: „Was bedeutet der Betrag?“', async () => {
+    render(<div className="flex flex-wrap"><InfoHint about="der Betrag">Erklärung.</InfoHint></div>);
+    await userEvent.click(screen.getByRole('button', { name: 'Was bedeutet der Betrag?' }));
+    expect(screen.getByRole('button', { name: 'Erklärung „der Betrag“ schließen' })).toBeInTheDocument();
+  });
+
+  it('keine Erklärung der App nennt ihren Gegenstand im Akkusativ', () => {
+    const quellen = execSync("grep -rhoE 'InfoHint about=\"[^\"]*\"' src --include=*.tsx", { encoding: 'utf8' })
+      .split('\n').filter(Boolean).map((z) => z.slice('InfoHint about="'.length, -1));
+    expect(quellen.length).toBeGreaterThan(40);
+    expect(quellen.filter((a) => /^(den|einen|dem|einem) /.test(a))).toEqual([]);
+  });
+});
+

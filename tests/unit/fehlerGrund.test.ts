@@ -57,4 +57,18 @@ describe('grundAus', () => {
     expect(grundAus(undefined, ERSATZ)).toBe(ERSATZ);
     expect(grundAus(new Error(''), ERSATZ)).toBe(ERSATZ);
   });
+
+  /*
+    TESTBERICHT RUNDE 7, R7-G1: der Monteur tippte auf einen Plan, den das
+    Büro eben auf „Nur fürs Büro“ gestellt hatte, und las in Rot „Object not
+    found“ — den rohen Satz des Dateispeichers.
+  */
+  it('übersetzt „Object not found“ des Dateispeichers in den Satz der Stelle', () => {
+    expect(grundAus(new Error('Object not found'), ERSATZ)).toBe(ERSATZ);
+    expect(grundAus(new Error('Bucket not found'), ERSATZ)).toBe(ERSATZ);
+  });
+
+  it('Gegenprobe: ein verständlicher deutscher Grund bleibt stehen', () => {
+    expect(grundAus(new Error('Diese Rechnung ist auf einer anderen abgezogen.'), ERSATZ)).toBe('Diese Rechnung ist auf einer anderen abgezogen.');
+  });
 });

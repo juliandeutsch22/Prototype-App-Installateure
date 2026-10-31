@@ -217,9 +217,28 @@ describe('Schlussrechnung und Storno (Runde 6)', () => {
     expect(stornoText(r('1508', 'anzahlung'))).toBe(
       'RE-1508 wird storniert. Eine Anzahlung verrechnet keine Stunden und kein Material — freigegeben wird deshalb nichts.',
     );
-    expect(stornoText(r('1509', 'teil'))).toBe('RE-1509 wird storniert; die verknüpften Zeiteinträge und Scheine werden wieder freigegeben.');
+    expect(stornoText(r('1509', 'teil', { linkedEntries: ['z1'], linkedWorkSheets: ['s1'] })))
+      .toBe('RE-1509 wird storniert; die verknüpften Zeiteinträge und Scheine werden wieder freigegeben.');
     expect(stornoText(r('1510', 'schluss', { vorrechnungen: [{ invoiceId: '1508' } as never] })))
       .toMatch(/Die abgezogenen Rechnungen lassen sich danach wieder abziehen\.$/);
+  });
+
+  /*
+    TESTBERICHT RUNDE 7, R7-G2: bei einer Pauschal-Teilrechnung ohne
+    Zeiteinträge stand, „die verknüpften Zeiteinträge und Scheine“ würden frei.
+  */
+  it('nennt nur, was die Rechnung wirklich verknüpft', () => {
+    expect(stornoText(r('1511', 'teil', { linkedEntries: [], linkedWorkSheets: [] })))
+      .toBe('RE-1511 wird storniert. Sie verknüpft keine Zeiteinträge und keine Scheine — freigegeben wird deshalb nichts.');
+    expect(stornoText(r('1512', 'einzel', { linkedEntries: ['z1'], linkedWorkSheets: [] })))
+      .toBe('RE-1512 wird storniert; die verknüpften Zeiteinträge werden wieder freigegeben.');
+    expect(stornoText(r('1513', 'einzel', { linkedEntries: [], linkedWorkSheets: ['s1'] })))
+      .toBe('RE-1513 wird storniert; die verknüpften Scheine werden wieder freigegeben.');
+  });
+
+  it('Gegenprobe: kennt die Zeile ihre Verknüpfungen nicht, behauptet sie nichts', () => {
+    const kopf = { invoiceNumber: 'RE-1514', art: 'teil' as const, vorrechnungen: undefined };
+    expect(stornoText(kopf)).toBe('RE-1514 wird storniert; was sie verrechnet hat, wird wieder freigegeben.');
   });
 
   it('nennt die Teilrechnungen, die ihre Belege verbraucht haben — nur nennen, nicht abziehen', () => {

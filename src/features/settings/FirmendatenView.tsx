@@ -12,7 +12,7 @@ import { einrichtungsstand } from './EinstellungenUebersicht';
 import PageHeader from '@/components/PageHeader';
 import { Hinweislinie } from '@/components/Planlinie';
 import { InputField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
-import { firmenbuchEingetragen, imFirmenbuch } from '@/lib/firmenbuch';
+import { firmenbuchEingetragen, firmenbuchGesperrt, firmenbuchPflichtform, imFirmenbuch, inGruendung } from '@/lib/firmenbuch';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -85,6 +85,8 @@ export default function FirmendatenView() {
     bisher galt — der Eigenangabe, sonst der Rechtsform im Namen.
   */
   const [eingetragen, setEingetragen] = useState(firmenbuchEingetragen(company));
+  /** „Zur Kenntnis genommen“ der Meldung aus Runde 7, 6.1 läuft. */
+  const [kenntnisLaeuft, setKenntnisLaeuft] = useState(false);
   const [contactLine, setContactLine] = useState(company?.contactLine ?? '');
   const [vatId, setVatId] = useState(company?.vatId ?? '');
   const uidFalsch = uidFehler(vatId);
@@ -185,6 +187,28 @@ export default function FirmendatenView() {
     }
   }
 
+  /*
+    DER HAKEN IST FEST bei einer Rechtsform, die es nur mit Eintragung gibt
+    (Runde 7, 6.1) — nach dem Namen, wie er gerade im Feld steht. Abgewählt
+    schaltete er nur die Mahnung zu Firmenbuchnummer und -gericht ab. Frei
+    bleibt er bei Einzelunternehmen und bei „in Gründung“ / „i. G.“.
+  */
+  const gesperrt = firmenbuchGesperrt(name.trim());
+  const gruendung = !gesperrt && inGruendung(name.trim()) && firmenbuchPflichtform(name.trim()) !== null;
+
+  /** Die Meldung, dass die Migration den abgewählten Haken zurückgesetzt hat, ist gelesen. */
+  async function zurKenntnis() {
+    setKenntnisLaeuft(true);
+    try {
+      await updateCompany(user!.companyId, { firmenbuchKorrigiertAm: null });
+      await reloadCompany();
+    } catch (err) {
+      toast.error(grundAus(err, 'Das ließ sich nicht speichern.'));
+    } finally {
+      setKenntnisLaeuft(false);
+    }
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     await speichern(false);
@@ -250,7 +274,7 @@ export default function FirmendatenView() {
           Gespeichert wird nur, was vom Namen abweicht: wer später „GmbH“ in
           den Namen schreibt, ist damit eingetragen, ohne den Haken nachzuziehen.
         */
-        imFirmenbuch: eingetragen === imFirmenbuch(name.trim()) ? null : eingetragen,
+        imFirmenbuch: gesperrt || eingetragen === imFirmenbuch(name.trim()) ? null : eingetragen,
         contactLine: contactLine.trim(),
         vatId: vatId.trim(),
         companyRegister: companyRegister.trim(),
@@ -396,7 +420,7 @@ export default function FirmendatenView() {
 
         <Card
           title="Rechnungsangaben"
-          hint="UID, Firmenbuchnummer und Firmenbuchgericht (§ 14 UGB) stehen im Fuß jedes Belegs, die Bankverbindung im Zahlungshinweis. „Im Firmenbuch eingetragen“ ist vorbelegt nach der Rechtsform im Namen (GmbH, KG, OG, e.U. …); ein eingetragenes Einzelunternehmen ohne Zusatz im Namen setzt den Haken selbst. Dann mahnen Rechnungen und Startseite Firmenbuchnummer und -gericht an."
+          hint="UID, Firmenbuchnummer und Firmenbuchgericht (§ 14 UGB) stehen im Fuß jedes Belegs, die Bankverbindung im Zahlungshinweis. „Im Firmenbuch eingetragen“ ist vorbelegt nach der Rechtsform im Namen (GmbH, KG, OG, e.U. …); ein eingetragenes Einzelunternehmen ohne Zusatz im Namen setzt den Haken selbst. Dann mahnen Rechnungen und Startseite Firmenbuchnummer und -gericht an. Bei GmbH, FlexCo, AG, SE, KG, OG und Genossenschaft ist der Haken fest gesetzt — außer der Name sagt „in Gründung“ oder „i. G.“."
         >
           <div className="formular">
           <FormGrid>
@@ -417,9 +441,47 @@ export default function FirmendatenView() {
               <CheckboxField
                 id="fd-firmenbuch"
                 label="Im Firmenbuch eingetragen"
-                checked={eingetragen}
+                checked={gesperrt ? true : eingetragen}
+                disabled={!!gesperrt}
+                aria-describedby={gesperrt || gruendung ? 'fd-firmenbuch-grund' : undefined}
                 onChange={(e) => setEingetragen(e.target.checked)}
               />
+              {gesperrt && (
+                <p id="fd-firmenbuch-grund" className="mt-1 text-sm text-ink-muted">
+                  Eine {gesperrt} ist immer im Firmenbuch eingetragen. Firmenbuchnummer und -gericht gehören
+                  auf jede Rechnung.
+                </p>
+              )}
+              {gruendung && (
+                <p id="fd-firmenbuch-grund" className="mt-1 text-sm text-ink-muted">
+                  Firmenbuchnummer nachtragen, sobald eingetragen.
+                </p>
+              )}
+              {/*
+                EINMAL GEMELDET (Runde 7, 6.1): die Migration hat den abgewählten
+                Haken bei dieser Rechtsform zurückgesetzt. Die Startseite zeigt es
+                der Geschäftsführung, bis sie es hier zur Kenntnis nimmt.
+              */}
+              {company?.firmenbuchKorrigiertAm ? (
+                <div className="mt-2">
+                  <Hinweiszeile stufe="warn">
+                    <p>
+                      <b>
+                        „Im Firmenbuch eingetragen“ war abgewählt und wurde am{' '}
+                        {new Date(company.firmenbuchKorrigiertAm).toLocaleDateString('de-AT', {
+                          day: '2-digit', month: '2-digit', year: 'numeric',
+                        })}{' '}
+                        wieder gesetzt.
+                      </b>{' '}
+                      Bei dieser Rechtsform ist der Betrieb immer eingetragen; abgewählt war die Mahnung zu
+                      Firmenbuchnummer und -gericht abgeschaltet.
+                    </p>
+                    <Button type="button" variant="secondary" groesse="klein" loading={kenntnisLaeuft} onClick={zurKenntnis}>
+                      Zur Kenntnis genommen
+                    </Button>
+                  </Hinweiszeile>
+                </div>
+              ) : null}
             </div>
             <InputField
               id="fd-fn"

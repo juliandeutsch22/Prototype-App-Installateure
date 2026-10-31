@@ -1584,3 +1584,33 @@ describe('Mitarbeiterübersicht: Planlinie', () => {
     expect(document.querySelector('svg[data-motiv]')).toBeNull();
   });
 });
+
+/*
+  TESTBERICHT RUNDE 7, R7-G3: im Seitenfenster der Person stand der Schultag
+  als „Berufsschule — · —“. Die Zeiterfassung des Lehrlings zeigte richtig
+  „Unterricht 06:00 Std · Weg 01:00 Std“.
+*/
+describe('Mitarbeiterübersicht — der Schultag im Tagesnachweis (R7-G3)', () => {
+  const schultag: TimeEntry & { id: string } = {
+    id: 'e-schule', companyId: 'perl', date: '2026-08-18', status: 'Berufsschule', breakDuration: 0,
+    userId: 'u1', userName: monteur.name, unterrichtMin: 360, wegzeitMin: 60, comment: 'Berufsschule',
+  };
+
+  beforeEach(() => {
+    buchungen = [...eintraege, schultag];
+  });
+
+  it('nennt Unterricht und Weg statt zweier Striche', async () => {
+    await oeffneMitarbeiter();
+    const zeile = within(tagesnachweis()).getAllByText('Di 18.08.').map((t) => t.closest('li')!)
+      .find((li) => li.textContent?.includes('Berufsschule'))!;
+    expect(zeile.querySelector('.pf-zeile-info')).toHaveTextContent('Unterricht 06:00 Std · Weg 01:00 Std');
+    expect(zeile.querySelector('.pf-zeile-info')?.textContent).not.toContain('—');
+  });
+
+  it('Gegenprobe: eine Arbeitszeit behält Zeit und Kunde', async () => {
+    await oeffneMitarbeiter();
+    const zeile = within(tagesnachweis()).getAllByText('Mo 17.08.')[0].closest('li')!;
+    expect(zeile.querySelector('.pf-zeile-info')?.textContent).toMatch(/^\d\d:\d\d–\d\d:\d\d · /);
+  });
+});

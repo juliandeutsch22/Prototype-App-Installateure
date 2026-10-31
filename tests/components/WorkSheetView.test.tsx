@@ -2019,7 +2019,7 @@ describe('Linie „Lot“', () => {
     zeichne();
     const satz = await screen.findByText(/Für diesen Tag gibt es bereits/);
     expect(satz.textContent).not.toMatch(/doppelt bestätigen/);
-    await nutzer.click(screen.getByRole('button', { name: /einen zweiten Schein am selben Tag/ }));
+    await nutzer.click(screen.getByRole('button', { name: /ein zweiter Schein am selben Tag/ }));
     expect(screen.getByText(/doppelt bestätigen/)).toBeInTheDocument();
   });
 });

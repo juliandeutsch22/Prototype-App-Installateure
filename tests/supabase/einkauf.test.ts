@@ -145,7 +145,8 @@ describe('Aus dem Lager — nur, was da ist', () => {
     await admin.from('materials').update({ stock: 100 }).eq('id', rohr);
     await rohrAnforderung(80);
     const e = await rohrAnforderung(60);
-    await expect(einkauf.ausLager(e)).resolves.toBeUndefined();
+    // Geht durch — und sagt seit Runde 7 (R7-M3), dass es die Zeile getroffen hat.
+    await expect(einkauf.ausLager(e)).resolves.toBe(true);
   });
 });
 

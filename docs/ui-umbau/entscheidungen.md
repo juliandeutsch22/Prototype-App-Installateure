@@ -595,3 +595,45 @@ Knopfs und den ersten Inhalt unter Kopf und Reitern.
 **Bewusst so gelassen.** Ein Kartentitel mit Knopf (nicht Verweis) im Kopf
 steht 5 px tiefer als einer ohne, weil er mittig zum 44-px-Knopf steht.
 Einen Knopf zu stauchen hieße, seine Tastfläche zu verkleinern.
+
+**E32 — Das Raster hell und dunkel, Flächen lassen es durch (31.10.2026).**
+Rückmeldung des Auftraggebers: Im dunklen Satz passten die Grenzen zwischen
+dem Raster und den Kästen oft nicht, besonders in der Einsatzplanung. Das
+dezente Raster soll auch hell erscheinen. Damit ist die Planlinie (E30) an
+einer Stelle geändert: Das Raster war bisher der Akzent der Planung und
+dunkel die Blaupause der ganzen Fläche; jetzt liegt es hell wie dunkel unter
+der ganzen Arbeitsfläche.
+
+- **Ein Raster, an der Inhaltskante ausgerichtet.**
+  - 24 px auf `.hauptflaeche`. Die erste Linie liegt dort, wo Ortszeile,
+    Titel und Listen beginnen (Polster von `.inhalt`: 16, 24 bzw. 40 px).
+  - Hell in der Farbe der zweiten Fläche, dunkel in der Farbe der Fläche
+    (Token `--raster-linie`).
+- **Flächen lassen es durch.**
+  - Karte, Zeile, Arbeitszeile, Umschalter, die Listen der
+    Mitarbeiterübersicht und die Kontextspalte der Akten hatten eine
+    deckende Fläche. Das ergab Kästen, deren Kanten weder zum Raster noch
+    zueinander passten. Jetzt sind sie durchsichtig.
+  - Deckend bleiben Bedienelemente, Fenster und Blätter, umrandete Kästen
+    (Kalender, Suchfeld, Einrichtungshinweis) und was beim Rollen über
+    andere Zeilen läuft (Kopf und Namensspalte der Planung, Kopfzeile der
+    Übersicht). Die Tage der Monatsplanung decken ebenfalls; ein Raster
+    darunter wäre bei 31 schmalen Spalten unruhig (E30).
+- **Einsatzplanung.**
+  - Die Tabelle trug ein eigenes Raster von 16 px. Es traf das der Seite an
+    keiner Kante; die Klasse `raster` steht nur noch auf der Musterseite.
+  - Die Karte ragte um ihr Polster (16 px) in den Rand, die Tabelle stand
+    neben der Rasterlinie statt auf ihr. Jetzt steht sie an der
+    Inhaltskante.
+  - Woche und Monat schließen oben mit einer Linie ab; vorher endete das
+    deckende Kopfband zwischen zwei Rasterlinien.
+
+**Bewusst so gelassen.** Die rechte Kante eines Kastens liegt nicht immer
+auf einer Rasterlinie, weil seine Breite dem Fenster folgt. Ausgerichtet ist
+die Inhaltskante, an der alles beginnt.
+
+**Prüfungen.** `tests/unit/planlinieStil.test.ts`, Abschnitt „B12 Raster“:
+nur drei Gitter (Arbeitsfläche, Anmeldung, Musterbaustein), Token und
+Ausrichtung, durchsichtige Flächen, die deckenden Bänder als Gegenprobe, die
+obere Linie und die Planung an der Inhaltskante. Jede Prüfung ist mit
+Gegenprobe gelaufen. Durchgesehen in 390, 834 und 1440 px, hell und dunkel.

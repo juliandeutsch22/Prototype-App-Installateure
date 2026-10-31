@@ -207,7 +207,7 @@ export function schnappschuss({ klassen, nur }: { klassen: typeof KLASSEN; nur?:
     } else {
       // button oder role=button
       const steuert = el.getAttribute('aria-controls');
-      const info = /^Was bedeutet (.*)\?$/.exec(aria) ?? /^Erklärung zu (.*) schließen$/.exec(aria);
+      const info = /^Was bedeutet (.*)\?$/.exec(aria) ?? /^Erklärung „(.*)“ schließen$/.exec(aria);
       if (steuert && info) {
         // Das „i“: sein Name wechselt mit dem Zustand — der stabile Teil ist, WAS es erklärt.
         art = 'info';

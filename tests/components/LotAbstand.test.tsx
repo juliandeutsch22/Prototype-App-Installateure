@@ -85,7 +85,12 @@ describe('Abstand statt Linien', () => {
   });
 
   it('gleich geblieben: die Karte selbst trägt ihre Linie weiter — in Fenstern und Blättern ändert sich nichts', () => {
-    expect(css).toMatch(/\.karte \{ overflow: hidden; overflow: clip; background: var\(--surface\); border: 0; border-top: 1px solid var\(--border\);/);
+    // Die Fläche ist seit E32 durchsichtig (Raster); im Fenster und Blatt trägt deren Fläche wie vorher die der Karte.
+    expect(css).toMatch(/\.karte \{ overflow: hidden; overflow: clip; background: transparent; border: 0; border-top: 1px solid var\(--border\);/);
+    const lot = lesen('styles/lot.css');
+    for (const k of ['blatt', 'fenster', 'fenster-breit']) {
+      expect(lot, k).toMatch(new RegExp(`\\n {2}\\.${k} \\{[^}]*background: var\\(--surface\\);`));
+    }
   });
 
   it('der Abschnittstitel trägt die Trennung allein: eine Stufe größer (Abschnitt 18)', () => {

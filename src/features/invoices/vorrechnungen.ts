@@ -251,14 +251,32 @@ export function schlussNachStorno<T extends Kopf>(
  * der Anzahlung stand „die verknüpften Zeiteinträge werden wieder
  * freigegeben“; eine Anzahlung hat keine.
  */
-export function stornoText(inv: Pick<Invoice, 'invoiceNumber' | 'art' | 'vorrechnungen'>): string {
+export function stornoText(
+  inv: Pick<Invoice, 'invoiceNumber' | 'art' | 'vorrechnungen'> & Partial<Pick<Invoice, 'linkedEntries' | 'linkedWorkSheets'>>,
+): string {
   if (inv.art === 'anzahlung') {
     return `${inv.invoiceNumber} wird storniert. Eine Anzahlung verrechnet keine Stunden und kein Material — freigegeben wird deshalb nichts.`;
   }
   const abzug = (inv.vorrechnungen?.length ?? 0) > 0
     ? ' Die abgezogenen Rechnungen lassen sich danach wieder abziehen.'
     : '';
-  return `${inv.invoiceNumber} wird storniert; die verknüpften Zeiteinträge und Scheine werden wieder freigegeben.${abzug}`;
+  /*
+    NUR WAS ES GIBT (Testbericht Runde 7, R7-G2): bei einer Pauschal-
+    Teilrechnung ohne Zeiteinträge stand trotzdem, dass „die verknüpften
+    Zeiteinträge und Scheine“ frei werden. Kennt die Zeile ihre Verknüpfungen
+    nicht (ein Kopf aus der Liste der offenen), bleibt der allgemeine Satz.
+  */
+  if (inv.linkedEntries === undefined && inv.linkedWorkSheets === undefined) {
+    return `${inv.invoiceNumber} wird storniert; was sie verrechnet hat, wird wieder freigegeben.${abzug}`;
+  }
+  const teile = [
+    (inv.linkedEntries?.length ?? 0) > 0 ? 'Zeiteinträge' : null,
+    (inv.linkedWorkSheets?.length ?? 0) > 0 ? 'Scheine' : null,
+  ].filter(Boolean);
+  if (teile.length === 0) {
+    return `${inv.invoiceNumber} wird storniert. Sie verknüpft keine Zeiteinträge und keine Scheine — freigegeben wird deshalb nichts.${abzug}`;
+  }
+  return `${inv.invoiceNumber} wird storniert; die verknüpften ${teile.join(' und ')} werden wieder freigegeben.${abzug}`;
 }
 
 /**

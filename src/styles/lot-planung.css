@@ -94,7 +94,12 @@
     und Namensspalte stehen fest, die Seite rollt nie seitlich.
   */
   .wp-huelle { display: none; }
-  @media (min-width: 760px) { .wp-huelle { display: block; overflow: auto; max-height: 74vh; } }
+  /*
+    Eine Linie schließt die Hülle oben ab (E32): Kopf und Namensspalte sind
+    deckende Bänder auf dem Raster, ohne Linie endete die Fläche irgendwo
+    zwischen zwei Rasterlinien.
+  */
+  @media (min-width: 760px) { .wp-huelle { display: block; overflow: auto; max-height: 74vh; border-top: 1px solid var(--border); } }
 
   /*
     DAS RASTER: festes Tabellenlayout, die Spalten aus `<colgroup>`. Die

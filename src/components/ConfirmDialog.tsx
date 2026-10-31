@@ -30,6 +30,7 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   nurSchliessen = false,
+  gesperrt = false,
   children,
 }: {
   open: boolean;
@@ -45,6 +46,12 @@ export default function ConfirmDialog({
    * es abzubrechen gäbe (Runde 3, G20). Er ruft `onCancel`.
    */
   nurSchliessen?: boolean;
+  /**
+   * Die Aktion geht gerade nicht (Testbericht Runde 7, R7-G2: eine
+   * Teilrechnung, die eine Schlussrechnung abzieht, lässt sich nicht
+   * stornieren). Der Knopf steht gesperrt da; den Grund nennt der Dialog.
+   */
+  gesperrt?: boolean;
   /** Zusätzliche Eingaben, z. B. ein Grund für die Aktion. */
   children?: ReactNode;
 }) {
@@ -80,7 +87,7 @@ export default function ConfirmDialog({
   if (!sichtbar) return null;
 
   async function handleConfirm() {
-    if (!open || bestaetigtLaeuft.current) return;
+    if (!open || gesperrt || bestaetigtLaeuft.current) return;
     bestaetigtLaeuft.current = true;
     setError(null);
     setBusy(true);
@@ -134,7 +141,7 @@ export default function ConfirmDialog({
               <Button variant="secondary" onClick={onCancel} disabled={busy} autoFocus>
                 Abbrechen
               </Button>
-              <Button variant={confirmTone} onClick={handleConfirm} loading={busy}>
+              <Button variant={confirmTone} onClick={handleConfirm} loading={busy} disabled={gesperrt}>
                 {confirmLabel}
               </Button>
             </>

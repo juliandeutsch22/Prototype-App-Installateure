@@ -1205,7 +1205,7 @@ export default function WorkSheetView() {
                   <p>
                     Für diesen Tag gibt es bereits {bestehende.length}{' '}
                     {bestehende.length === 1 ? 'Schein' : 'Scheine'}.{' '}
-                    <InfoHint about="einen zweiten Schein am selben Tag">
+                    <InfoHint about="ein zweiter Schein am selben Tag">
                       Ein zweiter ist möglich, etwa für einen getrennt beauftragten Zusatz — doppelt
                       bestätigen sollte man dieselben Stunden aber nicht.
                     </InfoHint>

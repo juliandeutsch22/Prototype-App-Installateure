@@ -170,6 +170,8 @@ export interface StartDaten {
   firmaFehlt?: string[];
   /** Was an den Firmendaten jede neue Rechnung sperrt (`firmaSperrtRechnung`). */
   firmaSperrt?: string[];
+  /** Seit wann der zurückgesetzte Firmenbuch-Haken auf Kenntnisnahme wartet (Runde 7, 6.1). */
+  firmenbuchKorrigiertAm?: number | null;
   // Personen
   lehrzeitEnden?: LehrzeitEndeZeile[];
   einzigeLeitungOhneMail?: boolean;
@@ -627,10 +629,12 @@ export function auslastung(
  */
 export async function einstellungen(
   k: Kontext,
-  was: { rechnungen: boolean; konten: boolean; personen: boolean },
+  was: { rechnungen: boolean; konten: boolean; personen: boolean; firma?: boolean },
 ): Promise<Partial<StartDaten>> {
   const { company, heute } = k;
   const out: Partial<StartDaten> = {};
+  // Nur die Geschäftsführung bekommt die einmalige Meldung — sie pflegt die Firmendaten.
+  if (was.firma) out.firmenbuchKorrigiertAm = company?.firmenbuchKorrigiertAm ?? null;
   if (was.rechnungen) {
     const ab = halbjahresbeginn(heute);
     // Steht der Satz zentral, braucht der Betrieb keinen eigenen. Kommt die

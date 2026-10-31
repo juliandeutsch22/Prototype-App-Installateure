@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { firmenbuchEingetragen, firmenbuchFehlt, firmenbuchZeile, imFirmenbuch } from '@/lib/firmenbuch';
+import {
+  firmenbuchEingetragen, firmenbuchFehlt, firmenbuchGesperrt, firmenbuchPflichtform, firmenbuchZeile, imFirmenbuch, inGruendung,
+} from '@/lib/firmenbuch';
 
 /** Runde 3, M8: Firmenbuchnummer und -gericht (§ 14 UGB). */
 describe('Firmenbuch', () => {
@@ -40,13 +42,67 @@ describe('Firmenbuch: eigene Angabe', () => {
     expect(firmenbuchFehlt({ name: 'Installateur Franz Huber', imFirmenbuch: true })).toEqual(['Firmenbuchnummer', 'Firmenbuchgericht']);
   });
 
-  it('die Angabe „nicht eingetragen“ zählt vor dem Namen', () => {
-    expect(firmenbuchFehlt({ name: 'Maier OG', imFirmenbuch: false })).toEqual([]);
+  it('die Angabe „nicht eingetragen“ zählt vor dem Namen — wo der Haken frei ist', () => {
+    // Seit Runde 7 (6.1) nicht mehr bei einer OG, sondern nur, wo der Haken frei ist.
+    expect(firmenbuchFehlt({ name: 'Gruber e.U.', imFirmenbuch: false })).toEqual([]);
+    expect(firmenbuchFehlt({ name: 'Maier GmbH i. G.', imFirmenbuch: false })).toEqual([]);
   });
 
   it('bleibt gleich: ohne Angabe entscheidet der Name', () => {
     expect(firmenbuchEingetragen({ name: 'Perl Installationen GmbH', imFirmenbuch: null })).toBe(true);
     expect(firmenbuchEingetragen({ name: 'Franz Huber' })).toBe(false);
     expect(firmenbuchEingetragen(null)).toBe(false);
+  });
+});
+
+/*
+  RUNDE 7, 6.1: Bei Rechtsformen, die es nur mit Eintragung gibt, ist der
+  Haken fest — abgewählt schaltete er nur die Mahnung zu Firmenbuchnummer
+  und -gericht ab. Ausnahme „in Gründung“. Einzelunternehmen bleiben frei.
+*/
+describe('Firmenbuch: fester Haken (Runde 7, 6.1)', () => {
+  it('gesperrt bei GmbH, GmbH & Co KG, FlexCo, AG, SE, OG, KG und Genossenschaft — mit der Rechtsform für den Satz', () => {
+    const faelle: [string, string][] = [
+      ['Perl Installationen GmbH', 'GmbH'],
+      ['Huber Ges.m.b.H.', 'GmbH'],
+      ['Muster Bau GmbH & Co KG', 'GmbH & Co KG'],
+      ['Neu FlexCo', 'FlexCo'],
+      ['Neu FlexKapG', 'FlexKapG'],
+      ['Bau AG', 'AG'],
+      ['Haustechnik SE', 'SE'],
+      ['Maier OG', 'OG'],
+      ['Huber & Co KG', 'KG'],
+      ['Wohnbau eGen', 'Genossenschaft'],
+      ['Installateure eingetragene Genossenschaft', 'Genossenschaft'],
+    ];
+    for (const [name, form] of faelle) expect(firmenbuchGesperrt(name), name).toBe(form);
+  });
+
+  it('frei bei „in Gründung“ / „i. G.“ — dort steht noch keine Nummer', () => {
+    for (const n of ['Muster GmbH i. G.', 'Muster GmbH i.G.', 'Muster GmbH in Gründung', 'Muster GmbH (in Gründung)']) {
+      expect(firmenbuchGesperrt(n), n).toBeNull();
+      expect(inGruendung(n), n).toBe(true);
+      expect(firmenbuchPflichtform(n), n).toBe('GmbH');
+    }
+  });
+
+  it('frei bei Einzelunternehmen, mit oder ohne „e.U.“, und bei Wörtern, die nur so aussehen', () => {
+    for (const n of ['Installateur Franz Huber', 'Gruber e.U.', 'Agrartechnik Moser', 'Kogler Haustechnik', 'Ogris Bad', 'Segl Installationen']) {
+      expect(firmenbuchGesperrt(n), n).toBeNull();
+    }
+  });
+
+  it('ein abgewählter Altwert zählt bei gesperrter Rechtsform nicht — die Mahnung bleibt', () => {
+    expect(firmenbuchEingetragen({ name: 'Maier OG', imFirmenbuch: false })).toBe(true);
+    expect(firmenbuchFehlt({ name: 'Maier OG', imFirmenbuch: false })).toEqual(['Firmenbuchnummer', 'Firmenbuchgericht']);
+  });
+
+  it('gleich geblieben: die Erkennung „im Firmenbuch“ liest dieselben Namen wie vorher', () => {
+    for (const n of ['Perl Installationen GmbH', 'Huber & Co KG', 'Maier OG', 'Gruber e.U.', 'Bau AG', 'Muster GmbH & Co KG', 'Neu FlexCo', 'Wohnbau eGen', 'Haustechnik SE']) {
+      expect(imFirmenbuch(n), n).toBe(true);
+    }
+    for (const n of ['Installateur Franz Huber', 'Agrartechnik Moser', 'Kogler Haustechnik', 'Ogris Bad']) {
+      expect(imFirmenbuch(n), n).toBe(false);
+    }
   });
 });

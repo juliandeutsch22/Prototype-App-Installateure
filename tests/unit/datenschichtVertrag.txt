@@ -55,7 +55,7 @@ src/lib/db/materialOrders.ts#listOwnOpenOrders: (companyId: string, uid: string)
 src/lib/db/materialOrders.ts#subscribeAllOrders: (companyId: string, max: number, cb: (rows: WithId<MaterialOrder>[]) => void, onError: (e: Error) => void) => () => void
 src/lib/db/materialOrders.ts#subscribeOwnOrders: (companyId: string, uid: string, max: number, cb: (rows: WithId<MaterialOrder>[]) => void, onError: (e: Error) => void) => () => void
 src/lib/db/materialOrders.ts#sucheAnforderungen: (companyId: string, begriff: string, max?: number) => Promise<WithId<MaterialOrder>[]>
-src/lib/db/materialOrders.ts#updateOrderStatus: (orderId: string, newStatus: MaterialOrder["status"]) => Promise<void>
+src/lib/db/materialOrders.ts#updateOrderStatus: (orderId: string, newStatus: MaterialOrder["status"], wie?: pg.StatusWie) => Promise<pg.StatusErgebnis>
 src/lib/db/materials.ts#KATALOG_GRENZE: 1000
 src/lib/db/materials.ts#LOW_STOCK_THRESHOLD: 5
 src/lib/db/materials.ts#adjustStock: (materialId: string, delta: number) => Promise<void>

@@ -171,7 +171,7 @@ beforeEach(() => {
   retoure.mockReset();
   retoure.mockResolvedValue('ret1');
   statusSetzen.mockReset();
-  statusSetzen.mockResolvedValue(undefined);
+  statusSetzen.mockResolvedValue({ art: 'geaendert' });
 });
 
 /*
@@ -764,7 +764,21 @@ describe('Material anfordern — die eigene Verfolgung', () => {
      */
     const dialog = screen.getByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Abgeholt' }));
-    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o2', 'Erledigt'));
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o2', 'Erledigt', { von: 'Abholbereit' }));
+  });
+
+  /* Runde 7, R7-M3: schon gebucht (zweiter Tab, oder das Lager war schneller) — kein Erfolg für nichts. */
+  it('meldet eine Abholung, die schon gebucht war, als Hinweis — nicht als „bestätigt“', async () => {
+    statusSetzen.mockResolvedValueOnce({ art: 'veraltet' });
+    eigene = [
+      { id: 'o2', companyId: 'perl', materialName: 'Dichtung 1/2"', quantity: 5,
+        status: 'Abholbereit', transactionType: 'order', userId: 'u1' } as WithId<MaterialOrder>,
+    ];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Abgeholt' }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Abgeholt' }));
+    expect(await screen.findByText(/Inzwischen schon als abgeholt gebucht/)).toBeInTheDocument();
+    expect(screen.queryByText('Abholung bestätigt')).not.toBeInTheDocument();
   });
 
   it('führt Retouren im Erledigten, nicht im Offenen', async () => {

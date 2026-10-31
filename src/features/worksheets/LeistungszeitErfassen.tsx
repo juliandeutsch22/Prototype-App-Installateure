@@ -198,7 +198,7 @@ export default function LeistungszeitErfassen({
         />
         <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
           Helferstunden werden anders verrechnet.
-          <InfoHint about="den Helfer-Haken">
+          <InfoHint about="der Helfer-Haken">
             Für Helferstunden gilt auf der Rechnung ein eigener, niedrigerer Satz. Der Haken gilt je
             Zeile: derselbe Mann kann vormittags als Facharbeiter und nachmittags als Helfer
             gearbeitet haben.

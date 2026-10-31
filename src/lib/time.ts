@@ -619,6 +619,19 @@ export function fmtDauer(m: number): string {
 }
 
 /**
+ * Unterricht und Weg eines Berufsschultags als Teile einer Zeile —
+ * „Unterricht 06:00 Std“, „Weg 01:00 Std“. Dieselben Worte in der eigenen
+ * Zeiterfassung und im Seitenfenster des Büros (Testbericht Runde 7, R7-G3:
+ * dort stand „Berufsschule — · —“). Ohne Angabe nichts.
+ */
+export function schultagAngaben(e: Pick<TimeEntry, 'unterrichtMin' | 'wegzeitMin'>): string[] {
+  return [
+    e.unterrichtMin ? `Unterricht ${fmtDauer(e.unterrichtMin)}` : null,
+    e.wegzeitMin ? `Weg ${fmtDauer(e.wegzeitMin)}` : null,
+  ].filter((t): t is string => t !== null);
+}
+
+/**
  * Wie viele Minuten ein Zeitausgleich-Eintrag frei gibt.
  *
  * Mit Von/Bis genau diese Spanne; ohne den ganzen Tag, also das Tagessoll.

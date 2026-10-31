@@ -64,6 +64,13 @@ export function grundAus(fehler: unknown, ersatz: string, zusatz: Zusatz = {}): 
   if (/not-null constraint|check constraint|invalid input syntax|value too long/i.test(text)) {
     return `${ersatz} Eine Angabe fehlt oder hat die falsche Form.`;
   }
+  /*
+    DER DATEISPEICHER SAGT „Object not found“, wenn eine Datei fehlt — und
+    ebenso, wenn sie für diese Rolle nicht mehr freigegeben ist (Plan auf
+    „Nur fürs Büro“ gestellt, Testbericht Runde 7, R7-G1). Den Grund kennt
+    nur die Stelle, die die Datei öffnet; ihr Satz steht im Ersatz.
+  */
+  if (/\bnot found\b/i.test(text)) return ersatz;
   if (TECHNISCH.test(text)) return ersatz;
   return text;
 }

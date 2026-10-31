@@ -20,6 +20,7 @@ const dokumentHochladen = vi.fn<(...a: unknown[]) => Promise<undefined>>(async (
 const dokumentNurBueroSetzen = vi.fn<(...a: unknown[]) => Promise<undefined>>(async () => undefined);
 let vorhanden: unknown[] = [];
 const listDokumente = vi.fn(async () => vorhanden);
+const dokumentAdresse = vi.fn<(...a: unknown[]) => Promise<string>>(async () => 'https://speicher/x');
 vi.mock('@/lib/db/baustellenDokumente', async () => {
   const echt = await vi.importActual<typeof import('@/lib/db/pg/baustellenDokumente')>(
     '@/lib/db/pg/baustellenDokumente',
@@ -31,7 +32,7 @@ vi.mock('@/lib/db/baustellenDokumente', async () => {
     // Die echte Prüfung: die Ablage kürzt ihren Satz um den Dateinamen und hängt damit an seinem Wortlaut.
     dateiPruefen: echt.dateiPruefen,
     listDokumente: () => listDokumente(),
-    dokumentAdresse: vi.fn(async () => 'https://speicher/x'),
+    dokumentAdresse: (...a: unknown[]) => dokumentAdresse(...a),
     dokumentBild: vi.fn(async () => new Blob(['x'])),
   };
 });
@@ -497,5 +498,23 @@ describe('Der leere Reiter', () => {
     zeichne({ darfAendern: false });
     await screen.findByRole('button', { name: 'Grundriss.pdf' });
     expect(screen.queryByRole('button', { name: 'Dokumente hinzufügen' })).toBeNull();
+  });
+});
+
+/*
+  TESTBERICHT RUNDE 7, R7-G1: Das Büro stellt einen Plan auf „Nur fürs Büro“,
+  während der Monteur die Liste offen hat. Sein Tipp auf den Namen zeigte in
+  Rot den rohen Satz des Speichers, „Object not found“.
+*/
+describe('Ein inzwischen gesperrter Plan', () => {
+  it('sagt verständlich, warum er sich nicht öffnen lässt', async () => {
+    vorhanden = [{ id: 'd1', projectId: 'p1', pfad: 'baustellen/perl/p1/a.pdf', dateiname: 'Grundriss.pdf', mime: 'application/pdf', bytes: 500 }];
+    dokumentAdresse.mockRejectedValueOnce(new Error('Object not found'));
+    vi.spyOn(window, 'open').mockReturnValue(null);
+    const nutzer = userEvent.setup();
+    zeichne({ darfAendern: false });
+    await nutzer.click(await screen.findByRole('button', { name: 'Grundriss.pdf' }));
+    expect(await screen.findByText('Diese Datei ist inzwischen nur fürs Büro freigegeben — oder sie wurde entfernt.')).toBeInTheDocument();
+    expect(screen.queryByText(/Object not found/)).toBeNull();
   });
 });

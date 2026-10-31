@@ -17,6 +17,7 @@ import {
   calcWorkMin,
   fmtMin,
   fmtDauer,
+  schultagAngaben,
   calcOverallSaldo,
   hatTagessoll,
   dezemberHalbtage,
@@ -562,11 +563,7 @@ export default function TimeView() {
             && e.startTime && e.endTime
           ? `${tagesStatusName(e.status)} ${e.startTime}–${e.endTime}`
           : e.status === 'Berufsschule' && (e.unterrichtMin || e.wegzeitMin)
-            ? [
-                tagesStatusName(e.status),
-                e.unterrichtMin ? `Unterricht ${fmtDauer(e.unterrichtMin)}` : null,
-                e.wegzeitMin ? `Weg ${fmtDauer(e.wegzeitMin)}` : null,
-              ].filter(Boolean).join(' · ')
+            ? [tagesStatusName(e.status), ...schultagAngaben(e)].join(' · ')
             : tagesStatusName(e.status);
     /*
       DER KOMMENTAR NICHT NOCH EINMAL ALS STATUS (Runde 6, G12): ohne Notiz

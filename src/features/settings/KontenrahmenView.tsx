@@ -326,7 +326,7 @@ export default function KontenrahmenView() {
                 onChange={(e) => setReverse({ ...reverse, steuercode: e.target.value })}
               />
             </div>
-            <InfoHint about="den Übergang der Steuerschuld">
+            <InfoHint about="der Übergang der Steuerschuld">
               § 19 Abs 1a UStG ist <strong>nicht</strong> dasselbe wie 0 % Umsatzsteuer. Beides
               ergibt 0,00 €, aber beim Übergang der Steuerschuld schuldet der Empfänger die
               Steuer, und in der Umsatzsteuervoranmeldung stehen die beiden getrennt. Deshalb ein

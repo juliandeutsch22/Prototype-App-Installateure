@@ -305,7 +305,7 @@ describe('Kundenverwaltung', () => {
     expect(screen.queryByText(/Der neue Name steht/)).toBeNull();
   });
 
-  it('nennt die Rechnungsadresse beim Namen', async () => {
+  it('nennt die Rechnungsanschrift beim Namen — wie in der Akte (Runde 7, R7-G4)', async () => {
     zeichne();
     await userEvent.click((await screen.findAllByRole('button', { name: 'Neuer Kunde' }))[0]);
     /**
@@ -315,7 +315,8 @@ describe('Kundenverwaltung', () => {
      * erzeugt, die das Modell vermeiden soll.
      */
     // Seit M12 eine Gruppe aus Straße, PLZ, Ort und Land — sie heisst weiter so.
-    expect(screen.getByRole('group', { name: 'Rechnungsadresse' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Rechnungsanschrift' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Rechnungsadresse' })).toBeNull();
   });
 
   /* TESTBERICHT 30.09.2026, M12 — Adressen in Teilen, Kundennummer. */
