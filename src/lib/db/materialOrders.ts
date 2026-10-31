@@ -71,10 +71,13 @@ export const ORDER_STATUS_FLOW: MaterialOrder['status'][] = [
   'Erledigt',
 ];
 
+export type { StatusErgebnis, StatusWie, Regalstand } from './pg/materialOrders';
+
+/** Status ändern — nur auf dem erwarteten Stand; sagt, was es bewirkt hat (Runde 7, R7-M3). */
 export function updateOrderStatus(
-  orderId: string, newStatus: MaterialOrder['status'],
-): Promise<void> {
-  return pg.updateOrderStatus(orderId, newStatus);
+  orderId: string, newStatus: MaterialOrder['status'], wie?: pg.StatusWie,
+): Promise<pg.StatusErgebnis> {
+  return pg.updateOrderStatus(orderId, newStatus, wie);
 }
 
 export function anforderungEiligSetzen(orderId: string, eilig: boolean): Promise<void> {

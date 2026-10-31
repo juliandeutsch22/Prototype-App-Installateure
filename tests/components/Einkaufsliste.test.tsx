@@ -27,6 +27,7 @@ const postenLoeschen = vi.fn();
 const postenZuordnen = vi.fn();
 const suchen = vi.fn();
 const vorschlag = vi.fn();
+const termin = vi.fn();
 
 vi.mock('@/lib/db/einkauf', () => ({
   katalogFuer: () =>
@@ -42,6 +43,7 @@ vi.mock('@/lib/db/einkauf', () => ({
   lagerPostenZuordnen: (...a: unknown[]) => postenZuordnen(...a),
   artikelSuchen: (...a: unknown[]) => suchen(...a),
   lieferantVorschlag: (...a: unknown[]) => vorschlag(...a),
+  lieferterminSetzen: (...a: unknown[]) => termin(...a),
 }));
 vi.mock('@/features/orders/bestellungPdf', () => ({
   downloadBestellungPdf: (...a: unknown[]) => pdf(...a),
@@ -72,6 +74,7 @@ function posten(p: Partial<EinkaufPosten> & { id: string }): WithId<EinkaufPoste
 }
 
 const lagerGeaendert = vi.fn();
+const veraltet = vi.fn();
 
 function zeige(
   anforderungen: WithId<MaterialOrder>[],
@@ -90,6 +93,7 @@ function zeige(
         grosshaendler={gh}
         onGrosshaendlerGeaendert={geaendert}
         onLagerGeaendert={lagerGeaendert}
+        onVeraltet={veraltet}
       />
     </ToastProvider>,
   );
@@ -102,10 +106,19 @@ beforeEach(() => {
   suchen.mockResolvedValue([]);
   vorschlag.mockReset();
   vorschlag.mockResolvedValue(null);
-  for (const f of [alsBestellt, geliefert, zuordnen, vonListe, speichern, pdf, postenAnlegen, postenBestellt, postenLoeschen, postenZuordnen]) {
+  veraltet.mockReset();
+  for (const f of [alsBestellt, geliefert, zuordnen, vonListe, speichern, pdf, postenAnlegen, postenBestellt, postenLoeschen, postenZuordnen, termin]) {
     f.mockReset();
     f.mockResolvedValue(undefined);
   }
+  // Wie die Datenschicht, wenn alles noch auf dem erwarteten Stand stand (R7-M3).
+  alsBestellt.mockImplementation(async (ids: string[]) => ids);
+  postenBestellt.mockImplementation(async (ids: string[]) => ids);
+  zuordnen.mockImplementation(async (ids: string[]) => ids.length);
+  postenZuordnen.mockImplementation(async (ids: string[]) => ids.length);
+  postenLoeschen.mockImplementation(async (ids: string[]) => ids.length);
+  geliefert.mockImplementation(async (ids: string[]) => ids.length);
+  vonListe.mockResolvedValue(true);
 });
 
 describe('Einkaufsliste — zusammengefasst je Großhändler', () => {
@@ -211,6 +224,77 @@ describe('Einkaufsliste — bestellt und geliefert', () => {
     zeige([anf({ id: 'a', bestelltAm: Date.now() as never })]);
     await userEvent.click(await screen.findByRole('button', { name: 'Geliefert' }));
     expect(await screen.findByText(/Keine Berechtigung/)).toBeInTheDocument();
+  });
+});
+
+/*
+  RUNDE 7, R7-M3 (P0-29, T081, Altbefund F23): zwei Tabs bestellen denselben
+  Posten — der veraltete meldete „Als bestellt markiert“, obwohl er nichts
+  mehr geändert hatte. Die Datenschicht ändert nur, was noch unbestellt ist,
+  und sagt, was sie getroffen hat.
+*/
+describe('Einkaufsliste — kein Erfolg für einen veralteten Stand (R7-M3)', () => {
+  async function bestellen(datum?: string) {
+    await userEvent.click(await screen.findByRole('button', { name: 'Als bestellt markieren' }));
+    const dialog = await screen.findByRole('dialog');
+    if (datum) await userEvent.type(within(dialog).getByLabelText('Erwarteter Liefertermin (freiwillig)'), datum);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Bestellt' }));
+  }
+
+  it('schon von jemand anderem bestellt: Hinweis statt Erfolg, und die Liste wird neu geholt', async () => {
+    alsBestellt.mockResolvedValueOnce([]);
+    zeige([anf({ id: 'a' })]);
+    await bestellen();
+    expect(await screen.findByText('Inzwischen von jemand anderem bestellt — die Liste zeigt jetzt den neuen Stand.')).toBeInTheDocument();
+    expect(screen.queryByText('Als bestellt markiert')).not.toBeInTheDocument();
+    expect(veraltet).toHaveBeenCalledTimes(1);
+  });
+
+  it('teilweise: nennt den Rest — und setzt den Liefertermin nur an den selbst bestellten Zeilen', async () => {
+    alsBestellt.mockResolvedValueOnce(['a']);
+    zeige([anf({ id: 'a' }), anf({ id: 'b', materialId: 'm2', materialName: 'Kupferrohr 15' })]);
+    await bestellen('2026-11-20');
+    expect(await screen.findByText('1 als bestellt markiert — 1 hatte inzwischen jemand anderes bestellt.')).toBeInTheDocument();
+    expect(termin).toHaveBeenCalledWith(['a'], [], '2026-11-20');
+  });
+
+  it('Gegenprobe: nichts mehr bestellt — dann auch kein Liefertermin', async () => {
+    alsBestellt.mockResolvedValueOnce([]);
+    zeige([anf({ id: 'a' })]);
+    await bestellen('2026-11-20');
+    await screen.findByText(/Inzwischen von jemand anderem bestellt/);
+    expect(termin).not.toHaveBeenCalled();
+  });
+
+  it('gleich geblieben: alles getroffen — Erfolg wie bisher, nichts neu geholt', async () => {
+    zeige([anf({ id: 'a' })]);
+    await bestellen();
+    expect(await screen.findByText('Als bestellt markiert')).toBeInTheDocument();
+    expect(veraltet).not.toHaveBeenCalled();
+  });
+
+  it('„Geliefert“, das schon gebucht war: Hinweis statt „ist da“', async () => {
+    geliefert.mockResolvedValueOnce(0);
+    zeige([anf({ id: 'a', bestelltAm: Date.now() as never })]);
+    await userEvent.click(await screen.findByRole('button', { name: 'Geliefert' }));
+    expect(await screen.findByText('Inzwischen von jemand anderem als geliefert gebucht — die Liste zeigt jetzt den neuen Stand.')).toBeInTheDocument();
+    expect(screen.queryByText(/ist da — abholbereit/)).not.toBeInTheDocument();
+  });
+
+  it('„von der Liste nehmen“, das schon bestellt war: Hinweis statt „wieder offen“', async () => {
+    vonListe.mockResolvedValue(false);
+    zeige([anf({ id: 'a' })]);
+    await userEvent.click(await screen.findByRole('button', { name: 'Eckventil 1/2 von der Einkaufsliste nehmen' }));
+    expect(await screen.findByText(/Inzwischen von jemand anderem bestellt oder von der Liste genommen/)).toBeInTheDocument();
+    expect(screen.queryByText(/Anforderungen wieder offen/)).not.toBeInTheDocument();
+  });
+
+  it('Zuordnen, das schon jemand erledigt hat: Hinweis statt „zugeordnet“', async () => {
+    zuordnen.mockResolvedValueOnce(0);
+    zeige([anf({ id: 'a', supplierId: null })]);
+    await userEvent.selectOptions(
+      await screen.findByRole('combobox', { name: 'Großhändler für Eckventil 1/2' }), 'gh2');
+    expect(await screen.findByText(/Inzwischen von jemand anderem zugeordnet/)).toBeInTheDocument();
   });
 });
 

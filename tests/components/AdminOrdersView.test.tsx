@@ -41,6 +41,8 @@ const eiligSetzen = vi.fn();
 
 /* Mit welcher ABFRAGE-Grenze zuletzt abonniert wurde. */
 let letzteHolgrenze = 0;
+/* Wie oft abonniert wurde — ein veralteter Stand holt neu (R7-M3). */
+let abos = 0;
 
 /** Ältere Anforderungen, die nur die Suche auf dem Server kennt (17 I). */
 let nurAufDemServer: WithId<MaterialOrder>[] = [];
@@ -60,6 +62,7 @@ vi.mock('@/lib/db/materialOrders', () => ({
     onError: (e: Error) => void,
   ) => {
     letzteHolgrenze = max;
+    abos += 1;
     if (ladefehler) onError(new Error(ladefehler));
     else cb(anforderungen);
     return () => undefined;
@@ -144,15 +147,16 @@ beforeEach(() => {
   sucheAnforderungen.mockClear();
   ladefehler = null;
   statusSetzen.mockReset();
-  statusSetzen.mockResolvedValue(undefined);
+  statusSetzen.mockResolvedValue({ art: 'geaendert' });
   loeschen.mockReset();
   loeschen.mockResolvedValue(undefined);
   eiligSetzen.mockReset();
   eiligSetzen.mockResolvedValue(undefined);
   ausLager.mockReset();
-  ausLager.mockResolvedValue(undefined);
+  ausLager.mockResolvedValue(true);
   aufEinkaufsliste.mockReset();
-  aufEinkaufsliste.mockResolvedValue(undefined);
+  aufEinkaufsliste.mockResolvedValue(true);
+  abos = 0;
   vorschlag = null;
   lagerPosten = [];
   lagerFehler = false;
@@ -218,7 +222,9 @@ describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
 
     const dialog = screen.getByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
-    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o1', 'Erledigt'));
+    // Mit dem Stand, den die Ansicht gesehen hat (R7-M3).
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith(
+      'o1', 'Erledigt', { von: 'Abholbereit', trotzFehlbestand: false }));
   });
 
   it('bucht nichts, wenn die Rückfrage abgebrochen wird', async () => {
@@ -243,8 +249,10 @@ describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
     zeige();
 
     await statusWaehlen('In Bearbeitung');
-    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o1', 'In Bearbeitung'));
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith(
+      'o1', 'In Bearbeitung', { von: 'Offen', trotzFehlbestand: false }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(await screen.findByText('Status: In Bearbeitung')).toBeInTheDocument();
   });
 
   it('meldet einen gescheiterten Statuswechsel, statt ihn zu verschlucken', async () => {
@@ -256,6 +264,107 @@ describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
 
     await statusWaehlen('In Bearbeitung');
     expect(await screen.findByText(/konnte nicht geändert werden/)).toBeInTheDocument();
+  });
+});
+
+/*
+  RUNDE 7, R7-M2: „Abholbereit“ von Hand ging an der Lagerprüfung vorbei.
+  Jetzt antwortet die Datenbank mit den Zahlen; übersteuert wird nur nach
+  einer Rückfrage, die sie nennt.
+*/
+describe('Anforderungen — „Abholbereit“ von Hand nur mit freiem Bestand (R7-M2)', () => {
+  const FEHLT = { art: 'fehlbestand', bestand: 10, zugesagt: 10, frei: 0, angefordert: 2, einheit: 'Stk' };
+
+  it('fragt mit den Zahlen nach, statt abholbereit zu melden — und übersteuert erst nach der Bestätigung', async () => {
+    statusSetzen.mockResolvedValueOnce(FEHLT);
+    anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
+    zeige();
+    await statusWaehlen('Abholbereit');
+
+    const dialog = await screen.findByRole('dialog', { name: 'Trotz Fehlbestand abholbereit?' });
+    const zahl = (wort: string) => within(dialog).getByText(wort).nextElementSibling?.textContent;
+    expect(zahl('Im Regal')).toBe('10 Stk');
+    expect(zahl('Schon zugesagt')).toBe('10 Stk');
+    expect(zahl('Frei')).toBe('0 Stk');
+    expect(zahl('Angefordert')).toBe('2 Stk');
+    expect(statusSetzen).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Status: Abholbereit')).not.toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Trotzdem abholbereit' }));
+    await waitFor(() => expect(statusSetzen).toHaveBeenLastCalledWith(
+      'o1', 'Abholbereit', { von: 'Offen', trotzFehlbestand: true }));
+    expect(await screen.findByText(/trotz Fehlbestand, im Verlauf vermerkt/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: abgebrochen bleibt es beim einen, abgewiesenen Versuch', async () => {
+    statusSetzen.mockResolvedValueOnce(FEHLT);
+    anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
+    zeige();
+    await statusWaehlen('Abholbereit');
+    const dialog = await screen.findByRole('dialog', { name: 'Trotz Fehlbestand abholbereit?' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(statusSetzen).toHaveBeenCalledTimes(1);
+    expect(statusSetzen.mock.calls[0][2]).toEqual({ von: 'Offen', trotzFehlbestand: false });
+  });
+
+  it('zeigt die Übersteuerung im Verlauf — wer, wann, mit den Zahlen', async () => {
+    anforderungen = [anforderung({
+      id: 'o1', status: 'Abholbereit',
+      lagerUebersteuert: [{
+        am: '2026-09-02T07:30:00+00:00', von: 'u9', name: 'Vera Verwaltung',
+        bestand: 10, zugesagt: 10, frei: 0, angefordert: 2, einheit: 'Stk',
+      }],
+    })];
+    zeige();
+    const fenster = await oeffnen();
+    const verlauf = within(fenster).getByRole('list', { name: 'Verlauf der Anforderung' });
+    expect(within(verlauf).getByText('Abholbereit trotz Fehlbestand')).toBeInTheDocument();
+    expect(within(verlauf).getByText('Vera Verwaltung · im Regal 10, zugesagt 10, frei 0, angefordert 2 Stk')).toBeInTheDocument();
+  });
+});
+
+/*
+  RUNDE 7, R7-M3 (Altbefund F14, T080/T081): traf ein Statuswechsel nichts
+  mehr, weil jemand anderes schneller war, meldete die Ansicht trotzdem
+  Erfolg. Jetzt: ein Hinweis und der neue Stand.
+*/
+describe('Anforderungen — kein Erfolg für einen veralteten Stand (R7-M3)', () => {
+  it('Status von Hand: Hinweis statt „Status: …“, und die Liste wird neu geholt', async () => {
+    statusSetzen.mockResolvedValueOnce({ art: 'veraltet' });
+    anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
+    zeige();
+    await statusWaehlen('In Bearbeitung');
+    expect(await screen.findByText(/Inzwischen von jemand anderem geändert/)).toBeInTheDocument();
+    expect(screen.queryByText('Status: In Bearbeitung')).not.toBeInTheDocument();
+    await waitFor(() => expect(abos).toBeGreaterThan(1));
+  });
+
+  it('„Aus Lager“, das nichts mehr traf: Hinweis statt „abholbereit“', async () => {
+    ausLager.mockResolvedValueOnce(false);
+    anforderungen = [anforderung({ id: 'o1' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /^Aus Lager: Kupferrohr 15mm/ }));
+    expect(await screen.findByText(/Inzwischen von jemand anderem geändert/)).toBeInTheDocument();
+    expect(screen.queryByText(/aus dem Lager — abholbereit/)).not.toBeInTheDocument();
+  });
+
+  it('„Abgeholt“, das schon gebucht war: Hinweis statt Erfolg', async () => {
+    statusSetzen.mockResolvedValueOnce({ art: 'veraltet' });
+    anforderungen = [anforderung({ id: 'o1', status: 'Abholbereit' })];
+    zeige();
+    await statusWaehlen('Erledigt');
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Abschließen' }));
+    expect(await screen.findByText(/Inzwischen von jemand anderem geändert/)).toBeInTheDocument();
+    expect(screen.queryByText('Status: Erledigt')).not.toBeInTheDocument();
+  });
+
+  it('gleich geblieben: was traf, meldet weiter Erfolg', async () => {
+    anforderungen = [anforderung({ id: 'o1' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /^Aus Lager: Kupferrohr 15mm/ }));
+    expect(await screen.findByText('Kupferrohr 15mm: aus dem Lager — abholbereit')).toBeInTheDocument();
+    expect(abos).toBe(1);
   });
 });
 
@@ -613,7 +722,7 @@ describe('Anforderungen — Lager oder Einkauf', () => {
     zeige();
     // Der Knopf in der Zeile nennt für die Vorlesehilfe auch die Anforderung.
     await userEvent.click(await screen.findByRole('button', { name: /^Aus Lager: Kupferrohr 15mm/ }));
-    await waitFor(() => expect(ausLager).toHaveBeenCalledWith('o1'));
+    await waitFor(() => expect(ausLager).toHaveBeenCalledWith('o1', 'Offen'));
     expect(aufEinkaufsliste).not.toHaveBeenCalled();
   });
 
@@ -628,7 +737,7 @@ describe('Anforderungen — Lager oder Einkauf', () => {
     expect(within(dialog).getByLabelText('Großhändler')).toHaveValue('gh2');
     await userEvent.selectOptions(within(dialog).getByLabelText('Großhändler'), 'gh1');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Auf die Liste' }));
-    await waitFor(() => expect(aufEinkaufsliste).toHaveBeenCalledWith('o1', 'gh1'));
+    await waitFor(() => expect(aufEinkaufsliste).toHaveBeenCalledWith('o1', 'gh1', 'Offen'));
   });
 
   it('lässt den Großhändler offen, wenn „später zuordnen“ gewählt ist', async () => {
@@ -638,7 +747,7 @@ describe('Anforderungen — Lager oder Einkauf', () => {
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByLabelText('Großhändler')).toHaveValue('');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Auf die Liste' }));
-    await waitFor(() => expect(aufEinkaufsliste).toHaveBeenCalledWith('o1', null));
+    await waitFor(() => expect(aufEinkaufsliste).toHaveBeenCalledWith('o1', null, 'Offen'));
   });
 
   it('bietet beides nicht mehr an, sobald entschieden ist — und zeigt, wie', async () => {
@@ -814,8 +923,21 @@ describe('Anforderungen — mehrere auf einmal', () => {
     expect(ausLager).not.toHaveBeenCalled();
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Weiterschalten' }));
-    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('a', 'Erledigt'));
-    expect(ausLager).toHaveBeenCalledWith('b');
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('a', 'Erledigt', { von: 'Abholbereit' }));
+    expect(ausLager).toHaveBeenCalledWith('b', 'Offen');
+  });
+
+  it('nennt, was inzwischen jemand anderes weitergeschaltet hat — nicht als Erfolg (R7-M3)', async () => {
+    anforderungen = [
+      anforderung({ id: 'a', materialName: 'Rohr A', status: 'Offen' }),
+      anforderung({ id: 'b', materialName: 'Rohr B', status: 'Offen' }),
+    ];
+    ausLager.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    zeige();
+    await userEvent.click(await screen.findByRole('checkbox', { name: /Rohr A .* auswählen/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /Rohr B .* auswählen/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Alle: nächster Schritt' }));
+    expect(await screen.findByText('1 Anforderung einen Schritt weiter — 1 hatte inzwischen jemand anderes geändert.')).toBeInTheDocument();
   });
 
   it('Gegenprobe: abgebrochen wird nichts gebucht', async () => {

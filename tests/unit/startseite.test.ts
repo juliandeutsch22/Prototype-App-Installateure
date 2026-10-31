@@ -505,6 +505,28 @@ describe('Geschäftsführung und Administrator', () => {
     });
   });
 
+  /*
+    RUNDE 7, 6.1: das Update hat den abgewählten Haken „Im Firmenbuch
+    eingetragen“ bei einer GmbH, AG, KG … zurückgesetzt — die
+    Geschäftsführung erfährt es einmal, bis sie es zur Kenntnis nimmt.
+  */
+  it('meldet den zurückgesetzten Firmenbuch-Haken, mit dem Weg in die Firmendaten', () => {
+    const s = startseite({ firmenbuchKorrigiertAm: Date.parse('2026-09-30T08:00:00Z') }, umfeld());
+    const zeilen = s.abschnitte.flatMap((a) => a.zeilen);
+    expect(zeilen.find((z) => z.key === 'firmenbuch-haken')).toMatchObject({
+      titel: '„Im Firmenbuch eingetragen“ wieder gesetzt',
+      to: ZIEL.einstellungen('firma'),
+      status: { text: 'ansehen', ton: 'leise' },
+    });
+  });
+
+  it('Gegenprobe: zur Kenntnis genommen (leer) — keine Zeile', () => {
+    for (const d of [{ firmenbuchKorrigiertAm: null }, {}]) {
+      const s = startseite(d, umfeld());
+      expect(s.abschnitte.flatMap((a) => a.zeilen).some((z) => z.key === 'firmenbuch-haken')).toBe(false);
+    }
+  });
+
   // Paket 2 (03.10.2026) — ein Reiter für Buchhaltung und Leitung.
   it('führt beim fehlenden Basiszinssatz auf „Rechnungsvorgaben“', () => {
     const s = startseite({ basiszinsFehltAb: '2026-07-01' }, umfeld());

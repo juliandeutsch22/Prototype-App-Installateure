@@ -268,3 +268,19 @@ export function lieferterminText(termin?: string | null, heute = todayStr()): st
   if (!termin) return '';
   return termin < heute ? `Liefertermin ${datumAT(termin)} überschritten` : `Liefertermin ${datumAT(termin)}`;
 }
+
+/**
+ * TRAF DIE AKTION WENIGER ALS GEWOLLT? (Runde 7, R7-M3) Die Datenschicht
+ * ändert nur Zeilen, die noch auf dem erwarteten Stand stehen, und sagt, wie
+ * viele es waren. Der Rest hat inzwischen jemand anderes erledigt — dafür
+ * gibt es keinen Erfolg zu melden, sondern diesen Satz. `undefined`: alles traf.
+ */
+export function nichtAlleGetroffen(
+  getroffen: number,
+  gewollt: number,
+  keiner: string,
+  manche: (rest: number) => string,
+): string | undefined {
+  if (getroffen >= gewollt) return undefined;
+  return getroffen === 0 ? `${keiner} — die Liste zeigt jetzt den neuen Stand.` : manche(gewollt - getroffen);
+}

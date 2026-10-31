@@ -88,23 +88,82 @@ export function createMaterialOrderOhneEmpfang(companyId: string, order: NewMate
   return fachAnlegen(ANFORDERUNGEN, companyId, order as unknown as Record<string, unknown>);
 }
 
+/** Was im Regal liegt und was davon schon jemandem gehört — im Augenblick der Prüfung. */
+export interface Regalstand {
+  bestand: number;
+  zugesagt: number;
+  frei: number;
+  angefordert: number;
+  einheit: string;
+}
+
 /**
- * Status ändern. Beim Übergang auf „Erledigt" wird der Bestand abgezogen —
- * atomar und idempotent.
+ * Was ein Statuswechsel bewirkt hat (Runde 7, R7-M3).
  *
- * Die Idempotenz hängt am Feld `processed`, und die Datenbankfunktion sperrt
- * die Zeile, bevor sie rechnet: zwei gleichzeitige Abschlüsse ziehen nicht
- * doppelt ab.
+ *   geaendert    wie gewünscht.
+ *   veraltet     nichts geändert: die Anforderung stand nicht mehr auf dem
+ *                Stand, den die Ansicht gesehen hat — jemand anderes war
+ *                schneller, oder sie ist weg.
+ *   fehlbestand  nichts geändert: „Abholbereit“ von Hand, aber im Regal ist
+ *                nicht genug frei (R7-M2). Die Zahlen für die Rückfrage.
  */
-export async function updateOrderStatus(orderId: string, newStatus: MaterialOrder['status']) {
-  if (newStatus !== 'Erledigt') {
-    const { error } = await derClient()
-      .from(ANFORDERUNGEN).update({ status: newStatus }).eq('id', orderId);
+export type StatusErgebnis =
+  | { art: 'geaendert' }
+  | { art: 'veraltet' }
+  | ({ art: 'fehlbestand' } & Regalstand);
+
+export interface StatusWie {
+  /** Der Stand, den die Ansicht gesehen hat. Ohne ihn wird nicht verglichen. */
+  von?: MaterialOrder['status'];
+  /** Nur nach der Rückfrage mit den Zahlen: „Abholbereit“ trotz Fehlbestand, mit Protokolleintrag. */
+  trotzFehlbestand?: boolean;
+}
+
+/**
+ * Status ändern — nur, wenn die Anforderung noch auf dem Stand `von` steht.
+ *
+ * „Erledigt“ geht über `anforderung_abschliessen`: dabei wird der Bestand
+ * abgezogen, atomar und idempotent (die Datenbankfunktion sperrt die Zeile,
+ * zwei gleichzeitige Abschlüsse ziehen nicht doppelt ab). Alles andere über
+ * `anforderung_status_setzen`, die beim Weg auf „Abholbereit“ dieselbe
+ * Lagerprüfung macht wie „Aus Lager“.
+ *
+ * Beide sagen, ob sich etwas geändert hat. Vorher kam von einem Schreiben,
+ * das nichts mehr traf, dieselbe Erfolgsmeldung wie von einem, das traf.
+ */
+export async function updateOrderStatus(
+  orderId: string,
+  newStatus: MaterialOrder['status'],
+  wie: StatusWie = {},
+): Promise<StatusErgebnis> {
+  if (newStatus === 'Erledigt') {
+    const { data, error } = await derClient().rpc('anforderung_abschliessen', {
+      p_order: orderId,
+      p_status: wie.von ?? null,
+    });
     if (error) throw new Error(error.message);
-    return;
+    return Number(data ?? 0) > 0 ? { art: 'geaendert' } : { art: 'veraltet' };
   }
-  const { error } = await derClient().rpc('anforderung_abschliessen', { p_order: orderId });
+  const { data, error } = await derClient().rpc('anforderung_status_setzen', {
+    p_id: orderId,
+    p_von: wie.von ?? null,
+    p_nach: newStatus,
+    p_trotz_fehlbestand: wie.trotzFehlbestand === true,
+  });
   if (error) throw new Error(error.message);
+  const r = (data ?? {}) as Record<string, unknown>;
+  if (r.ergebnis === 'geaendert') return { art: 'geaendert' };
+  if (r.ergebnis === 'fehlbestand') {
+    return {
+      art: 'fehlbestand',
+      bestand: Number(r.bestand) || 0,
+      zugesagt: Number(r.zugesagt) || 0,
+      frei: Number(r.frei) || 0,
+      angefordert: Number(r.angefordert) || 0,
+      einheit: String(r.einheit ?? 'Stk'),
+    };
+  }
+  return { art: 'veraltet' };
 }
 
 /**
