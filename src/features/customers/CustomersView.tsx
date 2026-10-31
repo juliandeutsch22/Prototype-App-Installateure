@@ -714,11 +714,11 @@ export default function CustomersView() {
             required
             pflicht
           />
-          {/* Ausdrücklich die RECHNUNGSadresse: die Baustelle hat ihre
+          {/* Ausdrücklich die RECHNUNGSanschrift (wie in der Akte, Runde 7, R7-G4): die Baustelle hat ihre
               eigene, und eine Hausverwaltung hat zwanzig davon. */}
           <AdressteileFelder
             idPrefix="kadr"
-            titel="Rechnungsadresse"
+            titel="Rechnungsanschrift"
             wert={form}
             onChange={(teile) => setForm({ ...form, ...teile, land: teile.land ?? 'AT' })}
           />

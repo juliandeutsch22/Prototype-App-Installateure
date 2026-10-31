@@ -34,7 +34,7 @@ const ZEIGE_ZEILEN = 50;
 
 const FELDNAME: Record<string, string> = {
   firma: 'Name (Firma)', name: 'Name', vorname: 'Name (Vorname)', nachname: 'Name (Nachname)',
-  ansprechpartner: 'Ansprechpartner', adresse: 'Rechnungsadresse', strasse: 'Adresse (Straße)',
+  ansprechpartner: 'Ansprechpartner', adresse: 'Rechnungsanschrift', strasse: 'Adresse (Straße)',
   hausnummer: 'Adresse (Hausnummer)', plz: 'Adresse (PLZ)', ort: 'Adresse (Ort)', land: 'Adresse (Land)',
   telefon: 'Telefon', email: 'E-Mail', uid: 'UID-Nummer', notiz: 'Notiz', kundennummer: 'Notiz (Kundennummer)',
 };

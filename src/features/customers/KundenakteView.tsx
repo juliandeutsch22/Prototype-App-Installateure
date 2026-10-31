@@ -742,14 +742,14 @@ function StammdatenFormular({
           <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="knopf" />
           <MailLink adresse={entwurf.email} variante="knopf" />
         </div>
-        <Gruppe name="Anschrift">
+        <Gruppe name="Name und Anschrift">
           <InputField
             id="k-name" label="Name" pflicht value={entwurf.name}
             onChange={(e) => setze('name', e.target.value)}
           />
           <AdressteileFelder
             idPrefix="k-adresse"
-            titel="Rechnungsadresse"
+            titel="Rechnungsanschrift"
             wert={entwurf}
             onChange={(teile) =>
               setEntwurf({ ...entwurf, ...teile, land: teile.land ?? 'AT', address: adresseZeile({ ...entwurf, ...teile }) })
