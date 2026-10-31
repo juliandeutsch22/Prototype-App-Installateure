@@ -16,7 +16,7 @@
   .plattform-teilseite { min-width: 0; }
   .plattform .seitenkopf { margin-bottom: 1.625rem; }
   .plattform .daumen { position: static; display: contents; padding: 0; border: 0; }
-  .plattform .seitenkopf h1 { font-size: 1.875rem; line-height: 1.35; }
+  .plattform .seitenkopf h1 { font-size: 1.875rem; line-height: 2.25rem; }
   .plattform .karte { margin-bottom: 1.5rem; box-shadow: none; }
   .plattform .karte-kopf { padding-inline: 0; }
   .plattform .karte-koerper { padding-inline: 0; }
@@ -76,9 +76,10 @@
     .plattform-navigation { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 1.5rem; }
     .plattform-navigation button { min-height: 2.875rem; font-size: 0.75rem; text-align: left; }
     .plattform-bereich { padding-top: 1.5rem; }
-    .plattform .seitenkopf { gap: 0.75rem; flex-wrap: wrap; }
-    .plattform .seitenkopf h1 { font-size: 1.5rem; }
-    .plattform .seitenkopf-rechts { flex-wrap: wrap; width: 100%; justify-content: space-between; }
+    .plattform .seitenkopf-zeile { gap: 0.75rem; flex-wrap: wrap; }
+    .plattform .seitenkopf h1 { font-size: 1.5rem; line-height: 1.75rem; }
+    /* Am Handy steht die Leiste der Plattform als eigene Zeile unter dem Titel — dort nicht auf Titelhöhe begrenzt. */
+    .plattform .seitenkopf-rechts { flex-wrap: wrap; width: 100%; height: auto; justify-content: space-between; }
     .plattform-spalten { display: flex; flex-direction: column; gap: 1.625rem; }
     .plattform-spalten > div, .plattform-kontext { width: 100%; }
     .plattform-kontext { border-left: 0; border-top: 1px solid var(--border); padding: 1.25rem; }

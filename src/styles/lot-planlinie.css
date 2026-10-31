@@ -46,13 +46,18 @@
   /* ── B1 Plankopf mit Schriftfeld und Lineal ───────────────────────────── */
   .plankopf { display: flex; flex-direction: column; min-width: 0; }
   .seitenkopf-ort { font-size: 0.6875rem; line-height: 1rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); margin-bottom: 0.375rem; }
-  .seitenkopf h1 { font-size: 1.5rem; line-height: 1.15; font-weight: 500; letter-spacing: -0.005em; color: var(--ink-deep); }
-  @media (min-width: 760px) { .seitenkopf h1 { font-size: 1.875rem; line-height: 1.15; } }
+  .seitenkopf h1 { font-size: 1.5rem; line-height: 1.75rem; font-weight: 500; letter-spacing: -0.005em; color: var(--ink-deep); }
+  /* Feste Zeilenhöhe: die Knöpfe rechts sind genau eine Titelzeile hoch (index.css, E31). */
+  @media (min-width: 760px) { .seitenkopf h1 { font-size: 1.875rem; line-height: 2.25rem; } }
+  /* Der Rückweg in der Ortszeile (E31): so klein wie sie, mit 44 px Tastfläche, ohne die Zeile höher zu machen. */
+  .seitenkopf-zurueck { display: inline-block; padding-block: 0.875rem; margin-block: -0.875rem; color: inherit; }
+  .seitenkopf-zurueck:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+  /* Die Reiterleiste einer Unterseite steht unter ihrem Kopf (E31). */
+  .plankopf > .reiterleiste { margin-top: 1.25rem; }
   .seitenkopf-meta { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); margin-top: 0.5rem; }
-  .plankopf-titel { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.25rem 0.875rem; }
+  .plankopf-titel { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.25rem 0.875rem; flex: 1 1 auto; min-width: 0; }
   .plankopf-titel > h1 { min-width: 0; overflow-wrap: anywhere; }
   /* Die kleine Skizze neben dem Titel: nur am Handy, wo das Schriftfeld ohne Endfeld bricht. */
-  .plankopf-skizze-klein { display: none; }
   /*
     DAS SCHRIFTFELD: gleich breite Felder wie im Schriftfeld einer Zeichnung.
     Oben eine Hilfslinie, unten die Kontur — dort hängt das Lineal. Die Linie
@@ -90,7 +95,6 @@
     .schriftfeld .lage-punkt { border-top: 1px solid var(--border-strong); }
     .schriftfeld .lage-eintrag { padding: 0.5rem 0.625rem 0.5625rem; }
     .schriftfeld-skizze { display: none; }
-    .plankopf-skizze-klein { display: block; margin-left: auto; }
   }
 
   /* Der kleine Plankopf eines Seitenfensters: Titel 20 px, Stempel daneben, ohne Skizze und Lineal. */
@@ -153,7 +157,7 @@
     vorgelesen.
   */
   .stand { gap: 0.4375rem; }
-  .stand::before { content: ''; width: 14px; height: 14px; flex: none; border: 0; border-radius: 0; background: var(--accent-deep); -webkit-mask-image: var(--zeichen-offen); mask-image: var(--zeichen-offen); -webkit-mask-size: 14px 14px; mask-size: 14px 14px; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+  .stand::before { content: ''; width: 14px; height: 14px; flex: none; align-self: center; border: 0; border-radius: 0; background: var(--accent-deep); -webkit-mask-image: var(--zeichen-offen); mask-image: var(--zeichen-offen); -webkit-mask-size: 14px 14px; mask-size: 14px 14px; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
   .stand-offen::before { width: 14px; height: 14px; border: 0; background: var(--accent-deep); -webkit-mask-image: var(--zeichen-offen); mask-image: var(--zeichen-offen); }
   .stand-geplant::before { -webkit-mask-image: var(--zeichen-geplant); mask-image: var(--zeichen-geplant); }
   .stand-ok::before, .stand-info::before { background: var(--accent-deep); -webkit-mask-image: var(--zeichen-arbeit); mask-image: var(--zeichen-arbeit); }

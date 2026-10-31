@@ -562,7 +562,7 @@ export default function KundenakteView() {
   return (
     <div className="akten-seite">
       {warnung}
-      <AktenKopf art="Kunde" title={k.name} zurueck="/customers" zurueckText="Zur Kundenliste"
+      <AktenKopf title={k.name} zurueck="/customers" zurueckText="Zur Kundenliste"
         /* Die Kundennummer als Stempel neben dem Namen (Planlinie B10); der Zustand bleibt in der Zeile darunter. */
         stempel={k.kundennummer ? `Nr. ${k.kundennummer}` : undefined}
         meta={<span className="akten-identitaet">

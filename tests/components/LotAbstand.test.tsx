@@ -56,9 +56,10 @@ describe('Der Stand im Seitenkopf', () => {
     const css = lesen('index.css');
     // Die Grundregel richtet nach oben aus; keine breitere Regel darf das wieder nach unten ziehen —
     // auch nicht die Planlinie, die den Kopf seit E30 umgibt.
-    expect(css).toMatch(/\.seitenkopf \{ display: flex; align-items: flex-start;/);
+    // Seit E31 trägt die Titelzeile die Knöpfe: oben ausgerichtet, nie unten.
+    expect(css).toMatch(/\.seitenkopf-zeile \{ display: flex; align-items: flex-start;/);
     for (const datei of [css, lesen('styles/lot-planlinie.css')]) {
-      expect(datei).not.toMatch(/\.seitenkopf(:has\([^)]*\))? \{[^}]*align-items: flex-end/);
+      expect(datei).not.toMatch(/\.seitenkopf(-zeile)?(:has\([^)]*\))? \{[^}]*align-items: flex-end/);
     }
   });
 });

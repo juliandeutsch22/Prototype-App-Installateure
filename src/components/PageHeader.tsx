@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
-import { useInRouterContext, useLocation } from 'react-router-dom';
+import { useContext, useLayoutEffect, type ReactNode } from 'react';
+import { Link, useInRouterContext, useLocation } from 'react-router-dom';
 import { SeitenHilfeKnopf } from './SeitenHilfe';
 import { Modulskizze, Stempel, type SkizzenMotiv } from './Planlinie';
+import { UnterreiterAnmeldung, UnterreiterLeiste } from './unterreiterLeiste';
 import { gruppeVon } from '@/app/navigation';
 
 /*
@@ -57,6 +58,12 @@ const SKIZZE_JE_SEITE: Record<string, SkizzenMotiv> = {
  * Schriftfeld einer Zeichnung, rechts die Skizze des Bereichs, darunter das
  * Lineal. Ohne Kennzahlen gibt es kein Schriftfeld (und keine Skizze): es
  * wird keine Zahl erfunden, um ein Feld zu füllen.
+ *
+ * DREI FESTE ZEILEN (E31, 31.10.2026): Ortszeile, Titelzeile, Meta. Die
+ * Knöpfe rechts gehören zur Titelzeile und stehen mittig zu ihrer ersten
+ * Zeile — vorher hingen sie oben an der Ortszeile und saßen 15 px über der
+ * Mitte der Überschrift. Ein Rückweg (Akte, Angebot) steht IN der
+ * Ortszeile statt darüber; so beginnt jede Seite auf derselben Höhe.
  */
 export default function PageHeader({
   title,
@@ -69,6 +76,7 @@ export default function PageHeader({
   stempel,
   skizze,
   nebenAktion,
+  zurueck,
 }: {
   title: string;
   subtitle?: ReactNode;
@@ -95,26 +103,33 @@ export default function PageHeader({
    * schon der Weg).
    */
   nebenAktion?: ReactNode;
+  /** Der Weg zurück (Akte, Angebot) — steht als Ortszeile, nicht darüber. */
+  zurueck?: { to: string; text: string };
 }) {
   const imRouter = useInRouterContext();
+  const leiste = useContext(UnterreiterLeiste);
+  const anmelden = useContext(UnterreiterAnmeldung);
+  // Vor dem Zeichnen: sonst stünde die Leiste einen Augenblick doppelt.
+  useLayoutEffect(() => anmelden?.(), [anmelden]);
   return (
     <div className="plankopf">
       <div className="seitenkopf">
-        <div className="min-w-0">
-          {ort ? <p className="seitenkopf-ort">{ort}</p> : imRouter ? <OrtAusDemMenue /> : null}
+        {zurueck ? (
+          <p className="seitenkopf-ort"><Link to={zurueck.to} className="seitenkopf-zurueck">← {zurueck.text}</Link></p>
+        ) : ort ? <p className="seitenkopf-ort">{ort}</p> : imRouter ? <OrtAusDemMenue /> : null}
+        <div className="seitenkopf-zeile">
           <div className="plankopf-titel">
             <h1>{title}</h1>
             {stempel && <Stempel gross>{stempel}</Stempel>}
-            {stand && imRouter && skizze !== false && <SkizzeDerSeite skizze={skizze} klein />}
           </div>
-          {subtitle && <div className="seitenkopf-meta">{subtitle}</div>}
+          <div className="seitenkopf-rechts">
+            <SeitenHilfeKnopf seite={title} einleitung={hilfe} />
+            {mehr}
+            {nebenAktion}
+            {action && <div className="daumen">{action}</div>}
+          </div>
         </div>
-        <div className="seitenkopf-rechts">
-          <SeitenHilfeKnopf seite={title} einleitung={hilfe} />
-          {mehr}
-          {nebenAktion}
-          {action && <div className="daumen">{action}</div>}
-        </div>
+        {subtitle && <div className="seitenkopf-meta">{subtitle}</div>}
       </div>
       {stand && (
         <>
@@ -125,16 +140,20 @@ export default function PageHeader({
           <div className="lineal" aria-hidden="true" />
         </>
       )}
+      {leiste}
     </div>
   );
 }
 
-/** Die Skizze im Endfeld des Schriftfelds — am Handy klein neben dem Titel. */
-function SkizzeDerSeite({ skizze, klein = false }: { skizze?: SkizzenMotiv; klein?: boolean }) {
+/*
+  Die Skizze im Endfeld des Schriftfelds, ab dem Tablet. Am Handy keine:
+  neben dem Titel schob sie die Überschrift um 26 px nach unten, und die
+  Seiten begannen je nach Bereich auf verschiedener Höhe (E31).
+*/
+function SkizzeDerSeite({ skizze }: { skizze?: SkizzenMotiv }) {
   const pfad = useLocation().pathname;
   const motiv = skizze ?? SKIZZE_JE_SEITE[pfad];
   if (!motiv) return null;
-  if (klein) return <span className="plankopf-skizze-klein"><Modulskizze motiv={motiv} klein /></span>;
   return <div className="schriftfeld-skizze"><Modulskizze motiv={motiv} /></div>;
 }
 

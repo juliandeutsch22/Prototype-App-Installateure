@@ -809,21 +809,24 @@ textarea {
     (docs/ui-umbau/entscheidungen.md, E7). Die neuen Bausteine in
     `src/styles/lot.css` kommen ohne sie aus.
   */
-  .seitenkopf { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.25rem 0.75rem; }
+  .seitenkopf { min-width: 0; }
   /*
-    Hilfe, ⋯ und Hauptaktion stehen bei jeder Breite oben neben Ortszeile und
-    Titel (Design-Entwurf, Punkt 1). Ab dem Tablet saßen sie vorher unten an
-    der letzten Zeile des Kopfs — je nachdem, ob ein Untertitel oder ein
-    Stand da war, mal höher, mal tiefer. Der Titelblock gibt nach, bis
-    18 rem: ein langer Stand bricht dann in sich um, statt die Aktionen unter
-    sich zu schieben (Tablet). Erst darunter rutschen sie unter den Titel.
+    DIE TITELZEILE TRÄGT DIE KNÖPFE (E31, 31.10.2026). Hilfe, ⋯ und
+    Hauptaktion stehen bei jeder Breite neben der Überschrift, mittig zu ihrer
+    ersten Zeile: der rechte Block ist genau eine Titelzeile hoch, die Knöpfe
+    stehen darin mittig und ragen gleichmäßig darüber hinaus. Vorher hingen
+    sie oben an der Ortszeile und saßen 15 px über der Mitte des Titels — je
+    nach Seite mit oder ohne Ortszeile anders. Ab dem Tablet gibt der Titel
+    nach, bis 18 rem; erst darunter rutschen die Knöpfe unter ihn.
   */
+  .seitenkopf-zeile { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.25rem 0.75rem; }
   @media (min-width: 760px) {
-    .seitenkopf { flex-wrap: wrap; gap: 0.25rem 1rem; }
-    .seitenkopf > .min-w-0 { flex: 1 1 18rem; }
+    .seitenkopf-zeile { flex-wrap: wrap; gap: 0.25rem 1rem; }
+    .seitenkopf-zeile > .plankopf-titel { flex: 1 1 18rem; }
   }
   /* Titel, Ortszeile und Meta des Seitenkopfs: Plankopf in lot-planlinie.css (E30). */
-  .seitenkopf-rechts { display: flex; gap: 0.25rem 0.5rem; align-items: center; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+  .seitenkopf-rechts { display: flex; gap: 0.25rem 0.5rem; align-items: center; flex: none; flex-wrap: nowrap; justify-content: flex-end; height: 1.75rem; }
+  @media (min-width: 760px) { .seitenkopf-rechts { height: 2.25rem; } }
   /* Gleich groß und still wie das ⋯ daneben (`RowMenu`): 44 px Tastfläche, grau, beim Zeigen eine leise Fläche. */
   .seitenkopf-hilfe { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0; background: none; border: 0; border-radius: var(--radius); color: var(--text-muted); cursor: pointer; }
   .seitenkopf-hilfe:hover { color: var(--text); background: var(--surface-2); }
@@ -860,6 +863,48 @@ textarea {
   @media (min-width: 760px) { .inhalt .karte:not(:is(.akten-seite, .start-seite, .plattform, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) { padding-top: 1.75rem; } }
   .inhalt .karte:not(:is(.akten-seite, .start-seite, .plattform, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) .karte-kopf .titel-karte { font-size: 1.125rem; line-height: 1.625rem; }
   .karte-koerper .zeile { padding-inline: 0; }
+  /*
+    JEDE SEITE BEGINNT IHREN INHALT IM SELBEN ABSTAND ZUM KOPF (E31, 31.10.2026).
+    Gemessen über alle Ansichten lag der erste Inhalt 20, 24, 60 oder 64 px
+    unter dem Kopf: die Seiten sind teils mit 12/20 px, teils mit 24 px
+    gestapelt, und eine Karte bringt ihr Luftpolster von 28 px mit, das sie
+    von einer Karte darüber trennt — unter dem Kopf trennt schon der Kopf.
+    Jetzt steht der erste Inhalt überall 12 px unter dem Kopf, ab 1200 px
+    20 px, ob er Reiter, Suchfeld oder der Titel einer Karte ist. Die
+    Selektoren sind spezifischer als `space-y-*` und die Kartenregel oben,
+    damit beide hier nicht gewinnen. Seiten mit eigenem Abstand (`gap` der
+    Einsatzplanung, der Akten, der Startseite) bleiben, wie sie sind: dort
+    misst der Abstand schon 12/20 px.
+  */
+  .inhalt [class*='space-y-'] > .plankopf + :not([hidden]) { margin-top: 0.75rem; }
+  @media (min-width: 1200px) { .inhalt [class*='space-y-'] > .plankopf + :not([hidden]) { margin-top: 1.25rem; } }
+  .inhalt :is(
+    .plankopf + .karte,
+    .plankopf + :is(form, .formular, [class*='space-y-']) > .karte:first-child,
+    .plankopf + :is(form, .formular, [class*='space-y-']) > [class*='space-y-'] > .karte:first-child,
+    .plankopf ~ .zeit-raster > .karte
+  ):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog']) .karte) { padding-top: 0; }
+  /* Ebenso die Leiste einer Liste ohne Titel und die Zeichnung beim ersten Besuch: sie beginnen auf derselben Linie. */
+  .inhalt .plankopf + .karte > :is(.karte-buendig, .karte-koerper) > .listenleiste:first-child,
+  .inhalt .plankopf + .karte .lot-erstnutzung { padding-top: 0; }
+  /*
+    UNTER REITERN DASSELBE: die erste Karte unter einer Reiterleiste
+    (Urlaub, Lager, Anforderungen) begann 60–71 px tiefer, die Liste unter
+    dem nächsten Reiter 24 px — je nachdem, ob eine Karte oder ein Satz
+    zuerst kam.
+  */
+  .inhalt :is(
+    :is(.reiterleiste, .segment, .anf-leiste) + .karte,
+    :is(.reiterleiste, .segment, .anf-leiste) + :is(div, form) > .karte:first-child,
+    .reiterleiste + div > .zeit-raster > .karte
+  ):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog']) .karte) { padding-top: 0; }
+  /*
+    VERWEISE IM KARTENKOPF MACHEN IHN NICHT HÖHER (E31): „Alle Baustellen →“
+    trug seine 48-px-Tastfläche als Zeilenhöhe, und der Titel einer Karte mit
+    Verweis stand 11 px tiefer als der einer Karte ohne. Polster und
+    Gegenrand behalten die Tastfläche.
+  */
+  .karte-kopf > div > a { min-height: 0; padding-block: 0.875rem; margin-block: -0.875rem; }
   .zeile { display: flex; align-items: center; gap: 0.75rem 1rem; min-height: 3.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: var(--surface); }
   .zeile:first-child { border-top: 0; }
   .zeile-ganz { position: relative; cursor: pointer; }
@@ -893,7 +938,14 @@ textarea {
     oder rote Wörter untereinander machten die Liste bunt, und Farbe allein
     reicht ohnehin nicht.
   */
-  .stand { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 1.375rem; font-size: 0.8125rem; font-weight: 400; white-space: nowrap; color: var(--text); }
+  /*
+    AUF DER GRUNDLINIE DES TEXTS (31.10.2026): mittig ausgerichtet nahm die
+    Zeile ihre Grundlinie vom Zeichen, das keinen Text hat — im Satz
+    „⚠ nicht gebucht · laut Plan …“ stand das Statuswort dadurch 3 px höher
+    als der Rest. Das Wort richtet sich am Text aus, nur das Zeichen
+    (lot-planlinie.css) steht mittig.
+  */
+  .stand { display: inline-flex; align-items: baseline; gap: 0.375rem; min-height: 1.375rem; font-size: 0.8125rem; font-weight: 400; white-space: nowrap; color: var(--text); }
   /* Das Zeichen vor dem Wort (Statuszeichen, Planlinie B3) steht in lot-planlinie.css (E30). */
   .stand-leise { color: var(--text-muted); }
   .hinweiszeile { display: flex; gap: 0.625rem; align-items: flex-start; padding: 0.125rem 0.25rem; font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }

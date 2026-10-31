@@ -526,3 +526,72 @@ Navigation ohne Hamburger und die Dichte der Planung bleiben.
 die Regeln im Stil `tests/unit/planlinieStil.test.ts`. Jede Seite hat
 eigene Prüfungen; jede neue Prüfung ist mit Gegenprobe gelaufen (mit der
 alten Fassung rot). Vorher- und Nachher-Fotos stehen in `docs/planlinie/`.
+
+**E31 — Jede Seite beginnt gleich (31.10.2026).** Rückmeldung des
+Auftraggebers zur Planlinie, vier Punkte:
+1. Der Satz unter der Maßkette der Zeiterfassung war zu lang.
+2. In der Kundenakte war die Anschrift größer als der Rest, und die
+   Abstände sprangen.
+3. Auf der Startseite stand das Statuswort nicht auf der Höhe des Details.
+4. Alle Seiten und Unterreiter sollen auf derselben Höhe beginnen, die
+   Knöpfe rechts auf der Höhe der Überschrift.
+
+Gemessen wurde mit einem Skript in 390, 834 und 1440 px, über 46 Ansichten
+der Geschäftsführung (samt Akten und allen Unterseiten der Einstellungen)
+und 15 des Monteurs. Es misst Ortszeile, Überschrift, die Mitte jedes
+Knopfs und den ersten Inhalt unter Kopf und Reitern.
+
+- **Seitenkopf in drei festen Zeilen.**
+  - Aufbau: Ortszeile, Titelzeile, Meta.
+  - Die Knöpfe (Hilfe, ⋯, Hauptaktion) gehören zur Titelzeile. Der rechte
+    Block ist genau eine Titelzeile hoch (28 px, ab dem Tablet 36 px), die
+    Knöpfe stehen darin mittig.
+  - Vorher hingen sie an der Ortszeile, ihre Mitte lag 15 px über der Mitte
+    der Überschrift.
+  - Nachher stehen auf allen Seiten Ortszeile und Titel auf derselben Höhe,
+    und kein Knopf weicht von der Titelmitte ab.
+- **Rückweg in der Ortszeile** (Akten, Angebot), wie schon beim Angebot.
+  - Der Link „← Zur Kundenliste“ stand als eigene Zeile darüber; die Akten
+    begannen dadurch 56 px tiefer als ihre Liste.
+  - Die Art der Akte („Kunde“) sagt der Rückweg mit, sie steht nicht mehr
+    eigens da.
+  - Die Tastfläche bleibt 44 px, über Polster und Gegenrand.
+- **Reiter einer Unterseite unter ihrem Kopf** (Einstellungen).
+  - Die Leiste stand über dem Seitenkopf, die Überschrift begann 117 px
+    tiefer.
+  - `Unterreiter` reicht die Leiste über einen Kontext an den Seitenkopf der
+    Unterseite.
+  - Hat eine Unterseite keinen Kopf, steht die Leiste wie bisher oben.
+- **Keine Skizze neben dem Titel am Handy.** Sie schob die Überschrift um
+  26 px nach unten, und zwar nur auf Seiten mit Schriftfeld. Die Skizze
+  steht ab dem Tablet im Schriftfeld wie in E30.
+- **Gleicher Abstand zum ersten Inhalt.**
+  - Ziel: 12 px unter dem Kopf, ab 1200 px 20 px.
+  - Ursachen der Abweichung (20 bis 71 px): Die Seiten waren teils mit
+    12/20 px, teils mit 24 px gestapelt. Eine Karte brachte ihr Luftpolster
+    von 28 px mit, auch direkt unter dem Kopf oder unter Reitern. Die Leiste
+    einer Liste und die Zeichnung beim ersten Besuch trugen eigene Polster.
+  - Das Luftpolster trennt Karten voneinander; unter dem Kopf trennt schon
+    der Kopf.
+  - Akten, Einsatzplanung und Startseite folgen demselben Takt.
+- **Verweise im Kartenkopf** („Alle Baustellen →“) behalten ihre Tastfläche,
+  ohne die Kopfzeile höher zu machen. Vorher stand der Titel einer Karte mit
+  Verweis 11 px tiefer als der einer Karte ohne.
+- **Kontextspalte der Akten in einer Schrift.**
+  - Anschrift, Notiz, Wartungszahl und Kontaktdaten stehen in 13 px.
+  - Links tragen ihre Tastfläche ohne Zeilenhöhe.
+  - Jeder Abschnitt hat denselben Abstand zur Überschrift und zum nächsten.
+- **Statuswort auf der Grundlinie des Texts.**
+  - Das Statuszeichen hat keinen Text. Mittig ausgerichtet gab es der Zeile
+    trotzdem ihre Grundlinie, das Wort stand dadurch 3 px höher.
+  - Auf der Startseite ist das Wort jetzt so groß wie das Detail daneben
+    (12 statt 11 px).
+- **Zeiterfassung.**
+  - Unter der Maßkette steht nur „Arbeitszeit: 08:30 Std“.
+  - Dass die Pause in der Mitte gezeichnet ist, weil ihre Uhrzeit nicht
+    erfasst wird, steht in der Hilfe der Seite (Regel „eine Hilfe pro
+    Seite“). Die Grafik bleibt: sie zeigt Beginn, Ende und Pause.
+
+**Bewusst so gelassen.** Ein Kartentitel mit Knopf (nicht Verweis) im Kopf
+steht 5 px tiefer als einer ohne, weil er mittig zum 44-px-Knopf steht.
+Einen Knopf zu stauchen hieße, seine Tastfläche zu verkleinern.

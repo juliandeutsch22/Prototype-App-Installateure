@@ -376,7 +376,7 @@ export default function BenutzerakteView() {
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="akten-seite">
       {warnung}
-      <AktenKopf art="Benutzer" zurueck="/user-mgmt" zurueckText="Zur Benutzerliste" title={p.name}
+      <AktenKopf zurueck="/user-mgmt" zurueckText="Zur Benutzerliste" title={p.name}
         meta={<span className="akten-identitaet"><Marke>{p.role}</Marke>
           {p.active === false && <Zustand stand="storniert">deaktiviert</Zustand>}</span>}
         action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>} />

@@ -110,3 +110,24 @@ describe('Schrift', () => {
     expect(readFileSync('src/index.css', 'utf8')).toMatch(/--schrift-mono: 'IBM Plex Mono'/);
   });
 });
+
+/*
+  RÜCKMELDUNG 31.10.2026: Auf der Startseite stand das Statuswort („⚠ nicht
+  gebucht“) höher und kleiner als das Detail daneben. Die Zeile nahm ihre
+  Grundlinie vom Zeichen ohne Text; das Wort war einen Grad kleiner.
+*/
+describe('Statuswort auf der Grundlinie des Texts', () => {
+  const INDEX = readFileSync('src/index.css', 'utf8');
+  const START = stil('lot-start.css');
+
+  it('das Wort richtet sich an der Grundlinie aus, nur das Zeichen steht mittig', () => {
+    expect(INDEX).toMatch(/\n {2}\.stand \{ display: inline-flex; align-items: baseline;/);
+    expect(regel('.stand::before')).toContain('align-self: center');
+  });
+
+  it('auf der Startseite ist das Statuswort so groß wie das Detail der Zeile', () => {
+    const groesse = (selektor: string) => START.match(new RegExp(`${selektor.replace(/[.]/g, '\\.')} \\{ font-size: ([0-9.]+rem)`))?.[1];
+    expect(groesse('.start-seite .start-zeile .stand')).toBeDefined();
+    expect(groesse('.start-seite .start-zeile .stand')).toBe(groesse('.start-seite .start-zeile .text-meta'));
+  });
+});

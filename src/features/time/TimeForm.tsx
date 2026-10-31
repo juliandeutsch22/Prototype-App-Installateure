@@ -1344,8 +1344,9 @@ export default function TimeForm({
               DIE MASSKETTE STATT DES BALKENS „ARBEIT / PAUSE“ (Planlinie B11):
               von Beginn bis Ende bemaßt, die Pause schraffiert. Wann die
               Pause war, erfasst die Maske nicht — gebucht wird ihre Dauer.
-              Die Kette zeichnet sie deshalb in die Mitte, und der Satz
-              darunter sagt das, damit niemand eine Uhrzeit hineinliest.
+              Die Kette zeichnet sie deshalb in die Mitte. Das steht in der
+              Hilfe der Seite, nicht als Satz unter der Kette: dort machte er
+              die Zeile dreimal so lang wie die Zahl, um die es geht.
             */
             <div className="zeitbild">
               {Number(breakDuration) >= 0 && (
@@ -1365,11 +1366,12 @@ export default function TimeForm({
               )}
               <p className="text-sm text-ink-muted">
                 Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
-                {Number(breakDuration) > 0 && (
-                  <span className="zeitbild-satz"> · Pause schraffiert, in der Mitte gezeichnet — wann sie war, wird nicht erfasst.</span>
-                )}
                 {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
               </p>
+              <InfoHint about="Linie der Arbeitszeit">
+                Die Linie bemaßt die Zeit von Beginn bis Ende; die Pause ist schraffiert. Gebucht wird
+                nur ihre Dauer, nicht wann sie war — darum steht sie in der Mitte.
+              </InfoHint>
             </div>
           )}
           {bild && bild.befund !== 'ok' && (

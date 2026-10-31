@@ -195,17 +195,15 @@ export default function AngebotView() {
 
   /*
     DER WEG ZURÜCK STEHT IN DER ORTSZEILE (Linie „Lot“, Seitenkopf): klein
-    über dem Titel, wo „wo bin ich“ steht. Polster und Gegenrand geben dem
-    Link 48 px Tastfläche, ohne die Zeile höher zu machen.
+    über dem Titel, wo „wo bin ich“ steht — seit E31 wie in den Akten über
+    `zurueck` des Seitenkopfs, mit derselben Tastfläche.
   */
-  const zurueck = (
-    <Link to="/quotes" className="link -my-3 inline-block py-3">← Zu den Angeboten</Link>
-  );
+  const zurueck = { to: '/quotes', text: 'Zu den Angeboten' };
 
   if (angebot.zustand === 'laedt') {
     return (
       <div className="space-y-6">
-        <PageHeader title="Angebot" ort={zurueck} />
+        <PageHeader title="Angebot" zurueck={zurueck} />
         <Card><SkeletonList rows={4} /></Card>
       </div>
     );
@@ -213,7 +211,7 @@ export default function AngebotView() {
   if (angebot.zustand === 'fehler') {
     return (
       <div className="space-y-6">
-        <PageHeader title="Angebot" ort={zurueck} />
+        <PageHeader title="Angebot" zurueck={zurueck} />
         <Card>
           <ErrorState
             message="Das Angebot konnte nicht geladen werden."
@@ -227,7 +225,7 @@ export default function AngebotView() {
   if (!q) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Angebot" ort={zurueck} />
+        <PageHeader title="Angebot" zurueck={zurueck} />
         <Card>
           <EmptyState action={<Link to="/quotes" className="link-weiter">Zur Angebotsliste</Link>}>
             Dieses Angebot gibt es nicht (mehr).
@@ -503,7 +501,7 @@ export default function AngebotView() {
   return (
     <div className="space-y-6">
       <PageHeader
-        ort={zurueck}
+        zurueck={zurueck}
         // Die Nummer als Nummernstempel neben dem Titel (Planlinie B10), wie in jeder Akte.
         title="Angebot"
         stempel={q.quoteNumber}
