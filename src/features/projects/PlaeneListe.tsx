@@ -109,7 +109,7 @@ export default function PlaeneListe({
       }
     } catch (err) {
       fenster?.close();
-      setFehler({ id: d.id, text: grundAus(err, 'Lässt sich nicht öffnen — vielleicht ist es inzwischen nur fürs Büro.') });
+      setFehler({ id: d.id, text: grundAus(err, 'Diese Datei ist inzwischen nur fürs Büro freigegeben — oder sie wurde entfernt.') });
     }
   }
 
