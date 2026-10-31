@@ -214,26 +214,35 @@ it('ordnet in der Maßkette Arbeit und Pause derselben Eingabe zu und blendet si
 
 /*
   PLANLINIE B11: die Maßkette zeichnet die Pause in die Mitte, weil die Maske
-  nur ihre Dauer kennt. Der Satz darunter muss das sagen — sonst liest jemand
-  eine Uhrzeit hinein, die nie erfasst wurde.
+  nur ihre Dauer kennt. Das muss gesagt sein — sonst liest jemand eine
+  Uhrzeit hinein, die nie erfasst wurde. Seit dem 31.10.2026 steht es in der
+  Hilfe der Seite; unter der Kette steht nur noch die Zahl (Rückmeldung des
+  Auftraggebers: der Satz war zu lang).
 */
 describe('Die Maßkette (Planlinie B11)', () => {
-  it('bemaßt Beginn und Ende, schraffiert die Pause und sagt, dass ihre Lage nicht erfasst wird', () => {
+  it('bemaßt Beginn und Ende, schraffiert die Pause; darunter steht nur die Arbeitszeit', () => {
     zeichne();
     const kette = screen.getByRole('img', { name: /^Zeitverteilung/ });
     expect(kette).toHaveClass('masskette');
     expect(kette.querySelector('.masskette-pause')).not.toBeNull();
     expect(kette).toHaveTextContent('07:00');
     expect(kette).toHaveTextContent('16:00');
-    expect(zeile().textContent).toMatch(/in der Mitte gezeichnet — wann sie war, wird nicht erfasst/);
+    expect(zeile().textContent).toMatch(/^Arbeitszeit: \d\d:\d\d Std$/);
   });
 
-  it('Gegenprobe: ohne Pause keine Schraffur und kein Satz über ihre Lage', () => {
+  it('die Lage der Pause erklärt die Hilfe — dass ihre Uhrzeit nicht erfasst wird', () => {
+    zeichne();
+    // Ohne Seitenhilfe (wie hier) steht die Erklärung hinter dem „i“; auf der Seite unter „Hilfe zu dieser Seite“.
+    fireEvent.click(screen.getByRole('button', { name: 'Was bedeutet Linie der Arbeitszeit?' }));
+    expect(screen.getByText(/nicht wann sie war — darum steht sie in der Mitte/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne Pause keine Schraffur, und die Zeile bleibt die Zahl', () => {
     zeichne();
     setze('Pause', '0');
     const kette = screen.getByRole('img', { name: /^Zeitverteilung/ });
     expect(kette.querySelector('.masskette-pause')).toBeNull();
-    expect(zeile().textContent).not.toMatch(/wann sie war/);
+    expect(zeile().textContent).toMatch(/^Arbeitszeit: \d\d:\d\d Std$/);
   });
 
   it('ein Befund an den Zeitfeldern steht als Hinweislinie, nicht als Maßkette', () => {

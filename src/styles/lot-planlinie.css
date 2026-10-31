@@ -153,7 +153,7 @@
     vorgelesen.
   */
   .stand { gap: 0.4375rem; }
-  .stand::before { content: ''; width: 14px; height: 14px; flex: none; border: 0; border-radius: 0; background: var(--accent-deep); -webkit-mask-image: var(--zeichen-offen); mask-image: var(--zeichen-offen); -webkit-mask-size: 14px 14px; mask-size: 14px 14px; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+  .stand::before { content: ''; width: 14px; height: 14px; flex: none; align-self: center; border: 0; border-radius: 0; background: var(--accent-deep); -webkit-mask-image: var(--zeichen-offen); mask-image: var(--zeichen-offen); -webkit-mask-size: 14px 14px; mask-size: 14px 14px; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
   .stand-offen::before { width: 14px; height: 14px; border: 0; background: var(--accent-deep); -webkit-mask-image: var(--zeichen-offen); mask-image: var(--zeichen-offen); }
   .stand-geplant::before { -webkit-mask-image: var(--zeichen-geplant); mask-image: var(--zeichen-geplant); }
   .stand-ok::before, .stand-info::before { background: var(--accent-deep); -webkit-mask-image: var(--zeichen-arbeit); mask-image: var(--zeichen-arbeit); }

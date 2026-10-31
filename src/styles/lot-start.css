@@ -45,7 +45,8 @@
   .stand-leise-wort { color: var(--text-muted); }
   .start-seite .start-zeile { padding: 0.875rem 0; font-size: 0.875rem; }
   .start-seite .start-zeile .text-meta { font-size: 0.75rem; line-height: 1.25rem; }
-  .start-seite .start-zeile .stand { font-size: 0.6875rem; }
+  /* Statuswort so groß wie das Detail daneben (31.10.2026): in einer Zeile mit ihm wirkte es um einen Grad kleiner. */
+  .start-seite .start-zeile .stand { font-size: 0.75rem; }
   .start-seite .start-weiter { padding: 0.5rem 0; border-top: 0; font-size: 0.75rem; font-weight: 400; }
   .start-kontext .start-zeile { font-size: 0.8125rem; padding-block: 0.75rem; }
   .start-kontext .start-zeile .text-meta { font-size: 0.6875rem; line-height: 1.25rem; }
