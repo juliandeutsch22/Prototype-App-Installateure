@@ -4741,7 +4741,8 @@ describe('Runde 6, Paket 2', () => {
     async function stornoOeffnen(nr: string) {
       const fenster = await rechnungOeffnen(nr);
       await userEvent.click(within(fenster).getByRole('button', { name: 'Stornieren' }));
-      return screen.findByRole('dialog', { name: 'Rechnung stornieren?' });
+      // Zieht eine Schlussrechnung sie ab, heißt der Dialog „Stornieren nicht möglich“ (R7-G2).
+      return screen.findByRole('dialog', { name: /^(Rechnung stornieren\?|Stornieren nicht möglich)$/ });
     }
 
     it('die Anzahlung gibt nichts frei — der Text sagt es (G27)', async () => {
@@ -4769,11 +4770,40 @@ describe('Runde 6, Paket 2', () => {
       zeige();
       const dialog = await stornoOeffnen('RE-2026-1509');
       expect(await within(dialog).findByText(/Die Schlussrechnung RE-2026-1510 rechnet nur ab, was nach dieser Teilrechnung kam/)).toBeInTheDocument();
-      expect(within(dialog).getByText(/Zeiteinträge und Scheine werden wieder freigegeben/)).toBeInTheDocument();
+      // Sie verknüpft nur Zeiteinträge — der Satz nennt nur die (R7-G2).
+      expect(within(dialog).getByText(/die verknüpften Zeiteinträge werden wieder freigegeben/)).toBeInTheDocument();
+    });
+
+    /*
+      TESTBERICHT RUNDE 7, R7-G2: „Stornieren“ blieb aktiv, obwohl die
+      Schlussrechnung die Teilrechnung abzieht — erst die Datenbank wies ab.
+    */
+    it('sperrt den Storno einer abgezogenen Teilrechnung und nennt den Grund (R7-G2)', async () => {
+      const teil = inv('t', 'RE-2026-1511', { art: 'teil', linkedEntries: [], linkedWorkSheets: [] });
+      rechnungen = [teil];
+      derBaustelle = [teil, inv('s', 'RE-2026-1516', { art: 'schluss', vorrechnungen: [{ invoiceId: 't' } as never] })];
+      zeige();
+      const dialog = await stornoOeffnen('RE-2026-1511');
+      expect(await within(dialog).findByText(/Die Schlussrechnung RE-2026-1516 zieht RE-2026-1511 ab/)).toBeInTheDocument();
+      expect(within(dialog).getByRole('heading', { name: 'Stornieren nicht möglich' })).toBeInTheDocument();
+      expect(within(dialog).getByRole('button', { name: 'Stornieren' })).toBeDisabled();
+      expect(within(dialog).queryByLabelText(/^Grund/)).toBeNull();
+      expect(within(dialog).queryByText(/werden wieder freigegeben/)).toBeNull();
+    });
+
+    it('Gegenprobe: ohne Abzug bleibt der Storno möglich, eine Pauschal-Teilrechnung gibt nichts frei (R7-G2)', async () => {
+      const teil = inv('t', 'RE-2026-1511', { art: 'teil', linkedEntries: [], linkedWorkSheets: [] });
+      rechnungen = [teil];
+      derBaustelle = [teil];
+      zeige();
+      const dialog = await stornoOeffnen('RE-2026-1511');
+      await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Stornieren' })).toBeEnabled());
+      expect(within(dialog).getByText('RE-2026-1511 wird storniert. Sie verknüpft keine Zeiteinträge und keine Scheine — freigegeben wird deshalb nichts.')).toBeInTheDocument();
+      expect(within(dialog).getByLabelText(/^Grund/)).toBeInTheDocument();
     });
 
     it('Gleichbleiben: ohne Schlussrechnung keine Warnung, die Rechnung gibt ihre Belege frei', async () => {
-      const teil = inv('t', 'RE-2026-1509', { art: 'teil' });
+      const teil = inv('t', 'RE-2026-1509', { art: 'teil', linkedEntries: ['z1'], linkedWorkSheets: ['s1'] });
       rechnungen = [teil];
       derBaustelle = [teil];
       zeige();
@@ -4797,6 +4827,9 @@ describe('Runde 6, Paket 2', () => {
       await userEvent.selectOptions(screen.getByRole('combobox', { name: /Art der Rechnung/ }), 'schluss');
       await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
       expect(await screen.findByText(/Für diese Baustelle gibt es schon die Schlussrechnung RE-2026-1510\. Eine zweite gibt es nicht/)).toBeInTheDocument();
+      // Ein Hinweis, kein Fehler (Testbericht Runde 7, R7-G2).
+      expect(screen.getByText('Nichts zusammengestellt')).toBeInTheDocument();
+      expect(screen.queryByText('Das hat nicht geklappt')).toBeNull();
       expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull();
     });
 

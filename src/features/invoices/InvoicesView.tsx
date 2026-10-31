@@ -175,6 +175,13 @@ export default function InvoicesView() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /*
+    EIN HINWEIS IST KEIN FEHLER (Testbericht Runde 7, R7-G2): „Die Pauschale
+    ist schon verrechnet“ oder „es gibt schon die Schlussrechnung“ standen
+    unter „Das hat nicht geklappt“ — dabei ging nichts schief, es gibt nur
+    nichts zusammenzustellen.
+  */
+  const [hinweis, setHinweis] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — die Rechnungsliste steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   /**
@@ -348,6 +355,10 @@ export default function InvoicesView() {
       .catch(() => { if (!weg) setStornoFolge({ fuer, fehler: true }); });
     return () => { weg = true; };
   }, [toCancel, user]);
+  /** Eine Schlussrechnung zieht die Rechnung ab — dann gibt es keinen Storno. */
+  const stornoAbgezogen = !!toCancel && stornoFolge?.fuer === toCancel.id && 'folge' in stornoFolge && !!stornoFolge.folge?.abgezogen;
+  /** Die Rechnungen der Baustelle sind noch unterwegs (nur Anzahlung und Teilrechnung werden geprüft). */
+  const stornoPrueftNoch = !!toCancel && (toCancel.art === 'anzahlung' || toCancel.art === 'teil') && stornoFolge?.fuer !== toCancel.id;
   /*
     DER FILTER STEHT IN DER ADRESSE (Linie „Lot“, Regel 5) — so lässt sich
     eine Ansicht als Lesezeichen ablegen, und die Startseite verlinkt ihre
@@ -570,6 +581,7 @@ export default function InvoicesView() {
     setErstellen(false);
     setPreview(null);
     setError(null);
+    setHinweis(null);
   };
   /*
     DAS FORMULAR KOMMT INS BILD, der Fokus auf die Baustelle. Am Handy steht
@@ -1311,6 +1323,7 @@ export default function InvoicesView() {
     if (!user || !projectNumber) return;
     setBusy(true);
     setError(null);
+    setHinweis(null);
     setPauschalAus(null);
     setNachAufmass(false);
     setStichtag(null);
@@ -1463,7 +1476,7 @@ export default function InvoicesView() {
       const schonSchluss = art === 'schluss' ? gueltigeSchlussrechnung(derBaustelle, projectNumber) : null;
       if (schonSchluss) {
         setPreview(null);
-        setError(
+        setHinweis(
           `Für diese Baustelle gibt es schon die Schlussrechnung ${schonSchluss.invoiceNumber}. Eine zweite gibt es `
             + 'nicht: Was danach noch geleistet wurde, bitte als „Rechnung“ zusammenstellen — oder '
             + `${schonSchluss.invoiceNumber} stornieren und die Schlussrechnung neu ausstellen.`,
@@ -1499,7 +1512,7 @@ export default function InvoicesView() {
         const schon = art === 'teil' ? null : pauschaleVerrechnetMit(derBaustelle, projectNumber);
         if (schon) {
           setPreview(null);
-          setError(
+          setHinweis(
             einheitspreis
               ? `Einheitspreisbaustelle: die Leistung ist mit ${schon} bereits verrechnet. Ein weiteres Aufmaß geht als eigene Rechnung nach Vereinbarung — oder wer die Baustelle in der Akte auf „Regie“ stellt.`
               : `Pauschalbaustelle: die Pauschale ist mit ${schon} bereits verrechnet. Stunden und Material danach sind darin enthalten. Mehrarbeit außerhalb des Angebots verrechnet, wer die Baustelle in der Akte auf „Regie“ stellt — oder als eigene Rechnung nach Vereinbarung.`,
@@ -1745,6 +1758,7 @@ export default function InvoicesView() {
     ausstellungLaeuft.current = true;
     setBusy(true);
     setError(null);
+    setHinweis(null);
     try {
       const project = projects.find((p) => p.projectNumber === projectNumber);
       const invoiceDate = todayStr();
@@ -2012,6 +2026,7 @@ export default function InvoicesView() {
     }
     setBusy(true);
     setError(null);
+    setHinweis(null);
     try {
       const heute = todayStr();
       /*
@@ -3138,6 +3153,7 @@ export default function InvoicesView() {
               setProjectNumber(nr);
               setPreview(null);
               setError(null);
+              setHinweis(null);
               // Abgerechnet wird typischerweise NACH dem Abschluss der
               // Baustelle. Sie muss deshalb auch dann auffindbar sein, wenn
               // sie nicht mehr laeuft — und ihre Stammdaten mit ihr.
@@ -3159,6 +3175,7 @@ export default function InvoicesView() {
                 setPreview(null);
                 setGewaehlteAbzuege([]);
                 setError(null);
+                setHinweis(null);
               }}
             >
               <option value="einzel">Rechnung (ganze Leistung)</option>
@@ -3282,6 +3299,12 @@ export default function InvoicesView() {
           </div>
 
           {error && <ErrorState message={error} />}
+          {hinweis && (
+            <Hinweiszeile stufe="warn" role="status">
+              <p><b>Nichts zusammengestellt</b></p>
+              <p className="mt-0.5">{hinweis}</p>
+            </Hinweiszeile>
+          )}
         </div>
       </Card>
       {/* Vorschau vor dem Erzeugen: danach sind die Belege gesperrt und eine
@@ -4891,9 +4914,16 @@ export default function InvoicesView() {
 
       <ConfirmDialog
         open={!!toCancel}
-        title="Rechnung stornieren?"
-        message={toCancel ? stornoText(toCancel) : ''}
+        title={stornoAbgezogen ? 'Stornieren nicht möglich' : 'Rechnung stornieren?'}
+        message={toCancel && !stornoAbgezogen ? stornoText(toCancel) : ''}
         confirmLabel="Stornieren"
+        /*
+          GESPERRT, SOLANGE EINE SCHLUSSRECHNUNG SIE ABZIEHT (Testbericht
+          Runde 7, R7-G2): der Knopf war aktiv, erst die Datenbank wies ab.
+          Bis die Rechnungen der Baustelle da sind, ebenso — sonst ginge der
+          Klick schneller als die Prüfung.
+        */
+        gesperrt={stornoAbgezogen || stornoPrueftNoch}
         onCancel={() => setToCancel(null)}
         onConfirm={async () => {
           if (toCancel) {
@@ -4929,8 +4959,10 @@ export default function InvoicesView() {
             </Hinweiszeile>
           </div>
         )}
-        <InputField id="cancelnote" label="Grund (erscheint in der Liste)" required pflicht value={cancelNote}
-          onChange={(e) => setCancelNote(e.target.value)} placeholder="z. B. Falscher Kunde" />
+        {!stornoAbgezogen && (
+          <InputField id="cancelnote" label="Grund (erscheint in der Liste)" required pflicht value={cancelNote}
+            onChange={(e) => setCancelNote(e.target.value)} placeholder="z. B. Falscher Kunde" />
+        )}
       </ConfirmDialog>
 
       {/*
