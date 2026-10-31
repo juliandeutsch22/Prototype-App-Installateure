@@ -715,6 +715,11 @@
         <p class="wer">alle, die Akten öffnen</p>
       </div>
       <div class="bereich">
+        <h3>Das Raster hell und dunkel<span class="neu">geändert</span></h3>
+        <p>Unter der ganzen Arbeitsfläche liegt jetzt ein dezentes Raster, im hellen Satz wie im dunklen. Seine erste Linie liegt dort, wo Überschrift und Listen beginnen. Karten, Zeilen und Listen lassen es durch; vorher legten sie Kästen darauf, deren Kanten nicht zum Raster passten. Deckend bleiben Felder, Knöpfe, Fenster, der Kalender und was beim Rollen stehen bleibt. In der <strong>Einsatzplanung</strong> hat die Tabelle kein eigenes, feineres Raster mehr; sie beginnt an der Kante des Inhalts statt 16 Bildpunkte davor, und Woche und Monat schließen oben mit einer Linie ab.</p>
+        <p class="wer">alle · in hell und dunkel</p>
+      </div>
+      <div class="bereich">
         <h3>Kleinigkeiten<span class="neu">behoben</span></h3>
         <p><strong>Startseite:</strong> Das Statuswort („⚠ nicht gebucht“) steht auf derselben Zeile und in derselben Größe wie der Text daneben. <strong>Zeiterfassung:</strong> Unter der Linie aus Arbeit und Pause steht nur noch die Arbeitszeit. Dass die Pause in der Mitte gezeichnet ist, weil nur ihre Dauer erfasst wird, steht unter „Hilfe zu dieser Seite“.</p>
         <p class="wer">alle</p>
@@ -796,6 +801,41 @@
         <h3>Einrichtungshinweis und Anmeldung<span class="neu">neu</span></h3>
         <p>Solange Firmenname oder Anschrift fehlen, begrüßen die Firmendaten mit „Bereit für den ersten Beleg?“; „Hinweis ausblenden“ blendet ihn auf diesem Gerät aus, und nach dem ersten vollständigen Speichern kommt er nicht wieder. Die <strong>Anmeldung</strong> zeigt am Schreibtisch links eine ruhige Fläche mit Marke und Zeichnung, rechts das Formular mit denselben Feldern, ohne eigenen Rahmen; am Handy und Tablet bleibt die gewohnte Karte.</p>
         <p class="wer">Firmendaten: Geschäftsführung, Administrator · Anmeldung: alle</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="runde7">
+    <div class="abschnittskopf">
+      <h2>28. Oktober: Lager, Einkaufsliste, Berufsschultag und Firmenbuch (Testbericht Runde 7)</h2>
+      <p class="frage">„Abholbereit“ ließ sich von Hand ohne Ware im Regal setzen, ein veralteter Tab meldete Erfolg, wo er nichts mehr geändert hatte, und am Berufsschultag kam die Rückfrage zur Tagesgrenze erst im Büro an. Dazu der Haken „Im Firmenbuch eingetragen“ und fünf Kleinigkeiten.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>„Abholbereit“ nur mit freiem Bestand<span class="neu">behoben</span></h3>
+        <p>„Status von Hand setzen › Auf „Abholbereit“ setzen“ prüft jetzt dasselbe wie „Aus Lager“: Es geht nur, wenn im Regal so viel frei ist, wie angefordert ist. Sonst fragt die App mit den Zahlen nach („10 im Regal, 10 schon zugesagt, 0 frei, angefordert 2“). Wer bewusst übersteuert, wählt „Trotzdem abholbereit“; das steht danach im Verlauf der Anforderung mit Name, Zeitpunkt und den Zahlen dieses Augenblicks. Die Datenbank prüft dasselbe, auch an der App vorbei. Freie Positionen ohne Katalogeintrag haben keinen Bestand und werden nicht geprüft; über die Einkaufsliste heißt „abholbereit“ „direkt vom Großhändler“.</p>
+        <p class="wer">Verwaltung, Buchhaltung, Geschäftsführung</p>
+      </div>
+      <div class="bereich">
+        <h3>Keine Erfolgsmeldung, wenn sich nichts geändert hat<span class="neu">behoben</span></h3>
+        <p>Waren zwei Tabs offen, meldete der veraltete „Als bestellt markiert“, obwohl der andere schon bestellt hatte. Jetzt ändern alle Statuswechsel einer Anforderung und der Einkaufsliste nur, was noch im gesehenen Stand ist: von Hand setzen, „Aus Lager“, „Nicht auf Lager“, bestellt, geliefert, abgeholt, von der Liste nehmen, Großhändler zuordnen. Hat inzwischen jemand anderes gehandelt, steht ein Hinweis („Inzwischen von jemand anderem bestellt — die Liste zeigt jetzt den neuen Stand.“) statt der Erfolgsmeldung, und die Liste wird neu geholt; bei mehreren Posten nennt die Meldung den Rest. Der Liefertermin beim Bestellen gilt nur für die selbst bestellten Posten.</p>
+        <p class="wer">Verwaltung, Buchhaltung, Geschäftsführung; „Abgeholt“ auch Monteure</p>
+      </div>
+      <div class="bereich">
+        <h3>Rückfrage am Berufsschultag<span class="neu">behoben</span></h3>
+        <p>Die Rückfrage, wenn Unterricht, Weg und Arbeit zusammen über der Tagesgrenze liegen, rechnet jetzt mit dem Stand beim Speichern. Vorher rechnete sie mit dem Stand beim Öffnen des Tages: Wer nach einer ersten Buchung in derselben Maske weiter buchte, bekam keine Rückfrage („10:30 Std. am 20.10. samt 1:00 Std. Weg Schule–Betrieb — höchstens 9 Std.“). Das gilt für die eigene Buchung wie für die Buchung durchs Büro.</p>
+        <p class="wer">Lehrlinge; Büro, wer für andere bucht</p>
+      </div>
+      <div class="bereich">
+        <h3>„Im Firmenbuch eingetragen“ bei GmbH, KG, OG fest<span class="neu">geändert</span></h3>
+        <p>Trägt der Firmenname GmbH (auch GmbH &amp; Co KG), FlexCo, AG, SE, KG, OG oder Genossenschaft, ist der Haken in den Firmendaten gesetzt und lässt sich nicht abwählen; daneben steht, warum. Abgewählt schaltete er nur die Mahnung zu Firmenbuchnummer und -gericht ab (§ 14 UGB). Frei bleibt er bei „in Gründung“ bzw. „i. G.“ im Namen und bei Einzelunternehmen. Die Datenbank hält dieselbe Regel. War der Haken bei einer solchen Rechtsform abgewählt, hat das Update ihn zurückgesetzt; die Startseite der Geschäftsführung meldet das einmal unter „Diese Woche“, bis es in den Firmendaten zur Kenntnis genommen ist.</p>
+        <p>Grenze: Die Rechtsform wird am Namen erkannt. Ein Einzelunternehmen, dessen Name „AG“, „OG“ oder „SE“ als eigenes Wort trägt, gilt als Gesellschaft; wer betroffen ist, meldet es.</p>
+        <p class="wer">Geschäftsführung, Administrator</p>
+      </div>
+      <div class="bereich">
+        <h3>Kleinigkeiten<span class="neu">behoben</span></h3>
+        <p><strong>Pläne:</strong> Hat das Büro einen Plan inzwischen auf „Nur fürs Büro“ gestellt, steht statt „Object not found“: „Diese Datei ist inzwischen nur fürs Büro freigegeben — oder sie wurde entfernt.“ <strong>Storno:</strong> Bei einer Teilrechnung, die auf der Schlussrechnung abgezogen ist, ist „Stornieren“ gesperrt und der Dialog nennt den Grund. Der Satz zur Freigabe nennt nur, was die Rechnung wirklich verknüpft; ohne Verknüpfung heißt es „freigegeben wird deshalb nichts“. Hinweise wie „Pauschale schon verrechnet“ stehen unter „Nichts zusammengestellt“ statt „Das hat nicht geklappt“. <strong>Mitarbeiterübersicht:</strong> Im Seitenfenster der Person zeigt der Schultag Unterricht und Weg statt „— · —“. <strong>Kunden:</strong> Das Formular heißt wie die Akte „Rechnungsanschrift“. <strong>Erklärungen:</strong> Der Info-Knopf heißt „Was bedeutet der Betrag?“, ebenso alle anderen im ersten Fall.</p>
+        <p class="wer">je nach Bereich</p>
       </div>
     </div>
   </section>
