@@ -555,11 +555,21 @@ export default function TimeForm({
       : await mitFrist(Promise.resolve().then(() => getGeburtsdatum(user.companyId, besitzerUid)), 3000)
         .catch(() => null);
     if (!istJugendlich(geboren, date)) return [];
+    /*
+      IMMER FRISCH VOR DEM SPEICHERN (Testbericht Runde 7, R7-M1). Das Umfeld
+      wird beim Öffnen des Tages einmal vorab geladen — wer danach in
+      derselben Maske erst die Berufsschule und dann zweimal Arbeit bucht,
+      prüfte gegen den Stand von vorher: ohne Schultag und ohne die erste
+      Arbeit kam die Rückfrage nicht, obwohl Unterricht, Weg und Arbeit
+      zusammen über der Grenze lagen. Das vorab Geladene ist nur noch der
+      Ersatz, wenn das Netz nicht antwortet.
+    */
     const { von, bis } = umfeldDerBuchung(date);
-    const rows = umfeld ?? await mitFrist(
+    const frisch = await mitFrist(
       Promise.resolve().then(() => listOwnEntriesInRange(user.companyId, besitzerUid, von, bis)),
       3000,
     ).catch(() => null);
+    const rows = frisch ?? umfeld;
     if (!rows) return [];
     const andere = rows.filter((e) => e.id !== entry?.id);
     const neu = { date, status: 'Anwesend' as const, startTime, endTime, breakDuration: Number(breakDuration) || 0 };
