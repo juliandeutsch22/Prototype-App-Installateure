@@ -10,6 +10,7 @@ import {
   deleteOrder,
   ORDER_STATUS_FLOW,
   anforderungEiligSetzen,
+  type Regalstand,
 } from '@/lib/db/materialOrders';
 import { eiligMoeglich } from './eilig';
 import type { WithId } from '@/lib/db/core';
@@ -193,6 +194,18 @@ function verlaufVon(o: MaterialOrder, haendler: string | undefined): LotPunkt[] 
   if (o.geliefertAm) punkte.push({ titel: 'Geliefert', zeit: zeitpunkt(o.geliefertAm) });
   if (o.status === 'In Bearbeitung' && !o.beschaffung) punkte.push({ titel: 'In Bearbeitung' });
   /*
+    ABHOLBEREIT TROTZ FEHLBESTAND (Runde 7, R7-M2): jede bewusste
+    Übersteuerung mit wer, wann und den Zahlen dieses Augenblicks — das
+    Protokoll schreibt die Datenbank, hier steht es nur.
+  */
+  for (const u of o.lagerUebersteuert ?? []) {
+    punkte.push({
+      titel: 'Abholbereit trotz Fehlbestand',
+      zeit: zeitpunkt(Date.parse(u.am)),
+      text: `${u.name ?? '—'} · im Regal ${fmtMenge(u.bestand)}, zugesagt ${fmtMenge(u.zugesagt)}, frei ${fmtMenge(Math.max(u.frei, 0))}, angefordert ${fmtMenge(u.angefordert)} ${u.einheit}`,
+    });
+  }
+  /*
     ABHOLBEREIT MIT ZEITPUNKT, AUCH NACH DEM ABHOLEN (Runde 6, Hinweis 7):
     die Datenbank behält „abholbereit seit“ seit dieser Fassung auch bei
     „Erledigt“, und „Erledigt“ hat seinen eigenen Zeitpunkt. Ältere erledigte
@@ -305,6 +318,14 @@ export default function AdminOrdersView() {
   const [holgrenze, setHolgrenze] = useState(ANFORDERUNGEN_JE_SEITE);
   /** Bestätigung vor dem Abschluss — dabei wird das Lager reduziert. */
   const [toComplete, setToComplete] = useState<WithId<MaterialOrder> | null>(null);
+  /** „Abholbereit“ von Hand, aber im Regal fehlt etwas — die Rückfrage mit den Zahlen (R7-M2). */
+  const [fehlbestand, setFehlbestand] = useState<{ o: WithId<MaterialOrder>; stand: Regalstand } | null>(null);
+  /**
+   * Neu holen, wenn eine Aktion auf einem veralteten Stand nichts mehr traf
+   * (R7-M3). Das Live-Abo bringt Änderungen anderer sonst auch — aber nicht,
+   * wenn es gerade hängt; dann zeigte die Liste weiter den alten Stand.
+   */
+  const [neuLaden, setNeuLaden] = useState(0);
   /** Welche Anforderung im Seitenfenster steht — die Kennung, damit es live mitgeht. */
   const [offenId, setOffenId] = useState<string | null>(null);
   /** Die Auswahl für die Sammelaktion. */
@@ -330,7 +351,7 @@ export default function AdminOrdersView() {
       },
     );
     return unsub;
-  }, [user, holgrenze]);
+  }, [user, holgrenze, neuLaden]);
 
   useEffect(() => {
     if (!user) return;
@@ -492,15 +513,36 @@ export default function AdminOrdersView() {
     });
   }
 
-  async function setStatus(o: WithId<MaterialOrder>, next: MaterialOrder['status']) {
+  /**
+   * JEMAND ANDERES WAR SCHNELLER (Runde 7, R7-M3): die Aktion hat nichts
+   * mehr geändert. Keine Erfolgsmeldung, sondern ein Hinweis — und der neue
+   * Stand, damit niemand auf dem alten weiterarbeitet.
+   */
+  function veraltet(text = 'Inzwischen von jemand anderem geändert — die Liste zeigt jetzt den neuen Stand.') {
+    toast.info(text);
+    setNeuLaden((n) => n + 1);
+    setLagerStand((n) => n + 1);
+    void postenNeuLaden();
+  }
+
+  async function setStatus(o: WithId<MaterialOrder>, next: MaterialOrder['status'], trotzFehlbestand = false) {
     if (next === o.status) return;
     setBusyId(o.id);
     try {
-      await updateOrderStatus(o.id, next);
+      const r = await updateOrderStatus(o.id, next, { von: o.status, trotzFehlbestand });
+      if (r.art === 'fehlbestand') {
+        // Nichts geändert: erst fragen, mit genau diesen Zahlen (R7-M2).
+        setFehlbestand({ o, stand: r });
+        return;
+      }
+      if (r.art === 'veraltet') {
+        veraltet();
+        return;
+      }
       // Das Abzeichen im Menü zählt mit — „Offen" ist genau das, was es zählt.
       void postenNeuLaden();
       fehlerWeg(o.id);
-      toast.success(`Status: ${next}`);
+      toast.success(trotzFehlbestand ? `Status: ${next} — trotz Fehlbestand, im Verlauf vermerkt` : `Status: ${next}`);
     } catch (err) {
       // Ohne diesen Zweig blieb ein fehlgeschlagenes Update unbemerkt: der
       // Status sprang nicht um, der Nutzer sah aber keinerlei Hinweis.
@@ -513,7 +555,10 @@ export default function AdminOrdersView() {
   async function nimmAusLager(o: WithId<MaterialOrder>) {
     setBusyId(o.id);
     try {
-      await ausLager(o.id);
+      if (!(await ausLager(o.id, o.status))) {
+        veraltet();
+        return;
+      }
       void postenNeuLaden();
       fehlerWeg(o.id);
       toast.success(`${o.materialName}: aus dem Lager — abholbereit`);
@@ -562,13 +607,17 @@ export default function AdminOrdersView() {
     setSammelLaeuft(true);
     const fehler: Record<string, string> = {};
     let gut = 0;
+    /** Was inzwischen jemand anderes weitergeschaltet hat — keine Fehler, aber auch nicht „weiter“ (R7-M3). */
+    let schon = 0;
     for (const o of liste) {
       const s = schrittFuer(o);
       if (!s) continue;
       try {
-        if (s.art === 'auslager') await ausLager(o.id);
-        else await updateOrderStatus(o.id, 'Erledigt');
-        gut += 1;
+        const getan = s.art === 'auslager'
+          ? await ausLager(o.id, o.status)
+          : (await updateOrderStatus(o.id, 'Erledigt', { von: o.status })).art === 'geaendert';
+        if (getan) gut += 1;
+        else schon += 1;
       } catch (err) {
         fehler[o.id] = grundAus(err, 'Das konnte nicht gespeichert werden.');
       }
@@ -578,10 +627,16 @@ export default function AdminOrdersView() {
     setGewaehlt(Object.keys(fehler));
     setSammelLaeuft(false);
     const schlecht = Object.keys(fehler).length;
-    if (schlecht === 0) {
-      toast.success(gut === 1 ? '1 Anforderung einen Schritt weiter' : `${gut} Anforderungen einen Schritt weiter`);
+    const weiter = gut === 1 ? '1 Anforderung einen Schritt weiter' : `${gut} Anforderungen einen Schritt weiter`;
+    const anderer = schon === 1
+      ? '1 hatte inzwischen jemand anderes geändert'
+      : `${schon} hatte inzwischen jemand anderes geändert`;
+    if (schlecht > 0) {
+      toast.error(`${gut} weiter, ${schlecht} nicht — der Grund steht an der Zeile.${schon > 0 ? ` ${anderer}.` : ''}`);
+    } else if (schon > 0) {
+      veraltet(gut > 0 ? `${weiter} — ${anderer}.` : `Nichts weitergeschaltet — ${anderer}.`);
     } else {
-      toast.error(`${gut} weiter, ${schlecht} nicht — der Grund steht an der Zeile.`);
+      toast.success(weiter);
     }
   }
 
@@ -736,6 +791,7 @@ export default function AdminOrdersView() {
             grosshaendler={grosshaendler}
             onGrosshaendlerGeaendert={() => setGhStand((n) => n + 1)}
             onLagerGeaendert={() => setLagerStand((n) => n + 1)}
+            onVeraltet={() => setNeuLaden((n) => n + 1)}
           />
         </>
       ) : (
@@ -1103,7 +1159,10 @@ export default function AdminOrdersView() {
           setEinkaufFragen(null);
           if (!f) return;
           try {
-            await aufEinkaufsliste(f.o.id, f.bei || null);
+            if (!(await aufEinkaufsliste(f.o.id, f.bei || null, f.o.status))) {
+              veraltet();
+              return;
+            }
             void postenNeuLaden();
             fehlerWeg(f.o.id);
             toast.success('Auf der Einkaufsliste');
@@ -1143,6 +1202,49 @@ export default function AdminOrdersView() {
           setToComplete(null);
         }}
       />
+
+      {/*
+        ABHOLBEREIT TROTZ FEHLBESTAND (Runde 7, R7-M2). „Status von Hand“
+        ging an der Lagerprüfung vorbei; jetzt prüft die Datenbank wie bei
+        „Aus Lager“. Wer trotzdem will — etwa weil die Ware schon im Bus
+        liegt —, sieht vorher die Zahlen und bestätigt in Rot: der Monteur
+        bekommt die Meldung, und das Lager zeigt danach den Fehlbestand. Die
+        Übersteuerung steht im Verlauf der Anforderung.
+      */}
+      <ConfirmDialog
+        open={!!fehlbestand}
+        title="Trotz Fehlbestand abholbereit?"
+        confirmLabel="Trotzdem abholbereit"
+        message={
+          fehlbestand
+            ? `Für „${fehlbestand.o.materialName}“ ist im Lager nicht genug frei. „Abholbereit“ meldet dem Monteur, dass er die Ware holen kann, und das Lager zeigt danach einen Fehlbestand. Die Übersteuerung steht im Verlauf der Anforderung. Sonst: „Nicht auf Lager“ setzt sie auf die Einkaufsliste.`
+            : ''
+        }
+        onCancel={() => setFehlbestand(null)}
+        onConfirm={async () => {
+          const f = fehlbestand;
+          setFehlbestand(null);
+          if (f) await setStatus(f.o, 'Abholbereit', true);
+        }}
+      >
+        {fehlbestand && (
+          <dl className="angaben">
+            {(
+              [
+                ['Im Regal', fehlbestand.stand.bestand],
+                ['Schon zugesagt', fehlbestand.stand.zugesagt],
+                ['Frei', Math.max(fehlbestand.stand.frei, 0)],
+                ['Angefordert', fehlbestand.stand.angefordert],
+              ] as const
+            ).map(([wort, zahl]) => (
+              <div className="angabe" key={wort}>
+                <dt>{wort}</dt>
+                <dd className="nr">{fmtMenge(zahl)} {fehlbestand.stand.einheit}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </ConfirmDialog>
 
       {/*
         DIE RÜCKFRAGE DER SAMMELAKTION. Sie nennt jede Abholung mit demselben

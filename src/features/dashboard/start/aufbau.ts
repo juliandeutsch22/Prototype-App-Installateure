@@ -663,6 +663,20 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: 'anlegen', ton: 'leise' },
     }));
   }
+  /*
+    EINMAL GEMELDET (Runde 7, 6.1): beim Update wurde der abgewählte Haken
+    „Im Firmenbuch eingetragen“ bei einer GmbH, AG, KG … zurückgesetzt. Die
+    Zeile bleibt, bis die Geschäftsführung es in den Firmendaten zur
+    Kenntnis nimmt.
+  */
+  if (d.firmenbuchKorrigiertAm) {
+    themen.push(wenn(ZIEL.einstellungen('firma'), {
+      key: 'firmenbuch-haken', wann: 'woche',
+      titel: '„Im Firmenbuch eingetragen“ wieder gesetzt',
+      detail: 'war abgewählt — bei dieser Rechtsform ist der Betrieb immer eingetragen',
+      status: { text: 'ansehen', ton: 'leise' },
+    }));
+  }
   if (firmaFehlt.length && !firmaSperrt) {
     themen.push(wenn(ZIEL.einstellungen('firma'), {
       key: 'firma', wann: 'woche',

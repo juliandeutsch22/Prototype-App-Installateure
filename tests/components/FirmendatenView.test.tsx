@@ -224,6 +224,70 @@ describe('Im Firmenbuch eingetragen', () => {
     zeige();
     expect(haken().checked).toBe(true);
   });
+
+  /* Runde 7, 6.1: bei GmbH, AG, KG … fest, mit dem Satz daneben. */
+  it('bei einer GmbH gesetzt und gesperrt — mit dem Satz, warum', () => {
+    firma = { ...firma, name: 'Perl Installationen GmbH' };
+    zeige();
+    expect(haken().checked).toBe(true);
+    expect(haken().disabled).toBe(true);
+    expect(screen.getByText(
+      'Eine GmbH ist immer im Firmenbuch eingetragen. Firmenbuchnummer und -gericht gehören auf jede Rechnung.',
+    )).toBeInTheDocument();
+  });
+
+  it('der Satz nennt die Rechtsform — und ein abgewählter Altwert zählt nicht', () => {
+    firma = { ...firma, name: 'Maier OG', imFirmenbuch: false };
+    zeige();
+    expect(haken().checked).toBe(true);
+    expect(haken().disabled).toBe(true);
+    expect(screen.getByText(/^Eine OG ist immer im Firmenbuch eingetragen\./)).toBeInTheDocument();
+  });
+
+  it('sperrt, sobald „GmbH“ ins Namensfeld getippt wird, und speichert dann keine eigene Angabe', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    expect(haken().disabled).toBe(false);
+    await nutzer.type(feld('Firmenname'), ' GmbH');
+    expect(haken().disabled).toBe(true);
+    expect(haken().checked).toBe(true);
+    await nutzer.click(speichern());
+    expect(updateCompany.mock.calls[0][1]).toMatchObject({ name: 'Perl Installationen GmbH', imFirmenbuch: null });
+  });
+
+  it('„GmbH i. G.“: frei, mit dem Hinweis zum Nachtragen — abwählbar', async () => {
+    firma = { ...firma, name: 'Perl Installationen GmbH i. G.' };
+    const nutzer = userEvent.setup();
+    zeige();
+    expect(haken().disabled).toBe(false);
+    expect(screen.getByText('Firmenbuchnummer nachtragen, sobald eingetragen.')).toBeInTheDocument();
+    await nutzer.click(haken());
+    await nutzer.click(speichern());
+    expect(updateCompany.mock.calls[0][1]).toMatchObject({ imFirmenbuch: false });
+  });
+
+  it('Gegenprobe: ein Einzelunternehmen ohne „e.U.“ bleibt frei, ohne Satz', () => {
+    zeige();
+    expect(haken().disabled).toBe(false);
+    expect(screen.queryByText(/ist immer im Firmenbuch eingetragen/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/nachtragen, sobald eingetragen/)).not.toBeInTheDocument();
+  });
+
+  it('meldet einmal, dass der Haken zurückgesetzt wurde — „Zur Kenntnis genommen“ nimmt die Meldung weg', async () => {
+    firma = { ...firma, name: 'Perl Installationen GmbH', firmenbuchKorrigiertAm: new Date(2026, 9, 31, 10).getTime() };
+    const nutzer = userEvent.setup();
+    zeige();
+    expect(screen.getByText(/war abgewählt und wurde am 31\.10\.2026 wieder gesetzt/)).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Zur Kenntnis genommen' }));
+    expect(updateCompany).toHaveBeenCalledWith('perl', { firmenbuchKorrigiertAm: null });
+    expect(reloadCompany).toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: ohne Rücksetzung keine Meldung', () => {
+    firma = { ...firma, name: 'Perl Installationen GmbH' };
+    zeige();
+    expect(screen.queryByRole('button', { name: 'Zur Kenntnis genommen' })).not.toBeInTheDocument();
+  });
 });
 
 /*

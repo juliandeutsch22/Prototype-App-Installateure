@@ -52,7 +52,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   },
   betriebsurlaube: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   buchungskonten: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
-  companies: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  companies: { created_at: 'zeitpunkt', firmenbuch_korrigiert_am: 'zeitpunkt', updated_at: 'zeitpunkt' },
   customers: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   datanorm_laeufe: { abgeschlossen_am: 'zeitpunkt', created_at: 'zeitpunkt' },
   einkauf_posten: {

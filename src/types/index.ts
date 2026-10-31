@@ -65,6 +65,12 @@ export interface Company {
    * ohne „e.U.“ im Namen.
    */
   imFirmenbuch?: boolean | null;
+  /**
+   * Wann der abgewählte Haken „Im Firmenbuch eingetragen“ bei einer GmbH,
+   * AG, KG … zurückgesetzt wurde (Runde 7, 6.1) — die Startseite meldet es
+   * der Geschäftsführung, bis sie es in den Firmendaten zur Kenntnis nimmt.
+   */
+  firmenbuchKorrigiertAm?: number | null;
   contactLine?: string; // "Tel · Mail · Web"
   iban?: string;
   bic?: string;
@@ -1072,6 +1078,21 @@ export interface FehlerEintrag {
   createdAt?: number;
 }
 
+/**
+ * Ein Eintrag im Protokoll „abholbereit trotz Fehlbestand“ — die Zahlen im
+ * Augenblick der Übersteuerung. `am` ist ein ISO-Zeitpunkt.
+ */
+export interface LagerUebersteuerung {
+  am: string;
+  von: string | null;
+  name: string | null;
+  bestand: number;
+  zugesagt: number;
+  frei: number;
+  angefordert: number;
+  einheit: string;
+}
+
 export interface MaterialOrder {
   id: string;
   companyId: string;
@@ -1122,6 +1143,11 @@ export interface MaterialOrder {
   abholbereitSeit?: number | null;
   /** Wann „Erledigt“ — setzt nur die Datenbank (seit 24.10.2026). */
   erledigtAm?: number | null;
+  /**
+   * Abholbereit trotz Fehlbestand (Runde 7, R7-M2) — je bewusster
+   * Übersteuerung ein Eintrag. Schreibt nur die Datenbank.
+   */
+  lagerUebersteuert?: LagerUebersteuerung[];
   createdAt?: number;
   updatedAt?: number;
 }
