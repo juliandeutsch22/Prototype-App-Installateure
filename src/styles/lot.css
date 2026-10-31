@@ -103,7 +103,7 @@
   .leer { padding: 1.25rem 1rem; color: var(--text-muted); font-size: 0.9375rem; }
 
   /* ── Arbeitszeile und Sammelleiste (Arbeitslisten) ────────────────────── */
-  .arbeitszeile { display: flex; align-items: center; gap: 0.75rem; min-height: 3.75rem; padding: 0.5rem 1rem 0.5rem 0.5rem; border-top: 1px solid var(--border); background: var(--surface); }
+  .arbeitszeile { display: flex; align-items: center; gap: 0.75rem; min-height: 3.75rem; padding: 0.5rem 1rem 0.5rem 0.5rem; border-top: 1px solid var(--border); background: transparent; }
   .arbeitszeile-ohne-wahl { width: 2.75rem; flex: none; }
   .arbeitszeile-wahl { display: flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; flex: none; cursor: pointer; }
   .arbeitszeile-inhalt { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.75rem; padding: 0.375rem 0; background: none; border: 0; text-align: left; color: inherit; cursor: pointer; }

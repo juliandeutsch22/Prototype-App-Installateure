@@ -841,7 +841,14 @@ textarea {
   .karte-buendig > .abschnitt:first-child { border-top: 0; }
   /* Unter dem Kopf einer bündigen Karte zieht schon der Körper die Linie (E7). */
   .karte-buendig > .kurz:first-child { border-top: 0; }
-  .karte { overflow: hidden; overflow: clip; background: var(--surface); border: 0; border-top: 1px solid var(--border); border-radius: 0; }
+  /*
+    KARTE, ZEILE UND UMSCHALTER LASSEN DAS RASTER DURCH (E32, 31.10.2026).
+    Als deckende Fläche legten sie Kästen auf das Zeichenblatt, deren Kanten
+    weder zum Raster noch zueinander passten — dunkel sichtbar, seit dem
+    Raster im hellen Satz auch dort. In Fenstern und Blättern trägt die
+    Fläche des Fensters.
+  */
+  .karte { overflow: hidden; overflow: clip; background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; }
   /*
     ABSTAND STATT LINIEN (E24, 25.10.2026). Jeder Abschnitt einer Seite begann
     mit einer Linie über der Karte, die bündige Karte zog eine zweite unter
@@ -863,6 +870,14 @@ textarea {
   @media (min-width: 760px) { .inhalt .karte:not(:is(.akten-seite, .start-seite, .plattform, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) { padding-top: 1.75rem; } }
   .inhalt .karte:not(:is(.akten-seite, .start-seite, .plattform, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) .karte-kopf .titel-karte { font-size: 1.125rem; line-height: 1.625rem; }
   .karte-koerper .zeile { padding-inline: 0; }
+  /*
+    DIE PLANUNGSFLÄCHE RAGT NICHT IN DEN RAND (E32). Eine Karte ragt um ihr
+    Polster hinaus, damit Zeilen beim Antippen links und rechts Luft haben.
+    Die Planung hat statt Zeilen ein Raster mit deckendem Kopf und
+    Namensspalte — die standen dadurch 16 px vor der Inhaltskante, neben
+    der Rasterlinie statt auf ihr.
+  */
+  .inhalt .karte.panel:has(.wp-huelle, .mo-ecke) { margin-inline: 0; }
   /*
     JEDE SEITE BEGINNT IHREN INHALT IM SELBEN ABSTAND ZUM KOPF (E31, 31.10.2026).
     Gemessen über alle Ansichten lag der erste Inhalt 20, 24, 60 oder 64 px
@@ -905,7 +920,7 @@ textarea {
     Gegenrand behalten die Tastfläche.
   */
   .karte-kopf > div > a { min-height: 0; padding-block: 0.875rem; margin-block: -0.875rem; }
-  .zeile { display: flex; align-items: center; gap: 0.75rem 1rem; min-height: 3.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: var(--surface); }
+  .zeile { display: flex; align-items: center; gap: 0.75rem 1rem; min-height: 3.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: transparent; }
   .zeile:first-child { border-top: 0; }
   .zeile-ganz { position: relative; cursor: pointer; }
   .zeile-ganz:hover { background: var(--petrol-hell); }
@@ -987,7 +1002,7 @@ textarea {
   .chip { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.75rem; padding: 0 0.125rem; border-bottom: 2px solid transparent; background: none; font-size: 0.875rem; font-weight: 400; color: var(--text-muted); white-space: nowrap; }
   .chip-an { color: var(--ink-deep); font-weight: var(--gewicht-titel); border-bottom-color: var(--petrol); }
   /* Ansichten und Filter tragen dieselbe ruhige Unterstreichung wie die Register. */
-  .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0.75rem; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0.75rem; border-bottom: 1px solid var(--border); background: transparent; }
   .segment > * { display: flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 0.375rem; text-align: center; hyphens: auto; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); border-bottom: 2px solid transparent; }
   @media (min-width: 760px) { .segment > * { padding: 0 0.625rem; } }
   .segment > .segment-an { color: var(--ink-deep); border-bottom-color: var(--petrol); font-weight: var(--gewicht-titel); }

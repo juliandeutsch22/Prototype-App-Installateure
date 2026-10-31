@@ -71,20 +71,63 @@ describe('B4 Lot in der Navigation', () => {
   });
 });
 
-describe('B12 Raster', () => {
-  it('nur auf Planung, Anmeldung und im dunklen Satz (Grenze 5)', () => {
-    // Das Raster ist ein Gitter aus zwei Verläufen mit harter 1-px-Kante.
+describe('B12 Raster — das Zeichenblatt der Arbeitsfläche (E32)', () => {
+  /*
+    BIS 30.10.2026 nur auf Planung, Anmeldung und im dunklen Satz (Grenze 5
+    der Planlinie). Auf Wunsch des Auftraggebers (31.10.2026) trägt die
+    Arbeitsfläche das Raster hell wie dunkel; die Planungstabelle hat kein
+    eigenes mehr, das an keiner Kante zu dem der Seite passte.
+  */
+  it('genau drei Gitter: Arbeitsfläche, Anmeldung und der Baustein zum Zeigen', () => {
     const mitGitter = ALLE_STILE.split('\n')
       .filter((z) => /linear-gradient\(var\([^)]+\) 1px, transparent 1px\), linear-gradient\(90deg/.test(z))
       .map((z) => z.trim().split(' {')[0]);
-    expect(mitGitter.sort()).toEqual([
-      '.anmelde-buehne',
-      '.raster',
-      ":root[data-theme='dark'] .hauptflaeche",
-    ]);
+    expect(mitGitter.sort()).toEqual(['.anmelde-buehne', '.hauptflaeche', '.raster']);
   });
 
-  it('die Klasse `raster` tragen nur die Planungsfläche und die Musterseite', () => {
+  it('hell wie dunkel, nur die Farbe der Linie wechselt — und an der Inhaltskante ausgerichtet', () => {
+    expect(PLANLINIE).toContain(':root { --raster-linie: var(--surface-2); }');
+    expect(PLANLINIE).toContain(":root[data-theme='dark'] { --raster-linie: var(--surface); }");
+    expect(PLANLINIE).not.toMatch(/data-theme='dark'\] \.hauptflaeche/);
+    // Die Polster von `.inhalt` (lot.css): 16, 24 bzw. 20, 40 bzw. 24 px.
+    expect(PLANLINIE).toContain('background-size: 24px 24px; background-position: 16px 16px; }');
+    expect(PLANLINIE).toContain('@media (min-width: 760px) { .hauptflaeche { background-position: 24px 20px; } }');
+    expect(PLANLINIE).toContain('@media (min-width: 1200px) { .hauptflaeche { background-position: 40px 24px; } }');
+    const lot = readFileSync('src/styles/lot.css', 'utf8');
+    expect(lot).toContain('.inhalt { padding: 1rem;');
+    expect(lot).toContain('@media (min-width: 760px) { .inhalt { padding: 1.25rem 1.5rem; } }');
+    expect(lot).toContain('@media (min-width: 1200px) { .inhalt { padding: 1.5rem 2.5rem; } }');
+  });
+
+  it('Karten, Zeilen und Listen legen keine deckende Fläche aufs Raster', () => {
+    const INDEX = readFileSync('src/index.css', 'utf8');
+    expect(INDEX).toMatch(/\n {2}\.karte \{[^}]*background: transparent;/);
+    expect(INDEX).toMatch(/\n {2}\.zeile \{[^}]*background: transparent;/);
+    expect(INDEX).toMatch(/\n {2}\.segment \{[^}]*background: transparent;/);
+    expect(readFileSync('src/styles/lot.css', 'utf8')).toMatch(/\.arbeitszeile \{[^}]*background: transparent;/);
+    const ue = stil('lot-uebersicht.css');
+    for (const k of ['.ue-liste', '.ue-liste-woche', '.ue-vergleich', '.ue-zeile', '.mw-zeile', '.mw-zelle-frei']) {
+      expect(ue, k).toMatch(new RegExp(`\\n {2}\\${k} \\{[^}]*background: transparent;`));
+    }
+    expect(stil('lot-akten.css')).toMatch(/\.akten-kontext \{[^}]*background-color: transparent;/);
+  });
+
+  it('Gegenprobe: was beim Rollen stehen bleibt, deckt weiter — als Band mit eigener Linie', () => {
+    const planung = stil('lot-planung.css');
+    for (const k of ['.wp-ecke', '.wp-name']) {
+      expect(planung, k).toMatch(new RegExp(`\\${k} \\{[^}]*position: sticky;[^}]*background: var\\(--surface\\);`));
+    }
+    expect(planung).toMatch(/\.wp-kopf \{ background: var\(--surface\); \}/);
+  });
+
+  it('die Planungstabelle schließt oben mit einer Linie und steht an der Inhaltskante', () => {
+    expect(stil('lot-planung.css')).toContain('.wp-huelle { display: block; overflow: auto; max-height: 74vh; border-top: 1px solid var(--border); }');
+    expect(stil('lot-monat.css')).toContain('.mo-raster { display: block; border-top: 1px solid var(--border); }');
+    // Ohne diese Regel ragt die Karte um ihr Polster in den Rand (−1rem).
+    expect(readFileSync('src/index.css', 'utf8')).toContain('.inhalt .karte.panel:has(.wp-huelle, .mo-ecke) { margin-inline: 0; }');
+  });
+
+  it('die Klasse `raster` trägt nur noch die Musterseite', () => {
     // Als Klasse im Text einer Klassenliste — nicht die Variable `const raster = …`.
     const dateien: string[] = [];
     const gehe = (ordner: string) => {
@@ -95,10 +138,7 @@ describe('B12 Raster', () => {
       }
     };
     gehe('src');
-    expect(dateien.sort()).toEqual([
-      'src/features/assignments/WochenRaster.tsx',
-      'src/features/muster/MusterPlanlinie.tsx',
-    ]);
+    expect(dateien.sort()).toEqual(['src/features/muster/MusterPlanlinie.tsx']);
   });
 });
 

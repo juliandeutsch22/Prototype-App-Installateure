@@ -289,7 +289,7 @@ describe('Wochenplan — wer ist wo', () => {
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
     const tab = screen.getByRole('table', { name: 'Wochenplan als Tabelle' });
-    expect(tab.className).toBe('wp-raster-5 raster');
+    expect(tab.className).toBe('wp-raster-5');
     const spalten = Array.from(tab.querySelectorAll('col')).map((c) => c.className);
     expect(spalten).toEqual([
       'wp-spalte-name',
@@ -307,7 +307,7 @@ describe('Wochenplan — wer ist wo', () => {
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
     const tab = screen.getByRole('table', { name: 'Wochenplan als Tabelle' });
-    await waitFor(() => expect(tab.className).toBe('wp-raster-7 raster'));
+    await waitFor(() => expect(tab.className).toBe('wp-raster-7'));
     expect(Array.from(tab.querySelectorAll('col')).every((c, i) => i === 0 || c.className === 'wp-spalte-tag')).toBe(true);
     expect(within(tabelle().getByRole('row', { name: /Max Mustermann/ })).getByText('Familie Huber')).toBeInTheDocument();
   });

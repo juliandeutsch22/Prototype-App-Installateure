@@ -262,7 +262,7 @@
   .masskette-zeit-ende { transform: translateX(-100%); }
 
   /* ── B12 Raster ───────────────────────────────────────────────────────── */
-  /* Nur drei Orte: Planungsfläche (16 px), Anmeldung, dunkle Hauptfläche (24 px). */
+  /* Ein Baustein zum Zeigen (/_muster) und die Bühne der Anmeldung; die Arbeitsfläche trägt ihr Raster selbst (E32). */
   .raster { background-image: linear-gradient(var(--surface-2) 1px, transparent 1px), linear-gradient(90deg, var(--surface-2) 1px, transparent 1px); background-size: 16px 16px; }
 
   /* ── B9 Modulskizze ───────────────────────────────────────────────────── */
@@ -274,10 +274,25 @@
 
 
 /*
-  DUNKEL = BLAUPAUSE (Planlinie § 5): die Hauptfläche trägt im dunklen Satz
-  ein Raster von 24 px in der Farbe der Flächen — helle Petrol-Konturen auf
-  dunklem Grund wie auf einer Blaupause. Hell bleibt die Fläche ruhig.
+  DAS RASTER IST DAS ZEICHENBLATT DER ARBEITSFLÄCHE (E32, 31.10.2026) — hell
+  wie dunkel, auf Wunsch des Auftraggebers. Vorher trug nur der dunkle Satz
+  ein Raster, und Karten, Zeilen und die Planungstabelle legten deckende
+  Kästen mit einem zweiten, feineren Raster darauf: Kanten, die weder zum
+  Raster noch zueinander passten. Jetzt gibt es ein Raster (24 px) unter
+  allem; die Flächen darauf lassen es durch (index.css), deckend bleiben nur
+  Bedienelemente, Fenster und die Bänder, die beim Rollen stehen bleiben.
+
+  AN DER INHALTSKANTE AUSGERICHTET: die erste Linie liegt dort, wo Ortszeile,
+  Titel und Listen beginnen (Polster von `.inhalt`: 16, 24, 40 px), damit
+  Kanten auf einer Linie stehen statt knapp daneben.
+
+  Hell in der Farbe der zweiten Fläche, dunkel in der Farbe der Fläche —
+  beides kaum heller als der Grund.
 */
 @layer components {
-  :root[data-theme='dark'] .hauptflaeche { background-image: linear-gradient(var(--surface) 1px, transparent 1px), linear-gradient(90deg, var(--surface) 1px, transparent 1px); background-size: 24px 24px; }
+  :root { --raster-linie: var(--surface-2); }
+  :root[data-theme='dark'] { --raster-linie: var(--surface); }
+  .hauptflaeche { background-color: var(--bg); background-image: linear-gradient(var(--raster-linie) 1px, transparent 1px), linear-gradient(90deg, var(--raster-linie) 1px, transparent 1px); background-size: 24px 24px; background-position: 16px 16px; }
+  @media (min-width: 760px) { .hauptflaeche { background-position: 24px 20px; } }
+  @media (min-width: 1200px) { .hauptflaeche { background-position: 40px 24px; } }
 }

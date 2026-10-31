@@ -206,12 +206,12 @@ const RASTER = ['wp-raster-0', 'wp-raster-1', 'wp-raster-2', 'wp-raster-3', 'wp-
 const rasterKlasse = (g: RasterGrund) => RASTER[Math.max(0, Math.min(7, g.tage.length - g.schmal.size))];
 
 /*
-  DAS RASTER DER PLANUNGSFLÄCHE (Planlinie, B12) liegt unter der Tabelle —
-  der eine Akzent der Seite, darum keine Skizze im Seitenkopf. Die Zellen
-  sind durchsichtig; Kopf und Namensspalte decken es ab, weil sie beim
-  Rollen stehen bleiben.
+  DAS RASTER DER PLANUNGSFLÄCHE ist seit E32 das Raster der ganzen
+  Arbeitsfläche: die Zellen sind durchsichtig, Kopf und Namensspalte
+  decken als Bänder, weil sie beim Rollen stehen bleiben. Ein eigenes,
+  feineres Raster in der Tabelle traf das der Seite an keiner Kante.
 */
-const tabellenKlasse = (g: RasterGrund) => `${rasterKlasse(g)} raster`;
+const tabellenKlasse = (g: RasterGrund) => rasterKlasse(g);
 
 /**
  * PERSONEN × TAGE. Eine leere Zelle ist leer; ein Klick darauf öffnet

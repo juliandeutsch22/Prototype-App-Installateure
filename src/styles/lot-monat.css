@@ -15,7 +15,8 @@
     Schreibtisch) und ein Inline-Stil keine Breitenabfrage kennt.
   */
   .mo-raster { display: none; }
-  @media (min-width: 760px) { .mo-raster { display: block; } }
+  /* Oben dieselbe Linie wie die Wochenhülle (E32). */
+  @media (min-width: 760px) { .mo-raster { display: block; border-top: 1px solid var(--border); } }
 
   .mo-kopfzeile-28, .mo-kopfzeile-29, .mo-kopfzeile-30, .mo-kopfzeile-31 { position: sticky; top: 0; z-index: 3; display: grid; background: var(--surface); border-bottom: 1px solid var(--border-strong); }
   .mo-zeile-28, .mo-zeile-29, .mo-zeile-30, .mo-zeile-31 { display: grid; grid-auto-rows: minmax(2.125rem, auto); border-bottom: 1px solid var(--border); }
