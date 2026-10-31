@@ -15,12 +15,12 @@
 
 /* Nur die Startseite erhält den Tageskontext; Navigation und Fachansichten bleiben unverändert. */
 @layer components {
-  .start-kopf { padding-bottom: 0.5rem; }
+  /* Ohne eigenes Polster unter dem Kopf: die Startseite beginnt ihren Inhalt im selben Abstand wie jede Seite (E31). */
+  .start-kopf { padding-bottom: 0; }
   .start-kopf .seitenkopf-meta { font-size: 0.75rem; line-height: 1.5rem; }
   .start-hauptaktion { display: inline-flex; justify-content: center; align-items: center; min-height: 3rem; padding: 0.625rem 1.125rem; border-radius: var(--radius); background: var(--brand); color: var(--brand-fg); font-size: 0.875rem; font-weight: var(--gewicht-titel); text-align: center; }
   .start-planaktion { display: none; flex: none; }
-  .start-rahmen { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1.75rem; padding-top: 0.5rem; }
-  .start-einspaltig { padding-top: 0.5rem; }
+  .start-rahmen { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1.75rem; }
   .start-arbeit { min-width: 0; display: flex; flex-direction: column; gap: 1.5rem; }
   /*
     DIE MANNSCHAFT OHNE GRAUEN KASTEN (Planlinie, E30). Der Akzent der

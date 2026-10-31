@@ -63,7 +63,8 @@
     ihre Breite.
   */
   .inhalt:has(.einsatzplanung) { max-width: none; }
-  .einsatzplanung { display: flex; flex-direction: column; gap: 1rem; }
+  /* 12 px wie unter jedem Seitenkopf (E31), ab 1200 px 20 px. */
+  .einsatzplanung { display: flex; flex-direction: column; gap: 0.75rem; }
   @media (min-width: 1200px) { .einsatzplanung { gap: 1.25rem; } }
 
   /* Ein Knopf, der wie ein Verweis aussieht — für Nebenwege in Zeilen. */

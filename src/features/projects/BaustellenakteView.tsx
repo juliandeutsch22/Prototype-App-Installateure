@@ -454,7 +454,7 @@ export default function BaustellenakteView() {
   return (
     <div className="akten-seite">
       {warnung}
-      <AktenKopf art="Baustelle" zurueck="/admin-projects" zurueckText="Zur Baustellenliste"
+      <AktenKopf zurueck="/admin-projects" zurueckText="Zur Baustellenliste"
         /*
           DER AKTENKOPF ALS PLANKOPF (E30): die Nummer als Stempel neben dem
           Titel, darunter die Anschrift; Abrechnung, Beginn, Ende und Stand im

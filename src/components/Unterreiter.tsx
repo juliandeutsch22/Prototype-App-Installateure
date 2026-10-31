@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { UnterreiterAnmeldung, UnterreiterLeiste } from './unterreiterLeiste';
 import { useAuth } from '@/app/AuthContext';
 import { unterseitenFuer } from '@/app/navigation';
 import { useReiterImBild } from './reiterImBild';
@@ -56,27 +57,37 @@ export default function Unterreiter({
   */
   const leiste = useReiterImBild<HTMLElement>(aktiv);
 
+  /*
+    WIE VIELE SEITENKÖPFE DIE LEISTE TRAGEN. Steht einer, zeichnet er die
+    Leiste unter sich (E31): vorher stand sie darüber, und die Überschrift
+    der Einstellungen begann 117 px tiefer als auf jeder anderen Seite. Ohne
+    Kopf (eine Unterseite, die keinen hat) steht sie wie bisher oben.
+  */
+  const [koepfe, setKoepfe] = useState(0);
+  const anmelden = useCallback(() => {
+    setKoepfe((n) => n + 1);
+    return () => setKoepfe((n) => n - 1);
+  }, []);
+
   // Kann diese Rolle gar nichts davon sehen, ist der Reiter für sie falsch
   // zusammengesetzt. Zurück zur Startseite ist die einzige ehrliche Antwort.
   if (sichtbar.length === 0) return <Navigate to="/" replace />;
 
   const ziel = `${basis}/${sichtbar[0].pfad}`;
 
-  return (
-    <div>
-      {/*
-        Bei nur einer Unterseite keine Leiste: ein Reiter, der genau eine
-        Wahlmöglichkeit anbietet, ist keine Navigation, sondern Zierrat. Der
-        Monteur sieht unter „Einstellungen" nur seine Meldungen — und damit
-        einfach diese Seite.
+  /*
+    Bei nur einer Unterseite keine Leiste: ein Reiter, der genau eine
+    Wahlmöglichkeit anbietet, ist keine Navigation, sondern Zierrat. Der
+    Monteur sieht unter „Einstellungen" nur seine Meldungen — und damit
+    einfach diese Seite.
 
-        KEINE AUSWAHLLISTE MEHR AM TELEFON. Mit Paket 6 stand dort ab vier
-        Unterseiten ein Feld „Bereich" statt der Reiter. Aus dem Betrieb
-        (24.09.2026): passt nicht zum Rest der App — Material, Lager und
-        Urlaub tragen am Telefon Reiter, die seitlich laufen. Dasselbe gilt
-        jetzt hier; der gewählte Reiter bleibt dabei im Bild.
-      */}
-      {sichtbar.length > 1 && !ohneLeiste && (
+    KEINE AUSWAHLLISTE MEHR AM TELEFON. Mit Paket 6 stand dort ab vier
+    Unterseiten ein Feld „Bereich" statt der Reiter. Aus dem Betrieb
+    (24.09.2026): passt nicht zum Rest der App — Material, Lager und
+    Urlaub tragen am Telefon Reiter, die seitlich laufen. Dasselbe gilt
+    jetzt hier; der gewählte Reiter bleibt dabei im Bild.
+  */
+  const reiter = sichtbar.length > 1 && !ohneLeiste ? (
         <nav
           ref={leiste}
           /*
@@ -119,21 +130,29 @@ export default function Unterreiter({
             </NavLink>
           ))}
         </nav>
-      )}
+  ) : null;
 
-      <Routes>
-        {sichtbar.map((s) => (
-          <Route key={s.pfad} path={s.pfad} element={elemente[s.pfad] ?? null} />
-        ))}
-        {/*
-          Alles andere auf die erste erlaubte Unterseite: das trifft den
-          nackten Reiterpfad (/material) genauso wie eine Unterseite, die
-          diese Rolle nicht sehen darf (/settings/module als Monteur). Umleiten
-          ist hier richtiger als „Kein Zugriff" — der Benutzer hat nichts
-          Verbotenes versucht, er hat einen Link angeklickt.
-        */}
-        <Route path="*" element={<Navigate to={ziel} replace />} />
-      </Routes>
+  return (
+    <div>
+      {koepfe === 0 && reiter}
+
+      <UnterreiterLeiste.Provider value={reiter}>
+        <UnterreiterAnmeldung.Provider value={anmelden}>
+          <Routes>
+            {sichtbar.map((s) => (
+              <Route key={s.pfad} path={s.pfad} element={elemente[s.pfad] ?? null} />
+            ))}
+            {/*
+              Alles andere auf die erste erlaubte Unterseite: das trifft den
+              nackten Reiterpfad (/material) genauso wie eine Unterseite, die
+              diese Rolle nicht sehen darf (/settings/module als Monteur). Umleiten
+              ist hier richtiger als „Kein Zugriff" — der Benutzer hat nichts
+              Verbotenes versucht, er hat einen Link angeklickt.
+            */}
+            <Route path="*" element={<Navigate to={ziel} replace />} />
+          </Routes>
+        </UnterreiterAnmeldung.Provider>
+      </UnterreiterLeiste.Provider>
     </div>
   );
 }

@@ -205,3 +205,39 @@ describe('Unterreiter', () => {
     expect(await screen.findByText('Module-Inhalt')).toBeInTheDocument();
   });
 });
+
+/*
+  DIE LEISTE UNTER DEM KOPF DER UNTERSEITE (E31, 31.10.2026). Stand sie über
+  dem Seitenkopf, begann die Überschrift der Einstellungen 117 px tiefer als
+  auf jeder anderen Seite.
+*/
+describe('Unterreiter — Leiste unter dem Seitenkopf (E31)', () => {
+  it('trägt eine Unterseite einen Seitenkopf, steht die Leiste darin, unter dem Titel', async () => {
+    rolle = 'Geschäftsführung';
+    const { default: PageHeader } = await import('@/components/PageHeader');
+    render(
+      <MemoryRouter initialEntries={['/settings/meldungen']}>
+        <Routes>
+          <Route
+            path="/settings/*"
+            element={<Unterreiter basis="/settings" elemente={{ ...ELEMENTE, meldungen: <><PageHeader title="Meldungen" /><p>Meldungen-Inhalt</p></> }} />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    const leisten = screen.getAllByRole('navigation', { name: 'Bereiche' });
+    expect(leisten).toHaveLength(1);
+    const kopf = screen.getByRole('heading', { level: 1, name: 'Meldungen' }).closest('.plankopf')!;
+    expect(kopf).toContainElement(leisten[0]);
+    // Der Titel steht vor der Leiste.
+    expect(screen.getByRole('heading', { level: 1 }).compareDocumentPosition(leisten[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('Gegenprobe: ohne Seitenkopf auf der Unterseite steht die Leiste wie bisher oben', () => {
+    rolle = 'Geschäftsführung';
+    zeige('/settings/meldungen');
+    const leiste = screen.getByRole('navigation', { name: 'Bereiche' });
+    expect(leiste.closest('.plankopf')).toBeNull();
+    expect(leiste.compareDocumentPosition(screen.getByText('Meldungen-Inhalt')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
