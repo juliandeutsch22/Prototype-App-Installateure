@@ -252,3 +252,62 @@ describe('Startansicht vorladen', () => {
     expect(zeit.laden).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('Ein Baustein, der nie ankommt (01.11.2026: „lädt beim Seitenwechsel gar nicht mehr“)', () => {
+  /** Ein Abruf auf einer halb toten Verbindung: weder Antwort noch Fehler. */
+  const nie = () => vi.fn(() => new Promise<Modul>(() => undefined));
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('der Seitenwechsel endet nach der Frist als Nachladefehler — die Fehlergrenze lädt neu', async () => {
+    vi.useFakeTimers();
+    const { istNachladeFehler } = await import('@/lib/nachladen');
+    const laden = nie();
+    const Zeit = A.ansicht('/time', laden);
+    const gefangen: Error[] = [];
+    const { Component } = await import('react');
+    class Grenze extends Component<{ children: JSX.Element }, { e: Error | null }> {
+      state = { e: null as Error | null };
+      static getDerivedStateFromError(e: Error) { return { e }; }
+      componentDidCatch(e: Error) { gefangen.push(e); }
+      render() { return this.state.e ? <p>Fehlergrenze</p> : this.props.children; }
+    }
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    render(<Grenze><Suspense fallback={<p>wartet</p>}><Zeit /></Suspense></Grenze>);
+    expect(A.nurHintergrundLaedt()).toBe(false);
+    await act(async () => { await vi.advanceTimersByTimeAsync(A.BAUSTEIN_FRIST_MS - 1000); });
+    expect(screen.getByText('wartet')).toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    expect(screen.getByText('Fehlergrenze')).toBeInTheDocument();
+    expect(istNachladeFehler(gefangen[0])).toBe(true);
+    // Der Wechsel wartet nicht mehr: kein ewiger Ladebalken.
+    expect(A.nurHintergrundLaedt()).toBe(false);
+  });
+
+  it('ein hängendes Vorladen hört nach der Frist auf und blockiert den Menüpunkt nicht — das Öffnen holt neu', async () => {
+    vi.useFakeTimers();
+    const laden = nie();
+    A.ansicht('/time', laden);
+    let fertig = false;
+    A.vorladen(['/time']).then(() => { fertig = true; });
+    await vi.advanceTimersByTimeAsync(A.BAUSTEIN_FRIST_MS + 10);
+    expect(fertig).toBe(true);
+    expect(A.nurHintergrundLaedt()).toBe(false);
+    // Nichts Hängendes gemerkt: der nächste Versuch holt neu.
+    void A.vorladen(['/time']);
+    expect(laden).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(A.BAUSTEIN_FRIST_MS + 10);
+  });
+
+  it('gleich geblieben: ein Baustein, der innerhalb der Frist kommt, wird wie bisher gezeigt', async () => {
+    vi.useFakeTimers();
+    const zeit = steuerbar('Zeiterfassung');
+    const Zeit = A.ansicht('/time', zeit.laden);
+    render(<Suspense fallback={<p>wartet</p>}><Zeit /></Suspense>);
+    await act(async () => { await vi.advanceTimersByTimeAsync(A.BAUSTEIN_FRIST_MS - 5000); });
+    await zeit.kommt();
+    expect(screen.getByText('Zeiterfassung')).toBeInTheDocument();
+  });
+});

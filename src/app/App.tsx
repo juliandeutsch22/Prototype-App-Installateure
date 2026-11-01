@@ -312,8 +312,9 @@ function AppInhalt() {
             <RequireAuth>
               <Layout>
                 {/* Fehlergrenze INNERHALB des Layouts: schlägt eine Ansicht
-                    fehl, bleibt die Navigation bedienbar. */}
-                <ErrorBoundary>
+                    fehl, bleibt die Navigation bedienbar — und ein Tipp auf
+                    einen anderen Menüpunkt beginnt dort ohne die Tafel. */}
+                <ErrorBoundary zuruecksetzenBei={ort.pathname}>
                   {/*
                     Die Wartegrenze liegt ebenfalls INNERHALB des Layouts.
                     Läge sie außen, verschwände beim Wechsel zwischen zwei

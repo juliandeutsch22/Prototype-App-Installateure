@@ -686,12 +686,32 @@
       (seit dem 30. Oktober, „Planlinie“); Fachregeln und Berechtigungen bleiben erhalten.
     </p>
     <div class="stempel">
-      <span>Stand <b>31.10.2026</b></span>
+      <span>Stand <b>01.11.2026</b></span>
       <span>Fassung <b>Lot v2 · bestätigt</b></span>
-      <span>Automatische Prüfungen <b>6.165 Modulprüfungen · 140 Browserwege · 7 Linkprüfungen</b></span>
+      <span>Automatische Prüfungen <b>6.192 Modulprüfungen · 142 Browserwege · 7 Linkprüfungen</b></span>
       <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
     </div>
   </header>
+
+  <section id="stillstand">
+    <div class="abschnittskopf">
+      <h2>1. November: Kein endloses Laden mehr beim Seitenwechsel</h2>
+      <p class="frage">Manchmal lud eine Seite sehr lange oder gar nicht, scheinbar willkürlich beim Wechseln im Menü. Ursache war eine Anfrage, die auf einer schlechten Verbindung stehen blieb — und auf die dann alle weiteren warteten.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Eine stehende Verbindung wird erkannt<span class="neu">behoben</span></h3>
+        <p>Kommt die Antwort auf eine Abfrage nicht (am Telefon etwa nach dem Aufwecken oder beim Wechsel vom WLAN ins Mobilnetz), versucht die App es nach kurzer Zeit über eine frische Verbindung neu. Meist erscheint die Seite dann von selbst; bleibt das Netz weg, steht „Keine Verbindung zum Server — bitte noch einmal, sobald das Netz wieder da ist.“ statt eines Ladebalkens ohne Ende. Große Listen dürfen so lange laden, wie Daten ankommen. Die Anmeldung erneuert sich wie bisher von selbst; hängt das, wird es nach 8 Sekunden wiederholt.</p>
+        <p>Speichern wird dabei nie abgebrochen: ein Speichervorgang kann auf dem Server schon angekommen sein, und ein zweiter Versuch legte ihn doppelt an. Was ohne Empfang gebucht wird, wartet wie bisher im Gerät und geht nach, sobald das Netz da ist.</p>
+        <p class="wer">alle</p>
+      </div>
+      <div class="bereich">
+        <h3>Eine Seite, die nicht nachkommt<span class="neu">behoben</span></h3>
+        <p>Kommt eine Seite der App selbst nicht übers Netz, blieb bisher die alte Seite stehen, auch bei jedem weiteren Tipp auf denselben Menüpunkt. Jetzt lädt die App nach spätestens 45 Sekunden neu und holt die Seite frisch. Und erscheint einmal die Tafel „Da ist etwas schiefgelaufen“, gilt sie nur für diese Seite: ein anderer Menüpunkt öffnet sich wieder normal.</p>
+        <p class="wer">alle</p>
+      </div>
+    </div>
+  </section>
 
   <section id="seitenbeginn">
     <div class="abschnittskopf">
@@ -4015,8 +4035,8 @@
 
   <footer class="fuss">
     <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
-    <span>Automatische Prüfungen: 6.165 Modulprüfungen · 140 Browserwege · 7 Linkprüfungen</span>
-    <span>Stand 31.10.2026</span>
+    <span>Automatische Prüfungen: 6.192 Modulprüfungen · 142 Browserwege · 7 Linkprüfungen</span>
+    <span>Stand 01.11.2026</span>
   </footer>
 
 </div>

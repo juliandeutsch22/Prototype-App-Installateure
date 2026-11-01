@@ -12,6 +12,14 @@ interface Props {
    * braucht deshalb eine Anmeldung — dort stünde ein Knopf, der nur scheitert.
    */
   ohneMelden?: boolean;
+  /**
+   * Ändert sich dieser Wert (die Adresse), beginnt die Grenze von vorn.
+   * Vorher blieb die Fehlertafel nach EINEM Fehler auf jedem weiteren
+   * Menüpunkt stehen, bis jemand „Erneut versuchen“ fand — für den Benutzer
+   * hieß das „es geht gar nichts mehr“ (01.11.2026). Ein Neuladen, das schon
+   * läuft, bleibt davon unberührt.
+   */
+  zuruecksetzenBei?: string;
 }
 interface State {
   error: Error | null;
@@ -41,6 +49,16 @@ export default class ErrorBoundary extends Component<Props, State> {
     // Ein Nachladefehler heilt gleich durch ein Neuladen. Bis dahin gehört
     // hier KEINE Alarmtafel hin — sie wäre eine Sekunde später ohnehin weg.
     return { error, laedtNeu: istNachladeFehler(error) };
+  }
+
+  componentDidUpdate(vorher: Props) {
+    if (
+      vorher.zuruecksetzenBei !== this.props.zuruecksetzenBei &&
+      this.state.error &&
+      !this.state.laedtNeu
+    ) {
+      this.setState({ error: null });
+    }
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {

@@ -302,11 +302,78 @@ function istStartseiteStattBaustein(url, res) {
   return /\.(js|mjs|css)$/.test(url.pathname) && typ.includes('text/html');
 }
 
+/*
+ * EIN BAUSTEIN, DESSEN ABRUF STILLSTEHT, ENDET (01.11.2026: „lädt beim
+ * Seitenwechsel manchmal gar nicht mehr“). Ohne Frist wartete der Abruf auf
+ * einer halb toten Verbindung, bis der Browser aufgab — am Telefon Minuten
+ * oder nie, und die Seite blieb so lange auf der alten stehen. Abgebrochen
+ * wird nur bei STILLSTAND: keine Antwort binnen der Frist, oder mitten im
+ * Rumpf keine Daten mehr. Was fließt, darf dauern. Der Abbruch ist für die
+ * Seite ein gescheitertes Nachladen, und das heilt sie durch Neuladen.
+ */
+const BAUSTEIN_STILLSTAND_MS = 20000;
+
+async function holenBisStillstand(request) {
+  const steuer = new AbortController();
+  let uhr = setTimeout(() => steuer.abort(), BAUSTEIN_STILLSTAND_MS);
+  let res;
+  try {
+    res = await fetch(request, { signal: steuer.signal });
+  } finally {
+    clearTimeout(uhr);
+  }
+  if (!res.body) return res;
+  const leser = res.body.getReader();
+  let zu = false;
+  const rumpf = new ReadableStream({
+    pull(ziel) {
+      return new Promise((fertig) => {
+        uhr = setTimeout(() => {
+          if (zu) return;
+          zu = true;
+          steuer.abort();
+          leser.cancel().catch(() => undefined);
+          ziel.error(new TypeError('Failed to fetch — der Baustein stand still'));
+          fertig();
+        }, BAUSTEIN_STILLSTAND_MS);
+        leser.read().then(
+          ({ done, value }) => {
+            clearTimeout(uhr);
+            if (!zu) {
+              if (done) {
+                zu = true;
+                ziel.close();
+              } else {
+                ziel.enqueue(value);
+              }
+            }
+            fertig();
+          },
+          (fehler) => {
+            clearTimeout(uhr);
+            if (!zu) {
+              zu = true;
+              ziel.error(fehler);
+            }
+            fertig();
+          },
+        );
+      });
+    },
+    cancel(grund) {
+      zu = true;
+      clearTimeout(uhr);
+      return leser.cancel(grund);
+    },
+  });
+  return new Response(rumpf, { status: res.status, statusText: res.statusText, headers: res.headers });
+}
+
 async function erstSpeicherDannNetz(event, request, url) {
   const c = await caches.open(TEILE);
   const treffer = await c.match(request);
   if (treffer) return treffer;
-  const res = await fetch(request);
+  const res = await holenBisStillstand(request);
 
   if (istStartseiteStattBaustein(url, res)) {
     /*
@@ -337,8 +404,12 @@ async function erstSpeicherDannNetz(event, request, url) {
   }
 
   // Nur vollständige Antworten aufheben. Ein abgebrochener Download als
-  // „gespeichert" wäre eine kaputte Datei, die nie wieder erneuert würde.
-  if (res.ok && res.status === 200) await c.put(request, res.clone());
+  // „gespeichert" wäre eine kaputte Datei, die nie wieder erneuert würde —
+  // `put` liest den Rumpf ganz und legt bei einem Abbruch nichts ab.
+  // NEBENHER, nicht davor: die Seite bekommt ihren Baustein, sobald er
+  // fließt, und ein volles Speicherkontingent (iOS) lässt den Abruf nicht
+  // mehr scheitern, sondern nur das Vorhalten.
+  if (res.ok && res.status === 200) event.waitUntil(c.put(request, res.clone()).catch(() => undefined));
   return res;
 }
 

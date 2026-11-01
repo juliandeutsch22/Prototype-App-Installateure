@@ -28,7 +28,7 @@ import { benutzerSpurenLoeschen } from '@/lib/speicher';
 import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 import { getCompany } from '@/lib/db/company';
 import { applyBranding } from '@/lib/tenant';
-import { mitFristOder } from '@/lib/frist';
+import { mitFrist, mitFristOder } from '@/lib/frist';
 import type { CurrentUser, Company } from '@/types';
 import { offeneFreigaben, zugriffMelden, type OffeneFreigabe } from '@/lib/db/support';
 import { ausgangsfachKonto } from '@/lib/db/pg/ohneEmpfang';
@@ -45,6 +45,14 @@ import { einblickNurLesend } from '@/lib/fehlerGrund';
  * toten Verbindung sitzt, hiess das „lädt gar nicht" — unbegrenzt.
  */
 const START_FRIST_MS = 8000;
+/*
+  DAS PROFIL VOM SERVER beim Start ohne gemerkten Stand (erste Anmeldung auf
+  diesem Gerät): ohne Frist stand „Anmeldung wird geprüft …“ auf einer toten
+  Verbindung beliebig lange (01.11.2026). 30 s lassen dem Netz und einer
+  Wiederholung über eine frische Verbindung Zeit (`lib/netzFrist.ts`);
+  danach kommt die Meldung, die zum Erneut-Versuchen auffordert.
+*/
+const PROFIL_FRIST_MS = 30_000;
 
 /**
  * Die zuletzt bekannte Firma je Anmeldung.
@@ -389,7 +397,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          * irgendetwas erschien. Auf dem Telefon im Keller ist das der
          * Unterschied zwischen „kurz" und „lange".
          */
-        const [profile, firmaVorab] = await (vomServer ?? serverStand());
+        const [profile, firmaVorab] = await mitFrist(vomServer ?? serverStand(), PROFIL_FRIST_MS);
 
         if (!profile) {
           /*

@@ -11,6 +11,7 @@
  * variablen zu setzen, wo gar keine Verbindung aufgebaut wird.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { fetchMitFrist } from './netzFrist';
 
 let gemerkt: SupabaseClient | null = null;
 
@@ -98,6 +99,12 @@ export function supabaseClient(): SupabaseClient {
   }
 
   gemerkt = createClient(url, schluessel, {
+    /*
+      JEDER ZUGRIFF ÜBER DIESES FETCH — Datenbank, Dateiablage, Anmeldedienst.
+      Lesen und die Erneuerung der Sitzung enden bei Stillstand, statt die
+      App endlos warten zu lassen; Schreiben bleibt unberührt (`netzFrist.ts`).
+    */
+    global: { fetch: fetchMitFrist() },
     auth: {
       // Die Sitzung überlebt den Neustart der App — wie bei Firebase Auth.
       // WO sie liegt, entscheidet `sitzungsSpeicher` bei jedem Zugriff neu.
@@ -124,6 +131,7 @@ export function supabaseClient(): SupabaseClient {
  */
 export function pruefClient(): SupabaseClient {
   return createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY, {
+    global: { fetch: fetchMitFrist() },
     auth: {
       persistSession: false,
       autoRefreshToken: false,

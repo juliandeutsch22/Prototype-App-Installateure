@@ -205,3 +205,46 @@ describe('Ins Fehlerprotokoll', () => {
     expect(screen.queryByRole('button', { name: 'Problem melden' })).toBeNull();
   });
 });
+
+describe('Ein anderer Menüpunkt beginnt ohne die Tafel (01.11.2026)', () => {
+  function Seite({ pfad, kaputt }: { pfad: string; kaputt: boolean }) {
+    return (
+      <ErrorBoundary zuruecksetzenBei={pfad}>
+        {kaputt ? <Wirft fehler={new TypeError('irgendwas anderes')} /> : <p>Seite {pfad}</p>}
+      </ErrorBoundary>
+    );
+  }
+
+  it('nach einem Fehler zeigt der nächste Menüpunkt seine Seite, nicht die Tafel', () => {
+    const { rerender } = render(<Seite pfad="/time" kaputt />);
+    expect(screen.getByRole('heading')).toHaveTextContent('Da ist etwas schiefgelaufen');
+    rerender(<Seite pfad="/invoices" kaputt={false} />);
+    expect(screen.getByText('Seite /invoices')).toBeInTheDocument();
+  });
+
+  it('gleich geblieben: auf derselben Adresse bleibt die Tafel stehen', () => {
+    const { rerender } = render(<Seite pfad="/time" kaputt />);
+    rerender(<Seite pfad="/time" kaputt={false} />);
+    expect(screen.getByRole('heading')).toHaveTextContent('Da ist etwas schiefgelaufen');
+  });
+
+  it('gleich geblieben: ein laufendes Neuladen wird nicht durch den Wechsel abgebrochen', async () => {
+    const { rerender } = render(
+      <ErrorBoundary zuruecksetzenBei="/time">
+        <Wirft fehler={new Error('Failed to fetch dynamically imported module')} />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText('Neue Fassung wird geladen …')).toBeInTheDocument();
+    rerender(
+      <ErrorBoundary zuruecksetzenBei="/invoices">
+        <p>Seite /invoices</p>
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText('Neue Fassung wird geladen …')).toBeInTheDocument();
+  });
+
+  it('die App reicht die Adresse an die Fehlergrenze der Seiten', async () => {
+    const { readFileSync } = await import('node:fs');
+    expect(readFileSync('src/app/App.tsx', 'utf8')).toContain('<ErrorBoundary zuruecksetzenBei={ort.pathname}>');
+  });
+});
