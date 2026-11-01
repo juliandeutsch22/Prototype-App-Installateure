@@ -65,6 +65,8 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Stillstandsfrist (Stand 29, 01.11.2026): Schreibvorgänge (Speichern, Edge Functions, Hochladen) haben keine Frist | Sicherheit der Daten: ein abgebrochener Schreibvorgang ist auf dem Server womöglich schon geschehen; ein zweiter Versuch legte ihn doppelt an. Lesen und die Erneuerung der Sitzung haben eine Frist, und die hielten Schreibvorgänge bisher mit auf |
 | Stillstandsfrist: steht die Erneuerung der Sitzung zweimal hintereinander still, kann der Anmeldedienst sie als wiederverwendet werten und abmelden (Stand 29) | Liegt beim Anmeldedienst: er erkennt so gestohlene Tokens (`refresh_token_reuse_interval`, 10 s). Der erste Wiederholungsversuch liegt innerhalb des Fensters; der schlimmste Fall ist neu anmelden statt endlos warten |
 | Ein Seitenbaustein, der hängt, braucht ein Neuladen der App (Stand 29) | Liegt beim Browser: er merkt sich den hängenden Abruf eines Moduls und holt ihn nicht neu; die App lädt deshalb nach der Frist selbst neu |
+| Raster und Blätter (Stand 30, E33): Fenster, Dialoge und das Blatt am Handy folgen dem Raster nicht | Fachlich: sie liegen über der Seite, ihre Lage bestimmt das Fenster |
+| Ohne `ResizeObserver` (Browser vor 2020) liegen Blätter nicht auf den Pixel im Raster (Stand 30) | Liegt beim Gerät: jeder unterstützte Browser hat ihn; die Seite bleibt bedienbar |
 
 ## X – Liegt bei jemand anderem
 

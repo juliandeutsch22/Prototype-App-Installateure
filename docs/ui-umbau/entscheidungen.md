@@ -637,3 +637,58 @@ nur drei Gitter (Arbeitsfläche, Anmeldung, Musterbaustein), Token und
 Ausrichtung, durchsichtige Flächen, die deckenden Bänder als Gegenprobe, die
 obere Linie und die Planung an der Inhaltskante. Jede Prüfung ist mit
 Gegenprobe gelaufen. Durchgesehen in 390, 834 und 1440 px, hell und dunkel.
+
+**E33 — Raster und Blätter (01.11.2026).** Rückmeldung des Auftraggebers zu
+E32: Grenzen teils unklar, Texte, Überschriften und Elemente harmonieren nicht
+mit dem Raster; die hellblauen Einsätze der Wochenplanung gefielen weniger als
+die frühere volle Fläche. Konzept mit Messung und Screens vorgelegt
+(„Raster und Blätter“), freigegeben mit Variante B für die Einsätze.
+
+Gemessen vorher: auf Baustellen und Start lagen 10 von 11 Linien neben dem
+Raster; Listenzeilen 97 px hoch, ihre Linien 16 px über die Inhaltskante,
+Schriftfeld 86 px, Lineal in 8/40 px geteilt, Spalten mit 36 px Abstand.
+
+- **Zwei Materialien.** Das Raster ist der Zeichentisch. Listen, Formulare
+  und Tabellen liegen als **Blätter** darauf: deckend (`--surface`), mit
+  einer Linie rundum (`--border-strong`). Eine Karte der Seite ist ein Blatt
+  — nicht eine Karte in einer Karte, nicht in Fenstern, Dialogen und dem
+  Blatt am Handy, nicht in den Kontextspalten von Akte und Beleg (die
+  bleiben offen mit Eckmarken, E30). Dazu die Listen der
+  Mitarbeiterübersicht, der Einrichtungshinweis und der Monatskalender, wo
+  er frei steht. E32 ist damit an einer Stelle geändert: Karten decken
+  wieder — jetzt als Blatt mit Grenze.
+- **Jede Kante auf einer Linie.** Breite und Höhe in ganzen Zellen (24 px).
+  Die Inhaltsspalte wird auf ganze Zellen gerundet (`--takt-breite`), Spalten
+  sind ganze Zellen breit (Start 13 bzw. 10, Akten 12 bzw. 10 Zellen), der
+  Abstand ist eine Zelle. Höhe und Oberkante rundet der **Taktgeber**
+  (`src/lib/takt.ts`): je Blatt höchstens 23 px mehr Abstand darüber und
+  mehr Polster unten, neu gerechnet, wenn sich Inhalt oder Breite ändert.
+  CSS kann eine Höhe nicht auf ein Vielfaches runden; ohne Taktgeber hinge
+  jede Unterkante am Inhalt.
+- **Die Linie rundum** liegt oben und links als Zeichnung über dem Inhalt,
+  rechts und unten direkt außen an der Kante — also genau auf der nächsten
+  Rasterlinie, nicht einen Pixel davor.
+- **Auf dem Raster wird in die Zellen geschrieben.** Ortszeile 24, Titel 48,
+  Untertitel 24 px; die Knöpfe daneben 48 px hoch. Schriftfeld: Felder zehn
+  Zellen breit (Tablet sechs, Handy sieben), jede Zeile eine Zelle; Linien
+  gezeichnet, damit sie die Höhe nicht verlängern. Lineal in 24/6 px.
+  Unter dem Kopf und zwischen den Blöcken eine Zelle (vorher 12/20 px, E31).
+- **Im Blatt** steht Text eine Zelle vom Rand; Kopf 72 px, Zeilen 48 bzw.
+  72 px.
+- **Einsätze (Variante B).** Volle Petrol-Fläche, weiße Schrift, eckig, Ort,
+  Zeit und Nummer eine Stufe leiser (`--auf-petrol`, `--auf-petrol-leise`,
+  4,5:1 auch beim Zeigen), mindestens zwei Zellen hoch; ebenso im Monat, in
+  der Legende und im Musterbaustein. Bernstein für „eingeteilt, aber
+  abwesend“, Schraffur für Abwesenheit und die helle Terminkarte bleiben.
+  E30 (Einsatzbalken mit Endmarken) ist damit geändert.
+
+**Bewusst so gelassen.** Fenster, Dialoge und das Blatt am Handy sind
+Überlagerungen und folgen dem Raster nicht. Ohne `ResizeObserver` (sehr
+alte Browser) bleibt die Seite wie gebaut, nur nicht auf den Pixel im
+Raster.
+
+**Prüfungen.** `tests/unit/takt.test.ts` (Rechenregeln, Ausrichten,
+gleiche Liste in CSS und JavaScript), `tests/durchklick/raster.spec.ts`
+(jede Blattkante auf 20 Seiten in 390, 834 und 1440 px; ohne Taktgeber 297
+Kanten daneben), `tests/unit/einsatzbalken.test.ts` (Variante B),
+`lotGrundwerte.test.ts` (Schrift auf Petrol). Jede Prüfung mit Gegenprobe.

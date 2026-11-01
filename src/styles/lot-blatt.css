@@ -1,0 +1,70 @@
+/*
+  RASTER UND BLÄTTER (E33, 01.11.2026) — freigegeben vom Auftraggeber.
+
+  Das Raster ist der Zeichentisch, Listen, Formulare und Tabellen liegen als
+  Blätter darauf: deckend, mit einer Linie rundum, jede Kante auf einer
+  Rasterlinie. Vorher (E32) ließen Karten das Raster durch; damit fehlten
+  ihnen die Grenzen, und weil ihre Maße nicht zum Raster passten, liefen
+  Linien und Texte knapp daneben („Grenzen unklar, harmoniert nicht mit dem
+  Raster“).
+
+  WER EIN BLATT IST, steht hier und in `src/lib/takt.ts` (BLATT_SELEKTOR) in
+  derselben Fassung; `tests/unit/takt.test.ts` hält beide gleich. Eine Karte
+  der Seite — nicht eine Karte in einer Karte und nichts in einem Fenster,
+  Dialog oder Blatt am Handy: das sind Überlagerungen, kein Zeichenblatt —,
+  dazu die Listen der Mitarbeiterübersicht (keine Karten), der
+  Einrichtungshinweis und der Monatskalender, wo er frei auf der Seite steht.
+
+  DIE MASSE: Breite und Höhe in ganzen Zellen (24 px). Die Breite gibt die
+  Inhaltsspalte vor (`--takt-breite`, auf ganze Zellen gerundet), die Höhe
+  rundet der Taktgeber, indem er das Polster unten um höchstens 23 px
+  vergrößert; ebenso setzt er die Oberkante auf die nächste Linie.
+
+  DIE LINIE RUNDUM: oben und links liegt sie als Zeichnung ÜBER dem Inhalt —
+  sonst deckte eine Zeile mit eigener Fläche (Kopf der Planung, angetippte
+  Zeile) sie zu. Rechts und unten liegt sie direkt außen an der Kante, also
+  genau auf der nächsten Rasterlinie: ein Blatt von 24 Zellen reicht von
+  einer Linie zur 24. Linie danach, nicht einen Pixel davor.
+*/
+@layer components {
+  /* Die Inhaltsspalte in ganzen Zellen — rechte Kanten und Spalten auf Linien. */
+  .inhalt > * { max-width: var(--takt-breite, none); }
+
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte),
+  .inhalt :is(.ue-liste, .ue-liste-woche, .ue-vergleich, .lot-einrichtung),
+  .inhalt .monatskalender:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog']) .monatskalender) {
+    position: relative; isolation: isolate;
+    margin-inline: 0; padding: 0; border: 0; border-radius: 0;
+    background: var(--surface);
+    box-shadow: 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), 1px 1px 0 var(--border-strong);
+  }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte)::before,
+  .inhalt :is(.ue-liste, .ue-liste-woche, .ue-vergleich, .lot-einrichtung)::before,
+  .inhalt .monatskalender:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog']) .monatskalender)::before {
+    content: ''; position: absolute; inset: 0; z-index: 50; pointer-events: none;
+    border-top: 1px solid var(--border-strong); border-left: 1px solid var(--border-strong);
+  }
+
+  /*
+    IM BLATT: Text eine Zelle vom Rand, Kopf und Körper im 24er-Takt. Das
+    Raster ist darunter verdeckt; der Takt hält trotzdem die Höhen ruhig.
+  */
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-kopf { min-height: 72px; padding: 12px 24px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-kopf .titel-karte { font-size: 1.125rem; line-height: 1.5rem; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-koerper { padding: 0 24px 24px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-fuss { padding: 12px 24px; min-height: 48px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .listenleiste { padding: 12px 24px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .abschnitt { min-height: 48px; padding: 12px 24px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile { min-height: 48px; padding: 12px 24px 11px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile-titel { line-height: 1.5rem; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile-meta { line-height: 1.5rem; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .karte-koerper .zeile { padding-inline: 0; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .mehr-laden { padding-inline: 24px; background: transparent; }
+  /* Ein Verweis in der Zeile trägt seine Tastfläche, ohne die Zeile höher zu machen. */
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile .link-kontakt { min-height: 0; padding-block: 0.75rem; margin-block: -0.75rem; vertical-align: top; }
+}
+
+@layer components {
+  /* Der Einrichtungshinweis ist ein Blatt: eckig, 24 Zellen breit statt 35 rem. */
+  .inhalt .lot-einrichtung { max-width: 36rem; border-radius: 0; padding: 24px; }
+}

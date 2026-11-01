@@ -64,8 +64,7 @@
   */
   .inhalt:has(.einsatzplanung) { max-width: none; }
   /* 12 px wie unter jedem Seitenkopf (E31), ab 1200 px 20 px. */
-  .einsatzplanung { display: flex; flex-direction: column; gap: 0.75rem; }
-  @media (min-width: 1200px) { .einsatzplanung { gap: 1.25rem; } }
+  .einsatzplanung { display: flex; flex-direction: column; gap: 1.5rem; }
 
   /* Ein Knopf, der wie ein Verweis aussieht — für Nebenwege in Zeilen. */
   .wp-textknopf { flex: none; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: var(--accent-deep); font-size: 0.875rem; font-weight: var(--gewicht-titel); text-align: left; cursor: pointer; }
@@ -217,15 +216,19 @@
 
   /* ── Einsatzblock, Termin-Eintrag, abwesend ───────────────────────────── */
   /*
-    DER EINSATZBALKEN MIT ENDMARKEN (Planlinie, B11): helle Fläche, links
-    und rechts 2 px Petrol als Anfang und Ende, Text in Petrol — wie eine
-    bemaßte Strecke im Plan. Er ersetzt den dunkel gefüllten Block: bei
-    zwanzig Leuten war das Raster eine dunkle Wand, in der die Ausnahmen
-    (fehlt, abwesend) untergingen. Eckig wie alle Bausteine der Linie. Der
-    Kunde bricht um, statt abgeschnitten zu werden (Silbentrennung bei
-    `lang="de-AT"`).
+    DER EINSATZ ALS VOLLE PETROL-FLÄCHE (E33, Variante B, freigegeben am
+    01.11.2026). Die helle Fläche mit Endmarken (Planlinie, B11) las sich im
+    Raster zu schwach; der Auftraggeber fand die frühere volle Fläche
+    schöner. Jetzt: volle Fläche, weiße Schrift, eckig wie das Raster, Ort
+    und Nummer eine Stufe leiser, mindestens zwei Zellen hoch. Ausnahmen
+    bleiben sichtbar anders: „eingeteilt, aber abwesend“ in Ocker,
+    Abwesenheit schraffiert, Termine als helle Karte. Der Kunde bricht um,
+    statt abgeschnitten zu werden (Silbentrennung bei `lang="de-AT"`).
   */
-  .eintrag { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 2.75rem; padding: 0.375rem 0.25rem; background: var(--petrol-hell); color: var(--accent-deep); border: 0; border-left: 2px solid var(--accent-deep); border-right: 2px solid var(--accent-deep); border-radius: 0; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; }
+  .eintrag { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 3rem; padding: 0.375rem 0.375rem; background: var(--petrol); color: var(--auf-petrol); border: 0; border-radius: 0; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; }
+  .eintrag:hover { background: var(--petrol-tief); }
+  .eintrag .e-zeile, .eintrag .e-zeit, .eintrag .e-nr { color: var(--auf-petrol-leise); }
+  .eintrag .e-zusatz { border-top-color: var(--auf-petrol-leise); }
   .eintrag:hover .e-titel { text-decoration: underline; text-underline-offset: 3px; }
   /* Eingeteilt, aber abwesend: Bernstein-hell mit 2 px Bernstein-Rand, nie Rot. */
   .eintrag-konflikt { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 2.75rem; padding: 0.3125rem 0.3125rem; background: var(--warning-bg); color: var(--warning); border: 2px solid var(--warning); border-radius: 0; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; }
@@ -244,7 +247,7 @@
   .e-zeit { white-space: nowrap; font-variant-numeric: tabular-nums; }
   @media (min-width: 1200px) {
     .zelle-inhalt { padding: 0.25rem; }
-    .eintrag { padding: 0.375rem 0.4375rem; }
+    .eintrag { padding: 0.375rem 0.5rem; }
     .eintrag-konflikt { padding: 0.3125rem 0.4375rem; }
     .eintrag-termin { padding: 0.3125rem 0.5rem 0.3125rem 0.4375rem; }
   }

@@ -26,8 +26,8 @@
     ist deshalb größer, damit sich die Karten nicht überdecken und Formular
     und Liste weiter deutlich getrennt stehen.
   */
-  .zeit-raster { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.75rem 2.25rem; }
-  @media (min-width: 1200px) { .zeit-raster { row-gap: 1.25rem; } }
+  /* Seit E33 Blätter an der Kante: eine Zelle Abstand, waagrecht wie senkrecht. */
+  .zeit-raster { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1.5rem; }
 
   /*
     DIE KARTE HÄLT DIE BREITE DES FORMULARS (Regel 9, Felder höchstens 560 px).

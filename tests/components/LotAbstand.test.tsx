@@ -104,10 +104,8 @@ describe('Abstand statt Linien', () => {
     expect(lesen('styles/lot-start.css')).not.toMatch(/\.start-kontext \.start-karte \{[^}]*border-bottom/);
   });
 
-  it('wo zwei Karten nebeneinanderstehen, ist der Spaltenabstand so groß, dass sie sich nicht überdecken', () => {
-    // Je Karte 1 rem in den Rand: unter 2 rem überdeckten sich zwei Nachbarn.
-    const zeit = /\.zeit-raster \{[^}]*gap: [\d.]+rem ([\d.]+)rem;/.exec(lesen('styles/lot-zeit.css'));
-    expect(zeit).not.toBeNull();
-    expect(Number(zeit![1])).toBeGreaterThanOrEqual(2);
+  it('wo zwei Karten nebeneinanderstehen, trennt sie eine Rasterzelle (E33)', () => {
+    // Seit E33 ragen Karten nicht mehr in den Rand; eine Zelle (24 px) Abstand, waagrecht wie senkrecht.
+    expect(lesen('styles/lot-zeit.css')).toMatch(/\.zeit-raster \{[^}]*gap: 1\.5rem; \}/);
   });
 });

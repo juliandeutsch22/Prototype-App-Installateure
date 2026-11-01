@@ -26,8 +26,10 @@ Grenze, keine Annahme über „den“ Betrieb.
   `docs/ui-umbau/entscheidungen.md`). Der Entwurf ist Orientierung, keine
   1:1-Vorlage. Bausteine stehen in `src/styles/lot.css` und
   `src/components/LotBausteine.tsx`; alles zum Ansehen auf `/_muster`.
-- Trotz vieler Funktionen nicht überladen oder chaotisch: eine Fläche, Linien
-  statt Karten; jede Seite beginnt mit `PageHeader` (eine Hauptaktion, ⋯ nur
+- Trotz vieler Funktionen nicht überladen oder chaotisch: das Raster ist der
+  Zeichentisch, Listen, Formulare und Tabellen liegen als Blätter darauf
+  (deckend, Linie rundum, jede Kante auf einer Rasterlinie, E33) — keine Karte
+  in einer Karte, keine Schatten oder Rundungen; jede Seite beginnt mit `PageHeader` (eine Hauptaktion, ⋯ nur
   im Seitenkopf); ganze Zeilen antippbar; fünf Zustände (offen, läuft,
   erledigt, Achtung, Fehler).
 - **Eine Hilfe pro Seite:** Erklärungen als `InfoHint` oder `hint` einer
