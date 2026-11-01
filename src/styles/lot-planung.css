@@ -135,8 +135,9 @@
   }
 
   /* Ecke und Namensspalte stehen beim Rollen fest. */
-  .wp-ecke { position: sticky; left: 0; top: 0; z-index: 30; padding: 0.5rem 0.75rem; background: var(--surface); border-bottom: 1px solid var(--accent-deep); text-align: left; vertical-align: bottom; }
-  .wp-name { position: sticky; left: 0; z-index: 10; padding: 0.625rem 0.75rem; background: var(--surface); border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; font-size: 0.875rem; line-height: 1.25rem; font-weight: 400; color: var(--text); overflow-wrap: anywhere; hyphens: manual; -webkit-hyphens: manual; }
+  /* Die festen Bänder liegen über der Linie des Blatts (E33) — die linke Linie zeichnen sie deshalb selbst. */
+  .wp-ecke { position: sticky; left: 0; top: 0; z-index: 30; padding: 0.5rem 0.75rem; background: var(--surface); border-bottom: 1px solid var(--accent-deep); text-align: left; vertical-align: bottom; box-shadow: inset 1px 0 0 var(--border-strong); }
+  .wp-name { position: sticky; left: 0; z-index: 10; padding: 0.625rem 0.75rem; background: var(--surface); border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; font-size: 0.875rem; line-height: 1.25rem; font-weight: 400; color: var(--text); overflow-wrap: anywhere; hyphens: manual; -webkit-hyphens: manual; box-shadow: inset 1px 0 0 var(--border-strong); }
   /* Namen (Personen wie Baustellen) nie automatisch trennen — siehe `.tl-tag`. */
   .wp-name-titel { display: block; color: var(--text); overflow-wrap: break-word; hyphens: manual; -webkit-hyphens: manual; }
   .wp-name-info { display: block; font-size: 0.75rem; line-height: 1rem; color: var(--text-muted); }

@@ -68,7 +68,9 @@ function seite(lage: { oben: number; hoehe: number }) {
   const blatt = document.getElementById('blatt')!;
   flaeche.getBoundingClientRect = () => ({ top: 0, left: 232 }) as DOMRect;
   Object.defineProperty(inhalt, 'clientWidth', { value: 1208, configurable: true });
-  blatt.getBoundingClientRect = () => ({ top: lage.oben, height: lage.hoehe, left: 272 }) as DOMRect;
+  // Wie im Browser: der gesetzte Ausgleich verschiebt das Blatt und macht es höher.
+  blatt.getBoundingClientRect = () =>
+    ({ top: lage.oben + Number(blatt.dataset.taktOben ?? 0), height: lage.hoehe + Number(blatt.dataset.taktUnten ?? 0), left: 272 }) as DOMRect;
   return { flaeche, inhalt, blatt };
 }
 
@@ -98,6 +100,30 @@ describe('ausrichten', () => {
     ausrichten(flaeche);
     expect(blatt.style.marginTop).toBe('14px');
     expect(blatt.style.paddingBottom).toBe('20px');
+  });
+
+  it('eine zweite Runde ohne Änderung schreibt nichts — die Seite springt nicht beim Umschalten eines Filters', () => {
+    const { flaeche, blatt } = seite({ oben: 250, hoehe: 100 });
+    ausrichten(flaeche);
+    const geschrieben: string[] = [];
+    for (const name of ['marginTop', 'paddingBottom'] as const) {
+      Object.defineProperty(blatt.style, name, {
+        configurable: true,
+        get: () => blatt.style.getPropertyValue(name === 'marginTop' ? 'margin-top' : 'padding-bottom'),
+        set: (w: string) => { geschrieben.push(`${name}=${w}`); },
+      });
+    }
+    ausrichten(flaeche);
+    expect(geschrieben).toEqual([]);
+  });
+
+  it('nach einer Größenänderung des Fensters wird von vorn gemessen — der Grundwert der Breite gilt', () => {
+    const { flaeche, blatt } = seite({ oben: 250, hoehe: 100 });
+    ausrichten(flaeche);
+    // Ab einer anderen Breite hat das Stylesheet einen anderen Grundabstand; von vorn ist der eigene Ausgleich weg.
+    ausrichten(flaeche, true);
+    expect(blatt.style.marginTop).toBe('14px');
+    expect(blatt.dataset.taktOben).toBe('14');
   });
 
   it('der Block darüber gibt seinen Rand nicht mehr an das Blatt ab (kein Durchfallen)', () => {

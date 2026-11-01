@@ -21,10 +21,17 @@
   vergrößert; ebenso setzt er die Oberkante auf die nächste Linie.
 
   DIE LINIE RUNDUM: oben und links liegt sie als Zeichnung ÜBER dem Inhalt —
-  sonst deckte eine Zeile mit eigener Fläche (Kopf der Planung, angetippte
-  Zeile) sie zu. Rechts und unten liegt sie direkt außen an der Kante, also
-  genau auf der nächsten Rasterlinie: ein Blatt von 24 Zellen reicht von
-  einer Linie zur 24. Linie danach, nicht einen Pixel davor.
+  sonst deckte eine Zeile mit eigener Fläche (angetippte Zeile, „Ältere
+  Einträge laden“) sie zu. Rechts und unten liegt sie direkt außen an der
+  Kante, also genau auf der nächsten Rasterlinie: ein Blatt von 24 Zellen
+  reicht von einer Linie zur 24. Linie danach, nicht einen Pixel davor.
+
+  KEINE EIGENE STAPELEBENE. Die Zeichnung liegt auf Ebene 1 der Seite: über
+  gewöhnlichem Inhalt, unter Menüs, Dialogen und Rückfragen, die in einem
+  Blatt aufgehen. Mit eigener Ebene je Blatt lag eine Rückfrage aus dem
+  Formular der Zeiterfassung unter dem Blatt daneben und ließ sich nicht
+  antippen (`runde4.spec.ts`). Die festen Bänder der Planung liegen höher;
+  dort zeichnet die Namensspalte die linke Linie selbst (`lot-planung.css`).
 */
 @layer components {
   /* Die Inhaltsspalte in ganzen Zellen — rechte Kanten und Spalten auf Linien. */
@@ -33,7 +40,7 @@
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte),
   .inhalt :is(.ue-liste, .ue-liste-woche, .ue-vergleich, .lot-einrichtung),
   .inhalt .monatskalender:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog']) .monatskalender) {
-    position: relative; isolation: isolate;
+    position: relative;
     margin-inline: 0; padding: 0; border: 0; border-radius: 0;
     background: var(--surface);
     box-shadow: 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), 1px 1px 0 var(--border-strong);
@@ -41,7 +48,7 @@
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte)::before,
   .inhalt :is(.ue-liste, .ue-liste-woche, .ue-vergleich, .lot-einrichtung)::before,
   .inhalt .monatskalender:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog']) .monatskalender)::before {
-    content: ''; position: absolute; inset: 0; z-index: 50; pointer-events: none;
+    content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
     border-top: 1px solid var(--border-strong); border-left: 1px solid var(--border-strong);
   }
 

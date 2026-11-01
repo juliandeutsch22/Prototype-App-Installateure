@@ -77,12 +77,19 @@ function ursprungVon(flaeche: HTMLElement): { x: number; y: number } {
  * Einmal ausrichten: Breite der Spalte, dann die Blätter von oben nach unten.
  * Von oben nach unten, weil jedes Blatt die darunter verschiebt.
  *
- * Gemessen wird jedes Blatt OHNE den eigenen Ausgleich: der wird erst
- * entfernt, dann neu gesetzt. So gilt immer der Grundwert, den das Stylesheet
- * für die jeweilige Breite vorsieht (12, 20, 24 px …), auch nach einem
- * Wechsel der Breite.
+ * Gemessen wird jedes Blatt OHNE den eigenen Ausgleich. Der Taktgeber merkt
+ * sich, was er gesetzt hat (`data-takt-oben`, `data-takt-unten`), und zieht es
+ * ab — er nimmt es NICHT kurz heraus: das verschöbe die Seite für einen
+ * Augenblick, und der Browser, der beim Rollen einen Bezugspunkt festhält,
+ * glich das als Sprung aus (ein Filter „sprang“ um einige Pixel,
+ * `tests/links/interaktionen.spec.ts`).
+ *
+ * `neu`: beim ersten Lauf und nach einer Größenänderung des Fensters wird der
+ * eigene Ausgleich doch entfernt und neu gemessen — dort kann sich der
+ * Grundwert des Stylesheets mit der Breite ändern (12, 20, 24 px …), und ein
+ * gesetzter Wert verdeckte ihn sonst.
  */
-export function ausrichten(flaeche: HTMLElement): void {
+export function ausrichten(flaeche: HTMLElement, neu = false): void {
   const inhalt = flaeche.querySelector<HTMLElement>('.inhalt');
   if (!inhalt) return;
   const stil = getComputedStyle(inhalt);
@@ -101,22 +108,30 @@ export function ausrichten(flaeche: HTMLElement): void {
     */
     const eltern = blatt.parentElement;
     if (eltern && eltern !== flaeche && getComputedStyle(eltern).display === 'block') eltern.style.display = 'flow-root';
-    const vorher = [blatt.style.marginTop, blatt.style.paddingBottom];
-    blatt.style.marginTop = '';
-    blatt.style.paddingBottom = '';
+    if (neu) {
+      blatt.style.marginTop = '';
+      blatt.style.paddingBottom = '';
+      delete blatt.dataset.taktOben;
+      delete blatt.dataset.taktUnten;
+    }
     const s = getComputedStyle(blatt);
     // Unsichtbar oder herausgenommen: nicht anfassen.
     if (s.display === 'none' || s.position === 'absolute' || s.position === 'fixed') continue;
+    const altOben = Number(blatt.dataset.taktOben ?? 0);
+    const altUnten = Number(blatt.dataset.taktUnten ?? 0);
     const r = blatt.getBoundingClientRect();
-    const vor = ausgleichOben(r.top, ursprung.y);
-    const unten = ausgleichHoehe(r.height);
-    const neu = [
-      vor ? `${(parseFloat(s.marginTop) || 0) + vor}px` : '',
-      unten ? `${(parseFloat(s.paddingBottom) || 0) + unten}px` : '',
-    ];
-    blatt.style.marginTop = neu[0];
-    blatt.style.paddingBottom = neu[1];
-    if (neu[0] !== vorher[0] || neu[1] !== vorher[1]) blatt.dataset.takt = `${vor}/${unten}`;
+    const vor = ausgleichOben(r.top - altOben, ursprung.y);
+    const unten = ausgleichHoehe(r.height - altUnten);
+    if (vor !== altOben || !blatt.dataset.taktOben) {
+      const grund = (parseFloat(s.marginTop) || 0) - altOben;
+      blatt.style.marginTop = vor ? `${grund + vor}px` : '';
+      blatt.dataset.taktOben = String(vor);
+    }
+    if (unten !== altUnten || !blatt.dataset.taktUnten) {
+      const grund = (parseFloat(s.paddingBottom) || 0) - altUnten;
+      blatt.style.paddingBottom = unten ? `${grund + unten}px` : '';
+      blatt.dataset.taktUnten = String(unten);
+    }
   }
 }
 
@@ -130,6 +145,8 @@ export function ausrichten(flaeche: HTMLElement): void {
 export function taktHalten(flaeche: HTMLElement): () => void {
   if (typeof ResizeObserver === 'undefined' || typeof MutationObserver === 'undefined') return () => undefined;
   let geplant = 0;
+  // Beim ersten Lauf und nach einer Größenänderung des Fensters von vorn messen.
+  let vonVorn = true;
   // Nur, was gerade auf der Seite ist: ein Seitenwechsel räumt die alten Blätter ab.
   let beobachtet = new Set<Element>();
   const groesse = new ResizeObserver(() => planen());
@@ -137,7 +154,8 @@ export function taktHalten(flaeche: HTMLElement): () => void {
     if (geplant) return;
     geplant = requestAnimationFrame(() => {
       geplant = 0;
-      ausrichten(flaeche);
+      ausrichten(flaeche, vonVorn);
+      vonVorn = false;
       const jetzt = new Set<Element>(flaeche.querySelectorAll(`.inhalt, ${TAKT_SELEKTOR}`));
       for (const el of beobachtet) if (!jetzt.has(el)) groesse.unobserve(el);
       for (const el of jetzt) if (!beobachtet.has(el)) groesse.observe(el);
@@ -146,12 +164,16 @@ export function taktHalten(flaeche: HTMLElement): () => void {
   };
   const aenderung = new MutationObserver(() => planen());
   aenderung.observe(flaeche, { childList: true, subtree: true });
-  window.addEventListener('resize', planen);
+  const fenster = () => {
+    vonVorn = true;
+    planen();
+  };
+  window.addEventListener('resize', fenster);
   planen();
   return () => {
     if (geplant) cancelAnimationFrame(geplant);
     groesse.disconnect();
     aenderung.disconnect();
-    window.removeEventListener('resize', planen);
+    window.removeEventListener('resize', fenster);
   };
 }
