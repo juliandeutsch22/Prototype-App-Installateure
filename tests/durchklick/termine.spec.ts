@@ -121,6 +121,13 @@ test('Termin aus der Woche über das ⋯ des Seitenkopfs — und im Monat aus de
 
   // Im Monat: der Kopf von heute öffnet die Vorschau, dort „Termin anlegen“ für genau diesen Tag.
   await page.getByRole('group', { name: 'Zeitraum' }).getByRole('button', { name: 'Monat' }).click();
+  /*
+    Der Monat folgt dem Donnerstag der gezeigten Woche, wie die KW. Liegt
+    heute in einer Woche, die im Vormonat beginnt (So 01.11.2026: KW 44 ab
+    26.10.), zeigt „Monat“ den Oktober — ohne „heute“. Deshalb ausdrücklich
+    der laufende Monat.
+  */
+  await page.getByRole('button', { name: 'Dieser Monat' }).click();
   await page.getByRole('button', { name: /heute, 1 Termin.*alle Einsätze des Tages/ }).click({ timeout: 15_000 });
   await page.getByRole('dialog').getByRole('button', { name: 'Termin anlegen' }).click();
   const imMonat = page.getByRole('dialog', { name: 'Termin anlegen' });
