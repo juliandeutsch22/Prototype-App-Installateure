@@ -14,6 +14,33 @@ import { lazy, useSyncExternalStore, type ComponentType } from 'react';
 
 type Modul<T> = { default: T };
 
+/**
+ * WIE LANGE EIN BAUSTEIN UNTERWEGS SEIN DARF (01.11.2026: „lädt beim
+ * Seitenwechsel manchmal gar nicht mehr“). Ein Baustein, dessen Abruf auf
+ * einer halb toten Verbindung hängen bleibt, kommt nie an und meldet auch
+ * keinen Fehler. Der Router hält beim Wechsel die alte Seite stehen, bis die
+ * neue da ist — also blieb sie stehen, und weil das hängende Versprechen
+ * gemerkt war, bei jedem weiteren Tipp auf denselben Menüpunkt wieder.
+ *
+ * Nach der Frist gilt der Abruf als gescheitertes Nachladen: die Fehlergrenze
+ * erneuert die Hülle und lädt neu (`lib/nachladen.ts`) — das einzige, was
+ * einen im Browser hängenden Modulabruf wirklich ersetzt. Die Frist ist
+ * großzügig: ein Baustein ist wenige hundert Kilobyte groß, und der Service
+ * Worker beendet einen stehenden Abruf schon vorher (`public/sw.js`).
+ */
+export const BAUSTEIN_FRIST_MS = 45_000;
+
+function mitBausteinFrist<T>(laden: Promise<T>): Promise<T> {
+  let uhr: ReturnType<typeof setTimeout> | undefined;
+  const frist = new Promise<never>((_, ab) => {
+    uhr = setTimeout(
+      () => ab(new Error(`Failed to fetch dynamically imported module (keine Antwort in ${BAUSTEIN_FRIST_MS / 1000} s)`)),
+      BAUSTEIN_FRIST_MS,
+    );
+  });
+  return Promise.race([laden, frist]).finally(() => clearTimeout(uhr));
+}
+
 const LADER = new Map<string, Array<() => Promise<unknown>>>();
 
 /** Ansichten, die React gerade braucht (ein Seitenwechsel wartet darauf). */
@@ -38,7 +65,7 @@ function melden() {
 export function ansicht<T extends ComponentType<any>>(pfad: string | readonly string[], laden: () => Promise<Modul<T>>) {
   let unterwegs: Promise<Modul<T>> | null = null;
   const holen = (): Promise<Modul<T>> => {
-    unterwegs ??= laden().then(
+    unterwegs ??= mitBausteinFrist(laden()).then(
       (m) => {
         /*
           LEER HEISST GESCHEITERT. Fängt `nachladefehlerBeobachten` Vites

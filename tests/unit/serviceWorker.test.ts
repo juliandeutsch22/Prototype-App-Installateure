@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import vm from 'node:vm';
@@ -30,7 +30,10 @@ class TestCache {
     return this.eintraege.get(typeof req === 'string' ? req : req.url.replace(/^https?:\/\/[^/]+/, ''));
   }
   async put(req: Request | string, res: Response) {
-    this.eintraege.set(typeof req === 'string' ? req : req.url.replace(/^https?:\/\/[^/]+/, ''), res);
+    // Wie im Browser: `put` liest den Rumpf ganz — bricht er ab, wird nichts abgelegt.
+    const rumpf = res.body ? await res.arrayBuffer() : null;
+    const abgelegt = new Response(rumpf, { status: res.status, statusText: res.statusText, headers: res.headers });
+    this.eintraege.set(typeof req === 'string' ? req : req.url.replace(/^https?:\/\/[^/]+/, ''), abgelegt);
   }
   async add(req: Request) {
     const res = await (globalThis as unknown as { fetch: typeof fetch }).fetch(req);
@@ -54,6 +57,8 @@ interface SwUmgebung {
    */
   geantwortet: string[];
   antwort: (url: string) => Response;
+  /** Statt `antwort`: ein eigenes Netz, das auch auf `signal` hört (Stillstand). */
+  holen?: (req: Request, init?: RequestInit) => Promise<Response>;
   /** Schickt dem Worker eine Nachricht aus einem Fenster und wartet sie ab. */
   nachricht: (data: unknown) => Promise<void>;
 }
@@ -121,11 +126,19 @@ function ladeWorker(): SwUmgebung {
       keys: async () => [...speicher.keys()],
       delete: async (name: string) => speicher.delete(name),
     },
-    fetch: async (req: Request | string) => {
+    fetch: async (req: Request | string, init?: RequestInit) => {
       const url = typeof req === 'string' ? req : req.url;
       geholt.push(url);
+      if (umgebung.holen) return umgebung.holen(req as Request, init);
       return umgebung.antwort(url);
     },
+    // Was ein Worker im Browser ohnehin hat — für die Stillstandsfrist.
+    // Beim Aufruf nachgeschlagen, nicht beim Laden: so greift die simulierte Uhr eines Tests.
+    setTimeout: (...a: Parameters<typeof setTimeout>) => globalThis.setTimeout(...a),
+    clearTimeout: (id?: ReturnType<typeof setTimeout>) => globalThis.clearTimeout(id),
+    AbortController,
+    ReadableStream,
+    TypeError,
     URL,
     URLSearchParams,
     /**
@@ -206,6 +219,8 @@ describe('Service Worker — was er anfasst', () => {
 
     // Beim zweiten Mal aus dem Speicher — kein weiterer Netzzugriff. Genau
     // das ist der Unterschied zwischen „lädt ewig" und „ist sofort da".
+    // Abgelegt wird nebenher (01.11.2026), nicht vor der Antwort.
+    await vi.waitFor(() => expect(u.speicher.get('perl-teile')?.eintraege.has('/assets/index-abc123.js')).toBe(true));
     u.geholt.length = 0;
     await anfrage(u, 'https://app.test/assets/index-abc123.js');
     expect(u.geholt).toEqual([]);
@@ -525,5 +540,71 @@ describe('Service Worker — der Fehler vom 03.09.2026', () => {
     // Der Deploy ist erkannt, gemeldet und geprueft — und der alte Baustein
     // liegt weiterhin bereit, weil die alte Seite noch laeuft.
     expect(u.speicher.get('perl-teile')?.eintraege.has('/assets/alt-111.js')).toBe(true);
+  });
+});
+
+
+describe('Service Worker — ein Baustein, dessen Abruf stillsteht (01.11.2026)', () => {
+  const nieAntworten = (_req: Request, init?: RequestInit) =>
+    new Promise<Response>((_, ab) => init?.signal?.addEventListener('abort', () => ab(new DOMException('aborted', 'AbortError'))));
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('kommt keine Antwort, scheitert der Abruf nach 20 s — statt ewig zu warten', async () => {
+    vi.useFakeTimers();
+    u.holen = nieAntworten;
+    let ergebnis: unknown = 'läuft';
+    anfrage(u, 'https://app.test/assets/TimeView-a1b2.js').then(() => { ergebnis = 'geantwortet'; }, (e) => { ergebnis = e; });
+    await vi.advanceTimersByTimeAsync(19_000);
+    expect(ergebnis).toBe('läuft');
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(ergebnis).toBeInstanceOf(Error);
+    expect(u.speicher.get('perl-teile')?.eintraege.has('/assets/TimeView-a1b2.js')).toBeFalsy();
+  });
+
+  it('bleibt der Rumpf mittendrin stehen, scheitert das Lesen — und nichts Halbes wird vorgehalten', async () => {
+    vi.useFakeTimers();
+    u.holen = async () => new Response(new ReadableStream<Uint8Array>({
+      start(ziel) { ziel.enqueue(new TextEncoder().encode('export const a = 1;')); },
+    }), { status: 200, headers: { 'content-type': 'text/javascript' } });
+    const antwort = await anfrage(u, 'https://app.test/assets/Rechnungen-c3d4.js');
+    let ergebnis: unknown = 'läuft';
+    antwort!.text().then((t) => { ergebnis = t; }, (e) => { ergebnis = e; });
+    await vi.advanceTimersByTimeAsync(21_000);
+    expect(ergebnis).toBeInstanceOf(TypeError);
+    expect(u.speicher.get('perl-teile')?.eintraege.has('/assets/Rechnungen-c3d4.js')).toBeFalsy();
+  });
+
+  it('gleich geblieben: ein Baustein, der langsam, aber stetig kommt, kommt ganz an', async () => {
+    vi.useFakeTimers();
+    let n = 0;
+    u.holen = async () => new Response(new ReadableStream<Uint8Array>({
+      pull(ziel) {
+        return new Promise<void>((fertig) => setTimeout(() => {
+          n += 1;
+          if (n > 6) ziel.close(); else ziel.enqueue(new TextEncoder().encode(`/*${n}*/`));
+          fertig();
+        }, 15_000));
+      },
+    }), { status: 200, headers: { 'content-type': 'text/javascript' } });
+    const antwort = await anfrage(u, 'https://app.test/assets/Lager-e5f6.js');
+    let text: string | null = null;
+    antwort!.text().then((t) => { text = t; });
+    await vi.advanceTimersByTimeAsync(8 * 15_000);
+    expect(text).toBe('/*1*//*2*//*3*//*4*//*5*//*6*/');
+  });
+
+  it('ein volles Speicherkontingent lässt den Abruf nicht scheitern — nur das Vorhalten', async () => {
+    const speicher = { put: async () => { throw new DOMException('voll', 'QuotaExceededError'); } };
+    const erste = await anfrage(u, 'https://app.test/assets/Start-0a1b.js');
+    expect(erste).not.toBeNull();
+    // Nach einem Ablegen, das scheitert, bleibt der nächste Abruf ein Abruf.
+    u.speicher.set('perl-teile', Object.assign(new TestCache(), speicher));
+    u.geholt.length = 0;
+    const zweite = await anfrage(u, 'https://app.test/assets/Neu-9z8y.js');
+    expect(zweite!.status).toBe(200);
+    expect(await zweite!.text()).toBe('erste Fassung');
   });
 });
