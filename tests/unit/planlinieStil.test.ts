@@ -99,7 +99,7 @@ describe('B12 Raster — das Zeichenblatt der Arbeitsfläche (E32)', () => {
     expect(lot).toContain('@media (min-width: 1200px) { .inhalt { padding: 1.5rem 2.5rem; } }');
   });
 
-  it('Karten, Zeilen und Listen legen keine deckende Fläche aufs Raster', () => {
+  it('Zeilen, Umschalter und die Kontextspalte legen keine eigene Fläche — sie liegen im Blatt oder auf dem Raster', () => {
     const INDEX = readFileSync('src/index.css', 'utf8');
     expect(INDEX).toMatch(/\n {2}\.karte \{[^}]*background: transparent;/);
     expect(INDEX).toMatch(/\n {2}\.zeile \{[^}]*background: transparent;/);
@@ -123,8 +123,9 @@ describe('B12 Raster — das Zeichenblatt der Arbeitsfläche (E32)', () => {
   it('die Planungstabelle schließt oben mit einer Linie und steht an der Inhaltskante', () => {
     expect(stil('lot-planung.css')).toContain('.wp-huelle { display: block; overflow: auto; max-height: 74vh; border-top: 1px solid var(--border); }');
     expect(stil('lot-monat.css')).toContain('.mo-raster { display: block; border-top: 1px solid var(--border); }');
-    // Ohne diese Regel ragt die Karte um ihr Polster in den Rand (−1rem).
-    expect(readFileSync('src/index.css', 'utf8')).toContain('.inhalt .karte.panel:has(.wp-huelle, .mo-ecke) { margin-inline: 0; }');
+    // Seit E33 ragt keine Karte mehr in den Rand: die Planung ist ein Blatt wie jedes andere.
+    expect(readFileSync('src/index.css', 'utf8')).not.toContain(':has(.wp-huelle, .mo-ecke)');
+    expect(stil('lot-blatt.css')).toMatch(/\.inhalt \.karte:not\(\.karte \.karte\)[^{]*\{\s*position: relative;\s*margin-inline: 0;/);
   });
 
   it('die Klasse `raster` trägt nur noch die Musterseite', () => {

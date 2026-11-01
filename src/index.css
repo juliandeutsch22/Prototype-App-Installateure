@@ -14,6 +14,7 @@
 @import './styles/lot-plattform.css';
 @import './styles/lot-feinschliff.css';
 @import './styles/lot-planlinie.css';
+@import './styles/lot-blatt.css';
 
 @tailwind base;
 @tailwind components;
@@ -118,6 +119,9 @@
   --petrol: #0f4552;
   --petrol-tief: #0a3540;
   --petrol-hell: #e4eef0;
+  /* Schrift auf voller Petrol-Fläche (Einsätze, E33) — in beiden Sätzen, weil Petrol in beiden dunkel genug ist. */
+  --auf-petrol: #ffffff;
+  --auf-petrol-leise: #e4eef0;
   /* Die Spalte „heute“ in Rastern (Runde 4): ein Hauch Petrol, leiser als
      --petrol-hell, damit ein Block darin noch hervortritt. */
   --heute: #f4f8f9;
@@ -180,6 +184,8 @@
     --petrol: #236c7b;
     --petrol-tief: #1b5763;
     --petrol-hell: #17343b;
+    --auf-petrol: #ffffff;
+    --auf-petrol-leise: #e4eef0;
     --heute: #132c32;
   }
 }
@@ -825,8 +831,7 @@ textarea {
     .seitenkopf-zeile > .plankopf-titel { flex: 1 1 18rem; }
   }
   /* Titel, Ortszeile und Meta des Seitenkopfs: Plankopf in lot-planlinie.css (E30). */
-  .seitenkopf-rechts { display: flex; gap: 0.25rem 0.5rem; align-items: center; flex: none; flex-wrap: nowrap; justify-content: flex-end; height: 1.75rem; }
-  @media (min-width: 760px) { .seitenkopf-rechts { height: 2.25rem; } }
+  .seitenkopf-rechts { display: flex; gap: 0.25rem 0.5rem; align-items: center; flex: none; flex-wrap: nowrap; justify-content: flex-end; height: 3rem; }
   /* Gleich groß und still wie das ⋯ daneben (`RowMenu`): 44 px Tastfläche, grau, beim Zeigen eine leise Fläche. */
   .seitenkopf-hilfe { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0; background: none; border: 0; border-radius: var(--radius); color: var(--text-muted); cursor: pointer; }
   .seitenkopf-hilfe:hover { color: var(--text); background: var(--surface-2); }
@@ -871,14 +876,6 @@ textarea {
   .inhalt .karte:not(:is(.akten-seite, .start-seite, .plattform, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) .karte-kopf .titel-karte { font-size: 1.125rem; line-height: 1.625rem; }
   .karte-koerper .zeile { padding-inline: 0; }
   /*
-    DIE PLANUNGSFLÄCHE RAGT NICHT IN DEN RAND (E32). Eine Karte ragt um ihr
-    Polster hinaus, damit Zeilen beim Antippen links und rechts Luft haben.
-    Die Planung hat statt Zeilen ein Raster mit deckendem Kopf und
-    Namensspalte — die standen dadurch 16 px vor der Inhaltskante, neben
-    der Rasterlinie statt auf ihr.
-  */
-  .inhalt .karte.panel:has(.wp-huelle, .mo-ecke) { margin-inline: 0; }
-  /*
     JEDE SEITE BEGINNT IHREN INHALT IM SELBEN ABSTAND ZUM KOPF (E31, 31.10.2026).
     Gemessen über alle Ansichten lag der erste Inhalt 20, 24, 60 oder 64 px
     unter dem Kopf: die Seiten sind teils mit 12/20 px, teils mit 24 px
@@ -887,12 +884,14 @@ textarea {
     Jetzt steht der erste Inhalt überall 12 px unter dem Kopf, ab 1200 px
     20 px, ob er Reiter, Suchfeld oder der Titel einer Karte ist. Die
     Selektoren sind spezifischer als `space-y-*` und die Kartenregel oben,
-    damit beide hier nicht gewinnen. Seiten mit eigenem Abstand (`gap` der
-    Einsatzplanung, der Akten, der Startseite) bleiben, wie sie sind: dort
-    misst der Abstand schon 12/20 px.
+    damit beide hier nicht gewinnen.
+
+    SEIT E33 (01.11.2026) EINE ZELLE: unter dem Kopf und zwischen den
+    Blöcken einer Seite 24 px, in jeder Breite — der Abstand des Rasters.
+    `~` statt `+`: auch ein Block nach einem nur am Handy sichtbaren
+    Verweis (versteckt, aber ohne `hidden`) hält ihn.
   */
-  .inhalt [class*='space-y-'] > .plankopf + :not([hidden]) { margin-top: 0.75rem; }
-  @media (min-width: 1200px) { .inhalt [class*='space-y-'] > .plankopf + :not([hidden]) { margin-top: 1.25rem; } }
+  .inhalt [class*='space-y-'] > .plankopf ~ :not([hidden]) { margin-top: 1.5rem; }
   .inhalt :is(
     .plankopf + .karte,
     .plankopf + :is(form, .formular, [class*='space-y-']) > .karte:first-child,

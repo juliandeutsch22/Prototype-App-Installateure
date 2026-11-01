@@ -109,10 +109,10 @@ describe('Drei feste Zeilen: Ort, Titel mit Knöpfen, Meta (E31)', () => {
   it('der rechte Block ist genau eine Titelzeile hoch — die Knöpfe stehen mittig zur Überschrift', () => {
     const css = readFileSync(join(process.cwd(), 'src/index.css'), 'utf8');
     const plan = readFileSync(join(process.cwd(), 'src/styles/lot-planlinie.css'), 'utf8');
-    expect(css).toMatch(/\.seitenkopf-rechts \{[^}]*align-items: center;[^}]*height: 1\.75rem; \}/);
-    expect(css).toMatch(/@media \(min-width: 760px\) \{ \.seitenkopf-rechts \{ height: 2\.25rem; \} \}/);
-    expect(plan).toMatch(/\.seitenkopf h1 \{ font-size: 1\.5rem; line-height: 1\.75rem;/);
-    expect(plan).toMatch(/@media \(min-width: 760px\) \{ \.seitenkopf h1 \{ font-size: 1\.875rem; line-height: 2\.25rem; \} \}/);
+    // Seit E33 ist die Titelzeile zwei Rasterzellen hoch (48 px), in jeder Breite.
+    expect(css).toMatch(/\.seitenkopf-rechts \{[^}]*align-items: center;[^}]*height: 3rem; \}/);
+    expect(plan).toMatch(/\.seitenkopf h1 \{ font-size: 1\.5rem; line-height: 3rem;/);
+    expect(plan).toMatch(/@media \(min-width: 760px\) \{ \.seitenkopf h1 \{ font-size: 1\.875rem; line-height: 3rem; \} \}/);
   });
 
   it('der Rückweg steht in der Ortszeile, nicht als Zeile darüber', () => {

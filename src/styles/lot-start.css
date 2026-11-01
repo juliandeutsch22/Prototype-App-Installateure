@@ -20,14 +20,15 @@
   .start-kopf .seitenkopf-meta { font-size: 0.75rem; line-height: 1.5rem; }
   .start-hauptaktion { display: inline-flex; justify-content: center; align-items: center; min-height: 3rem; padding: 0.625rem 1.125rem; border-radius: var(--radius); background: var(--brand); color: var(--brand-fg); font-size: 0.875rem; font-weight: var(--gewicht-titel); text-align: center; }
   .start-planaktion { display: none; flex: none; }
-  .start-rahmen { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1.75rem; }
+  /* Spalten in ganzen Zellen, eine Zelle Abstand (E33): Kanten der Blätter auf Linien. */
+  .start-rahmen { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1.5rem; }
   .start-arbeit { min-width: 0; display: flex; flex-direction: column; gap: 1.5rem; }
   /*
     DIE MANNSCHAFT OHNE GRAUEN KASTEN (Planlinie, E30). Der Akzent der
     Startseite ist die Skizze im Plankopf — höchstens einer je Seite; die
     Spalte steht deshalb auf dem Grund, getrennt durch eine Hilfslinie.
   */
-  .start-kontext { min-width: 0; padding: 0.5rem 0 1rem; background: none; border-top: 1px solid var(--border-strong); }
+  .start-kontext { min-width: 0; display: flex; flex-direction: column; gap: 1.5rem; padding: 0; background: none; border: 0; }
   .start-seite .start-karte { background: transparent; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
   .start-seite .start-karte-kopf { padding: 0.5rem 0 1rem; border: 0; }
   .start-seite .start-karte-inhalt { border: 0; }
@@ -74,10 +75,9 @@
   .start-wie-zuletzt .text-fliess { font-size: 0.8125rem; }
   @media (min-width: 760px) {
     .start-planaktion { display: inline-flex; }
-    .start-rahmen { grid-template-columns: minmax(0, 1fr) 15.5rem; gap: 1.5rem; }
-    .start-kontext { border-top: 0; border-left: 1px solid var(--border-strong); padding-left: 1.5rem; }
+    .start-rahmen { grid-template-columns: minmax(0, 1fr) 15rem; gap: 1.5rem; }
   }
   @media (min-width: 1200px) {
-    .start-rahmen { grid-template-columns: minmax(0, 1fr) 19.125rem; gap: 2.25rem; }
+    .start-rahmen { grid-template-columns: minmax(0, 1fr) 19.5rem; gap: 1.5rem; }
   }
 }

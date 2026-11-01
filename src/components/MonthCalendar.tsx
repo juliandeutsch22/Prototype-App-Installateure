@@ -65,7 +65,8 @@ export default function MonthCalendar({
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div className={ohneRahmen ? 'border-b border-line' : 'panel overflow-hidden'}>
+    // `monatskalender`: frei auf der Seite ein Blatt des Rasters (E33, `lot-blatt.css`).
+    <div className={ohneRahmen ? 'border-b border-line' : 'panel monatskalender overflow-hidden'}>
       <div className="flex items-center justify-between border-b border-line px-2 py-2">
         <button
           type="button"

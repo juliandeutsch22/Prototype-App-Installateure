@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 /*
-  DER EINSATZBALKEN MIT ENDMARKEN (Planlinie, B11; 30.10.2026): in Woche und
-  Monat eine helle Fläche mit 2 px Petrol am Anfang und am Ende, Text in
-  Petrol — statt des dunkel gefüllten Blocks. Abwesenheit ist schraffiert
-  (`.schraffur` aus der Planlinie), nicht grau. Was bleibt: Bernstein für
-  „eingeteilt, aber abwesend“.
+  DER EINSATZ ALS VOLLE PETROL-FLÄCHE (E33, Variante B; 01.11.2026). Die helle
+  Fläche mit Endmarken (Planlinie B11, 30.10.) las sich im Raster zu schwach;
+  der Auftraggeber fand die frühere volle Fläche schöner und hat Variante B
+  freigegeben: volle Fläche, weiße Schrift, eckig, Ort und Nummer leiser.
+  Was bleibt: Bernstein für „eingeteilt, aber abwesend“, Schraffur für
+  Abwesenheit.
 */
 
 const planung = readFileSync('src/styles/lot-planung.css', 'utf8');
@@ -23,25 +24,28 @@ function regel(css: string, selektor: string): string {
   return treffer.map((t) => t[1]).join(' ');
 }
 
-const ENDMARKEN = [
-  /background: var\(--petrol-hell\)/,
-  /color: var\(--accent-deep\)/,
-  /border-left: 2px solid var\(--accent-deep\)/,
-  /border-right: 2px solid var\(--accent-deep\)/,
-];
+const VOLL = [/background: var\(--petrol\)/, /color: var\(--auf-petrol\)/];
 
-describe('Einsatzbalken mit Endmarken', () => {
-  it('Woche: helle Fläche, Endmarken links und rechts, eckig — nicht mehr dunkel gefüllt', () => {
+describe('Einsatz als volle Petrol-Fläche (Variante B)', () => {
+  it('Woche: volle Fläche, weiße Schrift, eckig, zwei Zellen hoch — keine Endmarken mehr', () => {
     const r = regel(planung, '.eintrag');
-    for (const m of ENDMARKEN) expect(r).toMatch(m);
+    for (const m of VOLL) expect(r).toMatch(m);
     expect(r).toMatch(/border-radius: 0/);
-    expect(r).not.toMatch(/background: var\(--petrol\)|#ffffff/);
+    expect(r).toMatch(/min-height: 3rem/);
+    expect(r).not.toMatch(/border-left: 2px|petrol-hell/);
+    expect(planung).toMatch(/\.eintrag:hover \{ background: var\(--petrol-tief\); \}/);
   });
 
-  it('Monat: derselbe Balken, auch gewählt', () => {
-    const r = regel(monat, '.mo-balken, .mo-balken-gewaehlt');
-    for (const m of ENDMARKEN) expect(r).toMatch(m);
-    expect(monat).not.toMatch(/\.mo-balken \{ background: var\(--petrol\)/);
+  it('Ort, Zeit und Nummer eine Stufe leiser auf derselben Fläche', () => {
+    expect(regel(planung, '.eintrag .e-zeile, .eintrag .e-zeit, .eintrag .e-nr')).toMatch(/color: var\(--auf-petrol-leise\)/);
+  });
+
+  it('Monat: derselbe Einsatz, auch gewählt; Legende und Musterbaustein gleich', () => {
+    const r = regel(monat, '.mo-balken');
+    for (const m of VOLL) expect(r).toMatch(m);
+    expect(regel(monat, '.mo-balken-gewaehlt')).toMatch(/background: var\(--petrol-tief\); color: var\(--auf-petrol\)/);
+    expect(regel(monat, '.mo-legende-plan::before')).toMatch(/background: var\(--petrol\)/);
+    expect(regel(readFileSync('src/styles/lot-planlinie.css', 'utf8'), '.einsatzbalken')).toMatch(/background: var\(--petrol\); color: var\(--auf-petrol\)/);
   });
 
   it('abwesend trägt keine eigene Fläche mehr — die Schraffur kommt aus `.schraffur`', () => {

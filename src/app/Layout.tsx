@@ -30,6 +30,7 @@ import DarstellungsSchalter from '@/components/DarstellungsSchalter';
 import Suchfenster from './Suchfenster';
 import Ladebalken from '@/components/Ladebalken';
 import { datenSparen, imLeerlauf, vorladen } from '@/lib/ansichten';
+import { taktHalten } from '@/lib/takt';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { offeneVormerkungen } from '@/lib/db/pg/ohneEmpfang';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
@@ -103,6 +104,16 @@ export default function Layout({ children }: { children: ReactNode }) {
     const main = inhalt.current;
     if (main && !main.contains(document.activeElement)) main.focus({ preventScroll: true });
   }, [ort.pathname]);
+
+  /*
+    DER TAKT DES RASTERS (E33): jedes Blatt der Seite mit Ober- und
+    Unterkante auf einer Rasterlinie, die Inhaltsspalte in ganzen Zellen —
+    auf jeder Seite, ohne dass eine Seite davon wissen muss (`lib/takt.ts`).
+  */
+  useEffect(() => {
+    const main = inhalt.current;
+    return main ? taktHalten(main) : undefined;
+  }, []);
 
   /*
     DIE HÖHE DER REITERLEISTE ALS CSS-VARIABLE (`--reiter-hoehe` am `body`).

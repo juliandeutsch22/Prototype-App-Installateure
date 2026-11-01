@@ -15,15 +15,13 @@ const PLANUNG = readFileSync('src/styles/lot-planung.css', 'utf8');
 const START = readFileSync('src/styles/lot-start.css', 'utf8');
 
 describe('Abstand unter dem Seitenkopf', () => {
-  it('12 px, ab 1200 px 20 px — gleich, ob die Seite mit 12/20 oder 24 px gestapelt ist', () => {
-    expect(INDEX).toContain(".inhalt [class*='space-y-'] > .plankopf + :not([hidden]) { margin-top: 0.75rem; }");
-    expect(INDEX).toContain("@media (min-width: 1200px) { .inhalt [class*='space-y-'] > .plankopf + :not([hidden]) { margin-top: 1.25rem; } }");
+  it('eine Rasterzelle (24 px) in jeder Breite, unter dem Kopf und zwischen den Blöcken (E33)', () => {
+    expect(INDEX).toContain(".inhalt [class*='space-y-'] > .plankopf ~ :not([hidden]) { margin-top: 1.5rem; }");
   });
 
   it('Seiten mit eigenem Abstand halten denselben Takt', () => {
-    expect(AKTEN).toContain('.akten-seite { display: flex; flex-direction: column; gap: 0.75rem; }');
-    expect(AKTEN).toContain('@media (min-width: 1200px) { .akten-seite { gap: 1.25rem; } }');
-    expect(PLANUNG).toContain('.einsatzplanung { display: flex; flex-direction: column; gap: 0.75rem; }');
+    expect(AKTEN).toContain('.akten-seite { display: flex; flex-direction: column; gap: 1.5rem; }');
+    expect(PLANUNG).toContain('.einsatzplanung { display: flex; flex-direction: column; gap: 1.5rem; }');
     expect(START).toContain('.start-kopf { padding-bottom: 0; }');
   });
 

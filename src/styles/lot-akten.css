@@ -1,8 +1,7 @@
 /* Die Akten teilen dieselbe Lesefläche; andere Seiten behalten ihre bisherigen Gruppen. */
 @layer components {
   /* Abstand wie unter jedem Seitenkopf (E31): 12 px, ab 1200 px 20 px. */
-  .akten-seite { display: flex; flex-direction: column; gap: 0.75rem; }
-  @media (min-width: 1200px) { .akten-seite { gap: 1.25rem; } }
+  .akten-seite { display: flex; flex-direction: column; gap: 1.5rem; }
   /* Abschnitte durch Luft getrennt, nicht durch Linien (E24); der Titel eine Stufe größer trägt die Trennung. */
   .akten-seite .karte { overflow: visible; border-top: 0; }
   .akten-kopf { min-width: 0; }
@@ -23,7 +22,8 @@
   .akten-reiter[aria-selected='true'] { border-bottom-color: var(--petrol); color: var(--ink-deep); font-weight: var(--gewicht-titel); }
   .akten-bereich { min-width: 0; }
   .akten-bereich[hidden] { display: none; }
-  .akten-rahmen { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem; align-items: start; }
+  /* Kontextspalte in ganzen Zellen, eine Zelle Abstand (E33). */
+  .akten-rahmen { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; align-items: start; }
   .akten-hauptteil { min-width: 0; }
   /*
     DIE KONTEXTSPALTE MIT ECKMARKEN statt grauer Fläche (Planlinie B7): vier
@@ -101,12 +101,12 @@
   .akten-belegbetrag { font-size: 0.875rem; font-weight: var(--gewicht-zahl); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .akten-belegbetrag small { display: block; color: var(--text-muted); font-size: 0.75rem; font-weight: 400; }
   @media (min-width: 760px) {
-    .akten-rahmen { grid-template-columns: minmax(0, 1fr) 14.375rem; gap: 1.5rem; }
+    .akten-rahmen { grid-template-columns: minmax(0, 1fr) 15rem; gap: 1.5rem; }
     .akten-baustellenzeile { grid-template-columns: minmax(0, 1fr) auto 1rem; }
     .akten-zeile-nummer { grid-column: 1 / -1; }
   }
   @media (min-width: 1200px) {
-    .akten-rahmen { grid-template-columns: minmax(0, 1fr) 17.5rem; gap: 2rem; }
+    .akten-rahmen { grid-template-columns: minmax(0, 1fr) 18rem; gap: 1.5rem; }
     .akten-baustellenzeile { grid-template-columns: 6rem minmax(0, 1fr) auto 1rem; }
     .akten-zeile-nummer { grid-column: auto; }
   }

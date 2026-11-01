@@ -220,7 +220,7 @@ describe('Weiss steht nur auf Flächen, die es in beiden Sätzen tragen', () => 
   ohne eigene, gegen `--surface`.
 */
 describe('Schrift aus den Grundwerten trägt auf ihrer Fläche (beide Sätze)', () => {
-  const FLAECHEN = ['--surface', '--surface-2', '--bg', '--petrol-hell'];
+  const FLAECHEN = ['--surface', '--surface-2', '--bg', '--petrol-hell', '--petrol'];
   const quelle = (css.slice(css.indexOf('@layer components')) + lot).replace(/\/\*[\s\S]*?\*\//g, '');
 
   function regeln(text: string) {
@@ -231,7 +231,8 @@ describe('Schrift aus den Grundwerten trägt auf ihrer Fläche (beide Sätze)', 
       const eigene = /background(?:-color)?:\s*var\((--[a-z0-9-]+)\)/.exec(rumpf)?.[1];
       // Hat die Regel eine andere eigene Fläche (Navigation, Meldung), gilt sie hier nicht.
       if (/background(?:-color)?:\s*#/.test(rumpf)) continue;
-      const flaeche = eigene ?? '--surface';
+      // Schrift für die volle Petrol-Fläche (Einsätze, E33) steht auf Petrol, nicht auf der Fläche der Seite.
+      const flaeche = eigene ?? (schrift.startsWith('--auf-petrol') ? '--petrol' : '--surface');
       if (!FLAECHEN.includes(flaeche)) continue;
       funde.push({ regel: sel.trim().replace(/\s+/g, ' '), schrift, flaeche });
     }
@@ -263,6 +264,17 @@ describe('Weiss auf Petrol', () => {
     ['dunkel', DUNKEL],
   ])('trägt im %sen Satz 4,5:1 (gewähltes Segment, Einsatzblock, Sammelleiste)', (_n, satz) => {
     expect(kontrast('#ffffff', wert(satz, '--petrol'))!).toBeGreaterThanOrEqual(AA_NORMAL);
+  });
+
+  it.each([
+    ['hell', HELL],
+    ['dunkel', DUNKEL],
+  ])('der Einsatz (E33): Schrift und leise Schrift tragen im %sen Satz auf Petrol und beim Zeigen', (_n, satz) => {
+    for (const schrift of ['--auf-petrol', '--auf-petrol-leise']) {
+      for (const flaeche of ['--petrol', '--petrol-tief']) {
+        expect(kontrast(wert(satz, schrift), wert(satz, flaeche))!, `${schrift} auf ${flaeche}`).toBeGreaterThanOrEqual(AA_NORMAL);
+      }
+    }
   });
 });
 
