@@ -67,6 +67,9 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Ein Seitenbaustein, der hängt, braucht ein Neuladen der App (Stand 29) | Liegt beim Browser: er merkt sich den hängenden Abruf eines Moduls und holt ihn nicht neu; die App lädt deshalb nach der Frist selbst neu |
 | Raster und Blätter (Stand 30, E33): Fenster, Dialoge und das Blatt am Handy folgen dem Raster nicht | Fachlich: sie liegen über der Seite, ihre Lage bestimmt das Fenster |
 | Ohne `ResizeObserver` (Browser vor 2020) liegen Blätter nicht auf den Pixel im Raster (Stand 30) | Liegt beim Gerät: jeder unterstützte Browser hat ihn; die Seite bleibt bedienbar |
+| Arztbesuch (Stand 33, E35): den Weg vom Arbeitsort rechnet die App nicht aus | Fachlich: Arbeitsort des Tages und Weg kennt nur die Person; das Büro prüft beim Bestätigen |
+| Arztbesuch: auf der Startseite steht „Sonderurlaub“, nicht „Arztbesuch“ | Datenschutz: die Startseite nennt keinen Anlass; das Büro sieht ihn beim Bestätigen |
+| Arztbestätigung nach „geprüft“ gelöscht, nur der Vermerk bleibt | Datenschutz: Gesundheitsdaten nur so lange wie nötig (wie jeder Nachweis zum Sonderurlaub) |
 
 ## X – Liegt bei jemand anderem
 
@@ -75,8 +78,9 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Datum der Stornobuchung, Kontenrahmen, Lücke im Rechnungskreis vor 25.09., VIES als Nachweis, Löschen nach sieben Jahren (offene Punkte A9, D4–D6, D9) | Steuerberatung |
 | BMD-Stapel vorgebaut bis zum Importtest (offene Punkte C4, D7) | Kanzlei |
 | Datenschutzerklärung, Impressum, Kalender-Abo (offene Punkte D8, D10) | Anwalt |
-| Aliquoter Urlaub, Mahnspesen an Private (offene Punkte D1, D2) | WKO |
+| Aliquoter Urlaub, Mahnspesen an Private, Arztbesuch im Kollektivvertrag (offene Punkte D1, D2, D11) | WKO |
 | Safari/iPhone, Kamera, Push, Installation am echten Gerät (offene Punkte C15, Prüfbericht 4 und 6); die volle CSP ist seit 27.10.2026 durchgesetzt (Stand 24.6) | Gerätedurchgang |
+| Gleitzeitvereinbarung (Kernzeit) beim Arztbesuch: das Büro rechnet mit Grund an (Stand 33) | Betrieb |
 | SMTP, Domain, externer Sicherungsort, Wiederherstellung im Zielsystem, Einstellungen des gehosteten Projekts (Prüfbericht 4, Stand 14.7 Punkt 14) | Betrieb bzw. Zugang zum gehosteten Projekt |
 | Schutz gegen geleakte Passwörter, Ratenbegrenzung, Sitzungsdauer im gehosteten Projekt (Sicherheitsprüfung 27.10.2026, Werte in `docs/DEPLOYMENT.md`) | Zugang zum gehosteten Projekt |
 | Angriffsversuche gegen das gehostete Projekt, Wertebereiche einzelner Zahlenfelder (`docs/sicherheitspruefung-2026-10-27.md`, Abschnitt 4) | externer Sicherheitstest |

@@ -43,7 +43,7 @@ test('Sonderurlaub: beantragen, bestätigen, im Zeitkonto', async ({ browser }) 
   const buero = await (await browser.newContext()).newPage();
   await anmelden(buero, BUERO.email);
   await buero.goto('/vacations');
-  const karte = buero.locator('section', { has: buero.getByRole('heading', { name: /Sonderurlaub bestätigen/ }) });
+  const karte = buero.locator('section', { has: buero.getByRole('heading', { name: /Sonderurlaub und Arztbesuche bestätigen/ }) });
   await expect(karte.getByText(/Eigene Eheschließung/)).toBeVisible({ timeout: 15_000 });
   await karte.getByRole('button', { name: 'Bestätigen', exact: true }).click();
   await expect(buero.getByText(/Bestätigt — 3 Tage eingetragen/)).toBeVisible({ timeout: 15_000 });

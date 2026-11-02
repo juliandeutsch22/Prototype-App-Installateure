@@ -7,7 +7,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { Zustand, type Stand } from '@/components/Badge';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
-import { freistellungWas, freistellungZeitraum, nachweisVermerk, ueberVermerk } from './freistellungText';
+import { ablehnungVermerk, anrechnungVermerk, freistellungWas, freistellungZeitraum, nachweisVermerk, ueberVermerk } from './freistellungText';
 import { NachweisWahl } from './FreistellungFormular';
 import { SonderurlaubFenster } from './AntragFenster';
 
@@ -19,7 +19,7 @@ const STAND: Record<Freistellung['status'], Stand> = {
 };
 
 /**
- * DIE EIGENEN ANTRÄGE AUF SONDERURLAUB — Stand, Entscheidung und Vermerk.
+ * DIE EIGENEN ANTRÄGE AUF SONDERURLAUB UND ARZTBESUCHE — Stand, Entscheidung und Vermerk.
  * Solange offen: Nachweis nachreichen oder herausnehmen, zurückziehen.
  */
 export default function FreistellungListe({
@@ -111,6 +111,8 @@ export default function FreistellungListe({
         {antraege.map((f) => {
           const vermerk = nachweisVermerk(f);
           const ueber = f.status === 'Bestätigt' ? ueberVermerk(f) : null;
+          // Arztbesuch (E35): angerechnete Zeit oder was aus der Ablehnung wurde.
+          const arzt = anrechnungVermerk(f) ?? ablehnungVermerk(f);
           return (
             <ListRow
               key={f.id}
@@ -136,6 +138,7 @@ export default function FreistellungListe({
                   )}
                   {vermerk && <span className="mt-1 block text-xs text-ink-muted">{vermerk}</span>}
                   {ueber && <span className="mt-1 block text-xs text-ink-muted">{ueber}</span>}
+                  {arzt && <span className="mt-1 block text-xs text-ink-muted">{arzt}</span>}
                   {f.status === 'Beantragt' && f.nachweisPfad && (
                     <span className="mt-1 block text-xs text-ink-muted">Nachweis liegt bei — wird nach der Entscheidung gelöscht.</span>
                   )}

@@ -746,3 +746,63 @@ angebrochenen Reihe schließt. `tests/unit/planlinieStil.test.ts` hält die
 Regeln. Jede Prüfung mit Gegenprobe: mit dem alten Stand meldet die
 Messung 69 Stellen zu nah an der Linie, das Schriftfeld ist offen, vier
 Stilprüfungen sind rot.
+
+**E35 — Der Arztbesuch (02.11.2026).** Auftrag: „wie werden derzeit
+Arztbesuche abgebildet — und wie am besten, in vollem Umfang?“ Bis dahin gab
+es keinen Weg: ein Arztbesuch war entweder ein Krankenstand (falsch, der
+Tag ist kein Krankenstand), Zeitausgleich (falsch, er ist bezahlt) oder ein
+Kommentar an der Arbeitszeit (unsichtbar für Saldo und Lohnverrechnung).
+
+**Rechtslage, nach der gebaut ist.** Ein Arztbesuch in der Arbeitszeit ist
+eine Dienstverhinderung aus wichtigen persönlichen Gründen: bezahlt nach
+§ 1154b Abs 5 ABGB (Arbeiter) bzw. § 8 Abs 3 AngG (Angestellte), seit
+1.7.2018 auch für Arbeiter nicht mehr durch den Kollektivvertrag
+einschränkbar. Bezahlt ist die nötige Zeit samt Weg vom Arbeitsort, wenn
+sich der Termin nicht außerhalb der Arbeitszeit legen lässt; den eigenen
+Hausarzt darf man auch dann aufsuchen, wenn er nur während der Arbeitszeit
+ordiniert. Bezahlt ist nur Zeit, die sonst gearbeitet worden wäre — bei
+Gleitzeit die fiktive Normalarbeitszeit. Wer den ganzen Tag arbeitsunfähig
+ist, ist im Krankenstand.
+
+- **Ein Antrag der Art Sonderurlaub mit dem Anlass „Arztbesuch“**, immer an
+  einem Tag mit Uhrzeit (Weg vom Arbeitsort bis zurück), vorab oder
+  nachträglich. Ein eigenes Formular, weil Tage und „Tag des Ereignisses“
+  hier nichts bedeuten. Kein Kontingent; zwei Termine an einem Tag gehen,
+  wenn sie sich nicht überschneiden.
+- **Bestätigt wird vom Büro** wie jeder Sonderurlaub. Die Datenbank schlägt
+  vor, was angerechnet wird: höchstens der Termin, höchstens was am Tag noch
+  zur Sollzeit fehlt (`arztbesuch_vorschlag`). Eine andere Zeit geht mit
+  Grund. Im Zeitkonto steht genau die angerechnete Zeit als
+  Dienstverhinderung mit dem Vermerk „Arztbesuch“, ab dem Beginn des
+  Termins; von Hand nicht änderbar.
+- **Arztbestätigung:** ab Werk verlangt, je Betrieb abschaltbar
+  (Einstellungen › Sonderurlaub und Arztbesuch). Hochladen als Foto oder
+  PDF oder auf Papier zeigen; nach „geprüft“ löscht die App die Datei, es
+  bleibt der Vermerk. Keine Diagnose — weder in der Anmerkung noch auf der
+  Bestätigung nötig.
+- **Abgelehnt** wird mit Grund und einer Wahl, was aus der Zeit wird: als
+  Zeitausgleich buchen (nur, wer über Urlaub entscheidet) oder nicht buchen —
+  dann fehlt sie im Saldo.
+- **Wer was sieht.** Das Büro sieht „Arztbesuch“ (Bestätigen, Wochenplan,
+  Einsatzplanung, Push „Arztbesuch zu bestätigen“); die Projektleitung und
+  die Kollegen sehen im Wochenplan nur „abwesend“ mit der Uhrzeit — schon ab
+  dem Antrag, weil der Termin feststeht. Die Startseite nennt ihn wie jeden
+  Anlass nicht: dort steht „Sonderurlaub“.
+- **Lohnverrechnung:** Lohn-CSV mit der Spalte „davon Arztbesuch(Std)“ ganz
+  hinten (steckt in „Freigestellt stundenweise“), Monatsblatt mit „davon
+  Arztbesuch“, Stundennachweis mit dem Kürzel „AB“.
+
+**Bewusst so gelassen.** Die App rechnet den Weg nicht aus: Beginn und Ende
+trägt die Person ein, das Büro prüft. Eine günstigere Regel eines
+Kollektivvertrags oder einer Betriebsvereinbarung rechnet das Büro mit Grund
+an (bis zur Dauer des Termins).
+
+**Prüfungen.** `tests/supabase/arztbesuch.test.ts` (22 Prüfungen: Regeln der
+Datenbank, Vorschlag, Nachweis, Ablehnen mit Folge, Wochenplan, Zeitkonto),
+`tests/unit/arztbesuch.test.ts`, `tests/unit/freistellung.test.ts`
+(Lohn-CSV, mit Gegenprobe ohne Vermerk), `tests/unit/startseite.test.ts`
+(Anlass bleibt weg), `tests/components/VacationsView.test.tsx` (Melden,
+Überschneidung, Bestätigen, andere Zeit, Ablehnen),
+`tests/durchklick/arztbesuch.spec.ts` (Monteur meldet mit Bestätigung, Büro
+bestätigt, Zeitkonto, Datei gelöscht).
+

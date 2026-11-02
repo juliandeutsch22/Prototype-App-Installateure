@@ -245,6 +245,14 @@ export interface AbwesenheitDoc {
   zaVon?: string | null;
   zaBis?: string | null;
   zaStunden?: number | null;
+  /**
+   * Ein Arztbesuch (Anlass der Dienstverhinderung, E35). Der Anlass selbst
+   * geht nie mit; nur diese Angabe, damit die Meldung nicht „Sonderurlaub“ sagt.
+   */
+  arztbesuch?: boolean;
+  /** Uhrzeit des Termins — beim Arztbesuch steht sie in der Meldung. */
+  zeitVon?: string | null;
+  zeitBis?: string | null;
 }
 
 /** Eine Postgres-Zeile (`vacations` oder `krankmeldungen`) als `AbwesenheitDoc`. */
@@ -261,6 +269,9 @@ export function abwesenheitAusZeile(zeile: Record<string, unknown> | undefined):
     zaVon: (zeile.za_von as string | null | undefined) ?? null,
     zaBis: (zeile.za_bis as string | null | undefined) ?? null,
     zaStunden: zeile.za_stunden === undefined || zeile.za_stunden === null ? null : Number(zeile.za_stunden),
+    arztbesuch: zeile.arztbesuch === true,
+    zeitVon: (zeile.zeit_von as string | null | undefined) ?? null,
+    zeitBis: (zeile.zeit_bis as string | null | undefined) ?? null,
   };
 }
 
@@ -364,8 +375,27 @@ export function empfaengerFreistellung(leute: Belegschaftsmitglied[], a: Abwesen
     .map((u) => u.uid);
 }
 
-/** Der Anlass steht NIE in der Meldung — er verrät Familien- und Gesundheitsdaten. */
+/** „03.11., 09:00–10:30" — Tag und Uhrzeit eines stundenweisen Antrags. */
+function terminKurz(a: AbwesenheitDoc): string {
+  const zeit = a.zeitVon && a.zeitBis ? `, ${a.zeitVon.slice(0, 5)}–${a.zeitBis.slice(0, 5)}` : '';
+  return zeitraumKurz(a) + zeit;
+}
+
+/**
+ * Der Anlass steht NIE in der Meldung — er verrät Familien- und
+ * Gesundheitsdaten. Einzige Ausnahme ist die Art „Arztbesuch“ (E35): wie die
+ * Krankmeldung heißt sie, was sie ist, ohne Anmerkung; sonst stünde
+ * „Sonderurlaub“ da, und das Büro suchte den falschen Antrag.
+ */
 export function textFreistellungAntrag(a: AbwesenheitDoc, id: string): Meldung {
+  if (a.arztbesuch) {
+    return {
+      title: 'Arztbesuch zu bestätigen',
+      body: `${a.userName ?? 'Ein Mitarbeiter'}: ${terminKurz(a)}`,
+      link: '/vacations',
+      tag: `freistellung-${id}`,
+    };
+  }
   return {
     title: `Neuer Antrag auf ${FREISTELLUNG_NAME[a.art ?? ''] ?? 'Sonderurlaub'}`,
     body: `${a.userName ?? 'Ein Mitarbeiter'}: ${zeitraumKurz(a)}`,
@@ -375,11 +405,12 @@ export function textFreistellungAntrag(a: AbwesenheitDoc, id: string): Meldung {
 }
 
 export function textFreistellungEntscheidung(a: AbwesenheitDoc, id: string): Meldung {
-  const was = a.art === 'unbezahlt' ? 'Unbezahlter Urlaub' : a.art === 'pflegefreistellung' ? 'Pflegefreistellung' : 'Sonderurlaub';
+  const was = a.arztbesuch ? 'Arztbesuch'
+    : a.art === 'unbezahlt' ? 'Unbezahlter Urlaub' : a.art === 'pflegefreistellung' ? 'Pflegefreistellung' : 'Sonderurlaub';
   const wie = a.status === 'Bestätigt' ? 'bestätigt' : a.status === 'Abgelehnt' ? 'abgelehnt' : 'zurückgenommen';
   return {
     title: `${was} ${wie}`,
-    body: zeitraumKurz(a),
+    body: a.arztbesuch ? terminKurz(a) : zeitraumKurz(a),
     link: '/vacations',
     tag: `freistellung-${id}`,
   };

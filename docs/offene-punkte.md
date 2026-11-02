@@ -97,6 +97,7 @@ Anpassung, kein Umbau.
 | D8 | Anwalt | **K4** Datenschutzerklärung und Impressum freigeben, Angaben in eckigen Klammern ergänzen | Entwurf mit Band „Entwurf“ |
 | D9 | Steuerberatung | **E2** Reicht die VIES-Abfrage mit Abfrage-ID als Nachweis der Kunden-UID, oder braucht es für österreichische Nummern zusätzlich die Bestätigung über FinanzOnline (Stufe 2)? | VIES-Abfrage mit festgehaltenem Ergebnis, Zeitpunkt und Abfrage-ID in der Kundenakte |
 | D10 | Anwalt | **E3** Kalender-Abo: Kundenname, Adresse und Ansprechpartner gehen an den Kalenderdienst der Person (Google, Apple, Microsoft) — genügt der Schalter des Betriebs samt Satz in der Datenschutzerklärung? | ab Werk aus, der Betrieb schaltet es ein; Ausschalten beendet alle Abos |
+| D11 | WKO | **E35** Arztbesuch: Sieht der Kollektivvertrag des Betriebs (Metallgewerbe bzw. Angestellte) für Arztbesuche mehr vor als § 1154b Abs 5 ABGB / § 8 Abs 3 AngG, etwa eine feste Stundenzahl? | gebaut nach dem Gesetz: höchstens der Termin samt Weg, höchstens der Rest zur Sollzeit; mehr rechnet das Büro mit Grund an (bis zur Dauer des Termins) |
 
 ## E. Für später vermerkt
 

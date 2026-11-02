@@ -5,7 +5,7 @@ import { ANLAESSE, KUERZUNG_AB_VORGABE } from '@shared/freistellung';
 import { leseZahl } from '@/lib/zahl';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import { InputField } from '@/components/Field';
+import { CheckboxField, InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -27,6 +27,8 @@ export default function SonderurlaubKarte() {
   const toast = useToast();
   const [tage, setTage] = useState<Record<string, string>>({});
   const [ab, setAb] = useState(String(KUERZUNG_AB_VORGABE));
+  /** Arztbesuch (E35): Bestätigung verlangen — ab Werk ja. */
+  const [nachweis, setNachweis] = useState(true);
   const [speichert, setSpeichert] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
 
@@ -34,6 +36,7 @@ export default function SonderurlaubKarte() {
     const abweichend = company?.freistellungAnlaesse ?? {};
     setTage(Object.fromEntries(MIT_TAGEN.map((a) => [a.schluessel, String(abweichend[a.schluessel] ?? a.tage)])));
     setAb(String(company?.kuerzungAbTagen ?? KUERZUNG_AB_VORGABE));
+    setNachweis(company?.arztbesuchNachweis !== false);
   }, [company]);
 
   async function speichern() {
@@ -58,9 +61,10 @@ export default function SonderurlaubKarte() {
       await updateCompany(user.companyId, {
         freistellungAnlaesse: Object.keys(abweichend).length > 0 ? abweichend : null,
         kuerzungAbTagen: schwelle.wert,
+        arztbesuchNachweis: nachweis,
       });
       await reloadCompany();
-      toast.success('Sonderurlaub gespeichert');
+      toast.success('Sonderurlaub und Arztbesuch gespeichert');
     } catch (err) {
       setFehler(grundAus(err, 'Die Einstellungen zum Sonderurlaub konnten nicht gespeichert werden.'));
     } finally {
@@ -70,8 +74,8 @@ export default function SonderurlaubKarte() {
 
   return (
     <Card
-      title="Sonderurlaub"
-      hint="Die Tage der Dienstverhinderung je Anlass, ab Werk nach dem Kollektivvertrag (Arbeiter und Angestellte gleich). Vorladung und Musterung bekommen die notwendige Zeit. Beim unbezahlten Urlaub schlägt die App ab der eingestellten Dauer am Stück vor, den Urlaubsanspruch aliquot zu kürzen — übernommen wird erst mit der Entscheidung."
+      title="Sonderurlaub und Arztbesuch"
+      hint="Die Tage der Dienstverhinderung je Anlass, ab Werk nach dem Kollektivvertrag (Arbeiter und Angestellte gleich). Vorladung, Musterung und Arztbesuch bekommen die notwendige Zeit. Beim unbezahlten Urlaub schlägt die App ab der eingestellten Dauer am Stück vor, den Urlaubsanspruch aliquot zu kürzen — übernommen wird erst mit der Entscheidung. Verlangt der Betrieb für Arztbesuche eine Bestätigung, bestätigt das Büro einen Arztbesuch erst, wenn es sie gesehen hat — als Datei oder auf Papier. Sonst ist die Bestätigung freiwillig."
     >
       {/*
         EINSPALTIG (Linie „Lot“, Regel 9): die Anlässe haben lange Namen, die
@@ -89,6 +93,12 @@ export default function SonderurlaubKarte() {
             onChange={(e) => setTage({ ...tage, [a.schluessel]: e.target.value })}
           />
         ))}
+        <CheckboxField
+          id="arztbesuchNachweis"
+          label="Für Arztbesuche eine Bestätigung verlangen"
+          checked={nachweis}
+          onChange={(e) => setNachweis(e.target.checked)}
+        />
         <InputField
           id="kuerzungAb"
           label="Kürzung vorschlagen ab (Kalendertage unbezahlt am Stück)"

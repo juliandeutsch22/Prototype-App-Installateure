@@ -2,8 +2,8 @@
   "hinweis": "Runde 4, V4. Erzeugt von tests/unit/r4Referenz.test.ts vor dem Umbau (Uhr 08.10.2026 10:00). Neu schreiben nur bei absichtlicher Änderung eines Exports: REFERENZ_SCHREIBEN=1.",
   "dateien": {
     "monats.csv": {
-      "sha256": "4804a706488ca45aa4cabd9347fadada7c7313020184a10912f267e240d8de59",
-      "bytes": 1545
+      "sha256": "0d63259b04b195f202684ae25c910859f7a181cbc134ff589ed751de563fe653",
+      "bytes": 1577
     },
     "person-max.csv": {
       "sha256": "d9449ae376872a0aee37e6af8ec82bbe88874f1949b6c66fabe7f07d17f21b44",

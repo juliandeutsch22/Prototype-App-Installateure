@@ -7,6 +7,7 @@ import {
   zeitausgleichMin,
 } from '@/lib/time';
 import { freigestelltMin } from '@shared/arbeitszeit';
+import { istArztbesuchTag } from '@shared/freistellung';
 import { BRAND_RGB, fmtDate, hours } from './export';
 import { FLAECHE, GRAU, TINTE } from '@/lib/belegLayout';
 import { zuschlagszeit, hatZuschlaege } from './zuschlaege';
@@ -106,7 +107,8 @@ export function generateHoursPdf(opts: {
     return [
       fmtDate(e.date),
       // Die Spalte ist schmal; „ZA“ und „BS“ erklärt die Summenzeile darunter.
-      KUERZEL[e.status] ?? e.status,
+      // Der Arztbesuch ist rechtlich Sonderurlaub, auf dem Nachweis aber eigens erkennbar (E35).
+      istArztbesuchTag(e) ? 'AB' : KUERZEL[e.status] ?? e.status,
       e.projectNumber || '–',
       e.customerName || '–',
       e.startTime && e.endTime ? `${e.startTime}–${e.endTime}` : '–',
@@ -173,6 +175,7 @@ export function generateHoursPdf(opts: {
   const pflege = ganz('Pflegefreistellung');
   const unbezahlt = ganz('Unbezahlt');
   const freiMin = sorted.reduce((s, e) => s + freigestelltMin(e), 0);
+  const arztMin = sorted.filter(istArztbesuchTag).reduce((s, e) => s + freigestelltMin(e), 0);
   doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...GRAU);
   const abwesend = [
     krank ? `Krankenstandstage: ${krank}` : '',
@@ -181,7 +184,7 @@ export function generateHoursPdf(opts: {
     schule ? `Berufsschule (BS): ${schule} Tage` : '',
     sonder ? `Sonderurlaub (SU): ${sonder} Tage` : '',
     pflege ? `Pflegefreistellung (PF): ${pflege} Tage` : '',
-    freiMin ? `Stundenweise freigestellt: ${hours(freiMin)} h` : '',
+    freiMin ? `Stundenweise freigestellt: ${hours(freiMin)} h${arztMin ? `, davon Arztbesuch (AB) ${hours(arztMin)} h` : ''}` : '',
     unbezahlt ? `Unbezahlter Urlaub (UB): ${unbezahlt} Tage` : '',
   ].filter(Boolean);
   if (abwesend.length) doc.text(abwesend.join('    '), margin, y + 12);

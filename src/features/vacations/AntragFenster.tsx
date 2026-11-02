@@ -4,8 +4,8 @@ import BottomSheet from '@/components/BottomSheet';
 import { LotVerlauf, type LotPunkt } from '@/components/LotBausteine';
 import { datumAusMs } from '@/lib/datum';
 import { todayStr } from '@/lib/time';
-import { ART_NAME } from '@shared/freistellung';
-import { freistellungWas, freistellungZeitraum, nachweisVermerk, ueberVermerk } from './freistellungText';
+import { ART_NAME, istArztbesuch } from '@shared/freistellung';
+import { ablehnungVermerk, anrechnungVermerk, freistellungWas, freistellungZeitraum, nachweisVermerk, ueberVermerk } from './freistellungText';
 import { zeitraumText } from './abwesenheitText';
 
 /**
@@ -168,15 +168,17 @@ export function SonderurlaubFenster({
         punkte.push({ titel: 'Bestätigt', zeit: am(f.bestaetigtAm), text: vonUndGrund(f.bestaetigtVonName) });
       }
       const ueber = f.status === 'Bestätigt' ? ueberVermerk(f) : null;
+      // Beim Arztbesuch: was angerechnet wurde bzw. was aus der Ablehnung wurde (E35).
+      const arzt = anrechnungVermerk(f) ?? ablehnungVermerk(f);
       punkte.push({
         titel: f.status,
         zeit: am(f.entschiedenAm),
-        text: [vonUndGrund(f.entschiedenVonName, f.grund), ueber].filter(Boolean).join(' · ') || undefined,
+        text: [vonUndGrund(f.entschiedenVonName, f.grund), ueber, arzt].filter(Boolean).join(' · ') || undefined,
       });
     }
     if (f.status === 'Bestätigt') {
       punkte.push({
-        titel: ART_NAME[f.art],
+        titel: istArztbesuch(f) ? 'Arztbesuch' : ART_NAME[f.art],
         zeit: freistellungZeitraum(f),
         text: f.bis < heute ? 'vorbei' : f.von <= heute ? 'läuft' : undefined,
         jetzt: f.von <= heute && f.bis >= heute,
@@ -186,7 +188,7 @@ export function SonderurlaubFenster({
   return (
     <AntragFenster
       offen={!!f}
-      titel="Antrag auf Sonderurlaub"
+      titel={f && istArztbesuch(f) ? 'Arztbesuch' : 'Antrag auf Sonderurlaub'}
       zeitraum={f ? freistellungZeitraum(f) : ''}
       umfang={f ? freistellungWas(f, anlaesse) : ''}
       stand={stand}

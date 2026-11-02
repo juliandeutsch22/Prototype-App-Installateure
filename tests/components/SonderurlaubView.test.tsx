@@ -15,6 +15,7 @@ vi.mock('@/lib/db/users', () => ({ getUserByUid: vi.fn(async () => ({ uid: 'u1',
 vi.mock('@/features/vacations/FreistellungFormular', () => ({
   default: ({ art }: { art: string }) => <p>Formular {art}</p>,
 }));
+vi.mock('@/features/vacations/ArztbesuchFormular', () => ({ default: () => <p>Formular Arztbesuch</p> }));
 vi.mock('@/features/vacations/FreistellungListe', () => ({
   default: ({ antraege }: { antraege: unknown[] }) => <p>Liste {antraege.length}</p>,
 }));
@@ -36,14 +37,17 @@ beforeEach(() => {
 });
 
 describe('Sonderurlaub ohne das Modul Urlaub', () => {
-  it('der Monteur stellt einen Antrag in drei Arten und sieht seine Anträge', async () => {
+  it('der Monteur stellt einen Antrag in vier Arten und sieht seine Anträge', async () => {
     zeige();
     expect(await screen.findByText('Formular dienstverhinderung')).toBeInTheDocument();
     expect(screen.getByText('Liste 1')).toBeInTheDocument();
     const art = screen.getByLabelText('Art') as HTMLSelectElement;
-    expect([...art.options].map((o) => o.value)).toEqual(['dienstverhinderung', 'pflegefreistellung', 'unbezahlt']);
+    expect([...art.options].map((o) => o.value)).toEqual(['dienstverhinderung', 'arztbesuch', 'pflegefreistellung', 'unbezahlt']);
     fireEvent.change(art, { target: { value: 'pflegefreistellung' } });
     expect(await screen.findByText('Formular pflegefreistellung')).toBeInTheDocument();
+    // Der Arztbesuch hat sein eigenes Formular: Uhrzeiten statt Tage (E35).
+    fireEvent.change(art, { target: { value: 'arztbesuch' } });
+    expect(await screen.findByText('Formular Arztbesuch')).toBeInTheDocument();
     expect(screen.queryByText('Bestätigen')).toBeNull();
   });
 

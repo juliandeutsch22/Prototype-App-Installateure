@@ -8,9 +8,10 @@ import PageHeader from '@/components/PageHeader';
 import { SelectField } from '@/components/Field';
 import { ErrorState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
-import type { FreistellungArt } from '@shared/freistellung';
+import { istArztbesuch, type FreistellungArt } from '@shared/freistellung';
 import type { AppUser, Freistellung } from '@/types';
 import FreistellungFormular from './FreistellungFormular';
+import ArztbesuchFormular from './ArztbesuchFormular';
 import FreistellungListe from './FreistellungListe';
 import FreistellungenBestaetigen from './FreistellungenBestaetigen';
 
@@ -30,7 +31,8 @@ import FreistellungenBestaetigen from './FreistellungenBestaetigen';
  */
 export default function SonderurlaubView() {
   const { user, company } = useAuth();
-  const [art, setArt] = useState<FreistellungArt>('dienstverhinderung');
+  // `arztbesuch`: eine Dienstverhinderung mit Uhrzeit, eigenes Formular (E35).
+  const [art, setArt] = useState<FreistellungArt | 'arztbesuch'>('dienstverhinderung');
   const [profil, setProfil] = useState<AppUser | null>(null);
   const [eigene, setEigene] = useState<Freistellung[] | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export default function SonderurlaubView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Sonderurlaub" subtitle="Sonderurlaub, Pflegefreistellung und unbezahlter Urlaub" />
+      <PageHeader title="Sonderurlaub" subtitle="Sonderurlaub, Arztbesuch, Pflegefreistellung und unbezahlter Urlaub" />
 
       {buero && <FreistellungenBestaetigen user={user} company={company} />}
 
@@ -80,26 +82,31 @@ export default function SonderurlaubView() {
                 id="sart"
                 label="Art"
                 value={art}
-                onChange={(e) => setArt(e.target.value as FreistellungArt)}
+                onChange={(e) => setArt(e.target.value as FreistellungArt | 'arztbesuch')}
               >
                 <option value="dienstverhinderung">Sonderurlaub (Hochzeit, Todesfall, Umzug …)</option>
+                <option value="arztbesuch">Arztbesuch</option>
                 <option value="pflegefreistellung">Pflegefreistellung</option>
                 <option value="unbezahlt">Unbezahlter Urlaub</option>
               </SelectField>
             </div>
-            <FreistellungFormular
-              // Eigener Schlüssel je Art: der Wechsel beginnt mit leeren Feldern (G16).
-              key={art}
-              art={art}
-              user={user}
-              profil={profil}
-              company={company}
-              eigene={eigene}
-              onGestellt={eigeneNeu}
-            />
+            {art === 'arztbesuch' ? (
+              <ArztbesuchFormular user={user} company={company} eigene={eigene} onGestellt={eigeneNeu} />
+            ) : (
+              <FreistellungFormular
+                // Eigener Schlüssel je Art: der Wechsel beginnt mit leeren Feldern (G16).
+                key={art}
+                art={art}
+                user={user}
+                profil={profil}
+                company={company}
+                eigene={eigene}
+                onGestellt={eigeneNeu}
+              />
+            )}
           </Card>
           {eigene.length > 0 && (
-            <Card title="Mein Sonderurlaub" buendig className="zeit-liste">
+            <Card title={eigene.some(istArztbesuch) ? 'Sonderurlaub und Arztbesuche' : 'Mein Sonderurlaub'} buendig className="zeit-liste">
               <FreistellungListe
                 antraege={eigene}
                 companyId={user.companyId}

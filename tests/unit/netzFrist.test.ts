@@ -64,6 +64,7 @@ describe('welche Zugriffe eine Frist bekommen', () => {
     expect(zugriffsart(`${BASIS}/auth/v1/token?grant_type=refresh_token`, 'POST')).toBe('erneuern');
     expect(zugriffsart(`${BASIS}/auth/v1/token?grant_type=password`, 'POST')).toBe('anmelden');
     expect(zugriffsart(`${BASIS}/auth/v1/user`, 'GET')).toBe('authLesen');
+    expect(zugriffsart(`${BASIS}/auth/v1/recover?redirect_to=https%3A%2F%2Fapp.senklot.at`, 'POST')).toBe('zuruecksetzen');
   });
 
   it('gleich geblieben: alles, was schreiben kann, bekommt keine', () => {
@@ -108,6 +109,19 @@ describe('Stillstand vor der Antwort', () => {
     const pruefung = expect(p).rejects.toBeInstanceOf(Stillstand);
     await vi.advanceTimersByTimeAsync(FRISTEN.erneuern.bisAntwort + 10);
     await pruefung;
+  });
+
+  it('das Anfordern des Rücksetzlinks endet nach 30 s — der Knopf dreht sich nicht ewig', async () => {
+    const netz = totesNetz();
+    let ergebnis: unknown = 'läuft';
+    fetchMitFrist(netz.fn)(`${BASIS}/auth/v1/recover`, { method: 'POST', body: '{"email":"a@b.at"}' }).then(
+      () => { ergebnis = 'geantwortet'; },
+      (e) => { ergebnis = e; },
+    );
+    await vi.advanceTimersByTimeAsync(FRISTEN.zuruecksetzen.bisAntwort - 100);
+    expect(ergebnis).toBe('läuft');
+    await vi.advanceTimersByTimeAsync(200);
+    expect(ergebnis).toBeInstanceOf(Stillstand);
   });
 
   it('Gegenprobe: ohne Frist wartet derselbe Zugriff unbegrenzt', async () => {

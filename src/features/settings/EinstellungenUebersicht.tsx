@@ -47,7 +47,7 @@ const STICHWORTE: Record<string, string> = {
   rechnung: 'Umsatzsteuer, Zahlungsziel, Skonto, Mahnspesen, Basiszinssatz, Anzahlungs- und Schlussrechnungen',
   nummern: 'Rechnungsnummer, Angebotsnummer, Baustellennummer, Kennzeichen des Fuhrparks',
   personal:
-    'Urlaubsjahr, Übertrag, Verfallstag, Urlaub genehmigen, Wochenplan, Einsatzplan, Kalender-Abo, 24. und 31. Dezember, Nachtzeit, Überstunden, Sonderurlaub',
+    'Urlaubsjahr, Übertrag, Verfallstag, Urlaub genehmigen, Wochenplan, Einsatzplan, Kalender-Abo, 24. und 31. Dezember, Nachtzeit, Überstunden, Sonderurlaub, Arztbesuch',
   konten: 'BMD, Debitoren, Anzahlungen, Erlöskonten, Steuercodes, Bankkonto, Skonti',
   support: 'Einblick gewähren, Support, bisherige Zugänge',
   module: 'Bereiche ein- und ausschalten',

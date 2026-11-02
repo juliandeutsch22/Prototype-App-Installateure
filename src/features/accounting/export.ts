@@ -219,6 +219,9 @@ export function buildMonthCsv(
       // AZG) steht in keiner der Überstundenspalten — ob sie 25 % trägt oder
       // im Quartal ausgeglichen wird, entscheidet die Lohnverrechnung.
       ...(mitTagesgrenze(lohn) ? ['Mehrarbeit Teilzeit(Std)'] : []),
+      // Seit 02.11.2026 (E35), ganz hinten: angerechnete Arztbesuche. Sie
+      // stecken schon in „Freigestellt stundenweise“ — „davon“, nicht dazu.
+      'davon Arztbesuch(Std)',
     ]),
   );
   // Das Lehrjahr am letzten Tag des Monats: wechselt es mittendrin, gilt für die Abrechnung der neue Stand.
@@ -256,6 +259,7 @@ export function buildMonthCsv(
         stats.unbezahltDays,
         ...(mitTagesgrenze(lohn) && ue ? [hours(ue.nachtAlsUeberstundeMin ?? 0)] : []),
         ...(mitTagesgrenze(lohn) && ue ? [hours(ue.mehrarbeitTeilzeitMin ?? 0)] : []),
+        hours(stats.arztbesuchMin),
       ]),
     );
   }
@@ -395,6 +399,7 @@ export function buildUserCsv(
   if (stats.sonderurlaubDays > 0) lines.push(row(['Sonderurlaub', `${stats.sonderurlaubDays} Tage`]));
   if (stats.pflegeDays > 0) lines.push(row(['Pflegefreistellung', `${stats.pflegeDays} Tage`]));
   if (stats.freigestelltMin > 0) lines.push(row(['Stundenweise freigestellt', `${hours(stats.freigestelltMin)} h`]));
+  if (stats.arztbesuchMin > 0) lines.push(row(['davon Arztbesuch', `${hours(stats.arztbesuchMin)} h`]));
   if (stats.unbezahltDays > 0) lines.push(row(['Unbezahlter Urlaub', `${stats.unbezahltDays} Tage`]));
 
   /*

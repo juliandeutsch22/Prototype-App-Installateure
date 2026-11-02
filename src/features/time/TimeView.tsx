@@ -561,16 +561,16 @@ export default function TimeView() {
           : null
         : (e.status === 'Zeitausgleich' || e.status === 'Dienstverhinderung' || e.status === 'Pflegefreistellung')
             && e.startTime && e.endTime
-          ? `${tagesStatusName(e.status)} ${e.startTime}–${e.endTime}`
+          ? `${tagesStatusName(e.status, e.comment)} ${e.startTime}–${e.endTime}`
           : e.status === 'Berufsschule' && (e.unterrichtMin || e.wegzeitMin)
-            ? [tagesStatusName(e.status), ...schultagAngaben(e)].join(' · ')
-            : tagesStatusName(e.status);
+            ? [tagesStatusName(e.status, e.comment), ...schultagAngaben(e)].join(' · ')
+            : tagesStatusName(e.status, e.comment);
     /*
       DER KOMMENTAR NICHT NOCH EINMAL ALS STATUS (Runde 6, G12): ohne Notiz
       trägt die Datenbank „Berufsschule“ als Kommentar ein — die Zeile lautete
       „Berufsschule · Unterricht 06:00 Std · Weg 01:00 Std · Berufsschule“.
     */
-    const kommentar = e.comment?.trim() && e.comment.trim() !== tagesStatusName(e.status) ? e.comment : null;
+    const kommentar = e.comment?.trim() && e.comment.trim() !== tagesStatusName(e.status, e.comment) ? e.comment : null;
     const subtitle = [timeLabel, kommentar].filter(Boolean).join(' · ');
     const vomBueroGesperrt = !canEditTime(user.role) && buerobuchungGesperrt(e, entries, geburtsdatum);
     /*

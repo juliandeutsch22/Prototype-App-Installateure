@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Vacation } from '@/types';
@@ -84,6 +84,16 @@ let eigenesProfil: AppUser = monteur;
 let freistellungen: Array<Record<string, unknown>> = [];
 /** Bestätigte, die noch laufen (Liste „Bestätigt, noch nicht vorbei“). */
 let laufendeFrei: Array<Record<string, unknown>> = [];
+/** Weitere Einstellungen des Betriebs, je Test setzbar. */
+let firmaExtra: Record<string, unknown> = {};
+/** Der Vorschlag der Datenbank zum Arztbesuch (E35): Termin 2 h, Tag 8 h, gearbeitet 6:30. */
+type ArztVorschlag = {
+  termin: number; soll: number; gearbeitet: number; vorschlag: number; arbeitstag: boolean;
+  ueberschneidung: Array<{ status: string; von: string; bis: string }>; ganztags: string | null;
+};
+const arztVorschlag = vi.fn<(id: string) => Promise<ArztVorschlag>>(async () => ({
+  termin: 120, soll: 480, gearbeitet: 390, vorschlag: 90, arbeitstag: true, ueberschneidung: [], ganztags: null,
+}));
 const freistellungBeantragen = vi.fn<(a: Record<string, unknown>) => Promise<string>>(async () => 'f-neu');
 const freistellungEntscheiden = vi.fn<(d: Record<string, unknown>) => Promise<Record<string, unknown>>>(
   async () => ({ status: 'Bestätigt', angelegt: 1, uebersprungen: 0, entfernt: 0, nachweis: null, dateiBlieb: false }),
@@ -101,6 +111,7 @@ vi.mock('@/lib/db/freistellungen', () => ({
   nachweisEntfernen: vi.fn(async () => undefined),
   nachweisAdresse: vi.fn(async () => 'https://beispiel'),
   nachweiseAufraeumen: vi.fn(async () => 0),
+  arztbesuchVorschlag: (id: string) => arztVorschlag(id),
 }));
 
 /** Anpassungen des Urlaubsanspruchs — je Test setzbar. */
@@ -150,7 +161,7 @@ let rolle = {
 vi.mock('@/app/AuthContext', () => ({
   useAuth: () => ({
     user: rolle,
-    company: { id: 'perl', name: 'Perl Installationen', vacationApprovers: genehmiger },
+    company: { id: 'perl', name: 'Perl Installationen', vacationApprovers: genehmiger, ...firmaExtra },
     loading: false,
     error: null,
     signIn: vi.fn(),
@@ -200,6 +211,8 @@ beforeEach(() => {
   laufendeFrei = [];
   freistellungBeantragen.mockClear();
   freistellungEntscheiden.mockClear();
+  arztVorschlag.mockClear();
+  firmaExtra = {};
   createVacation.mockClear();
   deleteVacation.mockClear();
   callUrlaubEntscheiden
@@ -1389,7 +1402,7 @@ describe('Sonderurlaub (Plan 10.3)', () => {
   it('der Mitarbeiter sieht keine Liste zum Bestätigen', async () => {
     zeichne();
     await screen.findByLabelText('Art');
-    expect(screen.queryByText('Sonderurlaub bestätigen')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sonderurlaub und Arztbesuche bestätigen')).not.toBeInTheDocument();
   });
 
   describe('Bestätigen', () => {
@@ -1398,7 +1411,7 @@ describe('Sonderurlaub (Plan 10.3)', () => {
       belegschaft = [monteur, { ...monteur, uid: 'b1', id: 'b1', name: 'Frau Wagner', role: 'Buchhaltung' }];
     };
 
-    const karte = () => screen.getByRole('heading', { name: 'Sonderurlaub bestätigen' }).closest('section') as HTMLElement;
+    const karte = () => screen.getByRole('heading', { name: 'Sonderurlaub und Arztbesuche bestätigen' }).closest('section') as HTMLElement;
 
     // Stufe 3: beim zweiten Besuch stehen die Anträge sofort da, frisch geholt wird im Hintergrund.
     it('beim zweiten Besuch stehen die Anträge sofort da', async () => {
@@ -1413,7 +1426,7 @@ describe('Sonderurlaub (Plan 10.3)', () => {
       const vorher = vi.mocked(listBestaetigteFreistellungenAb).mock.calls.length;
       vi.mocked(listBestaetigteFreistellungenAb).mockImplementationOnce(() => new Promise(() => undefined) as never);
       zeichne();
-      await screen.findByRole('heading', { name: 'Sonderurlaub bestätigen' });
+      await screen.findByRole('heading', { name: 'Sonderurlaub und Arztbesuche bestätigen' });
       expect(within(karte()).getByRole('button', { name: 'Bestätigen' })).toBeInTheDocument();
       expect(within(karte()).queryByRole('status')).toBeNull();
       await waitFor(() => expect(vi.mocked(listBestaetigteFreistellungenAb).mock.calls.length).toBeGreaterThan(vorher));
@@ -1440,7 +1453,7 @@ describe('Sonderurlaub (Plan 10.3)', () => {
       freistellungen = [frei({ art: 'dienstverhinderung', anlass: 'hochzeit', ereignisDatum: '2026-11-13', nachweisPfad: 'perl/m1/f1/a.pdf' })];
       const nutzer = userEvent.setup();
       zeichne();
-      expect(await screen.findByText('Sonderurlaub bestätigen')).toBeInTheDocument();
+      expect(await screen.findByText('Sonderurlaub und Arztbesuche bestätigen')).toBeInTheDocument();
       await nutzer.click(await screen.findByLabelText('Nachweis geprüft'));
       await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
       await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
@@ -1546,7 +1559,7 @@ describe('Sonderurlaub (Plan 10.3)', () => {
       freistellungen = [frei({ art: 'dienstverhinderung', anlass: 'hochzeit', ereignisDatum: '2026-11-13' })];
       const nutzer = userEvent.setup();
       zeichne();
-      await screen.findByText('Sonderurlaub bestätigen');
+      await screen.findByText('Sonderurlaub und Arztbesuche bestätigen');
       expect(screen.queryByText(/über dem Kontingent/)).not.toBeInTheDocument();
       await nutzer.click(await screen.findByRole('button', { name: 'Bestätigen' }));
       await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
@@ -1643,6 +1656,177 @@ describe('Sonderurlaub (Plan 10.3)', () => {
   mit dem Verlauf — nur aus dem, was der Antrag trägt — und denselben
   Handgriffen wie in der Zeile, mit derselben Rückfrage.
 */
+describe('Arztbesuch (E35)', () => {
+  const arzt = (rest: Record<string, unknown> = {}) => ({
+    id: 'a1', companyId: 'perl', userId: 'm1', userName: 'Max Mustermann', status: 'Beantragt',
+    art: 'dienstverhinderung', anlass: 'arztbesuch', ereignisDatum: '2026-11-12',
+    von: '2026-11-12', bis: '2026-11-12', zeitVon: '13:00:00', zeitBis: '15:00:00', ...rest,
+  });
+  const buero = () => {
+    rolle = { ...rolle, uid: 'b1', name: 'Frau Wagner', role: 'Buchhaltung', docId: 'b1' };
+    belegschaft = [monteur, { ...monteur, uid: 'b1', id: 'b1', name: 'Frau Wagner', role: 'Buchhaltung' }];
+  };
+
+  it('der Monteur meldet ihn mit Tag und Uhrzeit — als Dienstverhinderung mit dem Anlass Arztbesuch', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(await screen.findByLabelText('Art'), 'arztbesuch');
+    await datum('Tag', '2026-11-12');
+    fireEvent.change(screen.getByLabelText(/Weg vom Arbeitsort um/), { target: { value: '13:00' } });
+    fireEvent.change(screen.getByLabelText(/Zurück um/), { target: { value: '15:00' } });
+    await nutzer.type(screen.getByLabelText(/Anmerkung/), 'Kontrolle');
+    await nutzer.click(screen.getByRole('button', { name: 'Arztbesuch melden' }));
+    await waitFor(() => expect(freistellungBeantragen).toHaveBeenCalledTimes(1));
+    expect(freistellungBeantragen.mock.calls[0][0]).toEqual({
+      art: 'dienstverhinderung', anlass: 'arztbesuch', ereignisDatum: '2026-11-12',
+      von: '2026-11-12', bis: '2026-11-12', zeitVon: '13:00', zeitBis: '15:00', notiz: 'Kontrolle',
+    });
+  });
+
+  it('ein Ende vor dem Beginn geht nicht hinaus', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(await screen.findByLabelText('Art'), 'arztbesuch');
+    fireEvent.change(screen.getByLabelText(/Weg vom Arbeitsort um/), { target: { value: '15:00' } });
+    fireEvent.change(screen.getByLabelText(/Zurück um/), { target: { value: '13:00' } });
+    await nutzer.click(screen.getByRole('button', { name: 'Arztbesuch melden' }));
+    expect(await screen.findByText('Das Ende liegt vor dem Beginn.')).toBeInTheDocument();
+    expect(freistellungBeantragen).not.toHaveBeenCalled();
+  });
+
+  it('überschneidet er sich mit einem eigenen Antrag, sagt es das Formular — ein späterer Termin geht', async () => {
+    freistellungen = [arzt()];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.selectOptions(await screen.findByLabelText('Art'), 'arztbesuch');
+    await datum('Tag', '2026-11-12');
+    fireEvent.change(screen.getByLabelText(/Weg vom Arbeitsort um/), { target: { value: '14:00' } });
+    fireEvent.change(screen.getByLabelText(/Zurück um/), { target: { value: '16:00' } });
+    expect(await screen.findByText(/Überschneidet sich mit Arztbesuch am 12\.11\.2026, 13:00–15:00 \(Beantragt\)/)).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Arztbesuch melden' }));
+    expect(freistellungBeantragen).not.toHaveBeenCalled();
+    // Gegenprobe: ab dem Ende des ersten Termins ist der Tag frei.
+    fireEvent.change(screen.getByLabelText(/Weg vom Arbeitsort um/), { target: { value: '15:00' } });
+    fireEvent.change(screen.getByLabelText(/Zurück um/), { target: { value: '16:00' } });
+    await nutzer.click(screen.getByRole('button', { name: 'Arztbesuch melden' }));
+    await waitFor(() => expect(freistellungBeantragen).toHaveBeenCalledTimes(1));
+  });
+
+  it('das Büro sieht den Vorschlag und bestätigt erst mit geprüfter Arztbestätigung', async () => {
+    buero();
+    freistellungen = [arzt()];
+    const nutzer = userEvent.setup();
+    zeichne();
+    expect(await screen.findByText(/Sollzeit 08:00 Std, gearbeitet 06:30 Std — anzurechnen 01:30 Std von 02:00 Std/)).toBeInTheDocument();
+    expect(arztVorschlag).toHaveBeenCalledWith('a1');
+    expect(screen.getByLabelText('Angerechnet (Std:Min)')).toHaveValue('01:30');
+    await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
+    expect(await screen.findByText(/verlangt für Arztbesuche eine Bestätigung/)).toBeInTheDocument();
+    expect(freistellungEntscheiden).not.toHaveBeenCalled();
+    await nutzer.click(screen.getByLabelText('Arztbestätigung geprüft (auf Papier gezeigt)'));
+    await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
+    await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
+    expect(freistellungEntscheiden.mock.calls[0][0]).toEqual({
+      id: 'a1', entscheidung: 'Bestätigt', nachweisGeprueft: true, angerechnetMin: null, anrechnungGrund: undefined,
+    });
+  });
+
+  it('eine andere Zeit als der Vorschlag geht nur mit Grund und höchstens bis zum Termin', async () => {
+    buero();
+    freistellungen = [arzt()];
+    const nutzer = userEvent.setup();
+    zeichne();
+    const feld = await screen.findByLabelText('Angerechnet (Std:Min)');
+    await nutzer.click(screen.getByLabelText('Arztbestätigung geprüft (auf Papier gezeigt)'));
+    await nutzer.clear(feld);
+    await nutzer.type(feld, '2:30');
+    await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
+    expect(await screen.findByText(/höchstens die 02:00 Std des Termins/)).toBeInTheDocument();
+    await nutzer.clear(feld);
+    await nutzer.type(feld, '2:00');
+    await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
+    expect(await screen.findByText(/warum die angerechnete Zeit vom Vorschlag abweicht/)).toBeInTheDocument();
+    expect(freistellungEntscheiden).not.toHaveBeenCalled();
+    await nutzer.type(screen.getByLabelText(/^Grund für die andere Zeit/), 'Gleitzeit, Termin in der Kernzeit');
+    await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
+    await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
+    expect(freistellungEntscheiden.mock.calls[0][0]).toMatchObject({
+      angerechnetMin: 120, anrechnungGrund: 'Gleitzeit, Termin in der Kernzeit',
+    });
+  });
+
+  it('verlangt der Betrieb keine Bestätigung, geht es ohne Haken', async () => {
+    buero();
+    freistellungen = [arzt()];
+    firmaExtra = { arztbesuchNachweis: false };
+    const nutzer = userEvent.setup();
+    zeichne();
+    expect(await screen.findByLabelText('Arztbestätigung geprüft (freiwillig, auf Papier gezeigt)')).not.toBeChecked();
+    await nutzer.click(screen.getByRole('button', { name: 'Bestätigen' }));
+    await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
+    expect(freistellungEntscheiden.mock.calls[0][0]).toMatchObject({ nachweisGeprueft: false });
+  });
+
+  it('ein freier Tag oder ein ganztägiger Eintrag steht als Hinweis da', async () => {
+    buero();
+    freistellungen = [arzt()];
+    arztVorschlag.mockResolvedValueOnce({
+      termin: 120, soll: 0, gearbeitet: 0, vorschlag: 0, arbeitstag: false, ueberschneidung: [{ status: 'Anwesend', von: '13:30', bis: '14:00' }], ganztags: 'Urlaub',
+    });
+    zeichne();
+    expect(await screen.findByText(/Kein Arbeitstag der Person/)).toBeInTheDocument();
+    expect(screen.getByText(/Am Tag steht „Urlaub“ für den ganzen Tag/)).toBeInTheDocument();
+    expect(screen.getByText(/Zur selben Zeit gebucht: Arbeitszeit 13:30–14:00/)).toBeInTheDocument();
+  });
+
+  it('beim Ablehnen wird gewählt, was aus der Zeit wird — Zeitausgleich nur, wer über Urlaub entscheidet', async () => {
+    buero();
+    genehmiger = ['gf'];
+    freistellungen = [arzt()];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Ablehnen' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('Arztbesuch ablehnen?');
+    // Die Buchhaltung, nicht unter den Genehmigenden, entscheidet nicht über Urlaub.
+    expect(within(dialog).getByRole('radio', { name: /Als Zeitausgleich buchen/ })).toBeDisabled();
+    await nutzer.type(within(dialog).getByRole('textbox', { name: /Grund/ }), 'Termin außerhalb der Arbeitszeit möglich');
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Ablehnen' }));
+    expect(await within(dialog).findByText(/Bitte wählen, was aus der Zeit wird/)).toBeInTheDocument();
+    expect(freistellungEntscheiden).not.toHaveBeenCalled();
+    await nutzer.click(within(dialog).getByRole('radio', { name: /Nicht buchen/ }));
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Ablehnen' }));
+    await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
+    expect(freistellungEntscheiden.mock.calls[0][0]).toEqual({
+      id: 'a1', entscheidung: 'Abgelehnt', grund: 'Termin außerhalb der Arbeitszeit möglich', ablehnungFolge: 'keine',
+    });
+  });
+
+  it('die Geschäftsführung kann ihn als Zeitausgleich buchen', async () => {
+    rolle = { ...rolle, uid: 'gf', name: 'Chefin', role: 'Geschäftsführung', docId: 'gf' };
+    belegschaft = [monteur, { ...monteur, uid: 'gf', id: 'gf', name: 'Chefin', role: 'Geschäftsführung' }];
+    freistellungen = [arzt()];
+    freistellungEntscheiden.mockResolvedValueOnce({ status: 'Abgelehnt', alsZeitausgleich: true });
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Ablehnen' }));
+    const dialog = await screen.findByRole('dialog');
+    await nutzer.type(within(dialog).getByRole('textbox', { name: /Grund/ }), 'Kein Arzttermin');
+    await nutzer.click(within(dialog).getByRole('radio', { name: /Als Zeitausgleich buchen/ }));
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Ablehnen' }));
+    await waitFor(() => expect(freistellungEntscheiden).toHaveBeenCalledTimes(1));
+    expect(freistellungEntscheiden.mock.calls[0][0]).toMatchObject({ ablehnungFolge: 'zeitausgleich' });
+    expect(await screen.findByText('Abgelehnt — als Zeitausgleich gebucht')).toBeInTheDocument();
+  });
+
+  it('in der eigenen Liste steht er als Arztbesuch mit der angerechneten Zeit', async () => {
+    freistellungen = [arzt({ status: 'Bestätigt', minuten: 90, entschiedenVonName: 'Frau Wagner' })];
+    zeichne();
+    expect(await screen.findByText(/12\.11\.2026, 13:00–15:00/)).toBeInTheDocument();
+    expect(screen.getByText('Angerechnet 01:30 Std von 02:00 Std (der Rest lag außerhalb der Sollzeit)')).toBeInTheDocument();
+  });
+});
+
 describe('Antrag mit Verlauf (Linie „Lot“)', () => {
   const ms = (j: number, m: number, t: number) => new Date(j, m - 1, t, 10).getTime();
   const verlauf = () => screen.getByRole('list', { name: 'Verlauf des Antrags' });

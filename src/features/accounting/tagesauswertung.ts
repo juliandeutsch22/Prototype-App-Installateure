@@ -116,8 +116,8 @@ export function kurzeZeit(min: number): string {
  * Die Art einer Abwesenheit als Wort (Auftrag 3.3.1: keine Kürzel mehr).
  * Dieselben Wörter, die das Raster beim Darüberfahren nannte.
  */
-export function artWort(status: TimeEntry['status']): string {
-  return tagesStatusName(status);
+export function artWort(status: TimeEntry['status'], comment?: string | null): string {
+  return tagesStatusName(status, comment);
 }
 
 /** Fälle, die an EINEM Tag hängen. Wochenfälle hängen am Montag und betreffen die ganze Woche. */
@@ -246,7 +246,7 @@ export function tippText(t: Tageswert): string {
   if (t.zeiten) teile.push(t.zeiten);
   else if (t.eintraege.length > 1 && t.istMin > 0) teile.push(`${t.eintraege.length} Buchungen`);
   if (t.istMin > 0) teile.push(`${kurzeZeit(t.istMin)} Std.`);
-  for (const e of t.eintraege) if (e.status !== 'Anwesend') teile.push(artWort(e.status));
+  for (const e of t.eintraege) if (e.status !== 'Anwesend') teile.push(artWort(e.status, e.comment));
   if (t.sollMin !== null) teile.push(`Soll ${kurzeZeit(t.sollMin)}`);
   for (const f of t.grenzen) teile.push(grenzText(f).titel);
   return teile.filter(Boolean).join(' · ');

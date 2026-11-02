@@ -688,10 +688,63 @@
     <div class="stempel">
       <span>Stand <b>02.11.2026</b></span>
       <span>Fassung <b>Lot v2 · bestätigt</b></span>
-      <span>Automatische Prüfungen <b>6.216 Modulprüfungen · 146 Browserwege · 7 Linkprüfungen</b></span>
-      <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
+      <span>Automatische Prüfungen <b>6.243 Modulprüfungen · 147 Browserwege · 7 Linkprüfungen</b></span>
+      <span><a href="https://app.senklot.at/">app.senklot.at</a></span>
     </div>
   </header>
+
+  <section id="arztbesuch">
+    <div class="abschnittskopf">
+      <h2>2. November: Arztbesuch</h2>
+      <p class="frage">Ein Arztbesuch in der Arbeitszeit ist bezahlt, wenn sich der Termin nicht außerhalb legen lässt. Bisher gab es dafür keinen Weg. Jetzt wird er gemeldet, vom Büro bestätigt, und die angerechnete Zeit steht im Zeitkonto und in der Lohnverrechnung.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Melden<span class="neu">neu</span></h3>
+        <p>Unter Urlaub (ohne das Modul Urlaub: Sonderurlaub) bei „Art“ den <strong>Arztbesuch</strong> wählen: Tag, „Weg vom Arbeitsort um“ und „Zurück um“ — der Weg gehört dazu. Das geht vorab oder nachträglich. Die Anmerkung ist freiwillig und nie eine Diagnose. Die Arztbestätigung (Foto oder PDF) gleich anhängen, später unten beim Antrag nachreichen oder auf Papier im Büro zeigen; darauf gehören nur Tag und Uhrzeit. Wer den ganzen Tag arbeitsunfähig ist, meldet sich krank.</p>
+        <p class="wer">alle mit Zeitkonto</p>
+      </div>
+      <div class="bereich">
+        <h3>Bestätigen<span class="neu">neu</span></h3>
+        <p>In „Sonderurlaub und Arztbesuche bestätigen“ steht beim Arztbesuch, was die App anrechnet: höchstens die Dauer des Termins und höchstens, was an dem Tag noch zur Sollzeit fehlt — bezahlt ist nur Zeit, die sonst gearbeitet worden wäre (§ 1154b Abs 5 ABGB, § 8 Abs 3 AngG). Eine andere Zeit geht mit Grund, etwa bei Gleitzeit oder einer günstigeren Regel im Kollektivvertrag. Hinweise erscheinen, wenn der Tag kein Arbeitstag ist, ein ganztägiger Eintrag dort steht oder zur selben Zeit Arbeit gebucht ist. Verlangt der Betrieb eine Bestätigung, geht Bestätigen erst mit „Arztbestätigung geprüft“; danach löscht die App die Datei, es bleibt der Vermerk.</p>
+        <p class="wer">Büro, Geschäftsführung, Administration</p>
+      </div>
+      <div class="bereich">
+        <h3>Ablehnen</h3>
+        <p>Beim Ablehnen wird mit dem Grund gewählt, was aus der Zeit wird: <strong>als Zeitausgleich buchen</strong> (nur, wer über Urlaub entscheidet) oder <strong>nicht buchen</strong> — dann fehlt sie im Saldo.</p>
+        <p class="wer">Büro, Geschäftsführung, Administration</p>
+      </div>
+      <div class="bereich">
+        <h3>Zeitkonto, Lohn und Wochenplan</h3>
+        <p>Im Zeitkonto steht die angerechnete Zeit als „Arztbesuch“, ab Beginn des Termins. Die Lohn-CSV hat ganz hinten die Spalte „davon Arztbesuch(Std)“ (enthalten in „Freigestellt stundenweise“), das Monatsblatt die Zeile „davon Arztbesuch“, der Stundennachweis das Kürzel „AB“. Im Wochenplan und in der Einsatzplanung sieht das Büro „Arztbesuch“ mit der Uhrzeit, alle anderen „abwesend“ — schon ab der Meldung.</p>
+        <p class="wer">Büro und Lohnverrechnung · Wochenplan: alle</p>
+      </div>
+      <div class="bereich">
+        <h3>Einstellung<span class="neu">neu</span></h3>
+        <p>Unter Einstellungen › Sonderurlaub und Arztbesuch: „Für Arztbesuche eine Bestätigung verlangen“ — ab Werk an. Ausgeschaltet ist die Bestätigung freiwillig; eine hochgeladene sieht das Büro trotzdem.</p>
+        <p class="wer">Geschäftsführung, Administration</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="zuruecksetzen">
+    <div class="abschnittskopf">
+      <h2>2. November: Passwort vergessen</h2>
+      <p class="frage">Nach „Link anfordern“ drehte sich der Knopf ohne Ende, wenn der Mailversand nicht antwortete. Jetzt endet das Warten spätestens nach 30 Sekunden, und die Anmeldemaske sagt, was zu tun ist, wenn keine Mail kommt. Senklot läuft unter <strong>app.senklot.at</strong>.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Link anfordern<span class="neu">geändert</span></h3>
+        <p>Nach „Link anfordern“ steht immer derselbe Satz: Wenn zu dieser Adresse ein Konto besteht, ist eine E-Mail zum Zurücksetzen unterwegs. Kommt in einigen Minuten nichts (auch im Spam-Ordner nachsehen), kann das Büro ein neues Startpasswort vergeben. Der Satz ist gleich, ob es das Konto gibt, ob die Mail hinausging oder der Versand nicht rechtzeitig antwortete — sonst ließe sich durchprobieren, welche Adressen in Senklot ein Konto haben. Der Link in der Mail führt auf die Adresse, von der er angefordert wurde, also auf app.senklot.at.</p>
+        <p class="wer">alle mit E-Mail-Adresse · Wer sich mit Benutzernamen anmeldet, bekommt wie bisher ein neues Passwort vom Büro</p>
+      </div>
+      <div class="bereich">
+        <h3>Wenn keine Mail kommt</h3>
+        <p>Die Mail verschickt der Mailversand, der im Supabase-Projekt eingerichtet ist (Authentication › SMTP: Server, Port, Zugang, Absender). Antwortet er nicht, kann Senklot die Mail nicht nachschicken; der Betrieb prüft dort die Einstellungen und unter Authentication › URL Configuration, dass app.senklot.at als Site URL und als erlaubte Rücksprungadresse eingetragen ist. Bis dahin vergibt das Büro unter Mitarbeiter ein neues Startpasswort.</p>
+        <p class="wer">Betrieb bzw. wer das Supabase-Projekt betreut</p>
+      </div>
+    </div>
+  </section>
 
   <section id="abstand">
     <div class="abschnittskopf">
@@ -4078,7 +4131,7 @@
 
   <footer class="fuss">
     <span>Senklot · Betriebssoftware für Installationsbetriebe in Österreich</span>
-    <span>Automatische Prüfungen: 6.216 Modulprüfungen · 146 Browserwege · 7 Linkprüfungen</span>
+    <span>Automatische Prüfungen: 6.243 Modulprüfungen · 147 Browserwege · 7 Linkprüfungen</span>
     <span>Stand 02.11.2026</span>
   </footer>
 
