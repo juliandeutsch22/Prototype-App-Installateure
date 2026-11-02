@@ -1,0 +1,13 @@
+const ansichten={
+ planung:{file:'planung.png',title:'Einsatzplanung',text:'Wer ist wann auf welcher Baustelle? Das Team in einer gemeinsamen Planung.'},
+ kundenakte:{file:'kundenakte.png',title:'Kundenakte',text:'Kontakte, Baustellen, Termine und Belege dort, wo sie zusammengehören.'},
+ zeit:{file:'zeit-mobil.png',title:'Mobile Zeiterfassung',text:'Zeiten, Pausen und Baustelle direkt am Handy erfassen.'},
+ rechnungen:{file:'rechnungen.png',title:'Rechnungen',text:'Nicht verrechnete Leistungen, offene Rechnungen und fällige Mahnungen im Blick.'},
+ mitarbeiter:{file:'mitarbeiter.png',title:'Mitarbeiterübersicht',text:'Gebuchte Stunden, Soll, Salden und Tage ohne Buchung nachvollziehen.'}
+};
+const tabs=[...document.querySelectorAll('[data-ansicht]')],panel=document.getElementById('produktansicht'),bild=document.getElementById('produktbild'),bildtext=document.getElementById('bildtext'),dialog=document.getElementById('bilddialog'),gross=document.getElementById('grossesbild'),oeffnen=document.getElementById('bild-oeffnen');
+let aktuell='planung';
+function waehlen(tab,fokus=false){aktuell=tab.dataset.ansicht;const a=ansichten[aktuell];for(const t of tabs){t.setAttribute('aria-selected',String(t===tab));t.tabIndex=t===tab?0:-1}panel.setAttribute('aria-labelledby',tab.id);bild.src='assets/'+a.file;bild.alt='Senklot · '+a.title+' mit Beispieldaten.';bildtext.textContent=a.text;if(fokus)tab.focus()}
+tabs.forEach((t,i)=>{t.addEventListener('click',()=>waehlen(t));t.addEventListener('keydown',e=>{let j;if(e.key==='ArrowRight')j=(i+1)%tabs.length;else if(e.key==='ArrowLeft')j=(i-1+tabs.length)%tabs.length;else if(e.key==='Home')j=0;else if(e.key==='End')j=tabs.length-1;else return;e.preventDefault();waehlen(tabs[j],true);tabs[j].scrollIntoView({block:'nearest',inline:'nearest'})})});
+oeffnen.addEventListener('click',()=>{const a=ansichten[aktuell];gross.src='assets/'+a.file;gross.alt=bild.alt;gross.style.width=aktuell==='zeit'?'390px':'1440px';document.getElementById('dialogtitel').textContent='Senklot · '+a.title;dialog.showModal()});
+document.getElementById('dialog-schliessen').addEventListener('click',()=>dialog.close());dialog.addEventListener('close',()=>oeffnen.focus());dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close()});

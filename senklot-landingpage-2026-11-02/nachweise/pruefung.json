@@ -1,0 +1,41 @@
+[
+  {
+    "width": 390,
+    "scrollWidth": 390,
+    "height": 7655,
+    "errors": [],
+    "failed": [],
+    "violations": [],
+    "links": true,
+    "tabs": true,
+    "keyboard": true,
+    "dialog": true,
+    "faq": true
+  },
+  {
+    "width": 834,
+    "scrollWidth": 834,
+    "height": 6251,
+    "errors": [],
+    "failed": [],
+    "violations": [],
+    "links": true,
+    "tabs": true,
+    "keyboard": true,
+    "dialog": true,
+    "faq": true
+  },
+  {
+    "width": 1440,
+    "scrollWidth": 1440,
+    "height": 6507,
+    "errors": [],
+    "failed": [],
+    "violations": [],
+    "links": true,
+    "tabs": true,
+    "keyboard": true,
+    "dialog": true,
+    "faq": true
+  }
+]
