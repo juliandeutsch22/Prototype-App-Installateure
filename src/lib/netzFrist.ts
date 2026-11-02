@@ -79,6 +79,7 @@ export type Zugriffsart = keyof typeof FRISTEN;
  */
 export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'arbeitszeit_vorlauf',
+  'arztbesuch_vorschlag',
   'ausgegebenes_material',
   'baustellen_einsatzlage',
   'baustellen_stunden',

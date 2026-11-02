@@ -79,7 +79,7 @@ test('Sonderurlaub mit Nachweis: anhängen, beim Bestätigen ansehen, nach „ge
   const buero = await kontext.newPage();
   await anmelden(buero, BUERO.email);
   await buero.goto('/vacations');
-  const karte = buero.locator('section', { has: buero.getByRole('heading', { name: /Sonderurlaub bestätigen/ }) });
+  const karte = buero.locator('section', { has: buero.getByRole('heading', { name: /Sonderurlaub und Arztbesuche bestätigen/ }) });
   await expect(karte.getByText(/Eigene Eheschließung/)).toBeVisible({ timeout: 15_000 });
   /*
     GEPRÜFT WIRD DIE ANFRAGE, NICHT DIE ADRESSZEILE. Das Fenster öffnet sich

@@ -301,7 +301,7 @@ export default function FreistellungenBestaetigen({
     if (arzt && !folge) throw new Error('Bitte wählen, was aus der Zeit wird: Zeitausgleich oder ohne Buchung.');
     const e = await freistellungEntscheiden({
       id: begruenden.f.id, entscheidung: begruenden.art, grund: grund.trim(),
-      ablehnungFolge: arzt ? folge : null,
+      ...(arzt ? { ablehnungFolge: folge } : {}),
     });
     setBegruenden(null);
     setGrund('');

@@ -145,8 +145,8 @@ describe('Lohn-CSV', () => {
     const stats = calcMonthStats(mia, monat, monat, 2026, 5, true);
     const zeilen = buildMonthCsv([{ user: mia, monthEntries: monat, stats }], 2026, 5, true, lohn).split('\n');
     const ab = zeilen.indexOf('Mitarbeiter-Zusammenfassung');
-    expect(zeilen[ab + 1].endsWith(';davon Nacht als Überstunde(Std);Mehrarbeit Teilzeit(Std)')).toBe(true);
-    expect(zeilen[ab + 2].endsWith(';0,00;3,70')).toBe(true);
+    expect(zeilen[ab + 1].endsWith(';davon Nacht als Überstunde(Std);Mehrarbeit Teilzeit(Std);davon Arztbesuch(Std)')).toBe(true);
+    expect(zeilen[ab + 2].endsWith(';0,00;3,70;0,00')).toBe(true);
     const einzeln = buildUserCsv(mia, monat, stats, 2026, 5, true, lohn);
     expect(einzeln).toContain('Überstunden 50 %;0,30 h');
     expect(einzeln).toContain('Mehrarbeit Teilzeit;3,70 h');

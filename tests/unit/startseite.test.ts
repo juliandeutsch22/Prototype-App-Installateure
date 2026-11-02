@@ -671,6 +671,16 @@ describe('Sonderurlaub auf der Startseite (Plan 10.3)', () => {
     expect(JSON.stringify(ab)).not.toMatch(/hochzeit|Eheschließung/);
   });
 
+  it('ein offener Arztbesuch steht dort als Sonderurlaub — der Anlass bleibt auch hier weg (E35)', () => {
+    const arzt = { ...antrag('c', 'dienstverhinderung', '2026-11-12'), anlass: 'arztbesuch', zeitVon: '08:00', zeitBis: '10:30' } as Freistellung;
+    const s = startseite({ freistellungen: [arzt] }, {
+      rolle: 'buchhaltung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false, freistellungBestaetigen: true,
+    });
+    const ab = s.abschnitte.find((a) => a.key === 'sonderurlaub');
+    expect(ab?.zeilen.map((z) => z.detail)).toEqual(['12.11.2026 · Sonderurlaub']);
+    expect(JSON.stringify(ab)).not.toMatch(/arzt/i);
+  });
+
   it('Gegenprobe: ohne das Recht kein Abschnitt', () => {
     const s = startseite(daten, {
       rolle: 'buchhaltung', heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false,

@@ -999,6 +999,13 @@ export interface MonthStats {
   unbezahltDays: number;
   /** Stundenweiser Sonderurlaub und stundenweise Pflegefreistellung, in Minuten. */
   freigestelltMin: number;
+  /**
+   * Davon angerechnete Arztbesuche, in Minuten (E35). Steckt schon in
+   * `freigestelltMin`; eigens ausgewiesen, weil die Lohnverrechnung die
+   * Entgeltfortzahlung nach § 1154b Abs 5 ABGB / § 8 Abs 3 AngG getrennt vom
+   * übrigen Sonderurlaub sehen will.
+   */
+  arztbesuchMin: number;
   yearlyUrlaubDays: number;
   /** Tage, die in diesem Jahr zur Verfügung stehen — siehe `urlaubsStand`. */
   urlaubsAnspruch: number;
@@ -1121,6 +1128,7 @@ export function calcMonthStats(
   const pflegeDays = ganztagsFrei('Pflegefreistellung');
   const unbezahltDays = ganztagsFrei('Unbezahlt');
   const freigestelltImMonat = monthEntries.reduce((s, e) => s + freigestelltMin(e), 0);
+  const arztbesuchImMonat = monthEntries.filter(istArztbesuchTag).reduce((s, e) => s + freigestelltMin(e), 0);
   // Vom Soll geht nur ab, was im Soll steckt — wie bei den ganzen Tagen.
   const freigestelltImSoll = monthEntries.filter((e) => imSoll.has(e.date)).reduce((s, e) => s + freigestelltMin(e), 0);
 
@@ -1222,6 +1230,7 @@ export function calcMonthStats(
     pflegeDays,
     unbezahltDays,
     freigestelltMin: freigestelltImMonat,
+    arztbesuchMin: arztbesuchImMonat,
     yearlyUrlaubDays,
     urlaubRest: stand.rest,
     urlaubsAnspruch: stand.anspruch,

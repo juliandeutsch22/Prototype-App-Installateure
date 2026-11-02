@@ -30,7 +30,7 @@ describe('Sonderurlaub in den Einstellungen', () => {
     expect(screen.getByRole('textbox', { name: /Eheschließung/ })).toHaveValue('3');
     expect(screen.getByRole('textbox', { name: /Kürzung vorschlagen ab/ })).toHaveValue('14');
     await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
-    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', { freistellungAnlaesse: null, kuerzungAbTagen: 14 }));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', { freistellungAnlaesse: null, kuerzungAbTagen: 14, arztbesuchNachweis: true }));
   });
 
   it('eine geänderte Tageszahl wird als Abweichung gespeichert', async () => {
@@ -40,7 +40,17 @@ describe('Sonderurlaub in den Einstellungen', () => {
     await nutzer.clear(feld);
     await nutzer.type(feld, '3');
     await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
-    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', { freistellungAnlaesse: { wohnungswechsel: 3 }, kuerzungAbTagen: 14 }));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', { freistellungAnlaesse: { wohnungswechsel: 3 }, kuerzungAbTagen: 14, arztbesuchNachweis: true }));
+  });
+
+  it('der Betrieb verzichtet auf die Arztbestätigung — ab Werk verlangt', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    const haken = screen.getByRole('checkbox', { name: /Für Arztbesuche eine Bestätigung verlangen/ });
+    expect(haken).toBeChecked();
+    await nutzer.click(haken);
+    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', { freistellungAnlaesse: null, kuerzungAbTagen: 14, arztbesuchNachweis: false }));
   });
 
   it('Unsinn wird nicht gespeichert', async () => {

@@ -212,6 +212,33 @@ describe('Im Zeitkonto', () => {
     // Ein vergangener Monat, voll gebucht: der Saldo ist ausgeglichen.
     expect(s.saldoMin).toBe(0);
   });
+
+  it('der angerechnete Arztbesuch zählt wie Sonderurlaub und steht in Lohn-CSV und Monatsblatt eigens (E35)', async () => {
+    const { buildMonthCsv, buildUserCsv } = await import('@/features/accounting/export');
+    const arzt = { ...e('2026-06-17', 'Dienstverhinderung', '13:00', '14:30'), comment: 'Arztbesuch' };
+    const eintraege = juni({
+      '2026-06-10': [e('2026-06-10', 'Anwesend', '07:00', '11:00'), e('2026-06-10', 'Dienstverhinderung', '11:00', '15:00')],
+      '2026-06-17': [e('2026-06-17', 'Anwesend', '07:00', '13:00'), arzt, e('2026-06-17', 'Anwesend', '14:30', '15:00')],
+    });
+    const s = calcMonthStats(anna, eintraege, eintraege, 2026, 5, true);
+    // 4 h Sonderurlaub und 1:30 Arztbesuch; der Arztbesuch steckt in den freigestellten Stunden.
+    expect(s).toMatchObject({ freigestelltMin: 330, arztbesuchMin: 90, sonderurlaubDays: 0 });
+    // Der Saldo ist derselbe wie mit zwei voll gearbeiteten Tagen.
+    const voll = juni({});
+    expect(s.saldoMin).toBe(calcMonthStats(anna, voll, voll, 2026, 5, true).saldoMin);
+    const zeilen = buildMonthCsv([{ user: anna, monthEntries: eintraege, stats: s }], 2026, 5, true).split('\n');
+    const ab = zeilen.indexOf('Mitarbeiter-Zusammenfassung');
+    expect(zeilen[ab + 1].endsWith(';Freigestellt stundenweise(Std);Unbezahlt-Tage;davon Arztbesuch(Std)')).toBe(true);
+    expect(zeilen[ab + 2].endsWith(';5,50;0;1,50')).toBe(true);
+    const einzeln = buildUserCsv(anna, eintraege, s, 2026, 5, true);
+    expect(einzeln).toContain('Stundenweise freigestellt;5,50 h');
+    expect(einzeln).toContain('davon Arztbesuch;1,50 h');
+    // Gegenprobe: ohne den Vermerk ist es übriger Sonderurlaub — keine Arztbesuchsstunden.
+    const ohneVermerk = eintraege.map((x) => (x === arzt ? { ...x, comment: undefined } : x));
+    const s2 = calcMonthStats(anna, ohneVermerk, ohneVermerk, 2026, 5, true);
+    expect(s2).toMatchObject({ freigestelltMin: 330, arztbesuchMin: 0 });
+    expect(buildUserCsv(anna, ohneVermerk, s2, 2026, 5, true)).not.toContain('Arztbesuch');
+  });
 });
 
 describe('Push-Meldungen', () => {
