@@ -15,6 +15,7 @@ export {
   freistellungZurueckziehen,
   freistellungEntscheiden,
   nachweiseAufraeumen,
+  arztbesuchVorschlag,
   NACHWEIS_HOECHSTENS_BYTES,
 } from './pg/freistellungen';
-export type { FreistellungAntrag, FreistellungErgebnis } from './pg/freistellungen';
+export type { FreistellungAntrag, FreistellungErgebnis, ArztbesuchVorschlag } from './pg/freistellungen';

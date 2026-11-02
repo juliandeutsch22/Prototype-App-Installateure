@@ -11,6 +11,7 @@ import { budgetArt } from './einstufung';
   zweimal die nackte 25.
 */
 import { DEFAULT_VACATION_DAYS as DEFAULT_URLAUBSTAGE } from './db/benutzerVorgaben';
+import { ARZTBESUCH_VERMERK, istArztbesuchTag } from '@shared/freistellung';
 import {
   arbeitJeTag, calcWorkMin, freigestelltMin, istGanztagsGutschrift as ganztagsAusShared, schultagGutschriftMin,
 } from '@shared/arbeitszeit';
@@ -583,9 +584,13 @@ export function tageZahl(n: number): string {
 
 /**
  * Wie ein Tagesstatus in Listen heißt. Die Datenbank sagt „Dienst-
- * verhinderung" (das Gesetz), jeder im Betrieb sagt „Sonderurlaub".
+ * verhinderung" (das Gesetz), jeder im Betrieb sagt „Sonderurlaub" — außer
+ * beim Arztbesuch (E35): der Tag trägt den Vermerk „Arztbesuch“, den nur die
+ * Datenbank setzt, und heißt so. Ohne Vermerk (Aufrufer ohne Eintrag) bleibt
+ * es „Sonderurlaub“.
  */
-export function tagesStatusName(status: TimeEntry['status']): string {
+export function tagesStatusName(status: TimeEntry['status'], comment?: string | null): string {
+  if (istArztbesuchTag({ status, comment })) return ARZTBESUCH_VERMERK;
   if (status === 'Dienstverhinderung') return 'Sonderurlaub';
   if (status === 'Unbezahlt') return 'Unbezahlter Urlaub';
   return status;

@@ -42,6 +42,37 @@ export interface FreistellungErgebnis {
   ueber?: number;
   /** Davon als Urlaub gebucht. */
   alsUrlaub?: number;
+  /** Arztbesuch: die angerechneten Minuten. */
+  angerechnet?: number | null;
+  /** Arztbesuch abgelehnt und als Zeitausgleich gebucht. */
+  alsZeitausgleich?: boolean;
+}
+
+/**
+ * DER VORSCHLAG ZUM ARZTBESUCH (E35) — dieselbe Rechnung, mit der die
+ * Datenbank bestätigt: höchstens der Rest zur Sollzeit des Tages. Nur fürs Büro.
+ */
+export interface ArztbesuchVorschlag {
+  /** Minuten des Termins. */
+  termin: number;
+  /** Sollzeit des Tages in Minuten (24./31.12. zur Hälfte). */
+  soll: number;
+  /** An diesem Tag gebuchte Arbeitszeit in Minuten. */
+  gearbeitet: number;
+  /** Vorschlag: so viele Minuten werden angerechnet. */
+  vorschlag: number;
+  /** Ist der Tag ein Arbeitstag der Person? */
+  arbeitstag: boolean;
+  /** Einträge, die sich mit dem Termin zeitlich überschneiden. */
+  ueberschneidung: Array<{ status: string; von: string; bis: string }>;
+  /** Steht am Tag etwas Ganztägiges (Krank, Urlaub …)? Dann geht Bestätigen nicht. */
+  ganztags: string | null;
+}
+
+export async function arztbesuchVorschlag(id: string): Promise<ArztbesuchVorschlag> {
+  const { data, error } = await derClient().rpc('arztbesuch_vorschlag', { p_id: id });
+  if (error) throw new Error(error.message);
+  return data as ArztbesuchVorschlag;
 }
 
 /** Die eigenen Anträge, jüngste zuerst. */
@@ -182,6 +213,12 @@ export async function freistellungEntscheiden(daten: {
   ueberKontingent?: 'urlaub' | 'sonderurlaub' | null;
   /** Pflicht bei „sonderurlaub“. */
   ueberGrund?: string;
+  /** Arztbesuch: angerechnete Minuten, leer = der Vorschlag der Datenbank. */
+  angerechnetMin?: number | null;
+  /** Pflicht, wenn `angerechnetMin` vom Vorschlag abweicht. */
+  anrechnungGrund?: string;
+  /** Arztbesuch ablehnen: als Zeitausgleich buchen oder ohne Buchung. */
+  ablehnungFolge?: 'zeitausgleich' | 'keine' | null;
 }): Promise<FreistellungErgebnis & { dateiBlieb: boolean }> {
   const { data, error } = await derClient().rpc('freistellung_entscheiden', {
     p_id: daten.id,
@@ -191,6 +228,9 @@ export async function freistellungEntscheiden(daten: {
     p_kuerzung: daten.kuerzung && daten.kuerzung.length > 0 ? daten.kuerzung : null,
     p_ueber_kontingent: daten.ueberKontingent ?? null,
     p_ueber_grund: daten.ueberGrund ?? null,
+    p_angerechnet_min: daten.angerechnetMin ?? null,
+    p_anrechnung_grund: daten.anrechnungGrund ?? null,
+    p_ablehnung_folge: daten.ablehnungFolge ?? null,
   });
   if (error) throw new Error(error.message);
   const ergebnis = data as FreistellungErgebnis;

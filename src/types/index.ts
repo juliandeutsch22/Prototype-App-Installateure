@@ -252,6 +252,12 @@ export interface Company {
   freistellungAnlaesse?: Record<string, number> | null;
   /** Ab so vielen Kalendertagen unbezahlt am Stück schlägt die App die Kürzung des Anspruchs vor. */
   kuerzungAbTagen?: number;
+  /**
+   * Verlangt der Betrieb für einen Arztbesuch eine Bestätigung (E35)? Ab
+   * Werk ja: dann bestätigt das Büro nur mit „Nachweis geprüft“ — als Datei
+   * oder auf Papier gezeigt.
+   */
+  arztbesuchNachweis?: boolean;
   /** Vorschlag für den Grund der Steuerbefreiung auf Rechnungen mit 0 % (A2). */
   steuerbefreiungVorgabe?: string;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';
@@ -1489,6 +1495,12 @@ export interface Freistellung {
   ueberGrund?: string | null;
   /** Der Urlaubsantrag, der die Tage darüber trägt. */
   ueberUrlaubId?: string | null;
+  /** Arztbesuch (E35): warum die angerechnete Zeit vom Vorschlag abweicht. */
+  anrechnungGrund?: string | null;
+  /** Arztbesuch abgelehnt: als Zeitausgleich gebucht oder ohne Buchung. */
+  ablehnungFolge?: 'zeitausgleich' | 'keine' | null;
+  /** Der Zeitausgleich, der einen abgelehnten Arztbesuch trägt. */
+  ablehnungZaId?: string | null;
   entschiedenVonName?: string | null;
   entschiedenAm?: number | null;
   /** Wann bestätigt wurde — bleibt nach einer Rücknahme (17 G). */

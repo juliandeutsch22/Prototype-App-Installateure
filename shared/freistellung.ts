@@ -26,6 +26,31 @@ export const TAGESSTATUS: Record<FreistellungArt, 'Dienstverhinderung' | 'Pflege
   unbezahlt: 'Unbezahlt',
 };
 
+/**
+ * DER ARZTBESUCH (E35): ein Anlass der Dienstverhinderung — § 1154b Abs 5
+ * ABGB, § 8 Abs 3 AngG —, aber kein Sonderurlaub im Sinn der Anlassliste:
+ * keine Tage, nur mit Uhrzeit, angerechnet höchstens der Rest zur Sollzeit.
+ * Er steht deshalb nicht in `ANLAESSE` (sonst böte ihn das Sonderurlaubs-
+ * formular an, und die Einstellung der Tage je Anlass führte ihn).
+ */
+export const ARZTBESUCH = 'arztbesuch';
+
+/**
+ * Der Vermerk am Tag im Zeitkonto. Die Datenbank schreibt ihn beim
+ * Bestätigen; ändern lässt sich ein Tag mit Antrag nur über den Antrag
+ * (`freistellung_nur_ueber_antrag`) — so ist der Vermerk verlässlich.
+ */
+export const ARZTBESUCH_VERMERK = 'Arztbesuch';
+
+export function istArztbesuch(f: { art?: string | null; anlass?: string | null }): boolean {
+  return f.art === 'dienstverhinderung' && f.anlass === ARZTBESUCH;
+}
+
+/** Ist dieser Tag im Zeitkonto ein angerechneter Arztbesuch? */
+export function istArztbesuchTag(e: { status?: string | null; comment?: string | null }): boolean {
+  return e.status === 'Dienstverhinderung' && e.comment === ARZTBESUCH_VERMERK;
+}
+
 /** Ab so vielen Tagen zwischen Ereignis und Beginn warnt die App (Plan 10.6, fest). */
 export const ZEITNAH_TAGE = 14;
 
@@ -95,9 +120,14 @@ export interface FreistellungFuerRegeln {
 
 const zaehlt = (f: FreistellungFuerRegeln) => f.status === 'Beantragt' || f.status === 'Bestätigt';
 
-/** Derselbe Fall: dieselbe Person, derselbe Anlass, derselbe Ereignistag. */
+/**
+ * Derselbe Fall: dieselbe Person, derselbe Anlass, derselbe Ereignistag.
+ * Zwei Arzttermine an einem Tag sind zwei Fälle, keine Teilung — wie in
+ * `freistellung_beantragen`.
+ */
 export function selberFall(a: FreistellungFuerRegeln, b: FreistellungFuerRegeln): boolean {
   return a.art === 'dienstverhinderung' && b.art === 'dienstverhinderung'
+    && a.anlass !== ARZTBESUCH
     && a.userId === b.userId && !!a.anlass && a.anlass === b.anlass
     && !!a.ereignisDatum && a.ereignisDatum === b.ereignisDatum;
 }

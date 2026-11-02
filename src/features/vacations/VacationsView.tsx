@@ -12,8 +12,9 @@ import {
 import { getUserByUid, listUsers } from '@/lib/db/users';
 import { listAnpassungen } from '@/lib/db/urlaubsanspruch';
 import { listEigeneFreistellungen, listOffeneFreistellungen } from '@/lib/db/freistellungen';
-import type { FreistellungArt } from '@shared/freistellung';
+import { istArztbesuch, type FreistellungArt } from '@shared/freistellung';
 import FreistellungFormular from './FreistellungFormular';
+import ArztbesuchFormular from './ArztbesuchFormular';
 import FreistellungListe from './FreistellungListe';
 import FreistellungenBestaetigen from './FreistellungenBestaetigen';
 import {
@@ -114,7 +115,8 @@ function spanne(von: string, bis: string): number {
 /** Saldo in Stunden → „+12:30" / „−3:30". */
 const vorzeichen = (min: number) => (min >= 0 ? `+${fmtMin(min)}` : `−${fmtMin(-min)}`);
 
-type Art = 'Urlaub' | 'Zeitausgleich' | 'Krank' | FreistellungArt;
+/** `arztbesuch`: eine Dienstverhinderung mit Uhrzeit, eigenes Formular (E35). */
+type Art = 'Urlaub' | 'Zeitausgleich' | 'Krank' | 'arztbesuch' | FreistellungArt;
 
 /** Sonderurlaub, Pflegefreistellung, unbezahlter Urlaub — eigener Antrag (Plan 10.3). */
 const istFreistellung = (a: Art): a is FreistellungArt =>
@@ -1243,6 +1245,7 @@ export default function VacationsView() {
           >
             <option value="Urlaub">Urlaub</option>
             <option value="Zeitausgleich">Zeitausgleich</option>
+            <option value="arztbesuch">Arztbesuch</option>
             <option value="dienstverhinderung">Sonderurlaub (Hochzeit, Todesfall, Umzug …)</option>
             <option value="pflegefreistellung">Pflegefreistellung</option>
             <option value="unbezahlt">Unbezahlter Urlaub</option>
@@ -1273,7 +1276,16 @@ export default function VacationsView() {
             </Hinweiszeile>
           </div>
         )}
-        {istFreistellung(art) ? (
+        {art === 'arztbesuch' ? (
+          <ArztbesuchFormular
+            user={user}
+            company={company}
+            eigene={eigeneFrei}
+            onGestellt={() =>
+              void listEigeneFreistellungen(user.companyId, user.uid).then(setEigeneFrei).catch(() => undefined)
+            }
+          />
+        ) : istFreistellung(art) ? (
           <FreistellungFormular
             // Eigener Schlüssel je Art: der Wechsel beginnt mit leeren Feldern (G16).
             key={art}
@@ -1585,7 +1597,7 @@ export default function VacationsView() {
       </Card>
 
       {eigeneFrei.length > 0 && (
-        <Card title="Mein Sonderurlaub" buendig>
+        <Card title={eigeneFrei.some(istArztbesuch) ? 'Sonderurlaub und Arztbesuche' : 'Mein Sonderurlaub'} buendig>
           <FreistellungListe
             antraege={eigeneFrei}
             companyId={user.companyId}

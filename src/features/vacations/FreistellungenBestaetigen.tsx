@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AppUser, Company, Freistellung } from '@/types';
 import {
+  arztbesuchVorschlag,
   freistellungEntscheiden,
   listBestaetigteFreistellungenAb,
   listFreistellungenVon,
@@ -13,6 +14,7 @@ import {
   KUERZUNG_AB_VORGABE,
   anlaesseDesBetriebs,
   anlassVon,
+  istArztbesuch,
   istTeilung,
   kalendertage,
   laengerAlsEinMonat,
@@ -24,7 +26,7 @@ import {
 import { kuerzungsVorschlag } from '@shared/urlaubAliquot';
 import { darfUnbezahltEntscheiden, darfUrlaubEntscheiden } from '@/lib/permissions';
 import { DEFAULT_VACATION_DAYS as DEFAULT_URLAUBSTAGE } from '@/lib/db/benutzerVorgaben';
-import { fmtDauer, todayStr, uebertragsRegel, urlaubsTage, tageZahl } from '@/lib/time';
+import { fmtDauer, fmtMin, todayStr, uebertragsRegel, urlaubsTage, tageZahl } from '@/lib/time';
 import { leseZahl } from '@/lib/zahl';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -37,7 +39,8 @@ import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
-import { freistellungWas, freistellungZeitraum, nachweisVermerk, ueberVermerk } from './freistellungText';
+import { anrechnungVermerk, freistellungWas, freistellungZeitraum, leseDauer, nachweisVermerk, terminMinuten, ueberVermerk } from './freistellungText';
+import type { ArztbesuchVorschlag } from '@/lib/db/freistellungen';
 
 /** Was ein Bestätigen im Zeitkonto bewirkt hat, in einem Satz. */
 function ergebnis(e: { angelegt: number; uebersprungen: number; entfernt: number; alsUrlaub?: number }): string {
@@ -88,6 +91,7 @@ export default function FreistellungenBestaetigen({
     laufend: Freistellung[];
     verlauf: Freistellung[];
     leute: AppUser[];
+    vorschlaege?: Record<string, ArztbesuchVorschlag | 'fehler'>;
   }>(schluessel('sonderurlaubBestaetigen', user));
   const [offene, setOffene] = useState<Freistellung[] | 'laedt' | 'fehler'>(() => anfang?.offene ?? 'laedt');
   const [laufend, setLaufend] = useState<Freistellung[]>(() => anfang?.laufend ?? []);
@@ -102,6 +106,18 @@ export default function FreistellungenBestaetigen({
   /** Je Antrag: was mit den Tagen über dem Kontingent geschieht (Runde 3, G17). */
   const [ueberWahl, setUeberWahl] = useState<Record<string, 'urlaub' | 'sonderurlaub'>>({});
   const [ueberGrund, setUeberGrund] = useState<Record<string, string>>({});
+  /*
+    ARZTBESUCH (E35): je offenem Arztbesuch der Vorschlag der Datenbank —
+    höchstens der Rest zur Sollzeit des Tages —, die angerechnete Zeit (als
+    „h:mm“, vorbelegt mit dem Vorschlag) und ein Grund, wenn sie abweicht.
+  */
+  const [vorschlaege, setVorschlaege] = useState<Record<string, ArztbesuchVorschlag | 'fehler'>>(() => anfang?.vorschlaege ?? {});
+  const [angerechnet, setAngerechnet] = useState<Record<string, string>>({});
+  const [anrechnungGrund, setAnrechnungGrund] = useState<Record<string, string>>({});
+  /** Beim Ablehnen eines Arztbesuchs: was aus der Zeit wird. */
+  const [folge, setFolge] = useState<'zeitausgleich' | 'keine' | null>(null);
+  // Ab Werk verlangt; nur ein ausdrückliches Nein des Betriebs schaltet es ab.
+  const nachweisVerlangt = company?.arztbesuchNachweis !== false;
 
   const anlaesse = useMemo(() => anlaesseDesBetriebs(company?.freistellungAnlaesse), [company?.freistellungAnlaesse]);
   const spitze = darfUnbezahltEntscheiden(user.role);
@@ -117,12 +133,21 @@ export default function FreistellungenBestaetigen({
         listBestaetigteFreistellungenAb(user.companyId, todayStr()),
         listUsers(user.companyId),
       ]);
-      const v = await listFreistellungenVon(user.companyId, o.map((x) => x.userId));
+      const [v, vs] = await Promise.all([
+        listFreistellungenVon(user.companyId, o.map((x) => x.userId)),
+        Promise.all(o.filter(istArztbesuch).map((f) =>
+          arztbesuchVorschlag(f.id)
+            .then((x) => [f.id, x] as const)
+            // Ein fehlender Vorschlag hält die Liste nicht auf; die Zeile sagt es.
+            .catch(() => [f.id, 'fehler'] as const))),
+      ]);
+      const vorschlagJeAntrag = Object.fromEntries(vs);
       setVerlauf(v);
       setLeute(alle);
       setLaufend(l);
+      setVorschlaege(vorschlagJeAntrag);
       setOffene(o);
-      merken({ offene: o, laufend: l, verlauf: v, leute: alle });
+      merken({ offene: o, laufend: l, verlauf: v, leute: alle, vorschlaege: vorschlagJeAntrag });
     } catch {
       setOffene('fehler');
     }
@@ -173,7 +198,60 @@ export default function FreistellungenBestaetigen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offene, leute, company?.kuerzungAbTagen]);
 
+  /*
+    EINEN ARZTBESUCH BESTÄTIGEN (E35). Die Datenbank prüft dasselbe noch
+    einmal; hier sagt es die Karte, bevor jemand auf eine Ablehnung wartet.
+  */
+  async function arztbesuchBestaetigen(f: Freistellung) {
+    const v = vorschlaege[f.id];
+    if (!v || v === 'fehler') {
+      toast.error('Der Vorschlag zur angerechneten Zeit fehlt — bitte die Liste neu laden.');
+      return;
+    }
+    if (nachweisVerlangt && !geprueft[f.id]) {
+      toast.error('Der Betrieb verlangt für Arztbesuche eine Bestätigung — bitte ansehen (Datei oder Papier) und „Nachweis geprüft“ anhaken.');
+      return;
+    }
+    const min = leseDauer(angerechnet[f.id] ?? fmtMin(v.vorschlag));
+    if (min === null) {
+      toast.error('Die angerechnete Zeit bitte als Stunden:Minuten angeben, etwa 1:30.');
+      return;
+    }
+    if (min <= 0) {
+      toast.error('Angerechnet wird mehr als null — sonst bitte ablehnen.');
+      return;
+    }
+    if (min > v.termin) {
+      toast.error(`Angerechnet werden höchstens die ${fmtDauer(v.termin)} des Termins.`);
+      return;
+    }
+    const grundText = (anrechnungGrund[f.id] ?? '').trim();
+    if (min !== v.vorschlag && grundText.length < 3) {
+      toast.error('Bitte begründen, warum die angerechnete Zeit vom Vorschlag abweicht.');
+      return;
+    }
+    setArbeitet(f.id);
+    try {
+      const e = await freistellungEntscheiden({
+        id: f.id, entscheidung: 'Bestätigt', nachweisGeprueft: !!geprueft[f.id],
+        angerechnetMin: min === v.vorschlag ? null : min,
+        anrechnungGrund: min === v.vorschlag ? undefined : grundText,
+      });
+      toast.success(`Bestätigt — ${fmtDauer(Number(e.angerechnet ?? min))} angerechnet`);
+      if (e.dateiBlieb) toast.error('Der Nachweis konnte nicht gelöscht werden — beim nächsten Öffnen wird er weggeräumt.');
+      setVersuch((x) => x + 1);
+    } catch (err) {
+      toast.error(grundAus(err, 'Der Arztbesuch konnte nicht bestätigt werden.'));
+    } finally {
+      setArbeitet(null);
+    }
+  }
+
   async function bestaetigen(f: Freistellung, ueber: number) {
+    if (istArztbesuch(f)) {
+      await arztbesuchBestaetigen(f);
+      return;
+    }
     /*
       ÜBER DEM KONTINGENT (Runde 3, G17): vorher ging die Bestätigung mit
       einem Hinweis durch, ohne Grund. Jetzt erst nach einer Wahl — die
@@ -218,10 +296,19 @@ export default function FreistellungenBestaetigen({
   async function begruendetEntscheiden() {
     if (!begruenden) return;
     if (grund.trim().length < 3) throw new Error('Bitte einen Grund angeben — mindestens drei Zeichen.');
-    const e = await freistellungEntscheiden({ id: begruenden.f.id, entscheidung: begruenden.art, grund: grund.trim() });
+    // Ein abgelehnter Arztbesuch braucht die Folge: Zeitausgleich oder ohne Buchung (E35).
+    const arzt = begruenden.art === 'Abgelehnt' && istArztbesuch(begruenden.f);
+    if (arzt && !folge) throw new Error('Bitte wählen, was aus der Zeit wird: Zeitausgleich oder ohne Buchung.');
+    const e = await freistellungEntscheiden({
+      id: begruenden.f.id, entscheidung: begruenden.art, grund: grund.trim(),
+      ablehnungFolge: arzt ? folge : null,
+    });
     setBegruenden(null);
     setGrund('');
-    toast.success(begruenden.art === 'Abgelehnt' ? 'Abgelehnt' : `Zurückgenommen${e.entfernt ? ` — ${ergebnis(e)}` : ''}`);
+    setFolge(null);
+    toast.success(begruenden.art === 'Abgelehnt'
+      ? (e.alsZeitausgleich ? 'Abgelehnt — als Zeitausgleich gebucht' : 'Abgelehnt')
+      : `Zurückgenommen${e.entfernt ? ` — ${ergebnis(e)}` : ''}`);
     if (e.dateiBlieb) toast.error('Der Nachweis konnte nicht gelöscht werden — beim nächsten Öffnen wird er weggeräumt.');
     setVersuch((v) => v + 1);
   }
@@ -250,6 +337,68 @@ export default function FreistellungenBestaetigen({
   }
 
   const alsRegel = (x: Freistellung): FreistellungFuerRegeln => ({ ...x });
+
+  /*
+    DER TEIL EINES ARZTBESUCHS (E35): Sollzeit, Gebuchtes, der Vorschlag,
+    was sich zeitlich überschneidet, und die angerechnete Zeit — vorbelegt
+    mit dem Vorschlag, änderbar mit Grund.
+  */
+  function arztbesuchTeil(f: Freistellung) {
+    const v = vorschlaege[f.id];
+    if (!v) return <span className="text-ink-muted">Vorschlag wird geladen …</span>;
+    if (v === 'fehler') {
+      return <span className="text-ink-muted">Der Vorschlag zur angerechneten Zeit ließ sich nicht laden — bitte neu laden.</span>;
+    }
+    const text = angerechnet[f.id] ?? fmtMin(v.vorschlag);
+    const min = leseDauer(text);
+    const abweichend = min !== null && min !== v.vorschlag;
+    return (
+      <span className="flex flex-col gap-1 border-t border-line pt-2">
+        <span className="flex flex-wrap items-center gap-2">
+          Sollzeit {fmtDauer(v.soll)}, gearbeitet {fmtDauer(v.gearbeitet)} — anzurechnen {fmtDauer(v.vorschlag)}
+          {v.vorschlag < v.termin ? ` von ${fmtDauer(v.termin)}` : ''}
+          <InfoHint about="Angerechnete Zeit beim Arztbesuch">
+            Bezahlt ist beim Arztbesuch nur Zeit, die sonst gearbeitet worden wäre (Dienstverhinderung, § 1154b
+            ABGB bzw. § 8 Abs 3 AngG). Die App schlägt deshalb höchstens vor, was an diesem Tag noch zur Sollzeit
+            fehlt. Eine andere Zeit geht mit Grund — etwa bei Gleitzeit, wenn der Termin in die Normalarbeitszeit
+            fällt, aber schon länger gearbeitet wurde. Im Zeitkonto steht genau die angerechnete Zeit.
+          </InfoHint>
+        </span>
+        {!v.arbeitstag && (
+          <span className="flex flex-wrap items-center gap-2"><Warnung>Hinweis</Warnung>Kein Arbeitstag der Person — bestätigen geht nicht.</span>
+        )}
+        {v.ganztags && (
+          <span className="flex flex-wrap items-center gap-2">
+            <Warnung>Hinweis</Warnung>Am Tag steht „{v.ganztags}“ für den ganzen Tag — bestätigen geht erst, wenn das weg ist.
+          </span>
+        )}
+        {v.ueberschneidung.map((u) => (
+          <span key={`${u.status}-${u.von}`} className="flex flex-wrap items-center gap-2">
+            <Warnung>Hinweis</Warnung>
+            Zur selben Zeit gebucht: {u.status === 'Anwesend' ? 'Arbeitszeit' : u.status} {u.von}–{u.bis}
+          </span>
+        ))}
+        <span className="flex flex-wrap items-end gap-3">
+          <InputField
+            id={`angerechnet-${f.id}`}
+            label="Angerechnet (Std:Min)"
+            inputMode="numeric"
+            value={text}
+            onChange={(e) => setAngerechnet({ ...angerechnet, [f.id]: e.target.value })}
+          />
+          {abweichend && (
+            <InputField
+              id={`anrechnung-grund-${f.id}`}
+              label="Grund für die andere Zeit"
+              pflicht
+              value={anrechnungGrund[f.id] ?? ''}
+              onChange={(e) => setAnrechnungGrund({ ...anrechnungGrund, [f.id]: e.target.value })}
+            />
+          )}
+        </span>
+      </span>
+    );
+  }
 
   function zeile(f: Freistellung) {
     const p = person(f.userId);
@@ -280,13 +429,16 @@ export default function FreistellungenBestaetigen({
           <span className="flex flex-col gap-1">
             <span>
               {freistellungWas(f, company?.freistellungAnlaesse)}
-              {p && f.art !== 'unbezahlt' ? ` · ${urlaubsTage(p, f.von, f.bis).length} Arbeitstage` : ''}
+              {istArztbesuch(f)
+                ? ` · Termin ${fmtDauer(terminMinuten(f))}`
+                : p && f.art !== 'unbezahlt' ? ` · ${urlaubsTage(p, f.von, f.bis).length} Arbeitstage` : ''}
               {f.art === 'unbezahlt' ? ` · ${kalendertage(f.von, f.bis)} Kalendertage` : ''}
             </span>
             {f.notiz && <span className="text-ink">„{f.notiz}“</span>}
             {hinweise.map((h) => (
               <span key={h} className="flex flex-wrap items-center gap-2"><Warnung>Hinweis</Warnung>{h}</span>
             ))}
+            {istArztbesuch(f) && !sperre && arztbesuchTeil(f)}
             {f.art !== 'unbezahlt' && !sperre && (
               <span className="flex flex-wrap items-center gap-2">
                 {f.nachweisPfad && (
@@ -294,7 +446,11 @@ export default function FreistellungenBestaetigen({
                 )}
                 <CheckboxField
                   id={`geprueft-${f.id}`}
-                  label={f.nachweisPfad ? 'Nachweis geprüft' : 'Nachweis geprüft (auf Papier gezeigt)'}
+                  label={istArztbesuch(f)
+                    ? (f.nachweisPfad ? 'Arztbestätigung geprüft' : nachweisVerlangt
+                      ? 'Arztbestätigung geprüft (auf Papier gezeigt)'
+                      : 'Arztbestätigung geprüft (freiwillig, auf Papier gezeigt)')
+                    : f.nachweisPfad ? 'Nachweis geprüft' : 'Nachweis geprüft (auf Papier gezeigt)'}
                   checked={!!geprueft[f.id]}
                   onChange={(e) => setGeprueft({ ...geprueft, [f.id]: e.target.checked })}
                 />
@@ -391,7 +547,7 @@ export default function FreistellungenBestaetigen({
         {!sperre && (
           <>
             <Button loading={arbeitet === f.id} onClick={() => void bestaetigen(f, ueber)}>Bestätigen</Button>
-            <Button variant="ghost" onClick={() => { setGrund(''); setBegruenden({ f, art: 'Abgelehnt' }); }}>Ablehnen</Button>
+            <Button variant="ghost" onClick={() => { setGrund(''); setFolge(null); setBegruenden({ f, art: 'Abgelehnt' }); }}>Ablehnen</Button>
           </>
         )}
       </ListRow>
@@ -400,8 +556,8 @@ export default function FreistellungenBestaetigen({
 
   return (
     <Card
-      title="Sonderurlaub bestätigen"
-      hint="Dienstverhinderung (Sonderurlaub) und Pflegefreistellung stehen zu, wenn der Anlass vorliegt — bestätigt wird der Anlass, nicht genehmigt. Unbezahlten Urlaub entscheiden Geschäftsführung oder Administration. Der Anlass steht nur hier; die Projektleitung sieht im Wochenplan die Art, die Kollegen „abwesend“."
+      title="Sonderurlaub und Arztbesuche bestätigen"
+      hint="Dienstverhinderung (Sonderurlaub, Arztbesuch) und Pflegefreistellung stehen zu, wenn der Anlass vorliegt — bestätigt wird der Anlass, nicht genehmigt. Unbezahlten Urlaub entscheiden Geschäftsführung oder Administration. Der Anlass steht nur hier; die Projektleitung sieht im Wochenplan die Art, die Kollegen „abwesend“. Einen Arztbesuch sieht nur das Büro als solchen, alle anderen „abwesend“ mit der Uhrzeit — schon ab dem Antrag. Beim Arztbesuch schlägt die App vor, wie viel angerechnet wird: höchstens, was am Tag noch zur Sollzeit fehlt. Wird er abgelehnt, wählt man, ob die Zeit als Zeitausgleich gebucht wird oder im Saldo fehlt."
     >
       {offene === 'laedt' ? (
         <SkeletonList rows={2} />
@@ -435,6 +591,7 @@ export default function FreistellungenBestaetigen({
                         <>
                           <span className="block">{freistellungWas(f, company?.freistellungAnlaesse)}</span>
                           {vermerk && <span className="mt-1 block text-xs text-ink-muted">{vermerk}</span>}
+                          {anrechnungVermerk(f) && <span className="mt-1 block text-xs text-ink-muted">{anrechnungVermerk(f)}</span>}
                           {ueberText && <span className="mt-1 block text-xs text-ink-muted">{ueberText}</span>}
                           {mitUrlaub && (
                             <span className="mt-1 block text-xs text-ink-muted">
@@ -460,15 +617,52 @@ export default function FreistellungenBestaetigen({
 
       <ConfirmDialog
         open={!!begruenden}
-        title={begruenden?.art === 'Abgelehnt' ? 'Antrag ablehnen?' : 'Sonderurlaub zurücknehmen?'}
+        title={begruenden?.art === 'Abgelehnt'
+          ? (istArztbesuch(begruenden.f) ? 'Arztbesuch ablehnen?' : 'Antrag ablehnen?')
+          : begruenden && istArztbesuch(begruenden.f) ? 'Arztbesuch zurücknehmen?' : 'Sonderurlaub zurücknehmen?'}
         message={begruenden
-          ? `${begruenden.f.userName}, ${freistellungZeitraum(begruenden.f)}${begruenden.art === 'Storniert' ? ` — die Tage verschwinden aus dem Zeitkonto, eine Kürzung des Anspruchs mit ihnen${begruenden.f.ueberUrlaubId ? ', ebenso der Urlaub für die Tage über dem Kontingent' : ''}` : ''}. Der Grund geht an ${begruenden.f.userName}.`
+          ? `${begruenden.f.userName}, ${freistellungZeitraum(begruenden.f)}${begruenden.art !== 'Storniert' ? ''
+            : istArztbesuch(begruenden.f) ? ' — die angerechnete Zeit verschwindet aus dem Zeitkonto'
+            : ` — die Tage verschwinden aus dem Zeitkonto, eine Kürzung des Anspruchs mit ihnen${begruenden.f.ueberUrlaubId ? ', ebenso der Urlaub für die Tage über dem Kontingent' : ''}`}. Der Grund geht an ${begruenden.f.userName}.`
           : undefined}
         confirmLabel={begruenden?.art === 'Abgelehnt' ? 'Ablehnen' : 'Zurücknehmen'}
         onConfirm={begruendetEntscheiden}
         onCancel={() => setBegruenden(null)}
       >
         <InputField id="frei-grund" label="Grund" pflicht value={grund} onChange={(e) => setGrund(e.target.value)} />
+        {/*
+          ABGELEHNTER ARZTBESUCH (E35): was aus der Zeit wird, gleich mit.
+          Als Zeitausgleich bucht nur, wer über Urlaub entscheidet — wie in
+          der Datenbank.
+        */}
+        {begruenden?.art === 'Abgelehnt' && istArztbesuch(begruenden.f) && (
+          <span role="radiogroup" aria-label="Was aus der Zeit wird" className="mt-3 flex flex-col gap-1">
+            <label className="flex min-h-touch items-start gap-3 py-1">
+              <input
+                type="radio"
+                name="arzt-folge"
+                className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                checked={folge === 'zeitausgleich'}
+                disabled={!urlaubEntscheiden}
+                onChange={() => setFolge('zeitausgleich')}
+              />
+              <span className="text-sm">
+                Als Zeitausgleich buchen ({freistellungZeitraum(begruenden.f)})
+                {!urlaubEntscheiden && <span className="block text-ink-muted">Nur, wer über Urlaub entscheidet.</span>}
+              </span>
+            </label>
+            <label className="flex min-h-touch items-start gap-3 py-1">
+              <input
+                type="radio"
+                name="arzt-folge"
+                className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                checked={folge === 'keine'}
+                onChange={() => setFolge('keine')}
+              />
+              <span className="text-sm">Nicht buchen — die Zeit fehlt im Saldo</span>
+            </label>
+          </span>
+        )}
       </ConfirmDialog>
     </Card>
   );

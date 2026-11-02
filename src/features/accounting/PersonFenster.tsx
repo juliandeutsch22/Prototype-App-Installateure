@@ -168,7 +168,7 @@ export default function PersonFenster({
     ) : x.entry.status === 'Anwesend' ? (
       <span className="text-ink-muted">Anwesend</span>
     ) : (
-      <Marke>{tagesStatusName(x.entry.status)}</Marke>
+      <Marke>{tagesStatusName(x.entry.status, x.entry.comment)}</Marke>
     );
 
   /* Die Aktionen je Art — wie in der Karte. */
