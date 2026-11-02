@@ -712,7 +712,9 @@ was vorher auf offenem Grund bündig stand (E24), lag danach auf der Linie.
   Vorher 0 px links und rechts, in allen Breiten.
 - **Mitarbeiterübersicht am Handy.** Der Vergleich stand ohne Polster
   (Namen, Zahlen, Achskreis auf der Linie); jetzt 16 px wie dieselben Zeilen
-  ab dem Tablet und die Tagesliste am Handy.
+  ab dem Tablet und die Tagesliste am Handy. Ebenso am Schreibtisch der Satz
+  zum Maßstab der Saldolinie, der nur erscheint, wenn jemand einen
+  Gesamtsaldo hat — gefunden erst mit vollen Testdaten.
 - **Schriftfeld: die obere Linie geht durch.** Die Felder haben seit E33
   feste Breiten; vor der Skizze blieb ein freies Stück ohne Linie. Das
   Schriftfeld trägt sie jetzt selbst über die ganze Breite. Bricht eine
