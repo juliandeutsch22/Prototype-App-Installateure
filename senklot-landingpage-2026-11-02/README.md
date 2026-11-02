@@ -1,13 +1,35 @@
 # Senklot – Dein Betrieb. Im Lot.
 
-Landingpage-Entwurf auf Grundlage der am 02.11.2026 veröffentlichten App. Die Seite enthält lokale Schriften, Bilder und JavaScript sowie einen Node-Server für das Kontaktformular. Sie wurde nicht als Website veröffentlicht; die App bleibt unverändert.
+Landingpage auf Grundlage der am 02.11.2026 veröffentlichten App. Die bisherige Preis-/Kontaktfassung ist inzwischen unter senklot.at erreichbar. **Diese neue Revision mit sechs Funktionsseiten, SEO und Animationen ist als Download fertig; sie wurde aus dieser Sitzung noch nicht zu World4you hochgeladen.** Die Betriebssoftware bleibt unverändert.
 
 [![Einstieg](01-einstieg.png)](landingpage-1440.png)
 
 - [Vollständige Desktop-Seite](landingpage-1440.png)
 - [Vollständige mobile Seite](landingpage-390.png)
 - [Tablet](landingpage-834.png)
-- [Fertige HTML-Seite herunterladen](landingpage.zip?raw=true) – entpacken und mit Node.js ab 24.5 über `npm run preview` starten. Die rein visuelle Seite lässt sich auch als `index.html` öffnen; die Formularprüfung benötigt den Server.
+- [Fertige HTML-Seite herunterladen](landingpage.zip?raw=true) – entpacken und mit Node.js ab 24.5 über `npm run preview` starten. Für funktionierende Verzeichnislinks und die Formularprüfung den lokalen Server verwenden.
+- [World4you-Uploadpaket](world4you-upload.zip?raw=true) – nur öffentliche Website-Dateien einschließlich `.htaccess`, Sitemap und Funktionsseiten. Kein Node-Server und keine privaten Konfigurationen. In das Hauptverzeichnis der Domain hochladen.
+- [Veröffentlichung und Google/Bing einrichten](VEROEFFENTLICHEN.md).
+- [Kurze Aufnahme der Animationen](animationen.webm?raw=true).
+
+## SEO und Funktionsseiten
+
+Individuelle Titel und Beschreibungen, Canonical-URLs, Open-Graph-/Social-Vorschaubild, strukturierte Anbieter-/Software-/Preisdaten, Sitemap mit sieben URLs sowie Crawlingregeln einschließlich OAI-SearchBot sind enthalten. Die sechs Seiten besitzen eigene Inhalte, Abläufe, Fragen, Produktbilder und passende Verbindungen:
+
+| Funktion | Desktop | Mobil |
+|---|---|---|
+| Einsatzplanung | [Screen](einsatzplanung-1440.png) | [Screen](einsatzplanung-390.png) |
+| Zeiterfassung & Team | [Screen](zeiterfassung-1440.png) | [Screen](zeiterfassung-390.png) |
+| Digitale Handwerksscheine | [Screen](handwerksscheine-1440.png) | [Screen](handwerksscheine-390.png) |
+| Kunden & Baustellen | [Screen](kunden-baustellen-1440.png) | [Screen](kunden-baustellen-390.png) |
+| Material & Lager | [Screen](material-lager-1440.png) | [Screen](material-lager-390.png) |
+| Angebote & Rechnungen | [Screen](angebote-rechnungen-1440.png) | [Screen](angebote-rechnungen-390.png) |
+
+Die Apache-Datei führt HTTP und www dauerhaft auf `https://senklot.at/` und entfernt `index.html` aus den öffentlichen URLs. Pfade und Queryparameter bleiben erhalten; Status 308 erhält auch die Request-Methode. Die Regeln wurden lokal in einem tatsächlichen Apache-Server geprüft. Die Konfiguration auf World4you muss nach dem Upload ebenfalls geprüft werden.
+
+Die kurzen Erscheinanimationen laufen einmal beim Sichtbarwerden. Reduzierte Bewegung wird auch bei nachträglicher Änderung respektiert; Inhalte bleiben ohne JavaScript oder Animationsunterstützung sichtbar. Produktbilder sind verlustfrei als WebP rund 65 % kleiner. Es gibt keine dauernden Bewegungen oder animierten Formularzustände.
+
+**Noch extern auszuführen:** Upload zu World4you, Verifizierung in Google Search Console und Bing Webmaster Tools, Sitemap einreichen und den tatsächlichen Indexierungsstatus beobachten. Dafür fehlen in dieser Sitzung die Kontozugänge. Es wurde keine Indexierung oder bestimmte Suchplatzierung behauptet.
 
 ## Die Seite von oben nach unten
 
@@ -35,7 +57,7 @@ Jährliche Vorauszahlung: genau 10 % Rabatt auf zwölf Monatsbeträge. Das entsp
 
 **Noch nicht live aktiviert:** Cloudflare Turnstile und Resend sind vorbereitet, aber noch nicht als Dienste eingerichtet. Die lokale Vorschau zeigt das ausdrücklich und sendet keine E-Mails. Bei fehlender produktiver Konfiguration bleibt der Versand gesperrt. Für echte Anfragen sind Domainfreigabe, privater CAPTCHA-Schlüssel, verifizierter Mailabsender/API-Schlüssel sowie angepasste Datenschutzhinweise erforderlich. [Konfiguration und Betriebsgrenzen](server/README.md).
 
-`npm test` prüft zehn serverseitige Fälle mit simulierten Diensten. Browserprüfungen testen zusätzlich Tokenablauf, gesperrte Mehrfachklicks, erhaltene Eingaben bei Fehlern, serverseitige Feldfehler, Wiederholungsschlüssel sowie das Zurücksetzen erst nach bestätigtem Versand. Keine echte Test-E-Mail wurde verschickt. Die tatsächliche Zustellung und Turnstile-Integration müssen nach Einrichtung auf der eigenen Domain noch geprüft werden.
+`npm test` prüft zwölf serverseitige Fälle mit simulierten Diensten. Browserprüfungen testen zusätzlich Tokenablauf, gesperrte Mehrfachklicks, erhaltene Eingaben bei Fehlern, serverseitige Feldfehler, Wiederholungsschlüssel sowie das Zurücksetzen erst nach bestätigtem Versand. Keine echte Test-E-Mail wurde verschickt. Die tatsächliche Zustellung und Turnstile-Integration müssen nach Einrichtung auf der eigenen Domain noch geprüft werden.
 
 ## Tatsächliche Produktansichten
 
@@ -49,4 +71,4 @@ Geprüft bei 390, 834 und 1440 px: keine horizontalen Dokumentüberläufe, JavaS
 
 Die Aufnahmen sind keine erneute fachliche Prüfung der Betriebssoftware. Es wurden keine Produktionskonten angemeldet, Geschäftsdaten geschrieben oder E-Mails versendet.
 
-[Quellen und Abgrenzung](QUELLEN.md) · [Messdaten](nachweise/pruefung.json) · [Produktaufnahmen](nachweise/app-aufnahmen.json) · [Formularprüfungen](nachweise/kontakt-pruefung.json) · [Serverprüfungen](nachweise/server-tests.txt)
+[Quellen und Abgrenzung](QUELLEN.md) · [Messdaten](nachweise/pruefung.json) · [Produktaufnahmen](nachweise/app-aufnahmen.json) · [Formularprüfungen](nachweise/kontakt-pruefung.json) · [Serverprüfungen](nachweise/server-tests.txt) · [SEO-Prüfungen](nachweise/seo-pruefung.json) · [Animationen](nachweise/animationen-pruefung.json) · [Apache](nachweise/apache-pruefung.json)

@@ -1,11 +1,13 @@
 {
-  "checkedRelativeReferences": 39,
+  "checkedRelativeReferences": 174,
   "missingReferences": [],
   "viewportWidths": [
+    320,
     390,
     834,
     1440
   ],
+  "publicPages": 7,
   "productScreens": 10,
   "appUnchanged": true,
   "appVersion": "964920ef",
@@ -13,5 +15,7 @@
   "phone": "+436606322503",
   "pricing": "net, 10% annual subscription discount",
   "realContactDeliveryConfigured": false,
-  "login": "https://app.senklot.at/"
+  "login": "https://app.senklot.at/",
+  "world4youUploadPerformed": false,
+  "googleBingVerificationPerformed": false
 }

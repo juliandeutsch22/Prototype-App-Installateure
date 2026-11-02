@@ -1,9 +1,9 @@
 const ansichten={
- planung:{file:'planung.png',title:'Einsatzplanung',text:'Wer ist wann auf welcher Baustelle? Das Team in einer gemeinsamen Planung.'},
- kundenakte:{file:'kundenakte.png',title:'Kundenakte',text:'Kontakte, Baustellen, Termine und Belege dort, wo sie zusammengehören.'},
- zeit:{file:'zeit-mobil.png',title:'Mobile Zeiterfassung',text:'Zeiten, Pausen und Baustelle direkt am Handy erfassen.'},
- rechnungen:{file:'rechnungen.png',title:'Rechnungen',text:'Nicht verrechnete Leistungen, offene Rechnungen und fällige Mahnungen im Blick.'},
- mitarbeiter:{file:'mitarbeiter.png',title:'Mitarbeiterübersicht',text:'Gebuchte Stunden, Soll, Salden und Tage ohne Buchung nachvollziehen.'}
+ planung:{file:'planung.webp',title:'Einsatzplanung',text:'Wer ist wann auf welcher Baustelle? Das Team in einer gemeinsamen Planung.'},
+ kundenakte:{file:'kundenakte.webp',title:'Kundenakte',text:'Kontakte, Baustellen, Termine und Belege dort, wo sie zusammengehören.'},
+ zeit:{file:'zeit-mobil.webp',title:'Mobile Zeiterfassung',text:'Zeiten, Pausen und Baustelle direkt am Handy erfassen.'},
+ rechnungen:{file:'rechnungen.webp',title:'Rechnungen',text:'Nicht verrechnete Leistungen, offene Rechnungen und fällige Mahnungen im Blick.'},
+ mitarbeiter:{file:'mitarbeiter.webp',title:'Mitarbeiterübersicht',text:'Gebuchte Stunden, Soll, Salden und Tage ohne Buchung nachvollziehen.'}
 };
 const tabs=[...document.querySelectorAll('[data-ansicht]')],panel=document.getElementById('produktansicht'),bild=document.getElementById('produktbild'),bildtext=document.getElementById('bildtext'),dialog=document.getElementById('bilddialog'),gross=document.getElementById('grossesbild'),oeffnen=document.getElementById('bild-oeffnen');
 let aktuell='planung';

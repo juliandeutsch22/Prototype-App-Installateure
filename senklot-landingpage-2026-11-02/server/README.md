@@ -18,3 +18,7 @@ Ohne vollständige Konfiguration bleibt das Formular gesperrt; E-Mail und Telefo
 Der Ratelimiter gilt für **eine Node-Instanz** (8 Versuche je 15 Minuten, maximal 5.000 gleichzeitig gespeicherte IP-Hashes). Für mehrere Instanzen oder Neustartbeständigkeit muss vor dem öffentlichen Betrieb ein gemeinsamer Limitspeicher bzw. ein vorgeschaltetes verbindliches Gateway-Limit eingerichtet werden. Ein Neustart setzt den lokalen Zähler zurück. Ein Request kann bei Versandproblemen bereits angekommen sein: dieselbe unveränderte Wiederholung verwendet deshalb denselben Resend-Idempotenzschlüssel. Die providerseitige Gültigkeit beträgt 24 Stunden. Keine unbegrenzte Zustellgarantie; das Formular bewahrt bei Fehlern die Angaben.
 
 Preise werden in Cent serverseitig berechnet. Jahreszahlung: genau 10 % Rabatt auf zwölf Monatsbeträge, Einrichtung unverändert. Alle Beträge netto zuzüglich gesetzlicher Umsatzsteuer. Die Anfrage löst weder Zahlung noch Vertragsabschluss aus.
+
+## SEO und statische Funktionsseiten
+
+Der Node-Server liefert Startseite, sechs Funktionsseiten, Sitemap, robots.txt und optimierte WebP-Bilder aus. Er normalisiert www-, Verzeichnis- und index.html-Adressen. Die HTTPS-Weiterleitung muss bei Node-Betrieb im vertrauenswürdigen TLS-Reverse-Proxy erfolgen. Die `.htaccess` übernimmt diese Aufgabe nur auf Apache/World4you. Das separate World4you-Uploadpaket enthält ausschließlich öffentliche Dateien und führt den Node-Versand nicht aus.

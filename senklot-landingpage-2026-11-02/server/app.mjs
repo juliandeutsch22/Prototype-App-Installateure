@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isIP } from 'node:net';
 import { createHandler } from './contact.mjs';
+import { publicFiles, publicRedirect } from './public.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const preview=process.argv.includes('--preview');
@@ -19,12 +20,12 @@ const handle=createHandler({origins,preview,ready,
  verify:async(token,ip)=>{const r=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret,response:token,remoteip:ip}),signal:AbortSignal.timeout(6000)});if(!r.ok)throw Error('Sicherheitsprüfung nicht erreichbar');return r.json();},
  send:async(m)=>{const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${mailkey}`,'Idempotency-Key':m.idempotencyKey},body:JSON.stringify({from,to:[m.to],reply_to:m.replyTo,subject:m.subject,text:m.text}),signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error('Versand nicht bestätigt');return r.json();}
 });
-const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.svg':'image/svg+xml','.woff2':'font/woff2','.txt':'text/plain; charset=utf-8'};
+const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml','.woff2':'font/woff2','.txt':'text/plain; charset=utf-8','.xml':'application/xml; charset=utf-8'};
 const security={
  'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin',
  'Content-Security-Policy':"default-src 'self'; script-src 'self' https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
 };
-function json(res,status,data){res.writeHead(status,{...security,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));}
+function json(res,status,data){res.writeHead(status,{...security,'X-Robots-Tag':'noindex, nofollow','Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));}
 const server=http.createServer(async(req,res)=>{
  try{
   const url=new URL(req.url,'http://localhost');
@@ -42,10 +43,12 @@ const server=http.createServer(async(req,res)=>{
    const r=await handle(request,ip);res.writeHead(r.status,{...security,...Object.fromEntries(r.headers)});return res.end(await r.text());
   }
   if(!['GET','HEAD'].includes(req.method))return json(res,405,{message:'Methode nicht unterstützt.'});
-  const file=decodeURIComponent(url.pathname==='/'?'/index.html':url.pathname);
-  if(!['/index.html','/landingpage.css','/landingpage.js','/tarife.js','/kontakt.js'].includes(file)&&!file.startsWith('/assets/'))return json(res,404,{message:'Nicht gefunden.'});
+  const redirect=publicRedirect(url.pathname,url.search,req.headers.host||'');
+  if(redirect){res.writeHead(308,{...security,Location:redirect,'Cache-Control':'no-cache'});return res.end();}
+  const file=publicFiles.get(url.pathname)||(url.pathname.startsWith('/assets/')?decodeURIComponent(url.pathname):null);
+  if(!file)return json(res,404,{message:'Nicht gefunden.'});
   const resolved=path.resolve(root,'.'+file);if(!resolved.startsWith(root+path.sep)||(file.startsWith('/assets/')&&!resolved.startsWith(path.join(root,'assets')+path.sep)))return json(res,404,{message:'Nicht gefunden.'});
-  const data=await readFile(resolved);res.writeHead(200,{...security,'Content-Type':mime[path.extname(resolved)]||'application/octet-stream','Cache-Control':file==='/index.html'?'no-cache':'public, max-age=3600'});res.end(req.method==='HEAD'?undefined:data);
+  const data=await readFile(resolved);res.writeHead(200,{...security,'Content-Type':mime[path.extname(resolved)]||'application/octet-stream','Cache-Control':['.html','.xml','.txt'].includes(path.extname(resolved))?'no-cache':'public, max-age=86400'});res.end(req.method==='HEAD'?undefined:data);
  }catch(e){if(!res.headersSent)json(res,e.code==='ENOENT'?404:500,{message:'Die Anfrage konnte nicht verarbeitet werden.'});else res.end();}
 });
 server.requestTimeout=20000;server.headersTimeout=10000;server.keepAliveTimeout=5000;server.maxHeadersCount=40;

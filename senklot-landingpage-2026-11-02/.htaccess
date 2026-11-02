@@ -1,0 +1,33 @@
+# Apache / World4you: im Web-Hauptverzeichnis von senklot.at ablegen.
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# Nur die beiden Produktdomain-Varianten umleiten, keine App-Subdomain.
+# 308 erhält auch bei POST die Methode und den Request-Body.
+RewriteCond %{HTTP_HOST} ^(?:www\.)?senklot\.at(?::[0-9]+)?$ [NC]
+RewriteCond %{HTTPS} !=on [OR]
+RewriteCond %{HTTP_HOST} ^www\.senklot\.at(?::[0-9]+)?$ [NC]
+RewriteRule ^ https://senklot.at%{REQUEST_URI} [R=308,L,NE]
+
+# index.html ist dieselbe Seite wie das jeweilige Verzeichnis.
+RewriteCond %{THE_REQUEST} \s/+([^?\ ]*/)?index\.html(?:[?\ ]|$) [NC]
+RewriteRule ^(.*)index\.html$ /$1 [R=308,L,NE]
+</IfModule>
+
+<IfModule mod_headers.c>
+Header always set X-Content-Type-Options "nosniff"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+<FilesMatch "\.(?:html|xml|txt)$">
+Header set Cache-Control "no-cache"
+</FilesMatch>
+<FilesMatch "\.(?:css|js|webp|png|woff2)$">
+Header set Cache-Control "public, max-age=86400"
+</FilesMatch>
+</IfModule>
+
+# Versehentlich hochgeladene lokale Konfiguration niemals ausliefern.
+<FilesMatch "^(?:\.|package(?:-lock)?\.json$)">
+Require all denied
+</FilesMatch>

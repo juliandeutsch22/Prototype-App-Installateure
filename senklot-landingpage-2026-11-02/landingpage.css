@@ -17,3 +17,42 @@
 @media(max-width:1199px){.preise-kopf{gap:25px}.zahlungswahl button{padding-inline:12px}.tarif{padding:22px}.tarif-preis>[data-preis]{font-size:32px;letter-spacing:-1px}.paketumfang{grid-template-columns:1fr 2fr;gap:25px}.kontakt{gap:40px;grid-template-columns:1fr 1.4fr}.anfrageformular{padding:24px}.formular-raster{grid-template-columns:1fr}.feld-breit{grid-column:auto}.direktkontakt{font-size:15px}}
 @media(max-width:759px){.preise{padding-block:52px}.preise-kopf{display:block}.preise-kopf h2{font-size:30px}.zahlungswahl{margin-top:25px;width:max-content;max-width:100%}.zahlungswahl button{font-size:12px;padding-inline:16px}.preis-erlaeuterung{font-size:11px;min-height:42px}.tarife{display:block;margin-top:20px}.tarif{padding:25px}.tarif+.tarif{border-left:0;border-top:1px solid var(--linie)}.tarif-preis>[data-preis]{font-size:39px}.tarif-zahlung{min-height:0}.tarif-preis{margin-top:20px}.preissteuer{font-size:10px}.paketumfang{display:block;margin-top:30px;padding-top:24px}.paketumfang ul{display:block;margin-top:18px}.paketumfang li+li{margin-top:12px}.kontakt{display:block;padding-block:55px}.kontakt-text h2{font-size:32px}.direktkontakt{font-size:16px}.anfrageformular{margin-top:30px;padding:22px 18px}.formular-raster{gap:18px}.kontakt-datenschutz{font-size:10px}.anfrageformular>.knopf{min-height:48px}}
 .footer>p>a{display:inline-flex;align-items:center;min-height:28px}
+
+/* Funktionsseiten nutzen dieselben Schriften, Linien und Blattflächen. */
+.funktionslink{display:inline-flex;align-items:center;gap:12px;min-height:36px;margin-top:8px;font-size:11px;color:var(--petrol);text-decoration:none}
+.funktionslink:hover{text-decoration:underline}
+.brotpfad{display:flex;flex-wrap:wrap;align-items:center;gap:12px;font-size:11px;color:var(--leise);padding-block:24px}
+.brotpfad a{display:inline-flex;align-items:center;min-height:30px}
+.detail-hero{border-bottom:1px solid var(--linie)}
+.detail-einstieg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:64px;align-items:center;padding-block:30px 65px}
+.detail-einstieg h1{font-size:48px;line-height:1.2;letter-spacing:-1.5px;overflow-wrap:break-word}
+.detail-leitsatz{font-size:23px;line-height:1.5;letter-spacing:-.4px;margin:22px 0}
+.detail-einstieg .absatz{font-size:14px}
+.detail-bild{min-width:0}
+.detail-bild img{width:100%}
+.detail-bild figcaption{font-size:10px;line-height:1.8;color:var(--leise);margin-top:14px}
+.detail-bild-mobil{width:min(100%,260px);justify-self:center}
+.detail-inhalte{padding-block:50px 70px;max-width:1050px}
+.detail-inhalte article{display:grid;grid-template-columns:70px minmax(0,1fr);gap:22px;padding-block:30px;border-bottom:1px solid var(--linie)}
+.detail-inhalte .nummer{padding-top:10px;color:var(--petrol)}
+.detail-inhalte h2{font-size:28px;letter-spacing:-.7px;line-height:1.4}
+.detail-inhalte article p:not(.nummer){font-size:14px;line-height:1.95;color:var(--leise);max-width:83ch;margin-top:18px}
+.detail-schritte{grid-template-columns:repeat(3,minmax(0,1fr))}
+.funktionsseite .fragen h2{font-size:32px;overflow-wrap:break-word}
+.verwandte{border-top:1px solid var(--linie);padding-block:32px 45px}
+.verwandte>div{display:flex;flex-wrap:wrap;gap:12px 36px}
+.verwandte a{display:inline-flex;align-items:center;gap:16px;min-height:44px;font-size:13px;color:var(--petrol);text-decoration:none}
+.verwandte a:hover{text-decoration:underline}
+.funktionsseite .abschluss h2{font-size:42px}
+@media(max-width:1100px){.detail-einstieg{grid-template-columns:1fr;gap:35px;padding-block:20px 48px}.detail-einstieg h1{max-width:22ch}.detail-einstieg .absatz{max-width:72ch}.detail-bild{max-width:900px}.detail-bild-mobil{max-width:220px}.detail-inhalte h2{font-size:25px}.detail-leitsatz{font-size:22px}}
+@media(max-width:759px){.funktionslink{font-size:11px}.brotpfad{font-size:10px;padding-block:20px;gap:10px}.detail-einstieg h1{font-size:32px;letter-spacing:-1px}.detail-einstieg{padding-block:15px 38px;gap:30px}.detail-leitsatz{font-size:21px;margin-block:18px}.detail-bild figcaption{font-size:9px}.detail-bild-mobil{width:210px}.detail-inhalte{padding-block:22px 40px}.detail-inhalte article{grid-template-columns:24px minmax(0,1fr);gap:15px;padding-block:26px}.detail-inhalte h2{font-size:23px}.detail-inhalte article p:not(.nummer){font-size:13px;line-height:1.95;margin-top:14px}.funktionsseite .fragen h2{font-size:30px}.verwandte>div{display:flex;flex-direction:column;align-items:flex-start;gap:4px}.verwandte a{font-size:12px}.funktionsseite .abschluss h2{font-size:32px}}
+
+/* Nur kurze Übergänge. Ohne JS und bei reduzierter Bewegung ist alles sichtbar. */
+@media(prefers-reduced-motion:no-preference){
+  .knopf,.zahlungswahl button,.ansichten button{transition:background-color .16s ease,color .16s ease,border-color .16s ease,box-shadow .16s ease}
+  .linkpfeil,.funktionslink>span,.verwandte a>span{transition:transform .18s ease}
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  .knopf:hover{box-shadow:0 3px 10px #0f45521a}
+  a:hover>.linkpfeil,.textlink:hover>.linkpfeil,.funktionslink:hover>span,.verwandte a:hover>span{transform:translate(2px,-2px)}
+}

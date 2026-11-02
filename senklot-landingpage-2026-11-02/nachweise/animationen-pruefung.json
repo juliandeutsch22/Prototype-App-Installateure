@@ -1,0 +1,11 @@
+{
+  "heroAnimation": true,
+  "scrollReveal": true,
+  "onceOnly": true,
+  "opacityRestored": true,
+  "reducedMotion": true,
+  "dynamicReducedMotion": true,
+  "noObserverFallback": true,
+  "noScrollOverflow": true,
+  "errors": []
+}

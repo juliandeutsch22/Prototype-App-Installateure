@@ -1,0 +1,182 @@
+{
+  "actualApacheExecution": true,
+  "localContainerOnly": true,
+  "httpsWwwRedirects": true,
+  "queryPreserved": true,
+  "postRedirectIs308": true,
+  "indexRedirects": true,
+  "trailingSlash": true,
+  "sevenPagesServed": true,
+  "privateFilesBlocked": true,
+  "checks": [
+    {
+      "path": "/?src=test",
+      "host": "senklot.at",
+      "method": "GET",
+      "status": 308,
+      "location": "https://senklot.at/?src=test"
+    },
+    {
+      "path": "/einsatzplanung/?utm_source=test&name=a%20b",
+      "host": "www.senklot.at",
+      "method": "GET",
+      "status": 308,
+      "location": "https://senklot.at/einsatzplanung/?utm_source=test&name=a%20b"
+    },
+    {
+      "path": "/api/contact?test=1",
+      "host": "senklot.at",
+      "method": "POST",
+      "status": 308,
+      "location": "https://senklot.at/api/contact?test=1"
+    },
+    {
+      "path": "/index.html?src=test",
+      "host": "local",
+      "method": "GET",
+      "status": 308,
+      "location": "http://127.0.0.1:5256/?src=test"
+    },
+    {
+      "path": "/zeiterfassung/index.html?src=test",
+      "host": "local",
+      "method": "GET",
+      "status": 308,
+      "location": "http://127.0.0.1:5256/zeiterfassung/?src=test"
+    },
+    {
+      "path": "/einsatzplanung?src=test",
+      "host": "local",
+      "method": "GET",
+      "status": 301,
+      "location": "http://127.0.0.1:5256/einsatzplanung/?src=test"
+    },
+    {
+      "path": "/",
+      "host": "local",
+      "method": "GET",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/einsatzplanung/",
+      "host": "local",
+      "method": "GET",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/zeiterfassung/",
+      "host": "local",
+      "method": "GET",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/handwerksscheine/",
+      "host": "local",
+      "method": "GET",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/kunden-baustellen/",
+      "host": "local",
+      "method": "GET",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/material-lager/",
+      "host": "local",
+      "method": "GET",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/angebote-rechnungen/",
+      "host": "local",
+      "method": "GET",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/robots.txt",
+      "host": "local",
+      "method": "GET",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/sitemap.xml",
+      "host": "local",
+      "method": "GET",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/assets/planung.webp",
+      "host": "local",
+      "method": "GET",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/assets/senklot-vorschau.png",
+      "host": "local",
+      "method": "GET",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/landingpage.css?v=20261102-seo2",
+      "host": "local",
+      "method": "GET",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/effekte.js?v=20261102-seo2",
+      "host": "local",
+      "method": "GET",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/.env",
+      "host": "local",
+      "method": "GET",
+      "status": 403,
+      "location": null
+    },
+    {
+      "path": "/.env.example",
+      "host": "local",
+      "method": "GET",
+      "status": 403,
+      "location": null
+    },
+    {
+      "path": "/.htaccess",
+      "host": "local",
+      "method": "GET",
+      "status": 403,
+      "location": null
+    },
+    {
+      "path": "/package.json",
+      "host": "local",
+      "method": "GET",
+      "status": 403,
+      "location": null
+    },
+    {
+      "path": "/nicht-vorhanden/",
+      "host": "local",
+      "method": "GET",
+      "status": 404,
+      "location": null
+    }
+  ],
+  "realWorld4youUploadPerformed": false
+}

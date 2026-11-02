@@ -1,0 +1,272 @@
+{
+  "pages": 7,
+  "views": [
+    {
+      "slug": "einsatzplanung",
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Einsatzplanung für Installationsbetriebe | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "zeiterfassung",
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Mobile Zeiterfassung für Installateure | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "handwerksscheine",
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Digitale Handwerksscheine für Installateure | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "kunden-baustellen",
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Kunden und Baustellen verwalten | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "material-lager",
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Material und Lager für Installationsbetriebe | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "angebote-rechnungen",
+      "width": 320,
+      "scrollWidth": 320,
+      "title": "Angebote und Rechnungen für Installateure | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "einsatzplanung",
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Einsatzplanung für Installationsbetriebe | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "zeiterfassung",
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Mobile Zeiterfassung für Installateure | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "handwerksscheine",
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Digitale Handwerksscheine für Installateure | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "kunden-baustellen",
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Kunden und Baustellen verwalten | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "material-lager",
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Material und Lager für Installationsbetriebe | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "angebote-rechnungen",
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "Angebote und Rechnungen für Installateure | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "einsatzplanung",
+      "width": 834,
+      "scrollWidth": 834,
+      "title": "Einsatzplanung für Installationsbetriebe | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "zeiterfassung",
+      "width": 834,
+      "scrollWidth": 834,
+      "title": "Mobile Zeiterfassung für Installateure | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "handwerksscheine",
+      "width": 834,
+      "scrollWidth": 834,
+      "title": "Digitale Handwerksscheine für Installateure | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "kunden-baustellen",
+      "width": 834,
+      "scrollWidth": 834,
+      "title": "Kunden und Baustellen verwalten | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "material-lager",
+      "width": 834,
+      "scrollWidth": 834,
+      "title": "Material und Lager für Installationsbetriebe | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "angebote-rechnungen",
+      "width": 834,
+      "scrollWidth": 834,
+      "title": "Angebote und Rechnungen für Installateure | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "einsatzplanung",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Einsatzplanung für Installationsbetriebe | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "zeiterfassung",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Mobile Zeiterfassung für Installateure | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "handwerksscheine",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Digitale Handwerksscheine für Installateure | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "kunden-baustellen",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Kunden und Baustellen verwalten | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "material-lager",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Material und Lager für Installationsbetriebe | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    },
+    {
+      "slug": "angebote-rechnungen",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "title": "Angebote und Rechnungen für Installateure | Senklot",
+      "canonical": true,
+      "structuredData": true,
+      "internalLinks": true,
+      "faq": true,
+      "violations": []
+    }
+  ],
+  "noJavaScriptContentVisible": true,
+  "missingInternalLinks": [],
+  "fakeRatings": false
+}

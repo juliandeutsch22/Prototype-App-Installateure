@@ -1,0 +1,62 @@
+[
+  {
+    "name": "mitarbeiter.png",
+    "before": 211694,
+    "after": 70966,
+    "lossless": true
+  },
+  {
+    "name": "planung.png",
+    "before": 234530,
+    "after": 80260,
+    "lossless": true
+  },
+  {
+    "name": "angebote.png",
+    "before": 160617,
+    "after": 54774,
+    "lossless": true
+  },
+  {
+    "name": "rechnungen.png",
+    "before": 201459,
+    "after": 69846,
+    "lossless": true
+  },
+  {
+    "name": "material-mobil.png",
+    "before": 81176,
+    "after": 32882,
+    "lossless": true
+  },
+  {
+    "name": "zeit-mobil.png",
+    "before": 74511,
+    "after": 30066,
+    "lossless": true
+  },
+  {
+    "name": "mein-plan.png",
+    "before": 56891,
+    "after": 23294,
+    "lossless": true
+  },
+  {
+    "name": "kundenakte.png",
+    "before": 219612,
+    "after": 76194,
+    "lossless": true
+  },
+  {
+    "name": "planung-dunkel.png",
+    "before": 236746,
+    "after": 77628,
+    "lossless": true
+  },
+  {
+    "name": "schein-mobil.png",
+    "before": 94503,
+    "after": 35968,
+    "lossless": true
+  }
+]

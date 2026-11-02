@@ -1,22 +1,24 @@
 
-> senklot-landingpage@1.1.0 test
-> node --test server/contact.test.mjs
+> senklot-landingpage@1.2.0 test
+> node --test server/*.test.mjs
 
-✔ Alle sechs Abopreise und Einrichtung werden exakt in Cent berechnet (0.911963ms)
-✔ Bestätigter Versand nutzt feste Empfängeradresse und serverseitige Preise (32.759602ms)
-✔ Vorschau und fehlende Konfiguration versenden nie (1.137214ms)
-✔ Fehlendes, ungültiges, falsches Host- oder Aktions-Token sperrt den Versand (1.485327ms)
-✔ Dienstausfälle oder fehlende Versandbestätigung ergeben niemals Erfolg (2.914131ms)
-✔ Servervalidierung stoppt Manipulationen unabhängig vom Browser (0.271159ms)
-✔ HTTP- und Origin-Grenzen werden vor dem Versand geprüft (0.926014ms)
-✔ Rate-Limit ist begrenzt, läuft ab und kann nicht durch Überfüllung umgangen werden (0.647293ms)
-✔ HTTP-Server schützt private Dateien und bleibt ohne Dienste gesperrt (103.647636ms)
-✔ Produktionsmodus verbietet die Vorschau (49.77634ms)
-ℹ tests 10
+✔ Alle sechs Abopreise und Einrichtung werden exakt in Cent berechnet (0.981877ms)
+✔ Bestätigter Versand nutzt feste Empfängeradresse und serverseitige Preise (41.803125ms)
+✔ Vorschau und fehlende Konfiguration versenden nie (1.095224ms)
+✔ Fehlendes, ungültiges, falsches Host- oder Aktions-Token sperrt den Versand (1.552398ms)
+✔ Dienstausfälle oder fehlende Versandbestätigung ergeben niemals Erfolg (2.703063ms)
+✔ Servervalidierung stoppt Manipulationen unabhängig vom Browser (0.277539ms)
+✔ HTTP- und Origin-Grenzen werden vor dem Versand geprüft (0.975347ms)
+✔ Rate-Limit ist begrenzt, läuft ab und kann nicht durch Überfüllung umgangen werden (0.92272ms)
+✔ HTTP-Server schützt private Dateien und bleibt ohne Dienste gesperrt (202.784084ms)
+✔ Produktionsmodus verbietet die Vorschau (81.800328ms)
+✔ Kanonische URLs erhalten Queryparameter und zeigen keine fremden Hosts an (1.182793ms)
+✔ Öffentliche Seiten, Sitemap, Crawlingregeln und Dateitypen werden korrekt ausgeliefert (335.324302ms)
+ℹ tests 12
 ℹ suites 0
-ℹ pass 10
+ℹ pass 12
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 253.188444
+ℹ duration_ms 410.153941

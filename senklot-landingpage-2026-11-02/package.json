@@ -1,11 +1,11 @@
 {
   "name": "senklot-landingpage",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "engines": { "node": ">=24.5.0" },
   "scripts": {
     "start": "node --use-env-proxy server/app.mjs",
     "preview": "node --use-env-proxy server/app.mjs --preview",
-    "test": "node --test server/contact.test.mjs"
+    "test": "node --test server/*.test.mjs"
   }
 }
