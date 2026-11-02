@@ -1,0 +1,22 @@
+
+> senklot-landingpage@1.1.0 test
+> node --test server/contact.test.mjs
+
+✔ Alle sechs Abopreise und Einrichtung werden exakt in Cent berechnet (0.911963ms)
+✔ Bestätigter Versand nutzt feste Empfängeradresse und serverseitige Preise (32.759602ms)
+✔ Vorschau und fehlende Konfiguration versenden nie (1.137214ms)
+✔ Fehlendes, ungültiges, falsches Host- oder Aktions-Token sperrt den Versand (1.485327ms)
+✔ Dienstausfälle oder fehlende Versandbestätigung ergeben niemals Erfolg (2.914131ms)
+✔ Servervalidierung stoppt Manipulationen unabhängig vom Browser (0.271159ms)
+✔ HTTP- und Origin-Grenzen werden vor dem Versand geprüft (0.926014ms)
+✔ Rate-Limit ist begrenzt, läuft ab und kann nicht durch Überfüllung umgangen werden (0.647293ms)
+✔ HTTP-Server schützt private Dateien und bleibt ohne Dienste gesperrt (103.647636ms)
+✔ Produktionsmodus verbietet die Vorschau (49.77634ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 253.188444

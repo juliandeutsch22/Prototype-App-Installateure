@@ -20,6 +20,6 @@ Geprüfter Live-Stand: **964920e · 02.11.2026, 13:42**, übereinstimmend unter 
 
 Anbieterkontakt office@senklot.at wurde vom Auftraggeber genannt. Die zunächst genannte Login-Adresse ohne „k“ war über die Umgebung nicht erreichbar; app.senklot.at lieferte HTTP 200, den Seitentitel „Senklot“ und die aktuelle Versionskennung.
 
-Die Texte versprechen keine native App-Store-App, allgemeine Offline-Fähigkeit aller Bereiche, automatische Rechnungszustellung, direkte Kanzlei-Integration, Rechtszertifizierung oder bezifferte Zeit-/Kostenersparnis. Belegformate und Exporte werden als vorhandene Funktionen beschrieben. Preise und Testimonials werden nicht ergänzt.
+Die Texte versprechen keine native App-Store-App, allgemeine Offline-Fähigkeit aller Bereiche, automatische Rechnungszustellung, direkte Kanzlei-Integration, Rechtszertifizierung oder bezifferte Zeit-/Kostenersparnis. Belegformate und Exporte werden als vorhandene Funktionen beschrieben. Preise und Telefonnummer stammen aus den nachfolgenden Vorgaben des Auftraggebers. Nettodarstellung und exakt 10 % Jahresrabatt wurden nach dessen Freigabe als B2B-Angebot festgelegt; die Einrichtung bleibt unverändert. Testimonials werden nicht erfunden. Cloudflare Turnstile und Resend sind vorgeschlagene, noch nicht eingerichtete Dienste.
 
 Die Rechtsseiten werden durch diesen Entwurf nicht neu verfasst oder freigegeben. Verlinkt werden die bestehenden App-Seiten. Eine Veröffentlichung auf der Produktdomain ist nicht Teil dieses Entwurfs.

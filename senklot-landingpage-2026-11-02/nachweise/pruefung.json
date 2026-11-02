@@ -1,8 +1,11 @@
 [
   {
+    "pricing": true,
+    "contactPreview": true,
+    "phone": true,
     "width": 390,
     "scrollWidth": 390,
-    "height": 7655,
+    "height": 11291,
     "errors": [],
     "failed": [],
     "violations": [],
@@ -13,9 +16,12 @@
     "faq": true
   },
   {
+    "pricing": true,
+    "contactPreview": true,
+    "phone": true,
     "width": 834,
     "scrollWidth": 834,
-    "height": 6251,
+    "height": 8606,
     "errors": [],
     "failed": [],
     "violations": [],
@@ -26,9 +32,12 @@
     "faq": true
   },
   {
+    "pricing": true,
+    "contactPreview": true,
+    "phone": true,
     "width": 1440,
     "scrollWidth": 1440,
-    "height": 6507,
+    "height": 8541,
     "errors": [],
     "failed": [],
     "violations": [],

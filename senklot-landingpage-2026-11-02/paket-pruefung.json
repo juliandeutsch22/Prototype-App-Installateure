@@ -1,5 +1,5 @@
 {
-  "checkedRelativeReferences": 27,
+  "checkedRelativeReferences": 39,
   "missingReferences": [],
   "viewportWidths": [
     390,
@@ -10,5 +10,8 @@
   "appUnchanged": true,
   "appVersion": "964920ef",
   "contact": "office@senklot.at",
+  "phone": "+436606322503",
+  "pricing": "net, 10% annual subscription discount",
+  "realContactDeliveryConfigured": false,
   "login": "https://app.senklot.at/"
 }

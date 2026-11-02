@@ -1,0 +1,14 @@
+{
+  "simulatedProviders": true,
+  "realMailSent": false,
+  "tokenExpiry": true,
+  "tokenError": true,
+  "busyDuplicateBlocked": true,
+  "errorRetainsFields": true,
+  "serverFieldErrors": true,
+  "stableRetryId": true,
+  "changedPayloadNewId": true,
+  "clearOnlyOnAccepted": true,
+  "tariffBillingPreserved": true,
+  "errors": []
+}
