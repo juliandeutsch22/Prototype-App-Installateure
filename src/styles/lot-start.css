@@ -40,20 +40,27 @@
   .start-kontext .start-karte-kopf { padding-top: 1rem; padding-bottom: 0.75rem; }
   .start-kontext .start-karte-kopf h2 { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.8125rem; line-height: 1.375rem; }
   .start-kontext .start-karte-kopf h2 .start-karte-zusatz { flex: none; white-space: nowrap; font-weight: 400; font-size: 0.6875rem; margin-left: 0; }
-  .start-karte-verweis { display: inline-flex; align-items: center; min-height: 2.75rem; margin-top: 0.5rem; font-size: 0.75rem; }
+  .start-karte-verweis { display: inline-flex; align-items: center; min-height: 2.75rem; margin: 0.5rem 1.5rem 0; font-size: 0.75rem; }
   .start-seite .start-gruppe { padding-bottom: 0.875rem; }
-  .start-seite .start-abschnitt { display: flex; align-items: center; gap: 0.625rem; padding: 1rem 0 0.5rem; background: transparent; font-size: 0.71875rem; line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text); }
+  .start-seite .start-abschnitt { display: flex; align-items: center; gap: 0.625rem; padding: 1rem 1.5rem 0.5rem; background: transparent; font-size: 0.71875rem; line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text); }
   .stand-leise-wort { color: var(--text-muted); }
-  .start-seite .start-zeile { padding: 0.875rem 0; font-size: 0.875rem; }
+  /*
+    IM BLATT EINE ZELLE VOM RAND (Auftrag 02.11.2026). Seit E33 tragen die
+    Karten der Startseite eine Linie rundum; ihre Zeilen, Abschnitte, Termine
+    und Verweise standen noch bündig wie zur Zeit ohne Rahmen (E24) — Text,
+    Achskreis, Zustandszeichen und „›“ lagen auf der Linie. Jetzt 24 px wie
+    der Kartenkopf darüber und jede Zeile in einem Blatt (`lot-blatt.css`).
+  */
+  .start-seite .start-zeile { padding: 0.875rem 1.5rem; font-size: 0.875rem; }
   .start-seite .start-zeile .text-meta { font-size: 0.75rem; line-height: 1.25rem; }
   /* Statuswort so groß wie das Detail daneben (31.10.2026): in einer Zeile mit ihm wirkte es um einen Grad kleiner. */
   .start-seite .start-zeile .stand { font-size: 0.75rem; }
-  .start-seite .start-weiter { padding: 0.5rem 0; border-top: 0; font-size: 0.75rem; font-weight: 400; }
+  .start-seite .start-weiter { padding: 0.5rem 1.5rem; border-top: 0; font-size: 0.75rem; font-weight: 400; }
   .start-kontext .start-zeile { font-size: 0.8125rem; padding-block: 0.75rem; }
   .start-kontext .start-zeile .text-meta { font-size: 0.6875rem; line-height: 1.25rem; }
   .start-seite .start-kontext .start-status-vorn { display: inline; }
   .start-seite .start-kontext .start-status-rechts { display: none; }
-  .start-seite .start-terminfolge { margin: 0 0 0 0.25rem; }
+  .start-seite .start-terminfolge { margin: 0 1.5rem 0 1.75rem; }
   .start-seite .start-termin { padding: 0.75rem 0 0.75rem 1rem; border-bottom: 0; }
   .start-seite .start-termin::before { top: 1.25rem; background: var(--accent-deep); }
   .start-seite .start-termin p { font-size: 0.75rem; line-height: 1.375rem; }
@@ -64,7 +71,7 @@
   .start-leer .lot-zeichnung-leer { margin-left: 0; translate: -7.5% 0; }
   .start-leer h2 { font-size: 1.25rem; line-height: 1.75rem; font-weight: var(--gewicht-titel); }
   .start-leer p { color: var(--text-muted); font-size: 0.875rem; line-height: 1.375rem; max-width: 32rem; margin-top: 0.5rem; }
-  .start-einsatz { padding: 1rem 0; }
+  .start-einsatz { padding: 1rem 1.5rem; }
   .start-einsatz-kontakt { margin-top: 0.75rem; }
   .start-einsatz-kontakt a { border: 0; padding: 0.5rem 0; border-radius: 0; color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px; font-size: 0.8125rem; overflow-wrap: anywhere; }
   .start-einsatz-kontakt svg { display: none; }
