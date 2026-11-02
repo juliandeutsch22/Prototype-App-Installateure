@@ -61,6 +61,16 @@ Unterauftragsverarbeiter stehen bleibt.
      höchstens 30 Versuche je 5 Minuten und IP, Token erneuern 150; die
      Mails zum Zurücksetzen begrenzt der Dienst je Konto (60 Sekunden) und
      nach Einrichtung des SMTP-Versands je Stunde.
+   - *Authentication → URL Configuration (seit 02.11.2026):* Site URL
+     `https://app.senklot.at`, unter Redirect URLs `https://app.senklot.at/**`.
+     Der Link in Rücksetz- und Einladungsmails führt auf die Adresse, von der
+     er angefordert wurde; steht sie nicht in der Liste, landet er auf der
+     Site URL.
+   - *Authentication → SMTP:* Server, Port (587 mit STARTTLS oder 465 mit
+     SSL, passend zum Anbieter), Zugang und eine Absenderadresse der Domain
+     mit SPF und DKIM. Antwortet der Server nicht, bricht die App „Link
+     anfordern“ nach 30 s ab (`FRISTEN.zuruecksetzen`) — die Mail kommt dann
+     nicht; ein Testversand an eine eigene Adresse zeigt es.
    - *Authentication → Sessions:* **Zeitlimit nach Untätigkeit 30 Tage.**
      Wer die App täglich öffnet, merkt davon nichts; ein Gerät, das einen
      Monat nicht geöffnet wurde, meldet sich neu an. Ein festes Höchstalter der Sitzung

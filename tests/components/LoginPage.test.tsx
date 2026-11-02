@@ -50,7 +50,7 @@ vi.mock('@/features/dashboard/DashboardView', () => {
   return { default: () => null };
 });
 
-const { default: LoginPage } = await import('@/features/auth/LoginPage');
+const { default: LoginPage, RUECKSETZ_HINWEIS } = await import('@/features/auth/LoginPage');
 
 function zeige() {
   return render(
@@ -216,8 +216,29 @@ describe('Anmelden mit Benutzername', () => {
     await nutzer.type(screen.getByLabelText(/E-Mail/), 'petra@perl.at');
     await nutzer.click(screen.getByRole('button', { name: 'Link anfordern' }));
 
-    expect(await screen.findByText(/wurde eine E-Mail zum Zurücksetzen versendet/)).toBeInTheDocument();
+    expect(await screen.findByText(RUECKSETZ_HINWEIS)).toBeInTheDocument();
     expect(zuruecksetzen).toHaveBeenCalledWith('petra@perl.at');
+  });
+
+  it('hört auf zu laden, wenn der Mailversand nicht antwortet — und sagt dasselbe wie im Erfolgsfall', async () => {
+    /*
+      02.11.2026: „beim Anfordern der Passwort-zurücksetzen-Mail lädt es nur
+      ewig“. Die Frist in `lib/netzFrist.ts` beendet den Zugriff als Fehler;
+      hier steht, dass der Knopf danach aufhört und die Meldung nicht verrät,
+      ob es die Adresse gibt.
+    */
+    zuruecksetzen.mockRejectedValueOnce(new TypeError('Keine Antwort vom Server'));
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(screen.getByRole('button', { name: 'Passwort vergessen?' }));
+    await nutzer.type(screen.getByLabelText(/E-Mail/), 'petra@perl.at');
+    await nutzer.click(screen.getByRole('button', { name: 'Link anfordern' }));
+
+    expect(await screen.findByText(RUECKSETZ_HINWEIS)).toBeInTheDocument();
+    expect(RUECKSETZ_HINWEIS).toMatch(/Büro ein neues Startpasswort/);
+    // Zurück auf der Anmeldemaske, kein Kreisel mehr.
+    expect(knopf()).not.toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Link anfordern' })).toBeNull();
   });
 });
 

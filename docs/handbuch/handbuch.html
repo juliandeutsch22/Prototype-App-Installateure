@@ -689,9 +689,28 @@
       <span>Stand <b>02.11.2026</b></span>
       <span>Fassung <b>Lot v2 · bestätigt</b></span>
       <span>Automatische Prüfungen <b>6.216 Modulprüfungen · 146 Browserwege · 7 Linkprüfungen</b></span>
-      <span><a href="https://installateur-demo.firebaseapp.com/">installateur-demo.firebaseapp.com</a></span>
+      <span><a href="https://app.senklot.at/">app.senklot.at</a></span>
     </div>
   </header>
+
+  <section id="zuruecksetzen">
+    <div class="abschnittskopf">
+      <h2>2. November: Passwort vergessen</h2>
+      <p class="frage">Nach „Link anfordern“ drehte sich der Knopf ohne Ende, wenn der Mailversand nicht antwortete. Jetzt endet das Warten spätestens nach 30 Sekunden, und die Anmeldemaske sagt, was zu tun ist, wenn keine Mail kommt. Senklot läuft unter <strong>app.senklot.at</strong>.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Link anfordern<span class="neu">geändert</span></h3>
+        <p>Nach „Link anfordern“ steht immer derselbe Satz: Wenn zu dieser Adresse ein Konto besteht, ist eine E-Mail zum Zurücksetzen unterwegs. Kommt in einigen Minuten nichts (auch im Spam-Ordner nachsehen), kann das Büro ein neues Startpasswort vergeben. Der Satz ist gleich, ob es das Konto gibt, ob die Mail hinausging oder der Versand nicht rechtzeitig antwortete — sonst ließe sich durchprobieren, welche Adressen in Senklot ein Konto haben. Der Link in der Mail führt auf die Adresse, von der er angefordert wurde, also auf app.senklot.at.</p>
+        <p class="wer">alle mit E-Mail-Adresse · Wer sich mit Benutzernamen anmeldet, bekommt wie bisher ein neues Passwort vom Büro</p>
+      </div>
+      <div class="bereich">
+        <h3>Wenn keine Mail kommt</h3>
+        <p>Die Mail verschickt der Mailversand, der im Supabase-Projekt eingerichtet ist (Authentication › SMTP: Server, Port, Zugang, Absender). Antwortet er nicht, kann Senklot die Mail nicht nachschicken; der Betrieb prüft dort die Einstellungen und unter Authentication › URL Configuration, dass app.senklot.at als Site URL und als erlaubte Rücksprungadresse eingetragen ist. Bis dahin vergibt das Büro unter Mitarbeiter ein neues Startpasswort.</p>
+        <p class="wer">Betrieb bzw. wer das Supabase-Projekt betreut</p>
+      </div>
+    </div>
+  </section>
 
   <section id="abstand">
     <div class="abschnittskopf">

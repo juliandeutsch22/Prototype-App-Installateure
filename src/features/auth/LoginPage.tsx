@@ -20,6 +20,14 @@ import Hinweiszeile from '@/components/Hinweiszeile';
  * angemeldet. Jetzt steht dort Senklot, und der Betrieb erscheint ab der
  * ersten Seite nach der Anmeldung (siehe `BrandLogo` in `Layout`).
  */
+/**
+ * Nach „Link anfordern“ — gleich, ob es das Konto gibt, ob die Mail
+ * hinausging oder der Versand nicht antwortete. Der zweite Satz ist der Weg,
+ * wenn nichts kommt: ein Startpasswort vom Büro braucht keine Mail.
+ */
+export const RUECKSETZ_HINWEIS =
+  'Wenn zu dieser Adresse ein Konto besteht, ist eine E-Mail zum Zurücksetzen unterwegs. Kommt in einigen Minuten nichts (auch im Spam-Ordner nachsehen), kann das Büro ein neues Startpasswort vergeben.';
+
 export default function LoginPage() {
   const { signIn, user, error: authError, resetPassword } = useAuth();
   const [email, setEmail] = useState('');
@@ -83,16 +91,17 @@ export default function LoginPage() {
       }
       try {
         await resetPassword(email);
-        setNotice(
-          'Wenn zu dieser Adresse ein Konto besteht, wurde eine E-Mail zum Zurücksetzen versendet.',
-        );
+        setNotice(RUECKSETZ_HINWEIS);
         setResetMode(false);
       } catch {
-        // Bewusst dieselbe Meldung wie im Erfolgsfall: sonst ließe sich hier
-        // durchprobieren, welche Adressen im System existieren.
-        setNotice(
-          'Wenn zu dieser Adresse ein Konto besteht, wurde eine E-Mail zum Zurücksetzen versendet.',
-        );
+        /*
+          Bewusst dieselbe Meldung wie im Erfolgsfall: sonst ließe sich hier
+          durchprobieren, welche Adressen im System existieren. Das gilt auch,
+          wenn der Mailversand nicht rechtzeitig antwortet (Frist in
+          `lib/netzFrist.ts`) — der Satz sagt deshalb, was zu tun ist, wenn
+          nichts kommt.
+        */
+        setNotice(RUECKSETZ_HINWEIS);
         setResetMode(false);
       } finally {
         setSubmitting(false);

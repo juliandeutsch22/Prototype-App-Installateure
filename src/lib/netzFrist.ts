@@ -50,6 +50,16 @@ export const FRISTEN = {
   /** Lesen beim Anmeldedienst (das eigene Konto). */
   authLesen: { bisAntwort: 15_000, stillstand: 15_000 },
   /**
+   * DEN RÜCKSETZLINK ANFORDERN (02.11.2026: „lädt nur ewig“). Der
+   * Anmeldedienst antwortet erst, wenn der Mailversand die Mail angenommen
+   * hat; hängt der Versand (SMTP des Projekts), hing der Knopf ohne Ende.
+   * Ein POST, und doch mit Frist: er ändert keine Daten, nur eine Mail geht
+   * hinaus. Bricht die App ab, kommt sie im schlimmsten Fall trotzdem an —
+   * und ein zweiter Versuch schickt eine zweite, die den ersten Link
+   * ersetzt. 30 s lassen einem langsamen Versand reichlich Zeit.
+   */
+  zuruecksetzen: { bisAntwort: 30_000, stillstand: 15_000 },
+  /**
    * Lesen aus Datenbank und Dateiablage. PostgREST antwortet erst, wenn die
    * Abfrage fertig ist; die Datenbank bricht eine Abfrage nach ihrer eigenen
    * Grenze ab (`statement_timeout`, im gehosteten Projekt 8 s für angemeldete
@@ -109,6 +119,7 @@ export function zugriffsart(adresse: string, methode: string): Zugriffsart | nul
     return url.searchParams.get('grant_type') === 'refresh_token' ? 'erneuern' : 'anmelden';
   }
   const lesend = m === 'GET' || m === 'HEAD';
+  if (pfad.endsWith('/auth/v1/recover') && m === 'POST') return 'zuruecksetzen';
   if (pfad.includes('/auth/v1/')) return lesend ? 'authLesen' : null;
   if (pfad.includes('/rest/v1/rpc/')) {
     const name = pfad.slice(pfad.indexOf('/rest/v1/rpc/') + '/rest/v1/rpc/'.length);
