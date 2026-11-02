@@ -692,3 +692,57 @@ gleiche Liste in CSS und JavaScript), `tests/durchklick/raster.spec.ts`
 (jede Blattkante auf 20 Seiten in 390, 834 und 1440 px; ohne Taktgeber 297
 Kanten daneben), `tests/unit/einsatzbalken.test.ts` (Variante B),
 `lotGrundwerte.test.ts` (Schrift auf Petrol). Jede Prüfung mit Gegenprobe.
+
+**E34 — Abstand zur Linie (02.11.2026).** Rückmeldung des Auftraggebers mit
+zwei Bildschirmfotos: „auf der Startseite und teilweise auch auf anderen
+Seiten liegen Text und Symbole zu nah am Rand ohne Abstand“, und im
+Schriftfeld „ist die Linie nach dem dritten Punkt abgeschnitten“.
+
+Gemessen vorher: an jedem Textstück und jedem Zeichen (Symbol, Achskreis,
+Zustand, Eingabefeld) der Abstand zur Innenkante seines Blatts oder Felds,
+auf 42 Seiten und Unterseiten der Geschäftsführung samt jedem Reiter, in
+390, 834 und 1440 px, dazu die Startseiten von Monteur und Büro. Ursache
+war in allen Fällen dieselbe: seit E33 trägt jedes Blatt eine Linie rundum;
+was vorher auf offenem Grund bündig stand (E24), lag danach auf der Linie.
+
+- **Startseite.** Zeilen, Abschnitte mit Achskreis, „und N weitere“, die
+  Termine, „Die Mannschaft heute“, der eigene Einsatz und der Verweis unter
+  einer Karte stehen jetzt eine Zelle (24 px) von der Linie — wie der
+  Kartenkopf darüber und jede Zeile in einem Blatt (`lot-blatt.css`).
+  Vorher 0 px links und rechts, in allen Breiten.
+- **Mitarbeiterübersicht am Handy.** Der Vergleich stand ohne Polster
+  (Namen, Zahlen, Achskreis auf der Linie); jetzt 16 px wie dieselben Zeilen
+  ab dem Tablet und die Tagesliste am Handy. Ebenso am Schreibtisch der Satz
+  zum Maßstab der Saldolinie, der nur erscheint, wenn jemand einen
+  Gesamtsaldo hat — gefunden erst mit vollen Testdaten.
+- **Schriftfeld: die obere Linie geht durch.** Die Felder haben seit E33
+  feste Breiten; vor der Skizze blieb ein freies Stück ohne Linie. Das
+  Schriftfeld trägt sie jetzt selbst über die ganze Breite. Bricht eine
+  Reihe um (Handy mit drei Feldern, schmale Bildschirme mit vier), führt ein
+  Füllstück die obere Linie der letzten Reihe bis zum Rand; ist die Reihe
+  voll, ist es null breit.
+- **Schriftfeld am Tablet: sieben Zellen je Feld mit 12 px Polster**, wie am
+  Handy (vorher sechs Zellen mit 24 px). Mit 96 px Text liefen „November
+  2026“ und jeder Betrag ab „€ 1 234,56“ über die Feldlinie, „Tage ohne
+  Buchung“, „Ende überschritten“ und „Bezahlt im Monat“ wurden
+  abgeschnitten. Drei Felder und die Skizze stehen in einer Reihe; ein
+  viertes Feld (Baustellen, Baustellenakte) bricht am Tablet hochkant in
+  eine zweite Reihe um wie am Handy — das Schriftfeld wird drei Zellen
+  höher, dafür steht jeder Wert ganz da.
+- **Die Skizze hält 12 px Abstand** zu ihren Feldlinien; am Tablet berührte
+  sie sie links und rechts. Am Schreibtisch bleibt sie gleich groß.
+
+**Bewusst so gelassen.** Im Monat der Planung reichen die 31 Tagesspalten
+bis an die Linie, ihr Text steht mittig in der Zelle — die letzte steht so
+nah am Rand wie jede andere an ihrer Spaltenlinie; ein Rand rechts hätte
+eine leere Spalte ohne Tag erzeugt. Die Woche rollt am Tablet in sich; was
+dort über die Kante geht, liegt im verdeckten Teil.
+
+**Prüfungen.** `tests/durchklick/rand.spec.ts` misst jeden Abstand auf
+sieben Seiten (Startseite mit Mannschaft und Termin, Mitarbeiterübersicht,
+Baustellen, Baustellenakte, Rechnungen, Zeiterfassung, Lager) in drei
+Breiten, mindestens 8 px; dazu, dass das Schriftfeld oben und in jeder
+angebrochenen Reihe schließt. `tests/unit/planlinieStil.test.ts` hält die
+Regeln. Jede Prüfung mit Gegenprobe: mit dem alten Stand meldet die
+Messung 69 Stellen zu nah an der Linie, das Schriftfeld ist offen, vier
+Stilprüfungen sind rot.

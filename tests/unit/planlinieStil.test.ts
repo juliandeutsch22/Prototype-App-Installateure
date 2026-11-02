@@ -172,3 +172,56 @@ describe('Statuswort auf der Grundlinie des Texts', () => {
     expect(groesse('.start-seite .start-zeile .stand')).toBe(groesse('.start-seite .start-zeile .text-meta'));
   });
 });
+
+/*
+  RÜCKMELDUNG 02.11.2026: Text und Zeichen lagen auf der Linie der Blätter,
+  und im Schriftfeld endete die obere Linie nach dem dritten Feld. Im Browser
+  misst `tests/durchklick/rand.spec.ts` jeden Abstand; hier stehen die Regeln,
+  die ihn tragen, damit `npm test` eine Rücknahme schon sieht.
+*/
+describe('Abstand zur Linie und die obere Linie des Schriftfelds (02.11.2026)', () => {
+  const START = stil('lot-start.css');
+  const UEBERSICHT = stil('lot-uebersicht.css');
+  /** Die Deklarationen eines Selektors in einer Stildatei (die erste Regel, die mit ihm beginnt). */
+  const deklarationen = (css: string, selektor: string) => {
+    const zeile = css.split('\n').find((z) => z.trim().startsWith(`${selektor} {`));
+    expect(zeile, `Regel für ${selektor}`).toBeDefined();
+    return zeile!;
+  };
+
+  it('die Zeilen der Startseite stehen eine Zelle (24 px) von der Linie — wie der Kartenkopf darüber', () => {
+    expect(deklarationen(START, '.start-seite .start-zeile')).toContain('padding: 0.875rem 1.5rem;');
+    expect(deklarationen(START, '.start-seite .start-abschnitt')).toContain('padding: 1rem 1.5rem 0.5rem;');
+    expect(deklarationen(START, '.start-seite .start-weiter')).toContain('padding: 0.5rem 1.5rem;');
+    expect(deklarationen(START, '.start-seite .start-terminfolge')).toContain('margin: 0 1.5rem 0 1.75rem;');
+    expect(deklarationen(START, '.start-einsatz')).toContain('padding: 1rem 1.5rem;');
+    expect(deklarationen(START, '.start-karte-verweis')).toContain('margin: 0.5rem 1.5rem 0;');
+  });
+
+  it('der Vergleich der Mitarbeiterübersicht hat auch am Handy sein Polster', () => {
+    expect(deklarationen(UEBERSICHT, '.ue-vergleich-zeile')).toContain('padding: 1rem;');
+    expect(deklarationen(UEBERSICHT, '.ue-vergleich .abschnitt')).toContain('padding: 1rem 1rem 0.5rem;');
+    expect(UEBERSICHT).toContain('.ue-massstab { display: block; margin: 0; padding: 0.75rem 1rem 0.25rem;');
+  });
+
+  it('das Schriftfeld trägt die obere Linie über die ganze Breite, eine angebrochene Reihe führt sie zu Ende', () => {
+    expect(regel('.schriftfeld::before')).toMatch(/left: 0; right: 0;.*border-top: 1px solid var\(--border-strong\)/);
+    expect(regel('.schriftfeld .lage-zeile::after')).toMatch(/flex: 1 1 0;.*border-top: 1px solid var\(--border-strong\)/);
+  });
+
+  it('am Tablet sieben Zellen je Feld mit 12 px Polster; die Skizze hält Abstand zu den Feldlinien', () => {
+    const tablet = PLANLINIE.slice(PLANLINIE.indexOf('@media (min-width: 760px) and (max-width: 1199px)'));
+    const block = tablet.slice(0, tablet.indexOf('\n  }'));
+    expect(block).toContain('.schriftfeld .lage-punkt { flex-basis: 168px; }');
+    expect(block).toContain('.schriftfeld .lage-eintrag { padding: 0 0.75rem; }');
+    expect(block).toContain('.schriftfeld-skizze { flex-basis: 96px; }');
+    expect(regel('.schriftfeld-skizze')).toContain('padding: 0 0.75rem;');
+  });
+
+  it('gleich geblieben: am Schreibtisch zehn Zellen je Feld mit 24 px Polster, am Handy sieben mit 12 px', () => {
+    expect(regel('.schriftfeld .lage-punkt')).toContain('flex: 0 0 240px;');
+    expect(regel('.schriftfeld .lage-eintrag')).toContain('padding: 0 1.5rem;');
+    const handy = PLANLINIE.slice(PLANLINIE.indexOf('@media (max-width: 759px) {\n    .schriftfeld'));
+    expect(handy.slice(0, handy.indexOf('\n  }'))).toContain('.schriftfeld .lage-punkt { flex-basis: 168px; }');
+  });
+});

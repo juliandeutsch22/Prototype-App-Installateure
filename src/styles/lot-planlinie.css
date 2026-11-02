@@ -74,6 +74,20 @@
   .schriftfeld .lage-zeile { flex: 0 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 0; margin: 0; padding: 0; }
   .schriftfeld .lage-punkt { position: relative; flex: 0 0 240px; min-width: 0; border-left: 1px solid var(--border-strong); }
   .schriftfeld .lage-punkt::before, .schriftfeld-skizze::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; border-top: 1px solid var(--border-strong); }
+  /*
+    DIE OBERE LINIE GEHT DURCH (Auftrag 02.11.2026). Die Felder haben feste
+    Breiten; zwischen dem letzten Feld und der Skizze blieb ein Stück frei,
+    und dort fehlte die Linie — sie endete nach dem dritten Feld. Jetzt
+    trägt das Schriftfeld sie über die ganze Breite, wie die Kontur unten.
+  */
+  .schriftfeld::before { content: ''; position: absolute; top: 0; left: 0; right: 0; z-index: 1; pointer-events: none; border-top: 1px solid var(--border-strong); }
+  /*
+    Bricht eine Reihe um (Handy mit drei Feldern, Tablet und schmalere
+    Schreibtische mit vier), füllt dieses Stück die letzte Reihe bis zum
+    Rand und trägt deren obere Linie weiter. Ist die Reihe voll, bleibt es
+    null breit.
+  */
+  .schriftfeld .lage-zeile::after { content: ''; flex: 1 1 0; min-width: 0; border-top: 1px solid var(--border-strong); }
   .schriftfeld .lage-eintrag { display: flex; flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 0; height: 100%; min-height: 0; padding: 0 1.5rem; }
   .schriftfeld a.lage-eintrag:hover { background: var(--surface-2); }
   .schriftfeld .lage-name { font-size: 0.65625rem; line-height: 1.5rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
@@ -82,7 +96,8 @@
   .schriftfeld .lage-wert-rot { color: var(--danger); }
   .schriftfeld .lage-wert-warn { color: var(--warning); }
   .schriftfeld .lage-zusatz { font-size: 0.71875rem; line-height: 1.5rem; color: var(--text-muted); overflow-wrap: anywhere; }
-  .schriftfeld-skizze { position: relative; flex: 0 0 144px; margin-left: auto; display: flex; align-items: center; justify-content: center; padding: 0; border-left: 1px solid var(--border-strong); }
+  /* Die Skizze hält 12 px Abstand zu den Feldlinien — am Tablet berührte sie sie sonst links und rechts. */
+  .schriftfeld-skizze { position: relative; flex: 0 0 144px; margin-left: auto; display: flex; align-items: center; justify-content: center; padding: 0 0.75rem; border-left: 1px solid var(--border-strong); }
   /* Die Zeichnung passt sich dem Feld an, nicht umgekehrt — sonst bräche am Tablet das letzte Feld um. */
   .schriftfeld-skizze { min-width: 0; }
   .schriftfeld-skizze svg { max-height: 4.125rem; max-width: 100%; }
@@ -93,9 +108,16 @@
     Bild — so trägt es den dunklen Satz ohne eigene Fassung.
   */
   .lineal { height: 6px; margin-bottom: -6px; background-image: linear-gradient(90deg, var(--border-strong) 1px, transparent 1px), linear-gradient(90deg, var(--border-strong) 1px, transparent 1px); background-size: 24px 6px, 6px 3px; background-repeat: repeat-x, repeat-x; background-position: 0 0, 0 0; }
-  /* Am Tablet sechs Zellen je Feld, die Skizze vier — vier Felder und Skizze füllen die Spalte genau. */
+  /*
+    AM TABLET SIEBEN ZELLEN JE FELD wie am Handy, mit 12 px Polster, die
+    Skizze vier (Auftrag 02.11.2026). Mit sechs Zellen und 24 px Polster
+    blieben 96 px für den Text: „November 2026“ und „€ 1 234,56“ liefen über
+    die Feldlinie, „Tage ohne Buchung“ wurde abgeschnitten. Drei Felder und
+    die Skizze passen in eine Reihe; ein viertes bricht um wie am Handy.
+  */
   @media (min-width: 760px) and (max-width: 1199px) {
-    .schriftfeld .lage-punkt { flex-basis: 144px; }
+    .schriftfeld .lage-punkt { flex-basis: 168px; }
+    .schriftfeld .lage-eintrag { padding: 0 0.75rem; }
     .schriftfeld-skizze { flex-basis: 96px; }
   }
   /*

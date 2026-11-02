@@ -263,7 +263,13 @@
 @layer components {
   .ue-vergleich { background: transparent; border-block: 1px solid var(--border); }
   .ue-vergleich-kopf { display: none; }
-  .ue-vergleich-zeile { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem 1rem; align-items: center; padding: 1rem 0; border-top: 1px solid var(--border); cursor: pointer; }
+  /*
+    AM HANDY EIN POLSTER WIE AB DEM TABLET (Auftrag 02.11.2026): seit E33
+    trägt der Vergleich eine Linie rundum; Namen, Zahlen und der Achskreis
+    standen am Handy direkt auf ihr. Jetzt 16 px wie die Zeilen ab dem
+    Tablet und die Tagesliste am Handy.
+  */
+  .ue-vergleich-zeile { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem 1rem; align-items: center; padding: 1rem; border-top: 1px solid var(--border); cursor: pointer; }
   .ue-vergleich-zeile:hover { background: var(--surface-2); }
   .ue-pruefstand { grid-column: 1 / -1; font-size: 0.8125rem; line-height: 1.375rem; color: var(--text-muted); }
   .ue-vergleich-wahl { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; font-size: 0.8125rem; color: var(--text-muted); }
@@ -324,8 +330,7 @@
 
   /* Die Gruppen tragen den Achskreis (`Abschnitt`); ihr Rand folgt den Zeilen der jeweiligen Liste. */
   .ue-liste .abschnitt, .ue-liste-woche .abschnitt { padding: 1rem 1rem 0.5rem; }
-  .ue-vergleich .abschnitt { padding: 1rem 0 0.5rem; }
-  @media (min-width: 760px) { .ue-vergleich .abschnitt { padding: 1rem 1rem 0.5rem; } }
+  .ue-vergleich .abschnitt { padding: 1rem 1rem 0.5rem; }
   @media (min-width: 1200px) { .ue-liste .abschnitt, .ue-liste-woche .abschnitt { padding: 1rem 1.25rem 0.5rem; } }
 
   /*
@@ -359,7 +364,8 @@
     .ue-gesamtsaldo { display: flex; align-items: center; justify-content: flex-end; gap: 0.875rem; }
     .ue-gesamtsaldo .saldolinie { display: inline-block; }
     .ue-gesamtsaldo-zahl { min-width: 4.5rem; text-align: right; }
-    .ue-massstab { display: block; margin: 0; padding: 0.75rem 0 0.25rem; font-size: 0.75rem; line-height: 1rem; color: var(--text-muted); }
+    /* Der Satz steht im Blatt wie die Zeilen, 16 px vom Rand (02.11.2026: vorher auf der Linie). */
+    .ue-massstab { display: block; margin: 0; padding: 0.75rem 1rem 0.25rem; font-size: 0.75rem; line-height: 1rem; color: var(--text-muted); }
   }
 }
 @layer components {
