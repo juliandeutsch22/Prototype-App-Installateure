@@ -87,8 +87,12 @@ let laufendeFrei: Array<Record<string, unknown>> = [];
 /** Weitere Einstellungen des Betriebs, je Test setzbar. */
 let firmaExtra: Record<string, unknown> = {};
 /** Der Vorschlag der Datenbank zum Arztbesuch (E35): Termin 2 h, Tag 8 h, gearbeitet 6:30. */
-const arztVorschlag = vi.fn(async (_id: string) => ({
-  termin: 120, soll: 480, gearbeitet: 390, vorschlag: 90, arbeitstag: true, ueberschneidung: [] as Array<{ status: string; von: string; bis: string }>, ganztags: null as string | null,
+type ArztVorschlag = {
+  termin: number; soll: number; gearbeitet: number; vorschlag: number; arbeitstag: boolean;
+  ueberschneidung: Array<{ status: string; von: string; bis: string }>; ganztags: string | null;
+};
+const arztVorschlag = vi.fn<(id: string) => Promise<ArztVorschlag>>(async () => ({
+  termin: 120, soll: 480, gearbeitet: 390, vorschlag: 90, arbeitstag: true, ueberschneidung: [], ganztags: null,
 }));
 const freistellungBeantragen = vi.fn<(a: Record<string, unknown>) => Promise<string>>(async () => 'f-neu');
 const freistellungEntscheiden = vi.fn<(d: Record<string, unknown>) => Promise<Record<string, unknown>>>(
