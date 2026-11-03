@@ -394,7 +394,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               dort konkurriert sie mit nichts, und der Betrieb bleibt oben.
             */}
             <p className="mt-4 px-2.5 text-navi-text">
-              <ProduktMarke hoehe={20} />
+              <ProduktMarke hoehe={20} hell />
             </p>
             <RechtLinks className="mt-2 px-2.5 text-xs text-navi-text" />
           </div>

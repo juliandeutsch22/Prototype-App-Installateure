@@ -1070,3 +1070,6 @@ textarea {
 @media (max-width: 1199px) {
   html { scroll-padding-bottom: 9rem; }
 }
+
+/* Die Pfadvorlage bleibt auch auf dunklen Inhaltsflächen lesbar. */
+:root[data-theme='dark'] .produkt-marke--flaeche { filter: brightness(0) invert(1); }

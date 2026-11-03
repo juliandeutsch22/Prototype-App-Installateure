@@ -1,66 +1,21 @@
-/**
- * Die Marke des PRODUKTS — nicht die des Betriebs.
- *
- * WARUM DAS ZWEI VERSCHIEDENE DINGE SIND. `BrandLogo` zeigt das Logo des
- * Mandanten: in der Kopfleiste, auf Rechnung und Schein steht der Betrieb,
- * und das gehört dorthin. Vor der Anmeldung gibt es aber noch keinen
- * Mandanten — und dort stand bis hierher trotzdem ein Kundenlogo als
- * Vorgabe, also das Zeichen des ERSTEN Betriebs vor den Augen jedes
- * zweiten. Das ist kein Schönheitsfehler, sondern eine falsche Aussage:
- * die Anmeldemaske gehört dem Produkt, nicht einem seiner Kunden.
- *
- * WARUM DAS WORT ALS TEXT UND NICHT ALS BILD. `marke/logo.svg` trägt die
- * Wortmarke als `<text>`. Eine SVG-Datei, die über `<img>` geladen wird,
- * kommt an die Schriften der Seite jedoch nicht heran — sie fiele auf Arial
- * zurück und sähe auf jedem Gerät anders aus. Als echter Text nimmt sie
- * Poppins, die die App ohnehin lädt; sie lässt sich markieren, vorlesen und
- * wächst mit der Schriftgrösse mit. Nur das Zeichen ist ein Bild, und das
- * braucht keine Schrift.
- *
- * FARBE ÜBER `currentColor`. Das Zeichen ist einfarbig und nimmt die Farbe
- * seiner Umgebung — weiss auf der dunklen Fläche, petrol auf heller. So
- * gibt es EINE Zeichnung und nicht zwei, die auseinanderlaufen.
- */
-
+/** Die gemeinsame, in Pfade umgewandelte Senklot-Vorlage aus marke/logo.svg. */
 interface Props {
-  /** Höhe des Zeichens in px. Die Wortmarke richtet sich danach. */
+  /** Höhe der gesamten Marke in px; das Seitenverhältnis bleibt erhalten. */
   hoehe?: number;
+  /** Weißes Logo auf dunkler Fläche. Standard: Petrol auf heller Fläche. */
+  hell?: boolean;
   className?: string;
 }
 
-export default function ProduktMarke({ hoehe = 40, className = '' }: Props) {
-  /*
-    Das Sichtfeld ist enger als beim App-Zeichen: dort steht das Senklot in
-    einer Platte, hier steht es frei. Schnur und Körper reichen von y=6 bis
-    y=58 und von x=21,6 bis x=42,4 — plus etwas Luft ergibt das 22 × 56.
-  */
-  const breite = Math.round((hoehe * 22) / 56);
-
+export default function ProduktMarke({ hoehe = 40, hell = false, className = '' }: Props) {
   return (
-    <span
-      className={`inline-flex items-center gap-[0.38em] ${className}`}
-      style={{ fontSize: hoehe * 0.62 }}
-    >
-      <svg
-        viewBox="21 4 22 56"
-        width={breite}
-        height={hoehe}
-        fill="none"
-        aria-hidden="true"
-        className="shrink-0"
-      >
-        {/* Dasselbe Senklot wie `marke/icon.svg`: Schnur, Öse, Schulter, Spitze. */}
-        <path d="M31.05 23.05 V6.95 A0.95 0.95 0 0 1 32.95 6.95 V23.05 Z" fill="currentColor" />
-        <rect x="28.9" y="24.2" width="6.2" height="4.5" rx="0.6" fill="currentColor" />
-        <path d="M26.8 29.8 H37.2 L42.4 36.5 H21.6 Z" fill="currentColor" />
-        <path d="M21.6 37.9 H42.4 L32 58 Z" fill="currentColor" />
-      </svg>
-      {/*
-        Mittlere Stärke, offene Laufweite — fett und eng gesetzt wirkt laut
-        und altert schnell. `leading-none`, damit die Wortmarke auf der Höhe
-        des Zeichens sitzt und nicht auf der Zeilenhöhe.
-      */}
-      <span className="font-normal leading-none tracking-[0.02em]">Senklot</span>
-    </span>
+    <img
+      src={hell ? '/marke/logo-weiss.svg' : '/marke/logo.svg'}
+      alt="Senklot"
+      width={Math.round(hoehe * 165.12288 / 56)}
+      height={hoehe}
+      style={{ height: hoehe, width: 'auto' }}
+      className={`produkt-marke ${hell ? 'produkt-marke--weiss' : 'produkt-marke--flaeche'} inline-block shrink-0 object-contain ${className}`}
+    />
   );
 }

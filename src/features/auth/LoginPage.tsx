@@ -144,7 +144,7 @@ export default function LoginPage() {
               Tableiste. Die Marke steht ohne weitere Fassung darauf. Am
               Schreibtisch trägt sie die Bühne daneben, hier entfällt es dann. */}
           <div className="anmelde-markenband panel-dark px-6 py-6 text-center">
-            <ProduktMarke hoehe={44} className="text-white" />
+            <ProduktMarke hoehe={44} hell className="text-white" />
             {/* Volles Weiss, nicht 85 Prozent: auf dem Telefon im Freien ist der
                 abgedunkelte Text auf dem dunklen Band schlecht zu lesen.
                 `text-white` und nicht `brand-fg`, weil das Band nicht die
