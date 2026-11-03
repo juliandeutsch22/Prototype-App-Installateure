@@ -27,7 +27,6 @@ import {
 } from '@/lib/db/invoices';
 import { listZahlungen, listZahlungenImZeitraum, createZahlung, createZahlungMitSkonto, deleteZahlung } from '@/lib/db/zahlungen';
 import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm, zahlstand } from './zahlstand';
-import { druckAngaben } from './nachdruck';
 import { haftruecklassBisVorschlag, RUECKLASS_NAME, ruecklassArtFuer, ruecklassBetrag } from './ruecklass';
 import { skontoBedingung, skontoZumAusgleich, zugesagterSkonto } from './skonto';
 import { listActiveProjects } from '@/lib/db/projects';
@@ -89,7 +88,7 @@ import { listBasiszinssaetze, type ZentralerBasiszinssatz } from '@/lib/db/basis
 import { discountLabel, istPreiszeile, positionsRabattText, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtDauer, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { Company, Invoice, Mahnung, Project, RechnungsArt, WorkSheet, Zahlungseingang } from '@/types';
+import type { Invoice, Mahnung, Project, RechnungsArt, WorkSheet, Zahlungseingang } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -98,6 +97,7 @@ import WachsendesTextfeld from '@/components/WachsendesTextfeld';
 import StatusBadge from '@/components/StatusBadge';
 import { Marke, Warnung } from '@/components/Badge';
 import RechnungDetail, { type MahnungZeile, type RechnungAktion } from './RechnungDetail';
+import { mahnungPdfLaden, rechnungPdfLaden } from './belegeLaden';
 import BankgarantieDialog from './BankgarantieDialog';
 import EbInterfaceDialog from './EbInterfaceDialog';
 import {
@@ -888,6 +888,26 @@ export default function InvoicesView() {
         : null,
     [treffer, suchbegriff],
   );
+
+  /*
+    AUS DER KUNDENAKTE ZUM BEARBEITEN (Auftrag 03.11.2026). Die Akte zeigt die
+    Rechnung im eigenen Fenster; für Zahlung, Mahnung und Storno führt sie
+    hierher — die Nummer als Suche, die Kennung als `oeffnen`. Sobald die
+    Rechnung geladen ist, steht ihr Fenster offen, einmal; danach ist der
+    Parameter weg, damit Schließen nicht wieder öffnet.
+  */
+  const oeffnenId = suchparameter.get('oeffnen');
+  useEffect(() => {
+    if (!oeffnenId) return;
+    const inv = [...(serverTreffer ?? []), ...invoices, ...offeneRechnungen].find((i) => i.id === oeffnenId);
+    if (!inv) return;
+    setDetailFuer(inv);
+    setSuchparameter((alt) => {
+      const neu = new URLSearchParams(alt);
+      neu.delete('oeffnen');
+      return neu;
+    }, { replace: true });
+  }, [oeffnenId, serverTreffer, invoices, offeneRechnungen, setSuchparameter]);
 
   const visible = useMemo(() => {
     const heute = todayStr();
@@ -2131,16 +2151,8 @@ export default function InvoicesView() {
     if (!company) return;
     const m = detailMahnungen?.liste.find((x) => x.id === id);
     if (!m) return;
-    const { istMahnungInhalt, mahnungPdfAusInhalt, mahnungDateiname } = await import('./mahnungPdf');
-    if (!istMahnungInhalt(m.inhalt)) {
-      toast.error('Der gespeicherte Inhalt dieser Mahnung ist nicht lesbar.');
-      return;
-    }
     try {
-      // Mit den Firmendaten von damals — Bank und Anschrift könnten sich geändert haben.
-      const blob = await mahnungPdfAusInhalt(await belegFirma(company, m.ausstellerStand), m.inhalt);
-      const { shareOrDownloadPdf } = await import('@/features/worksheets/worksheetPdf');
-      await shareOrDownloadPdf(blob, mahnungDateiname({ invoiceNumber: m.inhalt.rechnung.nummer }, m.inhalt.stufe));
+      await mahnungPdfLaden(company, m);
     } catch (err) {
       toast.error(grundAus(err, 'Die Mahnung konnte nicht geladen werden.'));
     }
@@ -2173,19 +2185,12 @@ export default function InvoicesView() {
   /** Eine bereits erstellte Rechnung erneut als PDF ausgeben. */
   async function redownload(inv: WithId<Invoice>) {
     if (!company) return;
-    if (!inv.positions?.length) {
-      toast.error('Für diese Rechnung sind keine Positionen gespeichert.');
-      return;
-    }
-    const { downloadInvoicePdf } = await import('./pdf');
-    let firma: Company;
     try {
-      firma = await belegFirma(company, inv.ausstellerStand);
+      await rechnungPdfLaden(company, inv);
     } catch (err) {
-      toast.error(grundAus(err, 'Die Firmendaten dieser Rechnung konnten nicht geladen werden.'));
+      toast.error(grundAus(err, 'Das PDF konnte nicht erzeugt werden.'));
       return;
     }
-    downloadInvoicePdf(druckAngaben(firma, inv));
     toast.success('PDF erneut erzeugt');
   }
 

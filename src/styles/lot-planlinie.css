@@ -88,11 +88,19 @@
     null breit.
   */
   .schriftfeld .lage-zeile::after { content: ''; flex: 1 1 0; min-width: 0; border-top: 1px solid var(--border-strong); }
-  .schriftfeld .lage-eintrag { display: flex; flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 0; height: 100%; min-height: 0; padding: 0 1.5rem; }
+  /*
+    LUFT ÜBER UND UNTER DEN ZEILEN (Auftrag 03.11.2026: „die Abstände sehen
+    so klein aus, alles wirkt zusammengepfercht“). Beschriftung und Wert
+    lagen direkt an der oberen und unteren Feldlinie. Je eine halbe Zelle
+    oben und unten: das Feld wird drei Zellen hoch statt zwei, seine Kanten
+    bleiben auf dem Raster (E33).
+  */
+  .schriftfeld .lage-eintrag { display: flex; flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 0; height: 100%; min-height: 0; padding: 0.75rem 1.5rem; }
   .schriftfeld a.lage-eintrag:hover { background: var(--surface-2); }
   .schriftfeld .lage-name { font-size: 0.65625rem; line-height: 1.5rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .schriftfeld .lage-wert { font-family: var(--schrift-mono); font-size: 1.0625rem; line-height: 1.5rem; font-weight: 400; color: var(--text); font-variant-numeric: tabular-nums; }
-  .schriftfeld .lage-wert-wort { font-family: inherit; }
+  /* Ein Wort bricht um, statt über die Feldlinie ins Nachbarfeld zu laufen (Auftrag 03.11.2026). */
+  .schriftfeld .lage-wert-wort { font-family: inherit; white-space: normal; overflow-wrap: anywhere; }
   .schriftfeld .lage-wert-rot { color: var(--danger); }
   .schriftfeld .lage-wert-warn { color: var(--warning); }
   .schriftfeld .lage-zusatz { font-size: 0.71875rem; line-height: 1.5rem; color: var(--text-muted); overflow-wrap: anywhere; }
@@ -117,7 +125,7 @@
   */
   @media (min-width: 760px) and (max-width: 1199px) {
     .schriftfeld .lage-punkt { flex-basis: 168px; }
-    .schriftfeld .lage-eintrag { padding: 0 0.75rem; }
+    .schriftfeld .lage-eintrag { padding: 0.75rem; }
     .schriftfeld-skizze { flex-basis: 96px; }
   }
   /*
@@ -128,7 +136,7 @@
   @media (max-width: 759px) {
     .schriftfeld { margin-top: 1.5rem; }
     .schriftfeld .lage-punkt { flex-basis: 168px; }
-    .schriftfeld .lage-eintrag { padding: 0 0.75rem; }
+    .schriftfeld .lage-eintrag { padding: 0.75rem; }
     .schriftfeld-skizze { display: none; }
   }
 
@@ -192,7 +200,17 @@
     vorgelesen.
   */
   .stand { gap: 0.4375rem; }
-  .stand::before { content: ''; width: 14px; height: 14px; flex: none; align-self: center; border: 0; border-radius: 0; background: var(--accent-deep); -webkit-mask-image: var(--zeichen-offen); mask-image: var(--zeichen-offen); -webkit-mask-size: 14px 14px; mask-size: 14px 14px; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+  /*
+    DAS ZEICHEN MITTIG ZUR SCHRIFT, NICHT ZUR BOX (Auftrag 03.11.2026: „die
+    Icons sind nicht mit dem Text zentriert“). Die Box ist mindestens 22 px
+    hoch, der Text steht an ihrer Grundlinie oben darin (17 px); mittig in der
+    Box lag das Zeichen 2,5 px unter der Mitte der Buchstaben. Jetzt sitzt es
+    auf der Grundlinie und rückt um den Rest bis zur halben Versalhöhe nach
+    unten: 7 px (halbes Zeichen) − 0,35 em. Das Wort hat 13 px, also 2,5 px;
+    die 12-px-Zeilen der Startseite setzen ihren Wert selbst (`lot-start.css`).
+    Box und Zeile verschieben sich dabei nicht.
+  */
+  .stand::before { content: ''; width: 14px; height: 14px; flex: none; align-self: baseline; position: relative; top: 2.5px; border: 0; border-radius: 0; background: var(--accent-deep); -webkit-mask-image: var(--zeichen-offen); mask-image: var(--zeichen-offen); -webkit-mask-size: 14px 14px; mask-size: 14px 14px; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
   .stand-offen::before { width: 14px; height: 14px; border: 0; background: var(--accent-deep); -webkit-mask-image: var(--zeichen-offen); mask-image: var(--zeichen-offen); }
   .stand-geplant::before { -webkit-mask-image: var(--zeichen-geplant); mask-image: var(--zeichen-geplant); }
   .stand-ok::before, .stand-info::before { background: var(--accent-deep); -webkit-mask-image: var(--zeichen-arbeit); mask-image: var(--zeichen-arbeit); }

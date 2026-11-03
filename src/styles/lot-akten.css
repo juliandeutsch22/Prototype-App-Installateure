@@ -97,6 +97,8 @@
   .akten-zeile-inhalt > span { font-size: 0.75rem; color: var(--text-muted); }
   .akten-zeile-pfeil { color: var(--accent-deep); }
   .akten-belegzeile { display: grid; grid-template-columns: minmax(0, 1fr) 6.5rem auto; align-items: center; gap: 0.75rem; min-height: 4.5rem; padding-block: 0.875rem; border-bottom: 1px solid var(--border); text-decoration: none; }
+  /* Eine Rechnung öffnet sich im Fenster der Akte: die Zeile ist ein Knopf und sieht aus wie die übrigen (Auftrag 03.11.2026). */
+  button.akten-belegzeile { width: 100%; text-align: left; background: none; cursor: pointer; }
   .akten-belegstand { color: var(--text-muted); font-size: 0.75rem; }
   .akten-belegbetrag { font-size: 0.875rem; font-weight: var(--gewicht-zahl); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .akten-belegbetrag small { display: block; color: var(--text-muted); font-size: 0.75rem; font-weight: 400; }

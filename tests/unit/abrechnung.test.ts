@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { abrechnungText, stundenSindGrundlage, ABRECHNUNGSARTEN } from '@/lib/abrechnung';
+import { abrechnungKurz, abrechnungText, stundenSindGrundlage, ABRECHNUNGSARTEN } from '@/lib/abrechnung';
 
 // Testbericht 30.09.2026, M16 — drei Abrechnungsarten.
 describe('Abrechnungsarten', () => {
@@ -11,6 +11,14 @@ describe('Abrechnungsarten', () => {
     expect(abrechnungText('Einheitspreis')).toBe('Einheitspreis nach Aufmaß');
     expect(abrechnungText('Pauschal')).toBe('Pauschal');
     expect(abrechnungText(undefined)).toBe('Regie');
+  });
+
+  it('im Schriftfeld steht beim Einheitspreis „nach Aufmaß“ als Zusatz darunter (Auftrag 03.11.2026)', () => {
+    expect(abrechnungKurz('Einheitspreis')).toEqual({ wert: 'Einheitspreis', zusatz: 'nach Aufmaß' });
+    // Gleich geblieben: die kurzen Wörter stehen ohne Zusatz, ohne Angabe gilt Regie.
+    expect(abrechnungKurz('Pauschal')).toEqual({ wert: 'Pauschal' });
+    expect(abrechnungKurz('Regie')).toEqual({ wert: 'Regie' });
+    expect(abrechnungKurz(undefined)).toEqual({ wert: 'Regie' });
   });
 
   it('nur bei Regie sind die Stunden die Rechnungsgrundlage', () => {

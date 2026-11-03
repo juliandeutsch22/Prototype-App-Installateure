@@ -67,6 +67,7 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Ein Seitenbaustein, der hängt, braucht ein Neuladen der App (Stand 29) | Liegt beim Browser: er merkt sich den hängenden Abruf eines Moduls und holt ihn nicht neu; die App lädt deshalb nach der Frist selbst neu |
 | Raster und Blätter (Stand 30, E33): Fenster, Dialoge und das Blatt am Handy folgen dem Raster nicht | Fachlich: sie liegen über der Seite, ihre Lage bestimmt das Fenster |
 | Ohne `ResizeObserver` (Browser vor 2020) liegen Blätter nicht auf den Pixel im Raster (Stand 30) | Liegt beim Gerät: jeder unterstützte Browser hat ihn; die Seite bleibt bedienbar |
+| Kundenakte (Stand 34, E37): Zahlung, Mahnung, Storno und E-Rechnung über „In Rechnungen bearbeiten“, nicht im Fenster der Akte | Sicherheit der Daten: ein Weg zu Geld- und Belegständen, den Mahnlauf, Zahlungsabgleich und Rechnungskreis mitführen |
 | Arztbesuch (Stand 33, E35): den Weg vom Arbeitsort rechnet die App nicht aus | Fachlich: Arbeitsort des Tages und Weg kennt nur die Person; das Büro prüft beim Bestätigen |
 | Arztbesuch: auf der Startseite steht „Sonderurlaub“, nicht „Arztbesuch“ | Datenschutz: die Startseite nennt keinen Anlass; das Büro sieht ihn beim Bestätigen |
 | Arztbestätigung nach „geprüft“ gelöscht, nur der Vermerk bleibt | Datenschutz: Gesundheitsdaten nur so lange wie nötig (wie jeder Nachweis zum Sonderurlaub) |
