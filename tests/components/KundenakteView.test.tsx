@@ -83,6 +83,7 @@ vi.mock('@/lib/db/quotes', () => ({
 }));
 vi.mock('@/lib/db/invoices', () => ({
   listInvoicesForCustomer: (b: string, k: string, p: string[]) => listInvoicesForCustomer(b, k, p),
+  listMahnungenZurRechnung: async () => [],
 }));
 vi.mock('@/lib/db/wartungen', () => ({
   listWartungenForCustomer: () => listWartungenForCustomer(),
@@ -192,16 +193,17 @@ it('Aktenkontext 04 · ordnet die jüngsten Belege nach Datum und erhält Netto-
   const titel = await screen.findByRole('heading', { name: 'Jüngste Belege' });
   const vorschau = within(titel.closest('section')!);
   await waitFor(() => expect(vorschau.getAllByRole('listitem')).toHaveLength(3));
-  expect(vorschau.getAllByRole('link').filter((a) => !a.textContent?.includes('Alle Belege')).map((a) => a.querySelector('.stempel')?.textContent))
+  expect(vorschau.getAllByRole('listitem').map((z) => z.querySelector('.stempel')?.textContent))
     .toEqual(['AN-neu', 'RE-neu', 'AN-mitte']);
   // Planlinie (E30): Nummer als Stempel, Stand mit Statuszeichen — vorher stand der Stand als blankes Wort.
   expect(vorschau.getByText('Versendet')).toHaveClass('stand', 'stand-info');
   expect(vorschau.getByText('Offen')).toHaveClass('stand', 'stand-offen');
   expect(vorschau.getByRole('link', { name: /AN-neu/ })).toHaveTextContent('netto');
-  expect(vorschau.getByRole('link', { name: /RE-neu/ })).toHaveTextContent('brutto');
+  // Eine Rechnung öffnet sich im Fenster der Akte (Knopf), ein Angebot in seiner Akte (Verweis).
+  expect(vorschau.getByRole('button', { name: /RE-neu/ })).toHaveTextContent('brutto');
   expect(vorschau.queryByText('RE-alt')).toBeNull();
   await userEvent.click(screen.getByRole('tab', { name: 'Belege' }));
-  expect(screen.getByRole('link', { name: 'RE-alt' })).toBeVisible();
+  expect(screen.getByRole('button', { name: /^RE-alt/ })).toBeVisible();
 });
 
 it('Aktenkontext 04 · hält Kontakt und Notiz neben den Belegen und nutzt nur die vorhandene Rechnungsabfrage', async () => {
@@ -210,7 +212,12 @@ it('Aktenkontext 04 · hält Kontakt und Notiz neben den Belegen und nutzt nur d
   const kontext = await screen.findByRole('complementary', { name: 'Kontext der Akte' });
   expect(within(kontext).getByText(/Schlüssel im Büro/).textContent).toBe(KUNDE.notes);
   const vorschau = await screen.findByRole('heading', { name: 'Jüngste Belege' });
-  expect(await within(vorschau.closest('section')!).findByRole('link', { name: /RE-2026-1001/ })).toHaveAttribute('href', '/invoices?suche=RE-2026-1001');
+  // Die Rechnung öffnet sich im Fenster der Akte, statt zur Rechnungsseite zu wechseln (Auftrag 03.11.2026).
+  await userEvent.click(await within(vorschau.closest('section')!).findByRole('button', { name: /RE-2026-1001/ }));
+  const fenster = await screen.findByRole('dialog', { name: 'Rechnung RE-2026-1001' });
+  expect(within(fenster).getByRole('button', { name: 'In Rechnungen bearbeiten' })).toBeInTheDocument();
+  await userEvent.click(within(fenster).getByRole('button', { name: 'Schließen' }));
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Rechnung RE-2026-1001' })).toBeNull());
   await userEvent.click(screen.getByRole('tab', { name: 'Belege' }));
   expect(kontext).toBeVisible();
   expect(listInvoicesForCustomer).toHaveBeenCalledTimes(1);
@@ -615,7 +622,7 @@ describe('Nur, was die Rolle öffnen darf (Prüflauf 25.09.2026, P4-03)', () => 
 });
 
 describe('Die Rechnungen der Akte', () => {
-  it('zeigt sie — gesucht über die Baustellen des Kunden, verlinkt in die Rechnungsliste', async () => {
+  it('zeigt sie — gesucht über die Baustellen des Kunden, geöffnet im Fenster der Akte', async () => {
     zugeordnet = [{ id: 'p1', projectNumber: '2026-001', customerName: 'Familie Huber', customerId: 'k1' } as Project & { id: string }];
     rechnungen = [{
       id: 'r1', invoiceNumber: 'RE-2026-1001', invoiceDate: '2026-09-10', projectNumber: '2026-001',
@@ -623,9 +630,14 @@ describe('Die Rechnungen der Akte', () => {
     }];
     zeige();
     await userEvent.click(await screen.findByRole('tab', { name: 'Belege' }));
-    const link = await screen.findByRole('link', { name: 'RE-2026-1001' });
-    expect(link).toHaveAttribute('href', '/invoices?suche=RE-2026-1001');
+    const zeile = await screen.findByRole('button', { name: /^RE-2026-1001/ });
     expect(screen.getByText(/1.200,00 brutto · Teilbezahlt/)).toBeInTheDocument();
+    // Gegenprobe zum alten Weg: kein Verweis mehr, der die Seite wechselt.
+    expect(screen.queryByRole('link', { name: 'RE-2026-1001' })).toBeNull();
+    await userEvent.click(zeile);
+    const fenster = await screen.findByRole('dialog', { name: 'Rechnung RE-2026-1001' });
+    expect(within(fenster).getByText('Rechnungsdatum')).toBeInTheDocument();
+    expect(within(fenster).getByText('Teilbezahlt')).toBeInTheDocument();
     expect(listInvoicesForCustomer).toHaveBeenCalledWith('perl', 'k1', ['p1']);
   });
 
@@ -637,8 +649,8 @@ describe('Die Rechnungen der Akte', () => {
     }];
     zeige();
     await userEvent.click(await screen.findByRole('tab', { name: 'Belege' }));
-    const link = await screen.findByRole('link', { name: 'RE-2026-1001' });
-    expect(link.parentElement!.textContent).toMatch(/^RE-2026-1001 10\.09\.2026 · 2026-001$/);
+    const nummer = await within(document.getElementById('k-rechnungen')!).findByText('RE-2026-1001');
+    expect(nummer.parentElement!.textContent).toMatch(/^RE-2026-1001 10\.09\.2026 · 2026-001$/);
   });
 
   it('zeigt die jüngsten fünf — alle erst auf Wunsch', async () => {
@@ -648,10 +660,10 @@ describe('Die Rechnungen der Akte', () => {
     }));
     zeige();
     await userEvent.click(await screen.findByRole('tab', { name: 'Belege' }));
-    await screen.findByRole('link', { name: 'RE-2026-100' });
-    expect(screen.getAllByRole('link', { name: /^RE-2026-10/ })).toHaveLength(5);
+    await screen.findByRole('button', { name: /^RE-2026-100/ });
+    expect(screen.getAllByRole('button', { name: /^RE-2026-10/ })).toHaveLength(5);
     await userEvent.click(screen.getByRole('button', { name: 'Alle 7 zeigen' }));
-    expect(screen.getAllByRole('link', { name: /^RE-2026-10/ })).toHaveLength(7);
+    expect(screen.getAllByRole('button', { name: /^RE-2026-10/ })).toHaveLength(7);
   });
 
   it('sagt, wenn es noch keine gibt — und wenn sie nicht geladen werden konnten', async () => {

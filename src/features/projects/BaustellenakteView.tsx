@@ -13,7 +13,7 @@ import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { Wert } from '@/components/Wert';
 import { listQuotesForProject } from '@/lib/db/quotes';
 import { pauschalAngebot } from '@/features/invoices/pauschale';
-import { ABRECHNUNGSARTEN, abrechnungText } from '@/lib/abrechnung';
+import { ABRECHNUNGSARTEN, abrechnungKurz } from '@/lib/abrechnung';
 import { euro } from '@/lib/betrag';
 import { canAccess } from '@/app/navigation';
 import { canInvoice, isGF } from '@/lib/permissions';
@@ -463,7 +463,11 @@ export default function BaustellenakteView() {
         stempel={b.projectNumber}
         meta={b.address?.trim() ? <span className="akten-identitaet">{b.address}</span> : undefined}
         stand={<MetricRow label="Eckdaten der Baustelle">
-          <Metric label="Abrechnung" value={b.billingMode ? abrechnungText(b.billingMode) : 'offen'} hint={b.billingMode ? undefined : 'nicht festgelegt'} />
+          <Metric
+            label="Abrechnung"
+            value={b.billingMode ? abrechnungKurz(b.billingMode).wert : 'offen'}
+            hint={b.billingMode ? abrechnungKurz(b.billingMode).zusatz : 'nicht festgelegt'}
+          />
           <Metric label="Beginn" value={fmtDatum(b.startDate) || '—'} hint={wochentag(b.startDate)} />
           <Metric
             label="Ende geplant"

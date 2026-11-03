@@ -52,6 +52,11 @@ async function zuNah(page: Page): Promise<string[]> {
       const name = blatt.className.toString().split(' ').slice(0, 2).join('.');
       if (r.left - q.left < mindestens) funde.push(`links ${Math.round(r.left - q.left)} px in ${name}: ${was}`);
       if (q.right - r.right < mindestens) funde.push(`rechts ${Math.round(q.right - r.right)} px in ${name}: ${was}`);
+      // Im Schriftfeld auch oben und unten (Auftrag 03.11.2026: „zusammengepfercht“) — vorher 0 px.
+      if (blatt.matches('.schriftfeld .lage-punkt')) {
+        if (r.top - q.top < mindestens) funde.push(`oben ${Math.round(r.top - q.top)} px in ${name}: ${was}`);
+        if (q.bottom - r.bottom < mindestens) funde.push(`unten ${Math.round(q.bottom - r.bottom)} px in ${name}: ${was}`);
+      }
     };
     const inhalt = document.querySelector('.inhalt');
     if (!inhalt) return ['keine .inhalt'];
@@ -84,7 +89,9 @@ test('Text und Zeichen stehen nie auf der Linie eines Blatts oder Felds — in d
   const heute = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' });
   const { data: monteur } = await admin.from('users').select('id').eq('email', MONTEUR.email).single();
   const { data: chefin } = await admin.from('users').select('id').eq('email', CHEFIN.email).single();
-  const { data: baustelle } = await admin.from('projects').select('id').eq('company_id', BETRIEB).limit(1).single();
+  const { data: baustelle } = await admin.from('projects').select('id, billing_mode').eq('company_id', BETRIEB).limit(1).single();
+  // Die längste Abrechnungsart: „Einheitspreis nach Aufmaß“ lief über die Feldlinie (Auftrag 03.11.2026).
+  await admin.from('projects').update({ billing_mode: 'Einheitspreis' }).eq('id', baustelle!.id);
   const einsatz = await admin.from('assignments').insert({
     company_id: BETRIEB, date: heute, project_number: BAUSTELLE.nummer, user_id: monteur!.id, user_name: MONTEUR.name,
   }).select('id').single();
@@ -117,6 +124,7 @@ test('Text und Zeichen stehen nie auf der Linie eines Blatts oder Felds — in d
   } finally {
     await admin.from('assignments').delete().eq('id', einsatz.data!.id);
     await admin.from('termine').delete().eq('id', termin.data!.id);
+    await admin.from('projects').update({ billing_mode: baustelle!.billing_mode }).eq('id', baustelle!.id);
   }
 });
 

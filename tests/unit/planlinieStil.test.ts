@@ -161,9 +161,10 @@ describe('Statuswort auf der Grundlinie des Texts', () => {
   const INDEX = readFileSync('src/index.css', 'utf8');
   const START = stil('lot-start.css');
 
-  it('das Wort richtet sich an der Grundlinie aus, nur das Zeichen steht mittig', () => {
+  it('das Wort richtet sich an der Grundlinie aus, das Zeichen ebenso (seit 03.11.2026, mittig zur Schrift)', () => {
     expect(INDEX).toMatch(/\n {2}\.stand \{ display: inline-flex; align-items: baseline;/);
-    expect(regel('.stand::before')).toContain('align-self: center');
+    // Bis 03.11.2026 stand das Zeichen mittig in der Box — 2,5 px unter der Mitte der Buchstaben.
+    expect(regel('.stand::before')).toContain('align-self: baseline');
   });
 
   it('auf der Startseite ist das Statuswort so groß wie das Detail der Zeile', () => {
@@ -209,19 +210,54 @@ describe('Abstand zur Linie und die obere Linie des Schriftfelds (02.11.2026)', 
     expect(regel('.schriftfeld .lage-zeile::after')).toMatch(/flex: 1 1 0;.*border-top: 1px solid var\(--border-strong\)/);
   });
 
-  it('am Tablet sieben Zellen je Feld mit 12 px Polster; die Skizze hält Abstand zu den Feldlinien', () => {
+  it('am Tablet sieben Zellen je Feld mit 12 px Polster rundum; die Skizze hält Abstand zu den Feldlinien', () => {
     const tablet = PLANLINIE.slice(PLANLINIE.indexOf('@media (min-width: 760px) and (max-width: 1199px)'));
     const block = tablet.slice(0, tablet.indexOf('\n  }'));
     expect(block).toContain('.schriftfeld .lage-punkt { flex-basis: 168px; }');
-    expect(block).toContain('.schriftfeld .lage-eintrag { padding: 0 0.75rem; }');
+    expect(block).toContain('.schriftfeld .lage-eintrag { padding: 0.75rem; }');
     expect(block).toContain('.schriftfeld-skizze { flex-basis: 96px; }');
     expect(regel('.schriftfeld-skizze')).toContain('padding: 0 0.75rem;');
   });
 
-  it('gleich geblieben: am Schreibtisch zehn Zellen je Feld mit 24 px Polster, am Handy sieben mit 12 px', () => {
+  it('gleich geblieben: am Schreibtisch zehn Zellen je Feld mit 24 px Polster seitlich, am Handy sieben mit 12 px', () => {
     expect(regel('.schriftfeld .lage-punkt')).toContain('flex: 0 0 240px;');
-    expect(regel('.schriftfeld .lage-eintrag')).toContain('padding: 0 1.5rem;');
     const handy = PLANLINIE.slice(PLANLINIE.indexOf('@media (max-width: 759px) {\n    .schriftfeld'));
     expect(handy.slice(0, handy.indexOf('\n  }'))).toContain('.schriftfeld .lage-punkt { flex-basis: 168px; }');
+  });
+
+  /*
+    LUFT IM SCHRIFTFELD (Auftrag 03.11.2026: „die Abstände sehen so klein aus,
+    alles wirkt zusammengepfercht“). Beschriftung und Wert lagen an den
+    Feldlinien; jetzt je eine halbe Zelle darüber und darunter — das Feld
+    wird drei Zellen hoch und bleibt auf dem Raster. Ein Wort im Feld bricht
+    um, statt ins Nachbarfeld zu laufen („Einheitspreis nach Aufmaß“).
+  */
+  it('Beschriftung und Wert haben oben und unten eine halbe Zelle Luft, in jeder Breite', () => {
+    expect(regel('.schriftfeld .lage-eintrag')).toContain('padding: 0.75rem 1.5rem;');
+    const handy = PLANLINIE.slice(PLANLINIE.indexOf('@media (max-width: 759px) {\n    .schriftfeld'));
+    expect(handy.slice(0, handy.indexOf('\n  }'))).toContain('.schriftfeld .lage-eintrag { padding: 0.75rem; }');
+  });
+
+  /*
+    DAS ZUSTANDSZEICHEN MITTIG ZUR SCHRIFT (Auftrag 03.11.2026: „die Icons
+    sind nicht mit dem Text zentriert“). Mittig in der 22 px hohen Box lag es
+    2,5 px unter der Mitte der Buchstaben, die oben in der Box stehen. Jetzt
+    auf der Grundlinie, um den Rest bis zur halben Versalhöhe gerückt.
+  */
+  it('das Zustandszeichen sitzt auf der Grundlinie der Schrift, nicht mittig in der Box', () => {
+    const zeichen = regel('.stand::before');
+    expect(zeichen).toContain('align-self: baseline;');
+    // 7 px (halbes Zeichen) − 0,35 em: 13 px Schrift → 2,5 px, die 12-px-Zeilen der Startseite → 2,75 px.
+    expect(zeichen).toContain('position: relative; top: 2.5px;');
+    expect(stil('lot-start.css')).toContain('.start-seite .start-zeile .stand::before { top: 2.75px; }');
+    expect(zeichen).not.toContain('align-self: center;');
+  });
+
+  it('rechts in der Startzeile steht das Statuswort mittig in seiner Box, wie der Pfeil daneben', () => {
+    expect(stil('lot-start.css')).toContain('.start-seite .start-status-rechts .stand { line-height: 1.375rem; }');
+  });
+
+  it('ein Wort im Schriftfeld bricht um, statt über die Feldlinie zu laufen', () => {
+    expect(regel('.schriftfeld .lage-wert-wort')).toMatch(/white-space: normal;.*overflow-wrap: anywhere;/);
   });
 });

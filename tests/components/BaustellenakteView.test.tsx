@@ -228,6 +228,16 @@ describe('Die Stammdaten für alle, die nur lesen', () => {
     expect(angabe('Stundenbudget')).toBeInTheDocument();
     expect(screen.queryByLabelText(/Projektnummer/)).not.toBeInTheDocument();
   });
+
+  it('beim Einheitspreis steht „nach Aufmaß“ in der Zeile darunter, nicht im Wert (Auftrag 03.11.2026)', async () => {
+    // Im Wert lief „Einheitspreis nach Aufmaß“ in jeder Breite über die Feldlinie ins Nachbarfeld.
+    baustellen = [{ ...BAUSTELLE, billingMode: 'Einheitspreis' }];
+    zeige();
+    expect(await screen.findByText('2026-101')).toBeInTheDocument();
+    const feld = screen.getByText('Abrechnung').closest('.lage-punkt') as HTMLElement;
+    expect(feld.querySelector('.lage-wert')).toHaveTextContent(/^Einheitspreis$/);
+    expect(feld.querySelector('.lage-zusatz')).toHaveTextContent(/^nach Aufmaß$/);
+  });
   it('sagt bei einer leeren Angabe, dass sie nicht hinterlegt ist', async () => {
     /*
       Die Zeile wegzulassen wäre bequemer und falsch: eine Akte ohne
