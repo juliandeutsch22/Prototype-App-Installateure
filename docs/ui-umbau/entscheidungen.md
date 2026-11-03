@@ -806,3 +806,32 @@ Datenbank, Vorschlag, Nachweis, Ablehnen mit Folge, Wochenplan, Zeitkonto),
 `tests/durchklick/arztbesuch.spec.ts` (Monteur meldet mit Bestätigung, Büro
 bestätigt, Zeitkonto, Datei gelöscht).
 
+
+**E36 — Einheitliche Senklot-Marke (03.11.2026).** Auftrag: das zuvor
+freigegebene Markenpaket überall als Produktmarke verwenden, einschließlich
+Favicon und App-Icon.
+
+- `ProduktMarke` verwendet dieselbe Pfad-SVG wie das Markenpaket, in Petrol
+  oder Weiß. Das bisher getrennt gesetzte Wort entfällt; Form, Laufweite und
+  Proportionen sind dadurch auf Anmeldung, Plattform, Begrüßung, Rechtsseiten
+  und im Seitenleistenfuß identisch. Auf dunklen Inhaltsflächen bleibt die
+  Marke weiß. Im Handbuch steht dieselbe Kontur.
+- Favicon und Installationsicons entstehen aus dem einzelnen Senklot auf
+  deckendem Weiß. iOS bekommt ein randloses Quadrat, Android ausreichend
+  Abstand für den sicheren Kreis. Push bekommt eine transparente Silhouette.
+- Neue `/marke/`-Adressen verhindern die Wiederverwendung der bisherigen
+  Icon-Dateien. Startadresse, Scope, App-Name, Statusleistenfarbe und
+  Service-Worker-Verhalten bleiben erhalten; die bisherigen Bildadressen
+  liefern für bestehende Verweise ebenfalls aktualisierte Dateien.
+- Die Generierung und SHA-256-Zuordnung stehen in `marke/rastern.mjs` und
+  `marke/ausgabe.json`. Der Produktionsbuild braucht keinen zusätzlichen
+  Browser. Die freigegebenen SVGs bleiben die gemeinsame Quelle.
+
+**Abgrenzung.** Betriebslogos und Belegköpfe gehören weiterhin dem jeweiligen
+Mandanten. Bestehende iOS-Verknüpfungen erneuern ihr Homescreen-Bild nach
+Vorgabe des Betriebssystems; gegebenenfalls ist erneutes Hinzufügen nötig.
+
+**Prüfung.** Pixelprüfungen für Größe, Deckkraft, Hintergrund und Android-Kreis,
+Pfadvorlagen ohne Schriftabhängigkeit, identische öffentliche Exporte,
+aktuelle Push-Verweise sowie Anmeldung ohne Mandantenlogo. Ergänzend die
+Produktmarke in heller/dunkler Darstellung und drei Bildschirmbreiten.

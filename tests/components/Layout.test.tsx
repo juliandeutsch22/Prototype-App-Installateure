@@ -106,7 +106,7 @@ describe('Wessen Marke in der Hülle steht', () => {
       anruft, hat trotzdem ein Wort für die Software.
     */
     zeige();
-    const marke = await screen.findByText('Senklot');
+    const marke = await screen.findByRole('img', { name: 'Senklot' });
     const seitenleiste = marke.closest('aside');
     expect(seitenleiste).not.toBeNull();
 
@@ -120,19 +120,13 @@ describe('Wessen Marke in der Hülle steht', () => {
     const folgt = abmelden.compareDocumentPosition(marke) & Node.DOCUMENT_POSITION_FOLLOWING;
     expect(folgt).toBeTruthy();
 
-    /*
-      Und sie ist kleiner als der Betriebsname darüber.
-
-      Der Schriftgrad steht am UMSCHLIESSENDEN Element, nicht am Text selbst:
-      der Name liegt seit dem Umbruch auf bis zu drei Zeilen in einem inneren
-      `span`, der die Begrenzung trägt. `getByText` findet diesen inneren —
-      gemessen wird deshalb am Elternteil, wo der Grad gesetzt ist.
-    */
+    /* Die feste Bildhöhe bleibt kleiner als die Betriebsmarke darüber.
+       Die Produktmarke ist jetzt eine Pfad-SVG, kein separat gesetzter Text. */
     const betriebsname = within(seitenleiste!).getByText('Perl Installationen');
     const gross = Number.parseFloat(
-      (betriebsname.parentElement as HTMLElement).style.fontSize,
+      (betriebsname.parentElement as HTMLElement).style.minHeight,
     );
-    const klein = Number.parseFloat((marke.parentElement as HTMLElement).style.fontSize);
+    const klein = Number.parseFloat((marke as HTMLElement).style.height);
     expect(klein).toBeLessThan(gross);
   });
 
@@ -144,7 +138,8 @@ describe('Wessen Marke in der Hülle steht', () => {
 
     expect(await screen.findAllByText('Installationen Mustermann')).toHaveLength(2);
     expect(screen.queryByText(/Perl/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('img')).toHaveLength(1);
+    expect(screen.getByRole('img', { name: 'Senklot' })).toHaveAttribute('src', '/marke/logo-weiss.svg');
   });
 });
 
@@ -318,7 +313,7 @@ describe('Leiste am Tablet (Linie „Lot“, Protokoll Abschnitt 5)', () => {
       für den Schreibtisch und für die Vorlesehilfe.
     */
     zeige();
-    const aside = (await screen.findByText('Senklot')).closest('aside')!;
+    const aside = (await screen.findByRole('img', { name: 'Senklot' })).closest('aside')!;
     const zeile = within(aside).getByRole('link', { name: 'Mitarbeiterübersicht' });
     expect(within(zeile).getByText('Mitarbeiterübersicht').className).toBe('navi-text-lang');
     const kurz = within(zeile).getByText('Übersicht');

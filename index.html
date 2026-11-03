@@ -18,20 +18,12 @@
       Grund.
     -->
     <meta name="theme-color" content="#0f3c47" />
-    <!--
-      FAVICON UND APP-ZEICHEN kommen aus demselben Bild (`marke/app-zeichen.png`,
-      das Senklot auf Weiss, vom Betrieb am 04.10. ausgesucht). Das Favicon
-      ist enger zugeschnitten, damit bei 16 px vom Zeichen möglichst viel
-      bleibt (`marke/rastern.mjs`).
-
-      Die 16er-Fassung steht ausdrücklich da, statt sie den Browser aus der
-      32er rechnen zu lassen: in halben Schritten verkleinert bleibt sie
-      ruhiger als das, was der Browser in einem Zug daraus macht.
-    -->
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Einheitliches SVG-Zeichen; neue Adressen vermeiden die alte Icon-Vorlage im Cache. -->
+    <link rel="icon" type="image/png" sizes="16x16" href="/marke/favicon-16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/marke/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/marke/favicon-64.png" />
+    <link rel="icon" type="image/svg+xml" sizes="any" href="/marke/favicon.svg" />
+    <link rel="apple-touch-icon" href="/marke/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <!--
       DER NAME AUF DEM HOME-BILDSCHIRM. Ohne diese Zeile schlägt iOS beim

@@ -65,8 +65,8 @@ try {
       const { title, body, link } = payload.data ?? {};
       self.registration.showNotification(title || 'Senklot', {
         body: body || '',
-        icon: '/icon-192.png',
-        badge: '/favicon-64.png',
+        icon: '/marke/icon-192.png',
+        badge: '/marke/badge-96.png',
         // Gleiche Kennung = die neue Meldung ersetzt die alte. Fünf
         // Anforderungen hintereinander sollen nicht fünf Einträge im
         // Sperrbildschirm sein.

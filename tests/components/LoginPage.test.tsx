@@ -168,14 +168,18 @@ describe('Die Marke über dem Formular', () => {
   it('nennt das Produkt und nicht einen Betrieb', () => {
     zeige();
     // Zweimal: auf der Bühne (Schreibtisch) und im Band der Karte (Telefon, Tablet) — je Breite ist eine sichtbar.
-    expect(screen.getAllByText('Senklot')).toHaveLength(2);
+    expect(screen.getAllByRole('img', { name: 'Senklot' })).toHaveLength(2);
   });
 
   it('lädt vor der Anmeldung kein Logo eines Mandanten', () => {
     // Die Gegenprobe zur Zeile darüber: „Senklot" könnte auch NEBEN einem
     // fremden Logo stehen. Vor der Anmeldung gehört gar keines auf die Seite.
     const { container } = zeige();
-    expect(container.querySelectorAll('img')).toHaveLength(0);
+    const bilder = [...container.querySelectorAll('img')];
+    expect(bilder).toHaveLength(2);
+    expect(bilder.map((bild) => bild.getAttribute('src')).sort()).toEqual([
+      '/marke/logo-weiss.svg', '/marke/logo.svg',
+    ]);
   });
 });
 

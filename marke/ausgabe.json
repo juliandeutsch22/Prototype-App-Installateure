@@ -1,0 +1,19 @@
+{
+  "quelle": "Senklot-Markenpaket-2026-11-03",
+  "vorlagen": {
+    "logo.svg": "f5e6b51f48bf059894ca7e63824ea4b5f122e5d119a7a7378d608eee3d2a7be8",
+    "logo-weiss.svg": "fafd19965731333dec00b95cf57d5e2f195e79e9e671884ecb19e966e98c0d57",
+    "zeichen.svg": "33e355db7ecd5343c6fcc8b704810ee11984cae5bc92ee1d1a00629d8c1e9e6d",
+    "schriftzug.svg": "be3d2ab949ea7046a7b32cbd580fbe08d4b6dfcf21b4785d26d7a1de83b7c8b6"
+  },
+  "bilder": {
+    "icon-192.png": "82c801c58932846466add99334eaf7f5db0b890fb49b35e4d680d9b5637301c8",
+    "icon-512.png": "df4c03b6ec7ee02cfae808e10d8b7c2a40b0ade0a60b4534cc9dbfc5f2f859e0",
+    "icon-maskable-512.png": "df4c03b6ec7ee02cfae808e10d8b7c2a40b0ade0a60b4534cc9dbfc5f2f859e0",
+    "apple-touch-icon.png": "1efc95360134d563f1360b2a6396e2038e19f7011be5a283c7d0cebd05279331",
+    "favicon-16.png": "4aa73e5ed539bea06077e7c8f634085caa86061bfe448b372746457c749a83f7",
+    "favicon-32.png": "52da38f968532b1de6fbf2326607e05d49e59410bfba29e6dba3090f9c9920c4",
+    "favicon-64.png": "8c376ba913a77e0862593558833916e50f2d392bf56de4e576128dc0f767a153",
+    "badge-96.png": "337958221d4d3fc9836cf5094db4d94f86924c06b27cac4286a539a24e63ed41"
+  }
+}

@@ -1,6 +1,5 @@
 /**
- * App-Zeichen und Favicon — das Senklot weiss auf der Kachel in Petrol
- * (seit 12.10.2026, vom Betrieb geliefert; davor auf Weiss).
+ * App-Zeichen und Favicon — das einheitliche Senklot in Petrol auf Weiß.
  *
  * Was hier steht, sieht kein Test der Oberfläche: der Reiter, der
  * Startbildschirm, der Start der App unter Android. Ein falsch
@@ -12,6 +11,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { inflateSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
 
 const lies = (pfad: string) => readFileSync(resolve(process.cwd(), pfad));
 
@@ -62,107 +62,84 @@ function pngLesen(daten: Buffer) {
 
 const manifest = JSON.parse(lies('public/manifest.webmanifest').toString('utf8'));
 const html = lies('index.html').toString('utf8');
-
-/** Jedes Bild, das ein Gerät als Zeichen holt, mit der Größe, die es erwartet. */
 const ZEICHEN: Array<{ datei: string; groesse: number }> = [
-  ...manifest.icons.map((i: { src: string; sizes: string }) => ({
-    datei: i.src.replace(/^\//, ''),
-    groesse: Number(i.sizes.split('x')[0]),
-  })),
-  ...[...html.matchAll(/<link rel="icon" type="image\/png" sizes="(\d+)x\d+" href="\/([^"]+)"/g)].map((m) => ({
-    datei: m[2],
-    groesse: Number(m[1]),
-  })),
-  { datei: 'apple-touch-icon.png', groesse: 180 },
+  ...manifest.icons.map((i: { src: string; sizes: string }) => ({ datei: i.src.slice(1), groesse: Number(i.sizes.split('x')[0]) })),
+  ...[...html.matchAll(/<link rel="icon" type="image\/png" sizes="(\d+)x\d+" href="\/([^"]+)"/g)].map((m) => ({ datei: m[2], groesse: Number(m[1]) })),
+  { datei: 'marke/apple-touch-icon.png', groesse: 180 },
 ];
 
-describe('App-Zeichen und Favicon', () => {
-  it('sind alle eingebunden, die es gibt', () => {
-    expect(ZEICHEN.map((z) => z.datei).sort()).toEqual([
-      'apple-touch-icon.png',
-      'favicon-16.png',
-      'favicon-32.png',
-      'favicon-64.png',
-      'icon-192.png',
-      'icon-512.png',
-      'icon-maskable-512.png',
+describe('Einheitliche Senklot-Zeichen', () => {
+  it('bindet alle Größen unter neuen Adressen ein', () => {
+    expect(ZEICHEN.map(z => z.datei).sort()).toEqual([
+      'marke/apple-touch-icon.png', 'marke/favicon-16.png', 'marke/favicon-32.png', 'marke/favicon-64.png',
+      'marke/icon-192.png', 'marke/icon-512.png', 'marke/icon-maskable-512.png',
     ]);
-    expect(html).toContain('<link rel="apple-touch-icon" href="/apple-touch-icon.png" />');
+    expect(html).toContain('href="/marke/apple-touch-icon.png"');
+    expect(html).toContain('href="/marke/favicon.svg"');
+    expect(manifest.start_url).toBe('/');
+    expect(manifest.scope).toBe('/');
   });
 
-  it.each(ZEICHEN)('$datei ist quadratisch in der angegebenen Größe', ({ datei, groesse }) => {
-    const { breite, hoehe } = pngLesen(lies(`public/${datei}`));
-    expect([breite, hoehe]).toEqual([groesse, groesse]);
-  });
-
-  /*
-    ZWEI FORMEN. Wo der Browser oder das System das Bild so zeigt, wie es
-    ist (Reiter, Zeichen „any“), steht die Kachel mit ihren runden Ecken —
-    die Ecken sind durchsichtig. Wo das System selbst zuschneidet (iOS,
-    Android maskable), ist das Bild randlos und deckend: iOS rechnet
-    Durchsichtiges gegen Schwarz, und eine Ecke der Kachel innerhalb der
-    Maske von Android stünde als heller Fleck da.
-  */
-  const RANDLOS = ['apple-touch-icon.png', 'icon-maskable-512.png'];
-  const KACHEL = ZEICHEN.filter((z) => !RANDLOS.includes(z.datei));
-
-  it.each(KACHEL)('$datei ist die Kachel: durchsichtige Ecken, deckende Mitte', ({ datei, groesse }) => {
-    const { pixel } = pngLesen(lies(`public/${datei}`));
-    const r = groesse - 1;
-    // Bei 16 px ragt die Rundung knapp in das Eckpixel (Deckkraft 7 von 255) — durchsichtig heisst hier: fast nichts.
-    for (const [x, y] of [[0, 0], [r, 0], [0, r], [r, r]]) expect(pixel(x, y)[3], `Ecke ${x},${y}`).toBeLessThan(16);
-    expect(pixel(groesse >> 1, groesse >> 2)[3], 'oben in der Mitte').toBe(255);
-  });
-
-  it.each(RANDLOS.map((datei) => ({ datei })))('$datei ist randlos und in jedem Pixel deckend', ({ datei }) => {
+  it.each(ZEICHEN)('$datei hat die angegebene Größe und einen deckenden weißen Grund', ({ datei, groesse }) => {
     const { breite, hoehe, pixel } = pngLesen(lies(`public/${datei}`));
-    const durchsichtig: string[] = [];
-    for (let y = 0; y < hoehe; y += 1) {
-      for (let x = 0; x < breite; x += 1) if (pixel(x, y)[3] !== 255) durchsichtig.push(`${x},${y}`);
+    expect([breite, hoehe]).toEqual([groesse, groesse]);
+    for (const [x,y] of [[0,0],[breite-1,0],[0,hoehe-1],[breite-1,hoehe-1]]) expect(pixel(x,y)).toEqual([255,255,255,255]);
+    let durchsichtig=0, petrol=0;
+    for (let y=0;y<hoehe;y++) for (let x=0;x<breite;x++) {
+      const [r,g,b,a]=pixel(x,y); if(a!==255) durchsichtig++;
+      if(r<100 && g<150 && b<170) petrol++;
     }
-    expect(durchsichtig.slice(0, 5)).toEqual([]);
-    // Die Ecke ist der Grund der Kachel (Petrol), nicht Weiss und nicht Schwarz.
-    const [r, g, b] = pixel(0, 0);
-    expect(b, 'Petrol: mehr Blau als Rot').toBeGreaterThan(r + 40);
-    expect(g, 'Petrol: mehr Grün als Rot').toBeGreaterThan(r + 40);
+    expect(durchsichtig).toBe(0);
+    expect(petrol).toBeGreaterThan(breite*hoehe*.02);
   });
 
-  it('das maskable Zeichen hält das Senklot im sicheren Kreis', () => {
-    // Android garantiert nur einen Kreis von 80 % der Breite um die Mitte;
-    // was ausserhalb liegt, schneidet eine runde Maske weg — zuerst die Schnur.
-    const { breite, hoehe, pixel } = pngLesen(lies('public/icon-maskable-512.png'));
-    const mitte = breite / 2;
-    let weitester = 0;
-    let gefunden = 0;
-    for (let y = 0; y < hoehe; y += 1) {
-      for (let x = 0; x < breite; x += 1) {
-        const [r, g, b] = pixel(x, y);
-        if (r > 200 && g > 200 && b > 200) {
-          gefunden += 1;
-          weitester = Math.max(weitester, Math.hypot(x + 0.5 - mitte, y + 0.5 - mitte));
-        }
-      }
+  it('hält das gesamte Zeichen im sicheren Android-Kreis', () => {
+    const {breite,hoehe,pixel}=pngLesen(lies('public/marke/icon-maskable-512.png'));
+    let radius=0;
+    for(let y=0;y<hoehe;y++) for(let x=0;x<breite;x++) {
+      const [r,g,b]=pixel(x,y);
+      if(r<200 && g<210 && b<220) radius=Math.max(radius,Math.hypot(x+.5-breite/2,y+.5-hoehe/2));
     }
-    expect(gefunden, 'das weisse Senklot ist da').toBeGreaterThan(breite * hoehe * 0.05);
-    expect(weitester / breite).toBeLessThanOrEqual(0.4);
+    expect(radius/breite).toBeLessThanOrEqual(.4);
+    expect(radius/breite).toBeGreaterThan(.3);
   });
 
-  it.each(ZEICHEN)('$datei ist dieselbe Datei wie in marke/', ({ datei }) => {
-    // Zwei Stände desselben Bildes wären zwei Wahrheiten; `rastern.mjs`
-    // schreibt nach marke/, ausgeliefert wird public/.
-    expect(lies(`public/${datei}`).equals(lies(`marke/${datei}`))).toBe(true);
+  it.each(ZEICHEN)('$datei bleibt auch unter der bisherigen Adresse aktuell', ({datei}) => {
+    const name=datei.split('/').pop()!;
+    expect(lies(`public/${datei}`).equals(lies(`marke/${name}`))).toBe(true);
+    expect(lies(`public/${name}`).equals(lies(`marke/${name}`))).toBe(true);
   });
 
-  it('startet unter Android auf Weiss, wie die App', () => {
-    // Der Startbildschirm unter Android zeigt das Zeichen auf dieser Farbe,
-    // gleich danach kommt die helle App. Mit der Kachel steht dort ein
-    // Zeichen in Petrol auf Weiss — so wie im Reiter des Browsers.
+  it('liefert die freigegebenen SVG-Pfade ohne fontabhängige Texte aus', () => {
+    for(const name of ['logo.svg','logo-weiss.svg','zeichen.svg','schriftzug.svg']) {
+      const master=lies(`marke/${name}`);
+      expect(lies(`public/marke/${name}`).equals(master)).toBe(true);
+      expect(master.toString()).not.toMatch(/<text\b|<image\b|<script\b|font-family/);
+    }
+  });
+
+  it('erkennt geänderte Vorlagen ohne neu erzeugte Icons', () => {
+    const ausgabe=JSON.parse(lies('marke/ausgabe.json').toString()) as {vorlagen:Record<string,string>;bilder:Record<string,string>};
+    for(const [name,hash] of Object.entries({...ausgabe.vorlagen,...ausgabe.bilder})) {
+      expect(createHash('sha256').update(lies(`marke/${name}`)).digest('hex'),name).toBe(hash);
+    }
+  });
+
+  it('zeigt bei Push ein transparentes Abzeichen statt einer vollflächigen Kachel', () => {
+    const {breite,hoehe,pixel}=pngLesen(lies('public/marke/badge-96.png'));
+    expect([breite,hoehe]).toEqual([96,96]);
+    expect(pixel(0,0)[3]).toBe(0);
+    let sichtbar=0;
+    for(let y=0;y<hoehe;y++) for(let x=0;x<breite;x++) if(pixel(x,y)[3]>200) sichtbar++;
+    expect(sichtbar).toBeGreaterThan(100);
+    expect(sichtbar).toBeLessThan(breite*hoehe/2);
+    const worker=lies('public/sw.js').toString();
+    expect(worker).toContain("badge: '/marke/badge-96.png'");
+    expect(worker).toContain("icon: '/marke/icon-192.png'");
+  });
+
+  it('behält Startbildschirm- und Statusleistenfarben der App bei', () => {
     expect(manifest.background_color.toLowerCase()).toBe('#ffffff');
-  });
-
-  it('lässt die Farbe des Statusbalkens bei der Farbe der Kopfleiste', () => {
-    // Seit der Linie „Lot“ trägt die Kopfleiste `--navi` (#0f3c47), eine
-    // Stufe tiefer als das Petrol der Knöpfe.
     expect(manifest.theme_color.toLowerCase()).toBe('#0f3c47');
   });
 });

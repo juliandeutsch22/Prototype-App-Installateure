@@ -12,7 +12,7 @@ import ProduktMarke from './ProduktMarke';
 export default function MarkenBand() {
   return (
     <div className="panel-dark rounded px-6 py-5">
-      <ProduktMarke hoehe={36} className="text-white" />
+      <ProduktMarke hoehe={36} hell className="text-white" />
     </div>
   );
 }

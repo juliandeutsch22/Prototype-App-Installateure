@@ -268,7 +268,7 @@ export default function PlattformView() {
     <div className="plattform">
       <header className="plattform-markenband">
         <div className="plattform-markeninhalt">
-          <ProduktMarke hoehe={34} />
+          <ProduktMarke hoehe={34} hell />
           <span className="plattform-markenkontext">Plattform</span>
           <button type="button" className="plattform-konto" aria-current={bereich === 'konto' ? 'page' : undefined} onClick={() => setBereich('konto')}>Mein Konto</button>
         </div>
