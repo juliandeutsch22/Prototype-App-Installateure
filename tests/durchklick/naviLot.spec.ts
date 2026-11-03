@@ -10,10 +10,13 @@ import { anmelden } from './helfer';
  * Gemessen im echten Browser, Bild für Bild:
  * - beim Laden steht das Lot ohne Fahrt am aktiven Punkt;
  * - herab sinkt es stetig, federt höchstens 3 px nach und hängt dann mittig
- *   neben dem Punkt; das Seil reicht von der Aufhängung bis an das Blei;
+ *   neben dem Punkt; das Seil reicht vom Haken bis an das Blei;
+ * - der Haken sitzt auf der Höhe von „Start“: dort hängt das Blei ohne Seil
+ *   (E39, 03.11.2026);
  * - herauf wird es stetig eingeholt, ohne Überschwingen;
  * - ein zweiter Klick mitten in der Fahrt führt ohne Sprung zum neuen Ziel;
- * - ohne aktiven Punkt ist das Seil eingeholt;
+ * - ohne aktiven Punkt ist das Seil eingeholt und das Blei ausgeblendet —
+ *   am Haken neben „Start“ sähe „Start“ sonst aktiv aus;
  * - mit „Bewegung reduzieren“ gibt es keine Fahrt.
  * Gemessen wird gegen die Aufhängung: die Leiste rollt, wenn ein Punkt
  * außerhalb des Bilds angetippt wird, und Aufhängung und Blei rollen mit.
@@ -64,7 +67,9 @@ async function lage(page: Page) {
       seilOben: seil.top,
       seilUnten: seil.bottom,
       seilLaenge: seil.height,
-      aufhaengung: aufh.top,
+      // Der Haken liegt direkt über dem Anfang des Seils.
+      aufhaengung: aufh.bottom,
+      bleiSichtbar: getComputedStyle(document.querySelector('.navi-blei')!).opacity,
       punktMitte: punkt ? (punkt.top + punkt.bottom) / 2 : null,
       laeuft: document.querySelector('.navi-blei')!.getAnimations().length,
     };
@@ -74,7 +79,7 @@ async function lage(page: Page) {
 function haengtRichtig(l: Awaited<ReturnType<typeof lage>>) {
   expect(l.laeuft).toBe(0);
   expect(Math.abs(l.bleiMitte - l.punktMitte!), 'Blei mittig neben dem Punkt').toBeLessThan(1);
-  expect(Math.abs(l.seilOben - l.aufhaengung), 'Seil beginnt an der Aufhängung').toBeLessThan(1);
+  expect(Math.abs(l.seilOben - l.aufhaengung), 'Seil beginnt am Haken').toBeLessThan(1);
   expect(Math.abs(l.seilUnten - l.bleiObenImBild), 'Seil endet am Blei').toBeLessThan(1);
 }
 
@@ -89,7 +94,13 @@ for (const { name, width, height } of [
     await page.goto('/');
     await expect(page.locator('aside .navi-punkt-aktiv')).toBeVisible({ timeout: 15_000 });
     // Beim Laden: ohne Fahrt am Ziel.
-    haengtRichtig(await lage(page));
+    const amStart = await lage(page);
+    haengtRichtig(amStart);
+    // Bei „Start“ hängt das Blei ohne Seil direkt am Haken.
+    expect(amStart.seilLaenge, 'bei „Start“ kein Seil').toBeLessThan(1);
+    expect(amStart.bleiSichtbar).toBe('1');
+    expect(await page.locator('aside .navi-punkt-aktiv svg path').getAttribute('d'), 'Start trägt den Grundriss, kein zweites Lot')
+      .not.toContain('L5.6 11.4');
 
     // Herab zu den Handwerksscheinen.
     const start = (await lage(page)).bleiOben;
@@ -137,6 +148,11 @@ for (const { name, width, height } of [
     const ohne = await lage(page);
     expect(ohne.punktMitte).toBeNull();
     expect(ohne.seilLaenge, 'Seil eingeholt').toBeLessThan(1);
+    await expect.poll(async () => (await lage(page)).bleiSichtbar, { message: 'nur der Haken bleibt' }).toBe('0');
+
+    // Wieder ein aktiver Punkt: das Blei ist wieder da.
+    await page.locator('aside.navi').getByRole('link', { name: /^Start$/ }).click();
+    await expect.poll(async () => (await lage(page)).bleiSichtbar).toBe('1');
   });
 }
 

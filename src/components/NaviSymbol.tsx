@@ -2,14 +2,16 @@ import Icon, { type IconName } from './Icon';
 
 /*
   DIE MENÜ-SYMBOLE DER PLANLINIE (B9): 16-px-Fassungen der Modulskizzen,
-  damit Menü und Plankopf zusammengehören — der Start trägt das Lot, die
-  Baustellen das Haus mit der Achse, die Rechnungen den Beleg mit gezackter
-  Kante. Je Ziel der Navigation, nicht je Symbolname: „Meine Baustellen“ und
+  damit Menü und Plankopf zusammengehören — die Baustellen tragen das Haus
+  mit der Achse, die Rechnungen den Beleg mit gezackter Kante. Der Start
+  trägt seit dem 03.11.2026 einen Grundriss (Übersicht über das Ganze): das
+  Lot fährt jetzt selbst durch die Leiste und hängt bei „Start“ am Haken;
+  ein zweites Lot als Symbol daneben war doppelt (E39). Je Ziel der Navigation, nicht je Symbolname: „Meine Baustellen“ und
   „Baustellen“ sind dasselbe Haus, „Urlaub“ und „Sonderurlaub“ derselbe
   Kalender.
 */
 const SYMBOLE: Record<string, string> = {
-  '/': 'M8 1.8 V8.6 M8 8.6 L5.6 11.4 L8 14.4 L10.4 11.4 Z',
+  '/': 'M2.5 2.5 H13.5 V13.5 H2.5 Z M2.5 8.5 H6.5 M9 8.5 H13.5 M8 2.5 V5.5',
   '/admin-projects': 'M2.5 13.5 H13.5 M4 13.5 V7.2 L8 4.2 L12 7.2 V13.5 M8 4.2 V9',
   '/my-projects': 'M2.5 13.5 H13.5 M4 13.5 V7.2 L8 4.2 L12 7.2 V13.5 M8 4.2 V9',
   '/assignments': 'M2.5 3.5 H13.5 V13 H2.5 Z M2.5 6.5 H13.5 M6.2 6.5 V13 M9.8 6.5 V13',

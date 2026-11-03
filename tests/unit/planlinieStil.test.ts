@@ -72,7 +72,11 @@ describe('B4 Lot in der Navigation', () => {
   it('Seitenleiste: Aufhängung, Seil und Blei stehen einmal da, bewegt nur über transform', () => {
     expect(regel('.navi-seil')).toContain('transform-origin: 0 0; transform: scaleY(0);');
     expect(regel('.navi-seil')).toContain('height: 1px;');
-    expect(PLANLINIE).toMatch(/\n {2}\.navi-blei \{[^}]*clip-path: polygon\(50% 0, 100% 40%, 50% 100%, 0 40%\)/);
+    // E39: das Blei in der Form der Marke, 9 px breit (ungerade) — Seil und Kappe auf einer Pixelspalte.
+    expect(PLANLINIE).toMatch(/\n {2}\.navi-blei \{ left: 0; width: 9px; height: 14px;[^}]*mask:/);
+    expect(regel('.navi-seil')).toMatch(/left: 4px;/);
+    expect(PLANLINIE).toMatch(/\.navi-seil \{ left: 10px; \}\n {4}\.navi-blei \{ left: 6px; \}/);
+    expect(PLANLINIE).toContain('.navi-blei[data-ohne-ziel] { opacity: 0; }');
     expect(PLANLINIE).toMatch(/\n {2}\.navi-aufhaengung \{[^}]*height: 1px;/);
     expect(PLANLINIE).not.toContain('.navi-lot');
   });

@@ -916,3 +916,32 @@ bis an das Blei; eingeholt ohne aktiven Punkt; ohne Fahrt bei reduzierter
 Bewegung. `tests/unit/lotSeil.test.ts`, `planlinieStil.test.ts`. Gegenprobe:
 mit der alten Navigation alle drei Browserwege und die Stilprüfung rot.
 
+**E39 — Der Haken auf der Höhe von „Start“, das Blei in der Markenform
+(03.11.2026).** Rückmeldung zu E38 mit Bildschirmfoto: „der Beginn hängt über
+Start und der Menüpunkt Start hat ein zusätzliches Senklot-Icon“; nach zwei
+Vorschauen aus der echten App: „der Senklot passt noch nicht perfekt auf das
+Seil … was wäre mit einem Start des Senklots auf der gleichen Höhe wie das
+Start-Icon?“ — „ja so umsetzen mit Haken“.
+
+- **„Start“ ist die Aufhängung.** Der Haken (5 px Querstrich) sitzt auf der
+  Höhe des Punkts „Start“; steht man dort, hängt das Blei ohne Seil am
+  Haken, geht man weiter, rollt das Seil von dort ab. Vorher saß die
+  Aufhängung 6 px darüber, frei im Raum, und auf „Start“ war das Seil ein
+  Stummel. Ein Seil aus der Unterkante des Suchfelds (erste Vorschau) wirkte
+  angeklebt und rückte das Lot dicht an die Symbole; verworfen.
+- **Das Blei in der Form der Marke** (Kappe, Körper, Spitze), 9 px breit —
+  ungerade, damit Seil und Kappe auf eine Pixelspalte fallen. Vorher lag das
+  Seil auf einem halben Pixel (weich gezeichnet), und die gerade breite
+  Raute traf es nicht genau.
+- **„Start“ trägt einen Grundriss** statt des Lots: das fahrende Lot ist das
+  einzige Senklot der Leiste. Auch in der unteren Leiste am Handy (dort ist
+  das Lot über dem Symbol sonst unverändert).
+- **Ohne aktiven Punkt** ist das Seil eingeholt und das Blei ausgeblendet —
+  am Haken neben „Start“ sähe „Start“ sonst aktiv aus; es bleibt der Haken.
+
+**Prüfungen.** `tests/durchklick/naviLot.spec.ts`: Seil beginnt am Haken,
+bei „Start“ kein Seil, Start-Symbol ist kein Lot, ohne aktiven Punkt nur der
+Haken, danach das Blei wieder da; dazu alles aus E38. `planlinieStil.test.ts`
+(Blei 9 px mit Maske, Seil auf ganzen Pixeln, Ausblenden). Gegenprobe mit dem
+Code von E38: alle drei Browserwege und die Stilprüfung rot.
+
