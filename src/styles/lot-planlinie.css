@@ -244,18 +244,28 @@
   .navi-punkt-aktiv { background: none; font-weight: 500; }
   .navi-punkt-aktiv:hover { color: #ffffff; }
   /*
-    EIN LOT AM SEIL FÜR DIE GANZE LEISTE (Auftrag 03.11.2026, E38). Aufhängung
-    über „Start“, das Seil links neben den Punkten, das Blei mittig neben dem
-    aktiven. `app/NaviLot.tsx` setzt Höhe (`top`) und Länge (`transform`);
-    die Fahrt läuft nur über `transform`. Das Seil ist 1 px hoch und wird auf
-    seine Länge gestreckt, das Blei um dieselbe Länge verschoben — so endet
-    das Seil in jedem Bild der Fahrt genau an der Oberkante des Bleis.
-    Am Tablet steht es 6 px weiter links, weil die Leiste dort weniger Rand hat.
+    EIN LOT AM SEIL FÜR DIE GANZE LEISTE (Auftrag 03.11.2026, E38). Der Haken
+    sitzt auf der Höhe von „Start“ (E39), das Seil links neben den Punkten,
+    das Blei mittig neben dem aktiven. `app/NaviLot.tsx` setzt Höhe (`top`)
+    und Länge (`transform`); die Fahrt läuft nur über `transform`. Das Seil ist
+    1 px hoch und wird auf seine Länge gestreckt, das Blei um dieselbe Länge
+    verschoben — so endet das Seil in jedem Bild der Fahrt genau an der Kappe.
+
+    SEIL UND KAPPE AUF EINER PIXELSPALTE (E39): das Blei ist 9 px breit, also
+    ungerade, in der Form der Marke (Kappe, Körper, Spitze); das Seil liegt
+    auf ganzen Pixeln genau über der Mitte der Kappe. Vorher lag das Seil auf
+    einem halben Pixel (weich gezeichnet), und die gerade breite Raute traf es
+    nicht genau. Am Tablet steht alles 6 px weiter links, weil die Leiste dort
+    weniger Rand hat.
   */
   .navi-aufhaengung, .navi-seil, .navi-blei { position: absolute; top: 0; pointer-events: none; z-index: 1; }
-  .navi-aufhaengung { left: 2px; width: 5px; height: 1px; margin-top: -2px; background: var(--navi-text); }
+  .navi-aufhaengung { left: 2px; width: 5px; height: 1px; margin-top: -1px; background: var(--navi-text); }
   .navi-seil { left: 4px; width: 1px; height: 1px; background: var(--navi-text); transform-origin: 0 0; transform: scaleY(0); }
   .navi-blei { left: 0; width: 9px; height: 14px; background: #ffffff; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='14' viewBox='0 0 9 14'%3E%3Cpath d='M3.2 0 H5.8 V2 H3.2 Z M2.3 3 H6.7 L8.7 5.6 H0.3 Z M0.3 6.6 H8.7 L4.5 14 Z' fill='black'/%3E%3C/svg%3E") no-repeat center / 9px 14px; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='14' viewBox='0 0 9 14'%3E%3Cpath d='M3.2 0 H5.8 V2 H3.2 Z M2.3 3 H6.7 L8.7 5.6 H0.3 Z M0.3 6.6 H8.7 L4.5 14 Z' fill='black'/%3E%3C/svg%3E") no-repeat center / 9px 14px; }
+  /* Ohne aktiven Punkt bleibt nur der Haken — am Haken sähe „Start“ sonst aktiv aus. */
+  .navi-blei { transition: opacity 150ms ease; }
+  .navi-blei[data-ohne-ziel] { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) { .navi-blei { transition: none; } }
   @media (min-width: 1200px) {
     .navi-aufhaengung { left: 8px; }
     .navi-seil { left: 10px; }

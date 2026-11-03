@@ -5,10 +5,15 @@ import { fahrtDauer, seilVerlauf } from '@/lib/lotSeil';
 /*
   DAS LOT DER NAVIGATION (Auftrag 03.11.2026, E38). Bis dahin trug jeder
   aktive Menüpunkt sein eigenes kleines Lot; beim Wechsel verschwand es oben
-  und tauchte unten wieder auf. Jetzt gibt es eines: an einer Aufhängung über
-  „Start“, an einem Seil, das sich zum aktiven Punkt herablässt oder
-  eingeholt wird. Am Handy bleibt das Lot über dem aktiven Symbol der
-  unteren Leiste, wie es war (Entscheid des Auftraggebers).
+  und tauchte unten wieder auf. Jetzt gibt es eines, an einem Seil, das sich
+  zum aktiven Punkt herablässt oder eingeholt wird. Am Handy bleibt das Lot
+  über dem aktiven Symbol der unteren Leiste, wie es war (Entscheid des
+  Auftraggebers).
+
+  „START“ IST DIE AUFHÄNGUNG (03.11.2026, E39). Der Haken sitzt auf der Höhe
+  des Punkts „Start“; steht man dort, hängt das Blei ohne Seil am Haken,
+  geht man weiter, rollt das Seil von dort ab. Vorher saß die Aufhängung
+  6 px darüber, frei im Raum, und auf „Start“ war das Seil ein Stummel.
 
   FLÜSSIG, WEIL NUR `transform` LÄUFT: das Seil wird gestreckt, das Blei
   verschoben — beides ohne neues Layout, auf der Grafikkarte. Gemessen wird
@@ -17,8 +22,6 @@ import { fahrtDauer, seilVerlauf } from '@/lib/lotSeil';
   eingestellt hat, sieht keine Fahrt.
 */
 
-/** Die Aufhängung sitzt so weit über dem ersten Menüpunkt. */
-const UEBER_START = 6;
 /** Höhe des Senkbleis (`.navi-blei`): das Seil endet an seiner Oberkante. */
 const BLEI_HOEHE = 14;
 
@@ -66,27 +69,32 @@ export function SeilLot() {
     const b = blei.current;
 
     const messen = () => {
-      // „Start“ ist die Aufhängung: dort hängt das Blei ohne Seil, von dort rollt es ab.
+      // Der erste Punkt der Hauptnavigation („Start“) trägt den Haken: das Blei hängt dort mittig, ohne Seil.
       const haupt = leiste.querySelector('nav');
       const start = haupt?.querySelector<HTMLElement>('a');
-      const oben = start ? start.offsetTop + start.offsetHeight / 2 - BLEI_HOEHE / 2 : (haupt?.offsetTop ?? 0) - UEBER_START;
+      const oben = start ? start.offsetTop + start.offsetHeight / 2 - BLEI_HOEHE / 2 : haupt?.offsetTop ?? 0;
       const aktiv = leiste.querySelector<HTMLElement>('.navi-punkt-aktiv');
-      // Ohne aktiven Punkt wird das Seil eingeholt: das Blei ruht an der Aufhängung.
+      // Ohne aktiven Punkt wird das Seil eingeholt.
       const ziel = aktiv ? aktiv.offsetTop + aktiv.offsetHeight / 2 - BLEI_HOEHE / 2 - oben : 0;
-      return { oben, ziel: Math.max(0, ziel) };
+      return { oben, ziel: Math.max(0, ziel), ohneZiel: !aktiv };
     };
-    const setzen = (oben: number, l: number) => {
+    const setzen = (oben: number, l: number, ohneZiel: boolean) => {
       for (const el of [aufhaengung.current!, s, b]) el.style.top = `${oben}px`;
       s.style.transform = `scaleY(${l})`;
       b.style.transform = `translateY(${l}px)`;
+      /*
+        Ohne aktiven Punkt ist das Blei ausgeblendet: am Haken hinge es neben
+        „Start“, und „Start“ sähe aktiv aus. Es bleibt nur der Haken.
+      */
+      b.toggleAttribute('data-ohne-ziel', ohneZiel);
       laenge.current = l;
     };
     const fahren = () => {
-      const { oben, ziel } = messen();
+      const { oben, ziel, ohneZiel } = messen();
       const fahrbar = kannFahren(b);
       const von = laenge.current === null || !fahrbar ? null : jetzt(b);
       anhalten(s, b);
-      setzen(oben, ziel);
+      setzen(oben, ziel, ohneZiel);
       if (von === null || bewegungReduziert() || Math.abs(ziel - von) < 0.5) return;
       const dauer = fahrtDauer(ziel - von);
       const verlauf = seilVerlauf(von, ziel);
@@ -99,8 +107,8 @@ export function SeilLot() {
     if (typeof ResizeObserver === 'undefined') return;
     const beobachter = new ResizeObserver(() => {
       if (kannFahren(s) && s.getAnimations().length > 0) return;
-      const { oben, ziel } = messen();
-      setzen(oben, ziel);
+      const { oben, ziel, ohneZiel } = messen();
+      setzen(oben, ziel, ohneZiel);
     });
     beobachter.observe(leiste);
     for (const n of leiste.querySelectorAll('nav')) beobachter.observe(n);
