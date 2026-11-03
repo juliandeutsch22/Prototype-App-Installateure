@@ -1,8 +1,12 @@
 # Apache / World4you: im Web-Hauptverzeichnis von senklot.at ablegen.
 DirectoryIndex index.html
+Options -Indexes
 
 <IfModule mod_rewrite.c>
 RewriteEngine On
+
+# Interne Quellen, Zugangsdaten und Zustandsdateien sind nie öffentlich.
+RewriteRule ^(?:senklot-intern|server|werkzeuge|vorlagen|nachweise)(?:/|$) - [F,L,NC]
 
 # Nur die beiden Produktdomain-Varianten umleiten, keine App-Subdomain.
 # 308 erhält auch bei POST die Methode und den Request-Body.
@@ -14,11 +18,21 @@ RewriteRule ^ https://senklot.at%{REQUEST_URI} [R=308,L,NE]
 # index.html ist dieselbe Seite wie das jeweilige Verzeichnis.
 RewriteCond %{THE_REQUEST} \s/+([^?\ ]*/)?index\.html(?:[?\ ]|$) [NC]
 RewriteRule ^(.*)index\.html$ /$1 [R=308,L,NE]
+# Gleiche Formularadressen wie im Entwurf, jetzt mit PHP auf World4you.
+RewriteRule ^api/contact-config$ api/contact-config.php [END]
+RewriteRule ^api/contact$ api/contact.php [END]
 </IfModule>
 
 <IfModule mod_headers.c>
+Header unset X-Powered-By
+Header always unset X-Powered-By
 Header always set X-Content-Type-Options "nosniff"
 Header always set Referrer-Policy "strict-origin-when-cross-origin"
+Header always set X-Frame-Options "DENY"
+Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+# Zunächst nur diese Domain; keine ungeprüften Subdomains und kein Preload.
+Header always set Strict-Transport-Security "max-age=31536000" "expr=%{HTTPS} == 'on'"
 <FilesMatch "\.(?:html|xml|txt)$">
 Header set Cache-Control "no-cache"
 </FilesMatch>

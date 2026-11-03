@@ -1,0 +1,2 @@
+OK untrusted TLS certificate rejected
+OK certificate trusted, message accepted by local SMTP

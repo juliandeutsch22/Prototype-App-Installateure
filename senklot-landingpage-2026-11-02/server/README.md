@@ -1,3 +1,5 @@
+> Dieser Node-/Resend-Weg ist eine alternative Entwicklerkonfiguration. Für das World4you-Hosting gilt jetzt das PHP-/SMTP-Paket und die Anleitung in [VEROEFFENTLICHEN.md](../VEROEFFENTLICHEN.md). Resend ist dafür nicht erforderlich.
+
 # Kontaktformular betreiben
 
 Node.js ab 24.5, keine zusätzlichen Pakete. Im Projektverzeichnis: `npm run preview` für die ausdrücklich gekennzeichnete lokale Vorschau ohne Versand. `npm test` prüft ausschließlich mit simulierten Sicherheits- und Versanddiensten; es werden keine echten E-Mails versendet.

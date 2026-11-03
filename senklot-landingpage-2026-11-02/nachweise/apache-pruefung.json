@@ -1,182 +1,215 @@
 {
   "actualApacheExecution": true,
-  "localContainerOnly": true,
-  "httpsWwwRedirects": true,
-  "queryPreserved": true,
-  "postRedirectIs308": true,
-  "indexRedirects": true,
-  "trailingSlash": true,
-  "sevenPagesServed": true,
+  "phpVersion": "8.3",
+  "localOnly": true,
+  "headersVerified": true,
+  "httpsCertificateVerified": true,
   "privateFilesBlocked": true,
+  "unconfiguredFormFailsClosed": true,
   "checks": [
     {
-      "path": "/?src=test",
-      "host": "senklot.at",
+      "path": "/",
       "method": "GET",
-      "status": 308,
-      "location": "https://senklot.at/?src=test"
+      "https": false,
+      "host": "senklot.at",
+      "status": 308
     },
     {
-      "path": "/einsatzplanung/?utm_source=test&name=a%20b",
-      "host": "www.senklot.at",
-      "method": "GET",
-      "status": 308,
-      "location": "https://senklot.at/einsatzplanung/?utm_source=test&name=a%20b"
-    },
-    {
-      "path": "/api/contact?test=1",
-      "host": "senklot.at",
+      "path": "/api/contact?x=1",
       "method": "POST",
-      "status": 308,
-      "location": "https://senklot.at/api/contact?test=1"
+      "https": false,
+      "host": "senklot.at",
+      "status": 308
     },
     {
-      "path": "/index.html?src=test",
-      "host": "local",
+      "path": "/api/contact-config?x=1",
       "method": "GET",
-      "status": 308,
-      "location": "http://127.0.0.1:5256/?src=test"
+      "https": false,
+      "host": "senklot.at",
+      "status": 308
     },
     {
-      "path": "/zeiterfassung/index.html?src=test",
-      "host": "local",
+      "path": "/einsatzplanung/?q=a%20b",
       "method": "GET",
-      "status": 308,
-      "location": "http://127.0.0.1:5256/zeiterfassung/?src=test"
-    },
-    {
-      "path": "/einsatzplanung?src=test",
-      "host": "local",
-      "method": "GET",
-      "status": 301,
-      "location": "http://127.0.0.1:5256/einsatzplanung/?src=test"
+      "https": true,
+      "host": "www.senklot.at",
+      "status": 308
     },
     {
       "path": "/",
-      "host": "local",
       "method": "GET",
-      "status": 200,
-      "location": null
+      "https": true,
+      "host": null,
+      "status": 200
     },
     {
       "path": "/einsatzplanung/",
-      "host": "local",
       "method": "GET",
-      "status": 200,
-      "location": null
+      "https": true,
+      "host": null,
+      "status": 200
     },
     {
       "path": "/zeiterfassung/",
-      "host": "local",
       "method": "GET",
-      "status": 200,
-      "location": null
+      "https": true,
+      "host": null,
+      "status": 200
     },
     {
       "path": "/handwerksscheine/",
-      "host": "local",
       "method": "GET",
-      "status": 200,
-      "location": null
+      "https": true,
+      "host": null,
+      "status": 200
     },
     {
       "path": "/kunden-baustellen/",
-      "host": "local",
       "method": "GET",
-      "status": 200,
-      "location": null
+      "https": true,
+      "host": null,
+      "status": 200
     },
     {
       "path": "/material-lager/",
-      "host": "local",
       "method": "GET",
-      "status": 200,
-      "location": null
+      "https": true,
+      "host": null,
+      "status": 200
     },
     {
       "path": "/angebote-rechnungen/",
-      "host": "local",
       "method": "GET",
-      "status": 200,
-      "location": null
+      "https": true,
+      "host": null,
+      "status": 200
     },
     {
-      "path": "/robots.txt",
-      "host": "local",
+      "path": "/impressum/",
       "method": "GET",
-      "status": 200,
-      "location": null
+      "https": true,
+      "host": null,
+      "status": 200
     },
     {
-      "path": "/sitemap.xml",
-      "host": "local",
+      "path": "/datenschutz/",
       "method": "GET",
-      "status": 200,
-      "location": null
+      "https": true,
+      "host": null,
+      "status": 200
     },
     {
-      "path": "/assets/planung.webp",
-      "host": "local",
+      "path": "/senklot-intern/config.php",
       "method": "GET",
-      "status": 200,
-      "location": null
+      "https": false,
+      "host": null,
+      "status": 403
     },
     {
-      "path": "/assets/senklot-vorschau.png",
-      "host": "local",
+      "path": "/senklot-intern/config.example.php",
       "method": "GET",
-      "status": 200,
-      "location": null
+      "https": false,
+      "host": null,
+      "status": 403
     },
     {
-      "path": "/landingpage.css?v=20261102-seo2",
-      "host": "local",
+      "path": "/senklot-intern/kontakt.php",
       "method": "GET",
-      "status": 200,
-      "location": null
+      "https": false,
+      "host": null,
+      "status": 403
     },
     {
-      "path": "/effekte.js?v=20261102-seo2",
-      "host": "local",
+      "path": "/senklot-intern/vendor/phpmailer/src/SMTP.php",
       "method": "GET",
-      "status": 200,
-      "location": null
+      "https": false,
+      "host": null,
+      "status": 403
+    },
+    {
+      "path": "/senklot-intern/speicher/zustand.json",
+      "method": "GET",
+      "https": false,
+      "host": null,
+      "status": 403
     },
     {
       "path": "/.env",
-      "host": "local",
       "method": "GET",
-      "status": 403,
-      "location": null
-    },
-    {
-      "path": "/.env.example",
-      "host": "local",
-      "method": "GET",
-      "status": 403,
-      "location": null
+      "https": false,
+      "host": null,
+      "status": 403
     },
     {
       "path": "/.htaccess",
-      "host": "local",
       "method": "GET",
-      "status": 403,
-      "location": null
+      "https": false,
+      "host": null,
+      "status": 403
     },
     {
-      "path": "/package.json",
-      "host": "local",
+      "path": "/api/.user.ini",
       "method": "GET",
-      "status": 403,
-      "location": null
+      "https": false,
+      "host": null,
+      "status": 403
+    },
+    {
+      "path": "/api/",
+      "method": "GET",
+      "https": false,
+      "host": null,
+      "status": 403
+    },
+    {
+      "path": "/server/app.mjs",
+      "method": "GET",
+      "https": false,
+      "host": null,
+      "status": 403
+    },
+    {
+      "path": "/werkzeuge/rechtliches.json",
+      "method": "GET",
+      "https": false,
+      "host": null,
+      "status": 403
+    },
+    {
+      "path": "/api/contact",
+      "method": "GET",
+      "https": false,
+      "host": null,
+      "status": 405
+    },
+    {
+      "path": "/api/contact",
+      "method": "POST",
+      "https": false,
+      "host": null,
+      "status": 503
+    },
+    {
+      "path": "/api/contact-config",
+      "method": "GET",
+      "https": false,
+      "host": null,
+      "status": 200
+    },
+    {
+      "path": "/datenschutz/index.html?x=1",
+      "method": "GET",
+      "https": false,
+      "host": null,
+      "status": 308
     },
     {
       "path": "/nicht-vorhanden/",
-      "host": "local",
       "method": "GET",
-      "status": 404,
-      "location": null
+      "https": false,
+      "host": null,
+      "status": 404
     }
   ],
-  "realWorld4youUploadPerformed": false
+  "world4youUploadPerformed": false
 }

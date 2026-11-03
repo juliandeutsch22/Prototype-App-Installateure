@@ -1,6 +1,6 @@
 # Senklot – Dein Betrieb. Im Lot.
 
-Landingpage auf Grundlage der am 02.11.2026 veröffentlichten App. Die bisherige Preis-/Kontaktfassung ist inzwischen unter senklot.at erreichbar. **Diese neue Revision mit sechs Funktionsseiten, SEO und Animationen ist als Download fertig; sie wurde aus dieser Sitzung noch nicht zu World4you hochgeladen.** Die Betriebssoftware bleibt unverändert.
+Landingpage auf Grundlage der am 02.11.2026 veröffentlichten App. Die bisherige Preis-/Kontaktfassung ist inzwischen unter senklot.at erreichbar. **Die neue Sicherheitsrevision mit PHP/SMTP für World4you, optional aktivierbarem Turnstile und separaten Rechtstext-Entwürfen ist vorbereitet; sie wurde aus dieser Sitzung noch nicht zu World4you hochgeladen.** Die Betriebssoftware bleibt unverändert.
 
 [![Einstieg](01-einstieg.png)](landingpage-1440.png)
 
@@ -8,7 +8,7 @@ Landingpage auf Grundlage der am 02.11.2026 veröffentlichten App. Die bisherige
 - [Vollständige mobile Seite](landingpage-390.png)
 - [Tablet](landingpage-834.png)
 - [Fertige HTML-Seite herunterladen](landingpage.zip?raw=true) – entpacken und mit Node.js ab 24.5 über `npm run preview` starten. Für funktionierende Verzeichnislinks und die Formularprüfung den lokalen Server verwenden.
-- [World4you-Uploadpaket](world4you-upload.zip?raw=true) – nur öffentliche Website-Dateien einschließlich `.htaccess`, Sitemap und Funktionsseiten. Kein Node-Server und keine privaten Konfigurationen. In das Hauptverzeichnis der Domain hochladen.
+- [World4you-Uploadpaket](world4you-upload.zip?raw=true) – Website und geschütztes PHP-Backend einschließlich `.htaccess`, Sitemap und Rechtstext-Entwürfen. Kein Node-Server und keine echten Zugangsdaten. In das Hauptverzeichnis der Domain hochladen.
 - [Veröffentlichung und Google/Bing einrichten](VEROEFFENTLICHEN.md).
 - [Kurze Aufnahme der Animationen](animationen.webm?raw=true).
 
@@ -55,9 +55,9 @@ Die kurzen Erscheinanimationen laufen einmal beim Sichtbarwerden. Reduzierte Bew
 
 Jährliche Vorauszahlung: genau 10 % Rabatt auf zwölf Monatsbeträge. Das entspricht effektiv 116,10 / 206,10 / 341,10 € monatlich; abgerechnet werden 1.393,20 / 2.473,20 / 4.093,20 € jährlich im Voraus. Die Einrichtung wird nicht rabattiert. Alle sechs vom Auftraggeber genannten Paketleistungen sind enthalten.
 
-**Noch nicht live aktiviert:** Cloudflare Turnstile und Resend sind vorbereitet, aber noch nicht als Dienste eingerichtet. Die lokale Vorschau zeigt das ausdrücklich und sendet keine E-Mails. Bei fehlender produktiver Konfiguration bleibt der Versand gesperrt. Für echte Anfragen sind Domainfreigabe, privater CAPTCHA-Schlüssel, verifizierter Mailabsender/API-Schlüssel sowie angepasste Datenschutzhinweise erforderlich. [Konfiguration und Betriebsgrenzen](server/README.md).
+**Noch nicht live aktiviert:** Das World4you-Paket enthält jetzt PHP 8.2+ mit PHPMailer/SMTP statt des ursprünglichen Node-/Resend-Versandwegs. Turnstile lädt nur nach ausdrücklicher Aktivierung. Für echte Anfragen fehlen Postfachdaten, Turnstile-Schlüssel, Betreiberangaben, Prüfung der Rechtstexte und der Upload. Das Formular bleibt bis zur vollständigen privaten Konfiguration gesperrt. [Konkrete Einrichtung und verbleibende Aufgaben](VEROEFFENTLICHEN.md).
 
-`npm test` prüft zwölf serverseitige Fälle mit simulierten Diensten. Browserprüfungen testen zusätzlich Tokenablauf, gesperrte Mehrfachklicks, erhaltene Eingaben bei Fehlern, serverseitige Feldfehler, Wiederholungsschlüssel sowie das Zurücksetzen erst nach bestätigtem Versand. Keine echte Test-E-Mail wurde verschickt. Die tatsächliche Zustellung und Turnstile-Integration müssen nach Einrichtung auf der eigenen Domain noch geprüft werden.
+Die zwölf bisherigen Node-Tests bleiben als Prüfung des Vorschau-/alternativen Backends erhalten. Das neue PHP-Backend hat zusätzliche automatisierte Sicherheits- und Persistenzprüfungen, einen lokalen TLS-SMTP-Test und Browserprüfungen unter echtem Apache/PHP. Protokolle und reproduzierbare Tests stehen unter `nachweise/sicherheit/`. Es wurden keine echten E-Mails versendet. Die reale Turnstile-Integration und der Postfacheingang müssen auf dem eigenen Hosting geprüft werden.
 
 ## Tatsächliche Produktansichten
 
@@ -67,8 +67,8 @@ Die Landingpage übernimmt Petrol, das technische Raster, Poppins und IBM Plex M
 
 ## Prüfung
 
-Geprüft bei 390, 834 und 1440 px: keine horizontalen Dokumentüberläufe, JavaScriptfehler oder fehlenden lokalen Ressourcen. Produkt-Tabs, Tastatursteuerung, Bildvergrößerung, Escape/Rückfokus, Fragen, interne Sprungziele und Kontakt-/Login-Links sind geprüft. Hinzu kommen monatliche/jährliche Preise, Tarifvorauswahl und Formularprüfung ohne Versand. Die automatische axe-Prüfung meldete auf diesen Ansichten keine Befunde; das ersetzt keine vollständige Barrierefreiheitsabnahme.
+Die Sicherheitsrevision wurde auf allen neun Seiten bei 320, 390, 834 und 1440 px geprüft. Die bestehenden Funktionsprüfungen der Startseite liefen bei 390, 834 und 1440 px: keine horizontalen Dokumentüberläufe, JavaScriptfehler oder fehlenden lokalen Ressourcen. Produkt-Tabs, Tastatursteuerung, Bildvergrößerung, Escape/Rückfokus, Fragen, interne Sprungziele und Kontakt-/Login-Links sind geprüft. Hinzu kommen monatliche/jährliche Preise, Tarifvorauswahl und Formularprüfung ohne Versand. Die automatische axe-Prüfung meldete auf diesen Ansichten keine Befunde; das ersetzt keine vollständige Barrierefreiheitsabnahme.
 
 Die Aufnahmen sind keine erneute fachliche Prüfung der Betriebssoftware. Es wurden keine Produktionskonten angemeldet, Geschäftsdaten geschrieben oder E-Mails versendet.
 
-[Quellen und Abgrenzung](QUELLEN.md) · [Messdaten](nachweise/pruefung.json) · [Produktaufnahmen](nachweise/app-aufnahmen.json) · [Formularprüfungen](nachweise/kontakt-pruefung.json) · [Serverprüfungen](nachweise/server-tests.txt) · [SEO-Prüfungen](nachweise/seo-pruefung.json) · [Animationen](nachweise/animationen-pruefung.json) · [Apache](nachweise/apache-pruefung.json)
+[Quellen und Abgrenzung](QUELLEN.md) · [Messdaten](nachweise/pruefung.json) · [Produktaufnahmen](nachweise/app-aufnahmen.json) · [Formularprüfungen](nachweise/kontakt-pruefung.json) · [Serverprüfungen](nachweise/server-tests.txt) · [SEO-Prüfungen](nachweise/seo-pruefung.json) · [Animationen](nachweise/animationen-pruefung.json) · [Apache](nachweise/apache-pruefung.json) · [Sicherheitsprüfung](nachweise/sicherheit/README.md)

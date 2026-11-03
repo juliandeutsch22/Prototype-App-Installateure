@@ -1,0 +1,18 @@
+from pathlib import Path
+import json,hashlib,zipfile,subprocess
+R=Path(__file__).resolve().parents[2]
+u=json.loads((R/'senklot-intern/vendor/phpmailer/UPSTREAM.json').read_text())
+for name,expected in u['files'].items():assert hashlib.sha256((R/'senklot-intern/vendor/phpmailer'/name).read_bytes()).hexdigest()==expected
+js=json.loads(subprocess.check_output(['node','-e','process.stdout.write(JSON.stringify(require("./tarife.js").TARIFE))'],cwd=R));assert js==json.loads((R/'senklot-intern/tarife.json').read_text())
+with zipfile.ZipFile(R/'world4you-upload.zip') as z:
+ assert z.testzip() is None
+ files=z.namelist();assert 'senklot-intern/config.php' not in files
+ assert 'senklot-intern/config.example.php' in files and 'senklot-intern/.htaccess' in files
+ assert not any('/speicher/' in p or p.startswith(('.env','server/','werkzeuge/','nachweise/','vorlagen/')) for p in files)
+ assert len([p for p in files if p.endswith('index.html')])==9
+ for slug in ['impressum','datenschutz']:assert 'noindex,follow' in z.read(slug+'/index.html').decode() and 'Entwurf' in z.read(slug+'/index.html').decode()
+for p in R.glob('*/index.html'):
+ if p.parent.name=='vorlagen':continue
+ assert 'senklot-vorschau.webp' not in p.read_text()
+result={'dependencyHashesVerified':len(u['files']),'phpMailerVersion':u['tag'],'tariffsMatchJavaScript':True,'zipIntegrity':True,'htmlPages':9,'realCredentialsIncluded':False,'savedRequestsIncluded':False,'legalDraftsClearlyMarked':True}
+(R/'nachweise/sicherheit/paket-pruefung.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))

@@ -6,7 +6,7 @@ import json, re, subprocess
 
 ROOT = Path(__file__).resolve().parent.parent
 DOMAIN = 'https://senklot.at'
-VERSION = '20261102-seo2'
+VERSION = '20261103-sicherheit1'
 funktionen = json.loads((ROOT / 'werkzeuge/funktionen.json').read_text())
 tarife = json.loads(subprocess.check_output(['node', '-e', 'process.stdout.write(JSON.stringify(require("./tarife.js").TARIFE))'], cwd=ROOT))
 pfeil = '<svg class="linkpfeil" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg>'
@@ -86,6 +86,7 @@ faq = f'<details><summary>Wie funktioniert die jährliche Vorauszahlung?</summar
 faq += '<details><summary>Wie beginnt die Einrichtung von Senklot?</summary><p>Frag eine persönliche Demo an. Dabei besprechen wir Nutzerzahl, benötigte Module und eure Abläufe. Die Anfrage ist unverbindlich und schließt kein Abonnement ab. Die einmaligen Einrichtungskosten sind in der Preisübersicht getrennt ausgewiesen.</p></details>\n'
 home = home.replace('<div class="faq-liste">', '<div class="faq-liste">\n' + faq, 1)
 home = re.sub(r'assets/([a-z-]+)\.png', r'assets/\1.webp', home)
+home = home.replace('assets/senklot-vorschau.webp', 'assets/senklot-vorschau.png')
 home = home.replace('class="hero-text"', 'class="hero-text" data-erscheinen').replace('class="hero-bild"', 'class="hero-bild" data-erscheinen')
 for cls in ['aussendienst-text', 'kontrollpunkte', 'rollenliste', 'kontakt-text']:
     home = home.replace(f'class="{cls}"', f'class="{cls}" data-erscheinen')
@@ -99,7 +100,7 @@ home = home.replace('</body>', f'<script defer src="effekte.js?v={VERSION}"></sc
 
 header = re.search(r'<header.*?</header>', home, re.S).group(0)
 header = header.replace('href="#"', 'href="../"').replace('href="#', 'href="../#')
-footer = re.search(r'<footer.*?</footer>', home, re.S).group(0).replace('href="#"', 'href="../"')
+footer = re.search(r'<footer.*?</footer>', home, re.S).group(0).replace('href="#"', 'href="../"').replace('href="impressum/"', 'href="../impressum/"').replace('href="datenschutz/"', 'href="../datenschutz/"')
 
 for f in funktionen:
     target = ROOT / f['slug']; target.mkdir(exist_ok=True)

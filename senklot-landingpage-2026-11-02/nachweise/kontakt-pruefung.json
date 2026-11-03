@@ -1,4 +1,7 @@
 {
+  "explicitActivation": true,
+  "revocationReload": true,
+  "noBrowserStorage": true,
   "simulatedProviders": true,
   "realMailSent": false,
   "tokenExpiry": true,

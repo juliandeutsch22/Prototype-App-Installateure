@@ -1,0 +1,226 @@
+{
+  "actualApachePHP": true,
+  "views": [
+    {
+      "slug": "startseite",
+      "width": 320,
+      "scrollWidth": 320,
+      "violations": []
+    },
+    {
+      "slug": "einsatzplanung",
+      "width": 320,
+      "scrollWidth": 320,
+      "violations": []
+    },
+    {
+      "slug": "zeiterfassung",
+      "width": 320,
+      "scrollWidth": 320,
+      "violations": []
+    },
+    {
+      "slug": "handwerksscheine",
+      "width": 320,
+      "scrollWidth": 320,
+      "violations": []
+    },
+    {
+      "slug": "kunden-baustellen",
+      "width": 320,
+      "scrollWidth": 320,
+      "violations": []
+    },
+    {
+      "slug": "material-lager",
+      "width": 320,
+      "scrollWidth": 320,
+      "violations": []
+    },
+    {
+      "slug": "angebote-rechnungen",
+      "width": 320,
+      "scrollWidth": 320,
+      "violations": []
+    },
+    {
+      "slug": "impressum",
+      "width": 320,
+      "scrollWidth": 320,
+      "violations": []
+    },
+    {
+      "slug": "datenschutz",
+      "width": 320,
+      "scrollWidth": 320,
+      "violations": []
+    },
+    {
+      "slug": "startseite",
+      "width": 390,
+      "scrollWidth": 390,
+      "violations": []
+    },
+    {
+      "slug": "einsatzplanung",
+      "width": 390,
+      "scrollWidth": 390,
+      "violations": []
+    },
+    {
+      "slug": "zeiterfassung",
+      "width": 390,
+      "scrollWidth": 390,
+      "violations": []
+    },
+    {
+      "slug": "handwerksscheine",
+      "width": 390,
+      "scrollWidth": 390,
+      "violations": []
+    },
+    {
+      "slug": "kunden-baustellen",
+      "width": 390,
+      "scrollWidth": 390,
+      "violations": []
+    },
+    {
+      "slug": "material-lager",
+      "width": 390,
+      "scrollWidth": 390,
+      "violations": []
+    },
+    {
+      "slug": "angebote-rechnungen",
+      "width": 390,
+      "scrollWidth": 390,
+      "violations": []
+    },
+    {
+      "slug": "impressum",
+      "width": 390,
+      "scrollWidth": 390,
+      "violations": []
+    },
+    {
+      "slug": "datenschutz",
+      "width": 390,
+      "scrollWidth": 390,
+      "violations": []
+    },
+    {
+      "slug": "startseite",
+      "width": 834,
+      "scrollWidth": 834,
+      "violations": []
+    },
+    {
+      "slug": "einsatzplanung",
+      "width": 834,
+      "scrollWidth": 834,
+      "violations": []
+    },
+    {
+      "slug": "zeiterfassung",
+      "width": 834,
+      "scrollWidth": 834,
+      "violations": []
+    },
+    {
+      "slug": "handwerksscheine",
+      "width": 834,
+      "scrollWidth": 834,
+      "violations": []
+    },
+    {
+      "slug": "kunden-baustellen",
+      "width": 834,
+      "scrollWidth": 834,
+      "violations": []
+    },
+    {
+      "slug": "material-lager",
+      "width": 834,
+      "scrollWidth": 834,
+      "violations": []
+    },
+    {
+      "slug": "angebote-rechnungen",
+      "width": 834,
+      "scrollWidth": 834,
+      "violations": []
+    },
+    {
+      "slug": "impressum",
+      "width": 834,
+      "scrollWidth": 834,
+      "violations": []
+    },
+    {
+      "slug": "datenschutz",
+      "width": 834,
+      "scrollWidth": 834,
+      "violations": []
+    },
+    {
+      "slug": "startseite",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "violations": []
+    },
+    {
+      "slug": "einsatzplanung",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "violations": []
+    },
+    {
+      "slug": "zeiterfassung",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "violations": []
+    },
+    {
+      "slug": "handwerksscheine",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "violations": []
+    },
+    {
+      "slug": "kunden-baustellen",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "violations": []
+    },
+    {
+      "slug": "material-lager",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "violations": []
+    },
+    {
+      "slug": "angebote-rechnungen",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "violations": []
+    },
+    {
+      "slug": "impressum",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "violations": []
+    },
+    {
+      "slug": "datenschutz",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "violations": []
+    }
+  ],
+  "externalRequestsBeforeConsent": 0,
+  "cspViolations": 0,
+  "browserErrors": 0,
+  "noBrowserStorage": true,
+  "noJavaScriptContactAlternative": true
+}

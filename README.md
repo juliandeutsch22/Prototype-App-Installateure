@@ -161,3 +161,15 @@ Alle bestehenden Bereiche mit insgesamt **206 Konzeptansichten und Zuständen**,
 618 Darstellungen bei 1440, 834 und 390 px ohne die geprüften Layoutfehler; 42 repräsentative automatisierte WCAG-Prüfungen ohne gemeldete Verstöße. Die Offline-Galerie, der Entwurf und das Konzept benötigen keine Installation oder Netzwerkverbindung.
 
 Dies ist eine Gestaltungsvorlage mit fiktiven Daten. Die App und ihre Produktivdaten wurden nicht geändert oder neu ausgeliefert. Die Umsetzung ist noch nicht begonnen.
+
+
+## Senklot-Website: Sicherheit und World4you-SMTP (03.11.2026)
+
+PHP-/SMTP-Backend mit optional aktivierbarem Cloudflare-Spamschutz, Sicherheitsheadern und separaten Rechtstext-Entwürfen. Die neue Revision ist lokal geprüft und noch nicht auf World4you hochgeladen. Für den Start fehlen Betreiberangaben/rechtliche Prüfung, Postfachdaten und Turnstile-Schlüssel.
+
+- [World4you-Uploadpaket](senklot-landingpage-2026-11-02/world4you-upload.zip?raw=true)
+- [Konkrete Einrichtung und verbleibende Aufgaben](senklot-landingpage-2026-11-02/VEROEFFENTLICHEN.md)
+- [Vollständiges Entwicklerpaket](senklot-landingpage-2026-11-02/landingpage.zip?raw=true)
+- [Prüfprotokolle](senklot-landingpage-2026-11-02/nachweise/sicherheit/README.md)
+
+Echte Konfiguration und gespeicherte Anfragen sind von beiden Paketen ausgeschlossen. Die App bleibt unverändert.

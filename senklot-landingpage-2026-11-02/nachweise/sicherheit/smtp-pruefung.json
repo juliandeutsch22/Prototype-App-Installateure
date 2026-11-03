@@ -1,0 +1,9 @@
+{
+  "localTLSOnly": true,
+  "untrustedCertificateRejected": true,
+  "trustedCertificateAccepted": true,
+  "fixedRecipientVerified": true,
+  "replyToVerified": true,
+  "messageCount": 1,
+  "realMailSent": false
+}

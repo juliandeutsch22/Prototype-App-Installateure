@@ -1,5 +1,5 @@
 {
-  "checkedRelativeReferences": 174,
+  "checkedRelativeReferences": 213,
   "missingReferences": [],
   "viewportWidths": [
     320,
@@ -7,15 +7,12 @@
     834,
     1440
   ],
-  "publicPages": 7,
-  "productScreens": 10,
+  "publicPages": 9,
+  "indexableMarketingPages": 7,
+  "legalPagesAreDrafts": true,
   "appUnchanged": true,
-  "appVersion": "964920ef",
-  "contact": "office@senklot.at",
-  "phone": "+436606322503",
-  "pricing": "net, 10% annual subscription discount",
   "realContactDeliveryConfigured": false,
-  "login": "https://app.senklot.at/",
   "world4youUploadPerformed": false,
-  "googleBingVerificationPerformed": false
+  "googleBingVerificationPerformed": false,
+  "realCredentialsIncluded": false
 }

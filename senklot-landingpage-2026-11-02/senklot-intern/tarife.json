@@ -1,0 +1,20 @@
+{
+  "starter": {
+    "name": "Starter",
+    "nutzer": "Bis 5",
+    "monatCent": 12900,
+    "einrichtungCent": 29000
+  },
+  "team": {
+    "name": "Team",
+    "nutzer": "6–15",
+    "monatCent": 22900,
+    "einrichtungCent": 59000
+  },
+  "betrieb": {
+    "name": "Betrieb",
+    "nutzer": "16–30",
+    "monatCent": 37900,
+    "einrichtungCent": 99000
+  }
+}

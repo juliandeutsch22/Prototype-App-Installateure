@@ -2,3 +2,6 @@
 .env.*
 !.env.example
 node_modules/
+
+senklot-intern/config.php
+senklot-intern/speicher/

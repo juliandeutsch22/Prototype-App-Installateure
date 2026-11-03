@@ -1,36 +1,54 @@
-(function(){
- const form=document.getElementById('anfrageformular');if(!form)return;
+(() => {
+ const form=document.getElementById('anfrageformular'); if(!form)return;
  const send=document.getElementById('anfrage-senden'),status=document.getElementById('formular-status'),schutz=document.getElementById('spamschutz-status'),auswahl=document.getElementById('kontakt-tarif');
- let mode='unavailable',token='',widget=null,pending=false,requestId=null;
- function id(){return crypto.randomUUID();}
- function meldung(text,art='info'){status.textContent=text;status.dataset.art=art;}
- function bereit(){send.disabled=pending||(mode!=='preview'&&(!token||mode!=='live'));}
- function zusammenfassung(){const a=window.SenklotAuswahl;a.tarif=auswahl.value;const p=window.SenklotTarife.preis(a.tarif,a.zahlung);document.getElementById('anfrage-auswahl').textContent=p?`${p.name} · ${a.zahlung==='jaehrlich'?`${window.SenklotTarife.euro(p.jahrCent,true)} netto jährlich im Voraus (10 % Rabatt)`:`${window.SenklotTarife.euro(p.monatCent)} netto pro Monat`} · Einrichtung einmalig ${window.SenklotTarife.euro(p.einrichtungCent)} netto. Unverbindliche Anfrage.`:'Deine Anfrage ist unverbindlich. Der passende Tarif lässt sich gemeinsam klären.';if(!pending)requestId=null;}
+ const aktivieren=document.getElementById('spamschutz-aktivieren'),beenden=document.getElementById('spamschutz-beenden');
+ let mode='unavailable',sitekey='',token='',widget=null,pending=false,activated=false,requestId=null,signature='';
+ const meldung=(text,art='info')=>{status.textContent=text;status.dataset.art=art;};
+ function bereit(){send.disabled=pending||(mode!=='preview'&&(!activated||!token||mode!=='live'));beenden.disabled=pending;}
+ function zusammenfassung(){const a=window.SenklotAuswahl;a.tarif=auswahl.value;const p=window.SenklotTarife.preis(a.tarif,a.zahlung);document.getElementById('anfrage-auswahl').textContent=p?`${p.name} · ${a.zahlung==='jaehrlich'?`${window.SenklotTarife.euro(p.jahrCent,true)} netto jährlich im Voraus (10 % Rabatt)`:`${window.SenklotTarife.euro(p.monatCent)} netto pro Monat`} · Einrichtung einmalig ${window.SenklotTarife.euro(p.einrichtungCent)} netto. Unverbindliche Anfrage.`:'Deine Anfrage ist unverbindlich. Der passende Tarif lässt sich gemeinsam klären.';}
  window.addEventListener('senklot:auswahl',zusammenfassung);auswahl.addEventListener('change',zusammenfassung);zusammenfassung();
- form.addEventListener('input',()=>{if(!pending)requestId=null;});
+ function pruefungFehlgeschlagen(text){token='';schutz.textContent=text;bereit();}
+ aktivieren.addEventListener('click',()=>{
+  if(mode!=='live'||activated)return;activated=true;aktivieren.disabled=true;beenden.hidden=false;
+  schutz.textContent='Die ausdrücklich aktivierte Cloudflare-Sicherheitsprüfung wird geladen.';
+  const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';script.async=true;script.defer=true;
+  script.onload=()=>{try{
+   widget=window.turnstile.render('#turnstile-widget',{sitekey,action:'contact',theme:'light',size:document.getElementById('turnstile-widget').clientWidth<300?'compact':'flexible','response-field':false,
+    callback:t=>{token=typeof t==='string'?t:'';schutz.textContent='Sicherheitsprüfung erfolgreich.';bereit();},
+    'expired-callback':()=>pruefungFehlgeschlagen('Bitte wiederhole die Sicherheitsprüfung.'),
+    'error-callback':()=>pruefungFehlgeschlagen('Die Sicherheitsprüfung ist momentan nicht verfügbar. Du erreichst uns auch direkt per E-Mail oder Telefon.')});
+   aktivieren.hidden=true;
+  }catch{pruefungFehlgeschlagen('Die Sicherheitsprüfung konnte nicht gestartet werden. Bitte lade die Seite neu oder kontaktiere uns direkt.');}};
+  script.onerror=()=>pruefungFehlgeschlagen('Die Sicherheitsprüfung konnte nicht geladen werden. Bitte lade die Seite neu oder kontaktiere uns direkt.');document.head.append(script);
+ });
+ beenden.addEventListener('click',()=>{if(!pending)window.location.reload();});
  async function starten(){
-  try{const r=await fetch('/api/contact-config',{headers:{Accept:'application/json'}});if(!r.ok)throw Error();const c=await r.json();mode=c.mode;
-   if(mode==='preview'){schutz.textContent='Vorschau: Botschutz und E-Mail-Versand sind noch nicht aktiviert. Du kannst das Formular ohne Versand prüfen.';send.textContent='Formular prüfen';bereit();return;}
-   if(mode!=='live'||!c.ready||!c.sitekey)throw Error();
-   const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';script.async=true;script.defer=true;
-   script.onload=()=>{widget=window.turnstile.render('#turnstile-widget',{sitekey:c.sitekey,action:'contact',theme:'light',size:document.getElementById('turnstile-widget').clientWidth<300?'compact':'flexible','response-field':false,callback:t=>{token=t;schutz.textContent='Sicherheitsprüfung erfolgreich.';bereit();},'expired-callback':()=>{token='';schutz.textContent='Bitte wiederhole die Sicherheitsprüfung.';bereit();},'error-callback':()=>{token='';schutz.textContent='Die Sicherheitsprüfung ist momentan nicht verfügbar. Du kannst uns direkt per E-Mail oder Telefon erreichen.';bereit();}});};
-   script.onerror=()=>{token='';schutz.textContent='Die Sicherheitsprüfung konnte nicht geladen werden. Bitte lade die Seite neu oder kontaktiere uns direkt.';bereit();};document.head.append(script);
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+  try{
+   const r=await fetch('/api/contact-config',{headers:{Accept:'application/json'},signal:controller.signal});if(!r.ok)throw Error();const c=await r.json();mode=c.mode;
+   if(mode==='preview'){schutz.textContent='Vorschau: Botschutz und E-Mail-Versand sind nicht aktiviert. Du kannst das Formular ohne Versand prüfen.';send.textContent='Formular prüfen';bereit();return;}
+   if(mode!=='live'||!c.ready||!c.sitekey)throw Error();sitekey=c.sitekey;
+   schutz.textContent='Cloudflare wird erst nach deinem Klick geladen. Alternativ erreichst du uns direkt per E-Mail oder Telefon.';aktivieren.hidden=false;aktivieren.disabled=false;bereit();
   }catch{mode='unavailable';schutz.textContent='Das geschützte Formular ist momentan nicht verfügbar. Du erreichst uns direkt per E-Mail oder Telefon.';bereit();}
+  finally{clearTimeout(timer);}
  }
  form.addEventListener('submit',async e=>{
   e.preventDefault();if(pending||!form.reportValidity()||send.disabled)return;
-  document.querySelectorAll('.feldfehler').forEach(p=>p.textContent='');form.querySelectorAll('[aria-invalid]').forEach(el=>{el.removeAttribute('aria-invalid');el.removeAttribute('aria-describedby');});
-  const data=Object.fromEntries(new FormData(form));data.zahlung=window.SenklotAuswahl.zahlung;data.token=token;data.requestId=requestId??(requestId=id());
+  form.querySelectorAll('.feldfehler').forEach(p=>p.textContent='');form.querySelectorAll('[aria-invalid]').forEach(el=>{el.removeAttribute('aria-invalid');el.removeAttribute('aria-describedby');});
+  const data=Object.fromEntries(new FormData(form));data.zahlung=window.SenklotAuswahl.zahlung;
+  const next=JSON.stringify(data);if(!requestId||next!==signature){requestId=crypto.randomUUID();signature=next;}
+  data.token=token;data.requestId=requestId;data.spamschutzZugestimmt=activated;
   const controls=[...form.querySelectorAll('input,textarea,select')];pending=true;controls.forEach(el=>el.disabled=true);send.setAttribute('aria-busy','true');send.textContent=mode==='preview'?'Wird geprüft …':'Wird gesendet …';bereit();meldung('Bitte einen Moment …');
-  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),20000);
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
   try{
-   const r=await fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(data),signal:controller.signal});const result=await r.json();
+   const r=await fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(data),signal:controller.signal});
+   let result;try{result=await r.json();}catch{throw Error('Die Rückmeldung konnte nicht verarbeitet werden. Deine Angaben bleiben erhalten. Bitte kontaktiere uns bei Bedarf direkt.');}
    if(!r.ok){if(result.fields)for(const[k,v]of Object.entries(result.fields)){const input=form.elements.namedItem(k),error=document.getElementById('fehler-'+k);if(input&&error){input.setAttribute('aria-invalid','true');input.setAttribute('aria-describedby',error.id);error.textContent=String(v);}}throw Error(result.message||'Die Anfrage konnte nicht übermittelt werden. Deine Angaben bleiben erhalten.');}
-   if(result.code==='PREVIEW_ONLY'){meldung(result.message,'vorschau');}
-   else if(result.code==='ACCEPTED'){meldung(result.message,'erfolg');form.reset();window.SenklotAuswahl.tarif='offen';zusammenfassung();requestId=null;}
+   if(result.code==='PREVIEW_ONLY')meldung(result.message,'vorschau');
+   else if(result.code==='ACCEPTED'){meldung(result.message,'erfolg');form.reset();window.SenklotAuswahl.tarif='offen';zusammenfassung();requestId=null;signature='';}
    else throw Error('Die Zustellung konnte nicht bestätigt werden. Deine Angaben bleiben erhalten.');
-  }catch(error){meldung(error.name==='AbortError'?'Die Rückmeldung dauert zu lange. Die Zustellung ist unklar; bitte sende nicht mehrfach. Deine Angaben bleiben erhalten.':error.message||'Die Verbindung ist unterbrochen. Deine Angaben bleiben erhalten.','fehler');}
-  finally{clearTimeout(timeout);pending=false;controls.forEach(el=>el.disabled=false);send.removeAttribute('aria-busy');send.textContent=mode==='preview'?'Formular prüfen':'Anfrage senden';token='';if(widget!==null&&window.turnstile)window.turnstile.reset(widget);bereit();status.focus();}
+  }catch(error){meldung(error.name==='AbortError'?'Die Rückmeldung dauert zu lange. Die Zustellung ist unklar; bitte sende dieselbe Anfrage nicht mehrfach. Deine Angaben bleiben erhalten.':error instanceof TypeError?'Die Verbindung ist unterbrochen. Deine Angaben bleiben erhalten.':error.message,'fehler');}
+  finally{clearTimeout(timer);pending=false;controls.forEach(el=>el.disabled=false);send.removeAttribute('aria-busy');send.textContent=mode==='preview'?'Formular prüfen':'Anfrage senden';token='';if(widget!==null&&window.turnstile)window.turnstile.reset(widget);bereit();status.focus();}
  });
  starten();
 })();

@@ -1,16 +1,87 @@
-# World4you: SEO und neue Seiten veröffentlichen
+# World4you: Sicherheit und Kontaktformular veröffentlichen
 
-Dieses Update ergänzt die bestehende Landingpage, sechs Funktionsseiten und dezente Animationen. Der aktuelle Stand auf senklot.at wurde vor der Bearbeitung nur gelesen. Aus dieser Sitzung ist kein World4you-, Google-Search-Console- oder Bing-Kontozugriff eingerichtet. Deshalb wurde dieses Update **noch nicht auf die Produktdomain hochgeladen** und die Indexierung **noch nicht in den Konten beantragt**.
+Stand 3. November 2026. **Diese Revision ist vorbereitet und lokal getestet; sie wurde aus dieser Sitzung nicht auf World4you hochgeladen.** Weder Hosting- noch Postfach- noch Cloudflare-Zugang sind hier eingerichtet. Die Anwendung unter app.senklot.at wurde nicht verändert.
 
-## 1. Website-Dateien hochladen
+## Was bereits enthalten ist
 
-1. Aktuelle Website-Dateien und eine vorhandene `.htaccess` bei World4you sichern.
-2. `world4you-upload.zip` lokal entpacken. Den **Inhalt** in das Web-Hauptverzeichnis von `senklot.at` hochladen, sodass `index.html`, `robots.txt`, `sitemap.xml`, `.htaccess`, die sechs Funktionsordner und `assets` direkt dort liegen. Versteckte Dateien beim Upload berücksichtigen. Keinen zusätzlichen übergeordneten ZIP-Ordner anlegen.
-3. Eine bereits vorhandene `.htaccess` vor dem Ersetzen prüfen und anwendungsspezifische Regeln zusammenführen. Die mitgelieferte Datei enthält dauerhafte HTTPS-/www-/index.html-Weiterleitungen für **senklot.at und www.senklot.at**. `app.senklot.at` ist davon ausgenommen. Ein gültiges HTTPS-Zertifikat muss für beide Website-Varianten eingerichtet sein, auch für die weiterleitende www-Adresse.
-4. Der Webserver muss `.htaccess`, `mod_rewrite`, `DirectoryIndex` und Apache-2.4-Zugriffsregeln erlauben. Bei abweichender Hostingkonfiguration müssen diese Regeln in der World4you-Konfiguration umgesetzt werden. Die lokale Apache-Prüfung ersetzt den Test auf dem tatsächlichen Hosting nicht.
-5. Die unten aufgeführten URLs und die Weiterleitungen testen. Erwartet: HTTP und www führen mit Status 308 dauerhaft auf `https://senklot.at/`. Pfad und Queryparameter bleiben erhalten. `index.html` führt auf das jeweilige Verzeichnis. 308 erhält im Gegensatz zu manchen 301-Abläufen auch POST-Methode und Body.
+- Keine Analyse- oder Werbeskripte, kein allgemeines Cookiebanner und kein eigener Browser-Speicher. Schriftarten und Bilder bleiben lokal.
+- Cloudflare Turnstile wird erst nach ausdrücklichem Klick mit Datenhinweis geladen. Die Einwilligung wird nicht gespeichert. Deaktivieren lädt die Seite neu; E-Mail und Telefon bleiben Alternativen. Vor der Freigabe muss die rechtliche Bewertung der konkreten Konfiguration erfolgen.
+- Sicherheitsheader (CSP, Schutz vor Einbettung, nosniff, Referrer-/Permissions-Policy und HSTS über HTTPS nur für diese Domain), HTTPS-/www-Weiterleitung und gesperrte interne Verzeichnisse.
+- PHP-8.2+-Kontaktbackend für World4you mit verschlüsseltem, zertifikatsgeprüftem SMTP. Kein Node-Server, Composer oder Resend-Konto auf dem Hosting erforderlich.
+- Servervalidierung, feste Empfängeradresse office@senklot.at, Turnstile-Prüfung einschließlich Host/Aktion, Honeypot, Größenbegrenzung, Dateisperren für parallele PHP-Prozesse, Rate-Limit (8 Versuche pro 15 Minuten/IP-Hash) und Schutz vor wiederholtem Versand derselben Anfrage-ID (48 Stunden).
+- Fehlende Konfiguration oder nicht bestätigter Versand werden nicht als Erfolg angezeigt. Eingaben bleiben bei Fehlern erhalten. Bei unklarer Zustellung wird derselbe Vorgang nicht automatisch erneut verschickt. Der Schutz bezieht sich auf dieselbe Anfrage-ID; nach Neuladen oder bei geänderten Angaben entsteht ein neuer Vorgang.
+- Eigene Impressums- und Datenschutzseiten im bestehenden Design. **Sie sind aktuell sichtbar als Entwurf markiert und dürfen erst nach Vervollständigung als fertige Rechtstexte veröffentlicht werden.** Sie stehen nicht in der Sitemap und sind noindex.
 
-Nur das Upload-ZIP gehört auf den öffentlichen Webspace. Das vollständige Entwicklerpaket enthält zusätzliche Quellen, Node-Server, Tests und Dokumentation. Es gehört nicht vollständig in ein öffentliches PHP-Webverzeichnis. Niemals `.env`, private Schlüssel oder Postfach-Passwörter hochladen.
+## 1. Betreiberangaben und Rechtstexte vervollständigen
+
+Im Entwicklerpaket `werkzeuge/rechtliches.json` ausfüllen:
+
+- `name`: rechtlich vollständiger Name bzw. Firma.
+- `anschrift`: vollständige ladungsfähige Postanschrift.
+- `uid`, `firmenbuch`, `gewerbe`, `aufsicht`, `weitereAngaben`: soweit für Rechtsform, Tätigkeit und Offenlegung erforderlich. Kammerzugehörigkeit/Berufsregeln gegebenenfalls aufnehmen.
+- `hostingDetails`: konkrete vertragliche World4you-Gesellschaft, tatsächliche Standorte, Protokollierung/Löschfristen und Auftragsverarbeitung anhand der Anbieterunterlagen bestätigen und im Text benennen.
+- `turnstileDetails`: geprüfte tatsächliche Dienstkonfiguration, Empfänger, Rechtsgrundlage und Garantien für internationale Übermittlungen beschreiben. Pre-clearance ausgeschaltet lassen.
+
+Nach inhaltlicher/rechtlicher Prüfung `freigegeben` auf `true` setzen. Dann lokal ausführen:
+
+```
+python3 werkzeuge/recht-erstellen.py
+python3 werkzeuge/world4you-paket.py
+```
+
+Benötigt lokal Python mit Pillow und Node. Das neue ZIP enthält die vervollständigten Seiten. Für diesen Schritt sind keine Geheimnisse erforderlich. Alternativ können die beiden fertigen HTML-Rechtstexte fachkundig direkt bearbeitet werden; dann anschließend nicht mit den alten Platzhaltern neu generieren.
+
+**Zusätzlicher bestehender Punkt in der App:** Die untersuchte Datei `src/features/recht/betreiber.ts` enthält ebenfalls Betreiber-Platzhalter und `GEPRUEFT=false`. Diese Angaben sind unabhängig von dieser Website-Revision zu vervollständigen. Das App-Impressum ist keine fertige Ersatzquelle.
+
+## 2. Dateien bei World4you hochladen
+
+1. Aktuellen Webspace einschließlich versteckter Dateien sichern.
+2. PHP **8.2 oder neuer** aktivieren; die PHP-Erweiterungen **curl, openssl und ctype** müssen verfügbar sein.
+3. Nur `world4you-upload.zip` entpacken und dessen Inhalt in das Web-Hauptverzeichnis von senklot.at laden. `index.html`, `.htaccess`, `api/`, `senklot-intern/`, `assets/` und die Seitenverzeichnisse liegen unmittelbar dort. Versteckte `.htaccess` und `api/.user.ini` unbedingt mit übertragen. Nicht den gesamten Entwickler-ZIP auf den öffentlichen Webspace laden.
+4. Bestehende Hosting-Regeln vor dem Ersetzen mit der mitgelieferten `.htaccess` abgleichen. Erforderlich sind Apache-2.4-Regeln mit `mod_rewrite`, `mod_headers`, `AllowOverride` und `Options -Indexes`. Bei HTTP 500 den Hosting-Fehlerbericht prüfen bzw. World4you um die entsprechende Konfiguration bitten; nicht einfach den Zugriffsschutz entfernen.
+5. Gültige HTTPS-Zertifikate für senklot.at und www.senklot.at sicherstellen. Die App-Subdomain wird nicht umgeleitet. HSTS enthält absichtlich weder includeSubDomains noch preload.
+
+Das Upload-ZIP enthält geschützten Backend-Code und eine leere Beispielkonfiguration, **keine echten Zugangsdaten und keine gespeicherten Anfragen**. Bei späteren Updates ist eine bestehende `senklot-intern/config.php` nicht im ZIP und muss erhalten bleiben.
+
+## 3. World4you-Postfach verbinden
+
+Im World4you-Portal die **SMTP-Verbindungsdaten des tatsächlichen Postfachs** ansehen. Der Beispielhost `smtp.world4you.com` ist nur eine Vorgabe und muss mit dem Portal abgeglichen werden.
+
+Auf dem Webspace `senklot-intern/config.example.php` zu `senklot-intern/config.php` kopieren und dort ergänzen:
+
+- `smtp.host`: SMTP-Server aus dem Portal.
+- `smtp.port` / `smtp.security`: **587 / tls** für STARTTLS oder **465 / ssl**, genau nach Anbieterangabe. Unverschlüsselter Versand ist nicht vorgesehen.
+- `smtp.username`: vollständiger Postfach-Benutzername laut Portal, normalerweise office@senklot.at.
+- `smtp.password`: Passwort dieses Postfachs, nicht automatisch das Kundenportal-Passwort.
+- `smtp.from`: zulässiger Absender dieses Postfachs, vorgesehen office@senklot.at.
+
+Empfänger bleibt im Backend fest office@senklot.at. Die Besucheradresse wird ausschließlich Reply-To. Passwörter niemals in Chat, E-Mail, Git oder öffentliche JavaScript-Dateien kopieren. Die PHP-Konfiguration nur über einen verschlüsselten, authentifizierten Hostingzugang bearbeiten. Berechtigungen möglichst eng setzen, beispielsweise 600 oder 640, soweit der PHP-Prozess die Datei lesen kann. `data_dir` muss nur für PHP beschreibbar sein; **kein chmod 777**. Standardmäßig legt PHP dort den Ordner `speicher` selbst an.
+
+SPF/DKIM im World4you-Portal für den tatsächlichen Versand aktivieren/prüfen. Bestehende MX-/SPF-Einträge nicht blind ersetzen und keinen zweiten SPF-Eintrag erstellen. DMARC mit zunächst beobachtender Richtlinie kann danach anhand der vorhandenen Domainkonfiguration eingerichtet werden. Die dafür richtigen DNS-Werte müssen aus deinem Konto kommen.
+
+## 4. Turnstile einrichten
+
+Im Cloudflare-Konto ein **Turnstile-Widget** für `senklot.at` anlegen; falls www als zulässiger Formular-Origin verbleibt, auch diese Domain freigeben. Managed-Modus genügt. **Pre-clearance deaktiviert lassen.**
+
+In der privaten `config.php` `turnstile.site_key` (öffentlich) und `turnstile.secret_key` (geheim) eintragen. Keine Cloudflare-Testschlüssel produktiv verwenden. Die bestehende Website muss dafür nicht pauschal auf Cloudflare-DNS umgestellt werden.
+
+Erst wenn Angaben, Verträge, Datenschutzhinweise und Dienste fertig sind, in der privaten Konfiguration **`legal_ready => true` und `enabled => true`** setzen. Die getrennte Freigabe soll versehentliche Aktivierung verhindern; sie ersetzt keine rechtliche Prüfung.
+
+## 5. Nach dem Upload tatsächlich prüfen
+
+- `https://senklot.at/api/contact-config` liefert bei vollständiger Einrichtung `{mode:"live",ready:true,sitekey:"…"}`. Darin darf nur der öffentliche Widgetschlüssel stehen. Vor Freigabe ist `unavailable` korrekt.
+- `https://senklot.at/senklot-intern/config.php`, `/senklot-intern/config.example.php`, `/senklot-intern/vendor/phpmailer/src/SMTP.php` und `/senklot-intern/speicher/zustand.json` müssen **403** liefern. Falls davon etwas lesbar ist, Formular nicht aktivieren und Hosting-Zugriffsschutz korrigieren.
+- Browser-Netzwerkansicht: vor Klick kein Cloudflare-Aufruf. Nach Aktivierung muss der echte Turnstile-Test funktionieren; nach „Spamschutz deaktivieren und Seite neu laden“ wird Cloudflare nicht erneut geladen.
+- Eine eigene Testanfrage absenden: tatsächlichen Eingang im Postfach **und Spamordner** prüfen, auf die Anfrage antworten und Reply-To kontrollieren. Erst der Postfacheingang bestätigt die reale Zustellung; eine SMTP-Annahme allein garantiert das nicht.
+- Formular auf Mobilgerät und Desktop prüfen, einschließlich Fehlerfall/abgelaufener Prüfung. Keine echten Anfragen zum Testen mehrfach absenden.
+- Mit `curl -I https://senklot.at/` Header prüfen: Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Permissions-Policy, Referrer-Policy und Strict-Transport-Security. HTTPS-/www-Weiterleitung und alle sieben Marketingseiten prüfen. `/impressum/` und `/datenschutz/` dürfen nach Fertigstellung keine Platzhalter mehr enthalten.
+- Hosting-/Postfach-Backups und Aufbewahrung nach tatsächlichem Vertrag prüfen, Zugänge mit 2FA schützen und Passwort-/Schlüsselwechsel sowie Updates des Versandbausteins einplanen. PHPMailer 7.1.1 ist mit konkretem Quellcommit und SHA256 in `senklot-intern/vendor/phpmailer/UPSTREAM.json` dokumentiert.
+
+## Grenzen dieser Prüfung
+
+Lokale Apache-/PHP-, Browser- und TLS-SMTP-Tests prüfen Implementierung und Fehlerfälle. Es wurden **keine echten E-Mails verschickt**, kein Cloudflare-Konto angelegt und keine World4you-Konfiguration geändert. Die Prüfung ist keine vollständige Penetrationsprüfung oder verbindliche rechtliche Freigabe. Ein pauschales Sicherheitsversprechen oder eine garantierte Zustellung wird nicht gegeben.
+
+## Bestehende SEO-Einrichtung
 
 ## 2. Google Search Console
 
@@ -44,21 +115,5 @@ Es wurden keine speziellen KI-Skripte, keine erfundenen Bewertungen und keine Ra
 
 Die Funktionsseiten besitzen individuelle Titel, Beschreibungen, Canonical-URLs und Brotpfade. Die Startseite beschreibt Anbieter, Software und drei monatliche Netto-Abos als strukturierte Daten. Die Einrichtung wird gesondert erklärt. Es wird keine Eignung für besondere Rich Results behauptet.
 
-## Kontaktformular bleibt eine getrennte Einrichtung
 
-Das SEO-Update aktiviert keinen Versand. Die vorhandene Versandvorbereitung ist weiterhin Node/Resend; für die angekündigte PHP-/World4you-SMTP-Variante muss das konkrete Hostingpaket geklärt und der Versandteil angepasst werden. Auf einem rein statischen/PHP-Webspace bleibt die bestehende Formularoberfläche ohne passende API gesperrt und nennt E-Mail und Telefon als Alternativen. Die Funktionsseiten selbst benötigen weder Node noch PHP.
-
-## Animationen und Wartung
-
-Kurze Erscheinanimationen mit 14 Pixeln Versatz laufen beim ersten Sichtbarwerden, nicht als Endlosschleife. Bei reduzierter Bewegung, fehlender Browserunterstützung oder ausgeschaltetem JavaScript bleiben die Inhalte sichtbar. Tastaturfokus und eine nachträgliche Änderung der Bewegungseinstellung beenden laufende Animationen. Formularfelder, Preiswahl und Dialogzustände werden nicht animiert.
-
-Die Produktbilder wurden ohne Pixelverlust nach WebP umgewandelt. Vorher: 1.571.739 Bytes, danach: 551.878 Bytes für zehn Bilder (rund 65 % weniger). Das ist eine gemessene Dateigrößenersparnis, kein pauschaler Lighthouse- oder Core-Web-Vitals-Wert. Die ursprünglichen PNGs bleiben im Entwicklerpaket erhalten.
-
-Neue Inhalte stehen in `werkzeuge/funktionen.json`. `python werkzeuge/seo-erstellen.py` erzeugt die statischen HTML-Seiten und die Sitemap neu. Benötigt lokal Python mit Pillow und Node; die veröffentlichten Funktionsseiten selbst haben keine Generator-Abhängigkeit. Bei weiteren Änderungen den Asset-Versionswert im Generator erhöhen und die Ausgabe erneut prüfen.
-
-## Fachliche Quellen
-
-- https://developers.google.com/search/docs/appearance/ai-features
-- https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview
-- https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls
-- https://developers.openai.com/api/docs/bots
+Die sieben Marketingseiten bleiben indexierbar; die beiden Rechtstexte sind noindex. Sitemap und Suchkonten müssen nach Upload weiterhin im eigenen Konto geprüft werden.
