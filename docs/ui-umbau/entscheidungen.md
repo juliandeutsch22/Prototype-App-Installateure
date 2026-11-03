@@ -835,3 +835,52 @@ Vorgabe des Betriebssystems; gegebenenfalls ist erneutes Hinzufügen nötig.
 Pfadvorlagen ohne Schriftabhängigkeit, identische öffentliche Exporte,
 aktuelle Push-Verweise sowie Anmeldung ohne Mandantenlogo. Ergänzend die
 Produktmarke in heller/dunkler Darstellung und drei Bildschirmbreiten.
+
+**E37 — Luft im Schriftfeld, Zeichen mittig, Rechnung in der Kundenakte
+(03.11.2026).** Rückmeldung des Auftraggebers mit drei Bildschirmfotos.
+
+- **Schriftfeld:** „die Abstände sehen so klein aus, alles wirkt
+  zusammengepfercht“ (Angebot). Beschriftung und Wert lagen direkt an der
+  oberen und unteren Feldlinie (gemessen 4 px). Jetzt je eine halbe Zelle
+  (12 px) oben und unten: das Feld ist drei Zellen hoch statt zwei, seine
+  Kanten bleiben auf dem Raster (E33). Gilt für jedes Schriftfeld.
+- **„Einheitspreis nach Aufmaß“** passte in keiner Breite in ein Feld der
+  Baustellenakte und lief bis zu 72 px ins Nachbarfeld. Im Schriftfeld steht
+  jetzt „Einheitspreis“ als Wert und „nach Aufmaß“ in der kleinen Zeile
+  darunter, wie „offen · nicht festgelegt“. Auswahl, Handwerksschein und
+  alle anderen Stellen behalten das ganze Wort. Ein Wortwert im Schriftfeld
+  bricht künftig um, statt über die Feldlinie zu laufen.
+- **Zustandszeichen:** „die Icons z. B. auf der Startseite sind nicht mit dem
+  Text zentriert“. Das Zeichen stand mittig in der 22 px hohen Box, die
+  Schrift oben darin — 2,5 px unter der Mitte der Buchstaben. Jetzt auf der
+  Grundlinie, um 7 px − 0,35 em (13-px-Wort 2,5 px, 12-px-Startzeile
+  2,75 px; die Linie kennt kein `calc()`) bis zur halben Versalhöhe gerückt.
+  Rechts in den Startzeilen steht das Wort mittig in seiner Box, auf einer
+  Mitte mit „›“ (vorher 1,2 px darüber). Vorn in der Detailzeile bleibt es
+  auf der Grundlinie des Details (31.10.2026).
+- **Rechnung in der Kundenakte:** „die Rechnungen sollten sich direkt in der
+  Akte öffnen lassen … und nicht einfach zur Rechnungsseite wechseln“. Die
+  ganze Zeile (Karte „Rechnungen“ und „Jüngste Belege“) öffnet dasselbe
+  Seitenfenster wie auf der Rechnungsseite: Angaben, Leistungen, Summen,
+  Zahlstand, Mahnungen; die Rechnung, ihre Mahnungen und eine ausgestellte
+  Stornorechnung als PDF. Die PDFs kommen aus einer gemeinsamen Stelle
+  (`belegeLaden.ts`), damit Akte und Rechnungsseite nie verschiedene Belege
+  erzeugen.
+
+**Bewusst so gelassen.** Zahlung erfassen, mahnen, stornieren, Stornorechnung
+ausstellen, E-Rechnung und Bankgarantie bleiben auf der Rechnungsseite — sie
+schreiben Geld- und Belegstände, die Mahnlauf, Zahlungsabgleich und
+Rechnungskreis dort mitführen; ein zweiter Weg zu denselben Buchungen liefe
+auseinander. „In Rechnungen bearbeiten“ im Fenster führt dorthin, mit
+derselben Rechnung schon offen (`?oeffnen=`, einmalig).
+
+**Prüfungen.** `tests/durchklick/rand.spec.ts` misst im Schriftfeld jetzt
+auch oben und unten und prüft die Baustellenakte mit „Einheitspreis“ (ohne
+die Änderung: 4 px oben und unten auf jeder Seite, −72 px rechts);
+`tests/durchklick/zeichenMitte.spec.ts` (Zeichen und „›“ zur Schriftmitte am
+Schreibtisch, am Handy und in einer Liste; ohne die Änderung 2,8 px daneben);
+`tests/durchklick/kundenRechnung.spec.ts` (Fenster in der Akte, PDF,
+Schließen, „In Rechnungen bearbeiten“); `planlinieStil.test.ts`,
+`abrechnung.test.ts`, `BaustellenakteView.test.tsx`,
+`KundenakteView.test.tsx`.
+
