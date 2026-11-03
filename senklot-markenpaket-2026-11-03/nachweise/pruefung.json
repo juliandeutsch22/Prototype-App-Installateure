@@ -1,0 +1,14 @@
+{
+  "svgFiles": 12,
+  "pngFiles": 39,
+  "fontFiles": 10,
+  "svgTextOutlined": true,
+  "svgExternalReferences": false,
+  "allPngTransparent": true,
+  "pngDimensionsCorrect": true,
+  "noCroppedShapes": true,
+  "identicalShapesAcrossColors": true,
+  "germanAndEuroGlyphs": true,
+  "appAndLandingWebfontsIdentical": true,
+  "liveApplicationsChanged": false
+}

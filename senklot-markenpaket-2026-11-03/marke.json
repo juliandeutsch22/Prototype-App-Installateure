@@ -1,0 +1,100 @@
+{
+  "name": "Senklot",
+  "colors": {
+    "petrol": "#0F4552",
+    "weiss": "#FFFFFF",
+    "schwarz": "#000000"
+  },
+  "wordmark": {
+    "font": "Poppins",
+    "weight": 400,
+    "trackingEm": 0.02,
+    "outlineSvg": true
+  },
+  "proportions": {
+    "symbolHeight": 56,
+    "typeSize": 34.72,
+    "gapEm": 0.38
+  },
+  "fonts": [
+    {
+      "family": "Poppins",
+      "weight": 400,
+      "style": "normal",
+      "postScriptName": "Poppins-Regular",
+      "version": "4.004",
+      "coverage": "Latin-Subset wie in der App",
+      "woff2": "schriftarten/woff2/poppins-latin-400-normal.woff2",
+      "woff2Sha256": "7d93459d86585bfcdbb7e0376056226adb25821ee54b96236fe2123e9560929f",
+      "ttf": "schriftarten/ttf/Poppins-Regular-Latin.ttf"
+    },
+    {
+      "family": "Poppins",
+      "weight": 500,
+      "style": "normal",
+      "postScriptName": "Poppins-Medium",
+      "version": "4.004",
+      "coverage": "Latin-Subset wie in der App",
+      "woff2": "schriftarten/woff2/poppins-latin-500-normal.woff2",
+      "woff2Sha256": "cd36de204aca2d5fa263a731f7c20009b5e3d754ba1f1e03c33e93a48f3e7446",
+      "ttf": "schriftarten/ttf/Poppins-Medium-Latin.ttf"
+    },
+    {
+      "family": "Poppins",
+      "weight": 600,
+      "style": "normal",
+      "postScriptName": "Poppins-SemiBold",
+      "version": "4.004",
+      "coverage": "Latin-Subset wie in der App",
+      "woff2": "schriftarten/woff2/poppins-latin-600-normal.woff2",
+      "woff2Sha256": "f4e80d9dfd374d02989b87a27b5ed4cb78fbb177c27f1478e9a8b0afb7513149",
+      "ttf": "schriftarten/ttf/Poppins-SemiBold-Latin.ttf"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weight": 400,
+      "style": "normal",
+      "postScriptName": "IBMPlexMono-Regular",
+      "version": "Version 2.3",
+      "coverage": "Latin-Subset wie in der App",
+      "woff2": "schriftarten/woff2/ibm-plex-mono-latin-400-normal.woff2",
+      "woff2Sha256": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7",
+      "ttf": "schriftarten/ttf/IBMPlexMono-Regular-Latin.ttf"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weight": 500,
+      "style": "normal",
+      "postScriptName": "IBMPlexMono-Medium",
+      "version": "Version 2.3",
+      "coverage": "Latin-Subset wie in der App",
+      "woff2": "schriftarten/woff2/ibm-plex-mono-latin-500-normal.woff2",
+      "woff2Sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+      "ttf": "schriftarten/ttf/IBMPlexMono-Medium-Latin.ttf"
+    }
+  ],
+  "sourceApp": "7589bf0",
+  "geometrySource": "src/components/ProduktMarke.tsx",
+  "appLoadedWeights": {
+    "Poppins": [
+      400,
+      500,
+      600
+    ],
+    "IBM Plex Mono": [
+      400,
+      500
+    ]
+  },
+  "landingLoadedWeights": {
+    "Poppins": [
+      400,
+      500
+    ],
+    "IBM Plex Mono": [
+      400
+    ]
+  },
+  "background": "transparent",
+  "liveAppsModified": false
+}

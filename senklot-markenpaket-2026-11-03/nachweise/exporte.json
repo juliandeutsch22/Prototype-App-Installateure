@@ -1,0 +1,203 @@
+{
+  "svgFiles": 12,
+  "pngFiles": 39,
+  "textOutlined": true,
+  "externalSvgResources": false,
+  "rasterExports": [
+    {
+      "file": "png/1024/senklot-logo-mit-claim-petrol.png",
+      "width": 1024,
+      "transparent": true
+    },
+    {
+      "file": "png/2048/senklot-logo-mit-claim-petrol.png",
+      "width": 2048,
+      "transparent": true
+    },
+    {
+      "file": "png/4096/senklot-logo-mit-claim-petrol.png",
+      "width": 4096,
+      "transparent": true
+    },
+    {
+      "file": "png/1024/senklot-logo-mit-claim-schwarz.png",
+      "width": 1024,
+      "transparent": true
+    },
+    {
+      "file": "png/2048/senklot-logo-mit-claim-schwarz.png",
+      "width": 2048,
+      "transparent": true
+    },
+    {
+      "file": "png/4096/senklot-logo-mit-claim-schwarz.png",
+      "width": 4096,
+      "transparent": true
+    },
+    {
+      "file": "png/1024/senklot-logo-mit-claim-weiss.png",
+      "width": 1024,
+      "transparent": true
+    },
+    {
+      "file": "png/2048/senklot-logo-mit-claim-weiss.png",
+      "width": 2048,
+      "transparent": true
+    },
+    {
+      "file": "png/4096/senklot-logo-mit-claim-weiss.png",
+      "width": 4096,
+      "transparent": true
+    },
+    {
+      "file": "png/1024/senklot-logo-petrol.png",
+      "width": 1024,
+      "transparent": true
+    },
+    {
+      "file": "png/2048/senklot-logo-petrol.png",
+      "width": 2048,
+      "transparent": true
+    },
+    {
+      "file": "png/4096/senklot-logo-petrol.png",
+      "width": 4096,
+      "transparent": true
+    },
+    {
+      "file": "png/1024/senklot-logo-schwarz.png",
+      "width": 1024,
+      "transparent": true
+    },
+    {
+      "file": "png/2048/senklot-logo-schwarz.png",
+      "width": 2048,
+      "transparent": true
+    },
+    {
+      "file": "png/4096/senklot-logo-schwarz.png",
+      "width": 4096,
+      "transparent": true
+    },
+    {
+      "file": "png/1024/senklot-logo-weiss.png",
+      "width": 1024,
+      "transparent": true
+    },
+    {
+      "file": "png/2048/senklot-logo-weiss.png",
+      "width": 2048,
+      "transparent": true
+    },
+    {
+      "file": "png/4096/senklot-logo-weiss.png",
+      "width": 4096,
+      "transparent": true
+    },
+    {
+      "file": "png/1024/senklot-schriftzug-petrol.png",
+      "width": 1024,
+      "transparent": true
+    },
+    {
+      "file": "png/2048/senklot-schriftzug-petrol.png",
+      "width": 2048,
+      "transparent": true
+    },
+    {
+      "file": "png/4096/senklot-schriftzug-petrol.png",
+      "width": 4096,
+      "transparent": true
+    },
+    {
+      "file": "png/1024/senklot-schriftzug-schwarz.png",
+      "width": 1024,
+      "transparent": true
+    },
+    {
+      "file": "png/2048/senklot-schriftzug-schwarz.png",
+      "width": 2048,
+      "transparent": true
+    },
+    {
+      "file": "png/4096/senklot-schriftzug-schwarz.png",
+      "width": 4096,
+      "transparent": true
+    },
+    {
+      "file": "png/1024/senklot-schriftzug-weiss.png",
+      "width": 1024,
+      "transparent": true
+    },
+    {
+      "file": "png/2048/senklot-schriftzug-weiss.png",
+      "width": 2048,
+      "transparent": true
+    },
+    {
+      "file": "png/4096/senklot-schriftzug-weiss.png",
+      "width": 4096,
+      "transparent": true
+    },
+    {
+      "file": "png/256/senklot-zeichen-petrol.png",
+      "width": 256,
+      "transparent": true
+    },
+    {
+      "file": "png/512/senklot-zeichen-petrol.png",
+      "width": 512,
+      "transparent": true
+    },
+    {
+      "file": "png/1024/senklot-zeichen-petrol.png",
+      "width": 1024,
+      "transparent": true
+    },
+    {
+      "file": "png/2048/senklot-zeichen-petrol.png",
+      "width": 2048,
+      "transparent": true
+    },
+    {
+      "file": "png/256/senklot-zeichen-schwarz.png",
+      "width": 256,
+      "transparent": true
+    },
+    {
+      "file": "png/512/senklot-zeichen-schwarz.png",
+      "width": 512,
+      "transparent": true
+    },
+    {
+      "file": "png/1024/senklot-zeichen-schwarz.png",
+      "width": 1024,
+      "transparent": true
+    },
+    {
+      "file": "png/2048/senklot-zeichen-schwarz.png",
+      "width": 2048,
+      "transparent": true
+    },
+    {
+      "file": "png/256/senklot-zeichen-weiss.png",
+      "width": 256,
+      "transparent": true
+    },
+    {
+      "file": "png/512/senklot-zeichen-weiss.png",
+      "width": 512,
+      "transparent": true
+    },
+    {
+      "file": "png/1024/senklot-zeichen-weiss.png",
+      "width": 1024,
+      "transparent": true
+    },
+    {
+      "file": "png/2048/senklot-zeichen-weiss.png",
+      "width": 2048,
+      "transparent": true
+    }
+  ]
+}
