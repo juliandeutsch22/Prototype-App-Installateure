@@ -10,28 +10,28 @@ Stand 3. November 2026. **Diese Revision ist vorbereitet und lokal getestet; sie
 - PHP-8.2+-Kontaktbackend für World4you mit verschlüsseltem, zertifikatsgeprüftem SMTP. Kein Node-Server, Composer oder Resend-Konto auf dem Hosting erforderlich.
 - Servervalidierung, feste Empfängeradresse office@senklot.at, Turnstile-Prüfung einschließlich Host/Aktion, Honeypot, Größenbegrenzung, Dateisperren für parallele PHP-Prozesse, Rate-Limit (8 Versuche pro 15 Minuten/IP-Hash) und Schutz vor wiederholtem Versand derselben Anfrage-ID (48 Stunden).
 - Fehlende Konfiguration oder nicht bestätigter Versand werden nicht als Erfolg angezeigt. Eingaben bleiben bei Fehlern erhalten. Bei unklarer Zustellung wird derselbe Vorgang nicht automatisch erneut verschickt. Der Schutz bezieht sich auf dieselbe Anfrage-ID; nach Neuladen oder bei geänderten Angaben entsteht ein neuer Vorgang.
-- Eigene Impressums- und Datenschutzseiten im bestehenden Design. **Sie sind aktuell sichtbar als Entwurf markiert und dürfen erst nach Vervollständigung als fertige Rechtstexte veröffentlicht werden.** Sie stehen nicht in der Sitemap und sind noindex.
+- Eigene Impressums- und Datenschutzseiten im bestehenden Design mit den von Julian Deutsch bereitgestellten Betreiberangaben und Texten. Cloudflare und der technische Missbrauchs-/Mehrfachversandschutz sind ergänzt. Die Seiten stehen nicht in der Sitemap und sind noindex. Die Einbindung ist keine unabhängige rechtliche Prüfung.
 
-## 1. Betreiberangaben und Rechtstexte vervollständigen
+## 1. Rechtstexte und betriebliche Vorgaben abgleichen
 
-Im Entwicklerpaket `werkzeuge/rechtliches.json` ausfüllen:
+Die am 3. November 2026 bereitgestellten Texte sind eingebunden: Julian Deutsch, Alois-Köberl-Gasse 11, 8200 Gleisdorf, Österreich. Der angegebene Unternehmensstatus „Gründung in Vorbereitung, keine Gewerbeanmeldung und keine Firmenbucheintragung“ ist übernommen. Es wurden keine UID, Gewerbeberechtigung oder Registerangaben erfunden.
 
-- `name`: rechtlich vollständiger Name bzw. Firma.
-- `anschrift`: vollständige ladungsfähige Postanschrift.
-- `uid`, `firmenbuch`, `gewerbe`, `aufsicht`, `weitereAngaben`: soweit für Rechtsform, Tätigkeit und Offenlegung erforderlich. Kammerzugehörigkeit/Berufsregeln gegebenenfalls aufnehmen.
-- `hostingDetails`: konkrete vertragliche World4you-Gesellschaft, tatsächliche Standorte, Protokollierung/Löschfristen und Auftragsverarbeitung anhand der Anbieterunterlagen bestätigen und im Text benennen.
-- `turnstileDetails`: geprüfte tatsächliche Dienstkonfiguration, Empfänger, Rechtsgrundlage und Garantien für internationale Übermittlungen beschreiben. Pre-clearance ausgeschaltet lassen.
+Die Datenschutzerklärung übernimmt die Fristen von zwölf Monaten für unverbindliche Kontaktanfragen nach dem letzten inhaltlichen Kontakt bzw. für gewöhnliche Supportkorrespondenz nach Fallabschluss. Ergänzt wurden die tatsächlich vorbereiteten Funktionen: ausdrückliche Cloudflare-Aktivierung samt möglicher Verarbeitung in den USA, Abrechnungswahl, 15-Minuten-IP-Hash und 48-Stunden-Anfrage-ID/Status/Hash. Die bisherige pauschale Aussage, es seien keine gezielten Drittlandübermittlungen vorgesehen, wurde entsprechend korrigiert.
 
-Nach inhaltlicher/rechtlicher Prüfung `freigegeben` auf `true` setzen. Dann lokal ausführen:
+**Vor Freischaltung weiterhin erforderlich:** tatsächliche World4you-Vertragsgesellschaft, Serverstandorte, Serverlog-Löschfristen und Auftragsverarbeitung prüfen; bei Cloudflare die konkrete Konfiguration, Dienstbedingungen, Auftragsverarbeitung und anwendbaren Garantien für Drittlandübermittlungen prüfen. Die öffentlichen Texte mit diesen tatsächlichen Anbieterangaben abgleichen und gegebenenfalls fachkundig präzisieren. Nicht geprüfte Verträge oder Datenstandorte werden hier nicht als bestätigt dargestellt. `anbieterunterlagenGeprueft` steht deshalb weiterhin auf `false`; diese Dokumentationsangabe aktiviert keinen Versand.
+
+**Die 12-Monats-Fristen im Postfach umsetzen:** Geeigneten regelmäßigen Lösch-/Prüfprozess für unverbindliche Anfragen und erledigte Supportfälle einrichten. Die Website löscht keine Nachrichten aus dem World4you-Postfach. Gesetzliche Aufbewahrungspflichten und konkrete Gründe für eine längere Speicherung jeweils beachten; auch Sicherungskopien berücksichtigen. Die kurzen technischen Formularfristen betreffen nur den separaten pseudonymen Anwendungsspeicher.
+
+Die öffentlichen Betreiberangaben stehen in `werkzeuge/rechtliches.json`, die Texte in `vorlagen/impressum.html` und `vorlagen/datenschutz.html`. Änderungen anschließend neu erzeugen:
 
 ```
 python3 werkzeuge/recht-erstellen.py
 python3 werkzeuge/world4you-paket.py
 ```
 
-Benötigt lokal Python mit Pillow und Node. Das neue ZIP enthält die vervollständigten Seiten. Für diesen Schritt sind keine Geheimnisse erforderlich. Alternativ können die beiden fertigen HTML-Rechtstexte fachkundig direkt bearbeitet werden; dann anschließend nicht mit den alten Platzhaltern neu generieren.
+Benötigt lokal Python mit Pillow und Node. Das erzeugte Upload-ZIP enthält die aktualisierten Seiten. Der frühere Hinweis auf fehlende Namen/Anschrift wurde entfernt; eine unabhängige rechtliche Prüfung oder die Betriebsbereitschaft der Dienste wird damit nicht bestätigt.
 
-**Zusätzlicher bestehender Punkt in der App:** Die untersuchte Datei `src/features/recht/betreiber.ts` enthält ebenfalls Betreiber-Platzhalter und `GEPRUEFT=false`. Diese Angaben sind unabhängig von dieser Website-Revision zu vervollständigen. Das App-Impressum ist keine fertige Ersatzquelle.
+**Getrennte Anwendung:** Die App-Datei `src/features/recht/betreiber.ts` enthält weiterhin ihre bisherigen Platzhalter und `GEPRUEFT=false`. Diese Website-Revision verändert weder App-Rechtstexte noch App-Datenschutzerklärung. Die Website-Erklärung gilt ausdrücklich nur für senklot.at.
 
 ## 2. Dateien bei World4you hochladen
 
@@ -74,7 +74,7 @@ Erst wenn Angaben, Verträge, Datenschutzhinweise und Dienste fertig sind, in de
 - Browser-Netzwerkansicht: vor Klick kein Cloudflare-Aufruf. Nach Aktivierung muss der echte Turnstile-Test funktionieren; nach „Spamschutz deaktivieren und Seite neu laden“ wird Cloudflare nicht erneut geladen.
 - Eine eigene Testanfrage absenden: tatsächlichen Eingang im Postfach **und Spamordner** prüfen, auf die Anfrage antworten und Reply-To kontrollieren. Erst der Postfacheingang bestätigt die reale Zustellung; eine SMTP-Annahme allein garantiert das nicht.
 - Formular auf Mobilgerät und Desktop prüfen, einschließlich Fehlerfall/abgelaufener Prüfung. Keine echten Anfragen zum Testen mehrfach absenden.
-- Mit `curl -I https://senklot.at/` Header prüfen: Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Permissions-Policy, Referrer-Policy und Strict-Transport-Security. HTTPS-/www-Weiterleitung und alle sieben Marketingseiten prüfen. `/impressum/` und `/datenschutz/` dürfen nach Fertigstellung keine Platzhalter mehr enthalten.
+- Mit `curl -I https://senklot.at/` Header prüfen: Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Permissions-Policy, Referrer-Policy und Strict-Transport-Security. HTTPS-/www-Weiterleitung und alle sieben Marketingseiten prüfen. `/impressum/` und `/datenschutz/` müssen die bereitgestellten Betreiberangaben korrekt anzeigen und dürfen keine Platzhalter enthalten.
 - Hosting-/Postfach-Backups und Aufbewahrung nach tatsächlichem Vertrag prüfen, Zugänge mit 2FA schützen und Passwort-/Schlüsselwechsel sowie Updates des Versandbausteins einplanen. PHPMailer 7.1.1 ist mit konkretem Quellcommit und SHA256 in `senklot-intern/vendor/phpmailer/UPSTREAM.json` dokumentiert.
 
 ## Grenzen dieser Prüfung

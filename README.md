@@ -165,7 +165,7 @@ Dies ist eine Gestaltungsvorlage mit fiktiven Daten. Die App und ihre Produktivd
 
 ## Senklot-Website: Sicherheit und World4you-SMTP (03.11.2026)
 
-PHP-/SMTP-Backend mit optional aktivierbarem Cloudflare-Spamschutz, Sicherheitsheadern und separaten Rechtstext-Entwürfen. Die neue Revision ist lokal geprüft und noch nicht auf World4you hochgeladen. Für den Start fehlen Betreiberangaben/rechtliche Prüfung, Postfachdaten und Turnstile-Schlüssel.
+PHP-/SMTP-Backend mit optional aktivierbarem Cloudflare-Spamschutz, Sicherheitsheadern und separaten Rechtstexten mit den bereitgestellten Betreiberangaben. Die neue Revision ist lokal geprüft und noch nicht auf World4you hochgeladen. Betreiberangaben und Texte von Julian Deutsch sind integriert; Cloudflare und technischer Missbrauchsschutz sind ergänzt. Für den Formularstart fehlen weiterhin Anbieterabgleich, Postfachdaten und Turnstile-Schlüssel. Die 12-Monats-Löschfristen sind im Postfach organisatorisch umzusetzen.
 
 - [World4you-Uploadpaket](senklot-landingpage-2026-11-02/world4you-upload.zip?raw=true)
 - [Konkrete Einrichtung und verbleibende Aufgaben](senklot-landingpage-2026-11-02/VEROEFFENTLICHEN.md)

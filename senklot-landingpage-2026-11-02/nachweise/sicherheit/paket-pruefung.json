@@ -6,5 +6,7 @@
   "htmlPages": 9,
   "realCredentialsIncluded": false,
   "savedRequestsIncluded": false,
-  "legalDraftsClearlyMarked": true
+  "operatorDetailsPresent": true,
+  "legalTextsIntegrated": true,
+  "providerDocumentsReviewed": false
 }

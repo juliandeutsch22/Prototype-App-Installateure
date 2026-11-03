@@ -1,8 +1,8 @@
 {
   "stage": "/tmp/senklot-world4you-upload",
   "archive": "world4you-upload.zip",
-  "bytes": 819346,
-  "sha256": "f61082d1f44c9bc51eb5fb847958d7fd006cc28b38da5588068256a60f7aa42b",
+  "bytes": 821779,
+  "sha256": "5c96838a404366c7b3a06f29c5a910f8cfda4f2635cc70a8b81cd7cfb66f6a28",
   "publicFiles": [
     ".htaccess",
     "angebote-rechnungen/index.html",
@@ -53,7 +53,7 @@
     "tarife.js",
     "zeiterfassung/index.html"
   ],
-  "htmlReferencesChecked": 165,
+  "htmlReferencesChecked": 166,
   "missingReferences": [],
   "realCredentialsIncluded": false,
   "protectedBackendIncluded": true,

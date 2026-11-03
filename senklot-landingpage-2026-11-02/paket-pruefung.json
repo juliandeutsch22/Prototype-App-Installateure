@@ -1,5 +1,5 @@
 {
-  "checkedRelativeReferences": 213,
+  "checkedRelativeReferences": 214,
   "missingReferences": [],
   "viewportWidths": [
     320,
@@ -9,7 +9,9 @@
   ],
   "publicPages": 9,
   "indexableMarketingPages": 7,
-  "legalPagesAreDrafts": true,
+  "legalPagesAreDrafts": false,
+  "operatorDetailsIntegrated": true,
+  "providerDocumentsReviewed": false,
   "appUnchanged": true,
   "realContactDeliveryConfigured": false,
   "world4youUploadPerformed": false,

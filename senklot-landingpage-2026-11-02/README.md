@@ -1,6 +1,6 @@
 # Senklot – Dein Betrieb. Im Lot.
 
-Landingpage auf Grundlage der am 02.11.2026 veröffentlichten App. Die bisherige Preis-/Kontaktfassung ist inzwischen unter senklot.at erreichbar. **Die neue Sicherheitsrevision mit PHP/SMTP für World4you, optional aktivierbarem Turnstile und separaten Rechtstext-Entwürfen ist vorbereitet; sie wurde aus dieser Sitzung noch nicht zu World4you hochgeladen.** Die Betriebssoftware bleibt unverändert.
+Landingpage auf Grundlage der am 02.11.2026 veröffentlichten App. Die bisherige Preis-/Kontaktfassung ist inzwischen unter senklot.at erreichbar. **Die neue Sicherheitsrevision mit PHP/SMTP für World4you, optional aktivierbarem Turnstile und separaten Rechtstexten samt bereitgestellten Betreiberangaben ist vorbereitet; sie wurde aus dieser Sitzung noch nicht zu World4you hochgeladen.** Die Betriebssoftware bleibt unverändert.
 
 [![Einstieg](01-einstieg.png)](landingpage-1440.png)
 
@@ -8,7 +8,7 @@ Landingpage auf Grundlage der am 02.11.2026 veröffentlichten App. Die bisherige
 - [Vollständige mobile Seite](landingpage-390.png)
 - [Tablet](landingpage-834.png)
 - [Fertige HTML-Seite herunterladen](landingpage.zip?raw=true) – entpacken und mit Node.js ab 24.5 über `npm run preview` starten. Für funktionierende Verzeichnislinks und die Formularprüfung den lokalen Server verwenden.
-- [World4you-Uploadpaket](world4you-upload.zip?raw=true) – Website und geschütztes PHP-Backend einschließlich `.htaccess`, Sitemap und Rechtstext-Entwürfen. Kein Node-Server und keine echten Zugangsdaten. In das Hauptverzeichnis der Domain hochladen.
+- [World4you-Uploadpaket](world4you-upload.zip?raw=true) – Website und geschütztes PHP-Backend einschließlich `.htaccess`, Sitemap und Rechtstexten. Kein Node-Server und keine echten Zugangsdaten. In das Hauptverzeichnis der Domain hochladen.
 - [Veröffentlichung und Google/Bing einrichten](VEROEFFENTLICHEN.md).
 - [Kurze Aufnahme der Animationen](animationen.webm?raw=true).
 
@@ -55,7 +55,7 @@ Die kurzen Erscheinanimationen laufen einmal beim Sichtbarwerden. Reduzierte Bew
 
 Jährliche Vorauszahlung: genau 10 % Rabatt auf zwölf Monatsbeträge. Das entspricht effektiv 116,10 / 206,10 / 341,10 € monatlich; abgerechnet werden 1.393,20 / 2.473,20 / 4.093,20 € jährlich im Voraus. Die Einrichtung wird nicht rabattiert. Alle sechs vom Auftraggeber genannten Paketleistungen sind enthalten.
 
-**Noch nicht live aktiviert:** Das World4you-Paket enthält jetzt PHP 8.2+ mit PHPMailer/SMTP statt des ursprünglichen Node-/Resend-Versandwegs. Turnstile lädt nur nach ausdrücklicher Aktivierung. Für echte Anfragen fehlen Postfachdaten, Turnstile-Schlüssel, Betreiberangaben, Prüfung der Rechtstexte und der Upload. Das Formular bleibt bis zur vollständigen privaten Konfiguration gesperrt. [Konkrete Einrichtung und verbleibende Aufgaben](VEROEFFENTLICHEN.md).
+**Noch nicht live aktiviert:** Das World4you-Paket enthält jetzt PHP 8.2+ mit PHPMailer/SMTP statt des ursprünglichen Node-/Resend-Versandwegs. Turnstile lädt nur nach ausdrücklicher Aktivierung. Für echte Anfragen fehlen Postfachdaten, Turnstile-Schlüssel, Abgleich der Anbieterunterlagen/Rechtstexte und der Upload. Deine Betreiberangaben und Texte vom 3. November 2026 sind bereits eingearbeitet; die 12-Monats-Fristen sind im Postfach organisatorisch umzusetzen. Das Formular bleibt bis zur vollständigen privaten Konfiguration gesperrt. [Konkrete Einrichtung und verbleibende Aufgaben](VEROEFFENTLICHEN.md).
 
 Die zwölf bisherigen Node-Tests bleiben als Prüfung des Vorschau-/alternativen Backends erhalten. Das neue PHP-Backend hat zusätzliche automatisierte Sicherheits- und Persistenzprüfungen, einen lokalen TLS-SMTP-Test und Browserprüfungen unter echtem Apache/PHP. Protokolle und reproduzierbare Tests stehen unter `nachweise/sicherheit/`. Es wurden keine echten E-Mails versendet. Die reale Turnstile-Integration und der Postfacheingang müssen auf dem eigenen Hosting geprüft werden.
 

@@ -1,12 +1,12 @@
 {
-  "freigegeben": false,
-  "name": "",
-  "anschrift": "",
-  "uid": "",
-  "firmenbuch": "",
-  "gewerbe": "",
-  "aufsicht": "",
-  "weitereAngaben": "",
-  "hostingDetails": "",
-  "turnstileDetails": ""
+  "texteEingearbeitet": true,
+  "anbieterunterlagenGeprueft": false,
+  "name": "Julian Deutsch",
+  "anschrift": "Alois-Köberl-Gasse 11\n8200 Gleisdorf\nÖsterreich",
+  "projekt": "Senklot",
+  "stand": "3. November 2026",
+  "taetigkeit": "Entwicklung und Bereitstellung einer webbasierten Softwarelösung für die Organisation und Verwaltung von Handwerksbetrieben, insbesondere Installationsbetrieben.",
+  "unternehmensstatus": "Die Gründung eines Einzelunternehmens befindet sich in Vorbereitung. Eine Gewerbeanmeldung und eine Firmenbucheintragung liegen derzeit nicht vor.",
+  "grundrichtung": "Diese Website informiert über die Software Senklot, ihre Funktionen, Einsatzmöglichkeiten und geplanten Leistungen. Sie dient der Produktvorstellung und der Kontaktaufnahme mit interessierten Unternehmen.",
+  "urheberrecht": "Die auf dieser Website veröffentlichten Inhalte, Texte, Grafiken und sonstigen Werke unterliegen, soweit anwendbar, dem Urheberrecht. Eine Nutzung über die gesetzlichen Schranken hinaus bedarf der Zustimmung des jeweiligen Rechteinhabers."
 }
