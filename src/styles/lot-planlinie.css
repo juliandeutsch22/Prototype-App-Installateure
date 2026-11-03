@@ -243,10 +243,24 @@
   */
   .navi-punkt-aktiv { background: none; font-weight: 500; }
   .navi-punkt-aktiv:hover { color: #ffffff; }
-  .navi-lot { display: none; }
-  .navi-punkt-aktiv .navi-lot { display: block; position: absolute; left: -0.375rem; top: 0; width: 10px; height: 2.125rem; }
-  .navi-punkt-aktiv .navi-lot::before { content: ''; position: absolute; left: 4.5px; top: 0; width: 1px; height: 1.25rem; background: var(--navi-text); }
-  .navi-punkt-aktiv .navi-lot::after { content: ''; position: absolute; left: 2px; top: 1.25rem; width: 6px; height: 10px; background: #ffffff; clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%); }
+  /*
+    EIN LOT AM SEIL FÜR DIE GANZE LEISTE (Auftrag 03.11.2026, E38). Aufhängung
+    über „Start“, das Seil links neben den Punkten, das Blei mittig neben dem
+    aktiven. `app/NaviLot.tsx` setzt Höhe (`top`) und Länge (`transform`);
+    die Fahrt läuft nur über `transform`. Das Seil ist 1 px hoch und wird auf
+    seine Länge gestreckt, das Blei um dieselbe Länge verschoben — so endet
+    das Seil in jedem Bild der Fahrt genau an der Oberkante des Bleis.
+    Am Tablet steht es 6 px weiter links, weil die Leiste dort weniger Rand hat.
+  */
+  .navi-aufhaengung, .navi-seil, .navi-blei { position: absolute; top: 0; pointer-events: none; z-index: 1; }
+  .navi-aufhaengung { left: 1.5px; width: 7px; height: 1px; background: var(--navi-text); }
+  .navi-seil { left: 4.5px; width: 1px; height: 1px; background: var(--navi-text); transform-origin: 0 0; transform: scaleY(0); }
+  .navi-blei { left: 2px; width: 6px; height: 10px; background: #ffffff; clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%); }
+  @media (min-width: 1200px) {
+    .navi-aufhaengung { left: 7.5px; }
+    .navi-seil { left: 10.5px; }
+    .navi-blei { left: 8px; }
+  }
   .navi .navi-symbol { width: 1.25rem; height: 1.25rem; }
   @media (min-width: 1200px) {
     .navi .navi-symbol { width: 1rem; height: 1rem; }

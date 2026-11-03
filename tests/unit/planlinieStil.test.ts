@@ -59,11 +59,22 @@ describe('B3 Statuszeichen', () => {
 });
 
 describe('B4 Lot in der Navigation', () => {
-  it('steht nur am aktiven Punkt — Seitenleiste und Leiste unten', () => {
-    expect(regel('.navi-lot')).toContain('display: none');
-    expect(regel('.navi-punkt-aktiv .navi-lot')).toContain('display: block');
+  it('gleich geblieben: am Handy steht das Lot nur am aktiven Symbol der unteren Leiste', () => {
     expect(regel('.unten-lot')).toContain('display: none');
     expect(regel('.unten-punkt-aktiv .unten-lot')).toContain('display: block');
+  });
+
+  /*
+    EIN LOT AM SEIL FÜR DIE SEITENLEISTE (E38, 03.11.2026). Das Seil wird nur
+    gestreckt, das Blei nur verschoben — die Fahrt läuft über `transform` und
+    braucht kein neues Layout. Das Lot je Menüpunkt ist weg.
+  */
+  it('Seitenleiste: Aufhängung, Seil und Blei stehen einmal da, bewegt nur über transform', () => {
+    expect(regel('.navi-seil')).toContain('transform-origin: 0 0; transform: scaleY(0);');
+    expect(regel('.navi-seil')).toContain('height: 1px;');
+    expect(PLANLINIE).toMatch(/\n {2}\.navi-blei \{[^}]*clip-path: polygon\(50% 0, 100% 40%, 50% 100%, 0 40%\)/);
+    expect(PLANLINIE).toMatch(/\n {2}\.navi-aufhaengung \{[^}]*height: 1px;/);
+    expect(PLANLINIE).not.toContain('.navi-lot');
   });
 
   it('der aktive Punkt hat keine gefüllte Fläche mehr — das Lot ersetzt sie', () => {

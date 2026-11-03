@@ -28,6 +28,7 @@ import { SeitenHilfeProvider } from '@/components/SeitenHilfe';
 import { useDarstellung } from '@/lib/darstellung';
 import DarstellungsSchalter from '@/components/DarstellungsSchalter';
 import Suchfenster from './Suchfenster';
+import { SeilLot } from './NaviLot';
 import Ladebalken from '@/components/Ladebalken';
 import { datenSparen, imLeerlauf, vorladen } from '@/lib/ansichten';
 import { taktHalten } from '@/lib/takt';
@@ -294,8 +295,6 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const naviEintrag = (item: NavItem) => (
     <NavLink key={item.path} to={item.path} end={item.path === '/'} className={naviPunkt}>
-      {/* Das Lot markiert den aktiven Punkt (Planlinie B4) — statt einer gefüllten Fläche. */}
-      <span className="navi-lot" aria-hidden="true" />
       <NaviSymbol pfad={item.path} ersatz={item.icon} size={16} />
       <span className="navi-text-lang">{item.label}</span>
       <span className="navi-text-kurz" aria-hidden="true">{item.short}</span>
@@ -339,6 +338,8 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Seitenleiste (Schreibtisch) bzw. schmale Leiste (Tablet). */}
       <aside className="navi">
+        {/* Das Lot am Seil markiert den aktiven Punkt (Planlinie B4, E38) — eines für die ganze Leiste. */}
+        <SeilLot />
         <div className="navi-betrieb">{BrandMarkSidebar}</div>
         <button type="button" className="navi-suche" onClick={() => setSucheOffen(true)}>
           <span>Suchen</span>
