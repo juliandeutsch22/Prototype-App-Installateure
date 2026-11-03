@@ -884,3 +884,35 @@ Schließen, „In Rechnungen bearbeiten“); `planlinieStil.test.ts`,
 `abrechnung.test.ts`, `BaustellenakteView.test.tsx`,
 `KundenakteView.test.tsx`.
 
+**E38 — Ein Lot am Seil in der Navigation (03.11.2026).** Auftrag: „der
+Senklot neben dem jeweiligen Menüpunkt sollte sich immer von oben mit dem
+Seil zu dem jeweiligen Menüpunkt runter bzw. rauf lassen … smooth, nicht zu
+ruckelig“; Vorschlag freigegeben („so wie empfohlen“), am Handy „kann es
+bleiben wie bisher“.
+
+- **Ein Lot statt eines je Punkt.** Bis dahin trug jeder aktive Menüpunkt
+  sein eigenes kleines Lot; beim Wechsel verschwand es oben und erschien
+  unten. Jetzt hängt eines an einer Aufhängung (kleiner Querstrich) 6 px über
+  „Start“; das Seil läuft links neben den Punkten an den Gruppen vorbei, das
+  Blei hängt mittig neben dem aktiven Punkt.
+- **Die Fahrt.** Herab: zügig, weich gebremst, bis zu 3 px ins Seil und
+  zurück. Herauf: eingeholt, ohne Überschwingen. Dauer nach Strecke, 200 ms
+  für den Nachbarpunkt bis höchstens 450 ms (`lib/lotSeil.ts`). Ein neuer
+  Klick mitten in der Fahrt lenkt aus der aktuellen Lage um, ohne Sprung.
+- **Flüssig, weil nur `transform` läuft:** das Seil (1 px) wird gestreckt,
+  das Blei um dieselbe Länge verschoben — kein neues Layout, auf der
+  Grafikkarte; das Seil endet in jedem Bild genau am Blei. Gemessen wird nur
+  beim Seitenwechsel und bei Größenänderung (`app/NaviLot.tsx`).
+- **Beim Laden ohne Fahrt** am Ziel; **ohne aktiven Punkt** ist das Seil
+  eingeholt; **„Bewegung reduzieren“** springt ohne Fahrt.
+- **Am Handy** bleibt das Lot über dem aktiven Symbol der unteren Leiste wie
+  bisher (Entscheid des Auftraggebers).
+
+**Prüfungen.** `tests/durchklick/naviLot.spec.ts` zeichnet die Fahrt Bild
+für Bild auf (Schreibtisch und Tablet): stetig in eine Richtung, höchstens
+3 px nachgefedert, kein Überschwingen nach oben, kein Sprung beim Umlenken
+(Geschwindigkeit je Bild), am Ende auf 1 px mittig, Seil von der Aufhängung
+bis an das Blei; eingeholt ohne aktiven Punkt; ohne Fahrt bei reduzierter
+Bewegung. `tests/unit/lotSeil.test.ts`, `planlinieStil.test.ts`. Gegenprobe:
+mit der alten Navigation alle drei Browserwege und die Stilprüfung rot.
+
