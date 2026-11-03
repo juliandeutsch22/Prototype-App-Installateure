@@ -9,7 +9,7 @@ import Icon, { type IconName } from './Icon';
   Kalender.
 */
 const SYMBOLE: Record<string, string> = {
-  '/': 'M8 1.8 V8.6 M8 8.6 L5.6 11.4 L8 14.4 L10.4 11.4 Z',
+  '/': 'M2.5 2.5 H13.5 V13.5 H2.5 Z M2.5 8.5 H6.5 M9 8.5 H13.5 M8 2.5 V5.5',
   '/admin-projects': 'M2.5 13.5 H13.5 M4 13.5 V7.2 L8 4.2 L12 7.2 V13.5 M8 4.2 V9',
   '/my-projects': 'M2.5 13.5 H13.5 M4 13.5 V7.2 L8 4.2 L12 7.2 V13.5 M8 4.2 V9',
   '/assignments': 'M2.5 3.5 H13.5 V13 H2.5 Z M2.5 6.5 H13.5 M6.2 6.5 V13 M9.8 6.5 V13',

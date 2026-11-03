@@ -66,8 +66,10 @@ export function SeilLot() {
     const b = blei.current;
 
     const messen = () => {
+      // Das Suchfeld ist der Träger: das Seil kommt unter seiner Unterkante hervor.
+      const traeger = leiste.querySelector<HTMLElement>('.navi-suche');
       const haupt = leiste.querySelector('nav');
-      const oben = (haupt?.offsetTop ?? 0) - UEBER_START;
+      const oben = traeger ? traeger.offsetTop + traeger.offsetHeight - 1 : (haupt?.offsetTop ?? 0) - UEBER_START;
       const aktiv = leiste.querySelector<HTMLElement>('.navi-punkt-aktiv');
       // Ohne aktiven Punkt wird das Seil eingeholt: das Blei ruht an der Aufhängung.
       const ziel = aktiv ? aktiv.offsetTop + aktiv.offsetHeight / 2 - BLEI_HOEHE / 2 - oben : 0;

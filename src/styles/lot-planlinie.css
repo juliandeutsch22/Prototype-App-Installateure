@@ -253,13 +253,12 @@
     Am Tablet steht es 6 px weiter links, weil die Leiste dort weniger Rand hat.
   */
   .navi-aufhaengung, .navi-seil, .navi-blei { position: absolute; top: 0; pointer-events: none; z-index: 1; }
-  .navi-aufhaengung { left: 1.5px; width: 7px; height: 1px; background: var(--navi-text); }
-  .navi-seil { left: 4.5px; width: 1px; height: 1px; background: var(--navi-text); transform-origin: 0 0; transform: scaleY(0); }
-  .navi-blei { left: 2px; width: 6px; height: 10px; background: #ffffff; clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%); }
+  .navi-aufhaengung { display: none; }
+  .navi-seil { left: 12.5px; width: 1px; height: 1px; background: var(--navi-text); transform-origin: 0 0; transform: scaleY(0); }
+  .navi-blei { left: 10px; width: 6px; height: 10px; background: #ffffff; clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%); }
   @media (min-width: 1200px) {
-    .navi-aufhaengung { left: 7.5px; }
-    .navi-seil { left: 10.5px; }
-    .navi-blei { left: 8px; }
+    .navi-seil { left: 15.5px; }
+    .navi-blei { left: 13px; }
   }
   .navi .navi-symbol { width: 1.25rem; height: 1.25rem; }
   @media (min-width: 1200px) {
