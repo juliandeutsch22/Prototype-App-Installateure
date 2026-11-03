@@ -20,7 +20,7 @@ import { fahrtDauer, seilVerlauf } from '@/lib/lotSeil';
 /** Die Aufhängung sitzt so weit über dem ersten Menüpunkt. */
 const UEBER_START = 6;
 /** Höhe des Senkbleis (`.navi-blei`): das Seil endet an seiner Oberkante. */
-const BLEI_HOEHE = 10;
+const BLEI_HOEHE = 14;
 
 function bewegungReduziert(): boolean {
   return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -66,10 +66,10 @@ export function SeilLot() {
     const b = blei.current;
 
     const messen = () => {
-      // Das Suchfeld ist der Träger: das Seil kommt unter seiner Unterkante hervor.
-      const traeger = leiste.querySelector<HTMLElement>('.navi-suche');
+      // „Start“ ist die Aufhängung: dort hängt das Blei ohne Seil, von dort rollt es ab.
       const haupt = leiste.querySelector('nav');
-      const oben = traeger ? traeger.offsetTop + traeger.offsetHeight - 1 : (haupt?.offsetTop ?? 0) - UEBER_START;
+      const start = haupt?.querySelector<HTMLElement>('a');
+      const oben = start ? start.offsetTop + start.offsetHeight / 2 - BLEI_HOEHE / 2 : (haupt?.offsetTop ?? 0) - UEBER_START;
       const aktiv = leiste.querySelector<HTMLElement>('.navi-punkt-aktiv');
       // Ohne aktiven Punkt wird das Seil eingeholt: das Blei ruht an der Aufhängung.
       const ziel = aktiv ? aktiv.offsetTop + aktiv.offsetHeight / 2 - BLEI_HOEHE / 2 - oben : 0;
