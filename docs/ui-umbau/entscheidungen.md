@@ -1167,6 +1167,6 @@ Rechtstexte direkt anpassen kann? … denke dir das fertig“; nach dem Konzept:
 `mandantenTrennung` (die öffentliche Lesefunktion benannt und begründet),
 `netzFrist`; `tests/unit/rechtstext.test.ts` (neu, 11),
 `Recht.test.tsx` (umgestellt, 9), `Rechtstexte.test.tsx` (neu, 9),
-`RechtstextHinweis.test.tsx` (neu, 6), `rechtstexte.spec.ts` (neu, 1
+`RechtstextHinweis.test.tsx` (neu, 7: dazu eine leere Antwort ohne Absturz), `rechtstexte.spec.ts` (neu, 1
 Browserweg: Plattform → Seiten → Leitung → Monteur). Gegenprobe: ohne die
 Migration und den neuen Code ist jede davon rot.
