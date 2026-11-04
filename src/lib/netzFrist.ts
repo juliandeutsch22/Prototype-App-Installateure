@@ -99,11 +99,13 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'plattform_betriebe',
   'plattform_leitung_mit_zweitem_faktor',
   'plattform_leitungskonten',
+  'rechtstexte_aktuell',
   'ruest_angefordert',
   'schein_loeschbar',
   'schlussrechnungen_ohne_abzug',
   'support_bereiche',
   'unverrechnete_stunden',
+  'verarbeiter_aenderungen',
   'wochenplan_abwesend',
 ]);
 

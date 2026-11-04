@@ -13,6 +13,8 @@
  * mehr.
  */
 import { createClient } from '@supabase/supabase-js';
+import { Client } from 'pg';
+import { fassungEinsAnlegen } from '../rechtstexteFassungEins';
 
 const API = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321';
 const SERVICE =
@@ -101,6 +103,19 @@ async function aufwecken(name: string): Promise<void> {
 export default async function aufbau(): Promise<void> {
   // Die Funktionen, die die Durchklicks aufrufen, zuerst — parallel zum Rest.
   const geweckt = Promise.all([aufwecken('mitarbeiter-anlegen'), aufwecken('passwort-vergeben')]);
+
+  /*
+    IMPRESSUM UND DATENSCHUTZ BRAUCHEN IHRE FASSUNG 1 (E45). Sie kommt mit der
+    Migration; liefen davor die Datenbankprüfungen, haben die alle Tabellen
+    geleert. Derselbe Befehl wie in der Migration, er fügt nur ein, was fehlt.
+  */
+  const db = new Client({ connectionString: process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres' });
+  await db.connect();
+  try {
+    await fassungEinsAnlegen(db);
+  } finally {
+    await db.end();
+  }
 
   // Mit Anschrift: ohne sie stellt die App keine Rechnung aus (§ 11 UStG,
   // Launch-Check 25.09.2026, M1) — ein Betrieb ohne sie ist ein anderer Test.

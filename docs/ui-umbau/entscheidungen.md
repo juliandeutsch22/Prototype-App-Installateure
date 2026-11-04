@@ -1128,3 +1128,45 @@ Verarbeiter), `rechtLot.spec.ts` (neu, 2: je Seite in drei Breiten Raster,
 ein Blatt mit allen Kanten auf Linien, kein seitliches Rollen, kein dunkles
 Band, Ecke 0, Überschriften in 400/500, Entwurf, „Zur App“, Weg zur anderen
 Seite). Gegenprobe mit dem Rahmen davor: alle vier rot.
+
+**E45 — Rechtstexte im globalen Admin (04.11.2026).** Auftrag: „wäre es
+möglich im globalen Admin eine Seite zu machen, in welcher man die
+Rechtstexte direkt anpassen kann? … denke dir das fertig“; nach dem Konzept:
+„ja setze das alles direkt um. Den AVV setze vorerst auf die Roadmap.“
+
+- **Fassungen in der Datenbank** (`rechtstexte`, Migration
+  `20261104130000_rechtstexte.sql`): drei Arten — Betreiberangaben,
+  Impressum, Datenschutzerklärung (mit Unterauftragsverarbeitern). Ein
+  Entwurf je Art; „Veröffentlichen“ macht ihn zur nächsten nummerierten
+  Fassung. Eine Fassung ändert sich nie wieder und lässt sich nicht löschen
+  (Auslöser), damit belegbar bleibt, welcher Text wann galt.
+- **Fassung 1** ist der Text, der bis dahin im Quelltext stand, Wort für
+  Wort (gesetzt verglichen mit der Live-Seite: gleich), mit Stand 05.10.2026;
+  `src/features/recht/betreiber.ts` entfällt.
+- **Schreibweise ohne HTML** (`rechtstext.ts`): Absätze, Aufzählung, fett,
+  Verweise nur auf https:/mailto:/tel:, Platzhalter für die
+  Betreiberangaben und die Liste der Verarbeiter. Gesetzt wird von React als
+  Text — ein Rechtstext kann keinen Schadcode in eine öffentliche Seite
+  tragen.
+- **Rechte**: schreiben nur das Plattformkonto mit zweitem Faktor über drei
+  Funktionen; die Tabelle samt Entwürfen liest nur die Plattform; die
+  geltenden Fassungen liest jeder über `rechtstexte_aktuell()` — auch ohne
+  Anmeldung, ohne dass `anon` ein Recht auf eine Tabelle bekommt.
+- **„Rechtlich geprüft von …“** nur ohne offene Angaben; das Band „Entwurf“
+  steht, solange die Fassung ungeprüft ist oder eine Angabe offen ist.
+  „Stand“ ist die jüngere von Text und Betreiberangaben.
+- **Hinweise**: neue Unterauftragsverarbeiter (Art. 28 Abs. 2 DSGVO) für
+  Geschäftsführung und Administration jedes Betriebs bis „Zur Kenntnis
+  genommen“ (`companies.verarbeiter_kenntnis_am`, ohne Person); eine
+  geänderte Datenschutzerklärung auf Wahl für alle, einmal je Gerät.
+- **Kein Ersatztext im Quelltext**: antwortet die Datenbank nicht, sagt die
+  Seite das und lädt auf Wunsch neu.
+- **AV-Vertrag**: Roadmap (Stand 11.2, Punkt 8).
+
+**Prüfungen.** `tests/supabase/rechtstexte.test.ts` (neu, 11), Wächter
+`mandantenTrennung` (die öffentliche Lesefunktion benannt und begründet),
+`netzFrist`; `tests/unit/rechtstext.test.ts` (neu, 11),
+`Recht.test.tsx` (umgestellt, 9), `Rechtstexte.test.tsx` (neu, 9),
+`RechtstextHinweis.test.tsx` (neu, 7: dazu eine leere Antwort ohne Absturz), `rechtstexte.spec.ts` (neu, 1
+Browserweg: Plattform → Seiten → Leitung → Monteur). Gegenprobe: ohne die
+Migration und den neuen Code ist jede davon rot.

@@ -108,6 +108,13 @@
   .recht-liste { border-bottom: 1px solid var(--border); }
   .recht-liste-name { font-weight: var(--gewicht-titel); color: var(--ink-deep); }
 
+  /* Der Hinweis auf geänderte Rechtstexte oben im Inhalt der App: eine Zeile mit Linie darunter, keine Farbfläche. */
+  .rechtshinweis { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface); font-size: 0.875rem; color: var(--text); }
+  .rechtshinweis svg { flex: none; color: var(--accent-deep); }
+  .rechtshinweis-text { flex: 1 1 18rem; min-width: 0; }
+  .rechtshinweis-text b { font-weight: var(--gewicht-titel); color: var(--ink-deep); }
+  .rechtshinweis-aktionen { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
+
   /* ── Anmeldung ────────────────────────────────────────────────────────── */
   /* Die Karte der Anmeldung — eine Fläche mit Rand, ohne Schatten (Linie „Lot“). */
   .anmelde-karte { width: 100%; max-width: 24rem; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }

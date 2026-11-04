@@ -193,3 +193,26 @@ export const uidPruefungen = [
 export const kalenderAbo = { angelegtAm: Date.parse('2026-10-01T06:00:00Z'), zuletztAbgerufen: Date.parse('2026-10-02T20:15:00Z') };
 
 export * from './plattform-daten';
+
+/**
+ * Rechtstexte (E45) — wie `rechtstexte_aktuell()` sie liefert, gekürzt auf
+ * je zwei Abschnitte: genug, um die Seiten und ihren Rahmen anzusehen.
+ */
+const rechtFassung = <T,>(inhalt: T) => ({ nummer: 1, inhalt, veroeffentlichtAm: '2026-10-05T10:00:00+00:00', geprueft: false, hinweisen: false, neueVerarbeiter: [] as string[] });
+export const rechtstexte = {
+  betreiber: rechtFassung({ name: 'Beispiel Software GmbH', anschrift: 'Beispielgasse 1\n1010 Wien', email: 'office@beispiel.invalid', telefon: '', uid: '', firmenbuch: '', gewerbe: '' }),
+  impressum: rechtFassung({ abschnitte: [
+    { titel: 'Medieninhaber und Diensteanbieter', text: '{Name}\n{Anschrift}\n\nE-Mail: {E-Mail}\nTelefon: {Telefon}' },
+    { titel: 'Grundlegende Richtung', text: 'Senklot ist eine Arbeitsanwendung für Installationsbetriebe. Die Inhalte, die ein Betrieb darin führt, verantwortet dieser Betrieb.' },
+  ] }),
+  datenschutz: rechtFassung({
+    abschnitte: [
+      { titel: 'Wer verantwortlich ist', text: '**Verantwortlich** für die Daten ist der Betrieb, der die App einsetzt. Der Betreiber: {Name}, {Anschrift}, {E-Mail}.' },
+      { titel: 'Wer die Daten technisch verarbeitet', text: 'Der Betreiber setzt diese Unterauftragsverarbeiter ein:\n\n{Unterauftragsverarbeiter}' },
+    ],
+    verarbeiter: [
+      { wer: 'Beispiel Datenbank Inc.', wofuer: 'Datenbank, Anmeldung und Dateispeicher', wo: 'EU' },
+      { wer: 'Beispiel Auslieferung Ltd.', wofuer: 'Auslieferung der App an den Browser', wo: 'weltweit' },
+    ],
+  }),
+};
