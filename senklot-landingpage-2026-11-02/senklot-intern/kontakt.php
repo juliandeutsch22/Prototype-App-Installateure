@@ -6,6 +6,16 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) { http_response_co
 
 const EMPFAENGER = 'office@senklot.at';
 const MAX_BODY = 12000;
+const LOCAL_MIN_SECONDS = 2;
+const LOCAL_TTL_SECONDS = 1800;
+
+function schutzmodus(array $c): string {
+    if (array_key_exists('spam_protection', $c)) return in_array($c['spam_protection'], ['local', 'turnstile'], true) ? $c['spam_protection'] : 'invalid';
+    // Vorhandene Turnstile-Konfigurationen bleiben erhalten; leere Beispiele nutzen den lokalen Schutz.
+    $keys = $c['turnstile'] ?? [];
+    if (!is_array($keys)) return 'invalid';
+    return ($keys['site_key'] ?? '') !== '' || ($keys['secret_key'] ?? '') !== '' ? 'turnstile' : 'local';
+}
 
 function config(): array {
     $file = __DIR__ . '/config.php';
@@ -13,9 +23,14 @@ function config(): array {
 }
 
 function bereit(array $c): bool {
-    $s = $c['smtp'] ?? []; $t = $c['turnstile'] ?? [];
+    $s = $c['smtp'] ?? []; $t = $c['turnstile'] ?? []; $schutz = schutzmodus($c);
+    $turnstileReady = is_string($t['site_key'] ?? null) && $t['site_key'] !== ''
+        && is_string($t['secret_key'] ?? null) && $t['secret_key'] !== ''
+        && !preg_match('/^[123]x0/', $t['site_key']) && !preg_match('/^[123]x0/', $t['secret_key']);
     return ($c['enabled'] ?? false) === true && ($c['legal_ready'] ?? false) === true && PHP_VERSION_ID >= 80200
-        && extension_loaded('openssl') && extension_loaded('curl') && extension_loaded('ctype')
+        && extension_loaded('openssl') && extension_loaded('ctype')
+        && in_array($schutz, ['local', 'turnstile'], true)
+        && ($schutz === 'local' || (extension_loaded('curl') && $turnstileReady))
         && is_array($c['origins'] ?? null) && count($c['origins']) > 0
         && count(array_filter($c['origins'], fn($o) => is_string($o) && preg_match('~^https://[a-z0-9.-]+(?::[0-9]+)?$~iD', $o))) === count($c['origins'])
         && is_string($s['host'] ?? null) && (bool) preg_match('/^[a-z0-9.-]+$/iD', $s['host'])
@@ -24,9 +39,6 @@ function bereit(array $c): bool {
         && is_string($s['password'] ?? null) && $s['password'] !== ''
         && filter_var($s['from'] ?? '', FILTER_VALIDATE_EMAIL) !== false
         && !preg_match('/[\r\n]/', ($s['from_name'] ?? '') . ($s['from'] ?? ''))
-        && is_string($t['site_key'] ?? null) && $t['site_key'] !== ''
-        && is_string($t['secret_key'] ?? null) && $t['secret_key'] !== ''
-        && !preg_match('/^[123]x0/', $t['site_key']) && !preg_match('/^[123]x0/', $t['secret_key'])
         && is_string($c['data_dir'] ?? null) && $c['data_dir'] !== '';
 }
 
@@ -77,7 +89,8 @@ function validieren(mixed $raw): array {
     if (!is_string($d['requestId']) || !preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/iD', $d['requestId'])) $e['formular'] = 'Bitte lade das Formular neu.';
     $d['token'] = $raw['token'] ?? '';
     if (!is_string($d['token']) || strlen($d['token']) > 2048) $e['formular'] = 'Bitte wiederhole die Sicherheitsprüfung.';
-    if (($raw['spamschutzZugestimmt'] ?? false) !== true) $e['formular'] = 'Bitte aktiviere die beschriebene Sicherheitsprüfung oder kontaktiere uns direkt.';
+    $d['spamschutzZugestimmt'] = $raw['spamschutzZugestimmt'] ?? false;
+    if (!is_bool($d['spamschutzZugestimmt'])) $e['formular'] = 'Bitte prüfe die Sicherheitsprüfung.';
     return $e ? ['errors' => $e] : ['data' => $d];
 }
 
@@ -98,7 +111,7 @@ final class Speicher {
         } finally { flock($f, LOCK_UN); fclose($f); }
     }
     public function fingerprint(array $d): string {
-        unset($d['token'], $d['requestId']);
+        unset($d['token'], $d['requestId'], $d['spamschutzZugestimmt']);
         return hash_hmac('sha256', json_encode($d, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), $this->key);
     }
     private function bearbeiten(callable $fn): mixed {
@@ -108,10 +121,13 @@ final class Speicher {
             if (!flock($f, LOCK_EX)) throw new \RuntimeException('Sperre nicht verfügbar');
             @chmod($this->dir . '/zustand.json', 0600);
             if ((fstat($f)['size'] ?? 0) > 2097152) throw new \RuntimeException('Speichergrenze');
-            $raw = stream_get_contents($f); $s = $raw === '' ? ['rate' => [], 'requests' => []] : json_decode($raw, true, 16, JSON_THROW_ON_ERROR);
+            $raw = stream_get_contents($f); $s = $raw === '' ? ['rate' => [], 'requests' => [], 'tokens' => []] : json_decode($raw, true, 16, JSON_THROW_ON_ERROR);
+            $s['tokens'] ??= [];
+            if (!is_array($s['tokens'])) throw new \RuntimeException('Speicher ungültig');
             if (!is_array($s['rate'] ?? null) || !is_array($s['requests'] ?? null)) throw new \RuntimeException('Speicher ungültig');
             foreach ($s['rate'] as $key => $v) if ($v['bis'] <= $this->now) unset($s['rate'][$key]);
             foreach ($s['requests'] as $key => $v) if ($v['bis'] <= $this->now) unset($s['requests'][$key]);
+            foreach ($s['tokens'] as $key => $v) if ($v['bis'] <= $this->now) unset($s['tokens'][$key]);
             $result = $fn($s);
             $text = json_encode($s, JSON_THROW_ON_ERROR); rewind($f);
             if (!ftruncate($f, 0)) throw new \RuntimeException('Speicher nicht verfügbar');
@@ -121,14 +137,43 @@ final class Speicher {
             return $result;
         } finally { flock($f, LOCK_UN); fclose($f); }
     }
-    public function rate(string $ip): bool {
-        $key = hash_hmac('sha256', $ip, $this->key);
-        return $this->bearbeiten(function (&$s) use ($key) {
+    public function rate(string $ip): bool { return $this->begrenzen($ip, 8); }
+    public function tokenRate(string $ip): bool { return $this->begrenzen("token\0" . $ip, 60); }
+    private function begrenzen(string $bucket, int $max): bool {
+        $key = hash_hmac('sha256', $bucket, $this->key);
+        return $this->bearbeiten(function (&$s) use ($key, $max) {
             if (!isset($s['rate'][$key])) {
                 if (count($s['rate']) >= 5000) return false;
                 $s['rate'][$key] = ['anzahl' => 0, 'bis' => $this->now + 900];
             }
-            return ++$s['rate'][$key]['anzahl'] <= 8;
+            return ++$s['rate'][$key]['anzahl'] <= $max;
+        });
+    }
+    public function lokalesToken(string $ip, string $origin): string {
+        $data = ['v' => 1, 'iat' => $this->now, 'nonce' => bin2hex(random_bytes(16))];
+        $payload = rtrim(strtr(base64_encode(json_encode($data, JSON_THROW_ON_ERROR)), '+/', '-_'), '=');
+        return $payload . '.' . hash_hmac('sha256', "form-token:v1\0" . $payload . "\0" . $origin . "\0" . $ip, $this->key);
+    }
+    /** Prüft Signatur, Herkunft, Ablauf und Mindestzeit; verbraucht ein gültiges Token atomar. */
+    public function lokalPruefen(string $token, string $ip, string $origin): string {
+        if (!preg_match('/^([a-zA-Z0-9_-]{20,300})\.([a-f0-9]{64})$/D', $token, $match)) return 'invalid';
+        $expected = hash_hmac('sha256', "form-token:v1\0" . $match[1] . "\0" . $origin . "\0" . $ip, $this->key);
+        if (!hash_equals($expected, $match[2])) return 'invalid';
+        try {
+            $raw = base64_decode(strtr($match[1], '-_', '+/'), true);
+            $data = json_decode($raw === false ? '' : $raw, true, 4, JSON_THROW_ON_ERROR);
+        } catch (\Throwable) { return 'invalid'; }
+        if (($data['v'] ?? null) !== 1 || !is_int($data['iat'] ?? null) || !is_string($data['nonce'] ?? null)
+            || !preg_match('/^[a-f0-9]{32}$/D', $data['nonce'])) return 'invalid';
+        $age = $this->now - $data['iat'];
+        if ($age < 0 || $age >= LOCAL_TTL_SECONDS) return 'expired';
+        if ($age < LOCAL_MIN_SECONDS) return 'early';
+        $key = hash_hmac('sha256', "used-token\0" . $token, $this->key);
+        return $this->bearbeiten(function (&$s) use ($key, $data) {
+            if (isset($s['tokens'][$key])) return 'used';
+            if (count($s['tokens']) >= 2000) throw new \RuntimeException('Speichergrenze');
+            $s['tokens'][$key] = ['bis' => $data['iat'] + LOCAL_TTL_SECONDS];
+            return 'valid';
         });
     }
     public function status(string $id, string $fp, bool $reservieren = false): string {
@@ -146,7 +191,7 @@ final class Speicher {
 }
 
 function euro(int $cent): string { return number_format($cent / 100, 2, ',', '.') . ' €'; }
-function mailText(array $d): string {
+function mailText(array $d, string $protection = 'local'): string {
     $tarife = json_decode(file_get_contents(__DIR__ . '/tarife.json'), true, 8, JSON_THROW_ON_ERROR);
     $t = $d['tarif'] === 'offen' ? null : $tarife[$d['tarif']];
     $angebot = json_decode(file_get_contents(__DIR__ . '/angebot.json'), true, 8, JSON_THROW_ON_ERROR);
@@ -157,7 +202,7 @@ function mailText(array $d): string {
         $lines[] = $d['einrichtung'] ? 'Optionale Einrichtung angefragt: ' . euro($t['einrichtungCent']) . ' netto einmalig' : 'Begleitete Einrichtung: nicht angefragt; keine Einrichtungsgebühr für eigenständigen Start.';
     }
     if (!$t) $lines[] = $d['einrichtung'] ? 'Optionale Einrichtung angefragt: Umfang und Preis vorab vereinbaren.' : 'Begleitete Einrichtung: nicht angefragt.';
-    return implode("\n", [...$lines, '', 'Nachricht:', $d['nachricht'] ?: 'Keine zusätzliche Nachricht.', '', 'Anfrage-ID: ' . $d['requestId'], 'Unverbindliche Anfrage; kein Vertragsabschluss.', 'Externe Sicherheitsprüfung wurde im Formular ausdrücklich aktiviert.']);
+    return implode("\n", [...$lines, '', 'Nachricht:', $d['nachricht'] ?: 'Keine zusätzliche Nachricht.', '', 'Anfrage-ID: ' . $d['requestId'], 'Unverbindliche Anfrage; kein Vertragsabschluss.', $protection === 'turnstile' ? 'Externe Sicherheitsprüfung wurde im Formular ausdrücklich aktiviert.' : 'Lokaler Formularschutz geprüft; keine externe Sicherheitsprüfung geladen.']);
 }
 
 function turnstile(array $c, string $token, string $ip): array {
@@ -195,12 +240,20 @@ function verarbeiten(string $method, array $headers, string $body, string $ip, a
     $fertig = fn() => antwort(200, ['code' => 'ACCEPTED', 'message' => 'Vielen Dank. Deine Anfrage wurde übermittelt. Wir melden uns bei dir.']);
     if ($status === 'accepted') return $fertig();
     if ($status !== 'new') return antwort(409, ['message' => 'Diese Anfrage wird bereits verarbeitet oder ihre Zustellung ist unklar. Bitte sende sie nicht mehrfach; du erreichst uns auch per E-Mail oder Telefon.']);
-    if ($d['token'] === '') return antwort(403, ['message' => 'Bitte schließe die Sicherheitsprüfung ab.']);
-    try { $r = $verify($d['token'], $ip); } catch (\Throwable) { return antwort(503, ['message' => 'Die Sicherheitsprüfung ist momentan nicht erreichbar. Deine Angaben bleiben erhalten.']); }
-    if (($r['success'] ?? false) !== true || ($r['action'] ?? '') !== 'contact' || ($r['hostname'] ?? '') !== parse_url($origin, PHP_URL_HOST)) return antwort(403, ['message' => 'Die Sicherheitsprüfung ist nicht mehr gültig. Bitte wiederhole sie.']);
+    $protection = schutzmodus($c);
+    if ($protection === 'turnstile') {
+        if (!$d['spamschutzZugestimmt']) return antwort(403, ['message' => 'Bitte aktiviere die beschriebene Sicherheitsprüfung oder kontaktiere uns direkt.']);
+        if ($d['token'] === '') return antwort(403, ['message' => 'Bitte schließe die Sicherheitsprüfung ab.']);
+        try { $r = $verify($d['token'], $ip); } catch (\Throwable) { return antwort(503, ['message' => 'Die Sicherheitsprüfung ist momentan nicht erreichbar. Deine Angaben bleiben erhalten.']); }
+        if (($r['success'] ?? false) !== true || ($r['action'] ?? '') !== 'contact' || ($r['hostname'] ?? '') !== parse_url($origin, PHP_URL_HOST)) return antwort(403, ['message' => 'Die Sicherheitsprüfung ist nicht mehr gültig. Bitte wiederhole sie.']);
+    } elseif ($protection === 'local') {
+        $checked = $store->lokalPruefen($d['token'], $ip, $origin);
+        if ($checked === 'early') return antwort(429, ['code' => 'FORM_TOO_EARLY', 'message' => 'Bitte warte einen Moment und sende die Anfrage dann erneut.'], ['Retry-After' => (string) LOCAL_MIN_SECONDS]);
+        if ($checked !== 'valid') return antwort(403, ['code' => 'FORM_TOKEN_INVALID', 'message' => 'Das Formular wird neu vorbereitet. Deine Angaben bleiben erhalten; bitte sende danach erneut.']);
+    } else return antwort(503, ['message' => 'Das Formular ist momentan nicht verfügbar.']);
     $status = $store->status($d['requestId'], $fp, true);
     if ($status === 'accepted') return $fertig();
     if ($status !== 'reserved') return antwort(409, ['message' => 'Diese Anfrage wird bereits verarbeitet. Bitte sende sie nicht mehrfach.']);
-    try { $send($d, mailText($d)); $store->setzen($d['requestId'], 'accepted'); return $fertig(); }
+    try { $send($d, mailText($d, $protection)); $store->setzen($d['requestId'], 'accepted'); return $fertig(); }
     catch (\Throwable) { try { $store->setzen($d['requestId'], 'uncertain'); } catch (\Throwable) {} return antwort(502, ['message' => 'Die Zustellung konnte nicht bestätigt werden. Bitte sende dieselbe Anfrage nicht mehrfach. Deine Angaben bleiben erhalten; du erreichst uns direkt per E-Mail oder Telefon.']); }
 }

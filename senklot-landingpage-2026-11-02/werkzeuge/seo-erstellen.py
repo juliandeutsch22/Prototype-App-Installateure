@@ -6,7 +6,7 @@ import json, re, subprocess
 
 ROOT = Path(__file__).resolve().parent.parent
 DOMAIN = 'https://senklot.at'
-VERSION = '20261104-feedback2'
+VERSION = '20261104-lokal1'
 funktionen = json.loads((ROOT / 'werkzeuge/funktionen.json').read_text())
 tarifquelle = json.loads(subprocess.check_output(['node', '-e', 'process.stdout.write(JSON.stringify(require("./tarife.js")))'], cwd=ROOT))
 tarife = tarifquelle['TARIFE']

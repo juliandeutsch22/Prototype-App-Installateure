@@ -1,13 +1,14 @@
 {
   "stage": "/tmp/senklot-world4you-upload",
   "archive": "world4you-upload.zip",
-  "bytes": 826868,
-  "sha256": "5c6dfff1dbb5e93199982e068c182fe789180b6cdf864d43d7e8cd65782018ea",
+  "bytes": 830227,
+  "sha256": "ee838d616690850cecc87e359d73df302cc970ac3d2f4c22ac0b222e70b6b9ce",
   "publicFiles": [
     ".htaccess",
     "angebote-rechnungen/index.html",
     "api/.user.ini",
     "api/contact-config.php",
+    "api/contact-token.php",
     "api/contact.php",
     "assets/LICENSE-IBM-Plex-Mono.txt",
     "assets/LICENSE-Poppins.txt",

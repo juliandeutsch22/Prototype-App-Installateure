@@ -7,7 +7,6 @@ OK Ungültiges Feld nutzer abgelehnt
 OK Ungültiges Feld tarif abgelehnt
 OK Ungültiges Feld zahlung abgelehnt
 OK Ungültiges Feld website abgelehnt
-OK Ungültiges Feld spamschutzZugestimmt abgelehnt
 OK Ungültiges Feld requestId abgelehnt
 OK Ungültiges Feld nachricht abgelehnt
 OK Ungültiges Feld token abgelehnt
@@ -21,6 +20,7 @@ OK Turnstile Ergebnis / Host / Aktion geprüft
 OK Turnstile Ergebnis / Host / Aktion geprüft
 OK Turnstile Ergebnis / Host / Aktion geprüft
 OK Prüfungsfehler sicher abgefangen
+OK Turnstile verlangt ausdrückliche Aktivierung
 OK Kein Versand bei abgelehnten Anfragen
 OK Ohne Token kein Versand
 OK Preise aus serverseitigem Tarif, Einrichtung unverändert

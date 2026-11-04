@@ -14,3 +14,11 @@ Die Prüfscripte liegen neben diesen Protokollen. Die Testumgebung verwendet Doc
 Der Testserver `smtp-mock.py` bindet nur 127.0.0.1:5283. Testzertifikate liegen ausschließlich im temporären Testverzeichnis und werden nicht ausgeliefert. Im Produktivcode wird die TLS-Zertifikatsprüfung weder deaktiviert noch durch eine Test-CA ersetzt.
 
 Offen bleiben der reale World4you-Upload, echte Kontokonfiguration, Prüfung der Rechtstexte und tatsächliche Zustellung/Turnstile auf der Produktdomain. Die Tests sind keine vollständige Penetrationsprüfung.
+
+## Lokaler Formularschutz
+
+`lokal-tests.txt` prüft zusätzlich Herkunftsbindung, Signaturen, Mindestzeit, Ablauf, Einmalverwendung mit 16 parallelen Prozessen, Schlüsseltrennung, getrennte Anfragebegrenzungen, Fehlerfälle und Kompatibilität mit bisherigen Konfigurationen/Zustandsdateien.
+
+`lokal-http-pruefung.json` stammt aus einer isolierten Apache/PHP-Instanz mit ausschließlich künstlicher SMTP-Konfiguration und einem lokalen TLS-SMTP-Testserver. Geprüft werden das echte Vorbereiten und Absenden ohne Cloudflare-Schlüssel, gesperrte interne Dateien, Origin-/JSON-/Größengrenzen, Mindestzeit, Token-Replay, feste Empfängeradresse und freiwillige Einrichtung. Die Test-CA wird nur in der Testinstanz ausdrücklich vertraut. Die Produktions-SMTP-Verbindung prüft weiterhin das Serverzertifikat. Der lokale Testserver fordert kein Client-Zertifikat und leitet keine E-Mail nach außen weiter.
+
+`lokal-browser-pruefung.json` prüft den lokalen Live-Modus bei vier Bildschirmbreiten mit simulierten Tokens: keine externen Requests, kein Browser-Speicher, Erneuerung, Wiederholungsschlüssel, Fehlererhalt und Erholung nach Ablauf oder Verbindungsfehler. Der tatsächliche kryptographische Token-/HTTP-Ablauf wird separat durch die PHP- und HTTP-Prüfungen geprüft.

@@ -1,0 +1,52 @@
+{
+  "views": [
+    {
+      "width": 320,
+      "noExternalRequests": true,
+      "noCookiesOrBrowserStorage": true,
+      "tokenRefresh": true,
+      "stableRetryId": true,
+      "optionalSetupPreserved": true,
+      "fieldsRetainedOnError": true,
+      "busyGuard": true,
+      "resetOnlyOnAccepted": true
+    },
+    {
+      "width": 390,
+      "noExternalRequests": true,
+      "noCookiesOrBrowserStorage": true,
+      "tokenRefresh": true,
+      "stableRetryId": true,
+      "optionalSetupPreserved": true,
+      "fieldsRetainedOnError": true,
+      "busyGuard": true,
+      "resetOnlyOnAccepted": true
+    },
+    {
+      "width": 834,
+      "noExternalRequests": true,
+      "noCookiesOrBrowserStorage": true,
+      "tokenRefresh": true,
+      "stableRetryId": true,
+      "optionalSetupPreserved": true,
+      "fieldsRetainedOnError": true,
+      "busyGuard": true,
+      "resetOnlyOnAccepted": true
+    },
+    {
+      "width": 1440,
+      "noExternalRequests": true,
+      "noCookiesOrBrowserStorage": true,
+      "tokenRefresh": true,
+      "stableRetryId": true,
+      "optionalSetupPreserved": true,
+      "fieldsRetainedOnError": true,
+      "busyGuard": true,
+      "resetOnlyOnAccepted": true
+    }
+  ],
+  "preparationFailureHasRetry": true,
+  "automaticExpiryRefreshRetainsFields": true,
+  "simulatedLocalTokens": true,
+  "realMailSent": false
+}

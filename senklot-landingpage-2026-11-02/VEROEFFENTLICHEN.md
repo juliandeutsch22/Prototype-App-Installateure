@@ -5,10 +5,10 @@ Stand 4. November 2026. **Diese Revision ist vorbereitet und lokal getestet; sie
 ## Was bereits enthalten ist
 
 - Keine Analyse- oder Werbeskripte, kein allgemeines Cookiebanner und kein eigener Browser-Speicher. Schriftarten und Bilder bleiben lokal.
-- Cloudflare Turnstile wird erst nach ausdrücklichem Klick mit Datenhinweis geladen. Die Einwilligung wird nicht gespeichert. Deaktivieren lädt die Seite neu; E-Mail und Telefon bleiben Alternativen. Vor der Freigabe muss die rechtliche Bewertung der konkreten Konfiguration erfolgen.
+- Standardmäßig arbeitet der Formularschutz lokal mit Honeypot, Mindestzeit, signierten Einmal-Tokens und Anfragebegrenzung. Cloudflare ist dafür nicht erforderlich. Falls später Turnstile gewählt wird, lädt der Dienst erst nach ausdrücklichem Klick mit Datenhinweis. Die Einwilligung wird nicht gespeichert. Deaktivieren lädt die Seite neu; E-Mail und Telefon bleiben Alternativen. Vor der Freigabe muss die rechtliche Bewertung der konkreten Konfiguration erfolgen.
 - Sicherheitsheader (CSP, Schutz vor Einbettung, nosniff, Referrer-/Permissions-Policy und HSTS über HTTPS nur für diese Domain), HTTPS-/www-Weiterleitung und gesperrte interne Verzeichnisse.
 - PHP-8.2+-Kontaktbackend für World4you mit verschlüsseltem, zertifikatsgeprüftem SMTP. Kein Node-Server, Composer oder Resend-Konto auf dem Hosting erforderlich.
-- Servervalidierung, feste Empfängeradresse office@senklot.at, Turnstile-Prüfung einschließlich Host/Aktion, Honeypot, Größenbegrenzung, Dateisperren für parallele PHP-Prozesse, Rate-Limit (8 Versuche pro 15 Minuten/IP-Hash) und Schutz vor wiederholtem Versand derselben Anfrage-ID (48 Stunden).
+- Servervalidierung, feste Empfängeradresse office@senklot.at, lokaler Tokenprüfung (höchstens 30 Minuten gültig, zwei Sekunden Mindestzeit) bzw. optionaler Turnstile-Prüfung einschließlich Host/Aktion, Honeypot, Größenbegrenzung, Dateisperren für parallele PHP-Prozesse, Rate-Limit (8 Versuche pro 15 Minuten/IP-Hash) und Schutz vor wiederholtem Versand derselben Anfrage-ID (48 Stunden).
 - Fehlende Konfiguration oder nicht bestätigter Versand werden nicht als Erfolg angezeigt. Eingaben bleiben bei Fehlern erhalten. Bei unklarer Zustellung wird derselbe Vorgang nicht automatisch erneut verschickt. Der Schutz bezieht sich auf dieselbe Anfrage-ID; nach Neuladen oder bei geänderten Angaben entsteht ein neuer Vorgang.
 - Eigene Impressums- und Datenschutzseiten im bestehenden Design mit den von Julian Deutsch bereitgestellten Betreiberangaben und Texten. Cloudflare und der technische Missbrauchs-/Mehrfachversandschutz sind ergänzt. Die Seiten stehen nicht in der Sitemap und sind noindex. Die Einbindung ist keine unabhängige rechtliche Prüfung.
 
@@ -28,7 +28,7 @@ Die am 3. November 2026 bereitgestellten Texte sind eingebunden: Julian Deutsch,
 
 Die Datenschutzerklärung übernimmt die Fristen von zwölf Monaten für unverbindliche Kontaktanfragen nach dem letzten inhaltlichen Kontakt bzw. für gewöhnliche Supportkorrespondenz nach Fallabschluss. Ergänzt wurden die tatsächlich vorbereiteten Funktionen: ausdrückliche Cloudflare-Aktivierung samt möglicher Verarbeitung in den USA, Abrechnungswahl, 15-Minuten-IP-Hash und 48-Stunden-Anfrage-ID/Status/Hash. Die bisherige pauschale Aussage, es seien keine gezielten Drittlandübermittlungen vorgesehen, wurde entsprechend korrigiert.
 
-**Vor Freischaltung weiterhin erforderlich:** tatsächliche World4you-Vertragsgesellschaft, Serverstandorte, Serverlog-Löschfristen und Auftragsverarbeitung prüfen; bei Cloudflare die konkrete Konfiguration, Dienstbedingungen, Auftragsverarbeitung und anwendbaren Garantien für Drittlandübermittlungen prüfen. Die öffentlichen Texte mit diesen tatsächlichen Anbieterangaben abgleichen und gegebenenfalls fachkundig präzisieren. Nicht geprüfte Verträge oder Datenstandorte werden hier nicht als bestätigt dargestellt. `anbieterunterlagenGeprueft` steht deshalb weiterhin auf `false`; diese Dokumentationsangabe aktiviert keinen Versand.
+**Vor Freischaltung weiterhin erforderlich:** tatsächliche World4you-Vertragsgesellschaft, Serverstandorte, Serverlog-Löschfristen und Auftragsverarbeitung prüfen; nur bei späterer Turnstile-Nutzung zusätzlich die Cloudflare-Konfiguration, Dienstbedingungen, Auftragsverarbeitung und anwendbaren Garantien für Drittlandübermittlungen prüfen. Für den lokalen Formularschutz ist kein Cloudflare-Konto erforderlich. Die öffentlichen Texte mit diesen tatsächlichen Anbieterangaben abgleichen und gegebenenfalls fachkundig präzisieren. Nicht geprüfte Verträge oder Datenstandorte werden hier nicht als bestätigt dargestellt. `anbieterunterlagenGeprueft` steht deshalb weiterhin auf `false`; diese Dokumentationsangabe aktiviert keinen Versand.
 
 **Die 12-Monats-Fristen im Postfach umsetzen:** Geeigneten regelmäßigen Lösch-/Prüfprozess für unverbindliche Anfragen und erledigte Supportfälle einrichten. Die Website löscht keine Nachrichten aus dem World4you-Postfach. Gesetzliche Aufbewahrungspflichten und konkrete Gründe für eine längere Speicherung jeweils beachten; auch Sicherungskopien berücksichtigen. Die kurzen technischen Formularfristen betreffen nur den separaten pseudonymen Anwendungsspeicher.
 
@@ -46,7 +46,7 @@ Benötigt lokal Python mit Pillow und Node. Das erzeugte Upload-ZIP enthält die
 ## 2. Dateien bei World4you hochladen
 
 1. Aktuellen Webspace einschließlich versteckter Dateien sichern.
-2. PHP **8.2 oder neuer** aktivieren; die PHP-Erweiterungen **curl, openssl und ctype** müssen verfügbar sein.
+2. PHP **8.2 oder neuer** aktivieren; die PHP-Erweiterungen **openssl und ctype** (zusätzlich **curl**, falls später Turnstile verwendet wird) müssen verfügbar sein.
 3. Nur `world4you-upload.zip` entpacken und dessen Inhalt in das Web-Hauptverzeichnis von senklot.at laden. `index.html`, `.htaccess`, `api/`, `senklot-intern/`, `assets/` und die Seitenverzeichnisse liegen unmittelbar dort. Versteckte `.htaccess` und `api/.user.ini` unbedingt mit übertragen. Nicht den gesamten Entwickler-ZIP auf den öffentlichen Webspace laden.
 4. Bestehende Hosting-Regeln vor dem Ersetzen mit der mitgelieferten `.htaccess` abgleichen. Erforderlich sind Apache-2.4-Regeln mit `mod_rewrite`, `mod_headers`, `AllowOverride` und `Options -Indexes`. Bei HTTP 500 den Hosting-Fehlerbericht prüfen bzw. World4you um die entsprechende Konfiguration bitten; nicht einfach den Zugriffsschutz entfernen.
 5. Gültige HTTPS-Zertifikate für senklot.at und www.senklot.at sicherstellen. Die App-Subdomain wird nicht umgeleitet. HSTS enthält absichtlich weder includeSubDomains noch preload.
@@ -69,19 +69,21 @@ Empfänger bleibt im Backend fest office@senklot.at. Die Besucheradresse wird au
 
 SPF/DKIM im World4you-Portal für den tatsächlichen Versand aktivieren/prüfen. Bestehende MX-/SPF-Einträge nicht blind ersetzen und keinen zweiten SPF-Eintrag erstellen. DMARC mit zunächst beobachtender Richtlinie kann danach anhand der vorhandenen Domainkonfiguration eingerichtet werden. Die dafür richtigen DNS-Werte müssen aus deinem Konto kommen.
 
-## 4. Turnstile einrichten
+## 4. Ohne Cloudflare freischalten; Turnstile bleibt optional
 
-Im Cloudflare-Konto ein **Turnstile-Widget** für `senklot.at` anlegen; falls www als zulässiger Formular-Origin verbleibt, auch diese Domain freigeben. Managed-Modus genügt. **Pre-clearance deaktiviert lassen.**
+Die neue Beispielkonfiguration enthält **`'spam_protection' => 'local'`**. In diesem Modus bleiben `turnstile.site_key` und `turnstile.secret_key` leer. Es ist kein Cloudflare-Konto nötig und es werden keine Cloudflare-Skripte geladen. Der Server erzeugt die kurz gültigen Tokens selbst; dafür muss der konfigurierte `data_dir` durch PHP beschreibbar sein. Der private Schlüssel wird dort automatisch angelegt. Bei Updates **config.php und speicher erhalten**; die Dateien nicht zum Umgehen einer Fehlermeldung löschen.
 
-In der privaten `config.php` `turnstile.site_key` (öffentlich) und `turnstile.secret_key` (geheim) eintragen. Keine Cloudflare-Testschlüssel produktiv verwenden. Die bestehende Website muss dafür nicht pauschal auf Cloudflare-DNS umgestellt werden.
+Bestehende Konfigurationen ohne `spam_protection` bleiben kompatibel: Sind beide Turnstile-Schlüssel leer, wird der lokale Schutz verwendet. Bereits eingetragene oder teilweise eingetragene Schlüssel werden als bisherige Turnstile-Konfiguration behandelt; eine unvollständige Konfiguration wird nicht stillschweigend herabgestuft. Zum bewussten Wechsel auf lokal `spam_protection` ausdrücklich auf `local` setzen.
 
-Erst wenn Angaben, Verträge, Datenschutzhinweise und Dienste fertig sind, in der privaten Konfiguration **`legal_ready => true` und `enabled => true`** setzen. Die getrennte Freigabe soll versehentliche Aktivierung verhindern; sie ersetzt keine rechtliche Prüfung.
+Erst wenn SMTP, Betreiberangaben, World4you-Anbieterunterlagen und Datenschutzhinweise abgeglichen sind, **`legal_ready => true` und `enabled => true`** setzen. Dann lässt sich das Formular nach einer kurzen Vorbereitung ohne externes CAPTCHA absenden. Tokens laufen nach höchstens 30 Minuten ab und werden erneuert; Eingaben bleiben erhalten. Ein zu altes, zu schnell verwendetes oder bereits verbrauchtes Token berechtigt nicht zu einer neuen Zustellung. Der Wiederholungsschutz derselben Anfrage-ID bleibt separat bestehen.
+
+Der lokale Schutz begrenzt gewöhnliche automatisierte Anfragen, ersetzt aber keine spezialisierte Bot-Erkennung. Bei erhöhtem Spamaufkommen kann später auf Turnstile umgestellt werden: im Cloudflare-Konto ein Managed-Widget für senklot.at und gegebenenfalls www.senklot.at erstellen, Pre-clearance ausgeschaltet lassen, beide echten Schlüssel eintragen und `spam_protection => 'turnstile'` wählen. Dafür ist kein DNS-Umzug erforderlich. Vor dieser Umstellung Anbieterunterlagen und Datenschutzhinweise zur externen Verarbeitung erneut abgleichen. Bei Turnstile-Ausfällen erfolgt kein automatischer Wechsel auf lokalen Schutz.
 
 ## 5. Nach dem Upload tatsächlich prüfen
 
-- `https://senklot.at/api/contact-config` liefert bei vollständiger Einrichtung `{mode:"live",ready:true,sitekey:"…"}`. Darin darf nur der öffentliche Widgetschlüssel stehen. Vor Freigabe ist `unavailable` korrekt.
+- `https://senklot.at/api/contact-config` liefert bei vollständiger Einrichtung `{mode:"live",ready:true,sitekey:null,protection:"local"}`. Im später optionalen Turnstile-Modus darf nur der öffentliche Widgetschlüssel ausgegeben werden, niemals der geheime Schlüssel. Vor Freigabe ist `unavailable` korrekt.
 - `https://senklot.at/senklot-intern/config.php`, `/senklot-intern/config.example.php`, `/senklot-intern/vendor/phpmailer/src/SMTP.php` und `/senklot-intern/speicher/zustand.json` müssen **403** liefern. Falls davon etwas lesbar ist, Formular nicht aktivieren und Hosting-Zugriffsschutz korrigieren.
-- Browser-Netzwerkansicht: vor Klick kein Cloudflare-Aufruf. Nach Aktivierung muss der echte Turnstile-Test funktionieren; nach „Spamschutz deaktivieren und Seite neu laden“ wird Cloudflare nicht erneut geladen.
+- Im lokalen Modus darf die Browser-Netzwerkansicht keine Cloudflare-Aufrufe zeigen. Nach kurzer Vorbereitung ist „Anfrage senden“ verfügbar. `/api/contact-token` wird von der Website per POST aufgerufen; ein direkter GET-Aufruf im Browser liefert absichtlich 405. Falls später Turnstile genutzt wird, zusätzlich dessen Aktivierung und Widerruf prüfen.
 - Eine eigene Testanfrage absenden: tatsächlichen Eingang im Postfach **und Spamordner** prüfen, auf die Anfrage antworten und Reply-To kontrollieren. Erst der Postfacheingang bestätigt die reale Zustellung; eine SMTP-Annahme allein garantiert das nicht.
 - Formular auf Mobilgerät und Desktop prüfen, einschließlich Fehlerfall/abgelaufener Prüfung. Keine echten Anfragen zum Testen mehrfach absenden.
 - Mit `curl -I https://senklot.at/` Header prüfen: Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Permissions-Policy, Referrer-Policy und Strict-Transport-Security. HTTPS-/www-Weiterleitung und alle sieben Marketingseiten prüfen. `/impressum/` und `/datenschutz/` müssen die bereitgestellten Betreiberangaben korrekt anzeigen und dürfen keine Platzhalter enthalten.
@@ -89,7 +91,7 @@ Erst wenn Angaben, Verträge, Datenschutzhinweise und Dienste fertig sind, in de
 
 ## Grenzen dieser Prüfung
 
-Lokale Apache-/PHP-, Browser- und TLS-SMTP-Tests prüfen Implementierung und Fehlerfälle. Es wurden **keine echten E-Mails verschickt**, kein Cloudflare-Konto angelegt und keine World4you-Konfiguration geändert. Die Prüfung ist keine vollständige Penetrationsprüfung oder verbindliche rechtliche Freigabe. Ein pauschales Sicherheitsversprechen oder eine garantierte Zustellung wird nicht gegeben.
+Lokale Apache-/PHP-, Browser- und TLS-SMTP-Tests prüfen Implementierung und Fehlerfälle. Es wurden **keine echten E-Mails verschickt**, kein Cloudflare-Konto angelegt und keine World4you-Konfiguration geändert. Cloudflare ist für den lokalen Standardmodus nicht nötig. Die Prüfung ist keine vollständige Penetrationsprüfung oder verbindliche rechtliche Freigabe. Ein pauschales Sicherheitsversprechen oder eine garantierte Zustellung wird nicht gegeben.
 
 ## Bestehende SEO-Einrichtung
 

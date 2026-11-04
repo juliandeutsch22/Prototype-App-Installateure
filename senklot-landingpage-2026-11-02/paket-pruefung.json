@@ -23,5 +23,7 @@
     249
   ],
   "setupOptional": true,
-  "introPriceGuaranteeMonths": 12
+  "introPriceGuaranteeMonths": 12,
+  "defaultSpamProtection": "local",
+  "cloudflareRequired": false
 }

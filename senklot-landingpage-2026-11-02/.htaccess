@@ -21,6 +21,7 @@ RewriteRule ^(.*)index\.html$ /$1 [R=308,L,NE]
 # Gleiche Formularadressen wie im Entwurf, jetzt mit PHP auf World4you.
 RewriteRule ^api/contact-config$ api/contact-config.php [END]
 RewriteRule ^api/contact$ api/contact.php [END]
+RewriteRule ^api/contact-token$ api/contact-token.php [END]
 </IfModule>
 
 <IfModule mod_headers.c>

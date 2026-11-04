@@ -3,6 +3,7 @@
   "phpMailerVersion": "v7.1.1",
   "tariffsMatchJavaScript": true,
   "offerTermsMatchJavaScript": true,
+  "localProtectionDefault": true,
   "setupOptionalByDefault": true,
   "introPriceGuaranteeMonths": 12,
   "noOldPricesOrUnresolvedPlaceholders": true,

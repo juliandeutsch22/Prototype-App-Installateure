@@ -11,17 +11,18 @@ $tests=0;
 function check(bool $b,string $label): void { global $tests; if (!$b) throw new RuntimeException($label); $tests++; echo "OK $label\n"; }
 function payload(): array { return ['name'=>'Anna Beispiel','firma'=>'Testbetrieb GmbH','email'=>'anna@example.org','telefon'=>'','nachricht'=>'Bitte um eine Demo.','tarif'=>'team','zahlung'=>'jaehrlich','einrichtung'=>true,'nutzer'=>'8','website'=>'','token'=>'valid-token','requestId'=>'ac85a431-3dd1-4e02-82d9-393a760c4741','spamschutzZugestimmt'=>true]; }
 function store(int $now=100000): Speicher { return new Speicher('/tmp/senklot-test-'.bin2hex(random_bytes(8)),$now); }
-$c=['origins'=>['https://senklot.at']];$headers=['origin'=>'https://senklot.at','content-type'=>'application/json'];
+$c=['origins'=>['https://senklot.at'],'spam_protection'=>'turnstile'];$headers=['origin'=>'https://senklot.at','content-type'=>'application/json'];
 $verified=0;$sent=0;
 $verify=function($token,$ip) use (&$verified) { $verified++;return ['success'=>true,'hostname'=>'senklot.at','action'=>'contact']; };
 $send=function($d,$text) use (&$sent) { $sent++; check(str_contains($text,'1.933,20 €') && str_contains($text,'399,00 €'),'Preise aus serverseitigem Tarif, Einrichtung unverändert'); };
 $call=function($p,$s,$v=null,$snd=null,$h=null,$m='POST') use($c,$headers,$verify,$send) {return verarbeiten($m,$h??$headers,is_string($p)?$p:json_encode($p),'192.0.2.5',$c,$v??$verify,$snd??$send,$s);};
 check(isset(validieren(payload())['data']),'Gültige Eingaben');
-foreach (['name'=>"Anna\r\nBcc: fremd@example.org",'email'=>'bad','firma'=>['bad'],'einrichtung'=>'ja','nutzer'=>true,'tarif'=>'gratis','zahlung'=>'woche','website'=>'bot','spamschutzZugestimmt'=>false,'requestId'=>'invalid','nachricht'=>str_repeat('x',3001),'token'=>str_repeat('x',2049)] as $key=>$bad) { $p=payload();$p[$key]=$bad;check(isset(validieren($p)['errors']),"Ungültiges Feld $key abgelehnt"); }
+foreach (['name'=>"Anna\r\nBcc: fremd@example.org",'email'=>'bad','firma'=>['bad'],'einrichtung'=>'ja','nutzer'=>true,'tarif'=>'gratis','zahlung'=>'woche','website'=>'bot','requestId'=>'invalid','nachricht'=>str_repeat('x',3001),'token'=>str_repeat('x',2049)] as $key=>$bad) { $p=payload();$p[$key]=$bad;check(isset(validieren($p)['errors']),"Ungültiges Feld $key abgelehnt"); }
 check(isset(validieren(null)['errors']) && isset(validieren([])['errors']),'JSON-Grundtypen abgefangen');
 foreach ([['POST',['origin'=>'https://evil.example','content-type'=>'application/json'],payload(),403],['GET',$headers,payload(),405],['POST',['origin'=>'https://senklot.at','content-type'=>'text/plain'],payload(),415],['POST',$headers,str_repeat('x',12001),413],['POST',$headers,'{',400]] as [$m,$h,$p,$expected]) check($call($p,store(),h:$h,m:$m)[0]===$expected,"HTTP-Schutz $expected");
 foreach ([['success'=>false],['success'=>true,'hostname'=>'evil.example','action'=>'contact'],['success'=>true,'hostname'=>'senklot.at','action'=>'login']] as $response) check($call(payload(),store(),fn()=> $response)[0]===403,'Turnstile Ergebnis / Host / Aktion geprüft');
 check($call(payload(),store(),function(){throw new RuntimeException('offline');})[0]===503,'Prüfungsfehler sicher abgefangen');
+check($call(array_replace(payload(),['spamschutzZugestimmt'=>false]),store())[0]===403,'Turnstile verlangt ausdrückliche Aktivierung');
 check($sent===0,'Kein Versand bei abgelehnten Anfragen');
 $p=payload();$p['token']='';check($call($p,store())[0]===403,'Ohne Token kein Versand');
 $s=store();$response=$call(payload(),$s);check($response[0]===200 && $response[1]['code']==='ACCEPTED' && $sent===1,'Bestätigter Versand');
@@ -41,7 +42,7 @@ $state=file_get_contents($dir.'/zustand.json');check(!str_contains($state,'192.0
 file_put_contents($dir.'/zustand.json','kaputt');$failed=false;try{$s->rate('ip');}catch(Throwable){$failed=true;}check($failed,'Beschädigter Speicher blockiert Versand');
 check(!bereit([]),'Ohne Konfiguration deaktiviert');
 $cfg=require '/src/senklot-intern/config.example.php';check(!bereit($cfg),'Beispielkonfiguration deaktiviert');
-$cfg['enabled']=true;$cfg['legal_ready']=true;$cfg['smtp']['username']='u';$cfg['smtp']['password']='p';$cfg['turnstile']=['site_key'=>'real-public','secret_key'=>'real-secret'];check(bereit($cfg),'Vollständige freigegebene Konfiguration erkannt');
+$cfg['spam_protection']='turnstile';$cfg['enabled']=true;$cfg['legal_ready']=true;$cfg['smtp']['username']='u';$cfg['smtp']['password']='p';$cfg['turnstile']=['site_key'=>'real-public','secret_key'=>'real-secret'];check(bereit($cfg),'Vollständige freigegebene Konfiguration erkannt');
 $cfg['legal_ready']=false;check(!bereit($cfg),'Ohne rechtliche Freigabe deaktiviert');$cfg['legal_ready']=true;$cfg['turnstile']['site_key']='1x00000000000000000000AA';check(!bereit($cfg),'Öffentlicher Turnstile-Testschlüssel im Produktivbetrieb abgelehnt');
 $tarife=json_decode(file_get_contents('/src/senklot-intern/tarife.json'),true);check(count($tarife)===3 && $tarife['team']['monatCent']===17900,'Drei konsistente Tarife');
 foreach ([['starter','129,00 €','1.393,20 €','199,00 €'],['team','179,00 €','1.933,20 €','399,00 €'],['betrieb','249,00 €','2.689,20 €','699,00 €']] as [$id,$monat,$jahr,$setup]) {

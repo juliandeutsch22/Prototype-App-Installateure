@@ -13,6 +13,9 @@ browser=json.loads((root/'nachweise/sicherheit/browser-pruefung.json').read_text
 php=json.loads((root/'nachweise/sicherheit/php-tests.txt').read_text().splitlines()[-1]);assert php['assertions']>=70 and php['failed']==0
 assert json.loads((root/'nachweise/sicherheit/smtp-pruefung.json').read_text())['untrustedCertificateRejected']
 assert json.loads((root/'nachweise/sicherheit/paket-pruefung.json').read_text())['zipIntegrity']
+local=json.loads((root/'nachweise/sicherheit/lokal-tests.txt').read_text().splitlines()[-1]);assert local['assertions']>=39 and local['failed']==0
+assert json.loads((root/'nachweise/sicherheit/lokal-http-pruefung.json').read_text())['fixedRecipientAndReplyToVerified']
+assert len(json.loads((root/'nachweise/sicherheit/lokal-browser-pruefung.json').read_text())['views'])==4
 assert json.loads((root/'nachweise/kontakt-pruefung.json').read_text())['explicitActivation']
 assert len(json.loads((root/'nachweise/feedback-pruefung.json').read_text())['views'])==4
 assert 'tests 13' in (root/'nachweise/server-tests.txt').read_text() and 'fail 0' in (root/'nachweise/server-tests.txt').read_text()
@@ -44,7 +47,7 @@ for p in list(target.glob('*.html'))+list(target.glob('*/index.html'))+[target/'
   if local.name=='landingpage.zip':continue
   assert local.exists(),(p,ref)
   count+=1
-(target/'paket-pruefung.json').write_text(json.dumps({'checkedRelativeReferences':count,'missingReferences':[],'viewportWidths':[320,390,834,1440],'publicPages':9,'indexableMarketingPages':7,'legalPagesAreDrafts':False,'operatorDetailsIntegrated':True,'providerDocumentsReviewed':False,'appUnchanged':True,'realContactDeliveryConfigured':False,'world4youUploadPerformed':False,'googleBingVerificationPerformed':False,'realCredentialsIncluded':False,'monthlyNetPrices':[129,179,249],'setupOptional':True,'introPriceGuaranteeMonths':12},indent=2)+'\n')
+(target/'paket-pruefung.json').write_text(json.dumps({'checkedRelativeReferences':count,'missingReferences':[],'viewportWidths':[320,390,834,1440],'publicPages':9,'indexableMarketingPages':7,'legalPagesAreDrafts':False,'operatorDetailsIntegrated':True,'providerDocumentsReviewed':False,'appUnchanged':True,'realContactDeliveryConfigured':False,'world4youUploadPerformed':False,'googleBingVerificationPerformed':False,'realCredentialsIncluded':False,'monthlyNetPrices':[129,179,249],'setupOptional':True,'introPriceGuaranteeMonths':12,'defaultSpamProtection':'local','cloudflareRequired':False},indent=2)+'\n')
 with zipfile.ZipFile(target/'landingpage.zip','w',zipfile.ZIP_DEFLATED) as z:
  for p in sorted(target.rglob('*')):
   if p.is_file() and p.name not in ['landingpage.zip','SHA256.txt']:z.write(p,p.relative_to(target))

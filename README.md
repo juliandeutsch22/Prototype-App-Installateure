@@ -186,3 +186,14 @@ Echte Konfiguration und gespeicherte Anfragen sind von beiden Paketen ausgeschlo
 - [Einrichtung und verbleibende Aufgaben](senklot-landingpage-2026-11-02/VEROEFFENTLICHEN.md)
 
 70 PHP-Prüfungen, 13 Node-Prüfungen und Browserprüfungen bei 320 / 390 / 834 / 1440 Pixeln. Das Paket wurde nicht auf World4you hochgeladen; echte Zustellung und Kontokonfiguration bleiben dort zu prüfen. Keine echten E-Mails versendet und keine Änderungen an der Betriebssoftware.
+
+
+## Senklot-Website: Kontaktformular ohne Cloudflare (04.11.2026)
+
+Der lokale Standardmodus schützt das Formular mit Honeypot, kurzer Mindestzeit, signierten Einmal-Tokens und serverseitigen Anfragebegrenzungen. Dafür sind kein Cloudflare-Konto und keine externen Schlüssel nötig. SMTP-, Preis-, Einrichtungs- und Wiederholungsschutz bleiben erhalten. Vorhandene Turnstile-Konfigurationen bleiben kompatibel; es gibt keinen automatischen Wechsel bei Dienstausfällen.
+
+- [Aktuelles World4you-Paket](senklot-landingpage-2026-11-02/world4you-upload.zip?raw=true)
+- [Konfiguration und verbleibende Schritte](senklot-landingpage-2026-11-02/VEROEFFENTLICHEN.md)
+- [Prüfprotokolle](senklot-landingpage-2026-11-02/nachweise/sicherheit/README.md)
+
+70 bisherige PHP-Prüfungen plus 41 neue Prüfungen des lokalen Schutzes, lokale Browserchecks und ein vollständiger Apache/PHP/TLS-SMTP-Test ohne externe Zustellung. Der World4you-Upload und der echte Postfacheingang wurden aus dieser Sitzung nicht ausgeführt.

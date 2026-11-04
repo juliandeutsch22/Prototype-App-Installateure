@@ -1,0 +1,42 @@
+OK Ohne externe Schlüssel lokaler Schutz
+OK Unvollständige alte Turnstile-Konfiguration bleibt streng
+OK Alter privater Schlüssel erzwingt Turnstile-Modus
+OK Auch ungültiger eingetragener Schlüssel wird nicht stillschweigend herabgestuft
+OK Fehlerhafte alte Konfiguration sperrt statt herabzustufen
+OK Explizite lokale Auswahl
+OK Unbekannter Modus kann Schutz nicht abschalten
+OK Lokaler Versand benötigt keine Cloudflare-Schlüssel
+OK Turnstile braucht beide Schlüssel
+OK Ungültiger Modus sperrt Formular
+OK Rechtliche Freigabe bleibt erforderlich
+OK Token enthält keine Klartext-IP
+OK Mindestzeit wird serverseitig geprüft
+OK Zu schnelle Wiederholung bleibt gesperrt
+OK Token an Verbindung gebunden
+OK Token an Website gebunden
+OK Manipulierte Signatur abgelehnt
+OK Fremder Installationsschlüssel abgelehnt
+OK Gültiges Token nach Wartezeit akzeptiert
+OK Token prozessübergreifend nur einmal gültig
+OK Ablauf nach 30 Minuten
+OK Zukünftiges Token abgelehnt
+OK Ungültiges Format
+OK Ungültiges Format
+OK Ungültiges Format
+OK Ungültiges Format
+OK Token-Speicher enthält keine Klartext-IP oder Roh-Tokens
+OK 16 parallele Prozesse verbrauchen Token genau einmal
+OK Token-Erzeugung begrenzt
+OK Token- und Versandlimit getrennt
+OK Zu schneller Versand sendet keine E-Mail
+OK Lokaler Versand ohne Cloudflare und ohne externe Einwilligung
+OK Mail benennt lokalen Schutz korrekt
+OK Preise und freiwillige Einrichtung bleiben erhalten
+OK Bestätigte Wiederholung benötigt kein neues Token und sendet nicht erneut
+OK Gleiches Token für zweite Anfrage gesperrt
+OK Gefälschtes Token ohne Versand
+OK Honeypot bleibt aktiv
+OK Unklarer lokaler Versand wird nicht als Erfolg gemeldet
+OK Unklarer lokaler Versand wird nicht wiederholt
+OK Bisheriger Speicher bleibt kompatibel
+{"assertions":41,"failed":0}

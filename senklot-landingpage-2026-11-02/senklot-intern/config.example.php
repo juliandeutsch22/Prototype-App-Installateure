@@ -6,6 +6,7 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) { http_response_co
 return [
     'enabled' => false, // Erst nach Einrichtung und Prüfung auf true setzen.
     'legal_ready' => false, // Betreiberangaben und Rechtstexte vor Freischaltung vervollständigen/freigeben.
+    'spam_protection' => 'local', // Ohne Cloudflare. Später optional 'turnstile' mit beiden Schlüsseln.
     'origins' => ['https://senklot.at', 'https://www.senklot.at'],
     'data_dir' => __DIR__ . '/speicher', // Nur für PHP beschreibbar; nie chmod 777.
     'smtp' => [
@@ -18,7 +19,7 @@ return [
         'from_name' => 'Senklot',
     ],
     'turnstile' => [
-        'site_key' => '', // Öffentlicher Site-Key; senklot.at im Cloudflare-Konto freigeben.
-        'secret_key' => '', // Privater Secret-Key. Keine öffentlichen Testschlüssel verwenden.
+        'site_key' => '', // Bei lokalem Schutz leer lassen; nur für 'turnstile' nötig.
+        'secret_key' => '', // Bei lokalem Schutz leer lassen. Privater Turnstile-Key, keine Testschlüssel.
     ],
 ];

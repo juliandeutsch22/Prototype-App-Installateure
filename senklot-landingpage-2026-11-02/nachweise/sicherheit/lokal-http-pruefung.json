@@ -1,0 +1,112 @@
+{
+  "actualApachePHP": true,
+  "localTLSCertificateVerified": true,
+  "localSMTPOnly": true,
+  "noCloudflareKeys": true,
+  "localConfigReady": true,
+  "tokenEndpointLimitsVerified": true,
+  "minimumWaitEnforced": true,
+  "usedTokenRejected": true,
+  "acceptedReplayNotResent": true,
+  "setupOptInPreserved": true,
+  "fixedRecipientAndReplyToVerified": true,
+  "smtpMessages": 2,
+  "realMailSent": false,
+  "checks": [
+    {
+      "path": "/api/contact-config",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/api/contact-config",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "path": "/senklot-intern/config.php",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "path": "/senklot-intern/speicher/zustand.json",
+      "method": "GET",
+      "status": 403
+    },
+    {
+      "path": "/api/contact-token",
+      "method": "GET",
+      "status": 405
+    },
+    {
+      "path": "/api/contact-token",
+      "method": "POST",
+      "status": 403
+    },
+    {
+      "path": "/api/contact-token",
+      "method": "POST",
+      "status": 403
+    },
+    {
+      "path": "/api/contact-token",
+      "method": "POST",
+      "status": 415
+    },
+    {
+      "path": "/api/contact-token",
+      "method": "POST",
+      "status": 413
+    },
+    {
+      "path": "/api/contact-token",
+      "method": "POST",
+      "status": 400
+    },
+    {
+      "path": "/api/contact-token",
+      "method": "POST",
+      "status": 400
+    },
+    {
+      "path": "/api/contact-token",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/contact",
+      "method": "POST",
+      "status": 429
+    },
+    {
+      "path": "/api/contact",
+      "method": "POST",
+      "status": 422
+    },
+    {
+      "path": "/api/contact",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/contact",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/contact",
+      "method": "POST",
+      "status": 403
+    },
+    {
+      "path": "/api/contact-token",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "path": "/api/contact",
+      "method": "POST",
+      "status": 200
+    }
+  ]
+}

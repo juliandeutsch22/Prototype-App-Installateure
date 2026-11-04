@@ -1,6 +1,6 @@
 # Senklot – Dein Betrieb. Im Lot.
 
-Landingpage auf Grundlage der am 02.11.2026 veröffentlichten App. Die bisherige Preis-/Kontaktfassung ist inzwischen unter senklot.at erreichbar. **Die neue Sicherheitsrevision mit PHP/SMTP für World4you, optional aktivierbarem Turnstile und separaten Rechtstexten samt bereitgestellten Betreiberangaben ist vorbereitet; sie wurde aus dieser Sitzung noch nicht zu World4you hochgeladen.** Die Betriebssoftware bleibt unverändert.
+Landingpage auf Grundlage der am 02.11.2026 veröffentlichten App. Die bisherige Preis-/Kontaktfassung ist inzwischen unter senklot.at erreichbar. **Die neue Sicherheitsrevision mit PHP/SMTP für World4you, lokalem Formularschutz ohne Cloudflare sowie optionalem Turnstile und separaten Rechtstexten samt bereitgestellten Betreiberangaben ist vorbereitet; sie wurde aus dieser Sitzung noch nicht zu World4you hochgeladen.** Die Betriebssoftware bleibt unverändert.
 
 [![Einstieg](01-einstieg.png)](landingpage-1440.png)
 
@@ -55,9 +55,9 @@ Die kurzen Erscheinanimationen laufen einmal beim Sichtbarwerden. Reduzierte Bew
 
 Jährliche Vorauszahlung: genau 10 % Rabatt auf zwölf Monatsbeträge. Das entspricht effektiv 116,10 / 161,10 / 224,10 € monatlich; abgerechnet werden 1.393,20 / 1.933,20 / 2.689,20 € jährlich im Voraus. Die optionale Einrichtung wird nur bei Buchung berechnet und nicht rabattiert. Alle sechs vom Auftraggeber genannten Paketleistungen sind enthalten.
 
-**Noch nicht live aktiviert:** Das World4you-Paket enthält jetzt PHP 8.2+ mit PHPMailer/SMTP statt des ursprünglichen Node-/Resend-Versandwegs. Turnstile lädt nur nach ausdrücklicher Aktivierung. Für echte Anfragen fehlen Postfachdaten, Turnstile-Schlüssel, Abgleich der Anbieterunterlagen/Rechtstexte und der Upload. Deine Betreiberangaben und Texte vom 3. November 2026 sind bereits eingearbeitet; die 12-Monats-Fristen sind im Postfach organisatorisch umzusetzen. Das Formular bleibt bis zur vollständigen privaten Konfiguration gesperrt. [Konkrete Einrichtung und verbleibende Aufgaben](VEROEFFENTLICHEN.md).
+**Noch nicht live aktiviert:** Das World4you-Paket enthält jetzt PHP 8.2+ mit PHPMailer/SMTP statt des ursprünglichen Node-/Resend-Versandwegs. Standardmäßig werden lokale Prüfungen ohne externen CAPTCHA-Dienst verwendet. Für echte Anfragen fehlen hier noch die private SMTP-Konfiguration, der Abgleich der Anbieterunterlagen/Rechtstexte und der World4you-Upload. Cloudflare-Schlüssel sind nur bei späterer ausdrücklicher Wahl von Turnstile erforderlich. Deine Betreiberangaben und Texte vom 3. November 2026 sind bereits eingearbeitet; die 12-Monats-Fristen sind im Postfach organisatorisch umzusetzen. Das Formular bleibt bis zur vollständigen privaten Konfiguration gesperrt. [Konkrete Einrichtung und verbleibende Aufgaben](VEROEFFENTLICHEN.md).
 
-Die bisherigen Node-Tests und die zusätzliche Prüfung der optionalen Einrichtung bleiben als Prüfung des Vorschau-/alternativen Backends erhalten. Das neue PHP-Backend hat zusätzliche automatisierte Sicherheits- und Persistenzprüfungen, einen lokalen TLS-SMTP-Test und Browserprüfungen unter echtem Apache/PHP. Protokolle und reproduzierbare Tests stehen unter `nachweise/sicherheit/`. Es wurden keine echten E-Mails versendet. Die reale Turnstile-Integration und der Postfacheingang müssen auf dem eigenen Hosting geprüft werden.
+Die bisherigen Node-Tests und die zusätzliche Prüfung der optionalen Einrichtung bleiben als Prüfung des Vorschau-/alternativen Backends erhalten. Das neue PHP-Backend hat zusätzliche automatisierte Sicherheits- und Persistenzprüfungen, einen lokalen TLS-SMTP-Test und Browserprüfungen unter echtem Apache/PHP. Protokolle und reproduzierbare Tests stehen unter `nachweise/sicherheit/`. Es wurden keine echten E-Mails versendet. Der echte Postfacheingang muss auf dem eigenen Hosting geprüft werden. Turnstile ist nur bei späterer Wahl dieses Modus zusätzlich zu prüfen.
 
 ## Tatsächliche Produktansichten
 
@@ -90,3 +90,7 @@ Vor dem tatsächlichen Pilotstart sind Angebotsumfang, Supportzeiten, Datenüber
 Bei jedem Tarif lässt sich der genaue Einrichtungsumfang aufklappen: Grundeinstellungen, Nutzer und Rollen im jeweiligen Paketumfang, Modulkonfiguration sowie eine Einführung mit Testauftrag und gemeinsamer Prüfung. Zusätzliche Datenübernahmen, Entwicklung und Schulungen sind gesondert abgegrenzt.
 
 [Aufgeklappte Einrichtung Desktop](06-einrichtung-offen-1440.png) · [Aufgeklappte Einrichtung mobil](06-einrichtung-offen-390.png).
+
+## Formular ohne Cloudflare
+
+`spam_protection: local` verwendet Honeypot, eine kurze Mindestzeit, signierte Einmal-Tokens (höchstens 30 Minuten) und serverseitige Anfragebegrenzung. Dafür ist kein zusätzliches Konto und kein externer Schlüssel erforderlich. Tokens bleiben nur im Arbeitsspeicher der Seite; private Schlüssel und verbrauchte Token-Hashes liegen im geschützten Anwendungsspeicher. SMTP-, Fehler- und Wiederholungsschutz bleiben erhalten. Die stärkere externe Turnstile-Prüfung bleibt optional zuschaltbar und lädt weiterhin erst nach ausdrücklicher Aktivierung.
