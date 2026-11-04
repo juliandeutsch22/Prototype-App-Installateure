@@ -107,3 +107,12 @@ Die Anfrage-Mail verwendet eine Tabellenstruktur mit Petrol, eingebettetem Senkl
 - [Mail Desktop](11-anfrage-mail-760.png) · [Mail mobil](11-anfrage-mail-390.png)
 
 Die Screens zeigen fiktive Daten. Der neue Stand wurde lokal geprüft und nicht aus dieser Sitzung auf World4you hochgeladen. Die bereits dort eingerichtete private `senklot-intern/config.php` und der Ordner `senklot-intern/speicher/` müssen beim Aktualisieren erhalten bleiben. Für das Maildesign sind keine neuen SMTP-Einstellungen erforderlich.
+
+
+## Favicon für Suchmaschinen – 4. November 2026
+
+Alle neun Seiten verweisen auf `assets/favicon-96.png` (96 × 96 Pixel) und `favicon.ico` (16/32/48/96 Pixel). Grundlage ist unverändert das vorhandene Senklot-Symbol mit weißem Hintergrund und Petrol. Die SVG-Datei bleibt für die bestehenden Markenverweise erhalten.
+
+Für eine bestehende Installation genügt [favicon-update.zip](favicon-update.zip): entpacken und die elf enthaltenen Dateien unter Beibehaltung der Ordnerstruktur hochladen. Das Update enthält keine Konfiguration und keinen Backend-Code. Die Google-Übernahme wird dadurch vorbereitet, nicht garantiert; anschließend die Startseite in der Search Console zur erneuten Indexierung einreichen.
+
+Zum lokalen Neuerzeugen benötigen `werkzeuge/favicons-erstellen.py` und die Seitengenerierung CairoSVG (verwendet: 2.9.1) und Pillow. Auf dem Hosting werden nur die fertigen Dateien benötigt.

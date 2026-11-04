@@ -209,3 +209,13 @@ Alle optionalen Felder sind direkt sichtbar. Der lokale Spamschutz läuft im nor
 - [Mail Desktop](senklot-landingpage-2026-11-02/11-anfrage-mail-760.png) · [Mail mobil](senklot-landingpage-2026-11-02/11-anfrage-mail-390.png)
 
 126 PHP-Prüfungen, 14 Node-Prüfungen, Browserchecks sowie ein lokaler Apache/PHP/TLS-SMTP-Test mit Prüfung der tatsächlichen HTML-/Klartext-Mail und des eingebetteten Logos sind bestanden. Keine echten E-Mails aus dieser Sitzung verschickt. Der neue Stand ist noch nicht aus dieser Sitzung auf World4you hochgeladen. **Beim Update die bestehende `senklot-intern/config.php` und `senklot-intern/speicher/` erhalten.** Für die Gestaltung sind keine neuen SMTP-Einstellungen erforderlich.
+
+
+## Senklot-Website: PNG-/ICO-Favicon (04.11.2026)
+
+Das unveränderte Senklot-Symbol liegt zusätzlich als PNG mit 96 × 96 Pixeln und als ICO mit 16/32/48/96 Pixeln vor. Alle neun Seiten binden beide Formate ein.
+
+- [Kleines Favicon-Update: elf Dateien](senklot-landingpage-2026-11-02/favicon-update.zip?raw=true)
+- [PNG](senklot-landingpage-2026-11-02/assets/favicon-96.png?raw=true) · [ICO](senklot-landingpage-2026-11-02/favicon.ico?raw=true)
+
+ZIP entpacken und den Inhalt unter Beibehaltung der Ordnerstruktur in den Webspace laden. Mail-Konfiguration und gespeicherter Formularzustand sind nicht enthalten. Noch nicht aus dieser Sitzung auf World4you hochgeladen. Anschließend die Startseite in der Search Console zur erneuten Indexierung einreichen; die tatsächliche Favicon-Anzeige bestimmt Google.

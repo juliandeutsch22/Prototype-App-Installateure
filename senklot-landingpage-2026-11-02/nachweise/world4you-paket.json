@@ -1,8 +1,8 @@
 {
   "stage": "/tmp/senklot-world4you-upload",
   "archive": "world4you-upload.zip",
-  "bytes": 857591,
-  "sha256": "0c74bb6e4db4b753b6f8224247dfc78a8977351fc0eb3f37d74bfea80e7da523",
+  "bytes": 864969,
+  "sha256": "c371c8d851c38a65bdb4026068387d9de206f3bb47cdbaeae2d01f1782732785",
   "publicFiles": [
     ".htaccess",
     "angebote-rechnungen/index.html",
@@ -13,6 +13,7 @@
     "assets/LICENSE-IBM-Plex-Mono.txt",
     "assets/LICENSE-Poppins.txt",
     "assets/angebote.webp",
+    "assets/favicon-96.png",
     "assets/kundenakte.webp",
     "assets/material-mobil.webp",
     "assets/mein-plan.webp",
@@ -30,6 +31,7 @@
     "datenschutz/index.html",
     "effekte.js",
     "einsatzplanung/index.html",
+    "favicon.ico",
     "handwerksscheine/index.html",
     "impressum/index.html",
     "index.html",
@@ -58,7 +60,7 @@
     "tarife.js",
     "zeiterfassung/index.html"
   ],
-  "htmlReferencesChecked": 181,
+  "htmlReferencesChecked": 190,
   "missingReferences": [],
   "realCredentialsIncluded": false,
   "protectedBackendIncluded": true,

@@ -60,7 +60,8 @@ def head(title, description, slug='', prefix=''):
   <meta name="description" content="{escape(description, quote=True)}">
   <meta name="robots" content="index,follow,max-image-preview:large">
   <link rel="canonical" href="{url}">
-  <link rel="icon" href="{prefix}assets/senklot.svg" type="image/svg+xml">
+  <link rel="icon" href="{prefix}favicon.ico" type="image/x-icon" sizes="16x16 32x32 48x48 96x96">
+  <link rel="icon" href="{prefix}assets/favicon-96.png" type="image/png" sizes="96x96">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="de_AT">
   <meta property="og:site_name" content="Senklot">
@@ -156,4 +157,5 @@ for f in funktionen:
 urls = [DOMAIN + '/'] + [DOMAIN + '/' + f['slug'] + '/' for f in funktionen]
 (ROOT / 'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + ''.join(f'  <url><loc>{url}</loc></url>\n' for url in urls) + '</urlset>\n')
 (ROOT / 'assets/senklot.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#fff"/><g fill="#0f4552"><path d="M31.05 23.05V6.95a.95.95 0 0 1 1.9 0v16.1Z"/><rect x="28.9" y="24.2" width="6.2" height="4.5" rx=".6"/><path d="M26.8 29.8h10.4l5.2 6.7H21.6ZM21.6 37.9h20.8L32 58Z"/></g></svg>\n')
+subprocess.run(['python3', str(ROOT / 'werkzeuge/favicons-erstellen.py')], check=True)
 print(f'{len(urls)} HTML-Seiten, Metadaten, strukturierte Daten, robots.txt und Sitemap erstellt.')

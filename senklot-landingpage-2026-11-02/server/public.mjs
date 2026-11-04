@@ -4,7 +4,7 @@ export const funktionen = Object.freeze([
 ]);
 export const publicFiles = new Map([
   ['/', '/index.html'],
-  ...['landingpage.css', 'landingpage.js', 'tarife.js', 'kontakt.js', 'effekte.js', 'robots.txt', 'sitemap.xml'].map(file => ['/' + file, '/' + file]),
+  ...['favicon.ico', 'landingpage.css', 'landingpage.js', 'tarife.js', 'kontakt.js', 'effekte.js', 'robots.txt', 'sitemap.xml'].map(file => ['/' + file, '/' + file]),
   ...['impressum', 'datenschutz', ...funktionen].map(slug => ['/' + slug + '/', '/' + slug + '/index.html'])
 ]);
 export function publicRedirect(pathname, search = '', host = '') {

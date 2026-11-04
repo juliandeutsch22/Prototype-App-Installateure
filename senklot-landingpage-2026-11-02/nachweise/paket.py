@@ -22,7 +22,7 @@ assert json.loads((root/'nachweise/kontakt-pruefung.json').read_text())['explici
 assert len(json.loads((root/'nachweise/feedback-pruefung.json').read_text())['views'])==4
 assert 'tests 14' in (root/'nachweise/server-tests.txt').read_text() and 'fail 0' in (root/'nachweise/server-tests.txt').read_text()
 features=json.loads((root/'werkzeuge/funktionen.json').read_text());target.mkdir(exist_ok=True)
-for name in ['index.html','landingpage.css','landingpage.js','tarife.js','kontakt.js','effekte.js','robots.txt','sitemap.xml','.htaccess','package.json','.env.example','.gitignore','README.md','QUELLEN.md','VEROEFFENTLICHEN.md','world4you-upload.zip','animationen.webm']:
+for name in ['index.html','favicon.ico','landingpage.css','landingpage.js','tarife.js','kontakt.js','effekte.js','robots.txt','sitemap.xml','.htaccess','package.json','.env.example','.gitignore','README.md','QUELLEN.md','VEROEFFENTLICHEN.md','world4you-upload.zip','favicon-update.zip','animationen.webm']:
  shutil.copyfile(root/name,target/name)
 for name in ['assets','server','werkzeuge','vorlagen','api','senklot-intern','impressum','datenschutz']+[f['slug'] for f in features]:
  shutil.copytree(root/name,target/name,dirs_exist_ok=True,ignore=shutil.ignore_patterns('config.php','speicher','__pycache__'))
@@ -54,6 +54,6 @@ with zipfile.ZipFile(target/'landingpage.zip','w',zipfile.ZIP_DEFLATED) as z:
  for p in sorted(target.rglob('*')):
   if p.is_file() and p.name not in ['landingpage.zip','SHA256.txt']:z.write(p,p.relative_to(target))
 with zipfile.ZipFile(target/'landingpage.zip') as z:assert z.testzip() is None and 'senklot-intern/config.php' not in z.namelist()
-names=['landingpage.zip','world4you-upload.zip','animationen.webm','chat-01.png','chat-02.png','chat-03.png','chat-04.png','landingpage-1440.png','landingpage-390.png','index.html','effekte.js','robots.txt','sitemap.xml']
+names=['landingpage.zip','world4you-upload.zip','favicon-update.zip','animationen.webm','chat-01.png','chat-02.png','chat-03.png','chat-04.png','landingpage-1440.png','landingpage-390.png','index.html','effekte.js','robots.txt','sitemap.xml']
 (target/'SHA256.txt').write_text(''.join(f'{hashlib.sha256((target/n).read_bytes()).hexdigest()}  {n}\n' for n in names))
 print(json.dumps({'target':str(target),'relativeReferences':count,'zipBytes':(target/'landingpage.zip').stat().st_size,'world4youZipBytes':(target/'world4you-upload.zip').stat().st_size}))
