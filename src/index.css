@@ -945,6 +945,28 @@ textarea {
   .zeile-zustand { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.125rem 0.75rem; }
   @media (min-width: 760px) { .zeile-zustand { min-width: 8.5rem; } }
   /*
+    DIE GESTAPELTE ZEILE (`ListRow gestapelt`, Auftrag 04.11.2026): Text und
+    „⋯“ oben, Zustand und Wert darunter — am Handy und Tablet, wo eine breite
+    Maßlinie neben dem Text diesen auf ein Drittel der Zeile drückte. Am
+    Schreibtisch stehen sie rechts in festen Spalten wie in jeder Zeile.
+    Ohne Zeilenabstand im Raster: fehlt Zustand und Wert, bleibt keine Lücke.
+    Ein Tipp auf Zustand oder Wert geht an die Zeile durch (`pointer-events`):
+    die Maßlinie besteht aus gesetzten Teilen und läge sonst über der Fläche
+    der Zeile — ausgerechnet der größte Bereich am Handy öffnete nichts. Hier
+    steht nichts zum Bedienen; Knöpfe gehören in die Aktionen.
+  */
+  .zeile-gestapelt { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'text aktionen' 'stand aktionen'; align-items: start; gap: 0 1rem; }
+  .zeile-gestapelt > .zeile-text { grid-area: text; }
+  .zeile-gestapelt > .zeile-stand { grid-area: stand; pointer-events: none; display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; margin-top: 0.75rem; }
+  .zeile-gestapelt > .zeile-aktionen { grid-area: aktionen; position: relative; z-index: 1; display: flex; align-items: center; gap: 0.75rem; margin-block: -0.625rem; }
+  .zeile-gestapelt .zeile-stand .zeile-wert { text-align: left; }
+  @media (min-width: 1200px) {
+    .zeile-gestapelt { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: 'text stand aktionen'; align-items: center; }
+    .zeile-gestapelt > .zeile-stand { flex-wrap: nowrap; justify-content: flex-end; gap: 0.75rem; margin-top: 0; }
+    .zeile-gestapelt .zeile-stand .zeile-wert { text-align: right; }
+    .zeile-gestapelt > .zeile-aktionen { margin-block: 0; }
+  }
+  /*
     FÜNF ZUSTÄNDE UND NICHT MEHR (Regel 5). Offen ist ein leerer Ring, läuft
     ein Punkt in Petrol, erledigt tritt grau zurück. Nur der Punkt trägt
     Farbe, das Wort die Bedeutung (Design-Entwurf, Punkt 3): Achtung und

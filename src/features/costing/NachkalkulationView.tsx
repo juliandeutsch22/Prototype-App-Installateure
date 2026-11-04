@@ -1,19 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
+import { canAccess, zusatzrechte } from '@/app/navigation';
 import { listRecentProjects } from '@/lib/db/projects';
-import { listEntriesForProjects } from '@/lib/db/timeEntries';
-import { listInvoicesForProject } from '@/lib/db/invoices';
-import { listQuotesForProject } from '@/lib/db/quotes';
-import { rechneBaustelle, margenTon, type Nachkalkulation } from './nachkalkulation';
-import { materialkosten, KEINE_MATERIALKOSTEN } from './materialkosten';
-import { listWorkSheetsForProject } from '@/lib/db/workSheets';
-import { katalogNachIds, katalogNachNamen } from '@/lib/db/materials';
-import { einkaufspreise, kostensaetze, type Kostensaetze } from '@/lib/db/kosten';
-import type { Material, Project, Quote } from '@/types';
+import { margenTon } from './nachkalkulation';
+import { rechneBaustellen, type NachkalkulationZeile } from './nachkalkulationLaden';
+import NachkalkulationDetail from './NachkalkulationDetail';
+import { erloesHerkunft, fmtProzent, lueckenKurz, zeichenVon } from './nachkalkulationText';
+import { kostensaetze, type Kostensaetze } from '@/lib/db/kosten';
+import type { Project } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
-import { Zustand, type Stand } from '@/components/Badge';
+import { Zustand } from '@/components/Badge';
 import LotZeichnung from '@/components/LotZeichnung';
 import { Masslinie } from '@/components/Planlinie';
 import PageHeader from '@/components/PageHeader';
@@ -22,31 +20,21 @@ import Metric, { MetricRow } from '@/components/Metric';
 import { Segmente } from '@/components/LotBausteine';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import InfoHint from '@/components/InfoHint';
-import { fmtStd } from '@/lib/time';
 import { euro } from '@/lib/betrag';
-
-/** Prozent mit Komma — überall sonst schreibt die App deutsch. */
-/*
-  DAS ZEICHEN ZUM TON (Planlinie B3). `margenTon` ist Geschäftslogik und
-  bleibt, wie sie ist; nur „ruht“ — kein Erlös hinterlegt — bekäme als
-  Zeichen den Kreis mit Haken, und der hieße „erledigt“. Ohne Erlös ist noch
-  nichts beurteilt: der leere Kreis sagt das.
-*/
-const zeichenVon = (ton: Stand): Stand => (ton === 'ruht' ? 'offen' : ton);
-
-const fmtProzent = (n: number) =>
-  `${new Intl.NumberFormat('de-AT', { maximumFractionDigits: 1 }).format(n)} %`;
+import { abfrageSpeicher, schluessel, useZwischengespeichert } from '@/lib/zwischenspeicher';
 
 /** Wie viele Baustellen gleichzeitig gerechnet werden. */
 const BAUSTELLEN_JE_LAUF = 25;
 
-/**
- * Das Angebot, das für die Baustelle zählt: das ANGENOMMENE, wenn es eines
- * gibt. Hängen mehrere an einer Baustelle (ein abgelehntes, ein neues), war
- * es vorher das erste in der Liste — und nur ein angenommenes ist ein Erlös.
- */
-function angebotDerBaustelle(angebote: WithId<Quote>[]): WithId<Quote> | undefined {
-  return angebote.find((q) => q.status === 'Angenommen') ?? angebote[0];
+type Auswahl = 'Aktiv' | 'Abgeschlossen';
+
+/** Die Baustellen einer Auswahl, die gerechnet werden: die jüngsten zuerst, höchstens 25. */
+function auswahlVon(projekte: readonly WithId<Project>[], status: Auswahl): WithId<Project>[] {
+  return projekte
+    .filter((p) => p.status === status)
+    // Abgeschlossene zuerst die jüngsten: sie sind noch im Gedächtnis.
+    .sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))
+    .slice(0, BAUSTELLEN_JE_LAUF);
 }
 
 /**
@@ -61,162 +49,87 @@ function angebotDerBaustelle(angebote: WithId<Quote>[]): WithId<Quote> | undefin
  * Nur für die Geschäftsführung: hier stehen Margen.
  */
 export default function NachkalkulationView() {
-  const { user } = useAuth();
-  const [projekte, setProjekte] = useState<WithId<Project>[]>([]);
-  const [ergebnisse, setErgebnisse] = useState<Nachkalkulation[] | null>(null);
-  const [status, setStatus] = useState<'Aktiv' | 'Abgeschlossen'>('Abgeschlossen');
+  const { user, company } = useAuth();
+  const companyId = user?.companyId ?? '';
+
+  /*
+    Kostensätze und Einkaufspreise liegen seit dem 29.09.2026 in eigenen
+    Tabellen, die nur die Spitze liest (offene Punkte B1) — nicht mehr am
+    Betrieb und am Artikel, die jeder lesen kann.
+
+    ZWISCHENGESPEICHERT (Auftrag 04.11.2026): beim zweiten Besuch steht der
+    letzte Stand sofort da und wird im Hintergrund nachgesehen, wie auf den
+    anderen Seiten (`zwischenspeicher.ts`).
+  */
+  const grund = useZwischengespeichert<{ projekte: WithId<Project>[]; kosten: Kostensaetze | null }>({
+    queryKey: user ? schluessel('nachkalkulationGrund', user) : ['nachkalkulationGrund'],
+    enabled: !!user,
+    queryFn: async () => {
+      const [projekte, kosten] = await Promise.all([listRecentProjects(companyId, 300), kostensaetze(companyId)]);
+      return { projekte, kosten };
+    },
+  });
+  const projekte = useMemo(() => grund.data?.projekte ?? [], [grund.data]);
+  const kosten = grund.data?.kosten ?? null;
+
   /*
     OHNE ABGESCHLOSSENE BAUSTELLE BEGINNT DIE ANSICHT BEI DEN LAUFENDEN.
     Ein neuer Betrieb sah sonst „Keine Baustelle in dieser Auswahl", obwohl
     zwei laufende Baustellen Zahlen hätten (Prüflauf 24.09.2026, L7). Hat
     jemand selbst gewählt, bleibt seine Wahl.
   */
-  const selbstGewaehlt = useRef(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [gewaehlt, setGewaehlt] = useState<Auswahl | null>(null);
+  const status: Auswahl = gewaehlt
+    ?? (!projekte.some((x) => x.status === 'Abgeschlossen') && projekte.some((x) => x.status === 'Aktiv') ? 'Aktiv' : 'Abgeschlossen');
 
   /*
-    Kostensätze und Einkaufspreise liegen seit dem 29.09.2026 in eigenen
-    Tabellen, die nur die Spitze liest (offene Punkte B1) — nicht mehr am
-    Betrieb und am Artikel, die jeder lesen kann.
+    EINE ABFRAGE JE AUSWAHL, GEMERKT (Auftrag 04.11.2026: „beim Tabwechsel
+    wird Inhalt oft noch nachgeladen“). Vorher rechnete jeder Wechsel
+    zwischen „Abgeschlossen“ und „Laufend“ alles neu, auch zurück zur eben
+    gesehenen Auswahl. Jetzt hängt das Ergebnis an Auswahl, Baustellen und
+    Kostensätzen; steht die eine Auswahl, wird die andere im Hintergrund
+    gerechnet — der Wechsel zeigt sie sofort.
   */
-  const [kosten, setKosten] = useState<Kostensaetze | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    setLoading(true);
-    Promise.all([
-      listRecentProjects(user.companyId, 300),
-      kostensaetze(user.companyId),
-    ])
-      .then(([p, k]) => {
-        setKosten(k);
-        setProjekte(p);
-        if (
-          !selbstGewaehlt.current &&
-          !p.some((x) => x.status === 'Abgeschlossen') &&
-          p.some((x) => x.status === 'Aktiv')
-        ) {
-          setStatus('Aktiv');
-        }
-      })
-      .catch((e) => setError((e as Error).message))
-      .finally(() => setLoading(false));
-  }, [user]);
-
-  const gefiltert = useMemo(
-    () =>
-      projekte
-        .filter((p) => p.status === status)
-        // Abgeschlossene zuerst die jüngsten: sie sind noch im Gedächtnis.
-        .sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))
-        .slice(0, BAUSTELLEN_JE_LAUF),
-    [projekte, status],
-  );
-
-  const nummern = gefiltert.map((p) => p.projectNumber).join('|');
-
-  /**
-   * Die Zeiten der angezeigten Baustellen — gezielt, nicht der ganze Bestand.
-   *
-   * `listEntriesForProjects` fragt je Baustelle einzeln; deshalb die
-   * Obergrenze oben. Ohne sie liefe hier bei einem alten Betrieb genau die
-   * Art Abfrage, gegen die die Wachstumsbremse gebaut wurde.
-   */
-  useEffect(() => {
-    if (!user || !kosten || gefiltert.length === 0) {
-      setErgebnisse(gefiltert.length === 0 ? [] : null);
-      return;
-    }
-    let verworfen = false;
-    const companyId = user.companyId;
-    /*
-      Die Scheine je Baustelle EINZELN — dieselbe Obergrenze wie oben schützt
-      auch hier: höchstens 25 Baustellen, also höchstens 25 Abfragen. Ohne die
-      Grenze liefe bei einem alten Betrieb genau die Art Abfrage, gegen die
-      die Wachstumsbremse gebaut wurde.
-    */
-    /*
-      RECHNUNGEN UND ANGEBOTE JE BAUSTELLE, nicht die zweihundert jüngsten
-      Rechnungen und hundert jüngsten Angebote des Betriebs (Prüflauf
-      25.09.2026, P2-13). Eine abgeschlossene Baustelle vom Frühjahr hatte
-      ihre Rechnungen längst aus diesem Fenster verloren und stand mit
-      „kein Erlös" da — oder mit dem Angebot, das zufällig als erstes kam.
-      Dieselbe Obergrenze wie oben hält die Zahl der Abfragen klein.
-    */
-    Promise.all([
-      listEntriesForProjects(
-        companyId,
-        gefiltert.map((p) => p.projectNumber),
-      ),
-      Promise.all(
-        gefiltert.map((p) =>
-          listWorkSheetsForProject(companyId, p.projectNumber).catch(() => null),
-        ),
-      ),
-      Promise.all(gefiltert.map((p) => listInvoicesForProject(companyId, p.projectNumber))),
-      Promise.all(
-        gefiltert.map((p) => (p.id ? listQuotesForProject(companyId, p.id) : Promise.resolve([]))),
-      ),
-    ])
-      .then(async ([eintraege, scheineJeBaustelle, rechnungenJeBaustelle, angeboteJeBaustelle]) => {
-        if (verworfen) return;
-        /*
-          DER MATERIALSTAMM NUR FÜR DIESE BAUSTELLEN (19.10.2026): die Artikel,
-          deren Namen auf ihren Scheinen und angenommenen Angeboten stehen,
-          dazu die Artikel, auf die eine Angebots- oder Scheinzeile zeigt — aus dem ganzen
-          Katalog. Vorher kamen die ersten tausend Artikel; ein Artikel
-          dahinter stand als „ohne Einkaufspreis“ da, und der Deckungsbeitrag
-          war zu hoch. Die Einkaufspreise liest nur die Spitze (offene Punkte B1).
-        */
-        const zeilen = angeboteJeBaustelle.flatMap((liste) => angebotDerBaustelle(liste)?.positions ?? []);
-        const [nachName, nachId] = await Promise.all([
-          katalogNachNamen(companyId, [
-            ...scheineJeBaustelle.flatMap((sch) => (sch ?? []).flatMap((s) => (s.material ?? []).map((z) => z.name ?? ''))),
-            ...zeilen.map((z) => z.label ?? ''),
-          ]),
-          katalogNachIds(companyId, [
-            ...zeilen.map((z) => z.materialId ?? ''),
-            ...scheineJeBaustelle.flatMap((sch) => (sch ?? []).flatMap((s) => (s.material ?? []).flatMap((z) => (z.materialId ? [z.materialId] : [])))),
-          ]),
-        ]);
-        const artikel = [...new Map([...nachName, ...nachId].map((m) => [m.id, m])).values()];
-        const preise = await einkaufspreise(companyId, artikel.map((m) => m.id));
-        if (verworfen) return;
-        const katalog: Material[] = artikel.map((m) => ({ ...m, einkaufspreis: preise.get(m.id) }));
-        setErgebnisse(
-          gefiltert
-            .map((p, i) => {
-              const scheine = scheineJeBaustelle[i];
-              /*
-                Konnten die Scheine nicht geladen werden, wird KEIN Material
-                angesetzt — und die Lücke bleibt sichtbar, weil auch keine
-                Artikel gemeldet werden. Eine Null wäre hier dasselbe wie
-                „kein Material verbaut", und das ist eine andere Aussage.
-              */
-              const material = scheine ? materialkosten(scheine, katalog) : KEINE_MATERIALKOSTEN;
-              return rechneBaustelle(
-                p.projectNumber,
-                p.customerName,
-                eintraege,
-                rechnungenJeBaustelle[i],
-                angebotDerBaustelle(angeboteJeBaustelle[i]),
-                kosten,
-                material,
-                katalog,
-              );
-            })
-            // Die schlechtesten oben: eine Auswertung ist eine Arbeitsliste.
-            .sort((a, b) => (a.margeProzent ?? 999) - (b.margeProzent ?? 999)),
-        );
-      })
-      .catch(() => setError('Zeiten, Rechnungen, Angebote oder Materialpreise der Baustellen konnten nicht geladen werden.'));
-    return () => {
-      verworfen = true;
+  const abfrageFuer = (st: Auswahl) => {
+    const baustellen = auswahlVon(projekte, st);
+    return {
+      queryKey: user
+        ? schluessel('nachkalkulation', user, st, baustellen.map((p) => `${p.id}:${p.projectNumber}`), kosten)
+        : ['nachkalkulation'],
+      queryFn: () => rechneBaustellen(companyId, baustellen, kosten as Kostensaetze),
     };
-    // Am Inhalt haengen, nicht an der Array-Identitaet.
+  };
+  const auswahl = useMemo(() => auswahlVon(projekte, status), [projekte, status]);
+  const ergebnis = useZwischengespeichert<NachkalkulationZeile[]>({
+    ...abfrageFuer(status),
+    enabled: !!user && !!kosten && auswahl.length > 0,
+  });
+  const andere: Auswahl = status === 'Aktiv' ? 'Abgeschlossen' : 'Aktiv';
+  const andereDa = auswahlVon(projekte, andere).length > 0;
+  useEffect(() => {
+    if (!user || !kosten || !ergebnis.isSuccess || !andereDa) return;
+    // Schlägt das Vorrechnen fehl, rechnet der Wechsel selbst und sagt es dann.
+    abfrageSpeicher.ensureQueryData(abfrageFuer(andere)).catch(() => undefined);
+    // Am Inhalt hängen, nicht an der Identität der Funktion.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, nummern, kosten?.fach, kosten?.helper]);
+  }, [user, kosten, ergebnis.isSuccess, andere, andereDa, projekte]);
+
+  const ergebnisse = useMemo<NachkalkulationZeile[] | null>(
+    () => (auswahl.length === 0 ? [] : ergebnis.data ?? null),
+    [auswahl.length, ergebnis.data],
+  );
+  const fehler = grund.isError
+    ? grund.error.message
+    : ergebnis.isError
+      ? 'Zeiten, Rechnungen, Angebote oder Materialpreise der Baustellen konnten nicht geladen werden.'
+      : null;
+
+  /** Die Baustelle im Seitenfenster — über ihre Nummer, damit ein neuer Stand sie mitnimmt. */
+  const [offen, setOffen] = useState<string | null>(null);
+  const offeneZeile = ergebnisse?.find((k) => k.projectNumber === offen) ?? null;
+  const katalogWeg = user && canAccess(user.role, '/lager', company?.modules, zusatzrechte(user, company))
+    ? '/lager?reiter=katalog'
+    : undefined;
 
   /*
     DIE KENNZAHLEN ZÄHLEN NUR, WAS DIE ZEILEN SCHON SAGEN: je Baustelle den
@@ -234,6 +147,7 @@ export default function NachkalkulationView() {
     return z;
   }, [ergebnisse]);
   const inAuswahl = projekte.filter((p) => p.status === status).length;
+  const loading = grund.isPending;
 
   if (!user) return null;
 
@@ -280,7 +194,16 @@ export default function NachkalkulationView() {
         sagen und den Weg zeigen, statt eine leere Liste zu zeigen, die wie ein
         Fehler aussieht.
       */}
-      {!kosten ? (
+      {loading ? (
+        <Card buendig>
+          <div className="p-4">
+            <SkeletonList rows={4} />
+          </div>
+        </Card>
+      ) : grund.isError && !grund.data ? (
+        /* Nicht geladen ist nicht „Kostensätze fehlen“: das wäre ein falscher Weg in die Einstellungen. */
+        <ErrorState message={fehler ?? 'Die Nachkalkulation konnte nicht geladen werden.'} />
+      ) : !kosten ? (
         /*
           EINE FEHLENDE VORAUSSETZUNG, KEINE LEERE (Planlinie § 6): die kleine
           Einrichtungs-Zeichnung wie bei den Firmendaten, nicht die große
@@ -323,10 +246,7 @@ export default function NachkalkulationView() {
                 { wert: 'Aktiv', text: 'Laufend' },
               ]}
               wert={status}
-              onChange={(w) => {
-                selbstGewaehlt.current = true;
-                setStatus(w);
-              }}
+              onChange={setGewaehlt}
             />
             <InfoHint about="die Auswahl">
               Ein <strong>laufender</strong> Stand ist ein Zwischenstand: es kommen noch
@@ -339,14 +259,16 @@ export default function NachkalkulationView() {
             )}
           </div>
 
-          {error && <ErrorState message={error} />}
+          {/* Scheitert nur das Nachsehen im Hintergrund, bleibt die Liste stehen und der Fehler darüber. */}
+          {fehler && ergebnisse !== null && <ErrorState message={fehler} />}
 
           {/* Bündig: Baustellen als Zeilen von Kante zu Kante, darunter die
               Einschränkung als Zeile (Designlinie „Fassung 3"). */}
           <Card title="Ergebnis je Baustelle" buendig>
-            {loading || ergebnisse === null ? (
+            {ergebnisse === null ? (
               <div className="p-4">
-                <SkeletonList rows={4} />
+                {/* Nicht gerechnet ist nicht „lädt noch“: ohne Ergebnis steht der Fehler, kein Platzhalter. */}
+                {fehler ? <ErrorState message={fehler} /> : <SkeletonList rows={4} />}
               </div>
             ) : ergebnisse.length === 0 ? (
               <EmptyState>Keine Baustelle in dieser Auswahl.</EmptyState>
@@ -355,74 +277,63 @@ export default function NachkalkulationView() {
                 <List>
                   {ergebnisse.map((k) => {
                     /*
-                      KOSTEN GEGEN ERLÖS ALS MASSLINIE (Planlinie B2) statt des
-                      Satzes „Erlös − Personal − Material = …“: die Kosten
-                      laufen gegen den Erlös als Grenze, ein Verlust läuft rot
-                      über ihn hinaus. Die Kosten sind die Summe der beiden
-                      Posten, die die Zeile schon nennt; der Deckungsbeitrag
-                      steht als Betrag daneben. Ohne Erlös gibt es keine
-                      Grenze und damit keine Linie.
+                      KOSTEN GEGEN ERLÖS ALS MASSLINIE (Planlinie B2): die
+                      Kosten laufen gegen den Erlös als Grenze, ein Verlust
+                      läuft rot über ihn hinaus; der Deckungsbeitrag steht als
+                      Betrag daneben. Ohne Erlös gibt es keine Grenze und
+                      damit keine Linie.
+
+                      DIE ZEILE SAGT, WIE ES STEHT — DAS FENSTER, WARUM
+                      (Auftrag 04.11.2026: „viel Text, sehr unübersichtlich“).
+                      Bis dahin standen hier drei Zeilen: Personal und
+                      Material, die Artikel ohne Einkaufspreis als ganzer
+                      Satz, Stunden und Herkunft des Erlöses. Die Zeile nennt
+                      jetzt nur die Herkunft und wie viele Artikel ohne Preis
+                      sind; ein Tipp öffnet die Aufstellung.
                     */
-                    const kosten = k.personalkosten + k.materialkosten;
+                    const summe = k.personalkosten + k.materialkosten;
                     return (
-                    <ListRow
-                      key={k.projectNumber}
-                      title={k.customerName}
-                      nummer={k.projectNumber}
-                      subtitle={
-                        <>
-                          <span className="block">
-                            Personal {euro(k.personalkosten)}
-                            {/*
-                              Material steht nur da, wenn welches bekannt ist.
-                              Ein „0,00 €" läse sich wie „kein Material
-                              verbaut" und wäre bei fehlenden Einkaufspreisen
-                              genau die falsche Auskunft.
-                            */}
-                            {k.materialkosten > 0 && <> · Material {euro(k.materialkosten)}</>}
-                            {k.erloes > 0 ? '' : ` · Erlös ${euro(k.erloes)}`}
+                      <ListRow
+                        key={k.projectNumber}
+                        title={k.customerName}
+                        nummer={k.projectNumber}
+                        onOeffnen={() => setOffen(k.projectNumber)}
+                        pfeil
+                        gestapelt
+                        subtitle={
+                          <span className="nachkalk-meta">
+                            <span>{erloesHerkunft(k)}</span>
+                            {k.materialLuecken.length > 0 && (
+                              <span className="text-warning">{lueckenKurz(k.materialLuecken.length)}</span>
+                            )}
                           </span>
-                          {k.materialLuecken.length > 0 && (
-                            <span className="mt-1 block text-xs text-warning">
-                              Ohne Einkaufspreis, deshalb nicht eingerechnet:{' '}
-                              {k.materialLuecken.join(', ')}. Der Deckungsbeitrag ist um deren
-                              Einkaufspreis zu hoch; der ist nicht hinterlegt.
+                        }
+                        zustand={
+                          <Zustand stand={zeichenVon(margenTon(k))}>
+                            {k.margeProzent === null ? 'keine Aussage' : fmtProzent(k.margeProzent)}
+                          </Zustand>
+                        }
+                        wert={
+                          <span className="nachkalk-zahlen">
+                            {k.erloes > 0 && (
+                              <span className="nachkalk-masslinie">
+                                <Masslinie
+                                  schmal
+                                  ist={summe}
+                                  soll={k.erloes}
+                                  istText={`Kosten ${euro(summe)}`}
+                                  sollText={`Erlös ${euro(k.erloes)}`}
+                                  name={`Kosten ${euro(summe)} von ${euro(k.erloes)} Erlös, Deckungsbeitrag ${euro(k.deckungsbeitrag)}`}
+                                />
+                              </span>
+                            )}
+                            <span className="nachkalk-wert">
+                              {euro(k.deckungsbeitrag)}
+                              <small>Deckungsbeitrag</small>
                             </span>
-                          )}
-                          <span className="mt-1 block text-xs text-ink-muted">
-                            {fmtStd(k.fachStunden * 60)} h Facharbeit
-                            {k.helferStunden > 0 ? `, ${fmtStd(k.helferStunden * 60)} h Helfer` : ''}
-                            {k.lehrlingStunden > 0 ? `, ${fmtStd(k.lehrlingStunden * 60)} h Lehrling` : ''}
-                            {' · '}
-                            {k.erloesQuelle === 'Rechnungen'
-                              ? 'Erlös aus Rechnungen'
-                              : k.erloesQuelle === 'Angebot'
-                                ? 'Erlös aus dem Angebot — noch nicht verrechnet'
-                                : 'kein Erlös hinterlegt'}
                           </span>
-                        </>
-                      }
-                    >
-                      {k.erloes > 0 && (
-                        <div className="nachkalk-masslinie">
-                          <Masslinie
-                            schmal
-                            ist={kosten}
-                            soll={k.erloes}
-                            istText={`Kosten ${euro(kosten)}`}
-                            sollText={`Erlös ${euro(k.erloes)}`}
-                            name={`Kosten ${euro(kosten)} von ${euro(k.erloes)} Erlös, Deckungsbeitrag ${euro(k.deckungsbeitrag)}`}
-                          />
-                        </div>
-                      )}
-                      <span className="zeile-wert nachkalk-wert">
-                        {euro(k.deckungsbeitrag)}
-                        <small>Deckungsbeitrag</small>
-                      </span>
-                      <Zustand stand={zeichenVon(margenTon(k))}>
-                        {k.margeProzent === null ? 'keine Aussage' : fmtProzent(k.margeProzent)}
-                      </Zustand>
-                    </ListRow>
+                        }
+                      />
                     );
                   })}
                 </List>
@@ -452,6 +363,13 @@ export default function NachkalkulationView() {
               </>
             )}
           </Card>
+
+          <NachkalkulationDetail
+            k={offeneZeile}
+            laufend={status === 'Aktiv'}
+            katalogWeg={katalogWeg}
+            onClose={() => setOffen(null)}
+          />
         </>
       )}
     </div>

@@ -16,6 +16,7 @@ export function ListRow({
   pfeil = false,
   to,
   onOeffnen,
+  gestapelt = false,
   children,
 }: {
   title: ReactNode;
@@ -44,6 +45,15 @@ export function ListRow({
    */
   to?: string;
   onOeffnen?: () => void;
+  /**
+   * ZUSTAND UND WERT UNTER DEM TEXT, wo der Platz nicht reicht (Auftrag
+   * 04.11.2026: die Baustellenliste „eng, viel Text, wenig Abstände“). Für
+   * Zeilen mit mehrzeiligem Text UND breitem Wert (Maßlinie): am Tablet nahm
+   * die rechte Spalte über 400 px, der Name brach in drei Zeilen. Gestapelt
+   * stehen Zustand und Wert am Handy und Tablet unter dem Text, das „⋯“ oben
+   * rechts; am Schreibtisch rechts in festen Spalten wie sonst.
+   */
+  gestapelt?: boolean;
   children?: ReactNode; // rechte Seite (Aktionen)
 }) {
   const ganz = !!to || !!onOeffnen;
@@ -61,6 +71,28 @@ export function ListRow({
   ) : (
     titelText
   );
+  if (gestapelt) {
+    return (
+      <li className={ganz ? 'zeile zeile-gestapelt zeile-ganz' : 'zeile zeile-gestapelt'}>
+        <div className="zeile-text">
+          <div className="zeile-titel flex flex-wrap items-center gap-x-2">{titelInhalt}</div>
+          {subtitle && <p className="zeile-meta mt-0.5 block">{subtitle}</p>}
+        </div>
+        {(zustand || wert != null) && (
+          <div className="zeile-stand">
+            {zustand && <span className="zeile-zustand">{zustand}</span>}
+            {wert != null && <span className="zeile-wert">{wert}</span>}
+          </div>
+        )}
+        {(children || pfeil) && (
+          <div className="zeile-aktionen">
+            {children}
+            {pfeil && <Icon name="weiter" size={16} className="zeile-pfeil" />}
+          </div>
+        )}
+      </li>
+    );
+  }
   return (
     <li className={ganz ? 'zeile zeile-ganz flex-wrap gap-y-2' : 'zeile flex-wrap gap-y-2'}>
       {/*

@@ -106,14 +106,15 @@ vi.mock('@/lib/db/timeEntries', () => ({
   listEntriesForProjects: (c: string, n: string[]) => listEntriesForProjects(c, n),
 }));
 /*
-  SEIT DEM PRÜFLAUF 25.09.2026 (P2-13) je Baustelle geholt, nicht die
-  jüngsten des Betriebs. Die Doppelgänger geben zurück, was zur gefragten
-  Baustelle gehört.
+  SEIT DEM PRÜFLAUF 25.09.2026 (P2-13) die Belege DER BAUSTELLEN, nicht die
+  jüngsten des Betriebs; seit dem 04.11.2026 für alle gezeigten Baustellen in
+  einem Zug. Die Doppelgänger geben zurück, was zu den gefragten Baustellen
+  gehört.
 */
-const listQuotesForProject = vi.fn(async (_c: string, projektId: string) =>
-  angebote.filter((q) => !q.projectId || q.projectId === projektId));
+const listQuotesForProjects = vi.fn(async (_c: string, projektIds: readonly string[]) =>
+  angebote.filter((q) => q.projectId && projektIds.includes(q.projectId)));
 vi.mock('@/lib/db/quotes', () => ({
-  listQuotesForProject: (c: string, id: string) => listQuotesForProject(c, id),
+  listQuotesForProjects: (c: string, ids: readonly string[]) => listQuotesForProjects(c, ids),
 }));
 
 /*
@@ -123,7 +124,8 @@ vi.mock('@/lib/db/quotes', () => ({
 */
 let katalog: Material[] = [];
 let scheine: Array<WorkSheet & { id: string }> = [];
-const listWorkSheetsForProject = vi.fn(async () => scheine);
+const listWorkSheetsForProjects = vi.fn(async (_c: string, nummern: readonly string[]) =>
+  scheine.filter((s) => nummern.includes(s.projectNumber)));
 /*
   Der Katalog wie auf dem Server (19.10.2026): nach Namen oder Kennungen,
   ohne Einkaufspreis — den liest nur die Spitze aus der eigenen Tabelle.
@@ -146,12 +148,12 @@ vi.mock('@/lib/db/kosten', () => ({
   )),
 }));
 vi.mock('@/lib/db/workSheets', () => ({
-  listWorkSheetsForProject: () => listWorkSheetsForProject(),
+  listWorkSheetsForProjects: (c: string, n: readonly string[]) => listWorkSheetsForProjects(c, n),
 }));
-const listInvoicesForProject = vi.fn(async (_c: string, nr: string) =>
-  rechnungen.filter((r) => r.projectNumber === nr));
+const listInvoicesForProjects = vi.fn(async (_c: string, nummern: readonly string[]) =>
+  rechnungen.filter((r) => nummern.includes(r.projectNumber)));
 vi.mock('@/lib/db/invoices', () => ({
-  listInvoicesForProject: (c: string, nr: string) => listInvoicesForProject(c, nr),
+  listInvoicesForProjects: (c: string, n: readonly string[]) => listInvoicesForProjects(c, n),
 }));
 
 /*
@@ -183,6 +185,13 @@ function zeige() {
   );
 }
 
+/** Die Zeile einer Baustelle antippen; zurück kommt ihr Seitenfenster. */
+async function oeffnen(nutzer: ReturnType<typeof userEvent.setup>, nummer: string): Promise<HTMLElement> {
+  const zeile = (await screen.findByText(nummer)).closest('li') as HTMLElement;
+  await nutzer.click(within(zeile).getByRole('button', { name: new RegExp(nummer) }));
+  return screen.findByRole('dialog', { name: `Nachkalkulation ${nummer}` });
+}
+
 beforeEach(() => {
   firma = {
     id: 'perl',
@@ -199,9 +208,9 @@ beforeEach(() => {
   rechnungen = [];
   angebote = [];
   listEntriesForProjects.mockClear();
-  listWorkSheetsForProject.mockClear();
-  listInvoicesForProject.mockClear();
-  listQuotesForProject.mockClear();
+  listWorkSheetsForProjects.mockClear();
+  listInvoicesForProjects.mockClear();
+  listQuotesForProjects.mockClear();
 });
 
 describe('Ohne interne Kostensätze', () => {
@@ -426,14 +435,18 @@ describe('Material im Ergebnis', () => {
         material: [{ name: 'Eckventil', menge: 100 }],
       } as unknown as WorkSheet & { id: string },
     ];
+    const nutzer = userEvent.setup();
     zeige();
 
-    // Seit der Planlinie (E30) stehen die Posten in der Unterzeile, der
-    // Deckungsbeitrag als Betrag daneben — geprüft wird die Zeile.
-    const zeile = (await screen.findByText(/Material €\s350,00/)).closest('li') as HTMLElement;
+    // Seit dem 04.11.2026 steht der Deckungsbeitrag in der Zeile, die Posten im Seitenfenster.
+    const zeile = (await screen.findByText(/Kunde 2026-001/)).closest('li') as HTMLElement;
     // Erlös 2000 − Personal 0 − Material 350 = 1650. Die Zahl selbst zählt:
     // stünde hier 2000, wäre das Material zwar geholt, aber nicht abgezogen.
     expect(zeile.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('1650,00');
+    const fenster = await oeffnen(nutzer, '2026-001');
+    const material = within(fenster).getByText('− Material').closest('.nachkalk-posten') as HTMLElement;
+    expect(material.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('350,00');
+    expect(material).toHaveTextContent('aus den unterschriebenen Handwerksscheinen');
   });
 
   it('fragt den Katalog nach den Namen der Scheine und des Angebots, nicht den ganzen Stamm (19.10.2026)', async () => {
@@ -484,25 +497,46 @@ describe('Material im Ergebnis', () => {
         material: [{ name: 'Spezialdichtung', menge: 2 }],
       } as unknown as WorkSheet & { id: string },
     ];
+    const nutzer = userEvent.setup();
     zeige();
 
-    expect(await screen.findByText(/Spezialdichtung/)).toBeInTheDocument();
-    expect(screen.getByText(/Deckungsbeitrag ist um deren Einkaufspreis zu hoch; der ist nicht hinterlegt/)).toBeInTheDocument();
-    // Und keine Materialzeile: es ist nichts eingerechnet worden, ein
+    // In der Zeile kurz, wie viele — beim Namen im Seitenfenster.
+    const zeile = (await screen.findByText(/Kunde 2026-001/)).closest('li') as HTMLElement;
+    expect(within(zeile).getByText('1 Artikel ohne Einkaufspreis')).toHaveClass('text-warning');
+    expect(zeile).not.toHaveTextContent('Spezialdichtung');
+    const fenster = await oeffnen(nutzer, '2026-001');
+    expect(within(fenster).getByRole('listitem')).toHaveTextContent('Spezialdichtung');
+    expect(within(fenster).getByText(/der Deckungsbeitrag ist um ihren Einkaufswert zu hoch/)).toBeInTheDocument();
+    // Und kein Materialbetrag: es ist nichts eingerechnet worden, ein
     // „Material 0,00 €" läse sich wie „kein Material verbaut".
-    expect(screen.queryByText(/Material €/)).not.toBeInTheDocument();
+    const material = within(fenster).getByText('− Material').closest('.nachkalk-posten') as HTMLElement;
+    expect(material).not.toHaveTextContent('€');
+    expect(material).toHaveTextContent('nichts eingerechnet — siehe unten');
   });
 
-  it('holt die Scheine je Baustelle, nicht einmal für alle', async () => {
-    // Die Abfrage kann nur je Baustelle gestellt werden. Dass es genau so
-    // viele sind wie angezeigte Baustellen, ist die Wachstumsbremse: die
-    // Obergrenze von 25 gilt damit auch hier.
-    projekte = [projekt('2026-001'), projekt('2026-002')];
+  it('holt die Scheine der gezeigten Baustellen in einem Zug (04.11.2026)', async () => {
+    /*
+      Je Baustelle einzeln waren es bei 25 Baustellen hundert Anfragen allein
+      für die Scheine. Jetzt eine — mit genau den gezeigten Baustellen: die
+      Obergrenze von 25 bleibt die Wachstumsbremse.
+    */
+    projekte = [projekt('2026-001'), projekt('2026-002'), projekt('2026-009', 'Aktiv')];
     rechnungen = [rechnung('2026-001', 2000), rechnung('2026-002', 2000)];
     zeige();
 
     await screen.findAllByText(/Kunde 2026-00/);
-    expect(listWorkSheetsForProject).toHaveBeenCalledTimes(2);
+    expect(listWorkSheetsForProjects.mock.calls[0][1]).toEqual(['2026-002', '2026-001']);
+  });
+
+  it('rechnet höchstens die 25 jüngsten einer Auswahl', async () => {
+    projekte = Array.from({ length: 30 }, (_, i) => projekt(`2026-${String(i + 1).padStart(3, '0')}`));
+    zeige();
+    await screen.findByText(/Kunde 2026-030/);
+    const gefragt = listEntriesForProjects.mock.calls[0][1];
+    expect(gefragt).toHaveLength(25);
+    expect(gefragt).not.toContain('2026-005');
+    expect(listWorkSheetsForProjects.mock.calls[0][1]).toEqual(gefragt);
+    expect(listInvoicesForProjects.mock.calls[0][1]).toEqual(gefragt);
   });
 
   it('rechnet weiter, wenn die Scheine einer Baustelle nicht ladbar sind', async () => {
@@ -513,13 +547,13 @@ describe('Material im Ergebnis', () => {
     */
     projekte = [projekt('2026-001')];
     rechnungen = [rechnung('2026-001', 2000)];
-    listWorkSheetsForProject.mockRejectedValueOnce(new Error('nicht lesbar'));
+    listWorkSheetsForProjects.mockRejectedValueOnce(new Error('nicht lesbar'));
     zeige();
 
-    // Nicht /Erlös/: so heisst auch die Überschrift der Karte.
-    const zeile = (await screen.findByText(/Personal €/)).closest('li') as HTMLElement;
-    expect(zeile.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('2000,00');
-    expect(screen.queryByText(/Material €/)).not.toBeInTheDocument();
+    const zeile = (await screen.findByText(/Kunde 2026-001/)).closest('li') as HTMLElement;
+    // Erlös 2000, nichts abgezogen: der Deckungsbeitrag vor Material.
+    expect(zeile.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('2000,00Deckungsbeitrag');
+    expect(screen.queryByText(/Zeiten, Rechnungen, Angebote/)).not.toBeInTheDocument();
   });
 });
 
@@ -530,15 +564,18 @@ describe('Material im Ergebnis', () => {
   und ein abgelehntes Angebot verdrängte das angenommene.
 */
 describe('Rechnungen und Angebote je Baustelle', () => {
-  it('fragt die Rechnungen jeder angezeigten Baustelle einzeln', async () => {
+  it('fragt die Rechnungen und Angebote genau der angezeigten Baustellen — in einem Zug', async () => {
     projekte = [projekt('2026-001'), projekt('2026-002')];
     eintraege = [...stunden('2026-001', 1), ...stunden('2026-002', 1)];
-    rechnungen = [rechnung('2026-001', 2000), rechnung('2026-002', 700)];
+    rechnungen = [rechnung('2026-001', 2000), rechnung('2026-002', 700), rechnung('2026-077', 99999)];
     zeige();
     await screen.findByText(/Kunde 2026-001/);
-    await waitFor(() => expect(listInvoicesForProject).toHaveBeenCalledTimes(2));
-    expect(listInvoicesForProject.mock.calls.map((c) => c[1]).sort()).toEqual(['2026-001', '2026-002']);
-    expect(listQuotesForProject.mock.calls.map((c) => c[1]).sort()).toEqual(['p-2026-001', 'p-2026-002']);
+    expect(listInvoicesForProjects).toHaveBeenCalledTimes(1);
+    expect([...listInvoicesForProjects.mock.calls[0][1]].sort()).toEqual(['2026-001', '2026-002']);
+    expect([...listQuotesForProjects.mock.calls[0][1]].sort()).toEqual(['p-2026-001', 'p-2026-002']);
+    // Jede Rechnung bei ihrer Baustelle: 700 € Erlös bleiben bei 2026-002.
+    const zwei = screen.getByText(/Kunde 2026-002/).closest('li') as HTMLElement;
+    expect(zwei.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('Erlös€700,00');
   });
 
   it('nimmt das angenommene Angebot, auch wenn ein abgelehntes davor steht', async () => {
@@ -559,5 +596,147 @@ describe('Rechnungen und Angebote je Baustelle', () => {
     const text = (zeile as HTMLElement).textContent?.replace(/[\s\u00A0.]/g, '') ?? '';
     expect(text).toContain('1500,00');
     expect(text).toContain('ErlösausdemAngebot');
+  });
+});
+
+/*
+  DIE ZEILE SAGT, WIE ES STEHT — DAS FENSTER, WARUM (Auftrag 04.11.2026:
+  „viel Text … sehr unübersichtlich … Detailansicht mit einem Modal“).
+*/
+describe('Zeile und Seitenfenster', () => {
+  it('die Zeile bleibt kurz: Herkunft des Erlöses, Zustand, Kosten gegen Erlös, Deckungsbeitrag', async () => {
+    projekte = [projekt('2026-001')];
+    eintraege = stunden('2026-001', 2);
+    rechnungen = [rechnung('2026-001', 2000)];
+    zeige();
+    const zeile = (await screen.findByText(/Kunde 2026-001/)).closest('li') as HTMLElement;
+    expect(within(zeile).getByText('Erlös aus Rechnungen')).toBeInTheDocument();
+    expect(within(zeile).getByRole('img', { name: /^Kosten/ })).toBeInTheDocument();
+    // Stunden und Posten stehen im Fenster, nicht mehr in der Zeile.
+    expect(zeile).not.toHaveTextContent('Facharbeit');
+    expect(zeile).not.toHaveTextContent('Personal');
+    // Die ganze Zeile öffnet, mit dem Pfeil wie bei den Rechnungen.
+    expect(within(zeile).getByRole('button', { name: /2026-001/ })).toHaveClass('zeile-ziel');
+    expect(zeile.querySelector('.zeile-pfeil')).not.toBeNull();
+  });
+
+  it('das Fenster schlüsselt auf: Erlös, Personal nach Stunden, Material, Deckungsbeitrag — und führt in die Akte', async () => {
+    const nutzer = userEvent.setup();
+    projekte = [projekt('2026-001')];
+    eintraege = stunden('2026-001', 2);
+    rechnungen = [rechnung('2026-001', 2000)];
+    zeige();
+    // Gegenprobe: vor dem Tipp kein Fenster.
+    await screen.findByText(/Kunde 2026-001/);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    const fenster = await oeffnen(nutzer, '2026-001');
+    const posten = (wort: string) =>
+      ([...fenster.querySelectorAll('.nachkalk-posten')].find((p) => p.querySelector('dt')?.textContent === wort) as HTMLElement).textContent?.replace(/[\s\u00A0.]/g, '') ?? '';
+    expect(posten('Erlös')).toContain('€2000,00');
+    expect(posten('Erlös')).toContain('aus1Rechnung,netto');
+    // 16 h × 40 € Kostensatz.
+    expect(posten('− Personal')).toContain('€640,00');
+    expect(posten('− Personal')).toContain('16,0hFacharbeit(€640,00)');
+    expect(posten('Deckungsbeitrag')).toContain('€1360,00');
+    expect(posten('Deckungsbeitrag')).toContain('68%vomErlös');
+    expect(within(fenster).getByRole('link', { name: 'Akte der Baustelle öffnen' })).toHaveAttribute('href', '/admin-projects/p-2026-001');
+    // Ohne fehlende Einkaufspreise kein Abschnitt dazu.
+    expect(within(fenster).queryByText(/ohne Einkaufspreis/)).not.toBeInTheDocument();
+
+    await nutzer.click(within(fenster).getByRole('button', { name: /^Schließen$/ }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('fehlen Einkaufspreise, zeigt das Fenster den Weg in den Katalog', async () => {
+    const nutzer = userEvent.setup();
+    projekte = [projekt('2026-001')];
+    rechnungen = [rechnung('2026-001', 2000)];
+    scheine = [
+      {
+        id: 's1', companyId: 'perl', projectNumber: '2026-001', status: 'Unterschrieben',
+        material: [{ name: 'Spezialdichtung', menge: 2 }, { name: 'Sonderventil', menge: 1 }],
+      } as unknown as WorkSheet & { id: string },
+    ];
+    zeige();
+    const fenster = await oeffnen(nutzer, '2026-001');
+    expect(within(fenster).getByRole('heading', { name: '2 Artikel ohne Einkaufspreis' })).toBeInTheDocument();
+    expect(within(fenster).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['Sonderventil', 'Spezialdichtung']);
+    expect(within(fenster).getByRole('link', { name: 'Einkaufspreise im Katalog hinterlegen' })).toHaveAttribute('href', '/lager?reiter=katalog');
+  });
+
+  it('ohne Erlös sagt das Fenster es, statt null zu rechnen', async () => {
+    const nutzer = userEvent.setup();
+    projekte = [projekt('2026-002')];
+    eintraege = stunden('2026-002', 1);
+    zeige();
+    const fenster = await oeffnen(nutzer, '2026-002');
+    expect(within(fenster).getByText(/kein Erlös hinterlegt — weder Rechnung noch angenommenes Angebot/)).toBeInTheDocument();
+    expect(within(fenster).getByText('ohne Erlös keine Marge')).toBeInTheDocument();
+    expect(within(fenster).queryByRole('img')).not.toBeInTheDocument();
+  });
+
+  it('bei laufenden Baustellen sagt auch das Fenster: Zwischenstand', async () => {
+    const nutzer = userEvent.setup();
+    projekte = [projekt('2026-003', 'Aktiv')];
+    rechnungen = [rechnung('2026-003', 500)];
+    zeige();
+    const fenster = await oeffnen(nutzer, '2026-003');
+    expect(within(fenster).getByText(/Zwischenstand — es kommen noch Stunden dazu/)).toBeInTheDocument();
+  });
+});
+
+/*
+  KEIN NACHLADEN BEIM WECHSEL (Auftrag 04.11.2026: „beim Tabwechsel in der
+  Seite wird Inhalt oft noch nachgeladen“). Steht die eine Auswahl, wird die
+  andere im Hintergrund gerechnet; der Wechsel zeigt sie sofort, auch zurück.
+*/
+describe('Wechsel und Wiederkommen', () => {
+  const auswahl = (text: 'Abgeschlossen' | 'Laufend') =>
+    within(screen.getByRole('group', { name: 'Baustellen' })).getByRole('button', { name: text });
+
+  it('die andere Auswahl steht beim Wechsel sofort da — ohne Platzhalter, auch zurück', async () => {
+    const nutzer = userEvent.setup();
+    projekte = [projekt('2026-001'), projekt('2026-003', 'Aktiv')];
+    rechnungen = [rechnung('2026-001', 2000), rechnung('2026-003', 900)];
+    zeige();
+    await screen.findByText(/Kunde 2026-001/);
+    // Die laufenden werden im Hintergrund mitgerechnet.
+    await waitFor(() => expect(listEntriesForProjects).toHaveBeenCalledWith('perl', ['2026-003']));
+
+    await nutzer.click(auswahl('Laufend'));
+    expect(screen.getByText(/Kunde 2026-003/)).toBeInTheDocument();
+    expect(document.querySelector('.skeleton, [aria-busy="true"]')).toBeNull();
+    await nutzer.click(auswahl('Abgeschlossen'));
+    expect(screen.getByText(/Kunde 2026-001/)).toBeInTheDocument();
+  });
+
+  it('beim Wiederkommen steht der letzte Stand sofort da', async () => {
+    projekte = [projekt('2026-001')];
+    rechnungen = [rechnung('2026-001', 2000)];
+    const erst = zeige();
+    await screen.findByText(/Kunde 2026-001/);
+    erst.unmount();
+    zeige();
+    expect(screen.getByText(/Kunde 2026-001/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne Kostensätze wird auch im Hintergrund nichts gerechnet', async () => {
+    kosten = null;
+    projekte = [projekt('2026-001'), projekt('2026-003', 'Aktiv')];
+    zeige();
+    await screen.findByRole('heading', { name: 'Kostensätze fehlen' });
+    expect(listEntriesForProjects).not.toHaveBeenCalled();
+  });
+});
+
+describe('Wenn nichts gerechnet werden kann', () => {
+  it('sagt es in der Karte, statt Platzhalter stehen zu lassen', async () => {
+    projekte = [projekt('2026-001')];
+    listInvoicesForProjects.mockRejectedValueOnce(new Error('kein Netz'));
+    zeige();
+    expect(await screen.findByText(/Zeiten, Rechnungen, Angebote oder Materialpreise der Baustellen konnten nicht geladen werden/)).toBeInTheDocument();
+    expect(screen.getAllByText(/konnten nicht geladen werden/)).toHaveLength(1);
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
   });
 });

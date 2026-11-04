@@ -44,6 +44,11 @@ export function listQuotesForProject(companyId: string, projectId: string): Prom
   return pg.listQuotesForProject(companyId, projectId);
 }
 
+/** Die Angebote mehrerer Baustellen in einem Zug — siehe `pg.listQuotesForProjects`. */
+export function listQuotesForProjects(companyId: string, projectIds: readonly string[]): Promise<WithId<Quote>[]> {
+  return pg.listQuotesForProjects(companyId, projectIds);
+}
+
 /** Die neuen Fassungen eines Angebots (M17). */
 export function listFassungen(companyId: string, vorgaengerId: string): Promise<WithId<Quote>[]> {
   return pg.listFassungen(companyId, vorgaengerId);

@@ -25,6 +25,15 @@
     hebt sie darüber — anrufen und hinfahren bleiben ein Tipp.
   */
 
+  /*
+    DIE BAUSTELLENZEILE IN ZWEI ZEILEN (Auftrag 04.11.2026): Adresse und
+    Telefon, darunter Leitung und Team. Bricht eine davon, dann für sich —
+    nicht mitten in die andere. Die Lücke zwischen den Angaben ist breiter als
+    ein Wortabstand, damit „0664 1234567“ und „Projektleitung“ nicht wie ein
+    Satz lesen.
+  */
+  .baustelle-zeile { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 1.5rem; }
+
   /* ── Akten: Daten als Kurzzeilen, die man aufklappt ───────────────────── */
   /*
     Der Kopf ist der Kopf der Kurzzeile (`kurz`, `kurz-kopf` aus lot.css),
