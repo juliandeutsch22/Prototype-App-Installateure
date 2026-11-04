@@ -6,6 +6,16 @@
  * gestrichelten Linien. Farben nur aus den Grundwerten (var(--…)).
  */
 @layer components {
+  /*
+    „STUNDEN OHNE BUCHUNG“, KNAPP (04.11.2026): links das Ergebnis und worauf
+    es sich stützt, rechts „Weiter zurück prüfen“ — am Handy darunter.
+    Beschriftung und Knöpfe brechen nur zwischen einander um.
+  */
+  .ohne-buchung-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1.5rem; padding: 0.75rem 1rem; }
+  .ohne-buchung-weiter { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
+  /* Das Endgültige für sich: unter einer Linie, links, abgesetzt von den übrigen Handgriffen. */
+  .schein-loeschen { display: flex; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+
   /* ── Schein: die Einsätze des Tages als Auswahl ───────────────────────── */
   /*
     Die gewählte Baustelle trägt einen Petrol-Rand und den hellen Petrolgrund

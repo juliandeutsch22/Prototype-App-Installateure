@@ -83,7 +83,7 @@ let geladen: (WorkSheet & { id: string })[] = scheine;
 const verwerfen = vi.fn(async () => undefined);
 const stornieren = vi.fn(async () => undefined);
 const zurueckholen = vi.fn(async () => undefined);
-const loeschen = vi.fn(async (_c: string, _id: string, _pfade: readonly string[]) => undefined);
+const loeschen = vi.fn<(c: string, id: string, pfade: readonly string[]) => Promise<void>>(async () => undefined);
 
 /* Die tiefe Prüfung holt sich ihre Scheine selbst — auf Anforderung. */
 let tiefGeladen: (WorkSheet & { id: string })[] = [];
@@ -885,6 +885,27 @@ describe('Stunden ohne Buchung', () => {
     await screen.findByText(/Stunden ohne Buchung/);
     expect(zeile('Franz Huber · 08:00 Std · gebucht auf B-001')).toBeInTheDocument();
     expect(screen.queryByText(/stehen unterschrieben beim Kunden/)).not.toBeInTheDocument();
+  });
+
+  /*
+    KNAPP, WENN NICHTS OFFEN IST (Auftrag 04.11.2026: „das Fenster erscheint
+    so unnötig groß“): das Ergebnis als Satz in der Kopfzeile der Karte,
+    daneben „Weiter zurück prüfen“ — kein eigener Leerzustand mehr.
+  */
+  it('ohne Befund: ein Satz mit Prüfbasis und „Weiter zurück prüfen“ in einer Zeile, kein Leerzustand', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [offenerSchein()];
+    buchungen = [{ date: vorTagen(10), userName: 'Franz Huber', projectNumber: 'B-009', status: 'Anwesend' }];
+    zeichne();
+    const satz = await screen.findByText('Zu jeder Stunde auf den geprüften Scheinen gibt es eine Buchung in der Zeiterfassung.');
+    const kopf = satz.closest('.ohne-buchung-kopf') as HTMLElement;
+    expect(kopf).not.toBeNull();
+    expect(kopf).toHaveTextContent(/geladenen Scheine dieser Liste/);
+    expect(within(kopf.querySelector('.ohne-buchung-weiter') as HTMLElement).getAllByRole('button').map((b) => b.textContent))
+      .toEqual(['30 Tage', '90 Tage', '1 Jahr']);
+    const karte = kopf.closest('section') as HTMLElement;
+    expect(karte.querySelector('.leer, [data-leer]')).toBeNull();
+    expect(karte.querySelectorAll('li')).toHaveLength(0);
   });
 
   /*
