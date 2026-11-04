@@ -31,6 +31,11 @@
   .plattform-kontextzeile { border-bottom: 1px solid var(--border); padding: 0.875rem 0; }
   .plattform-werkzeuge { display: flex; align-items: flex-end; gap: 1.5rem; margin-bottom: 1rem; }
   .plattform-suche { flex: 1; max-width: 22.5rem; }
+  /* Rechtstexte (E45): Abschnitte und Unterauftragsverarbeiter untereinander, jeder Eintrag unter einer Linie. */
+  .rt-liste { display: flex; flex-direction: column; margin-bottom: 1rem; border-bottom: 1px solid var(--border); }
+  .rt-eintrag { display: flex; flex-direction: column; gap: 0.75rem; padding-block: 1rem; border-top: 1px solid var(--border); }
+  .rt-werkzeuge { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+  .rt-aktionen { position: sticky; bottom: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; padding-block: 0.75rem; border-top: 1px solid var(--border); background: var(--surface); }
   .plattform-filter { display: flex; align-items: center; gap: 1.25rem; border-bottom: 1px solid var(--border); }
   .plattform-filter button { min-height: 2.875rem; min-width: 2.75rem; border-bottom: 2px solid transparent; font-size: 0.75rem; color: var(--text-muted); }
   .plattform-filter button[aria-pressed=true] { border-color: var(--petrol); color: var(--accent-deep); font-weight: var(--gewicht-titel); }

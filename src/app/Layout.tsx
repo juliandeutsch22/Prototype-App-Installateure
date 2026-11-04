@@ -20,6 +20,7 @@ import ProduktMarke from '@/components/ProduktMarke';
 import Verbindungsband from '@/components/Verbindungsband';
 import Supportband from '@/components/Supportband';
 import Supportsitzung from '@/components/Supportsitzung';
+import RechtstextHinweis from '@/features/recht/RechtstextHinweis';
 import BottomSheet from '@/components/BottomSheet';
 import AppErneuern from '@/components/AppErneuern';
 import ProblemMelden from '@/components/ProblemMelden';
@@ -439,6 +440,12 @@ export default function Layout({ children }: { children: ReactNode }) {
           arbeitet — die Oberfläche sieht sonst aus wie jede andere.
         */}
         <Supportsitzung />
+        {/*
+          RECHTSTEXTE GEÄNDERT (E45): neue Unterauftragsverarbeiter für die
+          Leitung, eine geänderte Datenschutzerklärung für alle — eine Zeile,
+          bis sie gelesen ist.
+        */}
+        <RechtstextHinweis />
         <SeitenHilfeProvider>
           <div ref={seite} className="inhalt">{children}</div>
         </SeitenHilfeProvider>

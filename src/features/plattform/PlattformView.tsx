@@ -27,6 +27,7 @@ import NotzugangPasswort from './NotzugangPasswort';
 import NotzugangZweiFaktor from './NotzugangZweiFaktor';
 import BetriebVerwalten from './BetriebVerwalten';
 import BasiszinsZentral from './BasiszinsZentral';
+import Rechtstexte from './Rechtstexte';
 
 /**
  * Die einzige Seite des globalen Administrators.
@@ -693,6 +694,10 @@ export default function PlattformView() {
             <PageHeader ort="Globaler Administrator" title="Basiszinssatz" subtitle="Zentral je Halbjahr – für alle Betriebe." />
             <div className="plattform-spalten"><div><BasiszinsZentral /></div><aside className="plattform-kontext"><h2>Vorrang des zentralen Satzes</h2><h3>Zentral hinterlegt</h3><p>Gilt für dieses Halbjahr in allen Betrieben.</p><h3>Zentral nicht hinterlegt</h3><p>Der Eintrag des jeweiligen Betriebs bleibt der Rückfall.</p></aside></div>
           </Bereich>
+          {/* Impressum, Datenschutzerklärung und Betreiberangaben (E45) — gelten für alle Betriebe und jeden Besucher. */}
+          <Bereich offen={bereich === 'rechtstexte'}>
+            <Rechtstexte />
+          </Bereich>
           <Bereich offen={bereich === 'konto'}>
             <PageHeader ort="Globaler Administrator" title="Mein Konto" subtitle="Passwort und Zwei-Faktor-Anmeldung des Plattformkontos." />
             <div className="plattform-spalten"><div><PasswortAendern /><ZweiFaktorKarte /><Card title="Sitzung"><div className="flex flex-wrap gap-2"><Button variant="ghost" onClick={() => void signOut()}>Abmelden</Button><Button variant="ghost" onClick={() => void signOut(true)}>Auf allen Geräten abmelden</Button></div></Card></div><aside className="plattform-kontext"><h2>Plattformkonto</h2><h3>Rolle</h3><p>Globaler Administrator</p><h3>Betriebszuordnung</h3><p>Keine</p><h3>Zwei-Faktor-Anmeldung</h3><p>Verpflichtend</p></aside></div>
@@ -720,8 +725,8 @@ export default function PlattformView() {
   );
 }
 
-type PlattformBereich = 'betriebe' | 'support' | 'fehler' | 'basiszins' | 'konto';
-const BEREICHE = [['betriebe', 'Betriebe'], ['support', 'Supportzugänge'], ['fehler', 'Fehlerprotokoll'], ['basiszins', 'Basiszinssatz']] as const;
+type PlattformBereich = 'betriebe' | 'support' | 'fehler' | 'basiszins' | 'rechtstexte' | 'konto';
+const BEREICHE = [['betriebe', 'Betriebe'], ['support', 'Supportzugänge'], ['fehler', 'Fehlerprotokoll'], ['basiszins', 'Basiszinssatz'], ['rechtstexte', 'Rechtstexte']] as const;
 
 function Bereich({ offen, children }: { offen: boolean; children: ReactNode }) {
   // Bereichswechsel erhalten Entwürfe und einmalige Zugangsdaten; jede Hilfe bleibt lokal.
