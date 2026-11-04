@@ -105,7 +105,7 @@
   .recht-fuss { font-size: 0.75rem; color: var(--text-muted); }
   /* Die Unterauftragsverarbeiter als Liste mit Linien, wie Zeilen in der App — kein farbiger Randstrich. */
   .recht-liste > li { padding-block: 0.75rem; border-top: 1px solid var(--border); }
-  .recht-liste > li:last-child { border-bottom: 1px solid var(--border); }
+  .recht-liste { border-bottom: 1px solid var(--border); }
   .recht-liste-name { font-weight: var(--gewicht-titel); color: var(--ink-deep); }
 
   /* ── Anmeldung ────────────────────────────────────────────────────────── */
