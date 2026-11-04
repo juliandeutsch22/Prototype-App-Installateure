@@ -35,6 +35,8 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Abgleich Schein ↔ Ausgabe und Preis über den Namen bei freien Zeilen (T-22, T-26) | Eine freie Zeile hat keinen Katalogartikel |
 | Hinweise statt automatischem Abzug in der Rechnungsvorschau (T-21) | Fachlich: ob Material ein zweites Mal hingehört, weiß nur das Büro |
 | Unverrechnete Stunden mit den Sätzen des Betriebs, nicht mit einem nur für eine Rechnung geänderten Satz (T-20) | Fachlich: dieser Satz entsteht erst beim Schreiben der Rechnung |
+| Unterschriebene und stornierte Handwerksscheine lassen sich nicht löschen, nur Entwürfe (E42, Stand 39) | Rechtlich: ein unterschriebener Schein ist ein Beleg und gehört aufbewahrt (§ 132 BAO); auf ihm stehen Rechnungen |
+| Der Supportzugang löscht keine Schein-Entwürfe (E42) | Sicherheit: Löschen ist endgültig; der Support hilft, er räumt nicht im Bestand des Betriebs |
 | Arbeitszeitgrenzen: eine Lücke gilt als Pause; ein Tag ohne Uhrzeit wird auf die Pause nicht geprüft; vor dem ersten Buchungstag zählt die Woche mit null (Stand 15.3) | Die Angabe fehlt in den Daten; geschätzt wird nichts |
 | Jugendschutz: die Datenbank sperrt nur über 8 Std. und in der Nachtruhe, der Rest ist Rückfrage und Fall (Stand 12.3) | Fachlich: Ausnahmen sind zulässig, aber begründet – sperren hieße, sie zu verhindern |
 | Jugendschutz: ohne Geburtsdatum ist niemand jugendlich (Stand 12.3) | Ohne die Angabe lässt sich nichts prüfen; A7 sorgt dafür, dass sie da ist |
