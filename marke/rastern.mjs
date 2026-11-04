@@ -10,9 +10,20 @@ const ZIEL = resolve(PUBLIC, 'marke');
 mkdirSync(ZIEL, { recursive: true });
 const zeichen = readFileSync(resolve(HIER, 'zeichen.svg'), 'utf8');
 const grund = '<rect width="64" height="64" fill="#FFFFFF"/>';
-const favicon = zeichen.replace('</title>', '</title>' + grund);
+/*
+  ABGERUNDETE ECKEN (Vorgabe des Betreibers vom 04.11.2026): Radius 12 von 64,
+  an seinem Bild gemessen. Rund wird nur, was das System so zeigt, wie es
+  geliefert wird — Reiter, Lesezeichen, installierte App am Schreibtisch.
+  Das Apple-Touch-Icon und das maskierbare Android-Icon bleiben randlos und
+  deckend: iOS füllt durchsichtige Ecken schwarz, und beide Systeme schneiden
+  ihre eigene Form aus, runden also ohnehin.
+*/
+const grundRund = '<rect width="64" height="64" rx="12" fill="#FFFFFF"/>';
+const favicon = zeichen.replace('</title>', '</title>' + grundRund);
 // 52/64 Höhe × 0,92 / 2 = 0,37375: vollständig im sicheren Android-Kreis (Radius 0,4).
-const appIcon = favicon.replace('<g fill=', '<g transform="translate(32 32) scale(0.92) translate(-32 -32)" fill=');
+const appIcon = zeichen
+  .replace('</title>', '</title>' + grund)
+  .replace('<g fill=', '<g transform="translate(32 32) scale(0.92) translate(-32 -32)" fill=');
 const badge = zeichen.replaceAll('#0F4552', '#FFFFFF');
 for (const [name, quelle] of [['icon.svg', appIcon], ['favicon.svg', favicon]]) {
   writeFileSync(resolve(HIER, name), quelle);
@@ -22,8 +33,8 @@ for (const name of ['logo.svg', 'logo-weiss.svg', 'zeichen.svg', 'schriftzug.svg
   writeFileSync(resolve(ZIEL, name), readFileSync(resolve(HIER, name)));
 }
 const auftraege = [
-  { datei: 'icon-192.png', groesse: 192, svg: appIcon },
-  { datei: 'icon-512.png', groesse: 512, svg: appIcon },
+  { datei: 'icon-192.png', groesse: 192, svg: favicon },
+  { datei: 'icon-512.png', groesse: 512, svg: favicon },
   { datei: 'icon-maskable-512.png', groesse: 512, svg: appIcon },
   { datei: 'apple-touch-icon.png', groesse: 180, svg: appIcon },
   ...[16, 32, 64].map((groesse) => ({ datei: `favicon-${groesse}.png`, groesse, svg: favicon })),

@@ -80,17 +80,58 @@ describe('Einheitliche Senklot-Zeichen', () => {
     expect(manifest.scope).toBe('/');
   });
 
-  it.each(ZEICHEN)('$datei hat die angegebene Größe und einen deckenden weißen Grund', ({ datei, groesse }) => {
+  /*
+    RUND wird, was das System so zeigt, wie es geliefert wird (Reiter,
+    Lesezeichen, installierte App am Schreibtisch) — Vorgabe vom 04.11.2026,
+    Radius 12 von 64. RANDLOS und deckend bleiben das Apple-Touch-Icon (iOS
+    füllt durchsichtige Ecken schwarz) und das maskierbare Android-Icon (der
+    Starter schneidet seine Form selbst aus).
+  */
+  const RANDLOS = ['marke/apple-touch-icon.png', 'marke/icon-maskable-512.png'];
+  const RUND = ZEICHEN.filter((z) => !RANDLOS.includes(z.datei));
+
+  it('rundet die Reiter- und Schreibtisch-Icons, nicht die, die das System selbst maskiert', () => {
+    expect(RUND.map((z) => z.datei).sort()).toEqual([
+      'marke/favicon-16.png', 'marke/favicon-32.png', 'marke/favicon-64.png', 'marke/icon-192.png', 'marke/icon-512.png',
+    ]);
+    expect(lies('public/marke/favicon.svg').toString()).toContain('<rect width="64" height="64" rx="12" fill="#FFFFFF"/>');
+    expect(lies('public/marke/icon.svg').toString()).toContain('<rect width="64" height="64" fill="#FFFFFF"/>');
+  });
+
+  it.each(ZEICHEN)('$datei hat die angegebene Größe und das Lot in Petrol', ({ datei, groesse }) => {
     const { breite, hoehe, pixel } = pngLesen(lies(`public/${datei}`));
     expect([breite, hoehe]).toEqual([groesse, groesse]);
-    for (const [x,y] of [[0,0],[breite-1,0],[0,hoehe-1],[breite-1,hoehe-1]]) expect(pixel(x,y)).toEqual([255,255,255,255]);
-    let durchsichtig=0, petrol=0;
+    let petrol=0;
     for (let y=0;y<hoehe;y++) for (let x=0;x<breite;x++) {
-      const [r,g,b,a]=pixel(x,y); if(a!==255) durchsichtig++;
+      const [r,g,b]=pixel(x,y);
       if(r<100 && g<150 && b<170) petrol++;
     }
-    expect(durchsichtig).toBe(0);
     expect(petrol).toBeGreaterThan(breite*hoehe*.02);
+  });
+
+  it.each(RANDLOS.map((datei) => ({ datei })))('$datei bleibt randlos auf deckendem Weiß', ({ datei }) => {
+    const { breite, hoehe, pixel } = pngLesen(lies(`public/${datei}`));
+    for (const [x,y] of [[0,0],[breite-1,0],[0,hoehe-1],[breite-1,hoehe-1]]) expect(pixel(x,y)).toEqual([255,255,255,255]);
+    let durchsichtig=0;
+    for (let y=0;y<hoehe;y++) for (let x=0;x<breite;x++) if(pixel(x,y)[3]!==255) durchsichtig++;
+    expect(durchsichtig).toBe(0);
+  });
+
+  it.each(RUND)('$datei hat runde Ecken mit Radius 12/64 und sonst deckendes Weiß', ({ datei }) => {
+    const { breite, hoehe, pixel } = pngLesen(lies(`public/${datei}`));
+    for (const [x,y] of [[0,0],[breite-1,0],[0,hoehe-1],[breite-1,hoehe-1]]) expect(pixel(x,y)[3], `Ecke ${x},${y}`).toBeLessThan(32); // bei 16 px Kantenglättung
+    // Die Kanten zwischen den Ecken sind deckend weiß: gerundet ist nur die Ecke.
+    for (const [x,y] of [[breite>>1,0],[0,hoehe>>1],[breite-1,hoehe>>1],[breite>>1,hoehe-1]]) expect(pixel(x,y)).toEqual([255,255,255,255]);
+    // Fehlende Deckung gesamt = vier Viertelkreis-Zwickel: 4 · (1 − π/4) · (12/64)² ≈ 3,0 % der Fläche.
+    let fehlend=0;
+    for (let y=0;y<hoehe;y++) for (let x=0;x<breite;x++) fehlend+=(255-pixel(x,y)[3])/255;
+    expect(fehlend/(breite*hoehe)).toBeCloseTo(4*(1-Math.PI/4)*(12/64)**2, 2);
+    // Innerhalb der Rundung ist nichts durchsichtig.
+    const r = breite*12/64;
+    for (let y=0;y<hoehe;y++) for (let x=0;x<breite;x++) {
+      const dx=Math.max(0, r-(x+.5), (x+.5)-(breite-r)), dy=Math.max(0, r-(y+.5), (y+.5)-(hoehe-r));
+      if (Math.hypot(dx,dy) < r-1.5) expect(pixel(x,y)[3], `${x},${y}`).toBe(255);
+    }
   });
 
   it('hält das gesamte Zeichen im sicheren Android-Kreis', () => {
