@@ -16,9 +16,11 @@ assert json.loads((root/'nachweise/sicherheit/paket-pruefung.json').read_text())
 local=json.loads((root/'nachweise/sicherheit/lokal-tests.txt').read_text().splitlines()[-1]);assert local['assertions']>=39 and local['failed']==0
 assert json.loads((root/'nachweise/sicherheit/lokal-http-pruefung.json').read_text())['fixedRecipientAndReplyToVerified']
 assert len(json.loads((root/'nachweise/sicherheit/lokal-browser-pruefung.json').read_text())['views'])==4
+mail=json.loads((root/'nachweise/sicherheit/mail-html-tests.txt').read_text().splitlines()[-1]);assert mail['assertions']>=15 and mail['failed']==0
+assert json.loads((root/'nachweise/sicherheit/lokal-http-pruefung.json').read_text())['multipartHTMLAndPlainText']
 assert json.loads((root/'nachweise/kontakt-pruefung.json').read_text())['explicitActivation']
 assert len(json.loads((root/'nachweise/feedback-pruefung.json').read_text())['views'])==4
-assert 'tests 13' in (root/'nachweise/server-tests.txt').read_text() and 'fail 0' in (root/'nachweise/server-tests.txt').read_text()
+assert 'tests 14' in (root/'nachweise/server-tests.txt').read_text() and 'fail 0' in (root/'nachweise/server-tests.txt').read_text()
 features=json.loads((root/'werkzeuge/funktionen.json').read_text());target.mkdir(exist_ok=True)
 for name in ['index.html','landingpage.css','landingpage.js','tarife.js','kontakt.js','effekte.js','robots.txt','sitemap.xml','.htaccess','package.json','.env.example','.gitignore','README.md','QUELLEN.md','VEROEFFENTLICHEN.md','world4you-upload.zip','animationen.webm']:
  shutil.copyfile(root/name,target/name)

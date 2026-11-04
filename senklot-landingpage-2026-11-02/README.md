@@ -44,7 +44,7 @@ Die kurzen Erscheinanimationen laufen einmal beim Sichtbarwerden. Reduzierte Bew
 - Telefon im Kontaktbereich und Footer: **+43 660 6322503**.
 - Anmeldung: **https://app.senklot.at/**. Die erreichbare Schreibweise mit „k“ wurde anhand der App und ihrer Versionskennung überprüft.
 - Impressum und Datenschutz verweisen auf die vorhandenen Seiten der App.
-- Einführungspreise für Pilotbetriebe nach Vorgabe: Starter 129 €, Team 179 €, Betrieb 249 € monatlich. Optionale Einrichtung 290 / 590 / 699 €, nur bei Buchung. Alle Beträge netto zuzüglich gesetzlicher Umsatzsteuer. Keine erfundenen Referenzkunden, Bewertungen oder Einsparungszahlen.
+- Einführungspreise für Pilotbetriebe nach Vorgabe: Starter 129 €, Team 179 €, Betrieb 249 € monatlich. Optionale Einrichtung 199 / 399 / 699 €, nur bei Buchung. Alle Beträge netto zuzüglich gesetzlicher Umsatzsteuer. Keine erfundenen Referenzkunden, Bewertungen oder Einsparungszahlen.
 
 ## Neue Preis- und Kontaktbereiche
 
@@ -75,11 +75,11 @@ Die Aufnahmen sind keine erneute fachliche Prüfung der Betriebssoftware. Es wur
 
 ## Feedback-Überarbeitung vom 4. November 2026
 
-Neue Einführungspreise 129 / 180 / 249 € netto bei unveränderten Nutzergrenzen. Die begleitete Einrichtung ist optional: 290 / 590 / 699 € netto, ausschließlich bei Buchung. Ohne Buchung fällt keine Einrichtungsgebühr an. Anzeige, Suchmaschinen-Daten, Jahresrabatt, Tarifauswahl und serverseitige Anfrage-E-Mails verwenden dieselbe Preisquelle. Die Einführungspreise sind ab Vertragsbeginn für 12 Monate garantiert. Die Konditionen einer Weiterführung stehen vor Vertragsabschluss im Angebot; es gibt keinen hinterlegten automatischen Preissprung.
+Neue Einführungspreise 129 / 179 / 249 € netto bei unveränderten Nutzergrenzen. Die begleitete Einrichtung ist optional: 199 / 399 / 699 € netto, ausschließlich bei Buchung. Ohne Buchung fällt keine Einrichtungsgebühr an. Anzeige, Suchmaschinen-Daten, Jahresrabatt, Tarifauswahl und serverseitige Anfrage-E-Mails verwenden dieselbe Preisquelle. Die Einführungspreise sind ab Vertragsbeginn für 12 Monate garantiert. Die Konditionen einer Weiterführung stehen vor Vertragsabschluss im Angebot; es gibt keinen hinterlegten automatischen Preissprung.
 
 Ein typischer Auftrag (Heizungsmodernisierung) erklärt den Zusammenhang der Funktionen. Neue Abschnitte beschreiben den Einstieg in drei Schritten, die Prüfung vorhandener Exportdateien, den Einrichtungsumfang, Support, Rollen, Sicherungen und Datenauszüge. Grundlage sind nachprüfbare Funktionen; Betriebsvereinbarungen werden vor dem Start geklärt. Es gibt keine erfundenen Kundenstimmen, Verfügbarkeitsgarantien oder gemessenen Zeitersparnisse.
 
-Die kostenlose Demo ist mit etwa 30 Minuten veranschlagt. Das Formular zeigt zunächst die drei Pflichtfelder; Telefon, Tarif, Nutzerzahl, Nachricht und die freiwillige Anfrage zur optionalen Einrichtung bleiben aufklappbar verfügbar. Die Einrichtung ist nicht vorausgewählt und wird ohne ausdrückliche Auswahl auch in der Anfrage-E-Mail nicht als gewünscht dargestellt. Eingeklappte Eingaben bleiben erhalten und werden mitgesendet. Bei Validierungsfehlern öffnet sich der betreffende Bereich.
+Die kostenlose Demo ist mit etwa 30 Minuten veranschlagt. Alle Formularfelder sind direkt sichtbar. Name, Betrieb und E-Mail sind Pflichtfelder; Telefon, Tarif, Nutzerzahl, Nachricht und die freiwillige Anfrage zur optionalen Einrichtung bleiben optional. Die Einrichtung ist nicht vorausgewählt und wird ohne ausdrückliche Auswahl auch in der Anfrage-E-Mail nicht als gewünscht dargestellt. Der lokale Spamschutz läuft ohne sichtbaren Hinweisblock. Tatsächliche Fehler und Wiederholungsmöglichkeiten bleiben sichtbar. Bei optionaler Turnstile-Nutzung erscheint weiterhin die erforderliche Aktivierung.
 
 - [Einstieg Desktop](08-einstieg-1440.png) · [Einstieg mobil](08-einstieg-390.png)
 - [Betriebsgrundlagen Desktop](09-vertrauen-1440.png) · [Betriebsgrundlagen mobil](09-vertrauen-390.png)
@@ -94,3 +94,16 @@ Bei jedem Tarif lässt sich der genaue Einrichtungsumfang aufklappen: Grundeinst
 ## Formular ohne Cloudflare
 
 `spam_protection: local` verwendet Honeypot, eine kurze Mindestzeit, signierte Einmal-Tokens (höchstens 30 Minuten) und serverseitige Anfragebegrenzung. Dafür ist kein zusätzliches Konto und kein externer Schlüssel erforderlich. Tokens bleiben nur im Arbeitsspeicher der Seite; private Schlüssel und verbrauchte Token-Hashes liegen im geschützten Anwendungsspeicher. SMTP-, Fehler- und Wiederholungsschutz bleiben erhalten. Die stärkere externe Turnstile-Prüfung bleibt optional zuschaltbar und lädt weiterhin erst nach ausdrücklicher Aktivierung.
+
+
+## Formular, FAQ und Anfrage-Mail – 4. November 2026
+
+Das FAQ steht unter einer gemeinsamen Überschrift in den Gruppen „Einstieg & Preise“ und „Senklot im Alltag“: am Desktop nebeneinander, mobil untereinander. Alle zehn Antworten bleiben erhalten.
+
+Die Anfrage-Mail verwendet eine Tabellenstruktur mit Petrol, eingebettetem Senklot-Logo, Kontaktdaten, Tarif-/Einrichtungswahl und Nachricht. HTML und Klartext werden gemeinsam versendet. Es werden keine externen Bilder, Schriftarten oder Skripte geladen. Benutzereingaben werden maskiert. Das Mailprogramm kann die Darstellung je nach eigenen Einstellungen anpassen. Empfänger, Reply-To und bestehende SMTP-Konfiguration bleiben erhalten.
+
+- [FAQ Desktop](10-faq-1440.png) · [FAQ mobil](10-faq-390.png)
+- [Formular Desktop](07-kontakt-1440.png) · [Formular mobil](07-kontakt-390.png)
+- [Mail Desktop](11-anfrage-mail-760.png) · [Mail mobil](11-anfrage-mail-390.png)
+
+Die Screens zeigen fiktive Daten. Der neue Stand wurde lokal geprüft und nicht aus dieser Sitzung auf World4you hochgeladen. Die bereits dort eingerichtete private `senklot-intern/config.php` und der Ordner `senklot-intern/speicher/` müssen beim Aktualisieren erhalten bleiben. Für das Maildesign sind keine neuen SMTP-Einstellungen erforderlich.

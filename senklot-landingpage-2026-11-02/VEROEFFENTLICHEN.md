@@ -45,7 +45,7 @@ Benötigt lokal Python mit Pillow und Node. Das erzeugte Upload-ZIP enthält die
 
 ## 2. Dateien bei World4you hochladen
 
-1. Aktuellen Webspace einschließlich versteckter Dateien sichern.
+1. Aktuellen Webspace einschließlich versteckter Dateien sichern. **Beim Update die funktionierende `senklot-intern/config.php` und den Ordner `senklot-intern/speicher/` erhalten.** Beide sind absichtlich nicht im Upload-ZIP enthalten. Die Beispielkonfiguration nicht erneut über die aktive Konfiguration kopieren.
 2. PHP **8.2 oder neuer** aktivieren; die PHP-Erweiterungen **openssl und ctype** (zusätzlich **curl**, falls später Turnstile verwendet wird) müssen verfügbar sein.
 3. Nur `world4you-upload.zip` entpacken und dessen Inhalt in das Web-Hauptverzeichnis von senklot.at laden. `index.html`, `.htaccess`, `api/`, `senklot-intern/`, `assets/` und die Seitenverzeichnisse liegen unmittelbar dort. Versteckte `.htaccess` und `api/.user.ini` unbedingt mit übertragen. Nicht den gesamten Entwickler-ZIP auf den öffentlichen Webspace laden.
 4. Bestehende Hosting-Regeln vor dem Ersetzen mit der mitgelieferten `.htaccess` abgleichen. Erforderlich sind Apache-2.4-Regeln mit `mod_rewrite`, `mod_headers`, `AllowOverride` und `Options -Indexes`. Bei HTTP 500 den Hosting-Fehlerbericht prüfen bzw. World4you um die entsprechende Konfiguration bitten; nicht einfach den Zugriffsschutz entfernen.
@@ -129,3 +129,10 @@ Die Funktionsseiten besitzen individuelle Titel, Beschreibungen, Canonical-URLs 
 
 
 Die sieben Marketingseiten bleiben indexierbar; die beiden Rechtstexte sind noindex. Sitemap und Suchkonten müssen nach Upload weiterhin im eigenen Konto geprüft werden.
+
+
+## Update: Formular, FAQ und gestaltete Anfrage-Mail
+
+Auch `senklot-intern/mail-html.php`, `senklot-intern/mail-vorlage.html` und `senklot-intern/mail-logo.png` mit übertragen. Diese Dateien liegen im geschützten Verzeichnis; das Logo wird in die E-Mail eingebettet und benötigt keinen externen Abruf. Die Klartextversion bleibt enthalten. Eine fehlende Gestaltungsvorlage führt zum bisherigen Klartextversand. Bestehende SMTP-Daten und Freigaben nicht ändern.
+
+Nach dem Upload einmal mit einer eigenen Testanfrage kontrollieren: optionale Felder direkt sichtbar, kein lokaler Schutz-Hinweisblock im Normalbetrieb, FAQ in zwei Gruppen und eingegangene Mail mit Logo, vollständigen Angaben sowie funktionierender Antwortadresse. Die sichtbare Gestaltung hängt auch vom Mailprogramm und dessen Einstellungen ab.

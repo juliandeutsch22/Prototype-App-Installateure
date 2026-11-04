@@ -10,6 +10,8 @@
   "acceptedReplayNotResent": true,
   "setupOptInPreserved": true,
   "fixedRecipientAndReplyToVerified": true,
+  "multipartHTMLAndPlainText": true,
+  "inlineBrandLogoVerified": true,
   "smtpMessages": 2,
   "realMailSent": false,
   "checks": [

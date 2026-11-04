@@ -1,8 +1,8 @@
 {
   "stage": "/tmp/senklot-world4you-upload",
   "archive": "world4you-upload.zip",
-  "bytes": 830227,
-  "sha256": "ee838d616690850cecc87e359d73df302cc970ac3d2f4c22ac0b222e70b6b9ce",
+  "bytes": 857591,
+  "sha256": "0c74bb6e4db4b753b6f8224247dfc78a8977351fc0eb3f37d74bfea80e7da523",
   "publicFiles": [
     ".htaccess",
     "angebote-rechnungen/index.html",
@@ -43,6 +43,9 @@
     "senklot-intern/angebot.json",
     "senklot-intern/config.example.php",
     "senklot-intern/kontakt.php",
+    "senklot-intern/mail-html.php",
+    "senklot-intern/mail-logo.png",
+    "senklot-intern/mail-vorlage.html",
     "senklot-intern/tarife.json",
     "senklot-intern/vendor/phpmailer/LICENSE",
     "senklot-intern/vendor/phpmailer/README.md",

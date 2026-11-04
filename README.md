@@ -197,3 +197,15 @@ Der lokale Standardmodus schützt das Formular mit Honeypot, kurzer Mindestzeit,
 - [Prüfprotokolle](senklot-landingpage-2026-11-02/nachweise/sicherheit/README.md)
 
 70 bisherige PHP-Prüfungen plus 41 neue Prüfungen des lokalen Schutzes, lokale Browserchecks und ein vollständiger Apache/PHP/TLS-SMTP-Test ohne externe Zustellung. Der World4you-Upload und der echte Postfacheingang wurden aus dieser Sitzung nicht ausgeführt.
+
+
+## Senklot-Website: Formular, FAQ und gestaltete Anfrage-Mail (04.11.2026)
+
+Alle optionalen Felder sind direkt sichtbar. Der lokale Spamschutz läuft im normalen Betrieb ohne sichtbaren Hinweisblock; echte Fehler bleiben sichtbar und können erneut versucht werden. Die zehn FAQ-Antworten stehen in zwei Themengruppen unter einer gemeinsamen Überschrift. Die Anfrage-Mail ist in Petrol mit eingebettetem Senklot-Logo gestaltet und enthält zusätzlich eine vollständige Klartextversion. Empfänger, Antwortadresse, Preise und freiwillige Einrichtung bleiben erhalten. Keine externen Bilder oder Schriftarten in der Mail.
+
+- [Aktuelles World4you-Uploadpaket](senklot-landingpage-2026-11-02/world4you-upload.zip?raw=true)
+- [FAQ Desktop](senklot-landingpage-2026-11-02/10-faq-1440.png) · [FAQ mobil](senklot-landingpage-2026-11-02/10-faq-390.png)
+- [Formular Desktop](senklot-landingpage-2026-11-02/07-kontakt-1440.png) · [Formular mobil](senklot-landingpage-2026-11-02/07-kontakt-390.png)
+- [Mail Desktop](senklot-landingpage-2026-11-02/11-anfrage-mail-760.png) · [Mail mobil](senklot-landingpage-2026-11-02/11-anfrage-mail-390.png)
+
+126 PHP-Prüfungen, 14 Node-Prüfungen, Browserchecks sowie ein lokaler Apache/PHP/TLS-SMTP-Test mit Prüfung der tatsächlichen HTML-/Klartext-Mail und des eingebetteten Logos sind bestanden. Keine echten E-Mails aus dieser Sitzung verschickt. Der neue Stand ist noch nicht aus dieser Sitzung auf World4you hochgeladen. **Beim Update die bestehende `senklot-intern/config.php` und `senklot-intern/speicher/` erhalten.** Für die Gestaltung sind keine neuen SMTP-Einstellungen erforderlich.

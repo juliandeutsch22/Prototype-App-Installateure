@@ -18,7 +18,7 @@ const testkey=/^[123]x0/.test(sitekey)||/^[123]x0/.test(secret);
 const ready=!!sitekey&&!!secret&&!!mailkey&&!!from&&!testkey&&!preview;
 const handle=createHandler({origins,preview,ready,
  verify:async(token,ip)=>{const r=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret,response:token,remoteip:ip}),signal:AbortSignal.timeout(6000)});if(!r.ok)throw Error('Sicherheitsprüfung nicht erreichbar');return r.json();},
- send:async(m)=>{const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${mailkey}`,'Idempotency-Key':m.idempotencyKey},body:JSON.stringify({from,to:[m.to],reply_to:m.replyTo,subject:m.subject,text:m.text}),signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error('Versand nicht bestätigt');return r.json();}
+ send:async(m)=>{const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${mailkey}`,'Idempotency-Key':m.idempotencyKey},body:JSON.stringify({from,to:[m.to],reply_to:m.replyTo,subject:m.subject,text:m.text,...(m.html?{html:m.html,attachments:m.attachments}:{})}),signal:AbortSignal.timeout(10000)});if(!r.ok)throw Error('Versand nicht bestätigt');return r.json();}
 });
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml','.woff2':'font/woff2','.txt':'text/plain; charset=utf-8','.xml':'application/xml; charset=utf-8'};
 const security={

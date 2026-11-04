@@ -8,6 +8,7 @@ const EMPFAENGER = 'office@senklot.at';
 const MAX_BODY = 12000;
 const LOCAL_MIN_SECONDS = 2;
 const LOCAL_TTL_SECONDS = 1800;
+if (is_readable(__DIR__ . '/mail-html.php')) require_once __DIR__ . '/mail-html.php';
 
 function schutzmodus(array $c): string {
     if (array_key_exists('spam_protection', $c)) return in_array($c['spam_protection'], ['local', 'turnstile'], true) ? $c['spam_protection'] : 'invalid';
@@ -221,7 +222,14 @@ function smtp(array $c, array $d, string $text): void {
     $mail->SMTPOptions = ['ssl' => ['verify_peer' => true, 'verify_peer_name' => true, 'allow_self_signed' => false]];
     $mail->CharSet = 'UTF-8'; $mail->setFrom($s['from'], $s['from_name'] ?? 'Senklot');
     $mail->addAddress(EMPFAENGER); $mail->addReplyTo($d['email']);
-    $mail->Subject = 'Senklot – Anfrage über die Website'; $mail->isHTML(false); $mail->Body = $text;
+    $mail->Subject = 'Senklot – Anfrage über die Website';
+    $html = function_exists(__NAMESPACE__ . '\mailHtml') ? mailHtml($d) : '';
+    if ($html !== '' && str_contains($html, 'cid:senklot-logo')) {
+        try { $mail->addEmbeddedImage(__DIR__ . '/mail-logo.png', 'senklot-logo', 'senklot.png', 'base64', 'image/png'); }
+        catch (\Throwable) { $html = mailHtml($d, false); }
+    }
+    $mail->isHTML($html !== ''); $mail->Body = $html !== '' ? $html : $text;
+    if ($html !== '') $mail->AltBody = $text;
     $mail->MessageID = '<senklot-' . $d['requestId'] . '@senklot.at>';
     if (!$mail->send()) throw new \RuntimeException('Versand nicht bestätigt');
 }

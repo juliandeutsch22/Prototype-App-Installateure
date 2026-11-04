@@ -4,6 +4,7 @@ import {createHandler,validieren,AnfrageLimit,emailText} from './contact.mjs';
 import tarife from '../tarife.js';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
+import {emailParts} from './mail.mjs';
 const origin='https://senklot.at';
 const data={name:'Anna Beispiel',firma:'Testbetrieb',email:'anna@example.at',telefon:'+43 660 123456',tarif:'team',zahlung:'jaehrlich',einrichtung:true,nutzer:'8',nachricht:'Bitte um eine Demo.',website:'',token:'valid-token',requestId:'f178f466-386f-47f0-81af-d426d08117aa'};
 function request(d=data,options={}){return new Request(origin+'/api/contact',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json',...options.headers},body:typeof d==='string'?d:JSON.stringify(d)});}
@@ -24,6 +25,13 @@ test('Einrichtung ist freiwillig und wird nur nach ausdrücklicher Auswahl angef
   const yes=emailText(validieren({...data,tarif:id,einrichtung:true}).data);assert.match(yes,/Optionale Einrichtung angefragt:/);assert.match(yes,/12 Monate garantiert/);
  }
  const absent={...data};delete absent.einrichtung;assert.equal(validieren(absent).data.einrichtung,false);
+});
+test('HTML-Mail maskiert Eingaben, nutzt eingebettete Marke und behält Klartext',async()=>{
+ const d={...data,name:'Anna <script>alert(1)</script>',firma:'Betrieb <b>& Co</b>',nachricht:'<img src=x onerror=alert(1)>\nZweite Zeile'};
+ const s=setup();assert.equal((await s.handler(request(d),'ip')).status,200);const m=s.sent[0];
+ assert.match(m.html,/Anna &lt;script&gt;/);assert.doesNotMatch(m.html,/<script>|<img src=x/);assert.match(m.html,/Zweite Zeile/);assert.match(m.html,/1\.933,20 €/);assert.match(m.html,/399,00 €/);assert.match(m.html,/cid:senklot-logo/);assert.doesNotMatch(m.html,/\{\{|<script|<link|<img[^>]+src="https?:/i);
+ assert.equal(m.attachments[0].content_id,'senklot-logo');assert.ok(m.attachments[0].content.length>100);assert.match(m.text,/Betrieb <b>& Co<\/b>/);
+ const no=emailParts({...data,einrichtung:false});assert.match(no.html,/Keine Einrichtungsgebühr/);assert.doesNotMatch(no.html,/399,00 €/);
 });
 test('Vorschau und fehlende Konfiguration versenden nie',async()=>{
  for(const[config,status,code]of[[{preview:true},200,'PREVIEW_ONLY'],[{ready:false},503,undefined]]){const s=setup(config),r=await s.handler(request(),'ip');assert.equal(r.status,status);assert.equal((await r.json()).code,code);assert.equal(s.verified.length,0);assert.equal(s.sent.length,0);}

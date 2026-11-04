@@ -9,7 +9,7 @@
   "busyDuplicateBlocked": true,
   "errorRetainsFields": true,
   "serverFieldErrors": true,
-  "optionalFieldErrorsRevealDetails": true,
+  "optionalFieldErrorsVisible": true,
   "stableRetryId": true,
   "changedPayloadNewId": true,
   "clearOnlyOnAccepted": true,

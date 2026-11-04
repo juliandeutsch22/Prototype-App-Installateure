@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import {emailParts} from './mail.mjs';
 import tarifdaten from '../tarife.js';
 const { TARIFE, EINFUEHRUNG, preis, euro } = tarifdaten;
 export const EMPFAENGER='office@senklot.at';
@@ -54,7 +55,7 @@ export function createHandler({origins,preview=false,ready=false,verify,send,lim
    if(v?.success!==true||v.action!=='contact'||v.hostname!==new URL(origin).hostname)return antwort(403,{message:'Die Sicherheitsprüfung ist nicht mehr gültig. Bitte versuche es erneut.'});
   }catch{return antwort(503,{message:'Die Sicherheitsprüfung ist momentan nicht erreichbar. Deine Angaben bleiben erhalten.'});}
   try{
-   const sent=await send({to:EMPFAENGER,replyTo:d.email,subject:'Senklot – Anfrage über die Website',text:emailText(d),idempotencyKey:'senklot-contact/'+d.requestId});
+   const sent=await send({to:EMPFAENGER,replyTo:d.email,subject:'Senklot – Anfrage über die Website',text:emailText(d),...emailParts(d),idempotencyKey:'senklot-contact/'+d.requestId});
    if(!sent||typeof sent.id!=='string'||!sent.id.trim())throw Error('Keine Versandbestätigung');
    return antwort(200,{code:'ACCEPTED',message:'Vielen Dank. Deine Anfrage wurde übermittelt. Wir melden uns bei dir.'});
   }catch{return antwort(502,{message:'Die Zustellung konnte nicht bestätigt werden. Deine Angaben bleiben erhalten. Bitte sende dieselbe Anfrage nicht mehrfach; du erreichst uns auch per E-Mail oder Telefon.'});}

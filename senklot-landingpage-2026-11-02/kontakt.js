@@ -3,17 +3,18 @@
  const send=document.getElementById('anfrage-senden'),status=document.getElementById('formular-status'),schutz=document.getElementById('spamschutz-status'),auswahl=document.getElementById('kontakt-tarif');
  const aktivieren=document.getElementById('spamschutz-aktivieren'),beenden=document.getElementById('spamschutz-beenden'),einrichtung=document.getElementById('kontakt-einrichtung');
  let protection='local',localReadyAt=0,localExpiresAt=0,localRefreshing=false,localWaitTimer=null,localExpiryTimer=null;
- const schutzInfo=document.getElementById('spamschutz-info'),cloudflareInfo=document.getElementById('spamschutz-cloudflare');
+ const schutzBereich=document.getElementById('formular-schutz'),cloudflareInfo=document.getElementById('spamschutz-cloudflare');
  let mode='unavailable',sitekey='',token='',widget=null,pending=false,activated=false,requestId=null,signature='';
  const meldung=(text,art='info')=>{status.textContent=text;status.dataset.art=art;};
  function bereit(){
   const localOk=protection==='local'&&!!token&&!localRefreshing&&performance.now()>=localReadyAt&&performance.now()<localExpiresAt;
   const remoteOk=protection==='turnstile'&&activated&&!!token;
   send.disabled=pending||(mode!=='preview'&&(mode!=='live'||!(localOk||remoteOk)));beenden.disabled=pending;
+  if(!pending&&mode==='live'&&protection==='local')send.textContent=localRefreshing||(!!token&&performance.now()<localReadyAt)?'Wird vorbereitet …':'Anfrage senden';
  }
  async function lokalVorbereiten(){
   if(mode!=='live'||protection!=='local'||pending||localRefreshing)return;
-  clearTimeout(localWaitTimer);clearTimeout(localExpiryTimer);token='';localRefreshing=true;aktivieren.hidden=true;schutz.textContent='Das Formular wird vorbereitet …';bereit();
+  clearTimeout(localWaitTimer);clearTimeout(localExpiryTimer);token='';localRefreshing=true;schutzBereich.hidden=true;aktivieren.hidden=true;schutz.textContent='Das Formular wird vorbereitet …';bereit();
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
   try{
    const r=await fetch('/api/contact-token',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:'{}',signal:controller.signal});
@@ -23,7 +24,7 @@
    localWaitTimer=setTimeout(()=>{schutz.textContent='Formular bereit. Es ist keine externe Sicherheitsprüfung erforderlich.';bereit();},c.minWaitMs);
    localExpiryTimer=setTimeout(()=>{token='';bereit();if(!pending&&document.visibilityState!=='hidden')lokalVorbereiten();},c.expiresInMs);
   }catch{
-   token='';schutz.textContent='Das Formular konnte nicht vorbereitet werden. Bitte versuche es erneut oder kontaktiere uns direkt per E-Mail oder Telefon.';
+   token='';schutzBereich.hidden=false;schutz.textContent='Das Formular konnte nicht vorbereitet werden. Bitte versuche es erneut oder kontaktiere uns direkt per E-Mail oder Telefon.';
    aktivieren.textContent='Formular erneut vorbereiten';aktivieren.hidden=false;aktivieren.disabled=false;
   }finally{clearTimeout(timer);localRefreshing=false;bereit();}
  }
@@ -58,19 +59,18 @@
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
   try{
    const r=await fetch('/api/contact-config',{headers:{Accept:'application/json'},signal:controller.signal});if(!r.ok)throw Error();const c=await r.json();mode=c.mode;
-   if(mode==='preview'){schutz.textContent='Vorschau: Botschutz und E-Mail-Versand sind nicht aktiviert. Du kannst das Formular ohne Versand prüfen.';send.textContent='Formular prüfen';bereit();return;}
+   if(mode==='preview'){schutzBereich.hidden=true;schutz.textContent='Vorschau: Botschutz und E-Mail-Versand sind nicht aktiviert. Du kannst das Formular ohne Versand prüfen.';send.textContent='Formular prüfen';bereit();return;}
    if(mode!=='live'||!c.ready)throw Error();protection=c.protection??'turnstile';
    if(protection==='local'){
-    schutzInfo.textContent='Zum Schutz vor automatisierten Anfragen verwenden wir lokale Prüfungen auf unserem Webspace. Es wird kein externer CAPTCHA-Dienst geladen.';
+    schutzBereich.hidden=true;
     cloudflareInfo.hidden=true;beenden.hidden=true;await lokalVorbereiten();return;
    }
-   if(protection!=='turnstile'||!c.sitekey)throw Error();sitekey=c.sitekey;cloudflareInfo.hidden=false;schutzInfo.hidden=true;
+   if(protection!=='turnstile'||!c.sitekey)throw Error();sitekey=c.sitekey;schutzBereich.hidden=false;cloudflareInfo.hidden=false;
    aktivieren.textContent='Cloudflare-Spamschutz aktivieren';
    schutz.textContent='Cloudflare wird erst nach deinem Klick geladen. Alternativ erreichst du uns direkt per E-Mail oder Telefon.';aktivieren.hidden=false;aktivieren.disabled=false;bereit();
-  }catch{mode='unavailable';schutz.textContent='Das geschützte Formular ist momentan nicht verfügbar. Du erreichst uns direkt per E-Mail oder Telefon.';bereit();}
+  }catch{mode='unavailable';schutzBereich.hidden=false;schutz.textContent='Das geschützte Formular ist momentan nicht verfügbar. Du erreichst uns direkt per E-Mail oder Telefon.';bereit();}
   finally{clearTimeout(timer);}
  }
- form.addEventListener('invalid',e=>{const details=e.target.closest('details');if(details)details.open=true;},true);
  form.addEventListener('submit',async e=>{
   e.preventDefault();if(pending||!form.reportValidity()||send.disabled)return;
   if(mode==='live'&&protection==='local'&&performance.now()>=localExpiresAt){await lokalVorbereiten();return;}
@@ -83,7 +83,7 @@
   try{
    const r=await fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(data),signal:controller.signal});
    let result;try{result=await r.json();}catch{throw Error('Die Rückmeldung konnte nicht verarbeitet werden. Deine Angaben bleiben erhalten. Bitte kontaktiere uns bei Bedarf direkt.');}
-   if(!r.ok){if(result.fields)for(const[k,v]of Object.entries(result.fields)){const input=form.elements.namedItem(k),error=document.getElementById('fehler-'+k);if(input&&error){const details=input.closest('details');if(details)details.open=true;input.setAttribute('aria-invalid','true');input.setAttribute('aria-describedby',error.id);error.textContent=String(v);}}throw Error(result.message||'Die Anfrage konnte nicht übermittelt werden. Deine Angaben bleiben erhalten.');}
+   if(!r.ok){if(result.fields)for(const[k,v]of Object.entries(result.fields)){const input=form.elements.namedItem(k),error=document.getElementById('fehler-'+k);if(input&&error){input.setAttribute('aria-invalid','true');input.setAttribute('aria-describedby',error.id);error.textContent=String(v);}}throw Error(result.message||'Die Anfrage konnte nicht übermittelt werden. Deine Angaben bleiben erhalten.');}
    if(result.code==='PREVIEW_ONLY')meldung(result.message,'vorschau');
    else if(result.code==='ACCEPTED'){meldung(result.message,'erfolg');form.reset();window.SenklotAuswahl.tarif='offen';zusammenfassung();requestId=null;signature='';}
    else throw Error('Die Zustellung konnte nicht bestätigt werden. Deine Angaben bleiben erhalten.');

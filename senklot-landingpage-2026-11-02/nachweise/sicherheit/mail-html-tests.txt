@@ -1,0 +1,16 @@
+OK Name maskiert
+OK Kein aktives HTML aus Eingaben
+OK Betrieb maskiert
+OK Nachricht als Text mit Zeilenumbruch
+OK Serverseitige Jahres- und Einrichtungspreise
+OK Preisbindung bleibt enthalten
+OK Logo eingebettet statt extern geladen
+OK Keine externen Bilder
+OK Keine Skripte oder externen Schriftarten
+OK Alle Platzhalter ersetzt
+OK Sicherer Antwortlink
+OK Klartextdarstellung bleibt unverändert
+OK Kein Einrichtungspreis ohne Auswahl
+OK Textmarke als Fallback ohne Bild
+OK Keine erfundenen Preise bei allgemeiner Anfrage
+{"assertions":15,"failed":0}

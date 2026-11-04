@@ -22,3 +22,10 @@ Offen bleiben der reale World4you-Upload, echte Kontokonfiguration, Prüfung der
 `lokal-http-pruefung.json` stammt aus einer isolierten Apache/PHP-Instanz mit ausschließlich künstlicher SMTP-Konfiguration und einem lokalen TLS-SMTP-Testserver. Geprüft werden das echte Vorbereiten und Absenden ohne Cloudflare-Schlüssel, gesperrte interne Dateien, Origin-/JSON-/Größengrenzen, Mindestzeit, Token-Replay, feste Empfängeradresse und freiwillige Einrichtung. Die Test-CA wird nur in der Testinstanz ausdrücklich vertraut. Die Produktions-SMTP-Verbindung prüft weiterhin das Serverzertifikat. Der lokale Testserver fordert kein Client-Zertifikat und leitet keine E-Mail nach außen weiter.
 
 `lokal-browser-pruefung.json` prüft den lokalen Live-Modus bei vier Bildschirmbreiten mit simulierten Tokens: keine externen Requests, kein Browser-Speicher, Erneuerung, Wiederholungsschlüssel, Fehlererhalt und Erholung nach Ablauf oder Verbindungsfehler. Der tatsächliche kryptographische Token-/HTTP-Ablauf wird separat durch die PHP- und HTTP-Prüfungen geprüft.
+
+
+## Gestaltete Anfrage-Mail
+
+`mail-html-tests.txt` enthält 15 zusätzliche Prüfungen für HTML-Maskierung, Preise, freiwillige Einrichtung, sichere Antwortlinks und Klartext-/Markenfallback. `lokal-http-pruefung.json` prüft die tatsächlich von PHPMailer erzeugte multipart-Mail mit HTML, Klartext und eingebettetem, byteidentischem PNG-Logo über den lokalen TLS-SMTP-Testserver. Es werden keine Nachrichten nach außen zugestellt. Die 14 Node-Tests decken zusätzlich das alternative Backend ab.
+
+Die Browserprüfungen bestätigen direkt sichtbare optionale Felder, unsichtbaren lokalen Schutz im Normalbetrieb, sichtbare Fehler mit Wiederholung und zwei FAQ-Gruppen. Die Mailvorschau wurde bei 390 und 760 Pixeln auf Überlauf und externe Abrufe geprüft; ein echter Postfach-/Mailclient-Test des neuen Designs ist auf dem Hosting nach dem Upload durchzuführen.

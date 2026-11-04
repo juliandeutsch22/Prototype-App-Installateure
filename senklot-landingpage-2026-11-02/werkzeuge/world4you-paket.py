@@ -25,6 +25,7 @@ class Refs(HTMLParser):
  def handle_starttag(self,tag,attrs):self.refs.extend(v for k,v in attrs if k in ['href','src'] and v)
 refs=0
 for page in stage.rglob('*.html'):
+ if page.is_relative_to(stage/'senklot-intern'):continue
  parser=Refs();parser.feed(page.read_text())
  for ref in parser.refs:
   u=urlsplit(ref)

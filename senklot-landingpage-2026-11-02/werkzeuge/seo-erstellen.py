@@ -6,7 +6,7 @@ import json, re, subprocess
 
 ROOT = Path(__file__).resolve().parent.parent
 DOMAIN = 'https://senklot.at'
-VERSION = '20261104-lokal1'
+VERSION = '20261104-formular2'
 funktionen = json.loads((ROOT / 'werkzeuge/funktionen.json').read_text())
 tarifquelle = json.loads(subprocess.check_output(['node', '-e', 'process.stdout.write(JSON.stringify(require("./tarife.js")))'], cwd=ROOT))
 tarife = tarifquelle['TARIFE']
@@ -96,7 +96,7 @@ home = home[:start] + block + home[end:]
 annual = '; '.join(f"{t['name']}: {euro(t['monatCent'] * 12 * 9 // 10)} jährlich im Voraus" for t in tarife.values())
 einrichtung = '; '.join(t['name'] + ': ' + euro(t['einrichtungCent']) for t in tarife.values())
 faq = f'<details><summary>Wie funktioniert die jährliche Vorauszahlung?</summary><p>Bei jährlicher Vorauszahlung erhältst du genau 10 % Rabatt auf das Abonnement. {annual}. Alle Beträge netto zuzüglich gesetzlicher Umsatzsteuer. Die begleitete Einrichtung ist optional ({einrichtung}). Sie wird nur bei Buchung berechnet und nicht rabattiert.</p></details>\n'
-home = home.replace('<div class="faq-liste">', '<div class="faq-liste">\n' + faq, 1)
+home = home.replace('{{FAQ_JAHRESZAHLUNG}}', faq, 1)
 home = re.sub(r'assets/([a-z-]+)\.png', r'assets/\1.webp', home)
 home = home.replace('assets/senklot-vorschau.webp', 'assets/senklot-vorschau.png')
 home = home.replace('class="hero-text"', 'class="hero-text" data-erscheinen').replace('class="hero-bild"', 'class="hero-bild" data-erscheinen')
