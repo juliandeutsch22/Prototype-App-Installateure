@@ -1170,3 +1170,44 @@ Rechtstexte direkt anpassen kann? … denke dir das fertig“; nach dem Konzept:
 `RechtstextHinweis.test.tsx` (neu, 7: dazu eine leere Antwort ohne Absturz), `rechtstexte.spec.ts` (neu, 1
 Browserweg: Plattform → Seiten → Leitung → Monteur). Gegenprobe: ohne die
 Migration und den neuen Code ist jede davon rot.
+
+**E46 — Material anfordern: „In die Liste“ statt „Zur Anforderung“ (04.11.2026).**
+Auftrag mit Bildschirmfoto: „das ‚Zur Anforderung‘ wird schlecht
+umgebrochen. Das soll besser gelöst werden. Eventuell anders formulieren?“
+Neben −, Menge und + blieben am Telefon rund 120 px; der Knopf brauchte 156.
+Weil am `body` jedes Wort brechen darf (`overflow-wrap: anywhere`), stand
+dort „Zur / Anforderun / g“ — gemessen bis 430 px Breite, bei 320 px auf
+fünf Zeilen.
+
+- **„In die Liste“**: so heißt schon der Knopf für einen Artikel, der nicht
+  im Katalog steht, und die Leiste darunter sagt „Liste leeren“. Es sagt
+  ebenso wie vorher, dass noch nichts abgeschickt ist (M36) — abgeschickt
+  wird erst mit „Anforderung (n) abschicken“.
+- **Der Knopf bricht nie im Wort** (`whitespace-nowrap`). Passt er nicht
+  neben die Menge (am Handy bis etwa 360 px), steht er in einer eigenen
+  Zeile darunter und nimmt die volle Breite; ab 375 px steht er daneben.
+- **Was schon in der Liste liegt, steht unter dem Knopf** („3 m in der
+  Liste“) statt als „×3“ vor dem Minus. Dort kostete die Zahl genau die
+  Breite, mit der der Knopf noch daneben passt: beim ersten Tipp sprang er in
+  die nächste Zeile, und der zweite Tipp traf das Plus. Darunter wächst die
+  Zeile nur nach unten; am Telefon bleibt der Knopf liegen, am Tablet rückt
+  er höchstens um ein Viertel seiner Höhe.
+- **Leer und gefüllt gleich breit.** Gefüllt (schon in der Liste) hat der
+  Knopf keine Linie und halbfette Schrift und war so 0,84 px schmaler; an
+  einer Breite genau an der Grenze entschiede das, ob er neben der Menge
+  oder darunter steht. Eine transparente Linie und eine unsichtbare
+  halbfette Zeile (`knopf-gleich-breit`, `lot-material.css`) halten die
+  Breite fest.
+- **Die Zahl kommt aus der Liste selbst.** Vorher zählte jedes Feld für
+  sich: nach „Liste leeren“ und nach dem Abschicken stand „×3“ weiter da,
+  nach einem Neustart fehlte es, obwohl die Liste zurückkam.
+
+**Prüfungen.** `OrderView.test.tsx` (+4: Name, Zahl aus der Liste, „Liste
+leeren“, Neustart, Abschicken, fremde Einträge zählen nicht; 23 Abfragen
+umgestellt), `materialAnfordern.spec.ts` (+1 Browserweg: auf 320–1.280 px
+einzeilig, in der Zeile, gefüllt so breit wie leer, und nach drei Tipps an
+derselben Stelle; läuft auch im iPhone-Profil; gemessen wird erst, wenn das
+Blatt nach dem Breitenwechsel auf dem Raster eingerastet ist). Gegenproben: nur umbenannt im alten Aufbau → bei 320 px
+zwei Textzeilen, rot; Zahl wieder vor dem Minus → bei 375 px trifft der
+nächste Tipp nicht, rot; ohne transparente Linie und halbfette Breite → bei
+375 px gefüllt 0,84 px schmaler, rot.

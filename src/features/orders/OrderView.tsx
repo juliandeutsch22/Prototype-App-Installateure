@@ -382,7 +382,7 @@ export default function OrderView() {
         hilfe={
           <>
             Angefordert wird von der Baustelle bei der Projektleitung.
-            Baustelle wählen, Artikel mit „Zur Anforderung“ sammeln und unten abschicken. Darunter
+            Baustelle wählen, Artikel mit „In die Liste“ sammeln und unten abschicken. Darunter
             stehen die eigenen Anforderungen mit ihrem Stand. Was von der Baustelle übrig ist, geht
             über „Material zurückgeben“ ans Lager.
           </>
@@ -481,6 +481,7 @@ export default function OrderView() {
                 // Nur im Katalog (M30): kein Regalbestand — das Büro bestellt ihn.
                 const lager = imLager(m);
                 const low = lager && istKnapp(verfuegbar, m, LOW_STOCK_THRESHOLD);
+                const inListe = cart.reduce((s, l) => (l.materialId === m.id ? s + l.quantity : s), 0);
                 return (
                   <ListRow
                     key={m.id}
@@ -510,7 +511,7 @@ export default function OrderView() {
                       </>
                     }
                   >
-                    <QtyAdder material={m} onAdd={addToCart} />
+                    <QtyAdder material={m} inListe={inListe} onAdd={addToCart} />
                   </ListRow>
                 );
               })}
@@ -600,12 +601,13 @@ export default function OrderView() {
         DER WARENKORB IST SICHTBAR NOCH NICHT ABGESCHICKT (Testbericht
         30.09.2026, M36). „Anfordern“ legte nur in den Korb, und Monteure
         hielten die Anforderung nach dem ersten Tipp für erledigt. Jetzt
-        heissen die Knöpfe „Zur Anforderung“ und „Anforderung abschicken“,
+        heissen die Knöpfe „In die Liste“ (bis 04.11.2026 „Zur Anforderung“)
+        und „Anforderung abschicken“,
         und die Karte ist hervorgehoben, solange etwas darin liegt.
 
         LEER STEHT SIE NICHT DA (Analyse 03.10.2026, Paket 1): „Anforderung
         (0)“ war eine Karte ohne Inhalt unter dem Katalog. Sie erscheint
-        mit dem ersten „Zur Anforderung“.
+        mit dem ersten „In die Liste“.
       */}
       {cart.length > 0 && (
         <Card
@@ -867,13 +869,15 @@ export default function OrderView() {
  */
 function QtyAdder({
   material,
+  inListe,
   onAdd,
 }: {
   material: WithId<Material>;
+  /** Wie viel davon schon in der Liste liegt — aus der Liste selbst gezählt. */
+  inListe: number;
   onAdd: (m: WithId<Material>, qty: number) => void;
 }) {
   const [menge, setMenge] = useState('1');
-  const [added, setAdded] = useState(0);
 
   // Zentral gelesen (M15), und je Einheit (M27): Meter und Kilo mit Komma,
   // Stück ganz — „1,5 Stk“ ist ungültig, nicht still 1.
@@ -884,60 +888,88 @@ function QtyAdder({
   function anfordern() {
     if (!gueltig) return;
     onAdd(material, zahl);
-    setAdded((n) => n + zahl);
     // Nach dem Anfordern zurück auf eins: die nächste Position ist wieder
     // eine, und eine stehengebliebene 40 wäre die teurere Überraschung.
     setMenge('1');
   }
 
   return (
-    <div className="flex items-center gap-1">
-      {added > 0 && (
-        <span className="mr-1 text-sm font-semibold text-accent-deep" aria-live="polite">
-          ×{fmtMenge(added)}
-        </span>
+    /*
+      DER KNOPF BRICHT NIE IM WORT (04.11.2026). Am Telefon reichte der Platz
+      neben −/+ nicht für „Zur Anforderung“; weil am `body` jedes Wort brechen
+      darf, stand dort „Anforderun / g“. Jetzt bleibt die Beschriftung ganz:
+      Passt sie nicht mehr neben die Menge, rückt der Knopf in eine eigene
+      Zeile darunter und nimmt dort die volle Breite.
+
+      WAS SCHON IN DER LISTE LIEGT, STEHT UNTER DEM KNOPF. Vorher stand „×2“
+      vor dem Minus; dort kostete es genau die Breite, mit der der Knopf am
+      Telefon noch neben die Menge passt, und er sprang beim ersten Tippen
+      in die nächste Zeile — der zweite Tipp traf dann das Plus. Darunter
+      wächst die Zeile nur nach unten. Gezählt wird aus der Liste selbst:
+      Die eigene Zahl dieses Feldes stand nach „Liste leeren“ und nach dem
+      Abschicken weiter da und fehlte nach einem Neustart.
+    */
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex flex-wrap items-center justify-end gap-1">
+        <div className="flex items-center gap-1">
+          {/*
+            MINUS UND PLUS SIND DIE HAUPTBEDIENUNG, das Feld dazwischen der
+            Ausweg für grosse Mengen. Auf der Baustelle wird mit Handschuhen
+            getippt: zwei grosse Ziele treffen sicherer als ein Zahlenfeld, und
+            wer dreissig Meter Rohr braucht, tippt die Zahl trotzdem direkt ein,
+            statt dreissig Mal zu drücken.
+          */}
+          <IconButton
+            label={`Menge für ${material.name} verringern`}
+            onClick={() => setMenge(zahlAlsText(Math.max(1, (gueltig ? zahl : 1) - 1)))}
+            disabled={gueltig && zahl <= 1}
+          >
+            −
+          </IconButton>
+          <input
+            type="text"
+            inputMode={mitKomma ? 'decimal' : 'numeric'}
+            autoComplete="off"
+            data-zahl=""
+            value={menge}
+            onChange={(e) => setMenge(e.target.value)}
+            onFocus={(e) => e.currentTarget.select()}
+            aria-label={`Menge ${material.unit ?? 'Stk'} für ${material.name}`}
+            className={`h-11 w-14 rounded border bg-surface text-center text-base font-semibold ${
+              gueltig ? 'border-line text-ink' : 'border-danger text-danger'
+            }`}
+          />
+          <IconButton
+            label={`Menge für ${material.name} erhöhen`}
+            onClick={() => setMenge(zahlAlsText((gueltig ? zahl : 0) + 1))}
+          >
+            +
+          </IconButton>
+        </div>
+        {/* „In die Liste“ wie beim Artikel, der nicht im Katalog steht: es
+            sagt, dass noch nichts abgeschickt ist (Testbericht M36), und ist
+            kurz genug für die Zeile neben der Menge. */}
+        {/* GLEICH BREIT, OB LEER ODER GEFÜLLT: Gefüllt hat der Knopf keine
+            Linie und halbfette Schrift und war so knapp 1 px schmaler. An
+            einer Breite genau an der Grenze entschiede das, ob er neben der
+            Menge oder darunter steht — er spränge beim ersten Tipp. Die
+            transparente Linie und die Breite der halbfetten Beschriftung
+            (`knopf-gleich-breit`) halten ihn in beiden Zuständen gleich. */}
+        <Button
+          variant={inListe > 0 ? 'primary' : 'secondary'}
+          className={`grow whitespace-nowrap${inListe > 0 ? ' border border-transparent' : ''}`}
+          aria-label={`${material.name} in die Liste`}
+          disabled={!gueltig}
+          onClick={anfordern}
+        >
+          <span className="knopf-gleich-breit" data-beschriftung="In die Liste">In die Liste</span>
+        </Button>
+      </div>
+      {inListe > 0 && (
+        <p className="text-sm text-ink-muted" aria-live="polite">
+          {`${fmtMenge(inListe)} ${material.unit ?? 'Stk'} in der Liste`}
+        </p>
       )}
-      {/*
-        MINUS UND PLUS SIND DIE HAUPTBEDIENUNG, das Feld dazwischen der
-        Ausweg für grosse Mengen. Auf der Baustelle wird mit Handschuhen
-        getippt: zwei grosse Ziele treffen sicherer als ein Zahlenfeld, und
-        wer dreissig Meter Rohr braucht, tippt die Zahl trotzdem direkt ein,
-        statt dreissig Mal zu drücken.
-      */}
-      <IconButton
-        label={`Menge für ${material.name} verringern`}
-        onClick={() => setMenge(zahlAlsText(Math.max(1, (gueltig ? zahl : 1) - 1)))}
-        disabled={gueltig && zahl <= 1}
-      >
-        −
-      </IconButton>
-      <input
-        type="text"
-        inputMode={mitKomma ? 'decimal' : 'numeric'}
-        autoComplete="off"
-        data-zahl=""
-        value={menge}
-        onChange={(e) => setMenge(e.target.value)}
-        onFocus={(e) => e.currentTarget.select()}
-        aria-label={`Menge ${material.unit ?? 'Stk'} für ${material.name}`}
-        className={`h-11 w-14 rounded border bg-surface text-center text-base font-semibold ${
-          gueltig ? 'border-line text-ink' : 'border-danger text-danger'
-        }`}
-      />
-      <IconButton
-        label={`Menge für ${material.name} erhöhen`}
-        onClick={() => setMenge(zahlAlsText((gueltig ? zahl : 0) + 1))}
-      >
-        +
-      </IconButton>
-      <Button
-        variant={added > 0 ? 'primary' : 'secondary'}
-        aria-label={`${material.name} zur Anforderung`}
-        disabled={!gueltig}
-        onClick={anfordern}
-      >
-        Zur Anforderung
-      </Button>
     </div>
   );
 }
