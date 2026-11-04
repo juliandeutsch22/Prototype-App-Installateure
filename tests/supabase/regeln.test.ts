@@ -1315,13 +1315,13 @@ describe('Handwerksschein: verwerfen, zurueckholen, einfrieren', () => {
     expect(error?.code).toBe('42501');
   });
 
-  it('geloescht wird kein Schein, in keinem Zustand', async () => {
+  it('geloescht wird kein unterschriebener Schein — ein Entwurf seit 04.11.2026 schon', async () => {
     const entwurf = await schein();
     const fertig = await unterschrieben();
-    for (const id of [entwurf, fertig]) {
-      await aAdmin.client.from('work_sheets').delete().eq('id', id);
-      expect((await a.client.from('work_sheets').select('id').eq('id', id)).data).toHaveLength(1);
-    }
+    await aAdmin.client.from('work_sheets').delete().eq('id', fertig);
+    expect((await a.client.from('work_sheets').select('id').eq('id', fertig)).data).toHaveLength(1);
+    await aAdmin.client.from('work_sheets').delete().eq('id', entwurf);
+    expect((await a.client.from('work_sheets').select('id').eq('id', entwurf)).data).toHaveLength(0);
   });
 
   it('die fremde Firma kommt an den Schein nicht heran', async () => {

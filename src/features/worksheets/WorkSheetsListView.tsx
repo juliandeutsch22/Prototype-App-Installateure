@@ -11,6 +11,7 @@ import {
   getWorkSheet,
   cancelWorkSheet,
   discardWorkSheetDraft,
+  deleteWorkSheetDraft,
   restoreWorkSheetDraft,
 } from '@/lib/db/workSheets';
 import { buildWorkSheetPdf, shareOrDownloadPdf } from './worksheetPdf';
@@ -205,6 +206,7 @@ export default function WorkSheetsListView() {
   const [stornoFuer, setStornoFuer] = useState<WithId<WorkSheet> | null>(null);
   const [stornoGrund, setStornoGrund] = useState('');
   const [verwerfenFuer, setVerwerfenFuer] = useState<WithId<WorkSheet> | null>(null);
+  const [loeschenFuer, setLoeschenFuer] = useState<WithId<WorkSheet> | null>(null);
   const [zeigeVerworfene, setZeigeVerworfene] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -1244,6 +1246,24 @@ export default function WorkSheetsListView() {
                       Wieder aufnehmen
                     </Button>
                   )}
+                  {/*
+                    LÖSCHEN NUR VOR DER UNTERSCHRIFT (Auftrag 04.11.2026): ein
+                    Entwurf und ein verworfener Entwurf sind keine Belege. Wer
+                    darf, ist dieselbe Grenze wie beim Verwerfen; die Datenbank
+                    hält sie (`work_sheets_loeschen`). Ein unterschriebener Schein
+                    wird storniert, nie gelöscht.
+                  */}
+                  {darfDiesen(offenerSchein) && (offenerSchein.status === 'Entwurf' || offenerSchein.status === 'Verworfen') && (
+                    <Button
+                      variant="danger"
+                      onClick={() => {
+                        setLoeschenFuer(offenerSchein);
+                        setOffen(null);
+                      }}
+                    >
+                      Löschen
+                    </Button>
+                  )}
                   {darfStornieren && offenerSchein.status === 'Unterschrieben' && (
                     <Button variant="ghost" onClick={() => setStornoFuer(offenerSchein)}>
                       Stornieren
@@ -1284,6 +1304,34 @@ export default function WorkSheetsListView() {
           await discardWorkSheetDraft(verwerfenFuer.id, user.name);
           toast.success('Entwurf verworfen');
           setVerwerfenFuer(null);
+          await laden();
+        }}
+      />
+
+      {/*
+        LÖSCHEN IST ENDGÜLTIG — deshalb rot, und die Rückfrage nennt, was mit
+        weggeht: Zeiten, Material, Fotos. Wer nur aufräumen will, kann weiter
+        verwerfen; das bleibt umkehrbar.
+      */}
+      <ConfirmDialog
+        open={!!loeschenFuer}
+        title={loeschenFuer?.status === 'Verworfen' ? 'Verworfenen Entwurf löschen' : 'Entwurf löschen'}
+        message={
+          loeschenFuer
+            ? `${loeschenFuer.customerName}, ${datumAT(loeschenFuer.datum)} · ` +
+              `${fmtDauer(loeschenFuer.zeiten.reduce((n, z) => n + z.minuten, 0))} · ` +
+              `${loeschenFuer.material.length} Materialposten · ` +
+              `${(loeschenFuer.fotos ?? []).length === 1 ? '1 Foto' : `${(loeschenFuer.fotos ?? []).length} Fotos`}. ` +
+              'Der Entwurf wird samt Zeiten, Material und Fotos endgültig gelöscht und lässt sich nicht zurückholen.'
+            : undefined
+        }
+        confirmLabel="Endgültig löschen"
+        onCancel={() => setLoeschenFuer(null)}
+        onConfirm={async () => {
+          if (!loeschenFuer) return;
+          await deleteWorkSheetDraft(user.companyId, loeschenFuer.id, (loeschenFuer.fotos ?? []).map((f) => f.pfad));
+          toast.success('Entwurf gelöscht');
+          setLoeschenFuer(null);
           await laden();
         }}
       />

@@ -119,14 +119,36 @@ describe('Der Handwerksschein', () => {
     expect(wieder.error).toBeNull();
   });
 
-  it('lässt sich nie löschen', async () => {
+  /*
+    SEIT DEM 04.11.2026 LÄSST SICH EIN ENTWURF LÖSCHEN — ein Beleg nie
+    (`20261104100000_schein_entwurf_loeschen.sql`). Ein Entwurf ist nicht
+    unterschrieben und niemandem übergeben; ein unterschriebener oder
+    stornierter Schein gehört aufbewahrt (§ 132 BAO).
+  */
+  it('lässt sich als Beleg nie löschen — unterschrieben und storniert nicht', async () => {
+    const unterschrieben = await scheinAnlegen('Unterschrieben');
+    const storniert = await scheinAnlegen('Unterschrieben');
+    await leitung.client.from('work_sheets').update({ status: 'Storniert', storno_grund: 'Irrtum' }).eq('id', storniert);
+    for (const id of [unterschrieben, storniert]) {
+      for (const wer of [monteur, leitung]) {
+        // Die Löschregel trifft keine Zeile — der Befehl wirft nicht, er tut nichts.
+        const geloescht = await wer.client.from('work_sheets').delete().eq('id', id);
+        expect(geloescht.error).toBeNull();
+      }
+      const noch = await monteur.client.from('work_sheets').select('id').eq('id', id);
+      expect(noch.data).toHaveLength(1);
+    }
+  });
+
+  it('als Entwurf löscht ihn, wer ihn schreibt — die Buchhaltung und ein fremder Betrieb nicht', async () => {
     const id = await scheinAnlegen();
-    const geloescht = await leitung.client.from('work_sheets').delete().eq('id', id);
-    // Ohne Löschrichtlinie trifft der Befehl keine Zeile — er wirft nicht,
-    // er tut nichts. Der Schein steht danach noch da, und darauf kommt es an.
-    expect(geloescht.error).toBeNull();
-    const noch = await monteur.client.from('work_sheets').select('id').eq('id', id);
-    expect(noch.data).toHaveLength(1);
+    for (const wer of [buch, fremd]) {
+      await wer.client.from('work_sheets').delete().eq('id', id);
+      expect((await monteur.client.from('work_sheets').select('id').eq('id', id)).data).toHaveLength(1);
+    }
+    const weg = await monteur.client.from('work_sheets').delete().eq('id', id).select('id');
+    expect(weg.data).toHaveLength(1);
+    expect((await monteur.client.from('work_sheets').select('id').eq('id', id)).data).toHaveLength(0);
   });
 
   it('trägt die Zeiten als KOPIE, nicht als Verweis auf die Buchung', async () => {

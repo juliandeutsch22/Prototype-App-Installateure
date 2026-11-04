@@ -115,6 +115,11 @@ export function discardWorkSheetDraft(id: string, vonName: string): Promise<void
   return pg.discardWorkSheetDraft(id, vonName);
 }
 
+/** Einen Entwurf oder verworfenen Entwurf löschen, samt Fotos — siehe `pg.deleteWorkSheetDraft`. */
+export function deleteWorkSheetDraft(companyId: string, id: string, fotoPfade: readonly string[]): Promise<void> {
+  return pg.deleteWorkSheetDraft(companyId, id, fotoPfade);
+}
+
 export function restoreWorkSheetDraft(id: string): Promise<void> {
   return pg.restoreWorkSheetDraft(id);
 }
