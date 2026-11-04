@@ -53,26 +53,7 @@
   /* Die Summe unter der Doppellinie, wo das Formular sie schon zeigt (B6). */
   .angebot-summe { padding-top: 0.75rem; border-top: 3px double var(--accent-deep); }
 
-  /* Die Nachkalkulation je Baustelle: Kosten gegen Erlös als schmale Maßlinie (B2). */
-  .nachkalk-masslinie { display: block; width: 15rem; font-size: 0.75rem; text-align: left; }
-  /* Maßlinie und Deckungsbeitrag nebeneinander; am Handy die Linie über die ganze Breite, der Betrag darunter. */
-  .nachkalk-zahlen { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; }
-  .nachkalk-wert { display: block; min-width: 7.5rem; }
-  /*
-    AM HANDY: Zustand links, Betrag rechts in einer Zeile, die Maßlinie
-    darunter über die ganze Breite — statt drei Zeilen übereinander. Die
-    Hüllen geben dafür ihre Kinder an die Zeile ab; ein Browser ohne `:has`
-    zeigt sie untereinander wie am Tablet.
-  */
-  @media (max-width: 759px) {
-    .nachkalk-zahlen { width: 100%; }
-    .nachkalk-masslinie { width: 100%; }
-    .zeile-stand .zeile-wert:has(> .nachkalk-zahlen), .zeile-stand .nachkalk-zahlen { display: contents; }
-    .zeile-stand .nachkalk-wert { order: 1; margin-left: auto; min-width: 0; text-align: right; }
-    .zeile-stand .nachkalk-masslinie { order: 2; }
-  }
-  /* Der Betrag in Mono, sein Name darunter gesprochen — in Poppins, nicht in der Schrift der Zahlen. */
-  .nachkalk-wert small { font-family: Poppins, ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; }
+  /* Kosten gegen Erlös in der Zeile: `.zeile-zahlen` (index.css), mit den Rechnungen gemeinsam. */
   /* Herkunft des Erlöses und fehlende Einkaufspreise: eine Zeile, die Angaben mit Abstand statt Punkt. */
   .nachkalk-meta { display: flex; flex-wrap: wrap; column-gap: 1.5rem; }
 

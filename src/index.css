@@ -73,6 +73,8 @@
   /* Alles Gemessene — Nummern, Beträge, Stunden, Mengen — in IBM Plex Mono (Planlinie, E30). */
   --schrift-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --text: #13262c;
+  /* Der Pfeil im Auswahlfeld, in der Farbe des Texts (eine Hintergrundgrafik kennt kein currentColor). */
+  --auswahl-pfeil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%2313262c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
   /* 5,4:1 auf Weiss, 5,0:1 auf Papier — AA für Fliesstext. */
   --text-muted: #5a6d72;
   /* Sichtbar heller als Eingegebenes, aber noch 4,6:1 auf Weiss. */
@@ -160,6 +162,7 @@
     --surface-2: #0f2226;
     --surface-3: #1a3036;
     --text: #e5eff0;
+    --auswahl-pfeil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23e5eff0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
     --text-muted: #9fb5ba;
     --text-placeholder: #84999e;
     --border: #22393f;
@@ -316,6 +319,28 @@ textarea:focus {
   outline: none;
   border-color: var(--brand-fixed);
   box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+/*
+ * DER PFEIL DER AUSWAHL WIE DAS KALENDERZEICHEN (Auftrag 04.11.2026: „der
+ * Pfeil ist zu nah am Rand, er sollte in etwa gleich sein wie der Kalender
+ * bei der Datumsauswahl“). Der Pfeil des Browsers stand 5 px vor dem Rand,
+ * das Kalenderzeichen im Datumsfeld 17 px, 12 px breit (gemessen in
+ * Chromium). Jetzt zeichnet die App den Pfeil selbst, 12 px breit, mit
+ * demselben Abstand — in jedem Browser gleich, auch in Safari, wo der
+ * eigene Pfeil anders aussah. Rechts bleibt Platz für ihn, damit eine lange
+ * Wahl nicht unter den Pfeil läuft. Ohne Ebene: so schlägt das Polster die
+ * Tailwind-Klasse `px-3` des Felds.
+ */
+select:not([multiple]):not([size]) {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: var(--auswahl-pfeil);
+  background-repeat: no-repeat;
+  /* Mitte des Pfeils auf der Mitte des Kalenderzeichens: 22 px vom Rand. */
+  background-position: right 0.9375rem center;
+  background-size: 0.75rem 0.75rem;
+  padding-right: 2.5rem;
 }
 
 /*
@@ -965,6 +990,30 @@ textarea {
     .zeile-gestapelt > .zeile-stand { flex-wrap: nowrap; justify-content: flex-end; gap: 0.75rem; margin-top: 0; }
     .zeile-gestapelt .zeile-stand .zeile-wert { text-align: right; }
     .zeile-gestapelt > .zeile-aktionen { margin-block: 0; }
+  }
+  /*
+    BETRAG MIT MASSLINIE IN EINER GESTAPELTEN ZEILE (Nachkalkulation:
+    Kosten gegen Erlös; Rechnungen: bezahlt gegen den Betrag). Die Linie
+    links neben dem Betrag; Beträge rechtsbündig untereinander, auch am
+    Tablet, wo sie unter dem Text stehen. Am Handy Zustand links und Betrag
+    rechts in einer Zeile, die Linie darunter über die ganze Breite — die
+    Hüllen geben dafür ihre Kinder an die Zeile ab. Ein Browser ohne `:has`
+    zeigt sie nebeneinander wie am Tablet.
+  */
+  .zeile-zahlen { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.75rem 1.5rem; }
+  .zeile-zahlen-linie { display: block; width: 15rem; max-width: 100%; font-size: 0.75rem; text-align: left; }
+  .zeile-zahlen-betrag { display: block; min-width: 7.5rem; text-align: right; }
+  /* Der Name unter einem Betrag gesprochen — in Poppins, nicht in der Schrift der Zahlen. */
+  .zeile-zahlen-betrag small { font-family: Poppins, ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; }
+  .zeile-stand .zeile-wert:has(> .zeile-zahlen) { flex: 1 1 auto; }
+  @media (min-width: 1200px) {
+    .zeile-stand .zeile-wert:has(> .zeile-zahlen) { flex: none; }
+  }
+  @media (max-width: 759px) {
+    .zeile-zahlen-linie { width: 100%; }
+    .zeile-stand .zeile-wert:has(> .zeile-zahlen), .zeile-stand .zeile-zahlen { display: contents; }
+    .zeile-stand .zeile-zahlen-betrag { order: 1; margin-left: auto; min-width: 0; }
+    .zeile-stand .zeile-zahlen-linie { order: 2; }
   }
   /*
     FÜNF ZUSTÄNDE UND NICHT MEHR (Regel 5). Offen ist ein leerer Ring, läuft

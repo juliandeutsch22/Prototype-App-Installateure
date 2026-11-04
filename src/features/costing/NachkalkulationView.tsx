@@ -314,9 +314,9 @@ export default function NachkalkulationView() {
                           </Zustand>
                         }
                         wert={
-                          <span className="nachkalk-zahlen">
+                          <span className="zeile-zahlen">
                             {k.erloes > 0 && (
-                              <span className="nachkalk-masslinie">
+                              <span className="zeile-zahlen-linie">
                                 <Masslinie
                                   schmal
                                   ist={summe}
@@ -327,7 +327,7 @@ export default function NachkalkulationView() {
                                 />
                               </span>
                             )}
-                            <span className="nachkalk-wert">
+                            <span className="zeile-zahlen-betrag">
                               {euro(k.deckungsbeitrag)}
                               <small>Deckungsbeitrag</small>
                             </span>

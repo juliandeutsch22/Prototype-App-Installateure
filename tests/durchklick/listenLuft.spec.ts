@@ -166,3 +166,142 @@ test('Nachkalkulation: kurze Zeile, Aufstellung im Seitenfenster, Wechsel ohne N
   await expect(zeile).toBeVisible({ timeout: 500 });
   await keineFehlermeldung(page);
 });
+
+/*
+  RECHNUNGEN MIT LUFT, ABZUG IM FENSTER, PFEIL DER AUSWAHL (Auftrag
+  04.11.2026): „bei Rechnungen ist alles sehr crowded … der Punkt
+  ‚abzüglich‘ wird immer falsch/abgeschnitten angezeigt … der Pfeil ist zu
+  nah am Rand, er sollte in etwa gleich sein wie der Kalender“.
+*/
+const RE = ['RE-LUFT-T', 'RE-LUFT-A', 'RE-LUFT-S'];
+
+async function rechnungenAbraeumen() {
+  const { data } = await admin.from('invoices').select('id').eq('company_id', BETRIEB).in('invoice_number', RE);
+  const ids = (data ?? []).map((x) => x.id as string);
+  if (ids.length) {
+    await admin.from('zahlungseingaenge').delete().in('invoice_id', ids);
+    await admin.from('invoice_lines').delete().in('invoice_id', ids);
+    await admin.from('invoices').delete().in('id', ids);
+  }
+}
+
+test.describe('Rechnungen', () => {
+  test.beforeEach(rechnungenAbraeumen);
+  test.afterEach(rechnungenAbraeumen);
+
+  test('die Zeile mit Teilzahlung: Linie beim Betrag, „überfällig“ am Datum, nichts überlagert — und der Abzug im Fenster steht ganz da', async ({ page }) => {
+    test.setTimeout(120_000);
+    const { data: p } = await admin.from('projects').select('id, project_number').eq('company_id', BETRIEB).limit(1).single();
+    const kopf = (nummer: string, rest: Record<string, unknown>) => ({
+      company_id: BETRIEB, invoice_number: nummer, project_id: p!.id, project_number: p!.project_number,
+      customer_name: 'Steirische Wohnbaugenossenschaft reg. Gen.m.b.H.', invoice_date: '2026-09-30', due_date: '2026-10-14',
+      vat_rate: 0.2, payment_status: 'Offen', ...rest,
+    });
+    const t = await admin.from('invoices').insert(kopf('RE-LUFT-T', {
+      subtotal_netto: 2454.9, total_netto: 2454.9, total_vat: 490.98, total_brutto: 2945.88,
+      mahnstufe: 1, gemahnt_am: '2026-10-21', mahnfrist: '2026-10-28',
+    })).select('id').single();
+    expect(t.error).toBeNull();
+    // Die Teilzahlung wie im Betrieb: als Zahlungseingang, der Stand folgt daraus.
+    const z = await admin.from('zahlungseingaenge').insert({ company_id: BETRIEB, invoice_id: t.data!.id, betrag: 1000, datum: '2026-10-20', art: 'Überweisung' });
+    expect(z.error).toBeNull();
+    const a = await admin.from('invoices').insert(kopf('RE-LUFT-A', {
+      art: 'anzahlung', subtotal_netto: 1500, total_netto: 1500, total_vat: 300, total_brutto: 1800, payment_status: 'Bezahlt', bezahlt_betrag: 1800,
+    })).select('id').single();
+    expect(a.error).toBeNull();
+    const s = await admin.from('invoices').insert(kopf('RE-LUFT-S', {
+      art: 'schluss', subtotal_netto: 5000, total_netto: 3500, total_vat: 700, total_brutto: 4200,
+      gesamt_netto: 5000, gesamt_vat: 1000, gesamt_brutto: 6000, due_date: '2099-12-31',
+      vorrechnungen: [{ invoiceId: a.data!.id, invoiceNumber: 'RE-LUFT-A', invoiceDate: '2026-09-30', netto: 1500, vat: 300, brutto: 1800 }],
+    })).select('id').single();
+    expect(s.error).toBeNull();
+
+    await anmelden(page, CHEFIN.email);
+    for (const { name, width, height } of [
+      { name: 'Handy', width: 390, height: 844 },
+      { name: 'Tablet', width: 834, height: 1112 },
+      { name: 'Schreibtisch', width: 1440, height: 900 },
+    ]) {
+      await page.setViewportSize({ width, height });
+      await page.goto('/invoices');
+      // Die Liste, nicht der Mahnlauf darüber: dort steht dieselbe Rechnung noch einmal.
+      const zeile = page.locator('li.zeile-gestapelt', { hasText: 'RE-LUFT-T' });
+      await expect(zeile.getByRole('img', { name: /bezahlt von/ })).toBeVisible({ timeout: 15_000 });
+      const m = await zeile.evaluate((li) => {
+        const r = (el: Element | null) => el!.getBoundingClientRect();
+        const ueber = (x: DOMRect, y: DOMRect) => x.left < y.right && y.left < x.right && x.top < y.bottom && y.top < x.bottom;
+        const linie = r(li.querySelector('.masslinie'));
+        const wort = r([...li.querySelectorAll('.zeile-meta span')].find((s) => s.textContent === 'überfällig')!);
+        const texte = [...li.querySelectorAll('.zeile-meta, .zeile-zustand, .zeile-zahlen-betrag')].map((e) => e.getBoundingClientRect());
+        return {
+          linieInZahlen: !!li.querySelector('.zeile-zahlen .masslinie'),
+          ueberlagert: texte.some((x) => ueber(x, linie)) || ueber(wort, linie),
+          seitlich: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      });
+      expect(m.linieInZahlen, `${name}: die Linie steht beim Betrag`).toBe(true);
+      expect(m.ueberlagert, `${name}: nichts liegt auf der Linie`).toBe(false);
+      expect(m.seitlich, `${name}: nichts seitlich zu rollen`).toBeLessThanOrEqual(0);
+
+      // Das Fenster der Schlussrechnung: der Abzug steht ganz im Fenster, Datum, netto und USt darunter.
+      await page.locator('li.zeile-gestapelt', { hasText: 'RE-LUFT-S' }).getByRole('button', { name: /RE-LUFT-S/ }).click();
+      const fenster = page.getByRole('dialog', { name: /RE-LUFT-S/ });
+      const abzug = fenster.locator('.rechnung-detail-abzug');
+      await expect(abzug.locator('dt')).toContainText('abzüglich RE-LUFT-A');
+      await expect(abzug.locator('.rechnung-detail-zusatz')).toHaveText(/^vom 30\.09\.2026 · netto €\s1\s500,00 \+ USt €\s300,00$/);
+      await abzug.scrollIntoViewIfNeeded();
+      const lage = await abzug.evaluate((el) => {
+        const dd = el.querySelector('dd')!;
+        const gruppe = el.closest('dl')!.getBoundingClientRect();
+        const b = dd.getBoundingClientRect();
+        return { rechts: b.right - gruppe.right, ueber: dd.scrollWidth - dd.clientWidth };
+      });
+      expect(lage.rechts, `${name}: der Betrag endet im Fenster`).toBeLessThanOrEqual(0.5);
+      expect(lage.ueber, `${name}: der Betrag passt in seine Spalte`).toBeLessThanOrEqual(0);
+      await fenster.getByRole('button', { name: 'Schließen', exact: true }).click();
+      await expect(fenster).toBeHidden();
+    }
+    await keineFehlermeldung(page);
+  });
+});
+
+test('Auswahlfeld: der Pfeil steht so weit vom Rand wie das Kalenderzeichen im Datumsfeld', async ({ page }) => {
+  test.setTimeout(60_000);
+  await anmelden(page, CHEFIN.email);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  // Auswahl und Datum auf zwei Seiten, die sie immer zeigen: gemessen wird je vom Rand des Felds.
+  await page.goto('/settings/rechnung');
+  const auswahl = page.locator('#r-vat');
+  await expect(auswahl).toBeVisible({ timeout: 15_000 });
+  /** Wie weit das letzte dunkle Bildpunkt-Feld vom rechten Rand des Felds entfernt ist. */
+  const abstand = async (feld: typeof auswahl) => {
+    await feld.scrollIntoViewIfNeeded();
+    const bild = await feld.screenshot();
+    return page.evaluate(async (src) => {
+      const img = new Image();
+      img.src = src;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.width;
+      c.height = img.height;
+      const x = c.getContext('2d')!;
+      x.drawImage(img, 0, 0);
+      const d = x.getImageData(0, 0, img.width, img.height).data;
+      for (let col = img.width - 4; col > img.width / 2; col--) {
+        for (let row = 6; row < img.height - 6; row++) {
+          const i = (row * img.width + col) * 4;
+          if (d[i] + d[i + 1] + d[i + 2] < 300) return img.width - 1 - col;
+        }
+      }
+      return -1;
+    }, `data:image/png;base64,${bild.toString('base64')}`);
+  };
+  const pfeil = await abstand(auswahl);
+  await page.goto('/invoices');
+  const datum = page.locator('input[type=date]').first();
+  await expect(datum).toBeVisible({ timeout: 15_000 });
+  const kalender = await abstand(datum);
+  expect(kalender, 'Kalenderzeichen gefunden').toBeGreaterThan(8);
+  // Vorher stand der Pfeil 5 px vom Rand, das Kalenderzeichen 17 px.
+  expect(Math.abs(pfeil - kalender), `Pfeil ${pfeil} px, Kalender ${kalender} px`).toBeLessThanOrEqual(2);
+});

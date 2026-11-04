@@ -37,6 +37,15 @@ import { einrichtungZusatzLaden, einrichtungZusatzPunkte, type EinrichtungZusatz
  * ERST VOLLSTÄNDIG, DANN SICHTBAR: bis alle drei da sind, stehen Platzhalter
  * in der Höhe der fertigen Liste. Sonst sprängen Zahl und Liste von drei auf
  * sechs Punkte, während man liest.
+ *
+ * IST ALLES ERLEDIGT, VERSCHWINDET ER (Auftrag 04.11.2026: „wenn der
+ * Einrichtungsstand voll erfüllt ist, sollte er verschwinden“). Sechs Mal
+ * „erledigt“ ist keine Auskunft mehr, sondern eine Karte, über die man
+ * hinwegscrollt. Er kommt von selbst wieder, sobald ein Punkt offen ist oder
+ * „prüfen“ heißt — etwa eine Sicherung, die seit Tagen nicht lief. Die
+ * Platzhalter stehen deshalb nur, wenn schon am Betrieb etwas offen ist und
+ * die Karte sicher kommt; bei einem eingerichteten Betrieb stünde sonst bei
+ * jedem Besuch kurz eine Karte da, die gleich wieder verschwindet.
  */
 
 /** Wonach jemand sucht, der die Unterseite meint — die Wörter ihrer Felder. */
@@ -143,10 +152,14 @@ export default function EinstellungenUebersicht() {
   if (!user) return null;
 
   const zusatzDa = !!zusatz && zusatz.fuer === betriebId;
+  const amBetrieb = darfFirma ? einrichtungsstand(company) : [];
   const stand = darfFirma && zusatzDa
-    ? [...einrichtungsstand(company), ...einrichtungZusatzPunkte(zusatz.daten, Date.now())]
+    ? [...amBetrieb, ...einrichtungZusatzPunkte(zusatz.daten, Date.now())]
     : [];
   const erledigt = stand.filter((p) => p.stand === 'ruht').length;
+  const nochEtwasZuTun = erledigt < stand.length;
+  // Steht am Betrieb schon etwas offen, kommt die Karte sicher — dann gleich mit Platzhaltern.
+  const sicherOffen = amBetrieb.some((p) => p.stand !== 'ruht');
 
   return (
     <div className="space-y-6">
@@ -163,13 +176,13 @@ export default function EinstellungenUebersicht() {
         />
       </div>
 
-      {darfFirma && !zusatzDa && !suche.trim() && (
+      {darfFirma && !zusatzDa && sicherOffen && !suche.trim() && (
         <Card title="Einrichtungsstand" buendig>
           <SkeletonList rows={6} />
         </Card>
       )}
 
-      {stand.length > 0 && !suche.trim() && (
+      {nochEtwasZuTun && !suche.trim() && (
         <Card
           title="Einrichtungsstand"
           /*
