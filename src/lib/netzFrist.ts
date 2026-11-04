@@ -100,6 +100,7 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'plattform_leitung_mit_zweitem_faktor',
   'plattform_leitungskonten',
   'ruest_angefordert',
+  'schein_loeschbar',
   'schlussrechnungen_ohne_abzug',
   'support_bereiche',
   'unverrechnete_stunden',

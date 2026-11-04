@@ -46,7 +46,14 @@ function ausFirestore(): string[] {
  * Eine leere Begründung wäre schlimmer als eine fehlende Prüfung, weil sie
  * so aussieht, als hätte jemand nachgedacht.
  */
-const ANDERS_GELOEST: Record<string, string> = {};
+const ANDERS_GELOEST: Record<string, string> = {
+  /*
+    EINE BEWUSST GEÄNDERTE REGEL, keine verlorene Prüfung (Auftrag
+    04.11.2026, E42): ein Entwurf ist kein Beleg und lässt sich löschen.
+  */
+  'geloescht wird kein Schein, in keinem Zustand':
+    'Seit 04.11.2026 (E42) lässt sich ein Entwurf löschen; dass ein unterschriebener Schein nie gelöscht wird, prüft in regeln.test.ts „geloescht wird kein unterschriebener Schein — ein Entwurf seit 04.11.2026 schon“, dazu scheinEntwurfLoeschen.test.ts.',
+};
 
 describe('Das Prüfnetz ist vollständig umgezogen', () => {
   it('jede Regelprüfung aus Firestore hat eine Entsprechung', () => {

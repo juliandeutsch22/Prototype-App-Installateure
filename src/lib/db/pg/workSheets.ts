@@ -22,6 +22,8 @@ import { oderUeberSpalten } from './suche';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
 
 const SCHEINE = 'work_sheets';
+/** Der Eimer der Scheinfotos — derselbe wie in `scheinFotos.ts`. */
+const FOTO_EIMER = 'scheinfotos';
 const ZEITEN = 'work_sheet_hours';
 const MATERIAL = 'work_sheet_material';
 const FOTOS = 'work_sheet_photos';
@@ -548,6 +550,54 @@ export function cancelWorkSheet(id: string, grund: string, vonName: string): Pro
  */
 export function discardWorkSheetDraft(id: string, vonName: string): Promise<void> {
   return aendern(SCHEINE, id, { status: 'Verworfen', verworfenVonName: vonName });
+}
+
+/**
+ * Einen Entwurf oder verworfenen Entwurf LÖSCHEN — samt seinen Fotos
+ * (Auftrag 04.11.2026). Ein unterschriebener oder stornierter Schein lässt
+ * sich nicht löschen; das hält die Datenbank (`work_sheets_loeschen`).
+ *
+ * ERST DIE DATEIEN, DANN DIE ZEILE. Andersherum bliebe ein Foto aus einer
+ * fremden Wohnung im Speicher liegen, wenn das Netz zwischen beiden Schritten
+ * reisst — ohne Schein, der es je wieder findet. So bleibt im schlimmsten Fall
+ * ein Entwurf ohne seine Fotos, den ein zweiter Versuch löscht. Gelöscht wird
+ * alles im Ordner des Scheins, auch ein Bild, das hochgeladen, aber nie am
+ * Entwurf gespeichert wurde.
+ *
+ * VORHER DIE FRAGE, OB ES DARF (`schein_loeschbar`): die Fotos eines
+ * Entwurfs darf der ganze Betrieb entfernen, den Schein nur, wer ihn
+ * bearbeiten darf. Ohne die Frage räumte ein Versuch ohne Recht erst die
+ * Fotos weg und scheiterte dann an der Zeile.
+ *
+ * Trifft das Löschen trotzdem keine Zeile (zwischen Frage und Löschen
+ * unterschrieben), sagt es das, statt still „gelöscht“ zu melden.
+ */
+export async function deleteWorkSheetDraft(
+  companyId: string,
+  id: string,
+  fotoPfade: readonly string[],
+): Promise<void> {
+  const nein = 'Der Schein ließ sich nicht löschen — er ist kein Entwurf mehr, oder das Löschen steht dir nicht zu.';
+  const { data: darf, error: frageFehler } = await derClient().rpc('schein_loeschbar', { p_id: id });
+  if (frageFehler) throw new Error(frageFehler.message);
+  if (darf !== true) throw new Error(nein);
+  const eimer = derClient().storage.from(FOTO_EIMER);
+  const ordner = `scheine/${companyId}/${id}`;
+  const { data: imOrdner, error: listenFehler } = await eimer.list(ordner, { limit: 1000 });
+  if (listenFehler) throw new Error(listenFehler.message);
+  const pfade = [...new Set([...fotoPfade, ...(imOrdner ?? []).map((f) => `${ordner}/${f.name}`)])];
+  if (pfade.length > 0) {
+    const { error } = await eimer.remove(pfade);
+    if (error) throw new Error(error.message);
+  }
+  const { data, error } = await derClient()
+    .from(SCHEINE)
+    .delete()
+    .eq('company_id', companyId)
+    .eq('id', id)
+    .select('id');
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) throw new Error(nein);
 }
 
 /**

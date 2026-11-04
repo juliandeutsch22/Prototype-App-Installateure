@@ -1035,3 +1035,45 @@ sein wie der Kalender bei der Datumsauswahl.“
 2 px), `InvoicesView.test.tsx` (+1, 3 angepasst), `detailSummen.test.ts`,
 `EinstellungenUebersicht.test.tsx` (+3, 2 angepasst), `auswahlPfeil.test.ts`
 (neu, 3). Gegenprobe mit dem Code davor: die neuen Prüfungen rot.
+
+**E42 — Entwürfe lassen sich löschen, „Stunden ohne Buchung“ knapp
+(04.11.2026).** Auftrag mit Bildschirmfoto: „Handwerksscheine: das Stunden-
+ohne-Buchung-Fenster erscheint so unnötig groß … außerdem kann man Entwürfe
+bzw. verworfene Entwürfe nicht löschen.“
+
+- **Entwurf löschen** — eine geänderte Grundsatzregel. Bisher galt für jeden
+  Schein „gelöscht wird ein Beleg nie“; ein Entwurf wurde verworfen und blieb
+  samt Fotos aus fremden Wohnungen für immer. Ein Entwurf ist aber kein
+  Beleg: nicht unterschrieben, niemandem übergeben, auf keiner Rechnung
+  (verrechnet wird nur Unterschriebenes). Jetzt löscht ihn — als Entwurf oder
+  verworfen —, wer ihn bearbeiten darf (`app.schein_schreibt`: der Monteur
+  seinen eigenen, die Führung jeden). Unterschrieben und storniert bleibt
+  alles wie bisher: nie löschbar (§ 132 BAO). Der Support löscht nicht.
+- **Datenbank** (`20261104100000_schein_entwurf_loeschen.sql`):
+  Löschregel `work_sheets_loeschen` (Status Entwurf/Verworfen,
+  `app.schein_schreibt`); Zeiten, Material und Fotozeilen gehen über
+  ON DELETE CASCADE mit. `app.foto_schein_offen` lässt die Dateien eines
+  verworfenen Entwurfs entfernen wie die eines Entwurfs. Neu
+  `public.schein_loeschbar(id)` (security definer, `search_path = ''`, nur
+  `authenticated`): die App fragt damit, BEVOR sie Fotos entfernt — die
+  Fotos eines Entwurfs darf der ganze Betrieb entfernen, den Schein nicht.
+- **Reihenfolge**: erst die Dateien im Ordner des Scheins (auch ein nie
+  gespeichertes Foto), dann die Zeile. So bleibt im Erfolgsfall keine Datei
+  ohne Schein liegen; reisst das Netz dazwischen, bleibt ein Entwurf ohne
+  Fotos, den ein zweiter Versuch löscht.
+- **Oberfläche**: „Löschen“ im Fenster des Scheins, abgesetzt unter einer
+  Linie (nicht neben „Weiterbearbeiten“); rote Rückfrage mit Kunde, Tag,
+  Stunden, Materialposten und Fotos, „Endgültig löschen“. Verwerfen bleibt
+  der umkehrbare Weg.
+- **„Stunden ohne Buchung“**: ohne Befund steht unter dem Titel eine Zeile —
+  Ergebnis, Prüfbasis, daneben „Weiter zurück prüfen“ (am Handy darunter).
+  Kein eigener Leerzustand mehr. Gemessen am Schreibtisch: rund 300 → 144 px.
+  Die Karte bleibt, weil sie die Handlung „weiter zurück prüfen“ trägt.
+
+**Prüfungen.** `tests/supabase/scheinEntwurfLoeschen.test.ts` (neu, 9:
+Entwurf und verworfener samt Positionen, Fotozeilen und Dateien; Führung
+jeden; Kollege und fremder Betrieb nicht, die Datei bleibt; Beleg nie;
+`schein_loeschbar`), `belege.test.ts` und `regeln.test.ts` auf die neue
+Regel umgestellt, `scheinEntwurfLoeschen.spec.ts` (neu, 3 Browserwege mit
+echtem Speicher), `WorkSheetsListView.test.tsx` (+5). Gegenprobe: ohne die
+Migration und mit `src` von `main` alle neuen Prüfungen rot.

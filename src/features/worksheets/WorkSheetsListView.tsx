@@ -11,6 +11,7 @@ import {
   getWorkSheet,
   cancelWorkSheet,
   discardWorkSheetDraft,
+  deleteWorkSheetDraft,
   restoreWorkSheetDraft,
 } from '@/lib/db/workSheets';
 import { buildWorkSheetPdf, shareOrDownloadPdf } from './worksheetPdf';
@@ -205,6 +206,7 @@ export default function WorkSheetsListView() {
   const [stornoFuer, setStornoFuer] = useState<WithId<WorkSheet> | null>(null);
   const [stornoGrund, setStornoGrund] = useState('');
   const [verwerfenFuer, setVerwerfenFuer] = useState<WithId<WorkSheet> | null>(null);
+  const [loeschenFuer, setLoeschenFuer] = useState<WithId<WorkSheet> | null>(null);
   const [zeigeVerworfene, setZeigeVerworfene] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -847,45 +849,60 @@ export default function WorkSheetsListView() {
               </Hinweiszeile>
             </div>
           ) : (<>
-          <div className="px-4 pb-1 pt-3">
-            {minutenOhneBuchung(ohneBuchung) > 0 && (
-              <p className="mb-3 text-sm text-ink">
-                <strong>{fmtDauer(minutenOhneBuchung(ohneBuchung))}</strong> stehen unterschrieben
-                beim Kunden und in keiner Zeiterfassung.
-              </p>
-            )}
-
-            {/*
-              WORAUF SICH DIE PRÜFUNG STÜTZT, steht sichtbar da — sonst hiesse
-              „nichts offen" mal „im letzten Monat" und mal „im letzten Jahr",
-              ohne dass es jemand unterscheiden könnte.
-            */}
-            <p className="mb-3 text-xs text-ink-muted">
-              {tiefePruefung
-                ? `Geprüft über die letzten ${tiefePruefung} Tage (${pruefBasis.length} unterschriebene Scheine).`
-                : `Geprüft über die ${scheine.length} geladenen Scheine dieser Liste.`}
-              {tiefeScheine && tiefeScheine.length >= PRUEF_GRENZE && (
-                <>
-                  {' '}
-                  <strong className="text-warning">
-                    Die Grenze von {PRUEF_GRENZE} Scheinen ist erreicht — ältere sind nicht dabei.
-                  </strong>
-                </>
+          {/*
+            KNAPP, WENN NICHTS OFFEN IST (Auftrag 04.11.2026: „das Fenster
+            erscheint so unnötig groß“). Bis dahin standen untereinander die
+            Prüfbasis, „Weiter zurück prüfen“ mit seinen Knöpfen und ein
+            Leerzustand mit eigenem Block — rund 300 px für die Auskunft „nichts
+            offen“. Jetzt: das Ergebnis in einer Zeile, darunter worauf es sich
+            stützt, und „Weiter zurück prüfen“ daneben (am Handy darunter).
+            Die Karte bleibt — sie trägt die Handlung, weiter zurück zu prüfen.
+          */}
+          <div className="ohne-buchung-kopf">
+            <div className="min-w-0">
+              {ohneBuchung.length === 0 ? (
+                <p className="text-sm text-ink">
+                  Zu jeder Stunde auf den geprüften Scheinen gibt es eine Buchung in der Zeiterfassung.
+                </p>
+              ) : minutenOhneBuchung(ohneBuchung) > 0 && (
+                <p className="text-sm text-ink">
+                  <strong>{fmtDauer(minutenOhneBuchung(ohneBuchung))}</strong> stehen unterschrieben
+                  beim Kunden und in keiner Zeiterfassung.
+                </p>
               )}
-              {zuJung > 0 &&
-                ` ${zuJung === 1 ? 'Ein Schein' : `${zuJung} Scheine`} der letzten ${OFFEN_AB_TAGEN} Tage ${
-                  zuJung === 1 ? 'ist' : 'sind'
-                } noch nicht dabei — gebucht wird oft erst am Morgen darauf.`}
-            </p>
+              {/*
+                WORAUF SICH DIE PRÜFUNG STÜTZT, steht sichtbar da — sonst hiesse
+                „nichts offen" mal „im letzten Monat" und mal „im letzten Jahr",
+                ohne dass es jemand unterscheiden könnte.
+              */}
+              <p className="mt-1 text-xs text-ink-muted">
+                {tiefePruefung
+                  ? `Geprüft über die letzten ${tiefePruefung} Tage (${pruefBasis.length} unterschriebene Scheine).`
+                  : `Geprüft über die ${scheine.length} geladenen Scheine dieser Liste.`}
+                {tiefeScheine && tiefeScheine.length >= PRUEF_GRENZE && (
+                  <>
+                    {' '}
+                    <strong className="text-warning">
+                      Die Grenze von {PRUEF_GRENZE} Scheinen ist erreicht — ältere sind nicht dabei.
+                    </strong>
+                  </>
+                )}
+                {zuJung > 0 &&
+                  ` ${zuJung === 1 ? 'Ein Schein' : `${zuJung} Scheine`} der letzten ${OFFEN_AB_TAGEN} Tage ${
+                    zuJung === 1 ? 'ist' : 'sind'
+                  } noch nicht dabei — gebucht wird oft erst am Morgen darauf.`}
+              </p>
+            </div>
 
             {/*
-              Die Beschriftung steht ÜBER der Reihe, nicht davor: davor gesetzt
-              brach die Auswahl am Telefon mitten durch. `klein` nimmt den
+              Beschriftung und Knöpfe brechen nur ZWISCHEN einander um, nie
+              mitten durch die Reihe: am Telefon stand die Auswahl sonst
+              halb neben, halb unter der Beschriftung. `klein` nimmt den
               Knöpfen Polsterung und Schriftgrösse, nicht die Höhe.
             */}
-            <div className="mb-3">
-              <span className="mb-2 block text-sm text-ink-muted">Weiter zurück prüfen:</span>
-              <div className="flex flex-wrap items-center gap-2">
+            <div className="ohne-buchung-weiter">
+              <span className="whitespace-nowrap text-sm text-ink-muted">Weiter zurück prüfen:</span>
+              <span className="flex flex-wrap items-center gap-2">
                 {PRUEF_ZEITRAEUME.map((tage) => (
                   <Button
                     key={tage}
@@ -898,15 +915,11 @@ export default function WorkSheetsListView() {
                   </Button>
                 ))}
                 {pruefungLaeuft && <span className="text-sm text-ink-muted">Wird geprüft …</span>}
-              </div>
+              </span>
             </div>
           </div>
 
-          {ohneBuchung.length === 0 ? (
-            <EmptyState>
-              Zu jeder Stunde auf den geprüften Scheinen gibt es eine Buchung in der Zeiterfassung.
-            </EmptyState>
-          ) : (
+          {ohneBuchung.length > 0 && (
             /*
               Die Zeile führt zum SCHEIN, nicht direkt in ein Zeitformular: wer
               eine fremde Stunde nachträgt, muss vorher sehen, was auf dem Beleg
@@ -1214,6 +1227,7 @@ export default function WorkSheetsListView() {
                   </div>
                 </div>
               ) : (
+                <>
                 <div className="fuss-aktionen">
                   <Button variant="secondary" loading={busy} onClick={() => pdfAusgeben(offenerSchein)}>
                     PDF
@@ -1250,6 +1264,30 @@ export default function WorkSheetsListView() {
                     </Button>
                   )}
                 </div>
+                {/*
+                  LÖSCHEN NUR VOR DER UNTERSCHRIFT (Auftrag 04.11.2026): ein
+                  Entwurf und ein verworfener Entwurf sind keine Belege. Wer
+                  darf, ist dieselbe Grenze wie beim Verwerfen; die Datenbank
+                  hält sie (`work_sheets_loeschen`). Ein unterschriebener Schein
+                  wird storniert, nie gelöscht. In einer eigenen Zeile unter
+                  einer Linie: das Endgültige steht nicht neben
+                  „Weiterbearbeiten“.
+                */}
+                {darfDiesen(offenerSchein) && (offenerSchein.status === 'Entwurf' || offenerSchein.status === 'Verworfen') && (
+                  <div className="schein-loeschen">
+                    <Button
+                      variant="danger"
+                      groesse="klein"
+                      onClick={() => {
+                        setLoeschenFuer(offenerSchein);
+                        setOffen(null);
+                      }}
+                    >
+                      Löschen
+                    </Button>
+                  </div>
+                )}
+                </>
               )
             }
           />
@@ -1284,6 +1322,34 @@ export default function WorkSheetsListView() {
           await discardWorkSheetDraft(verwerfenFuer.id, user.name);
           toast.success('Entwurf verworfen');
           setVerwerfenFuer(null);
+          await laden();
+        }}
+      />
+
+      {/*
+        LÖSCHEN IST ENDGÜLTIG — deshalb rot, und die Rückfrage nennt, was mit
+        weggeht: Zeiten, Material, Fotos. Wer nur aufräumen will, kann weiter
+        verwerfen; das bleibt umkehrbar.
+      */}
+      <ConfirmDialog
+        open={!!loeschenFuer}
+        title={loeschenFuer?.status === 'Verworfen' ? 'Verworfenen Entwurf löschen' : 'Entwurf löschen'}
+        message={
+          loeschenFuer
+            ? `${loeschenFuer.customerName}, ${datumAT(loeschenFuer.datum)} · ` +
+              `${fmtDauer(loeschenFuer.zeiten.reduce((n, z) => n + z.minuten, 0))} · ` +
+              `${loeschenFuer.material.length} Materialposten · ` +
+              `${(loeschenFuer.fotos ?? []).length === 1 ? '1 Foto' : `${(loeschenFuer.fotos ?? []).length} Fotos`}. ` +
+              'Der Entwurf wird samt Zeiten, Material und Fotos endgültig gelöscht und lässt sich nicht zurückholen.'
+            : undefined
+        }
+        confirmLabel="Endgültig löschen"
+        onCancel={() => setLoeschenFuer(null)}
+        onConfirm={async () => {
+          if (!loeschenFuer) return;
+          await deleteWorkSheetDraft(user.companyId, loeschenFuer.id, (loeschenFuer.fotos ?? []).map((f) => f.pfad));
+          toast.success('Entwurf gelöscht');
+          setLoeschenFuer(null);
           await laden();
         }}
       />

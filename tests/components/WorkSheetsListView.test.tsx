@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -83,6 +83,7 @@ let geladen: (WorkSheet & { id: string })[] = scheine;
 const verwerfen = vi.fn(async () => undefined);
 const stornieren = vi.fn(async () => undefined);
 const zurueckholen = vi.fn(async () => undefined);
+const loeschen = vi.fn<(c: string, id: string, pfade: readonly string[]) => Promise<void>>(async () => undefined);
 
 /* Die tiefe Prüfung holt sich ihre Scheine selbst — auf Anforderung. */
 let tiefGeladen: (WorkSheet & { id: string })[] = [];
@@ -104,6 +105,7 @@ vi.mock('@/lib/db/workSheets', () => ({
   searchWorkSheets: (...a: unknown[]) => textSuche(...(a as [])),
   cancelWorkSheet: (...a: unknown[]) => stornieren(...(a as [])),
   discardWorkSheetDraft: (...a: unknown[]) => verwerfen(...(a as [])),
+  deleteWorkSheetDraft: (c: string, id: string, p: readonly string[]) => loeschen(c, id, p),
   restoreWorkSheetDraft: (...a: unknown[]) => zurueckholen(...(a as [])),
   getWorkSheet: (id: string) => einzeln(id),
 }));
@@ -221,6 +223,7 @@ beforeEach(() => {
   textSuche.mockClear();
   verwerfen.mockClear();
   zurueckholen.mockClear();
+  loeschen.mockClear();
   // Zurücksetzen statt nur leeren: ein nicht verbrauchtes „Once“ liefe sonst in den nächsten Test.
   zeitenGeholt.mockReset();
   zeitenGeholt.mockImplementation(async () => buchungen);
@@ -392,6 +395,74 @@ describe('Einen Entwurf aufgeben', () => {
     const fenster = await oeffne(/Familie Huber/);
     expect(within(fenster).getByRole('button', { name: 'PDF' })).toBeInTheDocument();
     expect(within(fenster).queryByRole('button', { name: 'Verwerfen' })).not.toBeInTheDocument();
+  });
+});
+
+/*
+  ENTWÜRFE LÖSCHEN (Auftrag 04.11.2026): ein Entwurf und ein verworfener
+  Entwurf lassen sich endgültig löschen — samt Fotos. Wer darf, ist dieselbe
+  Grenze wie beim Verwerfen; ein unterschriebener Schein nie.
+*/
+describe('Einen Entwurf löschen', () => {
+  // Das Fenster zeigt das Foto des Entwurfs; spätere Prüfungen zählen die Aufrufe von vorn.
+  afterEach(() => fotoAdresse.mockClear());
+  const mitFoto = {
+    ...scheine[0],
+    zeiten: [{ datum: '2026-09-04', mitarbeiter: 'Max', von: '07:00', bis: '09:00', pauseMin: 0, minuten: 120 }],
+    material: [{ name: 'Dichtung', menge: 2 }],
+    fotos: [{ pfad: 'scheine/perl/e1/a.jpg', hash: 'a', bytes: 1, geraetZeit: 1 }],
+  } as unknown as WorkSheet & { id: string };
+
+  it('fragt rot zurück, nennt Umfang und Fotos — und löscht erst nach der Bestätigung, mit den Pfaden', async () => {
+    geladen = [mitFoto];
+    zeichne();
+    await userEvent.click(within(await oeffne(/Familie Huber/)).getByRole('button', { name: 'Löschen' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('Entwurf löschen');
+    expect(dialog).toHaveTextContent(/Familie Huber, 04\.09\.2026 · 02:00 Std · 1 Materialposten · 1 Foto\./);
+    expect(dialog).toHaveTextContent('endgültig gelöscht und lässt sich nicht zurückholen');
+    expect(loeschen).not.toHaveBeenCalled();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Endgültig löschen' }));
+    await waitFor(() => expect(loeschen).toHaveBeenCalledWith('perl', 'e1', ['scheine/perl/e1/a.jpg']));
+  });
+
+  it('auch einen verworfenen Entwurf', async () => {
+    geladen = [verworfener];
+    zeichne();
+    await userEvent.click(await screen.findByRole('checkbox'));
+    await userEvent.click(within(await oeffne(/Familie Gruber/)).getByRole('button', { name: 'Löschen' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('Verworfenen Entwurf löschen');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Endgültig löschen' }));
+    await waitFor(() => expect(loeschen).toHaveBeenCalledWith('perl', 'v1', []));
+  });
+
+  it('sagt, wenn die Datenbank nein sagt — und meldet nichts als gelöscht', async () => {
+    loeschen.mockRejectedValueOnce(new Error('Der Schein ließ sich nicht löschen — er ist kein Entwurf mehr, oder das Löschen steht dir nicht zu.'));
+    zeichne();
+    await userEvent.click(within(await oeffne(/Familie Huber/)).getByRole('button', { name: 'Löschen' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Endgültig löschen' }));
+    expect(await within(dialog).findByText(/ließ sich nicht löschen/)).toBeInTheDocument();
+    expect(screen.queryByText('Entwurf gelöscht')).not.toBeInTheDocument();
+  });
+
+  it('Gegenprobe: nicht beim unterschriebenen Schein, nicht beim Entwurf eines Kollegen, nicht für die Buchhaltung', async () => {
+    geladen = [scheine[1]];
+    const erst = zeichne();
+    await alle();
+    expect(within(await oeffne(/Familie Berger/)).queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
+    erst.unmount();
+
+    geladen = [{ ...scheine[0], id: 'e2', erstelltVonUid: 'k9' }];
+    const zweit = zeichne();
+    expect(within(await oeffne(/Familie Huber/)).queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
+    zweit.unmount();
+
+    authWert.user.role = 'Buchhaltung';
+    geladen = [scheine[0]];
+    zeichne();
+    expect(within(await oeffne(/Familie Huber/)).queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
   });
 });
 
@@ -814,6 +885,27 @@ describe('Stunden ohne Buchung', () => {
     await screen.findByText(/Stunden ohne Buchung/);
     expect(zeile('Franz Huber · 08:00 Std · gebucht auf B-001')).toBeInTheDocument();
     expect(screen.queryByText(/stehen unterschrieben beim Kunden/)).not.toBeInTheDocument();
+  });
+
+  /*
+    KNAPP, WENN NICHTS OFFEN IST (Auftrag 04.11.2026: „das Fenster erscheint
+    so unnötig groß“): das Ergebnis als Satz in der Kopfzeile der Karte,
+    daneben „Weiter zurück prüfen“ — kein eigener Leerzustand mehr.
+  */
+  it('ohne Befund: ein Satz mit Prüfbasis und „Weiter zurück prüfen“ in einer Zeile, kein Leerzustand', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [offenerSchein()];
+    buchungen = [{ date: vorTagen(10), userName: 'Franz Huber', projectNumber: 'B-009', status: 'Anwesend' }];
+    zeichne();
+    const satz = await screen.findByText('Zu jeder Stunde auf den geprüften Scheinen gibt es eine Buchung in der Zeiterfassung.');
+    const kopf = satz.closest('.ohne-buchung-kopf') as HTMLElement;
+    expect(kopf).not.toBeNull();
+    expect(kopf).toHaveTextContent(/geladenen Scheine dieser Liste/);
+    expect(within(kopf.querySelector('.ohne-buchung-weiter') as HTMLElement).getAllByRole('button').map((b) => b.textContent))
+      .toEqual(['30 Tage', '90 Tage', '1 Jahr']);
+    const karte = kopf.closest('section') as HTMLElement;
+    expect(karte.querySelector('.leer, [data-leer]')).toBeNull();
+    expect(karte.querySelectorAll('li')).toHaveLength(0);
   });
 
   /*
