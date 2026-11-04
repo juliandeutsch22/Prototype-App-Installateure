@@ -994,6 +994,6 @@ Tipp auf die Maßlinie öffnet die Akte; Nachkalkulation: kurze Zeile,
 Seitenfenster, Wechsel ohne Platzhalter), `tests/supabase/
 nachkalkulationBuendel.test.ts` (die gebündelten Abfragen liefern genau, was
 die Einzelabfragen liefern, auch „PR-“), `NachkalkulationView.test.tsx`
-(+11, 5 umgestellt), `ZeilenGleich.test.tsx` (+4), `AdminProjectsView.test.tsx`
+(+10, 5 umgestellt), `ZeilenGleich.test.tsx` (+4), `AdminProjectsView.test.tsx`
 (+2), `nachkalkulation.test.ts` (+3). Gegenprobe mit dem Code davor: die
 neuen Prüfungen rot, die gleichbleibenden grün.
