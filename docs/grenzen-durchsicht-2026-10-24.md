@@ -82,6 +82,11 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Datum der Stornobuchung, Kontenrahmen, Lücke im Rechnungskreis vor 25.09., VIES als Nachweis, Löschen nach sieben Jahren (offene Punkte A9, D4–D6, D9) | Steuerberatung |
 | BMD-Stapel vorgebaut bis zum Importtest (offene Punkte C4, D7) | Kanzlei |
 | Datenschutzerklärung, Impressum, Kalender-Abo (offene Punkte D8, D10) | Anwalt |
+| Rechtstexte: antwortet die Datenbank nicht, zeigt die Seite eine Fehlermeldung mit „Erneut versuchen“ statt eines mitgelieferten Textes (E45, 04.11.2026) | Rechtlich: ein mitgelieferter Text wäre irgendwann ein veralteter Rechtstext — schlimmer als eine ehrliche Meldung |
+| Rechtstexte: ob jemand den Hinweis „Datenschutzerklärung geändert“ gesehen hat, merkt sich nur sein Gerät; auf einem zweiten Gerät erscheint er noch einmal (E45) | Datenschutz: wer welchen Hinweis gelesen hat, wäre ein neues Datum über jede Person, das niemand braucht |
+| Rechtstexte: die Kenntnisnahme neuer Unterauftragsverarbeiter steht am Betrieb mit Zeitpunkt, nicht mit Person (E45) | Datenschutz: für die Information nach Art. 28 Abs. 2 DSGVO genügt, dass der Betrieb sie bekommen hat |
+| Rechtstexte: ob ein Text rechtlich stimmt, prüft die App nicht; sie prüft Form, Platzhalter und offene Angaben (E45) | Liegt beim Anwalt — dafür „rechtlich geprüft von …“ |
+| Auftragsverarbeitungsvertrag: noch nicht in der App, wird außerhalb geschlossen (E45, Roadmap 11.2 Punkt 8) | Entscheidung des Auftraggebers vom 04.11.2026: „vorerst auf die Roadmap“ |
 | Aliquoter Urlaub, Mahnspesen an Private, Arztbesuch im Kollektivvertrag (offene Punkte D1, D2, D11) | WKO |
 | Safari/iPhone, Kamera, Push, Installation am echten Gerät (offene Punkte C15, Prüfbericht 4 und 6); die volle CSP ist seit 27.10.2026 durchgesetzt (Stand 24.6) | Gerätedurchgang |
 | Gleitzeitvereinbarung (Kernzeit) beim Arztbesuch: das Büro rechnet mit Grund an (Stand 33) | Betrieb |

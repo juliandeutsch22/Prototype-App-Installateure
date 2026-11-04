@@ -337,7 +337,7 @@ function Editor({ art, verlauf, geaendert, zurueck }: {
         title={`${NAME[art]} veröffentlichen`}
         confirmLabel="Veröffentlichen"
         confirmTone="primary"
-        gesperrt={fehler.length > 0 || (geprueft && !geprueftVon.trim())}
+        gesperrt={fehler.length > 0 || (geprueftGeht && geprueft && !geprueftVon.trim())}
         message={`Wird Fassung ${naechste}. Sie gilt sofort und lässt sich danach nicht mehr ändern. ${aenderung.join(' ')}`}
         onCancel={() => setVeroeffentlichen(false)}
         onConfirm={async () => {
