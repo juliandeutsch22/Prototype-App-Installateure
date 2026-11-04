@@ -1077,3 +1077,26 @@ jeden; Kollege und fremder Betrieb nicht, die Datei bleibt; Beleg nie;
 Regel umgestellt, `scheinEntwurfLoeschen.spec.ts` (neu, 3 Browserwege mit
 echtem Speicher), `WorkSheetsListView.test.tsx` (+5). Gegenprobe: ohne die
 Migration und mit `src` von `main` alle neuen Prüfungen rot.
+
+**E43 — App-Zeichen mit runden Ecken (04.11.2026).** Auftrag mit Bild:
+„verwende das hier als Favicon und App-Icon“, auf Rückfrage: „ich möchte
+einfach, dass die Ecken genauso abgerundet sind“. Das Bild ist pixelgenau
+das Zeichen seit 03.11. (Form, Petrol `#0F4552`), nur mit runden,
+durchsichtigen Ecken; am Bild gemessen Radius 12 von 64.
+
+- **Rund**: Favicon (SVG, 16/32/64 px) und die Manifest-Icons „any“
+  (192/512 px) — sie zeigt das System so, wie sie geliefert werden (Reiter,
+  Lesezeichen, installierte App am Schreibtisch, Benachrichtigung). Die
+  Manifest-Icons tragen dafür das Zeichen in der Größe des Favicons, wie im
+  Bild; die Verkleinerung auf 92 % war nur für den Android-Schutzkreis nötig.
+- **Randlos und deckend bleiben** das Apple-Touch-Icon (iOS füllt
+  durchsichtige Ecken schwarz und rundet selbst) und das maskierbare
+  Android-Icon (der Starter schneidet seine Form selbst aus, das Zeichen
+  bleibt im Schutzkreis). Auf dem Handy-Startbildschirm ist das Icon damit
+  ebenfalls rund — in der Form des Systems.
+- Erzeugt wie bisher aus `marke/zeichen.svg` mit `marke/rastern.mjs`.
+
+**Prüfungen.** `appZeichen.test.ts`: runde Ecken je Größe (Ecke durchsichtig,
+Kantenmitte deckend weiß, fehlende Deckung = vier Viertelkreis-Zwickel mit
+Radius 12/64, innerhalb deckend), Apple-Touch- und maskierbares Icon randlos
+und deckend. Gegenprobe mit den Bildern davor: 6 rot.

@@ -58,6 +58,7 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Prüfwerkzeuge: axe misst Kontrast, Namen und Rollen, nicht Verständlichkeit; Messungen im gedrosselten Browser (Stand 18) | Grenze des Werkzeugs |
 | Wisch-Schutz am iPhone: iOS verschiebt die Ansicht beim Öffnen der Tastatur (Stand 13) | Plattform |
 | App-Zeichen bei 16 px (Stand 18) | Gestaltung, abgewogen |
+| Runde Ecken nur an Favicon und Manifest-Icons; Apple-Touch- und maskierbares Icon randlos, ein schon installiertes Icon erneuert das System selbst (E43, 04.11.2026) | Plattform: iOS füllt durchsichtige Ecken schwarz, beide Systeme schneiden ihre Form selbst aus; der Icon-Zwischenspeicher liegt beim Gerät |
 | `npm test` ohne Datenbanktests (offene Punkte C12) | Der Stapel läuft in der CI; im Handbuch benannt |
 | Tailwind statt einer Klasse je Element (offene Punkte B10) | Ansicht für Ansicht, wenn sie ohnehin angefasst wird |
 | Lange Namen brechen mitten im Wort in einem Browser ohne deutsches Trennwörterbuch (A16, 24.10.2026) | Die Trennregel gilt überall; das Wörterbuch bringt der Browser mit oder nicht — liegt beim Gerät |

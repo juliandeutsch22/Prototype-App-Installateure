@@ -9,7 +9,7 @@ Seit 03.11.2026 gilt das freigegebene Markenpaket für die Produktmarke in der A
 - `zeichen.svg`: das einzelne Zeichen ohne Hintergrund; Quelle aller Icons.
 - `schriftzug.svg`: die Wortmarke einzeln.
 - `icon.svg`: Zeichen auf weißem, randlosem Quadrat, mit Abstand für Systemmasken.
-- `favicon.svg`: dasselbe Zeichen auf Weiß, für kleine Browserreiter etwas größer eingesetzt.
+- `favicon.svg`: dasselbe Zeichen auf Weiß mit runden Ecken (Radius 12 von 64, seit 04.11.2026, E43), etwas größer eingesetzt.
 
 Die zentrale `ProduktMarke` lädt die passende Pfadvorlage als zugänglich beschriftetes Bild. Dunkle Inhaltsflächen zeigen die weiße Variante; feste dunkle Markenbänder verwenden sie ausdrücklich. Alle Produktmarken – Anmeldung, Plattform, Begrüßung, Rechtsseiten und Seitenleistenfuß – erhalten dadurch dieselbe Form. Im Handbuch steht dieselbe Pfadkontur.
 
@@ -17,8 +17,8 @@ Die zentrale `ProduktMarke` lädt die passende Pfadvorlage als zugänglich besch
 
 ## Favicon, iOS, Android und Push
 
-- Favicon als SVG und PNG in 16, 32 und 64 px.
-- Installationsicons: 192 und 512 px, Petrol `#0F4552` auf deckendem Weiß.
+- Favicon als SVG und PNG in 16, 32 und 64 px, mit runden, durchsichtigen Ecken.
+- Installationsicons „any“: 192 und 512 px, Petrol `#0F4552` auf Weiß mit denselben runden Ecken — so zeigen Schreibtisch, Benachrichtigung und Startbild sie unverändert.
 - Apple-Touch-Icon: 180 × 180 px, randlos und deckend; iOS rundet selbst.
 - Android maskable: 512 × 512 px; die gesamte Figur liegt innerhalb des garantierten Kreises mit Radius 40 % der Seitenlänge. Die Kontur bleibt unverändert, nur ihre Größe innerhalb der Fläche wird angepasst.
 - Push-Abzeichen: weiße Silhouette auf transparentem Grund, ohne vollflächige Kachel.
