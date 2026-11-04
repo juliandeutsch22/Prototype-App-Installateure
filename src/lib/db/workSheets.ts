@@ -54,6 +54,13 @@ export function listWorkSheetsForProject(
   return pg.listWorkSheetsForProject(companyId, projectNumber, max);
 }
 
+/** Die Scheine mehrerer Baustellen in einem Zug — siehe `pg.listWorkSheetsForProjects`. */
+export function listWorkSheetsForProjects(
+  companyId: string, projectNumbers: readonly string[],
+): Promise<WithId<WorkSheet>[]> {
+  return pg.listWorkSheetsForProjects(companyId, projectNumbers);
+}
+
 export function listWorkSheetsInRange(
   companyId: string, von: string, bis: string, max = 150,
 ): Promise<WithId<WorkSheet>[]> {

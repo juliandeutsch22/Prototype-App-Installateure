@@ -1164,6 +1164,54 @@ describe('Baustellen — die Zeile', () => {
     expect(screen.queryByText('Über Budget')).toBeNull();
   });
 
+  /*
+    ZWEI ZEILEN STATT EINER, DIE UMBRICHT (Auftrag 03.11.2026: „eng, viel
+    Text, wenig Abstände“): wo und wen anrufen, darunter wer dran ist; das
+    Team gekürzt, die übrigen Namen für den Vorleser.
+  */
+  it('Adresse und Telefon in einer Zeile, Leitung und Team in der nächsten — das Team ab drei gekürzt', async () => {
+    vi.mocked(listUsers).mockImplementation(async () => [
+      MONTEUR,
+      { ...MONTEUR, id: 'u2', uid: 'u2', name: 'Lena Lehner' },
+      { ...MONTEUR, id: 'u3', uid: 'u3', name: 'Otto Obermair' },
+      { ...MONTEUR, id: 'u4', uid: 'u4', name: 'Paul Pichler' },
+    ] as AppUser[]);
+    baustellen = [{
+      id: 'p-t', companyId: 'perl', projectNumber: '2026-090', customerName: 'Familie Team', status: 'Aktiv',
+      address: 'Hauptstraße 1, 8200 Gleisdorf', contactPhone: '0664 1234567',
+      assignedEmployees: ['u1', 'u2', 'u3', 'u4'], projectManagers: ['u1'], estimatedHours: 40,
+    } as unknown as Project & { id: string }];
+    zeige();
+    const zeile = (await screen.findByText('2026-090')).closest('li')!;
+    await within(zeile).findByText(/Projektleitung: Max Mustermann/);
+    const zeilen = zeile.querySelectorAll('.zeile-meta .baustelle-zeile');
+    expect(zeilen).toHaveLength(2);
+    expect(zeilen[0]).toHaveTextContent('Hauptstraße 1, 8200 Gleisdorf');
+    expect(zeilen[0]).toHaveTextContent('0664');
+    expect(zeilen[0]).not.toHaveTextContent('Projektleitung');
+    expect(zeilen[1]).toHaveTextContent('Projektleitung: Max Mustermann');
+    const team = within(zeile).getByText(/Team: Max Mustermann, Lena Lehner/);
+    expect(team).toHaveTextContent('Team: Max Mustermann, Lena Lehner +2');
+    expect(within(team).getByText(', Otto Obermair, Paul Pichler')).toHaveClass('sr-only');
+    // Gestapelt: Zustand und Wert in eigener Spalte, das „⋯“ für sich.
+    expect(zeile).toHaveClass('zeile-gestapelt');
+    expect(zeile.querySelector('.zeile-stand .zeile-wert .masslinie')).not.toBeNull();
+    expect(within(zeile.querySelector('.zeile-aktionen') as HTMLElement).getByRole('button', { name: /Weitere Aktionen/ })).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: bis zwei Leute steht das Team ganz da, ohne „+“; ohne Adresse und Telefon keine leere Zeile', async () => {
+    vi.mocked(listUsers).mockImplementation(async () => [MONTEUR, { ...MONTEUR, id: 'u2', uid: 'u2', name: 'Lena Lehner' }] as AppUser[]);
+    baustellen = [{
+      id: 'p-z', companyId: 'perl', projectNumber: '2026-091', customerName: 'Familie Zwei', status: 'Aktiv',
+      assignedEmployees: ['u1', 'u2'], projectManagers: [],
+    } as unknown as Project & { id: string }];
+    zeige();
+    const zeile = (await screen.findByText('2026-091')).closest('li')!;
+    const team = await within(zeile).findByText(/Team: Max Mustermann, Lena Lehner/);
+    expect(team.textContent).toBe('Team: Max Mustermann, Lena Lehner');
+    expect(zeile.querySelectorAll('.baustelle-zeile')).toHaveLength(1);
+  });
+
   it('ohne Leitung steht „ohne Projektleitung“ als Achtung in der Zustandsspalte', async () => {
     baustellen = [{
       id: 'p-o', companyId: 'perl', projectNumber: '2026-078', customerName: 'Familie Ohne', status: 'Aktiv',

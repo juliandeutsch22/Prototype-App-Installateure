@@ -76,6 +76,13 @@ export function listInvoicesForProject(
   return pg.listInvoicesForProject(companyId, projectNumber);
 }
 
+/** Die Rechnungen mehrerer Baustellen in einem Zug — siehe `pg.listInvoicesForProjects`. */
+export function listInvoicesForProjects(
+  companyId: string, projectNumbers: readonly string[],
+): Promise<WithId<Invoice>[]> {
+  return pg.listInvoicesForProjects(companyId, projectNumbers);
+}
+
 /** Welche dieser Scheine auf einer gültigen Rechnung stehen — über alle Rechnungen. */
 export function scheineAufRechnung(companyId: string, scheinIds: string[]): Promise<string[]> {
   return pg.scheineAufRechnung(companyId, scheinIds);

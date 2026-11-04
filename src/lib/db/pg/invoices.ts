@@ -399,6 +399,40 @@ export async function listInvoicesForProject(
   return zusammensetzen(koepfe, companyId);
 }
 
+
+/**
+ * Alle Schreibweisen mehrerer Baustellennummern (mit und ohne „PR-“ aus
+ * Altbeständen) — für die Abfrage über viele Baustellen in einem Zug.
+ */
+function formenAller(projectNumbers: readonly string[]): string[] {
+  const formen = new Set<string>();
+  for (const roh of projectNumbers) {
+    const blank = (roh ?? '').trim().replace(/^PR-/i, '');
+    if (!blank) continue;
+    formen.add(roh.trim());
+    formen.add(blank);
+    formen.add(`PR-${blank}`);
+  }
+  return [...formen];
+}
+
+/**
+ * Die Rechnungen MEHRERER Baustellen in einem Zug — für die Nachkalkulation,
+ * wie `listWorkSheetsForProjects`: drei Abfragen statt drei je Baustelle.
+ * Ohne Zeitgrenze und ohne Statusfilter wie `listInvoicesForProject`.
+ */
+export async function listInvoicesForProjects(
+  companyId: string,
+  projectNumbers: readonly string[],
+): Promise<WithId<Invoice>[]> {
+  const formen = formenAller(projectNumbers);
+  if (formen.length === 0) return [];
+  const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+    wo: [{ art: 'in', feld: 'projectNumber', werte: formen }],
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
 /**
  * Welche dieser Handwerksscheine auf einer GÜLTIGEN Rechnung stehen — über
  * ALLE Rechnungen, nicht nur die geladenen.

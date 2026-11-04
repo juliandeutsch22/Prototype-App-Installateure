@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -110,5 +110,46 @@ describe('Alle Listen', () => {
       .filter(({ s }) => /<span[^>]*>\(\{[a-zA-Z.]*(projectNumber|invoiceNumber|quoteNumber)\}\)<\/span>/.test(s))
       .map(({ d }) => d);
     expect(verstoesse).toEqual([]);
+  });
+});
+
+/*
+  DIE GESTAPELTE ZEILE (Auftrag 03.11.2026): Zustand und Wert unter dem Text,
+  wo eine breite Maßlinie den Text sonst auf ein Drittel drückte; am
+  Schreibtisch rechts in Spalten.
+*/
+describe('Die gestapelte Zeile', () => {
+  it('Text, Stand und Aktionen in eigenen Bereichen; der Zustand bleibt vor dem Wert', () => {
+    const { container } = zeile({
+      gestapelt: true,
+      zustand: <Zustand stand="achtung">ohne Projektleitung</Zustand>,
+      wert: '40 h',
+      children: <button type="button">⋯</button>,
+    });
+    const li = container.querySelector('li')!;
+    expect(li).toHaveClass('zeile', 'zeile-gestapelt', 'zeile-ganz');
+    expect([...li.children].map((k) => k.className)).toEqual(['zeile-text', 'zeile-stand', 'zeile-aktionen']);
+    expect(li.querySelector('.zeile-zustand')!.nextElementSibling).toHaveClass('zeile-wert');
+    expect(within(li.querySelector('.zeile-aktionen') as HTMLElement).getByRole('button', { name: '⋯' })).toBeInTheDocument();
+  });
+
+  it('ohne Zustand und Wert kein leerer Bereich', () => {
+    const { container } = zeile({ gestapelt: true, pfeil: true });
+    expect(container.querySelector('.zeile-stand')).toBeNull();
+    expect(container.querySelector('.zeile-aktionen .zeile-pfeil')).not.toBeNull();
+  });
+
+  it('Gegenprobe: ohne `gestapelt` bleibt die Zeile, wie sie war', () => {
+    const { container } = zeile({ zustand: <Zustand stand="achtung">x</Zustand>, wert: '40 h' });
+    const li = container.querySelector('li')!;
+    expect(li).not.toHaveClass('zeile-gestapelt');
+    expect(li.querySelector('.zeile-stand')).toBeNull();
+    expect(li).toHaveClass('flex-wrap', 'gap-y-2');
+  });
+
+  it('am Handy und Tablet unter dem Text, am Schreibtisch rechts — ohne Lücke, wenn nichts darunter steht', () => {
+    const css = lesen('src/index.css');
+    expect(css).toMatch(/\.zeile-gestapelt \{ display: grid; grid-template-columns: minmax\(0, 1fr\) auto; grid-template-areas: 'text aktionen' 'stand aktionen';[^}]*gap: 0 1rem; \}/);
+    expect(css).toMatch(/@media \(min-width: 1200px\) \{\s*\.zeile-gestapelt \{ grid-template-columns: minmax\(0, 1fr\) auto auto; grid-template-areas: 'text stand aktionen';/);
   });
 });

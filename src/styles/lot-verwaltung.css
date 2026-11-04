@@ -54,10 +54,50 @@
   .angebot-summe { padding-top: 0.75rem; border-top: 3px double var(--accent-deep); }
 
   /* Die Nachkalkulation je Baustelle: Kosten gegen Erlös als schmale Maßlinie (B2). */
-  .nachkalk-masslinie { width: 15rem; }
-  @media (max-width: 759px) { .nachkalk-masslinie { width: 100%; } }
+  .nachkalk-masslinie { display: block; width: 15rem; font-size: 0.75rem; text-align: left; }
+  /* Maßlinie und Deckungsbeitrag nebeneinander; am Handy die Linie über die ganze Breite, der Betrag darunter. */
+  .nachkalk-zahlen { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; }
+  .nachkalk-wert { display: block; min-width: 7.5rem; }
+  /*
+    AM HANDY: Zustand links, Betrag rechts in einer Zeile, die Maßlinie
+    darunter über die ganze Breite — statt drei Zeilen übereinander. Die
+    Hüllen geben dafür ihre Kinder an die Zeile ab; ein Browser ohne `:has`
+    zeigt sie untereinander wie am Tablet.
+  */
+  @media (max-width: 759px) {
+    .nachkalk-zahlen { width: 100%; }
+    .nachkalk-masslinie { width: 100%; }
+    .zeile-stand .zeile-wert:has(> .nachkalk-zahlen), .zeile-stand .nachkalk-zahlen { display: contents; }
+    .zeile-stand .nachkalk-wert { order: 1; margin-left: auto; min-width: 0; text-align: right; }
+    .zeile-stand .nachkalk-masslinie { order: 2; }
+  }
   /* Der Betrag in Mono, sein Name darunter gesprochen — in Poppins, nicht in der Schrift der Zahlen. */
   .nachkalk-wert small { font-family: Poppins, ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; }
+  /* Herkunft des Erlöses und fehlende Einkaufspreise: eine Zeile, die Angaben mit Abstand statt Punkt. */
+  .nachkalk-meta { display: flex; flex-wrap: wrap; column-gap: 1.5rem; }
+
+  /*
+    DAS SEITENFENSTER EINER BAUSTELLE (Auftrag 03.11.2026): oben der
+    Deckungsbeitrag und sein Zustand, darunter die Maßlinie, die Aufstellung
+    als Rechnung von oben nach unten, die Artikel ohne Einkaufspreis.
+  */
+  .nachkalk-detail { display: flex; flex-direction: column; gap: 1.25rem; }
+  .nachkalk-kopf { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.75rem 1.5rem; }
+  .nachkalk-db { font-family: var(--schrift-mono); font-size: 1.5rem; line-height: 2rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; }
+  .nachkalk-db small { display: block; font-family: Poppins, ui-sans-serif, system-ui, sans-serif; font-size: 0.8125rem; line-height: 1.25rem; font-weight: 400; color: var(--text-muted); }
+  .nachkalk-gruppe { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; border-top: 1px solid var(--border); padding-top: 1rem; }
+  .nachkalk-titel { font-size: 0.9375rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
+  /* Ein Posten: Wort links, Betrag rechts in Mono, darunter woher er kommt. */
+  .nachkalk-posten { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 1rem; padding-block: 0.625rem; }
+  .nachkalk-posten + .nachkalk-posten { border-top: 1px solid var(--border); }
+  .nachkalk-posten dt { color: var(--text); }
+  .nachkalk-betrag { font-family: var(--schrift-mono); text-align: right; white-space: nowrap; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
+  .nachkalk-woher { grid-column: 1 / -1; margin-top: 0.125rem; font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); overflow-wrap: anywhere; }
+  /* Das Ergebnis unter der Doppellinie, wie die Summe einer Stückliste (B6). */
+  .nachkalk-posten-summe { border-top: 3px double var(--accent-deep); }
+  .nachkalk-posten-summe dt, .nachkalk-posten-summe .nachkalk-betrag { font-weight: var(--gewicht-titel); color: var(--ink-deep); }
+  .nachkalk-luecken { display: flex; flex-direction: column; gap: 0.25rem; margin: 0; padding-left: 1.25rem; list-style: square; color: var(--text); overflow-wrap: anywhere; }
+  .nachkalk-aktionen { display: flex; flex-wrap: wrap; gap: 0.75rem; border-top: 1px solid var(--border); padding-top: 0.5rem; }
   .nachkalk-einrichtung h2 { font-size: 0.9375rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
 
   /* ── Plattform: eigene Seite ohne Hülle ──────────────────────────────── */

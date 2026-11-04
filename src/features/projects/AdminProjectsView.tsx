@@ -106,6 +106,30 @@ type Stand = (typeof STAENDE)[number];
  */
 const STATUS_REIHE = ['Aktiv', 'Pausiert', 'Abgeschlossen'];
 
+/** So viele Namen des Teams stehen in der Zeile; die übrigen als „+2“. */
+const TEAM_IN_DER_ZEILE = 2;
+
+/**
+ * Das Team in der Zeile, gekürzt (Auftrag 03.11.2026). Bei sechs Leuten war
+ * das Team die längste Angabe der Zeile und brach sie um; wer genau dabei
+ * ist, steht in der Akte. Der Vorleser bekommt alle Namen.
+ */
+function TeamKurz({ namen }: { namen: string[] }) {
+  const gezeigt = namen.slice(0, TEAM_IN_DER_ZEILE);
+  const rest = namen.slice(TEAM_IN_DER_ZEILE);
+  return (
+    <span>
+      Team: {gezeigt.join(', ')}
+      {rest.length > 0 && (
+        <>
+          <span aria-hidden="true">{` +${rest.length}`}</span>
+          <span className="sr-only">{`, ${rest.join(', ')}`}</span>
+        </>
+      )}
+    </span>
+  );
+}
+
 export default function AdminProjectsView() {
   const { user, company } = useAuth();
   const navigate = useNavigate();
@@ -621,7 +645,7 @@ export default function AdminProjectsView() {
 
   /** Die Namen zu Kennungen — für Team und Projektleitung in der Zeile. */
   const namen = (uids: string[]) =>
-    uids.map((uid) => users.find((u) => u.uid === uid)?.name).filter(Boolean);
+    uids.map((uid) => users.find((u) => u.uid === uid)?.name).filter((n): n is string => !!n);
 
   const formular = (
     <form onSubmit={submit} className="flex flex-col gap-4">
@@ -946,16 +970,32 @@ export default function AdminProjectsView() {
                         */
                         title={<OhneUmbruch text={baustellenTitel(p)} />}
                         nummer={p.projectNumber}
+                        /*
+                          ZWEI ZEILEN STATT EINER, DIE UMBRICHT (Auftrag 03.11.2026:
+                          „eng, viel Text, wenig Abstände“). Adresse, Telefon,
+                          Leitung und Team liefen hintereinander und brachen, wo
+                          die Breite endete — mal nach der Adresse, mal mitten im
+                          Team. Jetzt: wo und wen anrufen, darunter wer dran ist.
+                          Adresse und Nummer anklickbar: auch die Projektleitung
+                          fährt raus und ruft an. Über der Fläche der Zeile,
+                          sonst öffnete der Tipp die Akte statt der Karte.
+                        */
+                        gestapelt
                         subtitle={
-                          /* Adresse und Nummer anklickbar: auch die Projektleitung
-                             faehrt raus und ruft an. Über der Fläche der Zeile,
-                             sonst öffnete der Tipp die Akte statt der Karte. */
-                          <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-                            <span className="zeile-griff"><AdresseLink adresse={p.address} /></span>
-                            <span className="zeile-griff"><TelefonLink nummer={p.contactPhone} name={p.contactName} /></span>
-                            {leitung.length > 0 && <span>Projektleitung: {leitung.join(', ')}</span>}
-                            {team.length > 0 && <span>Team: {team.join(', ')}</span>}
-                          </span>
+                          <>
+                            {(p.address?.trim() || p.contactPhone?.trim()) && (
+                              <span className="baustelle-zeile">
+                                <span className="zeile-griff"><AdresseLink adresse={p.address} /></span>
+                                <span className="zeile-griff"><TelefonLink nummer={p.contactPhone} name={p.contactName} /></span>
+                              </span>
+                            )}
+                            {(leitung.length > 0 || team.length > 0) && (
+                              <span className="baustelle-zeile">
+                                {leitung.length > 0 && <span>Projektleitung: {leitung.join(', ')}</span>}
+                                {team.length > 0 && <TeamKurz namen={team} />}
+                              </span>
+                            )}
+                          </>
                         }
                         /* Ohne Leitung ist ein Zustand, keine Fußnote: er steht in der Spalte, wo man nach Achtung sucht. */
                         zustand={leitung.length === 0 ? <Zustand stand="achtung">ohne Projektleitung</Zustand> : undefined}

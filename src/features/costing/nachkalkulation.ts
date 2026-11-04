@@ -69,8 +69,19 @@ export interface Nachkalkulation {
   lehrlingStunden: number;
   /** Personalkosten aus den geleisteten Stunden. */
   personalkosten: number;
+  /**
+   * Die Personalkosten nach Facharbeit, Helfer und Lehrling — für das
+   * Seitenfenster der Nachkalkulation (Auftrag 03.11.2026). Gerundet auf
+   * Cent; die Summe ist `personalkosten` (bis auf die Rundung je Posten).
+   */
+  personalJe: { fach: number; helfer: number; lehrling: number };
   /** Materialkosten aus den unterschriebenen Scheinen — 0, wenn keine bekannt. */
   materialkosten: number;
+  /**
+   * Woher das Material kommt: von den unterschriebenen Scheinen, oder — trug
+   * keiner Material — aus dem angenommenen Angebot (M9). `null`: weder noch.
+   */
+  materialQuelle: 'Scheine' | 'Angebot' | null;
   /**
    * Artikel ohne hinterlegten Einkaufspreis.
    *
@@ -82,6 +93,8 @@ export interface Nachkalkulation {
   erloes: number;
   /** Woher der Erlös stammt: verrechnet oder erst kalkuliert. */
   erloesQuelle: 'Rechnungen' | 'Angebot' | 'unbekannt';
+  /** Wie viele gültige (nicht stornierte) Rechnungen den Erlös tragen. */
+  rechnungen: number;
   /** Erlös minus Personal- und Materialkosten. VOR Gemeinkosten. */
   deckungsbeitrag: number;
   /** Anteil am Erlös, oder null wenn kein Erlös bekannt ist. */
@@ -136,12 +149,22 @@ export function rechneBaustelle(
   let helferMin = 0;
   let lehrlingMin = 0;
   let kostenSumme = 0;
+  const je = { fach: 0, helfer: 0, lehrling: 0 };
   for (const [k, min] of minJe) {
-    if (k === 'helfer') helferMin += min;
-    else if (istLehrlingssatz(k)) lehrlingMin += min;
-    else fachMin += min;
-    kostenSumme += stunden(min) * kostensatz(k, kosten);
+    const posten = stunden(min) * kostensatz(k, kosten);
+    if (k === 'helfer') {
+      helferMin += min;
+      je.helfer += posten;
+    } else if (istLehrlingssatz(k)) {
+      lehrlingMin += min;
+      je.lehrling += posten;
+    } else {
+      fachMin += min;
+      je.fach += posten;
+    }
+    kostenSumme += posten;
   }
+  const cent = (n: number) => Math.round(n * 100) / 100;
   const fachStunden = stunden(fachMin);
   const helferStunden = stunden(helferMin);
   const lehrlingStunden = stunden(lehrlingMin);
@@ -224,6 +247,7 @@ export function rechneBaustelle(
   const deckungsbeitrag =
     Math.round((erloes - personalkosten - materialSumme) * 100) / 100;
 
+  const ausDemAngebot = angebotKosten > 0 || ausAngebot.length > 0;
   return {
     projectNumber,
     customerName,
@@ -231,10 +255,13 @@ export function rechneBaustelle(
     helferStunden,
     lehrlingStunden,
     personalkosten,
+    personalJe: { fach: cent(je.fach), helfer: cent(je.helfer), lehrling: cent(je.lehrling) },
     materialkosten: materialSumme,
+    materialQuelle: material.scheine > 0 ? 'Scheine' : ausDemAngebot ? 'Angebot' : null,
     materialLuecken: [...material.ohnePreis, ...ausAngebot],
     erloes,
     erloesQuelle,
+    rechnungen: eigene.length,
     deckungsbeitrag,
     // Ohne bekannten Erlös gibt es keine Marge — nicht null Prozent, sondern
     // keine Aussage. Eine Null hier läse sich wie „nichts verdient".

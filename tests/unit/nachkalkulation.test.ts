@@ -288,3 +288,40 @@ describe('Katalogartikel im Angebot (Runde 3, M12)', () => {
     expect(k.materialLuecken).toEqual([]);
   });
 });
+
+/*
+  DIE AUFSTELLUNG IM SEITENFENSTER (Auftrag 03.11.2026): die Personalkosten
+  nach Facharbeit, Helfer und Lehrling, die Zahl der Rechnungen und woher das
+  Material kommt. Gerechnet wird nichts Neues — die Summe bleibt dieselbe.
+*/
+describe('Nachkalkulation — die Aufstellung', () => {
+  it('teilt die Personalkosten nach Facharbeit, Helfer und Lehrling; die Summe bleibt', () => {
+    const lehrling = { ...zeit(120), id: 'lj', satz: 'lj2' } as TimeEntry;
+    const k = rechneBaustelle('B-001', 'Huber', [zeit(600), zeit(300, true), lehrling], [rechnung(2000)], undefined, kosten);
+    // Lehrling ohne eigene Stufe: wie ein Helfer (28 €).
+    expect(k.personalJe).toEqual({ fach: 420, helfer: 140, lehrling: 56 });
+    expect(k.personalkosten).toBe(420 + 140 + 56);
+    expect(k.lehrlingStunden).toBe(2);
+  });
+
+  it('zählt die gültigen Rechnungen — eine stornierte nicht', () => {
+    const k = rechneBaustelle('B-001', 'Huber', [], [rechnung(500), rechnung(700), rechnung(900, 'Storniert')], undefined, kosten);
+    expect(k.rechnungen).toBe(2);
+    expect(k.erloes).toBe(1200);
+  });
+
+  it('nennt die Herkunft des Materials: Scheine, sonst das angenommene Angebot, sonst keine', () => {
+    const vonScheinen = rechneBaustelle('B-001', 'Huber', [], [rechnung(1000)], undefined, kosten, { kosten: 50, ohnePreis: [], scheine: 1 });
+    expect(vonScheinen.materialQuelle).toBe('Scheine');
+    const angebot = {
+      status: 'Angenommen', totalNetto: 1000,
+      positions: [{ label: 'Heizkörper', qty: 1, unit: 'Stk', unitPrice: 250, netto: 250, istArbeitszeit: false }],
+    } as unknown as Quote;
+    const katalog = [{ id: 'm1', name: 'Heizkörper', einkaufspreis: 120 } as Material];
+    const ausAngebot = rechneBaustelle('B-001', 'Huber', [], [], angebot, kosten, undefined, katalog);
+    expect(ausAngebot.materialQuelle).toBe('Angebot');
+    expect(ausAngebot.materialkosten).toBe(120);
+    const ohne = rechneBaustelle('B-001', 'Huber', [], [rechnung(1000)], undefined, kosten);
+    expect(ohne.materialQuelle).toBeNull();
+  });
+});

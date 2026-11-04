@@ -171,6 +171,21 @@ export async function listQuotesForProject(companyId: string, projectId: string)
   return zusammensetzen(koepfe, companyId);
 }
 
+/**
+ * Die Angebote MEHRERER Baustellen in einem Zug, über die Kennung wie
+ * `listQuotesForProject` — für die Nachkalkulation. Ohne die Grenze von 20
+ * je Baustelle: die liesse sich über viele Baustellen nicht stückeln, ohne
+ * die Auswahl zu verändern; so viele Angebote hat eine Baustelle nicht.
+ */
+export async function listQuotesForProjects(companyId: string, projectIds: readonly string[]) {
+  const ids = [...new Set(projectIds.filter(Boolean))];
+  if (ids.length === 0) return [];
+  const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
+    wo: [{ art: 'in', feld: 'projectId', werte: ids }],
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
 export type NewQuote = Omit<Quote, 'id' | 'companyId' | 'createdAt' | 'projectId'>;
 
 /** Der Aufruf der Datenbankfunktion — eine Stelle für Anlegen und Ändern. */
