@@ -114,7 +114,7 @@ describe('Alle Listen', () => {
 });
 
 /*
-  DIE GESTAPELTE ZEILE (Auftrag 03.11.2026): Zustand und Wert unter dem Text,
+  DIE GESTAPELTE ZEILE (Auftrag 04.11.2026): Zustand und Wert unter dem Text,
   wo eine breite Maßlinie den Text sonst auf ein Drittel drückte; am
   Schreibtisch rechts in Spalten.
 */

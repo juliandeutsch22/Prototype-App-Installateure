@@ -21,7 +21,7 @@ function Posten({ wort, betrag, woher, summe = false }: { wort: string; betrag: 
 }
 
 /**
- * DIE BAUSTELLE IM SEITENFENSTER (Auftrag 03.11.2026: „viel Text, sehr
+ * DIE BAUSTELLE IM SEITENFENSTER (Auftrag 04.11.2026: „viel Text, sehr
  * unübersichtlich … eventuell mit einer Detailansicht, sodass nicht alles in
  * den kleinen Feldern stehen muss“).
  *

@@ -304,7 +304,7 @@ function formenAller(projectNumbers: readonly string[]): string[] {
 
 /**
  * Die Scheine MEHRERER Baustellen in einem Zug — für die Nachkalkulation
- * (Auftrag 03.11.2026: „lädt im Vergleich zu den anderen sehr langsam“).
+ * (Auftrag 04.11.2026: „lädt im Vergleich zu den anderen sehr langsam“).
  * Je Baustelle einzeln waren es bei 25 Baustellen hundert Abfragen (Kopf,
  * Zeiten, Material, Fotos); so sind es vier. Ohne Grenze wie
  * `listWorkSheetsForProject`: es zählt jeder Schein. Die Zuordnung zur

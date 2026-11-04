@@ -1165,7 +1165,7 @@ describe('Baustellen — die Zeile', () => {
   });
 
   /*
-    ZWEI ZEILEN STATT EINER, DIE UMBRICHT (Auftrag 03.11.2026: „eng, viel
+    ZWEI ZEILEN STATT EINER, DIE UMBRICHT (Auftrag 04.11.2026: „eng, viel
     Text, wenig Abstände“): wo und wen anrufen, darunter wer dran ist; das
     Team gekürzt, die übrigen Namen für den Vorleser.
   */

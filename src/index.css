@@ -945,7 +945,7 @@ textarea {
   .zeile-zustand { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.125rem 0.75rem; }
   @media (min-width: 760px) { .zeile-zustand { min-width: 8.5rem; } }
   /*
-    DIE GESTAPELTE ZEILE (`ListRow gestapelt`, Auftrag 03.11.2026): Text und
+    DIE GESTAPELTE ZEILE (`ListRow gestapelt`, Auftrag 04.11.2026): Text und
     „⋯“ oben, Zustand und Wert darunter — am Handy und Tablet, wo eine breite
     Maßlinie neben dem Text diesen auf ein Drittel der Zeile drückte. Am
     Schreibtisch stehen sie rechts in festen Spalten wie in jeder Zeile.

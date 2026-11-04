@@ -3,7 +3,7 @@ import { admin, BETRIEB, CHEFIN } from './aufbau';
 import { anmelden, keineFehlermeldung } from './helfer';
 
 /**
- * BAUSTELLEN UND NACHKALKULATION MIT LUFT (Auftrag 03.11.2026):
+ * BAUSTELLEN UND NACHKALKULATION MIT LUFT (Auftrag 04.11.2026):
  * „Baustellen: wirkt eng, viel Text, viel Infos, wenig Abstände … in allen
  * Ansichten. Nachkalkulation: viel Text, unübersichtlich … Detailansicht mit
  * einem Overlay … lädt sehr langsam, beim Tabwechsel wird nachgeladen.“

@@ -37,7 +37,7 @@ function jeNummer<T>(zeilen: readonly T[], nummer: (z: T) => string | undefined)
 /**
  * Rechnet die gegebenen Baustellen durch — die schlechtesten zuerst.
  *
- * IN EINEM ZUG FÜR ALLE BAUSTELLEN (Auftrag 03.11.2026: „lädt im Vergleich zu
+ * IN EINEM ZUG FÜR ALLE BAUSTELLEN (Auftrag 04.11.2026: „lädt im Vergleich zu
  * den anderen sehr langsam … beim Tabwechsel wird Inhalt oft noch
  * nachgeladen“). Bis dahin fragte die Ansicht Scheine, Rechnungen und
  * Angebote je Baustelle einzeln, samt ihren Zeilen: bei 25 Baustellen über

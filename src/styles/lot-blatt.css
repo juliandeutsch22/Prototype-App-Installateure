@@ -65,7 +65,7 @@
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile { min-height: 48px; padding: 12px 24px 11px; }
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile-titel { line-height: 1.5rem; }
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile-meta { line-height: 1.5rem; }
-  /* Gestapelte Zeilen (mehrzeilig, mit Maßlinie) mit einer halben Zelle mehr Luft oben und unten (Auftrag 03.11.2026). */
+  /* Gestapelte Zeilen (mehrzeilig, mit Maßlinie) mit einer halben Zelle mehr Luft oben und unten (Auftrag 04.11.2026). */
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile-gestapelt { padding-block: 18px 17px; }
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .karte-koerper .zeile { padding-inline: 0; }
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .mehr-laden { padding-inline: 24px; background: transparent; }

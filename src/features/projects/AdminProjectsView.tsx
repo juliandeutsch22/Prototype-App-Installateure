@@ -110,7 +110,7 @@ const STATUS_REIHE = ['Aktiv', 'Pausiert', 'Abgeschlossen'];
 const TEAM_IN_DER_ZEILE = 2;
 
 /**
- * Das Team in der Zeile, gekürzt (Auftrag 03.11.2026). Bei sechs Leuten war
+ * Das Team in der Zeile, gekürzt (Auftrag 04.11.2026). Bei sechs Leuten war
  * das Team die längste Angabe der Zeile und brach sie um; wer genau dabei
  * ist, steht in der Akte. Der Vorleser bekommt alle Namen.
  */
@@ -971,7 +971,7 @@ export default function AdminProjectsView() {
                         title={<OhneUmbruch text={baustellenTitel(p)} />}
                         nummer={p.projectNumber}
                         /*
-                          ZWEI ZEILEN STATT EINER, DIE UMBRICHT (Auftrag 03.11.2026:
+                          ZWEI ZEILEN STATT EINER, DIE UMBRICHT (Auftrag 04.11.2026:
                           „eng, viel Text, wenig Abstände“). Adresse, Telefon,
                           Leitung und Team liefen hintereinander und brachen, wo
                           die Breite endete — mal nach der Adresse, mal mitten im

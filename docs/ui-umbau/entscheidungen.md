@@ -945,3 +945,55 @@ Haken, danach das Blei wieder da; dazu alles aus E38. `planlinieStil.test.ts`
 (Blei 9 px mit Maske, Seil auf ganzen Pixeln, Ausblenden). Gegenprobe mit dem
 Code von E38: alle drei Browserwege und die Stilprüfung rot.
 
+
+**E40 — Baustellenliste mit Luft, Nachkalkulation mit Seitenfenster und
+schnell (04.11.2026).** Auftrag mit zwei Bildschirmfotos: „Bei der
+Baustellen-Seite wirkt teilweise noch alles ein wenig eng, viel Text, viel
+Infos, wenig Abstände … in allen Ansichten. Nachkalkulation: hier auch viel
+Text und es wirkt sehr unübersichtlich … eventuell mit einer Detailansicht
+mit einem Modal-Overlay, sodass nicht alles in den kleinen Feldern stehen
+muss? Außerdem lädt die Seite im Vergleich zu den anderen sehr langsam. Auch
+beim Tab-Wechsel wird Inhalt oft noch nachgeladen.“
+
+- **Die gestapelte Zeile** (`ListRow gestapelt`). Am Tablet nahm die rechte
+  Spalte (Zustand 8,5 rem und Maßlinie 15 rem) über 400 px; der Name brach
+  in drei Zeilen, die Adresse in zwei. Gestapelt stehen Zustand und Wert am
+  Handy und Tablet UNTER dem Text, das „⋯“ oben rechts; am Schreibtisch
+  rechts in festen Spalten wie jede Zeile. Ein Tipp auf Zustand oder
+  Maßlinie öffnet die Akte (`pointer-events`), Knöpfe gehören in die
+  Aktionen. Gilt für Baustellen und Nachkalkulation; die übrigen Listen
+  bleiben, wie sie sind.
+- **Baustellenzeile in zwei Zeilen**: Adresse und Telefon, darunter
+  Projektleitung und Team — vorher hintereinander, gebrochen, wo die Breite
+  endete. Das Team mit zwei Namen und „+2“; alle Namen für den Vorleser und
+  in der Akte. Oben und unten eine halbe Rasterzelle mehr Luft (18/17 px).
+- **Nachkalkulation: die Zeile sagt, wie es steht — das Seitenfenster,
+  warum.** Die Zeile nennt die Herkunft des Erlöses und „3 Artikel ohne
+  Einkaufspreis“ statt der ganzen Liste im Satz; Personal, Material und
+  Stunden stehen im Seitenfenster als Aufstellung (Erlös, − Personal nach
+  Facharbeit, Helfer und Lehrling mit Betrag, − Material mit Herkunft,
+  Deckungsbeitrag unter der Doppellinie), dazu die Artikel ohne
+  Einkaufspreis beim Namen mit dem Weg in den Katalog und der Weg in die
+  Akte. Gerechnet wird nichts Neues; `rechneBaustelle` liefert die Posten
+  dazu (`personalJe`, `materialQuelle`, `rechnungen`).
+- **Schneller.** Scheine, Rechnungen und Angebote kamen je Baustelle samt
+  Zeilen: bei 25 Baustellen über 140 Anfragen. Jetzt eine Abfrage je Art
+  über alle gezeigten Baustellen (`listWorkSheetsForProjects`,
+  `listInvoicesForProjects`, `listQuotesForProjects`) — dieselben Belege in
+  jeder Schreibweise der Nummer. Gemessen lokal mit 25 Baustellen: 142 → 23
+  Anfragen, 1,23 → 0,64 s bis zur fertigen Liste. Das Ergebnis je Auswahl
+  ist zwischengespeichert; steht die eine, wird die andere im Hintergrund
+  gerechnet. Der Wechsel „Abgeschlossen ↔ Laufend“ zeigt die Liste sofort
+  (vorher 0,57 s mit allen Anfragen neu), der zweite Besuch der Seite
+  ebenso. Nebenbei: während des Ladens stand kurz „Kostensätze fehlen“ —
+  jetzt ein Platzhalter.
+
+**Prüfungen.** `tests/durchklick/listenLuft.spec.ts` (Handy, Tablet,
+Schreibtisch: Stand unter bzw. neben dem Text, zwei Zeilen, nichts seitlich,
+Tipp auf die Maßlinie öffnet die Akte; Nachkalkulation: kurze Zeile,
+Seitenfenster, Wechsel ohne Platzhalter), `tests/supabase/
+nachkalkulationBuendel.test.ts` (die gebündelten Abfragen liefern genau, was
+die Einzelabfragen liefern, auch „PR-“), `NachkalkulationView.test.tsx`
+(+11, 5 umgestellt), `ZeilenGleich.test.tsx` (+4), `AdminProjectsView.test.tsx`
+(+2), `nachkalkulation.test.ts` (+3). Gegenprobe mit dem Code davor: die
+neuen Prüfungen rot, die gleichbleibenden grün.

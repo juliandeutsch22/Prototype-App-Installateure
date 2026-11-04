@@ -107,7 +107,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
 }));
 /*
   SEIT DEM PRÜFLAUF 25.09.2026 (P2-13) die Belege DER BAUSTELLEN, nicht die
-  jüngsten des Betriebs; seit dem 03.11.2026 für alle gezeigten Baustellen in
+  jüngsten des Betriebs; seit dem 04.11.2026 für alle gezeigten Baustellen in
   einem Zug. Die Doppelgänger geben zurück, was zu den gefragten Baustellen
   gehört.
 */
@@ -438,7 +438,7 @@ describe('Material im Ergebnis', () => {
     const nutzer = userEvent.setup();
     zeige();
 
-    // Seit dem 03.11.2026 steht der Deckungsbeitrag in der Zeile, die Posten im Seitenfenster.
+    // Seit dem 04.11.2026 steht der Deckungsbeitrag in der Zeile, die Posten im Seitenfenster.
     const zeile = (await screen.findByText(/Kunde 2026-001/)).closest('li') as HTMLElement;
     // Erlös 2000 − Personal 0 − Material 350 = 1650. Die Zahl selbst zählt:
     // stünde hier 2000, wäre das Material zwar geholt, aber nicht abgezogen.
@@ -514,7 +514,7 @@ describe('Material im Ergebnis', () => {
     expect(material).toHaveTextContent('nichts eingerechnet — siehe unten');
   });
 
-  it('holt die Scheine der gezeigten Baustellen in einem Zug (03.11.2026)', async () => {
+  it('holt die Scheine der gezeigten Baustellen in einem Zug (04.11.2026)', async () => {
     /*
       Je Baustelle einzeln waren es bei 25 Baustellen hundert Anfragen allein
       für die Scheine. Jetzt eine — mit genau den gezeigten Baustellen: die
@@ -600,7 +600,7 @@ describe('Rechnungen und Angebote je Baustelle', () => {
 });
 
 /*
-  DIE ZEILE SAGT, WIE ES STEHT — DAS FENSTER, WARUM (Auftrag 03.11.2026:
+  DIE ZEILE SAGT, WIE ES STEHT — DAS FENSTER, WARUM (Auftrag 04.11.2026:
   „viel Text … sehr unübersichtlich … Detailansicht mit einem Modal“).
 */
 describe('Zeile und Seitenfenster', () => {
@@ -632,7 +632,7 @@ describe('Zeile und Seitenfenster', () => {
 
     const fenster = await oeffnen(nutzer, '2026-001');
     const posten = (wort: string) =>
-      ([...fenster.querySelectorAll('.nachkalk-posten')].find((p) => p.querySelector('dt')?.textContent === wort) as HTMLElement).textContent?.replace(/[\s .]/g, '') ?? '';
+      ([...fenster.querySelectorAll('.nachkalk-posten')].find((p) => p.querySelector('dt')?.textContent === wort) as HTMLElement).textContent?.replace(/[\s\u00A0.]/g, '') ?? '';
     expect(posten('Erlös')).toContain('€2000,00');
     expect(posten('Erlös')).toContain('aus1Rechnung,netto');
     // 16 h × 40 € Kostensatz.
@@ -644,7 +644,7 @@ describe('Zeile und Seitenfenster', () => {
     // Ohne fehlende Einkaufspreise kein Abschnitt dazu.
     expect(within(fenster).queryByText(/ohne Einkaufspreis/)).not.toBeInTheDocument();
 
-    await nutzer.click(within(fenster).getByRole('button', { name: 'Schließen', exact: true }));
+    await nutzer.click(within(fenster).getByRole('button', { name: /^Schließen$/ }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
@@ -687,7 +687,7 @@ describe('Zeile und Seitenfenster', () => {
 });
 
 /*
-  KEIN NACHLADEN BEIM WECHSEL (Auftrag 03.11.2026: „beim Tabwechsel in der
+  KEIN NACHLADEN BEIM WECHSEL (Auftrag 04.11.2026: „beim Tabwechsel in der
   Seite wird Inhalt oft noch nachgeladen“). Steht die eine Auswahl, wird die
   andere im Hintergrund gerechnet; der Wechsel zeigt sie sofort, auch zurück.
 */
@@ -727,5 +727,16 @@ describe('Wechsel und Wiederkommen', () => {
     zeige();
     await screen.findByRole('heading', { name: 'Kostensätze fehlen' });
     expect(listEntriesForProjects).not.toHaveBeenCalled();
+  });
+});
+
+describe('Wenn nichts gerechnet werden kann', () => {
+  it('sagt es in der Karte, statt Platzhalter stehen zu lassen', async () => {
+    projekte = [projekt('2026-001')];
+    listInvoicesForProjects.mockRejectedValueOnce(new Error('kein Netz'));
+    zeige();
+    expect(await screen.findByText(/Zeiten, Rechnungen, Angebote oder Materialpreise der Baustellen konnten nicht geladen werden/)).toBeInTheDocument();
+    expect(screen.getAllByText(/konnten nicht geladen werden/)).toHaveLength(1);
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
   });
 });

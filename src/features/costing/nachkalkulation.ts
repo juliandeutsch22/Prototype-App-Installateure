@@ -71,7 +71,7 @@ export interface Nachkalkulation {
   personalkosten: number;
   /**
    * Die Personalkosten nach Facharbeit, Helfer und Lehrling — für das
-   * Seitenfenster der Nachkalkulation (Auftrag 03.11.2026). Gerundet auf
+   * Seitenfenster der Nachkalkulation (Auftrag 04.11.2026). Gerundet auf
    * Cent; die Summe ist `personalkosten` (bis auf die Rundung je Posten).
    */
   personalJe: { fach: number; helfer: number; lehrling: number };

@@ -47,7 +47,7 @@ export function ListRow({
   onOeffnen?: () => void;
   /**
    * ZUSTAND UND WERT UNTER DEM TEXT, wo der Platz nicht reicht (Auftrag
-   * 03.11.2026: die Baustellenliste „eng, viel Text, wenig Abstände“). Für
+   * 04.11.2026: die Baustellenliste „eng, viel Text, wenig Abstände“). Für
    * Zeilen mit mehrzeiligem Text UND breitem Wert (Maßlinie): am Tablet nahm
    * die rechte Spalte über 400 px, der Name brach in drei Zeilen. Gestapelt
    * stehen Zustand und Wert am Handy und Tablet unter dem Text, das „⋯“ oben

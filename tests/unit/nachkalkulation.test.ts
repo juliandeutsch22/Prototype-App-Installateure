@@ -290,7 +290,7 @@ describe('Katalogartikel im Angebot (Runde 3, M12)', () => {
 });
 
 /*
-  DIE AUFSTELLUNG IM SEITENFENSTER (Auftrag 03.11.2026): die Personalkosten
+  DIE AUFSTELLUNG IM SEITENFENSTER (Auftrag 04.11.2026): die Personalkosten
   nach Facharbeit, Helfer und Lehrling, die Zahl der Rechnungen und woher das
   Material kommt. Gerechnet wird nichts Neues — die Summe bleibt dieselbe.
 */

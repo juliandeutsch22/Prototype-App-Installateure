@@ -57,7 +57,7 @@ export default function NachkalkulationView() {
     Tabellen, die nur die Spitze liest (offene Punkte B1) — nicht mehr am
     Betrieb und am Artikel, die jeder lesen kann.
 
-    ZWISCHENGESPEICHERT (Auftrag 03.11.2026): beim zweiten Besuch steht der
+    ZWISCHENGESPEICHERT (Auftrag 04.11.2026): beim zweiten Besuch steht der
     letzte Stand sofort da und wird im Hintergrund nachgesehen, wie auf den
     anderen Seiten (`zwischenspeicher.ts`).
   */
@@ -83,7 +83,7 @@ export default function NachkalkulationView() {
     ?? (!projekte.some((x) => x.status === 'Abgeschlossen') && projekte.some((x) => x.status === 'Aktiv') ? 'Aktiv' : 'Abgeschlossen');
 
   /*
-    EINE ABFRAGE JE AUSWAHL, GEMERKT (Auftrag 03.11.2026: „beim Tabwechsel
+    EINE ABFRAGE JE AUSWAHL, GEMERKT (Auftrag 04.11.2026: „beim Tabwechsel
     wird Inhalt oft noch nachgeladen“). Vorher rechnete jeder Wechsel
     zwischen „Abgeschlossen“ und „Laufend“ alles neu, auch zurück zur eben
     gesehenen Auswahl. Jetzt hängt das Ergebnis an Auswahl, Baustellen und
@@ -259,14 +259,16 @@ export default function NachkalkulationView() {
             )}
           </div>
 
-          {fehler && <ErrorState message={fehler} />}
+          {/* Scheitert nur das Nachsehen im Hintergrund, bleibt die Liste stehen und der Fehler darüber. */}
+          {fehler && ergebnisse !== null && <ErrorState message={fehler} />}
 
           {/* Bündig: Baustellen als Zeilen von Kante zu Kante, darunter die
               Einschränkung als Zeile (Designlinie „Fassung 3"). */}
           <Card title="Ergebnis je Baustelle" buendig>
             {ergebnisse === null ? (
               <div className="p-4">
-                <SkeletonList rows={4} />
+                {/* Nicht gerechnet ist nicht „lädt noch“: ohne Ergebnis steht der Fehler, kein Platzhalter. */}
+                {fehler ? <ErrorState message={fehler} /> : <SkeletonList rows={4} />}
               </div>
             ) : ergebnisse.length === 0 ? (
               <EmptyState>Keine Baustelle in dieser Auswahl.</EmptyState>
@@ -282,7 +284,7 @@ export default function NachkalkulationView() {
                       damit keine Linie.
 
                       DIE ZEILE SAGT, WIE ES STEHT — DAS FENSTER, WARUM
-                      (Auftrag 03.11.2026: „viel Text, sehr unübersichtlich“).
+                      (Auftrag 04.11.2026: „viel Text, sehr unübersichtlich“).
                       Bis dahin standen hier drei Zeilen: Personal und
                       Material, die Artikel ohne Einkaufspreis als ganzer
                       Satz, Stunden und Herkunft des Erlöses. Die Zeile nennt

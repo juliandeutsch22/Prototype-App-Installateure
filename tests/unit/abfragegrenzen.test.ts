@@ -113,7 +113,12 @@ const GRENZ_MUSTER = [
    * am Ende des Umzugs blind, ohne dass es jemand gemerkt hätte.
    */
   /grenze:/,
-  /\{ art: 'in', feld: '(id|projectNumber|status)'/,
+  /*
+    Die Kennung der Baustelle ist dieselbe Grenze wie ihre Nummer: gefragt
+    wird nach den Baustellen auf dem Schirm (Nachkalkulation, höchstens 25 —
+    `listQuotesForProjects`, 04.11.2026).
+  */
+  /\{ art: 'in', feld: '(id|projectNumber|projectId|status)'/,
   /*
     DER ZAHLUNGSSTAND IST DIESELBE ART GRENZE WIE DER STATUS, nur heisst das
     Feld an der Rechnung anders. Offene Forderungen sind der Ausnahmezustand
