@@ -52,8 +52,10 @@ test('Der Katalogknopf bleibt einzeilig und an seinem Platz, auf jeder Breite', 
     knopf.evaluate((el) => {
       const zeile = el.closest('li')!.getBoundingClientRect();
       const r = el.getBoundingClientRect();
+      // Nur der Text selbst: jede Zeile, auf die er umbricht, ist ein Rechteck.
+      const knoten = document.createTreeWalker(el, NodeFilter.SHOW_TEXT).nextNode()!;
       const text = document.createRange();
-      text.selectNodeContents(el);
+      text.selectNodeContents(knoten);
       return {
         x: r.left - zeile.left, y: r.top - zeile.top, breite: r.width, hoehe: r.height,
         textzeilen: text.getClientRects().length,
@@ -73,6 +75,9 @@ test('Der Katalogknopf bleibt einzeilig und an seinem Platz, auf jeder Breite', 
     await knopf.click();
     await expect(page.getByText(`3 ${ARTIKEL.einheit} in der Liste`)).toBeVisible();
     const nach = await lage();
+    // Gefüllt so breit wie leer: sonst entscheidet der Zustand, ob er neben
+    // der Menge oder darunter steht (im iPhone-Profil bei 375 px gesehen).
+    expect(Math.abs(nach.breite - vor.breite), `${breite} px: gleich breit`).toBeLessThanOrEqual(0.5);
     // Wo der erste Tipp lag, trifft auch der nächste — mit Rand.
     const mitteX = vor.x + vor.breite / 2;
     const mitteY = vor.y + vor.hoehe / 2;

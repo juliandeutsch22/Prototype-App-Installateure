@@ -1192,6 +1192,11 @@ fünf Zeilen.
   die nächste Zeile, und der zweite Tipp traf das Plus. Darunter wächst die
   Zeile nur nach unten; am Telefon bleibt der Knopf liegen, am Tablet rückt
   er höchstens um ein Viertel seiner Höhe.
+- **Leer und gefüllt gleich breit.** Gefüllt (schon in der Liste) hat der
+  Knopf keine Linie und halbfette Schrift; im iPhone-Profil entschieden bei
+  375 px schon diese 2 px, ob er neben der Menge oder darunter steht (CI,
+  WebKit). Eine transparente Linie und eine unsichtbare halbfette Zeile
+  (`knopf-gleich-breit`, `lot-material.css`) halten die Breite fest.
 - **Die Zahl kommt aus der Liste selbst.** Vorher zählte jedes Feld für
   sich: nach „Liste leeren“ und nach dem Abschicken stand „×3“ weiter da,
   nach einem Neustart fehlte es, obwohl die Liste zurückkam.
@@ -1199,7 +1204,8 @@ fünf Zeilen.
 **Prüfungen.** `OrderView.test.tsx` (+4: Name, Zahl aus der Liste, „Liste
 leeren“, Neustart, Abschicken, fremde Einträge zählen nicht; 23 Abfragen
 umgestellt), `materialAnfordern.spec.ts` (+1 Browserweg: auf 320–1.280 px
-einzeilig, in der Zeile, und nach drei Tipps an derselben Stelle; läuft auch
-im iPhone-Profil). Gegenproben: nur umbenannt im alten Aufbau → bei 320 px
+einzeilig, in der Zeile, gefüllt so breit wie leer, und nach drei Tipps an
+derselben Stelle; läuft auch im iPhone-Profil). Gegenproben: nur umbenannt im alten Aufbau → bei 320 px
 zwei Textzeilen, rot; Zahl wieder vor dem Minus → bei 375 px trifft der
-nächste Tipp nicht, rot.
+nächste Tipp nicht, rot; ohne transparente Linie und halbfette Breite → bei
+375 px gefüllt 0,84 px schmaler, rot.
