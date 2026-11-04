@@ -109,10 +109,10 @@ export default function DatenschutzView() {
 
       <Abschnitt titel="Wer die Daten technisch verarbeitet">
         <p>Der Betreiber setzt diese Unterauftragsverarbeiter ein:</p>
-        <ul className="space-y-3">
+        <ul className="recht-liste">
           {VERARBEITER.map((v) => (
-            <li key={v.wer + v.wofuer} className="border-l-2 border-line pl-3">
-              <p className="font-semibold">{v.wer}</p>
+            <li key={v.wer + v.wofuer}>
+              <p className="recht-liste-name">{v.wer}</p>
               <p className="text-sm">{v.wofuer}</p>
               <p className="text-sm text-ink-muted">{v.wo}</p>
             </li>

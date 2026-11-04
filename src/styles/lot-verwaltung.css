@@ -85,6 +85,29 @@
   .plattform-seite { max-width: 48rem; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 1.25rem; }
   @media (min-width: 760px) { .plattform-seite { padding: 1.5rem; } }
 
+  /* ── Impressum und Datenschutz: ohne Hülle, auf dem Raster (E44) ─────── */
+  /*
+    Die Fläche trägt das Raster der App (`hauptflaeche`) über die ganze
+    Höhe; der Text liegt als ein Blatt darauf, in Lesebreite: 32 Zellen
+    (768 px), damit auch die rechte Kante auf einer Linie liegt.
+  */
+  .recht-flaeche { min-height: 100%; }
+  /*
+    MITTIG, ABER AUF DEM RASTER: der Abstand links in ganzen Zellen (`round`),
+    dazu das Polster von `.inhalt`, das an jeder Breite genau dem Versatz des
+    Rasters entspricht (16/24/40 px) — so liegt die linke Kante des Blatts
+    auf einer Linie. Ohne `round` (alte Browser) bleibt es einfach mittig.
+  */
+  .recht-inhalt { margin-inline: auto; margin-left: max(0px, round(down, (100% - 52rem) / 2, 24px)); max-width: 52rem; padding-bottom: 3rem; }
+  .recht-inhalt .recht-blatt { max-width: min(48rem, var(--takt-breite, 48rem)); }
+  .recht-kopf { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 3rem; }
+  .recht-zur-app { display: inline-flex; align-items: center; min-height: 2.75rem; font-size: 0.875rem; color: var(--ink-deep); text-decoration: underline; text-underline-offset: 3px; }
+  .recht-fuss { font-size: 0.75rem; color: var(--text-muted); }
+  /* Die Unterauftragsverarbeiter als Liste mit Linien, wie Zeilen in der App — kein farbiger Randstrich. */
+  .recht-liste > li { padding-block: 0.75rem; border-top: 1px solid var(--border); }
+  .recht-liste > li:last-child { border-bottom: 1px solid var(--border); }
+  .recht-liste-name { font-weight: var(--gewicht-titel); color: var(--ink-deep); }
+
   /* ── Anmeldung ────────────────────────────────────────────────────────── */
   /* Die Karte der Anmeldung — eine Fläche mit Rand, ohne Schatten (Linie „Lot“). */
   .anmelde-karte { width: 100%; max-width: 24rem; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }

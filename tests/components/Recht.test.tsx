@@ -44,6 +44,34 @@ describe('Rechtsseiten', () => {
     expect(screen.getByText(/geht mit deinem Namen und deiner E-Mail-Adresse an den\s+Senklot-Support/)).toBeInTheDocument();
   });
 
+  /*
+    LINIE „LOT“ (E44, 04.11.2026): Seitenkopf wie in der App (Ortszeile,
+    Titel, Stand), der Text auf einem Blatt im Raster, „Entwurf“ als
+    Hinweiszeile, kein dunkles Band. Die Lage auf dem Raster misst
+    `tests/durchklick/rechtLot.spec.ts` im Browser.
+  */
+  it('stehen im Aufbau der Linie „Lot“: Raster, Seitenkopf, ein Blatt, Hinweiszeile', () => {
+    const { container } = zeige(<ImpressumView />);
+    expect(container.querySelector('.hauptflaeche > main.inhalt')).not.toBeNull();
+    expect(container.querySelector('.panel-dark')).toBeNull();
+    const kopf = container.querySelector('.plankopf')!;
+    expect(kopf).not.toBeNull();
+    expect(within(kopf as HTMLElement).getByText('Rechtliches')).toBeInTheDocument();
+    expect(within(kopf as HTMLElement).getByRole('heading', { level: 1, name: 'Impressum' })).toBeInTheDocument();
+    expect(within(kopf as HTMLElement).getByText(/^Stand: \d{2}\.\d{2}\.\d{4}$/)).toBeInTheDocument();
+    expect(container.querySelectorAll('.inhalt .karte')).toHaveLength(1);
+    expect(screen.getByRole('note').querySelector('.hinweiszeile-warn')).not.toBeNull();
+    // Der Fuß führt zur jeweils anderen Seite.
+    expect(screen.getByRole('link', { name: 'Datenschutz' })).toHaveAttribute('href', '/datenschutz');
+  });
+
+  it('listet die Unterauftragsverarbeiter als Zeilen mit Linie, nicht mit farbigem Randstrich', () => {
+    const { container } = zeige(<DatenschutzView />);
+    const liste = container.querySelector('ul.recht-liste')!;
+    expect(liste.querySelectorAll(':scope > li')).toHaveLength(VERARBEITER.length);
+    expect(container.querySelector('.border-l-2')).toBeNull();
+  });
+
   it('verlinkt beide Seiten', () => {
     zeige(<RechtLinks />);
     expect(screen.getByRole('link', { name: 'Datenschutz' })).toHaveAttribute('href', '/datenschutz');

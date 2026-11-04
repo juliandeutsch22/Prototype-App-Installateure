@@ -1100,3 +1100,31 @@ durchsichtigen Ecken; am Bild gemessen Radius 12 von 64.
 Kantenmitte deckend weiß, fehlende Deckung = vier Viertelkreis-Zwickel mit
 Radius 12/64, innerhalb deckend), Apple-Touch- und maskierbares Icon randlos
 und deckend. Gegenprobe mit den Bildern davor: 6 rot.
+
+**E44 — Impressum und Datenschutz in der Linie „Lot“ (04.11.2026).**
+Auftrag: „die Seiten für die Rechtstexte sind noch nicht in der neuen
+Designlinie, passe diese an.“ Beide Seiten standen noch in der Form vor der
+Linie: dunkles Band oben, ein gerundeter Kasten für „Entwurf“, Überschrift
+in 600, kein Raster, kein Blatt.
+
+- **Arbeitsfläche wie in der App**: das Raster (`hauptflaeche`) über die
+  ganze Seite, der Text auf einem Blatt in Lesebreite (höchstens 32 Zellen),
+  jede Kante auf einer Rasterlinie — derselbe Taktgeber wie im `Layout`
+  (`taktHalten`). Mittig gesetzt, der linke Abstand in ganzen Zellen
+  (`round(down, …, 24px)`), dazu das Polster von `.inhalt`, das an jeder
+  Breite dem Versatz des Rasters entspricht.
+- **Seitenkopf wie auf jeder Seite** (`PageHeader`): Ortszeile
+  „Rechtliches“, Titel, „Stand: …“ als Meta (vorher am Fuß).
+- **Marke hell auf dem Raster** mit „Zur App“ daneben, wie auf der Bühne der
+  Anmeldung — ohne Seitenleiste gibt es keine dunkle Fläche, die sie trägt.
+- **„Entwurf“ als Hinweiszeile** (Stufe Achtung) statt gerundetem Kasten.
+- **Unterauftragsverarbeiter als Zeilen mit Linie** statt farbigem
+  Randstrich.
+- Am Fuß führen „Datenschutz · Impressum“ zur jeweils anderen Seite.
+- Die Texte selbst sind unverändert, Wort für Wort.
+
+**Prüfungen.** `Recht.test.tsx` (+2: Aufbau der Linie, Liste der
+Verarbeiter), `rechtLot.spec.ts` (neu, 2: je Seite in drei Breiten Raster,
+ein Blatt mit allen Kanten auf Linien, kein seitliches Rollen, kein dunkles
+Band, Ecke 0, Überschriften in 400/500, Entwurf, „Zur App“, Weg zur anderen
+Seite). Gegenprobe mit dem Rahmen davor: alle vier rot.
