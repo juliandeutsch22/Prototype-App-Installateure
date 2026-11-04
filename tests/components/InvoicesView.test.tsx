@@ -2938,6 +2938,30 @@ describe('Zahlungen erfassen', () => {
     expect(linie).toHaveClass('masslinie', 'masslinie-schmal');
     expect(within(linie).getByText(/400,00 bezahlt$/)).toBeInTheDocument();
     expect(within(linie).getByText(/800,00 offen$/)).toBeInTheDocument();
+    // Seit 04.11.2026 beim Betrag, zu dem sie gehört — nicht im Text der Zeile.
+    expect(linie.closest('.zeile-zahlen')).toHaveTextContent(/1\s200,00$/);
+    expect(linie.closest('.zeile-meta')).toBeNull();
+  });
+
+  /*
+    DIE RECHNUNGSZEILE MIT LUFT (Auftrag 04.11.2026: „bei Rechnungen ist
+    alles sehr crowded, eng, viel Text“): gestapelt, jede Angabe in ihrer
+    eigenen Zeile, Zustand und Betrag im Stand der Zeile.
+  */
+  it('die Zeile ist gestapelt: Angaben je in einer Zeile, Zustand und Betrag für sich', async () => {
+    rechnungen = [offeneRechnung({ mahnstufe: 1, gemahntAm: '2026-07-20', mahnfrist: '2026-07-27' })];
+    zeige();
+    const zeile = (await screen.findByText(/RE-2026-0042/)).closest('li')!;
+    expect(zeile).toHaveClass('zeile-gestapelt');
+    const angaben = [...zeile.querySelectorAll('.zeile-meta .rechnung-angabe')].map((a) => a.textContent);
+    expect(angaben).toHaveLength(2);
+    expect(angaben[0]).toMatch(/^\d{2}\.\d{2}\.\d{4} · fällig \d{2}\.\d{2}\.\d{4}$/);
+    expect(angaben[1]).toMatch(/^Zahlungserinnerung am 20\.07\.2026 · Frist 27\.07\.2026$/);
+    const stand = zeile.querySelector('.zeile-stand') as HTMLElement;
+    expect(stand.querySelector('.zeile-zustand')).not.toBeNull();
+    expect(stand.querySelector('.zeile-zahlen-betrag')).toHaveTextContent(/1\s200,00/);
+    expect(stand.querySelector('.masslinie')).toBeNull();
+    expect(zeile.querySelector('.zeile-aktionen .zeile-pfeil')).not.toBeNull();
   });
 
   it('Gegenprobe: vor dem Zahlungsziel bleibt die Maßlinie ohne Achtung und ohne „überfällig“', async () => {
@@ -2945,7 +2969,7 @@ describe('Zahlungen erfassen', () => {
     zeige();
     const linie = await screen.findByRole('img', { name: /800,00 offen$/ });
     expect(linie).not.toHaveClass('masslinie-achtung');
-    expect(linie.parentElement).not.toHaveTextContent(/überfällig/);
+    expect(linie.closest('li')).not.toHaveTextContent(/überfällig/);
   });
 
   /*
@@ -2958,7 +2982,9 @@ describe('Zahlungen erfassen', () => {
     zeige();
     const linie = await screen.findByRole('img', { name: /€ 800,00 offen, überfällig$/ });
     expect(linie).toHaveClass('masslinie-achtung');
-    expect(linie.parentElement).toHaveTextContent(/überfällig$/);
+    // Seit 04.11.2026 steht „überfällig“ am Fälligkeitsdatum, nicht unter der Linie.
+    const zeile = linie.closest('li')!;
+    expect(within(zeile.querySelector('.zeile-meta') as HTMLElement).getByText('überfällig')).toHaveClass('text-warning');
 
     const kachel = screen.getAllByText('Überfällig').find((e) => e.classList.contains('lage-name'))!.parentElement!;
     expect(kachel).toHaveTextContent('€ 800,00');

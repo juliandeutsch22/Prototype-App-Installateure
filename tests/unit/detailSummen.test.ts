@@ -26,16 +26,18 @@ const gespeichert = {
 describe('N2 — Detailansicht der Schlussrechnung', () => {
   it('Gesamtleistung, Abzug der Anzahlung, Restforderung', () => {
     const z = detailSummen(gespeichert);
-    expect(z.map((x) => [x.wort.replace(/\s+\(.*\)$/, ''), x.betrag])).toEqual([
+    expect(z.map((x) => [x.wort, x.betrag])).toEqual([
       ['Gesamtleistung netto', 5000],
       ['Umsatzsteuer', 1000],
       ['Gesamtleistung brutto', 6000],
-      ['abzüglich RE-2026-1505 vom 30.09.2026', 1800],
+      ['abzüglich RE-2026-1505', 1800],
       ['Restforderung netto', 3500],
       ['Umsatzsteuer', 700],
       ['Restforderung brutto', 4200],
     ]);
-    expect(z[3].wort).toMatch(/netto €.1.500,00 \+ USt €.300,00/);
+    // Datum, netto und USt stehen darunter, nicht neben dem Betrag (04.11.2026).
+    expect(z[3].zusatz).toMatch(/^vom 30\.09\.2026 · netto €.1.500,00 \+ USt €.300,00$/);
+    expect(z.filter((x) => x.zusatz)).toHaveLength(1);
   });
 
   it('stimmt mit dem PDF überein — Gesamtleistung, Abzug, Restforderung', () => {

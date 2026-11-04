@@ -169,10 +169,19 @@ export default function RechnungDetail({
           <h3 className="rechnung-lesetitel">Belegsumme</h3>
           <dl className="divide-y divide-line">
             {/* Gegliedert wie Vorschau und PDF — mit Abzug der Anzahlung (N2). */}
+            {/*
+              DER BETRAG BRICHT NICHT UND SCHRUMPFT NICHT (`shrink-0`): die
+              Lesegruppe erlaubt jedem `dd` das Schrumpfen, damit lange Werte
+              umbrechen — ein Betrag ohne Umbruch lief dann über den Rand,
+              sobald das Wort daneben lang war.
+            */}
             {detailSummen(inv).map((z, i) => (
               <div key={i} className={z.abzug ? 'rechnung-detail-abzug' : 'rechnung-detail-zeile'}>
-                <dt className={z.abzug ? '' : 'text-ink-muted'}>{z.wort}</dt>
-                <dd className="whitespace-nowrap text-right text-ink">
+                <dt className={z.abzug ? '' : 'text-ink-muted'}>
+                  {z.wort}
+                  {z.zusatz && <span className="rechnung-detail-zusatz">{z.zusatz}</span>}
+                </dt>
+                <dd className="shrink-0 whitespace-nowrap text-right text-ink">
                   {z.betont ? <b>{euro(z.betrag)}</b> : z.abzug ? `−${euro(z.betrag)}` : euro(z.betrag)}
                 </dd>
               </div>

@@ -6,6 +6,11 @@ export interface SummenZeile {
   betrag: number;
   /** Abgezogen — steht mit Minus da. */
   abzug?: boolean;
+  /**
+   * Was zum Wort gehört, aber nicht in eine Zeile mit dem Betrag passt —
+   * beim Abzug Datum, netto und USt der Anzahlung. Steht darunter.
+   */
+  zusatz?: string;
   /** Der Betrag, um den es geht: Brutto bzw. Restforderung. */
   betont?: boolean;
 }
@@ -20,6 +25,9 @@ export interface SummenZeile {
  * zeigte vorher die Position über 5.000 € und darunter „Netto 3.500 €“ ohne
  * die Zeile dazwischen; das sah aus wie ein Rechenfehler.
  */
+/** Ein Betrag bricht nicht zwischen „€“ und Zahl um (am Handy stand „USt €“ allein am Zeilenende). */
+const amStueck = (betrag: string) => betrag.replace(/ /g, '\u00A0');
+
 export function detailSummen(inv: Pick<Invoice, 'totalNetto' | 'totalVat' | 'totalBrutto' | 'vorrechnungen' | 'gesamtNetto' | 'gesamtVat' | 'gesamtBrutto'>): SummenZeile[] {
   const abzuege = inv.vorrechnungen ?? [];
   if (abzuege.length === 0) {
@@ -38,8 +46,17 @@ export function detailSummen(inv: Pick<Invoice, 'totalNetto' | 'totalVat' | 'tot
     { wort: 'Gesamtleistung netto', betrag: gesamtNetto },
     { wort: 'Umsatzsteuer', betrag: gesamtVat },
     { wort: 'Gesamtleistung brutto', betrag: gesamtBrutto },
+    /*
+      NUMMER IN DIE ZEILE, DER REST DARUNTER (Auftrag 04.11.2026: „der Punkt
+      ‚abzüglich‘ wird immer falsch/abgeschnitten angezeigt“). Der ganze Satz
+      mit Datum, netto und USt stand links neben dem Betrag; im Seitenfenster
+      brach er dreimal, und der Betrag lief über den rechten Rand. Jetzt steht
+      wie bei den übrigen Summen ein kurzes Wort neben dem Betrag; Datum,
+      netto und USt der Anzahlung stehen in einer Zeile darunter.
+    */
     ...abzuege.map((v) => ({
-      wort: `abzüglich ${v.invoiceNumber} vom ${v.invoiceDate.split('-').reverse().join('.')} (netto ${euro(v.netto)} + USt ${euro(v.vat)})`,
+      wort: `abzüglich ${v.invoiceNumber}`,
+      zusatz: `vom ${v.invoiceDate.split('-').reverse().join('.')} · netto ${amStueck(euro(v.netto))} + USt ${amStueck(euro(v.vat))}`,
       betrag: v.brutto,
       abzug: true,
     })),

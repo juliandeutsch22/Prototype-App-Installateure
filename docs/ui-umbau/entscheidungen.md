@@ -997,3 +997,41 @@ die Einzelabfragen liefern, auch „PR-“), `NachkalkulationView.test.tsx`
 (+10, 5 umgestellt), `ZeilenGleich.test.tsx` (+4), `AdminProjectsView.test.tsx`
 (+2), `nachkalkulation.test.ts` (+3). Gegenprobe mit dem Code davor: die
 neuen Prüfungen rot, die gleichbleibenden grün.
+
+**E41 — Rechnungsliste mit Luft, Abzug im Fenster ganz, Einrichtungsstand
+nur bei offenen Punkten, Auswahlpfeil wie das Kalenderzeichen
+(04.11.2026).** Auftrag mit Bildschirmfotos: „Bei Rechnungen ist auch alles
+sehr crowded, eng, viel Text … im Rechnungen-Overlay wird der Punkt
+‚abzüglich‘ immer falsch/abgeschnitten angezeigt … Einstellungen: wenn der
+Einrichtungsstand voll erfüllt ist, sollte er verschwinden … bei Dropdowns
+generell überall: der Pfeil ist zu nah am Rand, er sollte in etwa gleich
+sein wie der Kalender bei der Datumsauswahl.“
+
+- **Rechnungsliste gestapelt** (wie E40): Zustand und Betrag am Handy und
+  Tablet unter dem Text, am Schreibtisch rechts in Spalten. Jede Angabe in
+  ihrer eigenen Zeile (Datum und Fälligkeit, Mahnstand, Guthaben, Storno), in
+  der Schrift der Zeile statt kleiner. Die Teilzahlung steht als Maßlinie beim
+  Betrag (`.zeile-zahlen`, mit der Nachkalkulation gemeinsam), „überfällig“
+  am Fälligkeitsdatum — vorher lief das Wort unter der Linie in deren
+  Beschriftung. Am Handy Zustand links, Betrag rechts in einer Zeile. Der
+  Mahnlauf darüber bleibt, wie er ist.
+- **Abzug der Anzahlung**: neben dem Betrag steht „abzüglich RE-…“, Datum,
+  netto und USt in einer Zeile darunter. Der Betrag darf nicht mehr
+  schrumpfen (`shrink-0`) — die Lesegruppe erlaubt jedem Wert das Schrumpfen,
+  ein Betrag ohne Umbruch lief deshalb über den Rand.
+- **Einrichtungsstand**: sind alle Punkte erledigt, steht die Karte nicht
+  da; sie kommt von selbst wieder, sobald ein Punkt offen ist oder „prüfen“
+  heißt (etwa eine Sicherung, die seit Tagen nicht lief). Platzhalter stehen
+  nur, wenn am Betrieb schon etwas offen ist und die Karte sicher kommt.
+- **Pfeil der Auswahl**: gemessen stand der Pfeil des Browsers 5 px vom
+  Rand, das Kalenderzeichen 17 px (12 px breit). Die App zeichnet den Pfeil
+  jetzt selbst, 12 px breit, Mitte 22 px vom Rand wie das Kalenderzeichen, in
+  der Farbe des Texts (hell und dunkel je ein Token). Rechts 40 px Polster,
+  damit eine lange Wahl nicht unter den Pfeil läuft; die Felder werden
+  dadurch etwa 8 px breiter. Gilt für jedes einzeilige Auswahlfeld.
+
+**Prüfungen.** `listenLuft.spec.ts` (+2: Rechnungszeile in drei Breiten ohne
+Überlagerung, Abzug im Fenster ganz sichtbar; Pfeil gegen Kalenderzeichen auf
+2 px), `InvoicesView.test.tsx` (+1, 3 angepasst), `detailSummen.test.ts`,
+`EinstellungenUebersicht.test.tsx` (+3, 2 angepasst), `auswahlPfeil.test.ts`
+(neu, 3). Gegenprobe mit dem Code davor: die neuen Prüfungen rot.

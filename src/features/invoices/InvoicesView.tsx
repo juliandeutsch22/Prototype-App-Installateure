@@ -2537,90 +2537,112 @@ export default function InvoicesView() {
     Rechnung auf jeder Breite als Zeile; die Tabelle am Schreibtisch trug
     dieselben Angaben in Spalten, nur ohne antippbare Zeile.
   */
-  const rechnungNotizen = (inv: (typeof visible)[number]) => (
-    <>
-      {/*
-        WAS SCHON GEMAHNT WURDE, gehört in die Zeile.
+  const rechnungNotizen = (inv: (typeof visible)[number]) => {
+    const stand = zahlstand(inv);
+    const teilbezahlt = stand.guthaben <= 0 && stand.bezahlt > 0 && stand.rest > 0;
+    return (
+      <>
+        {/*
+          JEDE ANGABE BLEIBT AM STÜCK. Auf 375 px brach die Zeile mitten im
+          Datum — „fällig 2026-" in der einen Zeile, „08-01" in der nächsten.
+          Die Zeile darf weiter umbrechen, aber nur ZWISCHEN den Angaben.
 
-        Ohne diese Angabe führt der Betrieb den Mahnstand
-        weiterhin im Kopf — und genau das war der Zustand
-        vorher. Zwei Erinnerungen an denselben Kunden in einer
-        Woche sind peinlicher als gar keine.
-      */}
-      {/*
-        IST SIE ERLEDIGT, IST DIE MAHNUNG GESCHICHTE. Sie bleibt
-        stehen — man soll sehen, dass es eine gab —, aber ohne
-        Frist und nicht in Warnfarbe: eine bezahlte Rechnung mit
-        „Frist 08.10." in Gelb sah aus, als sei noch etwas zu tun
-        (Prüflauf 24.09.2026, F14).
-      */}
-      {!!inv.mahnstufe &&
-        (['Bezahlt', 'Überzahlt', 'Storniert'].includes(inv.paymentStatus) ? (
-          <span className="mt-1 block text-xs text-ink-muted">
-            {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {datumAT(inv.gemahntAm)}
-          </span>
-        ) : (
-          <span className="mt-1 block text-xs text-warning">
-            {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {datumAT(inv.gemahntAm)}
-            {inv.mahnfrist ? ` · Frist ${datumAT(inv.mahnfrist)}` : ''}
-            {inv.mahnspesen ? ` · ${euro(inv.mahnspesen)} Spesen` : ''}
-          </span>
-        ))}
-      {/*
-        WAS SCHON DA IST, STEHT IN DER ZEILE — aber nur, wenn es
-        etwas zu sagen gibt. Bei einer unbezahlten Rechnung wäre
-        „0 € bezahlt" eine Zeile ohne Inhalt, und bei einer ganz
-        bezahlten sagt das Abzeichen schon alles. Übrig bleiben
-        die beiden Fälle, die man sonst übersieht: die
-        Teilzahlung und das Guthaben nach einem Storno.
-      */}
-      {(() => {
-        const stand = zahlstand(inv);
-        if (stand.guthaben > 0) {
-          return (
-            <span className="mt-1 block text-xs text-warning">
-              Guthaben des Kunden: {euro(stand.guthaben)} — zurückzuzahlen
-            </span>
-          );
-        }
-        if (stand.bezahlt > 0 && stand.rest > 0) {
-          /*
-            DIE TEILZAHLUNG ALS MASSLINIE (Planlinie B2) statt „x bezahlt ·
-            y offen“: bezahlt gegen den Betrag, der Rest steht an der Marke.
-          */
-          return (
-            <span className="rechnung-mass">
-              <Masslinie
-                schmal
-                ist={stand.bezahlt}
-                soll={stand.bezahlt + stand.rest}
-                istText={`${euro(stand.bezahlt)} bezahlt`}
-                sollText={`${euro(stand.rest)} offen`}
-                name={`${euro(stand.bezahlt)} bezahlt von ${euro(stand.bezahlt + stand.rest)}, ${euro(stand.rest)} offen${istUeberfaellig(inv, todayStr()) ? ', überfällig' : ''}`}
-                achtung={istUeberfaellig(inv, todayStr())}
-              />
-              {/* Das Abzeichen sagt „Teilbezahlt" — dass der Rest
-                  schon fällig war, sagt es nicht. */}
-              {istUeberfaellig(inv, todayStr()) && (
-                <span className="block text-xs text-warning">überfällig</span>
-              )}
-            </span>
-          );
-        }
-        return null;
-      })()}
-      {inv.cancellationNote && (
-        <span className="mt-1 block text-xs text-ink-muted">
-          Storno: {inv.cancellationNote}
+          „ÜBERFÄLLIG“ STEHT AM FÄLLIGKEITSDATUM (04.11.2026). Das Abzeichen
+          sagt „Teilbezahlt" — dass der Rest schon fällig war, sagt es nicht.
+          Vorher stand das Wort unter der Maßlinie und lief in deren
+          Beschriftung.
+        */}
+        <span className="rechnung-angabe">
+          <span className="whitespace-nowrap">{datumAT(inv.invoiceDate)}</span> ·{' '}
+          <span className="whitespace-nowrap">fällig {datumAT(inv.dueDate)}</span>
+          {teilbezahlt && istUeberfaellig(inv, todayStr()) && (
+            <> · <span className="whitespace-nowrap text-warning">überfällig</span></>
+          )}
         </span>
-      )}
-      {inv.stornoNummer && (
-        <span className="mt-1 block text-xs text-ink-muted">
-          Stornorechnung {inv.stornoNummer}
-        </span>
-      )}
-    </>
-  );
+        {/*
+          WAS SCHON GEMAHNT WURDE, gehört in die Zeile.
+
+          Ohne diese Angabe führt der Betrieb den Mahnstand
+          weiterhin im Kopf — und genau das war der Zustand
+          vorher. Zwei Erinnerungen an denselben Kunden in einer
+          Woche sind peinlicher als gar keine.
+        */}
+        {/*
+          IST SIE ERLEDIGT, IST DIE MAHNUNG GESCHICHTE. Sie bleibt
+          stehen — man soll sehen, dass es eine gab —, aber ohne
+          Frist und nicht in Warnfarbe: eine bezahlte Rechnung mit
+          „Frist 08.10." in Gelb sah aus, als sei noch etwas zu tun
+          (Prüflauf 24.09.2026, F14).
+        */}
+        {!!inv.mahnstufe &&
+          (['Bezahlt', 'Überzahlt', 'Storniert'].includes(inv.paymentStatus) ? (
+            <span className="rechnung-angabe">
+              {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {datumAT(inv.gemahntAm)}
+            </span>
+          ) : (
+            <span className="rechnung-angabe text-warning">
+              <span className="whitespace-nowrap">{TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {datumAT(inv.gemahntAm)}</span>
+              {inv.mahnfrist && <> · <span className="whitespace-nowrap">Frist {datumAT(inv.mahnfrist)}</span></>}
+              {inv.mahnspesen ? <> · <span className="whitespace-nowrap">{euro(inv.mahnspesen)} Spesen</span></> : null}
+            </span>
+          ))}
+        {/*
+          WAS SCHON DA IST, STEHT IN DER ZEILE — aber nur, wenn es
+          etwas zu sagen gibt. Bei einer unbezahlten Rechnung wäre
+          „0 € bezahlt" eine Zeile ohne Inhalt, und bei einer ganz
+          bezahlten sagt das Abzeichen schon alles. Übrig bleiben
+          die beiden Fälle, die man sonst übersieht: die
+          Teilzahlung (als Maßlinie am Betrag, `rechnungBetrag`) und das
+          Guthaben nach einem Storno.
+        */}
+        {stand.guthaben > 0 && (
+          <span className="rechnung-angabe text-warning">
+            Guthaben des Kunden: {euro(stand.guthaben)} — zurückzuzahlen
+          </span>
+        )}
+        {inv.cancellationNote && (
+          <span className="rechnung-angabe">
+            Storno: {inv.cancellationNote}
+          </span>
+        )}
+        {inv.stornoNummer && (
+          <span className="rechnung-angabe">
+            Stornorechnung {inv.stornoNummer}
+          </span>
+        )}
+      </>
+    );
+  };
+
+  /*
+    DER BETRAG DER ZEILE — bei einer Teilzahlung mit der Maßlinie davor
+    (Planlinie B2): bezahlt gegen den Betrag, der Rest an der Marke. Bis zum
+    04.11.2026 stand die Linie im Text der Zeile, eine Zeile unter dem
+    Mahnstand; jetzt steht sie beim Betrag, zu dem sie gehört.
+  */
+  const rechnungBetrag = (inv: (typeof visible)[number], betrag = inv.totalBrutto) => {
+    const stand = zahlstand(inv);
+    const teilbezahlt = betrag === inv.totalBrutto && stand.guthaben <= 0 && stand.bezahlt > 0 && stand.rest > 0;
+    const ueber = teilbezahlt && istUeberfaellig(inv, todayStr());
+    return (
+      <span className="zeile-zahlen">
+        {teilbezahlt && (
+          <span className="zeile-zahlen-linie">
+            <Masslinie
+              schmal
+              ist={stand.bezahlt}
+              soll={stand.bezahlt + stand.rest}
+              istText={`${euro(stand.bezahlt)} bezahlt`}
+              sollText={`${euro(stand.rest)} offen`}
+              name={`${euro(stand.bezahlt)} bezahlt von ${euro(stand.bezahlt + stand.rest)}, ${euro(stand.rest)} offen${ueber ? ', überfällig' : ''}`}
+              achtung={ueber}
+            />
+          </span>
+        )}
+        <span className="zeile-zahlen-betrag">{euro(betrag)}</span>
+      </span>
+    );
+  };
   /**
    * Eine Handlung aus dem Seitenfenster heraus, die einen Dialog öffnet.
    *
@@ -2764,26 +2786,22 @@ export default function InvoicesView() {
   /** Die Zeile einer Rechnung — und, falls es sie gibt, die ihrer Stornorechnung direkt darunter. */
   const rechnungZeile = (inv: WithId<Invoice>) => (
     <Fragment key={inv.id}>
+      {/*
+        GESTAPELT (Auftrag 04.11.2026: „bei Rechnungen ist alles sehr
+        crowded, eng, viel Text“): Zustand und Betrag stehen am Handy und
+        Tablet unter dem Text statt daneben, am Schreibtisch rechts in
+        Spalten; jede Angabe in ihrer eigenen Zeile, mit Luft darüber und
+        darunter.
+      */}
       <ListRow
+        gestapelt
         title={inv.customerName}
         nummer={inv.invoiceNumber}
-        wert={euro(inv.totalBrutto)}
+        wert={rechnungBetrag(inv)}
         zustand={<StatusBadge status={inv.paymentStatus} />}
         onOeffnen={() => setDetailFuer(inv)}
         pfeil
-        subtitle={
-          <>
-            {/*
-              JEDE ANGABE BLEIBT AM STÜCK. Auf 375 px brach die Zeile
-              mitten im Datum — „fällig 2026-" in der einen Zeile,
-              „08-01" in der nächsten. Die Zeile darf weiter umbrechen,
-              aber nur ZWISCHEN den Angaben.
-            */}
-            <span className="whitespace-nowrap">{datumAT(inv.invoiceDate)}</span> ·{' '}
-            <span className="whitespace-nowrap">fällig {datumAT(inv.dueDate)}</span>
-            {rechnungNotizen(inv)}
-          </>
-        }
+        subtitle={rechnungNotizen(inv)}
       />
       {/*
         DIE STORNORECHNUNG ALS EIGENE ZEILE (Testbericht 30.09.2026, G28). Im
@@ -2793,9 +2811,10 @@ export default function InvoicesView() {
       */}
       {inv.stornoNummer && (
         <ListRow
+          gestapelt
           title={inv.customerName}
           nummer={inv.stornoNummer}
-          wert={euro(-inv.totalBrutto)}
+          wert={rechnungBetrag(inv, -inv.totalBrutto)}
           zustand={<Marke>Stornorechnung</Marke>}
           subtitle={`${stornoDatum(inv)} · zu ${inv.invoiceNumber}`}
           onOeffnen={() => setDetailFuer(inv)}

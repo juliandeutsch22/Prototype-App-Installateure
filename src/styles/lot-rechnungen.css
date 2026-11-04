@@ -29,6 +29,8 @@
   .rechnung-detail-zeile { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.25rem 0; }
   /* Der Abzug einer Anzahlung — rot wie auf Vorschau und Beleg. */
   .rechnung-detail-abzug { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.25rem 0; color: var(--danger); }
+  /* Datum, netto und USt der Anzahlung unter ihrer Nummer — klein, in Tinte, nicht noch einmal in Rot. */
+  .rechnung-detail-zusatz { display: block; font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
 
   /* ── Positionen der Vorschau ──────────────────────────────────────────── */
   /*
@@ -67,7 +69,11 @@
   .position-preis-fehlt:focus { outline: none; border-color: var(--warning); box-shadow: 0 0 0 1px var(--warning); }
 }
 
-/* Die Teilzahlung als schmale Maßlinie unter der Zeile (Planlinie B2). */
+/*
+  DIE ANGABEN EINER RECHNUNGSZEILE je in ihrer Zeile (04.11.2026): Datum und
+  Fälligkeit, Mahnstand, Guthaben, Storno. In der Schrift der Zeile, nicht
+  kleiner — die Zeilenhöhe des Blatts (24 px) gibt den Abstand.
+*/
 @layer components {
-  .rechnung-mass { display: block; width: 17.5rem; max-width: 100%; margin-top: 0.375rem; }
+  .rechnung-angabe { display: block; }
 }

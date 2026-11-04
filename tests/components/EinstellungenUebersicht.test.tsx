@@ -161,6 +161,8 @@ describe('Der Einrichtungsstand', () => {
 
 describe('Der Einrichtungsstand: Kostensätze, Kontenrahmen, Sicherung (17 E)', () => {
   it('zeigt erst Platzhalter, dann alle sechs Punkte auf einmal — keine Zahl, die springt', async () => {
+    // Am Betrieb fehlt die UID: die Karte kommt sicher, also gleich mit Platzhaltern.
+    betrieb = { ...VOLL, vatId: undefined };
     let los: () => void = () => undefined;
     warten = new Promise((r) => { los = r; });
     zeige();
@@ -168,7 +170,7 @@ describe('Der Einrichtungsstand: Kostensätze, Kontenrahmen, Sicherung (17 E)', 
     expect(screen.queryByText(/von \d erledigt/)).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Briefkopf' })).not.toBeInTheDocument();
     los();
-    expect(await screen.findByText('6 von 6 erledigt')).toBeInTheDocument();
+    expect(await screen.findByText('5 von 6 erledigt')).toBeInTheDocument();
     const stand = gruppe('Einrichtungsstand');
     expect(within(stand).getAllByRole('link').map((l) => [l.textContent, l.getAttribute('href')])).toEqual([
       [expect.stringContaining('Briefkopf'), '/settings/firma'],
@@ -178,6 +180,7 @@ describe('Der Einrichtungsstand: Kostensätze, Kontenrahmen, Sicherung (17 E)', 
       [expect.stringContaining('Kontenrahmen'), '/settings/konten'],
       [expect.stringContaining('Sicherung'), '/settings/sicherung'],
     ]);
+    // Die erledigten Punkte bleiben in der Liste, solange einer offen ist.
     expect(within(stand).getByText('Facharbeiter € 42,00, Helfer € 31,00 je Stunde')).toBeInTheDocument();
     expect(within(stand).getByText('3 Konten für den Buchungsstapel')).toBeInTheDocument();
   });
@@ -208,9 +211,44 @@ describe('Der Einrichtungsstand: Kostensätze, Kontenrahmen, Sicherung (17 E)', 
   });
 
   it('bei der Suche bleibt er weg, wie bisher', async () => {
+    kosten = null;
     zeige();
-    await screen.findByText('6 von 6 erledigt');
+    await screen.findByText('5 von 6 erledigt');
     await userEvent.type(screen.getByRole('searchbox', { name: 'Einstellung suchen' }), 'iban');
     expect(screen.queryByRole('heading', { name: 'Einrichtungsstand' })).not.toBeInTheDocument();
+  });
+});
+
+/*
+  IST ALLES ERLEDIGT, VERSCHWINDET ER (Auftrag 04.11.2026). Er kommt wieder,
+  sobald ein Punkt offen ist oder „prüfen“ heißt.
+*/
+describe('Der Einrichtungsstand, wenn alles erledigt ist', () => {
+  it('steht nicht da — auch nicht als Platzhalter beim Laden; die Einstellungen bleiben', async () => {
+    let los: () => void = () => undefined;
+    warten = new Promise((r) => { los = r; });
+    zeige();
+    expect(screen.queryByRole('heading', { name: 'Einrichtungsstand' })).not.toBeInTheDocument();
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+    los();
+    await waitFor(() => expect(abgefragt).toHaveBeenCalledWith('perl'));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(screen.queryByRole('heading', { name: 'Einrichtungsstand' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/von \d erledigt/)).not.toBeInTheDocument();
+    expect(within(gruppe('Alle Einstellungen')).getByRole('link', { name: /Firmendaten/ })).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ist nur ein Punkt offen, steht er mit allen sechs da', async () => {
+    konten = [];
+    zeige();
+    expect(await screen.findByText('5 von 6 erledigt')).toBeInTheDocument();
+    expect(within(gruppe('Einrichtungsstand')).getAllByRole('link')).toHaveLength(6);
+  });
+
+  it('kommt wieder, wenn die Sicherung seit Tagen nicht lief („prüfen“)', async () => {
+    lauf = { companyId: 'perl', art: 'ausleitung', zuletztErfolg: Date.now() - 4 * 24 * 3_600_000, erfolg: true };
+    zeige();
+    expect(await screen.findByText('5 von 6 erledigt')).toBeInTheDocument();
+    expect(within(gruppe('Einrichtungsstand')).getByRole('link', { name: /Sicherung/ }).closest('li')).toHaveTextContent('prüfen');
   });
 });
