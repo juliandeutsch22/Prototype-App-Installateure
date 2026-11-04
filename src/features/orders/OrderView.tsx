@@ -950,11 +950,11 @@ function QtyAdder({
             sagt, dass noch nichts abgeschickt ist (Testbericht M36), und ist
             kurz genug für die Zeile neben der Menge. */}
         {/* GLEICH BREIT, OB LEER ODER GEFÜLLT: Gefüllt hat der Knopf keine
-            Linie und halbfette Schrift. Schon 2 px Unterschied entschieden
-            im iPhone-Profil bei 375 px, ob er neben der Menge oder darunter
-            steht — er sprang beim ersten Tipp. Die transparente Linie und
-            die Breite der halbfetten Beschriftung (`knopf-gleich-breit`)
-            halten ihn in beiden Zuständen gleich. */}
+            Linie und halbfette Schrift und war so knapp 1 px schmaler. An
+            einer Breite genau an der Grenze entschiede das, ob er neben der
+            Menge oder darunter steht — er spränge beim ersten Tipp. Die
+            transparente Linie und die Breite der halbfetten Beschriftung
+            (`knopf-gleich-breit`) halten ihn in beiden Zuständen gleich. */}
         <Button
           variant={inListe > 0 ? 'primary' : 'secondary'}
           className={`grow whitespace-nowrap${inListe > 0 ? ' border border-transparent' : ''}`}

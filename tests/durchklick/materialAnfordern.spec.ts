@@ -63,10 +63,27 @@ test('Der Katalogknopf bleibt einzeilig und an seinem Platz, auf jeder Breite', 
       };
     });
 
+  // Gemessen wird erst, wenn die Lage über zwei Bilder gleich bleibt: Nach
+  // einem Breitenwechsel rastet das Blatt ein Bild später auf die Rasterlinien
+  // ein (`taktHalten`) — in der CI lag „vorher“ sonst noch eine Zelle daneben.
+  const ruhig = async () => {
+    let zuletzt = '';
+    await expect
+      .poll(async () => {
+        await page.evaluate(() => new Promise((fertig) => requestAnimationFrame(() => requestAnimationFrame(fertig))));
+        const jetzt = JSON.stringify(await lage());
+        const gleich = jetzt === zuletzt;
+        zuletzt = jetzt;
+        return gleich;
+      }, { timeout: 10_000 })
+      .toBe(true);
+    return JSON.parse(zuletzt) as Awaited<ReturnType<typeof lage>>;
+  };
+
   for (const breite of [320, 360, 375, 393, 430, 834, 1280]) {
     await page.setViewportSize({ width: breite, height: 900 });
     await expect(knopf).toHaveText('In die Liste');
-    const vor = await lage();
+    const vor = await ruhig();
     expect(vor.textzeilen, `${breite} px: Beschriftung auf einer Zeile`).toBe(1);
     expect(vor.drin, `${breite} px: Knopf in der Zeile`).toBe(true);
 
@@ -74,9 +91,9 @@ test('Der Katalogknopf bleibt einzeilig und an seinem Platz, auf jeder Breite', 
     await knopf.click();
     await knopf.click();
     await expect(page.getByText(`3 ${ARTIKEL.einheit} in der Liste`)).toBeVisible();
-    const nach = await lage();
-    // Gefüllt so breit wie leer: sonst entscheidet der Zustand, ob er neben
-    // der Menge oder darunter steht (im iPhone-Profil bei 375 px gesehen).
+    const nach = await ruhig();
+    // Gefüllt so breit wie leer: sonst entschiede an einer Breite genau an der
+    // Grenze der Zustand, ob er neben der Menge oder darunter steht.
     expect(Math.abs(nach.breite - vor.breite), `${breite} px: gleich breit`).toBeLessThanOrEqual(0.5);
     // Wo der erste Tipp lag, trifft auch der nächste — mit Rand.
     const mitteX = vor.x + vor.breite / 2;
