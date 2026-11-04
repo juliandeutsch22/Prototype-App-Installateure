@@ -1,11 +1,18 @@
 (() => {
  const form=document.getElementById('anfrageformular'); if(!form)return;
  const send=document.getElementById('anfrage-senden'),status=document.getElementById('formular-status'),schutz=document.getElementById('spamschutz-status'),auswahl=document.getElementById('kontakt-tarif');
- const aktivieren=document.getElementById('spamschutz-aktivieren'),beenden=document.getElementById('spamschutz-beenden');
+ const aktivieren=document.getElementById('spamschutz-aktivieren'),beenden=document.getElementById('spamschutz-beenden'),einrichtung=document.getElementById('kontakt-einrichtung');
  let mode='unavailable',sitekey='',token='',widget=null,pending=false,activated=false,requestId=null,signature='';
  const meldung=(text,art='info')=>{status.textContent=text;status.dataset.art=art;};
  function bereit(){send.disabled=pending||(mode!=='preview'&&(!activated||!token||mode!=='live'));beenden.disabled=pending;}
- function zusammenfassung(){const a=window.SenklotAuswahl;a.tarif=auswahl.value;const p=window.SenklotTarife.preis(a.tarif,a.zahlung);document.getElementById('anfrage-auswahl').textContent=p?`${p.name} · ${a.zahlung==='jaehrlich'?`${window.SenklotTarife.euro(p.jahrCent,true)} netto jährlich im Voraus (10 % Rabatt)`:`${window.SenklotTarife.euro(p.monatCent)} netto pro Monat`} · Einrichtung einmalig ${window.SenklotTarife.euro(p.einrichtungCent)} netto. Unverbindliche Anfrage.`:'Deine Anfrage ist unverbindlich. Der passende Tarif lässt sich gemeinsam klären.';}
+ function zusammenfassung(){
+  const a=window.SenklotAuswahl;a.tarif=auswahl.value;const p=window.SenklotTarife.preis(a.tarif,a.zahlung),angefragt=einrichtung.checked;
+  const optional=p?`Optionale Einrichtung: ${window.SenklotTarife.euro(p.einrichtungCent)} netto einmalig, nur bei Buchung.`:'Umfang und Preis vereinbaren wir vor einer Buchung.';
+  document.getElementById('einrichtung-preis').textContent=optional;
+  const hilfe=angefragt?(p?`Optionale Einrichtung angefragt: ${window.SenklotTarife.euro(p.einrichtungCent)} netto einmalig.`:'Du interessierst dich für die optionale Einrichtung. Umfang und Preis klären wir vorab.'):'Ohne begleitete Einrichtung: keine Einrichtungsgebühr.';
+  document.getElementById('anfrage-auswahl').textContent=p?`${p.name} · ${a.zahlung==='jaehrlich'?`${window.SenklotTarife.euro(p.jahrCent,true)} netto jährlich im Voraus (10 % Rabatt)`:`${window.SenklotTarife.euro(p.monatCent)} netto pro Monat`} · ${hilfe} ${window.SenklotTarife.EINFUEHRUNG.preisbindung} Unverbindliche Anfrage.`:`Deine Anfrage ist unverbindlich. Der passende Tarif lässt sich gemeinsam klären. ${hilfe}`;
+ }
+ einrichtung.addEventListener('change',zusammenfassung);
  window.addEventListener('senklot:auswahl',zusammenfassung);auswahl.addEventListener('change',zusammenfassung);zusammenfassung();
  function pruefungFehlgeschlagen(text){token='';schutz.textContent=text;bereit();}
  aktivieren.addEventListener('click',()=>{
@@ -32,10 +39,11 @@
   }catch{mode='unavailable';schutz.textContent='Das geschützte Formular ist momentan nicht verfügbar. Du erreichst uns direkt per E-Mail oder Telefon.';bereit();}
   finally{clearTimeout(timer);}
  }
+ form.addEventListener('invalid',e=>{const details=e.target.closest('details');if(details)details.open=true;},true);
  form.addEventListener('submit',async e=>{
   e.preventDefault();if(pending||!form.reportValidity()||send.disabled)return;
   form.querySelectorAll('.feldfehler').forEach(p=>p.textContent='');form.querySelectorAll('[aria-invalid]').forEach(el=>{el.removeAttribute('aria-invalid');el.removeAttribute('aria-describedby');});
-  const data=Object.fromEntries(new FormData(form));data.zahlung=window.SenklotAuswahl.zahlung;
+  const data=Object.fromEntries(new FormData(form));data.zahlung=window.SenklotAuswahl.zahlung;data.einrichtung=einrichtung.checked;
   const next=JSON.stringify(data);if(!requestId||next!==signature){requestId=crypto.randomUUID();signature=next;}
   data.token=token;data.requestId=requestId;data.spamschutzZugestimmt=activated;
   const controls=[...form.querySelectorAll('input,textarea,select')];pending=true;controls.forEach(el=>el.disabled=true);send.setAttribute('aria-busy','true');send.textContent=mode==='preview'?'Wird geprüft …':'Wird gesendet …';bereit();meldung('Bitte einen Moment …');
@@ -43,7 +51,7 @@
   try{
    const r=await fetch('/api/contact',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(data),signal:controller.signal});
    let result;try{result=await r.json();}catch{throw Error('Die Rückmeldung konnte nicht verarbeitet werden. Deine Angaben bleiben erhalten. Bitte kontaktiere uns bei Bedarf direkt.');}
-   if(!r.ok){if(result.fields)for(const[k,v]of Object.entries(result.fields)){const input=form.elements.namedItem(k),error=document.getElementById('fehler-'+k);if(input&&error){input.setAttribute('aria-invalid','true');input.setAttribute('aria-describedby',error.id);error.textContent=String(v);}}throw Error(result.message||'Die Anfrage konnte nicht übermittelt werden. Deine Angaben bleiben erhalten.');}
+   if(!r.ok){if(result.fields)for(const[k,v]of Object.entries(result.fields)){const input=form.elements.namedItem(k),error=document.getElementById('fehler-'+k);if(input&&error){const details=input.closest('details');if(details)details.open=true;input.setAttribute('aria-invalid','true');input.setAttribute('aria-describedby',error.id);error.textContent=String(v);}}throw Error(result.message||'Die Anfrage konnte nicht übermittelt werden. Deine Angaben bleiben erhalten.');}
    if(result.code==='PREVIEW_ONLY')meldung(result.message,'vorschau');
    else if(result.code==='ACCEPTED'){meldung(result.message,'erfolg');form.reset();window.SenklotAuswahl.tarif='offen';zusammenfassung();requestId=null;signature='';}
    else throw Error('Die Zustellung konnte nicht bestätigt werden. Deine Angaben bleiben erhalten.');

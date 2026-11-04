@@ -2,6 +2,7 @@ OK Gültige Eingaben
 OK Ungültiges Feld name abgelehnt
 OK Ungültiges Feld email abgelehnt
 OK Ungültiges Feld firma abgelehnt
+OK Ungültiges Feld einrichtung abgelehnt
 OK Ungültiges Feld nutzer abgelehnt
 OK Ungültiges Feld tarif abgelehnt
 OK Ungültiges Feld zahlung abgelehnt
@@ -50,6 +51,21 @@ OK Vollständige freigegebene Konfiguration erkannt
 OK Ohne rechtliche Freigabe deaktiviert
 OK Öffentlicher Turnstile-Testschlüssel im Produktivbetrieb abgelehnt
 OK Drei konsistente Tarife
+OK Preis und Angebotskontext starter monatlich
+OK Preis und Angebotskontext starter jaehrlich
+OK Preis und Angebotskontext team monatlich
+OK Preis und Angebotskontext team jaehrlich
+OK Preis und Angebotskontext betrieb monatlich
+OK Preis und Angebotskontext betrieb jaehrlich
+OK Ohne Buchung keine Einrichtung starter
+OK Optionale Einrichtung und Preisbindung starter
+OK Ohne Buchung keine Einrichtung team
+OK Optionale Einrichtung und Preisbindung team
+OK Ohne Buchung keine Einrichtung betrieb
+OK Optionale Einrichtung und Preisbindung betrieb
+OK Ohne Buchung keine Einrichtung offen
+OK Optionale Einrichtung und Preisbindung offen
+OK Fehlende Einrichtungsauswahl ist keine Buchung
 OK 16 parallele PHP-Prozesse: reserve
 OK 16 parallele PHP-Prozesse: rate
-{"assertions":54,"failed":0}
+{"assertions":70,"failed":0}

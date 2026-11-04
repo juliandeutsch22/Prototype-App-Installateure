@@ -9,9 +9,12 @@
   "busyDuplicateBlocked": true,
   "errorRetainsFields": true,
   "serverFieldErrors": true,
+  "optionalFieldErrorsRevealDetails": true,
   "stableRetryId": true,
   "changedPayloadNewId": true,
   "clearOnlyOnAccepted": true,
   "tariffBillingPreserved": true,
+  "optionalSetupOptInPreserved": true,
+  "setupResetOnlyOnAccepted": true,
   "errors": []
 }

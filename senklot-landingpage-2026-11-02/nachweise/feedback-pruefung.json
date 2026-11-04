@@ -1,0 +1,63 @@
+{
+  "views": [
+    {
+      "width": 320,
+      "matchingHTMLSchemaAndJSPrices": true,
+      "threeRequiredFieldsVisible": true,
+      "allFieldsPreserved": true,
+      "collapsedInvalidFieldRevealed": true,
+      "invalidFormNotSent": true,
+      "collapsedFieldsSubmitted": true,
+      "annualAndSetupPreserved": true,
+      "setupOptionalByDefault": true,
+      "setupOnlyRequestedAfterOptIn": true,
+      "priceBindingTwelveMonths": true,
+      "setupScopeAccordionsKeyboardVerified": true
+    },
+    {
+      "width": 390,
+      "matchingHTMLSchemaAndJSPrices": true,
+      "threeRequiredFieldsVisible": true,
+      "allFieldsPreserved": true,
+      "collapsedInvalidFieldRevealed": true,
+      "invalidFormNotSent": true,
+      "collapsedFieldsSubmitted": true,
+      "annualAndSetupPreserved": true,
+      "setupOptionalByDefault": true,
+      "setupOnlyRequestedAfterOptIn": true,
+      "priceBindingTwelveMonths": true,
+      "setupScopeAccordionsKeyboardVerified": true
+    },
+    {
+      "width": 834,
+      "matchingHTMLSchemaAndJSPrices": true,
+      "threeRequiredFieldsVisible": true,
+      "allFieldsPreserved": true,
+      "collapsedInvalidFieldRevealed": true,
+      "invalidFormNotSent": true,
+      "collapsedFieldsSubmitted": true,
+      "annualAndSetupPreserved": true,
+      "setupOptionalByDefault": true,
+      "setupOnlyRequestedAfterOptIn": true,
+      "priceBindingTwelveMonths": true,
+      "setupScopeAccordionsKeyboardVerified": true
+    },
+    {
+      "width": 1440,
+      "matchingHTMLSchemaAndJSPrices": true,
+      "threeRequiredFieldsVisible": true,
+      "allFieldsPreserved": true,
+      "collapsedInvalidFieldRevealed": true,
+      "invalidFormNotSent": true,
+      "collapsedFieldsSubmitted": true,
+      "annualAndSetupPreserved": true,
+      "setupOptionalByDefault": true,
+      "setupOnlyRequestedAfterOptIn": true,
+      "priceBindingTwelveMonths": true,
+      "setupScopeAccordionsKeyboardVerified": true
+    }
+  ],
+  "noJavaScriptPricesCorrect": true,
+  "noJavaScriptDetailsAccessible": true,
+  "realMailSent": false
+}

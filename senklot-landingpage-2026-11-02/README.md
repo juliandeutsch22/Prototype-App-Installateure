@@ -44,7 +44,7 @@ Die kurzen Erscheinanimationen laufen einmal beim Sichtbarwerden. Reduzierte Bew
 - Telefon im Kontaktbereich und Footer: **+43 660 6322503**.
 - Anmeldung: **https://app.senklot.at/**. Die erreichbare Schreibweise mit „k“ wurde anhand der App und ihrer Versionskennung überprüft.
 - Impressum und Datenschutz verweisen auf die vorhandenen Seiten der App.
-- Preise nach Vorgabe: Starter 129 €, Team 229 €, Betrieb 379 € monatlich. Einrichtung 290 / 590 / 990 €. Alle Beträge netto zuzüglich gesetzlicher Umsatzsteuer. Keine erfundenen Referenzkunden, Bewertungen oder Einsparungszahlen.
+- Einführungspreise für Pilotbetriebe nach Vorgabe: Starter 129 €, Team 179 €, Betrieb 249 € monatlich. Optionale Einrichtung 290 / 590 / 699 €, nur bei Buchung. Alle Beträge netto zuzüglich gesetzlicher Umsatzsteuer. Keine erfundenen Referenzkunden, Bewertungen oder Einsparungszahlen.
 
 ## Neue Preis- und Kontaktbereiche
 
@@ -53,11 +53,11 @@ Die kurzen Erscheinanimationen laufen einmal beim Sichtbarwerden. Reduzierte Bew
 
 [Jahreszahlung ansehen](06-preise-jaehrlich-1440.png) · [Preise mobil](06-preise-390.png) · [Kontakt mobil](07-kontakt-390.png)
 
-Jährliche Vorauszahlung: genau 10 % Rabatt auf zwölf Monatsbeträge. Das entspricht effektiv 116,10 / 206,10 / 341,10 € monatlich; abgerechnet werden 1.393,20 / 2.473,20 / 4.093,20 € jährlich im Voraus. Die Einrichtung wird nicht rabattiert. Alle sechs vom Auftraggeber genannten Paketleistungen sind enthalten.
+Jährliche Vorauszahlung: genau 10 % Rabatt auf zwölf Monatsbeträge. Das entspricht effektiv 116,10 / 161,10 / 224,10 € monatlich; abgerechnet werden 1.393,20 / 1.933,20 / 2.689,20 € jährlich im Voraus. Die optionale Einrichtung wird nur bei Buchung berechnet und nicht rabattiert. Alle sechs vom Auftraggeber genannten Paketleistungen sind enthalten.
 
 **Noch nicht live aktiviert:** Das World4you-Paket enthält jetzt PHP 8.2+ mit PHPMailer/SMTP statt des ursprünglichen Node-/Resend-Versandwegs. Turnstile lädt nur nach ausdrücklicher Aktivierung. Für echte Anfragen fehlen Postfachdaten, Turnstile-Schlüssel, Abgleich der Anbieterunterlagen/Rechtstexte und der Upload. Deine Betreiberangaben und Texte vom 3. November 2026 sind bereits eingearbeitet; die 12-Monats-Fristen sind im Postfach organisatorisch umzusetzen. Das Formular bleibt bis zur vollständigen privaten Konfiguration gesperrt. [Konkrete Einrichtung und verbleibende Aufgaben](VEROEFFENTLICHEN.md).
 
-Die zwölf bisherigen Node-Tests bleiben als Prüfung des Vorschau-/alternativen Backends erhalten. Das neue PHP-Backend hat zusätzliche automatisierte Sicherheits- und Persistenzprüfungen, einen lokalen TLS-SMTP-Test und Browserprüfungen unter echtem Apache/PHP. Protokolle und reproduzierbare Tests stehen unter `nachweise/sicherheit/`. Es wurden keine echten E-Mails versendet. Die reale Turnstile-Integration und der Postfacheingang müssen auf dem eigenen Hosting geprüft werden.
+Die bisherigen Node-Tests und die zusätzliche Prüfung der optionalen Einrichtung bleiben als Prüfung des Vorschau-/alternativen Backends erhalten. Das neue PHP-Backend hat zusätzliche automatisierte Sicherheits- und Persistenzprüfungen, einen lokalen TLS-SMTP-Test und Browserprüfungen unter echtem Apache/PHP. Protokolle und reproduzierbare Tests stehen unter `nachweise/sicherheit/`. Es wurden keine echten E-Mails versendet. Die reale Turnstile-Integration und der Postfacheingang müssen auf dem eigenen Hosting geprüft werden.
 
 ## Tatsächliche Produktansichten
 
@@ -72,3 +72,21 @@ Die Sicherheitsrevision wurde auf allen neun Seiten bei 320, 390, 834 und 1440 p
 Die Aufnahmen sind keine erneute fachliche Prüfung der Betriebssoftware. Es wurden keine Produktionskonten angemeldet, Geschäftsdaten geschrieben oder E-Mails versendet.
 
 [Quellen und Abgrenzung](QUELLEN.md) · [Messdaten](nachweise/pruefung.json) · [Produktaufnahmen](nachweise/app-aufnahmen.json) · [Formularprüfungen](nachweise/kontakt-pruefung.json) · [Serverprüfungen](nachweise/server-tests.txt) · [SEO-Prüfungen](nachweise/seo-pruefung.json) · [Animationen](nachweise/animationen-pruefung.json) · [Apache](nachweise/apache-pruefung.json) · [Sicherheitsprüfung](nachweise/sicherheit/README.md)
+
+## Feedback-Überarbeitung vom 4. November 2026
+
+Neue Einführungspreise 129 / 180 / 249 € netto bei unveränderten Nutzergrenzen. Die begleitete Einrichtung ist optional: 290 / 590 / 699 € netto, ausschließlich bei Buchung. Ohne Buchung fällt keine Einrichtungsgebühr an. Anzeige, Suchmaschinen-Daten, Jahresrabatt, Tarifauswahl und serverseitige Anfrage-E-Mails verwenden dieselbe Preisquelle. Die Einführungspreise sind ab Vertragsbeginn für 12 Monate garantiert. Die Konditionen einer Weiterführung stehen vor Vertragsabschluss im Angebot; es gibt keinen hinterlegten automatischen Preissprung.
+
+Ein typischer Auftrag (Heizungsmodernisierung) erklärt den Zusammenhang der Funktionen. Neue Abschnitte beschreiben den Einstieg in drei Schritten, die Prüfung vorhandener Exportdateien, den Einrichtungsumfang, Support, Rollen, Sicherungen und Datenauszüge. Grundlage sind nachprüfbare Funktionen; Betriebsvereinbarungen werden vor dem Start geklärt. Es gibt keine erfundenen Kundenstimmen, Verfügbarkeitsgarantien oder gemessenen Zeitersparnisse.
+
+Die kostenlose Demo ist mit etwa 30 Minuten veranschlagt. Das Formular zeigt zunächst die drei Pflichtfelder; Telefon, Tarif, Nutzerzahl, Nachricht und die freiwillige Anfrage zur optionalen Einrichtung bleiben aufklappbar verfügbar. Die Einrichtung ist nicht vorausgewählt und wird ohne ausdrückliche Auswahl auch in der Anfrage-E-Mail nicht als gewünscht dargestellt. Eingeklappte Eingaben bleiben erhalten und werden mitgesendet. Bei Validierungsfehlern öffnet sich der betreffende Bereich.
+
+- [Einstieg Desktop](08-einstieg-1440.png) · [Einstieg mobil](08-einstieg-390.png)
+- [Betriebsgrundlagen Desktop](09-vertrauen-1440.png) · [Betriebsgrundlagen mobil](09-vertrauen-390.png)
+- [Prüfung von Preisen und Formular](nachweise/feedback-pruefung.json)
+
+Vor dem tatsächlichen Pilotstart sind Angebotsumfang, Supportzeiten, Datenübernahme und Sicherungs-/Wiederherstellungsprozess verbindlich abzustimmen. Nach den ersten Monaten sind tatsächliche Einrichtungs- und Supportzeiten sowie Betriebskosten zu erfassen und die Preise für weitere Kunden zu prüfen. Echte Erfahrungsberichte können erst nach einem Pilotbetrieb und mit dessen Zustimmung ergänzt werden.
+
+Bei jedem Tarif lässt sich der genaue Einrichtungsumfang aufklappen: Grundeinstellungen, Nutzer und Rollen im jeweiligen Paketumfang, Modulkonfiguration sowie eine Einführung mit Testauftrag und gemeinsamer Prüfung. Zusätzliche Datenübernahmen, Entwicklung und Schulungen sind gesondert abgegrenzt.
+
+[Aufgeklappte Einrichtung Desktop](06-einrichtung-offen-1440.png) · [Aufgeklappte Einrichtung mobil](06-einrichtung-offen-390.png).

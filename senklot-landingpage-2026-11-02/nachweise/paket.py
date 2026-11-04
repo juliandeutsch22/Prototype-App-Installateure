@@ -10,11 +10,12 @@ seo=json.loads((root/'nachweise/seo-pruefung.json').read_text());assert seo['pag
 assert json.loads((root/'nachweise/animationen-pruefung.json').read_text())['dynamicReducedMotion']
 assert json.loads((root/'nachweise/sicherheit/apache-pruefung.json').read_text())['actualApacheExecution']
 browser=json.loads((root/'nachweise/sicherheit/browser-pruefung.json').read_text());assert len(browser['views'])==36 and all(not p['violations'] for p in browser['views'])
-assert '"assertions":54,"failed":0' in (root/'nachweise/sicherheit/php-tests.txt').read_text()
+php=json.loads((root/'nachweise/sicherheit/php-tests.txt').read_text().splitlines()[-1]);assert php['assertions']>=70 and php['failed']==0
 assert json.loads((root/'nachweise/sicherheit/smtp-pruefung.json').read_text())['untrustedCertificateRejected']
 assert json.loads((root/'nachweise/sicherheit/paket-pruefung.json').read_text())['zipIntegrity']
 assert json.loads((root/'nachweise/kontakt-pruefung.json').read_text())['explicitActivation']
-assert 'tests 12' in (root/'nachweise/server-tests.txt').read_text() and 'fail 0' in (root/'nachweise/server-tests.txt').read_text()
+assert len(json.loads((root/'nachweise/feedback-pruefung.json').read_text())['views'])==4
+assert 'tests 13' in (root/'nachweise/server-tests.txt').read_text() and 'fail 0' in (root/'nachweise/server-tests.txt').read_text()
 features=json.loads((root/'werkzeuge/funktionen.json').read_text());target.mkdir(exist_ok=True)
 for name in ['index.html','landingpage.css','landingpage.js','tarife.js','kontakt.js','effekte.js','robots.txt','sitemap.xml','.htaccess','package.json','.env.example','.gitignore','README.md','QUELLEN.md','VEROEFFENTLICHEN.md','world4you-upload.zip','animationen.webm']:
  shutil.copyfile(root/name,target/name)
@@ -22,7 +23,7 @@ for name in ['assets','server','werkzeuge','vorlagen','api','senklot-intern','im
  shutil.copytree(root/name,target/name,dirs_exist_ok=True,ignore=shutil.ignore_patterns('config.php','speicher','__pycache__'))
 for p in root.glob('*.png'):shutil.copyfile(p,target/p.name)
 (target/'nachweise').mkdir(exist_ok=True)
-for name in ['pruefung.json','app-aufnahmen.json','kontakt-pruefung.json','server-tests.txt','seo-pruefung.json','animationen-pruefung.json','apache-pruefung.json','world4you-paket.json','bildoptimierung.json','ladeverhalten.json','zusatzpruefung.json','kontakt-pruefen.cjs','pruefen.cjs','seo-pruefen.cjs','animationen-pruefen.cjs','paket.py']:
+for name in ['pruefung.json','app-aufnahmen.json','kontakt-pruefung.json','server-tests.txt','seo-pruefung.json','animationen-pruefung.json','apache-pruefung.json','world4you-paket.json','bildoptimierung.json','ladeverhalten.json','zusatzpruefung.json','kontakt-pruefen.cjs','pruefen.cjs','seo-pruefen.cjs','animationen-pruefen.cjs','paket.py','feedback-pruefen.cjs','feedback-pruefung.json','preview-server.cjs']:
  shutil.copyfile(root/'nachweise'/name,target/'nachweise'/name)
 shutil.copytree(root/'nachweise/sicherheit',target/'nachweise/sicherheit',dirs_exist_ok=True)
 assert not (target/'senklot-intern/config.php').exists() and not (target/'senklot-intern/speicher').exists()
@@ -43,7 +44,7 @@ for p in list(target.glob('*.html'))+list(target.glob('*/index.html'))+[target/'
   if local.name=='landingpage.zip':continue
   assert local.exists(),(p,ref)
   count+=1
-(target/'paket-pruefung.json').write_text(json.dumps({'checkedRelativeReferences':count,'missingReferences':[],'viewportWidths':[320,390,834,1440],'publicPages':9,'indexableMarketingPages':7,'legalPagesAreDrafts':False,'operatorDetailsIntegrated':True,'providerDocumentsReviewed':False,'appUnchanged':True,'realContactDeliveryConfigured':False,'world4youUploadPerformed':False,'googleBingVerificationPerformed':False,'realCredentialsIncluded':False},indent=2)+'\n')
+(target/'paket-pruefung.json').write_text(json.dumps({'checkedRelativeReferences':count,'missingReferences':[],'viewportWidths':[320,390,834,1440],'publicPages':9,'indexableMarketingPages':7,'legalPagesAreDrafts':False,'operatorDetailsIntegrated':True,'providerDocumentsReviewed':False,'appUnchanged':True,'realContactDeliveryConfigured':False,'world4youUploadPerformed':False,'googleBingVerificationPerformed':False,'realCredentialsIncluded':False,'monthlyNetPrices':[129,179,249],'setupOptional':True,'introPriceGuaranteeMonths':12},indent=2)+'\n')
 with zipfile.ZipFile(target/'landingpage.zip','w',zipfile.ZIP_DEFLATED) as z:
  for p in sorted(target.rglob('*')):
   if p.is_file() and p.name not in ['landingpage.zip','SHA256.txt']:z.write(p,p.relative_to(target))

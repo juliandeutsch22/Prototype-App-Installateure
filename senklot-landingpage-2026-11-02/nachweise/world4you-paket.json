@@ -1,8 +1,8 @@
 {
   "stage": "/tmp/senklot-world4you-upload",
   "archive": "world4you-upload.zip",
-  "bytes": 821779,
-  "sha256": "5c96838a404366c7b3a06f29c5a910f8cfda4f2635cc70a8b81cd7cfb66f6a28",
+  "bytes": 826868,
+  "sha256": "5c6dfff1dbb5e93199982e068c182fe789180b6cdf864d43d7e8cd65782018ea",
   "publicFiles": [
     ".htaccess",
     "angebote-rechnungen/index.html",
@@ -39,6 +39,7 @@
     "material-lager/index.html",
     "robots.txt",
     "senklot-intern/.htaccess",
+    "senklot-intern/angebot.json",
     "senklot-intern/config.example.php",
     "senklot-intern/kontakt.php",
     "senklot-intern/tarife.json",
@@ -53,7 +54,7 @@
     "tarife.js",
     "zeiterfassung/index.html"
   ],
-  "htmlReferencesChecked": 166,
+  "htmlReferencesChecked": 181,
   "missingReferences": [],
   "realCredentialsIncluded": false,
   "protectedBackendIncluded": true,

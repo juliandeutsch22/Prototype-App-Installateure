@@ -1,6 +1,6 @@
 # World4you: Sicherheit und Kontaktformular veröffentlichen
 
-Stand 3. November 2026. **Diese Revision ist vorbereitet und lokal getestet; sie wurde aus dieser Sitzung nicht auf World4you hochgeladen.** Weder Hosting- noch Postfach- noch Cloudflare-Zugang sind hier eingerichtet. Die Anwendung unter app.senklot.at wurde nicht verändert.
+Stand 4. November 2026. **Diese Revision ist vorbereitet und lokal getestet; sie wurde aus dieser Sitzung nicht auf World4you hochgeladen.** Weder Hosting- noch Postfach- noch Cloudflare-Zugang sind hier eingerichtet. Die Anwendung unter app.senklot.at wurde nicht verändert.
 
 ## Was bereits enthalten ist
 
@@ -11,6 +11,16 @@ Stand 3. November 2026. **Diese Revision ist vorbereitet und lokal getestet; sie
 - Servervalidierung, feste Empfängeradresse office@senklot.at, Turnstile-Prüfung einschließlich Host/Aktion, Honeypot, Größenbegrenzung, Dateisperren für parallele PHP-Prozesse, Rate-Limit (8 Versuche pro 15 Minuten/IP-Hash) und Schutz vor wiederholtem Versand derselben Anfrage-ID (48 Stunden).
 - Fehlende Konfiguration oder nicht bestätigter Versand werden nicht als Erfolg angezeigt. Eingaben bleiben bei Fehlern erhalten. Bei unklarer Zustellung wird derselbe Vorgang nicht automatisch erneut verschickt. Der Schutz bezieht sich auf dieselbe Anfrage-ID; nach Neuladen oder bei geänderten Angaben entsteht ein neuer Vorgang.
 - Eigene Impressums- und Datenschutzseiten im bestehenden Design mit den von Julian Deutsch bereitgestellten Betreiberangaben und Texten. Cloudflare und der technische Missbrauchs-/Mehrfachversandschutz sind ergänzt. Die Seiten stehen nicht in der Sitemap und sind noindex. Die Einbindung ist keine unabhängige rechtliche Prüfung.
+
+## Neu in dieser Revision: Preise und Einstieg
+
+Einführungspreise für Pilotbetriebe: **129 / 180 / 249 € netto monatlich** für bis 5 / 6–15 / 16–30 Nutzer. Bei jährlicher Vorauszahlung und unverändert 10 % Rabatt: **1.393,20 / 1.933,20 / 2.689,20 € netto pro Jahr** (effektiv 116,10 / 161,10 / 224,10 € monatlich). Die begleitete Einrichtung ist optional: 290 / 590 / 699 € netto ausschließlich bei Buchung; keine Einrichtungsgebühr bei eigenständigem Start. Die Einführungspreise sind ab Vertragsbeginn für 12 Monate garantiert. Die Konditionen einer Weiterführung werden vor Vertragsabschluss im Angebot festgehalten. Die Preisbindung legt keine Mindestvertragslaufzeit fest. Keine nicht vereinbarten Folgepreise oder automatischen Erhöhungen.
+
+**Vor den ersten Angeboten festlegen:** konkreter Umfang der optional buchbaren Grundkonfiguration/Einführung je Paket, regulärer Support und Servicezeiten, Abgrenzung zusätzlicher Schulungen, Datenübernahmen und Anpassungen. Die persönliche kostenlose Demo ist mit etwa 30 Minuten angesetzt; Termine werden individuell abgestimmt. Die Website verspricht weder eine pauschale Datenmigration noch einen festen Sofort-Starttermin.
+
+**Vor Produktivstart prüfen:** Sicherungsrhythmus, Aufbewahrung und Wiederherstellungsablauf verbindlich festhalten und einen Wiederherstellungstest durchführen. Dafür sind die tatsächlichen App-Dienste und deren Konfiguration erforderlich; der World4you-Website-Upload richtet keine App-Backups ein. Die optionale Einrichtung wird im Formular nur nach ausdrücklicher Checkbox-Auswahl angefragt; Preise und E-Mail unterscheiden beide Fälle. Nach den ersten Monaten Einrichtungszeit, Supportzeit und laufende Kosten je Betrieb auswerten, bevor Preise für weitere Kunden dauerhaft festgelegt werden.
+
+Echte Referenzen oder gemessene Einsparungen erst nach einem tatsächlichen Pilotbetrieb und dessen Zustimmung ergänzen. Die gelieferten Analysebewertungen und Conversion-Szenarien sind keine gemessenen Kundenergebnisse und werden nicht auf der Website veröffentlicht.
 
 ## 1. Rechtstexte und betriebliche Vorgaben abgleichen
 

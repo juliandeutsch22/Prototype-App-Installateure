@@ -1,21 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createHandler,validieren,AnfrageLimit} from './contact.mjs';
+import {createHandler,validieren,AnfrageLimit,emailText} from './contact.mjs';
 import tarife from '../tarife.js';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 const origin='https://senklot.at';
-const data={name:'Anna Beispiel',firma:'Testbetrieb',email:'anna@example.at',telefon:'+43 660 123456',tarif:'team',zahlung:'jaehrlich',nutzer:'8',nachricht:'Bitte um eine Demo.',website:'',token:'valid-token',requestId:'f178f466-386f-47f0-81af-d426d08117aa'};
+const data={name:'Anna Beispiel',firma:'Testbetrieb',email:'anna@example.at',telefon:'+43 660 123456',tarif:'team',zahlung:'jaehrlich',einrichtung:true,nutzer:'8',nachricht:'Bitte um eine Demo.',website:'',token:'valid-token',requestId:'f178f466-386f-47f0-81af-d426d08117aa'};
 function request(d=data,options={}){return new Request(origin+'/api/contact',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json',...options.headers},body:typeof d==='string'?d:JSON.stringify(d)});}
 function setup(overrides={}){const verified=[],sent=[];const handler=createHandler({origins:[origin],ready:true,verify:async(...args)=>{verified.push(args);return {success:true,action:'contact',hostname:'senklot.at'};},send:async m=>{sent.push(m);return {id:'mock-message'};},...overrides});return {handler,verified,sent};}
 test('Alle sechs Abopreise und Einrichtung werden exakt in Cent berechnet',()=>{
- for(const[id,month,annual,setup]of[['starter',12900,139320,29000],['team',22900,247320,59000],['betrieb',37900,409320,99000]]){
+ for(const[id,month,annual,setup]of[['starter',12900,139320,19900],['team',17900,193320,39900],['betrieb',24900,268920,69900]]){
   assert.equal(tarife.preis(id,'monatlich').effektivMonatCent,month);const p=tarife.preis(id,'jaehrlich');assert.equal(p.jahrCent,annual);assert.equal(p.effektivMonatCent,annual/12);assert.equal(p.einrichtungCent,setup);
  }assert.equal(tarife.preis('falsch','monatlich'),null);assert.equal(tarife.preis('team','falsch'),null);
 });
 test('Bestätigter Versand nutzt feste Empfängeradresse und serverseitige Preise',async()=>{
- const s=setup(),r=await s.handler(request({...data,preis:1,to:'falsch@example.com'}),'ip');assert.equal(r.status,200);assert.equal((await r.json()).code,'ACCEPTED');assert.equal(s.verified.length,1);assert.equal(s.sent.length,1);const m=s.sent[0];assert.equal(m.to,'office@senklot.at');assert.equal(m.replyTo,data.email);assert.match(m.text,/2\.473,20 € jährlich/);assert.match(m.text,/590,00 € netto/);
+ const s=setup(),r=await s.handler(request({...data,preis:1,to:'falsch@example.com'}),'ip');assert.equal(r.status,200);assert.equal((await r.json()).code,'ACCEPTED');assert.equal(s.verified.length,1);assert.equal(s.sent.length,1);const m=s.sent[0];assert.equal(m.to,'office@senklot.at');assert.equal(m.replyTo,data.email);assert.match(m.text,/1\.933,20 € jährlich/);assert.match(m.text,/399,00 € netto/);
  await s.handler(request(),'ip');assert.deepEqual(s.sent[0],s.sent[1]);
+});
+test('Einrichtung ist freiwillig und wird nur nach ausdrücklicher Auswahl angefragt',()=>{
+ for(const id of ['starter','team','betrieb','offen']){
+  const no=validieren({...data,tarif:id,einrichtung:false}).data;const text=emailText(no);assert.match(text,/Einrichtung: nicht angefragt/);assert.doesNotMatch(text,/Einrichtung angefragt:/);
+  if(id!=='offen')assert.match(text,/keine Einrichtungsgebühr/);
+  const yes=emailText(validieren({...data,tarif:id,einrichtung:true}).data);assert.match(yes,/Optionale Einrichtung angefragt:/);assert.match(yes,/12 Monate garantiert/);
+ }
+ const absent={...data};delete absent.einrichtung;assert.equal(validieren(absent).data.einrichtung,false);
 });
 test('Vorschau und fehlende Konfiguration versenden nie',async()=>{
  for(const[config,status,code]of[[{preview:true},200,'PREVIEW_ONLY'],[{ready:false},503,undefined]]){const s=setup(config),r=await s.handler(request(),'ip');assert.equal(r.status,status);assert.equal((await r.json()).code,code);assert.equal(s.verified.length,0);assert.equal(s.sent.length,0);}
@@ -29,7 +37,7 @@ test('Dienstausfälle oder fehlende Versandbestätigung ergeben niemals Erfolg',
  for(const send of[async()=>{throw Error('offline');},async()=>({}),async()=>({id:''})]){const s=setup({send}),r=await s.handler(request(),'ip');assert.equal(r.status,502);assert.equal((await r.json()).code,undefined);}
 });
 test('Servervalidierung stoppt Manipulationen unabhängig vom Browser',()=>{
- for(const change of[{name:'x'},{firma:[]},{email:'a@b.at\r\nBcc:x@y.at'},{telefon:{}},{tarif:'__proto__'},{zahlung:'free'},{nutzer:true},{nutzer:1.2},{nutzer:10001},{nachricht:{}},{nachricht:'x'.repeat(3001)},{website:'spam'},{requestId:'x'},{token:'x'.repeat(2049)}])assert.ok(validieren({...data,...change}).errors,JSON.stringify(change));
+ for(const change of[{name:'x'},{firma:[]},{email:'a@b.at\r\nBcc:x@y.at'},{telefon:{}},{tarif:'__proto__'},{zahlung:'free'},{einrichtung:'ja'},{nutzer:true},{nutzer:1.2},{nutzer:10001},{nachricht:{}},{nachricht:'x'.repeat(3001)},{website:'spam'},{requestId:'x'},{token:'x'.repeat(2049)}])assert.ok(validieren({...data,...change}).errors,JSON.stringify(change));
  assert.ok(validieren([]).errors);assert.ok(validieren(null).errors);assert.ok(validieren(data).data);
 });
 test('HTTP- und Origin-Grenzen werden vor dem Versand geprüft',async()=>{

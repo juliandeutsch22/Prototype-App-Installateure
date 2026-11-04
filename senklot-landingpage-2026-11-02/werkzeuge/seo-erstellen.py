@@ -6,15 +6,27 @@ import json, re, subprocess
 
 ROOT = Path(__file__).resolve().parent.parent
 DOMAIN = 'https://senklot.at'
-VERSION = '20261103-sicherheit1'
+VERSION = '20261104-feedback2'
 funktionen = json.loads((ROOT / 'werkzeuge/funktionen.json').read_text())
-tarife = json.loads(subprocess.check_output(['node', '-e', 'process.stdout.write(JSON.stringify(require("./tarife.js").TARIFE))'], cwd=ROOT))
+tarifquelle = json.loads(subprocess.check_output(['node', '-e', 'process.stdout.write(JSON.stringify(require("./tarife.js")))'], cwd=ROOT))
+tarife = tarifquelle['TARIFE']
+einfuehrung = tarifquelle['EINFUEHRUNG']
 pfeil = '<svg class="linkpfeil" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 12 12 4M4 4h8v8"/></svg>'
 link_texte = {'einsatzplanung': 'Details zur Einsatzplanung', 'zeiterfassung': 'Details zur Zeiterfassung', 'handwerksscheine': 'Details zu digitalen Handwerksscheinen', 'kunden-baustellen': 'Details zu Kunden & Baustellen', 'material-lager': 'Details zu Material & Lager', 'angebote-rechnungen': 'Details zu Angeboten & Rechnungen'}
 faq_titel = {'einsatzplanung': 'Fragen zur<br>Einsatzplanung.', 'zeiterfassung': 'Fragen zur<br>Zeiterfassung.', 'handwerksscheine': 'Fragen zu digitalen<br>Handwerksscheinen.', 'kunden-baustellen': 'Fragen zu Kunden<br>und Baustellen.', 'material-lager': 'Fragen zu Material<br>und Lager.', 'angebote-rechnungen': 'Fragen zu Angeboten<br>und Rechnungen.'}
 
 def euro(cent):
     return f'{cent / 100:,.2f}'.replace(',', '_').replace('.', ',').replace('_', '.') + ' €'
+
+def inhalte(text):
+    # Alle sichtbaren Abopreise und die Angebotsbedingungen stammen aus tarife.js.
+    text = text.replace('{{PREISBINDUNG}}', einfuehrung['preisbindung'])
+    for id, tarif in tarife.items():
+        text = text.replace('{{MONAT_' + id.upper() + '}}', euro(tarif['monatCent']).replace(',00 €', ' €'))
+        text = text.replace('{{SETUP_' + id.upper() + '}}', euro(tarif['einrichtungCent']).replace(',00 €', ' €'))
+        leistungen = '<ul>' + ''.join('<li>' + escape(item) + '</li>' for item in tarif['einrichtungLeistungen']) + '</ul>'
+        text = text.replace('{{EINRICHTUNG_' + id.upper() + '}}', leistungen)
+    return text
 
 def schema(slug='', name='Senklot – Software für Installationsbetriebe in Österreich', description=''):
     url = DOMAIN + ('/' + slug + '/' if slug else '/')
@@ -27,7 +39,7 @@ def schema(slug='', name='Senklot – Software für Installationsbetriebe in Ös
         offers = []
         for id, tarif in tarife.items():
             offers.append({'@type': 'Offer', 'name': tarif['name'], 'price': tarif['monatCent'] / 100, 'priceCurrency': 'EUR', 'url': DOMAIN + '/#tarif-' + id,
-                'description': f"{tarif['nutzer']} Mitarbeiter / Nutzer. Monatliches Abonnement netto zuzüglich Umsatzsteuer. Einmalige Einrichtung {euro(tarif['einrichtungCent'])} netto. Bei jährlicher Vorauszahlung 10 % Rabatt nur auf das Abonnement.",
+                'description': f"Einführungspreis für Pilotbetriebe. {einfuehrung['preisbindung']} {tarif['nutzer']} Mitarbeiter / Nutzer. Monatliches Abonnement netto zuzüglich Umsatzsteuer. Optional buchbare Einrichtung {euro(tarif['einrichtungCent'])} netto, nur bei Buchung. Bei jährlicher Vorauszahlung 10 % Rabatt nur auf das Abonnement.",
                 'priceSpecification': {'@type': 'UnitPriceSpecification', 'price': tarif['monatCent'] / 100, 'priceCurrency': 'EUR', 'unitText': 'Monat', 'valueAddedTaxIncluded': False}})
         graph.append({'@type': 'SoftwareApplication', '@id': DOMAIN + '/#software', 'name': 'Senklot', 'url': DOMAIN + '/', 'applicationCategory': 'BusinessApplication', 'operatingSystem': 'Webbrowser', 'inLanguage': 'de-AT', 'description': description, 'publisher': {'@id': DOMAIN + '/#anbieter'}, 'featureList': [f['name'] for f in funktionen], 'offers': offers})
     else:
@@ -65,7 +77,7 @@ def head(title, description, slug='', prefix=''):
   <script type="application/ld+json">{graph}</script>
 </head>'''
 
-home = (ROOT / 'vorlagen/startseite-vor-seo.html').read_text()
+home = inhalte((ROOT / 'vorlagen/startseite-vor-seo.html').read_text())
 home = re.sub(r'<head>.*?</head>', lambda _: head('Senklot – Software für Installationsbetriebe in Österreich', 'Einsatzplanung, mobile Zeiterfassung, digitale Handwerksscheine und Abrechnung für Installationsbetriebe in Österreich. Senklot kennenlernen und Demo anfragen.'), home, flags=re.S)
 home = home.replace('Plane dein Team, erfasse Leistungen vor Ort und behalte die Abrechnung im Blick. Senklot bringt deinen Arbeitsalltag zusammen.', 'Senklot ist die Betriebssoftware für Installationsbetriebe in Österreich. Plane dein Team, dokumentiere Leistungen vor Ort und behalte die Abrechnung im Blick.')
 # Funktionslinks erweitern die bestehende Übersicht, ohne eine weitere Kartenreihe.
@@ -82,8 +94,8 @@ block = re.sub(r'<article>.*?</article>', link, block, flags=re.S)
 home = home[:start] + block + home[end:]
 # Jahrespreise bleiben auch ohne JavaScript als lesbare HTML-Inhalte verfügbar.
 annual = '; '.join(f"{t['name']}: {euro(t['monatCent'] * 12 * 9 // 10)} jährlich im Voraus" for t in tarife.values())
-faq = f'<details><summary>Wie funktioniert die jährliche Vorauszahlung?</summary><p>Bei jährlicher Vorauszahlung erhältst du genau 10 % Rabatt auf das Abonnement. {annual}. Alle Beträge netto zuzüglich gesetzlicher Umsatzsteuer. Die einmalige Einrichtung von 290 € für Starter, 590 € für Team und 990 € für Betrieb bleibt unverändert.</p></details>\n'
-faq += '<details><summary>Wie beginnt die Einrichtung von Senklot?</summary><p>Frag eine persönliche Demo an. Dabei besprechen wir Nutzerzahl, benötigte Module und eure Abläufe. Die Anfrage ist unverbindlich und schließt kein Abonnement ab. Die einmaligen Einrichtungskosten sind in der Preisübersicht getrennt ausgewiesen.</p></details>\n'
+einrichtung = '; '.join(t['name'] + ': ' + euro(t['einrichtungCent']) for t in tarife.values())
+faq = f'<details><summary>Wie funktioniert die jährliche Vorauszahlung?</summary><p>Bei jährlicher Vorauszahlung erhältst du genau 10 % Rabatt auf das Abonnement. {annual}. Alle Beträge netto zuzüglich gesetzlicher Umsatzsteuer. Die begleitete Einrichtung ist optional ({einrichtung}). Sie wird nur bei Buchung berechnet und nicht rabattiert.</p></details>\n'
 home = home.replace('<div class="faq-liste">', '<div class="faq-liste">\n' + faq, 1)
 home = re.sub(r'assets/([a-z-]+)\.png', r'assets/\1.webp', home)
 home = home.replace('assets/senklot-vorschau.webp', 'assets/senklot-vorschau.png')
@@ -109,7 +121,7 @@ for f in funktionen:
     mobile = width < height
     sections = ''.join(f'<article data-erscheinen><p class="nummer">0{i + 1}</p><div><h2>{escape(title)}</h2><p>{escape(text)}</p></div></article>' for i, (title, text) in enumerate(f['sections']))
     steps = ''.join(f'<li data-erscheinen><span class="schrittzahl">0{i + 1}</span><h3>{escape(title)}</h3><p>{escape(text)}</p></li>' for i, (title, text) in enumerate(f['steps']))
-    faq = ''.join(f'<details><summary>{escape(q)}</summary><p>{escape(a)}</p></details>' for q, a in f['faq'])
+    faq = ''.join(f'<details><summary>{escape(q)}</summary><p>{escape(inhalte(a))}</p></details>' for q, a in f['faq'])
     related = ''.join(f'<a href="../{slug}/">{escape(next(r["name"] for r in funktionen if r["slug"] == slug))} {pfeil}</a>' for slug in f['related'])
     html = f'''<!doctype html>
 <html lang="de-AT">
@@ -122,7 +134,7 @@ for f in funktionen:
     <div class="wrap">
       <nav class="brotpfad" aria-label="Brotkrumennavigation"><a href="../">Senklot</a><span aria-hidden="true">/</span><span aria-current="page">{escape(f['name'])}</span></nav>
       <div class="detail-einstieg">
-        <div data-erscheinen><p class="rubrik">SENKLOT / FUNKTIONEN</p><h1>{escape(f['name'])}</h1><p class="detail-leitsatz">{escape(f['headline'])}</p><p class="absatz">{escape(f['intro'])}</p><div class="aktionen"><a class="knopf" href="../#kontakt">Demo anfragen {pfeil}</a><a class="textlink" href="../#preise">Preise ansehen</a></div></div>
+        <div data-erscheinen><p class="rubrik">SENKLOT / FUNKTIONEN</p><h1>{escape(f['name'])}</h1><p class="detail-leitsatz">{escape(f['headline'])}</p><p class="absatz">{escape(f['intro'])}</p><div class="aktionen"><a class="knopf" href="../#kontakt">Kostenlose Demo anfragen {pfeil}</a><a class="textlink" href="../#preise">Preise ansehen</a></div></div>
         <figure class="detail-bild{' detail-bild-mobil' if mobile else ''}" data-erscheinen><div class="app-fenster"><img src="../assets/{f['image']}.webp" alt="{escape(f['caption'], quote=True)}" width="{width}" height="{height}" fetchpriority="high"></div><figcaption>{escape(f['caption'])}</figcaption></figure>
       </div>
     </div>
@@ -131,7 +143,7 @@ for f in funktionen:
   <section class="ablauf raster"><div class="wrap"><div class="bereichskopf"><p class="rubrik">IM ARBEITSALLTAG</p><h2>Ein klarer Ablauf.<br>Gemeinsame Informationen.</h2></div><ol class="ablaufschritte detail-schritte">{steps}</ol></div></section>
   <section class="fragen wrap"><div><p class="rubrik">GUT ZU WISSEN</p><h2>{faq_titel[f['slug']]}</h2></div><div class="faq-liste">{faq}</div></section>
   <nav class="verwandte wrap" aria-label="Passende Funktionen"><p class="rubrik">DAS GEHÖRT ZUSAMMEN</p><div>{related}</div></nav>
-  <section class="abschluss raster"><div class="wrap"><p class="rubrik">DEIN BETRIEB. IM LOT.</p><h2>Im Zusammenhang ansehen.</h2><p>Wir zeigen dir Senklot anhand der Abläufe deines Betriebs.</p><a class="knopf" href="../#kontakt">Demo anfragen {pfeil}</a></div></section>
+  <section class="abschluss raster"><div class="wrap"><p class="rubrik">DEIN BETRIEB. IM LOT.</p><h2>Im Zusammenhang ansehen.</h2><p>Persönliche Produktvorführung – etwa 30 Minuten, kostenlos und unverbindlich. Den Termin stimmen wir mit dir ab.</p><p class="detail-einstieg-link"><a href="../#einstieg">So funktioniert der Einstieg</a></p><a class="knopf" href="../#kontakt">Kostenlose Demo anfragen {pfeil}</a></div></section>
 </main>
 {footer}
 <script defer src="../effekte.js?v={VERSION}"></script>

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import tarifdaten from '../tarife.js';
-const { TARIFE, preis, euro } = tarifdaten;
+const { TARIFE, EINFUEHRUNG, preis, euro } = tarifdaten;
 export const EMPFAENGER='office@senklot.at';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const plain=(s,max)=>typeof s==='string'&&s.length<=max&&!/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(s);
@@ -17,6 +17,7 @@ export function validieren(raw){
  if(d.nutzer!==null&&(!['number','string'].includes(typeof raw.nutzer)||!Number.isInteger(d.nutzer)||d.nutzer<1||d.nutzer>10000))e.nutzer='Bitte gib eine ganze Zahl ab 1 ein.';
  d.nachricht=typeof raw.nachricht==='string'?raw.nachricht.trim():'';if((raw.nachricht!==undefined&&typeof raw.nachricht!=='string')||!plain(d.nachricht,3000))e.nachricht='Die Nachricht darf höchstens 3.000 Zeichen enthalten.';
  if(typeof raw.website!=='string'||raw.website.trim())e.formular='Die Anfrage konnte nicht verarbeitet werden. Bitte verwende bei Bedarf E-Mail oder Telefon.';
+ d.einrichtung=raw.einrichtung??false;if(typeof d.einrichtung!=='boolean')e.einrichtung='Bitte prüfe die optionale Einrichtung.';
  d.requestId=raw.requestId;if(typeof d.requestId!=='string'||!UUID.test(d.requestId))e.formular='Bitte lade das Formular neu.';
  d.token=raw.token;if(d.token!==undefined&&(typeof d.token!=='string'||d.token.length>2048))e.formular='Bitte wiederhole die Sicherheitsprüfung.';
  return Object.keys(e).length?{errors:e}:{data:d};
@@ -32,8 +33,8 @@ export class AnfrageLimit{
 function antwort(status,data,extra={}){return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...extra}});}
 export function emailText(d){
  const p=d.tarif==='offen'?null:preis(d.tarif,d.zahlung);
- return ['Senklot – neue Website-Anfrage','',`Name: ${d.name}`,`Betrieb: ${d.firma}`,`E-Mail: ${d.email}`,`Telefon: ${d.telefon||'Nicht angegeben'}`,`Mitarbeiter / Nutzer: ${d.nutzer??'Nicht angegeben'}`,`Tarif: ${p?p.name:'Noch offen / allgemeine Anfrage'}`,`Abrechnung: ${d.zahlung==='jaehrlich'?'Jährliche Vorauszahlung, 10 % Rabatt':'Monatlich'}`,
- ...(p?[`Abonnement: ${euro(p.effektivMonatCent,true)} netto pro Monat${d.zahlung==='jaehrlich'?` (${euro(p.jahrCent,true)} jährlich im Voraus)`:''}`,`Einmalige Einrichtung: ${euro(p.einrichtungCent,true)} netto`]:[]),'','Nachricht:',d.nachricht||'Keine zusätzliche Nachricht.','',`Anfrage-ID: ${d.requestId}`,'Unverbindliche Anfrage; kein Vertragsabschluss.'].join('\n');
+ return ['Senklot – neue Website-Anfrage','',EINFUEHRUNG.titel,EINFUEHRUNG.preisbindung,'',`Name: ${d.name}`,`Betrieb: ${d.firma}`,`E-Mail: ${d.email}`,`Telefon: ${d.telefon||'Nicht angegeben'}`,`Mitarbeiter / Nutzer: ${d.nutzer??'Nicht angegeben'}`,`Tarif: ${p?p.name:'Noch offen / allgemeine Anfrage'}`,`Abrechnung: ${d.zahlung==='jaehrlich'?'Jährliche Vorauszahlung, 10 % Rabatt':'Monatlich'}`,
+ ...(p?[`Abonnement: ${euro(p.effektivMonatCent,true)} netto pro Monat${d.zahlung==='jaehrlich'?` (${euro(p.jahrCent,true)} jährlich im Voraus)`:''}`,...(d.einrichtung?[`Optionale Einrichtung angefragt: ${euro(p.einrichtungCent,true)} netto einmalig`]:['Begleitete Einrichtung: nicht angefragt; keine Einrichtungsgebühr für eigenständigen Start.'])]:(d.einrichtung?['Optionale Einrichtung angefragt: Umfang und Preis vorab vereinbaren.']:['Begleitete Einrichtung: nicht angefragt.'])),'','Nachricht:',d.nachricht||'Keine zusätzliche Nachricht.','',`Anfrage-ID: ${d.requestId}`,'Unverbindliche Anfrage; kein Vertragsabschluss.'].join('\n');
 }
 export function createHandler({origins,preview=false,ready=false,verify,send,limit=new AnfrageLimit()}){
  return async function(request,ip){

@@ -22,4 +22,5 @@ for slug,title in [('impressum','Impressum'),('datenschutz','Datenschutzerkläru
     html=f'<!doctype html>\n<html lang="de-AT">{head}<body class="funktionsseite"><a class="skip" href="#inhalt">Zum Inhalt</a>{s["header"]}<main id="inhalt" class="wrap rechtstext"><p class="rubrik">SENKLOT / RECHTLICHES</p><h1>{title}</h1>{draft}{body}</main>{s["footer"]}</body></html>\n'
     (R/slug).mkdir(exist_ok=True);(R/slug/'index.html').write_text(html)
 (R/'senklot-intern/tarife.json').write_text(json.dumps(s['tarife'],ensure_ascii=False,indent=2)+'\n')
+(R/'senklot-intern/angebot.json').write_text(json.dumps(s['einfuehrung'],ensure_ascii=False,indent=2)+'\n')
 print(json.dumps({'legalPages':2,'operatorComplete':complete,'providerDocumentsReviewed':c['anbieterunterlagenGeprueft']}))

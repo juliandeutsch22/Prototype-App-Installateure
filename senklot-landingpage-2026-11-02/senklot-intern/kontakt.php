@@ -71,6 +71,8 @@ function validieren(mixed $raw): array {
         else $d['nutzer'] = (int) $n;
     }
     if (!is_string($raw['website'] ?? null) || trim($raw['website']) !== '') $e['formular'] = 'Die Anfrage konnte nicht verarbeitet werden.';
+    $d['einrichtung'] = $raw['einrichtung'] ?? false;
+    if (!is_bool($d['einrichtung'])) $e['einrichtung'] = 'Bitte prüfe die optionale Einrichtung.';
     $d['requestId'] = $raw['requestId'] ?? '';
     if (!is_string($d['requestId']) || !preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/iD', $d['requestId'])) $e['formular'] = 'Bitte lade das Formular neu.';
     $d['token'] = $raw['token'] ?? '';
@@ -147,12 +149,14 @@ function euro(int $cent): string { return number_format($cent / 100, 2, ',', '.'
 function mailText(array $d): string {
     $tarife = json_decode(file_get_contents(__DIR__ . '/tarife.json'), true, 8, JSON_THROW_ON_ERROR);
     $t = $d['tarif'] === 'offen' ? null : $tarife[$d['tarif']];
-    $lines = ['Senklot – neue Website-Anfrage', '', 'Name: ' . $d['name'], 'Betrieb: ' . $d['firma'], 'E-Mail: ' . $d['email'], 'Telefon: ' . ($d['telefon'] ?: 'Nicht angegeben'), 'Mitarbeiter / Nutzer: ' . ($d['nutzer'] ?? 'Nicht angegeben'), 'Tarif: ' . ($t['name'] ?? 'Noch offen'), 'Abrechnung: ' . ($d['zahlung'] === 'jaehrlich' ? 'Jährlich im Voraus, 10 % Rabatt' : 'Monatlich')];
+    $angebot = json_decode(file_get_contents(__DIR__ . '/angebot.json'), true, 8, JSON_THROW_ON_ERROR);
+    $lines = ['Senklot – neue Website-Anfrage', '', $angebot['titel'], $angebot['preisbindung'], '', 'Name: ' . $d['name'], 'Betrieb: ' . $d['firma'], 'E-Mail: ' . $d['email'], 'Telefon: ' . ($d['telefon'] ?: 'Nicht angegeben'), 'Mitarbeiter / Nutzer: ' . ($d['nutzer'] ?? 'Nicht angegeben'), 'Tarif: ' . ($t['name'] ?? 'Noch offen'), 'Abrechnung: ' . ($d['zahlung'] === 'jaehrlich' ? 'Jährlich im Voraus, 10 % Rabatt' : 'Monatlich')];
     if ($t) {
         $jahr = intdiv($t['monatCent'] * 12 * 90, 100);
         $lines[] = $d['zahlung'] === 'jaehrlich' ? 'Abonnement: ' . euro($jahr) . ' netto jährlich im Voraus' : 'Abonnement: ' . euro($t['monatCent']) . ' netto monatlich';
-        $lines[] = 'Einrichtung: ' . euro($t['einrichtungCent']) . ' netto einmalig';
+        $lines[] = $d['einrichtung'] ? 'Optionale Einrichtung angefragt: ' . euro($t['einrichtungCent']) . ' netto einmalig' : 'Begleitete Einrichtung: nicht angefragt; keine Einrichtungsgebühr für eigenständigen Start.';
     }
+    if (!$t) $lines[] = $d['einrichtung'] ? 'Optionale Einrichtung angefragt: Umfang und Preis vorab vereinbaren.' : 'Begleitete Einrichtung: nicht angefragt.';
     return implode("\n", [...$lines, '', 'Nachricht:', $d['nachricht'] ?: 'Keine zusätzliche Nachricht.', '', 'Anfrage-ID: ' . $d['requestId'], 'Unverbindliche Anfrage; kein Vertragsabschluss.', 'Externe Sicherheitsprüfung wurde im Formular ausdrücklich aktiviert.']);
 }
 

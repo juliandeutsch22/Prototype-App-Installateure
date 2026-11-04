@@ -1,5 +1,5 @@
 {
-  "checkedRelativeReferences": 214,
+  "checkedRelativeReferences": 236,
   "missingReferences": [],
   "viewportWidths": [
     320,
@@ -16,5 +16,12 @@
   "realContactDeliveryConfigured": false,
   "world4youUploadPerformed": false,
   "googleBingVerificationPerformed": false,
-  "realCredentialsIncluded": false
+  "realCredentialsIncluded": false,
+  "monthlyNetPrices": [
+    129,
+    179,
+    249
+  ],
+  "setupOptional": true,
+  "introPriceGuaranteeMonths": 12
 }

@@ -173,3 +173,16 @@ PHP-/SMTP-Backend mit optional aktivierbarem Cloudflare-Spamschutz, Sicherheitsh
 - [Prüfprotokolle](senklot-landingpage-2026-11-02/nachweise/sicherheit/README.md)
 
 Echte Konfiguration und gespeicherte Anfragen sind von beiden Paketen ausgeschlossen. Die App bleibt unverändert.
+
+
+## Senklot-Website: Feedback, Pilotpreise und optionaler Einstieg (04.11.2026)
+
+Überarbeitete Landingpage mit klarerem Auftragsablauf, Einstieg, Datenübernahme, Support und Betriebsgrundlagen. Einführungspreise 129 / 179 / 249 € netto, zwölf Monate Preisgarantie ab Vertragsbeginn und weiterhin 10 % Jahresrabatt. Die begleitete Einrichtung ist optional (199 / 399 / 699 € netto), nicht vorausgewählt und wird ohne ausdrückliche Auswahl nicht als angefragt übermittelt. Je Tarif lässt sich der enthaltene Einrichtungsumfang aufklappen.
+
+- [World4you-Uploadpaket](senklot-landingpage-2026-11-02/world4you-upload.zip?raw=true)
+- [Desktop-Vorschau](senklot-landingpage-2026-11-02/landingpage-1440.png) · [Mobile Vorschau](senklot-landingpage-2026-11-02/landingpage-390.png)
+- [Einrichtung aufgeklappt](senklot-landingpage-2026-11-02/06-einrichtung-offen-1440.png)
+- [Preise](senklot-landingpage-2026-11-02/06-preise-1440.png) · [Einstieg](senklot-landingpage-2026-11-02/08-einstieg-1440.png) · [Betriebsgrundlagen](senklot-landingpage-2026-11-02/09-vertrauen-1440.png)
+- [Einrichtung und verbleibende Aufgaben](senklot-landingpage-2026-11-02/VEROEFFENTLICHEN.md)
+
+70 PHP-Prüfungen, 13 Node-Prüfungen und Browserprüfungen bei 320 / 390 / 834 / 1440 Pixeln. Das Paket wurde nicht auf World4you hochgeladen; echte Zustellung und Kontokonfiguration bleiben dort zu prüfen. Keine echten E-Mails versendet und keine Änderungen an der Betriebssoftware.

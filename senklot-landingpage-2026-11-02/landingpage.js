@@ -17,7 +17,7 @@ function preiseAktualisieren(){
  const{preis,euro}=window.SenklotTarife,jaehrlich=auswahl.zahlung==='jaehrlich';
  document.querySelectorAll('[data-zahlung]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.zahlung===auswahl.zahlung)));
  for(const id of Object.keys(window.SenklotTarife.TARIFE)){const p=preis(id,auswahl.zahlung);document.querySelector(`[data-preis="${id}"]`).textContent=euro(p.effektivMonatCent,jaehrlich);document.querySelector(`[data-jahrespreis="${id}"]`).textContent=jaehrlich?`${euro(p.jahrCent,true)} jährlich im Voraus`:'Monatlich abgerechnet';}
- document.getElementById('preis-erlaeuterung').textContent=jaehrlich?'Monatlicher Vergleichspreis bei jährlicher Vorauszahlung mit 10 % Rabatt. Die Einrichtung bleibt unverändert.':'Monatliche Abrechnung. Die einmalige Einrichtung kommt zusätzlich dazu.';
+ document.getElementById('preis-erlaeuterung').textContent=jaehrlich?'Monatlicher Vergleichspreis bei jährlicher Vorauszahlung mit 10 % Rabatt. Die begleitete Einrichtung ist optional und wird nicht rabattiert.':'Monatliche Abrechnung. Die begleitete Einrichtung ist optional.';
  window.dispatchEvent(new Event('senklot:auswahl'));
 }
 document.querySelectorAll('[data-zahlung]').forEach(b=>b.addEventListener('click',()=>{auswahl.zahlung=b.dataset.zahlung;preiseAktualisieren()}));

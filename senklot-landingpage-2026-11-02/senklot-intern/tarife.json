@@ -3,18 +3,36 @@
     "name": "Starter",
     "nutzer": "Bis 5",
     "monatCent": 12900,
-    "einrichtungCent": 29000
+    "einrichtungCent": 19900,
+    "einrichtungLeistungen": [
+      "Firmenstammdaten und vereinbarte Grundeinstellungen gemeinsam einrichten",
+      "Benutzerkonten und Rollen für bis zu 5 Nutzer vorbereiten",
+      "Die vereinbarten Module für eure Abläufe konfigurieren",
+      "Einführung anhand eines Beispielauftrags und gemeinsamer Check der Startkonfiguration"
+    ]
   },
   "team": {
     "name": "Team",
     "nutzer": "6–15",
-    "monatCent": 22900,
-    "einrichtungCent": 59000
+    "monatCent": 17900,
+    "einrichtungCent": 39900,
+    "einrichtungLeistungen": [
+      "Firmenstammdaten und vereinbarte Grundeinstellungen gemeinsam einrichten",
+      "Benutzerkonten und Rollen für bis zu 15 Nutzer vorbereiten",
+      "Die vereinbarten Module für eure Abläufe konfigurieren",
+      "Einführung anhand eines Beispielauftrags und gemeinsamer Check der Startkonfiguration"
+    ]
   },
   "betrieb": {
     "name": "Betrieb",
     "nutzer": "16–30",
-    "monatCent": 37900,
-    "einrichtungCent": 99000
+    "monatCent": 24900,
+    "einrichtungCent": 69900,
+    "einrichtungLeistungen": [
+      "Firmenstammdaten und vereinbarte Grundeinstellungen gemeinsam einrichten",
+      "Benutzerkonten und Rollen für bis zu 30 Nutzer vorbereiten",
+      "Die vereinbarten Module für eure Abläufe konfigurieren",
+      "Einführung anhand eines Beispielauftrags und gemeinsamer Check der Startkonfiguration"
+    ]
   }
 }

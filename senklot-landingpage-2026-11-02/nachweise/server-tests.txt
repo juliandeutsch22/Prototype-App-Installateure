@@ -1,20 +1,21 @@
-✔ Alle sechs Abopreise und Einrichtung werden exakt in Cent berechnet (1.165346ms)
-✔ Bestätigter Versand nutzt feste Empfängeradresse und serverseitige Preise (33.169333ms)
-✔ Vorschau und fehlende Konfiguration versenden nie (1.013202ms)
-✔ Fehlendes, ungültiges, falsches Host- oder Aktions-Token sperrt den Versand (1.937484ms)
-✔ Dienstausfälle oder fehlende Versandbestätigung ergeben niemals Erfolg (2.80438ms)
-✔ Servervalidierung stoppt Manipulationen unabhängig vom Browser (0.267374ms)
-✔ HTTP- und Origin-Grenzen werden vor dem Versand geprüft (0.897021ms)
-✔ Rate-Limit ist begrenzt, läuft ab und kann nicht durch Überfüllung umgangen werden (0.674543ms)
-✔ HTTP-Server schützt private Dateien und bleibt ohne Dienste gesperrt (130.959875ms)
-✔ Produktionsmodus verbietet die Vorschau (73.661127ms)
-✔ Kanonische URLs erhalten Queryparameter und zeigen keine fremden Hosts an (0.90293ms)
-✔ Öffentliche Seiten, Sitemap, Crawlingregeln und Dateitypen werden korrekt ausgeliefert (199.667078ms)
-ℹ tests 12
+✔ Alle sechs Abopreise und Einrichtung werden exakt in Cent berechnet (1.583763ms)
+✔ Bestätigter Versand nutzt feste Empfängeradresse und serverseitige Preise (80.49022ms)
+✔ Einrichtung ist freiwillig und wird nur nach ausdrücklicher Auswahl angefragt (1.563523ms)
+✔ Vorschau und fehlende Konfiguration versenden nie (1.618884ms)
+✔ Fehlendes, ungültiges, falsches Host- oder Aktions-Token sperrt den Versand (2.665707ms)
+✔ Dienstausfälle oder fehlende Versandbestätigung ergeben niemals Erfolg (6.375542ms)
+✔ Servervalidierung stoppt Manipulationen unabhängig vom Browser (0.412347ms)
+✔ HTTP- und Origin-Grenzen werden vor dem Versand geprüft (3.918733ms)
+✔ Rate-Limit ist begrenzt, läuft ab und kann nicht durch Überfüllung umgangen werden (1.056586ms)
+✔ HTTP-Server schützt private Dateien und bleibt ohne Dienste gesperrt (189.905207ms)
+✔ Produktionsmodus verbietet die Vorschau (60.353055ms)
+✔ Kanonische URLs erhalten Queryparameter und zeigen keine fremden Hosts an (1.33674ms)
+✔ Öffentliche Seiten, Sitemap, Crawlingregeln und Dateitypen werden korrekt ausgeliefert (245.869137ms)
+ℹ tests 13
 ℹ suites 0
-ℹ pass 12
+ℹ pass 13
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 311.490774
+ℹ duration_ms 448.825444
