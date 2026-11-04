@@ -28,6 +28,8 @@ const DATEN = {
   support: { offeneFreigaben: 'D.plattformFreigaben' },
   fehlerprotokoll: { plattformFehler: 'D.plattformFehler' },
   basiszins: { listBasiszinssaetze: '[]' },
+  // Rechtstexte (E45): die öffentlichen Seiten und der Hinweis in der App brauchen eine Antwort, die Plattform eine leere Liste.
+  rechtstexte: { rechtstexteAktuell: 'D.rechtstexte', rechtstextVerlauf: '[]', verarbeiterAenderungen: '[]' },
   users: { listUsers: 'D.benutzer', getUserByUid: 'D.benutzer[0]' },
   timeEntries: { '*': 'D.zeiten', arbeitszeitVorlauf: '[]', listUrlaubstage: '[]', subscribeUrlaubstage: '[]', stundenDerBaustellen: '[]' },
   projects: { '*': 'D.baustellen' },

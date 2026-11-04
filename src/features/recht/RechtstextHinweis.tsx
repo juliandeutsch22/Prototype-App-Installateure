@@ -62,8 +62,9 @@ export default function RechtstextHinweis() {
     if (!uid) return;
     try {
       const [t, a] = await Promise.all([rechtstexteAktuell(), leitung ? verarbeiterAenderungen() : Promise.resolve([])]);
-      setTexte(t);
-      setAenderungen(a);
+      // Eine leere Antwort ist „nichts Neues“, kein Fehler, der die Hülle der App mitreißen dürfte.
+      setTexte(t ?? null);
+      setAenderungen(Array.isArray(a) ? a : []);
       setGesehen(gesehenBis(uid));
     } catch {
       // Ein Hinweis, der nicht geladen werden kann, fehlt eben; die Seiten selbst sind erreichbar.

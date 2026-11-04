@@ -46,7 +46,7 @@ export default function RechtSeite({ titel, art }: { titel: string; art: 'impres
   const laden = useCallback(async () => {
     setFehler(null);
     try {
-      setTexte(await rechtstexteAktuell());
+      setTexte((await rechtstexteAktuell()) ?? {});
     } catch (e) {
       setFehler(e instanceof Error ? e.message : String(e));
     }

@@ -113,3 +113,21 @@ describe('Geänderte Datenschutzerklärung — für alle', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Die Datenschutzerklärung wurde am 04.11.2026 geändert.');
   });
 });
+
+describe('Leere Antwort', () => {
+  it('reißt die Hülle der App nicht mit: ohne Daten kein Hinweis, kein Absturz', async () => {
+    // Ohne diese Vorsicht las der Hinweis `.length` einer fehlenden Liste — die Vorschau der Linkprüfung blieb daran hängen.
+    user = { uid: 'u1', role: 'Administrator', createdAt: ALT };
+    aktuell.mockResolvedValue(undefined as unknown as GeltendeTexte);
+    aenderungen.mockResolvedValue(undefined as unknown as VerarbeiterAenderung[]);
+    const fehler = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { container } = zeige();
+    await waitFor(() => expect(aenderungen).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 0));
+    // Ein Absturz beim Zeichnen leerte den Baum ebenso — darum zählt erst, dass nichts gemeldet wurde.
+    const gemeldet = fehler.mock.calls.flat().map(String).join(' ');
+    fehler.mockRestore();
+    expect(gemeldet).not.toMatch(/Cannot read properties|TypeError/);
+    expect(container).toBeEmptyDOMElement();
+  });
+});
