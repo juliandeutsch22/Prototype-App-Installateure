@@ -54,7 +54,7 @@ function einordnen(
   error: { code?: string; message?: string },
   status: number | undefined,
 ): Sendeergebnis {
-  if (istNetzfehler(error)) return { art: 'kein-netz' };
+  if (istNetzfehler(error, status)) return { art: 'kein-netz' };
   /*
     OHNE GÜLTIGE ANMELDUNG IST NICHTS ANGEKOMMEN (Prüflauf 25.09.2026,
     P1-05). PostgREST antwortet einem Aufruf ohne Sitzung mit 401 — auch

@@ -219,6 +219,8 @@ async function funkloch(page: Page, context: BrowserContext, webkit: boolean, an
 
 test('Im Keller ohne Netz: Schein mit Foto unterschrieben, mit dem Netz angekommen', async ({ page, context, browserName }) => {
   const webkit = browserName === 'webkit';
+  // Ohne `online`-Ereignis geht der Schein erst mit dem Nachsehen jede Minute hinaus.
+  test.setTimeout(webkit ? 180_000 : 60_000);
   const { data: vorher } = await admin.from('work_sheets').select('id').eq('company_id', BETRIEB);
   const alteIds = new Set((vorher ?? []).map((z) => z.id as string));
   const neue = async () => {

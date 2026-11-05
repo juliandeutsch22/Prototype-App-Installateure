@@ -1332,6 +1332,17 @@ noch unterschreiben, und der Hinweis an den Fotos sagte das so.
   dann schon beim Vormerken. Aufgefallen im Browserweg mit WebKit am
   Telefon. Ein ArrayBuffer geht in jedem Browser hinein; Vorschau und
   Hochladen machen daraus wieder ein Bild.
+- **Ein Funkloch im WLAN ist auch in Safari fehlendes Netz.** supabase-js
+  reicht einen gescheiterten Aufruf von Safari als „Load failed“ durch (ältere
+  Fassungen: „The Internet connection appears to be offline“). Der Sender
+  kannte nur die Sätze von Chromium und Firefox, hielt das für „unklar“,
+  zählte mit und verwarf den Vorgang nach fünf Läufen — am iPhone im WLAN
+  ohne Internet, bei Schein, Zeitbuchung und Anforderung. Jetzt zählt zuerst
+  der Stand: ohne jede Antwort ist nichts angekommen, wie auch immer der
+  Browser es nennt. Sender und Scheinmaske fragen dieselbe Stelle
+  (`netzfehler.ts`). Im Browserweg wird in WebKit dieses Funkloch
+  nachgestellt (der Server weg, das Gerät hält sich für verbunden), weil
+  WebKit unter `setOffline` nicht einmal die eigenen Bilder liest.
 - **Was wartet, steht da.** In der Scheinliste der Abschnitt „Noch nicht
   gesendet“ (sonst legte der Monteur denselben Schein ein zweites Mal an);
   ein wartender Entwurf öffnet von dort auch ohne Netz, die Baustelle kommt
@@ -1362,7 +1373,8 @@ aus dem Gerät), `WorkSheetView.test.tsx` (+7: „wird gesendet“ beim
 Unterschreiben und Entwurf, wartendes Foto, Entwurf aus dem Gerät öffnen und
 unterschreiben, Meldung ohne Netz, gleich geblieben mit Netz; der Hinweis
 P1-14 neu), `WorkSheetsListView.test.tsx` (+3), `PremiumRueckmeldung.test.tsx`
-(+2 Meldungen), `ausgangsfachNaht.test.ts` (+1), gegen die echte Datenbank
+(+2 Meldungen), `ausgangsfachNaht.test.ts` (+1), `supabaseSender.test.ts` (+2: Safari,
+ohne Antwort; gleich geblieben mit Code und mit Antwort), gegen die echte Datenbank
 `scheinOhneEmpfang.test.ts` (neu, 4: Funkloch → Reihenfolge → angekommen mit
 Foto und Prüfsumme — mit einem Lager, das wie WebKit kein Blob nimmt;
 zweites Zustellen; Konflikt gemeldet; ohne Fach direkt)

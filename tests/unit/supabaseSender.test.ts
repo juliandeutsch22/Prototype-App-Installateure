@@ -87,6 +87,17 @@ describe('Der Sender ordnet die Antworten ein', () => {
     // Was gleich bleiben muss: ein Fehler MIT Code ist kein Netzfehler, auch wenn der Text so klingt.
     expect(await einordnen({ code: 'PGRST000', message: 'Load failed' })).toBe('unklar');
   });
+
+  it('ohne jede Antwort (Stand 0) ist nichts angekommen — wie auch immer der Browser es nennt', async () => {
+    const mitStand = async (error: { code?: string; message?: string }, status: number) =>
+      (await supabaseSender(clientMitAntwort({ error, status }))(sendung)).art;
+    expect(await mitStand({ code: '', message: 'TypeError: Ein Text, den niemand kennt' }, 0)).toBe('kein-netz');
+    expect(await einordnen({ message: 'TypeError: The Internet connection appears to be offline.' })).toBe('kein-netz');
+    expect(await einordnen({ message: 'TypeError: Could not connect to the server.' })).toBe('kein-netz');
+    // Was gleich bleiben muss: mit einer Antwort entscheidet weiter der Code.
+    expect(await mitStand({ code: 'PGRST000', message: 'x' }, 503)).toBe('unklar');
+    expect(await mitStand({ code: '', message: 'x' }, 500)).toBe('unklar');
+  });
 });
 
 /** Ein Client mit voller Antwort — Fehler, HTTP-Status und Trefferzahl. */
