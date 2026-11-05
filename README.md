@@ -240,3 +240,13 @@ Masterprompt zur korrigierten Vorlage „Senklot vs. APVROS – funktionale Unte
 - [Masterprompt als MD](senklot-shk-fahrplan-2026-11-05/Senklot_SHK_Integrationsfahrplan_Masterprompt_2026-11-05.md?raw=true)
 - [MD-Datei und Nachweise als ZIP](senklot-shk-fahrplan-2026-11-05/Senklot_SHK_Integrationsfahrplan_2026-11-05.zip?raw=true)
 - [Abgrenzung und Vollständigkeitsprüfung](senklot-shk-fahrplan-2026-11-05/README.md)
+
+
+## Ergänzt: kritische Bewertung aller 84 SHK-Punkte (05.11.2026)
+
+Alle Punkte nach Funktionsnutzen und Integration bewertet, nicht nach Entwicklungsaufwand. Empfehlungen: 17 behalten, 36 integriert umsetzen, 22 vollständig optional nach Betriebszweck, 8 fachlich ändern und 1 ersetzen. Der Masterprompt unterscheidet jetzt ausdrücklich Originalabdeckung und noch zu bestätigenden Zielumfang. Keine App-Änderung.
+
+- [Kritische Bewertung als MD](senklot-shk-fahrplan-2026-11-05/Senklot_SHK_Kritische_Produktbewertung_2026-11-05.md?raw=true)
+- [Masterprompt und Bewertung als ZIP](senklot-shk-fahrplan-2026-11-05/Senklot_SHK_Integrationsfahrplan_2026-11-05.zip?raw=true)
+
+Die öffentliche Bereitstellung wurde vom Auftraggeber ausdrücklich freigegeben. Das ist keine Implementierungsfreigabe oder bereits bestätigte Streichung.

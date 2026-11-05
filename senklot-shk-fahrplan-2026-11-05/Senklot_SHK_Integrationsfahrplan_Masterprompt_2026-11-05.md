@@ -2,7 +2,8 @@
 
 **Stand:** 5. November 2026  
 **Produkt:** Senklot, österreichische Betriebssoftware für Installations- und SHK-Betriebe  
-**Ergebnis:** ausführbarer Entwicklungsfahrplan mit Architektur, fachlichen Regeln, UI-Einbindung, Migrationen, Prüfungen und Freigaben  
+**Ergebnis:** ausführbarer Entwicklungsfahrplan mit Architektur, fachlichen Regeln, UI-Einbindung, Migrationen, Prüfungen und Freigaben
+**Zusätzlich maßgeblich:** [Kritische Produktbewertung aller 84 Punkte](Senklot_SHK_Kritische_Produktbewertung_2026-11-05.md). Sie unterscheidet ausdrücklich Originalanforderung und empfohlenen Zielumfang.  
 **Maßgebliche Vorlage:** Senklot_Funktionskatalog_SHK_ohne_KI_2026-11-05 (1).md, Titel „Senklot vs. APVROS – funktionale Unterschiede innerhalb der App“. Die zuerst übergebene andere Datei ist ersetzt.
 **SHA256 der maßgeblichen Quelldatei:** 1951c1562edd0fb4d7d1e1822d6bebd04a9ec4da65baf156820ffbd17e8ababb  
 **Codebasis des Abgleichs:** juliandeutsch22/Prototype-App-Installateure, main, Commit **62db192087ed05e5df1405b1e1ab8c9618e63864**, abgerufen am 05.11.2026. Letzter Commit: „Material anfordern: Warenkorb-Leiste als Blatt auf dem Raster (E47) (#407)“.
@@ -11,7 +12,7 @@
 
 Du bist verantwortlich für Produktkonzeption, Softwarearchitektur, SHK-Prozesse, Bedienbarkeit und technische Umsetzung in Senklot.
 
-Dein Ziel: Alle 84 in der maßgeblichen Vorlage beschriebenen Funktionspunkte vollständig miteinander integrieren. Bestehende korrekte Abläufe, Daten, Rechte, Belege, Exporte und Bedienwege müssen erhalten bleiben. Die Oberfläche soll trotz zusätzlicher Möglichkeiten ruhig, verständlich und durchgängig in der Lot-Linie bleiben.
+Dein Ziel: Alle 84 Originalpunkte vollständig bewerten und durchplanen. Später den ausdrücklich bestätigten Zielumfang vollständig miteinander integrieren. Die ergänzende kritische Produktbewertung ist Teil dieses Auftrags; die Originalabdeckung ist keine ungeprüfte Pflichtliste von 84 Neubauten. Bestehende korrekte Abläufe, Daten, Rechte, Belege, Exporte und Bedienwege müssen erhalten bleiben. Die Oberfläche soll trotz zusätzlicher Möglichkeiten ruhig, verständlich und durchgängig in der Lot-Linie bleiben.
 
 **Diese Datei ist zunächst ein Planungs- und Umsetzungsprompt. Sie ist selbst keine Anweisung, jetzt die App umzubauen, Produktivdaten zu verändern oder auszuliefern.** Beginne die Implementierung erst mit einem ausdrücklichen Startauftrag. Danach bearbeitest du die freigegebenen Pakete vollständig bis zu deren Abnahme. Eine Planungsfreigabe ist kein unbeschränkter Auftrag für alle folgenden Produktivänderungen.
 
@@ -430,7 +431,7 @@ Für Bedarf i: freie_unzugeteilte_Menge plus eigene noch physisch reservierte Me
 
 ## 6. Vollständige Einzelplanung der maßgeblichen Vorlage
 
-**Leseregel:** Jeder folgende Abschnitt trägt genau eine Original-ID. Abhängigkeiten sind technische Voraussetzungen und keine neue fachliche Priorisierung. Gemeinsam gelöste Punkte werden nicht als zwei getrennte Module gebaut.
+**Leseregel:** Jeder folgende Abschnitt trägt genau eine Original-ID. Das ist die vollständige Referenzplanung des Katalogs. Die ergänzende Produktbewertung empfiehlt für acht Punkte eine fachliche Anpassung und für Z04 einen Ersatz; 36 Punkte sollen integriert statt als eigenständige Funktion gebaut werden. Die Änderungen sind Empfehlungen, noch keine stillschweigend bestätigte Umfangskürzung. Abhängigkeiten sind technische Voraussetzungen und keine neue fachliche Priorisierung.
 
 ### A01 — Auftragsübersicht mit Bearbeitungsphasen
 
@@ -806,6 +807,8 @@ Z05, E13 und B06 in einem Validierungsergebnis zusammenführen. Kriterien klassi
 
 ### B09 — projektbezogener Chat und Direktnachrichten
 
+**Produktreview: ändern.** Kontextgebundene Threads und Erwähnungen sind empfohlen. Ein freier allgemeiner DM-Messenger ist in der folgenden Originalreferenz beschrieben, gehört aber nicht zum empfohlenen Standardumfang ohne ausdrückliche fachliche Entscheidung.
+
 Nachrichten als eigener fachlicher Bereich, nicht als Kommentare in Finanzdaten. Kanal an Auftrag/Baustelle, zusätzlich berechtigte 1:1-Unterhaltung; Teilnehmer und Zugriff serverseitig bestimmen. Mitgliedschaft allein darf keine Baustellenberechtigung erzeugen. Nachrichteninhalt, Anhänge, Bearbeitung-/Löschmarkierung und Zustellung getrennt speichern.
 
 **UI:** Kontextbereich „Nachrichten“ in der Akte und ein zentraler gebündelter Posteingang; mobile Leiste nicht verdrängen. Ungelesen-Zähler respektiert Rechte. Benachrichtigungen bündeln, Inhalte auf gesperrtem Bildschirm datensparsam. Keine verpflichtenden allgemeinen Lesebestätigungen.
@@ -890,6 +893,8 @@ Regeln bestimmen Ausschluss, Kombination, Mengenbasis und Gültigkeit; vorhanden
 **Abnahme:** Mehrere Merkmale an einem Tag, Schicht über Mitternacht, bestehender Zuschlag, fehlender Tarif, Regelwechsel und Export. Interner Lohnzuschlag wird nicht automatisch zur Kundenrechnung.
 
 ### Z04 — optionales automatisches Ausstempeln
+
+**Produktreview: ersetzen.** Empfohlen sind eine Erinnerung und ein ausdrücklich bestätigter Abschlussvorschlag statt einer allein zeitregelbasierten arbeitszeitwirksamen Endbuchung. Die folgende Beschreibung dokumentiert den abzusichernden Originalwunsch, nicht die empfohlene Standardfunktion.
 
 Nur auf die neue laufende Zeitsitzung aus B02 beziehen; keine bestehende abgeschlossene Buchung verkürzen. Betrieb/Person konfiguriert transparent, ob, wann und nach welcher Regel ein offener Timer beendet wird. Vorwarnung und Möglichkeit zum Weiterarbeiten/Korrigieren.
 
@@ -976,6 +981,8 @@ Bestehende erlaubte Kennzahlen/Arbeitslisten als kuratierte Abschnitte konfiguri
 **Abnahme:** Rollenwechsel, neue Funktion, kein Inhalt, Tablet/Mobil, lange Namen und Reset. Dieselbe Anzahl muss aus derselben vollständigen Abfrage stammen, nicht aus der Zahl gerade geladener Zeilen.
 
 ### U02 — Menüfolge und Favoriten
+
+**Produktreview: ändern.** Favoriten und persönliche Priorisierung behalten; kanonische Gruppen, Begriffe und mobile Grundnavigation stabil lassen. Eine völlig freie Grundsortierung ist nicht empfohlen.
 
 Präferenzen pro Benutzer, optional erlaubte betriebliche Vorgabe. Favoriten referenzieren stabile Routenschlüssel, keine freien fremden URLs. Gruppen und Rechtefilter bleiben, Änderungen werden vor Anzeige validiert.
 
@@ -1155,6 +1162,8 @@ Vor dem ersten Codepaket aktuelle Version neu abgleichen und folgende Artefakte 
 M00 ist die Arbeitsvorbereitung des Softwareausbaus, kein neuer fachlicher Funktionskatalog.
 
 ### 8.2 Paketfolge
+
+Diese Tabelle ordnet sämtliche Original-IDs technisch zu. Der bestätigte Empfehlungsstand kann einzelne Inhalte ersetzen oder begrenzen; die ursprüngliche ID bleibt dann mit dieser Entscheidung in der Abdeckung, statt unbemerkt zu verschwinden.
 
 Jedes Paket enthält mehrere kleine fachliche PRs; die Tabellenzeile ist **kein** Auftrag für einen riesigen Sammel-PR. Ein PR liefert einen prüfbaren vollständigen Ablauf oder einen intern abgeschlossenen technischen Unterbau ohne sichtbare halbfertige Funktion.
 
@@ -1372,14 +1381,14 @@ Diese Punkte sind vor dem jeweils betroffenen Paket anhand konkreter Daten zu sc
 Wenn der Auftraggeber ausdrücklich „mit der Umsetzung beginnen“ anweist:
 
 1. Aktuellen main neu lesen und Abweichungen gegenüber 62db192 in der Bestandsmatrix vermerken.
-2. Alle Original-IDs A01–G11 gegen die 84-Punkte-Matrix abgleichen; keine Aussage des Vergleichsdokuments ungeprüft als tatsächlichen Defekt behandeln.
+2. Alle Original-IDs A01–G11 gegen die 84-Punkte-Matrix und das Produktreview abgleichen. Vor dem Bau eindeutig klären, ob der Auftraggeber den empfohlenen Zielumfang oder abweichend den vollständigen Originalumfang beauftragt. Keine Aussage des Vergleichsdokuments ungeprüft als tatsächlichen Defekt behandeln.
 3. M00 konkret abschließen. Vor neuen UI-Mustern überprüfbare Screens erstellen und vorhandene Designentscheidungen beachten.
 4. Mit M01 und den davon freigegebenen Arbeitspaketen beginnen. Pro PR einen vollständigen Fachweg mit Gegenproben liefern.
 5. Bereits korrekte Logik verwenden und notwendige neue Fachregeln auf dem Server absichern. Kein paralleler Bestand, kein zweiter Timer-/Lager-/Zahlungs-/Rechnungsweg.
 6. Nach jedem Paket Bestandsmatrix, Abnahmetests, Migrationen und Handbuch nachführen; in der tatsächlichen Reihenfolge weiterarbeiten.
 7. Bekannte Probleme beheben, ohne neue unnötige Grenzen einzuführen. Eine bloße Fehlermeldung statt eines vollständigen normalen Korrekturwegs reicht nicht.
 8. CI und Auslieferung nur im ausdrücklich beauftragten Umfang durchführen. Keine Produktivdaten nebenbei aufräumen, keine externen Nachrichten als Test ungefragt verschicken.
-9. Erst „vollständig integriert“ berichten, wenn alle 84 IDs nachvollziehbar abgedeckt sind und die passenden End-to-End-, Rechte-, Migrations- und Geräte-/Schnittstellenbelege vorliegen. Fehlende externe Nachweise konkret kennzeichnen.
+9. Erst „vollständig integriert“ berichten, wenn der bestätigte Zielumfang funktioniert und alle 84 Original-IDs nachvollziehbar als umgesetzt, integriert, vollständig optional, ausdrücklich ersetzt oder bewusst nicht beauftragt eingeordnet sind. Die passenden End-to-End-, Rechte-, Migrations- und Geräte-/Schnittstellenbelege müssen für den tatsächlichen Zielumfang vorliegen. Fehlende externe Nachweise konkret kennzeichnen.
 
 **Gewünschtes Endergebnis:** Senklot hat einen einheitlichen Daten- und Aktionszusammenhang vom Auftrag über Planung, Zeit, Material, Dokumentation, Einkauf und Prüfung bis zur Abrechnung und Zahlung. Zusätzliche Möglichkeiten erscheinen dort, wo sie gebraucht werden. Die Lot-Oberfläche bleibt ruhig; Fachlichkeit wird nicht zugunsten der Optik weggelassen.
 

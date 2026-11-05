@@ -1,0 +1,513 @@
+{
+  "stand": "2026-11-05",
+  "quelle": "Senklot_Funktionskatalog_SHK_ohne_KI_2026-11-05 (1).md",
+  "quellenHash": "1951c1562edd0fb4d7d1e1822d6bebd04a9ec4da65baf156820ffbd17e8ababb",
+  "status": "fachliche Empfehlungen; keine App-Änderung und keine bereits freigegebene Streichung",
+  "massstab": "Funktion, Integration, Datenwahrheit und Bedienbarkeit; nicht Entwicklungsaufwand",
+  "entscheidungen": {
+    "A01": {
+      "empfehlung": "Ändern",
+      "kontext": "Aufträge",
+      "begruendung": "Eine Auftragsübersicht ist sinnvoll. Operative Phase, Rechnungsstand, Zahlung und Gewährleistung sind jedoch parallele Sachverhalte; ein einziges lineares Board würde falsche Übergänge erzwingen.",
+      "integration": "Liste als ruhiger Standard, Board optional; getrennte Zustandsachsen in derselben Akte."
+    },
+    "A02": {
+      "empfehlung": "Ändern",
+      "kontext": "Aufträge",
+      "begruendung": "Verschieben ist nützlich, darf aber keine Annahme, Rechnung oder Gewährleistung vortäuschen. Nur wirklich manuell entscheidbare operative Phasen verschieben.",
+      "integration": "Gleiche Aktion im Formular und auf dem Board; fachliche Folgeaktionen ausdrücklich öffnen."
+    },
+    "A03": {
+      "empfehlung": "Behalten",
+      "kontext": "Aufträge",
+      "begruendung": "Ein Serviceauftrag entsteht oft direkt am Telefon. Ein Angebotszwang wäre eine unbegründete Einschränkung des Tagesgeschäfts.",
+      "integration": "Bestehende Baustellen-/Auftragsakte, kein zweiter Auftragsstamm."
+    },
+    "A04": {
+      "empfehlung": "Optional",
+      "kontext": "Aufträge",
+      "begruendung": "Etappen und Zahlungspläne sind für größere Projekte hilfreich, bei kurzen Serviceaufträgen aber ohne fachlichen Inhalt. Eine verpflichtende Etappenliste würde nur Büroarbeit erzeugen.",
+      "integration": "Zusätzlicher Bereich derselben Akte; keine Voraussetzung für normale Teil-/Schlussrechnungen."
+    },
+    "A05": {
+      "empfehlung": "Optional",
+      "kontext": "Angebote und Kalkulation",
+      "begruendung": "Für Ausschreibungen ist der komplette Normablauf fachlich wichtig. Für einen Betrieb ohne LV-Austausch ist er in der täglichen Oberfläche unnötig. Der Aufwand ist kein Streichgrund.",
+      "integration": "Vollständiges aktivierbares LV-Modul mit Import, Kalkulation und Export; normale Angebote bleiben einfach."
+    },
+    "A06": {
+      "empfehlung": "Behalten",
+      "kontext": "Angebote und Kalkulation",
+      "begruendung": "Entfernte, eindeutige Angebotsannahme schließt einen echten Medienbruch. Ein gezeichnetes Unterschriftsbild ist dabei nicht immer die sinnvolle Mindestbedingung.",
+      "integration": "Versionierte Annahme mit dokumentierter Erklärung; Signaturniveau nach konkretem Zweck."
+    },
+    "A07": {
+      "empfehlung": "Optional",
+      "kontext": "Angebote und Kalkulation",
+      "begruendung": "Zielpreisrechnung hilft bei Preisverhandlungen, ersetzt aber keine Kostenkenntnis und darf keinen scheinbar guten Deckungsbeitrag erfinden.",
+      "integration": "Kalkulationswerkzeug am Entwurf; Regeln und gesperrte Fixpreise sichtbar."
+    },
+    "A08": {
+      "empfehlung": "Integrieren",
+      "kontext": "Angebote und Kalkulation",
+      "begruendung": "Die Anpassung gehört direkt zur bestehenden Angebotskalkulation und zum Katalogvergleich. Als eigener Workflow entstünden zwei Wahrheiten über den Preisstand.",
+      "integration": "Positionsdifferenz mit ausdrücklicher Übernahme, gleicher Regelkern wie E04 und G06."
+    },
+    "A09": {
+      "empfehlung": "Optional",
+      "kontext": "Aufträge",
+      "begruendung": "Liegenschaft, Top, Bewohner und Auftraggeber lösen echte Zuordnungsprobleme im Hausverwaltungsservice. Eine Pflicht-Immobilienhierarchie wäre bei einfachen Privatkunden falsch.",
+      "integration": "Optionale Objektstruktur unter Kunde/Standort; getrennte Beteiligtenrollen und zeitliche Gültigkeit."
+    },
+    "A10": {
+      "empfehlung": "Optional",
+      "kontext": "Abrechnung",
+      "begruendung": "Sammelabrechnung ist für viele kleine Einsätze an einen tatsächlichen Empfänger sinnvoll. Nur nach Hausverwaltungsname zu sammeln wäre fachlich falsch.",
+      "integration": "Vorhandene Rechnungsquellen gruppieren; Empfänger, Steuerkontext und Einzelleistungen erhalten."
+    },
+    "A11": {
+      "empfehlung": "Optional",
+      "kontext": "Aufträge",
+      "begruendung": "Strukturierte Kundenaufträge vermeiden Doppelerfassung, wenn eine tatsächlich verwendete Schnittstelle existiert. Ohne festes Datenformat gibt es keinen verlässlichen automatischen Auftrag.",
+      "integration": "Importprofil mit Vorschau, Zuordnung und Dublettenprüfung; manuelle Anlage bleibt vollwertig."
+    },
+    "R01": {
+      "empfehlung": "Optional",
+      "kontext": "Lager und Lieferung",
+      "begruendung": "Eigenständige Warenlieferung braucht einen Lieferschein. Ihn für jede Installation zusätzlich zum Handwerksschein zu verlangen, würde denselben Sachverhalt doppelt dokumentieren.",
+      "integration": "Belegtyp am Auftrag, nur bei tatsächlichem Lieferzweck; bestehende Materialquelle referenzieren."
+    },
+    "R02": {
+      "empfehlung": "Integrieren",
+      "kontext": "Lager und Lieferung",
+      "begruendung": "Restmengen sind unverzichtbar, sobald Lieferscheine genutzt werden. Sie sind kein zweites Modul und müssen Retoure mit oder ohne Ersatz unterscheiden.",
+      "integration": "Teilmenge und Rest direkt in der Lieferposition."
+    },
+    "R03": {
+      "empfehlung": "Integrieren",
+      "kontext": "Lager und Lieferung",
+      "begruendung": "Dokumentstorno und physische Warenrückgabe sind nicht dasselbe. Ein pauschales Zurückbuchen ins Regal würde falschen Bestand erzeugen.",
+      "integration": "Gleiche Bewegungsquelle wie R01; tatsächlichen Warenort und Korrekturgrund führen."
+    },
+    "R04": {
+      "empfehlung": "Behalten",
+      "kontext": "Zahlungen und Eingangsbelege",
+      "begruendung": "Bankdateien sind eine klare strukturierte Grundlage und sparen manuellen Übertrag ohne geratenen Inhalt.",
+      "integration": "Ein Import im Bankabgleich, normalisierte Umsätze mit Originalbezug."
+    },
+    "R05": {
+      "empfehlung": "Integrieren",
+      "kontext": "Zahlungen und Eingangsbelege",
+      "begruendung": "Matching ist der nächste Schritt von R04 und nutzt vorhandene Zahlungseingänge. Ein separates Zahlungsmodul würde Salden doppelt berechnen.",
+      "integration": "Vorschlag und manuelle Split-/Teilzuordnung im selben Abgleich."
+    },
+    "R06": {
+      "empfehlung": "Behalten",
+      "kontext": "Zahlungen und Eingangsbelege",
+      "begruendung": "Eingangsbelege verbinden tatsächliche Kosten mit Einkauf und Baustelle. Sinnvoll als Beleg-/Freigabeverwaltung, nicht als zusätzlich erfundene vollwertige Finanzbuchhaltung.",
+      "integration": "Original, erfasste Daten, Freigabe, Kontierung und Export getrennt; kein neuer Zwang für Ausgangsrechnungen."
+    },
+    "R07": {
+      "empfehlung": "Integrieren",
+      "kontext": "Zahlungen und Eingangsbelege",
+      "begruendung": "Der Dreiwege-Abgleich ist sinnvoll, aber mit E15 identisch. Zwei Prüflogiken würden unterschiedliche Antworten liefern.",
+      "integration": "Ein gemeinsamer Dienst, aus Rechnung, Bestellung und Wareneingang erreichbar."
+    },
+    "R08": {
+      "empfehlung": "Integrieren",
+      "kontext": "Zahlungen und Eingangsbelege",
+      "begruendung": "Dublettenprüfung gehört in die Belegerfassung. Ein gleich hoher Betrag reicht nicht als Nachweis.",
+      "integration": "Ein identischer Dienst für R08 und G09; begründete Klärung statt automatischer Löschung."
+    },
+    "R09": {
+      "empfehlung": "Optional",
+      "kontext": "Zahlungen und Eingangsbelege",
+      "begruendung": "Kontierungsvorschläge sind bei bestätigtem Konten-/Kanzleiprofil nützlich. Ungeprüfte Kontonummern würden einen scheinbar vollständigen Buchungssatz erzeugen.",
+      "integration": "Erklärbare gepflegte Regeln im Eingangsbeleg; keine automatische Buchungsfreigabe."
+    },
+    "R10": {
+      "empfehlung": "Optional",
+      "kontext": "Dokumentation und Qualität",
+      "begruendung": "Aufmaß ist bei mengenabhängiger Leistung entscheidend, bei einfachen Pauschal-/Servicefällen aber keine sinnvolle Pflicht.",
+      "integration": "Freigegebene Messquelle am Auftrag/LV; bestehende normale Mengenpositionen erhalten."
+    },
+    "R11": {
+      "empfehlung": "Integrieren",
+      "kontext": "Dokumentation und Qualität",
+      "begruendung": "Ein Bericht als Rechnungsbeilage ist praktisch, aber keine neue Leistung und kein eigener Berichtsgenerator.",
+      "integration": "Versionierten Nachweis aus B10/B11 an vorhandenes Belegpaket anhängen."
+    },
+    "R12": {
+      "empfehlung": "Behalten",
+      "kontext": "Kommunikation und Dokumente",
+      "begruendung": "Tatsächlicher Versand mit Fehler-/Empfängernachweis verbessert den Belegablauf. Mailprogramm öffnen ist kein Versandnachweis.",
+      "integration": "Ein gemeinsamer Versanddienst für freigegebene Dokumente; keine automatische Mahnfreigabe."
+    },
+    "E01": {
+      "empfehlung": "Behalten",
+      "kontext": "Katalog und Preise",
+      "begruendung": "Mehrere Lieferanten sind normal. Getrennte Kataloge verhindern Nummernkollisionen; ein Import soll nicht alle Fremdartikel zum gepflegten Betriebsstamm machen.",
+      "integration": "Katalogdaten getrennt, gezielte verifizierte Artikelübernahme."
+    },
+    "E02": {
+      "empfehlung": "Behalten",
+      "kontext": "Katalog und Preise",
+      "begruendung": "Ein ehrlicher Vergleich identischer Artikel liefert einen direkten Beschaffungsnutzen. Vergleich bloß ähnlicher Namen würde Fehlkäufe fördern.",
+      "integration": "Im Artikel-/Einkaufskontext mit Einheiten, Packung und Identitätsnachweis."
+    },
+    "E03": {
+      "empfehlung": "Integrieren",
+      "kontext": "Katalog und Preise",
+      "begruendung": "Die Kennzeichnung ist ein Ergebnis von E02, keine eigenständige Funktion mit eigenem Datenbestand.",
+      "integration": "Ein ruhiger Hinweis in derselben Vergleichsliste; keine Gesamtpreisbehauptung."
+    },
+    "E04": {
+      "empfehlung": "Integrieren",
+      "kontext": "Katalog und Preise",
+      "begruendung": "Preisverlauf ist sinnvoll. Warnungen für jede Katalogänderung ohne Bezug zu verwendeten Artikeln oder offenen Angeboten erzeugen jedoch nur Lärm.",
+      "integration": "Verlauf am Artikel; relevante Auswirkungen bündeln und auf betroffene Entwürfe führen."
+    },
+    "E05": {
+      "empfehlung": "Integrieren",
+      "kontext": "Katalog und Preise",
+      "begruendung": "Kontrollierte Aktivierung ist notwendige Datenqualität, kein zusätzliches Endnutzer-Modul.",
+      "integration": "Ein konsistenter Import-/Versionsablauf mit E01."
+    },
+    "E06": {
+      "empfehlung": "Integrieren",
+      "kontext": "Katalog und Preise",
+      "begruendung": "Preisalter hilft bei einer Entscheidung. Ein eigener Katalogwarnungsbereich oder eine pauschale Arbeitssperre ist dafür nicht nötig.",
+      "integration": "Datum und erklärbarer Hinweis in Suche, Vergleich und Kalkulation."
+    },
+    "E07": {
+      "empfehlung": "Behalten",
+      "kontext": "Angebote und Kalkulation",
+      "begruendung": "Verlässliche Preisregeln vermeiden manuelle Wiederholung. Beliebig verschachtelte gleichrangige Regeln würden unvorhersagbare Preise liefern.",
+      "integration": "Versionierte klare Vorrangfolge, Vorschau und geschützte manuelle Preise."
+    },
+    "E08": {
+      "empfehlung": "Optional",
+      "kontext": "Einkauf",
+      "begruendung": "Mehrlieferantenangebote sind bei Projektbeschaffung hilfreich. Für einen einzelnen Fittingkauf eine Angebotsrunde zu verlangen wäre ein falscher Prozesszwang.",
+      "integration": "Option am bestehenden Einkaufsvorgang; direkter normaler Einkauf bleibt möglich."
+    },
+    "E09": {
+      "empfehlung": "Integrieren",
+      "kontext": "Einkauf",
+      "begruendung": "Anfrage und Angebotsvergleich bilden einen einzigen Beschaffungsvorgang. Ein neues Anfrageportal neben Einkauf und E08 würde Kontext aufteilen.",
+      "integration": "Dieselben Positionen und Referenzen, Empfänger-/Versionskontrolle über gemeinsamen Dokumentdienst."
+    },
+    "E10": {
+      "empfehlung": "Behalten",
+      "kontext": "Lager und Lieferung",
+      "begruendung": "Fahrzeugbestände sind im Servicegeschäft echte Bestände. Ohne Standortbezug bleibt vorhandenes Material unsichtbar oder doppelt verfügbar.",
+      "integration": "Ein Lagerortmodell, das bei nur einem Lager nicht komplizierter bedient werden muss."
+    },
+    "E11": {
+      "empfehlung": "Optional",
+      "kontext": "Lager und Lieferung",
+      "begruendung": "Scannen nützt bei eindeutig codierten Artikeln und häufigen Bewegungen. Es ist eine Eingabeart, keine Pflicht und keine bessere Wahrheit als bestätigte manuelle Auswahl.",
+      "integration": "Scanner im bestehenden Buchungsdialog, mit Menge und Textalternative."
+    },
+    "E12": {
+      "empfehlung": "Integrieren",
+      "kontext": "Lager und Lieferung",
+      "begruendung": "Eine Inventur ist für verlässliche Standortbestände wichtig. Der Scanner darf aber nicht eine zweite Bestandsführung erzeugen.",
+      "integration": "Zählauftrag im Lager, gleiche Differenzbuchung mit Scan oder manueller Eingabe."
+    },
+    "E13": {
+      "empfehlung": "Behalten",
+      "kontext": "Lager und Lieferung",
+      "begruendung": "Materialbereitschaft vor der Anfahrt hat hohen funktionalen Nutzen. Eine Lieferung unterwegs ist trotzdem kein physisch fertiger Einsatz.",
+      "integration": "Gemeinsame Deckungsberechnung, Fakten und Prognose getrennt."
+    },
+    "E14": {
+      "empfehlung": "Integrieren",
+      "kontext": "Einkauf",
+      "begruendung": "Bestellvorschläge schließen die Lücke zwischen Mindestbestand, Bedarf und Einkauf. Derselbe Fehlbedarf darf nicht mehrfach vorgeschlagen werden.",
+      "integration": "Ein Beschaffungsdienst mit G03 und den vorhandenen Einkaufslisten."
+    },
+    "E15": {
+      "empfehlung": "Integrieren",
+      "kontext": "Zahlungen und Eingangsbelege",
+      "begruendung": "Derselbe Dreiwege-Abgleich wie R07; ein zweiter Warenabgleich wäre eine echte Integrationslücke.",
+      "integration": "Ein Dienst mit rollenabhängigen Einstiegen."
+    },
+    "E16": {
+      "empfehlung": "Integrieren",
+      "kontext": "Lager und Lieferung",
+      "begruendung": "Restmaterial ist eine wichtige Mengen- und Abrechnungsfrage. Rückgabe darf aber nicht automatisch Rechnung oder Kostenbezug korrigieren.",
+      "integration": "Gemeinsame Retoure mit Herkunft/Ort/Zustand; kaufmännische Entscheidung gesondert."
+    },
+    "B01": {
+      "empfehlung": "Integrieren",
+      "kontext": "Monteur und Planung",
+      "begruendung": "Der zentrale Einstieg ist sinnvoll und bereits teilweise vorhanden. Ein zweites unabhängiges Mein-Tag-Modul würde die Navigation wieder aufteilen.",
+      "integration": "Bestehende Startseite und vorhandene Fachaktionen zusammenführen."
+    },
+    "B02": {
+      "empfehlung": "Behalten",
+      "kontext": "Zeit und Mitarbeiter",
+      "begruendung": "Ein durchgehender Erfassungsweg hilft im Außendienst. Arbeitszeit, Pause und abrechenbare Auftragszeit sind jedoch unterschiedliche Daten.",
+      "integration": "Ein Zeitkern mit Sitzungen und Segmenten; manuelle Erfassung bleibt gleichwertig."
+    },
+    "B03": {
+      "empfehlung": "Optional",
+      "kontext": "Angebote und Kalkulation",
+      "begruendung": "Besichtigungsdaten können direkt in die Kalkulation führen. Eine starre Besichtigungscheckliste für jeden Kleinauftrag wäre unpassend.",
+      "integration": "Auftragsbezogene Vorlagen, bestätigte Mengen in Angebotsentwurf, freier Einstieg weiter möglich."
+    },
+    "B04": {
+      "empfehlung": "Ändern",
+      "kontext": "Monteur und Planung",
+      "begruendung": "Arbeitsbereitschaft zu prüfen ist sinnvoll. Eine pauschale Freigabebürokratie würde bereits vorhandene Termine, Personen und Materialdaten nochmals bestätigen lassen.",
+      "integration": "Faktenbasierten Bereitschaftscheck; zusätzliche menschliche Freigabe nur für tatsächlich erforderliche Entscheidungen."
+    },
+    "B05": {
+      "empfehlung": "Behalten",
+      "kontext": "Monteur und Planung",
+      "begruendung": "Klare Aufgaben mit Besitzer und Frist schließen eine reale Lücke. Sie sollen operative Verpflichtungen bündeln statt einen allgemeinen Projektmanagementbaukasten eröffnen.",
+      "integration": "Arbeitsliste an Akte und Mein Tag, gleiche Aufgabe in allen Einstiegen."
+    },
+    "B06": {
+      "empfehlung": "Behalten",
+      "kontext": "Monteur und Planung",
+      "begruendung": "DnD ist ein schneller Bedienweg zum vorhandenen Plan, kein neues Planungssystem.",
+      "integration": "Wochenstil erhalten; gleiche Serverprüfung und gleichwertiger Touch-/Formularweg."
+    },
+    "B07": {
+      "empfehlung": "Integrieren",
+      "kontext": "Monteur und Planung",
+      "begruendung": "Verfügbare qualifizierte Personen zu finden ist nützlich. Ein vermeintlich optimaler Personenscore würde eine objektive Aussage vortäuschen.",
+      "integration": "Erklärbare Verfügbarkeits-/Qualifikationsliste, gemeinsame Regeln mit B08/G10."
+    },
+    "B08": {
+      "empfehlung": "Integrieren",
+      "kontext": "Monteur und Planung",
+      "begruendung": "Material- und Qualifikationshinweise gehören an die Planentscheidung, nicht in weitere Warnungs-Dashboards.",
+      "integration": "Gemeinsames Prüfungsergebnis mit klarem Unterschied zwischen unbekannt, Warnung und echter Sperre."
+    },
+    "B09": {
+      "empfehlung": "Ändern",
+      "kontext": "Kommunikation und Dokumente",
+      "begruendung": "Auftragsbezogene Rückfragen brauchen einen sicheren gemeinsamen Kontext. Ein allgemeiner Direktnachrichten-Messenger fördert hingegen neue verstreute Absprachen ohne Aufgaben-/Belegbezug.",
+      "integration": "Projekt-/Aufgaben-Threads mit Erwähnungen und Benachrichtigung behalten; freien allgemeinen DM-Messenger aus dem empfohlenen Standardumfang streichen."
+    },
+    "B10": {
+      "empfehlung": "Integrieren",
+      "kontext": "Dokumentation und Qualität",
+      "begruendung": "Ein Bautagesbericht hat eigene fachliche Felder, aber braucht keine parallele Datenhaltung zu B11 und Handwerksscheinen.",
+      "integration": "Ein Berichtskern mit Profil Bautag, manuellem Wetter und geprüften tatsächlichen Daten."
+    },
+    "B11": {
+      "empfehlung": "Integrieren",
+      "kontext": "Dokumentation und Qualität",
+      "begruendung": "Ein Arbeitsbericht ist eine andere Ausgabe vorhandener Arbeit, keine zusätzliche Buchung.",
+      "integration": "Derselbe Quellen-/Dokumentkern wie B10, mit passendem Arbeitsberichtprofil."
+    },
+    "B12": {
+      "empfehlung": "Behalten",
+      "kontext": "Dokumentation und Qualität",
+      "begruendung": "Mängel benötigen eine nachvollziehbare Erledigung über einen normalen Aufgabentext hinaus.",
+      "integration": "Mangeltyp im Aufgaben-/Qualitätskontext mit Foto, Prüfung und Wiedereröffnung."
+    },
+    "B13": {
+      "empfehlung": "Optional",
+      "kontext": "Dokumentation und Qualität",
+      "begruendung": "Eine formale Abnahme ist bei passenden Aufträgen wichtig, aber nicht dasselbe wie eine einfache Leistungsbestätigung am Handwerksschein.",
+      "integration": "Eigenes Dokumentprofil mit Vorbehalten und Teilabnahme, im gleichen Signaturdienst."
+    },
+    "B14": {
+      "empfehlung": "Optional",
+      "kontext": "Abrechnung",
+      "begruendung": "Eine Prognose hilft nur bei tatsächlich gepflegtem Restaufwand. Istkosten allein rechtfertigen keine Endkostenbehauptung.",
+      "integration": "Iststand bleibt Standard; ausdrücklich gepflegte Restdaten ermöglichen gekennzeichnete Prognose."
+    },
+    "B15": {
+      "empfehlung": "Optional",
+      "kontext": "Kommunikation und Dokumente",
+      "begruendung": "Für Betriebe mit SharePoint ist der Zugang zu vorhandenen Projektdokumenten ein echter Integrationsnutzen. Ohne Microsoft-Nutzung wäre ein sichtbares Pflichtmodul sinnlos.",
+      "integration": "Optionaler sauber berechtigter Referenz-/Importadapter; keine zweite automatische Vollablage."
+    },
+    "Z01": {
+      "empfehlung": "Ändern",
+      "kontext": "Zeit und Mitarbeiter",
+      "begruendung": "Ein Korrekturantrag ist sinnvoll, wenn Mitarbeiter etwas nicht selbst ändern dürfen. Ihn vor jede bisher erlaubte eigene Korrektur zu schalten wäre eine Verschlechterung.",
+      "integration": "Bestehende Selbstbearbeitung erhalten; Antrag für gesperrte oder fremd zu prüfende Fälle."
+    },
+    "Z02": {
+      "empfehlung": "Optional",
+      "kontext": "Zeit und Mitarbeiter",
+      "begruendung": "Zusätzliche konkrete Zeitmodelle können für bestimmte Betriebe zwingend sein. Ein undefinierter Alleskönner-Regelbaukasten erzeugt dagegen keine verlässliche Arbeitszeitberechnung.",
+      "integration": "Versionierte verifizierte Modellprofile und Parameter, kein generischer Lohnabrechnungsersatz."
+    },
+    "Z03": {
+      "empfehlung": "Optional",
+      "kontext": "Zeit und Mitarbeiter",
+      "begruendung": "Zusätzliche Merkmale sind nützlich, wenn sie tatsächlich erfasst/exportiert werden müssen. Beobachtung und rechtlicher Entgeltanspruch sind getrennt.",
+      "integration": "Definierte Merkmale mit Herkunft und Regelprofil, nicht pauschale automatische Zuschläge."
+    },
+    "Z04": {
+      "empfehlung": "Ersetzen",
+      "kontext": "Zeit und Mitarbeiter",
+      "begruendung": "Eine Uhrzeit beweist nicht, dass die Arbeit endet. Automatisches Ausstempeln kann tatsächlich geleistete Stunden verkürzen oder falsche Tatsachen erzeugen, auch wenn später korrigiert werden könnte.",
+      "integration": "Überfälligen Timer melden, bestätigbaren Abschluss vorschlagen, bewusst weiterlaufen lassen. Keine automatische arbeitszeitwirksame Endbuchung allein wegen einer Endregel."
+    },
+    "Z05": {
+      "empfehlung": "Behalten",
+      "kontext": "Monteur und Planung",
+      "begruendung": "Qualifikationen mit Gültigkeit gehören zur fachlich richtigen Besetzung und Fristenkontrolle.",
+      "integration": "Nachweis im Personenbereich, nur notwendige Eignungsinformation in der Planung."
+    },
+    "W01": {
+      "empfehlung": "Integrieren",
+      "kontext": "Wartung und Betriebsmittel",
+      "begruendung": "Anlagenspezifische Checklisten haben hohen Nutzen. Sie gehören zu einer konkreten Wartung, nicht in ein allgemeines losgelöstes Formularportal.",
+      "integration": "Ein Prüfvorgang mit W02/W03 und der bestehenden Wartungshistorie."
+    },
+    "W02": {
+      "empfehlung": "Integrieren",
+      "kontext": "Wartung und Betriebsmittel",
+      "begruendung": "Abweichungen sind ein Ergebnis derselben Prüfung. Unbekannte Grenzwerte dürfen nicht in eine unbegründete Sicherheitsbewertung umschlagen.",
+      "integration": "Bewertung am Messfeld mit verifizierter Grundlage; kein separates Alarmmodul."
+    },
+    "W03": {
+      "empfehlung": "Integrieren",
+      "kontext": "Wartung und Betriebsmittel",
+      "begruendung": "Der Bericht ist die notwendige bestätigte Ausgabe von W01/W02, kein dritter unabhängiger Arbeitsvorgang.",
+      "integration": "Versioniertes Berichtprofil aus denselben Antworten und derselben Ausführung."
+    },
+    "W04": {
+      "empfehlung": "Integrieren",
+      "kontext": "Wartung und Betriebsmittel",
+      "begruendung": "Wartungsabrechnung schließt den vorhandenen Ablauf sinnvoll. Ein neuer eigener Rechnungsgenerator würde zu Doppelabrechnung führen.",
+      "integration": "Bestehende Rechnungsvorschau und gemeinsame Quellenzuordnung."
+    },
+    "W05": {
+      "empfehlung": "Optional",
+      "kontext": "Wartung und Betriebsmittel",
+      "begruendung": "Fernannahme von Wartungsverträgen passt zum Vertragsbestand, sofern der Betrieb sie nutzt. Eine neue Unterschrift je Wartung ohne Vertragsänderung wäre unnötig.",
+      "integration": "Derselbe Annahmedienst wie A06, aber mit eindeutiger Wartungsvertragsfassung."
+    },
+    "W06": {
+      "empfehlung": "Optional",
+      "kontext": "Wartung und Betriebsmittel",
+      "begruendung": "Fahrzeuge und verpasste Fristen betreffen den Servicebetrieb tatsächlich. Es braucht dafür keinen umfassenden Flottenmanager.",
+      "integration": "Gemeinsame Betriebsmittelakte und Fristenliste, verknüpft mit Fahrzeuglager."
+    },
+    "W07": {
+      "empfehlung": "Optional",
+      "kontext": "Wartung und Betriebsmittel",
+      "begruendung": "Kilometer und konkrete Fahrten können betrieblich nötig sein. Sie dürfen nicht als automatische Arbeitszeit, GPS-Überwachung oder pauschal steuerlich anerkanntes Fahrtenbuch ausgegeben werden.",
+      "integration": "Explizite manuelle/strukturierte Fahrtenfunktion mit Korrekturverlauf und Export, nur bei entsprechendem Betriebszweck."
+    },
+    "W08": {
+      "empfehlung": "Optional",
+      "kontext": "Wartung und Betriebsmittel",
+      "begruendung": "Geräte mit echten Wartungs-/Prüfintervallen brauchen eine Historie. Normale Verbrauchsartikel benötigen dagegen keine Geräteakte.",
+      "integration": "Mit Fahrzeugen gemeinsamer Betriebsmittel-/Fristenkern, fachliche Gerätefelder getrennt."
+    },
+    "U01": {
+      "empfehlung": "Ändern",
+      "kontext": "Bedienung und Nachvollziehbarkeit",
+      "begruendung": "Persönliche Reihenfolge und relevante Inhalte sind sinnvoll. Frei gestaltbare Kachel-Dashboards würden die gemeinsame Lot-Linie und Vergleichbarkeit der Bedienung schwächen.",
+      "integration": "Kuratierte Listen/Abschnitte anordnen und wählen, feste Darstellungsbausteine; keine freie Dashboard-Designfläche."
+    },
+    "U02": {
+      "empfehlung": "Ändern",
+      "kontext": "Bedienung und Nachvollziehbarkeit",
+      "begruendung": "Favoriten lösen den Schnellzugriff. Eine frei umsortierbare gesamte Grundnavigation macht Hilfe, Vertretung und gemeinsame Einweisung unzuverlässig.",
+      "integration": "Favoriten und begrenzte persönliche Priorisierung ja; kanonische Gruppen, Bezeichnungen und mobile Grundnavigation erhalten."
+    },
+    "U03": {
+      "empfehlung": "Optional",
+      "kontext": "Bedienung und Nachvollziehbarkeit",
+      "begruendung": "Ein Wochenrückblick kann Betriebsentscheidungen unterstützen. Ungefragte automatische Kennzahlenmails erzeugen jedoch eher Meldungslärm als Handlung.",
+      "integration": "Faktenbasierter In-App-Bericht; E-Mail nur bewusst abonniert mit berechtigtem Inhalt und Empfänger."
+    },
+    "U04": {
+      "empfehlung": "Behalten",
+      "kontext": "Bedienung und Nachvollziehbarkeit",
+      "begruendung": "Kritische Änderungen müssen nachvollziehbar sein. Dieses Fundament verhindert echte Integrationsprobleme und gehört nicht als spät ergänztes Komfortmodul behandelt.",
+      "integration": "Serverseitiger Journal-/Quellenbezug von Anfang an, Rollen und Datensparsamkeit."
+    },
+    "U05": {
+      "empfehlung": "Ändern",
+      "kontext": "Bedienung und Nachvollziehbarkeit",
+      "begruendung": "Tatsächlicher Versand und konkret begründeter sensibler Zugriff sind belegwürdig. Eine allgemeine Liste, wer welche App-Seite ansieht, bringt wenig Fachnutzen und zusätzliche Überwachungsdaten.",
+      "integration": "Versandereignisse behalten; Ansichtsnachweis nur für vorher benannte nachweisbedürftige Objekte. Keine allgemeine Nutzungsverfolgung."
+    },
+    "U06": {
+      "empfehlung": "Behalten",
+      "kontext": "Bedienung und Nachvollziehbarkeit",
+      "begruendung": "Wiederherstellbare Entwürfe verhindern echten Datenverlust. Die Quelle grenzt sie bereits richtig von unveränderlichen Belegen und endgültiger Löschung ab.",
+      "integration": "Gezielter Entwurfspapierkorb mit Referenzprüfung und klarer Aufbewahrung, kein universelles Beleg-Undo."
+    },
+    "G01": {
+      "empfehlung": "Integrieren",
+      "kontext": "Abrechnung",
+      "begruendung": "Funktional sinnvoll, aber bereits derselbe Quellen-/Restverbrauch wie die Arbeitsliste zur Abrechnung.",
+      "integration": "Eine Regel im gemeinsamen Abrechnungsdienst, kein zusätzlicher Menüpunkt."
+    },
+    "G02": {
+      "empfehlung": "Integrieren",
+      "kontext": "Abrechnung",
+      "begruendung": "Die Vorschau gehört zur bestehenden Rechnungslogik. Eine zusätzliche automatische Rechnungserstellung wäre ein zweiter riskanter Weg.",
+      "integration": "Derselbe bewährte Vorschau-/Ausstellungsweg mit bestätigten Quellen."
+    },
+    "G03": {
+      "empfehlung": "Integrieren",
+      "kontext": "Einkauf",
+      "begruendung": "Identisch zum fachlichen Kern von E14; zwei Fehlmengenlisten würden Doppelbestellungen begünstigen.",
+      "integration": "Ein Bedarf-/Deckungsdienst und dieselbe Einkaufsliste."
+    },
+    "G04": {
+      "empfehlung": "Integrieren",
+      "kontext": "Abrechnung",
+      "begruendung": "Mengenabweichungen sind ein sinnvoller Prüfanlass, aber noch kein Anspruch auf einen Nachtrag.",
+      "integration": "Hinweis in Aufmaß-/Schlussrechnungsvorschau, getrennt von erlaubter Abrechnung und bereits verrechneter Menge."
+    },
+    "G05": {
+      "empfehlung": "Integrieren",
+      "kontext": "Abrechnung",
+      "begruendung": "Budgetwarnung hilft bei hinterlegtem Budget und tragfähiger Kostenbasis. Sie ist ein Zustand der Nachkalkulation, kein eigenes Warnungsprodukt.",
+      "integration": "Schwelle und Herkunft im bestehenden Kosten-/Auftragskontext."
+    },
+    "G06": {
+      "empfehlung": "Integrieren",
+      "kontext": "Katalog und Preise",
+      "begruendung": "Dieselbe Regel wie E04/A08. Eine zweite Preisänderungsberechnung würde keine zusätzliche Funktion liefern.",
+      "integration": "Gleicher Versionsvergleich und gleiche Wirkung auf Entwürfe."
+    },
+    "G07": {
+      "empfehlung": "Integrieren",
+      "kontext": "Zahlungen und Eingangsbelege",
+      "begruendung": "Fristensicht ist wichtig, gehört aber direkt zum Beleg und seinem aktuellen offenen Stand.",
+      "integration": "Gemeinsamer Fristendienst für Eingang/Ausgang; keine separate Erinnerungsdatenbank."
+    },
+    "G08": {
+      "empfehlung": "Integrieren",
+      "kontext": "Zahlungen und Eingangsbelege",
+      "begruendung": "Dieselbe Zuordnungsfunktion wie R05; nicht als zweiter Automatikweg bauen.",
+      "integration": "Ein Bankabgleich mit Vorschlag, manueller Klärung und bestätigter Buchung."
+    },
+    "G09": {
+      "empfehlung": "Integrieren",
+      "kontext": "Zahlungen und Eingangsbelege",
+      "begruendung": "Identisch zu R08. Die Datenbedingungen sind sinnvoll; ein weiteres Dublettenmodul wäre redundant.",
+      "integration": "Dieselbe fachliche Warnung und derselbe Klärstatus."
+    },
+    "G10": {
+      "empfehlung": "Integrieren",
+      "kontext": "Monteur und Planung",
+      "begruendung": "Gleiche Konflikt-/Eignungsprüfung wie B06–B08. Erklärbarkeit ist wichtiger als ein zusätzlicher Empfehlungsbildschirm.",
+      "integration": "Ein Regelkern mit kontextabhängig sichtbarem Ergebnis."
+    },
+    "G11": {
+      "empfehlung": "Integrieren",
+      "kontext": "Wartung und Betriebsmittel",
+      "begruendung": "Die nächste Fälligkeit gehört zum bestehenden Wartungskern; eine zweite Terminberechnung würde falsche Doppeltermine erzeugen.",
+      "integration": "Gleiche bestätigte Ausführung, Vertragsregel und Historie."
+    }
+  }
+}

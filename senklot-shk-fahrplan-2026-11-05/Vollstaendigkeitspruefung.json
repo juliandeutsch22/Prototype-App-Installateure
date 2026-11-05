@@ -5,21 +5,20 @@
   "sourceRequirements": 84,
   "individualFeatureSections": 84,
   "featuresAssignedExactlyOnceToPrimaryPackage": 84,
+  "criticallyAssessedFeatures": 84,
+  "assessmentCounts": {
+    "Ändern": 8,
+    "Behalten": 17,
+    "Optional": 22,
+    "Integrieren": 36,
+    "Ersetzen": 1
+  },
   "missingRequirements": [],
   "unexpectedRequirements": [],
-  "requirementsByGroup": {
-    "A": 11,
-    "R": 12,
-    "E": 16,
-    "B": 15,
-    "Z": 5,
-    "W": 8,
-    "U": 6,
-    "G": 11
-  },
   "appCodeChanged": false,
   "newAppTestRunPerformed": false,
-  "planBytes": 139892,
-  "planWords": 14899,
-  "planLines": 1386
+  "scopeCutsAlreadyApproved": false,
+  "publicPublicationExplicitlyApproved": true,
+  "masterBytes": 141935,
+  "reviewBytes": 40087
 }
