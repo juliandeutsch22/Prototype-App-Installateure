@@ -131,8 +131,13 @@ describe('Lot: die Plattform in der Hülle der App', () => {
     expect(within(leiste).getByRole('button', { name: 'Betriebe' })).not.toHaveAttribute('aria-current');
     // Unten am Handy dieselben fünf Bereiche mit Kurznamen; oben „Mein Konto“.
     const reiter = screen.getByRole('navigation', { name: 'Bereiche der Plattform, untere Leiste' });
-    expect(within(reiter).getAllByRole('button').map((b) => b.textContent)).toEqual(['Betriebe', 'Support', 'Fehler', 'Basiszins', 'Recht']);
-    expect(within(reiter).getByRole('button', { name: 'Recht' })).toHaveAttribute('aria-current', 'page');
+    const knoepfe = within(reiter).getAllByRole('button');
+    expect(knoepfe.map((b) => b.textContent)).toEqual(['Betriebe', 'Support', 'Fehler', 'Basiszins', 'Recht']);
+    // Vorgelesen der volle Name wie in der Leiste — er enthält den sichtbaren (WCAG 2.5.3).
+    const namen = knoepfe.map((b) => b.getAttribute('aria-label') ?? '');
+    expect(namen).toEqual(['Betriebe', 'Supportzugänge', 'Fehlerprotokoll', 'Basiszinssatz', 'Rechtstexte']);
+    knoepfe.forEach((b, i) => expect(namen[i].startsWith(b.textContent ?? '')).toBe(true));
+    expect(within(reiter).getByRole('button', { name: 'Rechtstexte' })).toHaveAttribute('aria-current', 'page');
     expect(within(document.querySelector<HTMLElement>('.kopfzeile')!).getByRole('button', { name: 'Mein Konto' })).toBeInTheDocument();
     // Wer angemeldet ist, darunter die Rolle.
     expect(screen.getByText('betreiber@senklot.test')).toBeInTheDocument();

@@ -175,6 +175,14 @@ export default function PlattformHuelle({
             type="button"
             className={bereich === b.wert ? 'unten-punkt-aktiv' : 'unten-punkt'}
             aria-current={bereich === b.wert ? 'page' : undefined}
+            /*
+              DER VOLLE NAME FÜR DIE VORLESEHILFE. Sichtbar steht der
+              Kurzname („Fehler“), vorgelesen der volle („Fehlerprotokoll“) —
+              wie vor E48 und wie in der Seitenleiste. Der volle Name enthält
+              den sichtbaren (WCAG 2.5.3); wer per Sprache „Fehler“ sagt,
+              trifft den Reiter.
+            */
+            aria-label={b.name}
             onClick={() => onBereich(b.wert)}
           >
             <span className="unten-lot" aria-hidden="true" />
