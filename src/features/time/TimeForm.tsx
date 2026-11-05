@@ -33,6 +33,8 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { ErrorState } from '@/components/States';
 import InfoHint from '@/components/InfoHint';
 import { WeitereAngaben } from '@/components/LotBausteine';
+import Aenderungsprotokoll from './Aenderungsprotokoll';
+import { listVerlaufEintrag } from '@/lib/db/zeitbuchungVerlauf';
 import { useToast } from '@/components/Toast';
 import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
 import type { WithId } from '@/lib/db/core';
@@ -1575,6 +1577,14 @@ export default function TimeForm({
             weitereFelder
           )}
         </>
+      )}
+
+      {/*
+        DER VERLAUF DIESER BUCHUNG (E50): zugeklappt, auf Klick geladen — für
+        die Person selbst und fürs Büro, wer sie wann wie geändert hat.
+      */}
+      {isEdit && entry && user && (
+        <Aenderungsprotokoll titel="Verlauf dieser Buchung" laden={() => listVerlaufEintrag(user.companyId, entry.id)} />
       )}
 
       {error && <ErrorState message={error} />}

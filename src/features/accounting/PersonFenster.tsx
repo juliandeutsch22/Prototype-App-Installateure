@@ -26,6 +26,8 @@ import PersonKalender from './PersonKalender';
 import { GrenzListe } from './ArbeitszeitGrenzenKarte';
 import type { GrenzDaten } from './useArbeitszeitGrenzen';
 import { kurzeZeit, tageDesMonats, tagKurz, type Tageswert } from './tagesauswertung';
+import Aenderungsprotokoll from '@/features/time/Aenderungsprotokoll';
+import { listVerlaufZeitraum } from '@/lib/db/zeitbuchungVerlauf';
 
 /**
  * Person im Monat: Kontostand, fehlende Tage und vollständiger Tagesnachweis.
@@ -411,6 +413,22 @@ export default function PersonFenster({
           )}
         </p>
       </details>
+
+      {/*
+        DAS ÄNDERUNGSPROTOKOLL DES MONATS (E50), zugeklappt wie die Zeile
+        darüber und erst auf Klick geladen. Auch gelöschte Buchungen stehen
+        darin — die Liste oben kennt sie nicht mehr.
+      */}
+      <Aenderungsprotokoll
+        key={`${u.uid}-${jahr}-${monat}`}
+        stil="pf"
+        mitTag
+        titel="Änderungsprotokoll des Monats"
+        laden={() => {
+          const tage = tageDesMonats(jahr, monat);
+          return listVerlaufZeitraum(companyId, u.uid, tage[0], tage[tage.length - 1]);
+        }}
+      />
 
       <div className="pf-fuss">
         <Button variant="secondary" onClick={onCsv}>

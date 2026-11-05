@@ -63,7 +63,12 @@ beforeAll(async () => {
     company_id: BETRIEB, project_number: 'B-LO-1', customer_name: 'Irgendwer', status: 'Aktiv',
     assigned_employees: [monteur.uid, kollege.uid], project_managers: [monteur.uid],
   });
-  await einfuegen('time_entries', buchung(monteur, '2099-02-02', { project_number: 'B-LO-1' }));
+  const eintrag = await einfuegen('time_entries', buchung(monteur, '2099-02-02', { project_number: 'B-LO-1' }));
+  // Der Dienstschlüssel protokolliert nicht (E50) — die Zeile, wie sie das Anlegen in der App schriebe.
+  await einfuegen('zeitbuchung_verlauf', {
+    company_id: BETRIEB, eintrag_id: eintrag, user_id: monteur.uid, datum: '2099-02-02', art: 'angelegt',
+    von_uid: monteur.uid,
+  });
   await einfuegen('krankmeldungen', {
     company_id: BETRIEB, user_id: monteur.uid, user_name: 'M', von: '2099-04-01', bis: '2099-04-02',
   });
@@ -97,6 +102,8 @@ describe('Eine Person der Belegschaft', () => {
     expect(b!.sofort).toEqual({ einstellungen: 1, fehlerprotokoll: 1, einsaetze: 1, ruestlisten: 1, baustellen: 1, termine: 0, geburtsdatum: 0 });
     expect(b!.aufbewahren).toEqual([
       { was: 'Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
+      // E50: der Verlauf der Buchung (hier ihr Anlegen) bleibt mit ihr aufbewahrt.
+      { was: 'Änderungsprotokoll der Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
       { was: 'Krankmeldungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
       // Entsteht aus der Zeitbuchung (Auslöser der Monatsbilanz) und ist Lohnunterlage wie sie.
       { was: 'Monatsbilanzen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },

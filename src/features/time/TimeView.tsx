@@ -33,6 +33,8 @@ import {
 import { tageMitEchterDoppelung } from '@/lib/tagesbuchungen';
 import { canEditTime, fuehrtZeitkonto } from '@/lib/permissions';
 import { bilanzMarker, listBilanzen, monatVon, type Monatsbilanz } from '@/lib/db/monatsbilanzen';
+import { listVerlaufZeitraum } from '@/lib/db/zeitbuchungVerlauf';
+import Aenderungsprotokoll from './Aenderungsprotokoll';
 import type { WithId } from '@/lib/db/core';
 import type { TimeEntry, AppUser, WorkSheet } from '@/types';
 import { listOwnWorkSheetsSince } from '@/lib/db/workSheets';
@@ -93,6 +95,19 @@ const KEINE_EINTRAEGE: WithId<TimeEntry>[] = [];
  * Zeiterfassung — der vertikale Schnitt: Mitarbeiter erfasst -> Datenbank ->
  * hier live sichtbar, inkl. portiertem Saldo.
  */
+/**
+ * Der Zeitraum der Liste: die letzten `monate` Monate und ein Jahr voraus
+ * (siehe unten). EINE Stelle, weil das Änderungsprotokoll (E50) denselben
+ * Zeitraum zeigt wie die Liste darüber.
+ */
+function listenZeitraum(monate: number): { ab: string; bis: string } {
+  const voraus = new Date();
+  voraus.setFullYear(voraus.getFullYear() + 1);
+  const ab = new Date();
+  ab.setMonth(ab.getMonth() - monate);
+  return { ab: localDateStr(ab), bis: localDateStr(voraus) };
+}
+
 export default function TimeView() {
   const { user, company } = useAuth();
   const halbeTage = dezemberHalbtage(company);
@@ -195,15 +210,11 @@ export default function TimeView() {
       der Liste auf Krankmeldung tippen") lief ins Leere. Ein Jahr voraus
       reicht für jeden Urlaub. Der Saldo zählt Künftiges nicht mit.
     */
-    const voraus = new Date();
-    voraus.setFullYear(voraus.getFullYear() + 1);
-    const bis = localDateStr(voraus);
-    const ab = new Date();
-    ab.setMonth(ab.getMonth() - monate);
+    const { ab, bis } = listenZeitraum(monate);
     return subscribeOwnEntriesInRange(
       user.companyId,
       user.uid,
-      localDateStr(ab),
+      ab,
       bis,
       (rows) => {
         setEntries(rows);
@@ -1077,6 +1088,22 @@ export default function TimeView() {
               Ältere Einträge laden
             </button>
             <p className="zeit-fenster-hinweis">Angezeigt werden die letzten {monate} Monate.</p>
+            {/*
+              DAS ÄNDERUNGSPROTOKOLL (E50) über denselben Zeitraum wie die
+              Liste, zugeklappt und erst auf Klick geladen. Es zeigt auch, was
+              das Büro an den eigenen Buchungen geändert oder gelöscht hat.
+            */}
+            <div className="zeit-verlauf">
+              <Aenderungsprotokoll
+                key={monate}
+                mitTag
+                titel="Änderungsprotokoll deiner Buchungen"
+                laden={() => {
+                  const { ab, bis } = listenZeitraum(monate);
+                  return listVerlaufZeitraum(user.companyId, user.uid, ab, bis);
+                }}
+              />
+            </div>
           </>
         )}
       </Card>
