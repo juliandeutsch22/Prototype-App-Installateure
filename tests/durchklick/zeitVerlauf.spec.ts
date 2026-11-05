@@ -12,6 +12,11 @@ import { anmelden, keineFehlermeldung } from './helfer';
  *
  * Gegenprobe: ohne die Migration und die Bausteine gibt es weder Protokoll
  * noch etwas aufzuklappen — rot.
+ *
+ * DAS PROTOKOLL BLEIBT, auch wenn die Buchungen gehen: andere Wege im selben
+ * Lauf (und frühere Läufe gegen dieselbe Datenbank) haben dort schon Zeilen
+ * des Büros hinterlassen. Geprüft wird deshalb der eine Eintrag dieses Laufs
+ * — die gelöschte Buchung trägt eine eigene Notiz.
  */
 test('Änderungsprotokoll: das Büro ändert und löscht, beide sehen es auf Klick', async ({ page }) => {
   test.setTimeout(120_000);
@@ -25,9 +30,10 @@ test('Änderungsprotokoll: das Büro ändert und löscht, beide sehen es auf Kli
   const grund = { company_id: BETRIEB, user_id: uid, user_name: MONTEUR.name, date: tag, status: 'Anwesend', break_duration: 0, source: 'manual' };
   const bleibt = crypto.randomUUID();
   const geht = crypto.randomUUID();
+  const notiz = `Verlauf-Probe ${geht.slice(0, 8)}`;
   expect((await admin.from('time_entries').insert([
     { ...grund, id: bleibt, start_time: '07:00', end_time: '11:00', project_number: BAUSTELLE.nummer, customer_name: BAUSTELLE.kunde },
-    { ...grund, id: geht, start_time: '12:00', end_time: '13:00', comment: 'Verlauf-Probe' },
+    { ...grund, id: geht, start_time: '12:00', end_time: '13:00', comment: notiz },
   ])).error).toBeNull();
 
   // Das Büro: Ende der ersten Buchung ändern, die zweite löschen.
@@ -56,10 +62,12 @@ test('Änderungsprotokoll: das Büro ändert und löscht, beide sehen es auf Kli
   // Auf Klick: das Protokoll des Monats.
   const offen = page.getByRole('dialog').locator('details', { hasText: 'Änderungsprotokoll des Monats' });
   await offen.locator('summary').click();
-  await expect(offen.getByText(`Geändert von ${BUERO.name}`)).toBeVisible({ timeout: 20_000 });
-  await expect(offen.getByText('Ende 11:00 → 10:00')).toBeVisible();
-  await expect(offen.getByText(`Gelöscht von ${BUERO.name}`).first()).toBeVisible();
-  await expect(offen.getByText('Notiz Verlauf-Probe').first()).toBeVisible();
+  const geaendert = offen.locator('li', { hasText: 'Ende 11:00 → 10:00' }).first();
+  await expect(geaendert).toBeVisible({ timeout: 20_000 });
+  await expect(geaendert).toContainText(`Geändert von ${BUERO.name}`);
+  const geloescht = offen.locator('li', { hasText: `Notiz ${notiz}` });
+  await expect(geloescht).toHaveCount(1);
+  await expect(geloescht).toContainText(`Gelöscht von ${BUERO.name}`);
   await keineFehlermeldung(page);
 
   // Der Monteur: in seiner Zeiterfassung, auf Klick.
@@ -69,9 +77,12 @@ test('Änderungsprotokoll: das Büro ändert und löscht, beide sehen es auf Kli
   await page.goto('/time');
   const eigenes = page.locator('details', { hasText: 'Änderungsprotokoll deiner Buchungen' });
   await expect(eigenes).toBeVisible({ timeout: 20_000 });
-  await expect(eigenes.getByText('Ende 11:00 → 10:00')).toBeHidden();
+  await expect(eigenes.locator('li').first()).toBeHidden();
   await eigenes.locator('summary').click();
-  await expect(eigenes.getByText(`Geändert von ${BUERO.name}`)).toBeVisible({ timeout: 20_000 });
-  await expect(eigenes.getByText('Ende 11:00 → 10:00')).toBeVisible();
+  // Auch Gelöschtes: die Buchung dieses Laufs, mit ihrer Notiz und wer sie löschte.
+  const eigeneGeloescht = eigenes.locator('li', { hasText: `Notiz ${notiz}` });
+  await expect(eigeneGeloescht).toHaveCount(1, { timeout: 20_000 });
+  await expect(eigeneGeloescht).toContainText(`Gelöscht von ${BUERO.name}`);
+  await expect(eigenes.locator('li', { hasText: 'Ende 11:00 → 10:00' }).first()).toContainText(`Geändert von ${BUERO.name}`);
   await keineFehlermeldung(page);
 });

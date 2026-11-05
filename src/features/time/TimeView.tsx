@@ -1093,15 +1093,17 @@ export default function TimeView() {
               Liste, zugeklappt und erst auf Klick geladen. Es zeigt auch, was
               das Büro an den eigenen Buchungen geändert oder gelöscht hat.
             */}
-            <Aenderungsprotokoll
-              key={monate}
-              mitTag
-              titel="Änderungsprotokoll deiner Buchungen"
-              laden={() => {
-                const { ab, bis } = listenZeitraum(monate);
-                return listVerlaufZeitraum(user.companyId, user.uid, ab, bis);
-              }}
-            />
+            <div className="zeit-verlauf">
+              <Aenderungsprotokoll
+                key={monate}
+                mitTag
+                titel="Änderungsprotokoll deiner Buchungen"
+                laden={() => {
+                  const { ab, bis } = listenZeitraum(monate);
+                  return listVerlaufZeitraum(user.companyId, user.uid, ab, bis);
+                }}
+              />
+            </div>
           </>
         )}
       </Card>
