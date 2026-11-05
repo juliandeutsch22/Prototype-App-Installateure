@@ -1,0 +1,25 @@
+{
+  "sourceFile": "Senklot_Funktionskatalog_SHK_ohne_KI_2026-11-05 (1).md",
+  "sourceSHA256": "1951c1562edd0fb4d7d1e1822d6bebd04a9ec4da65baf156820ffbd17e8ababb",
+  "reviewedMainCommit": "62db192087ed05e5df1405b1e1ab8c9618e63864",
+  "sourceRequirements": 84,
+  "individualFeatureSections": 84,
+  "featuresAssignedExactlyOnceToPrimaryPackage": 84,
+  "missingRequirements": [],
+  "unexpectedRequirements": [],
+  "requirementsByGroup": {
+    "A": 11,
+    "R": 12,
+    "E": 16,
+    "B": 15,
+    "Z": 5,
+    "W": 8,
+    "U": 6,
+    "G": 11
+  },
+  "appCodeChanged": false,
+  "newAppTestRunPerformed": false,
+  "planBytes": 139892,
+  "planWords": 14899,
+  "planLines": 1386
+}

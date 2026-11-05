@@ -231,3 +231,12 @@ Die Startseite und sechs Funktionsseiten sprechen den Alltag im Installationsbet
 - [Einrichtung und Updatehinweise](senklot-landingpage-2026-11-02/VEROEFFENTLICHEN.md)
 
 Formularschutz, Auswahl, Versand und Darstellung wurden lokal geprüft; keine echten E-Mails aus dieser Sitzung versendet. Noch nicht auf World4you hochgeladen. Beim Aktualisieren die aktive `senklot-intern/config.php` und den Ordner `senklot-intern/speicher/` erhalten. Für diese Revision das vollständige Paket verwenden, nicht das ältere separate Favicon-ZIP.
+
+
+## Senklot: vollständiger SHK-Integrationsfahrplan (05.11.2026)
+
+Masterprompt zur korrigierten Vorlage „Senklot vs. APVROS – funktionale Unterschiede innerhalb der App“. Alle 84 Original-IDs sind einzeln ausgearbeitet und einer technischen Paketfolge zugeordnet. Architektur, Bestandsabgleich am main-Commit 62db192, Fachabläufe, UI, Rechte, Offline, Migrationen und Abnahme. Die App wurde nicht verändert.
+
+- [Masterprompt als MD](senklot-shk-fahrplan-2026-11-05/Senklot_SHK_Integrationsfahrplan_Masterprompt_2026-11-05.md?raw=true)
+- [MD-Datei und Nachweise als ZIP](senklot-shk-fahrplan-2026-11-05/Senklot_SHK_Integrationsfahrplan_2026-11-05.zip?raw=true)
+- [Abgrenzung und Vollständigkeitsprüfung](senklot-shk-fahrplan-2026-11-05/README.md)
