@@ -1293,3 +1293,73 @@ Konto“ erreichbar, das Lot neben dem aktiven Bereich), `akten.spec.ts` (+1:
 nach jedem Reiterwechsel genau ein Reiter sichtbar). Gegenproben: mit der
 alten Plattform rot (keine Arbeitsfläche), mit dem alten Taktgeber rot
 (zwei Reiter sichtbar).
+
+*Nachtrag zu E48:* die Reiter der Plattform am Handy zeigen den Kurznamen
+(„Fehler“), vorgelesen wird der volle („Fehlerprotokoll“) wie in der
+Seitenleiste — der volle enthält den sichtbaren (WCAG 2.5.3). Aufgefallen in
+der CI am Telefon.
+
+**E49 — Der Handwerksschein ohne Netz (05.11.2026).** Auftrag: „starte
+direkt … stelle sicher, dass am Ende alles vollständig ohne Fehler und ohne
+nicht begründete Grenzen funktioniert“. Bis hierher liefen Speichern und
+Unterschreiben des Scheins als direkter Aufruf an den Server (Prüflauf
+25.09.2026, P1-14): im Keller ohne Empfang ließ sich der Schein weder sichern
+noch unterschreiben, und der Hinweis an den Fotos sagte das so.
+
+- **Jeder Schreibweg des Scheins geht über das Ausgangsfach**, das die
+  Zeitbuchung schon trägt: Speichern (`schein_speichern`), Unterschreiben
+  (`schein_unterschreiben`), Hochladen und Entfernen eines Fotos — je ein
+  Vorgang, in der Reihenfolge, in der er entstand. Mit Netz geht er sofort
+  hinaus wie bisher; ohne Netz bleibt er im Gerät und geht mit dem nächsten
+  Empfang (Start, `online`, Rückkehr zur App, jede Minute).
+- **Nur was beim zweiten Mal dasselbe tut.** Das Fach nimmt seitdem neben
+  Zeilen auch Aufrufe und Dateien, aber nur aus einer festen Liste im Sender
+  (`AUFRUFE_OHNE_EMPFANG`: die beiden Funktionen des Scheins;
+  `EIMER_OHNE_EMPFANG`: die Scheinfotos). `schein_speichern` schreibt den
+  Entwurf unter der Kennung vom Gerät und ersetzt Zeiten, Material und Fotos
+  als ganze Liste; ein Foto heißt nach seinem Inhalts-Hash. Weist die
+  Datenbank ein zweites Unterschreiben ab, sieht der Sender nach: trägt der
+  Schein genau diese Unterschriften (Name und Gerätezeit beider), war es die
+  erste Zustellung, deren Antwort im Funkloch verloren ging — angekommen,
+  nicht verloren.
+- **Ein Foto hält die Unterschrift nicht auf.** Hochladen und Entfernen
+  stehen je Datei in einer eigenen Gruppe; weist der Speicher ein Bild
+  endgültig ab, gehen Speichern und Unterschrift desselben Scheins trotzdem
+  hinaus, und die Meldung sagt, dass der Schein das Bild verzeichnet, die
+  Datei aber fehlt.
+- **Was wartet, steht da.** In der Scheinliste der Abschnitt „Noch nicht
+  gesendet“ (sonst legte der Monteur denselben Schein ein zweites Mal an);
+  ein wartender Entwurf öffnet von dort auch ohne Netz, die Baustelle kommt
+  dann aus dem Entwurf. Im Schein steht am Bild „Wartet auf Netz“; nach dem
+  Speichern und Unterschreiben „ohne Verbindung gespeichert, wird
+  automatisch gesendet“. Wird ein vorgemerkter Stand endgültig abgewiesen
+  (meist: derselbe Entwurf wurde inzwischen anderswo unterschrieben oder
+  verworfen), nennt die Meldung den Grund des Servers.
+- **Keine Datenbankänderung.** Die Prüfsumme setzt der Server wie bisher
+  beim Eintreffen der Unterschrift; die Gerätezeit in der Unterschrift bleibt
+  die des Augenblicks vor dem Kunden.
+
+**Grenzen mit Grund.** (1) Den Schein ganz ohne Netz neu beginnen geht nicht:
+Baustelle, Kunde und Adresse kommen vom Server; ein Vorrat aller Baustellen
+und Kunden im Browser läge auf geteilten Tablets unverschlüsselt
+(Datenschutz). Wer den Schein mit Netz öffnet, schreibt und unterschreibt ihn
+danach ohne. (2) Wird derselbe Entwurf auf einem anderen Gerät inzwischen
+unterschrieben oder verworfen, nimmt der Server den vorgemerkten Stand nicht
+mehr an (fachlich und rechtlich: ein unterschriebener Schein ist ein
+eingefrorener Beleg) — die App meldet es mit Grund. (3) In einem privaten
+Fenster kann der Browser nichts vormerken; dort bleibt es beim direkten Weg
+(Gerät).
+
+**Prüfungen.** `scheinSender.test.ts` (neu: feste Liste, Einordnung von
+Aufruf und Speicher, zweites Zustellen derselben Unterschrift),
+`scheinVorgemerkt.test.ts` (neu: wartende Scheine zusammensetzen, Entwurf
+aus dem Gerät), `WorkSheetView.test.tsx` (+7: „wird gesendet“ beim
+Unterschreiben und Entwurf, wartendes Foto, Entwurf aus dem Gerät öffnen und
+unterschreiben, Meldung ohne Netz, gleich geblieben mit Netz; der Hinweis
+P1-14 neu), `WorkSheetsListView.test.tsx` (+3), `PremiumRueckmeldung.test.tsx`
+(+2 Meldungen), `ausgangsfachNaht.test.ts` (+1), gegen die echte Datenbank
+`scheinOhneEmpfang.test.ts` (neu, 4: Funkloch → Reihenfolge → angekommen mit
+Foto und Prüfsumme; zweites Zustellen; Konflikt gemeldet; ohne Fach direkt)
+und im Browser `scheinUnterschreiben.spec.ts` (+1: Netz wirklich weg, Zeit,
+Foto und Unterschriften, „Noch nicht gesendet“, Netz zurück, angekommen).
+Gegenproben: mit dem Stand von `main` alle neuen Prüfungen rot.

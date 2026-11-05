@@ -44,6 +44,9 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Sonderurlaub: Pflegestunden über dem Kontingent warnen statt zu sperren; stundenweise nur bei Vorladung, Musterung und Pflege (Stand 10.3) | Rechtlich bzw. fachlich |
 | Zeit teilen: verrechnete Buchungen nicht teilbar; Pause bleibt als Zahl am längeren Teil (Stand 15.6, 15.10) | Verrechnet ist ein Beleg; die Pause hat keine Uhrzeit in den Daten |
 | Teilen und Einfügen nur mit Verbindung (Stand 15.6, 15.10) | Beide ändern mehrere Buchungen in einem Zug; offline könnte ein zweites Gerät dazwischen schreiben |
+| Handwerksschein ohne jedes Netz neu beginnen (E49, Stand 46) | Datenschutz: Baustelle, Kunde und Adresse kommen vom Server; ein Vorrat aller Baustellen und Kunden im Browser läge auf geteilten Tablets unverschlüsselt. Mit Netz geöffnet, wird der Schein danach ohne Netz geschrieben und unterschrieben |
+| Ein vorgemerkter Schein, der anderswo inzwischen unterschrieben oder verworfen wurde, kommt nicht mehr an (E49) | Fachlich und rechtlich: ein unterschriebener Schein ist ein eingefrorener Beleg; die App meldet es mit dem Grund des Servers |
+| Im privaten Fenster des Browsers kein Vormerken (E49) | Gerät: dort gibt es keinen dauerhaften Speicher; der Schein geht nur mit Netz, ein Foto ohne Upload lässt sich weglassen |
 | Mahnung: zwischen Nachsehen und Festhalten eingehende Zahlung (Stand 16.3) | Die Datenbank weist das Festhalten ab und die Meldung sagt es |
 | Der Support sieht keinen Budgetstand und keine Buchungen (Stand 14.1) | Datenschutz und Rechte: Zeitbuchungen gehören nicht zum Support |
 | Krankenstände und Sonderurlaub stehen nicht im Urlaubsverlauf (Stand 17) | Datenschutz: Gesundheits- und Familiendaten |

@@ -37,7 +37,23 @@
 /** Wie heute: bestätigt oder vorgemerkt. */
 export type WriteOutcome = 'confirmed' | 'queued';
 
-export type Schreibart = 'anlegen' | 'aendern';
+/**
+ * Was ein Vorgang tut.
+ *
+ * `anlegen` und `aendern` schreiben eine Zeile einer Tabelle. Die drei
+ * übrigen gibt es seit E49 (05.11.2026) für den Handwerksschein, der im
+ * Keller gespeichert und unterschrieben wird:
+ *
+ *   `aufruf` — eine Datenbankfunktion, aber nur eine aus der festen Liste im
+ *   Sender (`AUFRUFE_OHNE_EMPFANG`): Funktionen, die beim zweiten Mal
+ *   dasselbe tun und nichts vom Stand des Servers zum Zeitpunkt des Sendens
+ *   abhängig machen.
+ *
+ *   `hochladen` und `entfernen` — eine Datei im Speicher, ebenfalls nur in
+ *   den dort genannten Eimern. Hochgeladen wird unter dem Inhalts-Hash als
+ *   Namen; ein zweites Hochladen schreibt dieselbe Datei an dieselbe Stelle.
+ */
+export type Schreibart = 'anlegen' | 'aendern' | 'aufruf' | 'hochladen' | 'entfernen';
 
 /** Ein vorgemerkter Schreibvorgang. */
 export interface Vormerkung {
@@ -133,6 +149,13 @@ function melden(zeile: string, tabelle: string, grund: string): void {
     // Ein Fehler in der Meldung darf den Nachsendelauf nicht mitreissen.
   }
 }
+
+/**
+ * Das Ereignis nach jedem Nachsendelauf (E49). Ansichten, die Wartendes
+ * zeigen — die Scheinliste, die Fotos im Schein —, sehen daran nach, was
+ * inzwischen angekommen ist.
+ */
+export const FACH_GELEERT = 'senklot:ausgangsfach';
 
 /** Meldungstext für einen vorgemerkten Schreibvorgang. */
 export function vorgemerktMeldung(was: string): string {

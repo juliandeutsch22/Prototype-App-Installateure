@@ -9,6 +9,8 @@
 import type { WorkSheetFoto } from '@/types';
 import { bildHash, fotoPfad } from '@/features/worksheets/fotos';
 import { derClient } from './kern';
+import { vorgangOhneEmpfang } from './ohneEmpfang';
+import { FOTO_TABELLE } from '@/features/worksheets/vorgemerkt';
 
 const EIMER = 'scheinfotos';
 
@@ -45,10 +47,23 @@ export async function fotoHochladen(
     genau dieser zweite Versuch sonst an der bestehenden Datei scheiterte.
   */
   const pfad = fotoPfad(companyId, scheinId, `${hash}.jpg`);
-  const { error } = await derClient().storage
-    .from(EIMER)
-    .upload(pfad, daten, { contentType: 'image/jpeg', upsert: true });
-  if (error) throw new Error(error.message);
+  /*
+    ÜBER DAS AUSGANGSFACH (E49). Ohne Netz liegt das Bild bis zum nächsten
+    Empfang im Gerät und geht VOR der Fotoliste des Scheins hinaus, die es
+    verzeichnet. Pfad und Hash stehen schon jetzt fest — beides kommt aus den
+    Bytes —, also kann der Schein den Eintrag sofort tragen.
+
+    EINE EIGENE GRUPPE JE DATEI (`FOTO_TABELLE`, Pfad), nicht die des
+    Scheins: wiese der Speicher ein Bild endgültig ab, nähme das Fach sonst
+    Speichern und Unterschrift desselben Scheins mit — ein Foto darf das
+    Unterschreiben nicht aufhalten (`fotos.ts`).
+  */
+  await vorgangOhneEmpfang({
+    tabelle: FOTO_TABELLE,
+    art: 'hochladen',
+    zeile: pfad,
+    daten: { eimer: EIMER, pfad, datei: daten, inhaltsart: 'image/jpeg', schein: scheinId },
+  });
   return { pfad, hash, bytes: daten.size, geraetZeit };
 }
 
@@ -70,6 +85,11 @@ export async function fotoAdresse(pfad: string): Promise<string> {
  * wenn ein abgebrochener Upload sie nie angelegt hat.
  */
 export async function fotoEntfernen(pfad: string): Promise<void> {
-  const { error } = await derClient().storage.from(EIMER).remove([pfad]);
-  if (error) throw new Error(error.message);
+  /*
+    Auch das Entfernen über das Fach (E49): nach einem Bild, das ohne Netz
+    aufgenommen und wieder weggenommen wurde, steht sein Hochladen noch im
+    Fach. Ginge das Entfernen jetzt direkt hinaus (oder scheiterte still),
+    käme die Datei danach doch an — ohne Schein, der sie verzeichnet.
+  */
+  await vorgangOhneEmpfang({ tabelle: FOTO_TABELLE, art: 'entfernen', zeile: pfad, daten: { eimer: EIMER, pfade: [pfad] } });
 }

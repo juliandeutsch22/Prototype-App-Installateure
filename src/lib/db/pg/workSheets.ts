@@ -20,6 +20,10 @@ import type {
 import { abfragen, aendern, derClient, type WithId } from './kern';
 import { oderUeberSpalten } from './suche';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
+import { vorgangOhneEmpfang, wartendeVorgaenge } from './ohneEmpfang';
+import {
+  SCHEIN_TABELLE, vorgemerkteScheine, type VorgemerkterSchein,
+} from '@/features/worksheets/vorgemerkt';
 
 const SCHEINE = 'work_sheets';
 /** Der Eimer der Scheinfotos — derselbe wie in `scheinFotos.ts`. */
@@ -462,15 +466,32 @@ async function speichern(
   */
   void _zustand;
 
-  const { error, data } = await derClient(client).rpc('schein_speichern', {
-    p_id: id,
-    p_kopf: Object.keys(kopf).length > 0 ? objektAlsZeile(SCHEINE, kopf) : null,
-    p_zeiten: alsZeilen(ZEITEN, zeiten),
-    p_material: alsZeilen(MATERIAL, material),
-    p_fotos: alsZeilen(FOTOS, fotos),
-  });
-  if (error) throw new Error(error.message);
-  return String(data ?? id);
+  /*
+    ÜBER DAS AUSGANGSFACH (E49, 05.11.2026). Bis hierher ein direkter Aufruf:
+    im Keller ohne Empfang ließ sich der Schein nicht sichern (Prüflauf
+    25.09.2026, P1-14). Jetzt wird er vorgemerkt, wenn kein Netz da ist, und
+    geht in der Reihenfolge hinaus, in der er entstand — mit seinen Fotos
+    davor und der Unterschrift danach. Mit Netz ändert sich nichts.
+  */
+  await vorgangOhneEmpfang(
+    {
+      tabelle: SCHEIN_TABELLE,
+      art: 'aufruf',
+      zeile: id,
+      daten: {
+        funktion: 'schein_speichern',
+        parameter: {
+          p_id: id,
+          p_kopf: Object.keys(kopf).length > 0 ? objektAlsZeile(SCHEINE, kopf) : null,
+          p_zeiten: alsZeilen(ZEITEN, zeiten),
+          p_material: alsZeilen(MATERIAL, material),
+          p_fotos: alsZeilen(FOTOS, fotos),
+        },
+      },
+    },
+    client,
+  );
+  return id;
 }
 
 /**
@@ -510,18 +531,37 @@ export async function fotosAmEntwurf(id: string, fotos: WorkSheetFoto[]): Promis
   await speichern(id, { fotos });
 }
 
-/** Unterschreiben und einfrieren — in EINEM Schreibvorgang. */
+/**
+ * Unterschreiben und einfrieren — in EINEM Schreibvorgang, wie das Speichern
+ * über das Ausgangsfach (E49). Die Gerätezeit in den Unterschriften ist der
+ * Augenblick vor dem Kunden; `unterschriebenAm` setzt der Server beim
+ * Eintreffen.
+ */
 export async function signWorkSheet(
   id: string,
   monteur: WorkSheetUnterschrift,
   kunde: WorkSheetUnterschrift,
 ): Promise<void> {
-  const { error } = await derClient().rpc('schein_unterschreiben', {
-    p_id: id,
-    p_monteur: monteur,
-    p_kunde: kunde,
+  await vorgangOhneEmpfang({
+    tabelle: SCHEIN_TABELLE,
+    art: 'aufruf',
+    zeile: id,
+    daten: { funktion: 'schein_unterschreiben', parameter: { p_id: id, p_monteur: monteur, p_kunde: kunde } },
   });
-  if (error) throw new Error(error.message);
+}
+
+/**
+ * Was von diesem Schein noch im Gerät wartet (E49) — oder `undefined`, wenn
+ * alles angekommen ist. Die Maske fragt das nach dem Speichern und
+ * Unterschreiben: „gespeichert“ oder „wird gesendet, sobald Netz da ist“.
+ */
+export async function scheinWartet(id: string): Promise<VorgemerkterSchein | undefined> {
+  return vorgemerkteScheine(await wartendeVorgaenge()).find((s) => s.id === id);
+}
+
+/** Alle Scheine, die auf diesem Gerät noch auf Verbindung warten — neueste zuerst. */
+export async function wartendeScheine(): Promise<VorgemerkterSchein[]> {
+  return vorgemerkteScheine(await wartendeVorgaenge());
 }
 
 /**

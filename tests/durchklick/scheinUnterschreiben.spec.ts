@@ -188,3 +188,93 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
 
   await keineFehlermeldung(page);
 });
+
+/*
+  IM KELLER OHNE NETZ (E49, 05.11.2026). Der Schein wird mit Netz begonnen
+  (die Baustellen kommen vom Server), dann reißt die Verbindung: Zeit, Foto
+  und beide Unterschriften entstehen ohne Netz. Die App sagt „wird gesendet“,
+  die Liste zeigt den Schein unter „Noch nicht gesendet“, die Datenbank kennt
+  ihn noch nicht. Mit dem Netz kommt er an — unterschrieben, mit Zeit und Foto.
+
+  Das Netz ist im Browser wirklich weg (`setOffline`), auch zum Entwicklungs-
+  server. Gegenprobe: mit dem Stand von `main` scheitert das Unterschreiben
+  mit einer Fehlermeldung, und nichts wird vorgemerkt.
+*/
+test('Im Keller ohne Netz: Schein mit Foto unterschrieben, mit dem Netz angekommen', async ({ page, context }) => {
+  const { data: vorher } = await admin.from('work_sheets').select('id').eq('company_id', BETRIEB);
+  const alteIds = new Set((vorher ?? []).map((z) => z.id as string));
+  const neue = async () => {
+    const { data } = await admin
+      .from('work_sheets').select('id, status, unterschrift_kunde').eq('company_id', BETRIEB);
+    return (data ?? []).filter((z) => !alteIds.has(z.id as string));
+  };
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await anmelden(page, MONTEUR.email);
+  await menue(page, 'Handwerksscheine', 'Scheine');
+  await page.getByRole('link', { name: 'Neuer Schein' }).first().click();
+  await page.getByLabel('Baustelle', { exact: true }).selectOption(BAUSTELLE.nummer);
+  await expect(page.getByRole('heading', { name: /^Fotos \(/ })).toBeVisible();
+
+  // Ab hier im Keller.
+  await context.setOffline(true);
+
+  await page.getByLabel('Tätigkeit (optional)').fill('Steigleitung im Keller getauscht.');
+  await page.getByLabel(/^Von/).fill('08:00');
+  await page.getByLabel(/^Bis/).fill('10:30');
+  await page.getByRole('button', { name: 'Zeile hinzufügen' }).click();
+
+  const jpeg = await page.evaluate(() => {
+    const c = document.createElement('canvas');
+    c.width = 320;
+    c.height = 240;
+    const x = c.getContext('2d')!;
+    x.fillStyle = '#5a4a3a';
+    x.fillRect(0, 0, 320, 240);
+    x.fillStyle = '#e0e0e0';
+    x.fillRect(40, 40, 120, 60);
+    return c.toDataURL('image/jpeg', 0.85).split(',')[1];
+  });
+  await page.locator('input[type="file"][accept="image/*"]').setInputFiles({
+    name: 'keller.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(jpeg, 'base64'),
+  });
+  // Im Schein verzeichnet, die Datei noch im Gerät — kein Fehler.
+  await expect(page.getByText('Wartet auf Netz')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/Nicht hochgeladen/)).toHaveCount(0);
+
+  await page.getByLabel('Kunde (Name in Druckbuchstaben)').fill(BAUSTELLE.kunde);
+  const felder = page.locator('canvas');
+  await unterschreiben(felder.nth(0), 12);
+  await unterschreiben(felder.nth(1), 28);
+  await page.getByRole('button', { name: 'Unterschreiben und abschließen' }).click();
+
+  await expect(page.getByText(/Handwerksschein unterschrieben — ohne Verbindung gespeichert/)).toBeVisible({ timeout: 20_000 });
+  await expect(page).toHaveURL(/\/worksheets$/);
+  const wartend = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Noch nicht gesendet (1)' }) });
+  await expect(wartend).toBeVisible();
+  await expect(wartend.getByText(/wartet auf Netz/)).toBeVisible();
+  expect(await neue()).toHaveLength(0);
+
+  // Wieder Empfang: der Schein geht von selbst hinaus.
+  await context.setOffline(false);
+
+  await expect(async () => {
+    const angekommen = await neue();
+    expect(angekommen).toHaveLength(1);
+    expect(angekommen[0].status).toBe('Unterschrieben');
+    expect((angekommen[0].unterschrift_kunde as { name?: string })?.name).toBe(BAUSTELLE.kunde);
+  }).toPass({ timeout: 90_000 });
+  await expect(page.getByRole('heading', { name: /Noch nicht gesendet/ })).toHaveCount(0, { timeout: 20_000 });
+
+  const [schein] = await neue();
+  const { data: stunden } = await admin
+    .from('work_sheet_hours').select('minuten').eq('work_sheet_id', schein.id);
+  expect((stunden ?? []).map((z) => z.minuten)).toEqual([150]);
+  const { data: bilder } = await admin
+    .from('work_sheet_photos').select('pfad').eq('work_sheet_id', schein.id);
+  expect(bilder ?? []).toHaveLength(1);
+  const { error: dateiFehler } = await admin.storage.from('scheinfotos').download(String((bilder ?? [])[0].pfad));
+  expect(dateiFehler).toBeNull();
+  const { data: kopf } = await admin.from('work_sheets').select('inhalt_hash').eq('id', schein.id).single();
+  expect(kopf?.inhalt_hash).toMatch(/^[0-9a-f]{64}$/);
+});

@@ -594,8 +594,10 @@ export default function Layout({ children }: { children: ReactNode }) {
         open={ungesendet > 0}
         title="Noch nicht gesendet"
         message={
-          `${ungesendet === 1 ? 'Eine Buchung liegt' : `${ungesendet} Buchungen liegen`} noch ` +
-          'ungesendet auf diesem Gerät — sie wurden ohne Empfang gespeichert. Nach dem Abmelden ' +
+          // „Vorgänge“, nicht „Buchungen“: seit E49 liegen hier auch Handwerksscheine und ihre Fotos.
+          `${ungesendet === 1 ? 'Ein Vorgang liegt' : `${ungesendet} Vorgänge liegen`} noch ` +
+          'ungesendet auf diesem Gerät (Zeitbuchung, Anforderung oder Handwerksschein) — sie wurden ' +
+          'ohne Empfang gespeichert. Nach dem Abmelden ' +
           'gehen sie erst hinaus, wenn du dich auf DIESEM Gerät wieder anmeldest. Besser: erst ' +
           'Empfang abwarten, dann abmelden.'
         }

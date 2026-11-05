@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import KnopfLink from '@/components/KnopfLink';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
@@ -13,7 +13,10 @@ import {
   discardWorkSheetDraft,
   deleteWorkSheetDraft,
   restoreWorkSheetDraft,
+  wartendeScheine,
+  type VorgemerkterSchein,
 } from '@/lib/db/workSheets';
+import { FACH_GELEERT } from '@/lib/sync/ausgangsfach';
 import { buildWorkSheetPdf, shareOrDownloadPdf } from './worksheetPdf';
 import { unterschriftOhneBild } from './scheinVollstaendig';
 import Fotostreifen from './Fotostreifen';
@@ -249,6 +252,39 @@ export default function WorkSheetsListView() {
     // Ein gemerkter Stand bleibt beim Aufbau stehen; mit größerer Grenze lädt die Liste sichtbar.
     void laden(grenze === grenzeAnfang && anfang?.scheine !== undefined);
   }, [laden, grenze, grenzeAnfang, anfang?.scheine]);
+
+  /*
+    NOCH NICHT GESENDET (E49, 05.11.2026): Scheine, die auf diesem Gerät
+    ohne Empfang gespeichert oder unterschrieben wurden. Der Server kennt sie
+    noch nicht, die Liste darunter also auch nicht. Stünden sie nirgends,
+    legte der Monteur denselben Schein ein zweites Mal an — zwei
+    unterschriebene Belege über dieselbe Arbeit.
+
+    Nach jedem Nachsendelauf wird nachgesehen; ist einer angekommen, steht er
+    jetzt auf dem Server, und die Liste holt sich still den neuen Stand.
+  */
+  const [wartend, setWartend] = useState<VorgemerkterSchein[]>([]);
+  const wartendRef = useRef<VorgemerkterSchein[]>([]);
+  useEffect(() => {
+    let weg = false;
+    const nachsehen = () => {
+      void wartendeScheine()
+        .then((neu) => {
+          if (weg) return;
+          const angekommen = wartendRef.current.some((v) => !neu.some((n) => n.id === v.id));
+          wartendRef.current = neu;
+          setWartend(neu);
+          if (angekommen) void laden(true);
+        })
+        .catch(() => undefined);
+    };
+    nachsehen();
+    window.addEventListener(FACH_GELEERT, nachsehen);
+    return () => {
+      weg = true;
+      window.removeEventListener(FACH_GELEERT, nachsehen);
+    };
+  }, [laden]);
 
   /*
     DIE KOLLEGENZEILE, AN DIE NIEMAND ERINNERT WIRD — nur fürs Büro.
@@ -976,6 +1012,35 @@ export default function WorkSheetsListView() {
           text={nurUnverrechnet === 'nicht-verrechnet-alt' ? 'nicht verrechnet, älter als 4 Wochen' : 'unterschrieben, nicht verrechnet'}
           parameter={['filter']}
         />
+      )}
+
+      {wartend.length > 0 && (
+        <Card
+          title={`Noch nicht gesendet (${wartend.length})`}
+          hint="Ohne Empfang gespeichert oder unterschrieben. Diese Scheine liegen auf diesem Gerät und gehen von selbst hinaus, sobald wieder Netz da ist — in der Reihenfolge, in der sie entstanden. Ein Entwurf lässt sich bis dahin weiterbearbeiten; ein unterschriebener ist fertig und wartet nur noch."
+          buendig
+        >
+          <List>
+            {wartend.map((w) => {
+              const bekannt = scheine.find((x) => x.id === w.id);
+              const kunde = w.kopf?.customerName ?? bekannt?.customerName ?? 'Handwerksschein';
+              const nummer = w.kopf?.projectNumber ?? bekannt?.projectNumber;
+              const tag = w.kopf?.datum ?? bekannt?.datum;
+              const oeffnen = !w.unterschrieben && darfSchreiben;
+              return (
+                <ListRow
+                  key={w.id}
+                  title={kunde}
+                  nummer={nummer}
+                  zustand={<Zustand stand="laeuft">{w.unterschrieben ? 'Unterschrieben' : 'Entwurf'}</Zustand>}
+                  to={oeffnen ? `/worksheet?entwurf=${w.id}` : undefined}
+                  pfeil={oeffnen}
+                  subtitle={`${tag ? `${datumAT(tag)} · ` : ''}wartet auf Netz`}
+                />
+              );
+            })}
+          </List>
+        </Card>
       )}
 
       <Card
