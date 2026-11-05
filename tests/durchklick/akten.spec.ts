@@ -90,3 +90,29 @@ test('Die drei Akten behalten ihre Schreibwege und geschützten Entwürfe', asyn
     ])) expect(antwort.error).toBeNull();
   }
 });
+
+/*
+  EIN REITER, DER EINMAL OFFEN WAR, VERSCHWINDET WIEDER (05.11.2026). Der
+  Taktgeber gab dem Block eines Blatts `display: flow-root` als Inline-Stil;
+  der schlug `[hidden]`, und nach „Baustellen“ und zurück stand der Reiter
+  „Baustellen“ unter der Übersicht weiter da. Je Akte jeden Reiter einmal
+  öffnen, dann zurück: sichtbar ist immer genau der gewählte.
+*/
+test('In den Akten ist nach jedem Reiterwechsel genau der gewählte Reiter sichtbar', async ({ page }) => {
+  const { data: baustelle } = await admin.from('projects').select('id').eq('company_id', BETRIEB).eq('project_number', BAUSTELLE.nummer).single();
+  const { data: kunde } = await admin.from('customers').select('id').eq('company_id', BETRIEB).eq('name', BAUSTELLE.kunde).single();
+  await anmelden(page, CHEFIN.email);
+  for (const pfad of [`/admin-projects/${baustelle!.id}`, `/customers/${kunde!.id}`]) {
+    await page.goto(pfad);
+    const reiter = page.getByRole('tab');
+    await expect(reiter.first()).toBeVisible({ timeout: 30_000 });
+    const namen = await reiter.allTextContents();
+    for (const name of [...namen.slice(1), namen[0]]) {
+      await page.getByRole('tab', { name, exact: true }).click();
+      await expect(page.getByRole('tab', { name, exact: true })).toHaveAttribute('aria-selected', 'true');
+      await expect.poll(() => page.evaluate(() => [...document.querySelectorAll('[role="tabpanel"]')]
+        .filter((t) => getComputedStyle(t).display !== 'none').length), `${pfad}: nach „${name}“ genau ein Reiter sichtbar`).toBe(1);
+    }
+  }
+  await keineFehlermeldung(page);
+});

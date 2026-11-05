@@ -133,6 +133,11 @@ interface AuthState {
    */
   plattformAdmin: boolean;
   /**
+   * Die Anmeldung des Plattformkontos — in dessen Seitenleiste steht, wer
+   * angemeldet ist (E48). Leer für jedes andere Konto.
+   */
+  plattformEmail?: string;
+  /**
    * In welchen Betrieb ein Supportzugang GERADE hineinsieht — und mit
    * welcher Stufe.
    *
@@ -640,6 +645,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resetPassword,
         reloadCompany,
         plattformAdmin,
+        plattformEmail: plattformAdmin ? plattformKonto?.email ?? '' : '',
         einblick,
         einblickStarten,
         einblickBeenden,

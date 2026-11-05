@@ -5,7 +5,7 @@ import { ToastProvider } from '@/components/Toast';
 import PlattformView from '@/features/plattform/PlattformView';
 
 const api = vi.hoisted(() => ({ anlegen: vi.fn(), oeffnen: vi.fn(), notzugang: vi.fn(), abmelden: vi.fn(), fehler: vi.fn(), freigaben: vi.fn(), weitereBetriebe: [] as unknown[] }));
-vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ signOut: api.abmelden, einblickStarten: api.oeffnen }) }));
+vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ signOut: api.abmelden, einblickStarten: api.oeffnen, plattformEmail: 'betreiber@senklot.test' }) }));
 vi.mock('@/lib/db/plattform', () => ({
   betriebAnlegenMitAnmeldung: api.anlegen,
   plattformBetriebe: async () => [
@@ -21,7 +21,8 @@ vi.mock('@/lib/db/fehlerprotokoll', () => ({ plattformFehler: api.fehler }));
 vi.mock('@/lib/db/basiszins', () => ({ listBasiszinssaetze: async () => [], basiszinssatzSetzen: vi.fn(), basiszinssatzEntfernen: vi.fn() }));
 vi.mock('@/lib/auth/sitzung', () => ({ zweiterFaktorStand: async () => ({ angeboten: true, eingerichtet: true, pflicht: true, plattform: true, codesOffen: 8 }), neueCodes: async () => ['DEMO'], passwortSetzen: vi.fn() }));
 const zeige = () => render(<ToastProvider><PlattformView /></ToastProvider>);
-const bereich = (name: string) => name === 'Mein Konto' ? screen.getByRole('button', { name }) : within(screen.getByRole('navigation', { name: 'Bereiche der Plattform' })).getByRole('button', { name });
+// „Mein Konto“ steht in der Seitenleiste (Tablet, Schreibtisch) und in der Kopfzeile (Handy); jsdom zeigt beide.
+const bereich = (name: string) => within(screen.getByRole('navigation', { name: name === 'Mein Konto' ? 'Plattformkonto' : 'Bereiche der Plattform' })).getByRole('button', { name });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -111,7 +112,41 @@ describe('Lot: vollständige Plattformabläufe über Bereichswechsel', () => {
     await u.click(bereich('Mein Konto'));
     expect(await screen.findByText('Für das Plattformkonto ist sie Pflicht.')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Ausschalten' })).toBeNull();
-    await u.click(screen.getByRole('button', { name: 'Abmelden' }));
+    // Die Karte „Sitzung“ im Inhalt; dasselbe Abmelden steht am Schreibtisch auch in der Leiste.
+    await u.click(within(screen.getByRole('main')).getByRole('button', { name: 'Abmelden' }));
     expect(api.abmelden).toHaveBeenCalledTimes(1);
   });
 });
+
+// E48 — die Hülle der App: Seitenleiste mit den Bereichen und dem Konto, Kopfzeile und Reiterleiste fürs Handy.
+describe('Lot: die Plattform in der Hülle der App', () => {
+  it('zeigt die Bereiche als Leiste mit dem aktiven Punkt, das Konto mit seiner Anmeldung und die Reiter fürs Handy', async () => {
+    const u = userEvent.setup(); zeige();
+    const leiste = screen.getByRole('navigation', { name: 'Bereiche der Plattform' });
+    expect(within(leiste).getAllByRole('button').map((b) => b.textContent)).toEqual(['BetriebeBetriebe', 'SupportzugängeSupport', 'FehlerprotokollFehler', 'BasiszinssatzBasiszins', 'RechtstexteRecht']);
+    expect(within(leiste).getByRole('button', { name: 'Betriebe' })).toHaveAttribute('aria-current', 'page');
+    expect(within(leiste).getByRole('button', { name: 'Betriebe' })).toHaveClass('navi-punkt-aktiv');
+    await u.click(within(leiste).getByRole('button', { name: 'Rechtstexte' }));
+    expect(within(leiste).getByRole('button', { name: 'Rechtstexte' })).toHaveAttribute('aria-current', 'page');
+    expect(within(leiste).getByRole('button', { name: 'Betriebe' })).not.toHaveAttribute('aria-current');
+    // Unten am Handy dieselben fünf Bereiche mit Kurznamen; oben „Mein Konto“.
+    const reiter = screen.getByRole('navigation', { name: 'Bereiche der Plattform, untere Leiste' });
+    expect(within(reiter).getAllByRole('button').map((b) => b.textContent)).toEqual(['Betriebe', 'Support', 'Fehler', 'Basiszins', 'Recht']);
+    expect(within(reiter).getByRole('button', { name: 'Recht' })).toHaveAttribute('aria-current', 'page');
+    expect(within(document.querySelector<HTMLElement>('.kopfzeile')!).getByRole('button', { name: 'Mein Konto' })).toBeInTheDocument();
+    // Wer angemeldet ist, darunter die Rolle.
+    expect(screen.getByText('betreiber@senklot.test')).toBeInTheDocument();
+    expect(screen.getByText('Globaler Administrator', { selector: '.navi-person-rolle' })).toBeInTheDocument();
+    // Keine Verweise auf Impressum und Datenschutz: das Plattformkonto käme von dort sofort auf /plattform zurück.
+    expect(screen.queryByRole('link', { name: /Impressum|Datenschutz/ })).toBeNull();
+    // Das alte Band und die alten Reiter sind weg.
+    expect(document.querySelector('.plattform-markenband, .plattform-navigation')).toBeNull();
+  });
+
+  it('„Abmelden“ in der Leiste meldet ab', async () => {
+    const u = userEvent.setup(); zeige();
+    await u.click(within(document.querySelector<HTMLElement>('.navi')!).getByRole('button', { name: 'Abmelden' }));
+    expect(api.abmelden).toHaveBeenCalledTimes(1);
+  });
+});
+
