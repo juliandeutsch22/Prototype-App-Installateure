@@ -62,10 +62,10 @@ test('Änderungsprotokoll: das Büro ändert und löscht, beide sehen es auf Kli
   // Auf Klick: das Protokoll des Monats.
   const offen = page.getByRole('dialog').locator('details', { hasText: 'Änderungsprotokoll des Monats' });
   await offen.locator('summary').click();
-  const geaendert = offen.locator('li', { hasText: 'Ende 11:00 → 10:00' }).first();
+  const geaendert = offen.locator('ol.lot > li', { hasText: 'Ende 11:00 → 10:00' }).first();
   await expect(geaendert).toBeVisible({ timeout: 20_000 });
   await expect(geaendert).toContainText(`Geändert von ${BUERO.name}`);
-  const geloescht = offen.locator('li', { hasText: `Notiz ${notiz}` });
+  const geloescht = offen.locator('ol.lot > li', { hasText: `Notiz ${notiz}` });
   await expect(geloescht).toHaveCount(1);
   await expect(geloescht).toContainText(`Gelöscht von ${BUERO.name}`);
   await keineFehlermeldung(page);
@@ -80,9 +80,9 @@ test('Änderungsprotokoll: das Büro ändert und löscht, beide sehen es auf Kli
   await expect(eigenes.locator('li').first()).toBeHidden();
   await eigenes.locator('summary').click();
   // Auch Gelöschtes: die Buchung dieses Laufs, mit ihrer Notiz und wer sie löschte.
-  const eigeneGeloescht = eigenes.locator('li', { hasText: `Notiz ${notiz}` });
+  const eigeneGeloescht = eigenes.locator('ol.lot > li', { hasText: `Notiz ${notiz}` });
   await expect(eigeneGeloescht).toHaveCount(1, { timeout: 20_000 });
   await expect(eigeneGeloescht).toContainText(`Gelöscht von ${BUERO.name}`);
-  await expect(eigenes.locator('li', { hasText: 'Ende 11:00 → 10:00' }).first()).toContainText(`Geändert von ${BUERO.name}`);
+  await expect(eigenes.locator('ol.lot > li', { hasText: 'Ende 11:00 → 10:00' }).first()).toContainText(`Geändert von ${BUERO.name}`);
   await keineFehlermeldung(page);
 });
