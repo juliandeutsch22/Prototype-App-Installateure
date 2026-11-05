@@ -20,8 +20,8 @@ const speichern = (zeile: string, p: Record<string, unknown>) =>
   v({ zeile, daten: { funktion: 'schein_speichern', parameter: { p_id: zeile, p_kopf: null, p_zeiten: null, p_material: null, p_fotos: null, ...p } } });
 
 describe('vorgemerkteScheine', () => {
-  it('setzt Kopf, Zeiten, Material und Fotos eines Scheins zusammen — spätere Vorgänge gewinnen', () => {
-    const datei = new Blob(['x']);
+  it('setzt Kopf, Zeiten, Material und Fotos eines Scheins zusammen — spätere Vorgänge gewinnen', async () => {
+    const inhalt = new TextEncoder().encode('jpeg-bytes').buffer;
     const scheine = vorgemerkteScheine([
       speichern('s1', {
         p_kopf: { project_number: 'B-1', customer_name: 'Familie Huber', datum: '2026-11-05', notizen: 'alt' },
@@ -29,7 +29,7 @@ describe('vorgemerkteScheine', () => {
         p_material: [{ name: 'Dichtung', menge: 2 }],
         p_fotos: [],
       }),
-      v({ tabelle: 'scheinfotos', art: 'hochladen', zeile: 'scheine/perl/s1/aa.jpg', daten: { eimer: 'scheinfotos', pfad: 'scheine/perl/s1/aa.jpg', datei, schein: 's1' } }),
+      v({ tabelle: 'scheinfotos', art: 'hochladen', zeile: 'scheine/perl/s1/aa.jpg', daten: { eimer: 'scheinfotos', pfad: 'scheine/perl/s1/aa.jpg', inhalt, inhaltsart: 'image/jpeg', schein: 's1' } }),
       speichern('s1', { p_fotos: [{ pfad: 'scheine/perl/s1/aa.jpg', hash: 'aa', bytes: 1, geraet_zeit: '2026-11-05T08:00:00.000Z' }] }),
       speichern('s1', { p_kopf: { notizen: 'neu' } }),
     ]);
@@ -41,7 +41,10 @@ describe('vorgemerkteScheine', () => {
     expect(s.material).toEqual([{ name: 'Dichtung', menge: 2 }]);
     // Die Gerätezeit kommt zurück, wie die App sie kennt: in Millisekunden.
     expect(s.fotos).toEqual([{ pfad: 'scheine/perl/s1/aa.jpg', hash: 'aa', bytes: 1, geraetZeit: Date.parse('2026-11-05T08:00:00.000Z') }]);
-    expect(s.dateien['scheine/perl/s1/aa.jpg']).toBe(datei);
+    // Im Fach liegen die Bytes; für die Vorschau wird daraus wieder ein Bild.
+    const vorschau = s.dateien['scheine/perl/s1/aa.jpg'];
+    expect(vorschau.type).toBe('image/jpeg');
+    expect(await vorschau.text()).toBe('jpeg-bytes');
     expect(s.unterschrieben).toBe(false);
   });
 

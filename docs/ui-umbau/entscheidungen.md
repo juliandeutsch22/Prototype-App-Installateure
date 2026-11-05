@@ -1327,6 +1327,11 @@ noch unterschreiben, und der Hinweis an den Fotos sagte das so.
   endgültig ab, gehen Speichern und Unterschrift desselben Scheins trotzdem
   hinaus, und die Meldung sagt, dass der Schein das Bild verzeichnet, die
   Datei aber fehlt.
+- **Im Fach liegen die Bytes, nicht das Blob.** Safari (WebKit) legt ein Blob
+  in einer flüchtigen Sitzung nicht in IndexedDB ab; das Foto scheiterte
+  dann schon beim Vormerken. Aufgefallen im Browserweg mit WebKit am
+  Telefon. Ein ArrayBuffer geht in jedem Browser hinein; Vorschau und
+  Hochladen machen daraus wieder ein Bild.
 - **Was wartet, steht da.** In der Scheinliste der Abschnitt „Noch nicht
   gesendet“ (sonst legte der Monteur denselben Schein ein zweites Mal an);
   ein wartender Entwurf öffnet von dort auch ohne Netz, die Baustelle kommt
@@ -1359,7 +1364,8 @@ unterschreiben, Meldung ohne Netz, gleich geblieben mit Netz; der Hinweis
 P1-14 neu), `WorkSheetsListView.test.tsx` (+3), `PremiumRueckmeldung.test.tsx`
 (+2 Meldungen), `ausgangsfachNaht.test.ts` (+1), gegen die echte Datenbank
 `scheinOhneEmpfang.test.ts` (neu, 4: Funkloch → Reihenfolge → angekommen mit
-Foto und Prüfsumme; zweites Zustellen; Konflikt gemeldet; ohne Fach direkt)
+Foto und Prüfsumme — mit einem Lager, das wie WebKit kein Blob nimmt;
+zweites Zustellen; Konflikt gemeldet; ohne Fach direkt)
 und im Browser `scheinUnterschreiben.spec.ts` (+1: Netz wirklich weg, Zeit,
 Foto und Unterschriften, „Noch nicht gesendet“, Netz zurück, angekommen).
 Gegenproben: mit dem Stand von `main` alle neuen Prüfungen rot.

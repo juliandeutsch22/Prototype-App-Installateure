@@ -57,12 +57,16 @@ export async function fotoHochladen(
     Scheins: wiese der Speicher ein Bild endgültig ab, nähme das Fach sonst
     Speichern und Unterschrift desselben Scheins mit — ein Foto darf das
     Unterschreiben nicht aufhalten (`fotos.ts`).
+
+    DIE BYTES, NICHT DAS BLOB. Safari legt ein Blob in einer flüchtigen
+    Sitzung (privates Fenster) nicht in IndexedDB ab — das Ablegen scheitert,
+    und das Foto mit ihm. Einen ArrayBuffer nimmt jeder Browser.
   */
   await vorgangOhneEmpfang({
     tabelle: FOTO_TABELLE,
     art: 'hochladen',
     zeile: pfad,
-    daten: { eimer: EIMER, pfad, datei: daten, inhaltsart: 'image/jpeg', schein: scheinId },
+    daten: { eimer: EIMER, pfad, inhalt: bytes, inhaltsart: 'image/jpeg', schein: scheinId },
   });
   return { pfad, hash, bytes: daten.size, geraetZeit };
 }

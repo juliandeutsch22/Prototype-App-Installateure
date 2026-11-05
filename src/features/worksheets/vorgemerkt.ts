@@ -92,9 +92,10 @@ export function vorgemerkteScheine(vormerkungen: readonly Vormerkung[]): Vorgeme
       continue;
     }
     if (v.tabelle === FOTO_TABELLE && v.art === 'hochladen') {
-      const { pfad, datei, schein } = v.daten as { pfad?: string; datei?: Blob; schein?: string };
-      if (!pfad || !datei || !schein) continue;
-      holen(schein, v.angelegt).dateien[pfad] = datei;
+      // Im Fach liegen die Bytes (ein Blob ginge in Safari nicht hinein, `scheinFotos.ts`).
+      const { pfad, inhalt, inhaltsart, schein } = v.daten as { pfad?: string; inhalt?: ArrayBuffer; inhaltsart?: string; schein?: string };
+      if (!pfad || !inhalt || !schein) continue;
+      holen(schein, v.angelegt).dateien[pfad] = new Blob([inhalt], { type: inhaltsart });
     }
   }
 

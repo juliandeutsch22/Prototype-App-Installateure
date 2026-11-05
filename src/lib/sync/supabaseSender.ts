@@ -194,15 +194,16 @@ async function aufrufSenden(client: SupabaseClient, v: Sendung): Promise<Sendeer
 }
 
 async function dateiSenden(client: SupabaseClient, v: Sendung): Promise<Sendeergebnis> {
-  const d = v.daten as { eimer?: string; pfad?: string; pfade?: string[]; datei?: Blob; inhaltsart?: string };
+  const d = v.daten as { eimer?: string; pfad?: string; pfade?: string[]; inhalt?: ArrayBuffer; inhaltsart?: string };
   if (!d.eimer || !(EIMER_OHNE_EMPFANG as readonly string[]).includes(d.eimer)) {
     return { art: 'abgelehnt', grund: `In den Eimer „${d.eimer ?? '?'}“ wird nicht nachgesendet.` };
   }
   const eimer = client.storage.from(d.eimer);
   if (v.art === 'hochladen') {
-    if (!d.pfad || !d.datei) return { art: 'abgelehnt', grund: 'Die vorgemerkte Datei fehlt.' };
+    if (!d.pfad || !d.inhalt) return { art: 'abgelehnt', grund: 'Die vorgemerkte Datei fehlt.' };
+    const datei = new Blob([d.inhalt], { type: d.inhaltsart });
     // `upsert`: ein zweites Hochladen nach einem Abbruch schreibt dieselbe Datei an dieselbe Stelle.
-    const { error } = await eimer.upload(d.pfad, d.datei, { contentType: d.inhaltsart, upsert: true });
+    const { error } = await eimer.upload(d.pfad, datei, { contentType: d.inhaltsart, upsert: true });
     return error ? speicherEinordnen(error) : { art: 'ok' };
   }
   const { error } = await eimer.remove(d.pfade ?? []);

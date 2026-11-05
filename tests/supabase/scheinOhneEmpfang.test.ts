@@ -32,13 +32,23 @@ import { fotoHochladen } from '@/lib/db/pg/scheinFotos';
 const BETRIEB = 'schein-funkloch';
 let monteur: Konto;
 
+/**
+ * Ein Lager wie IndexedDB in Safari im privaten Fenster: ein Blob geht nicht
+ * hinein. Im Browserweg fiel genau das auf (WebKit, PR #409) — die Bytes
+ * müssen als ArrayBuffer liegen, sonst scheitert das Foto schon beim Ablegen.
+ */
+function ohneBlob(daten: unknown): void {
+  if (daten instanceof Blob) throw new Error('UnknownError: Error preparing Blob/File data to be stored in object store');
+  if (daten && typeof daten === 'object' && !(daten instanceof ArrayBuffer)) Object.values(daten).forEach(ohneBlob);
+}
+
 function lagerImKopf(): Lager & { inhalt: () => Vormerkung[] } {
   let zeilen: Vormerkung[] = [];
   let zaehler = 0;
   return {
     inhalt: () => [...zeilen].sort((a, b) => a.folge - b.folge),
     async alle() { return [...zeilen]; },
-    async ablegen(v) { zaehler += 1; zeilen.push({ ...v, folge: zaehler }); return zaehler; },
+    async ablegen(v) { ohneBlob(v.daten); zaehler += 1; zeilen.push({ ...v, folge: zaehler }); return zaehler; },
     async entfernen(folge) { zeilen = zeilen.filter((x) => x.folge !== folge); },
     async ersetzen(v) { zeilen = zeilen.map((x) => (x.folge === v.folge ? v : x)); },
   };

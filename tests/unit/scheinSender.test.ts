@@ -45,7 +45,7 @@ const aufruf = (funktion: string, parameter: Record<string, unknown> = { p_id: '
 const unterschreiben = aufruf('schein_unterschreiben', { p_id: 's1', p_monteur: monteur, p_kunde: kunde });
 const hochladen: Sendung = {
   tabelle: 'scheinfotos', art: 'hochladen', zeile: 'scheine/perl/s1/a.jpg', versuche: 0, angelegt: 0,
-  daten: { eimer: 'scheinfotos', pfad: 'scheine/perl/s1/a.jpg', datei: new Blob(['a']), inhaltsart: 'image/jpeg', schein: 's1' },
+  daten: { eimer: 'scheinfotos', pfad: 'scheine/perl/s1/a.jpg', inhalt: new TextEncoder().encode('bild').buffer, inhaltsart: 'image/jpeg', schein: 's1' },
 };
 const entfernen: Sendung = {
   tabelle: 'scheinfotos', art: 'entfernen', zeile: 'scheine/perl/s1/a.jpg', versuche: 0, angelegt: 0,
@@ -117,6 +117,10 @@ describe('Dateien', () => {
     const { c, aufrufe } = client({});
     expect(await supabaseSender(c)(hochladen)).toEqual({ art: 'ok' });
     expect(aufrufe.upload).toHaveBeenCalledWith('scheine/perl/s1/a.jpg', expect.any(Blob), { contentType: 'image/jpeg', upsert: true });
+    // Aus den abgelegten Bytes wird wieder die Datei, mit ihrer Art.
+    const datei = (aufrufe.upload.mock.calls[0] as unknown[])[1] as Blob;
+    expect(datei.type).toBe('image/jpeg');
+    expect(await datei.text()).toBe('bild');
   });
 
   it('ordnet die Antworten des Speichers ein', async () => {
