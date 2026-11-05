@@ -1409,7 +1409,15 @@ sah niemand. Für eine Arbeitszeitaufzeichnung (§ 26 AZG), auf die sich Lohn,
 - **Datenschutz:** in der Datenauskunft der Person (der Verlauf ihrer
   Buchungen; als Bearbeiter die Anzahl ihrer Änderungen an fremden), bei
   ihrer Löschung mit den Buchungen aufbewahrt (§ 132 BAO), im Datenauszug des
-  Betriebs. Beim Löschen eines ganzen Betriebs geht es mit.
+  Betriebs. Beim Löschen eines ganzen Betriebs geht es mit. Der Support sieht
+  es nicht (wie die Buchungen) und schreibt nicht hinein.
+- **Der Dienstschlüssel schreibt nicht mit** — wie bei den Lagerbewegungen.
+  Mit ihm laufen nur der Rücklauf einer Sicherung, das Löschen eines ganzen
+  Betriebs und die Prüfungen; kein Ablauf der App ändert Buchungen mit ihm.
+  Der Rücklauf bringt das Protokoll aus der Sicherung mit, eigene Zeilen
+  stünden doppelt darin. Deshalb auch keine Zählnummer als Schlüssel: der
+  Rücklauf spielt die Zeilen mit ihrer Kennung zurück; die Reihenfolge trägt
+  die Uhrzeit des Schreibens. Aufgefallen ist beides im Rücklauf-Test.
 
 **Grenze mit Grund.** Was vor dem 05.11.2026 geändert wurde, weiß niemand
 mehr (Altdaten). Die erste Änderung einer älteren Buchung zeigt den Stand
@@ -1417,10 +1425,13 @@ davor als alten Wert, und die Ansicht sagt, seit wann aufgezeichnet wird.
 
 **Prüfungen.** `zeitbuchungVerlauf.test.ts` (neu, echte Datenbank: Anlegen,
 Ändern nur mit Geändertem, Speichern ohne Änderung schreibt nichts, Löschen;
-wer liest; niemand schreibt; ein Konto bleibt löschbar; Datenauskunft und
+der Dienstschlüssel schreibt nichts; wer liest; niemand schreibt; ein Konto bleibt löschbar; Datenauskunft und
 Löschung), `verlaufText.test.ts` und `Aenderungsprotokoll.test.tsx` (neu: in
 Worten, zu bis zum Klick, Fehler wiederholbar ohne ein Formular abzuschicken),
 `zeitVerlauf.spec.ts` (neu, Browser: das Büro ändert und löscht, das Fenster
 der Person und die Zeiterfassung des Monteurs zeigen es auf Klick),
-`personLoeschen.test.ts` (das Protokoll unter „aufbewahren“). Gegenprobe:
+`personLoeschen.test.ts` (das Protokoll unter „aufbewahren“),
+`mandantenTrennung.test.ts` (Buchhaltung und Spitze lesen es),
+`schema.test.ts` (Riegel gegen den Support) und `ruecklauf.test.ts`
+(Sicherung samt Protokoll zurückgespielt, nichts doppelt). Gegenprobe:
 ohne Migration und Bausteine rot.

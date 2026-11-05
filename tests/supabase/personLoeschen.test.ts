@@ -63,7 +63,12 @@ beforeAll(async () => {
     company_id: BETRIEB, project_number: 'B-LO-1', customer_name: 'Irgendwer', status: 'Aktiv',
     assigned_employees: [monteur.uid, kollege.uid], project_managers: [monteur.uid],
   });
-  await einfuegen('time_entries', buchung(monteur, '2099-02-02', { project_number: 'B-LO-1' }));
+  const eintrag = await einfuegen('time_entries', buchung(monteur, '2099-02-02', { project_number: 'B-LO-1' }));
+  // Der Dienstschlüssel protokolliert nicht (E50) — die Zeile, wie sie das Anlegen in der App schriebe.
+  await einfuegen('zeitbuchung_verlauf', {
+    company_id: BETRIEB, eintrag_id: eintrag, user_id: monteur.uid, datum: '2099-02-02', art: 'angelegt',
+    von_uid: monteur.uid,
+  });
   await einfuegen('krankmeldungen', {
     company_id: BETRIEB, user_id: monteur.uid, user_name: 'M', von: '2099-04-01', bis: '2099-04-02',
   });

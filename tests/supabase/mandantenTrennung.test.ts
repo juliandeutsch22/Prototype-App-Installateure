@@ -93,7 +93,7 @@ const FUER_ALLE = ['assignments', 'aussteller_staende', 'baustelle_alte_nummern'
 /** Lohn, Zeiten, Abwesenheiten anderer und Rechnungen: Buchhaltung und Spitze. */
 const LOHN_UND_RECHNUNG = ['arbeitszeit_begruendungen', 'freistellungen', 'geburtsdaten', 'invoice_coverage', 'invoice_lines',
   'invoices', 'krankmeldungen', 'mahnungen', 'time_entries', 'urlaubsanspruch_anpassungen', 'vacations', 'zahlungseingaenge',
-  'zeitkonto_anfang'];
+  'zeitbuchung_verlauf', 'zeitkonto_anfang'];
 /** Kunden, Lager, Anforderungen, Pläne, UID-Prüfungen: das Büro und die Leitung. */
 const BUERO = ['customers', 'lagerbewegungen', 'material_orders', 'project_documents', 'uid_pruefungen'];
 /** Einkaufspreise, Preislisten, Kostensätze, Katalogdateien, Kontoumstellungen, Systemläufe: nur die Spitze. */

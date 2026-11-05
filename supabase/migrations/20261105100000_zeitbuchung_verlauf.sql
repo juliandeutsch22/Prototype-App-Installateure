@@ -22,8 +22,11 @@
   - Nicht protokolliert werden Spalten, die nichts Neues sagen: Zeitstempel,
     der Bearbeitungsvermerk (steht als „wer“ in der Zeile) und was die
     Datenbank selbst aus den Zeiten rechnet (`hours`, `satz`).
-  - Beim Löschen eines ganzen Betriebs (Plattform) wird nichts mehr
-    protokolliert: dann geht auch das Protokoll.
+  - Der Dienstschlüssel schreibt keine Zeilen — wie bei den
+    Lagerbewegungen. Mit ihm laufen nur der Rücklauf einer Sicherung (der
+    das Protokoll aus der Sicherung mitbringt; eigene Zeilen verdoppelten
+    es), das Löschen eines ganzen Betriebs (dann geht auch das Protokoll)
+    und die Prüfungen. Kein Ablauf der App ändert Buchungen mit ihm.
 
   BESTEHENDE BUCHUNGEN haben keinen Verlauf vor heute (Altdaten: was vorher
   geändert wurde, weiß niemand mehr). Ihre erste Änderung trägt den Stand
@@ -36,7 +39,7 @@
 */
 
 create table if not exists public.zeitbuchung_verlauf (
-  id bigint generated always as identity primary key,
+  id uuid primary key default gen_random_uuid(),
   company_id text not null references public.companies(id),
   eintrag_id uuid not null,
   user_id uuid not null,
@@ -45,7 +48,7 @@ create table if not exists public.zeitbuchung_verlauf (
   aenderungen jsonb not null default '{}'::jsonb,
   von_uid uuid,
   von_name text,
-  am timestamptz not null default now(),
+  am timestamptz not null default clock_timestamp(),
   constraint zeitbuchung_verlauf_art check (art in ('angelegt', 'geaendert', 'geloescht'))
 );
 
@@ -55,8 +58,14 @@ create table if not exists public.zeitbuchung_verlauf (
   ließe sich ein Konto, dessen Buchungen gelöscht sind, nie mehr entfernen.
   Die Kennungen kommen ohnehin nur aus dem Trigger, also aus einer gültigen
   Buchung. Am Betrieb hängt es wie alles: mit ihm geht es.
+
+  KEINE ZÄHLNUMMER ALS SCHLÜSSEL. Der Rücklauf spielt die Zeilen mit ihrer
+  Kennung zurück; eine Zählung der Datenbank nähme sie nicht an (`always`)
+  oder vergäbe danach dieselben Nummern noch einmal (`by default`). Die
+  Reihenfolge trägt `am` — die Uhrzeit des Schreibens, nicht der
+  Transaktion, damit Anlegen und Ändern in einem Zug nacheinander stehen.
 */
-create index if not exists zeitbuchung_verlauf_eintrag on public.zeitbuchung_verlauf (company_id, eintrag_id, id);
+create index if not exists zeitbuchung_verlauf_eintrag on public.zeitbuchung_verlauf (company_id, eintrag_id, am);
 create index if not exists zeitbuchung_verlauf_person on public.zeitbuchung_verlauf (company_id, user_id, datum);
 
 comment on table public.zeitbuchung_verlauf is
@@ -70,6 +79,16 @@ drop policy if exists zeitbuchung_verlauf_lesen on public.zeitbuchung_verlauf;
 create policy zeitbuchung_verlauf_lesen on public.zeitbuchung_verlauf for select
   using (company_id = (select app.lesebetrieb())
          and (user_id = (select auth.uid()) or (select app.ist_buch_oder_spitze())));
+
+/*
+  Der Support sieht keine Zeitbuchungen, also auch ihr Protokoll nicht — und
+  der Riegel liegt hier wie auf jeder Tabelle mit Betrieb, obwohl ohnehin
+  niemand schreiben darf: fiele eines Tages ein Recht dazu, bliebe er.
+*/
+drop trigger if exists zeitbuchung_verlauf_support_niemals on public.zeitbuchung_verlauf;
+create trigger zeitbuchung_verlauf_support_niemals
+  before insert or update or delete on public.zeitbuchung_verlauf
+  for each row execute function app.support_niemals();
 
 /*
   DER SCHREIBER. `security definer`, weil niemand sonst in die Tabelle
@@ -92,8 +111,8 @@ declare
   inhalt jsonb;
   art text;
 begin
-  -- Der ganze Betrieb geht (Plattform): dann geht auch sein Protokoll.
-  if current_setting('app.betrieb_loeschung', true) = zeile.company_id then
+  -- Rücklauf, Löschen eines Betriebs, Prüfungen: siehe oben.
+  if app.ist_dienst() then
     return null;
   end if;
 
@@ -122,8 +141,7 @@ begin
   values (
     zeile.company_id, zeile.id, zeile.user_id, zeile.date, art, inhalt,
     auth.uid(),
-    coalesce((select u.name from public.users u where u.id = auth.uid()),
-             case when app.ist_dienst() then 'System' end)
+    (select u.name from public.users u where u.id = auth.uid())
   );
   return null;
 end;
@@ -155,7 +173,7 @@ begin
       'zeitbuchungen_verlauf', (
         select coalesce(jsonb_agg(jsonb_build_object(
                  'buchung', v.eintrag_id, 'tag', v.datum, 'art', v.art, 'aenderungen', v.aenderungen,
-                 'von', v.von_name, 'am', v.am) order by v.id), '[]'::jsonb)
+                 'von', v.von_name, 'am', v.am) order by v.am, v.id), '[]'::jsonb)
           from public.zeitbuchung_verlauf v where v.company_id = betrieb and v.user_id = p_id),$eintrag$);
     marke := $m$where t.company_id = betrieb and t.angelegt_von = p_id and t.user_id <> p_id),$m$;
     if position(marke in quelle) = 0 then raise exception 'Personenauskunft: Einfügestelle Bearbeiter fehlt'; end if;

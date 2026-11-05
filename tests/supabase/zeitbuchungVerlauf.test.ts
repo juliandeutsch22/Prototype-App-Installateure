@@ -6,7 +6,8 @@
  * - Anlegen, Ändern und Löschen schreiben je eine Zeile: wer, wann, was; beim
  *   Ändern nur die geänderten Spalten mit alt und neu, ohne Zeitstempel und
  *   ohne das, was die Datenbank selbst rechnet;
- * - ein Speichern ohne Änderung schreibt nichts;
+ * - ein Speichern ohne Änderung schreibt nichts, der Dienstschlüssel (Rücklauf
+ *   einer Sicherung, Löschen eines Betriebs) auch nicht;
  * - lesen dürfen die Person und Buchhaltung/Führung, kein Kollege, kein
  *   fremder Betrieb; schreiben, ändern, löschen darf es niemand;
  * - es steht in der Datenauskunft und bleibt bei der Löschung einer Person
@@ -38,7 +39,7 @@ beforeAll(async () => {
 
 async function verlauf(eintrag: string) {
   const { data, error } = await admin
-    .from('zeitbuchung_verlauf').select('*').eq('eintrag_id', eintrag).order('id');
+    .from('zeitbuchung_verlauf').select('*').eq('eintrag_id', eintrag).order('am');
   if (error) throw error;
   return data ?? [];
 }
@@ -75,6 +76,21 @@ describe('Das Protokoll schreibt mit', () => {
 
     expect(geloescht.von_uid).toBe(monteur.uid);
     expect(geloescht.aenderungen).toMatchObject({ end_time: '14:00:00', comment: 'Bad' });
+  }, 60_000);
+});
+
+describe('Der Dienstschlüssel schreibt nicht mit', () => {
+  /*
+    Mit ihm spielt der Rücklauf eine Sicherung zurück — samt ihrem Protokoll.
+    Schriebe der Trigger dabei mit, stünde jede Buchung zweimal als angelegt
+    darin (`ruecklauf.test.ts` prüft den ganzen Weg).
+  */
+  it('Anlegen, Ändern und Löschen mit dem Dienstschlüssel hinterlassen keine Zeile', async () => {
+    const b = buchung(monteur, '2026-11-01');
+    expect((await admin.from('time_entries').insert(b)).error).toBeNull();
+    expect((await admin.from('time_entries').update({ end_time: '12:00' }).eq('id', b.id)).error).toBeNull();
+    expect((await admin.from('time_entries').delete().eq('id', b.id)).error).toBeNull();
+    expect(await verlauf(b.id)).toEqual([]);
   }, 60_000);
 });
 

@@ -30,7 +30,7 @@ export interface VerlaufZeile {
 export function listVerlaufEintrag(companyId: string, eintragId: string) {
   return abfragen<VerlaufZeile>('zeitbuchung_verlauf', companyId, {
     wo: [{ art: 'gleich', feld: 'eintragId', wert: eintragId }],
-    sortiere: { feld: 'id' },
+    sortiere: { feld: 'am' },
   });
 }
 
@@ -45,6 +45,6 @@ export function listVerlaufZeitraum(companyId: string, userId: string, von: stri
       { art: 'ab', feld: 'datum', wert: von },
       { art: 'bis', feld: 'datum', wert: bis },
     ],
-    sortiere: { feld: 'id', absteigend: true },
+    sortiere: { feld: 'am', absteigend: true },
   });
 }
