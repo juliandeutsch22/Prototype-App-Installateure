@@ -78,15 +78,35 @@
     Leiste unten über der Navigation (`--reiter-hoehe` am body, ab dem
     Tablet 0). Am Ende ihres Abschnitts rückt sie an ihren Platz — so liegt
     nie ein Feld dauerhaft unter ihr.
+
+    AM HANDY wie die Aktionsleiste der Formulare: ein Balken über die ganze
+    Breite mit einer Linie oben, von Rand zu Rand. Die Inhaltsspalte misst
+    seit E33 ganze Zellen (bei 390 px 336 statt 358); mit nur dem Polster als
+    Außenabstand endete der Balken 22 px vor dem rechten Rand, mit Raster
+    daneben. Wie weit es bis zum Rand ist, rechnet der Taktgeber
+    (`--takt-auslauf`); ohne ihn bleibt es beim Polster.
+
+    AB DEM TABLET EIN BLATT (E47, 05.11.2026). Vorher ein schwebender Kasten
+    aus dem ersten Entwurf — gerundet, mit Petrol-Rahmen, Kanten neben dem
+    Raster. Jetzt wie jedes Blatt (E33): eckig, die Linie rundum wie dort
+    gezeichnet (oben und links innen, rechts und unten außen auf der
+    Rasterlinie), dieselben Kanten wie die Blätter darüber, Text eine Zelle
+    vom Rand. Jede Textzeile ist eine Zelle hoch und der Abstand innen eine
+    halbe; so misst die Leiste ganze Zellen (72 px, mit Fehlerzeile 96) und
+    liegt in Ruhe mit beiden Kanten auf Linien — ohne den Taktgeber, der
+    eine klebende Leiste an ihrer Bildschirmlage messen würde, nicht an
+    ihrem Platz.
   */
-  .korb { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.625rem 1rem 0.75rem; margin: 0 -1rem; background: var(--surface); border-top: 1px solid var(--petrol); }
+  .korb { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.625rem 1rem 0.75rem; margin: 0 var(--takt-auslauf, -1rem) 0 -1rem; background: var(--surface); border-top: 1px solid var(--border); }
   @media (min-width: 760px) {
-    .korb { margin: 0; padding: 0.75rem 1.25rem; border: 1px solid var(--petrol); border-radius: var(--radius-lg); }
+    .korb { margin: 0; row-gap: 0; padding: 12px 24px; border-top: 0; box-shadow: 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), 1px 1px 0 var(--border-strong); }
+    .korb::before { content: ''; position: absolute; inset: 0; pointer-events: none; border-top: 1px solid var(--border-strong); border-left: 1px solid var(--border-strong); }
+    .korb .korb-titel, .korb .korb-info, .korb .korb-fehler { line-height: 1.5rem; }
   }
-  .korb-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .korb-text { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; flex: 1; }
   .korb-titel { font-weight: var(--gewicht-titel); color: var(--ink-deep); text-decoration: none; }
   .korb-titel:hover { color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px; }
-  .korb-info { font-size: 0.8125rem; color: var(--text-muted); }
+  .korb-info { font-size: 0.8125rem; }
   .korb-fehler { flex-basis: 100%; font-size: 0.875rem; color: var(--danger); }
   .korb-knoepfe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 0.5rem; width: 100%; }
   @media (min-width: 760px) { .korb-knoepfe { display: flex; width: auto; } }

@@ -87,6 +87,20 @@ describe('ausrichten', () => {
     expect(blatt.style.paddingBottom).toBe('20px');
   });
 
+  it('sagt, wie weit ein Balken von der Spalte bis an den rechten Rand reicht (E47)', () => {
+    // 1208 breit, 40 Polster links: die Spalte misst 1128 (47 Zellen), bis zum Rand fehlen 40.
+    const { flaeche, inhalt } = seite({ oben: 264, hoehe: 96 });
+    ausrichten(flaeche);
+    expect(inhalt.style.getPropertyValue('--takt-auslauf')).toBe('-40px');
+    // Wie am Handy bei 390 px: 16 Polster, Spalte 336 — der Rest der angebrochenen Zelle kommt dazu.
+    Object.defineProperty(inhalt, 'clientWidth', { value: 390, configurable: true });
+    inhalt.style.paddingLeft = '16px';
+    inhalt.style.paddingRight = '16px';
+    ausrichten(flaeche);
+    expect(inhalt.style.getPropertyValue('--takt-breite')).toBe('336px');
+    expect(inhalt.style.getPropertyValue('--takt-auslauf')).toBe('-38px');
+  });
+
   it('ein Blatt, das schon auf den Linien liegt, bleibt unberührt', () => {
     const { flaeche, blatt } = seite({ oben: 264, hoehe: 96 });
     ausrichten(flaeche);

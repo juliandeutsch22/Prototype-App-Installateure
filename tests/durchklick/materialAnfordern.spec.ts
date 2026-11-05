@@ -110,6 +110,93 @@ test('Der Katalogknopf bleibt einzeilig und an seinem Platz, auf jeder Breite', 
 });
 
 /*
+  DIE WARENKORB-LEISTE IST AB DEM TABLET EIN BLATT (E47, 05.11.2026). Vorher
+  ein schwebender, gerundeter Kasten mit Petrol-Rahmen neben dem Raster.
+  Jetzt eckig, mit der Linie der Blätter, denselben Kanten wie der Katalog
+  darüber, Text eine Zelle vom Rand, ganze Zellen hoch und in Ruhe mit
+  beiden Kanten auf Rasterlinien. Am Handy ein Balken mit Linie oben wie die
+  Aktionsleiste der Formulare.
+*/
+test('Die Warenkorb-Leiste liegt als Blatt auf dem Raster, am Handy als Balken', async ({ page }) => {
+  await anmelden(page, MONTEUR.email);
+  await menue(page, 'Material anfordern', 'Material');
+  await page.getByRole('button', { name: new RegExp(`${ARTIKEL.name} in die Liste$`) }).click();
+  const leiste = page.getByRole('region', { name: 'Warenkorb' });
+  await expect(leiste).toBeVisible();
+  await expect(leiste.locator('.korb-info')).toHaveClass(/stand-offen/);
+
+  const messen = () =>
+    page.evaluate(() => {
+      const korb = document.querySelector<HTMLElement>('.korb')!;
+      const katalog = [...document.querySelectorAll<HTMLElement>('.karte')].find(
+        (k) => k.querySelector('.titel-karte')?.textContent === 'Katalog',
+      )!;
+      const flaeche = document.querySelector<HTMLElement>('.hauptflaeche')!;
+      const [, versatz] = getComputedStyle(flaeche).backgroundPosition.split(' ').map(parseFloat);
+      const ursprung = flaeche.getBoundingClientRect().top + versatz;
+      const k = korb.getBoundingClientRect();
+      const b = katalog.getBoundingClientRect();
+      const s = getComputedStyle(korb);
+      const probe = document.createElement('i');
+      probe.style.color = 'var(--border)';
+      document.body.append(probe);
+      const linieDerLeisten = getComputedStyle(probe).color;
+      probe.remove();
+      const aufLinie = (y: number) => Math.min(((y - ursprung) % 24 + 24) % 24, 24 - (((y - ursprung) % 24 + 24) % 24));
+      return {
+        links: k.left - b.left, rechts: k.right - b.right, hoehe: k.height, breiteFenster: window.innerWidth,
+        linksAbs: k.left, rechtsAbs: k.right,
+        oben: aufLinie(k.top), unten: aufLinie(k.bottom),
+        rund: s.borderTopLeftRadius, polster: s.paddingLeft,
+        linie: s.boxShadow, linieBlatt: getComputedStyle(katalog).boxShadow,
+        vorher: getComputedStyle(korb, '::before').borderTopColor + ' ' + getComputedStyle(korb, '::before').borderLeftWidth,
+        vorherBlatt: getComputedStyle(katalog, '::before').borderTopColor + ' ' + getComputedStyle(katalog, '::before').borderLeftWidth,
+        obenLinie: s.borderTopWidth + ' ' + s.borderTopColor, linieDerLeisten,
+      };
+    });
+  const ruhig = async () => {
+    let zuletzt = '';
+    await expect
+      .poll(async () => {
+        await page.evaluate(() => new Promise((fertig) => requestAnimationFrame(() => requestAnimationFrame(fertig))));
+        const jetzt = JSON.stringify(await messen());
+        const gleich = jetzt === zuletzt;
+        zuletzt = jetzt;
+        return gleich;
+      }, { timeout: 10_000 })
+      .toBe(true);
+    return JSON.parse(zuletzt) as Awaited<ReturnType<typeof messen>>;
+  };
+
+  for (const breite of [834, 1280]) {
+    await page.setViewportSize({ width: breite, height: 700 });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const m = await ruhig();
+    expect(Math.abs(m.links), `${breite} px: linke Kante wie der Katalog`).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(m.rechts), `${breite} px: rechte Kante wie der Katalog`).toBeLessThanOrEqual(0.5);
+    expect(m.rund, `${breite} px: eckig`).toBe('0px');
+    expect(m.polster, `${breite} px: Text eine Zelle vom Rand`).toBe('24px');
+    expect(m.hoehe % 24, `${breite} px: ganze Zellen hoch (${m.hoehe})`).toBe(0);
+    expect(m.linie, `${breite} px: Linie rechts und unten wie das Blatt`).toBe(m.linieBlatt);
+    expect(m.vorher, `${breite} px: Linie oben und links wie das Blatt`).toBe(m.vorherBlatt);
+    // In Ruhe, an ihrem Platz unter dem Katalog: beide Kanten auf Linien.
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const r = await ruhig();
+    expect(r.oben, `${breite} px: Oberkante auf einer Rasterlinie`).toBeLessThanOrEqual(0.5);
+    expect(r.unten, `${breite} px: Unterkante auf einer Rasterlinie`).toBeLessThanOrEqual(0.5);
+  }
+
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const handy = await ruhig();
+  expect(handy.linksAbs, 'Handy: von Rand zu Rand').toBeLessThanOrEqual(0.5);
+  expect(handy.breiteFenster - handy.rechtsAbs, 'Handy: von Rand zu Rand').toBeLessThanOrEqual(0.5);
+  expect(handy.rund, 'Handy: eckig').toBe('0px');
+  expect(handy.obenLinie, 'Handy: Linie oben wie die Aktionsleiste').toBe(`1px ${handy.linieDerLeisten}`);
+  await keineFehlermeldung(page);
+});
+
+/*
   DIE RÜCKGABE STEHT SICHTBAR (20.10.2026): eine Zeile auf der Seite statt
   im „⋯“. Geprüft bis in den Bestand: Neues wird dem Lager gutgeschrieben.
 */
