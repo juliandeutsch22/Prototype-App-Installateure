@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type BrowserContext, type Page } from '@playwright/test';
 import { admin, BAUSTELLE, BETRIEB, MONTEUR } from './aufbau';
 import { anmelden, keineFehlermeldung, menue } from './helfer';
 
@@ -199,8 +199,26 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
   Das Netz ist im Browser wirklich weg (`setOffline`), auch zum Entwicklungs-
   server. Gegenprobe: mit dem Stand von `main` scheitert das Unterschreiben
   mit einer Fehlermeldung, und nichts wird vorgemerkt.
+
+  IN WEBKIT DAS FUNKLOCH IM WLAN. Dort lädt der Browser unter `setOffline`
+  auch keine `blob:`-Adresse mehr („WebKit encountered an internal error“),
+  also ließe sich nicht einmal das Foto verkleinern — eine Eigenheit der
+  Nachbildung, ein iPhone im Flugmodus liest seine eigenen Bilder. Dort ist
+  deshalb der Server nicht erreichbar, das Gerät hält sich aber für
+  verbunden: das andere Funkloch, das der Sender kennen muss (er schließt
+  aus der gescheiterten Anfrage, nicht aus `navigator.onLine`). Zurück kommt
+  das Netz dann ohne `online`-Ereignis; der Schein geht mit dem
+  Nachsehen jede Minute hinaus.
 */
-test('Im Keller ohne Netz: Schein mit Foto unterschrieben, mit dem Netz angekommen', async ({ page, context }) => {
+const SERVER = /^http:\/\/127\.0\.0\.1:54321\//;
+async function funkloch(page: Page, context: BrowserContext, webkit: boolean, an: boolean) {
+  if (!webkit) return context.setOffline(an);
+  if (an) await page.route(SERVER, (r) => r.abort('internetdisconnected'));
+  else await page.unroute(SERVER);
+}
+
+test('Im Keller ohne Netz: Schein mit Foto unterschrieben, mit dem Netz angekommen', async ({ page, context, browserName }) => {
+  const webkit = browserName === 'webkit';
   const { data: vorher } = await admin.from('work_sheets').select('id').eq('company_id', BETRIEB);
   const alteIds = new Set((vorher ?? []).map((z) => z.id as string));
   const neue = async () => {
@@ -217,7 +235,7 @@ test('Im Keller ohne Netz: Schein mit Foto unterschrieben, mit dem Netz angekomm
   await expect(page.getByRole('heading', { name: /^Fotos \(/ })).toBeVisible();
 
   // Ab hier im Keller.
-  await context.setOffline(true);
+  await funkloch(page, context, webkit, true);
 
   await page.getByLabel('Tätigkeit (optional)').fill('Steigleitung im Keller getauscht.');
   await page.getByLabel(/^Von/).fill('08:00');
@@ -256,7 +274,7 @@ test('Im Keller ohne Netz: Schein mit Foto unterschrieben, mit dem Netz angekomm
   expect(await neue()).toHaveLength(0);
 
   // Wieder Empfang: der Schein geht von selbst hinaus.
-  await context.setOffline(false);
+  await funkloch(page, context, webkit, false);
 
   await expect(async () => {
     const angekommen = await neue();
