@@ -5,9 +5,10 @@ import VerloreneBuchung from '@/components/VerloreneBuchung';
 import KatalogSuche from '@/features/quotes/KatalogSuche';
 
 const katalog = vi.hoisted(() => vi.fn());
-const vormerkung = vi.hoisted(() => ({ melden: null as null | (() => void) }));
+type Fehlschlag = { zeile: string; tabelle: string; grund: string };
+const vormerkung = vi.hoisted(() => ({ melden: null as null | ((f: Fehlschlag) => void) }));
 vi.mock('@/lib/db/materials', () => ({ sucheKatalog: (...a: unknown[]) => katalog(...a) }));
-vi.mock('@/lib/sync/ausgangsfach', () => ({ beiVormerkungFehlgeschlagen: (f: null | (() => void)) => { vormerkung.melden = f; } }));
+vi.mock('@/lib/sync/ausgangsfach', () => ({ beiVormerkungFehlgeschlagen: (f: null | ((f: Fehlschlag) => void)) => { vormerkung.melden = f; } }));
 afterEach(() => { vi.useRealTimers(); katalog.mockReset(); });
 
 function Melder() {
@@ -19,11 +20,28 @@ describe('Rückmeldungen', () => {
   it('endgültiger Nachsendefehler bleibt bis zur bewussten Bestätigung', () => {
     vi.useFakeTimers();
     render(<ToastProvider><VerloreneBuchung /></ToastProvider>);
-    act(() => vormerkung.melden?.());
+    act(() => vormerkung.melden?.({ zeile: 'z1', tabelle: 'time_entries', grund: 'abgelehnt' }));
     act(() => vi.advanceTimersByTime(60_000));
     expect(screen.getByRole('alert')).toHaveTextContent('Eine vorgemerkte Buchung konnte nicht gesendet werden.');
     fireEvent.click(screen.getByRole('button', { name: 'Gelesen' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+  it('ein vorgemerkter Schein sagt, warum er nicht ankam (E49)', () => {
+    render(<ToastProvider><VerloreneBuchung /></ToastProvider>);
+    act(() => vormerkung.melden?.({
+      zeile: 's1', tabelle: 'work_sheets',
+      grund: 'Ein Schein im Zustand Unterschrieben lässt sich nicht mehr ändern (Ziel: Unterschrieben)',
+    }));
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Ein vorgemerkter Handwerksschein konnte nicht gesendet werden: Ein Schein im Zustand Unterschrieben lässt sich nicht mehr ändern (Ziel: Unterschrieben). Bitte unter Handwerksscheine nachsehen.',
+    );
+  });
+  it('ein vorgemerktes Foto sagt, dass der Schein es verzeichnet, die Datei aber fehlt (E49)', () => {
+    render(<ToastProvider><VerloreneBuchung /></ToastProvider>);
+    act(() => vormerkung.melden?.({ zeile: 'scheine/perl/s1/a.jpg', tabelle: 'scheinfotos', grund: 'Payload too large.' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Ein vorgemerktes Foto konnte nicht hochgeladen werden: Payload too large. Der Schein verzeichnet es, die Datei fehlt.',
+    );
   });
   it('pausiert bei Hover und Fokus unabhängig und verwendet danach nur die Restzeit', () => {
     vi.useFakeTimers();

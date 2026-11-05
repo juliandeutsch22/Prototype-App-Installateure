@@ -41,6 +41,21 @@ describe('Das Ausgangsfach hängt am Schreibweg', () => {
     expect(vorbei).toEqual([]);
   });
 
+  it('der Handwerksschein schreibt über das Ausgangsfach (E49)', () => {
+    /*
+      Speichern, Unterschreiben, Hochladen und Entfernen der Fotos — jeder
+      Schreibweg des Scheins. Ginge einer davon wieder direkt an den Server,
+      überholte er im Funkloch die vorgemerkten davor, oder er scheiterte,
+      während die Maske „wird gesendet“ sagt.
+    */
+    const schein = lies('src/lib/db/pg/workSheets.ts');
+    expect(schein).not.toMatch(/rpc\('schein_(speichern|unterschreiben)'/);
+    expect(schein.match(/vorgangOhneEmpfang\(/g) ?? []).toHaveLength(2);
+    const fotos = lies('src/lib/db/pg/scheinFotos.ts');
+    expect(fotos).not.toMatch(/\.(upload|remove)\(/);
+    expect(fotos.match(/vorgangOhneEmpfang\(/g) ?? []).toHaveLength(2);
+  });
+
   it('den Firestore-Weg gibt es nicht mehr', () => {
     /*
       `writeWithOfflineNotice` war nicht falsch — unter Firestore hielt das SDK

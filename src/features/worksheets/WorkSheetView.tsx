@@ -12,6 +12,7 @@ import {
   updateWorkSheetDraft,
   listWorkSheetsForProject,
   fotosAmEntwurf,
+  scheinWartet,
   type NewWorkSheet,
 } from '@/lib/db/workSheets';
 import { fmtDauer, fmtMin, todayStr } from '@/lib/time';
@@ -46,6 +47,9 @@ import {
   type FotoEntwurf,
 } from './fotos';
 import { grundAus } from '@/lib/fehlerGrund';
+import { FACH_GELEERT, vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
+import { istNetzfehler } from '@/lib/sync/netzfehler';
+import { entwurfMitVorgemerktem } from './vorgemerkt';
 import { datumAT } from '@/lib/datum';
 import { abrechnungText, stundenSindGrundlage } from '@/lib/abrechnung';
 
@@ -88,6 +92,19 @@ import { abrechnungText, stundenSindGrundlage } from '@/lib/abrechnung';
  */
 const NICHT_ZU_OEFFNEN =
   'Dieser Entwurf lässt sich nicht öffnen — die Kennung stimmt nicht, oder er gehört nicht zu diesem Betrieb.';
+
+/**
+ * Ohne Netz und ohne wartenden Stand im Gerät (E49). Dann liegt der Entwurf
+ * nur auf dem Server — „die Kennung stimmt nicht“ wäre die falsche Auskunft.
+ */
+const OHNE_NETZ_NICHT_ZU_OEFFNEN =
+  'Ohne Verbindung lässt sich dieser Entwurf nicht laden: er liegt auf dem Server, nicht auf diesem Gerät. Sobald wieder Netz da ist, noch einmal öffnen.';
+
+/** Ein Lesefehler, hinter dem fehlendes Netz steht — wie der Sender des Ausgangsfachs es erkennt. */
+function ohneNetz(fehler: unknown): boolean {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+  return istNetzfehler({ message: fehler instanceof Error ? fehler.message : String(fehler ?? '') });
+}
 
 /**
  * Steht diese Entwurfszeile auch in der Vorausfüllung?
@@ -162,6 +179,24 @@ export default function WorkSheetView() {
     setFotosZustand(naechste);
   }
   const [fotoLaeuft, setFotoLaeuft] = useState(false);
+  /*
+    WELCHE FOTOS NOCH IM GERÄT WARTEN (E49) — nach Pfad. Ohne Netz geht ein
+    Bild ins Ausgangsfach statt in den Speicher; es steht dann schon im Schein,
+    die Datei kommt mit dem nächsten Empfang nach. Das soll am Bild stehen,
+    statt einer Größe, die nach „ist oben“ aussieht.
+  */
+  const [wartendeFotos, setWartendeFotos] = useState<ReadonlySet<string>>(() => new Set());
+  async function wartendesNachsehen(id: string | null) {
+    if (!id) return;
+    const wartend = await scheinWartet(id).catch(() => undefined);
+    setWartendeFotos(new Set(Object.keys(wartend?.dateien ?? {})));
+  }
+  useEffect(() => {
+    // Nach jedem Nachsendelauf: was ist inzwischen angekommen?
+    const nachsehen = () => void wartendesNachsehen(scheinIdRef.current);
+    window.addEventListener(FACH_GELEERT, nachsehen);
+    return () => window.removeEventListener(FACH_GELEERT, nachsehen);
+  }, []);
   /*
     WELCHE ZEILEN VOR ORT ENTSTANDEN SIND — nach Position in `zeiten`.
 
@@ -364,11 +399,30 @@ export default function WorkSheetView() {
     let verworfen = false;
     setEntwurfLaedt(true);
     setEntwurfFehler(null);
-    getWorkSheet(entwurfId)
-      .then((schein) => {
+    /*
+      DER STAND VOM SERVER UND DAS, WAS IM GERÄT WARTET (E49). Ohne Netz, oder
+      bevor ein im Keller gespeicherter Entwurf angekommen ist, steht er nur
+      im Ausgangsfach; geöffnet wird dann von dort. Was wartet, ist neuer als
+      der Server und liegt darüber — genau so wird es auch ankommen.
+    */
+    Promise.all([
+      getWorkSheet(entwurfId).then(
+        (vomServer) => ({ vomServer, fehler: null as unknown }),
+        (fehler: unknown) => ({ vomServer: undefined, fehler: fehler ?? new Error('unbekannt') }),
+      ),
+      scheinWartet(entwurfId).catch(() => undefined),
+    ])
+      .then(([{ vomServer, fehler }, wartend]) => {
         if (verworfen) return;
+        if (wartend?.unterschrieben) {
+          setEntwurfFehler(
+            'Dieser Schein ist unterschrieben und wartet auf diesem Gerät auf Verbindung. Er geht von selbst hinaus, sobald wieder Netz da ist.',
+          );
+          return;
+        }
+        const schein = entwurfMitVorgemerktem(vomServer, wartend);
         if (!schein) {
-          setEntwurfFehler(NICHT_ZU_OEFFNEN);
+          setEntwurfFehler(fehler && ohneNetz(fehler) ? OHNE_NETZ_NICHT_ZU_OEFFNEN : NICHT_ZU_OEFFNEN);
           return;
         }
         if (schein.status === 'Verworfen') {
@@ -395,6 +449,30 @@ export default function WorkSheetView() {
         setMaterial(schein.material.map((m) => ({ ...m, id: neueKennung() })));
         setNotizen(schein.notizen ?? '');
         /*
+          OHNE SERVER DIE BAUSTELLE AUS DEM ENTWURF (E49). Die Auswahl lädt
+          die Baustellen vom Server; im Funkloch bleibt sie leer, und ohne
+          Baustelle ließe sich nichts speichern. Der Entwurf trägt Kunde,
+          Adresse und Abrechnung als Kopie — genau das, was das Speichern
+          wieder schreibt. Kommt die echte Baustelle doch noch, ersetzt die
+          Auswahl diesen Stand.
+        */
+        if (!vomServer) {
+          setProjekt((bisher) =>
+            bisher?.projectNumber === schein.projectNumber
+              ? bisher
+              : ({
+                  id: '',
+                  companyId: schein.companyId,
+                  projectNumber: schein.projectNumber,
+                  customerId: schein.customerId,
+                  customerName: schein.customerName,
+                  address: schein.address,
+                  billingMode: schein.abrechnung,
+                  status: 'Aktiv',
+                } as WithId<Project>),
+          );
+        }
+        /*
           DIE FOTOS KOMMEN MIT (Prüflauf 25.09.2026, P1-01). Vorher blieben
           sie im Entwurf liegen und nicht im Formular — und weil Speichern
           und Unterschreiben die Fotoliste aus dem Formular schicken, ging
@@ -406,14 +484,23 @@ export default function WorkSheetView() {
           oben ist. Die Vorschau kommt als signierte Adresse nach; bis dahin
           (oder wenn sie ausbleibt) steht ein Platzhalter da.
         */
-        const geladen: FotoEntwurf[] = (schein.fotos ?? []).map((f) => ({
-          vorschau: '',
-          daten: new Blob(),
-          geraetZeit: f.geraetZeit,
-          oben: f,
-        }));
+        /*
+          Ein Bild, das noch im Gerät wartet, zeigt sich aus seinen Bytes —
+          ohne Netz gibt es keine signierte Adresse.
+        */
+        const geladen: FotoEntwurf[] = (schein.fotos ?? []).map((f) => {
+          const datei = wartend?.dateien[f.pfad];
+          return {
+            vorschau: datei ? URL.createObjectURL(datei) : '',
+            daten: datei ?? new Blob(),
+            geraetZeit: f.geraetZeit,
+            oben: f,
+          };
+        });
         setFotos(geladen);
+        setWartendeFotos(new Set(Object.keys(wartend?.dateien ?? {})));
         for (const eintrag of geladen) {
+          if (eintrag.vorschau) continue;
           fotoAdresse(eintrag.oben!.pfad)
             .then((adresse) => {
               if (verworfen) return;
@@ -672,6 +759,7 @@ export default function WorkSheetView() {
             fotosRef.current.map((x) => (x === eintrag ? { ...x, oben, fehler: undefined } : x)),
           );
           await festschreiben(id);
+          await wartendesNachsehen(id);
         } catch {
           setFotos(
             fotosRef.current.map((x) =>
@@ -698,6 +786,7 @@ export default function WorkSheetView() {
         fotosRef.current.map((x) => (x === eintrag ? { ...x, oben, fehler: undefined } : x)),
       );
       await festschreiben(id);
+      await wartendesNachsehen(id);
     } catch {
       setFotos(
         fotosRef.current.map((x) =>
@@ -728,6 +817,7 @@ export default function WorkSheetView() {
     */
     if (scheinIdRef.current) await festschreiben(scheinIdRef.current);
     if (eintrag.oben) await fotoEntfernen(eintrag.oben.pfad).catch(() => undefined);
+    await wartendesNachsehen(scheinIdRef.current);
   }
 
   /**
@@ -818,6 +908,16 @@ export default function WorkSheetView() {
         { name: kundeName.trim(), bild: kundeBild, geraetZeit: jetzt },
       );
 
+      /*
+        OHNE NETZ VORGEMERKT (E49): unterschrieben ist er vor Ort, angekommen
+        noch nicht. Die Liste zeigt ihn unter „Noch nicht gesendet“; eine
+        Markierung gäbe es dort erst, wenn er angekommen ist.
+      */
+      if (await scheinWartet(id).catch(() => undefined)) {
+        toast.info(vorgemerktMeldung('Handwerksschein unterschrieben'));
+        navigate('/worksheets');
+        return;
+      }
       toast.success('Handwerksschein unterschrieben und eingefroren');
       navigate(`/worksheets?markiert=${id}`);
     } catch (err) {
@@ -919,7 +1019,12 @@ export default function WorkSheetView() {
     // Vor dem Schreiben gelesen: danach gibt es die Kennung in jedem Fall.
     const warSchonDa = !!(scheinIdRef.current ?? anlageRef.current);
     try {
-      await inhaltSchreiben();
+      const id = await inhaltSchreiben();
+      if (await scheinWartet(id).catch(() => undefined)) {
+        toast.info(vorgemerktMeldung(warSchonDa ? 'Entwurf aktualisiert' : 'Als Entwurf gespeichert'));
+        navigate('/worksheets');
+        return;
+      }
       /*
         Nach `scheinId`, nicht nach der Adresse: seit ein Foto den Entwurf
         anlegen kann, gibt es ihn womöglich schon, obwohl man ohne
@@ -1411,12 +1516,13 @@ export default function WorkSheetView() {
                   Beleg an einem Balken Empfang — und der Monteur stünde mit einem
                   Kunden vor sich da, der unterschreiben will.
 
-                  EHRLICH GESAGT (Prüflauf 25.09.2026, P1-14): Hier stand, das
-                  Ausgangsfach halte den Schein ohne Empfang vor. Das tut es
-                  nicht — Speichern und Unterschreiben laufen als direkter Aufruf
-                  an den Server und werden nicht vorgemerkt. Ganz ohne Netz lässt
-                  sich der Schein also NICHT unterschreiben, und so steht es jetzt
-                  auch im Hinweis.
+                  OHNE NETZ (E49, 05.11.2026). Bis hierher stand hier, dass der
+                  Schein ohne Empfang NICHT unterschrieben werden kann (Prüflauf
+                  25.09.2026, P1-14): Speichern und Unterschreiben liefen direkt an
+                  den Server. Seit E49 gehen Fotos, Speichern und Unterschrift
+                  über das Ausgangsfach, und der Hinweis sagt das. Ohne Speicher
+                  im Browser (privates Fenster) bleibt es beim direkten Weg; dann
+                  meldet ein misslungener Upload sich am Bild wie bisher.
 
                   Der Abschnitt erscheint erst mit einer gewählten Baustelle: ein
                   Foto ohne Schein hat keinen Ort, an den es gehört.
@@ -1446,11 +1552,13 @@ export default function WorkSheetView() {
                         Prüfsumme des Scheins ein.
                         <br />
                         <br />
-                        Ohne Netz geht weder das Hochladen noch das Unterschreiben: der Schein wird
-                        beim Unterschreiben direkt an den Server geschickt und nicht für später
-                        vorgemerkt. Im Keller also besser oben fotografieren und unterschreiben lassen.
-                        Ein Bild, das nicht hochgeht, lässt sich weglassen — der Schein geht dann ohne es
-                        hinaus.
+                        Ohne Netz geht alles trotzdem: Fotos, Speichern und Unterschreiben werden auf
+                        diesem Gerät vorgemerkt und gehen von selbst hinaus, sobald wieder Empfang da
+                        ist — in derselben Reihenfolge. Bis dahin steht am Bild „Wartet auf Netz“ und
+                        der Schein in der Liste unter „Noch nicht gesendet“. Öffnen muss man den Schein
+                        einmal mit Netz: die Baustellen kommen vom Server. In einem privaten Fenster
+                        kann der Browser nichts vormerken — dort geht es nur mit Netz, und ein Bild, das
+                        nicht hochgeht, lässt sich weglassen.
                         <br />
                         <br />
                         Keine Personen und keine fremden Unterlagen, wenn es nicht sein muss: die Bilder
@@ -1507,7 +1615,8 @@ export default function WorkSheetView() {
                             </button>
                             {f.oben ? (
                               <p className="mt-1 text-center text-xs text-ink-muted">
-                                {groesse(f.oben.bytes)}
+                                {/* Im Schein verzeichnet, die Datei noch im Gerät (E49). */}
+                                {wartendeFotos.has(f.oben.pfad) ? 'Wartet auf Netz' : groesse(f.oben.bytes)}
                               </p>
                             ) : (
                               <p className="mt-1 text-center text-xs text-warning">

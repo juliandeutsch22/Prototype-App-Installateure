@@ -12,13 +12,17 @@ import type { WorkSheetFoto } from '@/types';
  * Sparsamkeit. Ein Upload scheitert bei schwachem Empfang viel eher als der
  * kleine Schreibvorgang des Scheins. Wäre auch nur ein Foto Bedingung, hinge
  * der ganze Beleg an einem Balken Empfang — und der Monteur stünde mit einem
- * Kunden vor sich da, der unterschreiben will. (Ganz ohne Netz geht auch das
- * Unterschreiben nicht: der Schein läuft NICHT über das Ausgangsfach —
- * Prüflauf 25.09.2026, P1-14.)
+ * Kunden vor sich da, der unterschreiben will.
  *
- * Was die App stattdessen tut: sie sagt VOR dem Unterschreiben, wenn ein Bild
- * noch nicht oben ist (siehe `nochNichtOben`), statt es still fallen zu
- * lassen. Der Monteur entscheidet dann — nochmal versuchen, oder ohne.
+ * OHNE NETZ (E49, 05.11.2026) geht ein Bild ins Ausgangsfach und hinaus,
+ * sobald wieder Empfang da ist — vor der Fotoliste des Scheins, die es
+ * verzeichnet, und vor der Unterschrift. Pfad und Hash kommen aus den Bytes
+ * und stehen deshalb schon im Keller fest.
+ *
+ * Ohne Ausgangsfach (privates Fenster) bleibt es beim direkten Hochladen;
+ * dann sagt die App VOR dem Unterschreiben, wenn ein Bild noch nicht oben ist
+ * (siehe `nochNichtOben`), statt es still fallen zu lassen. Der Monteur
+ * entscheidet — nochmal versuchen, oder ohne.
  */
 
 /**

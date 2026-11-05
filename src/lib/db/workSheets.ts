@@ -21,6 +21,7 @@
 import type { WorkSheet, WorkSheetFoto, WorkSheetUnterschrift } from '@/types';
 import type { WithId } from './core';
 import * as pg from './pg/workSheets';
+import type { VorgemerkterSchein } from '@/features/worksheets/vorgemerkt';
 
 export type NewWorkSheet = Omit<WorkSheet, 'id' | 'companyId' | 'createdAt'>;
 
@@ -107,6 +108,16 @@ export function signWorkSheet(
   return pg.signWorkSheet(id, monteur, kunde);
 }
 
+/** Was von diesem Schein noch im Gerät auf Verbindung wartet (E49) — siehe `pg.scheinWartet`. */
+export function scheinWartet(id: string): Promise<VorgemerkterSchein | undefined> {
+  return pg.scheinWartet(id);
+}
+
+/** Alle Scheine, die auf diesem Gerät noch warten (E49). */
+export function wartendeScheine(): Promise<VorgemerkterSchein[]> {
+  return pg.wartendeScheine();
+}
+
 export function cancelWorkSheet(id: string, grund: string, vonName: string): Promise<void> {
   return pg.cancelWorkSheet(id, grund, vonName);
 }
@@ -141,3 +152,4 @@ export function vorbereiten(
 
 export type { ScheinZeit } from './pg/workSheets';
 export type { WithId };
+export type { VorgemerkterSchein };

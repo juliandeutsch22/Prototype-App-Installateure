@@ -1,3 +1,4 @@
+import type { VorgemerkterSchein } from '@/features/worksheets/vorgemerkt';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
@@ -95,6 +96,9 @@ const zeitraumSuche = vi.fn(async () => serverTreffer);
 const baustellenSuche = vi.fn(async () => serverTreffer);
 const textSuche = vi.fn(async () => serverTreffer);
 
+/** Was auf dem Gerät noch auf Verbindung wartet (E49) — im Normalfall nichts. */
+const wartendeScheine = vi.fn<() => Promise<VorgemerkterSchein[]>>(async () => []);
+
 /** Ein einzelner Schein nach Kennung — für `?markiert=` aus der Baustellenakte. */
 const einzeln = vi.fn<(id: string) => Promise<(WorkSheet & { id: string }) | undefined>>(async () => undefined);
 vi.mock('@/lib/db/workSheets', () => ({
@@ -108,6 +112,7 @@ vi.mock('@/lib/db/workSheets', () => ({
   deleteWorkSheetDraft: (c: string, id: string, p: readonly string[]) => loeschen(c, id, p),
   restoreWorkSheetDraft: (...a: unknown[]) => zurueckholen(...(a as [])),
   getWorkSheet: (id: string) => einzeln(id),
+  wartendeScheine: () => wartendeScheine(),
 }));
 /*
   Die Adressen der Bilder kommen aus Firebase Storage. Geprüft wird hier
@@ -209,6 +214,7 @@ async function oeffne(kunde: RegExp) {
 }
 
 beforeEach(() => {
+  wartendeScheine.mockReset().mockResolvedValue([]);
   authWert.user.role = 'Mitarbeiter';
   aufRechnung = [];
   verrechnungGeholt.mockClear();
@@ -1386,5 +1392,54 @@ describe('Ansicht und Seitenfenster', () => {
     const fenster = await oeffne(/Familie Berger/);
     expect(within(fenster).getByRole('button', { name: 'PDF' })).toBeInTheDocument();
     expect(within(fenster).queryByRole('button', { name: 'Stornieren' })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * NOCH NICHT GESENDET (E49, 05.11.2026). Ohne Empfang gespeicherte oder
+ * unterschriebene Scheine kennt der Server noch nicht. Stünden sie nirgends,
+ * legte der Monteur denselben Schein ein zweites Mal an. Gegenprobe: mit der
+ * Liste von `main` fehlt der Abschnitt.
+ */
+describe('Noch nicht gesendet (E49)', () => {
+  it('zeigt wartende Scheine; der Entwurf öffnet, der unterschriebene wartet nur', async () => {
+    wartendeScheine.mockResolvedValue([
+      {
+        id: 'w1', dateien: {}, unterschrieben: false, seit: 2,
+        kopf: { customerName: 'Familie Keller', projectNumber: 'B-7', datum: '2026-11-05' },
+      },
+      {
+        id: 'w2', dateien: {}, unterschrieben: true, seit: 1,
+        kopf: { customerName: 'Familie Tief', projectNumber: 'B-8', datum: '2026-11-04' },
+      },
+    ]);
+    zeichne();
+
+    const karte = (await screen.findByRole('heading', { name: 'Noch nicht gesendet (2)' })).closest('section')!;
+    const entwurfZeile = within(karte).getByRole('link', { name: /Familie Keller/ });
+    expect(entwurfZeile).toHaveAttribute('href', '/worksheet?entwurf=w1');
+    expect(within(karte).getByText('Familie Tief')).toBeInTheDocument();
+    expect(within(karte).queryByRole('link', { name: /Familie Tief/ })).not.toBeInTheDocument();
+    expect(within(karte).getAllByText(/wartet auf Netz/)).toHaveLength(2);
+  });
+
+  it('gleich geblieben: ohne Wartendes gibt es den Abschnitt nicht', async () => {
+    zeichne();
+    await screen.findAllByText(/Familie|Huber|Entwürfe/);
+    expect(screen.queryByText(/Noch nicht gesendet/)).not.toBeInTheDocument();
+  });
+
+  it('ist ein Schein angekommen, holt die Liste den neuen Stand', async () => {
+    const { listRecentWorkSheets } = await import('@/lib/db/workSheets');
+    wartendeScheine.mockResolvedValueOnce([{ id: 'w1', dateien: {}, unterschrieben: true, seit: 1, kopf: { customerName: 'Familie Keller' } }]);
+    zeichne();
+    await screen.findByText('Noch nicht gesendet (1)');
+    const vorher = vi.mocked(listRecentWorkSheets).mock.calls.length;
+
+    wartendeScheine.mockResolvedValue([]);
+    window.dispatchEvent(new Event('senklot:ausgangsfach'));
+
+    await waitFor(() => expect(screen.queryByText(/Noch nicht gesendet/)).not.toBeInTheDocument());
+    expect(vi.mocked(listRecentWorkSheets).mock.calls.length).toBeGreaterThan(vorher);
   });
 });

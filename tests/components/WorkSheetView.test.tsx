@@ -1,8 +1,9 @@
+import type { VorgemerkterSchein } from '@/features/worksheets/vorgemerkt';
 import { describe, it, expect, vi, beforeEach, afterEach, onTestFinished } from 'vitest';
 import { forwardRef, useEffect, useImperativeHandle } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Assignment, Material, Project, WorkSheet, WorkSheetZeit } from '@/types';
 import { todayStr } from '@/lib/time';
@@ -91,6 +92,8 @@ const listWorkSheetsForProject = vi.fn(async () => bestehendeScheine);
   Dokument zeigt, wenn der Monteur das Fenster schliesst.
 */
 const fotosFestgeschrieben = vi.fn(async () => undefined);
+/** Was von einem Schein noch im Gerät wartet (E49) — im Normalfall nichts: alles ist angekommen. */
+const scheinWartet = vi.fn<(id: string) => Promise<VorgemerkterSchein | undefined>>(async () => undefined);
 
 vi.mock('@/lib/db/workSheets', () => ({
   createWorkSheet: (companyId: string, e: NewWorkSheet) => createWorkSheet(companyId, e),
@@ -101,6 +104,7 @@ vi.mock('@/lib/db/workSheets', () => ({
   listWorkSheetsForProject: () => listWorkSheetsForProject(),
   fotosAmEntwurf: (...a: unknown[]) => fotosFestgeschrieben(...(a as [])),
   vorbereiten: () => callScheinVorbereiten(),
+  scheinWartet: (id: string) => scheinWartet(id),
 }));
 /*
   Die Foto-Schicht. Sie kapselt Canvas und Firebase Storage — beides gibt es
@@ -229,6 +233,7 @@ beforeEach(() => {
     Grund gruen: er prueft den leeren Zweig und bekam die Ablehnung.
   */
   getWorkSheet.mockReset().mockImplementation(async () => entwurf);
+  scheinWartet.mockReset().mockResolvedValue(undefined);
   entwurf = undefined;
   bestehendeScheine = [];
   listWorkSheetsForProject.mockClear();
@@ -1965,14 +1970,23 @@ describe('Prüflauf 25.09.2026', () => {
     });
   });
 
-  it('P1-14: verspricht kein Unterschreiben ohne Netz', async () => {
+  /*
+    P1-14 sagte: der Hinweis darf kein Unterschreiben ohne Netz versprechen,
+    das es nicht gibt. Seit E49 gibt es es — über das Ausgangsfach. Der
+    Hinweis sagt jetzt, was gilt: vorgemerkt und von selbst gesendet, die
+    Baustellen kommen aber vom Server, und im privaten Fenster geht es nur
+    mit Netz.
+  */
+  it('P1-14/E49: der Hinweis sagt, was ohne Netz gilt — vorgemerkt, mit seinen Grenzen', async () => {
     const nutzer = userEvent.setup();
     zeichne();
     await nutzer.click(await screen.findByRole('button', { name: /Was bedeutet Fotos/ }));
-    await screen.findByText(/Ohne Netz geht/);
+    await screen.findByText(/Ohne Netz geht alles trotzdem/);
     const text = document.body.textContent ?? '';
-    expect(text).not.toMatch(/Der Schein lässt sich trotzdem unterschreiben/);
-    expect(text).toMatch(/Ohne Netz geht weder das Hochladen noch das Unterschreiben/);
+    expect(text).not.toMatch(/Ohne Netz geht weder das Hochladen noch das Unterschreiben/);
+    expect(text).toMatch(/vorgemerkt und gehen von selbst hinaus/);
+    expect(text).toMatch(/Öffnen muss man den Schein\s+einmal mit Netz/);
+    expect(text).toMatch(/privaten Fenster/);
   });
 });
 
@@ -2021,5 +2035,143 @@ describe('Linie „Lot“', () => {
     expect(satz.textContent).not.toMatch(/doppelt bestätigen/);
     await nutzer.click(screen.getByRole('button', { name: /ein zweiter Schein am selben Tag/ }));
     expect(screen.getByText(/doppelt bestätigen/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * DER SCHEIN OHNE NETZ (E49, 05.11.2026).
+ *
+ * Speichern, Fotos und Unterschrift gehen über das Ausgangsfach; die
+ * Datenschicht meldet zurück, ob etwas im Gerät wartet (`scheinWartet`). Die
+ * Maske sagt dann „wird gesendet“ statt „gespeichert“, zeigt wartende Bilder
+ * als solche und öffnet einen im Keller gespeicherten Entwurf auch ohne
+ * Server. Gegenprobe: mit der Maske von `main` meldet sie „unterschrieben und
+ * eingefroren“ und springt zu einem markierten Schein, den die Liste nicht
+ * kennt, und ein Entwurf ohne Netz „lässt sich nicht öffnen“.
+ */
+describe('Ohne Netz (E49)', () => {
+  function Ziel() {
+    const ort = useLocation();
+    return <p>Ziel: {ort.pathname}{ort.search}</p>;
+  }
+  function zeichneMitZiel(adresse = '/worksheet') {
+    return render(
+      <MemoryRouter initialEntries={[adresse]}>
+        <ToastProvider>
+          <Routes>
+            <Route path="/worksheet" element={<WorkSheetView />} />
+            <Route path="/worksheets" element={<Ziel />} />
+          </Routes>
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+  }
+  const wartet = (teil: Partial<VorgemerkterSchein> = {}): VorgemerkterSchein => ({
+    id: 's1', dateien: {}, unterschrieben: false, seit: 1, ...teil,
+  });
+
+  it('unterschrieben, aber noch im Gerät: sagt „wird gesendet“ und führt zur Liste ohne Markierung', async () => {
+    scheinWartet.mockResolvedValue(wartet({ unterschrieben: true }));
+    const nutzer = userEvent.setup();
+    zeichneMitZiel();
+    await screen.findByText(/Verbautes Material/);
+    await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
+    unterschreiben();
+    await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
+
+    expect(await screen.findByText('Ziel: /worksheets')).toBeInTheDocument();
+    expect(screen.getByText(/Handwerksschein unterschrieben — ohne Verbindung gespeichert, wird automatisch gesendet/)).toBeInTheDocument();
+    expect(screen.queryByText(/unterschrieben und eingefroren/)).not.toBeInTheDocument();
+  });
+
+  it('gleich geblieben: mit Netz „unterschrieben und eingefroren“ und der markierte Schein', async () => {
+    const nutzer = userEvent.setup();
+    zeichneMitZiel();
+    await screen.findByText(/Verbautes Material/);
+    await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
+    unterschreiben();
+    await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
+
+    expect(await screen.findByText('Ziel: /worksheets?markiert=s1')).toBeInTheDocument();
+    expect(screen.getByText('Handwerksschein unterschrieben und eingefroren')).toBeInTheDocument();
+  });
+
+  it('als Entwurf ohne Netz: sagt „wird gesendet“', async () => {
+    scheinWartet.mockResolvedValue(wartet());
+    const nutzer = userEvent.setup();
+    zeichneMitZiel();
+    await screen.findByText(/Verbautes Material/);
+    await nutzer.click(screen.getAllByRole('button', { name: 'Als Entwurf speichern' })[0]);
+
+    expect(await screen.findByText('Ziel: /worksheets')).toBeInTheDocument();
+    expect(screen.getByText(/Als Entwurf gespeichert — ohne Verbindung gespeichert, wird automatisch gesendet/)).toBeInTheDocument();
+  });
+
+  it('ein Foto, das noch im Gerät wartet, steht als „Wartet auf Netz“ da — nicht als Fehler', async () => {
+    scheinWartet.mockResolvedValue(wartet({ dateien: { 'scheine/perl/s1/aaa.jpg': new Blob(['x']) } }));
+    const nutzer = userEvent.setup();
+    zeichneMitZiel();
+    await screen.findByText(/^Fotos \(/);
+    await nutzer.upload(
+      screen.getByLabelText(/Foto aufnehmen|Weiteres Foto|Höchstens/),
+      new File([new Uint8Array([1, 2, 3])], 'foto.jpg', { type: 'image/jpeg' }),
+    );
+
+    expect(await screen.findByText('Wartet auf Netz')).toBeInTheDocument();
+    expect(screen.queryByText(/Nicht hochgeladen/)).not.toBeInTheDocument();
+    // Das Bild steht im Schein: ein Unterschreiben fragt nicht nach fehlenden Fotos.
+    expect(fotosFestgeschrieben).toHaveBeenCalled();
+  });
+
+  it('öffnet einen im Keller gespeicherten Entwurf aus dem Gerät — und unterschreibt ihn', async () => {
+    getWorkSheet.mockRejectedValue(new Error('TypeError: Failed to fetch'));
+    listProjectsByNumbers.mockRejectedValue(new Error('Failed to fetch'));
+    listActiveProjects.mockRejectedValue(new Error('Failed to fetch'));
+    scheinWartet.mockResolvedValue(wartet({
+      id: 'k1',
+      kopf: {
+        projectNumber: 'B-001', customerId: 'c1', customerName: 'Familie Keller',
+        address: 'Kellergasse 1', datum: heute, abrechnung: 'Regie', notizen: 'Im Keller notiert',
+        companyId: 'perl',
+      },
+      zeiten: [{ datum: heute, mitarbeiter: 'Max Mustermann', von: '07:00', bis: '09:00', pauseMin: 0, minuten: 120 }],
+      material: [{ name: 'Dichtung', menge: 2, einheit: 'Stk' }],
+      fotos: [],
+    }));
+    const nutzer = userEvent.setup();
+    zeichneMitZiel('/worksheet?entwurf=k1');
+
+    expect(await screen.findByDisplayValue('Im Keller notiert')).toBeInTheDocument();
+    expect(screen.getByText('Dichtung')).toBeInTheDocument();
+    expect(screen.queryByText(/lässt sich nicht öffnen/)).not.toBeInTheDocument();
+
+    await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Keller');
+    unterschreiben();
+    await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
+
+    await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
+    // Geändert, nicht neu angelegt — unter derselben Kennung, mit Kunde und Adresse aus dem Entwurf.
+    expect(createWorkSheet).not.toHaveBeenCalled();
+    expect(updateWorkSheetDraft.mock.calls[0][0]).toBe('k1');
+    expect(updateWorkSheetDraft.mock.calls[0][1]).toMatchObject({
+      customerName: 'Familie Keller', address: 'Kellergasse 1', notizen: 'Im Keller notiert',
+      material: [{ name: 'Dichtung', menge: 2, einheit: 'Stk' }],
+    });
+    expect(signWorkSheet.mock.calls[0][0]).toBe('k1');
+  });
+
+  it('ohne Netz und ohne wartenden Stand: sagt, dass der Entwurf auf dem Server liegt', async () => {
+    getWorkSheet.mockRejectedValue(new Error('TypeError: Failed to fetch'));
+    zeichneMitZiel('/worksheet?entwurf=e9');
+    expect(await screen.findByText(/Ohne Verbindung lässt sich dieser Entwurf nicht laden/)).toBeInTheDocument();
+    expect(screen.queryByText(/die Kennung stimmt nicht/)).not.toBeInTheDocument();
+  });
+
+  it('ein unterschriebener, wartender Schein öffnet nicht als Entwurf', async () => {
+    getWorkSheet.mockRejectedValue(new Error('Failed to fetch'));
+    scheinWartet.mockResolvedValue(wartet({ id: 'u1', unterschrieben: true, kopf: { customerName: 'X' }, zeiten: [], material: [] }));
+    zeichneMitZiel('/worksheet?entwurf=u1');
+    expect(await screen.findByText(/unterschrieben und wartet auf diesem Gerät auf Verbindung/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Unterschreiben und abschließen' })).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { beiVormerkungFehlgeschlagen } from '@/lib/sync/ausgangsfach';
 import { useToast } from '@/components/Toast';
+import { FOTO_TABELLE, SCHEIN_TABELLE } from '@/features/worksheets/vorgemerkt';
 
 /**
  * Sagt Bescheid, wenn eine vorgemerkte Buchung doch nicht durchgekommen ist.
@@ -30,9 +31,21 @@ export default function VerloreneBuchung() {
   const toast = useToast();
 
   useEffect(() => {
-    const melden = () => {
+    /*
+      DER SCHEIN SAGT, WARUM (E49). Bei einer Buchung genügt „nachsehen und
+      neu erfassen“. Ein vorgemerkter Schein scheitert fast nur daran, dass
+      derselbe Entwurf inzwischen anderswo unterschrieben oder verworfen
+      wurde — das steht im Grund des Servers, und ohne ihn wüsste niemand,
+      welcher Stand jetzt gilt.
+    */
+    const melden = ({ tabelle, grund: roh }: { tabelle: string; grund: string }) => {
+      const grund = /[.!?]$/.test(roh.trim()) ? roh.trim() : `${roh.trim()}.`;
       toast.wichtig(
-        'Eine vorgemerkte Buchung konnte nicht gesendet werden. Bitte in der Übersicht nachsehen und gegebenenfalls neu erfassen.',
+        tabelle === SCHEIN_TABELLE
+          ? `Ein vorgemerkter Handwerksschein konnte nicht gesendet werden: ${grund} Bitte unter Handwerksscheine nachsehen.`
+          : tabelle === FOTO_TABELLE
+            ? `Ein vorgemerktes Foto konnte nicht hochgeladen werden: ${grund} Der Schein verzeichnet es, die Datei fehlt.`
+            : 'Eine vorgemerkte Buchung konnte nicht gesendet werden. Bitte in der Übersicht nachsehen und gegebenenfalls neu erfassen.',
       );
     };
     beiVormerkungFehlgeschlagen(melden);

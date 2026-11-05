@@ -75,7 +75,7 @@ describe('Abmelden mit ungesendeten Buchungen', () => {
     await nutzer.click(seitenleiste().getAllByRole('button', { name: 'Abmelden' })[0]);
 
     const dialog = await screen.findByRole('dialog');
-    expect(dialog).toHaveTextContent('2 Buchungen liegen noch ungesendet auf diesem Gerät');
+    expect(dialog).toHaveTextContent('2 Vorgänge liegen noch ungesendet auf diesem Gerät (Zeitbuchung, Anforderung oder Handwerksschein)');
     expect(signOut).not.toHaveBeenCalled();
 
     await nutzer.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
