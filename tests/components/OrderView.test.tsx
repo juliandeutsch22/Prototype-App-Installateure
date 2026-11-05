@@ -868,6 +868,8 @@ describe('Warenkorb-Beschriftung', () => {
     expect(within(leiste).getByText('1 Artikel ohne Baustelle')).toBeInTheDocument();
     expect(within(leiste).getByRole('button', { name: 'Anforderung (1) abschicken' })).toBeInTheDocument();
     expect(within(leiste).getByRole('button', { name: 'Liste leeren' })).toBeInTheDocument();
+    // „noch nicht abgeschickt“ ist ein Zustand der Linie, mit dem Zeichen für „offen“ (E47).
+    expect(within(leiste).getByText('noch nicht abgeschickt')).toHaveClass('stand', 'stand-offen');
   });
 
   it('nennt den Kunden der Baustelle — und „2 Baustellen“, wenn gemischt', async () => {

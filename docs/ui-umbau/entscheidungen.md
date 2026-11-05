@@ -1211,3 +1211,38 @@ Blatt nach dem Breitenwechsel auf dem Raster eingerastet ist). Gegenproben: nur 
 zwei Textzeilen, rot; Zahl wieder vor dem Minus → bei 375 px trifft der
 nächste Tipp nicht, rot; ohne transparente Linie und halbfette Breite → bei
 375 px gefüllt 0,84 px schmaler, rot.
+
+**E47 — Die Warenkorb-Leiste als Blatt (05.11.2026).** Auftrag mit
+Bildschirmfoto: „Material anfordern, Desktop: den unten klebenden Banner bei
+einer Bestellung finde ich noch nicht passend zum neuen Design.“ Zwei
+Varianten in der Vorschau vorgelegt, freigegeben Variante A.
+
+Die Leiste stammte aus dem ersten Entwurf der Linie (v2): gerundet (12 px),
+Petrol-Rahmen, Polster 12/20 px, Kanten neben dem Raster — älter als „Raster
+und Blätter“ (E33).
+
+- **Ab dem Tablet ein Blatt**: eckig, die Linie rundum wie bei jedem Blatt
+  gezeichnet (oben und links innen, rechts und unten außen auf der
+  Rasterlinie, `--border-strong`), dieselben Kanten wie die Blätter darüber,
+  Text eine Zelle vom Rand. Jede Textzeile eine Zelle hoch, innen eine halbe
+  Zelle Abstand: 72 px, mit umbrechendem Titel oder Fehlerzeile 96 px. In
+  Ruhe liegt sie damit mit beiden Kanten auf Linien.
+- **Nicht im Taktgeber.** Er misst mit `getBoundingClientRect`; bei einer
+  klebenden Leiste wäre das ihre Lage auf dem Bildschirm, nicht ihr Platz.
+  Die Maße sind deshalb von sich aus ganze Zellen.
+- **„noch nicht abgeschickt“ ist ein Zustand** — das Zeichen für „offen“
+  davor, wie in den Listen.
+- **Am Handy** ein Balken mit Linie oben wie die Aktionsleiste der
+  Formulare (`--border` statt Petrol), jetzt von Rand zu Rand: Die
+  Inhaltsspalte misst seit E33 ganze Zellen, und der Balken endete bei
+  390 px 22 px vor dem rechten Rand. Wie weit es von der Spalte bis zum Rand
+  der Arbeitsfläche ist, gibt jetzt der Taktgeber an (`--takt-auslauf`);
+  `100vw` hätte eine klassische Bildlaufleiste mitgezählt und die Seite
+  seitlich rollen lassen, `calc()` schließt die Linie aus.
+
+**Prüfungen.** `materialAnfordern.spec.ts` (+1 Browserweg: bei 834 und
+1.280 px Kanten wie der Katalog, eckig, Polster 24, ganze Zellen hoch,
+Linien wie das Blatt, in Ruhe beide Kanten auf Rasterlinien; bei 390 px von
+Rand zu Rand mit der Linie der Aktionsleiste), `OrderView.test.tsx`
+(Zustand „offen“), `takt.test.ts` (+1: `--takt-auslauf`). Gegenprobe mit dem bisherigen Stylesheet: rot (834 px:
+Ecke 12 px).

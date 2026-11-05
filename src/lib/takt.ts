@@ -17,7 +17,14 @@
  *   - je Blatt den Abstand darüber um höchstens 23 px größer, damit die
  *     Oberkante auf eine Linie fällt;
  *   - je Blatt das Polster unten um höchstens 23 px größer, damit die Höhe
- *     ganze Zellen misst und die Unterkante auf eine Linie fällt.
+ *     ganze Zellen misst und die Unterkante auf eine Linie fällt;
+ *   - wie weit ein Balken von der rechten Kante der Spalte bis an den
+ *     rechten Rand der Arbeitsfläche reicht (`--takt-auslauf`, negativ, als
+ *     rechter Außenabstand zu setzen). Seit die Spalte ganze Zellen misst,
+ *     endet sie vor dem Rand der Fläche — um das Polster und den Rest, der
+ *     keine Zelle mehr füllt. Ein Balken von Rand zu Rand (die Warenkorb-
+ *     Leiste am Handy, E47) braucht genau diesen Wert; `100vw` zählte eine
+ *     klassische Bildlaufleiste mit und ließe die Seite seitlich rollen.
  * Nichts wird kleiner, nichts verschoben, was nicht ohnehin darunter liegt.
  *
  * Ohne `ResizeObserver` (Testumgebung, sehr alte Browser) tut er nichts; die
@@ -94,8 +101,12 @@ export function ausrichten(flaeche: HTMLElement, neu = false): void {
   if (!inhalt) return;
   const stil = getComputedStyle(inhalt);
   const innen = inhalt.clientWidth - parseFloat(stil.paddingLeft) - parseFloat(stil.paddingRight);
-  const breite = `${taktBreite(innen)}px`;
+  const spalte = taktBreite(innen);
+  const breite = `${spalte}px`;
   if (inhalt.style.getPropertyValue('--takt-breite') !== breite) inhalt.style.setProperty('--takt-breite', breite);
+  // Von der rechten Kante der Spalte bis an den Rand der Fläche (ohne deren Bildlaufleiste).
+  const auslauf = `${-Math.round(inhalt.clientWidth - parseFloat(stil.paddingLeft) - spalte)}px`;
+  if (inhalt.style.getPropertyValue('--takt-auslauf') !== auslauf) inhalt.style.setProperty('--takt-auslauf', auslauf);
 
   const ursprung = ursprungVon(flaeche);
   for (const blatt of flaeche.querySelectorAll<HTMLElement>(TAKT_SELEKTOR)) {

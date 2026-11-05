@@ -584,7 +584,8 @@ export default function OrderView() {
             <a href="#anforderung-korb" className="korb-titel">
               {cart.length} Artikel {korbZiel}
             </a>
-            <span className="korb-info">noch nicht abgeschickt</span>
+            {/* Ein Zustand der Linie („offen“), mit seinem Zeichen wie in den Listen (E47). */}
+            <span className="korb-info stand stand-offen">noch nicht abgeschickt</span>
           </p>
           <div className="korb-knoepfe">
             <Button variant="ghost" onClick={() => setCart([])}>
