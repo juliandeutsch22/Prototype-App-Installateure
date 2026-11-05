@@ -64,4 +64,7 @@
   .zeit-schraffur { display: inline-block; width: 14px; height: 14px; margin-right: 0.375rem; vertical-align: -2px; }
   /* Der Satz unter der Maßkette: Arbeitszeit und warum die Pause in der Mitte steht. */
   .zeitbild .masskette { margin-bottom: 0.25rem; }
+  /* Das Änderungsprotokoll (E50): je Angabe eine Zeile unter dem Punkt des Verlaufs, ohne Aufzählungszeichen. */
+  .verlauf-angaben { margin: 0.125rem 0 0; padding: 0; list-style: none; }
+  .verlauf-angaben li { overflow-wrap: anywhere; }
 }

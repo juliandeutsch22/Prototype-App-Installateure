@@ -97,6 +97,8 @@ describe('Eine Person der Belegschaft', () => {
     expect(b!.sofort).toEqual({ einstellungen: 1, fehlerprotokoll: 1, einsaetze: 1, ruestlisten: 1, baustellen: 1, termine: 0, geburtsdatum: 0 });
     expect(b!.aufbewahren).toEqual([
       { was: 'Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
+      // E50: der Verlauf der Buchung (hier ihr Anlegen) bleibt mit ihr aufbewahrt.
+      { was: 'Änderungsprotokoll der Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
       { was: 'Krankmeldungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
       // Entsteht aus der Zeitbuchung (Auslöser der Monatsbilanz) und ist Lohnunterlage wie sie.
       { was: 'Monatsbilanzen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },

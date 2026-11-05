@@ -73,6 +73,12 @@ const AUSNAHMEN: Record<string, string> = {
   */
   listAusfuehrungen: 'Eine Anlage — eine Zeile je Ausführung, höchstens zwölf im Jahr',
   /*
+    DER VERLAUF EINER BUCHUNG (E50): eine Zeile je Anlegen, Ändern, Löschen
+    dieser einen Buchung. Eine Grenze schnitte genau die ersten Zeilen ab —
+    das, was ursprünglich gebucht war.
+  */
+  listVerlaufEintrag: 'Eine Buchung — eine Zeile je Änderung an ihr',
+  /*
     `subscribePrefs` STAND HIER BIS ZUM 19.09. und ist ersatzlos gefallen.
 
     Die Firestore-Fassung hörte mit `onSnapshot` auf ein Dokument — der
