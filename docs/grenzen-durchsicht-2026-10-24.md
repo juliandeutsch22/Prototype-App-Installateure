@@ -90,7 +90,7 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Aliquoter Urlaub, Mahnspesen an Private, Arztbesuch im Kollektivvertrag (offene Punkte D1, D2, D11) | WKO |
 | Safari/iPhone, Kamera, Push, Installation am echten Gerät (offene Punkte C15, Prüfbericht 4 und 6); die volle CSP ist seit 27.10.2026 durchgesetzt (Stand 24.6) | Gerätedurchgang |
 | Gleitzeitvereinbarung (Kernzeit) beim Arztbesuch: das Büro rechnet mit Grund an (Stand 33) | Betrieb |
-| SMTP, Domain, externer Sicherungsort, Wiederherstellung im Zielsystem, Einstellungen des gehosteten Projekts (Prüfbericht 4, Stand 14.7 Punkt 14) | Betrieb bzw. Zugang zum gehosteten Projekt |
+| Externer Sicherungsort, Wiederherstellung im Zielsystem (SMTP über `office@senklot.at` und die Domain `app.senklot.at` stehen seit 05.11.2026), Einstellungen des gehosteten Projekts (Prüfbericht 4, Stand 14.7 Punkt 14) | Betrieb bzw. Zugang zum gehosteten Projekt |
 | Schutz gegen geleakte Passwörter, Ratenbegrenzung, Sitzungsdauer im gehosteten Projekt (Sicherheitsprüfung 27.10.2026, Werte in `docs/DEPLOYMENT.md`) | Zugang zum gehosteten Projekt |
 | Angriffsversuche gegen das gehostete Projekt, Wertebereiche einzelner Zahlenfelder (`docs/sicherheitspruefung-2026-10-27.md`, Abschnitt 4) | externer Sicherheitstest |
 | Angebotsliste unter Windows bei 1.570 × 700 px (offene Punkte C14) | Wieder aufnehmen mit Bildschirmfoto |

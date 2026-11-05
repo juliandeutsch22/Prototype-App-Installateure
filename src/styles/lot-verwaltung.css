@@ -82,8 +82,6 @@
   .nachkalk-einrichtung h2 { font-size: 0.9375rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
 
   /* ── Plattform: eigene Seite ohne Hülle ──────────────────────────────── */
-  .plattform-seite { max-width: 48rem; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 1.25rem; }
-  @media (min-width: 760px) { .plattform-seite { padding: 1.5rem; } }
 
   /* ── Impressum und Datenschutz: ohne Hülle, auf dem Raster (E44) ─────── */
   /*

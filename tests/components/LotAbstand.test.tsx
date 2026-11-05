@@ -79,9 +79,14 @@ describe('Abstand statt Linien', () => {
 
   it('gilt nicht, wo die Seite schon bündig gebaut ist oder kein Seitenrand ist', () => {
     const ausgenommen = regel![1];
-    for (const s of ['.akten-seite', '.start-seite', '.plattform', '.beleg-kontext', '.fenster', '.fenster-breit', '.blatt', "[role='dialog']"]) {
+    for (const s of ['.akten-seite', '.start-seite', '.beleg-kontext', '.fenster', '.fenster-breit', '.blatt', "[role='dialog']"]) {
       expect(ausgenommen).toContain(s);
     }
+  });
+
+  it('die Plattform ist keine Ausnahme mehr (E48): ihre Karten sind Blätter wie in der App', () => {
+    // Die Plattform trägt die Hülle der App; eine Ausnahme `.plattform` nähme jede Karte darin aus.
+    expect(regel![1]).not.toMatch(/\.plattform\b/);
   });
 
   it('gleich geblieben: die Karte selbst trägt ihre Linie weiter — in Fenstern und Blättern ändert sich nichts', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ToastProvider } from '@/components/Toast';
 
 /**
@@ -35,7 +35,8 @@ const betrieb = (leitungskonten: number, leitungMitMail: number) => ({
 
 function zeige() {
   const ansicht = render(<ToastProvider><PlattformView /></ToastProvider>);
-  fireEvent.click(screen.getByRole('button', { name: 'Supportzugänge' }));
+  // Die Leiste; den Bereich gibt es seit E48 auch unten als Reiter (gleicher Name für die Vorlesehilfe).
+  fireEvent.click(within(screen.getByRole('navigation', { name: 'Bereiche der Plattform' })).getByRole('button', { name: 'Supportzugänge' }));
   return ansicht;
 }
 

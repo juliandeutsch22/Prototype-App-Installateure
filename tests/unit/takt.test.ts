@@ -46,7 +46,7 @@ describe('dieselbe Liste der Blätter in CSS und JavaScript', () => {
   });
   it('der Taktgeber richtet die Blätter und die Kontextspalten von Akte und Beleg aus', () => {
     expect(TAKT_SELEKTOR.startsWith(BLATT_SELEKTOR)).toBe(true);
-    expect(TAKT_SELEKTOR).toContain('.akten-kontext, .beleg-kontext');
+    expect(TAKT_SELEKTOR).toContain('.akten-kontext, .beleg-kontext, .plattform-kontext');
   });
   it('das Layout hält den Takt auf der Arbeitsfläche', () => {
     expect(readFileSync('src/app/Layout.tsx', 'utf8')).toMatch(/return main \? taktHalten\(main\) : undefined;/);
@@ -143,7 +143,9 @@ describe('ausrichten', () => {
   it('der Block darüber gibt seinen Rand nicht mehr an das Blatt ab (kein Durchfallen)', () => {
     const { flaeche, blatt } = seite({ oben: 250, hoehe: 100 });
     ausrichten(flaeche);
-    expect(blatt.parentElement!.style.display).toBe('flow-root');
+    expect(blatt.parentElement!.classList.contains('takt-eigener-rand')).toBe(true);
+    // Kein Inline-Stil: der schlug `[hidden]`, und verborgene Reiter blieben sichtbar.
+    expect(blatt.parentElement!.style.display).toBe('');
   });
 
   it('gleich geblieben: Karten in Fenstern, Dialogen und in Karten sind keine Blätter', () => {

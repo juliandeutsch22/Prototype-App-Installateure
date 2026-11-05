@@ -55,10 +55,19 @@ function anhalten(...els: HTMLElement[]) {
  * ohne dass jemand auf das Rollen hören muss.
  */
 export function SeilLot() {
+  const { pathname } = useLocation();
+  return <SeilLotFuer ziel={pathname} />;
+}
+
+/**
+ * Dasselbe Lot für eine Leiste, deren aktiver Punkt nicht am Pfad hängt —
+ * die Plattform wechselt ihre Bereiche auf einer Adresse (E48). `ziel`
+ * ändert sich mit dem aktiven Punkt; dann fährt das Blei.
+ */
+export function SeilLotFuer({ ziel: aktiverPunkt }: { ziel: string }) {
   const aufhaengung = useRef<HTMLSpanElement>(null);
   const seil = useRef<HTMLSpanElement>(null);
   const blei = useRef<HTMLSpanElement>(null);
-  const { pathname } = useLocation();
   /** Die zuletzt gesetzte Seillänge; `null` vor dem ersten Setzen (dann ohne Fahrt). */
   const laenge = useRef<number | null>(null);
 
@@ -71,7 +80,8 @@ export function SeilLot() {
     const messen = () => {
       // Der erste Punkt der Hauptnavigation („Start“) trägt den Haken: das Blei hängt dort mittig, ohne Seil.
       const haupt = leiste.querySelector('nav');
-      const start = haupt?.querySelector<HTMLElement>('a');
+      // Ein Link in der App, ein Knopf in der Plattform — der erste Punkt ist es in beiden.
+      const start = haupt?.querySelector<HTMLElement>('a, button');
       const oben = start ? start.offsetTop + start.offsetHeight / 2 - BLEI_HOEHE / 2 : haupt?.offsetTop ?? 0;
       const aktiv = leiste.querySelector<HTMLElement>('.navi-punkt-aktiv');
       // Ohne aktiven Punkt wird das Seil eingeholt.
@@ -113,7 +123,7 @@ export function SeilLot() {
     beobachter.observe(leiste);
     for (const n of leiste.querySelectorAll('nav')) beobachter.observe(n);
     return () => beobachter.disconnect();
-  }, [pathname]);
+  }, [aktiverPunkt]);
 
   return (
     <>

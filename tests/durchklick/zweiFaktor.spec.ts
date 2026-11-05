@@ -38,7 +38,8 @@ async function einrichten(page: Page): Promise<{ geheimnis: string; codes: strin
 
 async function abmelden(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Mein Konto', exact: true }).click();
-  await page.getByRole('button', { name: 'Abmelden', exact: true }).click();
+  // Seit E48 steht „Abmelden“ auch in der Seitenleiste; hier geht es um den Weg über „Mein Konto“, der auch am Handy da ist.
+  await page.locator('#inhalt').getByRole('button', { name: 'Abmelden', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Anmelden' })).toBeVisible({ timeout: 20_000 });
 }
 

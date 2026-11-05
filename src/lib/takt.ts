@@ -49,12 +49,12 @@ export const BLATT_SELEKTOR =
   ".inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte), .inhalt :is(.ue-liste, .ue-liste-woche, .ue-vergleich, .lot-einrichtung), .inhalt .monatskalender:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog']) .monatskalender)";
 
 /**
- * Was der Taktgeber ausrichtet: die Blätter und die Kontextspalten von Akte
- * und Beleg. Die stehen offen auf dem Raster (Eckmarken statt Fläche, E30),
- * ihre Karten sind keine eigenen Blätter; mit ihren Ecken gehören sie
- * genauso auf Linien.
+ * Was der Taktgeber ausrichtet: die Blätter und die Kontextspalten von Akte,
+ * Beleg und Plattform (E48). Die stehen offen auf dem Raster (Eckmarken statt
+ * Fläche, E30), ihre Karten sind keine eigenen Blätter; mit ihren Ecken
+ * gehören sie genauso auf Linien.
  */
-export const TAKT_SELEKTOR = `${BLATT_SELEKTOR}, .inhalt :is(.akten-kontext, .beleg-kontext)`;
+export const TAKT_SELEKTOR = `${BLATT_SELEKTOR}, .inhalt :is(.akten-kontext, .beleg-kontext, .plattform-kontext)`;
 
 /** Um wie viel muss etwas nach unten, damit `oben` auf einer Linie liegt? 0 bis 23. */
 export function ausgleichOben(oben: number, ursprung: number): number {
@@ -116,9 +116,16 @@ export function ausrichten(flaeche: HTMLElement, neu = false): void {
       oberer Rand mit dem des Blocks — der größere gilt, ein Ausgleich bliebe
       ohne Wirkung. Als `flow-root` behält der Block seinen eigenen Rand und
       das Blatt seinen; sonst ändert sich an ihm nichts.
+
+      ALS KLASSE, NICHT ALS INLINE-STIL (05.11.2026). Hier stand
+      `style.display = 'flow-root'`; ein Inline-Stil schlägt aber `[hidden]`.
+      Ein Reiter einer Akte, der einmal offen war, blieb so nach dem Wechsel
+      sichtbar unter dem neuen stehen (Kundenakte, Baustellenakte), ebenso
+      die Teilseiten der Plattform. `takt-eigener-rand` gilt nur, solange der
+      Block nicht verborgen ist (lot-blatt.css).
     */
     const eltern = blatt.parentElement;
-    if (eltern && eltern !== flaeche && getComputedStyle(eltern).display === 'block') eltern.style.display = 'flow-root';
+    if (eltern && eltern !== flaeche && getComputedStyle(eltern).display === 'block') eltern.classList.add('takt-eigener-rand');
     if (neu) {
       blatt.style.marginTop = '';
       blatt.style.paddingBottom = '';

@@ -44,9 +44,10 @@ const { default: PlattformView } = await import('@/features/plattform/PlattformV
 function zeige(anfang: 'neu' | 'liste' | 'fehler' | 'notzugang' = 'neu') {
   const ansicht = render(<ToastProvider><PlattformView /></ToastProvider>);
   if (anfang === 'neu') fireEvent.click(screen.getByRole('button', { name: 'Betrieb anlegen' }));
-  if (anfang === 'fehler') fireEvent.click(screen.getByRole('button', { name: 'Fehlerprotokoll' }));
+  // Die Leiste; den Bereich gibt es seit E48 auch unten als Reiter (gleicher Name für die Vorlesehilfe).
+  if (anfang === 'fehler') fireEvent.click(within(screen.getByRole('navigation', { name: 'Bereiche der Plattform' })).getByRole('button', { name: 'Fehlerprotokoll' }));
   if (anfang === 'notzugang') {
-    fireEvent.click(screen.getByRole('button', { name: 'Supportzugänge' }));
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Bereiche der Plattform' })).getByRole('button', { name: 'Supportzugänge' }));
     fireEvent.click(screen.getByRole('button', { name: 'Notzugang öffnen' }));
   }
   return ansicht;

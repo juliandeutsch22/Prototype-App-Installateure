@@ -77,3 +77,13 @@
   /* Der Einrichtungshinweis ist ein Blatt: eckig, 24 Zellen breit statt 35 rem. */
   .inhalt .lot-einrichtung { max-width: 36rem; border-radius: 0; padding: 24px; }
 }
+
+/*
+  DER EIGENE RAND EINES BLOCKS MIT BLATT (Taktgeber, `takt.ts`): als
+  `flow-root` verschmilzt der obere Rand des ersten Blatts nicht mit dem des
+  Blocks. AUSSERHALB DER EBENEN, wie vorher der Inline-Stil: es gewinnt gegen
+  `block` und andere Angaben der Hilfsklassen — aber NUR, solange der Block
+  nicht verborgen ist. Der Inline-Stil schlug auch `[hidden]`, und verborgene
+  Reiter einer Akte blieben sichtbar (05.11.2026).
+*/
+.takt-eigener-rand:not([hidden]) { display: flow-root; }

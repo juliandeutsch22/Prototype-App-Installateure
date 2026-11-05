@@ -1246,3 +1246,50 @@ Linien wie das Blatt, in Ruhe beide Kanten auf Rasterlinien; bei 390 px von
 Rand zu Rand mit der Linie der Aktionsleiste), `OrderView.test.tsx`
 (Zustand „offen“), `takt.test.ts` (+1: `--takt-auslauf`). Gegenprobe mit dem bisherigen Stylesheet: rot (834 px:
 Ecke 12 px).
+
+**E48 — Die Plattform in der Linie „Lot“ (05.11.2026).** Auftrag: „das
+globale Admin-Konto entspricht noch nicht der aktuellen Designlinie“ —
+„starte direkt“. Die Plattform hatte ein dunkles Band oben, Reiter darunter,
+die Seite weiß, eine grau gefüllte Spalte: der Stand vor „Raster und
+Blätter“ (E33).
+
+- **Dieselbe Hülle wie die App** (`PlattformHuelle`): am Tablet und
+  Schreibtisch die dunkle Seitenleiste — oben die Marke mit „Plattform“, die
+  fünf Bereiche mit Symbol (Tablet Kurzname), das Lot am Seil, unten „Mein
+  Konto“, wer angemeldet ist, „Abmelden“; am Handy die Kopfzeile mit „Mein
+  Konto“ und die Reiterleiste mit den fünf Bereichen. Das `Layout` der App
+  gehört zu einem Betrieb; die Plattform nimmt seine Klassen und
+  Mechanismen (Raster mit Taktgeber, `--reiter-hoehe`), nicht das Layout.
+- **Das Lot fährt am Bereich**, nicht am Pfad: die Plattform wechselt ihre
+  Bereiche auf einer Adresse, damit Formulare und einmalige Zugangsdaten
+  den Wechsel überleben (`SeilLotFuer`).
+- **Inhalt auf dem Raster**: Listen und Formulare sind Blätter wie überall;
+  Suche und Filter der Betriebe als Listenleiste im Blatt; die
+  Kontextspalte mit Eckmarken wie in den Akten, zwölf Zellen breit (Tablet
+  zehn), vom Taktgeber auf die Linien gesetzt; „Neu laden“ beim
+  Fehlerprotokoll als Aktion des Seitenkopfs; am Handy die Hauptaktion im
+  Daumenbereich wie in der App.
+- **„Mein Konto“ mit Darstellung** (hell/dunkel) — am Handy und Tablet gibt
+  es sonst keinen Ort dafür.
+- **Keine Verweise auf Impressum und Datenschutz** in der Leiste: das
+  Plattformkonto wird von jeder anderen Adresse auf `/plattform`
+  zurückgeführt; beide Texte pflegt es unter „Rechtstexte“.
+
+**Dabei gefunden und behoben: verborgene Reiter blieben sichtbar.** Der
+Taktgeber gab dem Block eines Blatts `display: flow-root` als Inline-Stil
+(damit der Abstand darüber nicht durchfällt). Ein Inline-Stil schlägt aber
+`[hidden]`: in Kundenakte und Baustellenakte stand ein Reiter, der einmal
+offen war, nach dem Wechsel weiter unter dem neuen (seit E33). Jetzt setzt
+der Taktgeber die Klasse `takt-eigener-rand`, die nur greift, solange der
+Block nicht verborgen ist.
+
+**Prüfungen.** `PlattformLot.test.tsx` (+2: Leiste, aktiver Punkt,
+Anmeldung, Reiterleiste, keine toten Verweise; Abmelden), `takt.test.ts`
+(Klasse statt Inline-Stil, Kontextspalte im Taktgeber),
+`plattform.spec.ts` (+1 Browserweg: in 1.280, 834 und 390 px Leiste bzw.
+Reiter, Raster, Blatt mit Linie und eckig auf den Linien, Kontextspalte
+ohne Fläche mit Eckmarken auf einer Linie, nichts rollt seitlich, „Mein
+Konto“ erreichbar, das Lot neben dem aktiven Bereich), `akten.spec.ts` (+1:
+nach jedem Reiterwechsel genau ein Reiter sichtbar). Gegenproben: mit der
+alten Plattform rot (keine Arbeitsfläche), mit dem alten Taktgeber rot
+(zwei Reiter sichtbar).

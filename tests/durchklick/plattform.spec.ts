@@ -137,3 +137,82 @@ test('Plattform: Benutzername, Notzugang und identitätsgeprüfte Wiederherstell
   await page.getByRole('button', { name: /Löschprotokoll/ }).click();
   await expect(page.getByRole('listitem').filter({ hasText: kennung })).toBeVisible();
 });
+
+/*
+  DIE PLATTFORM IN DER LINIE „LOT“ (E48, 05.11.2026). Vorher ein dunkles Band
+  oben, Reiter darunter, die Seite weiß und eine grau gefüllte Spalte. Jetzt
+  dieselbe Hülle wie die App: Seitenleiste mit dem Lot am Seil (Tablet,
+  Schreibtisch), Kopfzeile und Reiterleiste (Handy), Raster, Blätter auf den
+  Linien und die Kontextspalte mit Eckmarken.
+*/
+test('Plattform in der Linie Lot: Leiste, Raster, Blätter und Kontextspalte — in drei Breiten', async ({ page }) => {
+  await anmelden(page);
+  const messen = () =>
+    page.evaluate(() => {
+      const flaeche = document.querySelector<HTMLElement>('.hauptflaeche');
+      const blatt = document.querySelector<HTMLElement>('.plattform-betriebsliste');
+      const kontext = [...document.querySelectorAll<HTMLElement>('.plattform-kontext')].find((k) => k.offsetParent !== null) ?? null;
+      const sichtbar = (s: string) => { const e = document.querySelector<HTMLElement>(s); return !!e && getComputedStyle(e).display !== 'none'; };
+      if (!flaeche || !blatt) return null;
+      const [, versatz] = getComputedStyle(flaeche).backgroundPosition.split(' ').map(parseFloat);
+      const ursprung = flaeche.getBoundingClientRect().top + versatz;
+      const aufLinie = (y: number) => { const r = (((y - ursprung) % 24) + 24) % 24; return Math.min(r, 24 - r); };
+      const b = blatt.getBoundingClientRect();
+      const k = kontext?.getBoundingClientRect();
+      const aktiv = document.querySelector<HTMLElement>('.navi .navi-punkt-aktiv');
+      const blei = document.querySelector<HTMLElement>('.navi-blei');
+      const mitte = (e: HTMLElement | null) => { if (!e) return null; const r = e.getBoundingClientRect(); return r.top + r.height / 2; };
+      return {
+        leiste: sichtbar('.navi'), reiter: sichtbar('.unten'), kopfzeile: sichtbar('.kopfzeile'),
+        altesBand: !!document.querySelector('.plattform-markenband, .plattform-navigation'),
+        raster: getComputedStyle(flaeche).backgroundImage.includes('linear-gradient'),
+        blattLinie: getComputedStyle(blatt).boxShadow, blattEcke: getComputedStyle(blatt).borderTopLeftRadius,
+        blattOben: aufLinie(b.top), blattUnten: aufLinie(b.bottom),
+        kontextFlaeche: kontext ? getComputedStyle(kontext).backgroundColor : null,
+        kontextMarken: kontext ? getComputedStyle(kontext).backgroundImage.includes('linear-gradient') : null,
+        kontextOben: k ? aufLinie(k.top) : null,
+        quer: document.documentElement.scrollWidth - innerWidth,
+        lotAbstand: aktiv && blei && getComputedStyle(document.querySelector('.navi')!).display !== 'none' ? Math.abs((mitte(blei) ?? 0) - (mitte(aktiv) ?? 0)) : null,
+      };
+    });
+  const ruhig = async () => {
+    let zuletzt = '';
+    await expect.poll(async () => {
+      await page.evaluate(() => new Promise((fertig) => requestAnimationFrame(() => requestAnimationFrame(fertig))));
+      const jetzt = JSON.stringify(await messen());
+      const gleich = jetzt === zuletzt;
+      zuletzt = jetzt;
+      return gleich;
+    }, { timeout: 10_000 }).toBe(true);
+    return JSON.parse(zuletzt) as NonNullable<Awaited<ReturnType<typeof messen>>>;
+  };
+
+  for (const breite of [1280, 834, 390]) {
+    await page.setViewportSize({ width: breite, height: 900 });
+    const m = await ruhig();
+    expect(m, `${breite} px: Arbeitsfläche mit Raster und Betriebsliste`).not.toBeNull();
+    expect(m.altesBand, `${breite} px: kein Band und keine Reiter von vorher`).toBe(false);
+    expect(m.raster, `${breite} px: Raster`).toBe(true);
+    expect(m.leiste, `${breite} px: Seitenleiste`).toBe(breite >= 760);
+    expect(m.reiter, `${breite} px: Reiterleiste`).toBe(breite < 760);
+    expect(m.kopfzeile, `${breite} px: Kopfzeile`).toBe(breite < 760);
+    expect(m.blattLinie, `${breite} px: Liste als Blatt mit Linie`).toContain('1px 0px 0px');
+    expect(m.blattEcke, `${breite} px: eckig`).toBe('0px');
+    expect(m.blattOben, `${breite} px: Oberkante auf einer Linie`).toBeLessThanOrEqual(0.5);
+    expect(m.blattUnten, `${breite} px: Unterkante auf einer Linie`).toBeLessThanOrEqual(0.5);
+    expect(m.kontextFlaeche, `${breite} px: Kontextspalte ohne Fläche`).toBe('rgba(0, 0, 0, 0)');
+    expect(m.kontextMarken, `${breite} px: Kontextspalte mit Eckmarken`).toBe(true);
+    expect(m.kontextOben, `${breite} px: Kontextspalte auf einer Linie`).toBeLessThanOrEqual(0.5);
+    expect(m.quer, `${breite} px: nichts rollt seitlich`).toBeLessThanOrEqual(0);
+    await expect(page.getByRole('button', { name: 'Mein Konto', exact: true }), `${breite} px: „Mein Konto“ erreichbar`).toBeVisible();
+  }
+
+  // Das Lot fährt mit dem Bereich, nicht mit dem Pfad — die Adresse bleibt /plattform.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByRole('navigation', { name: 'Bereiche der Plattform', exact: true }).getByRole('button', { name: 'Rechtstexte' }).click();
+  await expect(page.getByRole('heading', { name: 'Rechtstexte', exact: true })).toBeVisible();
+  const lot = await ruhig();
+  expect(lot.lotAbstand, 'Das Blei hängt neben „Rechtstexte“').not.toBeNull();
+  expect(lot.lotAbstand!, 'Das Blei hängt neben „Rechtstexte“').toBeLessThanOrEqual(2);
+  await page.getByRole('navigation', { name: 'Bereiche der Plattform', exact: true }).getByRole('button', { name: 'Betriebe' }).click();
+});

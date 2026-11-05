@@ -893,12 +893,13 @@ textarea {
     innen bleibt: eine angetippte Zeile hat links und rechts Luft, und kein
     Baustein darin muss seine Abstände kennen. Am Handy reicht die Karte so
     genau an den Bildrand. Ausgenommen sind Seiten, die schon bündig gebaut
-    sind (Akten, Startseite, Plattform, Belegspalte), und alles in Fenstern
-    und Blättern — dort ist der Rand kein Seitenrand.
+    sind (Akten, Startseite, Belegspalte), und alles in Fenstern und
+    Blättern — dort ist der Rand kein Seitenrand. Die Plattform ist seit E48
+    keine Ausnahme mehr: ihre Karten sind Blätter wie in der App.
   */
-  .inhalt .karte:not(:is(.akten-seite, .start-seite, .plattform, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) { border-top: 0; margin-inline: -1rem; padding-top: 1.25rem; }
-  @media (min-width: 760px) { .inhalt .karte:not(:is(.akten-seite, .start-seite, .plattform, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) { padding-top: 1.75rem; } }
-  .inhalt .karte:not(:is(.akten-seite, .start-seite, .plattform, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) .karte-kopf .titel-karte { font-size: 1.125rem; line-height: 1.625rem; }
+  .inhalt .karte:not(:is(.akten-seite, .start-seite, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) { border-top: 0; margin-inline: -1rem; padding-top: 1.25rem; }
+  @media (min-width: 760px) { .inhalt .karte:not(:is(.akten-seite, .start-seite, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) { padding-top: 1.75rem; } }
+  .inhalt .karte:not(:is(.akten-seite, .start-seite, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) .karte-kopf .titel-karte { font-size: 1.125rem; line-height: 1.625rem; }
   .karte-koerper .zeile { padding-inline: 0; }
   /*
     JEDE SEITE BEGINNT IHREN INHALT IM SELBEN ABSTAND ZUM KOPF (E31, 31.10.2026).
