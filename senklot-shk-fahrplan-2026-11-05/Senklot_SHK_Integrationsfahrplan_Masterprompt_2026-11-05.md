@@ -3,7 +3,7 @@
 **Stand:** 5. November 2026  
 **Produkt:** Senklot, österreichische Betriebssoftware für Installations- und SHK-Betriebe  
 **Ergebnis:** ausführbarer Entwicklungsfahrplan mit Architektur, fachlichen Regeln, UI-Einbindung, Migrationen, Prüfungen und Freigaben
-**Zusätzlich maßgeblich:** [Kritische Produktbewertung aller 84 Punkte](Senklot_SHK_Kritische_Produktbewertung_2026-11-05.md). Sie unterscheidet ausdrücklich Originalanforderung und empfohlenen Zielumfang.  
+**Zusätzlich maßgeblich:** [Kritische Produktbewertung aller 84 Punkte](Senklot_SHK_Kritische_Produktbewertung_2026-11-05.md). Sie unterscheidet ausdrücklich Originalanforderung und empfohlenen Zielumfang.
 **Maßgebliche Vorlage:** Senklot_Funktionskatalog_SHK_ohne_KI_2026-11-05 (1).md, Titel „Senklot vs. APVROS – funktionale Unterschiede innerhalb der App“. Die zuerst übergebene andere Datei ist ersetzt.
 **SHA256 der maßgeblichen Quelldatei:** 1951c1562edd0fb4d7d1e1822d6bebd04a9ec4da65baf156820ffbd17e8ababb  
 **Codebasis des Abgleichs:** juliandeutsch22/Prototype-App-Installateure, main, Commit **62db192087ed05e5df1405b1e1ab8c9618e63864**, abgerufen am 05.11.2026. Letzter Commit: „Material anfordern: Warenkorb-Leiste als Blatt auf dem Raster (E47) (#407)“.
