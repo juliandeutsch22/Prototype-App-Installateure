@@ -1381,3 +1381,46 @@ zweites Zustellen; Konflikt gemeldet; ohne Fach direkt)
 und im Browser `scheinUnterschreiben.spec.ts` (+1: Netz wirklich weg, Zeit,
 Foto und Unterschriften, „Noch nicht gesendet“, Netz zurück, angekommen).
 Gegenproben: mit dem Stand von `main` alle neuen Prüfungen rot.
+
+**E50 — Das Änderungsprotokoll der Zeitbuchungen (05.11.2026).** Auftrag:
+„für das Änderungsprotokoll: es sollte über einen Klick sichtbar sein und
+nicht generell auf der Seite, damit nicht zu viel Text entsteht.“ An einer
+Buchung stand bis hierher nur, wer sie zuletzt geändert hat; was vorher
+dastand, wer davor geändert hatte und dass es eine gelöschte Buchung gab,
+sah niemand. Für eine Arbeitszeitaufzeichnung (§ 26 AZG), auf die sich Lohn,
+Überstunden und Rechnungen stützen, war das zu wenig.
+
+- **Die Datenbank schreibt mit** (`zeitbuchung_verlauf`, Trigger an
+  `time_entries`): je Anlegen, Ändern und Löschen eine Zeile — wer (Kennung
+  und Name), wann, und was: beim Anlegen und Löschen der ganze Stand, beim
+  Ändern je Spalte alt und neu. Ohne Zeitstempel, ohne den
+  Bearbeitungsvermerk und ohne das, was die Datenbank selbst rechnet
+  (Stunden, Satz). Ein Speichern ohne Änderung schreibt nichts.
+- **Niemand kann es glätten.** Die App hat keinen Weg hinein; es gibt keine
+  Regel und kein Recht zum Anlegen, Ändern oder Löschen, auch nicht für die
+  Führung. Lesen dürfen genau die, die die Buchung lesen: die Person,
+  Buchhaltung und Führung.
+- **Über einen Klick, zugeklappt:** im Formular einer Buchung „Verlauf dieser
+  Buchung“, in der Zeiterfassung unter der Liste „Änderungsprotokoll deiner
+  Buchungen“ (derselbe Zeitraum wie die Liste), im Fenster einer Person im
+  Büro „Änderungsprotokoll des Monats“ — dort auch gelöschte Buchungen.
+  Geladen wird erst beim Aufklappen. Gelesen wird es als Verlauf: „Geändert
+  von Erna Beispiel · 05.11.2026, 14:03 · Ende 15:00 → 14:00“.
+- **Datenschutz:** in der Datenauskunft der Person (der Verlauf ihrer
+  Buchungen; als Bearbeiter die Anzahl ihrer Änderungen an fremden), bei
+  ihrer Löschung mit den Buchungen aufbewahrt (§ 132 BAO), im Datenauszug des
+  Betriebs. Beim Löschen eines ganzen Betriebs geht es mit.
+
+**Grenze mit Grund.** Was vor dem 05.11.2026 geändert wurde, weiß niemand
+mehr (Altdaten). Die erste Änderung einer älteren Buchung zeigt den Stand
+davor als alten Wert, und die Ansicht sagt, seit wann aufgezeichnet wird.
+
+**Prüfungen.** `zeitbuchungVerlauf.test.ts` (neu, echte Datenbank: Anlegen,
+Ändern nur mit Geändertem, Speichern ohne Änderung schreibt nichts, Löschen;
+wer liest; niemand schreibt; ein Konto bleibt löschbar; Datenauskunft und
+Löschung), `verlaufText.test.ts` und `Aenderungsprotokoll.test.tsx` (neu: in
+Worten, zu bis zum Klick, Fehler wiederholbar ohne ein Formular abzuschicken),
+`zeitVerlauf.spec.ts` (neu, Browser: das Büro ändert und löscht, das Fenster
+der Person und die Zeiterfassung des Monteurs zeigen es auf Klick),
+`personLoeschen.test.ts` (das Protokoll unter „aufbewahren“). Gegenprobe:
+ohne Migration und Bausteine rot.
