@@ -14,6 +14,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Sendeergebnis, Sender, Sendung } from './ausgangsfach';
+import { istNetzfehler } from './netzfehler';
 
 /**
  * PostgREST-Codes, die eine endgültige Ablehnung bedeuten.
@@ -46,18 +47,7 @@ function istEndgueltig(code: string | undefined): boolean {
   );
 }
 
-/**
- * Ein Fehler ohne Code und ohne Antwort ist ein Netzfehler.
- *
- * supabase-js reicht einen gescheiterten `fetch` als Fehler ohne `code`
- * durch. Genau daran — und nicht an `navigator.onLine`, das im WLAN ohne
- * Internet fröhlich `true` meldet — hängt die Unterscheidung.
- */
-function istNetzfehler(fehler: { code?: string; message?: string }): boolean {
-  if (fehler.code) return false;
-  const m = (fehler.message ?? '').toLowerCase();
-  return m.includes('fetch') || m.includes('network') || m.includes('failed to');
-}
+/** Netzfehler erkennen: `netzfehler.ts` — auch die Maske des Scheins fragt dort. */
 
 /** Ein Fehler der Datenbank (Tabelle oder Funktion) in einen der vier Fälle. */
 function einordnen(

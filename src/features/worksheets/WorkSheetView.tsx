@@ -48,6 +48,7 @@ import {
 } from './fotos';
 import { grundAus } from '@/lib/fehlerGrund';
 import { FACH_GELEERT, vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
+import { istNetzfehler } from '@/lib/sync/netzfehler';
 import { entwurfMitVorgemerktem } from './vorgemerkt';
 import { datumAT } from '@/lib/datum';
 import { abrechnungText, stundenSindGrundlage } from '@/lib/abrechnung';
@@ -102,8 +103,7 @@ const OHNE_NETZ_NICHT_ZU_OEFFNEN =
 /** Ein Lesefehler, hinter dem fehlendes Netz steht — wie der Sender des Ausgangsfachs es erkennt. */
 function ohneNetz(fehler: unknown): boolean {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
-  const m = (fehler instanceof Error ? fehler.message : String(fehler ?? '')).toLowerCase();
-  return m.includes('fetch') || m.includes('network') || m.includes('failed to');
+  return istNetzfehler({ message: fehler instanceof Error ? fehler.message : String(fehler ?? '') });
 }
 
 /**

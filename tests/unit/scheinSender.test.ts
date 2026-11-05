@@ -68,6 +68,7 @@ describe('Aufrufe', () => {
     const art = async (rpc: { error: Fehler; status?: number }) =>
       (await supabaseSender(client({ rpc }).c)(aufruf('schein_speichern'))).art;
     expect(await art({ error: { message: 'TypeError: Failed to fetch' } })).toBe('kein-netz');
+    expect(await art({ error: { code: '', message: 'TypeError: Load failed' }, status: 0 })).toBe('kein-netz');
     expect(await art({ error: { code: '42501', message: 'x' }, status: 401 })).toBe('kein-netz');
     expect(await art({ error: { code: '42501', message: 'Ein Schein im Zustand Unterschrieben …' }, status: 403 })).toBe('abgelehnt');
     expect(await art({ error: { code: 'PGRST000', message: 'x' }, status: 503 })).toBe('unklar');
@@ -126,6 +127,8 @@ describe('Dateien', () => {
   it('ordnet die Antworten des Speichers ein', async () => {
     const art = async (error: unknown) => (await supabaseSender(client({ upload: { error } }).c)(hochladen)).art;
     expect(await art({ message: 'fetch failed' })).toBe('kein-netz');
+    // Safari: der Speicher reicht die Meldung von `fetch` ohne Stand durch.
+    expect(await art({ name: 'StorageUnknownError', message: 'Load failed' })).toBe('kein-netz');
     expect(await art({ message: 'jwt expired', status: 400, statusCode: '403' })).toBe('kein-netz');
     expect(await art({ message: 'x', status: 401 })).toBe('kein-netz');
     expect(await art({ message: 'new row violates row-level security policy', status: 400, statusCode: '403' })).toBe('abgelehnt');

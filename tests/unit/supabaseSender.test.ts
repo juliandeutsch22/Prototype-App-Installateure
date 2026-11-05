@@ -80,6 +80,13 @@ describe('Der Sender ordnet die Antworten ein', () => {
     const wirft = await supabaseSender(clientMit(new Error('NetworkError when attempting to fetch')))(sendung);
     expect(wirft.art).toBe('kein-netz');
   });
+
+  it('erkennt fehlendes Netz auch in Safari („Load failed“) — sonst verwürfe das iPhone im WLAN-Funkloch nach fünf Läufen', async () => {
+    // So reicht supabase-js einen gescheiterten `fetch` von Safari durch: ohne Code, Status 0.
+    expect(await einordnen({ code: '', message: 'TypeError: Load failed' })).toBe('kein-netz');
+    // Was gleich bleiben muss: ein Fehler MIT Code ist kein Netzfehler, auch wenn der Text so klingt.
+    expect(await einordnen({ code: 'PGRST000', message: 'Load failed' })).toBe('unklar');
+  });
 });
 
 /** Ein Client mit voller Antwort — Fehler, HTTP-Status und Trefferzahl. */
