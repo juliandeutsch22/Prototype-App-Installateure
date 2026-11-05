@@ -35,7 +35,7 @@
   const optional=p?`Optionale Einrichtung: ${window.SenklotTarife.euro(p.einrichtungCent)} netto einmalig, nur bei Buchung.`:'Umfang und Preis vereinbaren wir vor einer Buchung.';
   document.getElementById('einrichtung-preis').textContent=optional;
   const hilfe=angefragt?(p?`Optionale Einrichtung angefragt: ${window.SenklotTarife.euro(p.einrichtungCent)} netto einmalig.`:'Du interessierst dich für die optionale Einrichtung. Umfang und Preis klären wir vorab.'):'Ohne begleitete Einrichtung: keine Einrichtungsgebühr.';
-  document.getElementById('anfrage-auswahl').textContent=p?`${p.name} · ${a.zahlung==='jaehrlich'?`${window.SenklotTarife.euro(p.jahrCent,true)} netto jährlich im Voraus (10 % Rabatt)`:`${window.SenklotTarife.euro(p.monatCent)} netto pro Monat`} · ${hilfe} ${window.SenklotTarife.EINFUEHRUNG.preisbindung} Unverbindliche Anfrage.`:`Deine Anfrage ist unverbindlich. Der passende Tarif lässt sich gemeinsam klären. ${hilfe}`;
+  document.getElementById('anfrage-auswahl').textContent=p?`${p.name} · ${a.zahlung==='jaehrlich'?`${window.SenklotTarife.euro(p.jahrCent,true)} netto jährlich im Voraus (10 % Rabatt)`:`${window.SenklotTarife.euro(p.monatCent)} netto pro Monat`} · ${hilfe} Unverbindliche Anfrage.`:`Schreib mir, was dich interessiert. Welches Paket passt, können wir gemeinsam klären. ${hilfe}`;
  }
  einrichtung.addEventListener('change',zusammenfassung);
  window.addEventListener('senklot:auswahl',zusammenfassung);auswahl.addEventListener('change',zusammenfassung);zusammenfassung();

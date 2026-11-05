@@ -6,7 +6,7 @@ import json, re, subprocess
 
 ROOT = Path(__file__).resolve().parent.parent
 DOMAIN = 'https://senklot.at'
-VERSION = '20261104-formular2'
+VERSION = '20261105-texte'
 funktionen = json.loads((ROOT / 'werkzeuge/funktionen.json').read_text())
 tarifquelle = json.loads(subprocess.check_output(['node', '-e', 'process.stdout.write(JSON.stringify(require("./tarife.js")))'], cwd=ROOT))
 tarife = tarifquelle['TARIFE']
@@ -39,7 +39,7 @@ def schema(slug='', name='Senklot – Software für Installationsbetriebe in Ös
         offers = []
         for id, tarif in tarife.items():
             offers.append({'@type': 'Offer', 'name': tarif['name'], 'price': tarif['monatCent'] / 100, 'priceCurrency': 'EUR', 'url': DOMAIN + '/#tarif-' + id,
-                'description': f"Einführungspreis für Pilotbetriebe. {einfuehrung['preisbindung']} {tarif['nutzer']} Mitarbeiter / Nutzer. Monatliches Abonnement netto zuzüglich Umsatzsteuer. Optional buchbare Einrichtung {euro(tarif['einrichtungCent'])} netto, nur bei Buchung. Bei jährlicher Vorauszahlung 10 % Rabatt nur auf das Abonnement.",
+                'description': f"{tarif['nutzer']} Mitarbeiter / Nutzer. Monatliches Abonnement netto zuzüglich Umsatzsteuer. Optional buchbare Einrichtung {euro(tarif['einrichtungCent'])} netto, nur bei Buchung. Bei jährlicher Vorauszahlung 10 % Rabatt nur auf das Abonnement.",
                 'priceSpecification': {'@type': 'UnitPriceSpecification', 'price': tarif['monatCent'] / 100, 'priceCurrency': 'EUR', 'unitText': 'Monat', 'valueAddedTaxIncluded': False}})
         graph.append({'@type': 'SoftwareApplication', '@id': DOMAIN + '/#software', 'name': 'Senklot', 'url': DOMAIN + '/', 'applicationCategory': 'BusinessApplication', 'operatingSystem': 'Webbrowser', 'inLanguage': 'de-AT', 'description': description, 'publisher': {'@id': DOMAIN + '/#anbieter'}, 'featureList': [f['name'] for f in funktionen], 'offers': offers})
     else:
@@ -96,7 +96,7 @@ home = home[:start] + block + home[end:]
 # Jahrespreise bleiben auch ohne JavaScript als lesbare HTML-Inhalte verfügbar.
 annual = '; '.join(f"{t['name']}: {euro(t['monatCent'] * 12 * 9 // 10)} jährlich im Voraus" for t in tarife.values())
 einrichtung = '; '.join(t['name'] + ': ' + euro(t['einrichtungCent']) for t in tarife.values())
-faq = f'<details><summary>Wie funktioniert die jährliche Vorauszahlung?</summary><p>Bei jährlicher Vorauszahlung erhältst du genau 10 % Rabatt auf das Abonnement. {annual}. Alle Beträge netto zuzüglich gesetzlicher Umsatzsteuer. Die begleitete Einrichtung ist optional ({einrichtung}). Sie wird nur bei Buchung berechnet und nicht rabattiert.</p></details>\n'
+faq = f'<details><summary>Kann ich auch jährlich zahlen?</summary><p>Ja. Wenn du ein Jahr im Voraus zahlst, erhältst du 10 % Rabatt auf dein Abonnement. {annual}. Alle Beträge netto zuzüglich gesetzlicher Umsatzsteuer. Die optionale Einrichtung wird separat berechnet und nicht rabattiert.</p></details>\n'
 home = home.replace('{{FAQ_JAHRESZAHLUNG}}', faq, 1)
 home = re.sub(r'assets/([a-z-]+)\.png', r'assets/\1.webp', home)
 home = home.replace('assets/senklot-vorschau.webp', 'assets/senklot-vorschau.png')
@@ -135,16 +135,16 @@ for f in funktionen:
     <div class="wrap">
       <nav class="brotpfad" aria-label="Brotkrumennavigation"><a href="../">Senklot</a><span aria-hidden="true">/</span><span aria-current="page">{escape(f['name'])}</span></nav>
       <div class="detail-einstieg">
-        <div data-erscheinen><p class="rubrik">SENKLOT / FUNKTIONEN</p><h1>{escape(f['name'])}</h1><p class="detail-leitsatz">{escape(f['headline'])}</p><p class="absatz">{escape(f['intro'])}</p><div class="aktionen"><a class="knopf" href="../#kontakt">Kostenlose Demo anfragen {pfeil}</a><a class="textlink" href="../#preise">Preise ansehen</a></div></div>
+        <div data-erscheinen><p class="rubrik">SENKLOT / FUNKTIONEN</p><h1>{escape(f['name'])}</h1><p class="detail-leitsatz">{escape(f['headline'])}</p><p class="absatz">{escape(f['intro'])}</p><div class="aktionen"><a class="knopf" href="../#kontakt">Kostenlose Demo anfragen {pfeil}</a><a class="textlink" href="../#einblicke">Senklot ansehen</a></div></div>
         <figure class="detail-bild{' detail-bild-mobil' if mobile else ''}" data-erscheinen><div class="app-fenster"><img src="../assets/{f['image']}.webp" alt="{escape(f['caption'], quote=True)}" width="{width}" height="{height}" fetchpriority="high"></div><figcaption>{escape(f['caption'])}</figcaption></figure>
       </div>
     </div>
   </section>
   <section class="detail-inhalte wrap" aria-label="{escape(f['name'], quote=True)} im Arbeitsalltag">{sections}</section>
-  <section class="ablauf raster"><div class="wrap"><div class="bereichskopf"><p class="rubrik">IM ARBEITSALLTAG</p><h2>Ein klarer Ablauf.<br>Gemeinsame Informationen.</h2></div><ol class="ablaufschritte detail-schritte">{steps}</ol></div></section>
+  <section class="ablauf raster"><div class="wrap"><div class="bereichskopf"><p class="rubrik">IM ARBEITSALLTAG</p><h2>So läuft es<br>bei euch zusammen.</h2></div><ol class="ablaufschritte detail-schritte">{steps}</ol></div></section>
   <section class="fragen wrap"><div><p class="rubrik">GUT ZU WISSEN</p><h2>{faq_titel[f['slug']]}</h2></div><div class="faq-liste">{faq}</div></section>
   <nav class="verwandte wrap" aria-label="Passende Funktionen"><p class="rubrik">DAS GEHÖRT ZUSAMMEN</p><div>{related}</div></nav>
-  <section class="abschluss raster"><div class="wrap"><p class="rubrik">DEIN BETRIEB. IM LOT.</p><h2>Im Zusammenhang ansehen.</h2><p>Persönliche Produktvorführung – etwa 30 Minuten, kostenlos und unverbindlich. Den Termin stimmen wir mit dir ab.</p><p class="detail-einstieg-link"><a href="../#einstieg">So funktioniert der Einstieg</a></p><a class="knopf" href="../#kontakt">Kostenlose Demo anfragen {pfeil}</a></div></section>
+  <section class="abschluss raster"><div class="wrap"><p class="rubrik">DEIN BETRIEB. IM LOT.</p><h2>Passt das<br>zu eurem Alltag?</h2><p>Ich zeige dir Senklot gerne persönlich. Wir nehmen uns etwa 30 Minuten für deinen Betrieb und deine Fragen – kostenlos und unverbindlich.</p><p class="detail-einstieg-link"><a href="../#einstieg">So funktioniert der Einstieg</a></p><a class="knopf" href="../#kontakt">Kostenlose Demo anfragen {pfeil}</a></div></section>
 </main>
 {footer}
 <script defer src="../effekte.js?v={VERSION}"></script>

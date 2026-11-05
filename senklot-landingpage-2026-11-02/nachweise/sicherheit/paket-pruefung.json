@@ -8,7 +8,7 @@
   "optionalFieldsVisible": true,
   "faqGroups": 2,
   "setupOptionalByDefault": true,
-  "introPriceGuaranteeMonths": 12,
+  "regularPricesWithoutIntroductoryDeadline": true,
   "noOldPricesOrUnresolvedPlaceholders": true,
   "zipIntegrity": true,
   "htmlPages": 9,

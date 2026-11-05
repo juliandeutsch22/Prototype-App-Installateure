@@ -11,7 +11,7 @@
       "annualAndSetupPreserved": true,
       "setupOptionalByDefault": true,
       "setupOnlyRequestedAfterOptIn": true,
-      "priceBindingTwelveMonths": true,
+      "regularPricesWithoutIntroductoryDeadline": true,
       "setupScopeAccordionsKeyboardVerified": true,
       "faqGroupsAligned": true,
       "normalProtectionBlockHidden": true
@@ -27,7 +27,7 @@
       "annualAndSetupPreserved": true,
       "setupOptionalByDefault": true,
       "setupOnlyRequestedAfterOptIn": true,
-      "priceBindingTwelveMonths": true,
+      "regularPricesWithoutIntroductoryDeadline": true,
       "setupScopeAccordionsKeyboardVerified": true,
       "faqGroupsAligned": true,
       "normalProtectionBlockHidden": true
@@ -43,7 +43,7 @@
       "annualAndSetupPreserved": true,
       "setupOptionalByDefault": true,
       "setupOnlyRequestedAfterOptIn": true,
-      "priceBindingTwelveMonths": true,
+      "regularPricesWithoutIntroductoryDeadline": true,
       "setupScopeAccordionsKeyboardVerified": true,
       "faqGroupsAligned": true,
       "normalProtectionBlockHidden": true
@@ -59,7 +59,7 @@
       "annualAndSetupPreserved": true,
       "setupOptionalByDefault": true,
       "setupOnlyRequestedAfterOptIn": true,
-      "priceBindingTwelveMonths": true,
+      "regularPricesWithoutIntroductoryDeadline": true,
       "setupScopeAccordionsKeyboardVerified": true,
       "faqGroupsAligned": true,
       "normalProtectionBlockHidden": true

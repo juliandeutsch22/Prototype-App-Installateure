@@ -14,11 +14,11 @@ Stand 4. November 2026. **Diese Revision ist vorbereitet und lokal getestet; sie
 
 ## Neu in dieser Revision: Preise und Einstieg
 
-Einführungspreise für Pilotbetriebe: **129 / 180 / 249 € netto monatlich** für bis 5 / 6–15 / 16–30 Nutzer. Bei jährlicher Vorauszahlung und unverändert 10 % Rabatt: **1.393,20 / 1.933,20 / 2.689,20 € netto pro Jahr** (effektiv 116,10 / 161,10 / 224,10 € monatlich). Die begleitete Einrichtung ist optional: 290 / 590 / 699 € netto ausschließlich bei Buchung; keine Einrichtungsgebühr bei eigenständigem Start. Die Einführungspreise sind ab Vertragsbeginn für 12 Monate garantiert. Die Konditionen einer Weiterführung werden vor Vertragsabschluss im Angebot festgehalten. Die Preisbindung legt keine Mindestvertragslaufzeit fest. Keine nicht vereinbarten Folgepreise oder automatischen Erhöhungen.
+Reguläre Paketpreise: **129 / 179 / 249 € netto monatlich** für bis 5 / 6–15 / 16–30 Nutzer. Bei jährlicher Vorauszahlung und 10 % Rabatt: **1.393,20 / 1.933,20 / 2.689,20 € netto pro Jahr** (effektiv 116,10 / 161,10 / 224,10 € monatlich). Die begleitete Einrichtung ist optional: 199 / 399 / 699 € netto ausschließlich bei Buchung; keine Einrichtungsgebühr bei eigenständigem Start. Die Darstellung als befristete Preisaktion und die Zwölfmonats-Preisgarantie entfallen mit der Textrevision vom 5. November. Es werden keine neuen Preisbindungen oder künftigen Folgepreise zugesagt.
 
 **Vor den ersten Angeboten festlegen:** konkreter Umfang der optional buchbaren Grundkonfiguration/Einführung je Paket, regulärer Support und Servicezeiten, Abgrenzung zusätzlicher Schulungen, Datenübernahmen und Anpassungen. Die persönliche kostenlose Demo ist mit etwa 30 Minuten angesetzt; Termine werden individuell abgestimmt. Die Website verspricht weder eine pauschale Datenmigration noch einen festen Sofort-Starttermin.
 
-**Vor Produktivstart prüfen:** Sicherungsrhythmus, Aufbewahrung und Wiederherstellungsablauf verbindlich festhalten und einen Wiederherstellungstest durchführen. Dafür sind die tatsächlichen App-Dienste und deren Konfiguration erforderlich; der World4you-Website-Upload richtet keine App-Backups ein. Die optionale Einrichtung wird im Formular nur nach ausdrücklicher Checkbox-Auswahl angefragt; Preise und E-Mail unterscheiden beide Fälle. Nach den ersten Monaten Einrichtungszeit, Supportzeit und laufende Kosten je Betrieb auswerten, bevor Preise für weitere Kunden dauerhaft festgelegt werden.
+**Vor Produktivstart prüfen:** Sicherungsrhythmus, Aufbewahrung und Wiederherstellungsablauf verbindlich festhalten und einen Wiederherstellungstest durchführen. Dafür sind die tatsächlichen App-Dienste und deren Konfiguration erforderlich; der World4you-Website-Upload richtet keine App-Backups ein. Die optionale Einrichtung wird im Formular nur nach ausdrücklicher Checkbox-Auswahl angefragt; Preise und E-Mail unterscheiden beide Fälle. Einrichtungszeit, Supportzeit und laufende Kosten regelmäßig intern auswerten.
 
 Echte Referenzen oder gemessene Einsparungen erst nach einem tatsächlichen Pilotbetrieb und dessen Zustimmung ergänzen. Die gelieferten Analysebewertungen und Conversion-Szenarien sind keine gemessenen Kundenergebnisse und werden nicht auf der Website veröffentlicht.
 
@@ -136,3 +136,8 @@ Die sieben Marketingseiten bleiben indexierbar; die beiden Rechtstexte sind noin
 Auch `senklot-intern/mail-html.php`, `senklot-intern/mail-vorlage.html` und `senklot-intern/mail-logo.png` mit übertragen. Diese Dateien liegen im geschützten Verzeichnis; das Logo wird in die E-Mail eingebettet und benötigt keinen externen Abruf. Die Klartextversion bleibt enthalten. Eine fehlende Gestaltungsvorlage führt zum bisherigen Klartextversand. Bestehende SMTP-Daten und Freigaben nicht ändern.
 
 Nach dem Upload einmal mit einer eigenen Testanfrage kontrollieren: optionale Felder direkt sichtbar, kein lokaler Schutz-Hinweisblock im Normalbetrieb, FAQ in zwei Gruppen und eingegangene Mail mit Logo, vollständigen Angaben sowie funktionierender Antwortadresse. Die sichtbare Gestaltung hängt auch vom Mailprogramm und dessen Einstellungen ab.
+
+
+## Textupdate vom 5. November
+
+Das vollständige aktuelle `world4you-upload.zip` verwenden, nicht nur das frühere Favicon-Update. Auch `tarife.js`, `kontakt.js`, `landingpage.css`, `senklot-intern/angebot.json`, `senklot-intern/kontakt.php` und `senklot-intern/mail-html.php` übertragen: Dadurch bleiben Paketangaben und Anfrage-Mails konsistent mit den neuen HTML-Seiten. Aktive `config.php` und `speicher/` erhalten; keine SMTP-Neukonfiguration nötig.

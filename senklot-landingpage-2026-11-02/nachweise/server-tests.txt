@@ -1,17 +1,17 @@
-✔ Alle sechs Abopreise und Einrichtung werden exakt in Cent berechnet (1.838798ms)
-✔ Bestätigter Versand nutzt feste Empfängeradresse und serverseitige Preise (59.715983ms)
-✔ Einrichtung ist freiwillig und wird nur nach ausdrücklicher Auswahl angefragt (1.10039ms)
-✔ HTML-Mail maskiert Eingaben, nutzt eingebettete Marke und behält Klartext (2.45838ms)
-✔ Vorschau und fehlende Konfiguration versenden nie (1.190152ms)
-✔ Fehlendes, ungültiges, falsches Host- oder Aktions-Token sperrt den Versand (1.668887ms)
-✔ Dienstausfälle oder fehlende Versandbestätigung ergeben niemals Erfolg (3.058644ms)
-✔ Servervalidierung stoppt Manipulationen unabhängig vom Browser (0.396053ms)
-✔ HTTP- und Origin-Grenzen werden vor dem Versand geprüft (1.061223ms)
-✔ Rate-Limit ist begrenzt, läuft ab und kann nicht durch Überfüllung umgangen werden (1.190272ms)
-✔ HTTP-Server schützt private Dateien und bleibt ohne Dienste gesperrt (126.999049ms)
-✔ Produktionsmodus verbietet die Vorschau (99.502275ms)
-✔ Kanonische URLs erhalten Queryparameter und zeigen keine fremden Hosts an (1.127861ms)
-✔ Öffentliche Seiten, Sitemap, Crawlingregeln und Dateitypen werden korrekt ausgeliefert (225.210677ms)
+✔ Alle sechs Abopreise und Einrichtung werden exakt in Cent berechnet (3.405066ms)
+✔ Bestätigter Versand nutzt feste Empfängeradresse und serverseitige Preise (60.795587ms)
+✔ Einrichtung ist freiwillig und wird nur nach ausdrücklicher Auswahl angefragt (1.753554ms)
+✔ HTML-Mail maskiert Eingaben, nutzt eingebettete Marke und behält Klartext (3.723155ms)
+✔ Vorschau und fehlende Konfiguration versenden nie (1.224234ms)
+✔ Fehlendes, ungültiges, falsches Host- oder Aktions-Token sperrt den Versand (7.421223ms)
+✔ Dienstausfälle oder fehlende Versandbestätigung ergeben niemals Erfolg (3.57033ms)
+✔ Servervalidierung stoppt Manipulationen unabhängig vom Browser (0.329295ms)
+✔ HTTP- und Origin-Grenzen werden vor dem Versand geprüft (1.638995ms)
+✔ Rate-Limit ist begrenzt, läuft ab und kann nicht durch Überfüllung umgangen werden (1.435755ms)
+✔ HTTP-Server schützt private Dateien und bleibt ohne Dienste gesperrt (212.173496ms)
+✔ Produktionsmodus verbietet die Vorschau (158.715929ms)
+✔ Kanonische URLs erhalten Queryparameter und zeigen keine fremden Hosts an (2.07726ms)
+✔ Öffentliche Seiten, Sitemap, Crawlingregeln und Dateitypen werden korrekt ausgeliefert (348.457001ms)
 ℹ tests 14
 ℹ suites 0
 ℹ pass 14
@@ -19,4 +19,4 @@
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 371.652085
+ℹ duration_ms 574.512198

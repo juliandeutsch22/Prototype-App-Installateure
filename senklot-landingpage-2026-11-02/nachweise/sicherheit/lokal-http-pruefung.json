@@ -12,6 +12,7 @@
   "fixedRecipientAndReplyToVerified": true,
   "multipartHTMLAndPlainText": true,
   "inlineBrandLogoVerified": true,
+  "regularPricesWithoutIntroductoryDeadline": true,
   "smtpMessages": 2,
   "realMailSent": false,
   "checks": [

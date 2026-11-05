@@ -1,5 +1,5 @@
 {
-  "checkedRelativeReferences": 252,
+  "checkedRelativeReferences": 253,
   "missingReferences": [],
   "viewportWidths": [
     320,
@@ -23,7 +23,7 @@
     249
   ],
   "setupOptional": true,
-  "introPriceGuaranteeMonths": 12,
+  "regularPricesWithoutIntroductoryDeadline": true,
   "defaultSpamProtection": "local",
   "cloudflareRequired": false
 }

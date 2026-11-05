@@ -22,7 +22,7 @@ test('Einrichtung ist freiwillig und wird nur nach ausdrücklicher Auswahl angef
  for(const id of ['starter','team','betrieb','offen']){
   const no=validieren({...data,tarif:id,einrichtung:false}).data;const text=emailText(no);assert.match(text,/Einrichtung: nicht angefragt/);assert.doesNotMatch(text,/Einrichtung angefragt:/);
   if(id!=='offen')assert.match(text,/keine Einrichtungsgebühr/);
-  const yes=emailText(validieren({...data,tarif:id,einrichtung:true}).data);assert.match(yes,/Optionale Einrichtung angefragt:/);assert.match(yes,/12 Monate garantiert/);
+  const yes=emailText(validieren({...data,tarif:id,einrichtung:true}).data);assert.match(yes,/Optionale Einrichtung angefragt:/);assert.doesNotMatch(yes,/Einführungspreis|Pilotbetrieb|12 Monate garantiert/);
  }
  const absent={...data};delete absent.einrichtung;assert.equal(validieren(absent).data.einrichtung,false);
 });

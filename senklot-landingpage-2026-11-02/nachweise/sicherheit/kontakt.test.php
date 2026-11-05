@@ -48,13 +48,13 @@ $tarife=json_decode(file_get_contents('/src/senklot-intern/tarife.json'),true);c
 foreach ([['starter','129,00 €','1.393,20 €','199,00 €'],['team','179,00 €','1.933,20 €','399,00 €'],['betrieb','249,00 €','2.689,20 €','699,00 €']] as [$id,$monat,$jahr,$setup]) {
  foreach (['monatlich'=>$monat,'jaehrlich'=>$jahr] as $wahl=>$betrag) {
   $p=payload();$p['tarif']=$id;$p['zahlung']=$wahl;$text=mailText(validieren($p)['data']);
-  check(str_contains($text,$betrag) && str_contains($text,$setup) && str_contains($text,'Einführungspreise für Pilotbetriebe'),'Preis und Angebotskontext '.$id.' '.$wahl);
+  check(str_contains($text,$betrag) && str_contains($text,$setup) && str_contains($text,'Pakete für deinen Betrieb') && !preg_match('/Einführungspreis|Pilotbetrieb|12 Monate garantiert/u',$text),'Preis und Angebotskontext '.$id.' '.$wahl);
  }
 }
 foreach(['starter','team','betrieb','offen'] as $id){
  $p=payload();$p['tarif']=$id;$p['einrichtung']=false;$text=mailText(validieren($p)['data']);
  check(str_contains($text,'Einrichtung: nicht angefragt') && !str_contains($text,'Einrichtung angefragt:'),'Ohne Buchung keine Einrichtung '.$id);
- $p['einrichtung']=true;$text=mailText(validieren($p)['data']);check(str_contains($text,'Optionale Einrichtung angefragt:') && str_contains($text,'12 Monate garantiert'),'Optionale Einrichtung und Preisbindung '.$id);
+ $p['einrichtung']=true;$text=mailText(validieren($p)['data']);check(str_contains($text,'Optionale Einrichtung angefragt:') && !preg_match('/Einführungspreis|Pilotbetrieb|12 Monate garantiert/u',$text),'Optionale Einrichtung ohne befristete Preiszusage '.$id);
 }
 $p=payload();unset($p['einrichtung']);check(validieren($p)['data']['einrichtung']===false,'Fehlende Einrichtungsauswahl ist keine Buchung');
 foreach(['reserve','rate'] as $action){

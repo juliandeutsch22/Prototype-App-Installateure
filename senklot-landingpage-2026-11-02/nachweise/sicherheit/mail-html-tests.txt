@@ -3,7 +3,7 @@ OK Kein aktives HTML aus Eingaben
 OK Betrieb maskiert
 OK Nachricht als Text mit Zeilenumbruch
 OK Serverseitige Jahres- und Einrichtungspreise
-OK Preisbindung bleibt enthalten
+OK Keine befristeten Preisversprechen
 OK Logo eingebettet statt extern geladen
 OK Keine externen Bilder
 OK Keine Skripte oder externen Schriftarten

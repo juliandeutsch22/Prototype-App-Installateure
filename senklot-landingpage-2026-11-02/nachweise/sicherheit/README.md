@@ -29,3 +29,8 @@ Offen bleiben der reale World4you-Upload, echte Kontokonfiguration, Prüfung der
 `mail-html-tests.txt` enthält 15 zusätzliche Prüfungen für HTML-Maskierung, Preise, freiwillige Einrichtung, sichere Antwortlinks und Klartext-/Markenfallback. `lokal-http-pruefung.json` prüft die tatsächlich von PHPMailer erzeugte multipart-Mail mit HTML, Klartext und eingebettetem, byteidentischem PNG-Logo über den lokalen TLS-SMTP-Testserver. Es werden keine Nachrichten nach außen zugestellt. Die 14 Node-Tests decken zusätzlich das alternative Backend ab.
 
 Die Browserprüfungen bestätigen direkt sichtbare optionale Felder, unsichtbaren lokalen Schutz im Normalbetrieb, sichtbare Fehler mit Wiederholung und zwei FAQ-Gruppen. Die Mailvorschau wurde bei 390 und 760 Pixeln auf Überlauf und externe Abrufe geprüft; ein echter Postfach-/Mailclient-Test des neuen Designs ist auf dem Hosting nach dem Upload durchzuführen.
+
+
+## Textrevision vom 5. November
+
+Die bestehenden Preisprüfungen wurden auf unveränderte Beträge ohne Aktions-/Pilotbezeichnung oder Zwölfmonats-Preisversprechen umgestellt. Geprüft werden die sichtbaren Texte, strukturierten Suchmaschinendaten und die tatsächlich über den lokalen TLS-SMTP-Testserver empfangenen HTML-/Klartext-Teile. Preisberechnung, optionale Einrichtung, Herkunfts-/Token-/Wiederholungsschutz und feste Empfänger bleiben erhalten. Die Datenschutz-Löschfristen wurden nicht verändert.

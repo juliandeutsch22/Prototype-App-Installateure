@@ -1,8 +1,8 @@
 {
   "stage": "/tmp/senklot-world4you-upload",
   "archive": "world4you-upload.zip",
-  "bytes": 864969,
-  "sha256": "c371c8d851c38a65bdb4026068387d9de206f3bb47cdbaeae2d01f1782732785",
+  "bytes": 864516,
+  "sha256": "9eab36dda17af9c2d8b23fb37022d7decb8c98cb41a7a4f8c90e6b4bb3bffad6",
   "publicFiles": [
     ".htaccess",
     "angebote-rechnungen/index.html",

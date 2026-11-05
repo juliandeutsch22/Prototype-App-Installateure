@@ -219,3 +219,15 @@ Das unveränderte Senklot-Symbol liegt zusätzlich als PNG mit 96 × 96 Pixeln u
 - [PNG](senklot-landingpage-2026-11-02/assets/favicon-96.png?raw=true) · [ICO](senklot-landingpage-2026-11-02/favicon.ico?raw=true)
 
 ZIP entpacken und den Inhalt unter Beibehaltung der Ordnerstruktur in den Webspace laden. Mail-Konfiguration und gespeicherter Formularzustand sind nicht enthalten. Noch nicht aus dieser Sitzung auf World4you hochgeladen. Anschließend die Startseite in der Search Console zur erneuten Indexierung einreichen; die tatsächliche Favicon-Anzeige bestimmt Google.
+
+
+## Senklot-Website: persönlichere Texte (05.11.2026)
+
+Die Startseite und sechs Funktionsseiten sprechen den Alltag im Installationsbetrieb direkter an. Julian Deutsch aus Gleisdorf ist als persönlicher Ansprechpartner sichtbar; Funktionsseiten verweisen stärker auf die Produktansichten. Die befristete Preisaktion und die Zwölfmonats-Aussagen wurden aus Seitentexten, Suchmaschinendaten, Formularzusammenfassung und Anfrage-Mails entfernt. Monatspreise 129 / 179 / 249 € netto, Jahresrabatt und optionale Einrichtung bleiben gleich.
+
+- [Aktuelles vollständiges World4you-Paket](senklot-landingpage-2026-11-02/world4you-upload.zip?raw=true)
+- [Startseite Desktop](senklot-landingpage-2026-11-02/landingpage-1440.png) · [Startseite mobil](senklot-landingpage-2026-11-02/landingpage-390.png)
+- [Persönlicher Ansprechpartner](senklot-landingpage-2026-11-02/09-vertrauen-1440.png)
+- [Einrichtung und Updatehinweise](senklot-landingpage-2026-11-02/VEROEFFENTLICHEN.md)
+
+Formularschutz, Auswahl, Versand und Darstellung wurden lokal geprüft; keine echten E-Mails aus dieser Sitzung versendet. Noch nicht auf World4you hochgeladen. Beim Aktualisieren die aktive `senklot-intern/config.php` und den Ordner `senklot-intern/speicher/` erhalten. Für diese Revision das vollständige Paket verwenden, nicht das ältere separate Favicon-ZIP.

@@ -196,7 +196,7 @@ function mailText(array $d, string $protection = 'local'): string {
     $tarife = json_decode(file_get_contents(__DIR__ . '/tarife.json'), true, 8, JSON_THROW_ON_ERROR);
     $t = $d['tarif'] === 'offen' ? null : $tarife[$d['tarif']];
     $angebot = json_decode(file_get_contents(__DIR__ . '/angebot.json'), true, 8, JSON_THROW_ON_ERROR);
-    $lines = ['Senklot – neue Website-Anfrage', '', $angebot['titel'], $angebot['preisbindung'], '', 'Name: ' . $d['name'], 'Betrieb: ' . $d['firma'], 'E-Mail: ' . $d['email'], 'Telefon: ' . ($d['telefon'] ?: 'Nicht angegeben'), 'Mitarbeiter / Nutzer: ' . ($d['nutzer'] ?? 'Nicht angegeben'), 'Tarif: ' . ($t['name'] ?? 'Noch offen'), 'Abrechnung: ' . ($d['zahlung'] === 'jaehrlich' ? 'Jährlich im Voraus, 10 % Rabatt' : 'Monatlich')];
+    $lines = ['Senklot – neue Website-Anfrage', '', $angebot['titel'], '', 'Name: ' . $d['name'], 'Betrieb: ' . $d['firma'], 'E-Mail: ' . $d['email'], 'Telefon: ' . ($d['telefon'] ?: 'Nicht angegeben'), 'Mitarbeiter / Nutzer: ' . ($d['nutzer'] ?? 'Nicht angegeben'), 'Tarif: ' . ($t['name'] ?? 'Noch offen'), 'Abrechnung: ' . ($d['zahlung'] === 'jaehrlich' ? 'Jährlich im Voraus, 10 % Rabatt' : 'Monatlich')];
     if ($t) {
         $jahr = intdiv($t['monatCent'] * 12 * 90, 100);
         $lines[] = $d['zahlung'] === 'jaehrlich' ? 'Abonnement: ' . euro($jahr) . ' netto jährlich im Voraus' : 'Abonnement: ' . euro($t['monatCent']) . ' netto monatlich';

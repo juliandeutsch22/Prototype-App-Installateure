@@ -28,12 +28,15 @@ Die SEO-Erweiterung ergänzt sechs statische Funktionsseiten anhand derselben ge
 
 ## Überarbeitung anhand des Website-Feedbacks vom 4. November 2026
 
-Das bereitgestellte Feedback ist eine qualitative Marketinganalyse ohne eigenen aktuellen Live-Abruf. Die darin genannten Bewertungen, Besucherzahlen und Conversion-Szenarien wurden nicht als gemessene Ergebnisse übernommen. Umgesetzt wurden konkretere Abläufe, Einstieg und Einrichtungsumfang, ein verständlicher Supportumfang, ein reduzierter erster Formularschritt und die ausdrücklich freigegebenen Preise 129 / 180 / 250 € netto.
+Das bereitgestellte Feedback ist eine qualitative Marketinganalyse ohne eigenen aktuellen Live-Abruf. Die darin genannten Bewertungen, Besucherzahlen und Conversion-Szenarien wurden nicht als gemessene Ergebnisse übernommen. Umgesetzt wurden konkretere Abläufe, Einstieg und Einrichtungsumfang, ein verständlicher Supportumfang, ein reduzierter erster Formularschritt und die ausdrücklich freigegebenen Preise 129 / 179 / 249 € netto.
 
 Zusätzlich geprüfte Belege: `src/features/settings/SicherungView.tsx` für Datenauszug und Belegarchiv; `src/components/Supportband.tsx`, `src/features/settings/SupportzugangView.tsx` und `src/features/recht/DatenschutzView.tsx` für befristeten Supportzugang. Technische Grenzen der Exporte und eine konkrete Einrichtung sind Teil der Vorführung; es wird keine universelle Altdatenmigration behauptet. Backup-Frequenz, Aufbewahrung, Wiederherstellung und Servicezeiten sind vor dem produktiven Start zu vereinbaren und zu prüfen.
 
 Die private World4you-Konfiguration aktiviert weiterhin PHP/SMTP mit PHPMailer; der frühere Node-/Resend-Weg ist nur eine alternative Entwicklerkonfiguration. Die Website besitzt inzwischen eigene Rechtstexte mit den bereitgestellten Betreiberangaben. Diese Überarbeitung ist keine unabhängige rechtliche Freigabe oder Prüfung der produktiven Dienstleisterverträge.
 
-Die Einführungspreise sind nach delegierter Entscheidung für zwölf Monate ab Vertragsbeginn garantiert. Mindestlaufzeit und Weiterführung werden vor Vertragsabschluss vereinbart. Die persönliche Einrichtung ist optional; ohne ausdrückliche Auswahl wird sie weder in der Formularzusammenfassung noch in der serverseitigen E-Mail als angefragt dargestellt.
+Auf Wunsch vom 5. November werden die Pakete ohne befristete Preisaktion oder Zwölfmonats-Preisgarantie dargestellt. Die Beträge bleiben unverändert. Die persönliche Einrichtung ist optional; ohne ausdrückliche Auswahl wird sie weder in der Formularzusammenfassung noch in der serverseitigen E-Mail als angefragt dargestellt.
 
 Der Formularschutz wurde anschließend auf einen lokalen Standardmodus ohne Cloudflare erweitert. Signierte Einmal-Tokens, Mindestzeit, Honeypot und serverseitige Limits funktionieren ohne externe Dienste. Der optionale Turnstile-Modus und dessen ausdrückliche Aktivierung bleiben erhalten. Es wird keine Gleichwertigkeit mit externer Bot-Erkennung behauptet.
+
+
+Die persönlichere Textrevision vom 5. November basiert auf den vorhandenen Funktionsnachweisen. Sie erfindet keine Erfahrungen aus einem Installationsbetrieb, Kundenstimmen, Einsparungen oder zusätzlichen Leistungen. Grenzen bei Offline-Nutzung, Datenübernahme, Rechten und Zusatzleistungen bleiben beschrieben. Die bestehenden Datenschutz- und Löschfristen sind nicht Teil dieser redaktionellen Änderung.

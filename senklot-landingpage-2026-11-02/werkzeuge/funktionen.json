@@ -5,21 +5,21 @@
     "title": "Einsatzplanung für Installationsbetriebe | Senklot",
     "description": "Plane Mitarbeiter und Baustellen im Tages-, Wochen- und Monatsüberblick. Senklot verbindet die Einsatzplanung im Büro mit dem persönlichen Plan am Handy.",
     "headline": "Die Woche planen. Den Tag im Blick.",
-    "intro": "Mit der Einsatzplanung von Senklot ordnest du Mitarbeiter und Termine deinen Baustellen zu. Das Büro arbeitet mit dem gemeinsamen Plan; Monteure sehen ihre zugewiesenen Einsätze auf dem Smartphone.",
+    "intro": "Wer fährt wohin, und was steht als Nächstes an? In Senklot planst du dein Team und die Termine zu euren Baustellen. Deine Monteure sehen ihre Einsätze direkt am Handy.",
     "image": "planung",
     "caption": "Wochenplanung in der echten Senklot-Oberfläche · fiktive Beispieldaten",
     "sections": [
       [
-        "Wer arbeitet wann auf welcher Baustelle?",
-        "Im Installationsbetrieb laufen Baustellen, Kundentermine und die Verfügbarkeit des Teams zusammen. Senklot bietet Tages-, Wochen- und Monatsansichten, damit du je nach Aufgabe den einzelnen Tag oder einen längeren Zeitraum überblickst. Du planst mit denselben Kunden- und Baustellendaten, die auch in den Akten verwendet werden."
+        "Die Woche planen, den Tag im Blick behalten",
+        "Kundentermine, Baustellen und die Verfügbarkeit deines Teams: In der Einsatzplanung siehst du, wie alles zusammenpasst. Wechsle zwischen Tag, Woche und Monat, je nachdem, was du gerade planen möchtest. Die Kunden- und Baustellendaten sind dieselben wie in euren Akten."
       ],
       [
-        "Vom gemeinsamen Plan zum persönlichen Einsatz",
-        "Die Planung im Büro und der persönliche Einsatzplan gehören zusammen. Mitarbeiter sehen die ihnen zugewiesenen Einsätze und die zugehörigen Baustelleninformationen. Welche Funktionen und Daten jemand verwenden darf, richtet sich nach den vergebenen Rollen und Freigaben."
+        "Dein Team weiß, wo es gebraucht wird",
+        "Was du im Büro einplanst, sieht dein Team im persönlichen Einsatzplan am Handy. Die passenden Baustelleninformationen sind direkt dabei. Über Rollen und Freigaben legst du fest, wer welche Informationen sehen und bearbeiten darf."
       ],
       [
-        "Planung und tatsächliche Arbeit zusammenhalten",
-        "Ein geplanter Einsatz ist noch keine gebuchte Arbeitszeit. Das Team erfasst die tatsächlich geleisteten Zeiten separat. Handwerksscheine dokumentieren ausgeführte Arbeit und Material. So bleiben Planung, Zeitbuchung und Leistungsnachweis nachvollziehbar, ohne unterschiedliche Angaben gleichzusetzen."
+        "Vom Plan zur geleisteten Arbeit",
+        "Der Plan zeigt, was ihr vorhabt. Die tatsächlich gearbeiteten Zeiten bucht dein Team über die Zeiterfassung; Arbeit und Material haltet ihr im Handwerksschein fest. So kannst du später sehen, was geplant war und was vor Ort gemacht wurde."
       ]
     ],
     "steps": [
@@ -39,15 +39,15 @@
     "faq": [
       [
         "Gibt es auch eine Wochenansicht?",
-        "Ja. Senklot bietet Tages-, Wochen- und Monatsansichten für die Einsatzplanung."
+        "Ja. Du kannst zwischen Tag, Woche und Monat wechseln – so, wie es für deine Planung am besten passt."
       ],
       [
         "Können Mitarbeiter ihre Einsätze am Handy sehen?",
-        "Ja. Der persönliche Einsatzplan ist im Browser auf dem Smartphone verfügbar. Sichtbarkeit und Bearbeitungsmöglichkeiten richten sich nach den jeweiligen Rechten."
+        "Ja. Dein Team öffnet den persönlichen Einsatzplan im Browser am Handy. Welche Informationen und Funktionen verfügbar sind, bestimmst du über die Rechte."
       ],
       [
         "Wird aus einem geplanten Einsatz automatisch eine Arbeitszeit?",
-        "Nein. Planung und tatsächliche Zeitbuchungen sind unterschiedliche Angaben. Arbeitszeiten werden über die Zeiterfassung dokumentiert."
+        "Nein. Dein Team bucht die tatsächlich gearbeitete Zeit separat. So bleiben Planung und geleistete Stunden nachvollziehbar."
       ]
     ],
     "related": [
@@ -61,22 +61,22 @@
     "name": "Zeiterfassung & Team",
     "title": "Mobile Zeiterfassung für Installateure | Senklot",
     "description": "Arbeitszeiten, Pausen und Baustellen am Handy erfassen. Mit Senklot behalten Büro und Team gebuchte Stunden, Soll, Salden und Tage ohne Buchung im Blick.",
-    "headline": "Zeit erfassen. Zusammenhänge verstehen.",
-    "intro": "Senklot verbindet die mobile Zeiterfassung mit den Baustellen und der Mitarbeiterübersicht. Das Team dokumentiert Arbeitszeiten und Pausen; das Büro kann gebuchte Stunden und Zeitkonten nachvollziehen.",
+    "headline": "Zeiten festhalten. Den Überblick behalten.",
+    "intro": "Dein Team erfasst Arbeitszeiten und Pausen dort, wo es gerade arbeitet. Im Büro siehst du die Buchungen zur Baustelle und behältst Stunden und Zeitkonten im Blick.",
     "image": "mitarbeiter",
     "caption": "Mitarbeiterübersicht mit Stunden und Buchungsständen · fiktive Beispieldaten",
     "sections": [
       [
-        "Arbeitszeiten direkt am Handy dokumentieren",
-        "Mitarbeiter erfassen ihre Zeiten und Pausen im Browser auf dem Smartphone und ordnen die Arbeit der jeweiligen Baustelle zu. Damit liegen die Buchungen im gleichen System wie die Planung und die Auftragsdaten. Für die mobile Bedienung ist keine separate App-Store-Anwendung erforderlich."
+        "Zeiten direkt auf der Baustelle erfassen",
+        "Dein Team bucht Arbeitszeiten und Pausen am Handy und wählt die passende Baustelle aus. Die Zeiten stehen damit dort, wo auch Planung und Auftragsdaten liegen. Senklot läuft im Browser; eine zusätzliche App aus dem Store brauchst du dafür nicht."
       ],
       [
-        "Gebuchte Stunden im Zusammenhang sehen",
-        "Die Mitarbeiterübersicht stellt gebuchte Stunden, Soll und Salden gegenüber. Tage ohne Buchung bleiben erkennbar und können geprüft werden. Ein solcher Hinweis bedeutet zunächst, dass eine Buchung fehlt; ob eine Korrektur erforderlich ist, beurteilst du anhand des tatsächlichen Arbeitstags und der hinterlegten Abwesenheiten."
+        "Offene Buchungen gemeinsam klären",
+        "In der Mitarbeiterübersicht siehst du gebuchte Stunden, Soll und Salden nebeneinander. Tage ohne Buchung fallen auf, damit du bei Bedarf nachfragen kannst. Ob wirklich etwas fehlt, prüfst du zusammen mit dem Arbeitstag und den hinterlegten Abwesenheiten."
       ],
       [
-        "Zeitkonten und Abwesenheiten berücksichtigen",
-        "Je nach aktivierten Modulen und Berechtigungen stehen Zeitkonten, Urlaub und Zuschläge zur Verfügung. Die Einrichtung muss zu den Arbeitszeitregeln deines Betriebs passen. In der Demo lässt sich anhand eines typischen Arbeitstags klären, welche Angaben ihr braucht und wer sie erfassen oder prüfen soll."
+        "So einrichten, wie ihr arbeitet",
+        "Zeitkonten, Urlaub und Zuschläge stehen je nach gewählten Modulen und Rechten zur Verfügung. Gemeinsam schauen wir uns in der Demo einen typischen Arbeitstag an. So lässt sich klären, welche Einstellungen zu euren Arbeitszeitregeln passen und wer Buchungen erfasst oder prüft."
       ]
     ],
     "steps": [
@@ -96,15 +96,15 @@
     "faq": [
       [
         "Kann ich Zeiten ohne Empfang erfassen?",
-        "Bei bestehender Anmeldung können Zeiten im Ausgangsfach vorgemerkt und bei wiederhergestellter Verbindung übertragen werden. Die App zeigt den Übertragungszustand an. Das gilt nicht automatisch für alle anderen Funktionen."
+        "Ja, wenn du bereits angemeldet bist. Du kannst Zeiten im Ausgangsfach vormerken und später übertragen. Die App zeigt dir, ob noch etwas aussteht. Das gilt für die Zeiterfassung, nicht für alle Funktionen."
       ],
       [
         "Gibt es eine Übersicht für das ganze Team?",
-        "Ja. Die Mitarbeiterübersicht zeigt unter anderem gebuchte Stunden, Soll, Salden und Tage ohne Buchung entsprechend den Berechtigungen."
+        "Ja. Mit den passenden Rechten siehst du gebuchte Stunden, Soll, Salden und Tage ohne Buchung für dein Team."
       ],
       [
         "Sind Zeiterfassung und Einsatzplanung dasselbe?",
-        "Nein. Die Einsatzplanung beschreibt vorgesehene Arbeit. Zeitbuchungen dokumentieren die tatsächlich erfassten Arbeitszeiten."
+        "Die Planung zeigt, was ihr vorhabt. In der Zeiterfassung hält dein Team fest, wann es tatsächlich gearbeitet hat. Beide Angaben bleiben getrennt."
       ]
     ],
     "related": [
@@ -119,21 +119,21 @@
     "title": "Digitale Handwerksscheine für Installateure | Senklot",
     "description": "Leistungen, Material, Fotos und Unterschrift auf der Baustelle dokumentieren. Digitale Handwerksscheine mit Senklot am Handy erstellen und als PDF bereitstellen.",
     "headline": "Arbeit erledigt. Leistung dokumentiert.",
-    "intro": "Mit digitalen Handwerksscheinen hält dein Team ausgeführte Leistungen direkt bei der Baustelle fest. Material, Fotos und die Unterschrift des Kunden bleiben mit dem Auftrag verbunden.",
+    "intro": "Die Arbeit ist erledigt? Dann halte gleich fest, was ihr gemacht habt. Leistungen, Material, Fotos und die Unterschrift deines Kunden bleiben bei der passenden Baustelle.",
     "image": "schein-mobil",
     "caption": "Handwerksschein am Smartphone · fiktive Beispieldaten",
     "sections": [
       [
-        "Leistungen dort festhalten, wo sie entstehen",
-        "Nach einem Einsatz muss erkennbar bleiben, was ausgeführt wurde. Im digitalen Handwerksschein dokumentierst du die Arbeit zur passenden Baustelle. Materialangaben und Fotos ergänzen den Leistungsnachweis, damit das Büro die Ausführung später im Zusammenhang nachvollziehen kann."
+        "Festhalten, solange die Arbeit noch frisch ist",
+        "Trag die ausgeführte Arbeit direkt beim Einsatz in den Handwerksschein ein. Ergänze Material und bei Bedarf Fotos. So sieht dein Büro später, was auf der Baustelle gemacht wurde, und muss die Informationen nicht erst zusammensuchen."
       ],
       [
-        "Am Smartphone bestätigen lassen",
-        "Die mobile Ansicht unterstützt die Dokumentation vor Ort einschließlich der Kundenunterschrift. Der Nachweis gehört zur Baustelle und lässt sich später wiederfinden. Umfang und Form der benötigten Dokumentation solltest du anhand eurer üblichen Aufträge festlegen."
+        "Gemeinsam mit dem Kunden durchgehen",
+        "Du kannst den Nachweis am Smartphone zeigen und deinen Kunden direkt unterschreiben lassen. Der Handwerksschein bleibt bei der Baustelle auffindbar. Welche Angaben ihr dafür braucht, schauen wir uns gerne an einem eurer üblichen Aufträge an."
       ],
       [
-        "Die Grundlage für die Abrechnung bereitstellen",
-        "Handwerksscheine lassen sich als PDF bereitstellen. Die dokumentierten Leistungen unterstützen den weiteren Abrechnungsablauf in Senklot. Leistungsnachweis, Zeitbuchung und Rechnung behalten dabei ihre jeweilige Aufgabe: Eine Unterschrift allein ersetzt weder die Prüfung der Angaben noch die Erstellung der passenden Rechnung."
+        "Im Büro darauf aufbauen",
+        "Den Handwerksschein kannst du als PDF bereitstellen und bei der Abrechnung heranziehen. Dein Büro prüft die dokumentierten Leistungen und erstellt die passende Rechnung. Die Kundenunterschrift bestätigt den Nachweis; sie ersetzt nicht die Prüfung und Abrechnung."
       ]
     ],
     "steps": [
@@ -153,19 +153,19 @@
     "faq": [
       [
         "Kann der Kunde direkt am Handy unterschreiben?",
-        "Ja. Digitale Handwerksscheine unterstützen eine Unterschrift in der mobilen Ansicht."
+        "Ja. Du kannst den Handwerksschein vor Ort gemeinsam durchgehen und am Handy unterschreiben lassen."
       ],
       [
         "Kann ich Fotos hinzufügen?",
-        "Ja. Fotos können die Dokumentation der ausgeführten Leistung ergänzen."
+        "Ja. Ergänze Fotos, wenn sie die ausgeführte Arbeit besser zeigen."
       ],
       [
         "Gibt es den Handwerksschein als PDF?",
-        "Ja. Ein Handwerksschein kann als PDF bereitgestellt werden."
+        "Ja. Du kannst den Handwerksschein als PDF bereitstellen."
       ],
       [
         "Funktioniert der gesamte Handwerksschein offline?",
-        "Für Handwerksscheine solltest du mit einer Internetverbindung planen. Die beschriebene Vormerkfunktion ohne Empfang betrifft Zeiten und Materialanforderungen."
+        "Für Handwerksscheine brauchst du eine Internetverbindung. Ohne Empfang lassen sich Zeiten und Materialanforderungen vormerken; der Handwerksschein gehört nicht dazu."
       ]
     ],
     "related": [
@@ -179,22 +179,22 @@
     "name": "Kunden & Baustellen",
     "title": "Kunden und Baustellen verwalten | Senklot",
     "description": "Kunden, Baustellen, Termine und Belege in verknüpften Akten verwalten. Senklot hält Auftragsinformationen für Installationsbetriebe gemeinsam verfügbar.",
-    "headline": "Eine Akte. Der Zusammenhang bleibt.",
-    "intro": "Kunden und Baustellen bilden die gemeinsame Grundlage in Senklot. Statt Informationen für jeden Arbeitsschritt neu zusammenzusuchen, arbeitest du mit verknüpften Akten, Terminen und Belegen.",
+    "headline": "Ein Kunde. Alles, was dazugehört.",
+    "intro": "Eine Rückfrage am Telefon oder ein neuer Einsatz: Du findest Kontakte, Baustellen und Unterlagen dort, wo sie zusammengehören. So musst du nicht bei jedem Auftrag von vorne suchen.",
     "image": "kundenakte",
     "caption": "Kundenakte in Senklot · fiktive Beispieldaten",
     "sections": [
       [
-        "Kundeninformationen mit den Aufträgen verbinden",
-        "Die Kundenakte hält Kontaktdaten und zugehörige Baustellen zusammen. So ist der Kunde nicht nur ein Name auf einem einzelnen Beleg. Du kannst den Zusammenhang zwischen Kontakt, Einsatzort und den weiteren Vorgängen im Betrieb nachvollziehen."
+        "Den Kunden und seine Aufträge zusammen sehen",
+        "In der Kundenakte findest du die Kontaktdaten und die zugehörigen Baustellen. Du siehst, wer dein Ansprechpartner ist, wo gearbeitet wird und welche Vorgänge dazugehören. Das hilft beim nächsten Anruf genauso wie bei der Vorbereitung eines Einsatzes."
       ],
       [
-        "Baustellen als gemeinsamen Bezugspunkt verwenden",
-        "In der Baustellenakte laufen auftragsbezogene Informationen zusammen. Termine, Handwerksscheine und die Verbindungen zu Angebot und Abrechnung unterstützen die weitere Bearbeitung. Büro und Außendienst beziehen sich auf dieselbe Baustelle, auch wenn sie unterschiedliche Aufgaben erledigen."
+        "Alles Wichtige zur Baustelle griffbereit",
+        "Termine, Handwerksscheine, Angebot und Abrechnung treffen sich in der Baustellenakte. Dein Büro und das Team vor Ort arbeiten damit an derselben Grundlage. Jeder findet die Informationen, die er für seine Aufgabe braucht."
       ],
       [
-        "Informationen gezielt zugänglich machen",
-        "Nicht jeder Mitarbeiter braucht denselben Zugriff. Rollen und Freigaben bestimmen, welche Informationen und Aktionen verfügbar sind. In einer Demo kannst du prüfen, wie die Akten zu euren Zuständigkeiten passen – vom Monteur über das Büro bis zur Projektleitung."
+        "Den passenden Zugriff vergeben",
+        "Du bestimmst über Rollen und Freigaben, wer welche Informationen sieht und was bearbeiten darf. In der Demo zeige ich dir gerne, wie das für Monteure, Büro und Projektleitung aussehen kann."
       ]
     ],
     "steps": [
@@ -214,15 +214,15 @@
     "faq": [
       [
         "Kann ein Kunde mehrere Baustellen haben?",
-        "Ja. Die Kundenakte zeigt die zugehörigen Baustellen im Zusammenhang."
+        "Ja. In der Kundenakte findest du die zugehörigen Baustellen zusammen."
       ],
       [
         "Entsteht aus einem Angebot eine Baustelle?",
-        "Aus einem angenommenen Angebot kann in Senklot die zugehörige Baustelle entstehen."
+        "Aus einem angenommenen Angebot kannst du in Senklot die passende Baustelle anlegen."
       ],
       [
         "Sehen alle Mitarbeiter dieselben Informationen?",
-        "Die verfügbaren Ansichten und Aktionen richten sich nach den vergebenen Rollen und Berechtigungen."
+        "Das entscheidest du über Rollen und Rechte. Damit passt du die verfügbaren Ansichten und Aktionen an die Aufgaben im Team an."
       ]
     ],
     "related": [
@@ -237,21 +237,21 @@
     "title": "Material und Lager für Installationsbetriebe | Senklot",
     "description": "Materialanforderungen, Bereitstellung, Bestände und Rückgaben zusammenhalten. Senklot verbindet Materialabläufe mit Baustellen und unterstützt DATANORM-Import.",
     "headline": "Material anfordern. Den Überblick behalten.",
-    "intro": "Senklot verbindet Materialanforderungen vom Einsatzort mit den Aufgaben im Büro und Lager. Anforderungen, Bestände und Rückgaben lassen sich im Zusammenhang mit den Baustellen bearbeiten.",
+    "intro": "Auf der Baustelle fehlt etwas? Dein Team fordert Material am Handy an, und im Büro oder Lager könnt ihr die Bereitstellung organisieren. Anforderungen, Bestände und Rückgaben bleiben im Blick.",
     "image": "material-mobil",
     "caption": "Materialanforderung am Smartphone · fiktive Beispieldaten",
     "sections": [
       [
-        "Den Bedarf auf der Baustelle festhalten",
-        "Wenn am Einsatzort Material gebraucht wird, kann das Team die Anforderung am Smartphone erfassen. Die Zuordnung zur Baustelle hilft dem Büro dabei, den Bedarf einzuordnen. Eine Anforderung ist dabei ein interner Arbeitsschritt; sie ist nicht automatisch eine ausgelöste Bestellung beim Lieferanten."
+        "Den Bedarf direkt vor Ort melden",
+        "Dein Team erfasst am Handy, welches Material auf der Baustelle gebraucht wird. Im Büro seht ihr, wohin die Anforderung gehört, und könnt sie bearbeiten. Eine Materialanforderung ist dabei eine interne Meldung und noch keine Bestellung beim Lieferanten."
       ],
       [
-        "Bereitstellung und Rückgaben bearbeiten",
-        "Im Büro und Lager werden Anforderungen weiterbearbeitet und Materialabläufe nachvollzogen. Bestände und Rückgaben gehören zum gemeinsamen Überblick. Welche Schritte ihr nutzt, richtet sich nach eurem Materialprozess und den aktivierten Modulen."
+        "Für den nächsten Einsatz vorbereiten",
+        "Im Büro und Lager bearbeitet ihr die Anforderungen und organisiert das Material. Bestände und Rückgaben bleiben im gemeinsamen Überblick. Welche Schritte ihr nutzt, richtet sich nach eurem Ablauf und den aktivierten Modulen."
       ],
       [
-        "Mit vorhandenen Artikeldaten arbeiten",
-        "Senklot unterstützt DATANORM-Import für Artikeldaten. Damit steht ein Weg zur Übernahme entsprechender Katalogdaten bereit. Vor dem Einsatz sollte anhand einer tatsächlich verwendeten Datei geprüft werden, ob die enthaltenen Daten und Zuordnungen zum betrieblichen Ablauf passen."
+        "Vorhandene Artikeldaten nutzen",
+        "Du arbeitest schon mit DATANORM-Dateien? Senklot unterstützt den Import dieser Artikeldaten. Gemeinsam prüfen wir an einer eurer Dateien, ob die Daten und Zuordnungen für euren Alltag passen."
       ]
     ],
     "steps": [
@@ -271,15 +271,15 @@
     "faq": [
       [
         "Kann das Team Material am Handy anfordern?",
-        "Ja. Materialanforderungen können über die mobile Ansicht erfasst werden."
+        "Ja. Die Anforderung lässt sich direkt am Handy zur passenden Baustelle erfassen."
       ],
       [
         "Was passiert bei einer Materialanforderung ohne Empfang?",
-        "Bei bestehender Anmeldung können Materialanforderungen vorgemerkt und später übertragen werden. Der Übertragungszustand bleibt in der App erkennbar."
+        "Wenn du bereits angemeldet bist, kannst du die Anforderung vormerken und später übertragen. Die App zeigt dir den Übertragungsstand."
       ],
       [
         "Kann ich DATANORM-Dateien importieren?",
-        "Ja. Senklot unterstützt DATANORM-Import für Artikeldaten. Die konkrete Datei und die benötigten Zuordnungen sollten vor dem produktiven Einsatz geprüft werden."
+        "Ja. Für Artikeldaten gibt es einen DATANORM-Import. Schauen wir uns vor eurem Start eine konkrete Datei und die benötigten Zuordnungen an."
       ]
     ],
     "related": [
@@ -293,22 +293,22 @@
     "name": "Angebote & Rechnungen",
     "title": "Angebote und Rechnungen für Installateure | Senklot",
     "description": "Angebote kalkulieren, Leistungen abrechnen und offene Zahlungen verfolgen. Senklot verbindet Baustellen mit Rechnungen, Mahnwesen, PDF und ebInterface-Export.",
-    "headline": "Vom Angebot bis zur offenen Zahlung.",
-    "intro": "Senklot hält Angebot, Baustelle, Leistungsnachweis und Rechnung zusammen. Das Büro kann Leistungen abrechnen, Zahlungen erfassen und erkennen, welche Beträge noch offen sind.",
+    "headline": "Vom ersten Angebot bis zur Rechnung.",
+    "intro": "Du hast die Arbeit erledigt, jetzt soll auch die Abrechnung stimmen. Senklot hält Angebot, Baustelle und Leistungsnachweis zusammen. So behältst du Rechnungen und offene Zahlungen im Blick.",
     "image": "rechnungen",
     "caption": "Rechnungsübersicht in Senklot · fiktive Beispieldaten",
     "sections": [
       [
-        "Mit einem nachvollziehbaren Angebot beginnen",
-        "Du kalkulierst Leistungen im Angebot und hältst den Bezug zum Kunden fest. Aus einem angenommenen Angebot kann die zugehörige Baustelle entstehen. Damit bleibt die vereinbarte Grundlage mit dem weiteren Auftrag verbunden, statt nur als getrenntes Dokument vorzuliegen."
+        "Mit dem Angebot anfangen",
+        "Du kalkulierst die Leistungen und hältst fest, was du mit deinem Kunden vereinbarst. Aus dem angenommenen Angebot kannst du die passende Baustelle anlegen. So bleibt die Grundlage des Auftrags auch bei der weiteren Arbeit griffbereit."
       ],
       [
-        "Dokumentierte Leistungen abrechnen",
-        "Im weiteren Ablauf unterstützen die zur Baustelle dokumentierten Leistungen die Rechnungserstellung. Handwerksscheine, Material und Zeitangaben liefern den Zusammenhang für die Prüfung im Büro. Welche Positionen in eine Rechnung gehören, muss weiterhin anhand des Auftrags und der Vereinbarung beurteilt werden."
+        "Die geleistete Arbeit abrechnen",
+        "Handwerksscheine, Material und Zeitbuchungen liefern deinem Büro die Informationen von der Baustelle. Ihr prüft die Leistungen und erstellt die Rechnung passend zum Auftrag und zur Vereinbarung mit dem Kunden."
       ],
       [
-        "Zahlungen und Ergebnisse im Blick behalten",
-        "Die Rechnungsübersicht hilft beim Nachverfolgen offener Beträge. Zahlungen lassen sich erfassen und fällige Mahnungen bearbeiten. PDF und E-Rechnung im ebInterface-Format stehen als Belegformate zur Verfügung. Die Nachkalkulation stellt Personal- und Materialkosten dem Erlös gegenüber; fehlende Kostengrundlagen bleiben dabei erkennbar."
+        "Wissen, was noch offen ist",
+        "Erfasse Zahlungen und bearbeite fällige Mahnungen. Belege stehen als PDF und als E-Rechnung im ebInterface-Format zur Verfügung. In der Nachkalkulation kannst du Personal- und Materialkosten dem Erlös gegenüberstellen; fehlende Kostengrundlagen bleiben sichtbar."
       ]
     ],
     "steps": [
@@ -328,19 +328,19 @@
     "faq": [
       [
         "Unterstützt Senklot E-Rechnungen?",
-        "Senklot kann E-Rechnungen im ebInterface-Format bereitstellen. Ob dieses Format für einen bestimmten Empfänger passt, ist vor der Übermittlung zu prüfen."
+        "Ja, im ebInterface-Format. Vor dem Versand solltest du prüfen, ob dein Empfänger dieses Format annimmt."
       ],
       [
         "Kann ich Zahlungen und Mahnungen bearbeiten?",
-        "Ja. Zahlungen können erfasst und fällige Mahnungen bearbeitet werden."
+        "Ja. Du kannst Zahlungen erfassen und fällige Mahnungen bearbeiten."
       ],
       [
         "Gibt es zusätzliche Gebühren pro Rechnung?",
-        "In den genannten Paketen sind keine zusätzlichen Gebühren pro Rechnung, Baustelle oder Artikel vorgesehen. Die vereinbarten Funktionen und Nutzerzahlen bestimmen den Tarif."
+        "Nein, in den angebotenen Paketen fallen keine zusätzlichen Gebühren pro Rechnung, Baustelle oder Artikel an. Welches Paket passt, richtet sich nach eurem Funktionsumfang und der Zahl der Nutzer."
       ],
       [
         "Wie viel kostet Senklot?",
-        "Die monatlichen Einführungspreise für Pilotbetriebe betragen {{MONAT_STARTER}} bis 5 Nutzer, {{MONAT_TEAM}} für 6–15 Nutzer und {{MONAT_BETRIEB}} für 16–30 Nutzer, jeweils netto zuzüglich Umsatzsteuer. Die begleitete Einrichtung ist optional: {{SETUP_STARTER}}, {{SETUP_TEAM}} beziehungsweise {{SETUP_BETRIEB}} netto einmalig, nur bei Buchung. Bei eigenständigem Start fällt keine Einrichtungsgebühr an. Bei jährlicher Vorauszahlung gibt es 10 % Rabatt auf das Abonnement; die optionale Einrichtung wird nicht rabattiert. {{PREISBINDUNG}}"
+        "Die Pakete starten bei {{MONAT_STARTER}} monatlich für bis zu 5 Nutzer. Für 6–15 Nutzer sind es {{MONAT_TEAM}}, für 16–30 Nutzer {{MONAT_BETRIEB}}, jeweils netto zuzüglich Umsatzsteuer. Wenn du ein Jahr im Voraus zahlst, erhältst du 10 % Rabatt auf das Abonnement. Die begleitete Einrichtung kannst du auf Wunsch dazubuchen; sie wird separat berechnet und nicht rabattiert. Die Details findest du in der Paketübersicht auf der Startseite."
       ]
     ],
     "related": [

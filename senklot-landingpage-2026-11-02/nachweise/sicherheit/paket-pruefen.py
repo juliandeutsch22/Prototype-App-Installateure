@@ -16,7 +16,8 @@ with zipfile.ZipFile(R/'world4you-upload.zip') as z:
  for name in [p for p in files if p.endswith('index.html')]:
   html=z.read(name).decode()
   assert '{{' not in html and '229 €' not in html and '379 €' not in html
- home=z.read('index.html').decode();assert all(t in home for t in ['179 €','249 €','id="einstieg"','id="betrieb"','id="einrichtung"','id="faq-einstieg"','id="faq-alltag"','kostenlos und unverbindlich','12 Monate garantiert','Optionale Einrichtung','keine Einrichtungsgebühr','name="einrichtung"'])
+  assert not any(term in html for term in ['Einführungspreis','EINFÜHRUNGSPREIS','Pilotbetrieb','PILOTBETRIEB','12 Monate garantiert'])
+ home=z.read('index.html').decode();assert all(t in home for t in ['179 €','249 €','id="einstieg"','id="betrieb"','id="einrichtung"','id="faq-einstieg"','id="faq-alltag"','kostenlos und unverbindlich','Optionale Einrichtung','keine Einrichtungsgebühr','name="einrichtung"'])
  for slug in ['impressum','datenschutz']:
   html=z.read(slug+'/index.html').decode()
   assert 'noindex,follow' in html and 'rechts-entwurf' not in html
@@ -28,5 +29,5 @@ with zipfile.ZipFile(R/'world4you-upload.zip') as z:
 for p in R.glob('*/index.html'):
  if p.parent.name=='vorlagen':continue
  assert 'senklot-vorschau.webp' not in p.read_text()
-result={'dependencyHashesVerified':len(u['files']),'phpMailerVersion':u['tag'],'tariffsMatchJavaScript':True,'offerTermsMatchJavaScript':True,'localProtectionDefault':True,'localProtectionHiddenInNormalUse':True,'optionalFieldsVisible':True,'faqGroups':2,'setupOptionalByDefault':True,'introPriceGuaranteeMonths':12,'noOldPricesOrUnresolvedPlaceholders':True,'zipIntegrity':True,'htmlPages':9,'realCredentialsIncluded':False,'savedRequestsIncluded':False,'operatorDetailsPresent':True,'legalTextsIntegrated':True,'providerDocumentsReviewed':False}
+result={'dependencyHashesVerified':len(u['files']),'phpMailerVersion':u['tag'],'tariffsMatchJavaScript':True,'offerTermsMatchJavaScript':True,'localProtectionDefault':True,'localProtectionHiddenInNormalUse':True,'optionalFieldsVisible':True,'faqGroups':2,'setupOptionalByDefault':True,'regularPricesWithoutIntroductoryDeadline':True,'noOldPricesOrUnresolvedPlaceholders':True,'zipIntegrity':True,'htmlPages':9,'realCredentialsIncluded':False,'savedRequestsIncluded':False,'operatorDetailsPresent':True,'legalTextsIntegrated':True,'providerDocumentsReviewed':False}
 (R/'nachweise/sicherheit/paket-pruefung.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))

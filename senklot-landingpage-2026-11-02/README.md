@@ -44,7 +44,7 @@ Die kurzen Erscheinanimationen laufen einmal beim Sichtbarwerden. Reduzierte Bew
 - Telefon im Kontaktbereich und Footer: **+43 660 6322503**.
 - Anmeldung: **https://app.senklot.at/**. Die erreichbare Schreibweise mit „k“ wurde anhand der App und ihrer Versionskennung überprüft.
 - Impressum und Datenschutz verweisen auf die vorhandenen Seiten der App.
-- Einführungspreise für Pilotbetriebe nach Vorgabe: Starter 129 €, Team 179 €, Betrieb 249 € monatlich. Optionale Einrichtung 199 / 399 / 699 €, nur bei Buchung. Alle Beträge netto zuzüglich gesetzlicher Umsatzsteuer. Keine erfundenen Referenzkunden, Bewertungen oder Einsparungszahlen.
+- Reguläre Paketpreise nach Vorgabe: Starter 129 €, Team 179 €, Betrieb 249 € monatlich. Optionale Einrichtung 199 / 399 / 699 €, nur bei Buchung. Alle Beträge netto zuzüglich gesetzlicher Umsatzsteuer. Keine erfundenen Referenzkunden, Bewertungen oder Einsparungszahlen.
 
 ## Neue Preis- und Kontaktbereiche
 
@@ -75,7 +75,7 @@ Die Aufnahmen sind keine erneute fachliche Prüfung der Betriebssoftware. Es wur
 
 ## Feedback-Überarbeitung vom 4. November 2026
 
-Neue Einführungspreise 129 / 179 / 249 € netto bei unveränderten Nutzergrenzen. Die begleitete Einrichtung ist optional: 199 / 399 / 699 € netto, ausschließlich bei Buchung. Ohne Buchung fällt keine Einrichtungsgebühr an. Anzeige, Suchmaschinen-Daten, Jahresrabatt, Tarifauswahl und serverseitige Anfrage-E-Mails verwenden dieselbe Preisquelle. Die Einführungspreise sind ab Vertragsbeginn für 12 Monate garantiert. Die Konditionen einer Weiterführung stehen vor Vertragsabschluss im Angebot; es gibt keinen hinterlegten automatischen Preissprung.
+Reguläre Paketpreise 129 / 179 / 249 € netto bei unveränderten Nutzergrenzen. Die begleitete Einrichtung ist optional: 199 / 399 / 699 € netto, ausschließlich bei Buchung. Ohne Buchung fällt keine Einrichtungsgebühr an. Anzeige, Suchmaschinen-Daten, Jahresrabatt, Tarifauswahl und serverseitige Anfrage-E-Mails verwenden dieselbe Preisquelle. Die Preise werden ohne befristete Einführungsaktion dargestellt. Eine feste Zwölfmonats-Preisgarantie und Aussagen zu späteren Folgepreisen werden nicht mehr beworben.
 
 Ein typischer Auftrag (Heizungsmodernisierung) erklärt den Zusammenhang der Funktionen. Neue Abschnitte beschreiben den Einstieg in drei Schritten, die Prüfung vorhandener Exportdateien, den Einrichtungsumfang, Support, Rollen, Sicherungen und Datenauszüge. Grundlage sind nachprüfbare Funktionen; Betriebsvereinbarungen werden vor dem Start geklärt. Es gibt keine erfundenen Kundenstimmen, Verfügbarkeitsgarantien oder gemessenen Zeitersparnisse.
 
@@ -85,7 +85,7 @@ Die kostenlose Demo ist mit etwa 30 Minuten veranschlagt. Alle Formularfelder si
 - [Betriebsgrundlagen Desktop](09-vertrauen-1440.png) · [Betriebsgrundlagen mobil](09-vertrauen-390.png)
 - [Prüfung von Preisen und Formular](nachweise/feedback-pruefung.json)
 
-Vor dem tatsächlichen Pilotstart sind Angebotsumfang, Supportzeiten, Datenübernahme und Sicherungs-/Wiederherstellungsprozess verbindlich abzustimmen. Nach den ersten Monaten sind tatsächliche Einrichtungs- und Supportzeiten sowie Betriebskosten zu erfassen und die Preise für weitere Kunden zu prüfen. Echte Erfahrungsberichte können erst nach einem Pilotbetrieb und mit dessen Zustimmung ergänzt werden.
+Vor dem produktiven Start sind Angebotsumfang, Supportzeiten, Datenübernahme und Sicherungs-/Wiederherstellungsprozess verbindlich abzustimmen. Nach den ersten Monaten sind tatsächliche Einrichtungs- und Supportzeiten sowie Betriebskosten zu erfassen und die Preise für weitere Kunden zu prüfen. Echte Erfahrungsberichte können nach tatsächlicher Nutzung und mit Zustimmung des Betriebs ergänzt werden.
 
 Bei jedem Tarif lässt sich der genaue Einrichtungsumfang aufklappen: Grundeinstellungen, Nutzer und Rollen im jeweiligen Paketumfang, Modulkonfiguration sowie eine Einführung mit Testauftrag und gemeinsamer Prüfung. Zusätzliche Datenübernahmen, Entwicklung und Schulungen sind gesondert abgegrenzt.
 
@@ -116,3 +116,12 @@ Alle neun Seiten verweisen auf `assets/favicon-96.png` (96 × 96 Pixel) und `fav
 Für eine bestehende Installation genügt [favicon-update.zip](favicon-update.zip): entpacken und die elf enthaltenen Dateien unter Beibehaltung der Ordnerstruktur hochladen. Das Update enthält keine Konfiguration und keinen Backend-Code. Die Google-Übernahme wird dadurch vorbereitet, nicht garantiert; anschließend die Startseite in der Search Console zur erneuten Indexierung einreichen.
 
 Zum lokalen Neuerzeugen benötigen `werkzeuge/favicons-erstellen.py` und die Seitengenerierung CairoSVG (verwendet: 2.9.1) und Pillow. Auf dem Hosting werden nur die fertigen Dateien benötigt.
+
+
+## Persönlichere Texte – 5. November 2026
+
+Startseite und sechs Funktionsseiten sprechen den Alltag im Betrieb direkter an. Julian Deutsch aus Gleisdorf wird als persönlicher Ansprechpartner vorgestellt. Funktionsseiten führen stärker zu den Produktansichten statt wiederholt zu Preisen. Das FAQ ersetzt die Frage zur Preisbindung durch eine Frage zur Datenübernahme.
+
+Die Preise 129 / 179 / 249 € netto monatlich und die optionale Einrichtung für 199 / 399 / 699 € netto bleiben gleich. Die bisherigen Aktions- und Zwölfmonats-Aussagen wurden aus öffentlichen Texten, Suchmaschinendaten, Formularzusammenfassung und HTML-/Klartext-Mails entfernt. Jahresrabatt, Nutzergrenzen, Auswahl und Versandlogik bleiben erhalten. Datenschutzfristen werden dadurch nicht verändert.
+
+Für dieses Update das aktuelle [World4you-Paket](world4you-upload.zip) verwenden. Die funktionierende `senklot-intern/config.php` und `senklot-intern/speicher/` erhalten. Das kleine Favicon-ZIP dokumentiert ausschließlich den separaten Stand vom 4. November und ist kein Textupdate.
