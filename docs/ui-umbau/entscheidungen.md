@@ -1435,3 +1435,65 @@ der Person und die Zeiterfassung des Monteurs zeigen es auf Klick),
 `schema.test.ts` (Riegel gegen den Support) und `ruecklauf.test.ts`
 (Sicherung samt Protokoll zurückgespielt, nichts doppelt). Gegenprobe:
 ohne Migration und Bausteine rot.
+
+**E51 — SHK-Ausbau: Zielumfang, die vier Vorentscheidungen und was am Plan nicht stimmte (06.11.2026).**
+Auftrag: „Starte direkt mit der Umsetzung aller empfohlenen Punkte und
+vollständigen Integration“ zur geprüften Bauplanung vom 06.11.2026
+(84 Katalogpunkte A01–G11 plus N01 frei konfigurierbare Zeitfelder und N02
+durchgängig schaltbare Fachmodule). Plan, Bestandsmatrix, Abnahmematrix, Aktionsinventar und Nachweisregister liegen unter
+`docs/shk-ausbau/`.
+
+- **Zielumfang: der empfohlene** (Bauplanung 1.1). „Behalten“ und
+  „Integrieren“ werden gebaut, „Optional“ wird gebaut und ist je Betrieb
+  schaltbar, bei „Ändern“ und „Ersetzen“ gilt der empfohlene Inhalt (Z01,
+  Z04, B04, B09, U01/U02, U05, A01/A02). Die Originalfassungen dieser
+  Punkte sind nicht beauftragt; kein Punkt verschwindet still — jeder steht
+  mit seinem Stand in `docs/shk-ausbau/bestandsmatrix.md`.
+- **V1 — Kunden und Baustellen bleiben Kern.** Abschaltbar werden ihre
+  Zusatzfähigkeiten (Aufgaben, Mängel, Objekte, Meilensteine, Board …).
+  Rechnungen, Planung, Zeit, Scheine und Wartung beziehen sich auf
+  Baustellen; ohne sie gäbe es nichts, worauf sie sich beziehen.
+- **V2 — Die Zeiterfassung wird abschaltbar, mit Folgenvorschau.** Ausdrücklich
+  verlangt (N02). Historie, Exporte und das Änderungsprotokoll (E50) bleiben
+  lesbar; die Regie aus Stunden fällt weg, die Regie aus dem Schein bleibt.
+  Eigenes Paket, weil es Mitarbeiterübersicht, Monatsbilanzen, Lohn-Export,
+  Nachkalkulation und Abrechnung berührt.
+- **V3 — Der Server prüft das Modul bei NEUEN Fachbefehlen.** Über eine
+  `stable`-Hilfsfunktion, einmal je Abfrage gerechnet wie `app.lesebetrieb()`.
+  Bestehende Schreibwege bleiben, wie sie sind. Das kehrt die Entscheidung im
+  Kopf von `src/lib/module.ts` („ein abgeschaltetes Modul ist keine
+  Sicherheitsgrenze“) für neue Befehle um; der Grund dort (eine
+  Leseoperation je Schreibvorgang) trägt bei einer Hilfsfunktion, die je
+  Abfrage einmal liest, nicht mehr. Die Hilfsfunktion entsteht mit dem
+  ersten Befehl, der sie braucht.
+- **V4 — Abrechnungsart und Nummernvorsatz stehen bei der Freigabe einer
+  Angebotsfassung zum Versand fest.** Ohne beides gibt es keinen
+  Annahme-Link (A06): `angebot_annehmen` verlangt sie, und ein Kunde wählt
+  sie nicht.
+- **U05 — nachweisbedürftige Ansichten, abschließend:** das Öffnen einer
+  Angebotsfassung über ihren Annahme-Link (A06) und einer
+  Wartungsvereinbarung über ihren Unterschrifts-Link (W05) durch den
+  Empfänger. Dazu kommen die Versandereignisse (M14). Eine allgemeine
+  Nutzungsverfolgung gibt es nicht; die Supportzugriffe sind schon heute
+  protokolliert (`support_zugriffe`).
+
+**Was an der Bauplanung nicht stimmt** (am Code `b1e00cc` geprüft):
+
+- **Die Modulverwaltung gehört allein dem Administrator**, nicht
+  „Geschäftsführung und Administrator“ (Bauplanung 0.5). Belege:
+  `app.firmeneinstellungen_geschuetzt()` in
+  `20260912100000_dienstschluessel.sql` (`hat_rolle(array['Administrator'])`),
+  `NUR_ADMIN` für den Unterreiter „Module“ in `src/app/navigation.ts`, die
+  Prüfung „gibt die MODULE allein der Administration“ in
+  `navigation-routen.test.ts`. Veraltet sind dagegen der Kommentar in
+  `App.tsx` („die Module (Geschäftsführung)“) und der Hilfetext der Seite
+  „Module“ („ändern darf sie nur die Geschäftsführung“) — der Text sagte
+  der Geschäftsführung etwas zu, das der Server ablehnt. Beides wird mit
+  dem Modulregister berichtigt. **Daraus folgt für N01:** Die freien
+  Zeitfelder konfigurieren Geschäftsführung und Administrator (wie im
+  Masterprompt verlangt); das ist ein eigenes, serverseitig geprüftes Recht
+  wie die Sätze des Betriebs, nicht dasselbe wie die Modulverwaltung.
+- Die Anlagen der Bauplanung (Masterprompt mit den Einzelspezifikationen,
+  Produktentscheidungen und Modulzuordnung als JSON, Produktbewertung) lagen
+  dem Auftrag nicht bei. Grundlage sind Teil 5 und Anhang A der geprüften
+  Fassung; wo sie für einen Punkt nicht reichen, steht das beim Paket.
