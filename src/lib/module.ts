@@ -37,6 +37,40 @@ export type ModulId =
   | 'wartung'
   | 'zeitkonten';
 
+/**
+ * Eine Unterfähigkeit eines Moduls, etwa `baustellen.aufgaben`: ein Teil, den
+ * ein Betrieb einzeln ein- oder ausschaltet (N02, E52).
+ *
+ * WARUM UNTER EINEM MODUL und nicht als eigenes Modul: der Ausbau bringt
+ * Dutzende solcher Teile (Aufgaben, Mängel, Lagerorte, Scan, Fahrtenbuch …).
+ * Als flache Liste wären es sechzig Schalter ohne Ordnung; unter ihrem Modul
+ * steht jeder dort, wo man ihn sucht — und geht mit dem Modul aus, ohne dass
+ * jemand jeden einzeln abschalten muss.
+ *
+ * Gespeichert wird sie im selben Feld wie die Module (`companies.modules`),
+ * unter ihrer Kennung mit Punkt. Ein Schlüssel mit Punkt kollidiert mit keinem
+ * Modul, und der Server-Trigger, der die Liste schützt, schützt sie mit.
+ */
+export type FaehigkeitId = `${ModulId}.${string}`;
+
+export interface Faehigkeit {
+  id: FaehigkeitId;
+  name: string;
+  /** Ein Satz: was der Betrieb damit tut. */
+  zweck: string;
+  /** An oder aus, solange nichts festgelegt ist — und nur, wenn das Modul an ist. */
+  standard: boolean;
+  /** Weitere Voraussetzungen über das eigene Modul hinaus. */
+  abhaengigVon?: SchalterId[];
+  /** Was in der Oberfläche verschwindet. */
+  betrifft: string[];
+  /** Was beim Abschalten darüber hinaus geschieht (siehe `Modul.folgen`). */
+  folgen?: string[];
+}
+
+/** Alles, was sich schalten lässt: ein Modul oder eine Unterfähigkeit. */
+export type SchalterId = ModulId | FaehigkeitId;
+
 export interface Modul {
   id: ModulId;
   name: string;
@@ -54,6 +88,21 @@ export interface Modul {
   abhaengigVon?: ModulId[];
   /** Was in der Navigation verschwindet — für die Anzeige im Panel. */
   betrifft: string[];
+  /**
+   * Was beim Abschalten ÜBER DAS VERSCHWINDEN HINAUS geschieht und sich durch
+   * Wiedereinschalten nicht zurückholen lässt.
+   *
+   * Die Seite „Module“ versprach „vorhandene Daten bleiben unangetastet“.
+   * Für die Einsatzplanung stimmte das nicht: der Server beendet beim
+   * Abschalten die Kalender-Abos des ganzen Plans (Trigger
+   * `companies_gesamtplan_abo`), und nach dem Wiedereinschalten muss jeder
+   * seinen Link neu einrichten. Wer das erst merkt, wenn der Kalender am
+   * Telefon leer bleibt, wurde nicht gefragt. Was hier steht, sagt die
+   * Rückfrage vor dem Abschalten.
+   */
+  folgen?: string[];
+  /** Unterfähigkeiten, die einzeln schaltbar sind (N02). */
+  unter?: Faehigkeit[];
 }
 
 /**
@@ -72,6 +121,9 @@ export const MODULE: Modul[] = [
     zweck: 'Wer ist an welchem Tag auf welcher Baustelle.',
     standard: true,
     betrifft: ['Einsatzplanung', 'Wochenplan', 'Mein Einsatzplan'],
+    folgen: [
+      'Die Kalender-Abos des ganzen Einsatzplans enden. Nach dem Wiedereinschalten richtet sie jeder neu ein.',
+    ],
   },
   {
     id: 'material',
@@ -173,27 +225,56 @@ const NACH_ID = new Map(MODULE.map((m) => [m.id, m]));
  * Baustelle „keine Aussage" meldet — technisch fehlerfrei und trotzdem
  * kaputt.
  */
-export function aktiveModule(festlegung: Record<string, boolean> | undefined): Set<ModulId> {
+export function aktiveModule(
+  festlegung: Record<string, boolean> | undefined,
+  register: Modul[] = MODULE,
+): Set<ModulId> {
   const an = new Set<ModulId>();
-  for (const m of MODULE) {
-    const gewollt = festlegung?.[m.id] ?? m.standard;
-    if (gewollt) an.add(m.id);
+  for (const id of aktiveSchalter(festlegung, register)) {
+    if (!id.includes('.')) an.add(id as ModulId);
+  }
+  return an;
+}
+
+/**
+ * Was ist an — Module UND Unterfähigkeiten?
+ *
+ * Dieselben drei Stufen wie bei den Modulen; eine Unterfähigkeit hängt
+ * zusätzlich immer an ihrem Modul. Wer die Material-Verwaltung abschaltet,
+ * schaltet damit auch jeden ihrer Teile ab, ohne jeden einzeln anzufassen —
+ * und bekommt beim Wiedereinschalten dieselben Teile zurück, weil die
+ * Festlegung der Teile nicht angerührt wird.
+ */
+export function aktiveSchalter(
+  festlegung: Record<string, boolean> | undefined,
+  register: Modul[] = MODULE,
+): Set<SchalterId> {
+  const knoten: { id: SchalterId; braucht: SchalterId[] }[] = [];
+  const an = new Set<SchalterId>();
+  for (const m of register) {
+    knoten.push({ id: m.id, braucht: m.abhaengigVon ?? [] });
+    if (festlegung?.[m.id] ?? m.standard) an.add(m.id);
+    for (const f of m.unter ?? []) {
+      knoten.push({ id: f.id, braucht: [m.id, ...(f.abhaengigVon ?? [])] });
+      if (festlegung?.[f.id] ?? f.standard) an.add(f.id);
+    }
   }
 
   /**
    * Abhängigkeiten so lange nachziehen, bis sich nichts mehr ändert.
    *
    * Eine einzelne Runde genügte für die heutige Kette (Nachkalkulation ->
-   * Rechnungen), aber nicht für eine, die später zwei Stufen tief wird. Die
-   * Schleife kostet nichts und hält, wenn jemand ein Modul ergänzt.
+   * Rechnungen), aber nicht für eine, die später zwei Stufen tief wird — und
+   * mit den Unterfähigkeiten wird sie das (Teil -> Modul -> Modul). Die
+   * Schleife kostet nichts und hält, wenn jemand etwas ergänzt.
    */
   let geaendert = true;
   while (geaendert) {
     geaendert = false;
-    for (const m of MODULE) {
-      if (!an.has(m.id)) continue;
-      if (m.abhaengigVon?.some((d) => !an.has(d))) {
-        an.delete(m.id);
+    for (const k of knoten) {
+      if (!an.has(k.id)) continue;
+      if (k.braucht.some((d) => !an.has(d))) {
+        an.delete(k.id);
         geaendert = true;
       }
     }
@@ -201,22 +282,77 @@ export function aktiveModule(festlegung: Record<string, boolean> | undefined): S
   return an;
 }
 
+/** Ist dieses Modul oder diese Unterfähigkeit an? */
+export function istAn(
+  festlegung: Record<string, boolean> | undefined,
+  id: SchalterId,
+  register: Modul[] = MODULE,
+): boolean {
+  return aktiveSchalter(festlegung, register).has(id);
+}
+
 /**
- * Welche Module gingen mit, wenn man dieses abschaltet?
+ * Was ginge mit, wenn man dies abschaltet?
  *
  * Für die Rückfrage im Panel. Jemandem die Rechnungen abschalten zu lassen
  * und ihm erst hinterher zu zeigen, dass die Nachkalkulation mit verschwunden
  * ist, wäre eine Überraschung — und Überraschungen sind bei Einstellungen das
  * Gegenteil von Kontrolle.
+ *
+ * Genannt werden die MODULE, die mitgehen. Die Unterfähigkeiten des eigenen
+ * Moduls gehen selbstverständlich mit und stünden nur als Aufzählung da; die
+ * Unterfähigkeiten FREMDER Module, die an diesem hängen, werden genannt.
  */
-export function zieheMit(id: ModulId, festlegung: Record<string, boolean> | undefined): ModulId[] {
-  const vorher = aktiveModule(festlegung);
+export function zieheMit(
+  id: SchalterId,
+  festlegung: Record<string, boolean> | undefined,
+  register: Modul[] = MODULE,
+): SchalterId[] {
+  const vorher = aktiveSchalter(festlegung, register);
   if (!vorher.has(id)) return [];
-  const nachher = aktiveModule({ ...(festlegung ?? {}), [id]: false });
-  return [...vorher].filter((m) => m !== id && !nachher.has(m));
+  const nachher = aktiveSchalter({ ...(festlegung ?? {}), [id]: false }, register);
+  return [...vorher].filter(
+    (m) => m !== id && !nachher.has(m) && !m.startsWith(`${id}.`),
+  );
+}
+
+/**
+ * Was geschieht beim Abschalten über das Verschwinden hinaus — für dies und
+ * alles, was mitgeht?
+ *
+ * Wer die Rechnungen abschaltet und damit die Nachkalkulation verliert, muss
+ * auch deren Folgen erfahren, nicht nur die der Rechnungen.
+ */
+export function folgenBeimAbschalten(
+  id: SchalterId,
+  festlegung: Record<string, boolean> | undefined,
+  register: Modul[] = MODULE,
+): string[] {
+  const betroffen = [id, ...zieheMit(id, festlegung, register)];
+  const vorher = aktiveSchalter(festlegung, register);
+  // Die eigenen Unterfähigkeiten gehen mit, auch wenn zieheMit sie nicht nennt.
+  for (const s of vorher) if (s.startsWith(`${id}.`)) betroffen.push(s);
+  const folgen: string[] = [];
+  for (const s of betroffen) {
+    for (const f of schalter(s, register)?.folgen ?? []) if (!folgen.includes(f)) folgen.push(f);
+  }
+  return folgen;
 }
 
 /** Ein Modul nachschlagen. */
-export function modul(id: ModulId): Modul | undefined {
-  return NACH_ID.get(id);
+export function modul(id: ModulId, register: Modul[] = MODULE): Modul | undefined {
+  return register === MODULE ? NACH_ID.get(id) : register.find((m) => m.id === id);
+}
+
+/** Ein Modul oder eine Unterfähigkeit nachschlagen. */
+export function schalter(
+  id: SchalterId,
+  register: Modul[] = MODULE,
+): Modul | Faehigkeit | undefined {
+  for (const m of register) {
+    if (m.id === id) return m;
+    const f = m.unter?.find((u) => u.id === id);
+    if (f) return f;
+  }
+  return undefined;
 }

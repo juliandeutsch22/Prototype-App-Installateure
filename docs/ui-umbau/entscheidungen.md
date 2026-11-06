@@ -1497,3 +1497,44 @@ durchgängig schaltbare Fachmodule). Plan, Bestandsmatrix, Abnahmematrix, Aktion
   Produktentscheidungen und Modulzuordnung als JSON, Produktbewertung) lagen
   dem Auftrag nicht bei. Grundlage sind Teil 5 und Anhang A der geprüften
   Fassung; wo sie für einen Punkt nicht reichen, steht das beim Paket.
+
+**E52 — Das Modulregister mit Unterfähigkeiten und Folgen (06.11.2026).**
+SHK-Ausbau, Paket M01a (N02). Der Ausbau bringt Dutzende Teile, die ein
+Betrieb einzeln schalten können soll (Aufgaben, Mängel, Lagerorte, Scan,
+Fahrtenbuch …). Als eigene Module wären das sechzig Schalter ohne Ordnung.
+
+- **Unterfähigkeiten unter ihrem Modul.** Kennung mit Punkt
+  (`material.lagerorte`), gespeichert im selben Feld `companies.modules` wie
+  die Module. Damit schützt sie derselbe Server-Trigger, ohne Migration. Eine
+  Unterfähigkeit hat ihren eigenen Standard, gilt nur mit ihrem Modul, kann
+  von weiteren Schaltern abhängen und kommt mit dem Modul so zurück, wie sie
+  festgelegt war. Die Seite „Module“ zeigt sie als Zeile direkt unter ihrem
+  Modul („Teil von …“). Das Register trägt noch keine: Die ersten kommen mit
+  den Paketen, die sie bauen. `useModul` nimmt beide Arten von Kennungen.
+- **Folgen beim Abschalten.** Ein Eintrag kann nennen, was beim Abschalten
+  über das Verschwinden hinaus geschieht und sich nicht zurückholen lässt.
+  Die Rückfrage sagt das vorher, auch für alles, was mitgeht. Anlass war ein
+  stiller Widerspruch: Die Seite versprach „vorhandene Daten bleiben
+  unangetastet“, der Server beendet beim Abschalten der Einsatzplanung aber
+  die Kalender-Abos des ganzen Plans (`companies_gesamtplan_abo`). Jetzt
+  fragt die Seite dort nach und sagt es. Der Satz über die Daten passt sich
+  an: „Alle übrigen Daten bleiben erhalten“, wo etwas nicht zurückkommt.
+- **Berichtigt:** Die Hilfe der Seite sagte, die Liste ändere „nur die
+  Geschäftsführung“; der Server lässt nur den Administrator (E51). Ebenso
+  der Kommentar in `App.tsx` und der zum Feld `modules` (gespeichert sind
+  die berührten Schalter, nicht nur die Abweichungen).
+- **Gleich geblieben:** dieselben neun Module mit denselben Kennungen,
+  Standards und Abhängigkeiten; jede Rolle hat dieselbe Navigation; wer
+  schalten darf, wie bisher. Die Serverprüfung neuer Befehle (V3) entsteht
+  mit dem ersten Befehl, der sie braucht.
+
+**Prüfungen.**
+- `modulRegister.test.ts` (neu): Erhaltung von Register und Navigation je
+  Rolle, Folgen der Einsatzplanung, Unterfähigkeiten am Prüfregister.
+- `ModulesViewUnter.test.tsx` (neu): Zeilen unter dem Modul, gehen mit ihm
+  aus, Speichern unter der Kennung.
+- `ModulesView.test.tsx`: Rückfrage der Einsatzplanung, Hilfe nennt den
+  Administrator.
+
+Gegenprobe: ohne die Änderung 15 rot; die drei Erhaltungsprüfungen sind vor
+und nach der Änderung grün, wie es sein soll.

@@ -520,7 +520,8 @@ function AppRoutes() {
       />
       {/*
         Einstellungen unter EINEM Reiter: die eigenen Meldungen (jede Rolle),
-        die Sätze des Betriebs und die Module (Geschäftsführung). Der Reiter
+        die Sätze des Betriebs (Geschäftsführung) und die Module (allein der
+        Administrator, Trigger `companies_einstellungen`). Der Reiter
         steht allen offen, weil die Meldungen jedem gehören — was enger ist,
         steht als Rollenliste bei der Unterseite.
 
