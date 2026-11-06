@@ -1,0 +1,464 @@
+{
+  "stand": "2026-11-06",
+  "status": "Planung, keine implementierte Modulkonfiguration",
+  "zuordnung": {
+    "A01": {
+      "hauptmodul": "baustellen",
+      "unterfaehigkeit": "auftragsphasen_board",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "A02": {
+      "hauptmodul": "baustellen",
+      "unterfaehigkeit": "auftragsphasen_board",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "A03": {
+      "hauptmodul": "baustellen",
+      "unterfaehigkeit": "auftragseingang",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "A04": {
+      "hauptmodul": "baustellen",
+      "unterfaehigkeit": "meilensteine",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "A05": {
+      "hauptmodul": "angebote",
+      "unterfaehigkeit": "leistungsverzeichnis",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "A06": {
+      "hauptmodul": "angebote",
+      "unterfaehigkeit": "online_annahme",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "A07": {
+      "hauptmodul": "angebote",
+      "unterfaehigkeit": "zielpreiskalkulation",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "A08": {
+      "hauptmodul": "angebote",
+      "unterfaehigkeit": "preisaktualisierung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "A09": {
+      "hauptmodul": "kunden",
+      "unterfaehigkeit": "liegenschaften_objekte",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "A10": {
+      "hauptmodul": "rechnungen",
+      "unterfaehigkeit": "sammelabrechnung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "A11": {
+      "hauptmodul": "baustellen",
+      "unterfaehigkeit": "auftragsimport",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "R01": {
+      "hauptmodul": "lieferscheine",
+      "unterfaehigkeit": "kundenlieferung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "R02": {
+      "hauptmodul": "lieferscheine",
+      "unterfaehigkeit": "kundenlieferung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "R03": {
+      "hauptmodul": "lieferscheine",
+      "unterfaehigkeit": "kundenlieferung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "R04": {
+      "hauptmodul": "bankabgleich",
+      "unterfaehigkeit": "camt_import",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "R05": {
+      "hauptmodul": "bankabgleich",
+      "unterfaehigkeit": "zahlungszuordnung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "G08": {
+      "hauptmodul": "bankabgleich",
+      "unterfaehigkeit": "zahlungszuordnung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "R06": {
+      "hauptmodul": "eingangsbelege",
+      "unterfaehigkeit": "belegverwaltung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "R07": {
+      "hauptmodul": "eingangsbelege",
+      "unterfaehigkeit": "dreiwege_abgleich",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "E15": {
+      "hauptmodul": "eingangsbelege",
+      "unterfaehigkeit": "dreiwege_abgleich",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "R08": {
+      "hauptmodul": "eingangsbelege",
+      "unterfaehigkeit": "dublettenpruefung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "G09": {
+      "hauptmodul": "eingangsbelege",
+      "unterfaehigkeit": "dublettenpruefung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "R09": {
+      "hauptmodul": "eingangsbelege",
+      "unterfaehigkeit": "kontierung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "R10": {
+      "hauptmodul": "baustellen",
+      "unterfaehigkeit": "aufmass",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "R11": {
+      "hauptmodul": "dokumente",
+      "unterfaehigkeit": "rechnungsbeilagen",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "R12": {
+      "hauptmodul": "rechnungen",
+      "unterfaehigkeit": "mahnversand",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "E01": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "katalogversionen",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "E05": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "katalogversionen",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat.",
+      "schutzregel_nicht_abschaltbar": true,
+      "schutzregel_hinweis": "Schalter steuert die angebotene Fachfähigkeit/Anzeige, nicht Mandantentrennung, gültige Beleg-/Mengen-/Zeitprüfung oder notwendig vorgeschriebene Nachvollziehbarkeit."
+    },
+    "E06": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "katalogversionen",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "E02": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "lieferantenvergleich",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "E03": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "lieferantenvergleich",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "E04": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "katalogpreisverlauf",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "G06": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "katalogpreisverlauf",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "E07": {
+      "hauptmodul": "angebote",
+      "unterfaehigkeit": "preisregeln",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "E08": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "lieferantenanfragen_angebote",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "E09": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "lieferantenanfragen_angebote",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "E10": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "lagerorte_fahrzeuglager",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "E11": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "kommissionierung_scan",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "E12": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "inventur_scan",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "E13": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "materialbereitschaft",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat.",
+      "schutzregel_nicht_abschaltbar": true,
+      "schutzregel_hinweis": "Schalter steuert die angebotene Fachfähigkeit/Anzeige, nicht Mandantentrennung, gültige Beleg-/Mengen-/Zeitprüfung oder notwendig vorgeschriebene Nachvollziehbarkeit."
+    },
+    "E14": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "bestellvorschlaege",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "G03": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "bestellvorschlaege",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "E16": {
+      "hauptmodul": "material",
+      "unterfaehigkeit": "restmaterial_retoure",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "B01": {
+      "hauptmodul": "arbeitsuebersicht",
+      "unterfaehigkeit": "mein_tag",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "B02": {
+      "hauptmodul": "zeiterfassung",
+      "unterfaehigkeit": "timer",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "B03": {
+      "hauptmodul": "angebote",
+      "unterfaehigkeit": "besichtigung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "B04": {
+      "hauptmodul": "baustellen",
+      "unterfaehigkeit": "arbeitsvorbereitung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "B05": {
+      "hauptmodul": "baustellen",
+      "unterfaehigkeit": "aufgaben",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "B06": {
+      "hauptmodul": "einsatzplanung",
+      "unterfaehigkeit": "drag_and_drop",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "B07": {
+      "hauptmodul": "einsatzplanung",
+      "unterfaehigkeit": "ersatzvorschlaege",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "G10": {
+      "hauptmodul": "einsatzplanung",
+      "unterfaehigkeit": "ersatzvorschlaege",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat.",
+      "schutzregel_nicht_abschaltbar": true,
+      "schutzregel_hinweis": "Schalter steuert die angebotene Fachfähigkeit/Anzeige, nicht Mandantentrennung, gültige Beleg-/Mengen-/Zeitprüfung oder notwendig vorgeschriebene Nachvollziehbarkeit."
+    },
+    "B08": {
+      "hauptmodul": "einsatzplanung",
+      "unterfaehigkeit": "qualifikation_material_hinweise",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat.",
+      "schutzregel_nicht_abschaltbar": true,
+      "schutzregel_hinweis": "Schalter steuert die angebotene Fachfähigkeit/Anzeige, nicht Mandantentrennung, gültige Beleg-/Mengen-/Zeitprüfung oder notwendig vorgeschriebene Nachvollziehbarkeit."
+    },
+    "B09": {
+      "hauptmodul": "kommunikation",
+      "unterfaehigkeit": "projektthreads",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "B10": {
+      "hauptmodul": "dokumente",
+      "unterfaehigkeit": "bautagesbericht",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "B11": {
+      "hauptmodul": "dokumente",
+      "unterfaehigkeit": "arbeitsbericht",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "B12": {
+      "hauptmodul": "baustellen",
+      "unterfaehigkeit": "maengel",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "B13": {
+      "hauptmodul": "dokumente",
+      "unterfaehigkeit": "abnahme",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "B14": {
+      "hauptmodul": "nachkalkulation",
+      "unterfaehigkeit": "prognose",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "B15": {
+      "hauptmodul": "dokumente",
+      "unterfaehigkeit": "sharepoint",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "Z01": {
+      "hauptmodul": "zeiterfassung",
+      "unterfaehigkeit": "korrekturantraege",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "Z02": {
+      "hauptmodul": "zeitkonten",
+      "unterfaehigkeit": "zusaetzliche_zeitmodelle",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat.",
+      "schutzregel_nicht_abschaltbar": true,
+      "schutzregel_hinweis": "Schalter steuert die angebotene Fachfähigkeit/Anzeige, nicht Mandantentrennung, gültige Beleg-/Mengen-/Zeitprüfung oder notwendig vorgeschriebene Nachvollziehbarkeit."
+    },
+    "Z03": {
+      "hauptmodul": "zeiterfassung",
+      "unterfaehigkeit": "zusaetzliche_merkmale",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "Z04": {
+      "hauptmodul": "zeiterfassung",
+      "unterfaehigkeit": "timer_erinnerung_abschlussvorschlag",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "Z05": {
+      "hauptmodul": "benutzerverwaltung",
+      "unterfaehigkeit": "qualifikationen",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "W01": {
+      "hauptmodul": "wartung",
+      "unterfaehigkeit": "pruefchecklisten",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "W02": {
+      "hauptmodul": "wartung",
+      "unterfaehigkeit": "pruefwert_hinweise",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat.",
+      "schutzregel_nicht_abschaltbar": true,
+      "schutzregel_hinweis": "Schalter steuert die angebotene Fachfähigkeit/Anzeige, nicht Mandantentrennung, gültige Beleg-/Mengen-/Zeitprüfung oder notwendig vorgeschriebene Nachvollziehbarkeit."
+    },
+    "W03": {
+      "hauptmodul": "wartung",
+      "unterfaehigkeit": "pruefberichte",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "W04": {
+      "hauptmodul": "wartung",
+      "unterfaehigkeit": "abrechnung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "W05": {
+      "hauptmodul": "wartung",
+      "unterfaehigkeit": "vertragsannahme",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "W06": {
+      "hauptmodul": "betriebsmittel",
+      "unterfaehigkeit": "fahrzeugfristen",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "W07": {
+      "hauptmodul": "betriebsmittel",
+      "unterfaehigkeit": "fahrtenbuch",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "W08": {
+      "hauptmodul": "betriebsmittel",
+      "unterfaehigkeit": "geraete",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "U01": {
+      "hauptmodul": "arbeitsuebersicht",
+      "unterfaehigkeit": "persoenlicher_aufbau",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "U02": {
+      "hauptmodul": "navigation",
+      "unterfaehigkeit": "favoriten",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "U03": {
+      "hauptmodul": "arbeitsuebersicht",
+      "unterfaehigkeit": "wochenbericht",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "U04": {
+      "hauptmodul": "nachvollziehbarkeit",
+      "unterfaehigkeit": "fachverlauf",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat.",
+      "schutzregel_nicht_abschaltbar": true,
+      "schutzregel_hinweis": "Schalter steuert die angebotene Fachfähigkeit/Anzeige, nicht Mandantentrennung, gültige Beleg-/Mengen-/Zeitprüfung oder notwendig vorgeschriebene Nachvollziehbarkeit."
+    },
+    "U05": {
+      "hauptmodul": "nachvollziehbarkeit",
+      "unterfaehigkeit": "zugriff_versand_ansicht",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat.",
+      "schutzregel_nicht_abschaltbar": true,
+      "schutzregel_hinweis": "Schalter steuert die angebotene Fachfähigkeit/Anzeige, nicht Mandantentrennung, gültige Beleg-/Mengen-/Zeitprüfung oder notwendig vorgeschriebene Nachvollziehbarkeit."
+    },
+    "U06": {
+      "hauptmodul": "datenverwaltung",
+      "unterfaehigkeit": "entwurfspapierkorb",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "G01": {
+      "hauptmodul": "rechnungen",
+      "unterfaehigkeit": "abrechnungsvorbereitung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "G02": {
+      "hauptmodul": "rechnungen",
+      "unterfaehigkeit": "abrechnungsvorbereitung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "G04": {
+      "hauptmodul": "rechnungen",
+      "unterfaehigkeit": "mehrmengenhinweis",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "G05": {
+      "hauptmodul": "nachkalkulation",
+      "unterfaehigkeit": "budgetwarnung",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "G07": {
+      "hauptmodul": "finanzuebersicht",
+      "unterfaehigkeit": "belegfristen",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    },
+    "G11": {
+      "hauptmodul": "wartung",
+      "unterfaehigkeit": "faelligkeitsregel",
+      "hinweis": "Zielzuordnung; endgültige technische IDs am Bestand abgleichen. Historien-/Abschlussrechte und unverzichtbare Schutzregeln gelten separat."
+    }
+  },
+  "auftraggeberErgaenzungen": {
+    "N01": {
+      "hauptmodul": "zeiterfassung",
+      "unterfaehigkeit": "freie_zeitfelder",
+      "konfiguration_durch": [
+        "Administrator",
+        "Geschäftsführung"
+      ],
+      "pflichtfelder": true,
+      "historische_werte_erhalten": true,
+      "neue_Anforderung_nicht_Originalkatalog": true
+    },
+    "N02": {
+      "art": "Querschnitt der Modulverwaltung; nicht selbst abschaltbare Zugangsinfrastruktur",
+      "fachliche_module_inkl_zeiterfassung_schaltbar": true,
+      "gemeinsame_datenbasis_erhalten": true,
+      "rechte_und_schutzregeln_unabhaengig": true,
+      "neue_Anforderung_nicht_Originalkatalog": true
+    }
+  },
+  "kein_84_schalter_menue": true,
+  "abhaengigkeiten_fachlich_pruefen_statt_automatisch_aus_Bereichsnamen_ableiten": true
+}

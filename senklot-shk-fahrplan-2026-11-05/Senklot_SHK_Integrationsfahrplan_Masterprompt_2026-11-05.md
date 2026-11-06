@@ -1,6 +1,6 @@
 # MASTER PROMPT — Senklot: vollständige SHK-Integration ohne KI
 
-**Stand:** 6. November 2026 (Arbeitsregeln präzisiert; Bestandsabgleich vom 5. November bleibt ausgewiesen)
+**Stand:** 6. November 2026 (Arbeitsregeln, freie Zeitfelder N01 und durchgängige Module N02; Codeabgleich vom 5. November)
 
 **Produkt:** Senklot, österreichische Betriebssoftware für Installations- und SHK-Betriebe  
 **Ergebnis:** ausführbarer Entwicklungsfahrplan mit Architektur, fachlichen Regeln, UI-Einbindung, Migrationen, Prüfungen und Freigaben
@@ -13,7 +13,7 @@
 
 Du bist verantwortlich für Produktkonzeption, Softwarearchitektur, SHK-Prozesse, Bedienbarkeit und technische Umsetzung in Senklot.
 
-Dein Ziel: Alle 84 Originalpunkte vollständig bewerten und durchplanen. Später den ausdrücklich bestätigten Zielumfang vollständig miteinander integrieren. Die ergänzende kritische Produktbewertung ist Teil dieses Auftrags; die Originalabdeckung ist keine ungeprüfte Pflichtliste von 84 Neubauten. Bestehende korrekte Abläufe, Daten, Rechte, Belege, Exporte und Bedienwege müssen erhalten bleiben. Die Oberfläche soll trotz zusätzlicher Möglichkeiten ruhig, verständlich und durchgängig in der Lot-Linie bleiben.
+Dein Ziel: Alle 84 Originalpunkte sowie die Auftraggeber-Ergänzungen N01/N02 vollständig bewerten und durchplanen. Später den ausdrücklich bestätigten Zielumfang vollständig miteinander integrieren. Die ergänzende kritische Produktbewertung ist Teil dieses Auftrags; die Originalabdeckung ist keine ungeprüfte Pflichtliste von 84 Neubauten. Bestehende korrekte Abläufe, Daten, Rechte, Belege, Exporte und Bedienwege müssen erhalten bleiben. Die Oberfläche soll trotz zusätzlicher Möglichkeiten ruhig, verständlich und durchgängig in der Lot-Linie bleiben.
 
 **Diese Datei ist zunächst ein Planungs- und Umsetzungsprompt. Sie ist selbst keine Anweisung, jetzt die App umzubauen, Produktivdaten zu verändern oder auszuliefern.** Beginne die Implementierung erst mit einem ausdrücklichen Startauftrag. Danach bearbeitest du die freigegebenen Pakete vollständig bis zu deren Abnahme. Eine Planungsfreigabe ist kein unbeschränkter Auftrag für alle folgenden Produktivänderungen.
 
@@ -298,7 +298,7 @@ Die exakten neuen Routen vor Implementierung mit App.tsx und navigation.ts absti
 - Qualifikationsübersicht für die Planung zeigt Eignung/Gültigkeit, nicht automatisch die komplette Personaldokumentation.
 - Das globale Plattformkonto bleibt außerhalb der Betriebe. Support nur zeitlich begrenzt, mandantengebunden, protokolliert und mit passendem Lese-/Schreibumfang.
 - Die derzeitige Modulverwaltung bleibt den dafür berechtigten Rollen vorbehalten; insbesondere nicht nebenbei aus dem bestehenden Administratorrecht ein allgemeines Geschäftsführungsrecht machen.
-- company.modules steuert bisher vor allem Oberfläche und Routen; es ist keine bestehende Sicherheits- oder Abrechnungsschranke. Dieses Modell nicht unbemerkt in ein neues Berechtigungssystem verwandeln.
+- company.modules steuert bisher vor allem Oberfläche und Routen; es ist keine bestehende Sicherheits- oder Abrechnungsschranke. Neue Vorgabe N02 erweitert die funktionale An-/Abschaltung ausdrücklich, einschließlich Zeiterfassung und Prüfung neuer Fachaktionen. Rollen-/Datenrechte und Schutzregeln bleiben separat bestehen; kein ungeprüfter globaler Rechteumbau.
 - Neue kostenpflichtige/privilegierte Schreibmöglichkeiten bei Bedarf gesondert serverseitig berechtigen. Ein UI-Schalter ersetzt kein Recht. Deaktivierung versteckt nicht historische Dokumente oder verhindert gesetzlich erforderliche Exporte.
 
 ### 4.2 Verpflichtende technische Prüfungen
@@ -1196,12 +1196,12 @@ Jedes Paket enthält mehrere kleine fachliche PRs; die Tabellenzeile ist **kein*
 
 | Paket | Vollständiges Ergebnis | Original-IDs | Technische Voraussetzung |
 |---|---|---|---|
-| M01 | sichere Fachbefehle, Objekt-/Dokumentverträge, Journal, ausgewählte Zugriffsnachweise und Entwurfspapierkorb | U04, U05, U06 | M00; tatsächliche bestehende Sicherheits-/Belegregeln |
+| M01 | sichere Fachbefehle, Objekt-/Dokumentverträge, Journal, Zugriffsnachweise, Entwurfspapierkorb und Modulvertrag aus N02 | U04, U05, U06 | M00; tatsächliche bestehende Sicherheits-/Belegregeln |
 | M02 | Auftragseingang, Kundenobjekte, strukturierte Aufträge und versionierte Online-Angebotsannahme | A03, A09, A11, A06 | M01; vorhandene Kunden-/Angebots-/Baustellenlogik |
 | M03 | parallele Kataloge, aktive Versionen, Regeln, sichere Preisvergleiche und Angebotskalkulation | E01, E04, E05, E06, E07, E02, E03, A07, A08, G06 | M01; DATANORM-Bestand, Identitäten und Preis-/Einheitenvertrag |
 | M04 | Lagerorte, Scan/Inventur, Materialdeckung, Beschaffungsvorschlag und Restmaterial | E10, E11, E12, E13, E14, E16, G03 | M01/M03; gemeinsam geklärte Reservierungs-/Bewegungsquellen |
 | M05 | Lieferantenanfrage/-angebote sowie Kundenlieferung mit Teilmengen und korrekter Bewegung | E08, E09, R01, R02, R03 | M04; versionierte Einkaufs-/Lieferpositionen |
-| M06 | vollständiger Start/Stopp-, Korrektur-, Zeitmodell- und Zulagenablauf | Z01, Z02, Z03, B02, Z04 | M01; aktuelle Zeit-/Saldo-/Abwesenheitslogik |
+| M06 | vollständiger Start/Stopp-, Korrektur-, Zeitmodell-, Zulagen- und freier Zeitfelderablauf aus N01 | Z01, Z02, Z03, B02, Z04 | M01; aktuelle Zeit-/Saldo-/Abwesenheitslogik |
 | M07 | Qualifikation, Aufgaben, Arbeitsvorbereitung und visuelle operative Planung | Z05, B05, B06, B07, B08, B04, G10, A01, A02, A04 | M02/M04/M06; Verfügbarkeit und Rechte |
 | M08 | Besichtigung, strukturiertes LV und freigegebenes Aufmaß zur Kalkulation/Abrechnung | B03, A05, R10 | M02/M03/M07; Dokumentfassung und Norm-/Einheitenprofile |
 | M09 | Anlagenprüfung und Bericht, Wartungsannahme/-abrechnung sowie Fahrzeug-/Gerätefristen und Fahrtenbuch | W01, W02, W03, W04, W05, W06, W07, W08, G11 | M02/M04/M07; gleiche Fahrzeugkennung wie im Lagerortmodell |
@@ -1280,6 +1280,8 @@ Feature ausschalten ist kein vollständiger Datenrollback. Neue Dokumente/Bewegu
 Vor produktiver Datenmigration getrennte Wiederherstellung mit Dateien prüfen. Nach Restore ausstehende externe Versand-/Push-/Importaktionen zunächst abgleichen/quarantänisieren: Eine außerhalb der Sicherung bereits versendete Mahnung darf nicht aufgrund eines älteren Queuezustands erneut hinausgehen.
 
 ### 9.4 Einstellungen und Module
+
+Die konkretisierte Zielregel aus N02 ist maßgeblich: alle fachlichen Bereiche und eigenständig sinnvollen Zusatzfähigkeiten schaltbar, gemeinsame Datenbasis und technische Schutzregeln erhalten. N01 gibt Administrator und Geschäftsführung ausdrücklich die Verwaltung eigener Zeitfelder; historische Modulverwaltungsrechte werden dadurch nicht pauschal erweitert.
 
 - Neue Fachbereiche mit konservativer Voreinstellung und verständlicher Aktivierung je Betrieb.
 - Vorhandene Einstellungen und Rollen als Migrationsdefault, keine plötzlich leeren Kalender oder versteckten Pflichtabläufe.
@@ -1415,8 +1417,153 @@ Wenn der Auftraggeber ausdrücklich „mit der Umsetzung beginnen“ anweist:
 6. Nach jedem Paket Bestandsmatrix, Abnahmetests, Migrationen und Handbuch nachführen; in der tatsächlichen Reihenfolge weiterarbeiten.
 7. Bekannte Probleme beheben, ohne neue unnötige Grenzen einzuführen. Eine bloße Fehlermeldung statt eines vollständigen normalen Korrekturwegs reicht nicht.
 8. CI und Auslieferung nur im ausdrücklich beauftragten Umfang durchführen. Keine Produktivdaten nebenbei aufräumen, keine externen Nachrichten als Test ungefragt verschicken.
-9. Erst „vollständig integriert“ berichten, wenn der bestätigte Zielumfang funktioniert und alle 84 Original-IDs nachvollziehbar als umgesetzt, integriert, vollständig optional, ausdrücklich ersetzt oder bewusst nicht beauftragt eingeordnet sind. Die passenden End-to-End-, Rechte-, Migrations- und Geräte-/Schnittstellenbelege müssen für den tatsächlichen Zielumfang vorliegen. Fehlende externe Nachweise konkret kennzeichnen.
+9. Erst „vollständig integriert“ berichten, wenn der bestätigte Zielumfang einschließlich beauftragter Ergänzungen N01/N02 funktioniert und alle 84 Original-IDs nachvollziehbar als umgesetzt, integriert, vollständig optional, ausdrücklich ersetzt oder bewusst nicht beauftragt eingeordnet sind. Die passenden End-to-End-, Rechte-, Migrations- und Geräte-/Schnittstellenbelege müssen für den tatsächlichen Zielumfang vorliegen. Fehlende externe Nachweise konkret kennzeichnen.
 
 **Gewünschtes Endergebnis:** Senklot hat einen einheitlichen Daten- und Aktionszusammenhang vom Auftrag über Planung, Zeit, Material, Dokumentation, Einkauf und Prüfung bis zur Abrechnung und Zahlung. Zusätzliche Möglichkeiten erscheinen dort, wo sie gebraucht werden. Die Lot-Oberfläche bleibt ruhig; Fachlichkeit wird nicht zugunsten der Optik weggelassen.
+
+
+
+## 14. Auftraggeber-Ergänzungen vom 6. November: freie Zeitfelder und durchgängige Module
+
+**Diese Ergänzungen N01 und N02 kommen zu den 84 Original-IDs hinzu.** Sie sind neue Planungsanforderungen des Auftraggebers, keine bereits implementierten Funktionen. Bei einem Widerspruch mit der bisherigen Beschreibung des Kern-/Modulmodells ist dieses Kapitel für das Zielkonzept maßgeblich. Bestands- und Sicherheitsregeln werden dafür bewusst und geprüft weiterentwickelt, nicht beiläufig umgangen.
+
+### N01 — frei konfigurierbare Felder der Zeiterfassung
+
+#### Ziel und Bedienung
+
+Administrator und Geschäftsführung dürfen **je Betrieb** zusätzliche Zeitfelder anlegen, beschriften, anordnen, bearbeiten, deaktivieren/archivieren und zu Pflichtfeldern machen. Andere Rollen erfassen oder lesen Werte entsprechend ihrer bestehenden bzw. ausdrücklich definierten Rechte. Eine Projektleiterrolle wird dadurch nicht zur Personaldatenverwaltung.
+
+Einrichtung unter Einstellungen → Zeiterfassung → Felder, mit übersichtlicher Feldliste, Formularvorschau und ausdrücklicher Veröffentlichung. Kein allgemeiner Formulardesigner für das gesamte Produkt. Die normale Zeiterfassung verwendet dieselben bestehenden Formulare, Serverprüfungen, Buchungen und Salden.
+
+**Feldtypen:** Kurztext, mehrzeiliger Text, Zahl/Dezimalzahl mit eindeutigem Format und gegebenenfalls Einheit, Datum, Uhrzeit/Dauer, Ja/Nein, Einfach-/Mehrfachauswahl und berechtigte Referenz auf vorhandene Fachobjekte. Für Beleg-/Fotofelder denselben sicheren Datei-/Entwurfsmechanismus verwenden; ein Anhang ist erst bestätigt, wenn die Datei tatsächlich zugeordnet ist. Neue Typen über eine geprüfte Typregistrierung, nicht über freien ausführbaren Code.
+
+Bei einer erforderlichen Ja/Nein-Antwort bedeutet „Pflicht“ ausdrücklich beantwortet, nicht zwingend „Ja“. Bei Auswahlfeldern bleiben technische Optionskennungen unabhängig vom angezeigten Text stabil.
+
+Beispiele: Tätigkeit, interner Bereich, Fahrzeug, Fahrzone, Arbeitspaket, Bemerkung, Zählerstand oder eine betrieblich tatsächlich benötigte Zusatzangabe. Keine neuen personenbezogenen Daten ohne passenden Zweck und Zugriff als Default einführen.
+
+#### Native Felder und fachliche Grenzen
+
+- Zusätzliche Felder sind frei gestaltbar. Bestehende native Angaben können im fachlich zulässigen Umfang hinsichtlich Darstellung, Reihenfolge, Vorbelegung und ergänzender Pflicht angepasst werden.
+- Datum, Person, Buchungsart, erforderliche Zeit-/Pausenwerte, Zuordnung und serverseitige Herkunft dürfen nicht in einen unbestimmten Zustand versetzt werden. Automatisch zuverlässig gesetzte Angaben können unauffällig vorgegeben sein; ihre fachliche Integrität bleibt serverseitig erhalten.
+- Ein benutzerdefiniertes Feld „Stunden“ ist nicht automatisch die maßgebliche Arbeitszeit. Weder ein neuer Status noch ein neuer Zuschlag oder Geldwert wird allein aus dem Feldnamen abgeleitet.
+- Soll ein Feld eine fachliche Wirkung haben, erhält es eine ausdrücklich definierte Bindung an den vorhandenen Zeit-/Zulagen-/Abrechnungsdienst mit Regelversion und Tests. Keine zweite Stundenberechnung und kein frei programmierbarer Lohn-/Steuereditor.
+- Neue Felder dürfen aktuelle Krankheit-/Abwesenheits-/Jugendschutzregeln oder gesperrte Belegbezüge nicht umgehen.
+
+Diese Grenzen folgen aus Datenintegrität, Berechtigungen und eindeutigen Berechnungen; sie begrenzen nicht willkürlich die Zahl sinnvoller zusätzlicher Felder.
+
+#### Pflichtfelder und Bedingungen
+
+Pro Feld festlegen: Sichtbarkeit, Leserechte, Schreibrechte, Default, Pflicht bei welcher Aktion und gegebenenfalls fachlicher Bedingung. Beispiele: nur bei „Anwesend“, bei einem gewählten Tätigkeitswert oder bei einer bestimmten Erfassungsart.
+
+Pflicht bei Mitarbeitererfassung ist etwas anderes als Pflicht bei späterer Bürofreigabe. Eine Rolle darf nicht durch ein Pflichtfeld blockiert werden, das sie weder sehen noch ausfüllen darf. Das Konfigurationsformular erkennt solche Widersprüche vor Veröffentlichung.
+
+Entwurfsspeicherung darf unvollständige Angaben erhalten. Bei der jeweils verbindlichen Aktion validieren **Client und Server** dieselbe veröffentlichte Regel. Bedingte Felder, die nicht anwendbar sind, werden nicht als fehlend gewertet. Verborgene fehlerhafte Eingaben öffnen sich und werden gezielt fokussiert. Keine Pflichtmeldung ohne normalen erfüllbaren Arbeitsweg.
+
+#### Datenmodell und Versionierung
+
+- Stabile Feld-ID, Betrieb, Typ, Beschriftung, Reihenfolge, Optionen mit eigenen IDs, Sichtbarkeits-/Pflicht-/Berechtigungsregeln, Status und Schemaversion.
+- Werte nach Feld-ID und gültigem Typ, der Zeitbuchung bzw. ihrem Erfassungsentwurf zugeordnet; keine frei wachsende Sammlung dynamischer SQL-Spalten.
+- Ein neuer Feldtyp oder eine sinnverändernde Auswahländerung braucht eine neue geprüfte Version bzw. eine neue Feld-ID, wenn Werte nicht eindeutig kompatibel sind.
+- Umbenennen verliert keine Werte. Deaktivieren/Archivieren stoppt neue Erfassung, löscht aber keine historischen Angaben.
+- Historische Buchung trägt den maßgeblichen Schema-/Regelbezug; keine neue Pflicht auf abgeschlossene Alteinträge rückprojizieren.
+- Vorhandene veränderbare Buchungen bleiben über ihre zulässigen bisherigen Korrekturwege bearbeitbar. Die Ergänzung hebt keine Rechnungssperre auf.
+- Konfiguration veröffentlichen mit erwarteter Revision; zwei gleichzeitige Bearbeitungen überschreiben sich nicht. Änderungen gehören ins fachliche Journal.
+- Suche, Filter, Auskunft und Export für die Feldwerte planen. Filter/Indizes nur für entsprechende benötigte Felder, ohne jedem Feld automatisch eine große neue Auswertung zuzuordnen.
+- Feld-/Wertezugriff serverseitig schützen. „Nur fürs Büro“ darf nicht bloß im Formular ausgeblendet werden.
+
+#### Alte Entwürfe, Offline und Konfigurationswechsel
+
+Das Formular kennt seine geladene Version. Online bei neuer Erfassung den aktuellen veröffentlichten Stand verwenden. Neue Pflichtregeln machen bestehende gültige Zeiten nicht rückwirkend falsch.
+
+Ein alter Offlineentwurf behält seine Daten und Originalversion. Beim Synchronisieren aktuelle Rechte und grundlegende Zeitregeln prüfen. Wenn die neue Fachkonfiguration zusätzliche Angaben verlangt, den Vorgang mit klarer Nachpflege-/Klärkennzeichnung erhalten; keine verlorene Stunde und keine erfundene Antwort. Ein berechtigter Bearbeiter kann die Angaben ergänzen oder eine dokumentierte, auf die Konfigurationsänderung bezogene Ausnahme bestätigen.
+
+Eine veraltete Clientversion darf weder aktuelle Rechte umgehen noch fehlende neue Angaben heimlich als erfüllt kennzeichnen. Technisch vorgemerkt, fachlich gespeicherte Zeit und vollständige zusätzliche Bürofreigabe sind getrennte Zustände. Zusätzliche Betriebsfelder dürfen nicht dazu benutzt werden, tatsächlich geleistete Arbeit aus dem Zeitkonto verschwinden zu lassen.
+
+#### Oberfläche für Betriebe bis etwa 30 Mitarbeiter
+
+Überschaubare Feldliste mit Vorschau, klaren Typen und Pflichtkennzeichen. Kein willkürlicher Felddeckel; bei vielen Angaben sinnvolle Abschnitte, Suche in der Konfiguration und seltene Felder passend aufklappen. Pflichtfelder müssen im jeweiligen Ablauf erreichbar sein.
+
+Die bestehende kleine Zeiterfassungsmaske bleibt die Grundlage. Neue Konfiguration verändert weder die mobile Grundnavigation noch die anderen Akten. Administrator/Geschäftsführung können konfigurieren; der Monteur bekommt ein verständliches Arbeitsformular.
+
+#### Abnahme N01
+
+Neue Text-, Dezimal-, Ja/Nein- und Auswahlfelder; optional/Pflicht/bedingt; Pflicht nur bei Bürofreigabe; fehlende Leserechte; Umbenennen; Typwechsel; archivierte Auswahl; bestehende Rechnungssperre; Alteintrag ohne neues Feld; offener Timer; mehrere Geräte; Offlineentwurf mit alter Version; Benutzerwechsel; zwei Konfiguratoren; Zahlenformat/Einheit; Datei-Uploadfehler; exportierte und historische Werte.
+
+Direkter API-Aufruf muss dieselben Pflicht-/Typ-/Rechteregeln beachten. Alle bisherigen Zeit-, Saldo-, Pause-, Zulagen- und Abwesenheitstests bleiben unverändert fachlich gültig.
+
+### N02 — alle fachlichen Bereiche und Zusatzfunktionen durchgängig schaltbar
+
+#### Zielmodell und Unterschied zum bisherigen Bestand
+
+Im gelesenen Bestand gibt es neun Module, während Zeiterfassung, Kunden, Baustellen und weitere Kernbereiche nicht schaltbar sind. Der Auftraggeber verlangt jetzt ein durchgängiges Modulkonzept.
+
+**Ziel:** Fachliche Arbeitsbereiche einschließlich Zeiterfassung sowie ihre sinnvoll eigenständig nutzbaren Zusatzfähigkeiten sind je Betrieb ein-/abschaltbar. Basisdaten, technische Infrastruktur und notwendige Schutzregeln sind davon zu unterscheiden.
+
+- Fachmodule steuern, womit der Betrieb arbeitet: etwa Zeiterfassung, Planung, Material, Angebote, Rechnungen, Wartungen oder Betriebsmittel.
+- Unterfähigkeiten steuern passende Tiefe: etwa freie Zeitfelder, Timer, spezielle Zulagenmodelle, Scanner, LV, Objektverwaltung, Bankimport, SharePoint oder Wochenbericht.
+- Gemeinsame Kunden-/Baustellen-/Personenreferenzen können als Datenbasis benötigt werden, obwohl eine eigenständige Verwaltungsoberfläche abgeschaltet ist. Kein Abschalten darf verwendete Referenzen löschen.
+- Anmeldung, Mandantentrennung, tatsächliche Rechte, notwendige Validierung, Belegschutz, erforderliche Nachvollziehbarkeit, Abmeldung und Modulverwaltung bleiben verfügbar. Das sind Voraussetzungen korrekter Software, keine frei abschaltbaren Geschäftsfeatures.
+- Ein Modulschalter erteilt niemals neue Rollen-/Datenrechte. Dass eine UI aktiviert ist, legitimiert noch keinen Zugriff.
+- Die vorhandene Berechtigung zur allgemeinen Modulverwaltung bleibt erhalten. Die neue Freigabe für Administrator **und Geschäftsführung** betrifft ausdrücklich die Konfiguration der Zeitfelder; sie ist keine beiläufige Freigabe aller Moduleinstellungen für weitere Rollen.
+
+#### Schalterstruktur ohne 84 neue Menüpunkte
+
+Bestehende Modulverwaltung um ein verständliches Register erweitern, nicht pro Original-ID ein eigenes Modul bauen. Register je Fähigkeit: stabile ID, Bereich/Hauptmodul, fachliche Aktion, echte Abhängigkeiten, Voreinstellung, Aktivstatus/Revision und Folgen einer Deaktivierung.
+
+Alle 84 Originalpunkte und N01 müssen einem Hauptmodul bzw. einer Unterfähigkeit zugeordnet sein. Integrierte Punkte wie R07/E15 verwenden denselben Schalter und denselben Dienst. Die technische Zuordnung steht ergänzend in der Modulzuordnungsdatei.
+
+Vorhandene Module/Voreinstellungen übernehmen, damit das heutige Verhalten nach Migration unverändert bleibt. Neue besondere Fähigkeiten bewusst aktivieren. Bei Wiederaktivierung bestehende Einstellungen und Daten wiederverwenden.
+
+#### Tatsächliche Wirkung
+
+Deaktivierung betrifft alle relevanten Einstiege: Navigation, Route/Neuanlage, Kontextaktion, Formular, Startseite, Suche/Schnellaktion, Benachrichtigungsjob, Import, öffentliche Annahme und neuer serverseitiger Fachbefehl.
+
+Ein Feature darf nicht bloß aus dem Menü verschwinden und über einen anderen neuen Schreibweg weiterlaufen. Neue entsprechende Serveraktionen prüfen Aktivierung zusätzlich zu Rolle/Mandant. Das ist eine bewusst geplante Erweiterung gegenüber dem bisherigen teilweise UI-bezogenen Modulmodell.
+
+Nicht jede Lesefunktion oder jede technische Integritätsprüfung wird dadurch abgeschaltet. Historie, vorhandene gültige Belege und notwendige Abschluss-/Korrekturvorgänge bleiben nach berechtigter Regel zugänglich.
+
+#### Sichere Deaktivierung
+
+Aktiv → Deaktivierung mit Folgenvorschau → deaktiviert mit Historien-/Abschlussmodus.
+
+Vor dem Umschalten offene Timer, Offline-Vormerkungen, Aufgaben, Reservierungen, Bestellungen, Berichte, Rechnungen, Verträge, Signaturlinks und Jobs ermitteln. Die Vorschau zeigt, was pausiert, abgeschlossen, widerrufen oder weiterhin in einem engen Abschlussweg bearbeitet werden muss.
+
+- Einen laufenden Timer muss man noch korrekt beenden oder übertragen können, ohne neue Timer zu starten.
+- Ausgestellte Rechnungen und notwendige Zahlung-/Stornokorrekturen verschwinden nicht.
+- Eine echte Lieferantenbestellung wird nicht durch den Software-Schalter extern storniert. Offene Lieferung muss weiterhin sicher abschließbar sein.
+- Aktive Reservierungen werden nicht still freigegeben oder in unbekannten Bestand verwandelt.
+- Alte Signaturlinks nicht auf eine andere Fassung umleiten; notwendige Widerrufs-/Annahmeregel ausdrücklich behandeln.
+- Nicht abgeschickte neue automatische Aktionen pausieren; unklar bereits ausgeführte externe Aktionen erst anhand ihres Status klären.
+- Offlinearbeit nie löschen. Nachsenden mit aktueller Identität/Rechten und definiertem Abschluss-/Klärweg, ohne eine allgemeine Hintertür für neue deaktivierte Aktionen.
+
+Der Historien-/Abschlussmodus ist keine heimliche Wiederaktivierung. Er erlaubt genau benannte notwendige Aktionen auf vorhandenen Vorgängen; neue allgemeine Arbeitsvorgänge bleiben gesperrt.
+
+#### Echte Abhängigkeiten statt unnötiger Ketten
+
+Keine pauschale Annahme „ein Modul aus = alles Verknüpfte aus“.
+
+- Planung ohne Zeiterfassung bleibt nutzbar; sie erzeugt dann keine Arbeitszeit.
+- Zeiterfassung ohne Planung bleibt nutzbar; ein Einsatzplan ist keine Buchungsvoraussetzung.
+- Ein Handwerksschein kann ohne aktives Stempeln tatsächliche Leistungsangaben enthalten; er erzeugt keine versteckte Anwesenheitsbuchung.
+- Rechnung aus einem zulässigen vorhandenen Leistungs-/Auftragsweg bleibt möglich, wenn andere optionale Quellen nicht genutzt werden.
+- Vorhandene Rechnungs-/Kostenhistorie bleibt Datenquelle, selbst wenn neue Rechnungserstellung abgeschaltet wird. Eine Kennzahl ohne ausreichende Grundlage wird als unbekannt ausgewiesen.
+- Lagerstandorte oder Scanner können deaktiviert sein, ohne Materialanforderung und manuelle Eingabe abzuschaffen, soweit der konkrete Vorgang ohne sie korrekt funktioniert.
+- Freie Zeitfelder können deaktiviert sein, ohne die Zeiterfassung abzuschalten; historische Werte bleiben nach Berechtigung lesbar.
+- Eine erforderliche Pflichtangabe aus einem deaktivierten Feature darf niemanden in einer anderen aktiven Funktion blockieren. Die Konfiguration erkennt den Konflikt und bietet eine saubere Auflösung.
+- Eine vorgeschriebene Prüfung oder Belegintegrität darf nicht durch Abschalten eines „Warnungsfeatures“ umgangen werden.
+
+Abhängigkeitsgraph auf Zyklen und fachliche Notwendigkeit prüfen. Änderungen und betroffene Unterfähigkeiten vor dem Speichern erklären; kein stilles Kaskadenabschalten.
+
+#### Abnahme N02
+
+Für jede Fähigkeit prüfen: an/aus im Menü, Direktlink, Kontextaktion, Startseite und direkter Serveraufruf; berechtigte/unberechtigte Rolle; Eltern-/Unterfunktion; vorhandene Historie; laufender Vorgang; neue Erfassung; Import/Job; Offline und alter Client; Wiederaktivierung mit unveränderten Daten.
+
+Besonders: Zeiterfassung aus bei aktiver Planung, Planung aus bei aktiver Zeiterfassung, Zeitfelder aus mit alten Pflichtwerten, Materialscanner aus, Mahnversand aus bei offenen Rechnungen und Modulwechsel während einer laufenden Bearbeitung.
+
+### Einordnung der neuen Anforderungen
+
+- **N01** gehört zum Paket M06 und zur vorhandenen Zeiterfassung; Schema-/Rechtevertrag aus M01, Feldgestaltung in der vorhandenen Lot-Maske.
+- **N02** ist Querschnitt in M01 und wird mit jeder neuen bzw. betroffenen bestehenden Fähigkeit nachgeführt. Kein vorgeschalteter Komplettneubau sämtlicher Module.
+- Die ursprüngliche 84-Punkte-Abdeckung bleibt nachvollziehbar. Die zwei neuen Ergänzungen werden separat mitgeführt, damit sie weder fehlen noch als vermeintlicher Bestandteil der Quelldatei erscheinen.
 
 

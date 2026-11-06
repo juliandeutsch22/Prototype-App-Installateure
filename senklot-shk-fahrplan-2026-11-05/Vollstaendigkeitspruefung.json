@@ -30,6 +30,11 @@
     "Erhaltungs-, Integrations- und Regressionstests",
     "Vollständige Abnahme vor Fertigmeldung"
   ],
-  "masterBytes": 147875,
-  "reviewBytes": 40087
+  "newRequesterRequirements": [
+    "N01",
+    "N02"
+  ],
+  "moduleAssignmentsVerified": 84,
+  "masterBytes": 164279,
+  "reviewBytes": 41012
 }

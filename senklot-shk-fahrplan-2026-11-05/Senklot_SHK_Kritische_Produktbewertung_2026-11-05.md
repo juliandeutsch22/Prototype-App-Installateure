@@ -251,3 +251,10 @@ Dies sind begründete Empfehlungen, noch keine stillschweigende Freigabe, Funkti
 - „Automatisch“, wenn in Wirklichkeit unbekannte Daten durch angenommene Werte ersetzt werden.
 
 **Empfohlenes Produktziel:** weniger eigenständige Systeme innerhalb der App, aber vollständige durchgängige Fachabläufe. Ruhe entsteht durch passenden Kontext und gemeinsame Quellen, nicht durch versteckte Funktionen oder erfundene Grenzen.
+
+
+## Ergänzung vom 6. November: Zeitfelder und Module
+
+N01 ergänzt frei gestaltbare, versionierte Zeitfelder einschließlich Pflichtregeln, konfigurierbar durch Administrator und Geschäftsführung. Das ist eine konkrete Konfiguration innerhalb der Zeiterfassung; es ändert die Kritik an einem beliebigen allgemeinen Regel-/Formularbaukasten nicht. Bestehende Zeitberechnung, Rechte und zulässige Korrekturwege bleiben maßgeblich.
+
+N02 präzisiert alle fachlichen Module und Unterfähigkeiten als an-/abschaltbar, einschließlich Zeiterfassung. Gemeinsam benötigte Stammdaten und technische Schutzregeln bleiben erhalten. Abschalten ist weder Löschen noch stilles Freigeben neuer Rechte. Alle 84 Original-IDs sind im separaten Modulregister zugeordnet; die zwei neuen Auftraggeberwünsche werden zusätzlich geführt. Der Masterprompt beschreibt dafür konkrete Übergänge, Historien-/Abschlussmodus und Gegenproben.
