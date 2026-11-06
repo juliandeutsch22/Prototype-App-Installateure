@@ -49,6 +49,22 @@ async function stunde(tag = '2026-04-13'): Promise<string> {
   return z.id;
 }
 
+/*
+  EIN ECHTER SCHEIN DES BETRIEBS. Seit M01e prüft `rechnung_anlegen`, dass
+  jeder verrechnete Schein zu diesem Betrieb gehört — eine erfundene Kennung
+  wird abgewiesen wie ein fremder Schein.
+*/
+async function neuerSchein(): Promise<string> {
+  const id = crypto.randomUUID();
+  const { error } = await admin.from('work_sheets').insert({
+    id, company_id: BETRIEB, project_number: 'B-300', customer_name: 'Familie Huber',
+    datum: '2026-04-20', status: 'Entwurf', abrechnung: 'Regie',
+    erstellt_von_uid: buch.uid, erstellt_von_name: 'Büro',
+  });
+  if (error) throw new Error(error.message);
+  return id;
+}
+
 async function verrechnungsstand(id: string) {
   const { data } = await admin.from('time_entries')
     .select('is_billed, invoice_number').eq('id', id).single();
@@ -146,7 +162,7 @@ describe('Ausstellen: Nummer, Sperre und Rechnung zusammen (P2-04)', () => {
 describe('Ein Schein steht auf höchstens einer gültigen Rechnung (P2-03)', () => {
   it('weist denselben Schein auf einer zweiten Rechnung ab', async () => {
     await leeren();
-    const schein = crypto.randomUUID();
+    const schein = await neuerSchein();
     await rechnungen.createInvoice(BETRIEB, {
       ...entwurf({ linkedWorkSheets: [schein] }), invoiceNumber: `RE-${JAHR}-1001`,
     });
@@ -161,7 +177,7 @@ describe('Ein Schein steht auf höchstens einer gültigen Rechnung (P2-03)', () 
 
   it('nach einem Storno ist der Schein wieder frei', async () => {
     await leeren();
-    const schein = crypto.randomUUID();
+    const schein = await neuerSchein();
     const erste = await rechnungen.createInvoice(BETRIEB, {
       ...entwurf({ linkedWorkSheets: [schein] }), invoiceNumber: `RE-${JAHR}-1001`,
     });
@@ -176,8 +192,8 @@ describe('Ein Schein steht auf höchstens einer gültigen Rechnung (P2-03)', () 
 
   it('die Ansicht erfährt es über alle Rechnungen — ein Storno zählt nicht', async () => {
     await leeren();
-    const gueltig = crypto.randomUUID();
-    const storniert = crypto.randomUUID();
+    const gueltig = await neuerSchein();
+    const storniert = await neuerSchein();
     const frei = crypto.randomUUID();
     await rechnungen.createInvoice(BETRIEB, {
       ...entwurf({ linkedWorkSheets: [gueltig] }), invoiceNumber: `RE-${JAHR}-1001`,

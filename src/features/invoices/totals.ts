@@ -29,6 +29,13 @@ export interface InvoicePosition {
   rabattProzent?: number | null;
   /** Woher die Zeile stammt, wenn sie aus dem Katalog kam — nur zum Nachsehen. */
   materialId?: string | null;
+  /**
+   * Die Wartung, aus deren Vorschlag die Zeile übernommen wurde (M01e) — NUR
+   * in der Vorschau. Beim Anlegen wird daraus `linkedWartungen`; die Zeile
+   * selbst trägt sie nicht. Sie hängt an der Zeile, damit sie mit ihr geht:
+   * entfernt jemand die Zeile, kommt die Wartung nicht auf die Rechnung.
+   */
+  wartungId?: string;
 }
 
 /** Trägt die Zeile Menge und Preis? Titel und Text nicht. */

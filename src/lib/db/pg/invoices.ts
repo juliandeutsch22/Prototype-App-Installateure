@@ -29,7 +29,7 @@ type Position = NonNullable<Invoice['positions']>[number];
 /** Der Kopf, so wie er in der Datenbank steht. */
 type KopfZeile = Omit<
   Invoice,
-  'positions' | 'discount' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets'
+  'positions' | 'discount' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets' | 'linkedWartungen'
 > & {
   discountMode?: InvoiceDiscount['mode'];
   discountValue?: number;
@@ -48,6 +48,8 @@ const ABDECKUNGSARTEN = [
   ['time_entry', 'linkedEntries'],
   ['material_order', 'linkedOrders'],
   ['work_sheet', 'linkedWorkSheets'],
+  // Seit M01e: die Wartung über ihre Kennung (Muster in `20261106300000_wartung_abdeckung.sql`).
+  ['wartung', 'linkedWartungen'],
 ] as const;
 
 interface Abdeckungszeile {
@@ -593,7 +595,7 @@ function leerAlsNull(wert: string | undefined): string | null | undefined {
  */
 function anlegeDaten(inv: Omit<NewInvoice, 'invoiceNumber'> & { invoiceNumber?: string }) {
   const {
-    positions, discount, linkedEntries, linkedOrders, linkedWorkSheets, ...roh
+    positions, discount, linkedEntries, linkedOrders, linkedWorkSheets, linkedWartungen, ...roh
   } = inv;
   const kopf = {
     ...roh,
@@ -603,7 +605,7 @@ function anlegeDaten(inv: Omit<NewInvoice, 'invoiceNumber'> & { invoiceNumber?: 
 
   const belege: Record<string, string[]> = {};
   for (const [art, feld] of ABDECKUNGSARTEN) {
-    const liste = { linkedEntries, linkedOrders, linkedWorkSheets }[feld];
+    const liste = { linkedEntries, linkedOrders, linkedWorkSheets, linkedWartungen }[feld];
     if (liste && liste.length > 0) belege[art] = liste;
   }
 

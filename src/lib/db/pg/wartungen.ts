@@ -78,6 +78,14 @@ export function listFaelligeWartungen(companyId: string, bis: string, max = 200)
 export type WartungDerBaustelle = WithId<Wartung> & {
   /** Der jüngste Tag, an dem sie auf dieser Baustelle ausgeführt wurde — der Leistungstag. */
   ausgefuehrtAm: string | null;
+  /**
+   * Wie viele Durchgänge der Wartung auf dieser Baustelle liegen (M01e): jede
+   * Ausführung hier, und einer mehr, solange sie hier eingeplant ist. So
+   * viele gültige Rechnungen der Baustelle dürfen sie tragen — dieselbe Zahl
+   * zählt die Datenbank (`app.wartung_durchgaenge`). Meist einer; mehrere,
+   * wenn jemand die Wartung jedes Jahr auf dieselbe Baustelle erledigt.
+   */
+  durchgaenge: number;
 };
 
 export async function wartungenDerBaustelle(companyId: string, projectNumber: string): Promise<WartungDerBaustelle[]> {
@@ -94,10 +102,16 @@ export async function wartungenDerBaustelle(companyId: string, projectNumber: st
     ? await abfragen<Wartung>(WARTUNGEN, companyId, { wo: [{ art: 'in', feld: 'id', werte: fehlen }] })
     : [];
   const zuletzt = new Map<string, string>();
+  const ausfuehrungen = new Map<string, number>();
   for (const a of ausgefuehrt) {
     if (a.am && (zuletzt.get(a.wartungId) ?? '') < a.am) zuletzt.set(a.wartungId, a.am);
+    ausfuehrungen.set(a.wartungId, (ausfuehrungen.get(a.wartungId) ?? 0) + 1);
   }
-  return [...eingeplant, ...weitere].map((w) => ({ ...w, ausgefuehrtAm: zuletzt.get(w.id) ?? null }));
+  return [...eingeplant, ...weitere].map((w) => ({
+    ...w,
+    ausgefuehrtAm: zuletzt.get(w.id) ?? null,
+    durchgaenge: (ausfuehrungen.get(w.id) ?? 0) + (schon.has(w.id) ? 1 : 0),
+  }));
 }
 
 /** Die Vereinbarungen EINES Kunden — für die Kundenakte. */

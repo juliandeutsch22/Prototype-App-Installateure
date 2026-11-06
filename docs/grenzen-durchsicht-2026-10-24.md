@@ -87,6 +87,8 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Papierkorb (Stand 51, E54): die Frist löscht nichts von selbst, sie nennt das Abgelaufene und leert es auf einen Handgriff | Sicherheit: Fotos lassen sich nur über die Speicher-Schnittstelle löschen, ein nächtlicher Lauf bräuchte einen eigenen Dienstzugang; Entwürfe zu vernichten entscheidet ein Mensch |
 | Papierkorb: bei vor dem 06.11.2026 verworfenen Scheinen ist der Zeitpunkt unbekannt, die Frist zählt ab diesem Tag | Altdaten: der Zeitpunkt wurde nie gespeichert; geraten wird nichts |
 | Der Support löscht Angebotsentwürfe nicht endgültig (E54) | Sicherheit: Löschen ist endgültig; wie beim Schein (E42) |
+| Wartung auf der Rechnung (Stand 52, E55): Rechnungen von vor dem 06.11.2026 tragen keine Wartungsabdeckung; die Vorschau erkennt sie am Text, die Datenbank zählt sie nicht | Altdaten: nachtragen hieße, Belege in der Produktion umzuschreiben |
+| Wartung: ein schon verrechneter, eingeplanter Durchgang, der beim „Erledigt“ bewusst auf eine andere Baustelle eingetragen wird, wird dort wieder vorgeschlagen | Fachlich: welchen Durchgang eine Rechnung der ersten Baustelle meinte, steht nirgends; die Entscheidung trifft das Büro beim Eintragen |
 
 ## X – Liegt bei jemand anderem
 

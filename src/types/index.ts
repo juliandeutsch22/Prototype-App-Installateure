@@ -1846,6 +1846,13 @@ export interface Invoice {
    * Schein, das jemand zurücksetzen müsste.
    */
   linkedWorkSheets?: string[];
+  /**
+   * Wartungen, deren vereinbarter Preis auf dieser Rechnung steht (M01e/W04)
+   * — über ihre Kennung, nicht über den Text der Zeile. Die Datenbank lässt
+   * je Durchgang einer Wartung nur eine gültige Rechnung zu; ein Storno gibt
+   * ihn wieder frei. Ältere Rechnungen tragen das Feld nicht.
+   */
+  linkedWartungen?: string[];
   cancellationNote?: string | null;
   cancelledAt?: number | null;
   /**
@@ -1892,7 +1899,7 @@ export interface Invoice {
  * braucht nicht mehr; ein eigener Typ statt leerer Positionen, damit keine
  * Stelle eine Rechnung über nichts für die ganze hält.
  */
-export type RechnungsKopf = Omit<Invoice, 'positions' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets'>;
+export type RechnungsKopf = Omit<Invoice, 'positions' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets' | 'linkedWartungen'>;
 
 /**
  * Rabatt auf eine Rechnung.

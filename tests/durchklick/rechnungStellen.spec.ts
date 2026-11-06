@@ -439,3 +439,60 @@ test('Ausgegebenes Material ohne Schein wird übernommen und kommt nicht zweimal
   await expect(page.getByRole('button', { name: /Rechnung erstellen/ })).toBeDisabled();
   await keineFehlermeldung(page);
 });
+
+/**
+ * Die Wartung zum vereinbarten Preis (M01e/W04) — übernommen, verrechnet,
+ * und nach dem Umbenennen der Anlage NICHT noch einmal vorgeschlagen.
+ *
+ * Bis hierher erkannte die Vorschau „schon verrechnet“ am Text der Zeile;
+ * eine umbenannte Anlage hiess für sie eine neue Wartung. Jetzt trägt die
+ * Rechnung die Kennung der Wartung, und erst der echte Browser zeigt die
+ * ganze Naht: Übernehmen, Anlegen über die Datenbank, Abdeckung, und die
+ * nächste Vorschau liest sie zurück.
+ */
+test('Die Wartung kommt über ihre Kennung auf die Rechnung — umbenannt nicht noch einmal', async ({ page }) => {
+  const { data: kunde } = await admin
+    .from('customers').select('id').eq('company_id', BETRIEB).eq('name', BAUSTELLE.kunde).single();
+  const { data: w, error } = await admin.from('wartungen').insert({
+    company_id: BETRIEB, customer_id: kunde!.id, customer_name: BAUSTELLE.kunde,
+    anlage: 'Gaskessel Heizraum', intervall_monate: 12, faellig_am: '2026-09-01', preis: 180,
+    offene_baustelle: BAUSTELLE.nummer,
+  }).select('id').single();
+  if (error) throw new Error(error.message);
+
+  try {
+    await anmelden(page, BUERO.email);
+    await page.getByRole('link', { name: 'Rechnungen' }).first().click();
+    await page.getByRole('button', { name: 'Neue Rechnung' }).first().click();
+    await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
+    await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
+
+    await expect(page.getByText('Aus der Wartung')).toBeVisible();
+    await page.getByRole('button', { name: 'Übernehmen' }).click();
+    await expect(page.getByText('übernommen', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: /Rechnung erstellen/ }).click();
+
+    await expect(async () => {
+      const { data } = await admin
+        .from('invoice_coverage').select('art, ziel_id').eq('company_id', BETRIEB).eq('art', 'wartung');
+      expect(data ?? []).toEqual([{ art: 'wartung', ziel_id: w!.id }]);
+    }).toPass({ timeout: 25_000 });
+    await expect(page.getByText(/^Rechnung .+ erstellt$/)).toBeVisible();
+    const { data: gestellt } = await admin
+      .from('invoices').select('invoice_number').eq('company_id', BETRIEB).single();
+
+    // Die Anlage heisst jetzt anders — der Text der Zeile auf der Rechnung nicht.
+    await admin.from('wartungen').update({ anlage: 'Gasbrennwertgerät Keller' }).eq('id', w!.id);
+
+    await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
+    await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
+    await expect(page.getByText('Wartung Gasbrennwertgerät Keller laut Vereinbarung')).toBeVisible();
+    await expect(page.getByText(`auf ${gestellt!.invoice_number}`)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Übernehmen' })).toHaveCount(0);
+    await keineFehlermeldung(page);
+  } finally {
+    // Die Wartung hält den Kunden fest, den der Aufbau beim nächsten Lauf neu anlegt.
+    await admin.from('invoices').delete().eq('company_id', BETRIEB);
+    await admin.from('wartungen').delete().eq('id', w!.id);
+  }
+});
