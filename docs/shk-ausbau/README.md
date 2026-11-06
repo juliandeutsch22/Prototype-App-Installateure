@@ -93,7 +93,7 @@ nacheinander auf dem Arbeitsbranch, ein Paket nach dem anderen.
 | M01a | Modulregister mit Unterfähigkeiten, Verhalten unverändert | N02 | erledigt (E52); dazu: Folgen beim Abschalten |
 | M01b | Änderungsjournal: vorhandene Verläufe lesen, neues Journal schreiben | U04 | erledigt (E53) |
 | M01d | Papierkorb für Entwürfe | U06 | erledigt (E54) |
-| M01e | Quellen- und Rechnungsvertrag auf `invoice_coverage` | – | offen |
+| M01e | Quellen- und Rechnungsvertrag auf `invoice_coverage` | W04 | erledigt (E55); Menge/Betrag und Reservierung mit der ersten Teilabrechnung |
 | M02 | Auftragseingang, Objekte, Online-Annahme | A03, A09, A11, A06 | offen |
 | M03 | Kataloge, Preise, Kalkulation | E01–E07, A07, A08, G06 | offen |
 | M04 | Lagerorte, Fahrzeuglager, Scanner, Deckung | E10–E14, E16, G03 | offen |
@@ -105,7 +105,7 @@ nacheinander auf dem Arbeitsbranch, ein Paket nach dem anderen.
 | M10 | Monteur-Arbeitstag, Kommunikation, Abnahme | B01, B09–B13, B15 | offen |
 | M11 | Eingangsrechnungen, Dreiwege-Abgleich | R06–R09, E15, G09 | offen |
 | M12 | Bank/CAMT, Fristen | R04, R05, G07, G08 | offen |
-| M13 | Abrechnung, Sammelrechnung, Prognose | G01, G02, G04, G05, A10, B14, R11 | offen |
+| M13 | Abrechnung, Sammelrechnung, Prognose | G01, G02, G04, G05, A10, B14, R11 | offen; vorgemerkt: Storno-Aufheben gegen gleichzeitiges Anlegen sperren (E55) |
 | M14 | Versandadapter, Mahnversand, Versandnachweis, Wochenbericht | R12, U05, U03 | offen |
 | M15 | Persönliche Einstiege | U01, U02 | offen |
 | M16 | Gesamtabnahme | alle | offen |

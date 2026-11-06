@@ -5115,6 +5115,56 @@ describe('Runde 6: der Preis der Wartung (M9)', () => {
     expect(screen.queryByRole('button', { name: 'Übernehmen' })).toBeNull();
   });
 
+  /*
+    M01e/W04: die übernommene Zeile trägt die Kennung der Wartung bis zum
+    Anlegen — umformuliert oder nicht. Wird sie entfernt, geht die Kennung
+    mit ihr; die Zeile selbst kommt ohne Kennung auf die Rechnung.
+  */
+  it('übernommen und umformuliert: die Rechnung trägt die Kennung der Wartung (M01e)', async () => {
+    zeiten = [];
+    wartungenListe = [WARTUNG];
+    const knopf = await bisZurVorschau();
+    await userEvent.click(screen.getByRole('button', { name: 'Übernehmen' }));
+    expect(screen.getByText('übernommen')).toBeInTheDocument();
+    const zeile = screen.getByDisplayValue('Wartung Gaskessel Heizraum laut Vereinbarung');
+    await userEvent.clear(zeile);
+    await userEvent.type(zeile, 'Kesselservice laut Vertrag');
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const r = lege.mock.calls[0][0];
+    expect(r.linkedWartungen).toEqual(['w1']);
+    expect(r.positions).toEqual([{ label: 'Kesselservice laut Vertrag', qty: 1, unit: 'Pauschale', unitPrice: 180, netto: 180 }]);
+  });
+
+  it('übernommen und wieder entfernt: die Kennung geht nicht mit (M01e)', async () => {
+    wartungenListe = [WARTUNG];
+    const knopf = await bisZurVorschau();
+    const vorher = screen.getAllByRole('button', { name: /^Position \d+ entfernen$/ }).length;
+    await userEvent.click(screen.getByRole('button', { name: 'Übernehmen' }));
+    await userEvent.click(screen.getByRole('button', { name: `Position ${vorher + 1} entfernen` }));
+    expect(screen.queryByDisplayValue('Wartung Gaskessel Heizraum laut Vereinbarung')).toBeNull();
+    // Der Vorschlag ist wieder zu haben.
+    expect(screen.getByRole('button', { name: 'Übernehmen' })).toBeInTheDocument();
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].linkedWartungen).toEqual([]);
+  });
+
+  it('erkennt die verrechnete Wartung an der Kennung, auch nach dem Umbenennen der Anlage (M01e)', async () => {
+    zeiten = [];
+    wartungenListe = [{ ...WARTUNG, anlage: 'Gasbrennwertgerät Keller' }];
+    derBaustelle = [{
+      id: 'alt', invoiceNumber: 'RE-2026-1601', projectNumber: '2026-042', customerName: 'Familie Huber',
+      invoiceDate: '2026-08-26', dueDate: '2026-09-09', vatRate: 0.2, totalNetto: 180, totalVat: 36, totalBrutto: 216,
+      paymentStatus: 'Offen', art: 'einzel', linkedWartungen: ['w1'],
+      positions: [{ label: 'Wartung Gaskessel Heizraum laut Vereinbarung', qty: 1, unit: 'Pauschale', unitPrice: 180, netto: 180 }],
+    } as unknown as Invoice & { id: string }];
+    await bisZurVorschau();
+    expect(screen.getByText('Wartung Gasbrennwertgerät Keller laut Vereinbarung')).toBeInTheDocument();
+    expect(screen.getByText('auf RE-2026-1601')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Übernehmen' })).toBeNull();
+  });
+
   it('Gegenprobe: ohne Preis gibt es keinen Vorschlag', async () => {
     zeiten = [];
     wartungenListe = [{ ...WARTUNG, preis: null }];

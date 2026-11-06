@@ -67,6 +67,30 @@ describe('M9 — die Wartung zur Baustelle', () => {
     expect(neu.map((w) => ({ id: w.id, am: w.ausgefuehrtAm }))).toEqual([{ id, am: '2026-10-19' }]);
   });
 
+  /*
+    M01e: so viele Durchgänge, wie die Baustelle trägt — dieselbe Zahl, nach
+    der die Datenbank die Rechnungen der Wartung zählt.
+  */
+  it('zählt die Durchgänge der Baustelle: eingeplant, ausgeführt, ein zweites Mal ausgeführt', async () => {
+    const nr = `PR-2026-0400-${L}`;
+    const durchgaenge = async () => {
+      clientEinreichen(buch.client);
+      return (await wartungen.wartungenDerBaustelle(BETRIEB, nr)).map((w) => w.durchgaenge);
+    };
+    clientEinreichen(chef.client);
+    const id = await wartungen.createWartung(BETRIEB, vereinbarung('Speicher Dachboden'));
+    await wartungen.wartungEingeplant(id, nr);
+    expect(await durchgaenge()).toEqual([1]);
+    // Erledigt: aus „eingeplant“ wird die Ausführung — es bleibt ein Durchgang.
+    clientEinreichen(chef.client);
+    await wartungen.wartungErledigt(id, { erledigtAm: '2025-10-20', intervallMonate: 12, projectNumber: nr });
+    expect(await durchgaenge()).toEqual([1]);
+    // Ein Jahr später ohne Baustelle erledigt: die Ausführung bleibt auf dieser.
+    clientEinreichen(chef.client);
+    await wartungen.wartungErledigt(id, { erledigtAm: '2026-10-19', intervallMonate: 12 });
+    expect(await durchgaenge()).toEqual([2]);
+  });
+
   it('Gegenprobe: eine andere Baustelle findet nichts, ein fremder Betrieb auch nicht', async () => {
     clientEinreichen(buch.client);
     expect(await wartungen.wartungenDerBaustelle(BETRIEB, `PR-2026-0999-${L}`)).toEqual([]);

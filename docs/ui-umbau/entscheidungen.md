@@ -1641,3 +1641,51 @@ Papierkorb → wiederherstellen → verwerfen → endgültig löschen), dazu
 Bewusst angepasst: „Löschen“ eines Entwurfs heißt in Angebotsliste und
 Angebotsseite jetzt „Verwerfen“. Gegenprobe: ohne Migration 16 rot, je
 Baustein der App die eigenen Fälle rot.
+
+**E55 — Die Wartung als Quelle einer Rechnung; der Quellenvertrag (06.11.2026).**
+SHK-Ausbau, Paket M01e mit seinem ersten Nutzer W04. Ob eine Wartung schon
+verrechnet ist, erkannte die Vorschau am TEXT der Rechnungszeile. Wurde die
+Anlage umbenannt oder die Zeile umformuliert, schlug sie dieselbe Wartung ein
+zweites Mal vor, und die Datenbank hielt nichts auf.
+
+- **Die Wartung hängt über ihre Kennung an der Rechnung** (`invoice_coverage`,
+  Art `wartung`), wie Zeiten, Material und Scheine. Die Kennung hängt an der
+  übernommenen Zeile: umformulieren behält sie, entfernen nimmt sie mit
+  (die Zeile ist dann wieder übernehmbar).
+- **Einheit ist der Durchgang auf der Baustelle.** Eine Baustelle trägt so
+  viele Durchgänge, wie dort Ausführungen stehen, und einen mehr, solange die
+  Wartung auf ihr eingeplant ist; so viele gültige Rechnungen dieser Baustelle
+  dürfen sie tragen. Grund: Gewöhnlich legt jeder Durchgang eine eigene
+  Baustelle an, aber „Erledigt“ kann auch die Baustelle des Vorjahrs tragen —
+  „einmal je Baustelle“ sperrte dann den zweiten Jahresdurchgang. Ein nur
+  eingeplanter Durchgang bleibt verrechenbar. Neu abgewiesen: eine Wartung,
+  die auf der Baustelle weder eingeplant noch ausgeführt ist. Storno gibt frei,
+  Storno-Aufheben prüft dieselbe Einheit.
+- **Befund geschlossen:** Für Scheine prüfte `rechnung_anlegen` nicht, ob die
+  Kennungen zum Betrieb gehören — die Kennung eines fremden oder erfundenen
+  Scheins ging auf eine eigene Rechnung. Jetzt zählt ein eigener Zweig nur
+  Kennungen des eigenen Betriebs, für Scheine und Wartungen.
+- **Abzug wie bisher:** Eine Wartung auf einer Teilrechnung gilt nicht als
+  „Belege verbraucht“; Anzahlungs- und Teilrechnungen werden so abgezogen wie
+  vorher, als die Wartung nur Text war.
+- **Der Quellenvertrag** — sieben Schritte, die jede künftige Quelle braucht
+  (Lieferschein, Aufmaß, Restmaterial, Sammelrechnung) — steht im Kopf der
+  Migration `20261106300000_wartung_abdeckung.sql`. Menge oder Betrag je
+  Zuordnung und eine Reservierung im Entwurf haben heute keinen Nutzer; sie
+  entstehen mit der ersten Teilabrechnung einer Quelle.
+- **Altdaten:** Rechnungen von vor dem 06.11.2026 tragen keine
+  Wartungsabdeckung. Die Vorschau erkennt sie weiter am Text — nur bei
+  Rechnungen ganz ohne Wartungsabdeckung.
+- **Für M13 vorgemerkt:** `rechnung_storno_aufheben` sperrt bei Zeiten,
+  Material und Scheinen nicht gegen eine gleichzeitig angelegte Rechnung mit
+  demselben Beleg (für die Wartung ergänzt). Die Bauplanung verlangt für M13
+  genau diesen Konkurrenztest; dort wird es für alle Arten geschlossen.
+
+**Prüfungen.** `wartungAbdeckung.test.ts` (neu, echte Datenbank, 12), dazu
+`wartungPosition.test.ts` (+7), `vorrechnungen.test.ts` (+1),
+`InvoicesView.test.tsx` (+3), `wartungDerBaustelle.test.ts` (+1),
+`rechnungStellen.spec.ts` (+1 Browserweg: Wartung umbenannt, keine zweite
+Vorschlagszeile). Angepasst: `rechnungInEinemZug` und
+`rechnungNurUeberFunktionen` legten erfundene Schein-Kennungen an, die jetzt
+zu Recht abgewiesen werden. Gegenprobe: vor der Migration 10 von 10 rot, je
+geänderter Funktion die eigenen Fälle rot.

@@ -252,7 +252,8 @@ export function schlussNachStorno<T extends Kopf>(
  * freigegeben“; eine Anzahlung hat keine.
  */
 export function stornoText(
-  inv: Pick<Invoice, 'invoiceNumber' | 'art' | 'vorrechnungen'> & Partial<Pick<Invoice, 'linkedEntries' | 'linkedWorkSheets'>>,
+  inv: Pick<Invoice, 'invoiceNumber' | 'art' | 'vorrechnungen'>
+    & Partial<Pick<Invoice, 'linkedEntries' | 'linkedWorkSheets' | 'linkedWartungen'>>,
 ): string {
   if (inv.art === 'anzahlung') {
     return `${inv.invoiceNumber} wird storniert. Eine Anzahlung verrechnet keine Stunden und kein Material — freigegeben wird deshalb nichts.`;
@@ -266,17 +267,24 @@ export function stornoText(
     Zeiteinträge und Scheine“ frei werden. Kennt die Zeile ihre Verknüpfungen
     nicht (ein Kopf aus der Liste der offenen), bleibt der allgemeine Satz.
   */
-  if (inv.linkedEntries === undefined && inv.linkedWorkSheets === undefined) {
+  if (inv.linkedEntries === undefined && inv.linkedWorkSheets === undefined && inv.linkedWartungen === undefined) {
     return `${inv.invoiceNumber} wird storniert; was sie verrechnet hat, wird wieder freigegeben.${abzug}`;
   }
+  /*
+    Seit M01e auch die Wartung: der Storno gibt ihren Durchgang frei. Ohne
+    sie hiesse es bei einer Rechnung, die nur eine Wartung trägt,
+    „freigegeben wird deshalb nichts“.
+  */
   const teile = [
     (inv.linkedEntries?.length ?? 0) > 0 ? 'Zeiteinträge' : null,
     (inv.linkedWorkSheets?.length ?? 0) > 0 ? 'Scheine' : null,
-  ].filter(Boolean);
+    (inv.linkedWartungen?.length ?? 0) > 0 ? 'Wartungen' : null,
+  ].filter((t): t is string => t !== null);
   if (teile.length === 0) {
     return `${inv.invoiceNumber} wird storniert. Sie verknüpft keine Zeiteinträge und keine Scheine — freigegeben wird deshalb nichts.${abzug}`;
   }
-  return `${inv.invoiceNumber} wird storniert; die verknüpften ${teile.join(' und ')} werden wieder freigegeben.${abzug}`;
+  const genannt = teile.length > 2 ? `${teile.slice(0, -1).join(', ')} und ${teile[teile.length - 1]}` : teile.join(' und ');
+  return `${inv.invoiceNumber} wird storniert; die verknüpften ${genannt} werden wieder freigegeben.${abzug}`;
 }
 
 /**

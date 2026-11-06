@@ -236,6 +236,19 @@ describe('Schlussrechnung und Storno (Runde 6)', () => {
       .toBe('RE-1513 wird storniert; die verknüpften Scheine werden wieder freigegeben.');
   });
 
+  /*
+    M01e: eine Rechnung, die nur eine Wartung trägt, gibt beim Storno deren
+    Durchgang frei — „freigegeben wird deshalb nichts“ stimmte dann nicht.
+  */
+  it('nennt auch die Wartungen, die der Storno freigibt (M01e)', () => {
+    expect(stornoText(r('1515', 'einzel', { linkedWartungen: ['w1'] })))
+      .toBe('RE-1515 wird storniert; die verknüpften Wartungen werden wieder freigegeben.');
+    expect(stornoText(r('1516', 'einzel', { linkedEntries: ['z1'], linkedWorkSheets: ['s1'], linkedWartungen: ['w1'] })))
+      .toBe('RE-1516 wird storniert; die verknüpften Zeiteinträge, Scheine und Wartungen werden wieder freigegeben.');
+    expect(stornoText(r('1517', 'teil', { linkedEntries: [], linkedWorkSheets: [], linkedWartungen: [] })))
+      .toBe('RE-1517 wird storniert. Sie verknüpft keine Zeiteinträge und keine Scheine — freigegeben wird deshalb nichts.');
+  });
+
   it('Gegenprobe: kennt die Zeile ihre Verknüpfungen nicht, behauptet sie nichts', () => {
     const kopf = { invoiceNumber: 'RE-1514', art: 'teil' as const, vorrechnungen: undefined };
     expect(stornoText(kopf)).toBe('RE-1514 wird storniert; was sie verrechnet hat, wird wieder freigegeben.');

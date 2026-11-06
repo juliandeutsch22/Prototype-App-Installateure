@@ -56,6 +56,22 @@ async function anlegen(extra: Partial<rechnungen.NewInvoice> = {}): Promise<stri
 
 const nurKennung = (id: string) => ({ id } as unknown as WithId<Invoice>);
 
+/*
+  EIN ECHTER SCHEIN DES BETRIEBS. Seit M01e prüft `rechnung_anlegen`, dass
+  jeder verrechnete Schein zu diesem Betrieb gehört — eine erfundene Kennung
+  wird abgewiesen wie ein fremder Schein.
+*/
+async function neuerSchein(): Promise<string> {
+  const id = crypto.randomUUID();
+  const { error } = await admin.from('work_sheets').insert({
+    id, company_id: BETRIEB, project_number: 'B-400', customer_name: 'Familie Huber',
+    datum: '2026-04-20', status: 'Entwurf', abrechnung: 'Regie',
+    erstellt_von_uid: buch.uid, erstellt_von_name: 'Büro',
+  });
+  if (error) throw new Error(error.message);
+  return id;
+}
+
 describe('Positionen und Abdeckung entstehen nur mit ihrer Rechnung', () => {
   it('eine Position lässt sich nicht nachträglich einfügen', async () => {
     const id = await anlegen();
@@ -67,7 +83,7 @@ describe('Positionen und Abdeckung entstehen nur mit ihrer Rechnung', () => {
   });
 
   it('eine Abdeckung lässt sich weder einfügen noch löschen', async () => {
-    const schein = crypto.randomUUID();
+    const schein = await neuerSchein();
     const id = await anlegen({ linkedWorkSheets: [schein] });
 
     const dazu = await buch.client.from('invoice_coverage').insert({
@@ -187,7 +203,7 @@ describe('Storno nur über seine Funktion', () => {
 
 describe('Aufheben, wenn ein Schein weitergewandert ist (P2-16)', () => {
   it('bleibt der Storno', async () => {
-    const schein = crypto.randomUUID();
+    const schein = await neuerSchein();
     const erste = await anlegen({ linkedWorkSheets: [schein] });
     await rechnungen.cancelInvoice(nurKennung(erste), 'Falscher Kunde');
     // Derselbe Schein, neu verrechnet.
@@ -201,7 +217,7 @@ describe('Aufheben, wenn ein Schein weitergewandert ist (P2-16)', () => {
   });
 
   it('ist der Schein frei, geht das Aufheben am selben Tag weiterhin', async () => {
-    const schein = crypto.randomUUID();
+    const schein = await neuerSchein();
     const id = await anlegen({ linkedWorkSheets: [schein] });
     await rechnungen.cancelInvoice(nurKennung(id), 'Fehlgriff');
     await rechnungen.reactivateInvoice(nurKennung(id));

@@ -79,7 +79,10 @@ import {
 } from './vorrechnungen';
 import { scheinAbgleich } from './scheinAbgleich';
 import { einheitspreisVorschau, leistungNachAngebot, pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
-import { wartungAlsPosition, wartungsVorschlaege, type WartungVorschlag } from './wartungPosition';
+import {
+  ohneWartungskennung, wartungAlsVorschauzeile, wartungenDerPositionen, wartungsKennung, wartungsVorschlaege,
+  type WartungVorschlag,
+} from './wartungPosition';
 import { anschriftZerlegen } from './ebinterface';
 import { wartungenDerBaustelle } from '@/lib/db/wartungen';
 import { ANZAHLUNG_PROZENT_VORGABE, anteilFehler, anzahlungVorschau } from './anzahlung';
@@ -1312,10 +1315,12 @@ export default function InvoicesView() {
    * Die Wartung zum vereinbarten Preis übernehmen. Hat die Rechnung noch
    * keinen Zeitraum, ist der Tag der Ausführung der Leistungstag — wie bei
    * Regie der Tag der Buchung.
+   *
+   * Die Zeile trägt die Kennung der Wartung (M01e): sie geht mit der Zeile
+   * auf die Rechnung und mit ihr wieder weg, wenn jemand sie entfernt.
    */
   function wartungUebernehmen(v: WartungVorschlag) {
-    setPreview((p) => (p ? recalc(p, [...p.positions, wartungAlsPosition(v)], satz, rabatt) : p));
-    setUebernommen((u) => [...u, v.schluessel]);
+    setPreview((p) => (p ? recalc(p, [...p.positions, wartungAlsVorschauzeile(v)], satz, rabatt) : p));
     if (v.am && !leistungVon && !leistungBis) {
       setLeistungVon(v.am);
       setLeistungBis(v.am);
@@ -1839,7 +1844,8 @@ export default function InvoicesView() {
         leistungsort,
         invoiceDate,
         dueDate,
-        positions: preview.positions,
+        // Die Kennung der Wartung gehört in die Abdeckung, nicht auf die Zeile.
+        positions: ohneWartungskennung(preview.positions),
         vatRate: satz,
         reverseCharge,
         // Leerstring statt undefined: ein fehlendes Feld und ein leeres sind
@@ -1893,6 +1899,8 @@ export default function InvoicesView() {
         // Die Scheine, deren Material eingeflossen ist. Sie sind damit
         // verbraucht — bis diese Rechnung storniert wird.
         linkedWorkSheets: preview.linkedWorkSheets,
+        // Die Wartungen, deren Zeile noch in der Vorschau steht (M01e).
+        linkedWartungen: wartungenDerPositionen(preview.positions),
       }, {
         praefix: vorsaetze.rechnung,
         desired: vonHand ? typedSeq : undefined,
@@ -3850,8 +3858,10 @@ export default function InvoicesView() {
             AUS DER WARTUNG (Testbericht Runde 6, M9): der vereinbarte Preis je
             Wartung als Vorschlag. Übernommen wird auf Klick — ob daneben noch
             Stunden oder Material verrechnet werden, steht im Vertrag, nicht
-            hier. Steht die Zeile schon auf einer gültigen Rechnung dieser
-            Baustelle, sagt es der Vorschlag.
+            hier. Steht die Wartung schon auf einer gültigen Rechnung dieser
+            Baustelle, sagt es der Vorschlag. „übernommen“ liest die Zeilen
+            der Vorschau (M01e): wer die Zeile entfernt, kann sie wieder
+            übernehmen, statt dass der Vorschlag gesperrt bliebe.
           */}
           {wartungVorschlaege.length > 0 && (
             <div className="mt-4 border-t border-line pt-4">
@@ -3871,7 +3881,7 @@ export default function InvoicesView() {
                   >
                     {v.schonAuf ? (
                       <span className="text-sm text-ink-muted">auf {v.schonAuf}</span>
-                    ) : uebernommen.includes(v.schluessel) ? (
+                    ) : preview.positions.some((p) => p.wartungId === wartungsKennung(v)) ? (
                       <span className="text-sm text-ink-muted">übernommen</span>
                     ) : (
                       <Button variant="secondary" onClick={() => wartungUebernehmen(v)}>
