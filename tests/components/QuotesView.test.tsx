@@ -554,7 +554,12 @@ describe('Die Liste führt zum Angebot', () => {
     expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Als abgelehnt markieren']);
   });
 
-  it('beim Entwurf: „Bearbeiten“ und „Annehmen“, im Menü auch Löschen — mit Rückfrage', async () => {
+  /*
+    BEWUSST ANGEPASST (M01d): hier stand „im Menü auch Löschen — mit
+    Rückfrage“. Aus dem harten Löschen ist das Verwerfen in den Papierkorb
+    geworden; die Rückfrage bleibt, und sie sagt jetzt, wie man zurückkommt.
+  */
+  it('beim Entwurf: „Bearbeiten“ und „Annehmen“, im Menü auch Verwerfen — mit Rückfrage, in den Papierkorb', async () => {
     versendetesAngebot();
     angebote[angebote.length - 1].status = 'Entwurf';
     const nutzer = userEvent.setup();
@@ -563,10 +568,15 @@ describe('Die Liste führt zum Angebot', () => {
     expect(screen.getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
     await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
     expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual([
-      'Als versendet markieren', 'Als abgelehnt markieren', 'Löschen',
+      'Als versendet markieren', 'Als abgelehnt markieren', 'Verwerfen',
     ]);
-    await nutzer.click(screen.getByRole('menuitem', { name: 'Löschen' }));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Verwerfen' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Entwurf verwerfen?' });
+    expect(dialog).toHaveTextContent(/kommt in den Papierkorb und verschwindet aus allen Angebotslisten/);
+    expect(dialog).toHaveTextContent(/lässt es sich wiederherstellen/);
+    expect(updateQuote).not.toHaveBeenCalled();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Verwerfen' }));
+    await waitFor(() => expect(updateQuote).toHaveBeenCalledWith(angebote[angebote.length - 1].id, { status: 'Verworfen' }));
   });
 });
 

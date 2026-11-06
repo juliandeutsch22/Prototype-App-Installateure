@@ -677,6 +677,19 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: 'ansehen', ton: 'leise' },
     }));
   }
+  /*
+    DER PAPIERKORB (M01d): nur mit Frist und nur, wenn etwas darüber liegt.
+    Leise — es eilt nicht, gelöscht wird ohnehin nur auf Knopfdruck.
+  */
+  const papierkorb = d.papierkorbUeberFrist;
+  if (papierkorb && papierkorb.anzahl > 0) {
+    themen.push(wenn(ZIEL.einstellungen('papierkorb'), {
+      key: 'papierkorb', wann: 'woche',
+      titel: `${anzahl(papierkorb.anzahl, 'Entwurf liegt', 'Entwürfe liegen')} länger als ${papierkorb.tage} Tage im Papierkorb`,
+      detail: 'Einstellungen · Papierkorb',
+      status: { text: 'leeren', ton: 'leise' },
+    }));
+  }
   if (firmaFehlt.length && !firmaSperrt) {
     themen.push(wenn(ZIEL.einstellungen('firma'), {
       key: 'firma', wann: 'woche',

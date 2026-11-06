@@ -83,7 +83,13 @@ export type Bedingung =
 
 export interface Abfrage {
   wo?: readonly Bedingung[];
-  sortiere?: { feld: string; absteigend?: boolean };
+  /**
+   * `leerZuerst`: wohin leere Werte kommen. Ohne Angabe wie in Postgres —
+   * aufsteigend ans Ende, absteigend an den Anfang. Der Papierkorb (M01d)
+   * sortiert die jüngsten zuerst und die Scheine ohne bekannten Zeitpunkt
+   * ans Ende; sie sind die ältesten.
+   */
+  sortiere?: { feld: string; absteigend?: boolean; leerZuerst?: boolean };
   grenze?: number;
   /**
    * Eine fertige `or`-Bedingung — für die Suche über mehrere Spalten.
@@ -119,7 +125,7 @@ interface Filterbar {
   is(spalte: string, wert: null): Filterbar;
   gte(spalte: string, wert: unknown): Filterbar;
   lte(spalte: string, wert: unknown): Filterbar;
-  order(spalte: string, wie: { ascending: boolean }): Filterbar;
+  order(spalte: string, wie: { ascending: boolean; nullsFirst?: boolean }): Filterbar;
   limit(anzahl: number): Filterbar;
   or(bedingung: string): Filterbar;
   range(von: number, bis: number): Filterbar;
@@ -143,6 +149,8 @@ function anwenden(bauer: Filterbar, abfrage: Abfrage, tabelle: string): Filterba
   if (abfrage.sortiere) {
     b = b.order(alsSpalteSicher(abfrage.sortiere.feld), {
       ascending: !abfrage.sortiere.absteigend,
+      // Nur wenn gefragt: ohne Angabe bleibt der Aufruf derselbe wie bisher.
+      ...(abfrage.sortiere.leerZuerst === undefined ? {} : { nullsFirst: abfrage.sortiere.leerZuerst }),
     });
   }
   if (abfrage.grenze !== undefined) b = b.limit(abfrage.grenze);

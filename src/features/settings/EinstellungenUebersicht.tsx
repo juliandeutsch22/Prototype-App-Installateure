@@ -61,6 +61,7 @@ const STICHWORTE: Record<string, string> = {
   support: 'Einblick gewähren, Support, bisherige Zugänge',
   module: 'Bereiche ein- und ausschalten',
   sicherung: 'Nächtliche Sicherung, Daten herunterladen, Belegarchiv',
+  papierkorb: 'Verworfene Angebote und Handwerksscheine, wiederherstellen, endgültig löschen, Hinweis nach Tagen (Frist)',
 };
 
 export interface Einrichtungspunkt {
@@ -119,11 +120,11 @@ export default function EinstellungenUebersicht() {
   const seiten = useMemo(
     () =>
       user
-        ? unterseitenFuer('/settings', user.role, { wochenplanFuerAlle: !!company?.wochenplanFuerAlle }).filter(
+        ? unterseitenFuer('/settings', user.role, { wochenplanFuerAlle: !!company?.wochenplanFuerAlle }, company?.modules).filter(
             (s) => s.pfad !== 'uebersicht',
           )
         : [],
-    [user, company?.wochenplanFuerAlle],
+    [user, company?.wochenplanFuerAlle, company?.modules],
   );
 
   const treffer = useMemo(() => {

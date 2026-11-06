@@ -47,7 +47,15 @@ const DATEN = {
   materials: { '*': 'D.materialien' },
   // „Zeitraum zusammenstellen“ fragt die Schlussrechnungen ohne Abzug mit; ohne Liste brach die Seite ab (K4, 17.10.2026).
   invoices: { '*': 'D.rechnungen', schlussrechnungenOhneAbzug: '[]' },
-  workSheets: { '*': 'D.scheine', getWorkSheet: 'D.scheine[0]' },
+  /*
+    Der Papierkorb (M01d) zählt und listet eigens: mit `*` wäre jede Zahl eine
+    Liste, und die Seite stünde ohne Inhalt da. Leer, wie in einem Betrieb,
+    der noch nichts verworfen hat.
+  */
+  workSheets: {
+    '*': 'D.scheine', getWorkSheet: 'D.scheine[0]',
+    listVerworfeneScheine: '[]', listAbgelaufeneScheine: '[]', zaehleVerworfeneScheine: '0',
+  },
   vacations: {
     listOwnVacations: 'D.urlaube',
     listOpenVacations: 'D.urlaube.filter((v) => v.status === "Beantragt")',
@@ -58,7 +66,10 @@ const DATEN = {
   termine: { listTermineImZeitraum: 'D.termine', listTermineDerBaustelle: 'D.termine', listTermineDesKunden: 'D.termine' },
   assignments: { '*': 'D.einsaetze' },
   einsatzMaterial: { '*': 'D.ruestlisten', getEinsatzMaterial: 'D.ruestlisten[0]' },
-  quotes: { '*': 'D.angebote', getQuote: 'D.angebote[0]', acceptQuote: "'B-2026-0042'" },
+  quotes: {
+    '*': 'D.angebote', getQuote: 'D.angebote[0]', acceptQuote: "'B-2026-0042'",
+    listVerworfeneAngebote: '[]', zaehleVerworfeneAngebote: '0', deleteAbgelaufeneAngebote: '0',
+  },
   // Die Ausführungen sind keine Anlagen: mit `*` bekam der Verlauf Anlagen ohne `am` und brach ab (K4, 13.10.2026).
   wartungen: { '*': 'D.wartungen', wartungEinplanen: "'B-2026-0042'", listAusfuehrungen: '[]' },
   offenePosten: { ladeOffenePosten: '{ urlaub: 1, anforderungen: 2, mahnungen: 1 }' },

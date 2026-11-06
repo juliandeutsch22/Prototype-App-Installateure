@@ -29,6 +29,8 @@ import { clientEinreichen } from '@/lib/db/pg/kern';
 
 const lauf = promisify(execFile);
 const BETRIEB = 'ruecklauf';
+const VERWORFENES_ANGEBOT = crypto.randomUUID();
+const VERWORFENER_SCHEIN = crypto.randomUUID();
 
 let chef: Konto;
 let monteur: Konto;
@@ -76,6 +78,26 @@ beforeAll(async () => {
     mitbringen, und der Rücklauf darf beim Einspielen keine eigenen Zeilen
     dazuschreiben.
   */
+  /*
+    DER PAPIERKORB (M01d): ein verworfenes Angebot und ein verworfener Schein,
+    mit wer und wann. Die Sicherung bringt sie mit, und der Rücklauf schreibt
+    sie so zurück, wie sie waren — die Trigger, die diese Felder sonst
+    setzen, lassen den Dienstschlüssel durch. Eingelegt mit dem
+    Dienstschlüssel, damit das Journal unten bei seinen zwei Zeilen bleibt.
+  */
+  const papierkorb = await Promise.all([
+    admin.from('quotes').insert({
+      id: VERWORFENES_ANGEBOT, company_id: BETRIEB, quote_number: 'AN-R-1', customer_name: 'Familie Huber',
+      quote_date: '2026-10-01', valid_until: '2026-11-01', status: 'Verworfen', vat_rate: 20,
+      verworfen_am: '2026-10-02T08:00:00+00:00', verworfen_von_uid: chef.uid, verworfen_von_name: 'Chef',
+    }),
+    admin.from('work_sheets').insert({
+      id: VERWORFENER_SCHEIN, company_id: BETRIEB, project_number: 'R-2026-001', customer_name: 'Familie Huber',
+      datum: '2026-10-01', status: 'Verworfen', abrechnung: 'Regie', erstellt_von_uid: monteur.uid,
+      erstellt_von_name: 'Monteur', verworfen_von_name: 'Monteur', verworfen_am: '2026-10-03T08:00:00+00:00',
+    }),
+  ]);
+  expect(papierkorb.map((r) => r.error)).toEqual([null, null]);
   const { error: e1 } = await chef.client.from('customers').update({ contact_phone: '0664 1' }).eq('id', kunde!.id);
   const { error: e2 } = await chef.client.from('projects').update({ status: 'Pausiert' }).eq('project_number', 'R-2026-001');
   expect([e1, e2]).toEqual([null, null]);
@@ -185,6 +207,22 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
     const { count: kundeDa } = await admin.from('customers')
       .select('*', { count: 'exact', head: true }).eq('id', baustelle.customer_id);
     expect(kundeDa).toBe(1);
+
+    // Der Papierkorb (M01d): wer und wann kommen unverändert zurück — nicht neu gesetzt.
+    const [angebot] = (await admin.from('quotes')
+      .select('status, verworfen_am, verworfen_von_uid, verworfen_von_name').eq('id', VERWORFENES_ANGEBOT)).data!;
+    expect(angebot).toEqual({
+      status: 'Verworfen', verworfen_am: '2026-10-02T08:00:00+00:00', verworfen_von_uid: chef.uid, verworfen_von_name: 'Chef',
+    });
+    const [schein] = (await admin.from('work_sheets')
+      .select('status, verworfen_am').eq('id', VERWORFENER_SCHEIN)).data!;
+    expect(schein).toEqual({ status: 'Verworfen', verworfen_am: '2026-10-03T08:00:00+00:00' });
+    /*
+      Nicht liegen lassen: `verlaeufe` und `urlaubNurUeberAntrag` spielen
+      ältere Migrationen erneut ein, und die Prüfung der Stände von damals
+      kennt „Verworfen“ nicht (siehe `papierkorb.test.ts`).
+    */
+    expect((await admin.from('quotes').delete().eq('id', VERWORFENES_ANGEBOT)).error).toBeNull();
   }, 240_000);
 
   it('legt die Anmeldekonten unter DERSELBEN Kennung wieder an', async () => {

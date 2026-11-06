@@ -33,7 +33,9 @@ import { lagerKnapp, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { listGarantienEndenIn, listUnpaidInvoiceKoepfe, listInvoicesByIds, scheineAufRechnung, type GarantieRechnung } from '@/lib/db/invoices';
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
-import { listRecentWorkSheetKoepfe, listOwnWorkSheetsSince } from '@/lib/db/workSheets';
+import { listRecentWorkSheetKoepfe, listOwnWorkSheetsSince, zaehleVerworfeneScheine } from '@/lib/db/workSheets';
+import { zaehleVerworfeneAngebote } from '@/lib/db/quotes';
+import { fristStichtag } from '@/lib/papierkorb';
 import { listAbwesendInRange, listOpenVacations, type Abwesenheit } from '@/lib/db/vacations';
 import { listOffeneFreistellungen } from '@/lib/db/freistellungen';
 import { listTermineImZeitraum } from '@/lib/db/termine';
@@ -172,6 +174,8 @@ export interface StartDaten {
   firmaSperrt?: string[];
   /** Seit wann der zurückgesetzte Firmenbuch-Haken auf Kenntnisnahme wartet (Runde 7, 6.1). */
   firmenbuchKorrigiertAm?: number | null;
+  /** Was länger als die Frist im Papierkorb liegt (M01d) — nur mit Frist. */
+  papierkorbUeberFrist?: { anzahl: number; tage: number } | null;
   // Personen
   lehrzeitEnden?: LehrzeitEndeZeile[];
   einzigeLeitungOhneMail?: boolean;
@@ -629,7 +633,11 @@ export function auslastung(
  */
 export async function einstellungen(
   k: Kontext,
-  was: { rechnungen: boolean; konten: boolean; personen: boolean; firma?: boolean },
+  was: {
+    rechnungen: boolean; konten: boolean; personen: boolean; firma?: boolean;
+    /** Der Papierkorb (M01d): welche Arten mitzählen — je nach Modul. */
+    papierkorb?: { angebote: boolean; scheine: boolean };
+  },
 ): Promise<Partial<StartDaten>> {
   const { company, heute } = k;
   const out: Partial<StartDaten> = {};
@@ -655,6 +663,20 @@ export async function einstellungen(
   if (was.konten && k.user.companyId) {
     const konten = await still(() => buchungskonten(k.user.companyId), null);
     out.kontenFehlen = konten !== null && konten.length === 0;
+  }
+  /*
+    DER PAPIERKORB ÜBER DER FRIST (M01d): nur mit Frist, gezählt auf dem
+    Server — die Zahl stimmt auch, wenn der Papierkorb selbst seitenweise
+    lädt. Ohne Frist fragt die Startseite gar nicht.
+  */
+  const stichtag = fristStichtag(company?.papierkorbFristTage, Date.now());
+  if (was.papierkorb && stichtag !== null && k.user.companyId && company?.papierkorbFristTage) {
+    const bis = new Date(stichtag).toISOString();
+    const [angebote, scheine] = await Promise.all([
+      was.papierkorb.angebote ? still(() => zaehleVerworfeneAngebote(k.user.companyId, bis), 0) : 0,
+      was.papierkorb.scheine ? still(() => zaehleVerworfeneScheine(k.user.companyId, bis), 0) : 0,
+    ]);
+    out.papierkorbUeberFrist = { anzahl: angebote + scheine, tage: company.papierkorbFristTage };
   }
   if (was.personen && k.user.companyId) {
     const personen = await still(() => belegschaftVon(k), null);

@@ -52,7 +52,7 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
     const schalter = { wochenplanFuerAlle: !!company?.wochenplanFuerAlle };
     return navForRole(user.role, company?.modules, zusatz).flatMap((item) => [
       { schluessel: item.path, gruppe: 'Seiten' as const, text: item.label, ziel: item.path },
-      ...unterseitenFuer(item.path, user.role, schalter).map((u) => ({
+      ...unterseitenFuer(item.path, user.role, schalter, company?.modules).map((u) => ({
         schluessel: `${item.path}/${u.pfad}`,
         gruppe: 'Seiten' as const,
         text: u.label,

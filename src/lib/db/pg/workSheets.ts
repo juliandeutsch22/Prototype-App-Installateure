@@ -17,7 +17,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   WorkSheet, WorkSheetFoto, WorkSheetMaterial, WorkSheetUnterschrift, WorkSheetZeit,
 } from '@/types';
-import { abfragen, aendern, derClient, type WithId } from './kern';
+import { abfragen, aendern, derClient, zaehlen, type Bedingung, type WithId } from './kern';
+import { ohneZeitpunktUeberFrist } from '@/lib/papierkorb';
 import { oderUeberSpalten } from './suche';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
 import { vorgangOhneEmpfang, wartendeVorgaenge } from './ohneEmpfang';
@@ -60,7 +61,7 @@ export const LISTENSPALTEN = [
   'id', 'company_id', 'project_number', 'project_id', 'customer_id', 'customer_name', 'address',
   'datum', 'status', 'abrechnung', 'notizen', 'erstellt_von_uid', 'erstellt_von_name',
   'inhalt_hash', 'unterschrieben_am', 'storno_grund', 'storniert_von_name', 'verworfen_von_name',
-  'created_at', 'updated_at', 'aussteller_stand',
+  'created_at', 'updated_at', 'aussteller_stand', 'verworfen_am',
 ] as const;
 const LISTENKOPF = [
   ...LISTENSPALTEN,
@@ -638,6 +639,65 @@ export async function deleteWorkSheetDraft(
     .select('id');
   if (error) throw new Error(error.message);
   if (!data || data.length === 0) throw new Error(nein);
+}
+
+const VERWORFEN: Bedingung = { art: 'gleich', feld: 'status', wert: 'Verworfen' };
+
+/**
+ * Die verworfenen Entwürfe für den Papierkorb (M01d), die jüngsten zuerst —
+ * seitenweise (`max`). Mit Zeiten, Material und Fotos: die Rückfrage vor dem
+ * endgültigen Löschen nennt sie, und das Löschen braucht die Fotopfade.
+ * Scheine ohne bekannten Zeitpunkt (vor dem 06.11.2026 verworfen) stehen am
+ * Ende — sie sind die ältesten.
+ */
+export async function listVerworfeneScheine(companyId: string, max = 50) {
+  const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
+    spalten: LISTENKOPF,
+    wo: [VERWORFEN],
+    sortiere: { feld: 'verworfenAm', absteigend: true, leerZuerst: false },
+    grenze: max,
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/**
+ * Die verworfenen Entwürfe, die bis `bis` (ISO-Zeitpunkt) verworfen wurden —
+ * für „Abgelaufene endgültig löschen“. Die ohne Zeitpunkt zählen ab der
+ * Einführung des Papierkorbs (`PAPIERKORB_SEIT`); liegt die vor `bis`, kommen
+ * sie mit. Seitenweise: wer löscht, holt danach die nächsten.
+ */
+export async function listAbgelaufeneScheine(companyId: string, bis: string, max = 50) {
+  const mitZeit = await abfragen<KopfZeile>(SCHEINE, companyId, {
+    spalten: LISTENKOPF,
+    wo: [VERWORFEN, { art: 'bis', feld: 'verworfenAm', wert: bis }],
+    sortiere: { feld: 'verworfenAm' },
+    grenze: max,
+  });
+  const ohneZeit = mitZeit.length < max && ohneZeitpunktUeberFrist(Date.parse(bis))
+    ? await abfragen<KopfZeile>(SCHEINE, companyId, {
+      spalten: LISTENKOPF,
+      wo: [VERWORFEN, { art: 'leer', feld: 'verworfenAm' }],
+      sortiere: { feld: 'createdAt' },
+      grenze: max - mitZeit.length,
+    })
+    : [];
+  return zusammensetzen([...mitZeit, ...ohneZeit], companyId);
+}
+
+/**
+ * Wie viele verworfene Entwürfe im Papierkorb liegen — mit `bis` nur die, die
+ * bis dahin verworfen wurden (die ohne Zeitpunkt ab der Einführung, wie
+ * `listAbgelaufeneScheine`). Gezählt, nicht geholt.
+ */
+export async function zaehleVerworfeneScheine(companyId: string, bis?: string): Promise<number> {
+  if (!bis) return zaehlen(SCHEINE, companyId, { wo: [VERWORFEN] });
+  const [mitZeit, ohneZeit] = await Promise.all([
+    zaehlen(SCHEINE, companyId, { wo: [VERWORFEN, { art: 'bis', feld: 'verworfenAm', wert: bis }] }),
+    ohneZeitpunktUeberFrist(Date.parse(bis))
+      ? zaehlen(SCHEINE, companyId, { wo: [VERWORFEN, { art: 'leer', feld: 'verworfenAm' }] })
+      : Promise.resolve(0),
+  ]);
+  return mitZeit + ohneZeit;
 }
 
 /**

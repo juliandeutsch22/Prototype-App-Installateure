@@ -161,7 +161,9 @@ export async function belegArchiv(o: {
     .sort((a, b) => a.invoiceNumber.localeCompare(b.invoiceNumber, 'de'));
 
   const angebote = (o.angebote ?? [])
-    .filter((q) => q.quoteDate >= von && q.quoteDate <= bis)
+    // Ein verworfener Entwurf (M01d) ist so wenig ein Beleg wie ein Entwurf — er
+    // kommt weder ins Archiv noch in den Hinweis; die Liste lässt ihn schon weg.
+    .filter((q) => q.status !== 'Verworfen' && q.quoteDate >= von && q.quoteDate <= bis)
     .sort((a, b) => a.quoteNumber.localeCompare(b.quoteNumber, 'de'));
   const entwuerfe = angebote.filter((q) => q.status === 'Entwurf').length;
   const versandt = angebote.filter((q) => q.status !== 'Entwurf');

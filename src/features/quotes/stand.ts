@@ -15,4 +15,14 @@ export const STAND: Record<Quote['status'], Stand> = {
   Abgelehnt: 'storniert',
   // Ein Endzustand wie „Abgelehnt“: eine andere Fassung wurde angenommen (G15).
   Ersetzt: 'storniert',
+  // Im Papierkorb (M01d): gilt nicht, bis es wiederhergestellt ist.
+  Verworfen: 'storniert',
 };
+
+/**
+ * Das Wort zum Stand. Nur „Verworfen“ heißt anders: in der Oberfläche liegt
+ * ein verworfenes Angebot „im Papierkorb“ — das sagt, wo man es wiederfindet.
+ */
+export function standWort(status: Quote['status']): string {
+  return status === 'Verworfen' ? 'Im Papierkorb' : status;
+}

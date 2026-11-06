@@ -258,6 +258,11 @@ export interface Company {
    * oder auf Papier gezeigt.
    */
   arztbesuchNachweis?: boolean;
+  /**
+   * Nach wie vielen Tagen die Startseite der Spitze auf Verworfenes im
+   * Papierkorb hinweist (M01d); leer = kein Hinweis. Löscht nichts.
+   */
+  papierkorbFristTage?: number | null;
   /** Vorschlag für den Grund der Steuerbefreiung auf Rechnungen mit 0 % (A2). */
   steuerbefreiungVorgabe?: string;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';
@@ -544,8 +549,16 @@ export interface Quote {
   quoteDate: string;
   /** Bindefrist. Ein Angebot ohne Ablauf bindet den Betrieb unbegrenzt an seine Preise. */
   validUntil: string;
-  /** `Ersetzt` (Runde 6, G15): eine andere Fassung desselben Angebots wurde angenommen. */
-  status: 'Entwurf' | 'Versendet' | 'Angenommen' | 'Abgelehnt' | 'Ersetzt';
+  /**
+   * `Ersetzt` (Runde 6, G15): eine andere Fassung desselben Angebots wurde angenommen.
+   * `Verworfen` (M01d): ein Entwurf im Papierkorb — wiederherstellbar, bis er endgültig gelöscht ist.
+   */
+  status: 'Entwurf' | 'Versendet' | 'Angenommen' | 'Abgelehnt' | 'Ersetzt' | 'Verworfen';
+  /** Im Papierkorb seit (M01d) — setzt nur die Datenbank, leer außerhalb des Papierkorbs. */
+  verworfenAm?: number | null;
+  /** Wer es in den Papierkorb gelegt hat (Kennung und Name zum Zeitpunkt) — setzt nur die Datenbank. */
+  verworfenVonUid?: string | null;
+  verworfenVonName?: string | null;
   /** Firmendaten beim Versand (`aussteller_staende`, seit 24.10.2026); ein Entwurf hat keine. Setzt nur die Datenbank. */
   ausstellerStand?: string;
   /**
@@ -699,6 +712,11 @@ export interface WorkSheet {
   storniertVonName?: string;
   /** Wer den Entwurf aufgegeben hat — ohne Grund: er war nie beim Kunden. */
   verworfenVonName?: string;
+  /**
+   * Wann er verworfen wurde (M01d) — setzt nur die Datenbank. Leer bei
+   * Scheinen, die vor dem 06.11.2026 verworfen wurden: unbekannt, nicht geraten.
+   */
+  verworfenAm?: number | null;
   createdAt?: number;
 }
 

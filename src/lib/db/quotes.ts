@@ -62,8 +62,26 @@ export function updateQuote(id: string, data: Partial<NewQuote>): Promise<void> 
   return pg.updateQuote(id, data);
 }
 
+/** Endgültig löschen — nur ein Entwurf oder ein verworfenes Angebot (die Datenbank hält das). */
 export function deleteQuote(id: string): Promise<void> {
   return pg.deleteQuote(id);
+}
+
+export type { AngebotImPapierkorb } from './pg/quotes';
+
+/** Die verworfenen Angebote für den Papierkorb (M01d), die jüngsten zuerst. */
+export function listVerworfeneAngebote(companyId: string, max?: number): Promise<WithId<pg.AngebotImPapierkorb>[]> {
+  return pg.listVerworfeneAngebote(companyId, max);
+}
+
+/** Wie viele Angebote im Papierkorb liegen; mit `bis` nur die bis dahin verworfenen. */
+export function zaehleVerworfeneAngebote(companyId: string, bis?: string): Promise<number> {
+  return pg.zaehleVerworfeneAngebote(companyId, bis);
+}
+
+/** Alle bis `bis` verworfenen Angebote endgültig löschen; zurück kommt die Anzahl. */
+export function deleteAbgelaufeneAngebote(companyId: string, bis: string): Promise<number> {
+  return pg.deleteAbgelaufeneAngebote(companyId, bis);
 }
 
 export function reserveQuoteNumber(companyId: string, praefix?: string): Promise<string> {

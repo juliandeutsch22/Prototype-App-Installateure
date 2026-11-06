@@ -135,6 +135,21 @@ export function restoreWorkSheetDraft(id: string): Promise<void> {
   return pg.restoreWorkSheetDraft(id);
 }
 
+/** Die verworfenen Entwürfe für den Papierkorb (M01d), die jüngsten zuerst. */
+export function listVerworfeneScheine(companyId: string, max?: number): Promise<WithId<WorkSheet>[]> {
+  return pg.listVerworfeneScheine(companyId, max);
+}
+
+/** Die bis `bis` verworfenen Entwürfe, seitenweise — für „Abgelaufene endgültig löschen“. */
+export function listAbgelaufeneScheine(companyId: string, bis: string, max?: number): Promise<WithId<WorkSheet>[]> {
+  return pg.listAbgelaufeneScheine(companyId, bis, max);
+}
+
+/** Wie viele verworfene Entwürfe im Papierkorb liegen; mit `bis` nur die bis dahin verworfenen. */
+export function zaehleVerworfeneScheine(companyId: string, bis?: string): Promise<number> {
+  return pg.zaehleVerworfeneScheine(companyId, bis);
+}
+
 /**
  * Die Stunden der ganzen Mannschaft für einen Schein.
  *

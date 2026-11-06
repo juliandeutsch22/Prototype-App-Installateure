@@ -200,6 +200,15 @@ export interface Unterseite {
    * es die Unterseite nicht — auch nicht per Adresse.
    */
   nurMitSchalter?: 'wochenplanFuerAlle';
+  /**
+   * Nur, wenn MINDESTENS EINES dieser Module an ist (M01d). Der Papierkorb
+   * gehört zu keinem Modul — er ist ein Sicherheitsnetz, kein Fachbereich,
+   * und lässt sich deshalb nicht abschalten (wie das Journal). Leer wäre er
+   * aber, wenn weder Angebote noch Handwerksscheine benutzt werden; dann
+   * gibt es ihn nicht, auch nicht per Adresse. Eine Liste und kein einzelnes
+   * `modul` wie bei den Reitern: er hängt an zwei Modulen zugleich.
+   */
+  nurMitModul?: ModulId[];
 }
 
 export const UNTER: Record<string, Unterseite[]> = {
@@ -300,22 +309,39 @@ export const UNTER: Record<string, Unterseite[]> = {
     // anfasst — wie die Saetze und die Module. Ein eigener Reiter dafuer
     // waere der Rueckfall in die 18 Reiter von frueher.
     { pfad: 'sicherung', label: 'Datensicherung', roles: TOP },
+    /*
+      DER PAPIERKORB (M01d): verworfene Angebote und Handwerksscheine —
+      wiederherstellen oder endgültig löschen. Für die Führung, die Angebote
+      schreibt (`quotes_schreiben`) und fremde Scheine verwerfen darf
+      (`app.schein_schreibt`). Der Monteur hat für seine eigenen Scheine den
+      Umschalter „verworfene anzeigen“ in der Scheinliste; eine Unterseite
+      hier bekommt er nicht — unter Einstellungen bleibt er bei seinem Konto.
+    */
+    { pfad: 'papierkorb', label: 'Papierkorb', roles: LEAD, nurMitModul: ['angebote', 'scheine'] },
     // KEIN FEHLERPROTOKOLL MEHR HIER (seit 25.09.2026): Abstürze und
     // „Problem melden" gehen an den Senklot-Support, der sie beheben kann —
     // die Geschäftsführung konnte mit Stapeln und Meldungen nichts anfangen.
   ],
 };
 
-/** Die Unterseiten eines Reiters, die diese Rolle sehen darf. */
+/**
+ * Die Unterseiten eines Reiters, die diese Rolle sehen darf.
+ *
+ * `module`: die Festlegung des Betriebs (`company.modules`); ohne Angabe gilt
+ * der Standard jedes Moduls, wie bei `navForRole`.
+ */
 export function unterseitenFuer(
   basis: string,
   role: Role,
   schalter?: Partial<Record<NonNullable<Unterseite['nurMitSchalter']>, boolean>>,
+  module?: Record<string, boolean>,
 ): Unterseite[] {
+  const an = aktiveModule(module);
   return (UNTER[basis] ?? []).filter(
     (s) =>
       (!s.roles || s.roles.includes(role)) &&
-      (!s.nurMitSchalter || !!schalter?.[s.nurMitSchalter]),
+      (!s.nurMitSchalter || !!schalter?.[s.nurMitSchalter]) &&
+      (!s.nurMitModul || s.nurMitModul.some((m) => an.has(m))),
   );
 }
 

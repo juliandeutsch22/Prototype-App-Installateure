@@ -84,6 +84,9 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Änderungsjournal: vor dem 06.11.2026 nichts aufgezeichnet | Altdaten: was vorher geändert wurde, weiß niemand mehr; die erste Änderung zeigt den Stand davor als alten Wert |
 | Änderungsjournal: der Verlauf eines gelöschten Objekts hat keine Akte mehr (außer gelöschten Zahlungen im Verlauf der Rechnung); er steht in der Datenbank für die Spitze und im Datenauszug | Fachlich: ein gelöschtes Objekt hat keine Seite, an der sein Verlauf stünde |
 | Änderungsjournal: beim Löschen eines Kunden gehen die Werte und sein Name aus dem Journal, wer wann geändert hat, bleibt | Datenschutz (Art. 17 DSGVO) gegen Rechenschaft (Art. 5 Abs. 2): die Kennung belegt die Löschung |
+| Papierkorb (Stand 51, E54): die Frist löscht nichts von selbst, sie nennt das Abgelaufene und leert es auf einen Handgriff | Sicherheit: Fotos lassen sich nur über die Speicher-Schnittstelle löschen, ein nächtlicher Lauf bräuchte einen eigenen Dienstzugang; Entwürfe zu vernichten entscheidet ein Mensch |
+| Papierkorb: bei vor dem 06.11.2026 verworfenen Scheinen ist der Zeitpunkt unbekannt, die Frist zählt ab diesem Tag | Altdaten: der Zeitpunkt wurde nie gespeichert; geraten wird nichts |
+| Der Support löscht Angebotsentwürfe nicht endgültig (E54) | Sicherheit: Löschen ist endgültig; wie beim Schein (E42) |
 
 ## X – Liegt bei jemand anderem
 
