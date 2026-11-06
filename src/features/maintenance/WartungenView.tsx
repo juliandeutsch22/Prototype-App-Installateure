@@ -14,6 +14,8 @@ import {
 } from '@/lib/db/wartungen';
 import { wartungEinplanen } from '@/lib/db/wartungen';
 import WartungVerlauf from './WartungVerlauf';
+import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
+import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 import { listRecentProjects } from '@/lib/db/projects';
 import { belegNummer, hoechsteLfdImJahr, praefixeVon } from '@/lib/praefixe';
 import { isGF } from '@/lib/permissions';
@@ -185,7 +187,7 @@ function Gruppe<T>({ titel, zeilen, zeile }: { titel: string; zeilen: T[]; zeile
 }
 
 export default function WartungenView() {
-  const { user, company } = useAuth();
+  const { user, company, einblick } = useAuth();
   const vorsaetze = praefixeVon(company);
   const toast = useToast();
   const [wartungen, setWartungen] = useState<WithId<Wartung>[]>([]);
@@ -830,6 +832,9 @@ export default function WartungenView() {
                 <h3 className="section-label mb-3">Wartungen</h3>
                 {companyId && <WartungVerlauf companyId={companyId} wartung={w} weiter={weiter} />}
               </div>
+              {/* Wer was wann an der Vereinbarung geändert hat (M01b) — auf Klick, unter ihren Wartungen. */}
+              {companyId && verlaufSichtbar(user?.role, 'wartung', !!einblick) &&
+                <ObjektVerlauf companyId={companyId} objektart="wartung" objektId={w.id} />}
               {darfAendern && (
                 <div className="fuss-aktionen">
                   <Button variant="ghost" onClick={() => { setEinzelheitenId(null); formOeffnen(w); }}>

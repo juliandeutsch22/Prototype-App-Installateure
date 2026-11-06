@@ -98,7 +98,15 @@ const LOHN_UND_RECHNUNG = ['arbeitszeit_begruendungen', 'freistellungen', 'gebur
 const BUERO = ['customers', 'lagerbewegungen', 'material_orders', 'project_documents', 'uid_pruefungen'];
 /** Einkaufspreise, Preislisten, Kostensätze, Katalogdateien, Kontoumstellungen, Systemläufe: nur die Spitze. */
 const SPITZE = ['betrieb_kostensaetze', 'datanorm_laeufe', 'datanorm_zeilen', 'konto_umstellungen', 'material_einkaufspreise',
-  'material_prices', 'rabattsaetze', 'system_laeufe'];
+  'material_prices', 'rabattsaetze', 'system_laeufe',
+  /*
+    Das Änderungsjournal (M01b) liest jede Rolle außer dem Mitarbeiter für
+    die Objekte, die sie sieht. Die Zeilen dieser Prüfung zeigen auf kein
+    Objekt (wie die eines gelöschten) — die sieht nur die Spitze. Was die
+    übrigen Rollen an bestehenden Objekten lesen, prüft
+    `aenderungsjournal.test.ts`.
+  */
+  'aenderungsjournal'];
 
 const LESBAR: Record<string, string[]> = {
   Mitarbeiter: [...FUER_ALLE].sort(),

@@ -19,6 +19,8 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import RowMenu from '@/components/RowMenu';
 import Metric, { MetricRow } from '@/components/Metric';
 import { LotVerlauf, Sprungleiste, type LotPunkt } from '@/components/LotBausteine';
+import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
+import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 import { Zustand } from '@/components/Badge';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
@@ -53,7 +55,7 @@ const LAEDT = { zustand: 'laedt' } as const;
 
 export default function AngebotView() {
   const { id } = useParams<{ id: string }>();
-  const { user, company } = useAuth();
+  const { user, company, einblick } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -373,6 +375,8 @@ export default function AngebotView() {
   const verlauf = (
     <Card title="Verlauf" id="angebot-verlauf">
       <LotVerlauf name="Verlauf des Angebots" punkte={punkte} />
+      {/* Unter dem Stand des Angebots: wer was wann daran geändert hat (M01b) — auf Klick. */}
+      {companyId && verlaufSichtbar(user.role, 'angebot', !!einblick) && <ObjektVerlauf companyId={companyId} objektart="angebot" objektId={q.id} />}
     </Card>
   );
 

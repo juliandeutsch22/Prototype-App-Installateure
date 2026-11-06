@@ -51,6 +51,8 @@ import { uidNormalisieren, uidSperrt } from '@/lib/uid';
 import UidVies from './UidVies';
 import KundenRechnungFenster from './KundenRechnungFenster';
 import useUidVies from './useUidVies';
+import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
+import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 
 /**
  * Die Akte eines Kunden — alles, was der Betrieb über ihn weiss.
@@ -345,6 +347,8 @@ export default function KundenakteView() {
   const vies = <UidVies stand={uidPruefungStand} kunde={k} uidGeaendert={!!entwurf && uidNormalisieren(entwurf.vatId) !== uidNormalisieren(k.vatId)} darfPruefen={!einblick} />;
   const stammdaten = <Card title="Kundendaten" id="k-daten">
     <StammdatenLesen k={k} />
+    {/* Wer was wann an den Kundendaten geändert hat (M01b) — auf Klick. */}
+    {companyId && verlaufSichtbar(user.role, 'kunde', !!einblick) && <ObjektVerlauf companyId={companyId} objektart="kunde" objektId={k.id} />}
   </Card>;
   const baustellenKarte = (
     <Card id="k-baustellen" title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellen.daten.length})` : ''}`}>

@@ -11,8 +11,15 @@ Rollenkürzel: **MA** Mitarbeiter (Monteur), **VW** Verwaltung,
 **AD** Administrator.
 
 Die Matrix wird nach jedem Paket nachgeführt: Die Spalte „Was fehlt“ wird
-dann zu „erledigt mit E…/PR …“. Den Paketstand fasst
+dann zu „erledigt mit E…/PR …“, gesammelt unter „Nachgeführt“. Den Paketstand fasst
 [`README.md`](README.md) zusammen.
+
+## Nachgeführt
+
+| ID | Stand |
+|---|---|
+| N02 | Register mit Unterfähigkeiten und Folgen beim Abschalten erledigt (E52, M01a); Serverprüfung neuer Befehle und abschaltbare Zeiterfassung folgen mit ihren Paketen |
+| U04 | erledigt (E53, M01b): Änderungsjournal für Kunden, Baustellen, Angebote, Rechnungen, Zahlungen, Wartungen, Benutzer; vorhandene Verläufe mitgelesen |
 
 
 ## Bestandsmatrix Teil A/R — Aufträge und Rechnungswesen

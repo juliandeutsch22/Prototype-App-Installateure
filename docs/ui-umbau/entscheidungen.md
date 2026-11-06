@@ -1538,3 +1538,57 @@ Fahrtenbuch …). Als eigene Module wären das sechzig Schalter ohne Ordnung.
 
 Gegenprobe: ohne die Änderung 15 rot; die drei Erhaltungsprüfungen sind vor
 und nach der Änderung grün, wie es sein soll.
+
+**E53 — Das Änderungsjournal der Geschäftsobjekte (06.11.2026).** SHK-Ausbau,
+Paket M01b (U04, Integrationskern K06). An Kunden, Baustellen, Angeboten,
+Rechnungen, Zahlungen, Wartungen und Benutzern stand höchstens, wann sie
+zuletzt geändert wurden — nicht von wem, nicht was vorher dastand, nicht dass
+es ein gelöschtes Objekt gab. Für die Zeitbuchungen gibt es das seit E50; das
+Journal ist dieselbe Idee für die übrigen Akten.
+
+- **Geschrieben nur von Triggern** an den sieben Tabellen, je Anlegen,
+  Ändern, Löschen: wer (Kennung und Name), wann, beim Ändern je Spalte alt
+  und neu; beim Anlegen und Löschen nur dass (eine Kopie jedes Kunden mit
+  Anschrift wäre Datenhaltung ohne Zweck), mit der Bezeichnung des Objekts.
+  Niemand hat ein Recht zum Schreiben, Ändern oder Löschen. Ausgenommen sind
+  Kennungen, Zeitstempel, was die Datenbank selbst rechnet und was ein
+  vorhandener Verlauf festhält (Liste und Grund im Trigger). „Leer bleibt
+  leer“: aus `null` wird `""` ist keine Änderung.
+- **Vorhandene Verläufe werden mitgelesen, nicht kopiert:** Mahnungen,
+  Wartungsausführungen, Kontoumstellungen, Anpassungen des Urlaubsanspruchs
+  stehen in derselben Ansicht (Sicht `objekt_verlauf` mit den Rechten des
+  Lesers). Das E50-Protokoll der Zeitbuchungen bleibt, wo es ist.
+- **Lesen:** nie der Mitarbeiter, nie der Support, je Objekt nur, wer das
+  Objekt selbst sieht; die Stammdaten der Belegschaft nur die Spitze;
+  Zahlungen über ihre Rechnung mit der Regel der Zahlungen (Buchhaltung und
+  Spitze) — auch eine gelöschte Zahlung, denn genau dann wird nachgesehen.
+  Gelöschte übrige Objekte sieht nur die Spitze.
+- **Anzeige:** „Änderungsverlauf“ zugeklappt an der Akte, geladen erst beim
+  Aufklappen, seitenweise mit „Ältere Einträge laden“ (Kundendaten,
+  Baustelle unter „Verlauf der Baustelle“, Angebot, Rechnung samt Zahlungen
+  und Mahnungen, Wartung, Benutzerakte nur für die Spitze). „Änderungsverlauf“
+  statt „Verlauf“, weil Angebot und Baustelle schon einen Verlauf zeigen.
+- **Nicht protokolliert wird**, was ohne angemeldete Person geschieht
+  (Dienstschlüssel, Rücklauf, Migrationen, Skripte): niemand, dem es
+  zuzuschreiben wäre. Der Support im Einblick „mitarbeiten“ steht als
+  „Support (Name)“ darin; deshalb trägt das Journal den Riegel
+  `support_schreibt_nicht` und nicht `support_niemals`.
+- **Datenschutz:** Wird ein Kunde gelöscht, verlieren seine Journalzeilen
+  Werte und Namen (Art. 17), wer wann geändert hat, bleibt (Art. 5 Abs. 2).
+  Bleibt er wegen Belegen (Löschung einer Person), gehen genau die Werte, die
+  auch am Bestand gehen. Die Datenauskunft des Kunden zeigt sein Journal ohne
+  Bearbeiternamen; die eines Mitarbeiters den Verlauf seiner Stammdaten und
+  die Zahl seiner Änderungen. Der Verlauf der Stammdaten bleibt bei der
+  Löschung einer Person aufbewahrt (§ 132 BAO, wie E50).
+- **Seit wann:** ab dem 06.11.2026; die Ansicht sagt es.
+
+**Prüfungen.** `aenderungsjournal.test.ts` (neu, echte Datenbank, 19:
+Schreiben je Tabelle, nichts ohne Änderung, nichts mit Dienstschlüssel oder
+ohne Anmeldung, niemand schreibt über die API, Lesen je Rolle, fremder
+Betrieb, Support, gelöschte Zahlung für die Buchhaltung, Sicht = Quellen,
+Kundenlöschung, Datenauskunft, jede Spalte benannt oder ausgenommen),
+`objektVerlaufText.test.ts`, `objektVerlaufAbfrage.test.ts`,
+`ObjektVerlauf.test.tsx`, `objektVerlauf.spec.ts` (Browser), dazu
+`mandantenTrennung.test.ts`, `personLoeschen.test.ts`, `ruecklauf.test.ts`.
+Gegenprobe: ohne Migration 22 rot und der Browserweg rot; ohne die Regel für
+gelöschte Zahlungen der eigene Fall rot.

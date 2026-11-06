@@ -60,6 +60,7 @@ export default function RechnungDetail({
   aktionen,
   mahnungen = [],
   onMahnungLaden,
+  verlauf,
 }: {
   inv: Invoice | null;
   onClose: () => void;
@@ -68,6 +69,12 @@ export default function RechnungDetail({
   mahnungen?: MahnungZeile[];
   /** Das Schreiben einer Mahnung erneut als PDF — so, wie es hinausging. */
   onMahnungLaden?: (id: string) => void;
+  /**
+   * Der Änderungsverlauf der Rechnung samt Zahlungen und Mahnungen (M01b),
+   * zugeklappt am Ende. Von außen, weil nur der Aufrufer weiß, ob die Rolle
+   * ihn lesen darf und für welchen Betrieb.
+   */
+  verlauf?: React.ReactNode;
 }) {
   if (!inv) return null;
   const stand = zahlstand(inv);
@@ -248,6 +255,8 @@ export default function RechnungDetail({
             </ul>
           </section>
         )}
+
+        {verlauf}
       </div>
     </BottomSheet>
   );

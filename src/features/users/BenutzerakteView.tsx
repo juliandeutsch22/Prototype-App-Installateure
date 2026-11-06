@@ -42,6 +42,8 @@ import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
 import ZahlFeld from '@/components/ZahlFeld';
 import KontoUmstellen from './KontoUmstellen';
 import UrlaubsanspruchKarte from './UrlaubsanspruchKarte';
+import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
+import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 
 /**
  * Die Akte eines Benutzers — und die Stelle, an der sie bearbeitet wird.
@@ -242,6 +244,8 @@ export default function BenutzerakteView() {
 
   const stammdaten = <Card title="Beschäftigung" id="akte-stammdaten"><StammdatenLesen p={p} teil="profil" />
     {!darfAendern && <p className="text-sm text-ink-muted">Ein Administrator lässt sich nur von einem Administrator ändern.</p>}
+    {/* Wer was wann an den Stammdaten geändert hat (M01b) — Lohnstammdaten, nur für die Spitze; auf Klick. */}
+    {companyId && verlaufSichtbar(user.role, 'benutzer', !!einblick) && <ObjektVerlauf companyId={companyId} objektart="benutzer" objektId={p.uid} />}
   </Card>;
   const zugang = darfAendern ? (
     <Card title="Zugang" id="akte-zugang" className="sprung-ziel">

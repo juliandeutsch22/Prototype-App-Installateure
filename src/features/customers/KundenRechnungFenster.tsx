@@ -8,6 +8,9 @@ import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import type { WithId } from '@/lib/db/core';
 import type { Company, Invoice, Mahnung } from '@/types';
+import { useAuth } from '@/app/AuthContext';
+import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
+import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 
 /**
  * DIE RECHNUNG IN DER KUNDENAKTE (Auftrag 03.11.2026: „die Rechnungen
@@ -35,6 +38,7 @@ export default function KundenRechnungFenster({
 }) {
   const toast = useToast();
   const navigate = useNavigate();
+  const { user, einblick } = useAuth();
   const [mahnungen, setMahnungen] = useState<{ fuer: string; liste: WithId<Mahnung>[] } | null>(null);
 
   // Die Mahnungen nur, wenn gemahnt ist — wie auf der Rechnungsseite.
@@ -83,6 +87,9 @@ export default function KundenRechnungFenster({
         const m = liste.find((x) => x.id === mid);
         if (m) laden(() => mahnungPdfLaden(company, m), 'Die Mahnung konnte nicht geladen werden.')();
       } : undefined}
+      verlauf={inv && verlaufSichtbar(user?.role, 'rechnung', !!einblick)
+        ? <ObjektVerlauf companyId={companyId} objektart="rechnung" objektId={inv.id} />
+        : null}
     />
   );
 }
