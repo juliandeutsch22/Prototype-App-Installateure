@@ -1592,3 +1592,52 @@ Kundenlöschung, Datenauskunft, jede Spalte benannt oder ausgenommen),
 `mandantenTrennung.test.ts`, `personLoeschen.test.ts`, `ruecklauf.test.ts`.
 Gegenprobe: ohne Migration 22 rot und der Browserweg rot; ohne die Regel für
 gelöschte Zahlungen der eigene Fall rot.
+
+**E54 — Der Papierkorb für Entwürfe (06.11.2026).** SHK-Ausbau, Paket M01d
+(U06, „Behalten“). Den Zustand „verworfen“ gab es nur am Handwerksschein.
+Ein Angebotsentwurf wurde sofort hart gelöscht — und der Server hätte der
+Führung erlaubt, JEDES Angebot zu löschen, auch ein angenommenes; die Grenze
+„nur Entwürfe“ stand allein in der Ansicht.
+
+- **Angebote verwerfen statt löschen.** „Verwerfen“ legt einen Entwurf in den
+  Papierkorb (Stand „Verworfen“, wer und wann setzt allein die Datenbank,
+  Trigger `quotes_papierkorb`). Wiederherstellen führt zurück in den Entwurf —
+  außer eine andere Fassung desselben Angebots ist inzwischen angenommen
+  (G15: neben einem angenommenen Auftrag steht keine offene Fassung). Ein
+  verworfenes Angebot lässt sich weder speichern noch annehmen noch
+  versenden; es verschwindet aus allen Listen, Zählern und Verweisen (Filter
+  auf dem Server, damit Obergrenzen nicht von Verworfenem belegt werden) und
+  zeigt auf seiner Seite „Im Papierkorb“ mit „Wiederherstellen“.
+- **Endgültig gelöscht wird nur aus Entwurf oder Papierkorb** — durchgesetzt
+  vom Server (einschränkende Regel `quotes_loeschen_nur_entwurf`), auch für die
+  Spitze und direkt über die Schnittstelle. Versendete, angenommene,
+  abgelehnte und ersetzte Angebote sind Belege für Baustellen und
+  Fassungsketten. E42 gilt weiter: endgültig gelöscht ist endgültig.
+- **Der Support löscht nicht mehr endgültig** — auch nicht mit „mitarbeiten“
+  (wie E42 beim Schein); verwerfen und wiederherstellen kann er.
+- **Die Seite „Papierkorb“** (Einstellungen › Papierkorb; Projektleitung,
+  Geschäftsführung, Administrator; nur solange Angebote oder Handwerksscheine
+  an sind): Angebote und Scheine je Art mit Anzahl, wer und wann verworfen,
+  „seit N Tagen“, Wiederherstellen, endgültig löschen mit Rückfrage (beim
+  Schein erst die Fotos, wie bisher), seitenweise. Der Monteur behält den
+  Umschalter „Verworfene“ seiner Scheinliste.
+- **Frist je Betrieb** (Karte auf der Papierkorb-Seite, nur Spitze, 1 bis 3650
+  Tage, leer = keine): Was länger im Papierkorb liegt, nennt die Startseite
+  der Spitze mit Weg dorthin; „Abgelaufene endgültig löschen“ leert es mit
+  einem Handgriff. **Sie löscht nichts von selbst:** Fotos der Scheine lassen
+  sich nur über die Speicher-Schnittstelle entfernen (ein nächtlicher Lauf
+  bräuchte einen eigenen Dienstzugang), und Entwürfe zu vernichten bleibt
+  eine Entscheidung eines Menschen.
+- **Altdaten:** Bei vor dem 06.11.2026 verworfenen Scheinen ist der
+  Zeitpunkt unbekannt; er wird nicht geraten, die Frist zählt ab diesem Tag.
+- **Journal (E53):** Verwerfen und Wiederherstellen stehen als Stand
+  „Entwurf → Verworfen“ und zurück, das Löschen als „Gelöscht“ mit Nummer.
+
+**Prüfungen.** `papierkorb.test.ts` (neu, echte Datenbank, 16),
+`angebotePapierkorbFilter.test.ts`, `papierkorbStartseite.test.ts`,
+`PapierkorbView.test.tsx`, `papierkorb.spec.ts` (Browser: verwerfen →
+Papierkorb → wiederherstellen → verwerfen → endgültig löschen), dazu
+`AngebotView`, `QuotesView`, `navigation-routen`, `ruecklauf`, `schema`.
+Bewusst angepasst: „Löschen“ eines Entwurfs heißt in Angebotsliste und
+Angebotsseite jetzt „Verwerfen“. Gegenprobe: ohne Migration 16 rot, je
+Baustein der App die eigenen Fälle rot.

@@ -244,6 +244,9 @@ describe('Interne Hilfsfunktionen', () => {
       // Auslöser der IBAN-Prüfung und der Zwei-Faktor-Pflicht (Runde 3, H3 und H1).
       'app.bankverbindung_pruefen()',
       'app.zwei_faktor_pflicht_pruefen()',
+      // Der Papierkorb (M01d): wer und wann setzen nur diese Auslöser.
+      'app.angebot_papierkorb()',
+      'app.schein_verworfen_am()',
     ];
     const offen: string[] = [];
     for (const f of intern) {

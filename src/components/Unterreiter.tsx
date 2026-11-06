@@ -43,7 +43,7 @@ export default function Unterreiter({
 }) {
   const { user, company } = useAuth();
   const sichtbar = user
-    ? unterseitenFuer(basis, user.role, { wochenplanFuerAlle: !!company?.wochenplanFuerAlle })
+    ? unterseitenFuer(basis, user.role, { wochenplanFuerAlle: !!company?.wochenplanFuerAlle }, company?.modules)
     : [];
 
   const ort = useLocation();

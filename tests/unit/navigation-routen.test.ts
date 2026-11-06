@@ -230,11 +230,14 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       // „module" steht hier NICHT: siehe der eigene Fall weiter unten.
       'sicherung',
       // Kein „fehler" mehr: Meldungen und Abstürze gehen an den Support.
+      // M01d (bewusst nachgezogen): der Papierkorb für die Führung.
+      'papierkorb',
     ]);
     // Auch die Projektleitung nicht: die Sicherung enthaelt Zeitkonten und
-    // Rechnungen, und beides geht sie nichts an.
+    // Rechnungen, und beides geht sie nichts an. Den Papierkorb hat sie
+    // (M01d): sie schreibt Angebote und verwirft fremde Scheine.
     expect(unterseitenFuer('/settings', 'Projektleiter').map((s) => s.pfad)).toEqual([
-      'meldungen',
+      'meldungen', 'papierkorb',
     ]);
   });
 
@@ -281,8 +284,9 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
 
   it('gibt der Projektleitung die Saetze und die Module NICHT', () => {
     // Dieselbe Grenze wie in firestore.rules: im Firmendokument stehen der
-    // Stundensatz und die Modulliste.
-    expect(unterseitenFuer('/settings', 'Projektleiter').map((s) => s.pfad)).toEqual(['meldungen']);
+    // Stundensatz und die Modulliste. Der Papierkorb (M01d, bewusst
+    // nachgezogen) ist keine Betriebseinstellung — dort liegen ihre Entwürfe.
+    expect(unterseitenFuer('/settings', 'Projektleiter').map((s) => s.pfad)).toEqual(['meldungen', 'papierkorb']);
   });
 
   it('laesst den Monteur Material anfordern, aber kein Lager fuehren', () => {
@@ -323,6 +327,28 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
   });
 });
 
+describe('Der Papierkorb (M01d)', () => {
+  it('gehört der Führung — wer Angebote schreibt und fremde Scheine verwirft; der Monteur bleibt bei seinem Konto', () => {
+    const mit = (rolle: Parameters<typeof unterseitenFuer>[1]) =>
+      unterseitenFuer('/settings', rolle).some((s) => s.pfad === 'papierkorb');
+    for (const rolle of ['Projektleiter', 'Geschäftsführung', 'Administrator'] as const) expect(mit(rolle), rolle).toBe(true);
+    for (const rolle of ['Mitarbeiter', 'Verwaltung', 'Buchhaltung'] as const) expect(mit(rolle), rolle).toBe(false);
+    expect(unterseitenFuer('/settings', 'Mitarbeiter').map((s) => s.pfad)).toEqual(['meldungen']);
+  });
+
+  it('hängt an zwei Modulen: mit einem davon da, ohne beide weg — auch per Adresse', () => {
+    const pfade = (module: Record<string, boolean>) =>
+      unterseitenFuer('/settings', 'Geschäftsführung', {}, module).map((s) => s.pfad);
+    expect(pfade({ angebote: false })).toContain('papierkorb');
+    expect(pfade({ scheine: false })).toContain('papierkorb');
+    expect(pfade({ angebote: false, scheine: false })).not.toContain('papierkorb');
+    // Gleich bleibt: die übrigen Unterseiten hängen an keinem dieser Module.
+    expect(pfade({ angebote: false, scheine: false })).toEqual(
+      unterseitenFuer('/settings', 'Geschäftsführung').map((s) => s.pfad).filter((p) => p !== 'papierkorb'),
+    );
+  });
+});
+
 describe('Wer wohin darf — die Entscheidungen, die dahinterstehen', () => {
 
 
@@ -353,7 +379,8 @@ describe('Wer wohin darf — die Entscheidungen, die dahinterstehen', () => {
     // Die Einstellungen stehen ihr offen — aber nur mit den Meldungen darin,
     // nicht mit den Sätzen des Betriebs.
     expect(rollen('/settings')).toContain('Projektleiter');
-    expect(unterseitenFuer('/settings', 'Projektleiter').map((s) => s.pfad)).toEqual(['meldungen']);
+    // Seit M01d dazu der Papierkorb (bewusst nachgezogen) — kein Geld, keine Rechtevergabe.
+    expect(unterseitenFuer('/settings', 'Projektleiter').map((s) => s.pfad)).toEqual(['meldungen', 'papierkorb']);
   });
 
   it('gibt jeder Rolle die eigene Zeit, den eigenen Urlaub und die eigenen Meldungen', () => {

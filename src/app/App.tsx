@@ -88,6 +88,7 @@ const SupportzugangView = ansicht('/settings', () => import('@/features/settings
 const FirmendatenView = ansicht('/settings', () => import('@/features/settings/FirmendatenView'));
 const NotificationSettings = ansicht('/settings', () => import('@/features/settings/NotificationSettings'));
 const EinstellungenUebersicht = ansicht('/settings', () => import('@/features/settings/EinstellungenUebersicht'));
+const PapierkorbView = ansicht('/settings', () => import('@/features/papierkorb/PapierkorbView'));
 
 /**
  * App-Wurzel: Auth-Provider + Routing. Jede geschützte Route liegt hinter
@@ -546,6 +547,7 @@ function AppRoutes() {
                 support: <SupportzugangView />,
                 module: <ModulesView />,
                 sicherung: <SicherungView />,
+                papierkorb: <PapierkorbView />,
               }}
             />
           </RequireNav>

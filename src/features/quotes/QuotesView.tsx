@@ -8,7 +8,6 @@ import {
   ANGEBOT_TREFFER,
   createQuote,
   updateQuote,
-  deleteQuote,
   reserveQuoteNumber,
 } from '@/lib/db/quotes';
 import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
@@ -27,6 +26,7 @@ import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke, Zustand } from '@/components/Badge';
 import { STAND } from './stand';
+import { verwerfenFrage, VERWORFEN_MELDUNG } from './verwerfen';
 import IconButton from '@/components/IconButton';
 import RowMenu from '@/components/RowMenu';
 import PageHeader from '@/components/PageHeader';
@@ -221,7 +221,8 @@ export default function QuotesView() {
     längste der vier und der seltenste Vorgang; nachgeschlagen wird täglich.
   */
   const [formOffen, setFormOffen] = useState(false);
-  const [toDelete, setToDelete] = useState<WithId<Quote> | null>(null);
+  /** Welcher Entwurf in den Papierkorb soll — erst nach der Rückfrage (M01d). */
+  const [verwerfenFragen, setVerwerfenFragen] = useState<WithId<Quote> | null>(null);
   /** Welches Angebot gerade angenommen werden soll — erst nach der Rückfrage. */
   const [annehmenFragen, setAnnehmenFragen] = useState<WithId<Quote> | null>(null);
   /** Die Abrechnung der Baustelle, die beim Annehmen entsteht (M16). */
@@ -759,10 +760,11 @@ export default function QuotesView() {
               ? [{ label: 'Als versendet markieren', onSelect: () => void status(q, 'Versendet', 'Als versendet markiert') }]
               : []),
             { label: 'Als abgelehnt markieren', onSelect: () => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt') },
-            // Löschen nur im Entwurf: alles Versendete bleibt
-            // nachvollziehbar, auch ein abgelehntes Angebot.
+            // Verwerfen nur im Entwurf: alles Versendete bleibt
+            // nachvollziehbar, auch ein abgelehntes Angebot. Nicht rot —
+            // es landet im Papierkorb und lässt sich zurückholen (M01d).
             ...(q.status === 'Entwurf'
-              ? [{ label: 'Löschen', danger: true, onSelect: () => setToDelete(q) }]
+              ? [{ label: 'Verwerfen', onSelect: () => setVerwerfenFragen(q) }]
               : []),
           ]}
         />
@@ -784,7 +786,9 @@ export default function QuotesView() {
             ersetzten — ersetzt ist eine Fassung, wenn eine andere desselben Angebots angenommen wurde.
             Eine Zeile öffnet die Angebotsseite mit PDF, Verlauf und den nächsten Schritten.
             Bearbeiten lässt sich ein Angebot, solange es Entwurf ist; danach eine neue Fassung.
-            Wird es angenommen, entsteht die Baustelle samt Stundenbudget.
+            Wird es angenommen, entsteht die Baustelle samt Stundenbudget. Ein Entwurf, den es nicht
+            mehr braucht, wird verworfen: er liegt dann unter Einstellungen · Papierkorb, bis er
+            wiederhergestellt oder dort endgültig gelöscht wird.
           </>
         }
         action={
@@ -1250,22 +1254,23 @@ export default function QuotesView() {
         <AbrechnungWahl wert={abrechnung} onWert={setAbrechnung} />
       </ConfirmDialog>
 
+      {/*
+        VERWERFEN STATT LÖSCHEN (M01d). Bis hierher löschte der Knopf den
+        Entwurf hart; jetzt landet er im Papierkorb. Nicht rot: das ist
+        umkehrbar, und wer sich an Rot für Umkehrbares gewöhnt, übersieht es
+        beim endgültigen Löschen.
+      */}
       <ConfirmDialog
-        open={!!toDelete}
-        title="Angebot löschen?"
-        message={toDelete ? `${toDelete.quoteNumber} wird entfernt. Nur Entwürfe sind löschbar.` : ''}
-        onCancel={() => setToDelete(null)}
+        open={!!verwerfenFragen}
+        title="Entwurf verwerfen?"
+        message={verwerfenFragen ? verwerfenFrage(verwerfenFragen) : ''}
+        confirmLabel="Verwerfen"
+        confirmTone="primary"
+        onCancel={() => setVerwerfenFragen(null)}
         onConfirm={async () => {
-          const weg = toDelete;
-          setToDelete(null);
-          if (!weg) return;
-          try {
-            await deleteQuote(weg.id);
-            toast.success('Angebot gelöscht');
-            await laden();
-          } catch (err) {
-            setError(grundAus(err, 'Das Angebot konnte nicht gelöscht werden.'));
-          }
+          const q = verwerfenFragen;
+          setVerwerfenFragen(null);
+          if (q) await status(q, 'Verworfen', VERWORFEN_MELDUNG);
         }}
       />
     </div>

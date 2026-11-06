@@ -91,7 +91,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   projects: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   quotes: {
     abgelehnt_am: 'zeitpunkt', angenommen_am: 'zeitpunkt', created_at: 'zeitpunkt', updated_at: 'zeitpunkt',
-    versendet_am: 'zeitpunkt',
+    versendet_am: 'zeitpunkt', verworfen_am: 'zeitpunkt',
   },
   rabattsaetze: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   rechtstexte: { geaendert_am: 'zeitpunkt', veroeffentlicht_am: 'zeitpunkt' },
@@ -114,7 +114,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   work_sheet_hours: { bis: 'uhrzeit', von: 'uhrzeit' },
   zahlungseingaenge: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   work_sheet_photos: { geraet_zeit: 'zeitpunkt' },
-  work_sheets: { created_at: 'zeitpunkt', unterschrieben_am: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  work_sheets: { created_at: 'zeitpunkt', unterschrieben_am: 'zeitpunkt', updated_at: 'zeitpunkt', verworfen_am: 'zeitpunkt' },
   zeitbuchung_verlauf: { am: 'zeitpunkt' },
   zeitkonto_anfang: { updated_at: 'zeitpunkt' },
   /* Nur über Funktionen erreichbar (Runde 3, H1); die Zeile steht da, weil die Karte das Schema abbildet. */

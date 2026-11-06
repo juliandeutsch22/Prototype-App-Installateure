@@ -62,6 +62,7 @@ const KEINE_NAMEN: string[] = [];
 export default function DashboardView() {
   const { user, company, einblick } = useAuth();
   const scheineAn = useModul('scheine');
+  const angeboteAn = useModul('angebote');
   const materialAn = useModul('material');
   const rechnungenAn = useModul('rechnungen');
   const wartungAn = useModul('wartung');
@@ -98,7 +99,7 @@ export default function DashboardView() {
   */
   const abfrage = useZwischengespeichert<{ data: StartDaten; nichtGeladen: string[] }>({
     queryKey: user
-      ? schluessel('startseite', user, heute, { user, company, mitZeitkonto, materialAn, scheineAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen })
+      ? schluessel('startseite', user, heute, { user, company, mitZeitkonto, materialAn, scheineAn, angeboteAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen })
       : ['startseite'],
     enabled: !!user,
     queryFn: async () => {
@@ -143,7 +144,11 @@ export default function DashboardView() {
         bloecke.push(['Deine Termine', () => termineHeute(k)]);
       }
       if (isTopLevel(user.role)) {
-        bloecke.push(['Einstellungen', () => einstellungen(k, { rechnungen: rechnungenAn, konten: true, personen: true, firma: true })]);
+        bloecke.push(['Einstellungen', () => einstellungen(k, {
+          rechnungen: rechnungenAn, konten: true, personen: true, firma: true,
+          // Der Papierkorb über der Frist (M01d) — nur die Spitze leert ihn.
+          papierkorb: { angebote: angeboteAn, scheine: scheineAn },
+        })]);
       } else if (r === 'buchhaltung' && rechnungenAn) {
         // Den Basiszinssatz pflegt die Buchhaltung selbst (Paket 2, 03.10.2026).
         bloecke.push(['Einstellungen', () => einstellungen(k, { rechnungen: true, konten: false, personen: false })]);

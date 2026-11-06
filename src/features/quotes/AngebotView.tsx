@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { canAccess } from '@/app/navigation';
-import { deleteQuote, getQuote, listFassungen, updateQuote } from '@/lib/db/quotes';
+import { getQuote, listFassungen, updateQuote } from '@/lib/db/quotes';
 import { listCustomersByIds } from '@/lib/db/customers';
 import { belegFirma } from '@/lib/db/aussteller';
 import { isGF } from '@/lib/permissions';
@@ -27,10 +27,13 @@ import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/S
 import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
 import { fassungsHinweis } from './fassungen';
 import { downloadAngebotPdf } from './angebotPdf';
-import { STAND } from './stand';
+import { STAND, standWort } from './stand';
+import { verwerfenFrage, VERWORFEN_MELDUNG, WIEDERHERGESTELLT_MELDUNG } from './verwerfen';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import AbrechnungWahl from './AbrechnungWahl';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT, datumAusMs } from '@/lib/datum';
+import { verworfenText } from '@/features/papierkorb/papierkorbText';
 import { euro } from '@/lib/betrag';
 
 /**
@@ -65,7 +68,7 @@ export default function AngebotView() {
   const [busy, setBusy] = useState(false);
   const [pdfLaeuft, setPdfLaeuft] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
-  const [loeschenFragen, setLoeschenFragen] = useState(false);
+  const [verwerfenFragen, setVerwerfenFragen] = useState(false);
   const [annehmenFragen, setAnnehmenFragen] = useState(false);
   /** Die Abrechnung der Baustelle, die beim Annehmen entsteht (M16). */
   const [abrechnung, setAbrechnung] = useState<Abrechnungsart>('Pauschal');
@@ -245,6 +248,13 @@ export default function AngebotView() {
   */
   const nachbarn = fassungsHinweis(q, [...(vorgaenger ? [vorgaenger] : []), ...fassungen]);
   const abgelaufen = offen && q.validUntil < todayStr();
+  /*
+    IM PAPIERKORB (M01d): nur lesen. Der einzige Schritt ist das
+    Wiederherstellen — außer, eine andere Fassung ist inzwischen angenommen;
+    dann bleibt es dort (die Datenbank nähme es nicht zurück, G15).
+  */
+  const imPapierkorb = q.status === 'Verworfen';
+  const zurueckholbar = imPapierkorb && darfAendern && !nachbarn.angenommen;
 
   /*
     DIE ZUSAMMENFASSUNG ZUERST (Linie „Lot“, Regel 6): was das Angebot wert
@@ -359,7 +369,26 @@ export default function AngebotView() {
             }
           : q.status === 'Ersetzt'
             ? { titel: 'Ersetzt', text: 'Eine andere Fassung dieses Angebots wurde angenommen.' }
-            : { titel: 'Abgelehnt', zeit: q.abgelehntAm ? datumAusMs(q.abgelehntAm) : undefined, text: schritte },
+            : imPapierkorb
+              ? {
+                  titel: 'Im Papierkorb',
+                  zeit: q.verworfenAm ? datumAusMs(q.verworfenAm) : undefined,
+                  text: (
+                    <>
+                      {nachbarn.angenommen
+                        ? `Die Fassung ${nachbarn.angenommen.quoteNumber} ist inzwischen angenommen — dieses Angebot bleibt im Papierkorb.`
+                        : 'Wiederhergestellt ist es wieder ein Entwurf.'}
+                      {darfAendern && (
+                        <>
+                          {' '}
+                          <Link to="/settings/papierkorb" className="link -my-3 py-3">Zum Papierkorb</Link>
+                        </>
+                      )}
+                    </>
+                  ),
+                  jetzt: true,
+                }
+              : { titel: 'Abgelehnt', zeit: q.abgelehntAm ? datumAusMs(q.abgelehntAm) : undefined, text: schritte },
     ...fassungen.map((f) => ({
       titel: (
         <>
@@ -483,10 +512,11 @@ export default function AngebotView() {
 
   /*
     SELTENE AKTIONEN IM „⋯“ des Seitenkopfs (Regel 2) — dieselben wie bisher
-    in der Karte „Weiter“, ein Tipp weiter. Löschen nur im Entwurf: alles
-    Versendete bleibt nachvollziehbar.
+    in der Karte „Weiter“, ein Tipp weiter. Verwerfen nur im Entwurf: alles
+    Versendete bleibt nachvollziehbar. Im Papierkorb gibt es keine — dort
+    ist nur zu lesen und wiederherzustellen.
   */
-  const mehr = darfAendern ? (
+  const mehr = darfAendern && !imPapierkorb ? (
     <RowMenu
       about={`Angebot ${q.quoteNumber}`}
       items={[
@@ -495,8 +525,9 @@ export default function AngebotView() {
           : []),
         // Dasselbe ohne Verweis — etwa als Vorlage für einen ähnlichen Auftrag (M17).
         { label: 'Als Kopie anlegen', onSelect: () => navigate(`/quotes?kopie=${q.id}`) },
+        // Nicht rot: es landet im Papierkorb und lässt sich zurückholen (M01d).
         ...(q.status === 'Entwurf'
-          ? [{ label: 'Löschen', danger: true, onSelect: () => setLoeschenFragen(true) }]
+          ? [{ label: 'Verwerfen', onSelect: () => setVerwerfenFragen(true) }]
           : []),
       ]}
     />
@@ -512,22 +543,40 @@ export default function AngebotView() {
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>{q.customerName}</span>
-            <Zustand stand={STAND[q.status]}>{q.status}</Zustand>
+            <Zustand stand={STAND[q.status]}>{standWort(q.status)}</Zustand>
             {abgelaufen && <Zustand stand="achtung">Bindefrist abgelaufen</Zustand>}
           </span>
         }
         mehr={mehr}
         stand={kennzahlen}
         action={
-          <Button
-            onClick={() => void pdf(q)}
-            loading={pdfLaeuft}
-            disabled={kunde.zustand !== 'bereit'}
-          >
-            PDF herunterladen
-          </Button>
+          imPapierkorb ? (
+            // Die eine Hauptaktion im Papierkorb; ein PDF eines verworfenen Entwurfs braucht niemand.
+            zurueckholbar ? (
+              <Button loading={busy} onClick={() => void status(q, 'Entwurf', WIEDERHERGESTELLT_MELDUNG)}>
+                Wiederherstellen
+              </Button>
+            ) : undefined
+          ) : (
+            <Button
+              onClick={() => void pdf(q)}
+              loading={pdfLaeuft}
+              disabled={kunde.zustand !== 'bereit'}
+            >
+              PDF herunterladen
+            </Button>
+          )
         }
       />
+
+      {imPapierkorb && (
+        <Hinweiszeile>
+          <p>
+            <b>Im Papierkorb</b> — {verworfenText(q, Date.now())}. Nur zum Lesen: bearbeiten, versenden
+            und annehmen lässt es sich erst wiederhergestellt.
+          </p>
+        </Hinweiszeile>
+      )}
 
       {kunde.zustand === 'fehler' && (
         <TeilFehler
@@ -589,20 +638,17 @@ export default function AngebotView() {
         <AbrechnungWahl wert={abrechnung} onWert={setAbrechnung} />
       </ConfirmDialog>
 
+      {/* Verwerfen statt löschen (M01d): umkehrbar, deshalb nicht rot. */}
       <ConfirmDialog
-        open={loeschenFragen}
-        title="Angebot löschen?"
-        message={`${q.quoteNumber} wird entfernt. Nur Entwürfe sind löschbar.`}
-        onCancel={() => setLoeschenFragen(false)}
+        open={verwerfenFragen}
+        title="Entwurf verwerfen?"
+        message={verwerfenFrage(q)}
+        confirmLabel="Verwerfen"
+        confirmTone="primary"
+        onCancel={() => setVerwerfenFragen(false)}
         onConfirm={async () => {
-          setLoeschenFragen(false);
-          try {
-            await deleteQuote(q.id);
-            toast.success('Angebot gelöscht');
-            navigate('/quotes');
-          } catch (err) {
-            setFehler(grundAus(err, 'Das Angebot konnte nicht gelöscht werden.'));
-          }
+          setVerwerfenFragen(false);
+          await status(q, 'Verworfen', VERWORFEN_MELDUNG);
         }}
       />
     </div>

@@ -53,8 +53,10 @@ const annehmen = vi.fn(async () => ({ projectNumber: 'B-2026-0007', abgeleitet: 
 /** Die Fassungen rundherum (M17). */
 let fassungen: (Quote & { id: string })[] = [];
 const VORGAENGER = { ...ANGEBOT, id: '99999999-2222-3333-4444-555555555555', quoteNumber: 'AN-2026-0003' };
+/** Der Stand des Vorgängers — für den Papierkorb, wenn eine andere Fassung angenommen ist (M01d). */
+let vorgaengerStand: Quote['status'] = 'Versendet';
 vi.mock('@/lib/db/quotes', () => ({
-  getQuote: vi.fn(async (_c: string, qid: string) => (qid === VORGAENGER.id ? VORGAENGER : angebot)),
+  getQuote: vi.fn(async (_c: string, qid: string) => (qid === VORGAENGER.id ? { ...VORGAENGER, status: vorgaengerStand } : angebot)),
   listFassungen: vi.fn(async () => fassungen),
   updateQuote: (id: string, d: unknown) => updateQuote(id, d),
   deleteQuote: (id: string) => deleteQuote(id),
@@ -138,6 +140,7 @@ beforeEach(() => {
   fassungen = [];
   kundeScheitert = false;
   rolle.wert = 'Geschäftsführung';
+  vorgaengerStand = 'Versendet';
   updateQuote.mockClear();
   deleteQuote.mockClear();
   pdf.mockClear();
@@ -310,15 +313,58 @@ describe('Weiter mit dem Angebot', () => {
     expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Abgelehnt' });
   });
 
-  it('löscht einen Entwurf nach Rückfrage und kehrt zur Liste zurück', async () => {
+  /*
+    BEWUSST ANGEPASST (M01d): hier stand „löscht einen Entwurf nach Rückfrage
+    und kehrt zur Liste zurück“. Aus dem harten Löschen ist das Verwerfen in
+    den Papierkorb geworden; geschützt bleibt, dass es nur nach Rückfrage
+    geschieht — und jetzt auch, dass NICHT gelöscht wird.
+  */
+  it('verwirft einen Entwurf nach Rückfrage in den Papierkorb — gelöscht wird nichts', async () => {
     angebot = { ...ANGEBOT, status: 'Entwurf' };
     const nutzer = userEvent.setup();
     zeige();
-    await mehrMenue(nutzer, 'Löschen');
-    const dialog = await screen.findByRole('dialog');
-    await nutzer.click(within(dialog).getByRole('button', { name: /Löschen|Bestätigen|Ja/ }));
-    expect(deleteQuote).toHaveBeenCalledWith(ANGEBOT.id);
-    expect(await screen.findByText('Angebotsliste')).toBeInTheDocument();
+    await mehrMenue(nutzer, 'Verwerfen');
+    const dialog = await screen.findByRole('dialog', { name: 'Entwurf verwerfen?' });
+    expect(dialog).toHaveTextContent(/kommt in den Papierkorb/);
+    expect(dialog).toHaveTextContent(/Einstellungen · Papierkorb lässt es sich wiederherstellen/);
+    expect(updateQuote).not.toHaveBeenCalled();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Verwerfen' }));
+    expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Verworfen' });
+    expect(deleteQuote).not.toHaveBeenCalled();
+  });
+
+  it('im Papierkorb: nur lesen, „Wiederherstellen“ als einziger Schritt — kein PDF, kein „⋯“', async () => {
+    angebot = {
+      ...ANGEBOT, status: 'Verworfen', verworfenAm: Date.parse('2026-11-02T09:00:00+01:00'), verworfenVonName: 'Paul Projektleiter',
+    };
+    const nutzer = userEvent.setup();
+    zeige();
+    expect(await screen.findByText(/verworfen von Paul Projektleiter am 02\.11\.2026/)).toBeInTheDocument();
+    expect(screen.getAllByText('Im Papierkorb').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: /PDF herunterladen/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Weitere Aktionen/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Bearbeiten' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Annehmen|versendet/ })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Zum Papierkorb' })).toHaveAttribute('href', '/settings/papierkorb');
+    await nutzer.click(screen.getByRole('button', { name: 'Wiederherstellen' }));
+    expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Entwurf' });
+  });
+
+  it('im Papierkorb, wenn inzwischen eine andere Fassung angenommen ist: kein Wiederherstellen, aber der Grund', async () => {
+    angebot = { ...ANGEBOT, status: 'Verworfen', verworfenAm: Date.parse('2026-11-02T09:00:00+01:00'), vorgaengerId: VORGAENGER.id };
+    vorgaengerStand = 'Angenommen';
+    zeige();
+    expect(await screen.findByText(/Die Fassung AN-2026-0003 ist inzwischen angenommen/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Wiederherstellen' })).toBeNull();
+  });
+
+  it('im Papierkorb sieht die Buchhaltung es nur — ohne Wiederherstellen', async () => {
+    rolle.wert = 'Buchhaltung';
+    angebot = { ...ANGEBOT, status: 'Verworfen', verworfenAm: Date.parse('2026-11-02T09:00:00+01:00') };
+    zeige();
+    await screen.findByText(/Positionen \(/);
+    expect(screen.queryByRole('button', { name: 'Wiederherstellen' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Zum Papierkorb' })).toBeNull();
   });
 
   it('führt einen Entwurf zum Bearbeiten — ein versendetes Angebot nicht', async () => {
@@ -465,13 +511,14 @@ describe('Die Akte auf der Linie „Lot“', () => {
     expect(within(lot).getByText(/Die Bindefrist ist abgelaufen\./)).toBeInTheDocument();
   });
 
-  it('legt die seltenen Aktionen je Status ins „⋯“ — Löschen nur beim Entwurf', async () => {
+  // BEWUSST ANGEPASST (M01d): „Löschen“ heißt beim Entwurf jetzt „Verwerfen“; was geschützt ist, bleibt — nur beim Entwurf.
+  it('legt die seltenen Aktionen je Status ins „⋯“ — Verwerfen nur beim Entwurf', async () => {
     const nutzer = userEvent.setup();
     angebot = { ...ANGEBOT, status: 'Entwurf' };
     const { unmount } = zeige();
     await nutzer.click(await screen.findByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
     expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual([
-      'Als abgelehnt markieren', 'Als Kopie anlegen', 'Löschen',
+      'Als abgelehnt markieren', 'Als Kopie anlegen', 'Verwerfen',
     ]);
     unmount();
 

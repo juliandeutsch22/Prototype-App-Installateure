@@ -20,6 +20,7 @@ dann zu „erledigt mit E…/PR …“, gesammelt unter „Nachgeführt“. Den 
 |---|---|
 | N02 | Register mit Unterfähigkeiten und Folgen beim Abschalten erledigt (E52, M01a); Serverprüfung neuer Befehle und abschaltbare Zeiterfassung folgen mit ihren Paketen |
 | U04 | erledigt (E53, M01b): Änderungsjournal für Kunden, Baustellen, Angebote, Rechnungen, Zahlungen, Wartungen, Benutzer; vorhandene Verläufe mitgelesen |
+| U06 | erledigt (E54, M01d): Papierkorb für Angebots- und Schein-Entwürfe, Löschsperre für Nicht-Entwürfe auf dem Server, Frist je Betrieb |
 
 
 ## Bestandsmatrix Teil A/R — Aufträge und Rechnungswesen

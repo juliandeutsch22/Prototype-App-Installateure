@@ -92,7 +92,7 @@ nacheinander auf dem Arbeitsbranch, ein Paket nach dem anderen.
 | M00 | Bestand, Verträge, Nachweise | – | erledigt mit diesem Dokument (E51) |
 | M01a | Modulregister mit Unterfähigkeiten, Verhalten unverändert | N02 | erledigt (E52); dazu: Folgen beim Abschalten |
 | M01b | Änderungsjournal: vorhandene Verläufe lesen, neues Journal schreiben | U04 | erledigt (E53) |
-| M01d | Papierkorb für Entwürfe | U06 | offen |
+| M01d | Papierkorb für Entwürfe | U06 | erledigt (E54) |
 | M01e | Quellen- und Rechnungsvertrag auf `invoice_coverage` | – | offen |
 | M02 | Auftragseingang, Objekte, Online-Annahme | A03, A09, A11, A06 | offen |
 | M03 | Kataloge, Preise, Kalkulation | E01–E07, A07, A08, G06 | offen |

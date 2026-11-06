@@ -11,7 +11,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Quote, InvoiceDiscount, Abrechnungsart } from '@/types';
-import { abfragen, derClient, loeschen, type WithId } from './kern';
+import { abfragen, derClient, loeschen, zaehlen, type Bedingung, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 import { oderUeberSpalten } from './suche';
 import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
@@ -77,9 +77,19 @@ async function zusammensetzen(
   });
 }
 
+/**
+ * NICHT IM PAPIERKORB (M01d). Ein verworfener Entwurf steht in keiner Liste,
+ * keiner Suche, keinem Zähler und keinem Verweis — nur im Papierkorb und auf
+ * seiner eigenen Seite (`getQuote`). Gefiltert wird hier, auf dem Server,
+ * und nicht in den Ansichten: sonst nähmen verworfene Angebote den Platz der
+ * Obergrenze ein, und die Liste endete still vor dem hundertsten offenen.
+ */
+const NICHT_VERWORFEN: Bedingung = { art: 'ungleich', feld: 'status', wert: 'Verworfen' };
+
 /** Die jüngsten Angebote, mit Obergrenze — eine Arbeitsliste, kein Archiv. */
 export async function listRecentQuotes(companyId: string, max = 100) {
   const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
+    wo: [NICHT_VERWORFEN],
     sortiere: { feld: 'createdAt', absteigend: true },
     grenze: max,
   });
@@ -103,6 +113,7 @@ export async function sucheAngebote(
   const oder = oderUeberSpalten(['quote_number', 'customer_name', 'address', 'project_number'], begriff);
   if (!oder) return [];
   const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
+    wo: [NICHT_VERWORFEN],
     oder,
     sortiere: { feld: 'createdAt', absteigend: true },
     grenze: max,
@@ -120,6 +131,8 @@ export async function listQuotesInRange(companyId: string, von: string, bis: str
     wo: [
       { art: 'ab', feld: 'quoteDate', wert: von },
       { art: 'bis', feld: 'quoteDate', wert: bis },
+      // Ein verworfener Entwurf ist kein Beleg (M01d) — wie ein Entwurf nicht im Archiv.
+      NICHT_VERWORFEN,
     ],
     sortiere: { feld: 'quoteDate' },
   });
@@ -129,7 +142,7 @@ export async function listQuotesInRange(companyId: string, von: string, bis: str
 /** Die Angebote EINES Kunden. */
 export async function listQuotesForCustomer(companyId: string, customerId: string, max = 100) {
   const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
-    wo: [{ art: 'gleich', feld: 'customerId', wert: customerId }],
+    wo: [{ art: 'gleich', feld: 'customerId', wert: customerId }, NICHT_VERWORFEN],
     grenze: max,
   });
   return zusammensetzen(koepfe, companyId);
@@ -150,7 +163,7 @@ export async function getQuote(companyId: string, id: string): Promise<WithId<Qu
 /** Die neuen Fassungen eines Angebots (M17) — wer es überarbeitet hat. */
 export async function listFassungen(companyId: string, vorgaengerId: string) {
   const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
-    wo: [{ art: 'gleich', feld: 'vorgaengerId', wert: vorgaengerId }],
+    wo: [{ art: 'gleich', feld: 'vorgaengerId', wert: vorgaengerId }, NICHT_VERWORFEN],
     grenze: 20,
   });
   return zusammensetzen(koepfe, companyId);
@@ -165,7 +178,7 @@ export async function listFassungen(companyId: string, vorgaengerId: string) {
  */
 export async function listQuotesForProject(companyId: string, projectId: string) {
   const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
-    wo: [{ art: 'gleich', feld: 'projectId', wert: projectId }],
+    wo: [{ art: 'gleich', feld: 'projectId', wert: projectId }, NICHT_VERWORFEN],
     grenze: 20,
   });
   return zusammensetzen(koepfe, companyId);
@@ -181,7 +194,7 @@ export async function listQuotesForProjects(companyId: string, projectIds: reado
   const ids = [...new Set(projectIds.filter(Boolean))];
   if (ids.length === 0) return [];
   const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
-    wo: [{ art: 'in', feld: 'projectId', werte: ids }],
+    wo: [{ art: 'in', feld: 'projectId', werte: ids }, NICHT_VERWORFEN],
   });
   return zusammensetzen(koepfe, companyId);
 }
@@ -223,15 +236,68 @@ export async function updateQuote(id: string, data: Partial<NewQuote>): Promise<
 }
 
 /**
- * Löschen.
+ * Endgültig löschen — aus dem Papierkorb (M01d).
  *
- * Dass nur ein Entwurf gehen darf, hält die Ansicht fest — im Schema steht
- * dieselbe Grenze nicht, und das ist ein bewusst offener Punkt: anders als
- * bei der Rechnung gibt es für ein Angebot keine Aufbewahrungspflicht, die
- * ein Löschen verböte.
+ * Seit M01d hält die Datenbank die Grenze selbst
+ * (`quotes_loeschen_nur_entwurf`): nur ein Entwurf oder ein verworfenes
+ * Angebot, nur der eigene Betrieb. Ein versendetes, angenommenes,
+ * abgelehntes oder ersetztes Angebot trifft das Löschen nicht; `loeschen`
+ * meldet das, statt still „gelöscht“ zu sagen.
  */
 export function deleteQuote(id: string): Promise<void> {
   return loeschen(ANGEBOTE, id);
+}
+
+/** Was der Papierkorb von einem Angebot zeigt — ohne Positionen. */
+export type AngebotImPapierkorb = Pick<
+  Quote,
+  'quoteNumber' | 'customerName' | 'address' | 'projectNumber' | 'quoteDate' | 'totalBrutto'
+  | 'verworfenAm' | 'verworfenVonName' | 'status'
+>;
+
+const PAPIERKORB_SPALTEN = [
+  'id', 'quote_number', 'customer_name', 'address', 'project_number', 'quote_date', 'total_brutto',
+  'verworfen_am', 'verworfen_von_name', 'status',
+].join(',');
+
+const VERWORFEN: Bedingung = { art: 'gleich', feld: 'status', wert: 'Verworfen' };
+
+/** Die verworfenen Angebote, die jüngsten zuerst — seitenweise (`max`). */
+export function listVerworfeneAngebote(companyId: string, max = 50) {
+  return abfragen<AngebotImPapierkorb>(ANGEBOTE, companyId, {
+    spalten: PAPIERKORB_SPALTEN,
+    wo: [VERWORFEN],
+    sortiere: { feld: 'verworfenAm', absteigend: true, leerZuerst: false },
+    grenze: max,
+  });
+}
+
+/**
+ * Wie viele Angebote im Papierkorb liegen — mit `bis` (ISO-Zeitpunkt) nur die
+ * bis dahin verworfenen. Gezählt, nicht geholt: die Zahl stimmt auch, wenn
+ * die Liste noch nicht alles geladen hat.
+ */
+export function zaehleVerworfeneAngebote(companyId: string, bis?: string): Promise<number> {
+  return zaehlen(ANGEBOTE, companyId, {
+    wo: bis ? [VERWORFEN, { art: 'bis', feld: 'verworfenAm', wert: bis }] : [VERWORFEN],
+  });
+}
+
+/**
+ * Alle bis `bis` verworfenen Angebote endgültig löschen — „Abgelaufene
+ * endgültig löschen“ der Spitze. Eine Anweisung: die Grenze (nur verworfene,
+ * nur der eigene Betrieb) zieht die Datenbank. Zurück kommt, wie viele es
+ * waren.
+ */
+export async function deleteAbgelaufeneAngebote(companyId: string, bis: string): Promise<number> {
+  const { error, count } = await derClient()
+    .from(ANGEBOTE)
+    .delete({ count: 'exact' })
+    .eq('company_id', companyId)
+    .eq('status', 'Verworfen')
+    .lte('verworfen_am', bis);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
 }
 
 /**
