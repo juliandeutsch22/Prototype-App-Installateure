@@ -19,6 +19,17 @@
   "newAppTestRunPerformed": false,
   "scopeCutsAlreadyApproved": false,
   "publicPublicationExplicitlyApproved": true,
-  "masterBytes": 141933,
+  "workRulesRevisionDate": "2026-11-06",
+  "bindingWorkRulesVerified": [
+    "Bestand zuerst wiederverwenden",
+    "Grundlegende Änderungen nur mit Notwendigkeitsnachweis",
+    "Keine Verschlimmbesserung",
+    "Keine halbfertigen Nutzerfunktionen",
+    "Grenzen nur mit Beleg und normalem Arbeitsweg",
+    "Keine stillen Umfangskürzungen",
+    "Erhaltungs-, Integrations- und Regressionstests",
+    "Vollständige Abnahme vor Fertigmeldung"
+  ],
+  "masterBytes": 147875,
   "reviewBytes": 40087
 }

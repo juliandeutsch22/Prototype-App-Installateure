@@ -1,6 +1,7 @@
 # MASTER PROMPT — Senklot: vollständige SHK-Integration ohne KI
 
-**Stand:** 5. November 2026  
+**Stand:** 6. November 2026 (Arbeitsregeln präzisiert; Bestandsabgleich vom 5. November bleibt ausgewiesen)
+
 **Produkt:** Senklot, österreichische Betriebssoftware für Installations- und SHK-Betriebe  
 **Ergebnis:** ausführbarer Entwicklungsfahrplan mit Architektur, fachlichen Regeln, UI-Einbindung, Migrationen, Prüfungen und Freigaben
 **Zusätzlich maßgeblich:** [Kritische Produktbewertung aller 84 Punkte](Senklot_SHK_Kritische_Produktbewertung_2026-11-05.md). Sie unterscheidet ausdrücklich Originalanforderung und empfohlenen Zielumfang.
@@ -47,6 +48,32 @@ Eine typische Betriebsgröße ist keine technische Sperre. Keine willkürlichen 
 Notwendige Grenzen bleiben: Berechtigungen, Fremdmandanten, unveränderliche Belege, nachvollziehbare Rundung, geräteabhängige Offline-Speicherung, verifizierte Normfassungen, tatsächliche Fremdsysteme und Ressourcen. Jede technische Mengen-/Größengrenze braucht Messung, Fehlermeldung und einen belastbaren Umgang mit größeren Beständen: Pagination, Streaming, Hintergrundjob, Fortsetzung, Export oder dokumentierte Erweiterung. Kein stilles Abschneiden.
 
 Keine unbewiesene Zusage „beliebig groß“ oder „absolut fehlerfrei“. Der nachgewiesene Betriebsbereich wird gemessen und dokumentiert; Erweiterbarkeit darf nicht durch vermeidbare Architekturgrenzen verhindert werden.
+
+### 0.4 Verbindlicher Arbeitsauftrag: genau, fehlerbewusst und bestandsschonend
+
+Diese Regeln gelten für **jedes** spätere Umsetzungspaket. Sie sind Abnahmekriterien, keine unverbindlichen Stilwünsche.
+
+1. **Genau und fehlerbewusst arbeiten.** Vor einer Änderung den tatsächlichen Ablauf, wirksame Serverregeln, Daten und Tests prüfen. Vermutung, dokumentierte Aussage und reproduzierbaren Fehler trennen. Keine Probleme erfinden und keinen korrekten Ausnahmefall „vereinfachen“. Unklare Fachregeln klären, statt sie durch eigene Annahmen zu ersetzen.
+2. **Bestehendes zuerst wiederverwenden.** Reihenfolge der Entscheidung: vorhandene Fähigkeit nutzen → gezielt ergänzen → notwendigen Teil umbauen → nur bei belegter Notwendigkeit neu entwickeln. Maßstab ist der kleinste **fachlich vollständige** Eingriff, nicht die geringste Zeilenzahl oder eine kurzfristige Behelfslösung.
+3. **Keine grundlegenden Umbauten ohne Notwendigkeitsnachweis.** Eine bestehende Funktion, Datenstruktur, Berechnung, Route oder Bedienweise nicht neu bauen, nur weil eine andere Architektur moderner, aufgeräumter oder einheitlicher erscheint. Vor einem notwendigen grundlegenden Umbau dokumentieren: konkretes Hindernis, betroffene Fälle, warum eine Erweiterung nicht ausreicht, Risiken, Migrations-/Kompatibilitätsweg und erhaltende Gegenproben. Ein neuer Funktionspunkt ist keine pauschale Freigabe für einen Systemneubau.
+4. **Nichts verschlimmbessern.** Vorhandene korrekte Funktionen bleiben in ihrem bisherigen fachlichen Umfang erhalten: Aktionen, Felder, Rechte, Filter, Suche, Belegarten, Korrekturwege, Exporte, Deep Links, mobile Bedienung und Offline-Vormerkungen. Bestehende Funktionen dürfen auch dann nicht verschwinden, wenn ein neuer Katalogpunkt optional ist oder nicht beauftragt wird. Unvermeidbare Änderungen müssen ausdrücklich begründet, zugeordnet und geprüft sein.
+5. **Vollständige Abläufe statt halbfertiger Funktionen.** Erfassen, Prüfen, Speichern, Freigeben, Wiederholen, Korrigieren, Berechtigen, Nachvollziehen und erforderliche Ausgabe funktionieren zusammen. Keine Attrappen, versteckten Datenverluste, nur für den Happy Path gebauten Aktionen oder normalen Fehlerfälle, die einen Entwickler benötigen. „Optional“ bedeutet nach Aktivierung vollständig nutzbar. Ein Feature-Flag ersetzt keine fertige beauftragte Funktion; interner vorbereitender Unterbau darf als solcher existieren, aber nicht als fertige Nutzerfunktion auftreten.
+6. **Grenzen nur mit konkreter Begründung.** Jede verbleibende fachliche oder technische Grenze nennt betroffenen Punkt, tatsächlichen Grund, Beleg, sichtbare Auswirkung und den vollständigen zulässigen Umgang damit. „Einfacher“, „zu aufwendig“, „fürs Erste ausreichend“, eine pauschale Performancebehauptung oder „später“ genügen nicht. Eine echte Fremdsystem-, Geräte-, Rechts-, Sicherheits- oder Datenschutzgrenze ist ausdrücklich von einer noch nicht gebauten Lösung zu unterscheiden. Eine bloße Grenzbeschreibung ersetzt keine technisch mögliche und beauftragte Umsetzung.
+7. **Kein stiller Funktionsverzicht.** Eine Empfehlung zum Streichen ist eine Produktentscheidung, keine Erlaubnis zur heimlichen Umfangskürzung während der Entwicklung. „Nicht beauftragt“, „optional“ oder „ersetzt“ darf nur der eindeutig bestätigten Zielentscheidung entsprechen; der Entwickler darf damit keine offenen Aufgaben als erledigt erklären.
+8. **Zusammenhänge und Gegenproben prüfen.** Nicht nur die neue Ansicht testen: alle betroffenen Quellen, Berechnungen, Rechte, Belege und Folgeaktionen durchgehen. Neue Fehlerfälle mit Gegenprobe, bisher korrektes Verhalten mit Erhaltungstest, zusätzlich gemeinsame Regression über die bestehenden Arbeitsabläufe. Eigenen Diff kritisch auf Nebenwirkungen, Doppelschreiben, geänderte Zahlen, fremde Mandanten und entfallene Wege gegenlesen.
+9. **Erst nach vollständiger Abnahme fertig melden.** Der bestätigte Zielumfang funktioniert integriert und in vollem Umfang; relevante Fehler-/Korrekturfälle, Mobil/Desktop, Rollen, Migration und Offline-Verhalten sind nachgewiesen. Typprüfung, Lint, passende Tests, Build und erforderliche CI-/Auslieferungsnachweise nennen. Fehlende externe Nachweise transparent offenlassen; kein pauschales Erfolgsversprechen aus einem reinen Mocktest oder grünen Teiltest ableiten.
+
+**Pflichtnachweis für jede Änderung:**
+
+| Bestehender Ablauf / Original-ID | Tatsächlicher Änderungsbedarf | Wiederverwendete Funktion / Datenquelle | Gezielte Ergänzung bzw. begründeter Umbau | Erhaltungs- und Integrationstest | Verbleibende Grenze mit Beleg |
+|---|---|---|---|---|---|
+| konkret ausfüllen | Fehler oder neue benötigte Fähigkeit benennen | Code-/SQL-/Belegweg zuordnen | keine pauschale Neuentwicklung | tatsächliche Gegenprobe und Ergebnis | nur falls wirklich vorhanden; keine Ausrede für fehlende Umsetzung |
+
+**Pflichtnachweis für eine verbleibende Grenze:** Kennung, betroffene Funktion, genaue Grenze, fachlicher/technischer Grund, überprüfbarer Beleg, Nutzerwirkung, sicherer normaler Arbeitsweg und gegebenenfalls konkrete Aufhebungsbedingung. Eine Seitengröße ist beispielsweise keine Grenze der erreichbaren Gesamtmenge; die vollständige Fortsetzung muss funktionieren.
+
+Diese Arbeitsweise ist verpflichtend. Der Plan legt Anforderungen und Prüfnachweise fest; die tatsächliche Fehlerfreiheit und Harmonie werden erst durch die sorgfältige Implementierung und ihre vollständige Abnahme nachgewiesen.
+
+
 
 ---
 
@@ -151,7 +178,7 @@ Die Bezeichnungen sind Zielbegriffe, keine Aufforderung, identische Bestandstabe
 
 ### 2.4 Kritische Schreibbefehle
 
-Für neue kritische Aktionen einen gemeinsamen serverseitigen Befehlsvertrag schaffen und an vorhandene RPCs anbinden. Keine neuen direkten Updates aus einer Komfortansicht.
+Für neue kritische Aktionen einen gemeinsamen serverseitigen Befehlsvertrag schaffen und an vorhandene RPCs anbinden. Keine neuen direkten Updates aus einer Komfortansicht. Ein gemeinsamer Vertrag verlangt keinen neuen Command-Bus und keine pauschale Neuerstellung bereits korrekter RPCs. Vorhandene atomare Prüf-/Schreibfunktionen verwenden; fehlende Vorgangs-, Revisions- oder Journalbezüge gezielt ergänzen. Bestehende Berechnungen und Belegregeln werden dadurch nicht neu implementiert.
 
 Jeder Befehl enthält:
 

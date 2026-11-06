@@ -1,6 +1,6 @@
 # Senklot — SHK-Fahrplan und kritische Produktbewertung
 
-Stand: 05.11.2026. Grundlage ist die korrigierte Datei „Senklot vs. APVROS – funktionale Unterschiede innerhalb der App“.
+Stand: 06.11.2026, Arbeitsregeln verbindlich präzisiert. Grundlage ist die korrigierte Datei „Senklot vs. APVROS – funktionale Unterschiede innerhalb der App“.
 
 ## Dateien
 
@@ -12,6 +12,6 @@ Stand: 05.11.2026. Grundlage ist die korrigierte Datei „Senklot vs. APVROS –
 
 Alle 84 Original-IDs sind einzeln geplant, kritisch bewertet und einem primären Umsetzungspaket zugeordnet. 17 Punkte behalten, 36 integrieren, 22 bedarfsspezifisch optional, 8 fachlich ändern und 1 ersetzen. Integration bedeutet Funktionsfähigkeit behalten, aber gemeinsame Daten/Aktionen statt Parallelmodule. Optional bedeutet vollständig nutzbar bei entsprechendem Betriebszweck.
 
-Die Bewertungen sind Empfehlungen. Die Zustimmung zur öffentlichen Bereitstellung ist keine Freigabe von Funktionsstreichungen oder zur Implementierung. Die App blieb unverändert. Der statische Codeabgleich am main-Commit 62db192 ersetzt keine neue vollständige CI-/Produktiv-/Fremdsystemprüfung.
+Der Masterprompt enthält jetzt zusätzlich den verbindlichen Arbeitsauftrag in Abschnitt 0.4: Bestand vor Neubau, genau und fehlerbewusst arbeiten, nichts verschlimmbessern, keine halbfertigen Funktionen und Grenzen nur mit konkretem Beleg. Die Bewertungen sind Empfehlungen. Die Zustimmung zur öffentlichen Bereitstellung ist keine Freigabe von Funktionsstreichungen oder zur Implementierung. Die App blieb unverändert. Der statische Codeabgleich am main-Commit 62db192 ersetzt keine neue vollständige CI-/Produktiv-/Fremdsystemprüfung.
 
 Die erste andere Katalogdatei ist ersetzt; keine aus ihr übernommene P0-/P1-Priorisierung oder pauschale Pilotwochen als Voraussetzung. Die maschinelle Prüfung bestätigt die ID-Abdeckung und Zuordnung, nicht die fachliche Fehlerfreiheit einer zukünftigen Implementierung.
