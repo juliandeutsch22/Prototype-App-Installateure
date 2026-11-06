@@ -79,6 +79,11 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Arztbesuch (Stand 33, E35): den Weg vom Arbeitsort rechnet die App nicht aus | Fachlich: Arbeitsort des Tages und Weg kennt nur die Person; das Büro prüft beim Bestätigen |
 | Arztbesuch: auf der Startseite steht „Sonderurlaub“, nicht „Arztbesuch“ | Datenschutz: die Startseite nennt keinen Anlass; das Büro sieht ihn beim Bestätigen |
 | Arztbestätigung nach „geprüft“ gelöscht, nur der Vermerk bleibt | Datenschutz: Gesundheitsdaten nur so lange wie nötig (wie jeder Nachweis zum Sonderurlaub) |
+| Änderungsjournal (Stand 50, E53): Positionen von Angeboten und Rechnungen stehen nicht einzeln darin | Fachlich: das Speichern ersetzt sie als Ganzes; ein Journal je Zeile zeigte jedes Speichern als gelöscht und neu. Was eine Änderung bewirkt, steht in den Summen des Kopfes, und die sind protokolliert |
+| Änderungsjournal: kein Eintrag für den Dienstschlüssel und für Arbeiten ohne Anmeldung (Rücklauf, Betriebslöschung, Migrationen, Skripte) | Es gibt niemanden, dem die Zeile zuzuschreiben wäre; der Rücklauf bringt das Journal aus der Sicherung mit, eigene Zeilen verdoppelten es |
+| Änderungsjournal: vor dem 06.11.2026 nichts aufgezeichnet | Altdaten: was vorher geändert wurde, weiß niemand mehr; die erste Änderung zeigt den Stand davor als alten Wert |
+| Änderungsjournal: der Verlauf eines gelöschten Objekts hat keine Akte mehr (außer gelöschten Zahlungen im Verlauf der Rechnung); er steht in der Datenbank für die Spitze und im Datenauszug | Fachlich: ein gelöschtes Objekt hat keine Seite, an der sein Verlauf stünde |
+| Änderungsjournal: beim Löschen eines Kunden gehen die Werte und sein Name aus dem Journal, wer wann geändert hat, bleibt | Datenschutz (Art. 17 DSGVO) gegen Rechenschaft (Art. 5 Abs. 2): die Kennung belegt die Löschung |
 
 ## X – Liegt bei jemand anderem
 

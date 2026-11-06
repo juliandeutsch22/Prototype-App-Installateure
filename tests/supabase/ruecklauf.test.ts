@@ -70,6 +70,15 @@ beforeAll(async () => {
     { ...buchung(monteur, '2026-09-01'), project_number: 'R-2026-001' },
     { ...buchung(monteur, '2026-09-02'), status: 'Urlaub' },
   ]);
+  /*
+    DAS ÄNDERUNGSJOURNAL (M01b) entsteht nur aus Änderungen mit einem
+    Anmeldetoken — also ändert die Chefin selbst. Die Sicherung muss es
+    mitbringen, und der Rücklauf darf beim Einspielen keine eigenen Zeilen
+    dazuschreiben.
+  */
+  const { error: e1 } = await chef.client.from('customers').update({ contact_phone: '0664 1' }).eq('id', kunde!.id);
+  const { error: e2 } = await chef.client.from('projects').update({ status: 'Pausiert' }).eq('project_number', 'R-2026-001');
+  expect([e1, e2]).toEqual([null, null]);
 }, 180_000);
 
 afterAll(() => clientEinreichen(null));
@@ -94,6 +103,9 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
       if (count) vorher[t] = count;
     }
     expect(Object.keys(vorher).length).toBeGreaterThan(2);
+    const journalVorher = ((await admin.from('aenderungsjournal').select('id, objekt_id, art, aenderungen, von_uid')
+      .eq('company_id', BETRIEB).order('id')).data ?? []);
+    expect(journalVorher).toHaveLength(2);
 
     /*
       2. Ausleiten — mit dem Token eines Menschen, also der Knopf aus den
@@ -156,6 +168,11 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
         .eq('company_id', BETRIEB);
       expect(count, `Tabelle ${t}`).toBe(anzahl);
     }
+
+    // Das Journal kam mit, Zeile für Zeile — und nichts doppelt: der Rücklauf selbst schrieb keine.
+    const journalNachher = ((await admin.from('aenderungsjournal').select('id, objekt_id, art, aenderungen, von_uid')
+      .eq('company_id', BETRIEB).order('id')).data ?? []);
+    expect(journalNachher).toEqual(journalVorher);
 
     // Nicht nur die Anzahl: der Inhalt muss stimmen, sonst hätte auch eine
     // Handvoll leerer Zeilen bestanden.

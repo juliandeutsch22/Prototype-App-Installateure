@@ -50,6 +50,8 @@ import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { fmtStunden, todayStr } from '@/lib/time';
 import ZahlFeld from '@/components/ZahlFeld';
+import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
+import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 
 /**
  * Die Akte einer Baustelle — und die Stelle, an der sie bearbeitet wird.
@@ -79,7 +81,7 @@ const fmtDatum = (iso?: string) =>
 
 export default function BaustellenakteView() {
   const { id } = useParams<{ id: string }>();
-  const { user, company } = useAuth();
+  const { user, company, einblick } = useAuth();
   const toast = useToast();
   const scheineAn = useModul('scheine');
   const einsatzAn = useModul('einsatzplanung');
@@ -382,6 +384,9 @@ export default function BaustellenakteView() {
       {verlauf.length > 1 && <details className="akten-weitere"><summary>Verlauf der Baustelle</summary>
         <LotVerlauf name="Verlauf der Baustelle" punkte={verlauf} />
       </details>}
+      {/* Wer was wann an der Baustelle geändert hat (M01b) — neben ihrem Verlauf, ebenso auf Klick. */}
+      {companyId && verlaufSichtbar(user?.role, 'baustelle', !!einblick) &&
+        <ObjektVerlauf companyId={companyId} objektart="baustelle" objektId={b.id} stil="akte" name={(u) => namen.get(u)} />}
     </Card>
   );
   const kundeOrt = <Card title="Kunde und Ort" id="b-daten">

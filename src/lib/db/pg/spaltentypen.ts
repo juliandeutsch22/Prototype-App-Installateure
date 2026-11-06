@@ -28,6 +28,7 @@
 export type Spaltenart = 'zeitpunkt' | 'uhrzeit';
 
 export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
+  aenderungsjournal: { am: 'zeitpunkt' },
   assignments: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt', zeit_von: 'uhrzeit', zeit_bis: 'uhrzeit' },
   aussteller_staende: { angelegt_am: 'zeitpunkt' },
   /*
@@ -83,6 +84,8 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   material_prices: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   materials: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   number_counters: { updated_at: 'zeitpunkt' },
+  /* Eine Sicht (M01b): Journal und vorhandene Verläufe zusammen; gelesen wird sie wie eine Tabelle. */
+  objekt_verlauf: { am: 'zeitpunkt' },
   platform_admins: { created_at: 'zeitpunkt' },
   project_documents: { created_at: 'zeitpunkt' },
   projects: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },

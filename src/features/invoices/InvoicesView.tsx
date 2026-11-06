@@ -97,6 +97,8 @@ import WachsendesTextfeld from '@/components/WachsendesTextfeld';
 import StatusBadge from '@/components/StatusBadge';
 import { Marke, Warnung } from '@/components/Badge';
 import RechnungDetail, { type MahnungZeile, type RechnungAktion } from './RechnungDetail';
+import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
+import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 import { mahnungPdfLaden, rechnungPdfLaden } from './belegeLaden';
 import BankgarantieDialog from './BankgarantieDialog';
 import EbInterfaceDialog from './EbInterfaceDialog';
@@ -156,7 +158,7 @@ const LISTEN_TITEL: Record<string, string> = {
 };
 
 export default function InvoicesView() {
-  const { user, company } = useAuth();
+  const { user, company, einblick } = useAuth();
   /*
     DIE PROJEKTLEITUNG LIEST NUR (Freigabe „Rechnungen seiner Baustellen
     lesen“, M38; Runde 3, Selbst prüfen). Sie kommt nur mit der Freigabe
@@ -5018,6 +5020,9 @@ export default function InvoicesView() {
                 }))
               : []}
             onMahnungLaden={(id) => void mahnungErneutLaden(id)}
+            verlauf={inv && user && verlaufSichtbar(user.role, 'rechnung', !!einblick)
+              ? <ObjektVerlauf companyId={user.companyId} objektart="rechnung" objektId={inv.id} />
+              : null}
           />
         );
       })()}

@@ -69,6 +69,11 @@ beforeAll(async () => {
     company_id: BETRIEB, eintrag_id: eintrag, user_id: monteur.uid, datum: '2099-02-02', art: 'angelegt',
     von_uid: monteur.uid,
   });
+  // Ebenso das Änderungsjournal (M01b): eine Änderung der Stammdaten, wie sie die Geschäftsführung in der Akte machte.
+  await einfuegen('aenderungsjournal', {
+    company_id: BETRIEB, objektart: 'benutzer', objekt_id: monteur.uid, art: 'geaendert',
+    aenderungen: { weekly_target_hours: { alt: 38.5, neu: 40 } }, von_uid: chef.uid, am: '2099-02-02T10:00:00Z',
+  });
   await einfuegen('krankmeldungen', {
     company_id: BETRIEB, user_id: monteur.uid, user_name: 'M', von: '2099-04-01', bis: '2099-04-02',
   });
@@ -104,6 +109,8 @@ describe('Eine Person der Belegschaft', () => {
       { was: 'Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
       // E50: der Verlauf der Buchung (hier ihr Anlegen) bleibt mit ihr aufbewahrt.
       { was: 'Änderungsprotokoll der Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
+      // M01b: der Verlauf der Stammdaten ist Lohnunterlage und bleibt wie die Buchungen.
+      { was: 'Änderungsjournal der Stammdaten', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
       { was: 'Krankmeldungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
       // Entsteht aus der Zeitbuchung (Auslöser der Monatsbilanz) und ist Lohnunterlage wie sie.
       { was: 'Monatsbilanzen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
