@@ -286,8 +286,10 @@ export interface Company {
   /**
    * Welche Bereiche der App dieser Betrieb benutzt.
    *
-   * Gespeichert werden nur die ABWEICHUNGEN vom Standard; was fehlt, gilt wie
-   * in `lib/module.ts` festgelegt. Damit ändert sich für bestehende Betriebe
+   * Gespeichert sind nur die Schalter, die jemand berührt hat (ein Modul, das
+   * aus- und wieder eingeschaltet wurde, steht mit `true` darin); was fehlt,
+   * gilt wie in `lib/module.ts` festgelegt. Unterfähigkeiten stehen unter
+   * ihrer Kennung mit Punkt (`material.lagerorte`, N02). Damit ändert sich für bestehende Betriebe
    * nichts, solange niemand etwas umstellt — und ein später hinzukommendes
    * Modul erscheint automatisch mit seinem Standard, statt bei allen zu
    * fehlen.

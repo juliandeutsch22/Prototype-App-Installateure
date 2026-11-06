@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { aktiveModule, type ModulId } from './module';
+import { istAn, type SchalterId } from './module';
 
 /**
  * Ist dieses Modul für den angemeldeten Betrieb eingeschaltet?
@@ -12,7 +12,8 @@ import { aktiveModule, type ModulId } from './module';
  * ausgeschaltet" — technisch sauber und trotzdem eine Sackgasse, die man dem
  * Benutzer erspart, indem der Link gar nicht erst dasteht.
  */
-export function useModul(id: ModulId): boolean {
+export function useModul(id: SchalterId): boolean {
   const { company } = useAuth();
-  return useMemo(() => aktiveModule(company?.modules).has(id), [company, id]);
+  // Auch für Unterfähigkeiten (`material.lagerorte`): sie gelten nur mit ihrem Modul.
+  return useMemo(() => istAn(company?.modules, id), [company, id]);
 }

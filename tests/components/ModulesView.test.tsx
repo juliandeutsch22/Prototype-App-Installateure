@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
+import { SeitenHilfeProvider } from '@/components/SeitenHilfe';
 import type { Company } from '@/types';
 
 /**
@@ -160,6 +161,45 @@ describe('Ein Modul abschalten', () => {
 
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(schalter('Urlaub')).not.toBeChecked();
+  });
+});
+
+describe('Was sich nicht zurückholen lässt (M01a, E52)', () => {
+  it('fragt vor dem Abschalten der Einsatzplanung — die Kalender-Abos des ganzen Plans enden', async () => {
+    /*
+      Vorher schaltete die Einsatzplanung ohne Rückfrage aus, weil kein
+      anderes Modul mitging. Der Server beendet dabei aber die Abos des
+      Gesamtplans, und die Seite versprach „Daten bleiben unangetastet“.
+    */
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(schalter('Einsatzplanung'));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/Kalender-Abos des ganzen Einsatzplans enden/)).toBeInTheDocument();
+    // Nur die ÜBRIGEN Daten bleiben — und „in beiden Fällen“ stimmt hier nicht, es geht nichts mit.
+    expect(within(dialog).getByText(/Alle übrigen Daten bleiben erhalten/)).toBeInTheDocument();
+    expect(within(dialog).queryByText(/in beiden Fällen/)).toBeNull();
+    expect(schalter('Einsatzplanung')).toBeChecked();
+  });
+
+  it('sagt in der Hilfe, dass die Rückfrage solche Ausnahmen nennt, und wer die Liste ändern darf', async () => {
+    // Wie im Layout: die Hilfe der Seite gesammelt hinter dem Zeichen im Kopf.
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <SeitenHilfeProvider>
+            <ModulesView />
+          </SeitenHilfeProvider>
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Hilfe zu dieser Seite' }));
+    const text = (await screen.findByRole('dialog')).textContent ?? '';
+    expect(text).toMatch(/nennt die Rückfrage vor dem\s+Abschalten/);
+    // Der Server lässt nur den Administrator die Module schalten; die Hilfe sagte „Geschäftsführung“.
+    expect(text).toMatch(/ändern darf sie nur der Administrator/);
+    expect(text).not.toMatch(/ändern darf sie nur die Geschäftsführung/);
   });
 });
 

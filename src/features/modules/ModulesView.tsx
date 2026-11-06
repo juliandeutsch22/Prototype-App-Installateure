@@ -2,7 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import { updateCompany } from '@/lib/db/company';
-import { MODULE, aktiveModule, zieheMit, modul, type ModulId } from '@/lib/module';
+import {
+  MODULE,
+  aktiveModule,
+  aktiveSchalter,
+  zieheMit,
+  folgenBeimAbschalten,
+  schalter,
+  type Faehigkeit,
+  type Modul,
+  type SchalterId,
+} from '@/lib/module';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Warnung } from '@/components/Badge';
@@ -12,6 +22,29 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
+
+/**
+ * Der Text der Rückfrage: was mitgeht, was es nach sich zieht, was bleibt.
+ *
+ * Der Satz über die Daten passt sich an. „In beiden Fällen“ stimmt nur, wenn
+ * ein zweiter Bereich mitgeht; und wo etwas nicht zurückkommt (die Folgen),
+ * bleiben nur die ÜBRIGEN Daten — „Daten bleiben erhalten“ stünde dann direkt
+ * unter dem Satz, der das Gegenteil sagt.
+ */
+function rueckfrage(frage: { id: SchalterId; mit: SchalterId[]; folgen: string[] }): string {
+  const name = (id: SchalterId) => schalter(id, MODULE)?.name ?? id;
+  const teile: string[] = [];
+  if (frage.mit.length > 0) {
+    teile.push(
+      `Damit geht auch ${frage.mit.map(name).join(' und ')} aus — ` +
+        `${frage.mit.length === 1 ? 'dieser Bereich braucht' : 'diese Bereiche brauchen'} ${name(frage.id)}.`,
+    );
+  }
+  teile.push(...frage.folgen);
+  if (frage.folgen.length > 0) teile.push('Alle übrigen Daten bleiben erhalten.');
+  else teile.push('Daten bleiben in beiden Fällen erhalten.');
+  return teile.join(' ');
+}
 
 /**
  * Module ein- und ausschalten.
@@ -40,30 +73,33 @@ export default function ModulesView() {
   const [entwurf, setEntwurf] = useState<Record<string, boolean>>({});
   const [speichert, setSpeichert] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** Modul, dessen Abschalten noch bestätigt werden muss. */
-  const [frage, setFrage] = useState<{ id: ModulId; mit: ModulId[] } | null>(null);
+  /** Was abgeschaltet werden soll und noch bestätigt werden muss — samt dem, was mitgeht und was es nach sich zieht. */
+  const [frage, setFrage] = useState<{ id: SchalterId; mit: SchalterId[]; folgen: string[] } | null>(null);
 
   useEffect(() => {
     setEntwurf(company?.modules ?? {});
   }, [company]);
 
-  const aktiv = useMemo(() => aktiveModule(entwurf), [entwurf]);
-  const gespeichert = useMemo(() => aktiveModule(company?.modules), [company]);
+  // Das Register wird ausdrücklich übergeben: so prüft der Test die Ansicht auch mit Unterfähigkeiten.
+  const aktiv = useMemo(() => aktiveModule(entwurf, MODULE), [entwurf]);
+  const schalterAn = useMemo(() => aktiveSchalter(entwurf, MODULE), [entwurf]);
+  const gespeichert = useMemo(() => aktiveSchalter(company?.modules, MODULE), [company]);
 
   /** Weicht der Entwurf vom gespeicherten Stand ab? */
   const geaendert = useMemo(() => {
-    if (aktiv.size !== gespeichert.size) return true;
-    return [...aktiv].some((m) => !gespeichert.has(m));
-  }, [aktiv, gespeichert]);
+    if (schalterAn.size !== gespeichert.size) return true;
+    return [...schalterAn].some((m) => !gespeichert.has(m));
+  }, [schalterAn, gespeichert]);
   // Wer mit ungespeicherten Änderungen weggeht, wird gefragt (Testbericht 30.09.2026, M1).
   const warnung = useUngespeichertWarnung(geaendert);
 
-  function umschalten(id: ModulId, an: boolean) {
+  function umschalten(id: SchalterId, an: boolean) {
     if (!an) {
-      const mit = zieheMit(id, entwurf);
-      if (mit.length > 0) {
+      const mit = zieheMit(id, entwurf, MODULE);
+      const folgen = folgenBeimAbschalten(id, entwurf, MODULE);
+      if (mit.length > 0 || folgen.length > 0) {
         // Erst fragen, dann schalten — siehe Punkt 1 oben.
-        setFrage({ id, mit });
+        setFrage({ id, mit, folgen });
         return;
       }
     }
@@ -83,6 +119,53 @@ export default function ModulesView() {
     } finally {
       setSpeichert(false);
     }
+  }
+
+  /**
+   * Eine Zeile je Modul und je Unterfähigkeit (N02). Die Unterfähigkeit steht
+   * direkt unter ihrem Modul und sagt, wozu sie gehört; ist das Modul aus, ist
+   * auch sie aus und lässt sich erst mit ihm wieder einschalten.
+   */
+  function zeile(eintrag: Modul | Faehigkeit, zu: Modul | null) {
+    const an = schalterAn.has(eintrag.id);
+    const braucht = [...(zu ? [zu.id] : []), ...(eintrag.abhaengigVon ?? [])];
+    const fehlt = braucht.filter((d) => !schalterAn.has(d));
+    return (
+      <ListRow
+        key={eintrag.id}
+        title={
+          <>
+            {eintrag.name}
+            {/* Eine Aufforderung, keine Eigenschaft: ohne das andere
+                Modul lässt sich dieses gar nicht einschalten. */}
+            {fehlt.length > 0 && (
+              <Warnung>
+                braucht {fehlt.map((d) => schalter(d, MODULE)?.name ?? d).join(', ')}
+              </Warnung>
+            )}
+          </>
+        }
+        subtitle={
+          <>
+            {zu && <span className="block">Teil von {zu.name}</span>}
+            <span className="block">{eintrag.zweck}</span>
+            <span className="mt-1 block text-xs">Betrifft: {eintrag.betrifft.join(', ')}</span>
+          </>
+        }
+      >
+        <label className="flex min-h-touch shrink-0 items-center gap-3">
+          <span className="text-sm text-ink-muted">{an ? 'ein' : 'aus'}</span>
+          <input
+            type="checkbox"
+            className="checkbox checkbox-lg"
+            checked={an}
+            disabled={fehlt.length > 0 && !an}
+            onChange={(e) => umschalten(eintrag.id, e.target.checked)}
+            aria-label={`${eintrag.name} ${an ? 'ausschalten' : 'einschalten'}`}
+          />
+        </label>
+      </ListRow>
+    );
   }
 
   if (!user) return null;
@@ -109,14 +192,16 @@ export default function ModulesView() {
           <>
             Ein ausgeschaltetes Modul verschwindet aus der Navigation, und seine Adressen sind
             zu. <strong>Vorhandene Daten bleiben unangetastet</strong> — wird es wieder
-            eingeschaltet, ist alles da, wo es war.
+            eingeschaltet, ist alles da, wo es war. Was sich ausnahmsweise nicht zurückholen
+            lässt, etwa die Kalender-Abos des ganzen Einsatzplans, nennt die Rückfrage vor dem
+            Abschalten.
             <br />
             <br />
             Module sind <strong>keine Rechteverwaltung</strong>. Sie nehmen den Weg weg, nicht das
             Recht: wer als Buchhaltung Rechnungen anlegen darf, darf das weiterhin — die
             Oberfläche bietet es nur nicht mehr an. Wer wann was darf, steht in den Rollen und
             wird serverseitig durchgesetzt. Geschützt ist hier die <em>Modulliste selbst</em>:
-            ändern darf sie nur die Geschäftsführung.
+            ändern darf sie nur der Administrator.
           </>
         }
         buendig
@@ -126,45 +211,10 @@ export default function ModulesView() {
           Schalter rechts als eigenes Ziel. Inhalt wie zuvor.
         */}
         <List>
-          {MODULE.map((m) => {
-            const an = aktiv.has(m.id);
-            const fehlt = m.abhaengigVon?.filter((d) => !aktiv.has(d)) ?? [];
-            return (
-              <ListRow
-                key={m.id}
-                title={
-                  <>
-                    {m.name}
-                    {/* Eine Aufforderung, keine Eigenschaft: ohne das andere
-                        Modul lässt sich dieses gar nicht einschalten. */}
-                    {fehlt.length > 0 && (
-                      <Warnung>
-                        braucht {fehlt.map((d) => modul(d)?.name ?? d).join(', ')}
-                      </Warnung>
-                    )}
-                  </>
-                }
-                subtitle={
-                  <>
-                    <span className="block">{m.zweck}</span>
-                    <span className="mt-1 block text-xs">Betrifft: {m.betrifft.join(', ')}</span>
-                  </>
-                }
-              >
-                <label className="flex min-h-touch shrink-0 items-center gap-3">
-                  <span className="text-sm text-ink-muted">{an ? 'ein' : 'aus'}</span>
-                  <input
-                    type="checkbox"
-                    className="checkbox checkbox-lg"
-                    checked={an}
-                    disabled={fehlt.length > 0 && !an}
-                    onChange={(e) => umschalten(m.id, e.target.checked)}
-                    aria-label={`${m.name} ${an ? 'ausschalten' : 'einschalten'}`}
-                  />
-                </label>
-              </ListRow>
-            );
-          })}
+          {MODULE.flatMap((m) => [
+            zeile(m, null),
+            ...(m.unter ?? []).map((f) => zeile(f, m)),
+          ])}
         </List>
 
         {/* Fusszeile der Aktionen: Speichern ganz rechts, Verwerfen bzw. der Stand davor. */}
@@ -185,19 +235,12 @@ export default function ModulesView() {
 
       <ConfirmDialog
         open={!!frage}
-        title={frage ? `${modul(frage.id)?.name} ausschalten?` : ''}
+        title={frage ? `${schalter(frage.id, MODULE)?.name} ausschalten?` : ''}
         // Ohne diese Zeile stand auf dem Knopf die Vorgabe „Löschen" — in Rot,
         // direkt unter dem Satz „Daten bleiben in beiden Fällen erhalten".
         // Der Knopf widersprach damit dem Text über ihm.
         confirmLabel="Ausschalten"
-        message={
-          frage
-            ? `Damit geht auch ${frage.mit
-                .map((m) => modul(m)?.name ?? m)
-                .join(' und ')} aus — dieser Bereich braucht ${modul(frage.id)?.name}. ` +
-              'Daten bleiben in beiden Fällen erhalten.'
-            : ''
-        }
+        message={frage ? rueckfrage(frage) : ''}
         onCancel={() => setFrage(null)}
         onConfirm={() => {
           if (frage) setEntwurf((alt) => ({ ...alt, [frage.id]: false }));
