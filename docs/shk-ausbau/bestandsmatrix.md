@@ -28,6 +28,7 @@ dann zu „erledigt mit E…/PR …“, gesammelt unter „Nachgeführt“. Den 
 | E10 | erledigt (E58, M04a): Lagerorte und Fahrzeuglager neben dem Hauptlager (`materials.stock` bleibt), Fahrzeuge als Entität, Umlagerung über den Schreibbefehls-Vertrag, bestehende Wege mit optionalem Ort |
 | A03, A11 | erledigt (E59, M02b): Auftragseingang mit Quelle, Nummer des Auftraggebers und Stand, Umwandeln in Baustelle bzw. Angebot in einem Zug, Verwaltung erfasst; Portal-Import als Grenze |
 | N02 | Kern `baustellen`/`kunden` im Register als „Immer an“ mit Unterfähigkeiten (E59) |
+| E13, E14, G03 | erledigt (E60, M04b): eine Deckungsrechnung (Befund 7 behoben), Bestellvorschläge aus Mindestmenge, Sollbestand und Rüstlisten, Übernehmen über den Befehlsvertrag |
 
 
 ## Bestandsmatrix Teil A/R — Aufträge und Rechnungswesen

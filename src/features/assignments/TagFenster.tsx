@@ -9,6 +9,7 @@ import { stufeImEinsatz } from './stufeImEinsatz';
 import type { Brett, TagStand } from './planTypen';
 import type { FensterStart } from './EinsatzFenster';
 import { feiertagAm, lieferungOhneAnnahme, ruhetag } from './wochenTermine';
+import type { MaterialLage } from './materialDeckung';
 
 /**
  * DAS SEITENFENSTER „TAG“ (Runde 4, Auftrag 4.3; Entscheidung R4-0, Frage 1):
@@ -40,6 +41,8 @@ export default function TagFenster({
   onTerminNeu,
   onEinsatz,
   onInTag,
+  materialFuer,
+  materialTag,
 }: {
   datum: string;
   stand: TagStand | undefined;
@@ -59,6 +62,10 @@ export default function TagFenster({
   onEinsatz: (start: FensterStart) => void;
   /** „In ‚Tag‘ öffnen“: nach „Tag planen“ mit diesem Tag. */
   onInTag: () => void;
+  /** Die Materialbereitschaft je Einsatz (M04b) — mit Text, ohne Farbe. */
+  materialFuer?: (nummer: string) => MaterialLage | undefined;
+  /** Der Tag zusammengefasst; ohne Rüstliste nichts. */
+  materialTag?: MaterialLage | null;
 }) {
   const d = new Date(`${datum}T00:00:00`);
   // „Mittwoch, 07.10.“ — groß der Tag, darüber klein die Kalenderwoche.
@@ -114,6 +121,7 @@ export default function TagFenster({
             {baustellen.length === 1 ? '1 Baustelle' : `${baustellen.length} Baustellen`}
           </span>
         </div>
+        {baustellen.length > 0 && materialTag && <p className="tag-leer">{materialTag.text}</p>}
         {baustellen.length === 0 ? (
           <p className="tag-leer">Noch kein Einsatz an diesem Tag.</p>
         ) : (
@@ -133,6 +141,7 @@ export default function TagFenster({
                           .join(' · ')}
                       </span>
                       {amSelbenTag.length > 0 && <span className="block">Am selben Tag: {amSelbenTag.join('; ')}</span>}
+                      {materialFuer?.(b.nummer) && <span className="block">{materialFuer(b.nummer)!.text}</span>}
                       {/* M33: wer eingeteilt ist und fehlt — Bernstein, kein Fehler. */}
                       {b.fehlen.length > 0 && (
                         <span className="tag-fehlt">

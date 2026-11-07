@@ -83,6 +83,19 @@ vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 3,
 }));
 vi.mock('@/lib/db/materialOrders', () => ({ createMaterialOrder: vi.fn(async () => undefined) }));
+/*
+  DIE MATERIALBEREITSCHAFT (M04b): die Antwort der Datenbank für die Woche.
+  Ohne Rüstliste steht nichts da — so bleiben die übrigen Fälle, wie sie waren.
+*/
+let deckungDerWoche: unknown = { heute: '2026-09-02', listen: [], lagerartikel: new Map(), zulauf: new Map(), fuer: null };
+const deckungGefragt = vi.fn();
+vi.mock('@/lib/db/materialdeckung', () => ({
+  materialdeckung: async (...a: unknown[]) => {
+    deckungGefragt(...a);
+    if (deckungDerWoche instanceof Error) throw deckungDerWoche;
+    return deckungDerWoche;
+  },
+}));
 vi.mock('@/lib/db/einsatzMaterial', () => ({
   subscribeEinsatzMaterialForDate: (_c: string, _d: string, cb: (r: unknown[]) => void) => {
     cb([]);
@@ -569,6 +582,59 @@ describe('Einsatzplanung — Seitenfenster „Tag“', () => {
     expect(fenster().getByRole('heading', { name: 'Ohne Einsatz' })).toBeInTheDocument();
     expect(fenster().getByText('Keine Termine an diesem Tag.')).toBeInTheDocument();
     expect(fenster().getByText('Noch kein Einsatz an diesem Tag.')).toBeInTheDocument();
+  });
+});
+
+describe('Materialbereitschaft je Einsatz (M04b, E13)', () => {
+  /* Eine Liste am Mittwoch: 5 geplant, 2 frei vor ihr — es fehlen 3. */
+  const LISTE = {
+    heute: MITTWOCH,
+    listen: [{
+      id: 'l1', datum: MITTWOCH, baustelle: '2026-042', freiVor: new Map([['m1', 2]]),
+      positionen: [{ id: 'p1', materialId: 'm1', menge: 5, gebucht: false }],
+    }],
+    lagerartikel: new Map([['m1', true]]),
+    zulauf: new Map(),
+    fuer: null,
+  };
+  afterEach(() => {
+    deckungDerWoche = { heute: MITTWOCH, listen: [], lagerartikel: new Map(), zulauf: new Map(), fuer: null };
+    authWert.company = { id: 'perl', name: 'Perl Installationen' };
+  });
+
+  it('fragt einmal für die Woche und zeigt den Zustand am Einsatz und im Seitenfenster „Tag“ — mit Text', async () => {
+    einsaetze = [EINSATZ_MAX];
+    deckungDerWoche = LISTE;
+    deckungGefragt.mockClear();
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(deckungGefragt).toHaveBeenCalledWith('2026-08-31', '2026-09-06');
+    const block = await tabelle().findByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09.*Material fehlt: 1 Position/ });
+    expect(block).toHaveTextContent('Material fehlt: 1 Position');
+    await userEvent.click(kopf(/Mittwoch 02\.09\./));
+    const tag = within(screen.getByRole('dialog', { name: 'Mittwoch, 02.09.' }));
+    expect(tag.getByText('Material fehlt bei 1 Einsatz')).toBeInTheDocument();
+    expect(within(tag.getByRole('region', { name: 'Einsätze' })).getByText('Material fehlt: 1 Position')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: mit abgeschalteter Materialbereitschaft wird nicht gefragt und steht nichts da', async () => {
+    einsaetze = [EINSATZ_MAX];
+    deckungDerWoche = LISTE;
+    deckungGefragt.mockClear();
+    authWert.company = { id: 'perl', name: 'Perl Installationen', modules: { 'material.materialbereitschaft': false } } as typeof authWert.company;
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await tabelle().findByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09/ });
+    expect(deckungGefragt).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Material fehlt/)).toBeNull();
+  });
+
+  it('kommt die Antwort nicht, sagt die Seite es — statt „bereit“ zu raten', async () => {
+    einsaetze = [EINSATZ_MAX];
+    deckungDerWoche = new Error('kein Netz');
+    zeige();
+    expect(await screen.findByText(/Die Materialbereitschaft konnte nicht geladen werden/)).toBeInTheDocument();
+    expect(screen.queryByText(/Material bereit/)).toBeNull();
   });
 });
 

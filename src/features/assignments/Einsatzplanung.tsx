@@ -24,6 +24,9 @@ import HandyWoche from './HandyWoche';
 import { BaustellenWoche, PersonenWoche, type RasterGrund } from './WochenRaster';
 import { AnsichtWahl, PlanungsSeitenkopf } from './PlanungsKopf';
 import { useWochenDaten } from './useWochenDaten';
+import { useMaterialLage } from './useMaterialLage';
+import { MATERIAL_FEHLER, tagZusammenfassen } from './materialDeckung';
+import { useModul } from '@/lib/useModule';
 import { naechsterArbeitstag, schmalerTag } from './wochenTermine';
 
 /**
@@ -115,6 +118,17 @@ export default function Einsatzplanung() {
   const darf = !!user && darfTermineSchreiben(user.role);
 
   /*
+    DIE MATERIALBEREITSCHAFT JE EINSATZ (M04b, E13): in der Woche und im
+    Seitenfenster „Tag“, mit Text und ohne Farbe. Nicht im Supportzugang —
+    die Rechnung sieht nur der Betrieb selbst. Neu geladen wird, wenn sich
+    die Einsätze ändern oder ein Seitenfenster schließt (dort kann eine
+    Rüstliste gespeichert worden sein).
+  */
+  const materialAn = useModul('material');
+  const bereitschaftAn = useModul('material.materialbereitschaft');
+  const [materialStand, setMaterialStand] = useState(0);
+
+  /*
     EIN SEITENFENSTER GEHÖRT ZU SEINEM ZEITRAUM. Seit „Zur Woche“ einen
     Eintrag im Verlauf anlegt, wechselt „Zurück“ (am Handy die Zurück-Geste,
     mit der man ein Blatt schließen will) nur den Zeitraum, und ein offenes
@@ -128,6 +142,16 @@ export default function Einsatzplanung() {
   useEffect(() => {
     setFenster(null);
   }, [zeitraum]);
+  const fensterZu = fenster === null;
+  useEffect(() => {
+    if (fensterZu) setMaterialStand((n) => n + 1);
+  }, [fensterZu, d.einsaetze]);
+  const material = useMaterialLage(
+    tage[0],
+    tage[tage.length - 1],
+    materialAn && bereitschaftAn && ansicht === 'woche' && !einblick,
+    materialStand,
+  );
 
   const markiert = ansicht === 'woche' && tagAusAdresse && tage.includes(tagAusAdresse) ? tagAusAdresse : null;
   /** Für die Hauptaktion: heute, wenn er im Zeitraum liegt, sonst der erste Tag. */
@@ -156,12 +180,14 @@ export default function Einsatzplanung() {
     [ansicht, tage, d.einsaetze, d.termine],
   );
 
+  const { lageFuer } = material;
   const infoFuer = useCallback(
     (tag: string, nummer: string) => ({
       projekt: d.projects.find((p) => p.projectNumber === nummer),
       stand: d.proTag.get(tag)?.baustellen.find((b) => b.nummer === nummer),
+      material: lageFuer(tag, nummer),
     }),
-    [d.projects, d.proTag],
+    [d.projects, d.proTag, lageFuer],
   );
 
   /**
@@ -262,6 +288,7 @@ export default function Einsatzplanung() {
     onEinsatz: (start) => setFenster({ art: 'einsatz', start }),
     onTermin: (termin) => setFenster({ art: 'termin', termin, datum: termin.datum }),
     nichtEinplanbar: d.nichtEinplanbar,
+    materialFuer: lageFuer,
   };
   const termineDes = (tag: string) => d.termineAm(tag);
 
@@ -338,6 +365,7 @@ export default function Einsatzplanung() {
       />
 
       {d.nebenFehler && <TeilFehler was={d.nebenFehler} />}
+      {material.fehler && <TeilFehler was="Die Materialbereitschaft" />}
       {d.error && <ErrorState message={d.error} />}
 
       <div className="planung-steuerung">
@@ -541,6 +569,8 @@ export default function Einsatzplanung() {
           onTerminNeu={(datum) => setFenster({ art: 'termin', termin: null, datum })}
           onEinsatz={grund.onEinsatz}
           onInTag={() => zurTagesplanung(fenster.datum, fenster.projectNumber)}
+          materialFuer={(nummer) => lageFuer(fenster.datum, nummer)}
+          materialTag={material.fehler ? MATERIAL_FEHLER : tagZusammenfassen(material.lagenAm(fenster.datum))}
         />
       )}
       {fenster?.art === 'termin' && (

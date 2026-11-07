@@ -5,6 +5,7 @@ import { tagKurz, type Brett, type Gruppe, type TagStand } from './planTypen';
 import type { FensterStart } from './EinsatzFenster';
 import { GruppenKopf } from './PlanRaster';
 import { PersonEintraege, TerminEintrag, type BaustellenInfo } from './WochenEintraege';
+import type { MaterialLage } from './materialDeckung';
 import {
   feiertagAm,
   lieferungOhneAnnahme,
@@ -62,6 +63,8 @@ interface RasterGrund {
    * Einsätze lassen sich öffnen, eine leere Zelle plant sie nicht ein.
    */
   nichtEinplanbar?: ReadonlySet<string>;
+  /** Die Materialbereitschaft eines Einsatzes (M04b) — in der Sicht „Baustellen“. */
+  materialFuer?: (tag: string, nummer: string) => MaterialLage | undefined;
 }
 
 /**
@@ -427,6 +430,7 @@ export function BaustellenWoche({
                   const weg = (uid: string) => !!brett.get(uid)?.get(tag)?.imUrlaub;
                   const fehlen = hier.filter((a) => weg(a.userId));
                   const zeit = g.proTag.get(tag)?.baustellen.find((b) => b.nummer === nummer)?.zeit ?? null;
+                  const material = hier.length > 0 ? g.materialFuer?.(tag, nummer) : undefined;
                   const volleNamen = hier.map((a) => {
                     const n = nameVon(a.userId, a.userName);
                     const grund = brett.get(a.userId)?.get(tag)?.abwesendText;
@@ -451,8 +455,8 @@ export function BaustellenWoche({
                               type="button"
                               className={fehlen.length > 0 ? 'eintrag-konflikt' : 'eintrag'}
                               onClick={() => g.onEinsatz({ datum: tag, projectNumber: nummer })}
-                              title={volleNamen.join(', ')}
-                              aria-label={`${name} (${nummer}) am ${datum} bearbeiten – ${volleNamen.join(', ')}`}
+                              title={[volleNamen.join(', '), material?.text].filter(Boolean).join(' · ')}
+                              aria-label={`${name} (${nummer}) am ${datum} bearbeiten – ${volleNamen.join(', ')}${material ? `, ${material.text}` : ''}`}
                             >
                               <span className="e-titel">
                                 {hier.map((a) => personKurz(nameVon(a.userId, a.userName))).join(', ')}
@@ -462,6 +466,7 @@ export function BaustellenWoche({
                                   ? `${fehlen.map((a) => personKurz(nameVon(a.userId, a.userName))).join(', ')} fehlt`
                                   : (zeit ?? 'ganztags')}
                               </span>
+                              {material && <span className="e-zeile">{material.text}</span>}
                             </button>
                           )}
                           {termineHier.map((t) => (

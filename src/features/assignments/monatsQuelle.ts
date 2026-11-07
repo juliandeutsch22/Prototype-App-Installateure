@@ -4,7 +4,8 @@ import { listTermineImZeitraum } from '@/lib/db/termine';
 import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
 import { listProjectsByNumbers } from '@/lib/db/projects';
 import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
-import { lagerFrei } from '@/lib/db/materials';
+import { materialdeckung } from '@/lib/db/materialdeckung';
+import { deckungJeEinsatz, type EinsatzDeckung } from './materialDeckung';
 import type { RuestPosition } from '@/types';
 import type { ProjektKurz, TagesDaten } from './monatsVorschau';
 
@@ -20,8 +21,8 @@ export interface MonatsQuelle {
   projekte: (companyId: string, nummern: string[]) => Promise<(ProjektKurz & { projectNumber: string })[]>;
   /** Die Rüstlisten eines Tages. */
   ruestlisten: (companyId: string, tag: string) => Promise<{ date: string; projectNumber: string; positionen?: RuestPosition[] }[]>;
-  /** Das Freie der genannten Artikel im Lager (`lager_frei`), wie im Formular. */
-  lager: (ids: string[]) => Promise<Map<string, { frei: number }>>;
+  /** Die Deckung der Rüstlisten eines Tages je Baustelle — dieselbe Rechnung wie im Formular (M04b). */
+  deckung: (tag: string) => Promise<Map<string, EinsatzDeckung>>;
 }
 
 export const DB_QUELLE: MonatsQuelle = {
@@ -44,5 +45,8 @@ export const DB_QUELLE: MonatsQuelle = {
   },
   projekte: (companyId, nummern) => listProjectsByNumbers(companyId, nummern),
   ruestlisten: (companyId, tag) => listEinsatzMaterialForDate(companyId, tag),
-  lager: (ids) => lagerFrei(ids),
+  async deckung(tag) {
+    const je = deckungJeEinsatz(await materialdeckung(tag, tag));
+    return new Map([...je].map(([schluessel, d]) => [schluessel.slice(tag.length + 1), d]));
+  },
 };
