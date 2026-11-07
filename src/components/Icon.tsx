@@ -25,6 +25,7 @@ export type IconName =
   | 'archive'
   | 'calculator'
   | 'eingang'
+  | 'liegenschaft'
   | 'weiter'
   | 'warnung'
   | 'hinweis'
@@ -74,6 +75,8 @@ const paths: Record<IconName, string> = {
   // Kunden — die Karteikarte, nicht die Personengruppe der Belegschaft.
   contact:
     'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1ZM9 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM5.5 16a3.5 3.5 0 0 1 7 0M15 9h3M15 13h3',
+  // Ein Haus mit Stockwerken und Nebentrakt: die Liegenschaft (M02c) — ein Haus mit Wohnungen, nicht der Kunde.
+  liegenschaft: 'M4 21V4h11v17M15 10h5v11M3 21h18M7 7h2M11 7h2M7 11h2M11 11h2M7 15h2M11 15h2',
   // Wartungen
   wrench:
     'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.12 2.12 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8Z',

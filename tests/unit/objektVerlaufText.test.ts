@@ -185,3 +185,61 @@ describe('verlaufSichtbar — dieselbe Grenze wie die Regel', () => {
     expect(verlaufSichtbar('Administrator', 'benutzer', false)).toBe(true);
   });
 });
+
+/*
+  DIE LIEGENSCHAFT (M02c): Tops und Beteiligte stehen in ihrem Verlauf, mit
+  Titel und Bezeichnung (wie eine Zahlung im Verlauf der Rechnung); Top und
+  Kunde eines Beteiligten mit Namen statt Kennung; die Werte eines
+  entfernten Beteiligten sagen, dass sie mit ihm gelöscht sind. An
+  Baustelle, Wartung und Eingang stehen Liegenschaft und Top mit Namen.
+*/
+describe('verlaufEintrag — Liegenschaft, Top, Beteiligter (M02c)', () => {
+  it('Top und Beteiligter mit eigenem Titel und ihrer Bezeichnung', () => {
+    expect(verlaufEintrag(zeile({ objektart: 'top', art: 'angelegt', bezeichnung: 'Top 5', vonName: 'Vera' })))
+      .toMatchObject({ titel: 'Top angelegt von Vera', zeilen: ['Top 5'] });
+    expect(verlaufEintrag(zeile({ objektart: 'beteiligter', art: 'geloescht', bezeichnung: 'Nutzer bzw. Mieter' })))
+      .toMatchObject({ titel: 'Beteiligter entfernt', zeilen: ['Nutzer bzw. Mieter'] });
+    expect(verlaufEintrag(zeile({ objektart: 'liegenschaft', art: 'angelegt', bezeichnung: 'WHA' })))
+      .toMatchObject({ titel: 'Angelegt', zeilen: [] });
+  });
+
+  it('Rolle, Top und Kunde in Worten — ohne Namen sagt es, was es war', () => {
+    const k = { top: (id: string) => ({ t2: 'Top 2' } as Record<string, string>)[id], kunde: (id: string) => ({ hv: 'Muster HV' } as Record<string, string>)[id] };
+    const e = verlaufEintrag(zeile({
+      objektart: 'beteiligter', bezeichnung: 'Hausverwaltung · Muster HV',
+      aenderungen: {
+        rolle: { alt: 'auftraggeber', neu: 'hausverwaltung' },
+        top_id: { alt: null, neu: 't2' },
+        customer_id: { alt: 'weg', neu: 'hv' },
+        gueltig_bis: { alt: null, neu: '2026-10-31' },
+      },
+    }), k);
+    expect(e.zeilen).toEqual([
+      'Hausverwaltung · Muster HV',
+      'Rolle Auftraggeber → Hausverwaltung',
+      'Top die ganze Liegenschaft → Top 2',
+      'Kunde ein anderer Kunde → Muster HV',
+      'Gültig bis — → 31.10.2026',
+    ]);
+  });
+
+  it('die Werte eines entfernten Beteiligten: gelöscht mit ihm, nicht mit Kundendaten', () => {
+    const e = verlaufEintrag(zeile({ objektart: 'beteiligter', bezeichnung: 'Nutzer bzw. Mieter', aenderungen: { telefon: { entfernt: true } } }));
+    expect(e.zeilen).toEqual(['Nutzer bzw. Mieter', 'Telefon geändert (Werte mit dem Beteiligten gelöscht)']);
+  });
+
+  it('an Baustelle, Wartung und Eingang: Liegenschaft und Top mit Namen', () => {
+    for (const objektart of ['baustelle', 'wartung', 'eingang'] as const) {
+      const e = verlaufEintrag(zeile({ objektart, aenderungen: {
+        liegenschaft_bezeichnung: { alt: null, neu: 'WHA Hauptstraße 12' }, top_bezeichnung: { alt: null, neu: 'Top 2' },
+      } }));
+      expect(e.zeilen, objektart).toEqual(['Liegenschaft — → WHA Hauptstraße 12', 'Top — → Top 2']);
+    }
+  });
+
+  it('die Liegenschaft liest, wer die übrigen Akten liest — nie der Monteur, nie der Support', () => {
+    expect(verlaufSichtbar('Verwaltung', 'liegenschaft', false)).toBe(true);
+    expect(verlaufSichtbar('Mitarbeiter', 'liegenschaft', false)).toBe(false);
+    expect(verlaufSichtbar('Geschäftsführung', 'liegenschaft', true)).toBe(false);
+  });
+});

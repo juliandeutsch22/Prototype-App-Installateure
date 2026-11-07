@@ -45,6 +45,9 @@ const TABELLE_VON: Record<string, string> = {
   Wartung: 'wartungen',
   BaustellenDokument: 'project_documents',
   Auftragseingang: 'auftragseingaenge',
+  Liegenschaft: 'liegenschaften',
+  LiegenschaftTop: 'liegenschaft_tops',
+  LiegenschaftBeteiligter: 'liegenschaft_beteiligte',
 };
 
 /**

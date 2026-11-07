@@ -90,6 +90,10 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   konto_umstellungen: { am: 'zeitpunkt' },
   krankmeldungen: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   lieferantenartikel: { bestaetigt_am: 'zeitpunkt', created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  // M02c: Liegenschaften, Tops, Beteiligte.
+  liegenschaft_beteiligte: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  liegenschaft_tops: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  liegenschaften: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   material_einkaufspreise: { updated_at: 'zeitpunkt' },
   material_orders: {
     abholbereit_seit: 'zeitpunkt', bestellt_am: 'zeitpunkt', created_at: 'zeitpunkt', erledigt_am: 'zeitpunkt',

@@ -348,7 +348,31 @@ export const KERN: Kernbereich[] = [
     name: 'Kunden',
     zweck: 'Der Kundenstamm mit Anschrift, Ansprechpartner und Belegen.',
     betrifft: ['Kunden'],
-    unter: [],
+    unter: [
+      {
+        /*
+          LIEGENSCHAFTEN, TOPS, BETEILIGTE (M02c, A09): „Optional“ — und
+          „Optional“ steht ab Werk AUS (E51): was nicht jeder Betrieb
+          braucht, soll keinen Betrieb überladen. Ein Installateur, der für
+          Hausverwaltungen arbeitet, schaltet es ein.
+
+          Aus heißt: Navigation, Felder und Abschnitte verschwinden; die
+          Daten bleiben, auch die Zuordnung einer Baustelle. Anlegen, Ändern
+          und jede neue Zuordnung lehnt der Server ab (V3, `app.modul_aktiv`);
+          einen Beteiligten entfernen und einen Kunden löschen geht immer.
+          Nichts, was sich nicht zurückholen ließe — keine Rückfrage.
+        */
+        id: 'kunden.liegenschaften',
+        name: 'Liegenschaften und Tops',
+        zweck: 'Häuser und Anlagen mit Wohnungen bzw. Einheiten und ihren Beteiligten (Eigentümer, Hausverwaltung, Mieter …) — Baustellen, Wartungen und Eingänge je Haus und Top.',
+        standard: false,
+        betrifft: [
+          'Liegenschaften',
+          'Liegenschaft und Top an Baustelle, Wartung und Eingang',
+          '„Liegenschaften“ in der Kundenakte',
+        ],
+      },
+    ],
   },
 ];
 

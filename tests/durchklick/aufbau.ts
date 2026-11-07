@@ -139,7 +139,10 @@ export default async function aufbau(): Promise<void> {
     'assignments', 'datanorm_zeilen', 'material_prices', 'lieferantenartikel', 'datanorm_laeufe',
     // Annahme-Links (M02a) und Angebote: ein angenommenes hält seine Baustelle fest.
     'angebot_links', 'quotes',
-    'rabattsaetze', 'materials', 'projects', 'customers', 'suppliers',
+    'rabattsaetze', 'materials', 'projects',
+    // Liegenschaften (M02c): nach den Baustellen, die auf sie zeigen; Tops und Beteiligte gehen mit.
+    'liegenschaften',
+    'customers', 'suppliers',
   ]) {
     await admin.from(t).delete().eq('company_id', BETRIEB);
   }

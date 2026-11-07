@@ -20,6 +20,9 @@ import { listRecentProjects } from '@/lib/db/projects';
 import { belegNummer, hoechsteLfdImJahr, praefixeVon } from '@/lib/praefixe';
 import { isGF } from '@/lib/permissions';
 import { todayStr } from '@/lib/time';
+import { useModul } from '@/lib/useModule';
+import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
+import { liegenschaftZeile, zuordnungAenderung } from '@/features/liegenschaften/liegenschaftText';
 import type { Wartung } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import {
@@ -204,6 +207,9 @@ export default function WartungenView() {
     Haken bleibt es wie bisher: eine weitere Ausführung.
   */
   const [berichtigen, setBerichtigen] = useState(false);
+  /** Liegenschaft und Top der Wartung (M02c) — nur mit der Unterfähigkeit. */
+  const liegenschaftenAn = useModul('kunden.liegenschaften');
+  const [ort, setOrt] = useState({ liegenschaftId: '', topId: '' });
   const [speichert, setSpeichert] = useState(false);
   const [erledigung, setErledigung] = useState<Erledigung | null>(null);
   const [einplanung, setEinplanung] = useState<Einplanung | null>(null);
@@ -396,6 +402,7 @@ export default function WartungenView() {
       tiefer (im Seitenfenster); ein zugeklappter Abschnitt wäre ein zweiter.
       Beim Anlegen zugeklappt — Anlagendaten und Preis sind dort selten.
     */
+    setOrt({ liegenschaftId: w?.liegenschaftId ?? '', topId: w?.topId ?? '' });
     setWeitereOffen(!!w);
     setBerichtigen(false);
     setFormOffen(true);
@@ -472,6 +479,8 @@ export default function WartungenView() {
         hersteller: form.hersteller?.trim() || null,
         typ: form.typ?.trim() || null,
         seriennummer: form.seriennummer?.trim() || null,
+        // M02c: nur, was sich an Liegenschaft und Top geändert hat — ausgeschaltet nichts.
+        ...(liegenschaftenAn ? zuordnungAenderung(ort, bearbeitet) : {}),
       };
       if (bearbeitet) {
         // Erst der Tag, dann der Rest: so gibt es nie einen Augenblick mit beiden Ausführungen.
@@ -823,6 +832,8 @@ export default function WartungenView() {
               <dl className="grid grid-cols-1 gap-y-3">
                 <Angabe wort="Anlage">{w.anlage}</Angabe>
                 <Angabe wort="Standort">{w.address || 'Kundenadresse'}</Angabe>
+                {/* M02c: Liegenschaft und Top, wo zugeordnet. */}
+                {liegenschaftenAn && w.liegenschaftId && <Angabe wort="Liegenschaft">{liegenschaftZeile(w)}</Angabe>}
                 <Angabe wort="Intervall">alle {w.intervallMonate} Monate</Angabe>
                 {anlagendaten(w) && <Angabe wort="Anlagendaten">{anlagendaten(w)}</Angabe>}
                 {w.preis != null && <Angabe wort="Preis je Wartung">{euro(w.preis)} netto</Angabe>}
@@ -884,6 +895,19 @@ export default function WartungenView() {
             value={form.anlage}
             onChange={(e) => setForm({ ...form, anlage: e.target.value })}
           />
+          {liegenschaftenAn && companyId && (
+            <LiegenschaftAuswahl
+              companyId={companyId}
+              idPrefix="w-liegenschaft"
+              liegenschaftId={ort.liegenschaftId}
+              topId={ort.topId}
+              onChange={(w) => {
+                setOrt({ liegenschaftId: w.liegenschaftId, topId: w.topId });
+                // Die Anschrift der Liegenschaft als Vorschlag — nur in einen leeren Standort.
+                if (w.liegenschaft?.anschrift && !form.address?.trim()) setForm((f) => ({ ...f, address: w.liegenschaft?.anschrift ?? '' }));
+              }}
+            />
+          )}
           <InputField id="w-standort"
             label="Standort (leer = Kundenadresse)"
             value={form.address ?? ''}

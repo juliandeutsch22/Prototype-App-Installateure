@@ -290,6 +290,16 @@ describe('Interne Hilfsfunktionen', () => {
       'app.eingang_journal_kunde()',
       'app.eingang_kundenname_nachziehen()',
       'app.eingang_rang()',
+      // Liegenschaften (M02c): Modulpflicht, Rolle in Worten, Auslöser und das Vergessen eines Beteiligten.
+      'app.liegenschaften_modul_pflicht(text)',
+      'app.beteiligter_rolle_text(text)',
+      'app.liegenschaft_schreiben_pruefen()',
+      'app.liegenschaft_anschrift()',
+      'app.liegenschaft_top_pruefen()',
+      'app.liegenschaft_beteiligter_pruefen()',
+      'app.liegenschaft_zuordnung_pruefen()',
+      'app.liegenschaft_namen_nachziehen()',
+      'app.journal_beteiligter_vergessen(text, uuid)',
       // Was nur die Function mit dem Dienstschlüssel ruft.
       'public.angebot_link_abruf(text)',
       'public.angebot_link_annehmen(text, text, text, boolean)',

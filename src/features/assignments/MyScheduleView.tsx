@@ -13,6 +13,7 @@ import TerminListe from '@/features/termine/TerminListe';
 import { betrifftMich } from '@/features/termine/terminText';
 import { listAbwesendInRange, listOwnVacations, type Abwesenheit } from '@/lib/db/vacations';
 import { useModul } from '@/lib/useModule';
+import { liegenschaftZeile } from '@/features/liegenschaften/liegenschaftText';
 import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import RuestlisteAbhaken from './RuestlisteAbhaken';
 import PlaeneListe from '@/features/projects/PlaeneListe';
@@ -73,6 +74,7 @@ export default function MyScheduleView() {
   const scheineAn = useModul('scheine');
   const urlaubAn = useModul('urlaub');
   const materialAn = useModul('material');
+  const liegenschaftenAn = useModul('kunden.liegenschaften');
   /*
     DER LETZTE STAND (Stufe 3, `lib/zwischenspeicher.ts`): beim zweiten
     Besuch steht der Plan sofort da; frisch geholt wird im Hintergrund. Der
@@ -505,6 +507,8 @@ export default function MyScheduleView() {
                             <Marke>{stufeImEinsatz(a.asHelper, user)}</Marke>
                           </span>
                         </div>
+                        {/* M02c: Haus und Top als Text, wie die Adresse — wohin genau im Haus. */}
+                        {liegenschaftenAn && proj && liegenschaftZeile(proj) && <p className="mt-1 text-sm text-ink">{liegenschaftZeile(proj)}</p>}
                         {a.comment && <p className="mt-1 text-sm text-ink-muted">{a.comment}</p>}
 
                         {/* Was mitzunehmen ist — abhakbar, auch am Vorabend. */}

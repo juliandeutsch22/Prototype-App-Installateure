@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { LotVerlauf } from '@/components/LotBausteine';
 import Button from '@/components/Button';
 import { datumAT } from '@/lib/datum';
-import { listObjektVerlauf, type Objektart, type ObjektVerlaufZeile, type VerlaufZeiger } from '@/lib/db/objektVerlauf';
+import { listObjektVerlauf, type Aktenart, type ObjektVerlaufZeile, type VerlaufZeiger } from '@/lib/db/objektVerlauf';
 import { JOURNAL_SEIT, verlaufEintrag, type VerlaufKontext } from './objektVerlaufText';
 
-type Akte = Exclude<Objektart, 'zahlung'>;
+type Akte = Aktenart;
 
 interface Eigenschaften {
   companyId: string;
@@ -13,6 +13,9 @@ interface Eigenschaften {
   objektId: string;
   /** Namen zu Kennungen der Belegschaft (Team und Projektleitung einer Baustelle). */
   name?: VerlaufKontext['name'];
+  /** Namen zu Kennungen von Tops und Kunden (Beteiligte einer Liegenschaft, M02c). */
+  top?: VerlaufKontext['top'];
+  kunde?: VerlaufKontext['kunde'];
   /** `akte`: in einer Karte neben einem anderen Aufklapper derselben Art (Baustelle). */
   stil?: 'weiteres' | 'akte';
 }
@@ -32,7 +35,7 @@ export default function ObjektVerlauf(p: Eigenschaften) {
   return <Verlauf key={`${p.objektart}:${p.objektId}`} {...p} />;
 }
 
-function Verlauf({ companyId, objektart, objektId, name, stil = 'weiteres' }: Eigenschaften) {
+function Verlauf({ companyId, objektart, objektId, name, top, kunde, stil = 'weiteres' }: Eigenschaften) {
   const [zeilen, setZeilen] = useState<ObjektVerlaufZeile[]>([]);
   const [stand, setStand] = useState<'zu' | 'laedt' | 'fehler' | 'da'>('zu');
   const [weiter, setWeiter] = useState<VerlaufZeiger | null>(null);
@@ -93,7 +96,7 @@ function Verlauf({ companyId, objektart, objektId, name, stil = 'weiteres' }: Ei
             <LotVerlauf
               name={titel}
               punkte={zeilen.map((z) => {
-                const e = verlaufEintrag(z, { name });
+                const e = verlaufEintrag(z, { name, top, kunde });
                 return {
                   titel: e.titel,
                   zeit: e.zeit,

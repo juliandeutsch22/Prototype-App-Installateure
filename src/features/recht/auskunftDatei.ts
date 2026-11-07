@@ -24,6 +24,8 @@ export const SOFORT_GELOESCHT: Record<string, string> = {
   annahme_links: 'Offene Annahme-Links (werden widerrufen)',
   // M02b: übernommene bleiben bei ihrer Baustelle bzw. ihrem Angebot, ohne Kontaktdaten.
   auftragseingaenge: 'Offene und abgelehnte Auftragseingänge',
+  // M02c: an welchen Liegenschaften er beteiligt war — samt den Werten im Änderungsverlauf.
+  liegenschaft_beteiligungen: 'Beteiligungen an Liegenschaften',
 };
 
 /** Ein Dateiname, den jedes Betriebssystem nimmt — ohne Schrägstriche und Doppelpunkte. */

@@ -277,3 +277,21 @@ describe('Immer an: der Kern mit seinen Teilen (M02b)', () => {
     expect(schalter('Auftragseingang')).not.toBeDisabled();
   });
 });
+
+/*
+  LIEGENSCHAFTEN (M02c): die erste Unterfähigkeit der Kunden, „Optional“ und
+  ab Werk aus. Sie steht als Teil der Kunden da und wird unter ihrer
+  Kennung gespeichert; keine Rückfrage — nichts geht verloren.
+*/
+describe('Liegenschaften als Teil der Kunden (M02c)', () => {
+  it('steht aus da und wird eingeschaltet unter ihrer Kennung gespeichert', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    expect(schalter('Liegenschaften und Tops')).not.toBeChecked();
+    expect(screen.getByText('Teil von Kunden')).toBeInTheDocument();
+    await nutzer.click(schalter('Liegenschaften und Tops'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await nutzer.click(screen.getByRole('button', { name: 'Module speichern' }));
+    expect(updateCompany).toHaveBeenCalledWith('perl', { modules: { 'kunden.liegenschaften': true } });
+  });
+});

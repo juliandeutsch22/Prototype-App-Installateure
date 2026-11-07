@@ -87,6 +87,15 @@ const AUSNAHMEN: Record<string, string> = {
   */
   listVerlaufEintrag: 'Eine Buchung — eine Zeile je Änderung an ihr',
   /*
+    DIE TOPS UND BETEILIGTEN EINER LIEGENSCHAFT (M02c): gefragt wird nach
+    genau einem Haus, und die Menge wächst mit seinen Wohnungen bzw. mit den
+    Mieterwechseln darin, nicht mit dem Betrieb. Eine Grenze schnitte still
+    ein Top aus der Wahl einer Baustelle oder einen Eigentümer aus der Akte;
+    die Abfrage blättert stattdessen vollständig.
+  */
+  listTops: 'Ein Haus — eine Zeile je Wohnung bzw. Einheit',
+  listBeteiligte: 'Ein Haus — die Beteiligten dieser Liegenschaft und ihrer Tops',
+  /*
     `subscribePrefs` STAND HIER BIS ZUM 19.09. und ist ersatzlos gefallen.
 
     Die Firestore-Fassung hörte mit `onSnapshot` auf ein Dokument — der

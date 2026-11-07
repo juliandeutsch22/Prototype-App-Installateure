@@ -931,6 +931,15 @@ export interface Project {
    * niemanden zu benachrichtigen; die Oberfläche sagt das dann auch.
    */
   projectManagers?: string[]; // Array von uids
+  /**
+   * Liegenschaft und Top (M02c, A09) — optional. Die Bezeichnungen setzt die
+   * Datenbank (wie `customerName`); so sieht der Monteur sie am Einsatz, ohne
+   * die Liegenschaft lesen zu dürfen.
+   */
+  liegenschaftId?: string | null;
+  topId?: string | null;
+  liegenschaftBezeichnung?: string | null;
+  topBezeichnung?: string | null;
   createdAt?: number;
 }
 
@@ -1747,6 +1756,77 @@ export interface Auftragseingang {
   bearbeitetAm?: number | null;
   bearbeitetVonUid?: string | null;
   bearbeitetVonName?: string | null;
+  /** Liegenschaft und Top (M02c) — optional; die Bezeichnungen setzt die Datenbank. */
+  liegenschaftId?: string | null;
+  topId?: string | null;
+  liegenschaftBezeichnung?: string | null;
+  topBezeichnung?: string | null;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+/** Wer an einer Liegenschaft beteiligt ist (M02c, A09) — getrennte Rollen, mehrere je Rolle möglich. */
+export const BETEILIGTEN_ROLLEN = [
+  'eigentuemer', 'hausverwaltung', 'betreiber', 'nutzer', 'auftraggeber', 'rechnungsempfaenger', 'versicherung', 'lieferadresse',
+] as const;
+export type BeteiligtenRolle = (typeof BETEILIGTEN_ROLLEN)[number];
+
+/**
+ * liegenschaften/{id} — ein Haus bzw. eine Anlage (M02c, A09). Gehört keinem
+ * Kunden: wer beteiligt ist, sagen die Beteiligten.
+ */
+export interface Liegenschaft {
+  id: string;
+  companyId: string;
+  /** „Wohnhausanlage Hauptstraße 12“ */
+  bezeichnung: string;
+  strasse?: string | null;
+  plz?: string | null;
+  ort?: string | null;
+  /** ISO-Code, Vorgabe „AT“. */
+  land?: string;
+  /** Die Anschrift als eine Zeile — setzt die Datenbank aus den Teilen. */
+  anschrift?: string | null;
+  notiz?: string | null;
+  aktiv: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+/** liegenschaft_tops/{id} — eine Wohnung bzw. Einheit; Bezeichnung eindeutig je Liegenschaft. */
+export interface LiegenschaftTop {
+  id: string;
+  companyId: string;
+  liegenschaftId: string;
+  /** „Top 5“ */
+  bezeichnung: string;
+  /** Stockwerk bzw. Lage, frei: „2. OG links“. */
+  lage?: string | null;
+  notiz?: string | null;
+  aktiv: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+/**
+ * liegenschaft_beteiligte/{id} — ein Kunde ODER freie Angaben, an der
+ * Liegenschaft oder an einem Top. Freie Angaben sind Personendaten:
+ * „entfernen“ löscht sie samt ihrer Werte im Journal.
+ */
+export interface LiegenschaftBeteiligter {
+  id: string;
+  companyId: string;
+  liegenschaftId: string;
+  topId?: string | null;
+  rolle: BeteiligtenRolle;
+  customerId?: string | null;
+  name?: string | null;
+  telefon?: string | null;
+  email?: string | null;
+  hinweis?: string | null;
+  /** 'YYYY-MM-DD' — für Mieterwechsel. */
+  gueltigAb?: string | null;
+  gueltigBis?: string | null;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -2217,6 +2297,11 @@ export interface Wartung {
    * in dem er in beiden Feldern steht.
    */
   offeneBaustelle?: string;
+  /** Liegenschaft und Top (M02c) — optional; die Bezeichnungen setzt die Datenbank. */
+  liegenschaftId?: string | null;
+  topId?: string | null;
+  liegenschaftBezeichnung?: string | null;
+  topBezeichnung?: string | null;
   createdAt?: number;
   updatedAt?: number;
 }

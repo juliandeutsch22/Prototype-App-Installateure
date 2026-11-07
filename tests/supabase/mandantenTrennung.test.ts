@@ -72,6 +72,8 @@ const ZUSATZ: Record<string, (betrieb: string) => Record<string, unknown>> = {
   urlaubsanspruch_anpassungen: () => ({ grund: 'Prüfung', urlaubsjahr: 2026, tage: 1 }),
   // Hashwert und Vorsatz haben eine Form (M02a); der Hashwert ist eindeutig — je Betrieb ein eigener.
   angebot_links: (b) => ({ schluessel_hash: (b === A ? 'a' : 'b').repeat(64), praefix: 'B' }),
+  // Kunde ODER freie Angaben (M02c) — hier frei, ein Kunde fehlt der Prüfzeile.
+  liegenschaft_beteiligte: () => ({ name: 'Prüfung' }),
 };
 
 /*
@@ -107,7 +109,9 @@ const LOHN_UND_RECHNUNG = ['arbeitszeit_begruendungen', 'freistellungen', 'gebur
  */
 const BUERO = ['auftragseingaenge', 'customers', 'lagerbewegungen', 'material_orders', 'project_documents', 'uid_pruefungen',
   // M04a: die Schreibbefehle wie das Bewegungsprotokoll; die eigenen sieht jeder (`befehl_stand`).
-  'befehle_vorgaenge'];
+  'befehle_vorgaenge',
+  // M02c: Liegenschaften, Tops und Beteiligte lesen wie Kunden — das Büro und die Leitung.
+  'liegenschaft_beteiligte', 'liegenschaft_tops', 'liegenschaften'];
 /** Einkaufspreise, Preislisten, Kostensätze, Katalogdateien, Kontoumstellungen, Systemläufe: nur die Spitze. */
 const SPITZE = ['betrieb_kostensaetze', 'datanorm_laeufe', 'datanorm_zeilen', 'konto_umstellungen', 'material_einkaufspreise',
   'material_prices', 'rabattsaetze', 'system_laeufe',
