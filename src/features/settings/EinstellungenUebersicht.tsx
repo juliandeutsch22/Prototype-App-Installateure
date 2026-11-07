@@ -52,7 +52,7 @@ import { einrichtungZusatzLaden, einrichtungZusatzPunkte, type EinrichtungZusatz
 const STICHWORTE: Record<string, string> = {
   meldungen: 'Benachrichtigungen, dieses Gerät, Zwei-Faktor-Anmeldung, Passwort',
   firma: 'Briefkopf, Anschrift, Logo, UID, Firmenbuch, IBAN, BIC, Bank, Farben',
-  saetze: 'Stundensätze, Einstufung, Zuschläge, Nacht, Notdienst, Kostensätze, Materialaufschlag, Verkaufspreise',
+  saetze: 'Stundensätze, Einstufung, Zuschläge, Nacht, Notdienst, Kostensätze, Materialaufschlag, Verkaufspreise, Preissprung, Preisvergleich, Katalog veraltet',
   rechnung: 'Umsatzsteuer, Zahlungsziel, Skonto, Mahnspesen, Basiszinssatz, Anzahlungs- und Schlussrechnungen',
   nummern: 'Rechnungsnummer, Angebotsnummer, Baustellennummer, Kennzeichen des Fuhrparks',
   personal:

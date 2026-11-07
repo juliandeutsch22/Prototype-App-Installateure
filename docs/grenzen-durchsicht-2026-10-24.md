@@ -93,6 +93,9 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Annahme per Link: Rate-Limit je Link, nicht je Abrufer | Sicherheit: die Adresse des Abrufers ist hinter dem Netzwerk nicht verlässlich bestimmbar; ein Zähler je falschem Schlüssel schriebe bei jedem Rateversuch eine Zeile |
 | Annahme per Link: Öffnungen nur gezählt (erstes, letztes, Anzahl), ohne IP und Gerät | Datenschutz (U05, Datensparsamkeit) |
 | Annahme per Link: Versand aus der App erst mit M14 | Liegt beim Betreiber: SMTP-Zugang als Secret der Edge Function; bis dahin Kopieren und Mail-Programm |
+| Kataloge mehrerer Großhändler (Stand 54, E57): EAN und Preiseinheit aus DATANORM sind nicht gegen echte Dateien geprüft | Liegt beim Pilotbetrieb: DATANORM-Dateien realer Großhändler (Nachweisregister) |
+| Kataloge: ein Artikel ohne Preiszeile bekommt keinen Lieferantenartikel | Altdaten: von welchem Großhändler er stammt, wurde nie gespeichert; geraten wird nichts |
+| Kataloge: von den Entscheidungen zu einem Lieferantenartikel steht nur die jüngste (wer, wann) | Fachlich: der Katalog ist Stammdatum ohne Akte, das Änderungsjournal führt Geschäftsobjekte; die gültige Zuordnung ist belegt |
 
 ## X – Liegt bei jemand anderem
 

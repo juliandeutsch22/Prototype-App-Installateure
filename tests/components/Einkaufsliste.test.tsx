@@ -28,6 +28,8 @@ const postenZuordnen = vi.fn();
 const suchen = vi.fn();
 const vorschlag = vi.fn();
 const termin = vi.fn();
+const nummern = vi.fn<(...a: unknown[]) => Promise<Map<string, string>>>(async () => new Map());
+const vorschlagGrund = vi.fn<(...a: unknown[]) => Promise<unknown>>(async () => null);
 
 vi.mock('@/lib/db/einkauf', () => ({
   katalogFuer: () =>
@@ -44,6 +46,9 @@ vi.mock('@/lib/db/einkauf', () => ({
   artikelSuchen: (...a: unknown[]) => suchen(...a),
   lieferantVorschlag: (...a: unknown[]) => vorschlag(...a),
   lieferterminSetzen: (...a: unknown[]) => termin(...a),
+  // M03a: die Nummer des Großhändlers je Artikel und der Grund des Vorschlags.
+  lieferantenNummern: (...a: unknown[]) => nummern(...a),
+  lieferantVorschlagGrund: (...a: unknown[]) => vorschlagGrund(...a),
 }));
 vi.mock('@/features/orders/bestellungPdf', () => ({
   downloadBestellungPdf: (...a: unknown[]) => pdf(...a),
@@ -80,6 +85,7 @@ function zeige(
   anforderungen: WithId<MaterialOrder>[],
   gh = [HOLTER, FRAUENTHAL],
   lager: WithId<EinkaufPosten>[] = [],
+  grundZeigen = false,
 ) {
   const geaendert = vi.fn();
   render(
@@ -94,6 +100,7 @@ function zeige(
         onGrosshaendlerGeaendert={geaendert}
         onLagerGeaendert={lagerGeaendert}
         onVeraltet={veraltet}
+        grundZeigen={grundZeigen}
       />
     </ToastProvider>,
   );
@@ -107,6 +114,10 @@ beforeEach(() => {
   vorschlag.mockReset();
   vorschlag.mockResolvedValue(null);
   veraltet.mockReset();
+  nummern.mockReset();
+  nummern.mockResolvedValue(new Map());
+  vorschlagGrund.mockReset();
+  vorschlagGrund.mockResolvedValue(null);
   for (const f of [alsBestellt, geliefert, zuordnen, vonListe, speichern, pdf, postenAnlegen, postenBestellt, postenLoeschen, postenZuordnen, termin]) {
     f.mockReset();
     f.mockResolvedValue(undefined);
@@ -448,5 +459,62 @@ describe('Einkaufsliste — Material dazusetzen', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Auf die Einkaufsliste' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('größer als null');
     expect(postenAnlegen).not.toHaveBeenCalled();
+  });
+});
+
+/*
+  M03a: BESTELLT WIRD MIT DER NUMMER DES GROSSHÄNDLERS. Ist einem Artikel ein
+  zweiter Großhändler als „derselbe Artikel“ zugeordnet, führt der ihn unter
+  seiner eigenen Nummer; die des Stammartikels gehört dem ersten. Und der
+  Grund des Vorschlags („günstigster“) steht nur für wen Einkaufspreise
+  sieht. GEGENPROBE: ohne die Änderung trägt die Zeile bei Frauenthal die
+  Nummer EV-12 von Holter, und kein Grund steht da.
+*/
+describe('Einkaufsliste — Nummer des Großhändlers und Grund des Vorschlags (M03a)', () => {
+  it('bei jedem Großhändler seine Nummer — ohne eigene die des Stammartikels', async () => {
+    nummern.mockResolvedValue(new Map([['m1|gh2', 'FR-77']]));
+    zeige([anf({ id: 'a', supplierId: 'gh1' }), anf({ id: 'b', supplierId: 'gh2' })]);
+    expect(await screen.findByText('Art.-Nr. FR-77')).toBeInTheDocument();
+    expect(screen.getByText('Art.-Nr. EV-12')).toBeInTheDocument();
+    expect(nummern).toHaveBeenCalledWith('perl', ['m1']);
+  });
+
+  it('die Nummer des Großhändlers geht auf PDF und E-Mail', async () => {
+    nummern.mockResolvedValue(new Map([['m1|gh1', 'HO-55']]));
+    zeige([anf({ id: 'a' })]);
+    await screen.findByText('Art.-Nr. HO-55');
+    const href = (await screen.findByRole('link', { name: 'E-Mail an vertreter@holter.test' })).getAttribute('href')!;
+    expect(decodeURIComponent(href.split('&body=')[1])).toContain('Art.-Nr. HO-55 – Eckventil 1/2');
+    await userEvent.click(screen.getByRole('button', { name: 'PDF' }));
+    await waitFor(() => expect(pdf).toHaveBeenCalledTimes(1));
+    expect((pdf.mock.calls[0][0] as { zeilen: { artikelnummer?: string }[] }).zeilen[0].artikelnummer).toBe('HO-55');
+  });
+
+  const ARTIKEL = { id: 'm1', companyId: 'perl', name: 'Eckventil 1/2', articleNumber: 'EV-12', unit: 'Stk', stock: 0 };
+
+  it('nennt den Grund des Vorschlags, wo die Rolle Einkaufspreise sieht', async () => {
+    suchen.mockResolvedValue([ARTIKEL]);
+    vorschlag.mockResolvedValue('gh2');
+    vorschlagGrund.mockResolvedValue({ supplierId: 'gh2', grund: 'guenstigster', einkaufspreis: 9.9, stand: '2026-11-01' });
+    zeige([], [HOLTER, FRAUENTHAL], [], true);
+    await userEvent.click(await screen.findByRole('button', { name: '+ Material' }));
+    await userEvent.type(screen.getByLabelText(/^Artikel/), 'Eck');
+    await userEvent.click(await screen.findByRole('button', { name: /Eckventil 1\/2/ }));
+    expect(await screen.findByText(/Vorgeschlagen: günstigster vergleichbarer Einkaufspreis/)).toHaveTextContent('Stand 01.11.2026');
+    // Wählt der Mensch einen anderen, ist es nicht mehr der Vorschlag — der Grund geht.
+    await userEvent.selectOptions(screen.getByLabelText('Großhändler'), 'gh1');
+    expect(screen.queryByTestId('vorschlag-grund')).toBeNull();
+  });
+
+  it('ohne das Recht kein Grund und keine Abfrage — die Einkaufsliste bleibt preisfrei', async () => {
+    suchen.mockResolvedValue([ARTIKEL]);
+    vorschlag.mockResolvedValue('gh2');
+    zeige([]);
+    await userEvent.click(await screen.findByRole('button', { name: '+ Material' }));
+    await userEvent.type(screen.getByLabelText(/^Artikel/), 'Eck');
+    await userEvent.click(await screen.findByRole('button', { name: /Eckventil 1\/2/ }));
+    await waitFor(() => expect(screen.getByLabelText('Großhändler')).toHaveValue('gh2'));
+    expect(screen.queryByTestId('vorschlag-grund')).toBeNull();
+    expect(vorschlagGrund).not.toHaveBeenCalled();
   });
 });

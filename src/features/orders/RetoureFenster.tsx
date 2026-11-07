@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { sucheKatalog } from '@/lib/db/materials';
+import { gefundenUeberText, type MitNummer } from '@/lib/katalogTreffer';
 import { createReturn } from '@/lib/db/materialOrders';
 import type { WithId } from '@/lib/db/core';
 import type { Material } from '@/types';
@@ -81,7 +82,7 @@ export default function RetoureFenster({
    * blind scrollt, ohne tippen zu können. Gesucht wird über dieselben drei
    * Felder wie im Katalog — Bezeichnung, Kategorie, Artikelnummer.
    */
-  const [treffer, setTreffer] = useState<WithId<Material>[]>([]);
+  const [treffer, setTreffer] = useState<MitNummer<WithId<Material>>[]>([]);
   useEffect(() => {
     const q = suche.trim();
     if (!q) {
@@ -200,7 +201,7 @@ export default function RetoureFenster({
                       <ListRow
                         key={m.id}
                         title={m.name}
-                        subtitle={[m.category, m.articleNumber].filter(Boolean).join(' · ') || undefined}
+                        subtitle={[m.category, m.articleNumber, gefundenUeberText(m)].filter(Boolean).join(' · ') || undefined}
                       >
                         <Button
                           variant="secondary"

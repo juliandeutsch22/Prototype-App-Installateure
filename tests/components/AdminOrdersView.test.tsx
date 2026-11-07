@@ -112,6 +112,9 @@ vi.mock('@/lib/db/einkauf', () => ({
   lagerPostenLoeschen: vi.fn(),
   lagerPostenZuordnen: vi.fn(),
   artikelSuchen: () => Promise.resolve([]),
+  // M03a: die Nummern der Großhändler für die Bestellung und der Grund des Vorschlags.
+  lieferantenNummern: () => Promise.resolve(new Map()),
+  lieferantVorschlagGrund: () => Promise.resolve(null),
 }));
 
 const authWert = {

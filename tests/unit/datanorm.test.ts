@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   befunde,
   dekodiere,
+  eanGueltig,
   layoutWarnung,
   liesDatanorm,
   ohneDoppelte,
@@ -324,5 +325,54 @@ describe('Doppelte Artikelnummern in der Datei (Runde 6, G25)', () => {
   it('lässt eine Datei ohne Dubletten unverändert', () => {
     const e = liesDatanorm(DATEI.split('\n').slice(0, 3).join('\n'));
     expect(ohneDoppelte(e)).toBe(e);
+  });
+});
+
+/*
+  M03a: DIE EAN AUS DEM SATZ B UND DIE PREISEINHEIT. Eine EAN entscheidet im
+  Preisvergleich über „derselbe Artikel“ — darum gilt nur eine mit gültiger
+  Prüfziffer, und eine falsche wird gezählt statt verschwiegen. GEGENPROBE:
+  vor M03a las der Leser den Satz B gar nicht (er stand unter
+  „übersprungen“), und es gab weder `ean` noch `preiseinheit`.
+*/
+describe('EAN und Preiseinheit (M03a)', () => {
+  it('prüft die EAN nach GS1 — 8, 12, 13, 14 Stellen mit Prüfziffer', () => {
+    expect(eanGueltig('4006381333931')).toBe(true);
+    expect(eanGueltig('4006381333932')).toBe(false);
+    expect(eanGueltig('96385074')).toBe(true);
+    expect(eanGueltig('036000291452')).toBe(true);
+    expect(eanGueltig('12345')).toBe(false);
+    expect(eanGueltig('400638133393X')).toBe(false);
+  });
+
+  it('nimmt die EAN aus dem Satz B, gleich ob er vor oder nach dem Satz A steht', () => {
+    const e = liesDatanorm([
+      'B;N;A1;MATCH;;12;0;0;4006381333931;;;;',
+      'A;N;A1;0;Eckventil;;1;0;Stk;2350;10;0',
+      'A;N;A2;0;Kugelhahn;;1;0;Stk;1890;10;0',
+      'B;N;A2;MATCH;;12;0;0;96385074;;;;',
+    ].join('\n'));
+    expect(e.artikel.map((a) => a.ean)).toEqual(['4006381333931', '96385074']);
+    expect(e.ean).toEqual({ gelesen: 2, verworfen: 0 });
+    expect(e.uebersprungen).toEqual({});
+  });
+
+  it('eine ungültige EAN steht nicht am Artikel, wird aber gezählt', () => {
+    const e = liesDatanorm(['A;N;A1;0;Eckventil;;1;0;Stk;2350;10;0', 'B;N;A1;M;;12;0;0;4006381333932;;;;'].join('\n'));
+    expect(e.artikel[0].ean).toBeUndefined();
+    expect(e.ean).toEqual({ gelesen: 0, verworfen: 1 });
+  });
+
+  it('ein Löschsatz bekommt keine EAN', () => {
+    const e = liesDatanorm(['A;L;A1;;;;;;;;;', 'B;N;A1;M;;12;0;0;4006381333931;;;;'].join('\n'));
+    expect(e.artikel[0].ean).toBeUndefined();
+  });
+
+  it('hält die Preiseinheit der Datei fest — der Preis bleibt je einer Einheit', () => {
+    const e = liesDatanorm(['A;N;A1;0;Dichtring;;1;2;Stk;2350;10;0', 'A;N;A2;0;Rohr;;1;;m;450;10;0'].join('\n'));
+    expect(e.artikel[0]).toMatchObject({ preis: 0.235, preiseinheit: 100 });
+    // Ohne Angabe steht keine — gerechnet wird wie bisher je einer Einheit.
+    expect(e.artikel[1].preiseinheit).toBeUndefined();
+    expect(e.artikel[1].preis).toBe(4.5);
   });
 });
