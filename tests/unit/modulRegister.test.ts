@@ -333,3 +333,32 @@ describe('Material: Kataloge, Preisvergleich, Preisverlauf (M03a)', () => {
     }
   });
 });
+
+/*
+  LIEGENSCHAFTEN (M02c, A09): die erste Unterfähigkeit der Kunden — „Optional“
+  und damit ab Werk AUS (E51). Eingeschaltet kommt genau ihr Eintrag dazu;
+  ausgeschaltet bleibt alles wie vorher. Keine Folge, die sich nicht
+  zurückholen ließe — die Daten bleiben.
+*/
+describe('kunden.liegenschaften (M02c)', () => {
+  it('steht unter den Kunden, Standard aus, ohne Folgen', () => {
+    const kunden = KERN.find((k) => k.id === 'kunden')!;
+    expect(kunden.unter.map((f) => f.id)).toEqual(['kunden.liegenschaften']);
+    expect(schalter('kunden.liegenschaften')).toMatchObject({ name: 'Liegenschaften und Tops', standard: false });
+    expect(istAn(undefined, 'kunden.liegenschaften')).toBe(false);
+    expect(istAn({ 'kunden.liegenschaften': true }, 'kunden.liegenschaften')).toBe(true);
+    // Eine Festlegung zum Kern selbst nimmt seinem Teil nichts.
+    expect(istAn({ kunden: false, 'kunden.liegenschaften': true }, 'kunden.liegenschaften')).toBe(true);
+    expect(folgenBeimAbschalten('kunden.liegenschaften', { 'kunden.liegenschaften': true })).toEqual([]);
+    expect(zieheMit('kunden.liegenschaften', { 'kunden.liegenschaften': true })).toEqual([]);
+  });
+
+  it('ab Werk keine neue Navigation; eingeschaltet genau „Liegenschaften“ für das Büro', () => {
+    for (const rolle of ['Mitarbeiter', 'Verwaltung', 'Buchhaltung', 'Projektleiter', 'Geschäftsführung', 'Administrator'] as const) {
+      const ohne = navForRole(rolle, undefined).map((n) => n.path);
+      const mit = navForRole(rolle, { 'kunden.liegenschaften': true }).map((n) => n.path);
+      expect(ohne, rolle).not.toContain('/liegenschaften');
+      expect(mit.filter((p) => !ohne.includes(p)), rolle).toEqual(rolle === 'Mitarbeiter' ? [] : ['/liegenschaften']);
+    }
+  });
+});

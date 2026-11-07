@@ -140,6 +140,12 @@ export const NAV: NavItem[] = [
   // Angebot vor Baustelle: so laeuft der Auftrag auch in Wirklichkeit.
   { path: '/quotes', label: 'Angebote', short: 'Angebote', icon: 'file', roles: ['Buchhaltung', ...LEAD], group: 'Aufträge', modul: 'angebote' },
   { path: '/customers', label: 'Kunden', short: 'Kunden', icon: 'contact', roles: ['Buchhaltung', 'Verwaltung', ...LEAD], group: 'Aufträge' },
+  /*
+    LIEGENSCHAFTEN (M02c, A09): neben den Kunden, für dieselben Rollen — wer
+    Kunden liest, liest Liegenschaften; pflegen, wer Kunden pflegen darf.
+    Teil der Kunden, einzeln schaltbar und ab Werk aus („Optional“).
+  */
+  { path: '/liegenschaften', label: 'Liegenschaften', short: 'Häuser', icon: 'liegenschaft', roles: ['Buchhaltung', 'Verwaltung', ...LEAD], group: 'Aufträge', modul: 'kunden.liegenschaften' },
   // Wartungen bei den Kunden, nicht bei den Baustellen: eine Vereinbarung
   // gehört dem Kunden und überlebt jede einzelne Baustelle. Die Verwaltung
   // sieht sie mit, NUR LESEND — anlegen, ändern und „erledigt“ bleiben bei
@@ -460,7 +466,8 @@ export const NAV_GROUPS = ['Start', 'Aufträge', 'Geld', 'Team', 'Material', 'Ei
 const REIHENFOLGE = [
   // Der Eingang nach Baustellen und Planung, vor Scheinen und Angeboten: daraus werden sie.
   '/', '/admin-projects', '/assignments', '/eingaenge', '/my-schedule', '/my-projects', '/worksheets', '/quotes',
-  '/customers', '/wartungen', '/invoices', '/costing', '/time', '/vacations', '/accounting',
+  // Die Liegenschaften gleich nach den Kunden: dort sucht sie, wer für Hausverwaltungen arbeitet.
+  '/customers', '/liegenschaften', '/wartungen', '/invoices', '/costing', '/time', '/vacations', '/accounting',
   '/user-mgmt', '/material', '/anforderungen', '/lager', '/settings',
 ];
 const rang = (p: string) => {

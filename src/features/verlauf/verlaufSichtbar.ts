@@ -1,4 +1,4 @@
-import type { Objektart } from '@/lib/db/objektVerlauf';
+import type { Aktenart } from '@/lib/db/objektVerlauf';
 import type { Role } from '@/types';
 
 /**
@@ -8,7 +8,7 @@ import type { Role } from '@/types';
  * das Objekt; mehr fragt die Regel bei den übrigen Rollen nicht. Ohne diese
  * Grenze käme für alle anderen eine leere Liste zurück — ein toter Klick.
  */
-export function verlaufSichtbar(role: Role | undefined, objektart: Exclude<Objektart, 'zahlung'>, imEinblick: boolean): boolean {
+export function verlaufSichtbar(role: Role | undefined, objektart: Aktenart, imEinblick: boolean): boolean {
   if (!role || imEinblick || role === 'Mitarbeiter') return false;
   if (objektart === 'benutzer') return role === 'Geschäftsführung' || role === 'Administrator';
   return true;

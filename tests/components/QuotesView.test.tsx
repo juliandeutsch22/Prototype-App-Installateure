@@ -53,6 +53,13 @@ vi.mock('@/lib/db/quotes', async () => ({
   reserveQuoteNumber: vi.fn(async () => 'AN-2026-0001'),
 }));
 vi.mock('@/lib/db/customers', async () => (await import('./kundenAuswahl')).kundenAttrappe(() => kunden));
+/* Liegenschaften (M02c) — nur gefragt, wenn die Unterfähigkeit an ist. */
+const LIEGENSCHAFT = { id: 'l1', companyId: 'perl', bezeichnung: 'WHA Neudorf 3', anschrift: 'Dorfplatz 3, 2000 Neudorf', aktiv: true };
+vi.mock('@/lib/db/liegenschaften', () => ({
+  listLiegenschaften: vi.fn(async () => ({ zeilen: [LIEGENSCHAFT], weiter: null })),
+  getLiegenschaft: vi.fn(async () => LIEGENSCHAFT),
+  listTops: vi.fn(async () => [{ id: 't2', companyId: 'perl', liegenschaftId: 'l1', bezeichnung: 'Top 2', aktiv: true }]),
+}));
 /** Der Katalog für „Aus dem Katalog …“ (M18) — gesucht wird auf dem Server. */
 const sucheKatalog = vi.fn<(c: string, b: string) => Promise<unknown[]>>(async () => [
   { id: 'm1', companyId: 'perl', name: 'Gastherme 24 kW', articleNumber: 'GT-24', unit: 'Stk', verkaufspreis: 2500, stock: 0 },
@@ -1181,5 +1188,71 @@ describe('Angebote — leer', () => {
     await nutzer.click(within(leer).getByRole('button', { name: 'Suche zurücksetzen' }));
     expect(screen.getByLabelText('Suche')).toHaveValue('');
     expect(await screen.findByText('AN-2026-0007')).toBeInTheDocument();
+  });
+});
+
+/*
+  DAS ANGEBOT TRÄGT LIEGENSCHAFT UND TOP (M02c): nur mit der Unterfähigkeit
+  wählbar; eine neue Fassung übernimmt sie (wie Kunde und Positionen), damit
+  die Annahme sie an die Baustelle weitergibt. Ohne die Unterfähigkeit
+  entsteht das Angebot wie bisher — auch die neue Fassung eines schon
+  zugeordneten.
+*/
+describe('Liegenschaft am Angebot (M02c)', () => {
+  const an = () => Object.assign(authWert.company, { modules: { 'kunden.liegenschaften': true } });
+  const aus = () => Object.assign(authWert.company, { modules: {} });
+
+  it('wählen: die Anschrift der Liegenschaft wird zum Ort der Leistung, beide Kennungen gehen mit', async () => {
+    an();
+    try {
+      const nutzer = userEvent.setup();
+      zeichne();
+      await formOeffnen();
+      await kundeWaehlen(nutzer, 'Gemeinde Neudorf');
+      await nutzer.clear(screen.getByLabelText('Ort der Leistung'));
+      await nutzer.type(screen.getByRole('searchbox', { name: 'Liegenschaft (freiwillig)' }), 'Neudorf');
+      await nutzer.click(await screen.findByRole('button', { name: 'WHA Neudorf 3' }));
+      expect(screen.getByLabelText('Ort der Leistung')).toHaveValue('Dorfplatz 3, 2000 Neudorf');
+      await nutzer.selectOptions(await screen.findByLabelText('Top'), 'Top 2');
+      await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Pauschale');
+      await nutzer.type(screen.getByLabelText('Menge'), '1');
+      await nutzer.type(screen.getByLabelText('Einzelpreis netto'), '100');
+      await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+      await waitFor(() => expect(createQuote).toHaveBeenCalled());
+      expect(createQuote.mock.calls[0][1]).toMatchObject({ liegenschaftId: 'l1', topId: 't2', address: 'Dorfplatz 3, 2000 Neudorf' });
+    } finally {
+      aus();
+    }
+  });
+
+  it('eine neue Fassung übernimmt Liegenschaft und Top', async () => {
+    an();
+    try {
+      const nutzer = userEvent.setup();
+      versendetesAngebot();
+      Object.assign(angebote[0], { liegenschaftId: 'l1', topId: 't2', positions: [{ label: 'Montage', qty: 1, unit: 'Stk', unitPrice: 100, netto: 100 }] });
+      zeichne();
+      await nutzer.click(await screen.findByRole('button', { name: 'Neue Fassung' }));
+      expect(await screen.findByText('WHA Neudorf 3')).toBeInTheDocument();
+      await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+      await waitFor(() => expect(createQuote).toHaveBeenCalled());
+      expect(createQuote.mock.calls[0][1]).toMatchObject({ vorgaengerId: 'q1', liegenschaftId: 'l1', topId: 't2' });
+    } finally {
+      aus();
+    }
+  });
+
+  it('Erhaltung: ohne Unterfähigkeit kein Feld — auch die neue Fassung eines zugeordneten entsteht wie bisher', async () => {
+    const nutzer = userEvent.setup();
+    versendetesAngebot();
+    Object.assign(angebote[0], { liegenschaftId: 'l1', topId: 't2', positions: [{ label: 'Montage', qty: 1, unit: 'Stk', unitPrice: 100, netto: 100 }] });
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Neue Fassung' }));
+    expect(screen.queryByRole('searchbox', { name: 'Liegenschaft (freiwillig)' })).toBeNull();
+    await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+    await waitFor(() => expect(createQuote).toHaveBeenCalled());
+    const neu = createQuote.mock.calls[0][1] as Quote;
+    expect(neu.liegenschaftId).toBeUndefined();
+    expect(neu.topId).toBeUndefined();
   });
 });

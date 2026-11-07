@@ -58,11 +58,13 @@ describe('app.modul_register', () => {
   it('findet überhaupt etwas — und die erste Unterfähigkeit mit Serverprüfung', async () => {
     expect(ausDerApp()).toContain('angebote.online_annahme | true | ');
     expect(ausDerApp()).toContain('baustellen.auftragseingang | true | ');
+    // M02c: „Optional“ steht ab Werk aus — auch auf dem Server.
+    expect(ausDerApp()).toContain('kunden.liegenschaften | false | ');
     // M06b: die Zeiterfassung als Kern mit den freien Zeitfeldern.
     expect(ausDerApp()).toContain('zeiterfassung.freie_zeitfelder | true | ');
     // M04b: Materialbereitschaft und Bestellvorschläge — die Vorschläge prüft der Server (V3).
     expect(await ausSql()).toEqual(expect.arrayContaining(['material.materialbereitschaft | true | ', 'material.bestellvorschlaege | true | ']));
-    expect((await ausSql()).length).toBeGreaterThanOrEqual(21);
+    expect((await ausSql()).length).toBeGreaterThanOrEqual(22);
   });
 
   it('der Kern in SQL ist der Kern der App — und immer an, gleich was festgelegt ist (M02b)', async () => {
@@ -77,13 +79,16 @@ describe('app.modul_register', () => {
         { baustellen: false, 'baustellen.auftragseingang': true },
         { 'baustellen.auftragseingang': false },
         { 'baustellen.auftragseingang': 0 },
+        // M02c: ab Werk aus, eingeschaltet an — auch wenn jemand den Kern selbst „abschaltet“.
+        { 'kunden.liegenschaften': true },
+        { kunden: false, 'kunden.liegenschaften': true },
         { zeiterfassung: false, 'zeiterfassung.freie_zeitfelder': true },
         { 'zeiterfassung.freie_zeitfelder': false },
         {},
       ]) {
         await db.query('update public.companies set modules = $1 where id = $2', [JSON.stringify(festlegung), 'mrs-kern']);
         const erwartet = aktiveSchalter(festlegung as Record<string, boolean>);
-        for (const id of ['baustellen', 'kunden', 'baustellen.auftragseingang', 'kunden.gibtsnicht',
+        for (const id of ['baustellen', 'kunden', 'baustellen.auftragseingang', 'kunden.liegenschaften', 'kunden.gibtsnicht',
           'zeiterfassung', 'zeiterfassung.freie_zeitfelder']) {
           const { rows: an } = await db.query<{ an: boolean }>('select app.modul_aktiv($1, $2) as an', ['mrs-kern', id]);
           expect({ festlegung, id, an: an[0].an }).toEqual({ festlegung, id, an: erwartet.has(id as never) });
@@ -103,7 +108,7 @@ describe('app.modul_register', () => {
           language sql immutable security definer set search_path = ''
         as $$ select r.kennung, case when r.kennung = 'angebote.online_annahme' then false else r.standard end, r.abhaengig_von
                 from (values ('baustellen', true, '{}'::text[]), ('baustellen.auftragseingang', true, '{}'::text[]),
-                             ('kunden', true, '{}'::text[]),
+                             ('kunden', true, '{}'::text[]), ('kunden.liegenschaften', false, '{}'::text[]),
                              ('zeiterfassung', true, '{}'::text[]), ('zeiterfassung.freie_zeitfelder', true, '{}'::text[]),
                              ('einsatzplanung', true, '{}'::text[]), ('material', true, '{}'::text[]),
                              ('material.katalogversionen', true, '{}'::text[]), ('material.lieferantenvergleich', true, '{}'::text[]),

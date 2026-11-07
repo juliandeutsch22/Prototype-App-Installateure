@@ -59,6 +59,9 @@ import AdresseFeld from '@/components/AdresseFeld';
 import { baustellenTitel } from '@/lib/baustellenTitel';
 import { ABRECHNUNGSARTEN } from '@/lib/abrechnung';
 import { stammdatenFehler, stundenbudgetAus } from './baustellenEntwurf';
+import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
+import LiegenschaftVorschlaege from '@/features/liegenschaften/LiegenschaftVorschlaege';
+import type { Customer, Liegenschaft } from '@/types';
 
 const empty = {
   projectNumber: '',
@@ -77,6 +80,9 @@ const empty = {
   endDate: '',
   contactName: '',
   contactPhone: '',
+  /** Liegenschaft und Top (M02c) — freiwillig, nur mit der Unterfähigkeit. */
+  liegenschaftId: '',
+  topId: '',
 };
 
 
@@ -203,6 +209,9 @@ export default function AdminProjectsView() {
   const [suchparameter, setSuchparameter] = useSearchParams();
   // Der Schein-Verweis verschwindet mit seinem Modul.
   const scheineAn = useModul('scheine');
+  const liegenschaftenAn = useModul('kunden.liegenschaften');
+  /** Die gewählte Liegenschaft — für die Vorschläge (M02c). */
+  const [liegenschaft, setLiegenschaft] = useState<Liegenschaft | null>(null);
   const gesuchteBaustelle = suchparameter.get('baustelle') ?? '';
   /*
     DIE AUSWAHL STEHT IN DER ADRESSE (Protokoll 7.5): als Lesezeichen
@@ -321,6 +330,7 @@ export default function AdminProjectsView() {
     setForm(empty);
     setAssigned([]);
     setManagers([]);
+    setLiegenschaft(null);
   }
 
   async function submit(e: FormEvent) {
@@ -348,6 +358,9 @@ export default function AdminProjectsView() {
         estimatedHours: stundenbudgetAus(form.estimatedHours),
         assignedEmployees: assigned,
         projectManagers: managers,
+        // Ohne Liegenschaft (oder ohne die Unterfähigkeit) bleibt die Spalte leer — wie bisher.
+        liegenschaftId: liegenschaftenAn && form.liegenschaftId ? form.liegenschaftId : undefined,
+        topId: liegenschaftenAn && form.liegenschaftId && form.topId ? form.topId : undefined,
       };
       /*
         WER DIE NUMMER STEHEN LIESS, BEKOMMT DIE VERBINDLICHE AUS DEM ZÄHLER.
@@ -647,6 +660,29 @@ export default function AdminProjectsView() {
   const namen = (uids: string[]) =>
     uids.map((uid) => users.find((u) => u.uid === uid)?.name).filter((n): n is string => !!n);
 
+  /** Den Kunden wählen — aus der Suche oder aus einem Vorschlag der Liegenschaft (M02c). */
+  function kundeWaehlen(id: string, k: WithId<Customer> | null) {
+    const vorher = kunde?.address;
+    /*
+      Runde 6, Hinweis 11: dasselbe für den Ansprechpartner — er musste
+      bei jeder Baustelle neu getippt werden. Ein Vorschlag aus der
+      Kundenakte, nur in ein leeres Feld oder statt des vorigen Kunden.
+    */
+    const vorschlag = (feld: string | undefined, vonVorher: string | undefined, neu: string | undefined) =>
+      !feld || feld === (vonVorher ?? '') ? (neu ?? '') : feld;
+    setKunde(k);
+    setForm({
+      ...form,
+      customerId: id,
+      customerName: k?.name ?? form.customerName,
+      // G5: die Anschrift des Kunden als Vorschlag — nur in ein
+      // leeres Feld oder statt des Vorschlags des vorigen Kunden.
+      address: !form.address || form.address === vorher ? (k?.address ?? '') : form.address,
+      contactName: vorschlag(form.contactName, kunde?.contactName, k?.contactName),
+      contactPhone: vorschlag(form.contactPhone, kunde?.contactPhone, k?.contactPhone),
+    });
+  }
+
   const formular = (
     <form onSubmit={submit} className="flex flex-col gap-4">
       {/* Einspaltig: das Seitenfenster ist am Tablet 440 px breit, zwei
@@ -668,32 +704,43 @@ export default function AdminProjectsView() {
           ihn hier nebenbei anzulegen würde die Stammdaten wieder
           verwässern.
         */}
+        {/*
+          LIEGENSCHAFT UND TOP (M02c) — freiwillig, vor dem Kunden: aus ihren
+          Beteiligten kommen die Vorschläge für Kunde, Adresse und
+          Ansprechpartner. Übernommen wird nur auf Klick.
+        */}
+        {liegenschaftenAn && user && (
+          <>
+            <LiegenschaftAuswahl
+              companyId={user.companyId}
+              idPrefix="pliegenschaft"
+              liegenschaftId={form.liegenschaftId}
+              topId={form.topId}
+              onChange={(w) => {
+                setLiegenschaft(w.liegenschaft);
+                setForm((f) => ({ ...f, liegenschaftId: w.liegenschaftId, topId: w.topId }));
+              }}
+            />
+            <LiegenschaftVorschlaege
+              companyId={user.companyId}
+              liegenschaft={form.liegenschaftId ? liegenschaft : null}
+              topId={form.topId}
+              heute={todayStr()}
+              kundeGewaehlt={form.customerId}
+              adresse={form.address}
+              ansprechpartner={{ name: form.contactName, telefon: form.contactPhone }}
+              onKunde={(k) => kundeWaehlen(k.id, k)}
+              onAdresse={(a) => setForm((f) => ({ ...f, address: a }))}
+              onAnsprechpartner={(a) => setForm((f) => ({ ...f, contactName: a.name, contactPhone: a.telefon }))}
+            />
+          </>
+        )}
         <KundenAuswahl
           companyId={user?.companyId ?? ''}
           id="pcust"
           value={form.customerId}
           kunde={kunde}
-          onChange={(id, k) => {
-            const vorher = kunde?.address;
-            /*
-              Runde 6, Hinweis 11: dasselbe für den Ansprechpartner — er musste
-              bei jeder Baustelle neu getippt werden. Ein Vorschlag aus der
-              Kundenakte, nur in ein leeres Feld oder statt des vorigen Kunden.
-            */
-            const vorschlag = (feld: string | undefined, vonVorher: string | undefined, neu: string | undefined) =>
-              !feld || feld === (vonVorher ?? '') ? (neu ?? '') : feld;
-            setKunde(k);
-            setForm({
-              ...form,
-              customerId: id,
-              customerName: k?.name ?? form.customerName,
-              // G5: die Anschrift des Kunden als Vorschlag — nur in ein
-              // leeres Feld oder statt des Vorschlags des vorigen Kunden.
-              address: !form.address || form.address === vorher ? (k?.address ?? '') : form.address,
-              contactName: vorschlag(form.contactName, kunde?.contactName, k?.contactName),
-              contactPhone: vorschlag(form.contactPhone, kunde?.contactPhone, k?.contactPhone),
-            });
-          }}
+          onChange={kundeWaehlen}
           pflicht
           required
         />

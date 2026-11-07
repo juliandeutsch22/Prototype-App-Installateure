@@ -46,6 +46,7 @@ import TerminFormular from '@/features/termine/TerminFormular';
 import { terminKopf, terminZeit } from '@/features/termine/terminText';
 import { ZIEL } from '@/features/dashboard/start/ziele';
 import EingangFormular from './EingangFormular';
+import { liegenschaftZeile } from '@/features/liegenschaften/liegenschaftText';
 import { gleichnamigeKunden, rueckfrageText } from '@/features/customers/gleichnamig';
 import {
   DRINGLICHKEIT_TEXT,
@@ -85,6 +86,7 @@ export default function EingangView() {
   const navigate = useNavigate();
   const angeboteAn = useModul('angebote');
   const einsatzAn = useModul('einsatzplanung');
+  const liegenschaftenAn = useModul('kunden.liegenschaften');
 
   const [eingang, setEingang] = useState<Teil<Auftragseingang | null>>(LAEDT);
   const [ziel, setZiel] = useState<Teil<Ziel | null>>(LAEDT);
@@ -367,6 +369,14 @@ export default function EingangView() {
           </Angabe>
         )}
         <Angabe wort="Ort des Einsatzes">{e.ort}</Angabe>
+        {/* M02c: Liegenschaft und Top — als Weg zur Akte, wer sie öffnen darf. */}
+        {liegenschaftenAn && e.liegenschaftId && (
+          <Angabe wort="Liegenschaft">
+            {canAccess(user.role, '/liegenschaften', company?.modules)
+              ? <Link to={`/liegenschaften/${e.liegenschaftId}`} className="link inline-flex min-h-touch items-center">{liegenschaftZeile(e)}</Link>
+              : liegenschaftZeile(e)}
+          </Angabe>
+        )}
         <Angabe wort="Ansprechpartner vor Ort">
           {[e.ansprechpartnerName, e.ansprechpartnerTelefon].filter((x) => x && x.trim()).join(' · ')}
         </Angabe>
@@ -428,6 +438,7 @@ export default function EingangView() {
           <EingangFormular
             companyId={companyId}
             eingang={e}
+            mitLiegenschaft={liegenschaftenAn}
             onGespeichert={() => { setBearbeiten(false); neuLaden(); }}
             onAbbrechen={() => setBearbeiten(false)}
           />

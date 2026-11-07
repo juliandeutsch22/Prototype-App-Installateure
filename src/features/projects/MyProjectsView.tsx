@@ -17,6 +17,8 @@ import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/S
 import PlaeneListe from './PlaeneListe';
 import { planeVon, usePlaene } from './usePlaene';
 import { baustellenTitel } from '@/lib/baustellenTitel';
+import { useModul } from '@/lib/useModule';
+import { liegenschaftZeile } from '@/features/liegenschaften/liegenschaftText';
 
 /** 'YYYY-MM-DD' -> '27.08.2026'; leer bleibt leer. */
 function fmt(d?: string): string {
@@ -42,6 +44,7 @@ function tageSpaeter(iso: string, n: number): string {
  */
 export default function MyProjectsView() {
   const { user } = useAuth();
+  const liegenschaftenAn = useModul('kunden.liegenschaften');
   const [projects, setProjects] = useState<Project[]>([]);
   /** Baustellennummer -> nächster Einsatztag, für Baustellen aus der Einteilung. */
   const [naechsterEinsatz, setNaechsterEinsatz] = useState<Map<string, string>>(new Map());
@@ -169,6 +172,8 @@ export default function MyProjectsView() {
                 </p>
               )}
 
+              {/* M02c: Haus und Top als Text, wie die Adresse — wohin genau im Haus. */}
+              {liegenschaftenAn && liegenschaftZeile(p) && <p className="mt-2 text-sm text-ink">{liegenschaftZeile(p)}</p>}
               {/* Die Route ist die Hauptaktion der Karte: volle Breite, im Daumenbereich der Karte. */}
               {p.address && (
                 <a
