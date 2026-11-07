@@ -34,6 +34,7 @@ import PositionenTabelle from './PositionenTabelle';
 import { AnnahmeLinkAbschnitt, AnnahmeLinkDialog } from './AnnahmeLink';
 import { angebotLinkGesehen, angebotLinkWiderrufen, listAngebotLinks, type AngebotLink } from '@/lib/db/angebotLinks';
 import { useModul } from '@/lib/useModule';
+import { getEingangZu } from '@/lib/db/auftragseingaenge';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT, datumAusMs } from '@/lib/datum';
 import { verworfenText } from '@/features/papierkorb/papierkorbText';
@@ -87,6 +88,9 @@ export default function AngebotView() {
   const companyId = user?.companyId;
   const darfAendern = user ? isGF(user.role) : false;
   const baustellenSichtbar = user ? canAccess(user.role, '/admin-projects', company?.modules) : false;
+  /** Der Auftragseingang, aus dem das Angebot entstand (M02b) — nur mit der Unterfähigkeit. */
+  const eingaengeSichtbar = user ? canAccess(user.role, '/eingaenge', company?.modules) : false;
+  const [ausEingang, setAusEingang] = useState<{ id: string; nummer: string } | null>(null);
 
   useEffect(() => {
     if (!companyId || !id) return;
@@ -104,6 +108,21 @@ export default function AngebotView() {
       weg = true;
     };
   }, [companyId, id, versuch]);
+
+  /* Der Eingang lädt für sich (M02b): scheitert er, fehlt nur der Verweis. */
+  useEffect(() => {
+    if (!companyId || !id || !eingaengeSichtbar) {
+      setAusEingang(null);
+      return;
+    }
+    let weg = false;
+    getEingangZu(companyId, { quoteId: id })
+      .then((e) => { if (!weg) setAusEingang(e); })
+      .catch(() => { if (!weg) setAusEingang(null); });
+    return () => {
+      weg = true;
+    };
+  }, [companyId, id, eingaengeSichtbar]);
 
   /*
     DIE FASSUNGEN LADEN FÜR SICH (M17). Scheitern sie, fehlt nur der Verweis;
@@ -481,6 +500,13 @@ export default function AngebotView() {
         </Angabe>
         <Angabe wort="Ort der Leistung">{q.address}</Angabe>
         <Angabe wort="Angebotsdatum">{fmtDatum(q.quoteDate)}</Angabe>
+        {ausEingang && (
+          <Angabe wort="Herkunft">
+            <Link to={`/eingaenge/${ausEingang.id}`} className="link inline-flex min-h-touch items-center">
+              Aus Eingang {ausEingang.nummer}
+            </Link>
+          </Angabe>
+        )}
         <Angabe wort="Baustelle">
           {q.projectNumber ? (
             q.projectId && baustellenSichtbar ? (

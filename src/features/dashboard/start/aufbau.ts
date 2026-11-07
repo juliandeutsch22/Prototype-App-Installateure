@@ -11,6 +11,8 @@ import {
   eilanforderungen,
   ueberLinkAngenommen,
   ueberLinkAngenommenThema,
+  offeneEingaenge,
+  eingaengeZeile,
   endeUeberschritten,
   istAbholbereitAlt,
   istLieferungUeberfaellig,
@@ -177,6 +179,8 @@ function verwaltung(d: StartDaten, u: Umfeld): Startseite {
   const orders = d.orders ?? [];
   const abschnitte = mitInhalt([
     eigeneTage(d, u),
+    // Der Auftragseingang (M02b) vor dem Lager: die Verwaltung nimmt das Telefon ab.
+    erlaubt(offeneEingaenge(d.offeneEingaenge), u),
     erlaubt(offeneAnforderungen(orders, u.heute), u),
     erlaubt(bestelltUeberfaellig(orders, u.heute), u),
     erlaubt(abholbereitAlt(orders, u.jetzt), u),
@@ -264,6 +268,8 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
     u.urlaubEntscheiden ? erlaubt(urlaubsantraege(d.antraege ?? []), u) : null,
     // Unbezahlten Urlaub entscheidet die Buchhaltung nicht — er steht hier nicht.
     u.freistellungBestaetigen ? erlaubt(freistellungsantraege(d.freistellungen ?? [], false, u.sonderurlaubZiel), u) : null,
+    // Der Auftragseingang (M02b): die Buchhaltung nimmt die Mail der Hausverwaltung an.
+    erlaubt(offeneEingaenge(d.offeneEingaenge), u),
     eigenerJugendschutz(d, u),
   ]);
   const zahlungen = zahlungenHeute(d.zahlungenHeute ?? []);
@@ -332,6 +338,8 @@ function titelVon(d: StartDaten) {
 function projektleitung(d: StartDaten, u: Umfeld): Startseite {
   const abschnitte = mitInhalt([
     eigeneTage(d, u),
+    // Der Auftragseingang (M02b): was die Projektleitung zur Baustelle oder zum Angebot macht.
+    erlaubt(offeneEingaenge(d.offeneEingaenge), u),
     erlaubt(unbesetzteEinsaetze(u.heute, d.heuteBetrieb ?? []), u),
     erlaubt(budgetNahe(d.budget ?? []), u),
     erlaubt(ohneEinsatz(d.ohneEinsatz ?? [], titelVon(d)), u),
@@ -398,6 +406,21 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       titel: ueberLink.titel,
       detail: ueberLink.detail,
       status: { text: 'ansehen', ton: 'leise' },
+    }));
+  }
+
+  /*
+    OFFENE EINGÄNGE (M02b): ein Notfall oder ein dringender gehört zu
+    „Heute“, sonst „Diese Woche“ — sie sollen nicht liegen bleiben.
+  */
+  const eingang = d.offeneEingaenge ? eingaengeZeile(d.offeneEingaenge) : null;
+  if (eingang?.to) {
+    themen.push(wenn(eingang.to, {
+      key: eingang.key,
+      wann: d.offeneEingaenge!.notfall + d.offeneEingaenge!.dringend > 0 ? 'heute' : 'woche',
+      titel: eingang.titel,
+      detail: eingang.detail,
+      status: eingang.status,
     }));
   }
 

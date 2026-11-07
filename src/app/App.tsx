@@ -69,6 +69,8 @@ const KundenakteView = ansicht('/customers', () => import('@/features/customers/
 const WartungenView = ansicht('/wartungen', () => import('@/features/maintenance/WartungenView'));
 const QuotesView = ansicht('/quotes', () => import('@/features/quotes/QuotesView'));
 const AngebotView = ansicht('/quotes', () => import('@/features/quotes/AngebotView'));
+const EingaengeView = ansicht('/eingaenge', () => import('@/features/auftragseingang/EingaengeView'));
+const EingangView = ansicht('/eingaenge', () => import('@/features/auftragseingang/EingangView'));
 const NachkalkulationView = ansicht('/costing', () => import('@/features/costing/NachkalkulationView'));
 const WorkSheetView = ansicht('/worksheets', () => import('@/features/worksheets/WorkSheetView'));
 const VacationsView = ansicht('/vacations', () => import('@/features/vacations/VacationsView'));
@@ -464,6 +466,16 @@ function AppRoutes() {
         element={
           <RequireNav path="/quotes">
             <AngebotView />
+          </RequireNav>
+        }
+      />
+      {/* Der Auftragseingang (M02b) — Liste und ein Eingang, mit derselben Prüfung (Rolle und Unterfähigkeit). */}
+      <Route path="/eingaenge" element={<RequireNav path="/eingaenge"><EingaengeView /></RequireNav>} />
+      <Route
+        path="/eingaenge/:id"
+        element={
+          <RequireNav path="/eingaenge">
+            <EingangView />
           </RequireNav>
         }
       />

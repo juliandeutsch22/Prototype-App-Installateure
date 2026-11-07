@@ -35,6 +35,7 @@ export default function TerminFormular({
   termin,
   personen,
   heute,
+  vorbelegt,
   onGespeichert,
   onAbbrechen,
 }: {
@@ -44,12 +45,18 @@ export default function TerminFormular({
   termin?: Termin;
   personen: AppUser[];
   heute: string;
-  onGespeichert: () => void;
+  /**
+   * Was ein neuer Termin schon mitbringt — die Besichtigung aus einem
+   * Auftragseingang (M02b): Art, Tag und Notiz mit Ort und Anliegen.
+   */
+  vorbelegt?: { art?: TerminArt; datum?: string; notiz?: string };
+  /** Mit der Kennung des Termins — der Eingang hält fest, welcher es ist. */
+  onGespeichert: (id: string) => void;
   onAbbrechen: () => void;
 }) {
   const toast = useToast();
-  const [art, setArt] = useState<TerminArt>(termin?.art ?? 'Kundentermin');
-  const [datum, setDatum] = useState(termin?.datum ?? (vorgabe.bezug === 'frei' ? vorgabe.datum : heute));
+  const [art, setArt] = useState<TerminArt>(termin?.art ?? vorbelegt?.art ?? 'Kundentermin');
+  const [datum, setDatum] = useState(termin?.datum ?? (vorgabe.bezug === 'frei' ? vorgabe.datum : vorbelegt?.datum ?? heute));
   const [zeitVon, setZeitVon] = useState(termin?.zeitVon ?? '');
   const [zeitBis, setZeitBis] = useState(termin?.zeitBis ?? '');
   const [wo, setWo] = useState<'baustelle' | 'kunde'>(
@@ -60,7 +67,7 @@ export default function TerminFormular({
   );
   const [customerId, setCustomerId] = useState(termin?.customerId ?? (vorgabe.bezug === 'kunde' ? vorgabe.customerId : ''));
   const [teilnehmer, setTeilnehmer] = useState<string[]>(termin?.teilnehmer ?? []);
-  const [notiz, setNotiz] = useState(termin?.notiz ?? '');
+  const [notiz, setNotiz] = useState(termin?.notiz ?? vorbelegt?.notiz ?? '');
   const [fehler, setFehler] = useState<string | null>(null);
   const [speichert, setSpeichert] = useState(false);
 
@@ -95,10 +102,11 @@ export default function TerminFormular({
       notiz,
     };
     try {
+      let id = termin?.id ?? '';
       if (termin) await terminAendern(termin.id, eingabe);
-      else await terminAnlegen(companyId, eingabe);
+      else id = await terminAnlegen(companyId, eingabe);
       toast.success(termin ? 'Termin geändert' : 'Termin angelegt');
-      onGespeichert();
+      onGespeichert(id);
     } catch (err) {
       setFehler(grundAus(err, 'Der Termin konnte nicht gespeichert werden.'));
     } finally {

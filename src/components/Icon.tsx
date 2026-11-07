@@ -24,6 +24,7 @@ export type IconName =
   | 'wrench'
   | 'archive'
   | 'calculator'
+  | 'eingang'
   | 'weiter'
   | 'warnung'
   | 'hinweis'
@@ -79,6 +80,8 @@ const paths: Record<IconName, string> = {
   // Lager — der Kasten im Regal, nicht das einzelne Paket der Anforderung.
   archive: 'M3 4h18v4H3V4ZM5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4',
   // Nachkalkulation
+  // Ein Ablagefach mit Einwurf: der Auftragseingang (M02b) — was hereinkommt, bevor es Baustelle oder Angebot wird.
+  eingang: 'M3 13h5l1.5 3h5l1.5-3h5M5.5 5h13L21 13v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6L5.5 5Z',
   calculator:
     'M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1ZM9 7h6v3H9V7ZM9 14h.01M12 14h.01M15 14h.01M9 17h.01M12 17h.01M15 17h.01',
   /*

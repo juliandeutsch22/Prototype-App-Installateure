@@ -241,6 +241,10 @@ vi.mock('@/lib/db/einsatzMaterial', () => ({
 const ueberLink: { wert: unknown[] } = { wert: [] };
 vi.mock('@/lib/db/angebotLinks', () => ({ listUeberLinkAngenommen: vi.fn(async () => ueberLink.wert) }));
 
+/* Offene Auftragseingänge (M02b) — eigener Fall unten; sonst keine. */
+const eingaenge = { wert: { offen: 0, dringend: 0, notfall: 0 } };
+vi.mock('@/lib/db/auftragseingaenge', () => ({ zaehleOffeneEingaenge: vi.fn(async () => eingaenge.wert) }));
+
 // EIN Objekt, nicht bei jedem Aufruf ein neues: die Ansicht hängt ihre
 // Effekte an die Identität von `user`, ein frisches Objekt je Aufruf löst
 // eine Endlosschleife aus.
@@ -255,7 +259,7 @@ const authWert = {
     companyId: 'perl',
     docId: 'm1',
   },
-  company: { id: 'perl', name: 'Perl Installationen' },
+  company: { id: 'perl', name: 'Perl Installationen' } as { id: string; name: string; modules?: Record<string, boolean> },
   loading: false,
   error: null,
   signIn: vi.fn(),
@@ -293,6 +297,8 @@ afterEach(() => {
   termine.wert = [];
   geburt.wert = null;
   ueberLink.wert = [];
+  eingaenge.wert = { offen: 0, dringend: 0, notfall: 0 };
+  authWert.company = { id: 'perl', name: 'Perl Installationen' };
   rolle.wert = 'Mitarbeiter';
 });
 
@@ -1112,5 +1118,58 @@ describe('Startseite — über den Annahme-Link angenommen (M02a)', () => {
       z.unmount();
     }
     expect(listUeberLinkAngenommen).not.toHaveBeenCalled();
+  });
+});
+
+/*
+  OFFENE AUFTRAGSEINGÄNGE (M02b): das Büro sieht, wie viele offen sind und
+  wie viele davon dringend oder ein Notfall — Verwaltung, Buchhaltung und
+  Projektleitung als Abschnitt, Geschäftsführung und Administration als
+  Thema. Der Monteur fragt gar nicht; mit abgeschalteter Unterfähigkeit
+  niemand.
+*/
+describe('Startseite — offene Auftragseingänge (M02b)', () => {
+  it.each(['Verwaltung', 'Buchhaltung', 'Projektleiter'])('%s: ein Abschnitt mit Anzahl und Dringlichkeit, zum Auftragseingang', async (r) => {
+    rolle.wert = r;
+    eingaenge.wert = { offen: 4, dringend: 2, notfall: 1 };
+    zeichne();
+    const abschnitt = await screen.findByRole('region', { name: 'Auftragseingang' });
+    const zeile = within(abschnitt).getByRole('link', { name: /4 offene Eingänge/ });
+    expect(zeile).toHaveAttribute('href', '/eingaenge');
+    expect(zeile).toHaveTextContent('davon 1 Notfall, 2 dringend');
+  });
+
+  it('Geschäftsführung: ein Thema unter „Heute“, wenn etwas dringend ist — sonst „Diese Woche“', async () => {
+    rolle.wert = 'Geschäftsführung';
+    eingaenge.wert = { offen: 1, dringend: 1, notfall: 0 };
+    const r = zeichne();
+    const heute = await screen.findByRole('region', { name: 'Heute' });
+    expect(within(heute).getByRole('link', { name: /1 offener Eingang/ })).toHaveAttribute('href', '/eingaenge');
+    r.unmount();
+    eingaenge.wert = { offen: 3, dringend: 0, notfall: 0 };
+    zeichne();
+    const woche = await screen.findByRole('region', { name: 'Diese Woche' });
+    expect(within(woche).getByRole('link', { name: /3 offene Eingänge/ })).toHaveTextContent('keiner dringend');
+  });
+
+  it('Gegenprobe: ohne offene kein Hinweis; der Monteur und ein Betrieb ohne Auftragseingang fragen gar nicht', async () => {
+    const { zaehleOffeneEingaenge } = await import('@/lib/db/auftragseingaenge');
+    rolle.wert = 'Verwaltung';
+    const r = zeichne();
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    expect(screen.queryByRole('region', { name: 'Auftragseingang' })).toBeNull();
+    r.unmount();
+    vi.mocked(zaehleOffeneEingaenge).mockClear();
+    eingaenge.wert = { offen: 5, dringend: 5, notfall: 0 };
+    rolle.wert = 'Mitarbeiter';
+    const m = zeichne();
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    m.unmount();
+    rolle.wert = 'Verwaltung';
+    authWert.company = { id: 'perl', name: 'Perl Installationen', modules: { 'baustellen.auftragseingang': false } };
+    zeichne();
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    expect(screen.queryByText(/offene Eingänge/)).toBeNull();
+    expect(zaehleOffeneEingaenge).not.toHaveBeenCalled();
   });
 });

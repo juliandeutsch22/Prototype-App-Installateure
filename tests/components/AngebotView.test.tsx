@@ -86,6 +86,12 @@ vi.mock('@/lib/db/angebotLinks', () => ({
   angebotLinkWiderrufen: vi.fn(),
   angebotLinkGesehen: vi.fn(async () => undefined),
 }));
+/* Der Auftragseingang, aus dem das Angebot entstand (M02b) — ab Werk keiner. */
+let ausEingang: { id: string; nummer: string } | null = null;
+const getEingangZu = vi.fn<(c: string, z: { quoteId: string }) => Promise<typeof ausEingang>>(async () => ausEingang);
+vi.mock('@/lib/db/auftragseingaenge', () => ({
+  getEingangZu: (c: string, z: { quoteId: string }) => getEingangZu(c, z),
+}));
 vi.mock('@/features/quotes/angebotAnnehmen', () => ({
   angebotAnnehmen: (...a: unknown[]) => annehmen(...(a as [])),
   annahmeMeldung: (r: { projectNumber: string }) => `Baustelle ${r.projectNumber} angelegt`,
@@ -103,7 +109,7 @@ const authWert = {
     companyId: 'perl',
     docId: 'chef',
   },
-  company: { id: 'perl', name: 'Perl Installationen' },
+  company: { id: 'perl', name: 'Perl Installationen' } as { id: string; name: string; modules?: Record<string, boolean> },
   loading: false,
   error: null,
   signIn: vi.fn(),
@@ -155,6 +161,28 @@ beforeEach(() => {
   deleteQuote.mockClear();
   pdf.mockClear();
   annehmen.mockClear();
+  ausEingang = null;
+  getEingangZu.mockClear();
+  authWert.company = { id: 'perl', name: 'Perl Installationen' };
+});
+
+/* AUS EINGANG (M02b): woher das Angebot kam — mit Weg zum Eingang. */
+describe('Der Eingang hinter dem Angebot (M02b)', () => {
+  it('„Aus Eingang EG-…“ unter den Angaben, über die Kennung des Angebots gesucht', async () => {
+    ausEingang = { id: 'e1', nummer: 'EG-2026-0005' };
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Aus Eingang EG-2026-0005' })).toHaveAttribute('href', '/eingaenge/e1');
+    expect(getEingangZu).toHaveBeenCalledWith('perl', { quoteId: ANGEBOT.id });
+  });
+
+  it('Gegenprobe: mit abgeschaltetem Auftragseingang wird nicht gesucht und nichts gezeigt', async () => {
+    ausEingang = { id: 'e1', nummer: 'EG-2026-0005' };
+    authWert.company = { id: 'perl', name: 'Perl Installationen', modules: { 'baustellen.auftragseingang': false } };
+    zeige();
+    expect(await screen.findByText('AN-2026-0007')).toBeInTheDocument();
+    expect(getEingangZu).not.toHaveBeenCalled();
+    expect(screen.queryByRole('link', { name: /Aus Eingang/ })).toBeNull();
+  });
 });
 
 describe('Ein Angebot ansehen', () => {
