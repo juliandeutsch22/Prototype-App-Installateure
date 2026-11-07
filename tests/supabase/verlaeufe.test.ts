@@ -11,7 +11,7 @@
  * (Dienst) spielt zurück, was war — kein Trigger setzt dort „jetzt“ ein.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Client } from 'pg';
 import { admin, betriebAnlegen, konto, type Konto } from './helfer';
@@ -214,29 +214,27 @@ describe('Wartung: jede Ausführung', () => {
     await db.connect();
     try {
       /*
-        EINGESPIELT WIE IM BETRIEB: diese Migration UND alle danach, in ihrer
-        Reihenfolge. Nur diese eine Datei setzte Funktionen, die eine spätere
-        neu fasst (Stand 18, G2), auf den alten Stand zurück — und jede
-        Prüfung danach liefe gegen eine Datenbank, die es so nie gibt.
+        DIE MIGRATION NOCH EINMAL, IN EINER TRANSAKTION, DIE DANACH
+        ZURÜCKGEROLLT WIRD (07.11.2026). Vorher lief sie bleibend und danach
+        jede spätere Migration erneut, um den heutigen Stand herzustellen —
+        das brach, sobald eine von ihnen einen Check (etwa die Objektarten des
+        Journals) mit den Werten ihres Tages neu setzte und jüngere Zeilen
+        anderer Prüfungen ihn verletzten; ganze Dateien liefen danach gegen
+        einen Stand, den es nie gibt. Zurückrollen stellt den heutigen Stand
+        exakt wieder her. Gelesen wird deshalb in derselben Transaktion.
       */
-      /*
-        DIE MONATSSICHT VORHER WEG (27.10.2026). Eine spätere Migration hängt
-        ihr eine Spalte an (`schultage`, Testbericht Runde 6, M1); die älteren
-        Fassungen hier davor können sie nicht ohne diese Spalte neu fassen
-        („cannot drop columns from view“). Der Abbruch mitten im Einspielen
-        ließ ältere Funktionsrümpfe zurück, und Prüfungen in anderen Dateien
-        liefen danach gegen sie. Die Migrationen bauen die Sicht wieder auf.
-      */
-      await db.query('drop view if exists public.monthly_stats');
-      const ordner = join(__dirname, '../../supabase/migrations');
-      for (const datei of readdirSync(ordner).filter((d) => d >= '20261012200000' && d.endsWith('.sql')).sort()) {
-        await db.query(readFileSync(join(ordner, datei), 'utf8'));
+      await db.query('begin');
+      try {
+        await db.query(readFileSync(join(__dirname, '../../supabase/migrations/20261012200000_verlaeufe.sql'), 'utf8'));
+        const { rows } = await db.query<{ am: string; baustelle: string | null }>(
+          `select am::text as am, baustelle from public.wartung_ausfuehrungen where wartung_id = $1 order by am`, [id]);
+        expect(rows).toEqual([{ am: '2025-07-07', baustelle: 'B-2025-0077' }]);
+      } finally {
+        await db.query('rollback');
       }
-      await db.query('grant select on public.monthly_stats to authenticated');
     } finally {
       await db.end();
     }
-    expect(await ausfuehrungen(id)).toEqual([{ am: '2025-07-07', baustelle: 'B-2025-0077' }]);
   });
 
   it('gleich geblieben: der Dienst spielt Wartungen ohne erfundene Ausführung zurück', async () => {
