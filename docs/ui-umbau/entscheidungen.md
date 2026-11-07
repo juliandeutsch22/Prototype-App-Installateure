@@ -1961,7 +1961,7 @@ Vorschlag, was nachzubestellen ist, gab es nicht.
   Reservierung zählt nicht doppelt; bestellt, zugesagt und vorhanden bleiben
   getrennt. Über alle Listen summiert ist die Fehlmenge dieselbe wie bei
   `lager_frei`; gebucht und reserviert wird unverändert.
-- **Zustände mit Text (Lot):** gedeckt; bestellt bis zum Einsatztag (läuft);
+- **Zustände mit Text (Lot):** gedeckt; „wird geliefert bis …“ (läuft);
   bestellt, Liefertermin unbekannt (läuft — der Text nennt die Lücke);
   angefordert bzw. auf der Liste, noch nicht bestellt (offen); fehlt N oder
   Lieferung erst nach dem Einsatztag (Achtung); Laden fehlgeschlagen
