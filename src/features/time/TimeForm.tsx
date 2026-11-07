@@ -48,6 +48,7 @@ import AufteilenDialog from './AufteilenDialog';
 import { aufteilenGeht } from './aufteilen';
 import { einfuegenPlan, einfuegenText } from './einfuegen';
 import { zeitraumFrage, type ZeitraumArt } from './zeitraumFrage';
+import { listFahrzeuge } from '@/lib/db/lagerorte';
 
 
 interface Props {
@@ -136,6 +137,25 @@ export default function TimeForm({
     einen Fuhrpark, der nicht aus einem Bezirk kommt.
   */
   const kennzeichenVorsatz = praefixeVon(company).kennzeichen;
+  /*
+    DIE FAHRZEUGE ALS VORSCHLAG (M04a): eine Liste unter dem Feld, kein Zwang.
+    Das Kennzeichen bleibt ein freies Feld (Altclients, Exporte, ein
+    Leihwagen); kommt die Liste nicht, ist es eben ohne Vorschlag.
+  */
+  const [fahrzeugVorschlaege, setFahrzeugVorschlaege] = useState<string[]>([]);
+  const firmaFuerFahrzeuge = user?.companyId;
+  useEffect(() => {
+    if (!firmaFuerFahrzeuge) return;
+    let weg = false;
+    Promise.resolve()
+      .then(() => listFahrzeuge(firmaFuerFahrzeuge))
+      .then((f) => {
+        if (weg) return;
+        setFahrzeugVorschlaege(f.filter((x) => x.aktiv).map((x) => ohneKennzeichenVorsatz(x.kennzeichen, kennzeichenVorsatz)));
+      })
+      .catch(() => undefined);
+    return () => { weg = true; };
+  }, [firmaFuerFahrzeuge, kennzeichenVorsatz]);
   // Vorbelegung aus dem Einsatzplan ("Zeit erfassen" am geplanten Einsatz).
   // Wichtig vor allem für asHelper: ein vergessener Haken führt zum falschen
   // Stundensatz auf der Rechnung.
@@ -965,9 +985,15 @@ export default function TimeForm({
               }`}
               placeholder={kennzeichenVorsatz ? 'z. B. 12345A' : 'z. B. W-12345A'}
               value={vehiclePlate}
+              list={fahrzeugVorschlaege.length > 0 ? 'vehiclePlate-fahrzeuge' : undefined}
               onChange={(e) =>
                 setVehiclePlate(ohneKennzeichenVorsatz(e.target.value, kennzeichenVorsatz))}
             />
+            {fahrzeugVorschlaege.length > 0 && (
+              <datalist id="vehiclePlate-fahrzeuge">
+                {fahrzeugVorschlaege.map((k) => <option key={k} value={k} />)}
+              </datalist>
+            )}
           </div>
         </div>
       </FormGrid>

@@ -1,13 +1,17 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useInRouterContext } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
-import { ladenUmschalten } from '@/lib/db/einsatzMaterial';
+import { ladenUmschalten, ladenUmschaltenAusOrt } from '@/lib/db/einsatzMaterial';
+import { isGF } from '@/lib/permissions';
 import type { EinsatzMaterial, RuestPosition } from '@/types';
 import { grundAus } from '@/lib/fehlerGrund';
 import { localDateStr, todayStr } from '@/lib/time';
 import { fmtMenge } from '@/lib/belegLayout';
 import { useToastWennDa } from '@/components/Toast';
 import { canAccess } from '@/app/navigation';
+import { SelectField } from '@/components/Field';
+import { useLagerorte } from '@/features/orders/useLagerorte';
+import { abhakOrte, HAUPTLAGER, ortName, ortNameVon } from '@/features/orders/lagerorte';
 
 /**
  * Die Rüstliste aus der Sicht des Monteurs: was mitkommt, und was schon im
@@ -38,6 +42,12 @@ interface Props {
    * Nachtest 01.10.2026). Ohne Angabe alle.
    */
   max?: number;
+  /**
+   * Wer für diesen Einsatz eingeteilt ist (`uids` der Rüstliste) — für die
+   * Wahl des Fahrzeugs beim Abhaken (M04a). Ohne Angabe stehen das eigene
+   * Fahrzeug und Poolfahrzeuge zur Wahl; die Datenbank prüft ohnehin selbst.
+   */
+  eingeteilt?: string[];
 }
 
 export default function RuestlisteAbhaken({
@@ -47,6 +57,7 @@ export default function RuestlisteAbhaken({
   geladen,
   abhakbar = true,
   max,
+  eingeteilt,
 }: Props) {
   const { user, company } = useAuth();
   // Ohne Meldungsträger (etwa in einer Einzelprüfung) bleibt es beim Haken.
@@ -61,6 +72,20 @@ export default function RuestlisteAbhaken({
     aber nicht auf „Material anfordern“ (Linkprüfung 23.10.2026).
   */
   const darfZurueckgeben = !!user && canAccess(user.role, '/material', company?.modules);
+
+  /*
+    AUS WELCHEM ORT ABGEBUCHT WIRD (M04a): aus dem Hauptlager, wie bisher —
+    oder aus einem Fahrzeug. Vorgeschlagen wird das eigene Standardfahrzeug.
+    Ohne Fahrzeuge (oder ohne „Lagerorte und Fahrzeuglager“) steht keine Wahl
+    da, und der Haken bucht wie bisher.
+  */
+  const lo = useLagerorte();
+  const quellen = useMemo(
+    () => (user ? abhakOrte(lo.orte, lo.fahrzeuge, user.uid, eingeteilt ?? [], isGF(user.role)) : { orte: [], vorschlag: HAUPTLAGER }),
+    [lo.orte, lo.fahrzeuge, user, eingeteilt],
+  );
+  const [quelleGewaehlt, setQuelle] = useState<string | null>(null);
+  const quelle = quelleGewaehlt ?? quellen.vorschlag;
 
   if (positionen.length === 0) return null;
 
@@ -85,7 +110,11 @@ export default function RuestlisteAbhaken({
     });
     setFehler(null);
     try {
-      const gebucht = await ladenUmschalten(user.companyId, date, projectNumber, p.id, an, user.name);
+      // Nur beim Einladen zählt der Ort; das Zurücknehmen bucht dorthin zurück, woher es kam.
+      const ausOrt = an && quelle ? quelle : null;
+      const gebucht = ausOrt
+        ? await ladenUmschaltenAusOrt(user.companyId, date, projectNumber, p.id, an, user.name, ausOrt)
+        : await ladenUmschalten(user.companyId, date, projectNumber, p.id, an, user.name);
       /*
         EINE KURZE BESTÄTIGUNG (Runde 3, G15). Der Haken bucht vom Bestand ab
         — ohne Meldung sah das aus wie ein Merkzettel. Gesagt wird, was die
@@ -95,12 +124,14 @@ export default function RuestlisteAbhaken({
       const n = typeof gebucht === 'number' ? gebucht : 0;
       const einheit = p.einheit || 'Stk';
       if (an && n > 0) {
-        setOertlich((c) => (c[p.id] ? { ...c, [p.id]: { ...c[p.id], gebucht: n } } : c));
-        toast?.success(`${fmtMenge(n)} ${einheit} abgebucht`);
+        setOertlich((c) => (c[p.id] ? { ...c, [p.id]: { ...c[p.id], gebucht: n, ...(ausOrt ? { ort: ausOrt } : {}) } } : c));
+        toast?.success(ausOrt ? `${fmtMenge(n)} ${einheit} abgebucht — ${ortNameVon(lo.orte, ausOrt)}` : `${fmtMenge(n)} ${einheit} abgebucht`);
       } else if (an) {
-        toast?.success('Eingeladen — nichts vom Lager abgebucht');
+        toast?.success(ausOrt ? `Eingeladen — in ${ortNameVon(lo.orte, ausOrt)} lag davon nichts` : 'Eingeladen — nichts vom Lager abgebucht');
       } else if (n > 0) {
-        toast?.success(`Einladen zurückgenommen — ${fmtMenge(n)} ${einheit} wieder im Lager`);
+        toast?.success(vorher[p.id]?.ort
+          ? `Einladen zurückgenommen — ${fmtMenge(n)} ${einheit} wieder in ${ortNameVon(lo.orte, vorher[p.id]?.ort)}`
+          : `Einladen zurückgenommen — ${fmtMenge(n)} ${einheit} wieder im Lager`);
       } else {
         toast?.success('Einladen zurückgenommen');
       }
@@ -119,6 +150,19 @@ export default function RuestlisteAbhaken({
           {offen === 0 ? 'alles eingeladen' : `noch ${offen} von ${positionen.length}`}
         </span>
       </p>
+      {abhakbar && quellen.orte.length > 0 && (
+        <div className="pb-2">
+          <SelectField
+            id={`rl-quelle-${projectNumber}`}
+            label="Abbuchen aus"
+            value={quelle}
+            onChange={(e) => setQuelle(e.target.value)}
+          >
+            <option value={HAUPTLAGER}>{ortNameVon(lo.orte, HAUPTLAGER)}</option>
+            {quellen.orte.map((o) => <option key={o.id} value={o.id}>{ortName(o)}</option>)}
+          </SelectField>
+        </div>
+      )}
       <ul className="divide-y divide-line border-y border-line">
         {(max && !alle ? positionen.slice(0, max) : positionen).map((p) => {
           const eintrag = oertlich[p.id];
@@ -160,7 +204,11 @@ export default function RuestlisteAbhaken({
                   {eintrag && (
                     <span className="block text-xs text-ink-muted">
                       eingeladen von {eintrag.von}
-                      {eintrag.gebucht ? ' · vom Lager abgebucht' : ''}
+                      {eintrag.gebucht
+                        ? eintrag.ort && lo.an
+                          ? ` · abgebucht aus ${ortNameVon(lo.orte, eintrag.ort)}`
+                          : ' · vom Lager abgebucht'
+                        : ''}
                     </span>
                   )}
                 </span>

@@ -115,6 +115,11 @@ export type StatusErgebnis =
 export interface StatusWie {
   /** Der Stand, den die Ansicht gesehen hat. Ohne ihn wird nicht verglichen. */
   von?: MaterialOrder['status'];
+  /**
+   * Beim Abholen („Erledigt“): der Quellort (M04a). Ohne ihn der Ort, an den
+   * die Ware geliefert wurde, sonst das Hauptlager — der Aufruf wie bisher.
+   */
+  ort?: string | null;
   /** Nur nach der Rückfrage mit den Zahlen: „Abholbereit“ trotz Fehlbestand, mit Protokolleintrag. */
   trotzFehlbestand?: boolean;
 }
@@ -140,6 +145,7 @@ export async function updateOrderStatus(
     const { data, error } = await derClient().rpc('anforderung_abschliessen', {
       p_order: orderId,
       p_status: wie.von ?? null,
+      ...(wie.ort ? { p_ort: wie.ort } : {}),
     });
     if (error) throw new Error(error.message);
     return Number(data ?? 0) > 0 ? { art: 'geaendert' } : { art: 'veraltet' };
@@ -188,12 +194,15 @@ export async function anforderungEiligSetzen(orderId: string, eilig: boolean) {
 export async function createReturn(
   companyId: string,
   ret: Omit<NewMaterialOrder, 'status' | 'transactionType'> & { condition: string },
+  /** Der Zielort (M04a); ohne ihn ins Hauptlager — der Beleg wie bisher. */
+  ortId?: string | null,
 ): Promise<string> {
   // Auch die Retoure bekommt ihre Kennung vom Gerät — siehe oben.
   const beleg = {
     ...objektAlsZeile(ANFORDERUNGEN, ret),
     id: crypto.randomUUID(),
     company_id: companyId,
+    ...(ortId ? { lagerort_id: ortId } : {}),
   };
   const { data, error } = await derClient().rpc('retoure_anlegen', { p_beleg: beleg });
   if (error) throw new Error(error.message);

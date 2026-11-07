@@ -36,6 +36,7 @@ import { grundAus } from '@/lib/fehlerGrund';
 import { datumAusMs } from '@/lib/datum';
 import { abschlussText } from './abschlussText';
 import RetoureFenster from './RetoureFenster';
+import MeinFahrzeug from './MeinFahrzeug';
 import { zahlAlsText, zahlOder } from '@/lib/zahl';
 import { mengeFehler, mengeMitKomma } from '@/lib/einheit';
 import { fmtMenge } from '@/lib/belegLayout';
@@ -684,6 +685,9 @@ export default function OrderView() {
           />
         </List>
       </Card>
+
+      {/* Was im eigenen Fahrzeug liegt (M04a) — nur für den Standardfahrer, sonst nichts. */}
+      <MeinFahrzeug />
 
       <section id="meine-anforderungen" ref={meineRef} className="space-y-3 lg:space-y-5" aria-label="Meine Anforderungen">
         {nurAbholbereit && <Adressfilter text="nur abholbereite Anforderungen" parameter={['status']} />}
