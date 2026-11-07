@@ -1943,3 +1943,65 @@ Querschnitt in `schema`, `mandantenTrennung`, `ruecklauf`, `personLoeschen`,
 `aenderungsjournal`, `typenSpalten`; Komponenten `EingaengeView`,
 `EingangFormular`, `EingangView` (mit Rückfrage), `gleichnamig`,
 `ModulesView`, Startseite, Akten; Browser `auftragseingang.spec.ts`.
+
+**E60 — Eine Deckungsrechnung für das Material; Bestellvorschläge ohne automatische Bestellung (07.11.2026).**
+SHK-Ausbau, Paket M04b (E13 „Behalten“, E14 und G03 „Integrieren“; Kern K02;
+Befund 7 der Bestandsmatrix). Die Fehlmenge wurde an drei Stellen
+verschieden gerechnet (Formular, Monatsvorschau, Rüstliste), und einen
+Vorschlag, was nachzubestellen ist, gab es nicht.
+
+- **Eine Rechnung, eine Quelle.** Der Server liefert die Eingaben in einem
+  Zug (`materialdeckung`: Rüstlisten, frei im Lager, Anforderungen mit Stand,
+  Zulauf aus der Einkaufsliste; höchstens 31 Tage), die App rechnet mit einer
+  Funktion (`materialDeckung.ts`). Woche, Tag, Monat, Formular und Startseite
+  lesen dieselbe Zahl; das Formular rechnet damit auch ungespeicherte
+  Positionen.
+- **Mengensemantik K02:** wer früher dran ist, bekommt zuerst (Einsatztag,
+  dann Anlage der Liste); eine Menge deckt nicht zwei Bedarfe; die eigene
+  Reservierung zählt nicht doppelt; bestellt, zugesagt und vorhanden bleiben
+  getrennt. Über alle Listen summiert ist die Fehlmenge dieselbe wie bei
+  `lager_frei`; gebucht und reserviert wird unverändert.
+- **Zustände mit Text (Lot):** gedeckt; bestellt bis zum Einsatztag (läuft);
+  bestellt, Liefertermin unbekannt (läuft — der Text nennt die Lücke);
+  angefordert bzw. auf der Liste, noch nicht bestellt (offen); fehlt N oder
+  Lieferung erst nach dem Einsatztag (Achtung); Laden fehlgeschlagen
+  (Fehler). Eine freie Zeile ohne Katalogartikel steht als „Bestand
+  unbekannt“; ein Katalogartikel, der nicht im Lager geführt wird, als „nicht
+  im Lager geführt – N zu bestellen“ wie bisher, samt Anforderungsknopf.
+  Je Einsatz eine Textzeile in Woche und Tag, ohne Ampelfarben; Startseite
+  „Material fehlt“ für sieben Tage voraus.
+- **Befund Monatsvorschau:** sie zog die eigene Liste mit der vollen Menge
+  ab, nicht mit dem Rest aus dem Regal — zwei konkurrierende Listen meldeten
+  die frühere als Fehlmenge, eine Lieferung nach dem Einsatztag galt als
+  gedeckt, eingeladene Positionen zählten wie offene. Das Formular hatte den
+  Vorrangfehler ebenso. Jetzt rechnen beide richtig; die Tests zeigen alte
+  und richtige Zahl nebeneinander.
+- **Bestellvorschläge** (Anforderungen › Einkaufsliste): ausgelöst, wenn frei
+  plus Zulauf unter der Mindestmenge oder unter null liegt (auch aus
+  Rüstlisten, G03); Menge bis zum Sollbestand, ohne ihn bis zur
+  Mindestmenge, aufgerundet auf die Verpackungseinheit; Großhändler nach der
+  Regel aus M03a. Nichts doppelt: Anforderungen, Listen- und Bestellposten
+  zählen als Zulauf. „Übernehmen“ legt Posten der Einkaufsliste über den
+  Befehlsvertrag aus M04a an, gebündelt, mit von Hand änderbarer Menge;
+  hat sich der Vorschlag inzwischen geändert, wird er nicht angelegt
+  („veraltet“). **Keine automatische Bestellung.**
+- **Sollbestand und Verpackungseinheit** am Artikel (nicht je Ort: reserviert
+  und bestellt wird gegen das Hauptlager, ein Fahrzeug füllt man durch
+  Umlagern), gepflegt wie die Mindestmenge; die Datenbank verlangt
+  Sollbestand ≥ Mindestmenge.
+- **Module:** `material.materialbereitschaft` (an) nimmt ausgeschaltet nur die
+  neue Anzeige weg — die Fehlmenge in Formular und Monat gab es vorher schon;
+  `material.bestellvorschlaege` (an) prüft der Server beim Lesen und
+  Übernehmen (V3). Rechte: Verwaltung und Leitung.
+
+**Grenzen mit Grund:** keine Rundung nach DATANORM-Verpackungseinheit (der
+Leser ist nicht gegen echte Dateien geprüft — Nachweisregister); kein
+Sollbestand je Ort (fachlich, oben); „bestellt“ ist bis M05a, was die
+Einkaufsliste als bestellt führt (Bestellbelege kommen mit M05a); der Support
+sieht keine Deckung (wie `lager_frei`).
+
+**Prüfungen.** `materialbereitschaft.test.ts`, `materialDeckung.test.ts`
+(33, mit Befund alt/richtig), `Bestellvorschlaege.test.tsx`, Erweiterungen in
+`AssignmentsView`, `WochenplanView`, `MonatsAnsicht`, `monatsBalken`,
+`startseite`; Querschnitt `modulRegisterServer`, `schema`, `ruecklauf`;
+Browser `materialbereitschaft.spec.ts`.
