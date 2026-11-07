@@ -8,6 +8,7 @@
  */
 import type { EinkaufPosten, Material, MaterialOrder } from '@/types';
 import { abfragen, anlegen, aendern, derClient, type WithId } from './kern';
+import { mitNummern, nummernTreffer, oderMitNummern, type MitNummer } from './nummernSuche';
 import { oderUeberSpalten } from './suche';
 
 const ANFORDERUNGEN = 'material_orders';
@@ -188,12 +189,14 @@ export async function katalogFuer(
 }
 
 /**
- * Bei wem ein Artikel zuletzt einen Preis hatte — als VORSCHLAG für den
- * Grosshändler, wenn er auf die Einkaufsliste kommt.
+ * Bei welchem Grosshändler ein Artikel auf die Einkaufsliste kommt — als
+ * VORSCHLAG.
  *
- * Der jüngste gültige Preis gewinnt: der Katalog, der zuletzt eingespielt
- * wurde, ist der, bei dem der Betrieb gerade einkauft. Gewählt wird trotzdem
- * vom Menschen — ein Vorschlag, keine Vorgabe.
+ * Seit M03a (E03) der günstigste VERGLEICHBARE Lieferant; gibt es keinen
+ * (nur ein Lieferant, nicht verifiziert, andere Einheit, veralteter Stand,
+ * fehlender Rabattsatz), wie bisher der mit dem jüngsten gültigen Preis: der
+ * Katalog, der zuletzt eingespielt wurde. Gewählt wird trotzdem vom
+ * Menschen — ein Vorschlag, keine Vorgabe.
  *
  * Über `lieferant_vorschlag`, nicht über die Preisliste selbst: die liest nur,
  * wer Einkaufspreise sehen darf (Testbericht Runde 6, 8.4). Die Einkaufsliste
@@ -208,6 +211,36 @@ export async function lieferantVorschlag(
   const { data, error } = await derClient().rpc('lieferant_vorschlag', { p_material: materialId });
   if (error) throw new Error(error.message);
   return (data as string | null) ?? null;
+}
+
+/** Warum dieser Großhändler vorgeschlagen wird (E03). */
+export interface VorschlagGrund {
+  supplierId: string;
+  /** `guenstigster`: günstigster vergleichbarer Einkaufspreis; `juengster`: zuletzt eingespielter Preis. */
+  grund: 'guenstigster' | 'juengster';
+  einkaufspreis: number | null;
+  /** Gültig ab des Preises (JJJJ-MM-TT). */
+  stand: string | null;
+}
+
+/**
+ * DER GRUND DES VORSCHLAGS (M03a, E03) — „günstigster“ mit Preis oder
+ * „zuletzt eingespielt“. Er verrät Einkaufspreise und kommt deshalb nur für
+ * die, die sie sehen dürfen (`lieferant_vorschlag_grund` prüft das selbst);
+ * die Ansicht fragt nur in diesen Rollen.
+ */
+export async function lieferantVorschlagGrund(materialId: string): Promise<VorschlagGrund | null> {
+  if (!materialId) return null;
+  const { data, error } = await derClient().rpc('lieferant_vorschlag_grund', { p_material: materialId });
+  if (error) throw new Error(error.message);
+  const d = data as { supplier_id: string; grund: VorschlagGrund['grund']; einkaufspreis: number | null; stand: string | null } | null;
+  if (!d) return null;
+  return {
+    supplierId: d.supplier_id,
+    grund: d.grund,
+    einkaufspreis: d.einkaufspreis == null ? null : Number(d.einkaufspreis),
+    stand: d.stand,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -332,13 +365,16 @@ const ARTIKEL_TREFFER = 20;
 export async function artikelSuchen(
   companyId: string,
   begriff: string,
-): Promise<WithId<Material>[]> {
-  const oder = oderUeberSpalten(['name', 'article_number'], begriff);
-  if (!oder) return [];
-  return abfragen<Material>('materials', companyId, {
+): Promise<MitNummer<WithId<Material>>[]> {
+  const basis = oderUeberSpalten(['name', 'article_number'], begriff);
+  if (!basis) return [];
+  // M03a: auch über die Nummer eines Großhändlers und die EAN (`nummernSuche.ts`).
+  const nummern = await nummernTreffer(begriff, ARTIKEL_TREFFER);
+  const zeilen = await abfragen<Material>('materials', companyId, {
     wo: [{ art: 'gleich', feld: 'ausgelaufen', wert: false }],
-    oder,
+    oder: oderMitNummern(basis, nummern),
     sortiere: { feld: 'name' },
     grenze: ARTIKEL_TREFFER,
   });
+  return mitNummern(zeilen, nummern);
 }

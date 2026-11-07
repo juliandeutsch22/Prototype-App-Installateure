@@ -40,7 +40,46 @@
     Standardfahrer hat (Poolfahrzeug); die Leitung aus jedem.
   - Retoure und Abholen durch den Besteller: ins bzw. aus dem Hauptlager
     oder dem eigenen Fahrzeug; Lager und Leitung jeden aktiven Ort.
+
+  GEPRÜFT AM SERVER (E51, V3) NUR DER NEUE ZWEIG: Wer einen weiteren Ort
+  wählt, braucht die Unterfähigkeit `material.lagerorte_fahrzeuglager`
+  (`app.lagerort_wahl_pruefen`). Ohne Ort — und mit dem Hauptlager als Ort —
+  läuft jeder Weg wie bisher, ob sie an ist oder nicht: bestehende
+  Schreibwege bleiben, wie sie sind. Was schon an einem Ort liegt, folgt
+  seinem Ort weiter (das Abholen einer dorthin gelieferten Anforderung, das
+  Zurücknehmen eines Hakens am selben Tag): das ist keine Wahl, sondern die
+  Buchung, die zur Ware gehört.
 */
+
+-- ---------------------------------------------------------------------------
+-- 0. Darf hier ein weiterer Ort gewählt werden?
+-- ---------------------------------------------------------------------------
+
+/*
+  V3 für den Zweig mit Ort. Ein eigener Helfer, weil `einkauf_geliefert` mit
+  den Rechten des Aufrufers läuft und `app.modul_aktiv` nicht ausführen darf.
+  Er antwortet nur für den eigenen Betrieb — sonst ließe sich damit
+  abfragen, was ein fremder Betrieb eingeschaltet hat.
+*/
+create or replace function app.lagerort_wahl_pruefen(p_betrieb text) returns void
+  language plpgsql
+  stable
+  security definer
+  set search_path = ''
+as $$
+begin
+  if not (app.ist_dienst() or app.betriebsmitglied(p_betrieb) or app.support_schreibt(p_betrieb)) then
+    raise exception 'Nicht angemeldet' using errcode = '42501';
+  end if;
+  if not app.modul_aktiv(p_betrieb, 'material.lagerorte_fahrzeuglager') then
+    raise exception 'Lagerorte und Fahrzeuglager sind in diesem Betrieb ausgeschaltet (Einstellungen → Module) — gebucht wird im Hauptlager'
+      using errcode = '55000';
+  end if;
+end;
+$$;
+
+revoke all on function app.lagerort_wahl_pruefen(text) from public, anon;
+grant execute on function app.lagerort_wahl_pruefen(text) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 1. Wo die Ware einer Anforderung liegt
@@ -223,6 +262,9 @@ begin
     raise exception 'Von welchem Lieferanten kommt die Ware?' using errcode = '23514';
   end if;
   ort := app.ort_pruefen(artikel.company_id, p_ort, true);
+  if ort.id is not null then
+    perform app.lagerort_wahl_pruefen(artikel.company_id);
+  end if;
   perform app.lager_kontext('eingang', null, btrim(p_lieferant),
     nullif(btrim(coalesce(p_lieferschein, '')), ''), nullif(btrim(coalesce(p_bezug, '')), ''), null);
   if ort.id is null then
@@ -283,6 +325,7 @@ begin
 
   ort := app.ort_pruefen(artikel.company_id, p_ort, true);
   if ort.id is not null then
+    perform app.lagerort_wahl_pruefen(artikel.company_id);
     vorher := app.ort_sperren(ort.id, p_material);
     if p_bestand = vorher then
       -- Gezählt und gestimmt: auch das gehört ins Protokoll — am Ort.
@@ -397,6 +440,7 @@ begin
         raise exception 'Aus diesem Fahrzeug hakt ab, wer es fährt oder auf diesem Einsatz ist'
           using errcode = '42501';
       end if;
+      perform app.lagerort_wahl_pruefen(betrieb);
     end if;
     select * into pos from public.einsatz_material_positionen
      where id = p_position and einsatz_material_id = kopf.id;
@@ -543,6 +587,7 @@ begin
       raise exception 'An diesen Ort bucht das Lager zurück — der Fahrer in sein eigenes Fahrzeug'
         using errcode = '42501';
     end if;
+    perform app.lagerort_wahl_pruefen(betrieb);
     if coalesce((p_beleg ->> 'quantity')::numeric, 0) <= 0 then
       raise exception 'Die Menge muss größer als null sein.' using errcode = '23514';
     end if;
@@ -652,6 +697,9 @@ begin
       raise exception 'Aus diesem Ort bucht das Lager ab — der Besteller nur aus seinem eigenen Fahrzeug'
         using errcode = '42501';
     end if;
+    if ort_id is not null then
+      perform app.lagerort_wahl_pruefen(a.company_id);
+    end if;
   end if;
 
   if a.transaction_type <> 'return' then
@@ -733,6 +781,9 @@ begin
       using errcode = '42501';
   end if;
   ort := app.ort_pruefen(app.arbeitsbetrieb(), p_ort, true);
+  if ort.id is not null then
+    perform app.lagerort_wahl_pruefen(app.arbeitsbetrieb());
+  end if;
   for a in
     select * from public.material_orders
      where id = any(p_ids)

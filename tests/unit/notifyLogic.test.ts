@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   empfaengerNeueAnforderung,
+  empfaengerAngebotLink,
+  EMPFAENGER_ANGEBOT_LINK,
+  textAngebotLink,
   istEilRelevant,
   istMeldepflichtigeAnforderung,
   istUebergangAufAbholbereit,
@@ -336,5 +339,45 @@ describe('Abwesenheiten', () => {
   it('wer „Abwesenheiten“ abschaltet, bekommt sie nicht', () => {
     expect(willMeldung({ notifyAbwesenheit: false }, 'notifyAbwesenheit')).toBe(false);
     expect(willMeldung({ notifyNewOrder: false }, 'notifyAbwesenheit')).toBe(true);
+  });
+});
+
+/*
+  ANGEBOTE ÜBER DEN ANNAHME-LINK (M02a): die Antwort des Kunden geht an die,
+  die Angebote annehmen dürfen — aktive Konten der Führung. Die Meldung
+  nennt Nummer, Entscheidung und Namen; keinen Betrag, keine Unterschrift,
+  keinen Grund einer Ablehnung.
+*/
+describe('Antwort eines Kunden über den Annahme-Link', () => {
+  const leute = [
+    { uid: 'pl', role: 'Projektleiter' }, { uid: 'gf', role: 'Geschäftsführung' }, { uid: 'ad', role: 'Administrator' },
+    { uid: 'bu', role: 'Buchhaltung' }, { uid: 've', role: 'Verwaltung' }, { uid: 'mo', role: 'Mitarbeiter' },
+    { uid: 'alt', role: 'Geschäftsführung', active: false },
+  ];
+
+  it('geht an Projektleitung, Geschäftsführung und Administration — nur aktive Konten', () => {
+    expect(empfaengerAngebotLink(leute)).toEqual(['pl', 'gf', 'ad']);
+    expect(EMPFAENGER_ANGEBOT_LINK).toEqual(['Projektleiter', 'Geschäftsführung', 'Administrator']);
+  });
+
+  it('sagt Nummer, Entscheidung und Namen — führt zum Angebot; Annahme und Ablehnung desselben Links teilen die Kennung', () => {
+    const an = textAngebotLink({ angebot: 'q1', nummer: 'AN-2026-0042', entscheidung: 'angenommen', name: ' Maria Huber ' }, 'l1');
+    expect(an).toEqual({
+      title: 'Angebot AN-2026-0042 angenommen',
+      body: 'von Maria Huber über den Annahme-Link',
+      link: '/quotes/q1',
+      tag: 'angebot-link-l1',
+    });
+    const ab = textAngebotLink({ angebot: 'q1', nummer: 'AN-2026-0042', entscheidung: 'abgelehnt' }, 'l1');
+    expect(ab.title).toBe('Angebot AN-2026-0042 abgelehnt');
+    expect(ab.body).toBe('über den Annahme-Link');
+    expect(ab.tag).toBe(an.tag);
+    // FCM nimmt nur Text an.
+    expect(Object.values(an).every((w) => typeof w === 'string')).toBe(true);
+  });
+
+  it('wer „Antwort über den Annahme-Link“ abgeschaltet hat, bekommt sie nicht', () => {
+    expect(willMeldung({ notifyAngebot: false }, 'notifyAngebot')).toBe(false);
+    expect(willMeldung({}, 'notifyAngebot')).toBe(true);
   });
 });

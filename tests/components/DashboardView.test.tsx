@@ -237,6 +237,10 @@ vi.mock('@/lib/db/einsatzMaterial', () => ({
   },
 }));
 
+/* Über den Annahme-Link angenommen (M02a) — eigener Fall unten; sonst keine. */
+const ueberLink: { wert: unknown[] } = { wert: [] };
+vi.mock('@/lib/db/angebotLinks', () => ({ listUeberLinkAngenommen: vi.fn(async () => ueberLink.wert) }));
+
 // EIN Objekt, nicht bei jedem Aufruf ein neues: die Ansicht hängt ihre
 // Effekte an die Identität von `user`, ein frisches Objekt je Aufruf löst
 // eine Endlosschleife aus.
@@ -288,6 +292,7 @@ afterEach(() => {
   anforderungen.wert = [];
   termine.wert = [];
   geburt.wert = null;
+  ueberLink.wert = [];
   rolle.wert = 'Mitarbeiter';
 });
 
@@ -1045,5 +1050,67 @@ describe('Startseite — Lot mit Tageskontext', () => {
     expect(ziel).toMatchObject({ projectNumber: 'B-001' });
     expect(ziel.startTime).toBeUndefined();
     expect(ziel.endTime).toBeUndefined();
+  });
+});
+
+/*
+  ÜBER DEN ANNAHME-LINK ANGENOMMEN (M02a): die Führung sieht es auf der
+  Startseite, bis jemand das Angebot öffnet (höchstens sieben Tage — das
+  filtert der Server). Geschäftsführung: ein Thema unter „Heute“;
+  Projektleitung: eine Zeile je Angebot. Andere Rollen laden es gar nicht.
+*/
+describe('Startseite — über den Annahme-Link angenommen (M02a)', () => {
+  const EINS = {
+    link: 'l1', angebot: 'q1', nummer: 'AN-2026-0042', kunde: 'Familie Huber', baustelle: 'B-2026-0007',
+    baustelleId: 'p7', angenommenAm: new Date(2026, 8, 14, 9, 30).getTime(), name: 'Maria Huber',
+  };
+  const ZWEI = { ...EINS, link: 'l2', angebot: 'q2', nummer: 'AN-2026-0043', kunde: 'Gemeinde Neudorf', angenommenAm: new Date(2026, 8, 12, 9, 30).getTime() };
+
+  it('Geschäftsführung: ein Thema „Über Link angenommen“ — eines führt zum Angebot', async () => {
+    rolle.wert = 'Geschäftsführung';
+    ueberLink.wert = [EINS];
+    zeichne();
+    const zeile = await screen.findByRole('link', { name: /Über Link angenommen: 1 Angebot/ });
+    expect(zeile).toHaveAttribute('href', '/quotes/q1');
+    expect(zeile).toHaveTextContent('AN-2026-0042 · von Maria Huber am 14.09. · Baustelle B-2026-0007');
+    expect(within(await screen.findByRole('region', { name: 'Heute' })).getByText(/Über Link angenommen/)).toBeInTheDocument();
+  });
+
+  it('mehrere: seit wann und für wen — zur Angebotsliste', async () => {
+    rolle.wert = 'Geschäftsführung';
+    ueberLink.wert = [EINS, ZWEI];
+    zeichne();
+    const zeile = await screen.findByRole('link', { name: /Über Link angenommen: 2 Angebote/ });
+    expect(zeile).toHaveAttribute('href', '/quotes');
+    expect(zeile).toHaveTextContent('seit 12.09. · Familie Huber, Gemeinde Neudorf');
+  });
+
+  it('Projektleitung: eine Zeile je Angebot, mit Baustelle', async () => {
+    rolle.wert = 'Projektleiter';
+    ueberLink.wert = [EINS, ZWEI];
+    zeichne();
+    const abschnitt = await screen.findByRole('region', { name: 'Über Link angenommen' });
+    const zeilen = within(abschnitt).getAllByRole('link');
+    expect(zeilen.map((z) => z.getAttribute('href'))).toEqual(['/quotes/q1', '/quotes/q2']);
+    expect(zeilen[0]).toHaveTextContent('AN-2026-0042 · Familie Huber');
+  });
+
+  it('Gegenprobe: ohne Annahme kein Hinweis — und Buchhaltung und Monteur fragen gar nicht', async () => {
+    const { listUeberLinkAngenommen } = await import('@/lib/db/angebotLinks');
+    rolle.wert = 'Geschäftsführung';
+    const r = zeichne();
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    expect(screen.queryByText(/Über Link angenommen/)).toBeNull();
+    r.unmount();
+    vi.mocked(listUeberLinkAngenommen).mockClear();
+    for (const andere of ['Buchhaltung', 'Mitarbeiter']) {
+      rolle.wert = andere;
+      ueberLink.wert = [EINS];
+      const z = zeichne();
+      await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+      expect(screen.queryByText(/Über Link angenommen/)).toBeNull();
+      z.unmount();
+    }
+    expect(listUeberLinkAngenommen).not.toHaveBeenCalled();
   });
 });

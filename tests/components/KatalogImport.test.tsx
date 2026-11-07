@@ -20,6 +20,7 @@ const uebernehmen = vi.fn();
 const rabattsatzSetzen = vi.fn();
 const lieferantAnlegen = vi.fn();
 let saetze: Array<{ id: string; gruppe: string; prozent: number }> = [];
+const spruenge = vi.fn();
 
 /** Die Reihenfolge der Schreibzugriffe — sie ist hier die eigentliche Regel. */
 let reihenfolge: string[] = [];
@@ -48,9 +49,14 @@ vi.mock('@/lib/db/pg/datanorm', () => ({
     return uebernehmen(...a);
   },
   laeufe: () => Promise.resolve([]),
+  // M03a: die Preissprünge des Laufs, seitenweise.
+  preisspruenge: (...a: unknown[]) => spruenge(...a),
 }));
 
-const authWert = {
+const authWert: {
+  user: { uid: string; companyId: string; name: string; role: 'Geschäftsführung' };
+  company: { id: string; name: string; modules?: Record<string, boolean> };
+} = {
   user: { uid: 'g1', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' as const },
   company: { id: 'perl', name: 'Perl Installationen' },
 };
@@ -94,10 +100,10 @@ function kennzahl(label: string): string {
   return p.nextElementSibling?.textContent ?? '';
 }
 
-function zeige() {
+function zeige(onZuordnen?: () => void) {
   return render(
     <ToastProvider>
-      <KatalogImport />
+      <KatalogImport onZuordnen={onZuordnen} />
     </ToastProvider>,
   );
 }
@@ -119,6 +125,9 @@ beforeEach(() => {
   });
   rabattsatzSetzen.mockReset().mockResolvedValue(undefined);
   lieferantAnlegen.mockReset().mockResolvedValue('neu');
+  // Ohne Vorgabe gäbe der Bericht `undefined` zurück und die Ansicht stürzte nach dem Test unbehandelt ab.
+  spruenge.mockReset().mockResolvedValue({ gesamt: 0, schwelle: 10, zeilen: [] });
+  authWert.company = { id: 'perl', name: 'Perl Installationen' };
 });
 
 describe('Erst ansehen, dann übernehmen', () => {
@@ -303,5 +312,77 @@ describe('Nach der Übernahme', () => {
     await userEvent.click(screen.getByRole('button', { name: /Artikel übernehmen/ }));
     expect(await screen.findByText(/mehrfach/)).toBeInTheDocument();
     expect(screen.queryByText('Übernommen')).toBeNull();
+  });
+});
+
+/*
+  M03a: DER BERICHT NENNT, WAS OFFEN ZUZUORDNEN BLIEB, UND DIE PREISSPRÜNGE
+  (seitenweise). Beides verschwindet mit seinem Modulschalter. GEGENPROBE:
+  vor M03a stand im Bericht weder das eine noch das andere.
+*/
+describe('Bericht: offen zuzuordnen und Preissprünge (M03a)', () => {
+  const sprung = (n: number, prozent: number) => ({
+    lieferantenartikelId: `la${n}`, materialId: `m${n}`, lieferantenNr: `A${n}`, bezeichnung: `Artikel ${n}`,
+    artikel: `Artikel ${n}`, art: 'einkauf' as const, alt: 10, neu: 10 * (1 + prozent / 100), prozent, seit: '2026-10-01',
+  });
+
+  beforeEach(() => {
+    uebernehmen.mockResolvedValue({
+      angelegt: 3, geaendert: 0, ausgelaufen: 0, loeschungOhneArtikel: 0, preise: 5, ohneRabattsatz: 0,
+      offenZuzuordnen: 2, preisspruenge: 21, schwelle: 10,
+    });
+  });
+
+  it('nennt die offenen und führt mit einem Klick zu ihnen', async () => {
+    spruenge.mockResolvedValue({ gesamt: 0, schwelle: 10, zeilen: [] });
+    const hin = vi.fn();
+    zeige(hin);
+    await userEvent.upload(await screen.findByLabelText('DATANORM-Datei'), datei(SAUBER));
+    await userEvent.click(await screen.findByRole('button', { name: /Artikel übernehmen/ }));
+    await screen.findByText('Übernommen');
+    expect(kennzahl('Offen zuzuordnen')).toBe('2');
+    expect(screen.getByText(/2 Artikel dieses Katalogs tragen eine Nummer/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Offene zuordnen' }));
+    expect(hin).toHaveBeenCalled();
+  });
+
+  it('listet die Preissprünge seitenweise, größter zuerst, mit alt, neu und Prozent', async () => {
+    spruenge
+      .mockResolvedValueOnce({ gesamt: 21, schwelle: 10, zeilen: Array.from({ length: 20 }, (_, i) => sprung(i, 30 - i)) })
+      .mockResolvedValueOnce({ gesamt: 21, schwelle: 10, zeilen: [sprung(20, -11)] });
+    await einlesen(SAUBER);
+    await userEvent.click(screen.getByRole('button', { name: /Artikel übernehmen/ }));
+    expect(await screen.findByText('Preissprünge (21)')).toBeInTheDocument();
+    expect(spruenge).toHaveBeenCalledWith('lauf-1', 0, 20);
+    expect(screen.getByText('€ 10,00 → € 13,00 (+30 %)')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'und 1 weitere anzeigen' }));
+    expect(await screen.findByText('€ 10,00 → € 8,90 (−11 %)')).toBeInTheDocument();
+    expect(spruenge).toHaveBeenLastCalledWith('lauf-1', 20, 20);
+  });
+
+  it('ohne die Module: weder offen zuzuordnen noch Preissprünge, und nichts gefragt', async () => {
+    authWert.company = {
+      id: 'perl', name: 'Perl Installationen',
+      modules: { 'material.katalogversionen': false, 'material.katalogpreisverlauf': false },
+    };
+    zeige(vi.fn());
+    await userEvent.upload(await screen.findByLabelText('DATANORM-Datei'), datei(SAUBER));
+    await userEvent.click(await screen.findByRole('button', { name: /Artikel übernehmen/ }));
+    await screen.findByText('Übernommen');
+    expect(screen.queryByText('Offen zuzuordnen')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Offene zuordnen' })).toBeNull();
+    expect(screen.queryByText(/Preissprünge/)).toBeNull();
+    expect(spruenge).not.toHaveBeenCalled();
+  });
+
+  it('schickt EAN und Preiseinheit mit, und der Probelauf nennt, wie viele eine EAN tragen', async () => {
+    await einlesen([SAUBER, 'B;N;A1;M;;1;0;0;4006381333931;;;;', 'B;N;A2;M;;1;0;0;4006381333932;;;;'].join('\n'));
+    expect(screen.getByText(/1 mit EAN/)).toBeInTheDocument();
+    expect(screen.getByText(/1 ungültige EAN nicht übernommen/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Artikel übernehmen/ }));
+    await waitFor(() => expect(zeilenSchicken).toHaveBeenCalled());
+    const geschickt = zeilenSchicken.mock.calls[0][2] as Array<Record<string, unknown>>;
+    expect(geschickt[0]).toMatchObject({ artikelnummer: 'A1', ean: '4006381333931', preiseinheit: 1 });
+    expect(geschickt[1].ean).toBeUndefined();
   });
 });

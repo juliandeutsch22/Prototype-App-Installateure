@@ -35,6 +35,7 @@ import TermineHeute from './start/TermineHeute';
 import { startseite } from './start/aufbau';
 import { grundpfad, ZIEL } from './start/ziele';
 import {
+  annahmenUeberLink,
   buchhaltung,
   einstellungen,
   lager,
@@ -63,6 +64,8 @@ export default function DashboardView() {
   const { user, company, einblick } = useAuth();
   const scheineAn = useModul('scheine');
   const angeboteAn = useModul('angebote');
+  // Die Annahme per Link (M02a): ihr Hinweis auf der Startseite der Führung.
+  const onlineAnnahmeAn = useModul('angebote.online_annahme');
   const materialAn = useModul('material');
   const rechnungenAn = useModul('rechnungen');
   const wartungAn = useModul('wartung');
@@ -99,7 +102,7 @@ export default function DashboardView() {
   */
   const abfrage = useZwischengespeichert<{ data: StartDaten; nichtGeladen: string[] }>({
     queryKey: user
-      ? schluessel('startseite', user, heute, { user, company, mitZeitkonto, materialAn, scheineAn, angeboteAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen })
+      ? schluessel('startseite', user, heute, { user, company, mitZeitkonto, materialAn, scheineAn, angeboteAn, onlineAnnahmeAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen })
       : ['startseite'],
     enabled: !!user,
     queryFn: async () => {
@@ -135,6 +138,9 @@ export default function DashboardView() {
         bloecke.push(['Die Mannschaft', () => team(k, {
           luecken: canEditTime(user.role), urlaub: urlaubEntscheiden, freistellungen: freistellungBestaetigen,
         })]);
+      }
+      if (isGF(user.role) && onlineAnnahmeAn) {
+        bloecke.push(['Angebote über den Annahme-Link', () => annahmenUeberLink()]);
       }
       if (isGF(user.role)) {
         bloecke.push(['Baustellen und Einsätze', () => leitung(k, { einsatzplanung: einsatzAn, wartung: wartungAn, budget: true })]);

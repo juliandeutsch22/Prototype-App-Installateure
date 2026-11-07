@@ -20,6 +20,7 @@ export { ohneEinsatzListe, OHNE_EINSATZ_TAGE } from '@/features/projects/baustel
 
 export { istAbholbereitAlt, istLieferungUeberfaellig };
 import { ZIEL } from './ziele';
+import type { UeberLinkAngenommen } from '@/lib/db/angebotLinks';
 
 /**
  * WAS AUF DER STARTSEITE STEHT — je Abschnitt eine reine Funktion
@@ -725,4 +726,51 @@ export function einzigeLeitungOhneMail(personen: AppUser[]): boolean {
     (p) => p.active !== false && (p.role === 'Administrator' || p.role === 'Geschäftsführung'),
   );
   return leitung.length === 1 && istBenutzerkonto(leitung[0].email);
+}
+
+// ─────────────────────────────────────────────── Angebote über den Link ──
+
+/*
+  ÜBER DEN ANNAHME-LINK ANGENOMMEN (M02a): der Kunde hat angenommen, die
+  Baustelle ist angelegt — die Führung soll es sehen, bevor sie zufällig
+  darüber stolpert. Die Liste kommt schon gefiltert vom Server: noch von
+  niemandem aus der Führung geöffnet, höchstens sieben Tage alt.
+*/
+function linkDetail(a: UeberLinkAngenommen): string {
+  return [
+    `${a.name ? `von ${a.name} ` : ''}am ${tagKurzMs(a.angenommenAm)}`,
+    a.baustelle ? `Baustelle ${a.baustelle}` : '',
+  ].filter(Boolean).join(' · ');
+}
+
+/** Für die Projektleitung: eine Zeile je Angebot, zur Angebotsseite. */
+export function ueberLinkAngenommen(liste: UeberLinkAngenommen[]): Abschnitt | null {
+  const zeilen: Zeile[] = [...liste]
+    .sort((a, b) => b.angenommenAm - a.angenommenAm)
+    .map((a) => ({
+      key: `link-${a.link}`,
+      titel: `${a.nummer} · ${a.kunde}`,
+      detail: linkDetail(a),
+      status: { text: 'ansehen', ton: 'leise' },
+      to: ZIEL.angebot(a.angebot),
+    }));
+  return abschnitt('ueber-link', 'Über Link angenommen', zeilen, ZIEL.angebote);
+}
+
+/**
+ * Für Geschäftsführung und Administration: ein Thema — „Über Link
+ * angenommen: N Angebote (seit …)“. Eines führt direkt zum Angebot, mehrere
+ * zur Angebotsliste.
+ */
+export function ueberLinkAngenommenThema(liste: UeberLinkAngenommen[]): { ziel: string; titel: string; detail: string } | null {
+  if (liste.length === 0) return null;
+  const aeltestes = Math.min(...liste.map((a) => a.angenommenAm));
+  const kunden = [...new Set(liste.map((a) => a.kunde.trim()).filter(Boolean))];
+  return {
+    ziel: liste.length === 1 ? ZIEL.angebot(liste[0].angebot) : ZIEL.angebote,
+    titel: `Über Link angenommen: ${liste.length} ${liste.length === 1 ? 'Angebot' : 'Angebote'}`,
+    detail: liste.length === 1
+      ? `${liste[0].nummer} · ${linkDetail(liste[0])}`
+      : `seit ${tagKurzMs(aeltestes)} · ${kunden.length <= 2 ? kunden.join(', ') : `${kunden.slice(0, 2).join(', ')} und ${kunden.length - 2} weitere`}`,
+  };
 }

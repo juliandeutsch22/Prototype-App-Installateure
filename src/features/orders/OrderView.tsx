@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import Adressfilter from '@/components/Adressfilter';
 import { katalogSeite, katalogBeobachten, LOW_STOCK_THRESHOLD, lagerFrei, type LagerStand } from '@/lib/db/materials';
+import { gefundenUeberText, type MitNummer } from '@/lib/katalogTreffer';
 import { Bereit, Wert } from '@/components/Wert';
 import { imLager, istKnapp } from './lagerartikel';
 import {
@@ -110,7 +111,7 @@ export default function OrderView() {
     eingespielten Großhandelskatalog fand der Monteur so nur, was zufällig
     unter den ersten tausend lag.
   */
-  const [seite, setSeite] = useState<{ zeilen: WithId<Material>[]; gesamt: number } | null>(null);
+  const [seite, setSeite] = useState<{ zeilen: MitNummer<WithId<Material>>[]; gesamt: number } | null>(null);
   /** Der Katalog liess sich nicht holen — eigen, damit ein Neuladen nicht den Fehler einer Retoure wegwischt. */
   const [katalogFehler, setKatalogFehler] = useState<string | null>(null);
   const materials = useMemo(() => seite?.zeilen ?? [], [seite]);
@@ -509,6 +510,8 @@ export default function OrderView() {
                           {low && verfuegbar > 0 && ' (knapp)'}
                         </span>
                         )}
+                        {/* M03a: über die Nummer eines Großhändlers gefunden. */}
+                        {gefundenUeberText(m) && ` · ${gefundenUeberText(m)}`}
                       </>
                     }
                   >

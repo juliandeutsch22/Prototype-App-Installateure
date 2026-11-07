@@ -29,6 +29,11 @@ export type Spaltenart = 'zeitpunkt' | 'uhrzeit';
 
 export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   aenderungsjournal: { am: 'zeitpunkt' },
+  angebot_links: {
+    abgelehnt_am: 'zeitpunkt', anfragen_fenster_ab: 'zeitpunkt', angenommen_am: 'zeitpunkt', erzeugt_am: 'zeitpunkt',
+    gemeldet_am: 'zeitpunkt', gesehen_am: 'zeitpunkt',
+    widerrufen_am: 'zeitpunkt', zuerst_geoeffnet_am: 'zeitpunkt', zuletzt_geoeffnet_am: 'zeitpunkt',
+  },
   assignments: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt', zeit_von: 'uhrzeit', zeit_bis: 'uhrzeit' },
   aussteller_staende: { angelegt_am: 'zeitpunkt' },
   /*
@@ -80,6 +85,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   kalender_abos: { angelegt_am: 'zeitpunkt', zuletzt_abgerufen: 'zeitpunkt' },
   konto_umstellungen: { am: 'zeitpunkt' },
   krankmeldungen: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  lieferantenartikel: { bestaetigt_am: 'zeitpunkt', created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   material_einkaufspreise: { updated_at: 'zeitpunkt' },
   material_orders: {
     abholbereit_seit: 'zeitpunkt', bestellt_am: 'zeitpunkt', created_at: 'zeitpunkt', erledigt_am: 'zeitpunkt',

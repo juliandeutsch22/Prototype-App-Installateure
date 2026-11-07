@@ -33,3 +33,16 @@ export function abrechnungKurz(a: Abrechnungsart | undefined | null): { wert: st
 export function stundenSindGrundlage(a: Abrechnungsart | undefined | null): boolean {
   return (a ?? 'Regie') === 'Regie';
 }
+
+/**
+ * Was die Abrechnungsart für die Rechnung heißt — ein Satz unter der Wahl,
+ * beim Annehmen im Büro wie beim Annahme-Link (M02a): beide Wege legen
+ * dieselbe Baustelle an und sollen dasselbe darüber sagen.
+ */
+export function abrechnungHinweis(a: Abrechnungsart): string {
+  return a === 'Pauschal'
+    ? 'Die Rechnung übernimmt das Angebot als Festpreis.'
+    : a === 'Einheitspreis'
+      ? 'Die Rechnung übernimmt die Positionen mit ihren Einheitspreisen; die Mengen kommen aus dem Aufmaß.'
+      : 'Verrechnet werden die bestätigten Stunden und das Material der Scheine.';
+}

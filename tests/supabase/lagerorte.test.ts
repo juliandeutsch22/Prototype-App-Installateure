@@ -19,7 +19,8 @@
  *    Einkaufsliste an einen Ort — und was das für Reservierung und
  *    Rechnungsvorschlag heißt.
  *  - Rechte, fremder Betrieb, Support, Datenauskunft.
- *  - Modul aus — sobald `app.modul_aktiv` eingespielt ist (anderes Paket).
+ *  - Modul aus (V3): neue Befehle abgewiesen, bestehende Wege nur mit Ort;
+ *    ohne Ort wie bisher, Lesen und Wiederholung antworten, wieder an geht.
  *  - Messung: Umlagern und Abhaken mit 10.000 Artikeln und 20 Orten unter der
  *    Zeitgrenze angemeldeter Konten (8 s).
  *
@@ -745,32 +746,134 @@ describe('Die bestehenden Wege mit Ort', () => {
 /* -------------------------------------------------------------- Modul aus */
 
 /*
-  V3: Der Server prüft das Modul bei NEUEN Fachbefehlen über
-  `app.modul_aktiv` — die Hilfsfunktion kommt mit einem anderen Paket. Bis sie
-  eingespielt ist, laufen diese Fälle nicht (sie wären rot, ohne dass etwas
-  falsch wäre); danach prüfen sie, dass mit „Lagerorte und Fahrzeuglager“ aus
-  kein weiterer Ort mehr bebucht wird — und die Bestände bleiben.
-*/
-const modulDa = await mitPg(async (db) =>
-  (await db.query(`select to_regprocedure('app.modul_aktiv(text)') is not null as da`)).rows[0].da as boolean);
+  V3 (E51, E56): Ist „Lagerorte und Fahrzeuglager“ aus, gibt es nur das
+  Hauptlager. Die neuen Befehle weist der Server ab, die bestehenden Wege nur
+  im Zweig mit einem weiteren Ort — ohne Ort (und mit dem Hauptlager als
+  Ort) buchen sie wie bisher. Lesen bleibt. Die Bestände an den Orten
+  bleiben stehen und sind nach dem Wiedereinschalten wieder bebuchbar.
 
-describe.runIf(modulDa)('Modul aus: nur das Hauptlager', () => {
-  it('kein Befehl an einen weiteren Ort; die Bestände bleiben; das Hauptlager bucht wie bisher', async () => {
+  GEGENPROBE: ohne die Prüfungen in beiden Migrationen sind die Abweisungen
+  rot; die Wege ohne Ort sind vorher wie nachher grün.
+*/
+describe('Modul aus: nur das Hauptlager (V3)', () => {
+  const AUS = { 'material.lagerorte_fahrzeuglager': false };
+  const schalten = async (modules: Record<string, boolean> | null) => {
+    expect((await admin.from('companies').update({ modules }).eq('id', BETRIEB)).error).toBeNull();
+  };
+  const abgewiesen = (r: { error: { code?: string; message: string } | null }) => {
+    expect(r.error?.code).toBe('55000');
+    expect(r.error?.message).toMatch(/ausgeschaltet \(Einstellungen → Module\)/);
+  };
+
+  it('die neuen Befehle: abgewiesen, nichts vermerkt — Lesen und ein schon ausgeführter Vorgang antworten weiter', async () => {
     const m = await artikel(10);
-    await umlagern(lager, befehl(m, null, BUS, 4, 10));
-    await admin.from('companies').update({ modules: { 'material.lagerorte_fahrzeuglager': false } }).eq('id', BETRIEB);
+    const frueher = befehl(m, null, BUS, 4, 10);
+    const erst = await umlagern(lager, frueher);
+    expect(erst.data.ergebnis).toBe('ausgefuehrt');
+    await schalten(AUS);
     try {
-      expect((await umlagern(lager, befehl(m, null, BUS, 1, 6))).error).not.toBeNull();
-      expect((await lager.client.rpc('lager_eingang', { p_material: m, p_menge: 1, p_lieferant: 'X', p_lieferschein: null, p_bezug: null, p_ort: BUS })).error).not.toBeNull();
-      expect((await lager.client.rpc('lager_inventur', { p_material: m, p_bestand: 1, p_grund: 'x', p_ort: BUS })).error).not.toBeNull();
-      expect((await lager.client.rpc('fahrzeug_speichern', { p_fahrzeug: { kennzeichen: 'W-MODUL', aktiv: true } })).error).not.toBeNull();
+      const neu = befehl(m, null, BUS, 1, 6);
+      abgewiesen(await umlagern(lager, neu));
+      expect((await admin.from('befehle_vorgaenge').select('vorgang').eq('vorgang', neu.vorgang)).data).toEqual([]);
+      abgewiesen(await lager.client.rpc('lagerort_speichern', { p_ort: { art: 'lager', bezeichnung: 'Regal Modul', aktiv: true } }));
+      abgewiesen(await lager.client.rpc('fahrzeug_speichern', { p_fahrzeug: { kennzeichen: 'W-MODUL', aktiv: true } }));
+      expect((await admin.from('fahrzeuge').select('id').eq('company_id', BETRIEB).eq('kennzeichen', 'W-MODUL')).data).toEqual([]);
       expect([await haupt(m), await amOrt(BUS, m)]).toEqual([6, 4]);
-      // Ohne Ort wie bisher.
-      expect((await lager.client.rpc('lager_eingang', { p_material: m, p_menge: 1, p_lieferant: 'X', p_lieferschein: null, p_bezug: null })).error).toBeNull();
-      expect(await haupt(m)).toBe(7);
+      // Dieselbe Kennung mit denselben Daten: das bestätigte Ergebnis von damals, nichts noch einmal.
+      expect((await umlagern(lager, frueher)).data).toEqual(erst.data);
+      expect([await haupt(m), await amOrt(BUS, m)]).toEqual([6, 4]);
+      // Lesen prüft das Modul nicht.
+      expect((await lager.client.rpc('kennzeichen_aus_buchungen')).error).toBeNull();
+      expect((await lager.client.rpc('befehl_stand', { p_vorgang: frueher.vorgang })).data).toMatchObject({ stand: 'erledigt' });
+      // Mit dem Modul „Material“ geht die Unterfähigkeit mit aus.
+      await schalten({ material: false });
+      abgewiesen(await umlagern(lager, befehl(m, null, BUS, 1, 6)));
     } finally {
-      await admin.from('companies').update({ modules: null }).eq('id', BETRIEB);
+      await schalten(null);
     }
+    // Wieder an: geht, und die Ware im Fahrzeug ist noch da.
+    expect((await umlagern(lager, befehl(m, BUS, null, 4, 4))).data.ergebnis).toBe('ausgefuehrt');
+    expect([await haupt(m), await amOrt(BUS, m)]).toEqual([10, 0]);
+    const { data: fz, error } = await lager.client.rpc('fahrzeug_speichern', { p_fahrzeug: { kennzeichen: 'W-MODUL', aktiv: true } });
+    expect(error).toBeNull();
+    expect(fz).toBeTruthy();
+    await zahlenGleich(m);
+  });
+
+  it('Wareneingang und Inventur: mit weiterem Ort abgewiesen, ohne Ort und ins Hauptlager wie bisher', async () => {
+    const m = await artikel(10);
+    await umlagern(lager, befehl(m, null, AUSSEN, 3, 10));
+    await schalten(AUS);
+    try {
+      abgewiesen(await lager.client.rpc('lager_eingang', {
+        p_material: m, p_menge: 1, p_lieferant: 'X', p_lieferschein: null, p_bezug: null, p_ort: AUSSEN,
+      }));
+      abgewiesen(await lager.client.rpc('lager_inventur', { p_material: m, p_bestand: 1, p_grund: 'Zählung', p_ort: AUSSEN }));
+      expect([await haupt(m), await amOrt(AUSSEN, m)]).toEqual([7, 3]);
+      const ohne = await lager.client.rpc('lager_eingang', { p_material: m, p_menge: 2, p_lieferant: 'X', p_lieferschein: null, p_bezug: null });
+      expect(ohne.error).toBeNull();
+      expect(Number(ohne.data)).toBe(9);
+      // Das Hauptlager mit seiner Kennung ist kein weiterer Ort.
+      const haupt1 = await lager.client.rpc('lager_eingang', {
+        p_material: m, p_menge: 1, p_lieferant: 'X', p_lieferschein: null, p_bezug: null, p_ort: hauptId,
+      });
+      expect(haupt1.error).toBeNull();
+      expect(Number((await lager.client.rpc('lager_inventur', { p_material: m, p_bestand: 8, p_grund: 'Bruch' })).data)).toBe(8);
+      expect([await haupt(m), await amOrt(AUSSEN, m)]).toEqual([8, 3]);
+    } finally {
+      await schalten(null);
+    }
+    expect(Number((await lager.client.rpc('lager_inventur', { p_material: m, p_bestand: 2, p_grund: 'Zählung', p_ort: AUSSEN })).data)).toBe(2);
+    await zahlenGleich(m);
+  });
+
+  it('Abhaken, Retoure, Abholen, Einkaufsliste: der Zweig mit Ort abgewiesen, der ohne Ort wie bisher', async () => {
+    const m = await artikel(20);
+    await umlagern(lager, befehl(m, null, BUS, 5, 20));
+    await chef.client.rpc('ruestliste_speichern', {
+      p_datum: heute, p_baustelle: 'PR-V3', p_uids: [max.uid], p_von: 'Chef',
+      p_positionen: [{ id: 'p1', position: 0, material_id: m, name: 'Rohr', menge: 2, einheit: 'Stk' }],
+    });
+    const abholen = crypto.randomUUID();
+    await admin.from('material_orders').insert({
+      id: abholen, company_id: BETRIEB, material_id: m, material_name: 'Rohr', quantity: 3, status: 'Abholbereit',
+      beschaffung: 'lager', transaction_type: 'order', user_id: max.uid, user_name: 'Max',
+    });
+    const einkauf = crypto.randomUUID();
+    await admin.from('material_orders').insert({
+      id: einkauf, company_id: BETRIEB, material_id: m, material_name: 'Rohr', quantity: 4, status: 'In Bearbeitung',
+      beschaffung: 'einkauf', bestellt_am: new Date().toISOString(), transaction_type: 'order', user_id: max.uid, user_name: 'Max',
+    });
+    const retoure = (ort?: string) => ({
+      id: crypto.randomUUID(), company_id: BETRIEB, material_id: m, material_name: 'Rohr', quantity: 1,
+      condition: 'neu', user_id: max.uid, user_name: 'Max', project_number: 'PR-V3', ...(ort ? { lagerort_id: ort } : {}),
+    });
+
+    await schalten(AUS);
+    try {
+      abgewiesen(await max.client.rpc('laden_umschalten', { p_datum: heute, p_baustelle: 'PR-V3', p_position: 'p1', p_an: true, p_von: 'Max', p_ort: BUS }));
+      abgewiesen(await max.client.rpc('retoure_anlegen', { p_beleg: retoure(BUS) }));
+      abgewiesen(await max.client.rpc('anforderung_abschliessen', { p_order: abholen, p_status: 'Abholbereit', p_ort: BUS }));
+      // `einkauf_geliefert` läuft mit den Rechten des Aufrufers — die Prüfung trotzdem.
+      abgewiesen(await lager.client.rpc('einkauf_geliefert', { p_ids: [einkauf], p_ort: AUSSEN }));
+      expect([await haupt(m), await amOrt(BUS, m), await amOrt(AUSSEN, m)]).toEqual([15, 5, 0]);
+
+      // Dieselben Wege ohne Ort: wie bisher, im Hauptlager.
+      expect(Number((await max.client.rpc('laden_umschalten', { p_datum: heute, p_baustelle: 'PR-V3', p_position: 'p1', p_an: true, p_von: 'Max' })).data)).toBe(2);
+      expect((await max.client.rpc('retoure_anlegen', { p_beleg: retoure() })).error).toBeNull();
+      expect(Number((await max.client.rpc('anforderung_abschliessen', { p_order: abholen, p_status: 'Abholbereit' })).data)).toBe(1);
+      expect(Number((await lager.client.rpc('einkauf_geliefert', { p_ids: [einkauf] })).data)).toBe(1);
+      // 15 − 2 (Haken) + 1 (Retoure) − 3 (Abholen) + 4 (geliefert); das Fahrzeug unberührt.
+      expect([await haupt(m), await amOrt(BUS, m)]).toEqual([15, 5]);
+      expect((await admin.from('material_orders').select('lagerort_id').in('id', [abholen, einkauf])).data)
+        .toEqual([{ lagerort_id: null }, { lagerort_id: null }]);
+    } finally {
+      await schalten(null);
+    }
+    // Wieder an: der Zweig mit Ort geht.
+    expect((await max.client.rpc('retoure_anlegen', { p_beleg: retoure(BUS) })).error).toBeNull();
+    expect(await amOrt(BUS, m)).toBe(6);
+    await zahlenGleich(m);
   });
 });
 

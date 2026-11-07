@@ -63,6 +63,14 @@
   NICHT PROTOKOLLIERT im Änderungsjournal (M01b): Fahrzeuge und Orte sind
   Stammdaten ohne Belegcharakter; die Bewegungen sind das Protokoll des
   Bestands.
+
+  GEPRÜFT AM SERVER (E51, V3): Die neuen Befehle (`umlagern`,
+  `lagerort_speichern`, `fahrzeug_speichern`) fragen die Unterfähigkeit
+  `material.lagerorte_fahrzeuglager` (`app.modul_aktiv`). Ist sie aus, gibt
+  es nur das Hauptlager — sonst bliebe ein Weg offen, den die App gar nicht
+  mehr anbietet. Lesen (`kennzeichen_aus_buchungen`, `befehl_stand`) prüft
+  sie nicht; die bestehenden Wege nur, wenn ein weiterer Ort gewählt ist
+  (20261107200100).
 */
 
 -- ---------------------------------------------------------------------------
@@ -74,6 +82,39 @@ alter table public.companies
 
 comment on column public.companies.lager_rueckgabe_fahrer is
   'Der Standardfahrer lagert aus seinem Fahrzeug selbst ins Hauptlager zurück (M04a). Standard aus: heute bucht das Lager die Verwaltung oder die Leitung.';
+
+/*
+  DIE UNTERFÄHIGKEIT IM REGISTER DES SERVERS (V3, E56). `app.modul_register()`
+  ist die Liste, nach der `app.modul_aktiv` rechnet; sie muss dieselben
+  Kennungen und Standards tragen wie `MODULE` in `src/lib/module.ts`
+  (`modulRegisterServer.test.ts` vergleicht beide). Die volle Liste: die
+  Fassung aus 20261107100000_lieferantenartikel.sql und dazu
+  `material.lagerorte_fahrzeuglager`, Standard an wie in der App.
+*/
+create or replace function app.modul_register()
+  returns table (kennung text, standard boolean, abhaengig_von text[])
+  language sql
+  immutable
+  security definer
+  set search_path = ''
+as $$
+  values
+    ('einsatzplanung', true, '{}'::text[]),
+    ('material', true, '{}'::text[]),
+    ('material.katalogversionen', true, '{}'::text[]),
+    ('material.lieferantenvergleich', true, '{}'::text[]),
+    ('material.katalogpreisverlauf', true, '{}'::text[]),
+    ('material.lagerorte_fahrzeuglager', true, '{}'::text[]),
+    ('urlaub', true, '{}'::text[]),
+    ('scheine', true, '{}'::text[]),
+    ('angebote', true, '{}'::text[]),
+    ('angebote.online_annahme', true, '{}'::text[]),
+    ('rechnungen', true, '{}'::text[]),
+    ('nachkalkulation', true, '{rechnungen}'::text[]),
+    ('wartung', true, '{}'::text[]),
+    ('zeitkonten', true, '{}'::text[])
+$$;
+revoke all on function app.modul_register() from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 1. Fahrzeuge
@@ -758,6 +799,15 @@ begin
   if not (app.hat_rolle(array['Verwaltung']) or app.ist_fuehrung()) then
     raise exception 'Fahrzeuge pflegt die Verwaltung oder die Leitung' using errcode = '42501';
   end if;
+  /*
+    V3. Solange es kein Betriebsmittel-Modul gibt (W06/W07), stehen die
+    Fahrzeuge nur mit dieser Unterfähigkeit in der App; kommt eines, gilt
+    hier „diese oder jenes“ wie bei der Unterseite (`nurMitModul`).
+  */
+  if not app.modul_aktiv(betrieb, 'material.lagerorte_fahrzeuglager') then
+    raise exception 'Lagerorte und Fahrzeuglager sind in diesem Betrieb ausgeschaltet (Einstellungen → Module)'
+      using errcode = '55000';
+  end if;
   if zeichen !~ '[[:alnum:]]' then
     raise exception 'Bitte das Kennzeichen eintragen' using errcode = '23514';
   end if;
@@ -833,6 +883,10 @@ begin
   end if;
   if not (app.hat_rolle(array['Verwaltung']) or app.ist_fuehrung()) then
     raise exception 'Lagerorte pflegt die Verwaltung oder die Leitung' using errcode = '42501';
+  end if;
+  if not app.modul_aktiv(betrieb, 'material.lagerorte_fahrzeuglager') then
+    raise exception 'Lagerorte und Fahrzeuglager sind in diesem Betrieb ausgeschaltet (Einstellungen → Module)'
+      using errcode = '55000';
   end if;
   if bez is null then
     raise exception 'Bitte eine Bezeichnung eintragen' using errcode = '23514';
@@ -1176,6 +1230,16 @@ begin
   frueher := app.befehl_beginnen(betrieb, vorgang, 'umlagerung', p_befehl);
   if frueher is not null then
     return frueher;
+  end if;
+  /*
+    V3 nach der Wiederholung: ein schon ausgeführter Vorgang liefert sein
+    bestätigtes Ergebnis, auch wenn inzwischen abgeschaltet ist — sonst hielte
+    der Aufrufer für gescheitert, was gebucht ist. Ein neuer wird abgewiesen;
+    die Ausnahme nimmt den eben vermerkten Vorgang mit zurück.
+  */
+  if not app.modul_aktiv(betrieb, 'material.lagerorte_fahrzeuglager') then
+    raise exception 'Lagerorte und Fahrzeuglager sind in diesem Betrieb ausgeschaltet (Einstellungen → Module)'
+      using errcode = '55000';
   end if;
 
   -- 2. Sperren: der Artikel, dann die Orte nach ihrer Kennung

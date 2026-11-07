@@ -48,6 +48,9 @@ vi.mock('@/lib/db/materials', () => ({
   lagerInventur: (...a: unknown[]) => inventur(...a),
   listLagerbewegungen: async () => [],
   lagerFrei: async () => { throw new Error('nicht geladen'); },
+  // M03a: die Suche über Nummern der Großhändler — hier ohne Treffer.
+  NUMMER_AB: 3,
+  nummernTreffer: async () => new Map(),
 }));
 const inventur = vi.fn<(...a: unknown[]) => Promise<number>>(async () => 0);
 vi.mock('@/lib/db/einkauf', () => ({ listGrosshaendler: vi.fn(async () => []) }));

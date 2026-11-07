@@ -133,7 +133,10 @@ export default async function aufbau(): Promise<void> {
     'urlaubsanspruch_anpassungen', 'freistellungen',
     // Termine (Plan 10.4): halten Konten, Baustellen und Kunden fest.
     'termine',
-    'assignments', 'datanorm_zeilen', 'datanorm_laeufe', 'material_prices',
+    // M03a: die Lieferantenartikel vor den Läufen, auf die sie zeigen.
+    'assignments', 'datanorm_zeilen', 'material_prices', 'lieferantenartikel', 'datanorm_laeufe',
+    // Annahme-Links (M02a) und Angebote: ein angenommenes hält seine Baustelle fest.
+    'angebot_links', 'quotes',
     'rabattsaetze', 'materials', 'projects', 'customers', 'suppliers',
   ]) {
     await admin.from(t).delete().eq('company_id', BETRIEB);

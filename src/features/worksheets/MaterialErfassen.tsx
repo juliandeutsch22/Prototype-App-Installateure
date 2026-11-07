@@ -9,6 +9,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { EmptyState } from '@/components/States';
 import { neueKennung, type MaterialZeile } from './materialZeilen';
 import { useKatalogSuche } from '@/features/orders/useKatalogSuche';
+import { gefundenUeberText } from '@/lib/katalogTreffer';
 import { ZahlWertFeld } from '@/components/ZahlFeld';
 
 /**
@@ -178,7 +179,7 @@ export default function MaterialErfassen({ companyId, materials, zeilen, onChang
                   <ListRow
                     key={m.id}
                     title={m.name}
-                    subtitle={[m.category, m.articleNumber].filter(Boolean).join(' · ') || undefined}
+                    subtitle={[m.category, m.articleNumber, gefundenUeberText(m)].filter(Boolean).join(' · ') || undefined}
                   >
                     <Button
                       variant="secondary"

@@ -9,6 +9,8 @@ import {
   budgetNahe,
   BUDGET_AB_PROZENT,
   eilanforderungen,
+  ueberLinkAngenommen,
+  ueberLinkAngenommenThema,
   endeUeberschritten,
   istAbholbereitAlt,
   istLieferungUeberfaellig,
@@ -335,6 +337,8 @@ function projektleitung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(ohneEinsatz(d.ohneEinsatz ?? [], titelVon(d)), u),
     erlaubt(wartungenOhneBaustelle(d.wartungen ?? [], u.heute), u),
     erlaubt(eilanforderungen(d.orders ?? []), u),
+    // Über den Annahme-Link angenommen (M02a): bis jemand aus der Führung das Angebot öffnet.
+    erlaubt(ueberLinkAngenommen(d.ueberLinkAngenommen ?? []), u),
     erlaubt(endeUeberschritten(d.projekte ?? [], u.heute), u),
     erlaubt(ohneProjektleitung(d.projekte ?? []), u),
     eigenerJugendschutz(d, u),
@@ -382,6 +386,20 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
   const orders = d.orders ?? [];
   const lagerHier = !d.hatVerwaltung;
   const wenn = (ziel: string, t: Omit<Thema, 'to'>): Thema | null => (u.darf(ziel) ? { ...t, to: ziel } : null);
+
+  /*
+    ÜBER DEN ANNAHME-LINK ANGENOMMEN (M02a): unter „Heute“ — die Baustelle
+    ist schon da und will eingeplant werden.
+  */
+  const ueberLink = ueberLinkAngenommenThema(d.ueberLinkAngenommen ?? []);
+  if (ueberLink) {
+    themen.push(wenn(ueberLink.ziel, {
+      key: 'ueber-link', wann: 'heute',
+      titel: ueberLink.titel,
+      detail: ueberLink.detail,
+      status: { text: 'ansehen', ton: 'leise' },
+    }));
+  }
 
   // ── Überfällig
   /*

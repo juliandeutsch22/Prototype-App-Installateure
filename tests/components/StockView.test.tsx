@@ -76,7 +76,11 @@ vi.mock('@/lib/db/materials', () => ({
   lagerInventur: (...a: unknown[]) => inventurBuchen(...a),
   listLagerbewegungen: (...a: unknown[]) => bewegungenLaden(...a),
   lagerFrei: (ids: readonly string[]) => lagerStand(ids),
+  // M03a: die Suche über Nummern der Großhändler — der Server nennt die Artikel.
+  NUMMER_AB: 3,
+  nummernTreffer: (begriff: string) => nummernSuche(begriff),
 }));
+const nummernSuche = vi.fn<(begriff: string) => Promise<Map<string, unknown>>>(async () => new Map());
 // Ohne eigene Vorgabe rechnet die Ansicht selbst — wie wenn die Zahlen ausbleiben.
 const lagerStand = vi.fn<(ids?: readonly string[]) => Promise<Map<string, unknown>>>(async () => { throw new Error('nicht geladen'); });
 const inventurBuchen = vi.fn();
@@ -126,6 +130,10 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 // Der Katalogimport hat einen eigenen Test; hier zählt nur, ob es ihn gibt.
 vi.mock('@/features/materials/KatalogImport', () => ({
   default: () => <div>Katalog einspielen (Inhalt)</div>,
+}));
+// Ebenso die offenen Lieferantenartikel (M03a).
+vi.mock('@/features/materials/OffeneLieferantenartikel', () => ({
+  default: () => <div>Offene Lieferantenartikel (Inhalt)</div>,
 }));
 
 function zeige(adresse = '/lager') {
@@ -727,7 +735,12 @@ describe('Wer den Katalog einspielen darf', () => {
   it('zeigt ihn der Geschäftsführung und öffnet ihn', async () => {
     authWert = CHEFIN;
     zeige();
-    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Katalog einspielen']);
+    /*
+      ANGEPASST (M03a): seit den Katalogen mehrerer Großhändler steht dort
+      auch „Offene Lieferantenartikel“ — für dieselben Rollen wie das
+      Einspielen (eigene Prüfungen unten, „Offene Lieferantenartikel“).
+    */
+    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Katalog einspielen', 'Offene Lieferantenartikel']);
     await userEvent.click(screen.getByRole('menuitem', { name: 'Katalog einspielen' }));
     expect(await screen.findByText('Katalog einspielen (Inhalt)')).toBeInTheDocument();
     expect(screen.getByTestId('adresse')).toHaveTextContent('/lager?reiter=import');
@@ -892,5 +905,77 @@ describe('Frei und reserviert: neu geholt, wenn sich etwas ändert — nicht bei
     act(() => katalogSenden!());
     await waitFor(() => expect(lagerStand).toHaveBeenCalledTimes(2));
     katalogHalten = false;
+  });
+});
+
+/*
+  OFFENE LIEFERANTENARTIKEL (M03a): erreichbar über das „⋯“ des Lagers für
+  dieselben Rollen wie das Einspielen, und nur mit dem Modul „Kataloge
+  mehrerer Großhändler“. GEGENPROBE: ohne die Änderung gibt es weder den
+  Eintrag noch den Reiter.
+*/
+describe('Offene Lieferantenartikel', () => {
+  async function seitenMenue() {
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für Lager' }));
+    return within(screen.getByRole('menu')).getAllByRole('menuitem').map((m) => m.textContent);
+  }
+
+  it('die Geschäftsführung öffnet sie über das „⋯“, mit eigenem Reiter in der Adresse', async () => {
+    authWert = CHEFIN;
+    zeige();
+    expect(await seitenMenue()).toContain('Offene Lieferantenartikel');
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Offene Lieferantenartikel' }));
+    expect(await screen.findByText('Offene Lieferantenartikel (Inhalt)')).toBeInTheDocument();
+    expect(screen.getByTestId('adresse')).toHaveTextContent('/lager?reiter=zuordnen');
+    expect(screen.getByRole('button', { name: 'Zuordnen' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('die Verwaltung ohne Freigabe sieht weder Eintrag noch Reiter — auch nicht über die Adresse', async () => {
+    authWert = VERWALTUNG;
+    zeige('/lager?reiter=zuordnen');
+    expect(await screen.findByRole('button', { name: 'Bestand' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText('Offene Lieferantenartikel (Inhalt)')).toBeNull();
+    expect(await seitenMenue()).not.toContain('Offene Lieferantenartikel');
+  });
+
+  it('ist das Modul aus, verschwindet die Ansicht', async () => {
+    authWert = {
+      user: CHEFIN.user,
+      company: { id: 'perl', name: 'Perl Installationen', modules: { 'material.katalogversionen': false } },
+    } as typeof CHEFIN;
+    zeige('/lager?reiter=zuordnen');
+    expect(await screen.findByRole('button', { name: 'Bestand' })).toHaveAttribute('aria-pressed', 'true');
+    // „Lagerorte …“ (M04a) hängt an seiner eigenen Unterfähigkeit, nicht an dieser.
+    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Katalog einspielen']);
+  });
+});
+
+/*
+  M03a: DIE LAGERLISTE FINDET AUCH ÜBER DIE NUMMER EINES GROSSHÄNDLERS. Die
+  liegt nicht am Artikel, sondern am zugeordneten Lieferantenartikel; der
+  Server nennt die passenden Artikel. GEGENPROBE: ohne die Änderung bleibt
+  die Liste bei „B-7788“ leer.
+*/
+describe('Suche über die Nummer eines Großhändlers (M03a)', () => {
+  it('nimmt die Artikel dazu, die der Server über Nummer oder EAN nennt', async () => {
+    materialien = [material({ id: 'm1', name: 'Kugelhahn' }), material({ id: 'm2', name: 'Eckventil' })];
+    nummernSuche.mockImplementation(async (b: string) =>
+      b === 'B-7788' ? new Map([['m2', { nummer: 'B-7788', art: 'lieferant', lieferant: 'Beta' }]]) : new Map());
+    zeige();
+    await screen.findByText('Kugelhahn');
+    await userEvent.type(screen.getByRole('searchbox', { name: /Suche/ }), 'B-7788');
+    expect(await screen.findByText('Eckventil')).toBeInTheDocument();
+    expect(screen.queryByText('Kugelhahn')).toBeNull();
+    expect(nummernSuche).toHaveBeenLastCalledWith('B-7788');
+  });
+
+  it('unter drei Zeichen fragt sie den Server nicht', async () => {
+    materialien = [material({ id: 'm1', name: 'Kugelhahn' })];
+    nummernSuche.mockClear();
+    zeige();
+    await screen.findByText('Kugelhahn');
+    await userEvent.type(screen.getByRole('searchbox', { name: /Suche/ }), 'Ku');
+    await new Promise((r) => setTimeout(r, 400));
+    expect(nummernSuche).not.toHaveBeenCalled();
   });
 });

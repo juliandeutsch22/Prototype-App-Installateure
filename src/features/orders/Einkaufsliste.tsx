@@ -12,11 +12,14 @@ import {
   lagerPostenBestellt,
   lagerPostenLoeschen,
   lagerPostenZuordnen,
+  lieferantenNummern,
   lieferantVorschlag,
   lieferterminSetzen,
   vonEinkaufslisteNehmen,
   type Grosshaendler,
 } from '@/lib/db/einkauf';
+import VorschlagGrund from './VorschlagGrund';
+import { gefundenUeberText, type MitNummer } from '@/lib/katalogTreffer';
 import { localDateStr, todayStr } from '@/lib/time';
 import { datumAT } from '@/lib/datum';
 import { postenNeuLaden } from '@/app/offenePosten';
@@ -87,6 +90,7 @@ export default function Einkaufsliste({
   onLagerGeaendert,
   onVeraltet,
   orte,
+  grundZeigen = false,
 }: {
   company: Company;
   meinUid: string;
@@ -105,9 +109,16 @@ export default function Einkaufsliste({
    * „Geliefert“ bucht. Ohne sie ins Hauptlager, wie bisher.
    */
   orte?: { alle: readonly Lagerort[]; wahl: readonly Lagerort[] };
+  /**
+   * Den Grund des Großhändler-Vorschlags zeigen (M03a, E03) — nur für wen
+   * Einkaufspreise sehen darf und mit Modul „Lieferantenvergleich“.
+   */
+  grundZeigen?: boolean;
 }) {
   const toast = useToast();
   const [katalog, setKatalog] = useState<Map<string, Pick<Material, 'articleNumber' | 'unit'>>>(new Map());
+  /** Die Nummer je Artikel und Großhändler (M03a) — bestellt wird mit der des Großhändlers. */
+  const [nummern, setNummern] = useState<Map<string, string>>(new Map());
   const [fehler, setFehler] = useState<string | null>(null);
   const [laeuft, setLaeuft] = useState<string | null>(null);
   const [bestelltFragen, setBestelltFragen] = useState<EinkaufsGruppe | null>(null);
@@ -143,14 +154,20 @@ export default function Einkaufsliste({
       })
       // Ohne Katalog stehen Name und Menge trotzdem da — nur ohne Art.-Nr.
       .catch(() => undefined);
+    void lieferantenNummern(company.id, ids)
+      .then((n) => {
+        if (!weg) setNummern(n);
+      })
+      // Ohne sie steht die Artikelnummer des Stamms, wie bisher.
+      .catch(() => undefined);
     return () => {
       weg = true;
     };
   }, [company.id, materialIds]);
 
   const gruppen = useMemo(
-    () => einkaufsliste(anforderungen, katalog, lagerPosten),
-    [anforderungen, katalog, lagerPosten],
+    () => einkaufsliste(anforderungen, katalog, lagerPosten, nummern),
+    [anforderungen, katalog, lagerPosten, nummern],
   );
   const nachId = useMemo(() => new Map(grosshaendler.map((g) => [g.id, g])), [grosshaendler]);
 
@@ -183,6 +200,7 @@ export default function Einkaufsliste({
       {fehler && <ErrorState message={fehler} />}
 
       <LagerPostenFormular
+        grundZeigen={grundZeigen}
         companyId={company.id}
         meinUid={meinUid}
         meinName={meinName}
@@ -583,7 +601,9 @@ function LagerPostenFormular({
   meinName,
   grosshaendler,
   onAngelegt,
+  grundZeigen,
 }: {
+  grundZeigen: boolean;
   companyId: string;
   meinUid: string;
   meinName: string;
@@ -593,7 +613,7 @@ function LagerPostenFormular({
   const toast = useToast();
   const [offen, setOffen] = useState(false);
   const [suche, setSuche] = useState('');
-  const [treffer, setTreffer] = useState<WithId<Material>[]>([]);
+  const [treffer, setTreffer] = useState<MitNummer<WithId<Material>>[]>([]);
   const [sucht, setSucht] = useState(false);
   const [gewaehlt, setGewaehlt] = useState<WithId<Material> | null>(null);
   const [menge, setMenge] = useState('1');
@@ -762,7 +782,7 @@ function LagerPostenFormular({
                     >
                       <span className="min-w-0">{m.name}</span>
                       <span className="shrink-0 text-xs text-ink-muted">
-                        {m.articleNumber ?? ''}{m.unit ? ` · ${m.unit}` : ''}
+                        {[m.articleNumber, m.unit, gefundenUeberText(m)].filter(Boolean).join(' · ')}
                       </span>
                     </button>
                   </li>
@@ -775,12 +795,15 @@ function LagerPostenFormular({
               onChange={(e) => setMenge(e.target.value)} />
             <EinheitFeld id="lp-einheit" value={einheit} onChange={setEinheit} leer="—" />
           </FormGrid>
-          <SelectField id="lp-bei" label="Großhändler" value={bei} onChange={(e) => setBei(e.target.value)}>
-            <option value="">— später zuordnen —</option>
-            {grosshaendler.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </SelectField>
+          <div>
+            <SelectField id="lp-bei" label="Großhändler" value={bei} onChange={(e) => setBei(e.target.value)}>
+              <option value="">— später zuordnen —</option>
+              {grosshaendler.map((g) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </SelectField>
+            <VorschlagGrund materialId={gewaehlt?.id} gewaehlt={bei} zeigen={grundZeigen} />
+          </div>
           <InputField id="lp-notiz" label="Anmerkung (freiwillig)" value={notiz}
             onChange={(e) => setNotiz(e.target.value)} />
           {fehler && <p className="text-sm text-danger" role="alert">{fehler}</p>}

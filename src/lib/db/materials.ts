@@ -9,6 +9,11 @@ import type { Lagerbewegung, Material } from '@/types';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import type { WithId } from './core';
 import * as pg from './pg/materials';
+import type { MitNummer } from './pg/nummernSuche';
+
+/** Die Suche über Nummern der Großhändler und EAN (M03a) — siehe `pg/nummernSuche.ts`. */
+export { nummernTreffer, NUMMER_AB } from './pg/nummernSuche';
+export type { MitNummer, NummernTreffer } from './pg/nummernSuche';
 
 export { KATALOG_GRENZE, katalogAbgeschnitten } from '@/lib/listengrenzen';
 
@@ -47,7 +52,7 @@ export function katalogSeite(
   companyId: string,
   begriff: string,
   anzahl: number,
-): Promise<{ zeilen: WithId<Material>[]; gesamt: number }> {
+): Promise<{ zeilen: MitNummer<WithId<Material>>[]; gesamt: number }> {
   return pg.katalogSeite(companyId, begriff, anzahl);
 }
 
@@ -113,7 +118,7 @@ export function listMaterials(companyId: string, max = KATALOG_GRENZE): Promise<
 }
 
 /** Artikel aus dem Katalog suchen, auf dem Server (M18). */
-export function sucheKatalog(companyId: string, begriff: string, max?: number): Promise<WithId<Material>[]> {
+export function sucheKatalog(companyId: string, begriff: string, max?: number): Promise<MitNummer<WithId<Material>>[]> {
   return pg.sucheKatalog(companyId, begriff, max);
 }
 

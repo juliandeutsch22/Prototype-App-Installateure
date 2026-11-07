@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Material, RuestPosition } from '@/types';
 import { katalogNachIds } from '@/lib/db/materials';
 import { useKatalogSuche } from '@/features/orders/useKatalogSuche';
+import { gefundenUeberText } from '@/lib/katalogTreffer';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
@@ -313,7 +314,7 @@ export default function RuestlistePlanen({
                   <ListRow
                     key={m.id}
                     title={m.name}
-                    subtitle={[m.category, `Lager: ${fmtMenge(m.stock ?? 0)}`].filter(Boolean).join(' · ')}
+                    subtitle={[m.category, `Lager: ${fmtMenge(m.stock ?? 0)}`, gefundenUeberText(m)].filter(Boolean).join(' · ')}
                   >
                     <Button
                       variant="secondary"

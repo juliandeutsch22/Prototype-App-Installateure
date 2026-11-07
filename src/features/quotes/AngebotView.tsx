@@ -8,7 +8,6 @@ import { belegFirma } from '@/lib/db/aussteller';
 import { isGF } from '@/lib/permissions';
 import { praefixeVon } from '@/lib/praefixe';
 import { todayStr } from '@/lib/time';
-import { discountLabel, positionsRabattText, titelSummen } from '@/features/invoices/totals';
 import type { Abrechnungsart, Customer, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
@@ -31,6 +30,10 @@ import { STAND, standWort } from './stand';
 import { verwerfenFrage, VERWORFEN_MELDUNG, WIEDERHERGESTELLT_MELDUNG } from './verwerfen';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import AbrechnungWahl from './AbrechnungWahl';
+import PositionenTabelle from './PositionenTabelle';
+import { AnnahmeLinkAbschnitt, AnnahmeLinkDialog } from './AnnahmeLink';
+import { angebotLinkGesehen, angebotLinkWiderrufen, listAngebotLinks, type AngebotLink } from '@/lib/db/angebotLinks';
+import { useModul } from '@/lib/useModule';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT, datumAusMs } from '@/lib/datum';
 import { verworfenText } from '@/features/papierkorb/papierkorbText';
@@ -75,6 +78,11 @@ export default function AngebotView() {
   /** Die Fassungen rundherum (M17): woraus dieses Angebot entstand, was daraus wurde. */
   const [vorgaenger, setVorgaenger] = useState<WithId<Quote> | null>(null);
   const [fassungen, setFassungen] = useState<WithId<Quote>[]>([]);
+  /** Die Annahme-Links (M02a), der jüngste zuerst — laden für sich wie die Fassungen. */
+  const [links, setLinks] = useState<Teil<AngebotLink[]>>(LAEDT);
+  const [linksVersuch, setLinksVersuch] = useState(0);
+  const [linkDialog, setLinkDialog] = useState(false);
+  const onlineAnnahme = useModul('angebote.online_annahme');
 
   const companyId = user?.companyId;
   const darfAendern = user ? isGF(user.role) : false;
@@ -126,6 +134,42 @@ export default function AngebotView() {
       weg = true;
     };
   }, [companyId, id, vorgaengerId, angebot.zustand]);
+
+  /*
+    DIE ANNAHME-LINKS LADEN FÜR SICH (M02a). Scheitern sie, sagt ein
+    Teilfehler das; das Angebot bleibt lesbar. Im Supporteinblick nicht: die
+    Links tragen Name und Unterschrift des Kunden, und die bleiben dem
+    Support verschlossen (wie das Journal).
+  */
+  useEffect(() => {
+    if (!companyId || !id || angebot.zustand !== 'bereit' || einblick) return;
+    let weg = false;
+    setLinks(LAEDT);
+    void (async () => {
+      try {
+        const l = await listAngebotLinks(id);
+        if (!weg) setLinks({ zustand: 'bereit', daten: l });
+      } catch {
+        if (!weg) setLinks({ zustand: 'fehler' });
+      }
+    })();
+    return () => {
+      weg = true;
+    };
+  }, [companyId, id, angebot.zustand, einblick, versuch, linksVersuch]);
+
+  /*
+    GESEHEN (M02a): öffnet jemand aus der Führung ein über den Link
+    angenommenes Angebot, geht der Hinweis auf der Startseite. Scheitert das,
+    bleibt er höchstens sieben Tage stehen — kein Grund, die Seite zu stören.
+  */
+  const fuehrung = user ? isGF(user.role) : false;
+  useEffect(() => {
+    if (links.zustand !== 'bereit' || !fuehrung || einblick) return;
+    for (const l of links.daten) {
+      if (l.zustand === 'angenommen' && !l.gesehenAm) void angebotLinkGesehen(l.id).catch(() => undefined);
+    }
+  }, [links, fuehrung, einblick]);
 
   /*
     DER KUNDE LÄDT FÜR SICH — er liefert nur die Anschrift fürs PDF. Scheitert
@@ -248,6 +292,10 @@ export default function AngebotView() {
   */
   const nachbarn = fassungsHinweis(q, [...(vorgaenger ? [vorgaenger] : []), ...fassungen]);
   const abgelaufen = offen && q.validUntil < todayStr();
+  /* Ein neuer Annahme-Link: wo heute versendet oder angenommen werden kann (M02a). */
+  const linkNeuMoeglich = offen && !nachbarn.angenommen;
+  const linkMoeglich = linkNeuMoeglich && darfAendern && onlineAnnahme && !einblick;
+  const linkListe = links.zustand === 'bereit' ? links.daten : [];
   /*
     IM PAPIERKORB (M01d): nur lesen. Der einzige Schritt ist das
     Wiederherstellen — außer, eine andere Fassung ist inzwischen angenommen;
@@ -300,6 +348,16 @@ export default function AngebotView() {
       {offen && !nachbarn.angenommen && (
         <Button variant="secondary" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(true); }}>
           Annehmen → Baustelle
+        </Button>
+      )}
+      {/*
+        DER ANNAHME-LINK (M02a) neben dem internen Annehmen: der Kunde nimmt
+        selbst an. Nicht im Supporteinblick — der Link ist eine Erklärung des
+        Betriebs an seinen Kunden (die Datenbank weist den Support ab).
+      */}
+      {linkMoeglich && (
+        <Button variant="secondary" onClick={() => setLinkDialog(true)}>
+          Annahme-Link
         </Button>
       )}
       {offen && nachbarn.angenommen && (
@@ -437,73 +495,31 @@ export default function AngebotView() {
       </dl>
     </Card>
   );
-  const titel = titelSummen(q.positions);
-  /*
-    DIE POSITIONEN ALS STÜCKLISTE (Planlinie B6): Kopf zwischen zwei Linien,
-    die laufende Nummer vorn, Beträge in Mono rechtsbündig, die Summe unter
-    einer Doppellinie. Gezählt werden nur Positionen — Titel und Text tragen
-    keine Nummer, so wie sie auch keinen Betrag tragen (M18). Die Nummer ist
-    die Reihenfolge auf dem Angebot, keine gespeicherte Angabe.
-  */
-  const posNummer = new Map<number, string>();
-  q.positions.forEach((p, i) => {
-    if ((p.art ?? 'position') === 'position') posNummer.set(i, String(posNummer.size + 1).padStart(2, '0'));
-  });
+  /* Gezählt werden nur Positionen — Titel und Text tragen keine Nummer (M18). */
+  const posAnzahl = q.positions.filter((p) => (p.art ?? 'position') === 'position').length;
   const positionen = (
-    <Card title={`Positionen (${posNummer.size})`} id="angebot-positionen">
-      <div className="overflow-x-auto">
-        <table className="tabelle stueckliste">
-          <thead>
-            <tr>
-              <th scope="col">Pos</th>
-              <th scope="col">Bezeichnung</th>
-              <th scope="col" className="r">Netto</th>
-            </tr>
-          </thead>
-          <tbody>
-            {q.positions.map((p, i) =>
-              // Titel mit der Summe seiner Positionen, Text ohne Beträge (M18).
-              p.art === 'titel' ? (
-                <tr key={i} className="stueckliste-titel">
-                  <td className="pos" />
-                  <td>{p.label}</td>
-                  <td className="r">{titel.has(i) && <>Summe {euro(titel.get(i)!)}</>}</td>
-                </tr>
-              ) : p.art === 'text' ? (
-                <tr key={i}>
-                  <td className="pos" />
-                  <td colSpan={2} className="whitespace-pre-line text-ink-muted">{p.label}</td>
-                </tr>
-              ) : (
-                <tr key={i}>
-                  <td className="pos">{posNummer.get(i)}</td>
-                  <td>
-                    {p.label}
-                    <span className="stueckliste-menge">
-                      {fmtMenge(p.qty)} {p.unit} × {euro(p.unitPrice)}
-                      {positionsRabattText(p.rabattProzent) ? `, ${positionsRabattText(p.rabattProzent)}` : ''}
-                    </span>
-                  </td>
-                  <td className="r">{euro(p.netto)}</td>
-                </tr>
-              ),
-            )}
-          </tbody>
-          <tfoot>
-            {(q.discountAmount ?? 0) > 0 && q.discount && (
-              <>
-                <Summe wort="Zwischensumme">{euro(q.subtotalNetto)}</Summe>
-                <Summe wort={discountLabel(q.discount)}>- {euro(q.discountAmount ?? 0)}</Summe>
-              </>
-            )}
-            <Summe wort="Netto">{euro(q.totalNetto)}</Summe>
-            <Summe wort={`USt. ${Math.round(q.vatRate * 100)}%`}>{euro(q.totalVat)}</Summe>
-            <Summe wort="Brutto" fett>{euro(q.totalBrutto)}</Summe>
-          </tfoot>
-        </table>
-      </div>
+    <Card title={`Positionen (${posAnzahl})`} id="angebot-positionen">
+      <PositionenTabelle q={q} />
     </Card>
   );
+  /*
+    ANNAHME PER LINK (M02a): was aus dem Link wurde — nur, wenn es einen gab.
+    Ein Ladefehler steht als Teilfehler oben; das Angebot bleibt lesbar.
+  */
+  const annahmeLink = linkListe.length > 0 ? (
+    <AnnahmeLinkAbschnitt
+      links={linkListe}
+      darfAendern={darfAendern && !einblick}
+      modulAn={onlineAnnahme}
+      neuMoeglich={linkNeuMoeglich}
+      onNeu={() => setLinkDialog(true)}
+      onWiderrufen={async (l) => {
+        await angebotLinkWiderrufen(l.id);
+        toast.success('Annahme-Link widerrufen');
+        setLinksVersuch((v) => v + 1);
+      }}
+    />
+  ) : null;
   const anmerkungen = q.notes?.trim() ? (
     <Card title="Anmerkungen" id="angebot-anmerkungen">
       <p className="whitespace-pre-line text-sm text-ink">{q.notes}</p>
@@ -584,6 +600,9 @@ export default function AngebotView() {
           onRetry={() => setVersuch((v) => v + 1)}
         />
       )}
+      {links.zustand === 'fehler' && (
+        <TeilFehler was="die Annahme-Links" onRetry={() => setLinksVersuch((v) => v + 1)} />
+      )}
       {fehler && <ErrorState message={fehler} />}
 
       {/*
@@ -597,6 +616,7 @@ export default function AngebotView() {
         <Sprungleiste
           ziele={[
             { id: 'angebot-verlauf', text: 'Verlauf' },
+            ...(annahmeLink ? [{ id: 'angebot-annahmelink', text: 'Annahme per Link' }] : []),
             { id: 'angebot-angaben', text: 'Angaben' },
             { id: 'angebot-positionen', text: 'Positionen' },
             ...(anmerkungen ? [{ id: 'angebot-anmerkungen', text: 'Anmerkungen' }] : []),
@@ -611,10 +631,27 @@ export default function AngebotView() {
         Verlauf mit dem nächsten Schritt und die Angaben.
       */}
       <Aktenspalten
-        telefon={[verlauf, angaben, positionen, anmerkungen]}
+        telefon={[verlauf, annahmeLink, angaben, positionen, anmerkungen]}
         links={[positionen, anmerkungen]}
-        rechts={[verlauf, angaben]}
+        rechts={[verlauf, annahmeLink, angaben]}
       />
+
+      {/* Der Link wird nur einmal gezeigt — die Seite lädt erst neu, wenn das Fenster zu ist. */}
+      {linkDialog && (
+        <AnnahmeLinkDialog
+          open
+          angebot={q}
+          firma={company?.name ?? ''}
+          kundenEmail={kunde.zustand === 'bereit' ? kunde.daten?.email : undefined}
+          vorsatz={praefixeVon(company).baustelle}
+          heute={todayStr()}
+          ersetztOffenenLink={linkListe.some((l) => l.zustand === 'offen')}
+          onClose={(erzeugt) => {
+            setLinkDialog(false);
+            if (erzeugt) setVersuch((v) => v + 1);
+          }}
+        />
+      )}
 
       {/* Erst fragen, dann anlegen (Launch-Check, M8) — wie in der Liste. */}
       <ConfirmDialog
@@ -663,16 +700,5 @@ function Angabe({ wort, children }: { wort: string; children: React.ReactNode })
         {children || <span className="text-ink-muted">nicht hinterlegt</span>}
       </dd>
     </div>
-  );
-}
-
-/** Eine Zeile unter den Positionen; die Bruttosumme steht als `summe` unter der Doppellinie. */
-function Summe({ wort, fett, children }: { wort: string; fett?: boolean; children: React.ReactNode }) {
-  return (
-    <tr className={fett ? 'summe' : 'stueckliste-zwischen'}>
-      <td className="pos" />
-      <td>{wort}</td>
-      <td className="r">{children}</td>
-    </tr>
   );
 }

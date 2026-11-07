@@ -1689,3 +1689,73 @@ Vorschlagszeile). Angepasst: `rechnungInEinemZug` und
 `rechnungNurUeberFunktionen` legten erfundene Schein-Kennungen an, die jetzt
 zu Recht abgewiesen werden. Gegenprobe: vor der Migration 10 von 10 rot, je
 geänderter Funktion die eigenen Fälle rot.
+
+**E56 — Angebotsannahme per Link; der Server prüft neue Befehle am Modul (06.11.2026).**
+SHK-Ausbau, Paket M02a (A06, „Behalten“; erster Nutzer von V3 und der ersten
+Unterfähigkeit `angebote.online_annahme`). Ein Kunde konnte ein Angebot nur
+annehmen, indem das Büro es für ihn tat.
+
+- **Der Link entsteht mit der Freigabe zum Versand (V4).** „Annahme-Link“ im
+  Angebot verlangt Abrechnungsart und Nummernvorsatz der künftigen Baustelle
+  und eine Gültigkeit (bis zur Gültigkeit des Angebots, höchstens ein Jahr).
+  Ein Entwurf wird damit „Versendet“. Der Link zeigt einen unveränderlichen
+  Stand des Angebots mit Prüfsumme; die Datenbank kennt nur den Hashwert des
+  Schlüssels (wie das Kalender-Abo). Er wird einmal angezeigt, kopierbar und
+  „per Mail-Programm“ (Versand aus der App kommt mit M14). Ein neuer Link
+  widerruft den alten; „Widerrufen“ jederzeit, solange nicht entschieden.
+- **Die Seite des Kunden** (`/angebot/annehmen#…`, ohne Anmeldung; der
+  Schlüssel steht im Fragment und erreicht nie einen Server-Log) zeigt das
+  Angebot, als PDF wie im Büro, und nimmt mit Name, Bestätigung und
+  Unterschrift an — oder lehnt mit Name und Grund ab. Unbekannt, abgelaufen
+  und widerrufen bekommen dieselbe Antwort; eine geänderte, ersetzte oder
+  nicht mehr versendete Fassung ebenso.
+- **Ein gemeinsamer Kern.** Intern und über den Link nimmt derselbe SQL-Kern
+  an (`app.angebot_annehmen_kern`): dieselbe Baustelle, dieselbe
+  Nummernfolge (`app.naechste_nummer_kern`), die anderen Fassungen „Ersetzt“.
+  `angebot_annehmen` behält Signatur, Rechte und Meldungen. Doppelte Annahme
+  ändert nichts; zwei gleichzeitige ergeben genau eine Baustelle. Im
+  Änderungsjournal steht „Kunde über Link: <Name>“.
+- **Das Büro erfährt es:** Push an die Führung bei Annahme und Ablehnung,
+  genau einmal (Schalter „Antwort eines Kunden über den Annahme-Link“ in „Mein Konto“), und
+  ein Hinweis auf der Startseite, bis das Angebot geöffnet ist. Im Angebot:
+  Stand des Links, Öffnungen (erstes, letztes, Anzahl — keine IP, kein Gerät:
+  U05, Datensparsamkeit), Name und Unterschrift.
+- **Rate-Limit je Link** (60 Anfragen je Stunde). Je Abrufer nicht: die
+  Adresse des Abrufers ist hinter dem Netzwerk nicht verlässlich bestimmbar,
+  und ein Zähler je falschem Schlüssel schriebe bei jedem Rateversuch eine
+  Zeile. Falsch geformte Schlüssel erreichen die Datenbank nicht.
+- **V3 umgesetzt:** `app.modul_aktiv(betrieb, schalter)` rechnet dieselbe
+  Regel wie `aktiveSchalter` in der App (Standard, Festlegung,
+  Abhängigkeiten, Unterfähigkeit nur mit Modul); die Standards stehen als
+  Liste in `app.modul_register()`, ein Test vergleicht sie mit dem Register
+  der App. Erzeugen und Abrufen prüfen `angebote.online_annahme`; abgeschaltet
+  gibt es keinen Link, und der Abruf antwortet wie unbekannt — nichts wird
+  widerrufen, nach dem Wiedereinschalten gelten offene Links bis zu ihrem
+  Ablauf (Folge in der Rückfrage). Der Kopf von `src/lib/module.ts` sagt jetzt:
+  für neue Befehle ist das Modul eine Grenze auf dem Server.
+- **Datenschutz:** Name, Unterschrift und Prüfsumme bleiben mit dem
+  angenommenen Angebot als Vertragsnachweis (Frist wie Angebote in der
+  Löschung); offene Links widerruft die Löschung des Kunden. Datenauskunft
+  des Kunden mit seinen Links, der Person mit erzeugten und widerrufenen.
+  Der Support sieht keine Links.
+- **Nebenbei robust gemacht:** `indizesWachstum.test.ts` — die Rechnungsfälle
+  fielen je nach Reihenfolge des Gesamtlaufs um, weil der Planer ohne eigene
+  Zeilen zwischen zwei Indizes schwankte (gesehen bei M01b und M02a). Jetzt
+  mit eigenem Bestand und neuer Messung nach dem Zurückrollen; der Fehler
+  ließ sich gezielt nicht nachstellen, die Ursache ist beseitigt.
+
+**Grenzen mit Grund:** kein QR-Code (die App hat keinen QR-Baustein; eine
+neue Bibliothek nur dafür — der Link ist kopierbar und mailbar); Versand aus
+der App erst mit dem SMTP-Secret des Betreibers (M14); Rate-Limit nur je
+Link (oben); Öffnungen nur gezählt (U05).
+
+**Prüfungen.** `angebotLink.test.ts` (33), `angebotLinkFunktion.test.ts` (9,
+Edge Function), `modulRegisterServer.test.ts` (3, SQL gleich App),
+`pushAngebotLink.test.ts`, `AngebotLink.test.tsx`,
+`AngebotAnnahmeSeite.test.tsx`, `MeldungAngebotLink.test.tsx`,
+`annahmeLink.test.ts`, `angebotLink.spec.ts` (Browser: Büro erzeugt, Kunde
+nimmt in einem zweiten Browser an, Büro sieht es), Inhaltsregel-Rundgang der
+öffentlichen Seite; Querschnitt in `mandantenTrennung`, `schema`,
+`ruecklauf`, `personLoeschen`. Gegenproben: ohne Migration 38 von 40 neuen
+Datenbankfällen rot (die zwei Erhaltungsfälle grün), je Baustein die eigenen
+Fälle rot.

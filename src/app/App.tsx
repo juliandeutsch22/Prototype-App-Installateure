@@ -12,6 +12,7 @@ import Unterreiter from '@/components/Unterreiter';
 import Layout from './Layout';
 import { LoadingState, SeitenPlatzhalter } from '@/components/States';
 import { SCHEIN_ROLLEN } from '@/lib/permissions';
+import { ANNAHME_PFAD } from '@/features/quotes/annahmeLink';
 
 /**
  * Jede Ansicht ist ein eigenes Paket.
@@ -43,6 +44,7 @@ import { ansicht } from '@/lib/ansichten';
 // Ausserhalb der Anmeldung: das Impressum muss jeder lesen können, auch ohne Konto.
 const ImpressumView = lazy(() => import('@/features/recht/ImpressumView'));
 const DatenschutzView = lazy(() => import('@/features/recht/DatenschutzView'));
+const AngebotAnnahmeSeite = lazy(() => import('@/features/angebotAnnahme/AngebotAnnahmeSeite'));
 /*
   NICHT NACHGELADEN. Die Passwortmaske steht am Anfang jeder Kette — nach dem
   Rücksetzlink UND unter „Mein Konto". Ein Nachladen ausgerechnet dort wäre
@@ -137,7 +139,8 @@ function AppInhalt() {
     /plattform ohnehin auf die Startseite.
   */
   useEffect(() => {
-    if (!loading && plattformAdmin && !einblick && ort.pathname !== '/plattform' && ort.pathname !== '/_muster') {
+    if (!loading && plattformAdmin && !einblick && ort.pathname !== '/plattform' && ort.pathname !== '/_muster'
+        && ort.pathname !== ANNAHME_PFAD) {
       navigate('/plattform', { replace: true });
     }
   }, [loading, plattformAdmin, einblick, ort.pathname, navigate]);
@@ -177,6 +180,22 @@ function AppInhalt() {
       weg = true;
     };
   }, [uid]);
+
+  /*
+    DIE SEITE DES ANNAHME-LINKS (M02a) GEHÖRT DEM KUNDEN — vor allem anderen,
+    gleich, wer in diesem Browser gerade angemeldet ist. Ein Büro, das seinen
+    eigenen Link ausprobiert, soll dieselbe Seite sehen wie der Kunde, nicht
+    seine offene Zwei-Faktor-Abfrage oder die Plattformseite.
+  */
+  if (ort.pathname === ANNAHME_PFAD) {
+    return (
+      <ErrorBoundary ohneMelden>
+        <Suspense fallback={<LoadingState label="Wird geladen …" />}>
+          <AngebotAnnahmeSeite />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
 
   if (neueCodes) {
     return (

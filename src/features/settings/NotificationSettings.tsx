@@ -15,6 +15,7 @@ import PasswortAendern from '@/features/auth/PasswortAendern';
 import ZweiFaktorKarte from './ZweiFaktorKarte';
 import { istBenutzerkonto } from '@shared/benutzername';
 import { grundAus } from '@/lib/fehlerGrund';
+import { useModul } from '@/lib/useModule';
 
 /** Was der Zustand für den Nutzer bedeutet — in seinen Worten, nicht in Fehlercodes. */
 const PUSH_TEXT: Record<PushState, { text: string; ton: 'ok' | 'hinweis' | 'aus' }> = {
@@ -58,6 +59,7 @@ export default function NotificationSettings() {
   const [orderReady, setOrderReady] = useState(PREFS_DEFAULTS.notifyOrderReady ?? true);
   const [urgent, setUrgent] = useState(PREFS_DEFAULTS.notifyUrgentDelivery ?? true);
   const [abwesenheit, setAbwesenheit] = useState(PREFS_DEFAULTS.notifyAbwesenheit ?? true);
+  const [angebot, setAngebot] = useState(PREFS_DEFAULTS.notifyAngebot ?? true);
   const [push, setPush] = useState<PushState>('aus');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +77,9 @@ export default function NotificationSettings() {
   // Eilzustellungen betreffen, wer eine Baustelle verantwortet — also die
   // Projektleitung und die Geschaeftsfuehrung.
   const zeigeEil = user ? isGF(user.role) : false;
+  // Die Antwort eines Kunden über den Annahme-Link (M02a) geht an die, die Angebote annehmen dürfen.
+  const onlineAnnahme = useModul('angebote.online_annahme');
+  const zeigeAngebot = user ? isGF(user.role) && onlineAnnahme : false;
 
   useEffect(() => {
     if (!user) return;
@@ -85,6 +90,7 @@ export default function NotificationSettings() {
         setOrderReady(p.notifyOrderReady ?? true);
         setUrgent(p.notifyUrgentDelivery ?? true);
         setAbwesenheit(p.notifyAbwesenheit ?? true);
+        setAngebot(p.notifyAngebot ?? true);
       })
       // Stumm gescheitert saehen die Schalter aus wie „steht auf Standard",
       // und wer sie danach umlegt, ueberschreibt seine eigene Einstellung mit
@@ -102,6 +108,7 @@ export default function NotificationSettings() {
     notifyOrderReady: boolean;
     notifyUrgentDelivery: boolean;
     notifyAbwesenheit: boolean;
+    notifyAngebot: boolean;
   }>) {
     if (!user) return;
     const next = {
@@ -109,12 +116,14 @@ export default function NotificationSettings() {
       notifyOrderReady: orderReady,
       notifyUrgentDelivery: urgent,
       notifyAbwesenheit: abwesenheit,
+      notifyAngebot: angebot,
       ...aenderung,
     };
     setNewOrder(next.notifyNewOrder);
     setOrderReady(next.notifyOrderReady);
     setUrgent(next.notifyUrgentDelivery);
     setAbwesenheit(next.notifyAbwesenheit);
+    setAngebot(next.notifyAngebot);
     try {
       await savePrefs(user.companyId, user.uid, next);
     } catch (err) {
@@ -270,6 +279,20 @@ export default function NotificationSettings() {
               neue Anträge gemeldet; Buchhaltung und Geschäftsführung zusätzlich Krankmeldungen.
             </InfoHint>
           </div>
+          {zeigeAngebot && (
+            <div className="flex flex-wrap items-center gap-2">
+              <CheckboxField
+                id="n-angebot"
+                label="Antwort eines Kunden über den Annahme-Link"
+                checked={angebot}
+                onChange={(e) => void speichern({ notifyAngebot: e.target.checked })}
+              />
+              <InfoHint about="Annahme-Link">
+                Du erfährst, wenn ein Kunde ein Angebot über den Link annimmt oder ablehnt — mit
+                Angebotsnummer und Namen, ohne Betrag.
+              </InfoHint>
+            </div>
+          )}
         </div>
       </Card>
 

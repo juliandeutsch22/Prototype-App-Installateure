@@ -24,6 +24,16 @@
  *
  * Wer diesen Unterschied nicht kennt, hält Module für Rechteverwaltung. Die
  * steht woanders: in den Rollen und im Zeilenschutz.
+ *
+ * NEUE FACHBEFEHLE PRÜFEN DAS MODUL AUF DEM SERVER (E51, V3). Was der
+ * SHK-Ausbau an neuen Befehlen bringt, fragt `app.modul_aktiv` — als erster
+ * der Annahme-Link (`angebote.online_annahme`, M02a): abgeschaltet entsteht
+ * kein neuer Link, und ein vorhandener antwortet wie ein unbekannter. Für
+ * diese Befehle IST das Modul eine Grenze. Die bestehenden Schreibwege
+ * bleiben, wie sie sind (oben). Die Regel ist dieselbe wie `aktiveSchalter`;
+ * die Standards stehen in SQL als Liste (`app.modul_register`), und
+ * `tests/supabase/modulRegisterServer.test.ts` vergleicht sie mit `MODULE`.
+ * Wer hier ein Modul oder eine Unterfähigkeit ändert, ändert die Liste mit.
  */
 
 export type ModulId =
@@ -135,7 +145,39 @@ export const MODULE: Modul[] = [
     zweck: 'Anforderungen vom Monteur, Bearbeitung im Büro, Lagerstand.',
     standard: true,
     betrifft: ['Material anfordern', 'Anforderungen', 'Lager'],
+    /*
+      DIE KATALOGE MEHRERER GROSSHÄNDLER (M03a). Abschalten nimmt die
+      Ansichten weg, NICHT DIE ZUORDNUNG: die Übernahme eines Katalogs legt
+      jeden Artikel an seinen Lieferantenartikel und überschreibt keinen
+      Artikel eines anderen Großhändlers, ob die Ansicht da ist oder nicht.
+      Das ist Datenrichtigkeit, kein Zusatz — ein abgeschalteter Schalter
+      dürfte sonst den Stamm wieder vom letzten Katalog überschreiben lassen.
+      Ebenso bestimmt der Einkaufspreis des Stammartikels sich immer nach der
+      Regel „günstigster vergleichbarer, sonst jüngster“: Kalkulation und
+      Nachkalkulation dürfen nicht von einer Ansicht abhängen.
+    */
     unter: [
+      {
+        id: 'material.katalogversionen',
+        name: 'Kataloge mehrerer Großhändler',
+        zweck: 'Offene Lieferantenartikel zuordnen oder als neuen Artikel anlegen.',
+        standard: true,
+        betrifft: ['Offene Lieferantenartikel', 'Zuordnen im Artikelblatt', 'Hinweis nach der Übernahme'],
+      },
+      {
+        id: 'material.lieferantenvergleich',
+        name: 'Preisvergleich der Lieferanten',
+        zweck: 'Preise eines Artikels je Großhändler nebeneinander, mit dem günstigsten.',
+        standard: true,
+        betrifft: ['Lieferanten im Artikelblatt', 'Grund des Großhändler-Vorschlags'],
+      },
+      {
+        id: 'material.katalogpreisverlauf',
+        name: 'Preisverlauf und Preissprünge',
+        zweck: 'Verlauf der Einkaufspreise je Großhändler, Preissprünge im Übernahmebericht.',
+        standard: true,
+        betrifft: ['Preisverlauf im Artikelblatt', 'Preissprünge im Übernahmebericht'],
+      },
       {
         /*
           LAGERORTE UND FAHRZEUGLAGER (M04a, E10). „Behalten“, Standard an:
@@ -188,6 +230,24 @@ export const MODULE: Modul[] = [
     zweck: 'Kalkulieren und beim Annehmen die Baustelle mit Stundenbudget anlegen.',
     standard: true,
     betrifft: ['Angebote'],
+    unter: [
+      {
+        id: 'angebote.online_annahme',
+        name: 'Annahme per Link',
+        zweck: 'Der Kunde nimmt ein Angebot über einen Link an — mit Name und Unterschrift, ohne Konto.',
+        standard: true,
+        betrifft: ['„Annahme-Link“ im Angebot'],
+        /*
+          GEPRÜFT AM SERVER (V3): `angebot_link_abruf` und die Annahme fragen
+          `app.modul_aktiv`; gelöscht oder widerrufen wird beim Abschalten
+          nichts. Die Gültigkeit läuft weiter — ein Link, der in der Zeit
+          abläuft, bleibt abgelaufen.
+        */
+        folgen: [
+          'Offene Annahme-Links funktionieren nicht mehr: Der Kunde sieht dieselbe Meldung wie bei einem ungültigen Link. Nach dem Wiedereinschalten gelten sie wieder bis zu ihrem Ablaufdatum.',
+        ],
+      },
+    ],
   },
   {
     id: 'rechnungen',
