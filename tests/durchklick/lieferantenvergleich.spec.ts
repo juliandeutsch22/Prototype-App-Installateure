@@ -49,8 +49,11 @@ test('Zwei Kataloge mit derselben Nummer: offen, zuordnen, günstigster im Artik
   await expect(page).toHaveURL(/reiter=zuordnen/);
   await page.getByRole('button', { name: 'Kugelhahn Beta' }).click();
   const fenster = page.getByRole('dialog');
-  await expect(fenster.getByText('gleiche Nummer', { exact: false })).toBeVisible();
-  await fenster.getByRole('button', { name: 'Zuordnen' }).click();
+  // Weitere Vorschläge („ähnliche Bezeichnung“) dürfen dastehen — gewählt wird der mit gleicher Nummer.
+  const gleicheNummer = fenster.getByRole('region', { name: 'Vorschläge' }).locator('li', { hasText: 'gleiche Nummer' });
+  await expect(gleicheNummer).toHaveCount(1);
+  await expect(gleicheNummer).toContainText('Kugelhahn Alpha');
+  await gleicheNummer.getByRole('button', { name: 'Zuordnen' }).click();
   await expect(page.getByText(/Beta Großhandel LV-1 → Kugelhahn Alpha/)).toBeVisible();
   await keineFehlermeldung(page);
 
