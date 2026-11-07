@@ -30,7 +30,16 @@ async function aufraeumen() {
   await admin.from('zeitfeld_definitionen').delete().eq('company_id', BETRIEB);
 }
 
-const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+/*
+  DER TAG IN WIEN, nicht der des Testprozesses: die App bucht nach dem Wiener
+  Kalender. Kurz nach Mitternacht lagen die beiden sonst einen Tag auseinander.
+*/
+const heuteWien = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna' }).format(new Date());
+/** Ein Kalendertag davor — gerechnet am Datum, nicht in Stunden (Zeitumstellung). */
+const tagDavor = (tag: string) => {
+  const [j, m, t] = tag.split('-').map(Number);
+  return new Date(Date.UTC(j, m - 1, t - 1)).toISOString().slice(0, 10);
+};
 
 test.beforeEach(aufraeumen);
 test.afterEach(aufraeumen);
@@ -79,7 +88,7 @@ test('Zeitfelder: anlegen, buchen, im Büro sehen und exportieren, ändern im Ve
   await page.getByLabel('Kilometer (km)').fill('12,5');
   await page.getByRole('button', { name: /^Zeit buchen$/ }).click();
 
-  const heute = iso(new Date());
+  const heute = heuteWien();
   let buchungId = '';
   await expect(async () => {
     const { data } = await admin.from('time_entries').select('id, zeitfeld_fassung').eq('company_id', BETRIEB).eq('date', heute);
@@ -152,19 +161,18 @@ test('Zeitfelder: anlegen, buchen, im Büro sehen und exportieren, ändern im Ve
     felder: { ...(zwei!.felder as object), [n.id]: { typ: n.typ, regeln: n.regeln, staende: n.gilt_staende, rollen: n.gilt_rollen, pflicht: n.pflicht } },
   })).error).toBeNull();
 
-  const gestern = new Date();
-  gestern.setDate(gestern.getDate() - 1);
-  await page.getByLabel('Datum', { exact: true }).fill(iso(gestern));
+  const gestern = tagDavor(heuteWien());
+  await page.getByLabel('Datum', { exact: true }).fill(gestern);
   await page.getByLabel(/^Von/).fill('07:00');
   await page.getByLabel(/^Bis/).fill('15:00');
   await page.getByLabel(/^Kostenstelle/).selectOption({ label: 'Graz' });
   await page.getByRole('button', { name: /^Zeit buchen$/ }).click();
   await expect(page.getByText(/wird automatisch gesendet/)).toBeVisible({ timeout: 20_000 });
-  expect((await admin.from('time_entries').select('id').eq('company_id', BETRIEB).eq('date', iso(gestern))).data).toEqual([]);
+  expect((await admin.from('time_entries').select('id').eq('company_id', BETRIEB).eq('date', gestern)).data).toEqual([]);
 
   await context.setOffline(false);
   await expect(async () => {
-    const { data } = await admin.from('time_entries').select('id, zeitfeld_fassung').eq('company_id', BETRIEB).eq('date', iso(gestern));
+    const { data } = await admin.from('time_entries').select('id, zeitfeld_fassung').eq('company_id', BETRIEB).eq('date', gestern);
     expect(data ?? []).toHaveLength(1);
     expect(data![0].zeitfeld_fassung).toBe(3);
     const { data: werte } = await admin.from('zeitbuchung_feldwerte').select('fassung').eq('eintrag_id', data![0].id);
