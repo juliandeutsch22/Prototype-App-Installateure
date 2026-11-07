@@ -4,6 +4,7 @@ import { useAuth } from '@/app/AuthContext';
 import { canAccess } from '@/app/navigation';
 import {
   eingangAblehnen,
+  eingangAendern,
   eingangKundeAnlegen,
   eingangLoeschen,
   eingangTerminSetzen,
@@ -22,7 +23,8 @@ import { useModul } from '@/lib/useModule';
 import { todayStr } from '@/lib/time';
 import { datumAT } from '@/lib/datum';
 import { grundAus } from '@/lib/fehlerGrund';
-import type { Abrechnungsart, AppUser, Auftragseingang, Termin } from '@/types';
+import type { Abrechnungsart, AppUser, Auftragseingang, Customer, Termin } from '@/types';
+import type { WithId } from '@/lib/db/core';
 import PageHeader from '@/components/PageHeader';
 import Card from '@/components/Card';
 import Aktenspalten from '@/components/Aktenspalten';
@@ -44,6 +46,7 @@ import TerminFormular from '@/features/termine/TerminFormular';
 import { terminKopf, terminZeit } from '@/features/termine/terminText';
 import { ZIEL } from '@/features/dashboard/start/ziele';
 import EingangFormular from './EingangFormular';
+import { gleichnamigeKunden, rueckfrageText } from '@/features/customers/gleichnamig';
 import {
   DRINGLICHKEIT_TEXT,
   QUELLE_TEXT,
@@ -90,6 +93,8 @@ export default function EingangView() {
   const [fehler, setFehler] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [frage, setFrage] = useState<'baustelle' | 'angebot' | 'ablehnen' | 'loeschen' | null>(null);
+  /** Gleichnamige Kunden vor einem Weg, der aus dem neuen Kunden einen Kunden macht — und welcher Weg es war. */
+  const [dublette, setDublette] = useState<{ aktion: 'kunde' | 'baustelle' | 'angebot'; gleiche: WithId<Customer>[] } | null>(null);
   const [abrechnung, setAbrechnung] = useState<Abrechnungsart>('Regie');
   const [grund, setGrund] = useState('');
   const [bearbeiten, setBearbeiten] = useState(false);
@@ -213,17 +218,61 @@ export default function EingangView() {
     neuLaden();
   });
 
+  /** Der Weg selbst — ohne Rückfrage, oder nachdem sie beantwortet ist. */
+  function weiter(aktion: 'kunde' | 'baustelle' | 'angebot') {
+    if (aktion === 'kunde') void kundeAnlegen();
+    else {
+      if (aktion === 'baustelle') setAbrechnung('Regie');
+      setFrage(aktion);
+    }
+  }
+
+  /*
+    GLEICHER NAME — DIESELBE RÜCKFRAGE WIE IN DER KUNDENLISTE (M11). Jeder
+    Weg, der aus den Angaben zum neuen Kunden einen Kunden macht („Kunde
+    anlegen“, Baustelle, Angebot), fragt vorher den Server, ob es den Namen
+    schon gibt. Dann: einen der vorhandenen übernehmen — der Eingang zeigt
+    danach auf ihn, die Angaben zum neuen Kunden sind leer — oder trotzdem
+    anlegen.
+  */
+  const mitPruefung = (aktion: 'kunde' | 'baustelle' | 'angebot') => schritt(async () => {
+    if (!neuerKunde || !e.neukundeName) {
+      weiter(aktion);
+      return;
+    }
+    const gleiche = await gleichnamigeKunden(companyId, e.neukundeName);
+    if (gleiche.length === 0) weiter(aktion);
+    else setDublette({ aktion, gleiche });
+  });
+
+  /** Statt einen zweiten anzulegen: den vorhandenen Kunden übernehmen (über den gewöhnlichen Ändern-Weg). */
+  const eingangId = e.id;
+  const eingangNummer = e.nummer;
+  const firmaId = companyId;
+  async function uebernehmen(k: WithId<Customer>, aktion: 'kunde' | 'baustelle' | 'angebot') {
+    await eingangAendern(eingangId, {
+      customerId: k.id,
+      neukundeName: null, neukundeStrasse: null, neukundePlz: null, neukundeOrt: null,
+      neukundeTelefon: null, neukundeEmail: null,
+    });
+    setDublette(null);
+    toast.success(`Der Eingang ${eingangNummer} gehört jetzt zu ${k.name}`);
+    const frisch = await getEingang(firmaId, eingangId);
+    setEingang({ zustand: 'bereit', daten: frisch });
+    if (aktion !== 'kunde') weiter(aktion);
+  }
+
   const menue: RowMenuItem[] = [];
-  if (offen && fuehrung && angeboteAn) menue.push({ label: 'Angebot anlegen', onSelect: () => setFrage('angebot') });
+  if (offen && fuehrung && angeboteAn) menue.push({ label: 'Angebot anlegen', onSelect: () => void mitPruefung('angebot') });
   if (besichtigungMoeglich && e.customerId) menue.push({ label: 'Besichtigung vereinbaren', onSelect: () => setBesichtigung(true) });
-  if (offen && buero && neuerKunde && kundePflegen) menue.push({ label: 'Kunde anlegen', onSelect: () => void kundeAnlegen() });
+  if (offen && buero && neuerKunde && kundePflegen) menue.push({ label: 'Kunde anlegen', onSelect: () => void mitPruefung('kunde') });
   if (offen && fuehrung) menue.push({ label: 'Bearbeiten', onSelect: () => setBearbeiten(true) });
   if (offen && buero) menue.push({ label: 'Ablehnen', onSelect: () => { setGrund(''); setFrage('ablehnen'); } });
   if ((offen || e.stand === 'abgelehnt') && fuehrung) menue.push({ label: 'Löschen', danger: true, onSelect: () => setFrage('loeschen') });
 
   const hauptaktion = (() => {
     if (offen && fuehrung) {
-      return <Button onClick={() => { setAbrechnung('Regie'); setFrage('baustelle'); }}>Baustelle anlegen</Button>;
+      return <Button loading={busy} onClick={() => void mitPruefung('baustelle')}>Baustelle anlegen</Button>;
     }
     if (offen && buero) return <Button onClick={() => setBearbeiten(true)}>Bearbeiten</Button>;
     if ((e.stand === 'abgelehnt' || zielWeg) && buero) {
@@ -358,7 +407,7 @@ export default function EingangView() {
           <p>
             Für eine Besichtigung braucht der Eingang einen Kunden.{' '}
             {kundePflegen ? (
-              <Button variant="ghost" groesse="klein" loading={busy} onClick={() => void kundeAnlegen()}>
+              <Button variant="ghost" groesse="klein" loading={busy} onClick={() => void mitPruefung('kunde')}>
                 Kunde anlegen
               </Button>
             ) : (
@@ -405,6 +454,34 @@ export default function EingangView() {
           />
         )}
       </BottomSheet>
+
+      <ConfirmDialog
+        open={dublette !== null}
+        title="Gleicher Name — trotzdem anlegen?"
+        message={dublette ? rueckfrageText(e.neukundeName?.trim() ?? '', dublette.gleiche, 'sonst unten den vorhandenen für diesen Eingang übernehmen') : ''}
+        confirmLabel="Trotzdem anlegen"
+        confirmTone="primary"
+        onCancel={() => setDublette(null)}
+        onConfirm={() => {
+          const aktion = dublette?.aktion;
+          setDublette(null);
+          if (aktion) weiter(aktion);
+        }}
+      >
+        <ul className="flex flex-col gap-2">
+          {(dublette?.gleiche ?? []).slice(0, 10).map((k) => (
+            <li key={k.id}>
+              <Button
+                variant="secondary"
+                onClick={() => void schritt(() => uebernehmen(k, dublette!.aktion))}
+                aria-label={`${k.name} (${k.address?.trim() || 'ohne Adresse'}) übernehmen`}
+              >
+                {k.name} ({k.address?.trim() || 'ohne Adresse'}) übernehmen
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </ConfirmDialog>
 
       {/* Erst fragen, dann anlegen — wie beim Annehmen eines Angebots. */}
       <ConfirmDialog

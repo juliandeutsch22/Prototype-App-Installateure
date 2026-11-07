@@ -39,6 +39,7 @@ import KundenartUidFelder from '@/components/KundenartUidFelder';
 import { uidSperrt } from '@/lib/uid';
 import { grundAus } from '@/lib/fehlerGrund';
 import { angabenZuPruefen, mailFehler, plzFehler } from '@/lib/adresse';
+import { gleichnamigeKunden, rueckfrageText, schluessel } from './gleichnamig';
 
 const LEER: NewCustomer = {
   name: '',
@@ -57,21 +58,6 @@ const LEER: NewCustomer = {
   notes: '',
   active: true,
 };
-
-/** Namen für den Abgleich vereinheitlichen — Groß-/Kleinschreibung und Leerraum. */
-function schluessel(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, ' ');
-}
-
-/** Die Rückfrage: wen es schon gibt, mit Adresse — daran erkennt man ihn. */
-function rueckfrageText(name: string, gleiche: Customer[]): string {
-  const wer = gleiche
-    .slice(0, 3)
-    .map((k) => `„${k.name}“ (${k.address?.trim() || 'ohne Adresse'})`)
-    .join(', ');
-  const mehr = gleiche.length > 3 ? ` und ${gleiche.length - 3} weitere` : '';
-  return `Es gibt schon ${wer}${mehr}. Ist „${name}“ ein anderer Kunde, trotzdem anlegen; sonst den bestehenden bearbeiten.`;
-}
 
 /**
  * Kundenverwaltung.
@@ -335,8 +321,7 @@ export default function CustomersView() {
           Server, nicht die geladene Liste: sie kennt den ganzen Bestand.
         */
         if (!trotzdem) {
-          const treffer = await searchCustomers(user.companyId, form.name.trim(), 50);
-          const gleiche = treffer.filter((k) => schluessel(k.name) === schluessel(form.name));
+          const gleiche = await gleichnamigeKunden(user.companyId, form.name);
           if (gleiche.length > 0) {
             setGleichNamig(gleiche);
             return;

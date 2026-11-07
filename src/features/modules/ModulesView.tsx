@@ -65,8 +65,11 @@ function rueckfrage(frage: { id: SchalterId; mit: SchalterId[]; folgen: string[]
  *     Einstellungen das Gegenteil von Kontrolle.
  *  2. Sagen, dass DATEN BLEIBEN. Sonst traut sich niemand, etwas
  *     abzuschalten — und die Einstellung wäre für nichts da.
- *  3. Sagen, dass ein Modul KEINE Rechteverwaltung ist. Wer das verwechselt,
- *     hält ein abgeschaltetes Modul für Schutz.
+ *  3. Sagen, was ein Modul SPERRT und was nicht (E51 V3, E56): bestehende
+ *     Wege blendet es nur aus — das Recht der Rolle bleibt; neue Befehle
+ *     (Annahme-Link, Auftragseingang …) prüft der Server, ausgeschaltet sind
+ *     sie auch über die Schnittstelle gesperrt. Wer die Rechte sucht, findet
+ *     sie in den Rollen.
  */
 export default function ModulesView() {
   const { user, company, reloadCompany } = useAuth();
@@ -234,10 +237,12 @@ export default function ModulesView() {
             Abschalten.
             <br />
             <br />
-            Module sind <strong>keine Rechteverwaltung</strong>. Sie nehmen den Weg weg, nicht das
-            Recht: wer als Buchhaltung Rechnungen anlegen darf, darf das weiterhin — die
-            Oberfläche bietet es nur nicht mehr an. Wer wann was darf, steht in den Rollen und
-            wird serverseitig durchgesetzt. Geschützt ist hier die <em>Modulliste selbst</em>:
+            Module ersetzen <strong>keine Rechteverwaltung</strong>. Bei den bestehenden Bereichen
+            nimmt ein Modul nur den Weg weg: wer als Buchhaltung Rechnungen anlegen darf, darf das
+            weiterhin — die Oberfläche bietet es nur nicht mehr an. Neuere Funktionen wie der
+            Annahme-Link oder der Auftragseingang prüft dagegen auch der Server: ausgeschaltet sind
+            sie auch über die Schnittstelle gesperrt. Wer wann was darf, steht in den Rollen.
+            Geschützt ist hier die <em>Modulliste selbst</em>:
             ändern darf sie nur der Administrator.
           </>
         }

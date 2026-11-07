@@ -63,7 +63,13 @@ vi.mock('@/lib/db/termine', () => ({
   terminAendern: vi.fn(),
 }));
 vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => []) }));
-vi.mock('@/lib/db/customers', () => ({ listCustomersByIds: vi.fn(async () => []), searchCustomers: vi.fn(async () => []) }));
+/* Kunden mit Namen wie der neue — die Suche läuft auf dem Server (M11); ab Werk keine. */
+let gleichnamige: { id: string; companyId: string; name: string; address?: string }[] = [];
+const searchCustomers = vi.fn<(c: string, b: string, m?: number) => Promise<typeof gleichnamige>>(async () => gleichnamige);
+vi.mock('@/lib/db/customers', () => ({
+  listCustomersByIds: vi.fn(async () => []),
+  searchCustomers: (c: string, b: string, m?: number) => searchCustomers(c, b, m),
+}));
 
 let rolle = 'Geschäftsführung';
 let kundenPflegen = false;
@@ -102,6 +108,8 @@ beforeEach(() => {
   kundenPflegen = false;
   for (const f of Object.values(db)) f.mockClear();
   terminAnlegen.mockClear();
+  gleichnamige = [];
+  searchCustomers.mockClear();
 });
 
 describe('Die Angaben', () => {
@@ -260,5 +268,79 @@ describe('Abgelehnt und übernommen', () => {
     eingang = null;
     zeige();
     expect(await screen.findByText('Diesen Eingang gibt es nicht (mehr).')).toBeInTheDocument();
+  });
+});
+
+/*
+  GLEICHER NAME (M11, seit M02b auch im Eingang): bevor aus den Angaben zum
+  neuen Kunden ein Kunde wird — „Kunde anlegen“, Baustelle, Angebot —,
+  fragt die Seite den Server nach gleichnamigen. Gibt es welche, nennt die
+  Rückfrage sie mit Adresse und bietet an, einen zu übernehmen oder trotzdem
+  anzulegen. Gegenprobe: ohne die Rückfrage ginge „Kunde anlegen“ sofort
+  durch — der erste Fall wäre rot.
+*/
+describe('Gleichnamige Kunden', () => {
+  const NEU: Auftragseingang = { ...OFFEN, customerId: null, kundeName: 'Familie Huber', neukundeName: 'Familie Huber' };
+  const HUBER = { id: 'k9', companyId: 'perl', name: 'FAMILIE HUBER', address: 'Hauptplatz 1, 8010 Graz' };
+
+  it('„Kunde anlegen“: die Rückfrage nennt den vorhandenen mit Adresse — „Trotzdem anlegen“ legt an', async () => {
+    const nutzer = userEvent.setup();
+    rolle = 'Verwaltung';
+    kundenPflegen = true;
+    eingang = NEU;
+    gleichnamige = [HUBER, { id: 'k8', companyId: 'perl', name: 'Familie Hubertus' }];
+    zeige();
+    await menue(nutzer);
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Kunde anlegen' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Gleicher Name — trotzdem anlegen?' });
+    expect(searchCustomers).toHaveBeenCalledWith('perl', 'Familie Huber', 50);
+    // Nur der gleiche Name (Groß-/Kleinschreibung egal), nicht „Hubertus“.
+    expect(dialog).toHaveTextContent('Es gibt schon „FAMILIE HUBER“ (Hauptplatz 1, 8010 Graz).');
+    expect(dialog).not.toHaveTextContent('Hubertus');
+    expect(db.eingangKundeAnlegen).not.toHaveBeenCalled();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Trotzdem anlegen' }));
+    await waitFor(() => expect(db.eingangKundeAnlegen).toHaveBeenCalledWith(ID));
+  });
+
+  it('„Baustelle anlegen“: den vorhandenen übernehmen — der Eingang zeigt auf ihn, dann die Rückfrage zur Baustelle ohne neuen Kunden', async () => {
+    const nutzer = userEvent.setup();
+    eingang = NEU;
+    gleichnamige = [HUBER];
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Baustelle anlegen' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Gleicher Name — trotzdem anlegen?' });
+    eingang = { ...OFFEN, customerId: 'k9', kundeName: 'FAMILIE HUBER' };
+    await nutzer.click(within(dialog).getByRole('button', { name: 'FAMILIE HUBER (Hauptplatz 1, 8010 Graz) übernehmen' }));
+    await waitFor(() => expect(db.eingangAendern).toHaveBeenCalledWith(ID, {
+      customerId: 'k9', neukundeName: null, neukundeStrasse: null, neukundePlz: null, neukundeOrt: null,
+      neukundeTelefon: null, neukundeEmail: null,
+    }));
+    const frage = await screen.findByRole('dialog', { name: 'Baustelle anlegen?' });
+    expect(frage).not.toHaveTextContent('angelegt');
+    expect(db.eingangZuBaustelle).not.toHaveBeenCalled();
+  });
+
+  it('„Angebot anlegen“ fragt ebenso; ohne gleichnamigen kommt gleich die Rückfrage zum Angebot', async () => {
+    const nutzer = userEvent.setup();
+    eingang = NEU;
+    gleichnamige = [HUBER];
+    const v = zeige();
+    await menue(nutzer);
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Angebot anlegen' }));
+    expect(await screen.findByRole('dialog', { name: 'Gleicher Name — trotzdem anlegen?' })).toBeInTheDocument();
+    v.unmount();
+    gleichnamige = [];
+    zeige();
+    await menue(nutzer);
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Angebot anlegen' }));
+    expect(await screen.findByRole('dialog', { name: 'Angebot anlegen?' })).toHaveTextContent('Dabei wird der Kunde „Familie Huber“ angelegt');
+  });
+
+  it('gleich geblieben: mit vorhandenem Kunden wird nicht gesucht', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Baustelle anlegen' }));
+    expect(await screen.findByRole('dialog', { name: 'Baustelle anlegen?' })).toBeInTheDocument();
+    expect(searchCustomers).not.toHaveBeenCalled();
   });
 });

@@ -200,6 +200,14 @@ describe('Was sich nicht zurückholen lässt (M01a, E52)', () => {
     // Der Server lässt nur den Administrator die Module schalten; die Hilfe sagte „Geschäftsführung“.
     expect(text).toMatch(/ändern darf sie nur der Administrator/);
     expect(text).not.toMatch(/ändern darf sie nur die Geschäftsführung/);
+    /*
+      E56, V3: bestehende Wege blendet ein Modul nur aus; neue Befehle prüft
+      der Server. Vorher hieß es pauschal „Sie nehmen den Weg weg, nicht das
+      Recht“ — für den Annahme-Link und den Auftragseingang stimmte das nicht.
+    */
+    expect(text).toMatch(/bestehenden Bereichen\s+nimmt ein Modul nur den Weg weg/);
+    expect(text).toMatch(/prüft dagegen auch der Server: ausgeschaltet sind\s+sie auch über die Schnittstelle gesperrt/);
+    expect(text).not.toMatch(/Module sind keine Rechteverwaltung/);
   });
 });
 
