@@ -1,3 +1,4 @@
+import { exportSpalten, spaltenKopf, spaltenWert, type ZeitfeldAnzeige, type ZeitfeldWert } from '@/lib/zeitfelder';
 import type { AppUser, TimeEntry } from '@/types';
 import { PETROL } from '@/lib/belegLayout';
 import { calcWorkMin, calcMonthStats, groupProjectHours, type MonthStats } from '@/lib/time';
@@ -108,6 +109,23 @@ export interface Lohnregeln {
 
 const mitTagesgrenze = (l: Lohnregeln) => l.ueberstunden?.modell === 'tagesgrenze';
 
+/**
+ * DIE FREIEN ZEITFELDER IM EXPORT (M06b): je Feld eine Spalte, ANGEHÄNGT
+ * hinter die letzte bisherige — wie „Zeitausgleich(Std)“ seinerzeit. Eine
+ * Lohnverrechnung, die die Spalten nach ihrer Stelle liest, findet alles
+ * Bisherige, wo es war. Ohne Felder bleibt die Datei Zeichen für Zeichen,
+ * wie sie war.
+ */
+export interface ExportZeitfelder {
+  definitionen: readonly ZeitfeldAnzeige[];
+  /** Die Werte je Buchung (Kennung). */
+  werte: ReadonlyMap<string, Record<string, ZeitfeldWert>>;
+}
+
+function feldSpalten(z: ExportZeitfelder | undefined, eintraege: readonly TimeEntry[]): ZeitfeldAnzeige[] {
+  return z ? exportSpalten(z.definitionen, z.werte, eintraege.map((e) => e.id)) : [];
+}
+
 export interface UserWithEntries {
   user: AppUser;
   monthEntries: TimeEntry[];
@@ -146,8 +164,11 @@ export function buildMonthCsv(
   lohn: Lohnregeln = {},
   /** Alle Buchungen des Monats, auch ohne Zeitkonto — für die Projektauswertung (M25). */
   projektEintraege?: TimeEntry[],
+  /** Die freien Zeitfelder (M06b) — hinten angehängt. */
+  zeitfelder?: ExportZeitfelder,
 ): string {
   const lines: string[] = [];
+  const felder = feldSpalten(zeitfelder, rows.flatMap((r) => r.monthEntries));
 
   lines.push(
     row([
@@ -158,6 +179,8 @@ export function buildMonthCsv(
       // mit Aufschlag zusammen. Fehlten sie hier, verrechnete der Betrieb
       // einen Zuschlag, den die Lohnverrechnung nie zu sehen bekommt.
       'Nacht', 'Notdienst',
+      // M06b: die freien Zeitfelder, ganz hinten.
+      ...felder.map(spaltenKopf),
     ]),
   );
 
@@ -186,6 +209,7 @@ export function buildMonthCsv(
         hours(wm + travel),
         kennzeichen(nachtArbeitMin(e, lohn.nacht) > 0),
         kennzeichen(e.isEmergency),
+        ...felder.map((d) => spaltenWert(d, zeitfelder?.werte.get(e.id)?.[d.id])),
       ]),
     );
   }
@@ -350,8 +374,11 @@ export function buildUserCsv(
   lohn: Lohnregeln = {},
   /** Wie `UserWithEntries.vorlauf`: die Woche vor dem Monatsersten. */
   vorlauf: TimeEntry[] = [],
+  /** Die freien Zeitfelder (M06b) — hinten angehängt. */
+  zeitfelder?: ExportZeitfelder,
 ): string {
   const lines: string[] = [];
+  const felder = feldSpalten(zeitfelder, monthEntries);
   lines.push(row([`Zeiterfassung: ${user.name}`]));
   lines.push(row([`Monat: ${MONTHS[month]} ${year}`]));
   lines.push(
@@ -362,6 +389,7 @@ export function buildUserCsv(
     row([
       'Datum', 'Status', 'Kunde/Baustelle', 'Projektnummer', 'Startzeit', 'Endzeit',
       'Pause(Min)', 'Wegzeit(Min)', 'Arbeitszeit(Std)', 'Nacht', 'Notdienst', 'Kommentar',
+      ...felder.map(spaltenKopf),
     ]),
   );
 
@@ -380,6 +408,7 @@ export function buildUserCsv(
         kennzeichen(nachtArbeitMin(e, lohn.nacht) > 0),
         kennzeichen(e.isEmergency),
         e.comment ?? '',
+        ...felder.map((d) => spaltenWert(d, zeitfelder?.werte.get(e.id)?.[d.id])),
       ]),
     );
   }

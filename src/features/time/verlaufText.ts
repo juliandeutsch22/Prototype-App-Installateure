@@ -10,6 +10,7 @@
  */
 import type { VerlaufZeile } from '@/lib/db/zeitbuchungVerlauf';
 import { datumAT } from '@/lib/datum';
+import { wertText, type ZeitfeldAnzeige, type ZeitfeldWert } from '@/lib/zeitfelder';
 
 type Format = (w: unknown) => string;
 
@@ -66,8 +67,40 @@ function wann(ms: number): string {
   });
 }
 
-/** Eine Zeile des Protokolls in Worten. */
-export function verlaufEintrag(z: VerlaufZeile): VerlaufEintrag {
+/**
+ * DIE FREIEN ZEITFELDER (M06b) stehen im Protokoll als `feld:<Kennung>` —
+ * die Kennung bleibt, der Name kann sich ändern. Aufgelöst wird über die
+ * Definition, wie sie jetzt heißt (auch eine beendete); eine Auswahl zeigt
+ * den Text der Option. In der Reihenfolge des Betriebs, nach den festen
+ * Spalten.
+ */
+function feldZeilen(
+  aenderungen: Record<string, unknown>,
+  felder: readonly ZeitfeldAnzeige[],
+  geaendert: boolean,
+): string[] {
+  const schluessel = Object.keys(aenderungen).filter((k) => k.startsWith('feld:'));
+  if (schluessel.length === 0) return [];
+  const nachId = new Map(felder.map((f) => [f.id, f]));
+  const zeilen: { rang: number; text: string }[] = [];
+  for (const k of schluessel) {
+    const def = nachId.get(k.slice(5));
+    const name = def?.name ?? 'Freie Angabe';
+    const format = (w: unknown) =>
+      leer(w) ? '—' : def ? wertText(def, w as ZeitfeldWert) || '—' : String(w);
+    const w = aenderungen[k];
+    if (geaendert) {
+      const a = w as { alt: unknown; neu: unknown };
+      zeilen.push({ rang: def?.reihenfolge ?? Infinity, text: `${name} ${format(a?.alt)} → ${format(a?.neu)}` });
+    } else if (!leer(w)) {
+      zeilen.push({ rang: def?.reihenfolge ?? Infinity, text: `${name} ${format(w)}` });
+    }
+  }
+  return zeilen.sort((a, b) => a.rang - b.rang).map((z) => z.text);
+}
+
+/** Eine Zeile des Protokolls in Worten — `felder`: die Definitionen der freien Zeitfelder (M06b). */
+export function verlaufEintrag(z: VerlaufZeile, felder: readonly ZeitfeldAnzeige[] = []): VerlaufEintrag {
   const titel = `${ART[z.art]}${z.vonName ? ` von ${z.vonName}` : ''}`;
   const zeilen: string[] = [];
   if (z.art === 'geaendert') {
@@ -75,6 +108,7 @@ export function verlaufEintrag(z: VerlaufZeile): VerlaufEintrag {
       const w = z.aenderungen[spalte] as { alt: unknown; neu: unknown } | undefined;
       if (w) zeilen.push(`${name} ${format(w.alt)} → ${format(w.neu)}`);
     }
+    zeilen.push(...feldZeilen(z.aenderungen, felder, true));
     if (zeilen.length === 0) zeilen.push('Verknüpfung geändert (Antrag, Meldung oder Baustelle)');
   } else {
     for (const [spalte, name, format] of FELDER) {
@@ -82,6 +116,7 @@ export function verlaufEintrag(z: VerlaufZeile): VerlaufEintrag {
       // Beim ganzen Stand nur, was etwas sagt: keine leeren Felder, kein „nein“.
       if (!leer(w) && w !== false) zeilen.push(`${name} ${format(w)}`);
     }
+    zeilen.push(...feldZeilen(z.aenderungen, felder, false));
   }
   return { titel, zeit: wann(z.am), zeilen };
 }

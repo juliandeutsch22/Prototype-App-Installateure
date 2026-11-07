@@ -61,6 +61,9 @@ import { KrankmeldungFenster } from '@/features/vacations/Krankmeldungen';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import AntragKnopf, { FreistellungKnopf } from '@/features/time/AntragKnopf';
 import { datumAT } from '@/lib/datum';
+import { offeneAngaben } from '@/lib/zeitfelder';
+import { useFeldsatz, useFeldwerte } from './useZeitfelder';
+import ZeitfeldAngaben from './ZeitfeldAngaben';
 
 /** Wie viele Monate die Liste zunaechst zurueckreicht. */
 const MONATE_JE_SEITE = 3;
@@ -543,6 +546,17 @@ export default function TimeView() {
   */
   const [nachtraegeOffen, setNachtraegeOffen] = useState(false);
 
+  /*
+    DIE FREIEN ANGABEN DER BUCHUNGEN (M06b) als Text in jeder Zeile, dazu
+    was nachzupflegen ist oder das Büro noch ergänzt — für denselben
+    Zeitraum wie die Liste.
+  */
+  const feldsatz = useFeldsatz(user, company?.modules);
+  const zeitraum = useMemo(() => listenZeitraum(monate), [monate]);
+  const feldwerte = useFeldwerte({
+    companyId: user?.companyId, an: feldsatz.an, von: zeitraum.ab, bis: zeitraum.bis, userId: user?.uid, eintraege: entries,
+  });
+
   if (!user) return null;
 
   /**
@@ -631,6 +645,16 @@ export default function TimeView() {
             */}
             {e.status !== 'Anwesend' && <span className="zeit-schraffur schraffur" aria-hidden="true" />}
             {subtitle}
+            {feldsatz.an && (
+              <ZeitfeldAngaben
+                definitionen={feldsatz.definitionen}
+                werte={feldwerte.werte.get(e.id)}
+                offen={offeneAngaben(
+                  typeof e.zeitfeldFassung === 'number' ? feldwerte.fassungen.get(e.zeitfeldFassung) : null,
+                  feldsatz.definitionen, e, user.role, feldwerte.werte.get(e.id),
+                )}
+              />
+            )}
             {e.lastEditedBy && (
               <span className="mt-1 block text-xs text-ink-muted">
                 Bearbeitet von {e.lastEditedBy}
@@ -1098,6 +1122,7 @@ export default function TimeView() {
                 key={monate}
                 mitTag
                 titel="Änderungsprotokoll deiner Buchungen"
+                felder={feldsatz.definitionen}
                 laden={() => {
                   const { ab, bis } = listenZeitraum(monate);
                   return listVerlaufZeitraum(user.companyId, user.uid, ab, bis);

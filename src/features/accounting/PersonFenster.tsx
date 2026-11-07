@@ -28,6 +28,8 @@ import type { GrenzDaten } from './useArbeitszeitGrenzen';
 import { kurzeZeit, tageDesMonats, tagKurz, type Tageswert } from './tagesauswertung';
 import Aenderungsprotokoll from '@/features/time/Aenderungsprotokoll';
 import { listVerlaufZeitraum } from '@/lib/db/zeitbuchungVerlauf';
+import ZeitfeldAngaben from '@/features/time/ZeitfeldAngaben';
+import type { ZeitfeldAnzeige, ZeitfeldWert } from '@/lib/zeitfelder';
 
 /**
  * Person im Monat: Kontostand, fehlende Tage und vollständiger Tagesnachweis.
@@ -58,6 +60,7 @@ export default function PersonFenster({
   onCsv,
   onBericht,
   gesamtsaldoH,
+  zeitfelder,
 }: {
   user: AppUser;
   stats: MonthStats;
@@ -89,6 +92,12 @@ export default function PersonFenster({
    */
   gesamtsaldoH?: number | null;
   onBericht: () => void;
+  /** Die freien Zeitfelder (M06b): Werte je Buchung und was offen ist — ohne die Unterfähigkeit nicht da. */
+  zeitfelder?: {
+    definitionen: readonly ZeitfeldAnzeige[];
+    werte: ReadonlyMap<string, Record<string, ZeitfeldWert>>;
+    offen: (e: TimeEntry) => { fehlt: string[]; nachpflege: string[] };
+  };
 }) {
   /*
     Traegt dieser Mitarbeiter ueberhaupt einen Saldo? Ohne hinterlegtes
@@ -200,6 +209,13 @@ export default function PersonFenster({
     );
 
   const eintraegeText = monthEntries.length === 1 ? '1 Eintrag' : `${monthEntries.length} Einträge`;
+  /* Offene freie Angaben dieser Person im Monat (M06b) — die Zahl über dem Tagesnachweis. */
+  const zfOffen = zeitfelder
+    ? monthEntries.reduce((n, e) => {
+      const o = zeitfelder.offen(e);
+      return { fehlt: n.fehlt + o.fehlt.length, nachpflege: n.nachpflege + o.nachpflege.length };
+    }, { fehlt: 0, nachpflege: 0 })
+    : { fehlt: 0, nachpflege: 0 };
   const zukunftMarkiert = markierterWert && markierterWert.zustand === 'zukunft';
 
   return (
@@ -321,6 +337,16 @@ export default function PersonFenster({
         </section>
       )}
 
+      {(zfOffen.fehlt > 0 || zfOffen.nachpflege > 0) && (
+        <p className="pf-text" data-testid="zeitfelder-offen">
+          Freie Angaben:{' '}
+          {[
+            zfOffen.fehlt > 0 && `${zfOffen.fehlt} ${zfOffen.fehlt === 1 ? 'fehlt' : 'fehlen'}`,
+            zfOffen.nachpflege > 0 && `${zfOffen.nachpflege} zur Nachpflege`,
+          ].filter(Boolean).join(', ')}
+        </p>
+      )}
+
       <section aria-label="Tagesnachweis">
         <div className="pf-nachweis-kopf">
           <h3 className="pf-abschnitt">Tagesnachweis · <span className="whitespace-nowrap">{eintraegeText}</span></h3>
@@ -364,6 +390,13 @@ export default function PersonFenster({
                       </span>
                     );
                   })()}
+                  {x.entry && zeitfelder && (
+                    <ZeitfeldAngaben
+                      definitionen={zeitfelder.definitionen}
+                      werte={zeitfelder.werte.get(x.entry.id)}
+                      offen={zeitfelder.offen(x.entry)}
+                    />
+                  )}
                 </span>
                 <span className="pf-zeile-wert">{x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}</span>
                 {x.entry && <span className="pf-aktionen">{actions(x.entry)}</span>}
@@ -424,6 +457,7 @@ export default function PersonFenster({
         stil="pf"
         mitTag
         titel="Änderungsprotokoll des Monats"
+        felder={zeitfelder?.definitionen}
         laden={() => {
           const tage = tageDesMonats(jahr, monat);
           return listVerlaufZeitraum(companyId, u.uid, tage[0], tage[tage.length - 1]);

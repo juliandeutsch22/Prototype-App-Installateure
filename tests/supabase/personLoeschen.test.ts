@@ -69,6 +69,12 @@ beforeAll(async () => {
     company_id: BETRIEB, eintrag_id: eintrag, user_id: monteur.uid, datum: '2099-02-02', art: 'angelegt',
     von_uid: monteur.uid,
   });
+  // M06b: eine freie Angabe an der Buchung — sie gehört zur Arbeitszeitaufzeichnung.
+  const feld = await einfuegen('zeitfeld_definitionen', { company_id: BETRIEB, name: 'Kostenstelle', typ: 'text' });
+  await einfuegen('zeitbuchung_feldwerte', {
+    company_id: BETRIEB, eintrag_id: eintrag, feld_id: feld, user_id: monteur.uid, datum: '2099-02-02',
+    typ: 'text', wert: 'Wien', fassung: 1,
+  });
   // Ebenso das Änderungsjournal (M01b): eine Änderung der Stammdaten, wie sie die Geschäftsführung in der Akte machte.
   await einfuegen('aenderungsjournal', {
     company_id: BETRIEB, objektart: 'benutzer', objekt_id: monteur.uid, art: 'geaendert',
@@ -116,6 +122,8 @@ describe('Eine Person der Belegschaft', () => {
       { was: 'Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
       // E50: der Verlauf der Buchung (hier ihr Anlegen) bleibt mit ihr aufbewahrt.
       { was: 'Änderungsprotokoll der Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
+      // M06b: die freien Angaben bleiben mit den Buchungen.
+      { was: 'Freie Angaben der Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
       // M01b: der Verlauf der Stammdaten ist Lohnunterlage und bleibt wie die Buchungen.
       { was: 'Änderungsjournal der Stammdaten', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
       { was: 'Krankmeldungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
@@ -147,6 +155,7 @@ describe('Eine Person der Belegschaft', () => {
 
     // Die Gegenprobe: was aufbewahrt werden muss, und was dem Kollegen gehört.
     expect(await zaehle('time_entries', 'user_id', monteur.uid)).toBe(1);
+    expect(await zaehle('zeitbuchung_feldwerte', 'user_id', monteur.uid)).toBe(1);
     expect(await zaehle('krankmeldungen', 'user_id', monteur.uid)).toBe(1);
     expect(await zaehle('users', 'id', monteur.uid)).toBe(1);
     expect(await zaehle('assignments', 'user_id', kollege.uid)).toBe(1);
