@@ -108,15 +108,22 @@ const SPITZE = ['betrieb_kostensaetze', 'datanorm_laeufe', 'datanorm_zeilen', 'k
   */
   'aenderungsjournal'];
 
+/*
+  Wer den Einkauf führt (Verwaltung und Führung) — die Einkaufsliste und,
+  seit M03a, die Lieferantenartikel: Nummer und Bezeichnung des Großhändlers
+  für die Bestellung, ohne Preise.
+*/
+const EINKAUF = ['einkauf_posten', 'lieferantenartikel'];
+
 const LESBAR: Record<string, string[]> = {
   Mitarbeiter: [...FUER_ALLE].sort(),
-  Verwaltung: [...FUER_ALLE, ...BUERO, 'einkauf_posten', 'termine'].sort(),
+  Verwaltung: [...FUER_ALLE, ...BUERO, ...EINKAUF, 'termine'].sort(),
   Buchhaltung: [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, 'quote_lines', 'quotes'].sort(),
   // Wie die Leitung, aber ohne Lohn, Zeiten anderer und Rechnungen; Urlaub und
   // Anfangsstände der Zeitkonten für die Planung.
-  Projektleiter: [...FUER_ALLE, ...BUERO, 'einkauf_posten', 'quote_lines', 'quotes', 'termine', 'vacations', 'zeitkonto_anfang'].sort(),
-  'Geschäftsführung': [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, ...SPITZE, 'einkauf_posten', 'quote_lines', 'quotes', 'termine'].sort(),
-  Administrator: [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, ...SPITZE, 'einkauf_posten', 'quote_lines', 'quotes', 'termine'].sort(),
+  Projektleiter: [...FUER_ALLE, ...BUERO, ...EINKAUF, 'quote_lines', 'quotes', 'termine', 'vacations', 'zeitkonto_anfang'].sort(),
+  'Geschäftsführung': [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, ...SPITZE, ...EINKAUF, 'quote_lines', 'quotes', 'termine'].sort(),
+  Administrator: [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, ...SPITZE, ...EINKAUF, 'quote_lines', 'quotes', 'termine'].sort(),
 };
 
 /** Tabellen, die Betrieb B nicht über `company_id` tragen, sondern anders zugeordnet sind. */

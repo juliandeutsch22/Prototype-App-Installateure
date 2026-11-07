@@ -131,6 +131,40 @@ export const MODULE: Modul[] = [
     zweck: 'Anforderungen vom Monteur, Bearbeitung im Büro, Lagerstand.',
     standard: true,
     betrifft: ['Material anfordern', 'Anforderungen', 'Lager'],
+    /*
+      DIE KATALOGE MEHRERER GROSSHÄNDLER (M03a). Abschalten nimmt die
+      Ansichten weg, NICHT DIE ZUORDNUNG: die Übernahme eines Katalogs legt
+      jeden Artikel an seinen Lieferantenartikel und überschreibt keinen
+      Artikel eines anderen Großhändlers, ob die Ansicht da ist oder nicht.
+      Das ist Datenrichtigkeit, kein Zusatz — ein abgeschalteter Schalter
+      dürfte sonst den Stamm wieder vom letzten Katalog überschreiben lassen.
+      Ebenso bestimmt der Einkaufspreis des Stammartikels sich immer nach der
+      Regel „günstigster vergleichbarer, sonst jüngster“: Kalkulation und
+      Nachkalkulation dürfen nicht von einer Ansicht abhängen.
+    */
+    unter: [
+      {
+        id: 'material.katalogversionen',
+        name: 'Kataloge mehrerer Großhändler',
+        zweck: 'Offene Lieferantenartikel zuordnen oder als neuen Artikel anlegen.',
+        standard: true,
+        betrifft: ['Offene Lieferantenartikel', 'Zuordnen im Artikelblatt', 'Hinweis nach der Übernahme'],
+      },
+      {
+        id: 'material.lieferantenvergleich',
+        name: 'Preisvergleich der Lieferanten',
+        zweck: 'Preise eines Artikels je Großhändler nebeneinander, mit dem günstigsten.',
+        standard: true,
+        betrifft: ['Lieferanten im Artikelblatt', 'Grund des Großhändler-Vorschlags'],
+      },
+      {
+        id: 'material.katalogpreisverlauf',
+        name: 'Preisverlauf und Preissprünge',
+        zweck: 'Verlauf der Einkaufspreise je Großhändler, Preissprünge im Übernahmebericht.',
+        standard: true,
+        betrifft: ['Preisverlauf im Artikelblatt', 'Preissprünge im Übernahmebericht'],
+      },
+    ],
   },
   {
     id: 'urlaub',

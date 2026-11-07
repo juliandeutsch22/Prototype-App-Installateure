@@ -95,11 +95,18 @@ function schluesselVon(o: { materialId?: string | null; materialName: string }):
  * Anforderung ohne Katalogeintrag), steht nur der Name da.
  *
  * `posten`: die offenen eigenen Posten des Büros.
+ *
+ * `nummern`: die Nummer des Großhändlers je `materialId|supplierId`
+ * (Lieferantenartikel, M03a). BESTELLT WIRD MIT SEINER NUMMER: ist einem
+ * Artikel ein zweiter Großhändler als „derselbe Artikel“ zugeordnet, führt
+ * der ihn unter seiner eigenen Nummer — die des Stammartikels gehört dem
+ * ersten. Ohne Eintrag steht wie bisher die Artikelnummer des Stamms.
  */
 export function einkaufsliste(
   anforderungen: WithId<MaterialOrder>[],
   katalog: Map<string, Pick<Material, 'articleNumber' | 'unit'>>,
   posten: WithId<EinkaufPosten>[] = [],
+  nummern: ReadonlyMap<string, string> = new Map(),
 ): EinkaufsGruppe[] {
   const gruppen = new Map<string | null, EinkaufsGruppe>();
   const gruppe = (id: string | null) => {
@@ -120,10 +127,11 @@ export function einkaufsliste(
     let z = g.zuBestellen.find((x) => x.schluessel === schluessel);
     if (!z) {
       const k = o.materialId ? katalog.get(o.materialId) : undefined;
+      const beimHaendler = o.materialId && g.supplierId ? nummern.get(`${o.materialId}|${g.supplierId}`) : undefined;
       z = {
         schluessel,
         bezeichnung: o.materialName.trim(),
-        artikelnummer: k?.articleNumber || undefined,
+        artikelnummer: beimHaendler || k?.articleNumber || undefined,
         einheit: k?.unit || einheit || undefined,
         menge: 0,
         kommissionen: [],

@@ -59,9 +59,22 @@ export interface DatanormArtikel {
    */
   preis?: number;
   preisArt: PreisArt;
+  /**
+   * Auf wie viele Einheiten sich der Preis IN DER DATEI bezog (1, 10, 100,
+   * 1000) — nur zur Auskunft: `preis` ist schon je einer Einheit. Fehlt das
+   * Feld, steht hier nichts (gerechnet wird dann je einer Einheit, wie
+   * bisher).
+   */
+  preiseinheit?: 1 | 10 | 100 | 1000;
   /** Ohne sie lässt sich aus einem Listenpreis kein Einkaufspreis rechnen. */
   rabattgruppe?: string;
   warengruppe?: string;
+  /**
+   * Die EAN (GTIN) aus dem Satz B desselben Artikels — nur mit gültiger
+   * Prüfziffer (siehe `eanGueltig`). Gleiche EAN bei zwei Großhändlern gilt
+   * im Preisvergleich als derselbe Artikel (M03a, E02).
+   */
+  ean?: string;
   verarbeitung: Verarbeitung;
   /** Zeilennummer in der Datei — der Probelauf zeigt sie neben dem Ergebnis. */
   zeile: number;
@@ -90,6 +103,13 @@ export interface DatanormErgebnis {
    * leeren Katalog wundert.
    */
   uebersprungen: Record<string, number>;
+  /**
+   * Was aus den Sätzen B (Artikel-Ergänzung) gelesen wurde: nur die EAN.
+   * `gelesen`: so viele Artikel dieser Datei bekamen eine; `verworfen`: so
+   * viele EAN-Felder trugen etwas, das keine gültige EAN ist — sie stehen
+   * nicht am Artikel, aber hier.
+   */
+  ean: { gelesen: number; verworfen: number };
 }
 
 /**
@@ -99,7 +119,33 @@ export interface DatanormErgebnis {
  * Umrechnung stünde der hundertfache Preis im Katalog — und er sähe aus wie
  * ein Preis.
  */
-const PREISEINHEIT: Record<string, number> = { '0': 1, '1': 10, '2': 100, '3': 1000 };
+const PREISEINHEIT: Record<string, 1 | 10 | 100 | 1000> = { '0': 1, '1': 10, '2': 100, '3': 1000 };
+
+/**
+ * DIE EAN IM SATZ B (DATANORM 4.0, „Artikelsatz Teil 2“):
+ * B;Verarbeitung;Artikelnummer;Matchcode;Alternativ-Artikelnummer;
+ * Katalogseite;0;0;EAN;… — die EAN ist das neunte Feld (Index 8).
+ *
+ * NICHT GEGEN EINE ECHTE LIEFERANTENDATEI GEPRÜFT, wie der Rest dieses
+ * Lesers. Deshalb gilt nur, was eine gültige Prüfziffer trägt: verrutscht
+ * das Feld, steht dort eine Nummer, eine Seitenzahl oder nichts — und die
+ * Prüfziffer passt bei einer zufälligen Zahl nur in einem von zehn Fällen,
+ * bei Feldern anderer Länge nie. Eine falsche EAN wäre teuer: im
+ * Preisvergleich entscheidet sie, ob zwei Artikel derselbe sind.
+ */
+const EAN_FELD = 8;
+
+/**
+ * Ist das eine gültige EAN/GTIN (8, 12, 13 oder 14 Ziffern, Prüfziffer nach
+ * GS1: von rechts abwechselnd mal 3 und mal 1)?
+ */
+export function eanGueltig(ean: string): boolean {
+  if (!/^(\d{8}|\d{12,14})$/.test(ean)) return false;
+  const ziffern = [...ean].map(Number);
+  const pruef = ziffern.pop()!;
+  const summe = ziffern.reverse().reduce((s, z, i) => s + z * (i % 2 === 0 ? 3 : 1), 0);
+  return (10 - (summe % 10)) % 10 === pruef;
+}
 
 /**
  * Das Preiskennzeichen der Norm: 1 = Bruttopreis (Listenpreis), 2 = Nettopreis.
@@ -205,7 +251,10 @@ export function liesDatanorm(text: string): DatanormErgebnis {
     artikel: [],
     unverstanden: [],
     uebersprungen: {},
+    ean: { gelesen: 0, verworfen: 0 },
   };
+  /** Die EAN je Artikelnummer — der Satz B kann vor oder nach seinem Satz A stehen. */
+  const eanJeNummer = new Map<string, string>();
 
   const zeilen = text.split(/\r\n|\r|\n/);
   for (let i = 0; i < zeilen.length; i += 1) {
@@ -223,6 +272,16 @@ export function liesDatanorm(text: string): DatanormErgebnis {
         info: leer(f[2]) ? undefined : f[2].trim(),
         waehrung: leer(f[3]) ? undefined : f[3].trim(),
       };
+      continue;
+    }
+
+    if (satzart === 'B') {
+      const nummer = leer(f[2]) ? '' : f[2].trim();
+      const ean = leer(f[EAN_FELD]) ? '' : f[EAN_FELD].trim();
+      if (nummer !== '' && ean !== '') {
+        if (eanGueltig(ean)) eanJeNummer.set(nummer, ean);
+        else ergebnis.ean.verworfen += 1;
+      }
       continue;
     }
 
@@ -275,7 +334,8 @@ export function liesDatanorm(text: string): DatanormErgebnis {
     }
 
     const preisArt = PREISART[kurz(6)] ?? 'unbekannt';
-    const teiler = PREISEINHEIT[kurz(7)] ?? 1;
+    const preiseinheit = PREISEINHEIT[kurz(7)];
+    const teiler = preiseinheit ?? 1;
     const preis = centAlsEuro(f[9], teiler);
 
     /*
@@ -298,11 +358,20 @@ export function liesDatanorm(text: string): DatanormErgebnis {
       einheit: leer(f[8]) ? undefined : f[8].trim(),
       preis,
       preisArt,
+      ...(preiseinheit ? { preiseinheit } : {}),
       rabattgruppe: leer(f[10]) ? undefined : f[10].trim(),
       warengruppe: leer(f[11]) ? undefined : f[11].trim(),
       verarbeitung,
       zeile: nummer,
     });
+  }
+
+  for (const a of ergebnis.artikel) {
+    const ean = eanJeNummer.get(a.artikelnummer);
+    if (ean && a.verarbeitung !== 'loeschung') {
+      a.ean = ean;
+      ergebnis.ean.gelesen += 1;
+    }
   }
 
   return ergebnis;

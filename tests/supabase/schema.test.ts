@@ -247,6 +247,14 @@ describe('Interne Hilfsfunktionen', () => {
       // Der Papierkorb (M01d): wer und wann setzen nur diese Auslöser.
       'app.angebot_papierkorb()',
       'app.schein_verworfen_am()',
+      // M03a: was der Stammartikel aus seinen Lieferantenartikeln nachzieht, und der Vorschlag ohne Rechteprüfung.
+      'app.stamm_nachziehen(uuid, boolean)',
+      'app.lieferant_vorschlag_wahl(text, uuid)',
+      'app.lieferantenvergleich_an(text)',
+      'app.lieferantenartikel_stand()',
+      'app.lieferantenartikel_nachher()',
+      'app.preis_folgt_lieferantenartikel()',
+      'app.altpreise_mit_artikel()',
     ];
     const offen: string[] = [];
     for (const f of intern) {

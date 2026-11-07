@@ -20,8 +20,9 @@ import { navForRole } from '@/app/navigation';
  *     sieht: dieselben neun Module mit denselben Kennungen und Standards,
  *     jede Rolle mit derselben Navigation. Diese Prüfungen sind vor und nach
  *     der Änderung grün — genau das sollen sie zeigen.
- *  2. DIE NEUE MECHANIK an einem Prüfregister, weil das echte heute noch
- *     keine Unterfähigkeit trägt: Sie gilt nur mit ihrem Modul, hat ihren
+ *  2. DIE NEUE MECHANIK an einem Prüfregister (als es geschrieben wurde,
+ *     trug das echte noch keine Unterfähigkeit; seit M03a trägt „Material“
+ *     drei, geprüft unten): Sie gilt nur mit ihrem Modul, hat ihren
  *     eigenen Standard, geht mit dem Modul aus und kommt mit ihm zurück.
  */
 
@@ -81,7 +82,7 @@ describe('Folgen beim Abschalten — was sich nicht zurückholen lässt', () => 
   });
 });
 
-/** Ein Prüfregister mit Unterfähigkeiten — das echte trägt noch keine. */
+/** Ein Prüfregister mit Unterfähigkeiten — unabhängig davon, was das echte gerade trägt. */
 const PRUEF: Modul[] = [
   {
     id: 'material',
@@ -160,5 +161,36 @@ describe('Unterfähigkeiten', () => {
     expect(schalter('material.scan', PRUEF)?.name).toBe('Scannen');
     expect(schalter('material', PRUEF)?.name).toBe('Material und Lager');
     expect(schalter('material.gibtsnicht', PRUEF)).toBeUndefined();
+  });
+});
+
+/*
+  M03a: DIE UNTERFÄHIGKEITEN DER GROSSHÄNDLERKATALOGE. Standard an — was ein
+  Betrieb heute sieht, sieht er weiter, und mit dem Modul „Material“ gehen
+  sie aus. GEGENPROBE: vor M03a gab es keine.
+*/
+describe('Material: Kataloge, Preisvergleich, Preisverlauf (M03a)', () => {
+  const TEILE = ['material.katalogversionen', 'material.lieferantenvergleich', 'material.katalogpreisverlauf'] as const;
+
+  it('stehen unter „Material“, eingeschaltet, solange nichts festgelegt ist', () => {
+    expect(MODULE.find((m) => m.id === 'material')!.unter!.map((f) => [f.id, f.standard])).toEqual(
+      TEILE.map((t) => [t, true]),
+    );
+    for (const t of TEILE) expect(istAn(undefined, t)).toBe(true);
+  });
+
+  it('gehen mit dem Modul aus und einzeln aus, ohne das Modul zu berühren', () => {
+    for (const t of TEILE) expect(istAn({ material: false }, t)).toBe(false);
+    expect(istAn({ 'material.lieferantenvergleich': false }, 'material.lieferantenvergleich')).toBe(false);
+    expect(istAn({ 'material.lieferantenvergleich': false }, 'material')).toBe(true);
+    expect(istAn({ 'material.lieferantenvergleich': false }, 'material.katalogpreisverlauf')).toBe(true);
+  });
+
+  it('ziehen beim Abschalten nichts mit und haben keine Folge über das Verschwinden hinaus', () => {
+    for (const t of TEILE) {
+      expect(zieheMit(t, undefined)).toEqual([]);
+      expect(folgenBeimAbschalten(t, undefined)).toEqual([]);
+      expect(schalter(t)?.betrifft.length).toBeGreaterThan(0);
+    }
   });
 });
