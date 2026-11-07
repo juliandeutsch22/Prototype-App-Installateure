@@ -1005,6 +1005,17 @@ export interface Material {
   mindestmenge?: number | null;
   /** Warengruppe aus DATANORM (M31) — bestimmt einen abweichenden Aufschlag. */
   warengruppe?: string | null;
+  /**
+   * Bis wohin ein Bestellvorschlag auffüllt (M04b, E14). Leer: bis zur
+   * Mindestmenge. Nie darunter — die Datenbank weist es ab.
+   */
+  sollbestand?: number | null;
+  /**
+   * In welchen Schritten bestellt wird (M04b): der Vorschlag rundet auf ein
+   * Vielfaches auf. Leer: unbekannt — die Preiseinheit des Katalogs ist es
+   * nicht, sie ist nur die Preisbasis.
+   */
+  verpackungseinheit?: number | null;
 }
 
 /**
