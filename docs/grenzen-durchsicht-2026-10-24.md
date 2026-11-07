@@ -109,6 +109,9 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Zeitfelder: eine verrechnete Buchung nimmt keine Angaben mehr an, auch keine Nachpflege | Fachlich: die Rechnung ist gestellt; erst stornieren |
 | Zeitfelder: Aufteilen und Einfügen kopieren keine Werte, der abgetrennte Teil zeigt „Nachpflege“ | Fachlich: kopierte Kilometer oder Mengen stünden doppelt da |
 | Zeitfelder: Freitext in einem Feld wird bei der Löschung eines Kunden nicht gefunden | Datenschutz: über den Namen allein träfe es Namensvettern — wie beim Kommentar der Buchung |
+| Liegenschaften (Stand 59, E62): freie Beteiligte (ohne Kundenstamm) haben keine eigene Datenauskunft | Datenschutz: über den Namen allein träfe es Namensvettern; sie lassen sich entfernen (echte Löschung, Journal geleert) oder zum Kunden machen |
+| Liegenschaften: keine abweichende Rechnungsanschrift je Rechnung | Fachlich (Befund 4): eine Rechnung geht an den Kunden der Baustelle; Sammelrechnung kommt mit M13 |
+| Liegenschaften: die Akte zeigt je Liste höchstens 100 Baustellen bzw. Wartungen | Fachlich: die Akte ist ein Überblick; greift die Grenze, sagt sie es |
 
 ## X – Liegt bei jemand anderem
 

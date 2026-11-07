@@ -2066,3 +2066,64 @@ Querschnitt `modulRegisterServer`, `schema`, `mandantenTrennung`,
 Nebenbei: zwei Bedingungen der Migration standen als `if case … then`, was
 PL/pgSQL nicht liest (die Bedingung endet beim ersten `then`) — in Klammern
 gesetzt, bevor sie je eine Datenbank erreichte.
+
+**E62 — Liegenschaften, Tops und Beteiligte; „Optional“ heißt ab Werk aus (07.11.2026).**
+SHK-Ausbau, Paket M02c (A09 „Optional“; Auffälligkeiten 12 und 13). Wer für
+eine Hausverwaltung in vielen Häusern und je Haus in mehreren Wohnungen
+arbeitet, hatte dafür nur Freitext an der Baustelle („Bad 2. OG“). „Was
+haben wir in diesem Haus schon gemacht?“ und „wer ist hier Eigentümer, wer
+zahlt?“ beantwortete die App nicht.
+
+- **Regel für den ganzen Ausbau:** Punkte der Bauplanung mit der Kategorie
+  „Optional“ sind ab Werk AUS und je Betrieb einschaltbar; „Behalten“ und
+  „Integrieren“ sind ab Werk an (E51, hier erstmals bei einem eigenen
+  Bereich angewandt).
+- **Liegenschaft** (Aufträge › Liegenschaften): Bezeichnung, Anschrift in
+  Teilen wie beim Kunden, Notiz, aktiv. Sie gehört keinem Kunden; sie hat
+  **Beteiligte** mit Rolle (Eigentümer, Hausverwaltung, Betreiber, Nutzer
+  bzw. Mieter, Auftraggeber, Rechnungsempfänger, Versicherung,
+  Lieferadresse), je als Kunde oder als freie Angabe, an der Liegenschaft
+  oder an einem **Top** (Wohnung bzw. Einheit mit Lage), mit gültig ab/bis
+  für Mieterwechsel. „Zum Kunden machen“ mit derselben Rückfrage bei gleichem
+  Namen wie in der Kundenliste.
+- **Zuordnung:** Baustelle, Wartung, Auftragseingang und **Angebot** tragen
+  optional Liegenschaft und Top; die Datenbank garantiert, dass das Top zur
+  Liegenschaft und beides zum Betrieb gehört. Der Weg Eingang → Angebot →
+  Annahme (im Büro oder per Link) → Baustelle trägt die Liegenschaft durch;
+  der Schnappschuss des Annahme-Links enthält sie nicht (Zuordnung, nicht
+  Inhalt — bestehende Links bleiben gültig). Beim Anlegen werden Kunde
+  (Vorrang Rechnungsempfänger, dann Auftraggeber, dann Hausverwaltung),
+  Anschrift und Mieter als Ansprechpartner vorgeschlagen, übernommen erst auf
+  „Übernehmen“.
+- **Akte der Liegenschaft:** Tops, Beteiligte (aktuelle und „Früher“),
+  Baustellen, Wartungen; die Kundenakte zeigt die Liegenschaften, an denen der
+  Kunde beteiligt ist. Monteure sehen Haus und Top als Text an ihrer
+  Baustelle, ohne die Liegenschaften (mit Telefonnummern von Mietern) lesen
+  zu dürfen.
+- **Rechte wie bei Kunden:** lesen alle außer dem Monteur, pflegen wer Kunden
+  pflegt; der Support liest mit Einblick und pflegt mit „mitarbeiten“.
+  Gelöscht wird eine Liegenschaft bzw. ein Top mit Baustelle, Wartung,
+  Eingang oder Angebot nicht — sie wird stillgelegt; die Geschichte des Hauses
+  bleibt.
+- **Modul** `kunden.liegenschaften` (Unterfähigkeit des Kerns „Kunden“, ab Werk
+  aus). Der Server prüft Anlegen, Ändern und jede neue Zuordnung (V3); eine
+  Zuordnung lösen und einen Beteiligten entfernen gehen immer (Datenschutz vor
+  Modul).
+- **Journal und Datenschutz:** Objektarten Liegenschaft, Top, Beteiligter.
+  Ein freier Beteiligter wird beim Entfernen wirklich gelöscht, und seine
+  Werte verschwinden aus dem Journal (wie bei der Kundenlöschung); die
+  Datenauskunft eines Kunden nennt seine Beteiligungen.
+
+**Grenzen mit Grund:** keine eigene Datenauskunft für freie Beteiligte
+(Datenschutz: über den Namen allein träfe es Namensvettern; sie lassen sich
+löschen oder zum Kunden machen); keine abweichende Rechnungsanschrift je
+Rechnung (Befund 4: eine Rechnung geht an den Kunden der Baustelle;
+Sammelrechnung kommt mit M13); die Akte zeigt je Liste höchstens 100
+Baustellen bzw. Wartungen und sagt es, wenn die Grenze greift.
+
+**Prüfungen.** `liegenschaften.test.ts` (28, darunter das Angebot über alle
+Annahmewege und der unveränderte Schnappschuss), Querschnitt `schema`,
+`mandantenTrennung`, `aenderungsjournal`, `personLoeschen`, `ruecklauf`,
+`typenSpalten`, `modulRegisterServer`; Komponenten `LiegenschaftenView`,
+`LiegenschaftView`, `LiegenschaftBaustelle`, `KundenLiegenschaften`,
+`QuotesView`, `AngebotView`; Browser `liegenschaften.spec.ts`.
