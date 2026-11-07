@@ -74,7 +74,11 @@ export interface Faehigkeit {
   abhaengigVon?: SchalterId[];
   /** Was in der Oberfläche verschwindet. */
   betrifft: string[];
-  /** Was beim Abschalten darüber hinaus geschieht (siehe `Modul.folgen`). */
+  /**
+   * Was beim Abschalten darüber hinaus geschieht (siehe `Modul.folgen`) —
+   * oder was man vorher wissen muss, obwohl es zurückkommt (Bestände, die
+   * unsichtbar werden, M04a).
+   */
   folgen?: string[];
 }
 
@@ -173,6 +177,36 @@ export const MODULE: Modul[] = [
         zweck: 'Verlauf der Einkaufspreise je Großhändler, Preissprünge im Übernahmebericht.',
         standard: true,
         betrifft: ['Preisverlauf im Artikelblatt', 'Preissprünge im Übernahmebericht'],
+      },
+      {
+        /*
+          LAGERORTE UND FAHRZEUGLAGER (M04a, E10). „Behalten“, Standard an:
+          ein Betrieb ohne weitere Orte sieht nur das Hauptlager und keine
+          Wahl, solange er keinen Ort und kein Fahrzeug anlegt.
+
+          AUS heißt: nur das Hauptlager. Weitere Orte verschwinden aus den
+          Ansichten, ihre Bestände bleiben — Ware im Fahrzeug ist dann nicht
+          mehr zu sehen, aber nicht weg. Das steht vorher in der Rückfrage
+          (`folgen`), obwohl es mit dem Wiedereinschalten zurückkommt: wer
+          abschaltet, während Ware in den Bussen liegt, muss das wissen.
+
+          Die Fahrzeuge selbst sind Kern der Betriebsmittel (W06/W07); ihre
+          Liste unter Einstellungen steht, solange diese Fähigkeit oder ein
+          Betriebsmittel-Modul an ist (`nurMitModul` der Unterseite).
+        */
+        id: 'material.lagerorte_fahrzeuglager',
+        name: 'Lagerorte und Fahrzeuglager',
+        zweck: 'Bestand je Ort: weitere Lager und je Fahrzeug ein Fahrzeuglager, Umlagern, „Mein Fahrzeug“ für den Monteur.',
+        standard: true,
+        betrifft: [
+          'Lagerorte und Umlagern im Lager',
+          'Fahrzeuge (Einstellungen)',
+          'Mein Fahrzeug',
+          'Wahl des Ortes bei Wareneingang, Inventur, Abhaken, Retoure und Abholen',
+        ],
+        folgen: [
+          'Ware an weiteren Lagerorten und in Fahrzeugen ist dann nicht mehr zu sehen, aber nicht weg: ihre Bestände bleiben und stehen nach dem Wiedereinschalten wieder da. Gebucht wird nur noch im Hauptlager.',
+        ],
       },
     ],
   },

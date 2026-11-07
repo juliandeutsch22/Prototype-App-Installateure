@@ -728,7 +728,8 @@ describe('Wer den Katalog einspielen darf', () => {
   it('zeigt der Verwaltung den Eintrag nicht', async () => {
     zeige();
     expect(await screen.findByRole('button', { name: 'Katalog' })).toBeInTheDocument();
-    expect(await seitenMenue()).toEqual(['Inventur …']);
+    // M04a (bewusst nachgezogen): die Lagerorte pflegt, wer das Lager führt — auch die Verwaltung.
+    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …']);
   });
 
   it('zeigt ihn der Geschäftsführung und öffnet ihn', async () => {
@@ -739,7 +740,7 @@ describe('Wer den Katalog einspielen darf', () => {
       auch „Offene Lieferantenartikel“ — für dieselben Rollen wie das
       Einspielen (eigene Prüfungen unten, „Offene Lieferantenartikel“).
     */
-    expect(await seitenMenue()).toEqual(['Inventur …', 'Katalog einspielen', 'Offene Lieferantenartikel']);
+    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Katalog einspielen', 'Offene Lieferantenartikel']);
     await userEvent.click(screen.getByRole('menuitem', { name: 'Katalog einspielen' }));
     expect(await screen.findByText('Katalog einspielen (Inhalt)')).toBeInTheDocument();
     expect(screen.getByTestId('adresse')).toHaveTextContent('/lager?reiter=import');
@@ -944,7 +945,8 @@ describe('Offene Lieferantenartikel', () => {
     } as typeof CHEFIN;
     zeige('/lager?reiter=zuordnen');
     expect(await screen.findByRole('button', { name: 'Bestand' })).toHaveAttribute('aria-pressed', 'true');
-    expect(await seitenMenue()).toEqual(['Inventur …', 'Katalog einspielen']);
+    // „Lagerorte …“ (M04a) hängt an seiner eigenen Unterfähigkeit, nicht an dieser.
+    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Katalog einspielen']);
   });
 });
 

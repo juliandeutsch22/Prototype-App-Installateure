@@ -91,13 +91,20 @@ const ZUSATZ: Record<string, (betrieb: string) => Record<string, unknown>> = {
 const FUER_ALLE = ['assignments', 'aussteller_staende', 'baustelle_alte_nummern', 'betriebsurlaube', 'buchungskonten',
   'einsatz_material', 'einsatz_material_positionen', 'materials', 'projects', 'suppliers', 'support_freigaben',
   'support_zugriffe', 'users', 'wartung_ausfuehrungen', 'wartungen', 'work_sheet_hours', 'work_sheet_material',
-  'work_sheet_photos', 'work_sheets'];
+  'work_sheet_photos', 'work_sheets',
+  /*
+    M04a: Orte, Fahrzeuge und der Bestand je Ort — wie der Bestand am
+    Artikel (`materials`) für jede Rolle; der Monteur sieht „Mein Fahrzeug“.
+  */
+  'fahrzeuge', 'lagerbestaende', 'lagerorte'];
 /** Lohn, Zeiten, Abwesenheiten anderer und Rechnungen: Buchhaltung und Spitze. */
 const LOHN_UND_RECHNUNG = ['arbeitszeit_begruendungen', 'freistellungen', 'geburtsdaten', 'invoice_coverage', 'invoice_lines',
   'invoices', 'krankmeldungen', 'mahnungen', 'time_entries', 'urlaubsanspruch_anpassungen', 'vacations', 'zahlungseingaenge',
   'zeitbuchung_verlauf', 'zeitkonto_anfang'];
 /** Kunden, Lager, Anforderungen, Pläne, UID-Prüfungen: das Büro und die Leitung. */
-const BUERO = ['customers', 'lagerbewegungen', 'material_orders', 'project_documents', 'uid_pruefungen'];
+const BUERO = ['customers', 'lagerbewegungen', 'material_orders', 'project_documents', 'uid_pruefungen',
+  // M04a: die Schreibbefehle wie das Bewegungsprotokoll; die eigenen sieht jeder (`befehl_stand`).
+  'befehle_vorgaenge'];
 /** Einkaufspreise, Preislisten, Kostensätze, Katalogdateien, Kontoumstellungen, Systemläufe: nur die Spitze. */
 const SPITZE = ['betrieb_kostensaetze', 'datanorm_laeufe', 'datanorm_zeilen', 'konto_umstellungen', 'material_einkaufspreise',
   'material_prices', 'rabattsaetze', 'system_laeufe',

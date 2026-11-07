@@ -50,6 +50,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
     `ausleitung_dateien`: die Karte bildet das Schema ab.
   */
   baustelle_alte_nummern: { geaendert_am: 'zeitpunkt' },
+  befehle_vorgaenge: { am: 'zeitpunkt' },
   betrieb_kostensaetze: { updated_at: 'zeitpunkt' },
   betriebsanlagen: { angelegt_am: 'zeitpunkt' },
   betrieb_protokoll: { am: 'zeitpunkt' },
@@ -65,6 +66,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
     bestellt_am: 'zeitpunkt', created_at: 'zeitpunkt', geliefert_am: 'zeitpunkt', updated_at: 'zeitpunkt',
   },
   einsatz_material: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  fahrzeuge: { angelegt_am: 'zeitpunkt', geaendert_am: 'zeitpunkt' },
   fehlerprotokoll: { created_at: 'zeitpunkt' },
   fehler_vor_anmeldung: { created_at: 'zeitpunkt' },
   arbeitszeit_begruendungen: { am: 'zeitpunkt' },
@@ -73,7 +75,9 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
     bestaetigt_am: 'zeitpunkt', created_at: 'zeitpunkt', entschieden_am: 'zeitpunkt', nachweis_geprueft_am: 'zeitpunkt',
     updated_at: 'zeitpunkt', zeit_bis: 'uhrzeit', zeit_von: 'uhrzeit',
   },
+  lagerbestaende: { geaendert_am: 'zeitpunkt' },
   lagerbewegungen: { created_at: 'zeitpunkt' },
+  lagerorte: { angelegt_am: 'zeitpunkt' },
   mahnungen: { angelegt_am: 'zeitpunkt' },
   invoices: {
     cancelled_at: 'zeitpunkt', storno_am: 'zeitpunkt', created_at: 'zeitpunkt', updated_at: 'zeitpunkt',

@@ -1,7 +1,7 @@
 import type { Role } from '@/types';
 import type { IconName } from '@/components/Icon';
 import type { OffenePosten } from '@/lib/db/offenePosten';
-import { aktiveModule, type ModulId } from '@/lib/module';
+import { aktiveModule, aktiveSchalter, type ModulId, type SchalterId } from '@/lib/module';
 
 export interface NavItem {
   /** Routenpfad (relativ zu /). */
@@ -207,8 +207,12 @@ export interface Unterseite {
    * aber, wenn weder Angebote noch Handwerksscheine benutzt werden; dann
    * gibt es ihn nicht, auch nicht per Adresse. Eine Liste und kein einzelnes
    * `modul` wie bei den Reitern: er hängt an zwei Modulen zugleich.
+   *
+   * Auch eine Unterfähigkeit zählt (M04a): die Fahrzeuge stehen, solange
+   * „Lagerorte und Fahrzeuglager“ an ist — und künftig ein
+   * Betriebsmittel-Modul (W06/W07).
    */
-  nurMitModul?: ModulId[];
+  nurMitModul?: SchalterId[];
 }
 
 export const UNTER: Record<string, Unterseite[]> = {
@@ -280,6 +284,14 @@ export const UNTER: Record<string, Unterseite[]> = {
     { pfad: 'nummern', label: 'Nummernkreise', roles: TOP },
     { pfad: 'personal', label: 'Personal', roles: TOP },
     /*
+      DIE FAHRZEUGE (M04a): Stammdaten des Betriebs, die gemeinsame Kennung
+      für Fahrzeuglager (E10), Fristen (W06) und Fahrtenbuch (W07). Hierher
+      und nicht ins Lager, weil die Fristen der Fahrzeuge später genau hier
+      dazukommen. Für die, die das Lager führen (Verwaltung und Leitung);
+      dieselbe Grenze zieht `fahrzeug_speichern`.
+    */
+    { pfad: 'fahrzeuge', label: 'Fahrzeuge', roles: ['Verwaltung', ...LEAD], nurMitModul: ['material.lagerorte_fahrzeuglager'] },
+    /*
       Der Kontenrahmen steht NEBEN den Sätzen und nicht darin: er gehört
       einer anderen Rolle. Welche Konten die Kanzlei bebucht, pflegt die
       BUCHHALTUNG — sie ist die Rolle, die mit ihr spricht. Sie dafür in die
@@ -336,7 +348,7 @@ export function unterseitenFuer(
   schalter?: Partial<Record<NonNullable<Unterseite['nurMitSchalter']>, boolean>>,
   module?: Record<string, boolean>,
 ): Unterseite[] {
-  const an = aktiveModule(module);
+  const an = aktiveSchalter(module);
   return (UNTER[basis] ?? []).filter(
     (s) =>
       (!s.roles || s.roles.includes(role)) &&

@@ -38,6 +38,14 @@ const AUSNAHMEN: Record<string, string> = {
   // Betrieb mit zwanzig Monteuren hat auch nach zehn Jahren zwanzig Zeilen.
   listUsers: 'Belegschaft — wächst nicht mit der Zeit',
   /*
+    LAGERORTE UND FAHRZEUGE (M04a): wie die Belegschaft ein Stamm des
+    Betriebs — ein Fuhrpark von zwanzig Bussen hat auch nach zehn Jahren
+    zwanzig Zeilen (stillgelegte bleiben, werden aber nicht mehr). Eine
+    Grenze schnitte still einen Ort aus jeder Wahl.
+  */
+  listLagerorte: 'Orte des Betriebs — wachsen mit Lagern und Fahrzeugen, nicht mit der Zeit',
+  listFahrzeuge: 'Fuhrpark — wächst mit den Fahrzeugen, nicht mit der Zeit',
+  /*
     DER MATERIALSTAMM STAND HIER — ZU UNRECHT.
 
     Die Begründung lautete „ein Katalog, den der Betrieb selbst pflegt; er

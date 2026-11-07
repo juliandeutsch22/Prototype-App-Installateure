@@ -91,6 +91,15 @@ export function createReturn(
   return pg.createReturn(companyId, ret);
 }
 
+/** Retoure in einen weiteren Lagerort (M04a) — „neu“ geht dorthin zurück statt ins Hauptlager. */
+export function createReturnInOrt(
+  companyId: string,
+  ret: Omit<NewMaterialOrder, 'status' | 'transactionType'> & { condition: string },
+  ortId: string | null,
+): Promise<string> {
+  return pg.createReturn(companyId, ret, ortId);
+}
+
 export function deleteOrder(orderId: string): Promise<void> {
   return pg.deleteOrder(orderId);
 }

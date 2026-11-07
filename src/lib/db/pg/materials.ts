@@ -154,14 +154,19 @@ export async function adjustStock(materialId: string, delta: number) {
  * M29). Zurück kommt der neue Bestand.
  */
 export async function lagerEingang(eingang: {
-  materialId: string; menge: number; lieferant: string; lieferschein?: string; bezug?: string;
+  materialId: string; menge: number; lieferant: string; lieferschein?: string; bezug?: string; ortId?: string;
 }): Promise<number> {
+  /*
+    DER ORT NUR, WENN EINER GEWÄHLT IST (M04a): ins Hauptlager geht derselbe
+    Aufruf wie vor den Lagerorten.
+  */
   const { data, error } = await derClient().rpc('lager_eingang', {
     p_material: eingang.materialId,
     p_menge: eingang.menge,
     p_lieferant: eingang.lieferant,
     p_lieferschein: eingang.lieferschein ?? null,
     p_bezug: eingang.bezug ?? null,
+    ...(eingang.ortId ? { p_ort: eingang.ortId } : {}),
   });
   if (error) throw new Error(error.message);
   return Number(data);
@@ -180,9 +185,10 @@ export async function verkaufspreiseVorschlagen(): Promise<{ gesetzt: number; oh
 }
 
 /** Inventur: der gezählte Bestand, mit Grund (M28). */
-export async function lagerInventur(materialId: string, bestand: number, grund: string): Promise<number> {
+export async function lagerInventur(materialId: string, bestand: number, grund: string, ortId?: string): Promise<number> {
   const { data, error } = await derClient().rpc('lager_inventur', {
     p_material: materialId, p_bestand: bestand, p_grund: grund,
+    ...(ortId ? { p_ort: ortId } : {}),
   });
   if (error) throw new Error(error.message);
   return Number(data);
