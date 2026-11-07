@@ -123,6 +123,21 @@ beforeAll(async () => {
     erwartet: { bestand_von: 10 }, menge: 4, einheit: 'Stk' } });
   expect(um.error).toBeNull();
   expect(um.data.ergebnis).toBe('ausgefuehrt');
+  /*
+    BESTELLVORSCHLAG (M04b): ein Artikel mit Mindestmenge, Sollbestand und
+    Verpackungseinheit, sein Vorschlag übernommen — ein Posten der
+    Einkaufsliste und ein zweiter Schreibbefehl. Der Rücklauf bringt beides
+    mit, die neuen Spalten des Artikels eingeschlossen.
+  */
+  const ventil = await chef.client.from('materials')
+    .insert({ company_id: BETRIEB, name: 'Rücklaufventil', unit: 'Stk', stock: 0, lagerartikel: true, mindestmenge: 5, sollbestand: 12, verpackungseinheit: 6 })
+    .select('id').single();
+  expect(ventil.error).toBeNull();
+  const ueber = await chef.client.rpc('bestellvorschlaege_uebernehmen', { p_befehl: {
+    vorgang: crypto.randomUUID(), aktion: 'bestellvorschlaege',
+    posten: [{ artikel: ventil.data!.id, menge: 12, lieferant: null, erwartet: { menge: 12 } }] } });
+  expect(ueber.error).toBeNull();
+  expect(ueber.data.angelegt).toHaveLength(1);
 
   /*
     EIN OFFENER ANNAHME-LINK (M02a): die Sicherung bringt ihn samt Hashwert
@@ -212,12 +227,19 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
         .eq('company_id', BETRIEB).order('id')).data,
       befehle: (await admin.from('befehle_vorgaenge').select('vorgang, befehl, nutzlast_hash, ergebnis, von_uid')
         .eq('company_id', BETRIEB).order('vorgang')).data,
+      // M04b: Sollbestand und Verpackungseinheit am Artikel, der übernommene Vorschlag als Posten.
+      vorschlag: (await admin.from('materials').select('id, mindestmenge, sollbestand, verpackungseinheit')
+        .eq('company_id', BETRIEB).eq('name', 'Rücklaufventil')).data,
+      posten: (await admin.from('einkauf_posten').select('id, material_id, menge, supplier_id, angelegt_von_uid, bestellt_am')
+        .eq('company_id', BETRIEB).order('id')).data,
     });
     const lager = await lagerVorher();
     expect(lager.orte!.map((o) => o.art).sort()).toEqual(['fahrzeug', 'haupt']);
     expect(lager.bestaende).toEqual([expect.objectContaining({ menge: 4, revision: 1 })]);
     expect(lager.bewegungen!.filter((b) => b.art === 'umlagerung')).toHaveLength(2);
-    expect(lager.befehle).toHaveLength(1);
+    expect(lager.befehle).toHaveLength(2);
+    expect(lager.vorschlag).toEqual([expect.objectContaining({ mindestmenge: 5, sollbestand: 12, verpackungseinheit: 6 })]);
+    expect(lager.posten).toEqual([expect.objectContaining({ menge: 12, bestellt_am: null })]);
 
     /*
       2. Ausleiten — mit dem Token eines Menschen, also der Knopf aus den

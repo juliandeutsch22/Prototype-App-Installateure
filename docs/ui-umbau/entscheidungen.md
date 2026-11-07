@@ -1886,3 +1886,122 @@ jeder bestehende Weg mit Erhaltung, V3 in drei Fällen), Querschnitt in
 `schema`, `mandantenTrennung`, `ruecklauf`, `personLoeschen`, `netzFrist`,
 `modulRegisterServer`; Komponenten `LagerorteLager.test.tsx`,
 `LagerorteWege.test.tsx`, `StockView.test.tsx`; Browser `lagerorte.spec.ts`.
+
+**E59 — Auftragseingang ohne Angebotszwang; Kern im Modulregister (07.11.2026).**
+SHK-Ausbau, Paket M02b (A03 „Behalten“, A11 „Optional, strukturiert“;
+Auffälligkeit 5 im Teil A/R). Ein Auftrag ohne Angebot hatte keinen
+geordneten Weg vom Telefon bis zur Baustelle; die Verwaltung, die das Telefon
+abnimmt, durfte nichts anlegen.
+
+- **Eingang** (Aufträge › Auftragseingang): Kunde (vorhanden oder Angaben zu
+  einem neuen), Ort, Ansprechpartner vor Ort, Anliegen, Dringlichkeit
+  (normal, dringend, Notfall), Wunschtermin, Quelle (Telefon, E-Mail,
+  Hausverwaltung, Versicherung, persönlich, sonstige), Nummer des
+  Auftraggebers; eigene Nummer `EG-JJJJ-NNNN` aus einem eigenen Zählerkreis
+  über `naechste_nummer_kern`. Liste „Offen · Übernommen · Abgelehnt“,
+  dringend und Notfall zuerst, seitenweise; Startseite „Offene Eingänge“.
+- **Rollen:** erfassen, ändern (solange offen), ablehnen und wieder öffnen
+  alle Büro-Rollen, die Kunden lesen — Verwaltung, Buchhaltung,
+  Projektleitung, Geschäftsführung, Administrator. Umwandeln und Löschen die
+  Führung, wie „Neue Baustelle“ und Angebot anlegen. Einen neuen Kunden legt
+  nur an, wer Kunden pflegen darf; sonst sagt es ein Satz. Der Support liest
+  mit Einblick, schreibt nicht.
+- **Umwandeln in einem Zug** (Server, `for update`, Wiederholung gibt dieselbe
+  Baustelle bzw. dasselbe Angebot zurück): „Baustelle anlegen“ mit
+  Abrechnungsart (Vorgabe Regie — ohne Angebot gibt es keinen Festpreis) und
+  Nummernvorsatz über dieselbe Nummernfolge wie „Neue Baustelle“;
+  „Angebot anlegen“ über `angebot_speichern`; „Besichtigung vereinbaren“
+  öffnet das vorhandene Terminformular vorbelegt, der Eingang bleibt offen und
+  zeigt den Termin. Akten von Baustelle und Angebot zeigen „Aus Eingang
+  EG-…“, die Kundenakte die Eingänge des Kunden.
+- **Gleichnamiger Kunde:** Bevor aus den Angaben eines Eingangs ein Kunde
+  wird, dieselbe Rückfrage wie in der Kundenliste („Gleicher Name — trotzdem
+  anlegen?“), mit „übernehmen“ je vorhandenem Kunden.
+- **Kern im Register (V1):** `baustellen` und `kunden` stehen als „Immer an“
+  im Register von App und Server (`app.modul_kern()`), mit Unterfähigkeiten;
+  die erste ist `baustellen.auftragseingang` (Standard an). Eine Festlegung
+  zum Kern selbst wird überall ignoriert. Die Hilfe der Seite „Module“ sagt
+  jetzt richtig: bestehende Bereiche blendet ein Modul nur aus, neuere
+  Funktionen sperrt auch der Server.
+- **Journal (M01b):** neue Objektart `eingang`, mit Kundenkennung, damit
+  Auskunft und Kundenlöschung greifen. **Datenschutz:** der Eingang steht in
+  der Auskunft des Kunden; offene und abgelehnte gehen mit der Kundenlöschung,
+  übernommene bleiben als Herkunft von Baustelle bzw. Angebot.
+
+**Grenzen mit Grund:** kein Import aus Portalen von Hausverwaltungen und
+Versicherungen (liegt beim Auftraggeber bzw. Pilotbetrieb: ohne
+Formatbeschreibung wäre jeder Leser erfunden — Nachweisregister); Eingänge
+mit Angaben zu einem noch nicht angelegten Kunden stehen nicht in dessen
+Datenauskunft (Datenschutz: über den Namen allein träfe es Namensvettern;
+sie lassen sich löschen oder zum Kunden machen); der Vorsatz „EG“ ist fest
+(fachlich: die Nummer ist intern und steht auf keinem Beleg); wird ein
+Eingang erst Angebot und dann über die Annahme Baustelle, nimmt die Baustelle
+den Ansprechpartner der Kundenakte (vorhandener Weg der Annahme).
+
+**Prüfungen.** `auftragseingang.test.ts` (31), `modulRegisterServer.test.ts`,
+Querschnitt in `schema`, `mandantenTrennung`, `ruecklauf`, `personLoeschen`,
+`aenderungsjournal`, `typenSpalten`; Komponenten `EingaengeView`,
+`EingangFormular`, `EingangView` (mit Rückfrage), `gleichnamig`,
+`ModulesView`, Startseite, Akten; Browser `auftragseingang.spec.ts`.
+
+**E60 — Eine Deckungsrechnung für das Material; Bestellvorschläge ohne automatische Bestellung (07.11.2026).**
+SHK-Ausbau, Paket M04b (E13 „Behalten“, E14 und G03 „Integrieren“; Kern K02;
+Befund 7 der Bestandsmatrix). Die Fehlmenge wurde an drei Stellen
+verschieden gerechnet (Formular, Monatsvorschau, Rüstliste), und einen
+Vorschlag, was nachzubestellen ist, gab es nicht.
+
+- **Eine Rechnung, eine Quelle.** Der Server liefert die Eingaben in einem
+  Zug (`materialdeckung`: Rüstlisten, frei im Lager, Anforderungen mit Stand,
+  Zulauf aus der Einkaufsliste; höchstens 31 Tage), die App rechnet mit einer
+  Funktion (`materialDeckung.ts`). Woche, Tag, Monat, Formular und Startseite
+  lesen dieselbe Zahl; das Formular rechnet damit auch ungespeicherte
+  Positionen.
+- **Mengensemantik K02:** wer früher dran ist, bekommt zuerst (Einsatztag,
+  dann Anlage der Liste); eine Menge deckt nicht zwei Bedarfe; die eigene
+  Reservierung zählt nicht doppelt; bestellt, zugesagt und vorhanden bleiben
+  getrennt. Über alle Listen summiert ist die Fehlmenge dieselbe wie bei
+  `lager_frei`; gebucht und reserviert wird unverändert.
+- **Zustände mit Text (Lot):** gedeckt; „wird geliefert bis …“ (läuft);
+  bestellt, Liefertermin unbekannt (läuft — der Text nennt die Lücke);
+  angefordert bzw. auf der Liste, noch nicht bestellt (offen); fehlt N oder
+  Lieferung erst nach dem Einsatztag (Achtung); Laden fehlgeschlagen
+  (Fehler). Eine freie Zeile ohne Katalogartikel steht als „Bestand
+  unbekannt“; ein Katalogartikel, der nicht im Lager geführt wird, als „nicht
+  im Lager geführt – N zu bestellen“ wie bisher, samt Anforderungsknopf.
+  Je Einsatz eine Textzeile in Woche und Tag, ohne Ampelfarben; Startseite
+  „Material fehlt“ für sieben Tage voraus.
+- **Befund Monatsvorschau:** sie zog die eigene Liste mit der vollen Menge
+  ab, nicht mit dem Rest aus dem Regal — zwei konkurrierende Listen meldeten
+  die frühere als Fehlmenge, eine Lieferung nach dem Einsatztag galt als
+  gedeckt, eingeladene Positionen zählten wie offene. Das Formular hatte den
+  Vorrangfehler ebenso. Jetzt rechnen beide richtig; die Tests zeigen alte
+  und richtige Zahl nebeneinander.
+- **Bestellvorschläge** (Anforderungen › Einkaufsliste): ausgelöst, wenn frei
+  plus Zulauf unter der Mindestmenge oder unter null liegt (auch aus
+  Rüstlisten, G03); Menge bis zum Sollbestand, ohne ihn bis zur
+  Mindestmenge, aufgerundet auf die Verpackungseinheit; Großhändler nach der
+  Regel aus M03a. Nichts doppelt: Anforderungen, Listen- und Bestellposten
+  zählen als Zulauf. „Übernehmen“ legt Posten der Einkaufsliste über den
+  Befehlsvertrag aus M04a an, gebündelt, mit von Hand änderbarer Menge;
+  hat sich der Vorschlag inzwischen geändert, wird er nicht angelegt
+  („veraltet“). **Keine automatische Bestellung.**
+- **Sollbestand und Verpackungseinheit** am Artikel (nicht je Ort: reserviert
+  und bestellt wird gegen das Hauptlager, ein Fahrzeug füllt man durch
+  Umlagern), gepflegt wie die Mindestmenge; die Datenbank verlangt
+  Sollbestand ≥ Mindestmenge.
+- **Module:** `material.materialbereitschaft` (an) nimmt ausgeschaltet nur die
+  neue Anzeige weg — die Fehlmenge in Formular und Monat gab es vorher schon;
+  `material.bestellvorschlaege` (an) prüft der Server beim Lesen und
+  Übernehmen (V3). Rechte: Verwaltung und Leitung.
+
+**Grenzen mit Grund:** keine Rundung nach DATANORM-Verpackungseinheit (der
+Leser ist nicht gegen echte Dateien geprüft — Nachweisregister); kein
+Sollbestand je Ort (fachlich, oben); „bestellt“ ist bis M05a, was die
+Einkaufsliste als bestellt führt (Bestellbelege kommen mit M05a); der Support
+sieht keine Deckung (wie `lager_frei`).
+
+**Prüfungen.** `materialbereitschaft.test.ts`, `materialDeckung.test.ts`
+(33, mit Befund alt/richtig), `Bestellvorschlaege.test.tsx`, Erweiterungen in
+`AssignmentsView`, `WochenplanView`, `MonatsAnsicht`, `monatsBalken`,
+`startseite`; Querschnitt `modulRegisterServer`, `schema`, `ruecklauf`;
+Browser `materialbereitschaft.spec.ts`.

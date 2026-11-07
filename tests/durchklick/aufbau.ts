@@ -43,6 +43,11 @@ export const CHEFIN = { email: 'chefin@durchklick.test', name: 'Carla Chefin' };
 
 export const BAUSTELLE = { nummer: 'B-2026-0001', kunde: 'Familie Huber' };
 export const ARTIKEL = { name: 'Kupferrohr 15mm', einheit: 'm' };
+/**
+ * Für die Bestellvorschläge (M04b): 2 im Lager, Mindestmenge 5, Sollbestand
+ * 12, in Fünfern bestellt — vorgeschlagen werden 10.
+ */
+export const VORSCHLAG_ARTIKEL = { name: 'Absperrventil 3/4', einheit: 'Stk', bestand: 2, mindestmenge: 5, sollbestand: 12, verpackungseinheit: 5 };
 
 /** Legt ein Konto an — oder richtet das vorhandene wieder her. */
 async function konto(
@@ -128,6 +133,8 @@ export default async function aufbau(): Promise<void> {
   for (const t of [
     'work_sheet_zeiten', 'work_sheet_material', 'work_sheet_fotos', 'work_sheets',
     'invoice_positions', 'invoices', 'material_orders', 'time_entries',
+    // M06b: die freien Zeitfelder — ein liegengebliebenes Pflichtfeld ließe jede Buchung eines Durchklicks scheitern.
+    'zeitbuchung_feldwerte', 'zeitfeld_fassungen', 'zeitfeld_definitionen',
     // Sonderurlaub (Plan 10.3): hängt an der Person; bliebe er stehen, ließe
     // sich das Konto des Monteurs beim nächsten Lauf nicht neu anlegen.
     'urlaubsanspruch_anpassungen', 'freistellungen',
@@ -139,6 +146,8 @@ export default async function aufbau(): Promise<void> {
     'assignments', 'datanorm_zeilen', 'material_prices', 'lieferantenartikel', 'datanorm_laeufe',
     // Annahme-Links (M02a) und Angebote: ein angenommenes hält seine Baustelle fest.
     'angebot_links', 'quotes',
+    // M04b: die Posten der Einkaufsliste vor den Artikeln, auf die sie zeigen.
+    'einkauf_posten',
     'rabattsaetze', 'materials', 'projects', 'customers', 'suppliers',
   ]) {
     await admin.from(t).delete().eq('company_id', BETRIEB);
@@ -170,6 +179,13 @@ export default async function aufbau(): Promise<void> {
     category: 'Rohre', article_number: 'KR-15',
   });
   if (artikelFehler) throw new Error(artikelFehler.message);
+
+  const { error: vorschlagFehler } = await admin.from('materials').insert({
+    company_id: BETRIEB, name: VORSCHLAG_ARTIKEL.name, unit: VORSCHLAG_ARTIKEL.einheit, stock: VORSCHLAG_ARTIKEL.bestand,
+    lagerartikel: true, mindestmenge: VORSCHLAG_ARTIKEL.mindestmenge, sollbestand: VORSCHLAG_ARTIKEL.sollbestand,
+    verpackungseinheit: VORSCHLAG_ARTIKEL.verpackungseinheit, category: 'Armaturen', article_number: 'AV-34',
+  });
+  if (vorschlagFehler) throw new Error(vorschlagFehler.message);
 
   await geweckt;
 }

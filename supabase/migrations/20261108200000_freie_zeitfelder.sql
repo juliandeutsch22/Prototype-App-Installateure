@@ -72,7 +72,8 @@
 
 /*
   DIESELBE LISTE WIE `MODULE` UND `KERN` in `src/lib/module.ts` — Rumpf wie
-  in `20261107300000_auftragseingang.sql`, dazu der Kernbereich
+  in `20261108100000_materialbereitschaft.sql` (mit Materialbereitschaft und
+  Bestellvorschlägen aus M04b), dazu der Kernbereich
   `zeiterfassung` und seine Unterfähigkeit `zeiterfassung.freie_zeitfelder`.
   `tests/supabase/modulRegisterServer.test.ts` vergleicht beide Listen mit
   der App.
@@ -96,6 +97,8 @@ as $$
     ('material.lieferantenvergleich', true, '{}'::text[]),
     ('material.katalogpreisverlauf', true, '{}'::text[]),
     ('material.lagerorte_fahrzeuglager', true, '{}'::text[]),
+    ('material.materialbereitschaft', true, '{}'::text[]),
+    ('material.bestellvorschlaege', true, '{}'::text[]),
     ('urlaub', true, '{}'::text[]),
     ('scheine', true, '{}'::text[]),
     ('angebote', true, '{}'::text[]),

@@ -234,6 +234,21 @@ describe('Lagerorte und Fahrzeuglager (M04a)', () => {
   });
 });
 
+describe('Materialbereitschaft und Bestellvorschläge (M04b)', () => {
+  it('hängen unter Material, sind ab Werk an, gehen mit dem Modul aus und einzeln aus', () => {
+    for (const t of ['material.materialbereitschaft', 'material.bestellvorschlaege'] as const) {
+      expect(istAn(undefined, t)).toBe(true);
+      expect(istAn({ material: false }, t)).toBe(false);
+      expect(istAn({ [t]: false }, t)).toBe(false);
+      expect(istAn({ [t]: false }, 'material')).toBe(true);
+      // Abschalten nimmt nur Ansichten weg — keine Folge über das Verschwinden hinaus.
+      expect(folgenBeimAbschalten(t, undefined)).toEqual([]);
+    }
+    expect(schalter('material.materialbereitschaft')?.name).toBe('Materialbereitschaft');
+    expect(schalter('material.bestellvorschlaege')?.name).toBe('Bestellvorschläge');
+  });
+});
+
 describe('Unterfähigkeiten', () => {
   it('gelten mit ihrem eigenen Standard, solange nichts festgelegt ist', () => {
     const an = aktiveSchalter(undefined, PRUEF);
@@ -293,10 +308,12 @@ describe('Material: Kataloge, Preisvergleich, Preisverlauf (M03a)', () => {
   const TEILE = ['material.katalogversionen', 'material.lieferantenvergleich', 'material.katalogpreisverlauf'] as const;
 
   it('stehen unter „Material“, eingeschaltet, solange nichts festgelegt ist', () => {
-    // Neben ihnen steht seit M04a „Lagerorte und Fahrzeuglager“ (eigener Fall oben).
+    // Neben ihnen stehen seit M04a „Lagerorte und Fahrzeuglager“, seit M04b Bereitschaft und Vorschläge (eigene Fälle).
     expect(MODULE.find((m) => m.id === 'material')!.unter!.map((f) => [f.id, f.standard])).toEqual([
       ...TEILE.map((t) => [t, true]),
       ['material.lagerorte_fahrzeuglager', true],
+      ['material.materialbereitschaft', true],
+      ['material.bestellvorschlaege', true],
     ]);
     for (const t of TEILE) expect(istAn(undefined, t)).toBe(true);
   });

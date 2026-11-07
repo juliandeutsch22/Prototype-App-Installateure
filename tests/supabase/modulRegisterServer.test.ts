@@ -60,7 +60,9 @@ describe('app.modul_register', () => {
     expect(ausDerApp()).toContain('baustellen.auftragseingang | true | ');
     // M06b: die Zeiterfassung als Kern mit den freien Zeitfeldern.
     expect(ausDerApp()).toContain('zeiterfassung.freie_zeitfelder | true | ');
-    expect((await ausSql()).length).toBeGreaterThanOrEqual(17);
+    // M04b: Materialbereitschaft und Bestellvorschläge — die Vorschläge prüft der Server (V3).
+    expect(await ausSql()).toEqual(expect.arrayContaining(['material.materialbereitschaft | true | ', 'material.bestellvorschlaege | true | ']));
+    expect((await ausSql()).length).toBeGreaterThanOrEqual(21);
   });
 
   it('der Kern in SQL ist der Kern der App — und immer an, gleich was festgelegt ist (M02b)', async () => {
@@ -106,6 +108,7 @@ describe('app.modul_register', () => {
                              ('einsatzplanung', true, '{}'::text[]), ('material', true, '{}'::text[]),
                              ('material.katalogversionen', true, '{}'::text[]), ('material.lieferantenvergleich', true, '{}'::text[]),
                              ('material.katalogpreisverlauf', true, '{}'::text[]), ('material.lagerorte_fahrzeuglager', true, '{}'::text[]),
+                             ('material.materialbereitschaft', true, '{}'::text[]), ('material.bestellvorschlaege', true, '{}'::text[]),
                              ('urlaub', true, '{}'::text[]),
                              ('scheine', true, '{}'::text[]), ('angebote', true, '{}'::text[]), ('angebote.online_annahme', true, '{}'::text[]),
                              ('rechnungen', true, '{}'::text[]), ('nachkalkulation', true, '{rechnungen}'::text[]),

@@ -20,6 +20,7 @@ import {
   lueckenMonat,
   mahnungenFaellig,
   offeneAnforderungen,
+  materialFehlt,
   ohneEinsatz,
   ohneProjektleitung,
   scheineZeile,
@@ -341,6 +342,8 @@ function projektleitung(d: StartDaten, u: Umfeld): Startseite {
     // Der Auftragseingang (M02b): was die Projektleitung zur Baustelle oder zum Angebot macht.
     erlaubt(offeneEingaenge(d.offeneEingaenge), u),
     erlaubt(unbesetzteEinsaetze(u.heute, d.heuteBetrieb ?? []), u),
+    // M04b: Einsätze der nächsten sieben Tage, deren Material niemand deckt.
+    erlaubt(materialFehlt(d.materialFehlt ?? [], titelVon(d)), u),
     erlaubt(budgetNahe(d.budget ?? []), u),
     erlaubt(ohneEinsatz(d.ohneEinsatz ?? [], titelVon(d)), u),
     erlaubt(wartungenOhneBaustelle(d.wartungen ?? [], u.heute), u),
@@ -585,6 +588,21 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
         status: { text: 'heute', ton: 'info' },
       }));
     }
+  }
+
+  /*
+    MATERIAL FEHLT (M04b, E13): heute, wenn ein Einsatz von heute betroffen
+    ist, sonst diese Woche — in die Tagesplanung des ersten Tages.
+  */
+  const fehlt = [...(d.materialFehlt ?? [])].sort((a, b) => a.datum.localeCompare(b.datum));
+  if (fehlt.length) {
+    const titel = titelVon(d);
+    themen.push(wenn(fehlt.length === 1 ? ZIEL.tag(fehlt[0].datum) : ZIEL.woche, {
+      key: 'material-fehlt', wann: fehlt[0].datum === h ? 'heute' : 'woche',
+      titel: `Material fehlt für ${anzahl(fehlt.length, 'Einsatz', 'Einsätze')}`,
+      detail: `${titel(fehlt[0].projectNumber)}, ${tagKurz(fehlt[0].datum)}`,
+      status: { text: 'prüfen', ton: 'warn' },
+    }));
   }
 
   // ── Diese Woche

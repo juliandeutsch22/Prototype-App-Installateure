@@ -26,6 +26,9 @@ dann zu „erledigt mit E…/PR …“, gesammelt unter „Nachgeführt“. Den 
 | N02 | Serverprüfung neuer Befehle (V3) umgesetzt: `app.modul_aktiv` mit Vergleich gegen das Register der App (E56) |
 | E01–E04 | erledigt (E57, M03a): Lieferantenartikel je Großhändler mit Zuordnung, Preise am Lieferantenartikel, Einkaufspreis „günstigster vergleichbarer, sonst jüngster“, Vergleich, Verlauf, Preissprünge, Suche über Großhändlernummer und EAN |
 | E10 | erledigt (E58, M04a): Lagerorte und Fahrzeuglager neben dem Hauptlager (`materials.stock` bleibt), Fahrzeuge als Entität, Umlagerung über den Schreibbefehls-Vertrag, bestehende Wege mit optionalem Ort |
+| A03, A11 | erledigt (E59, M02b): Auftragseingang mit Quelle, Nummer des Auftraggebers und Stand, Umwandeln in Baustelle bzw. Angebot in einem Zug, Verwaltung erfasst; Portal-Import als Grenze |
+| N02 | Kern `baustellen`/`kunden` im Register als „Immer an“ mit Unterfähigkeiten (E59) |
+| E13, E14, G03 | erledigt (E60, M04b): eine Deckungsrechnung (Befund 7 behoben), Bestellvorschläge aus Mindestmenge, Sollbestand und Rüstlisten, Übernehmen über den Befehlsvertrag |
 
 
 ## Bestandsmatrix Teil A/R — Aufträge und Rechnungswesen
