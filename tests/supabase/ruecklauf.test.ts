@@ -98,6 +98,26 @@ beforeAll(async () => {
     }),
   ]);
   expect(papierkorb.map((r) => r.error)).toEqual([null, null]);
+  /*
+    LAGERORTE, FAHRZEUG, UMLAGERUNG (M04a): das Hauptlager, ein Fahrzeug mit
+    seinem Fahrzeuglager, ein Artikel und eine Umlagerung dorthin — also ein
+    Ortsbestand mit Revision, zwei Bewegungen mit Ort, Gegenort und Vorgang
+    und ein Schreibbefehl. Der Rücklauf bringt alles mit; er legt weder ein
+    zweites Hauptlager an noch schreibt er eigene Bewegungen.
+  */
+  expect((await admin.from('lagerorte').insert({ company_id: BETRIEB, art: 'haupt', bezeichnung: 'Hauptlager' })).error).toBeNull();
+  const fz = await chef.client.rpc('fahrzeug_speichern', { p_fahrzeug: { kennzeichen: 'W-RUECK1', standardfahrer_uid: monteur.uid, aktiv: true } });
+  expect(fz.error).toBeNull();
+  const busOrt = (await admin.from('lagerorte').select('id').eq('fahrzeug_id', fz.data).single()).data!.id as string;
+  const artikel = await chef.client.from('materials')
+    .insert({ company_id: BETRIEB, name: 'Rücklaufrohr', unit: 'Stk', stock: 10 }).select('id').single();
+  expect(artikel.error).toBeNull();
+  const um = await chef.client.rpc('umlagern', { p_befehl: {
+    vorgang: crypto.randomUUID(), aktion: 'umlagerung', ziel: { artikel: artikel.data!.id, von: null, nach: busOrt },
+    erwartet: { bestand_von: 10 }, menge: 4, einheit: 'Stk' } });
+  expect(um.error).toBeNull();
+  expect(um.data.ergebnis).toBe('ausgefuehrt');
+
   const { error: e1 } = await chef.client.from('customers').update({ contact_phone: '0664 1' }).eq('id', kunde!.id);
   const { error: e2 } = await chef.client.from('projects').update({ status: 'Pausiert' }).eq('project_number', 'R-2026-001');
   expect([e1, e2]).toEqual([null, null]);
@@ -128,6 +148,21 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
     const journalVorher = ((await admin.from('aenderungsjournal').select('id, objekt_id, art, aenderungen, von_uid')
       .eq('company_id', BETRIEB).order('id')).data ?? []);
     expect(journalVorher).toHaveLength(2);
+    // M04a: Orte, Ortsbestand, Bewegungen und Befehle — Zeile für Zeile.
+    const lagerVorher = async () => ({
+      orte: (await admin.from('lagerorte').select('id, art, bezeichnung, fahrzeug_id, aktiv').eq('company_id', BETRIEB).order('id')).data,
+      fahrzeuge: (await admin.from('fahrzeuge').select('id, kennzeichen, standardfahrer_uid, aktiv').eq('company_id', BETRIEB).order('id')).data,
+      bestaende: (await admin.from('lagerbestaende').select('lagerort_id, material_id, menge, revision').eq('company_id', BETRIEB).order('lagerort_id')).data,
+      bewegungen: (await admin.from('lagerbewegungen').select('id, art, menge, bestand_nachher, lagerort_id, gegenort_id, vorgang')
+        .eq('company_id', BETRIEB).order('id')).data,
+      befehle: (await admin.from('befehle_vorgaenge').select('vorgang, befehl, nutzlast_hash, ergebnis, von_uid')
+        .eq('company_id', BETRIEB).order('vorgang')).data,
+    });
+    const lager = await lagerVorher();
+    expect(lager.orte!.map((o) => o.art).sort()).toEqual(['fahrzeug', 'haupt']);
+    expect(lager.bestaende).toEqual([expect.objectContaining({ menge: 4, revision: 1 })]);
+    expect(lager.bewegungen!.filter((b) => b.art === 'umlagerung')).toHaveLength(2);
+    expect(lager.befehle).toHaveLength(1);
 
     /*
       2. Ausleiten — mit dem Token eines Menschen, also der Knopf aus den
@@ -195,6 +230,9 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
     const journalNachher = ((await admin.from('aenderungsjournal').select('id, objekt_id, art, aenderungen, von_uid')
       .eq('company_id', BETRIEB).order('id')).data ?? []);
     expect(journalNachher).toEqual(journalVorher);
+
+    // M04a: dieselben Orte (ein Hauptlager), Bestände mit Revision, Bewegungen und Befehle — nichts dazu.
+    expect(await lagerVorher()).toEqual(lager);
 
     // Nicht nur die Anzahl: der Inhalt muss stimmen, sonst hätte auch eine
     // Handvoll leerer Zeilen bestanden.

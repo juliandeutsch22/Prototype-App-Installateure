@@ -162,9 +162,13 @@ export function alsBestelltMarkieren(orderIds: string[]): Promise<string[]> {
  * Als EIN Aufruf (`einkauf_geliefert`): zweimal gedrückt bucht nicht zweimal
  * ein, und Bestand und Status laufen nie auseinander.
  */
-export async function geliefert(orderIds: string[]): Promise<number> {
+export async function geliefert(orderIds: string[], ortId?: string): Promise<number> {
   if (orderIds.length === 0) return 0;
-  const { data, error } = await derClient().rpc('einkauf_geliefert', { p_ids: orderIds });
+  // Der Zielort (M04a) nur, wenn einer gewählt ist — ins Hauptlager der Aufruf wie bisher.
+  const { data, error } = await derClient().rpc('einkauf_geliefert', {
+    p_ids: orderIds,
+    ...(ortId ? { p_ort: ortId } : {}),
+  });
   if (error) throw new Error(error.message);
   return Number(data ?? 0);
 }

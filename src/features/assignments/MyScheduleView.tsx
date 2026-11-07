@@ -519,6 +519,7 @@ export default function MyScheduleView() {
                               projectNumber={a.projectNumber}
                               positionen={liste.positionen}
                               geladen={liste.geladen ?? {}}
+                              eingeteilt={liste.uids}
                             />
                           );
                         })()}

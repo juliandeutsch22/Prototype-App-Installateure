@@ -247,6 +247,16 @@ describe('Interne Hilfsfunktionen', () => {
       // Der Papierkorb (M01d): wer und wann setzen nur diese Auslöser.
       'app.angebot_papierkorb()',
       'app.schein_verworfen_am()',
+      // Lagerorte und Schreibbefehle (M04a): Auslöser, Hauptlager, Vorgänge — nur die Befehle selbst.
+      'app.hauptlager_anlegen(text)',
+      'app.ortsbestand_waechter()',
+      'app.ortsbewegung_schreiben()',
+      'app.lagerartikel_bleibt_bei_ortsbestand()',
+      'app.anforderung_ort_fest()',
+      'app.lager_kontext_ort(uuid, uuid)',
+      'app.befehl_vorgang(jsonb)',
+      'app.befehl_beginnen(text, uuid, text, jsonb)',
+      'app.befehl_abschliessen(text, uuid, jsonb)',
     ];
     const offen: string[] = [];
     for (const f of intern) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Company, EinkaufPosten, Material, MaterialOrder } from '@/types';
+import type { Company, EinkaufPosten, Lagerort, Material, MaterialOrder } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import {
   alsBestelltMarkieren,
@@ -47,6 +47,8 @@ import { downloadBestellungPdf } from './bestellungPdf';
 import { zahlOder } from '@/lib/zahl';
 import { mengeFehler } from '@/lib/einheit';
 import { grundAus } from '@/lib/fehlerGrund';
+import { HAUPTLAGER, ortNameVon } from './lagerorte';
+import { OrtWahl } from './LagerDialoge';
 
 /**
  * Die Einkaufsliste im Reiter „Einkauf" der Anforderungen.
@@ -84,6 +86,7 @@ export default function Einkaufsliste({
   onGrosshaendlerGeaendert,
   onLagerGeaendert,
   onVeraltet,
+  orte,
 }: {
   company: Company;
   meinUid: string;
@@ -97,6 +100,11 @@ export default function Einkaufsliste({
   onLagerGeaendert: () => void;
   /** Eine Aktion traf einen veralteten Stand — die Anforderungen neu holen (R7-M3). */
   onVeraltet: () => void;
+  /**
+   * Die Lagerorte (M04a): mit weiteren Orten wählt das Büro, wohin
+   * „Geliefert“ bucht. Ohne sie ins Hauptlager, wie bisher.
+   */
+  orte?: { alle: readonly Lagerort[]; wahl: readonly Lagerort[] };
 }) {
   const toast = useToast();
   const [katalog, setKatalog] = useState<Map<string, Pick<Material, 'articleNumber' | 'unit'>>>(new Map());
@@ -108,6 +116,10 @@ export default function Einkaufsliste({
   /** Die bestellte Zeile, deren Liefertermin gerade geändert wird. */
   const [terminFuer, setTerminFuer] = useState<Unterwegs | null>(null);
   const [terminNeu, setTerminNeu] = useState('');
+  const [lieferOrt, setLieferOrt] = useState(HAUPTLAGER);
+  const zielOrt = orte?.wahl.some((o) => o.id === lieferOrt) ? lieferOrt : HAUPTLAGER;
+  /** Wohin „Geliefert“ gebucht hat — für die Meldung. */
+  const imLager = zielOrt ? `— ${ortNameVon(orte?.alle ?? [], zielOrt)}` : '— im Lager';
 
   const materialIds = useMemo(
     () =>
@@ -177,6 +189,17 @@ export default function Einkaufsliste({
         grosshaendler={grosshaendler}
         onAngelegt={onLagerGeaendert}
       />
+
+      {orte && orte.wahl.length > 0 && gruppen.some((g) => g.unterwegs.length > 0) && (
+        <OrtWahl
+          id="geliefert-ort"
+          label="„Geliefert“ bucht in"
+          alle={orte.alle}
+          wahl={orte.wahl}
+          wert={zielOrt}
+          onChange={setLieferOrt}
+        />
+      )}
 
       {gruppen.length === 0 ? (
         <Card title="Einkaufsliste">
@@ -370,12 +393,12 @@ export default function Einkaufsliste({
                             `alle-${g.supplierId}`,
                             async () =>
                               nichtAlleGetroffen(
-                                await geliefert(g.unterwegs.map((o) => o.id)),
+                                await (zielOrt ? geliefert(g.unterwegs.map((o) => o.id), zielOrt) : geliefert(g.unterwegs.map((o) => o.id))),
                                 g.unterwegs.length,
                                 'Inzwischen von jemand anderem als geliefert gebucht',
                                 (rest) => `Geliefert gebucht — ${rest} hatte inzwischen jemand anderes gebucht.`,
                               ),
-                            'Alles geliefert — im Lager, Anforderungen abholbereit',
+                            `Alles geliefert ${imLager}, Anforderungen abholbereit`,
                           )
                         }
                       >
@@ -418,13 +441,13 @@ export default function Einkaufsliste({
                               o.id,
                               async () =>
                                 nichtAlleGetroffen(
-                                  await geliefert([o.id]),
+                                  await (zielOrt ? geliefert([o.id], zielOrt) : geliefert([o.id])),
                                   1,
                                   'Inzwischen von jemand anderem als geliefert gebucht',
                                   () => '',
                                 ),
                               o.art === 'lager'
-                                ? `${o.bezeichnung} ist da — im Lager`
+                                ? `${o.bezeichnung} ist da ${imLager}`
                                 : `${o.bezeichnung} ist da — abholbereit`,
                             )
                           }

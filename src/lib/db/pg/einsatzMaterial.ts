@@ -279,6 +279,8 @@ export async function ladenUmschalten(
   an: boolean,
   vonName: string,
   client?: SupabaseClient,
+  /** Der Quellort beim Abhaken (M04a): ein Fahrzeuglager; leer = Hauptlager, der Aufruf wie bisher. */
+  ortId?: string | null,
 ): Promise<number> {
   /*
     Der Betrieb steht im Anmeldekontext, die Datenbankfunktion holt ihn sich
@@ -295,6 +297,7 @@ export async function ladenUmschalten(
     p_position: positionId,
     p_an: an,
     p_von: vonName,
+    ...(ortId ? { p_ort: ortId } : {}),
   });
   if (error) throw new Error(error.message);
   // Die gebuchte Menge — für „1 Stk abgebucht“ (Runde 3, G15).

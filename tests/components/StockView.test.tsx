@@ -720,13 +720,14 @@ describe('Wer den Katalog einspielen darf', () => {
   it('zeigt der Verwaltung den Eintrag nicht', async () => {
     zeige();
     expect(await screen.findByRole('button', { name: 'Katalog' })).toBeInTheDocument();
-    expect(await seitenMenue()).toEqual(['Inventur …']);
+    // M04a (bewusst nachgezogen): die Lagerorte pflegt, wer das Lager führt — auch die Verwaltung.
+    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …']);
   });
 
   it('zeigt ihn der Geschäftsführung und öffnet ihn', async () => {
     authWert = CHEFIN;
     zeige();
-    expect(await seitenMenue()).toEqual(['Inventur …', 'Katalog einspielen']);
+    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Katalog einspielen']);
     await userEvent.click(screen.getByRole('menuitem', { name: 'Katalog einspielen' }));
     expect(await screen.findByText('Katalog einspielen (Inhalt)')).toBeInTheDocument();
     expect(screen.getByTestId('adresse')).toHaveTextContent('/lager?reiter=import');

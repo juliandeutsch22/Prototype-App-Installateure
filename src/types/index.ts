@@ -263,6 +263,11 @@ export interface Company {
    * Papierkorb hinweist (M01d); leer = kein Hinweis. Löscht nichts.
    */
   papierkorbFristTage?: number | null;
+  /**
+   * Der Standardfahrer lagert aus seinem Fahrzeug selbst ins Hauptlager
+   * zurück (M04a). Ab Werk aus: das Lager bucht die Verwaltung oder die Leitung.
+   */
+  lagerRueckgabeFahrer?: boolean;
   /** Vorschlag für den Grund der Steuerbefreiung auf Rechnungen mit 0 % (A2). */
   steuerbefreiungVorgabe?: string;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';
@@ -1024,8 +1029,12 @@ export interface Lagerbewegung {
   id: string;
   companyId: string;
   materialId: string;
-  /** `einladen_zurueck`: „eingeladen“ in der Rüstliste am selben Tag zurückgenommen (Runde 3, G15). */
-  art: 'anfangsbestand' | 'eingang' | 'entnahme' | 'retoure' | 'inventur' | 'zugang' | 'abgang' | 'einladen_zurueck';
+  /**
+   * `einladen_zurueck`: „eingeladen“ in der Rüstliste am selben Tag zurückgenommen (Runde 3, G15).
+   * `umlagerung`: von einem Lagerort an einen anderen (M04a) — je Ort eine Zeile.
+   */
+  art: 'anfangsbestand' | 'eingang' | 'entnahme' | 'retoure' | 'inventur' | 'zugang' | 'abgang' | 'einladen_zurueck'
+    | 'umlagerung';
   menge: number;
   bestandNachher: number;
   grund?: string | null;
@@ -1035,7 +1044,56 @@ export interface Lagerbewegung {
   materialOrderId?: string | null;
   erfasstVon?: string | null;
   erfasstVonName?: string | null;
+  /** Der Ort, dessen Bestand die Zeile ändert (M04a); leer = Hauptlager. */
+  lagerortId?: string | null;
+  /** Bei einer Umlagerung der andere Ort; leer = Hauptlager. */
+  gegenortId?: string | null;
+  /** Vorgangskennung des Befehls — verbindet die beiden Zeilen einer Umlagerung. */
+  vorgang?: string | null;
   createdAt?: number;
+}
+
+/**
+ * Ein Fahrzeug des Betriebs (M04a) — gemeinsame Kennung für das
+ * Fahrzeuglager (E10), Fristen (W06) und Fahrtenbuch (W07).
+ */
+export interface Fahrzeug {
+  id: string;
+  companyId: string;
+  kennzeichen: string;
+  bezeichnung?: string | null;
+  /** Wer es gewöhnlich fährt — optional; daraus kommen „Mein Fahrzeug“ und Vorschläge. */
+  standardfahrerUid?: string | null;
+  aktiv: boolean;
+  angelegtAm?: number;
+  geaendertAm?: number;
+}
+
+/**
+ * Ein Lagerort (M04a). Das Hauptlager gibt es immer — sein Bestand ist
+ * `Material.stock`; weitere Lager und Fahrzeuglager führen ihren Bestand in
+ * `Lagerbestand`.
+ */
+export interface Lagerort {
+  id: string;
+  companyId: string;
+  art: 'haupt' | 'lager' | 'fahrzeug';
+  bezeichnung: string;
+  anschrift?: string | null;
+  fahrzeugId?: string | null;
+  aktiv: boolean;
+  angelegtAm?: number;
+}
+
+/** Bestand eines Artikels an einem weiteren Lagerort (M04a). */
+export interface Lagerbestand {
+  lagerortId: string;
+  materialId: string;
+  companyId: string;
+  menge: number;
+  /** Steigt mit jeder Änderung der Menge. */
+  revision: number;
+  geaendertAm?: number;
 }
 
 /**
@@ -1174,6 +1232,12 @@ export interface MaterialOrder {
    * Übersteuerung ein Eintrag. Schreibt nur die Datenbank.
    */
   lagerUebersteuert?: LagerUebersteuerung[];
+  /**
+   * Weiterer Lagerort der Ware (M04a): wohin die Einkaufsliste sie geliefert
+   * hat bzw. woraus sie abgeholt wurde, bei einer Retoure wohin sie
+   * zurückging. Leer = Hauptlager. Setzt nur die Datenbank.
+   */
+  lagerortId?: string | null;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -1265,6 +1329,8 @@ export interface EinsatzMaterial {
     /** Vom Lager abgebucht beim Einladen (Nachtest 01.10.2026) — Menge und Artikel. */
     gebucht?: number;
     material?: string;
+    /** Aus welchem Fahrzeug abgebucht wurde (M04a); fehlt = Hauptlager. */
+    ort?: string;
   }>;
   updatedAt?: number;
   updatedBy?: string;

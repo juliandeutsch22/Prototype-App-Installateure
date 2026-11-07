@@ -74,14 +74,23 @@ describe('Folgen beim Abschalten — was sich nicht zurückholen lässt', () => 
     ]);
   });
 
-  it('die übrigen Module haben keine solche Folge', () => {
-    for (const m of MODULE.filter((x) => x.id !== 'einsatzplanung')) {
+  it('die übrigen Module haben keine solche Folge — außer Material mit seinen Lagerorten (M04a, bewusst nachgezogen)', () => {
+    for (const m of MODULE.filter((x) => x.id !== 'einsatzplanung' && x.id !== 'material')) {
       expect(folgenBeimAbschalten(m.id, undefined), m.id).toEqual([]);
     }
   });
+
+  it('Material und die Lagerorte sagen vorher, dass Ware an weiteren Orten unsichtbar, aber nicht weg ist (M04a)', () => {
+    const satz = expect.stringMatching(/nicht mehr zu sehen, aber nicht weg/);
+    expect(folgenBeimAbschalten('material.lagerorte_fahrzeuglager', undefined)).toEqual([satz]);
+    // Das Modul nimmt seine Unterfähigkeit mit — und damit ihre Folge.
+    expect(folgenBeimAbschalten('material', undefined)).toEqual([satz]);
+    // Schon abgeschaltet: keine Folge mehr beim Abschalten des Moduls.
+    expect(folgenBeimAbschalten('material', { 'material.lagerorte_fahrzeuglager': false })).toEqual([]);
+  });
 });
 
-/** Ein Prüfregister mit Unterfähigkeiten — das echte trägt noch keine. */
+/** Ein Prüfregister mit Unterfähigkeiten — das echte trägt seit M04a genau eine (siehe unten). */
 const PRUEF: Modul[] = [
   {
     id: 'material',
@@ -112,6 +121,15 @@ const PRUEF: Modul[] = [
     ],
   },
 ];
+
+describe('Die erste echte Unterfähigkeit (M04a)', () => {
+  it('„Lagerorte und Fahrzeuglager“ hängt unter Material, ist ab Werk an und geht mit dem Modul aus', () => {
+    expect(schalter('material.lagerorte_fahrzeuglager')?.name).toBe('Lagerorte und Fahrzeuglager');
+    expect(istAn(undefined, 'material.lagerorte_fahrzeuglager')).toBe(true);
+    expect(istAn({ material: false }, 'material.lagerorte_fahrzeuglager')).toBe(false);
+    expect(istAn({ 'material.lagerorte_fahrzeuglager': false }, 'material')).toBe(true);
+  });
+});
 
 describe('Unterfähigkeiten', () => {
   it('gelten mit ihrem eigenen Standard, solange nichts festgelegt ist', () => {

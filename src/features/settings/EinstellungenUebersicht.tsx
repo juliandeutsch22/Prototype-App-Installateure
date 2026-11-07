@@ -59,6 +59,7 @@ const STICHWORTE: Record<string, string> = {
     'Urlaubsjahr, Übertrag, Verfallstag, Urlaub genehmigen, Wochenplan, Einsatzplan, Kalender-Abo, 24. und 31. Dezember, Nachtzeit, Überstunden, Sonderurlaub, Arztbesuch',
   konten: 'BMD, Debitoren, Anzahlungen, Erlöskonten, Steuercodes, Bankkonto, Skonti',
   support: 'Einblick gewähren, Support, bisherige Zugänge',
+  fahrzeuge: 'Kennzeichen, Standardfahrer, Fahrzeuglager, Kennzeichen aus Buchungen, Rücklagern durch den Fahrer',
   module: 'Bereiche ein- und ausschalten',
   sicherung: 'Nächtliche Sicherung, Daten herunterladen, Belegarchiv',
   papierkorb: 'Verworfene Angebote und Handwerksscheine, wiederherstellen, endgültig löschen, Hinweis nach Tagen (Frist)',

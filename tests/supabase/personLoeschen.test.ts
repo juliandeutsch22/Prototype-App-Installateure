@@ -86,6 +86,9 @@ beforeAll(async () => {
   await einfuegen('einsatz_material', {
     company_id: BETRIEB, date: '2099-02-02', project_number: 'B-LO-1', uids: [monteur.uid, kollege.uid],
   });
+  // M04a: der Monteur ist Standardfahrer eines Fahrzeugs; ein zweites gehört dem Kollegen.
+  await einfuegen('fahrzeuge', { company_id: BETRIEB, kennzeichen: 'W-LO-1', standardfahrer_uid: monteur.uid });
+  await einfuegen('fahrzeuge', { company_id: BETRIEB, kennzeichen: 'W-LO-2', standardfahrer_uid: kollege.uid });
   await admin.from('user_prefs').upsert({ user_id: monteur.uid, company_id: BETRIEB, push_tokens: ['t'] });
   // Die Kennung setzt ein Auslöser aus der Anmeldung — also schreibt der Monteur selbst.
   const { error } = await monteur.client.from('fehlerprotokoll').insert({ company_id: BETRIEB, art: 'fehler', nachricht: 'Absturz' });
@@ -104,7 +107,11 @@ describe('Eine Person der Belegschaft', () => {
     const { b, fehler } = await loeschen(chef, 'mitarbeiter', monteur.uid);
     expect(fehler).toBeNull();
     expect(b!.geloescht).toBe(false);
-    expect(b!.sofort).toEqual({ einstellungen: 1, fehlerprotokoll: 1, einsaetze: 1, ruestlisten: 1, baustellen: 1, termine: 0, geburtsdatum: 0 });
+    expect(b!.sofort).toEqual({
+      einstellungen: 1, fehlerprotokoll: 1, einsaetze: 1, ruestlisten: 1, baustellen: 1, termine: 0, geburtsdatum: 0,
+      // M04a: als Standardfahrer eingetragen — das geht sofort, das Fahrzeug bleibt.
+      standardfahrer: 1,
+    });
     expect(b!.aufbewahren).toEqual([
       { was: 'Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
       // E50: der Verlauf der Buchung (hier ihr Anlegen) bleibt mit ihr aufbewahrt.
@@ -131,6 +138,12 @@ describe('Eine Person der Belegschaft', () => {
     expect(bau).toEqual({ assigned_employees: [kollege.uid], project_managers: [] });
     const { data: ruest } = await admin.from('einsatz_material').select('uids').eq('project_number', 'B-LO-1').single();
     expect(ruest).toEqual({ uids: [kollege.uid] });
+    // M04a: das Fahrzeug bleibt, ohne Standardfahrer; das des Kollegen bleibt, wie es ist.
+    const { data: fz } = await admin.from('fahrzeuge').select('kennzeichen, standardfahrer_uid').eq('company_id', BETRIEB).order('kennzeichen');
+    expect(fz).toEqual([
+      { kennzeichen: 'W-LO-1', standardfahrer_uid: null },
+      { kennzeichen: 'W-LO-2', standardfahrer_uid: kollege.uid },
+    ]);
 
     // Die Gegenprobe: was aufbewahrt werden muss, und was dem Kollegen gehört.
     expect(await zaehle('time_entries', 'user_id', monteur.uid)).toBe(1);

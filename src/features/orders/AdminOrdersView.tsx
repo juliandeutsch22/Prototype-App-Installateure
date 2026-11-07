@@ -58,6 +58,9 @@ import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig, wienerT
 import { datumAT } from '@/lib/datum';
 import { lieferterminText } from './einkauf';
 import RetoureFenster from './RetoureFenster';
+import { useLagerorte } from './useLagerorte';
+import { HAUPTLAGER, weitereOrte } from './lagerorte';
+import { OrtWahl } from './LagerDialoge';
 import { listUsers } from '@/lib/db/users';
 
 /** Was ein Filter aus der Adresse zeigt (Startseite, Nachtest 01.10.2026). */
@@ -318,6 +321,16 @@ export default function AdminOrdersView() {
   const [holgrenze, setHolgrenze] = useState(ANFORDERUNGEN_JE_SEITE);
   /** Bestätigung vor dem Abschluss — dabei wird das Lager reduziert. */
   const [toComplete, setToComplete] = useState<WithId<MaterialOrder> | null>(null);
+  /*
+    WOHER BEIM ABHOLEN (M04a): vorgewählt der Ort, an den die Einkaufsliste
+    die Ware geliefert hat, sonst das Hauptlager. Nur mit weiteren Orten.
+  */
+  const lo = useLagerorte();
+  const weitere = useMemo(() => weitereOrte(lo.orte), [lo.orte]);
+  const [abholOrt, setAbholOrt] = useState(HAUPTLAGER);
+  useEffect(() => {
+    if (toComplete) setAbholOrt(toComplete.lagerortId ?? HAUPTLAGER);
+  }, [toComplete]);
   /** „Abholbereit“ von Hand, aber im Regal fehlt etwas — die Rückfrage mit den Zahlen (R7-M2). */
   const [fehlbestand, setFehlbestand] = useState<{ o: WithId<MaterialOrder>; stand: Regalstand } | null>(null);
   /**
@@ -525,11 +538,11 @@ export default function AdminOrdersView() {
     void postenNeuLaden();
   }
 
-  async function setStatus(o: WithId<MaterialOrder>, next: MaterialOrder['status'], trotzFehlbestand = false) {
+  async function setStatus(o: WithId<MaterialOrder>, next: MaterialOrder['status'], trotzFehlbestand = false, ort?: string | null) {
     if (next === o.status) return;
     setBusyId(o.id);
     try {
-      const r = await updateOrderStatus(o.id, next, { von: o.status, trotzFehlbestand });
+      const r = await updateOrderStatus(o.id, next, { von: o.status, trotzFehlbestand, ...(ort ? { ort } : {}) });
       if (r.art === 'fehlbestand') {
         // Nichts geändert: erst fragen, mit genau diesen Zahlen (R7-M2).
         setFehlbestand({ o, stand: r });
@@ -792,6 +805,7 @@ export default function AdminOrdersView() {
             onGrosshaendlerGeaendert={() => setGhStand((n) => n + 1)}
             onLagerGeaendert={() => setLagerStand((n) => n + 1)}
             onVeraltet={() => setNeuLaden((n) => n + 1)}
+            orte={lo.mitWeiteren ? { alle: lo.orte, wahl: weitere } : undefined}
           />
         </>
       ) : (
@@ -1198,10 +1212,26 @@ export default function AdminOrdersView() {
         }
         onCancel={() => setToComplete(null)}
         onConfirm={async () => {
-          if (toComplete) await setStatus(toComplete, 'Erledigt');
+          if (toComplete) {
+            /*
+              Nur eine abweichende Wahl geht mit: ohne sie nimmt die Datenbank
+              den Ort, an den geliefert wurde, sonst das Hauptlager — derselbe
+              Aufruf wie vor den Lagerorten. Das Hauptlager ausdrücklich, wenn
+              die Ware woanders hin geliefert war.
+            */
+            const vorgabe = toComplete.lagerortId ?? HAUPTLAGER;
+            const ort = abholOrt === vorgabe
+              ? null
+              : abholOrt || lo.orte.find((o) => o.art === 'haupt')?.id || null;
+            await setStatus(toComplete, 'Erledigt', false, ort);
+          }
           setToComplete(null);
         }}
-      />
+      >
+        {toComplete && toComplete.transactionType !== 'return' && weitere.length > 0 && (
+          <OrtWahl id="abholen-ort" label="Woher" alle={lo.orte} wahl={weitere} wert={abholOrt} onChange={setAbholOrt} />
+        )}
+      </ConfirmDialog>
 
       {/*
         ABHOLBEREIT TROTZ FEHLBESTAND (Runde 7, R7-M2). „Status von Hand“

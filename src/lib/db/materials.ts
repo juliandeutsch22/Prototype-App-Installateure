@@ -75,6 +75,8 @@ export function adjustStock(materialId: string, delta: number): Promise<void> {
 /** Wareneingang mit Lieferant, Lieferschein und Bezug (M29). */
 export function lagerEingang(eingang: {
   materialId: string; menge: number; lieferant: string; lieferschein?: string; bezug?: string;
+  /** Der Zielort (M04a); ohne ihn ins Hauptlager, wie bisher. */
+  ortId?: string;
 }): Promise<number> {
   return pg.lagerEingang(eingang);
 }
@@ -84,9 +86,9 @@ export function verkaufspreiseVorschlagen(): Promise<{ gesetzt: number; ohneEink
   return pg.verkaufspreiseVorschlagen();
 }
 
-/** Inventur mit Grund (M28). */
-export function lagerInventur(materialId: string, bestand: number, grund: string): Promise<number> {
-  return pg.lagerInventur(materialId, bestand, grund);
+/** Inventur mit Grund (M28) — mit Ort an diesem weiteren Lagerort (M04a), sonst im Hauptlager. */
+export function lagerInventur(materialId: string, bestand: number, grund: string, ortId?: string): Promise<number> {
+  return pg.lagerInventur(materialId, bestand, grund, ortId);
 }
 
 /** Das Bewegungsprotokoll eines Artikels (M28). */
