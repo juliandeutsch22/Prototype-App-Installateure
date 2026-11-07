@@ -105,6 +105,10 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Bestellvorschläge (Stand 57, E60): keine Rundung nach einer Verpackungseinheit aus DATANORM | Liegt beim Pilotbetrieb: der Leser ist nicht gegen echte Dateien geprüft (Nachweisregister); die Verpackungseinheit wird am Artikel gepflegt |
 | Bestellvorschläge: Sollbestand am Artikel, nicht je Ort | Fachlich: reserviert und bestellt wird gegen das Hauptlager; ein Fahrzeug füllt man durch Umlagern |
 | Materialbereitschaft: „bestellt“ ist bis M05a, was die Einkaufsliste als bestellt führt, mit ihrem Liefertermin | Fachlich: Bestellbelege mit bestätigtem Termin kommen mit M05a |
+| Zeitfelder (Stand 58, E61): nur bei Anwesend und Zeitausgleich | Fachlich und Datenschutz: die übrigen Stände entstehen über Meldung oder Antrag; zum Krankenstand gehören keine Zusatzangaben |
+| Zeitfelder: eine verrechnete Buchung nimmt keine Angaben mehr an, auch keine Nachpflege | Fachlich: die Rechnung ist gestellt; erst stornieren |
+| Zeitfelder: Aufteilen und Einfügen kopieren keine Werte, der abgetrennte Teil zeigt „Nachpflege“ | Fachlich: kopierte Kilometer oder Mengen stünden doppelt da |
+| Zeitfelder: Freitext in einem Feld wird bei der Löschung eines Kunden nicht gefunden | Datenschutz: über den Namen allein träfe es Namensvettern — wie beim Kommentar der Buchung |
 
 ## X – Liegt bei jemand anderem
 

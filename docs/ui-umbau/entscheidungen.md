@@ -2005,3 +2005,64 @@ sieht keine Deckung (wie `lager_frei`).
 `AssignmentsView`, `WochenplanView`, `MonatsAnsicht`, `monatsBalken`,
 `startseite`; Querschnitt `modulRegisterServer`, `schema`, `ruecklauf`;
 Browser `materialbereitschaft.spec.ts`.
+
+**E61 — Frei konfigurierbare Zeitfelder mit veröffentlichter Fassung (07.11.2026).**
+SHK-Ausbau, Paket M06b (N01; E51: konfigurieren Geschäftsführung UND
+Administrator mit eigenem Recht). Die Angaben zu einer Zeitbuchung hingen an
+der Rolle; was ein Betrieb zusätzlich wissen will (Kostenstelle, Kilometer,
+Auftragsnummer der Hausverwaltung …), stand bestenfalls im Kommentar.
+
+- **Felder je Betrieb** (Einstellungen › Zeitfelder): Name, Typ (Text mit
+  Länge, Zahl mit Grenzen, Stellen und Einheit, Ja/Nein, Auswahl, Datum),
+  Pflicht (beim Buchen oder nur Büro), gilt für Stand (Anwesend,
+  Zeitausgleich) und Rollen, Reihenfolge, Hinweis. Stabile Kennung, nie
+  wiederverwendet; Optionen deaktivierbar, entfernbar nur, solange keine
+  Buchung sie trägt; ein Typwechsel ergibt ein neues Feld, das alte endet und
+  bleibt mit seinen Werten lesbar.
+- **Veröffentlichte Fassung** (`zeitfeld_fassungen`): ein Schnappschuss der
+  Regeln aller aktiven Felder, neu nur, wenn sich eine Regel ändert
+  (Umbenennen und Umsortieren nicht). Jede Buchung und jeder Wert tragen die
+  Fassung, nach der sie geprüft wurden — eine offline gebuchte Zeit wird
+  nach der Fassung angenommen, die das Gerät kannte; was eine neuere
+  zusätzlich verlangt, steht als „Nachpflege“ da. Server und App prüfen
+  dieselbe Regel (Vergleichstest SQL gegen App).
+- **Ein Schreibweg für alle Wege:** die Werte reisen in der Buchungszeile mit
+  (Durchgangsspalte, gespeichert immer leer), ein Auslöser prüft Typ,
+  Grenzen, Option, Geltung, Pflicht, Verrechnung und Modul, ein zweiter
+  schreibt die Werte in `zeitbuchung_feldwerte`. So tragen Anlegen, Ändern,
+  Ausgangsfach (offline) und Einfügen die Werte ohne neuen Befehl; eine
+  doppelt zugestellte Vormerkung ändert nichts.
+- **Sichtbar** in der Buchungsmaske, der Zeiterfassung, der
+  Mitarbeiterübersicht (Person), im Änderungsprotokoll der Buchung (E50,
+  alt → neu), in beiden CSV-Exporten (eigene Spalten) und im
+  Stundennachweis (unter dem Kommentar). Fehlt eine Pflichtangabe „nur
+  Büro“, steht „fehlt“ da.
+- **Rechte:** Definieren Geschäftsführung und Administrator (eigenes Recht
+  `app.darf_zeitfelder_definieren`, nicht die Modulverwaltung); der Support
+  nicht. Werte liest, wer die Buchung liest; der Support nie.
+- **Modul:** Zeiterfassung steht als Kern im Register (V2 folgt mit M06d),
+  Unterfähigkeit `zeiterfassung.freie_zeitfelder` (an); ausgeschaltet
+  nimmt der Server keine neuen Werte an, gespeicherte bleiben.
+- Der Feldsatz wird über den Zwischenspeicher der App geladen (eine Minute),
+  nicht bei jedem Öffnen der Buchungsmaske; ein veralteter Stand schadet
+  nicht, weil der Server nach der Fassung der Maske prüft.
+
+**Grenzen mit Grund:** Felder nur bei Anwesend und Zeitausgleich (fachlich
+und Datenschutz: die übrigen Stände entstehen über Meldung oder Antrag, beim
+Krankenstand gehören keine Zusatzangaben dazu); eine verrechnete Buchung
+nimmt keine Angaben mehr an (fachlich: erst stornieren); Aufteilen und
+Einfügen kopieren keine Werte, der abgetrennte Teil zeigt „Nachpflege“
+(fachlich: keine doppelten Mengen); Freitext in einem Feld wird bei der
+Kundenlöschung nicht gefunden (Datenschutz: über den Namen allein träfe es
+Namensvettern, wie beim Kommentar); wer eine Fassung veröffentlicht hat,
+bleibt nach der Löschung einer Person stehen (Art. 5 Abs. 2 DSGVO).
+
+**Prüfungen.** `zeitfelder.test.ts` (26), `zeitfelderRegel.test.ts` (SQL
+gegen App mit Gegenprobe), `zeitfelder.test.ts`/`exportZeitfelder.test.ts`
+(Einheit), `TimeFormZeitfelder`, `ZeitfelderView`, `ZeitfeldAngaben`,
+`MusterZeitfelder`, Erweiterungen in `TimeView`, `AccountingView`;
+Querschnitt `modulRegisterServer`, `schema`, `mandantenTrennung`,
+`typenSpalten`, `personLoeschen`, `ruecklauf`; Browser `zeitfelder.spec.ts`.
+Nebenbei: zwei Bedingungen der Migration standen als `if case … then`, was
+PL/pgSQL nicht liest (die Bedingung endet beim ersten `then`) — in Klammern
+gesetzt, bevor sie je eine Datenbank erreichte.
