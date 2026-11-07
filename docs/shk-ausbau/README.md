@@ -96,7 +96,7 @@ nacheinander auf dem Arbeitsbranch, ein Paket nach dem anderen.
 | M01e | Quellen- und Rechnungsvertrag auf `invoice_coverage` | W04 | erledigt (E55); Menge/Betrag und Reservierung mit der ersten Teilabrechnung |
 | M02 | Auftragseingang, Objekte, Online-Annahme | A03, A09, A11, A06 | A06 erledigt (E56, M02a); A03/A11 (M02b) und A09 (M02c) offen |
 | M03 | Kataloge, Preise, Kalkulation | E01–E07, A07, A08, G06 | E01–E04 erledigt (E57, M03a); E05/E06 (M03b) und E07, A07, A08, G06 (M03c) offen |
-| M04 | Lagerorte, Fahrzeuglager, Scanner, Deckung | E10–E14, E16, G03 | offen |
+| M04 | Lagerorte, Fahrzeuglager, Scanner, Deckung | E10–E14, E16, G03 | E10 erledigt (E58, M04a); E13/E14/G03 (M04b), E11/E12 (M04c), E16 (M04d) offen |
 | M05 | Einkaufsbelege, Lieferantenanfragen, Kundenlieferschein | E08, E09, R01–R03 | offen |
 | M06 | Zeit vollständig, Zeiterfassung abschaltbar (V2), freie Zeitfelder | Z01–Z04, B02, N01 | offen |
 | M07 | Qualifikationen, Aufgaben, Planung | Z05, B04–B08, G10, A01, A02, A04 | offen |
