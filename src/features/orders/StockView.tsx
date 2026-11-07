@@ -3,20 +3,24 @@ import { imLager, istKnapp } from './lagerartikel';
 import { useSearchParams } from 'react-router-dom';
 import RowMenu from '@/components/RowMenu';
 import { useAuth } from '@/app/AuthContext';
-import { darfKatalogEinspielen } from '@/lib/permissions';
+import { canProcessOrders, darfKatalogEinspielen } from '@/lib/permissions';
+import { useModul } from '@/lib/useModule';
 import {
   subscribeLagerartikel,
   katalogAnzahl,
   katalogBeobachten,
   LOW_STOCK_THRESHOLD,
   lagerFrei,
+  nummernTreffer,
+  NUMMER_AB,
   type LagerStand,
 } from '@/lib/db/materials';
 import { fmtMenge } from '@/lib/belegLayout';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import { subscribeAllOrders } from '@/lib/db/materialOrders';
+import { bestandAmOrt, bestandBeobachten, bestandDesArtikels } from '@/lib/db/lagerorte';
 import type { WithId } from '@/lib/db/core';
-import type { Material, MaterialOrder } from '@/types';
+import type { Lagerbestand, Material, MaterialOrder } from '@/types';
 import Nachladen from '@/components/Nachladen';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -32,15 +36,19 @@ import { useToast } from '@/components/Toast';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import MaterialCatalog from './MaterialCatalog';
-import { Bewegungsverlauf, InventurDialog, WareneingangDialog } from './LagerDialoge';
+import { Bewegungsverlauf, InventurDialog, OrtWahl, UmlagernDialog, WareneingangDialog } from './LagerDialoge';
+import LagerorteFenster from './LagerorteFenster';
+import { useLagerorte } from './useLagerorte';
+import { HAUPTLAGER, ortNameVon, ortReihenfolge, weitereOrte } from './lagerorte';
 
 /*
   Der Katalogimport wird erst beim Öffnen geladen. Er bringt den
   DATANORM-Leser mit, und den braucht niemand, der nur den Bestand nachsieht.
 */
 const KatalogImport = lazy(() => import('@/features/materials/KatalogImport'));
+const OffeneLieferantenartikel = lazy(() => import('@/features/materials/OffeneLieferantenartikel'));
 
-type Tab = 'bestand' | 'katalog' | 'import';
+type Tab = 'bestand' | 'katalog' | 'import' | 'zuordnen';
 /** Der Filter des Bestands — „knapp“ schliesst „fehlt“ ein, wie auf der Startseite. */
 type Filter = 'alle' | 'knapp' | 'fehlt';
 
@@ -85,7 +93,15 @@ export default function StockView() {
   */
   const [params, setParams] = useSearchParams();
   const gewuenscht = params.get('reiter');
-  const tab: Tab = gewuenscht === 'katalog' || (gewuenscht === 'import' && darfEinspielenFuer(user))
+  /*
+    OFFENE LIEFERANTENARTIKEL (M03a): wie das Einspielen nur für wen
+    Kataloge einspielt, und nur mit dem Modul „Kataloge mehrerer
+    Großhändler“.
+  */
+  const zuordnenAn = useModul('material.katalogversionen');
+  const tab: Tab = gewuenscht === 'katalog'
+    || (gewuenscht === 'import' && darfEinspielenFuer(user))
+    || (gewuenscht === 'zuordnen' && darfEinspielenFuer(user) && zuordnenAn)
     ? gewuenscht
     : 'bestand';
   const setTab = (t: Tab) => {
@@ -109,6 +125,21 @@ export default function StockView() {
     der Startseite (`/lager?filter=knapp`, Nachtest 01.10.2026) und stand als
     Hinweiszeile über der Liste; jetzt ist er eines der drei Segmente.
   */
+  /*
+    DER LAGERORT STEHT IN DER ADRESSE (M04a), wie Reiter und Filter: leer =
+    Hauptlager, die Ansicht wie bisher. Ein weiterer Ort zeigt, was dort
+    liegt — ohne Reservierung, frei ist dort, was liegt.
+  */
+  const lo = useLagerorte();
+  const ortWert = params.get('ort') ?? HAUPTLAGER;
+  const weitere = useMemo(() => weitereOrte(lo.orte), [lo.orte]);
+  const ort = weitere.some((o) => o.id === ortWert) ? ortWert : HAUPTLAGER;
+  const setOrt = (o: string) => {
+    const neu = new URLSearchParams(params);
+    if (o) neu.set('ort', o);
+    else neu.delete('ort');
+    setParams(neu, { replace: true });
+  };
   const filterWert = params.get('filter');
   const filter: Filter = filterWert === 'knapp' || filterWert === 'fehlt' ? filterWert : 'alle';
   const setFilter = (f: Filter) => {
@@ -260,6 +291,36 @@ export default function StockView() {
   /** Frei und reserviert stehen erst mit der Antwort der Datenbank — oder ihrem Fehler. */
   const bestandBereit = !loading && standFertig;
 
+  /*
+    BESTAND AN WEITEREN ORTEN (M04a): live — bucht jemand (eine Umlagerung,
+    ein Haken aus dem Fahrzeug), holt die Ansicht neu. Nur mit der Fähigkeit.
+  */
+  const [ortStand, setOrtStand] = useState(0);
+  useEffect(() => {
+    if (!user || !lo.an) return;
+    try {
+      return bestandBeobachten(user.companyId, () => setOrtStand((n) => n + 1));
+    } catch {
+      // Ohne Meldeweg steht der Bestand trotzdem; er wird nach eigenen Buchungen neu geholt.
+      return undefined;
+    }
+  }, [user, lo.an]);
+  const [amOrt, setAmOrt] = useState<Lagerbestand[] | null>(null);
+  const [amOrtFehler, setAmOrtFehler] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user || !ort) {
+      setAmOrt(null);
+      return;
+    }
+    let weg = false;
+    setAmOrtFehler(null);
+    Promise.resolve()
+      .then(() => bestandAmOrt(user.companyId, ort))
+      .then((b) => { if (!weg) setAmOrt(b); })
+      .catch(() => { if (!weg) setAmOrtFehler('Der Bestand an diesem Ort konnte nicht geladen werden.'); });
+    return () => { weg = true; };
+  }, [user, ort, ortStand]);
+
   const selbstGerechnet = useMemo(() => {
     // Rückfall auf den Namen: nicht jede Anforderung trägt eine materialId.
     // Der Altbestand kennt Positionen ohne Verweis (Prototyp: „nur wenn matId
@@ -299,10 +360,33 @@ export default function StockView() {
     [materials, reserved],
   );
 
+  /*
+    AUCH ÜBER DIE NUMMER EINES GROSSHÄNDLERS (M03a): die Lagerliste sucht in
+    den geladenen Artikeln; die Nummern der zugeordneten Großhändler und die
+    EAN kennt nur der Server. Er nennt die passenden Artikel (ab drei
+    Zeichen, kurz nach dem letzten Tastendruck), und die Liste nimmt sie dazu.
+  */
+  const [ueberNummer, setUeberNummer] = useState<{ fuer: string; ids: Set<string> }>({ fuer: '', ids: new Set() });
+  useEffect(() => {
+    const q = search.trim();
+    if (q.length < NUMMER_AB) return;
+    let weg = false;
+    const t = setTimeout(() => {
+      void nummernTreffer(q).then((treffer) => {
+        if (!weg) setUeberNummer({ fuer: q, ids: new Set(treffer.keys()) });
+      });
+    }, 250);
+    return () => {
+      weg = true;
+      clearTimeout(t);
+    };
+  }, [search]);
+  const nummernIds = ueberNummer.fuer === search.trim() ? ueberNummer.ids : null;
+
   const rows = useMemo(
     () =>
       lagerZeilen
-        .filter((m) => passtZurSuche(m, search))
+        .filter((m) => passtZurSuche(m, search) || !!nummernIds?.has(m.id))
         .filter((m) =>
           filter === 'fehlt'
             ? m.free < 0
@@ -312,8 +396,18 @@ export default function StockView() {
         )
         // Knappes zuerst — wer das Lager öffnet, will wissen, was fehlt.
         .sort((a, b) => a.free - b.free || a.name.localeCompare(b.name, 'de')),
-    [lagerZeilen, search, filter],
+    [lagerZeilen, search, filter, nummernIds],
   );
+
+  /** Am weiteren Ort: die Artikel, die dort liegen, mit ihrer Menge. */
+  const ortZeilen = useMemo(() => {
+    if (!ort || !amOrt) return [];
+    const menge = new Map(amOrt.map((b) => [b.materialId, Number(b.menge)]));
+    return lagerZeilen
+      .filter((m) => menge.has(m.id) && (passtZurSuche(m, search) || !!nummernIds?.has(m.id)))
+      .map((m) => ({ ...m, amOrt: menge.get(m.id) ?? 0 }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  }, [ort, amOrt, lagerZeilen, search, nummernIds]);
 
   const lowCount = useMemo(
     () => lagerZeilen.filter((m) => istKnapp(m.free, m, LOW_STOCK_THRESHOLD)).length,
@@ -330,6 +424,15 @@ export default function StockView() {
   */
   const [eingang, setEingang] = useState<WithId<Material> | null>(null);
   const [inventur, setInventur] = useState<WithId<Material> | null>(null);
+  /** Umlagern (M04a) — der Artikel; Quelle ist der gewählte Ort. */
+  const [umlagern, setUmlagern] = useState<WithId<Material> | null>(null);
+  const [orteOffen, setOrteOffen] = useState(false);
+  /**
+   * Was der Artikel im Fenster oder im Dialog an den weiteren Orten hat
+   * (Kennung des Ortes → Menge). Inventur und Umlagern öffnen erst mit dieser
+   * Zahl: sie fragen nach ihr bzw. schicken sie als erwarteten Stand mit.
+   */
+  const [artikelOrte, setArtikelOrte] = useState<{ id: string; menge: Map<string, number> } | null>(null);
   /** Der Artikel im Seitenfenster — die Kennung, damit Bestand und Zahlen live mitgehen. */
   const [artikelId, setArtikelId] = useState<string | null>(null);
   /** Lädt das Bewegungsprotokoll neu, wenn aus dem Fenster gebucht wurde. */
@@ -340,11 +443,59 @@ export default function StockView() {
     der Zeile im Blick — wer sie einbucht, sucht den Artikel, statt die Liste
     nach ihm abzurollen.
   */
-  const [wahl, setWahl] = useState<'eingang' | 'inventur' | null>(null);
+  const [wahl, setWahl] = useState<'eingang' | 'inventur' | 'umlagern' | null>(null);
   const [wahlSuche, setWahlSuche] = useState('');
   const [wahlGezeigt, setWahlGezeigt] = useState(JE_SEITE);
 
   const artikel = artikelId ? lagerZeilen.find((m) => m.id === artikelId) ?? null : null;
+
+  /*
+    DER BESTAND JE ORT DES ARTIKELS IM FENSTER — neu, sobald irgendwo gebucht
+    wird. Ohne die Fähigkeit gibt es nur das Hauptlager, und es wird nichts
+    geholt.
+  */
+  const fokus = umlagern?.id ?? inventur?.id ?? artikelId;
+  useEffect(() => {
+    if (!user || !lo.an || !fokus) return;
+    let weg = false;
+    Promise.resolve()
+      .then(() => bestandDesArtikels(user.companyId, fokus))
+      .then((b) => {
+        if (weg) return;
+        setArtikelOrte({ id: fokus, menge: new Map(b.map((z) => [z.lagerortId, Number(z.menge)])) });
+      })
+      .catch(() => undefined);
+    return () => { weg = true; };
+  }, [user, lo.an, fokus, ortStand]);
+  const ortMengen = (id: string): Map<string, number> | null =>
+    !lo.an ? new Map() : artikelOrte?.id === id ? artikelOrte.menge : null;
+
+  /*
+    INVENTUR UND UMLAGERN ERST MIT DEN ZAHLEN DER ORTE — sonst fragten sie
+    nach einem falschen Stand. Ohne weitere Orte gibt es nichts zu holen, und
+    beide öffnen wie bisher. Kommen die Zahlen nicht, zählt die Inventur im
+    Hauptlager (dessen Zahl am Artikel steht); Umlagern geht dann nicht.
+  */
+  const [nurHauptlager, setNurHauptlager] = useState(false);
+  const mitOrten = async (m: WithId<Material>, weiter: (m: WithId<Material>) => void, ohneZahlenNicht = false) => {
+    setNurHauptlager(false);
+    if (!lo.mitWeiteren || !user) {
+      weiter(m);
+      return;
+    }
+    try {
+      const b = await bestandDesArtikels(user.companyId, m.id);
+      setArtikelOrte({ id: m.id, menge: new Map(b.map((z) => [z.lagerortId, Number(z.menge)])) });
+      weiter(m);
+    } catch {
+      if (ohneZahlenNicht) {
+        toast.error('Der Bestand an den Lagerorten konnte nicht geladen werden — bitte noch einmal.');
+        return;
+      }
+      setNurHauptlager(true);
+      weiter(m);
+    }
+  };
   const wahlTreffer = useMemo(
     () => [...lagerZeilen].filter((m) => passtZurSuche(m, wahlSuche)).sort((a, b) => a.name.localeCompare(b.name, 'de')),
     [lagerZeilen, wahlSuche],
@@ -352,7 +503,7 @@ export default function StockView() {
 
   if (!user) return null;
 
-  const wahlOeffnen = (w: 'eingang' | 'inventur') => {
+  const wahlOeffnen = (w: 'eingang' | 'inventur' | 'umlagern') => {
     setWahlSuche('');
     setWahlGezeigt(JE_SEITE);
     setWahl(w);
@@ -371,6 +522,13 @@ export default function StockView() {
             {' '}„Knapp“ heißt: unter der Mindestmenge, ohne Mindestmenge höchstens{' '}
             {LOW_STOCK_THRESHOLD} frei — gemeint ist immer das Freie. „Reserviert“ ist,
             was Anforderungen zugesagt ist oder auf Rüstlisten steht.
+            {lo.mitWeiteren && (
+              <>
+                {' '}Mit „Ort“ zeigt die Liste, was an einem weiteren Lager oder in einem Fahrzeug liegt.
+                Reserviert wird nur gegen das Hauptlager; an einem weiteren Ort ist frei, was dort liegt.
+                Umlagern bucht beide Orte in einem Zug.
+              </>
+            )}
           </>
         }
         action={<Button onClick={() => wahlOeffnen('eingang')}>Wareneingang</Button>}
@@ -408,6 +566,9 @@ export default function StockView() {
             about="Lager"
             items={[
               { label: 'Inventur …', onSelect: () => wahlOeffnen('inventur') },
+              // M04a: mit weiteren Orten — und die Orte selbst pflegt, wer das Lager führt.
+              ...(lo.mitWeiteren ? [{ label: 'Umlagern …', onSelect: () => wahlOeffnen('umlagern') }] : []),
+              ...(lo.an && canProcessOrders(user.role) ? [{ label: 'Lagerorte …', onSelect: () => setOrteOffen(true) }] : []),
               /*
                 EINSPIELEN DARF NUR, WER AUCH EINZELN EINKAUFSPREISE SETZEN DARF.
                 Dieselbe Grenze steht in der Datenbank; hier wird der Eintrag nur
@@ -415,6 +576,9 @@ export default function StockView() {
                 zuverlässig abweist.
               */
               ...(darfEinspielen ? [{ label: 'Katalog einspielen', onSelect: () => setTab('import') }] : []),
+              ...(darfEinspielen && zuordnenAn
+                ? [{ label: 'Offene Lieferantenartikel', onSelect: () => setTab('zuordnen') }]
+                : []),
             ]}
           />
         }
@@ -433,6 +597,7 @@ export default function StockView() {
             in der Leiste keiner markiert — man wusste nicht, wo man ist.
           */
           ...(tab === 'import' ? [{ wert: 'import' as Tab, text: 'Einspielen' }] : []),
+          ...(tab === 'zuordnen' ? [{ wert: 'zuordnen' as Tab, text: 'Zuordnen' }] : []),
         ]}
         wert={tab}
         onChange={setTab}
@@ -443,7 +608,11 @@ export default function StockView() {
       {tab === 'import' ? (
         // Die Überschrift trägt die Karte des Einspielens selbst; eine zweite darüber stand doppelt (G28).
         <Suspense fallback={<SkeletonList rows={3} />}>
-          <KatalogImport />
+          <KatalogImport onZuordnen={zuordnenAn ? () => setTab('zuordnen') : undefined} />
+        </Suspense>
+      ) : tab === 'zuordnen' ? (
+        <Suspense fallback={<SkeletonList rows={3} />}>
+          <OffeneLieferantenartikel />
         </Suspense>
       ) : tab === 'katalog' ? (
         <MaterialCatalog
@@ -454,6 +623,46 @@ export default function StockView() {
       ) : (
         <>
           <Card title="Bestände" buendig>
+            {lo.mitWeiteren && (
+              <div className="px-4 pb-2">
+                <OrtWahl id="lager-ort" label="Ort" alle={lo.orte} wahl={weitere} wert={ort} onChange={(o) => { setOrt(o); setGezeigt(JE_SEITE); }} />
+              </div>
+            )}
+            {ort ? (
+              <>
+                <Listenleiste
+                  suche={{ id: 'stocksearch', wert: search, onChange: setSearch, platzhalter: 'Name, Kategorie oder Art.-Nr.' }}
+                />
+                <div>
+                  {amOrtFehler ? (
+                    <div className="px-4 pb-4"><ErrorState message={amOrtFehler} /></div>
+                  ) : amOrt === null || loading ? (
+                    <div className="px-4 pb-4"><SkeletonList rows={4} /></div>
+                  ) : ortZeilen.length === 0 ? (
+                    <EmptyState>
+                      {search.trim()
+                        ? `Gesucht wurde „${search.trim()}“ in Name, Kategorie und Artikelnummer.`
+                        : `${ortNameVon(lo.orte, ort)}: hier liegt nichts. Bestand kommt durch Umlagern oder eine Zählung am Ort.`}
+                    </EmptyState>
+                  ) : (
+                    <List>
+                      {ortZeilen.slice(0, gezeigt).map((m) => (
+                        <ListRow
+                          key={m.id}
+                          title={m.name}
+                          onOeffnen={() => setArtikelId(m.id)}
+                          subtitle={[m.category, m.articleNumber && `Art.-Nr. ${m.articleNumber}`].filter(Boolean).join(' · ') || undefined}
+                          wert={`${fmtMenge(m.amOrt)} ${m.unit ?? 'Stk'}`}
+                          pfeil
+                        />
+                      ))}
+                    </List>
+                  )}
+                  <MehrAnzeigen anzahl={Math.max(0, ortZeilen.length - gezeigt)} onClick={() => setGezeigt((n) => n + JE_SEITE)} />
+                </div>
+              </>
+            ) : (
+            <>
             <Listenleiste
               reiter={
                 /*
@@ -586,6 +795,8 @@ export default function StockView() {
                 </>
               )}
             </div>
+            </>
+            )}
           </Card>
         </>
       )}
@@ -598,7 +809,7 @@ export default function StockView() {
         tritt so lange zurück und kommt danach mit der neuen Bewegung wieder.
       */}
       <BottomSheet
-        open={!!artikel && !eingang && !inventur}
+        open={!!artikel && !eingang && !inventur && !umlagern}
         onClose={() => setArtikelId(null)}
         label="Artikel"
         auchBreit
@@ -636,9 +847,37 @@ export default function StockView() {
               </div>
             </dl>
 
+            {/*
+              BESTAND JE ORT (M04a): das Hauptlager mit den Zahlen oben, dazu
+              jeder weitere Ort, an dem etwas liegt. Nur mit der Fähigkeit.
+            */}
+            {lo.an && weitere.length > 0 && (
+              <div>
+                <h3 className="section-label mb-1">Bestand je Ort</h3>
+                <dl className="divide-y divide-line border-y border-line">
+                  <div className="flex min-h-touch items-center justify-between gap-3 py-2">
+                    <dt>{ortNameVon(lo.orte, HAUPTLAGER)}</dt>
+                    <dd className="zeile-wert">{fmtMenge(artikel.stock ?? 0)} {artikel.unit ?? 'Stk'}</dd>
+                  </div>
+                  {ortReihenfolge(lo.orte)
+                    .filter((o) => o.art !== 'haupt' && (ortMengen(artikel.id)?.get(o.id) ?? 0) > 0)
+                    .map((o) => (
+                      <div key={o.id} className="flex min-h-touch items-center justify-between gap-3 py-2">
+                        <dt>{ortNameVon(lo.orte, o.id)}{o.aktiv ? '' : ' (stillgelegt)'}</dt>
+                        <dd className="zeile-wert">{fmtMenge(ortMengen(artikel.id)?.get(o.id) ?? 0)} {artikel.unit ?? 'Stk'}</dd>
+                      </div>
+                    ))}
+                </dl>
+                {ortMengen(artikel.id) === null && <p className="pt-1 text-sm text-ink-muted">Wird geladen …</p>}
+              </div>
+            )}
+
             <div className="material-aktionen">
               <Button onClick={() => setEingang(artikel)}>Wareneingang</Button>
-              <Button variant="secondary" onClick={() => setInventur(artikel)}>Inventur</Button>
+              <Button variant="secondary" onClick={() => void mitOrten(artikel, setInventur)}>Inventur</Button>
+              {lo.mitWeiteren && (
+                <Button variant="secondary" onClick={() => void mitOrten(artikel, setUmlagern, true)}>Umlagern</Button>
+              )}
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -654,7 +893,7 @@ export default function StockView() {
 
             <div>
               <h3 className="section-label mb-3">Bewegungen</h3>
-              <Bewegungsverlauf artikel={artikel} stand={bewegungStand} />
+              <Bewegungsverlauf artikel={artikel} stand={bewegungStand} orte={lo.an ? lo.orte : []} />
             </div>
           </div>
         )}
@@ -665,7 +904,7 @@ export default function StockView() {
         onClose={() => setWahl(null)}
         label="Artikel wählen"
         auchBreit
-        titel={wahl === 'inventur' ? 'Inventur: Artikel wählen' : 'Wareneingang: Artikel wählen'}
+        titel={wahl === 'inventur' ? 'Inventur: Artikel wählen' : wahl === 'umlagern' ? 'Umlagern: Artikel wählen' : 'Wareneingang: Artikel wählen'}
       >
         <div className="space-y-3">
           <InputField
@@ -695,7 +934,8 @@ export default function StockView() {
                     onClick={() => {
                       const w = wahl;
                       setWahl(null);
-                      if (w === 'inventur') setInventur(m);
+                      if (w === 'inventur') void mitOrten(m, setInventur);
+                      else if (w === 'umlagern') void mitOrten(m, setUmlagern, true);
                       else setEingang(m);
                     }}
                   >
@@ -719,10 +959,14 @@ export default function StockView() {
         <WareneingangDialog
           companyId={user.companyId}
           artikel={eingang}
+          orte={lo.orte}
+          zielorte={weitere}
+          ortVorgabe={ort}
           onAbbrechen={() => setEingang(null)}
           onFertig={(text) => {
             setEingang(null);
             setBewegungStand((n) => n + 1);
+            setOrtStand((n) => n + 1);
             toast.success(text);
           }}
         />
@@ -730,12 +974,42 @@ export default function StockView() {
       {inventur && (
         <InventurDialog
           artikel={inventur}
+          orte={lo.orte}
+          zaehlorte={nurHauptlager ? [] : weitere}
+          bestaende={ortMengen(inventur.id) ?? new Map()}
+          ortVorgabe={nurHauptlager ? HAUPTLAGER : ort}
           onAbbrechen={() => setInventur(null)}
           onFertig={(text) => {
             setInventur(null);
             setBewegungStand((n) => n + 1);
+            setOrtStand((n) => n + 1);
             toast.success(text);
           }}
+        />
+      )}
+      {umlagern && (
+        <UmlagernDialog
+          artikel={lagerZeilen.find((m) => m.id === umlagern.id) ?? umlagern}
+          orte={lo.orte}
+          wahl={weitere}
+          bestaende={ortMengen(umlagern.id) ?? new Map()}
+          vonVorgabe={ort}
+          onAbbrechen={() => setUmlagern(null)}
+          onVeraltet={() => setOrtStand((n) => n + 1)}
+          onFertig={(text) => {
+            setUmlagern(null);
+            setBewegungStand((n) => n + 1);
+            setOrtStand((n) => n + 1);
+            toast.success(text);
+          }}
+        />
+      )}
+      {lo.an && (
+        <LagerorteFenster
+          offen={orteOffen}
+          orte={lo.orte}
+          onClose={() => setOrteOffen(false)}
+          onGeaendert={lo.neuLaden}
         />
       )}
     </div>

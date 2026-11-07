@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { sucheKatalog } from '@/lib/db/materials';
-import { createReturn } from '@/lib/db/materialOrders';
+import { gefundenUeberText, type MitNummer } from '@/lib/katalogTreffer';
+import { createReturn, createReturnInOrt } from '@/lib/db/materialOrders';
+import { useAuth } from '@/app/AuthContext';
+import { canProcessOrders } from '@/lib/permissions';
+import { useLagerorte } from './useLagerorte';
+import { eigeneFahrzeugOrte, HAUPTLAGER, ortNameVon, weitereOrte } from './lagerorte';
+import { OrtWahl } from './LagerDialoge';
 import type { WithId } from '@/lib/db/core';
 import type { Material } from '@/types';
 import Button from '@/components/Button';
@@ -67,6 +73,19 @@ export default function RetoureFenster({
   const [von, setVon] = useState('');
   const [fehler, setFehler] = useState<string | null>(null);
   const [speichert, setSpeichert] = useState(false);
+  /*
+    WOHIN „NEU“ ZURÜCKGEHT (M04a): ins Hauptlager wie bisher, oder an einen
+    weiteren Ort — der Monteur in sein eigenes Fahrzeug (Restmaterial bleibt
+    im Bus), das Lager an jeden Ort. Dieselbe Grenze zieht `retoure_anlegen`.
+  */
+  const { user: angemeldet } = useAuth();
+  const lo = useLagerorte();
+  const zielorte = !angemeldet
+    ? []
+    : canProcessOrders(angemeldet.role)
+      ? weitereOrte(lo.orte)
+      : eigeneFahrzeugOrte(lo.orte, lo.fahrzeuge, angemeldet.uid);
+  const [ziel, setZiel] = useState(HAUPTLAGER);
 
   // Wer das Fenster mit einer anderen Baustelle öffnet, will sie vorbelegt sehen.
   useEffect(() => {
@@ -81,7 +100,7 @@ export default function RetoureFenster({
    * blind scrollt, ohne tippen zu können. Gesucht wird über dieselben drei
    * Felder wie im Katalog — Bezeichnung, Kategorie, Artikelnummer.
    */
-  const [treffer, setTreffer] = useState<WithId<Material>[]>([]);
+  const [treffer, setTreffer] = useState<MitNummer<WithId<Material>>[]>([]);
   useEffect(() => {
     const q = suche.trim();
     if (!q) {
@@ -122,7 +141,7 @@ export default function RetoureFenster({
     setSpeichert(true);
     setFehler(null);
     try {
-      await createReturn(companyId, {
+      const beleg = {
         materialId: gewaehlt.id,
         materialName: gewaehlt.name,
         quantity: qty,
@@ -131,7 +150,11 @@ export default function RetoureFenster({
         projectNumber: projekt,
         userId: person.uid,
         userName: person.name,
-      });
+      };
+      // Ins Hauptlager derselbe Aufruf wie bisher; ein Ort nur bei „neu“ — nur das wird gutgeschrieben.
+      const zielOrt = zustand === 'neu' && zielorte.some((o) => o.id === ziel) ? ziel : HAUPTLAGER;
+      if (zielOrt) await createReturnInOrt(companyId, beleg, zielOrt);
+      else await createReturn(companyId, beleg);
       setGewaehlt(null);
       setVon('');
       setSuche('');
@@ -140,9 +163,12 @@ export default function RetoureFenster({
       onClose();
       toast.success(
         zustand === 'neu'
-          ? 'Retoure erfasst — Material wurde dem Lager gutgeschrieben'
+          ? zielorte.some((o) => o.id === ziel)
+            ? `Retoure erfasst — gutgeschrieben: ${ortNameVon(lo.orte, ziel)}`
+            : 'Retoure erfasst — Material wurde dem Lager gutgeschrieben'
           : 'Retoure erfasst',
       );
+      setZiel(HAUPTLAGER);
     } catch (err) {
       setFehler(grundAus(err, 'Die Retoure konnte nicht erfasst werden.'));
     } finally {
@@ -200,7 +226,7 @@ export default function RetoureFenster({
                       <ListRow
                         key={m.id}
                         title={m.name}
-                        subtitle={[m.category, m.articleNumber].filter(Boolean).join(' · ') || undefined}
+                        subtitle={[m.category, m.articleNumber, gefundenUeberText(m)].filter(Boolean).join(' · ') || undefined}
                       >
                         <Button
                           variant="secondary"
@@ -227,6 +253,9 @@ export default function RetoureFenster({
           <option value="gebraucht">Gebraucht</option>
           <option value="defekt">Defekt</option>
         </SelectField>
+        {zustand === 'neu' && zielorte.length > 0 && (
+          <OrtWahl id="retziel" label="Zurück in" alle={lo.orte} wahl={zielorte} wert={ziel} onChange={setZiel} />
+        )}
         <BaustellenSelect
           id="retproj"
           label="Von welcher Baustelle? (optional)"

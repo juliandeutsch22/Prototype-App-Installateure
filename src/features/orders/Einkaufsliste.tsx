@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Company, EinkaufPosten, Material, MaterialOrder } from '@/types';
+import type { Company, EinkaufPosten, Lagerort, Material, MaterialOrder } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import {
   alsBestelltMarkieren,
@@ -12,11 +12,14 @@ import {
   lagerPostenBestellt,
   lagerPostenLoeschen,
   lagerPostenZuordnen,
+  lieferantenNummern,
   lieferantVorschlag,
   lieferterminSetzen,
   vonEinkaufslisteNehmen,
   type Grosshaendler,
 } from '@/lib/db/einkauf';
+import VorschlagGrund from './VorschlagGrund';
+import { gefundenUeberText, type MitNummer } from '@/lib/katalogTreffer';
 import { localDateStr, todayStr } from '@/lib/time';
 import { datumAT } from '@/lib/datum';
 import { postenNeuLaden } from '@/app/offenePosten';
@@ -47,6 +50,8 @@ import { downloadBestellungPdf } from './bestellungPdf';
 import { zahlOder } from '@/lib/zahl';
 import { mengeFehler } from '@/lib/einheit';
 import { grundAus } from '@/lib/fehlerGrund';
+import { HAUPTLAGER, ortNameVon } from './lagerorte';
+import { OrtWahl } from './LagerDialoge';
 
 /**
  * Die Einkaufsliste im Reiter „Einkauf" der Anforderungen.
@@ -84,6 +89,8 @@ export default function Einkaufsliste({
   onGrosshaendlerGeaendert,
   onLagerGeaendert,
   onVeraltet,
+  orte,
+  grundZeigen = false,
 }: {
   company: Company;
   meinUid: string;
@@ -97,9 +104,21 @@ export default function Einkaufsliste({
   onLagerGeaendert: () => void;
   /** Eine Aktion traf einen veralteten Stand — die Anforderungen neu holen (R7-M3). */
   onVeraltet: () => void;
+  /**
+   * Die Lagerorte (M04a): mit weiteren Orten wählt das Büro, wohin
+   * „Geliefert“ bucht. Ohne sie ins Hauptlager, wie bisher.
+   */
+  orte?: { alle: readonly Lagerort[]; wahl: readonly Lagerort[] };
+  /**
+   * Den Grund des Großhändler-Vorschlags zeigen (M03a, E03) — nur für wen
+   * Einkaufspreise sehen darf und mit Modul „Lieferantenvergleich“.
+   */
+  grundZeigen?: boolean;
 }) {
   const toast = useToast();
   const [katalog, setKatalog] = useState<Map<string, Pick<Material, 'articleNumber' | 'unit'>>>(new Map());
+  /** Die Nummer je Artikel und Großhändler (M03a) — bestellt wird mit der des Großhändlers. */
+  const [nummern, setNummern] = useState<Map<string, string>>(new Map());
   const [fehler, setFehler] = useState<string | null>(null);
   const [laeuft, setLaeuft] = useState<string | null>(null);
   const [bestelltFragen, setBestelltFragen] = useState<EinkaufsGruppe | null>(null);
@@ -108,6 +127,10 @@ export default function Einkaufsliste({
   /** Die bestellte Zeile, deren Liefertermin gerade geändert wird. */
   const [terminFuer, setTerminFuer] = useState<Unterwegs | null>(null);
   const [terminNeu, setTerminNeu] = useState('');
+  const [lieferOrt, setLieferOrt] = useState(HAUPTLAGER);
+  const zielOrt = orte?.wahl.some((o) => o.id === lieferOrt) ? lieferOrt : HAUPTLAGER;
+  /** Wohin „Geliefert“ gebucht hat — für die Meldung. */
+  const imLager = zielOrt ? `— ${ortNameVon(orte?.alle ?? [], zielOrt)}` : '— im Lager';
 
   const materialIds = useMemo(
     () =>
@@ -131,14 +154,20 @@ export default function Einkaufsliste({
       })
       // Ohne Katalog stehen Name und Menge trotzdem da — nur ohne Art.-Nr.
       .catch(() => undefined);
+    void lieferantenNummern(company.id, ids)
+      .then((n) => {
+        if (!weg) setNummern(n);
+      })
+      // Ohne sie steht die Artikelnummer des Stamms, wie bisher.
+      .catch(() => undefined);
     return () => {
       weg = true;
     };
   }, [company.id, materialIds]);
 
   const gruppen = useMemo(
-    () => einkaufsliste(anforderungen, katalog, lagerPosten),
-    [anforderungen, katalog, lagerPosten],
+    () => einkaufsliste(anforderungen, katalog, lagerPosten, nummern),
+    [anforderungen, katalog, lagerPosten, nummern],
   );
   const nachId = useMemo(() => new Map(grosshaendler.map((g) => [g.id, g])), [grosshaendler]);
 
@@ -171,12 +200,24 @@ export default function Einkaufsliste({
       {fehler && <ErrorState message={fehler} />}
 
       <LagerPostenFormular
+        grundZeigen={grundZeigen}
         companyId={company.id}
         meinUid={meinUid}
         meinName={meinName}
         grosshaendler={grosshaendler}
         onAngelegt={onLagerGeaendert}
       />
+
+      {orte && orte.wahl.length > 0 && gruppen.some((g) => g.unterwegs.length > 0) && (
+        <OrtWahl
+          id="geliefert-ort"
+          label="„Geliefert“ bucht in"
+          alle={orte.alle}
+          wahl={orte.wahl}
+          wert={zielOrt}
+          onChange={setLieferOrt}
+        />
+      )}
 
       {gruppen.length === 0 ? (
         <Card title="Einkaufsliste">
@@ -370,12 +411,12 @@ export default function Einkaufsliste({
                             `alle-${g.supplierId}`,
                             async () =>
                               nichtAlleGetroffen(
-                                await geliefert(g.unterwegs.map((o) => o.id)),
+                                await (zielOrt ? geliefert(g.unterwegs.map((o) => o.id), zielOrt) : geliefert(g.unterwegs.map((o) => o.id))),
                                 g.unterwegs.length,
                                 'Inzwischen von jemand anderem als geliefert gebucht',
                                 (rest) => `Geliefert gebucht — ${rest} hatte inzwischen jemand anderes gebucht.`,
                               ),
-                            'Alles geliefert — im Lager, Anforderungen abholbereit',
+                            `Alles geliefert ${imLager}, Anforderungen abholbereit`,
                           )
                         }
                       >
@@ -418,13 +459,13 @@ export default function Einkaufsliste({
                               o.id,
                               async () =>
                                 nichtAlleGetroffen(
-                                  await geliefert([o.id]),
+                                  await (zielOrt ? geliefert([o.id], zielOrt) : geliefert([o.id])),
                                   1,
                                   'Inzwischen von jemand anderem als geliefert gebucht',
                                   () => '',
                                 ),
                               o.art === 'lager'
-                                ? `${o.bezeichnung} ist da — im Lager`
+                                ? `${o.bezeichnung} ist da ${imLager}`
                                 : `${o.bezeichnung} ist da — abholbereit`,
                             )
                           }
@@ -560,7 +601,9 @@ function LagerPostenFormular({
   meinName,
   grosshaendler,
   onAngelegt,
+  grundZeigen,
 }: {
+  grundZeigen: boolean;
   companyId: string;
   meinUid: string;
   meinName: string;
@@ -570,7 +613,7 @@ function LagerPostenFormular({
   const toast = useToast();
   const [offen, setOffen] = useState(false);
   const [suche, setSuche] = useState('');
-  const [treffer, setTreffer] = useState<WithId<Material>[]>([]);
+  const [treffer, setTreffer] = useState<MitNummer<WithId<Material>>[]>([]);
   const [sucht, setSucht] = useState(false);
   const [gewaehlt, setGewaehlt] = useState<WithId<Material> | null>(null);
   const [menge, setMenge] = useState('1');
@@ -739,7 +782,7 @@ function LagerPostenFormular({
                     >
                       <span className="min-w-0">{m.name}</span>
                       <span className="shrink-0 text-xs text-ink-muted">
-                        {m.articleNumber ?? ''}{m.unit ? ` · ${m.unit}` : ''}
+                        {[m.articleNumber, m.unit, gefundenUeberText(m)].filter(Boolean).join(' · ')}
                       </span>
                     </button>
                   </li>
@@ -752,12 +795,15 @@ function LagerPostenFormular({
               onChange={(e) => setMenge(e.target.value)} />
             <EinheitFeld id="lp-einheit" value={einheit} onChange={setEinheit} leer="—" />
           </FormGrid>
-          <SelectField id="lp-bei" label="Großhändler" value={bei} onChange={(e) => setBei(e.target.value)}>
-            <option value="">— später zuordnen —</option>
-            {grosshaendler.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </SelectField>
+          <div>
+            <SelectField id="lp-bei" label="Großhändler" value={bei} onChange={(e) => setBei(e.target.value)}>
+              <option value="">— später zuordnen —</option>
+              {grosshaendler.map((g) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </SelectField>
+            <VorschlagGrund materialId={gewaehlt?.id} gewaehlt={bei} zeigen={grundZeigen} />
+          </div>
           <InputField id="lp-notiz" label="Anmerkung (freiwillig)" value={notiz}
             onChange={(e) => setNotiz(e.target.value)} />
           {fehler && <p className="text-sm text-danger" role="alert">{fehler}</p>}

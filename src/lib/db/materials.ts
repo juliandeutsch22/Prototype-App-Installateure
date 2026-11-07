@@ -9,6 +9,11 @@ import type { Lagerbewegung, Material } from '@/types';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import type { WithId } from './core';
 import * as pg from './pg/materials';
+import type { MitNummer } from './pg/nummernSuche';
+
+/** Die Suche über Nummern der Großhändler und EAN (M03a) — siehe `pg/nummernSuche.ts`. */
+export { nummernTreffer, NUMMER_AB } from './pg/nummernSuche';
+export type { MitNummer, NummernTreffer } from './pg/nummernSuche';
 
 export { KATALOG_GRENZE, katalogAbgeschnitten } from '@/lib/listengrenzen';
 
@@ -47,7 +52,7 @@ export function katalogSeite(
   companyId: string,
   begriff: string,
   anzahl: number,
-): Promise<{ zeilen: WithId<Material>[]; gesamt: number }> {
+): Promise<{ zeilen: MitNummer<WithId<Material>>[]; gesamt: number }> {
   return pg.katalogSeite(companyId, begriff, anzahl);
 }
 
@@ -75,6 +80,8 @@ export function adjustStock(materialId: string, delta: number): Promise<void> {
 /** Wareneingang mit Lieferant, Lieferschein und Bezug (M29). */
 export function lagerEingang(eingang: {
   materialId: string; menge: number; lieferant: string; lieferschein?: string; bezug?: string;
+  /** Der Zielort (M04a); ohne ihn ins Hauptlager, wie bisher. */
+  ortId?: string;
 }): Promise<number> {
   return pg.lagerEingang(eingang);
 }
@@ -84,9 +91,9 @@ export function verkaufspreiseVorschlagen(): Promise<{ gesetzt: number; ohneEink
   return pg.verkaufspreiseVorschlagen();
 }
 
-/** Inventur mit Grund (M28). */
-export function lagerInventur(materialId: string, bestand: number, grund: string): Promise<number> {
-  return pg.lagerInventur(materialId, bestand, grund);
+/** Inventur mit Grund (M28) — mit Ort an diesem weiteren Lagerort (M04a), sonst im Hauptlager. */
+export function lagerInventur(materialId: string, bestand: number, grund: string, ortId?: string): Promise<number> {
+  return pg.lagerInventur(materialId, bestand, grund, ortId);
 }
 
 /** Das Bewegungsprotokoll eines Artikels (M28). */
@@ -111,7 +118,7 @@ export function listMaterials(companyId: string, max = KATALOG_GRENZE): Promise<
 }
 
 /** Artikel aus dem Katalog suchen, auf dem Server (M18). */
-export function sucheKatalog(companyId: string, begriff: string, max?: number): Promise<WithId<Material>[]> {
+export function sucheKatalog(companyId: string, begriff: string, max?: number): Promise<MitNummer<WithId<Material>>[]> {
   return pg.sucheKatalog(companyId, begriff, max);
 }
 

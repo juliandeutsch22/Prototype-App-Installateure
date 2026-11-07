@@ -225,6 +225,8 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       // Seit dem 24.09.2026 eigene Unterseiten statt Karten unter den Sätzen.
       'nummern',
       'personal',
+      // M04a (bewusst nachgezogen): die Fahrzeuge — Stammdaten für Fahrzeuglager und Fuhrpark.
+      'fahrzeuge',
       'konten',
       'support',
       // „module" steht hier NICHT: siehe der eigene Fall weiter unten.
@@ -235,9 +237,10 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
     ]);
     // Auch die Projektleitung nicht: die Sicherung enthaelt Zeitkonten und
     // Rechnungen, und beides geht sie nichts an. Den Papierkorb hat sie
-    // (M01d): sie schreibt Angebote und verwirft fremde Scheine.
+    // (M01d): sie schreibt Angebote und verwirft fremde Scheine. Die
+    // Fahrzeuge (M04a): sie führt das Lager wie die Verwaltung.
     expect(unterseitenFuer('/settings', 'Projektleiter').map((s) => s.pfad)).toEqual([
-      'meldungen', 'papierkorb',
+      'meldungen', 'fahrzeuge', 'papierkorb',
     ]);
   });
 
@@ -285,8 +288,9 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
   it('gibt der Projektleitung die Saetze und die Module NICHT', () => {
     // Dieselbe Grenze wie in firestore.rules: im Firmendokument stehen der
     // Stundensatz und die Modulliste. Der Papierkorb (M01d, bewusst
-    // nachgezogen) ist keine Betriebseinstellung — dort liegen ihre Entwürfe.
-    expect(unterseitenFuer('/settings', 'Projektleiter').map((s) => s.pfad)).toEqual(['meldungen', 'papierkorb']);
+    // nachgezogen) ist keine Betriebseinstellung — dort liegen ihre Entwürfe;
+    // die Fahrzeuge (M04a, bewusst nachgezogen) sind Stammdaten des Lagers.
+    expect(unterseitenFuer('/settings', 'Projektleiter').map((s) => s.pfad)).toEqual(['meldungen', 'fahrzeuge', 'papierkorb']);
   });
 
   it('laesst den Monteur Material anfordern, aber kein Lager fuehren', () => {
@@ -349,6 +353,34 @@ describe('Der Papierkorb (M01d)', () => {
   });
 });
 
+describe('Die Fahrzeuge (M04a)', () => {
+  it('gehören, wer das Lager führt — Verwaltung und Leitung; Monteur und Buchhaltung nicht', () => {
+    const mit = (rolle: Parameters<typeof unterseitenFuer>[1]) =>
+      unterseitenFuer('/settings', rolle).some((s) => s.pfad === 'fahrzeuge');
+    for (const rolle of ['Verwaltung', 'Projektleiter', 'Geschäftsführung', 'Administrator'] as const) expect(mit(rolle), rolle).toBe(true);
+    for (const rolle of ['Mitarbeiter', 'Buchhaltung'] as const) expect(mit(rolle), rolle).toBe(false);
+  });
+
+  it('stehen nur mit „Lagerorte und Fahrzeuglager“ — auch per Adresse nicht ohne; die übrigen Unterseiten bleiben', () => {
+    const pfade = (module: Record<string, boolean>) =>
+      unterseitenFuer('/settings', 'Geschäftsführung', {}, module).map((s) => s.pfad);
+    expect(pfade({})).toContain('fahrzeuge');
+    expect(pfade({ 'material.lagerorte_fahrzeuglager': false })).not.toContain('fahrzeuge');
+    // Mit dem Modul Material geht die Unterfähigkeit mit.
+    expect(pfade({ material: false })).not.toContain('fahrzeuge');
+    expect(pfade({ 'material.lagerorte_fahrzeuglager': false })).toEqual(
+      unterseitenFuer('/settings', 'Geschäftsführung').map((s) => s.pfad).filter((p) => p !== 'fahrzeuge'),
+    );
+  });
+
+  it('Erhaltung: der Papierkorb hängt weiter nur an Angeboten und Scheinen (Module statt Unterfähigkeiten gerechnet wie bisher)', () => {
+    const pfade = (module: Record<string, boolean>) =>
+      unterseitenFuer('/settings', 'Geschäftsführung', {}, module).map((s) => s.pfad);
+    expect(pfade({ 'material.lagerorte_fahrzeuglager': false, angebote: false })).toContain('papierkorb');
+    expect(pfade({ angebote: false, scheine: false })).not.toContain('papierkorb');
+  });
+});
+
 describe('Wer wohin darf — die Entscheidungen, die dahinterstehen', () => {
 
 
@@ -379,8 +411,9 @@ describe('Wer wohin darf — die Entscheidungen, die dahinterstehen', () => {
     // Die Einstellungen stehen ihr offen — aber nur mit den Meldungen darin,
     // nicht mit den Sätzen des Betriebs.
     expect(rollen('/settings')).toContain('Projektleiter');
-    // Seit M01d dazu der Papierkorb (bewusst nachgezogen) — kein Geld, keine Rechtevergabe.
-    expect(unterseitenFuer('/settings', 'Projektleiter').map((s) => s.pfad)).toEqual(['meldungen', 'papierkorb']);
+    // Seit M01d dazu der Papierkorb, seit M04a die Fahrzeuge (beides bewusst
+    // nachgezogen) — kein Geld, keine Rechtevergabe.
+    expect(unterseitenFuer('/settings', 'Projektleiter').map((s) => s.pfad)).toEqual(['meldungen', 'fahrzeuge', 'papierkorb']);
   });
 
   it('gibt jeder Rolle die eigene Zeit, den eigenen Urlaub und die eigenen Meldungen', () => {

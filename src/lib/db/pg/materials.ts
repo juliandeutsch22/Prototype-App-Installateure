@@ -6,6 +6,7 @@ import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import { abfragen, abonnieren, anlegen as kernAnlegen, aendern, loeschen, derClient, kanalHalten, SEITE, type WithId } from './kern';
 import { zeileAlsObjekt } from './felder';
 import { alsOderWert, ohneJoker, oderUeberSpalten } from './suche';
+import { mitNummern, nummernTreffer, oderMitNummern, type MitNummer } from './nummernSuche';
 
 const MATERIAL = 'materials';
 
@@ -73,17 +74,19 @@ export async function katalogSeite(
   companyId: string,
   begriff: string,
   anzahl: number,
-): Promise<{ zeilen: WithId<Material>[]; gesamt: number }> {
+): Promise<{ zeilen: MitNummer<WithId<Material>>[]; gesamt: number }> {
   let abfrage = derClient()
     .from(MATERIAL)
     .select('*', { count: 'exact' })
     .eq('company_id', companyId);
-  const oder = oderUeberSpalten(['name', 'article_number', 'category'], begriff);
+  // M03a: auch über die Nummer eines Großhändlers und die EAN (`nummernSuche.ts`).
+  const nummern = await nummernTreffer(begriff);
+  const oder = oderMitNummern(oderUeberSpalten(['name', 'article_number', 'category'], begriff), nummern);
   if (oder) abfrage = abfrage.or(oder);
   const { data, error, count } = await abfrage.order('name').order('id').range(0, Math.max(0, anzahl - 1));
   if (error) throw new Error(error.message);
   const zeilen = (data ?? []).map((z) => zeileAlsObjekt<WithId<Material>>(MATERIAL, z));
-  return { zeilen, gesamt: count ?? zeilen.length };
+  return { zeilen: mitNummern(zeilen, nummern), gesamt: count ?? zeilen.length };
 }
 
 /**
@@ -151,14 +154,19 @@ export async function adjustStock(materialId: string, delta: number) {
  * M29). Zurück kommt der neue Bestand.
  */
 export async function lagerEingang(eingang: {
-  materialId: string; menge: number; lieferant: string; lieferschein?: string; bezug?: string;
+  materialId: string; menge: number; lieferant: string; lieferschein?: string; bezug?: string; ortId?: string;
 }): Promise<number> {
+  /*
+    DER ORT NUR, WENN EINER GEWÄHLT IST (M04a): ins Hauptlager geht derselbe
+    Aufruf wie vor den Lagerorten.
+  */
   const { data, error } = await derClient().rpc('lager_eingang', {
     p_material: eingang.materialId,
     p_menge: eingang.menge,
     p_lieferant: eingang.lieferant,
     p_lieferschein: eingang.lieferschein ?? null,
     p_bezug: eingang.bezug ?? null,
+    ...(eingang.ortId ? { p_ort: eingang.ortId } : {}),
   });
   if (error) throw new Error(error.message);
   return Number(data);
@@ -177,9 +185,10 @@ export async function verkaufspreiseVorschlagen(): Promise<{ gesetzt: number; oh
 }
 
 /** Inventur: der gezählte Bestand, mit Grund (M28). */
-export async function lagerInventur(materialId: string, bestand: number, grund: string): Promise<number> {
+export async function lagerInventur(materialId: string, bestand: number, grund: string, ortId?: string): Promise<number> {
   const { data, error } = await derClient().rpc('lager_inventur', {
     p_material: materialId, p_bestand: bestand, p_grund: grund,
+    ...(ortId ? { p_ort: ortId } : {}),
   });
   if (error) throw new Error(error.message);
   return Number(data);
@@ -263,12 +272,19 @@ export function listMaterials(companyId: string, max = KATALOG_GRENZE) {
  * und Kategorie (M18). Ein eingespielter Großhandelskatalog hat leicht
  * zehntausende Artikel; geladen wird davon nur, was zur Suche passt.
  */
-export function sucheKatalog(companyId: string, begriff: string, max = 20) {
-  return abfragen<Material>(MATERIAL, companyId, {
-    oder: oderUeberSpalten(['name', 'article_number', 'category'], begriff),
+export async function sucheKatalog(
+  companyId: string,
+  begriff: string,
+  max = 20,
+): Promise<MitNummer<WithId<Material>>[]> {
+  // M03a: auch über die Nummer eines Großhändlers und die EAN (`nummernSuche.ts`).
+  const nummern = await nummernTreffer(begriff, max);
+  const zeilen = await abfragen<Material>(MATERIAL, companyId, {
+    oder: oderMitNummern(oderUeberSpalten(['name', 'article_number', 'category'], begriff), nummern),
     sortiere: { feld: 'name' },
     grenze: max,
   });
+  return mitNummern(zeilen, nummern);
 }
 
 /** So viele Namen je Anfrage — die `or`-Bedingung steht in der Adresse. */

@@ -63,7 +63,8 @@ alter table public.number_counters
 
 /*
   DIESELBE LISTE WIE `MODULE` UND `KERN` in `src/lib/module.ts` — Rumpf wie
-  in `20261106400000_angebot_annahme_link.sql`, dazu die Kernbereiche
+  in `20261107200000_lagerorte_fahrzeuge_umlagerung.sql` (mit den Teilen von
+  Material aus M03a und M04a), dazu die Kernbereiche
   `baustellen` und `kunden` und die Unterfähigkeit
   `baustellen.auftragseingang`. Die Kernbereiche stehen mit Standard „an“
   darin, damit eine Unterfähigkeit unter ihnen dieselbe Regel findet wie
@@ -84,6 +85,10 @@ as $$
     ('kunden', true, '{}'::text[]),
     ('einsatzplanung', true, '{}'::text[]),
     ('material', true, '{}'::text[]),
+    ('material.katalogversionen', true, '{}'::text[]),
+    ('material.lieferantenvergleich', true, '{}'::text[]),
+    ('material.katalogpreisverlauf', true, '{}'::text[]),
+    ('material.lagerorte_fahrzeuglager', true, '{}'::text[]),
     ('urlaub', true, '{}'::text[]),
     ('scheine', true, '{}'::text[]),
     ('angebote', true, '{}'::text[]),

@@ -57,7 +57,7 @@ describe('app.modul_register', () => {
   it('findet überhaupt etwas — und die erste Unterfähigkeit mit Serverprüfung', async () => {
     expect(ausDerApp()).toContain('angebote.online_annahme | true | ');
     expect(ausDerApp()).toContain('baustellen.auftragseingang | true | ');
-    expect((await ausSql()).length).toBeGreaterThanOrEqual(13);
+    expect((await ausSql()).length).toBeGreaterThanOrEqual(17);
   });
 
   it('der Kern in SQL ist der Kern der App — und immer an, gleich was festgelegt ist (M02b)', async () => {
@@ -96,7 +96,10 @@ describe('app.modul_register', () => {
         as $$ select r.kennung, case when r.kennung = 'angebote.online_annahme' then false else r.standard end, r.abhaengig_von
                 from (values ('baustellen', true, '{}'::text[]), ('baustellen.auftragseingang', true, '{}'::text[]),
                              ('kunden', true, '{}'::text[]),
-                             ('einsatzplanung', true, '{}'::text[]), ('material', true, '{}'::text[]), ('urlaub', true, '{}'::text[]),
+                             ('einsatzplanung', true, '{}'::text[]), ('material', true, '{}'::text[]),
+                             ('material.katalogversionen', true, '{}'::text[]), ('material.lieferantenvergleich', true, '{}'::text[]),
+                             ('material.katalogpreisverlauf', true, '{}'::text[]), ('material.lagerorte_fahrzeuglager', true, '{}'::text[]),
+                             ('urlaub', true, '{}'::text[]),
                              ('scheine', true, '{}'::text[]), ('angebote', true, '{}'::text[]), ('angebote.online_annahme', true, '{}'::text[]),
                              ('rechnungen', true, '{}'::text[]), ('nachkalkulation', true, '{rechnungen}'::text[]),
                              ('wartung', true, '{}'::text[]), ('zeitkonten', true, '{}'::text[])) r(kennung, standard, abhaengig_von) $$`);

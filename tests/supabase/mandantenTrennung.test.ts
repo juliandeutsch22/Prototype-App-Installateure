@@ -91,7 +91,12 @@ const ZUSATZ: Record<string, (betrieb: string) => Record<string, unknown>> = {
 const FUER_ALLE = ['assignments', 'aussteller_staende', 'baustelle_alte_nummern', 'betriebsurlaube', 'buchungskonten',
   'einsatz_material', 'einsatz_material_positionen', 'materials', 'projects', 'suppliers', 'support_freigaben',
   'support_zugriffe', 'users', 'wartung_ausfuehrungen', 'wartungen', 'work_sheet_hours', 'work_sheet_material',
-  'work_sheet_photos', 'work_sheets'];
+  'work_sheet_photos', 'work_sheets',
+  /*
+    M04a: Orte, Fahrzeuge und der Bestand je Ort — wie der Bestand am
+    Artikel (`materials`) für jede Rolle; der Monteur sieht „Mein Fahrzeug“.
+  */
+  'fahrzeuge', 'lagerbestaende', 'lagerorte'];
 /** Lohn, Zeiten, Abwesenheiten anderer und Rechnungen: Buchhaltung und Spitze. */
 const LOHN_UND_RECHNUNG = ['arbeitszeit_begruendungen', 'freistellungen', 'geburtsdaten', 'invoice_coverage', 'invoice_lines',
   'invoices', 'krankmeldungen', 'mahnungen', 'time_entries', 'urlaubsanspruch_anpassungen', 'vacations', 'zahlungseingaenge',
@@ -100,7 +105,9 @@ const LOHN_UND_RECHNUNG = ['arbeitszeit_begruendungen', 'freistellungen', 'gebur
  * Kunden, Lager, Anforderungen, Pläne, UID-Prüfungen und der Auftragseingang
  * (M02b: wer Kunden liest, liest Eingänge): das Büro und die Leitung.
  */
-const BUERO = ['auftragseingaenge', 'customers', 'lagerbewegungen', 'material_orders', 'project_documents', 'uid_pruefungen'];
+const BUERO = ['auftragseingaenge', 'customers', 'lagerbewegungen', 'material_orders', 'project_documents', 'uid_pruefungen',
+  // M04a: die Schreibbefehle wie das Bewegungsprotokoll; die eigenen sieht jeder (`befehl_stand`).
+  'befehle_vorgaenge'];
 /** Einkaufspreise, Preislisten, Kostensätze, Katalogdateien, Kontoumstellungen, Systemläufe: nur die Spitze. */
 const SPITZE = ['betrieb_kostensaetze', 'datanorm_laeufe', 'datanorm_zeilen', 'konto_umstellungen', 'material_einkaufspreise',
   'material_prices', 'rabattsaetze', 'system_laeufe',
@@ -113,9 +120,16 @@ const SPITZE = ['betrieb_kostensaetze', 'datanorm_laeufe', 'datanorm_zeilen', 'k
   */
   'aenderungsjournal'];
 
+/*
+  Wer den Einkauf führt (Verwaltung und Führung) — die Einkaufsliste und,
+  seit M03a, die Lieferantenartikel: Nummer und Bezeichnung des Großhändlers
+  für die Bestellung, ohne Preise.
+*/
+const EINKAUF = ['einkauf_posten', 'lieferantenartikel'];
+
 const LESBAR: Record<string, string[]> = {
   Mitarbeiter: [...FUER_ALLE].sort(),
-  Verwaltung: [...FUER_ALLE, ...BUERO, 'einkauf_posten', 'termine'].sort(),
+  Verwaltung: [...FUER_ALLE, ...BUERO, ...EINKAUF, 'termine'].sort(),
   /*
     Die Annahme-Links (M02a) liest, wer die Angebote liest (`angebot_links_lesen`
     wie `quotes_lesen`, ohne den Support).
@@ -123,9 +137,9 @@ const LESBAR: Record<string, string[]> = {
   Buchhaltung: [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, 'angebot_links', 'quote_lines', 'quotes'].sort(),
   // Wie die Leitung, aber ohne Lohn, Zeiten anderer und Rechnungen; Urlaub und
   // Anfangsstände der Zeitkonten für die Planung.
-  Projektleiter: [...FUER_ALLE, ...BUERO, 'angebot_links', 'einkauf_posten', 'quote_lines', 'quotes', 'termine', 'vacations', 'zeitkonto_anfang'].sort(),
-  'Geschäftsführung': [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, ...SPITZE, 'angebot_links', 'einkauf_posten', 'quote_lines', 'quotes', 'termine'].sort(),
-  Administrator: [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, ...SPITZE, 'angebot_links', 'einkauf_posten', 'quote_lines', 'quotes', 'termine'].sort(),
+  Projektleiter: [...FUER_ALLE, ...BUERO, ...EINKAUF, 'angebot_links', 'quote_lines', 'quotes', 'termine', 'vacations', 'zeitkonto_anfang'].sort(),
+  'Geschäftsführung': [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, ...SPITZE, ...EINKAUF, 'angebot_links', 'quote_lines', 'quotes', 'termine'].sort(),
+  Administrator: [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, ...SPITZE, ...EINKAUF, 'angebot_links', 'quote_lines', 'quotes', 'termine'].sort(),
 };
 
 /** Tabellen, die Betrieb B nicht über `company_id` tragen, sondern anders zugeordnet sind. */

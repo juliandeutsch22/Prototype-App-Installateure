@@ -1759,3 +1759,130 @@ nimmt in einem zweiten Browser an, Büro sieht es), Inhaltsregel-Rundgang der
 `ruecklauf`, `personLoeschen`. Gegenproben: ohne Migration 38 von 40 neuen
 Datenbankfällen rot (die zwei Erhaltungsfälle grün), je Baustein die eigenen
 Fälle rot.
+
+**E57 — Kataloge mehrerer Großhändler, verifizierter Preisvergleich, Preisverlauf (07.11.2026).**
+SHK-Ausbau, Paket M03a (E01–E04, „Integrieren“; Befund 2 der Bestandsmatrix).
+Der Artikelstamm kannte keinen Lieferanten: zwei Großhändler mit derselben
+Nummer ergaben einen Artikel, und der letzte Katalog überschrieb Name, Einheit
+und Einkaufspreis — auch wenn beim zweiten ein anderes Produkt dahinterstand.
+
+- **Lieferantenartikel als Zuordnungsmodell.** Neue Tabelle
+  `lieferantenartikel`: der Artikel, wie ihn ein Großhändler führt (Nummer,
+  Bezeichnung, Einheit, Preiseinheit, Warengruppe, EAN), einem Stammartikel
+  zugeordnet oder offen. Ein Katalog schreibt nur an seine eigenen
+  Lieferantenartikel; den Stammartikel ändert er nur, solange kein anderer
+  Lieferant zugeordnet ist — der Ein-Lieferanten-Betrieb bleibt, wie er war.
+- **Eine Preistabelle.** Die Preise in `material_prices` hängen am
+  Lieferantenartikel und ziehen beim Zuordnen mit; nichts doppelt, nichts
+  verloren. `material_einkaufspreise` bleibt die eine Zahl für Kalkulation,
+  Nachkalkulation und Rechnung: der günstigste vergleichbare Preis, sonst der
+  jüngste — unabhängig von jedem Schalter, weil Zahlen nicht von einer
+  Ansicht abhängen dürfen.
+- **Vergleich nur, wo er stimmt.** „Günstigster“ nur bei gleicher Einheit,
+  vollständigem Rabatt und nicht veraltetem Stand (Vorgabe 180 Tage, je
+  Betrieb einstellbar); sonst „nicht vergleichbar“ oder „veraltet“ mit
+  Grund — keine erfundene Umrechnung. Der Vorschlag der Einkaufsliste nimmt
+  den günstigsten vergleichbaren, sonst wie bisher den jüngsten; den Grund
+  sieht, wer Einkaufspreise sieht.
+- **Offene Lieferantenartikel** (Lager › „Zuordnen“) mit Vorschlag (gleiche
+  Nummer, gleiche EAN, ähnliche Bezeichnung): zuordnen, als neuen Artikel anlegen (ohne doppelte
+  Nummer), lösen. Wer und wann entschieden hat, setzt die Datenbank am
+  Lieferantenartikel; kein Journal, weil der Katalog Stammdatum ohne Akte ist
+  (die jüngste Entscheidung steht, frühere nicht).
+- **Preisverlauf je Großhändler** im Artikelblatt und **Preissprünge** im
+  Bericht der Übernahme (Schwelle je Betrieb, Vorgabe 10 %).
+- **Katalogsuche** findet auch über die Nummer eines zugeordneten
+  Großhändlers und die EAN (`katalog_nummern_suche`, Trigramm-Index), auch
+  für den Monteur — ohne dass er die Tabelle lesen darf.
+- **Bestand ergänzt, nicht umgeschrieben:** aus den vorhandenen Preisen
+  entstehen Lieferantenartikel („bestand“: ein Lieferant verifiziert, zwei zu
+  prüfen); der Einkaufspreis jedes Artikels bleibt, bis der nächste Katalog
+  oder eine Zuordnung ihn neu bestimmt.
+- **Module:** drei Unterfähigkeiten unter „Material“, alle Standard an
+  (`material.katalogversionen`, `material.lieferantenvergleich`,
+  `material.katalogpreisverlauf`), im Register des Servers. Zuordnen, als neu
+  anlegen und lösen prüfen `material.katalogversionen` auf dem Server (V3);
+  ausgeschaltet ordnet die Übernahme weiter zu, nimmt nur die Ansichten weg.
+  Ohne Preisvergleich gilt für den Vorschlag wieder der jüngste.
+- **Rechte:** Zuordnen, wer Kataloge einspielt (Geschäftsführung oder
+  Freigabe „Katalog einspielen“); Preise und Vergleich nur, wer
+  Einkaufspreise sieht; die Projektleitung sieht die Nummern der
+  Großhändler, keine Preise. Der Support liest, ordnet ohne „mitarbeiten“
+  nicht zu.
+
+**Grenzen mit Grund:** EAN und Preiseinheit aus DATANORM sind erst mit echten
+Dateien realer Großhändler prüfbar (Nachweisregister, liegt beim
+Pilotbetrieb); ein Artikel ohne Preiszeile bleibt Stammartikel ohne
+Lieferantenartikel (Altdaten: seine Herkunft ist nicht gespeichert); von den
+Entscheidungen zu einem Lieferantenartikel steht nur die jüngste (oben).
+
+**Prüfungen.** `lieferantenartikel.test.ts` (34, darunter Erhaltung des
+Ein-Lieferanten-Betriebs, Bestand, 2.000 Zeilen unter der Zeitgrenze, V3),
+`modulRegisterServer.test.ts`, `Lieferantenvergleich.test.tsx`,
+`OffeneLieferantenartikel.test.tsx`, `KatalogEinstellungenKarte.test.tsx`,
+Erweiterungen in `KatalogImport`, `MaterialCatalog`, `StockView`,
+`Einkaufsliste`, `datanorm`, `einkauf`, `nummernSuche`, `modulRegister`;
+Browser `lieferantenvergleich.spec.ts`. Gegenprobe der Serverprüfung: ohne
+sie ist der V3-Fall rot.
+
+**E58 — Lagerorte, Fahrzeuge, Umlagerung und der Schreibbefehls-Vertrag (07.11.2026).**
+SHK-Ausbau, Paket M04a (E10, „Integrieren“; Befund 5 der Bestandsmatrix;
+Fahrzeug als gemeinsame Kennung für W06/W07). Es gab genau einen Bestand je
+Artikel; was im Bus eines Monteurs liegt, stand nirgends, und Fahrzeuge
+kannte die App nur als Freitext an der Zeitbuchung.
+
+- **Das Hauptlager bleibt `materials.stock`.** Weitere Orte (Lager bzw.
+  Regal an einer Anschrift, je Fahrzeug ein Fahrzeuglager) führen ihren
+  Bestand in `lagerbestaende`; das Hauptlager steht dort nicht. Grund: eine
+  zweite Zeile für dieselbe Zahl müsste ein Auslöser nachführen, und jede
+  Abweichung wäre ein Fehler, den niemand bemerkt. So lesen alle bestehenden
+  Wege, Anzeigen und Prüfungen weiter dieselbe Zahl. Bewegungen tragen den
+  Ort (leer = Hauptlager — Altdaten bleiben, was sie sind); kein Ort wird
+  negativ.
+- **Fahrzeuge** (Einstellungen › Fahrzeuge): Kennzeichen (eindeutig ohne
+  Leerzeichen, Bindestriche, Groß-/Kleinschreibung), Bezeichnung,
+  Standardfahrer, aktiv. Kennzeichen aus den Zeitbuchungen nur als Vorschlag
+  „Als Fahrzeug anlegen“ — keine automatische Zuordnung; das Freitextfeld der
+  Zeiterfassung bleibt und schlägt die Fahrzeuge vor.
+- **Umlagern** zwischen zwei Orten, atomar, mit Bewegungen an beiden Orten.
+  Die bestätigte Übersteuerung bei Fehlbestand gilt hier nicht: sie sagt
+  Ware zu, eine Umlagerung bewegt Ware — was nicht da ist, wird gezählt
+  (Inventur am Ort), nicht negativ gebucht. Der Fahrer lagert aus seinem
+  Fahrzeug selbst zurück, wenn der Betrieb es erlaubt (Standard aus).
+- **Schreibbefehls-Vertrag** (Bauplanung 4.3), erster Verbraucher
+  `umlagern`: Zielkennung, erwarteter Stand, Vorgangskennung; Sperren in
+  fester Reihenfolge; Vorgangskennung und Hash der Nutzlast je Betrieb
+  eindeutig (`befehle_vorgaenge`) — dieselben Daten liefern dasselbe
+  Ergebnis, dieselbe Kennung mit anderem Inhalt ist ein Konflikt;
+  `befehl_stand` beantwortet einen unklaren Ausgang.
+- **Bestehende Wege je Ort** (Wareneingang, Einkaufsliste „Geliefert“,
+  Inventur, Abhaken der Rüstliste, Retoure, Abholen): ein optionaler Ort,
+  Vorgabe Hauptlager; ohne Ort Wort für Wort wie bisher (je Weg ein
+  Erhaltungstest). Eröffnungsbestände weiterer Orte nur aus einer Zählung
+  oder einer Umlagerung. Reserviert wird weiter gegen das Hauptlager; eine an
+  einen weiteren Ort gelieferte Anforderung trägt den Ort. Der
+  Rechnungsvorschlag bleibt: eine Umlagerung ist kein Verbrauch.
+- **„Mein Fahrzeug“** unter „Material anfordern“ für den Fahrer: Bestand
+  seines Fahrzeugs, Zurücklagern, wenn erlaubt.
+- **Modul:** `material.lagerorte_fahrzeuglager` (Standard an), im Register
+  des Servers. Die neuen Befehle prüfen es (V3); die bestehenden Wege nur,
+  wenn ein weiterer Ort gewählt wird. Was schon an einem Ort liegt, folgt
+  ihm weiter (Abholen einer dorthin gelieferten Anforderung, Zurücknehmen
+  eines Hakens am selben Tag) — das ist keine Wahl, sondern die Buchung zur
+  vorhandenen Ware. Ausgeschaltet gibt es nur das Hauptlager.
+- **Kein Änderungsjournal** für Orte und Fahrzeuge: Stammdaten ohne
+  Belegcharakter; die Bewegungen sind das Protokoll des Bestands.
+- **Datenschutz:** der Standardfahrer steht in der Datenauskunft der Person
+  und wird bei ihrer Löschung entfernt.
+
+**Grenzen mit Grund:** vorhandene Kennzeichen an Zeitbuchungen werden keinem
+Fahrzeug zugeordnet (Altdaten: der Freitext ist nicht eindeutig, geraten
+wird nichts); an weiteren Orten gibt es keine Reservierung (fachlich: dort
+ist frei, was liegt; die Ware im Fahrzeug gehört der Rüstliste dieses
+Fahrzeugs).
+
+**Prüfungen.** `lagerorte.test.ts` (Orte, Fahrzeuge, Umlagerung, Vertrag,
+jeder bestehende Weg mit Erhaltung, V3 in drei Fällen), Querschnitt in
+`schema`, `mandantenTrennung`, `ruecklauf`, `personLoeschen`, `netzFrist`,
+`modulRegisterServer`; Komponenten `LagerorteLager.test.tsx`,
+`LagerorteWege.test.tsx`, `StockView.test.tsx`; Browser `lagerorte.spec.ts`.

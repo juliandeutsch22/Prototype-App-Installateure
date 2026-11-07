@@ -74,6 +74,17 @@ vi.mock('@/lib/db/materials', () => ({
 let preisLaden: () => Promise<Map<string, number>> = async () => new Map();
 vi.mock('@/lib/db/kosten', () => ({ einkaufspreise: () => preisLaden() }));
 /*
+  Der Abschnitt „Lieferanten“ (M03a) fragt den Vergleich eigens; hier nur so
+  weit, dass er erscheint — was er zeigt, prüft `Lieferantenvergleich.test.tsx`.
+*/
+const vergleichLaden = vi.fn<(m: string) => Promise<unknown>>(async () => ({ heute: '2026-11-07', fristTage: 180, basisGrund: null, zeilen: [] }));
+vi.mock('@/lib/db/lieferantenartikel', () => ({
+  artikelVergleich: (m: string) => vergleichLaden(m),
+  preisverlauf: vi.fn(),
+  zuordnen: vi.fn(),
+  loesen: vi.fn(),
+}));
+/*
   STABILE OBJEKTE, KEINE FRISCHEN LITERALE. Gäbe der Mock bei jedem Aufruf ein
   neues Objekt zurück, liefe der Effekt, der an `user` hängt, endlos — der
   Testlauf hängt dann ohne Fehlermeldung.
@@ -489,5 +500,71 @@ describe('Das Formular im Seitenfenster (Linie „Lot“, Regel 8)', () => {
     expect(loeschen).not.toHaveBeenCalled();
     await nutzer.click(within(frage).getByRole('button', { name: 'Löschen' }));
     await waitFor(() => expect(loeschen).toHaveBeenCalledWith('m1'));
+  });
+});
+
+/*
+  DER ABSCHNITT „LIEFERANTEN“ IM ARTIKELBLATT (M03a, E02): nur wer
+  Einkaufspreise sieht, nur mit dem Modul „Preisvergleich“ — und erst beim
+  Bearbeiten eines vorhandenen Artikels. GEGENPROBE: ohne die Änderung steht
+  er für niemanden da.
+*/
+describe('Lieferanten im Artikelblatt (M03a)', () => {
+  const artikel = () => [{ id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 4, unit: 'Stk' } as WithId<Material>];
+
+  it('die Geschäftsführung sieht ihn beim Bearbeiten', async () => {
+    angemeldet = CHEF;
+    materialien = artikel();
+    const nutzer = userEvent.setup();
+    zeige();
+    await ersterArtikel(nutzer);
+    expect(await screen.findByRole('region', { name: 'Lieferanten' })).toBeInTheDocument();
+    expect(vergleichLaden).toHaveBeenCalledWith('m1');
+  });
+
+  it('die Verwaltung ohne Freigabe sieht ihn nicht, und es wird nichts gefragt', async () => {
+    materialien = artikel();
+    vergleichLaden.mockClear();
+    const nutzer = userEvent.setup();
+    zeige();
+    await ersterArtikel(nutzer);
+    expect(await screen.findByLabelText(/Verkaufspreis/)).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Lieferanten' })).toBeNull();
+    expect(vergleichLaden).not.toHaveBeenCalled();
+  });
+
+  it('ist der Preisvergleich ausgeschaltet, verschwindet er', async () => {
+    angemeldet = { ...CHEF, company: { id: 'perl', name: 'Perl', modules: { 'material.lieferantenvergleich': false } } } as typeof CHEF;
+    materialien = artikel();
+    vergleichLaden.mockClear();
+    const nutzer = userEvent.setup();
+    zeige();
+    await ersterArtikel(nutzer);
+    expect(await screen.findByLabelText(/Einkaufspreis/)).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Lieferanten' })).toBeNull();
+    expect(vergleichLaden).not.toHaveBeenCalled();
+  });
+
+  it('beim neuen Material gibt es ihn nicht — es hat noch keinen Lieferanten', async () => {
+    angemeldet = CHEF;
+    zeige();
+    await neuesMaterial();
+    expect(await screen.findByLabelText(/Einkaufspreis/)).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Lieferanten' })).toBeNull();
+  });
+});
+
+/*
+  M03a: ÜBER DIE NUMMER EINES GROSSHÄNDLERS GEFUNDEN — die Trefferzeile sagt,
+  worüber. GEGENPROBE: ohne die Änderung steht nur die eigene Artikelnummer da.
+*/
+describe('Treffer über die Nummer eines Großhändlers (M03a)', () => {
+  it('nennt Nummer und Großhändler in der Zeile', async () => {
+    materialien = [{
+      id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 4, articleNumber: 'A-1',
+      gefundenUeber: { nummer: 'B-7788', art: 'lieferant', lieferant: 'Beta' },
+    } as WithId<Material>];
+    zeige();
+    expect(await screen.findByText(/Art\.-Nr\. A-1 · Nr\. B-7788 bei Beta/)).toBeInTheDocument();
   });
 });

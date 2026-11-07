@@ -24,6 +24,8 @@ dann zu „erledigt mit E…/PR …“, gesammelt unter „Nachgeführt“. Den 
 | W04 | erledigt (E55, M01e): Wartung über ihre Kennung auf der Rechnung (Durchgang je Baustelle), Datenbank verhindert doppelte Verrechnung; Altrechnungen per Text |
 | A06 | erledigt (E56, M02a): Annahme per Link mit Unterschrift, gemeinsamer Kern mit der internen Annahme, Push an die Führung |
 | N02 | Serverprüfung neuer Befehle (V3) umgesetzt: `app.modul_aktiv` mit Vergleich gegen das Register der App (E56) |
+| E01–E04 | erledigt (E57, M03a): Lieferantenartikel je Großhändler mit Zuordnung, Preise am Lieferantenartikel, Einkaufspreis „günstigster vergleichbarer, sonst jüngster“, Vergleich, Verlauf, Preissprünge, Suche über Großhändlernummer und EAN |
+| E10 | erledigt (E58, M04a): Lagerorte und Fahrzeuglager neben dem Hauptlager (`materials.stock` bleibt), Fahrzeuge als Entität, Umlagerung über den Schreibbefehls-Vertrag, bestehende Wege mit optionalem Ort |
 
 
 ## Bestandsmatrix Teil A/R — Aufträge und Rechnungswesen

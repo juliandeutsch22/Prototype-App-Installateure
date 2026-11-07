@@ -52,13 +52,14 @@ import { einrichtungZusatzLaden, einrichtungZusatzPunkte, type EinrichtungZusatz
 const STICHWORTE: Record<string, string> = {
   meldungen: 'Benachrichtigungen, dieses Gerät, Zwei-Faktor-Anmeldung, Passwort',
   firma: 'Briefkopf, Anschrift, Logo, UID, Firmenbuch, IBAN, BIC, Bank, Farben',
-  saetze: 'Stundensätze, Einstufung, Zuschläge, Nacht, Notdienst, Kostensätze, Materialaufschlag, Verkaufspreise',
+  saetze: 'Stundensätze, Einstufung, Zuschläge, Nacht, Notdienst, Kostensätze, Materialaufschlag, Verkaufspreise, Preissprung, Preisvergleich, Katalog veraltet',
   rechnung: 'Umsatzsteuer, Zahlungsziel, Skonto, Mahnspesen, Basiszinssatz, Anzahlungs- und Schlussrechnungen',
   nummern: 'Rechnungsnummer, Angebotsnummer, Baustellennummer, Kennzeichen des Fuhrparks',
   personal:
     'Urlaubsjahr, Übertrag, Verfallstag, Urlaub genehmigen, Wochenplan, Einsatzplan, Kalender-Abo, 24. und 31. Dezember, Nachtzeit, Überstunden, Sonderurlaub, Arztbesuch',
   konten: 'BMD, Debitoren, Anzahlungen, Erlöskonten, Steuercodes, Bankkonto, Skonti',
   support: 'Einblick gewähren, Support, bisherige Zugänge',
+  fahrzeuge: 'Kennzeichen, Standardfahrer, Fahrzeuglager, Kennzeichen aus Buchungen, Rücklagern durch den Fahrer',
   module: 'Bereiche ein- und ausschalten',
   sicherung: 'Nächtliche Sicherung, Daten herunterladen, Belegarchiv',
   papierkorb: 'Verworfene Angebote und Handwerksscheine, wiederherstellen, endgültig löschen, Hinweis nach Tagen (Frist)',

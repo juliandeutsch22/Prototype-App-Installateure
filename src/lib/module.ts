@@ -83,7 +83,11 @@ export interface Faehigkeit {
   abhaengigVon?: SchalterId[];
   /** Was in der Oberfläche verschwindet. */
   betrifft: string[];
-  /** Was beim Abschalten darüber hinaus geschieht (siehe `Modul.folgen`). */
+  /**
+   * Was beim Abschalten darüber hinaus geschieht (siehe `Modul.folgen`) —
+   * oder was man vorher wissen muss, obwohl es zurückkommt (Bestände, die
+   * unsichtbar werden, M04a).
+   */
   folgen?: string[];
 }
 
@@ -130,6 +134,8 @@ export interface Kernbereich {
   name: string;
   /** Ein Satz: was der Betrieb damit tut. */
   zweck: string;
+  /** Was in der Navigation dazu gehört — wie bei den Modulen. */
+  betrifft: string[];
   /** Unterfähigkeiten, die einzeln schaltbar sind (N02). */
   unter: Faehigkeit[];
 }
@@ -161,6 +167,70 @@ export const MODULE: Modul[] = [
     zweck: 'Anforderungen vom Monteur, Bearbeitung im Büro, Lagerstand.',
     standard: true,
     betrifft: ['Material anfordern', 'Anforderungen', 'Lager'],
+    /*
+      DIE KATALOGE MEHRERER GROSSHÄNDLER (M03a). Abschalten nimmt die
+      Ansichten weg, NICHT DIE ZUORDNUNG: die Übernahme eines Katalogs legt
+      jeden Artikel an seinen Lieferantenartikel und überschreibt keinen
+      Artikel eines anderen Großhändlers, ob die Ansicht da ist oder nicht.
+      Das ist Datenrichtigkeit, kein Zusatz — ein abgeschalteter Schalter
+      dürfte sonst den Stamm wieder vom letzten Katalog überschreiben lassen.
+      Ebenso bestimmt der Einkaufspreis des Stammartikels sich immer nach der
+      Regel „günstigster vergleichbarer, sonst jüngster“: Kalkulation und
+      Nachkalkulation dürfen nicht von einer Ansicht abhängen.
+    */
+    unter: [
+      {
+        id: 'material.katalogversionen',
+        name: 'Kataloge mehrerer Großhändler',
+        zweck: 'Offene Lieferantenartikel zuordnen oder als neuen Artikel anlegen.',
+        standard: true,
+        betrifft: ['Offene Lieferantenartikel', 'Zuordnen im Artikelblatt', 'Hinweis nach der Übernahme'],
+      },
+      {
+        id: 'material.lieferantenvergleich',
+        name: 'Preisvergleich der Lieferanten',
+        zweck: 'Preise eines Artikels je Großhändler nebeneinander, mit dem günstigsten.',
+        standard: true,
+        betrifft: ['Lieferanten im Artikelblatt', 'Grund des Großhändler-Vorschlags'],
+      },
+      {
+        id: 'material.katalogpreisverlauf',
+        name: 'Preisverlauf und Preissprünge',
+        zweck: 'Verlauf der Einkaufspreise je Großhändler, Preissprünge im Übernahmebericht.',
+        standard: true,
+        betrifft: ['Preisverlauf im Artikelblatt', 'Preissprünge im Übernahmebericht'],
+      },
+      {
+        /*
+          LAGERORTE UND FAHRZEUGLAGER (M04a, E10). „Behalten“, Standard an:
+          ein Betrieb ohne weitere Orte sieht nur das Hauptlager und keine
+          Wahl, solange er keinen Ort und kein Fahrzeug anlegt.
+
+          AUS heißt: nur das Hauptlager. Weitere Orte verschwinden aus den
+          Ansichten, ihre Bestände bleiben — Ware im Fahrzeug ist dann nicht
+          mehr zu sehen, aber nicht weg. Das steht vorher in der Rückfrage
+          (`folgen`), obwohl es mit dem Wiedereinschalten zurückkommt: wer
+          abschaltet, während Ware in den Bussen liegt, muss das wissen.
+
+          Die Fahrzeuge selbst sind Kern der Betriebsmittel (W06/W07); ihre
+          Liste unter Einstellungen steht, solange diese Fähigkeit oder ein
+          Betriebsmittel-Modul an ist (`nurMitModul` der Unterseite).
+        */
+        id: 'material.lagerorte_fahrzeuglager',
+        name: 'Lagerorte und Fahrzeuglager',
+        zweck: 'Bestand je Ort: weitere Lager und je Fahrzeug ein Fahrzeuglager, Umlagern, „Mein Fahrzeug“ für den Monteur.',
+        standard: true,
+        betrifft: [
+          'Lagerorte und Umlagern im Lager',
+          'Fahrzeuge (Einstellungen)',
+          'Mein Fahrzeug',
+          'Wahl des Ortes bei Wareneingang, Inventur, Abhaken, Retoure und Abholen',
+        ],
+        folgen: [
+          'Ware an weiteren Lagerorten und in Fahrzeugen ist dann nicht mehr zu sehen, aber nicht weg: ihre Bestände bleiben und stehen nach dem Wiedereinschalten wieder da. Gebucht wird nur noch im Hauptlager.',
+        ],
+      },
+    ],
   },
   {
     id: 'urlaub',
@@ -254,6 +324,7 @@ export const KERN: Kernbereich[] = [
     id: 'baustellen',
     name: 'Baustellen',
     zweck: 'Der Bezug für Planung, Zeiten, Scheine, Wartungen und Rechnungen.',
+    betrifft: ['Baustellen'],
     unter: [
       {
         /*
@@ -276,6 +347,7 @@ export const KERN: Kernbereich[] = [
     id: 'kunden',
     name: 'Kunden',
     zweck: 'Der Kundenstamm mit Anschrift, Ansprechpartner und Belegen.',
+    betrifft: ['Kunden'],
     unter: [],
   },
 ];

@@ -22,9 +22,10 @@ import { navForRole } from '@/app/navigation';
  *     sieht: dieselben neun Module mit denselben Kennungen und Standards,
  *     jede Rolle mit derselben Navigation. Diese Prüfungen sind vor und nach
  *     der Änderung grün — genau das sollen sie zeigen.
- *  2. DIE NEUE MECHANIK an einem Prüfregister mit mehreren Stufen — das
- *     echte trägt seit M02a genau eine Unterfähigkeit
- *     (`angebote.online_annahme`): Sie gilt nur mit ihrem Modul, hat ihren
+ *  2. DIE NEUE MECHANIK an einem Prüfregister mit mehreren Stufen —
+ *     unabhängig davon, was das echte trägt (seit M02a
+ *     `angebote.online_annahme`, seit M03a drei unter „Material“, geprüft
+ *     unten): Sie gilt nur mit ihrem Modul, hat ihren
  *     eigenen Standard, geht mit dem Modul aus und kommt mit ihm zurück.
  */
 
@@ -87,10 +88,19 @@ describe('Folgen beim Abschalten — was sich nicht zurückholen lässt', () => 
   });
 
   it('die übrigen Module haben keine solche Folge', () => {
-    // Die Angebote nennen seit M02a die Folge ihrer Unterfähigkeit — eigener Fall unten.
-    for (const m of MODULE.filter((x) => x.id !== 'einsatzplanung' && x.id !== 'angebote')) {
+    // Die Angebote nennen seit M02a die Folge ihrer Unterfähigkeit, Material seit M04a die der Lagerorte — eigene Fälle unten.
+    for (const m of MODULE.filter((x) => x.id !== 'einsatzplanung' && x.id !== 'angebote' && x.id !== 'material')) {
       expect(folgenBeimAbschalten(m.id, undefined), m.id).toEqual([]);
     }
+  });
+
+  it('Material und die Lagerorte sagen vorher, dass Ware an weiteren Orten unsichtbar, aber nicht weg ist (M04a)', () => {
+    const satz = expect.stringMatching(/nicht mehr zu sehen, aber nicht weg/);
+    expect(folgenBeimAbschalten('material.lagerorte_fahrzeuglager', undefined)).toEqual([satz]);
+    // Das Modul nimmt seine Unterfähigkeit mit — und damit ihre Folge.
+    expect(folgenBeimAbschalten('material', undefined)).toEqual([satz]);
+    // Schon abgeschaltet: keine Folge mehr beim Abschalten des Moduls.
+    expect(folgenBeimAbschalten('material', { 'material.lagerorte_fahrzeuglager': false })).toEqual([]);
   });
 
   it('die Angebote und die Annahme per Link sagen, dass offene Links nicht mehr antworten (M02a)', () => {
@@ -170,7 +180,7 @@ describe('Der Kern (M02b)', () => {
   });
 });
 
-/** Ein Prüfregister mit Unterfähigkeiten über zwei Stufen — das echte trägt nur eine, ohne Abhängigkeit. */
+/** Ein Prüfregister mit Unterfähigkeiten über zwei Stufen — unabhängig davon, was das echte gerade trägt. */
 const PRUEF: Modul[] = [
   {
     id: 'material',
@@ -201,6 +211,15 @@ const PRUEF: Modul[] = [
     ],
   },
 ];
+
+describe('Lagerorte und Fahrzeuglager (M04a)', () => {
+  it('„Lagerorte und Fahrzeuglager“ hängt unter Material, ist ab Werk an und geht mit dem Modul aus', () => {
+    expect(schalter('material.lagerorte_fahrzeuglager')?.name).toBe('Lagerorte und Fahrzeuglager');
+    expect(istAn(undefined, 'material.lagerorte_fahrzeuglager')).toBe(true);
+    expect(istAn({ material: false }, 'material.lagerorte_fahrzeuglager')).toBe(false);
+    expect(istAn({ 'material.lagerorte_fahrzeuglager': false }, 'material')).toBe(true);
+  });
+});
 
 describe('Unterfähigkeiten', () => {
   it('gelten mit ihrem eigenen Standard, solange nichts festgelegt ist', () => {
@@ -249,5 +268,38 @@ describe('Unterfähigkeiten', () => {
     expect(schalter('material.scan', PRUEF)?.name).toBe('Scannen');
     expect(schalter('material', PRUEF)?.name).toBe('Material und Lager');
     expect(schalter('material.gibtsnicht', PRUEF)).toBeUndefined();
+  });
+});
+
+/*
+  M03a: DIE UNTERFÄHIGKEITEN DER GROSSHÄNDLERKATALOGE. Standard an — was ein
+  Betrieb heute sieht, sieht er weiter, und mit dem Modul „Material“ gehen
+  sie aus. GEGENPROBE: vor M03a gab es keine.
+*/
+describe('Material: Kataloge, Preisvergleich, Preisverlauf (M03a)', () => {
+  const TEILE = ['material.katalogversionen', 'material.lieferantenvergleich', 'material.katalogpreisverlauf'] as const;
+
+  it('stehen unter „Material“, eingeschaltet, solange nichts festgelegt ist', () => {
+    // Neben ihnen steht seit M04a „Lagerorte und Fahrzeuglager“ (eigener Fall oben).
+    expect(MODULE.find((m) => m.id === 'material')!.unter!.map((f) => [f.id, f.standard])).toEqual([
+      ...TEILE.map((t) => [t, true]),
+      ['material.lagerorte_fahrzeuglager', true],
+    ]);
+    for (const t of TEILE) expect(istAn(undefined, t)).toBe(true);
+  });
+
+  it('gehen mit dem Modul aus und einzeln aus, ohne das Modul zu berühren', () => {
+    for (const t of TEILE) expect(istAn({ material: false }, t)).toBe(false);
+    expect(istAn({ 'material.lieferantenvergleich': false }, 'material.lieferantenvergleich')).toBe(false);
+    expect(istAn({ 'material.lieferantenvergleich': false }, 'material')).toBe(true);
+    expect(istAn({ 'material.lieferantenvergleich': false }, 'material.katalogpreisverlauf')).toBe(true);
+  });
+
+  it('ziehen beim Abschalten nichts mit und haben keine Folge über das Verschwinden hinaus', () => {
+    for (const t of TEILE) {
+      expect(zieheMit(t, undefined)).toEqual([]);
+      expect(folgenBeimAbschalten(t, undefined)).toEqual([]);
+      expect(schalter(t)?.betrifft.length).toBeGreaterThan(0);
+    }
   });
 });

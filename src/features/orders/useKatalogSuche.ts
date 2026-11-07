@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Material } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { sucheKatalog } from '@/lib/db/materials';
+import type { MitNummer } from '@/lib/katalogTreffer';
 
 /** Wie viele Treffer der Server liefert — genug, dass nach den Filtern der Ansicht acht bleiben. */
 const VOM_SERVER = 20;
@@ -29,9 +30,9 @@ export function useKatalogSuche(
   companyId: string | undefined,
   begriff: string,
   reserve: readonly WithId<Material>[],
-): { treffer: WithId<Material>[]; laeuft: boolean; ohneNetz: boolean } {
+): { treffer: MitNummer<WithId<Material>>[]; laeuft: boolean; ohneNetz: boolean } {
   const q = begriff.trim();
-  const [antwort, setAntwort] = useState<{ fuer: string; treffer: WithId<Material>[] } | null>(null);
+  const [antwort, setAntwort] = useState<{ fuer: string; treffer: MitNummer<WithId<Material>>[] } | null>(null);
   const [fehlschlag, setFehlschlag] = useState<string | null>(null);
 
   useEffect(() => {

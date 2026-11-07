@@ -247,6 +247,24 @@ describe('Interne Hilfsfunktionen', () => {
       // Der Papierkorb (M01d): wer und wann setzen nur diese Auslöser.
       'app.angebot_papierkorb()',
       'app.schein_verworfen_am()',
+      // Lagerorte und Schreibbefehle (M04a): Auslöser, Hauptlager, Vorgänge — nur die Befehle selbst.
+      'app.hauptlager_anlegen(text)',
+      'app.ortsbestand_waechter()',
+      'app.ortsbewegung_schreiben()',
+      'app.lagerartikel_bleibt_bei_ortsbestand()',
+      'app.anforderung_ort_fest()',
+      'app.lager_kontext_ort(uuid, uuid)',
+      'app.befehl_vorgang(jsonb)',
+      'app.befehl_beginnen(text, uuid, text, jsonb)',
+      'app.befehl_abschliessen(text, uuid, jsonb)',
+      // M03a: was der Stammartikel aus seinen Lieferantenartikeln nachzieht, und der Vorschlag ohne Rechteprüfung.
+      'app.stamm_nachziehen(uuid, boolean)',
+      'app.lieferant_vorschlag_wahl(text, uuid)',
+      'app.lieferantenvergleich_an(text)',
+      'app.lieferantenartikel_stand()',
+      'app.lieferantenartikel_nachher()',
+      'app.preis_folgt_lieferantenartikel()',
+      'app.altpreise_mit_artikel()',
       // Der Annahme-Link (M02a): Kerne ohne eigene Rechteprüfung, Modulregel, Zustand und Journal.
       'app.naechste_nummer_kern(text, text, integer, integer)',
       'app.angebot_annehmen_kern(uuid, text, text)',

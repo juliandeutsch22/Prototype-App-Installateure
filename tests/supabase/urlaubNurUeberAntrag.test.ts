@@ -242,8 +242,35 @@ describe('Übernahme des Altbestands', () => {
     await db.query(readFileSync(
       join(__dirname, '../../supabase/migrations/20260929200000_dezember_halbtage.sql'), 'utf8'));
     const ordner = join(__dirname, '../../supabase/migrations');
-    for (const datei of readdirSync(ordner).filter((d) => d >= '20261004200000' && d.endsWith('.sql')).sort()) {
-      await db.query(readFileSync(join(ordner, datei), 'utf8'));
+    /*
+      BEWEGUNGSARTEN, DIE ES BEI EINER WIEDER EINGESPIELTEN MIGRATION NOCH NICHT
+      GAB. `20261006400000_einladen_zurueckgenommen.sql` setzt den Check auf
+      `lagerbewegungen.art` mit den Arten ihres Tages neu; liegt schon eine
+      jüngere Art im Bestand (seit M04a „umlagerung“, aus `lagerorte.test.ts`),
+      bricht sie ab — und mit ihr jede Migration danach, also der heutige
+      Stand, auf dem alle folgenden Prüfungen rechnen. Die Produktion spielt
+      nie eine alte Migration ein; das Problem gibt es nur hier. Deshalb
+      werden solche Zeilen für die Dauer der Wiederholung beiseitegelegt
+      (ohne Auslöser, der Bestand bleibt unberührt) und danach, wenn der
+      Check wieder alle Arten kennt, zurückgelegt.
+    */
+    const ARTEN_VOM_06_10 = ['anfangsbestand', 'eingang', 'entnahme', 'retoure', 'inventur', 'zugang', 'abgang', 'einladen_zurueck'];
+    await db.query('begin');
+    await db.query('set local session_replication_role = replica');
+    await db.query(`create temp table beiseite_lagerbewegungen as
+                      select * from public.lagerbewegungen where art <> all($1::text[])`, [ARTEN_VOM_06_10]);
+    await db.query('delete from public.lagerbewegungen where art <> all($1::text[])', [ARTEN_VOM_06_10]);
+    await db.query('commit');
+    try {
+      for (const datei of readdirSync(ordner).filter((d) => d >= '20261004200000' && d.endsWith('.sql')).sort()) {
+        await db.query(readFileSync(join(ordner, datei), 'utf8'));
+      }
+    } finally {
+      await db.query('begin');
+      await db.query('set local session_replication_role = replica');
+      await db.query('insert into public.lagerbewegungen select * from beiseite_lagerbewegungen');
+      await db.query('drop table beiseite_lagerbewegungen');
+      await db.query('commit');
     }
     await db.query('grant select on public.monthly_stats to authenticated');
 
