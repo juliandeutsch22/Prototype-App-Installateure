@@ -197,9 +197,10 @@ begin
   if p_typ = 'text' and p_regeln ? 'laenge' then
     wert := p_regeln -> 'laenge';
     -- Erst die Art, dann die Zahl: `case` hält die Reihenfolge, ein `or` nicht zwingend.
-    if case when jsonb_typeof(wert) <> 'number' then true
-            else (wert #>> '{}')::numeric <> trunc((wert #>> '{}')::numeric)
-                 or (wert #>> '{}')::numeric < 1 or (wert #>> '{}')::numeric > 2000 end then
+    -- In Klammern: PL/pgSQL liest die Bedingung eines `if` bis zum ersten `then`.
+    if (case when jsonb_typeof(wert) <> 'number' then true
+             else (wert #>> '{}')::numeric <> trunc((wert #>> '{}')::numeric)
+                  or (wert #>> '{}')::numeric < 1 or (wert #>> '{}')::numeric > 2000 end) then
       return 'Die Länge muss zwischen 1 und 2000 Zeichen liegen';
     end if;
   elsif p_typ = 'zahl' then
@@ -213,9 +214,9 @@ begin
     end if;
     if p_regeln ? 'stellen' then
       wert := p_regeln -> 'stellen';
-      if case when jsonb_typeof(wert) <> 'number' then true
-              else (wert #>> '{}')::numeric <> trunc((wert #>> '{}')::numeric)
-                   or (wert #>> '{}')::numeric < 0 or (wert #>> '{}')::numeric > 4 end then
+      if (case when jsonb_typeof(wert) <> 'number' then true
+               else (wert #>> '{}')::numeric <> trunc((wert #>> '{}')::numeric)
+                    or (wert #>> '{}')::numeric < 0 or (wert #>> '{}')::numeric > 4 end) then
         return 'Nachkommastellen: 0 bis 4';
       end if;
     end if;
