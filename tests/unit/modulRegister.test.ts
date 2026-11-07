@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   MODULE,
+  KERN,
+  istKern,
   aktiveModule,
   aktiveSchalter,
   istAn,
@@ -42,7 +44,7 @@ describe('Erhaltung: was ein Betrieb heute sieht, bleibt', () => {
     ]);
   });
 
-  it('jede Rolle hat dieselbe Navigation wie vor dem Register', () => {
+  it('jede Rolle hat dieselbe Navigation wie vor dem Register — ohne die seither gebauten Unterfähigkeiten', () => {
     const vorher: Record<string, string[]> = {
       Mitarbeiter: ['/', '/time', '/material', '/my-schedule', '/my-projects', '/vacations', '/worksheets', '/settings'],
       Verwaltung: ['/', '/time', '/material', '/vacations', '/worksheets', '/customers', '/wartungen', '/anforderungen', '/lager', '/settings'],
@@ -51,8 +53,17 @@ describe('Erhaltung: was ein Betrieb heute sieht, bleibt', () => {
       Geschäftsführung: ['/', '/time', '/material', '/vacations', '/worksheets', '/quotes', '/customers', '/wartungen', '/anforderungen', '/lager', '/admin-projects', '/assignments', '/user-mgmt', '/settings', '/costing', '/invoices', '/accounting'],
       Administrator: ['/', '/time', '/material', '/vacations', '/worksheets', '/quotes', '/customers', '/wartungen', '/anforderungen', '/lager', '/admin-projects', '/assignments', '/user-mgmt', '/settings', '/costing', '/invoices', '/accounting'],
     };
+    /*
+      Seither gebaut, je schaltbar (bewusst nachgezogen): der Auftragseingang
+      (M02b). Ohne ihn steht jede Navigation da wie vor dem Register; mit
+      ihm kommt genau sein Eintrag dazu, für jede Rolle, die Kunden liest.
+    */
+    const ohneNeue = { 'baustellen.auftragseingang': false };
     for (const [rolle, pfade] of Object.entries(vorher)) {
-      expect(navForRole(rolle as never, undefined).map((n) => n.path), rolle).toEqual(pfade);
+      expect(navForRole(rolle as never, ohneNeue).map((n) => n.path), rolle).toEqual(pfade);
+      const mit = navForRole(rolle as never, undefined).map((n) => n.path);
+      expect(mit.filter((p) => !pfade.includes(p)), rolle).toEqual(rolle === 'Mitarbeiter' ? [] : ['/eingaenge']);
+      expect(mit.filter((p) => p !== '/eingaenge'), rolle).toEqual(pfade);
     }
   });
 
@@ -124,6 +135,47 @@ describe('Die erste Unterfähigkeit des echten Registers (M02a)', () => {
     */
     for (const m of MODULE) {
       for (const f of m.unter ?? []) expect(f.id.split('.')[0], f.id).toBe(m.id);
+    }
+  });
+});
+
+/*
+  DER KERN MIT SEINEN TEILEN (M02b): Kunden und Baustellen sind nicht
+  abschaltbar (E51, V1), ihre Unterfähigkeiten schon — die erste ist der
+  Auftragseingang. Der Kern zählt nicht zu den neun Modulen.
+*/
+describe('Der Kern (M02b)', () => {
+  it('Baustellen und Kunden — immer an, auch wenn jemand sie in die Festlegung schreibt', () => {
+    expect(KERN.map((k) => k.id)).toEqual(['baustellen', 'kunden']);
+    for (const id of ['baustellen', 'kunden'] as const) {
+      expect(istKern(id)).toBe(true);
+      expect(istAn(undefined, id)).toBe(true);
+      expect(istAn({ [id]: false }, id)).toBe(true);
+      // Nichts geht mit, und die Rückfrage hat nichts zu sagen.
+      expect(zieheMit(id, undefined)).toEqual([]);
+    }
+    expect(istKern('angebote')).toBe(false);
+  });
+
+  it('zählt nicht zu den Modulen: „Eingeschaltet: N von 9“ und die Navigation bleiben', () => {
+    expect(aktiveModule(undefined).size).toBe(9);
+    expect([...aktiveModule(undefined)]).not.toContain('baustellen');
+    expect(MODULE.map((m) => m.id)).not.toContain('baustellen');
+  });
+
+  it('baustellen.auftragseingang: Standard an, einzeln abschaltbar, ohne Folge, die nicht zurückkommt', () => {
+    expect(schalter('baustellen.auftragseingang')).toMatchObject({ name: 'Auftragseingang', standard: true });
+    expect(istAn(undefined, 'baustellen.auftragseingang')).toBe(true);
+    expect(istAn({ 'baustellen.auftragseingang': false }, 'baustellen.auftragseingang')).toBe(false);
+    // Die Festlegung des Kerns selbst schaltet seine Teile nicht ab — es gibt sie nicht.
+    expect(istAn({ baustellen: false }, 'baustellen.auftragseingang')).toBe(true);
+    expect(folgenBeimAbschalten('baustellen.auftragseingang', undefined)).toEqual([]);
+    expect(schalter('baustellen')?.name).toBe('Baustellen');
+  });
+
+  it('jede Unterfähigkeit des Kerns trägt dessen Kennung vor dem Punkt — so liest sie der Server', () => {
+    for (const k of KERN) {
+      for (const f of k.unter) expect(f.id.split('.')[0], f.id).toBe(k.id);
     }
   });
 });

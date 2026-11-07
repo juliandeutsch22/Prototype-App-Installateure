@@ -131,6 +131,8 @@ export default async function aufbau(): Promise<void> {
     // Sonderurlaub (Plan 10.3): hängt an der Person; bliebe er stehen, ließe
     // sich das Konto des Monteurs beim nächsten Lauf nicht neu anlegen.
     'urlaubsanspruch_anpassungen', 'freistellungen',
+    // Der Auftragseingang (M02b): verweist auf Termine, Baustellen, Angebote und Kunden.
+    'auftragseingaenge',
     // Termine (Plan 10.4): halten Konten, Baustellen und Kunden fest.
     'termine',
     // M03a: die Lieferantenartikel vor den Läufen, auf die sie zeigen.

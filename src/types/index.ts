@@ -1688,6 +1688,69 @@ export interface Termin {
   updatedAt?: number;
 }
 
+/** Woher ein Eingang kam (M02b, A11). */
+export const EINGANG_QUELLEN = ['telefon', 'email', 'hausverwaltung', 'versicherung', 'persoenlich', 'sonstige'] as const;
+export type EingangQuelle = (typeof EINGANG_QUELLEN)[number];
+export const EINGANG_DRINGLICHKEITEN = ['normal', 'dringend', 'notfall'] as const;
+export type EingangDringlichkeit = (typeof EINGANG_DRINGLICHKEITEN)[number];
+/** Offen, bis er Baustelle oder Angebot wird („übernommen“) oder abgelehnt ist. */
+export type EingangStand = 'offen' | 'uebernommen' | 'abgelehnt';
+
+/**
+ * auftragseingaenge/{id} — ein Auftrag oder eine Anfrage, wie sie
+ * hereinkam (M02b, A03/A11). Nummer, Stand, wer und wann setzt die
+ * Datenbank; umgewandelt wird nur über ihre Funktionen.
+ */
+export interface Auftragseingang {
+  id: string;
+  companyId: string;
+  /** „EG-2026-0001“ — aus dem eigenen Nummernkreis, intern. */
+  nummer: string;
+  stand: EingangStand;
+  quelle: EingangQuelle;
+  /** Auftrags- bzw. Schadensnummer des Auftraggebers. */
+  auftraggeberNummer?: string | null;
+  customerId?: string | null;
+  /** Name des Kunden bzw. des neuen Kunden — setzt die Datenbank. */
+  kundeName?: string | null;
+  /** Angaben zu einem neuen Kunden; beim Umwandeln wird daraus der Kunde. */
+  neukundeName?: string | null;
+  neukundeStrasse?: string | null;
+  neukundePlz?: string | null;
+  neukundeOrt?: string | null;
+  neukundeTelefon?: string | null;
+  neukundeEmail?: string | null;
+  /** Adresse des Einsatzes. */
+  ort?: string | null;
+  ansprechpartnerName?: string | null;
+  ansprechpartnerTelefon?: string | null;
+  anliegen: string;
+  dringlichkeit: EingangDringlichkeit;
+  /** 0 Notfall, 1 dringend, 2 normal — rechnet die Datenbank. */
+  dringlichkeitRang?: number;
+  wunschtermin?: string | null;
+  /** Wann er hereinkam (Millisekunden). */
+  eingegangenAm: number;
+  projectId?: string | null;
+  quoteId?: string | null;
+  /** Die vereinbarte Besichtigung. */
+  terminId?: string | null;
+  abgelehntGrund?: string | null;
+  abgelehntAm?: number | null;
+  abgelehntVonUid?: string | null;
+  abgelehntVonName?: string | null;
+  uebernommenAm?: number | null;
+  uebernommenVonUid?: string | null;
+  uebernommenVonName?: string | null;
+  erfasstVonUid?: string | null;
+  erfasstVonName?: string | null;
+  bearbeitetAm?: number | null;
+  bearbeitetVonUid?: string | null;
+  bearbeitetVonName?: string | null;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
 /** invoices/{id} */
 /**
  * Was eine Rechnung IST — und nicht bloss, wie sie heisst.

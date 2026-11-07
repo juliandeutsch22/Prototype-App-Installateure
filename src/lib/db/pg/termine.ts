@@ -7,7 +7,8 @@
  * die, an denen er teilnimmt oder an deren Tag er auf der Baustelle steht.
  */
 import type { Termin } from '@/types';
-import { abfragen, aendern, anlegen, loeschen } from './kern';
+import { abfragen, aendern, anlegen, derClient, loeschen } from './kern';
+import { zeileAlsObjekt } from './felder';
 
 const TERMINE = 'termine';
 
@@ -58,6 +59,18 @@ export async function listTermineDesKunden(companyId: string, customerId: string
       : Promise.resolve([] as Termin[]),
   ]);
   return [...beimKunden, ...aufBaustellen].sort(nachZeit);
+}
+
+/**
+ * Ein Termin — etwa die Besichtigung eines Auftragseingangs (M02b). `null`,
+ * wenn es ihn nicht gibt oder diese Rolle ihn nicht sieht (die Buchhaltung
+ * liest keine Termine, `termine_lesen`).
+ */
+export async function getTermin(companyId: string, id: string): Promise<Termin | null> {
+  const { data, error } = await derClient().from(TERMINE).select('*')
+    .eq('company_id', companyId).eq('id', id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? zeileAlsObjekt<Termin>(TERMINE, data as Record<string, unknown>) : null;
 }
 
 export function terminAnlegen(companyId: string, t: TerminEingabe): Promise<string> {

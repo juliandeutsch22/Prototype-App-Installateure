@@ -111,6 +111,14 @@ describe('Das Löschen', () => {
     expect(loeschen).toHaveBeenLastCalledWith('kunde', 'k-1', false);
   });
 
+  it('nennt die Auftragseingänge, die mitgehen, beim Namen (M02b)', async () => {
+    loeschen.mockImplementation((_a: string, _id: string, nurPruefen: boolean) =>
+      Promise.resolve({ ...bericht(!nurPruefen), sofort: { wartungen: 0, kontaktdaten: 0, auftragseingaenge: 2 } }));
+    zeichne();
+    fireEvent.click(screen.getByRole('button', { name: 'Löschen …' }));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Offene und abgelehnte Auftragseingänge: 2');
+  });
+
   it('ein Kunde ohne Belege geht ganz — die Akte erfährt es', async () => {
     loeschen.mockImplementation((_a: string, _id: string, nurPruefen: boolean) =>
       Promise.resolve({ ...bericht(!nurPruefen, true), aufbewahren: [] }));

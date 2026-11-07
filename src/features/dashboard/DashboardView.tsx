@@ -16,6 +16,7 @@ import {
   canWriteWorkSheet,
   darfUrlaubEntscheiden,
   darfEinkaufSehen,
+  darfEingangErfassen,
 } from '@/lib/permissions';
 import { canAccess, zusatzrechte } from '@/app/navigation';
 import Card from '@/components/Card';
@@ -37,6 +38,7 @@ import { grundpfad, ZIEL } from './start/ziele';
 import {
   annahmenUeberLink,
   buchhaltung,
+  eingaenge,
   einstellungen,
   lager,
   leitung,
@@ -66,6 +68,8 @@ export default function DashboardView() {
   const angeboteAn = useModul('angebote');
   // Die Annahme per Link (M02a): ihr Hinweis auf der Startseite der Führung.
   const onlineAnnahmeAn = useModul('angebote.online_annahme');
+  // Der Auftragseingang (M02b): die offenen Eingänge für das Büro.
+  const eingangAn = useModul('baustellen.auftragseingang');
   const materialAn = useModul('material');
   const rechnungenAn = useModul('rechnungen');
   const wartungAn = useModul('wartung');
@@ -102,7 +106,7 @@ export default function DashboardView() {
   */
   const abfrage = useZwischengespeichert<{ data: StartDaten; nichtGeladen: string[] }>({
     queryKey: user
-      ? schluessel('startseite', user, heute, { user, company, mitZeitkonto, materialAn, scheineAn, angeboteAn, onlineAnnahmeAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen })
+      ? schluessel('startseite', user, heute, { user, company, mitZeitkonto, materialAn, scheineAn, angeboteAn, onlineAnnahmeAn, eingangAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen })
       : ['startseite'],
     enabled: !!user,
     queryFn: async () => {
@@ -141,6 +145,9 @@ export default function DashboardView() {
       }
       if (isGF(user.role) && onlineAnnahmeAn) {
         bloecke.push(['Angebote über den Annahme-Link', () => annahmenUeberLink()]);
+      }
+      if (eingangAn && darfEingangErfassen(user.role)) {
+        bloecke.push(['Auftragseingang', () => eingaenge(k)]);
       }
       if (isGF(user.role)) {
         bloecke.push(['Baustellen und Einsätze', () => leitung(k, { einsatzplanung: einsatzAn, wartung: wartungAn, budget: true })]);

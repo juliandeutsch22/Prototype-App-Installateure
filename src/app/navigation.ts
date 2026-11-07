@@ -1,7 +1,7 @@
 import type { Role } from '@/types';
 import type { IconName } from '@/components/Icon';
 import type { OffenePosten } from '@/lib/db/offenePosten';
-import { aktiveModule, aktiveSchalter, type ModulId, type SchalterId } from '@/lib/module';
+import { aktiveSchalter, type ModulId, type SchalterId } from '@/lib/module';
 
 export interface NavItem {
   /** Routenpfad (relativ zu /). */
@@ -16,12 +16,14 @@ export interface NavItem {
   /** Gruppierung in der Navigation. */
   group: 'Start' | 'Aufträge' | 'Geld' | 'Team' | 'Material' | 'Einstellungen';
   /**
-   * Zu welchem abschaltbaren Modul dieser Eintrag gehört.
+   * Zu welchem abschaltbaren Modul — oder welcher Unterfähigkeit (M02b) —
+   * dieser Eintrag gehört.
    *
    * Ohne Angabe: Kern — immer da. Startseite, Zeiterfassung, Kunden,
-   * Baustellen, Benutzer und Einstellungen lassen sich nicht abschalten.
+   * Baustellen, Benutzer und Einstellungen lassen sich nicht abschalten;
+   * ihre Teile schon (der Auftragseingang unter den Baustellen).
    */
-  modul?: ModulId;
+  modul?: SchalterId;
   /**
    * Nur in der Navigation, solange dieses Modul AUS ist (A15, 24.10.2026).
    *
@@ -147,6 +149,14 @@ export const NAV: NavItem[] = [
   { path: '/anforderungen', label: 'Anforderungen', short: 'Anford.', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Material', modul: 'material', hinweis: 'anforderungen' },
   { path: '/lager', label: 'Lager', short: 'Lager', icon: 'archive', roles: ['Verwaltung', ...LEAD], group: 'Material', modul: 'material' },
   { path: '/admin-projects', label: 'Baustellen', short: 'Baustellen', icon: 'building', roles: LEAD, group: 'Aufträge' },
+  /*
+    DER AUFTRAGSEINGANG (M02b, A03/A11): für das ganze Büro — die Verwaltung
+    nimmt das Telefon ab, die Buchhaltung die Mail der Hausverwaltung. Jede
+    Rolle, die Kunden liest, erfasst; umwandeln in Baustelle oder Angebot
+    darf auf der Seite nur die Führung (wie „Neue Baustelle“). Teil der
+    Baustellen, einzeln abschaltbar.
+  */
+  { path: '/eingaenge', label: 'Auftragseingang', short: 'Eingang', icon: 'eingang', roles: ['Verwaltung', 'Buchhaltung', ...LEAD], group: 'Aufträge', modul: 'baustellen.auftragseingang' },
   { path: '/assignments', label: 'Einsatzplanung', short: 'Planung', icon: 'calendar', roles: LEAD, group: 'Aufträge', modul: 'einsatzplanung' },
   // Wer angelegt wird und welche Rolle er bekommt, ist Eigentümersache und
   // nicht Sache der Bauleitung: mit dieser Ansicht vergibt man Rechte.
@@ -369,7 +379,8 @@ export function navForRole(
   module?: Record<string, boolean>,
   zusatz?: Zusatzrechte,
 ): NavItem[] {
-  const an = aktiveModule(module);
+  // Module UND Unterfähigkeiten: ein Eintrag kann an einem Teil des Kerns hängen (M02b).
+  const an = aktiveSchalter(module);
   return NAV.filter((item) => eintragFuer(item, role, zusatz) && (!item.modul || an.has(item.modul))
     && (!item.nurOhneModul || !an.has(item.nurOhneModul)));
 }
@@ -440,7 +451,8 @@ export const NAV_GROUPS = ['Start', 'Aufträge', 'Geld', 'Team', 'Material', 'Ei
   Angeboten und Kunden.
 */
 const REIHENFOLGE = [
-  '/', '/admin-projects', '/assignments', '/my-schedule', '/my-projects', '/worksheets', '/quotes',
+  // Der Eingang nach Baustellen und Planung, vor Scheinen und Angeboten: daraus werden sie.
+  '/', '/admin-projects', '/assignments', '/eingaenge', '/my-schedule', '/my-projects', '/worksheets', '/quotes',
   '/customers', '/wartungen', '/invoices', '/costing', '/time', '/vacations', '/accounting',
   '/user-mgmt', '/material', '/anforderungen', '/lager', '/settings',
 ];
@@ -480,7 +492,7 @@ export function canAccess(
 ): boolean {
   const item = NAV.find((i) => i.path === path);
   if (!item || !eintragFuer(item, role, zusatz)) return false;
-  return !item.modul || aktiveModule(module).has(item.modul);
+  return !item.modul || aktiveSchalter(module).has(item.modul);
 }
 
 /**

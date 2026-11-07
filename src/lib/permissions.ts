@@ -93,6 +93,21 @@ export const canManageProjects = (r: Role) => isGF(r);
 export const darfTermineSchreiben = (r: Role) => isGF(r) || isVerw(r);
 
 /**
+ * Eingänge erfassen und bearbeiten (M02b, A11): das Büro — jede Rolle, die
+ * Kunden liest; die Verwaltung nimmt das Telefon ab. Dieselbe Grenze ziehen
+ * die Regeln `auftragseingaenge_*` und die Funktionen `eingang_ablehnen`,
+ * `eingang_wieder_oeffnen`, `eingang_kunde_anlegen`.
+ */
+export const darfEingangErfassen = (r: Role) => r !== 'Mitarbeiter';
+
+/**
+ * Einen Eingang zur Baustelle oder zum Angebot machen — und löschen: die
+ * Führung, wie „Neue Baustelle“ und „Neues Angebot“ (`eingang_zu_baustelle`,
+ * `eingang_zu_angebot`, `auftragseingaenge_loeschen`).
+ */
+export const darfEingangUmwandeln = (r: Role) => isGF(r);
+
+/**
  * Benutzer anlegen und Rollen vergeben — OHNE Projektleitung.
  *
  * Wer Rollen vergibt, vergibt sie auch an sich: mit diesem Recht könnte sich
