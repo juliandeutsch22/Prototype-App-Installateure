@@ -10,7 +10,7 @@
  */
 import { abfragen, type Bedingung } from './kern';
 
-export type Objektart = 'kunde' | 'baustelle' | 'angebot' | 'rechnung' | 'zahlung' | 'wartung' | 'benutzer';
+export type Objektart = 'kunde' | 'baustelle' | 'angebot' | 'rechnung' | 'zahlung' | 'wartung' | 'benutzer' | 'eingang';
 
 export type ObjektVerlaufArt =
   | 'angelegt' | 'geaendert' | 'geloescht'

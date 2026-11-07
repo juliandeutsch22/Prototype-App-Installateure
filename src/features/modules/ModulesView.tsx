@@ -4,12 +4,14 @@ import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import { updateCompany } from '@/lib/db/company';
 import {
   MODULE,
+  KERN,
   aktiveModule,
   aktiveSchalter,
   zieheMit,
   folgenBeimAbschalten,
   schalter,
   type Faehigkeit,
+  type Kernbereich,
   type Modul,
   type SchalterId,
 } from '@/lib/module';
@@ -63,8 +65,11 @@ function rueckfrage(frage: { id: SchalterId; mit: SchalterId[]; folgen: string[]
  *     Einstellungen das Gegenteil von Kontrolle.
  *  2. Sagen, dass DATEN BLEIBEN. Sonst traut sich niemand, etwas
  *     abzuschalten — und die Einstellung wäre für nichts da.
- *  3. Sagen, dass ein Modul KEINE Rechteverwaltung ist. Wer das verwechselt,
- *     hält ein abgeschaltetes Modul für Schutz.
+ *  3. Sagen, was ein Modul SPERRT und was nicht (E51 V3, E56): bestehende
+ *     Wege blendet es nur aus — das Recht der Rolle bleibt; neue Befehle
+ *     (Annahme-Link, Auftragseingang …) prüft der Server, ausgeschaltet sind
+ *     sie auch über die Schnittstelle gesperrt. Wer die Rechte sucht, findet
+ *     sie in den Rollen.
  */
 export default function ModulesView() {
   const { user, company, reloadCompany } = useAuth();
@@ -126,7 +131,7 @@ export default function ModulesView() {
    * direkt unter ihrem Modul und sagt, wozu sie gehört; ist das Modul aus, ist
    * auch sie aus und lässt sich erst mit ihm wieder einschalten.
    */
-  function zeile(eintrag: Modul | Faehigkeit, zu: Modul | null) {
+  function zeile(eintrag: Modul | Faehigkeit, zu: Modul | Kernbereich | null) {
     const an = schalterAn.has(eintrag.id);
     const braucht = [...(zu ? [zu.id] : []), ...(eintrag.abhaengigVon ?? [])];
     const fehlt = braucht.filter((d) => !schalterAn.has(d));
@@ -168,6 +173,19 @@ export default function ModulesView() {
     );
   }
 
+  /**
+   * Ein Kernbereich (M02b): immer an, ohne Schalter — Kunden und Baustellen
+   * sind der Bezug für alles Übrige (E51, V1). Seine Teile darunter schaltet
+   * der Betrieb wie die eines Moduls.
+   */
+  function kernZeile(k: Kernbereich) {
+    return (
+      <ListRow key={k.id} title={k.name} subtitle={k.zweck}>
+        <span className="flex min-h-touch shrink-0 items-center text-sm text-ink-muted">immer an</span>
+      </ListRow>
+    );
+  }
+
   if (!user) return null;
 
   return (
@@ -180,6 +198,28 @@ export default function ModulesView() {
       />
 
       {error && <ErrorState message={error} />}
+
+      {/*
+        DER KERN VOR DEN MODULEN, als eigenes Blatt: er zählt nicht zu
+        „Eingeschaltet: N von 9“, und ein Schalter, den es nicht gibt, soll
+        nicht zwischen den Schaltern stehen. Davor, damit „Module speichern“
+        am Ende von allem steht — es speichert auch seine Teile.
+      */}
+      <Card
+        title="Immer an"
+        hint={
+          <>
+            Kunden und Baustellen lassen sich nicht ausschalten — Planung, Zeiten, Scheine,
+            Wartungen und Rechnungen beziehen sich auf sie. Ihre Teile darunter schaltet der
+            Betrieb wie die eines Moduls; vorhandene Daten bleiben dabei erhalten.
+          </>
+        }
+        buendig
+      >
+        <List>
+          {KERN.flatMap((k) => [kernZeile(k), ...k.unter.map((f) => zeile(f, k))])}
+        </List>
+      </Card>
 
       {/*
         Die Erklaerung stand als EIGENE KARTE ueber der Liste — eine ganze
@@ -197,10 +237,12 @@ export default function ModulesView() {
             Abschalten.
             <br />
             <br />
-            Module sind <strong>keine Rechteverwaltung</strong>. Sie nehmen den Weg weg, nicht das
-            Recht: wer als Buchhaltung Rechnungen anlegen darf, darf das weiterhin — die
-            Oberfläche bietet es nur nicht mehr an. Wer wann was darf, steht in den Rollen und
-            wird serverseitig durchgesetzt. Geschützt ist hier die <em>Modulliste selbst</em>:
+            Module ersetzen <strong>keine Rechteverwaltung</strong>. Bei den bestehenden Bereichen
+            nimmt ein Modul nur den Weg weg: wer als Buchhaltung Rechnungen anlegen darf, darf das
+            weiterhin — die Oberfläche bietet es nur nicht mehr an. Neuere Funktionen wie der
+            Annahme-Link oder der Auftragseingang prüft dagegen auch der Server: ausgeschaltet sind
+            sie auch über die Schnittstelle gesperrt. Wer wann was darf, steht in den Rollen.
+            Geschützt ist hier die <em>Modulliste selbst</em>:
             ändern darf sie nur der Administrator.
           </>
         }

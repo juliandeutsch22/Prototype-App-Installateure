@@ -14,12 +14,14 @@ import {
 import { listQuotesForCustomer } from '@/lib/db/quotes';
 import { listInvoicesForCustomer } from '@/lib/db/invoices';
 import { listWartungenForCustomer } from '@/lib/db/wartungen';
+import { listEingaengeDesKunden } from '@/lib/db/auftragseingaenge';
+import { kundeText, zustandVon, wannText } from '@/features/auftragseingang/eingangText';
 import { useModul } from '@/lib/useModule';
 import { canInvoice, darfKundenPflegen, darfTermineSchreiben, isGF } from '@/lib/permissions';
 import TermineKarte from '@/features/termine/TermineKarte';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { todayStr } from '@/lib/time';
-import type { Customer, Invoice, Project, Quote, Wartung } from '@/types';
+import type { Auftragseingang, Customer, Invoice, Project, Quote, Wartung } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
@@ -84,6 +86,9 @@ const RECHNUNGEN_KURZ = 5;
 
 type Teil<T> = { zustand: 'laedt' } | { zustand: 'fehler' } | { zustand: 'bereit'; daten: T };
 
+/** So viele Eingänge zeigt die Akte — die jüngsten; alle stehen im Auftragseingang. */
+const EINGAENGE_HOECHSTENS = 20;
+
 const LAEDT = { zustand: 'laedt' } as const;
 
 export default function KundenakteView() {
@@ -106,6 +111,8 @@ export default function KundenakteView() {
   /** Die Rechnung im Fenster der Akte — als Kennung: nach dem Neuladen zeigt es den frischen Stand. */
   const [offeneRechnung, setOffeneRechnung] = useState<string | null>(null);
   const [wartungen, setWartungen] = useState<Teil<WithId<Wartung>[]>>(LAEDT);
+  /** Seine Auftragseingänge (M02b), der jüngste zuerst. */
+  const [eingaenge, setEingaenge] = useState<Teil<Auftragseingang[]>>(LAEDT);
   const [zuordnenLaeuft, setZuordnenLaeuft] = useState<string | null>(null);
   const [versuch, setVersuch] = useState(0);
 
@@ -134,6 +141,8 @@ export default function KundenakteView() {
   */
   const darfAngebote = user ? canAccess(user.role, '/quotes', company?.modules) : false;
   const baustellenSichtbar = user ? canAccess(user.role, '/admin-projects', company?.modules) : false;
+  // Der Auftragseingang (M02b): Rolle und Unterfähigkeit, dieselbe Frage wie die Navigation.
+  const eingaengeSichtbar = user ? canAccess(user.role, '/eingaenge', company?.modules) : false;
   const heute = todayStr();
 
   useEffect(() => {
@@ -152,6 +161,19 @@ export default function KundenakteView() {
       weg = true;
     };
   }, [companyId, id, versuch]);
+
+  /* Die Eingänge laden für sich — wie die übrigen Bereiche. */
+  useEffect(() => {
+    if (!companyId || !id || !eingaengeSichtbar) return;
+    let weg = false;
+    setEingaenge(LAEDT);
+    listEingaengeDesKunden(companyId, id, EINGAENGE_HOECHSTENS)
+      .then((l) => !weg && setEingaenge({ zustand: 'bereit', daten: l }))
+      .catch(() => !weg && setEingaenge({ zustand: 'fehler' }));
+    return () => {
+      weg = true;
+    };
+  }, [companyId, id, eingaengeSichtbar, versuch]);
 
   /*
     Die drei Bereiche laden GETRENNT. Ein Ausfall bei den Angeboten darf die
@@ -506,6 +528,44 @@ export default function KundenakteView() {
       )}
     </Card>
   ) : null;
+  /*
+    SEINE AUFTRAGSEINGÄNGE (M02b) — bei den Baustellen, denn daraus werden
+    sie. Die jüngsten; wer alle sucht, findet sie im Auftragseingang über
+    den Namen.
+  */
+  const eingangKarte = eingaengeSichtbar ? (
+    <Card id="k-eingaenge" title="Auftragseingänge"
+      action={<Link to={`/eingaenge?suche=${encodeURIComponent(k.name)}`} className="link-weiter">Im Auftragseingang</Link>}>
+      {eingaenge.zustand === 'laedt' ? (
+        <SkeletonList rows={1} />
+      ) : eingaenge.zustand === 'fehler' ? (
+        <TeilFehler was="die Eingänge" onRetry={() => setVersuch((v) => v + 1)} />
+      ) : eingaenge.daten.length === 0 ? (
+        <EmptyState>Noch kein Eingang.</EmptyState>
+      ) : (
+        <>
+          <ul className="divide-y divide-line">
+            {eingaenge.daten.map((e) => {
+              const z = zustandVon(e);
+              return (
+                <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
+                  <Link to={`/eingaenge/${e.id}`} className="link inline-flex min-h-touch min-w-0 items-center text-sm">
+                    <span className="truncate">{e.nummer} · {e.anliegen.trim().split('\n')[0] || kundeText(e)}</span>
+                  </Link>
+                  <span className="flex items-center gap-2 text-sm text-ink-muted">
+                    {wannText(e.eingegangenAm)} <Zustand stand={z.stand}>{z.text}</Zustand>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          {eingaenge.daten.length >= EINGAENGE_HOECHSTENS && (
+            <p className="mt-2 text-sm text-ink-muted">Die jüngsten {EINGAENGE_HOECHSTENS} — ältere im Auftragseingang.</p>
+          )}
+        </>
+      )}
+    </Card>
+  ) : null;
   const angebotKarte = angeboteAn && darfAngebote ? (
     <Card title="Angebote" id="k-angebote">
       {angebote.zustand === 'laedt' ? (
@@ -605,7 +665,8 @@ export default function KundenakteView() {
             <BelegeVorschau rechnungen={rechnungenAn && darfRechnungen ? rechnungen : null} angebote={angeboteAn && darfAngebote ? angebote : null} onRechnung={setOffeneRechnung} />
           </Card>}
         </div> },
-        { id: 'baustellen', titel: 'Baustellen', sprungziele: ['k-baustellen'], inhalt: baustellenKarte },
+        { id: 'baustellen', titel: 'Baustellen', sprungziele: ['k-baustellen', ...(eingangKarte ? ['k-eingaenge'] : [])],
+          inhalt: eingangKarte ? <div className="akten-spalte">{baustellenKarte}{eingangKarte}</div> : baustellenKarte },
         ...((rechnungKarte || angebotKarte) ? [{ id: 'belege', titel: 'Belege', sprungziele: ['k-rechnungen', 'k-angebote'], inhalt:
           <div className="akten-spalte">{rechnungKarte}{angebotKarte}</div> }] : []),
         ...((wartungKarte || termineSichtbar) ? [{ id: 'wartung', titel: wartungKarte && termineSichtbar ? 'Termine und Wartungen' : wartungKarte ? 'Wartungen' : 'Termine', sprungziele: ['k-wartungen', 'k-termine'], inhalt:

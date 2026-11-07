@@ -278,6 +278,18 @@ describe('Interne Hilfsfunktionen', () => {
       'app.angebot_link_anfrage_zaehlen(uuid)',
       'app.angebot_fassungen_sperren(uuid)',
       'app.journal_kunde_ueber_link(text, jsonb, jsonb, text[], text, text)',
+      // Der Auftragseingang (M02b): Kern des Registers, Kunde, Sperre, Nummer und Auslöser.
+      'app.modul_kern()',
+      'app.eingang_kunde(uuid)',
+      'app.eingang_sperren(uuid)',
+      'app.eingang_stand_text(text)',
+      'app.belegnummer(text, integer, bigint)',
+      'app.eingang_anlegen_pruefen()',
+      'app.eingang_kunde_pruefen()',
+      'app.eingang_aendern_pruefen()',
+      'app.eingang_journal_kunde()',
+      'app.eingang_kundenname_nachziehen()',
+      'app.eingang_rang()',
       // Was nur die Function mit dem Dienstschlüssel ruft.
       'public.angebot_link_abruf(text)',
       'public.angebot_link_annehmen(text, text, text, boolean)',

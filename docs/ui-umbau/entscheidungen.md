@@ -1886,3 +1886,60 @@ jeder bestehende Weg mit Erhaltung, V3 in drei Fällen), Querschnitt in
 `schema`, `mandantenTrennung`, `ruecklauf`, `personLoeschen`, `netzFrist`,
 `modulRegisterServer`; Komponenten `LagerorteLager.test.tsx`,
 `LagerorteWege.test.tsx`, `StockView.test.tsx`; Browser `lagerorte.spec.ts`.
+
+**E59 — Auftragseingang ohne Angebotszwang; Kern im Modulregister (07.11.2026).**
+SHK-Ausbau, Paket M02b (A03 „Behalten“, A11 „Optional, strukturiert“;
+Auffälligkeit 5 im Teil A/R). Ein Auftrag ohne Angebot hatte keinen
+geordneten Weg vom Telefon bis zur Baustelle; die Verwaltung, die das Telefon
+abnimmt, durfte nichts anlegen.
+
+- **Eingang** (Aufträge › Auftragseingang): Kunde (vorhanden oder Angaben zu
+  einem neuen), Ort, Ansprechpartner vor Ort, Anliegen, Dringlichkeit
+  (normal, dringend, Notfall), Wunschtermin, Quelle (Telefon, E-Mail,
+  Hausverwaltung, Versicherung, persönlich, sonstige), Nummer des
+  Auftraggebers; eigene Nummer `EG-JJJJ-NNNN` aus einem eigenen Zählerkreis
+  über `naechste_nummer_kern`. Liste „Offen · Übernommen · Abgelehnt“,
+  dringend und Notfall zuerst, seitenweise; Startseite „Offene Eingänge“.
+- **Rollen:** erfassen, ändern (solange offen), ablehnen und wieder öffnen
+  alle Büro-Rollen, die Kunden lesen — Verwaltung, Buchhaltung,
+  Projektleitung, Geschäftsführung, Administrator. Umwandeln und Löschen die
+  Führung, wie „Neue Baustelle“ und Angebot anlegen. Einen neuen Kunden legt
+  nur an, wer Kunden pflegen darf; sonst sagt es ein Satz. Der Support liest
+  mit Einblick, schreibt nicht.
+- **Umwandeln in einem Zug** (Server, `for update`, Wiederholung gibt dieselbe
+  Baustelle bzw. dasselbe Angebot zurück): „Baustelle anlegen“ mit
+  Abrechnungsart (Vorgabe Regie — ohne Angebot gibt es keinen Festpreis) und
+  Nummernvorsatz über dieselbe Nummernfolge wie „Neue Baustelle“;
+  „Angebot anlegen“ über `angebot_speichern`; „Besichtigung vereinbaren“
+  öffnet das vorhandene Terminformular vorbelegt, der Eingang bleibt offen und
+  zeigt den Termin. Akten von Baustelle und Angebot zeigen „Aus Eingang
+  EG-…“, die Kundenakte die Eingänge des Kunden.
+- **Gleichnamiger Kunde:** Bevor aus den Angaben eines Eingangs ein Kunde
+  wird, dieselbe Rückfrage wie in der Kundenliste („Gleicher Name — trotzdem
+  anlegen?“), mit „übernehmen“ je vorhandenem Kunden.
+- **Kern im Register (V1):** `baustellen` und `kunden` stehen als „Immer an“
+  im Register von App und Server (`app.modul_kern()`), mit Unterfähigkeiten;
+  die erste ist `baustellen.auftragseingang` (Standard an). Eine Festlegung
+  zum Kern selbst wird überall ignoriert. Die Hilfe der Seite „Module“ sagt
+  jetzt richtig: bestehende Bereiche blendet ein Modul nur aus, neuere
+  Funktionen sperrt auch der Server.
+- **Journal (M01b):** neue Objektart `eingang`, mit Kundenkennung, damit
+  Auskunft und Kundenlöschung greifen. **Datenschutz:** der Eingang steht in
+  der Auskunft des Kunden; offene und abgelehnte gehen mit der Kundenlöschung,
+  übernommene bleiben als Herkunft von Baustelle bzw. Angebot.
+
+**Grenzen mit Grund:** kein Import aus Portalen von Hausverwaltungen und
+Versicherungen (liegt beim Auftraggeber bzw. Pilotbetrieb: ohne
+Formatbeschreibung wäre jeder Leser erfunden — Nachweisregister); Eingänge
+mit Angaben zu einem noch nicht angelegten Kunden stehen nicht in dessen
+Datenauskunft (Datenschutz: über den Namen allein träfe es Namensvettern;
+sie lassen sich löschen oder zum Kunden machen); der Vorsatz „EG“ ist fest
+(fachlich: die Nummer ist intern und steht auf keinem Beleg); wird ein
+Eingang erst Angebot und dann über die Annahme Baustelle, nimmt die Baustelle
+den Ansprechpartner der Kundenakte (vorhandener Weg der Annahme).
+
+**Prüfungen.** `auftragseingang.test.ts` (31), `modulRegisterServer.test.ts`,
+Querschnitt in `schema`, `mandantenTrennung`, `ruecklauf`, `personLoeschen`,
+`aenderungsjournal`, `typenSpalten`; Komponenten `EingaengeView`,
+`EingangFormular`, `EingangView` (mit Rückfrage), `gleichnamig`,
+`ModulesView`, Startseite, Akten; Browser `auftragseingang.spec.ts`.

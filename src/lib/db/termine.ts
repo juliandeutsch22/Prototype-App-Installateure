@@ -5,6 +5,7 @@ export {
   listTermineImZeitraum,
   listTermineDerBaustelle,
   listTermineDesKunden,
+  getTermin,
   terminAnlegen,
   terminAendern,
   terminLoeschen,

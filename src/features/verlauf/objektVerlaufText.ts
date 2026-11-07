@@ -64,6 +64,13 @@ const kundenart = auswahl({ privat: 'Privatperson', unternehmen: 'Unternehmen' }
 const rabattArt = auswahl({ percent: 'Prozent', amount: 'Betrag' });
 const rechnungsart = auswahl({ einzel: 'Rechnung', anzahlung: 'Anzahlungsrechnung', teil: 'Teilrechnung', schluss: 'Schlussrechnung' });
 const ruecklassArt = auswahl({ haft: 'Haftrücklass', deckung: 'Deckungsrücklass' });
+// Dieselben Wörter wie `eingangText.ts` — hier ohne Abhängigkeit vom Bereich, wie die übrigen Listen.
+const eingangStand = auswahl({ offen: 'Offen', uebernommen: 'Übernommen', abgelehnt: 'Abgelehnt' });
+const eingangQuelle = auswahl({
+  telefon: 'Telefon', email: 'E-Mail', hausverwaltung: 'Hausverwaltung', versicherung: 'Versicherung',
+  persoenlich: 'Persönlich', sonstige: 'Sonstige',
+});
+const dringlichkeit = auswahl({ normal: 'Normal', dringend: 'Dringend', notfall: 'Notfall' });
 
 type Feld = [spalte: string, name: string, format: Format];
 
@@ -184,6 +191,27 @@ export const VERLAUF_FELDER: Record<Objektart, Feld[]> = {
     ['seriennummer', 'Seriennummer', text],
     ['baujahr', 'Baujahr', text],
     ['preis', 'Preis je Wartung', geld],
+  ],
+  eingang: [
+    ['nummer', 'Eingangsnummer', text],
+    ['stand', 'Stand', eingangStand],
+    ['quelle', 'Quelle', eingangQuelle],
+    ['auftraggeber_nummer', 'Nummer des Auftraggebers', text],
+    ['kunde_name', 'Kunde', text],
+    ['neukunde_name', 'Neuer Kunde', text],
+    ['neukunde_strasse', 'Straße des neuen Kunden', text],
+    ['neukunde_plz', 'PLZ des neuen Kunden', text],
+    ['neukunde_ort', 'Ort des neuen Kunden', text],
+    ['neukunde_telefon', 'Telefon des neuen Kunden', text],
+    ['neukunde_email', 'E-Mail des neuen Kunden', text],
+    ['ort', 'Ort des Einsatzes', text],
+    ['ansprechpartner_name', 'Ansprechpartner vor Ort', text],
+    ['ansprechpartner_telefon', 'Telefon vor Ort', text],
+    ['anliegen', 'Anliegen', text],
+    ['dringlichkeit', 'Dringlichkeit', dringlichkeit],
+    ['wunschtermin', 'Wunschtermin', datum],
+    ['eingegangen_am', 'Eingegangen am', zeitpunkt],
+    ['abgelehnt_grund', 'Grund der Ablehnung', text],
   ],
   benutzer: [
     ['name', 'Name', text],

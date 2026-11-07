@@ -142,6 +142,13 @@ vi.mock('@/lib/db/quotes', () => ({
   listQuotesForProject: (c: string, p: string) => listQuotesForProject(c, p),
 }));
 
+/* Der Auftragseingang, aus dem die Baustelle entstand (M02b) — ab Werk keiner. */
+let ausEingang: { id: string; nummer: string } | null = null;
+const getEingangZu = vi.fn<(c: string, z: { projectId: string }) => Promise<typeof ausEingang>>(async () => ausEingang);
+vi.mock('@/lib/db/auftragseingaenge', () => ({
+  getEingangZu: (c: string, z: { projectId: string }) => getEingangZu(c, z),
+}));
+
 /*
   Die Stundenauswertung hat einen eigenen Ansichtstest. Hier steht sie als
   Platzhalter: geprüft wird, DASS die Akte sie zeigt, nicht was sie rechnet.
@@ -163,7 +170,8 @@ const NUTZER = () => ({
   docId: 'chef',
 });
 let nutzer = NUTZER();
-vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: nutzer }) }));
+let firma: { id: string; modules?: Record<string, boolean> } | undefined;
+vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: nutzer, company: firma }) }));
 
 const { default: BaustellenakteView } = await import('@/features/projects/BaustellenakteView');
 const { listTermineDerBaustelle } = await import('@/lib/db/termine');
@@ -212,6 +220,9 @@ beforeEach(() => {
   hochgeladen.length = 0;
   geloescht.length = 0;
   listQuotesForProject.mockClear();
+  ausEingang = null;
+  firma = undefined;
+  getEingangZu.mockClear();
 });
 
 describe('Die Stammdaten für alle, die nur lesen', () => {
@@ -605,6 +616,35 @@ describe('Das Angebot hinter der Baustelle', () => {
     angeboteScheitern = true;
     zeige();
     expect(await screen.findByText(/Das Angebot zu dieser Baustelle konnte nicht geladen werden/)).toBeInTheDocument();
+  });
+});
+
+/*
+  AUS EINGANG (M02b): ist die Baustelle aus einem Auftragseingang
+  entstanden, steht der Verweis neben dem Angebot. Ohne die Unterfähigkeit
+  wird gar nicht erst gesucht.
+*/
+describe('Der Eingang hinter der Baustelle (M02b)', () => {
+  it('„Aus Eingang EG-…“ führt zum Eingang — gesucht über die Kennung der Baustelle', async () => {
+    ausEingang = { id: 'e1', nummer: 'EG-2026-0003' };
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Aus Eingang EG-2026-0003' })).toHaveAttribute('href', '/eingaenge/e1');
+    expect(getEingangZu).toHaveBeenCalledWith('perl', { projectId: BAUSTELLE.id });
+  });
+
+  it('Gegenprobe: ohne Eingang kein Verweis; mit abgeschaltetem Auftragseingang keine Suche', async () => {
+    const v = zeige();
+    await screen.findByText('Stundenauswertung');
+    await waitFor(() => expect(getEingangZu).toHaveBeenCalled());
+    expect(screen.queryByRole('link', { name: /Aus Eingang/ })).toBeNull();
+    v.unmount();
+    getEingangZu.mockClear();
+    ausEingang = { id: 'e1', nummer: 'EG-2026-0003' };
+    firma = { id: 'perl', modules: { 'baustellen.auftragseingang': false } };
+    zeige();
+    await screen.findByText('Stundenauswertung');
+    expect(getEingangZu).not.toHaveBeenCalled();
+    expect(screen.queryByRole('link', { name: /Aus Eingang/ })).toBeNull();
   });
 });
 

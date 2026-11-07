@@ -21,6 +21,7 @@ export { ohneEinsatzListe, OHNE_EINSATZ_TAGE } from '@/features/projects/baustel
 export { istAbholbereitAlt, istLieferungUeberfaellig };
 import { ZIEL } from './ziele';
 import type { UeberLinkAngenommen } from '@/lib/db/angebotLinks';
+import type { OffeneEingaenge } from './laden';
 
 /**
  * WAS AUF DER STARTSEITE STEHT — je Abschnitt eine reine Funktion
@@ -773,4 +774,38 @@ export function ueberLinkAngenommenThema(liste: UeberLinkAngenommen[]): { ziel: 
       ? `${liste[0].nummer} · ${linkDetail(liste[0])}`
       : `seit ${tagKurzMs(aeltestes)} · ${kunden.length <= 2 ? kunden.join(', ') : `${kunden.slice(0, 2).join(', ')} und ${kunden.length - 2} weitere`}`,
   };
+}
+
+// ──────────────────────────────────────────────────────── Auftragseingang ──
+
+/*
+  OFFENE EINGÄNGE (M02b): wie viele, und wie viele davon dringend oder ein
+  Notfall. Ein Notfall ist rot, dringend Bernstein, sonst leise — ein
+  normaler Eingang eilt nicht, er soll nur nicht vergessen werden. Eine
+  Zeile, nicht eine je Eingang: wer sie öffnet, sieht die Liste, nach
+  Dringlichkeit sortiert.
+*/
+export function eingaengeZeile(z: OffeneEingaenge): Zeile | null {
+  if (z.offen === 0) return null;
+  const teile = [
+    z.notfall ? `${z.notfall} ${z.notfall === 1 ? 'Notfall' : 'Notfälle'}` : '',
+    z.dringend ? `${z.dringend} dringend` : '',
+  ].filter(Boolean);
+  return {
+    key: 'eingaenge',
+    titel: `${z.offen} ${z.offen === 1 ? 'offener Eingang' : 'offene Eingänge'}`,
+    detail: teile.length ? `davon ${teile.join(', ')}` : 'keiner dringend',
+    status: z.notfall
+      ? { text: 'Notfall', ton: 'fehl' }
+      : z.dringend
+        ? { text: 'dringend', ton: 'warn' }
+        : { text: 'ansehen', ton: 'leise' },
+    to: ZIEL.eingaenge,
+  };
+}
+
+/** Für Verwaltung, Buchhaltung und Projektleitung: ein Abschnitt mit dieser einen Zeile. */
+export function offeneEingaenge(z: OffeneEingaenge | undefined): Abschnitt | null {
+  const zeile = z ? eingaengeZeile(z) : null;
+  return zeile ? abschnitt('eingaenge', 'Auftragseingang', [zeile], ZIEL.eingaenge) : null;
 }

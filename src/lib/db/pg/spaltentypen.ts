@@ -35,6 +35,10 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
     widerrufen_am: 'zeitpunkt', zuerst_geoeffnet_am: 'zeitpunkt', zuletzt_geoeffnet_am: 'zeitpunkt',
   },
   assignments: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt', zeit_von: 'uhrzeit', zeit_bis: 'uhrzeit' },
+  auftragseingaenge: {
+    abgelehnt_am: 'zeitpunkt', bearbeitet_am: 'zeitpunkt', created_at: 'zeitpunkt', eingegangen_am: 'zeitpunkt',
+    uebernommen_am: 'zeitpunkt', updated_at: 'zeitpunkt',
+  },
   aussteller_staende: { angelegt_am: 'zeitpunkt' },
   /*
     Die App liest diese Tabelle nie — sie gehört der Ausleitung und ist nur
