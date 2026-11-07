@@ -4,6 +4,7 @@ import { istAn } from '@/lib/module';
 import {
   feldsatzLaden, gemerkterFeldsatz, listFeldwerte, listZeitfeldFassungen, type Feldsatz,
 } from '@/lib/db/zeitfelder';
+import { schluessel, useZwischengespeichert } from '@/lib/zwischenspeicher';
 import { werteJeBuchung, type ZeitfeldSatz, type ZeitfeldWert } from '@/lib/zeitfelder';
 
 /**
@@ -12,6 +13,16 @@ import { werteJeBuchung, type ZeitfeldSatz, type ZeitfeldWert } from '@/lib/zeit
  * `useFeldsatz`: die geltende Fassung und die Definitionen — erst der auf dem
  * Gerät gemerkte Stand (ohne Empfang der einzige), dann frisch geladen. Ist
  * die Unterfähigkeit aus, gibt es keine Felder, und nichts wird geladen.
+ *
+ * ÜBER DEN ZWISCHENSPEICHER DER APP (`useZwischengespeichert`), nicht je
+ * Aufbau neu: die Buchungsmaske entsteht bei jedem Bearbeiten neu, und
+ * Zeiterfassung und Maske stehen auf derselben Seite. So fragt die Seite
+ * einmal, gleichzeitige Aufbauten teilen sich die Antwort, und eine Minute
+ * lang gilt sie ohne Nachfrage. Veraltet sie in dieser Minute, ist das kein
+ * Fehler: der Server prüft die Buchung nach der Fassung, die die Maske
+ * kannte, und nennt, was die neue zusätzlich verlangt („Nachpflege“) — wie
+ * bei einer Buchung ohne Empfang. Die Seite „Zeitfelder“ verwirft den
+ * Zwischenspeicher nach jedem Speichern.
  */
 export interface FeldsatzStand {
   an: boolean;
@@ -21,7 +32,13 @@ export interface FeldsatzStand {
   laedt: boolean;
 }
 
-function alsStand(an: boolean, f: Feldsatz | null, laedt: boolean): FeldsatzStand {
+/** Wie lange ein geladener Feldsatz ohne Nachfrage gilt. */
+export const FELDSATZ_FRISCH_MS = 60_000;
+
+/** Der Schlüssel des Feldsatzes im Zwischenspeicher — die Seite „Zeitfelder“ verwirft ihn. */
+export const FELDSATZ_SCHLUESSEL = 'zeitfelder';
+
+function alsStand(an: boolean, f: Feldsatz | null | undefined, laedt: boolean): FeldsatzStand {
   return {
     an,
     satz: an && f?.fassung ? { nummer: f.fassung.nummer, felder: f.fassung.felder } : null,
@@ -30,24 +47,23 @@ function alsStand(an: boolean, f: Feldsatz | null, laedt: boolean): FeldsatzStan
   };
 }
 
-export function useFeldsatz(companyId: string | undefined, module: Record<string, boolean> | undefined): FeldsatzStand {
-  const an = !!companyId && istAn(module, 'zeiterfassung.freie_zeitfelder');
-  const [satz, setSatz] = useState<Feldsatz | null>(() => (companyId ? gemerkterFeldsatz(companyId) : null));
-  const [geladen, setGeladen] = useState(false);
-  useEffect(() => {
-    if (!companyId || !an) return;
-    let weg = false;
-    const gemerkt = gemerkterFeldsatz(companyId);
-    if (gemerkt) setSatz(gemerkt);
-    Promise.resolve()
-      .then(() => feldsatzLaden(companyId))
-      .then((f) => { if (!weg) setSatz(f); })
-      // Ohne Netz bleibt der gemerkte Stand; ohne ihn gibt es eben keine Felder.
-      .catch(() => undefined)
-      .finally(() => { if (!weg) setGeladen(true); });
-    return () => { weg = true; };
-  }, [companyId, an]);
-  return useMemo(() => alsStand(an, satz, !satz && !geladen), [an, satz, geladen]);
+export function useFeldsatz(
+  wer: { uid: string; companyId: string } | null | undefined,
+  module: Record<string, boolean> | undefined,
+): FeldsatzStand {
+  const an = !!wer && istAn(module, 'zeiterfassung.freie_zeitfelder');
+  const firma = wer?.companyId;
+  const [gemerkt] = useState(() => (firma ? gemerkterFeldsatz(firma) : null));
+  const abfrage = useZwischengespeichert<Feldsatz>({
+    queryKey: wer ? schluessel(FELDSATZ_SCHLUESSEL, wer) : [FELDSATZ_SCHLUESSEL],
+    enabled: an,
+    queryFn: () => feldsatzLaden(firma!),
+    staleTime: FELDSATZ_FRISCH_MS,
+  });
+  // Ohne Netz bleibt der gemerkte Stand; ohne ihn gibt es eben keine Felder.
+  const satz = abfrage.data ?? gemerkt;
+  const laedt = !satz && abfrage.isPending && abfrage.fetchStatus !== 'idle';
+  return useMemo(() => alsStand(an, satz, laedt), [an, satz, laedt]);
 }
 
 /**

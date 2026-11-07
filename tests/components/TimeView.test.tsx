@@ -1,3 +1,4 @@
+import { zwischenspeicherLeeren } from '@/lib/zwischenspeicher';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useEffect } from 'react';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
@@ -220,6 +221,8 @@ function zeige() {
 }
 
 beforeEach(() => {
+  // Der Feldsatz liegt im Zwischenspeicher der App (M06b) — je Fall frisch.
+  zwischenspeicherLeeren();
   zeitfelder.fassung = null;
   zeitfelder.definitionen = [];
   zeitfelder.werte = [];

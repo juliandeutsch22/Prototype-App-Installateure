@@ -1,3 +1,4 @@
+import { zwischenspeicherLeeren } from '@/lib/zwischenspeicher';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -81,6 +82,8 @@ function zeichne(entry?: TimeEntry) {
 }
 
 beforeEach(() => {
+  // Der Feldsatz liegt im Zwischenspeicher der App (M06b) — je Fall frisch.
+  zwischenspeicherLeeren();
   buchen.mockClear();
   aendern.mockClear();
   feldsatzLaden.mockClear();
@@ -152,6 +155,15 @@ describe('Die Felder in der Maske', () => {
     expect(await screen.findByText('Bitte ausfüllen: Kostenstelle')).toBeInTheDocument();
     expect(buchen).not.toHaveBeenCalled();
     freigeben();
+  });
+
+  it('Netzlast: ein neuer Aufbau der Maske innerhalb einer Minute fragt nicht neu', async () => {
+    const erste = zeichne();
+    await screen.findByLabelText(/^Kostenstelle/);
+    erste.unmount();
+    zeichne();
+    expect(await screen.findByLabelText(/^Kostenstelle/)).toBeInTheDocument();
+    expect(feldsatzLaden).toHaveBeenCalledTimes(1);
   });
 
   it('die Buchhaltung sieht ihr Feld; bei Zeitausgleich verschwinden die Felder für Anwesend', async () => {

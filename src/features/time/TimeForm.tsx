@@ -282,7 +282,7 @@ export default function TimeForm({
     wenn die Werte geladen sind: ohne sie schickte die Maske leere Felder und
     entfernte, was gespeichert ist.
   */
-  const feldsatz = useFeldsatz(user?.companyId, company?.modules);
+  const feldsatz = useFeldsatz(user, company?.modules);
   const [zfRoh, setZfRoh] = useState<Record<string, string>>({});
   const [zfAlt, setZfAlt] = useState<Record<string, ZeitfeldWert> | null>(entry ? null : {});
   const [zfAltFehler, setZfAltFehler] = useState(false);

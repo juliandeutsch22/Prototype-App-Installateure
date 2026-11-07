@@ -343,7 +343,7 @@ export default function AccountingView() {
     offenen Angaben des Monats. Im Supportzugang nicht: die Werte gehören zu
     den Buchungen, und die bleiben ihm verschlossen.
   */
-  const feldsatz = useFeldsatz(user?.companyId, company?.modules);
+  const feldsatz = useFeldsatz(user, company?.modules);
   const feldwerte = useFeldwerte({
     companyId: user?.companyId, an: feldsatz.an && !imSupport, von: ladenVon, bis: ladenBis, eintraege: entries,
   });

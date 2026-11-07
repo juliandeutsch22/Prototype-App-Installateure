@@ -1,3 +1,4 @@
+import { zwischenspeicherLeeren } from '@/lib/zwischenspeicher';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -220,6 +221,8 @@ vi.mock('@/features/time/TimeForm', () => ({
 
 
 beforeEach(() => {
+  // Der Feldsatz liegt im Zwischenspeicher der App (M06b) — je Fall frisch.
+  zwischenspeicherLeeren();
   zeitfelder.fassung = null;
   zeitfelder.definitionen = [];
   zeitfelder.werte = [];

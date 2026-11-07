@@ -26,6 +26,7 @@ import MusterUebersicht from './MusterUebersicht';
 import MusterPlanung from './MusterPlanung';
 import MusterMonat from './MusterMonat';
 import MusterPlanlinie from './MusterPlanlinie';
+import MusterZeitfelder from './MusterZeitfelder';
 
 /**
  * DIE MUSTERSEITE DER LINIE „LOT“ (Protokoll Abschnitt 4.2): jeder Baustein
@@ -231,6 +232,9 @@ export default function MusterView() {
           </div>
         </div>
       </Card>
+
+      {/* M06b: die freien Zeitfelder in Maske und Liste. */}
+      <MusterZeitfelder />
 
       <Card title="Leerer Zustand" buendig>
         <EmptyState>Heute liegt nichts an.</EmptyState>

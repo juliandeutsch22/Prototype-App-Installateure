@@ -22,6 +22,8 @@ import { CheckboxField, FormGrid, InputField, SelectField } from '@/components/F
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import { Hinweislinie } from '@/components/Planlinie';
 import { useToast } from '@/components/Toast';
+import { abfrageSpeicher } from '@/lib/zwischenspeicher';
+import { FELDSATZ_SCHLUESSEL } from '@/features/time/useZeitfelder';
 
 /**
  * DIE FREIEN ZEITFELDER (SHK-Ausbau M06b, N01) — Einstellungen › Zeitfelder.
@@ -196,6 +198,8 @@ export default function ZeitfelderView() {
       toast.success(r.fassung ? `${titel} — Fassung ${r.fassung}` : titel);
       setEntwurf(null);
       setVersuch((v) => v + 1);
+      // Die eigene Buchungsmaske soll die neue Fassung gleich kennen, nicht erst nach einer Minute.
+      void abfrageSpeicher.invalidateQueries({ queryKey: [FELDSATZ_SCHLUESSEL] });
     } catch (err) {
       setFehler(grundAus(err, 'Das Feld konnte nicht gespeichert werden.'));
     } finally {

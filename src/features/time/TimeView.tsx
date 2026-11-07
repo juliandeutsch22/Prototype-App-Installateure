@@ -551,7 +551,7 @@ export default function TimeView() {
     was nachzupflegen ist oder das Büro noch ergänzt — für denselben
     Zeitraum wie die Liste.
   */
-  const feldsatz = useFeldsatz(user?.companyId, company?.modules);
+  const feldsatz = useFeldsatz(user, company?.modules);
   const zeitraum = useMemo(() => listenZeitraum(monate), [monate]);
   const feldwerte = useFeldwerte({
     companyId: user?.companyId, an: feldsatz.an, von: zeitraum.ab, bis: zeitraum.bis, userId: user?.uid, eintraege: entries,
