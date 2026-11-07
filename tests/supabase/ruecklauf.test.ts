@@ -344,8 +344,9 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
     // Handvoll leerer Zeilen bestanden.
     const [firma] = (await admin.from('companies').select('name').eq('id', BETRIEB)).data!;
     expect(firma.name).toBe('Rücklauf GmbH');
+    // Seit M02c liegen hier zwei Baustellen (die zweite mit Liegenschaft) — gefragt wird nach der einen.
     const [baustelle] = (await admin.from('projects')
-      .select('project_number, customer_name, customer_id').eq('company_id', BETRIEB)).data!;
+      .select('project_number, customer_name, customer_id').eq('company_id', BETRIEB).eq('project_number', 'R-2026-001')).data!;
     expect(baustelle.project_number).toBe('R-2026-001');
     // Der Fremdschlüssel zeigt wieder auf einen Kunden, den es gibt.
     const { count: kundeDa } = await admin.from('customers')
