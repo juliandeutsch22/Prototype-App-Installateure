@@ -247,6 +247,24 @@ describe('Interne Hilfsfunktionen', () => {
       // Der Papierkorb (M01d): wer und wann setzen nur diese Auslöser.
       'app.angebot_papierkorb()',
       'app.schein_verworfen_am()',
+      // Der Annahme-Link (M02a): Kerne ohne eigene Rechteprüfung, Modulregel, Zustand und Journal.
+      'app.naechste_nummer_kern(text, text, integer, integer)',
+      'app.angebot_annehmen_kern(uuid, text, text)',
+      'app.modul_register()',
+      'app.modul_aktiv(text, text)',
+      'app.angebot_link_inhalt(public.quotes)',
+      'app.angebot_link_schnappschuss(public.quotes)',
+      'app.angebot_link_zustand(public.angebot_links, public.quotes)',
+      'app.angebot_link_kundensicht(public.angebot_links, public.quotes)',
+      'app.angebot_link_antwort(public.angebot_links, text)',
+      'app.angebot_link_anfrage_zaehlen(uuid)',
+      'app.angebot_fassungen_sperren(uuid)',
+      'app.journal_kunde_ueber_link(text, jsonb, jsonb, text[], text, text)',
+      // Was nur die Function mit dem Dienstschlüssel ruft.
+      'public.angebot_link_abruf(text)',
+      'public.angebot_link_annehmen(text, text, text, boolean)',
+      'public.angebot_link_ablehnen(text, text, text)',
+      'public.push_angebot_link(uuid)',
     ];
     const offen: string[] = [];
     for (const f of intern) {

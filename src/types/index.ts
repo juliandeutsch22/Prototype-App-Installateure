@@ -299,10 +299,12 @@ export interface Company {
    * Modul erscheint automatisch mit seinem Standard, statt bei allen zu
    * fehlen.
    *
-   * KEINE SICHERHEITSGRENZE. Ein abgeschaltetes Modul nimmt den Weg weg, nicht
-   * das Recht; wer als Buchhaltung Rechnungen anlegen darf, darf das
-   * weiterhin. Was serverseitig geschützt ist, ist dieses Feld selbst — sonst
-   * schaltete sich jeder frei, was er will.
+   * KEINE SICHERHEITSGRENZE für die bestehenden Wege. Ein abgeschaltetes
+   * Modul nimmt den Weg weg, nicht das Recht; wer als Buchhaltung Rechnungen
+   * anlegen darf, darf das weiterhin. Was serverseitig geschützt ist, ist
+   * dieses Feld selbst — sonst schaltete sich jeder frei, was er will.
+   * NEUE Fachbefehle prüfen es dagegen auf dem Server (E51, V3:
+   * `app.modul_aktiv`, zuerst der Annahme-Link `angebote.online_annahme`).
    */
   modules?: Record<string, boolean>;
   createdAt?: number;
@@ -485,6 +487,11 @@ export interface UserPrefs {
    * Entscheidung darüber (der Antragsteller), Krankmeldungen (das Büro).
    */
   notifyAbwesenheit?: boolean;
+  /**
+   * Angebote: ein Kunde hat über den Annahme-Link angenommen oder abgelehnt
+   * (M02a) — für die Führung.
+   */
+  notifyAngebot?: boolean;
   /**
    * Push-Token je Gerät. Ein Mensch hat Telefon und Rechner, beide sollen
    * die Meldung bekommen; ein abgemeldetes Gerät wird wieder entfernt.

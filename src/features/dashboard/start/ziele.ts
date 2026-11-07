@@ -22,6 +22,9 @@ export const ZIEL = {
   meineAbholbereit: '/material?reiter=meine&status=Abholbereit',
   anforderungen: (filter: AnforderungsFilter) => `/anforderungen?filter=${filter}`,
   lagerKnapp: '/lager?filter=knapp',
+  /** Ein Angebot auf seiner eigenen Seite (dort auch die Baustelle, die daraus entstand). */
+  angebot: (id: string) => `/quotes/${q(id)}`,
+  angebote: '/quotes',
   rechnungen: '/invoices',
   rechnungenUeberfaellig: `/invoices?status=${q('Überfällig')}`,
   rechnungenSicht: (sicht: RechnungsSicht) => `/invoices?sicht=${sicht}`,

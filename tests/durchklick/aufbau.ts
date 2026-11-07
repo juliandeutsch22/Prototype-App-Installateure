@@ -134,6 +134,8 @@ export default async function aufbau(): Promise<void> {
     // Termine (Plan 10.4): halten Konten, Baustellen und Kunden fest.
     'termine',
     'assignments', 'datanorm_zeilen', 'datanorm_laeufe', 'material_prices',
+    // Annahme-Links (M02a) und Angebote: ein angenommenes hält seine Baustelle fest.
+    'angebot_links', 'quotes',
     'rabattsaetze', 'materials', 'projects', 'customers', 'suppliers',
   ]) {
     await admin.from(t).delete().eq('company_id', BETRIEB);
