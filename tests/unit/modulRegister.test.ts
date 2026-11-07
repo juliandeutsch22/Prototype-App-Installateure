@@ -145,9 +145,9 @@ describe('Die erste Unterfähigkeit des echten Registers (M02a)', () => {
   Auftragseingang. Der Kern zählt nicht zu den neun Modulen.
 */
 describe('Der Kern (M02b)', () => {
-  it('Baustellen und Kunden — immer an, auch wenn jemand sie in die Festlegung schreibt', () => {
-    expect(KERN.map((k) => k.id)).toEqual(['baustellen', 'kunden']);
-    for (const id of ['baustellen', 'kunden'] as const) {
+  it('Baustellen, Kunden und (seit M06b) Zeiterfassung — immer an, auch wenn jemand sie in die Festlegung schreibt', () => {
+    expect(KERN.map((k) => k.id)).toEqual(['baustellen', 'kunden', 'zeiterfassung']);
+    for (const id of ['baustellen', 'kunden', 'zeiterfassung'] as const) {
       expect(istKern(id)).toBe(true);
       expect(istAn(undefined, id)).toBe(true);
       expect(istAn({ [id]: false }, id)).toBe(true);
@@ -171,6 +171,19 @@ describe('Der Kern (M02b)', () => {
     expect(istAn({ baustellen: false }, 'baustellen.auftragseingang')).toBe(true);
     expect(folgenBeimAbschalten('baustellen.auftragseingang', undefined)).toEqual([]);
     expect(schalter('baustellen')?.name).toBe('Baustellen');
+  });
+
+  /*
+    FREIE ZEITFELDER (M06b, N01): Teil der Zeiterfassung, Standard an, einzeln
+    abschaltbar, ohne Folge, die nicht zurückkommt (die Werte bleiben).
+  */
+  it('zeiterfassung.freie_zeitfelder: Standard an, einzeln abschaltbar, Teil der Zeiterfassung', () => {
+    expect(schalter('zeiterfassung.freie_zeitfelder')).toMatchObject({ name: 'Freie Zeitfelder', standard: true });
+    expect(istAn(undefined, 'zeiterfassung.freie_zeitfelder')).toBe(true);
+    expect(istAn({ 'zeiterfassung.freie_zeitfelder': false }, 'zeiterfassung.freie_zeitfelder')).toBe(false);
+    expect(istAn({ zeiterfassung: false }, 'zeiterfassung.freie_zeitfelder')).toBe(true);
+    expect(folgenBeimAbschalten('zeiterfassung.freie_zeitfelder', undefined)).toEqual([]);
+    expect(aktiveModule(undefined).size).toBe(9);
   });
 
   it('jede Unterfähigkeit des Kerns trägt dessen Kennung vor dem Punkt — so liest sie der Server', () => {

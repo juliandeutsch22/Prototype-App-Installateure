@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon, ueberstundenRegelVon } from '@/lib/lohnregeln';
@@ -13,6 +13,9 @@ import {
   deleteTimeEntry,
   subscribeUrlaubstage,
 } from '@/lib/db/timeEntries';
+import { listFeldwerte } from '@/lib/db/zeitfelder';
+import { offeneAngaben, werteJeBuchung } from '@/lib/zeitfelder';
+import { useFeldsatz, useFeldwerte } from '@/features/time/useZeitfelder';
 import {
   calcMonthStats,
   calcCompleteness,
@@ -333,6 +336,39 @@ export default function AccountingView() {
       },
     );
   }, [user, ladenVon, ladenBis]);
+
+  /*
+    DIE FREIEN ZEITFELDER (M06b): ihre Werte für denselben Zeitraum wie die
+    Buchungen — im Tagesnachweis der Person, im Export und als Zahl der
+    offenen Angaben des Monats. Im Supportzugang nicht: die Werte gehören zu
+    den Buchungen, und die bleiben ihm verschlossen.
+  */
+  const feldsatz = useFeldsatz(user?.companyId, company?.modules);
+  const feldwerte = useFeldwerte({
+    companyId: user?.companyId, an: feldsatz.an && !imSupport, von: ladenVon, bis: ladenBis, eintraege: entries,
+  });
+  const rolleVon = useMemo(() => new Map(users.map((u) => [u.uid, u.role])), [users]);
+  const offenFuer = useCallback(
+    (e: TimeEntry) => offeneAngaben(
+      typeof e.zeitfeldFassung === 'number' ? feldwerte.fassungen.get(e.zeitfeldFassung) : null,
+      feldsatz.definitionen, e, rolleVon.get(e.userId), feldwerte.werte.get(e.id),
+    ),
+    [feldwerte, feldsatz.definitionen, rolleVon],
+  );
+  /** Wie viele Angaben im gezeigten Monat offen sind — „fehlt“ und „Nachpflege“. */
+  const zfOffen = useMemo(() => {
+    let fehlt = 0;
+    let nachpflege = 0;
+    if (!feldsatz.an || imSupport) return { fehlt, nachpflege };
+    for (const e of entries) {
+      if (!e.date.startsWith(monthPrefix)) continue;
+      const o = offenFuer(e);
+      fehlt += o.fehlt.length;
+      nachpflege += o.nachpflege.length;
+    }
+    return { fehlt, nachpflege };
+  }, [entries, monthPrefix, offenFuer, feldsatz.an, imSupport]);
+  const zfExport = feldsatz.an ? { definitionen: feldsatz.definitionen, werte: feldwerte.werte } : undefined;
 
   /*
     DIE URLAUBSTAGE — eine eigene, schmale Live-Abfrage neben dem Zeitraum.
@@ -783,7 +819,7 @@ export default function AccountingView() {
   function exportMonthCsv() {
     // Bewusst alleRows: der Monatsexport ist ein Abschluss und darf nicht
     // davon abhaengen, was gerade im Suchfeld steht.
-    downloadCsv(buildMonthCsv(alleRows, year, month, halbeTage, lohn, entries.filter((e) => e.date.startsWith(monthPrefix))), monthCsvFilename(year, month));
+    downloadCsv(buildMonthCsv(alleRows, year, month, halbeTage, lohn, entries.filter((e) => e.date.startsWith(monthPrefix)), zfExport), monthCsvFilename(year, month));
     toast.success('Monats-CSV heruntergeladen');
   }
 
@@ -794,7 +830,7 @@ export default function AccountingView() {
       return;
     }
     downloadCsv(
-      buildUserCsv(u, r.monthEntries, r.stats, year, month, halbeTage, lohn, r.vorlauf),
+      buildUserCsv(u, r.monthEntries, r.stats, year, month, halbeTage, lohn, r.vorlauf, zfExport),
       userCsvFilename(u, year, month),
     );
     toast.success(`CSV für ${u.name} heruntergeladen`);
@@ -812,7 +848,12 @@ export default function AccountingView() {
     // Erst hier nachladen: jsPDF wiegt mehrere hundert Kilobyte und wird nur
     // gebraucht, wenn wirklich jemand einen Nachweis erzeugt.
     const { generateHoursPdf } = await import('./hoursPdf');
+    // M06b: die freien Angaben des Zeitraums, frisch wie die Buchungen.
+    const zeitfelder = feldsatz.an
+      ? { definitionen: feldsatz.definitionen, werte: werteJeBuchung(await listFeldwerte(user!.companyId, from, to, u.uid)) }
+      : undefined;
     const doc = generateHoursPdf({
+      zeitfelder,
       company: company ?? ({ id: '', name: 'Firma' } as NonNullable<typeof company>),
       user: u,
       entries: range,
@@ -1071,6 +1112,24 @@ export default function AccountingView() {
         </Hinweiszeile>
       )}
 
+      {/*
+        OFFENE FREIE ANGABEN DES MONATS (M06b): wie viele das Büro ergänzt
+        („fehlt“) und wie viele nachzupflegen sind — an der Buchung im Fenster
+        der Person steht, welche.
+      */}
+      {!imSupport && (zfOffen.fehlt > 0 || zfOffen.nachpflege > 0) && (
+        <Hinweiszeile>
+          <p>
+            Freie Angaben im {monatsName}:{' '}
+            {[
+              zfOffen.fehlt > 0 && `${zfOffen.fehlt} ${zfOffen.fehlt === 1 ? 'fehlt' : 'fehlen'}`,
+              zfOffen.nachpflege > 0 && `${zfOffen.nachpflege} zur Nachpflege`,
+            ].filter(Boolean).join(', ')}{' '}
+            — im Fenster der Person stehen sie an der Buchung.
+          </p>
+        </Hinweiszeile>
+      )}
+
       {error ? (
         <div className="ue-liste">
           <div className="p-4">
@@ -1213,6 +1272,7 @@ export default function AccountingView() {
               onCsv={() => exportUserCsv(personZeile.user)}
               onBericht={() => setExportFor(personZeile.user)}
               gesamtsaldoH={gesamt === 'laedt' ? null : gesamt instanceof Map ? gesamt.get(personZeile.user.uid) : undefined}
+              zeitfelder={feldsatz.an ? { definitionen: feldsatz.definitionen, werte: feldwerte.werte, offen: offenFuer } : undefined}
             />
           ) : null}
         </div>

@@ -49,6 +49,13 @@ import { aufteilenGeht } from './aufteilen';
 import { einfuegenPlan, einfuegenText } from './einfuegen';
 import { zeitraumFrage, type ZeitraumArt } from './zeitraumFrage';
 import { listFahrzeuge } from '@/lib/db/lagerorte';
+import { feldsatzLaden, listFeldwerte, listZeitfeldFassungen } from '@/lib/db/zeitfelder';
+import {
+  ausAntrag, eingabeFehler, feldGilt, felderDerFassung, wertAlsEingabe, wertAusEingabe,
+  type ZeitfeldSatz, type ZeitfeldWert,
+} from '@/lib/zeitfelder';
+import { useFeldsatz } from './useZeitfelder';
+import ZeitfeldEingaben from './ZeitfeldEingaben';
 
 
 interface Props {
@@ -268,6 +275,54 @@ export default function TimeForm({
   // Projektfelder — sonst bekäme ein Monteur-Eintrag keine Baustelle.
   const effectiveRole = ownerRole ?? target?.role ?? user?.role;
 
+  /*
+    DIE FREIEN ZEITFELDER (M06b): die geltende Fassung — ohne Empfang die auf
+    dem Gerät gemerkte — und beim Bearbeiten die Werte der Buchung samt der
+    Fassung, unter der sie eintraf. Beim Bearbeiten stehen die Felder erst da,
+    wenn die Werte geladen sind: ohne sie schickte die Maske leere Felder und
+    entfernte, was gespeichert ist.
+  */
+  const feldsatz = useFeldsatz(user?.companyId, company?.modules);
+  const [zfRoh, setZfRoh] = useState<Record<string, string>>({});
+  const [zfAlt, setZfAlt] = useState<Record<string, ZeitfeldWert> | null>(entry ? null : {});
+  const [zfAltFehler, setZfAltFehler] = useState(false);
+  const [zfBuchungsSatz, setZfBuchungsSatz] = useState<ZeitfeldSatz | null>(null);
+  const zfFirma = user?.companyId;
+  useEffect(() => {
+    if (!entry || !zfFirma || !feldsatz.an) return;
+    let weg = false;
+    Promise.resolve()
+      .then(() => Promise.all([
+        listFeldwerte(zfFirma, entry.date, entry.date, entry.userId),
+        typeof entry.zeitfeldFassung === 'number' ? listZeitfeldFassungen(zfFirma, [entry.zeitfeldFassung]) : Promise.resolve([]),
+      ]))
+      .then(([zeilen, fassungen]) => {
+        if (weg) return;
+        const alt: Record<string, ZeitfeldWert> = {};
+        for (const z of zeilen) if (z.eintragId === entry.id) alt[z.feldId] = z.wert;
+        setZfAlt(alt);
+        const f = fassungen[0];
+        setZfBuchungsSatz(f ? { nummer: f.nummer, felder: f.felder } : null);
+      })
+      .catch(() => { if (!weg) setZfAltFehler(true); });
+    return () => { weg = true; };
+    // Die Buchung bestimmt, was geladen wird — nicht jede neue Fassung ihres Objekts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entry?.id, zfFirma, feldsatz.an]);
+  /* Die gespeicherten Werte einmal in die Felder — danach gehören sie dem, der tippt. */
+  const [zfVorbelegt, setZfVorbelegt] = useState(false);
+  useEffect(() => {
+    if (zfVorbelegt || !zfAlt || Object.keys(zfAlt).length === 0 || feldsatz.definitionen.length === 0) return;
+    const typ = new Map(feldsatz.definitionen.map((d) => [d.id, d.typ]));
+    const roh: Record<string, string> = {};
+    for (const [id, w] of Object.entries(zfAlt)) {
+      const t = typ.get(id);
+      if (t) roh[id] = wertAlsEingabe(t, w);
+    }
+    setZfRoh((vorher) => ({ ...roh, ...vorher }));
+    setZfVorbelegt(true);
+  }, [zfAlt, feldsatz.definitionen, zfVorbelegt]);
+
   /**
    * Die volle Erfassung — Baustelle, Wegzeit, Fahrzeug, Helfer, Zuschläge.
    *
@@ -319,6 +374,15 @@ export default function TimeForm({
   const showWorkFields = status === 'Anwesend';
   /** Trägt dieser Eintrag Von/Bis? Arbeitszeit immer, Zeitausgleich nur stundenweise. */
   const mitZeiten = showWorkFields || (status === 'Zeitausgleich' && zaStundenweise);
+  /** Die freien Zeitfelder, die für diese Buchung gelten — Stand und Rolle der gebuchten Person. */
+  const zfAusAntrag = entry ? ausAntrag(entry) : false;
+  const zfFelder = useMemo(
+    () => felderDerFassung(feldsatz.satz, feldsatz.definitionen)
+      .filter((f) => feldGilt(f, status, effectiveRole, zfAusAntrag)),
+    [feldsatz.satz, feldsatz.definitionen, status, effectiveRole, zfAusAntrag],
+  );
+  /* Mitgeschickt wird nur, was sicher ist: beim Bearbeiten erst mit den geladenen Werten. */
+  const zfBereit = !!feldsatz.satz && zfAlt !== null;
   /*
     ZEITAUSGLEICH BUCHT DAS BÜRO — der Monteur BEANTRAGT ihn (Seite Urlaub).
     Direkt gebucht wäre er am Genehmigenden vorbei. Ein bereits gebuchter ZA
@@ -824,6 +888,57 @@ export default function TimeForm({
       setSaving(false);
       return;
     }
+    /*
+      DIE FREIEN ZEITFELDER PRÜFEN — mit derselben Regel wie der Server: Typ,
+      Grenzen, Option, ob das Feld gilt, Pflicht beim Buchen. Ohne Empfang
+      ist das die einzige Prüfung vor dem Vormerken; der Server prüft beim
+      Nachsenden dieselbe Fassung.
+    */
+    let zeitfelder: { fassung: number; werte: Record<string, ZeitfeldWert | null> } | undefined;
+    /*
+      NOCH NICHTS DA — weder gemerkt noch geladen (der erste Griff gleich nach
+      dem Öffnen): einmal mit Frist nachfragen, statt ohne die Felder zu buchen,
+      die es vielleicht gibt. Ohne Antwort geht die Buchung ohne Angaben; was
+      Pflicht ist, steht dann als „Nachpflege“ da.
+    */
+    let zfSatz = feldsatz.satz;
+    let zfDefinitionen = feldsatz.definitionen;
+    if (feldsatz.an && feldsatz.laedt && !isEdit) {
+      const frisch = await mitFrist(Promise.resolve().then(() => feldsatzLaden(user.companyId)), 3000).catch(() => null);
+      if (frisch?.fassung) {
+        zfSatz = { nummer: frisch.fassung.nummer, felder: frisch.fassung.felder };
+        zfDefinitionen = frisch.definitionen;
+      }
+    }
+    const zfJetzt = zfSatz === feldsatz.satz
+      ? zfFelder
+      : felderDerFassung(zfSatz, zfDefinitionen).filter((f) => feldGilt(f, status, effectiveRole, zfAusAntrag));
+    if (zfSatz && (zfBereit || !isEdit)) {
+      const werte: Record<string, ZeitfeldWert | null> = {};
+      const lesefehler: string[] = [];
+      for (const f of zfJetzt) {
+        const g = wertAusEingabe(f.typ, zfRoh[f.id] ?? '');
+        if (g.fehler) lesefehler.push(`${f.name}: ${g.fehler}`);
+        werte[f.id] = g.wert;
+      }
+      const fehler = lesefehler.length > 0 ? lesefehler : eingabeFehler({
+        satz: zfSatz,
+        buchungsSatz: zfBuchungsSatz,
+        namen: new Map(felderDerFassung(zfSatz, zfDefinitionen).map((f) => [f.id, f.name])),
+        werte,
+        alteWerte: zfAlt ?? undefined,
+        status,
+        rolle: effectiveRole,
+        ausEinemAntrag: zfAusAntrag,
+        neu: !isEdit,
+      });
+      if (fehler.length > 0) {
+        setError(fehler.join('; '));
+        setSaving(false);
+        return;
+      }
+      zeitfelder = { fassung: zfSatz.nummer, werte };
+    }
     if (!bestaetigt) {
       const faelle = await jugendschutzFaelle();
       if (faelle.length > 0) {
@@ -871,6 +986,8 @@ export default function TimeForm({
           ? nachtGrund.trim()
           : null,
         isEmergency: canHaveProject && showWorkFields ? isEmergency : false,
+        // M06b: die freien Angaben reisen mit der Buchung — auch ins Ausgangsfach.
+        ...(zeitfelder ? { zeitfelder } : {}),
       };
 
       if (isEdit && einfuegbar) {
@@ -919,6 +1036,8 @@ export default function TimeForm({
         setNachtAbwahl(false);
         setNachtGrund('');
         setIsEmergency(false);
+        // Die Angaben gelten für diese Buchung, nicht für die nächste.
+        setZfRoh({});
         setAngefasst(false);
         setGebucht((n) => n + 1);
       }
@@ -1557,6 +1676,20 @@ export default function TimeForm({
         </>
       )}
 
+      {zfBereit && (
+        <ZeitfeldEingaben
+          felder={zfFelder}
+          roh={zfRoh}
+          alteWerte={zfAlt ?? undefined}
+          onChange={(id, w) => setZfRoh((r) => ({ ...r, [id]: w }))}
+        />
+      )}
+      {isEdit && feldsatz.satz && zfAltFehler && (
+        <p className="text-sm text-ink-muted">
+          Die Angaben für den Betrieb ließen sich nicht laden — sie bleiben, wie sie sind.
+        </p>
+      )}
+
       <InputField
         id="comment"
         label={
@@ -1610,7 +1743,7 @@ export default function TimeForm({
         die Person selbst und fürs Büro, wer sie wann wie geändert hat.
       */}
       {isEdit && entry && user && (
-        <Aenderungsprotokoll titel="Verlauf dieser Buchung" laden={() => listVerlaufEintrag(user.companyId, entry.id)} />
+        <Aenderungsprotokoll titel="Verlauf dieser Buchung" felder={feldsatz.definitionen} laden={() => listVerlaufEintrag(user.companyId, entry.id)} />
       )}
 
       {error && <ErrorState message={error} />}

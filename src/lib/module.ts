@@ -70,7 +70,7 @@ export type FaehigkeitId = `${ModulId | KernId}.${string}`;
  * für alles Übrige; ihre Zusatzfähigkeiten (Auftragseingang, später Aufgaben,
  * Mängel, Objekte …) braucht nicht jeder Betrieb.
  */
-export type KernId = 'baustellen' | 'kunden';
+export type KernId = 'baustellen' | 'kunden' | 'zeiterfassung';
 
 export interface Faehigkeit {
   id: FaehigkeitId;
@@ -349,6 +349,32 @@ export const KERN: Kernbereich[] = [
     zweck: 'Der Kundenstamm mit Anschrift, Ansprechpartner und Belegen.',
     betrifft: ['Kunden'],
     unter: [],
+  },
+  /*
+    DIE ZEITERFASSUNG (M06b): heute Kern — abschaltbar wird sie mit ihrem
+    eigenen Paket samt Folgenvorschau (E51, V2). Ihre Teile sind es schon.
+  */
+  {
+    id: 'zeiterfassung',
+    name: 'Zeiterfassung',
+    zweck: 'Arbeitszeit, Abwesenheiten und Zeitkonto jeder Person.',
+    betrifft: ['Zeiterfassung'],
+    unter: [
+      {
+        /*
+          FREIE ZEITFELDER (N01): Standard an — ohne angelegte Felder ändert
+          sich nichts. Aus heißt: die Seite „Zeitfelder“, die Felder in der
+          Buchungsmaske, in Listen und Export verschwinden; Definieren und
+          Werte schreiben lehnt der Server ab (V3). Gespeicherte Werte
+          bleiben und sind nach dem Wiedereinschalten wieder da.
+        */
+        id: 'zeiterfassung.freie_zeitfelder',
+        name: 'Freie Zeitfelder',
+        zweck: 'Eigene Angaben zu jeder Buchung festlegen — etwa Kostenstelle, Kilometer oder Auftragsnummer —, mit Pflicht und Prüfung.',
+        standard: true,
+        betrifft: ['Zeitfelder (Einstellungen)', 'Eigene Angaben in der Zeiterfassung', 'Spalten im Export'],
+      },
+    ],
   },
 ];
 

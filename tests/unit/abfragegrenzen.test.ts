@@ -87,6 +87,16 @@ const AUSNAHMEN: Record<string, string> = {
   */
   listVerlaufEintrag: 'Eine Buchung — eine Zeile je Änderung an ihr',
   /*
+    DIE FREIEN ZEITFELDER (M06b): die Definitionen sind ein Stamm wie die
+    Fahrzeuge — sie wachsen mit den Angaben, die ein Betrieb wissen will,
+    nicht mit der Zeit (ein beendetes Feld bleibt, kommt aber nicht wieder).
+    Eine Grenze schnitte den Namen eines Felds ab, an dem noch Werte hängen.
+    Die Fassungen werden nur nach Nummer geholt — die der Buchungen auf dem
+    Schirm, also höchstens so viele, wie dort vorkommen.
+  */
+  listZeitfeldDefinitionen: 'Felder des Betriebs — wachsen mit den Angaben, nicht mit der Zeit',
+  listZeitfeldFassungen: 'Nur die Fassungen der Buchungen auf dem Schirm, über ihre Nummer',
+  /*
     `subscribePrefs` STAND HIER BIS ZUM 19.09. und ist ersatzlos gefallen.
 
     Die Firestore-Fassung hörte mit `onSnapshot` auf ein Dokument — der
