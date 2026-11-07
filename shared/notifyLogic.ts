@@ -28,7 +28,8 @@ export type MeldungsArt =
   | 'notifyNewOrder'
   | 'notifyOrderReady'
   | 'notifyUrgentDelivery'
-  | 'notifyAbwesenheit';
+  | 'notifyAbwesenheit'
+  | 'notifyAngebot';
 
 /**
  * Eine Postgres-Zeile als `OrderDoc`.
@@ -426,5 +427,43 @@ export function textKrankmeldung(a: AbwesenheitDoc, id: string): Meldung {
     body: `${a.userName ?? 'Ein Mitarbeiter'}: ${zeitraumKurz(a)}`,
     link: '/vacations',
     tag: `krank-${id}`,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Angebote: Antwort des Kunden über den Annahme-Link (M02a)           */
+/* ------------------------------------------------------------------ */
+
+/** Wer ein Angebot annehmen darf (`app.ist_fuehrung`) — dieselben erfahren die Antwort des Kunden. */
+export const EMPFAENGER_ANGEBOT_LINK = ['Projektleiter', 'Geschäftsführung', 'Administrator'];
+
+/** Die Führung, aktive Konten. Der Kunde selbst hat kein Konto — ausschließen muss man niemanden. */
+export function empfaengerAngebotLink(leute: Belegschaftsmitglied[]): string[] {
+  return leute
+    .filter((u) => u.active !== false && EMPFAENGER_ANGEBOT_LINK.includes(u.role ?? ''))
+    .map((u) => u.uid);
+}
+
+export interface AngebotLinkEntscheidung {
+  /** Kennung des Angebots — für den Weg dorthin. */
+  angebot: string;
+  nummer: string;
+  entscheidung: 'angenommen' | 'abgelehnt';
+  /** Der Name, den der Kunde angegeben hat. */
+  name?: string;
+}
+
+/**
+ * „Angebot AN-2026-0042 angenommen“ — von wem, über den Link. KEIN Betrag,
+ * KEINE Unterschrift, KEIN Grund einer Ablehnung: der Sperrbildschirm ist
+ * öffentlich, und keine andere Meldung der App nennt Beträge oder Notizen.
+ * Dieselbe Kennung für Annahme und Ablehnung desselben Links.
+ */
+export function textAngebotLink(e: AngebotLinkEntscheidung, linkId: string): Meldung {
+  return {
+    title: `Angebot ${e.nummer} ${e.entscheidung}`,
+    body: `${e.name?.trim() ? `von ${e.name.trim()} ` : ''}über den Annahme-Link`,
+    link: `/quotes/${e.angebot}`,
+    tag: `angebot-link-${linkId}`,
   };
 }

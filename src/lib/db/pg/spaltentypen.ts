@@ -29,6 +29,11 @@ export type Spaltenart = 'zeitpunkt' | 'uhrzeit';
 
 export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   aenderungsjournal: { am: 'zeitpunkt' },
+  angebot_links: {
+    abgelehnt_am: 'zeitpunkt', anfragen_fenster_ab: 'zeitpunkt', angenommen_am: 'zeitpunkt', erzeugt_am: 'zeitpunkt',
+    gemeldet_am: 'zeitpunkt', gesehen_am: 'zeitpunkt',
+    widerrufen_am: 'zeitpunkt', zuerst_geoeffnet_am: 'zeitpunkt', zuletzt_geoeffnet_am: 'zeitpunkt',
+  },
   assignments: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt', zeit_von: 'uhrzeit', zeit_bis: 'uhrzeit' },
   aussteller_staende: { angelegt_am: 'zeitpunkt' },
   /*

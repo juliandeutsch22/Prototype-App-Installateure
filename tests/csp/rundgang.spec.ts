@@ -18,7 +18,8 @@ import { test, expect, type Page } from '@playwright/test';
 import { NAV } from '@/app/navigation';
 import type { Role } from '@/types';
 import { darfZiel } from '../links/linkziel';
-import { admin, BETRIEB, BUERO, CHEFIN, MONTEUR } from '../durchklick/aufbau';
+import { createClient } from '@supabase/supabase-js';
+import { admin, BETRIEB, BUERO, CHEFIN, MONTEUR, PASSWORT } from '../durchklick/aufbau';
 import { anmelden } from '../durchklick/helfer';
 
 declare global {
@@ -111,3 +112,50 @@ for (const { konto, rolle } of KONTEN) {
     expect([...gefunden, ...konsole], `Verstöße für ${rolle}`).toEqual([]);
   });
 }
+
+/*
+  DIE SEITE DES ANNAHME-LINKS (M02a) läuft ohne Anmeldung und spricht mit
+  einer Edge Function auf der Supabase-Adresse; das PDF erzeugt jsPDF im
+  Browser. Beides muss unter der durchgesetzten Regel gehen — der Schlüssel
+  im Fragment ändert an der Regel nichts (das Fragment geht nie an einen
+  Server).
+*/
+test('die Seite des Annahme-Links ohne Verstoß — mit PDF', async ({ page }) => {
+  const kunde = 'Familie Inhaltsregel';
+  const aufraeumen = async () => {
+    const { data } = await admin.from('quotes').select('id').eq('company_id', BETRIEB).eq('customer_name', kunde);
+    const ids = (data ?? []).map((q) => q.id as string);
+    if (ids.length) {
+      await admin.from('angebot_links').delete().in('quote_id', ids);
+      await admin.from('quotes').delete().in('id', ids);
+    }
+  };
+  await aufraeumen();
+  try {
+    const { data: q, error } = await admin.from('quotes').insert({
+      company_id: BETRIEB, quote_number: 'AN-2026-CSP1', customer_name: kunde, quote_date: '2026-11-06',
+      valid_until: '2099-12-31', status: 'Versendet', vat_rate: 0.2, subtotal_netto: 100, total_netto: 100,
+      total_vat: 20, total_brutto: 120,
+    }).select('id').single();
+    expect(error).toBeNull();
+    const chefin = createClient(String(process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321'),
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
+      { auth: { persistSession: false } });
+    expect((await chefin.auth.signInWithPassword({ email: CHEFIN.email, password: PASSWORT })).error).toBeNull();
+    const { data: link, error: e2 } = await chefin.rpc('angebot_link_erzeugen', { p_angebot: q!.id, p_abrechnung: 'Regie', p_praefix: 'CS' });
+    expect(e2).toBeNull();
+
+    const konsole: string[] = [];
+    await melderEinbauen(page, konsole);
+    await page.goto(`/angebot/annehmen#${(link as { schluessel: string }).schluessel}`);
+    await expect(page.getByRole('heading', { level: 1, name: 'Angebot' })).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Als PDF' }).click();
+    expect((await download).suggestedFilename()).toBe('Angebot_AN-2026-CSP1.pdf');
+    await page.waitForLoadState('networkidle');
+    expect([...(await verstoesse(page)), ...konsole]).toEqual([]);
+  } finally {
+    await aufraeumen();
+  }
+});

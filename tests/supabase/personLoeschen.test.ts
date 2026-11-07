@@ -157,7 +157,8 @@ describe('Ein Kunde', () => {
 
     const probe = await loeschen(chef, 'kunde', kunde);
     expect(probe.b!.ganz).toBe(false);
-    expect(probe.b!.sofort).toEqual({ wartungen: 1, kontaktdaten: 2, termine: 0 });
+    // Seit M02a: offene Annahme-Links seiner Angebote werden widerrufen (hier keine).
+    expect(probe.b!.sofort).toEqual({ wartungen: 1, kontaktdaten: 2, termine: 0, annahme_links: 0 });
     expect(probe.b!.aufbewahren.map((a) => [a.was, a.anzahl, a.bis])).toEqual([
       ['Rechnungen samt Zahlungen', 1, '2106-12-31'],
       ['Baustellen mit Name und Adresse', 1, expect.stringMatching(/-12-31$/)],

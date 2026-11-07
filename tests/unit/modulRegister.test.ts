@@ -20,8 +20,9 @@ import { navForRole } from '@/app/navigation';
  *     sieht: dieselben neun Module mit denselben Kennungen und Standards,
  *     jede Rolle mit derselben Navigation. Diese Prüfungen sind vor und nach
  *     der Änderung grün — genau das sollen sie zeigen.
- *  2. DIE NEUE MECHANIK an einem Prüfregister, weil das echte heute noch
- *     keine Unterfähigkeit trägt: Sie gilt nur mit ihrem Modul, hat ihren
+ *  2. DIE NEUE MECHANIK an einem Prüfregister mit mehreren Stufen — das
+ *     echte trägt seit M02a genau eine Unterfähigkeit
+ *     (`angebote.online_annahme`): Sie gilt nur mit ihrem Modul, hat ihren
  *     eigenen Standard, geht mit dem Modul aus und kommt mit ihm zurück.
  */
 
@@ -75,13 +76,49 @@ describe('Folgen beim Abschalten — was sich nicht zurückholen lässt', () => 
   });
 
   it('die übrigen Module haben keine solche Folge', () => {
-    for (const m of MODULE.filter((x) => x.id !== 'einsatzplanung')) {
+    // Die Angebote nennen seit M02a die Folge ihrer Unterfähigkeit — eigener Fall unten.
+    for (const m of MODULE.filter((x) => x.id !== 'einsatzplanung' && x.id !== 'angebote')) {
       expect(folgenBeimAbschalten(m.id, undefined), m.id).toEqual([]);
+    }
+  });
+
+  it('die Angebote und die Annahme per Link sagen, dass offene Links nicht mehr antworten (M02a)', () => {
+    /*
+      Abgeschaltet antwortet der Server auf einen Link wie auf einen
+      unbekannten (`app.modul_aktiv` in `angebot_link_abruf`); gelöscht oder
+      widerrufen wird nichts. Wer die Angebote abschaltet, schaltet die
+      Unterfähigkeit mit ab und muss das ebenso erfahren.
+    */
+    const folge = ['Offene Annahme-Links funktionieren nicht mehr: Der Kunde sieht dieselbe Meldung wie bei einem ungültigen Link. Nach dem Wiedereinschalten gelten sie wieder bis zu ihrem Ablaufdatum.'];
+    expect(folgenBeimAbschalten('angebote.online_annahme', undefined)).toEqual(folge);
+    expect(folgenBeimAbschalten('angebote', undefined)).toEqual(folge);
+    // Gegenprobe: ist sie schon aus, geht beim Abschalten der Angebote nichts mehr mit.
+    expect(folgenBeimAbschalten('angebote', { 'angebote.online_annahme': false })).toEqual([]);
+  });
+});
+
+describe('Die erste Unterfähigkeit des echten Registers (M02a)', () => {
+  it('angebote.online_annahme: Standard an, nur mit den Angeboten', () => {
+    expect(schalter('angebote.online_annahme')).toMatchObject({ name: 'Annahme per Link', standard: true });
+    expect(istAn(undefined, 'angebote.online_annahme')).toBe(true);
+    expect(istAn({ angebote: false }, 'angebote.online_annahme')).toBe(false);
+    expect(istAn({ 'angebote.online_annahme': false }, 'angebote.online_annahme')).toBe(false);
+    expect(istAn({ 'angebote.online_annahme': false }, 'angebote')).toBe(true);
+  });
+
+  it('jede Unterfähigkeit trägt die Kennung ihres Moduls vor dem Punkt — so liest sie der Server', () => {
+    /*
+      `app.modul_aktiv` leitet das Modul einer Unterfähigkeit aus ihrer
+      Kennung ab (Teil vor dem Punkt), die App aus der Stelle im Register.
+      Beides ist dasselbe, solange diese Regel gilt.
+    */
+    for (const m of MODULE) {
+      for (const f of m.unter ?? []) expect(f.id.split('.')[0], f.id).toBe(m.id);
     }
   });
 });
 
-/** Ein Prüfregister mit Unterfähigkeiten — das echte trägt noch keine. */
+/** Ein Prüfregister mit Unterfähigkeiten über zwei Stufen — das echte trägt nur eine, ohne Abhängigkeit. */
 const PRUEF: Modul[] = [
   {
     id: 'material',

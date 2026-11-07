@@ -105,6 +105,7 @@ export async function savePrefs(
       notify_urgent_delivery: prefs.notifyUrgentDelivery ?? false,
       // Fehlt die Angabe, bleibt sie an: abgeschaltet wird nur ausdrücklich.
       notify_abwesenheit: prefs.notifyAbwesenheit ?? true,
+      notify_angebot: prefs.notifyAngebot ?? true,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id' },
