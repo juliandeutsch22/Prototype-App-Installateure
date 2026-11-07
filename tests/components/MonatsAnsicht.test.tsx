@@ -7,6 +7,7 @@ import type { Abwesenheit } from '@/lib/db/vacations';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, Assignment, Project, Termin } from '@/types';
 import type { MonatsQuelle } from '@/features/assignments/monatsQuelle';
+import { deckeListe } from '@/features/assignments/materialDeckung';
 
 /*
   DER MONAT MIT BALKEN UND VORSCHAU (Runde 4, Auftrag 5), direkt gerendert —
@@ -115,12 +116,16 @@ const onTermin = vi.fn();
 const onZurWoche = vi.fn();
 const onTag = vi.fn();
 const quelleTag = vi.fn<MonatsQuelle['tag']>(async () => ({ einsaetze: [], urlaube: [], termine: [], zu: null, zuFuer: () => false }));
-const quelleLager = vi.fn<MonatsQuelle['lager']>(async () => new Map([['m1', { frei: 2 }]]));
+/* Dieselbe Rechnung wie im Betrieb (M04b): frei 2 vor der Liste, 5 geplant — eine Position mit Fehlmenge. */
+const quelleDeckung = vi.fn<MonatsQuelle['deckung']>(async (tag) => {
+  const positionen = deckeListe([{ id: 'r1', materialId: 'm1', menge: 5 }, { id: 'r2', menge: 1 }], { datum: tag, freiVor: new Map([['m1', 2]]) });
+  return new Map([['B-1', { positionen, lage: null }]]);
+});
 const quelle: MonatsQuelle = {
   tag: (...a) => quelleTag(...a),
   projekte: async () => [],
   ruestlisten: async () => ruestlisten,
-  lager: (ids) => quelleLager(ids),
+  deckung: (tag) => quelleDeckung(tag),
 };
 
 function zeige(x: { sicht?: 'personen' | 'baustellen'; ohneZurWoche?: boolean; leute?: AppUser[] } = {}) {
@@ -258,14 +263,14 @@ describe('Monat — Vorschau (Auftrag 5.3)', () => {
     expect(document.activeElement).toBe(v.getByRole('button', { name: 'Vorschau schließen' }));
   });
 
-  it('fragt das Freie nur für die Artikel der Rüstlisten des Tages, nicht für den ganzen Katalog', async () => {
-    // Ohne Liste endete `lager_frei()` bei 1.000 Zeilen — der Artikel konnte fehlen (Analyse 09.10.2026).
+  it('fragt die Deckung genau des einen Tages — dieselbe Rechnung wie Formular und Woche (M04b)', async () => {
+    // Vorher das Freie der Artikel (`lager_frei`); seit M04b die Deckung des Tages mit ihrem Vorrang.
     ruestlisten = [{ date: '2026-10-05', projectNumber: 'B-1', positionen: [{ id: 'r1', materialId: 'm1', name: 'Rohr', menge: 5 }, { id: 'r2', name: 'Leihgerät', menge: 1 }] }];
-    quelleLager.mockClear();
+    quelleDeckung.mockClear();
     zeige();
     await userEvent.click(zeileVon('Max Mustermann').getByRole('button', { name: /05\.10\. – .*: eingeplant, CT Bau GmbH/ }));
     expect(await within(vorschau()).findByText('2 Positionen · 1 mit Fehlmenge')).toBeInTheDocument();
-    expect(quelleLager.mock.calls).toEqual([[['m1']]]);
+    expect(quelleDeckung.mock.calls).toEqual([['2026-10-05']]);
   });
 
   it('„Bearbeiten“ öffnet das Seitenfenster der Seite mit Tag und Baustelle — die Vorschau schließt sich', async () => {

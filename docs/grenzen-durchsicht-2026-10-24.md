@@ -102,6 +102,9 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Auftragseingang (Stand 56, E59): kein Import aus Portalen von Hausverwaltungen oder Versicherungen | Liegt beim Auftraggeber bzw. Pilotbetrieb: Formatbeschreibung bzw. Beispieldateien fehlen (Nachweisregister) |
 | Auftragseingang: Angaben zu einem noch nicht angelegten Kunden stehen nicht in dessen Datenauskunft | Datenschutz: über den Namen allein träfe die Auskunft Namensvettern; der Eingang lässt sich löschen oder zum Kunden machen |
 | Auftragseingang: der Vorsatz „EG“ der Eingangsnummer ist nicht einstellbar | Fachlich: die Nummer ist intern und steht auf keinem Beleg, PDF oder Export |
+| Bestellvorschläge (Stand 57, E60): keine Rundung nach einer Verpackungseinheit aus DATANORM | Liegt beim Pilotbetrieb: der Leser ist nicht gegen echte Dateien geprüft (Nachweisregister); die Verpackungseinheit wird am Artikel gepflegt |
+| Bestellvorschläge: Sollbestand am Artikel, nicht je Ort | Fachlich: reserviert und bestellt wird gegen das Hauptlager; ein Fahrzeug füllt man durch Umlagern |
+| Materialbereitschaft: „bestellt“ ist bis M05a, was die Einkaufsliste als bestellt führt, mit ihrem Liefertermin | Fachlich: Bestellbelege mit bestätigtem Termin kommen mit M05a |
 
 ## X – Liegt bei jemand anderem
 

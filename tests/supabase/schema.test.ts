@@ -290,6 +290,10 @@ describe('Interne Hilfsfunktionen', () => {
       'app.eingang_journal_kunde()',
       'app.eingang_kundenname_nachziehen()',
       'app.eingang_rang()',
+      // Materialbereitschaft und Bestellvorschläge (M04b): Rechnungen ohne eigene Rechteprüfung.
+      'app.deckung_frei_vor(text, uuid, date, timestamp with time zone, uuid, date)',
+      'app.bestellmenge(numeric, numeric, text)',
+      'app.bestellvorschlag_stand(text, uuid[])',
       // Was nur die Function mit dem Dienstschlüssel ruft.
       'public.angebot_link_abruf(text)',
       'public.angebot_link_annehmen(text, text, text, boolean)',

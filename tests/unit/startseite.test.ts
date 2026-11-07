@@ -886,3 +886,44 @@ describe('Sammelzeile „über dem Endtermin“ (Runde 6, G10)', () => {
       .toBe('Max Musterkunde');
   });
 });
+
+/*
+  MATERIAL FEHLT (M04b, E13): Einsätze der nächsten sieben Tage, deren
+  Material niemand deckt — dieselbe Rechnung wie Woche und Tag. Die Leitung
+  sieht ein Thema (heute, wenn ein Einsatz von heute betroffen ist), die
+  Projektleitung einen Abschnitt mit Zeilen in die Tagesplanung.
+*/
+describe('Startseite — Material fehlt (M04b)', () => {
+  const zeilen = [
+    { datum: '2026-10-02', projectNumber: 'PR-2', text: 'Material fehlt: 2 Positionen' },
+    { datum: HEUTE, projectNumber: 'PR-1', text: 'Material fehlt: 1 Position' },
+  ];
+  const projekte = [
+    { id: 'p1', companyId: 'b', projectNumber: 'PR-1', customerName: 'Familie Huber', status: 'Aktiv' },
+    { id: 'p2', companyId: 'b', projectNumber: 'PR-2', customerName: 'Hausverwaltung Lind', status: 'Aktiv' },
+  ] as Project[];
+  const umfeld = (rolle: Umfeld['rolle']): Umfeld => ({ rolle, heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false });
+
+  it('Leitung: ein Thema unter „Heute“, mit dem ersten Einsatz — in die Tagesplanung, bei mehreren in die Woche', () => {
+    const s = startseite({ materialFehlt: zeilen, projekte }, umfeld('leitung'));
+    const thema = s.abschnitte.flatMap((a) => a.zeilen).find((z) => z.key === 'material-fehlt')!;
+    expect(thema).toMatchObject({ titel: 'Material fehlt für 2 Einsätze', detail: 'Familie Huber, 30.09.', to: ZIEL.woche });
+    const einer = startseite({ materialFehlt: [zeilen[0]], projekte }, umfeld('leitung')).abschnitte.flatMap((a) => a.zeilen)
+      .find((z) => z.key === 'material-fehlt')!;
+    expect(einer).toMatchObject({ titel: 'Material fehlt für 1 Einsatz', to: ZIEL.tag('2026-10-02') });
+  });
+
+  it('Projektleitung: ein Abschnitt, nach Tag geordnet, je Zeile in die Tagesplanung', () => {
+    const s = startseite({ materialFehlt: zeilen, projekte }, umfeld('projektleitung'));
+    const a = s.abschnitte.find((x) => x.titel === 'Material fehlt')!;
+    expect(a.zeilen.map((z) => [z.titel, z.detail, z.to])).toEqual([
+      ['Familie Huber', '30.09. · Material fehlt: 1 Position', ZIEL.tag(HEUTE)],
+      ['Hausverwaltung Lind', '02.10. · Material fehlt: 2 Positionen', ZIEL.tag('2026-10-02')],
+    ]);
+  });
+
+  it('Gegenprobe: ohne fehlendes Material steht nichts da', () => {
+    expect(startseite({ materialFehlt: [], projekte }, umfeld('projektleitung')).abschnitte.find((x) => x.titel === 'Material fehlt')).toBeUndefined();
+    expect(startseite({ projekte }, umfeld('leitung')).abschnitte.flatMap((a) => a.zeilen).some((z) => z.key === 'material-fehlt')).toBe(false);
+  });
+});

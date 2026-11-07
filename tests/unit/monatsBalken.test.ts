@@ -13,6 +13,7 @@ import {
   type TagesEintrag,
 } from '@/features/assignments/monatsBalken';
 import { einsatzTeil, ruestZeile, vorschauInhalt, type TagesDaten } from '@/features/assignments/monatsVorschau';
+import { deckeListe } from '@/features/assignments/materialDeckung';
 import { monatsTage } from '@/features/assignments/planungKopf';
 import type { Zelle } from '@/features/assignments/planTypen';
 
@@ -367,31 +368,36 @@ describe('Inhalt der Vorschau', () => {
 });
 
 describe('Rüstliste in einer Zeile — dieselbe Fehlmenge wie im Formular', () => {
-  const heute = '2026-10-07';
-  const frei = new Map([
-    ['m1', { frei: 4 }],
-    ['m2', { frei: -2 }],
-  ]);
+  /*
+    Seit M04b rechnet die Zeile nicht mehr selbst: sie zählt die Positionen
+    im Zustand Achtung aus `deckeListe` — derselben Rechnung wie Formular,
+    Woche und Tag. Das Freie VOR der Liste liefert die Datenbank
+    (`materialdeckung`): ab heute mit der eigenen Reservierung zurück, für
+    einen vergangenen Tag nur das Freie (`app.deckung_frei_vor`).
+  */
+  const deckung = (positionen: { materialId?: string; menge: number }[], freiVor: [string, number][]) => ({
+    positionen: deckeListe(positionen.map((p, i) => ({ id: `p${i}`, ...p })), { datum: '2026-10-07', freiVor: new Map(freiVor) }),
+  });
 
   it('keine Liste oder leer: „keine“', () => {
-    expect(ruestZeile(undefined, frei, heute, heute)).toBe('keine');
-    expect(ruestZeile([], frei, heute, heute)).toBe('keine');
+    expect(ruestZeile(undefined, null)).toBe('keine');
+    expect(ruestZeile([], deckung([], []))).toBe('keine');
   });
 
   it('ab heute zählt die eigene gespeicherte Menge wieder dazu — sie reserviert sich nicht selbst weg', () => {
-    // frei 4, eigene 6 → verfügbar 10: 6 reichen.
-    expect(ruestZeile([{ materialId: 'm1', menge: 6 }], frei, heute, heute)).toBe('1 Position');
+    // frei 4, eigene 6 → frei vor der Liste 10: 6 reichen.
+    const liste = [{ materialId: 'm1', menge: 6 }];
+    expect(ruestZeile(liste, deckung(liste, [['m1', 10]]))).toBe('1 Position');
     // Gegenprobe: für einen vergangenen Tag gilt nur das Freie (4 < 6).
-    expect(ruestZeile([{ materialId: 'm1', menge: 6 }], frei, '2026-10-01', heute)).toBe('1 Position · 1 mit Fehlmenge');
+    expect(ruestZeile(liste, deckung(liste, [['m1', 4]]))).toBe('1 Position · 1 mit Fehlmenge');
   });
 
   it('Fehlmenge nur bei Katalogartikeln; eine freie Zeile hat keinen Bestand', () => {
-    expect(ruestZeile([{ menge: 3 }, { materialId: 'm2', menge: 1 }, { materialId: 'unbekannt', menge: 9 }], frei, '2026-10-01', heute)).toBe(
-      '3 Positionen · 1 mit Fehlmenge',
-    );
+    const liste = [{ menge: 3 }, { materialId: 'm2', menge: 1 }];
+    expect(ruestZeile(liste, deckung(liste, [['m2', -2]]))).toBe('2 Positionen · 1 mit Fehlmenge');
   });
 
   it('ohne Lagerstand nur die Zahl der Positionen — keine geratene Fehlmenge', () => {
-    expect(ruestZeile([{ materialId: 'm2', menge: 1 }], null, heute, heute)).toBe('1 Position');
+    expect(ruestZeile([{ materialId: 'm2', menge: 1 }], null)).toBe('1 Position');
   });
 });

@@ -4,6 +4,7 @@ import { alsHelferEingestuft, istLehrling } from './stufeImEinsatz';
 import type { TagBaustelle, Zelle } from './planTypen';
 import type { FensterStart } from './EinsatzFenster';
 import { ortAus, terminOrtKurz, terminZeitKurz } from './wochenTermine';
+import type { MaterialLage } from './materialDeckung';
 
 /*
   DIE EINTRÄGE EINER PERSON AN EINEM TAG (Runde 4, Auftrag 4.2 und 4.4) —
@@ -15,6 +16,8 @@ import { ortAus, terminOrtKurz, terminZeitKurz } from './wochenTermine';
 export interface BaustellenInfo {
   projekt: Project | undefined;
   stand: TagBaustelle | undefined;
+  /** Die Materialbereitschaft des Einsatzes (M04b) — nur mit Rüstliste und Modul. */
+  material?: MaterialLage;
 }
 
 /**
@@ -60,7 +63,7 @@ function Einsatzblock({
         ...info.stand.fehlen.map((f) => `${f} fehlt`),
       ].join(', ')
     : person.name;
-  const titel = [b.name, p?.bezeichnung?.trim(), b.nummer, b.zeit, eingeteilt].filter(Boolean).join(' · ');
+  const titel = [b.name, p?.bezeichnung?.trim(), b.nummer, b.zeit, eingeteilt, info.material?.text].filter(Boolean).join(' · ');
   const alsHelfer = b.helfer && !alsHelferEingestuft(person) && !istLehrling(person);
   const inhalt = (
     <>
@@ -72,6 +75,8 @@ function Einsatzblock({
           {b.zeit ? <span className="e-zeit">{b.zeit}</span> : ort ? <span className="e-zeile">{ort}</span> : null}
           {alsHelfer && <span className="e-zeile">als Helfer</span>}
           <span className="e-nr">{b.nummer}</span>
+          {/* Material mit Text, ohne Ampelfarbe (M04b): der Zustand steht im Wort. */}
+          {info.material && <span className="e-zeile">{info.material.text}</span>}
           {zusatz.map((t) => (
             <span key={t.id} className="e-zusatz">
               {t.art} <span className="e-zeit">{terminZeitKurz(t)}</span>
@@ -100,7 +105,7 @@ function Einsatzblock({
       // für die Vorlesehilfe sonst gleich. Dazu Person und Zustand.
       aria-label={`${b.name} (${b.nummer}) am ${datum} bearbeiten – ${person.name}${
         konflikt ? `, eingeteilt, fehlt: ${konflikt}` : b.zeit ? `, ${b.zeit}` : ''
-      }`}
+      }${info.material ? `, ${info.material.text}` : ''}`}
       onClick={() => onEinsatz({ datum: tag, projectNumber: b.nummer })}
     >
       {inhalt}
