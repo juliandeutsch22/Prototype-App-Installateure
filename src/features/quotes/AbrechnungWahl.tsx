@@ -1,5 +1,5 @@
 import { SelectField } from '@/components/Field';
-import { ABRECHNUNGSARTEN } from '@/lib/abrechnung';
+import { ABRECHNUNGSARTEN, abrechnungHinweis } from '@/lib/abrechnung';
 import type { Abrechnungsart } from '@/types';
 
 /**
@@ -28,13 +28,7 @@ export default function AbrechnungWahl({
           </option>
         ))}
       </SelectField>
-      <p className="mt-1 text-sm text-ink-muted">
-        {wert === 'Pauschal'
-          ? 'Die Rechnung übernimmt das Angebot als Festpreis.'
-          : wert === 'Einheitspreis'
-            ? 'Die Rechnung übernimmt die Positionen mit ihren Einheitspreisen; die Mengen kommen aus dem Aufmaß.'
-            : 'Verrechnet werden die bestätigten Stunden und das Material der Scheine.'}
-      </p>
+      <p className="mt-1 text-sm text-ink-muted">{abrechnungHinweis(wert)}</p>
     </div>
   );
 }

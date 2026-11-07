@@ -89,6 +89,10 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Der Support löscht Angebotsentwürfe nicht endgültig (E54) | Sicherheit: Löschen ist endgültig; wie beim Schein (E42) |
 | Wartung auf der Rechnung (Stand 52, E55): Rechnungen von vor dem 06.11.2026 tragen keine Wartungsabdeckung; die Vorschau erkennt sie am Text, die Datenbank zählt sie nicht | Altdaten: nachtragen hieße, Belege in der Produktion umzuschreiben |
 | Wartung: ein schon verrechneter, eingeplanter Durchgang, der beim „Erledigt“ bewusst auf eine andere Baustelle eingetragen wird, wird dort wieder vorgeschlagen | Fachlich: welchen Durchgang eine Rechnung der ersten Baustelle meinte, steht nirgends; die Entscheidung trifft das Büro beim Eintragen |
+| Annahme per Link (Stand 53, E56): kein QR-Code | Der Link ist kopierbar und mailbar; ein QR-Baustein hieße eine neue Bibliothek nur dafür, ohne dass ein Ablauf fehlt |
+| Annahme per Link: Rate-Limit je Link, nicht je Abrufer | Sicherheit: die Adresse des Abrufers ist hinter dem Netzwerk nicht verlässlich bestimmbar; ein Zähler je falschem Schlüssel schriebe bei jedem Rateversuch eine Zeile |
+| Annahme per Link: Öffnungen nur gezählt (erstes, letztes, Anzahl), ohne IP und Gerät | Datenschutz (U05, Datensparsamkeit) |
+| Annahme per Link: Versand aus der App erst mit M14 | Liegt beim Betreiber: SMTP-Zugang als Secret der Edge Function; bis dahin Kopieren und Mail-Programm |
 
 ## X – Liegt bei jemand anderem
 

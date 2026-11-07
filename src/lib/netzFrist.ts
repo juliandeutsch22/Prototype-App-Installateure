@@ -78,6 +78,8 @@ export type Zugriffsart = keyof typeof FRISTEN;
  * aufruft, hier steht, damit keine neue still ohne Frist bleibt.
  */
 export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
+  'angebot_links_neu_angenommen',
+  'angebot_links_stand',
   'arbeitszeit_vorlauf',
   'arztbesuch_vorschlag',
   'ausgegebenes_material',

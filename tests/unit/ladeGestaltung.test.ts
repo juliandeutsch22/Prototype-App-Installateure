@@ -66,9 +66,10 @@ describe('Beim ersten Öffnen einer Ansicht', () => {
   });
 
   it('die Ansichten sind mit ihrem Menüpfad angemeldet — sonst holt das Vorladen sie nicht', () => {
-    // Ausserhalb der Navigation bleiben nur Rechtliches, Plattform und Musterseite.
+    // Ausserhalb der Navigation bleiben nur Rechtliches, Plattform und Musterseite —
+    // und die Seite des Annahme-Links für den Kunden ohne Konto (M02a).
     const reinLazy = [...app.matchAll(/const (\w+) = lazy\(/g)].map((m) => m[1]).sort();
-    expect(reinLazy).toEqual(['DatenschutzView', 'ImpressumView', 'MusterView', 'PlattformView']);
+    expect(reinLazy).toEqual(['AngebotAnnahmeSeite', 'DatenschutzView', 'ImpressumView', 'MusterView', 'PlattformView']);
     expect((app.match(/= ansicht\(/g) ?? []).length).toBeGreaterThanOrEqual(30);
   });
 });
