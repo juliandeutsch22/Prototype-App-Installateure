@@ -77,10 +77,19 @@ describe('Folgen beim Abschalten — was sich nicht zurückholen lässt', () => 
   });
 
   it('die übrigen Module haben keine solche Folge', () => {
-    // Die Angebote nennen seit M02a die Folge ihrer Unterfähigkeit — eigener Fall unten.
-    for (const m of MODULE.filter((x) => x.id !== 'einsatzplanung' && x.id !== 'angebote')) {
+    // Die Angebote nennen seit M02a die Folge ihrer Unterfähigkeit, Material seit M04a die der Lagerorte — eigene Fälle unten.
+    for (const m of MODULE.filter((x) => x.id !== 'einsatzplanung' && x.id !== 'angebote' && x.id !== 'material')) {
       expect(folgenBeimAbschalten(m.id, undefined), m.id).toEqual([]);
     }
+  });
+
+  it('Material und die Lagerorte sagen vorher, dass Ware an weiteren Orten unsichtbar, aber nicht weg ist (M04a)', () => {
+    const satz = expect.stringMatching(/nicht mehr zu sehen, aber nicht weg/);
+    expect(folgenBeimAbschalten('material.lagerorte_fahrzeuglager', undefined)).toEqual([satz]);
+    // Das Modul nimmt seine Unterfähigkeit mit — und damit ihre Folge.
+    expect(folgenBeimAbschalten('material', undefined)).toEqual([satz]);
+    // Schon abgeschaltet: keine Folge mehr beim Abschalten des Moduls.
+    expect(folgenBeimAbschalten('material', { 'material.lagerorte_fahrzeuglager': false })).toEqual([]);
   });
 
   it('die Angebote und die Annahme per Link sagen, dass offene Links nicht mehr antworten (M02a)', () => {
@@ -151,6 +160,15 @@ const PRUEF: Modul[] = [
   },
 ];
 
+describe('Lagerorte und Fahrzeuglager (M04a)', () => {
+  it('„Lagerorte und Fahrzeuglager“ hängt unter Material, ist ab Werk an und geht mit dem Modul aus', () => {
+    expect(schalter('material.lagerorte_fahrzeuglager')?.name).toBe('Lagerorte und Fahrzeuglager');
+    expect(istAn(undefined, 'material.lagerorte_fahrzeuglager')).toBe(true);
+    expect(istAn({ material: false }, 'material.lagerorte_fahrzeuglager')).toBe(false);
+    expect(istAn({ 'material.lagerorte_fahrzeuglager': false }, 'material')).toBe(true);
+  });
+});
+
 describe('Unterfähigkeiten', () => {
   it('gelten mit ihrem eigenen Standard, solange nichts festgelegt ist', () => {
     const an = aktiveSchalter(undefined, PRUEF);
@@ -210,9 +228,11 @@ describe('Material: Kataloge, Preisvergleich, Preisverlauf (M03a)', () => {
   const TEILE = ['material.katalogversionen', 'material.lieferantenvergleich', 'material.katalogpreisverlauf'] as const;
 
   it('stehen unter „Material“, eingeschaltet, solange nichts festgelegt ist', () => {
-    expect(MODULE.find((m) => m.id === 'material')!.unter!.map((f) => [f.id, f.standard])).toEqual(
-      TEILE.map((t) => [t, true]),
-    );
+    // Neben ihnen steht seit M04a „Lagerorte und Fahrzeuglager“ (eigener Fall oben).
+    expect(MODULE.find((m) => m.id === 'material')!.unter!.map((f) => [f.id, f.standard])).toEqual([
+      ...TEILE.map((t) => [t, true]),
+      ['material.lagerorte_fahrzeuglager', true],
+    ]);
     for (const t of TEILE) expect(istAn(undefined, t)).toBe(true);
   });
 

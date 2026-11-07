@@ -96,6 +96,9 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Kataloge mehrerer Großhändler (Stand 54, E57): EAN und Preiseinheit aus DATANORM sind nicht gegen echte Dateien geprüft | Liegt beim Pilotbetrieb: DATANORM-Dateien realer Großhändler (Nachweisregister) |
 | Kataloge: ein Artikel ohne Preiszeile bekommt keinen Lieferantenartikel | Altdaten: von welchem Großhändler er stammt, wurde nie gespeichert; geraten wird nichts |
 | Kataloge: von den Entscheidungen zu einem Lieferantenartikel steht nur die jüngste (wer, wann) | Fachlich: der Katalog ist Stammdatum ohne Akte, das Änderungsjournal führt Geschäftsobjekte; die gültige Zuordnung ist belegt |
+| Lagerorte (Stand 55, E58): Kennzeichen an Zeitbuchungen vor dem 07.11.2026 werden keinem Fahrzeug zugeordnet, sie stehen nur als Vorschlag da | Altdaten: der Freitext ist nicht eindeutig; geraten wird nichts |
+| Lagerorte: an weiteren Orten gibt es keine Reservierung | Fachlich: dort ist frei, was liegt; die Ware im Fahrzeug steht der Rüstliste dieses Fahrzeugs zur Verfügung |
+| Lagerorte: Umlagern ohne Bestand am Quellort geht nicht, auch nicht mit Übersteuerung | Fachlich: eine Umlagerung bewegt Ware; was nicht da ist, wird am Ort gezählt (Inventur), nicht negativ gebucht |
 
 ## X – Liegt bei jemand anderem
 

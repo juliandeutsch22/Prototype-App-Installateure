@@ -180,6 +180,11 @@ describe('Ein Betrieb entsteht vollständig oder gar nicht', () => {
     const { data: protokoll } = await admin.from('betriebsanlagen')
       .select('name, erster_admin_uid').eq('betrieb_kennung', eingabe.companyId).single();
     expect(protokoll!.erster_admin_uid).toBe(daten.ersterAdminUid);
+
+    // M04a: das Hauptlager gibt es vom ersten Tag an — genau eines, ohne Bestand an weiteren Orten.
+    const { data: orte } = await admin.from('lagerorte')
+      .select('art, bezeichnung, aktiv').eq('company_id', eingabe.companyId);
+    expect(orte).toEqual([{ art: 'haupt', bezeichnung: 'Hauptlager', aktiv: true }]);
   }, 120_000);
 
   /*

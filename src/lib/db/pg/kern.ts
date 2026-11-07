@@ -192,6 +192,10 @@ function zweitschluessel(tabelle: string): string[] {
   // Betrieb, Benutzer und Monat sind in der Sicht zusammen eindeutig; der
   // Betrieb steht ohnehin schon in der Bedingung.
   if (tabelle === 'monthly_stats') return ['user_id', 'monat'];
+  // Bestand je weiterem Ort (M04a): eine Zeile je Ort und Artikel. Ein
+  // Außenlager kann mehr Artikel tragen als eine Seite — gelesen wird
+  // deshalb seitenweise, und dafür braucht es diesen Schlüssel.
+  if (tabelle === 'lagerbestaende') return ['lagerort_id', 'material_id'];
   return ['id'];
 }
 

@@ -61,4 +61,20 @@ export function ladenUmschalten(
   return pg.ladenUmschalten(companyId, date, projectNumber, positionId, an, vonName);
 }
 
+/**
+ * Abhaken aus einem Fahrzeug (M04a): wie `ladenUmschalten`, gebucht wird am
+ * Quellort `ortId` (ein Fahrzeuglager). Ohne Ort derselbe Aufruf wie bisher.
+ */
+export function ladenUmschaltenAusOrt(
+  companyId: string,
+  date: string,
+  projectNumber: string,
+  positionId: string,
+  an: boolean,
+  vonName: string,
+  ortId: string | null,
+): Promise<number> {
+  return pg.ladenUmschalten(companyId, date, projectNumber, positionId, an, vonName, undefined, ortId);
+}
+
 export type { WithId };
