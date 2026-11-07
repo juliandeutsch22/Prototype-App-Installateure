@@ -125,7 +125,8 @@ beforeEach(() => {
   });
   rabattsatzSetzen.mockReset().mockResolvedValue(undefined);
   lieferantAnlegen.mockReset().mockResolvedValue('neu');
-  spruenge.mockReset();
+  // Ohne Vorgabe gäbe der Bericht `undefined` zurück und die Ansicht stürzte nach dem Test unbehandelt ab.
+  spruenge.mockReset().mockResolvedValue({ gesamt: 0, schwelle: 10, zeilen: [] });
   authWert.company = { id: 'perl', name: 'Perl Installationen' };
 });
 
