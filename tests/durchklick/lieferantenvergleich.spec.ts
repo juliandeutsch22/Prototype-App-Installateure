@@ -17,9 +17,19 @@ const ALPHA = ['V;01112026;Alpha Großhandel;EUR', 'A;N;LV-1;0;Kugelhahn;Alpha;2
 const BETA = ['V;01112026;Beta Großhandel;EUR', 'A;N;LV-1;0;Kugelhahn;Beta;2;0;Stk;900;10;0'].join('\n');
 
 async function einspielen(page: Page, lieferant: string, inhalt: string) {
-  // Gibt es schon Lieferanten, steht die Auswahl da; „Neuen Lieferanten anlegen …“ ist der leere Wert.
-  const auswahl = page.getByLabel('Lieferant', { exact: true });
-  if (await auswahl.count()) await auswahl.selectOption('');
+  /*
+    Gibt es schon Lieferanten, steht die Auswahl da; „Neuen Lieferanten anlegen …“
+    ist der leere Wert. Gefragt wird die Datenbank, nicht die Seite: die
+    Lieferanten laden nach, und bei genau einem wählt die Ansicht ihn vor — wer
+    zu früh nachsieht, findet keine Auswahl, und das Namensfeld verschwindet
+    danach unter den Händen (CI zu #419).
+  */
+  const { count } = await admin.from('suppliers').select('id', { count: 'exact', head: true }).eq('company_id', BETRIEB);
+  if (count) {
+    const auswahl = page.getByLabel('Lieferant', { exact: true });
+    await expect(auswahl).toBeVisible();
+    await auswahl.selectOption('');
+  }
   await page.getByLabel('Name des Lieferanten').fill(lieferant);
   await page.getByLabel('DATANORM-Datei').setInputFiles({
     name: `${lieferant}.001`, mimeType: 'text/plain', buffer: Buffer.from(inhalt, 'utf-8'),
