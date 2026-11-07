@@ -11,6 +11,7 @@ import { monatsTage } from '@/features/assignments/planungKopf';
 import { einsatzZeit } from '@/features/assignments/einsatzZeit';
 import { nachEinstufung, type Brett, type Zelle } from '@/features/assignments/planTypen';
 import { kurzname } from '@/features/assignments/kurzname';
+import { deckeListe, zusammenfassen } from '@/features/assignments/materialDeckung';
 
 /*
   MUSTER, RUNDE 4 — DER MONAT (Auftrag 5 und 6): Balken je Person und je
@@ -134,7 +135,14 @@ export default function MusterMonat() {
         tag === einsaetze.find((a) => a.projectNumber === 'M-0147')?.date
           ? [{ date: tag, projectNumber: 'M-0147', positionen: [{ id: 'r1', materialId: 'x1', name: 'Kupferrohr 22 mm', menge: 6 }, { id: 'r2', name: 'Leihgerät Rohrkamera', menge: 1 }] }]
           : [],
-      lager: async () => new Map([['x1', { frei: 4 }]]),
+      // Dieselbe Rechnung wie im Betrieb (M04b): 4 frei vor der Liste, 6 geplant — es fehlen 2.
+      deckung: async (tag) => {
+        const positionen = deckeListe(
+          [{ id: 'r1', materialId: 'x1', menge: 6 }, { id: 'r2', menge: 1 }],
+          { datum: tag, freiVor: new Map([['x1', 4]]) },
+        );
+        return new Map([['M-0147', { positionen, lage: zusammenfassen(positionen) }]]);
+      },
     }),
     [einsaetze],
   );
