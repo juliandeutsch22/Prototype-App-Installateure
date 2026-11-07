@@ -22,6 +22,8 @@ dann zu „erledigt mit E…/PR …“, gesammelt unter „Nachgeführt“. Den 
 | U04 | erledigt (E53, M01b): Änderungsjournal für Kunden, Baustellen, Angebote, Rechnungen, Zahlungen, Wartungen, Benutzer; vorhandene Verläufe mitgelesen |
 | U06 | erledigt (E54, M01d): Papierkorb für Angebots- und Schein-Entwürfe, Löschsperre für Nicht-Entwürfe auf dem Server, Frist je Betrieb |
 | W04 | erledigt (E55, M01e): Wartung über ihre Kennung auf der Rechnung (Durchgang je Baustelle), Datenbank verhindert doppelte Verrechnung; Altrechnungen per Text |
+| A06 | erledigt (E56, M02a): Annahme per Link mit Unterschrift, gemeinsamer Kern mit der internen Annahme, Push an die Führung |
+| N02 | Serverprüfung neuer Befehle (V3) umgesetzt: `app.modul_aktiv` mit Vergleich gegen das Register der App (E56) |
 
 
 ## Bestandsmatrix Teil A/R — Aufträge und Rechnungswesen

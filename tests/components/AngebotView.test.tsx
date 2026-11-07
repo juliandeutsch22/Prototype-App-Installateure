@@ -76,6 +76,16 @@ vi.mock('@/lib/db/aussteller', () => ({
 vi.mock('@/features/quotes/angebotPdf', () => ({
   downloadAngebotPdf: (o: unknown) => pdf(o),
 }));
+/*
+  Die Annahme-Links (M02a) prüft `AngebotLink.test.tsx`; hier hat das Angebot
+  keinen — so, wie jedes Angebot vor dem Paket dastand.
+*/
+vi.mock('@/lib/db/angebotLinks', () => ({
+  listAngebotLinks: vi.fn(async () => []),
+  angebotLinkErzeugen: vi.fn(),
+  angebotLinkWiderrufen: vi.fn(),
+  angebotLinkGesehen: vi.fn(async () => undefined),
+}));
 vi.mock('@/features/quotes/angebotAnnehmen', () => ({
   angebotAnnehmen: (...a: unknown[]) => annehmen(...(a as [])),
   annahmeMeldung: (r: { projectNumber: string }) => `Baustelle ${r.projectNumber} angelegt`,

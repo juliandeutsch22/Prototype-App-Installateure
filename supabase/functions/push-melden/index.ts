@@ -1,5 +1,6 @@
 /**
- * Die Push-Meldungen rund um Materialanforderungen und Abwesenheiten —
+ * Die Push-Meldungen rund um Materialanforderungen, Abwesenheiten und die
+ * Antwort eines Kunden über den Annahme-Link (M02a) —
  * angestossen von einem Postgres-Trigger, verschickt über Firebase Cloud
  * Messaging.
  *
@@ -22,9 +23,11 @@
  */
 import {
   abwesenheitAusZeile,
+  empfaengerAngebotLink,
   empfaengerAntrag,
   empfaengerFreistellung,
   empfaengerKrankmeldung,
+  textAngebotLink,
   textAntrag,
   textEntscheidung,
   textFreistellungAntrag,
@@ -151,6 +154,7 @@ async function tokensFuer(uids: string[], art: MeldungsArt): Promise<string[]> {
       notifyOrderReady: zeile.notify_order_ready,
       notifyUrgentDelivery: zeile.notify_urgent_delivery,
       notifyAbwesenheit: zeile.notify_abwesenheit,
+      notifyAngebot: zeile.notify_angebot,
     };
     if (!willMeldung(vorgaben, art)) continue;
     for (const t of (zeile.push_tokens as string[] | null) ?? []) tokens.push(t);
@@ -328,6 +332,30 @@ async function auftraegeAbwesenheit(ereignis: Ereignis): Promise<Auftrag[] | nul
   return null;
 }
 
+/**
+ * Angebote (M02a): der Kunde hat über den Annahme-Link angenommen oder
+ * abgelehnt. `push_angebot_link` gibt den Link genau einmal heraus — ein
+ * zweiter Anstoß für dieselbe Entscheidung bekommt `null` und meldet nichts.
+ */
+async function auftraegeAngebot(ereignis: Ereignis): Promise<Auftrag[] | null> {
+  const link = String(ereignis.zeile?.id ?? '');
+  if (ereignis.art !== 'link-entschieden' || !link) return null;
+  const r = await fetch(`${URL_BASIS}/rest/v1/rpc/push_angebot_link`, {
+    method: 'POST', headers: alsDienst, body: JSON.stringify({ p_link: link }),
+  });
+  const d = r.ok ? await r.json().catch(() => null) : null;
+  if (!d) return [];
+  const e = d as {
+    angebot: string; nummer: string; entscheidung: 'angenommen' | 'abgelehnt'; name?: string;
+    belegschaft?: Belegschaftsmitglied[];
+  };
+  return [{
+    art: 'notifyAngebot',
+    uids: empfaengerAngebotLink(e.belegschaft ?? []),
+    meldung: textAngebotLink(e, link),
+  }];
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return antwort({ error: 'Nur POST.' }, 405);
 
@@ -349,7 +377,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const auftraege = ereignis.quelle === 'abwesenheit'
     ? await auftraegeAbwesenheit(ereignis)
-    : await auftraegeAnforderung(ereignis);
+    : ereignis.quelle === 'angebot'
+      ? await auftraegeAngebot(ereignis)
+      : await auftraegeAnforderung(ereignis);
   if (!auftraege) return antwort({ gesendet: 0, grund: 'kein Ereignis, das etwas meldet' });
 
   /*

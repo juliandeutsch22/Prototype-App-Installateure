@@ -54,6 +54,15 @@ async function plan(sql: string, vorbereitung?: string): Promise<string[]> {
     return indexNamen(rows[0]['QUERY PLAN']);
   } finally {
     await db.query('rollback');
+    /*
+      ZURÜCKGEROLLT IST NICHT ALLES: `analyze` schreibt die Zeilenzahl der
+      Tabelle (`pg_class.reltuples`) an Ort und Stelle, nicht in der
+      Transaktion. Ohne neue Messung hielte der Planer die Tabelle für den
+      nächsten Fall noch für 2.000 Zeilen groß — und entschiede dort anders.
+    */
+    if (vorbereitung) {
+      for (const tabelle of vorbereitung.matchAll(/analyze (public\.\w+)/g)) await db.query(`analyze ${tabelle[1]}`);
+    }
   }
 }
 
@@ -64,6 +73,23 @@ describe('Indizes für Wachstum', () => {
     insert into public.materials (company_id, name, article_number, stock)
       select 'iw-katalog', 'Artikel ' || i, 'K-' || i, 0 from generate_series(1, 2000) i;
     analyze public.materials;`;
+  /*
+    DIE RECHNUNGSFÄLLE MIT EIGENEM BESTAND (06.11.2026). Ohne Zeilen des
+    Betriebs entschied der Planer zwischen `invoices_betrieb_angelegt` und
+    `invoices_baustelle` nach dem, was andere Prüfungen gerade in `invoices`
+    liegen hatten — je nach Reihenfolge des Laufs, mal so, mal so. 2.000
+    Rechnungen auf 200 Baustellen und 100 Kunden geben ihm, was ein
+    wachsender Betrieb hat; mit dem Zurückrollen sind sie wieder weg.
+  */
+  const rechnungen = `
+    insert into public.companies (id, name) values ('iw-rechnung', 'Rechnung') on conflict do nothing;
+    set local session_replication_role = replica;
+    insert into public.invoices (company_id, invoice_number, project_number, project_id, customer_id, customer_name,
+                                 invoice_date, due_date, total_netto, total_vat, total_brutto, payment_status, created_at)
+      select 'iw-rechnung', 'RE-' || i, 'PR-2026-' || (i % 200), md5('p' || (i % 200))::uuid, md5('k' || (i % 100))::uuid,
+             'Kunde', current_date, current_date + 14, 100, 20, 120, 'Offen', now() - make_interval(mins => i)
+        from generate_series(1, 2000) i;
+    analyze public.invoices;`;
   const faelle: [string, string, string, string?][] = [
     ['DATANORM: Artikel des Betriebs nach Artikelnummer', 'materials_artikelnummer',
       `select * from public.materials m where m.company_id = 'iw-katalog' and m.article_number = 'K-17'`, katalog],
@@ -73,13 +99,13 @@ describe('Indizes für Wachstum', () => {
     ['Frei im Lager: Rüstlisten eines Artikels', 'einsatz_material_positionen_artikel',
       `select coalesce(sum(p.menge), 0) from public.einsatz_material_positionen p where p.material_id = '${ID}'`],
     ['Rechnungsliste, jüngste zuerst', 'invoices_betrieb_angelegt',
-      `select * from public.invoices where company_id = 'x' order by created_at desc limit 50`],
+      `select * from public.invoices where company_id = 'iw-rechnung' order by created_at desc limit 50`, rechnungen],
     ['Rechnungen einer Baustelle', 'invoices_baustelle',
-      `select * from public.invoices where company_id = 'x' and project_number in ('2026-1', 'PR-2026-1')`],
+      `select * from public.invoices where company_id = 'iw-rechnung' and project_number in ('2026-1', 'PR-2026-1')`, rechnungen],
     ['Kundenakte: Rechnungen nach Kunde', 'invoices_kunde',
-      `select * from public.invoices where company_id = 'x' and customer_id = '${ID}'`],
+      `select * from public.invoices where company_id = 'iw-rechnung' and customer_id = '${ID}'`, rechnungen],
     ['Kundenakte: Rechnungen nach Baustelle des Kunden', 'invoices_baustelle_id',
-      `select * from public.invoices where company_id = 'x' and project_id in ('${ID}')`],
+      `select * from public.invoices where company_id = 'iw-rechnung' and project_id in ('${ID}')`, rechnungen],
     ['Scheinliste, jüngste zuerst', 'work_sheets_betrieb_angelegt',
       `select * from public.work_sheets where company_id = 'x' order by created_at desc limit 100`],
   ];

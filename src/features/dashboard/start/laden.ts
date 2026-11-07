@@ -35,6 +35,7 @@ import { listGarantienEndenIn, listUnpaidInvoiceKoepfe, listInvoicesByIds, schei
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
 import { listRecentWorkSheetKoepfe, listOwnWorkSheetsSince, zaehleVerworfeneScheine } from '@/lib/db/workSheets';
 import { zaehleVerworfeneAngebote } from '@/lib/db/quotes';
+import { listUeberLinkAngenommen, type UeberLinkAngenommen } from '@/lib/db/angebotLinks';
 import { fristStichtag } from '@/lib/papierkorb';
 import { listAbwesendInRange, listOpenVacations, type Abwesenheit } from '@/lib/db/vacations';
 import { listOffeneFreistellungen } from '@/lib/db/freistellungen';
@@ -176,6 +177,9 @@ export interface StartDaten {
   firmenbuchKorrigiertAm?: number | null;
   /** Was länger als die Frist im Papierkorb liegt (M01d) — nur mit Frist. */
   papierkorbUeberFrist?: { anzahl: number; tage: number } | null;
+  // Angebote (M02a)
+  /** Über den Annahme-Link angenommen, von der Führung noch nicht geöffnet — höchstens 7 Tage. */
+  ueberLinkAngenommen?: UeberLinkAngenommen[];
   // Personen
   lehrzeitEnden?: LehrzeitEndeZeile[];
   einzigeLeitungOhneMail?: boolean;
@@ -218,6 +222,16 @@ const still = <T>(p: () => Promise<T>, ersatz: T): Promise<T> =>
 export async function termineHeute(k: Kontext): Promise<Partial<StartDaten>> {
   const alle = await listTermineImZeitraum(k.user.companyId, k.heute, k.heute);
   return { termineHeute: alle.filter((t) => t.teilnehmer.includes(k.user.uid)) };
+}
+
+// ─────────────────────────────────────────────────────────────── Angebote ──
+
+/**
+ * Über den Annahme-Link angenommen (M02a) — für die Führung, bis jemand das
+ * Angebot geöffnet hat, höchstens sieben Tage (`angebot_links_neu_angenommen`).
+ */
+export async function annahmenUeberLink(): Promise<Partial<StartDaten>> {
+  return { ueberLinkAngenommen: await listUeberLinkAngenommen() };
 }
 
 // ──────────────────────────────────────────────────────────── persönlich ──

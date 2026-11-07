@@ -1317,6 +1317,10 @@ begin
     raise exception 'Zuordnen darf, wer Kataloge einspielt — die Geschäftsführung oder wer die Freigabe „Katalog einspielen“ hat'
       using errcode = '42501';
   end if;
+  if not app.modul_aktiv(betrieb, 'material.katalogversionen') then
+    raise exception 'Die Kataloge mehrerer Großhändler sind in diesem Betrieb ausgeschaltet (Einstellungen → Module)'
+      using errcode = '55000';
+  end if;
   select * into la from public.lieferantenartikel a where a.id = p_id and a.company_id = betrieb for update;
   if la.id is null then
     raise exception 'Diesen Lieferantenartikel gibt es nicht' using errcode = 'P0002';
@@ -1363,6 +1367,10 @@ begin
   if not app.darf_katalog_einspielen() then
     raise exception 'Einen Artikel aus dem Katalog legt an, wer Kataloge einspielt'
       using errcode = '42501';
+  end if;
+  if not app.modul_aktiv(betrieb, 'material.katalogversionen') then
+    raise exception 'Die Kataloge mehrerer Großhändler sind in diesem Betrieb ausgeschaltet (Einstellungen → Module)'
+      using errcode = '55000';
   end if;
   select * into la from public.lieferantenartikel a where a.id = p_id and a.company_id = betrieb for update;
   if la.id is null then
@@ -1420,6 +1428,10 @@ begin
   end if;
   if not app.darf_katalog_einspielen() then
     raise exception 'Eine Zuordnung löst, wer Kataloge einspielt' using errcode = '42501';
+  end if;
+  if not app.modul_aktiv(betrieb, 'material.katalogversionen') then
+    raise exception 'Die Kataloge mehrerer Großhändler sind in diesem Betrieb ausgeschaltet (Einstellungen → Module)'
+      using errcode = '55000';
   end if;
   select * into la from public.lieferantenartikel a where a.id = p_id and a.company_id = betrieb for update;
   if la.id is null then
@@ -1573,31 +1585,47 @@ revoke all on function public.preisverlauf(uuid, uuid, integer) from public, ano
 grant execute on function public.preisverlauf(uuid, uuid, integer) to authenticated;
 
 /*
-  IST DER PREISVERGLEICH FÜR DIESEN BETRIEB AN (Unterfähigkeit
-  `material.lieferantenvergleich`, N02)?
+  DIE DREI TEILE IM REGISTER DES SERVERS (V3, E56). `app.modul_register()`
+  ist die Liste, nach der `app.modul_aktiv` rechnet; sie muss dieselben
+  Kennungen und Standards tragen wie `MODULE` in `src/lib/module.ts`
+  (`modulRegisterServer.test.ts` vergleicht beide).
+*/
+create or replace function app.modul_register()
+  returns table (kennung text, standard boolean, abhaengig_von text[])
+  language sql
+  immutable
+  security definer
+  set search_path = ''
+as $$
+  values
+    ('einsatzplanung', true, '{}'::text[]),
+    ('material', true, '{}'::text[]),
+    ('material.katalogversionen', true, '{}'::text[]),
+    ('material.lieferantenvergleich', true, '{}'::text[]),
+    ('material.katalogpreisverlauf', true, '{}'::text[]),
+    ('urlaub', true, '{}'::text[]),
+    ('scheine', true, '{}'::text[]),
+    ('angebote', true, '{}'::text[]),
+    ('angebote.online_annahme', true, '{}'::text[]),
+    ('rechnungen', true, '{}'::text[]),
+    ('nachkalkulation', true, '{rechnungen}'::text[]),
+    ('wartung', true, '{}'::text[]),
+    ('zeitkonten', true, '{}'::text[])
+$$;
+revoke all on function app.modul_register() from public, anon, authenticated;
 
-  Den Modulschalter liest auf dem Server `app.modul_aktiv` (kommt mit M02a).
-  Gibt es die Funktion (noch) nicht, gilt der Schalter als an — das ist sein
-  Standard. Aufgerufen wird sie deshalb über ihren Namen und nicht fest
-  verdrahtet: so lässt sich diese Migration auch vor M02a anwenden.
-  ZUSAMMENFÜHREN: ist M02a da, kann der Rumpf schlicht
-  `select app.modul_aktiv(p_betrieb, 'material.lieferantenvergleich')` sein.
+/*
+  IST DER PREISVERGLEICH FÜR DIESEN BETRIEB AN (Unterfähigkeit
+  `material.lieferantenvergleich`, N02)? Ein eigener Name, weil die
+  Vorschlagsregel ihn an mehreren Stellen fragt.
 */
 create or replace function app.lieferantenvergleich_an(p_betrieb text) returns boolean
-  language plpgsql
+  language sql
   stable
   security definer
   set search_path = ''
 as $$
-declare
-  an boolean;
-begin
-  if to_regprocedure('app.modul_aktiv(text,text)') is null then
-    return true;
-  end if;
-  execute 'select app.modul_aktiv($1, $2)' into an using p_betrieb, 'material.lieferantenvergleich';
-  return coalesce(an, false);
-end;
+  select app.modul_aktiv(p_betrieb, 'material.lieferantenvergleich');
 $$;
 revoke all on function app.lieferantenvergleich_an(text) from public, anon, authenticated;
 

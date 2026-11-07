@@ -135,6 +135,8 @@ export default async function aufbau(): Promise<void> {
     'termine',
     // M03a: die Lieferantenartikel vor den Läufen, auf die sie zeigen.
     'assignments', 'datanorm_zeilen', 'material_prices', 'lieferantenartikel', 'datanorm_laeufe',
+    // Annahme-Links (M02a) und Angebote: ein angenommenes hält seine Baustelle fest.
+    'angebot_links', 'quotes',
     'rabattsaetze', 'materials', 'projects', 'customers', 'suppliers',
   ]) {
     await admin.from(t).delete().eq('company_id', BETRIEB);

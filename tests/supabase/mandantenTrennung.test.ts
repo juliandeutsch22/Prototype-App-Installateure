@@ -70,6 +70,8 @@ const ZUSATZ: Record<string, (betrieb: string) => Record<string, unknown>> = {
   support_zugriffe: () => ({ admin_uid: uid(9671) }),
   termine: () => ({ project_number: 'P-1', customer_id: null }),
   urlaubsanspruch_anpassungen: () => ({ grund: 'Prüfung', urlaubsjahr: 2026, tage: 1 }),
+  // Hashwert und Vorsatz haben eine Form (M02a); der Hashwert ist eindeutig — je Betrieb ein eigener.
+  angebot_links: (b) => ({ schluessel_hash: (b === A ? 'a' : 'b').repeat(64), praefix: 'B' }),
 };
 
 /*
@@ -118,12 +120,16 @@ const EINKAUF = ['einkauf_posten', 'lieferantenartikel'];
 const LESBAR: Record<string, string[]> = {
   Mitarbeiter: [...FUER_ALLE].sort(),
   Verwaltung: [...FUER_ALLE, ...BUERO, ...EINKAUF, 'termine'].sort(),
-  Buchhaltung: [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, 'quote_lines', 'quotes'].sort(),
+  /*
+    Die Annahme-Links (M02a) liest, wer die Angebote liest (`angebot_links_lesen`
+    wie `quotes_lesen`, ohne den Support).
+  */
+  Buchhaltung: [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, 'angebot_links', 'quote_lines', 'quotes'].sort(),
   // Wie die Leitung, aber ohne Lohn, Zeiten anderer und Rechnungen; Urlaub und
   // Anfangsstände der Zeitkonten für die Planung.
-  Projektleiter: [...FUER_ALLE, ...BUERO, ...EINKAUF, 'quote_lines', 'quotes', 'termine', 'vacations', 'zeitkonto_anfang'].sort(),
-  'Geschäftsführung': [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, ...SPITZE, ...EINKAUF, 'quote_lines', 'quotes', 'termine'].sort(),
-  Administrator: [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, ...SPITZE, ...EINKAUF, 'quote_lines', 'quotes', 'termine'].sort(),
+  Projektleiter: [...FUER_ALLE, ...BUERO, ...EINKAUF, 'angebot_links', 'quote_lines', 'quotes', 'termine', 'vacations', 'zeitkonto_anfang'].sort(),
+  'Geschäftsführung': [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, ...SPITZE, ...EINKAUF, 'angebot_links', 'quote_lines', 'quotes', 'termine'].sort(),
+  Administrator: [...FUER_ALLE, ...BUERO, ...LOHN_UND_RECHNUNG, ...SPITZE, ...EINKAUF, 'angebot_links', 'quote_lines', 'quotes', 'termine'].sort(),
 };
 
 /** Tabellen, die Betrieb B nicht über `company_id` tragen, sondern anders zugeordnet sind. */

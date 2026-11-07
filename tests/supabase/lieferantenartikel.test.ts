@@ -321,7 +321,7 @@ describe('Die Katalogsuche findet über die Nummer des Großhändlers und die EA
 });
 
 describe('Vorschlag der Einkaufsliste folgt dem Schalter „Preisvergleich“', () => {
-  it('ausgeschaltet: wieder der jüngste — solange es `app.modul_aktiv` (M02a) nicht gibt, gilt er als an', async () => {
+  it('ausgeschaltet: wieder der jüngste — der Server liest den Schalter über `app.modul_aktiv` (V3)', async () => {
     const n = nr('MS');
     await einspielen(alpha, [zeile({ artikelnummer: n, preis: 8 })]);
     await einspielen(beta, [zeile({ artikelnummer: n, preis: 9 })]);
@@ -333,12 +333,39 @@ describe('Vorschlag der Einkaufsliste folgt dem Schalter „Preisvergleich“', 
     expect(vorher.data).toBe(alpha);
     await admin.from('companies').update({ modules: { 'material.lieferantenvergleich': false } }).eq('id', BETRIEB);
     try {
-      const { rows } = await db.query(`select to_regprocedure('app.modul_aktiv(text,text)') is not null as da`);
       const { data } = await verwaltung.client.rpc('lieferant_vorschlag', { p_material: s });
-      expect(data).toBe(rows[0].da ? beta : alpha);
+      expect(data).toBe(beta);
     } finally {
       await admin.from('companies').update({ modules: null }).eq('id', BETRIEB);
     }
+  });
+});
+
+describe('Kataloge mehrerer Großhändler ausgeschaltet (V3)', () => {
+  it('zuordnen, als neu anlegen und lösen weist der Server ab — die Übernahme ordnet weiter zu', async () => {
+    const n = nr('MV');
+    await einspielen(alpha, [zeile({ artikelnummer: n, preis: 8 })]);
+    await einspielen(beta, [zeile({ artikelnummer: n, preis: 9 })]);
+    const s = (await stamm(n))!.id;
+    const offen = (await lieferantenartikel(beta, n)).id;
+    const zugeordnet = (await lieferantenartikel(alpha, n)).id;
+    await admin.from('companies').update({ modules: { 'material.katalogversionen': false } }).eq('id', BETRIEB);
+    try {
+      const aus = /ausgeschaltet/;
+      await expect(la.zuordnen(offen, s, chefin.client)).rejects.toThrow(aus);
+      await expect(la.alsNeuerArtikel(offen, chefin.client)).rejects.toThrow(aus);
+      await expect(la.loesen(zugeordnet, chefin.client)).rejects.toThrow(aus);
+      expect(await lieferantenartikel(beta, n)).toMatchObject({ material_id: null });
+      expect((await lieferantenartikel(alpha, n)).material_id).toBe(s);
+      // Datenrichtigkeit hängt nicht am Schalter: eine neue Nummer wird weiter ihrem Lieferantenartikel zugeordnet.
+      const m = nr('MV');
+      await einspielen(alpha, [zeile({ artikelnummer: m, preis: 5 })]);
+      expect((await lieferantenartikel(alpha, m)).material_id).toBe((await stamm(m))!.id);
+    } finally {
+      await admin.from('companies').update({ modules: null }).eq('id', BETRIEB);
+    }
+    await la.zuordnen(offen, s, chefin.client);
+    expect((await lieferantenartikel(beta, n)).material_id).toBe(s);
   });
 });
 

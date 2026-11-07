@@ -94,7 +94,7 @@ nacheinander auf dem Arbeitsbranch, ein Paket nach dem anderen.
 | M01b | Änderungsjournal: vorhandene Verläufe lesen, neues Journal schreiben | U04 | erledigt (E53) |
 | M01d | Papierkorb für Entwürfe | U06 | erledigt (E54) |
 | M01e | Quellen- und Rechnungsvertrag auf `invoice_coverage` | W04 | erledigt (E55); Menge/Betrag und Reservierung mit der ersten Teilabrechnung |
-| M02 | Auftragseingang, Objekte, Online-Annahme | A03, A09, A11, A06 | offen |
+| M02 | Auftragseingang, Objekte, Online-Annahme | A03, A09, A11, A06 | A06 erledigt (E56, M02a); A03/A11 (M02b) und A09 (M02c) offen |
 | M03 | Kataloge, Preise, Kalkulation | E01–E07, A07, A08, G06 | offen |
 | M04 | Lagerorte, Fahrzeuglager, Scanner, Deckung | E10–E14, E16, G03 | offen |
 | M05 | Einkaufsbelege, Lieferantenanfragen, Kundenlieferschein | E08, E09, R01–R03 | offen |

@@ -8,10 +8,11 @@ import type { Modul } from '@/lib/module';
 /**
  * Die Seite „Module“ mit Unterfähigkeiten (N02, E52).
  *
- * Das echte Register trägt noch keine Unterfähigkeit; die ersten kommen mit
- * den Paketen des SHK-Ausbaus. Damit die Seite dann richtig damit umgeht —
- * und nicht erst, wenn ein Betrieb davorsitzt —, prüft diese Datei sie an
- * einem Prüfregister.
+ * Das echte Register trägt seit M02a eine Unterfähigkeit (die Annahme per
+ * Link); weitere kommen mit den Paketen des SHK-Ausbaus. Damit die Seite mit
+ * mehreren, mit Standard „aus“ und mit Folgen richtig umgeht — und nicht
+ * erst, wenn ein Betrieb davorsitzt —, prüft diese Datei sie an einem
+ * Prüfregister.
  */
 
 const PRUEF: Modul[] = [

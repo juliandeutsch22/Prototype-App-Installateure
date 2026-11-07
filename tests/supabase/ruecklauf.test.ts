@@ -22,6 +22,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtempSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { Client } from 'pg';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { admin, API, ANON, SERVICE, betriebAnlegen, konto, buchung, type Konto } from './helfer';
@@ -31,6 +33,8 @@ const lauf = promisify(execFile);
 const BETRIEB = 'ruecklauf';
 const VERWORFENES_ANGEBOT = crypto.randomUUID();
 const VERWORFENER_SCHEIN = crypto.randomUUID();
+const LINK_ANGEBOT = crypto.randomUUID();
+let linkSchluessel = '';
 
 let chef: Konto;
 let monteur: Konto;
@@ -98,6 +102,18 @@ beforeAll(async () => {
     }),
   ]);
   expect(papierkorb.map((r) => r.error)).toEqual([null, null]);
+  /*
+    EIN OFFENER ANNAHME-LINK (M02a): die Sicherung bringt ihn samt Hashwert
+    mit — nach dem Rücklauf gilt er weiter. Das Angebot ist schon versendet,
+    das Erzeugen schreibt also keine Journalzeile.
+  */
+  expect((await admin.from('quotes').insert({
+    id: LINK_ANGEBOT, company_id: BETRIEB, quote_number: 'AN-R-2', customer_name: 'Familie Huber',
+    quote_date: '2026-10-01', valid_until: '2099-11-01', status: 'Versendet', vat_rate: 20,
+  })).error).toBeNull();
+  const link = await chef.client.rpc('angebot_link_erzeugen', { p_angebot: LINK_ANGEBOT, p_abrechnung: 'Regie', p_praefix: 'R' });
+  expect(link.error).toBeNull();
+  linkSchluessel = (link.data as { schluessel: string }).schluessel;
   const { error: e1 } = await chef.client.from('customers').update({ contact_phone: '0664 1' }).eq('id', kunde!.id);
   const { error: e2 } = await chef.client.from('projects').update({ status: 'Pausiert' }).eq('project_number', 'R-2026-001');
   expect([e1, e2]).toEqual([null, null]);
@@ -125,6 +141,8 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
       if (count) vorher[t] = count;
     }
     expect(Object.keys(vorher).length).toBeGreaterThan(2);
+    const linkVorher = (await admin.from('angebot_links').select('*').eq('quote_id', LINK_ANGEBOT).single()).data;
+    expect(linkVorher).not.toBeNull();
     const journalVorher = ((await admin.from('aenderungsjournal').select('id, objekt_id, art, aenderungen, von_uid')
       .eq('company_id', BETRIEB).order('id')).data ?? []);
     expect(journalVorher).toHaveLength(2);
@@ -217,6 +235,23 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
     const [schein] = (await admin.from('work_sheets')
       .select('status, verworfen_am').eq('id', VERWORFENER_SCHEIN)).data!;
     expect(schein).toEqual({ status: 'Verworfen', verworfen_am: '2026-10-03T08:00:00+00:00' });
+    // Der Annahme-Link kommt Spalte für Spalte zurück — und der Schlüssel gilt wieder.
+    expect((await admin.from('angebot_links').select('*').eq('quote_id', LINK_ANGEBOT).single()).data).toEqual(linkVorher);
+    const abruf = await admin.rpc('angebot_link_abruf', {
+      p_hash: createHash('sha256').update(linkSchluessel).digest('hex'),
+    });
+    expect(abruf.data).toMatchObject({ zustand: 'offen' });
+    // Die Prüfsumme bleibt nachrechenbar: der Stand kommt als derselbe Text zurück.
+    const db = new Client({ connectionString: process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres' });
+    await db.connect();
+    try {
+      const { rows } = await db.query<{ gleich: boolean }>(
+        `select encode(sha256(convert_to(schnappschuss::text, 'UTF8')), 'hex') = schnappschuss_hash as gleich
+           from public.angebot_links where quote_id = $1`, [LINK_ANGEBOT]);
+      expect(rows).toEqual([{ gleich: true }]);
+    } finally {
+      await db.end();
+    }
     /*
       Nicht liegen lassen: `verlaeufe` und `urlaubNurUeberAntrag` spielen
       ältere Migrationen erneut ein, und die Prüfung der Stände von damals

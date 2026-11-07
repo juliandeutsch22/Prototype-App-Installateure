@@ -402,8 +402,16 @@ deno_version = 2
 # DAS KALENDER-ABO KOMMT OHNE ANMELDUNG. Google, Apple und Outlook holen es
 # selbst ab und schicken keinen Anmeldekopf mit; die geheime Adresse ist die
 # Berechtigung, und die Function prüft sie selbst (`kalender_abruf`). Alle
-# anderen Functions verlangen weiter eine Anmeldung.
+# anderen Functions außer `angebot-annahme` (unten) verlangen weiter eine
+# Anmeldung.
 [functions.kalender]
+verify_jwt = false
+
+# DIE ANNAHME EINES ANGEBOTS PER LINK (M02a) kommt ebenso ohne Anmeldung: der
+# Kunde hat kein Konto, der Schlüssel im Link ist die Berechtigung. Die
+# Function prüft seine Form und fragt die Datenbank nur nach seinem Hashwert
+# (`angebot_link_abruf`).
+[functions.angebot-annahme]
 verify_jwt = false
 
 [analytics]
