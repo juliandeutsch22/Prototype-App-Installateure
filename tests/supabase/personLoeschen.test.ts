@@ -154,11 +154,24 @@ describe('Ein Kunde', () => {
       company_id: BETRIEB, customer_id: kunde, customer_name: 'Familie Beleg', anlage: 'Therme',
       intervall_monate: 12, faellig_am: '2100-01-01',
     });
+    /*
+      SEINE AUFTRAGSEINGÄNGE (M02b): offene und abgelehnte gehen; der
+      übernommene belegt, woher die Baustelle kam, und bleibt — ohne
+      Ansprechpartner und Telefon, wie die Baustelle.
+    */
+    const eingang = (x: Record<string, unknown>) => einfuegen('auftragseingaenge', {
+      company_id: BETRIEB, customer_id: kunde, quelle: 'telefon', anliegen: 'Tropft',
+      ansprechpartner_name: 'Frau Beleg', ansprechpartner_telefon: '0664 4', ...x,
+    });
+    const eOffen = await eingang({});
+    const eAbgelehnt = await eingang({ stand: 'abgelehnt', abgelehnt_grund: 'Kein Gebiet', abgelehnt_am: '2099-01-01T00:00:00Z' });
+    const eUebernommen = await eingang({ stand: 'uebernommen', project_id: bau, uebernommen_am: '2099-01-01T00:00:00Z' });
 
     const probe = await loeschen(chef, 'kunde', kunde);
     expect(probe.b!.ganz).toBe(false);
-    // Seit M02a: offene Annahme-Links seiner Angebote werden widerrufen (hier keine).
-    expect(probe.b!.sofort).toEqual({ wartungen: 1, kontaktdaten: 2, termine: 0, annahme_links: 0 });
+    // Seit M02a: offene Annahme-Links seiner Angebote werden widerrufen (hier keine). Seit M02b seine Eingänge.
+    expect(probe.b!.sofort).toEqual({ wartungen: 1, kontaktdaten: 2, termine: 0, auftragseingaenge: 2, annahme_links: 0 });
+    expect(await zaehle('auftragseingaenge', 'customer_id', kunde)).toBe(3);
     expect(probe.b!.aufbewahren.map((a) => [a.was, a.anzahl, a.bis])).toEqual([
       ['Rechnungen samt Zahlungen', 1, '2106-12-31'],
       ['Baustellen mit Name und Adresse', 1, expect.stringMatching(/-12-31$/)],
@@ -173,18 +186,27 @@ describe('Ein Kunde', () => {
     const { data: b } = await admin.from('projects').select('contact_name, contact_phone').eq('id', bau).single();
     expect(b).toEqual({ contact_name: null, contact_phone: null });
     expect(await zaehle('invoices', 'customer_id', kunde)).toBe(1);
+    expect(await zaehle('auftragseingaenge', 'id', eOffen)).toBe(0);
+    expect(await zaehle('auftragseingaenge', 'id', eAbgelehnt)).toBe(0);
+    const { data: e } = await admin.from('auftragseingaenge')
+      .select('stand, project_id, ansprechpartner_name, ansprechpartner_telefon').eq('id', eUebernommen).single();
+    expect(e).toEqual({ stand: 'uebernommen', project_id: bau, ansprechpartner_name: null, ansprechpartner_telefon: null });
   });
 
-  it('ohne Belege geht ganz', async () => {
+  it('ohne Belege geht ganz — samt seinen Eingängen', async () => {
     const kunde = await einfuegen('customers', { company_id: BETRIEB, name: 'Familie Ohne', email: 'o@example.at' });
     await einfuegen('wartungen', {
       company_id: BETRIEB, customer_id: kunde, customer_name: 'Familie Ohne', anlage: 'Therme',
       intervall_monate: 12, faellig_am: '2100-01-01',
     });
+    const eingang = await einfuegen('auftragseingaenge', {
+      company_id: BETRIEB, customer_id: kunde, quelle: 'email', anliegen: 'Angebot für ein Bad',
+    });
     const { b } = await loeschen(chef, 'kunde', kunde, false);
     expect(b!.ganz).toBe(true);
     expect(await zaehle('customers', 'id', kunde)).toBe(0);
     expect(await zaehle('wartungen', 'customer_id', kunde)).toBe(0);
+    expect(await zaehle('auftragseingaenge', 'id', eingang)).toBe(0);
   });
 
   it('ein Beleg nur über den Namen hält ihn gesperrt — und bleibt selbst unberührt', async () => {

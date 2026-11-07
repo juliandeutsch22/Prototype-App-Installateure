@@ -22,6 +22,8 @@ export const SOFORT_GELOESCHT: Record<string, string> = {
   kontaktdaten: 'Kontaktdaten (Ansprechpartner, Telefon, E-Mail, Notizen)',
   // M02a: nicht gelöscht, aber beendet — wer gelöscht werden will, löst keine Baustelle mehr aus.
   annahme_links: 'Offene Annahme-Links (werden widerrufen)',
+  // M02b: übernommene bleiben bei ihrer Baustelle bzw. ihrem Angebot, ohne Kontaktdaten.
+  auftragseingaenge: 'Offene und abgelehnte Auftragseingänge',
 };
 
 /** Ein Dateiname, den jedes Betriebssystem nimmt — ohne Schrägstriche und Doppelpunkte. */

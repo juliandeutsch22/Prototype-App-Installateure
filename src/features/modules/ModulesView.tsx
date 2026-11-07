@@ -4,12 +4,14 @@ import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import { updateCompany } from '@/lib/db/company';
 import {
   MODULE,
+  KERN,
   aktiveModule,
   aktiveSchalter,
   zieheMit,
   folgenBeimAbschalten,
   schalter,
   type Faehigkeit,
+  type Kernbereich,
   type Modul,
   type SchalterId,
 } from '@/lib/module';
@@ -126,7 +128,7 @@ export default function ModulesView() {
    * direkt unter ihrem Modul und sagt, wozu sie gehört; ist das Modul aus, ist
    * auch sie aus und lässt sich erst mit ihm wieder einschalten.
    */
-  function zeile(eintrag: Modul | Faehigkeit, zu: Modul | null) {
+  function zeile(eintrag: Modul | Faehigkeit, zu: Modul | Kernbereich | null) {
     const an = schalterAn.has(eintrag.id);
     const braucht = [...(zu ? [zu.id] : []), ...(eintrag.abhaengigVon ?? [])];
     const fehlt = braucht.filter((d) => !schalterAn.has(d));
@@ -168,6 +170,19 @@ export default function ModulesView() {
     );
   }
 
+  /**
+   * Ein Kernbereich (M02b): immer an, ohne Schalter — Kunden und Baustellen
+   * sind der Bezug für alles Übrige (E51, V1). Seine Teile darunter schaltet
+   * der Betrieb wie die eines Moduls.
+   */
+  function kernZeile(k: Kernbereich) {
+    return (
+      <ListRow key={k.id} title={k.name} subtitle={k.zweck}>
+        <span className="flex min-h-touch shrink-0 items-center text-sm text-ink-muted">immer an</span>
+      </ListRow>
+    );
+  }
+
   if (!user) return null;
 
   return (
@@ -180,6 +195,28 @@ export default function ModulesView() {
       />
 
       {error && <ErrorState message={error} />}
+
+      {/*
+        DER KERN VOR DEN MODULEN, als eigenes Blatt: er zählt nicht zu
+        „Eingeschaltet: N von 9“, und ein Schalter, den es nicht gibt, soll
+        nicht zwischen den Schaltern stehen. Davor, damit „Module speichern“
+        am Ende von allem steht — es speichert auch seine Teile.
+      */}
+      <Card
+        title="Immer an"
+        hint={
+          <>
+            Kunden und Baustellen lassen sich nicht ausschalten — Planung, Zeiten, Scheine,
+            Wartungen und Rechnungen beziehen sich auf sie. Ihre Teile darunter schaltet der
+            Betrieb wie die eines Moduls; vorhandene Daten bleiben dabei erhalten.
+          </>
+        }
+        buendig
+      >
+        <List>
+          {KERN.flatMap((k) => [kernZeile(k), ...k.unter.map((f) => zeile(f, k))])}
+        </List>
+      </Card>
 
       {/*
         Die Erklaerung stand als EIGENE KARTE ueber der Liste — eine ganze

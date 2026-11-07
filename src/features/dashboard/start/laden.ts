@@ -36,6 +36,7 @@ import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
 import { listRecentWorkSheetKoepfe, listOwnWorkSheetsSince, zaehleVerworfeneScheine } from '@/lib/db/workSheets';
 import { zaehleVerworfeneAngebote } from '@/lib/db/quotes';
 import { listUeberLinkAngenommen, type UeberLinkAngenommen } from '@/lib/db/angebotLinks';
+import { zaehleOffeneEingaenge } from '@/lib/db/auftragseingaenge';
 import { fristStichtag } from '@/lib/papierkorb';
 import { listAbwesendInRange, listOpenVacations, type Abwesenheit } from '@/lib/db/vacations';
 import { listOffeneFreistellungen } from '@/lib/db/freistellungen';
@@ -180,6 +181,9 @@ export interface StartDaten {
   // Angebote (M02a)
   /** Über den Annahme-Link angenommen, von der Führung noch nicht geöffnet — höchstens 7 Tage. */
   ueberLinkAngenommen?: UeberLinkAngenommen[];
+  // Auftragseingang (M02b)
+  /** Offene Eingänge, davon dringend und Notfall — gezählt auf dem Server. */
+  offeneEingaenge?: OffeneEingaenge;
   // Personen
   lehrzeitEnden?: LehrzeitEndeZeile[];
   einzigeLeitungOhneMail?: boolean;
@@ -232,6 +236,23 @@ export async function termineHeute(k: Kontext): Promise<Partial<StartDaten>> {
  */
 export async function annahmenUeberLink(): Promise<Partial<StartDaten>> {
   return { ueberLinkAngenommen: await listUeberLinkAngenommen() };
+}
+
+// ──────────────────────────────────────────────────────── Auftragseingang ──
+
+export interface OffeneEingaenge {
+  offen: number;
+  dringend: number;
+  notfall: number;
+}
+
+/**
+ * Wie viele Eingänge offen sind (M02b) — für das Büro, das sie annimmt und
+ * weitergibt. Gezählt, nicht geholt: die Zeile nennt Anzahl und
+ * Dringlichkeit, die Liste die einzelnen.
+ */
+export async function eingaenge(k: Kontext): Promise<Partial<StartDaten>> {
+  return { offeneEingaenge: await zaehleOffeneEingaenge(k.user.companyId) };
 }
 
 // ──────────────────────────────────────────────────────────── persönlich ──

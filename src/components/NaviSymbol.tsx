@@ -18,6 +18,8 @@ const SYMBOLE: Record<string, string> = {
   '/my-schedule': 'M2.5 3.5 H13.5 V13 H2.5 Z M2.5 6.5 H13.5 M6.2 6.5 V13 M9.8 6.5 V13',
   '/worksheets': 'M4 2.5 H10 L12.5 5 V13.5 H4 Z M6 10 C7 8.4 8 11.2 9 9.8 S10.6 9.2 11 10.2',
   '/quotes': 'M3.5 4.5 H10.5 V13.5 H3.5 Z M5.5 2.5 H12.5 V11.5',
+  // Das Ablagefach des Auftragseingangs (M02b) — was hereinkommt, bevor es Baustelle oder Angebot wird.
+  '/eingaenge': 'M2.5 9 H5.5 L6.5 10.8 H9.5 L10.5 9 H13.5 M2.5 9 L4 3.5 H12 L13.5 9 V13.5 H2.5 Z',
   '/customers': 'M3 13.5 V7.5 L8 3.5 L13 7.5 V13.5 Z M7 13.5 V10 H9 V13.5',
   '/wartungen': 'M5 3 Q5 2 6 2 H10 Q11 2 11 3 V11 H5 Z M8 4.6 A1.6 1.6 0 1 1 7.99 4.6 M6.5 11 V14 M9.5 11 V14',
   '/invoices': 'M4 2.5 H12 V13.5 L10.7 12.6 L9.3 13.5 L8 12.6 L6.7 13.5 L5.3 12.6 L4 13.5 Z M6 5.5 H10 M6 8 H10',

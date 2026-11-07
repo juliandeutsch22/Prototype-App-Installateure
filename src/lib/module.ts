@@ -32,8 +32,9 @@
  * diese Befehle IST das Modul eine Grenze. Die bestehenden Schreibwege
  * bleiben, wie sie sind (oben). Die Regel ist dieselbe wie `aktiveSchalter`;
  * die Standards stehen in SQL als Liste (`app.modul_register`), und
- * `tests/supabase/modulRegisterServer.test.ts` vergleicht sie mit `MODULE`.
- * Wer hier ein Modul oder eine Unterfähigkeit ändert, ändert die Liste mit.
+ * `tests/supabase/modulRegisterServer.test.ts` vergleicht sie mit `MODULE`
+ * und `KERN`. Wer hier ein Modul, einen Kernbereich oder eine Unterfähigkeit
+ * ändert, ändert die Liste mit.
  */
 
 export type ModulId =
@@ -61,7 +62,15 @@ export type ModulId =
  * unter ihrer Kennung mit Punkt. Ein Schlüssel mit Punkt kollidiert mit keinem
  * Modul, und der Server-Trigger, der die Liste schützt, schützt sie mit.
  */
-export type FaehigkeitId = `${ModulId}.${string}`;
+export type FaehigkeitId = `${ModulId | KernId}.${string}`;
+
+/**
+ * Ein Kernbereich: immer an, nicht abschaltbar (E51, V1) — aber mit
+ * Unterfähigkeiten, die es sind (M02b). Kunden und Baustellen sind der Bezug
+ * für alles Übrige; ihre Zusatzfähigkeiten (Auftragseingang, später Aufgaben,
+ * Mängel, Objekte …) braucht nicht jeder Betrieb.
+ */
+export type KernId = 'baustellen' | 'kunden';
 
 export interface Faehigkeit {
   id: FaehigkeitId;
@@ -78,8 +87,8 @@ export interface Faehigkeit {
   folgen?: string[];
 }
 
-/** Alles, was sich schalten lässt: ein Modul oder eine Unterfähigkeit. */
-export type SchalterId = ModulId | FaehigkeitId;
+/** Alles, wonach gefragt werden kann: ein Modul, ein Kernbereich (immer an) oder eine Unterfähigkeit. */
+export type SchalterId = ModulId | KernId | FaehigkeitId;
 
 export interface Modul {
   id: ModulId;
@@ -115,8 +124,19 @@ export interface Modul {
   unter?: Faehigkeit[];
 }
 
+/** Ein Kernbereich mit seinen schaltbaren Teilen (siehe `KernId`). */
+export interface Kernbereich {
+  id: KernId;
+  name: string;
+  /** Ein Satz: was der Betrieb damit tut. */
+  zweck: string;
+  /** Unterfähigkeiten, die einzeln schaltbar sind (N02). */
+  unter: Faehigkeit[];
+}
+
 /**
- * Der Kern steht bewusst NICHT in dieser Liste.
+ * Der Kern steht bewusst NICHT in dieser Liste — Kunden und Baustellen stehen
+ * mit ihren schaltbaren Teilen in `KERN`, ohne eigenen Schalter.
  *
  * Startseite, Zeiterfassung, Kunden, Baustellen, Benutzer und Einstellungen
  * sind nicht abschaltbar. Eine Handwerker-App ohne Zeiterfassung ist keine
@@ -221,6 +241,45 @@ export const MODULE: Modul[] = [
   },
 ];
 
+/**
+ * DIE KERNBEREICHE MIT IHREN SCHALTBAREN TEILEN (M02b). Sie zählen nicht zu
+ * den Modulen („Eingeschaltet: N von 9“ bleibt), haben keinen Schalter und
+ * stehen auf der Seite „Module“ als „immer an“; ihre Unterfähigkeiten
+ * schaltet der Betrieb wie die eines Moduls. Eine Festlegung zu einem
+ * Kernbereich selbst wird nicht gelesen — auch nicht auf dem Server
+ * (`app.modul_kern`).
+ */
+export const KERN: Kernbereich[] = [
+  {
+    id: 'baustellen',
+    name: 'Baustellen',
+    zweck: 'Der Bezug für Planung, Zeiten, Scheine, Wartungen und Rechnungen.',
+    unter: [
+      {
+        /*
+          AUFTRAGSEINGANG (A03, A11): „Behalten“, Standard an. Aus heißt: der
+          Eintrag in der Navigation, der Hinweis auf der Startseite und die
+          Verweise „Aus Eingang …“ verschwinden; Erfassen und Umwandeln
+          lehnt der Server ab (V3, `app.modul_aktiv`). Vorhandene Eingänge
+          bleiben unangetastet und sind nach dem Wiedereinschalten wieder da
+          — keine Folge, die sich nicht zurückholen ließe.
+        */
+        id: 'baustellen.auftragseingang',
+        name: 'Auftragseingang',
+        zweck: 'Anfragen und Aufträge mit Quelle, Nummer des Auftraggebers und Dringlichkeit erfassen und zur Baustelle oder zum Angebot machen.',
+        standard: true,
+        betrifft: ['Auftragseingang', 'Offene Eingänge auf der Startseite', '„Aus Eingang …“ in Baustelle, Angebot und Kunde'],
+      },
+    ],
+  },
+  {
+    id: 'kunden',
+    name: 'Kunden',
+    zweck: 'Der Kundenstamm mit Anschrift, Ansprechpartner und Belegen.',
+    unter: [],
+  },
+];
+
 const NACH_ID = new Map(MODULE.map((m) => [m.id, m]));
 
 /*
@@ -257,10 +316,10 @@ export function aktiveModule(
   festlegung: Record<string, boolean> | undefined,
   register: Modul[] = MODULE,
 ): Set<ModulId> {
+  const alle = aktiveSchalter(festlegung, register);
+  // Nur die Module des Registers: Kernbereiche und Unterfähigkeiten stehen nicht in der Navigation.
   const an = new Set<ModulId>();
-  for (const id of aktiveSchalter(festlegung, register)) {
-    if (!id.includes('.')) an.add(id as ModulId);
-  }
+  for (const m of register) if (alle.has(m.id)) an.add(m.id);
   return an;
 }
 
@@ -276,9 +335,18 @@ export function aktiveModule(
 export function aktiveSchalter(
   festlegung: Record<string, boolean> | undefined,
   register: Modul[] = MODULE,
+  kern: Kernbereich[] = KERN,
 ): Set<SchalterId> {
   const knoten: { id: SchalterId; braucht: SchalterId[] }[] = [];
   const an = new Set<SchalterId>();
+  // Der Kern ist immer an — eine Festlegung zu ihm wird nicht gelesen. Seine Teile folgen ihr.
+  for (const k of kern) {
+    an.add(k.id);
+    for (const f of k.unter) {
+      knoten.push({ id: f.id, braucht: [k.id, ...(f.abhaengigVon ?? [])] });
+      if (festlegung?.[f.id] ?? f.standard) an.add(f.id);
+    }
+  }
   for (const m of register) {
     knoten.push({ id: m.id, braucht: m.abhaengigVon ?? [] });
     if (festlegung?.[m.id] ?? m.standard) an.add(m.id);
@@ -337,7 +405,8 @@ export function zieheMit(
   register: Modul[] = MODULE,
 ): SchalterId[] {
   const vorher = aktiveSchalter(festlegung, register);
-  if (!vorher.has(id)) return [];
+  // Ein Kernbereich lässt sich nicht abschalten — es geht nichts mit.
+  if (!vorher.has(id) || istKern(id)) return [];
   const nachher = aktiveSchalter({ ...(festlegung ?? {}), [id]: false }, register);
   return [...vorher].filter(
     (m) => m !== id && !nachher.has(m) && !m.startsWith(`${id}.`),
@@ -362,7 +431,9 @@ export function folgenBeimAbschalten(
   for (const s of vorher) if (s.startsWith(`${id}.`)) betroffen.push(s);
   const folgen: string[] = [];
   for (const s of betroffen) {
-    for (const f of schalter(s, register)?.folgen ?? []) if (!folgen.includes(f)) folgen.push(f);
+    const eintrag = schalter(s, register);
+    const eigene = eintrag && 'folgen' in eintrag ? eintrag.folgen : undefined;
+    for (const f of eigene ?? []) if (!folgen.includes(f)) folgen.push(f);
   }
   return folgen;
 }
@@ -372,15 +443,21 @@ export function modul(id: ModulId, register: Modul[] = MODULE): Modul | undefine
   return register === MODULE ? NACH_ID.get(id) : register.find((m) => m.id === id);
 }
 
-/** Ein Modul oder eine Unterfähigkeit nachschlagen. */
+/** Ein Modul, einen Kernbereich oder eine Unterfähigkeit nachschlagen. */
 export function schalter(
   id: SchalterId,
   register: Modul[] = MODULE,
-): Modul | Faehigkeit | undefined {
-  for (const m of register) {
+  kern: Kernbereich[] = KERN,
+): Modul | Kernbereich | Faehigkeit | undefined {
+  for (const m of [...register, ...kern]) {
     if (m.id === id) return m;
     const f = m.unter?.find((u) => u.id === id);
     if (f) return f;
   }
   return undefined;
+}
+
+/** Ist das ein Kernbereich — immer an, ohne eigenen Schalter? */
+export function istKern(id: SchalterId, kern: Kernbereich[] = KERN): boolean {
+  return kern.some((k) => k.id === id);
 }

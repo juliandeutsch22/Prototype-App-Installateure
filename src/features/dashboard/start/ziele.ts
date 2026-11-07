@@ -25,6 +25,8 @@ export const ZIEL = {
   /** Ein Angebot auf seiner eigenen Seite (dort auch die Baustelle, die daraus entstand). */
   angebot: (id: string) => `/quotes/${q(id)}`,
   angebote: '/quotes',
+  /** Der Auftragseingang, offene zuerst (M02b). */
+  eingaenge: '/eingaenge',
   rechnungen: '/invoices',
   rechnungenUeberfaellig: `/invoices?status=${q('Überfällig')}`,
   rechnungenSicht: (sicht: RechnungsSicht) => `/invoices?sicht=${sicht}`,

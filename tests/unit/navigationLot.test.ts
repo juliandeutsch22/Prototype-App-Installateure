@@ -22,12 +22,34 @@ const VORHER: Record<Role, string[]> = {
 const ROLLEN = Object.keys(VORHER) as Role[];
 const sortiert = (a: string[]) => [...a].sort();
 
+/*
+  SEIT DEM UMBAU DAZUGEKOMMEN, jeder Punkt mit seinem Paket und schaltbar:
+  ohne ihn gilt die Liste von damals unverändert. Bewusst nachgezogen —
+  was neu ist, steht unten als eigener Fall.
+*/
+const OHNE_NEUE = { 'baustellen.auftragseingang': false };
+/** Der Auftragseingang (M02b) — für jede Rolle, die Kunden liest. */
+const NEU: Record<Role, string[]> = {
+  Mitarbeiter: [],
+  Verwaltung: ['/eingaenge'],
+  Buchhaltung: ['/eingaenge'],
+  Projektleiter: ['/eingaenge'],
+  Geschäftsführung: ['/eingaenge'],
+  Administrator: ['/eingaenge'],
+};
+
 describe('Je Rolle exakt die bisherigen Menüpunkte', () => {
   it.each(ROLLEN)('%s', (rolle) => {
-    expect(sortiert(navForRole(rolle).map((i) => i.path))).toEqual(sortiert(VORHER[rolle]));
+    expect(sortiert(navForRole(rolle, OHNE_NEUE).map((i) => i.path))).toEqual(sortiert(VORHER[rolle]));
     // Die Gruppen verteilen dieselben Punkte — keiner doppelt, keiner verloren.
-    const gruppiert = navGroupsForRole(rolle).flatMap((g) => g.items.map((i) => i.path));
+    const gruppiert = navGroupsForRole(rolle, OHNE_NEUE).flatMap((g) => g.items.map((i) => i.path));
     expect(sortiert(gruppiert)).toEqual(sortiert(VORHER[rolle]));
+  });
+
+  it.each(ROLLEN)('%s: mit den Standards kommt genau der Auftragseingang dazu (M02b)', (rolle) => {
+    expect(sortiert(navForRole(rolle).map((i) => i.path))).toEqual(sortiert([...VORHER[rolle], ...NEU[rolle]]));
+    const gruppiert = navGroupsForRole(rolle).flatMap((g) => g.items.map((i) => i.path));
+    expect(sortiert(gruppiert)).toEqual(sortiert([...VORHER[rolle], ...NEU[rolle]]));
   });
 
   it('die Zusatzrechte wirken wie vorher', () => {
@@ -71,6 +93,8 @@ describe('Untere Leiste am Handy', () => {
   it.each(ROLLEN)('%s: vier Ziele und „Mehr“ mit dem Rest — zusammen alles', (rolle) => {
     const { unten, mehr } = tabBarForRole(rolle);
     expect(unten.length).toBeLessThanOrEqual(4);
-    expect(sortiert([...unten, ...mehr].map((i) => i.path))).toEqual(sortiert(VORHER[rolle]));
+    expect(sortiert([...unten, ...mehr].map((i) => i.path))).toEqual(sortiert([...VORHER[rolle], ...NEU[rolle]]));
+    // Die vier unten bleiben dieselben: der Auftragseingang steht unter „Mehr“.
+    expect(tabBarForRole(rolle).unten.map((i) => i.path)).toEqual(tabBarForRole(rolle, OHNE_NEUE).unten.map((i) => i.path));
   });
 });

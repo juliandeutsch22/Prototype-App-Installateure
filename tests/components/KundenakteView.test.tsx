@@ -92,6 +92,13 @@ vi.mock('@/lib/db/wartungen', () => ({
 let modulAn = true;
 vi.mock('@/lib/useModule', () => ({ useModul: () => modulAn }));
 
+/* Die Auftragseingänge des Kunden (M02b) — ab Werk keine. */
+let eingaenge: unknown[] = [];
+const listEingaengeDesKunden = vi.fn<(c: string, k: string, max?: number) => Promise<unknown[]>>(async () => eingaenge);
+vi.mock('@/lib/db/auftragseingaenge', () => ({
+  listEingaengeDesKunden: (c: string, k: string, max?: number) => listEingaengeDesKunden(c, k, max),
+}));
+
 vi.mock('@/lib/time', async () => {
   const echt = await vi.importActual<typeof import('@/lib/time')>('@/lib/time');
   return { ...echt, todayStr: () => '2026-06-01' };
@@ -110,7 +117,8 @@ const NUTZER = () => ({
 });
 let nutzer = NUTZER();
 let einblick: unknown = null;
-vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: nutzer, einblick }) }));
+let firma: { id: string; modules?: Record<string, boolean> } | undefined;
+vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: nutzer, einblick, company: firma }) }));
 
 const { default: KundenakteView } = await import('@/features/customers/KundenakteView');
 
@@ -160,6 +168,34 @@ beforeEach(() => {
   einblick = null;
   listUidPruefungen.mockClear();
   uidBeiViesPruefen.mockReset();
+  eingaenge = [];
+  firma = undefined;
+  listEingaengeDesKunden.mockClear();
+});
+
+/* SEINE AUFTRAGSEINGÄNGE (M02b) — bei den Baustellen, mit Weg zu jedem und zur Liste. */
+describe('Die Eingänge des Kunden (M02b)', () => {
+  it('stehen unter „Baustellen“: Nummer, Anliegen, wann, Stand — und führen zum Eingang', async () => {
+    eingaenge = [{
+      id: 'e1', companyId: 'perl', nummer: 'EG-2026-0003', stand: 'offen', quelle: 'telefon', anliegen: 'Heizung kalt\nseit gestern',
+      dringlichkeit: 'notfall', eingegangenAm: new Date(2026, 10, 7, 9, 14).getTime(), customerId: 'k1', kundeName: 'Familie Huber',
+    }];
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen' }));
+    const karte = (await screen.findByText('Auftragseingänge')).closest('section') as HTMLElement;
+    expect(within(karte).getByRole('link', { name: 'EG-2026-0003 · Heizung kalt' })).toHaveAttribute('href', '/eingaenge/e1');
+    expect(within(karte).getByText('Notfall')).toBeInTheDocument();
+    expect(within(karte).getByRole('link', { name: 'Im Auftragseingang' })).toHaveAttribute('href', expect.stringMatching(/^\/eingaenge\?suche=/));
+    expect(listEingaengeDesKunden).toHaveBeenCalledWith('perl', 'k1', 20);
+  });
+
+  it('Gegenprobe: mit abgeschaltetem Auftragseingang keine Karte und keine Abfrage', async () => {
+    firma = { id: 'perl', modules: { 'baustellen.auftragseingang': false } };
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen' }));
+    expect(screen.queryByText('Auftragseingänge')).toBeNull();
+    expect(listEingaengeDesKunden).not.toHaveBeenCalled();
+  });
 });
 
 /**

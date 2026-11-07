@@ -230,3 +230,42 @@ describe('Speichern', () => {
     expect(updateCompany).not.toHaveBeenCalled();
   });
 });
+
+/*
+  DER KERN AUF DER SEITE „MODULE“ (M02b): Baustellen und Kunden stehen als
+  „immer an“ ohne Schalter da; ihre Teile — als erster der
+  Auftragseingang — schaltet der Administrator wie die eines Moduls, und
+  gespeichert wird unter ihrer Kennung. Die Zahl der Module bleibt neun.
+*/
+describe('Immer an: der Kern mit seinen Teilen (M02b)', () => {
+  it('Baustellen und Kunden stehen da — ohne Schalter, nicht unter den neun Modulen', () => {
+    zeige();
+    const kern = screen.getByText('Immer an').closest('section') as HTMLElement;
+    expect(within(kern).getByText('Baustellen')).toBeInTheDocument();
+    expect(within(kern).getByText('Kunden')).toBeInTheDocument();
+    expect(within(kern).getAllByText('immer an')).toHaveLength(2);
+    expect(screen.queryByRole('checkbox', { name: /^Baustellen (ein|aus)schalten$/ })).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: /^Kunden (ein|aus)schalten$/ })).toBeNull();
+    expect(screen.getByText(/^Eingeschaltet: \d+ von 9$/)).toBeInTheDocument();
+  });
+
+  it('der Auftragseingang steht als Teil der Baustellen und wird unter seiner Kennung gespeichert', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    expect(schalter('Auftragseingang')).toBeChecked();
+    expect(screen.getByText('Teil von Baustellen')).toBeInTheDocument();
+    // Keine Folge, die sich nicht zurückholen ließe — also keine Rückfrage.
+    await nutzer.click(schalter('Auftragseingang'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(schalter('Auftragseingang')).not.toBeChecked();
+    await nutzer.click(screen.getByRole('button', { name: 'Module speichern' }));
+    expect(updateCompany).toHaveBeenCalledWith('perl', { modules: { 'baustellen.auftragseingang': false } });
+  });
+
+  it('eine gespeicherte Festlegung des Kerns selbst schaltet nichts ab', () => {
+    firma = { id: 'perl', name: 'Perl Installationen', modules: { baustellen: false } };
+    zeige();
+    expect(schalter('Auftragseingang')).toBeChecked();
+    expect(schalter('Auftragseingang')).not.toBeDisabled();
+  });
+});

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { LoadingState } from '@/components/States';
-import { aktiveModule, modul, type ModulId } from '@/lib/module';
+import { aktiveSchalter, schalter, type SchalterId } from '@/lib/module';
 import { isAdmin } from '@/lib/permissions';
 import { NAV, canAccess, zusatzrechte } from './navigation';
 import type { Role } from '@/types';
@@ -46,12 +46,13 @@ export function RequireRole({ roles, children }: { roles: Role[]; children: Reac
  * Die Meldung sagt, WAS los ist und WER es ändern kann. „Kein Zugriff" wäre
  * hier falsch: es liegt nicht an der Rolle, sondern an einer Einstellung.
  */
-export function RequireModul({ id, children }: { id: ModulId; children: ReactNode }) {
+export function RequireModul({ id, children }: { id: SchalterId; children: ReactNode }) {
   const { user, company } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  if (aktiveModule(company?.modules).has(id)) return <>{children}</>;
+  // Auch eine Unterfähigkeit (M02b: der Auftragseingang) — sie gilt nur mit ihrem Modul bzw. Kernbereich.
+  if (aktiveSchalter(company?.modules).has(id)) return <>{children}</>;
 
-  const m = modul(id);
+  const m = schalter(id);
   return (
     <div className="mx-auto max-w-md p-6 text-center">
       <h1 className="text-xl font-semibold text-ink">{m?.name ?? 'Dieser Bereich'} ist ausgeschaltet</h1>

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { NAV, UNTER, unterseitenFuer } from '@/app/navigation';
+import { NAV, UNTER, canAccess, navForRole, unterseitenFuer } from '@/app/navigation';
 import {
   canInvoice,
   canManageUsers,
@@ -407,5 +407,38 @@ describe('Wer wohin darf — die Entscheidungen, die dahinterstehen', () => {
     // Die Buchhaltung rechnet weiterhin ab, ohne Baustellen zu verwalten.
     expect(canInvoice('Buchhaltung')).toBe(true);
     expect(canManageProjects('Buchhaltung')).toBe(false);
+  });
+});
+
+/*
+  DER AUFTRAGSEINGANG (M02b): ein Eintrag in „Aufträge“ für jede Rolle, die
+  Kunden liest — die Verwaltung nimmt das Telefon ab. Er hängt an der
+  Unterfähigkeit `baustellen.auftragseingang`: abgeschaltet verschwinden
+  Eintrag UND Adresse; der Eingang selbst (`/eingaenge/:id`) hängt an
+  derselben Prüfung wie die Liste.
+*/
+describe('Der Auftragseingang (M02b)', () => {
+  it('steht für das Büro in „Aufträge“, nicht für den Monteur', () => {
+    const eintrag = NAV.find((i) => i.path === '/eingaenge')!;
+    expect(eintrag.group).toBe('Aufträge');
+    expect([...eintrag.roles].sort()).toEqual(['Administrator', 'Buchhaltung', 'Geschäftsführung', 'Projektleiter', 'Verwaltung']);
+    expect(eintrag.roles).not.toContain('Mitarbeiter');
+    // Dieselben Rollen wie die Kunden: wer Kunden liest, erfasst Eingänge.
+    expect([...eintrag.roles].sort()).toEqual([...rollen('/customers')].sort());
+  });
+
+  it('hängt an der Unterfähigkeit — abgeschaltet ist auch die Adresse zu', () => {
+    expect(canAccess('Verwaltung', '/eingaenge')).toBe(true);
+    expect(canAccess('Verwaltung', '/eingaenge', { 'baustellen.auftragseingang': false })).toBe(false);
+    expect(navForRole('Verwaltung', { 'baustellen.auftragseingang': false }).map((i) => i.path)).not.toContain('/eingaenge');
+    // Gleich bleibt: die übrigen Einträge hängen nicht daran.
+    expect(navForRole('Verwaltung', { 'baustellen.auftragseingang': false }).map((i) => i.path))
+      .toEqual(navForRole('Verwaltung').map((i) => i.path).filter((p) => p !== '/eingaenge'));
+    expect(canAccess('Mitarbeiter', '/eingaenge')).toBe(false);
+  });
+
+  it('der einzelne Eingang trägt den Wächter der Liste', () => {
+    expect(PAARE).toContainEqual({ pfad: '/eingaenge/:id', waechter: '/eingaenge' });
+    expect(PAARE).toContainEqual({ pfad: '/eingaenge', waechter: '/eingaenge' });
   });
 });

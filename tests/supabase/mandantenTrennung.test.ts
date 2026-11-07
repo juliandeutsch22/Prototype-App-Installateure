@@ -96,8 +96,11 @@ const FUER_ALLE = ['assignments', 'aussteller_staende', 'baustelle_alte_nummern'
 const LOHN_UND_RECHNUNG = ['arbeitszeit_begruendungen', 'freistellungen', 'geburtsdaten', 'invoice_coverage', 'invoice_lines',
   'invoices', 'krankmeldungen', 'mahnungen', 'time_entries', 'urlaubsanspruch_anpassungen', 'vacations', 'zahlungseingaenge',
   'zeitbuchung_verlauf', 'zeitkonto_anfang'];
-/** Kunden, Lager, Anforderungen, Pläne, UID-Prüfungen: das Büro und die Leitung. */
-const BUERO = ['customers', 'lagerbewegungen', 'material_orders', 'project_documents', 'uid_pruefungen'];
+/**
+ * Kunden, Lager, Anforderungen, Pläne, UID-Prüfungen und der Auftragseingang
+ * (M02b: wer Kunden liest, liest Eingänge): das Büro und die Leitung.
+ */
+const BUERO = ['auftragseingaenge', 'customers', 'lagerbewegungen', 'material_orders', 'project_documents', 'uid_pruefungen'];
 /** Einkaufspreise, Preislisten, Kostensätze, Katalogdateien, Kontoumstellungen, Systemläufe: nur die Spitze. */
 const SPITZE = ['betrieb_kostensaetze', 'datanorm_laeufe', 'datanorm_zeilen', 'konto_umstellungen', 'material_einkaufspreise',
   'material_prices', 'rabattsaetze', 'system_laeufe',

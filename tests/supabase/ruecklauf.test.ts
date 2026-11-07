@@ -34,6 +34,7 @@ const BETRIEB = 'ruecklauf';
 const VERWORFENES_ANGEBOT = crypto.randomUUID();
 const VERWORFENER_SCHEIN = crypto.randomUUID();
 const LINK_ANGEBOT = crypto.randomUUID();
+const EINGANG = crypto.randomUUID();
 let linkSchluessel = '';
 
 let chef: Konto;
@@ -114,6 +115,17 @@ beforeAll(async () => {
   const link = await chef.client.rpc('angebot_link_erzeugen', { p_angebot: LINK_ANGEBOT, p_abrechnung: 'Regie', p_praefix: 'R' });
   expect(link.error).toBeNull();
   linkSchluessel = (link.data as { schluessel: string }).schluessel;
+  /*
+    EIN AUFTRAGSEINGANG (M02b) mit Nummer, Kunde und wer erfasst hat: der
+    Rücklauf bringt ihn Spalte für Spalte zurück — die Auslöser, die Nummer
+    und Namen sonst setzen, lassen den Dienstschlüssel durch. Eingelegt mit
+    dem Dienstschlüssel, damit das Journal bei seinen zwei Zeilen bleibt.
+  */
+  expect((await admin.from('auftragseingaenge').insert({
+    id: EINGANG, company_id: BETRIEB, nummer: 'EG-2026-0042', quelle: 'versicherung', auftraggeber_nummer: 'SCH-1',
+    customer_id: kunde!.id, kunde_name: 'Familie Huber', anliegen: 'Wasserschaden', dringlichkeit: 'notfall',
+    erfasst_von_uid: chef.uid, erfasst_von_name: 'Chef', eingegangen_am: '2026-11-01T08:00:00+00:00',
+  })).error).toBeNull();
   const { error: e1 } = await chef.client.from('customers').update({ contact_phone: '0664 1' }).eq('id', kunde!.id);
   const { error: e2 } = await chef.client.from('projects').update({ status: 'Pausiert' }).eq('project_number', 'R-2026-001');
   expect([e1, e2]).toEqual([null, null]);
@@ -142,6 +154,8 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
     }
     expect(Object.keys(vorher).length).toBeGreaterThan(2);
     const linkVorher = (await admin.from('angebot_links').select('*').eq('quote_id', LINK_ANGEBOT).single()).data;
+    const eingangVorher = (await admin.from('auftragseingaenge').select('*').eq('id', EINGANG).single()).data;
+    expect(eingangVorher).toMatchObject({ nummer: 'EG-2026-0042', erfasst_von_name: 'Chef', kunde_name: 'Familie Huber' });
     expect(linkVorher).not.toBeNull();
     const journalVorher = ((await admin.from('aenderungsjournal').select('id, objekt_id, art, aenderungen, von_uid')
       .eq('company_id', BETRIEB).order('id')).data ?? []);
@@ -235,6 +249,8 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
     const [schein] = (await admin.from('work_sheets')
       .select('status, verworfen_am').eq('id', VERWORFENER_SCHEIN)).data!;
     expect(schein).toEqual({ status: 'Verworfen', verworfen_am: '2026-10-03T08:00:00+00:00' });
+    // Der Auftragseingang (M02b) kommt Spalte für Spalte zurück — Nummer, Kunde, wer erfasst hat.
+    expect((await admin.from('auftragseingaenge').select('*').eq('id', EINGANG).single()).data).toEqual(eingangVorher);
     // Der Annahme-Link kommt Spalte für Spalte zurück — und der Schlüssel gilt wieder.
     expect((await admin.from('angebot_links').select('*').eq('quote_id', LINK_ANGEBOT).single()).data).toEqual(linkVorher);
     const abruf = await admin.rpc('angebot_link_abruf', {

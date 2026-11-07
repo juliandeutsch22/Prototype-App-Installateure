@@ -12,6 +12,7 @@ import { listUsers } from '@/lib/db/users';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { Wert } from '@/components/Wert';
 import { listQuotesForProject } from '@/lib/db/quotes';
+import { getEingangZu } from '@/lib/db/auftragseingaenge';
 import { pauschalAngebot } from '@/features/invoices/pauschale';
 import { ABRECHNUNGSARTEN, abrechnungKurz } from '@/lib/abrechnung';
 import { euro } from '@/lib/betrag';
@@ -92,6 +93,9 @@ export default function BaustellenakteView() {
   */
   const angeboteSichtbar = user ? canAccess(user.role, '/quotes', company?.modules) : false;
   const [angebote, setAngebote] = useState<WithId<Quote>[]>([]);
+  /** Der Auftragseingang, aus dem die Baustelle entstand (M02b) — nur mit der Unterfähigkeit. */
+  const eingaengeSichtbar = user ? canAccess(user.role, '/eingaenge', company?.modules) : false;
+  const [ausEingang, setAusEingang] = useState<{ id: string; nummer: string } | null>(null);
 
   const [baustelle, setBaustelle] = useState<Teil<WithId<Project> | null>>(LAEDT);
   /*
@@ -197,6 +201,25 @@ export default function BaustellenakteView() {
       weg = true;
     };
   }, [companyId, baustellenId, angeboteSichtbar]);
+
+  /*
+    DER EINGANG, AUS DEM DIE BAUSTELLE ENTSTAND (M02b): „Aus Eingang EG-…“
+    neben dem Angebot. Scheitert das Laden, fehlt nur der Verweis — wie beim
+    Angebot steht es dann oben als Teilfehler.
+  */
+  useEffect(() => {
+    if (!companyId || !baustellenId || !eingaengeSichtbar) {
+      setAusEingang(null);
+      return;
+    }
+    let weg = false;
+    getEingangZu(companyId, { projectId: baustellenId })
+      .then((e) => { if (!weg) setAusEingang(e); })
+      .catch(() => { if (!weg) setNebenFehler('Der Eingang zu dieser Baustelle'); });
+    return () => {
+      weg = true;
+    };
+  }, [companyId, baustellenId, eingaengeSichtbar]);
 
   /*
     Der Entwurf folgt der geladenen Baustelle — aber NUR, wenn diese sich
@@ -380,6 +403,7 @@ export default function BaustellenakteView() {
       <Leistungszeitraum beginn={b.startDate} ende={b.endDate} heute={todayStr()} />
       <div className="flex flex-wrap items-center gap-x-4">
         {angebote.map((q) => <Link key={q.id} to={`/quotes/${q.id}`} className="link akten-verweis">Angebot {q.quoteNumber}</Link>)}
+        {ausEingang && <Link to={`/eingaenge/${ausEingang.id}`} className="link akten-verweis">Aus Eingang {ausEingang.nummer}</Link>}
       </div>
       {verlauf.length > 1 && <details className="akten-weitere"><summary>Verlauf der Baustelle</summary>
         <LotVerlauf name="Verlauf der Baustelle" punkte={verlauf} />
