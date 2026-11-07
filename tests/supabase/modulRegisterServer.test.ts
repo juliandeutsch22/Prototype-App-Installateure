@@ -8,7 +8,8 @@
  * umgekehrt. Diese Prüfung vergleicht beide Zeile für Zeile: Kennung,
  * Standard, Abhängigkeiten; keine darf fehlen, keine dazukommen.
  *
- * Seit M02b steht auch der KERN darin (Baustellen, Kunden) mit seinen
+ * Seit M02b steht auch der KERN darin (Baustellen, Kunden; seit M06b die
+ * Zeiterfassung) mit seinen
  * Unterfähigkeiten — der Vergleich nimmt `KERN` mit, und `app.modul_kern()`
  * muss genau dessen Kennungen tragen: ein Kernbereich ist immer an, auch
  * wenn jemand ihn in die Festlegung schreibt.
@@ -57,9 +58,11 @@ describe('app.modul_register', () => {
   it('findet überhaupt etwas — und die erste Unterfähigkeit mit Serverprüfung', async () => {
     expect(ausDerApp()).toContain('angebote.online_annahme | true | ');
     expect(ausDerApp()).toContain('baustellen.auftragseingang | true | ');
+    // M06b: die Zeiterfassung als Kern mit den freien Zeitfeldern.
+    expect(ausDerApp()).toContain('zeiterfassung.freie_zeitfelder | true | ');
     // M04b: Materialbereitschaft und Bestellvorschläge — die Vorschläge prüft der Server (V3).
     expect(await ausSql()).toEqual(expect.arrayContaining(['material.materialbereitschaft | true | ', 'material.bestellvorschlaege | true | ']));
-    expect((await ausSql()).length).toBeGreaterThanOrEqual(19);
+    expect((await ausSql()).length).toBeGreaterThanOrEqual(21);
   });
 
   it('der Kern in SQL ist der Kern der App — und immer an, gleich was festgelegt ist (M02b)', async () => {
@@ -74,11 +77,14 @@ describe('app.modul_register', () => {
         { baustellen: false, 'baustellen.auftragseingang': true },
         { 'baustellen.auftragseingang': false },
         { 'baustellen.auftragseingang': 0 },
+        { zeiterfassung: false, 'zeiterfassung.freie_zeitfelder': true },
+        { 'zeiterfassung.freie_zeitfelder': false },
         {},
       ]) {
         await db.query('update public.companies set modules = $1 where id = $2', [JSON.stringify(festlegung), 'mrs-kern']);
         const erwartet = aktiveSchalter(festlegung as Record<string, boolean>);
-        for (const id of ['baustellen', 'kunden', 'baustellen.auftragseingang', 'kunden.gibtsnicht']) {
+        for (const id of ['baustellen', 'kunden', 'baustellen.auftragseingang', 'kunden.gibtsnicht',
+          'zeiterfassung', 'zeiterfassung.freie_zeitfelder']) {
           const { rows: an } = await db.query<{ an: boolean }>('select app.modul_aktiv($1, $2) as an', ['mrs-kern', id]);
           expect({ festlegung, id, an: an[0].an }).toEqual({ festlegung, id, an: erwartet.has(id as never) });
         }
@@ -98,6 +104,7 @@ describe('app.modul_register', () => {
         as $$ select r.kennung, case when r.kennung = 'angebote.online_annahme' then false else r.standard end, r.abhaengig_von
                 from (values ('baustellen', true, '{}'::text[]), ('baustellen.auftragseingang', true, '{}'::text[]),
                              ('kunden', true, '{}'::text[]),
+                             ('zeiterfassung', true, '{}'::text[]), ('zeiterfassung.freie_zeitfelder', true, '{}'::text[]),
                              ('einsatzplanung', true, '{}'::text[]), ('material', true, '{}'::text[]),
                              ('material.katalogversionen', true, '{}'::text[]), ('material.lieferantenvergleich', true, '{}'::text[]),
                              ('material.katalogpreisverlauf', true, '{}'::text[]), ('material.lagerorte_fahrzeuglager', true, '{}'::text[]),

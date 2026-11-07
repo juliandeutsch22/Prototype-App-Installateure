@@ -29,6 +29,7 @@ dann zu „erledigt mit E…/PR …“, gesammelt unter „Nachgeführt“. Den 
 | A03, A11 | erledigt (E59, M02b): Auftragseingang mit Quelle, Nummer des Auftraggebers und Stand, Umwandeln in Baustelle bzw. Angebot in einem Zug, Verwaltung erfasst; Portal-Import als Grenze |
 | N02 | Kern `baustellen`/`kunden` im Register als „Immer an“ mit Unterfähigkeiten (E59) |
 | E13, E14, G03 | erledigt (E60, M04b): eine Deckungsrechnung (Befund 7 behoben), Bestellvorschläge aus Mindestmenge, Sollbestand und Rüstlisten, Übernehmen über den Befehlsvertrag |
+| N01 | erledigt (E61, M06b): Zeitfelder je Betrieb mit veröffentlichter Fassung, ein Schreibweg über die Buchungszeile (auch offline), Auswertung und Export |
 
 
 ## Bestandsmatrix Teil A/R — Aufträge und Rechnungswesen

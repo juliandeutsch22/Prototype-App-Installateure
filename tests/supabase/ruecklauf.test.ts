@@ -35,6 +35,7 @@ const VERWORFENES_ANGEBOT = crypto.randomUUID();
 const VERWORFENER_SCHEIN = crypto.randomUUID();
 const LINK_ANGEBOT = crypto.randomUUID();
 const EINGANG = crypto.randomUUID();
+const ZEIT_MIT_FELDERN = crypto.randomUUID();
 let linkSchluessel = '';
 
 let chef: Konto;
@@ -161,6 +162,19 @@ beforeAll(async () => {
     customer_id: kunde!.id, kunde_name: 'Familie Huber', anliegen: 'Wasserschaden', dringlichkeit: 'notfall',
     erfasst_von_uid: chef.uid, erfasst_von_name: 'Chef', eingegangen_am: '2026-11-01T08:00:00+00:00',
   })).error).toBeNull();
+  /*
+    FREIE ZEITFELDER (M06b): ein Feld, seine Fassung und eine Buchung des
+    Monteurs mit Wert. Der Rücklauf bringt Definition, Fassung, Wert und die
+    Fassung an der Buchung zurück — die Auslöser, die sie sonst setzen,
+    lassen den Dienstschlüssel durch, und die Buchung kommt vor ihrem Wert.
+  */
+  const zf = await chef.client.rpc('zeitfeld_speichern', { p_feld: { name: 'Kostenstelle', typ: 'text', pflicht: 'beim_buchen' } });
+  expect(zf.error).toBeNull();
+  const zfId = (zf.data as { id: string; fassung: number }).id;
+  expect((await monteur.client.from('time_entries').insert({
+    ...buchung(monteur, '2026-09-03'), id: ZEIT_MIT_FELDERN, project_number: 'R-2026-001',
+    zeitfelder: { fassung: (zf.data as { fassung: number }).fassung, werte: { [zfId]: 'KS-4711' } },
+  })).error).toBeNull();
   const { error: e1 } = await chef.client.from('customers').update({ contact_phone: '0664 1' }).eq('id', kunde!.id);
   const { error: e2 } = await chef.client.from('projects').update({ status: 'Pausiert' }).eq('project_number', 'R-2026-001');
   expect([e1, e2]).toEqual([null, null]);
@@ -190,6 +204,15 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
     expect(Object.keys(vorher).length).toBeGreaterThan(2);
     const linkVorher = (await admin.from('angebot_links').select('*').eq('quote_id', LINK_ANGEBOT).single()).data;
     const eingangVorher = (await admin.from('auftragseingaenge').select('*').eq('id', EINGANG).single()).data;
+    const zeitfelderVorher = async () => ({
+      definitionen: (await admin.from('zeitfeld_definitionen').select('*').eq('company_id', BETRIEB).order('id')).data,
+      fassungen: (await admin.from('zeitfeld_fassungen').select('*').eq('company_id', BETRIEB).order('id')).data,
+      werte: (await admin.from('zeitbuchung_feldwerte').select('*').eq('company_id', BETRIEB).order('id')).data,
+      buchung: (await admin.from('time_entries').select('zeitfeld_fassung, zeitfelder').eq('id', ZEIT_MIT_FELDERN).single()).data,
+    });
+    const zfVorher = await zeitfelderVorher();
+    expect(zfVorher.werte).toEqual([expect.objectContaining({ wert: 'KS-4711', eintrag_id: ZEIT_MIT_FELDERN })]);
+    expect(zfVorher.buchung).toEqual({ zeitfeld_fassung: 1, zeitfelder: null });
     expect(eingangVorher).toMatchObject({ nummer: 'EG-2026-0042', erfasst_von_name: 'Chef', kunde_name: 'Familie Huber' });
     expect(linkVorher).not.toBeNull();
     const journalVorher = ((await admin.from('aenderungsjournal').select('id, objekt_id, art, aenderungen, von_uid')
@@ -287,6 +310,8 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
 
     // M04a: dieselben Orte (ein Hauptlager), Bestände mit Revision, Bewegungen und Befehle — nichts dazu.
     expect(await lagerVorher()).toEqual(lager);
+    // M06b: Definition, Fassung, Wert und die Fassung an der Buchung — Spalte für Spalte.
+    expect(await zeitfelderVorher()).toEqual(zfVorher);
 
     // Nicht nur die Anzahl: der Inhalt muss stimmen, sonst hätte auch eine
     // Handvoll leerer Zeilen bestanden.

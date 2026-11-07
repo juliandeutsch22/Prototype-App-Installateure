@@ -8,7 +8,8 @@ import {
 } from '@/lib/time';
 import { freigestelltMin } from '@shared/arbeitszeit';
 import { istArztbesuchTag } from '@shared/freistellung';
-import { BRAND_RGB, fmtDate, hours } from './export';
+import { BRAND_RGB, fmtDate, hours, type ExportZeitfelder } from './export';
+import { angabenText } from '@/lib/zeitfelder';
 import { FLAECHE, GRAU, TINTE } from '@/lib/belegLayout';
 import { zuschlagszeit, hatZuschlaege } from './zuschlaege';
 import { ueberstundenNachTagesgrenze } from './ueberstunden';
@@ -56,8 +57,14 @@ export function generateHoursPdf(opts: {
   vorlauf?: TimeEntry[];
   from: string;
   to: string;
+  /**
+   * Die freien Zeitfelder (M06b). Im Hochformat ist neben acht Spalten kein
+   * Platz für eine je Feld; sie stehen deshalb als „Name: Wert“ unter dem
+   * Kommentar derselben Zeile — die CSV führt sie als eigene Spalten.
+   */
+  zeitfelder?: ExportZeitfelder;
 }): jsPDF {
-  const { company, user, entries, from, to, vorlauf = [] } = opts;
+  const { company, user, entries, from, to, vorlauf = [], zeitfelder } = opts;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const margin = 15;
   const rightX = 195;
@@ -115,7 +122,8 @@ export function generateHoursPdf(opts: {
       wm > 0 ? `${hours(wm)} h` : '–',
       // Kurz, weil die Spalte schmal ist; die Legende steht im Summenblock.
       zuschlagKuerzel(e, nachtzeitVon(company)),
-      e.comment || '',
+      [e.comment || '', ...(zeitfelder ? angabenText(zeitfelder.definitionen, zeitfelder.werte.get(e.id)) : [])]
+        .filter(Boolean).join('\n'),
     ];
   });
 

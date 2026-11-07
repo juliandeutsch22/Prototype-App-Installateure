@@ -1,3 +1,4 @@
+import { zwischenspeicherLeeren } from '@/lib/zwischenspeicher';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useEffect } from 'react';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
@@ -200,6 +201,15 @@ const authWert = {
 
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
+/* Die freien Zeitfelder (M06b) — ohne Felder wie bisher; der eigene Block unten setzt sie. */
+const zeitfelder: { fassung: unknown; definitionen: unknown[]; werte: unknown[] } = { fassung: null, definitionen: [], werte: [] };
+vi.mock('@/lib/db/zeitfelder', () => ({
+  feldsatzLaden: vi.fn(async () => ({ fassung: zeitfelder.fassung, definitionen: zeitfelder.definitionen })),
+  gemerkterFeldsatz: vi.fn(() => null),
+  listFeldwerte: vi.fn(async () => zeitfelder.werte),
+  listZeitfeldFassungen: vi.fn(async () => (zeitfelder.fassung ? [zeitfelder.fassung] : [])),
+}));
+
 function zeige() {
   return render(
     <MemoryRouter>
@@ -211,6 +221,11 @@ function zeige() {
 }
 
 beforeEach(() => {
+  // Der Feldsatz liegt im Zwischenspeicher der App (M06b) — je Fall frisch.
+  zwischenspeicherLeeren();
+  zeitfelder.fassung = null;
+  zeitfelder.definitionen = [];
+  zeitfelder.werte = [];
   eigeneScheine = [];
   formularAufbauten = 0;
   listOwnWorkSheetsSince.mockClear();
@@ -1236,5 +1251,34 @@ describe('Zeiterfassung — Testbericht Runde 6 (G3, G12)', () => {
     })];
     zeige();
     expect((await screen.findAllByText(/Berufsschule · Unterricht 06:00 Std · Blocklehrgang Wien/)).length).toBeGreaterThan(0);
+  });
+});
+
+/*
+  DIE FREIEN ANGABEN IN „MEINE EINTRÄGE“ (M06b): der Wert als Text an der
+  Buchung und, was nachzupflegen ist. Gegenprobe: ohne die Verdrahtung in
+  `TimeView` steht keine der Zeilen da.
+*/
+describe('Zeiterfassung — freie Zeitfelder (M06b)', () => {
+  const K = '00000000-0000-4000-8000-0000000000d1';
+  const WIEN = '11111111-1111-4111-8111-111111111111';
+  it('zeigt die Angabe als Text und „Nachpflege“ an einer Buchung, der die Pflichtangabe fehlt', async () => {
+    zeitfelder.definitionen = [{
+      id: K, companyId: 'perl', name: 'Kostenstelle', typ: 'auswahl', giltStaende: ['Anwesend'], giltRollen: ['Mitarbeiter'],
+      pflicht: 'beim_buchen', reihenfolge: 1, aktiv: true, regeln: { optionen: [{ id: WIEN, text: 'Wien', aktiv: true }] },
+    }];
+    zeitfelder.fassung = { id: 'f', companyId: 'perl', nummer: 5, felder: {
+      [K]: { typ: 'auswahl', regeln: { optionen: [{ id: WIEN, text: 'Wien', aktiv: true }] }, staende: ['Anwesend'], rollen: ['Mitarbeiter'], pflicht: 'beim_buchen' },
+    } };
+    zeitfelder.werte = [{ id: 'w', eintragId: 'mit', feldId: K, wert: WIEN, datum: '2026-09-01' }];
+    eintraege = [
+      eintrag({ id: 'mit', date: '2026-09-01', zeitfeldFassung: 5 }),
+      eintrag({ id: 'ohne', date: '2026-08-31', zeitfeldFassung: 5 }),
+    ];
+    zeige();
+    const mit = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    expect(await within(mit).findByText('Kostenstelle: Wien')).toBeInTheDocument();
+    const ohne = screen.getByText('31.08.2026').closest('li') as HTMLElement;
+    expect(within(ohne).getByText('Nachpflege: Kostenstelle')).toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import Button from '@/components/Button';
 import { datumAT } from '@/lib/datum';
 import type { VerlaufZeile } from '@/lib/db/zeitbuchungVerlauf';
 import { PROTOKOLL_SEIT, verlaufEintrag } from './verlaufText';
+import type { ZeitfeldAnzeige } from '@/lib/zeitfelder';
 
 /**
  * DAS ÄNDERUNGSPROTOKOLL ZUM AUFKLAPPEN (E50, 05.11.2026).
@@ -21,6 +22,7 @@ export default function Aenderungsprotokoll({
   laden,
   mitTag = false,
   stil = 'weiteres',
+  felder = [],
 }: {
   titel: string;
   /** Holt die Zeilen — erst beim ersten Aufklappen. */
@@ -29,6 +31,8 @@ export default function Aenderungsprotokoll({
   mitTag?: boolean;
   /** `pf`: im Fenster einer Person, wie „Abwesenheiten und Zeitkonto“ darüber. */
   stil?: 'weiteres' | 'pf';
+  /** Die Definitionen der freien Zeitfelder — damit `feld:<Kennung>` mit Namen dasteht (M06b). */
+  felder?: readonly ZeitfeldAnzeige[];
 }) {
   const [zeilen, setZeilen] = useState<VerlaufZeile[] | null>(null);
   const [stand, setStand] = useState<'zu' | 'laedt' | 'fehler' | 'da'>('zu');
@@ -72,7 +76,7 @@ export default function Aenderungsprotokoll({
             <LotVerlauf
               name={titel}
               punkte={zeilen.map((z) => {
-                const e = verlaufEintrag(z);
+                const e = verlaufEintrag(z, felder);
                 return {
                   titel: mitTag ? `Buchung vom ${datumAT(z.datum)} · ${e.titel}` : e.titel,
                   zeit: e.zeit,
