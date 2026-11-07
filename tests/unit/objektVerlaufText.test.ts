@@ -228,8 +228,8 @@ describe('verlaufEintrag — Liegenschaft, Top, Beteiligter (M02c)', () => {
     expect(e.zeilen).toEqual(['Nutzer bzw. Mieter', 'Telefon geändert (Werte mit dem Beteiligten gelöscht)']);
   });
 
-  it('an Baustelle, Wartung und Eingang: Liegenschaft und Top mit Namen', () => {
-    for (const objektart of ['baustelle', 'wartung', 'eingang'] as const) {
+  it('an Baustelle, Wartung, Eingang und Angebot: Liegenschaft und Top mit Namen', () => {
+    for (const objektart of ['baustelle', 'wartung', 'eingang', 'angebot'] as const) {
       const e = verlaufEintrag(zeile({ objektart, aenderungen: {
         liegenschaft_bezeichnung: { alt: null, neu: 'WHA Hauptstraße 12' }, top_bezeichnung: { alt: null, neu: 'Top 2' },
       } }));

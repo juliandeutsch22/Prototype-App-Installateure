@@ -7,6 +7,7 @@ import { einsatzZeit } from './einsatzZeit';
 import { ganztagsWeg } from './besetzung';
 import { artWort, lieferungOhneAnnahme } from './monatsBalken';
 import { kurzname } from './kurzname';
+import type { EinsatzDeckung } from './materialDeckung';
 
 /*
   WAS DIE VORSCHAU ZEIGT (Runde 4, Auftrag 5.3) — als reine Rechnung, damit
@@ -225,32 +226,22 @@ export function vorschauInhalt(
 
 /**
  * DIE RÜSTLISTE IN EINER ZEILE: „3 Positionen · 1 mit Fehlmenge“ bzw.
- * „keine“. Die Fehlmenge je Position ist dieselbe wie im Formular
- * (`RuestlistePlanen` mit `verfuegbar` aus `EinsatzFormular`): frei laut
- * `lager_frei()`, die eigene gespeicherte Menge ab heute wieder dazu — sonst
- * reservierte sich die Liste selbst weg —, Fehlmenge nur bei einem
- * Katalogartikel. Ohne Lagerstand (Abfrage fehlgeschlagen) nennt die Zeile
- * nur die Positionen, statt eine Fehlmenge zu raten.
+ * „keine“. Die Fehlmenge ist seit M04b DIESELBE Rechnung wie im Formular,
+ * in der Woche und im Tag (`materialDeckung.ts`): eine Position zählt, wenn
+ * sie im Zustand Achtung ist — niemand deckt sie, oder ihre Lieferung kommt
+ * nach dem Einsatztag. Vorher rechnete die Vorschau selbst, mit der vollen
+ * Menge statt dem Rest aus dem Regal und gegen alle Listen, auch spätere
+ * (Befund 7). Ohne Deckung (Abfrage fehlgeschlagen) nennt die Zeile nur die
+ * Positionen, statt eine Fehlmenge zu raten.
  */
 export function ruestZeile(
-  positionen: { materialId?: string; menge: number }[] | undefined,
-  frei: Map<string, { frei: number }> | null,
-  tag: string,
-  heute: string,
+  positionen: readonly unknown[] | undefined,
+  deckung: Pick<EinsatzDeckung, 'positionen'> | null | undefined,
 ): string {
   if (!positionen || positionen.length === 0) return 'keine';
   const n = positionen.length;
   const text = `${n} ${n === 1 ? 'Position' : 'Positionen'}`;
-  if (!frei) return text;
-  const eigene = new Map<string, number>();
-  if (tag >= heute) {
-    for (const p of positionen) if (p.materialId) eigene.set(p.materialId, (eigene.get(p.materialId) ?? 0) + p.menge);
-  }
-  const mitFehlmenge = positionen.filter((p) => {
-    const stand = p.materialId ? frei.get(p.materialId) : undefined;
-    if (!p.materialId || !stand) return false;
-    const da = stand.frei + (eigene.get(p.materialId) ?? 0);
-    return Math.max(0, Math.round((p.menge - Math.max(da, 0)) * 1000) / 1000) > 0;
-  }).length;
+  if (!deckung) return text;
+  const mitFehlmenge = deckung.positionen.filter((p) => p.zustand === 'achtung').length;
   return mitFehlmenge > 0 ? `${text} · ${mitFehlmenge} mit Fehlmenge` : text;
 }

@@ -96,6 +96,7 @@ const NotificationSettings = ansicht('/settings', () => import('@/features/setti
 const EinstellungenUebersicht = ansicht('/settings', () => import('@/features/settings/EinstellungenUebersicht'));
 const PapierkorbView = ansicht('/settings', () => import('@/features/papierkorb/PapierkorbView'));
 const FahrzeugeView = ansicht('/settings', () => import('@/features/settings/FahrzeugeView'));
+const ZeitfelderView = ansicht('/settings', () => import('@/features/settings/ZeitfelderView'));
 
 /**
  * App-Wurzel: Auth-Provider + Routing. Jede geschützte Route liegt hinter
@@ -593,6 +594,7 @@ function AppRoutes() {
                 sicherung: <SicherungView />,
                 papierkorb: <PapierkorbView />,
                 fahrzeuge: <FahrzeugeView />,
+                zeitfelder: <ZeitfelderView />,
               }}
             />
           </RequireNav>

@@ -45,3 +45,34 @@ describe('verlaufEintrag', () => {
     expect(verlaufEintrag(zeile({ art: 'geloescht', vonName: 'Max', aenderungen: stand })).titel).toBe('Gelöscht von Max');
   });
 });
+
+/*
+  DIE FREIEN ZEITFELDER IM PROTOKOLL (M06b): `feld:<Kennung>` mit dem Namen
+  der Definition, wie sie jetzt heißt; eine Auswahl mit dem Text der Option;
+  in der Reihenfolge des Betriebs, nach den festen Spalten.
+*/
+describe('verlaufEintrag — freie Zeitfelder', () => {
+  const WIEN = '11111111-1111-4111-8111-111111111111';
+  const GRAZ = '22222222-2222-4222-8222-222222222222';
+  const felder = [
+    { id: 'k', name: 'Kostenstelle', typ: 'auswahl' as const, reihenfolge: 1, aktiv: true,
+      regeln: { optionen: [{ id: WIEN, text: 'Wien', aktiv: true }, { id: GRAZ, text: 'Graz', aktiv: false }] } },
+    { id: 'km', name: 'Kilometer', typ: 'zahl' as const, regeln: { einheit: 'km' }, reihenfolge: 2, aktiv: true },
+  ];
+
+  it('eine Wertänderung als „Name alt → neu“', () => {
+    const e = verlaufEintrag(zeile({ aenderungen: {
+      'feld:km': { alt: 10, neu: 20 }, 'feld:k': { alt: WIEN, neu: GRAZ }, end_time: { alt: '15:00:00', neu: '14:00:00' },
+    } }), felder);
+    expect(e.zeilen).toEqual(['Ende 15:00 → 14:00', 'Kostenstelle Wien → Graz', 'Kilometer 10 km → 20 km']);
+  });
+
+  it('beim Anlegen im ganzen Stand; ein neuer oder entfernter Wert mit Strich', () => {
+    expect(verlaufEintrag(zeile({ art: 'angelegt', aenderungen: { 'feld:k': WIEN } }), felder).zeilen).toEqual(['Kostenstelle Wien']);
+    expect(verlaufEintrag(zeile({ aenderungen: { 'feld:km': { alt: null, neu: 3 } } }), felder).zeilen).toEqual(['Kilometer — → 3 km']);
+  });
+
+  it('ohne Definition steht „Freie Angabe“ — nie „Verknüpfung geändert“', () => {
+    expect(verlaufEintrag(zeile({ aenderungen: { 'feld:x': { alt: 'a', neu: 'b' } } })).zeilen).toEqual(['Freie Angabe a → b']);
+  });
+});

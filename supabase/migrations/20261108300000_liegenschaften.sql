@@ -17,8 +17,9 @@
     Betreiber, Nutzer bzw. Mieter, Auftraggeber, Rechnungsempfänger,
     Versicherung, Lieferadresse) — ein Kunde ODER freie Angaben (Name,
     Telefon, E-Mail), mit Hinweis und gültig ab bzw. bis (Mieterwechsel).
-  - Baustelle, Wartung und Auftragseingang tragen optional Liegenschaft und
-    Top. Der Server prüft: gleicher Betrieb, das Top gehört zur
+  - Baustelle, Wartung, Auftragseingang und Angebot tragen optional
+    Liegenschaft und Top (das Angebot, damit der Weg Eingang → Angebot →
+    Annahme → Baustelle sie nicht unterwegs verliert). Der Server prüft: gleicher Betrieb, das Top gehört zur
     Liegenschaft, ein Top setzt die Liegenschaft voraus. Die Bezeichnungen
     stehen als Text daneben (wie der Kundenname an der Baustelle): so sieht
     der Monteur sie an seinem Einsatz, ohne die Liegenschaft lesen zu dürfen,
@@ -55,7 +56,7 @@
 
 /*
   DIESELBE LISTE WIE `MODULE` UND `KERN` in `src/lib/module.ts` — Rumpf wie
-  in `20261107300000_auftragseingang.sql`, dazu die Unterfähigkeit
+  in `20261108200000_freie_zeitfelder.sql` (mit M04b und M06b), dazu die Unterfähigkeit
   `kunden.liegenschaften` (Standard aus: „Optional“ steht ab Werk aus, E51).
   `tests/supabase/modulRegisterServer.test.ts` vergleicht beide Listen.
 */
@@ -71,12 +72,16 @@ as $$
     ('baustellen.auftragseingang', true, '{}'::text[]),
     ('kunden', true, '{}'::text[]),
     ('kunden.liegenschaften', false, '{}'::text[]),
+    ('zeiterfassung', true, '{}'::text[]),
+    ('zeiterfassung.freie_zeitfelder', true, '{}'::text[]),
     ('einsatzplanung', true, '{}'::text[]),
     ('material', true, '{}'::text[]),
     ('material.katalogversionen', true, '{}'::text[]),
     ('material.lieferantenvergleich', true, '{}'::text[]),
     ('material.katalogpreisverlauf', true, '{}'::text[]),
     ('material.lagerorte_fahrzeuglager', true, '{}'::text[]),
+    ('material.materialbereitschaft', true, '{}'::text[]),
+    ('material.bestellvorschlaege', true, '{}'::text[]),
     ('urlaub', true, '{}'::text[]),
     ('scheine', true, '{}'::text[]),
     ('angebote', true, '{}'::text[]),
@@ -89,7 +94,7 @@ $$;
 
 revoke all on function app.modul_register() from public, anon, authenticated;
 
-/* Unverändert wie in `20261107300000_auftragseingang.sql` — hier nur, damit beide Listen an einer Stelle stehen. */
+/* Unverändert wie in `20261108200000_freie_zeitfelder.sql` — hier nur, damit beide Listen an einer Stelle stehen. */
 create or replace function app.modul_kern()
   returns setof text
   language sql
@@ -97,7 +102,7 @@ create or replace function app.modul_kern()
   security definer
   set search_path = ''
 as $$
-  values ('baustellen'), ('kunden')
+  values ('baustellen'), ('kunden'), ('zeiterfassung')
 $$;
 
 revoke all on function app.modul_kern() from public, anon, authenticated;
@@ -376,10 +381,11 @@ begin
     execute format(
       'select exists (select 1 from public.projects x where x.company_id = $1 and x.%1$I = $2)
            or exists (select 1 from public.wartungen x where x.company_id = $1 and x.%1$I = $2)
-           or exists (select 1 from public.auftragseingaenge x where x.company_id = $1 and x.%1$I = $2)', spalte)
+           or exists (select 1 from public.auftragseingaenge x where x.company_id = $1 and x.%1$I = $2)
+           or exists (select 1 from public.quotes x where x.company_id = $1 and x.%1$I = $2)', spalte)
       into belegt using zeile ->> 'company_id', (zeile ->> 'id')::uuid;
     if belegt then
-      raise exception '% ist Baustellen, Wartungen oder Eingängen zugeordnet und bleibt — stattdessen auf inaktiv setzen',
+      raise exception '% ist Baustellen, Wartungen, Eingängen oder Angeboten zugeordnet und bleibt — stattdessen auf inaktiv setzen',
         case tg_table_name when 'liegenschaften' then 'Diese Liegenschaft' else 'Dieses Top' end
         using errcode = '23503';
     end if;
@@ -493,7 +499,7 @@ create trigger liegenschaft_beteiligte_pruefen
 
 /*
   OPTIONAL, KEIN NEUER PFLICHTDATENSATZ: ohne Liegenschaft bleibt alles,
-  wie es ist.
+  wie es ist. Dasselbe am Angebot (unten, Abschnitt 5a).
 
   - Die Fremdschlüssel nennen den Betrieb mit: eine Baustelle zeigt nur auf
     eine Liegenschaft ihres Betriebs, und das Top nur, wenn es zu genau
@@ -508,7 +514,7 @@ create trigger liegenschaft_beteiligte_pruefen
 do $migration$
 declare t text;
 begin
-  foreach t in array array['projects', 'wartungen', 'auftragseingaenge'] loop
+  foreach t in array array['projects', 'wartungen', 'auftragseingaenge', 'quotes'] loop
     execute format('alter table public.%I
       add column if not exists liegenschaft_id uuid,
       add column if not exists top_id uuid,
@@ -604,6 +610,10 @@ drop trigger if exists wartungen_liegenschaft on public.wartungen;
 create trigger wartungen_liegenschaft
   before insert or update of liegenschaft_id, top_id on public.wartungen
   for each row execute function app.liegenschaft_zuordnung_pruefen();
+drop trigger if exists quotes_liegenschaft on public.quotes;
+create trigger quotes_liegenschaft
+  before insert or update of liegenschaft_id, top_id on public.quotes
+  for each row execute function app.liegenschaft_zuordnung_pruefen();
 drop trigger if exists auftragseingaenge_liegenschaft on public.auftragseingaenge;
 create trigger auftragseingaenge_liegenschaft
   before insert or update of liegenschaft_id, top_id on public.auftragseingaenge
@@ -628,12 +638,16 @@ begin
      where x.company_id = new.company_id and x.liegenschaft_id = new.id and x.liegenschaft_bezeichnung is distinct from new.bezeichnung;
     update public.auftragseingaenge x set liegenschaft_bezeichnung = new.bezeichnung
      where x.company_id = new.company_id and x.liegenschaft_id = new.id and x.liegenschaft_bezeichnung is distinct from new.bezeichnung;
+    update public.quotes x set liegenschaft_bezeichnung = new.bezeichnung
+     where x.company_id = new.company_id and x.liegenschaft_id = new.id and x.liegenschaft_bezeichnung is distinct from new.bezeichnung;
   else
     update public.projects x set top_bezeichnung = new.bezeichnung
      where x.company_id = new.company_id and x.top_id = new.id and x.top_bezeichnung is distinct from new.bezeichnung;
     update public.wartungen x set top_bezeichnung = new.bezeichnung
      where x.company_id = new.company_id and x.top_id = new.id and x.top_bezeichnung is distinct from new.bezeichnung;
     update public.auftragseingaenge x set top_bezeichnung = new.bezeichnung
+     where x.company_id = new.company_id and x.top_id = new.id and x.top_bezeichnung is distinct from new.bezeichnung;
+    update public.quotes x set top_bezeichnung = new.bezeichnung
      where x.company_id = new.company_id and x.top_id = new.id and x.top_bezeichnung is distinct from new.bezeichnung;
   end if;
   return null;
@@ -834,6 +848,287 @@ begin
 end; $$;
 revoke all on function public.wartung_einplanen(uuid, text, text, date) from public, anon;
 grant execute on function public.wartung_einplanen(uuid, text, text, date) to authenticated;
+
+
+-- ---------------------------------------------------------------------------
+-- 5a. Das Angebot trägt Liegenschaft und Top weiter
+-- ---------------------------------------------------------------------------
+
+/*
+  OHNE DAS BRÄCHE DER WEG AB: ein Eingang mit Liegenschaft wird Angebot, das
+  Angebot wird angenommen — und die Baustelle stünde ohne Liegenschaft da
+  (CLAUDE.md, Grundsatz 1). Deshalb:
+  - `angebot_speichern` schreibt Liegenschaft und Top (Rumpf wie in
+    `20261002300000_angebot_positionen.sql`, neu nur die beiden Spalten).
+    Sie zählen NICHT zum Inhalt, der nach dem Entwurf feststeht: sie stehen
+    weder auf dem Angebot noch im Schnappschuss des Annahme-Links
+    (`app.angebot_link_inhalt` nennt seine Felder einzeln — die Prüfsumme
+    bestehender Links bleibt, Altdaten). Sie sind eine Zuordnung im
+    Betrieb, wie die Baustellennummer, und lassen sich bis zur Annahme
+    nachtragen. Eine neue Fassung bekommt sie über die App mit (wie Kunde
+    und Positionen), solange das Modul an ist.
+  - `eingang_zu_angebot` übernimmt sie (nur mit Modul, wie bei der Baustelle).
+  - `app.angebot_annehmen_kern` gibt sie an die neue Baustelle weiter — für
+    die Annahme im Büro und über den Link (nur mit Modul).
+*/
+create or replace function public.angebot_speichern(
+  p_id uuid,
+  p_kopf jsonb,
+  p_positionen jsonb
+) returns uuid
+  language plpgsql
+  set search_path = ''
+as $$
+declare
+  betrieb text := app.arbeitsbetrieb();
+  alt public.quotes;
+  neu public.quotes;
+  kennung uuid;
+  zeile jsonb;
+  lauf integer := 0;
+begin
+  if betrieb is null or not app.angemeldet() then
+    raise exception 'Nicht angemeldet' using errcode = '42501';
+  end if;
+
+  if p_id is not null then
+    select * into alt from public.quotes where id = p_id;
+  end if;
+
+  if alt.id is null then
+    neu := jsonb_populate_record(null::public.quotes, p_kopf);
+    -- Eine neue Fassung verweist nur auf ein Angebot DIESES Betriebs.
+    if neu.vorgaenger_id is not null and not exists (
+      select 1 from public.quotes v where v.id = neu.vorgaenger_id and v.company_id = betrieb
+    ) then
+      raise exception 'Das Angebot, das überarbeitet werden soll, gibt es in diesem Betrieb nicht'
+        using errcode = '23503';
+    end if;
+    insert into public.quotes (
+      company_id, quote_number, customer_id, customer_name, address,
+      quote_date, valid_until, status, discount_mode, discount_value,
+      discount_label, discount_amount, subtotal_netto, total_netto,
+      total_vat, total_brutto, vat_rate, kalkulierte_stunden, notes,
+      project_number, vorgaenger_id, liegenschaft_id, top_id
+    ) values (
+      betrieb, neu.quote_number, neu.customer_id, neu.customer_name,
+      neu.address, neu.quote_date, neu.valid_until,
+      coalesce(neu.status, 'Entwurf'), neu.discount_mode, neu.discount_value,
+      neu.discount_label, neu.discount_amount,
+      coalesce(neu.subtotal_netto, 0), coalesce(neu.total_netto, 0),
+      coalesce(neu.total_vat, 0), coalesce(neu.total_brutto, 0),
+      neu.vat_rate, coalesce(neu.kalkulierte_stunden, 0), neu.notes,
+      neu.project_number, neu.vorgaenger_id, neu.liegenschaft_id, neu.top_id
+    ) returning id into kennung;
+  else
+    kennung := alt.id;
+    neu := jsonb_populate_record(alt, p_kopf);
+
+    /*
+      NUR DER ENTWURF ÄNDERT SEINEN INHALT. Verglichen wird Spalte für
+      Spalte statt „wurde etwas mitgeschickt": die Ansicht schickt beim
+      Annehmen den Status und die Baustelle, und das soll weiter gehen.
+      Liegenschaft und Top gehören nicht zum Inhalt (oben, 5a).
+    */
+    if alt.status <> 'Entwurf' and (
+         p_positionen is not null
+      or (neu.quote_number, neu.customer_id, neu.customer_name, neu.address,
+          neu.quote_date, neu.valid_until, neu.discount_mode, neu.discount_value,
+          neu.discount_label, neu.discount_amount, neu.subtotal_netto,
+          neu.total_netto, neu.total_vat, neu.total_brutto, neu.vat_rate,
+          neu.kalkulierte_stunden, neu.notes)
+         is distinct from
+         (alt.quote_number, alt.customer_id, alt.customer_name, alt.address,
+          alt.quote_date, alt.valid_until, alt.discount_mode, alt.discount_value,
+          alt.discount_label, alt.discount_amount, alt.subtotal_netto,
+          alt.total_netto, alt.total_vat, alt.total_brutto, alt.vat_rate,
+          alt.kalkulierte_stunden, alt.notes)
+    ) then
+      raise exception 'Nur ein Entwurf lässt sich ändern — dieses Angebot ist „%"', alt.status
+        using errcode = '55000';
+    end if;
+
+    update public.quotes set
+      quote_number        = neu.quote_number,
+      customer_id         = neu.customer_id,
+      customer_name       = neu.customer_name,
+      address             = neu.address,
+      quote_date          = neu.quote_date,
+      valid_until         = neu.valid_until,
+      status              = neu.status,
+      discount_mode       = neu.discount_mode,
+      discount_value      = neu.discount_value,
+      discount_label      = neu.discount_label,
+      discount_amount     = neu.discount_amount,
+      subtotal_netto      = neu.subtotal_netto,
+      total_netto         = neu.total_netto,
+      total_vat           = neu.total_vat,
+      total_brutto        = neu.total_brutto,
+      vat_rate            = neu.vat_rate,
+      kalkulierte_stunden = neu.kalkulierte_stunden,
+      notes               = neu.notes,
+      project_number      = neu.project_number,
+      liegenschaft_id     = neu.liegenschaft_id,
+      top_id              = neu.top_id
+     where id = kennung;
+  end if;
+
+  if p_positionen is not null then
+    delete from public.quote_lines where quote_id = kennung;
+    for zeile in select * from jsonb_array_elements(p_positionen) loop
+      insert into public.quote_lines (
+        company_id, quote_id, position, label, qty, unit, unit_price, netto,
+        ist_arbeitszeit, art, rabatt_prozent, material_id
+      ) values (
+        betrieb, kennung, lauf, zeile ->> 'label', (zeile ->> 'qty')::numeric,
+        coalesce(zeile ->> 'unit', ''), (zeile ->> 'unit_price')::numeric,
+        (zeile ->> 'netto')::numeric, (zeile ->> 'ist_arbeitszeit')::boolean,
+        coalesce(zeile ->> 'art', 'position'), (zeile ->> 'rabatt_prozent')::numeric,
+        -- Ein Artikel aus einem fremden Betrieb bleibt kein Verweis.
+        (select m.id from public.materials m
+          where m.id = nullif(zeile ->> 'material_id', '')::uuid and m.company_id = betrieb)
+      );
+      lauf := lauf + 1;
+    end loop;
+  end if;
+
+  return kennung;
+end;
+$$;
+
+/*
+  DER KERN DER ANNAHME — Rumpf wie in `20261106400000_angebot_annahme_link.sql`;
+  neu: die Baustelle bekommt Liegenschaft und Top des Angebots, solange das
+  Modul an ist. Im Büro und über den Link derselbe Weg.
+*/
+create or replace function app.angebot_annehmen_kern(p_angebot uuid, p_praefix text, p_abrechnung text)
+  returns text
+  language plpgsql
+  security definer
+  set search_path = ''
+as $$
+declare q public.quotes; k public.customers; nummer text; jahr integer; lfd bigint; mit_liegenschaft boolean;
+begin
+  select * into q from public.quotes where id = p_angebot for update;
+  if q.id is null then raise exception 'Angebot nicht gefunden' using errcode = 'P0002'; end if;
+  if p_abrechnung is null or p_abrechnung not in ('Regie', 'Pauschal', 'Einheitspreis') then
+    raise exception 'Unbekannte Abrechnungsart' using errcode = '22023';
+  end if;
+  -- G15: vor dem Zähler, damit keine Baustellennummer für nichts vergeben wird.
+  if q.status = 'Ersetzt' then
+    raise exception 'Angebot % ist durch eine andere Fassung ersetzt', q.quote_number using errcode = '55000';
+  end if;
+  select project_number into nummer from public.projects
+    where company_id = q.company_id and project_number = q.project_number;
+  if nummer is null then
+    jahr := extract(year from now() at time zone 'Europe/Vienna');
+    lfd := app.naechste_nummer_kern(q.company_id, 'projects', jahr, null);
+    nummer := case when coalesce(p_praefix, '') = '' then '' else p_praefix || '-' end
+      || jahr || '-' || lpad(lfd::text, greatest(4, length(lfd::text)), '0');
+    -- Hinweis 11: der Ansprechpartner aus der Kundenakte, änderbar in der Baustelle.
+    select * into k from public.customers where id = q.customer_id and company_id = q.company_id;
+    -- M02c: Liegenschaft und Top des Angebots, solange das Modul an ist.
+    mit_liegenschaft := q.liegenschaft_id is not null and app.modul_aktiv(q.company_id, 'kunden.liegenschaften');
+    insert into public.projects(company_id, project_number, customer_id, customer_name, address,
+      status, billing_mode, estimated_hours, description, contact_name, contact_phone, liegenschaft_id, top_id)
+    values(q.company_id, nummer, q.customer_id, q.customer_name, q.address, 'Aktiv', p_abrechnung,
+      case when q.kalkulierte_stunden > 0 then q.kalkulierte_stunden end,
+      coalesce(nullif(btrim(q.notes), '') || E'\n\n', '') || 'Aus Angebot ' || q.quote_number,
+      nullif(btrim(coalesce(k.contact_name, '')), ''), nullif(btrim(coalesce(k.contact_phone, '')), ''),
+      case when mit_liegenschaft then q.liegenschaft_id end, case when mit_liegenschaft then q.top_id end);
+  end if;
+  -- Der Wächter am Status (`quotes_fassung_pruefen`) hält eine zweite angenommene Fassung auf.
+  update public.quotes set status = 'Angenommen', project_number = nummer where id = q.id;
+  -- G15: die übrigen offenen Fassungen desselben Angebots sind damit ersetzt.
+  update public.quotes set status = 'Ersetzt'
+   where id in (select app.angebot_fassungen(q.id))
+     and id <> q.id
+     and status in ('Entwurf', 'Versendet');
+  return nummer;
+end; $$;
+
+revoke all on function app.angebot_annehmen_kern(uuid, text, text) from public, anon, authenticated;
+
+/*
+  EINGANG → ANGEBOTSENTWURF — Rumpf wie in `20261107300000_auftragseingang.sql`;
+  neu: das Angebot übernimmt Liegenschaft und Top des Eingangs (nur mit
+  Modul), und ohne Ort gilt die Anschrift der Liegenschaft vor der des
+  Kunden — wie beim Weg zur Baustelle.
+*/
+create or replace function public.eingang_zu_angebot(p_eingang uuid)
+  returns jsonb
+  language plpgsql
+  security definer
+  set search_path = ''
+as $$
+declare
+  e public.auftragseingaenge;
+  k public.customers;
+  kunde uuid;
+  c public.companies;
+  heute date := (now() at time zone 'Europe/Vienna')::date;
+  jahr integer;
+  nummer text;
+  angebot uuid;
+  mit_liegenschaft boolean;
+  liegenschaft_zeile text;
+begin
+  if app.hat_rolle(array['Projektleiter', 'Geschäftsführung', 'Administrator']) is not true then
+    raise exception 'Einen Eingang übernimmt nur die Führung — wie ein neues Angebot' using errcode = '42501';
+  end if;
+  e := app.eingang_sperren(p_eingang);
+  if e.stand = 'uebernommen' and e.quote_id is not null then
+    return jsonb_build_object('quote_id', e.quote_id, 'neu', false,
+      'quote_number', (select q.quote_number from public.quotes q where q.id = e.quote_id));
+  end if;
+  if e.stand <> 'offen' then
+    raise exception 'Der Eingang % ist %; übernommen wird nur ein offener', e.nummer, app.eingang_stand_text(e.stand)
+      using errcode = '55000';
+  end if;
+  if not app.modul_aktiv(e.company_id, 'angebote') then
+    raise exception 'Angebote sind in diesem Betrieb ausgeschaltet (Einstellungen → Module)' using errcode = '55000';
+  end if;
+
+  kunde := app.eingang_kunde(e.id);
+  select * into k from public.customers where id = kunde;
+  select * into c from public.companies where id = e.company_id;
+  jahr := extract(year from heute);
+  nummer := app.belegnummer(coalesce(c.praefix_angebot, 'AN'), jahr, public.naechste_nummer('quotes', jahr));
+  -- M02c: Liegenschaft und Top, solange das Modul an ist.
+  mit_liegenschaft := e.liegenschaft_id is not null and app.modul_aktiv(e.company_id, 'kunden.liegenschaften');
+  if mit_liegenschaft then
+    select l.anschrift into liegenschaft_zeile from public.liegenschaften l
+     where l.id = e.liegenschaft_id and l.company_id = e.company_id;
+  end if;
+
+  angebot := public.angebot_speichern(null, jsonb_build_object(
+    'quote_number', nummer,
+    'customer_id', k.id,
+    'customer_name', k.name,
+    'address', coalesce(nullif(btrim(coalesce(e.ort, '')), ''), nullif(btrim(coalesce(liegenschaft_zeile, '')), ''), k.address),
+    'quote_date', heute,
+    'valid_until', heute + 30,
+    'status', 'Entwurf',
+    'vat_rate', coalesce((c.rates ->> 'vatRate')::numeric, 0.2),
+    'kalkulierte_stunden', 0,
+    'notes', btrim(e.anliegen)
+      || coalesce(E'\n\nIhre Auftrags- bzw. Schadensnummer: ' || nullif(btrim(coalesce(e.auftraggeber_nummer, '')), ''), ''),
+    'liegenschaft_id', case when mit_liegenschaft then e.liegenschaft_id end,
+    'top_id', case when mit_liegenschaft then e.top_id end
+  ), '[]'::jsonb);
+
+  update public.auftragseingaenge
+     set stand = 'uebernommen', quote_id = angebot, uebernommen_am = now(),
+         uebernommen_von_uid = auth.uid(),
+         uebernommen_von_name = (select u.name from public.users u where u.id = auth.uid())
+   where id = e.id;
+
+  return jsonb_build_object('quote_id', angebot, 'quote_number', nummer, 'customer_id', k.id, 'neu', true);
+end;
+$$;
+
+revoke all on function public.eingang_zu_angebot(uuid) from public, anon;
+grant execute on function public.eingang_zu_angebot(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 6. Die Funktionen
@@ -1111,7 +1406,7 @@ revoke all on function app.journal_protokollieren() from public, anon, authentic
   - Beteiligter: `liegenschaft_id` (wie beim Top). `top_id` und
     `customer_id` WERDEN protokolliert — sie sind die Angabe, wo er wohnt
     bzw. wer er ist; die Akte zeigt dazu den Namen des Tops bzw. Kunden.
-  - Baustelle, Wartung, Eingang: `liegenschaft_id` und `top_id` (Kennungen;
+  - Baustelle, Wartung, Eingang, Angebot: `liegenschaft_id` und `top_id` (Kennungen;
     die Bezeichnungen stehen daneben und sind protokolliert).
 */
 drop trigger if exists liegenschaften_journal on public.liegenschaften;
@@ -1131,6 +1426,13 @@ create trigger liegenschaft_beteiligte_journal
   after insert or update or delete on public.liegenschaft_beteiligte
   for each row execute function app.journal_protokollieren(
     'beteiligter', '{id,company_id,created_at,updated_at,liegenschaft_id}');
+
+/* Angebot: Ausnahmeliste wie in `20261106200000_papierkorb.sql`, dazu die beiden Kennungen (die Bezeichnungen sind protokolliert). */
+drop trigger if exists quotes_journal on public.quotes;
+create trigger quotes_journal
+  after insert or update or delete on public.quotes
+  for each row execute function app.journal_protokollieren(
+    'angebot', '{id,company_id,created_at,updated_at,aussteller_stand,customer_id,project_id,vorgaenger_id,versendet_am,angenommen_am,abgelehnt_am,verworfen_am,verworfen_von_uid,verworfen_von_name,liegenschaft_id,top_id}');
 
 /* Baustelle und Wartung: Ausnahmelisten wie in `20261106100000_aenderungsjournal.sql`, dazu die beiden Kennungen. */
 drop trigger if exists projects_journal on public.projects;

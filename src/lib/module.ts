@@ -70,7 +70,7 @@ export type FaehigkeitId = `${ModulId | KernId}.${string}`;
  * für alles Übrige; ihre Zusatzfähigkeiten (Auftragseingang, später Aufgaben,
  * Mängel, Objekte …) braucht nicht jeder Betrieb.
  */
-export type KernId = 'baustellen' | 'kunden';
+export type KernId = 'baustellen' | 'kunden' | 'zeiterfassung';
 
 export interface Faehigkeit {
   id: FaehigkeitId;
@@ -230,6 +230,33 @@ export const MODULE: Modul[] = [
           'Ware an weiteren Lagerorten und in Fahrzeugen ist dann nicht mehr zu sehen, aber nicht weg: ihre Bestände bleiben und stehen nach dem Wiedereinschalten wieder da. Gebucht wird nur noch im Hauptlager.',
         ],
       },
+      {
+        /*
+          MATERIALBEREITSCHAFT (M04b, E13). AUS nimmt nur die neue Anzeige
+          weg — den Zustand je Einsatz in Woche und Tag, die Zustände je
+          Position im Formular und „Material fehlt“ auf der Startseite. Die
+          Fehlmenge im Formular und in der Monatsvorschau bleibt: sie gab es
+          vorher, und sie rechnet mit derselben Funktion wie die Anzeige.
+        */
+        id: 'material.materialbereitschaft',
+        name: 'Materialbereitschaft',
+        zweck: 'Ob das Material eines Einsatzes gedeckt ist, kommt, offen ist oder fehlt — je Einsatz und je Position der Rüstliste.',
+        standard: true,
+        betrifft: ['Material je Einsatz in Woche und Tag', 'Zustand je Position der Rüstliste', '„Material fehlt“ auf der Startseite'],
+      },
+      {
+        /*
+          BESTELLVORSCHLÄGE (M04b, E14/G03). Aus nimmt den Abschnitt in der
+          Einkaufsliste und Sollbestand und Verpackungseinheit im Artikel
+          weg; die Werte bleiben gespeichert. Der Server lehnt Vorschläge
+          und ihre Übernahme dann ab (V3). Bestellt wird nie selbsttätig.
+        */
+        id: 'material.bestellvorschlaege',
+        name: 'Bestellvorschläge',
+        zweck: 'Was unter die Mindestmenge fällt oder für Rüstlisten fehlt, mit Menge bis zum Sollbestand und Großhändler — übernehmen auf die Einkaufsliste.',
+        standard: true,
+        betrifft: ['Bestellvorschläge in der Einkaufsliste', 'Sollbestand und Verpackungseinheit im Artikel'],
+      },
     ],
   },
   {
@@ -371,6 +398,32 @@ export const KERN: Kernbereich[] = [
           'Liegenschaft und Top an Baustelle, Wartung und Eingang',
           '„Liegenschaften“ in der Kundenakte',
         ],
+      },
+    ],
+  },
+  /*
+    DIE ZEITERFASSUNG (M06b): heute Kern — abschaltbar wird sie mit ihrem
+    eigenen Paket samt Folgenvorschau (E51, V2). Ihre Teile sind es schon.
+  */
+  {
+    id: 'zeiterfassung',
+    name: 'Zeiterfassung',
+    zweck: 'Arbeitszeit, Abwesenheiten und Zeitkonto jeder Person.',
+    betrifft: ['Zeiterfassung'],
+    unter: [
+      {
+        /*
+          FREIE ZEITFELDER (N01): Standard an — ohne angelegte Felder ändert
+          sich nichts. Aus heißt: die Seite „Zeitfelder“, die Felder in der
+          Buchungsmaske, in Listen und Export verschwinden; Definieren und
+          Werte schreiben lehnt der Server ab (V3). Gespeicherte Werte
+          bleiben und sind nach dem Wiedereinschalten wieder da.
+        */
+        id: 'zeiterfassung.freie_zeitfelder',
+        name: 'Freie Zeitfelder',
+        zweck: 'Eigene Angaben zu jeder Buchung festlegen — etwa Kostenstelle, Kilometer oder Auftragsnummer —, mit Pflicht und Prüfung.',
+        standard: true,
+        betrifft: ['Zeitfelder (Einstellungen)', 'Eigene Angaben in der Zeiterfassung', 'Spalten im Export'],
       },
     ],
   },

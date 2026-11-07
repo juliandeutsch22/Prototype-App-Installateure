@@ -150,6 +150,9 @@ export const VERLAUF_FELDER: Record<Objektart, Feld[]> = {
     ['kalkulierte_stunden', 'Kalkulierte Stunden', stunden],
     ...RABATT_UND_SUMMEN,
     ['notes', 'Anmerkungen', text],
+    // M02c: Liegenschaft und Top — die Bezeichnungen; die Kennungen sind ausgenommen.
+    ['liegenschaft_bezeichnung', 'Liegenschaft', text],
+    ['top_bezeichnung', 'Top', text],
   ],
   rechnung: [
     ['invoice_number', 'Rechnungsnummer', text],

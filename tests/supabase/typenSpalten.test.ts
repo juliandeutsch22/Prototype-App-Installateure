@@ -48,6 +48,9 @@ const TABELLE_VON: Record<string, string> = {
   Liegenschaft: 'liegenschaften',
   LiegenschaftTop: 'liegenschaft_tops',
   LiegenschaftBeteiligter: 'liegenschaft_beteiligte',
+  ZeitfeldDefinition: 'zeitfeld_definitionen',
+  ZeitfeldFassung: 'zeitfeld_fassungen',
+  Zeitfeldwert: 'zeitbuchung_feldwerte',
 };
 
 /**

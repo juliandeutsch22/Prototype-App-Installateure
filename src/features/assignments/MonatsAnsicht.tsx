@@ -5,7 +5,7 @@ import { canAccess } from '@/app/navigation';
 import { darfTermineSchreiben } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
 import { AB_TABLET } from '@/lib/breiten';
-import { getAustrianHolidayName, isWeekend, todayStr } from '@/lib/time';
+import { getAustrianHolidayName, isWeekend } from '@/lib/time';
 import type { Abwesenheit } from '@/lib/db/vacations';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, Assignment, Project, RuestPosition, Termin } from '@/types';
@@ -29,6 +29,7 @@ import {
   tagImBalken,
   type Balken,
 } from './monatsBalken';
+import type { EinsatzDeckung } from './materialDeckung';
 import { ruestZeile, vorschauInhalt, type ProjektKurz, type TagesDaten, type VorschauZiel } from './monatsVorschau';
 import MonatsVorschau from './MonatsVorschau';
 import MonatsKalender from './MonatsKalender';
@@ -371,13 +372,13 @@ export default function MonatsAnsicht({
 
   /*
     DIE RÜSTLISTE beim Öffnen über die bestehenden Abfragen: die Listen des
-    Tages (`listEinsatzMaterialForDate`) und das Freie im Lager
-    (`lager_frei`, wie das Formular) — nur mit dem Modul „Material“, wie im
-    Seitenfenster. Bis dahin „…“.
+    Tages (`listEinsatzMaterialForDate`) und ihre Deckung (`materialdeckung`,
+    dieselbe Rechnung wie Formular, Woche und Tag — M04b) — nur mit dem
+    Modul „Material“, wie im Seitenfenster. Bis dahin „…“.
   */
   const [ruest, setRuest] = useState<{ tag: string; listen: Map<string, RuestPosition[]> | 'fehler' } | null>(null);
-  /** Das Freie der Artikel auf den Rüstlisten eines Tages; `null` heisst: konnte nicht geladen werden. */
-  const [lager, setLager] = useState<{ tag: string; frei: Map<string, { frei: number }> | null } | undefined>(undefined);
+  /** Die Deckung der Rüstlisten eines Tages je Baustelle; `null` heisst: konnte nicht geladen werden. */
+  const [lager, setLager] = useState<{ tag: string; deckung: Map<string, EinsatzDeckung> | null } | undefined>(undefined);
   const offen = !!vorschau;
   useEffect(() => {
     if (!offen) {
@@ -385,19 +386,22 @@ export default function MonatsAnsicht({
       setLager(undefined);
     }
   }, [offen]);
-  // Erst wenn die Listen des Tages da sind: gefragt wird nach ihren Artikeln.
+  // Erst wenn die Listen des Tages da sind und es überhaupt eine gibt.
   useEffect(() => {
     if (!offen || !materialAn || !ruest || ruest.listen === 'fehler' || lager?.tag === ruest.tag) return;
-    const ids = [...ruest.listen.values()].flatMap((l) => l.map((p) => p.materialId ?? '')).filter(Boolean);
     const fuer = ruest.tag;
+    if (ruest.listen.size === 0) {
+      setLager({ tag: fuer, deckung: new Map() });
+      return;
+    }
     let weg = false;
     Promise.resolve()
-      .then(() => quelle.lager(ids))
+      .then(() => quelle.deckung(fuer))
       .then((k) => {
-        if (!weg) setLager({ tag: fuer, frei: k });
+        if (!weg) setLager({ tag: fuer, deckung: k });
       })
       .catch(() => {
-        if (!weg) setLager({ tag: fuer, frei: null });
+        if (!weg) setLager({ tag: fuer, deckung: null });
       });
     return () => {
       weg = true;
@@ -427,7 +431,7 @@ export default function MonatsAnsicht({
       if (!ruest || ruest.tag !== tag) return '…';
       if (ruest.listen === 'fehler') return 'konnte nicht geladen werden';
       if (lager?.tag !== tag) return '…';
-      return ruestZeile(ruest.listen.get(nummer), lager.frei, tag, todayStr());
+      return ruestZeile(ruest.listen.get(nummer), lager.deckung ? (lager.deckung.get(nummer) ?? null) : null);
     };
   }, [materialAn, tag, ruest, lager]);
 

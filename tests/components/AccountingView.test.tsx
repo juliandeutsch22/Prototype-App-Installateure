@@ -1,3 +1,4 @@
+import { zwischenspeicherLeeren } from '@/lib/zwischenspeicher';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -164,6 +165,18 @@ const authWert = {
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
+/*
+  DIE FREIEN ZEITFELDER (M06b) — ohne Felder wie bisher; der eigene Block
+  unten setzt einen Feldsatz und Werte.
+*/
+const zeitfelder: { fassung: unknown; definitionen: unknown[]; werte: unknown[] } = { fassung: null, definitionen: [], werte: [] };
+vi.mock('@/lib/db/zeitfelder', () => ({
+  feldsatzLaden: vi.fn(async () => ({ fassung: zeitfelder.fassung, definitionen: zeitfelder.definitionen })),
+  gemerkterFeldsatz: vi.fn(() => null),
+  listFeldwerte: vi.fn(async () => zeitfelder.werte),
+  listZeitfeldFassungen: vi.fn(async () => (zeitfelder.fassung ? [zeitfelder.fassung] : [])),
+}));
+
 /** Die heruntergeladene CSV — nur ihr Inhalt; die Datei selbst legt der Browser an. */
 const csvGeladen = vi.fn();
 vi.mock('@/features/accounting/export', async (original) => ({
@@ -208,6 +221,11 @@ vi.mock('@/features/time/TimeForm', () => ({
 
 
 beforeEach(() => {
+  // Der Feldsatz liegt im Zwischenspeicher der App (M06b) — je Fall frisch.
+  zwischenspeicherLeeren();
+  zeitfelder.fassung = null;
+  zeitfelder.definitionen = [];
+  zeitfelder.werte = [];
   anpassungen = [];
   benutzer = [monteur];
   buchungen = eintraege;
@@ -1612,5 +1630,55 @@ describe('Mitarbeiterübersicht — der Schultag im Tagesnachweis (R7-G3)', () =
     await oeffneMitarbeiter();
     const zeile = within(tagesnachweis()).getAllByText('Mo 17.08.')[0].closest('li')!;
     expect(zeile.querySelector('.pf-zeile-info')?.textContent).toMatch(/^\d\d:\d\d–\d\d:\d\d · /);
+  });
+});
+
+/*
+  DIE FREIEN ZEITFELDER IN DER MONATSAUSWERTUNG (M06b, N01): die Zahl der
+  offenen Angaben über der Liste und im Fenster der Person, an der Buchung
+  der Wert als Text und „fehlt“, in der CSV eine Spalte je Feld.
+  Gegenprobe: ohne die Verdrahtung in `AccountingView`/`PersonFenster` ist
+  jeder Fall hier rot.
+*/
+describe('Mitarbeiteruebersicht — freie Zeitfelder (M06b)', () => {
+  const HV = '00000000-0000-4000-8000-0000000000c1';
+  beforeEach(() => {
+    zeitfelder.definitionen = [{
+      id: HV, companyId: 'perl', name: 'Auftragsnummer HV', typ: 'text', regeln: {}, giltStaende: ['Anwesend'],
+      giltRollen: ['Mitarbeiter'], pflicht: 'nur_buero', reihenfolge: 1, aktiv: true,
+    }];
+    zeitfelder.fassung = { id: 'f2', companyId: 'perl', nummer: 2, felder: {
+      [HV]: { typ: 'text', regeln: {}, staende: ['Anwesend'], rollen: ['Mitarbeiter'], pflicht: 'nur_buero' },
+    } };
+    // Zwei Buchungen unter Fassung 2: eine mit Angabe, eine ohne (fehlt); die übrigen stammen von vor den Feldern.
+    buchungen = eintraege.map((e) => (e.date === '2026-08-17' || e.date === '2026-08-18' ? { ...e, zeitfeldFassung: 2 } : e));
+    zeitfelder.werte = [{ id: 'w1', eintragId: 'e-2026-08-17', feldId: HV, wert: 'HV-4711', datum: '2026-08-17' }];
+  });
+
+  it('nennt die offenen Angaben des Monats, im Fenster je Buchung, und exportiert die Spalte', async () => {
+    await oeffneMitarbeiter();
+    expect(await screen.findByText(/Freie Angaben im August 2026: 1 fehlt/)).toBeInTheDocument();
+    const f = fenster();
+    expect(within(f).getByTestId('zeitfelder-offen')).toHaveTextContent('Freie Angaben: 1 fehlt');
+    expect(within(f).getByText('Auftragsnummer HV: HV-4711')).toBeInTheDocument();
+    expect(within(f).getByText('fehlt: Auftragsnummer HV')).toBeInTheDocument();
+    const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    csvGeladen.mockClear();
+    await nutzer.click(within(f).getByRole('button', { name: 'Monat als CSV' }));
+    const csv = csvGeladen.mock.calls[0][0] as string;
+    expect(csv).toMatch(/Kommentar;Auftragsnummer HV\n/);
+    expect(csv).toMatch(/;HV-4711\n/);
+  });
+
+  it('ist die Unterfähigkeit aus, steht nichts davon da', async () => {
+    const vorher = authWert.company;
+    authWert.company = { ...vorher, modules: { 'zeiterfassung.freie_zeitfelder': false } } as typeof vorher;
+    try {
+      await oeffneMitarbeiter();
+      expect(screen.queryByText(/Freie Angaben im/)).toBeNull();
+      expect(within(fenster()).queryByText(/Auftragsnummer HV/)).toBeNull();
+    } finally {
+      authWert.company = vorher;
+    }
   });
 });

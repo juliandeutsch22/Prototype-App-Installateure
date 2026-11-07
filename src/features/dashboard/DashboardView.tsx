@@ -75,6 +75,7 @@ export default function DashboardView() {
   const wartungAn = useModul('wartung');
   const urlaubAn = useModul('urlaub');
   const einsatzAn = useModul('einsatzplanung');
+  const bereitschaftAn = useModul('material.materialbereitschaft');
   const rolle: StartRolle = user ? startRolle(user.role) : 'monteur';
   const mitZeitkonto = user ? fuehrtZeitkonto(user) : false;
   const heute = todayStr();
@@ -106,7 +107,7 @@ export default function DashboardView() {
   */
   const abfrage = useZwischengespeichert<{ data: StartDaten; nichtGeladen: string[] }>({
     queryKey: user
-      ? schluessel('startseite', user, heute, { user, company, mitZeitkonto, materialAn, scheineAn, angeboteAn, onlineAnnahmeAn, eingangAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen })
+      ? schluessel('startseite', user, heute, { user, company, einblick: !!einblick, mitZeitkonto, materialAn, bereitschaftAn, scheineAn, angeboteAn, onlineAnnahmeAn, eingangAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen })
       : ['startseite'],
     enabled: !!user,
     queryFn: async () => {
@@ -150,7 +151,11 @@ export default function DashboardView() {
         bloecke.push(['Auftragseingang', () => eingaenge(k)]);
       }
       if (isGF(user.role)) {
-        bloecke.push(['Baustellen und Einsätze', () => leitung(k, { einsatzplanung: einsatzAn, wartung: wartungAn, budget: true })]);
+        bloecke.push(['Baustellen und Einsätze', () => leitung(k, {
+          einsatzplanung: einsatzAn, wartung: wartungAn, budget: true,
+          // Die Materialbereitschaft (M04b) sieht nur der Betrieb selbst, nicht der Support.
+          material: materialAn && bereitschaftAn && !einblick,
+        })]);
       }
       // Termine gehören zur Einsatzplanung (Plan 10.4) — jede Rolle kann Teilnehmer sein.
       if (einsatzAn) {

@@ -575,3 +575,23 @@ describe('Die Akte auf der Linie „Lot“', () => {
     for (const z of ziele) expect(document.querySelector(z!)).not.toBeNull();
   });
 });
+
+/*
+  LIEGENSCHAFT AM ANGEBOT (M02c): unter den Angaben, mit Weg zur Akte —
+  nur mit der Unterfähigkeit; ohne sie steht dort nichts (die Daten bleiben).
+*/
+describe('Liegenschaft am Angebot (M02c)', () => {
+  it('mit der Unterfähigkeit: Liegenschaft und Top mit Weg zur Akte', async () => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen', modules: { 'kunden.liegenschaften': true } };
+    angebot = { ...ANGEBOT, liegenschaftId: 'l1', topId: 't2', liegenschaftBezeichnung: 'WHA Schulgasse 2', topBezeichnung: 'Top 2' };
+    zeige();
+    expect(await screen.findByRole('link', { name: 'WHA Schulgasse 2 · Top 2' })).toHaveAttribute('href', '/liegenschaften/l1');
+  });
+
+  it('ohne sie keine Angabe', async () => {
+    angebot = { ...ANGEBOT, liegenschaftId: 'l1', liegenschaftBezeichnung: 'WHA Schulgasse 2' };
+    zeige();
+    expect(await screen.findByText('Ort der Leistung')).toBeInTheDocument();
+    expect(screen.queryByText(/WHA Schulgasse 2/)).toBeNull();
+  });
+});

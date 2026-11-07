@@ -29,6 +29,8 @@ import {
 import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
 import { listLagerPosten } from '@/lib/db/einkauf';
+import { materialdeckung } from '@/lib/db/materialdeckung';
+import { deckungJeEinsatz } from '@/features/assignments/materialDeckung';
 import { lagerKnapp, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { listGarantienEndenIn, listUnpaidInvoiceKoepfe, listInvoicesByIds, scheineAufRechnung, type GarantieRechnung } from '@/lib/db/invoices';
@@ -68,6 +70,7 @@ import { firmaSperrtRechnung } from '@/features/invoices/firmaSperre';
 import {
   type BudgetZeile,
   type KnapperArtikel,
+  type MaterialFehltZeile,
   type TagesBaustelle,
   type TeamLuecke,
   type UnverrechneteZeile,
@@ -163,6 +166,8 @@ export interface StartDaten {
   projekte?: Project[];
   budget?: BudgetZeile[];
   ohneEinsatz?: { projectNumber: string; zuletzt?: string }[];
+  /** Einsätze der nächsten sieben Tage, deren Material nicht gedeckt ist (M04b). */
+  materialFehlt?: MaterialFehltZeile[];
   wartungen?: Wartung[];
   heuteBetrieb?: TagesBaustelle[];
   abwesendHeute?: Abwesend[];
@@ -532,10 +537,26 @@ export async function team(
 
 export async function leitung(
   k: Kontext,
-  was: { einsatzplanung: boolean; wartung: boolean; budget: boolean },
+  was: { einsatzplanung: boolean; wartung: boolean; budget: boolean; material?: boolean },
 ): Promise<Partial<StartDaten>> {
   const { user, heute, company } = k;
   const out: Partial<StartDaten> = {};
+  /*
+    MATERIAL DER NÄCHSTEN SIEBEN TAGE (M04b, E13): dieselbe Rechnung wie in
+    der Woche. Scheitert sie, fehlt nur dieser Abschnitt — nicht der Block.
+  */
+  const material = was.material && was.einsatzplanung
+    ? still<MaterialFehltZeile[] | undefined>(async () => {
+      const bis = new Date(Date.parse(`${heute}T00:00:00Z`) + 6 * 86_400_000).toISOString().slice(0, 10);
+      const je = deckungJeEinsatz(await materialdeckung(heute, bis));
+      return [...je]
+        .filter(([, d]) => d.lage?.zustand === 'achtung')
+        .map(([schluessel, d]) => {
+          const [datum, ...rest] = schluessel.split('|');
+          return { datum, projectNumber: rest.join('|'), text: d.lage!.text };
+        });
+    }, undefined)
+    : undefined;
   const montag = montagDer(heute);
   const woche = wocheAb(montag);
   const { von: vorher, bis } = planFenster(heute);
@@ -624,6 +645,7 @@ export async function leitung(
   if (budget) out.budget = await budget;
 
   if (wartungen) out.wartungen = await wartungen;
+  if (material) out.materialFehlt = await material;
   return out;
 }
 

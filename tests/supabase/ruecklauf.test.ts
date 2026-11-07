@@ -39,6 +39,7 @@ const LIEGENSCHAFT = crypto.randomUUID();
 const TOP = crypto.randomUUID();
 const BETEILIGTER = crypto.randomUUID();
 const LG_BAUSTELLE = crypto.randomUUID();
+const ZEIT_MIT_FELDERN = crypto.randomUUID();
 let linkSchluessel = '';
 
 let chef: Konto;
@@ -126,6 +127,21 @@ beforeAll(async () => {
     erwartet: { bestand_von: 10 }, menge: 4, einheit: 'Stk' } });
   expect(um.error).toBeNull();
   expect(um.data.ergebnis).toBe('ausgefuehrt');
+  /*
+    BESTELLVORSCHLAG (M04b): ein Artikel mit Mindestmenge, Sollbestand und
+    Verpackungseinheit, sein Vorschlag übernommen — ein Posten der
+    Einkaufsliste und ein zweiter Schreibbefehl. Der Rücklauf bringt beides
+    mit, die neuen Spalten des Artikels eingeschlossen.
+  */
+  const ventil = await chef.client.from('materials')
+    .insert({ company_id: BETRIEB, name: 'Rücklaufventil', unit: 'Stk', stock: 0, lagerartikel: true, mindestmenge: 5, sollbestand: 12, verpackungseinheit: 6 })
+    .select('id').single();
+  expect(ventil.error).toBeNull();
+  const ueber = await chef.client.rpc('bestellvorschlaege_uebernehmen', { p_befehl: {
+    vorgang: crypto.randomUUID(), aktion: 'bestellvorschlaege',
+    posten: [{ artikel: ventil.data!.id, menge: 12, lieferant: null, erwartet: { menge: 12 } }] } });
+  expect(ueber.error).toBeNull();
+  expect(ueber.data.angelegt).toHaveLength(1);
 
   /*
     EIN OFFENER ANNAHME-LINK (M02a): die Sicherung bringt ihn samt Hashwert
@@ -165,6 +181,19 @@ beforeAll(async () => {
   ] as const) {
     expect((await admin.from(tabelle).insert(zeile)).error, tabelle).toBeNull();
   }
+  /*
+    FREIE ZEITFELDER (M06b): ein Feld, seine Fassung und eine Buchung des
+    Monteurs mit Wert. Der Rücklauf bringt Definition, Fassung, Wert und die
+    Fassung an der Buchung zurück — die Auslöser, die sie sonst setzen,
+    lassen den Dienstschlüssel durch, und die Buchung kommt vor ihrem Wert.
+  */
+  const zf = await chef.client.rpc('zeitfeld_speichern', { p_feld: { name: 'Kostenstelle', typ: 'text', pflicht: 'beim_buchen' } });
+  expect(zf.error).toBeNull();
+  const zfId = (zf.data as { id: string; fassung: number }).id;
+  expect((await monteur.client.from('time_entries').insert({
+    ...buchung(monteur, '2026-09-03'), id: ZEIT_MIT_FELDERN, project_number: 'R-2026-001',
+    zeitfelder: { fassung: (zf.data as { fassung: number }).fassung, werte: { [zfId]: 'KS-4711' } },
+  })).error).toBeNull();
   const { error: e1 } = await chef.client.from('customers').update({ contact_phone: '0664 1' }).eq('id', kunde!.id);
   const { error: e2 } = await chef.client.from('projects').update({ status: 'Pausiert' }).eq('project_number', 'R-2026-001');
   expect([e1, e2]).toEqual([null, null]);
@@ -194,6 +223,15 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
     expect(Object.keys(vorher).length).toBeGreaterThan(2);
     const linkVorher = (await admin.from('angebot_links').select('*').eq('quote_id', LINK_ANGEBOT).single()).data;
     const eingangVorher = (await admin.from('auftragseingaenge').select('*').eq('id', EINGANG).single()).data;
+    const zeitfelderVorher = async () => ({
+      definitionen: (await admin.from('zeitfeld_definitionen').select('*').eq('company_id', BETRIEB).order('id')).data,
+      fassungen: (await admin.from('zeitfeld_fassungen').select('*').eq('company_id', BETRIEB).order('id')).data,
+      werte: (await admin.from('zeitbuchung_feldwerte').select('*').eq('company_id', BETRIEB).order('id')).data,
+      buchung: (await admin.from('time_entries').select('zeitfeld_fassung, zeitfelder').eq('id', ZEIT_MIT_FELDERN).single()).data,
+    });
+    const zfVorher = await zeitfelderVorher();
+    expect(zfVorher.werte).toEqual([expect.objectContaining({ wert: 'KS-4711', eintrag_id: ZEIT_MIT_FELDERN })]);
+    expect(zfVorher.buchung).toEqual({ zeitfeld_fassung: 1, zeitfelder: null });
     expect(eingangVorher).toMatchObject({ nummer: 'EG-2026-0042', erfasst_von_name: 'Chef', kunde_name: 'Familie Huber' });
     const liegenschaftVorher = {
       liegenschaft: (await admin.from('liegenschaften').select('*').eq('id', LIEGENSCHAFT).single()).data,
@@ -216,12 +254,19 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
         .eq('company_id', BETRIEB).order('id')).data,
       befehle: (await admin.from('befehle_vorgaenge').select('vorgang, befehl, nutzlast_hash, ergebnis, von_uid')
         .eq('company_id', BETRIEB).order('vorgang')).data,
+      // M04b: Sollbestand und Verpackungseinheit am Artikel, der übernommene Vorschlag als Posten.
+      vorschlag: (await admin.from('materials').select('id, mindestmenge, sollbestand, verpackungseinheit')
+        .eq('company_id', BETRIEB).eq('name', 'Rücklaufventil')).data,
+      posten: (await admin.from('einkauf_posten').select('id, material_id, menge, supplier_id, angelegt_von_uid, bestellt_am')
+        .eq('company_id', BETRIEB).order('id')).data,
     });
     const lager = await lagerVorher();
     expect(lager.orte!.map((o) => o.art).sort()).toEqual(['fahrzeug', 'haupt']);
     expect(lager.bestaende).toEqual([expect.objectContaining({ menge: 4, revision: 1 })]);
     expect(lager.bewegungen!.filter((b) => b.art === 'umlagerung')).toHaveLength(2);
-    expect(lager.befehle).toHaveLength(1);
+    expect(lager.befehle).toHaveLength(2);
+    expect(lager.vorschlag).toEqual([expect.objectContaining({ mindestmenge: 5, sollbestand: 12, verpackungseinheit: 6 })]);
+    expect(lager.posten).toEqual([expect.objectContaining({ menge: 12, bestellt_am: null })]);
 
     /*
       2. Ausleiten — mit dem Token eines Menschen, also der Knopf aus den
@@ -292,6 +337,8 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
 
     // M04a: dieselben Orte (ein Hauptlager), Bestände mit Revision, Bewegungen und Befehle — nichts dazu.
     expect(await lagerVorher()).toEqual(lager);
+    // M06b: Definition, Fassung, Wert und die Fassung an der Buchung — Spalte für Spalte.
+    expect(await zeitfelderVorher()).toEqual(zfVorher);
 
     // Nicht nur die Anzahl: der Inhalt muss stimmen, sonst hätte auch eine
     // Handvoll leerer Zeilen bestanden.

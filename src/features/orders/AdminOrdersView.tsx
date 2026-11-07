@@ -23,6 +23,7 @@ import {
   type Grosshaendler,
 } from '@/lib/db/einkauf';
 import Einkaufsliste from './Einkaufsliste';
+import Bestellvorschlaege from './Bestellvorschlaege';
 import VorschlagGrund from './VorschlagGrund';
 import { darfEinkaufSehen } from '@/lib/permissions';
 import { istAn } from '@/lib/module';
@@ -231,13 +232,15 @@ function verlaufVon(o: MaterialOrder, haendler: string | undefined): LotPunkt[] 
 
 /** Material-Dashboard: Bestellungen abarbeiten, Retouren sichten, Einkauf. */
 export default function AdminOrdersView() {
-  const { user, company } = useAuth();
+  const { user, company, einblick } = useAuth();
   const toast = useToast();
   /*
     DER GRUND DES GROSSHÄNDLER-VORSCHLAGS (M03a, E03) nennt Einkaufspreise —
     nur für wen sie sehen darf, und nur mit dem Lieferantenvergleich.
   */
   const grundZeigen = !!user && darfEinkaufSehen(user) && istAn(company?.modules, 'material.lieferantenvergleich');
+  // Bestellvorschläge (M04b) — mit Modul, nicht im Supportzugang (die Rechnung sieht nur der Betrieb).
+  const vorschlaegeAn = istAn(company?.modules, 'material.bestellvorschlaege') && !einblick;
   /** „Retoure erfassen“ im Reiter Retouren — im Seitenfenster wie bei „Material anfordern“. */
   const [retoureOffen, setRetoureOffen] = useState(false);
   /*
@@ -802,6 +805,9 @@ export default function AdminOrdersView() {
         <>
           {lagerFehler && (
             <ErrorState message="Das eigene Material auf der Einkaufsliste konnte nicht geladen werden — die Liste zeigt nur die Anforderungen." />
+          )}
+          {vorschlaegeAn && (
+            <Bestellvorschlaege stand={lagerStand} onUebernommen={() => setLagerStand((n) => n + 1)} />
           )}
           <Einkaufsliste
             company={company}

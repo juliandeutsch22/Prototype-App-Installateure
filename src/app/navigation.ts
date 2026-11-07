@@ -300,6 +300,13 @@ export const UNTER: Record<string, Unterseite[]> = {
     { pfad: 'nummern', label: 'Nummernkreise', roles: TOP },
     { pfad: 'personal', label: 'Personal', roles: TOP },
     /*
+      DIE FREIEN ZEITFELDER (M06b, N01): eigene Angaben zu jeder Buchung.
+      Geschäftsführung und Administration — ein eigenes Recht wie die Sätze,
+      nicht die Modulliste (E51); dieselbe Grenze zieht `zeitfeld_speichern`.
+      Neben „Personal“, weil sie zur Arbeitszeitaufzeichnung gehören.
+    */
+    { pfad: 'zeitfelder', label: 'Zeitfelder', roles: TOP, nurMitModul: ['zeiterfassung.freie_zeitfelder'] },
+    /*
       DIE FAHRZEUGE (M04a): Stammdaten des Betriebs, die gemeinsame Kennung
       für Fahrzeuglager (E10), Fristen (W06) und Fahrtenbuch (W07). Hierher
       und nicht ins Lager, weil die Fristen der Fahrzeuge später genau hier

@@ -23,6 +23,9 @@
  * - die Suche über Bezeichnung, Anschrift und Beteiligte, seitenweise;
  * - Eingang → Baustelle und Wartung → Baustelle tragen Liegenschaft und Top;
  * - aus freien Angaben ein Kunde, in einem Zug;
+ * - das Angebot trägt Liegenschaft und Top; die Annahme im Büro und über den
+ *   Link gibt sie an die Baustelle; Eingang → Angebot → Annahme → Baustelle
+ *   verliert sie nicht; der Schnappschuss des Links bleibt ohne sie;
  * - Erhaltung: Baustelle und Wartung ohne Liegenschaft wie bisher.
  *
  * Gegenprobe: ohne `20261108300000_liegenschaften.sql` gibt es weder die
@@ -30,6 +33,7 @@
  * außer der Erhaltung, die mit und ohne Änderung grün sein muss.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { createHash } from 'node:crypto';
 import { admin, betriebAnlegen, einblickBeginnen, konto, plattformkonto, type Konto } from './helfer';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 import { listLiegenschaften } from '@/lib/db/pg/liegenschaften';
@@ -191,7 +195,7 @@ describe('Baustelle, Wartung, Eingang mit Liegenschaft und Top', () => {
     const tb = await top(verwaltung, belegt.id as string, 'Top 1');
     await baustelle(chefin, { liegenschaft_id: belegt.id, top_id: tb.id });
     const weg = await verwaltung.client.from('liegenschaften').delete().eq('id', belegt.id as string);
-    expect(weg.error?.message).toMatch(/Baustellen, Wartungen oder Eingängen zugeordnet .* inaktiv/);
+    expect(weg.error?.message).toMatch(/Baustellen, Wartungen, Eingängen oder Angeboten zugeordnet .* inaktiv/);
     expect((await verwaltung.client.from('liegenschaft_tops').delete().eq('id', tb.id as string)).error?.message).toMatch(/Dieses Top ist/);
     expect((await verwaltung.client.from('liegenschaften').update({ aktiv: false }).eq('id', belegt.id as string)).error).toBeNull();
 
@@ -467,5 +471,106 @@ describe('Erhaltung', () => {
     }).select('liegenschaft_id').single();
     expect(w.error).toBeNull();
     expect(w.data).toEqual({ liegenschaft_id: null });
+  });
+});
+
+/*
+  DAS ANGEBOT TRÄGT LIEGENSCHAFT UND TOP (M02c, Nachtrag): sonst bräche der
+  Weg Eingang (mit Liegenschaft) → Angebot → Annahme → Baustelle (ohne) ab.
+*/
+describe('Angebot mit Liegenschaft', () => {
+  const BILD = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  const sha = (x: string) => createHash('sha256').update(x).digest('hex');
+  let lauf = 0;
+  async function angebot(extra: Zeile = {}): Promise<string> {
+    lauf += 1;
+    const { data, error } = await chefin.client.rpc('angebot_speichern', {
+      p_id: null,
+      p_kopf: {
+        quote_number: `AN-LG-${Date.now()}-${lauf}`, customer_id: hv, customer_name: 'Muster Hausverwaltung',
+        address: 'Hauptstraße 12, 1010 Wien', quote_date: '2026-11-07', valid_until: '2099-12-31', vat_rate: 0.2,
+        status: 'Versendet', kalkulierte_stunden: 2, notes: 'Strang tauschen.', subtotal_netto: 100, total_netto: 100,
+        total_vat: 20, total_brutto: 120, ...extra,
+      },
+      p_positionen: [{ label: 'Montage', qty: 2, unit: 'h', unit_price: 50, netto: 100, ist_arbeitszeit: true }],
+    });
+    if (error) throw new Error(error.message);
+    return String(data);
+  }
+  const baustelleZu = async (quoteId: string) => {
+    const q = await zeile('quotes', quoteId);
+    return (await admin.from('projects').select('*').eq('company_id', A).eq('project_number', q.project_number as string).single()).data as Zeile;
+  };
+
+  it('Bezeichnungen vom Server; die Annahme im Büro gibt Liegenschaft und Top an die Baustelle', async () => {
+    const l = await liegenschaft(verwaltung, { bezeichnung: 'WHA Angebot' });
+    const t = await top(verwaltung, l.id as string, 'Top 7');
+    const q = await angebot({ liegenschaft_id: l.id, top_id: t.id });
+    expect(await zeile('quotes', q)).toMatchObject({ liegenschaft_bezeichnung: 'WHA Angebot', top_bezeichnung: 'Top 7' });
+    const r = await chefin.client.rpc('angebot_annehmen', { p_angebot: q, p_praefix: 'LG', p_abrechnung: 'Pauschal' });
+    expect(r.error).toBeNull();
+    expect(await baustelleZu(q)).toMatchObject({ liegenschaft_id: l.id, top_id: t.id, top_bezeichnung: 'Top 7' });
+  });
+
+  it('über den Annahme-Link ebenso — und der Schnappschuss des Links trägt keine Liegenschaft', async () => {
+    const l = await liegenschaft(verwaltung, { bezeichnung: 'WHA Link' });
+    const t = await top(verwaltung, l.id as string, 'Top 1');
+    const q = await angebot({ liegenschaft_id: l.id, top_id: t.id });
+    const link = await chefin.client.rpc('angebot_link_erzeugen', { p_angebot: q, p_abrechnung: 'Pauschal', p_praefix: 'LG', p_gueltig_bis: null });
+    expect(link.error).toBeNull();
+    const { data: zeileLink } = await admin.from('angebot_links').select('schnappschuss').eq('quote_id', q).single();
+    expect(JSON.stringify(zeileLink?.schnappschuss ?? {})).not.toMatch(/WHA Link|liegenschaft/i);
+    const an = await admin.rpc('angebot_link_annehmen', {
+      p_hash: sha((link.data as { schluessel: string }).schluessel), p_name: 'Hermine Hausverwaltung', p_unterschrift: BILD, p_bestaetigt: true,
+    });
+    expect(an.error).toBeNull();
+    expect(await baustelleZu(q)).toMatchObject({ liegenschaft_id: l.id, top_id: t.id });
+  });
+
+  it('Eingang → Angebot → Annahme → Baustelle: die Liegenschaft geht den ganzen Weg mit', async () => {
+    const l = await liegenschaft(verwaltung, { bezeichnung: 'WHA Ganzer Weg', strasse: 'Weggasse 2', plz: '1040', ort: 'Wien' });
+    const t = await top(verwaltung, l.id as string, 'Top 3');
+    const e = (await verwaltung.client.from('auftragseingaenge').insert({
+      company_id: A, quelle: 'hausverwaltung', customer_id: hv, anliegen: 'Angebot für Strang', liegenschaft_id: l.id, top_id: t.id,
+    }).select('id').single()).data!;
+    const r = await chefin.client.rpc('eingang_zu_angebot', { p_eingang: e.id });
+    expect(r.error).toBeNull();
+    const qid = (r.data as { quote_id: string }).quote_id;
+    expect(await zeile('quotes', qid)).toMatchObject({ liegenschaft_id: l.id, top_id: t.id, address: 'Weggasse 2, 1040 Wien' });
+    expect((await chefin.client.rpc('angebot_annehmen', { p_angebot: qid, p_praefix: 'LG', p_abrechnung: 'Regie' })).error).toBeNull();
+    expect(await baustelleZu(qid)).toMatchObject({ liegenschaft_id: l.id, top_id: t.id });
+  });
+
+  it('nach dem Versand nachtragbar, der Inhalt bleibt gesperrt; im Journal mit Namen', async () => {
+    const l = await liegenschaft(verwaltung, { bezeichnung: 'WHA Nachtrag' });
+    const q = await angebot();
+    expect((await chefin.client.rpc('angebot_speichern', { p_id: q, p_kopf: { liegenschaft_id: l.id }, p_positionen: null })).error).toBeNull();
+    expect(await zeile('quotes', q)).toMatchObject({ liegenschaft_id: l.id, liegenschaft_bezeichnung: 'WHA Nachtrag' });
+    expect((await chefin.client.rpc('angebot_speichern', { p_id: q, p_kopf: { notes: 'Anders' }, p_positionen: null })).error?.message)
+      .toMatch(/Nur ein Entwurf lässt sich ändern/);
+    const { data } = await chefin.client.from('objekt_verlauf').select('aenderungen')
+      .eq('objektart', 'angebot').eq('objekt_id', q).eq('art', 'geaendert');
+    expect(data).toEqual([{ aenderungen: { liegenschaft_bezeichnung: { alt: null, neu: 'WHA Nachtrag' } } }]);
+  });
+
+  it('Modul aus: keine neue Zuordnung am Angebot; ein schon zugeordnetes wird angenommen — die Baustelle ohne', async () => {
+    const l = await liegenschaft(verwaltung);
+    const q = await angebot({ liegenschaft_id: l.id });
+    await module({});
+    try {
+      await expect(angebot({ liegenschaft_id: l.id })).rejects.toThrow(/ausgeschaltet/);
+      expect((await chefin.client.rpc('angebot_annehmen', { p_angebot: q, p_praefix: 'LG', p_abrechnung: 'Pauschal' })).error).toBeNull();
+      expect(await baustelleZu(q)).toMatchObject({ liegenschaft_id: null, top_id: null });
+      expect(await zeile('quotes', q)).toMatchObject({ liegenschaft_id: l.id });
+    } finally {
+      await module(AN);
+    }
+  });
+
+  it('Erhaltung: ein Angebot ohne Liegenschaft wird angenommen wie bisher', async () => {
+    const q = await angebot();
+    expect(await zeile('quotes', q)).toMatchObject({ liegenschaft_id: null, liegenschaft_bezeichnung: null });
+    expect((await chefin.client.rpc('angebot_annehmen', { p_angebot: q, p_praefix: 'LG', p_abrechnung: 'Pauschal' })).error).toBeNull();
+    expect(await baustelleZu(q)).toMatchObject({ liegenschaft_id: null, status: 'Aktiv', billing_mode: 'Pauschal' });
   });
 });

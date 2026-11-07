@@ -15,6 +15,7 @@
  */
 import type { Einstufung, FruehereEinstufung, Satzklasse, Stufensaetze } from '@/lib/einstufung';
 import type { Materialaufschlag } from '@/lib/aufschlag';
+import type { ZeitfeldPflicht, ZeitfeldRegel, ZeitfeldRegeln, ZeitfeldTyp, ZeitfeldWert } from '@/lib/zeitfelder';
 
 
 export type Role =
@@ -640,6 +641,16 @@ export interface Quote {
    * neuer Entwurf mit eigener Nummer, der hierher verweist.
    */
   vorgaengerId?: string;
+  /**
+   * Liegenschaft und Top (M02c) — optional, eine Zuordnung im Betrieb: nicht
+   * auf dem Angebot und nicht im Schnappschuss des Annahme-Links. Die
+   * Annahme gibt sie an die Baustelle weiter. Die Bezeichnungen setzt die
+   * Datenbank.
+   */
+  liegenschaftId?: string | null;
+  topId?: string | null;
+  liegenschaftBezeichnung?: string | null;
+  topBezeichnung?: string | null;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -1014,6 +1025,17 @@ export interface Material {
   mindestmenge?: number | null;
   /** Warengruppe aus DATANORM (M31) — bestimmt einen abweichenden Aufschlag. */
   warengruppe?: string | null;
+  /**
+   * Bis wohin ein Bestellvorschlag auffüllt (M04b, E14). Leer: bis zur
+   * Mindestmenge. Nie darunter — die Datenbank weist es ab.
+   */
+  sollbestand?: number | null;
+  /**
+   * In welchen Schritten bestellt wird (M04b): der Vorschlag rundet auf ein
+   * Vielfaches auf. Leer: unbekannt — die Preiseinheit des Katalogs ist es
+   * nicht, sie ist nur die Preisbasis.
+   */
+  verpackungseinheit?: number | null;
 }
 
 /**
@@ -1416,6 +1438,8 @@ export interface TimeEntry {
   isBilled?: boolean;
   invoiceNumber?: string;
   createdAt?: number;
+  /** Setzt die Datenbank bei jeder Änderung — auch einer, die nur freie Angaben betrifft (M06b). */
+  updatedAt?: number;
   lastEditedBy?: string;
   lastEditedByUid?: string;
   /**
@@ -1449,6 +1473,66 @@ export interface TimeEntry {
   krankmeldungId?: string;
   /** Aus welchem bestätigten Sonderurlaub dieser Eintrag entstanden ist — wie `vacationId`. */
   freistellungId?: string;
+  /**
+   * DIE FREIEN ZEITFELDER BEIM SCHREIBEN (M06b) — nur Durchgang: die Maske
+   * schickt die Werte mit der Buchung, der Auslöser prüft und schreibt sie in
+   * `zeitbuchung_feldwerte`. Gelesen ist die Spalte immer leer. `null` als
+   * Wert heißt „entfernen“; ein Feld, das fehlt, bleibt, wie es ist.
+   */
+  zeitfelder?: { fassung: number; werte: Record<string, ZeitfeldWert | null> } | null;
+  /**
+   * Die Fassung der freien Zeitfelder beim Eintreffen der Buchung — setzt die
+   * Datenbank. Danach rechnet sich, was fehlt oder nachzupflegen ist.
+   */
+  zeitfeldFassung?: number | null;
+}
+
+/** Ein freies Zeitfeld des Betriebs (M06b, N01) — `zeitfeld_definitionen`. */
+export interface ZeitfeldDefinition {
+  id: string;
+  companyId: string;
+  name: string;
+  typ: ZeitfeldTyp;
+  regeln: ZeitfeldRegeln;
+  giltStaende: string[];
+  giltRollen: Role[];
+  pflicht: ZeitfeldPflicht;
+  reihenfolge: number;
+  aktiv: boolean;
+  /** Nach einem Typwechsel das neue Feld; dieses ist dann beendet. */
+  ersetztDurch?: string | null;
+  angelegtAm?: number;
+  geaendertAm?: number;
+  geaendertVonUid?: string | null;
+  geaendertVonName?: string | null;
+}
+
+/** Eine veröffentlichte Fassung der freien Zeitfelder — `zeitfeld_fassungen`. */
+export interface ZeitfeldFassung {
+  id: string;
+  companyId: string;
+  nummer: number;
+  veroeffentlichtAm?: number;
+  /** Schnappschuss der Regeln je Feld-Kennung (ohne Namen und Reihenfolge). */
+  felder: Record<string, ZeitfeldRegel>;
+  anlass?: string | null;
+  vonUid?: string | null;
+  vonName?: string | null;
+}
+
+/** Ein Wert eines freien Zeitfelds an einer Buchung — `zeitbuchung_feldwerte`. */
+export interface Zeitfeldwert {
+  id: string;
+  companyId: string;
+  eintragId: string;
+  feldId: string;
+  userId: string;
+  datum: string;
+  typ: ZeitfeldTyp;
+  wert: ZeitfeldWert;
+  /** Unter welcher Fassung er erfasst wurde. */
+  fassung: number;
+  geaendertAm?: number;
 }
 
 /**

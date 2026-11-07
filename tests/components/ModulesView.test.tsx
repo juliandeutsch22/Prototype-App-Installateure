@@ -251,10 +251,23 @@ describe('Immer an: der Kern mit seinen Teilen (M02b)', () => {
     const kern = screen.getByText('Immer an').closest('section') as HTMLElement;
     expect(within(kern).getByText('Baustellen')).toBeInTheDocument();
     expect(within(kern).getByText('Kunden')).toBeInTheDocument();
-    expect(within(kern).getAllByText('immer an')).toHaveLength(2);
+    // Seit M06b steht auch die Zeiterfassung im Kern.
+    expect(within(kern).getByText('Zeiterfassung')).toBeInTheDocument();
+    expect(within(kern).getAllByText('immer an')).toHaveLength(3);
     expect(screen.queryByRole('checkbox', { name: /^Baustellen (ein|aus)schalten$/ })).toBeNull();
     expect(screen.queryByRole('checkbox', { name: /^Kunden (ein|aus)schalten$/ })).toBeNull();
     expect(screen.getByText(/^Eingeschaltet: \d+ von 9$/)).toBeInTheDocument();
+  });
+
+  it('die freien Zeitfelder (M06b) stehen als Teil der Zeiterfassung und werden unter ihrer Kennung gespeichert', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    expect(schalter('Freie Zeitfelder')).toBeChecked();
+    expect(screen.getByText('Teil von Zeiterfassung')).toBeInTheDocument();
+    await nutzer.click(schalter('Freie Zeitfelder'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await nutzer.click(screen.getByRole('button', { name: 'Module speichern' }));
+    expect(updateCompany).toHaveBeenCalledWith('perl', { modules: { 'zeiterfassung.freie_zeitfelder': false } });
   });
 
   it('der Auftragseingang steht als Teil der Baustellen und wird unter seiner Kennung gespeichert', async () => {

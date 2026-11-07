@@ -601,6 +601,31 @@ export function unbesetzteEinsaetze(heute: string, tag: TagesBaustelle[]): Absch
   return abschnitt('unbesetzt', 'Unbesetzte Einsätze', zeilen, ZIEL.tag(heute, 'unbesetzt'));
 }
 
+/**
+ * EINSATZ MIT FEHLENDEM MATERIAL in den nächsten sieben Tagen (M04b, E13) —
+ * dieselbe Rechnung wie Woche, Tag und Formular (`materialDeckung.ts`).
+ */
+export interface MaterialFehltZeile {
+  datum: string;
+  projectNumber: string;
+  /** Der Text der Rechnung, etwa „Material fehlt: 2 Positionen“. */
+  text: string;
+}
+
+export function materialFehlt(liste: MaterialFehltZeile[], titelVon: (nr: string) => string): Abschnitt | null {
+  const zeilen: Zeile[] = [...liste]
+    .sort((a, b) => a.datum.localeCompare(b.datum) || titelVon(a.projectNumber).localeCompare(titelVon(b.projectNumber), 'de'))
+    .map((x) => ({
+      key: `material-${x.datum}-${x.projectNumber}`,
+      titel: titelVon(x.projectNumber),
+      detail: `${tagKurz(x.datum)} · ${x.text}`,
+      status: { text: 'prüfen', ton: 'warn' },
+      // In die Tagesplanung: dort steht die Rüstliste mit ihren Zuständen.
+      to: ZIEL.tag(x.datum),
+    }));
+  return abschnitt('material', 'Material fehlt', zeilen, ZIEL.woche);
+}
+
 export function ohneEinsatz(
   liste: { projectNumber: string; zuletzt?: string }[],
   titelVon: (nr: string) => string,

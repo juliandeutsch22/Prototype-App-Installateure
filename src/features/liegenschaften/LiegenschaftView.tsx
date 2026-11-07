@@ -464,7 +464,7 @@ export default function LiegenschaftView() {
         open={frage?.art === 'top'}
         title="Top löschen?"
         message={frage?.art === 'top'
-          ? `${frage.top.bezeichnung} wird gelöscht, mit den Beteiligten dieses Tops. Ist ihm eine Baustelle, Wartung oder ein Eingang zugeordnet, bleibt es — dann auf inaktiv setzen.`
+          ? `${frage.top.bezeichnung} wird gelöscht, mit den Beteiligten dieses Tops. Ist ihm eine Baustelle, Wartung, ein Eingang oder ein Angebot zugeordnet, bleibt es — dann auf inaktiv setzen.`
           : ''}
         onCancel={() => setFrage(null)}
         onConfirm={async () => {
@@ -480,7 +480,7 @@ export default function LiegenschaftView() {
       <ConfirmDialog
         open={frage?.art === 'liegenschaft'}
         title="Liegenschaft löschen?"
-        message={`${l.bezeichnung} wird gelöscht, mit allen Tops und Beteiligten. Sind ihr Baustellen, Wartungen oder Eingänge zugeordnet, bleibt sie — dann auf inaktiv setzen.`}
+        message={`${l.bezeichnung} wird gelöscht, mit allen Tops und Beteiligten. Sind ihr Baustellen, Wartungen, Eingänge oder Angebote zugeordnet, bleibt sie — dann auf inaktiv setzen.`}
         onCancel={() => setFrage(null)}
         onConfirm={async () => {
           await liegenschaftLoeschen(l.id);

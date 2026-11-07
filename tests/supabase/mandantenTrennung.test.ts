@@ -74,6 +74,8 @@ const ZUSATZ: Record<string, (betrieb: string) => Record<string, unknown>> = {
   angebot_links: (b) => ({ schluessel_hash: (b === A ? 'a' : 'b').repeat(64), praefix: 'B' }),
   // Kunde ODER freie Angaben (M02c) — hier frei, ein Kunde fehlt der Prüfzeile.
   liegenschaft_beteiligte: () => ({ name: 'Prüfung' }),
+  // M06b: ein Wert passt zu seinem Typ (Prüfregel über zwei Spalten).
+  zeitbuchung_feldwerte: () => ({ typ: 'text', wert: '"Prüfung"' }),
 };
 
 /*
@@ -98,11 +100,18 @@ const FUER_ALLE = ['assignments', 'aussteller_staende', 'baustelle_alte_nummern'
     M04a: Orte, Fahrzeuge und der Bestand je Ort — wie der Bestand am
     Artikel (`materials`) für jede Rolle; der Monteur sieht „Mein Fahrzeug“.
   */
-  'fahrzeuge', 'lagerbestaende', 'lagerorte'];
+  'fahrzeuge', 'lagerbestaende', 'lagerorte',
+  /*
+    M06b: die Definitionen und Fassungen der freien Zeitfelder — jede Rolle
+    bucht, also braucht jede die Maske. Die Werte selbst stehen bei den Zeiten.
+  */
+  'zeitfeld_definitionen', 'zeitfeld_fassungen'];
 /** Lohn, Zeiten, Abwesenheiten anderer und Rechnungen: Buchhaltung und Spitze. */
 const LOHN_UND_RECHNUNG = ['arbeitszeit_begruendungen', 'freistellungen', 'geburtsdaten', 'invoice_coverage', 'invoice_lines',
   'invoices', 'krankmeldungen', 'mahnungen', 'time_entries', 'urlaubsanspruch_anpassungen', 'vacations', 'zahlungseingaenge',
-  'zeitbuchung_verlauf', 'zeitkonto_anfang'];
+  'zeitbuchung_verlauf', 'zeitkonto_anfang',
+  // M06b: die Werte der freien Zeitfelder — wer die Buchung liest.
+  'zeitbuchung_feldwerte'];
 /**
  * Kunden, Lager, Anforderungen, Pläne, UID-Prüfungen und der Auftragseingang
  * (M02b: wer Kunden liest, liest Eingänge): das Büro und die Leitung.

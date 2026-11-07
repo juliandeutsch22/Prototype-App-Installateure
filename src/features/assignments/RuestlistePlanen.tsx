@@ -6,7 +6,7 @@ import { gefundenUeberText } from '@/lib/katalogTreffer';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
-import { Marke } from '@/components/Badge';
+import { Marke, Zustand, type Stand } from '@/components/Badge';
 import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import Hinweiszeile from '@/components/Hinweiszeile';
@@ -14,7 +14,17 @@ import { ZahlWertFeld } from '@/components/ZahlFeld';
 import { mengeFehler } from '@/lib/einheit';
 import { fmtMenge } from '@/lib/belegLayout';
 import { imLager } from '@/features/orders/lagerartikel';
-import { nochAnzufordern, ruestFehlt } from './ruestFehlmenge';
+import type { DeckungsDaten } from '@/lib/db/materialdeckung';
+import { formularDeckung, type DeckungsZustand } from './materialDeckung';
+
+/** Die Zustände der Rechnung in den fünf Zuständen der Linie (`Zustand`). */
+const STAND: Record<Exclude<DeckungsZustand, 'unbekannt'>, Stand> = {
+  erledigt: 'erledigt',
+  laeuft: 'laeuft',
+  offen: 'offen',
+  achtung: 'achtung',
+  fehler: 'schlecht',
+};
 
 /**
  * Die Rüstliste eines Einsatzes zusammenstellen — was in den Bus soll.
@@ -63,13 +73,19 @@ interface Props {
    * `null` — dieselbe Naht wie am Handwerksschein (`MaterialErfassen`).
    */
   onOffen?: (offen: string | null) => void;
+  /** Der Einsatztag — gegen ihn zählt ein Liefertermin. */
+  datum?: string;
   /**
-   * Was je Artikel für DIESE Rüstliste verfügbar ist (Testbericht
-   * 30.09.2026, M32): frei nach Zusagen und anderen Rüstlisten, die eigene
-   * gespeicherte Menge wieder dazugezählt. Ohne Angabe gilt der Bestand.
+   * Die Eingaben der Deckungsrechnung für diese Liste (M04b): was VOR ihr im
+   * Lager frei ist (andere Zusagen und Listen, die früher dran sind — die
+   * eigene zählt nicht gegen sich), der Stand ihrer Anforderungen und der
+   * Zulauf. `null` oder ohne Angabe: es gilt der Bestand.
    */
-  verfuegbar?: Map<string, number>;
+  deckung?: DeckungsDaten | null;
+  /** Den Zustand je Position zeigen (Modul „Materialbereitschaft“). */
+  zustaende?: boolean;
 }
+
 
 export default function RuestlistePlanen({
   companyId,
@@ -79,7 +95,9 @@ export default function RuestlistePlanen({
   onVormerken,
   vorgemerkt,
   onOffen,
-  verfuegbar,
+  datum = '',
+  deckung = null,
+  zustaende = false,
 }: Props) {
   const [suche, setSuche] = useState('');
   const [freierName, setFreierName] = useState('');
@@ -128,6 +146,11 @@ export default function RuestlistePlanen({
    * zwei verschiedene Suchen lernen müssen.
    */
   const suchStand = useKatalogSuche(companyId, suche, materials);
+  // DIESELBE RECHNUNG wie Woche, Tag und Monat (`materialDeckung.ts`), mit den Positionen, wie sie dastehen.
+  const deckungJe = useMemo(
+    () => formularDeckung(datum, positionen, deckung, (id) => nachId.get(id)),
+    [datum, positionen, deckung, nachId],
+  );
   const drin = new Set(positionen.map((p) => p.materialId).filter(Boolean));
   const treffer = suchStand.treffer
     // Was der Grosshändler nicht mehr führt, packt heute niemand mehr auf
@@ -170,10 +193,12 @@ export default function RuestlistePlanen({
         <ul className="divide-y divide-line border-y border-line">
           {positionen.map((p) => {
             const artikel = p.materialId ? nachId.get(p.materialId) : undefined;
-            // Fehlmenge nur bei einem Katalogartikel (`ruestFehlt`).
-            const da = artikel ? (verfuegbar?.get(artikel.id) ?? artikel.stock ?? 0) : 0;
-            const fehlt = ruestFehlt(p, artikel, verfuegbar);
-            const offen = nochAnzufordern(p, artikel, verfuegbar);
+            // Fehlmenge nur bei einem Katalogartikel; eine freie Zeile hat keinen Bestand.
+            const d = artikel ? deckungJe.get(p.id) : undefined;
+            const da = d?.freiDavor ?? 0;
+            const fehlt = d?.imLagerFehlt ?? 0;
+            const offen = d?.fehlt ?? 0;
+            const zustand = zustaende ? deckungJe.get(p.id) : undefined;
             return (
               <li key={p.id} className="py-3">
                 <div className="flex flex-wrap items-end gap-3">
@@ -204,7 +229,7 @@ export default function RuestlistePlanen({
                     {artikel && imLager(artikel) && (
                       <p className="text-sm text-ink-muted">
                         Lager: <span>{fmtMenge(artikel.stock ?? 0)}</span>
-                        {verfuegbar?.has(artikel.id) && (
+                        {deckung?.fuer?.freiVor.has(artikel.id) && (
                           <> · für diese Liste frei: <span>{fmtMenge(Math.max(da, 0))}</span></>
                         )}
                         {artikel.category ? ` · ${artikel.category}` : ''}
@@ -229,6 +254,16 @@ export default function RuestlistePlanen({
                   Grundlage einer Vermutung, wäre genau der Vertrauensverlust,
                   den diese App sich nicht leisten kann.
                 */}
+                {/* Der Zustand der Position (M04b) — gedeckt, kommt, noch nicht bestellt, fehlt. */}
+                {zustand && (
+                  <p className="mt-1 text-sm">
+                    {zustand.zustand === 'unbekannt' ? (
+                      <span className="text-ink-muted">{zustand.text}</span>
+                    ) : (
+                      <Zustand stand={STAND[zustand.zustand]}>{zustand.text}</Zustand>
+                    )}
+                  </p>
+                )}
                 {(p.angefordert ?? 0) > 0 && (
                   <p className="mt-1 text-sm text-ink-muted">
                     Davon {fmtMenge(p.angefordert!)} über eine Anforderung — sie kommen über die Abholung,
@@ -259,6 +294,10 @@ export default function RuestlistePlanen({
                         */}
                         {onVormerken && offen === 0 && (p.angefordert ?? 0) > 0 && (
                           <span className="text-sm text-ink-muted">Anforderung angelegt</span>
+                        )}
+                        {/* Was das Regal nicht hat, bringt eine Bestellung für das Lager (M04b) — keine zweite Anforderung. */}
+                        {offen === 0 && (p.angefordert ?? 0) === 0 && (d?.ausZulauf ?? 0) > 0 && (
+                          <span className="text-sm text-ink-muted">Kommt mit der Bestellung für das Lager</span>
                         )}
                         {onVormerken && offen > 0 && (vorgemerkt?.has(p.id) ? (
                           <>

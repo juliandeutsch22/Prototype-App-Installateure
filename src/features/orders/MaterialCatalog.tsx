@@ -31,6 +31,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { leseZahl, preisAlsText, zahlOder } from '@/lib/zahl';
 import { grundAus } from '@/lib/fehlerGrund';
+import { bestellFehler } from './bestellvorschlag';
 import ZahlFeld from '@/components/ZahlFeld';
 import EinheitFeld from '@/components/EinheitFeld';
 import Lieferantenvergleich from '@/features/materials/Lieferantenvergleich';
@@ -67,6 +68,9 @@ const empty = {
   lagerartikel: true,
   mindestmenge: '',
   warengruppe: '',
+  // Bestellvorschläge (M04b): bis wohin aufgefüllt und in welchen Schritten bestellt wird.
+  sollbestand: '',
+  verpackungseinheit: '',
 };
 
 /**
@@ -127,6 +131,7 @@ export default function MaterialCatalog({
   const vergleichAn = useModul('material.lieferantenvergleich');
   const zuordnenAn = useModul('material.katalogversionen');
   const verlaufAn = useModul('material.katalogpreisverlauf');
+  const vorschlaegeAn = useModul('material.bestellvorschlaege');
   const toast = useToast();
   /*
     DER KATALOG SEITENWEISE VOM SERVER (19.10.2026), wie bei „Material
@@ -237,6 +242,8 @@ export default function MaterialCatalog({
       lagerartikel: imLager(m),
       mindestmenge: m.mindestmenge != null ? String(m.mindestmenge).replace('.', ',') : '',
       warengruppe: m.warengruppe ?? '',
+      sollbestand: m.sollbestand != null ? String(m.sollbestand).replace('.', ',') : '',
+      verpackungseinheit: m.verpackungseinheit != null ? String(m.verpackungseinheit).replace('.', ',') : '',
     });
   }
   /**
@@ -281,11 +288,17 @@ export default function MaterialCatalog({
     e.preventDefault();
     if (!user) return;
     // Zentrale Zahlenlesung (M15): „7.500“ ist uneindeutig und wird gemeldet, nicht 0.
-    const unlesbar = [form.verkaufspreis, form.einkaufspreis, form.stock, form.mindestmenge]
+    const unlesbar = [form.verkaufspreis, form.einkaufspreis, form.stock, form.mindestmenge, form.sollbestand, form.verpackungseinheit]
       .map((t) => leseZahl(t).fehler)
       .find(Boolean);
     if (unlesbar) {
       setError(unlesbar);
+      return;
+    }
+    // Die Datenbank weist beides ab — hier mit einem Satz, den man versteht (M04b).
+    const bestell = bestellFehler(form);
+    if (bestell) {
+      setError(bestell);
       return;
     }
     setSaving(true);
@@ -315,6 +328,16 @@ export default function MaterialCatalog({
           ? Math.max(0, zahlOder(form.mindestmenge, 0))
           : null,
         warengruppe: form.warengruppe.trim() || null,
+        /*
+          SOLLBESTAND UND VERPACKUNGSEINHEIT (M04b) nur mit dem Modul: ohne
+          es stehen die Felder nicht da, und gespeicherte Werte bleiben.
+        */
+        ...(vorschlaegeAn
+          ? {
+              sollbestand: form.lagerartikel && form.sollbestand.trim() !== '' ? zahlOder(form.sollbestand, 0) : null,
+              verpackungseinheit: form.verpackungseinheit.trim() !== '' ? zahlOder(form.verpackungseinheit, 0) : null,
+            }
+          : {}),
         /*
           DER EINKAUFSPREIS WANDERT NUR MIT, WENN DIE ROLLE IHN SETZEN DARF.
 
@@ -530,6 +553,14 @@ export default function MaterialCatalog({
                 <ZahlFeld id="mmin" label="Mindestmenge" placeholder="leer = knapp ab höchstens 5 frei"
                   value={form.mindestmenge} onChange={(t) => setForm({ ...form, mindestmenge: t })} />
               )}
+              {vorschlaegeAn && form.lagerartikel && (
+                <ZahlFeld id="msoll" label="Sollbestand" placeholder="leer = bis zur Mindestmenge"
+                  value={form.sollbestand} onChange={(t) => setForm({ ...form, sollbestand: t })} />
+              )}
+              {vorschlaegeAn && (
+                <ZahlFeld id="mvpe" label="Verpackungseinheit" placeholder="leer = unbekannt"
+                  value={form.verpackungseinheit} onChange={(t) => setForm({ ...form, verpackungseinheit: t })} />
+              )}
               <div className="flex flex-col gap-1.5">
                 <ZahlFeld
                   id="mpreis"
@@ -647,3 +678,4 @@ export default function MaterialCatalog({
     </div>
   );
 }
+
