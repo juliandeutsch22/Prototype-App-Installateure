@@ -71,7 +71,9 @@ test('Fahrzeug anlegen, umlagern, aus dem Fahrzeug abhaken, Bestand je Ort, Reto
   const blatt = chefSeite.getByRole('dialog', { name: 'Artikel' });
   await blatt.getByRole('button', { name: 'Umlagern' }).click();
   const umlagern = chefSeite.getByRole('dialog', { name: /^Umlagern: / });
-  await umlagern.getByLabel('Nach').selectOption({ label: `Fahrzeug ${KENNZEICHEN}` });
+  // Gewählt über die Kennung des Ortes: hinter dem Namen steht der Bestand dort („Fahrzeug W-DK1 — 0 m“).
+  await umlagern.getByLabel('Nach').selectOption(ort);
+  await expect(umlagern.getByLabel('Nach').locator('option:checked')).toHaveText(`Fahrzeug ${KENNZEICHEN} — 0 m`);
   await umlagern.getByLabel(/Menge/).fill('5');
   await umlagern.getByRole('button', { name: 'Umlagern' }).click();
   await expect(chefSeite.getByText(new RegExp(`5 m ${ARTIKEL.name} umgelagert: .+ → Fahrzeug ${KENNZEICHEN}`))).toBeVisible();
