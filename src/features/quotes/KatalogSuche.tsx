@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Material } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { sucheKatalog } from '@/lib/db/materials';
+import { gefundenUeberText, type MitNummer } from '@/lib/katalogTreffer';
 import Button from '@/components/Button';
 import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
@@ -27,7 +28,7 @@ export default function KatalogSuche({
   onSchliessen: () => void;
 }) {
   const [begriff, setBegriff] = useState('');
-  const [antwort, setAntwort] = useState<{ schluessel: string; zeilen: WithId<Material>[]; fehler: boolean } | null>(null);
+  const [antwort, setAntwort] = useState<{ schluessel: string; zeilen: MitNummer<WithId<Material>>[]; fehler: boolean } | null>(null);
   const [versuch, setVersuch] = useState(0);
   const b = begriff.trim();
   const schluessel = JSON.stringify([companyId, b, versuch]);
@@ -92,6 +93,7 @@ export default function KatalogSuche({
               title={m.name}
               subtitle={[
                 m.articleNumber,
+                gefundenUeberText(m),
                 m.verkaufspreis != null ? `${euro(m.verkaufspreis)} je ${m.unit || 'Einheit'}` : 'ohne Verkaufspreis',
               ].filter(Boolean).join(' · ')}
             >

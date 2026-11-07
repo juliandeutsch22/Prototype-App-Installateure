@@ -263,6 +263,16 @@ export interface Company {
    * Papierkorb hinweist (M01d); leer = kein Hinweis. Löscht nichts.
    */
   papierkorbFristTage?: number | null;
+  /**
+   * Ab welcher Änderung in Prozent der Übernahmebericht eines Katalogs einen
+   * Preissprung nennt (M03a, E04). Vorgabe 10; schreibt die Spitze.
+   */
+  preissprungSchwelleProzent?: number;
+  /**
+   * Ein Preisstand, der älter ist (Tage), taugt nicht für „günstigster“
+   * (M03a, E03). Vorgabe 180; schreibt die Spitze.
+   */
+  katalogVeraltetTage?: number;
   /** Vorschlag für den Grund der Steuerbefreiung auf Rechnungen mit 0 % (A2). */
   steuerbefreiungVorgabe?: string;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';

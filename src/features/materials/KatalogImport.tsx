@@ -23,6 +23,11 @@ import { datumAusMs } from '@/lib/datum';
 import { leseZahl, zahlOder } from '@/lib/zahl';
 import { euroPreis } from '@/lib/betrag';
 import ZahlFeld from '@/components/ZahlFeld';
+import { MehrAnzeigen } from '@/components/LotBausteine';
+import { List, ListRow } from '@/components/ListRow';
+import { useModul } from '@/lib/useModule';
+import { fmtMenge } from '@/lib/belegLayout';
+import { datumAT } from '@/lib/datum';
 
 /**
  * Den Artikelkatalog des Grosshändlers einspielen — erst ansehen, dann
@@ -45,10 +50,18 @@ type Schritt = 'datei' | 'probelauf' | 'fertig';
 /** Wie viele nicht verstandene Zeilen die Ansicht zeigt. */
 const ZEIGE_ZEILEN = 50;
 
-export default function KatalogImport() {
+export default function KatalogImport({
+  onZuordnen,
+}: {
+  /** Öffnet die offenen Lieferantenartikel (M03a) — von der Seite, die beides trägt. */
+  onZuordnen?: () => void;
+} = {}) {
   const { user } = useAuth();
   const toast = useToast();
   const betrieb = user?.companyId ?? '';
+  /* M03a: die Zuordnung offener Lieferantenartikel und die Preissprünge, je eigener Schalter. */
+  const zuordnenAn = useModul('material.katalogversionen');
+  const verlaufAn = useModul('material.katalogpreisverlauf');
 
   const [schritt, setSchritt] = useState<Schritt>('datei');
   const [fehler, setFehler] = useState<string | null>(null);
@@ -79,6 +92,8 @@ export default function KatalogImport() {
     setLaufInArbeitZustand(l);
   };
   const [bericht, setBericht] = useState<dn.UebernahmeBericht | null>(null);
+  /** Der Lauf, dessen Bericht gerade steht — seine Preissprünge holt die Liste darunter. */
+  const [fertigerLauf, setFertigerLauf] = useState<string | null>(null);
   const [laeufe, setLaeufe] = useState<WithId<dn.Lauf>[]>([]);
   const dateiFeld = useRef<HTMLInputElement>(null);
 
@@ -189,6 +204,7 @@ export default function KatalogImport() {
       setPhase('uebernehmen');
       setFortschritt(0);
       setBericht(await dn.uebernehmen(lauf, undefined, (offen) => setFortschritt(gesamt - offen)));
+      setFertigerLauf(lauf);
       setLaufInArbeit(null);
       setFortschritt(null);
       setLaeufe(await dn.laeufe(betrieb, 10));
@@ -209,6 +225,7 @@ export default function KatalogImport() {
 
   function zurueck() {
     setLaufInArbeit(null);
+    setFertigerLauf(null);
     setGelesen(null);
     setDatei(null);
     setBericht(null);
@@ -229,6 +246,12 @@ export default function KatalogImport() {
               value={bericht.ohneRabattsatz}
               tone={bericht.ohneRabattsatz > 0 ? 'warning' : 'default'}
             />
+            {zuordnenAn && (bericht.offenZuzuordnen ?? 0) > 0 && (
+              <Metric label="Offen zuzuordnen" value={bericht.offenZuzuordnen ?? 0} tone="warning" />
+            )}
+            {verlaufAn && (bericht.preisspruenge ?? 0) > 0 && (
+              <Metric label="Preissprünge" value={bericht.preisspruenge ?? 0} tone="warning" />
+            )}
           </MetricRow>
           {bericht.ohneRabattsatz > 0 && (
             <p className="mt-4 text-sm text-ink-muted">
@@ -237,10 +260,28 @@ export default function KatalogImport() {
               führt sie weiter als Lücke.
             </p>
           )}
-          <div className="mt-4">
+          {/*
+            DER HINWEIS NACH DER ÜBERNAHME (M03a, E01): was offen blieb, hat
+            keinen Preis im Vergleich und ändert keinen Artikel, bis jemand
+            zuordnet.
+          */}
+          {zuordnenAn && (bericht.offenZuzuordnen ?? 0) > 0 && (
+            <p className="mt-4 text-sm text-ink-muted">
+              {bericht.offenZuzuordnen} Artikel dieses Katalogs tragen eine Nummer, die im Katalog schon
+              einem Artikel eines anderen Großhändlers gehört, oder sind von Hand gelöst. Sie wurden nicht
+              zugeordnet und haben ihre Preise bei sich — ordne sie zu oder lege sie als neue Artikel an.
+            </p>
+          )}
+          <div className="mt-4 flex flex-wrap gap-2">
             <Button onClick={zurueck}>Weiteren Katalog einspielen</Button>
+            {zuordnenAn && onZuordnen && (bericht.offenZuzuordnen ?? 0) > 0 && (
+              <Button variant="secondary" onClick={onZuordnen}>Offene zuordnen</Button>
+            )}
           </div>
         </Card>
+        {verlaufAn && fertigerLauf && (bericht.preisspruenge ?? 0) > 0 && (
+          <Preisspruenge laufId={fertigerLauf} />
+        )}
         <Protokoll laeufe={laeufe} />
       </div>
     );
@@ -299,6 +340,14 @@ export default function KatalogImport() {
               </div>
             )}
 
+            {zuordnenAn && onZuordnen && (
+              <p className="text-sm text-ink-muted">
+                Was ein Katalog nicht selbst zuordnen durfte, steht unter{' '}
+                <button type="button" className="link-weiter" onClick={onZuordnen}>
+                  Offene Lieferantenartikel
+                </button>
+              </p>
+            )}
             <div className="flex flex-col gap-1">
               <label htmlFor="dn-datei" className="text-sm font-normal">
                 DATANORM-Datei
@@ -354,6 +403,8 @@ export default function KatalogImport() {
               {zahlen.neu} neu · {zahlen.aenderungen} Änderungen · {zahlen.loeschungen}{' '}
               Löschsätze
               {zahlen.uebersprungen > 0 && <> · {zahlen.uebersprungen} andere Satzarten</>}
+              {ergebnis.ean.gelesen > 0 && <> · {ergebnis.ean.gelesen} mit EAN</>}
+              {ergebnis.ean.verworfen > 0 && <> · {ergebnis.ean.verworfen} ungültige EAN nicht übernommen</>}
             </p>
           </Card>
 
@@ -512,7 +563,7 @@ function Protokoll({ laeufe }: { laeufe: WithId<dn.Lauf>[] }) {
               <span className="text-ink-muted">
                 {datumAusMs(l.createdAt)}
                 {l.status === 'uebernommen' && u
-                  ? ` · ${u.angelegt} neu, ${u.geaendert} aktualisiert`
+                  ? ` · ${u.angelegt} neu, ${u.geaendert} aktualisiert${u.offenZuzuordnen ? `, ${u.offenZuzuordnen} offen` : ''}`
                   : l.status === 'verworfen'
                     ? ' · verworfen'
                     : ' · nicht abgeschlossen'}
@@ -521,6 +572,74 @@ function Protokoll({ laeufe }: { laeufe: WithId<dn.Lauf>[] }) {
           );
         })}
       </ul>
+    </Card>
+  );
+}
+
+/** Wie viele Preissprünge auf einmal stehen (Regel 4). */
+const SPRUENGE_JE_SEITE = 20;
+
+/**
+ * DIE PREISSPRÜNGE DES LAUFS (M03a, E04) — seitenweise, größter zuerst: je
+ * Artikel alt, neu und die Änderung in Prozent. Ab welcher Änderung, stellt
+ * die Spitze unter Einstellungen › Sätze ein; der Lauf behält die Schwelle,
+ * mit der er übernommen wurde.
+ */
+function Preisspruenge({ laufId }: { laufId: string }) {
+  const [stand, setStand] = useState<{ gesamt: number; schwelle: number; zeilen: dn.Preissprung[] } | null>(null);
+  const [fehler, setFehler] = useState<string | null>(null);
+  const [laedt, setLaedt] = useState(false);
+
+  useEffect(() => {
+    let weg = false;
+    dn.preisspruenge(laufId, 0, SPRUENGE_JE_SEITE)
+      .then((s) => {
+        if (!weg) setStand(s);
+      })
+      .catch((e: Error) => {
+        if (!weg) setFehler(e.message);
+      });
+    return () => {
+      weg = true;
+    };
+  }, [laufId]);
+
+  async function mehr() {
+    if (!stand) return;
+    setLaedt(true);
+    try {
+      const s = await dn.preisspruenge(laufId, stand.zeilen.length, SPRUENGE_JE_SEITE);
+      setStand({ ...s, zeilen: [...stand.zeilen, ...s.zeilen] });
+    } catch (e) {
+      setFehler((e as Error).message);
+    } finally {
+      setLaedt(false);
+    }
+  }
+
+  if (fehler) return <ErrorState message={fehler} />;
+  if (!stand) return null;
+  return (
+    <Card
+      title={`Preissprünge (${stand.gesamt})`}
+      hint={`Preise, die sich gegen den vorigen desselben Großhändlers um mehr als ${fmtMenge(stand.schwelle)} % geändert haben — verglichen wird der Einkaufspreis, ohne ihn der Listenpreis.`}
+      buendig
+    >
+      <List>
+        {stand.zeilen.map((z) => (
+          <ListRow
+            key={z.lieferantenartikelId}
+            title={z.artikel ?? z.bezeichnung}
+            subtitle={`Nr. ${z.lieferantenNr} · ${z.art === 'einkauf' ? 'Einkauf' : 'Liste'} seit ${datumAT(z.seit)}`}
+            wert={
+              <span className="font-mono">
+                {euroPreis(z.alt)} → {euroPreis(z.neu)} ({z.prozent > 0 ? '+' : '−'}{fmtMenge(Math.abs(z.prozent))} %)
+              </span>
+            }
+          />
+        ))}
+      </List>
+      <MehrAnzeigen anzahl={Math.max(0, stand.gesamt - stand.zeilen.length)} laedt={laedt} onClick={() => void mehr()} />
     </Card>
   );
 }

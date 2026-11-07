@@ -161,3 +161,24 @@ describe('Die Anmerkung geht mit hinaus (Runde 6, G21)', () => {
     expect(bestellTabelle(g.zuBestellen)[0][2]).toBe('Eckventil 1/2');
   });
 });
+
+/*
+  M03a: BESTELLT WIRD MIT DER NUMMER DES GROSSHÄNDLERS. GEGENPROBE: ohne die
+  Änderung trüge die Zeile bei Frauenthal die Nummer des Stammartikels.
+*/
+describe('Nummer des Großhändlers (M03a)', () => {
+  it('nimmt je Großhändler seine Nummer, sonst die des Stammartikels', () => {
+    const nummern = new Map([['m1|frauenthal', 'FR-77']]);
+    const gruppen = einkaufsliste(
+      [a({ materialId: 'm1', supplierId: 'holter' }), a({ materialId: 'm1', supplierId: 'frauenthal' })],
+      KATALOG, [], nummern,
+    );
+    const nr = Object.fromEntries(gruppen.map((g) => [g.supplierId, g.zuBestellen[0].artikelnummer]));
+    expect(nr).toEqual({ holter: 'EV-12', frauenthal: 'FR-77' });
+  });
+
+  it('gleich geblieben: ohne Nummern wie bisher die Artikelnummer des Stamms', () => {
+    const [g] = einkaufsliste([a({ materialId: 'm1' })], KATALOG);
+    expect(g.zuBestellen[0].artikelnummer).toBe('EV-12');
+  });
+});

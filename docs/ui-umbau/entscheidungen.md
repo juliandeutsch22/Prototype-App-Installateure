@@ -1759,3 +1759,68 @@ nimmt in einem zweiten Browser an, Büro sieht es), Inhaltsregel-Rundgang der
 `ruecklauf`, `personLoeschen`. Gegenproben: ohne Migration 38 von 40 neuen
 Datenbankfällen rot (die zwei Erhaltungsfälle grün), je Baustein die eigenen
 Fälle rot.
+
+**E57 — Kataloge mehrerer Großhändler, verifizierter Preisvergleich, Preisverlauf (07.11.2026).**
+SHK-Ausbau, Paket M03a (E01–E04, „Integrieren“; Befund 2 der Bestandsmatrix).
+Der Artikelstamm kannte keinen Lieferanten: zwei Großhändler mit derselben
+Nummer ergaben einen Artikel, und der letzte Katalog überschrieb Name, Einheit
+und Einkaufspreis — auch wenn beim zweiten ein anderes Produkt dahinterstand.
+
+- **Lieferantenartikel als Zuordnungsmodell.** Neue Tabelle
+  `lieferantenartikel`: der Artikel, wie ihn ein Großhändler führt (Nummer,
+  Bezeichnung, Einheit, Preiseinheit, Warengruppe, EAN), einem Stammartikel
+  zugeordnet oder offen. Ein Katalog schreibt nur an seine eigenen
+  Lieferantenartikel; den Stammartikel ändert er nur, solange kein anderer
+  Lieferant zugeordnet ist — der Ein-Lieferanten-Betrieb bleibt, wie er war.
+- **Eine Preistabelle.** Die Preise in `material_prices` hängen am
+  Lieferantenartikel und ziehen beim Zuordnen mit; nichts doppelt, nichts
+  verloren. `material_einkaufspreise` bleibt die eine Zahl für Kalkulation,
+  Nachkalkulation und Rechnung: der günstigste vergleichbare Preis, sonst der
+  jüngste — unabhängig von jedem Schalter, weil Zahlen nicht von einer
+  Ansicht abhängen dürfen.
+- **Vergleich nur, wo er stimmt.** „Günstigster“ nur bei gleicher Einheit,
+  vollständigem Rabatt und nicht veraltetem Stand (Vorgabe 180 Tage, je
+  Betrieb einstellbar); sonst „nicht vergleichbar“ oder „veraltet“ mit
+  Grund — keine erfundene Umrechnung. Der Vorschlag der Einkaufsliste nimmt
+  den günstigsten vergleichbaren, sonst wie bisher den jüngsten; den Grund
+  sieht, wer Einkaufspreise sieht.
+- **Offene Lieferantenartikel** (Lager › „Zuordnen“) mit Vorschlag (gleiche
+  Nummer, gleiche EAN, ähnliche Bezeichnung): zuordnen, als neuen Artikel anlegen (ohne doppelte
+  Nummer), lösen. Wer und wann entschieden hat, setzt die Datenbank am
+  Lieferantenartikel; kein Journal, weil der Katalog Stammdatum ohne Akte ist
+  (die jüngste Entscheidung steht, frühere nicht).
+- **Preisverlauf je Großhändler** im Artikelblatt und **Preissprünge** im
+  Bericht der Übernahme (Schwelle je Betrieb, Vorgabe 10 %).
+- **Katalogsuche** findet auch über die Nummer eines zugeordneten
+  Großhändlers und die EAN (`katalog_nummern_suche`, Trigramm-Index), auch
+  für den Monteur — ohne dass er die Tabelle lesen darf.
+- **Bestand ergänzt, nicht umgeschrieben:** aus den vorhandenen Preisen
+  entstehen Lieferantenartikel („bestand“: ein Lieferant verifiziert, zwei zu
+  prüfen); der Einkaufspreis jedes Artikels bleibt, bis der nächste Katalog
+  oder eine Zuordnung ihn neu bestimmt.
+- **Module:** drei Unterfähigkeiten unter „Material“, alle Standard an
+  (`material.katalogversionen`, `material.lieferantenvergleich`,
+  `material.katalogpreisverlauf`), im Register des Servers. Zuordnen, als neu
+  anlegen und lösen prüfen `material.katalogversionen` auf dem Server (V3);
+  ausgeschaltet ordnet die Übernahme weiter zu, nimmt nur die Ansichten weg.
+  Ohne Preisvergleich gilt für den Vorschlag wieder der jüngste.
+- **Rechte:** Zuordnen, wer Kataloge einspielt (Geschäftsführung oder
+  Freigabe „Katalog einspielen“); Preise und Vergleich nur, wer
+  Einkaufspreise sieht; die Projektleitung sieht die Nummern der
+  Großhändler, keine Preise. Der Support liest, ordnet ohne „mitarbeiten“
+  nicht zu.
+
+**Grenzen mit Grund:** EAN und Preiseinheit aus DATANORM sind erst mit echten
+Dateien realer Großhändler prüfbar (Nachweisregister, liegt beim
+Pilotbetrieb); ein Artikel ohne Preiszeile bleibt Stammartikel ohne
+Lieferantenartikel (Altdaten: seine Herkunft ist nicht gespeichert); von den
+Entscheidungen zu einem Lieferantenartikel steht nur die jüngste (oben).
+
+**Prüfungen.** `lieferantenartikel.test.ts` (34, darunter Erhaltung des
+Ein-Lieferanten-Betriebs, Bestand, 2.000 Zeilen unter der Zeitgrenze, V3),
+`modulRegisterServer.test.ts`, `Lieferantenvergleich.test.tsx`,
+`OffeneLieferantenartikel.test.tsx`, `KatalogEinstellungenKarte.test.tsx`,
+Erweiterungen in `KatalogImport`, `MaterialCatalog`, `StockView`,
+`Einkaufsliste`, `datanorm`, `einkauf`, `nummernSuche`, `modulRegister`;
+Browser `lieferantenvergleich.spec.ts`. Gegenprobe der Serverprüfung: ohne
+sie ist der V3-Fall rot.
