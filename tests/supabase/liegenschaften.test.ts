@@ -519,7 +519,10 @@ describe('Angebot mit Liegenschaft', () => {
     const link = await chefin.client.rpc('angebot_link_erzeugen', { p_angebot: q, p_abrechnung: 'Pauschal', p_praefix: 'LG', p_gueltig_bis: null });
     expect(link.error).toBeNull();
     const { data: zeileLink } = await admin.from('angebot_links').select('schnappschuss').eq('quote_id', q).single();
-    expect(JSON.stringify(zeileLink?.schnappschuss ?? {})).not.toMatch(/WHA Link|liegenschaft/i);
+    // Genau prüfen: der Prüfbetrieb heißt selbst „Liegenschaft Installationen GmbH“ (Aussteller).
+    const schnapp = (zeileLink?.schnappschuss ?? {}) as { angebot?: Record<string, unknown> };
+    expect(Object.keys(schnapp.angebot ?? {}).filter((k) => /liegenschaft|^top/i.test(k))).toEqual([]);
+    expect(JSON.stringify(schnapp)).not.toMatch(/WHA Link|Top 1/);
     const an = await admin.rpc('angebot_link_annehmen', {
       p_hash: sha((link.data as { schluessel: string }).schluessel), p_name: 'Hermine Hausverwaltung', p_unterschrift: BILD, p_bestaetigt: true,
     });
