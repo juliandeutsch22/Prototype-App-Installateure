@@ -32,6 +32,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Client } from 'pg';
 import { admin, betriebAnlegen, buchung, einblickBeginnen, konto, plattformkonto, type Konto } from './helfer';
+import { clientEinreichen } from '@/lib/db/pg/kern';
+import { bestandAmOrt } from '@/lib/db/pg/lagerorte';
 
 const DB = process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
 const BETRIEB = 'lagerorte-a';
@@ -944,4 +946,52 @@ describe('Messung: 10.000 Artikel, 20 Orte', () => {
     console.log('M04a Messung (ms):', JSON.stringify(Object.fromEntries(Object.entries(zeiten).map(([k, v]) => [k, Math.round(v)]))));
     for (const [was, ms] of Object.entries(zeiten)) expect(ms, was).toBeLessThan(8000);
   }, 60_000);
+});
+
+/* ------------------------------------------- Bestand eines großen Ortes */
+
+describe('Ein Ort mit mehr Artikeln, als der Server auf einmal ausgibt', () => {
+  it('die Bestandsliste des Ortes ist vollständig — nicht bei 1.000 abgeschnitten', async () => {
+    /*
+      Der Server gibt je Anfrage höchstens 1.000 Zeilen aus (`max_rows`). Ein
+      Außenlager kann mehr Artikel tragen; eine abgeschnittene Liste sähe aus
+      wie ein vollständiger Bestand. Aufgebaut wird direkt in der Datenbank
+      und ohne Auslöser, weil 1.050 Wareneingänge hier nur Zeit kosten — der
+      Leseweg ist, was geprüft wird.
+    */
+    const ANZAHL = 1050;
+    const db = new Client({ connectionString: DB });
+    await db.connect();
+    let ort = '';
+    try {
+      await db.query('begin');
+      await db.query('set local session_replication_role = replica');
+      const { rows } = await db.query<{ id: string }>(
+        `insert into public.lagerorte (company_id, art, bezeichnung) values ($1, 'lager', 'Großlager') returning id`,
+        [BETRIEB],
+      );
+      ort = rows[0].id;
+      await db.query(
+        `with neu as (
+           insert into public.materials (company_id, name, unit, lagerartikel)
+           select $1, 'Großlager ' || lpad(g::text, 4, '0'), 'Stk', true from generate_series(1, $3::integer) g
+           returning id)
+         insert into public.lagerbestaende (lagerort_id, material_id, company_id, menge)
+         select $2, id, $1, 1 from neu`,
+        [BETRIEB, ort, ANZAHL],
+      );
+      await db.query('commit');
+    } finally {
+      await db.end();
+    }
+    clientEinreichen(lager.client);
+    try {
+      const bestand = await bestandAmOrt(BETRIEB, ort);
+      expect(bestand).toHaveLength(ANZAHL);
+      expect(new Set(bestand.map((b) => b.materialId)).size).toBe(ANZAHL);
+      expect(bestand.every((b) => b.lagerortId === ort && Number(b.menge) === 1)).toBe(true);
+    } finally {
+      clientEinreichen(null);
+    }
+  }, 120_000);
 });

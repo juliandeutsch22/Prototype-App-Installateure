@@ -168,10 +168,15 @@ describe('Der Zweitschlüssel und die Beziehungen ohne Kennung', () => {
 
       `geburtsdaten` (05.10.2026): Schlüssel ist die Person, eine Zeile je
       Person; gelesen mit einer eigenen Abfrage (`pg/geburtsdaten.ts`).
+
+      `lagerbestaende` (M04a, 07.11.2026): eine Zeile je Ort und Artikel.
+      Gelesen über `abfragen` — ein Außenlager kann mehr Artikel tragen als
+      eine Seite —, deshalb steht sie in `zweitschluessel()` mit Ort und
+      Artikel als Schlüssel.
     */
     expect(rows.map((r) => r.table_name).sort()).toEqual([
-      'ausleitung_dateien', 'basiszinssaetze', 'betrieb_zustand', 'betriebsanlagen', 'geburtsdaten', 'monthly_stats', 'number_counters',
-      'system_laeufe', 'user_prefs',
+      'ausleitung_dateien', 'basiszinssaetze', 'betrieb_zustand', 'betriebsanlagen', 'geburtsdaten', 'lagerbestaende', 'monthly_stats',
+      'number_counters', 'system_laeufe', 'user_prefs',
     ].sort());
   }, 60_000);
 

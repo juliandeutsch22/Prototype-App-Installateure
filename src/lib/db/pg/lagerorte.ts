@@ -8,7 +8,6 @@
  */
 import type { Fahrzeug, Lagerbestand, Lagerort } from '@/types';
 import { abfragen, derClient, kanalHalten, type WithId } from './kern';
-import { zeileAlsObjekt } from './felder';
 
 export function listLagerorte(companyId: string): Promise<WithId<Lagerort>[]> {
   return abfragen<Lagerort>('lagerorte', companyId, { sortiere: { feld: 'bezeichnung' } });
@@ -82,26 +81,29 @@ const BESTAND = 'lagerbestaende';
 
 /** Was an einem weiteren Ort liegt — nur Zeilen mit Bestand. */
 export async function bestandAmOrt(companyId: string, lagerortId: string): Promise<Lagerbestand[]> {
-  const { data, error } = await derClient()
-    .from(BESTAND)
-    .select('*')
-    .eq('company_id', companyId)
-    .eq('lagerort_id', lagerortId)
-    .gt('menge', 0);
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((z) => zeileAlsObjekt<Lagerbestand>(BESTAND, z));
+  /*
+    SEITENWEISE über `abfragen`: ein Außenlager kann mehr Artikel tragen, als
+    der Server auf einmal ausgibt (`max_rows`), und eine abgeschnittene Liste
+    sähe aus wie ein vollständiger Bestand. Die Menge ist nie negativ —
+    „ungleich 0“ heißt „mit Bestand“.
+  */
+  return abfragen<Lagerbestand>(BESTAND, companyId, {
+    wo: [
+      { art: 'gleich', feld: 'lagerort_id', wert: lagerortId },
+      { art: 'ungleich', feld: 'menge', wert: 0 },
+    ],
+  });
 }
 
 /** Wo ein Artikel außerhalb des Hauptlagers liegt — nur Orte mit Bestand. */
 export async function bestandDesArtikels(companyId: string, materialId: string): Promise<Lagerbestand[]> {
-  const { data, error } = await derClient()
-    .from(BESTAND)
-    .select('*')
-    .eq('company_id', companyId)
-    .eq('material_id', materialId)
-    .gt('menge', 0);
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((z) => zeileAlsObjekt<Lagerbestand>(BESTAND, z));
+  // Höchstens so viele Zeilen wie Orte; über `abfragen` aus demselben Grund wie oben.
+  return abfragen<Lagerbestand>(BESTAND, companyId, {
+    wo: [
+      { art: 'gleich', feld: 'material_id', wert: materialId },
+      { art: 'ungleich', feld: 'menge', wert: 0 },
+    ],
+  });
 }
 
 /**
