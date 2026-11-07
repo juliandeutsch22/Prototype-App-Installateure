@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { lagerFrei, type LagerStand } from '@/lib/db/materials';
+import { materialdeckung, type DeckungsDaten } from '@/lib/db/materialdeckung';
 import { saveAssignments } from '@/lib/db/assignments';
 import { saveEinsatzMaterial } from '@/lib/db/einsatzMaterial';
 import type { Abwesenheit } from '@/lib/db/vacations';
-import { todayStr, getAustrianHolidayName, isWeekend } from '@/lib/time';
+import { getAustrianHolidayName, isWeekend } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type {
   Project,
@@ -29,7 +29,7 @@ import { ErrorState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { terminKopf } from '@/features/termine/terminText';
 import RuestlistePlanen from './RuestlistePlanen';
-import { ausDemRegal, nochAnzufordern } from './ruestFehlmenge';
+import { formularDeckung } from './materialDeckung';
 import { abwesendAm, fmtDay, useMaterialstamm } from './einsatzDaten';
 import { alsHelferEingestuft, istLehrling, stufeImEinsatz } from './stufeImEinsatz';
 
@@ -127,6 +127,8 @@ export default function EinsatzFormular({
   const { user } = useAuth();
   const toast = useToast();
   const materialAn = useModul('material');
+  // Der Zustand je Position (M04b); die Fehlmenge selbst gibt es auch ohne.
+  const bereitschaftAn = useModul('material.materialbereitschaft');
   /*
     DER MATERIALSTAMM ERST MIT DER RÜSTLISTE (Analyse 09.10.2026, Maßnahme
     9): bis zu 1.000 Artikel, live — gebraucht nur, sobald eine Baustelle
@@ -159,8 +161,11 @@ export default function EinsatzFormular({
    * nachschlagen lässt.
    */
   const [vorgemerkt, setVorgemerkt] = useState<Map<string, number>>(new Map());
-  /** Frei je Artikel laut Datenbank (M32) — `null`, solange unbekannt. */
-  const [lagerStand, setLagerStand] = useState<Map<string, LagerStand> | null>(null);
+  /**
+   * Die Eingaben der Deckungsrechnung für diese Liste (M04b; vorher nur
+   * `lager_frei`, M32) — `null`, solange unbekannt oder nicht erreichbar.
+   */
+  const [deckung, setDeckung] = useState<DeckungsDaten | null>(null);
   /** Eine freie Zeile der Rüstliste, die eingetippt, aber nicht hinzugefügt ist. */
   const [offeneRuestzeile, setOffeneRuestzeile] = useState<string | null>(null);
   /** Welcher Einsatz gerade gelöscht werden soll — die Rückfrage steht im Fenster. */
@@ -220,39 +225,25 @@ export default function EinsatzFormular({
   }, [projectNumber, tagesListen]);
 
   /*
-    WAS FÜR DIESE RÜSTLISTE FREI IST (Testbericht 30.09.2026, M32): frei
-    nach Zusagen und allen Rüstlisten ab heute, die eigene gespeicherte
-    Menge wieder dazugezählt — sonst reservierte sie sich selbst weg.
+    WAS FÜR DIESE RÜSTLISTE FREI IST (Testbericht 30.09.2026, M32; seit
+    M04b nach Vorrang, K02): frei nach Zusagen und den Listen, die VOR
+    dieser dran sind — die eigene zählt nicht gegen sich. Dazu der Stand
+    ihrer Anforderungen und der Zulauf für das Lager. Gefragt wird nach den
+    Artikeln der Liste, wie sie dasteht; kommt einer dazu, wird neu gefragt.
   */
   useEffect(() => {
-    if (!user) return;
+    if (!user || !projectNumber || !materialAn) {
+      setDeckung(null);
+      return;
+    }
     let weg = false;
     Promise.resolve()
-      .then(() => lagerFrei([
-        ...materials.map((m) => m.id),
-        // Eine Position kann auf einen Artikel zeigen, der nicht im geladenen Katalog steht.
-        ...tagesListen.flatMap((l) => (l.positionen ?? []).map((p) => p.materialId ?? '')),
-        // Ebenso ein Artikel, den die Suche gerade vom Server geholt hat (19.10.2026).
-        ...ruestIds.split('|'),
-      ]))
-      .then((k) => { if (!weg) setLagerStand(k); })
-      .catch(() => undefined);
+      .then(() => materialdeckung(date, date, { baustelle: projectNumber, dazu: ruestIds ? ruestIds.split('|') : [] }))
+      .then((k) => { if (!weg) setDeckung(k); })
+      // Ohne Antwort rechnet das Formular mit dem Bestand, wie vorher ohne `lager_frei`.
+      .catch(() => { if (!weg) setDeckung(null); });
     return () => { weg = true; };
-  }, [user, materials, tagesListen, ruestIds]);
-
-  const ruestVerfuegbar = useMemo(() => {
-    if (!lagerStand) return undefined;
-    const eigene = new Map<string, number>();
-    if (date >= todayStr()) {
-      for (const p of tagesListen.find((l) => l.projectNumber === projectNumber)?.positionen ?? []) {
-        // Was die eigene Liste reserviert: ohne den Teil ihrer Anforderungen (M5).
-        if (p.materialId) eigene.set(p.materialId, (eigene.get(p.materialId) ?? 0) + ausDemRegal(p));
-      }
-    }
-    const karte = new Map<string, number>();
-    for (const [id, st] of lagerStand) karte.set(id, st.frei + (eigene.get(id) ?? 0));
-    return karte;
-  }, [lagerStand, tagesListen, projectNumber, date]);
+  }, [user, materialAn, date, projectNumber, ruestIds, tagesListen]);
 
   /**
    * Wo steht diese Person an diesem Tag SCHON — auf anderen Baustellen?
@@ -398,6 +389,8 @@ export default function EinsatzFormular({
         ändert, fordert die neue Fehlmenge an.
       */
       const abholer = abholerFuer(rows.map((r) => r.userId));
+      // Dieselbe Rechnung wie die Anzeige (`formularDeckung`): angefordert wird, was niemand deckt.
+      const jetzt = formularDeckung(date, ruestliste, deckung, (id) => materials.find((m) => m.id === id));
       const positionen = ruestliste
         .filter((p) => p.menge > 0)
         .map((p) => {
@@ -407,11 +400,9 @@ export default function EinsatzFormular({
             nicht unter den geladenen stehen — dann rechnet das Freie der
             Datenbank, sonst gilt die gemerkte Menge.
           */
-          const artikel = p.materialId
-            ? (materials.find((m) => m.id === p.materialId) ??
-              (ruestVerfuegbar?.has(p.materialId) ? { id: p.materialId, stock: 0 } : undefined))
-            : undefined;
-          const menge = gemerkt === undefined ? 0 : artikel ? nochAnzufordern(p, artikel, ruestVerfuegbar) : gemerkt;
+          const bekannt = !!p.materialId
+            && (materials.some((m) => m.id === p.materialId) || !!deckung?.fuer?.freiVor.has(p.materialId));
+          const menge = gemerkt === undefined ? 0 : bekannt ? (jetzt.get(p.id)?.fehlt ?? 0) : gemerkt;
           return menge > 0
             ? {
                 ...p,
@@ -768,7 +759,9 @@ export default function EinsatzFormular({
           }
           vorgemerkt={vorgemerkt}
           onOffen={setOffeneRuestzeile}
-          verfuegbar={ruestVerfuegbar}
+          datum={date}
+          deckung={deckung}
+          zustaende={bereitschaftAn}
         />
       </>
     ) : null;

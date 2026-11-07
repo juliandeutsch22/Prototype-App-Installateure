@@ -107,6 +107,8 @@ const ruestSpeichern = vi.fn();
 const anforderungAnlegen = vi.fn();
 
 let lagerStand: Map<string, unknown> | null = null;
+/** Was für das Lager auf der Einkaufsliste steht oder bestellt ist (M04b). */
+let zulaufMock = new Map<string, { menge: number; bestellt: boolean; termin: string | null }[]>();
 vi.mock('@/lib/db/materials', () => ({
   /*
     Die Katalogsuche fragt nach einer kurzen Pause den Server. Fehlte sie
@@ -125,6 +127,31 @@ vi.mock('@/lib/db/materials', () => ({
     return () => undefined;
   },
   LOW_STOCK_THRESHOLD: 3,
+}));
+/*
+  DIE DECKUNG DER LISTE (M04b) statt `lager_frei`: aus demselben Lagerstand
+  wie bisher — das Freie vor der Liste ist das Freie plus der eigene Rest
+  aus dem Regal, wie das Formular es vorher selbst rechnete.
+*/
+vi.mock('@/lib/db/materialdeckung', () => ({
+  materialdeckung: async (von: string, _bis: string, formular?: { baustelle: string }) => {
+    if (!lagerStand) throw new Error('nicht geladen');
+    const liste = ruestlisten.find((l) => l.date === von && l.projectNumber === formular?.baustelle);
+    const eigene = (id: string) => (liste?.positionen ?? [])
+      .filter((p) => p.materialId === id)
+      .reduce((s, p) => s + Math.max(0, p.menge - (p.angefordert ?? 0)), 0);
+    const freiVor = new Map([...lagerStand].map(([id, st]) => [id, (st as { frei: number }).frei + eigene(id)]));
+    return {
+      heute: von,
+      listen: liste
+        ? [{ id: liste.id, datum: von, baustelle: liste.projectNumber, freiVor,
+             positionen: liste.positionen.map((p) => ({ id: p.id, materialId: p.materialId, menge: p.menge, gebucht: false })) }]
+        : [],
+      lagerartikel: new Map(),
+      zulauf: zulaufMock,
+      fuer: { liste: liste?.id ?? null, freiVor },
+    };
+  },
 }));
 /** Wie oft der Materialstamm abonniert wurde — erst mit der Rüstliste (Analyse 09.10.2026, Maßnahme 9). */
 const katalogAbonniert = vi.hoisted(() => ({ anzahl: 0 }));
@@ -149,7 +176,7 @@ vi.mock('@/lib/db/einsatzMaterial', () => ({
   },
 }));
 
-const authWert = {
+const authWert: { user: { uid: string; companyId: string; name: string; role: 'Projektleiter' }; company: { id: string; name: string; modules?: Record<string, boolean> } } = {
   user: { uid: 'pl', companyId: 'perl', name: 'Planer', role: 'Projektleiter' as const },
   company: { id: 'perl', name: 'Perl Installationen' },
 };
@@ -905,6 +932,54 @@ describe('Einsatz löschen', () => {
 });
 
 // Testbericht 30.09.2026, G14 und M32 — Rüstliste und Lager.
+describe('Rüstliste: Zustand je Position (M04b, E13)', () => {
+  async function mischbatterie(menge: string) {
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await userEvent.type(await screen.findByRole('searchbox', { name: /Artikel aus dem Lager/ }), 'Mischbatterie');
+    await userEvent.click(await screen.findByRole('button', { name: /Mischbatterie auf die Rüstliste/ }));
+    const feld = screen.getByRole('textbox', { name: 'Menge' });
+    await userEvent.clear(feld);
+    await userEvent.type(feld, menge);
+  }
+  const id = () => MATERIAL.find((m) => m.name === 'Mischbatterie')!.id;
+
+  it('was das Regal nicht hat, deckt die Bestellung für das Lager — kein Angebot einer zweiten Anforderung', async () => {
+    lagerStand = new Map([[id(), { bestand: 1, zugesagt: 0, geplant: 0, frei: 1 }]]);
+    zulaufMock = new Map([[id(), [{ menge: 5, bestellt: true, termin: '2026-09-01' }]]]);
+    zeige();
+    await mischbatterie('3');
+    expect(await screen.findByText('wird geliefert bis 01.09.')).toBeInTheDocument();
+    expect(screen.getByText(/Im Lager fehlen/)).toHaveTextContent('Im Lager fehlen 2');
+    expect(screen.getByText('Kommt mit der Bestellung für das Lager')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Anforderung über/ })).toBeNull();
+    lagerStand = null;
+    zulaufMock = new Map();
+  });
+
+  it('Gegenprobe: ohne Zulauf fehlt es und wird angeboten; der Zustand sagt „fehlt“', async () => {
+    lagerStand = new Map([[id(), { bestand: 1, zugesagt: 0, geplant: 0, frei: 1 }]]);
+    zeige();
+    await mischbatterie('3');
+    expect(await screen.findByText('fehlt 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Anforderung über 2 anlegen/ })).toBeInTheDocument();
+    lagerStand = null;
+  });
+
+  it('mit abgeschalteter Materialbereitschaft bleibt die Fehlmenge, nur der Zustand fällt weg', async () => {
+    lagerStand = new Map([[id(), { bestand: 1, zugesagt: 0, geplant: 0, frei: 1 }]]);
+    authWert.company = { id: 'perl', name: 'Perl Installationen', modules: { 'material.materialbereitschaft': false } };
+    try {
+      zeige();
+      await mischbatterie('3');
+      expect(await screen.findByRole('button', { name: /Anforderung über 2 anlegen/ })).toBeInTheDocument();
+      expect(screen.queryByText('fehlt 2')).toBeNull();
+    } finally {
+      authWert.company = { id: 'perl', name: 'Perl Installationen' };
+      lagerStand = null;
+    }
+  });
+});
+
 describe('Rüstliste: Nachbestellung und Reservierung', () => {
   async function baustelleWaehlen() {
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
