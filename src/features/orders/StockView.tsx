@@ -4,12 +4,15 @@ import { useSearchParams } from 'react-router-dom';
 import RowMenu from '@/components/RowMenu';
 import { useAuth } from '@/app/AuthContext';
 import { darfKatalogEinspielen } from '@/lib/permissions';
+import { useModul } from '@/lib/useModule';
 import {
   subscribeLagerartikel,
   katalogAnzahl,
   katalogBeobachten,
   LOW_STOCK_THRESHOLD,
   lagerFrei,
+  nummernTreffer,
+  NUMMER_AB,
   type LagerStand,
 } from '@/lib/db/materials';
 import { fmtMenge } from '@/lib/belegLayout';
@@ -39,8 +42,9 @@ import { Bewegungsverlauf, InventurDialog, WareneingangDialog } from './LagerDia
   DATANORM-Leser mit, und den braucht niemand, der nur den Bestand nachsieht.
 */
 const KatalogImport = lazy(() => import('@/features/materials/KatalogImport'));
+const OffeneLieferantenartikel = lazy(() => import('@/features/materials/OffeneLieferantenartikel'));
 
-type Tab = 'bestand' | 'katalog' | 'import';
+type Tab = 'bestand' | 'katalog' | 'import' | 'zuordnen';
 /** Der Filter des Bestands — „knapp“ schliesst „fehlt“ ein, wie auf der Startseite. */
 type Filter = 'alle' | 'knapp' | 'fehlt';
 
@@ -85,7 +89,15 @@ export default function StockView() {
   */
   const [params, setParams] = useSearchParams();
   const gewuenscht = params.get('reiter');
-  const tab: Tab = gewuenscht === 'katalog' || (gewuenscht === 'import' && darfEinspielenFuer(user))
+  /*
+    OFFENE LIEFERANTENARTIKEL (M03a): wie das Einspielen nur für wen
+    Kataloge einspielt, und nur mit dem Modul „Kataloge mehrerer
+    Großhändler“.
+  */
+  const zuordnenAn = useModul('material.katalogversionen');
+  const tab: Tab = gewuenscht === 'katalog'
+    || (gewuenscht === 'import' && darfEinspielenFuer(user))
+    || (gewuenscht === 'zuordnen' && darfEinspielenFuer(user) && zuordnenAn)
     ? gewuenscht
     : 'bestand';
   const setTab = (t: Tab) => {
@@ -299,10 +311,33 @@ export default function StockView() {
     [materials, reserved],
   );
 
+  /*
+    AUCH ÜBER DIE NUMMER EINES GROSSHÄNDLERS (M03a): die Lagerliste sucht in
+    den geladenen Artikeln; die Nummern der zugeordneten Großhändler und die
+    EAN kennt nur der Server. Er nennt die passenden Artikel (ab drei
+    Zeichen, kurz nach dem letzten Tastendruck), und die Liste nimmt sie dazu.
+  */
+  const [ueberNummer, setUeberNummer] = useState<{ fuer: string; ids: Set<string> }>({ fuer: '', ids: new Set() });
+  useEffect(() => {
+    const q = search.trim();
+    if (q.length < NUMMER_AB) return;
+    let weg = false;
+    const t = setTimeout(() => {
+      void nummernTreffer(q).then((treffer) => {
+        if (!weg) setUeberNummer({ fuer: q, ids: new Set(treffer.keys()) });
+      });
+    }, 250);
+    return () => {
+      weg = true;
+      clearTimeout(t);
+    };
+  }, [search]);
+  const nummernIds = ueberNummer.fuer === search.trim() ? ueberNummer.ids : null;
+
   const rows = useMemo(
     () =>
       lagerZeilen
-        .filter((m) => passtZurSuche(m, search))
+        .filter((m) => passtZurSuche(m, search) || !!nummernIds?.has(m.id))
         .filter((m) =>
           filter === 'fehlt'
             ? m.free < 0
@@ -312,7 +347,7 @@ export default function StockView() {
         )
         // Knappes zuerst — wer das Lager öffnet, will wissen, was fehlt.
         .sort((a, b) => a.free - b.free || a.name.localeCompare(b.name, 'de')),
-    [lagerZeilen, search, filter],
+    [lagerZeilen, search, filter, nummernIds],
   );
 
   const lowCount = useMemo(
@@ -415,6 +450,9 @@ export default function StockView() {
                 zuverlässig abweist.
               */
               ...(darfEinspielen ? [{ label: 'Katalog einspielen', onSelect: () => setTab('import') }] : []),
+              ...(darfEinspielen && zuordnenAn
+                ? [{ label: 'Offene Lieferantenartikel', onSelect: () => setTab('zuordnen') }]
+                : []),
             ]}
           />
         }
@@ -433,6 +471,7 @@ export default function StockView() {
             in der Leiste keiner markiert — man wusste nicht, wo man ist.
           */
           ...(tab === 'import' ? [{ wert: 'import' as Tab, text: 'Einspielen' }] : []),
+          ...(tab === 'zuordnen' ? [{ wert: 'zuordnen' as Tab, text: 'Zuordnen' }] : []),
         ]}
         wert={tab}
         onChange={setTab}
@@ -443,7 +482,11 @@ export default function StockView() {
       {tab === 'import' ? (
         // Die Überschrift trägt die Karte des Einspielens selbst; eine zweite darüber stand doppelt (G28).
         <Suspense fallback={<SkeletonList rows={3} />}>
-          <KatalogImport />
+          <KatalogImport onZuordnen={zuordnenAn ? () => setTab('zuordnen') : undefined} />
+        </Suspense>
+      ) : tab === 'zuordnen' ? (
+        <Suspense fallback={<SkeletonList rows={3} />}>
+          <OffeneLieferantenartikel />
         </Suspense>
       ) : tab === 'katalog' ? (
         <MaterialCatalog

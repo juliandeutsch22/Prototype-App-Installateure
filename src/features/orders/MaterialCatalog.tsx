@@ -12,6 +12,7 @@ import {
   deleteMaterial,
   LOW_STOCK_THRESHOLD,
 } from '@/lib/db/materials';
+import { gefundenUeberText, type MitNummer } from '@/lib/katalogTreffer';
 import { einkaufspreise } from '@/lib/db/kosten';
 import type { WithId } from '@/lib/db/core';
 import type { Material } from '@/types';
@@ -32,6 +33,8 @@ import { leseZahl, preisAlsText, zahlOder } from '@/lib/zahl';
 import { grundAus } from '@/lib/fehlerGrund';
 import ZahlFeld from '@/components/ZahlFeld';
 import EinheitFeld from '@/components/EinheitFeld';
+import Lieferantenvergleich from '@/features/materials/Lieferantenvergleich';
+import { useModul } from '@/lib/useModule';
 
 /*
   Die üblichen Mengeneinheiten im Sanitär- und Heizungsbau — als
@@ -116,6 +119,14 @@ export default function MaterialCatalog({
   */
   const darfKosten = user ? darfEinkaufSehen(user) : false;
   const darfEkSetzen = user ? darfKatalogEinspielen(user) : false;
+  /*
+    DIE LIEFERANTEN IM ARTIKELBLATT (M03a): Vergleich, Zuordnung und
+    Verlauf je eigenem Modulschalter — und nur für die, die Einkaufspreise
+    sehen dürfen.
+  */
+  const vergleichAn = useModul('material.lieferantenvergleich');
+  const zuordnenAn = useModul('material.katalogversionen');
+  const verlaufAn = useModul('material.katalogpreisverlauf');
   const toast = useToast();
   /*
     DER KATALOG SEITENWEISE VOM SERVER (19.10.2026), wie bei „Material
@@ -124,7 +135,7 @@ export default function MaterialCatalog({
     tausend Artikeln, und gesucht wurde nur darin — nach einem DATANORM-Import
     liess sich ein Artikel dahinter hier weder finden noch bearbeiten.
   */
-  const [seite, setSeite] = useState<{ zeilen: WithId<Material>[]; gesamt: number }>({ zeilen: [], gesamt: 0 });
+  const [seite, setSeite] = useState<{ zeilen: MitNummer<WithId<Material>>[]; gesamt: number }>({ zeilen: [], gesamt: 0 });
   /** Wie viele Artikel der ganze Katalog hat — unabhängig von der Suche. */
   const [imKatalog, setImKatalog] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -214,20 +225,7 @@ export default function MaterialCatalog({
     setError(null);
     setFormOffen(true);
     offenerArtikel.current = m.id;
-    if (darfKosten && user) {
-      setEkStand('laedt');
-      einkaufspreise(user.companyId, [m.id]).then(
-        (preise) => {
-          if (offenerArtikel.current !== m.id) return;
-          const ek = preise.get(m.id);
-          setForm((f) => ({ ...f, einkaufspreis: ek != null ? preisAlsText(ek) : '' }));
-          setEkStand('da');
-        },
-        () => {
-          if (offenerArtikel.current === m.id) setEkStand('fehlt');
-        },
-      );
-    }
+    ekLaden(m.id);
     setForm({
       name: m.name,
       category: m.category ?? '',
@@ -241,6 +239,28 @@ export default function MaterialCatalog({
       warengruppe: m.warengruppe ?? '',
     });
   }
+  /**
+   * Den Einkaufspreis eines Artikels ins Formular holen — beim Öffnen, und
+   * wieder, wenn sich im Abschnitt „Lieferanten“ eine Zuordnung ändert: dann
+   * kann er ein anderer sein, und das Formular schriebe sonst beim Speichern
+   * den alten zurück.
+   */
+  function ekLaden(id: string) {
+    if (!darfKosten || !user) return;
+    setEkStand('laedt');
+    einkaufspreise(user.companyId, [id]).then(
+      (preise) => {
+        if (offenerArtikel.current !== id) return;
+        const ek = preise.get(id);
+        setForm((f) => ({ ...f, einkaufspreis: ek != null ? preisAlsText(ek) : '' }));
+        setEkStand('da');
+      },
+      () => {
+        if (offenerArtikel.current === id) setEkStand('fehlt');
+      },
+    );
+  }
+
   function reset() {
     setFormOffen(false);
     setEditId(null);
@@ -399,7 +419,8 @@ export default function MaterialCatalog({
                     title={m.name}
                     onOeffnen={() => startEdit(m)}
                     subtitle={
-                      [m.category, m.articleNumber && `Art.-Nr. ${m.articleNumber}`]
+                      // M03a: über die Nummer eines Großhändlers gefunden — dann steht sie dabei.
+                      [m.category, m.articleNumber && `Art.-Nr. ${m.articleNumber}`, gefundenUeberText(m)]
                         .filter(Boolean)
                         .join(' · ') || undefined
                     }
@@ -590,6 +611,19 @@ export default function MaterialCatalog({
               </Button>
             </div>
           </form>
+          {editId && darfKosten && vergleichAn && (
+            <div className="mt-6 border-t border-line pt-4">
+              <Lieferantenvergleich
+                key={editId}
+                materialId={editId}
+                einheit={form.unit || 'Stk'}
+                darfZuordnen={darfEkSetzen}
+                zuordnenAn={zuordnenAn}
+                verlaufAn={verlaufAn}
+                onGeaendert={() => ekLaden(editId)}
+              />
+            </div>
+          )}
       </BottomSheet>
 
       <ConfirmDialog

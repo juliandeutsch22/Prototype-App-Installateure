@@ -15,6 +15,7 @@ export {
   geliefert,
   katalogFuer,
   lieferantVorschlag,
+  lieferantVorschlagGrund,
   listLagerPosten,
   lagerPostenAnlegen,
   lagerPostenLoeschen,
@@ -23,4 +24,6 @@ export {
   lieferterminSetzen,
   artikelSuchen,
 } from './pg/einkauf';
-export type { Grosshaendler, GrosshaendlerDaten, NeuerLagerPosten } from './pg/einkauf';
+export type { Grosshaendler, GrosshaendlerDaten, NeuerLagerPosten, VorschlagGrund } from './pg/einkauf';
+/** Die Nummern der Großhändler für die Bestellung (M03a) — siehe `pg/lieferantenartikel.ts`. */
+export { lieferantenNummern } from './pg/lieferantenartikel';

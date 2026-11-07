@@ -23,6 +23,9 @@ import {
   type Grosshaendler,
 } from '@/lib/db/einkauf';
 import Einkaufsliste from './Einkaufsliste';
+import VorschlagGrund from './VorschlagGrund';
+import { darfEinkaufSehen } from '@/lib/permissions';
+import { istAn } from '@/lib/module';
 import { aufEinkaufsliste as aufDerListe } from './einkauf';
 import type { EinkaufPosten, MaterialOrder } from '@/types';
 import Card from '@/components/Card';
@@ -227,6 +230,11 @@ function verlaufVon(o: MaterialOrder, haendler: string | undefined): LotPunkt[] 
 export default function AdminOrdersView() {
   const { user, company } = useAuth();
   const toast = useToast();
+  /*
+    DER GRUND DES GROSSHÄNDLER-VORSCHLAGS (M03a, E03) nennt Einkaufspreise —
+    nur für wen sie sehen darf, und nur mit dem Lieferantenvergleich.
+  */
+  const grundZeigen = !!user && darfEinkaufSehen(user) && istAn(company?.modules, 'material.lieferantenvergleich');
   /** „Retoure erfassen“ im Reiter Retouren — im Seitenfenster wie bei „Material anfordern“. */
   const [retoureOffen, setRetoureOffen] = useState(false);
   /*
@@ -792,6 +800,7 @@ export default function AdminOrdersView() {
             onGrosshaendlerGeaendert={() => setGhStand((n) => n + 1)}
             onLagerGeaendert={() => setLagerStand((n) => n + 1)}
             onVeraltet={() => setNeuLaden((n) => n + 1)}
+            grundZeigen={grundZeigen}
           />
         </>
       ) : (
@@ -1183,6 +1192,9 @@ export default function AdminOrdersView() {
               <option key={g.id} value={g.id}>{g.name}</option>
             ))}
           </SelectField>
+        )}
+        {einkaufFragen && (
+          <VorschlagGrund materialId={einkaufFragen.o.materialId} gewaehlt={einkaufFragen.bei} zeigen={grundZeigen} />
         )}
       </ConfirmDialog>
 
