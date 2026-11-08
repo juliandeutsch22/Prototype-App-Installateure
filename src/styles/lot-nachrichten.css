@@ -61,9 +61,9 @@
   .nachricht-nochmal { display: flex; gap: 0.5rem; margin-top: 0.375rem; }
 
   .nachricht-anhaenge { display: flex; flex-wrap: wrap; gap: 0.375rem; padding: 0.375rem 0.375rem 0; }
-  .nachricht-bild { display: block; width: 12rem; max-width: 100%; height: 9rem; object-fit: cover; border-radius: calc(var(--radius) - 0.125rem); background: var(--surface); }
-  .nachricht-datei { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; max-width: 100%; padding: 0.375rem 0.75rem 0.375rem 0.625rem; border: 1px solid var(--border); border-radius: calc(var(--radius) - 0.125rem); background: var(--surface); color: var(--text); font-size: 0.875rem; text-decoration: none; }
-  @media (hover: hover) { .nachricht-datei:hover { border-color: var(--border-strong); } }
+  .nachricht-bild { display: block; width: 12rem; max-width: 100%; height: 9rem; object-fit: cover; border-radius: var(--radius-sm); background: var(--surface); }
+  .nachricht-datei { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; max-width: 100%; padding: 0.375rem 0.75rem 0.375rem 0.625rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 0.875rem; text-decoration: none; }
+  .nachricht-datei:hover { border-color: var(--border-strong); }
   .nachricht-datei-name { min-width: 0; overflow-wrap: anywhere; }
   .nachricht-datei-groesse { flex: none; font-family: var(--schrift-mono); font-size: 0.75rem; color: var(--text-muted); }
   .verlauf-trenner { padding: 0.5rem 1rem; font-size: 0.8125rem; color: var(--text-muted); border-top: 1px solid var(--border); }
@@ -86,10 +86,11 @@
   .eingabe-senden:disabled { background: var(--surface-3); color: var(--text-muted); cursor: not-allowed; }
   .eingabe-dateien { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .eingabe-datei { display: inline-flex; align-items: center; gap: 0.5rem; max-width: 100%; min-height: 2.75rem; padding: 0.25rem 0 0.25rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); font-size: 0.875rem; }
-  .eingabe-datei-bild { width: 2.25rem; height: 2.25rem; object-fit: cover; border-radius: calc(var(--radius) - 0.25rem); }
+  .eingabe-datei-bild { width: 2.25rem; height: 2.25rem; object-fit: cover; border-radius: var(--radius-sm); }
 
   @media (min-width: 760px) {
-    .gespraech { height: clamp(26rem, calc(100dvh - 16rem), 64rem); }
+    /* Etwa zwei Drittel der Fensterhöhe: Seitenkopf und Kartenkopf passen darüber, ohne dass die Seite rollt. */
+    .gespraech { height: 62dvh; min-height: 26rem; max-height: 60rem; }
     /* Wenige Nachrichten stehen unten an der Eingabe, wie in jedem Messenger. */
     .gespraech-verlauf { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; }
     .gespraech-verlauf > .verlauf { margin-top: auto; }
@@ -109,7 +110,7 @@
   .postfach-zeile + .postfach-zeile { border-top: 1px solid var(--border); }
   .postfach-zeile[data-aktiv] { background: var(--surface-2); }
   .postfach-zeile[data-aktiv]::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--petrol); }
-  @media (hover: hover) { .postfach-zeile:hover { background: var(--surface-2); } }
+  .postfach-zeile:hover { background: var(--surface-2); }
   .postfach-kuerzel { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); color: var(--ink-deep); font-size: 0.875rem; font-weight: var(--gewicht-titel); letter-spacing: 0.02em; }
   .postfach-zeile[data-art="direkt"] .postfach-kuerzel { background: var(--petrol-hell); border-color: var(--petrol-hell); }
   .postfach-text { flex: 1; min-width: 0; }
