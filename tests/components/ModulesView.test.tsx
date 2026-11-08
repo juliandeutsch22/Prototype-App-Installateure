@@ -256,7 +256,7 @@ describe('Immer an: der Kern mit seinen Teilen (M02b)', () => {
     expect(within(kern).getAllByText('immer an')).toHaveLength(3);
     expect(screen.queryByRole('checkbox', { name: /^Baustellen (ein|aus)schalten$/ })).toBeNull();
     expect(screen.queryByRole('checkbox', { name: /^Kunden (ein|aus)schalten$/ })).toBeNull();
-    expect(screen.getByText(/^Eingeschaltet: \d+ von 9$/)).toBeInTheDocument();
+    expect(screen.getByText(/^Eingeschaltet: \d+ von 10$/)).toBeInTheDocument();
   });
 
   it('die freien Zeitfelder (M06b) stehen als Teil der Zeiterfassung und werden unter ihrer Kennung gespeichert', async () => {

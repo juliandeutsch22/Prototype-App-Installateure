@@ -30,7 +30,7 @@ import { navForRole } from '@/app/navigation';
  */
 
 describe('Erhaltung: was ein Betrieb heute sieht, bleibt', () => {
-  it('dieselben neun Module mit denselben Kennungen, Standards und Abhängigkeiten', () => {
+  it('dieselben neun Module mit denselben Kennungen, Standards und Abhängigkeiten — dazu seit M10 die Nachrichten', () => {
     expect(MODULE.map((m) => [m.id, m.standard, m.abhaengigVon ?? []])).toEqual([
       ['einsatzplanung', true, []],
       ['material', true, []],
@@ -41,6 +41,8 @@ describe('Erhaltung: was ein Betrieb heute sieht, bleibt', () => {
       ['nachkalkulation', true, ['rechnungen']],
       ['wartung', true, []],
       ['zeitkonten', true, []],
+      // M10/B09 (E63): Baustellen-Threads im empfohlenen Umfang — Standard an, bewusst nachgezogen.
+      ['nachrichten', true, []],
     ]);
   });
 
@@ -58,19 +60,20 @@ describe('Erhaltung: was ein Betrieb heute sieht, bleibt', () => {
       (M02b). Ohne ihn steht jede Navigation da wie vor dem Register; mit
       ihm kommt genau sein Eintrag dazu, für jede Rolle, die Kunden liest.
     */
-    const ohneNeue = { 'baustellen.auftragseingang': false };
+    // M10/B09: die Nachrichten für jede Rolle — ebenso schaltbar, ebenso nachgezogen.
+    const ohneNeue = { 'baustellen.auftragseingang': false, nachrichten: false };
     for (const [rolle, pfade] of Object.entries(vorher)) {
       expect(navForRole(rolle as never, ohneNeue).map((n) => n.path), rolle).toEqual(pfade);
       const mit = navForRole(rolle as never, undefined).map((n) => n.path);
-      expect(mit.filter((p) => !pfade.includes(p)), rolle).toEqual(rolle === 'Mitarbeiter' ? [] : ['/eingaenge']);
-      expect(mit.filter((p) => p !== '/eingaenge'), rolle).toEqual(pfade);
+      expect(mit.filter((p) => !pfade.includes(p)), rolle).toEqual(rolle === 'Mitarbeiter' ? ['/nachrichten'] : ['/nachrichten', '/eingaenge']);
+      expect(mit.filter((p) => p !== '/eingaenge' && p !== '/nachrichten'), rolle).toEqual(pfade);
     }
   });
 
   it('aktiveModule liefert weiter nur Module — keine Unterfähigkeit landet in der Navigation', () => {
     const an = aktiveModule({ 'material.probe': true });
     expect([...an].every((id) => !id.includes('.'))).toBe(true);
-    expect(an.size).toBe(9);
+    expect(an.size).toBe(10);
   });
 });
 
@@ -89,9 +92,22 @@ describe('Folgen beim Abschalten — was sich nicht zurückholen lässt', () => 
 
   it('die übrigen Module haben keine solche Folge', () => {
     // Die Angebote nennen seit M02a die Folge ihrer Unterfähigkeit, Material seit M04a die der Lagerorte — eigene Fälle unten.
-    for (const m of MODULE.filter((x) => x.id !== 'einsatzplanung' && x.id !== 'angebote' && x.id !== 'material')) {
+    for (const m of MODULE.filter((x) => !['einsatzplanung', 'angebote', 'material', 'nachrichten'].includes(x.id))) {
       expect(folgenBeimAbschalten(m.id, undefined), m.id).toEqual([]);
     }
+  });
+
+  /*
+    DIE NACHRICHTEN (M10/B09) sagen vorher, dass die Seite zugeht und nichts
+    verloren ist; die Direktnachrichten (ab Werk aus) nur, wenn sie an sind.
+  */
+  it('die Nachrichten sagen vorher, dass nichts gelöscht wird; die Direktnachrichten stehen ab Werk aus', () => {
+    expect(folgenBeimAbschalten('nachrichten', undefined)).toEqual([expect.stringMatching(/Nichts wird gelöscht/)]);
+    expect(schalter('nachrichten.direktnachrichten')).toMatchObject({ standard: false });
+    expect(istAn(undefined, 'nachrichten.direktnachrichten')).toBe(false);
+    expect(istAn({ 'nachrichten.direktnachrichten': true }, 'nachrichten.direktnachrichten')).toBe(true);
+    expect(istAn({ nachrichten: false, 'nachrichten.direktnachrichten': true }, 'nachrichten.direktnachrichten')).toBe(false);
+    expect(folgenBeimAbschalten('nachrichten', { 'nachrichten.direktnachrichten': true })).toHaveLength(2);
   });
 
   it('Material und die Lagerorte sagen vorher, dass Ware an weiteren Orten unsichtbar, aber nicht weg ist (M04a)', () => {
@@ -157,8 +173,8 @@ describe('Der Kern (M02b)', () => {
     expect(istKern('angebote')).toBe(false);
   });
 
-  it('zählt nicht zu den Modulen: „Eingeschaltet: N von 9“ und die Navigation bleiben', () => {
-    expect(aktiveModule(undefined).size).toBe(9);
+  it('zählt nicht zu den Modulen: „Eingeschaltet: N von 10“ (seit M10) und die Navigation bleiben', () => {
+    expect(aktiveModule(undefined).size).toBe(10);
     expect([...aktiveModule(undefined)]).not.toContain('baustellen');
     expect(MODULE.map((m) => m.id)).not.toContain('baustellen');
   });
@@ -183,7 +199,7 @@ describe('Der Kern (M02b)', () => {
     expect(istAn({ 'zeiterfassung.freie_zeitfelder': false }, 'zeiterfassung.freie_zeitfelder')).toBe(false);
     expect(istAn({ zeiterfassung: false }, 'zeiterfassung.freie_zeitfelder')).toBe(true);
     expect(folgenBeimAbschalten('zeiterfassung.freie_zeitfelder', undefined)).toEqual([]);
-    expect(aktiveModule(undefined).size).toBe(9);
+    expect(aktiveModule(undefined).size).toBe(10);
   });
 
   it('jede Unterfähigkeit des Kerns trägt dessen Kennung vor dem Punkt — so liest sie der Server', () => {

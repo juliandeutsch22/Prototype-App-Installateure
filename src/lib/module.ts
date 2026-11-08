@@ -344,8 +344,8 @@ export const MODULE: Modul[] = [
       in private Messenger. Aus heißt: der Eintrag in der Navigation, der
       Abschnitt in der Akte und „Nachricht schreiben“ verschwinden; Senden
       lehnt der Server ab (V3). Bisherige Gespräche bleiben für ihre
-      Teilnehmer lesbar und exportierbar, Löschen und Melden gehen immer.
-      Nichts geht verloren — keine Rückfrage nötig, aber gesagt wird es.
+      Teilnehmer erhalten und unter Mein Konto exportierbar; nach dem
+      Wiedereinschalten ist alles da. Die Rückfrage sagt es vorher.
     */
     id: 'nachrichten',
     name: 'Nachrichten',
@@ -353,7 +353,7 @@ export const MODULE: Modul[] = [
     standard: true,
     betrifft: ['Nachrichten', 'Nachrichten in der Baustellenakte', 'Ungelesene Nachrichten auf der Startseite'],
     folgen: [
-      'Neue Nachrichten gehen nicht mehr; bisherige Gespräche bleiben für ihre Teilnehmer lesbar und unter Mein Konto exportierbar.',
+      'Die Seite „Nachrichten“ ist zu, neue Nachrichten gehen nicht mehr. Nichts wird gelöscht: jeder kann seine Gespräche unter Mein Konto exportieren, und nach dem Wiedereinschalten ist alles da.',
     ],
     unter: [
       {
@@ -371,7 +371,7 @@ export const MODULE: Modul[] = [
         standard: false,
         betrifft: ['Direkt und Runden unter Nachrichten', '„Nachricht schreiben“ an der Person'],
         folgen: [
-          'Neue private Nachrichten gehen nicht mehr; bisherige bleiben für ihre Teilnehmer lesbar und exportierbar.',
+          'Neue private Nachrichten gehen nicht mehr; bisherige Gespräche bleiben für ihre Teilnehmer lesbar und exportierbar.',
         ],
       },
     ],

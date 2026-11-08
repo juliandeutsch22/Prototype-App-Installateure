@@ -28,8 +28,8 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); });
 
-const posten = (urlaub = 0, anforderungen = 0, mahnungen = 0) =>
-  ({ urlaub, anforderungen, mahnungen });
+const posten = (urlaub = 0, anforderungen = 0, mahnungen = 0, nachrichten = 0) =>
+  ({ urlaub, anforderungen, mahnungen, nachrichten });
 
 describe('Die offenen Posten holen', () => {
   it('sind vor dem ersten Abruf nicht bekannt', () => {

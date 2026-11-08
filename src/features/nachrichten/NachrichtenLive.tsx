@@ -25,10 +25,20 @@ export default function NachrichtenLive() {
 
   useEffect(() => {
     if (!uid || !an || einblick) return;
-    return abonniereNachrichtenStand(uid, (kanal) => {
-      void postenNeuLaden();
-      window.dispatchEvent(new CustomEvent(NACHRICHTEN_NEU, { detail: kanal }));
-    });
+    /*
+      EINE HÜLLE, DIE AN EINER NEBENSACHE SCHEITERT, NÄHME ALLES MIT. Lässt
+      sich der Kanal nicht aufbauen (keine Verbindung eingerichtet), fehlt
+      nur das Live-Ereignis: die Zahl kommt weiter mit jedem Seitenwechsel,
+      das Gespräch beim Öffnen.
+    */
+    try {
+      return abonniereNachrichtenStand(uid, (kanal) => {
+        void postenNeuLaden();
+        window.dispatchEvent(new CustomEvent(NACHRICHTEN_NEU, { detail: kanal }));
+      });
+    } catch {
+      return undefined;
+    }
   }, [uid, an, einblick]);
 
   return null;

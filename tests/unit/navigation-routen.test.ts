@@ -236,6 +236,8 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       // Kein „fehler" mehr: Meldungen und Abstürze gehen an den Support.
       // M01d (bewusst nachgezogen): der Papierkorb für die Führung.
       'papierkorb',
+      // M10/B09 (bewusst nachgezogen): Aufbewahrung und gemeldete Nachrichten — an die Geschäftsführung.
+      'nachrichten',
     ]);
     // Auch die Projektleitung nicht: die Sicherung enthaelt Zeitkonten und
     // Rechnungen, und beides geht sie nichts an. Den Papierkorb hat sie

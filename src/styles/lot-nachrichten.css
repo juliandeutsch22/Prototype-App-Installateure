@@ -16,8 +16,9 @@
   .nachrichten-aktiv { color: var(--ink-deep); font-weight: var(--gewicht-titel); text-decoration: underline; text-decoration-color: var(--petrol); text-decoration-thickness: 2px; text-underline-offset: 0.3em; }
 
   .verlauf { list-style: none; margin: 0; padding: 0; }
-  .nachricht { padding: 0.75rem 1rem; border-top: 1px solid var(--border); }
-  .nachricht:first-child { border-top: 0; }
+  /* Die Linie zwischen zwei Nachrichten, nicht über der ersten. */
+  .nachricht { padding: 0.75rem 1rem; }
+  .nachricht + .nachricht { border-top: 1px solid var(--border); }
   .nachricht-ziel { display: block; width: 100%; text-align: left; min-height: 2.75rem; }
   .nachricht-ziel:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
   .nachricht-kopf { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.125rem 0.75rem; font-size: 0.8125rem; color: var(--text-muted); }

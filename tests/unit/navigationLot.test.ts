@@ -27,15 +27,18 @@ const sortiert = (a: string[]) => [...a].sort();
   ohne ihn gilt die Liste von damals unverändert. Bewusst nachgezogen —
   was neu ist, steht unten als eigener Fall.
 */
-const OHNE_NEUE = { 'baustellen.auftragseingang': false };
-/** Der Auftragseingang (M02b) — für jede Rolle, die Kunden liest. */
+const OHNE_NEUE = { 'baustellen.auftragseingang': false, nachrichten: false };
+/**
+ * Der Auftragseingang (M02b) — für jede Rolle, die Kunden liest; die
+ * Nachrichten (M10/B09) für jede Rolle.
+ */
 const NEU: Record<Role, string[]> = {
-  Mitarbeiter: [],
-  Verwaltung: ['/eingaenge'],
-  Buchhaltung: ['/eingaenge'],
-  Projektleiter: ['/eingaenge'],
-  Geschäftsführung: ['/eingaenge'],
-  Administrator: ['/eingaenge'],
+  Mitarbeiter: ['/nachrichten'],
+  Verwaltung: ['/eingaenge', '/nachrichten'],
+  Buchhaltung: ['/eingaenge', '/nachrichten'],
+  Projektleiter: ['/eingaenge', '/nachrichten'],
+  Geschäftsführung: ['/eingaenge', '/nachrichten'],
+  Administrator: ['/eingaenge', '/nachrichten'],
 };
 
 describe('Je Rolle exakt die bisherigen Menüpunkte', () => {
@@ -46,7 +49,7 @@ describe('Je Rolle exakt die bisherigen Menüpunkte', () => {
     expect(sortiert(gruppiert)).toEqual(sortiert(VORHER[rolle]));
   });
 
-  it.each(ROLLEN)('%s: mit den Standards kommt genau der Auftragseingang dazu (M02b)', (rolle) => {
+  it.each(ROLLEN)('%s: mit den Standards kommen genau Auftragseingang (M02b) und Nachrichten (M10) dazu', (rolle) => {
     expect(sortiert(navForRole(rolle).map((i) => i.path))).toEqual(sortiert([...VORHER[rolle], ...NEU[rolle]]));
     const gruppiert = navGroupsForRole(rolle).flatMap((g) => g.items.map((i) => i.path));
     expect(sortiert(gruppiert)).toEqual(sortiert([...VORHER[rolle], ...NEU[rolle]]));
@@ -84,7 +87,8 @@ describe('Die Gruppen der Linie', () => {
     const m = navGroupsForRole('Mitarbeiter');
     const von = (g: string) => m.find((x) => x.group === g)?.items.map((i) => i.path);
     expect(von('Aufträge')).toEqual(['/my-schedule', '/my-projects', '/worksheets']);
-    expect(von('Team')).toEqual(['/time', '/vacations']);
+    // Die Nachrichten (M10/B09) unter „Team“, nach dem Urlaub.
+    expect(von('Team')).toEqual(['/time', '/vacations', '/nachrichten']);
     expect(von('Material')).toEqual(['/material']);
   });
 });
@@ -94,7 +98,7 @@ describe('Untere Leiste am Handy', () => {
     const { unten, mehr } = tabBarForRole(rolle);
     expect(unten.length).toBeLessThanOrEqual(4);
     expect(sortiert([...unten, ...mehr].map((i) => i.path))).toEqual(sortiert([...VORHER[rolle], ...NEU[rolle]]));
-    // Die vier unten bleiben dieselben: der Auftragseingang steht unter „Mehr“.
+    // Die vier unten bleiben dieselben: Auftragseingang und Nachrichten stehen unter „Mehr“.
     expect(tabBarForRole(rolle).unten.map((i) => i.path)).toEqual(tabBarForRole(rolle, OHNE_NEUE).unten.map((i) => i.path));
   });
 });
