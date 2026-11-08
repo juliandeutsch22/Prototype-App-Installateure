@@ -74,7 +74,8 @@ describe('Erhaltung: was ein Betrieb heute sieht, bleibt', () => {
   it('aktiveModule liefert weiter nur Module — keine Unterfähigkeit landet in der Navigation', () => {
     const an = aktiveModule({ 'material.probe': true });
     expect([...an].every((id) => !id.includes('.'))).toBe(true);
-    expect(an.size).toBe(10);
+    // 9 bisherige, dazu Zeiterfassung (M06) und Nachrichten (M10).
+    expect(an.size).toBe(11);
   });
 });
 

@@ -94,7 +94,8 @@ describe('Vorgemerkte Nachrichten', () => {
   });
 
   it('Senden ohne Netz steht auf der Liste des Ausgangsfachs — Aufruf und beide Eimer', () => {
-    expect([...AUFRUFE_OHNE_EMPFANG]).toEqual(['schein_speichern', 'schein_unterschreiben', 'nachricht_senden']);
+    // Die ganze Liste hält `scheinSender.test.ts` fest; hier zählt, dass das Senden darauf steht.
+    expect([...AUFRUFE_OHNE_EMPFANG]).toContain('nachricht_senden');
     expect([...EIMER_OHNE_EMPFANG]).toEqual(['scheinfotos', 'nachrichten', 'nachrichten-privat']);
   });
 });
