@@ -84,9 +84,9 @@ rückwirkende Umrechnung. Die bestehende Zeitrechnung bleibt unverändert.
 ## Technischer Prüfstand
 
 - Typprüfung, Lint und Produktionsbuild: bestanden.
-- Unit-/Komponentenprüfungen: 6.994 Fälle. Nach dem Gesamtlauf wurde der
-  Datumsabgleich von Handbuchstempel und Fußzeile berichtigt; die betroffenen
-  24 Prüfungen (einschließlich Schreibweise und Archivkorrektur) bestehen.
+- Unit-/Komponentenprüfungen: 6.995 Fälle, Gesamtlauf mit gezielten
+  Nachprüfungen. Die letzten 72 betroffenen Prüfungen zu Maske, Modulregister,
+  Schreibweise und Handbuch bestehen.
 - Datenbank/Edge Functions: 2.583 Prüfungen in 213 Dateien bestanden, kein
   übersprungener Fall.
 - Echte Browser gegen den lokalen Stapel: 29 verschiedene ausgeführte Fälle
@@ -101,3 +101,10 @@ Die Modulabschaltung wurde zusätzlich negativ geprüft: Ein vorhandener
 Korrekturantrag darf feste Angaben berichtigen, schreibt dabei aber keine
 abgeschalteten freien Angaben neu. Vor der Korrektur zeigte die Maske diese
 Felder fälschlich noch; die eigene Gegenprobe war rot und ist jetzt grün.
+
+Auch ältere Modulwerte folgen beim Timerabschluss derselben Wahrheitsprüfung
+wie im bestehenden Register. Die zusätzliche Gegenprobe mit einem numerischen
+Wert fand den zu strengen Boolean-Cast (22P02). Unset, null, Zahlen, Text,
+Objekte und Arrays sowie ausdrücklich falsche/leere Werte werden mitgeprüft;
+ein ausgeschaltetes freies Feld erhält dadurch keine Schreibfreigabe. Die
+119 betroffenen Datenbankprüfungen und 72 Modul-/Ansichtsprüfungen bestehen.

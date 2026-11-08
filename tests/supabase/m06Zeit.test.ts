@@ -100,11 +100,22 @@ describe('Offene Vorgänge abschließen und Historie bewahren', () => {
     await admin.from('companies').update({ modules: { 'zeiterfassung.timer': true } }).eq('id', A);
     const feld = await ad.client.rpc('zeitfeld_speichern', { p_feld: { name: 'Kostenstelle Abschluss', typ: 'text', pflicht: 'beim_buchen' } });
     expect(feld.error).toBeNull(); const { id, fassung } = feld.data;
-    const s = crypto.randomUUID();
-    expect((await befehl(ma, 'start', 0, '2099-05-06T07:00:00+02:00', s)).error).toBeNull();
-    await admin.from('companies').update({ modules: { zeiterfassung: false } }).eq('id', A);
-    expect((await befehl(ma, 'stop', 1, '2099-05-06T08:00:00+02:00', s)).error).toBeNull();
-    expect((await ma.client.rpc('zeit_timer_buchen', { p_id: s, p_segment: 0, p_eintrag: { ...buchung(ma, '2099-05-06'), end_time: '08:00', break_duration: 0, zeitfelder: { fassung, werte: { [id]: 'Werkstatt' } } } })).error).toBeNull();
+    for (const [index, flag] of [undefined, 2, 'aktiv', null, {}, [], false, 0, ''].entries()) {
+      await admin.from('companies').update({ modules: { 'zeiterfassung.timer': true } }).eq('id', A);
+      const datum = `2099-05-${10 + index}`;
+      const s = crypto.randomUUID();
+      expect((await befehl(ma, 'start', 0, `${datum}T07:00:00+02:00`, s)).error).toBeNull();
+      await admin.from('companies').update({ modules: { zeiterfassung: false, ...(flag === undefined ? {} : { 'zeiterfassung.freie_zeitfelder': flag }) } }).eq('id', A);
+      expect((await befehl(ma, 'stop', 1, `${datum}T08:00:00+02:00`, s)).error).toBeNull();
+      const eintrag = { ...buchung(ma, datum), end_time: '08:00', break_duration: 0 };
+      const angaben = { fassung, werte: { [id]: 'Werkstatt' } };
+      const ergebnis = await ma.client.rpc('zeit_timer_buchen', { p_id: s, p_segment: 0, p_eintrag: { ...eintrag, zeitfelder: angaben } });
+      if (flag === null || flag === undefined || Boolean(flag)) expect(ergebnis.error, JSON.stringify(flag)).toBeNull();
+      else {
+        expect(ergebnis.error?.code, JSON.stringify(flag)).toBe('55000');
+        expect((await ma.client.rpc('zeit_timer_buchen', { p_id: s, p_segment: 0, p_eintrag: eintrag })).error).toBeNull();
+      }
+    }
     expect((await ma.client.from('zeitfeld_definitionen').select('name').eq('id', id)).data).toEqual([{ name: 'Kostenstelle Abschluss' }]);
     // V3: die bestehenden Schreibwege erhalten, auch für ältere Geräte.
     expect((await ma.client.from('time_entries').insert(buchung(ma, '2099-05-07'))).error).toBeNull();

@@ -1,6 +1,6 @@
 import { zwischenspeicherLeeren } from '@/lib/zwischenspeicher';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, renderHook, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -261,4 +261,17 @@ describe('Standardfelder der bisherigen Maske', () => {
     expect(korrigieren.mock.calls[0][0]).not.toHaveProperty('zeitfelder');
   });
 
+});
+
+
+it('Archivfelder verwenden dieselbe Wertsemantik wie das Modulregister', async () => {
+  const { useFeldsatz } = await import('@/features/time/useZeitfelder');
+  for (const parent of [false, 0, '']) for (const flag of [false, 0, '', undefined, null, 2, 'aktiv', {}, []]) {
+    zwischenspeicherLeeren();
+    const module = { zeiterfassung: parent, 'zeiterfassung.freie_zeitfelder': flag } as unknown as Record<string, boolean>;
+    const { result, unmount } = renderHook(() => useFeldsatz(authWert.user, module));
+    expect(result.current.an, JSON.stringify(flag)).toBe(flag === undefined || flag === null || Boolean(flag));
+    await waitFor(() => expect(result.current.laedt).toBe(false));
+    unmount();
+  }
 });

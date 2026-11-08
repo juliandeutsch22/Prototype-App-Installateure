@@ -184,7 +184,8 @@ begin
     if position(marke in quelle)=0 then raise exception 'Zeitfeld-Prüfung: Einfügestelle fehlt'; end if;
     execute replace(quelle,marke,$m$-- Timerabschluss: vorhandene Sitzung darf vollständig bestätigt werden.
   if not app.modul_aktiv(new.company_id, 'zeiterfassung.freie_zeitfelder') and not (
-    coalesce((select (c.modules->>'zeiterfassung.freie_zeitfelder')::boolean from public.companies c where c.id=new.company_id),true)
+    -- Wie im Modulregister: nur false, die Zahl 0 und Leertext sind aus.
+    coalesce((select coalesce(c.modules->'zeiterfassung.freie_zeitfelder','true'::jsonb) not in ('false'::jsonb,'0'::jsonb,'""'::jsonb) from public.companies c where c.id=new.company_id),true)
     and exists(select 1 from public.zeitsitzungen s cross join lateral jsonb_array_elements(s.segmente) seg
       where s.company_id=new.company_id and s.user_id=new.user_id and s.stand='beendet' and seg->>'id'=new.id::text and seg->>'art'='arbeit' and not seg ? 'buchung')
   ) then$m$);
