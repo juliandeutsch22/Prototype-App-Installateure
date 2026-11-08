@@ -80,3 +80,24 @@ Bauplan verifizierte KV-/WKO-Regeln und konkrete Betriebsvereinbarungen. Diese
 Nachweise wurden nicht mitgeliefert und sind angefragt. Deshalb gibt es hierfür
 keine behauptete Fertigstellung, keinen ungeprüften Lohnregelleditor und keine
 rückwirkende Umrechnung. Die bestehende Zeitrechnung bleibt unverändert.
+
+## Technischer Prüfstand
+
+- Typprüfung, Lint und Produktionsbuild: bestanden.
+- Unit-/Komponentenprüfungen: 6.994 Fälle. Nach dem Gesamtlauf wurde der
+  Datumsabgleich von Handbuchstempel und Fußzeile berichtigt; die betroffenen
+  24 Prüfungen (einschließlich Schreibweise und Archivkorrektur) bestehen.
+- Datenbank/Edge Functions: 2.583 Prüfungen in 213 Dateien bestanden, kein
+  übersprungener Fall.
+- Echte Browser gegen den lokalen Stapel: 29 verschiedene ausgeführte Fälle
+  bestanden, einschließlich aller sieben M06-Abläufe auf Desktop und Tablet,
+  der bisherigen Zeitbuchungen, freien Felder und sechs Rechnungsabläufe.
+- Vorschau: 35 Link-/UI-Prüfungen bestanden (Rollen, Suchfelder, Seitenposition,
+  Touchgesten, Dialog-Abdunkelung und reduzierte Bewegung).
+- iPhone/WebKit und der vollständige Browserbestand werden zusätzlich von der
+  bestehenden Pull-Request-CI geprüft. Vor grüner CI kein Merge und kein Deploy.
+
+Die Modulabschaltung wurde zusätzlich negativ geprüft: Ein vorhandener
+Korrekturantrag darf feste Angaben berichtigen, schreibt dabei aber keine
+abgeschalteten freien Angaben neu. Vor der Korrektur zeigte die Maske diese
+Felder fälschlich noch; die eigene Gegenprobe war rot und ist jetzt grün.
