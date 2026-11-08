@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { getUserByUid } from '@/lib/db/users';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -29,12 +30,13 @@ export function KorrekturAnfordern({ eintrag }: { eintrag: TimeEntry }) {
     catch (e) { setFehler(grundAus(e, 'Der Antrag konnte nicht gesendet werden.')); } finally { setSpeichert(false); }
   }
   return <><Button variant="ghost" onClick={() => setOffen(true)}>Korrektur anfragen</Button>
-    <BottomSheet open={offen} onClose={() => setOffen(false)} label="Korrektur anfragen" titel="Korrektur anfragen" auchBreit>
+    {/* Der feste Dialog darf nicht im Stapelkontext der Zeilenaktionen liegen. */}
+    {createPortal(<BottomSheet open={offen} onClose={() => setOffen(false)} label="Korrektur anfragen" titel="Korrektur anfragen" auchBreit>
       <p className="mb-3 text-sm">{datumAT(eintrag.date)} · {eintrag.startTime}–{eintrag.endTime}. Rechnungssperren und Abwesenheitsanträge bleiben geschützt.</p>
       <InputField id="korrektur-wunsch" label="Was soll berichtigt werden und warum? (keine Diagnose)" required pflicht value={wunsch} onChange={(e) => setWunsch(e.target.value)} />
       {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
       <Button disabled={!wunsch.trim() || speichert} onClick={() => void senden()}>Beim Büro anfragen</Button>
-    </BottomSheet></>;
+    </BottomSheet>, document.body)}</>;
 }
 export default function Zeitkorrekturen() {
   const { user, company } = useAuth(); const toast = useToast();
@@ -94,7 +96,7 @@ export default function Zeitkorrekturen() {
     {(fehler || linkFehler) && <p role="alert" className="text-sm text-danger">{fehler ?? linkFehler}</p>}
     {!antraege.length && <p className="mt-3 text-sm text-ink-muted">Keine offenen Korrekturanträge.</p>}
     <List>{antraege.map((a) => <ListRow key={a.id} title={`${datumAT(a.datum)} · ${String(a.vorher.user_name ?? '')}`} subtitle={`${a.wunsch} · ${STANDNAME[a.stand]}`} onOeffnen={() => setAuswahl(a)} pfeil />)}</List>
-    <BottomSheet open={!!auswahl} onClose={schliessen} label="Korrekturantrag" titel="Korrekturantrag" auchBreit breit>
+    {createPortal(<BottomSheet open={!!auswahl} onClose={schliessen} label="Korrekturantrag" titel="Korrekturantrag" auchBreit breit>
       {auswahl && <>
         <p className="mb-3">{datumAT(auswahl.datum)} · {auswahl.wunsch}</p>
         {auswahl.entscheidung && <p className="mb-3 text-sm">Entscheidung: {auswahl.entscheidung}</p>}
@@ -111,6 +113,6 @@ export default function Zeitkorrekturen() {
           {auswahl.userId === user.uid && <Button variant="secondary" disabled={!grund.trim() || speichert} onClick={() => void entscheiden('zurueckgezogen').catch(() => undefined)}>Antrag zurückziehen</Button>}
         </>}
       </>}
-    </BottomSheet>
+    </BottomSheet>, document.body)}
   </Card>;
 }

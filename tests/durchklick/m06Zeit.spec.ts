@@ -8,10 +8,22 @@ async function aufraeumen() {
   await admin.from('time_entries').delete().eq('company_id', BETRIEB);
   await admin.from('companies').update({ zeit_standardfelder: {}, modules: { 'zeiterfassung.freie_zeitfelder': false, 'zeiterfassung.timer': true } }).eq('id', BETRIEB);
 }
-test.beforeEach(aufraeumen);
+let eintrittVorher: { id: string; eintritt: string | null } | null = null;
+test.beforeEach(async ({ page }) => {
+  eintrittVorher = null;
+  await aufraeumen();
+  const { data, error } = await admin.from('users').select('id,eintritt').eq('company_id', BETRIEB).eq('email', MONTEUR.email).single();
+  if (error) throw error;
+  eintrittVorher = data;
+  // Historische Testzeiten bleiben nach dem echten Eintritt zulässig; die Schutzregel bleibt unverändert.
+  const aktualisiert = await admin.from('users').update({ eintritt: '2026-01-01' }).eq('id', data.id);
+  if (aktualisiert.error) throw aktualisiert.error;
+  await page.clock.setFixedTime(new Date('2026-11-05T07:00:00+01:00'));
+});
 test.afterEach(async () => {
   await aufraeumen();
   await admin.from('companies').update({ zeit_standardfelder: {}, modules: {} }).eq('id', BETRIEB);
+  if (eintrittVorher) await admin.from('users').update({ eintritt: eintrittVorher.eintritt }).eq('id', eintrittVorher.id);
 });
 
 test('Standardfelder: ausschalten, bestehende Werte ändern ohne Verlust, wieder einschalten', async ({ page, context }, info) => {

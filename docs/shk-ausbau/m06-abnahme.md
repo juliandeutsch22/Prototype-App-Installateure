@@ -85,7 +85,7 @@ rückwirkende Umrechnung. Die bestehende Zeitrechnung bleibt unverändert.
 
 - Typprüfung, Lint und Produktionsbuild: bestanden.
 - Unit-/Komponentenprüfungen: 6.997 Fälle, Gesamtlauf mit gezielten
-  Nachprüfungen. Die letzten 74 betroffenen Prüfungen zu Maske, Modulregister,
+  Nachprüfungen. Die letzten 682 betroffenen Prüfungen zu Maske, Modulregister,
   Schreibweise und Handbuch bestehen.
 - Datenbank/Edge Functions: 2.583 Prüfungen in 213 Dateien bestanden, kein
   übersprungener Fall.
@@ -107,9 +107,23 @@ wie im bestehenden Register. Die zusätzliche Gegenprobe mit einem numerischen
 Wert fand den zu strengen Boolean-Cast (22P02). Unset, null, Zahlen, Text,
 Objekte und Arrays sowie ausdrücklich falsche/leere Werte werden mitgeprüft;
 ein ausgeschaltetes freies Feld erhält dadurch keine Schreibfreigabe. Die
-119 betroffenen Datenbankprüfungen und 74 Modul-/Ansichtsprüfungen bestehen.
+119 betroffenen Datenbankprüfungen und 682 Modul-/Ansichtsprüfungen bestehen.
 
 Zwei weitere rote Komponentengegenproben belegen den Schutz gegen verspätete
 Filterantworten sowie den Erhalt eines Direktlink-Fehlerhinweises nach einer
 unabhängigen Listenladung. Die Korrekturansicht nimmt nur das Ergebnis der
 neuesten Listenanforderung an; Linkfehler haben einen eigenen Zustand.
+
+Die vollständige CI fand außerdem eine ungültige E2E-Vorbelegung: historische
+Timerzeiten lagen vor dem auf einem frischen Stapel gesetzten Eintritt.
+Die M06-Fälle setzen jetzt einen echten früheren Eintritt für ihre Testperson
+und stellen den ursprünglichen Wert danach wieder her. Die produktive Sperre
+für Zeiten vor Eintritt bleibt unverändert. Der Browserkalender ist für alle
+M06-Fälle kontrolliert.
+
+Ein mobiler Korrekturanfragedialog lag im Stapelkontext der Listenaktionen
+unter der unteren Navigation. Die native Telefon-Klickgegenprobe war rot.
+Die neuen Korrekturdialoge liegen jetzt wie bestehende globale Dialoge über
+React-Portalen im Seitenkörper. Alle sieben M06-Abläufe bestehen anschließend
+sowohl im Telefon-Chromium als auch in der echten WebKit-iPhone-Konfiguration.
+Globale Dialog-, Navigations- und Gestenbausteine wurden dabei nicht verändert.
