@@ -2181,10 +2181,21 @@ private Messenger — ohne Bezug zur Akte, mit Kundenfotos in fremden Clouds.
   private bleibt privat und merkt sich den Verweis.
 - **Oberfläche:** Navigation „Nachrichten“ (Gruppe Team, am Handy unter
   „Mehr“), ab 760 px Posteingang und Gespräch nebeneinander, am Handy zwei
-  Seiten; die Eingabe klebt unten. Eine Nachricht ist eine Zeile (Absender,
-  Zeit in Plex Mono, Text) — keine Sprechblasen; die ganze Zeile öffnet ihre
-  Möglichkeiten. Die Baustellenakte zeigt den Stand des Threads, die
-  Benutzerakte „Nachricht schreiben“.
+  Seiten; die Eingabe klebt unten. Das Gespräch liest sich wie ein Messenger
+  (Auftrag 08.11.2026: die erste Fassung als Bautagebuch-Zeilen wirkte „klobig
+  und altbacken“): die eigenen Nachrichten rechts, deckend in `--petrol`, die
+  der anderen links in `--surface-2`, der Tag als Trenner, die Uhrzeit (Plex
+  Mono) klein im Blatt; Nachrichten derselben Person bis 5 Minuten bilden eine
+  Gruppe, den Namen trägt nur die erste und nur in Runde und Thread. Die
+  Blätter tragen die Rundung der Felder und Knöpfe (`--radius`), keine Karte;
+  Schatten und Zipfel gibt es nicht. Was noch auf dem Gerät liegt, steht in
+  `--petrol-hell`. Die Eingabe ist eine Zeile: Anhang und (in Runde und Thread)
+  Erwähnen als Zeichen, das Feld wächst mit, Senden als Pfeil. Der Posteingang
+  zeigt je Gespräch Kürzel (Baustelle: Zeichen), Name, Zeit, die letzte
+  Nachricht in einer Zeile und die eigene Zahl. Das ganze Blatt öffnet die
+  Möglichkeiten einer Nachricht. Die Baustellenakte zeigt den Stand des
+  Threads, die Benutzerakte „Nachricht schreiben“. Im Einblick des Supports
+  steht auf beiden Seiten der Nachrichten ein Satz statt eines Fehlers.
 - **Module:** `nachrichten` (Standard an, empfohlener Umfang) mit
   `nachrichten.direktnachrichten` (ab Werk **aus**, D1; beim Einschalten der
   Hinweis auf ArbVG §§ 96, 96a). Jeder Schreibweg prüft beides auf dem Server

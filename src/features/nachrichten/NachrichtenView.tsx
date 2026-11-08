@@ -80,7 +80,7 @@ export default function NachrichtenView() {
     } catch (e) {
       if (!still) setKopfFehler(grundAus(e, 'Dieses Gespräch gibt es nicht oder es ist nicht deines.'));
     }
-  }, [kanal]);
+  }, [kanal, einblick]);
 
   useEffect(() => { void kopfLaden(); }, [kopfLaden, versuch]);
 

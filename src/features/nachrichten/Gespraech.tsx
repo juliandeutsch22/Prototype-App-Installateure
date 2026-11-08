@@ -167,14 +167,23 @@ export default function Gespraech({
   const anzahl = (nachrichten?.length ?? 0) + wartend.length + unterwegs.length;
   // Ab dem Tablet rollt der Verlauf im eigenen Rahmen (die Eingabe steht
   // fest darunter), am Telefon rollt die Seite.
-  useEffect(() => {
+  const ansEnde = useCallback(() => {
     const r = rahmen.current;
     if (r && r.scrollHeight > r.clientHeight && getComputedStyle(r).overflowY === 'auto') {
       r.scrollTop = r.scrollHeight;
       return;
     }
     ende.current?.scrollIntoView?.({ block: 'end' });
-  }, [anzahl, kanal]);
+  }, []);
+  useEffect(() => { ansEnde(); }, [anzahl, kanal, ansEnde]);
+  // Ein Bild, das nachlädt, schiebt den Verlauf — wer unten war, bleibt unten.
+  const bildGeladen = useCallback(() => {
+    const r = rahmen.current;
+    const unten = r && getComputedStyle(r).overflowY === 'auto'
+      ? r.scrollHeight - r.scrollTop - r.clientHeight < 240
+      : window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 240;
+    if (unten) ansEnde();
+  }, [ansEnde]);
 
   // Das Schreibfeld wächst mit dem Text bis zur Obergrenze im Stil (max-height), dann rollt es.
   useEffect(() => {
@@ -270,7 +279,7 @@ export default function Gespraech({
         if (istBild(a.inhaltsart) && url) {
           return (
             <a key={a.id} href={url} target="_blank" rel="noreferrer" aria-label={`${a.name} öffnen`}>
-              <img src={url} alt={a.name} className="nachricht-bild" loading="lazy" />
+              <img src={url} alt={a.name} className="nachricht-bild" loading="lazy" onLoad={bildGeladen} />
             </a>
           );
         }
@@ -342,7 +351,7 @@ export default function Gespraech({
           </div>
         )}
         {e.art === 'fach' && (
-          <div className="nachricht-blatt">
+          <div className="nachricht-blatt" data-lokal="ja">
             {lokaleDateien(e.w.dateien)}
             <span className="sr-only">Du: </span>
             {e.w.text && <p className="nachricht-text">{e.w.text}</p>}
@@ -351,7 +360,7 @@ export default function Gespraech({
         )}
         {e.art === 'unterwegs' && (
           <>
-            <div className="nachricht-blatt">
+            <div className="nachricht-blatt" data-lokal="ja">
               {lokaleDateien(e.u.dateien)}
               <span className="sr-only">Du: </span>
               {e.u.text && <p className="nachricht-text">{e.u.text}</p>}
