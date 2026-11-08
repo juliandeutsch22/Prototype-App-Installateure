@@ -133,6 +133,8 @@ export default async function aufbau(): Promise<void> {
   for (const t of [
     'work_sheet_zeiten', 'work_sheet_material', 'work_sheet_fotos', 'work_sheets',
     'invoice_positions', 'invoices', 'material_orders', 'time_entries',
+    // M06b: die freien Zeitfelder — ein liegengebliebenes Pflichtfeld ließe jede Buchung eines Durchklicks scheitern.
+    'zeitbuchung_feldwerte', 'zeitfeld_fassungen', 'zeitfeld_definitionen',
     // Sonderurlaub (Plan 10.3): hängt an der Person; bliebe er stehen, ließe
     // sich das Konto des Monteurs beim nächsten Lauf nicht neu anlegen.
     'urlaubsanspruch_anpassungen', 'freistellungen',

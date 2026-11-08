@@ -98,7 +98,7 @@ nacheinander auf dem Arbeitsbranch, ein Paket nach dem anderen.
 | M03 | Kataloge, Preise, Kalkulation | E01–E07, A07, A08, G06 | E01–E04 erledigt (E57, M03a); E05/E06 (M03b) und E07, A07, A08, G06 (M03c) offen |
 | M04 | Lagerorte, Fahrzeuglager, Scanner, Deckung | E10–E14, E16, G03 | E10 erledigt (E58, M04a), E13/E14/G03 erledigt (E60, M04b); E11/E12 (M04c), E16 (M04d) offen |
 | M05 | Einkaufsbelege, Lieferantenanfragen, Kundenlieferschein | E08, E09, R01–R03 | offen |
-| M06 | Zeit vollständig, Zeiterfassung abschaltbar (V2), freie Zeitfelder | Z01–Z04, B02, N01 | offen |
+| M06 | Zeit vollständig, Zeiterfassung abschaltbar (V2), freie Zeitfelder | Z01–Z04, B02, N01 | N01 erledigt (E61, M06b); B02/Z04 (M06a), Z01 (M06c), Z02/Z03 (M06e), V2 (M06d) offen |
 | M07 | Qualifikationen, Aufgaben, Planung | Z05, B04–B08, G10, A01, A02, A04 | offen |
 | M08 | Besichtigung, Leistungsverzeichnis, Aufmaß | B03, A05, R10 | offen |
 | M09 | Anlagen, Prüfung, Betriebsmittel | W01–W08, G11 | offen |

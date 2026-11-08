@@ -45,6 +45,9 @@ const TABELLE_VON: Record<string, string> = {
   Wartung: 'wartungen',
   BaustellenDokument: 'project_documents',
   Auftragseingang: 'auftragseingaenge',
+  ZeitfeldDefinition: 'zeitfeld_definitionen',
+  ZeitfeldFassung: 'zeitfeld_fassungen',
+  Zeitfeldwert: 'zeitbuchung_feldwerte',
 };
 
 /**

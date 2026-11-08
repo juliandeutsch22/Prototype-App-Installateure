@@ -15,6 +15,7 @@
  */
 import type { Einstufung, FruehereEinstufung, Satzklasse, Stufensaetze } from '@/lib/einstufung';
 import type { Materialaufschlag } from '@/lib/aufschlag';
+import type { ZeitfeldPflicht, ZeitfeldRegel, ZeitfeldRegeln, ZeitfeldTyp, ZeitfeldWert } from '@/lib/zeitfelder';
 
 
 export type Role =
@@ -1418,6 +1419,8 @@ export interface TimeEntry {
   isBilled?: boolean;
   invoiceNumber?: string;
   createdAt?: number;
+  /** Setzt die Datenbank bei jeder Änderung — auch einer, die nur freie Angaben betrifft (M06b). */
+  updatedAt?: number;
   lastEditedBy?: string;
   lastEditedByUid?: string;
   /**
@@ -1451,6 +1454,66 @@ export interface TimeEntry {
   krankmeldungId?: string;
   /** Aus welchem bestätigten Sonderurlaub dieser Eintrag entstanden ist — wie `vacationId`. */
   freistellungId?: string;
+  /**
+   * DIE FREIEN ZEITFELDER BEIM SCHREIBEN (M06b) — nur Durchgang: die Maske
+   * schickt die Werte mit der Buchung, der Auslöser prüft und schreibt sie in
+   * `zeitbuchung_feldwerte`. Gelesen ist die Spalte immer leer. `null` als
+   * Wert heißt „entfernen“; ein Feld, das fehlt, bleibt, wie es ist.
+   */
+  zeitfelder?: { fassung: number; werte: Record<string, ZeitfeldWert | null> } | null;
+  /**
+   * Die Fassung der freien Zeitfelder beim Eintreffen der Buchung — setzt die
+   * Datenbank. Danach rechnet sich, was fehlt oder nachzupflegen ist.
+   */
+  zeitfeldFassung?: number | null;
+}
+
+/** Ein freies Zeitfeld des Betriebs (M06b, N01) — `zeitfeld_definitionen`. */
+export interface ZeitfeldDefinition {
+  id: string;
+  companyId: string;
+  name: string;
+  typ: ZeitfeldTyp;
+  regeln: ZeitfeldRegeln;
+  giltStaende: string[];
+  giltRollen: Role[];
+  pflicht: ZeitfeldPflicht;
+  reihenfolge: number;
+  aktiv: boolean;
+  /** Nach einem Typwechsel das neue Feld; dieses ist dann beendet. */
+  ersetztDurch?: string | null;
+  angelegtAm?: number;
+  geaendertAm?: number;
+  geaendertVonUid?: string | null;
+  geaendertVonName?: string | null;
+}
+
+/** Eine veröffentlichte Fassung der freien Zeitfelder — `zeitfeld_fassungen`. */
+export interface ZeitfeldFassung {
+  id: string;
+  companyId: string;
+  nummer: number;
+  veroeffentlichtAm?: number;
+  /** Schnappschuss der Regeln je Feld-Kennung (ohne Namen und Reihenfolge). */
+  felder: Record<string, ZeitfeldRegel>;
+  anlass?: string | null;
+  vonUid?: string | null;
+  vonName?: string | null;
+}
+
+/** Ein Wert eines freien Zeitfelds an einer Buchung — `zeitbuchung_feldwerte`. */
+export interface Zeitfeldwert {
+  id: string;
+  companyId: string;
+  eintragId: string;
+  feldId: string;
+  userId: string;
+  datum: string;
+  typ: ZeitfeldTyp;
+  wert: ZeitfeldWert;
+  /** Unter welcher Fassung er erfasst wurde. */
+  fassung: number;
+  geaendertAm?: number;
 }
 
 /**

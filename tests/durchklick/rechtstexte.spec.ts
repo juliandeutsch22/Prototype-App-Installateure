@@ -135,7 +135,8 @@ test('Die Plattform pflegt die Rechtstexte, die Seiten zeigen sie, Betrieb und B
   // Was wie Markup aussieht, steht als Text da — es wird nie ausgeführt.
   await expect(blatt.getByText('<script>x</script>', { exact: false })).toBeVisible();
   expect(await fremd.locator('.recht script').count()).toBe(0);
-  const heute = new Date().toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  // Der Tag in Wien, wie ihn die Seite schreibt — nicht der des Testrechners (zwischen 23 und 24 Uhr UTC liegen sie auseinander).
+  const heute = new Date().toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Vienna' });
   await expect(fremd.getByText(`Stand: ${heute}`)).toBeVisible();
   // Telefon, UID, Firmenbuch und Gewerbe fehlen noch: das Band bleibt.
   await expect(fremd.getByRole('note')).toContainText('Entwurf');

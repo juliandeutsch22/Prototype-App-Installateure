@@ -225,6 +225,8 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       // Seit dem 24.09.2026 eigene Unterseiten statt Karten unter den Sätzen.
       'nummern',
       'personal',
+      // M06b (bewusst nachgezogen): die freien Zeitfelder — Geschäftsführung und Administration.
+      'zeitfelder',
       // M04a (bewusst nachgezogen): die Fahrzeuge — Stammdaten für Fahrzeuglager und Fuhrpark.
       'fahrzeuge',
       'konten',
@@ -266,6 +268,17 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       'rechnung',
       'konten',
     ]);
+  });
+
+  it('gibt die ZEITFELDER Geschäftsführung und Administration — und nur mit ihrer Unterfähigkeit (M06b)', () => {
+    for (const rolle of ['Geschäftsführung', 'Administrator'] as const) {
+      expect(unterseitenFuer('/settings', rolle).map((s) => s.pfad)).toContain('zeitfelder');
+      expect(unterseitenFuer('/settings', rolle, undefined, { 'zeiterfassung.freie_zeitfelder': false }).map((s) => s.pfad))
+        .not.toContain('zeitfelder');
+    }
+    for (const rolle of ['Projektleiter', 'Buchhaltung', 'Verwaltung', 'Mitarbeiter'] as const) {
+      expect(unterseitenFuer('/settings', rolle).map((s) => s.pfad)).not.toContain('zeitfelder');
+    }
   });
 
   it('gibt die MODULE allein der Administration', () => {
