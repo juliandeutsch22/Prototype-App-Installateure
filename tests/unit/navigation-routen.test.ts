@@ -488,3 +488,37 @@ describe('Der Auftragseingang (M02b)', () => {
     expect(PAARE).toContainEqual({ pfad: '/eingaenge', waechter: '/eingaenge' });
   });
 });
+
+/*
+  DIE LIEGENSCHAFTEN (M02c): ein Eintrag in „Aufträge“ neben den Kunden, für
+  dieselben Rollen. Er hängt an der Unterfähigkeit `kunden.liegenschaften`,
+  die ab Werk aus ist — dann sind Eintrag UND Adresse zu; die Akte
+  (`/liegenschaften/:id`) hängt an derselben Prüfung wie die Liste.
+*/
+describe('Die Liegenschaften (M02c)', () => {
+  const AN = { 'kunden.liegenschaften': true };
+
+  it('steht für das Büro in „Aufträge“ — dieselben Rollen wie die Kunden', () => {
+    const eintrag = NAV.find((i) => i.path === '/liegenschaften')!;
+    expect(eintrag.group).toBe('Aufträge');
+    expect(eintrag.modul).toBe('kunden.liegenschaften');
+    expect([...eintrag.roles].sort()).toEqual([...rollen('/customers')].sort());
+    expect(eintrag.roles).not.toContain('Mitarbeiter');
+  });
+
+  it('ab Werk aus — eingeschaltet offen; die übrigen Einträge hängen nicht daran', () => {
+    expect(canAccess('Verwaltung', '/liegenschaften')).toBe(false);
+    expect(canAccess('Verwaltung', '/liegenschaften', AN)).toBe(true);
+    expect(canAccess('Mitarbeiter', '/liegenschaften', AN)).toBe(false);
+    expect(navForRole('Verwaltung', AN).map((i) => i.path).filter((p) => p !== '/liegenschaften'))
+      .toEqual(navForRole('Verwaltung').map((i) => i.path));
+    // Gleich nach den Kunden.
+    const pfade = navForRole('Geschäftsführung', AN).map((i) => i.path);
+    expect(pfade.indexOf('/liegenschaften')).toBe(pfade.indexOf('/customers') + 1);
+  });
+
+  it('die Akte trägt den Wächter der Liste', () => {
+    expect(PAARE).toContainEqual({ pfad: '/liegenschaften/:id', waechter: '/liegenschaften' });
+    expect(PAARE).toContainEqual({ pfad: '/liegenschaften', waechter: '/liegenschaften' });
+  });
+});

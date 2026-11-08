@@ -21,6 +21,8 @@ const SYMBOLE: Record<string, string> = {
   // Das Ablagefach des Auftragseingangs (M02b) — was hereinkommt, bevor es Baustelle oder Angebot wird.
   '/eingaenge': 'M2.5 9 H5.5 L6.5 10.8 H9.5 L10.5 9 H13.5 M2.5 9 L4 3.5 H12 L13.5 9 V13.5 H2.5 Z',
   '/customers': 'M3 13.5 V7.5 L8 3.5 L13 7.5 V13.5 Z M7 13.5 V10 H9 V13.5',
+  // Das Haus mit Stockwerken (M02c): die Liegenschaft — mehrere Wohnungen, nicht der eine Kunde.
+  '/liegenschaften': 'M3.5 13.5 V3 H10.5 V13.5 M10.5 7 H13 V13.5 M2.5 13.5 H13.5 M5.5 5.5 H6.5 M7.5 5.5 H8.5 M5.5 8 H6.5 M7.5 8 H8.5 M5.5 10.5 H6.5 M7.5 10.5 H8.5',
   '/wartungen': 'M5 3 Q5 2 6 2 H10 Q11 2 11 3 V11 H5 Z M8 4.6 A1.6 1.6 0 1 1 7.99 4.6 M6.5 11 V14 M9.5 11 V14',
   '/invoices': 'M4 2.5 H12 V13.5 L10.7 12.6 L9.3 13.5 L8 12.6 L6.7 13.5 L5.3 12.6 L4 13.5 Z M6 5.5 H10 M6 8 H10',
   '/costing': 'M8 3 V13 M5.5 13.5 H10.5 M2.5 5 H13.5 M2.5 5 L1.5 8.5 H3.5 Z M13.5 5 L12.5 8.5 H14.5 Z',

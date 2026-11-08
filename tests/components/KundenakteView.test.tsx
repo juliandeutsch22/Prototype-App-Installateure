@@ -99,6 +99,16 @@ vi.mock('@/lib/db/auftragseingaenge', () => ({
   listEingaengeDesKunden: (c: string, k: string, max?: number) => listEingaengeDesKunden(c, k, max),
 }));
 
+/* Seine Beteiligungen an Liegenschaften (M02c) — nur mit der Unterfähigkeit gefragt. */
+const listBeteiligungenDesKunden = vi.fn(async () => [
+  { id: 'b1', companyId: 'perl', liegenschaftId: 'l1', rolle: 'hausverwaltung', customerId: 'k1' },
+]);
+vi.mock('@/lib/db/liegenschaften', () => ({
+  listBeteiligungenDesKunden: () => listBeteiligungenDesKunden(),
+  listLiegenschaftenByIds: vi.fn(async () => [{ id: 'l1', companyId: 'perl', bezeichnung: 'WHA Hauptstraße 12', aktiv: true }]),
+  listTops: vi.fn(async () => []),
+}));
+
 vi.mock('@/lib/time', async () => {
   const echt = await vi.importActual<typeof import('@/lib/time')>('@/lib/time');
   return { ...echt, todayStr: () => '2026-06-01' };
@@ -171,6 +181,7 @@ beforeEach(() => {
   eingaenge = [];
   firma = undefined;
   listEingaengeDesKunden.mockClear();
+  listBeteiligungenDesKunden.mockClear();
 });
 
 /* SEINE AUFTRAGSEINGÄNGE (M02b) — bei den Baustellen, mit Weg zu jedem und zur Liste. */
@@ -1047,5 +1058,26 @@ describe('Kundenakte — Nummernstempel', () => {
     zeige();
     await screen.findByRole('heading', { level: 1, name: /Hausverwaltung Nord/ });
     expect(document.querySelector('.plankopf-titel .stempel')).toBeNull();
+  });
+});
+
+/*
+  „LIEGENSCHAFTEN“ IN DER KUNDENAKTE (M02c): bei den Baustellen, nur mit der
+  Unterfähigkeit `kunden.liegenschaften` (ab Werk aus) — ohne sie wird nicht
+  einmal gefragt.
+*/
+describe('Liegenschaften des Kunden (M02c)', () => {
+  it('ab Werk keine Karte und keine Abfrage', async () => {
+    zeige();
+    expect(await screen.findByRole('heading', { name: 'Hausverwaltung Nord' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Liegenschaften' })).toBeNull();
+    expect(listBeteiligungenDesKunden).not.toHaveBeenCalled();
+  });
+
+  it('eingeschaltet: die Karte mit seinen Beteiligungen und dem Weg zur Liegenschaft', async () => {
+    firma = { id: 'perl', modules: { 'kunden.liegenschaften': true } };
+    zeige('k1#k-liegenschaften');
+    expect(await screen.findByRole('link', { name: 'WHA Hauptstraße 12' })).toHaveAttribute('href', '/liegenschaften/l1');
+    expect(listBeteiligungenDesKunden).toHaveBeenCalled();
   });
 });

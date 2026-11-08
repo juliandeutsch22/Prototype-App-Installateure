@@ -9,6 +9,8 @@ import { Segmente, WeitereAngaben } from '@/components/LotBausteine';
 import { ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
+import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
+import { zuordnungAenderung } from '@/features/liegenschaften/liegenschaftText';
 import {
   DRINGLICHKEIT_TEXT,
   QUELLE_TEXT,
@@ -65,6 +67,7 @@ export default function EingangFormular({
   companyId,
   eingang,
   jetzt = Date.now(),
+  mitLiegenschaft = false,
   onGespeichert,
   onAbbrechen,
 }: {
@@ -72,12 +75,15 @@ export default function EingangFormular({
   /** Zum Ändern; ohne ihn wird erfasst. */
   eingang?: Auftragseingang;
   jetzt?: number;
+  /** Liegenschaft und Top anbieten (M02c) — wenn die Unterfähigkeit an ist; das weiß die Seite. */
+  mitLiegenschaft?: boolean;
   onGespeichert: (id: string) => void;
   onAbbrechen: () => void;
 }) {
   const toast = useToast();
   const [f, setF] = useState<EingangFormularStand>(() => anfang(eingang, jetzt));
   const [kunde, setKunde] = useState<WithId<Customer> | null>(null);
+  const [ortWahl, setOrtWahl] = useState({ liegenschaftId: eingang?.liegenschaftId ?? '', topId: eingang?.topId ?? '' });
   const [fehler, setFehler] = useState<string | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const setze = <K extends keyof EingangFormularStand>(k: K, w: EingangFormularStand[K]) => setF((alt) => ({ ...alt, [k]: w }));
@@ -107,6 +113,8 @@ export default function EingangFormular({
       dringlichkeit: f.dringlichkeit,
       wunschtermin: f.wunschtermin || null,
       eingegangenAm: ausFeldzeit(f.eingegangenAm),
+      // M02c: nur, was sich an Liegenschaft und Top geändert hat.
+      ...(mitLiegenschaft ? zuordnungAenderung(ortWahl, eingang) : {}),
     };
     setSpeichert(true);
     try {
@@ -184,6 +192,19 @@ export default function EingangFormular({
         )}
       </fieldset>
 
+      {mitLiegenschaft && (
+        <LiegenschaftAuswahl
+          companyId={companyId}
+          idPrefix="eingang-liegenschaft"
+          liegenschaftId={ortWahl.liegenschaftId}
+          topId={ortWahl.topId}
+          onChange={(w) => {
+            setOrtWahl({ liegenschaftId: w.liegenschaftId, topId: w.topId });
+            // Die Anschrift der Liegenschaft als Vorschlag — nur in einen leeren Ort.
+            if (w.liegenschaft?.anschrift) setF((alt) => (alt.ort.trim() ? alt : { ...alt, ort: w.liegenschaft?.anschrift ?? '' }));
+          }}
+        />
+      )}
       <InputField
         id="eingang-ort"
         label="Ort des Einsatzes"

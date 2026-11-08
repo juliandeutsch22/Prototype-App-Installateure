@@ -71,6 +71,8 @@ const QuotesView = ansicht('/quotes', () => import('@/features/quotes/QuotesView
 const AngebotView = ansicht('/quotes', () => import('@/features/quotes/AngebotView'));
 const EingaengeView = ansicht('/eingaenge', () => import('@/features/auftragseingang/EingaengeView'));
 const EingangView = ansicht('/eingaenge', () => import('@/features/auftragseingang/EingangView'));
+const LiegenschaftenView = ansicht('/liegenschaften', () => import('@/features/liegenschaften/LiegenschaftenView'));
+const LiegenschaftView = ansicht('/liegenschaften', () => import('@/features/liegenschaften/LiegenschaftView'));
 const NachkalkulationView = ansicht('/costing', () => import('@/features/costing/NachkalkulationView'));
 const WorkSheetView = ansicht('/worksheets', () => import('@/features/worksheets/WorkSheetView'));
 const VacationsView = ansicht('/vacations', () => import('@/features/vacations/VacationsView'));
@@ -477,6 +479,16 @@ function AppRoutes() {
         element={
           <RequireNav path="/eingaenge">
             <EingangView />
+          </RequireNav>
+        }
+      />
+      {/* Die Liegenschaften (M02c) — Liste und Akte, mit derselben Prüfung (Rolle und Unterfähigkeit). */}
+      <Route path="/liegenschaften" element={<RequireNav path="/liegenschaften"><LiegenschaftenView /></RequireNav>} />
+      <Route
+        path="/liegenschaften/:id"
+        element={
+          <RequireNav path="/liegenschaften">
+            <LiegenschaftView />
           </RequireNav>
         }
       />

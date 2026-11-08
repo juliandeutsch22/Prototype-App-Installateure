@@ -54,6 +54,7 @@ import UidVies from './UidVies';
 import KundenRechnungFenster from './KundenRechnungFenster';
 import useUidVies from './useUidVies';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
+import KundenLiegenschaften from '@/features/liegenschaften/KundenLiegenschaften';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 
 /**
@@ -143,6 +144,8 @@ export default function KundenakteView() {
   const baustellenSichtbar = user ? canAccess(user.role, '/admin-projects', company?.modules) : false;
   // Der Auftragseingang (M02b): Rolle und Unterfähigkeit, dieselbe Frage wie die Navigation.
   const eingaengeSichtbar = user ? canAccess(user.role, '/eingaenge', company?.modules) : false;
+  // Die Liegenschaften des Kunden (M02c): wer die Liste öffnen darf, sieht sie auch hier — Rolle und Unterfähigkeit.
+  const liegenschaftenSichtbar = user ? canAccess(user.role, '/liegenschaften', company?.modules) : false;
   const heute = todayStr();
 
   useEffect(() => {
@@ -566,6 +569,10 @@ export default function KundenakteView() {
       )}
     </Card>
   ) : null;
+  /* SEINE LIEGENSCHAFTEN (M02c) — bei den Baustellen: dort arbeitet der Betrieb für ihn. */
+  const liegenschaftKarte = liegenschaftenSichtbar && companyId
+    ? <KundenLiegenschaften companyId={companyId} customerId={k.id} />
+    : null;
   const angebotKarte = angeboteAn && darfAngebote ? (
     <Card title="Angebote" id="k-angebote">
       {angebote.zustand === 'laedt' ? (
@@ -665,8 +672,8 @@ export default function KundenakteView() {
             <BelegeVorschau rechnungen={rechnungenAn && darfRechnungen ? rechnungen : null} angebote={angeboteAn && darfAngebote ? angebote : null} onRechnung={setOffeneRechnung} />
           </Card>}
         </div> },
-        { id: 'baustellen', titel: 'Baustellen', sprungziele: ['k-baustellen', ...(eingangKarte ? ['k-eingaenge'] : [])],
-          inhalt: eingangKarte ? <div className="akten-spalte">{baustellenKarte}{eingangKarte}</div> : baustellenKarte },
+        { id: 'baustellen', titel: 'Baustellen', sprungziele: ['k-baustellen', ...(eingangKarte ? ['k-eingaenge'] : []), ...(liegenschaftKarte ? ['k-liegenschaften'] : [])],
+          inhalt: eingangKarte || liegenschaftKarte ? <div className="akten-spalte">{baustellenKarte}{eingangKarte}{liegenschaftKarte}</div> : baustellenKarte },
         ...((rechnungKarte || angebotKarte) ? [{ id: 'belege', titel: 'Belege', sprungziele: ['k-rechnungen', 'k-angebote'], inhalt:
           <div className="akten-spalte">{rechnungKarte}{angebotKarte}</div> }] : []),
         ...((wartungKarte || termineSichtbar) ? [{ id: 'wartung', titel: wartungKarte && termineSichtbar ? 'Termine und Wartungen' : wartungKarte ? 'Wartungen' : 'Termine', sprungziele: ['k-wartungen', 'k-termine'], inhalt:

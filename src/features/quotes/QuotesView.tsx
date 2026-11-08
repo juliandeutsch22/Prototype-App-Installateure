@@ -42,6 +42,9 @@ import { euro } from '@/lib/betrag';
 import { leseZahl, preisAlsText, zahlAlsText, zahlOder } from '@/lib/zahl';
 import ZahlFeld from '@/components/ZahlFeld';
 import AdresseFeld from '@/components/AdresseFeld';
+import { useModul } from '@/lib/useModule';
+import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
+import { zuordnungAenderung } from '@/features/liegenschaften/liegenschaftText';
 import AbrechnungWahl from './AbrechnungWahl';
 import KatalogSuche from './KatalogSuche';
 import Abschnitt from '@/components/Abschnitt';
@@ -235,6 +238,9 @@ export default function QuotesView() {
   const [address, setAddress] = useState('');
   const [validUntil, setValidUntil] = useState(standardGueltigkeit);
   const [notes, setNotes] = useState('');
+  /** Liegenschaft und Top (M02c) — nur mit der Unterfähigkeit; die Annahme gibt sie an die Baustelle weiter. */
+  const liegenschaftenAn = useModul('kunden.liegenschaften');
+  const [ort, setOrt] = useState({ liegenschaftId: '', topId: '' });
   const [zeilen, setZeilen] = useState<ZeilenEingabe[]>([{ ...LEERE_ZEILE }]);
   /** Ist die Suche im Katalog offen (M18)? */
   const [katalogOffen, setKatalogOffen] = useState(false);
@@ -424,6 +430,7 @@ export default function QuotesView() {
   function formularLeeren() {
     setCustomerId('');
     setAddress('');
+    setOrt({ liegenschaftId: '', topId: '' });
     setNotes('');
     setZeilen([{ ...LEERE_ZEILE }]);
     setKatalogOffen(false);
@@ -438,6 +445,8 @@ export default function QuotesView() {
     setCustomerId(q.customerId ?? '');
     setAddress(q.address ?? '');
     setNotes(q.notes ?? '');
+    // Auch eine neue Fassung und eine Kopie stehen in derselben Liegenschaft (M02c).
+    setOrt({ liegenschaftId: q.liegenschaftId ?? '', topId: q.topId ?? '' });
     /*
       DER HAKEN „ARBEITSZEIT" STEHT ERST SEIT DEM 24.09. AN DER POSITION.
       Fehlt er, wird er aus der Einheit abgeleitet — und die Ansicht sagt
@@ -538,6 +547,8 @@ export default function QuotesView() {
         vatRate,
         kalkulierteStunden,
         notes,
+        // M02c: nur was sich an Liegenschaft und Top geändert hat.
+        ...(liegenschaftenAn ? zuordnungAenderung(ort, bearbeitet) : {}),
       });
       toast.success(`Angebot ${bearbeitet.quoteNumber} gespeichert`);
       formularLeeren();
@@ -580,6 +591,8 @@ export default function QuotesView() {
         kalkulierteStunden,
         notes,
         ...(fassungVon ? { vorgaengerId: fassungVon.id } : {}),
+        // M02c: nur mit der Unterfähigkeit — ohne sie entsteht das Angebot wie bisher.
+        ...(liegenschaftenAn ? zuordnungAenderung(ort, null) : {}),
       });
       toast.success(
         fassungVon ? `Angebot ${nummer} als neue Fassung von ${fassungVon.quoteNumber} angelegt` : `Angebot ${nummer} angelegt`,
@@ -847,6 +860,19 @@ export default function QuotesView() {
               pflicht
               required
             />
+            {liegenschaftenAn && user && (
+              <LiegenschaftAuswahl
+                companyId={user.companyId}
+                idPrefix="anqliegenschaft"
+                liegenschaftId={ort.liegenschaftId}
+                topId={ort.topId}
+                onChange={(w) => {
+                  setOrt({ liegenschaftId: w.liegenschaftId, topId: w.topId });
+                  // Die Anschrift der Liegenschaft als Vorschlag — nur in einen leeren Ort der Leistung.
+                  if (w.liegenschaft?.anschrift && !address.trim()) setAddress(w.liegenschaft.anschrift);
+                }}
+              />
+            )}
             <AdresseFeld
               id="anqadr"
               label="Ort der Leistung"

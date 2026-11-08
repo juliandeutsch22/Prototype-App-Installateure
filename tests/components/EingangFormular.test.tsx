@@ -26,6 +26,13 @@ vi.mock('@/lib/db/customers', () => ({
   listCustomersByIds: vi.fn(async () => [HUBER]),
 }));
 
+const LIEGENSCHAFT = { id: 'l1', companyId: 'perl', bezeichnung: 'WHA Hauptstraße 12', anschrift: 'Hauptstraße 12, 1010 Wien', aktiv: true };
+vi.mock('@/lib/db/liegenschaften', () => ({
+  listLiegenschaften: vi.fn(async () => ({ zeilen: [LIEGENSCHAFT], weiter: null })),
+  getLiegenschaft: vi.fn(async () => LIEGENSCHAFT),
+  listTops: vi.fn(async () => [{ id: 't2', companyId: 'perl', liegenschaftId: 'l1', bezeichnung: 'Top 2', aktiv: true }]),
+}));
+
 const { default: EingangFormular } = await import('@/features/auftragseingang/EingangFormular');
 
 const JETZT = new Date(2026, 10, 7, 9, 14).getTime();
@@ -122,5 +129,41 @@ describe('Ändern', () => {
     expect(eingangAendern.mock.calls[0][0]).toBe('e1');
     expect(eingangAendern.mock.calls[0][1]).toMatchObject({ dringlichkeit: 'notfall', customerId: 'k1', quelle: 'email' });
     expect(gespeichert).toHaveBeenCalledWith('e1');
+  });
+});
+
+/*
+  LIEGENSCHAFT UND TOP AM EINGANG (M02c): nur, wenn die Seite es sagt (die
+  Unterfähigkeit); die Anschrift der Liegenschaft wird zum Ort, wenn er leer
+  ist; gespeichert werden beide Kennungen. Ohne Unterfähigkeit kein Feld und
+  keine Angabe (die Fälle oben, unverändert).
+*/
+describe('Liegenschaft und Top (M02c)', () => {
+  it('wählen, der Ort aus der Liegenschaft, beide Kennungen gehen mit', async () => {
+    const nutzer = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <EingangFormular companyId="perl" jetzt={JETZT} mitLiegenschaft onGespeichert={gespeichert} onAbbrechen={vi.fn()} />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    await nutzer.selectOptions(screen.getByLabelText(/Quelle/), 'hausverwaltung');
+    await nutzer.type(screen.getByRole('searchbox', { name: /^Kunde/ }), 'Hub');
+    await nutzer.click(await screen.findByRole('button', { name: /Familie Huber/ }));
+    await nutzer.clear(screen.getByLabelText('Ort des Einsatzes'));
+    await nutzer.type(screen.getByRole('searchbox', { name: 'Liegenschaft (freiwillig)' }), 'Haupt');
+    await nutzer.click(await screen.findByRole('button', { name: 'WHA Hauptstraße 12' }));
+    expect(screen.getByLabelText('Ort des Einsatzes')).toHaveValue('Hauptstraße 12, 1010 Wien');
+    await nutzer.selectOptions(await screen.findByLabelText('Top'), 'Top 2');
+    await nutzer.type(screen.getByLabelText('Anliegen'), 'Wasser im Keller');
+    await nutzer.click(screen.getByRole('button', { name: 'Eingang erfassen' }));
+    await waitFor(() => expect(eingangAnlegen).toHaveBeenCalledTimes(1));
+    expect(eingangAnlegen.mock.calls[0][1]).toMatchObject({ liegenschaftId: 'l1', topId: 't2', ort: 'Hauptstraße 12, 1010 Wien' });
+  });
+
+  it('ohne Unterfähigkeit kein Feld', () => {
+    zeige();
+    expect(screen.queryByRole('searchbox', { name: 'Liegenschaft (freiwillig)' })).toBeNull();
   });
 });

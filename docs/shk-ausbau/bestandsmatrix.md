@@ -30,6 +30,7 @@ dann zu „erledigt mit E…/PR …“, gesammelt unter „Nachgeführt“. Den 
 | N02 | Kern `baustellen`/`kunden` im Register als „Immer an“ mit Unterfähigkeiten (E59) |
 | E13, E14, G03 | erledigt (E60, M04b): eine Deckungsrechnung (Befund 7 behoben), Bestellvorschläge aus Mindestmenge, Sollbestand und Rüstlisten, Übernehmen über den Befehlsvertrag |
 | N01 | erledigt (E61, M06b): Zeitfelder je Betrieb mit veröffentlichter Fassung, ein Schreibweg über die Buchungszeile (auch offline), Auswertung und Export |
+| A09 | erledigt (E62, M02c): Liegenschaften, Tops und Beteiligte mit Rollen; Zuordnung an Baustelle, Wartung, Eingang und Angebot, durchgetragen bis zur Baustelle; ab Werk aus |
 
 
 ## Bestandsmatrix Teil A/R — Aufträge und Rechnungswesen

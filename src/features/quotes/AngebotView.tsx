@@ -34,6 +34,7 @@ import PositionenTabelle from './PositionenTabelle';
 import { AnnahmeLinkAbschnitt, AnnahmeLinkDialog } from './AnnahmeLink';
 import { angebotLinkGesehen, angebotLinkWiderrufen, listAngebotLinks, type AngebotLink } from '@/lib/db/angebotLinks';
 import { useModul } from '@/lib/useModule';
+import { liegenschaftZeile } from '@/features/liegenschaften/liegenschaftText';
 import { getEingangZu } from '@/lib/db/auftragseingaenge';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT, datumAusMs } from '@/lib/datum';
@@ -84,6 +85,7 @@ export default function AngebotView() {
   const [linksVersuch, setLinksVersuch] = useState(0);
   const [linkDialog, setLinkDialog] = useState(false);
   const onlineAnnahme = useModul('angebote.online_annahme');
+  const liegenschaftenAn = useModul('kunden.liegenschaften');
 
   const companyId = user?.companyId;
   const darfAendern = user ? isGF(user.role) : false;
@@ -499,6 +501,16 @@ export default function AngebotView() {
           )}
         </Angabe>
         <Angabe wort="Ort der Leistung">{q.address}</Angabe>
+        {/* M02c: Liegenschaft und Top — die Annahme gibt sie an die Baustelle weiter. */}
+        {liegenschaftenAn && q.liegenschaftId && (
+          <Angabe wort="Liegenschaft">
+            {canAccess(user.role, '/liegenschaften', company?.modules) ? (
+              <Link to={`/liegenschaften/${q.liegenschaftId}`} className="link inline-flex min-h-touch items-center">
+                {liegenschaftZeile(q)}
+              </Link>
+            ) : liegenschaftZeile(q)}
+          </Angabe>
+        )}
         <Angabe wort="Angebotsdatum">{fmtDatum(q.quoteDate)}</Angabe>
         {ausEingang && (
           <Angabe wort="Herkunft">

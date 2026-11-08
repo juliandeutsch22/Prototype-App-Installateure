@@ -98,3 +98,18 @@ describe('Untere Leiste am Handy', () => {
     expect(tabBarForRole(rolle).unten.map((i) => i.path)).toEqual(tabBarForRole(rolle, OHNE_NEUE).unten.map((i) => i.path));
   });
 });
+
+/*
+  DIE LIEGENSCHAFTEN (M02c) sind „Optional“ und ab Werk aus: mit den
+  Standards bleibt jede Navigation, wie sie oben steht. Eingeschaltet kommt
+  ihr Eintrag für jede Rolle dazu, die Kunden liest — unter „Mehr“, die vier
+  Ziele unten bleiben.
+*/
+describe('Liegenschaften eingeschaltet (M02c)', () => {
+  const AN = { 'kunden.liegenschaften': true };
+  it.each(ROLLEN)('%s', (rolle) => {
+    const neu = rolle === 'Mitarbeiter' ? [] : ['/liegenschaften'];
+    expect(sortiert(navForRole(rolle, AN).map((i) => i.path))).toEqual(sortiert([...VORHER[rolle], ...NEU[rolle], ...neu]));
+    expect(tabBarForRole(rolle, AN).unten.map((i) => i.path)).toEqual(tabBarForRole(rolle).unten.map((i) => i.path));
+  });
+});

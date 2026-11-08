@@ -12,7 +12,7 @@
  * Die Tage liegen im Februar und März 2027 (1. Februar ist ein Montag).
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Client } from 'pg';
 import { admin, betriebAnlegen, buchung, konto, type Konto } from './helfer';
@@ -214,79 +214,45 @@ describe('Übernahme des Altbestands', () => {
       buchung(alt, '2027-04-20', u),
     ]);
 
-    // Die Migration noch einmal — sie ist darauf gebaut, dass das geht.
-    await db.query(readFileSync(
-      join(__dirname, '../../supabase/migrations/20260924190000_urlaub_nur_ueber_antrag.sql'), 'utf8'));
-    // Sie setzt dabei `urlaub_eintragen` und `urlaub_entscheiden` auf ihre
-    // alte Fassung zurück; die spätere Migration stellt den heutigen Stand
-    // wieder her — sonst rechneten die Prüfungen danach mit ganzen Tagen am
-    // 24./31.12., je nachdem, in welcher Reihenfolge sie laufen.
-    //
-    // Die Monatssicht hat seither Spalten dazubekommen; eine Sicht lässt sich
-    // nicht um Spalten kürzen: deshalb erst weg, dann die Dezember-Fassung,
-    // dann der HEUTIGE Stand — und das Leserecht wie ursprünglich vergeben.
-    //
-    // DER HEUTIGE STAND: die Migration des Sonderurlaubs (die neueste, die
-    // Monatssicht und `urlaub_entscheiden` definiert) UND JEDE DANACH, der
-    // Reihe nach. Nur die des Sonderurlaubs setzte `person_loeschen` auf den
-    // Stand vor den Terminen zurück — die Löschprüfungen danach schlugen fehl,
-    // je nachdem, in welcher Reihenfolge die Dateien liefen (CI zu #239).
-    // Die Lehrlings-Migration vom 30.09. steht hier nicht mehr: sie setzte
-    // `satz_setzen` hinter #230 zurück und scheitert, sobald ein
-    // Sonderurlaubstag im Bestand ist (ihre Statusliste kennt ihn nicht).
-    await db.query('drop view if exists public.monthly_stats');
-    // Ebenso `baustellen_stunden`: seit 27.10.2026 liefert sie eine Spalte mehr
-    // (`lehrling_minuten`, Testbericht Runde 6, G18) — die Fassung vom 09.10.
-    // hier davor dürfte die Rückgabe sonst nicht ändern.
-    await db.query('drop function if exists public.baustellen_stunden(text[])');
-    await db.query(readFileSync(
-      join(__dirname, '../../supabase/migrations/20260929200000_dezember_halbtage.sql'), 'utf8'));
-    const ordner = join(__dirname, '../../supabase/migrations');
     /*
-      BEWEGUNGSARTEN, DIE ES BEI EINER WIEDER EINGESPIELTEN MIGRATION NOCH NICHT
-      GAB. `20261006400000_einladen_zurueckgenommen.sql` setzt den Check auf
-      `lagerbewegungen.art` mit den Arten ihres Tages neu; liegt schon eine
-      jüngere Art im Bestand (seit M04a „umlagerung“, aus `lagerorte.test.ts`),
-      bricht sie ab — und mit ihr jede Migration danach, also der heutige
-      Stand, auf dem alle folgenden Prüfungen rechnen. Die Produktion spielt
-      nie eine alte Migration ein; das Problem gibt es nur hier. Deshalb
-      werden solche Zeilen für die Dauer der Wiederholung beiseitegelegt
-      (ohne Auslöser, der Bestand bleibt unberührt) und danach, wenn der
-      Check wieder alle Arten kennt, zurückgelegt.
+      DIE MIGRATION NOCH EINMAL — sie ist darauf gebaut, dass das geht —, IN
+      EINER TRANSAKTION, DIE DANACH ZURÜCKGEROLLT WIRD (07.11.2026).
+
+      Vorher lief sie bleibend, und danach wurden alle späteren Migrationen
+      wieder eingespielt, um den heutigen Stand herzustellen. Das brach mit
+      jedem Paket an einer anderen Stelle: eine alte Migration setzt einen
+      Check (Bewegungsarten, Objektarten des Journals …) mit den Werten ihres
+      Tages neu und scheitert an jüngeren Zeilen anderer Prüfungen — und mit
+      ihr jede Migration danach, worauf ganze Dateien gegen einen Stand
+      liefen, den es nie gibt. Zurückrollen stellt den heutigen Stand exakt
+      wieder her, ohne irgendetwas wieder einzuspielen. Gelesen wird deshalb
+      in derselben Transaktion.
     */
-    const ARTEN_VOM_06_10 = ['anfangsbestand', 'eingang', 'entnahme', 'retoure', 'inventur', 'zugang', 'abgang', 'einladen_zurueck'];
     await db.query('begin');
-    await db.query('set local session_replication_role = replica');
-    await db.query(`create temp table beiseite_lagerbewegungen as
-                      select * from public.lagerbewegungen where art <> all($1::text[])`, [ARTEN_VOM_06_10]);
-    await db.query('delete from public.lagerbewegungen where art <> all($1::text[])', [ARTEN_VOM_06_10]);
-    await db.query('commit');
     try {
-      for (const datei of readdirSync(ordner).filter((d) => d >= '20261004200000' && d.endsWith('.sql')).sort()) {
-        await db.query(readFileSync(join(ordner, datei), 'utf8'));
-      }
+      await db.query(readFileSync(
+        join(__dirname, '../../supabase/migrations/20260924190000_urlaub_nur_ueber_antrag.sql'), 'utf8'));
+
+      const { rows: tage } = await db.query<{ vacation_id: string | null }>(
+        `select vacation_id from public.time_entries
+          where user_id = $1 and date between '2027-04-01' and '2027-04-30' order by date`, [alt.uid]);
+      expect(tage).toHaveLength(6);
+      expect(tage.every((t) => t.vacation_id !== null)).toBe(true);
+      const { rows: antraege } = await db.query<{ von: string; bis: string; tage: string; status: string; entschieden_von_name: string | null }>(
+        `select von::text as von, bis::text as bis, tage, status, entschieden_von_name
+           from public.vacations where user_id = $1 order by von`, [alt.uid]);
+      expect(antraege.map((a) => [a.von, a.bis, Number(a.tage), a.status])).toEqual([
+        ['2027-04-05', '2027-04-07', 3, 'Genehmigt'],
+        ['2027-04-09', '2027-04-09', 1, 'Genehmigt'],
+        ['2027-04-19', '2027-04-23', 2, 'Genehmigt'],
+      ]);
+      expect(antraege[0].entschieden_von_name).toBe('Übernahme aus der Zeiterfassung');
+
+      const { rows } = await db.query(
+        `select tgenabled from pg_trigger where tgname = 'vacations_entscheidung'`);
+      expect(rows[0].tgenabled).toBe('O');
     } finally {
-      await db.query('begin');
-      await db.query('set local session_replication_role = replica');
-      await db.query('insert into public.lagerbewegungen select * from beiseite_lagerbewegungen');
-      await db.query('drop table beiseite_lagerbewegungen');
-      await db.query('commit');
+      await db.query('rollback');
     }
-    await db.query('grant select on public.monthly_stats to authenticated');
-
-    const tage = await eintraege(alt.uid, '2027-04-01', '2027-04-30');
-    expect(tage.every((t) => t.vacation_id !== null)).toBe(true);
-    const { data: antraege } = await admin.from('vacations')
-      .select('von, bis, tage, status, entschieden_von_name').eq('user_id', alt.uid).order('von');
-    expect(antraege!.map((a) => [a.von, a.bis, Number(a.tage), a.status])).toEqual([
-      ['2027-04-05', '2027-04-07', 3, 'Genehmigt'],
-      ['2027-04-09', '2027-04-09', 1, 'Genehmigt'],
-      ['2027-04-19', '2027-04-23', 2, 'Genehmigt'],
-    ]);
-    expect(antraege![0].entschieden_von_name).toBe('Übernahme aus der Zeiterfassung');
-
-    const { rows } = await db.query(
-      `select tgenabled from pg_trigger where tgname = 'vacations_entscheidung'`);
-    expect(rows[0].tgenabled).toBe('O');
   });
 });

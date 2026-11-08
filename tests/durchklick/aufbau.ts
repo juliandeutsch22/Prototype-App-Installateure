@@ -148,7 +148,10 @@ export default async function aufbau(): Promise<void> {
     'angebot_links', 'quotes',
     // M04b: die Posten der Einkaufsliste vor den Artikeln, auf die sie zeigen.
     'einkauf_posten',
-    'rabattsaetze', 'materials', 'projects', 'customers', 'suppliers',
+    'rabattsaetze', 'materials', 'projects',
+    // Liegenschaften (M02c): nach den Baustellen, die auf sie zeigen; Tops und Beteiligte gehen mit.
+    'liegenschaften',
+    'customers', 'suppliers',
   ]) {
     await admin.from(t).delete().eq('company_id', BETRIEB);
   }

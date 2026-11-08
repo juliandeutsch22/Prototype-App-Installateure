@@ -10,7 +10,15 @@
  */
 import { abfragen, type Bedingung } from './kern';
 
-export type Objektart = 'kunde' | 'baustelle' | 'angebot' | 'rechnung' | 'zahlung' | 'wartung' | 'benutzer' | 'eingang';
+export type Objektart =
+  | 'kunde' | 'baustelle' | 'angebot' | 'rechnung' | 'zahlung' | 'wartung' | 'benutzer' | 'eingang'
+  // M02c: die Liegenschaft — Tops und Beteiligte stehen unter ihr (`bezugId`), ohne eigene Akte.
+  | 'liegenschaft' | 'top' | 'beteiligter';
+
+/** Was keine eigene Akte hat und im Verlauf seines Bezugs steht: Zahlung (Rechnung), Top und Beteiligter (Liegenschaft). */
+export type OhneAkte = 'zahlung' | 'top' | 'beteiligter';
+/** Was eine Akte mit Verlauf hat. */
+export type Aktenart = Exclude<Objektart, OhneAkte>;
 
 export type ObjektVerlaufArt =
   | 'angelegt' | 'geaendert' | 'geloescht'
@@ -23,7 +31,7 @@ export interface ObjektVerlaufZeile {
   id: string;
   objektart: Objektart;
   objektId: string;
-  /** Bei einer Zahlung die Rechnung. */
+  /** Bei einer Zahlung die Rechnung; bei Top und Beteiligtem die Liegenschaft. */
   bezugId?: string;
   art: ObjektVerlaufArt;
   /**
@@ -83,7 +91,8 @@ function zitiert(wert: string): string {
  * Eine Seite des Verlaufs eines Objekts, neueste zuerst.
  *
  * Bei einer RECHNUNG gehören ihre Zahlungen dazu (auch gelöschte): Zeilen
- * des Objekts selbst oder mit ihm als Bezug.
+ * des Objekts selbst oder mit ihm als Bezug. Ebenso bei einer LIEGENSCHAFT
+ * ihre Tops und Beteiligten (M02c).
  *
  * WEITERGEBLÄTTERT WIRD ÜBER DEN SCHLÜSSEL (`am`, dann `id`), nicht über eine
  * Stelle: kommt zwischen zwei Seiten ein neuer Eintrag dazu, verschöbe eine
@@ -91,19 +100,24 @@ function zitiert(wert: string): string {
  */
 export async function listObjektVerlauf(
   companyId: string,
-  objektart: Exclude<Objektart, 'zahlung'>,
+  objektart: Aktenart,
   objektId: string,
   nach?: VerlaufZeiger | null,
 ): Promise<VerlaufSeite> {
   // Die Kennung kommt aus der Adresse der Akte — in eine Bedingung nur, was eine ist.
   if (!UUID.test(objektId)) throw new Error(`Keine Kennung: ${objektId}`);
 
-  const wo: Bedingung[] = objektart === 'rechnung'
+  const mitBezug = objektart === 'rechnung' || objektart === 'liegenschaft';
+  const wo: Bedingung[] = mitBezug
     ? []
     : [{ art: 'gleich', feld: 'objektart', wert: objektart }, { art: 'gleich', feld: 'objektId', wert: objektId }];
   const teile: string[] = [];
   if (objektart === 'rechnung') {
     teile.push(`or(and(objektart.eq.rechnung,objekt_id.eq.${objektId}),and(objektart.eq.zahlung,bezug_id.eq.${objektId}))`);
+  }
+  // M02c: die Liegenschaft mit ihren Tops und Beteiligten — auch gelöschten.
+  if (objektart === 'liegenschaft') {
+    teile.push(`or(and(objektart.eq.liegenschaft,objekt_id.eq.${objektId}),and(objektart.in.(top,beteiligter),bezug_id.eq.${objektId}))`);
   }
   if (nach) {
     // Sortiert ist nach `am` absteigend, bei Gleichstand nach `id` aufsteigend (`kern.ts`).

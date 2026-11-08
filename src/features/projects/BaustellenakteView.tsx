@@ -17,6 +17,8 @@ import { pauschalAngebot } from '@/features/invoices/pauschale';
 import { ABRECHNUNGSARTEN, abrechnungKurz } from '@/lib/abrechnung';
 import { euro } from '@/lib/betrag';
 import { canAccess } from '@/app/navigation';
+import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
+import { liegenschaftZeile } from '@/features/liegenschaften/liegenschaftText';
 import { canInvoice, isGF } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
 import type { Project, AppUser, Quote } from '@/types';
@@ -86,6 +88,7 @@ export default function BaustellenakteView() {
   const toast = useToast();
   const scheineAn = useModul('scheine');
   const einsatzAn = useModul('einsatzplanung');
+  const liegenschaftenAn = useModul('kunden.liegenschaften');
   /*
     Angebote tragen Preise und sind Büro und Leitung vorbehalten (Zeilenschutz
     `quotes_lesen`). Wer sie nicht sehen darf, bekommt auch keinen Verweis —
@@ -326,6 +329,14 @@ export default function BaustellenakteView() {
         contactPhone: entwurf.contactPhone,
         assignedEmployees: entwurf.assignedEmployees,
         projectManagers: entwurf.projectManagers,
+        /*
+          LIEGENSCHAFT UND TOP (M02c) nur, wenn sie sich geändert haben — und
+          nur mit der Unterfähigkeit. Ausgeschaltet bleibt eine bestehende
+          Zuordnung, wie sie ist; leer heißt lösen.
+        */
+        ...(liegenschaftenAn && (entwurf.liegenschaftId !== (daten.liegenschaftId ?? '') || entwurf.topId !== (daten.topId ?? ''))
+          ? { liegenschaftId: entwurf.liegenschaftId || null, topId: (entwurf.liegenschaftId && entwurf.topId) || null }
+          : {}),
       });
       setBearbeitet(false);
       toast.success(nummerNeu ? `Baustelle gespeichert — jetzt ${neueNummer}` : 'Baustelle gespeichert');
@@ -422,6 +433,12 @@ export default function BaustellenakteView() {
       <AktenAngabe wort="Baustellenadresse" breit>{b.address?.trim() ? <AdresseLink adresse={b.address} /> : null}</AktenAngabe>
       <AktenAngabe wort="Telefon vor Ort" breit>{b.contactPhone?.trim() ? <TelefonLink nummer={b.contactPhone} name={b.contactName} /> : null}</AktenAngabe>
       {b.bezeichnung?.trim() && <AktenAngabe wort="Bezeichnung">{b.bezeichnung}</AktenAngabe>}
+      {/* M02c: Liegenschaft und Top — als Text für jeden, als Weg zur Akte für wer sie öffnen darf. */}
+      {liegenschaftenAn && b.liegenschaftId && <AktenAngabe wort="Liegenschaft" breit>
+        {user && canAccess(user.role, '/liegenschaften', company?.modules)
+          ? <Link to={`/liegenschaften/${b.liegenschaftId}`} className="link inline-flex min-h-touch items-center">{liegenschaftZeile(b)}</Link>
+          : liegenschaftZeile(b)}
+      </AktenAngabe>}
     </AktenAngaben>
   </Card>;
   const team = <Card title="Team und Leitung" id="b-team">
@@ -533,7 +550,7 @@ export default function BaustellenakteView() {
       ]} />
       {darfAendern && entwurf && <AktenBearbeiten offen={bearbeitet} titel="Baustelle bearbeiten"
         geaendert={geaendert} speichert={speichert} onSchliessen={() => setBearbeitet(false)} onVerwerfen={() => { setEntwurf(alsEntwurf(b)); setSpeicherFehler(null); }}>
-        <StammdatenFormular entwurf={entwurf} setEntwurf={setEntwurf} staff={staff} leads={leads} namenDa={namenDa}
+        <StammdatenFormular liegenschaftenAn={liegenschaftenAn} entwurf={entwurf} setEntwurf={setEntwurf} staff={staff} leads={leads} namenDa={namenDa}
           geaendert={geaendert} speichert={speichert} fehler={speicherFehler} onSpeichern={() => void stammdatenSpeichern()}
           onVerwerfen={() => setEntwurf(alsEntwurf(b))} angebote={angebote} angeboteSichtbar={angeboteSichtbar} />
       </AktenBearbeiten>}
@@ -647,6 +664,8 @@ function Gruppe({ name, children }: { name: string; children: React.ReactNode })
 }
 
 interface FormularProps {
+  /** Liegenschaft und Top anbieten (M02c, Unterfähigkeit `kunden.liegenschaften`). */
+  liegenschaftenAn: boolean;
   entwurf: BaustellenEntwurf;
   setEntwurf: (e: BaustellenEntwurf) => void;
   staff: AppUser[];
@@ -671,7 +690,7 @@ interface FormularProps {
  * im Feld steht.
  */
 function StammdatenFormular({
-  entwurf, setEntwurf, staff, leads, namenDa,
+  liegenschaftenAn, entwurf, setEntwurf, staff, leads, namenDa,
   geaendert, speichert, fehler, onSpeichern, onVerwerfen, angebote, angeboteSichtbar,
 }: FormularProps) {
   const setze = <F extends keyof BaustellenEntwurf>(feld: F, wert: BaustellenEntwurf[F]) =>
@@ -715,6 +734,15 @@ function StammdatenFormular({
                   address: !entwurf.address || entwurf.address === vorher ? (gewaehlt?.address ?? '') : entwurf.address,
                 });
               }}
+            />
+          )}
+          {liegenschaftenAn && companyId && (
+            <LiegenschaftAuswahl
+              companyId={companyId}
+              idPrefix="b-liegenschaft"
+              liegenschaftId={entwurf.liegenschaftId}
+              topId={entwurf.topId}
+              onChange={(w) => setEntwurf({ ...entwurf, liegenschaftId: w.liegenschaftId, topId: w.topId })}
             />
           )}
           <InputField
