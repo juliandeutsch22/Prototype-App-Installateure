@@ -35,11 +35,7 @@ async function aufraeumen() {
   Kalender. Kurz nach Mitternacht lagen die beiden sonst einen Tag auseinander.
 */
 const heuteWien = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna' }).format(new Date());
-/** Ein Kalendertag davor — gerechnet am Datum, nicht in Stunden (Zeitumstellung). */
-const tagDavor = (tag: string) => {
-  const [j, m, t] = tag.split('-').map(Number);
-  return new Date(Date.UTC(j, m - 1, t - 1)).toISOString().slice(0, 10);
-};
+
 
 test.beforeEach(aufraeumen);
 test.afterEach(aufraeumen);
@@ -161,18 +157,24 @@ test('Zeitfelder: anlegen, buchen, im Büro sehen und exportieren, ändern im Ve
     felder: { ...(zwei!.felder as object), [n.id]: { typ: n.typ, regeln: n.regeln, staende: n.gilt_staende, rollen: n.gilt_rollen, pflicht: n.pflicht } },
   })).error).toBeNull();
 
-  const gestern = tagDavor(heuteWien());
-  await page.getByLabel('Datum', { exact: true }).fill(gestern);
-  await page.getByLabel(/^Von/).fill('07:00');
-  await page.getByLabel(/^Bis/).fill('15:00');
+  /*
+    HEUTE, AM ABEND — nicht gestern: der Aufbau legt den Monteur neu an, und
+    sein Eintritt ist der Tag der Anlage. Auf einer frischen Datenbank (immer
+    in der CI) lag „gestern“ vor dem Eintritt, und die App wies die Buchung zu
+    Recht ab. Das Fenster liegt hinter der Buchung von oben (07:00–16:00).
+  */
+  const tag = heuteWien();
+  await page.getByLabel('Datum', { exact: true }).fill(tag);
+  await page.getByLabel(/^Von/).fill('18:00');
+  await page.getByLabel(/^Bis/).fill('20:00');
   await page.getByLabel(/^Kostenstelle/).selectOption({ label: 'Graz' });
   await page.getByRole('button', { name: /^Zeit buchen$/ }).click();
   await expect(page.getByText(/wird automatisch gesendet/)).toBeVisible({ timeout: 20_000 });
-  expect((await admin.from('time_entries').select('id').eq('company_id', BETRIEB).eq('date', gestern)).data).toEqual([]);
+  expect((await admin.from('time_entries').select('id').eq('company_id', BETRIEB).eq('date', tag).eq('start_time', '18:00')).data).toEqual([]);
 
   await context.setOffline(false);
   await expect(async () => {
-    const { data } = await admin.from('time_entries').select('id, zeitfeld_fassung').eq('company_id', BETRIEB).eq('date', gestern);
+    const { data } = await admin.from('time_entries').select('id, zeitfeld_fassung').eq('company_id', BETRIEB).eq('date', tag).eq('start_time', '18:00');
     expect(data ?? []).toHaveLength(1);
     expect(data![0].zeitfeld_fassung).toBe(3);
     const { data: werte } = await admin.from('zeitbuchung_feldwerte').select('fassung').eq('eintrag_id', data![0].id);
