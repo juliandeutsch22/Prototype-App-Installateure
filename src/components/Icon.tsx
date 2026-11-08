@@ -32,7 +32,9 @@ export type IconName =
   | 'hinweis'
   | 'haken'
   | 'hilfe'
-  | 'lupe';
+  | 'lupe'
+  | 'klammer'
+  | 'senden';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
 // Ausserhalb der Navigation nur, wo das Zeichen mehr sagt als das Wort:
@@ -104,6 +106,14 @@ const paths: Record<IconName, string> = {
   hilfe: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18ZM9.6 9.4a2.5 2.5 0 1 1 3.6 2.3c-.7.3-1.2.9-1.2 1.6v.4M12 17.2h.01',
   // In der Listenleiste ersetzt die Lupe die Beschriftung „Suche“ über dem Feld (Design-Entwurf, Punkt 2).
   lupe: 'M10.5 17a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13ZM15.3 15.3 20 20',
+  /*
+    Die Eingabezeile der Nachrichten (M10/B09): Anhang und Senden als
+    Zeichen, damit das Schreibfeld die Breite bekommt — am Telefon passen
+    zwei beschriftete Knöpfe neben dem Feld nicht in eine Zeile. Die
+    Beschriftung bleibt als `aria-label` und `title`.
+  */
+  klammer: 'M20 11.5 12.4 19a5 5 0 0 1-7.1-7.1l8-8a3.3 3.3 0 0 1 4.7 4.7l-8 8a1.7 1.7 0 0 1-2.4-2.4l7.3-7.3',
+  senden: 'M12 20V5M5.5 11.5 12 5l6.5 6.5',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:

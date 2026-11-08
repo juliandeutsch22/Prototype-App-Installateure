@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { postfach, type PostfachAuswahl, type PostfachZeile, type PostfachZeiger } from '@/lib/db/nachrichten';
 import Card from '@/components/Card';
-import { List, ListRow } from '@/components/ListRow';
-import { Zustand } from '@/components/Badge';
+import { Link } from 'react-router-dom';
+import Icon from '@/components/Icon';
 import { Listenleiste, MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import { NACHRICHTEN_NEU } from './NachrichtenLive';
-import { ART_TEXT, zeitText } from './text';
+import { ART_TEXT, kuerzel, zeitText } from './text';
 
 /**
  * DER POSTEINGANG — die Gespräche, in denen man ist, und die Baustellen,
@@ -84,18 +84,41 @@ export default function Postfach({
   ];
 
   const zeile = (z: PostfachZeile) => {
-    const vorschau = z.letzteText
-      ? `${z.letzteEigene ? 'Du' : z.letzteVon ?? ''}: ${z.letzteText}`
-      : 'Noch keine Nachricht';
+    // Im Direktgespräch ist klar, wer schreibt, wenn nicht man selbst.
+    const wer = z.letzteEigene ? 'Du: ' : z.art !== 'direkt' && z.letzteVon ? `${z.letzteVon}: ` : '';
+    const vorschau = z.letzteText ? `${wer}${z.letzteText}` : 'Noch keine Nachricht';
     return (
-      <ListRow
+      <li
         key={z.kanal}
-        to={`/nachrichten/${z.kanal}`}
-        title={<span className={z.kanal === aktiv ? 'nachrichten-aktiv' : undefined}>{z.titel}</span>}
-        subtitle={[ART_TEXT[z.art], vorschau, z.stumm ? 'stumm' : '', z.geschlossen ? 'geschlossen' : ''].filter(Boolean).join(' · ')}
-        zustand={z.ungelesen > 0 ? <Zustand stand="offen">{z.ungelesen} neu</Zustand> : undefined}
-        wert={<span className="font-mono text-xs text-ink-muted">{zeitText(z.zuletzt)}</span>}
-      />
+        className="postfach-zeile"
+        data-art={z.art}
+        data-aktiv={z.kanal === aktiv ? 'ja' : undefined}
+        data-neu={z.ungelesen > 0 ? 'ja' : undefined}
+      >
+        <span className="postfach-kuerzel" aria-hidden="true">
+          {z.art === 'baustelle' ? <Icon name="building" size={20} /> : kuerzel(z.titel)}
+        </span>
+        <span className="postfach-text">
+          <span className="postfach-oben">
+            <Link
+              to={`/nachrichten/${z.kanal}`}
+              className="postfach-titel"
+              aria-current={z.kanal === aktiv ? 'page' : undefined}
+            >
+              {z.titel}
+            </Link>
+            <span className="postfach-zeit">{zeitText(z.zuletzt)}</span>
+          </span>
+          <span className="postfach-unten">
+            <span className="postfach-vorschau"><span className="sr-only">{ART_TEXT[z.art]} · </span>{vorschau}</span>
+            {z.stumm && <span className="postfach-marke">stumm</span>}
+            {z.geschlossen && <span className="postfach-marke">geschlossen</span>}
+            {z.ungelesen > 0 && (
+              <span className="postfach-zahl">{z.ungelesen}<span className="sr-only"> neu</span></span>
+            )}
+          </span>
+        </span>
+      </li>
     );
   };
 
@@ -122,7 +145,7 @@ export default function Postfach({
       )}
       {!fehler && zeilen && zeilen.length > 0 && (
         <>
-          <List>{zeilen.map(zeile)}</List>
+          <ul aria-label="Gespräche">{zeilen.map(zeile)}</ul>
           {weiter && <MehrAnzeigen anzahl={null} laedt={mehrLaeuft} onClick={() => void mehr()} />}
         </>
       )}

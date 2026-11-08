@@ -34,7 +34,7 @@ const FRISTEN: { wert: string; text: string }[] = [
  *     weitergegeben hat — das Gespräch dahinter sieht die Führung nicht.
  */
 export default function NachrichtenEinstellungen() {
-  const { company, reloadCompany } = useAuth();
+  const { company, reloadCompany, einblick } = useAuth();
   const toast = useToast();
   const [frist, setFrist] = useState('');
   const [speichert, setSpeichert] = useState(false);
@@ -52,9 +52,10 @@ export default function NachrichtenEinstellungen() {
   }, [company]);
 
   const laden = useCallback(() => {
+    if (einblick) return;
     setFehler(false);
     meldungen().then(setListe).catch(() => setFehler(true));
-  }, []);
+  }, [einblick]);
   useEffect(() => { laden(); }, [laden, versuch]);
 
   useEffect(() => {
@@ -95,6 +96,20 @@ export default function NachrichtenEinstellungen() {
   }
 
   const offene = (liste ?? []).filter((m) => m.status === 'offen').length;
+
+  // Die Meldungen sieht nur die Führung des Betriebs, nicht der Support (`support_niemals`).
+  if (einblick) {
+    return (
+      <div className="space-y-6">
+        <PageHeader ort="Einstellungen" title="Nachrichten" />
+        <Card>
+          <EmptyState titel="Im Einblick nicht einsehbar">
+            Aufbewahrung und gemeldete Nachrichten stellt nur die Geschäftsführung des Betriebs ein.
+          </EmptyState>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

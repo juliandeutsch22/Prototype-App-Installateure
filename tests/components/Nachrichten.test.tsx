@@ -74,8 +74,9 @@ vi.mock('@/lib/db/projects', () => ({
 }));
 vi.mock('@/app/offenePosten', () => ({ postenNeuLaden: vi.fn(async () => undefined) }));
 vi.mock('@/lib/useModule', () => ({ useModul: (id: string) => (id === 'nachrichten.direktnachrichten' ? direktAn : true) }));
+let einblick: { id: string; stufe: string } | null = null;
 vi.mock('@/app/AuthContext', () => ({
-  useAuth: () => ({ user: { uid: 'ich', companyId: 'perl', role: 'Mitarbeiter', name: 'Max Monteur' }, company: { id: 'perl', name: 'Perl' } }),
+  useAuth: () => ({ user: { uid: 'ich', companyId: 'perl', role: 'Mitarbeiter', name: 'Max Monteur' }, company: { id: 'perl', name: 'Perl' }, einblick }),
 }));
 
 const { default: NachrichtenView } = await import('@/features/nachrichten/NachrichtenView');
@@ -98,6 +99,7 @@ beforeEach(() => {
   sendenErgebnis = 'confirmed';
   postfachWert = [];
   direktAn = true;
+  einblick = null;
   melden.mockClear();
   senden.mockClear();
   gelesen.mockClear();
@@ -198,5 +200,21 @@ describe('Das Gespräch', () => {
     kopfWert = new Error('Dieses Gespräch gibt es nicht oder es ist nicht deines');
     zeige();
     expect(await screen.findByText(/nicht deines/)).toBeInTheDocument();
+  });
+});
+
+describe('Im Einblick des Supports', () => {
+  it('steht ein Satz statt eines Gesprächs — und es wird nichts geladen', async () => {
+    einblick = { id: 'e1', stufe: 'mitarbeiten' };
+    const { kanalKopf, verlauf, postfach } = await import('@/lib/db/nachrichten');
+    vi.mocked(kanalKopf).mockClear();
+    vi.mocked(verlauf).mockClear();
+    vi.mocked(postfach).mockClear();
+    zeige();
+    expect(await screen.findByText('Im Einblick nicht einsehbar')).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Verlauf' })).not.toBeInTheDocument();
+    expect(kanalKopf).not.toHaveBeenCalled();
+    expect(verlauf).not.toHaveBeenCalled();
+    expect(postfach).not.toHaveBeenCalled();
   });
 });

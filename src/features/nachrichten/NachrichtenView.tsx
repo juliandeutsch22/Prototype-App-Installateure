@@ -16,7 +16,7 @@ import BottomSheet from '@/components/BottomSheet';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
-import { ErrorState, SkeletonList } from '@/components/States';
+import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import Postfach from './Postfach';
@@ -40,7 +40,7 @@ import { ART_TEXT } from './text';
  */
 export default function NachrichtenView() {
   const { kanal } = useParams<{ kanal?: string }>();
-  const { user, company } = useAuth();
+  const { user, company, einblick } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const breit = useAbTablet();
@@ -73,7 +73,7 @@ export default function NachrichtenView() {
   }, [companyId, uid]);
 
   const kopfLaden = useCallback(async (still = false) => {
-    if (!kanal) { setKopf(null); return; }
+    if (!kanal || einblick) { setKopf(null); return; }
     if (!still) { setKopf(null); setKopfFehler(null); }
     try {
       setKopf(await kanalKopf(kanal));
@@ -102,6 +102,20 @@ export default function NachrichtenView() {
   }, [kopf, personen]);
 
   if (!user || !companyId) return null;
+  // Im Einblick des Supports gibt es nichts zu lesen: Kanäle und Nachrichten
+  // liest nur, wer teilnimmt (`support_niemals`). Ein Satz statt Fehlern.
+  if (einblick) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Nachrichten" />
+        <Card>
+          <EmptyState titel="Im Einblick nicht einsehbar">
+            Nachrichten sind vertraulich: Der Support sieht keine Gespräche, auch nicht mit „mitarbeiten“.
+          </EmptyState>
+        </Card>
+      </div>
+    );
+  }
 
   async function tun(was: () => Promise<unknown>, erfolg: string) {
     try {

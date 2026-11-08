@@ -21,7 +21,9 @@ import { empfaengerNachricht, textNachricht, willMeldung, type NachrichtEreignis
 import { vorgemerkteNachrichten, NACHRICHT_TABELLE } from '@/lib/db/pg/nachrichten';
 import { AUFRUFE_OHNE_EMPFANG, EIMER_OHNE_EMPFANG } from '@/lib/sync/supabaseSender';
 import type { Vormerkung } from '@/lib/sync/ausgangsfach';
-import { dateiPruefen, erwaehnteIn, exportDateiname, groesseText, istBild, zeitText } from '@/features/nachrichten/text';
+import {
+  dateiPruefen, erwaehnteIn, exportDateiname, groesseText, istBild, kuerzel, tagText, tagVon, uhrText, zeitText,
+} from '@/features/nachrichten/text';
 import { meldungenZeile, nachrichtenZeile, ungeleseneNachrichten } from '@/features/dashboard/start/regeln';
 
 const ereignis = (x: Partial<NachrichtEreignis> = {}): NachrichtEreignis => ({
@@ -126,6 +128,35 @@ describe('Texte im Gespräch', () => {
 
   it('der Dateiname des Exports sagt, wessen und von wann', () => {
     expect(exportDateiname('Jürgen Groß', new Date('2026-11-08T10:00:00Z'))).toBe('nachrichten-jurgen-gross-2026-11-08.json');
+  });
+});
+
+describe('Trenner, Uhrzeit und Kürzel im Verlauf', () => {
+  const jetzt = new Date('2026-11-08T10:00:00Z');
+
+  it('der Tag: „Heute“, „Gestern“, sonst Wochentag und Datum — das Jahr nur, wenn es nicht das laufende ist', () => {
+    expect(tagText('2026-11-08T06:00:00Z', jetzt)).toBe('Heute');
+    expect(tagText('2026-11-07T23:30:00Z', jetzt)).toBe('Heute');
+  });
+
+  it('rechnet in Wiener Zeit: 23:30 UTC am 7. ist in Wien schon der 8.', () => {
+    expect(tagVon('2026-11-07T23:30:00Z')).toBe('2026-11-08');
+    expect(tagText('2026-11-07T12:00:00Z', jetzt)).toBe('Gestern');
+    expect(tagText('2026-11-05T12:00:00Z', jetzt)).toBe('Donnerstag, 5. November');
+    expect(tagText('2025-12-24T12:00:00Z', jetzt)).toBe('Mittwoch, 24. Dezember 2025');
+  });
+
+  it('die Uhrzeit an der Nachricht in Wiener Zeit', () => {
+    expect(uhrText('2026-11-08T06:05:00Z')).toBe('07:05');
+  });
+
+  it('das Kürzel: erster und letzter Name; Anführungszeichen und Ziffern zählen nicht', () => {
+    expect(kuerzel('Anna Huber')).toBe('AH');
+    expect(kuerzel('Büro')).toBe('B');
+    expect(kuerzel('Maria von der Linde')).toBe('ML');
+    expect(kuerzel('„Bad Huber“')).toBe('BH');
+    expect(kuerzel('3 Leute')).toBe('L');
+    expect(kuerzel('  ')).toBe('·');
   });
 });
 

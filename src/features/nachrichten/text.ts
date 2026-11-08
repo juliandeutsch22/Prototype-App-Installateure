@@ -29,6 +29,46 @@ export function zeitText(iso: string, jetzt: Date = new Date()): string {
   return `${d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: WIEN })} ${uhr}`;
 }
 
+/** „09:41“ — die Uhrzeit an der Nachricht; den Tag nennt der Trenner darüber. */
+export function uhrText(iso: string): string {
+  return new Date(iso).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit', timeZone: WIEN });
+}
+
+/** Der Kalendertag in Wiener Zeit — gleich heißt: derselbe Trenner. */
+export function tagVon(iso: string): string {
+  return tag(new Date(iso));
+}
+
+/**
+ * Der Trenner im Verlauf: „Heute“, „Gestern“, sonst „Mittwoch, 5. November“
+ * — mit Jahr, wenn es nicht das laufende ist.
+ */
+export function tagText(iso: string, jetzt: Date = new Date()): string {
+  const d = new Date(iso);
+  const t = tag(d);
+  if (t === tag(jetzt)) return 'Heute';
+  if (t === tag(new Date(jetzt.getTime() - 86_400_000))) return 'Gestern';
+  const mitJahr = t.slice(0, 4) !== tag(jetzt).slice(0, 4);
+  return d.toLocaleDateString('de-AT', {
+    weekday: 'long', day: 'numeric', month: 'long', ...(mitJahr ? { year: 'numeric' } : {}), timeZone: WIEN,
+  });
+}
+
+/**
+ * Nachrichten derselben Person dicht hintereinander (bis 5 Minuten) stehen
+ * als eine Gruppe: Name nur über der ersten, wenig Abstand dazwischen.
+ */
+export const GRUPPE_MS = 5 * 60_000;
+
+/** „AH“ für Anna Huber, „B“ für Büro — das Kürzel im Posteingang. */
+export function kuerzel(name: string): string {
+  const teile = name.split(/\s+/).map((w) => w.replace(/^[^\p{L}]+/u, '')).filter((w) => /^\p{L}/u.test(w));
+  if (teile.length === 0) return '·';
+  const erst = teile[0][0];
+  const letzt = teile.length > 1 ? teile[teile.length - 1][0] : '';
+  return `${erst}${letzt}`.toLocaleUpperCase('de-AT');
+}
+
 /** „830 KB“, „2,4 MB“ */
 export function groesseText(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
