@@ -35,7 +35,11 @@ export type IconName =
   | 'lupe'
   | 'klammer'
   | 'kamera'
-  | 'senden';
+  | 'senden'
+  | 'play'
+  | 'pause'
+  | 'stopp'
+  | 'wechsel';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
 // Ausserhalb der Navigation nur, wo das Zeichen mehr sagt als das Wort:
@@ -117,6 +121,16 @@ const paths: Record<IconName, string> = {
   senden: 'M12 20V5M5.5 11.5 12 5l6.5 6.5',
   // Foto direkt aus der Eingabezeile — am Telefon der häufigste Anhang einer Baustellen-Nachricht.
   kamera: 'M4 8h3l2-3h6l2 3h3v11H4V8ZM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z',
+  /*
+    Die runden Knöpfe der Karte „Arbeitstag“ (Timer, 08.11.2026): Start,
+    Pause, Feierabend und Baustelle wechseln — die Zeichen einer Stoppuhr
+    sagen hier mehr als das Wort, das als `aria-label` und `title` bleibt.
+    Gleiche Strichführung wie die übrigen, nur Linien.
+  */
+  play: 'M8.5 5.5v13l10-6.5-10-6.5Z',
+  pause: 'M8.5 5.5v13M15.5 5.5v13',
+  stopp: 'M6.5 6.5h11v11h-11z',
+  wechsel: 'M7 4v12M3.5 12.5 7 16l3.5-3.5M17 20V8M13.5 11.5 17 8l3.5 3.5',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:

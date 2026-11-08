@@ -2331,3 +2331,43 @@ verschwindet nie mehr“), `nachrichten.test.ts` (Ungelesen samt Gegenprobe mit
 der alten Funktion rot; ab Werk an), `Nachrichten.test.tsx` (Neue Nachricht in
 einem Schritt, Runde, Ungelesen), `modulRegister`, `ModulesView`,
 `lotGrundwerte` (Kontrast im dunklen Satz).
+
+**E66 — Start/Stopp schlank: Karte „Arbeitstag“ auf Start und Zeiterfassung, Leiste auf allen anderen Seiten (08.11.2026).**
+Auftrag nach M06 (E63): der Timer wirkte „sperrig“, „nicht sonderlich intuitiv
+integriert“ und gehört „auch auf die Startseite“. Freigegeben am 08.11.2026
+nach Entwürfen („die runden Knöpfe finde ich gut, aber es wirkt noch zu
+überladen“, „die schlanke Version finde ich gut so“, „die abgerundeten Kanten
+der Boxen eher weniger“, „ja baue den Timer wieder“).
+
+- **Ein Stand für die ganze App:** `ZeitsitzungAnbieter` im Layout lädt,
+  gleicht alle 30 Sekunden ab und sendet (auch ohne Netz über das
+  Ausgangsfach) — Karte, Leiste und „Abschnitte prüfen“ lesen dieselbe
+  Sitzung. Vorher lud jede Stelle für sich.
+- **Karte „Arbeitstag“** (eckiges Blatt wie jede Karte, rund nur die Knöpfe):
+  vor Beginn ein runder Start-Knopf und die Baustelle (freiwillig; vorgewählt
+  ist die laut heutigem Einsatz, ohne Einsatz keine — nichts wird erraten);
+  läuft: „Läuft seit HH:MM“, die Arbeitszeit als Uhr, die Baustelle zum
+  Wechseln, rund Pause und Feierabend; Pause: „Pause seit“, „Arbeit bisher“,
+  Weiterarbeiten und Feierabend. „Verwerfen …“ steht leise darunter.
+  Auf der Startseite verweist sie auf beendete Arbeitstage, die noch zu
+  prüfen sind.
+- **Leiste:** solange ein Arbeitstag läuft, auf jeder Seite außer Start und
+  Zeiterfassung (dort steht die Karte): Punkt, Uhr, Baustelle bzw. „Pause“,
+  Pause/Weiter und Feierabend. Am Telefon steht sie fest über der
+  Reiterleiste; das Layout rechnet ihre Höhe in `--reiter-hoehe` ein, so
+  rücken Aktions- und Warenkorbleisten von selbst darüber. Im Gespräch der
+  Nachrichten bleibt sie am Telefon weg (dort steht unten die Eingabe). Ab
+  dem Tablet klebt sie unten im Inhalt.
+- **Feierabend führt zu „Abschnitte prüfen“** in der Zeiterfassung; gebucht
+  wird weiter erst dort (E63 unverändert). Die Prüfung der Abschnitte, das
+  Verwerfen mit Grund, die Erinnerung und das Weiterlaufen bleiben wie in M06.
+- **Linie:** neu nur `src/styles/lot-timer.css` (runde Knöpfe, Karte, Leiste);
+  keine Rundung an Blättern, nur Tokens, keine Schatten.
+
+**Grenze mit Grund:** keine. **Nachweis:** `Arbeitstag.test.tsx` (Vorwahl aus
+dem Einsatz geht mit dem Start hinaus — Gegenprobe ohne `vorschlag` rot;
+Seitenregel der Leiste — Gegenprobe ohne die Regel rot; Stände läuft, Pause,
+ohne Modul, Verweis), `zeitsitzung.test.ts` (Uhr und Dauern),
+`arbeitstag.spec.ts` (Start auf der Startseite, Leiste unterwegs über der
+Reiterleiste, Pause aus der Leiste, Feierabend, Abschnitte prüfen — auf allen
+Monteurbreiten), `m06Zeit.spec.ts` (alle bisherigen Timerwege auf der Karte).

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { timerFortschreiben, timerOrtszeit, type TimerBefehl } from '@/lib/zeitsitzung';
+import { dauerText, timerBaustelle, timerDauer, timerFortschreiben, timerOrtszeit, type TimerBefehl } from '@/lib/zeitsitzung';
 import { willMeldung } from '@shared/notifyLogic';
 const b = (art: TimerBefehl['p_art'], revision: number, zeit: string): TimerBefehl => ({ p_id: 's', p_befehl: `cmd${revision}`, p_revision: revision, p_art: art, p_zeit: zeit, p_baustelle: 'PR-1' });
 describe('Timer-Vorschau ohne Empfang', () => {
@@ -32,5 +32,50 @@ describe('Zeitmeldungen ohne private Inhalte', () => {
     expect(zeitEigenerEmpfaenger([{ uid: 'ma', active: false }, { uid: 'bh', active: true }], 'ma')).toEqual([]);
     expect(zeitEigenerEmpfaenger([{ uid: 'ma', active: true }], 'ma')).toEqual(['ma']);
     expect(zeitKorrekturEmpfaenger([{ uid: 'ma', role: 'Mitarbeiter' }, { uid: 'pl', role: 'Projektleiter' }, { uid: 'bh', role: 'Buchhaltung' }, { uid: 'ad', role: 'Administrator', active: false }, { uid: 'gf', role: 'Geschäftsführung' }], 'gf')).toEqual(['bh']);
+  });
+});
+
+/*
+  DIE UHR DER KARTE „ARBEITSTAG“ (08.11.2026): Arbeitszeit = alle
+  Arbeitsabschnitte, der laufende bis jetzt; Pausen zählen nicht. In der
+  Pause zeigt die Karte, seit wann und wie lange sie dauert.
+*/
+describe('Die Uhr der Karte „Arbeitstag“', () => {
+  const start = timerFortschreiben(null, b('start', 0, '2026-11-08T07:00:00+01:00'), 'c', 'u');
+  const pause = timerFortschreiben(start, b('pause', 1, '2026-11-08T09:00:00+01:00'), 'c', 'u');
+  const weiter = timerFortschreiben(pause, b('weiter', 2, '2026-11-08T09:30:00+01:00'), 'c', 'u');
+
+  it('läuft: Arbeit vom Start bis jetzt, ohne Pause', () => {
+    const d = timerDauer(start, Date.parse('2026-11-08T08:15:30+01:00'));
+    expect(d.arbeitMs).toBe((75 * 60 + 30) * 1000);
+    expect(d.pauseSeit).toBeNull();
+    expect(timerOrtszeit(d.beginn).time).toBe('07:00');
+  });
+
+  it('Pause: die Arbeit bleibt stehen, die Pause zählt ab ihrem Beginn', () => {
+    const d = timerDauer(pause, Date.parse('2026-11-08T09:12:05+01:00'));
+    expect(d.arbeitMs).toBe(2 * 3600 * 1000);
+    expect(timerOrtszeit(d.pauseSeit!).time).toBe('09:00');
+    expect(d.pauseMs).toBe((12 * 60 + 5) * 1000);
+  });
+
+  it('weiter: beide Arbeitsabschnitte zusammen, die Pause nicht', () => {
+    const d = timerDauer(weiter, Date.parse('2026-11-08T10:00:00+01:00'));
+    expect(d.arbeitMs).toBe(2.5 * 3600 * 1000);
+    expect(d.pauseMs).toBe(0);
+  });
+
+  it('Stoppuhr-Schreibweise: Stunden ohne führende Null, Minuten und Sekunden zweistellig', () => {
+    expect(dauerText((4 * 3600 + 17 * 60 + 32) * 1000)).toBe('4:17:32');
+    expect(dauerText((4 * 3600 + 17 * 60 + 32) * 1000, false)).toBe('4:17');
+    expect(dauerText(5 * 1000)).toBe('0:00:05');
+    expect(dauerText(-1000)).toBe('0:00:00');
+    expect(dauerText(12 * 3600 * 1000 + 999)).toBe('12:00:00');
+  });
+
+  it('die Baustelle ist die des letzten Arbeitsabschnitts — die Pause hat keine eigene', () => {
+    expect(timerBaustelle(weiter)).toBe('PR-1');
+    const ohne = timerFortschreiben(null, { ...b('start', 0, '2026-11-08T07:00:00+01:00'), p_baustelle: '' }, 'c', 'u');
+    expect(timerBaustelle(ohne)).toBe('');
   });
 });

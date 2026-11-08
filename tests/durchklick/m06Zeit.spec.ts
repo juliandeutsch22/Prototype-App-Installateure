@@ -61,9 +61,12 @@ test('Standardfelder: ausschalten, bestehende Werte ändern ohne Verlust, wieder
 test('Timer: Arbeit, Pause, offline weiter, Stopp und bestätigte normale Buchungen', async ({ page, context }, info) => {
   await page.clock.setFixedTime(new Date('2026-11-05T07:00:00+01:00'));
   await anmelden(page, MONTEUR.email); await page.goto('/time');
-  await expect(page.getByRole('heading', { name: 'Start / Stopp', exact: true })).toHaveCount(1);
+  // Seit 08.11.2026 die Karte „Arbeitstag“: die Baustelle im Bogen, Start als runder Knopf.
+  await expect(page.getByRole('heading', { name: 'Arbeitstag', exact: true })).toHaveCount(1);
+  await page.getByRole('button', { name: 'Baustelle wählen' }).click();
   await page.locator('#timer-baustelle').selectOption(BAUSTELLE.nummer);
-  await page.getByRole('button', { name: 'Starten', exact: true }).click();
+  await page.getByRole('button', { name: 'Übernehmen', exact: true }).click();
+  await page.getByRole('button', { name: 'Arbeitstag starten', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pause beginnen' })).toBeVisible();
   await page.clock.setFixedTime(new Date('2026-11-05T09:00:00+01:00'));
   await page.getByRole('button', { name: 'Pause beginnen' }).click();
@@ -99,7 +102,7 @@ test('Timer: Arbeit, Pause, offline weiter, Stopp und bestätigte normale Buchun
 test('Timer ohne Baustelle bleibt Anwesenheit und lässt sich ohne erfundene Zuordnung bestätigen', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-11-05T07:00:00+01:00'));
   await anmelden(page, MONTEUR.email); await page.goto('/time');
-  await page.getByRole('button', { name: 'Starten', exact: true }).click();
+  await page.getByRole('button', { name: 'Arbeitstag starten', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pause beginnen' })).toBeVisible();
   await page.clock.setFixedTime(new Date('2026-11-05T09:00:00+01:00'));
   await page.getByRole('button', { name: 'Stoppen und prüfen' }).click();
@@ -166,9 +169,12 @@ test('Abgeschaltete Zeiterfassung behält Archiv und Mitarbeiterübersicht ohne 
 test('Offline-Abschluss: abgelehnte Buchung behält Tätigkeiten und lässt sich berichtigen', async ({ page, context }) => {
   await page.clock.setFixedTime(new Date('2026-11-05T07:00:00+01:00'));
   await anmelden(page, MONTEUR.email); await page.goto('/time');
-  await expect(page.getByRole('heading', { name: 'Start / Stopp', exact: true })).toHaveCount(1);
+  // Seit 08.11.2026 die Karte „Arbeitstag“: die Baustelle im Bogen, Start als runder Knopf.
+  await expect(page.getByRole('heading', { name: 'Arbeitstag', exact: true })).toHaveCount(1);
+  await page.getByRole('button', { name: 'Baustelle wählen' }).click();
   await page.locator('#timer-baustelle').selectOption(BAUSTELLE.nummer);
-  await page.getByRole('button', { name: 'Starten', exact: true }).click();
+  await page.getByRole('button', { name: 'Übernehmen', exact: true }).click();
+  await page.getByRole('button', { name: 'Arbeitstag starten', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pause beginnen' })).toBeVisible();
   await page.clock.setFixedTime(new Date('2026-11-05T09:00:00+01:00'));
   await page.getByRole('button', { name: 'Stoppen und prüfen' }).click();
@@ -205,10 +211,12 @@ test('Offline-Abschluss: abgelehnte Buchung behält Tätigkeiten und lässt sich
 test('Offline gestarteter Timer behält offene Formulareingaben beim Serverabgleich', async ({ page, context }) => {
   await page.clock.setFixedTime(new Date('2026-11-05T07:00:00+01:00'));
   await anmelden(page, MONTEUR.email); await page.goto('/time');
+  await page.getByRole('button', { name: 'Baustelle wählen' }).click();
   await page.locator('#timer-baustelle').selectOption(BAUSTELLE.nummer);
-  await expect(page.getByRole('button', { name: 'Starten', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Übernehmen', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Arbeitstag starten', exact: true })).toBeEnabled();
   await context.setOffline(true);
-  await page.getByRole('button', { name: 'Starten', exact: true }).click();
+  await page.getByRole('button', { name: 'Arbeitstag starten', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pause beginnen' })).toBeVisible();
   await page.clock.setFixedTime(new Date('2026-11-05T09:00:00+01:00'));
   await page.getByRole('button', { name: 'Stoppen und prüfen' }).click();

@@ -9,6 +9,8 @@ import Seitenposition from './Seitenposition';
 import FehlerInsBlickfeld from './FehlerInsBlickfeld';
 import { useOffenePosten, postenNeuLaden } from './offenePosten';
 import NachrichtenLive from '@/features/nachrichten/NachrichtenLive';
+import ZeitsitzungAnbieter from '@/features/time/ZeitsitzungAnbieter';
+import TimerLeiste from '@/features/time/TimerLeiste';
 import type { OffenePosten } from '@/lib/db/offenePosten';
 import { Zaehler } from '@/components/Badge';
 import Button from '@/components/Button';
@@ -90,6 +92,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   /** Wie viele eigene Buchungen noch im Fach liegen, wenn abgemeldet werden soll. */
   const [ungesendet, setUngesendet] = useState(0);
   const reiterleiste = useRef<HTMLElement>(null);
+  const timerLeiste = useRef<HTMLDivElement>(null);
   const inhalt = useRef<HTMLElement>(null);
   const ersterPfad = useRef(ort.pathname);
 
@@ -127,19 +130,32 @@ export default function Layout({ children }: { children: ReactNode }) {
     ab dem Tablet ist die Leiste ganz ausgeblendet (dann 0). Gemessen statt
     geschätzt, und bei jeder Änderung nachgeführt.
   */
+  /*
+    Läuft ein Arbeitstag, steht am Telefon die Timer-Leiste über der
+    Reiterleiste (`--navi-hoehe`). Sie zählt dann zur Reiterleiste dazu:
+    `--reiter-hoehe` ist beides zusammen, so klebt die Aktionsleiste über
+    ihr statt unter ihr; `--timer-hoehe` hält am Ende des Inhalts Platz frei.
+  */
   useEffect(() => {
     const leiste = reiterleiste.current;
     if (!angemeldet || !leiste) return;
-    const setzen = () =>
-      document.body.style.setProperty('--reiter-hoehe', `${leiste.offsetHeight}px`);
+    const setzen = () => {
+      const timer = timerLeiste.current?.offsetHeight ?? 0;
+      document.body.style.setProperty('--navi-hoehe', `${leiste.offsetHeight}px`);
+      document.body.style.setProperty('--timer-hoehe', `${timer}px`);
+      document.body.style.setProperty('--reiter-hoehe', `${leiste.offsetHeight + timer}px`);
+    };
     setzen();
     const beobachter = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(setzen);
     beobachter?.observe(leiste);
+    if (timerLeiste.current) beobachter?.observe(timerLeiste.current);
     window.addEventListener('resize', setzen);
     return () => {
       beobachter?.disconnect();
       window.removeEventListener('resize', setzen);
       document.body.style.removeProperty('--reiter-hoehe');
+      document.body.style.removeProperty('--navi-hoehe');
+      document.body.style.removeProperty('--timer-hoehe');
     };
   }, [angemeldet]);
 
@@ -305,6 +321,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   );
 
   return (
+    <ZeitsitzungAnbieter>
     <div className="huelle">
       {/* Der erste Tab-Halt: an Kopfleiste und Menü vorbei direkt zum Inhalt. */}
       <a href="#inhalt" className="sprunglink">
@@ -452,7 +469,12 @@ export default function Layout({ children }: { children: ReactNode }) {
         <SeitenHilfeProvider>
           <div ref={seite} className="inhalt">{children}</div>
         </SeitenHilfeProvider>
+        {/* Ab dem Tablet: der laufende Arbeitstag unten im Inhalt (am Telefon über der Reiterleiste). */}
+        <TimerLeiste ort="breit" />
+        {/* Am Telefon: so viel Platz wie die Timer-Leiste, damit das Letzte nicht darunter liegt. */}
+        <div className="timer-platz" aria-hidden="true" />
       </main>
+      <TimerLeiste ort="telefon" ref={timerLeiste} />
 
       {/*
         UNTERE LEISTE AM HANDY (Linie „Lot“): hell, vier Ziele je Rolle und
@@ -612,5 +634,6 @@ export default function Layout({ children }: { children: ReactNode }) {
         onCancel={() => setUngesendet(0)}
       />
     </div>
+    </ZeitsitzungAnbieter>
   );
 }
