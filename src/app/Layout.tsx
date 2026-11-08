@@ -8,6 +8,7 @@ import {
 import Seitenposition from './Seitenposition';
 import FehlerInsBlickfeld from './FehlerInsBlickfeld';
 import { useOffenePosten, postenNeuLaden } from './offenePosten';
+import NachrichtenLive from '@/features/nachrichten/NachrichtenLive';
 import type { OffenePosten } from '@/lib/db/offenePosten';
 import { Zaehler } from '@/components/Badge';
 import Button from '@/components/Button';
@@ -418,6 +419,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       <Ladebalken />
       {/* Eine neue Fehlermeldung ausserhalb des Bildes wird hereingeholt (G10). */}
       <FehlerInsBlickfeld />
+      {/* Die eine Live-Verbindung der Nachrichten: Zahl im Menü und „es gibt Neues“ (M10/B09). */}
+      <NachrichtenLive />
       <main
         id="inhalt"
         ref={inhalt}

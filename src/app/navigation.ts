@@ -35,12 +35,13 @@ export interface NavItem {
   /**
    * Welche offene Zahl als Abzeichen an diesem Eintrag steht.
    *
-   * ABSICHTLICH NUR AN DREI EINTRAEGEN. Ein Abzeichen taugt nur, solange es
-   * die Ausnahme ist: was hier steht, ist normalerweise NULL, ist eine
+   * ABSICHTLICH NUR AN WENIGEN EINTRAEGEN. Ein Abzeichen taugt nur, solange
+   * es die Ausnahme ist: was hier steht, ist normalerweise NULL, ist eine
    * Entscheidung und hat einen Besitzer. „Nicht eingetragene Zeiten" traefe
-   * keines der drei — die stehen am Monatsende bei jedem offen, und niemand
-   * kann sie wegentscheiden. Eine Zahl, die immer leuchtet, nimmt den beiden
-   * anderen die Wirkung mit.
+   * keines davon — die stehen am Monatsende bei jedem offen, und niemand
+   * kann sie wegentscheiden. Eine Zahl, die immer leuchtet, nimmt den
+   * anderen die Wirkung mit. Die ungelesenen Nachrichten (M10/B09) passen:
+   * gelesen ist null, und der Besitzer ist man selbst.
    *
    * Der Typ ist `keyof OffenePosten` und keine eigene Aufzaehlung: so kann
    * hier nichts stehen, was die Datenbank gar nicht zaehlt.
@@ -130,6 +131,12 @@ export const NAV: NavItem[] = [
   // und beantragen muessen ihn alle. Wer entscheiden darf, sieht in derselben
   // Ansicht zusaetzlich die offenen Antraege.
   { path: '/vacations', label: 'Urlaub', short: 'Urlaub', icon: 'sun', roles: ALL, group: 'Team', modul: 'urlaub', hinweis: 'urlaub' },
+  /*
+    NACHRICHTEN (M10/B09): für jede Rolle — jeder schreibt im Thread seiner
+    Baustellen, und mit eingeschalteten Direktnachrichten jedem im Betrieb.
+    Die Zahl ist die eigene der ungelesenen Nachrichten, nie die anderer.
+  */
+  { path: '/nachrichten', label: 'Nachrichten', short: 'Nachrichten', icon: 'nachricht', roles: ALL, group: 'Team', modul: 'nachrichten', hinweis: 'nachrichten' },
   { path: '/sonderurlaub', label: 'Sonderurlaub', short: 'Sonderurl.', icon: 'sun', roles: ALL, group: 'Team', nurOhneModul: 'urlaub' },
   // Der Schein gehoert in den Aussendienst: er entsteht vor Ort beim Kunden,
   // nicht im Buero.
@@ -353,6 +360,12 @@ export const UNTER: Record<string, Unterseite[]> = {
       hier bekommt er nicht — unter Einstellungen bleibt er bei seinem Konto.
     */
     { pfad: 'papierkorb', label: 'Papierkorb', roles: LEAD, nurMitModul: ['angebote', 'scheine'] },
+    /*
+      NACHRICHTEN (M10/B09): die Aufbewahrung privater Gespräche (D3) und
+      die gemeldeten Nachrichten (D5) — Sache der Geschäftsführung, nicht
+      der Projektleitung: gemeldet wird an sie.
+    */
+    { pfad: 'nachrichten', label: 'Nachrichten', roles: TOP, nurMitModul: ['nachrichten'] },
     // KEIN FEHLERPROTOKOLL MEHR HIER (seit 25.09.2026): Abstürze und
     // „Problem melden" gehen an den Senklot-Support, der sie beheben kann —
     // die Geschäftsführung konnte mit Stapeln und Meldungen nichts anfangen.
@@ -526,6 +539,8 @@ export function hinweisWort(art: keyof OffenePosten, anzahl: number): string {
       return eins ? 'offene Materialanforderung' : 'offene Materialanforderungen';
     case 'mahnungen':
       return eins ? 'fällige Mahnung' : 'fällige Mahnungen';
+    case 'nachrichten':
+      return eins ? 'ungelesene Nachricht' : 'ungelesene Nachrichten';
   }
 }
 

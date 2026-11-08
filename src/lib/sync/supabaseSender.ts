@@ -112,12 +112,20 @@ function speicherEinordnen(fehler: { message?: string; status?: number; statusCo
  *   Unterschriften, ist das aber die erste Zustellung, deren Antwort im
  *   Funkloch verloren ging (`schonUnterschrieben`).
  *
+ *   `nachricht_senden` (M10/B09) legt die Nachricht unter der Kennung vom
+ *   Gerät an. Ein zweites Mal mit demselben Inhalt meldet die Datenbank
+ *   „angekommen“; nur ein anderer Inhalt unter derselben Kennung ist ein
+ *   Konflikt.
+ *
  * Eine Funktion, die einen Lagerstand verrechnet oder eine Nummer zieht,
  * gehört nicht hierher.
  */
-export const AUFRUFE_OHNE_EMPFANG = ['schein_speichern', 'schein_unterschreiben'] as const;
-/** Die Eimer, in die ohne Empfang hochgeladen werden darf — Dateien unter ihrem Inhalts-Hash. */
-export const EIMER_OHNE_EMPFANG = ['scheinfotos'] as const;
+export const AUFRUFE_OHNE_EMPFANG = ['schein_speichern', 'schein_unterschreiben', 'nachricht_senden'] as const;
+/**
+ * Die Eimer, in die ohne Empfang hochgeladen werden darf — Scheinfotos unter
+ * ihrem Inhalts-Hash, Anhänge einer Nachricht unter deren Kennung (M10/B09).
+ */
+export const EIMER_OHNE_EMPFANG = ['scheinfotos', 'nachrichten', 'nachrichten-privat'] as const;
 
 interface Unterschrift { name?: string; geraetZeit?: number }
 

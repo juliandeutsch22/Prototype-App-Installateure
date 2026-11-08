@@ -1,0 +1,46 @@
+/*
+  NACHRICHTEN (M10/B09) — Posteingang und Gespräch als Blätter auf dem
+  Raster. Keine Sprechblasen, keine Rundungen, keine Farbflächen: eine
+  Nachricht ist eine Zeile mit Absender und Zeit darüber, wie ein Eintrag
+  im Bautagebuch.
+*/
+@layer components {
+  .nachrichten-raster { display: grid; gap: 1.5rem; }
+  @media (min-width: 760px) {
+    .nachrichten-raster { grid-template-columns: minmax(17rem, 22rem) minmax(0, 1fr); align-items: start; }
+  }
+  @media (min-width: 1200px) {
+    .nachrichten-raster { grid-template-columns: minmax(20rem, 26rem) minmax(0, 1fr); }
+  }
+  /* Das offene Gespräch im Posteingang: eine Linie links, kein Farbfeld. */
+  .nachrichten-aktiv { color: var(--ink-deep); font-weight: var(--gewicht-titel); text-decoration: underline; text-decoration-color: var(--petrol); text-decoration-thickness: 2px; text-underline-offset: 0.3em; }
+
+  .verlauf { list-style: none; margin: 0; padding: 0; }
+  .nachricht { padding: 0.75rem 1rem; border-top: 1px solid var(--border); }
+  .nachricht:first-child { border-top: 0; }
+  .nachricht-ziel { display: block; width: 100%; text-align: left; min-height: 2.75rem; }
+  .nachricht-ziel:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  .nachricht-kopf { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.125rem 0.75rem; font-size: 0.8125rem; color: var(--text-muted); }
+  .nachricht-von { font-size: 0.875rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
+  .nachricht-zeit { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .nachricht-text { margin-top: 0.25rem; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
+  .nachricht-weg { margin-top: 0.25rem; color: var(--text-muted); }
+  .nachricht-stand { margin-top: 0.25rem; font-size: 0.8125rem; }
+  .nachricht-anhaenge { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+  .nachricht-bild { display: block; width: 7.5rem; height: 7.5rem; object-fit: cover; border: 1px solid var(--border); background: var(--bg); }
+  .nachricht-datei { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; max-width: 100%; padding: 0.375rem 0.75rem; border: 1px solid var(--border); color: var(--text); text-decoration: none; overflow-wrap: anywhere; }
+  .nachricht-datei:hover { border-color: var(--border-strong); }
+  .verlauf-trenner { padding: 0.5rem 1rem; font-size: 0.8125rem; color: var(--text-muted); border-top: 1px solid var(--border); }
+
+  /*
+    DIE EINGABE KLEBT AM UNTEREN RAND — am Handy über der Reiterleiste
+    (`--reiter-hoehe`), ab dem Tablet am Fensterrand. So bleibt sie in der
+    Hand, auch wenn der Verlauf lang ist; die Tastatur schiebt sie mit.
+  */
+  .eingabe { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem 1rem; background: var(--surface); border-top: 1px solid var(--border); }
+  .eingabe textarea { width: 100%; min-height: 2.75rem; max-height: 12rem; resize: vertical; }
+  .eingabe-knoepfe { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  .eingabe-knoepfe .eingabe-senden { margin-left: auto; }
+  .eingabe-dateien { display: flex; flex-wrap: wrap; gap: 0.5rem; font-size: 0.875rem; }
+  .eingabe-datei { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; padding: 0 0.25rem 0 0.75rem; border: 1px solid var(--border); }
+}

@@ -1,7 +1,7 @@
 /**
  * Die offenen Posten für die Abzeichen im Menü — auf Postgres.
  *
- * EINE ABFRAGE UND NICHT DREI. Die Zahlen werden bei jedem Seitenwechsel
+ * EINE ABFRAGE UND NICHT VIER. Die Zahlen werden bei jedem Seitenwechsel
  * geholt; als drei Abfragen wären das drei Umläufe je Klick, auf dem
  * Baustellen-Telefon über Mobilfunk. Die Rolleneingrenzung steht dabei
  * SERVERSEITIG (`public.offene_posten`) und nicht hier: ein Monteur soll die
@@ -17,6 +17,8 @@ export interface OffenePosten {
   anforderungen: number;
   /** Rechnungen, bei denen heute eine Mahnung fällig wäre. */
   mahnungen: number;
+  /** Die eigenen ungelesenen Nachrichten (M10/B09) — nie die anderer. */
+  nachrichten: number;
 }
 
 /**
@@ -43,6 +45,7 @@ export async function ladeOffenePosten(heute: string): Promise<OffenePosten | un
       urlaub: zahl(z.urlaub),
       anforderungen: zahl(z.anforderungen),
       mahnungen: zahl(z.mahnungen),
+      nachrichten: zahl(z.nachrichten),
     };
   } catch {
     return undefined;

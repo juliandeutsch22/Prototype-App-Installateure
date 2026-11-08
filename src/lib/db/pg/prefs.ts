@@ -106,6 +106,9 @@ export async function savePrefs(
       // Fehlt die Angabe, bleibt sie an: abgeschaltet wird nur ausdrücklich.
       notify_abwesenheit: prefs.notifyAbwesenheit ?? true,
       notify_angebot: prefs.notifyAngebot ?? true,
+      notify_nachrichten: prefs.notifyNachrichten ?? true,
+      // Die Vorschau bleibt aus, solange sie niemand ausdrücklich wählt.
+      nachricht_vorschau: prefs.nachrichtVorschau ?? false,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id' },

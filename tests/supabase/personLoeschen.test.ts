@@ -117,6 +117,8 @@ describe('Eine Person der Belegschaft', () => {
       einstellungen: 1, fehlerprotokoll: 1, einsaetze: 1, ruestlisten: 1, baustellen: 1, termine: 0, geburtsdatum: 0,
       // M04a: als Standardfahrer eingetragen — das geht sofort, das Fahrzeug bleibt.
       standardfahrer: 1,
+      // M10/B09: Text und Anhänge ihrer Nachrichten, ihre Teilnahmen (Prüfung mit Inhalt: `nachrichten.test.ts`).
+      nachrichten: 0, nachrichten_teilnehmer: 0,
     });
     expect(b!.aufbewahren).toEqual([
       { was: 'Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },

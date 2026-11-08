@@ -39,6 +39,7 @@ import {
   annahmenUeberLink,
   buchhaltung,
   eingaenge,
+  nachrichtenStart,
   einstellungen,
   lager,
   leitung,
@@ -76,6 +77,8 @@ export default function DashboardView() {
   const urlaubAn = useModul('urlaub');
   const einsatzAn = useModul('einsatzplanung');
   const bereitschaftAn = useModul('material.materialbereitschaft');
+  // Die Nachrichten (M10/B09): die eigene ungelesene Zahl, für die Führung die Meldungen.
+  const nachrichtenAn = useModul('nachrichten');
   const rolle: StartRolle = user ? startRolle(user.role) : 'monteur';
   const mitZeitkonto = user ? fuehrtZeitkonto(user) : false;
   const heute = todayStr();
@@ -107,7 +110,7 @@ export default function DashboardView() {
   */
   const abfrage = useZwischengespeichert<{ data: StartDaten; nichtGeladen: string[] }>({
     queryKey: user
-      ? schluessel('startseite', user, heute, { user, company, einblick: !!einblick, mitZeitkonto, materialAn, bereitschaftAn, scheineAn, angeboteAn, onlineAnnahmeAn, eingangAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen })
+      ? schluessel('startseite', user, heute, { user, company, einblick: !!einblick, mitZeitkonto, materialAn, bereitschaftAn, scheineAn, angeboteAn, onlineAnnahmeAn, eingangAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen, nachrichtenAn })
       : ['startseite'],
     enabled: !!user,
     queryFn: async () => {
@@ -149,6 +152,10 @@ export default function DashboardView() {
       }
       if (eingangAn && darfEingangErfassen(user.role)) {
         bloecke.push(['Auftragseingang', () => eingaenge(k)]);
+      }
+      // Nicht im Einblick des Supports: private Gespräche und Meldungen bleiben ihm verschlossen.
+      if (nachrichtenAn && !einblick) {
+        bloecke.push(['Nachrichten', () => nachrichtenStart(k, { meldungen: isTopLevel(user.role) })]);
       }
       if (isGF(user.role)) {
         bloecke.push(['Baustellen und Einsätze', () => leitung(k, {

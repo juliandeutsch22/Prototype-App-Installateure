@@ -73,6 +73,7 @@ const EingaengeView = ansicht('/eingaenge', () => import('@/features/auftragsein
 const EingangView = ansicht('/eingaenge', () => import('@/features/auftragseingang/EingangView'));
 const LiegenschaftenView = ansicht('/liegenschaften', () => import('@/features/liegenschaften/LiegenschaftenView'));
 const LiegenschaftView = ansicht('/liegenschaften', () => import('@/features/liegenschaften/LiegenschaftView'));
+const NachrichtenView = ansicht('/nachrichten', () => import('@/features/nachrichten/NachrichtenView'));
 const NachkalkulationView = ansicht('/costing', () => import('@/features/costing/NachkalkulationView'));
 const WorkSheetView = ansicht('/worksheets', () => import('@/features/worksheets/WorkSheetView'));
 const VacationsView = ansicht('/vacations', () => import('@/features/vacations/VacationsView'));
@@ -95,6 +96,7 @@ const FirmendatenView = ansicht('/settings', () => import('@/features/settings/F
 const NotificationSettings = ansicht('/settings', () => import('@/features/settings/NotificationSettings'));
 const EinstellungenUebersicht = ansicht('/settings', () => import('@/features/settings/EinstellungenUebersicht'));
 const PapierkorbView = ansicht('/settings', () => import('@/features/papierkorb/PapierkorbView'));
+const NachrichtenEinstellungen = ansicht('/settings', () => import('@/features/nachrichten/NachrichtenEinstellungen'));
 const FahrzeugeView = ansicht('/settings', () => import('@/features/settings/FahrzeugeView'));
 const ZeitfelderView = ansicht('/settings', () => import('@/features/settings/ZeitfelderView'));
 
@@ -482,6 +484,16 @@ function AppRoutes() {
           </RequireNav>
         }
       />
+      {/* Die Nachrichten (M10/B09) — Posteingang und Gespräch unter derselben Prüfung (Rolle und Modul). */}
+      <Route path="/nachrichten" element={<RequireNav path="/nachrichten"><NachrichtenView /></RequireNav>} />
+      <Route
+        path="/nachrichten/:kanal"
+        element={
+          <RequireNav path="/nachrichten">
+            <NachrichtenView />
+          </RequireNav>
+        }
+      />
       {/* Die Liegenschaften (M02c) — Liste und Akte, mit derselben Prüfung (Rolle und Unterfähigkeit). */}
       <Route path="/liegenschaften" element={<RequireNav path="/liegenschaften"><LiegenschaftenView /></RequireNav>} />
       <Route
@@ -595,6 +607,7 @@ function AppRoutes() {
                 papierkorb: <PapierkorbView />,
                 fahrzeuge: <FahrzeugeView />,
                 zeitfelder: <ZeitfelderView />,
+                nachrichten: <NachrichtenEinstellungen />,
               }}
             />
           </RequireNav>

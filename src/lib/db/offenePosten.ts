@@ -1,8 +1,8 @@
 /**
  * Die offenen Posten für die Abzeichen im Menü.
  *
- * DREI ZAHLEN AUS EINER ABFRAGE, und das ist der Punkt: je Seitenwechsel drei
- * einzelne Abfragen zu stellen wäre dieselbe Auskunft zum dreifachen Preis.
+ * VIER ZAHLEN AUS EINER ABFRAGE, und das ist der Punkt: je Seitenwechsel vier
+ * einzelne Abfragen zu stellen wäre dieselbe Auskunft zum vierfachen Preis.
  *
  * Der Rückgabewert kennt `undefined` — „nicht bekannt". Scheitert die Abfrage,
  * zeigt das Menü KEIN Abzeichen statt einer Null: eine Null behauptet, es

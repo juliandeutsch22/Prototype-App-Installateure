@@ -1,0 +1,43 @@
+/**
+ * Nachrichten (M10/B09) — nur die Weiche, siehe `pg/nachrichten.ts`.
+ */
+export {
+  NACHRICHT_TABELLE,
+  POSTFACH_SEITE,
+  VERLAUF_SEITE,
+  postfach,
+  kanalKopf,
+  verlauf,
+  kanalDirekt,
+  kanalRunde,
+  kanalBaustelle,
+  baustelleStand,
+  eimerFuer,
+  dateiPfad,
+  nachrichtSenden,
+  vorgemerkteNachrichten,
+  wartendeNachrichten,
+  nachrichtBearbeiten,
+  nachrichtLoeschen,
+  gelesen,
+  stummSchalten,
+  folgen,
+  rundeVerlassen,
+  rundeHinzufuegen,
+  rundeBenennen,
+  nachrichtMelden,
+  meldungen,
+  meldungenOffen,
+  meldungErledigen,
+  meldungLoeschen,
+  selbstexport,
+  aufbewahrungSetzen,
+  hatGespraeche,
+  ungeleseneZahl,
+  anhangAdressen,
+  abonniereNachrichtenStand,
+} from './pg/nachrichten';
+export type {
+  KanalArt, PostfachAuswahl, PostfachZeile, PostfachZeiger, Teilnehmer, KanalKopf, Anhang, Nachricht,
+  VerlaufZeiger, Meldung, NeueDatei, Senden, VorgemerkteNachricht,
+} from './pg/nachrichten';

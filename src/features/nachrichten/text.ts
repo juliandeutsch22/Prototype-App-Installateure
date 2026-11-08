@@ -1,0 +1,85 @@
+/**
+ * Wie Zeit, Größe und Art in den Nachrichten stehen — ohne Oberfläche, damit
+ * es sich prüfen lässt.
+ */
+import type { KanalArt } from '@/lib/db/nachrichten';
+
+const WIEN = 'Europe/Vienna';
+
+function tag(d: Date): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: WIEN }).format(d);
+}
+
+/**
+ * „09:41“ heute, „gestern 18:02“, „Mo 07:15“ in dieser Woche, sonst
+ * „05.11.2026 07:15“ — in Wiener Zeit, wie überall in der App.
+ */
+export function zeitText(iso: string, jetzt: Date = new Date()): string {
+  const d = new Date(iso);
+  const uhr = d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit', timeZone: WIEN });
+  const heute = tag(jetzt);
+  const gestern = tag(new Date(jetzt.getTime() - 86_400_000));
+  const t = tag(d);
+  if (t === heute) return uhr;
+  if (t === gestern) return `gestern ${uhr}`;
+  const tage = (Date.parse(`${heute}T00:00:00Z`) - Date.parse(`${t}T00:00:00Z`)) / 86_400_000;
+  if (tage > 0 && tage < 7) {
+    return `${d.toLocaleDateString('de-AT', { weekday: 'short', timeZone: WIEN }).replace('.', '')} ${uhr}`;
+  }
+  return `${d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: WIEN })} ${uhr}`;
+}
+
+/** „830 KB“, „2,4 MB“ */
+export function groesseText(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`;
+}
+
+export const ART_TEXT: Record<KanalArt, string> = {
+  baustelle: 'Baustelle',
+  direkt: 'Direkt',
+  runde: 'Runde',
+};
+
+/** Ist das ein Bild, das der Browser zeigen kann? HEIC zeigt nur Safari — dort als Datei. */
+export function istBild(inhaltsart: string): boolean {
+  return /^image\/(jpeg|png|webp)$/.test(inhaltsart);
+}
+
+/** Welche Dateien eine Nachricht mitnehmen kann — dieselben wie der Speicher (25 MB je Datei). */
+export const DATEI_TYPEN = [
+  'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf',
+  'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+];
+export const DATEI_HOECHSTENS = 25 * 1024 * 1024;
+
+/** Warum eine Datei nicht mitgeht — oder `null`. */
+export function dateiPruefen(f: { name: string; size: number; type: string }): string | null {
+  if (!DATEI_TYPEN.includes(f.type)) return `„${f.name}“: Diese Art von Datei geht nicht mit — Bilder, PDF, Word und Excel schon.`;
+  if (f.size > DATEI_HOECHSTENS) return `„${f.name}“ ist größer als 25 MB.`;
+  if (f.size === 0) return `„${f.name}“ ist leer.`;
+  return null;
+}
+
+/**
+ * Wer in einer Nachricht erwähnt werden kann: „@Name“ am Wortanfang. Gibt die
+ * Kennungen der Genannten zurück — nur von Personen, die zur Auswahl stehen.
+ */
+export function erwaehnteIn(text: string, personen: { uid: string; name: string }[]): string[] {
+  const raus = new Set<string>();
+  for (const p of personen) {
+    const name = p.name.trim();
+    if (!name) continue;
+    const muster = new RegExp(`(^|\\s)@${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[\\s.,!?;:])`, 'iu');
+    if (muster.test(text)) raus.add(p.uid);
+  }
+  return [...raus];
+}
+
+/** „nachrichten-anna-huber-2026-11-08.json“ — ein Name, der sagt, was drin ist. */
+export function exportDateiname(person: string, wann: Date): string {
+  const name = person.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'person';
+  return `nachrichten-${name}-${wann.toISOString().slice(0, 10)}.json`;
+}
