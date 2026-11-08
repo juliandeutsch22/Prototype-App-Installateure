@@ -317,12 +317,17 @@ describe('Liegenschaften als Teil der Kunden (M02c)', () => {
   Schalter sofort, und die Rückfrage fehlt (rot).
 */
 describe('Direktnachrichten einschalten', () => {
-  it('fragt vorher mit dem Hinweis auf ArbVG §§ 96, 96a', async () => {
+  it('ab Werk an (E65) mit dem Hinweis im Zweck; wer sie wieder einschaltet, wird vorher auf ArbVG §§ 96, 96a hingewiesen', async () => {
     const nutzer = userEvent.setup();
     zeige();
     const knopf = schalter('Direktnachrichten und Runden');
-    expect(knopf).not.toBeChecked();
+    expect(knopf).toBeChecked();
+    expect(screen.getByText(/zustimmungspflichtig sein; ob eine Betriebsvereinbarung nötig ist/)).toBeInTheDocument();
     await nutzer.click(knopf);
+    // Ausschalten sagt vorher die Folgen (bisherige Gespräche bleiben).
+    await nutzer.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Ausschalten' }));
+    expect(schalter('Direktnachrichten und Runden')).not.toBeChecked();
+    await nutzer.click(schalter('Direktnachrichten und Runden'));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('ArbVG §§ 96, 96a');
     await nutzer.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));

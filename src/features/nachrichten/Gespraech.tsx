@@ -5,9 +5,7 @@ import {
 } from '@/lib/db/nachrichten';
 import { FACH_GELEERT } from '@/lib/sync/ausgangsfach';
 import { postenNeuLaden } from '@/app/offenePosten';
-import Card from '@/components/Card';
 import Button from '@/components/Button';
-import IconButton from '@/components/IconButton';
 import Icon from '@/components/Icon';
 import { Zustand } from '@/components/Badge';
 import { ErrorState, SkeletonList } from '@/components/States';
@@ -15,7 +13,7 @@ import { MehrAnzeigen } from '@/components/LotBausteine';
 import { grundAus } from '@/lib/fehlerGrund';
 import { NACHRICHTEN_NEU } from './NachrichtenLive';
 import {
-  dateiPruefen, DATEI_TYPEN, erwaehnteIn, groesseText, GRUPPE_MS, istBild, tagText, tagVon, uhrText, zeitText,
+  ART_TEXT, dateiPruefen, DATEI_TYPEN, erwaehnteIn, groesseText, GRUPPE_MS, istBild, kuerzel, tagText, tagVon, uhrText, zeitText,
 } from './text';
 import NachrichtAktionen from './NachrichtAktionen';
 import PersonWahl from './PersonWahl';
@@ -26,7 +24,11 @@ interface Unterwegs {
   text: string;
   dateien: NeueDatei[];
   erwaehnt: string[];
-  stand: 'laeuft' | 'fehler';
+  /**
+   * `gesendet`: der Server hat sie angenommen, sie steht aber noch, bis der
+   * neu geladene Verlauf sie enthält — so verschwindet sie nie kurz.
+   */
+  stand: 'laeuft' | 'gesendet' | 'fehler';
   grund?: string;
 }
 
@@ -87,7 +89,7 @@ export default function Gespraech({
   const [erwaehnen, setErwaehnen] = useState(false);
   const [versuch, setVersuch] = useState(0);
   const lauf = useRef(0);
-  const ende = useRef<HTMLDivElement>(null);
+  const kameraWahl = useRef<HTMLInputElement>(null);
   const rahmen = useRef<HTMLDivElement>(null);
   const eingabe = useRef<HTMLTextAreaElement>(null);
   const dateiWahl = useRef<HTMLInputElement>(null);
@@ -117,16 +119,17 @@ export default function Gespraech({
     }
   }, [kanal]);
 
-  const wartendeLaden = useCallback(() => {
-    void wartendeNachrichten(kanal).then(setWartend).catch(() => undefined);
-  }, [kanal]);
+  const wartendeLaden = useCallback(
+    () => wartendeNachrichten(kanal).then(setWartend).catch(() => undefined),
+    [kanal],
+  );
 
   useEffect(() => {
     setUnterwegs([]);
     setText('');
     setDateien([]);
     void laden(false);
-    wartendeLaden();
+    void wartendeLaden();
   }, [laden, wartendeLaden, versuch]);
 
   // Neues in diesem Gespräch (Live) oder nach dem Nachsenden aus dem Ausgangsfach.
@@ -135,7 +138,8 @@ export default function Gespraech({
       const k = (e as CustomEvent<string | null>).detail;
       if (!k || k === kanal) void laden(true);
     };
-    const fach = () => { wartendeLaden(); void laden(true); };
+    // Erst der Server-Stand, dann das Fach: dazwischen fehlt sonst die eben gesendete Nachricht.
+    const fach = () => { void laden(true).then(wartendeLaden); };
     window.addEventListener(NACHRICHTEN_NEU, neu);
     window.addEventListener(FACH_GELEERT, fach);
     return () => {
@@ -163,27 +167,71 @@ export default function Gespraech({
     return () => { for (const u of m.values()) URL.revokeObjectURL(u); };
   }, [dateien, wartend, unterwegs]);
 
-  // Beim Öffnen und bei jeder neuen Nachricht ans Ende — dort steht das Neueste.
-  const anzahl = (nachrichten?.length ?? 0) + wartend.length + unterwegs.length;
-  // Ab dem Tablet rollt der Verlauf im eigenen Rahmen (die Eingabe steht
-  // fest darunter), am Telefon rollt die Seite.
-  const ansEnde = useCallback(() => {
+  // Was im Verlauf steht — vom Server, im Fach und unterwegs, jede Kennung einmal.
+  const angekommenIds = useMemo(() => new Set((nachrichten ?? []).map((n) => n.id)), [nachrichten]);
+  const anzahl = angekommenIds.size
+    + wartend.filter((w) => !angekommenIds.has(w.id)).length
+    + unterwegs.filter((u) => !angekommenIds.has(u.id) && !wartend.some((w) => w.id === u.id)).length;
+
+  // Was der Server-Stand enthält, braucht die eigene Fassung nicht mehr.
+  useEffect(() => {
+    if (unterwegs.some((u) => angekommenIds.has(u.id))) setUnterwegs((alt) => alt.filter((u) => !angekommenIds.has(u.id)));
+  }, [angekommenIds, unterwegs]);
+
+  /*
+    ROLLEN OHNE RUCKELN. Ab dem Tablet rollt der Verlauf im eigenen Rahmen
+    (die Eingabe steht fest darunter), am Telefon rollt die Seite. Beim
+    Öffnen steht das Neueste sofort unten; kommt etwas dazu, rollt es sanft —
+    aber nur, wer schon unten war oder selbst gesendet hat. Wer oben liest,
+    bleibt, wo er ist. Wird es weniger (etwa nach dem Löschen), rollt nichts.
+  */
+  const imRahmen = () => {
     const r = rahmen.current;
-    if (r && r.scrollHeight > r.clientHeight && getComputedStyle(r).overflowY === 'auto') {
-      r.scrollTop = r.scrollHeight;
-      return;
-    }
-    ende.current?.scrollIntoView?.({ block: 'end' });
+    return r && getComputedStyle(r).overflowY === 'auto' ? r : null;
+  };
+  const untenRef = useRef(true);
+  const selbstGesendet = useRef(false);
+  const vorher = useRef<{ kanal: string; anzahl: number } | null>(null);
+  const ansEnde = useCallback((sanft: boolean) => {
+    const r = imRahmen();
+    const behavior: ScrollBehavior = sanft ? 'smooth' : 'auto';
+    if (r) r.scrollTo?.({ top: r.scrollHeight, behavior });
+    else window.scrollTo?.({ top: document.documentElement.scrollHeight, behavior });
   }, []);
-  useEffect(() => { ansEnde(); }, [anzahl, kanal, ansEnde]);
-  // Ein Bild, das nachlädt, schiebt den Verlauf — wer unten war, bleibt unten.
-  const bildGeladen = useCallback(() => {
+  useEffect(() => {
     const r = rahmen.current;
-    const unten = r && getComputedStyle(r).overflowY === 'auto'
-      ? r.scrollHeight - r.scrollTop - r.clientHeight < 240
-      : window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 240;
-    if (unten) ansEnde();
-  }, [ansEnde]);
+    const pruefen = () => {
+      const im = imRahmen();
+      untenRef.current = im
+        ? im.scrollHeight - im.scrollTop - im.clientHeight < 160
+        : window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 160;
+    };
+    r?.addEventListener('scroll', pruefen, { passive: true });
+    window.addEventListener('scroll', pruefen, { passive: true });
+    return () => { r?.removeEventListener('scroll', pruefen); window.removeEventListener('scroll', pruefen); };
+  }, []);
+  useEffect(() => {
+    if (nachrichten === null) return;
+    const v = vorher.current;
+    vorher.current = { kanal, anzahl };
+    if (!v || v.kanal !== kanal) { ansEnde(false); return; }
+    if (anzahl > v.anzahl && (untenRef.current || selbstGesendet.current)) ansEnde(true);
+    selbstGesendet.current = false;
+  }, [anzahl, kanal, nachrichten, ansEnde]);
+  // Ein Bild, das nachlädt, schiebt den Verlauf — wer unten war, bleibt unten.
+  const bildGeladen = useCallback(() => { if (untenRef.current) ansEnde(false); }, [ansEnde]);
+
+  // Wie hoch die Eingabe gerade ist — am Telefon hält der Verlauf unten so viel frei (sie steht dort fest).
+  const chatRef = useRef<HTMLElement>(null);
+  const eingabeRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const e = eingabeRef.current;
+    const c = chatRef.current;
+    if (!e || !c || typeof ResizeObserver === 'undefined') return;
+    const beobachter = new ResizeObserver(() => c.style.setProperty('--eingabe-hoehe', `${e.offsetHeight}px`));
+    beobachter.observe(e);
+    return () => beobachter.disconnect();
+  }, [kopf.sperre]);
 
   // Das Schreibfeld wächst mit dem Text bis zur Obergrenze im Stil (max-height), dann rollt es.
   useEffect(() => {
@@ -213,9 +261,14 @@ export default function Gespraech({
       const stand = await nachrichtSenden({
         id: u.id, kanal, privat, companyId, text: u.text, dateien: u.dateien, erwaehnt: u.erwaehnt,
       });
-      setUnterwegs((alt) => alt.filter((x) => x.id !== u.id));
-      if (stand === 'queued') wartendeLaden();
-      else void laden(true);
+      if (stand === 'queued') {
+        // Erst wenn das Fach sie zeigt, geht die eigene Fassung weg — nie eine Lücke.
+        await wartendeLaden();
+        setUnterwegs((alt) => alt.filter((x) => x.id !== u.id));
+      } else {
+        setUnterwegs((alt) => alt.map((x) => (x.id === u.id ? { ...x, stand: 'gesendet' } : x)));
+        await laden(true);
+      }
     } catch (e) {
       setUnterwegs((alt) => alt.map((x) => (x.id === u.id
         ? { ...x, stand: 'fehler', grund: grundAus(e, 'Der Server hat sie nicht angenommen.') } : x)));
@@ -235,6 +288,7 @@ export default function Gespraech({
     setText('');
     setDateien([]);
     setDateiFehler(null);
+    selbstGesendet.current = true;
     void hinaus(u);
     eingabe.current?.focus();
   }
@@ -267,7 +321,8 @@ export default function Gespraech({
   */
   const jetzt = Date.now();
   const eintraege: Eintrag[] = [
-    ...aufsteigend.map((n): Eintrag => ({ art: 'server', id: n.id, eigene: n.eigene, von: n.vonUid ?? `weg:${n.id}`, zeit: n.gesendetAm, n })),
+    // Die eigenen tragen „ich“ wie die vorgemerkten und unterwegs — sonst beginnt mit der Bestätigung eine andere Gruppe, und der Abstand springt.
+    ...aufsteigend.map((n): Eintrag => ({ art: 'server', id: n.id, eigene: n.eigene, von: n.eigene ? 'ich' : n.vonUid ?? `weg:${n.id}`, zeit: n.gesendetAm, n })),
     ...imFach.map((w): Eintrag => ({ art: 'fach', id: w.id, eigene: true, von: 'ich', zeit: new Date(w.seit).toISOString(), w })),
     ...unterwegsSichtbar.map((u): Eintrag => ({ art: 'unterwegs', id: u.id, eigene: true, von: 'ich', zeit: new Date(jetzt).toISOString(), u })),
   ];
@@ -353,22 +408,30 @@ export default function Gespraech({
         {e.art === 'fach' && (
           <div className="nachricht-blatt" data-lokal="ja">
             {lokaleDateien(e.w.dateien)}
-            <span className="sr-only">Du: </span>
-            {e.w.text && <p className="nachricht-text">{e.w.text}</p>}
-            <span className="nachricht-meta"><Zustand stand="offen">auf diesem Gerät vorgemerkt, wird gesendet</Zustand></span>
+            <div className="nachricht-ziel">
+              <span className="sr-only">Du: </span>
+              {e.w.text && <span className="nachricht-text">{e.w.text}</span>}
+              <span className="nachricht-meta"><Zustand stand="offen">auf diesem Gerät vorgemerkt, wird gesendet</Zustand></span>
+            </div>
           </div>
         )}
         {e.art === 'unterwegs' && (
           <>
-            <div className="nachricht-blatt" data-lokal="ja">
+            {/* Unterwegs steht sie schon so da, wie sie bleibt — nur Abgelehntes ist hell. */}
+            <div className="nachricht-blatt" data-lokal={e.u.stand === 'fehler' ? 'ja' : undefined}>
               {lokaleDateien(e.u.dateien)}
-              <span className="sr-only">Du: </span>
-              {e.u.text && <p className="nachricht-text">{e.u.text}</p>}
-              <span className="nachricht-meta">
-                {e.u.stand === 'laeuft'
-                  ? <Zustand stand="laeuft">wird gesendet</Zustand>
-                  : <Zustand stand="schlecht">Nicht gesendet: {e.u.grund}</Zustand>}
-              </span>
+              {/* Derselbe Aufbau wie die bestätigte Nachricht: der Wechsel ändert keine Höhe. */}
+              <div className="nachricht-ziel">
+                <span className="sr-only">Du: </span>
+                {e.u.text && <span className="nachricht-text">{e.u.text}</span>}
+                <span className="nachricht-meta">
+                  {e.u.stand === 'fehler'
+                    ? <Zustand stand="schlecht">Nicht gesendet: {e.u.grund}</Zustand>
+                    : e.u.stand === 'laeuft'
+                      ? <span>wird gesendet</span>
+                      : <span className="nachricht-zeit">{uhrText(e.zeit)}</span>}
+                </span>
+              </div>
             </div>
             {e.u.stand === 'fehler' && (
               <div className="nachricht-nochmal">
@@ -386,7 +449,19 @@ export default function Gespraech({
   const kannSenden = !!text.trim() || dateien.length > 0;
 
   return (
-    <Card title={mitTitel ? kopf.titel : undefined} buendig>
+    <>
+    <section className="chat" aria-label={kopf.titel} ref={chatRef}>
+      {mitTitel && (
+        <div className="chat-kopf">
+          <span className="chat-kuerzel" data-art={kopf.art} aria-hidden="true">
+            {kopf.art === 'baustelle' ? <Icon name="building" size={18} /> : kuerzel(kopf.titel)}
+          </span>
+          <span className="chat-kopf-text">
+            <span className="chat-kopf-titel">{kopf.titel}</span>
+            <span className="chat-kopf-art">{ART_TEXT[kopf.art]}{kopf.stumm ? ' · stumm' : ''}</span>
+          </span>
+        </div>
+      )}
       <div className="gespraech">
         <div className="gespraech-verlauf" ref={rahmen}>
           {fehler && (
@@ -406,15 +481,14 @@ export default function Gespraech({
                 )}
                 {eintraege.map(zeile)}
               </ol>
-              <div ref={ende} />
             </>
           )}
         </div>
 
         {kopf.sperre ? (
-          <p className="eingabe eingabe-gesperrt">{kopf.sperre}</p>
+          <p className="eingabe eingabe-gesperrt" ref={(el) => { eingabeRef.current = el; }}>{kopf.sperre}</p>
         ) : (
-          <form className="eingabe" onSubmit={(ev) => { ev.preventDefault(); senden(); }}>
+          <form className="eingabe" ref={(el) => { eingabeRef.current = el; }} onSubmit={(ev) => { ev.preventDefault(); senden(); }}>
             {dateien.length > 0 && (
               <div className="eingabe-dateien" aria-label="Anhänge">
                 {dateien.map((d) => (
@@ -424,9 +498,9 @@ export default function Gespraech({
                       : <Icon name="file" size={18} aria-hidden="true" />}
                     <span className="nachricht-datei-name">{d.name}</span>
                     <span className="nachricht-datei-groesse">{groesseText(d.inhalt.size)}</span>
-                    <IconButton label={`${d.name} entfernen`} onClick={() => setDateien((alt) => alt.filter((x) => x.id !== d.id))}>
+                    <button type="button" className="chat-rund chat-rund-klein" aria-label={`${d.name} entfernen`} title="Entfernen" onClick={() => setDateien((alt) => alt.filter((x) => x.id !== d.id))}>
                       <span aria-hidden="true">×</span>
-                    </IconButton>
+                    </button>
                   </span>
                 ))}
               </div>
@@ -442,13 +516,26 @@ export default function Gespraech({
                 className="sr-only"
                 onChange={(ev) => dateienGewaehlt(ev.target.files)}
               />
-              <IconButton label="Anhang" onClick={() => dateiWahl.current?.click()}>
+              <input
+                ref={kameraWahl}
+                id="nachricht-kamera"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                onChange={(ev) => { dateienGewaehlt(ev.target.files); ev.target.value = ''; }}
+              />
+              <button type="button" className="chat-rund" aria-label="Anhang" title="Anhang" onClick={() => dateiWahl.current?.click()}>
                 <Icon name="klammer" size={22} />
-              </IconButton>
+              </button>
+              {/* Die Kamera direkt — am Telefon der häufigste Anhang; ab dem Tablet reicht der Anhang. */}
+              <button type="button" className="chat-rund chat-nur-telefon" aria-label="Foto aufnehmen" title="Foto aufnehmen" onClick={() => kameraWahl.current?.click()}>
+                <Icon name="kamera" size={22} />
+              </button>
               {kopf.art !== 'direkt' && (
-                <IconButton label="Erwähnen" onClick={() => setErwaehnen(true)}>
+                <button type="button" className="chat-rund" aria-label="Erwähnen" title="Erwähnen" onClick={() => setErwaehnen(true)}>
                   <span aria-hidden="true" className="eingabe-at">@</span>
-                </IconButton>
+                </button>
               )}
               <label htmlFor="nachricht-text" className="sr-only">Nachricht</label>
               <textarea
@@ -467,7 +554,7 @@ export default function Gespraech({
               />
               <button
                 type="submit"
-                className="lot-knopf eingabe-senden"
+                className="chat-rund chat-senden"
                 aria-label="Senden"
                 title="Senden (Strg + Eingabe)"
                 disabled={!kannSenden}
@@ -478,6 +565,8 @@ export default function Gespraech({
           </form>
         )}
       </div>
+
+    </section>
 
       <NachrichtAktionen
         nachricht={gewaehlt}
@@ -499,6 +588,6 @@ export default function Gespraech({
           eingabe.current?.focus();
         }}
       />
-    </Card>
+    </>
   );
 }

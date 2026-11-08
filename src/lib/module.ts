@@ -390,17 +390,20 @@ export const MODULE: Modul[] = [
     unter: [
       {
         /*
-          DIREKTNACHRICHTEN UND RUNDEN (D1): ab Werk AUS. Privat heißt:
-          lesen und schreiben nur die Teilnehmer — weder Geschäftsführung
-          noch Administration noch Support. Ein betriebliches
-          Nachrichtensystem kann nach ArbVG §§ 96, 96a zustimmungspflichtig
-          sein; ob eine Betriebsvereinbarung nötig ist, klärt der Betrieb
-          (`HINWEIS_DIREKTNACHRICHTEN`, angezeigt beim Einschalten).
+          DIREKTNACHRICHTEN UND RUNDEN: ab Werk AN (Entscheidung des
+          Auftraggebers vom 08.11.2026, E65 — D1 sah „aus“ vor; ab Werk aus
+          hieß in der Praxis „Neue Nachricht zeigt keine Personen“). Privat
+          heißt: lesen und schreiben nur die Teilnehmer — weder
+          Geschäftsführung noch Administration noch Support. Ein
+          betriebliches Nachrichtensystem kann nach ArbVG §§ 96, 96a
+          zustimmungspflichtig sein; ob eine Betriebsvereinbarung nötig ist,
+          klärt der Betrieb. Deshalb steht der Hinweis im Zweck (sichtbar,
+          solange es an ist) und noch einmal beim Wiedereinschalten.
         */
         id: 'nachrichten.direktnachrichten',
         name: 'Direktnachrichten und Runden',
-        zweck: 'Private Gespräche zu zweit oder in einer kleinen Runde — lesen nur die Teilnehmer, auch nicht die Geschäftsführung.',
-        standard: false,
+        zweck: 'Private Gespräche zu zweit oder in einer kleinen Runde — lesen nur die Teilnehmer, auch nicht die Geschäftsführung. Ein Nachrichtensystem kann nach ArbVG §§ 96, 96a zustimmungspflichtig sein; ob eine Betriebsvereinbarung nötig ist, klärt der Betrieb.',
+        standard: true,
         betrifft: ['Direkt und Runden unter Nachrichten', '„Nachricht schreiben“ an der Person'],
         folgen: [
           'Neue private Nachrichten gehen nicht mehr; bisherige Gespräche bleiben für ihre Teilnehmer lesbar und exportierbar.',

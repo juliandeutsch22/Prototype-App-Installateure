@@ -1,57 +1,104 @@
 /*
-  NACHRICHTEN (M10/B09) — Posteingang und Gespräch als Blätter auf dem
-  Raster. Darin liest sich ein Gespräch wie in jedem Messenger: eigene
-  Nachrichten rechts, die der anderen links, der Tag als Trenner, die Uhrzeit
-  klein im Blatt. Deckende Flächen aus den Grundwerten, keine Schatten,
-  keine Sprechblasen-Zipfel.
+  NACHRICHTEN (M10/B09, E64; Umbau E65) — der Messenger von Senklot.
+
+  DIE LINIE BLEIBT, NUR DIESE ELEMENTE SIND WEICH (Auftrag 08.11.2026:
+  „nicht die ganze Designlinie verändern, lediglich diese Elemente“). Rund
+  sind hier: Kürzel, Sprechblasen, Tages-Pille, Suchfeld, Filter-Pillen,
+  die runden Knöpfe der Eingabe und die beiden Blätter (Posteingang,
+  Gespräch). Listen, Tabellen und Formulare der übrigen App behalten die
+  Kanten der Linie „Lot“. Farben nur aus den Grundwerten, keine Schatten,
+  keine halbtransparenten Flächen.
 */
 @layer components {
-  .nachrichten-raster { display: grid; gap: 1.5rem; }
+  .nachrichten-raster { display: grid; gap: 1.25rem; }
   @media (min-width: 760px) {
-    .nachrichten-raster { grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr); align-items: start; }
+    .nachrichten-raster { grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr); align-items: start; }
   }
   @media (min-width: 1200px) {
-    .nachrichten-raster { grid-template-columns: minmax(20rem, 26rem) minmax(0, 1fr); }
+    .nachrichten-raster { grid-template-columns: minmax(20rem, 24rem) minmax(0, 1fr); }
   }
 
-  /*
-    DER VERLAUF. Eine Nachricht ist ein kleines Blatt, die eigenen rechts in
-    `--petrol-hell`, die der anderen links in `--surface-2` — deckend, mit
-    Linie, ohne Schatten. Die Rundung ist die der Felder und Knöpfe
-    (`--radius`), nicht die einer Karte: das Blatt ist ein Eintrag, kein
-    Behälter. Die Ecke zum Absender bleibt am Ende einer Gruppe spitz, damit
-    man ohne Namen sieht, von wem es kommt.
-  */
+  /* ── Posteingang ─────────────────────────────────────────────── */
+  .postfach { display: flex; flex-direction: column; gap: 0.75rem; }
+  .postfach-leiste { display: flex; flex-direction: column; gap: 0.75rem; }
+  .chat-suche { display: flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; padding: 0 1rem; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--text-muted); }
+  .chat-suche:focus-within { border-color: var(--brand-fixed); background: var(--surface); }
+  .chat-suche input { flex: 1; min-width: 0; min-height: 2.625rem; border: 0; background: transparent; color: var(--text); font-size: 0.9375rem; outline: none; }
+  .chat-suche input::placeholder { color: var(--text-placeholder); }
+  .chat-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .chat-chip { display: inline-flex; align-items: center; min-height: 2.25rem; padding: 0 0.875rem; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface); color: var(--text); font-size: 0.8125rem; }
+  .chat-chip[aria-pressed="true"] { background: var(--petrol); border-color: var(--petrol); color: var(--auf-petrol); }
+  .chat-chip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+  .postfach-blatt { border: 1px solid var(--border); border-radius: 1.375rem; background: var(--surface); overflow: hidden; }
+  .postfach-zeile { position: relative; display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0.875rem; }
+  .postfach-zeile + .postfach-zeile { border-top: 1px solid var(--border); }
+  .postfach-zeile[data-aktiv] { background: var(--petrol-hell); }
+  .postfach-zeile:hover { background: var(--surface-2); }
+  .postfach-zeile[data-aktiv]:hover { background: var(--petrol-hell); }
+  .postfach-zeile:focus-within { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+
+  /* Personen und Runden rund, Baustellen als weiches Quadrat — so erkennt man die Art ohne Wort. */
+  .postfach-kuerzel, .chat-kuerzel { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.875rem; height: 2.875rem; border-radius: 999px; background: var(--petrol-hell); color: var(--accent-deep); font-size: 0.9375rem; font-weight: var(--gewicht-titel); letter-spacing: 0.02em; }
+  .postfach-zeile[data-art="baustelle"] .postfach-kuerzel, .chat-kuerzel[data-art="baustelle"] { border-radius: 0.875rem; background: var(--surface-3); color: var(--ink-deep); }
+  .postfach-zeile[data-aktiv] .postfach-kuerzel { background: var(--surface); }
+
+  .postfach-text { flex: 1; min-width: 0; }
+  .postfach-oben, .postfach-unten { display: flex; align-items: baseline; gap: 0.5rem; }
+  .postfach-unten { margin-top: 0.125rem; align-items: center; }
+  .postfach-titel { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9375rem; color: var(--ink-deep); }
+  .postfach-titel::after { content: ''; position: absolute; inset: 0; }
+  .postfach-titel:focus-visible { outline: none; }
+  .postfach-zeit { flex: none; font-family: var(--schrift-mono); font-size: 0.75rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .postfach-vorschau { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; color: var(--text-muted); }
+  .postfach-zeile[data-neu] .postfach-titel { font-weight: var(--gewicht-titel); }
+  .postfach-zeile[data-neu] .postfach-vorschau { color: var(--text); }
+  .postfach-zeile[data-neu] .postfach-zeit { color: var(--accent-deep); }
+  .postfach-zahl { flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 1.375rem; height: 1.375rem; padding: 0 0.4375rem; border-radius: 999px; background: var(--petrol); color: var(--auf-petrol); font-size: 0.75rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
+  .postfach-marke { flex: none; font-size: 0.75rem; color: var(--text-muted); }
+
+  /* ── Gespräch ────────────────────────────────────────────────── */
+  .chat { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 1.375rem; background: var(--surface); overflow: hidden; }
+  .chat-kopf { display: flex; align-items: center; gap: 0.75rem; min-height: 4rem; padding: 0.625rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .chat-kopf .chat-kuerzel { width: 2.25rem; height: 2.25rem; font-size: 0.8125rem; }
+  .chat-kopf .chat-kuerzel[data-art="baustelle"] { border-radius: 0.6875rem; }
+  .chat-kopf-text { display: flex; flex-direction: column; min-width: 0; }
+  .chat-kopf-titel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
+  .chat-kopf-art { font-size: 0.75rem; color: var(--text-muted); }
+
   .gespraech { display: flex; flex-direction: column; }
-  .verlauf { list-style: none; margin: 0; padding: 0.5rem 1rem 1rem; display: flex; flex-direction: column; }
-  .verlauf-leer { padding: 2rem 0.5rem; text-align: center; color: var(--text-muted); font-size: 0.875rem; }
+  .gespraech-verlauf { background: var(--surface-2); }
+  .verlauf { list-style: none; margin: 0; padding: 0.75rem 0.75rem 1rem; display: flex; flex-direction: column; }
+  .verlauf-leer { padding: 2.5rem 0.75rem; text-align: center; color: var(--text-muted); font-size: 0.875rem; }
   .nachricht { display: flex; flex-direction: column; align-items: flex-start; margin-top: 0.1875rem; }
-  .nachricht[data-anfang] { margin-top: 0.875rem; }
+  .nachricht[data-anfang] { margin-top: 0.75rem; }
   .nachricht[data-eigene] { align-items: flex-end; }
 
-  .verlauf-tag { align-self: stretch; display: flex; align-items: center; gap: 0.75rem; margin: 0.5rem 0 0.75rem; font-size: 0.75rem; color: var(--text-muted); }
-  .verlauf-tag::before, .verlauf-tag::after { content: ''; flex: 1; border-top: 1px solid var(--border); }
+  /* Der Tag als kleine Pille über der ersten Nachricht des Tages. */
+  .verlauf-tag { align-self: center; display: flex; margin: 0.5rem 0 0.625rem; }
+  .verlauf-tag span { padding: 0.25rem 0.75rem; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); font-size: 0.75rem; color: var(--text-muted); }
 
-  .nachricht-von { margin: 0 0 0.25rem 0.125rem; font-size: 0.8125rem; font-weight: var(--gewicht-titel); color: var(--text-muted); }
+  .nachricht-von { margin: 0 0 0.25rem 0.875rem; font-size: 0.75rem; font-weight: var(--gewicht-titel); color: var(--accent-deep); }
 
-  .nachricht-blatt { position: relative; max-width: min(85%, 36rem); border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); color: var(--text); }
-  /* Das Eigene deckend in Petrol, wie die Hauptaktion; was noch auf dem Gerät liegt, in Petrol-hell — erst der Server macht es zum Gesendeten. */
-  .nachricht[data-eigene] .nachricht-blatt { background: var(--petrol); border-color: var(--petrol); color: var(--auf-petrol); }
+  /*
+    DIE SPRECHBLASE. Eigene in Petrol, andere weiß auf dem grauen Grund des
+    Gesprächs. Die Ecke zum Absender ist an der ersten Nachricht einer
+    Gruppe spitz — so sieht man ohne Namen, von wem sie kommt.
+  */
+  .nachricht-blatt { position: relative; max-width: 85%; border-radius: 1.25rem; background: var(--surface); color: var(--text); }
+  .nachricht[data-anfang] .nachricht-blatt { border-top-left-radius: 0.375rem; }
+  .nachricht[data-eigene] .nachricht-blatt { background: var(--petrol); color: var(--auf-petrol); }
+  .nachricht[data-anfang][data-eigene] .nachricht-blatt { border-top-left-radius: 1.25rem; border-top-right-radius: 0.375rem; }
   .nachricht[data-eigene] .nachricht-text { color: var(--auf-petrol); }
   .nachricht[data-eigene] .nachricht-meta { color: var(--auf-petrol-leise); }
-  .nachricht[data-eigene] .nachricht-blatt[data-lokal] { background: var(--petrol-hell); border-color: var(--petrol-hell); color: var(--text); }
+  /* Hell nur, was noch auf dem Gerät wartet oder abgelehnt wurde. */
+  .nachricht[data-eigene] .nachricht-blatt[data-lokal] { background: var(--petrol-hell); color: var(--text); }
   .nachricht[data-eigene] .nachricht-blatt[data-lokal] .nachricht-text { color: var(--text); }
   .nachricht[data-eigene] .nachricht-blatt[data-lokal] .nachricht-meta { color: var(--text-muted); }
-  .nachricht .nachricht-blatt[data-weg] { background: var(--surface); border-color: var(--border); }
+  .nachricht .nachricht-blatt[data-weg] { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); }
   .nachricht[data-eigene] .nachricht-blatt[data-weg] .nachricht-meta { color: var(--text-muted); }
-  /* Die spitze Ecke: oben an der ersten Nachricht einer Gruppe, zum Absender hin. */
-  .nachricht[data-anfang] .nachricht-blatt { border-top-left-radius: 0; }
-  .nachricht[data-anfang][data-eigene] .nachricht-blatt { border-top-left-radius: var(--radius); border-top-right-radius: 0; }
-  .nachricht-blatt > p, .nachricht-blatt > .nachricht-meta { padding-inline: 0.75rem; }
-  .nachricht-blatt > p { padding-top: 0.5rem; }
-  .nachricht-blatt > .nachricht-meta { padding-bottom: 0.375rem; }
 
-  .nachricht-ziel { display: flex; flex-direction: column; width: 100%; min-height: 2.75rem; padding: 0.5rem 0.75rem 0.375rem; text-align: left; color: inherit; border-radius: inherit; }
+  .nachricht-ziel { display: flex; flex-direction: column; width: 100%; min-height: 2.75rem; padding: 0.5625rem 0.875rem 0.4375rem; text-align: left; color: inherit; border-radius: inherit; }
   .nachricht-ziel:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
   /* Ohne Silbentrennung: im Gespräch liest man Wörter, nicht Satzspiegel. */
   .nachricht-text { white-space: pre-wrap; overflow-wrap: anywhere; hyphens: manual; -webkit-hyphens: manual; font-size: 0.9375rem; line-height: 1.45; color: var(--text); }
@@ -61,69 +108,76 @@
   .nachricht-nochmal { display: flex; gap: 0.5rem; margin-top: 0.375rem; }
 
   .nachricht-anhaenge { display: flex; flex-wrap: wrap; gap: 0.375rem; padding: 0.375rem 0.375rem 0; }
-  .nachricht-bild { display: block; width: 12rem; max-width: 100%; height: 9rem; object-fit: cover; border-radius: var(--radius-sm); background: var(--surface); }
-  .nachricht-datei { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; max-width: 100%; padding: 0.375rem 0.75rem 0.375rem 0.625rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 0.875rem; text-decoration: none; }
+  .nachricht-bild { display: block; width: 13rem; max-width: 100%; height: 9.5rem; object-fit: cover; border-radius: 0.875rem; background: var(--surface-3); }
+  .nachricht-datei { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; max-width: 100%; padding: 0.375rem 0.875rem 0.375rem 0.625rem; border: 1px solid var(--border); border-radius: 0.875rem; background: var(--surface); color: var(--text); font-size: 0.875rem; text-decoration: none; }
   .nachricht-datei:hover { border-color: var(--border-strong); }
   .nachricht-datei-name { min-width: 0; overflow-wrap: anywhere; }
   .nachricht-datei-groesse { flex: none; font-family: var(--schrift-mono); font-size: 0.75rem; color: var(--text-muted); }
   .verlauf-trenner { padding: 0.5rem 1rem; font-size: 0.8125rem; color: var(--text-muted); border-top: 1px solid var(--border); }
 
   /*
-    DIE EINGABE: eine Zeile — Anhang, (in Runde und Thread) Erwähnen, das
-    Feld, Senden. Am Telefon klebt sie am unteren Rand über der Reiterleiste
-    (`--reiter-hoehe`), so bleibt sie in der Hand, auch wenn der Verlauf lang
-    ist. Ab dem Tablet hat das Gespräch eine feste Höhe: der Verlauf rollt in
-    seinem Rahmen, die Eingabe steht darunter.
+    DIE EINGABE: eine Zeile aus runden Knöpfen und einem Feld in
+    Pillenform. Am Telefon klebt sie über der Reiterleiste
+    (`--reiter-hoehe`, fest); ab dem Tablet hat das Gespräch eine feste Höhe, der
+    Verlauf rollt in seinem Rahmen, die Eingabe steht darunter.
   */
-  .eingabe { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.625rem 0.75rem; background: var(--surface); border-top: 1px solid var(--border); }
+  /*
+    Am Telefon steht die Eingabe fest über der Reiterleiste, über die ganze
+    Breite — wie in jedem Messenger. Klebend im Blatt ließ sie am Ende des
+    Verlaufs einen leeren Streifen stehen. Damit die letzte Nachricht nicht
+    darunter verschwindet, hält der Verlauf unten genau ihre Höhe frei
+    (`--eingabe-hoehe`, gemessen im Gespräch).
+  */
+  .eingabe { position: fixed; left: 0; right: 0; bottom: var(--reiter-hoehe, 0px); z-index: 20; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem 0.75rem 0.625rem; background: var(--surface); border-top: 1px solid var(--border); }
+  .gespraech-verlauf { padding-bottom: var(--eingabe-hoehe, 4.5rem); }
   .eingabe-gesperrt { padding: 0.875rem 1rem; font-size: 0.875rem; color: var(--text-muted); }
-  .eingabe-zeile { display: flex; align-items: flex-end; gap: 0.25rem; }
-  .eingabe-feld { flex: 1; min-width: 0; min-height: 3rem; max-height: 10rem; resize: none; margin-inline: 0.25rem; padding: 0.6875rem 0.875rem; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 1rem; line-height: 1.5; hyphens: manual; -webkit-hyphens: manual; }
+  .eingabe-zeile { display: flex; align-items: flex-end; gap: 0.375rem; }
+  .chat-rund { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border-radius: 999px; background: var(--surface-2); color: var(--accent-deep); }
+  .chat-rund:hover { background: var(--surface-3); }
+  .chat-rund:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  .chat-rund-klein { width: 2.25rem; height: 2.25rem; background: transparent; color: var(--text-muted); }
+  .chat-senden { background: var(--petrol); color: var(--auf-petrol); }
+  .chat-senden:hover { background: var(--petrol-tief); }
+  .chat-senden:disabled { background: var(--surface-3); color: var(--text-muted); cursor: not-allowed; }
+  .eingabe-feld { flex: 1; min-width: 0; min-height: 2.75rem; max-height: 10rem; resize: none; margin-inline: 0.125rem; padding: 0.5625rem 1rem; border: 1px solid var(--border-strong); border-radius: 1.375rem; background: var(--surface); color: var(--text); font-size: 1rem; line-height: 1.5; hyphens: manual; -webkit-hyphens: manual; }
   .eingabe-feld::placeholder { color: var(--text-placeholder); }
   .eingabe-feld:focus { border-color: var(--brand-fixed); }
   .eingabe-at { font-size: 1.125rem; line-height: 1; }
-  .eingabe-senden { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: var(--radius); background: var(--brand); color: var(--brand-fg); }
-  .eingabe-senden:disabled { background: var(--surface-3); color: var(--text-muted); cursor: not-allowed; }
   .eingabe-dateien { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-  .eingabe-datei { display: inline-flex; align-items: center; gap: 0.5rem; max-width: 100%; min-height: 2.75rem; padding: 0.25rem 0 0.25rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); font-size: 0.875rem; }
-  .eingabe-datei-bild { width: 2.25rem; height: 2.25rem; object-fit: cover; border-radius: var(--radius-sm); }
+  .eingabe-datei { display: inline-flex; align-items: center; gap: 0.5rem; max-width: 100%; min-height: 2.75rem; padding: 0.25rem 0.25rem 0.25rem 0.5rem; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); font-size: 0.875rem; }
+  .eingabe-datei-bild { width: 2.25rem; height: 2.25rem; object-fit: cover; border-radius: 999px; }
 
   @media (min-width: 760px) {
+    .chat-nur-telefon { display: none; }
     /* Etwa zwei Drittel der Fensterhöhe: Seitenkopf und Kartenkopf passen darüber, ohne dass die Seite rollt. */
     .gespraech { height: 62dvh; min-height: 26rem; max-height: 60rem; }
-    /* Wenige Nachrichten stehen unten an der Eingabe, wie in jedem Messenger. */
     .gespraech-verlauf { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; }
-    .gespraech-verlauf > .verlauf { margin-top: auto; }
-    .eingabe { position: static; }
-    .nachricht-blatt { max-width: min(85%, 36rem); }
+    /* Wenige Nachrichten stehen unten an der Eingabe, wie in jedem Messenger. */
+    .gespraech-verlauf > .verlauf { margin-top: auto; padding-inline: 1.25rem; }
+    .eingabe { position: static; padding: 0.75rem 1rem; }
+    .gespraech-verlauf { padding-bottom: 0; }
+    .nachricht-blatt { max-width: 70%; }
   }
   @media (min-width: 1200px) {
-    .nachricht-blatt { max-width: min(75%, 36rem); }
+    .nachricht-blatt { max-width: 62%; }
   }
+}
 
-  /*
-    DER POSTEINGANG: je Gespräch eine Zeile wie in jedem Messenger — vorn
-    das Kürzel (bei der Baustelle das Zeichen), daneben Name und Zeit, darunter
-    die letzte Nachricht in einer Zeile und die eigene Zahl der ungelesenen.
-  */
-  .postfach-zeile { position: relative; display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; }
-  .postfach-zeile + .postfach-zeile { border-top: 1px solid var(--border); }
-  .postfach-zeile[data-aktiv] { background: var(--surface-2); }
-  .postfach-zeile[data-aktiv]::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--petrol); }
-  .postfach-zeile:hover { background: var(--surface-2); }
-  .postfach-kuerzel { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); color: var(--ink-deep); font-size: 0.875rem; font-weight: var(--gewicht-titel); letter-spacing: 0.02em; }
-  .postfach-zeile[data-art="direkt"] .postfach-kuerzel { background: var(--petrol-hell); border-color: var(--petrol-hell); }
-  .postfach-text { flex: 1; min-width: 0; }
-  .postfach-oben, .postfach-unten { display: flex; align-items: baseline; gap: 0.5rem; }
-  .postfach-unten { margin-top: 0.125rem; align-items: center; }
-  .postfach-titel { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9375rem; color: var(--ink-deep); }
-  .postfach-titel::after { content: ''; position: absolute; inset: 0; }
-  .postfach-titel:focus-visible { outline: none; }
-  .postfach-zeile:focus-within { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
-  .postfach-zeit { flex: none; font-family: var(--schrift-mono); font-size: 0.75rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-  .postfach-vorschau { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; color: var(--text-muted); }
-  .postfach-zeile[data-neu] .postfach-titel { font-weight: var(--gewicht-titel); }
-  .postfach-zeile[data-neu] .postfach-vorschau { color: var(--text); }
-  .postfach-zahl { flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 1.375rem; height: 1.375rem; padding: 0 0.375rem; border-radius: var(--radius-sm); background: var(--petrol); color: var(--auf-petrol); font-family: var(--schrift-mono); font-size: 0.75rem; font-weight: var(--gewicht-zahl); }
-  .postfach-marke { flex: none; font-size: 0.75rem; color: var(--text-muted); }
+/* ── Neue Nachricht: ein Bogen mit Suche, Personen und Baustellen ── */
+@layer components {
+  .neu-bogen { display: flex; flex-direction: column; gap: 0.75rem; }
+  .neu-abschnitt { margin: 0.5rem 0.25rem 0.25rem; font-size: 0.6875rem; font-weight: 400; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+  .neu-leer { padding: 0.5rem 0.25rem; font-size: 0.875rem; color: var(--text-muted); }
+  .neu-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .neu-zeile { display: flex; align-items: center; gap: 0.75rem; width: 100%; min-height: 3.5rem; padding: 0.375rem 0.5rem; border-radius: 1rem; text-align: left; color: var(--text); }
+  .neu-zeile:hover { background: var(--surface-2); }
+  .neu-zeile:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+  .neu-zeile[aria-pressed="true"] { background: var(--petrol-hell); }
+  .neu-zeile[aria-pressed="true"] .postfach-kuerzel { background: var(--petrol); color: var(--auf-petrol); }
+  .neu-zeile .postfach-kuerzel { width: 2.5rem; height: 2.5rem; font-size: 0.8125rem; }
+  .neu-zeile .postfach-kuerzel.neu-bau { border-radius: 0.75rem; background: var(--surface-3); color: var(--ink-deep); }
+  .neu-text { display: flex; flex-direction: column; min-width: 0; }
+  .neu-name { font-size: 0.9375rem; color: var(--ink-deep); overflow-wrap: anywhere; }
+  .neu-rolle { font-size: 0.75rem; color: var(--text-muted); overflow-wrap: anywhere; }
+  .neu-nr { font-family: var(--schrift-mono); }
 }

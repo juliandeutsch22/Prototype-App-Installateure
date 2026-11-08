@@ -21,7 +21,7 @@ import type { Vormerkung, WriteOutcome } from '@/lib/sync/ausgangsfach';
 export const NACHRICHT_TABELLE = 'nachrichten';
 
 export type KanalArt = 'baustelle' | 'direkt' | 'runde';
-export type PostfachAuswahl = 'alle' | 'privat' | 'baustelle';
+export type PostfachAuswahl = 'alle' | 'privat' | 'baustelle' | 'ungelesen';
 
 export interface PostfachZeile {
   kanal: string;

@@ -2256,8 +2256,8 @@ private Messenger — ohne Bezug zur Akte, mit Kundenfotos in fremden Clouds.
   Threads, die Benutzerakte „Nachricht schreiben“. Im Einblick des Supports
   steht auf beiden Seiten der Nachrichten ein Satz statt eines Fehlers.
 - **Module:** `nachrichten` (Standard an, empfohlener Umfang) mit
-  `nachrichten.direktnachrichten` (ab Werk **aus**, D1; beim Einschalten der
-  Hinweis auf ArbVG §§ 96, 96a). Jeder Schreibweg prüft beides auf dem Server
+  `nachrichten.direktnachrichten` (ab Werk **aus**, D1 — seit E65 ab Werk
+  an; beim Einschalten der Hinweis auf ArbVG §§ 96, 96a). Jeder Schreibweg prüft beides auf dem Server
   (V3); Löschen und Melden gehen immer.
 
 **Grenzen mit Grund:** keine Ende-zu-Ende-Verschlüsselung (Sicherheit/Technik:
@@ -2282,3 +2282,51 @@ Aufbewahrung, Module); Querschnitt `mandantenTrennung`, `modulRegisterServer`,
 `tests/unit/nachrichten.test.ts`, `scheinSender`, `modulRegister`,
 `navigationLot`, `navigation-routen`; Komponenten `Nachrichten.test.tsx`,
 `ModulesView`; Browser `nachrichten.spec.ts` (Telefon, Tablet, Schreibtisch).
+
+**E65 — Nachrichten, zweite Fassung: rund, ruhig, ohne Springen; Direktnachrichten ab Werk an (08.11.2026).**
+Auftrag nach der ersten Auslieferung: die Chats wirkten „alt, billig und wenig
+intuitiv“, beim Senden „rucklig, lädt nach, springt um“, und „Neue Nachricht“
+zeigte keine Personen. Freigegeben am 08.11.2026 nach Entwürfen („das
+Chat-Konzept finde ich gut“, „nicht die ganze Designlinie verändern, lediglich
+diese Elemente“, „ab Werk können sie an sein“).
+
+- **Nur diese Elemente sind weich:** Kürzel (Personen rund, Baustellen als
+  weiches Quadrat), Sprechblasen (Radius 20 px, die Ecke zum Absender an der
+  ersten Nachricht einer Gruppe spitz), Tages-Pille, Suchfeld und
+  Filter-Pillen, die runden Knöpfe der Eingabe, das Feld in Pillenform und
+  die beiden Blätter (Posteingang, Gespräch). Die übrige App behält die
+  Kanten der Linie „Lot“; Farben nur aus den Grundwerten (Petrol, kein Grün),
+  keine Schatten, keine halbtransparenten Flächen. Steht in
+  `src/styles/lot-nachrichten.css`.
+- **Ohne Springen:** die eben gesendete Nachricht bleibt stehen, bis der neu
+  geladene Verlauf sie enthält, und wird dort an Ort und Stelle ersetzt
+  (gleiche Kennung, gleicher Aufbau, gleiche Gruppe) — vorher verschwand sie
+  für einen Augenblick. Sie steht sofort in ihrer endgültigen Farbe; hell ist
+  nur, was ohne Netz wartet oder abgelehnt wurde. Gerollt wird nur sanft und
+  nur, wer unten war oder selbst gesendet hat. Am Telefon steht die Eingabe
+  fest über der Reiterleiste, der Verlauf hält ihre Höhe frei.
+- **Neue Nachricht in einem Schritt:** ein Bogen mit Suche, darunter gleich
+  die Personen (ein Tipp: das Gespräch zu zweit) und die Baustellen (ein Tipp:
+  ihr Thread); „Runde mit mehreren“ schaltet auf Auswahl um, danach ist der
+  Name freiwillig.
+- **Posteingang:** Reiter Alle · Direkt · Baustellen · **Ungelesen** — der
+  letzte auf dem Server gefiltert (`nachrichten_postfach` mit
+  `p_art = 'ungelesen'`), damit beim Nachladen keine Seite fehlt.
+- **Eingabe:** Anhang, am Telefon zusätzlich die Kamera direkt, in Runde und
+  Thread Erwähnen; Senden als runder Pfeil.
+- **Direktnachrichten ab Werk an** (D1 zurückgenommen): ausgeschaltet zeigte
+  „Neue Nachricht“ keine Personen und wirkte wie ein Fehler. Register in App
+  und Datenbank (`20261109100000_nachrichten_v2.sql`) sagen `standard true`;
+  wer sie ausdrücklich ausgeschaltet hat, bleibt dabei. Der Hinweis auf ArbVG
+  §§ 96, 96a steht jetzt im Zweck des Schalters (sichtbar, solange er an ist)
+  und weiter beim Wiedereinschalten.
+- **Seitenkopf bleibt:** auch im Gespräch am Telefon beginnt die Seite mit
+  `PageHeader` (Zurück, Name, Art, ⋯) — die Regel der Linie gilt weiter.
+
+**Grenze mit Grund:** keine. **Nachweis:** `nachrichten.spec.ts` (neu: „Senden
+springt nicht“ — misst je Bild die Zahl der Nachrichten, ob die neue da ist,
+und die Rollposition; Gegenprobe mit der alten Sendelogik rot: „sie
+verschwindet nie mehr“), `nachrichten.test.ts` (Ungelesen samt Gegenprobe mit
+der alten Funktion rot; ab Werk an), `Nachrichten.test.tsx` (Neue Nachricht in
+einem Schritt, Runde, Ungelesen), `modulRegister`, `ModulesView`,
+`lotGrundwerte` (Kontrast im dunklen Satz).

@@ -11,6 +11,11 @@ import { anmelden, keineFehlermeldung, menue } from './helfer';
  *      ihren Nachrichten noch an der Akte des Monteurs.
  *   2. Das Büro schreibt mit einem Bild in den Thread der Baustelle; der
  *      Monteur, der im Team steht, liest Text und Bild.
+ *   3. Senden springt nicht (E65): die eben gesendete Nachricht steht ab dem
+ *      ersten Bild bis zur Bestätigung durchgehend da, die Zahl der
+ *      Nachrichten geht nie zurück, und der Verlauf rollt nicht zurück.
+ *
+ * Direktnachrichten sind seit E65 ab Werk an — hier ohne jede Festlegung.
  */
 const BILD = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
@@ -29,10 +34,7 @@ async function abraeumen() {
   await admin.from('projects').update({ assigned_employees: [] }).eq('company_id', BETRIEB).eq('project_number', BAUSTELLE.nummer);
 }
 
-test.beforeEach(async () => {
-  await abraeumen();
-  await admin.from('companies').update({ modules: { 'nachrichten.direktnachrichten': true } }).eq('id', BETRIEB);
-});
+test.beforeEach(abraeumen);
 test.afterEach(abraeumen);
 
 async function senden(seite: Page, text: string) {
@@ -52,9 +54,8 @@ test('privat: Monteur schreibt dem Büro, das Büro antwortet — die Geschäfts
   await menue(monteur, 'Nachrichten');
   await expect(monteur.getByRole('heading', { name: 'Nachrichten', level: 1 })).toBeVisible();
   await monteur.getByRole('button', { name: 'Neue Nachricht' }).click();
-  await monteur.getByRole('button', { name: 'An eine oder mehrere Personen …' }).click();
-  await monteur.getByRole('button', { name: BUERO.name }).click();
-  await monteur.getByRole('button', { name: /^Weiter/ }).click();
+  // Ein Bogen, ein Schritt: die Personen stehen gleich da.
+  await monteur.getByRole('button', { name: new RegExp(BUERO.name) }).click();
   await expect(monteur).toHaveURL(/\/nachrichten\/[0-9a-f-]{36}$/, { timeout: 15_000 });
   await senden(monteur, geheim);
   await keineFehlermeldung(monteur);
@@ -92,7 +93,6 @@ test('Baustelle: das Büro schreibt mit Bild in den Thread, der Monteur im Team 
   await anmelden(buero, BUERO.email);
   await menue(buero, 'Nachrichten');
   await buero.getByRole('button', { name: 'Neue Nachricht' }).click();
-  await buero.getByRole('button', { name: 'In den Thread einer Baustelle …' }).click();
   await buero.getByRole('button', { name: new RegExp(BAUSTELLE.nummer) }).click();
   await expect(buero).toHaveURL(/\/nachrichten\/[0-9a-f-]{36}$/, { timeout: 15_000 });
   await buero.locator('#nachricht-dateien').setInputFiles({ name: 'zaehler.png', mimeType: 'image/png', buffer: BILD });
@@ -108,4 +108,54 @@ test('Baustelle: das Büro schreibt mit Bild in den Thread, der Monteur im Team 
   await expect(monteur.getByRole('list', { name: 'Verlauf' }).getByText('Zähler fotografiert')).toBeVisible({ timeout: 15_000 });
   await expect(monteur.getByRole('img', { name: 'zaehler.png' })).toBeVisible({ timeout: 15_000 });
   await keineFehlermeldung(monteur);
+});
+
+test('Senden springt nicht: die Nachricht steht durchgehend, nichts rollt zurück', async ({ browser }) => {
+  test.setTimeout(180_000);
+  const seite = await (await browser.newContext()).newPage();
+  await anmelden(seite, MONTEUR.email);
+  await menue(seite, 'Nachrichten');
+  await seite.getByRole('button', { name: 'Neue Nachricht' }).click();
+  await seite.getByRole('button', { name: new RegExp(BUERO.name) }).click();
+  await expect(seite).toHaveURL(/\/nachrichten\/[0-9a-f-]{36}$/, { timeout: 15_000 });
+  // Genug Verlauf, dass gerollt wird.
+  for (let i = 0; i < 8; i++) await senden(seite, `Vorlauf ${i}: eine Zeile mit etwas Text, damit der Verlauf länger wird als das Fenster.`);
+
+  // Von jetzt an jedes Bild mitschreiben: Zahl der Nachrichten, ob die neue da ist, wie weit gerollt ist.
+  await seite.evaluate(() => {
+    const w = window as unknown as { bilder: { n: number; da: boolean; rolle: number }[]; messen: boolean };
+    w.bilder = []; w.messen = true;
+    const rahmen = () => {
+      const r = document.querySelector('.gespraech-verlauf') as HTMLElement | null;
+      return r && getComputedStyle(r).overflowY === 'auto' ? r.scrollTop : window.scrollY;
+    };
+    const schritt = () => {
+      const li = [...document.querySelectorAll('ol[aria-label="Verlauf"] > li')];
+      w.bilder.push({ n: li.length, da: li.some((x) => x.textContent?.includes('Messung ohne Springen')), rolle: rahmen() });
+      if (w.messen) requestAnimationFrame(schritt);
+    };
+    requestAnimationFrame(schritt);
+  });
+  await seite.getByRole('textbox', { name: 'Nachricht' }).fill('Messung ohne Springen');
+  await seite.getByRole('button', { name: 'Senden' }).click();
+  await expect(seite.getByText('wird gesendet')).toHaveCount(0, { timeout: 15_000 });
+  await seite.waitForTimeout(1500);
+  const bilder = await seite.evaluate(() => {
+    const w = window as unknown as { bilder: { n: number; da: boolean; rolle: number }[]; messen: boolean };
+    w.messen = false;
+    return w.bilder;
+  });
+
+  console.log(JSON.stringify(bilder.map((b) => `${b.n}${b.da ? "+" : "-"}${Math.round(b.rolle)}`)));
+  const erstes = bilder.findIndex((b) => b.da);
+  expect(erstes, 'die Nachricht erscheint').toBeGreaterThanOrEqual(0);
+  const danach = bilder.slice(erstes);
+  expect(danach.every((b) => b.da), 'sie verschwindet nie mehr').toBe(true);
+  for (let i = 1; i < bilder.length; i++) {
+    expect(bilder[i].n, `Bild ${i}: die Zahl der Nachrichten geht nicht zurück`).toBeGreaterThanOrEqual(bilder[i - 1].n);
+  }
+  for (let i = erstes + 1; i < bilder.length; i++) {
+    expect(bilder[i].rolle, `Bild ${i}: der Verlauf rollt nicht zurück`).toBeGreaterThanOrEqual(bilder[i - 1].rolle - 1);
+  }
+  await keineFehlermeldung(seite);
 });
