@@ -3,10 +3,10 @@
 
   DIE LINIE BLEIBT, NUR DIESE ELEMENTE SIND WEICH (Auftrag 08.11.2026:
   „nicht die ganze Designlinie verändern, lediglich diese Elemente“). Rund
-  sind hier: Kürzel, Sprechblasen, Tages-Pille, Suchfeld, Filter-Pillen,
-  die runden Knöpfe der Eingabe und die beiden Blätter (Posteingang,
-  Gespräch). Listen, Tabellen und Formulare der übrigen App behalten die
-  Kanten der Linie „Lot“. Farben nur aus den Grundwerten, keine Schatten,
+  sind hier: Kürzel, Sprechblasen, Tages-Pille, Suchfeld, Filter-Pillen
+  und die runden Knöpfe der Eingabe. Die Blätter selbst (Posteingang,
+  Gespräch) bleiben eckig wie jedes Blatt der Linie „Lot“ — runde Knöpfe ja,
+  runde Boxen nein (Auftrag 08.11.2026). Farben nur aus den Grundwerten, keine Schatten,
   keine halbtransparenten Flächen.
 */
 @layer components {
@@ -30,7 +30,7 @@
   .chat-chip[aria-pressed="true"] { background: var(--petrol); border-color: var(--petrol); color: var(--auf-petrol); }
   .chat-chip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
-  .postfach-blatt { border: 1px solid var(--border); border-radius: 1.375rem; background: var(--surface); overflow: hidden; }
+  .postfach-blatt { border: 1px solid var(--border); background: var(--surface); }
   .postfach-zeile { position: relative; display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0.875rem; }
   .postfach-zeile + .postfach-zeile { border-top: 1px solid var(--border); }
   .postfach-zeile[data-aktiv] { background: var(--petrol-hell); }
@@ -58,7 +58,7 @@
   .postfach-marke { flex: none; font-size: 0.75rem; color: var(--text-muted); }
 
   /* ── Gespräch ────────────────────────────────────────────────── */
-  .chat { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 1.375rem; background: var(--surface); overflow: hidden; }
+  .chat { display: flex; flex-direction: column; border: 1px solid var(--border); background: var(--surface); }
   .chat-kopf { display: flex; align-items: center; gap: 0.75rem; min-height: 4rem; padding: 0.625rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface); }
   .chat-kopf .chat-kuerzel { width: 2.25rem; height: 2.25rem; font-size: 0.8125rem; }
   .chat-kopf .chat-kuerzel[data-art="baustelle"] { border-radius: 0.6875rem; }

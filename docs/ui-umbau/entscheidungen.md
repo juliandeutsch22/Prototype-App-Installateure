@@ -2293,9 +2293,10 @@ diese Elemente“, „ab Werk können sie an sein“).
 - **Nur diese Elemente sind weich:** Kürzel (Personen rund, Baustellen als
   weiches Quadrat), Sprechblasen (Radius 20 px, die Ecke zum Absender an der
   ersten Nachricht einer Gruppe spitz), Tages-Pille, Suchfeld und
-  Filter-Pillen, die runden Knöpfe der Eingabe, das Feld in Pillenform und
-  die beiden Blätter (Posteingang, Gespräch). Die übrige App behält die
-  Kanten der Linie „Lot“; Farben nur aus den Grundwerten (Petrol, kein Grün),
+  Filter-Pillen, die runden Knöpfe der Eingabe und das Feld in Pillenform.
+  Die Blätter (Posteingang, Gespräch) bleiben eckig („runde Knöpfe ja, runde
+  Boxen eher nicht“, 08.11.2026); die übrige App behält die Kanten der Linie
+  „Lot“; Farben nur aus den Grundwerten (Petrol, kein Grün),
   keine Schatten, keine halbtransparenten Flächen. Steht in
   `src/styles/lot-nachrichten.css`.
 - **Ohne Springen:** die eben gesendete Nachricht bleibt stehen, bis der neu
