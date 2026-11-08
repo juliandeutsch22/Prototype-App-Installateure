@@ -84,8 +84,8 @@ rückwirkende Umrechnung. Die bestehende Zeitrechnung bleibt unverändert.
 ## Technischer Prüfstand
 
 - Typprüfung, Lint und Produktionsbuild: bestanden.
-- Unit-/Komponentenprüfungen: 6.995 Fälle, Gesamtlauf mit gezielten
-  Nachprüfungen. Die letzten 72 betroffenen Prüfungen zu Maske, Modulregister,
+- Unit-/Komponentenprüfungen: 6.997 Fälle, Gesamtlauf mit gezielten
+  Nachprüfungen. Die letzten 74 betroffenen Prüfungen zu Maske, Modulregister,
   Schreibweise und Handbuch bestehen.
 - Datenbank/Edge Functions: 2.583 Prüfungen in 213 Dateien bestanden, kein
   übersprungener Fall.
@@ -107,4 +107,9 @@ wie im bestehenden Register. Die zusätzliche Gegenprobe mit einem numerischen
 Wert fand den zu strengen Boolean-Cast (22P02). Unset, null, Zahlen, Text,
 Objekte und Arrays sowie ausdrücklich falsche/leere Werte werden mitgeprüft;
 ein ausgeschaltetes freies Feld erhält dadurch keine Schreibfreigabe. Die
-119 betroffenen Datenbankprüfungen und 72 Modul-/Ansichtsprüfungen bestehen.
+119 betroffenen Datenbankprüfungen und 74 Modul-/Ansichtsprüfungen bestehen.
+
+Zwei weitere rote Komponentengegenproben belegen den Schutz gegen verspätete
+Filterantworten sowie den Erhalt eines Direktlink-Fehlerhinweises nach einer
+unabhängigen Listenladung. Die Korrekturansicht nimmt nur das Ergebnis der
+neuesten Listenanforderung an; Linkfehler haben einen eigenen Zustand.

@@ -1,0 +1,56 @@
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+import { ToastProvider } from '@/components/Toast';
+import type { Zeitkorrektur } from '@/lib/db/zeitkorrekturen';
+
+const listeLaden = vi.fn();
+const einzelLaden = vi.fn();
+vi.mock('@/lib/db/zeitkorrekturen', () => ({
+  zeitkorrekturenLaden: (...args: unknown[]) => listeLaden(...args),
+  zeitkorrekturLaden: (...args: unknown[]) => einzelLaden(...args),
+  korrekturBuchungLaden: vi.fn(), zeitkorrekturBeantragen: vi.fn(), zeitkorrekturEntscheiden: vi.fn(),
+}));
+vi.mock('@/lib/db/users', () => ({ getUserByUid: vi.fn() }));
+vi.mock('@/features/time/TimeForm', () => ({ default: () => null }));
+vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({
+  user: { uid: 'buero', companyId: 'firma', role: 'Buchhaltung' },
+  company: { modules: { 'zeiterfassung.korrekturantraege': true } },
+}) }));
+const { default: Zeitkorrekturen } = await import('@/features/time/Zeitkorrekturen');
+function spaeter<T>() {
+  let liefern!: (wert: T) => void;
+  const antwort = new Promise<T>((resolve) => { liefern = resolve; });
+  return { antwort, liefern: (wert: T) => liefern(wert) };
+}
+function zeichnen(url = '/time') {
+  render(<MemoryRouter initialEntries={[url]}><ToastProvider><Zeitkorrekturen /></ToastProvider></MemoryRouter>);
+}
+const antrag = (id: string, wunsch: string, stand: Zeitkorrektur['stand']): Zeitkorrektur => ({
+  id, companyId: 'firma', userId: 'ma', eintragId: 'e', datum: '2026-11-05', stand, wunsch,
+  vorher: { user_name: 'Max' }, angelegtAm: 0,
+});
+beforeEach(() => { listeLaden.mockReset(); einzelLaden.mockReset(); });
+it('eine verspätete Antwort überschreibt die zuletzt gewählte Filteransicht nicht', async () => {
+  const alle = spaeter<Zeitkorrektur[]>(), offen = spaeter<Zeitkorrektur[]>();
+  listeLaden.mockResolvedValueOnce([]).mockReturnValueOnce(alle.antwort).mockReturnValueOnce(offen.antwort);
+  zeichnen();
+  await waitFor(() => expect(listeLaden).toHaveBeenCalledTimes(1));
+  fireEvent.click(screen.getByRole('checkbox', { name: /Auch entschiedene Anträge/ }));
+  await waitFor(() => expect(listeLaden).toHaveBeenCalledTimes(2));
+  fireEvent.click(screen.getByRole('checkbox', { name: /Auch entschiedene Anträge/ }));
+  await waitFor(() => expect(listeLaden).toHaveBeenCalledTimes(3));
+  await act(async () => offen.liefern([antrag('neu', 'Neuer offener Antrag', 'offen')]));
+  expect(screen.getByText(/Neuer offener Antrag/)).toBeInTheDocument();
+  await act(async () => alle.liefern([antrag('alt', 'Alter erledigter Antrag', 'abgelehnt')]));
+  expect(screen.queryByText(/Alter erledigter Antrag/)).not.toBeInTheDocument();
+  expect(screen.getByText(/Neuer offener Antrag/)).toBeInTheDocument();
+});
+it('der Hinweis auf einen unzugänglichen Direktlink bleibt nach dem Laden der Liste erhalten', async () => {
+  const liste = spaeter<Zeitkorrektur[]>();
+  listeLaden.mockReturnValue(liste.antwort); einzelLaden.mockResolvedValue(null);
+  zeichnen('/time?korrektur=nicht-zugaenglich');
+  expect(await screen.findByText(/Dieser Korrekturantrag fehlt oder ist nicht für dich zugänglich/)).toBeInTheDocument();
+  await act(async () => liste.liefern([]));
+  expect(screen.getByText(/Dieser Korrekturantrag fehlt oder ist nicht für dich zugänglich/)).toBeInTheDocument();
+});

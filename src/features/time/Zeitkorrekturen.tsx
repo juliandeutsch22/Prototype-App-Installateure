@@ -1,5 +1,5 @@
 import { getUserByUid } from '@/lib/db/users';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { canEditTime } from '@/lib/permissions';
@@ -39,6 +39,8 @@ export function KorrekturAnfordern({ eintrag }: { eintrag: TimeEntry }) {
 export default function Zeitkorrekturen() {
   const { user, company } = useAuth(); const toast = useToast();
   const [antraege, setAntraege] = useState<Zeitkorrektur[]>([]); const [fehler, setFehler] = useState<string | null>(null);
+  const [linkFehler, setLinkFehler] = useState<string | null>(null);
+  const ladeNummer = useRef(0);
   const [auchErledigte, setAuchErledigte] = useState(false); const [auswahl, setAuswahl] = useState<Zeitkorrektur | null>(null);
   const [besitzer, setBesitzer] = useState<AppUser | null>(null);
   const [buchung, setBuchung] = useState<KorrekturBuchung | null>(null); const [grund, setGrund] = useState(''); const [speichert, setSpeichert] = useState(false);
@@ -47,8 +49,9 @@ export default function Zeitkorrekturen() {
   const firma = user?.companyId;
   const an = istAn(company?.modules, 'zeiterfassung.korrekturantraege');
   useEffect(() => {
+    setLinkFehler(null);
     if (!firma || !ausUrl) return; let weg = false;
-    void zeitkorrekturLaden(firma, ausUrl).then((a) => { if (!weg) { setAuswahl(a); if (!a) setFehler('Dieser Korrekturantrag fehlt oder ist nicht für dich zugänglich.'); } }).catch((e) => { if (!weg) setFehler(grundAus(e, 'Der Korrekturantrag konnte nicht geladen werden.')); });
+    void zeitkorrekturLaden(firma, ausUrl).then((a) => { if (!weg) { setAuswahl(a); if (!a) setLinkFehler('Dieser Korrekturantrag fehlt oder ist nicht für dich zugänglich.'); } }).catch((e) => { if (!weg) setLinkFehler(grundAus(e, 'Der Korrekturantrag konnte nicht geladen werden.')); });
     return () => { weg = true; };
   }, [firma, ausUrl]);
   function schliessen() {
@@ -56,8 +59,22 @@ export default function Zeitkorrekturen() {
     if (ausUrl) setParams((alt) => { const neu = new URLSearchParams(alt); neu.delete('korrektur'); return neu; }, { preventScrollReset: true, replace: true });
   }
 
-  const laden = useCallback(async () => { if (!firma) return; try { setAntraege(await zeitkorrekturenLaden(firma, an && !auchErledigte)); setFehler(null); } catch (e) { setFehler(grundAus(e, 'Die Korrekturanträge konnten nicht geladen werden.')); } }, [firma, auchErledigte, an]);
-  useEffect(() => { void laden(); window.addEventListener('senklot:zeitkorrektur', laden); return () => window.removeEventListener('senklot:zeitkorrektur', laden); }, [laden]);
+  const laden = useCallback(async () => {
+    if (!firma) return;
+    const nr = ++ladeNummer.current;
+    setFehler(null);
+    try {
+      const zeilen = await zeitkorrekturenLaden(firma, an && !auchErledigte);
+      if (nr === ladeNummer.current) setAntraege(zeilen);
+    } catch (e) {
+      if (nr === ladeNummer.current) setFehler(grundAus(e, 'Die Korrekturanträge konnten nicht geladen werden.'));
+    }
+  }, [firma, auchErledigte, an]);
+  useEffect(() => {
+    void laden(); window.addEventListener('senklot:zeitkorrektur', laden);
+    // Ein langsamer alter Filter darf die inzwischen gewählte Ansicht nicht ersetzen.
+    return () => { ladeNummer.current += 1; window.removeEventListener('senklot:zeitkorrektur', laden); };
+  }, [laden]);
   useEffect(() => {
     let weg = false; setBuchung(null); setBesitzer(null); setGrund('');
     if (auswahl && firma) void Promise.all([korrekturBuchungLaden(auswahl.eintragId), getUserByUid(firma, auswahl.userId)])
@@ -69,12 +86,12 @@ export default function Zeitkorrekturen() {
   const buero = canEditTime(user.role);
   async function entscheiden(stand: string, eintrag?: Partial<TimeEntry>) {
     if (!auswahl || speichert) return; setSpeichert(true); setFehler(null);
-    try { await zeitkorrekturEntscheiden(auswahl.id, stand, grund, eintrag, buchung?.korrekturStand); toast.success('Korrekturantrag entschieden'); schliessen(); await laden(); }
+    try { await zeitkorrekturEntscheiden(auswahl.id, stand, grund, eintrag, buchung?.korrekturStand); toast.success('Korrekturantrag entschieden'); schliessen(); window.dispatchEvent(new Event('senklot:zeitkorrektur')); }
     catch (e) { setFehler(grundAus(e, 'Der Antrag konnte nicht entschieden werden.')); throw e; } finally { setSpeichert(false); }
   }
   return <Card title={an ? 'Korrekturanträge' : 'Korrekturanträge · Archiv'} hint="Deine bisher erlaubten Korrekturen bleiben direkt möglich. Gesperrte Buchungen prüft das Büro. Verrechnete Zeiten können erst nach dem bestehenden Rechnungs-Korrekturablauf geändert werden; Abwesenheiten werden am ursprünglichen Antrag berichtigt. Erst eine tatsächliche Änderung erlaubt die Entscheidung „umgesetzt“.">
     {an && <CheckboxField id="korrekturen-erledigte" label="Auch entschiedene Anträge zeigen" checked={auchErledigte} onChange={(e) => setAuchErledigte(e.target.checked)} />}
-    {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+    {(fehler || linkFehler) && <p role="alert" className="text-sm text-danger">{fehler ?? linkFehler}</p>}
     {!antraege.length && <p className="mt-3 text-sm text-ink-muted">Keine offenen Korrekturanträge.</p>}
     <List>{antraege.map((a) => <ListRow key={a.id} title={`${datumAT(a.datum)} · ${String(a.vorher.user_name ?? '')}`} subtitle={`${a.wunsch} · ${STANDNAME[a.stand]}`} onOeffnen={() => setAuswahl(a)} pfeil />)}</List>
     <BottomSheet open={!!auswahl} onClose={schliessen} label="Korrekturantrag" titel="Korrekturantrag" auchBreit breit>
