@@ -207,7 +207,7 @@ export default function NachrichtenView() {
 
       <NeueNachricht open={neu} onClose={() => setNeu(false)} direktAn={direktAn} personen={personen} />
 
-      <BottomSheet open={teilnehmer} onClose={() => setTeilnehmer(false)} label="Teilnehmer" titel="Teilnehmer">
+      <BottomSheet open={teilnehmer} onClose={() => setTeilnehmer(false)} label="Teilnehmer" titel="Teilnehmer" auchBreit>
         {teilnehmer && kopf?.teilnehmer && (
           <div className="space-y-3">
             <List>
@@ -237,7 +237,7 @@ export default function NachrichtenView() {
         }}
       />
 
-      <BottomSheet open={benennen} onClose={() => setBenennen(false)} label="Runde umbenennen" titel="Runde umbenennen">
+      <BottomSheet open={benennen} onClose={() => setBenennen(false)} label="Runde umbenennen" titel="Runde umbenennen" auchBreit>
         {benennen && kopf && (
           <form
             className="space-y-3"

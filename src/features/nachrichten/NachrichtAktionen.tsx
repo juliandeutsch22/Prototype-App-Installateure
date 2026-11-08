@@ -133,6 +133,7 @@ export default function NachrichtAktionen({
         open={offen}
         onClose={onClose}
         label="Nachricht"
+        auchBreit
         titel={schritt === 'melden' ? 'Nachricht melden' : schritt === 'bearbeiten' ? 'Nachricht bearbeiten' : 'Nachricht'}
       >
         {n && (

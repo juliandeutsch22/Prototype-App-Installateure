@@ -244,6 +244,8 @@ vi.mock('@/lib/db/angebotLinks', () => ({ listUeberLinkAngenommen: vi.fn(async (
 /* Offene Auftragseingänge (M02b) — eigener Fall unten; sonst keine. */
 const eingaenge = { wert: { offen: 0, dringend: 0, notfall: 0 } };
 vi.mock('@/lib/db/auftragseingaenge', () => ({ zaehleOffeneEingaenge: vi.fn(async () => eingaenge.wert) }));
+// Die Nachrichten (M10/B09): ohne ungelesene und ohne Meldungen — eigene Fälle in `tests/unit/nachrichten.test.ts`.
+vi.mock('@/lib/db/nachrichten', () => ({ ungeleseneZahl: vi.fn(async () => 0), meldungenOffen: vi.fn(async () => 0) }));
 
 // EIN Objekt, nicht bei jedem Aufruf ein neues: die Ansicht hängt ihre
 // Effekte an die Identität von `user`, ein frisches Objekt je Aufruf löst

@@ -70,7 +70,7 @@ export default function NeueNachricht({
 
   return (
     <>
-      <BottomSheet open={schritt === 'zu' || schritt === 'runde'} onClose={schliessen} label="Neue Nachricht" titel="Neue Nachricht">
+      <BottomSheet open={schritt === 'zu' || schritt === 'runde'} onClose={schliessen} label="Neue Nachricht" titel="Neue Nachricht" auchBreit>
         {schritt === 'zu' && (
           <div className="flex flex-col gap-2">
             <Button variant="secondary" onClick={() => setInnen('personen')}>An eine oder mehrere Personen …</Button>
