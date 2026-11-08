@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Customer } from '@/types';
 import type { WithId } from '@/lib/db/core';
@@ -76,6 +76,16 @@ export default function KundenAuswahl({
   // Wird der Kunde von außen geleert (neues Formular), steht wieder die Suche da.
   useEffect(() => {
     if (!value) setSuchen(true);
+  }, [value]);
+  /*
+    WIRD ER VON AUSSEN GESETZT (ein übernommener Vorschlag, M02c), steht er
+    als gewählt da — nicht die Suche mit „Bei … bleiben“. Nur beim Wechsel
+    der Kennung: wer „Anderen Kunden wählen“ drückt, behält seine Suche.
+  */
+  const vorherigerWert = useRef(value);
+  useEffect(() => {
+    if (value && value !== vorherigerWert.current) setSuchen(false);
+    vorherigerWert.current = value;
   }, [value]);
 
   const q = begriff.trim();

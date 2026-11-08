@@ -97,6 +97,7 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'lager_knapp',
   'lieferant_vorschlag',
   'lieferant_vorschlag_grund',
+  'liegenschaften_suche',
   'materialdeckung',
   'mein_zustand',
   'mein_zweiter_faktor',

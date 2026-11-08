@@ -23,6 +23,8 @@ export type EingangEingabe = Pick<
   | 'quelle' | 'auftraggeberNummer' | 'customerId' | 'neukundeName' | 'neukundeStrasse' | 'neukundePlz'
   | 'neukundeOrt' | 'neukundeTelefon' | 'neukundeEmail' | 'ort' | 'ansprechpartnerName'
   | 'ansprechpartnerTelefon' | 'anliegen' | 'dringlichkeit' | 'wunschtermin' | 'eingegangenAm'
+  // M02c: Liegenschaft und Top — die Bezeichnungen setzt die Datenbank.
+  | 'liegenschaftId' | 'topId'
 >;
 
 /** Wo die nächste Seite beginnt — nach dieser Zeile, in der Reihenfolge der Liste. */

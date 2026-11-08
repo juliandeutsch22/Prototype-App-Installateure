@@ -290,6 +290,16 @@ describe('Interne Hilfsfunktionen', () => {
       'app.eingang_journal_kunde()',
       'app.eingang_kundenname_nachziehen()',
       'app.eingang_rang()',
+      // Liegenschaften (M02c): Modulpflicht, Rolle in Worten, Auslöser und das Vergessen eines Beteiligten.
+      'app.liegenschaften_modul_pflicht(text)',
+      'app.beteiligter_rolle_text(text)',
+      'app.liegenschaft_schreiben_pruefen()',
+      'app.liegenschaft_anschrift()',
+      'app.liegenschaft_top_pruefen()',
+      'app.liegenschaft_beteiligter_pruefen()',
+      'app.liegenschaft_zuordnung_pruefen()',
+      'app.liegenschaft_namen_nachziehen()',
+      'app.journal_beteiligter_vergessen(text, uuid)',
       // Die freien Zeitfelder (M06b): Regel, Schnappschuss, Recht und Auslöser — nur die Befehle und Auslöser selbst.
       'app.zeitfeld_staende()',
       'app.zeitfeld_rollen()',

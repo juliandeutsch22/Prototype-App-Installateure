@@ -595,9 +595,10 @@ describe('Keine Spalte fehlt still', () => {
         select c.relname as tabelle, encode(t.tgargs, 'escape') as argumente
           from pg_trigger t join pg_class c on c.oid = t.tgrelid
          where not t.tgisinternal and t.tgfoid = 'app.journal_protokollieren'::regproc`);
-      // Seit M02b dazu der Auftragseingang (bewusst nachgezogen).
+      // Seit M02b dazu der Auftragseingang, seit M02c Liegenschaften, Tops und Beteiligte (bewusst nachgezogen).
       expect(rows.map((r) => r.tabelle).sort()).toEqual(
-        ['auftragseingaenge', 'customers', 'invoices', 'projects', 'quotes', 'users', 'wartungen', 'zahlungseingaenge']);
+        ['auftragseingaenge', 'customers', 'invoices', 'liegenschaft_beteiligte', 'liegenschaft_tops', 'liegenschaften',
+         'projects', 'quotes', 'users', 'wartungen', 'zahlungseingaenge']);
       const abweichend: string[] = [];
       for (const { tabelle, argumente } of rows) {
         const [objektart, liste] = argumente.split('\\000');

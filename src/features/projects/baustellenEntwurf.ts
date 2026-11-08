@@ -35,6 +35,9 @@ export interface BaustellenEntwurf {
   contactPhone: string;
   assignedEmployees: string[];
   projectManagers: string[];
+  /** Liegenschaft und Top (M02c) — leer heißt keine. */
+  liegenschaftId: string;
+  topId: string;
 }
 
 export function alsEntwurf(p: Project): BaustellenEntwurf {
@@ -54,6 +57,8 @@ export function alsEntwurf(p: Project): BaustellenEntwurf {
     contactPhone: p.contactPhone ?? '',
     assignedEmployees: p.assignedEmployees ?? [],
     projectManagers: p.projectManagers ?? [],
+    liegenschaftId: p.liegenschaftId ?? '',
+    topId: p.topId ?? '',
   };
 }
 

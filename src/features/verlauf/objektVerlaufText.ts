@@ -20,6 +20,10 @@ import { tageText } from '@/features/vacations/abwesenheitText';
 /** Was eine Anzeige außer dem Wert braucht: Namen zu Kennungen der Belegschaft. */
 export interface VerlaufKontext {
   name?: (uid: string) => string | undefined;
+  /** Die Bezeichnung eines Tops (Beteiligte einer Liegenschaft, M02c). */
+  top?: (id: string) => string | undefined;
+  /** Der Name eines Kunden (Beteiligte einer Liegenschaft, M02c). */
+  kunde?: (id: string) => string | undefined;
 }
 
 type Format = (w: unknown, k: VerlaufKontext) => string;
@@ -71,6 +75,16 @@ const eingangQuelle = auswahl({
   persoenlich: 'Persönlich', sonstige: 'Sonstige',
 });
 const dringlichkeit = auswahl({ normal: 'Normal', dringend: 'Dringend', notfall: 'Notfall' });
+// Dieselben Wörter wie `ROLLE_TEXT` in `liegenschaftText.ts` und `app.beteiligter_rolle_text`.
+const beteiligtenRolle = auswahl({
+  eigentuemer: 'Eigentümer', hausverwaltung: 'Hausverwaltung', betreiber: 'Betreiber', nutzer: 'Nutzer bzw. Mieter',
+  auftraggeber: 'Auftraggeber', rechnungsempfaenger: 'Rechnungsempfänger', versicherung: 'Versicherung',
+  lieferadresse: 'Lieferadresse',
+});
+/** Ein Top über seine Kennung; ohne Namen ist es gelöscht oder (noch) nicht geladen. */
+const topName: Format = (w, k) => (leer(w) ? 'die ganze Liegenschaft' : k.top?.(String(w)) ?? 'ein anderes Top');
+/** Ein Kunde über seine Kennung — ohne Kunden standen freie Angaben da. */
+const kundeName: Format = (w, k) => (leer(w) ? 'freie Angaben' : k.kunde?.(String(w)) ?? 'ein anderer Kunde');
 
 type Feld = [spalte: string, name: string, format: Format];
 
@@ -121,6 +135,9 @@ export const VERLAUF_FELDER: Record<Objektart, Feld[]> = {
     ['contact_phone', 'Telefon vor Ort', text],
     ['assigned_employees', 'Team', personen],
     ['project_managers', 'Projektleitung', personen],
+    // M02c: Liegenschaft und Top — die Bezeichnungen; die Kennungen sind ausgenommen.
+    ['liegenschaft_bezeichnung', 'Liegenschaft', text],
+    ['top_bezeichnung', 'Top', text],
   ],
   angebot: [
     ['quote_number', 'Angebotsnummer', text],
@@ -133,6 +150,9 @@ export const VERLAUF_FELDER: Record<Objektart, Feld[]> = {
     ['kalkulierte_stunden', 'Kalkulierte Stunden', stunden],
     ...RABATT_UND_SUMMEN,
     ['notes', 'Anmerkungen', text],
+    // M02c: Liegenschaft und Top — die Bezeichnungen; die Kennungen sind ausgenommen.
+    ['liegenschaft_bezeichnung', 'Liegenschaft', text],
+    ['top_bezeichnung', 'Top', text],
   ],
   rechnung: [
     ['invoice_number', 'Rechnungsnummer', text],
@@ -191,6 +211,8 @@ export const VERLAUF_FELDER: Record<Objektart, Feld[]> = {
     ['seriennummer', 'Seriennummer', text],
     ['baujahr', 'Baujahr', text],
     ['preis', 'Preis je Wartung', geld],
+    ['liegenschaft_bezeichnung', 'Liegenschaft', text],
+    ['top_bezeichnung', 'Top', text],
   ],
   eingang: [
     ['nummer', 'Eingangsnummer', text],
@@ -212,6 +234,39 @@ export const VERLAUF_FELDER: Record<Objektart, Feld[]> = {
     ['wunschtermin', 'Wunschtermin', datum],
     ['eingegangen_am', 'Eingegangen am', zeitpunkt],
     ['abgelehnt_grund', 'Grund der Ablehnung', text],
+    ['liegenschaft_bezeichnung', 'Liegenschaft', text],
+    ['top_bezeichnung', 'Top', text],
+  ],
+  /*
+    M02c: die Liegenschaft, ihre Tops und Beteiligten. Die Anschrift als
+    Zeile rechnet die Datenbank aus den Teilen; die Kennung der Liegenschaft
+    steht bei Top und Beteiligtem als Bezug.
+  */
+  liegenschaft: [
+    ['bezeichnung', 'Bezeichnung', text],
+    ['strasse', 'Straße', text],
+    ['plz', 'PLZ', text],
+    ['ort', 'Ort', text],
+    ['land', 'Land', text],
+    ['notiz', 'Notiz', text],
+    ['aktiv', 'Aktiv', janein],
+  ],
+  top: [
+    ['bezeichnung', 'Bezeichnung', text],
+    ['lage', 'Stockwerk bzw. Lage', text],
+    ['notiz', 'Notiz', text],
+    ['aktiv', 'Aktiv', janein],
+  ],
+  beteiligter: [
+    ['rolle', 'Rolle', beteiligtenRolle],
+    ['top_id', 'Top', topName],
+    ['customer_id', 'Kunde', kundeName],
+    ['name', 'Name', text],
+    ['telefon', 'Telefon', text],
+    ['email', 'E-Mail', text],
+    ['hinweis', 'Hinweis', text],
+    ['gueltig_ab', 'Gültig ab', datum],
+    ['gueltig_bis', 'Gültig bis', datum],
   ],
   benutzer: [
     ['name', 'Name', text],
@@ -263,6 +318,12 @@ const ZAHLUNG: Record<'angelegt' | 'geaendert' | 'geloescht', string> = {
   geaendert: 'Zahlung geändert',
   geloescht: 'Zahlung gelöscht',
 };
+/** Was unter seinem Bezug steht (Zahlung, Top, Beteiligter) — der Titel sagt, was es war. */
+const UNTER: Partial<Record<Objektart, Record<'angelegt' | 'geaendert' | 'geloescht', string>>> = {
+  zahlung: ZAHLUNG,
+  top: { angelegt: 'Top angelegt', geaendert: 'Top geändert', geloescht: 'Top gelöscht' },
+  beteiligter: { angelegt: 'Beteiligter eingetragen', geaendert: 'Beteiligter geändert', geloescht: 'Beteiligter entfernt' },
+};
 
 /** Die Zeilen einer Änderung: je Spalte alt → neu, oder dass die Werte gelöscht sind. */
 function aenderungsZeilen(z: ObjektVerlaufZeile, k: VerlaufKontext): string[] {
@@ -273,7 +334,10 @@ function aenderungsZeilen(z: ObjektVerlaufZeile, k: VerlaufKontext): string[] {
     const w = z.aenderungen[spalte] as { alt?: unknown; neu?: unknown; entfernt?: boolean } | undefined;
     if (!w) continue;
     if (w.entfernt) {
-      zeilen.push(`${name} geändert (Werte mit den Kundendaten gelöscht)`);
+      // Beim Beteiligten gingen sie mit ihm selbst (M02c), sonst mit den Daten des Kunden.
+      zeilen.push(z.objektart === 'beteiligter'
+        ? `${name} geändert (Werte mit dem Beteiligten gelöscht)`
+        : `${name} geändert (Werte mit den Kundendaten gelöscht)`);
       continue;
     }
     const alt = format(w.alt, k);
@@ -325,11 +389,12 @@ export function verlaufEintrag(z: ObjektVerlaufZeile, k: VerlaufKontext = {}): V
   let titel: string;
   let zeilen: string[];
   if (z.art === 'angelegt' || z.art === 'geaendert' || z.art === 'geloescht') {
-    titel = (z.objektart === 'zahlung' ? ZAHLUNG : ART)[z.art];
+    const unter = UNTER[z.objektart];
+    titel = (unter ?? ART)[z.art];
     zeilen = z.art === 'geaendert' ? aenderungsZeilen(z, k) : [];
     if (z.art === 'geaendert' && zeilen.length === 0) zeilen.push('Keine sichtbare Änderung');
-    // Eine Zahlung hat keine eigene Akte: woran man sie erkennt, steht dabei. Ebenso bei allem Gelöschten.
-    if ((z.objektart === 'zahlung' || z.art === 'geloescht') && z.bezeichnung) zeilen.unshift(z.bezeichnung);
+    // Zahlung, Top und Beteiligter haben keine eigene Akte: woran man sie erkennt, steht dabei. Ebenso bei allem Gelöschten.
+    if ((unter || z.art === 'geloescht') && z.bezeichnung) zeilen.unshift(z.bezeichnung);
   } else {
     ({ titel, zeilen } = quellenEintrag(z));
   }

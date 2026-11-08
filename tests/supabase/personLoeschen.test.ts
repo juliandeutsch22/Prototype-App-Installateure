@@ -188,11 +188,23 @@ describe('Ein Kunde', () => {
     const eOffen = await eingang({});
     const eAbgelehnt = await eingang({ stand: 'abgelehnt', abgelehnt_grund: 'Kein Gebiet', abgelehnt_am: '2099-01-01T00:00:00Z' });
     const eUebernommen = await eingang({ stand: 'uebernommen', project_id: bau, uebernommen_am: '2099-01-01T00:00:00Z' });
+    /*
+      SEINE BETEILIGUNGEN AN LIEGENSCHAFTEN (M02c) gehen sofort, auch wenn er
+      wegen Belegen bleibt; die Liegenschaft selbst bleibt.
+    */
+    const haus = await einfuegen('liegenschaften', { company_id: BETRIEB, bezeichnung: 'WHA Beleg' });
+    const beteiligung = await einfuegen('liegenschaft_beteiligte', {
+      company_id: BETRIEB, liegenschaft_id: haus, rolle: 'eigentuemer', customer_id: kunde,
+    });
 
     const probe = await loeschen(chef, 'kunde', kunde);
     expect(probe.b!.ganz).toBe(false);
-    // Seit M02a: offene Annahme-Links seiner Angebote werden widerrufen (hier keine). Seit M02b seine Eingänge.
-    expect(probe.b!.sofort).toEqual({ wartungen: 1, kontaktdaten: 2, termine: 0, auftragseingaenge: 2, annahme_links: 0 });
+    // Seit M02a: offene Annahme-Links seiner Angebote werden widerrufen (hier keine). Seit M02b seine Eingänge,
+    // seit M02c seine Beteiligungen an Liegenschaften.
+    expect(probe.b!.sofort).toEqual({
+      wartungen: 1, kontaktdaten: 2, termine: 0, auftragseingaenge: 2, liegenschaft_beteiligungen: 1, annahme_links: 0,
+    });
+    expect(await zaehle('liegenschaft_beteiligte', 'id', beteiligung)).toBe(1);
     expect(await zaehle('auftragseingaenge', 'customer_id', kunde)).toBe(3);
     expect(probe.b!.aufbewahren.map((a) => [a.was, a.anzahl, a.bis])).toEqual([
       ['Rechnungen samt Zahlungen', 1, '2106-12-31'],
@@ -213,9 +225,11 @@ describe('Ein Kunde', () => {
     const { data: e } = await admin.from('auftragseingaenge')
       .select('stand, project_id, ansprechpartner_name, ansprechpartner_telefon').eq('id', eUebernommen).single();
     expect(e).toEqual({ stand: 'uebernommen', project_id: bau, ansprechpartner_name: null, ansprechpartner_telefon: null });
+    expect(await zaehle('liegenschaft_beteiligte', 'id', beteiligung)).toBe(0);
+    expect(await zaehle('liegenschaften', 'id', haus)).toBe(1);
   });
 
-  it('ohne Belege geht ganz — samt seinen Eingängen', async () => {
+  it('ohne Belege geht ganz — samt seinen Eingängen und Beteiligungen', async () => {
     const kunde = await einfuegen('customers', { company_id: BETRIEB, name: 'Familie Ohne', email: 'o@example.at' });
     await einfuegen('wartungen', {
       company_id: BETRIEB, customer_id: kunde, customer_name: 'Familie Ohne', anlage: 'Therme',
@@ -224,11 +238,18 @@ describe('Ein Kunde', () => {
     const eingang = await einfuegen('auftragseingaenge', {
       company_id: BETRIEB, customer_id: kunde, quelle: 'email', anliegen: 'Angebot für ein Bad',
     });
+    const haus = await einfuegen('liegenschaften', { company_id: BETRIEB, bezeichnung: 'WHA Ohne' });
+    const beteiligung = await einfuegen('liegenschaft_beteiligte', {
+      company_id: BETRIEB, liegenschaft_id: haus, rolle: 'hausverwaltung', customer_id: kunde,
+    });
     const { b } = await loeschen(chef, 'kunde', kunde, false);
     expect(b!.ganz).toBe(true);
     expect(await zaehle('customers', 'id', kunde)).toBe(0);
     expect(await zaehle('wartungen', 'customer_id', kunde)).toBe(0);
     expect(await zaehle('auftragseingaenge', 'id', eingang)).toBe(0);
+    // M02c: seine Beteiligung geht mit, die Liegenschaft bleibt.
+    expect(await zaehle('liegenschaft_beteiligte', 'id', beteiligung)).toBe(0);
+    expect(await zaehle('liegenschaften', 'id', haus)).toBe(1);
   });
 
   it('ein Beleg nur über den Namen hält ihn gesperrt — und bleibt selbst unberührt', async () => {

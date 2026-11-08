@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listEingaenge, zaehleOffeneEingaenge, type EingangZeiger } from '@/lib/db/auftragseingaenge';
 import { darfEingangErfassen } from '@/lib/permissions';
+import { useModul } from '@/lib/useModule';
 import type { Auftragseingang, EingangStand } from '@/types';
 import PageHeader from '@/components/PageHeader';
 import Card from '@/components/Card';
@@ -47,6 +48,7 @@ export default function EingaengeView() {
   const [mehrFehler, setMehrFehler] = useState(false);
   const [versuch, setVersuch] = useState(0);
   const [neu, setNeu] = useState(false);
+  const liegenschaftenAn = useModul('kunden.liegenschaften');
 
   const companyId = user?.companyId;
 
@@ -194,6 +196,7 @@ export default function EingaengeView() {
         {neu && (
           <EingangFormular
             companyId={companyId}
+            mitLiegenschaft={liegenschaftenAn}
             onGespeichert={(id) => {
               setNeu(false);
               navigate(`/eingaenge/${id}`);

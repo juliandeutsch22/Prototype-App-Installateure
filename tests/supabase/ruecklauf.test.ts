@@ -35,6 +35,10 @@ const VERWORFENES_ANGEBOT = crypto.randomUUID();
 const VERWORFENER_SCHEIN = crypto.randomUUID();
 const LINK_ANGEBOT = crypto.randomUUID();
 const EINGANG = crypto.randomUUID();
+const LIEGENSCHAFT = crypto.randomUUID();
+const TOP = crypto.randomUUID();
+const BETEILIGTER = crypto.randomUUID();
+const LG_BAUSTELLE = crypto.randomUUID();
 const ZEIT_MIT_FELDERN = crypto.randomUUID();
 let linkSchluessel = '';
 
@@ -163,6 +167,21 @@ beforeAll(async () => {
     erfasst_von_uid: chef.uid, erfasst_von_name: 'Chef', eingegangen_am: '2026-11-01T08:00:00+00:00',
   })).error).toBeNull();
   /*
+    EINE LIEGENSCHAFT (M02c) mit Top, einem freien Beteiligten und einer
+    Baustelle in diesem Top: der Rücklauf bringt sie samt den Bezeichnungen
+    an der Baustelle zurück — über die Fremdschlüssel hinweg (Tops und
+    Baustelle zeigen mit dem Betrieb auf die Liegenschaft), in Runden, und
+    die Auslöser lassen den Dienstschlüssel durch.
+  */
+  for (const [tabelle, zeile] of [
+    ['liegenschaften', { id: LIEGENSCHAFT, company_id: BETRIEB, bezeichnung: 'WHA Rücklauf', strasse: 'Rückweg 1', plz: '1010', ort: 'Wien', notiz: 'Schlüssel beim Hausbesorger' }],
+    ['liegenschaft_tops', { id: TOP, company_id: BETRIEB, liegenschaft_id: LIEGENSCHAFT, bezeichnung: 'Top 2', lage: '1. OG' }],
+    ['liegenschaft_beteiligte', { id: BETEILIGTER, company_id: BETRIEB, liegenschaft_id: LIEGENSCHAFT, top_id: TOP, rolle: 'nutzer', name: 'Max Mieter', telefon: '0664 9', gueltig_ab: '2026-01-01' }],
+    ['projects', { id: LG_BAUSTELLE, company_id: BETRIEB, project_number: 'R-2026-LG', customer_id: kunde!.id, customer_name: 'Familie Huber', status: 'Aktiv', liegenschaft_id: LIEGENSCHAFT, top_id: TOP }],
+  ] as const) {
+    expect((await admin.from(tabelle).insert(zeile)).error, tabelle).toBeNull();
+  }
+  /*
     FREIE ZEITFELDER (M06b): ein Feld, seine Fassung und eine Buchung des
     Monteurs mit Wert. Der Rücklauf bringt Definition, Fassung, Wert und die
     Fassung an der Buchung zurück — die Auslöser, die sie sonst setzen,
@@ -214,6 +233,14 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
     expect(zfVorher.werte).toEqual([expect.objectContaining({ wert: 'KS-4711', eintrag_id: ZEIT_MIT_FELDERN })]);
     expect(zfVorher.buchung).toEqual({ zeitfeld_fassung: 1, zeitfelder: null });
     expect(eingangVorher).toMatchObject({ nummer: 'EG-2026-0042', erfasst_von_name: 'Chef', kunde_name: 'Familie Huber' });
+    const liegenschaftVorher = {
+      liegenschaft: (await admin.from('liegenschaften').select('*').eq('id', LIEGENSCHAFT).single()).data,
+      top: (await admin.from('liegenschaft_tops').select('*').eq('id', TOP).single()).data,
+      beteiligter: (await admin.from('liegenschaft_beteiligte').select('*').eq('id', BETEILIGTER).single()).data,
+      baustelle: (await admin.from('projects').select('*').eq('id', LG_BAUSTELLE).single()).data,
+    };
+    expect(liegenschaftVorher.liegenschaft).toMatchObject({ anschrift: 'Rückweg 1, 1010 Wien' });
+    expect(liegenschaftVorher.baustelle).toMatchObject({ liegenschaft_bezeichnung: 'WHA Rücklauf', top_bezeichnung: 'Top 2' });
     expect(linkVorher).not.toBeNull();
     const journalVorher = ((await admin.from('aenderungsjournal').select('id, objekt_id, art, aenderungen, von_uid')
       .eq('company_id', BETRIEB).order('id')).data ?? []);
@@ -317,8 +344,9 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
     // Handvoll leerer Zeilen bestanden.
     const [firma] = (await admin.from('companies').select('name').eq('id', BETRIEB)).data!;
     expect(firma.name).toBe('Rücklauf GmbH');
+    // Seit M02c liegen hier zwei Baustellen (die zweite mit Liegenschaft) — gefragt wird nach der einen.
     const [baustelle] = (await admin.from('projects')
-      .select('project_number, customer_name, customer_id').eq('company_id', BETRIEB)).data!;
+      .select('project_number, customer_name, customer_id').eq('company_id', BETRIEB).eq('project_number', 'R-2026-001')).data!;
     expect(baustelle.project_number).toBe('R-2026-001');
     // Der Fremdschlüssel zeigt wieder auf einen Kunden, den es gibt.
     const { count: kundeDa } = await admin.from('customers')
@@ -336,6 +364,13 @@ describe('Aus der Sicherung wird wieder ein Betrieb', () => {
     expect(schein).toEqual({ status: 'Verworfen', verworfen_am: '2026-10-03T08:00:00+00:00' });
     // Der Auftragseingang (M02b) kommt Spalte für Spalte zurück — Nummer, Kunde, wer erfasst hat.
     expect((await admin.from('auftragseingaenge').select('*').eq('id', EINGANG).single()).data).toEqual(eingangVorher);
+    // Die Liegenschaft (M02c) kommt Spalte für Spalte zurück — mit Top, Beteiligtem und der Zuordnung der Baustelle.
+    expect({
+      liegenschaft: (await admin.from('liegenschaften').select('*').eq('id', LIEGENSCHAFT).single()).data,
+      top: (await admin.from('liegenschaft_tops').select('*').eq('id', TOP).single()).data,
+      beteiligter: (await admin.from('liegenschaft_beteiligte').select('*').eq('id', BETEILIGTER).single()).data,
+      baustelle: (await admin.from('projects').select('*').eq('id', LG_BAUSTELLE).single()).data,
+    }).toEqual(liegenschaftVorher);
     // Der Annahme-Link kommt Spalte für Spalte zurück — und der Schlüssel gilt wieder.
     expect((await admin.from('angebot_links').select('*').eq('quote_id', LINK_ANGEBOT).single()).data).toEqual(linkVorher);
     const abruf = await admin.rpc('angebot_link_abruf', {

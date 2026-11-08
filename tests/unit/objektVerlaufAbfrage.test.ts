@@ -58,3 +58,14 @@ describe('listObjektVerlauf', () => {
     expect(abfragen).not.toHaveBeenCalled();
   });
 });
+
+describe('listObjektVerlauf — die Liegenschaft (M02c)', () => {
+  it('ihre eigenen Zeilen und die ihrer Tops und Beteiligten, auch gelöschter', async () => {
+    abfragen.mockResolvedValue([]);
+    await listObjektVerlauf('perl', 'liegenschaft', ID);
+    expect(abfragen.mock.calls[0][2]).toMatchObject({
+      wo: [],
+      oder: `and(or(and(objektart.eq.liegenschaft,objekt_id.eq.${ID}),and(objektart.in.(top,beteiligter),bezug_id.eq.${ID})))`,
+    });
+  });
+});
