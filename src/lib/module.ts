@@ -46,7 +46,8 @@ export type ModulId =
   | 'rechnungen'
   | 'nachkalkulation'
   | 'wartung'
-  | 'zeitkonten';
+  | 'zeitkonten'
+  | 'zeiterfassung';
 
 /**
  * Eine Unterfähigkeit eines Moduls, etwa `baustellen.aufgaben`: ein Teil, den
@@ -70,7 +71,7 @@ export type FaehigkeitId = `${ModulId | KernId}.${string}`;
  * für alles Übrige; ihre Zusatzfähigkeiten (Auftragseingang, später Aufgaben,
  * Mängel, Objekte …) braucht nicht jeder Betrieb.
  */
-export type KernId = 'baustellen' | 'kunden' | 'zeiterfassung';
+export type KernId = 'baustellen' | 'kunden';
 
 export interface Faehigkeit {
   id: FaehigkeitId;
@@ -336,6 +337,37 @@ export const MODULE: Modul[] = [
     standard: true,
     betrifft: ['Mitarbeiterübersicht'],
   },
+  /*
+    ZEITERFASSUNG (M06d, V2): abschaltbar mit lesbarer Historie. Die alten
+    Schreibwege bleiben entsprechend V3 erhalten; neue Befehle prüfen das Modul.
+  */
+  {
+    id: 'zeiterfassung',
+    name: 'Zeiterfassung',
+    zweck: 'Arbeitszeit, Abwesenheiten und Zeitkonto jeder Person.',
+    standard: true,
+    folgen: ['Die Zeiterfassung bleibt als Archiv mit Export und Änderungsprotokoll erreichbar. Neue manuelle Buchungen und die Stundenquelle neuer Regierechnungen werden in der Oberfläche nicht mehr angeboten. Bestehende Abwesenheitsabläufe und Schreibwege bleiben unverändert. Laufende Timer und offene Korrekturanträge lassen sich abschließen; vorhandene Buchungen werden nicht gelöscht.'],
+    betrifft: ['Zeiterfassung'],
+    unter: [
+      {
+        /*
+          FREIE ZEITFELDER (N01): Standard an — ohne angelegte Felder ändert
+          sich nichts. Aus heißt: die eigenen Felder in der Buchungsmaske, in Listen und
+          Export verschwinden; Standardfelder bleiben verwaltbar; Definieren und
+          Werte schreiben lehnt der Server ab (V3). Gespeicherte Werte
+          bleiben und sind nach dem Wiedereinschalten wieder da.
+        */
+        id: 'zeiterfassung.freie_zeitfelder',
+        name: 'Freie Zeitfelder',
+        zweck: 'Eigene Angaben zu jeder Buchung festlegen — etwa Kostenstelle, Kilometer oder Auftragsnummer —, mit Pflicht und Prüfung.',
+        standard: true,
+        betrifft: ['Zeitfelder (Einstellungen)', 'Eigene Angaben in der Zeiterfassung', 'Spalten im Export'],
+      },
+      { id: 'zeiterfassung.korrekturantraege', name: 'Korrekturanträge', zweck: 'Gesperrte Zeiten vom Büro prüfen und berichtigen lassen; Direktbearbeitung bleibt erhalten.', standard: false, betrifft: ['Korrekturanträge in der Zeiterfassung'] },
+      { id: 'zeiterfassung.timer_erinnerung', name: 'Timer-Erinnerung', zweck: 'An einen länger laufenden Timer erinnern, ohne eine Endzeit zu erfinden.', standard: true, abhaengigVon: ['zeiterfassung.timer'], betrifft: ['Timer-Erinnerung per Push und in der App'] },
+      { id: 'zeiterfassung.timer', name: 'Start/Stopp', zweck: 'Anwesenheit mit Pausen und Baustellenwechsel erfassen; vor der Buchung bestätigen.', standard: false, betrifft: ['Start/Stopp in der Zeiterfassung'], folgen: ['Laufende Sitzungen lassen sich weiterhin beenden und bestätigen. Ein Timer erzeugt nie automatisch eine Arbeitszeitbuchung.'] },
+    ],
+  },
 ];
 
 /**
@@ -401,32 +433,7 @@ export const KERN: Kernbereich[] = [
       },
     ],
   },
-  /*
-    DIE ZEITERFASSUNG (M06b): heute Kern — abschaltbar wird sie mit ihrem
-    eigenen Paket samt Folgenvorschau (E51, V2). Ihre Teile sind es schon.
-  */
-  {
-    id: 'zeiterfassung',
-    name: 'Zeiterfassung',
-    zweck: 'Arbeitszeit, Abwesenheiten und Zeitkonto jeder Person.',
-    betrifft: ['Zeiterfassung'],
-    unter: [
-      {
-        /*
-          FREIE ZEITFELDER (N01): Standard an — ohne angelegte Felder ändert
-          sich nichts. Aus heißt: die Seite „Zeitfelder“, die Felder in der
-          Buchungsmaske, in Listen und Export verschwinden; Definieren und
-          Werte schreiben lehnt der Server ab (V3). Gespeicherte Werte
-          bleiben und sind nach dem Wiedereinschalten wieder da.
-        */
-        id: 'zeiterfassung.freie_zeitfelder',
-        name: 'Freie Zeitfelder',
-        zweck: 'Eigene Angaben zu jeder Buchung festlegen — etwa Kostenstelle, Kilometer oder Auftragsnummer —, mit Pflicht und Prüfung.',
-        standard: true,
-        betrifft: ['Zeitfelder (Einstellungen)', 'Eigene Angaben in der Zeiterfassung', 'Spalten im Export'],
-      },
-    ],
-  },
+
 ];
 
 const NACH_ID = new Map(MODULE.map((m) => [m.id, m]));

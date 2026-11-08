@@ -1,3 +1,4 @@
+import { standardZeitfeldAktiv, standardZeitwerteErhalten } from '@/lib/standardZeitfelder';
 import { useState, useEffect, useMemo, type FormEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
@@ -59,6 +60,10 @@ import ZeitfeldEingaben from './ZeitfeldEingaben';
 
 
 interface Props {
+  /** Anwesenheit ohne Auftragszuordnung bleibt reine Arbeitszeit. */
+  baustelleFrei?: boolean;
+  /** Timer bestätigt über seinen atomaren Abschluss dieselben geprüften Werte. */
+  speichernMit?: (eintrag: Partial<TimeEntry>) => Promise<void | 'queued' | 'confirmed'>;
   onSaved: () => void;
   /** Gesetzt = Bearbeiten statt Neuanlage. */
   entry?: WithId<TimeEntry>;
@@ -111,7 +116,7 @@ interface Props {
      * Buchung, Runde 4). Die Auswahl bleibt änderbar.
      */
     userId?: string;
-  } | null;
+  } & Partial<Pick<TimeEntry, 'travelTime' | 'comment' | 'helperName' | 'vehiclePlate' | 'isHelper' | 'isEmergency' | 'nachtAbgewaehlt' | 'zeitfelder'>> | null;
   /**
    * Das Stammdatenblatt dessen, dem die Buchung gehört — für die Rückfrage
    * zum Jugendschutz (Runde 3, M2): Tagessoll und dessen Verteilung. Bucht
@@ -130,6 +135,8 @@ export default function TimeForm({
   lastEntry,
   vorbelegung,
   besitzerProfil,
+  speichernMit,
+  baustelleFrei = false,
 }: Props) {
   const { user, company } = useAuth();
   const toast = useToast();
@@ -143,6 +150,7 @@ export default function TimeForm({
     der Monteur tippt das ganze Kennzeichen — das ist der richtige Zustand für
     einen Fuhrpark, der nicht aus einem Bezirk kommt.
   */
+  const standardAn = (id: import('@/lib/standardZeitfelder').StandardZeitfeldId) => standardZeitfeldAktiv(company?.zeitStandardfelder, id);
   const kennzeichenVorsatz = praefixeVon(company).kennzeichen;
   /*
     DIE FAHRZEUGE ALS VORSCHLAG (M04a): eine Liste unter dem Feld, kein Zwang.
@@ -213,9 +221,9 @@ export default function TimeForm({
   const [breakDuration, setBreakDuration] = useState(
     String(entry?.breakDuration ?? vorbelegung?.breakDuration ?? ausStart?.breakDuration ?? 30),
   );
-  const [travelTime, setTravelTime] = useState(String(entry?.travelTime ?? 0));
+  const [travelTime, setTravelTime] = useState(String(entry?.travelTime ?? vorbelegung?.travelTime ?? 0));
   const [projectNumber, setProjectNumber] = useState(entry?.projectNumber ?? prefill?.projectNumber ?? '');
-  const [comment, setComment] = useState(entry?.comment ?? '');
+  const [comment, setComment] = useState(entry?.comment ?? vorbelegung?.comment ?? '');
   /** Weicht die Maske bei Zeiten, Pause oder Baustelle von der gespeicherten Buchung ab? Dann noch nicht aufteilen. */
   const aufteilenUngespeichert = !!entry && (
     startTime !== (entry.startTime ?? '') || endTime !== (entry.endTime ?? '')
@@ -243,8 +251,8 @@ export default function TimeForm({
   const [unterricht, setUnterricht] = useState('');
   /** Wegzeit Schule–Betrieb je Schultag (A9) — leer heisst keine Angabe. */
   const [wegzeit, setWegzeit] = useState('');
-  const [isHelper, setIsHelper] = useState(entry?.isHelper ?? asHelperVorschlag ?? false);
-  const [helperName, setHelperName] = useState(entry?.helperName ?? '');
+  const [isHelper, setIsHelper] = useState(entry?.isHelper ?? vorbelegung?.isHelper ?? asHelperVorschlag ?? false);
+  const [helperName, setHelperName] = useState(entry?.helperName ?? vorbelegung?.helperName ?? '');
   /*
     NACHTARBEIT ZÄHLT VON SELBST (Runde 3, M4): die Stunden in der Nachtzeit
     des Betriebs, aus Von und Bis. Der Haken ist weg — er wurde vergessen, und
@@ -252,9 +260,9 @@ export default function TimeForm({
     als Nachtarbeit zählen will, wählt sie mit Grund ab. Den Notdienst setzt
     weiter der Mensch: ob ein Einsatz einer war, sagt keine Uhr.
   */
-  const [nachtAbwahl, setNachtAbwahl] = useState(!!entry?.nachtAbgewaehlt?.trim());
-  const [nachtGrund, setNachtGrund] = useState(entry?.nachtAbgewaehlt ?? '');
-  const [isEmergency, setIsEmergency] = useState(entry?.isEmergency ?? false);
+  const [nachtAbwahl, setNachtAbwahl] = useState(!!(entry?.nachtAbgewaehlt ?? vorbelegung?.nachtAbgewaehlt)?.trim());
+  const [nachtGrund, setNachtGrund] = useState(entry?.nachtAbgewaehlt ?? vorbelegung?.nachtAbgewaehlt ?? '');
+  const [isEmergency, setIsEmergency] = useState(entry?.isEmergency ?? vorbelegung?.isEmergency ?? false);
   /*
     ERST NACH EINER EINGABE WARNEN (Testbericht 30.09.2026, G18). Die Maske
     ist mit heute und 07:00–16:00 vorbelegt; stand für heute schon etwas da —
@@ -263,7 +271,7 @@ export default function TimeForm({
     steht der Grund als Fehler da.
   */
   const [angefasst, setAngefasst] = useState(false);
-  const [vehiclePlate, setVehiclePlate] = useState(() => ohneKennzeichenVorsatz(entry?.vehiclePlate ?? '', kennzeichenVorsatz));
+  const [vehiclePlate, setVehiclePlate] = useState(() => ohneKennzeichenVorsatz(entry?.vehiclePlate ?? vorbelegung?.vehiclePlate ?? '', kennzeichenVorsatz));
   /** Für wen wird gebucht (nur wenn `staff` gesetzt ist). */
   const [targetUid, setTargetUid] = useState(
     entry?.userId ??
@@ -283,7 +291,15 @@ export default function TimeForm({
     entfernte, was gespeichert ist.
   */
   const feldsatz = useFeldsatz(user, company?.modules);
+  const zfSchreiben = aktiveModule(company?.modules).has('zeiterfassung') || (!entry && !!speichernMit);
   const [zfRoh, setZfRoh] = useState<Record<string, string>>({});
+  const [zfEntwurfGelesen, setZfEntwurfGelesen] = useState(false);
+  useEffect(() => {
+    if (zfEntwurfGelesen || !vorbelegung?.zeitfelder || !feldsatz.satz) return;
+    const werte = vorbelegung.zeitfelder.werte;
+    setZfRoh(Object.fromEntries(feldsatz.definitionen.filter((d) => werte[d.id] !== undefined && werte[d.id] !== null).map((d) => [d.id, wertAlsEingabe(d.typ, werte[d.id])])));
+    setZfEntwurfGelesen(true);
+  }, [zfEntwurfGelesen, vorbelegung?.zeitfelder, feldsatz.satz, feldsatz.definitionen]);
   const [zfAlt, setZfAlt] = useState<Record<string, ZeitfeldWert> | null>(entry ? null : {});
   const [zfAltFehler, setZfAltFehler] = useState(false);
   const [zfBuchungsSatz, setZfBuchungsSatz] = useState<ZeitfeldSatz | null>(null);
@@ -345,10 +361,10 @@ export default function TimeForm({
     // sonst wären sie unsichtbar und würden beim Speichern stillschweigend
     // gelöscht.
     () =>
-      !!entry &&
-      !!(entry.projectNumber || entry.isEmergency || entry.isHelper),
+      (!!entry && !!(entry.projectNumber || entry.isEmergency || entry.isHelper)) || (!!speichernMit && !!prefill?.projectNumber),
   );
-  const canHaveProject = aussendienst || (darfErweitern && erweitert);
+  const brauchtBaustelle = !baustelleFrei && (!entry || !!entry.projectNumber);
+  const canHaveProject = standardAn('projectNumber') && (aussendienst || (darfErweitern && erweitert));
   /*
     WEITERE ANGABEN — Wegzeit, Fahrzeug, Helfername, Zuschläge — stehen beim
     Monteur hinter einer Zeile. Vierzehn Felder bei jeder Buchung schoben
@@ -570,7 +586,7 @@ export default function TimeForm({
         : null,
     [isEdit, zeitGeaendert, angefasst, vorbelegung, umDenTag, status, mitZeiten, canHaveProject, projectNumber, startTime, endTime, date],
   );
-  const einfuegbar = einfuegen?.art === 'geht' ? einfuegen.aenderungen : null;
+  const einfuegbar = !speichernMit && einfuegen?.art === 'geht' ? einfuegen.aenderungen : null;
   /*
     Was das Buchen sperrt — die Überschneidung nicht, wenn sie sich einfügen
     lässt. Geht es nicht, sagt der Grund warum; auch bei einer Überschneidung
@@ -726,6 +742,9 @@ export default function TimeForm({
       setError('Verrechnete Einträge können nicht geändert werden.');
       return;
     }
+    if (speichernMit && status !== (entry?.status ?? 'Anwesend')) {
+      setError('Den Stand bitte am ursprünglichen Vorgang ändern und die Korrektur anschließend bestätigen.'); return;
+    }
     if (meldungsTag) {
       setError('Dieser Tag gehört zu einer Krankmeldung — bitte dort das Ende ändern oder die Meldung löschen.');
       return;
@@ -768,7 +787,7 @@ export default function TimeForm({
       gar keins da. „Anwesend" ging dann ohne Baustelle durch — Stunden, die
       auf keiner Rechnung auftauchen.
     */
-    if (canHaveProject && showWorkFields && !projectNumber) {
+    if (brauchtBaustelle && canHaveProject && showWorkFields && !projectNumber) {
       setError('Bitte eine Baustelle wählen.');
       return;
     }
@@ -894,6 +913,9 @@ export default function TimeForm({
       ist das die einzige Prüfung vor dem Vormerken; der Server prüft beim
       Nachsenden dieselbe Fassung.
     */
+    if (!entry && !speichernMit && !aktiveModule(company?.modules).has('zeiterfassung')) {
+      setError('Die Zeiterfassung ist ausgeschaltet. Vorhandene Buchungen bleiben lesbar.'); setSaving(false); return;
+    }
     let zeitfelder: { fassung: number; werte: Record<string, ZeitfeldWert | null> } | undefined;
     /*
       NOCH NICHTS DA — weder gemerkt noch geladen (der erste Griff gleich nach
@@ -913,7 +935,7 @@ export default function TimeForm({
     const zfJetzt = zfSatz === feldsatz.satz
       ? zfFelder
       : felderDerFassung(zfSatz, zfDefinitionen).filter((f) => feldGilt(f, status, effectiveRole, zfAusAntrag));
-    if (zfSatz && (zfBereit || !isEdit)) {
+    if (zfSchreiben && zfSatz && (zfBereit || !isEdit)) {
       const werte: Record<string, ZeitfeldWert | null> = {};
       const lesefehler: string[] = [];
       for (const f of zfJetzt) {
@@ -959,7 +981,7 @@ export default function TimeForm({
       const kundeAusEintrag = [entry, lastEntry].find(
         (e) => !!e?.projectNumber && e.projectNumber === projectNumber,
       )?.customerName;
-      const payload = {
+      const payload = standardZeitwerteErhalten({
         date,
         status,
         startTime: mitZeiten ? startTime : '',
@@ -971,10 +993,10 @@ export default function TimeForm({
         // Gespeichert wird IMMER mit Praefix, damit Exporte und die
         // Fahrzeugsuche ein einheitliches Format vorfinden.
         vehiclePlate:
-          canHaveProject && vehiclePlate
+          (canHaveProject || !standardAn('projectNumber')) && vehiclePlate
             ? mitKennzeichenVorsatz(vehiclePlate, kennzeichenVorsatz)
             : '',
-        helperName: canHaveProject ? helperName : '',
+        helperName: canHaveProject || !standardAn('projectNumber') ? helperName : '',
         comment,
         isHelper: canHaveProject ? helferFest ?? isHelper : false,
         // Mit Von und Bis setzt die Datenbank das Kennzeichen selbst (M4);
@@ -988,9 +1010,15 @@ export default function TimeForm({
         isEmergency: canHaveProject && showWorkFields ? isEmergency : false,
         // M06b: die freien Angaben reisen mit der Buchung — auch ins Ausgangsfach.
         ...(zeitfelder ? { zeitfelder } : {}),
-      };
+      }, entry as unknown as Record<string, unknown> | undefined, company?.zeitStandardfelder);
+      // Der Schalter betrifft die freie Eingabe, nicht die feste Helferzuordnung des Einsatzes.
+      if (canHaveProject && helferFest !== null) payload.isHelper = helferFest;
 
-      if (isEdit && einfuegbar) {
+      if (speichernMit) {
+        const stand = await speichernMit(payload);
+        if (stand === 'queued') toast.info(vorgemerktMeldung('Zeit vorgemerkt'));
+        else toast.success(isEdit ? 'Eintrag aktualisiert' : 'Zeit gebucht');
+      } else if (isEdit && einfuegbar) {
         // Die anderen Buchungen ändern sich mit — am Stück (`zeit_einfuegen` mit der Kennung).
         await zeitEinfuegen({ ...payload, userId: entry.userId, userName: entry.userName, source: 'manual' as const }, entry.id);
         toast.success('Eintrag aktualisiert — die Zeit ist eingefügt');
@@ -1065,19 +1093,19 @@ export default function TimeForm({
   const weitereFelder = (
     <>
       <FormGrid>
-        <InputField
+        {standardAn('travelTime') && <InputField
           id="travelTime"
           label="Wegzeit (Min.)"
           type="number"
           min="0"
           value={travelTime}
           onChange={(e) => setTravelTime(e.target.value)}
-        />
+        />}
         {/* „WZ-" fest davor statt als Platzhalter: der Fuhrpark ist
             in Wiener Neustadt zugelassen, und getippt wurde es bisher
             mal mit, mal ohne Bindestrich, mal gar nicht. Dieselbe
             Lösung wie im Prototyp (Zeile 940). */}
-        <div className="flex flex-col gap-1">
+        {standardAn('vehiclePlate') && <div className="flex flex-col gap-1">
           <label htmlFor="vehiclePlate" className="text-sm font-normal text-ink">
             Fahrzeug (Kennzeichen)
           </label>
@@ -1114,17 +1142,17 @@ export default function TimeForm({
               </datalist>
             )}
           </div>
-        </div>
+        </div>}
       </FormGrid>
-      <InputField
+      {standardAn('helperName') && <InputField
         id="helperName"
         label="Name des Helfers (optional)"
         value={helperName}
         onChange={(e) => setHelperName(e.target.value)}
-      />
+      />}
 
       {/* Eine Gruppe mit Linie oben statt eines getönten Kastens in der Karte. */}
-      <fieldset className="border-t border-line pt-2">
+      {canHaveProject && standardAn('isEmergency') && <fieldset className="border-t border-line pt-2">
         <legend className="pr-2 section-label">Zuschläge</legend>
         <div className="flex flex-wrap items-center gap-2">
           <CheckboxField
@@ -1138,12 +1166,14 @@ export default function TimeForm({
             Geschäftsführung in den Einstellungen fest.
           </InfoHint>
         </div>
-      </fieldset>
+      </fieldset>}
     </>
   );
 
   const billed = !!entry?.isBilled;
   const gesperrt = billed || meldungsTag || antragsTag;
+
+  if (!entry && !speichernMit && !aktiveModule(company?.modules).has('zeiterfassung')) return <p className="text-sm text-ink-muted">Die Zeiterfassung ist ausgeschaltet. Vorhandene Zeiten, Exporte und Änderungsprotokolle bleiben verfügbar.</p>;
 
   return (
     <>
@@ -1244,6 +1274,7 @@ export default function TimeForm({
         />
         <SelectField
           id="status"
+          disabled={!!speichernMit}
           label="Status"
           value={status}
           onChange={(e) => setStatus(e.target.value as TimeEntry['status'])}
@@ -1641,6 +1672,7 @@ export default function TimeForm({
               */}
               <BaustellenSelect
                 id="project"
+                bekannteNummer={speichernMit && !entry ? prefill?.projectNumber ?? '' : undefined}
                 nummerVorn
                 companyId={user.companyId}
                 meineUid={target?.uid ?? entry?.userId ?? user.uid}
@@ -1649,15 +1681,16 @@ export default function TimeForm({
                   setProjectNumber(nr);
                   if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
                 }}
-                required
+                required={brauchtBaustelle}
               />
+              {baustelleFrei && <p className="text-sm text-ink-muted">Ohne Baustelle zählt die Zeit zum Zeitkonto, ohne eine Auftragsleistung oder Rechnungsquelle zu erzeugen.</p>}
               {/*
                 AUFTEILEN (10.10.2026): den Tag am Stück gebucht, danach auf
                 die Baustellen verteilt. Geteilt wird die GESPEICHERTE
                 Buchung — mit ungespeicherten Änderungen in der Maske wäre
                 nicht klar, welcher Stand gilt.
               */}
-              {isEdit && entry && status === 'Anwesend' && !aufteilenGeht(entry) && (
+              {!speichernMit && isEdit && entry && status === 'Anwesend' && !aufteilenGeht(entry) && (
                 aufteilenUngespeichert ? (
                   <p className="-mt-2 text-sm text-ink-muted">
                     Auf mehrere Baustellen aufteilen geht mit der gespeicherten Buchung — zuerst speichern.
@@ -1676,7 +1709,7 @@ export default function TimeForm({
         </>
       )}
 
-      {zfBereit && (
+      {zfSchreiben && zfBereit && (
         <ZeitfeldEingaben
           felder={zfFelder}
           roh={zfRoh}
@@ -1690,7 +1723,7 @@ export default function TimeForm({
         </p>
       )}
 
-      <InputField
+      {standardAn('comment') && <InputField
         id="comment"
         label={
           status === 'Krank'
@@ -1706,11 +1739,11 @@ export default function TimeForm({
         }
         value={comment}
         onChange={(e) => setComment(e.target.value)}
-      />
+      />}
 
-      {canHaveProject && showWorkFields && (
+      {(aussendienst || (darfErweitern && erweitert)) && showWorkFields && (
         <>
-          {helferFest === null && (
+          {canHaveProject && standardAn('isHelper') && helferFest === null && (
             <CheckboxField
               id="isHelper"
               label="Einsatz als Helfer (zählt nicht zum Projekt-Budget)"

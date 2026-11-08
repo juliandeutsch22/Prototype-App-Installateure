@@ -79,7 +79,7 @@ export default function PersonFenster({
   onFehlendeOffen: (offen: boolean) => void;
   grenzDaten: GrenzDaten;
   companyId: string;
-  onErfassen: (tag: string | null) => void;
+  onErfassen?: (tag: string | null) => void;
   onBearbeiten: (e: WithId<TimeEntry>) => void;
   onLoeschen: (e: WithId<TimeEntry>) => void;
   onMeldung: (id: string) => void;
@@ -232,9 +232,9 @@ export default function PersonFenster({
                 {markierterWert.tagessollMin !== null && ` · Soll ${kurzeZeit(markierterWert.tagessollMin)}`}
               </span>
             </span>
-            <Button variant="secondary" onClick={() => onErfassen(markierterWert.tag)}>
+            {onErfassen && <Button variant="secondary" onClick={() => onErfassen(markierterWert.tag)}>
               Zeit erfassen
-            </Button>
+            </Button>}
           </li>
         </ul>
       )}
@@ -320,9 +320,9 @@ export default function PersonFenster({
                     <span className="pf-zeile-titel">{tagKurz(d)}</span>
                     {soll !== null && <span className="pf-zeile-info">Soll {kurzeZeit(soll)}</span>}
                   </span>
-                  <Button variant="secondary" onClick={() => onErfassen(d)} aria-label={`Zeit erfassen für ${tagKurz(d)}`}>
+                  {onErfassen && <Button variant="secondary" onClick={() => onErfassen(d)} aria-label={`Zeit erfassen für ${tagKurz(d)}`}>
                     Zeit erfassen
-                  </Button>
+                  </Button>}
                 </li>
               );
             })}
@@ -471,9 +471,9 @@ export default function PersonFenster({
         <Button variant="secondary" onClick={onBericht}>
           Bericht für Zeitraum
         </Button>
-        <Button variant="primary" onClick={() => onErfassen(null)}>
+        {onErfassen && <Button variant="primary" onClick={() => onErfassen(null)}>
           Zeit erfassen
-        </Button>
+        </Button>}
       </div>
     </div>
   );

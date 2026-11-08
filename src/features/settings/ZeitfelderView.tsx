@@ -1,3 +1,5 @@
+import { istAn } from '@/lib/module';
+import StandardZeitfelder from './StandardZeitfelder';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { isTopLevel } from '@/lib/permissions';
@@ -124,7 +126,7 @@ function beschreibung(d: ZeitfeldDefinition): string {
 }
 
 export default function ZeitfelderView() {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   const toast = useToast();
   const [felder, setFelder] = useState<ZeitfeldDefinition[] | null>(null);
   const [fassung, setFassung] = useState<ZeitfeldFassung | null>(null);
@@ -155,7 +157,7 @@ export default function ZeitfelderView() {
   const nachId = useMemo(() => new Map((felder ?? []).map((f) => [f.id, f])), [felder]);
 
   if (!user) return null;
-  const darf = isTopLevel(user.role);
+  const darf = isTopLevel(user.role) && istAn(company?.modules, 'zeiterfassung.freie_zeitfelder');
 
   const typwechsel = !!entwurf?.id && !!entwurf.typVorher && entwurf.typ !== entwurf.typVorher;
 
@@ -234,7 +236,7 @@ export default function ZeitfelderView() {
       <PageHeader
         ort="Einstellungen"
         title="Zeitfelder"
-        subtitle="Eigene Angaben zu jeder Zeitbuchung"
+        subtitle="Standardfelder und eigene Angaben zu jeder Zeitbuchung"
         action={darf ? <Button onClick={() => { setFehler(null); setEntwurf({ ...LEER, rollen: [...ZEITFELD_ROLLEN] }); }}>Feld anlegen</Button> : undefined}
         hilfe={
           <>
@@ -253,13 +255,15 @@ export default function ZeitfelderView() {
         }
       />
 
-      <Card title="Felder" buendig>
+      <StandardZeitfelder darf={isTopLevel(user.role)} />
+
+      <Card title="Eigene Felder" buendig>
         {ladeFehler ? (
           <div className="px-4 pb-4"><ErrorState message={ladeFehler} /></div>
         ) : felder === null ? (
           <div className="px-4 pb-4"><SkeletonList rows={3} /></div>
         ) : aktive.length === 0 ? (
-          <EmptyState>Noch kein Feld angelegt. Ohne Felder bleibt die Zeiterfassung, wie sie ist.</EmptyState>
+          <EmptyState>Noch keine eigenen Felder angelegt.</EmptyState>
         ) : (
           <List>
             {aktive.map((f) => (

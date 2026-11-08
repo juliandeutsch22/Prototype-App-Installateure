@@ -53,8 +53,8 @@ const entfernen: Sendung = {
 };
 
 describe('Aufrufe', () => {
-  it('nur die beiden Funktionen des Scheins gehen hinaus', async () => {
-    expect([...AUFRUFE_OHNE_EMPFANG]).toEqual(['schein_speichern', 'schein_unterschreiben']);
+  it('nur ausdrücklich idempotente Funktionen von Schein und Timer gehen hinaus', async () => {
+    expect([...AUFRUFE_OHNE_EMPFANG]).toEqual(['schein_speichern', 'schein_unterschreiben', 'zeit_timer_befehl', 'zeit_timer_buchen', 'zeit_timer_abschnitt_verwerfen']);
     const { c, aufrufe } = client({});
     expect(await supabaseSender(c)(aufruf('schein_speichern'))).toEqual({ art: 'ok' });
     expect(aufrufe.rpc).toHaveBeenCalledWith('schein_speichern', { p_id: 's1' });

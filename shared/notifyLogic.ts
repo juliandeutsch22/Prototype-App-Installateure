@@ -29,7 +29,8 @@ export type MeldungsArt =
   | 'notifyOrderReady'
   | 'notifyUrgentDelivery'
   | 'notifyAbwesenheit'
-  | 'notifyAngebot';
+  | 'notifyAngebot'
+  | 'notifyZeiterfassung';
 
 /**
  * Eine Postgres-Zeile als `OrderDoc`.

@@ -264,3 +264,15 @@ describe('Baustellenauswahl — Nummer vorn (Runde 6, G3)', () => {
     await screen.findByText('CT Bau GmbH (Claude-Test) (PR-2026-0189)');
   });
 });
+
+it('behält eine bereits aufgezeichnete Timer-Baustelle bei fehlender Verbindung prüfbar', async () => {
+  listActiveProjects.mockRejectedValue(new TypeError('Failed to fetch'));
+  const onChange = vi.fn();
+  render(<BaustellenSelect companyId="perl" value="B-001" bekannteNummer="B-001" onChange={onChange} />);
+  await screen.findByRole('option', { name: 'B-001 · aufgezeichnete Baustelle' });
+  expect(screen.getByLabelText('Baustelle')).toHaveValue('B-001');
+  expect(screen.getByLabelText('Baustelle')).toBeEnabled();
+  expect(screen.queryByRole('option', { name: /Familie Huber/ })).not.toBeInTheDocument();
+  await userEvent.selectOptions(screen.getByLabelText('Baustelle'), '');
+  expect(onChange).toHaveBeenCalledWith('');
+});

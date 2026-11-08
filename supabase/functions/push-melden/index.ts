@@ -1,3 +1,4 @@
+import { zeitMeldung, zeitKorrekturEmpfaenger, zeitEigenerEmpfaenger } from '../_shared/zeitMeldungen.ts';
 /**
  * Die Push-Meldungen rund um Materialanforderungen, Abwesenheiten und die
  * Antwort eines Kunden über den Annahme-Link (M02a) —
@@ -155,6 +156,7 @@ async function tokensFuer(uids: string[], art: MeldungsArt): Promise<string[]> {
       notifyUrgentDelivery: zeile.notify_urgent_delivery,
       notifyAbwesenheit: zeile.notify_abwesenheit,
       notifyAngebot: zeile.notify_angebot,
+      notifyZeiterfassung: zeile.notify_zeiterfassung,
     };
     if (!willMeldung(vorgaben, art)) continue;
     for (const t of (zeile.push_tokens as string[] | null) ?? []) tokens.push(t);
@@ -337,6 +339,19 @@ async function auftraegeAbwesenheit(ereignis: Ereignis): Promise<Auftrag[] | nul
  * abgelehnt. `push_angebot_link` gibt den Link genau einmal heraus — ein
  * zweiter Anstoß für dieselbe Entscheidung bekommt `null` und meldet nichts.
  */
+async function auftraegeZeit(ereignis: Ereignis): Promise<Auftrag[] | null> {
+  const zeile = ereignis.zeile;
+  const meldung = zeitMeldung(ereignis.art ?? '', String(zeile?.id ?? ''));
+  if (!meldung || typeof zeile?.user_id !== 'string' || typeof zeile.company_id !== 'string') return null;
+  const r = await fetch(`${URL_BASIS}/rest/v1/rpc/push_empfaenger_abwesenheit`, { method: 'POST', headers: alsDienst, body: JSON.stringify({ p_betrieb: zeile.company_id }) });
+  if (!r.ok) throw new Error('Empfänger der Zeitmeldung konnten nicht geladen werden');
+  const kreis = await r.json();
+  const uids = ereignis.art === 'korrektur-antrag'
+    ? zeitKorrekturEmpfaenger(kreis.belegschaft ?? [], zeile.user_id)
+    : zeitEigenerEmpfaenger(kreis.belegschaft ?? [], zeile.user_id);
+  return [{ art: 'notifyZeiterfassung', uids, meldung }];
+}
+
 async function auftraegeAngebot(ereignis: Ereignis): Promise<Auftrag[] | null> {
   const link = String(ereignis.zeile?.id ?? '');
   if (ereignis.art !== 'link-entschieden' || !link) return null;
@@ -375,7 +390,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const ereignis = await req.json().catch(() => null);
   if (!ereignis) return antwort({ error: 'Kein lesbares Ereignis.' }, 400);
 
-  const auftraege = ereignis.quelle === 'abwesenheit'
+  const auftraege: Auftrag[] | null = ereignis.quelle === 'zeit'
+    ? await auftraegeZeit(ereignis)
+    : ereignis.quelle === 'abwesenheit'
     ? await auftraegeAbwesenheit(ereignis)
     : ereignis.quelle === 'angebot'
       ? await auftraegeAngebot(ereignis)

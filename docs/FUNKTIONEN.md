@@ -690,3 +690,31 @@ Verkaufspreise und die kalkulierten Stunden. Kostensätze liegen in
 lesen nur Geschäftsführung und Administrator (`app.ist_spitze`), die
 Einkaufspreise dazu die Verwaltung mit Freigabe (M37). Die Projektleitung
 sieht also keine Marge, weder im Angebot noch anderswo.
+
+
+## M06: Zeiterfassung ergänzen und verwalten (08.11.2026, E63)
+
+- **Start/Stopp** ist optional, ab Werk aus. Arbeit, Pausen und Baustellenwechsel
+  werden als Sitzung erfasst, auch offline. Eine laufende Sitzung je Person;
+  Gerätewechsel erkennt fremde Änderungen. Erst die Bestätigung im bisherigen
+  Formular bucht tatsächliche Arbeitszeit. Ohne Baustelle entsteht reine Anwesenheit,
+  keine Auftragsleistung. Fehlstarts und einzelne Restabschnitte sind mit Grund verwerfbar.
+- **Timer-Erinnerung** im Betriebsintervall (Vorgabe 600 Minuten), Prüfung alle
+  15 Minuten, zusätzlich in der App. Bewusst weiterlaufen ist möglich, automatisches
+  Ausstempeln findet nicht statt. Push erfordert ein registriertes Gerät und die
+  persönliche Einstellung „Zeiterfassung: Timer und Korrekturanträge“.
+- **Korrekturanträge** sind optional, ab Werk aus. Gesperrte Zeiten können beim
+  Büro angefragt werden; bisher erlaubte Selbstbearbeitung bleibt direkt möglich.
+  Entscheidung und Korrektur erfolgen nachvollziehbar. Rechnungssperren und
+  Abwesenheitsursprünge bleiben geschützt. Entsperren allein ist keine Korrektur.
+- **Standardfelder** werden in Einstellungen › Zeitfelder verwaltet, unabhängig
+  von eigenen Feldern: Baustelle, Wegzeit, Fahrzeug, Helfername/-Einsatz, Notdienst,
+  Kommentar. Ausblenden löscht keine alten Angaben. Grundlagen der Zeitrechnung,
+  automatische Zuordnungen und Rollenrechte bleiben erhalten.
+- **Zeiterfassung als Modul:** abschaltbar mit Folgenvorschau. Archiv, Exporte und
+  E50 bleiben; offene Timer und Anträge lassen sich abschließen. Neue Stundenquellen
+  für Regierechnungen werden in der Oberfläche nicht angeboten, der Scheinweg bleibt.
+  Die bisherigen API-Schreibwege und Abwesenheitsabläufe bleiben gemäß V3 erhalten.
+- **Fachlich offen:** zusätzliche Zeitmodelle/Durchrechnung und lohnwirksame
+  Zulagen benötigen verifizierte KV-/WKO-Regeln/Betriebsvereinbarungen. Normalarbeitszeit
+  und vorhandene Zuschläge bleiben unverändert; keine unfertige Zusatzmodell-Oberfläche.

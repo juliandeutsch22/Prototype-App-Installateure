@@ -40,6 +40,12 @@ export function beimNutzerwechsel(f: (wer: string | null) => void): void {
 export function zwischenspeicherFuer(uid: string | null, companyId: string | null): void {
   const wer = uid && companyId ? `${uid}@${companyId}` : null;
   if (wer === nutzer) return;
+  // Bestätigte Timerstände sind Cache; offene Entwürfe bleiben wie das Ausgangsfach eigentümergebunden erhalten.
+  try {
+    const weg: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k?.startsWith('senklot.timer.') && k !== (wer ? `senklot.timer.${wer}` : null)) weg.push(k); }
+    for (const k of weg) localStorage.removeItem(k);
+  } catch { /* Ohne Webspeicher gibt es keinen Stand aufzuräumen. */ }
   nutzer = wer;
   generation += 1;
   live.clear();

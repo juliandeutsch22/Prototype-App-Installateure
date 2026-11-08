@@ -1,3 +1,4 @@
+import { istAn } from '@/lib/module';
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -1427,7 +1428,7 @@ export default function InvoicesView() {
       const nachAngebot =
         baustelle?.billingMode === 'Pauschal' || baustelle?.billingMode === 'Einheitspreis';
       const [entries, scheine, derBaustelle, ausgabenAlle, wartungen] = await Promise.all([
-        listEntriesForProjects(user.companyId, [projectNumber]),
+        istAn(company?.modules, 'zeiterfassung') ? listEntriesForProjects(user.companyId, [projectNumber]) : Promise.resolve([]),
         listWorkSheetsForProject(user.companyId, projectNumber).catch(() => {
           setNebenFehler('Die Handwerksscheine');
           return [];
@@ -2311,11 +2312,11 @@ export default function InvoicesView() {
     const scheine = !forderungenFehler && !abdeckungFehler && scheineVerrechnet !== null
       ? offeneLeistung.map((z) => ({ art: 'schein' as const, ...z }))
       : [];
-    const stunden = offeneStunden
+    const stunden = istAn(company?.modules, 'zeiterfassung') && offeneStunden
       ? unverrechneteStundenZeilen(offeneStunden, todayStr()).map((z) => ({ art: 'stunden' as const, ...z }))
       : [];
     return [...scheine, ...stunden].sort((a, b) => b.tage - a.tage);
-  }, [forderungenFehler, abdeckungFehler, scheineVerrechnet, offeneLeistung, offeneStunden]);
+  }, [forderungenFehler, abdeckungFehler, scheineVerrechnet, offeneLeistung, offeneStunden, company?.modules]);
 
   /**
    * Stellt dieser Betrieb überhaupt Anzahlungen und Teilrechnungen?

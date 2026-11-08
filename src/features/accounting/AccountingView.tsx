@@ -1,3 +1,4 @@
+import { useModul } from '@/lib/useModule';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
@@ -126,6 +127,7 @@ interface UebersichtStand {
 
 export default function AccountingView() {
   const { user, company, einblick } = useAuth();
+  const zeitAn = useModul('zeiterfassung');
   /*
     IM SUPPORTZUGANG SIND ZEITBUCHUNGEN VERSCHLOSSEN (Art. 9 DSGVO, in jeder
     Stufe). Gerechnet ergäbe das „11 Tage fehlen, −88:00“ für jeden — ein
@@ -953,10 +955,10 @@ export default function AccountingView() {
             Tag mit Von–Bis, Abwesenheiten als Wort; eine Zelle öffnet den Tag.
           </>
         }
-        action={
+        action={zeitAn ?
           <Button variant="primary" onClick={() => setAufgabe({ art: 'erfassen', uid: null, tag: null })}>
             Zeit erfassen
-          </Button>
+          </Button> : undefined
         }
         mehr={
           rows.length > 0 && !imSupport ? (
@@ -1264,7 +1266,7 @@ export default function AccountingView() {
               }))}
               grenzDaten={grenzDaten}
               companyId={user.companyId}
-              onErfassen={(tag) => setAufgabe({ art: 'erfassen', uid: personZeile.user.uid, tag })}
+              onErfassen={zeitAn ? (tag) => setAufgabe({ art: 'erfassen', uid: personZeile.user.uid, tag }) : undefined}
               onBearbeiten={(e) => setAufgabe({ art: 'bearbeiten', eintrag: e })}
               onLoeschen={(e) => setToDelete(e)}
               onMeldung={(id) => setAufgabe({ art: 'meldung', id })}
