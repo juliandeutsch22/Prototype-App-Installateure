@@ -1,3 +1,4 @@
+import { timerAuftragErgebnis } from '@/lib/zeitsitzungSpeicher';
 /**
  * Der Sender: aus einer Vormerkung wird ein Aufruf an Supabase.
  *
@@ -120,7 +121,10 @@ function speicherEinordnen(fehler: { message?: string; status?: number; statusCo
  * Eine Funktion, die einen Lagerstand verrechnet oder eine Nummer zieht,
  * gehört nicht hierher.
  */
-export const AUFRUFE_OHNE_EMPFANG = ['schein_speichern', 'schein_unterschreiben', 'nachricht_senden'] as const;
+export const AUFRUFE_OHNE_EMPFANG = [
+  'schein_speichern', 'schein_unterschreiben', 'zeit_timer_befehl', 'zeit_timer_buchen', 'zeit_timer_abschnitt_verwerfen',
+  'nachricht_senden',
+] as const;
 /**
  * Die Eimer, in die ohne Empfang hochgeladen werden darf — Scheinfotos unter
  * ihrem Inhalts-Hash, Anhänge einer Nachricht unter deren Kennung (M10/B09).
@@ -175,9 +179,11 @@ async function aufrufSenden(client: SupabaseClient, v: Sendung): Promise<Sendeer
   if (!funktion || !parameter || !(AUFRUFE_OHNE_EMPFANG as readonly string[]).includes(funktion)) {
     return { art: 'abgelehnt', grund: `Der Aufruf „${funktion ?? '?'}“ wird nicht nachgesendet.` };
   }
-  const { error, status } = await client.rpc(funktion, parameter);
-  if (!error) return { art: 'ok' };
+  const { data, error, status } = await client.rpc(funktion, parameter);
+  const timerAbschluss = funktion === 'zeit_timer_buchen' || funktion === 'zeit_timer_abschnitt_verwerfen';
+  if (!error) { if (timerAbschluss) timerAuftragErgebnis(v.uid, v.daten.timer, data); return { art: 'ok' }; }
   const ergebnis = einordnen(error, status);
+  if (timerAbschluss && (ergebnis.art === 'abgelehnt' || ergebnis.art === 'unklar')) timerAuftragErgebnis(v.uid, v.daten.timer, null, ergebnis.grund);
   if (funktion === 'schein_unterschreiben' && ergebnis.art === 'abgelehnt') {
     const schon = await schonUnterschrieben(
       client,

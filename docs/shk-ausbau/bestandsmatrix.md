@@ -294,3 +294,17 @@ Unterseiten der Einstellungen tragen kein Modul (`navigation.ts:238-305`): „Re
 10. **Neue Personendaten-Tabellen** (Qualifikationen, Fahrtenbuch, Versandprotokoll, Antrag) müssen in `person_auskunft`, `auszug_ausgenommen` und Personenlöschung – `person_auskunft` wird in vielen Migrationen jeweils vollständig neu definiert (Rumpf-Kopien), Konfliktgefahr bei parallelen Branches.
 11. **U01/U02 über `user_prefs`:** die Tabelle kennt nur Meldungs-Haken und `push_tokens`; `savePrefs` (`prefs.ts:95-112`) schreibt per Upsert genau die vier `notify_*`-Spalten. Startseiten- oder Favoriten-Einstellungen brauchen eigene Spalten und einen eigenen Schreibweg, damit die Speicher-Pfade sich nicht gegenseitig überschreiben. Die Zeile entsteht erst beim ersten Speichern (fehlend = Vorgaben), und es gibt kein Löschrecht.
 12. **Einstellungs-Unterseiten ohne Modul** (Rechnungsvorgaben, Kontenrahmen bei abgeschalteten Rechnungen) – beim Ergänzen von Modul-Einstellungsseiten bewusst entscheiden, ob `UNTER` ein Modulfeld bekommt (heute nur `nurMitSchalter`).
+
+
+## Abgleich M06 am 08.11.2026 (E63)
+
+Die obige Erhebung beschreibt den Ausgangsbestand. Aktueller Stand:
+
+| ID | Ergänzung | Erhalten | Noch erforderlich |
+|---|---|---|---|
+| B02 | `zeitsitzungen`, Revisions-/Befehlsvertrag, Ausgangsfach, Start/Stopp, Pause, Wechsel, bestätigte Arbeitsabschnitte, begründetes Verwerfen | `TimeForm`, normale Trigger, Arbeitszeitgrenzen, Monatsbilanz, Budget; Anwesenheit ohne Auftragszuordnung möglich | – |
+| Z04 | Erinnerung im Betriebsintervall, Cron, FCM und in der App, bewusst weiterlaufen | kein automatischer Stundenabschluss | FCM-Geräteregistrierung je Nutzer für Push; die Erinnerung bleibt in der App sichtbar |
+| Z01 | `zeitkorrekturen`, Prüfung, tatsächliche Änderung samt freien Angaben oder protokollierte Entfernung, Entscheidung, Rücknahme, Push mit Deep Link | Direktrechte, Sperren, Abwesenheitsursprung, E50, Rolle/Zeitprofil des Eigentümers | – |
+| N01 | Standardfelder zusätzlich zu den freien Feldern aktivieren/deaktivieren | historische Werte, automatische Helferzuordnung, bestehende Berechtigungen und Felddatentypen | – |
+| V2 | Zeiterfassung abschaltbar mit Folgenvorschau | Archiv, Export, Protokoll; offene Vorgänge abschließbar; V3 unveränderte alte Schreibwege | – |
+| Z02/Z03 | keine ungesicherte Regel freigegeben; N01 kann Merkmale bereits strukturiert dokumentieren/exportieren | Normalarbeitszeit und vorhandene Zuschlagsberechnung wie bisher | konkrete KV-/WKO-Regeln/Betriebsvereinbarungen für zusätzliche Zeitmodelle und lohnwirksame Zulagen; keine rückwirkende Umrechnung |

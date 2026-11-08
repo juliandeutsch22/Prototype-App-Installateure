@@ -111,7 +111,7 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Zeitfelder: Freitext in einem Feld wird bei der Löschung eines Kunden nicht gefunden | Datenschutz: über den Namen allein träfe es Namensvettern — wie beim Kommentar der Buchung |
 | Liegenschaften (Stand 59, E62): freie Beteiligte (ohne Kundenstamm) haben keine eigene Datenauskunft | Datenschutz: über den Namen allein träfe es Namensvettern; sie lassen sich entfernen (echte Löschung, Journal geleert) oder zum Kunden machen |
 | Liegenschaften: keine abweichende Rechnungsanschrift je Rechnung | Fachlich (Befund 4): eine Rechnung geht an den Kunden der Baustelle; Sammelrechnung kommt mit M13 |
-| Nachrichten (Stand 60, E63): keine Ende-zu-Ende-Verschlüsselung | Sicherheit/Technik: Schlüssel über mehrere Geräte, Vormerkung ohne Netz, Push-Vorschau, Meldeweg und Löschfristen schlössen sie aus; vertraulich ist das Gespräch gegenüber Betrieb, Kollegen, Support und Plattform, die App behauptet nirgends mehr |
+| Nachrichten (Stand 61, E64): keine Ende-zu-Ende-Verschlüsselung | Sicherheit/Technik: Schlüssel über mehrere Geräte, Vormerkung ohne Netz, Push-Vorschau, Meldeweg und Löschfristen schlössen sie aus; vertraulich ist das Gespräch gegenüber Betrieb, Kollegen, Support und Plattform, die App behauptet nirgends mehr |
 | Nachrichten: ein Rücklauf aus der Sicherung bringt keine privaten Gespräche zurück | Datenschutz: die Führung lädt Sicherung und Auszug herunter; private Gespräche gehören den Teilnehmern. Die Sicherung der Datenbank durch den Betreiber bleibt unberührt |
 | Nachrichten: ob eine Betriebsvereinbarung nötig ist | Liegt beim Betrieb (Betriebsrat, Kanzlei; ArbVG §§ 96, 96a); die App weist beim Einschalten darauf hin und verzichtet auf Lesebestätigung, Online-Status und Auswertung |
 | Nachrichten: bei ganz ausgeschaltetem Modul ist die Seite zu | Fachlich: aus heißt aus (wie bei jedem Modul); nichts wird gelöscht, jeder exportiert seine Gespräche unter Mein Konto, nach dem Wiedereinschalten ist alles da |
@@ -180,3 +180,21 @@ eigenen PR gebaut, in der Reihenfolge der Tabelle, jeder mit Prüfungen samt
 Gegenprobe, Handbuch und Stand; am 24.10.2026 abgeschlossen. Was bleibt,
 steht unter B, jeweils mit seinem Grund. Eine neue Grenze kommt nach
 Grundsatz 6 nur mit Grund dorthin — sonst wird sie gebaut.
+
+
+## M06 — bestätigte fachliche Grenze (08.11.2026, E63)
+
+Zusätzliche Zeitmodelle, Durchrechnung und lohnwirksame Zulagen (Z02/Z03) sind
+nicht fachlich freigegeben. Laut nachgereichter geprüfter Bauplanung und
+Nachweisregister fehlen konkrete KV-/WKO-Regeln bzw. Betriebsvereinbarungen.
+Eine frei erfundene Formel oder automatische Neuberechnung alter Salden wäre
+fachlich falsch. Normalarbeitszeit bleibt wie heute; N01 dokumentiert und exportiert
+frei benannte Merkmale, ohne sie als rechtlich geprüfte Lohnart auszugeben.
+Der Betreiber wurde nach den maßgeblichen Fundstellen gefragt. Diese externe
+Voraussetzung blockiert nur M06e, nicht die fertigen Buchungs- und Verwaltungswege.
+
+Die Standardfelder ändern weder Datentypen noch Bedeutung für Budget/Abrechnung.
+Person, Tag, Stand, Arbeitszeit/Pause und automatische Nachtberechnung sind
+notwendige Grundlagen; ihre Freigabe als beliebige optionale Textfelder würde
+korrekte Arbeitszeitaufzeichnungen verhindern. Zusatzangaben sind schaltbar,
+vorhandene Werte bleiben erhalten. Keine Grenze nach Betriebsgröße oder Aufwand.

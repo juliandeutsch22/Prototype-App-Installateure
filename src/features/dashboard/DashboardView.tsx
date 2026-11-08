@@ -65,6 +65,7 @@ const KEINE_NAMEN: string[] = [];
 
 export default function DashboardView() {
   const { user, company, einblick } = useAuth();
+  const zeitAn = useModul('zeiterfassung');
   const scheineAn = useModul('scheine');
   const angeboteAn = useModul('angebote');
   // Die Annahme per Link (M02a): ihr Hinweis auf der Startseite der Führung.
@@ -229,6 +230,7 @@ export default function DashboardView() {
           planVerweis={planVerweis}
           titel="Dein Einsatz heute"
           zeitImKopf={monteurMitEinsatz}
+          zeitAn={zeitAn}
         />
       )}
     </>
@@ -256,7 +258,7 @@ export default function DashboardView() {
         <PageHeader
           ort={<>Start · KW {kopf.kw}</>}
           title={rolle === 'monteur' ? `Dein Tag${vorname ? `, ${vorname}` : ''}` : 'Heute im Überblick'}
-          action={monteurMitEinsatz ? (
+          action={zeitAn && monteurMitEinsatz ? (
             <Link
               to="/time"
               state={{ projectNumber: eigene[0].projectNumber, asHelper: eigene[0].asHelper }}

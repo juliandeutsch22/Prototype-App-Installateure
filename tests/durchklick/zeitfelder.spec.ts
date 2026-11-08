@@ -54,7 +54,7 @@ test('Zeitfelder: anlegen, buchen, im Büro sehen und exportieren, ändern im Ve
   await page.getByRole('button', { name: 'Option hinzufügen' }).click();
   await page.getByLabel('Option 2', { exact: true }).fill('Graz');
   await page.getByLabel('Pflicht').selectOption('beim_buchen');
-  await page.getByRole('button', { name: 'Speichern' }).click();
+  await page.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect(page.getByText('„Kostenstelle“ gespeichert — Fassung 1')).toBeVisible({ timeout: 20_000 });
 
   await page.getByRole('button', { name: 'Feld anlegen' }).click();
@@ -62,7 +62,7 @@ test('Zeitfelder: anlegen, buchen, im Büro sehen und exportieren, ändern im Ve
   await page.getByLabel('Typ').selectOption('zahl');
   await page.getByLabel('Nachkommastellen').selectOption('1');
   await page.getByLabel('Einheit (optional)').fill('km');
-  await page.getByRole('button', { name: 'Speichern' }).click();
+  await page.getByRole('button', { name: 'Speichern', exact: true }).click();
   await expect(page.getByText('„Kilometer“ gespeichert — Fassung 2')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('Auswahl · Pflicht beim Buchen · Anwesend · alle Rollen')).toBeVisible();
   await keineFehlermeldung(page);

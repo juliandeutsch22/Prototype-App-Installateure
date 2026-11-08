@@ -60,6 +60,7 @@ export default function NotificationSettings() {
   const [orderReady, setOrderReady] = useState(PREFS_DEFAULTS.notifyOrderReady ?? true);
   const [urgent, setUrgent] = useState(PREFS_DEFAULTS.notifyUrgentDelivery ?? true);
   const [abwesenheit, setAbwesenheit] = useState(PREFS_DEFAULTS.notifyAbwesenheit ?? true);
+  const [timer, setTimer] = useState(true);
   const [angebot, setAngebot] = useState(PREFS_DEFAULTS.notifyAngebot ?? true);
   const [nachrichten, setNachrichten] = useState(PREFS_DEFAULTS.notifyNachrichten ?? true);
   const [vorschau, setVorschau] = useState(PREFS_DEFAULTS.nachrichtVorschau ?? false);
@@ -96,6 +97,7 @@ export default function NotificationSettings() {
         setUrgent(p.notifyUrgentDelivery ?? true);
         setAbwesenheit(p.notifyAbwesenheit ?? true);
         setAngebot(p.notifyAngebot ?? true);
+        setTimer(p.notifyZeiterfassung ?? true);
         setNachrichten(p.notifyNachrichten ?? true);
         setVorschau(p.nachrichtVorschau ?? false);
       })
@@ -116,6 +118,7 @@ export default function NotificationSettings() {
     notifyUrgentDelivery: boolean;
     notifyAbwesenheit: boolean;
     notifyAngebot: boolean;
+    notifyZeiterfassung: boolean;
     notifyNachrichten: boolean;
     nachrichtVorschau: boolean;
   }>) {
@@ -126,6 +129,7 @@ export default function NotificationSettings() {
       notifyUrgentDelivery: urgent,
       notifyAbwesenheit: abwesenheit,
       notifyAngebot: angebot,
+      notifyZeiterfassung: timer,
       notifyNachrichten: nachrichten,
       nachrichtVorschau: vorschau,
       ...aenderung,
@@ -135,6 +139,7 @@ export default function NotificationSettings() {
     setUrgent(next.notifyUrgentDelivery);
     setAbwesenheit(next.notifyAbwesenheit);
     setAngebot(next.notifyAngebot);
+    setTimer(next.notifyZeiterfassung);
     setNachrichten(next.notifyNachrichten);
     setVorschau(next.nachrichtVorschau);
     try {
@@ -292,6 +297,7 @@ export default function NotificationSettings() {
               neue Anträge gemeldet; Buchhaltung und Geschäftsführung zusätzlich Krankmeldungen.
             </InfoHint>
           </div>
+          <CheckboxField id="n-timer" label="Zeiterfassung: Timer und Korrekturanträge" checked={timer} onChange={(e) => void speichern({ notifyZeiterfassung: e.target.checked })} />
           {zeigeAngebot && (
             <div className="flex flex-wrap items-center gap-2">
               <CheckboxField

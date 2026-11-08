@@ -27,6 +27,7 @@ export default function HeuteEigene({
   planVerweis,
   titel = 'Heute',
   zeitImKopf = false,
+  zeitAn = true,
 }: {
   einsaetze: EinsatzZeile[];
   letzteBuchung: LetzteBuchung | null | undefined;
@@ -37,6 +38,7 @@ export default function HeuteEigene({
   titel?: string;
   /** Der direkte Zeit-Einstieg steht dann bereits im gemeinsamen Seitenkopf. */
   zeitImKopf?: boolean;
+  zeitAn?: boolean;
 }) {
   if (einsaetze.length === 0) return null;
   const [erster, ...danach] = einsaetze;
@@ -46,7 +48,7 @@ export default function HeuteEigene({
       zusatz={einsaetze.length === 1 ? '1 Einsatz' : `${einsaetze.length} Einsätze`}
       verweis={planVerweis ? { to: '/my-schedule', text: 'Mein Einsatzplan' } : undefined}
     >
-      <Einsatz e={erster} letzteBuchung={letzteBuchung} materialAn={materialAn} scheinVerweis={scheinVerweis} zeitImKopf={zeitImKopf} gross />
+      <Einsatz e={erster} letzteBuchung={letzteBuchung} materialAn={materialAn} scheinVerweis={scheinVerweis} zeitAn={zeitAn} zeitImKopf={zeitImKopf} gross />
       {danach.length > 0 && (
         <section aria-label="Danach" className="border-t border-line">
           <h3 className="start-abschnitt">
@@ -54,7 +56,7 @@ export default function HeuteEigene({
           </h3>
           <div className="divide-y divide-line">
             {danach.map((e) => (
-              <Einsatz key={e.id} e={e} letzteBuchung={letzteBuchung} materialAn={materialAn} scheinVerweis={scheinVerweis} />
+              <Einsatz key={e.id} e={e} letzteBuchung={letzteBuchung} materialAn={materialAn} scheinVerweis={scheinVerweis} zeitAn={zeitAn} />
             ))}
           </div>
         </section>
@@ -70,6 +72,7 @@ function Einsatz({
   scheinVerweis,
   gross = false,
   zeitImKopf = false,
+  zeitAn = true,
 }: {
   e: EinsatzZeile;
   letzteBuchung: LetzteBuchung | null | undefined;
@@ -77,6 +80,7 @@ function Einsatz({
   scheinVerweis: boolean;
   gross?: boolean;
   zeitImKopf?: boolean;
+  zeitAn?: boolean;
 }) {
   const zuletzt = letzteBuchung ? calcWorkMin({ ...letzteBuchung, status: 'Anwesend' }) : 0;
   return (
@@ -98,7 +102,7 @@ function Einsatz({
       )}
       {gross && (
         <div className="start-einsatz-aktionen">
-          {letzteBuchung ? (
+          {zeitAn && letzteBuchung ? (
             <Link
               to="/time"
               state={{
@@ -115,7 +119,7 @@ function Einsatz({
                 {letzteBuchung.startTime}–{letzteBuchung.endTime} · {letzteBuchung.breakDuration} min Pause · {fmtMin(zuletzt)} Std
               </span>
             </Link>
-          ) : !zeitImKopf ? (
+          ) : zeitAn && !zeitImKopf ? (
             <Link
               to="/time"
               state={{ projectNumber: e.projectNumber, asHelper: e.asHelper }}
@@ -124,7 +128,7 @@ function Einsatz({
               Zeit erfassen
             </Link>
           ) : null}
-          {letzteBuchung && !zeitImKopf && (
+          {zeitAn && letzteBuchung && !zeitImKopf && (
             <Link
               to="/time"
               state={{ projectNumber: e.projectNumber, asHelper: e.asHelper }}
@@ -145,9 +149,9 @@ function Einsatz({
       )}
       {!gross && (
         <div className="mt-2 flex flex-wrap gap-x-4 text-sm">
-          <Link to="/time" state={{ projectNumber: e.projectNumber, asHelper: e.asHelper }} className="link-weiter inline-flex min-h-touch items-center">
+          {zeitAn && <Link to="/time" state={{ projectNumber: e.projectNumber, asHelper: e.asHelper }} className="link-weiter inline-flex min-h-touch items-center">
             Zeit erfassen
-          </Link>
+          </Link>}
           {scheinVerweis && (
             <Link to={`/worksheet?projekt=${encodeURIComponent(e.projectNumber)}`} className="link-weiter inline-flex min-h-touch items-center">
               Schein schreiben

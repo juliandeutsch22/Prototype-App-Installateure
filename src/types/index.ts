@@ -180,6 +180,9 @@ export interface Company {
    * der Betrieb die Arten später wieder abdreht.
    */
   rechnungsarten?: boolean;
+  /** Ausgeblendete Standardfelder bleiben an vorhandenen Buchungen erhalten. */
+  timerErinnerungMin?: number;
+  zeitStandardfelder?: import('@/lib/standardZeitfelder').StandardZeitfelder;
   /**
    * Alle Mitarbeiter sehen einen reinen Lese-Wochenplan: wer ist wo, und wer
    * ist abwesend — ohne Grund. Ab Werk aus.
@@ -514,6 +517,7 @@ export interface UserPrefs {
    * (M02a) — für die Führung.
    */
   notifyAngebot?: boolean;
+  notifyZeiterfassung?: boolean;
   /** Push bei neuen Nachrichten (M10/B09) — Vorgabe an. */
   notifyNachrichten?: boolean;
   /**

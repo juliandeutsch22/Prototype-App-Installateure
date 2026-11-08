@@ -113,7 +113,7 @@ const LOHN_UND_RECHNUNG = ['arbeitszeit_begruendungen', 'freistellungen', 'gebur
   'invoices', 'krankmeldungen', 'mahnungen', 'time_entries', 'urlaubsanspruch_anpassungen', 'vacations', 'zahlungseingaenge',
   'zeitbuchung_verlauf', 'zeitkonto_anfang',
   // M06b: die Werte der freien Zeitfelder — wer die Buchung liest.
-  'zeitbuchung_feldwerte'];
+  'zeitbuchung_feldwerte', 'zeitsitzungen', 'zeitkorrekturen'];
 /**
  * Kunden, Lager, Anforderungen, Pläne, UID-Prüfungen und der Auftragseingang
  * (M02b: wer Kunden liest, liest Eingänge): das Büro und die Leitung.

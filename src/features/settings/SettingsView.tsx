@@ -1,3 +1,4 @@
+import TimerEinstellungen from './TimerEinstellungen';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { updateCompany, naechsteNummern, rechnungsvorgabenSpeichern, type NaechsteNummern } from '@/lib/db/company';
@@ -1339,7 +1340,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
       </Card>
       )}
 
-      {teil === 'personal' && <LohnregelnKarte />}
+      {teil === 'personal' && <><TimerEinstellungen /><LohnregelnKarte /></>}
 
       {teil === 'personal' && darfGenehmigerSetzen && <SonderurlaubKarte />}
 

@@ -1,6 +1,6 @@
 /*
   NACHRICHTEN — BAUSTELLEN-THREADS, DIREKTNACHRICHTEN UND RUNDEN
-  (M10/B09, E63, 08.11.2026)
+  (M10/B09, E64, 08.11.2026)
 
   WAS FEHLTE. Absprachen zur Baustelle liefen über private Messenger: ohne
   Bezug zur Akte, auf privaten Telefonen, mit Kundenfotos in fremden Clouds.
@@ -56,7 +56,7 @@
 
 /*
   DIESELBE LISTE WIE `MODULE` UND `KERN` in `src/lib/module.ts` — Rumpf wie
-  in `20261108300000_liegenschaften.sql`, dazu das Modul `nachrichten` und
+  in `20261108600000_zeitkorrekturen.sql`, dazu das Modul `nachrichten` und
   seine Unterfähigkeit `nachrichten.direktnachrichten` (ab Werk aus, D1).
   `tests/supabase/modulRegisterServer.test.ts` vergleicht beide Listen.
 */
@@ -74,6 +74,9 @@ as $$
     ('kunden.liegenschaften', false, '{}'::text[]),
     ('zeiterfassung', true, '{}'::text[]),
     ('zeiterfassung.freie_zeitfelder', true, '{}'::text[]),
+    ('zeiterfassung.timer', false, '{}'::text[]),
+    ('zeiterfassung.timer_erinnerung', true, '{zeiterfassung.timer}'::text[]),
+    ('zeiterfassung.korrekturantraege', false, '{}'::text[]),
     ('einsatzplanung', true, '{}'::text[]),
     ('material', true, '{}'::text[]),
     ('material.katalogversionen', true, '{}'::text[]),

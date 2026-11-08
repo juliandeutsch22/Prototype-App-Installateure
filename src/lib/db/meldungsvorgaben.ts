@@ -17,7 +17,7 @@ import type { UserPrefs } from '@/types';
 /** Die Meldungsarten, die jemand für sich ein- und ausschalten kann. */
 export type NotifyPrefs = Pick<
   UserPrefs,
-  'notifyNewOrder' | 'notifyOrderReady' | 'notifyUrgentDelivery' | 'notifyAbwesenheit' | 'notifyAngebot'
+  'notifyNewOrder' | 'notifyOrderReady' | 'notifyUrgentDelivery' | 'notifyAbwesenheit' | 'notifyAngebot' | 'notifyZeiterfassung'
   | 'notifyNachrichten' | 'nachrichtVorschau'
 >;
 
@@ -30,6 +30,7 @@ export const PREFS_DEFAULTS: NotifyPrefs = {
   notifyUrgentDelivery: true,
   notifyAbwesenheit: true,
   notifyAngebot: true,
+  notifyZeiterfassung: true,
   notifyNachrichten: true,
   // Die Vorschau ist die eine Ausnahme: aus, bis jemand sie für sich wählt (M10/B09).
   nachrichtVorschau: false,

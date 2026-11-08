@@ -44,6 +44,7 @@ export default function BaustellenSelect({
   required,
   meineUid,
   nummerVorn = false,
+  bekannteNummer,
 }: {
   companyId: string;
   /**
@@ -68,6 +69,8 @@ export default function BaustellenSelect({
    * die Auswahl springt beim Tippen zu seinem Anfangsbuchstaben.
    */
   nummerVorn?: boolean;
+  /** Bereits aufgezeichnete Zuordnung eines Timer-Abschnitts: im Funkloch weiter prüfbar. */
+  bekannteNummer?: string;
 }) {
   const [projekte, setProjekte] = useState<WithId<Project>[]>([]);
   const [zustand, setZustand] = useState<'laedt' | 'fehler' | 'bereit'>('laedt');
@@ -179,6 +182,16 @@ export default function BaustellenSelect({
     return () => beobachter.disconnect();
   }, [id, value, projekte, zustand]);
 
+  if (zustand === 'fehler' && bekannteNummer !== undefined) {
+    return <div>
+      <SelectField id={id} label={label} value={value} onChange={(e) => onChange(e.target.value)} required={required} pflicht={required}>
+        <option value="">— ohne Zuordnung —</option>
+        {bekannteNummer && <option value={bekannteNummer}>{bekannteNummer} · aufgezeichnete Baustelle</option>}
+      </SelectField>
+      <p className="mt-2 text-sm text-ink-muted">Die aufgezeichnete Zuordnung bleibt erhalten. Weitere Baustellen können erst mit Verbindung geladen werden.</p>
+      <Button variant="ghost" onClick={() => setVersuch((v) => v + 1)}>Erneut versuchen</Button>
+    </div>;
+  }
   if (zustand === 'fehler') {
     return (
       <Hinweiszeile stufe="fehl">

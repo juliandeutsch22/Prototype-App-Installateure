@@ -1,3 +1,4 @@
+import { istAn } from '@/lib/module';
 import { ibanFehler } from '@shared/iban';
 import { firmenbuchFehlt } from '@/lib/firmenbuch';
 import type {
@@ -311,7 +312,7 @@ export async function persoenlich(
     FEHLENDE TAGE NUR MIT ZEITKONTO — gefragt wird die frische Zeile, nicht
     das gemerkte Profil (Prüflauf F17).
   */
-  if (profil && fuehrtZeitkonto(profil)) {
+  if (istAn(k.company?.modules, 'zeiterfassung') && profil && fuehrtZeitkonto(profil)) {
     out.hatEintritt = !!profil.appStartDate;
     out.fehlendeTage = offeneWerktage(profil, eintraege, fenster, new Date());
     const fehlend = out.fehlendeTage;
@@ -330,7 +331,7 @@ export async function persoenlich(
   const letzte = [...eintraege]
     .filter((e) => e.status === 'Anwesend' && e.startTime && e.endTime)
     .sort((a, b) => b.date.localeCompare(a.date))[0];
-  out.letzteBuchung = letzte
+  out.letzteBuchung = istAn(k.company?.modules, 'zeiterfassung') && letzte
     ? { startTime: letzte.startTime!, endTime: letzte.endTime!, breakDuration: Number(letzte.breakDuration ?? 0) }
     : null;
 
@@ -372,7 +373,7 @@ export async function persoenlich(
     }
   })());
 
-  if (was.scheine) {
+  if (was.scheine && istAn(k.company?.modules, 'zeiterfassung')) {
     teile.push((async () => {
       const seit = localDateStr(tageZurueck(NACHTRAG_TAGE));
       const scheine = await still(() => listOwnWorkSheetsSince(user.companyId, user.uid, seit), []);
@@ -526,7 +527,7 @@ export async function team(
     Netz. Scheitert eine, scheitert der Block wie bisher.
   */
   await Promise.all([
-    was.luecken ? (async () => {
+    was.luecken && istAn(k.company?.modules, 'zeiterfassung') ? (async () => {
       const fenster = tageZurueck(LUECKEN_TAGE);
       const [alle, eintraege] = await Promise.all([
         belegschaftVon(k),

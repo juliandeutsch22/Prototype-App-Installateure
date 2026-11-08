@@ -30,6 +30,7 @@ export type MeldungsArt =
   | 'notifyUrgentDelivery'
   | 'notifyAbwesenheit'
   | 'notifyAngebot'
+  | 'notifyZeiterfassung'
   | 'notifyNachrichten';
 
 /**

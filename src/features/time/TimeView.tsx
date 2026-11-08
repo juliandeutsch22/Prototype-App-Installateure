@@ -1,3 +1,5 @@
+import Zeitkorrekturen, { KorrekturAnfordern } from './Zeitkorrekturen';
+import ZeitsitzungPanel from './ZeitsitzungPanel';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { keepPreviousData } from '@tanstack/react-query';
@@ -721,6 +723,7 @@ export default function TimeView() {
             Löschen
           </Button>
         )}
+        {!bearbeitbar && <KorrekturAnfordern eintrag={e} />}
       </ListRow>
     );
   };
@@ -997,6 +1000,9 @@ export default function TimeView() {
         </Hinweiszeile>
       )}
 
+
+      <ZeitsitzungPanel key={`timer:${user?.uid}@${user?.companyId}:${user?.role}`} profil={profile} />
+      <Zeitkorrekturen key={`korrekturen:${user?.uid}@${user?.companyId}:${user?.role}`} />
 
       {/* Formular und eigene Einträge nebeneinander, wo beide Platz haben (lot-zeit.css). */}
       <div className="zeit-raster">

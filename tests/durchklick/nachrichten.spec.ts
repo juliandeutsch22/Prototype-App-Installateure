@@ -3,7 +3,7 @@ import { admin, BAUSTELLE, BETRIEB, BUERO, CHEFIN, MONTEUR } from './aufbau';
 import { anmelden, keineFehlermeldung, menue } from './helfer';
 
 /**
- * NACHRICHTEN, VON ANFANG BIS ENDE (M10/B09, E63) — in Chromium, auf dem
+ * NACHRICHTEN, VON ANFANG BIS ENDE (M10/B09, E64) — in Chromium, auf dem
  * Telefon (WebKit) und auf dem Tablet (`MONTEUR_WEGE`).
  *
  *   1. Der Monteur schreibt dem Büro privat, das Büro antwortet, der Monteur

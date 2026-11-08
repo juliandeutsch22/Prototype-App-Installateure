@@ -1,5 +1,5 @@
 /**
- * NACHRICHTEN (M10/B09, E63) — gegen die echte Datenbank.
+ * NACHRICHTEN (M10/B09, E64) — gegen die echte Datenbank.
  *
  * Festgehalten wird:
  * - Direktgespräch: von beiden Seiten dasselbe; mit sich selbst, mit einem

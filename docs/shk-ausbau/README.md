@@ -15,6 +15,7 @@ Gegenprobe, Doku nachziehen, erst bei grüner CI mergen.
 |---|---|
 | [`bestandsmatrix.md`](bestandsmatrix.md) | je ID: Bestand heute mit Code- und SQL-Pfad, was fehlt, Rollen, Anschlussstelle |
 | [`abnahmematrix.md`](abnahmematrix.md) | je ID: positive, negative und erhaltende Prüfungen |
+| [`m06-abnahme.md`](m06-abnahme.md) | Umsetzung, Gegenproben und Abnahme von M06 einschließlich fachlich offenem M06e |
 | [`aktionsinventar.md`](aktionsinventar.md) | je berührter Ansicht: Felder, Knöpfe, Filter, Reiter, Exporte, Deep Links (Stand vor dem Paket) |
 
 ## Grundlage und Entscheidungen (E51)
@@ -24,7 +25,7 @@ Gegenprobe, Doku nachziehen, erst bei grüner CI mergen.
   „Ersetzen“ gilt der empfohlene Inhalt der Bauplanung (Teil 5).
 - **V1:** Kunden und Baustellen bleiben Kern. Abschaltbar sind ihre
   Zusatzfähigkeiten.
-- **V2:** Die Zeiterfassung wird abschaltbar, mit Folgenvorschau (Paket M06).
+- **V2:** Zeiterfassung ist seit M06d abschaltbar, mit Folgenvorschau und lesbarem Archiv (E63).
 - **V3:** Der Server prüft das Modul bei **neuen** Fachbefehlen.
   Bestehende Schreibwege bleiben, wie sie sind.
 - **V4:** Abrechnungsart und Nummernvorsatz stehen bei der Freigabe einer
@@ -73,7 +74,7 @@ Am Code `b1e00cc` geprüft. Diese Befunde gelten vor dem Wortlaut der Planung.
    Normfassung vorliegt (Nachweisregister).
 9. **Es gibt keinen Mailversand aus der App** (nur Anmeldemails). Lieferanten
    bekommen heute einen `mailto:`-Link ohne Anhang.
-10. **Die Anlagen der Planung lagen dem Auftrag nicht bei:**
+10. **Quellenstand:** Die geprüfte Bauplanung wurde am 08.11.2026 nachgereicht und liegt unverändert in [`bauplanung-geprueft.md`](bauplanung-geprueft.md). Die hier verifizierten Befunde und E51 gelten bei Widersprüchen weiter, insbesondere beim Administratorrecht für Module. Folgende dort referenzierten Anlagen liegen weiterhin nicht vor:
     - Masterprompt mit den Einzelspezifikationen (Abschnitt 6, für N01
       Abschnitt 14),
     - Produktentscheidungen und Modulzuordnung als JSON,
@@ -98,11 +99,11 @@ nacheinander auf dem Arbeitsbranch, ein Paket nach dem anderen.
 | M03 | Kataloge, Preise, Kalkulation | E01–E07, A07, A08, G06 | E01–E04 erledigt (E57, M03a); E05/E06 (M03b) und E07, A07, A08, G06 (M03c) offen |
 | M04 | Lagerorte, Fahrzeuglager, Scanner, Deckung | E10–E14, E16, G03 | E10 erledigt (E58, M04a), E13/E14/G03 erledigt (E60, M04b); E11/E12 (M04c), E16 (M04d) offen |
 | M05 | Einkaufsbelege, Lieferantenanfragen, Kundenlieferschein | E08, E09, R01–R03 | offen |
-| M06 | Zeit vollständig, Zeiterfassung abschaltbar (V2), freie Zeitfelder | Z01–Z04, B02, N01 | N01 erledigt (E61, M06b); B02/Z04 (M06a), Z01 (M06c), Z02/Z03 (M06e), V2 (M06d) offen |
+| M06 | Zeit vollständig, Zeiterfassung abschaltbar (V2), freie Zeitfelder | Z01–Z04, B02, N01 | N01 erledigt (E61); Standardfelder, M06a (B02/Z04), M06c (Z01), M06d (V2) in E63 abgeschlossen; M06e (Z02/Z03) fachlich gesperrt: KV-/WKO-Nachweise fehlen |
 | M07 | Qualifikationen, Aufgaben, Planung | Z05, B04–B08, G10, A01, A02, A04 | offen |
 | M08 | Besichtigung, Leistungsverzeichnis, Aufmaß | B03, A05, R10 | offen |
 | M09 | Anlagen, Prüfung, Betriebsmittel | W01–W08, G11 | offen |
-| M10 | Monteur-Arbeitstag, Kommunikation, Abnahme | B01, B09–B13, B15 | teilweise: B09 mit Direktnachrichten (E63, M10/B09); offen: B01, B10–B13, B15 |
+| M10 | Monteur-Arbeitstag, Kommunikation, Abnahme | B01, B09–B13, B15 | teilweise: B09 mit Direktnachrichten (E64, M10/B09); offen: B01, B10–B13, B15 |
 | M11 | Eingangsrechnungen, Dreiwege-Abgleich | R06–R09, E15, G09 | offen |
 | M12 | Bank/CAMT, Fristen | R04, R05, G07, G08 | offen |
 | M13 | Abrechnung, Sammelrechnung, Prognose | G01, G02, G04, G05, A10, B14, R11 | offen; vorgemerkt: Storno-Aufheben gegen gleichzeitiges Anlegen sperren (E55) |

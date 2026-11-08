@@ -146,6 +146,8 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   zeitbuchung_verlauf: { am: 'zeitpunkt' },
   zeitfeld_definitionen: { angelegt_am: 'zeitpunkt', geaendert_am: 'zeitpunkt' },
   zeitfeld_fassungen: { veroeffentlicht_am: 'zeitpunkt' },
+  zeitkorrekturen: { angelegt_am: 'zeitpunkt', entschieden_am: 'zeitpunkt' },
+  zeitsitzungen: { aktualisiert_am: 'zeitpunkt', erinnert_am: 'zeitpunkt', weiterlaufen_am: 'zeitpunkt' },
   zeitkonto_anfang: { updated_at: 'zeitpunkt' },
   /* Nur über Funktionen erreichbar (Runde 3, H1); die Zeile steht da, weil die Karte das Schema abbildet. */
   zwei_faktor_codes: { created_at: 'zeitpunkt', ungueltig_am: 'zeitpunkt', verbraucht_am: 'zeitpunkt' },

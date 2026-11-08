@@ -27,7 +27,7 @@ import { NACHRICHTEN_NEU } from './NachrichtenLive';
 import { ART_TEXT } from './text';
 
 /**
- * DIE NACHRICHTEN (M10/B09, E63) — ein Posteingang für alle Arten von
+ * DIE NACHRICHTEN (M10/B09, E64) — ein Posteingang für alle Arten von
  * Gesprächen und das offene Gespräch daneben.
  *
  *   Handy (bis 759 px)   zwei Seiten: der Posteingang, dann das Gespräch

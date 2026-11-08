@@ -1,5 +1,5 @@
 /**
- * Entfernt Dateien der Nachrichten aus dem Speicher (M10/B09, E63).
+ * Entfernt Dateien der Nachrichten aus dem Speicher (M10/B09, E64).
  *
  * WARUM ES DAFÜR EINE FUNCTION BRAUCHT. Die Datenbank kann eine Datei im
  * Speicher nicht selbst entfernen: eine Zeile in `storage.objects` per SQL zu

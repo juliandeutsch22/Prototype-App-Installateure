@@ -1,5 +1,5 @@
 /**
- * Nachrichten (M10/B09, E63) — auf Postgres.
+ * Nachrichten (M10/B09, E64) — auf Postgres.
  *
  * LESEN NUR ÜBER DIE FUNKTIONEN. Kanäle, Nachrichten, Anhänge und Meldungen
  * hat kein Konto direkt in der Hand; jede Funktion prüft die Teilnahme

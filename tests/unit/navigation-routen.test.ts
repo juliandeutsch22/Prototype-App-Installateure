@@ -272,11 +272,11 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
     ]);
   });
 
-  it('gibt die ZEITFELDER Geschäftsführung und Administration — und nur mit ihrer Unterfähigkeit (M06b)', () => {
+  it('gibt Standard-Zeitfelder Geschäftsführung und Administration auch ohne freie Felder', () => {
     for (const rolle of ['Geschäftsführung', 'Administrator'] as const) {
       expect(unterseitenFuer('/settings', rolle).map((s) => s.pfad)).toContain('zeitfelder');
       expect(unterseitenFuer('/settings', rolle, undefined, { 'zeiterfassung.freie_zeitfelder': false }).map((s) => s.pfad))
-        .not.toContain('zeitfelder');
+        .toContain('zeitfelder');
     }
     for (const rolle of ['Projektleiter', 'Buchhaltung', 'Verwaltung', 'Mitarbeiter'] as const) {
       expect(unterseitenFuer('/settings', rolle).map((s) => s.pfad)).not.toContain('zeitfelder');

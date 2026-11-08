@@ -103,7 +103,7 @@ Für jede neue Serveraktion gelten zusätzlich die Querschnittsprüfungen:
 | B07 | Ersatzvorschlag regelbasiert | keine erfundene Qualifikation | – | |
 | B08 | Hinweise beim Einteilen (Qualifikation, Material) | – | Abwesenheits- und Doppelbuchungshinweise | |
 | G10 | Konflikte und Ersatzkräfte | – | Hinweise auf Abwesenheit, Betriebsurlaub, „schon verplant“ | |
-| B09 | Baustellen-Threads mit Erwähnung und Push; Direktnachrichten und Runden (Erweiterung 07.11.2026); Melden; Übernehmen; ohne Netz vorgemerkt | fremder Betrieb, Führung, Administration, Buchhaltung, Projektleitung, Kollege, Support lesen kein privates Gespräch (Tabellen, Funktionen, Dateien, Live-Ereignis, Auszug, Sicherung, Auskunft); Modul bzw. Direktnachrichten aus; deaktiviertes Konto; Zweitzustellung idempotent | Navigation, Startseite und Push der übrigen Bereiche unverändert; neun Bestandsmodule unverändert | `nachrichten.test.ts`, `tests/unit/nachrichten.test.ts`, `Nachrichten.test.tsx`, `nachrichten.spec.ts` (E63) |
+| B09 | Baustellen-Threads mit Erwähnung und Push; Direktnachrichten und Runden (Erweiterung 07.11.2026); Melden; Übernehmen; ohne Netz vorgemerkt | fremder Betrieb, Führung, Administration, Buchhaltung, Projektleitung, Kollege, Support lesen kein privates Gespräch (Tabellen, Funktionen, Dateien, Live-Ereignis, Auszug, Sicherung, Auskunft); Modul bzw. Direktnachrichten aus; deaktiviertes Konto; Zweitzustellung idempotent | Navigation, Startseite und Push der übrigen Bereiche unverändert; neun Bestandsmodule unverändert | `nachrichten.test.ts`, `tests/unit/nachrichten.test.ts`, `Nachrichten.test.tsx`, `nachrichten.spec.ts` (E64) |
 | B10 | Bautagesbericht als Aggregation aus dem Schein | kein zweiter Bericht mit Datenkopie | Handwerksschein wie bisher | |
 | B11 | Arbeitsbericht mit Vorbelegung aus Zeiten und Material | – | Schein-Eingabe von Hand bleibt | |
 | B12 | Mangel mit Zustand, Frist, Verantwortung bis zur Abnahme | – | – | |
@@ -158,3 +158,19 @@ Für jede neue Serveraktion gelten zusätzlich die Querschnittsprüfungen:
 5. Monteur-Tag offline, nichts verloren, nichts doppelt.
 6. Rechte und Mandanten für jede neue Serveraktion.
 7. Erhaltung: die gesamte bestehende Suite.
+
+
+## M06-Nachweise (08.11.2026, E63)
+
+- B02/Z04/Z01/V2 und Standardfelder: `tests/supabase/m06Zeit.test.ts`;
+  Feldwerte und alte Prüfungen zusätzlich durch die bestehenden Zeit- und Abwesenheitstests.
+- Aktivierung/Erhaltung und Masken: `standardZeitfelder.test.ts`,
+  `TimeFormZeitfelder.test.tsx`, `zeitsitzung.test.ts`, `zeitsitzungenLaden.test.ts`.
+- Serverseitige Rollen und Mandantentrennung: erweitert in `mandantenTrennung.test.ts`;
+  Support-Riegel, Auskunft, Löschung und Typabbildung laufen weiterhin gegen die echte Datenbank.
+- Browserkette: `m06Zeit.spec.ts` (Standardfelder, Offline-Timer, reine Anwesenheit,
+  Korrekturantrag nach Entsperren); Desktop, Telefon und Tablet im Projektregister.
+- Gegenproben: neue Datenbankbefehle vor Migration rot; Standardfeld-Prüfung ohne
+  Schalter/Erhaltung rot. Erhaltung: normale Direktkorrektur, Nacht-/Pausen-/KJBG-Regeln,
+  manuelle Neuanlage, vorhandene Module und alle bisherigen Exporte.
+- Z02/Z03: keine fachliche Abnahme ohne die im Nachweisregister genannten Regeln.

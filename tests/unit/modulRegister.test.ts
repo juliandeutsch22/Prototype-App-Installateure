@@ -30,7 +30,7 @@ import { navForRole } from '@/app/navigation';
  */
 
 describe('Erhaltung: was ein Betrieb heute sieht, bleibt', () => {
-  it('dieselben neun Module mit denselben Kennungen, Standards und Abhängigkeiten — dazu seit M10 die Nachrichten', () => {
+  it('bestehende Module bleiben, Zeiterfassung wird mit demselben Standard schaltbar — dazu seit M10 die Nachrichten', () => {
     expect(MODULE.map((m) => [m.id, m.standard, m.abhaengigVon ?? []])).toEqual([
       ['einsatzplanung', true, []],
       ['material', true, []],
@@ -41,7 +41,8 @@ describe('Erhaltung: was ein Betrieb heute sieht, bleibt', () => {
       ['nachkalkulation', true, ['rechnungen']],
       ['wartung', true, []],
       ['zeitkonten', true, []],
-      // M10/B09 (E63): Baustellen-Threads im empfohlenen Umfang — Standard an, bewusst nachgezogen.
+      ['zeiterfassung', true, []],
+      // M10/B09 (E64): Baustellen-Threads im empfohlenen Umfang — Standard an, bewusst nachgezogen.
       ['nachrichten', true, []],
     ]);
   });
@@ -92,7 +93,7 @@ describe('Folgen beim Abschalten — was sich nicht zurückholen lässt', () => 
 
   it('die übrigen Module haben keine solche Folge', () => {
     // Die Angebote nennen seit M02a die Folge ihrer Unterfähigkeit, Material seit M04a die der Lagerorte — eigene Fälle unten.
-    for (const m of MODULE.filter((x) => !['einsatzplanung', 'angebote', 'material', 'nachrichten'].includes(x.id))) {
+    for (const m of MODULE.filter((x) => !['einsatzplanung', 'angebote', 'material', 'zeiterfassung', 'nachrichten'].includes(x.id))) {
       expect(folgenBeimAbschalten(m.id, undefined), m.id).toEqual([]);
     }
   });
@@ -162,8 +163,8 @@ describe('Die erste Unterfähigkeit des echten Registers (M02a)', () => {
 */
 describe('Der Kern (M02b)', () => {
   it('Baustellen, Kunden und (seit M06b) Zeiterfassung — immer an, auch wenn jemand sie in die Festlegung schreibt', () => {
-    expect(KERN.map((k) => k.id)).toEqual(['baustellen', 'kunden', 'zeiterfassung']);
-    for (const id of ['baustellen', 'kunden', 'zeiterfassung'] as const) {
+    expect(KERN.map((k) => k.id)).toEqual(['baustellen', 'kunden']);
+    for (const id of ['baustellen', 'kunden'] as const) {
       expect(istKern(id)).toBe(true);
       expect(istAn(undefined, id)).toBe(true);
       expect(istAn({ [id]: false }, id)).toBe(true);
@@ -173,8 +174,8 @@ describe('Der Kern (M02b)', () => {
     expect(istKern('angebote')).toBe(false);
   });
 
-  it('zählt nicht zu den Modulen: „Eingeschaltet: N von 10“ (seit M10) und die Navigation bleiben', () => {
-    expect(aktiveModule(undefined).size).toBe(10);
+  it('zählt nicht zu den Modulen: „Eingeschaltet: N von 11“ (seit M06 und M10) und die Navigation bleiben', () => {
+    expect(aktiveModule(undefined).size).toBe(11);
     expect([...aktiveModule(undefined)]).not.toContain('baustellen');
     expect(MODULE.map((m) => m.id)).not.toContain('baustellen');
   });
@@ -197,9 +198,9 @@ describe('Der Kern (M02b)', () => {
     expect(schalter('zeiterfassung.freie_zeitfelder')).toMatchObject({ name: 'Freie Zeitfelder', standard: true });
     expect(istAn(undefined, 'zeiterfassung.freie_zeitfelder')).toBe(true);
     expect(istAn({ 'zeiterfassung.freie_zeitfelder': false }, 'zeiterfassung.freie_zeitfelder')).toBe(false);
-    expect(istAn({ zeiterfassung: false }, 'zeiterfassung.freie_zeitfelder')).toBe(true);
+    expect(istAn({ zeiterfassung: false }, 'zeiterfassung.freie_zeitfelder')).toBe(false);
     expect(folgenBeimAbschalten('zeiterfassung.freie_zeitfelder', undefined)).toEqual([]);
-    expect(aktiveModule(undefined).size).toBe(10);
+    expect(aktiveModule(undefined).size).toBe(11);
   });
 
   it('jede Unterfähigkeit des Kerns trägt dessen Kennung vor dem Punkt — so liest sie der Server', () => {
