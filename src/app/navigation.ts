@@ -305,7 +305,7 @@ export const UNTER: Record<string, Unterseite[]> = {
       nicht die Modulliste (E51); dieselbe Grenze zieht `zeitfeld_speichern`.
       Neben „Personal“, weil sie zur Arbeitszeitaufzeichnung gehören.
     */
-    { pfad: 'zeitfelder', label: 'Zeitfelder', roles: TOP, nurMitModul: ['zeiterfassung.freie_zeitfelder'] },
+    { pfad: 'zeitfelder', label: 'Zeitfelder', roles: TOP },
     /*
       DIE FAHRZEUGE (M04a): Stammdaten des Betriebs, die gemeinsame Kennung
       für Fahrzeuglager (E10), Fristen (W06) und Fahrtenbuch (W07). Hierher

@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
-import type { AppUser, Role, TimeEntry, ZeitfeldDefinition } from '@/types';
+import type { AppUser, Company, Role, TimeEntry, ZeitfeldDefinition } from '@/types';
 
 /**
  * DIE FREIEN ZEITFELDER IN DER BUCHUNGSMASKE (M06b, N01).
@@ -63,7 +63,7 @@ vi.mock('@/lib/db/zeitfelder', () => ({
   listZeitfeldFassungen: vi.fn(async () => [fassung]),
 }));
 
-const authWert: { user: AppUser; company: { id: string; name: string; modules?: Record<string, boolean> } } = {
+const authWert: { user: AppUser; company: Pick<Company, 'id' | 'name' | 'modules' | 'zeitStandardfelder'> } = {
   user: { uid: 'u1', name: 'Max Monteur', role: 'Mitarbeiter', companyId: 'perl' } as unknown as AppUser,
   company: { id: 'perl', name: 'Perl Installationen' },
 };
@@ -226,4 +226,39 @@ describe('Bearbeiten', () => {
     await waitFor(() => expect(aendern).toHaveBeenCalled());
     expect((aendern.mock.calls[0][1] as TimeEntry).zeitfelder).toBeUndefined();
   });
+});
+
+describe('Standardfelder der bisherigen Maske', () => {
+  it('schaltet Zusatzfelder aus, bewahrt aber die vorhandenen Werte beim Ändern', async () => {
+    authWert.company.modules = { 'zeiterfassung.freie_zeitfelder': false };
+    authWert.company.zeitStandardfelder = { travelTime: false, vehiclePlate: false, helperName: false, comment: false, isEmergency: false };
+    zeichne({ id: 'e1', companyId: 'perl', userId: 'u1', userName: 'Max Monteur', date: '2026-10-14', status: 'Anwesend', startTime: '07:00', endTime: '16:00', breakDuration: 30, projectNumber: 'B-001', travelTime: 25, vehiclePlate: 'G-123', helperName: 'Helfer', comment: 'Alt', isEmergency: true });
+    expect(screen.queryByLabelText(/Wegzeit/)).toBeNull();
+    expect(screen.queryByLabelText(/Kommentar/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await waitFor(() => expect(aendern).toHaveBeenCalled());
+    expect(aendern.mock.calls[0][1]).toMatchObject({ travelTime: 25, vehiclePlate: 'G-123', helperName: 'Helfer', comment: 'Alt', isEmergency: true });
+  });
+  it('ohne Gesamtmodul bleibt die Neuanlage aus, das Bearbeiten vorhandener Daten bleibt', () => {
+    authWert.company.modules = { zeiterfassung: false };
+    zeichne();
+    expect(screen.getByText(/Zeiterfassung ist ausgeschaltet/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Zeit buchen/ })).toBeNull();
+  });
+  it('offene Korrektur bei ausgeschaltetem Modul ändert feste Angaben ohne freie Werte neu zu schreiben', async () => {
+    authWert.company.modules = { zeiterfassung: false };
+    listFeldwerte.mockResolvedValue([{ eintragId: 'e1', feldId: K, wert: WIEN }]);
+    const eintrag: TimeEntry = { id: 'e1', companyId: 'perl', userId: 'u1', userName: 'Max Monteur', date: '2026-10-14', status: 'Anwesend', startTime: '07:00', endTime: '16:00', breakDuration: 30, projectNumber: 'B-001', zeitfeldFassung: 4 };
+    const korrigieren = vi.fn<(werte: Partial<TimeEntry>) => Promise<void>>(async () => undefined);
+    render(<MemoryRouter><ToastProvider><TimeForm entry={eintrag as never} speichernMit={korrigieren} onSaved={vi.fn()} /></ToastProvider></MemoryRouter>);
+    await waitFor(() => expect(feldsatzLaden).toHaveBeenCalled());
+    await waitFor(() => expect(listFeldwerte).toHaveBeenCalled());
+    expect(screen.queryByLabelText(/^Kostenstelle/)).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/Kommentar/), { target: { value: 'Berichtigte Tätigkeit' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await waitFor(() => expect(korrigieren).toHaveBeenCalled());
+    expect(korrigieren.mock.calls[0][0]).toMatchObject({ comment: 'Berichtigte Tätigkeit' });
+    expect(korrigieren.mock.calls[0][0]).not.toHaveProperty('zeitfelder');
+  });
+
 });

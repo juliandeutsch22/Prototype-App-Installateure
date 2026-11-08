@@ -180,6 +180,9 @@ export interface Company {
    * der Betrieb die Arten später wieder abdreht.
    */
   rechnungsarten?: boolean;
+  /** Ausgeblendete Standardfelder bleiben an vorhandenen Buchungen erhalten. */
+  timerErinnerungMin?: number;
+  zeitStandardfelder?: import('@/lib/standardZeitfelder').StandardZeitfelder;
   /**
    * Alle Mitarbeiter sehen einen reinen Lese-Wochenplan: wer ist wo, und wer
    * ist abwesend — ohne Grund. Ab Werk aus.
@@ -508,6 +511,7 @@ export interface UserPrefs {
    * (M02a) — für die Führung.
    */
   notifyAngebot?: boolean;
+  notifyZeiterfassung?: boolean;
   /**
    * Push-Token je Gerät. Ein Mensch hat Telefon und Rechner, beide sollen
    * die Meldung bekommen; ein abgemeldetes Gerät wird wieder entfernt.

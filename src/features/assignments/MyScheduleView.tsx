@@ -71,6 +71,7 @@ export default function MyScheduleView() {
   const { user, company, einblick } = useAuth();
   // Querverweise nur zeigen, wenn ihr Ziel ueberhaupt existiert — ein Link in
   // die Meldung „ist ausgeschaltet" ist eine Sackgasse.
+  const zeitAn = useModul('zeiterfassung');
   const scheineAn = useModul('scheine');
   const urlaubAn = useModul('urlaub');
   const materialAn = useModul('material');
@@ -544,9 +545,9 @@ export default function MyScheduleView() {
                           {/* Übernimmt Baustelle und Helfer-Rolle ins
                               Zeitformular — ein vergessener Helfer-Haken
                               kostet den falschen Satz. */}
-                          <KnopfLink to="/time" state={{ projectNumber: a.projectNumber, asHelper: !!a.asHelper }}>
+                          {zeitAn && <KnopfLink to="/time" state={{ projectNumber: a.projectNumber, asHelper: !!a.asHelper }}>
                             Zeit erfassen
-                          </KnopfLink>
+                          </KnopfLink>}
                           {/*
                             Der Schein gehoert an den Einsatz, nicht in einen
                             eigenen Bereich, in dem man die Baustelle erneut

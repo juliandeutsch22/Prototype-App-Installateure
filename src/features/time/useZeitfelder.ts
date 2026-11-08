@@ -51,7 +51,7 @@ export function useFeldsatz(
   wer: { uid: string; companyId: string } | null | undefined,
   module: Record<string, boolean> | undefined,
 ): FeldsatzStand {
-  const an = !!wer && istAn(module, 'zeiterfassung.freie_zeitfelder');
+  const an = !!wer && (istAn(module, 'zeiterfassung.freie_zeitfelder') || (module?.zeiterfassung === false && module?.['zeiterfassung.freie_zeitfelder'] !== false));
   const firma = wer?.companyId;
   const [gemerkt] = useState(() => (firma ? gemerkterFeldsatz(firma) : null));
   const abfrage = useZwischengespeichert<Feldsatz>({

@@ -173,3 +173,21 @@ eigenen PR gebaut, in der Reihenfolge der Tabelle, jeder mit Prüfungen samt
 Gegenprobe, Handbuch und Stand; am 24.10.2026 abgeschlossen. Was bleibt,
 steht unter B, jeweils mit seinem Grund. Eine neue Grenze kommt nach
 Grundsatz 6 nur mit Grund dorthin — sonst wird sie gebaut.
+
+
+## M06 — bestätigte fachliche Grenze (08.11.2026, E63)
+
+Zusätzliche Zeitmodelle, Durchrechnung und lohnwirksame Zulagen (Z02/Z03) sind
+nicht fachlich freigegeben. Laut nachgereichter geprüfter Bauplanung und
+Nachweisregister fehlen konkrete KV-/WKO-Regeln bzw. Betriebsvereinbarungen.
+Eine frei erfundene Formel oder automatische Neuberechnung alter Salden wäre
+fachlich falsch. Normalarbeitszeit bleibt wie heute; N01 dokumentiert und exportiert
+frei benannte Merkmale, ohne sie als rechtlich geprüfte Lohnart auszugeben.
+Der Betreiber wurde nach den maßgeblichen Fundstellen gefragt. Diese externe
+Voraussetzung blockiert nur M06e, nicht die fertigen Buchungs- und Verwaltungswege.
+
+Die Standardfelder ändern weder Datentypen noch Bedeutung für Budget/Abrechnung.
+Person, Tag, Stand, Arbeitszeit/Pause und automatische Nachtberechnung sind
+notwendige Grundlagen; ihre Freigabe als beliebige optionale Textfelder würde
+korrekte Arbeitszeitaufzeichnungen verhindern. Zusatzangaben sind schaltbar,
+vorhandene Werte bleiben erhalten. Keine Grenze nach Betriebsgröße oder Aufwand.

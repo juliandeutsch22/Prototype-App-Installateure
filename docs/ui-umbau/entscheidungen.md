@@ -2127,3 +2127,62 @@ Annahmewege und der unveränderte Schnappschuss), Querschnitt `schema`,
 `typenSpalten`, `modulRegisterServer`; Komponenten `LiegenschaftenView`,
 `LiegenschaftView`, `LiegenschaftBaustelle`, `KundenLiegenschaften`,
 `QuotesView`, `AngebotView`; Browser `liegenschaften.spec.ts`.
+
+## E63 — M06: Timer, Korrekturanträge, schaltbare Zeiterfassung und Standardfelder (08.11.2026)
+
+Auftrag: M6 gegen den tatsächlichen Bestand zu Ende führen; auch die festen
+Zeitfelder unter Einstellungen verwalten. Die am 08.11. nachgereichte geprüfte
+Bauplanung liegt unter `docs/shk-ausbau/bauplanung-geprueft.md`. E51 und die am
+Code verifizierten Rollen gelten weiter: Module nur Administration; Zeitfelder
+Geschäftsführung und Administration.
+
+- **Erhalt:** normale Buchung, bisher erlaubte Direktkorrektur, Rechnungssperre,
+  Abwesenheitsursprung, KJBG, Nachtberechnung, Saldo, Budget und E50 bleiben die
+  maßgeblichen Wege. Kein automatischer Stundenabschluss und kein Lohneditor.
+- **M06a / B02, Z04:** eigene `zeitsitzungen` sammeln Arbeits- und Pausenabschnitte
+  mit Baustellenwechsel. Befehlskennung und Revision sichern Wiederholung und
+  Gerätewechsel; das bestehende Ausgangsfach sendet Schritte offline nach.
+  Auf anderen Geräten noch nicht eingetroffene Schritte können nicht bekannt
+  sein; ein Konflikt wird abgewiesen und im Ausgangsfach angezeigt. Erst die
+  ausdrückliche Bestätigung im vorhandenen `TimeForm` erzeugt je Arbeitsabschnitt
+  eine normale Buchung. Ein anderer Inhalt unter derselben Abschlusskennung wird
+  abgewiesen. Fehlstarts sind mit Grund verwerfbar, auch einzelne Restabschnitte.
+- **Erinnerung:** ab Werk 600 Minuten, in Personal einstellbar; Cron prüft alle
+  15 Minuten. Persönliche Benachrichtigung „Zeiterfassung: Timer und Korrekturanträge“ und Modulschalter sind getrennt.
+  Die Erinnerung ist zusätzlich in der App sichtbar; Weiterlaufen ist bewusst
+  bestätigbar. Push setzt ein registriertes Gerät und die vorhandene FCM-Konfiguration
+  voraus; keine garantierte Zustellung bei fehlender Verbindung.
+- **M06c / Z01:** ein gesperrter Eintrag bietet einen Korrekturantrag. Das Büro
+  ändert über das vorhandene Formular und entscheidet atomar; Rolle und Zeitprofil
+  der gebuchten Person gelten. Rechnung und Abwesenheit werden am ursprünglichen
+  Vorgang berichtigt. Das bloße Entsperren ist noch keine Korrektur; echte Änderungen
+  einschließlich freier Werte oder protokollierte Entfernung sind nachzuweisen.
+  Begründete Ablehnung und Zurückziehen sind möglich. Alte Direktrechte bleiben.
+- **M06d / V2:** Zeiterfassung ist ein Modul, ab Werk an. Archiv, Exporte und E50
+  bleiben erreichbar. Oberfläche bietet keine neuen manuellen Buchungen und keine
+  neue Stundenquelle für Regierechnungen an; Scheinquelle bleibt. V3 gilt:
+  bisherige Schreibwege, ältere Geräte und Abwesenheitsabläufe werden nicht
+  nachträglich gesperrt. Neue Timer/Anträge prüfen ihren Schalter. Offene Sitzungen
+  und Anträge bleiben abschließbar, einschließlich Pflichtangaben des Timers.
+- **Standardfelder:** Baustelle, Wegzeit, Fahrzeug, Helfername, Helfer-Einsatz,
+  Notdienst und Kommentar sind unabhängig von den freien Feldern schaltbar.
+  Ausblenden ist kein Löschauftrag. Notwendige Grundlagen (Person, Tag, Stand,
+  Zeit und Pause) und automatische Nachtberechnung behalten ihre Bedeutung;
+  Typ, Abrechnungsbedeutung und Rollenrechte lassen sich nicht umdefinieren.
+- **Datenschutz:** neue personenbezogene Tabellen gehören in Auskunft und
+  Aufbewahrungsprüfung der Personenlöschung. Keine Rohdaten werden an Push gesendet;
+  die Erinnerung enthält nur einen Hinweis und den Weg zur Zeiterfassung.
+
+**M06e / Z02, Z03 bleibt fachlich gesperrt, nicht als erledigt ausgegeben.**
+Es fehlen laut Nachweisregister konkrete KV-/WKO-Regeln bzw. Betriebsvereinbarungen
+für zusätzliche Zeitmodelle, Durchrechnung und lohnwirksame Zulagen. Ohne diese
+würden neue Versionen vermeintlich rechtlich gültige Regeln festschreiben und
+bestehende Salden verändern. Normalarbeitszeit bleibt wie bisher; frei benannte
+Merkmale können bereits mit N01 dokumentiert und exportiert werden, ergeben aber
+keine erfundene Lohnart oder Auszahlung. Keine unfertige Zusatzmodell-Oberfläche.
+Der Betreiber wurde am 08.11. nach den maßgeblichen Fundstellen gefragt.
+
+**Nachweise:** `m06Zeit.test.ts` gegen echte Datenbank, Standardfeld-Erhaltung in
+`TimeFormZeitfelder.test.tsx`, `standardZeitfelder.test.ts`, `zeitsitzung.test.ts`,
+`m06Zeit.spec.ts` auf Desktop und Tablet; Gegenproben vor den Migrationen rot,
+Standardfeld-Gegenprobe ohne Aktivierung/Erhaltung rot. Muster auf `/_muster`.

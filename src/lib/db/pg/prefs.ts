@@ -106,6 +106,7 @@ export async function savePrefs(
       // Fehlt die Angabe, bleibt sie an: abgeschaltet wird nur ausdrücklich.
       notify_abwesenheit: prefs.notifyAbwesenheit ?? true,
       notify_angebot: prefs.notifyAngebot ?? true,
+      ...(prefs.notifyZeiterfassung === undefined ? {} : { notify_zeiterfassung: prefs.notifyZeiterfassung }),
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id' },

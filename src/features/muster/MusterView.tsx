@@ -1,3 +1,4 @@
+import MusterZeitablauf from './MusterZeitablauf';
 import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import Card from '@/components/Card';
@@ -235,6 +236,7 @@ export default function MusterView() {
 
       {/* M06b: die freien Zeitfelder in Maske und Liste. */}
       <MusterZeitfelder />
+      <MusterZeitablauf />
 
       <Card title="Leerer Zustand" buendig>
         <EmptyState>Heute liegt nichts an.</EmptyState>
