@@ -101,12 +101,15 @@ describe('Folgen beim Abschalten — was sich nicht zurückholen lässt', () => 
 
   /*
     DIE NACHRICHTEN (M10/B09) sagen vorher, dass die Seite zugeht und nichts
-    verloren ist; die Direktnachrichten (ab Werk aus) nur, wenn sie an sind.
+    verloren ist; die Direktnachrichten (seit E65 ab Werk an) ebenso, solange sie an sind.
   */
-  it('die Nachrichten sagen vorher, dass nichts gelöscht wird; die Direktnachrichten stehen ab Werk aus', () => {
-    expect(folgenBeimAbschalten('nachrichten', undefined)).toEqual([expect.stringMatching(/Nichts wird gelöscht/)]);
-    expect(schalter('nachrichten.direktnachrichten')).toMatchObject({ standard: false });
-    expect(istAn(undefined, 'nachrichten.direktnachrichten')).toBe(false);
+  it('die Nachrichten sagen vorher, dass nichts gelöscht wird; die Direktnachrichten stehen ab Werk an (E65)', () => {
+    expect(folgenBeimAbschalten('nachrichten', { 'nachrichten.direktnachrichten': false })).toEqual([expect.stringMatching(/Nichts wird gelöscht/)]);
+    expect(folgenBeimAbschalten('nachrichten', undefined)).toHaveLength(2);
+    expect(schalter('nachrichten.direktnachrichten')).toMatchObject({ standard: true });
+    expect(schalter('nachrichten.direktnachrichten')?.zweck).toMatch(/ArbVG §§ 96, 96a/);
+    expect(istAn(undefined, 'nachrichten.direktnachrichten')).toBe(true);
+    expect(istAn({ 'nachrichten.direktnachrichten': false }, 'nachrichten.direktnachrichten')).toBe(false);
     expect(istAn({ 'nachrichten.direktnachrichten': true }, 'nachrichten.direktnachrichten')).toBe(true);
     expect(istAn({ nachrichten: false, 'nachrichten.direktnachrichten': true }, 'nachrichten.direktnachrichten')).toBe(false);
     expect(folgenBeimAbschalten('nachrichten', { 'nachrichten.direktnachrichten': true })).toHaveLength(2);

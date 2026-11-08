@@ -68,7 +68,8 @@ vi.mock('@/lib/db/nachrichten', () => ({
   rundeBenennen: vi.fn(async () => undefined),
   abonniereNachrichtenStand: vi.fn(() => () => undefined),
 }));
-vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => []) }));
+let kollegen: { uid: string; name: string; role: string; active: boolean }[] = [];
+vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => kollegen) }));
 vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () => []), listProjectsForEmployee: vi.fn(async () => []), searchProjects: vi.fn(async () => []),
 }));
@@ -100,6 +101,7 @@ beforeEach(() => {
   postfachWert = [];
   direktAn = true;
   einblick = null;
+  kollegen = [];
   melden.mockClear();
   senden.mockClear();
   gelesen.mockClear();
@@ -216,5 +218,53 @@ describe('Im Einblick des Supports', () => {
     expect(kanalKopf).not.toHaveBeenCalled();
     expect(verlauf).not.toHaveBeenCalled();
     expect(postfach).not.toHaveBeenCalled();
+  });
+});
+
+describe('Neue Nachricht (E65)', () => {
+  it('zeigt die Personen gleich — ein Tipp öffnet das Gespräch zu zweit', async () => {
+    kollegen = [
+      { uid: 'ich', name: 'Max Monteur', role: 'Mitarbeiter', active: true },
+      { uid: 'anna', name: 'Anna Huber', role: 'Verwaltung', active: true },
+      { uid: 'alt', name: 'Otto Alt', role: 'Mitarbeiter', active: false },
+    ];
+    const { kanalDirekt } = await import('@/lib/db/nachrichten');
+    vi.mocked(kanalDirekt).mockClear();
+    zeige('/nachrichten');
+    await userEvent.click(await screen.findByRole('button', { name: 'Neue Nachricht' }));
+    const bogen = await screen.findByRole('dialog');
+    // Ohne Zwischenschritt: die Person steht da; man selbst und deaktivierte Konten nicht.
+    const anna = await within(bogen).findByRole('button', { name: /Anna Huber/ });
+    expect(within(bogen).queryByRole('button', { name: /Max Monteur/ })).not.toBeInTheDocument();
+    expect(within(bogen).queryByRole('button', { name: /Otto Alt/ })).not.toBeInTheDocument();
+    await userEvent.click(anna);
+    await waitFor(() => expect(kanalDirekt).toHaveBeenCalledWith('anna'));
+  });
+
+  it('„Runde mit mehreren“: Personen wählen, dann der freiwillige Name', async () => {
+    kollegen = [
+      { uid: 'anna', name: 'Anna Huber', role: 'Verwaltung', active: true },
+      { uid: 'berta', name: 'Berta Büro', role: 'Verwaltung', active: true },
+    ];
+    const { kanalRunde } = await import('@/lib/db/nachrichten');
+    vi.mocked(kanalRunde).mockClear();
+    zeige('/nachrichten');
+    await userEvent.click(await screen.findByRole('button', { name: 'Neue Nachricht' }));
+    const bogen = await screen.findByRole('dialog');
+    await userEvent.click(within(bogen).getByRole('button', { name: 'Runde mit mehreren' }));
+    await userEvent.click(await within(bogen).findByRole('button', { name: /Anna Huber/ }));
+    await userEvent.click(within(bogen).getByRole('button', { name: /Berta Büro/ }));
+    await userEvent.click(within(bogen).getByRole('button', { name: 'Weiter (2)' }));
+    await userEvent.type(await screen.findByLabelText('Name der Runde (freiwillig)'), 'Bad Huber');
+    await userEvent.click(screen.getByRole('button', { name: 'Runde beginnen' }));
+    await waitFor(() => expect(kanalRunde).toHaveBeenCalledWith('Bad Huber', ['anna', 'berta']));
+  });
+
+  it('der Reiter „Ungelesen“ fragt den Server danach', async () => {
+    const { postfach } = await import('@/lib/db/nachrichten');
+    zeige('/nachrichten');
+    await userEvent.click(await screen.findByRole('button', { name: 'Ungelesen' }));
+    await waitFor(() => expect(vi.mocked(postfach).mock.calls.some((c) => c[0] === 'ungelesen')).toBe(true));
+    expect(await screen.findByText('Alles gelesen')).toBeInTheDocument();
   });
 });

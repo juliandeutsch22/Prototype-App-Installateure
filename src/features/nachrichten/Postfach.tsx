@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { postfach, type PostfachAuswahl, type PostfachZeile, type PostfachZeiger } from '@/lib/db/nachrichten';
-import Card from '@/components/Card';
 import { Link } from 'react-router-dom';
 import Icon from '@/components/Icon';
-import { Listenleiste, MehrAnzeigen, Segmente } from '@/components/LotBausteine';
+import { MehrAnzeigen } from '@/components/LotBausteine';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import { NACHRICHTEN_NEU } from './NachrichtenLive';
 import { ART_TEXT, kuerzel, zeitText } from './text';
@@ -81,6 +80,7 @@ export default function Postfach({
     { wert: 'alle', text: 'Alle' },
     ...(direktAn || auswahl === 'privat' ? [{ wert: 'privat' as const, text: 'Direkt' }] : []),
     { wert: 'baustelle', text: 'Baustellen' },
+    { wert: 'ungelesen', text: 'Ungelesen' },
   ];
 
   const zeile = (z: PostfachZeile) => {
@@ -123,32 +123,59 @@ export default function Postfach({
   };
 
   return (
-    <Card title="Gespräche" buendig>
-      <Listenleiste
-        reiter={<Segmente name="Gespräche" werte={reiter} wert={auswahl} onChange={setAuswahl} />}
-        suche={{ id: 'nachrichten-suche', wert: eingabe, onChange: setEingabe, platzhalter: 'Name, Baustelle, Text', name: 'Gespräche suchen' }}
-      />
-      {fehler && (
-        <div className="px-4 pb-4">
-          <ErrorState message="Die Gespräche konnten nicht geladen werden." onRetry={() => setVersuch((v) => v + 1)} />
+    <section className="postfach" aria-label="Gespräche">
+      <div className="postfach-leiste">
+        <label className="chat-suche">
+          <Icon name="lupe" size={20} aria-hidden="true" />
+          <span className="sr-only">Gespräche suchen</span>
+          <input
+            id="nachrichten-suche"
+            type="search"
+            value={eingabe}
+            onChange={(e) => setEingabe(e.target.value)}
+            placeholder="Personen, Baustellen, Text"
+            autoComplete="off"
+          />
+        </label>
+        <div className="chat-chips" role="group" aria-label="Auswahl">
+          {reiter.map((r) => (
+            <button
+              key={r.wert}
+              type="button"
+              className="chat-chip"
+              aria-pressed={auswahl === r.wert}
+              onClick={() => setAuswahl(r.wert)}
+            >
+              {r.text}
+            </button>
+          ))}
         </div>
-      )}
-      {!fehler && zeilen === null && <SkeletonList rows={4} />}
-      {!fehler && zeilen && zeilen.length === 0 && (
-        <EmptyState titel={suche ? 'Nichts gefunden' : 'Noch kein Gespräch'}>
-          {suche
-            ? `Kein Gespräch passt zu „${suche}“.`
-            : auswahl === 'baustelle'
-              ? 'Den Thread einer Baustelle öffnet „Neue Nachricht“ oder die Baustelle selbst.'
-              : 'Mit „Neue Nachricht“ beginnt eines.'}
-        </EmptyState>
-      )}
-      {!fehler && zeilen && zeilen.length > 0 && (
-        <>
-          <ul aria-label="Gespräche">{zeilen.map(zeile)}</ul>
-          {weiter && <MehrAnzeigen anzahl={null} laedt={mehrLaeuft} onClick={() => void mehr()} />}
-        </>
-      )}
-    </Card>
+      </div>
+      <div className="postfach-blatt">
+        {fehler && (
+          <div className="p-4">
+            <ErrorState message="Die Gespräche konnten nicht geladen werden." onRetry={() => setVersuch((v) => v + 1)} />
+          </div>
+        )}
+        {!fehler && zeilen === null && <SkeletonList rows={4} />}
+        {!fehler && zeilen && zeilen.length === 0 && (
+          <EmptyState titel={suche ? 'Nichts gefunden' : auswahl === 'ungelesen' ? 'Alles gelesen' : 'Noch kein Gespräch'}>
+            {suche
+              ? `Kein Gespräch passt zu „${suche}“.`
+              : auswahl === 'ungelesen'
+                ? 'Keine neue Nachricht.'
+                : auswahl === 'baustelle'
+                  ? 'Den Thread einer Baustelle öffnet „Neue Nachricht“ oder die Baustelle selbst.'
+                  : 'Mit „Neue Nachricht“ beginnt eines.'}
+          </EmptyState>
+        )}
+        {!fehler && zeilen && zeilen.length > 0 && (
+          <>
+            <ul aria-label="Gespräche">{zeilen.map(zeile)}</ul>
+            {weiter && <MehrAnzeigen anzahl={null} laedt={mehrLaeuft} onClick={() => void mehr()} />}
+          </>
+        )}
+      </div>
+    </section>
   );
 }

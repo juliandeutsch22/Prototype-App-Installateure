@@ -626,12 +626,32 @@ describe('Aufbewahrung (D3)', () => {
   });
 });
 
+describe('Posteingang: der Reiter „Ungelesen“ (E65)', () => {
+  it('zeigt nur Gespräche mit eigener ungelesener Zahl — gelesen fällt heraus; Unbekanntes wird abgelehnt', async () => {
+    const kanal = await rpc<string>(monteur, 'nachrichten_kanal_direkt', { p_mit: dritter.uid });
+    await senden(monteur, kanal, 'Ungelesen-Probe');
+    const vorher = await rpc<Zeile[]>(dritter, 'nachrichten_postfach', { p_art: 'ungelesen' });
+    expect(vorher.map((z) => z.kanal)).toContain(kanal);
+    expect(vorher.every((z) => Number(z.ungelesen) > 0)).toBe(true);
+    // Der Absender hat nichts Ungelesenes in diesem Gespräch.
+    expect((await rpc<Zeile[]>(monteur, 'nachrichten_postfach', { p_art: 'ungelesen' })).map((z) => z.kanal)).not.toContain(kanal);
+    await rpc(dritter, 'nachrichten_gelesen', { p_kanal: kanal });
+    expect((await rpc<Zeile[]>(dritter, 'nachrichten_postfach', { p_art: 'ungelesen' })).map((z) => z.kanal)).not.toContain(kanal);
+    // Die anderen Reiter bleiben, wie sie waren.
+    expect((await rpc<Zeile[]>(dritter, 'nachrichten_postfach', { p_art: 'privat' })).map((z) => z.kanal)).toContain(kanal);
+    expect((await rpc<Zeile[]>(dritter, 'nachrichten_postfach', { p_art: 'baustelle' })).map((z) => z.kanal)).not.toContain(kanal);
+    expect((await fehler(dritter, 'nachrichten_postfach', { p_art: 'alles' })).code).toBe('22023');
+  });
+});
+
 describe('Modul aus, Direktnachrichten aus', () => {
-  it('ab Werk: Threads ja, Direktnachrichten nein', async () => {
+  it('ab Werk: Threads und Direktnachrichten an (E65); ausdrücklich aus bleibt aus', async () => {
     const { rows } = await db.query<{ kennung: string; standard: boolean }>(
       `select kennung, standard from app.modul_register() where kennung like 'nachrichten%' order by 1`);
-    expect(rows).toEqual([{ kennung: 'nachrichten', standard: true }, { kennung: 'nachrichten.direktnachrichten', standard: false }]);
+    expect(rows).toEqual([{ kennung: 'nachrichten', standard: true }, { kennung: 'nachrichten.direktnachrichten', standard: true }]);
+    await module(B, { 'nachrichten.direktnachrichten': false });
     expect((await fehler(fremd, 'nachrichten_kanal_direkt', { p_mit: fremd.uid })).code).toBe('55000');
+    await module(B, {});
   });
 
   it('nichts Neues; Lesen, Löschen und Melden bleiben', async () => {

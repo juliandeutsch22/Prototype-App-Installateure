@@ -34,6 +34,7 @@ export type IconName =
   | 'hilfe'
   | 'lupe'
   | 'klammer'
+  | 'kamera'
   | 'senden';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
@@ -114,6 +115,8 @@ const paths: Record<IconName, string> = {
   */
   klammer: 'M20 11.5 12.4 19a5 5 0 0 1-7.1-7.1l8-8a3.3 3.3 0 0 1 4.7 4.7l-8 8a1.7 1.7 0 0 1-2.4-2.4l7.3-7.3',
   senden: 'M12 20V5M5.5 11.5 12 5l6.5 6.5',
+  // Foto direkt aus der Eingabezeile — am Telefon der häufigste Anhang einer Baustellen-Nachricht.
+  kamera: 'M4 8h3l2-3h6l2 3h3v11H4V8ZM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:

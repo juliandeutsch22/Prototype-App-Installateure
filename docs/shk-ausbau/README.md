@@ -103,7 +103,7 @@ nacheinander auf dem Arbeitsbranch, ein Paket nach dem anderen.
 | M07 | Qualifikationen, Aufgaben, Planung | Z05, B04–B08, G10, A01, A02, A04 | offen |
 | M08 | Besichtigung, Leistungsverzeichnis, Aufmaß | B03, A05, R10 | offen |
 | M09 | Anlagen, Prüfung, Betriebsmittel | W01–W08, G11 | offen |
-| M10 | Monteur-Arbeitstag, Kommunikation, Abnahme | B01, B09–B13, B15 | teilweise: B09 mit Direktnachrichten (E64, M10/B09); offen: B01, B10–B13, B15 |
+| M10 | Monteur-Arbeitstag, Kommunikation, Abnahme | B01, B09–B13, B15 | teilweise: B09 mit Direktnachrichten (E64, M10/B09; zweite Fassung E65); offen: B01, B10–B13, B15 |
 | M11 | Eingangsrechnungen, Dreiwege-Abgleich | R06–R09, E15, G09 | offen |
 | M12 | Bank/CAMT, Fristen | R04, R05, G07, G08 | offen |
 | M13 | Abrechnung, Sammelrechnung, Prognose | G01, G02, G04, G05, A10, B14, R11 | offen; vorgemerkt: Storno-Aufheben gegen gleichzeitiges Anlegen sperren (E55) |
