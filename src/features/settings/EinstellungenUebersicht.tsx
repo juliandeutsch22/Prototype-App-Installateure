@@ -64,6 +64,7 @@ const STICHWORTE: Record<string, string> = {
   module: 'Bereiche ein- und ausschalten',
   sicherung: 'Nächtliche Sicherung, Daten herunterladen, Belegarchiv',
   papierkorb: 'Verworfene Angebote und Handwerksscheine, wiederherstellen, endgültig löschen, Hinweis nach Tagen (Frist)',
+  nachrichten: 'Gemeldete Nachrichten, Aufbewahrung privater Gespräche, Löschfrist',
 };
 
 export interface Einrichtungspunkt {

@@ -241,6 +241,12 @@ export interface Company {
   /** Die Projektleitung ist im Einsatzplan einteilbar und sieht „Mein Einsatzplan“ (M38). Ab Werk aus. */
   projektleitungImEinsatzplan?: boolean;
   /**
+   * Private Gespräche nach so vielen Monaten ohne Nachricht löschen
+   * (M10/B09, D3) — 6, 12 oder 24; ohne Angabe nie. Setzt nur die
+   * Geschäftsführung, über `nachrichten_aufbewahrung_setzen`.
+   */
+  nachrichtenAufbewahrungMonate?: 6 | 12 | 24 | null;
+  /**
    * Mitarbeiter dürfen ihren Einsatzplan als Kalender abonnieren. Ab Werk
    * aus: Kundenname und Adresse gehen damit an den Kalenderdienst der Person
    * (Google, Apple, Microsoft). Ausschalten beendet alle Abos.
@@ -512,6 +518,14 @@ export interface UserPrefs {
    */
   notifyAngebot?: boolean;
   notifyZeiterfassung?: boolean;
+  /** Push bei neuen Nachrichten (M10/B09) — Vorgabe an. */
+  notifyNachrichten?: boolean;
+  /**
+   * Die ersten 80 Zeichen einer Nachricht im Sperrbildschirm (M10/B09) —
+   * Vorgabe AUS: der Sperrbildschirm ist öffentlich, und den Text hat
+   * jemand anderes geschrieben.
+   */
+  nachrichtVorschau?: boolean;
   /**
    * Push-Token je Gerät. Ein Mensch hat Telefon und Rechner, beide sollen
    * die Meldung bekommen; ein abgemeldetes Gerät wird wieder entfernt.

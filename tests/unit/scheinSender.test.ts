@@ -53,8 +53,11 @@ const entfernen: Sendung = {
 };
 
 describe('Aufrufe', () => {
-  it('nur ausdrücklich idempotente Funktionen von Schein und Timer gehen hinaus', async () => {
-    expect([...AUFRUFE_OHNE_EMPFANG]).toEqual(['schein_speichern', 'schein_unterschreiben', 'zeit_timer_befehl', 'zeit_timer_buchen', 'zeit_timer_abschnitt_verwerfen']);
+  it('nur ausdrücklich idempotente Funktionen von Schein, Timer und Nachricht gehen hinaus', async () => {
+    // M10/B09 hat `nachricht_senden` bewusst dazugenommen (idempotent, `nachrichten.test.ts`).
+    expect([...AUFRUFE_OHNE_EMPFANG]).toEqual([
+      'schein_speichern', 'schein_unterschreiben', 'zeit_timer_befehl', 'zeit_timer_buchen', 'zeit_timer_abschnitt_verwerfen', 'nachricht_senden',
+    ]);
     const { c, aufrufe } = client({});
     expect(await supabaseSender(c)(aufruf('schein_speichern'))).toEqual({ art: 'ok' });
     expect(aufrufe.rpc).toHaveBeenCalledWith('schein_speichern', { p_id: 's1' });
@@ -106,8 +109,9 @@ describe('Aufrufe', () => {
 });
 
 describe('Dateien', () => {
-  it('nur in den Eimer der Scheinfotos', async () => {
-    expect([...EIMER_OHNE_EMPFANG]).toEqual(['scheinfotos']);
+  it('nur in die Eimer der festen Liste', async () => {
+    // M10/B09: die Anhänge der Nachrichten, unter der Kennung der Nachricht.
+    expect([...EIMER_OHNE_EMPFANG]).toEqual(['scheinfotos', 'nachrichten', 'nachrichten-privat']);
     const { c, aufrufe } = client({});
     const fremd = await supabaseSender(c)({ ...hochladen, daten: { ...hochladen.daten, eimer: 'ausleitung' } });
     expect(fremd.art).toBe('abgelehnt');

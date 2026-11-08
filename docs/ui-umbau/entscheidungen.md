@@ -2186,3 +2186,99 @@ Der Betreiber wurde am 08.11. nach den maßgeblichen Fundstellen gefragt.
 `TimeFormZeitfelder.test.tsx`, `standardZeitfelder.test.ts`, `zeitsitzung.test.ts`,
 `m06Zeit.spec.ts` auf Desktop und Tablet; Gegenproben vor den Migrationen rot,
 Standardfeld-Gegenprobe ohne Aktivierung/Erhaltung rot. Muster auf `/_muster`.
+
+**E64 — Nachrichten: Baustellen-Threads, Direktnachrichten und Runden; privat heißt privat (08.11.2026).**
+SHK-Ausbau, Paket M10/B09 („Ändern“) mit der Erweiterung vom 07.11.2026
+(private Direktnachrichten, Entscheidungen D1–D6 der Spezifikation
+„Private Direktnachrichten“). Absprachen zur Baustelle liefen bisher über
+private Messenger — ohne Bezug zur Akte, mit Kundenfotos in fremden Clouds.
+
+- **Ein Nachrichtenmodell, drei Arten:** der **Thread einer Baustelle**
+  (lesen und schreiben alle, die die Baustelle sehen — wie die Pläne), das
+  **Direktgespräch** zweier Personen (gibt es je Paar nur einmal) und die
+  **Runde** (selbst gebildet, Name freiwillig). Ein Posteingang für alle,
+  Reiter Alle · Direkt · Baustellen, Suche über Titel und Text der eigenen
+  Gespräche.
+- **Privat heißt privat (D6, Teil 5 der Spezifikation):** Direkt und Runden
+  lesen nur die Teilnehmer — auch nicht Geschäftsführung, Administration,
+  Support oder Plattform. Gebaut ist das so, dass es sich nicht aufweichen
+  lässt: kein Konto liest Kanäle, Nachrichten, Anhänge oder Meldungen
+  direkt; jede Lesefunktion prüft die Teilnahme selbst. Die einzige direkt
+  lesbare Zeile ist die eigene Teilnahme (für die Zahl und das Live-Ereignis,
+  ohne Inhalt). Private Zeilen stehen nicht im Datenauszug, nicht in der
+  Sicherung, nicht in der Übergabe; private Anhänge liegen in einem eigenen
+  Eimer, der nie außer Haus gesichert wird. Die Datenauskunft der Führung
+  nennt nur Anzahl und Zeitraum; den Inhalt exportiert die Person selbst
+  (Mein Konto → „Meine Nachrichten exportieren“).
+- **Keine Überwachung (D4):** keine Lesebestätigung, kein Online-Status,
+  kein „schreibt gerade“; „gesendet“ heißt „auf dem Server“. Jeder sieht nur
+  seine eigene Zahl ungelesener Nachrichten (Menü, Startseite).
+- **Melden (D5):** eine bekommene Nachricht geht als Kopie (Absender, Zeit,
+  Text, Anhänge) an Geschäftsführung und Administration; das Gespräch
+  dahinter sehen sie nicht. Einstellungen → Nachrichten listet die Meldungen
+  (offen, erledigt mit Vermerk, löschen); die Startseite der Führung nennt
+  offene. Die Kopie bleibt, wenn der Absender löscht.
+- **Löschen löscht (D2):** die eigene Nachricht verliert Text, Erwähnungen
+  und Anhänge, es bleibt „Nachricht gelöscht“ mit Zeitpunkt; die Datei
+  entfernt die neue Edge Function `nachrichten-aufraeumen` über die
+  Speicher-Schnittstelle (gleich angestoßen und jede Nacht). Bei der Löschung
+  einer Person gilt dasselbe für alle ihre Nachrichten („Nachricht eines
+  gelöschten Kontos“); leere private Gespräche gehen ganz.
+- **Aufbewahrung (D3):** ab Werk keine automatische Löschung; die
+  Geschäftsführung wählt 6, 12 oder 24 Monate nach der letzten Nachricht
+  eines privaten Gesprächs. Baustellen-Threads bleiben mit der Akte.
+- **Senden ohne Netz (E49-Muster):** Kennung vom Gerät, Anhänge zuerst in den
+  Speicher, dann `nachricht_senden` (idempotent) — beides über das
+  Ausgangsfach; im Gespräch „auf diesem Gerät vorgemerkt, wird gesendet“,
+  nach einer Ablehnung „Nicht gesendet: …“ mit „Erneut senden“.
+- **Push:** über `push-melden` (Anlass `nachricht`); der Anstoß trägt nur
+  die Kennung. Ohne gewählte Vorschau steht nur, wer geschrieben hat; mit
+  Vorschau (Mein Konto, ab Werk aus) die ersten 80 Zeichen. Stumme Gespräche
+  melden sich nur bei einer Erwähnung (@Name in Runde und Thread).
+- **In die Baustelle übernehmen (4.5):** eine eigene private Nachricht wird
+  als neue Nachricht samt Anhängen in den Thread einer Baustelle kopiert; die
+  private bleibt privat und merkt sich den Verweis.
+- **Oberfläche:** Navigation „Nachrichten“ (Gruppe Team, am Handy unter
+  „Mehr“), ab 760 px Posteingang und Gespräch nebeneinander, am Handy zwei
+  Seiten; die Eingabe klebt unten. Das Gespräch liest sich wie ein Messenger
+  (Auftrag 08.11.2026: die erste Fassung als Bautagebuch-Zeilen wirkte „klobig
+  und altbacken“): die eigenen Nachrichten rechts, deckend in `--petrol`, die
+  der anderen links in `--surface-2`, der Tag als Trenner, die Uhrzeit (Plex
+  Mono) klein im Blatt; Nachrichten derselben Person bis 5 Minuten bilden eine
+  Gruppe, den Namen trägt nur die erste und nur in Runde und Thread. Die
+  Blätter tragen die Rundung der Felder und Knöpfe (`--radius`), keine Karte;
+  Schatten und Zipfel gibt es nicht. Was noch auf dem Gerät liegt, steht in
+  `--petrol-hell`. Die Eingabe ist eine Zeile: Anhang und (in Runde und Thread)
+  Erwähnen als Zeichen, das Feld wächst mit, Senden als Pfeil. Der Posteingang
+  zeigt je Gespräch Kürzel (Baustelle: Zeichen), Name, Zeit, die letzte
+  Nachricht in einer Zeile und die eigene Zahl. Das ganze Blatt öffnet die
+  Möglichkeiten einer Nachricht. Die Baustellenakte zeigt den Stand des
+  Threads, die Benutzerakte „Nachricht schreiben“. Im Einblick des Supports
+  steht auf beiden Seiten der Nachrichten ein Satz statt eines Fehlers.
+- **Module:** `nachrichten` (Standard an, empfohlener Umfang) mit
+  `nachrichten.direktnachrichten` (ab Werk **aus**, D1; beim Einschalten der
+  Hinweis auf ArbVG §§ 96, 96a). Jeder Schreibweg prüft beides auf dem Server
+  (V3); Löschen und Melden gehen immer.
+
+**Grenzen mit Grund:** keine Ende-zu-Ende-Verschlüsselung (Sicherheit/Technik:
+Schlüssel über Geräte, Vormerkung ohne Netz, Push-Vorschau, Meldeweg und
+Löschfristen schlössen sie aus — die App behauptet sie nirgends); ein Rücklauf
+aus der Sicherung bringt keine privaten Gespräche zurück (Datenschutz: die
+Führung lädt Sicherung und Auszug herunter); ob eine Betriebsvereinbarung nötig
+ist, entscheidet der Betrieb (liegt bei jemand anderem: Betriebsrat,
+Kanzlei); bei ganz ausgeschaltetem Modul ist die Seite zu, die eigenen
+Gespräche bleiben exportierbar und sind nach dem Wiedereinschalten da; eine
+Nachricht hat höchstens 20 000 Zeichen und eine Datei höchstens 25 MB
+(Technik, wie die Baustellendokumente); eine neue Runde oder ein neues
+Gespräch braucht Netz (die Kennung des Kanals vergibt der Server); Aufgaben-
+Threads folgen mit den Aufgaben (eigenes Paket).
+
+**Prüfungen.** `nachrichten.test.ts` (Datenbank, 33: Vertraulichkeit gegen
+sieben Rollen bzw. Konten samt Datei, Idempotenz, Anhänge, Löschen samt Datei,
+Runde, deaktiviertes Konto, Thread, Push, Melden, Zahl und Live-Ereignis,
+Auskunft, Auszug, Sicherung, Selbstexport, Löschung einer Person,
+Aufbewahrung, Module); Querschnitt `mandantenTrennung`, `modulRegisterServer`,
+`personLoeschen`, `spaltentypen`, `zeilengrenze`; Einheiten
+`tests/unit/nachrichten.test.ts`, `scheinSender`, `modulRegister`,
+`navigationLot`, `navigation-routen`; Komponenten `Nachrichten.test.tsx`,
+`ModulesView`; Browser `nachrichten.spec.ts` (Telefon, Tablet, Schreibtisch).

@@ -101,6 +101,15 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   },
   material_prices: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   materials: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  // M10/B09: gelesen über die Funktionen `nachrichten_*`; die Karte hält die Spalten trotzdem vollständig.
+  nachricht_meldungen: { erledigt_am: 'zeitpunkt', gemeldet_am: 'zeitpunkt', gesendet_am: 'zeitpunkt' },
+  nachrichten: {
+    bearbeitet_am: 'zeitpunkt', geloescht_am: 'zeitpunkt', geraet_zeit: 'zeitpunkt', gesendet_am: 'zeitpunkt', push_am: 'zeitpunkt',
+  },
+  nachrichten_kanaele: { angelegt_am: 'zeitpunkt', letzte_nachricht_am: 'zeitpunkt' },
+  nachrichten_teilnehmer: {
+    beigetreten_am: 'zeitpunkt', gelesen_bis: 'zeitpunkt', sichtbar_ab: 'zeitpunkt', verlassen_am: 'zeitpunkt', zuletzt: 'zeitpunkt',
+  },
   number_counters: { updated_at: 'zeitpunkt' },
   /* Eine Sicht (M01b): Journal und vorhandene Verläufe zusammen; gelesen wird sie wie eine Tabelle. */
   objekt_verlauf: { am: 'zeitpunkt' },

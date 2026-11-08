@@ -16,6 +16,7 @@ import ZweiFaktorKarte from './ZweiFaktorKarte';
 import { istBenutzerkonto } from '@shared/benutzername';
 import { grundAus } from '@/lib/fehlerGrund';
 import { useModul } from '@/lib/useModule';
+import MeineNachrichten from '@/features/nachrichten/MeineNachrichten';
 
 /** Was der Zustand für den Nutzer bedeutet — in seinen Worten, nicht in Fehlercodes. */
 const PUSH_TEXT: Record<PushState, { text: string; ton: 'ok' | 'hinweis' | 'aus' }> = {
@@ -61,6 +62,8 @@ export default function NotificationSettings() {
   const [abwesenheit, setAbwesenheit] = useState(PREFS_DEFAULTS.notifyAbwesenheit ?? true);
   const [timer, setTimer] = useState(true);
   const [angebot, setAngebot] = useState(PREFS_DEFAULTS.notifyAngebot ?? true);
+  const [nachrichten, setNachrichten] = useState(PREFS_DEFAULTS.notifyNachrichten ?? true);
+  const [vorschau, setVorschau] = useState(PREFS_DEFAULTS.nachrichtVorschau ?? false);
   const [push, setPush] = useState<PushState>('aus');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +84,8 @@ export default function NotificationSettings() {
   // Die Antwort eines Kunden über den Annahme-Link (M02a) geht an die, die Angebote annehmen dürfen.
   const onlineAnnahme = useModul('angebote.online_annahme');
   const zeigeAngebot = user ? isGF(user.role) && onlineAnnahme : false;
+  // Nachrichten (M10/B09): jeder, solange das Modul an ist.
+  const zeigeNachrichten = useModul('nachrichten');
 
   useEffect(() => {
     if (!user) return;
@@ -93,6 +98,8 @@ export default function NotificationSettings() {
         setAbwesenheit(p.notifyAbwesenheit ?? true);
         setAngebot(p.notifyAngebot ?? true);
         setTimer(p.notifyZeiterfassung ?? true);
+        setNachrichten(p.notifyNachrichten ?? true);
+        setVorschau(p.nachrichtVorschau ?? false);
       })
       // Stumm gescheitert saehen die Schalter aus wie „steht auf Standard",
       // und wer sie danach umlegt, ueberschreibt seine eigene Einstellung mit
@@ -112,6 +119,8 @@ export default function NotificationSettings() {
     notifyAbwesenheit: boolean;
     notifyAngebot: boolean;
     notifyZeiterfassung: boolean;
+    notifyNachrichten: boolean;
+    nachrichtVorschau: boolean;
   }>) {
     if (!user) return;
     const next = {
@@ -121,6 +130,8 @@ export default function NotificationSettings() {
       notifyAbwesenheit: abwesenheit,
       notifyAngebot: angebot,
       notifyZeiterfassung: timer,
+      notifyNachrichten: nachrichten,
+      nachrichtVorschau: vorschau,
       ...aenderung,
     };
     setNewOrder(next.notifyNewOrder);
@@ -129,6 +140,8 @@ export default function NotificationSettings() {
     setAbwesenheit(next.notifyAbwesenheit);
     setAngebot(next.notifyAngebot);
     setTimer(next.notifyZeiterfassung);
+    setNachrichten(next.notifyNachrichten);
+    setVorschau(next.nachrichtVorschau);
     try {
       await savePrefs(user.companyId, user.uid, next);
     } catch (err) {
@@ -299,8 +312,40 @@ export default function NotificationSettings() {
               </InfoHint>
             </div>
           )}
+          {zeigeNachrichten && (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <CheckboxField
+                  id="n-nachrichten"
+                  label="Neue Nachrichten"
+                  checked={nachrichten}
+                  onChange={(e) => void speichern({ notifyNachrichten: e.target.checked })}
+                />
+                <InfoHint about="Nachrichten">
+                  Aus deinen Gesprächen und aus den Baustellen, denen du folgst. Ein stumm
+                  geschaltetes Gespräch meldet sich nur, wenn dich jemand erwähnt.
+                </InfoHint>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <CheckboxField
+                  id="n-vorschau"
+                  label="Text der Nachricht im Sperrbildschirm zeigen"
+                  checked={vorschau}
+                  disabled={!nachrichten}
+                  onChange={(e) => void speichern({ nachrichtVorschau: e.target.checked })}
+                />
+                <InfoHint about="Vorschau">
+                  Aus heißt: die Meldung sagt nur, wer geschrieben hat. An heißt: die ersten 80
+                  Zeichen stehen im Sperrbildschirm — sichtbar für jeden, der dein Telefon sieht,
+                  und auf dem Weg über den Push-Dienst des Browsers.
+                </InfoHint>
+              </div>
+            </>
+          )}
         </div>
       </Card>
+
+      {!einblick && <MeineNachrichten />}
 
       {/*
         Nicht im Einblick des Supports: dort ist das Konto das Plattformkonto,

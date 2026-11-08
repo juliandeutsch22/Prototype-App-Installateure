@@ -151,8 +151,9 @@ describe('Wessen Marke in der Hülle steht', () => {
  * Reiter öffnen; wer es nicht tat, erfuhr es nicht.
  */
 describe('Die Abzeichen für offene Posten', () => {
-  const zahlen = (urlaub = 0, anforderungen = 0, mahnungen = 0) =>
-    ({ urlaub, anforderungen, mahnungen });
+  // M10/B09: die ungelesenen Nachrichten gehören seither zu den offenen Posten.
+  const zahlen = (urlaub = 0, anforderungen = 0, mahnungen = 0, nachrichten = 0) =>
+    ({ urlaub, anforderungen, mahnungen, nachrichten });
 
   /** Die Zeile eines Menüpunkts in der Seitenleiste. */
   function zeile(label: string): HTMLElement {

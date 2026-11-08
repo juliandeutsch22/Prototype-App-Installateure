@@ -76,6 +76,8 @@ const ZUSATZ: Record<string, (betrieb: string) => Record<string, unknown>> = {
   liegenschaft_beteiligte: () => ({ name: 'Prüfung' }),
   // M06b: ein Wert passt zu seinem Typ (Prüfregel über zwei Spalten).
   zeitbuchung_feldwerte: () => ({ typ: 'text', wert: '"Prüfung"' }),
+  // M10/B09: eine Runde braucht weder Baustelle noch Paar (Prüfregel über die Art).
+  nachrichten_kanaele: () => ({ art: 'runde' }),
 };
 
 /*

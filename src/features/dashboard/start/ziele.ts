@@ -45,7 +45,9 @@ export const ZIEL = {
   baustellen: (filter: BaustellenFilter) => `/admin-projects?filter=${filter}`,
   baustelle: (nummer: string) => `/admin-projects?baustelle=${q(nummer)}`,
   wartungenOhneBaustelle: '/wartungen?filter=faellig-ohne-baustelle',
-  einstellungen: (reiter: 'saetze' | 'rechnung' | 'konten' | 'firma' | 'papierkorb') => `/settings/${reiter}`,
+  einstellungen: (reiter: 'saetze' | 'rechnung' | 'konten' | 'firma' | 'papierkorb' | 'nachrichten') => `/settings/${reiter}`,
+  /** Die Nachrichten (M10/B09), Posteingang. */
+  nachrichten: '/nachrichten',
   einsatzplan: '/my-schedule',
   benutzerverwaltung: '/user-mgmt',
   /** Die Akte einer Person. */

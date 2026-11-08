@@ -47,7 +47,8 @@ export type ModulId =
   | 'nachkalkulation'
   | 'wartung'
   | 'zeitkonten'
-  | 'zeiterfassung';
+  | 'zeiterfassung'
+  | 'nachrichten';
 
 /**
  * Eine Unterfähigkeit eines Moduls, etwa `baustellen.aufgaben`: ein Teil, den
@@ -368,7 +369,59 @@ export const MODULE: Modul[] = [
       { id: 'zeiterfassung.timer', name: 'Start/Stopp', zweck: 'Anwesenheit mit Pausen und Baustellenwechsel erfassen; vor der Buchung bestätigen.', standard: false, betrifft: ['Start/Stopp in der Zeiterfassung'], folgen: ['Laufende Sitzungen lassen sich weiterhin beenden und bestätigen. Ein Timer erzeugt nie automatisch eine Arbeitszeitbuchung.'] },
     ],
   },
+  {
+    /*
+      NACHRICHTEN (M10/B09, E64): Baustellen-Threads im empfohlenen Umfang,
+      also Standard an — Absprachen zur Baustelle gehören zur Akte und nicht
+      in private Messenger. Aus heißt: der Eintrag in der Navigation, der
+      Abschnitt in der Akte und „Nachricht schreiben“ verschwinden; Senden
+      lehnt der Server ab (V3). Bisherige Gespräche bleiben für ihre
+      Teilnehmer erhalten und unter Mein Konto exportierbar; nach dem
+      Wiedereinschalten ist alles da. Die Rückfrage sagt es vorher.
+    */
+    id: 'nachrichten',
+    name: 'Nachrichten',
+    zweck: 'Der Thread jeder Baustelle — mit Fotos, Erwähnung und Push, für alle, die die Baustelle sehen.',
+    standard: true,
+    betrifft: ['Nachrichten', 'Nachrichten in der Baustellenakte', 'Ungelesene Nachrichten auf der Startseite'],
+    folgen: [
+      'Die Seite „Nachrichten“ ist zu, neue Nachrichten gehen nicht mehr. Nichts wird gelöscht: jeder kann seine Gespräche unter Mein Konto exportieren, und nach dem Wiedereinschalten ist alles da.',
+    ],
+    unter: [
+      {
+        /*
+          DIREKTNACHRICHTEN UND RUNDEN (D1): ab Werk AUS. Privat heißt:
+          lesen und schreiben nur die Teilnehmer — weder Geschäftsführung
+          noch Administration noch Support. Ein betriebliches
+          Nachrichtensystem kann nach ArbVG §§ 96, 96a zustimmungspflichtig
+          sein; ob eine Betriebsvereinbarung nötig ist, klärt der Betrieb
+          (`HINWEIS_DIREKTNACHRICHTEN`, angezeigt beim Einschalten).
+        */
+        id: 'nachrichten.direktnachrichten',
+        name: 'Direktnachrichten und Runden',
+        zweck: 'Private Gespräche zu zweit oder in einer kleinen Runde — lesen nur die Teilnehmer, auch nicht die Geschäftsführung.',
+        standard: false,
+        betrifft: ['Direkt und Runden unter Nachrichten', '„Nachricht schreiben“ an der Person'],
+        folgen: [
+          'Neue private Nachrichten gehen nicht mehr; bisherige Gespräche bleiben für ihre Teilnehmer lesbar und exportierbar.',
+        ],
+      },
+    ],
+  },
 ];
+
+/**
+ * Der Hinweis beim Einschalten der Direktnachrichten (Spezifikation 6.1) —
+ * keine Rechtsberatung, sondern der Hinweis auf eine Prüfung, die beim
+ * Betrieb liegt.
+ */
+export const HINWEIS_DIREKTNACHRICHTEN =
+  'Ein betriebliches Nachrichtensystem kann nach ArbVG §§ 96, 96a zustimmungspflichtig sein. Ob eine Betriebsvereinbarung nötig ist, klärt der Betrieb — gegebenenfalls mit Betriebsrat oder Kanzlei. Senklot zeigt keine Lesebestätigung und keinen Online-Status, wertet nichts aus, und die Führung liest private Gespräche nicht.';
+
+/** Was vor dem EINSCHALTEN gesagt werden muss — die Rückfrage dazu stellt die Seite „Module“. */
+export const HINWEIS_BEIM_EINSCHALTEN: Partial<Record<SchalterId, string>> = {
+  'nachrichten.direktnachrichten': HINWEIS_DIREKTNACHRICHTEN,
+};
 
 /**
  * DIE KERNBEREICHE MIT IHREN SCHALTBAREN TEILEN (M02b). Sie zählen nicht zu

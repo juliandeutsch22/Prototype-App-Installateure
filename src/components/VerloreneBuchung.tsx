@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { beiVormerkungFehlgeschlagen } from '@/lib/sync/ausgangsfach';
 import { useToast } from '@/components/Toast';
 import { FOTO_TABELLE, SCHEIN_TABELLE } from '@/features/worksheets/vorgemerkt';
+import { NACHRICHT_TABELLE } from '@/lib/db/nachrichten';
 
 /**
  * Sagt Bescheid, wenn eine vorgemerkte Buchung doch nicht durchgekommen ist.
@@ -45,7 +46,9 @@ export default function VerloreneBuchung() {
           ? `Ein vorgemerkter Handwerksschein konnte nicht gesendet werden: ${grund} Bitte unter Handwerksscheine nachsehen.`
           : tabelle === FOTO_TABELLE
             ? `Ein vorgemerktes Foto konnte nicht hochgeladen werden: ${grund} Der Schein verzeichnet es, die Datei fehlt.`
-            : 'Eine vorgemerkte Buchung konnte nicht gesendet werden. Bitte in der Übersicht nachsehen und gegebenenfalls neu erfassen.',
+            : tabelle === NACHRICHT_TABELLE
+              ? `Eine vorgemerkte Nachricht konnte nicht gesendet werden: ${grund} Bitte im Gespräch nachsehen und neu schreiben.`
+              : 'Eine vorgemerkte Buchung konnte nicht gesendet werden. Bitte in der Übersicht nachsehen und gegebenenfalls neu erfassen.',
       );
     };
     beiVormerkungFehlgeschlagen(melden);

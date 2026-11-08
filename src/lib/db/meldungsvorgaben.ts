@@ -18,6 +18,7 @@ import type { UserPrefs } from '@/types';
 export type NotifyPrefs = Pick<
   UserPrefs,
   'notifyNewOrder' | 'notifyOrderReady' | 'notifyUrgentDelivery' | 'notifyAbwesenheit' | 'notifyAngebot' | 'notifyZeiterfassung'
+  | 'notifyNachrichten' | 'nachrichtVorschau'
 >;
 
 /** Vorgabe für jemanden, der noch nie etwas eingestellt hat. */
@@ -30,4 +31,7 @@ export const PREFS_DEFAULTS: NotifyPrefs = {
   notifyAbwesenheit: true,
   notifyAngebot: true,
   notifyZeiterfassung: true,
+  notifyNachrichten: true,
+  // Die Vorschau ist die eine Ausnahme: aus, bis jemand sie für sich wählt (M10/B09).
+  nachrichtVorschau: false,
 };

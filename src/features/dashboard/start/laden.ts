@@ -40,6 +40,7 @@ import { listRecentWorkSheetKoepfe, listOwnWorkSheetsSince, zaehleVerworfeneSche
 import { zaehleVerworfeneAngebote } from '@/lib/db/quotes';
 import { listUeberLinkAngenommen, type UeberLinkAngenommen } from '@/lib/db/angebotLinks';
 import { zaehleOffeneEingaenge } from '@/lib/db/auftragseingaenge';
+import { meldungenOffen, ungeleseneZahl } from '@/lib/db/nachrichten';
 import { fristStichtag } from '@/lib/papierkorb';
 import { listAbwesendInRange, listOpenVacations, type Abwesenheit } from '@/lib/db/vacations';
 import { listOffeneFreistellungen } from '@/lib/db/freistellungen';
@@ -190,6 +191,11 @@ export interface StartDaten {
   // Auftragseingang (M02b)
   /** Offene Eingänge, davon dringend und Notfall — gezählt auf dem Server. */
   offeneEingaenge?: OffeneEingaenge;
+  // Nachrichten (M10/B09)
+  /** Die eigenen ungelesenen Nachrichten. */
+  ungeleseneNachrichten?: number;
+  /** Offene Meldungen an die Geschäftsführung (D5) — nur für sie geladen. */
+  meldungenOffen?: number;
   // Personen
   lehrzeitEnden?: LehrzeitEndeZeile[];
   einzigeLeitungOhneMail?: boolean;
@@ -259,6 +265,21 @@ export interface OffeneEingaenge {
  */
 export async function eingaenge(k: Kontext): Promise<Partial<StartDaten>> {
   return { offeneEingaenge: await zaehleOffeneEingaenge(k.user.companyId) };
+}
+
+// ──────────────────────────────────────────────────────────── Nachrichten ──
+
+/**
+ * Die eigene Zahl ungelesener Nachrichten (M10/B09) — und für die
+ * Geschäftsführung, wie viele Meldungen offen sind (D5). Nur Zahlen: was
+ * darin steht, zeigt der Posteingang bzw. die Seite der Meldungen.
+ */
+export async function nachrichtenStart(k: Kontext, a: { meldungen: boolean }): Promise<Partial<StartDaten>> {
+  const [ungelesen, offen] = await Promise.all([
+    ungeleseneZahl(k.user.uid),
+    a.meldungen ? meldungenOffen() : Promise.resolve(undefined),
+  ]);
+  return { ungeleseneNachrichten: ungelesen, ...(offen !== undefined ? { meldungenOffen: offen } : {}) };
 }
 
 // ──────────────────────────────────────────────────────────── persönlich ──

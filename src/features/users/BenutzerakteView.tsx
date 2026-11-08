@@ -14,6 +14,8 @@ import AktenBereiche, { AktenAngaben, AktenVerweis } from '@/components/AktenBer
 import AktenBearbeiten from '@/components/AktenBearbeiten';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
+import NachrichtSchreiben from '@/features/nachrichten/NachrichtSchreiben';
+import { useModul } from '@/lib/useModule';
 import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import AktenKopf from '@/components/AktenKopf';
@@ -77,6 +79,7 @@ const mitKomma = (n: number) => String(n).replace('.', ',');
 export default function BenutzerakteView() {
   const { uid } = useParams<{ uid: string }>();
   const { user, einblick, company } = useAuth();
+  const direktAn = useModul('nachrichten.direktnachrichten');
   const toast = useToast();
 
   const [person, setPerson] = useState<Teil<AppUser | null>>(LAEDT);
@@ -376,6 +379,9 @@ export default function BenutzerakteView() {
     </div>
   ) : null;
 
+  // Das Direktgespräch mit dieser Person (M10/B09) — mit aktiven Konten, nicht mit sich selbst, nicht im Einblick.
+  const schreiben = direktAn && !einblick && p.active !== false && p.uid !== user.uid;
+
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="akten-seite">
@@ -383,7 +389,10 @@ export default function BenutzerakteView() {
       <AktenKopf zurueck="/user-mgmt" zurueckText="Zur Benutzerliste" title={p.name}
         meta={<span className="akten-identitaet"><Marke>{p.role}</Marke>
           {p.active === false && <Zustand stand="storniert">deaktiviert</Zustand>}</span>}
-        action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>} />
+        action={(darfAendern || schreiben) && <div className="akten-aktionen">
+          {schreiben && <NachrichtSchreiben an={p.uid} variant={darfAendern ? 'secondary' : 'primary'} />}
+          {darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
+        </div>} />
       <AktenBereiche kennung="benutzer" kontext={<>
         <Card title="Anmeldekonto"><StammdatenLesen p={p} teil="konto" /></Card>
         <Card title="Rolle und Freigaben"><StammdatenLesen p={p} teil="rechte" /></Card>

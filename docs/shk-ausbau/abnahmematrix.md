@@ -103,7 +103,7 @@ Für jede neue Serveraktion gelten zusätzlich die Querschnittsprüfungen:
 | B07 | Ersatzvorschlag regelbasiert | keine erfundene Qualifikation | – | |
 | B08 | Hinweise beim Einteilen (Qualifikation, Material) | – | Abwesenheits- und Doppelbuchungshinweise | |
 | G10 | Konflikte und Ersatzkräfte | – | Hinweise auf Abwesenheit, Betriebsurlaub, „schon verplant“ | |
-| B09 | Projekt- und Aufgaben-Threads mit Erwähnung und Push | fremder Betrieb; entzogenes Recht | – | |
+| B09 | Baustellen-Threads mit Erwähnung und Push; Direktnachrichten und Runden (Erweiterung 07.11.2026); Melden; Übernehmen; ohne Netz vorgemerkt | fremder Betrieb, Führung, Administration, Buchhaltung, Projektleitung, Kollege, Support lesen kein privates Gespräch (Tabellen, Funktionen, Dateien, Live-Ereignis, Auszug, Sicherung, Auskunft); Modul bzw. Direktnachrichten aus; deaktiviertes Konto; Zweitzustellung idempotent | Navigation, Startseite und Push der übrigen Bereiche unverändert; neun Bestandsmodule unverändert | `nachrichten.test.ts`, `tests/unit/nachrichten.test.ts`, `Nachrichten.test.tsx`, `nachrichten.spec.ts` (E64) |
 | B10 | Bautagesbericht als Aggregation aus dem Schein | kein zweiter Bericht mit Datenkopie | Handwerksschein wie bisher | |
 | B11 | Arbeitsbericht mit Vorbelegung aus Zeiten und Material | – | Schein-Eingabe von Hand bleibt | |
 | B12 | Mangel mit Zustand, Frist, Verantwortung bis zur Abnahme | – | – | |

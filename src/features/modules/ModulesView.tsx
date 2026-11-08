@@ -10,6 +10,7 @@ import {
   zieheMit,
   folgenBeimAbschalten,
   schalter,
+  HINWEIS_BEIM_EINSCHALTEN,
   type Faehigkeit,
   type Kernbereich,
   type Modul,
@@ -80,6 +81,8 @@ export default function ModulesView() {
   const [error, setError] = useState<string | null>(null);
   /** Was abgeschaltet werden soll und noch bestätigt werden muss — samt dem, was mitgeht und was es nach sich zieht. */
   const [frage, setFrage] = useState<{ id: SchalterId; mit: SchalterId[]; folgen: string[] } | null>(null);
+  /** Was eingeschaltet werden soll und vorher einen Hinweis braucht (Direktnachrichten: ArbVG). */
+  const [einschalten, setEinschalten] = useState<SchalterId | null>(null);
 
   useEffect(() => {
     setEntwurf(company?.modules ?? {});
@@ -107,6 +110,9 @@ export default function ModulesView() {
         setFrage({ id, mit, folgen });
         return;
       }
+    } else if (HINWEIS_BEIM_EINSCHALTEN[id]) {
+      setEinschalten(id);
+      return;
     }
     setEntwurf((alt) => ({ ...alt, [id]: an }));
   }
@@ -287,6 +293,19 @@ export default function ModulesView() {
         onConfirm={() => {
           if (frage) setEntwurf((alt) => ({ ...alt, [frage.id]: false }));
           setFrage(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!einschalten}
+        title={einschalten ? `${schalter(einschalten, MODULE)?.name} einschalten?` : ''}
+        confirmLabel="Einschalten"
+        confirmTone="primary"
+        message={einschalten ? HINWEIS_BEIM_EINSCHALTEN[einschalten] : ''}
+        onCancel={() => setEinschalten(null)}
+        onConfirm={() => {
+          if (einschalten) setEntwurf((alt) => ({ ...alt, [einschalten]: true }));
+          setEinschalten(null);
         }}
       />
     </div>

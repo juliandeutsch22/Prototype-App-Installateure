@@ -256,7 +256,7 @@ describe('Immer an: der Kern mit seinen Teilen (M02b)', () => {
     expect(schalter('Zeiterfassung')).toBeChecked();
     expect(screen.queryByRole('checkbox', { name: /^Baustellen (ein|aus)schalten$/ })).toBeNull();
     expect(screen.queryByRole('checkbox', { name: /^Kunden (ein|aus)schalten$/ })).toBeNull();
-    expect(screen.getByText(/^Eingeschaltet: \d+ von 10$/)).toBeInTheDocument();
+    expect(screen.getByText(/^Eingeschaltet: \d+ von 11$/)).toBeInTheDocument();
   });
 
   it('die freien Zeitfelder (M06b) stehen als Teil der Zeiterfassung und werden unter ihrer Kennung gespeichert', async () => {
@@ -306,5 +306,30 @@ describe('Liegenschaften als Teil der Kunden (M02c)', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
     await nutzer.click(screen.getByRole('button', { name: 'Module speichern' }));
     expect(updateCompany).toHaveBeenCalledWith('perl', { modules: { 'kunden.liegenschaften': true } });
+  });
+});
+
+/*
+  DIREKTNACHRICHTEN EINSCHALTEN (M10/B09, Spezifikation 6.1): vorher der
+  Hinweis auf das Arbeitsverfassungsrecht — keine Rechtsberatung, aber die
+  Prüfung liegt beim Betrieb. Abbrechen lässt sie aus; erst „Einschalten“
+  schaltet. Gegenprobe: ohne `HINWEIS_BEIM_EINSCHALTEN` schaltet der
+  Schalter sofort, und die Rückfrage fehlt (rot).
+*/
+describe('Direktnachrichten einschalten', () => {
+  it('fragt vorher mit dem Hinweis auf ArbVG §§ 96, 96a', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    const knopf = schalter('Direktnachrichten und Runden');
+    expect(knopf).not.toBeChecked();
+    await nutzer.click(knopf);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('ArbVG §§ 96, 96a');
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
+    expect(schalter('Direktnachrichten und Runden')).not.toBeChecked();
+
+    await nutzer.click(schalter('Direktnachrichten und Runden'));
+    await nutzer.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Einschalten' }));
+    expect(schalter('Direktnachrichten und Runden')).toBeChecked();
   });
 });

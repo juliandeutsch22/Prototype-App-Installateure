@@ -44,6 +44,9 @@ import {
   wartungenOhneBaustelle,
   zahlungenHeute,
   jugendschutzEigen,
+  ungeleseneNachrichten,
+  nachrichtenZeile,
+  meldungenZeile,
 } from './regeln';
 import { anzahl, themenAbschnitte, type Thema } from './themen';
 import { ZIEL } from './ziele';
@@ -132,6 +135,8 @@ function monteur(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(tageOhneBuchung(d.fehlendeTage ?? [], d.planNachTag), u),
     erlaubt(scheinOhneZeit(d.nachtraege ?? []), u),
     erlaubt(abholbereitEigen(d.eigeneOrders ?? []), u),
+    // M10/B09: die eigenen ungelesenen Nachrichten — eine Zeile, leise.
+    erlaubt(ungeleseneNachrichten(d.ungeleseneNachrichten), u),
     // Zuletzt und leise: ein Hinweis für Jugendliche, keine Aufgabe (Runde 3, M2).
     erlaubt(jugendschutzEigen(d.eigeneGrenzfaelle ?? []), u),
   ]);
@@ -186,6 +191,7 @@ function verwaltung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(bestelltUeberfaellig(orders, u.heute), u),
     erlaubt(abholbereitAlt(orders, u.jetzt), u),
     erlaubt(unterMindestmenge(d.knapp ?? []), u),
+    erlaubt(ungeleseneNachrichten(d.ungeleseneNachrichten), u),
     eigenerJugendschutz(d, u),
   ]);
   const lieferungen = u.darf(ZIEL.anforderungen('lieferung-heute'))
@@ -271,6 +277,7 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
     u.freistellungBestaetigen ? erlaubt(freistellungsantraege(d.freistellungen ?? [], false, u.sonderurlaubZiel), u) : null,
     // Der Auftragseingang (M02b): die Buchhaltung nimmt die Mail der Hausverwaltung an.
     erlaubt(offeneEingaenge(d.offeneEingaenge), u),
+    erlaubt(ungeleseneNachrichten(d.ungeleseneNachrichten), u),
     eigenerJugendschutz(d, u),
   ]);
   const zahlungen = zahlungenHeute(d.zahlungenHeute ?? []);
@@ -352,6 +359,7 @@ function projektleitung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(ueberLinkAngenommen(d.ueberLinkAngenommen ?? []), u),
     erlaubt(endeUeberschritten(d.projekte ?? [], u.heute), u),
     erlaubt(ohneProjektleitung(d.projekte ?? []), u),
+    erlaubt(ungeleseneNachrichten(d.ungeleseneNachrichten), u),
     eigenerJugendschutz(d, u),
   ]);
   return { abschnitte, kennzahlen: baustellenKennzahlen(d, u, true), heute: leitungHeute(d, u) };
@@ -402,6 +410,14 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
     ÜBER DEN ANNAHME-LINK ANGENOMMEN (M02a): unter „Heute“ — die Baustelle
     ist schon da und will eingeplant werden.
   */
+  /*
+    NACHRICHTEN (M10/B09): gemeldete Nachrichten unter „Heute“ — jemand hat
+    sie der Führung weitergegeben; die eigenen ungelesenen ebenso, leise.
+  */
+  for (const z of [meldungenZeile(d.meldungenOffen), nachrichtenZeile(d.ungeleseneNachrichten)]) {
+    if (z?.to) themen.push(wenn(z.to, { key: z.key, wann: 'heute', titel: z.titel, detail: z.detail, status: z.status }));
+  }
+
   const ueberLink = ueberLinkAngenommenThema(d.ueberLinkAngenommen ?? []);
   if (ueberLink) {
     themen.push(wenn(ueberLink.ziel, {

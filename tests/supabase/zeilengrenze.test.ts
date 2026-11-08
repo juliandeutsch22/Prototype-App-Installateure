@@ -173,10 +173,15 @@ describe('Der Zweitschlüssel und die Beziehungen ohne Kennung', () => {
       Gelesen über `abfragen` — ein Außenlager kann mehr Artikel tragen als
       eine Seite —, deshalb steht sie in `zweitschluessel()` mit Ort und
       Artikel als Schlüssel.
+
+      `nachrichten_teilnehmer` (M10/B09, 08.11.2026): eine Zeile je Gespräch
+      und Person. Gelesen wird nur die eigene, mit einer eigenen Abfrage
+      (`pg/nachrichten.ts`: Zahl der ungelesenen, ob es Gespräche gibt) und
+      als Live-Ereignis — nie über `abfragen`.
     */
     expect(rows.map((r) => r.table_name).sort()).toEqual([
       'ausleitung_dateien', 'basiszinssaetze', 'betrieb_zustand', 'betriebsanlagen', 'geburtsdaten', 'lagerbestaende', 'monthly_stats',
-      'number_counters', 'system_laeufe', 'user_prefs',
+      'nachrichten_teilnehmer', 'number_counters', 'system_laeufe', 'user_prefs',
     ].sort());
   }, 60_000);
 

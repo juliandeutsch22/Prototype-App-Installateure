@@ -21,6 +21,7 @@ import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import { liegenschaftZeile } from '@/features/liegenschaften/liegenschaftText';
 import { canInvoice, isGF } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
+import BaustelleNachrichten from '@/features/nachrichten/BaustelleNachrichten';
 import type { Project, AppUser, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
@@ -89,6 +90,8 @@ export default function BaustellenakteView() {
   const scheineAn = useModul('scheine');
   const einsatzAn = useModul('einsatzplanung');
   const liegenschaftenAn = useModul('kunden.liegenschaften');
+  // Der Thread der Baustelle (M10/B09) — nicht im Einblick des Supports.
+  const nachrichtenAn = useModul('nachrichten') && !einblick;
   /*
     Angebote tragen Preise und sind Büro und Leitung vorbehalten (Zeilenschutz
     `quotes_lesen`). Wer sie nicht sehen darf, bekommt auch keinen Verweis —
@@ -536,6 +539,7 @@ export default function BaustellenakteView() {
       <AktenBereiche kennung="baustelle" kontext={<>{kundeOrt}{team}</>} bereiche={[
         { id: 'uebersicht', titel: 'Übersicht', sprungziele: ['b-ueberblick', 'b-daten'], inhalt:
           <div className="akten-spalte">{auftrag}
+            {nachrichtenAn && <BaustelleNachrichten projektId={b.id} />}
             {einsatzAn && <AktenTerminVorschau stand={terminStand} bereich="planung" />}
             {scheineSichtbar && <Card title="Jüngste Handwerksscheine" action={<AktenVerweis bereich="dokumente">Alle Scheine →</AktenVerweis>}>
               {scheinStand.fehler ? <TeilFehler was="die Handwerksscheine" /> : scheinStand.scheine === null ? <SkeletonList rows={2} />

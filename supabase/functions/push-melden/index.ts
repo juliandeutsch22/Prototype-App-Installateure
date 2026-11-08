@@ -1,7 +1,8 @@
 import { zeitMeldung, zeitKorrekturEmpfaenger, zeitEigenerEmpfaenger } from '../_shared/zeitMeldungen.ts';
 /**
- * Die Push-Meldungen rund um Materialanforderungen, Abwesenheiten und die
- * Antwort eines Kunden über den Annahme-Link (M02a) —
+ * Die Push-Meldungen rund um Materialanforderungen, Abwesenheiten, die
+ * Antwort eines Kunden über den Annahme-Link (M02a) und neue Nachrichten
+ * (M10/B09) —
  * angestossen von einem Postgres-Trigger, verschickt über Firebase Cloud
  * Messaging.
  *
@@ -28,12 +29,15 @@ import {
   empfaengerAntrag,
   empfaengerFreistellung,
   empfaengerKrankmeldung,
+  empfaengerNachricht,
   textAngebotLink,
   textAntrag,
   textEntscheidung,
   textFreistellungAntrag,
   textFreistellungEntscheidung,
   textKrankmeldung,
+  textNachricht,
+  type NachrichtEreignis,
   type Belegschaftsmitglied,
   EMPFAENGER_NEUE_ANFORDERUNG,
   empfaengerNeueAnforderung,
@@ -157,6 +161,7 @@ async function tokensFuer(uids: string[], art: MeldungsArt): Promise<string[]> {
       notifyAbwesenheit: zeile.notify_abwesenheit,
       notifyAngebot: zeile.notify_angebot,
       notifyZeiterfassung: zeile.notify_zeiterfassung,
+      notifyNachrichten: zeile.notify_nachrichten,
     };
     if (!willMeldung(vorgaben, art)) continue;
     for (const t of (zeile.push_tokens as string[] | null) ?? []) tokens.push(t);
@@ -371,6 +376,27 @@ async function auftraegeAngebot(ereignis: Ereignis): Promise<Auftrag[] | null> {
   }];
 }
 
+/**
+ * Nachrichten (M10/B09): eine neue Nachricht in einem Gespräch.
+ * `push_nachricht` gibt sie genau einmal heraus; der Anstoß trägt nur die
+ * Kennung, nie den Text. Den Text (80 Zeichen) liefert die Datenbank nur,
+ * wenn ein Empfänger die Vorschau gewählt hat — und nur der bekommt ihn.
+ */
+async function auftraegeNachricht(ereignis: Ereignis): Promise<Auftrag[] | null> {
+  const nachricht = String(ereignis.zeile?.id ?? '');
+  if (ereignis.art !== 'neu' || !nachricht) return null;
+  const r = await fetch(`${URL_BASIS}/rest/v1/rpc/push_nachricht`, {
+    method: 'POST', headers: alsDienst, body: JSON.stringify({ p_nachricht: nachricht }),
+  });
+  const e = r.ok ? (await r.json().catch(() => null)) as NachrichtEreignis | null : null;
+  if (!e) return [];
+  return empfaengerNachricht(e).map((g) => ({
+    art: 'notifyNachrichten' as const,
+    uids: g.uids,
+    meldung: textNachricht(e, g.vorschau, g.erwaehnt),
+  }));
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return antwort({ error: 'Nur POST.' }, 405);
 
@@ -396,7 +422,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     ? await auftraegeAbwesenheit(ereignis)
     : ereignis.quelle === 'angebot'
       ? await auftraegeAngebot(ereignis)
-      : await auftraegeAnforderung(ereignis);
+      : ereignis.quelle === 'nachricht'
+        ? await auftraegeNachricht(ereignis)
+        : await auftraegeAnforderung(ereignis);
   if (!auftraege) return antwort({ gesendet: 0, grund: 'kein Ereignis, das etwas meldet' });
 
   /*

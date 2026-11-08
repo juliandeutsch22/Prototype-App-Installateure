@@ -30,7 +30,8 @@ export type MeldungsArt =
   | 'notifyUrgentDelivery'
   | 'notifyAbwesenheit'
   | 'notifyAngebot'
-  | 'notifyZeiterfassung';
+  | 'notifyZeiterfassung'
+  | 'notifyNachrichten';
 
 /**
  * Eine Postgres-Zeile als `OrderDoc`.
@@ -466,5 +467,85 @@ export function textAngebotLink(e: AngebotLinkEntscheidung, linkId: string): Mel
     body: `${e.name?.trim() ? `von ${e.name.trim()} ` : ''}über den Annahme-Link`,
     link: `/quotes/${e.angebot}`,
     tag: `angebot-link-${linkId}`,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Nachrichten: Baustellen-Threads, Direktnachrichten, Runden (M10/B09) */
+/* ------------------------------------------------------------------ */
+
+/** Was `push_nachricht` über eine neue Nachricht herausgibt — den Text nur, wenn ein Empfänger die Vorschau will. */
+export interface NachrichtEreignis {
+  nachricht: string;
+  kanal: string;
+  art: 'baustelle' | 'direkt' | 'runde';
+  /** Name der Runde (bei einer Runde). */
+  runde?: string | null;
+  /** Nummer der Baustelle (beim Thread einer Baustelle). */
+  baustelle?: string | null;
+  /** Wer geschrieben hat. */
+  von: string;
+  anhang?: boolean;
+  /** Die ersten 80 Zeichen — nur da, wenn wenigstens ein Empfänger die Vorschau eingeschaltet hat. */
+  text?: string | null;
+  empfaenger: { uid: string; vorschau?: boolean; erwaehnt?: boolean }[];
+}
+
+/**
+ * Wer welche Meldung bekommt — gruppiert nach Vorschau und Erwähnung, denn
+ * beides ändert den Text.
+ *
+ * DIE VORSCHAU IST EINE WAHL DES EMPFÄNGERS, Vorgabe aus: der
+ * Sperrbildschirm ist öffentlich, und den Text hat jemand anderes
+ * geschrieben. Wer sie nicht gewählt hat, bekommt nur, DASS jemand
+ * geschrieben hat. Den Absender schließt schon die Datenbank aus; hier fällt
+ * er zur Sicherheit noch einmal heraus.
+ */
+export function empfaengerNachricht(
+  e: NachrichtEreignis,
+  absender?: string,
+): { uids: string[]; vorschau: boolean; erwaehnt: boolean }[] {
+  const gruppen = new Map<string, { uids: string[]; vorschau: boolean; erwaehnt: boolean }>();
+  for (const r of e.empfaenger ?? []) {
+    if (!r.uid || r.uid === absender) continue;
+    const vorschau = r.vorschau === true && typeof e.text === 'string';
+    const erwaehnt = r.erwaehnt === true && e.art !== 'direkt';
+    const schluessel = `${vorschau}-${erwaehnt}`;
+    const g = gruppen.get(schluessel) ?? { uids: [], vorschau, erwaehnt };
+    g.uids.push(r.uid);
+    gruppen.set(schluessel, g);
+  }
+  return [...gruppen.values()];
+}
+
+/** Das Gespräch, wie es im Titel steht: der Absender, die Runde, die Baustelle. */
+function nachrichtTitel(e: NachrichtEreignis): string {
+  if (e.art === 'direkt') return e.von;
+  if (e.art === 'runde') return e.runde?.trim() || 'Runde';
+  return e.baustelle?.trim() ? `Baustelle ${e.baustelle.trim()}` : 'Baustelle';
+}
+
+/**
+ * „Neue Nachricht“ — ohne Inhalt, außer der Empfänger hat die Vorschau
+ * gewählt; dann die ersten 80 Zeichen. Eine Erwähnung sagt das. Dieselbe
+ * Kennung je Gespräch: die neue Meldung ersetzt die vorige im
+ * Sperrbildschirm, statt dass sich zwanzig stapeln.
+ */
+export function textNachricht(e: NachrichtEreignis, mitVorschau: boolean, erwaehnt = false): Meldung {
+  const vorschau = mitVorschau && typeof e.text === 'string' && e.text.trim() ? e.text.trim() : null;
+  const inhalt = vorschau ?? (e.anhang ? 'Anhang' : null);
+  let body: string;
+  if (e.art === 'direkt') {
+    body = mitVorschau && inhalt ? inhalt : 'Neue Nachricht';
+  } else if (erwaehnt) {
+    body = mitVorschau && inhalt ? `${e.von} hat dich erwähnt: ${inhalt}` : `${e.von} hat dich erwähnt`;
+  } else {
+    body = mitVorschau && inhalt ? `${e.von}: ${inhalt}` : `Neue Nachricht von ${e.von}`;
+  }
+  return {
+    title: nachrichtTitel(e),
+    body,
+    link: `/nachrichten/${e.kanal}`,
+    tag: `nachricht-${e.kanal}`,
   };
 }

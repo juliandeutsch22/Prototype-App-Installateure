@@ -111,6 +111,13 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Zeitfelder: Freitext in einem Feld wird bei der Löschung eines Kunden nicht gefunden | Datenschutz: über den Namen allein träfe es Namensvettern — wie beim Kommentar der Buchung |
 | Liegenschaften (Stand 59, E62): freie Beteiligte (ohne Kundenstamm) haben keine eigene Datenauskunft | Datenschutz: über den Namen allein träfe es Namensvettern; sie lassen sich entfernen (echte Löschung, Journal geleert) oder zum Kunden machen |
 | Liegenschaften: keine abweichende Rechnungsanschrift je Rechnung | Fachlich (Befund 4): eine Rechnung geht an den Kunden der Baustelle; Sammelrechnung kommt mit M13 |
+| Nachrichten (Stand 61, E64): keine Ende-zu-Ende-Verschlüsselung | Sicherheit/Technik: Schlüssel über mehrere Geräte, Vormerkung ohne Netz, Push-Vorschau, Meldeweg und Löschfristen schlössen sie aus; vertraulich ist das Gespräch gegenüber Betrieb, Kollegen, Support und Plattform, die App behauptet nirgends mehr |
+| Nachrichten: ein Rücklauf aus der Sicherung bringt keine privaten Gespräche zurück | Datenschutz: die Führung lädt Sicherung und Auszug herunter; private Gespräche gehören den Teilnehmern. Die Sicherung der Datenbank durch den Betreiber bleibt unberührt |
+| Nachrichten: ob eine Betriebsvereinbarung nötig ist | Liegt beim Betrieb (Betriebsrat, Kanzlei; ArbVG §§ 96, 96a); die App weist beim Einschalten darauf hin und verzichtet auf Lesebestätigung, Online-Status und Auswertung |
+| Nachrichten: bei ganz ausgeschaltetem Modul ist die Seite zu | Fachlich: aus heißt aus (wie bei jedem Modul); nichts wird gelöscht, jeder exportiert seine Gespräche unter Mein Konto, nach dem Wiedereinschalten ist alles da |
+| Nachrichten: höchstens 20 000 Zeichen je Nachricht, 25 MB je Datei | Technik: Verlauf, Push und Auszug bleiben handhabbar; längere Texte gehen als Datei; dieselbe Dateigrenze wie bei den Baustellendokumenten |
+| Nachrichten: ein neues Gespräch braucht Netz | Technik: die Kennung des Gesprächs vergibt der Server (ein Paar hat genau eines); Nachrichten in bestehenden Gesprächen gehen ohne Netz |
+| Nachrichten: Aufgaben-Threads | Fachlich: kommen mit den Aufgaben (B05, eigenes Paket); der Thread hängt an der Baustelle |
 | Liegenschaften: die Akte zeigt je Liste höchstens 100 Baustellen bzw. Wartungen | Fachlich: die Akte ist ein Überblick; greift die Grenze, sagt sie es |
 
 ## X – Liegt bei jemand anderem

@@ -15,6 +15,7 @@
 @import './styles/lot-feinschliff.css';
 @import './styles/lot-planlinie.css';
 @import './styles/lot-blatt.css';
+@import './styles/lot-nachrichten.css';
 
 @tailwind base;
 @tailwind components;

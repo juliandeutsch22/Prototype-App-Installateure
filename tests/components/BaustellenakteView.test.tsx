@@ -149,6 +149,12 @@ vi.mock('@/lib/db/auftragseingaenge', () => ({
   getEingangZu: (c: string, z: { projectId: string }) => getEingangZu(c, z),
 }));
 
+/* Der Thread der Baustelle (M10/B09): noch keine Nachricht. */
+vi.mock('@/lib/db/nachrichten', () => ({
+  baustelleStand: vi.fn(async () => ({ kanal: null, anzahl: 0, zuletzt: null, ungelesen: 0, folgt: false })),
+  kanalBaustelle: vi.fn(async () => 'k1'),
+}));
+
 /*
   Die Stundenauswertung hat einen eigenen Ansichtstest. Hier steht sie als
   Platzhalter: geprüft wird, DASS die Akte sie zeigt, nicht was sie rechnet.

@@ -834,3 +834,40 @@ export function offeneEingaenge(z: OffeneEingaenge | undefined): Abschnitt | nul
   const zeile = z ? eingaengeZeile(z) : null;
   return zeile ? abschnitt('eingaenge', 'Auftragseingang', [zeile], ZIEL.eingaenge) : null;
 }
+
+/*
+  NACHRICHTEN (M10/B09): die eigene Zahl ungelesener Nachrichten, als eine
+  Zeile — leise, eine Nachricht ist keine Frist. Wer sie öffnet, sieht den
+  Posteingang mit den Gesprächen, in denen etwas Neues steht.
+*/
+export function nachrichtenZeile(ungelesen: number | undefined): Zeile | null {
+  if (!ungelesen || ungelesen < 1) return null;
+  return {
+    key: 'nachrichten',
+    titel: `${ungelesen} ${ungelesen === 1 ? 'ungelesene Nachricht' : 'ungelesene Nachrichten'}`,
+    status: { text: 'lesen', ton: 'leise' },
+    to: ZIEL.nachrichten,
+  };
+}
+
+export function ungeleseneNachrichten(ungelesen: number | undefined): Abschnitt | null {
+  const zeile = nachrichtenZeile(ungelesen);
+  return zeile ? abschnitt('nachrichten', 'Nachrichten', [zeile], ZIEL.nachrichten) : null;
+}
+
+/*
+  GEMELDETE NACHRICHTEN (D5): für die Geschäftsführung — jemand hat ihr eine
+  Nachricht weitergegeben, und die verdient eine Antwort. Bernstein, keine
+  Frist: rot ist Überfälligem vorbehalten.
+*/
+export function meldungenZeile(offen: number | undefined): Zeile | null {
+  if (!offen || offen < 1) return null;
+  return {
+    key: 'nachricht-meldungen',
+    titel: `${offen} ${offen === 1 ? 'gemeldete Nachricht' : 'gemeldete Nachrichten'}`,
+    detail: 'an die Geschäftsführung weitergegeben',
+    status: { text: 'ansehen', ton: 'warn' },
+    to: ZIEL.einstellungen('nachrichten'),
+  };
+}
+
