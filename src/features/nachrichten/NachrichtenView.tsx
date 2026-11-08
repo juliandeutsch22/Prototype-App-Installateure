@@ -166,7 +166,7 @@ export default function NachrichtenView() {
         <p className="mt-3"><Link to="/nachrichten" className="link-weiter">Zu allen Gesprächen</Link></p>
       </Card>
     ) : kopf ? (
-      <Gespraech key={kopf.kanal} kopf={kopf} companyId={companyId} personen={erwaehnbar} />
+      <Gespraech key={kopf.kanal} kopf={kopf} companyId={companyId} personen={erwaehnbar} mitTitel={breit} />
     ) : (
       <Card title="Gespräch" buendig><SkeletonList rows={4} /></Card>
     )

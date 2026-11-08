@@ -45,8 +45,11 @@ export default function Gespraech({
   kopf,
   companyId,
   personen,
+  mitTitel = true,
 }: {
   kopf: KanalKopf;
+  /** Am Handy steht der Name schon im Seitenkopf — das Blatt trägt ihn dann nicht noch einmal. */
+  mitTitel?: boolean;
   companyId: string;
   /** Wer erwähnt werden kann — in der Runde die Teilnehmer, am Thread alle im Betrieb (der Server prüft, wer ihn liest). */
   personen: { uid: string; name: string }[];
@@ -245,7 +248,7 @@ export default function Gespraech({
   );
 
   return (
-    <Card title={kopf.titel} buendig>
+    <Card title={mitTitel ? kopf.titel : undefined} buendig>
       {fehler && (
         <div className="px-4 pb-4">
           <ErrorState message={fehler} onRetry={() => setVersuch((v) => v + 1)} />
