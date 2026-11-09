@@ -2621,3 +2621,61 @@ behoben ist, steht im Stand (Abschnitt 67); die neuen Grenzen mit Grund in
 **Nachweis:** je Befund Unit-, Komponenten- oder Supabase-Prüfung, ohne die
 Änderung rot; Stilregeln in `planlinieStil.test.ts`; Vorschau startfähig
 (`vorschauErsatz.test.ts`).
+
+**E71 — Nachrichten Apple-nah: ruhiger Verlauf, Blasen mit Zipfel, Eingabe sendet am Schreibtisch, das Gespräch gehört zur Seite (09.11.2026).**
+Auftrag: „mit dem Design und der UX der Chats bin ich noch nicht ganz
+zufrieden. Das muss viel schöner, Apple-like gelöst werden. Außerdem auf dem
+Desktop Enter für Abschicken und die übliche Tastenkombination für einen
+Absatz“ und „die Box, in der der Chat sitzt, soll sich nicht wie ein
+Fremdkörper anfühlen“. Löst in E65 die Tages-Pille, die Zeit an jeder Blase und
+die Eingabe-Knöpfe ab; alles Übrige von E65 gilt weiter.
+
+- **Ruhiger Verlauf:** Tag und Uhrzeit stehen als leise Zeile über einer
+  Gruppe — beim Tageswechsel und nach mehr als 15 Minuten Pause —, nicht
+  mehr an jeder Blase. Unter der letzten eigenen Nachricht steht „Wird
+  gesendet …“ oder „Gesendet“ (vorgelesen über `aria-live`).
+- **Blasen:** fremde hellgrau auf weißem Grund, eigene in Petrol; in einer
+  Gruppe 2 px Abstand und angeglichene Ecken, die letzte trägt den Zipfel.
+- **Eingabe als Feld in Pillenform**, der Senden-Pfeil sitzt darin; Anhang,
+  Kamera und Erwähnen als schlichte Zeichen davor.
+- **Tastatur:** am Schreibtisch (feiner Zeiger mit Hover) sendet Eingabe,
+  Umschalt + Eingabe macht einen Absatz; Strg/⌘ + Eingabe sendet überall.
+  Während der Wortbildung (Eingabehilfe, japanisch u. ä.) sendet Eingabe nie.
+  Am Telefon bleibt Eingabe der Zeilenumbruch — die Bildschirmtastatur hat
+  keinen Umschalter dafür.
+- **Keine Kiste in der Kiste:** am Schreibtisch sind Posteingang und Gespräch
+  ein Blatt mit einer Trennlinie und fester Höhe; am Telefon läuft das
+  Gespräch randlos bis an beide Ränder, der Verlauf steht unten an der
+  Eingabe.
+
+**Grenze mit Grund:** keine. **Nachweis:** `nachrichten.test.ts` („Senden mit
+der Tastatur“), `Nachrichten.test.tsx` („Das Gespräch, Apple-nah (E71)“),
+`planlinieStil.test.ts`, `nachrichten.spec.ts` („Senden springt nicht“) —
+je ohne die Änderung rot.
+
+**E72 — Knöpfe erkennbar, Abstände in einem Takt, Menü-Symbole in einem Rahmen (09.11.2026).**
+Auftrag: Knöpfe wie „Änderungsprotokoll deiner Buchungen“, „Termin anlegen“
+und „Einsatz planen“ „sehen aus wie schlecht platzierter Text … wichtig ist,
+dass diese global einheitlich überarbeitet werden“; „die Abstände sind nicht
+einheitlich“; „die Menü-Icons sind teilweise unklar, folgen keiner klaren
+Linie, sind gefühlt unterschiedlich groß — vor allem Baustelle,
+Mitarbeiterübersicht und Einstellungen“.
+
+- **Ein Zweitknopf, überall gleich:** die Gestalt `ghost` trägt jetzt den
+  Rahmen des Zweitknopfs (`knopf.ts`); eigene Textknöpfe der Planung
+  (`wp-textknopf`) sind weg, dort steht `Button variant="secondary"`.
+  Reiner Text bleibt nur für Namen, Nummern und den Rückweg.
+- **Aufklapper mit Pfeil rechts**, der sich beim Öffnen dreht
+  (`.weiteres-kopf`, `.weiteres-knopf`); bei reduzierter Bewegung ohne Drehung.
+- **Fluchten im Blatt:** Hinweise, Abschnittsköpfe und Listen innerhalb eines
+  Blatts stehen auf derselben 24-px-Flucht (`blatt-einzug`, `lot-blatt.css`).
+- **Menü-Symbole:** jedes füllt das Feld 2,5–13,5 und steht in der Mitte,
+  gleiche Strichstärke. Die Baustelle trägt den Kran (vorher ein Haus wie der
+  Kunde), die Mitarbeiterübersicht zwei Personen (vorher ein Helm), die
+  Einstellungen Regler (vorher ein Zirkel, der höher saß). Nachrichten haben
+  eine eigene Fassung statt des Ersatzsymbols. Die Skizzen im Seitenkopf
+  bleiben. Steht in `src/components/naviSymbole.ts`.
+
+**Grenze mit Grund:** keine. **Nachweis:** `naviSymbole.test.ts` (Rahmen und
+Mitte je Symbol, jedes Ziel mit eigener Fassung; mit den alten Pfaden sieben
+Fälle rot), `KnopfLink.test.tsx`, `planlinieStil.test.ts`.
