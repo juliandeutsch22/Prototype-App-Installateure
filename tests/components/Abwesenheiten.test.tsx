@@ -142,6 +142,56 @@ describe('Krankenstände', () => {
   });
 });
 
+/*
+  KRANK IM URLAUB (§ 5 UrlG, 09.11.2026): liegen genehmigte Urlaubstage im
+  Krankenstand und darf der Angemeldete umwandeln, fragt die App nach dem
+  Speichern — umgewandelt wird erst auf die Bestätigung.
+*/
+describe('Krank im Urlaub', () => {
+  async function erfassen() {
+    zeige(<KrankenstaendeReiter companyId="perl" meinName="Brigitte" />);
+    const wahl = await screen.findByLabelText(/Mitarbeiter/);
+    await waitFor(() => expect(within(wahl).getAllByRole('option')).toHaveLength(2));
+    await userEvent.selectOptions(wahl, 'm1');
+    await datum('Krank ab', '2026-10-26');
+    await datum('Voraussichtlich bis', '2026-10-30');
+    await userEvent.click(screen.getByRole('button', { name: 'Krankmeldung erfassen' }));
+  }
+
+  it('bietet die Urlaubstage an und wandelt erst nach der Bestätigung um', async () => {
+    speichern.mockImplementation(async (a) => ((a as { urlaubAnrechnen?: boolean }).urlaubAnrechnen
+      ? { id: 'k9', angelegt: 0, entfernt: 0, uebersprungen: 0, urlaubAngerechnet: 3, urlaubImZeitraum: 0, darfAnrechnen: true, kalendertage: 5 }
+      : { id: 'k9', angelegt: 2, entfernt: 0, uebersprungen: 3, urlaubImZeitraum: 3, darfAnrechnen: true, kalendertage: 5 }));
+    try {
+      await erfassen();
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText(/Max Monteur: Im Krankenstand \(5 Kalendertage\) liegen 3 genehmigte Urlaubstage/)).toBeInTheDocument();
+      expect(speichern).toHaveBeenCalledTimes(1);
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Als Krankenstand buchen' }));
+      await waitFor(() => expect(speichern).toHaveBeenLastCalledWith(expect.objectContaining({
+        id: 'k9', von: '2026-10-26', bis: '2026-10-30', urlaubAnrechnen: true,
+      })));
+      expect(await screen.findByText(/3 Urlaubstage als Krankenstand gebucht/)).toBeInTheDocument();
+    } finally {
+      speichern.mockReset();
+      speichern.mockImplementation(async () => ({ id: 'k', angelegt: 2, entfernt: 0, uebersprungen: 0 }));
+    }
+  });
+
+  it('Gegenprobe: ohne Urlaub im Zeitraum oder ohne Recht fragt nichts', async () => {
+    speichern.mockImplementation(async () => ({ id: 'k9', angelegt: 2, entfernt: 0, uebersprungen: 3, urlaubImZeitraum: 3, darfAnrechnen: false, kalendertage: 5 }));
+    try {
+      await erfassen();
+      await waitFor(() => expect(speichern).toHaveBeenCalledTimes(1));
+      await act(async () => { await Promise.resolve(); });
+      expect(screen.queryByRole('dialog')).toBeNull();
+    } finally {
+      speichern.mockReset();
+      speichern.mockImplementation(async () => ({ id: 'k', angelegt: 2, entfernt: 0, uebersprungen: 0 }));
+    }
+  });
+});
+
 describe('Betriebsurlaub', () => {
   it('fragt nach und legt mit Häkchen „Urlaub abbuchen“ an', async () => {
     zeige(<BetriebsurlaubReiter companyId="perl" meinName="Brigitte" />);

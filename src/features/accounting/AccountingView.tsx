@@ -32,6 +32,7 @@ import { einstufungText } from '@/lib/einstufung';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry, UrlaubsanspruchAnpassung } from '@/types';
 import { fuehrtZeitkonto } from '@/lib/permissions';
+import { istDeaktiviert, personenImMonat } from './personenImMonat';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
@@ -480,6 +481,21 @@ export default function AccountingView() {
         .sort((a, b) => a.name.localeCompare(b.name, 'de')),
     [users],
   );
+  /*
+    MIT DEN AUSGESCHIEDENEN DES MONATS (Befund 09.11.2026): ein deaktiviertes
+    Konto steht da, sobald es im Monat gebucht hat — seine letzten Stunden
+    gehören in Lohn-CSV und Übersicht. Der Schlüssel als Text, damit die
+    Liste nur neu entsteht, wenn jemand Neues im Monat bucht, nicht bei jeder
+    Live-Meldung.
+  */
+  const gebuchtSchluessel = useMemo(
+    () => [...new Set(entries.filter((e) => e.date.startsWith(monthPrefix)).map((e) => e.userId))].sort().join('|'),
+    [entries, monthPrefix],
+  );
+  const personen = useMemo(
+    () => personenImMonat(users, new Set(gebuchtSchluessel.split('|'))),
+    [users, gebuchtSchluessel],
+  );
 
   /*
     DER STAND DER BUCHUNGEN FÜR DIE ARBEITSZEITGRENZEN (Runde 3, G12). Die
@@ -551,13 +567,15 @@ export default function AccountingView() {
       // Die Woche vor dem Ersten zählt für die 51. Wochenstunde (KV); geladen ist sie mit dem Monat.
       const erster = `${monthPrefix}-01`;
       const wochenbeginn = montagVon(erster);
-      return relevant.map((u) => {
+      return personen.map((u) => {
         // Über `eigene`: je Person über alle Buchungen gefiltert wuchs mit Belegschaft MAL Buchungen (Ladezeit, 19.10.2026).
         const ihre = eigene.get(u.uid) ?? [];
         const monthEntries = ihre.filter((e) => e.date.startsWith(monthPrefix));
         const urlaub = urlaubJePerson.get(u.uid);
+        const deaktiviert = istDeaktiviert(u);
         return {
           user: u,
+          deaktiviert,
           monthEntries,
           vorlauf: ihre.filter((e) => e.date >= wochenbeginn && e.date < erster),
           // Vom Jahr zählt hier nur der Urlaub (`yearlyUrlaubDays`) — die übrigen Buchungen des Jahres braucht die Rechnung nicht.
@@ -566,11 +584,14 @@ export default function AccountingView() {
             regel: urlaubsRegel,
             anpassungen: anpassungen.filter((a) => a.userId === u.uid),
           }),
-          completeness: calcCompleteness(u, monthEntries, year, month),
+          // Ohne Austrittsdatum ist ein Tag nach dem Ausscheiden keine Lücke.
+          completeness: deaktiviert
+            ? { status: 'complete' as const, missingCount: 0, missingDates: [] }
+            : calcCompleteness(u, monthEntries, year, month),
         };
       });
     },
-    [relevant, eigene, monthPrefix, year, month, urlaubJePerson, urlaubsRegel, halbeTage, anpassungen],
+    [personen, eigene, monthPrefix, year, month, urlaubJePerson, urlaubsRegel, halbeTage, anpassungen],
   );
 
   /**
@@ -587,10 +608,12 @@ export default function AccountingView() {
     „GEBUCHT BISHER“ ÜBER ALLE: die Summe derselben Zahlen, die in den Zeilen
     stehen (`stats.istMin`, `stats.sollMin`) — nichts neu gerechnet.
   */
+  // Ohne die Deaktivierten: ihr Soll ist ohne Austrittsdatum keine Aussage, und Ist ohne Soll verzöge den Vergleich.
   const summe = useMemo(
-    () => alleRows.reduce((s, r) => ({ ist: s.ist + r.stats.istMin, soll: s.soll + r.stats.sollMin }), { ist: 0, soll: 0 }),
+    () => alleRows.reduce((s, r) => (r.deaktiviert ? s : { ist: s.ist + r.stats.istMin, soll: s.soll + r.stats.sollMin }), { ist: 0, soll: 0 }),
     [alleRows],
   );
+  const aktiveZeilen = useMemo(() => alleRows.filter((r) => !r.deaktiviert).length, [alleRows]);
 
   /*
     DIE ARBEITSZEITGRENZEN — EINMAL geprüft für die ganze Seite: die Karte,
@@ -599,7 +622,7 @@ export default function AccountingView() {
   */
   const grenzDaten = useArbeitszeitGrenzen({
     companyId: user?.companyId ?? '',
-    personen: relevant,
+    personen,
     jahr: year,
     monat: month,
     aktualisiert: loading ? undefined : grenzStand,
@@ -651,7 +674,7 @@ export default function AccountingView() {
     if (ansicht !== 'woche') return m;
     const von = new Date(`${wochenTage[0]}T00:00:00`);
     const bis = new Date(`${wochenTage[6]}T00:00:00`);
-    for (const u of relevant) {
+    for (const u of personen) {
       const own = (eigene.get(u.uid) ?? []).filter((e) => e.date >= wochenTage[0] && e.date <= wochenTage[6]);
       m.set(
         u.uid,
@@ -659,7 +682,7 @@ export default function AccountingView() {
           user: u,
           eintraege: own,
           tage: wochenTage,
-          fehlend: offeneWerktage(u, own, von, bis),
+          fehlend: istDeaktiviert(u) ? [] : offeneWerktage(u, own, von, bis),
           halbeTage,
           heute,
           grenzen: grenzenJePerson.get(u.uid),
@@ -667,11 +690,12 @@ export default function AccountingView() {
       );
     }
     return m;
-  }, [ansicht, relevant, eigene, wochenTage, halbeTage, heute, grenzenJePerson]);
+  }, [ansicht, personen, eigene, wochenTage, halbeTage, heute, grenzenJePerson]);
 
   const angezeigteSumme = useMemo(() => {
     if (ansicht !== 'woche') return summe;
     return alleRows.reduce((s, r) => {
+      if (r.deaktiviert) return s;
       const woche = summeDerTage(wochenWerte.get(r.user.uid) ?? []);
       return { ist: s.ist + woche.istMin, soll: s.soll + woche.sollMin };
     }, { ist: 0, soll: 0 });
@@ -694,31 +718,35 @@ export default function AccountingView() {
 
   const zeilen = useMemo((): UebersichtZeile[] => {
     const saldoText = (min: number) => `${min > 0 ? '+' : ''}${fmtMin(min)}`;
-    return rows.map(({ user: u, stats, completeness }) => {
+    return rows.map(({ user: u, stats, completeness, deaktiviert }) => {
       const rolle = einstufungText(u, heute) || u.role;
       if (imSupport) {
         return { user: u, status: 'nicht einsehbar', achtung: false, werte: [], offen: 0, gebucht: '', soll: '', saldo: '' };
       }
+      // Ohne Austrittsdatum: was gebucht ist, ja; Soll und Saldo sind keine Aussage.
+      const mitSoll = stats.hasConfig && !deaktiviert;
       if (ansicht === 'woche') {
         const werte = wochenWerte.get(u.uid) ?? [];
         const offen = werte.filter((t) => t.zustand === 'fehlt').length;
         const s = summeDerTage(werte);
         return {
           user: u,
-          status: offen > 0 ? `${tageWort(offen)} ${offen === 1 ? 'fehlt' : 'fehlen'}` : rolle,
+          status: deaktiviert ? `${rolle} · deaktiviert` : offen > 0 ? `${tageWort(offen)} ${offen === 1 ? 'fehlt' : 'fehlen'}` : rolle,
           achtung: offen > 0,
           werte,
           offen,
           gebucht: fmtMin(s.istMin),
-          soll: stats.hasConfig ? fmtMin(s.sollMin) : '—',
-          saldo: stats.hasConfig ? saldoText(s.saldoMin) : '—',
+          soll: mitSoll ? fmtMin(s.sollMin) : '—',
+          saldo: mitSoll ? saldoText(s.saldoMin) : '—',
         };
       }
       const offen = completeness.missingCount;
       return {
         user: u,
         status:
-          offen > 0
+          deaktiviert
+            ? `${rolle} · deaktiviert`
+            : offen > 0
             ? `${tageWort(offen)} ohne Buchung`
             : !stats.hasConfig
               ? `${rolle} · kein Eintritt hinterlegt`
@@ -731,17 +759,19 @@ export default function AccountingView() {
         grenze: (grenzenJePerson.get(u.uid)?.length ?? 0) > 0,
         offen,
         gebucht: fmtMin(stats.istMin),
-        soll: fmtMin(stats.sollMin),
+        soll: deaktiviert ? '—' : fmtMin(stats.sollMin),
         /* Ohne Eintrittsdatum ist der Saldo keine Null, sondern gar keine Aussage. */
-        saldo: stats.hasConfig ? saldoText(stats.saldoMin) : '—',
+        saldo: mitSoll ? saldoText(stats.saldoMin) : '—',
         gesamt:
-          gesamt === 'laedt'
+          deaktiviert
+            ? '—'
+            : gesamt === 'laedt'
             ? '…'
             : gesamt === 'fehler' || !gesamt.has(u.uid)
               ? '—'
               : saldoText(Math.round(gesamt.get(u.uid)! * 60)),
         /* Dieselbe Zahl für die Saldolinie — gerundet wie im Text, damit Strecke und Zahl übereinstimmen. */
-        gesamtMinuten: gesamt instanceof Map && gesamt.has(u.uid) ? Math.round(gesamt.get(u.uid)! * 60) : null,
+        gesamtMinuten: !deaktiviert && gesamt instanceof Map && gesamt.has(u.uid) ? Math.round(gesamt.get(u.uid)! * 60) : null,
       };
     });
   }, [rows, imSupport, ansicht, wochenWerte, monatsWerte, heute, grenzenJePerson, gesamt]);
@@ -832,7 +862,7 @@ export default function AccountingView() {
       return;
     }
     downloadCsv(
-      buildUserCsv(u, r.monthEntries, r.stats, year, month, halbeTage, lohn, r.vorlauf, zfExport),
+      buildUserCsv(u, r.monthEntries, r.stats, year, month, halbeTage, lohn, r.vorlauf, zfExport, r.deaktiviert),
       userCsvFilename(u, year, month),
     );
     toast.success(`CSV für ${u.name} heruntergeladen`);
@@ -991,7 +1021,7 @@ export default function AccountingView() {
                 hint={
                   luecken === 0
                     ? 'Alle Zeitkonten vollständig'
-                    : `bei ${luecken} von ${alleRows.length} ${alleRows.length === 1 ? 'Person' : 'Personen'}${ansicht === 'woche' ? ' im Monat' : ''}`
+                    : `bei ${luecken} von ${aktiveZeilen} ${aktiveZeilen === 1 ? 'Person' : 'Personen'}${ansicht === 'woche' ? ' im Monat' : ''}`
                 }
                 bereit={bereit}
                 zusatzMuster="bei 00 von 00 Personen"
@@ -1187,7 +1217,7 @@ export default function AccountingView() {
           summe={
             !imSupport
               ? {
-                  text: 'Alle Personen',
+                  text: aktiveZeilen < alleRows.length ? 'Alle aktiven Personen' : 'Alle Personen',
                   gebucht: fmtMin(angezeigteSumme.ist),
                   soll: fmtMin(angezeigteSumme.soll),
                 }
@@ -1267,7 +1297,8 @@ export default function AccountingView() {
               }))}
               grenzDaten={grenzDaten}
               companyId={user.companyId}
-              onErfassen={zeitAn ? (tag) => setAufgabe({ art: 'erfassen', uid: personZeile.user.uid, tag }) : undefined}
+              // Ein deaktiviertes Konto steht nicht in der Auswahl der Erfassung; ohne Person ginge die Zeit an die falsche.
+              onErfassen={zeitAn && !personZeile.deaktiviert ? (tag) => setAufgabe({ art: 'erfassen', uid: personZeile.user.uid, tag }) : undefined}
               onBearbeiten={(e) => setAufgabe({ art: 'bearbeiten', eintrag: e })}
               onLoeschen={(e) => setToDelete(e)}
               onMeldung={(id) => setAufgabe({ art: 'meldung', id })}
@@ -1275,6 +1306,7 @@ export default function AccountingView() {
               onCsv={() => exportUserCsv(personZeile.user)}
               onBericht={() => setExportFor(personZeile.user)}
               gesamtsaldoH={gesamt === 'laedt' ? null : gesamt instanceof Map ? gesamt.get(personZeile.user.uid) : undefined}
+              deaktiviert={personZeile.deaktiviert}
               zeitfelder={feldsatz.an ? { definitionen: feldsatz.definitionen, werte: feldwerte.werte, offen: offenFuer } : undefined}
             />
           ) : null}
@@ -1290,7 +1322,7 @@ export default function AccountingView() {
         <ArbeitszeitGrenzenKarte
           id="arbeitszeitgrenzen"
           companyId={user.companyId}
-          personen={relevant}
+          personen={personen}
           jahr={year}
           monat={month}
           daten={grenzDaten}

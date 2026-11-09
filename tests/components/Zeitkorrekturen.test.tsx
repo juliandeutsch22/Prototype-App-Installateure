@@ -54,3 +54,29 @@ it('der Hinweis auf einen unzugänglichen Direktlink bleibt nach dem Laden der L
   await act(async () => liste.liefern([]));
   expect(screen.getByText(/Dieser Korrekturantrag fehlt oder ist nicht für dich zugänglich/)).toBeInTheDocument();
 });
+/*
+  DIESELBE GRENZE WIE DIE DATENBANK (Befund 09.11.2026): bearbeitbar ist nur
+  Arbeitszeit und Zeitausgleich ohne Antrag oder Meldung. Ein alter
+  Urlaubstag ohne Antrag führt zum ursprünglichen Vorgang, nicht ins Formular.
+*/
+it('ein Urlaubstag ohne Antrag öffnet kein Formular', async () => {
+  const { korrekturBuchungLaden } = await import('@/lib/db/zeitkorrekturen');
+  const { getUserByUid } = await import('@/lib/db/users');
+  vi.mocked(getUserByUid).mockResolvedValue({ uid: 'ma', role: 'Mitarbeiter' } as never);
+  vi.mocked(korrekturBuchungLaden).mockResolvedValue({ id: 'e', date: '2026-11-05', status: 'Urlaub', korrekturStand: 'x' } as never);
+  listeLaden.mockResolvedValue([]); einzelLaden.mockResolvedValue(antrag('a1', 'Bitte berichtigen', 'offen'));
+  zeichnen('/time?korrektur=a1');
+  expect(await screen.findByText(/stammt aus einer Abwesenheit/)).toBeInTheDocument();
+});
+it('Gegenprobe: bei Arbeitszeit steht kein Hinweis auf den ursprünglichen Vorgang', async () => {
+  const { korrekturBuchungLaden } = await import('@/lib/db/zeitkorrekturen');
+  const { getUserByUid } = await import('@/lib/db/users');
+  vi.mocked(getUserByUid).mockResolvedValue({ uid: 'ma', role: 'Mitarbeiter' } as never);
+  vi.mocked(korrekturBuchungLaden).mockResolvedValue({ id: 'e', date: '2026-11-05', status: 'Anwesend', korrekturStand: 'x' } as never);
+  listeLaden.mockResolvedValue([]); einzelLaden.mockResolvedValue(antrag('a1', 'Bitte berichtigen', 'offen'));
+  zeichnen('/time?korrektur=a1');
+  expect(await screen.findByText(/Bitte berichtigen/)).toBeInTheDocument();
+  await waitFor(() => expect(korrekturBuchungLaden).toHaveBeenCalled());
+  await act(async () => { await Promise.resolve(); });
+  expect(screen.queryByText(/stammt aus einer Abwesenheit/)).toBeNull();
+});

@@ -17,6 +17,20 @@ export interface KrankmeldungErgebnis {
   entfernt: number;
   /** Tage mit einem anderen Eintrag (gearbeitet, Urlaub) — sie bleiben. */
   uebersprungen: number;
+  /*
+    KRANK IM URLAUB (§ 5 UrlG, 09.11.2026). Ältere Datenbanken liefern die
+    Felder nicht; dann fehlen sie, und es wird nichts angeboten.
+  */
+  /** Kalendertage der Erkrankung. */
+  kalendertage?: number;
+  /** Genehmigte Urlaubstage, die noch im Zeitraum stehen. */
+  urlaubImZeitraum?: number;
+  /** Darf der Aufrufer sie in Krankenstand umwandeln (und dauert die Erkrankung länger als drei Kalendertage)? */
+  darfAnrechnen?: boolean;
+  /** In diesem Aufruf umgewandelte Urlaubstage. */
+  urlaubAngerechnet?: number;
+  /** Wieder zu Urlaub gewordene Tage (Meldung gekürzt). */
+  urlaubZurueck?: number;
 }
 
 /** Die eigenen Krankmeldungen, jüngste zuerst. */
@@ -61,6 +75,12 @@ export async function krankmeldungSpeichern(daten: {
   bis: string;
   notiz?: string;
   melderName?: string;
+  /**
+   * Genehmigte Urlaubstage im Zeitraum in Krankenstand umwandeln (§ 5 UrlG).
+   * Nur mitgeschickt, wenn gesetzt — so trifft der gewöhnliche Aufruf auch
+   * eine Datenbank, die den Wert noch nicht kennt.
+   */
+  urlaubAnrechnen?: boolean;
 }): Promise<KrankmeldungErgebnis> {
   const { data, error } = await derClient().rpc('krankmeldung_speichern', {
     p_id: daten.id ?? null,
@@ -69,9 +89,22 @@ export async function krankmeldungSpeichern(daten: {
     p_bis: daten.bis,
     p_notiz: daten.notiz ?? null,
     p_melder_name: daten.melderName ?? null,
+    ...(daten.urlaubAnrechnen ? { p_urlaub_anrechnen: true } : {}),
   });
   if (error) throw new Error(error.message);
-  return data as KrankmeldungErgebnis;
+  const d = data as Record<string, unknown>;
+  const zahl = (x: unknown) => (x === undefined || x === null ? undefined : Number(x));
+  return {
+    id: String(d.id),
+    angelegt: Number(d.angelegt),
+    entfernt: Number(d.entfernt),
+    uebersprungen: Number(d.uebersprungen),
+    kalendertage: zahl(d.kalendertage),
+    urlaubImZeitraum: zahl(d.urlaub_im_zeitraum),
+    darfAnrechnen: d.darf_anrechnen === true,
+    urlaubAngerechnet: zahl(d.urlaub_angerechnet),
+    urlaubZurueck: zahl(d.urlaub_zurueck),
+  };
 }
 
 /**

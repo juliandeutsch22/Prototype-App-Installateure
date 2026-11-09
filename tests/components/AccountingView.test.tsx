@@ -1682,3 +1682,59 @@ describe('Mitarbeiteruebersicht — freie Zeitfelder (M06b)', () => {
     }
   });
 });
+
+/*
+  AUSGESCHIEDENE IM MONAT IHRER LETZTEN BUCHUNGEN (Befund 09.11.2026). Wer
+  ausscheidet, wird deaktiviert — und fehlte damit in Übersicht, Monats-CSV
+  und Personenfenster, auch für den Monat, den die Lohnverrechnung noch
+  abrechnet. Jetzt steht er da, sobald er im Monat gebucht hat, als
+  „deaktiviert“ und ohne Soll und Saldo (ein Austrittsdatum führt die App nicht).
+*/
+describe('Mitarbeiterübersicht — deaktivierte Konten mit Buchungen im Monat', () => {
+  const weg: AppUser = { ...monteur, id: 'u2', uid: 'u2', name: 'Ausgeschieden Anton', email: 'a@perl.at', active: false };
+  const seine = ['2026-08-17', '2026-08-18'].map((d) => ({ ...eintrag(d), id: `w-${d}`, userId: 'u2', userName: weg.name }));
+
+  it('steht mit seinen Stunden in Liste, Fenster und Monats-CSV — als deaktiviert, ohne Soll und Saldo', async () => {
+    benutzer = [monteur, weg];
+    buchungen = [...eintraege, ...seine];
+    const nutzer = zeichneSeite('/accounting');
+    const knopf = await personKnopf('Ausgeschieden Anton');
+    expect(screen.getByText(/Mitarbeiter · deaktiviert/)).toBeInTheDocument();
+    await nutzer.click(knopf);
+    const f = screen.getByRole('dialog', { name: /Ausgeschieden Anton, August 2026/ });
+    expect(within(f).getByText(/Das Konto ist deaktiviert/)).toBeInTheDocument();
+    expect(within(f).getByText('Gebucht im Monat')).toBeInTheDocument();
+    expect(within(f).queryByTestId('resturlaub')).toBeNull();
+    expect(within(f).queryByRole('button', { name: /Zeit erfassen/ })).toBeNull();
+    csvGeladen.mockClear();
+    await nutzer.click(within(f).getByRole('button', { name: 'Monat als CSV' }));
+    const eigene = csvGeladen.mock.calls[0][0] as string;
+    expect(eigene).toMatch(/Zeiterfassung: Ausgeschieden Anton \(Konto deaktiviert\)/);
+    expect(eigene).toMatch(/\nIst;16,00 h\nSoll;—\nSaldo;—\n/);
+    expect(eigene).toMatch(/\nResturlaub;—\n/);
+    await nutzer.click(within(f).getByRole('button', { name: 'Schließen' }));
+
+    await nutzer.click(screen.getByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
+    csvGeladen.mockClear();
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Monats-CSV' }));
+    const csv = csvGeladen.mock.calls[0][0] as string;
+    expect(csv).toMatch(/davon Arztbesuch\(Std\);Konto\n/);
+    // Ist 16 Stunden, Soll, Saldo und Resturlaub leer, hinten „deaktiviert“.
+    expect(csv).toMatch(/\nAusgeschieden Anton;16,00;;;0;0;;.*;deaktiviert(\n|$)/);
+    expect(csv).toMatch(/\nNeu Eingestellt;80,00;8[0-9],00;.*;(\n|$)/);
+  });
+
+  it('Gegenprobe: ohne Buchung im Monat bleibt das deaktivierte Konto weg, und die Datei wie bisher', async () => {
+    benutzer = [monteur, weg];
+    buchungen = eintraege;
+    const nutzer = zeichneSeite('/accounting');
+    await personKnopf('Neu Eingestellt');
+    expect(screen.queryByText('Ausgeschieden Anton')).toBeNull();
+    await nutzer.click(screen.getByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
+    csvGeladen.mockClear();
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Monats-CSV' }));
+    const csv = csvGeladen.mock.calls[0][0] as string;
+    expect(csv).not.toMatch(/Ausgeschieden Anton|;Konto|deaktiviert/);
+    expect(csv).toMatch(/davon Arztbesuch\(Std\)\n/);
+  });
+});

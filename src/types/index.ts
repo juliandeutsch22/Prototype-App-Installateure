@@ -1608,6 +1608,12 @@ export interface Vacation {
   genehmigtVonUid?: string | null;
   genehmigtVonName?: string | null;
   /**
+   * Urlaubstage, die wegen einer Erkrankung von mehr als drei Kalendertagen
+   * nicht angerechnet werden (§ 5 UrlG) — je Tag, mit Anteil und Zeitpunkt.
+   * Schreibt nur die Datenbank (`krankmeldung_speichern`).
+   */
+  krankTage?: Array<{ tag: string; anteil: number; am?: string }>;
+  /**
    * Begründung bei Ablehnung oder Storno.
    *
    * Pflicht in der Oberfläche: eine Ablehnung ohne Grund ist für den, der sie

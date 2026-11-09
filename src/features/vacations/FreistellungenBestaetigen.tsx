@@ -41,6 +41,8 @@ import { grundAus } from '@/lib/fehlerGrund';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { anrechnungVermerk, freistellungWas, freistellungZeitraum, leseDauer, nachweisVermerk, terminMinuten, ueberVermerk } from './freistellungText';
 import type { ArztbesuchVorschlag } from '@/lib/db/freistellungen';
+import { eintraegeUmDenTag } from '@/lib/db/timeEntries';
+import { ueberschneidungen, type Ueberschneidung } from './freistellungUeberschneidung';
 
 /** Was ein Bestätigen im Zeitkonto bewirkt hat, in einem Satz. */
 function ergebnis(e: { angelegt: number; uebersprungen: number; entfernt: number; alsUrlaub?: number }): string {
@@ -114,6 +116,14 @@ export default function FreistellungenBestaetigen({
   const [vorschlaege, setVorschlaege] = useState<Record<string, ArztbesuchVorschlag | 'fehler'>>(() => anfang?.vorschlaege ?? {});
   const [angerechnet, setAngerechnet] = useState<Record<string, string>>({});
   const [anrechnungGrund, setAnrechnungGrund] = useState<Record<string, string>>({});
+  /*
+    STUNDENWEISER SONDERURLAUB (Befund 09.11.2026): je offenem Antrag mit
+    Uhrzeit, was zur selben Zeit schon gebucht ist. Über gearbeiteter Zeit
+    lehnt die Datenbank das Bestätigen ab; die Karte sagt es vorher. Nicht
+    Teil des Ladens der Liste: ein langsamer Blick in die Zeiten hält die
+    Anträge nicht auf.
+  */
+  const [belegt, setBelegt] = useState<Record<string, Ueberschneidung[] | 'fehler'>>({});
   /** Beim Ablehnen eines Arztbesuchs: was aus der Zeit wird. */
   const [folge, setFolge] = useState<'zeitausgleich' | 'keine' | null>(null);
   // Ab Werk verlangt; nur ein ausdrückliches Nein des Betriebs schaltet es ab.
@@ -157,6 +167,23 @@ export default function FreistellungenBestaetigen({
     // Beim Aufbau bleibt ein gemerkter Stand stehen; nach einer Aktion (`versuch`) lädt die Karte sichtbar neu.
     void laden(versuch === 0);
   }, [laden, versuch]);
+
+  // Der Arztbesuch hat das schon in seinem Vorschlag (`arztbesuchTeil`).
+  const stundenweise = Array.isArray(offene) ? offene.filter((f) => !!f.zeitVon && !istArztbesuch(f)) : [];
+  const stundenweiseSchluessel = stundenweise.map((f) => f.id).join('|');
+  useEffect(() => {
+    let weg = false;
+    for (const f of stundenweise) {
+      Promise.resolve()
+        .then(() => eintraegeUmDenTag(user.companyId, f.userId, f.von))
+        .then((e) => ueberschneidungen(f, e))
+        .catch(() => 'fehler' as const)
+        .then((x) => { if (!weg) setBelegt((alt) => ({ ...alt, [f.id]: x })); });
+    }
+    return () => { weg = true; };
+    // Am Inhalt, nicht an der Identität der Liste: sie ist nach jedem Laden eine neue.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stundenweiseSchluessel, user.companyId, versuch]);
 
   // Liegengebliebene Nachweise entschiedener Anträge — einmal beim Öffnen.
   useEffect(() => {
@@ -338,6 +365,15 @@ export default function FreistellungenBestaetigen({
 
   const alsRegel = (x: Freistellung): FreistellungFuerRegeln => ({ ...x });
 
+  function ueberschneidungZeilen(liste: ReadonlyArray<{ status: string; von: string; bis: string }>, zusatz = '') {
+    return liste.map((u) => (
+      <span key={`${u.status}-${u.von}`} className="flex flex-wrap items-center gap-2">
+        <Warnung>Hinweis</Warnung>
+        Zur selben Zeit gebucht: {u.status === 'Anwesend' ? 'Arbeitszeit' : u.status} {u.von}–{u.bis}{zusatz}
+      </span>
+    ));
+  }
+
   /*
     DER TEIL EINES ARZTBESUCHS (E35): Sollzeit, Gebuchtes, der Vorschlag,
     was sich zeitlich überschneidet, und die angerechnete Zeit — vorbelegt
@@ -372,12 +408,7 @@ export default function FreistellungenBestaetigen({
             <Warnung>Hinweis</Warnung>Am Tag steht „{v.ganztags}“ für den ganzen Tag — bestätigen geht erst, wenn das weg ist.
           </span>
         )}
-        {v.ueberschneidung.map((u) => (
-          <span key={`${u.status}-${u.von}`} className="flex flex-wrap items-center gap-2">
-            <Warnung>Hinweis</Warnung>
-            Zur selben Zeit gebucht: {u.status === 'Anwesend' ? 'Arbeitszeit' : u.status} {u.von}–{u.bis}
-          </span>
-        ))}
+        {ueberschneidungZeilen(v.ueberschneidung)}
         <span className="flex flex-wrap items-end gap-3">
           <InputField
             id={`angerechnet-${f.id}`}
@@ -421,6 +452,7 @@ export default function FreistellungenBestaetigen({
     const kz = kuerzung[f.id];
     const ueber = tageUeberKontingent(alsRegel(f), andere, anlaesse, tageVon);
     const wahl = ueberWahl[f.id];
+    const tagBelegt = belegt[f.id];
     return (
       <ListRow
         key={f.id}
@@ -439,6 +471,11 @@ export default function FreistellungenBestaetigen({
               <span key={h} className="flex flex-wrap items-center gap-2"><Warnung>Hinweis</Warnung>{h}</span>
             ))}
             {istArztbesuch(f) && !sperre && arztbesuchTeil(f)}
+            {!!f.zeitVon && !istArztbesuch(f) && !sperre && (
+              tagBelegt === 'fehler'
+                ? <span className="text-ink-muted">Ob zur selben Zeit schon gebucht ist, ließ sich nicht prüfen — die Datenbank prüft es beim Bestätigen.</span>
+                : ueberschneidungZeilen(tagBelegt ?? [], ' — bestätigen geht erst, wenn die Zeit dort angepasst ist')
+            )}
             {f.art !== 'unbezahlt' && !sperre && (
               <span className="flex flex-wrap items-center gap-2">
                 {f.nachweisPfad && (

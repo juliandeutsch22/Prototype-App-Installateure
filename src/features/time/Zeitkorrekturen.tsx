@@ -105,7 +105,8 @@ export default function Zeitkorrekturen() {
           {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
           {buero && <>
             <p className="my-3 text-sm text-ink-muted">Stand und Abwesenheiten werden im ursprünglichen Vorgang geändert. Danach die tatsächlich durchgeführte Korrektur bestätigen.</p>
-            {buchung && besitzer && !buchung.isBilled && !buchung.vacationId && !buchung.krankmeldungId && !buchung.freistellungId && buchung.status !== 'Berufsschule' ?
+            {/* Dieselbe Grenze wie `zeit_korrektur_entscheiden`: nur Arbeitszeit und Zeitausgleich ohne Antrag oder Meldung. */}
+            {buchung && besitzer && !buchung.isBilled && !buchung.vacationId && !buchung.krankmeldungId && !buchung.freistellungId && (buchung.status === 'Anwesend' || buchung.status === 'Zeitausgleich') ?
               <TimeForm ownerRole={besitzer.role} besitzerProfil={besitzer} key={buchung.id} entry={buchung} speichernMit={(werte) => entscheiden('umgesetzt', werte)} onSaved={() => undefined} onCancel={schliessen} /> :
               <p className="my-3 text-sm text-ink-muted">Die Buchung ist gesperrt, stammt aus einer Abwesenheit oder wurde bereits entfernt. Eine protokollierte Entfernung lässt sich als durchgeführte Korrektur bestätigen. Sonst zuerst den ursprünglichen Vorgang prüfen: <Link className="link" to="/invoices">Rechnungen</Link> · <Link className="link" to="/vacations">Abwesenheiten</Link>. Danach den Antrag erneut öffnen.</p>}
             <div className="mt-3 flex flex-wrap gap-2"><Button variant="secondary" disabled={!grund.trim() || speichert} onClick={() => void entscheiden('umgesetzt').catch(() => undefined)}>Bereits durchgeführte Korrektur bestätigen</Button><Button variant="secondary" disabled={!grund.trim() || speichert} onClick={() => void entscheiden('abgelehnt').catch(() => undefined)}>Begründet ablehnen</Button></div>

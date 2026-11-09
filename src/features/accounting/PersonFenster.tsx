@@ -61,7 +61,14 @@ export default function PersonFenster({
   onBericht,
   gesamtsaldoH,
   zeitfelder,
+  deaktiviert = false,
 }: {
+  /**
+   * Das Konto ist deaktiviert (ausgeschieden) und steht nur wegen seiner
+   * Buchungen im Monat da. Ohne Austrittsdatum sind Soll, Saldo und
+   * Resturlaub keine Aussage — gezeigt wird, was gebucht ist.
+   */
+  deaktiviert?: boolean;
   user: AppUser;
   stats: MonthStats;
   completeness: CompletenessResult;
@@ -104,7 +111,7 @@ export default function PersonFenster({
     Eintrittsdatum laesst sich keines rechnen — das ist unten mit einem
     eigenen Hinweis erklaert.
   */
-  const zeigtSaldo = stats.hasConfig;
+  const zeigtSaldo = stats.hasConfig && !deaktiviert;
   const fehlendeId = useId();
   const gezieltFehlend = !!tagVonAussen && completeness.missingDates.includes(tagVonAussen);
   // Eine gezielte Tagesauswahl muss auch am Handy sofort sichtbar sein.
@@ -131,7 +138,7 @@ export default function PersonFenster({
     behaelter.current?.querySelector('[data-markiert="ja"]')?.scrollIntoView?.({ block: 'center' });
   }, [markiert, fehlendeOffen]);
 
-  const ueber = [einstufungText(u, markiert ?? `${jahr}-${String(monat + 1).padStart(2, '0')}-01`) || u.role, monatsName]
+  const ueber = [einstufungText(u, markiert ?? `${jahr}-${String(monat + 1).padStart(2, '0')}-01`) || u.role, deaktiviert ? 'deaktiviert' : '', monatsName]
     .filter(Boolean)
     .join(' · ');
 
@@ -262,7 +269,7 @@ export default function PersonFenster({
           NUR DER WERT, DIE ERGÄNZUNG KLEIN DARUNTER (Testbericht Runde 5, G6):
           „Resturlaub / 1,96 Tage Resturlaub“ nannte die Beschriftung zweimal.
         */}
-        <div className="pf-kennzahl" data-testid="resturlaub">
+        {!deaktiviert && <div className="pf-kennzahl" data-testid="resturlaub">
           <p className="pf-kennzahl-name">Resturlaub</p>
           <p className={`pf-kennzahl-wert ${stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'}`}>
             {tageZahl(stats.urlaubRest)} {Math.abs(stats.urlaubRest) === 1 ? 'Tag' : 'Tage'}
@@ -270,7 +277,7 @@ export default function PersonFenster({
           {stats.urlaubAngepasst !== 0 && (
             <p className="pf-kennzahl-text">Anspruch angepasst: {vorzeichenTage(stats.urlaubAngepasst)}</p>
           )}
-        </div>
+        </div>}
       </div>
 
       {zeigtSaldo && (
@@ -280,7 +287,19 @@ export default function PersonFenster({
         </p>
       )}
 
-      {!stats.hasConfig && (
+      {deaktiviert && (
+        <div className="mt-2">
+          <Hinweiszeile>
+            <p>
+              Das Konto ist deaktiviert. Es steht hier, weil es in diesem Monat gebucht hat; die Buchungen gehen
+              in die Monats-CSV. Ein Austrittsdatum führt die App nicht — Soll, Saldo und Resturlaub für die
+              Endabrechnung rechnet deshalb die Lohnverrechnung.
+            </p>
+          </Hinweiszeile>
+        </div>
+      )}
+
+      {!stats.hasConfig && !deaktiviert && (
         <div className="mt-2">
           <Hinweiszeile stufe="warn">
             <p>
