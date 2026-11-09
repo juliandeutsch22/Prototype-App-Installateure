@@ -18,7 +18,18 @@ import vm from 'node:vm';
  */
 const QUELLE = readFileSync(resolve(__dirname, '../../public/sw.js'), 'utf8');
 
-interface Fenster { url: string; visibilityState: 'visible' | 'hidden' }
+/** Ein Fenster der App. `antwort`: was es auf „ortGefragt“ sagt — ohne bleibt es stumm (ältere Fassung). */
+interface Fenster { url: string; visibilityState: 'visible' | 'hidden'; antwort?: string }
+
+function alsClient(f: Fenster) {
+  return {
+    url: f.url,
+    visibilityState: f.visibilityState,
+    postMessage: (frage: unknown, ports: MessagePort[]) => {
+      if (frage === 'ortGefragt' && f.antwort !== undefined) ports[0].postMessage(f.antwort);
+    },
+  };
+}
 
 function worker(opt: { ua?: string; fenster?: Fenster[]; firebaseLaedt?: boolean } = {}) {
   const hoeren = new Map<string, ((e: unknown) => void)[]>();
@@ -35,7 +46,7 @@ function worker(opt: { ua?: string; fenster?: Fenster[]; firebaseLaedt?: boolean
         gezeigt.push({ titel, optionen });
       },
     },
-    clients: { claim: async () => undefined, matchAll: async () => opt.fenster ?? [], openWindow: async () => undefined },
+    clients: { claim: async () => undefined, matchAll: async () => (opt.fenster ?? []).map(alsClient), openWindow: async () => undefined },
   };
   // Firebase meldet seinen eigenen `push`-Zuhörer an — wie im Browser, nach unserem.
   const firebase = {
@@ -48,7 +59,10 @@ function worker(opt: { ua?: string; fenster?: Fenster[]; firebaseLaedt?: boolean
   const importScripts = () => {
     if (opt.firebaseLaedt === false) throw new Error('kein Netz');
   };
-  vm.runInNewContext(QUELLE, { self: self_, importScripts, firebase, URLSearchParams, URL, caches: {}, Response, Request, Promise, console });
+  vm.runInNewContext(QUELLE, {
+    self: self_, importScripts, firebase, URLSearchParams, URL, caches: {}, Response, Request, Promise, console,
+    MessageChannel, setTimeout, clearTimeout,
+  });
 
   /** Ein Push-Ereignis auslösen und abwarten, was der Worker in `waitUntil` gibt. */
   async function push(inhalt: unknown) {
@@ -96,7 +110,7 @@ describe('Push im Service Worker', () => {
   });
 
   it('im Gespräch selbst keine Meldung — außer auf dem iPhone, dort ohne Ton', async () => {
-    const dort: Fenster[] = [{ url: 'https://app.test/nachrichten/k1', visibilityState: 'visible' }];
+    const dort: Fenster[] = [{ url: 'https://app.test/nachrichten/k1', visibilityState: 'visible', antwort: '/nachrichten/k1' }];
     const android = worker({ fenster: dort });
     await android.push(NACHRICHT);
     expect(android.gezeigt).toHaveLength(0);
@@ -110,6 +124,26 @@ describe('Push im Service Worker', () => {
     const versteckt = worker({ fenster: [{ url: 'https://app.test/nachrichten/k1', visibilityState: 'hidden' }] });
     await versteckt.push(NACHRICHT);
     expect(versteckt.gezeigt[0].optionen).toMatchObject({ renotify: true });
+  });
+
+  it('fragt das Fenster, wo es steht — die App wechselt Seiten ohne Neuladen', async () => {
+    // Geladen auf der Startseite, inzwischen im Gespräch: die bekannte Adresse ist veraltet.
+    const ins = worker({ fenster: [{ url: 'https://app.test/', visibilityState: 'visible', antwort: '/nachrichten/k1' }] });
+    await ins.push(NACHRICHT);
+    expect(ins.gezeigt).toHaveLength(0);
+    // Umgekehrt: geladen im Gespräch, inzwischen woanders.
+    const raus = worker({ fenster: [{ url: 'https://app.test/nachrichten/k1', visibilityState: 'visible', antwort: '/' }] });
+    await raus.push(NACHRICHT);
+    expect(raus.gezeigt).toHaveLength(1);
+  });
+
+  it('antwortet das Fenster nicht, gilt die bekannte Adresse', async () => {
+    const stumm = worker({ fenster: [{ url: 'https://app.test/nachrichten/k1', visibilityState: 'visible' }] });
+    await stumm.push(NACHRICHT);
+    expect(stumm.gezeigt).toHaveLength(0);
+    const woanders = worker({ fenster: [{ url: 'https://app.test/', visibilityState: 'visible' }] });
+    await woanders.push(NACHRICHT);
+    expect(woanders.gezeigt).toHaveLength(1);
   });
 
   it('zeigt auch, wenn die Firebase-Bibliotheken nicht geladen werden konnten', async () => {

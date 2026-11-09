@@ -16,8 +16,8 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: PROFIL, signOut: v
 vi.mock('@/components/Toast', () => ({ useToast: () => ({ success: vi.fn(), error: vi.fn() }) }));
 vi.mock('@/lib/db/prefs', () => ({ getPrefs: () => Promise.resolve(null), savePrefs: vi.fn(), PREFS_DEFAULTS: {} }));
 let zustand = 'bereit';
-const getPushState = vi.fn(async () => zustand);
-const disablePush = vi.fn(async () => { zustand = 'aus'; });
+const getPushState = vi.fn<(uid: string) => Promise<string>>(async () => zustand);
+const disablePush = vi.fn<(uid: string, ausdruecklich?: boolean) => Promise<void>>(async () => { zustand = 'aus'; });
 const pushProbe = vi.fn();
 vi.mock('@/lib/push', () => ({
   getPushState: (uid: string) => getPushState(uid),

@@ -105,6 +105,38 @@ function meldungAnzeige(d) {
 }
 
 /*
+ * WO STEHT DAS FENSTER GERADE? Die App wechselt Seiten ohne Neuladen; die
+ * Adresse, die der Worker vom Fenster kennt, bleibt dabei die vom Laden
+ * (gemessen in Chromium). Deshalb wird das Fenster gefragt; es antwortet mit
+ * seinem Pfad (`PushAnmeldung`). Antwortet es nicht rechtzeitig — noch nicht
+ * angemeldet, eine ältere Fassung —, gilt die bekannte Adresse.
+ */
+function ortFragen(fenster) {
+  return new Promise((fertig) => {
+    const bekannt = () => {
+      try {
+        return new URL(fenster.url).pathname;
+      } catch {
+        return null;
+      }
+    };
+    if (typeof MessageChannel === 'undefined') return fertig(bekannt());
+    const kanal = new MessageChannel();
+    const frist = setTimeout(() => fertig(bekannt()), 500);
+    kanal.port1.onmessage = (e) => {
+      clearTimeout(frist);
+      fertig(typeof e.data === 'string' ? e.data : bekannt());
+    };
+    try {
+      fenster.postMessage('ortGefragt', [kanal.port2]);
+    } catch {
+      clearTimeout(frist);
+      fertig(bekannt());
+    }
+  });
+}
+
+/*
  * Steht jemand sichtbar genau dort, wohin die Meldung führt (im Gespräch, in
  * dem die Nachricht gerade erscheint), braucht es keine Meldung — außer auf
  * WebKit, das sie verlangt: dort erscheint sie ohne Ton und ersetzt nur die
@@ -113,13 +145,9 @@ function meldungAnzeige(d) {
 async function meldungZeigen(d) {
   const link = d.link || '/';
   const fenster = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-  const dort = fenster.some((f) => {
-    try {
-      return f.visibilityState === 'visible' && new URL(f.url).pathname === link;
-    } catch {
-      return false;
-    }
-  });
+  const sichtbar = fenster.filter((f) => f.visibilityState === 'visible');
+  const orte = await Promise.all(sichtbar.map(ortFragen));
+  const dort = orte.includes(link);
   if (dort && !WEBKIT) return undefined;
   const { titel, optionen } = meldungAnzeige(d);
   return self.registration.showNotification(
