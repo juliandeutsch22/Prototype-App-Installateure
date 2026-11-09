@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { useModul } from '@/lib/useModule';
+import ArbeitstagKarte from '@/features/time/ArbeitstagKarte';
 import { localDateStr, todayStr, getISOWeek } from '@/lib/time';
 import { getAustrianHolidayName } from '@shared/feiertage';
 import { datumAT } from '@/lib/datum';
@@ -296,6 +297,13 @@ export default function DashboardView() {
 
       {/* Die Nachtläufe zuerst: ihr Schaden wächst mit der Zeit, statt aufzufallen. */}
       <LaufWarnung />
+
+      {/*
+        DER ARBEITSTAG (Timer, 08.11.2026): wer Start/Stopp nutzt, startet und
+        beendet den Tag gleich hier — die Baustelle laut heutigem Einsatz ist
+        vorgewählt. Nach dem Stopp führt die Karte zu den Abschnitten.
+      */}
+      {zeitAn && <ArbeitstagKarte aufStart vorschlag={eigene[0]?.projectNumber || undefined} />}
 
       {/* Die Verwaltung vereinbart Wartungstermine; bei der Leitung stehen sie unter „Zu erledigen“. */}
       {rolle === 'verwaltung' && <WartungHinweis />}

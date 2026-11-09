@@ -26,3 +26,40 @@ export function timerOrtszeit(zeit: string): { date: string; time: string } {
   const teil = (typ: string) => p.find((x) => x.type === typ)?.value ?? '';
   return { date: `${teil('year')}-${teil('month')}-${teil('day')}`, time: `${teil('hour')}:${teil('minute')}` };
 }
+
+/**
+ * WAS DIE KARTE „ARBEITSTAG“ ZEIGT — aus den Abschnitten gerechnet, nichts
+ * gebucht: die Arbeitszeit bisher (alle Arbeitsabschnitte, der laufende bis
+ * jetzt), seit wann der Tag läuft und, in der Pause, seit wann sie dauert.
+ */
+export function timerDauer(s: Zeitsitzung, jetzt: number): { arbeitMs: number; beginn: string; pauseSeit: string | null; pauseMs: number } {
+  let arbeitMs = 0;
+  for (const v of s.segmente) {
+    if (v.art !== 'arbeit') continue;
+    const bis = v.bis ? Date.parse(v.bis) : jetzt;
+    arbeitMs += Math.max(0, bis - Date.parse(v.von));
+  }
+  const letzte = s.segmente[s.segmente.length - 1];
+  const inPause = s.stand === 'pause' && letzte?.art === 'pause' && !letzte.bis;
+  return {
+    arbeitMs,
+    beginn: s.segmente[0]?.von ?? s.aktualisiert_am,
+    pauseSeit: inPause ? letzte.von : null,
+    pauseMs: inPause ? Math.max(0, jetzt - Date.parse(letzte.von)) : 0,
+  };
+}
+
+/** „4:17:32“ bzw. ohne Sekunden „4:17“ — Stunden ohne führende Null, wie auf einer Stoppuhr. */
+export function dauerText(ms: number, mitSekunden = true): string {
+  const s = Math.floor(Math.max(0, ms) / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sek = s % 60;
+  const zwei = (n: number) => String(n).padStart(2, '0');
+  return mitSekunden ? `${h}:${zwei(m)}:${zwei(sek)}` : `${h}:${zwei(m)}`;
+}
+
+/** Die Baustelle, auf der gerade gearbeitet wird (der letzte Arbeitsabschnitt). */
+export function timerBaustelle(s: Zeitsitzung): string {
+  return [...s.segmente].reverse().find((v) => v.art === 'arbeit')?.baustelle ?? '';
+}

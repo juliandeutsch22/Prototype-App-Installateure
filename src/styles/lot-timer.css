@@ -1,0 +1,69 @@
+/*
+  DER ARBEITSTAG (Timer, 08.11.2026) — Karte und Leiste.
+
+  Ein Blatt der Linie „Lot“ wie jedes andere: deckend, Linie rundum, eckig.
+  Rund sind nur die Knöpfe (Start, Pause, Weiter, Feierabend) — „die runden
+  Knöpfe passen zur Linie, die abgerundeten Kanten der Boxen eher weniger“
+  (Auftrag 08.11.2026). Farben nur aus den Grundwerten; die Uhr in Plex Mono.
+*/
+@layer components {
+  .arbeitstag { position: relative; padding: 1rem 1.25rem; border: 1px solid var(--border); background: var(--surface); }
+  .arbeitstag-hilfe { position: absolute; top: 0.375rem; right: 0.375rem; }
+  .arbeitstag-fehler { margin-bottom: 0.5rem; padding-right: 2.5rem; font-size: 0.875rem; color: var(--danger); }
+
+  .arbeitstag-stand { display: flex; align-items: center; gap: 0.5rem; padding-right: 2.5rem; font-size: 0.8125rem; color: var(--text-muted); }
+  .arbeitstag-punkt { flex: none; width: 0.5rem; height: 0.5rem; border-radius: 999px; background: var(--accent-deep); }
+  [data-stand="pause"] .arbeitstag-punkt { background: var(--warning); }
+  .arbeitstag-uhr { margin: 0.375rem 0 0.125rem; font-family: var(--schrift-mono); font-size: 2.75rem; font-weight: var(--gewicht-zahl); line-height: 1.1; letter-spacing: -0.02em; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
+  .arbeitstag-uhr small { font-size: 1.375rem; color: var(--text-muted); }
+  .arbeitstag-erinnerung { margin-top: 0.5rem; font-size: 0.875rem; color: var(--text); }
+
+  .arbeitstag-unten { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 0.75rem; }
+  .arbeitstag-neben { font-size: 0.875rem; color: var(--text-muted); }
+  .arbeitstag-baustelle { display: inline-flex; align-items: center; gap: 0.375rem; min-width: 0; max-width: 100%; min-height: 2.75rem; color: var(--accent-deep); font-size: 0.9375rem; text-align: left; }
+  .arbeitstag-baustelle:disabled { color: var(--text); cursor: default; }
+  .arbeitstag-baustelle-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .arbeitstag-knoepfe { display: flex; gap: 0.75rem; margin-left: auto; }
+  .arbeitstag-fuss { margin-top: 0.25rem; text-align: right; }
+  /* Verwerfen ist der seltene Fehlgriff-Weg — leiser als Pause und Feierabend. */
+  .link.arbeitstag-verwerfen { color: var(--text-muted); }
+
+  .arbeitstag-start { display: flex; align-items: center; gap: 1rem; padding-right: 2rem; }
+  .arbeitstag-start-text { display: flex; flex-direction: column; min-width: 0; }
+  .arbeitstag-start-titel { font-size: 1.0625rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
+
+  .arbeitstag-pruefen { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; min-height: 2.75rem; margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border); color: var(--accent-deep); font-size: 0.9375rem; text-decoration: none; }
+
+  /* Die runden Knöpfe — die einzige Rundung dieses Bereichs. */
+  .rund-knopf { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface); color: var(--ink-deep); }
+  .rund-knopf:hover { border-color: var(--brand-fixed); }
+  .rund-knopf:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  .rund-knopf:disabled { border-color: var(--border); color: var(--text-muted); cursor: not-allowed; }
+  .rund-knopf-voll { border-color: var(--petrol); background: var(--petrol); color: var(--auf-petrol); }
+  .rund-knopf-voll:hover { border-color: var(--petrol-tief); background: var(--petrol-tief); }
+  .rund-knopf-voll:disabled { border-color: var(--surface-3); background: var(--surface-3); color: var(--text-muted); }
+  .rund-knopf-start { width: 4rem; height: 4rem; }
+  .rund-knopf-klein { width: 2.75rem; height: 2.75rem; }
+
+  /*
+    DIE LEISTE. Am Telefon fest über der Reiterleiste (`--navi-hoehe`); das
+    Layout zählt ihre Höhe zu `--reiter-hoehe`, so kleben Aktionsleiste und
+    Warenkorb darüber. Ab dem Tablet klebt sie unten im Inhalt, als Blatt
+    mit Linie rundum.
+  */
+  .timer-leiste-telefon { position: fixed; left: 0; right: 0; bottom: var(--navi-hoehe, 0px); z-index: 29; }
+  .timer-leiste-breit { display: none; }
+  .timer-leiste { display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem 0.375rem 1rem; border-top: 1px solid var(--border); background: var(--surface); }
+  .timer-leiste-text { flex: 1; display: flex; align-items: center; gap: 0.625rem; min-width: 0; min-height: 2.75rem; color: var(--text); text-decoration: none; }
+  .timer-leiste-text:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  .timer-leiste-uhr { font-family: var(--schrift-mono); font-size: 1.0625rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; }
+  .timer-leiste-was { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; color: var(--text-muted); }
+  .timer-platz { height: var(--timer-hoehe, 0px); }
+
+  @media (min-width: 760px) {
+    .timer-leiste-telefon { display: none; }
+    .timer-platz { display: none; }
+    .timer-leiste-breit { display: block; position: sticky; bottom: 1rem; z-index: 10; margin-top: 1.5rem; }
+    .timer-leiste-breit .timer-leiste { border: 1px solid var(--border); }
+  }
+}

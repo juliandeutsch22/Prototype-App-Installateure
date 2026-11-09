@@ -700,6 +700,10 @@ sieht also keine Marge, weder im Angebot noch anderswo.
   Gerätewechsel erkennt fremde Änderungen. Erst die Bestätigung im bisherigen
   Formular bucht tatsächliche Arbeitszeit. Ohne Baustelle entsteht reine Anwesenheit,
   keine Auftragsleistung. Fehlstarts und einzelne Restabschnitte sind mit Grund verwerfbar.
+  Seit E66 steht der Timer als Karte „Arbeitstag“ auf der Startseite und in der
+  Zeiterfassung (runder Start, Baustelle laut heutigem Einsatz vorgewählt, Uhr,
+  Pause, Feierabend) und, solange er läuft, als Leiste auf allen anderen Seiten.
+  Feierabend führt zu „Abschnitte prüfen“.
 - **Timer-Erinnerung** im Betriebsintervall (Vorgabe 600 Minuten), Prüfung alle
   15 Minuten, zusätzlich in der App. Bewusst weiterlaufen ist möglich, automatisches
   Ausstempeln findet nicht statt. Push erfordert ein registriertes Gerät und die

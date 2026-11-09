@@ -1,7 +1,8 @@
 import Zeitkorrekturen, { KorrekturAnfordern } from './Zeitkorrekturen';
 import ZeitsitzungPanel from './ZeitsitzungPanel';
+import ArbeitstagKarte from './ArbeitstagKarte';
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { keepPreviousData } from '@tanstack/react-query';
 import { schluessel, useZwischengespeichert } from '@/lib/zwischenspeicher';
 import { useAuth } from '@/app/AuthContext';
@@ -138,6 +139,8 @@ export default function TimeView() {
     der Startseite.
   */
   const [adresse] = useSearchParams();
+  // Von der Startseite mit dem heutigen Einsatz („Zeit erfassen“): die Baustelle laut Plan als Vorschlag für den Timer.
+  const vonStart = (useLocation().state ?? null) as { projectNumber?: string } | null;
   const zeigeFehlende = adresse.get('filter') === 'fehlend';
   /** Was aus einem offenen Nachtrag ins Formular übernommen wurde. */
   const [vorbelegung, setVorbelegung] = useState<{
@@ -827,6 +830,15 @@ export default function TimeView() {
       />
 
       {/*
+        DER ARBEITSTAG ZUERST (Timer, 08.11.2026): wer Start/Stopp nutzt,
+        sieht Uhr, Baustelle und die zwei runden Knöpfe oben, darunter die
+        Abschnitte, die nach dem Stopp zu prüfen sind. Ohne das Modul und
+        ohne Sitzung steht hier nichts.
+      */}
+      <ArbeitstagKarte key={`arbeitstag:${user?.uid}@${user?.companyId}`} vorschlag={vonStart?.projectNumber || undefined} />
+      <ZeitsitzungPanel key={`timer:${user?.uid}@${user?.companyId}:${user?.role}`} profil={profile} />
+
+      {/*
         AM TELEFON STEHT DIE LISTE WEIT UNTEN — unter Saldo und Maske. Wer nur
         nachsehen will, was er gestern gebucht hat, springt hierüber hin
         (Prüflauf 24.09.2026, D8). Am Schreibtisch ist der Weg kurz genug.
@@ -1001,7 +1013,6 @@ export default function TimeView() {
       )}
 
 
-      <ZeitsitzungPanel key={`timer:${user?.uid}@${user?.companyId}:${user?.role}`} profil={profile} />
       <Zeitkorrekturen key={`korrekturen:${user?.uid}@${user?.companyId}:${user?.role}`} />
 
       {/* Formular und eigene Einträge nebeneinander, wo beide Platz haben (lot-zeit.css). */}

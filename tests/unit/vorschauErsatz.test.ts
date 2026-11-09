@@ -93,6 +93,15 @@ describe('Erzeugte Ersatzmodule der Vorschau', () => {
     expect(modul('invoices')).not.toContain('export const scheineAufRechnung = NOOP;');
   });
 
+  it('der Timer-Stand im Layout bekommt eine Liste (E66) — sonst bleibt jede Seite weiß', () => {
+    // Seit E66 lädt der Anbieter im Layout auf jeder Seite; `undefined` liess `sitzungen.find` werfen.
+    expect(modul('zeitsitzungen')).toContain('export const zeitsitzungenLaden = () => A([]);');
+    expect(modul('zeitsitzungen')).not.toContain('export const zeitsitzungenLaden = NOOP;');
+    // Synchron wie das Vorbild: ein Versprechen wäre ein vermeintlicher Entwurf.
+    expect(modul('zeitsitzungen')).toContain('export const letzterTimerEntwurf = () => undefined;');
+    expect(modul('zeitsitzungen')).toContain('export const timerSenden = NOOP;');
+  });
+
   it('bleibt gleich: Schreibendes ist NOOP, Lesendes nach Namen, Abos über SUB', () => {
     expect(modul('customers')).toContain('export const createCustomer = NOOP;');
     expect(modul('customers')).toContain('export const listCustomers = () => A(D.kunden);');
