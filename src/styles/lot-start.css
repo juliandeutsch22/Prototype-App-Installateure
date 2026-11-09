@@ -66,6 +66,8 @@
   */
   .start-seite .start-status-rechts .stand { line-height: 1.375rem; }
   .start-seite .start-weiter { padding: 0.5rem 1.5rem; border-top: 0; font-size: 0.75rem; font-weight: 400; }
+  /* E68: alles Eingeblendete erledigt, Ausgeblendetes steht noch an — kein „nichts an“. */
+  .start-ausgeblendet-leer { padding: 0.75rem 1.5rem 0.25rem; font-size: 0.875rem; color: var(--text-muted); }
   .start-kontext .start-zeile { font-size: 0.8125rem; padding-block: 0.75rem; }
   .start-kontext .start-zeile .text-meta { font-size: 0.6875rem; line-height: 1.25rem; }
   .start-seite .start-kontext .start-status-vorn { display: inline; }

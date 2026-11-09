@@ -3,6 +3,8 @@ import { Link, matchPath, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '@/components/Icon';
 import { dauerText, timerBaustelle, timerDauer } from '@/lib/zeitsitzung';
 import { useZeitsitzung } from './zeitsitzungStand';
+import { useStartWahl } from '@/features/dashboard/start/useStartWahl';
+import { BEREICH_ARBEITSTAG, ausgeblendet } from '@/features/dashboard/start/einrichtung';
 
 /**
  * DIE TIMER-LEISTE (08.11.2026) — solange ein Arbeitstag läuft, auf jeder
@@ -27,7 +29,15 @@ const TimerLeiste = forwardRef<HTMLDivElement, { ort: 'telefon' | 'breit' }>(fun
   const navigate = useNavigate();
   const z = useZeitsitzung();
   const s = z.laeuft;
-  const zeigen = !!s && !OHNE[ort].some((muster) => matchPath({ path: muster, end: true }, pathname));
+  /*
+    Hat jemand die Karte „Arbeitstag“ auf der Startseite ausgeblendet (E68),
+    steht dort die Leiste — sonst gäbe es dort weder Karte noch Leiste. Die
+    Wahl wird nur gefragt, wenn ein Tag läuft und die Startseite offen ist.
+  */
+  const aufStart = !!matchPath({ path: '/', end: true }, pathname);
+  const { wahl } = useStartWahl(!!s && aufStart);
+  const ohne = ausgeblendet(wahl, BEREICH_ARBEITSTAG) ? OHNE[ort].filter((m) => m !== '/') : OHNE[ort];
+  const zeigen = !!s && !ohne.some((muster) => matchPath({ path: muster, end: true }, pathname));
   // Ausgeschrieben, nicht zusammengesetzt: Tailwind behält nur Klassen, die wörtlich im Code stehen.
   const halter = ort === 'telefon' ? 'timer-leiste-halter timer-leiste-telefon' : 'timer-leiste-halter timer-leiste-breit';
   if (!zeigen || !s) return <div ref={ref} className={halter} />;

@@ -77,6 +77,13 @@ export interface Umfeld {
   sonderurlaubZiel?: string;
   /** Die eigene Kennung — damit die eigene Person nicht in zwei Abschnitten steht. */
   ich?: string;
+  /**
+   * Die selbst gewählten Kennzahlen (E68), in ihrer Folge. Fehlt die Angabe,
+   * gilt die Vorgabe der Rolle — die Startseite von vorher.
+   */
+  kennzahlen?: string[];
+  /** Die ausgeblendeten Themen unter „Zu erledigen“ (E68). */
+  aus?: ReadonlySet<string>;
 }
 
 export type HeuteArt =
@@ -86,6 +93,11 @@ export type HeuteArt =
 
 export interface Startseite {
   abschnitte: Abschnitt[];
+  /**
+   * Was selbst ausgeblendet ist und trotzdem ansteht (E68) — nicht still
+   * weg: die Seite sagt, wie viel, und zeigt es auf Wunsch.
+   */
+  ausgeblendet: Abschnitt[];
   zaehlwort?: string;
   kennzahlen: Kennzahl[];
   heute: HeuteArt;
@@ -114,18 +126,53 @@ function erlaubt(a: Abschnitt | null, u: Umfeld): Abschnitt | null {
 }
 
 export function startseite(d: StartDaten, u: Umfeld): Startseite {
-  switch (u.rolle) {
-    case 'monteur':
-      return monteur(d, u);
-    case 'verwaltung':
-      return verwaltung(d, u);
-    case 'buchhaltung':
-      return buchhaltung(d, u);
-    case 'projektleitung':
-      return projektleitung(d, u);
-    default:
-      return leitung(d, u);
-  }
+  const seite = (() => {
+    switch (u.rolle) {
+      case 'monteur':
+        return monteur(d, u);
+      case 'verwaltung':
+        return verwaltung(d, u);
+      case 'buchhaltung':
+        return buchhaltung(d, u);
+      case 'projektleitung':
+        return projektleitung(d, u);
+      default:
+        return leitung(d, u);
+    }
+  })();
+  /*
+    DIE EIGENE WAHL (E68). Ohne sie bleibt die Seite genau, wie die Rolle sie
+    baut. Mit ihr stehen die gewählten Kennzahlen in ihrer Folge — nur, was
+    die Rolle sehen darf und was geladen ist (`alleKennzahlen`).
+  */
+  if (!u.kennzahlen) return seite;
+  const alle = alleKennzahlen(d, u);
+  const kennzahlen = u.kennzahlen
+    .map((k) => alle.find((x) => x.key === k))
+    .filter((k): k is Kennzahl => !!k);
+  return { ...seite, kennzahlen };
+}
+
+/**
+ * Ausgeblendete Abschnitte heraus — sie kommen in `ausgeblendet`, nicht weg.
+ * Die Leitung trennt eine Ebene tiefer, bei den Themen (`leitung`).
+ */
+function trennen(alle: Abschnitt[], u: Umfeld): Pick<Startseite, 'abschnitte' | 'ausgeblendet'> {
+  if (!u.aus?.size) return { abschnitte: alle, ausgeblendet: [] };
+  return {
+    abschnitte: alle.filter((a) => !u.aus!.has(a.key)),
+    ausgeblendet: alle.filter((a) => u.aus!.has(a.key)),
+  };
+}
+
+/** Jede Kennzahl, die die Person sehen darf und deren Daten da sind — die Auswahl trifft `startseite`. */
+function alleKennzahlen(d: StartDaten, u: Umfeld): Kennzahl[] {
+  return [
+    ...eigeneKennzahlen(d, u),
+    ...lagerKennzahlen(d, u),
+    ...geldKennzahlen(d, u, true),
+    ...baustellenKennzahlen(d, u, true),
+  ];
 }
 
 // ─────────────────────────────────────────────────────────────── Monteur ──
@@ -140,6 +187,11 @@ function monteur(d: StartDaten, u: Umfeld): Startseite {
     // Zuletzt und leise: ein Hinweis für Jugendliche, keine Aufgabe (Runde 3, M2).
     erlaubt(jugendschutzEigen(d.eigeneGrenzfaelle ?? []), u),
   ]);
+  return { ...trennen(abschnitte, u), kennzahlen: eigeneKennzahlen(d, u), heute: null };
+}
+
+/** Saldo und Resturlaub — beim Monteur die Vorgabe, für jede Rolle mit Zeitkonto wählbar (E68). */
+function eigeneKennzahlen(d: StartDaten, u: Umfeld): Kennzahl[] {
   const kennzahlen: Kennzahl[] = [];
   if (d.saldo?.hasConfig) {
     kennzahlen.push({
@@ -159,7 +211,7 @@ function monteur(d: StartDaten, u: Umfeld): Startseite {
       to: '/vacations',
     });
   }
-  return { abschnitte, kennzahlen, heute: null };
+  return kennzahlen;
 }
 
 /** Die eigenen Tage ohne Buchung, für Rollen, die ein Zeitkonto führen, aber nicht draußen sind. */
@@ -198,7 +250,7 @@ function verwaltung(d: StartDaten, u: Umfeld): Startseite {
     ? lieferungenHeute(orders, d.lagerPosten ?? [], u.heute)
     : [];
   return {
-    abschnitte,
+    ...trennen(abschnitte, u),
     kennzahlen: lagerKennzahlen(d, u),
     heute: lieferungen.length
       ? {
@@ -282,7 +334,7 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
   ]);
   const zahlungen = zahlungenHeute(d.zahlungenHeute ?? []);
   return {
-    abschnitte,
+    ...trennen(abschnitte, u),
     kennzahlen: geldKennzahlen(d, u, true),
     heute: zahlungen.length && u.darf(ZIEL.rechnungen)
       ? {
@@ -362,7 +414,7 @@ function projektleitung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(ungeleseneNachrichten(d.ungeleseneNachrichten), u),
     eigenerJugendschutz(d, u),
   ]);
-  return { abschnitte, kennzahlen: baustellenKennzahlen(d, u, true), heute: leitungHeute(d, u) };
+  return { ...trennen(abschnitte, u), kennzahlen: baustellenKennzahlen(d, u, true), heute: leitungHeute(d, u) };
 }
 
 function leitungHeute(d: StartDaten, u: Umfeld): HeuteArt {
@@ -785,7 +837,10 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
     }));
   }
 
-  const abschnitte = themenAbschnitte(themen);
+  // Ausgeblendete Themen (E68) in eigene Abschnitte — nach derselben Dringlichkeit, auf Wunsch sichtbar.
+  const aus = (t: Thema | null | false) => !!t && !!u.aus?.has(t.key);
+  const abschnitte = themenAbschnitte(themen.filter((t) => !aus(t)));
+  const ausgeblendet = themenAbschnitte(themen.filter(aus));
   const kennzahlen = [...geldKennzahlen(d, u, false), ...baustellenKennzahlen(d, u, false)];
-  return { abschnitte, zaehlwort: abschnitte.reduce((s, a) => s + a.anzahl, 0) === 1 ? 'Thema' : 'Themen', kennzahlen, heute: leitungHeute(d, u) };
+  return { abschnitte, ausgeblendet, zaehlwort: abschnitte.reduce((s, a) => s + a.anzahl, 0) === 1 ? 'Thema' : 'Themen', kennzahlen, heute: leitungHeute(d, u) };
 }

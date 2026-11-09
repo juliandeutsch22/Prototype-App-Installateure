@@ -145,6 +145,18 @@
   .start-laden-mitte { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
   .start-laden-status { display: flex; align-items: center; gap: 0.75rem; color: var(--text-muted); font-size: 0.9375rem; }
 
+  /* ── „Startseite anpassen“ (E68): Gruppen ohne Rahmen, Linien zwischen den Zahlen, eckige Pfeile für die Folge ── */
+  .anpassen-gruppe { display: flex; flex-direction: column; min-width: 0; margin: 0; padding: 0; border: 0; }
+  .anpassen-titel { margin-bottom: 0.25rem; padding: 0; font-size: 0.9375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
+  .anpassen-hinweis { margin-bottom: 0.25rem; font-size: 0.8125rem; color: var(--text-muted); }
+  .anpassen-liste { margin: 0; padding: 0; list-style: none; }
+  .anpassen-zeile { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+  .anpassen-zeile + .anpassen-zeile { border-top: 1px solid var(--border); }
+  .anpassen-folge { display: flex; flex: none; gap: 0.25rem; }
+  .anpassen-pfeil { display: inline-grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+  .anpassen-pfeil:disabled { color: var(--text-placeholder); cursor: default; }
+  .anpassen-hoch { transform: rotate(180deg); }
+
   /* Sprungziele einer Akte: die mitlaufende Sprungleiste verdeckt sonst den Kartentitel. */
   .sprung-ziel { scroll-margin-top: 3.5rem; }
 }

@@ -2424,3 +2424,63 @@ Home-Bildschirm hinzugefügten App, und die Mitteilungen müssen erlaubt sein
 - `Arbeitstag.test.tsx` (Verwerfen-Bogen, Gegenprobe rot);
 - `nachrichten.spec.ts` („Suche in den Nachrichten“, Gegenprobe rot).
 
+**E68 — Die Startseite selbst einrichten: Zahlen oben wählen und ordnen, Bereiche und Themen ausblenden (09.11.2026).**
+Auftrag: „Nutzer sollten die Startseite selbst konfigurieren können, was sie
+angezeigt haben wollen, auch die Zahlen oben … ist das gut umsetzbar? Wenn ja,
+starte direkt.“
+
+- **Was wählbar ist:**
+  - **Zahlen oben:** höchstens vier, in eigener Folge. Wählbar sind die neun
+    Kennzahlen der Startseite (Saldo, Resturlaub, offene Anforderungen,
+    knappe Artikel, offene, überfällige und im Monat bezahlte Rechnungen,
+    aktive Baustellen, Auslastung der Woche), aber nur, was Rolle und
+    Module ohnehin erlauben (`waehlbareKennzahlen`).
+  - **Bereiche:** die Karte „Arbeitstag“ und der Tagesüberblick (Einsatz,
+    Termine, heute).
+  - **Themen unter „Zu erledigen“:** je Rolle (`THEMEN`).
+- **Was fest bleibt:**
+  - Wer was sehen darf: Eine Kennzahl erscheint nur, wenn die Rolle ihre
+    Zielseite sehen darf und ihre Daten geladen sind. Eine gespeicherte
+    Wahl, die nicht mehr passt, fällt still heraus.
+  - Die Warnungen zum Zustand der App (Nachtläufe, fehlendes
+    Eintrittsdatum, „Nicht geladen“).
+  - „Zeit erfassen“ im Kopf.
+- **Ausgeblendet heißt nicht verschwunden** (Grundsatz 3). Steht ein
+  ausgeblendetes Thema an, nennt „Zu erledigen“ unten „Ausgeblendet: 2
+  Themen mit 5 Einträgen · anzeigen“, und ein Tipp zeigt es. Ist nur
+  Ausgeblendetes offen, steht nicht „Heute liegt nichts an“.
+- **Ohne eigene Wahl** gilt die Vorgabe der Rolle, also die Startseite von
+  vorher. Gespeichert wird nur, was von der Vorgabe abweicht; „Vorgabe
+  wiederherstellen“ setzt zurück.
+- **Je Person, nicht je Gerät:** Die Wahl liegt in der Datenbank, eigene
+  Tabelle `startseite_wahl`, damit Telefon und Schreibtisch gleich sind.
+  Sie steht bewusst nicht in `user_prefs`: Dort sind die Spaltenvorgaben
+  der Meldungen `false`, und die erste Zeile hätte die Meldungen zu
+  Anforderungen still abgeschaltet.
+  - Lesen darf nur die Person selbst, auch nicht die Geschäftsführung.
+  - Geschrieben wird nur über `startseite_speichern`, das die Form prüft.
+  - Der Supportzugang schreibt nie; im Einblick gilt die Vorgabe.
+  - Die Wahl steht in der Datenauskunft und geht beim Löschen der Person
+    sofort.
+- **Ort:** „⋯ › Startseite anpassen …“ im Seitenkopf, ein Bogen mit drei
+  Gruppen. Ist der Arbeitstag auf der Startseite ausgeblendet, steht dort
+  die Timer-Leiste.
+- **Laden:** Beim ersten Aufbau wartet die Seite auf die Wahl, damit nichts
+  umspringt. Steht schon ein Stand da, wartet sie nie darauf, sonst hinge
+  ohne Netz die ganze Startseite an ihrer Einrichtung.
+
+**Grenze mit Grund:** Die Reihenfolge der Bereiche und der Themen ist fest.
+Die Themen ordnet die Dringlichkeit (Dringend, Heute, Diese Woche), die
+Bereiche die Linie (Zu erledigen links, der Tagesüberblick rechts); eine
+freie Folge bräche beides (fachlich). **Nachweis:**
+- `startseiteWahl.test.ts` (Datenbank: nur die eigene Wahl, Formprüfung,
+  `user_prefs` unberührt, Auskunft und Löschung; Gegenproben rot);
+- `startseiteEinrichtung.test.ts` (wählbar je Rechten; der Katalog deckt
+  jedes Thema des Aufbaus, Gegenprobe rot);
+- `DashboardView.test.tsx` (Folge, nur Gewähltes, nie Verbotenes,
+  Ausgeblendetes mit Zahl, Tagesüberblick, Bogen mit höchstens vier,
+  Vorgabe; Gegenproben rot);
+- `Arbeitstag.test.tsx` (Leiste auf der Startseite);
+- `startseiteEinrichten.spec.ts` (Browser auf allen Monteurbreiten: bleibt
+  nach dem Neuladen, Vorgabe zurück; Gegenprobe rot).
+

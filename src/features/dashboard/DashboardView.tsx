@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { useModul } from '@/lib/useModule';
@@ -24,6 +24,7 @@ import Card from '@/components/Card';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import LotZeichnung from '@/components/LotZeichnung';
 import PageHeader from '@/components/PageHeader';
+import RowMenu from '@/components/RowMenu';
 import { SkeletonList, SkeletonMetrics } from '@/components/States';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
 import LaufWarnung from './LaufWarnung';
@@ -35,6 +36,9 @@ import HeuteLeitung from './start/HeuteLeitung';
 import HeuteListe from './start/HeuteListe';
 import TermineHeute from './start/TermineHeute';
 import { startseite } from './start/aufbau';
+import StartseiteAnpassen from './start/StartseiteAnpassen';
+import { useStartWahl } from './start/useStartWahl';
+import { BEREICH_ARBEITSTAG, BEREICH_TAG, ausgeblendet, geltendeKennzahlen, waehlbareKennzahlen } from './start/einrichtung';
 import { grundpfad, ZIEL } from './start/ziele';
 import {
   annahmenUeberLink,
@@ -81,6 +85,8 @@ export default function DashboardView() {
   const bereitschaftAn = useModul('material.materialbereitschaft');
   // Die Nachrichten (M10/B09): die eigene ungelesene Zahl, für die Führung die Meldungen.
   const nachrichtenAn = useModul('nachrichten');
+  // Die Karte „Arbeitstag“ steht nur mit Start/Stopp da — nur dann gibt es sie im Bogen.
+  const timerAn = useModul('zeiterfassung.timer');
   const rolle: StartRolle = user ? startRolle(user.role) : 'monteur';
   const mitZeitkonto = user ? fuehrtZeitkonto(user) : false;
   const heute = todayStr();
@@ -89,6 +95,28 @@ export default function DashboardView() {
     const zusatz = zusatzrechte(user, company);
     return (ziel: string) => !!user && canAccess(user.role, grundpfad(ziel), company?.modules, zusatz);
   }, [user, company]);
+
+  /*
+    DIE EIGENE EINRICHTUNG (E68). Gewählt wird nur unter dem, was die Rolle
+    sehen darf; eine Wahl, die nicht mehr passt (etwa nach einem Rollenwechsel),
+    fällt still heraus. Ohne Wahl: die Vorgabe der Rolle, wie bisher.
+  */
+  const { wahl, laedt: wahlLaedt } = useStartWahl();
+  const [anpassen, setAnpassen] = useState(false);
+  const waehlbar = useMemo(() => (user ? waehlbareKennzahlen({
+    zeitkonto: mitZeitkonto,
+    lager: materialAn && canProcessOrders(user.role),
+    geld: rechnungenAn && canInvoice(user.role),
+    baustellen: isGF(user.role),
+    darf,
+  }) : []), [user, mitZeitkonto, materialAn, rechnungenAn, darf]);
+  const eigeneKennzahlen = useMemo(
+    () => (wahl?.kennzahlen ? geltendeKennzahlen(rolle, wahl).filter((k) => waehlbar.includes(k)) : undefined),
+    [wahl, rolle, waehlbar],
+  );
+  const aus = useMemo(() => new Set(wahl?.aus ?? []), [wahl]);
+  // Was die gewählten Zahlen an Daten brauchen, das die Rolle sonst nicht lädt.
+  const kennzahlenBrauchen = (k: string) => !!eigeneKennzahlen?.includes(k);
   const urlaubEntscheiden = !!user && urlaubAn && darfUrlaubEntscheiden(user.role, user.uid, company?.vacationApprovers);
   /*
     Sonderurlaub bestätigen Büro und Spitze (Plan 10.3) — seit A15
@@ -112,9 +140,10 @@ export default function DashboardView() {
   */
   const abfrage = useZwischengespeichert<{ data: StartDaten; nichtGeladen: string[] }>({
     queryKey: user
-      ? schluessel('startseite', user, heute, { user, company, einblick: !!einblick, mitZeitkonto, materialAn, bereitschaftAn, scheineAn, angeboteAn, onlineAnnahmeAn, eingangAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen, nachrichtenAn })
+      ? schluessel('startseite', user, heute, { user, company, einblick: !!einblick, mitZeitkonto, materialAn, bereitschaftAn, scheineAn, angeboteAn, onlineAnnahmeAn, eingangAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen, nachrichtenAn, eigeneKennzahlen })
       : ['startseite'],
-    enabled: !!user,
+    // Erst mit der eigenen Wahl (E68): sonst liefe die Abfrage einmal für die Vorgabe und gleich noch einmal.
+    enabled: !!user && !wahlLaedt,
     queryFn: async () => {
       if (!user) return { data: {}, nichtGeladen: [] };
       // Die Belegschaft einmal für alle Blöcke dieses Aufbaus.
@@ -129,7 +158,8 @@ export default function DashboardView() {
         bloecke.push(['Deine Tage und Einsätze', () => persoenlich(k, {
           material: materialAn,
           scheine: scheineAn && r === 'monteur',
-          kennzahlen: r === 'monteur',
+          // Saldo und Resturlaub: beim Monteur die Vorgabe, sonst nur, wer sie selbst gewählt hat (E68).
+          kennzahlen: r === 'monteur' || kennzahlenBrauchen('saldo') || kennzahlenBrauchen('urlaub'),
           // Nach dem Alter, nicht nach der Rolle (A8, 24.10.2026): auch ein Bürolehrling ist jugendlich.
           jugendschutz: true,
         })]);
@@ -138,7 +168,8 @@ export default function DashboardView() {
         const lagerSelbst = r === 'verwaltung' || r === 'leitung';
         bloecke.push(['Anforderungen und Lager', () => lager(k, {
           posten: lagerSelbst && darfEinkaufSehen(user),
-          bestand: lagerSelbst,
+          // Die knappen Artikel auch für die Projektleitung, wenn sie sie oben haben will (E68).
+          bestand: lagerSelbst || kennzahlenBrauchen('knapp'),
         })]);
       }
       if (canInvoice(user.role) && (rechnungenAn || scheineAn)) {
@@ -196,8 +227,8 @@ export default function DashboardView() {
   const nichtGeladen = abfrage.data?.nichtGeladen ?? KEINE_NAMEN;
 
   const seite = useMemo(
-    () => startseite(data, { rolle, heute, jetzt: Date.now(), darf, urlaubEntscheiden, freistellungBestaetigen, sonderurlaubZiel, ich: user?.uid }),
-    [data, rolle, heute, darf, urlaubEntscheiden, freistellungBestaetigen, sonderurlaubZiel, user?.uid],
+    () => startseite(data, { rolle, heute, jetzt: Date.now(), darf, urlaubEntscheiden, freistellungBestaetigen, sonderurlaubZiel, ich: user?.uid, kennzahlen: eigeneKennzahlen, aus }),
+    [data, rolle, heute, darf, urlaubEntscheiden, freistellungBestaetigen, sonderurlaubZiel, user?.uid, eigeneKennzahlen, aus],
   );
 
   if (!user) return null;
@@ -211,15 +242,22 @@ export default function DashboardView() {
     };
   })();
 
-  // Bis zum ersten Stand — beim zweiten Besuch steht der letzte sofort da.
-  const nochAmLaden = abfrage.isPending;
+  /*
+    Bis zum ersten Stand — beim zweiten Besuch steht der letzte sofort da. Beim
+    ersten Aufbau wartet die Seite auch auf die eigene Wahl (E68), sonst stünden
+    kurz die Zahlen der Vorgabe da und sprängen um. Steht schon ein Stand da,
+    wartet sie nie darauf: ohne Netz hinge sonst die ganze Startseite an ihrer
+    Einrichtung.
+  */
+  const nochAmLaden = abfrage.isPending || (wahlLaedt && !abfrage.data);
+  const tagZeigen = !ausgeblendet(wahl, BEREICH_TAG);
   const eigene = data.heuteEigene ?? [];
   const termine = data.termineHeute ?? [];
   const planVerweis = darf('/my-schedule');
   const scheinVerweis = scheineAn && canWriteWorkSheet(user.role);
 
   const vorname = user.name.trim().split(/\s+/)[0];
-  const monteurMitEinsatz = rolle === 'monteur' && eigene.length > 0;
+  const monteurMitEinsatz = rolle === 'monteur' && eigene.length > 0 && tagZeigen;
   const eigenerEinsatz = (
     <>
       {eigene.length > 0 && (
@@ -250,8 +288,9 @@ export default function DashboardView() {
       )}
     </>
   );
-  const hatKontext = (!monteurMitEinsatz && eigene.length > 0) || termine.length > 0 || !!seite.heute;
-  const hatBedarf = seite.abschnitte.length > 0;
+  const hatKontext = tagZeigen && ((!monteurMitEinsatz && eigene.length > 0) || termine.length > 0 || !!seite.heute);
+  // Auch Ausgeblendetes, das ansteht, ist kein „Heute liegt nichts an“ (E68).
+  const hatBedarf = seite.abschnitte.length > 0 || seite.ausgeblendet.length > 0;
 
   return (
     <div className="start-seite space-y-3 lg:space-y-5" data-geladen={nochAmLaden ? 'nein' : 'ja'}>
@@ -259,7 +298,7 @@ export default function DashboardView() {
         <PageHeader
           ort={<>Start · KW {kopf.kw}</>}
           title={rolle === 'monteur' ? `Dein Tag${vorname ? `, ${vorname}` : ''}` : 'Heute im Überblick'}
-          action={zeitAn && monteurMitEinsatz ? (
+          action={zeitAn && rolle === 'monteur' && eigene.length > 0 ? (
             <Link
               to="/time"
               state={{ projectNumber: eigene[0].projectNumber, asHelper: eigene[0].asHelper }}
@@ -289,6 +328,9 @@ export default function DashboardView() {
           stand={nochAmLaden
             ? <SkeletonMetrics />
             : seite.kennzahlen.some((k) => !k.leer) ? <Kennzahlen werte={seite.kennzahlen} /> : undefined}
+          mehr={einblick ? undefined : (
+            <RowMenu about="Startseite" items={[{ label: 'Startseite anpassen …', onSelect: () => setAnpassen(true) }]} />
+          )}
           nebenAktion={darf('/assignments/woche') ? (
             <Link to="/assignments/woche" className="start-planaktion start-hauptaktion">Einsatzplanung</Link>
           ) : undefined}
@@ -303,7 +345,7 @@ export default function DashboardView() {
         beendet den Tag gleich hier — die Baustelle laut heutigem Einsatz ist
         vorgewählt. Nach dem Stopp führt die Karte zu den Abschnitten.
       */}
-      {zeitAn && <ArbeitstagKarte aufStart vorschlag={eigene[0]?.projectNumber || undefined} />}
+      {zeitAn && !ausgeblendet(wahl, BEREICH_ARBEITSTAG) && <ArbeitstagKarte aufStart vorschlag={eigene[0]?.projectNumber || undefined} />}
 
       {/* Die Verwaltung vereinbart Wartungstermine; bei der Leitung stehen sie unter „Zu erledigen“. */}
       {rolle === 'verwaltung' && <WartungHinweis />}
@@ -339,7 +381,7 @@ export default function DashboardView() {
             <div className="start-arbeit start-breit">
               {monteurMitEinsatz && eigenerEinsatz}
               {hatBedarf ? (
-                <Handlungsbedarf abschnitte={seite.abschnitte} zaehlwort={seite.zaehlwort} />
+                <Handlungsbedarf abschnitte={seite.abschnitte} zaehlwort={seite.zaehlwort} ausgeblendet={seite.ausgeblendet} />
               ) : nichtGeladen.length > 0 ? (
                 /*
                   NICHT ALLES KAM AN — DANN IST NICHTS „ERLEDIGT“. Vorher stand
@@ -366,6 +408,15 @@ export default function DashboardView() {
           </div>
         </div>
       )}
+
+      <StartseiteAnpassen
+        open={anpassen}
+        onClose={() => setAnpassen(false)}
+        rolle={rolle}
+        waehlbar={waehlbar}
+        arbeitstagMoeglich={zeitAn && timerAn}
+        wahl={wahl}
+      />
 
       {/* Was nicht kam — unten, nach allem, was geladen wurde. */}
       {nichtGeladen.length > 0 && (

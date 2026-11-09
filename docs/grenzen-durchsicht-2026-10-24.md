@@ -198,3 +198,15 @@ Person, Tag, Stand, Arbeitszeit/Pause und automatische Nachtberechnung sind
 notwendige Grundlagen; ihre Freigabe als beliebige optionale Textfelder würde
 korrekte Arbeitszeitaufzeichnungen verhindern. Zusatzangaben sind schaltbar,
 vorhandene Werte bleiben erhalten. Keine Grenze nach Betriebsgröße oder Aufwand.
+
+## Startseite selbst einrichten — begründete Grenze (09.11.2026, E68)
+
+Jede Person wählt die Zahlen oben (höchstens vier, eigene Folge) und blendet
+Bereiche und Themen unter „Zu erledigen“ aus. **Fest bleibt die Reihenfolge
+der Bereiche und der Themen** — Grund fachlich: die Themen ordnet die
+Dringlichkeit (Dringend, Heute, Diese Woche), die Bereiche die Linie „Lot“
+(Zu erledigen links, Tagesüberblick rechts); eine freie Folge stellte
+Weniger-Dringendes vor Überfälliges. Ausgeblendetes geht nie still verloren
+(eine Zeile mit der Zahl, ein Tipp zeigt es), und Warnungen zum Zustand der
+App lassen sich nicht ausblenden — Grund Sicherheit: ein ausstehender
+Nachtlauf darf nicht wegzuklicken sein.
