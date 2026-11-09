@@ -244,6 +244,7 @@ async function huelleStartbereit(vorrat) {
 async function huelleAusliefern(event) {
   const c = await caches.open(HUELLE);
   const vorrat = await c.match(SEITE);
+  const startbereit = vorrat ? await huelleStartbereit(vorrat) : false;
 
   const nachziehen = fetch(new Request(SEITE, { cache: 'reload' }))
     .then(async (res) => {
@@ -274,7 +275,12 @@ async function huelleAusliefern(event) {
          * kostet ein paar hundert Kilobyte und ist der Preis dafür, dass die
          * laufende App heil bleibt.
          */
-        await allenFensternSagen('neueFassung');
+        /*
+         * Die Seite, die gerade lädt, bekommt die frische Hülle, wenn die
+         * vorgehaltene nicht starten kann (unten) — ihr eine „neue Fassung“
+         * zu melden, hiesse ein überflüssiges „Jetzt laden“.
+         */
+        await allenFensternSagen('neueFassung', vorrat && !startbereit ? event.resultingClientId : undefined);
       }
       return res;
     })
@@ -291,7 +297,7 @@ async function huelleAusliefern(event) {
    * der vorgehaltenen — sie ist dann die einzige Chance, und der HTTP-Speicher
    * des Browsers hat den Baustein vielleicht noch.
    */
-  if (vorrat && !(await huelleStartbereit(vorrat))) {
+  if (vorrat && !startbereit) {
     const frisch = await nachziehen;
     if (frisch && frisch.ok) return frisch;
     return vorrat;
@@ -316,9 +322,9 @@ async function huelleAusliefern(event) {
   return res ?? new Response('Offline und noch nichts gespeichert.', { status: 503 });
 }
 
-async function allenFensternSagen(nachricht) {
+async function allenFensternSagen(nachricht, ausser) {
   const fenster = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-  for (const f of fenster) f.postMessage(nachricht);
+  for (const f of fenster) if (!ausser || f.id !== ausser) f.postMessage(nachricht);
 }
 
 /*

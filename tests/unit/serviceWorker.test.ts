@@ -63,6 +63,9 @@ interface SwUmgebung {
    * bevor er neu laedt.
    */
   geantwortet: string[];
+  /** Was die gerade ladende Seite gesagt bekommt (nur mit `neuesFenster`). */
+  gesagtNeu: string[];
+  neuesFenster: boolean;
   antwort: (url: string) => Response;
   /** Statt `antwort`: ein eigenes Netz, das auch auf `signal` hört (Stillstand). */
   holen?: (req: Request, init?: RequestInit) => Promise<Response>;
@@ -77,17 +80,22 @@ function ladeWorker(): SwUmgebung {
   const geholt: string[] = [];
   const gesagt: string[] = [];
   const geantwortet: string[] = [];
+  const gesagtNeu: string[] = [];
   const umgebung: SwUmgebung = {
     hoeren,
     speicher,
     geholt,
     gesagt,
+    gesagtNeu,
+    neuesFenster: false,
     geantwortet,
     antwort: () => new Response('erste Fassung', { status: 200 }),
     nachricht: async () => undefined,
   };
 
-  const fenster = { postMessage: (m: unknown) => gesagt.push(String(m)) };
+  const fenster = { id: 'altes-fenster', postMessage: (m: unknown) => gesagt.push(String(m)) };
+  // Die Seite, die gerade lädt — nur für den Test der frischen Hülle sichtbar (`umgebung.neuesFenster`).
+  const neues = { id: 'neues-fenster', postMessage: (m: unknown) => gesagtNeu.push(String(m)) };
 
   umgebung.nachricht = async (data: unknown) => {
     // `waitUntil` ist hier kein Beiwerk: der Worker raeumt darin auf, und
@@ -112,7 +120,7 @@ function ladeWorker(): SwUmgebung {
     registration: { showNotification: () => undefined },
     clients: {
       claim: async () => undefined,
-      matchAll: async () => [fenster],
+      matchAll: async () => (umgebung.neuesFenster ? [fenster, neues] : [fenster]),
       openWindow: async () => undefined,
     },
   };
@@ -174,9 +182,10 @@ function ladeWorker(): SwUmgebung {
 }
 
 /** Löst das fetch-Ereignis aus und gibt zurück, ob der SW geantwortet hat. */
-async function anfrage(u: SwUmgebung, url: string, mode = 'no-cors', method = 'GET') {
+async function anfrage(u: SwUmgebung, url: string, mode = 'no-cors', method = 'GET', resultingClientId?: string) {
   let antwort: Promise<Response> | null = null;
   const ereignis = {
+    resultingClientId,
     request: new Request(url, { method }),
     respondWith: (p: Promise<Response>) => {
       antwort = p;
@@ -675,6 +684,30 @@ describe('Service Worker — eine Hülle, die starten kann', () => {
 
     const antwort = await anfrage(u, 'https://app.test/', 'navigate');
     expect(await antwort!.text()).toBe(huelle('b2'));
+  });
+
+  it('die Seite, die die frische Hülle bekommt, erhält keine „neue Fassung“ — die anderen Fenster schon', async () => {
+    u.antwort = netz('b2');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    u.antwort = netz('c3');
+    u.neuesFenster = true;
+
+    const antwort = await anfrage(u, 'https://app.test/', 'navigate', 'GET', 'neues-fenster');
+    expect(await antwort!.text()).toBe(huelle('c3'));
+    await vi.waitFor(() => expect(u.gesagt).toContain('neueFassung'));
+    expect(u.gesagtNeu).toEqual([]);
+  });
+
+  it('gleich geblieben: bekommt die Seite die vorgehaltene Hülle, erfährt sie von der neuen Fassung', async () => {
+    u.antwort = netz('b2');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    for (const pfad of ['/assets/index-b2.js', '/assets/react-b2.js', '/assets/index-b2.css']) await anfrage(u, `https://app.test${pfad}`);
+    await vi.waitFor(() => expect(u.speicher.get('perl-teile')?.eintraege.size).toBe(3));
+    u.antwort = netz('c3');
+    u.neuesFenster = true;
+
+    await anfrage(u, 'https://app.test/', 'navigate', 'GET', 'neues-fenster');
+    await vi.waitFor(() => expect(u.gesagtNeu).toContain('neueFassung'));
   });
 
   it('ohne Netz bleibt es bei der vorgehaltenen Hülle — sie ist dann die einzige', async () => {
