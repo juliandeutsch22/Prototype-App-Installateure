@@ -139,10 +139,17 @@ export async function listQuotesInRange(companyId: string, von: string, bis: str
   return zusammensetzen(koepfe, companyId);
 }
 
-/** Die Angebote EINES Kunden. */
+/**
+ * Die Angebote EINES Kunden, die jüngsten zuerst.
+ *
+ * OHNE REIHENFOLGE kam, was die Datenbank gerade lieferte: in der Akte stand
+ * das Angebot von gestern zwischen denen von vor drei Jahren, und bei mehr
+ * als `max` fehlten beliebige — nicht die ältesten.
+ */
 export async function listQuotesForCustomer(companyId: string, customerId: string, max = 100) {
   const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
     wo: [{ art: 'gleich', feld: 'customerId', wert: customerId }, NICHT_VERWORFEN],
+    sortiere: { feld: 'createdAt', absteigend: true },
     grenze: max,
   });
   return zusammensetzen(koepfe, companyId);

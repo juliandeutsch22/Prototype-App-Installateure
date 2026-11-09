@@ -103,7 +103,10 @@ describe('Gültigkeit und Worte', () => {
     expect(topText({ bezeichnung: 'Top 5', lage: '2. OG' })).toBe('Top 5 (2. OG)');
     expect(topText({ bezeichnung: 'Top 5', lage: null })).toBe('Top 5');
     const d = (iso: string) => iso.split('-').reverse().join('.');
-    expect(zeitraumText({ gueltigAb: '2026-03-01' }, d)).toBe('seit 01.03.2026');
+    expect(zeitraumText({ gueltigAb: '2026-03-01' }, d, HEUTE)).toBe('seit 01.03.2026');
+    // Ein Beginn in der Zukunft heisst „ab“; heute selbst noch „seit“.
+    expect(zeitraumText({ gueltigAb: '2026-12-01' }, d, HEUTE)).toBe('ab 01.12.2026');
+    expect(zeitraumText({ gueltigAb: HEUTE }, d, HEUTE)).toBe('seit 07.11.2026');
     expect(zeitraumText({ gueltigBis: '2026-10-31' }, d)).toBe('bis 31.10.2026');
     expect(zeitraumText({}, d)).toBe('');
   });

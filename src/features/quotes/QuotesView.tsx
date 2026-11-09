@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   listRecentQuotes,
+  getQuote,
   sucheAngebote,
   ANGEBOT_TREFFER,
   createQuote,
@@ -507,22 +508,55 @@ export default function QuotesView() {
     VON DER ANGEBOTSSEITE KOMMEND: `/quotes?bearbeiten=<id>`. Geöffnet wird
     erst, wenn die Liste da ist — und nur ein Entwurf. Der Parameter geht
     danach weg, sonst öffnete jedes Neuladen die Maske wieder.
+
+    NICHT NUR AUS DER GELADENEN LISTE. Sie hält die jüngsten hundert; ein
+    älteres Angebot öffnet die Angebotsseite trotzdem, und dort stehen
+    „Bearbeiten“, „Neue Fassung“ und „Als Kopie anlegen“. Gesucht wurde nur
+    im Geladenen — der Parameter ging weg, und es geschah schlicht nichts.
+    Fehlt es dort, wird es einzeln nachgeladen; gibt es das nicht (mehr),
+    sagt die Seite das.
   */
   const zuBearbeiten = suchParameter.get('bearbeiten');
   const zuFassen = suchParameter.get('neueFassung');
   const zuKopieren = suchParameter.get('kopie');
   useEffect(() => {
-    if ((!zuBearbeiten && !zuFassen && !zuKopieren) || loading) return;
-    const q = angebote.find((a) => a.id === (zuBearbeiten ?? zuFassen ?? zuKopieren));
-    if (q && darfAendern) {
+    if ((!zuBearbeiten && !zuFassen && !zuKopieren) || loading || !user) return;
+    const id = (zuBearbeiten ?? zuFassen ?? zuKopieren)!;
+    let abgebrochen = false;
+    function oeffnen(q: WithId<Quote>) {
       if (zuBearbeiten && q.status === 'Entwurf') bearbeiten(q);
       else if (zuFassen && q.status !== 'Entwurf') alsVorlage(q, true);
       else if (zuKopieren) alsVorlage(q, false);
     }
-    // Nur diese drei gehen weg: die gewählte Ansicht der Liste bleibt stehen.
-    const p = new URLSearchParams(suchParameter);
-    for (const name of ['bearbeiten', 'neueFassung', 'kopie']) p.delete(name);
-    setSuchParameter(p, { replace: true });
+    function parameterWeg() {
+      // Nur diese drei gehen weg: die gewählte Ansicht der Liste bleibt stehen.
+      const p = new URLSearchParams(suchParameter);
+      for (const name of ['bearbeiten', 'neueFassung', 'kopie']) p.delete(name);
+      setSuchParameter(p, { replace: true });
+    }
+    const geladen = angebote.find((a) => a.id === id);
+    if (geladen || !darfAendern) {
+      if (geladen && darfAendern) oeffnen(geladen);
+      parameterWeg();
+      return;
+    }
+    void (async () => {
+      try {
+        const q = await getQuote(user.companyId, id);
+        if (abgebrochen) return;
+        if (q) oeffnen(q);
+        else setError('Dieses Angebot gibt es nicht (mehr) — es lässt sich deshalb nicht öffnen.');
+      } catch (e) {
+        if (abgebrochen) return;
+        setError(grundAus(e, 'Das Angebot konnte nicht geladen werden.'));
+      }
+      // Erst danach: ohne die Parameter liefe der Effekt neu, und das Aufräumen
+      // verwürfe die Antwort, bevor sie das Formular öffnet.
+      parameterWeg();
+    })();
+    return () => {
+      abgebrochen = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zuBearbeiten, zuFassen, zuKopieren, loading, angebote]);
 

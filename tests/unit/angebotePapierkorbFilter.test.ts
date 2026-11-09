@@ -59,3 +59,19 @@ describe('Gleich bleibt: die eigene Seite und der Papierkorb', () => {
     });
   });
 });
+
+/*
+  DIE KUNDENAKTE: DIE JÜNGSTEN ZUERST. Ohne Reihenfolge kam, was die
+  Datenbank gerade lieferte, und bei mehr als der Obergrenze fehlten
+  beliebige Angebote statt der ältesten. Gegenprobe: ohne `sortiere` in
+  `listQuotesForCustomer` ist die Prüfung rot.
+*/
+describe('Die Angebote eines Kunden', () => {
+  it('kommen nach Anlage absteigend, mit der Obergrenze', async () => {
+    await angebote.listQuotesForCustomer('perl', ID, 100);
+    expect(abfragen.mock.calls.find(([t]) => t === 'quotes')?.[2]).toMatchObject({
+      sortiere: { feld: 'createdAt', absteigend: true },
+      grenze: 100,
+    });
+  });
+});

@@ -90,6 +90,9 @@ type Teil<T> = { zustand: 'laedt' } | { zustand: 'fehler' } | { zustand: 'bereit
 /** So viele Eingänge zeigt die Akte — die jüngsten; alle stehen im Auftragseingang. */
 const EINGAENGE_HOECHSTENS = 20;
 
+/** So viele Angebote zeigt die Akte — die jüngsten; ältere findet die Suche der Angebotsliste. */
+const ANGEBOTE_HOECHSTENS = 100;
+
 const LAEDT = { zustand: 'laedt' } as const;
 
 export default function KundenakteView() {
@@ -286,7 +289,7 @@ export default function KundenakteView() {
   useEffect(() => {
     if (!companyId || !id || !angeboteAn || !darfAngebote) return;
     let weg = false;
-    listQuotesForCustomer(companyId, id)
+    listQuotesForCustomer(companyId, id, ANGEBOTE_HOECHSTENS)
       .then((q) => !weg && setAngebote({ zustand: 'bereit', daten: q }))
       .catch(() => !weg && setAngebote({ zustand: 'fehler' }));
     return () => {
@@ -582,21 +585,27 @@ export default function KundenakteView() {
       ) : angebote.daten.length === 0 ? (
         <EmptyState>Noch kein Angebot.</EmptyState>
       ) : (
-        <ul className="divide-y divide-line">
-          {angebote.daten.map((q) => (
-            <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
-              <Link
-                to={`/quotes/${q.id}`}
-                className="link inline-flex min-h-touch min-w-0 items-center text-sm"
-              >
-                <span className="truncate">{q.quoteNumber}</span>
-              </Link>
-              <span className="text-sm text-ink-muted">
-                {euro(q.totalNetto)} netto · {q.status}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="divide-y divide-line">
+            {angebote.daten.map((q) => (
+              <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
+                <Link
+                  to={`/quotes/${q.id}`}
+                  className="link inline-flex min-h-touch min-w-0 items-center text-sm"
+                >
+                  <span className="truncate">{q.quoteNumber}</span>
+                </Link>
+                <span className="text-sm text-ink-muted">
+                  {euro(q.totalNetto)} netto · {q.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {/* Die Grenze sagen, statt still bei hundert aufzuhören — wie bei den Eingängen. */}
+          {angebote.daten.length >= ANGEBOTE_HOECHSTENS && (
+            <p className="mt-2 text-sm text-ink-muted">Die jüngsten {ANGEBOTE_HOECHSTENS} — ältere findet die Suche in den Angeboten.</p>
+          )}
+        </>
       )}
     </Card>
   ) : null;

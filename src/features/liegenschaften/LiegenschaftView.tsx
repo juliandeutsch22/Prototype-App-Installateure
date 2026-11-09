@@ -183,8 +183,15 @@ export default function LiegenschaftView() {
   const baustellenOeffnen = canAccess(user.role, '/admin-projects', company?.modules);
   const topListe = tops.zustand === 'bereit' ? tops.daten : [];
   const alleBeteiligten = beteiligte.zustand === 'bereit' ? beteiligte.daten : [];
+  /*
+    DREI GRUPPEN, NICHT ZWEI. Wer erst ab einem späteren Tag gilt (der neue
+    Mieter ab nächstem Monat), stand unter „Früher“ — als wäre er schon
+    ausgezogen. Früher ist nur, wessen „gültig bis“ vorbei ist; alles andere,
+    was heute nicht gilt, beginnt erst.
+  */
   const aktuelle = alleBeteiligten.filter((b) => giltAm(b, heute));
-  const frueher = alleBeteiligten.filter((b) => !giltAm(b, heute));
+  const frueher = alleBeteiligten.filter((b) => !!b.gueltigBis && b.gueltigBis < heute);
+  const kuenftige = alleBeteiligten.filter((b) => !giltAm(b, heute) && !frueher.includes(b));
 
   async function schritt(lauf: () => Promise<void>) {
     setBusy(true);
@@ -274,7 +281,8 @@ export default function LiegenschaftView() {
           Auftraggeber, Rechnungsempfänger, Versicherung, Lieferadresse — und ist ein Kunde oder steht
           mit freien Angaben da. Beim Anlegen einer Baustelle werden Rechnungsempfänger, Auftraggeber
           bzw. Hausverwaltung als Kunde vorgeschlagen, wenn sie Kunden sind, und der Nutzer des Tops als
-          Ansprechpartner. Wer nicht mehr gilt (gültig bis vorbei), steht unter „Früher“; „Entfernen“
+          Ansprechpartner. Wer erst später gilt (gültig ab in der Zukunft), steht unter „Künftig“, wer nicht mehr
+          gilt (gültig bis vorbei), unter „Früher“; „Entfernen“
           löscht ihn samt seinen Angaben im Änderungsverlauf. Von selbst wird nichts gelöscht.
         </>
       }
@@ -285,6 +293,12 @@ export default function LiegenschaftView() {
             : (
               <>
                 {aktuelle.length > 0 && <List>{aktuelle.map(zeileBeteiligter)}</List>}
+                {kuenftige.length > 0 && (
+                  <section aria-label="Künftig" className="mt-2">
+                    <p className="section-label px-4">Künftig</p>
+                    <List>{kuenftige.map(zeileBeteiligter)}</List>
+                  </section>
+                )}
                 {frueher.length > 0 && (
                   <section aria-label="Früher" className="mt-2">
                     <p className="section-label px-4">Früher</p>

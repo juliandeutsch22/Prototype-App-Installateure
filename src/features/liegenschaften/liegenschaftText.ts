@@ -3,6 +3,7 @@
  * Vorschläge beim Anlegen einer Baustelle. Reine Rechnung ohne Oberfläche,
  * damit sie einzeln prüfbar ist (`tests/unit/liegenschaftText.test.ts`).
  */
+import { todayStr } from '@/lib/time';
 import type { BeteiligtenRolle, Customer, Liegenschaft, LiegenschaftBeteiligter, LiegenschaftTop } from '@/types';
 
 /** Dieselben Wörter wie `app.beteiligter_rolle_text` in der Datenbank. */
@@ -48,9 +49,18 @@ export function giltAm(b: Pick<LiegenschaftBeteiligter, 'gueltigAb' | 'gueltigBi
 }
 
 /** Der Zeitraum in Worten: „seit 01.03.2026“, „bis 31.10.2026“ — leer ohne Angabe. */
-export function zeitraumText(b: Pick<LiegenschaftBeteiligter, 'gueltigAb' | 'gueltigBis'>, datum: (iso: string) => string): string {
+/**
+ * Der Zeitraum eines Beteiligten in Worten. Ein Beginn in der Zukunft heisst
+ * „ab“, nicht „seit“: ein neuer Mieter „seit 01.12.“ lese sich, als wohne er
+ * schon dort (09.11.2026, mit der Gruppe „Künftig“).
+ */
+export function zeitraumText(
+  b: Pick<LiegenschaftBeteiligter, 'gueltigAb' | 'gueltigBis'>,
+  datum: (iso: string) => string,
+  heute: string = todayStr(),
+): string {
   if (b.gueltigAb && b.gueltigBis) return `${datum(b.gueltigAb)} – ${datum(b.gueltigBis)}`;
-  if (b.gueltigAb) return `seit ${datum(b.gueltigAb)}`;
+  if (b.gueltigAb) return `${b.gueltigAb > heute ? 'ab' : 'seit'} ${datum(b.gueltigAb)}`;
   if (b.gueltigBis) return `bis ${datum(b.gueltigBis)}`;
   return '';
 }

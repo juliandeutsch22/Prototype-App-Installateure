@@ -95,6 +95,7 @@ const searchCustomers = vi.fn<(a0: string, a1: string, a2: number | undefined) =
   darüber, unter Firestore filtert die Datenschicht wie bisher im Browser.
 */
 const updateCustomer = vi.fn(async () => 0);
+const deleteCustomer = vi.fn<(c: string, id: string) => Promise<void>>(async () => undefined);
 const kundenZuPruefenAnzahl = vi.fn<(c: string) => Promise<{ adressePruefen: number; ohneKundenart: number }>>(async () => ({ adressePruefen: 3, ohneKundenart: 2 }));
 vi.mock('@/lib/db/customers', () => ({
   searchCustomers: (c: string, begriff: string, max?: number) =>
@@ -105,7 +106,7 @@ vi.mock('@/lib/db/customers', () => ({
   kundenOhneKundenart: vi.fn(async () => artListe.filter((k) => !k.kundenart)),
   kundenZuPruefenAnzahl: (c: string) => kundenZuPruefenAnzahl(c),
   updateCustomer: () => updateCustomer(),
-  deleteCustomer: vi.fn(async () => undefined),
+  deleteCustomer: (c: string, id: string) => deleteCustomer(c, id),
   listProjectsForCustomer: () => listProjectsForCustomer(),
   listUnlinkedProjectsByName: () => listUnlinkedProjectsByName(),
   assignProjectToCustomer: (...a: unknown[]) => assignProjectToCustomer(...(a as [])),
@@ -163,6 +164,7 @@ beforeEach(() => {
   listUnlinkedProjectsByName.mockClear();
   listProjectsForCustomer.mockClear();
   kundenZuPruefenAnzahl.mockClear().mockImplementation(async () => ({ adressePruefen: 3, ohneKundenart: 2 }));
+  deleteCustomer.mockReset().mockResolvedValue(undefined);
 });
 
 describe('Kundenverwaltung', () => {
@@ -936,3 +938,56 @@ describe('Die Zahlen an den Reitern der Kundenliste', () => {
   });
 });
 
+
+/*
+  KUNDE LÖSCHEN, WENN NOCH ETWAS AN IHM HÄNGT. Der Grund stand im Feld
+  `error` — das zeigt nur das Formular und die Übernahme. Bei zugeklappter
+  Seite geschah sichtbar nichts; ein englischer Text der Datenbank ging
+  ungefiltert durch. Jetzt bleibt eine Meldung stehen, bis sie gelesen ist.
+*/
+describe('Kunde löschen, wenn noch etwas an ihm hängt', () => {
+  async function loeschenBestaetigen(name: string) {
+    const zeile = (await screen.findByText(name)).closest('li')!;
+    await userEvent.click(within(zeile).getByRole('button', { name: new RegExp(`Weitere Aktionen für Kunde ${name}`) }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Löschen' }));
+    const frage = await screen.findByRole('dialog', { name: 'Kunde löschen?' });
+    return frage;
+  }
+
+  it('die Rückfrage nennt alles, was das Löschen verhindert — und was mitgeht', async () => {
+    zeichne();
+    const frage = await loeschenBestaetigen('Hausverwaltung Nord');
+    expect(frage).toHaveTextContent('weder Baustellen, Angebote (auch im Papierkorb), Wartungen, Handwerksscheine noch Rechnungen');
+    expect(frage).toHaveTextContent('Seine Termine und Beteiligungen an Liegenschaften gehen mit.');
+  });
+
+  it('der Grund steht sichtbar da, bis er gelesen ist', async () => {
+    deleteCustomer.mockRejectedValueOnce(new Error('Der Kunde lässt sich nicht löschen: an ihm hängen noch 1 Angebot und 2 Rechnungen.'));
+    zeichne();
+    const frage = await loeschenBestaetigen('Hausverwaltung Nord');
+    await userEvent.click(within(frage).getByRole('button', { name: 'Löschen' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Der Kunde lässt sich nicht löschen: an ihm hängen noch 1 Angebot und 2 Rechnungen.');
+    expect(screen.queryByRole('dialog', { name: 'Kunde löschen?' })).toBeNull();
+    // Der Kunde steht weiter in der Liste.
+    expect(screen.getByText('Hausverwaltung Nord')).toBeInTheDocument();
+  });
+
+  it('ein englischer Text der Datenbank kommt nicht durch', async () => {
+    deleteCustomer.mockRejectedValueOnce(new Error('update or delete on table "customers" violates foreign key constraint "irgendwas_fkey" on table "irgendwas"'));
+    zeichne();
+    const frage = await loeschenBestaetigen('Hausverwaltung Nord');
+    await userEvent.click(within(frage).getByRole('button', { name: 'Löschen' }));
+    const meldung = await screen.findByRole('alert');
+    expect(meldung).toHaveTextContent('Der Kunde konnte nicht gelöscht werden.');
+    expect(meldung).not.toHaveTextContent('violates');
+  });
+
+  it('Erhaltung: gelingt das Löschen, kommt die kurze Bestätigung, kein Fehler', async () => {
+    zeichne();
+    const frage = await loeschenBestaetigen('Hausverwaltung Nord');
+    await userEvent.click(within(frage).getByRole('button', { name: 'Löschen' }));
+    expect(await screen.findByText('Kunde gelöscht')).toBeInTheDocument();
+    expect(deleteCustomer).toHaveBeenCalledWith('perl', expect.any(String));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+});

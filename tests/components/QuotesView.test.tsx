@@ -42,6 +42,10 @@ const sucheAngebote = vi.fn(async (_c: string, begriff: string) =>
   [...angebote, ...nurAufDemServer].filter((q) =>
     [q.quoteNumber, q.customerName, q.address, q.projectNumber].some((x) => x?.toLowerCase().includes(begriff.toLowerCase()))));
 
+/** Ein einzelnes Angebot — wie der Server, über alle, nicht nur die geladenen. */
+const getQuote = vi.fn(async (_c: string, id: string) =>
+  [...angebote, ...nurAufDemServer].find((q) => q.id === id) ?? null);
+
 vi.mock('@/lib/db/quotes', async () => ({
   ...await vi.importActual<typeof import('@/lib/db/quotes')>('@/lib/db/quotes'),
   ANGEBOT_TREFFER: 100,
@@ -51,6 +55,7 @@ vi.mock('@/lib/db/quotes', async () => ({
   updateQuote: (id: string, d: unknown) => updateQuote(id, d),
   deleteQuote: vi.fn(async () => undefined),
   reserveQuoteNumber: vi.fn(async () => 'AN-2026-0001'),
+  getQuote: (c: string, id: string) => getQuote(c, id),
 }));
 vi.mock('@/lib/db/customers', async () => (await import('./kundenAuswahl')).kundenAttrappe(() => kunden));
 /* Liegenschaften (M02c) — nur gefragt, wenn die Unterfähigkeit an ist. */
@@ -134,6 +139,7 @@ beforeEach(() => {
   angebote.length = 0;
   nurAufDemServer.length = 0;
   sucheAngebote.mockClear();
+  getQuote.mockClear();
   // Bearbeiten scrollt zum Formular hinauf; jsdom kennt das nicht.
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
 });
@@ -1136,6 +1142,78 @@ describe('Angebote auf der Linie „Lot“', () => {
     zeichneMit('/quotes?ansicht=alle&bearbeiten=q2');
     expect(await screen.findByText('Angebot AN-2026-0008 bearbeiten')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  /*
+    ÄLTER ALS DIE GELADENE LISTE: die Angebotsseite öffnet jedes Angebot, die
+    Liste hält nur die jüngsten hundert. „Bearbeiten“, „Neue Fassung“ und
+    „Als Kopie anlegen“ taten bei einem älteren nichts — der Parameter ging
+    weg, das Formular blieb zu.
+  */
+  function nurServer(id: string, nr: string, status: Quote['status']) {
+    nurAufDemServer.push({
+      id, companyId: 'perl', quoteNumber: nr, customerId: 'k1', customerName: 'Gemeinde Neudorf', address: 'Rathausplatz 1',
+      quoteDate: '2024-03-01', validUntil: '2024-04-01', status,
+      positions: [{ label: 'Montage', qty: 2, unit: 'Stk', unitPrice: 50, netto: 100 }],
+      subtotalNetto: 100, totalNetto: 100, totalVat: 20, totalBrutto: 120, vatRate: 0.2, kalkulierteStunden: 0,
+    });
+  }
+
+  it('ein älterer Entwurf außerhalb der Liste: wird nachgeladen und öffnet zum Bearbeiten', async () => {
+    angebot('jung', 'AN-2026-0100', 'Familie Huber', 'Entwurf', '2099-01-01');
+    nurServer('alt', 'AN-2024-0003', 'Entwurf');
+    zeichneMit('/quotes?bearbeiten=alt');
+    expect(await screen.findByText('Angebot AN-2024-0003 bearbeiten')).toBeInTheDocument();
+    expect(getQuote).toHaveBeenCalledWith('perl', 'alt');
+    expect(screen.getByLabelText('Bezeichnung')).toHaveValue('Montage');
+  });
+
+  it('ein älteres versendetes außerhalb der Liste: „Neue Fassung“ legt sie mit Verweis an', async () => {
+    const nutzer = userEvent.setup();
+    nurServer('alt', 'AN-2024-0003', 'Versendet');
+    zeichneMit('/quotes?neueFassung=alt');
+    expect(await screen.findByLabelText('Bezeichnung')).toHaveValue('Montage');
+    await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+    await waitFor(() => expect(createQuote).toHaveBeenCalled());
+    expect(createQuote.mock.calls[0][1]).toMatchObject({ vorgaengerId: 'alt', customerId: 'k1' });
+  });
+
+  it('ein älteres außerhalb der Liste: „Als Kopie anlegen“ übernimmt es ohne Verweis', async () => {
+    const nutzer = userEvent.setup();
+    nurServer('alt', 'AN-2024-0003', 'Angenommen');
+    zeichneMit('/quotes?kopie=alt');
+    expect(await screen.findByLabelText('Bezeichnung')).toHaveValue('Montage');
+    await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+    await waitFor(() => expect(createQuote).toHaveBeenCalled());
+    expect((createQuote.mock.calls[0][1] as Quote).vorgaengerId).toBeUndefined();
+  });
+
+  it('gibt es das Angebot nicht (mehr): die Seite sagt es, statt still nichts zu tun', async () => {
+    zeichneMit('/quotes?bearbeiten=weg');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Dieses Angebot gibt es nicht (mehr)');
+    expect(screen.queryByLabelText('Bezeichnung')).toBeNull();
+  });
+
+  it('scheitert das Nachladen: eine verständliche Meldung, kein technischer Text', async () => {
+    getQuote.mockRejectedValueOnce(new Error('Failed to fetch'));
+    zeichneMit('/quotes?kopie=alt');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Das Angebot konnte nicht geladen werden. Keine Verbindung zum Server');
+  });
+
+  it('Erhaltung: ein geladenes Angebot wird nicht noch einmal geholt', async () => {
+    angebot('q2', 'AN-2026-0008', 'Gemeinde Neudorf', 'Entwurf', '2099-01-01');
+    zeichneMit('/quotes?bearbeiten=q2');
+    expect(await screen.findByText('Angebot AN-2026-0008 bearbeiten')).toBeInTheDocument();
+    expect(getQuote).not.toHaveBeenCalled();
+  });
+
+  it('Erhaltung: ein nachgeladenes versendetes öffnet NICHT zum Bearbeiten', async () => {
+    nurServer('alt', 'AN-2024-0003', 'Versendet');
+    zeichneMit('/quotes?bearbeiten=alt');
+    await waitFor(() => expect(getQuote).toHaveBeenCalled());
+    await screen.findAllByRole('button', { name: 'Neues Angebot' });
+    expect(screen.queryByText(/bearbeiten$/)).toBeNull();
+    expect(screen.queryByLabelText('Bezeichnung')).toBeNull();
   });
 });
 
