@@ -71,6 +71,10 @@ try {
         // Anforderungen hintereinander sollen nicht fünf Einträge im
         // Sperrbildschirm sein.
         tag: payload.data?.tag || 'perl-allgemein',
+        // Ohne das ersetzt die neue Meldung die vorige STILL — ohne Ton und
+        // Vibration; die zweite Nachricht im selben Gespräch meldete sich nicht
+        // (09.11.2026). Dieselbe Form wie bei offener App: `src/lib/pushAnzeige.ts`.
+        renotify: true,
         data: { link: link || '/' },
       });
     });
@@ -215,6 +219,28 @@ async function aufNeueFassungPruefen(quelle) {
   return res;
 }
 
+/*
+ * DIE BAUSTEINE, MIT DENEN EINE HUELLE STARTET (09.11.2026: „bleibt beim
+ * ersten Aufrufen weiß, man muss noch einmal aktualisieren“).
+ *
+ * `index.html` nennt ihren Einstieg (`<script type="module" src=…>`), ihr
+ * Stylesheet und die vorgeladenen Teile mit Namen. Fehlt einer davon, startet
+ * die Hülle nicht: der Einstieg scheitert, bevor überhaupt JavaScript läuft,
+ * und nichts in der App kann sich mehr melden — die Seite bleibt weiß.
+ */
+function huellenBausteine(html) {
+  return [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((m) => m[1]);
+}
+
+/** Liegt alles, womit diese Hülle startet, im Speicher? */
+async function huelleStartbereit(vorrat) {
+  const teile = await caches.open(TEILE);
+  for (const pfad of huellenBausteine(await vorrat.clone().text())) {
+    if (!(await teile.match(pfad))) return false;
+  }
+  return true;
+}
+
 async function huelleAusliefern(event) {
   const c = await caches.open(HUELLE);
   const vorrat = await c.match(SEITE);
@@ -253,6 +279,23 @@ async function huelleAusliefern(event) {
       return res;
     })
     .catch(() => null);
+
+  /*
+   * EINE HUELLE, DIE NICHT STARTEN KANN, NICHT AUSLIEFERN.
+   *
+   * Fehlt ein Baustein, mit dem die vorgehaltene Hülle startet, holt der
+   * Browser ihn übers Netz. Nach einem Deploy gibt es ihn dort nicht mehr —
+   * Hosting antwortet mit der neuen Startseite, der Worker macht daraus einen
+   * Fehlschlag, und der Einstieg der Seite scheitert: weiß, bis jemand neu
+   * lädt. Dann wird auf die frische Seite gewartet. Ohne Netz bleibt es bei
+   * der vorgehaltenen — sie ist dann die einzige Chance, und der HTTP-Speicher
+   * des Browsers hat den Baustein vielleicht noch.
+   */
+  if (vorrat && !(await huelleStartbereit(vorrat))) {
+    const frisch = await nachziehen;
+    if (frisch && frisch.ok) return frisch;
+    return vorrat;
+  }
 
   if (vorrat) {
     /*
@@ -413,6 +456,26 @@ async function erstSpeicherDannNetz(event, request, url) {
   return res;
 }
 
+/*
+ * NACH DEM UEBERNEHMEN AUFRAEUMEN — ABER NICHT DIE LAUFENDE HUELLE.
+ *
+ * Bis 09.11.2026 flog hier der ganze Speicher der Bausteine weg, auch der
+ * Einstieg der Fassung, die gerade lief. Er lag danach nur noch im
+ * HTTP-Speicher des Browsers, und den räumen gerade Telefone gern. Beim
+ * nächsten Deploy lieferte der Worker die vorgehaltene Hülle aus, deren
+ * Einstieg es weder im Speicher noch auf dem Server mehr gab: weiße Seite.
+ * Jetzt bleibt, was die vorgehaltene `index.html` zum Start braucht; alles
+ * andere — die alten Fassungen, nachgeladene Ansichten — geht.
+ */
+async function teileAufraeumen() {
+  const vorrat = await (await caches.open(HUELLE)).match(SEITE);
+  const behalten = new Set(vorrat ? huellenBausteine(await vorrat.text()) : []);
+  const teile = await caches.open(TEILE);
+  for (const req of await teile.keys()) {
+    if (!behalten.has(new URL(req.url).pathname)) await teile.delete(req);
+  }
+}
+
 /* --------------------------------------------------------- Verständigung --- */
 
 self.addEventListener('message', (event) => {
@@ -447,7 +510,7 @@ self.addEventListener('message', (event) => {
    */
   if (event.data === 'fassungUebernehmen') {
     event.waitUntil(
-      caches.delete(TEILE).then(() => event.source?.postMessage('fassungUebernommen')),
+      teileAufraeumen().then(() => event.source?.postMessage('fassungUebernommen')),
     );
   }
 });

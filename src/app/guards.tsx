@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { LoadingState } from '@/components/States';
+import { StartLaden } from '@/components/States';
 import { aktiveSchalter, schalter, type SchalterId } from '@/lib/module';
 import { isAdmin } from '@/lib/permissions';
 import { NAV, canAccess, zusatzrechte } from './navigation';
@@ -12,7 +12,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   // Der erste Bildschirm der App erscheint sofort — er ist die erste Anzeige.
-  if (loading) return <LoadingState label="Anmeldung wird geprüft …" sofort />;
+  if (loading) return <StartLaden label="Anmeldung wird geprüft …" />;
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
   return <>{children}</>;
 }

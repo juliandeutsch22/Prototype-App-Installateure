@@ -10,6 +10,7 @@ import FehlerInsBlickfeld from './FehlerInsBlickfeld';
 import { useOffenePosten, postenNeuLaden } from './offenePosten';
 import NachrichtenLive from '@/features/nachrichten/NachrichtenLive';
 import ZeitsitzungAnbieter from '@/features/time/ZeitsitzungAnbieter';
+import PushVordergrund from '@/components/PushVordergrund';
 import TimerLeiste from '@/features/time/TimerLeiste';
 import type { OffenePosten } from '@/lib/db/offenePosten';
 import { Zaehler } from '@/components/Badge';
@@ -322,6 +323,8 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <ZeitsitzungAnbieter>
+      {/* Meldungen bei offener App (09.11.2026): sonst erschien nichts, solange die App sichtbar war. */}
+      <PushVordergrund />
     <div className="huelle">
       {/* Der erste Tab-Halt: an Kopfleiste und Menü vorbei direkt zum Inhalt. */}
       <a href="#inhalt" className="sprunglink">

@@ -11,7 +11,7 @@ import {
 } from '@/components/Planlinie';
 import PageHeader from '@/components/PageHeader';
 import Abschnitt from '@/components/Abschnitt';
-import { LoadingState } from '@/components/States';
+import { LoadingState, StartLaden } from '@/components/States';
 import { Zustand } from '@/components/Badge';
 import Metric, { MetricRow } from '@/components/Metric';
 
@@ -200,8 +200,15 @@ describe('B3 Statuszeichen und B4 Lot', () => {
   });
 
   it('beim Laden pendelt das Lot statt eines Kreisels', () => {
-    const { container } = render(<LoadingState sofort />);
+    const { container } = render(<LoadingState />);
     expect(container.querySelector('.lot-zeichen.lot-pendel')).toHaveAttribute('aria-hidden', 'true');
     expect(screen.getByRole('status')).toHaveTextContent('Wird geladen …');
+  });
+
+  // Auch der erste Bildschirm beim Start (seit 09.11.2026 eigener Baustein).
+  it('beim Start pendelt dasselbe Lot', () => {
+    const { container } = render(<StartLaden label="Anmeldung wird geprüft …" />);
+    expect(container.querySelector('.lot-zeichen.lot-pendel')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByRole('status')).toHaveTextContent('Anmeldung wird geprüft …');
   });
 });

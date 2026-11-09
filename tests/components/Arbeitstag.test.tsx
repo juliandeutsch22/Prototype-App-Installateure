@@ -45,6 +45,8 @@ vi.mock('@/app/AuthContext', () => ({
 
 const { default: ArbeitstagKarte } = await import('@/features/time/ArbeitstagKarte');
 const { default: TimerLeiste } = await import('@/features/time/TimerLeiste');
+const { default: ZeitsitzungPanel } = await import('@/features/time/ZeitsitzungPanel');
+const { ToastProvider } = await import('@/components/Toast');
 
 const sitzung = (stand: Zeitsitzung['stand'], segmente: Zeitsitzung['segmente']): Zeitsitzung => ({
   id: 's1', company_id: 'perl', user_id: 'ich', stand, revision: segmente.length, segmente,
@@ -168,3 +170,45 @@ describe('Timer-Leiste', () => {
     expect(screen.queryByRole('region', { name: 'Laufender Arbeitstag' })).not.toBeInTheDocument();
   });
 });
+
+/*
+ * „ZEITSITZUNG VERWERFEN“ AUS „ABSCHNITTE PRÜFEN“ (09.11.2026: „der Knopf
+ * klebt am Textfeld“). Aufbau jetzt wie in der Karte: ein Formular mit
+ * Abstand zwischen den Teilen, Abbrechen und Verwerfen im Fuß. Gegenprobe:
+ * mit dem alten Bogen (Knopf ohne Fuß, ohne Abbrechen) rot.
+ */
+describe('Abschnitte prüfen — Zeitsitzung verwerfen', () => {
+  const beendet = () => [sitzung('beendet', [{ id: 'a', art: 'arbeit', von: '2026-11-09T07:00:00+01:00', bis: '2026-11-09T09:00:00+01:00', baustelle: 'B-1' }])];
+  function zeigePanel() {
+    return render(<MemoryRouter><ToastProvider><ZeitsitzungPanel /></ToastProvider></MemoryRouter>);
+  }
+
+  it('Begründung, dann Abbrechen und Verwerfen im Fuß — Verwerfen erst mit Grund', async () => {
+    sitzungen = beendet();
+    zeigePanel();
+    await userEvent.click(await screen.findByRole('button', { name: 'Sitzung begründet verwerfen …' }));
+    const bogen = await screen.findByRole('dialog', { name: 'Zeitsitzung verwerfen' });
+    const verwerfen = within(bogen).getByRole('button', { name: 'Begründet verwerfen' });
+    expect(verwerfen).toBeDisabled();
+    // Die Aktionen stehen in einem eigenen Fuß unter dem Feld, nicht an ihm.
+    const fuss = verwerfen.closest('.fuss-aktionen');
+    expect(fuss).not.toBeNull();
+    expect(within(fuss as HTMLElement).getByRole('button', { name: 'Abbrechen' })).toBeInTheDocument();
+    expect(verwerfen.closest('form')).toContainElement(within(bogen).getByLabelText(/Begründung/));
+
+    await userEvent.type(within(bogen).getByLabelText(/Begründung/), 'Fehlstart');
+    await userEvent.click(verwerfen);
+    await waitFor(() => expect(gesendet).toHaveBeenCalledWith(expect.objectContaining({ p_art: 'verwerfen', p_baustelle: 'Fehlstart' })));
+  });
+
+  it('Abbrechen schließt den Bogen, ohne etwas zu senden', async () => {
+    sitzungen = beendet();
+    zeigePanel();
+    await userEvent.click(await screen.findByRole('button', { name: 'Sitzung begründet verwerfen …' }));
+    const bogen = await screen.findByRole('dialog', { name: 'Zeitsitzung verwerfen' });
+    await userEvent.click(within(bogen).getByRole('button', { name: 'Abbrechen' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Zeitsitzung verwerfen' })).not.toBeInTheDocument());
+    expect(gesendet).not.toHaveBeenCalled();
+  });
+});
+
