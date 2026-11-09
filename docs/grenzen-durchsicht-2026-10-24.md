@@ -234,14 +234,32 @@ Nachtlauf darf nicht wegzuklicken sein.
 
 ## Durchsicht der Abläufe — begründete Grenzen (09.11.2026, E70)
 
-- **Verbuchte Anforderungen von vor dem 30.09.2026 lassen sich nicht mehr
-  löschen.** Gelöscht wird eine verbuchte Anforderung oder Retoure nur über
-  „löschen“ in der App, und dabei wird ihre Bestandswirkung aus dem
-  Bewegungsprotokoll zurückgebucht. Zeilen, die vor dem Protokoll verbucht
-  wurden, haben dort keinen Beleg. Grund: Altdaten — ihre Wirkung auf den
-  Bestand ist nicht belegt, eine geratene Gegenbuchung wäre falsch. Den
-  Bestand korrigiert dann die Inventur. Ebenso abgewiesen: was schon auf
-  einer Rechnung steht (fachlich: die Rechnung ist ausgestellt).
+- **Verbuchte Anforderungen aus der Zeit vor dem Bewegungsprotokoll
+  (30.09.2026) lassen sich ohne Beleg nicht löschen.** Gelöscht wird eine
+  verbuchte Anforderung oder Retoure nur über „löschen“ in der App, und
+  dabei wird ihre Bestandswirkung aus dem Bewegungsprotokoll zurückgebucht.
+  Steht zu einer Zeile keine Bewegung im Protokoll und wurde sie angelegt,
+  bevor das Protokoll des Betriebs lief, ist ihre Wirkung nicht belegt.
+  Grund: Altdaten — eine geratene Gegenbuchung wäre falsch; den Bestand
+  korrigiert dann die Inventur. Eine später angelegte Zeile ohne Bewegung
+  (abgeholt bei leerem Regal) hat nichts gebucht und löscht sich ohne
+  Gegenbuchung (Nachtrag 09.11.2026).
+- **Was abgerechnet ist, wird weder gelöscht noch zurückgesetzt.** Steht
+  die Ausgabe auf einer Rechnung oder reicht ihr Abholtag bis zum Stichtag
+  der letzten gültigen Rechnung der Baustelle, weist die Datenbank Löschen
+  und „Status von Hand“ aus „Erledigt“ ab. Grund fachlich: die Rechnung ist
+  ausgestellt; korrigiert wird über ein Storno. Eine verbuchte Anforderung,
+  die vor der Rechnung zurückgesetzt wurde, gilt beim Löschen ebenfalls als
+  abgerechnet, sobald eine Rechnung ihren Abholtag abdeckt — die Rechnung
+  hält nicht je Zeile fest, was der Vorschlag enthielt; im Zweifel bleibt
+  der Bestand, die Inventur korrigiert.
+- **Die Fehlmenge einer schon eingeladenen Rüstliste und Buchungen an einem
+  stillgelegten Ort löschen sich nicht.** Grund fachlich: ohne die
+  Anforderung zählte die eingeladene Position wieder ganz (Lager und
+  Rechnungsvorschlag stimmten nicht mehr); an einem stillgelegten Ort läge
+  die zurückgebuchte Ware, wo sie niemand sieht. Die Meldung nennt den Weg
+  (Einladen am selben Tag zurücknehmen bzw. Retoure; den Ort wieder in
+  Betrieb nehmen).
 - **Gelöscht wird die Ausgabe, nicht der Wareneingang.** Wurde Ware „beim
   Abholen geliefert“, liegt sie nach dem Löschen der Anforderung im Lager.
   Grund fachlich: der Eingang ist geschehen, nur die Ausgabe an die Baustelle

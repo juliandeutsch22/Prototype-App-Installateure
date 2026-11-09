@@ -1,5 +1,5 @@
 /**
- * MATERIALABLAUF: VIER LÜCKEN IN DER DATENBANK (Prüfbericht 10.11.2026,
+ * MATERIALABLAUF: VIER LÜCKEN IN DER DATENBANK (Prüfbericht 09.11.2026,
  * `20261110120000_material_ablauf_luecken.sql`) — echte Datenbank.
  *
  *  1. Zurück auf „Offen“ nach „Aus Lager“ nimmt die Zusage zurück; „Nicht
@@ -12,8 +12,17 @@
  *
  * GEGENPROBE: vor der Migration sind 1–4 rot (5 hängt nur an der
  * Datenschicht); die Fälle „gleich geblieben“ sind vorher wie nachher grün.
+ *
+ *  6. Nachtrag (`20261110150000_material_ablauf_nachtrag.sql`): eine
+ *     gleichzeitige Wiederholung der Retoure schreibt nicht doppelt gut;
+ *     abgerechnet lässt sich nicht zurücksetzen (und zurückgesetzt nicht mit
+ *     Gegenbuchung löschen); die Fehlmenge einer eingeladenen Rüstliste
+ *     löscht sich nicht weg; verbucht ohne Bewegung löscht sich, wenn das
+ *     Protokoll lief; keine Gegenbuchung an einen stillgelegten Ort.
+ *     Vor dem Nachtrag rot, die Fälle „gleich geblieben“ vorher wie nachher grün.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { Client } from 'pg';
 import { admin, betriebAnlegen, konto, type Konto } from './helfer';
 import * as einkauf from '@/lib/db/pg/einkauf';
 import * as anforderungen from '@/lib/db/pg/materialOrders';
@@ -26,6 +35,7 @@ const BETRIEB = 'mat-luecken-a';
 let lager: Konto;
 let monteur: Konto;
 let buch: Konto;
+let chef: Konto;
 let bus = '';
 
 async function artikel(stock: number, teil: Record<string, unknown> = {}): Promise<string> {
@@ -76,6 +86,7 @@ beforeAll(async () => {
   lager = await konto(BETRIEB, 'Verwaltung', 'mlverw');
   monteur = await konto(BETRIEB, 'Mitarbeiter', 'mlmon');
   buch = await konto(BETRIEB, 'Buchhaltung', 'mlbuch');
+  chef = await konto(BETRIEB, 'Geschäftsführung', 'mlchef');
   await admin.from('users').update({ name: 'Max Monteur' }).eq('id', monteur.uid);
   // Das Hauptlager legt `betrieb_anlegen` an; ein über den Dienstschlüssel angelegter Prüfbetrieb hat es nicht.
   const { error: he } = await admin.from('lagerorte').insert({ company_id: BETRIEB, art: 'haupt', bezeichnung: 'Hauptlager' });
@@ -360,7 +371,13 @@ describe('Löschen bucht den Bestand zurück', () => {
 
   it('abgewiesen ohne Beleg im Bewegungsprotokoll (Altdaten)', async () => {
     const m = await artikel(10);
-    const id = await anforderung(m, 2, { status: 'Erledigt', processed: true });
+    /*
+      Altdaten heißt: angelegt, bevor das Protokoll des Betriebs lief. Bis zum
+      Nachtrag (20261110150000) genügte „verbucht ohne Bewegung“ — eine heute
+      angelegte Zeile ohne Bewegung gilt jetzt als „nichts gebucht“ (eigene
+      Prüfung unten).
+    */
+    const id = await anforderung(m, 2, { status: 'Erledigt', processed: true, created_at: '2026-09-01T08:00:00Z' });
     expect(await anforderungen.anforderungLoeschenPruefen(id)).toMatchObject({ art: 'abgewiesen' });
   });
 
@@ -428,5 +445,224 @@ describe('„Material anfordern“: Ausgelaufenes nur, solange es im Lager liegt
     // Gleich geblieben: ohne die Wahl (Katalog, Lager) alle drei.
     const katalog = await materialien.katalogSeite(BETRIEB, marke, 20);
     expect(katalog.gesamt).toBe(3);
+  });
+});
+
+/* ------------------------------------------------------------------ 6 */
+
+const DB = process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+
+function heute(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna' }).format(new Date());
+}
+
+/** Eine eigene Baustelle je Prüfung — der Stichtag gilt je Baustelle, und ein früherer Lauf soll nicht mitzählen. */
+function baustelle(): string {
+  return `PR-N${crypto.randomUUID().slice(0, 6)}`;
+}
+
+/** Eine gültige Rechnung der Baustelle bis heute — der Rechnungsvorschlag endet dann heute. */
+async function rechnung(projekt: string): Promise<void> {
+  const { error } = await admin.from('invoices').insert({
+    id: crypto.randomUUID(), company_id: BETRIEB, invoice_number: `R-${crypto.randomUUID().slice(0, 8)}`,
+    project_number: projekt.replace(/^PR-/, ''), customer_name: 'Familie Huber', invoice_date: heute(), due_date: heute(),
+    total_netto: 100, total_vat: 20, total_brutto: 120, payment_status: 'Offen',
+  });
+  if (error) throw new Error(error.message);
+}
+
+describe('Nachtrag: gleichzeitige Retoure, Abgerechnetes, Rüstliste, leeres Regal, stillgelegter Ort', () => {
+  it('zwei gleichzeitige Wiederholungen derselben Kennung: eine Zeile, eine Gutschrift', async () => {
+    const m = await artikel(5);
+    const { data: a } = await admin.from('materials').select('name').eq('id', m).single();
+    const kennung = crypto.randomUUID();
+    const beleg = JSON.stringify({
+      id: kennung, company_id: BETRIEB, material_id: m, material_name: (a as { name: string }).name, quantity: 3,
+      condition: 'neu', note: '', project_number: 'PR-2026-0412', user_id: monteur.uid, user_name: 'Max Monteur',
+    });
+    // Der Monteur selbst, auf zwei Verbindungen — wie zwei Tipps, die beide durchs Netz kamen.
+    const anspruch = JSON.stringify({
+      sub: monteur.uid, role: 'authenticated', aal: 'aal1',
+      app_metadata: { company_id: BETRIEB, role: 'Mitarbeiter', active: true },
+    });
+    const erste = new Client({ connectionString: DB });
+    const zweite = new Client({ connectionString: DB });
+    const aufsicht = new Client({ connectionString: DB });
+    await Promise.all([erste.connect(), zweite.connect(), aufsicht.connect()]);
+    try {
+      for (const c of [erste, zweite]) {
+        await c.query('begin');
+        await c.query(`select set_config('request.jwt.claims', $1, true)`, [anspruch]);
+        await c.query('set local role authenticated');
+      }
+      await erste.query('select public.retoure_anlegen($1::jsonb)', [beleg]);
+      const pid = (await zweite.query<{ pid: number }>('select pg_backend_pid() as pid')).rows[0].pid;
+      // Die zweite kommt an der Vorprüfung vorbei (die erste ist noch nicht bestätigt) und wartet am Schlüssel.
+      const laeuft = zweite.query<{ id: string }>('select public.retoure_anlegen($1::jsonb) as id', [beleg])
+        .then((r) => ({ id: r.rows[0].id, fehler: null as Error | null }), (e: Error) => ({ id: null, fehler: e }));
+      let wartet = false;
+      for (let i = 0; i < 200 && !wartet; i++) {
+        const { rows } = await aufsicht.query<{ w: string | null }>('select wait_event_type as w from pg_stat_activity where pid = $1', [pid]);
+        wartet = rows[0]?.w === 'Lock';
+        if (!wartet) await new Promise((r) => setTimeout(r, 25));
+      }
+      expect(wartet).toBe(true);
+      await erste.query('commit');
+      const r = await laeuft;
+      await zweite.query(r.fehler ? 'rollback' : 'commit');
+      expect(r.fehler).toBeNull();
+      expect(r.id).toBe(kennung);
+    } finally {
+      await Promise.allSettled([erste.end(), zweite.end(), aufsicht.end()]);
+    }
+    const { count } = await admin.from('material_orders').select('id', { count: 'exact', head: true }).eq('id', kennung);
+    expect(count).toBe(1);
+    expect(await bestand(m)).toBe(8);
+    expect((await bewegungen(m)).filter((x) => x.art === 'retoure')).toHaveLength(1);
+  });
+
+  it('abgerechnet: zurück aus „Erledigt“ abgewiesen — auch an der Tabelle vorbei; die Ausgabe zählt nicht noch einmal', async () => {
+    const bs = baustelle();
+    const m = await artikel(10);
+    const id = await anforderung(m, 2, { project_number: bs });
+    await einkauf.ausLager(id, 'Offen');
+    await anforderungen.updateOrderStatus(id, 'Erledigt', { von: 'Abholbereit' });
+    const vorher = await zeile(id);
+    await rechnung(bs);
+
+    await expect(anforderungen.updateOrderStatus(id, 'Offen', { von: 'Erledigt' }))
+      .rejects.toThrow(new RegExp(`^Schon abgerechnet — die Rechnung der Baustelle ${bs} reicht bis \\d\\d\\.\\d\\d\\.\\d{4}\\. Zurückgesetzt käme die Ware ein zweites Mal auf eine Rechnung`));
+    expect(await zeile(id)).toMatchObject({ status: 'Erledigt', erledigt_am: vorher?.erledigt_am });
+    const { error } = await lager.client.from('material_orders').update({ status: 'Abholbereit' }).eq('id', id);
+    expect(error?.message).toMatch(/Schon abgerechnet/);
+    expect(await zeile(id)).toMatchObject({ status: 'Erledigt', erledigt_am: vorher?.erledigt_am });
+    expect(await bestand(m)).toBe(8);
+    clientEinreichen(buch.client);
+    expect((await anforderungen.ausgegebenesMaterial(bs)).some((a) => a.belegId === id)).toBe(false);
+  });
+
+  it('zurückgesetzt vor der Rechnung: der Abholtag bleibt stehen, und das Löschen sieht die Rechnung', async () => {
+    const bs = baustelle();
+    const m = await artikel(10);
+    const id = await anforderung(m, 3, { project_number: bs });
+    await einkauf.ausLager(id, 'Offen');
+    await anforderungen.updateOrderStatus(id, 'Erledigt', { von: 'Abholbereit' });
+    const abgeholt = (await zeile(id))?.erledigt_am;
+    expect(abgeholt).toBeTruthy();
+    expect(await anforderungen.updateOrderStatus(id, 'Offen', { von: 'Erledigt' })).toEqual({ art: 'geaendert' });
+    expect(await zeile(id)).toMatchObject({ status: 'Offen', processed: true, erledigt_am: abgeholt });
+
+    await rechnung(bs);
+    const p = await anforderungen.anforderungLoeschenPruefen(id);
+    expect(p.art === 'abgewiesen' && p.grund).toMatch(/^Schon abgerechnet — .*\. Eine Korrektur des Bestands geht über die Inventur\.$/);
+    expect(await anforderungen.anforderungLoeschen(id, [{ menge: 3 }])).toMatchObject({ art: 'abgewiesen' });
+    expect(await zeile(id)).not.toBeNull();
+    expect(await bestand(m)).toBe(7);
+  });
+
+  it('gleich geblieben: ohne Rechnung zurück und wieder abgeholt — neuer Abholtag, einmal im Rechnungsvorschlag, kein zweiter Abzug', async () => {
+    const bs = baustelle();
+    const m = await artikel(10);
+    const id = await anforderung(m, 2, { project_number: bs });
+    await einkauf.ausLager(id, 'Offen');
+    await anforderungen.updateOrderStatus(id, 'Erledigt', { von: 'Abholbereit' });
+    const erst = Date.parse(String((await zeile(id))?.erledigt_am));
+    expect(await anforderungen.updateOrderStatus(id, 'Abholbereit', { von: 'Erledigt' })).toEqual({ art: 'geaendert' });
+    expect(await anforderungen.updateOrderStatus(id, 'Erledigt', { von: 'Abholbereit' })).toEqual({ art: 'geaendert' });
+    expect(Date.parse(String((await zeile(id))?.erledigt_am))).toBeGreaterThan(erst);
+    expect(await bestand(m)).toBe(8);
+    clientEinreichen(buch.client);
+    expect((await anforderungen.ausgegebenesMaterial(bs)).filter((a) => a.belegId === id)).toHaveLength(1);
+  });
+
+  it('gleich geblieben: eine Rechnung einer anderen Baustelle sperrt nichts', async () => {
+    const m = await artikel(10);
+    const id = await anforderung(m, 2, { project_number: baustelle() });
+    await einkauf.ausLager(id, 'Offen');
+    await anforderungen.updateOrderStatus(id, 'Erledigt', { von: 'Abholbereit' });
+    await rechnung(baustelle());
+    expect(await anforderungen.updateOrderStatus(id, 'Offen', { von: 'Erledigt' })).toEqual({ art: 'geaendert' });
+    expect(await anforderungen.anforderungLoeschenPruefen(id)).toMatchObject({ art: 'moeglich', gegenbuchung: [{ menge: 2 }] });
+  });
+
+  it('Fehlmenge einer eingeladenen Rüstliste: Löschen abgewiesen — vor dem Einladen und nach dem Zurücknehmen wie bisher', async () => {
+    const bs = baustelle();
+    const tag = heute();
+    const m = await artikel(10);
+    const { error: se } = await chef.client.rpc('ruestliste_speichern', {
+      p_datum: tag, p_baustelle: bs, p_uids: [monteur.uid], p_von: 'Chef',
+      p_positionen: [{
+        id: 'p1', position: 0, material_id: m, name: 'Pressfitting', menge: 6, einheit: 'Stk',
+        anfordern: { menge: 2, user_id: monteur.uid, user_name: 'Max Monteur' },
+      }],
+    });
+    if (se) throw new Error(se.message);
+    const { data: o } = await admin.from('material_orders').select('id')
+      .eq('company_id', BETRIEB).eq('project_number', bs).eq('ruest_position', 'p1').single();
+    const id = (o as { id: string }).id;
+    expect(await anforderungen.anforderungLoeschenPruefen(id)).toMatchObject({ art: 'moeglich', gegenbuchung: [] });
+
+    const r = await monteur.client.rpc('laden_umschalten', { p_datum: tag, p_baustelle: bs, p_position: 'p1', p_an: true, p_von: 'Max' });
+    expect(Number(r.data)).toBe(4);
+    const [j, mo, d] = [tag.slice(0, 4), tag.slice(5, 7), tag.slice(8, 10)];
+    const p = await anforderungen.anforderungLoeschenPruefen(id);
+    expect(p.art === 'abgewiesen' && p.grund)
+      .toBe(`Gehört zur Rüstliste vom ${d}.${mo}.${j} (Baustelle ${bs}), und die Position ist schon eingeladen — gelöscht zählte sie wieder ganz, und Lager und Rechnungsvorschlag stimmten nicht mehr überein. Am selben Tag erst das Einladen zurücknehmen; was nicht gebraucht wurde, geht sonst über die Retoure zurück.`);
+    expect(await anforderungen.anforderungLoeschen(id, [])).toMatchObject({ art: 'abgewiesen' });
+    const { error } = await lager.client.from('material_orders').delete().eq('id', id);
+    expect(error?.code).toBe('42501');
+    expect(await zeile(id)).not.toBeNull();
+    clientEinreichen(buch.client);
+    expect((await anforderungen.ausgegebenesMaterial(bs)).filter((a) => a.art === 'ruestliste').map((a) => a.menge)).toEqual([4]);
+
+    // Am selben Tag zurückgenommen: wieder wie vor dem Einladen.
+    clientEinreichen(lager.client);
+    await monteur.client.rpc('laden_umschalten', { p_datum: tag, p_baustelle: bs, p_position: 'p1', p_an: false, p_von: 'Max' });
+    expect(await anforderungen.anforderungLoeschenPruefen(id)).toMatchObject({ art: 'moeglich', gegenbuchung: [] });
+  });
+
+  it('verbucht bei leerem Regal (keine Bewegung), angelegt, als das Protokoll lief: gelöscht ohne Gegenbuchung', async () => {
+    // Das Protokoll des Betriebs läuft: es gibt eine erste Bewegung.
+    await artikel(1);
+    const m = await artikel(0);
+    const id = await anforderung(m, 2);
+    expect(await anforderungen.updateOrderStatus(id, 'Erledigt', { von: 'Offen' })).toEqual({ art: 'geaendert' });
+    expect(await zeile(id)).toMatchObject({ processed: true, status: 'Erledigt' });
+    expect(await bewegungen(m)).toHaveLength(0);
+
+    const p = await anforderungen.anforderungLoeschenPruefen(id);
+    expect(p).toMatchObject({ art: 'moeglich', gegenbuchung: [] });
+    if (p.art !== 'moeglich') throw new Error('nicht möglich');
+    expect((await anforderungen.anforderungLoeschen(id, p.erwartet)).art).toBe('geloescht');
+    expect(await zeile(id)).toBeNull();
+    expect(await bestand(m)).toBe(0);
+    expect(await bewegungen(m)).toHaveLength(0);
+  });
+
+  it('keine Gegenbuchung in ein stillgelegtes Fahrzeug — wieder in Betrieb genommen geht es', async () => {
+    const zeichen = `W-${crypto.randomUUID().slice(0, 5).toUpperCase()}`;
+    const { data: fz, error: fe } = await lager.client.rpc('fahrzeug_speichern', { p_fahrzeug: { kennzeichen: zeichen, aktiv: true } });
+    if (fe) throw new Error(fe.message);
+    const { data: o } = await admin.from('lagerorte').select('id').eq('fahrzeug_id', fz).single();
+    const ort = (o as { id: string }).id;
+    const m = await artikel(10);
+    expect(await umlagern({ artikelId: m, vonId: null, nachId: ort, menge: 2, einheit: 'Stk', erwartetVon: 10 }))
+      .toMatchObject({ art: 'ausgefuehrt' });
+    const id = await anforderung(m, 2);
+    expect(await anforderungen.updateOrderStatus(id, 'Erledigt', { von: 'Offen', ort })).toEqual({ art: 'geaendert' });
+    // Leer — also lässt es sich stilllegen.
+    const { error: still } = await lager.client.rpc('fahrzeug_speichern', { p_fahrzeug: { id: fz, kennzeichen: zeichen, aktiv: false } });
+    if (still) throw new Error(still.message);
+
+    const p = await anforderungen.anforderungLoeschenPruefen(id);
+    expect(p.art === 'abgewiesen' && p.grund).toBe(`Fahrzeug ${zeichen} ist stillgelegt — zuerst wieder in Betrieb nehmen, dann löschen.`);
+    expect(await anforderungen.anforderungLoeschen(id, [{ material_id: m, ort_id: ort, menge: 2 }])).toMatchObject({ art: 'abgewiesen' });
+    const { data: b } = await admin.from('lagerbestaende').select('menge').eq('lagerort_id', ort).eq('material_id', m).single();
+    expect(Number((b as { menge: number }).menge)).toBe(0);
+
+    const { error: wieder } = await lager.client.rpc('fahrzeug_speichern', { p_fahrzeug: { id: fz, kennzeichen: zeichen, aktiv: true } });
+    if (wieder) throw new Error(wieder.message);
+    expect(await anforderungen.anforderungLoeschenPruefen(id))
+      .toMatchObject({ art: 'moeglich', gegenbuchung: [{ ortId: ort, ort: `Fahrzeug ${zeichen}`, menge: 2 }] });
   });
 });
