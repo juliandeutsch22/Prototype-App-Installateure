@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Icon from '@/components/Icon';
 import OhneUmbruch from '@/components/OhneUmbruch';
 import { summe, type Abschnitt, type Ton, type Zeile } from './abschnitte';
+import { ausgeblendetText } from './einrichtung';
 
 /*
   DIE ZEICHEN DER STARTSEITE (Planlinie B3). „Leise“ heißt hier: zu tun, aber
@@ -95,12 +96,19 @@ function AbschnittBlock({ a }: { a: Abschnitt }) {
 export default function Handlungsbedarf({
   abschnitte,
   zaehlwort,
+  ausgeblendet = [],
 }: {
   abschnitte: Abschnitt[];
   /** „Themen“ bei der Geschäftsführung; sonst steht nur die Zahl der Einträge. */
   zaehlwort?: string;
+  /**
+   * Selbst ausgeblendete Themen, die trotzdem anstehen (E68). Sie stehen
+   * nicht still weg: unten eine Zeile mit ihrer Zahl, ein Tipp zeigt sie.
+   */
+  ausgeblendet?: Abschnitt[];
 }) {
-  if (abschnitte.length === 0) return null;
+  const [zeigen, setZeigen] = useState(false);
+  if (abschnitte.length === 0 && ausgeblendet.length === 0) return null;
   const zahl = summe(abschnitte);
   return (
     <section className="panel karte start-karte start-aufgaben" aria-labelledby="zu-erledigen-titel">
@@ -111,6 +119,21 @@ export default function Handlungsbedarf({
       </header>
       <div className="karte-buendig start-karte-inhalt">
         {abschnitte.map((a) => <AbschnittBlock key={a.key} a={a} />)}
+        {abschnitte.length === 0 && (
+          <p className="start-ausgeblendet-leer">In den eingeblendeten Themen steht nichts an.</p>
+        )}
+        {ausgeblendet.length > 0 && (
+          <>
+            <button type="button" className="start-weiter w-full text-left" aria-expanded={zeigen} onClick={() => setZeigen((z) => !z)}>
+              {ausgeblendetText(ausgeblendet.length, summe(ausgeblendet), !!zaehlwort)} · {zeigen ? 'verbergen' : 'anzeigen'}
+            </button>
+            {zeigen && (
+              <div aria-label="Ausgeblendet">
+                {ausgeblendet.map((a) => <AbschnittBlock key={`aus-${a.key}`} a={a} />)}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </section>
   );

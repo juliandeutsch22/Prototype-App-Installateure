@@ -39,6 +39,9 @@ vi.mock('@/lib/db/projects', () => ({
   searchProjects: vi.fn(async () => []),
   listProjects: vi.fn(async () => [{ id: 'p1', projectNumber: 'B-1', customerName: 'Familie Huber', name: 'Bad', status: 'active' }]),
 }));
+// E68: die eigene Einrichtung der Startseite — ist dort der Arbeitstag ausgeblendet, steht die Leiste.
+let startWahl: { aus?: string[] } | null = null;
+vi.mock('@/lib/db/startseiteWahl', () => ({ ladeStartseiteWahl: vi.fn(async () => startWahl), startseiteWahlSpeichern: vi.fn() }));
 vi.mock('@/app/AuthContext', () => ({
   useAuth: () => ({ user: { uid: 'ich', companyId: 'perl', role: 'Mitarbeiter', name: 'Max Monteur' }, company: { id: 'perl', name: 'Perl', modules: module } }),
 }));
@@ -158,6 +161,20 @@ describe('Timer-Leiste', () => {
     // Ab dem Tablet steht die Eingabe im Blatt — dort darf die Leiste bleiben.
     zeigeLeiste('/nachrichten/abc', 'breit');
     expect(await screen.findByRole('region', { name: 'Laufender Arbeitstag' })).toBeInTheDocument();
+  });
+
+  it('auf der Startseite, wenn dort die Karte „Arbeitstag“ ausgeblendet ist (E68)', async () => {
+    const { abfrageSpeicher } = await import('@/lib/zwischenspeicher');
+    abfrageSpeicher.removeQueries({ queryKey: ['startseite-wahl'] });
+    sitzungen = laeuft();
+    startWahl = { aus: ['bereich-arbeitstag'] };
+    try {
+      zeigeLeiste('/', 'telefon');
+      expect(await screen.findByRole('region', { name: 'Laufender Arbeitstag' })).toBeInTheDocument();
+    } finally {
+      startWahl = null;
+      abfrageSpeicher.removeQueries({ queryKey: ['startseite-wahl'] });
+    }
   });
 
   it('ohne laufende Sitzung keine Leiste', async () => {

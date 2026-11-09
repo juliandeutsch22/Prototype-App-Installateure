@@ -122,6 +122,9 @@ const FEST = {
     passt auf kein Namensmuster und bekäme `undefined` — `sitzungen.find` warf,
     und jede Seite der Vorschau blieb weiß. Ohne laufenden Arbeitstag: leer.
   */
+  // E68: ohne eigene Wahl die Vorgabe der Rolle — `lade…` bekäme sonst eine Liste statt `null`.
+  startseiteWahl:
+    'export const ladeStartseiteWahl = () => A(null);\n',
   zeitsitzungen:
     'export const zeitsitzungenLaden = () => A([]);\n' +
     'export const letzterTimerEntwurf = () => undefined;\n' +

@@ -246,6 +246,13 @@ const eingaenge = { wert: { offen: 0, dringend: 0, notfall: 0 } };
 vi.mock('@/lib/db/auftragseingaenge', () => ({ zaehleOffeneEingaenge: vi.fn(async () => eingaenge.wert) }));
 // Die Nachrichten (M10/B09): ohne ungelesene und ohne Meldungen — eigene Fälle in `tests/unit/nachrichten.test.ts`.
 vi.mock('@/lib/db/nachrichten', () => ({ ungeleseneZahl: vi.fn(async () => 0), meldungenOffen: vi.fn(async () => 0) }));
+// Die eigene Einrichtung der Startseite (E68); ohne Wahl die Vorgabe der Rolle.
+const startWahl: { wert: { kennzahlen?: string[]; aus?: string[] } | null } = { wert: null };
+const wahlGespeichert = vi.fn(async (w: unknown) => { void w; });
+vi.mock('@/lib/db/startseiteWahl', () => ({
+  ladeStartseiteWahl: vi.fn(async () => startWahl.wert),
+  startseiteWahlSpeichern: (w: unknown) => wahlGespeichert(w),
+}));
 
 // EIN Objekt, nicht bei jedem Aufruf ein neues: die Ansicht hängt ihre
 // Effekte an die Identität von `user`, ein frisches Objekt je Aufruf löst
@@ -302,6 +309,8 @@ afterEach(() => {
   eingaenge.wert = { offen: 0, dringend: 0, notfall: 0 };
   authWert.company = { id: 'perl', name: 'Perl Installationen' };
   rolle.wert = 'Mitarbeiter';
+  startWahl.wert = null;
+  wahlGespeichert.mockClear();
 });
 
 /** Die Karte, in der ein Text steht — Zu erledigen, Heute, … */
@@ -1175,3 +1184,112 @@ describe('Startseite — offene Auftragseingänge (M02b)', () => {
     expect(zaehleOffeneEingaenge).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * DIE STARTSEITE SELBST EINRICHTEN (E68, 09.11.2026): die Zahlen oben wählen
+ * und ordnen, Bereiche und Themen ausblenden — Ausgeblendetes steht nicht
+ * still weg. Ohne Wahl gilt die Vorgabe der Rolle (alle Prüfungen oben).
+ * Gegenprobe: ohne die Wahl im Aufbau, ohne „Ausgeblendet“ oder ohne den
+ * Bereichsschalter ist je eine Prüfung rot.
+ */
+describe('Startseite — selbst eingerichtet', () => {
+  beforeEach(async () => {
+    const { abfrageSpeicher } = await import('@/lib/zwischenspeicher');
+    abfrageSpeicher.removeQueries({ queryKey: ['startseite-wahl'] });
+  });
+
+  it('die gewählten Zahlen in ihrer Folge — Resturlaub vor Saldo', async () => {
+    startWahl.wert = { kennzahlen: ['urlaub', 'saldo'] };
+    zeichne();
+    const urlaub = await screen.findByRole('link', { name: /^Resturlaub/ });
+    const saldo = screen.getByRole('link', { name: /^Saldo/ });
+    expect(urlaub.compareDocumentPosition(saldo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('nur die gewählte Zahl — die andere der Vorgabe fehlt', async () => {
+    startWahl.wert = { kennzahlen: ['urlaub'] };
+    zeichne();
+    await screen.findByRole('link', { name: /^Resturlaub/ });
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    expect(screen.queryByRole('link', { name: /^Saldo/ })).not.toBeInTheDocument();
+  });
+
+  it('eine Zahl, die die Rolle nicht sehen darf, erscheint nie — auch wenn sie gewählt ist', async () => {
+    startWahl.wert = { kennzahlen: ['offen', 'baustellen'] };
+    zeichne();
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    await screen.findByText('Tage ohne Buchung');
+    expect(screen.queryByRole('link', { name: /Aktive Baustellen|^Offen/ })).not.toBeInTheDocument();
+  });
+
+  it('ein ausgeblendetes Thema steht nicht still weg: die Zahl steht da, ein Tipp zeigt es', async () => {
+    rolle.wert = 'Geschäftsführung';
+    anforderungen.wert = [anforderung({ id: 'e1', isUrgent: true })];
+    startWahl.wert = { aus: ['eil'] };
+    const klick = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    zeichne();
+    const knopf = await screen.findByRole('button', { name: /Ausgeblendet: 1 Thema · anzeigen/ });
+    expect(screen.queryByRole('link', { name: /1 Eilanforderung offen/ })).not.toBeInTheDocument();
+    await klick.click(knopf);
+    expect(await screen.findByRole('link', { name: /1 Eilanforderung offen/ })).toBeInTheDocument();
+    expect(knopf).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('der Tagesüberblick lässt sich ausblenden — „Zeit erfassen“ im Kopf bleibt', async () => {
+    startWahl.wert = { aus: ['bereich-tag'] };
+    zeichne();
+    await screen.findByText('Tage ohne Buchung');
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    expect(screen.queryByText(/2 Einsätze/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: 'Dein Tagesüberblick' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Zeit erfassen' })).toBeInTheDocument();
+  });
+
+  it('„Startseite anpassen“: Zahl abwählen, speichern — und die Vorgabe wiederherstellen', async () => {
+    const klick = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    zeichne();
+    await screen.findByRole('link', { name: /^Saldo/ });
+    await klick.click(screen.getByRole('button', { name: 'Weitere Aktionen für Startseite' }));
+    await klick.click(await screen.findByRole('menuitem', { name: 'Startseite anpassen …' }));
+    const bogen = await screen.findByRole('dialog', { name: 'Startseite anpassen' });
+    // Angeboten wird nur, was der Monteur sehen darf.
+    expect(within(bogen).queryByLabelText('Offene Rechnungen')).not.toBeInTheDocument();
+    await klick.click(within(bogen).getByLabelText('Saldo'));
+    await klick.click(within(bogen).getByLabelText('Material abholbereit'));
+    await klick.click(within(bogen).getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(wahlGespeichert).toHaveBeenCalledWith({ kennzahlen: ['urlaub'], aus: ['abholbereit'] }));
+
+    await klick.click(screen.getByRole('button', { name: 'Weitere Aktionen für Startseite' }));
+    await klick.click(await screen.findByRole('menuitem', { name: 'Startseite anpassen …' }));
+    await klick.click(within(await screen.findByRole('dialog', { name: 'Startseite anpassen' })).getByRole('button', { name: 'Vorgabe wiederherstellen' }));
+    await waitFor(() => expect(wahlGespeichert).toHaveBeenLastCalledWith({}));
+  });
+
+  it('gleich geblieben: wer nichts ändert, speichert die Vorgabe nicht fest', async () => {
+    const klick = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    zeichne();
+    await screen.findByRole('link', { name: /^Saldo/ });
+    await klick.click(screen.getByRole('button', { name: 'Weitere Aktionen für Startseite' }));
+    await klick.click(await screen.findByRole('menuitem', { name: 'Startseite anpassen …' }));
+    await klick.click(within(await screen.findByRole('dialog', { name: 'Startseite anpassen' })).getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(wahlGespeichert).toHaveBeenCalledWith({}));
+  });
+
+  it('höchstens vier Zahlen: ist die Wahl voll, lässt sich keine fünfte ankreuzen', async () => {
+    rolle.wert = 'Geschäftsführung';
+    const klick = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    zeichne();
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    await klick.click(screen.getByRole('button', { name: 'Weitere Aktionen für Startseite' }));
+    await klick.click(await screen.findByRole('menuitem', { name: 'Startseite anpassen …' }));
+    const bogen = await screen.findByRole('dialog', { name: 'Startseite anpassen' });
+    // Vorgabe der Leitung: Offen, Überfällig, Aktive Baustellen — eine vierte geht noch.
+    await klick.click(within(bogen).getByLabelText('Bezahlt im Monat'));
+    expect(within(bogen).getByLabelText('Auslastung der Woche')).toBeDisabled();
+    // Die Folge: „Bezahlt im Monat“ nach vorn.
+    await klick.click(within(bogen).getByRole('button', { name: 'Bezahlt im Monat nach vorn' }));
+    await klick.click(within(bogen).getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(wahlGespeichert).toHaveBeenCalledWith({ kennzahlen: ['offen', 'ueberfaellig', 'bezahlt', 'baustellen'] }));
+  });
+});
+
