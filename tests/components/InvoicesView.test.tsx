@@ -1279,6 +1279,24 @@ describe('Eine überfällige Rechnung mahnen', () => {
     expect((mahnung.mock.calls[0][1] as { inhalt: unknown }).inhalt).toBe((mahnungPdf.mock.calls[0] as unknown[])[0]);
   });
 
+  /*
+    DURCHSICHT 09.11.2026: scheiterte das Mahnen, stand die Meldung hinter dem
+    offenen Dialog auf der Seite. Der Dialog sah unverändert aus, und ein
+    zweiter Klick erzeugte ein zweites Schreiben.
+  */
+  it('zeigt einen Fehler beim Mahnen im Dialog, nicht dahinter', async () => {
+    rechnungen = [UEBERFAELLIG];
+    mahnungPdf.mockRejectedValueOnce(new Error('Failed to fetch'));
+    await menue();
+    await userEvent.click(await screen.findByRole('button', { name: /erzeugen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Erzeugen' }));
+    const dialog = screen.getByRole('button', { name: 'Erzeugen' }).closest('[role="dialog"]') as HTMLElement;
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      /Die Mahnung konnte nicht erzeugt werden\. Keine Verbindung/,
+    );
+    expect(mahnung).not.toHaveBeenCalled();
+  });
+
   /* Runde 3, M10: ohne Kundenart keine Mahnung — Zinsen und Spesen hängen an ihr. */
   it('mahnt nicht ohne Kundenart und zeigt den Weg in die Kundenakte', async () => {
     kunden = [{ id: 'k7', name: UEBERFAELLIG.customerName, kundenart: null }];
@@ -2482,6 +2500,87 @@ describe('Der Buchhaltungs-Export', () => {
     expect(screen.queryByText(/Schlussrechnung ohne Abzug/)).toBeNull();
   });
 
+  /*
+    DURCHSICHT 09.11.2026: der Stapel buchte eine abgezogene TEILRECHNUNG wie
+    eine Anzahlung vom Anzahlungskonto in den Erlös um. Die Art der
+    abgezogenen Rechnung holt die Ansicht jetzt mit dem Zeitraum.
+  */
+  describe('Buchungsstapel einer Schlussrechnung mit Abzug', () => {
+    const MIT_ANZAHLUNGSKONTO = [...KONTEN, { zweck: 'anzahlung', konto: '3500', steuercode: 'M20' }];
+    const vorher = (id: string, art: 'teil' | 'anzahlung') =>
+      ({ ...journal('0901', '2026-06-01'), id, art, totalNetto: 500, totalVat: 100, totalBrutto: 600 }) as Invoice & { id: string };
+    const schluss = (abgezogen: string) =>
+      ({
+        ...journal('0950', '2026-09-03'),
+        art: 'schluss',
+        totalNetto: 500, totalVat: 100, totalBrutto: 600,
+        gesamtNetto: 1000, gesamtVat: 200, gesamtBrutto: 1200,
+        vorrechnungen: [{
+          invoiceId: abgezogen, invoiceNumber: 'RE-2026-0901', invoiceDate: '2026-06-01',
+          netto: 500, vat: 100, brutto: 600,
+        }],
+      }) as unknown as Invoice & { id: string };
+
+    async function stapel(): Promise<string> {
+      const erzeugt = vi.fn<(b: Blob) => string>(() => 'blob:stapel');
+      const vorherErzeugen = URL.createObjectURL;
+      const vorherFreigeben = URL.revokeObjectURL;
+      URL.createObjectURL = erzeugt as unknown as typeof URL.createObjectURL;
+      URL.revokeObjectURL = vi.fn();
+      // Der Klick auf den Download-Link wäre in jsdom ein Seitenwechsel.
+      const klick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+      try {
+        zeige();
+        await userEvent.click(await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }));
+        const knopf = await screen.findByRole('button', { name: /Buchungsstapel für BMD/ });
+        await waitFor(() => expect(knopf).toBeEnabled());
+        await userEvent.click(knopf);
+        await waitFor(() => expect(erzeugt).toHaveBeenCalled());
+        // jsdom kennt `Blob.text()` nicht — gelesen wird wie im Browser über den FileReader.
+        return await new Promise<string>((fertig) => {
+          const leser = new FileReader();
+          leser.onload = () => fertig(String(leser.result));
+          leser.readAsText(erzeugt.mock.calls[0][0]);
+        });
+      } finally {
+        URL.createObjectURL = vorherErzeugen;
+        URL.revokeObjectURL = vorherFreigeben;
+        klick.mockRestore();
+      }
+    }
+
+    it('bucht für eine abgezogene Teilrechnung aus einem früheren Monat nichts vom Anzahlungskonto um', async () => {
+      konten = MIT_ANZAHLUNGSKONTO;
+      frisch = { t1: vorher('t1', 'teil') };
+      imZeitraum = [schluss('t1')];
+      const csv = await stapel();
+      expect(listInvoicesByIds).toHaveBeenCalledWith('perl', ['t1']);
+      expect(csv).toContain('RE-2026-0950');
+      expect(csv).not.toContain('verrechnet');
+      expect(csv).not.toContain('3500');
+    });
+
+    it('Gegenprobe: eine abgezogene Anzahlung wird weiter umgebucht', async () => {
+      konten = MIT_ANZAHLUNGSKONTO;
+      frisch = { a1: vorher('a1', 'anzahlung') };
+      imZeitraum = [schluss('a1')];
+      const csv = await stapel();
+      expect(csv).toContain('3500;4000;03.09.2026;RE-2026-0950;Anzahlung RE-2026-0901 verrechnet;500,00;;');
+    });
+
+    it('kommt die abgezogene Rechnung nicht, gibt es keinen Stapel — die Rechnung wird genannt', async () => {
+      konten = MIT_ANZAHLUNGSKONTO;
+      listInvoicesByIds.mockRejectedValueOnce(new Error('offline'));
+      imZeitraum = [schluss('t1')];
+      zeige();
+      await userEvent.click(await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }));
+      // Das Journal steht trotzdem.
+      expect(await screen.findByRole('button', { name: 'Als CSV herunterladen' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: /Buchungsstapel für BMD/ })).toBeDisabled();
+      expect(screen.getByText(/Von der abgezogenen Rechnung RE-2026-0901 ist nicht bekannt/)).toBeInTheDocument();
+    });
+  });
+
   it('rechnet nicht über die Liste, sondern holt den Zeitraum', async () => {
     // Die Arbeitsliste ist LEER — und das Journal trotzdem vollständig.
     rechnungen = [];
@@ -3329,6 +3428,56 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     // … mit Haken schon.
     await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
     expect(await screen.findByRole('checkbox', { name: /RE-2026-1001/ })).toBeInTheDocument();
+  });
+
+  /*
+    DURCHSICHT 09.11.2026: „Rechnung (ganze Leistung)“ auf einer Baustelle mit
+    offener Anzahlung zog nichts ab und sagte nichts — die Steuer der
+    Anzahlung stand ein zweites Mal auf einem Beleg.
+  */
+  it('warnt bei der Rechnung über die ganze Leistung vor der nicht abgezogenen Anzahlung', async () => {
+    derBaustelle = [ANZAHLUNG];
+    const bestaetigen = await bisZurVorschau();
+    expect(await screen.findByText(/Auf dieser Baustelle ist die Anzahlung RE-2026-1001 noch nicht abgezogen\./))
+      .toBeInTheDocument();
+    // Eine Warnung, keine Sperre.
+    expect(bestaetigen).toBeEnabled();
+  });
+
+  it('„Als Schlussrechnung stellen“ stellt die Art um — dort ist die Anzahlung abgezogen', async () => {
+    derBaustelle = [{ ...ANZAHLUNG, totalNetto: 200, totalVat: 40, totalBrutto: 240 }];
+    await bisZurVorschau();
+    await userEvent.click(await screen.findByRole('button', { name: 'Als Schlussrechnung stellen' }));
+    expect(screen.getByRole('combobox', { name: /Art der Rechnung/ })).toHaveValue('schluss');
+    await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
+    expect(await screen.findByRole('checkbox', { name: /RE-2026-1001.*wird abgezogen/ })).toBeChecked();
+    expect(screen.queryByText(/noch nicht abgezogen/)).toBeNull();
+  });
+
+  it('nennt auch eine nicht abgezogene Teilrechnung', async () => {
+    derBaustelle = [{ ...ANZAHLUNG, id: 't1', invoiceNumber: 'RE-2026-1002', art: 'teil' }, ANZAHLUNG];
+    await bisZurVorschau();
+    expect(await screen.findByText(
+      /sind die Teilrechnung RE-2026-1002 und die Anzahlung RE-2026-1001 noch nicht abgezogen/,
+    )).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne offene Anzahlung und bei der Schlussrechnung steht kein Hinweis', async () => {
+    derBaustelle = [];
+    await bisZurVorschau();
+    expect(screen.queryByText(/noch nicht abgezogen/)).toBeNull();
+    cleanup();
+    derBaustelle = [{ ...ANZAHLUNG, totalNetto: 200, totalVat: 40, totalBrutto: 240 }];
+    await bisZurVorschau('schluss');
+    expect(await screen.findByRole('checkbox', { name: /RE-2026-1001/ })).toBeChecked();
+    expect(screen.queryByText(/noch nicht abgezogen/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Als Schlussrechnung stellen' })).toBeNull();
+  });
+
+  it('Gegenprobe: eine freiwillig abziehbare Einzelrechnung ist keine offene Anzahlung', async () => {
+    derBaustelle = [{ ...ANZAHLUNG, art: 'einzel' }];
+    await bisZurVorschau();
+    expect(screen.queryByText(/noch nicht abgezogen/)).toBeNull();
   });
 
   it('lässt Art und Abzug beim erneuten Drucken nicht verschwinden', async () => {
@@ -4716,6 +4865,39 @@ describe('Runde 6, Paket 2', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Ja, löschen' }));
       expect(await screen.findByText('Auf diese Rechnung ist noch nichts eingegangen.')).toBeInTheDocument();
       expect(screen.queryByText(/schon bezahlt/)).toBeNull();
+    });
+
+    /* Durchsicht 09.11.2026: ein Fehler beim Löschen ging ohne Meldung unter. */
+    it('nennt den Grund, wenn das Löschen einer Zahlung scheitert — die Zahlung bleibt stehen', async () => {
+      const db = await import('@/lib/db/zahlungen');
+      vi.mocked(db.deleteZahlung).mockRejectedValueOnce(new Error('Failed to fetch'));
+      rechnungen = [inv('b', 'RE-2026-1003', { paymentStatus: 'Bezahlt', totalBrutto: 100, bezahltBetrag: 100 })];
+      bisherigeZahlungen = [{ id: 'z1', invoiceId: 'b', datum: '2026-08-30', betrag: 100, art: 'Überweisung' }];
+      zeige('/invoices?ansicht=alle');
+      await rechnungOeffnen('RE-2026-1003');
+      await userEvent.click(await screen.findByRole('button', { name: 'Weitere Zahlung erfassen …' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Löschen' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Ja, löschen' }));
+      expect(await screen.findByText(/Die Zahlung konnte nicht gelöscht werden\. Keine Verbindung/)).toBeInTheDocument();
+      expect(screen.queryByText('Zahlung gelöscht')).toBeNull();
+      // Die Rückfrage steht noch: ein zweiter Versuch ist ein Klick.
+      expect(screen.getByRole('button', { name: 'Ja, löschen' })).toBeInTheDocument();
+    });
+
+    it('Gleichbleiben: gelingt das Löschen, meldet es das und zeigt keinen Fehler', async () => {
+      const db = await import('@/lib/db/zahlungen');
+      vi.mocked(db.deleteZahlung).mockClear();
+      rechnungen = [inv('b', 'RE-2026-1003', { paymentStatus: 'Bezahlt', totalBrutto: 100, bezahltBetrag: 100 })];
+      bisherigeZahlungen = [{ id: 'z1', invoiceId: 'b', datum: '2026-08-30', betrag: 100, art: 'Überweisung' }];
+      zeige('/invoices?ansicht=alle');
+      await rechnungOeffnen('RE-2026-1003');
+      await userEvent.click(await screen.findByRole('button', { name: 'Weitere Zahlung erfassen …' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Löschen' }));
+      bisherigeZahlungen = [];
+      await userEvent.click(screen.getByRole('button', { name: 'Ja, löschen' }));
+      expect(await screen.findByText('Zahlung gelöscht')).toBeInTheDocument();
+      expect(db.deleteZahlung).toHaveBeenCalledWith('z1');
+      expect(screen.queryByText(/nicht gelöscht werden/)).toBeNull();
     });
 
     it('fragt nach, bevor mehr als offen gebucht wird, und bucht dann als Guthaben (G26)', async () => {

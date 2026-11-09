@@ -161,6 +161,11 @@ const LISTEN_TITEL: Record<string, string> = {
   alle: 'Alle Rechnungen',
 };
 
+/** „A“, „A und B“, „A, B und C“ — `Intl.ListFormat` steht nicht in der Zielfassung ES2020. */
+function aufzaehlung(teile: string[]): string {
+  return teile.length < 2 ? teile.join('') : `${teile.slice(0, -1).join(', ')} und ${teile[teile.length - 1]}`;
+}
+
 export default function InvoicesView() {
   const { user, company, einblick } = useAuth();
   /*
@@ -318,6 +323,11 @@ export default function InvoicesView() {
   } | null>(null);
   /** Schlussrechnungen ohne Abzug ihrer Anzahlung — geholt mit dem Zeitraum (K2). */
   const [ohneAbzug, setOhneAbzug] = useState<SchlussOhneAbzug[]>([]);
+  /**
+   * Die Art jeder abgezogenen Rechnung, die NICHT im Zeitraum liegt — für den
+   * Buchungsstapel: nur eine Anzahlung wird vom Anzahlungskonto umgebucht.
+   */
+  const [exportVorArten, setExportVorArten] = useState<ReadonlyMap<string, RechnungsArt>>(new Map());
   /*
     Der Kontenrahmen des Betriebs — ohne ihn gibt es keinen Buchungsstapel.
     Er wird einmal geladen und nicht abonniert: er ändert sich einmal beim
@@ -2127,7 +2137,14 @@ export default function InvoicesView() {
       toast.success(`${TEXTE[stufe].titel} erzeugt`);
       setMahnFuer(null);
     } catch (err) {
-      setError(grundAus(err, 'Die Mahnung konnte nicht erzeugt werden.'));
+      /*
+        DER FEHLER GEHÖRT IN DEN DIALOG (Durchsicht 09.11.2026). `mahnen`
+        läuft nur aus dem Mahndialog, und der bleibt bei einem Fehler offen;
+        die Meldung stand bisher dahinter auf der Seite, der Dialog sah
+        unverändert aus — und ein zweiter Klick erzeugte ein zweites
+        Schreiben. `ConfirmDialog` zeigt, was hier geworfen wird.
+      */
+      throw new Error(grundAus(err, 'Die Mahnung konnte nicht erzeugt werden.'));
     } finally {
       setBusy(false);
     }
@@ -2432,6 +2449,34 @@ export default function InvoicesView() {
   const zieheAb = art === 'teil' || art === 'schluss';
 
   /*
+    DIE GANZE LEISTUNG NEBEN EINER OFFENEN ANZAHLUNG (Durchsicht 09.11.2026).
+    „Rechnung (ganze Leistung)“ ist die Vorgabe und zieht nichts ab. Steht auf
+    der Baustelle noch eine Anzahlung oder Teilrechnung, die keine Rechnung
+    abgezogen hat, weist der Betrieb deren Steuer ein zweites Mal aus (§ 11
+    Abs 12 UStG) — gemerkt hätte es erst die Kanzlei. Eine Warnung, keine
+    Sperre: wer die Anzahlung bewusst anders berichtigt, soll nicht festsitzen.
+
+    Noch einmal durch `abziehbar` mit der GEWÄHLTEN Baustelle: bis die
+    Abfrage zur neuen Vorschau zurück ist, steht hier noch die Liste der
+    vorigen — deren Anzahlung gehört nicht auf diese Rechnung.
+  */
+  const nichtAbgezogen = art === 'einzel' && !abzugFehler
+    ? abziehbar(abzugsfaehig, projectNumber).filter(pflichtAbzug)
+    : [];
+
+  /** Wie die Auswahl der Art: neu zusammenstellen, weil die Art bestimmt, woraus die Positionen entstehen. */
+  function alsSchlussrechnung() {
+    setArtWahl('schluss');
+    setPreview(null);
+    setGewaehlteAbzuege([]);
+    setError(null);
+    setHinweis(null);
+    const auswahl = document.getElementById('inv-art');
+    auswahl?.scrollIntoView?.({ block: 'center' });
+    auswahl?.focus();
+  }
+
+  /*
     Der Abgleich hängt an der Vorschau, nicht an der Liste: verglichen wird,
     was DIESE Rechnung nehmen würde, gegen die Scheine derselben Baustelle.
 
@@ -2500,9 +2545,13 @@ export default function InvoicesView() {
         einer Rechnung, die sie nicht selbst trägt, kommt über den Namen aus
         dem Kundenstamm (`buildInvoiceCsv`) — ohne sie stünde die Spalte leer.
       */
-      const kundenDerZeilen = await kundenNachNamen(user.companyId, zeilen.map((r) => r.customerName));
+      const [kundenDerZeilen, vorArten] = await Promise.all([
+        kundenNachNamen(user.companyId, zeilen.map((r) => r.customerName)),
+        artenDerAbgezogenen(zeilen),
+      ]);
       if (anfrage !== exportAnfrage.current) return;
       setKunden((alt) => [...new Map([...alt, ...kundenDerZeilen].map((k) => [k.id, k])).values()]);
+      setExportVorArten(vorArten);
       setExportZeilen(zeilen);
       setOhneAbzug(fehlAbzug);
       /*
@@ -2531,6 +2580,32 @@ export default function InvoicesView() {
       );
     } finally {
       if (anfrage === exportAnfrage.current) setExportLaeuft(false);
+    }
+  }
+
+  /**
+   * Die Art der abgezogenen Rechnungen, die nicht selbst im Zeitraum liegen
+   * (Durchsicht 09.11.2026). Der Buchungsstapel bucht nur eine Anzahlung vom
+   * Anzahlungskonto in den Erlös um; eine Teilrechnung hat ihren Erlös schon
+   * selbst gebucht. Die Anzahlung liegt meist Monate früher, deshalb eigens
+   * geholt.
+   *
+   * SCHLÄGT DAS FEHL, BLEIBT DIE ZUORDNUNG LEER und der Stapel nennt die
+   * Rechnungen, statt zu raten — das Journal braucht die Art nicht und steht
+   * trotzdem.
+   */
+  async function artenDerAbgezogenen(zeilen: WithId<Invoice>[]): Promise<Map<string, RechnungsArt>> {
+    if (!user) return new Map();
+    const imZeitraum = new Set(zeilen.map((r) => r.id));
+    const fehlen = [...new Set(zeilen.flatMap((r) => r.vorrechnungen?.map((v) => v.invoiceId) ?? []))]
+      .filter((id) => !imZeitraum.has(id));
+    if (fehlen.length === 0) return new Map();
+    try {
+      const geholt = await listInvoicesByIds(user.companyId, fehlen);
+      // Altbestand ohne Art ist `einzel` — so belegt die Datenbank die Spalte vor.
+      return new Map(geholt.map((r) => [r.id, r.art ?? 'einzel']));
+    } catch {
+      return new Map();
     }
   }
 
@@ -4452,6 +4527,29 @@ export default function InvoicesView() {
                   : 'Eine Rechnung über null Euro wird nicht angelegt — bitte die Preise eintragen.'}
               </p>
             )}
+            {nichtAbgezogen.length > 0 && (
+              <Hinweiszeile stufe="warn" role="status">
+                <p>
+                  <strong>
+                    Auf dieser Baustelle {nichtAbgezogen.length === 1 ? 'ist' : 'sind'}{' '}
+                    {aufzaehlung(nichtAbgezogen.map(
+                      (r) => `${r.art === 'teil' ? 'die Teilrechnung' : 'die Anzahlung'} ${r.invoiceNumber}`,
+                    ))}{' '}
+                    noch nicht abgezogen.
+                  </strong>{' '}
+                  Eine Rechnung über die ganze Leistung weist deren Umsatzsteuer ein zweites Mal aus
+                  (§ 11 Abs 12 UStG); abgezogen wird auf der Schlussrechnung.
+                  {artWaehlbar
+                    ? ' Danach die Positionen neu zusammenstellen.'
+                    : ' Schlussrechnungen gibt es, sobald in den Einstellungen „Wir stellen Anzahlungs-, Teil- und Schlussrechnungen“ eingeschaltet ist.'}
+                </p>
+                {artWaehlbar && (
+                  <Button variant="secondary" onClick={alsSchlussrechnung}>
+                    Als Schlussrechnung stellen
+                  </Button>
+                )}
+              </Hinweiszeile>
+            )}
             {/* Die Fusszeile des Formulars (`fuss-aktionen`): verwerfen links, anlegen rechts. */}
             <div className="fuss-aktionen">
               <Button variant="ghost" onClick={() => setPreview(null)}>
@@ -4811,7 +4909,9 @@ export default function InvoicesView() {
                 */}
                 {konten.length > 0 && (() => {
                   const debitorVon = (inv: Invoice) => kundeDerRechnung(inv)?.kundennummer;
-                  const b = buildBmdCsv(exportZeilen, konten, exportVon, exportBis, debitorVon);
+                  const b = buildBmdCsv(
+                    exportZeilen, konten, exportVon, exportBis, debitorVon, (id) => exportVorArten.get(id),
+                  );
                   /*
                     DER ZAHLUNGSSTAPEL HAT IMMER SEINEN KNOPF (Runde 3, M5).
                     Bis zum 06.10. erschien er nur mit Bank- oder Skontokonto
@@ -5219,12 +5319,29 @@ export default function InvoicesView() {
                       <Button
                         variant="danger"
                         onClick={async () => {
-                          await deleteZahlung(z.id);
-                          if (zahlungFuer) {
-                            setZahlungen(await listZahlungen(zahlungFuer.companyId, zahlungFuer.id));
+                          setZFehler(null);
+                          try {
+                            await deleteZahlung(z.id);
+                          } catch (e) {
+                            // Ohne Meldung stand die Zeile einfach weiter da (Durchsicht 09.11.2026).
+                            setZFehler(grundAus(e, 'Die Zahlung konnte nicht gelöscht werden.'));
+                            return;
                           }
                           setZLoeschen(null);
                           toast.success('Zahlung gelöscht');
+                          /*
+                            GELÖSCHT IST GELÖSCHT, auch wenn das Neuladen danach
+                            scheitert: dann fällt die Zeile hier heraus, statt als
+                            Zahlung stehen zu bleiben, die es nicht mehr gibt.
+                          */
+                          setZahlungen((alt) => alt?.filter((x) => x.id !== z.id) ?? alt);
+                          if (zahlungFuer) {
+                            try {
+                              setZahlungen(await listZahlungen(zahlungFuer.companyId, zahlungFuer.id));
+                            } catch {
+                              setZFehler('Die Zahlung ist gelöscht, die Liste konnte aber nicht neu geladen werden.');
+                            }
+                          }
                         }}
                       >
                         Ja, löschen

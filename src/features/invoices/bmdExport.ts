@@ -1,5 +1,5 @@
 import { stornoBelegTag } from './stornoBelegTag';
-import type { Invoice, Zahlungseingang } from '@/types';
+import type { Invoice, RechnungsArt, Vorrechnung, Zahlungseingang } from '@/types';
 import { csvZelle as cell } from '@/lib/csvZelle';
 
 /**
@@ -52,6 +52,13 @@ export interface BmdZeile {
 
 /** Die Debitorennummer einer Rechnung — aus dem Kundenstamm, von der Ansicht gereicht. */
 export type DebitorVon = (inv: Invoice) => string | null | undefined;
+
+/**
+ * Die Art einer abgezogenen Rechnung, nach ihrer Kennung — von der Ansicht
+ * gereicht, weil die Anzahlung meist Monate vor der Schlussrechnung liegt und
+ * damit nicht im Zeitraum. `undefined` heißt: nicht bekannt.
+ */
+export type ArtVon = (invoiceId: string) => RechnungsArt | undefined;
 
 export interface BmdErgebnis {
   /** Leer, solange etwas fehlt. */
@@ -129,6 +136,7 @@ export function buildBmdCsv(
   von: string,
   bis: string,
   debitorVon?: DebitorVon,
+  artVon?: ArtVon,
 ): BmdErgebnis {
   const erloes = new Map<string, Buchungskonto>();
   let rc: Buchungskonto | undefined;
@@ -206,6 +214,34 @@ export function buildBmdCsv(
       ? { betrag: v.netto, steuercode: '' }
       : { betrag: v.brutto, steuercode: erloesCode ?? '' };
 
+  /*
+    UMGEBUCHT WIRD NUR, WAS AUF DEM ANZAHLUNGSKONTO STEHT. Eine Teilrechnung
+    oder eine freiwillig abgezogene Einzelrechnung hat schon beim eigenen
+    Buchen Debitoren an Erlös gebucht; holte die Schlussrechnung auch sie vom
+    Anzahlungskonto, stünde ihr Erlös samt Steuer zweimal in den Büchern und
+    das Anzahlungskonto ins Minus.
+
+    Die Art steht nicht auf dem Abzug (der ist eine Kopie der Beträge),
+    sondern an der abgezogenen Rechnung. Liegt sie im Zeitraum, kommt sie aus
+    der Liste, sonst von der Ansicht. Altbestand ohne Art ist `einzel`, wie
+    die Datenbank ihn vorbelegt. Ist die Rechnung gar nicht bekannt, entsteht
+    keine Datei: raten hieße, entweder Erlös doppelt oder gar nicht zu buchen.
+  */
+  const nachId = new Map(invoices.map((i) => [i.id, i]));
+  function istAnzahlung(v: Vorrechnung): boolean {
+    const geladen = nachId.get(v.invoiceId);
+    const art = geladen ? geladen.art ?? 'einzel' : artVon?.(v.invoiceId);
+    if (!art) {
+      vermisst(
+        `Von der abgezogenen Rechnung ${v.invoiceNumber} ist nicht bekannt, ob sie eine Anzahlung war — `
+        + 'ohne das lässt sich nicht entscheiden, ob sie vom Anzahlungskonto umzubuchen ist. '
+        + 'Bitte den Zeitraum erneut zusammenstellen',
+      );
+      return false;
+    }
+    return art === 'anzahlung';
+  }
+
   for (const i of imZeitraum) {
     const gegen = gegenkonto(i);
     const storniert = i.paymentStatus === 'Storniert';
@@ -240,6 +276,7 @@ export function buildBmdCsv(
         bucht ja nur die RESTforderung.
       */
       for (const v of i.vorrechnungen ?? []) {
+        if (!istAnzahlung(v)) continue;
         if (!anzahlung) {
           vermisst('Konto für erhaltene Anzahlungen (eine Verbindlichkeit, kein Erlös)');
           continue;
@@ -287,6 +324,7 @@ export function buildBmdCsv(
           wie beim Verrechnen, mit vertauschten Konten, am Stornotag.
         */
         for (const v of i.vorrechnungen ?? []) {
+          if (!istAnzahlung(v)) continue;
           if (!anzahlung) {
             vermisst('Konto für erhaltene Anzahlungen (eine Verbindlichkeit, kein Erlös)');
             continue;

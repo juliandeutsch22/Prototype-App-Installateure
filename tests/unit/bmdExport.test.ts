@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildBmdCsv, buildBmdZahlungenCsv, type Buchungskonto } from '@/features/invoices/bmdExport';
+import { buildBmdCsv, buildBmdZahlungenCsv, type ArtVon, type Buchungskonto } from '@/features/invoices/bmdExport';
 import type { Invoice, Vorrechnung } from '@/types';
 
 /**
@@ -36,8 +36,15 @@ const rechnung = (p: Partial<Invoice> = {}): Invoice =>
     ...p,
   }) as Invoice;
 
-const bauen = (rechnungen: Invoice[], konten = KONTEN, von = '2026-04-01', bis = '2026-04-30') =>
-  buildBmdCsv(rechnungen, konten, von, bis);
+const bauen = (rechnungen: Invoice[], konten = KONTEN, von = '2026-04-01', bis = '2026-04-30', artVon?: ArtVon) =>
+  buildBmdCsv(rechnungen, konten, von, bis, undefined, artVon);
+
+/*
+  DIE ART DER ABGEZOGENEN RECHNUNG KOMMT VON DER ANSICHT, wenn sie nicht im
+  Zeitraum liegt (Durchsicht 09.11.2026). 'a1' ist in diesen Prüfungen die
+  Anzahlung aus einem früheren Monat.
+*/
+const ANZAHLUNG_A1: ArtVon = (id) => (id === 'a1' ? 'anzahlung' : undefined);
 
 describe('Eine gewöhnliche Rechnung', () => {
   it('bucht Debitor an Erlöskonto, brutto, mit Steuercode', () => {
@@ -170,7 +177,7 @@ describe('Anzahlung und Schlussrechnung', () => {
         gesamtNetto: 1000, gesamtVat: 200, gesamtBrutto: 1200,
         totalNetto: 500, totalVat: 100, totalBrutto: 600,
       }),
-    ]);
+    ], KONTEN, undefined, undefined, ANZAHLUNG_A1);
     expect(e.zeilen).toEqual([
       expect.objectContaining({ soll: '2000', haben: '4000', betrag: 600 }),
       // Netto und ohne Steuercode: die Steuer der Anzahlung ist schon
@@ -203,7 +210,8 @@ describe('Anzahlung und Schlussrechnung', () => {
     return { erloes: Math.round(erloes * 100) / 100, ust: Math.round(ust * 100) / 100 };
   }
   const beide = [
-    rechnung({ art: 'anzahlung', invoiceDate: '2026-04-05', totalNetto: 500, totalVat: 100, totalBrutto: 600 }),
+    // Liegt im Zeitraum: die Art kommt aus der Liste selbst.
+    rechnung({ id: 'a1', art: 'anzahlung', invoiceDate: '2026-04-05', totalNetto: 500, totalVat: 100, totalBrutto: 600 }),
     rechnung({
       invoiceNumber: 'RE-2026-0002', art: 'schluss', vorrechnungen: [anzahlung],
       gesamtNetto: 1000, gesamtVat: 200, gesamtBrutto: 1200,
@@ -228,9 +236,112 @@ describe('Anzahlung und Schlussrechnung', () => {
 
   it('verlangt das Anzahlungskonto auch dann, wenn nur eine Schlussrechnung im Zeitraum liegt', () => {
     const ohne = KONTEN.filter((k) => k.zweck !== 'anzahlung');
-    const e = bauen([rechnung({ art: 'schluss', vorrechnungen: [anzahlung], totalBrutto: 600 })], ohne);
+    const e = bauen([rechnung({ art: 'schluss', vorrechnungen: [anzahlung], totalBrutto: 600 })], ohne, undefined, undefined, ANZAHLUNG_A1);
     expect(e.fehlend).toContain('Konto für erhaltene Anzahlungen (eine Verbindlichkeit, kein Erlös)');
     expect(e.csv).toBe('');
+  });
+});
+
+/*
+  DURCHSICHT 09.11.2026: eine abgezogene TEILRECHNUNG (oder eine freiwillig
+  abgezogene Einzelrechnung) wurde wie eine Anzahlung vom Anzahlungskonto in
+  den Erlös umgebucht. Sie hatte ihren Erlös aber schon selbst gebucht
+  (Debitoren an Erlös) — Erlös und Steuer standen doppelt in den Büchern, das
+  Anzahlungskonto im Minus.
+*/
+describe('Abgezogene Teil- und Einzelrechnungen', () => {
+  const teil: Vorrechnung = {
+    invoiceId: 't1', invoiceNumber: 'RE-2026-0001', invoiceDate: '2026-04-05',
+    netto: 500, vat: 100, brutto: 600,
+  };
+  const schluss = (p: Partial<Invoice> = {}) =>
+    rechnung({
+      invoiceNumber: 'RE-2026-0002', art: 'schluss', vorrechnungen: [teil],
+      gesamtNetto: 1000, gesamtVat: 200, gesamtBrutto: 1200,
+      totalNetto: 500, totalVat: 100, totalBrutto: 600,
+      ...p,
+    });
+  const ALS = (art: 'teil' | 'einzel'): ArtVon => (id) => (id === 't1' ? art : undefined);
+
+  it('bucht für eine abgezogene Teilrechnung keine Umbuchung vom Anzahlungskonto', () => {
+    const e = bauen([schluss()], KONTEN, undefined, undefined, ALS('teil'));
+    expect(e.fehlend).toEqual([]);
+    expect(e.zeilen).toEqual([
+      expect.objectContaining({ soll: '2000', haben: '4000', betrag: 600, belegnummer: 'RE-2026-0002' }),
+    ]);
+    expect(e.csv).not.toContain('verrechnet');
+  });
+
+  it('ebenso für eine freiwillig abgezogene Einzelrechnung', () => {
+    const e = bauen([schluss()], KONTEN, undefined, undefined, ALS('einzel'));
+    expect(e.zeilen).toHaveLength(1);
+    expect(e.zeilen.some((z) => z.soll === '3500' || z.haben === '3500')).toBe(false);
+  });
+
+  it('Teilrechnung und Schlussrechnung ergeben zusammen genau die volle Leistung — Erlös einmal', () => {
+    // Die Teilrechnung liegt im Zeitraum: die Art kommt aus der Liste.
+    const beide = [
+      rechnung({ id: 't1', art: 'teil', invoiceDate: '2026-04-05', totalNetto: 500, totalVat: 100, totalBrutto: 600 }),
+      schluss(),
+    ];
+    const e = bauen(beide);
+    expect(e.fehlend).toEqual([]);
+    const erloesNetto = e.zeilen.reduce((s, z) => s + (z.haben === '4000' ? z.betrag / 1.2 : 0), 0);
+    expect(Math.round(erloesNetto * 100) / 100).toBe(1000);
+    // Das Anzahlungskonto bleibt unberührt — es hat nie etwas bekommen.
+    expect(e.zeilen.some((z) => z.soll === '3500' || z.haben === '3500')).toBe(false);
+  });
+
+  it('Altbestand ohne Art in der Liste gilt als Einzelrechnung, wie die Datenbank ihn vorbelegt', () => {
+    const e = bauen([rechnung({ id: 't1', invoiceDate: '2026-04-05', totalBrutto: 600 }), schluss()]);
+    expect(e.fehlend).toEqual([]);
+    expect(e.zeilen).toHaveLength(2);
+  });
+
+  it('braucht dafür kein Anzahlungskonto — ein Betrieb ohne Anzahlungen hinterlegt keines', () => {
+    const ohne = KONTEN.filter((k) => k.zweck !== 'anzahlung');
+    const e = bauen([schluss()], ohne, undefined, undefined, ALS('teil'));
+    expect(e.fehlend).toEqual([]);
+    expect(e.zeilen).toHaveLength(1);
+  });
+
+  it('bucht nur die Anzahlung um, wenn Anzahlung und Teilrechnung abgezogen sind', () => {
+    const anzahlung: Vorrechnung = { ...teil, invoiceId: 'a1', invoiceNumber: 'RE-2026-0000', netto: 200, vat: 40, brutto: 240 };
+    const artVon: ArtVon = (id) => ({ a1: 'anzahlung', t1: 'teil' } as const)[id as 'a1' | 't1'];
+    const e = bauen([schluss({ vorrechnungen: [anzahlung, teil], totalNetto: 300, totalVat: 60, totalBrutto: 360 })],
+      KONTEN, undefined, undefined, artVon);
+    expect(e.zeilen).toEqual([
+      expect.objectContaining({ soll: '2000', haben: '4000', betrag: 360 }),
+      expect.objectContaining({ soll: '3500', haben: '4000', betrag: 200, buchungstext: 'Anzahlung RE-2026-0000 verrechnet' }),
+    ]);
+  });
+
+  it('dreht beim Storno auch nichts zurück, was nie umgebucht wurde', () => {
+    const e = bauen([
+      schluss({ paymentStatus: 'Storniert', cancelledAt: new Date('2026-04-20T10:00:00').getTime() }),
+    ], KONTEN, undefined, undefined, ALS('teil'));
+    expect(e.zeilen).toEqual([
+      expect.objectContaining({ soll: '2000', haben: '4000', betrag: 600 }),
+      expect.objectContaining({ soll: '4000', haben: '2000', betrag: 600, belegdatum: '20.04.2026' }),
+    ]);
+  });
+
+  it('ist die abgezogene Rechnung unbekannt, entsteht keine Datei — sie wird benannt', () => {
+    // Raten hieße: Erlös entweder doppelt oder gar nicht gebucht.
+    const e = bauen([schluss()]);
+    expect(e.csv).toBe('');
+    expect(e.zeilen).toEqual([]);
+    expect(e.fehlend).toHaveLength(1);
+    expect(e.fehlend[0]).toContain('RE-2026-0001');
+    expect(e.fehlend[0]).toContain('Anzahlung');
+  });
+
+  it('Gleichbleiben: eine abgezogene Anzahlung wird weiter umgebucht', () => {
+    const e = bauen([schluss({ vorrechnungen: [{ ...teil, invoiceId: 'a1' }] })], KONTEN, undefined, undefined, ANZAHLUNG_A1);
+    expect(e.zeilen).toEqual([
+      expect.objectContaining({ soll: '2000', haben: '4000', betrag: 600 }),
+      expect.objectContaining({ soll: '3500', haben: '4000', betrag: 500, steuercode: '' }),
+    ]);
   });
 });
 
@@ -300,7 +411,7 @@ describe('Stornierte Rechnungen', () => {
         gesamtNetto: 1000, gesamtVat: 200, gesamtBrutto: 1200,
         totalNetto: 500, totalVat: 100, totalBrutto: 600,
       }),
-    ]);
+    ], KONTEN, undefined, undefined, ANZAHLUNG_A1);
     expect(e.fehlend).toEqual([]);
     expect(e.zeilen).toEqual([
       expect.objectContaining({ soll: '2000', haben: '4000', betrag: 600 }),
