@@ -178,10 +178,14 @@ describe('Der Zweitschlüssel und die Beziehungen ohne Kennung', () => {
       und Person. Gelesen wird nur die eigene, mit einer eigenen Abfrage
       (`pg/nachrichten.ts`: Zahl der ungelesenen, ob es Gespräche gibt) und
       als Live-Ereignis — nie über `abfragen`.
+
+      `startseite_wahl` (E68, 09.11.2026): eine Zeile je Person, Schlüssel ist
+      die Person. Gelesen wird nur die eigene, mit einer eigenen Abfrage
+      (`db/startseiteWahl.ts`, `maybeSingle`) — nie über `abfragen`.
     */
     expect(rows.map((r) => r.table_name).sort()).toEqual([
       'ausleitung_dateien', 'basiszinssaetze', 'betrieb_zustand', 'betriebsanlagen', 'geburtsdaten', 'lagerbestaende', 'monthly_stats',
-      'nachrichten_teilnehmer', 'number_counters', 'system_laeufe', 'user_prefs',
+      'nachrichten_teilnehmer', 'number_counters', 'startseite_wahl', 'system_laeufe', 'user_prefs',
     ].sort());
   }, 60_000);
 

@@ -122,6 +122,8 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   },
   rabattsaetze: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   rechtstexte: { geaendert_am: 'zeitpunkt', veroeffentlicht_am: 'zeitpunkt' },
+  // E68: die eigene Einrichtung der Startseite.
+  startseite_wahl: { geaendert_am: 'zeitpunkt' },
   support_freigaben: { created_at: 'zeitpunkt', gilt_bis: 'zeitpunkt', widerrufen_am: 'zeitpunkt' },
   support_zugriffe: { wann: 'zeitpunkt' },
   suppliers: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
