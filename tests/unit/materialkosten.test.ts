@@ -226,3 +226,95 @@ describe('Einkaufspreis über den Katalogartikel (24.10.2026)', () => {
     expect(k.ohnePreis).toEqual(['Eckventil']);
   });
 });
+
+/*
+  DAS LAGER ZÄHLT MIT (Befund 09.11.2026). Die Regie-Rechnung schlägt vor, was
+  das Lager ohne Schein ausgegeben hat (`materialAbgleich`); die
+  Nachkalkulation kannte nur die Scheine und rechnete dafür Kosten null.
+  Jetzt zählt je Artikel die größere Menge aus Scheinen und Lager.
+  Gegenprobe: ohne die Änderung bleibt `kosten` bei den Prüfungen „ohne
+  Schein“ und „mehr ausgegeben“ auf dem Wert der Scheine (0 bzw. 14).
+*/
+describe('Ausgegebenes Material (Lager)', () => {
+  const aus = (name: string, menge: number, materialId: string | null = null) => ({ name, menge, materialId });
+  const KOSTEN = { fach: 40, helper: 25 };
+  const RECHNUNG = [{ projectNumber: '2026-001', totalNetto: 2000, paymentStatus: 'Offen' }] as never;
+
+  it('Regie mit Ausgabe ohne Schein: die Kosten sind nicht null', () => {
+    const k = materialkosten([], [artikel('Eckventil', 3.5)], [aus('Eckventil', 10, 'Eckventil')]);
+    expect(k.kosten).toBe(35);
+    expect(k.ausLager).toBe(1);
+    expect(k.scheine).toBe(0);
+  });
+
+  it('steht dieselbe Menge auf dem Schein, zählt sie nicht doppelt', () => {
+    const k = materialkosten(
+      [schein('s1', [{ name: 'Eckventil', menge: 4, materialId: 'Eckventil' }])],
+      [artikel('Eckventil', 3.5)],
+      [aus('Eckventil', 4, 'Eckventil')],
+    );
+    expect(k.kosten).toBe(14);
+    expect(k.ausLager).toBe(0);
+  });
+
+  it('mehr ausgegeben als auf den Scheinen: die größere Menge — auch über den Namen zugeordnet', () => {
+    const k = materialkosten(
+      [schein('s1', [{ name: 'eckventil ', menge: 4 }])],
+      [artikel('Eckventil', 3.5)],
+      [aus('Eckventil', 6, 'Eckventil')],
+    );
+    expect(k.kosten).toBe(21);
+    expect(k.ausLager).toBe(1);
+  });
+
+  it('mehr auf den Scheinen als ausgegeben (aus dem Fahrzeug, vom Großhändler): die Scheine', () => {
+    const k = materialkosten(
+      [schein('s1', [{ name: 'Eckventil', menge: 8 }])],
+      [artikel('Eckventil', 3.5)],
+      [aus('Eckventil', 5)],
+    );
+    expect(k.kosten).toBe(28);
+    expect(k.ausLager).toBe(0);
+  });
+
+  it('Retouren mindern die Ausgabe; mehr zurück als ausgegeben ist nichts — und keine Lücke', () => {
+    const k = materialkosten(
+      [],
+      [artikel('Eckventil', 3.5)],
+      [aus('Eckventil', 10), aus('Eckventil', -4), aus('Fremdteil', 2), aus('Fremdteil', -3)],
+    );
+    expect(k.kosten).toBe(21);
+    expect(k.ohnePreis).toEqual([]);
+  });
+
+  it('ein ausgegebener Artikel ohne Einkaufspreis wird beim Namen genannt', () => {
+    const k = materialkosten([], [], [aus('Sonderventil', 1)]);
+    expect(k.kosten).toBe(0);
+    expect(k.ohnePreis).toEqual(['Sonderventil']);
+  });
+
+  it('in der Nachkalkulation: Herkunft „Lager“ bzw. „Scheine und Lager“, und das Angebot zählt dann nicht', () => {
+    const nurLager = materialkosten([], [artikel('Eckventil', 3.5)], [aus('Eckventil', 100)]);
+    const angebot = {
+      status: 'Angenommen', totalNetto: 2000,
+      positions: [{ label: 'Eckventil', qty: 100, unit: 'Stk', unitPrice: 8, netto: 800, istArbeitszeit: false }],
+    } as never;
+    const k = rechneBaustelle('2026-001', 'Huber', [], RECHNUNG, angebot, KOSTEN, nurLager, [artikel('Eckventil', 3.5)]);
+    expect(k.materialQuelle).toBe('Lager');
+    // 350 aus dem Lager — nicht noch einmal 350 aus dem Angebot.
+    expect(k.materialkosten).toBe(350);
+    const beides = materialkosten(
+      [schein('s1', [{ name: 'Eckventil', menge: 4 }])],
+      [artikel('Eckventil', 3.5)],
+      [aus('Eckventil', 10)],
+    );
+    expect(rechneBaustelle('2026-001', 'Huber', [], RECHNUNG, undefined, KOSTEN, beides).materialQuelle).toBe('Scheine und Lager');
+  });
+
+  it('Erhaltung: ohne Ausgaben rechnet es wie vorher', () => {
+    const scheine = [schein('s1', [{ name: 'Eckventil', menge: 4 }])];
+    expect(materialkosten(scheine, [artikel('Eckventil', 3.5)], [])).toEqual({ ...materialkosten(scheine, [artikel('Eckventil', 3.5)]) });
+    expect(materialkosten(scheine, [artikel('Eckventil', 3.5)]).kosten).toBe(14);
+    expect(rechneBaustelle('2026-001', 'Huber', [], RECHNUNG, undefined, KOSTEN, materialkosten(scheine, [artikel('Eckventil', 3.5)])).materialQuelle).toBe('Scheine');
+  });
+});

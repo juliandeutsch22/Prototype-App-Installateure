@@ -58,6 +58,12 @@ vi.mock('@/lib/db/quotes', async () => ({
   getQuote: (c: string, id: string) => getQuote(c, id),
 }));
 vi.mock('@/lib/db/customers', async () => (await import('./kundenAuswahl')).kundenAttrappe(() => kunden));
+/* Der Auftragseingang eines Angebots — für die Rückfrage vor dem Verwerfen (Befund 09.11.2026). */
+let ausEingang: { id: string; nummer: string } | null = null;
+const getEingangZu = vi.fn<(c: string, z: { quoteId: string }) => Promise<typeof ausEingang>>(async () => ausEingang);
+vi.mock('@/lib/db/auftragseingaenge', () => ({
+  getEingangZu: (c: string, z: { quoteId: string }) => getEingangZu(c, z),
+}));
 /* Liegenschaften (M02c) — nur gefragt, wenn die Unterfähigkeit an ist. */
 const LIEGENSCHAFT = { id: 'l1', companyId: 'perl', bezeichnung: 'WHA Neudorf 3', anschrift: 'Dorfplatz 3, 2000 Neudorf', aktiv: true };
 vi.mock('@/lib/db/liegenschaften', () => ({
@@ -590,6 +596,31 @@ describe('Die Liste führt zum Angebot', () => {
     expect(updateQuote).not.toHaveBeenCalled();
     await nutzer.click(within(dialog).getByRole('button', { name: 'Verwerfen' }));
     await waitFor(() => expect(updateQuote).toHaveBeenCalledWith(angebote[angebote.length - 1].id, { status: 'Verworfen' }));
+    // Ohne Eingang kein Satz dazu.
+    expect(dialog).not.toHaveTextContent(/Eingang/);
+  });
+
+  /*
+    Befund 09.11.2026: ein verworfener Entwurf ließ seinen Eingang
+    „übernommen“ zurück. Die Rückfrage nennt ihn jetzt — er lässt sich dort
+    wieder öffnen. Gegenprobe: ohne die Änderung fehlt der Satz.
+  */
+  it('stammt der Entwurf aus einem Eingang, nennt die Rückfrage ihn', async () => {
+    versendetesAngebot();
+    angebote[angebote.length - 1].status = 'Entwurf';
+    ausEingang = { id: 'e1', nummer: 'EG-2026-0005' };
+    try {
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/AN-2026-0007/);
+      await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+      await nutzer.click(screen.getByRole('menuitem', { name: 'Verwerfen' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Entwurf verwerfen?' });
+      await waitFor(() => expect(dialog).toHaveTextContent(/aus dem Eingang EG-2026-0005: Er bleibt übernommen und lässt sich dort wieder öffnen/));
+      expect(getEingangZu).toHaveBeenCalledWith('perl', { quoteId: angebote[angebote.length - 1].id });
+    } finally {
+      ausEingang = null;
+    }
   });
 });
 

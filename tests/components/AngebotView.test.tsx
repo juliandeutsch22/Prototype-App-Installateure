@@ -371,6 +371,18 @@ describe('Weiter mit dem Angebot', () => {
     expect(deleteQuote).not.toHaveBeenCalled();
   });
 
+  // Befund 09.11.2026: der Eingang, aus dem der Entwurf stammt, steht in der Rückfrage. Gegenprobe: ohne die Änderung fehlt er.
+  it('stammt der Entwurf aus einem Eingang, nennt die Rückfrage ihn', async () => {
+    angebot = { ...ANGEBOT, status: 'Entwurf' };
+    ausEingang = { id: 'e1', nummer: 'EG-2026-0005' };
+    const nutzer = userEvent.setup();
+    zeige();
+    await screen.findByRole('link', { name: /Aus Eingang EG-2026-0005/ });
+    await mehrMenue(nutzer, 'Verwerfen');
+    const dialog = await screen.findByRole('dialog', { name: 'Entwurf verwerfen?' });
+    expect(dialog).toHaveTextContent(/aus dem Eingang EG-2026-0005: Er bleibt übernommen und lässt sich dort wieder öffnen/);
+  });
+
   it('im Papierkorb: nur lesen, „Wiederherstellen“ als einziger Schritt — kein PDF, kein „⋯“', async () => {
     angebot = {
       ...ANGEBOT, status: 'Verworfen', verworfenAm: Date.parse('2026-11-02T09:00:00+01:00'), verworfenVonName: 'Paul Projektleiter',

@@ -75,13 +75,15 @@ export interface Nachkalkulation {
    * Cent; die Summe ist `personalkosten` (bis auf die Rundung je Posten).
    */
   personalJe: { fach: number; helfer: number; lehrling: number };
-  /** Materialkosten aus den unterschriebenen Scheinen — 0, wenn keine bekannt. */
+  /** Materialkosten aus Scheinen und Lager (bzw. dem Angebot) — 0, wenn keine bekannt. */
   materialkosten: number;
   /**
-   * Woher das Material kommt: von den unterschriebenen Scheinen, oder — trug
-   * keiner Material — aus dem angenommenen Angebot (M9). `null`: weder noch.
+   * Woher das Material kommt: von den unterschriebenen Scheinen, aus dem,
+   * was das Lager darüber hinaus bzw. ohne Schein ausgegeben hat
+   * (Befund 09.11.2026), oder — kennen beide keines — aus dem angenommenen
+   * Angebot (M9). `null`: weder noch.
    */
-  materialQuelle: 'Scheine' | 'Angebot' | null;
+  materialQuelle: 'Scheine' | 'Scheine und Lager' | 'Lager' | 'Angebot' | null;
   /**
    * Artikel ohne hinterlegten Einkaufspreis.
    *
@@ -229,7 +231,9 @@ export function rechneBaustelle(
   }
   let angebotKosten = 0;
   const ausAngebot: string[] = [];
-  if (quote && quote.status === 'Angenommen' && material.scheine === 0) {
+  // Auch Lagerausgaben sind verbautes Material: dann gilt das Angebot nicht, sonst zählte es doppelt.
+  const ausLager = material.ausLager ?? 0;
+  if (quote && quote.status === 'Angenommen' && material.scheine === 0 && ausLager === 0) {
     for (const p of quote.positions ?? []) {
       // Titel und Textzeilen sind kein Material (M18).
       if ((p.art ?? 'position') !== 'position') continue;
@@ -257,7 +261,9 @@ export function rechneBaustelle(
     personalkosten,
     personalJe: { fach: cent(je.fach), helfer: cent(je.helfer), lehrling: cent(je.lehrling) },
     materialkosten: materialSumme,
-    materialQuelle: material.scheine > 0 ? 'Scheine' : ausDemAngebot ? 'Angebot' : null,
+    materialQuelle: material.scheine > 0
+      ? (ausLager > 0 ? 'Scheine und Lager' : 'Scheine')
+      : ausLager > 0 ? 'Lager' : ausDemAngebot ? 'Angebot' : null,
     materialLuecken: [...material.ohnePreis, ...ausAngebot],
     erloes,
     erloesQuelle,

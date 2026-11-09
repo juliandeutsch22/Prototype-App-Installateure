@@ -296,7 +296,7 @@ function loeschStandAus(d: Record<string, unknown>): LoeschStand {
 /**
  * LÖSCHEN, ERST GEPRÜFT (`anforderung_loeschen`): was eine verbuchte Zeile
  * im Bestand bewirkt hat, wird beim Löschen zurückgebucht — und die
- * Rückfrage nennt es vorher. Bis 10.11.2026 löschte die Ansicht an der
+ * Rückfrage nennt es vorher. Bis 09.11.2026 löschte die Ansicht an der
  * Tabelle: die Zeile fiel aus dem Rechnungsvorschlag, der Bestand blieb.
  */
 export async function anforderungLoeschenPruefen(orderId: string): Promise<LoeschStand> {
@@ -354,4 +354,34 @@ export async function ausgegebenesMaterial(projectNumber: string): Promise<Ausga
     einheit: z.einheit,
     menge: Number(z.menge) || 0,
   }));
+}
+
+/**
+ * Was das Lager für mehrere Baustellen je ausgegeben hat — über die ganze
+ * Laufzeit, ohne Rechnungsgrenze (Befund 09.11.2026). Für die
+ * Nachkalkulation: sie fragt, was das Material gekostet hat, nicht was noch
+ * zu verrechnen ist (`ausgegebenes_material_gesamt`). Je Baustelle unter
+ * ihrer Nummer ohne „PR-“, in Kleinschrift.
+ */
+export async function ausgegebenesMaterialGesamt(
+  projectNumbers: readonly string[],
+): Promise<Map<string, Omit<Ausgabe, 'belegId'>[]>> {
+  type Zeile = {
+    baustelle: string; art: Ausgabe['art']; datum: string; material_id: string | null;
+    name: string; einheit: string | null; menge: number;
+  };
+  const raus = new Map<string, Omit<Ausgabe, 'belegId'>[]>();
+  const nummern = [...new Set(projectNumbers.filter((n) => n && n.trim()))];
+  if (nummern.length === 0) return raus;
+  const { data, error } = await derClient().rpc('ausgegebenes_material_gesamt', { p_baustellen: nummern });
+  if (error) throw new Error(error.message);
+  for (const z of (data ?? []) as Zeile[]) {
+    const liste = raus.get(z.baustelle) ?? [];
+    liste.push({
+      art: z.art, datum: z.datum, materialId: z.material_id, name: z.name, einheit: z.einheit,
+      menge: Number(z.menge) || 0,
+    });
+    raus.set(z.baustelle, liste);
+  }
+  return raus;
 }

@@ -3,6 +3,7 @@ import { listInvoicesForProjects } from '@/lib/db/invoices';
 import { listQuotesForProjects } from '@/lib/db/quotes';
 import { listWorkSheetsForProjects } from '@/lib/db/workSheets';
 import { katalogNachIds, katalogNachNamen } from '@/lib/db/materials';
+import { ausgegebenesMaterialGesamt } from '@/lib/db/materialOrders';
 import { einkaufspreise, type Kostensaetze } from '@/lib/db/kosten';
 import { normProjectNumber } from '@/lib/time';
 import type { Invoice, Material, Project, Quote, WorkSheet } from '@/types';
@@ -57,7 +58,7 @@ export async function rechneBaustellen(
 ): Promise<NachkalkulationZeile[]> {
   if (projekte.length === 0) return [];
   const nummern = projekte.map((p) => p.projectNumber);
-  const [eintraege, scheine, rechnungen, angebote] = await Promise.all([
+  const [eintraege, scheine, ausgaben, rechnungen, angebote] = await Promise.all([
     listEntriesForProjects(companyId, nummern),
     /*
       Konnten die Scheine nicht geladen werden, wird KEIN Material angesetzt
@@ -67,6 +68,13 @@ export async function rechneBaustellen(
       sie bleibt der Deckungsbeitrag vor Material eine Auskunft.
     */
     listWorkSheetsForProjects(companyId, nummern).catch(() => null),
+    /*
+      Was das Lager je ausgegeben hat (Befund 09.11.2026) — ebenso eine
+      Zusatzangabe: kommt sie nicht, wird wie bei den Scheinen KEIN Material
+      angesetzt. Nur die Scheine zu nehmen, sähe vollständig aus und wäre
+      um das Ausgegebene zu niedrig.
+    */
+    ausgegebenesMaterialGesamt(nummern).catch(() => null),
     listInvoicesForProjects(companyId, nummern),
     listQuotesForProjects(companyId, projekte.flatMap((p) => (p.id ? [p.id] : []))),
   ]);
@@ -92,14 +100,18 @@ export async function rechneBaustellen(
   */
   const zeilen = projekte.flatMap((p) => angebotVon(p)?.positions ?? []);
   const scheinZeilen = (scheine ?? []).flatMap((s) => s.material ?? []);
+  // Die Artikel der Lagerausgaben brauchen ihren Einkaufspreis ebenso.
+  const lagerZeilen = [...(ausgaben?.values() ?? [])].flat();
   const [nachName, nachId] = await Promise.all([
     katalogNachNamen(companyId, [
       ...scheinZeilen.map((z) => z.name ?? ''),
       ...zeilen.map((z) => z.label ?? ''),
+      ...lagerZeilen.map((z) => z.name ?? ''),
     ]),
     katalogNachIds(companyId, [
       ...zeilen.map((z) => z.materialId ?? ''),
       ...scheinZeilen.flatMap((z) => (z.materialId ? [z.materialId] : [])),
+      ...lagerZeilen.flatMap((z) => (z.materialId ? [z.materialId] : [])),
     ]),
   ]);
   const artikel = [...new Map([...nachName, ...nachId].map((m) => [m.id, m])).values()];
@@ -109,7 +121,10 @@ export async function rechneBaustellen(
   return projekte
     .map((p): NachkalkulationZeile => {
       const nr = normProjectNumber(p.projectNumber);
-      const material = scheineJe ? materialkosten(scheineJe.get(nr) ?? [], katalog) : KEINE_MATERIALKOSTEN;
+      const material = scheineJe && ausgaben
+        // Die Datenbank führt die Ausgaben unter der Nummer ohne „PR-“ in Kleinschrift.
+        ? materialkosten(scheineJe.get(nr) ?? [], katalog, ausgaben.get(nr.toLowerCase()) ?? [])
+        : KEINE_MATERIALKOSTEN;
       return {
         ...rechneBaustelle(
           p.projectNumber,

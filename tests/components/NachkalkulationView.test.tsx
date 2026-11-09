@@ -150,6 +150,16 @@ vi.mock('@/lib/db/kosten', () => ({
 vi.mock('@/lib/db/workSheets', () => ({
   listWorkSheetsForProjects: (c: string, n: readonly string[]) => listWorkSheetsForProjects(c, n),
 }));
+/*
+  Was das Lager je ausgegeben hat (Befund 09.11.2026) — wie die Datenbank
+  unter der Nummer ohne „PR-“ in Kleinschrift.
+*/
+let ausgaben: Record<string, Array<{ art: 'anforderung' | 'retoure' | 'ruestliste'; datum: string; materialId: string | null; name: string; einheit: string | null; menge: number }>> = {};
+const ausgegebenesMaterialGesamt = vi.fn<(n: readonly string[]) => Promise<Map<string, (typeof ausgaben)[string]>>>(
+  async () => new Map(Object.entries(ausgaben)));
+vi.mock('@/lib/db/materialOrders', () => ({
+  ausgegebenesMaterialGesamt: (n: readonly string[]) => ausgegebenesMaterialGesamt(n),
+}));
 const listInvoicesForProjects = vi.fn(async (_c: string, nummern: readonly string[]) =>
   rechnungen.filter((r) => nummern.includes(r.projectNumber)));
 vi.mock('@/lib/db/invoices', () => ({
@@ -204,6 +214,8 @@ beforeEach(() => {
   katalogNachNamen.mockClear();
   katalogNachIds.mockClear();
   scheine = [];
+  ausgaben = {};
+  ausgegebenesMaterialGesamt.mockClear();
   eintraege = [];
   rechnungen = [];
   angebote = [];
@@ -348,6 +360,32 @@ describe('Mit Kostensätzen', () => {
     expect(await screen.findByText(/Zwischenstand — es kommen noch Stunden dazu/)).toBeInTheDocument();
   });
 
+  /*
+    Befund 09.11.2026: eine pausierte Baustelle stand in keiner der beiden
+    Auswahlen — ihre Zahlen waren nirgends zu sehen. „Laufend“ heißt aktiv
+    oder pausiert, wie in der Baustellenwahl. Gegenprobe: ohne die Änderung
+    fehlt 2026-005 unter „Laufend“.
+  */
+  it('rechnet pausierte Baustellen unter „Laufend“ mit — nicht unter „Abgeschlossen“', async () => {
+    const nutzer = userEvent.setup();
+    projekte = [projekt('2026-001'), projekt('2026-003', 'Aktiv'), projekt('2026-005', 'Pausiert')];
+    rechnungen = [rechnung('2026-005', 900)];
+    zeige();
+    await screen.findByText(/Kunde 2026-001/);
+    expect(screen.queryByText(/Kunde 2026-005/)).not.toBeInTheDocument();
+    await nutzer.click(auswahl('Laufend'));
+    expect(await screen.findByText(/Kunde 2026-005/)).toBeInTheDocument();
+    expect(screen.getByText(/Kunde 2026-003/)).toBeInTheDocument();
+    expect(listInvoicesForProjects.mock.calls.some(([, n]) => n.includes('2026-005') && n.includes('2026-003'))).toBe(true);
+  });
+
+  it('beginnt bei den laufenden, wenn es nur pausierte gibt', async () => {
+    projekte = [projekt('2026-005', 'Pausiert')];
+    zeige();
+    await waitFor(() => expect(auswahl('Laufend')).toHaveAttribute('aria-pressed', 'true'));
+    expect(await screen.findByText(/Kunde 2026-005/)).toBeInTheDocument();
+  });
+
   it('bleibt bei „Abgeschlossen“, sobald es eine abgeschlossene gibt', async () => {
     projekte = [projekt('2026-001'), projekt('2026-003', 'Aktiv')];
     zeige();
@@ -380,7 +418,7 @@ describe('Mit Kostensätzen', () => {
     rechnungen = [rechnung('2026-004', 300)];
     zeige();
     const verlust = (await screen.findByText(/Kunde 2026-004/)).closest('li') as HTMLElement;
-    const linie = within(verlust).getByRole('img', { name: /^Kosten € .*640,00 von € .*300,00 Erlös/ });
+    const linie = within(verlust).getByRole('img', { name: /^Kosten €\s.*640,00 von €\s.*300,00 Erlös/ });
     expect(linie).toHaveAttribute('data-darueber', 'true');
     const ohne = screen.getByText(/Kunde 2026-002/).closest('li') as HTMLElement;
     expect(within(ohne).queryByRole('img')).not.toBeInTheDocument();
@@ -447,6 +485,47 @@ describe('Material im Ergebnis', () => {
     const material = within(fenster).getByText('− Material').closest('.nachkalk-posten') as HTMLElement;
     expect(material.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('350,00');
     expect(material).toHaveTextContent('aus den unterschriebenen Handwerksscheinen');
+  });
+
+  /*
+    Befund 09.11.2026: was das Lager ohne Schein ausgegeben hat, schlägt die
+    Regie-Rechnung als Erlös vor — die Nachkalkulation kannte es nicht und
+    rechnete Material mit null. Gegenprobe: ohne die Änderung steht der
+    Deckungsbeitrag bei 2000 statt 1650, und das Fenster nennt kein Lager.
+  */
+  it('zieht ab, was das Lager ausgegeben hat, und nennt im Fenster das Lager als Herkunft', async () => {
+    projekte = [projekt('PR-2026-001')];
+    rechnungen = [rechnung('PR-2026-001', 2000)];
+    katalog = [{ id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 0, einkaufspreis: 3.5 } as Material];
+    ausgaben = { '2026-001': [{ art: 'anforderung', datum: '2026-08-03', materialId: 'm1', name: 'Eckventil', einheit: 'Stk', menge: 100 }] };
+    const nutzer = userEvent.setup();
+    zeige();
+    const zeile = (await screen.findByText(/Kunde PR-2026-001/)).closest('li') as HTMLElement;
+    expect(zeile.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('1650,00');
+    expect(ausgegebenesMaterialGesamt).toHaveBeenCalledWith(['PR-2026-001']);
+    // Der Einkaufspreis des ausgegebenen Artikels wird über seine Kennung gefragt.
+    expect(katalogNachIds.mock.calls.some(([, ids]) => ids.includes('m1'))).toBe(true);
+    const fenster = await oeffnen(nutzer, 'PR-2026-001');
+    const material = within(fenster).getByText('− Material').closest('.nachkalk-posten') as HTMLElement;
+    expect(material.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('350,00');
+    expect(material).toHaveTextContent('was das Lager für die Baustelle ausgegeben hat');
+  });
+
+  it('kommen die Lagerausgaben nicht, wird kein Material angesetzt — wie ohne Scheine', async () => {
+    projekte = [projekt('2026-001')];
+    rechnungen = [rechnung('2026-001', 2000)];
+    katalog = [{ id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 0, einkaufspreis: 3.5 } as Material];
+    scheine = [
+      {
+        id: 's1', companyId: 'perl', projectNumber: '2026-001', status: 'Unterschrieben',
+        material: [{ name: 'Eckventil', menge: 100 }],
+      } as unknown as WorkSheet & { id: string },
+    ];
+    ausgegebenesMaterialGesamt.mockRejectedValueOnce(new Error('weg'));
+    const nutzer = userEvent.setup();
+    zeige();
+    const fenster = await oeffnen(nutzer, '2026-001');
+    expect(within(fenster).getByText('− Material').closest('.nachkalk-posten')).toHaveTextContent('nichts eingerechnet');
   });
 
   it('fragt den Katalog nach den Namen der Scheine und des Angebots, nicht den ganzen Stamm (19.10.2026)', async () => {

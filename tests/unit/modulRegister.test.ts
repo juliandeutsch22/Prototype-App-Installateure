@@ -89,6 +89,8 @@ describe('Folgen beim Abschalten — was sich nicht zurückholen lässt', () => 
     */
     expect(folgenBeimAbschalten('einsatzplanung', undefined)).toEqual([
       'Die Kalender-Abos des ganzen Einsatzplans enden. Nach dem Wiedereinschalten richtet sie jeder neu ein.',
+      // Befund 09.11.2026: das persönliche Abo liefert dann nichts (`kalender_abruf`) — auch das steht vorher da.
+      'Persönliche Kalender-Abos liefern nichts, solange die Einsatzplanung aus ist. Danach liefert derselbe Link wieder.',
     ]);
   });
 

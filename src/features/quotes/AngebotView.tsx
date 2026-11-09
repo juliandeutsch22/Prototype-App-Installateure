@@ -717,7 +717,7 @@ export default function AngebotView() {
       <ConfirmDialog
         open={verwerfenFragen}
         title="Entwurf verwerfen?"
-        message={verwerfenFrage(q)}
+        message={verwerfenFrage(q, ausEingang)}
         confirmLabel="Verwerfen"
         confirmTone="primary"
         onCancel={() => setVerwerfenFragen(false)}

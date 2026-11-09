@@ -21,6 +21,18 @@ function Posten({ wort, betrag, woher, summe = false }: { wort: string; betrag: 
 }
 
 /**
+ * Woher das Material kommt, in Worten. Das Lager steht ausdrücklich da
+ * (Befund 09.11.2026): wer Kosten sieht, die auf keinem Schein stehen, soll
+ * wissen, dass sie aus den Ausgaben des Lagers kommen.
+ */
+const MATERIAL_HERKUNFT: Record<NonNullable<NachkalkulationZeile['materialQuelle']>, string> = {
+  Scheine: 'aus den unterschriebenen Handwerksscheinen, zum Einkaufspreis',
+  'Scheine und Lager': 'aus den unterschriebenen Handwerksscheinen und dem, was das Lager darüber hinaus ausgegeben hat, zum Einkaufspreis',
+  Lager: 'aus dem, was das Lager für die Baustelle ausgegeben hat, zum Einkaufspreis — auf keinem Schein steht Material',
+  Angebot: 'aus dem angenommenen Angebot — auf keinem Schein steht Material',
+};
+
+/**
  * DIE BAUSTELLE IM SEITENFENSTER (Auftrag 04.11.2026: „viel Text, sehr
  * unübersichtlich … eventuell mit einer Detailansicht, sodass nicht alles in
  * den kleinen Feldern stehen muss“).
@@ -111,9 +123,7 @@ export default function NachkalkulationDetail({
               betrag={k.materialkosten > 0 ? euro(k.materialkosten) : '—'}
               woher={
                 k.materialkosten > 0
-                  ? k.materialQuelle === 'Angebot'
-                    ? 'aus dem angenommenen Angebot — auf keinem Schein steht Material'
-                    : 'aus den unterschriebenen Handwerksscheinen, zum Einkaufspreis'
+                  ? MATERIAL_HERKUNFT[k.materialQuelle ?? 'Scheine']
                   : k.materialLuecken.length > 0
                     ? 'nichts eingerechnet — siehe unten'
                     : 'nichts eingerechnet'

@@ -142,3 +142,8 @@ export function listOwnOpenOrders(
 export function ausgegebenesMaterial(projectNumber: string) {
   return pg.ausgegebenesMaterial(projectNumber);
 }
+
+/** Was das Lager für diese Baustellen je ausgegeben hat — für die Nachkalkulation. */
+export function ausgegebenesMaterialGesamt(projectNumbers: readonly string[]) {
+  return pg.ausgegebenesMaterialGesamt(projectNumbers);
+}

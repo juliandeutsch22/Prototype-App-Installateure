@@ -44,6 +44,7 @@ import { leseZahl, preisAlsText, zahlAlsText, zahlOder } from '@/lib/zahl';
 import ZahlFeld from '@/components/ZahlFeld';
 import AdresseFeld from '@/components/AdresseFeld';
 import { useModul } from '@/lib/useModule';
+import { getEingangZu } from '@/lib/db/auftragseingaenge';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import { zuordnungAenderung } from '@/features/liegenschaften/liegenschaftText';
 import AbrechnungWahl from './AbrechnungWahl';
@@ -227,6 +228,25 @@ export default function QuotesView() {
   const [formOffen, setFormOffen] = useState(false);
   /** Welcher Entwurf in den Papierkorb soll — erst nach der Rückfrage (M01d). */
   const [verwerfenFragen, setVerwerfenFragen] = useState<WithId<Quote> | null>(null);
+  /*
+    DER EINGANG DES ENTWURFS (Befund 09.11.2026): die Rückfrage nennt ihn,
+    denn er bleibt „übernommen“ und muss danach wieder geöffnet werden. Nur
+    mit dem Auftragseingang — sonst lässt er sich nicht öffnen. Kommt die
+    Antwort nicht, steht die Rückfrage wie bisher da.
+  */
+  const eingangAn = useModul('baustellen.auftragseingang');
+  const [verwerfenEingang, setVerwerfenEingang] = useState<{ nummer: string } | null>(null);
+  useEffect(() => {
+    setVerwerfenEingang(null);
+    if (!verwerfenFragen || !user || !eingangAn) return;
+    let weg = false;
+    getEingangZu(user.companyId, { quoteId: verwerfenFragen.id })
+      .then((e) => { if (!weg) setVerwerfenEingang(e); })
+      .catch(() => undefined);
+    return () => {
+      weg = true;
+    };
+  }, [verwerfenFragen, user, eingangAn]);
   /** Welches Angebot gerade angenommen werden soll — erst nach der Rückfrage. */
   const [annehmenFragen, setAnnehmenFragen] = useState<WithId<Quote> | null>(null);
   /** Die Abrechnung der Baustelle, die beim Annehmen entsteht (M16). */
@@ -1323,7 +1343,7 @@ export default function QuotesView() {
       <ConfirmDialog
         open={!!verwerfenFragen}
         title="Entwurf verwerfen?"
-        message={verwerfenFragen ? verwerfenFrage(verwerfenFragen) : ''}
+        message={verwerfenFragen ? verwerfenFrage(verwerfenFragen, verwerfenEingang) : ''}
         confirmLabel="Verwerfen"
         confirmTone="primary"
         onCancel={() => setVerwerfenFragen(null)}
