@@ -78,8 +78,27 @@ describe('Katalog der Themen', () => {
     const keys = [...aufbau.slice(aufbau.indexOf('function leitung(')).matchAll(/key: '([a-z0-9-]+)', wann:/g)].map((m) => m[1]);
     expect(keys.length).toBeGreaterThan(20);
     expect(keys.filter((k) => !leitung.has(k))).toEqual([]);
-    // Die Zeilen, die als Thema übernommen werden (Nachrichten, Meldungen, Eingang).
-    for (const k of ['nachrichten', 'nachricht-meldungen', 'eingaenge']) expect(leitung.has(k), k).toBe(true);
+    // Die Zeilen, die als Thema übernommen werden (Nachrichten, Meldungen, Eingang, nicht verrechnete Scheine und Stunden).
+    for (const k of ['nachrichten', 'nachricht-meldungen', 'eingaenge', 'scheine', 'stunden']) expect(leitung.has(k), k).toBe(true);
+  });
+
+  /*
+    DIE ÜBERNOMMENEN ZEILEN DER LEITUNG (Prüfbericht 09.11.2026): eine Zeile
+    aus `regeln.ts`, die die Leitung als Thema übernimmt (`themen.push(wenn(z.to,
+    { key: z.key …`), trägt ihren Schlüssel dort — der Abgleich oben sieht
+    ihn nicht. „Scheine“ und „Stunden“ fehlten so im Katalog.
+  */
+  it('jede übernommene Zeile der Leitung steht im Katalog', () => {
+    const teil = aufbau.slice(aufbau.indexOf('function leitung('));
+    const uebernommen = [...teil.matchAll(/for \(const z of \[([^\]]+)\]\)/g)]
+      .flatMap((m) => [...m[1].matchAll(/(\w+Zeile)\(/g)].map((x) => x[1]));
+    expect(uebernommen.length).toBeGreaterThan(3);
+    for (const fn of uebernommen) {
+      const rumpf = `${regeln}\n${aufbau}`.slice(`${regeln}\n${aufbau}`.indexOf(`function ${fn}(`));
+      const key = /key: '([a-z0-9-]+)'/.exec(rumpf)?.[1];
+      expect(key, fn).toBeTruthy();
+      expect(leitung.has(key!), `${fn}: ${key}`).toBe(true);
+    }
   });
 
   it('jeder Abschnitt der übrigen Rollen steht im Katalog', () => {

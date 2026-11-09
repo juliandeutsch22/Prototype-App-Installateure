@@ -59,6 +59,9 @@ vi.mock('@/lib/db/wartungen', () => ({ listFaelligeWartungen: vi.fn(spaeter('war
 const { team, buchhaltung, leitung } = await import('@/features/dashboard/start/laden');
 const k = { user: { uid: 'gf', companyId: 'c1', role: 'Geschäftsführung' as const, name: 'Chefin' }, company: null, heute: '2026-10-10' };
 
+/** Die Belegschaft der Attrappe ist leer: außer der Chefin entscheidet niemand. */
+const KEINE_ANDEREN = { urlaub: false, unbezahlt: false, sonderurlaub: false };
+
 beforeEach(() => {
   gefragt.length = 0;
   for (const n of Object.keys(offen)) delete offen[n];
@@ -72,7 +75,8 @@ describe('Startseite: Blöcke fragen gleichzeitig', () => {
     offen.urlaub([{ id: 'u1' }]);
     offen.freistellungen([{ id: 'f1' }]);
     const d = await lauf;
-    expect(d).toEqual({ team: [], antraege: [{ id: 'u1' }], freistellungen: [{ id: 'f1' }] });
+    // Dazu, wer außer ihr entscheidet (Vier Augen) — in diesem Betrieb niemand.
+    expect(d).toEqual({ team: [], antraege: [{ id: 'u1' }], freistellungen: [{ id: 'f1' }], entscheidenAndere: KEINE_ANDEREN });
   });
 
   it('Mannschaft: fertig erst, wenn jede Frage geantwortet hat', async () => {
@@ -85,7 +89,7 @@ describe('Startseite: Blöcke fragen gleichzeitig', () => {
     await new Promise((r) => setTimeout(r, 20));
     expect(fertig).toBe(false);
     offen.urlaub([]);
-    await expect(lauf).resolves.toEqual({ antraege: [], freistellungen: [] });
+    await expect(lauf).resolves.toEqual({ antraege: [], freistellungen: [], entscheidenAndere: KEINE_ANDEREN });
   });
 
   it('Buchhaltung: Scheine neben den Rechnungen, die Rechnungen hinter den Zahlungen ohne auf die offenen zu warten', async () => {

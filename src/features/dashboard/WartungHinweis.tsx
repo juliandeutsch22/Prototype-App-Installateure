@@ -6,7 +6,8 @@ import { isGF, isVerw } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
 import { listFaelligeWartungen } from '@/lib/db/wartungen';
 import { todayStr } from '@/lib/time';
-import { monateDazu, VORLAUF_TAGE } from '@/features/maintenance/wartungsplan';
+import { beurteile, VORLAUF_TAGE } from '@/features/maintenance/wartungsplan';
+import { tageVerschoben } from './start/regeln';
 
 /**
  * Was an Wartungen ansteht — auf der Startseite, nicht in einer Liste.
@@ -44,14 +45,17 @@ export default function WartungHinweis() {
           Fälligkeitstag davon erfährt, kann keinen Termin mehr vereinbaren —
           der Kunde muss ja auch zu Hause sein.
 
-          Gerechnet über Monate statt über Tage, damit derselbe Vorlauf gilt
-          wie in der Liste (`VORLAUF_TAGE` ist ein Monat).
+          Gerechnet in Tagen wie die Liste (`VORLAUF_TAGE`), nicht in
+          Kalendermonaten: „ein Monat“ war im Februar 28 Tage, im Juli 31, und
+          die Zahl hier wich von „Steht an“ ab, obwohl der Satz darunter
+          „in den nächsten 30 Tagen“ sagt. Beurteilt wird mit derselben
+          Regel wie in der Liste (`beurteile`).
         */
-        const bis = monateDazu(heute, 1);
-        const faellig = await listFaelligeWartungen(companyId, bis);
+        const bis = tageVerschoben(heute, VORLAUF_TAGE);
+        const stand = (await listFaelligeWartungen(companyId, bis)).map((w) => beurteile(w, heute).stand);
         if (weg) return;
-        setAnzahl(faellig.length);
-        setUeberfaellig(faellig.filter((w) => w.faelligAm < heute).length);
+        setAnzahl(stand.filter((s) => s === 'überfällig' || s === 'fällig').length);
+        setUeberfaellig(stand.filter((s) => s === 'überfällig').length);
       } catch {
         /*
           Schweigen, nicht melden. Der Hinweis ist eine Zugabe auf einer

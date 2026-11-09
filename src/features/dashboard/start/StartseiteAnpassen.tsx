@@ -39,29 +39,33 @@ export default function StartseiteAnpassen({
   waehlbar,
   arbeitstagMoeglich,
   wahl,
+  themen = THEMEN[rolle],
 }: {
   open: boolean;
   onClose: () => void;
   rolle: StartRolle;
   /** Die Kennzahlen, die diese Person wählen kann (`waehlbareKennzahlen`). */
   waehlbar: string[];
+  /** Die Themen, die bei ihr etwas zeigen können (`angeboteneThemen`); ohne Angabe alle der Rolle. */
+  themen?: { key: string; name: string }[];
   /** Steht die Karte „Arbeitstag“ überhaupt auf der Startseite (Start/Stopp an)? */
   arbeitstagMoeglich: boolean;
   wahl: StartWahl | null;
 }) {
   return (
     <BottomSheet open={open} onClose={onClose} label="Startseite anpassen" titel="Startseite anpassen" auchBreit>
-      {open && <Inhalt onClose={onClose} rolle={rolle} waehlbar={waehlbar} arbeitstagMoeglich={arbeitstagMoeglich} wahl={wahl} />}
+      {open && <Inhalt onClose={onClose} rolle={rolle} waehlbar={waehlbar} arbeitstagMoeglich={arbeitstagMoeglich} wahl={wahl} themen={themen} />}
     </BottomSheet>
   );
 }
 
-function Inhalt({ onClose, rolle, waehlbar, arbeitstagMoeglich, wahl }: {
+function Inhalt({ onClose, rolle, waehlbar, arbeitstagMoeglich, wahl, themen }: {
   onClose: () => void;
   rolle: StartRolle;
   waehlbar: string[];
   arbeitstagMoeglich: boolean;
   wahl: StartWahl | null;
+  themen: { key: string; name: string }[];
 }) {
   const { user } = useAuth();
   const toast = useToastWennDa();
@@ -159,7 +163,7 @@ function Inhalt({ onClose, rolle, waehlbar, arbeitstagMoeglich, wahl }: {
       <fieldset className="anpassen-gruppe">
         <legend className="anpassen-titel">Zu erledigen</legend>
         <p className="anpassen-hinweis">Ausgeblendetes verschwindet nicht: unter „Zu erledigen“ steht, wie viel ausgeblendet ist, und ein Tipp zeigt es.</p>
-        {THEMEN[rolle].map((t) => (
+        {themen.map((t) => (
           <CheckboxField key={t.key} id={`zeige-${t.key}`} label={t.name} checked={!aus.has(t.key)} onChange={(e) => zeigen(t.key, e.target.checked)} />
         ))}
       </fieldset>

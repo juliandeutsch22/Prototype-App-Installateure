@@ -38,7 +38,7 @@ import TermineHeute from './start/TermineHeute';
 import { startseite } from './start/aufbau';
 import StartseiteAnpassen from './start/StartseiteAnpassen';
 import { useStartWahl } from './start/useStartWahl';
-import { BEREICH_ARBEITSTAG, BEREICH_TAG, ausgeblendet, geltendeKennzahlen, waehlbareKennzahlen } from './start/einrichtung';
+import { BEREICH_ARBEITSTAG, BEREICH_TAG, angeboteneThemen, ausgeblendet, geltendeKennzahlen, waehlbareKennzahlen } from './start/einrichtung';
 import { grundpfad, ZIEL } from './start/ziele';
 import {
   annahmenUeberLink,
@@ -87,6 +87,8 @@ export default function DashboardView() {
   const nachrichtenAn = useModul('nachrichten');
   // Die Karte „Arbeitstag“ steht nur mit Start/Stopp da — nur dann gibt es sie im Bogen.
   const timerAn = useModul('zeiterfassung.timer');
+  // Die Korrekturanträge (M06c): das Büro prüft sie — sie stehen unter „Zu erledigen“.
+  const korrekturAn = useModul('zeiterfassung.korrekturantraege');
   const rolle: StartRolle = user ? startRolle(user.role) : 'monteur';
   const mitZeitkonto = user ? fuehrtZeitkonto(user) : false;
   const heute = todayStr();
@@ -125,6 +127,8 @@ export default function DashboardView() {
   */
   const freistellungBestaetigen = !!user && canEditTime(user.role);
   const sonderurlaubZiel = urlaubAn ? undefined : ZIEL.sonderurlaub;
+  // Korrekturanträge entscheidet das Büro (`zeit_korrektur_entscheiden`).
+  const korrekturenPruefen = !!user && korrekturAn && canEditTime(user.role);
 
   /*
     ALLE LADEBLÖCKE IN EINER ABFRAGE, ZWISCHENGESPEICHERT (Stufe 3,
@@ -140,7 +144,7 @@ export default function DashboardView() {
   */
   const abfrage = useZwischengespeichert<{ data: StartDaten; nichtGeladen: string[] }>({
     queryKey: user
-      ? schluessel('startseite', user, heute, { user, company, einblick: !!einblick, mitZeitkonto, materialAn, bereitschaftAn, scheineAn, angeboteAn, onlineAnnahmeAn, eingangAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen, nachrichtenAn, eigeneKennzahlen })
+      ? schluessel('startseite', user, heute, { user, company, einblick: !!einblick, mitZeitkonto, materialAn, bereitschaftAn, scheineAn, angeboteAn, onlineAnnahmeAn, eingangAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen, korrekturenPruefen, nachrichtenAn, eigeneKennzahlen })
       : ['startseite'],
     // Erst mit der eigenen Wahl (E68): sonst liefe die Abfrage einmal für die Vorgabe und gleich noch einmal.
     enabled: !!user && !wahlLaedt,
@@ -178,6 +182,7 @@ export default function DashboardView() {
       if (canEditTime(user.role) || urlaubEntscheiden) {
         bloecke.push(['Die Mannschaft', () => team(k, {
           luecken: canEditTime(user.role), urlaub: urlaubEntscheiden, freistellungen: freistellungBestaetigen,
+          korrekturen: korrekturenPruefen,
         })]);
       }
       if (isGF(user.role) && onlineAnnahmeAn) {
@@ -416,6 +421,7 @@ export default function DashboardView() {
         waehlbar={waehlbar}
         arbeitstagMoeglich={zeitAn && timerAn}
         wahl={wahl}
+        themen={angeboteneThemen(rolle, { urlaubEntscheiden, korrekturen: korrekturenPruefen })}
       />
 
       {/* Was nicht kam — unten, nach allem, was geladen wurde. */}

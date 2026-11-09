@@ -44,6 +44,7 @@ import { meldungenOffen, ungeleseneZahl } from '@/lib/db/nachrichten';
 import { fristStichtag } from '@/lib/papierkorb';
 import { listAbwesendInRange, listOpenVacations, type Abwesenheit } from '@/lib/db/vacations';
 import { listOffeneFreistellungen } from '@/lib/db/freistellungen';
+import { zeitkorrekturenLaden, type Zeitkorrektur } from '@/lib/db/zeitkorrekturen';
 import { listTermineImZeitraum } from '@/lib/db/termine';
 import { listFaelligeWartungen } from '@/lib/db/wartungen';
 import { buchungskonten } from '@/lib/db/konten';
@@ -65,7 +66,7 @@ import { offeneNachtraege, NACHTRAG_TAGE, type OffenerNachtrag } from '@/feature
 import { unverrechneteScheine, unverrechneteStundenZeilen, UNVERRECHNET_BASIS } from '@/features/worksheets/unverrechnet';
 import { mahnlauf, type Mahnlauf } from '@/features/invoices/mahnlauf';
 import { basiszinsVerlauf, halbjahresbeginn } from '@/features/invoices/mahnung';
-import { monateDazu } from '@/features/maintenance/wartungsplan';
+import { VORLAUF_TAGE } from '@/features/maintenance/wartungsplan';
 import { eigenerResturlaub, eigenerSaldo } from './eigeneKonten';
 import { budgetStand, ohneEinsatzListe, planFenster } from '@/features/projects/baustellenLage';
 import { firmaSperrtRechnung } from '@/features/invoices/firmaSperre';
@@ -79,6 +80,8 @@ import {
   type OffeneStundenZeile,
   type ZahlungHeute,
   type LehrzeitEndeZeile,
+  type AndereEntscheiden,
+  andereEntscheiden,
   lehrzeitEnden,
   einzigeLeitungOhneMail,
   GARANTIE_NACHLAUF_TAGE,
@@ -164,6 +167,14 @@ export interface StartDaten {
   antraege?: Vacation[];
   /** Offener Sonderurlaub (Plan 10.3) — fürs Büro und die Spitze. */
   freistellungen?: Freistellung[];
+  /**
+   * Ob außer der Person noch jemand über Urlaub und Sonderurlaub entscheidet
+   * (Vier Augen) — dann steht der eigene Antrag nicht unter „entscheiden“.
+   * Fehlt die Angabe, ist es unbekannt.
+   */
+  entscheidenAndere?: AndereEntscheiden;
+  /** Offene Korrekturanträge der Zeiterfassung (M06c) — fürs Büro, das sie prüft. */
+  korrekturen?: Zeitkorrektur[];
   // Leitung
   projekte?: Project[];
   budget?: BudgetZeile[];
@@ -494,8 +505,12 @@ export async function buchhaltung(
     /*
       Unverrechnete Stunden der Regiebaustellen (23.10.2026) — neben den
       Rechnungen, nicht danach. Still: fehlen sie, bleibt der Rest.
+
+      Nur mit der Zeiterfassung (M06d/V2): ist sie aus, bietet die Rechnung
+      die Stunden nicht mehr als Quelle an — „mit Stunden nicht verrechnet“
+      wäre dann eine Aufgabe, die sich nirgends erledigen lässt.
     */
-    was.rechnungen ? (async () => {
+    was.rechnungen && istAn(company?.modules, 'zeiterfassung') ? (async () => {
       out.offeneStunden = await still(
         async () => unverrechneteStundenZeilen(await unverrechneteStunden(), heute),
         undefined,
@@ -517,7 +532,7 @@ export async function buchhaltung(
 
 export async function team(
   k: Kontext,
-  was: { luecken: boolean; urlaub: boolean; freistellungen?: boolean },
+  was: { luecken: boolean; urlaub: boolean; freistellungen?: boolean; korrekturen?: boolean },
 ): Promise<Partial<StartDaten>> {
   const { user } = k;
   const out: Partial<StartDaten> = {};
@@ -551,6 +566,17 @@ export async function team(
     })() : undefined,
     was.urlaub ? listOpenVacations(user.companyId, 100).then((a) => { out.antraege = a; }) : undefined,
     was.freistellungen ? listOffeneFreistellungen(user.companyId).then((f) => { out.freistellungen = f; }) : undefined,
+    /*
+      WER SONST NOCH ENTSCHEIDET — für den eigenen Antrag (Vier Augen). Still:
+      ohne Belegschaft bleibt er stehen wie bisher, der Rest des Blocks auch.
+    */
+    was.urlaub || was.freistellungen
+      ? still(() => belegschaftVon(k), null).then((alle) => {
+        if (alle) out.entscheidenAndere = andereEntscheiden(alle, user.uid, k.company?.vacationApprovers);
+      })
+      : undefined,
+    // Wie Urlaub und Sonderurlaub: scheitert die Frage, sagt die Seite, dass der Block fehlt.
+    was.korrekturen ? zeitkorrekturenLaden(user.companyId, true).then((z) => { out.korrekturen = z; }) : undefined,
   ]);
   return out;
 }
@@ -582,8 +608,13 @@ export async function leitung(
   const montag = montagDer(heute);
   const woche = wocheAb(montag);
   const { von: vorher, bis } = planFenster(heute);
-  // Die fälligen Wartungen hängen an nichts hier: gleich mit losschicken (Ladezeit, 19.10.2026).
-  const wartungen = was.wartung ? still(() => listFaelligeWartungen(user.companyId, monateDazu(heute, 1)), []) : undefined;
+  /*
+    Die fälligen Wartungen hängen an nichts hier: gleich mit losschicken
+    (Ladezeit, 19.10.2026). Bis zum selben Stichtag wie die Wartungsliste
+    (`VORLAUF_TAGE`): ein Monat voraus war im Februar zwei Tage kürzer, und
+    was die Liste „fällig“ nennt, fehlte hier.
+  */
+  const wartungen = was.wartung ? still(() => listFaelligeWartungen(user.companyId, tageVerschoben(heute, VORLAUF_TAGE)), []) : undefined;
   const projekteZusage = listActiveProjects(user.companyId);
   /*
     Der Budgetstand braucht nur die Baustellen, nicht Belegschaft und

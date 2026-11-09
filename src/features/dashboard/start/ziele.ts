@@ -19,8 +19,15 @@ export const ZIEL = {
   /** Zeiterfassung, das Formular mit diesem Tag vorbelegt. */
   zeitTag: (tag: string) => `/time?datum=${tag}`,
   zeit: '/time',
+  /** Ein Korrekturantrag, in der Karte „Korrekturanträge“ der Zeiterfassung geöffnet — wie die Push-Meldung. */
+  zeitKorrektur: (id: string) => `/time?korrektur=${q(id)}`,
   meineAbholbereit: '/material?reiter=meine&status=Abholbereit',
   anforderungen: (filter: AnforderungsFilter) => `/anforderungen?filter=${filter}`,
+  /**
+   * Der Reiter „Einkauf“ der Anforderungen — dort steht unter „Bestellt —
+   * noch nicht da“ auch das Material fürs Lager, das keine Anforderung hat.
+   */
+  einkauf: '/anforderungen?reiter=einkauf',
   lagerKnapp: '/lager?filter=knapp',
   /** Ein Angebot auf seiner eigenen Seite (dort auch die Baustelle, die daraus entstand). */
   angebot: (id: string) => `/quotes/${q(id)}`,

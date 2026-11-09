@@ -1,6 +1,8 @@
 import type { AppUser, EinkaufPosten, Freistellung, Invoice, MaterialOrder, Project, RechnungsKopf, Vacation, Wartung, WorkSheet } from '@/types';
 import { ART_NAME } from '@shared/freistellung';
 import { lehrzeitEnde } from '@/lib/einstufung';
+import { canEditTime, darfUrlaubEntscheiden, isTopLevel } from '@/lib/permissions';
+import type { Zeitkorrektur } from '@/lib/db/zeitkorrekturen';
 import { istBenutzerkonto } from '@shared/benutzername';
 import type { OffenerNachtrag } from '@/features/worksheets/zeitNachtrag';
 import { grenzText, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
@@ -242,7 +244,12 @@ export function lieferungenHeute(
       titel: `${fmtStunden(p.menge)}${p.einheit ? ` ${p.einheit}` : ''} × ${p.materialName}`,
       detail: 'fürs Lager',
       status: { text: 'heute', ton: 'info' },
-      to: ZIEL.anforderungen('lieferung-heute'),
+      /*
+        Material fürs Lager ist keine Anforderung: der Filter „Lieferung
+        heute“ unter „Laufend“ fände es nicht. Es steht im Reiter „Einkauf“
+        unter „Bestellt — noch nicht da“.
+      */
+      to: ZIEL.einkauf,
     });
   }
   return zeilen;
@@ -535,6 +542,94 @@ export function freistellungsantraege(
       to: ziel,
     }));
   return abschnitt('sonderurlaub', 'Sonderurlaub', zeilen, ziel);
+}
+
+/** Ob außer mir noch jemand über einen Antrag dieser Art entscheiden darf. */
+export interface AndereEntscheiden {
+  urlaub: boolean;
+  /** Unbezahlter Urlaub: Geschäftsführung und Administration. */
+  unbezahlt: boolean;
+  /** Der übrige Sonderurlaub: Büro und Spitze. */
+  sonderurlaub: boolean;
+}
+
+/**
+ * ÜBER DEN EIGENEN ANTRAG ENTSCHEIDET JEMAND ANDERER (Vier Augen) — dieselbe
+ * Regel wie die Datenbank (`app.entscheidet_jemand_anderer`, beim
+ * Sonderurlaub `freistellung_entscheiden`) und wie Urlaubsseite und
+ * Menüzähler. Nur wer im Betrieb allein entscheiden darf, entscheidet auch
+ * über sich selbst.
+ */
+export function andereEntscheiden(
+  belegschaft: Pick<AppUser, 'uid' | 'role' | 'active'>[],
+  ich: string,
+  genehmiger: string[] | undefined,
+): AndereEntscheiden {
+  const andere = belegschaft.filter((p) => p.uid !== ich && p.active !== false);
+  return {
+    urlaub: andere.some((p) => darfUrlaubEntscheiden(p.role, p.uid, genehmiger)),
+    unbezahlt: andere.some((p) => isTopLevel(p.role)),
+    sonderurlaub: andere.some((p) => canEditTime(p.role)),
+  };
+}
+
+/*
+  DER EIGENE ANTRAG STEHT NICHT UNTER „ENTSCHEIDEN“, solange jemand anderer
+  über ihn entscheidet: die Person könnte es gar nicht (die Datenbank weist
+  es ab), und die Zeile bliebe stehen, bis der andere entschieden hat. Ist
+  unbekannt, wer sonst entscheidet (Belegschaft nicht geladen), bleibt er
+  stehen — wie auf der Urlaubsseite.
+*/
+export function urlaubZuEntscheiden(antraege: Vacation[], ich: string | undefined, andere: AndereEntscheiden | undefined): Vacation[] {
+  return antraege.filter((v) => !(andere?.urlaub && v.userId === ich));
+}
+
+export function sonderurlaubZuBestaetigen(
+  antraege: Freistellung[],
+  ich: string | undefined,
+  andere: AndereEntscheiden | undefined,
+): Freistellung[] {
+  return antraege.filter((f) => !(f.userId === ich && (f.art === 'unbezahlt' ? andere?.unbezahlt : andere?.sonderurlaub)));
+}
+
+/** Wessen Buchung ein Korrekturantrag betrifft — der Name stand beim Antrag in der Buchung. */
+function korrekturPerson(a: Zeitkorrektur): string {
+  return String(a.vorher.user_name ?? '').trim() || 'Korrekturantrag';
+}
+
+/** Offene Korrekturanträge, der älteste zuerst — wer am längsten wartet, zuerst. */
+export function offeneKorrekturen(antraege: Zeitkorrektur[]): Zeitkorrektur[] {
+  return antraege.filter((a) => a.stand === 'offen').sort((a, b) => a.angelegtAm - b.angelegtAm);
+}
+
+/**
+ * OFFENE KORREKTURANTRÄGE (M06c) — fürs Büro, das sie prüft. Bis hierher
+ * standen sie nur in der Karte der Zeiterfassung und in der Push-Meldung;
+ * wer die Meldung verpasste, erfuhr nichts. Der Wunsch selbst steht nicht
+ * da: er ist Freitext und kann Persönliches enthalten — wie beim
+ * Sonderurlaub der Anlass. Jede Zeile öffnet den Antrag wie die Meldung.
+ */
+export function korrekturantraege(antraege: Zeitkorrektur[]): Abschnitt | null {
+  const zeilen: Zeile[] = offeneKorrekturen(antraege).map((a) => ({
+    key: `korrektur-${a.id}`,
+    titel: korrekturPerson(a),
+    detail: `Buchung vom ${datumAT(a.datum)} · angefragt ${tagKurzMs(a.angelegtAm)}`,
+    status: { text: 'prüfen', ton: 'warn' },
+    to: ZIEL.zeitKorrektur(a.id),
+  }));
+  return abschnitt('korrektur', 'Korrekturanträge', zeilen, ZIEL.zeit);
+}
+
+/** Für die Leitung: eine Zeile, der älteste Antrag vorn. */
+export function korrekturThema(antraege: Zeitkorrektur[]): { titel: string; detail: string; to: string } | null {
+  const offen = offeneKorrekturen(antraege);
+  if (offen.length === 0) return null;
+  const erster = offen[0];
+  return {
+    titel: `${offen.length} ${offen.length === 1 ? 'Korrekturantrag' : 'Korrekturanträge'}`,
+    detail: `ältester: ${korrekturPerson(erster)}, Buchung vom ${tagKurz(erster.datum)}`,
+    to: offen.length === 1 ? ZIEL.zeitKorrektur(erster.id) : ZIEL.zeit,
+  };
 }
 
 export interface ZahlungHeute {

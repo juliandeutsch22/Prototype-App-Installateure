@@ -150,6 +150,8 @@ vi.mock('@/lib/db/projects', () => ({
 const abwesend: { wert: { userId: string; von: string; bis: string; grund: string | null; zeiten: string | null }[] } = { wert: [] };
 vi.mock('@/lib/db/urlaubsanspruch', () => ({ listAnpassungen: vi.fn(async () => []) }));
 vi.mock('@/lib/db/freistellungen', () => ({ listOffeneFreistellungen: vi.fn(async () => []) }));
+// Die Korrekturanträge (M06c): ab Werk ist ihr Schalter aus — eigene Fälle unten.
+vi.mock('@/lib/db/zeitkorrekturen', () => ({ zeitkorrekturenLaden: vi.fn(async () => []) }));
 vi.mock('@/lib/db/vacations', () => ({
   listAbwesendInRange: vi.fn(async () => abwesend.wert),
   listOpenVacations: vi.fn(async () => []),
@@ -1303,3 +1305,57 @@ describe('Startseite — selbst eingerichtet', () => {
   });
 });
 
+
+/*
+  PRÜFBERICHT 09.11.2026: eingetragene Urlaubsgenehmiger außerhalb von
+  Büro und Spitze sahen offene Anträge nie, und offene Korrekturanträge
+  standen gar nicht auf der Startseite. Gegenprobe: gegen den Stand davor rot.
+*/
+describe('Startseite — wer entscheidet, sieht es', () => {
+  const offenerAntrag = {
+    id: 'v1', companyId: 'perl', userId: 'm2', userName: 'Max Muster', von: '2026-10-05', bis: '2026-10-09', tage: 5, status: 'Beantragt',
+  };
+
+  it('ein Monteur, der Urlaub genehmigt, sieht die offenen Anträge', async () => {
+    const vacations = await import('@/lib/db/vacations');
+    vi.mocked(vacations.listOpenVacations).mockResolvedValue([offenerAntrag] as never);
+    authWert.company = { id: 'perl', name: 'Perl Installationen', vacationApprovers: ['m1'] } as typeof authWert.company;
+    zeichne();
+    const karte = await karteMit('Urlaubsanträge');
+    expect(within(karte).getByText('Max Muster')).toBeInTheDocument();
+    vi.mocked(vacations.listOpenVacations).mockResolvedValue([]);
+  });
+
+  it('Gegenprobe: ohne Eintrag als Genehmiger keine Anträge — und nicht einmal gefragt', async () => {
+    const vacations = await import('@/lib/db/vacations');
+    vi.mocked(vacations.listOpenVacations).mockClear();
+    zeichne();
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    expect(screen.queryByText('Urlaubsanträge')).toBeNull();
+    expect(vacations.listOpenVacations).not.toHaveBeenCalled();
+  });
+
+  it('die Buchhaltung sieht offene Korrekturanträge, wenn der Schalter an ist — der Antrag öffnet sich direkt', async () => {
+    const korrekturen = await import('@/lib/db/zeitkorrekturen');
+    vi.mocked(korrekturen.zeitkorrekturenLaden).mockResolvedValue([{
+      id: 'k1', companyId: 'perl', userId: 'm1', eintragId: 'e1', datum: '2026-09-01', stand: 'offen',
+      wunsch: 'Ende 16 Uhr', vorher: { user_name: 'Anton Berger' }, angelegtAm: Date.parse('2026-09-14T08:00:00Z'),
+    }]);
+    rolle.wert = 'Buchhaltung';
+    authWert.company = { id: 'perl', name: 'Perl Installationen', modules: { 'zeiterfassung.korrekturantraege': true } };
+    zeichne();
+    const karte = await karteMit('Korrekturanträge');
+    expect(within(karte).getByRole('link', { name: /Anton Berger/ })).toHaveAttribute('href', '/time?korrektur=k1');
+    vi.mocked(korrekturen.zeitkorrekturenLaden).mockResolvedValue([]);
+  });
+
+  it('Gegenprobe: mit ausgeschaltetem Schalter wird nicht gefragt', async () => {
+    const korrekturen = await import('@/lib/db/zeitkorrekturen');
+    vi.mocked(korrekturen.zeitkorrekturenLaden).mockClear();
+    rolle.wert = 'Buchhaltung';
+    zeichne();
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    expect(korrekturen.zeitkorrekturenLaden).not.toHaveBeenCalled();
+    expect(screen.queryByText('Korrekturanträge')).toBeNull();
+  });
+});
