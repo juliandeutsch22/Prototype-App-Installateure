@@ -115,6 +115,16 @@ const KALTSTART_FENSTER_MS = 12_000;
 const STILL_MERKER = 'senklot:stillUebernommen';
 
 /**
+ * Kurz nach dem Start, und noch nichts angefasst? Dann kostet ein Neustart
+ * niemanden eine Eingabe. Ohne den Merker gegen die Schleife — die Notbremse
+ * (`NeueFassung`) fragt das, nachdem eine stille Übernahme ihn schon
+ * verbraucht hat.
+ */
+export function nochKalt(gestartet: number, angefasst: boolean): boolean {
+  return !angefasst && Date.now() - gestartet <= KALTSTART_FENSTER_MS;
+}
+
+/**
  * Darf JETZT noch still übernommen werden?
  *
  * Zwei Bedingungen, und beide müssen gelten: es ist kurz nach dem Start, UND
@@ -123,8 +133,7 @@ const STILL_MERKER = 'senklot:stillUebernommen';
  * der zweiten Sekunde.
  */
 export function darfStillUebernehmen(gestartet: number, angefasst: boolean): boolean {
-  if (angefasst) return false;
-  if (Date.now() - gestartet > KALTSTART_FENSTER_MS) return false;
+  if (!nochKalt(gestartet, angefasst)) return false;
   try {
     if (sessionStorage.getItem(STILL_MERKER)) return false;
     sessionStorage.setItem(STILL_MERKER, '1');

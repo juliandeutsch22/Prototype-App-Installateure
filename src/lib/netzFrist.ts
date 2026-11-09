@@ -27,7 +27,9 @@
  * doppelt an. Lesende Datenbankfunktionen gehen zwar per POST, schreiben
  * aber nicht — nur die in `LESENDE_FUNKTIONEN`, und eine Prüfung gegen die
  * Datenbank (`tests/supabase/netzFrist.test.ts`) hält fest, dass jede davon
- * dort als `stable` steht, also gar nicht schreiben KANN.
+ * dort als `stable` steht, also gar nicht schreiben KANN. Das Ausgangsfach
+ * bricht seine eigenen Vorgänge dagegen selbst ab (`sync/supabaseSender.ts`):
+ * jeder davon ist wiederholbar gebaut, ein zweiter Versuch legt nichts doppelt an.
  *
  * DER ABBRUCH ALS NETZFEHLER. Ein Stillstand endet als `TypeError` „Failed to
  * fetch …“, wie ein abgerissenes Netz. Das hat drei Folgen, alle gewollt:
@@ -141,6 +143,16 @@ export function zugriffsart(adresse: string, methode: string): Zugriffsart | nul
   if (pfad.includes('/rest/v1/rpc/')) {
     const name = pfad.slice(pfad.indexOf('/rest/v1/rpc/') + '/rest/v1/rpc/'.length);
     return lesend || (m === 'POST' && LESENDE_FUNKTIONEN.has(name)) ? 'lesen' : null;
+  }
+  /*
+    SIGNIERTE ADRESSEN UND DATEILISTEN gehen per POST, schreiben aber keine
+    Datei: der Speicher rechnet eine Adresse aus bzw. liest ein Verzeichnis.
+    Ohne Frist hing so jede Seite, die ein Bild oder einen Beleg zeigt, auf
+    einer toten Verbindung wie vor dem 01.11.2026. Das Hochladen
+    (`/storage/v1/object/<eimer>/…`) bleibt ohne Frist.
+  */
+  if (m === 'POST' && (pfad.includes('/storage/v1/object/sign/') || pfad.includes('/storage/v1/object/list/'))) {
+    return 'lesen';
   }
   if (pfad.includes('/rest/v1/') || pfad.includes('/storage/v1/')) return lesend ? 'lesen' : null;
   return null;

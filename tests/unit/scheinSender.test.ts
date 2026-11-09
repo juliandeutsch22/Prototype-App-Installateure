@@ -28,10 +28,11 @@ function client({
   upload?: { error: unknown };
   remove?: { error: unknown };
 }) {
-  const aufrufe = { rpc: vi.fn(async () => rpc), upload: vi.fn(async () => upload), remove: vi.fn(async () => remove) };
+  // Die Kette endet wie in der Bibliothek mit dem Abbruchsignal des Senders.
+  const aufrufe = { rpc: vi.fn(() => ({ abortSignal: async () => rpc })), upload: vi.fn(async () => upload), remove: vi.fn(async () => remove) };
   const c = {
     rpc: aufrufe.rpc,
-    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => stand }) }) }),
+    from: () => ({ select: () => ({ eq: () => ({ abortSignal: () => ({ maybeSingle: async () => stand }) }) }) }),
     storage: { from: () => ({ upload: aufrufe.upload, remove: aufrufe.remove }) },
   } as unknown as SupabaseClient;
   return { c, aufrufe };

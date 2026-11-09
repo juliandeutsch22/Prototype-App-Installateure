@@ -15,15 +15,18 @@ import type { Sendung } from '@/lib/sync/ausgangsfach';
  * sofort als Ablehnung zurück in die Maske.
  */
 
-/** Ein Client, der auf jeden Schreibversuch mit `antwort` reagiert. */
+/**
+ * Ein Client, der auf jeden Schreibversuch mit `antwort` reagiert. Die Kette
+ * endet wie in der Bibliothek mit dem Abbruchsignal des Senders.
+ */
 function clientMit(antwort: { error: { code?: string; message?: string } | null } | Error) {
   const ergebnis = async () => {
     if (antwort instanceof Error) throw antwort;
     return antwort;
   };
   const tabelle = {
-    upsert: ergebnis,
-    update: () => ({ eq: ergebnis }),
+    upsert: () => ({ abortSignal: ergebnis }),
+    update: () => ({ eq: () => ({ abortSignal: ergebnis }) }),
   };
   return { from: () => tabelle } as unknown as SupabaseClient;
 }
@@ -108,8 +111,8 @@ function clientMitAntwort(antwort: {
 }) {
   const ergebnis = async () => antwort;
   const tabelle = {
-    upsert: ergebnis,
-    update: () => ({ eq: ergebnis }),
+    upsert: () => ({ abortSignal: ergebnis }),
+    update: () => ({ eq: () => ({ abortSignal: ergebnis }) }),
   };
   return { from: () => tabelle } as unknown as SupabaseClient;
 }
@@ -145,7 +148,7 @@ describe('Prüflauf 25.09.2026', () => {
       from: () => ({
         update: (_d: unknown, o: unknown) => {
           optionen.push(o);
-          return { eq: async () => ({ error: null, count: 1 }) };
+          return { eq: () => ({ abortSignal: async () => ({ error: null, count: 1 }) }) };
         },
       }),
     } as unknown as SupabaseClient;

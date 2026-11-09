@@ -80,6 +80,23 @@ describe('welche Zugriffe eine Frist bekommen', () => {
     expect(zugriffsart('/assets/x.js', 'GET')).toBeNull();
   });
 
+  it('signierte Dateiadressen bekommen die Lesefrist — sie gehen per POST, schreiben aber nichts', () => {
+    // Eine Adresse (`createSignedUrl`) und mehrere auf einmal (`createSignedUrls`).
+    expect(zugriffsart(`${BASIS}/storage/v1/object/sign/belege/firma/a.pdf`, 'POST')).toBe('lesen');
+    expect(zugriffsart(`${BASIS}/storage/v1/object/sign/scheinfotos`, 'POST')).toBe('lesen');
+  });
+
+  it('das Auflisten eines Eimers bekommt die Lesefrist', () => {
+    expect(zugriffsart(`${BASIS}/storage/v1/object/list/belege`, 'POST')).toBe('lesen');
+  });
+
+  it('gleich geblieben: Hochladen und signiertes Hochladen bleiben ohne Frist', () => {
+    expect(zugriffsart(`${BASIS}/storage/v1/object/scheinfotos/firma/abc.jpg`, 'POST')).toBeNull();
+    expect(zugriffsart(`${BASIS}/storage/v1/object/sign/belege/firma/a.pdf`, 'PUT')).toBeNull();
+    expect(zugriffsart(`${BASIS}/storage/v1/object/upload/sign/belege/firma/a.pdf`, 'POST')).toBeNull();
+    expect(zugriffsart(`${BASIS}/storage/v1/object/upload/sign/belege/firma/a.pdf?token=t`, 'PUT')).toBeNull();
+  });
+
   it('die Erneuerung bleibt im Wiederverwendungsfenster des Anmeldedienstes (10 s)', () => {
     // Zweiter Versuch: Frist plus 200 ms Pause von auth-js.
     expect(FRISTEN.erneuern.bisAntwort + 200).toBeLessThan(10_000);

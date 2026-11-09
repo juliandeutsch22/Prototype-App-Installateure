@@ -3,6 +3,7 @@ import {
   serviceWorkerAnmelden,
   neueFassungUebernehmen,
   darfStillUebernehmen,
+  nochKalt,
 } from '@/lib/sw';
 import { fassungBeobachten } from '@/lib/fassungPruefen';
 import { appHartErneuern, darfHartErneuern, uebernahmeAufraeumen } from '@/lib/erneuerung';
@@ -127,9 +128,15 @@ export default function NeueFassung() {
      * SEINEM Vorrat geändert hat. Das ist ein guter Hinweis, aber keine
      * Aussage über die laufende App — und auf einen Hinweis hin alles
      * wegzuräumen wäre zu viel.
+     *
+     * SELBSTTÄTIG NUR, WO AUCH STILL ÜBERNOMMEN WÜRDE: kurz nach dem Start
+     * und unberührt. Beim Fortsetzen lud die Notbremse sonst mitten im
+     * Schein neu — genau der Neustart, den der Kopf dieser Datei ausschließt.
+     * Dann kommt die Leiste, und „Jetzt laden“ zieht die Notbremse. Erst die
+     * Bedingung, dann `darfHartErneuern`: es verbraucht den Merker je Fassung.
      */
     const meldenVomServer = () => {
-      if (darfHartErneuern(FASSUNG)) {
+      if (nochKalt(gestartet.current, angefasst.current) && darfHartErneuern(FASSUNG)) {
         void appHartErneuern();
         return;
       }
@@ -149,6 +156,15 @@ export default function NeueFassung() {
 
   if (!bereit) return null;
 
+  /*
+    Ist der gewöhnliche Wechsel von dieser Fassung aus schon einmal
+    gescheitert, hilft er auch jetzt nicht — dann räumt der Knopf hart.
+  */
+  const jetztLaden = () => {
+    if (darfHartErneuern(FASSUNG)) void appHartErneuern();
+    else void neueFassungUebernehmen();
+  };
+
   return (
     <div
       role="status"
@@ -163,7 +179,7 @@ export default function NeueFassung() {
         </span>
       </p>
       <div className="mt-3 flex gap-2">
-        <Button onClick={() => void neueFassungUebernehmen()}>Jetzt laden</Button>
+        <Button onClick={jetztLaden}>Jetzt laden</Button>
         <Button variant="ghost" onClick={() => setBereit(false)}>
           Später
         </Button>

@@ -23,7 +23,7 @@ describe('Gesicherte Timer-Abschlüsse', () => {
   });
   it('erst der bestätigte Sender entfernt genau seinen Entwurf und merkt die wirkliche Buchung', async () => {
     timerStandMerken('c','u',[sitzung]); timerEntwurfMerken(entwurf('a')); timerEntwurfMerken(entwurf('b'));
-    const client = { auth: { getSession: async () => ({ data: { session: { user: { id: 'u' } } } }) }, rpc: vi.fn(async () => ({ data: 'echte-buchung', error: null, status: 200 })) } as unknown as SupabaseClient;
+    const client = { auth: { getSession: async () => ({ data: { session: { user: { id: 'u' } } } }) }, rpc: vi.fn(() => ({ abortSignal: async () => ({ data: 'echte-buchung', error: null, status: 200 }) })) } as unknown as SupabaseClient;
     expect(await supabaseSender(client)({ uid: 'u', art: 'aufruf', tabelle: 'zeitsitzungen', zeile: 's', versuche: 0, angelegt: 1,
       daten: { funktion: 'zeit_timer_buchen', parameter: { p_id: 's', p_segment: 0, p_eintrag: {} }, timer: { uid: 'u', companyId: 'c', kennung: 'a' } } })).toEqual({ art: 'ok' });
     expect(timerEntwuerfeLesen('c','u').map((d) => d.kennung)).toEqual(['b']);
