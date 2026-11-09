@@ -187,9 +187,16 @@ export function buchungKonflikt(
     nicht auseinanderzuhalten — weder für den Monteur noch für die
     Buchhaltung. Es ist der Fall, in dem eine Doppelbuchung am ehesten
     unbemerkt bliebe, und genau ihn hat die alte Sperre verhindert.
+
+    MIT UHRZEIT AUF BEIDEN SEITEN sind sie auseinanderzuhalten — an der
+    Uhrzeit, wie beim geteilten Dienst auf derselben Baustelle unten. Der
+    Timer-Arbeitstag ohne Baustelle (07:00–12:00, Pause, 12:30–16:00) bucht
+    je Abschnitt einen Eintrag; ohne diese Ausnahme blieb der zweite Abschnitt
+    unbuchbar. Die Überschneidung ist oben schon ausgeschlossen, und
+    `doppeltMit` zählt solche Einträge ebenfalls nicht als Doppelung.
   */
   const nummer = normProjectNumber(neu.projectNumber);
-  if (!nummer) {
+  if (!nummer && arbeit.some((v) => !(spanne(neu) && spanne(v)))) {
     return 'Für diesen Tag ist bereits gebucht. Eine weitere Buchung braucht eine Baustelle — sonst lassen sich die beiden Einträge nicht auseinanderhalten.';
   }
 

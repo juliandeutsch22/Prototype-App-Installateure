@@ -59,6 +59,46 @@ describe('Noch eine Buchung an diesem Tag?', () => {
   });
 });
 
+/**
+ * DER TIMER-ARBEITSTAG OHNE BAUSTELLE (Befund 09.11.2026). Der Timer bucht je
+ * Abschnitt einen Eintrag: 07:00–12:00, Pause, 12:30–16:00. Ohne Baustelle
+ * sperrte die Regel „ohne Baustelle keine zweite Buchung“ den zweiten
+ * Abschnitt — der Nachmittag fehlte im Zeitkonto. Mit Uhrzeit auf beiden
+ * Seiten sind die Einträge auseinanderzuhalten wie der geteilte Dienst auf
+ * derselben Baustelle; ohne Uhrzeit bleibt die Sperre.
+ */
+describe('Ohne Baustelle — mit und ohne Uhrzeit', () => {
+  const Z = (startTime: string, endTime: string, projectNumber?: string) =>
+    ({ status: 'Anwesend' as const, startTime, endTime, projectNumber });
+
+  it('laesst den zweiten Timer-Abschnitt ohne Baustelle zu', () => {
+    expect(buchungKonflikt(Z('12:30', '16:00'), [Z('07:00', '12:00')])).toBeNull();
+    // Auch neben einer Baustelle mit Uhrzeit.
+    expect(buchungKonflikt(Z('12:30', '16:00'), [Z('07:00', '12:00', '2026-042')])).toBeNull();
+  });
+
+  it('und die Zeituebersicht meldet ihn nicht als Doppelung', () => {
+    const t = tageMitEchterDoppelung([
+      { date: '2026-09-01', ...Z('07:00', '12:00') },
+      { date: '2026-09-01', ...Z('12:30', '16:00') },
+    ]);
+    expect(t.size).toBe(0);
+  });
+
+  it('sperrt weiter, wenn die neue Zeit keine Uhrzeit traegt', () => {
+    expect(buchungKonflikt(A(), [Z('07:00', '12:00')])).toMatch(/braucht eine Baustelle/);
+  });
+
+  it('sperrt weiter, wenn der vorhandene Eintrag keine Uhrzeit traegt', () => {
+    expect(buchungKonflikt(Z('12:30', '16:00'), [A()])).toMatch(/braucht eine Baustelle/);
+    expect(buchungKonflikt(Z('12:30', '16:00'), [Z('07:00', '12:00'), A('2026-042')])).toMatch(/braucht eine Baustelle/);
+  });
+
+  it('sperrt weiter bei Ueberschneidung', () => {
+    expect(buchungKonflikt(Z('11:00', '16:00'), [Z('07:00', '12:00')])).toMatch(/überschneidet/);
+  });
+});
+
 describe('Krank und Urlaub bleiben einzeln', () => {
   /**
    * DER GRUND STEHT IN DER RECHNUNG, nicht im Gefuehl: `calcOverallSaldo`,
