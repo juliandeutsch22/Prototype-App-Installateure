@@ -67,6 +67,22 @@ describe('welche Zugriffe eine Frist bekommen', () => {
     expect(zugriffsart(`${BASIS}/auth/v1/recover?redirect_to=https%3A%2F%2Fapp.senklot.at`, 'POST')).toBe('zuruecksetzen');
   });
 
+  it('die lesenden Funktionen der Nachrichten und der Plattform bekommen die Lesefrist', () => {
+    /*
+      Die Zahl der ungelesenen Nachrichten kommt seit 09.11.2026 über
+      `nachrichten_ungelesen` (POST statt GET). Ohne Eintrag blieb die
+      Startseite, die auf sie wartet, auf einer halb toten Verbindung im
+      Laden stehen — der Fehler vom 01.11.2026, über einen neuen Weg.
+    */
+    for (const name of [
+      'nachrichten_ungelesen', 'nachrichten_postfach', 'nachrichten_kanal', 'nachrichten_verlauf',
+      'nachrichten_baustelle_stand', 'nachricht_meldungen', 'nachricht_meldungen_offen',
+      'nachrichten_selbstexport', 'plattform_betrieb_protokoll', 'plattform_geloeschte_betriebe',
+    ]) {
+      expect(zugriffsart(`${BASIS}/rest/v1/rpc/${name}`, 'POST'), name).toBe('lesen');
+    }
+  });
+
   it('gleich geblieben: alles, was schreiben kann, bekommt keine', () => {
     for (const m of ['POST', 'PATCH', 'PUT', 'DELETE']) {
       expect(zugriffsart(`${BASIS}/rest/v1/time_entries`, m), m).toBeNull();

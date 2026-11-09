@@ -37,6 +37,14 @@ import Button from './Button';
 
 export default function NeueFassung() {
   const [bereit, setBereit] = useState(false);
+  /**
+   * Die neue Hülle liegt noch nicht: der Worker kam über das Netz nicht an
+   * ihre Bausteine. Ein Neuladen brächte dieselbe Fassung zurück — die
+   * Leiste sagt es, statt so zu tun, als wäre geladen worden.
+   */
+  const [ausstehend, setAusstehend] = useState(false);
+  /** „Jetzt laden“ wartet auf den Worker. */
+  const [laedt, setLaedt] = useState(false);
   const gestartet = useRef(Date.now());
   const angefasst = useRef(false);
   /**
@@ -102,18 +110,38 @@ export default function NeueFassung() {
 
       if (darfStillUebernehmen(gestartet.current, angefasst.current)) {
         uebernimmtGerade.current = true;
-        void neueFassungUebernehmen().catch(() => {
-          /*
-            Kommt der Neustart nicht zustande, muss die Leiste doch kommen.
-            Ein stiller Verzicht wäre der schlechteste Ausgang: die App bliebe
-            auf dem alten Stand, und niemand hätte je die Wahl gehabt.
-          */
+        /*
+          Kommt der Neustart nicht zustande, muss die Leiste doch kommen.
+          Ein stiller Verzicht wäre der schlechteste Ausgang: die App bliebe
+          auf dem alten Stand, und niemand hätte je die Wahl gehabt. Das gilt
+          auch, wenn die neue Hülle noch nicht liegt (`ausstehend`) oder
+          inzwischen jemand tippt (`angehalten`) — geladen wird dann nur,
+          wer es selbst will.
+        */
+        const stattdessenFragen = (stand: 'ausstehend' | 'angehalten' | 'fehler') => {
           uebernimmtGerade.current = false;
+          setAusstehend(stand === 'ausstehend');
           setBereit(true);
-        });
+        };
+        void neueFassungUebernehmen(() => !angefasst.current).then(
+          (ergebnis) => {
+            if (ergebnis !== 'neuGeladen') stattdessenFragen(ergebnis);
+          },
+          () => stattdessenFragen('fehler'),
+        );
         return;
       }
       setBereit(true);
+    };
+
+    /**
+     * Der Worker meldet eine neue Fassung erst, wenn ihre Hülle samt
+     * Bausteinen liegt (`public/sw.js`). Damit ist ein „noch nicht geladen“
+     * erledigt; die Serverprüfung weiß das nicht und lässt es stehen.
+     */
+    const meldenVomWorker = () => {
+      setAusstehend(false);
+      melden();
     };
 
     /**
@@ -143,7 +171,7 @@ export default function NeueFassung() {
       melden();
     };
 
-    serviceWorkerAnmelden(melden);
+    serviceWorkerAnmelden(meldenVomWorker);
     const abmelden = fassungBeobachten(meldenVomServer);
 
     return () => {
@@ -161,8 +189,19 @@ export default function NeueFassung() {
     gescheitert, hilft er auch jetzt nicht — dann räumt der Knopf hart.
   */
   const jetztLaden = () => {
-    if (darfHartErneuern(FASSUNG)) void appHartErneuern();
-    else void neueFassungUebernehmen();
+    if (darfHartErneuern(FASSUNG)) {
+      void appHartErneuern();
+      return;
+    }
+    setLaedt(true);
+    void neueFassungUebernehmen().then(
+      (ergebnis) => {
+        if (ergebnis === 'neuGeladen') return;
+        setLaedt(false);
+        setAusstehend(ergebnis === 'ausstehend');
+      },
+      () => setLaedt(false),
+    );
   };
 
   return (
@@ -174,12 +213,18 @@ export default function NeueFassung() {
     >
       <p className="text-sm text-ink">
         Eine neue Fassung der App steht bereit.
+        {ausstehend && (
+          <span className="mt-1 block text-xs text-ink-muted">
+            Die Verbindung reicht gerade nicht, um sie zu laden – bis dahin läuft die bisherige Fassung
+            weiter. Beim nächsten Öffnen der App wird es wieder versucht.
+          </span>
+        )}
         <span className="mt-1 block text-xs text-ink-muted">
           Nicht gespeicherte Eingaben gehen beim Laden verloren.
         </span>
       </p>
       <div className="mt-3 flex gap-2">
-        <Button onClick={jetztLaden}>Jetzt laden</Button>
+        <Button onClick={jetztLaden} loading={laedt}>Jetzt laden</Button>
         <Button variant="ghost" onClick={() => setBereit(false)}>
           Später
         </Button>
