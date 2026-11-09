@@ -51,7 +51,7 @@ export default function ZeitsitzungPanel({ profil }: { profil?: AppUser | null }
           {s.stand === 'beendet' && v.art === 'arbeit' && !v.buchung && !v.verworfen_grund && !v.vorgemerkt && <button type="button" className="link text-sm" onClick={() => setVerwerfen({ id: s.id, index })}>Nicht buchen …</button>}
         </ListRow>)}</List>
         {s.entwuerfe?.filter((d) => !d.wartet).map((d) => <details key={d.kennung} className="my-3 break-words border-t border-line pt-3">
-          <summary className="cursor-pointer text-sm">Gesicherter Entwurf · {datumAusMs(d.angelegtAm)}</summary>
+          <summary className="weiteres-kopf text-sm">Gesicherter Entwurf · {datumAusMs(d.angelegtAm)}</summary>
           <p className="my-2 text-sm text-ink-muted">{d.fehler ?? 'Dieser Entwurf ist noch nicht vom Server bestätigt. Bitte prüfen.'}</p>
           {d.art === 'buchen' && d.eintrag && <dl className="space-y-1 text-sm">
             <div><dt className="inline">Datum und Zeit: </dt><dd className="inline">{datumAT(d.eintrag.date)} {d.eintrag.startTime}–{d.eintrag.endTime} · {d.eintrag.breakDuration ?? 0} Min. Pause</dd></div>

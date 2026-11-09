@@ -904,6 +904,13 @@ textarea {
   .inhalt .karte:not(:is(.akten-seite, .start-seite, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) .karte-kopf .titel-karte { font-size: 1.125rem; line-height: 1.625rem; }
   .karte-koerper .zeile { padding-inline: 0; }
   /*
+    IN FENSTERN STEHT DIE ZEILE AUF DER FLUCHT DES FENSTERS (09.11.2026).
+    Das Fenster bringt seinen Innenrand selbst mit; die 16 px der Zeile kamen
+    dazu, und im Tagesfenster standen Überschriften auf 20 px, Zeilen auf
+    36 px, die Knöpfe rechts auf zwei verschiedenen Kanten.
+  */
+  :is(.fenster-inhalt, .blatt-inhalt) .zeile { padding-inline: 0; }
+  /*
     JEDE SEITE BEGINNT IHREN INHALT IM SELBEN ABSTAND ZUM KOPF (E31, 31.10.2026).
     Gemessen über alle Ansichten lag der erste Inhalt 20, 24, 60 oder 64 px
     unter dem Kopf: die Seiten sind teils mit 12/20 px, teils mit 24 px

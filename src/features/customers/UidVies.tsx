@@ -128,7 +128,7 @@ export default function UidVies({
 
       {fruehere.length > 0 && (
         <details className="text-sm">
-          <summary className="cursor-pointer text-ink-muted">Frühere Abfragen ({fruehere.length})</summary>
+          <summary className="weiteres-kopf">Frühere Abfragen ({fruehere.length})</summary>
           <ul className="mt-1 space-y-0.5 text-ink-muted">
             {fruehere.map((p) => (
               <li key={p.id}>

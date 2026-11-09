@@ -411,7 +411,7 @@ export default function PersonFenster({
       </section>
 
       <details className="pf-kontodetails">
-        <summary>Abwesenheiten und Zeitkonto</summary>
+        <summary className="weiteres-kopf">Abwesenheiten und Zeitkonto</summary>
         <p className="pf-text">
           {teile.map((t, i) => (
             <span key={i}>

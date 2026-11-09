@@ -84,6 +84,15 @@
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile-gestapelt { padding-block: 18px 17px; }
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .karte-koerper .zeile { padding-inline: 0; }
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .mehr-laden { padding-inline: 24px; background: transparent; }
+  /*
+    DER FORMULARFUSS IM BLATT (09.11.2026): die Linie über den Knöpfen reicht
+    von Kante zu Kante des Blatts, die Knöpfe stehen auf der 24-px-Flucht.
+    Gerechnet war er für 16-px-Karten; im Blatt endete die Linie 8 px vor dem
+    Rand. Ab dem Schreibtisch steht der Fuß ohne Linie (index.css).
+  */
+  @media (max-width: 1199px) {
+    .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-koerper .aktionsleiste { margin: 1.5rem -24px -24px; padding: 12px 24px; }
+  }
   /* Ein Verweis in der Zeile trägt seine Tastfläche, ohne die Zeile höher zu machen. */
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile .link-kontakt { min-height: 0; padding-block: 0.75rem; margin-block: -0.75rem; vertical-align: top; }
 }

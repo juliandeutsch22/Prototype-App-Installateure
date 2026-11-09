@@ -324,7 +324,7 @@ describe('Durchsicht 09.11.2026', () => {
   it('ein Aufklapper zeigt seinen Pfeil fest rechts und dreht ihn beim Öffnen', () => {
     const LOT = stil('lot.css');
     expect(LOT).toMatch(/\.weiteres-kopf::after, \.weiteres-knopf::after \{[^}]*position: absolute; right: 0; top: 50%;/);
-    expect(LOT).toContain(".weiteres[open] > .weiteres-kopf::after, .weiteres-knopf[aria-expanded='true']::after { transform: translateY(-50%) rotate(180deg); }");
+    expect(LOT).toContain("details[open] > .weiteres-kopf::after, .weiteres-knopf[aria-expanded='true']::after { transform: translateY(-50%) rotate(180deg); }");
     // Platz für den Pfeil, auch am Knopf-Aufklapper, der seinen Innenabstand selbst setzt.
     expect(LOT).toContain('.weiteres-kopf, .weiteres-knopf { position: relative; padding-right: 1.75rem; }');
     expect(stil('lot-verwaltung.css')).toMatch(/\.weiteres-knopf \{[^}]*padding: 0 1\.75rem 0 0;/);

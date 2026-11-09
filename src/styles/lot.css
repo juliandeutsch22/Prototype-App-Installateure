@@ -71,7 +71,9 @@
   }
   .fenster-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
   @media (min-width: 760px) { .fenster-kopf { padding: 1rem 1.25rem; } }
-  .fenster-schliessen { flex: none; white-space: nowrap; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: var(--text-muted); font-size: 0.875rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  /* „Schließen“ ist eine Handlung und sieht aus wie der Zweitknopf (E72) — nicht wie ein unterstrichenes Wort. */
+  .fenster-schliessen { flex: none; white-space: nowrap; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); color: var(--text); font-size: 0.875rem; cursor: pointer; transition: border-color var(--motion-state, 160ms) var(--ease-response, ease); }
+  .fenster-schliessen:hover { border-color: var(--brand-fixed); }
   .fenster-titel { font-size: 1.125rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .fenster-inhalt { min-width: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; max-height: 70vh; padding-top: 1rem; }
   @media (min-width: 760px) { .fenster-inhalt { flex: 1; max-height: none; padding: 1.25rem; } }
@@ -112,14 +114,20 @@
   .arbeitszeile-schritt { flex: none; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); color: var(--accent-deep); border: 1px solid var(--petrol); border-radius: var(--radius); font-weight: var(--gewicht-titel); font-size: 0.875rem; white-space: nowrap; cursor: pointer; }
   .arbeitszeile-schritt:hover { background: var(--petrol-hell); }
   .arbeitszeile-schritt:disabled { opacity: 0.5; cursor: not-allowed; }
-  .sammelleiste { position: sticky; top: 0; z-index: 12; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--petrol); color: #ffffff; border-radius: var(--radius-lg); }
+  /*
+    DIE SAMMELLEISTE IST EIN BLATT (E72) wie die Leiste des Warenkorbs (E47):
+    eckig, Linie rundum, Haupt- und Zweitknopf — keine Petrolfläche mit
+    festen Farben, die dunkel hart aus dem Bild leuchtete.
+  */
+  .sammelleiste { position: sticky; top: 0; z-index: 12; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); }
   @media (max-width: 759px) {
-    .sammelleiste { position: fixed; left: 0; right: 0; top: auto; bottom: var(--reiter-hoehe, 0px); z-index: 22; border-radius: 0; }
+    .sammelleiste { position: fixed; left: 0; right: 0; top: auto; bottom: var(--reiter-hoehe, 0px); z-index: 22; border-inline: 0; border-bottom: 0; }
   }
   .sammelleiste-knoepfe { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
-  .sammel-knopf { min-height: 2.75rem; padding: 0 0.875rem; background: #ffffff; color: #0f4552; border: 0; border-radius: var(--radius); font-weight: var(--gewicht-titel); cursor: pointer; }
+  .sammel-knopf { min-height: 2.75rem; padding: 0 1rem; background: var(--brand); color: var(--brand-fg); border: 1px solid var(--brand); border-radius: var(--radius); font-weight: var(--gewicht-titel); cursor: pointer; }
   .sammel-knopf:disabled { opacity: 0.6; cursor: not-allowed; }
-  .sammel-text { min-height: 2.75rem; background: none; border: 0; color: #ffffff; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .sammel-text { min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); color: var(--text); cursor: pointer; }
+  .sammel-text:hover { border-color: var(--brand-fixed); }
 
   /* ── Kurzzeile (Akten) ────────────────────────────────────────────────── */
   .kurz { border-top: 1px solid var(--border); }
@@ -186,7 +194,7 @@
     mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 1rem 1rem no-repeat;
     transition: transform var(--motion-state, 160ms) var(--ease-response, ease);
   }
-  .weiteres[open] > .weiteres-kopf::after, .weiteres-knopf[aria-expanded='true']::after { transform: translateY(-50%) rotate(180deg); }
+  details[open] > .weiteres-kopf::after, .weiteres-knopf[aria-expanded='true']::after { transform: translateY(-50%) rotate(180deg); }
   .weiteres-kopf:hover::after, .weiteres-knopf:hover::after { background: var(--accent-deep); }
   .weiteres-kopf::-webkit-details-marker { display: none; }
   .weiteres-kopf::marker { content: ''; }

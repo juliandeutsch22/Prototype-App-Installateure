@@ -151,7 +151,7 @@ export default function BaustellenUebersicht({
     {stand.helperMin > 0 && <p className="text-sm text-ink-muted">zusätzlich {fmtStd(stand.helperMin)} h Helfer · separat vom Budget</p>}
     {stand.lehrlingMin > 0 && <p className="text-sm text-ink-muted">+{fmtStd(stand.lehrlingMin)} h Lehrling, nicht im Budget</p>}
     {/* Stunden nach Person als Stückliste (Planlinie B6): Pos, Person, Stunden, Summe über der Doppellinie. */}
-    <details><summary>Stunden nach Person</summary>
+    <details><summary className="weiteres-kopf">Stunden nach Person</summary>
       <div className="overflow-x-auto">
         <table className="tabelle tabelle-eng">
           <thead><tr><th scope="col">Pos</th><th scope="col">Person</th><th scope="col" className="r">Stunden</th></tr></thead>

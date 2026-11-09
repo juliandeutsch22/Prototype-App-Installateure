@@ -421,7 +421,7 @@ export default function BaustellenakteView() {
         {angebote.map((q) => <Link key={q.id} to={`/quotes/${q.id}`} className="link akten-verweis">Angebot {q.quoteNumber}</Link>)}
         {ausEingang && <Link to={`/eingaenge/${ausEingang.id}`} className="link akten-verweis">Aus Eingang {ausEingang.nummer}</Link>}
       </div>
-      {verlauf.length > 1 && <details className="akten-weitere"><summary>Verlauf der Baustelle</summary>
+      {verlauf.length > 1 && <details className="akten-weitere"><summary className="weiteres-kopf">Verlauf der Baustelle</summary>
         <LotVerlauf name="Verlauf der Baustelle" punkte={verlauf} />
       </details>}
       {/* Wer was wann an der Baustelle geändert hat (M01b) — neben ihrem Verlauf, ebenso auf Klick. */}

@@ -165,7 +165,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             />
           )}
           <details className="mt-4 text-xs text-ink-muted">
-            <summary className="cursor-pointer">Technische Details</summary>
+            <summary className="weiteres-kopf">Technische Details</summary>
             <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words">
               {error.message}
             </pre>

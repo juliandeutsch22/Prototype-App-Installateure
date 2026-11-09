@@ -56,7 +56,7 @@ export default function Aenderungsprotokoll({
         if ((e.currentTarget as HTMLDetailsElement).open && stand === 'zu') holen();
       }}
     >
-      <summary className={stil === 'pf' ? undefined : 'weiteres-kopf'}>{titel}</summary>
+      <summary className="weiteres-kopf">{titel}</summary>
       <div className={stil === 'pf' ? 'pf-text' : 'weiteres-inhalt'}>
         {stand === 'laedt' && <p className="text-sm text-ink-muted">Wird geladen …</p>}
         {stand === 'fehler' && (
