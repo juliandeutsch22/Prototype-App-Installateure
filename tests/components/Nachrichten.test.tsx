@@ -17,6 +17,8 @@ import type { KanalKopf, Nachricht, PostfachZeile } from '@/lib/db/nachrichten';
  * - an der fremden Nachricht „Melden …“, nicht „Bearbeiten“/„Löschen“; an
  *   der eigenen privaten „In eine Baustelle übernehmen …“; das Melden gibt
  *   genau diese Nachricht weiter;
+ * - „Stumm schalten“ beim Thread nur, wer folgt (sonst machte es zum
+ *   Folgenden); im privaten Gespräch immer;
  * - ist das Gespräch geschlossen, steht statt der Eingabe der Grund;
  * - ein Gespräch, das es nicht gibt (oder das nicht meins ist), sagt das.
  *
@@ -189,6 +191,28 @@ describe('Das Gespräch', () => {
     zeige();
     await userEvent.click(await screen.findByRole('button', { name: /Nachricht von dir/ }));
     expect(screen.queryByRole('button', { name: 'In eine Baustelle übernehmen …' })).not.toBeInTheDocument();
+  });
+
+  it('im Thread, dem man nicht folgt, gibt es kein „Stumm schalten“ — nur „Folgen“', async () => {
+    kopfWert = kopf({ art: 'baustelle', titel: 'B-12', teilnehmer: null, projectId: 'p1', folgt: false });
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für B-12' }));
+    const menue = screen.getByRole('menu', { name: 'Aktionen für B-12' });
+    expect(within(menue).getByRole('menuitem', { name: 'Folgen' })).toBeInTheDocument();
+    expect(within(menue).queryByRole('menuitem', { name: 'Stumm schalten' })).not.toBeInTheDocument();
+  });
+
+  it('gleich bleibt: wer dem Thread folgt oder im privaten Gespräch ist, schaltet stumm', async () => {
+    kopfWert = kopf({ art: 'baustelle', titel: 'B-12', teilnehmer: null, projectId: 'p1', folgt: true });
+    const { unmount } = zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für B-12' }));
+    expect(within(screen.getByRole('menu', { name: 'Aktionen für B-12' })).getByRole('menuitem', { name: 'Stumm schalten' })).toBeInTheDocument();
+    unmount();
+
+    kopfWert = kopf({ stumm: true });
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für Anna Huber' }));
+    expect(within(screen.getByRole('menu', { name: 'Aktionen für Anna Huber' })).getByRole('menuitem', { name: 'Wieder melden' })).toBeInTheDocument();
   });
 
   it('ist das Gespräch geschlossen, steht statt der Eingabe der Grund', async () => {

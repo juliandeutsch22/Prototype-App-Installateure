@@ -130,10 +130,13 @@ export default function NachrichtenView() {
 
   const menue: RowMenuItem[] = [];
   if (kopf) {
-    menue.push({
-      label: kopf.stumm ? 'Wieder melden' : 'Stumm schalten',
-      onSelect: () => void tun(() => stummSchalten(kopf.kanal, !kopf.stumm), kopf.stumm ? 'Meldet sich wieder' : 'Stumm geschaltet — außer jemand erwähnt dich'),
-    });
+    // Beim Thread meldet sich nur, wem man folgt — wer nur liest, hat nichts stumm zu schalten.
+    if (kopf.art !== 'baustelle' || kopf.folgt) {
+      menue.push({
+        label: kopf.stumm ? 'Wieder melden' : 'Stumm schalten',
+        onSelect: () => void tun(() => stummSchalten(kopf.kanal, !kopf.stumm), kopf.stumm ? 'Meldet sich wieder' : 'Stumm geschaltet — außer jemand erwähnt dich'),
+      });
+    }
     if (kopf.art === 'baustelle') {
       menue.push({
         label: kopf.folgt ? 'Nicht mehr folgen' : 'Folgen',
