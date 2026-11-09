@@ -51,13 +51,13 @@ import {
   textEilAngefordert,
   textNeueAnforderung,
   toteTokens,
+  abgelehnteCodes,
   willMeldung,
   type Meldung,
   type MeldungsArt,
 } from '../_shared/notifyLogic.ts';
-import {
-  alsSdkCode, jwtBauen, type Dienstkonto,
-} from '../_shared/fcmVersand.ts';
+import { type Dienstkonto } from '../_shared/fcmVersand.ts';
+import { anEinGeraet, zugangstoken } from '../_eigen/fcm.ts';
 import {
   alleDienstSchluessel, dienstKopfzeilen, rufDerMaschine, SCHLUESSEL_FEHLT,
 } from '../_shared/dienstSchluessel.ts';
@@ -91,52 +91,6 @@ const antwort = (inhalt: unknown, status = 200) =>
   new Response(JSON.stringify(inhalt), {
     status, headers: { 'Content-Type': 'application/json' },
   });
-
-async function zugangstoken(konto: Dienstkonto): Promise<string> {
-  const jwt = await jwtBauen(konto, Math.floor(Date.now() / 1000));
-  const r = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion: jwt,
-    }),
-  });
-  const daten = await r.json();
-  if (!r.ok || !daten.access_token) {
-    throw new Error(`Zugangstoken abgelehnt: ${JSON.stringify(daten)}`);
-  }
-  return daten.access_token as string;
-}
-
-/** An ein Gerät senden. HTTP v1 kennt keinen Sammelversand. */
-async function anEinGeraet(
-  projekt: string, token: string, zugang: string, meldung: Meldung,
-): Promise<{ error?: { code?: string } }> {
-  const r = await fetch(
-    `https://fcm.googleapis.com/v1/projects/${projekt}/messages:send`,
-    {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${zugang}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: {
-          token,
-          /*
-            Bewusst nur `data`, keine `notification`: so entscheidet allein
-            der Service Worker, wie die Meldung aussieht — sonst zeigen
-            manche Browser zusätzlich eine eigene, und der Nutzer sieht sie
-            doppelt.
-          */
-          data: meldung,
-          webpush: { fcm_options: { link: meldung.link } },
-        },
-      }),
-    },
-  );
-  if (r.ok) return {};
-  const rumpf = await r.json().catch(() => ({}));
-  return { error: { code: alsSdkCode(rumpf.error) } };
-}
 
 /** Alle Gerätetokens der genannten Kennungen, sofern sie diese Meldung wollen. */
 async function tokensFuer(uids: string[], art: MeldungsArt): Promise<string[]> {
@@ -176,8 +130,8 @@ async function tokensFuer(uids: string[], art: MeldungsArt): Promise<string[]> {
  */
 async function senden(
   konto: Dienstkonto, zugang: string, tokens: string[], meldung: Meldung,
-): Promise<number> {
-  if (tokens.length === 0) return 0;
+): Promise<{ gesendet: number; abgelehnt: string[] }> {
+  if (tokens.length === 0) return { gesendet: 0, abgelehnt: [] };
   const antworten = await Promise.all(
     tokens.map((t) => anEinGeraet(konto.project_id, t, zugang, meldung)),
   );
@@ -186,7 +140,7 @@ async function senden(
       method: 'POST', headers: alsDienst, body: JSON.stringify({ p_token: tot }),
     }).catch(() => undefined);
   }
-  return antworten.filter((a) => !a.error).length;
+  return { gesendet: antworten.filter((a) => !a.error).length, abgelehnt: abgelehnteCodes(antworten) };
 }
 
 type Auftrag = { art: MeldungsArt; uids: string[]; meldung: Meldung };
@@ -465,10 +419,23 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const konto = JSON.parse(DIENSTKONTO) as Dienstkonto;
   const zugang = await zugangstoken(konto);
   let gesendet = 0;
+  const abgelehnt = new Set<string>();
   for (const auftrag of auftraege) {
-    gesendet += await senden(
+    const ergebnis = await senden(
       konto, zugang, await tokensFuer(auftrag.uids, auftrag.art), auftrag.meldung,
     );
+    gesendet += ergebnis.gesendet;
+    ergebnis.abgelehnt.forEach((c) => abgelehnt.add(c));
+  }
+  /*
+    GOOGLE HAT ABGELEHNT — DAS IST EIN FEHLER, KEIN ERFOLG (E69). Vorher
+    antwortete die Function hier immer 200; die Wache zählte das als
+    zugestellt, auch wenn Google jede Meldung abwies. Jetzt steht der Code in
+    der Antwort, und „Kommen die Meldungen an?“ zeigt ihn. Ein totes Gerät
+    ist kein solcher Fehler: es wird oben abgeräumt.
+  */
+  if (abgelehnt.size > 0) {
+    return antwort({ error: `Google hat abgelehnt: ${[...abgelehnt].join(', ')}`, gesendet, geplant }, 502);
   }
   return antwort({ gesendet, geplant });
 });

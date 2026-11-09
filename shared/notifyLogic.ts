@@ -232,6 +232,24 @@ export function toteTokens(
   return [...new Set(tot)];
 }
 
+/**
+ * Welche Ablehnungen sind KEIN totes Gerät (E69)? Eine fehlerhafte Meldung,
+ * ein abgelehnter Zugang, ein Kontingent: das betrifft nicht ein Gerät,
+ * sondern den Versand. `push-melden` antwortet dann mit einem Fehler, damit
+ * die Wache es zählt und die Geschäftsführung unter „Kommen die Meldungen
+ * an?“ den Grund sieht — vorher stand dort „alles zugestellt“, während
+ * Google jede Meldung abwies.
+ */
+export function abgelehnteCodes(responses: { error?: { code?: string } }[]): string[] {
+  const codes: string[] = [];
+  for (const r of responses) {
+    if (!r.error) continue;
+    const code = r.error.code ?? 'unbekannt';
+    if (!ENDGUELTIG.has(code)) codes.push(code);
+  }
+  return [...new Set(codes)];
+}
+
 /* ------------------------------------------------------------------ */
 /* Abwesenheiten: Antrag, Entscheidung, Krankmeldung                   */
 /* ------------------------------------------------------------------ */

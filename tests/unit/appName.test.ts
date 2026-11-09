@@ -41,7 +41,7 @@ describe('Der Name der App', () => {
   });
 
   it('ist der Ersatztitel einer Push-Meldung ohne eigenen Titel', () => {
-    expect(lies('public/sw.js')).toMatch(/showNotification\(title \|\| 'Senklot'/);
+    expect(lies('public/sw.js')).toMatch(/titel: d\.title \|\| 'Senklot'/);
   });
 
   it('kommt in dem, was ausgeliefert wird, nicht mehr unter altem Namen vor', () => {

@@ -100,3 +100,25 @@ export function alsSdkCode(fehler: unknown): string | undefined {
   if (code === 'INVALID_ARGUMENT') return 'messaging/invalid-argument';
   return code ? `messaging/${String(code).toLowerCase()}` : undefined;
 }
+
+/**
+ * DIE NACHRICHT AN GOOGLE für ein Gerät (HTTP v1) — für `push-melden` und
+ * die Probemeldung (`push-probe`) dieselbe.
+ *
+ * Bewusst nur `data`, keine `notification`: so entscheidet allein der Service
+ * Worker, wie die Meldung aussieht — sonst zeigen manche Browser zusätzlich
+ * eine eigene, und der Nutzer sieht sie doppelt.
+ *
+ * KEIN `webpush.fcm_options.link` mehr (E69). Google verlangt dort eine
+ * vollständige https-Adresse; hier stand ein Pfad. Gebraucht wurde das Feld
+ * ohnehin nie: es gilt nur für Meldungen, die Firebase selbst anzeigt, und
+ * angezeigt wird im Worker — dort führt `data.link` hin.
+ *
+ * `Urgency: high`: Nachrichten und Eilzustellungen sollen gleich ankommen,
+ * nicht erst, wenn das Telefon aus dem Stromsparen aufwacht.
+ */
+export function fcmNachricht(token: string, daten: Record<string, string>): {
+  message: { token: string; data: Record<string, string>; webpush: { headers: Record<string, string> } };
+} {
+  return { message: { token, data: daten, webpush: { headers: { Urgency: 'high' } } } };
+}

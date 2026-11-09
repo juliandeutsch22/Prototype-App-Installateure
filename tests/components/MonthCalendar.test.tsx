@@ -98,30 +98,18 @@ describe('Monatskalender', () => {
     expect(onShiftMonth).toHaveBeenCalledWith(-1);
   });
 
-  it('rundet die unteren Ecken mit — sonst wird der Rahmen abgeschnitten', () => {
+  it('der ausgewählte Tag in der Ecke bleibt ganz: der Rahmen ist eckig und schneidet nichts ab', () => {
     /*
-      GEMELDET AUS DEM BETRIEB, mit Bildschirmfoto: „im Eckkaestchen des
-      Kalenders wird der blaue Rahmen abgeschnitten."
-
-      Der Rahmen aussen ist gerundet und schneidet ab, was ueber die Ecke
-      hinausragt. Ein eckiges Kaestchen verliert dort ein Stueck seiner
-      Kante — beim AUSGEWAEHLTEN Tag ist das genau die Markierung, an der
-      man sieht, welchen Tag man gerade plant.
-
-      Geprueft wird die INDEXRECHNUNG, nicht das Aussehen: welche zwei
-      Kaestchen die Rundung bekommen. Ein Fehler um eins gaebe die Rundung
-      einem Kaestchen mitten im Raster — und die Ecke bliebe abgeschnitten.
+      GEMELDET AUS DEM BETRIEB: „im Eckkaestchen des Kalenders wird der blaue
+      Rahmen abgeschnitten." Damals rundete der Rahmen aussen und schnitt ab,
+      was ueber die Ecke ragte; die Eckkaestchen rundeten deshalb mit. Seit
+      09.11.2026 ist der Rahmen eckig (`rounded-none`) — es gibt keine Ecke
+      mehr, ueber die etwas ragen koennte, und die Kaestchen bleiben eckig.
     */
-    aufbauen();
-    const raster = document.querySelectorAll('.grid-cols-7')[1] as HTMLElement;
-    const zellen = [...raster.children] as HTMLElement[];
-
-    const links = zellen.filter((z) => z.className.includes('rounded-bl-'));
-    const rechts = zellen.filter((z) => z.className.includes('rounded-br-'));
-    expect(links).toHaveLength(1);
-    expect(rechts).toHaveLength(1);
-    expect(links[0]).toBe(zellen[zellen.length - 7]);
-    expect(rechts[0]).toBe(zellen[zellen.length - 1]);
+    aufbauen({ selected: '2026-08-31' });
+    const rahmen = screen.getByText('August 2026').closest('div')!.parentElement!;
+    expect(rahmen).toHaveClass('rounded-none');
+    expect(screen.getByRole('button', { name: /31\. August/ }).className).not.toMatch(/rounded/);
   });
 
   it('kommt mit einem Februar im Schaltjahr zurecht', () => {
@@ -133,7 +121,7 @@ describe('Monatskalender', () => {
 
 /*
   OHNE RAHMEN, WENN ER IN EINER KARTE STEHT (Urlaub im Monat, 17 H). Gegenprobe:
-  ohne den Schalter trägt er seinen Rahmen und die gerundeten Ecken wie bisher.
+  ohne den Schalter trägt er seinen Rahmen wie bisher (eckig seit 09.11.2026).
 */
 describe('Monatskalender in einer Karte', () => {
   it('ohne eigenen Rahmen und ohne gerundete Ecken', () => {
@@ -143,11 +131,10 @@ describe('Monatskalender in einer Karte', () => {
     expect(document.querySelector('[class*="rounded-bl-"], [class*="rounded-br-"]')).toBeNull();
   });
 
-  it('gleich geblieben: ohne den Schalter mit Rahmen und gerundeten Ecken', () => {
+  it('gleich geblieben: ohne den Schalter mit Rahmen', () => {
     aufbauen();
     const rahmen = screen.getByText('August 2026').closest('div')!.parentElement!;
     expect(rahmen).toHaveClass('panel');
-    expect(document.querySelector('[class*="rounded-bl-"]')).not.toBeNull();
   });
 });
 
@@ -193,5 +180,25 @@ describe('Monatskalender — heute als Lot', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+/*
+  EIN BLATT IST ECKIG (09.11.2026, mit Bildschirmfoto: „der Kalender ist an
+  der Unterseite noch immer abgerundet und passt nicht zur Hülle“). Die
+  Kästchen in den unteren Ecken rundeten noch selbst — aus der Zeit des
+  gerundeten Rahmens. Gegenprobe: mit `rounded-bl-[15px]`/`rounded-br-[15px]`
+  am letzten Wochenrand ist die Prüfung rot.
+*/
+describe('Monatskalender — eckig wie die Hülle', () => {
+  it('kein Kästchen und nicht der Rahmen ist gerundet, auch der ausgewählte Tag in der Ecke nicht', () => {
+    // September 2026: der 28. steht unten links, die letzte Zelle ist ein Füllfeld.
+    const { container } = render(
+      <MonthCalendar year={2026} month={8} selected="2026-09-28" onSelect={vi.fn()} onShiftMonth={vi.fn()} />,
+    );
+    const rahmen = container.querySelector('.monatskalender')!;
+    expect(rahmen.className).toContain('rounded-none');
+    const gerundet = [...container.querySelectorAll('[class*="rounded-b"], [class*="rounded-t"], [class*="rounded-l"], [class*="rounded-r"]')];
+    expect(gerundet.map((e) => e.className)).toEqual([]);
   });
 });

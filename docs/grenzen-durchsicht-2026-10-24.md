@@ -210,3 +210,24 @@ Weniger-Dringendes vor Überfälliges. Ausgeblendetes geht nie still verloren
 (eine Zeile mit der Zahl, ein Tipp zeigt es), und Warnungen zum Zustand der
 App lassen sich nicht ausblenden — Grund Sicherheit: ein ausstehender
 Nachtlauf darf nicht wegzuklicken sein.
+
+## Push bis zur Anzeige — begründete Grenzen (09.11.2026, E69)
+
+- **„Google hat angenommen“ heißt nicht „erschienen“.** Ob das Telefon eine
+  Meldung zeigt (Mitteilungen für Senklot erlaubt, Fokus, „Nicht stören“),
+  entscheidet das Gerät, und eine Web-App kann es nicht abfragen. Die
+  Probemeldung in „Mein Konto“ nennt Googles Antwort und sagt das dazu.
+  Grund: liegt beim Gerät.
+- **Auf dem iPhone erscheint eine Nachricht auch im Gespräch selbst**, ohne
+  Ton. Grund: iOS verlangt zu jeder Push-Nachricht eine Anzeige und entzieht
+  sonst das Abonnement (liegt beim Gerät).
+- **Geteiltes Gerät:** Wer sich anmeldet, bekommt die Meldungen dieses Geräts,
+  solange es nicht ausdrücklich abgeschaltet wurde. Grund: die Erlaubnis des
+  Browsers gilt für das Gerät, nicht für eine Person. Die Meldungen der
+  vorigen Person kommen nicht an: das Abmelden meldet sie ab.
+- **Geräte von vorher, deren Abonnement iOS schon entzogen hat**, werden
+  nicht still wieder angemeldet: von einem Gerät, auf dem jemand die
+  Meldungen abgeschaltet hat, sind sie nicht zu unterscheiden. „Mein Konto“
+  zeigt dort jetzt ehrlich „bekommt noch keine Meldungen“; einmal
+  „Auf diesem Gerät einschalten“ genügt. Grund: Datenschutz — wer
+  abgeschaltet hat, bleibt aus.

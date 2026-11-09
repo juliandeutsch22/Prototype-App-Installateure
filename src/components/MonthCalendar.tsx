@@ -65,8 +65,15 @@ export default function MonthCalendar({
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    // `monatskalender`: frei auf der Seite ein Blatt des Rasters (E33, `lot-blatt.css`).
-    <div className={ohneRahmen ? 'border-b border-line' : 'panel monatskalender overflow-hidden'}>
+    /*
+      `monatskalender`: frei auf der Seite ein Blatt des Rasters (E33,
+      `lot-blatt.css`). Eckig auch dort, wo er in einem Fenster steht
+      (`rounded-none`): die Linie Lot rundet keine Blätter. Die Kästchen in den
+      unteren Ecken rundeten bis zum 09.11.2026 noch selbst mit — aus der Zeit
+      des gerundeten Rahmens — und standen damit unten rund aus der eckigen
+      Hülle heraus.
+    */
+    <div className={ohneRahmen ? 'border-b border-line' : 'panel monatskalender rounded-none overflow-hidden'}>
       <div className="flex items-center justify-between border-b border-line px-2 py-2">
         <button
           type="button"
@@ -107,31 +114,8 @@ export default function MonthCalendar({
 
       <div className="grid grid-cols-7">
         {cells.map((iso, i) => {
-          /*
-            DIE UNTEREN ECKEN MUESSEN MITRUNDEN.
-
-            Der Rahmen aussen ist `rounded-lg` mit `overflow-hidden` — der
-            Browser beschneidet damit alles, was ueber die gerundete Ecke
-            hinausragt. Ein eckiges Kaestchen in der Ecke verliert dabei ein
-            Stueck seiner Kante, und beim AUSGEWAEHLTEN Tag ist das genau der
-            blaue Rahmen: er war unten links sichtbar abgeschnitten. Gemeldet
-            aus dem Betrieb, mit Bildschirmfoto.
-
-            15 statt 16 Pixel: der aeussere Rahmen rundet mit 16, ist aber
-            1 Pixel breit — beschnitten wird an der INNEREN Kante, und die
-            rundet um genau diese Breite kleiner. Nachgemessen im Browser,
-            nicht geschaetzt: mit 7 Pixeln stand die Ecke immer noch ueber.
-          */
-          const ecke = ohneRahmen
-            ? ''
-            : i === cells.length - 7
-              ? ' rounded-bl-[15px]'
-              : i === cells.length - 1
-                ? ' rounded-br-[15px]'
-                : '';
-
           if (!iso)
-            return <div key={`pad-${i}`} className={`min-h-[3.625rem] bg-surface-2${ecke}`} />;
+            return <div key={`pad-${i}`} className="min-h-[3.625rem] bg-surface-2" />;
 
           const day = Number(iso.slice(8));
           const dow = new Date(`${iso}T00:00:00`).getDay();
@@ -169,7 +153,7 @@ export default function MonthCalendar({
                 heutigen Tag das Lot, und sein Senkblei soll ueber der Zahl
                 enden, nicht in ihrem Kreis.
               */
-              className={`relative flex min-h-[3.625rem] flex-col items-center gap-0.5 border-b border-r border-line pb-2 pt-3 transition-colors${ecke} ${
+              className={`relative flex min-h-[3.625rem] flex-col items-center gap-0.5 border-b border-r border-line pb-2 pt-3 transition-colors ${
                 isSelected
                   ? 'bg-info-bg ring-2 ring-inset ring-accent-deep'
                   : holiday
