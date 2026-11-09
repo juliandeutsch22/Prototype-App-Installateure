@@ -149,7 +149,23 @@ export function createProject(companyId: string, p: NewProject) {
   return anlegen(BAUSTELLEN, companyId, rein);
 }
 
-export function updateProject(id: string, data: Partial<Project>) {
+/**
+ * Was beim Ändern einer Baustelle mitgeschickt wird.
+ *
+ * ABRECHNUNGSART UND STUNDENBUDGET LASSEN SICH AUSDRÜCKLICH LEEREN (`null`).
+ * Gelesen heißen sie leer „nicht festgelegt“ bzw. „kein Budget“ und sind
+ * dann `undefined` — beim Ändern heißt `undefined` aber „nicht
+ * mitgeschickt“ und lässt die Spalte stehen (`objektAlsZeile`). So meldete
+ * die Akte „Baustelle gespeichert“, und das geleerte Budget stand weiter in
+ * der Datenbank. `null` trägt die Absicht „leeren“ bis in die Zeile; wer ein
+ * Feld weglässt, ändert es weiterhin nicht.
+ */
+export type ProjektAenderung = Omit<Partial<Project>, 'billingMode' | 'estimatedHours'> & {
+  billingMode?: Project['billingMode'] | null;
+  estimatedHours?: number | null;
+};
+
+export function updateProject(id: string, data: ProjektAenderung) {
   /*
     BEIM ÄNDERN REICHT WEGLASSEN NICHT. Wer ein eingetragenes Datum wieder
     LEERT, will es los sein — ein weggelassenes Feld bliebe in der Datenbank

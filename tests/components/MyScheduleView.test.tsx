@@ -443,3 +443,60 @@ describe('Mein Urlaub — Statuszeichen (Planlinie B3)', () => {
     expect(screen.getByText('Beantragt')).toHaveClass('stand', 'stand-warn');
   });
 });
+
+/*
+  BEFUND 09.11.2026 (NIEDRIG): nach dem Blättern blieb der gewählte Tag im
+  alten Monat stehen, und die Karte meldete „Kein Einsatz an diesem Tag“ —
+  die Einsätze dieses Monats waren gar nicht mehr geladen. Und eine späte
+  Antwort eines abgelösten Monats konnte die Liste des angezeigten ersetzen.
+*/
+describe('Mein Einsatzplan — Blättern im Monat', () => {
+  const OKTOBER: Assignment = {
+    id: 'a9', companyId: 'perl', date: '2026-10-15', projectNumber: 'B-001', userId: 'm1', userName: 'Anton', comment: 'Keller',
+  };
+  const karte = () => screen.getByText(/Einsätze am/).closest('section')!;
+
+  afterEach(async () => {
+    const { listAssignmentsForUserInRange } = await import('@/lib/db/assignments');
+    vi.mocked(listAssignmentsForUserInRange).mockImplementation(async () => EINSAETZE);
+  });
+
+  it('der gewählte Tag wandert mit — der Einsatz am selben Tag des neuen Monats steht da', async () => {
+    const { listAssignmentsForUserInRange } = await import('@/lib/db/assignments');
+    vi.mocked(listAssignmentsForUserInRange).mockImplementation(async (_c, _u, von) =>
+      von.startsWith('2026-10') ? [OKTOBER] : EINSAETZE,
+    );
+    zeichne();
+    await within((await screen.findByText(/Einsätze am/)).closest('section')!).findByText('Bad');
+    await userEvent.click(screen.getByRole('button', { name: 'Nächster Monat' }));
+
+    expect(await screen.findByText('Einsätze am Do., 15.10.2026')).toBeInTheDocument();
+    expect(within(karte()).getByText('Keller')).toBeInTheDocument();
+    expect(within(karte()).queryByText(/Kein Einsatz an diesem Tag/)).toBeNull();
+  });
+
+  it('eine späte Antwort des vorigen Monats ersetzt den angezeigten nicht', async () => {
+    // Beim zweiten Besuch steht der Monat aus dem Gemerkten da und lädt im Hintergrund neu — der Kalender ist bedienbar.
+    zwischenspeicherFuer('m1', 'perl');
+    const erster = zeichne();
+    await within((await screen.findByText(/Einsätze am/)).closest('section')!).findByText('Bad');
+    erster.unmount();
+
+    const { listAssignmentsForUserInRange } = await import('@/lib/db/assignments');
+    const september = zurueckhalten<Assignment[]>();
+    const oktober = zurueckhalten<Assignment[]>();
+    vi.mocked(listAssignmentsForUserInRange).mockImplementation((_c, _u, von) =>
+      (von.startsWith('2026-10') ? oktober.antwort() : september.antwort()) as never,
+    );
+    zeichne();
+    await waitFor(() => expect(september.gefragt).toBe(true));
+    await userEvent.click(screen.getByRole('button', { name: 'Nächster Monat' }));
+    await waitFor(() => expect(oktober.gefragt).toBe(true));
+
+    await act(async () => oktober.liefern([OKTOBER]));
+    await act(async () => september.liefern(EINSAETZE));
+
+    expect(await screen.findByText('Einsätze am Do., 15.10.2026')).toBeInTheDocument();
+    expect(within(karte()).getByText('Keller')).toBeInTheDocument();
+  });
+});

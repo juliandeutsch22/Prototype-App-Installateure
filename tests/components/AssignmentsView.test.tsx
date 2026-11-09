@@ -77,14 +77,23 @@ vi.mock('@/lib/db/vacations', () => ({
 vi.mock('@/lib/db/abwesenheiten', () => ({
   listBetriebsurlaubeImZeitraum: vi.fn(async () => betriebsurlaube),
 }));
+/*
+  DAS ABO LIEFERT JE MONAT, wie die Datenbank. Zurückgehalten (`abo.halten`)
+  kommt die Antwort erst mit `liefern()` — so lässt sich die Zeit prüfen, in
+  der ein Monat noch lädt (Befund 09.11.2026).
+*/
+const abo: { halten: boolean; offen: { monat: string; liefern: () => void }[] } = { halten: false, offen: [] };
 vi.mock('@/lib/db/assignments', () => ({
   subscribeAssignmentsForMonth: (
     _c: string,
-    _j: number,
-    _m: number,
+    j: number,
+    m: number,
     cb: (rows: (Assignment & { id: string })[]) => void,
   ) => {
-    cb(einsaetze);
+    const monat = `${j}-${String(m + 1).padStart(2, '0')}`;
+    const liefern = () => cb(einsaetze.filter((a) => a.date.startsWith(monat)));
+    if (abo.halten) abo.offen.push({ monat, liefern });
+    else liefern();
     return () => undefined;
   },
   saveAssignments: (...a: unknown[]) => {
@@ -161,13 +170,17 @@ vi.mock('@/lib/db/materialOrders', () => ({
     return Promise.resolve();
   },
 }));
+/** Wie beim Abo der Einsätze: je Tag, auf Wunsch zurückgehalten (Befund 09.11.2026). */
+const listenAbo: { halten: boolean; offen: { tag: string; liefern: () => void }[] } = { halten: false, offen: [] };
 vi.mock('@/lib/db/einsatzMaterial', () => ({
   subscribeEinsatzMaterialForDate: (
     _c: string,
-    _d: string,
+    tag: string,
     cb: (r: (EinsatzMaterial & { id: string })[]) => void,
   ) => {
-    cb(ruestlisten);
+    const liefern = () => cb(ruestlisten.filter((l) => l.date === tag));
+    if (listenAbo.halten) listenAbo.offen.push({ tag, liefern });
+    else liefern();
     return () => undefined;
   },
   saveEinsatzMaterial: (...a: unknown[]) => {
@@ -198,6 +211,10 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   einsaetze = [];
+  abo.halten = false;
+  abo.offen = [];
+  listenAbo.halten = false;
+  listenAbo.offen = [];
   personen = [MONTEUR, KOLLEGE];
   urlaube = [];
   betriebsurlaube = [];
@@ -1310,5 +1327,122 @@ describe('Einsatzplanung „Tag“ — Schriftfeld', () => {
     await screen.findByText('Keine Einsätze an diesem Tag.');
     expect(feld().getByText('01.09.2026')).toBeInTheDocument();
     expect(feld().queryByText('Ohne Einsatz')).toBeNull();
+  });
+});
+
+/*
+  BEFUND 09.11.2026 (HOCH): nach dem Blättern im Kalender blieb der gewählte
+  Tag im alten Monat stehen, dessen Einsätze nicht mehr geladen waren. Das
+  Formular zeigte niemanden angehakt; wer dann jemanden anhakte und
+  speicherte, löschte die bestehende Einteilung des Tages — Speichern
+  ersetzt alle Einsätze des Paares aus Tag und Baustelle.
+*/
+describe('Tag planen — Blättern im Monat löscht nichts', () => {
+  const PAUL: AppUser = { ...MONTEUR, id: 'u3', uid: 'u3', name: 'Paul Neu' } as AppUser;
+  const einsatz = (id: string, date: string, wer: AppUser) =>
+    ({ id, companyId: 'perl', date, projectNumber: '2026-042', userId: wer.uid, userName: wer.name }) as Assignment & { id: string };
+  const speichernKnopf = () => screen.getByRole('button', { name: /^Einsatz( und Rüstliste)? speichern$/ });
+
+  beforeEach(() => {
+    personen = [MONTEUR, KOLLEGE, PAUL];
+    einsaetze = [einsatz('a1', '2026-09-20', MONTEUR), einsatz('a2', '2026-09-20', KOLLEGE)];
+  });
+
+  it('der gewählte Tag wandert mit — gespeichert wird nie der alte Tag mit gekürzter Liste', async () => {
+    zeige({ datum: '2026-09-20', projectNumber: '2026-042' });
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked());
+    expect(screen.getByRole('checkbox', { name: /^Erna Beispiel/ })).toBeChecked();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Nächster Monat' }));
+    // Genau der gemeldete Ablauf: niemand steht angehakt da, Paul kommt dazu, gespeichert wird.
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).not.toBeChecked());
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Paul Neu/ }));
+    await userEvent.click(speichernKnopf());
+
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+    const [, datum, , zeilen] = speichere.mock.calls[0];
+    // Der 20.09. wurde nicht angerührt — gespeichert ist der 20.10., auf den das Formular jetzt zeigt.
+    expect(speichere.mock.calls.some((c) => c[1] === '2026-09-20')).toBe(false);
+    expect(datum).toBe('2026-10-20');
+    expect(zeilen.map((z: { userId: string }) => z.userId)).toEqual(['u3']);
+    expect(screen.getByText(/Einsatz planen — Di\., 20\.10\.2026/)).toBeInTheDocument();
+  });
+
+  it('zurückgeblättert stehen die Einsätze des Tages wieder angehakt da', async () => {
+    zeige({ datum: '2026-09-20', projectNumber: '2026-042' });
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked());
+    await userEvent.click(screen.getByRole('button', { name: 'Nächster Monat' }));
+    await screen.findByText(/Einsatz planen — Di\., 20\.10\.2026/);
+    await userEvent.click(screen.getByRole('button', { name: 'Vorheriger Monat' }));
+    await screen.findByText(/Einsatz planen — So\., 20\.09\.2026/);
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked());
+    expect(screen.getByRole('checkbox', { name: /^Erna Beispiel/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /^Paul Neu/ })).not.toBeChecked();
+  });
+
+  it('gibt es den Tag im neuen Monat nicht, gilt dessen letzter (31.10. → 30.11.)', async () => {
+    zeige({ datum: '2026-10-31' });
+    await screen.findByText(/Einsatz planen — Sa\., 31\.10\.2026/);
+    await userEvent.click(screen.getByRole('button', { name: 'Nächster Monat' }));
+    expect(await screen.findByText(/Einsatz planen — Mo\., 30\.11\.2026/)).toBeInTheDocument();
+  });
+
+  it('speichert nicht, solange die Einsätze des Monats noch nicht da sind — auch nicht beim Einstieg', async () => {
+    abo.halten = true;
+    zeige({ datum: '2026-09-20', projectNumber: '2026-042' });
+    await screen.findByText(/Einsatz planen — So\., 20\.09\.2026/);
+    // Keine leere Auswahl, die wie „niemand eingeteilt“ aussieht — und kein Speichern.
+    expect(screen.queryByRole('checkbox', { name: /^Paul Neu/ })).toBeNull();
+    expect(speichernKnopf()).toBeDisabled();
+    expect(screen.getByText(/Die Planung dieses Tages wird noch geladen/)).toBeInTheDocument();
+
+    await act(async () => abo.offen.find((o) => o.monat === '2026-09')!.liefern());
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked());
+    expect(speichernKnopf()).toBeEnabled();
+    expect(screen.queryByText(/Die Planung dieses Tages wird noch geladen/)).toBeNull();
+  });
+
+  it('… und nach dem Blättern, bis der neue Monat geliefert hat', async () => {
+    zeige({ datum: '2026-09-20', projectNumber: '2026-042' });
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked());
+    abo.halten = true;
+    await userEvent.click(screen.getByRole('button', { name: 'Nächster Monat' }));
+    await screen.findByText(/Einsatz planen — Di\., 20\.10\.2026/);
+    expect(speichernKnopf()).toBeDisabled();
+    // Die Tagesliste behauptet kein „Keine Einsätze“, solange sie nichts weiß.
+    expect(screen.queryByText('Keine Einsätze an diesem Tag.')).toBeNull();
+
+    await act(async () => abo.offen.find((o) => o.monat === '2026-10')!.liefern());
+    await waitFor(() => expect(speichernKnopf()).toBeEnabled());
+    expect(screen.getByText('Keine Einsätze an diesem Tag.')).toBeInTheDocument();
+  });
+});
+
+/*
+  DIESELBE LÜCKE BEI DER RÜSTLISTE: nach einem Wechsel des Tages stand bis
+  zur ersten Antwort die Liste des vorigen Tages im Formular — und ein
+  Speichern schrieb sie über die Liste des neuen Tages.
+*/
+describe('Tag planen — die Rüstliste gehört zum gewählten Tag', () => {
+  it('übernimmt beim Tageswechsel nicht die Liste des Vortags und speichert erst mit der eigenen', async () => {
+    ruestlisten = [
+      {
+        id: 'perl_2026-09-01_2026-042', companyId: 'perl', date: HEUTE,
+        projectNumber: '2026-042', uids: ['u1'],
+        positionen: [{ id: 'p1', materialId: 'm1', name: 'Eckventil 1/2', menge: 4 }],
+      } as EinsatzMaterial & { id: string },
+    ];
+    zeige({ datum: HEUTE, projectNumber: '2026-042' });
+    expect(await screen.findByDisplayValue('4')).toBeInTheDocument();
+
+    listenAbo.halten = true;
+    await userEvent.click(screen.getByRole('button', { name: /^Mittwoch, 2\. September/ }));
+    await screen.findByText(/Einsatz planen — Mi\., 02\.09\.2026/);
+    expect(screen.queryByDisplayValue('4')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' })).toBeDisabled();
+
+    await act(async () => listenAbo.offen.find((o) => o.tag === '2026-09-02')!.liefern());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' })).toBeEnabled());
+    expect(screen.queryByText('Eckventil 1/2')).toBeNull();
   });
 });

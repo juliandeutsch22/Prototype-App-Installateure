@@ -25,12 +25,12 @@ import RowMenu from '@/components/RowMenu';
 import { List, ListRow } from '@/components/ListRow';
 import { useModul } from '@/lib/useModule';
 import { useToast } from '@/components/Toast';
-import { ErrorState, EmptyState, TeilFehler } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import { einsatzZeit } from './einsatzZeit';
 import { STUFEN_IM_EINSATZ, stufeAnzahl, stufeImEinsatz } from './stufeImEinsatz';
 import EinsatzFormular from './EinsatzFormular';
 import { AnsichtWahl, PlanungsSeitenkopf } from './PlanungsKopf';
-import { abwesendAm, fmtDay, useRuestlistenDesTages } from './einsatzDaten';
+import { abwesendAm, fmtDay, gleicherTagImMonat, useRuestlistenDesTages } from './einsatzDaten';
 
 /**
  * „Tag planen“ (seit Runde 4 die Ansicht „Tag“ der Einsatzplanung):
@@ -86,14 +86,24 @@ export default function AssignmentsView() {
   const startDatum = uebergabe?.datum ?? datumAusAdresse ?? todayStr();
 
   const [date, setDate] = useState(startDatum);
-  const [cursor, setCursor] = useState(() => {
-    // Lokal rechnen, NICHT über toISOString: das rechnet in UTC und liefert
-    // am Monatsersten vor 02:00 Uhr (Sommerzeit) noch den Vormonat.
-    const [y, m] = startDatum.split('-');
-    return { year: Number(y), month: Number(m) - 1 };
-  });
+  /*
+    DER ANGEZEIGTE MONAT IST DER DES GEWÄHLTEN TAGES — aus ihm gerechnet,
+    nicht daneben gehalten. Getrennt gehalten blieb der Tag beim Blättern im
+    alten Monat stehen, dessen Einsätze nicht mehr geladen waren: das
+    Formular zeigte niemanden angehakt, und Speichern löschte die
+    bestehende Einteilung. Aus der Zeichenkette gelesen, nicht über
+    toISOString — das rechnet in UTC.
+  */
+  const monatsSchluessel = date.slice(0, 7);
+  const cursor = { year: Number(date.slice(0, 4)), month: Number(date.slice(5, 7)) - 1 };
   const [projectNumber, setProjectNumber] = useState(uebergabe?.projectNumber ?? '');
   const [monthAssignments, setMonthAssignments] = useState<WithId<Assignment>[]>([]);
+  /**
+   * Für welchen Monat das Abonnement zuletzt geliefert hat (wie
+   * `useWochenDaten`). Erst wenn er der Monat des gewählten Tages ist, kennt
+   * das Formular die vorhandene Einteilung — vorher wird nicht gespeichert.
+   */
+  const [einsaetzeFuer, setEinsaetzeFuer] = useState<string | null>(null);
   const [urlaube, setUrlaube] = useState<Abwesenheit[]>([]);
   const [betriebsurlaube, setBetriebsurlaube] = useState<Betriebsurlaub[]>([]);
   /** Der Monat lädt nicht — steht über allem, nicht erst am Speichern-Knopf. */
@@ -109,7 +119,7 @@ export default function AssignmentsView() {
     Liste, die Übersicht der Einsätze zeigt sie an der Baustelle.
   */
   const materialAn = useModul('material');
-  const tagesListen = useRuestlistenDesTages(user?.companyId, date, materialAn);
+  const { listen: tagesListen, geladen: listenDa } = useRuestlistenDesTages(user?.companyId, date, materialAn);
   /** Das Formular — „Bearbeiten“ in der Tagesübersicht springt dorthin. */
   const formular = useRef<HTMLDivElement>(null);
 
@@ -182,14 +192,29 @@ export default function AssignmentsView() {
    */
   useEffect(() => {
     if (!user) return;
-    return subscribeAssignmentsForMonth(
+    const fuer = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}`;
+    // Eine späte Meldung des abgelösten Monats darf nicht als der neue gelten.
+    let aktiv = true;
+    const beenden = subscribeAssignmentsForMonth(
       user.companyId,
       cursor.year,
       cursor.month,
-      setMonthAssignments,
-      (e) => setError(e.message),
+      (rows) => {
+        if (!aktiv) return;
+        setMonthAssignments(rows);
+        setEinsaetzeFuer(fuer);
+      },
+      // Ein Fehler gibt das Speichern NICHT frei: welche Einsätze es gibt, ist dann unbekannt.
+      (e) => {
+        if (aktiv) setError(e.message);
+      },
     );
-  }, [user, cursor]);
+    return () => {
+      aktiv = false;
+      beenden();
+    };
+  }, [user, cursor.year, cursor.month]);
+  const einsaetzeDa = einsaetzeFuer === monatsSchluessel;
 
   const dayAssignments = useMemo(
     () => monthAssignments.filter((a) => a.date === date),
@@ -318,12 +343,7 @@ export default function AssignmentsView() {
             month={cursor.month}
             selected={date}
             onSelect={setDate}
-            onShiftMonth={(delta) =>
-              setCursor((c) => {
-                const d = new Date(c.year, c.month + delta, 1);
-                return { year: d.getFullYear(), month: d.getMonth() };
-              })
-            }
+            onShiftMonth={(delta) => setDate((d) => gleicherTagImMonat(d, delta))}
             marks={marks}
             markLabel={(n) => `${n} ${n === 1 ? 'Baustelle' : 'Baustellen'} geplant`}
           />
@@ -354,7 +374,8 @@ export default function AssignmentsView() {
               onProjectNumber={setProjectNumber}
               users={users}
               staff={staff}
-              staffGeladen={belegschaftDa}
+              // Ohne die Einsätze des Tages stünde die Auswahl leer da, als wäre niemand eingeteilt.
+              staffGeladen={belegschaftDa && einsaetzeDa}
               projects={projects}
               onProjekt={(p) =>
                 setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]))
@@ -364,6 +385,7 @@ export default function AssignmentsView() {
               betriebsurlaube={betriebsurlaube}
               termineDesTages={termineDesTages}
               tagesListen={tagesListen}
+              bereit={einsaetzeDa && listenDa}
               karten={{ titel: `Einsatz planen — ${fmtDay(date)}` }}
             />
           </div>
@@ -384,7 +406,12 @@ export default function AssignmentsView() {
               statt eines Kastens in der Karte (Linie „Lot“, Regel 1). */}
           {nurUnbesetzt && <Adressfilter text="nur unbesetzte Einsätze" parameter={['filter']} />}
           <Card title={`${nurUnbesetzt ? 'Unbesetzte Einsätze' : 'Einsätze'} am ${fmtDay(date)}`} buendig>
-            {byProject.size === 0 ? (
+            {/* Bis der Monat da ist, wäre „Keine Einsätze“ eine Behauptung. */}
+            {!einsaetzeDa && !error ? (
+              <div className="p-4">
+                <SkeletonList rows={3} />
+              </div>
+            ) : byProject.size === 0 ? (
               <EmptyState>{nurUnbesetzt ? 'An diesem Tag ist jeder Einsatz besetzt.' : 'Keine Einsätze an diesem Tag.'}</EmptyState>
             ) : (
               <div>

@@ -80,6 +80,7 @@ export default function EinsatzFormular({
   betriebsurlaube,
   termineDesTages,
   tagesListen,
+  bereit = true,
   karten,
   onGespeichert,
   onLoeschen,
@@ -109,6 +110,13 @@ export default function EinsatzFormular({
   betriebsurlaube: Betriebsurlaub[];
   termineDesTages: Termin[];
   tagesListen: WithId<EinsatzMaterial>[];
+  /**
+   * Gehören `tagesEinsaetze` und `tagesListen` schon zu `date`? Vorher wird
+   * nicht gespeichert: Speichern ersetzt alle Einsätze und die Rüstliste des
+   * Paares aus Tag und Baustelle, und ein Formular, das die vorhandenen noch
+   * nicht kennt, löschte sie.
+   */
+  bereit?: boolean;
   /** In der Tagesplanung als Karten; ohne die Angabe für das Seitenfenster. */
   karten?: { titel: string };
   /** Nach vollständigem Speichern (Einsatz und Rüstliste). */
@@ -312,7 +320,7 @@ export default function EinsatzFormular({
     : [];
 
   async function save() {
-    if (!user || !projectNumber) return;
+    if (!user || !projectNumber || !bereit) return;
     if (selectedCount === 0) {
       setError(
         existingForProject.length > 0
@@ -781,6 +789,12 @@ export default function EinsatzFormular({
   const speicherHinweise = (
     <>
       {error && <div className="mb-3"><ErrorState message={error} /></div>}
+      {/* Der Knopf ist gesperrt — hier steht, warum, statt dass er grundlos grau bleibt. */}
+      {projectNumber && !bereit && (
+        <p className="mb-3 text-sm text-ink-muted" role="status">
+          Die Planung dieses Tages wird noch geladen. Speichern geht, sobald sie da ist.
+        </p>
+      )}
       {/*
         EINGETIPPT, ABER NICHT HINZUGEFÜGT — wie am Handwerksschein. Die
         freie Zeile kommt erst mit „Hinzufügen" auf die Rüstliste; wer sie
@@ -803,7 +817,7 @@ export default function EinsatzFormular({
     <Button
       onClick={save}
       loading={saving}
-      disabled={!projectNumber || (materialAn && !!offeneRuestzeile)}
+      disabled={!projectNumber || !bereit || (materialAn && !!offeneRuestzeile)}
     >
       {materialAn && projectNumber ? 'Einsatz und Rüstliste speichern' : 'Einsatz speichern'}
     </Button>

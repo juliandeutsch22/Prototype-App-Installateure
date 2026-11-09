@@ -320,11 +320,13 @@ export default function BaustellenakteView() {
         status: entwurf.status,
         // Leer heisst „nicht festgelegt" — der Schein rechnet dann mit Regie,
         // wie bisher. Eine leere Zeichenkette in die Daten zu schreiben wäre
-        // ein dritter Zustand, den niemand entworfen hat.
-        billingMode: entwurf.billingMode || undefined,
+        // ein dritter Zustand, den niemand entworfen hat. `null`, nicht
+        // weglassen: weggelassen bliebe die alte Art in der Datenbank stehen.
+        billingMode: entwurf.billingMode || null,
         // Leeres Feld heisst „kein Budget" — dann bleibt die Ampel der
-        // Projektauswertung bewusst aus, statt 0 h anzunehmen.
-        estimatedHours: stundenbudgetAus(entwurf.estimatedHours),
+        // Projektauswertung bewusst aus, statt 0 h anzunehmen. Auch hier
+        // `null`, damit ein geleertes Budget wirklich weg ist.
+        estimatedHours: stundenbudgetAus(entwurf.estimatedHours) ?? null,
         description: entwurf.description,
         startDate: entwurf.startDate,
         endDate: entwurf.endDate,

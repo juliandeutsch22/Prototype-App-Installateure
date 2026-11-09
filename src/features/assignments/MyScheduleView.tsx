@@ -31,6 +31,7 @@ import MonthCalendar from '@/components/MonthCalendar';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { ganztagsWeg } from './besetzung';
 import { einsatzZeit } from './einsatzZeit';
+import { gleicherTagImMonat } from './einsatzDaten';
 import { stufeImEinsatz } from './stufeImEinsatz';
 import KalenderAboKarte from './KalenderAboKarte';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
@@ -93,12 +94,15 @@ export default function MyScheduleView() {
   /** Ein Nebenladevorgang ist ausgefallen — der Kalender steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [selected, setSelected] = useState(todayStr());
-  // Lokaler Monat, NICHT über toISOString: das rechnet in UTC und liefert am
-  // Monatsersten vor 02:00 Uhr (Sommerzeit) noch den Vormonat.
-  const [cursor, setCursor] = useState(() => {
-    const [y, m] = todayStr().split('-');
-    return { year: Number(y), month: Number(m) - 1 };
-  });
+  /*
+    DER ANGEZEIGTE MONAT IST DER DES GEWÄHLTEN TAGES — aus ihm gerechnet,
+    nicht daneben gehalten. Getrennt gehalten blieb der Tag beim Blättern im
+    alten Monat stehen, dessen Einsätze nicht mehr geladen waren, und die
+    Karte meldete „Kein Einsatz an diesem Tag“. Aus der Zeichenkette gelesen,
+    NICHT über toISOString: das rechnet in UTC und liefert am Monatsersten
+    vor 02:00 Uhr (Sommerzeit) noch den Vormonat.
+  */
+  const cursor = { year: Number(selected.slice(0, 4)), month: Number(selected.slice(5, 7)) - 1 };
 
   /** Die anstehenden Einsätze — „alle geplanten", unabhängig vom Kalender. */
   const [naechste, setNaechste] = useState<Assignment[]>(() => anfang?.naechste ?? []);
@@ -138,6 +142,12 @@ export default function MyScheduleView() {
     if (!user) return;
     // Steht der Monat schon da (gemerkt), bleibt er stehen; ein anderer lädt sichtbar.
     if (monatFuer.current !== prefix) setLoading(true);
+    /*
+      WER SCHNELL BLÄTTERT, BEKOMMT DEN LETZTEN MONAT, nicht die letzte
+      Antwort. Ohne den Merker konnte die Antwort eines übersprungenen
+      Monats nach der des angezeigten ankommen und dessen Liste ersetzen.
+    */
+    let weg = false;
     const letzter = new Date(cursor.year, cursor.month + 1, 0).getDate();
     listAssignmentsForUserInRange(
       user.companyId,
@@ -146,12 +156,20 @@ export default function MyScheduleView() {
       `${prefix}-${String(letzter).padStart(2, '0')}`,
     )
       .then((r) => {
+        if (weg) return;
         setRows(r);
         monatFuer.current = prefix;
         if (prefix === heuteMonat) merken({ monat: { fuer: prefix, rows: r } });
       })
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
+      .catch((e: Error) => {
+        if (!weg) setError(e.message);
+      })
+      .finally(() => {
+        if (!weg) setLoading(false);
+      });
+    return () => {
+      weg = true;
+    };
   }, [user, prefix, cursor.year, cursor.month, heuteMonat, merken]);
 
   /**
@@ -414,12 +432,7 @@ export default function MyScheduleView() {
               month={cursor.month}
               selected={selected}
               onSelect={setSelected}
-              onShiftMonth={(delta) =>
-                setCursor((c) => {
-                  const d = new Date(c.year, c.month + delta, 1);
-                  return { year: d.getFullYear(), month: d.getMonth() };
-                })
-              }
+              onShiftMonth={(delta) => setSelected((d) => gleicherTagImMonat(d, delta))}
               marks={marks}
               markLabel={(n) => `${n} ${n === 1 ? 'Einsatz' : 'Einsätze'}`}
             />
