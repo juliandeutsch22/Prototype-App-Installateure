@@ -140,9 +140,9 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
               )}
             </div>
           </div>
-          <p className="arbeitstag-fuss">
-            <button type="button" className="link text-sm arbeitstag-verwerfen" disabled={z.speichert} onClick={() => setVerwerfen(true)}>Verwerfen …</button>
-          </p>
+          <div className="arbeitstag-fuss">
+            <Button type="button" variant="secondary" disabled={z.speichert} onClick={() => setVerwerfen(true)}>Verwerfen …</Button>
+          </div>
         </>
       )}
 

@@ -314,9 +314,12 @@ export default function DashboardView() {
           ) : undefined}
           subtitle={
             <>
-              {/* Umbrechen nur zwischen den Teilen (D13). */}
+              {/*
+                Umbrechen nur zwischen den Teilen (D13). Der Firmenname steht
+                schon im Kopf (Handy) bzw. oben in der Leiste — hier machte er
+                den Untertitel am Handy zweizeilig (E72, 09.11.2026).
+              */}
               <span className="whitespace-nowrap">{kopf.datum}</span> ·{' '}
-              {company?.name ?? 'Installateur-App'} ·{' '}
               <span className="whitespace-nowrap">Rolle: {rolleAnzeige(user.role, einblick)}</span>
               {kopf.feiertag && (
                 <>

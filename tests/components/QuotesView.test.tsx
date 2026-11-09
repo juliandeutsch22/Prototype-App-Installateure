@@ -1365,3 +1365,60 @@ describe('Liegenschaft am Angebot (M02c)', () => {
     expect(neu.topId).toBeUndefined();
   });
 });
+
+/*
+  E72 (09.11.2026), A3: am Handy brach eine Angebotszeile mit zwei Knöpfen
+  und „⋯“ in drei Reihen (280 px). Dort bleibt ein Knopf sichtbar, der
+  zweite Schritt steht zuoberst im Menü — keine Handlung geht verloren.
+  Gegenprobe: ohne die Handy-Abfrage stehen beide Knöpfe in der Zeile, und
+  „Neue Fassung“ fehlt im Menü. Ab dem Tablet (und ohne `matchMedia`) bleibt
+  alles wie bisher — das prüft der Test „zeigt beim versendeten Angebot …“.
+*/
+describe('Angebotszeile am Handy (E72)', () => {
+  const vorher = window.matchMedia;
+  const handy = () => {
+    window.matchMedia = ((q: string) => ({
+      matches: !q.includes('min-width: 760px'), media: q,
+      addEventListener() {}, removeEventListener() {},
+    })) as unknown as typeof window.matchMedia;
+  };
+
+  it('versendet: „Annehmen → Baustelle“ in der Zeile, „Neue Fassung“ zuoberst im Menü', async () => {
+    handy();
+    try {
+      versendetesAngebot();
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/AN-2026-0007/);
+      expect(screen.getByRole('button', { name: 'Annehmen → Baustelle' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Neue Fassung' })).toBeNull();
+      await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+      expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Neue Fassung', 'Als abgelehnt markieren']);
+      await nutzer.click(screen.getByRole('menuitem', { name: 'Neue Fassung' }));
+      expect(await screen.findByText('Neue Fassung von AN-2026-0007')).toBeInTheDocument();
+    } finally {
+      window.matchMedia = vorher;
+    }
+  });
+
+  it('Entwurf: „Bearbeiten“ in der Zeile, „Annehmen → Baustelle“ zuoberst im Menü', async () => {
+    handy();
+    try {
+      versendetesAngebot();
+      angebote[angebote.length - 1].status = 'Entwurf';
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/AN-2026-0007/);
+      expect(screen.getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Annehmen → Baustelle' })).toBeNull();
+      await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+      expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual([
+        'Annehmen → Baustelle', 'Als versendet markieren', 'Als abgelehnt markieren', 'Verwerfen',
+      ]);
+      await nutzer.click(screen.getByRole('menuitem', { name: 'Annehmen → Baustelle' }));
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    } finally {
+      window.matchMedia = vorher;
+    }
+  });
+});

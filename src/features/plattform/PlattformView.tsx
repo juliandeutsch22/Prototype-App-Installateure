@@ -557,7 +557,8 @@ export default function PlattformView() {
             <PageHeader ort="Globaler Administrator" title={supportSeite === 'notzugang' ? 'Notzugang öffnen' : supportSeite === 'passwort' ? 'Passwort neu setzen' : supportSeite === 'zweiter-faktor' ? 'Zwei-Faktor zurücksetzen' : 'Supportzugänge'}
               subtitle="Nur ausdrücklich freigegebene oder protokollierte Zugänge."
               hilfe="Ansehen ist lesend; Mitarbeiten erlaubt die ausdrücklich freigegebenen Änderungen. Notzugänge sind lesend, höchstens 24 Stunden gültig, im Betrieb sichtbar und protokolliert."
-              action={supportSeite === 'liste' ? <Button variant="secondary" onClick={() => setSupportSeite('notzugang')}>Notzugang öffnen</Button> : undefined} />
+              // Die Hauptaktion gefüllt wie in jedem Seitenkopf (E72, 09.11.2026: stand hier als einzige gerahmt).
+              action={supportSeite === 'liste' ? <Button onClick={() => setSupportSeite('notzugang')}>Notzugang öffnen</Button> : undefined} />
             <div hidden={supportSeite !== 'liste'} className="plattform-teilseite space-y-6">
               <div className="plattform-spalten"><div>
       <Card
@@ -572,7 +573,7 @@ export default function PlattformView() {
             Einstellungen → Supportzugang.
           </p>
         ) : (
-          <ul className="space-y-3 text-sm">
+          <ul className="text-sm">
             {offen.map((f) => (
               <li key={f.id} className="plattform-supportzeile">
                 <div className="plattform-supportinfo">

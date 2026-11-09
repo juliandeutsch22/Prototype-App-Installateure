@@ -18,7 +18,7 @@ export default function AktenTerminVorschau({ stand, bereich }: { stand: AktenTe
   const termin = stand.termine?.filter((t) => t.datum > heute ||
     (t.datum === heute && (!t.zeitBis || t.zeitBis.slice(0, 5) > uhrzeit)))
     .slice().sort((a, b) => a.datum.localeCompare(b.datum) || (a.zeitVon ?? '').localeCompare(b.zeitVon ?? ''))[0];
-  return <Card title="Nächster Termin" action={<AktenVerweis bereich={bereich}>Alle Termine →</AktenVerweis>}>
+  return <Card title="Nächster Termin" action={<AktenVerweis bereich={bereich}>Alle Termine</AktenVerweis>}>
     {stand.fehler ? <TeilFehler was="die Termine" /> : stand.termine === null ? (
       <p className="text-sm text-ink-muted">Termine werden geladen …</p>
     ) : !termin ? <p className="text-sm text-ink-muted">Kein kommender Termin geplant.</p> : <div className="akten-termin">

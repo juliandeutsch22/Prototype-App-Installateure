@@ -477,14 +477,16 @@ export default function BaustellenakteView() {
       title="Handwerksscheine"
       id="b-scheine"
       buendig
-      // Wie „Termin anlegen“ bei den Terminen: der nächste Schritt im Kopf der Karte.
+      // Wie „Termin anlegen“ bei den Terminen: der nächste Schritt im Kopf der
+      // Karte — als Zweitknopf, nicht als Text (E72, R1).
       action={
-        <Link
+        <KnopfLink
           to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
-          className="link inline-flex min-h-touch items-center"
+          variant="secondary"
+          groesse="klein"
         >
           Handwerksschein schreiben
-        </Link>
+        </KnopfLink>
       }
     >
       <BaustellenScheine
@@ -529,7 +531,7 @@ export default function BaustellenakteView() {
           <Metric label="Stand" value={b.status} />
         </MetricRow>}
         title={baustellenTitel(b)}
-        kontakt={<><TelefonLink nummer={b.contactPhone} name={b.contactName} /><a className="akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a></>}
+        kontakt={<><TelefonLink nummer={b.contactPhone} name={b.contactName} /><a className="link-weiter akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a></>}
         action={(scheineSichtbar || darfAendern) && <div className="akten-aktionen">
           {scheineSichtbar && <KnopfLink to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}>Schein schreiben</KnopfLink>}
           {darfAendern && <Button variant={scheineSichtbar ? 'secondary' : 'primary'} onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
@@ -543,7 +545,7 @@ export default function BaustellenakteView() {
           <div className="akten-spalte">{auftrag}
             {nachrichtenAn && <BaustelleNachrichten projektId={b.id} />}
             {einsatzAn && <AktenTerminVorschau stand={terminStand} bereich="planung" />}
-            {scheineSichtbar && <Card title="Jüngste Handwerksscheine" action={<AktenVerweis bereich="dokumente">Alle Scheine →</AktenVerweis>}>
+            {scheineSichtbar && <Card title="Jüngste Handwerksscheine" action={<AktenVerweis bereich="dokumente">Alle Scheine</AktenVerweis>}>
               {scheinStand.fehler ? <TeilFehler was="die Handwerksscheine" /> : scheinStand.scheine === null ? <SkeletonList rows={2} />
                 : scheinStand.scheine.length === 0 ? <EmptyState>Zu dieser Baustelle gibt es noch keinen Handwerksschein.</EmptyState>
                 : <List><ScheinZeilen scheine={scheinStand.scheine.slice(0, 3)} verrechnet={user && canInvoice(user.role) ? scheinStand.verrechnet : new Set()} /></List>}

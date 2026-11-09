@@ -1276,6 +1276,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
         }
       >
         <div className="formular">
+        {/* 8 px zwischen den Schaltern wie in „Mein Konto“ (E72, N11): zweizeilige Beschriftungen stießen sonst ohne Luft aneinander. */}
+        <div className="space-y-2">
         <CheckboxField
           id="wochenplanFuerAlle"
           label="Alle Mitarbeiter sehen den Wochenplan (nur lesen)"
@@ -1294,6 +1296,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           checked={kalenderAbo}
           onChange={(e) => setKalenderAbo(e.target.checked)}
         />
+        </div>
         <div className="fuss-aktionen mt-4">
           <Button type="button" loading={wochenplanSpeichert} onClick={wochenplanSpeichern}>
             Speichern

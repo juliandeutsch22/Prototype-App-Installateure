@@ -832,7 +832,8 @@ export default function AdminOrdersView() {
   });
 
   return (
-    <div className="space-y-3 lg:space-y-5">
+    // `anf-seite`: die Sammelleiste klebt ab dem Tablet unten (lot-material.css) — dafür ist die Seite ihr Behälter.
+    <div className="anf-seite space-y-3 lg:space-y-5">
       <PageHeader
         title="Anforderungen"
         subtitle="Anforderungen bearbeiten, Rückgaben sichten"
@@ -883,14 +884,6 @@ export default function AdminOrdersView() {
 
       {adressFilter && tab === 'aktiv' && (
         <Adressfilter text={FILTER_TEXT[adressFilter]} parameter={['filter']} />
-      )}
-
-      {tab === 'aktiv' && (
-        <Sammelleiste
-          anzahl={ausgewaehlteMitSchritt.length}
-          aktion={{ text: 'Alle: nächster Schritt', onClick: sammelStarten, laeuft: sammelLaeuft }}
-          onAufheben={() => setGewaehlt([])}
-        />
       )}
 
       {tab === 'einkauf' && company ? (
@@ -1098,6 +1091,21 @@ export default function AdminOrdersView() {
       )}
 
       {/*
+        DIE SAMMELLEISTE HINTER DER LISTE (E72, 09.11.2026): über der Liste
+        eingeschoben, rückte sie beim ersten Haken ab dem Tablet die Zeilen
+        um 96 px nach unten. Hier klebt sie unten im Bild (lot-material.css,
+        `.anf-seite > .sammelleiste`) und am Handy fest über der unteren
+        Leiste wie bisher — die Liste bleibt, wo sie war.
+      */}
+      {tab === 'aktiv' && (
+        <Sammelleiste
+          anzahl={ausgewaehlteMitSchritt.length}
+          aktion={{ text: 'Alle: nächster Schritt', onClick: sammelStarten, laeuft: sammelLaeuft }}
+          onAufheben={() => setGewaehlt([])}
+        />
+      )}
+
+      {/*
         DAS SEITENFENSTER EINER ANFORDERUNG: Angaben, Notiz, Verlauf und ALLE
         Aktionen — der nächste Schritt, „Nicht auf Lager“, jeder andere Status
         (damit lässt sich eine versehentlich abgeschlossene Anforderung
@@ -1251,7 +1259,8 @@ export default function AdminOrdersView() {
                   setToDelete(offen);
                 }}
               >
-                Anforderung löschen …
+                {/* Derselbe Name wie die Rückfrage danach (E72, 09.11.2026): vorher „Anforderung löschen …“ und dann „Eintrag löschen?“. */}
+                {offen.transactionType === 'return' ? 'Retoure löschen …' : 'Anforderung löschen …'}
               </Button>
             </div>
           </div>
@@ -1423,7 +1432,7 @@ export default function AdminOrdersView() {
 
       <ConfirmDialog
         open={!!toDelete}
-        title="Eintrag löschen?"
+        title={toDelete?.transactionType === 'return' ? 'Retoure löschen?' : 'Anforderung löschen?'}
         message={toDelete ? loeschText(toDelete, loeschStand) : ''}
         gesperrt={loeschStand?.art !== 'moeglich'}
         onCancel={() => setToDelete(null)}
@@ -1439,7 +1448,8 @@ export default function AdminOrdersView() {
             // Auch das Löschen nimmt einen offenen Posten weg.
             void postenNeuLaden();
             setGewaehlt((alt) => alt.filter((x) => x !== toDelete.id));
-            toast.success(r.gegenbuchung.length > 0 ? 'Eintrag gelöscht — der Bestand ist zurückgebucht' : 'Eintrag gelöscht');
+            const was = toDelete.transactionType === 'return' ? 'Retoure gelöscht' : 'Anforderung gelöscht';
+            toast.success(r.gegenbuchung.length > 0 ? `${was} — der Bestand ist zurückgebucht` : was);
           }
           setToDelete(null);
         }}

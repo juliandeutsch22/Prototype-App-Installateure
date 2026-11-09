@@ -735,6 +735,31 @@ describe('Lager — wenn ein Ladevorgang scheitert', () => {
     const ventil = screen.getByText('Eckventil').closest('li') as HTMLElement;
     expect(within(ventil).queryByRole('img')).not.toBeInTheDocument();
   });
+
+  /*
+    E72 (09.11.2026) — gemessen: am Tablet blieben dem Namen neben Zustand und
+    Maßlinie rund 200 px, die Artikelnummer brach in sich; am Schreibtisch
+    sprang der Zustand je Zeile um 14 px, weil die Zahlen ohne Regal schmaler
+    waren als die Linie. Gegenprobe: mit dem Stand davor rot.
+  */
+  it('die Zeile ist gestapelt; Maßlinie und Zahlen stehen in derselben festen Breite, der Zustand in seiner Spalte (E72)', async () => {
+    materialien = [
+      material({ id: 'm1', name: 'Kupferrohr 15', stock: 20 }),
+      material({ id: 'm3', name: 'Eckventil', stock: 0 }),
+    ];
+    anforderungen = [anforderung({ id: 'o1', materialId: 'm1', quantity: 5 })];
+    zeige();
+    const rohr = (await screen.findByText('Kupferrohr 15')).closest('li') as HTMLElement;
+    const ventil = screen.getByText('Eckventil').closest('li') as HTMLElement;
+    for (const zeile of [rohr, ventil]) {
+      expect(zeile).toHaveClass('zeile-gestapelt');
+      expect(zeile.querySelector('.zeile-stand > .zeile-wert > .lager-masslinie')).not.toBeNull();
+      // Eine Zustandsspalte auch ohne Zustand — sonst begänne die Linie dort weiter links.
+      expect(zeile.querySelector('.zeile-stand > .zeile-zustand')).not.toBeNull();
+    }
+    expect(within(rohr).getByRole('img', { name: /5 reserviert von 20 m im Regal/ }).closest('.lager-masslinie')).not.toBeNull();
+    expect(within(ventil).getByText(/0 m frei/).closest('.lager-masslinie')).not.toBeNull();
+  });
 });
 
 describe('Wer den Katalog einspielen darf', () => {
@@ -826,6 +851,14 @@ describe('Reiter in der Adresse', () => {
   it('Gegenprobe: ein unbekannter Reiter gilt als Bestand', async () => {
     zeige('/lager?reiter=irgendwas');
     expect(await screen.findByRole('button', { name: 'Bestand' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  // E72: die Bereiche stehen schmal links in der Listenleiste, nicht über die ganze Breite gestreckt.
+  it('die Bereiche stehen in einer Listenleiste wie in den Anforderungen (E72)', async () => {
+    zeige();
+    const bestand = await screen.findByRole('button', { name: 'Bestand' });
+    expect(bestand.closest('.listenleiste-reiter')).not.toBeNull();
+    expect(bestand.closest('.anf-leiste')).not.toBeNull();
   });
 });
 

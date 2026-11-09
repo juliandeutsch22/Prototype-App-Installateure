@@ -99,6 +99,18 @@ describe('Karte „Arbeitstag“', () => {
     expect(screen.getByRole('button', { name: 'Stoppen und prüfen' })).toBeInTheDocument();
   });
 
+  // E72 (09.11.2026): „Verwerfen …“ war ein 20 px hoher grauer Text — jetzt ein Zweitknopf, der den Bogen öffnet.
+  it('„Verwerfen …“ ist ein Zweitknopf und öffnet weiter den Bogen', async () => {
+    sitzungen = [sitzung('laeuft', [{ id: 'a', art: 'arbeit', von: '2026-11-09T07:00:00+01:00', baustelle: 'B-1' }])];
+    zeigeKarte();
+    const knopf = await screen.findByRole('button', { name: 'Verwerfen …' });
+    expect(knopf.className).toContain('lot-knopf');
+    expect(knopf.className).toContain('border-line-strong');
+    expect(knopf.className).not.toContain('link');
+    await userEvent.click(knopf);
+    expect(await screen.findByRole('dialog', { name: 'Zeitsitzung verwerfen' })).toBeInTheDocument();
+  });
+
   it('Pause: seit wann und wie lange, Weiter und Feierabend', async () => {
     sitzungen = [sitzung('pause', [
       { id: 'a', art: 'arbeit', von: '2026-11-09T07:00:00+01:00', bis: '2026-11-09T11:00:00+01:00', baustelle: 'B-1' },

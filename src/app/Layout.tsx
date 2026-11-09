@@ -472,7 +472,13 @@ export default function Layout({ children }: { children: ReactNode }) {
         <SeitenHilfeProvider>
           <div ref={seite} className="inhalt">{children}</div>
         </SeitenHilfeProvider>
-        {/* Ab dem Tablet: der laufende Arbeitstag unten im Inhalt (am Telefon über der Reiterleiste). */}
+        {/*
+          Ab dem Tablet: der laufende Arbeitstag unten im Inhalt (am Telefon
+          über der Reiterleiste). Neben `.inhalt`, nicht darin: beim
+          Seitenwechsel blendet `.inhalt` ein, die Leiste soll stehen bleiben.
+          An der Kante der Blätter steht sie über `--takt-breite`
+          (lot-timer.css, E72).
+        */}
         <TimerLeiste ort="breit" />
         {/* Am Telefon: so viel Platz wie die Timer-Leiste, damit das Letzte nicht darunter liegt. */}
         <div className="timer-platz" aria-hidden="true" />
@@ -542,8 +548,14 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* „Mehr"-Blatt (Handy) */}
       <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} label="Weitere Bereiche">
         <nav className="flex flex-col" aria-label="Weitere Bereiche">
-          {mehrGruppen.map(({ group, items: groupItems }) => (
-            <div key={group}>
+          {mehrGruppen.map(({ group, items: groupItems }, index) => (
+            /*
+              EINE GRUPPE OHNE ÜBERSCHRIFT NACH ANDEREN (Einstellungen) bekommt
+              eine Linie darüber (E72, N5) — wie in der Seitenleiste, wo sie
+              abgesetzt im Fuß steht. Sonst las sich „Einstellungen“ als
+              letzter Punkt von „Material“.
+            */
+            <div key={group} className={OHNE_UEBERSCHRIFT.has(group) && index > 0 ? 'mt-3 border-t border-line pt-3' : undefined}>
               {!OHNE_UEBERSCHRIFT.has(group) && <p className="mehr-gruppe">{group}</p>}
               <div className="flex flex-col gap-0.5">
                 {groupItems.map((item) => (
@@ -567,7 +579,13 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Profil hinter den Initialen (Handy und Tablet) */}
       <BottomSheet open={profilOpen} onClose={() => setProfilOpen(false)} label="Profil" auchBreit>
-        <div className="flex items-center gap-3 px-1">
+        {/*
+          EINE LINKE KANTE IM PROFIL (E72, 09.11.2026): Kürzel, Symbole der
+          Zeilen und die Beschriftung des Darstellungsschalters stehen auf
+          derselben Flucht (12 px im Blatt wie das Polster von `mehr-punkt`);
+          vorher 20, 28 und 24 px.
+        */}
+        <div className="flex items-center gap-3 px-3">
           <Avatar name={user.name} size={48} />
           <div className="min-w-0">
             <p className="truncate text-base font-semibold text-ink">{user.name}</p>
@@ -590,7 +608,16 @@ export default function Layout({ children }: { children: ReactNode }) {
               </button>
             )}
           />
-          <DarstellungsSchalter darstellung={darstellung} onChange={setDarstellung} />
+          {/*
+            MIT SICHTBARER BESCHRIFTUNG (E72, N13): im Profil stand der Schalter
+            allein, ohne zu sagen, was er schaltet. Ein Tipp auf das Wort schaltet
+            mit (das Etikett gehört zum Knopf).
+          */}
+          <label className="mehr-punkt">
+            <Icon name="sun" size={20} className="shrink-0" />
+            <span className="flex-1">Dunkle Darstellung</span>
+            <DarstellungsSchalter darstellung={darstellung} onChange={setDarstellung} />
+          </label>
         </div>
         <Button
           variant="secondary"

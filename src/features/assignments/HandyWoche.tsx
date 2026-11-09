@@ -134,7 +134,8 @@ export default function HandyWoche({
           {info && <p className="tl-info">{info}</p>}
         </div>
         {!lesen && (
-          <Button variant="secondary" groesse="klein" onClick={() => onTag(gewaehlt)}>
+          // Normale Größe: die Woche am Handy, oft frei unter dem Tag (E72, R3).
+          <Button variant="secondary" onClick={() => onTag(gewaehlt)}>
             Ganzen Tag ansehen
           </Button>
         )}
@@ -143,7 +144,7 @@ export default function HandyWoche({
       <div className="tl-gruppe">
         <span>{termine.length ? termineText(termine.length) : 'Keine Termine'}</span>
         {darf && !lesen && (
-          <Button variant="secondary" groesse="klein" onClick={() => onTerminNeu(gewaehlt)}>
+          <Button variant="secondary" onClick={() => onTerminNeu(gewaehlt)}>
             Termin anlegen
           </Button>
         )}

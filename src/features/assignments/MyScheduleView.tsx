@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import KnopfLink from '@/components/KnopfLink';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -23,7 +22,7 @@ import type { WithId } from '@/lib/db/core';
 import { localDateStr, tageWort, todayStr } from '@/lib/time';
 import Card from '@/components/Card';
 import Hinweiszeile from '@/components/Hinweiszeile';
-import { AdresseLink, TelefonLink } from '@/components/Kontakt';
+import { EinsatzKnoepfe, EinsatzKontakt } from './Einsatzaktionen';
 import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
@@ -425,8 +424,14 @@ export default function MyScheduleView() {
       ) : error ? (
         <ErrorState message={error} />
       ) : (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-5 lg:gap-5">
-          <div className="space-y-3 lg:col-span-2">
+        /*
+          SPALTEN IN GANZEN ZELLEN (E72, 09.11.2026): der Kalender 18 Zellen
+          (432 px), eine Zelle Fuge, die Liste nimmt den Rest der Spalte, die
+          der Taktgeber auf ganze Zellen rundet. Mit 2 : 3 und 20 px Fuge lagen
+          Kalender (439 px) und Liste (669 px) neben den Rasterlinien.
+        */
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[27rem_minmax(0,1fr)]">
+          <div className="space-y-3">
             <MonthCalendar
               year={cursor.year}
               month={cursor.month}
@@ -455,7 +460,7 @@ export default function MyScheduleView() {
             </div>
           </div>
 
-          <div className="lg:col-span-3">
+          <div>
             <Card title={`Einsätze am ${fmtDay(selected)}`}>
               {/*
                 Der Urlaub steht ÜBER den Einsätzen: fällt beides auf denselben
@@ -498,8 +503,13 @@ export default function MyScheduleView() {
                     const proj = projects.find((p) => p.projectNumber === a.projectNumber);
                     return (
                       <div key={a.id} className="py-3 first:pt-0 last:pb-0">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-semibold text-ink">
+                        {/*
+                          ZUSTAND AN FESTER STELLE (E72, R11): „Heute“, Zeit
+                          und Rolle standen rechts neben dem Namen — oder,
+                          war der Name lang, darunter. Jetzt immer in der
+                          Zeile unter dem Namen.
+                        */}
+                        <span className="block font-semibold text-ink">
                             {proj?.customerName ?? a.projectNumber}
                             {/* Nummer nur zusätzlich zeigen, wenn ein Kundenname
                                 da ist — sonst stünde sie doppelt. */}
@@ -512,15 +522,14 @@ export default function MyScheduleView() {
                                 <span className="zeile-nr">{a.projectNumber}</span>
                               </>
                             )}
-                          </span>
-                          <span className="flex gap-2">
-                            {/* „Heute" war rot. Es ist kein Ausfall, sondern der
-                                Einsatz, der GERADE läuft. */}
-                            {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
-                            {einsatzZeit(a) && <Marke>{einsatzZeit(a)}</Marke>}
-                            <Marke>{stufeImEinsatz(a.asHelper, user)}</Marke>
-                          </span>
-                        </div>
+                        </span>
+                        <p className="mt-1 flex flex-wrap items-center gap-2">
+                          {/* „Heute" war rot. Es ist kein Ausfall, sondern der
+                              Einsatz, der GERADE läuft. */}
+                          {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
+                          {einsatzZeit(a) && <Marke>{einsatzZeit(a)}</Marke>}
+                          <Marke>{stufeImEinsatz(a.asHelper, user)}</Marke>
+                        </p>
                         {/* M02c: Haus und Top als Text, wie die Adresse — wohin genau im Haus. */}
                         {liegenschaftenAn && proj && liegenschaftZeile(proj) && <p className="mt-1 text-sm text-ink">{liegenschaftZeile(proj)}</p>}
                         {a.comment && <p className="mt-1 text-sm text-ink-muted">{a.comment}</p>}
@@ -554,33 +563,22 @@ export default function MyScheduleView() {
                           );
                         })()}
 
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {/* Übernimmt Baustelle und Helfer-Rolle ins
-                              Zeitformular — ein vergessener Helfer-Haken
-                              kostet den falschen Satz. */}
-                          {zeitAn && <KnopfLink to="/time" state={{ projectNumber: a.projectNumber, asHelper: !!a.asHelper }}>
-                            Zeit erfassen
-                          </KnopfLink>}
-                          {/*
-                            Der Schein gehoert an den Einsatz, nicht in einen
-                            eigenen Bereich, in dem man die Baustelle erneut
-                            heraussuchen muss. Datum und Baustelle wandern mit.
-                          */}
-                          {scheineAn && (
-                          <Link
-                            to={`/worksheet?projekt=${encodeURIComponent(a.projectNumber)}&datum=${a.date}`}
-                            className="flex min-h-touch items-center rounded border border-line px-4 py-2 font-normal text-ink"
-                          >
-                            Schein schreiben
-                          </Link>
-                          )}
-                          <AdresseLink adresse={proj?.address} variante="knopf" />
-                          <TelefonLink
-                            nummer={proj?.contactPhone}
-                            name={proj?.contactName}
-                            variante="knopf"
-                          />
-                        </div>
+                        {/*
+                          Übernimmt Baustelle und Helfer-Rolle ins Zeitformular
+                          — ein vergessener Helfer-Haken kostet den falschen
+                          Satz. Der Schein gehört an den Einsatz, nicht in
+                          einen eigenen Bereich; Datum und Baustelle wandern
+                          mit. Gestalt wie auf der Startseite (Einsatzaktionen).
+                        */}
+                        <EinsatzKnoepfe
+                          projectNumber={a.projectNumber}
+                          asHelper={!!a.asHelper}
+                          datum={a.date}
+                          zeit={zeitAn}
+                          schein={scheineAn}
+                          className="mt-3"
+                        />
+                        <EinsatzKontakt adresse={proj?.address} nummer={proj?.contactPhone} name={proj?.contactName} className="mt-1" />
                       </div>
                     );
                   })}
@@ -596,7 +594,7 @@ export default function MyScheduleView() {
               stünde nichts an.
             */}
             {/* Zeilen der Linie „Lot“: bündig, Name oben, Tag und Uhrzeit darunter. */}
-            <Card title="Nächste Einsätze" className="mt-3 lg:mt-5" buendig>
+            <Card title="Nächste Einsätze" className="mt-6" buendig>
               {kommende.length === 0 ? (
                 <EmptyState>
                   {anstehend.length > 0 ? 'Nach heute ist nichts eingeplant.' : 'Zurzeit ist nichts eingeplant.'}
@@ -623,7 +621,7 @@ export default function MyScheduleView() {
               )}
               {anstehend.length > 15 && (
                 <p className="blatt-einzug border-t border-line px-4 py-3 text-sm text-ink-muted">
-                  und {anstehend.length - 15} weitere — im Kalender links nachschlagen.
+                  und {anstehend.length - 15} weitere — im Kalender nachschlagen.
                 </p>
               )}
               {ausgeblendet > 0 && (
@@ -636,11 +634,11 @@ export default function MyScheduleView() {
             </Card>
 
             {meineKommend.length > 0 && (
-              <Card title="Nächste Termine" className="mt-3 lg:mt-5">
+              <Card title="Nächste Termine" className="mt-6">
                 <TerminListe termine={meineKommend.slice(0, 10)} personen={personen} mitDatum mitAdresse />
                 {meineKommend.length > 10 && (
                   <p className="mt-2 text-sm text-ink-muted">
-                    und {meineKommend.length - 10} weitere — im Kalender links nachschlagen.
+                    und {meineKommend.length - 10} weitere — im Kalender nachschlagen.
                   </p>
                 )}
               </Card>
@@ -655,7 +653,7 @@ export default function MyScheduleView() {
             <Card
               title="Mein Urlaub"
               buendig
-              className="mt-3 lg:mt-5"
+              className="mt-6"
               action={
                 <Link to="/vacations" className="link-weiter text-sm">
                   Beantragen

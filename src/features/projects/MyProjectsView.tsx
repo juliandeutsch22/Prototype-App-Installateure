@@ -7,9 +7,7 @@ import { ganztagsWeg } from '@/features/assignments/besetzung';
 import { todayStr, fmtStunden } from '@/lib/time';
 import type { Project } from '@/types';
 import Card from '@/components/Card';
-import Icon from '@/components/Icon';
-import { TelefonLink } from '@/components/Kontakt';
-import { mapsUrl } from '@/lib/kontakt';
+import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import { MehrAnzeigen } from '@/components/LotBausteine';
@@ -137,8 +135,13 @@ export default function MyProjectsView() {
             <Card
               key={p.id}
               title={baustellenTitel(p)}
-              action={<StatusBadge status={p.status} />}
             >
+              {/*
+                DER ZUSTAND AN FESTER STELLE (E72, R11): als Aktion des Kopfs
+                stand „Aktiv“ rechts neben einem kurzen Namen und unter einem
+                langen. Jetzt immer als erste Zeile unter dem Titel.
+              */}
+              <p className="mb-2"><StatusBadge status={p.status} /></p>
               {/*
                 IN DER REIHENFOLGE, IN DER MAN VOR ORT FRAGT (Linie „Lot“):
                 welche Baustelle und wann, wohin und wen anrufen, was zu tun
@@ -174,17 +177,14 @@ export default function MyProjectsView() {
 
               {/* M02c: Haus und Top als Text, wie die Adresse — wohin genau im Haus. */}
               {liegenschaftenAn && liegenschaftZeile(p) && <p className="mt-2 text-sm text-ink">{liegenschaftZeile(p)}</p>}
-              {/* Die Route ist die Hauptaktion der Karte: volle Breite, im Daumenbereich der Karte. */}
+              {/*
+                DIE ADRESSE WIE ÜBERALL (E72): als Kontakt mit Symbol, ein Tipp
+                öffnet die Navigation. Der gefüllte Balken „Route: …“ je Karte
+                machte jede Baustelle zur lautesten Stelle der Seite — bei drei
+                Baustellen drei Hauptaktionen.
+              */}
               {p.address && (
-                <a
-                  href={mapsUrl(p.address)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mb-route"
-                >
-                  <Icon name="pin" size={18} aria-hidden />
-                  Route: {p.address}
-                </a>
+                <p className="mt-2"><AdresseLink adresse={p.address} /></p>
               )}
 
               {/* Ansprechpartner: ohne Nummer steht der Monteur vor Ort ohne

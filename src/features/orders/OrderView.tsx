@@ -18,7 +18,7 @@ import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder, Project } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import { MehrAnzeigen } from '@/components/LotBausteine';
+import { Listenleiste, MehrAnzeigen } from '@/components/LotBausteine';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke, Warnung } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
@@ -399,8 +399,11 @@ export default function OrderView() {
       {/* Eine Zeile statt einer eigenen Karte: vorher stand die
           Baustellenauswahl wie eine Hürde vor dem Katalog und schob ihn
           auf dem Telefon unter den Falz. Die Notiz ist in den Warenkorb
-          gewandert — sie gehört zum Absenden, nicht zum Suchen. */}
-      <div className="space-y-2">
+          gewandert — sie gehört zum Absenden, nicht zum Suchen.
+          SO BREIT WIE EIN FORMULAR (E72, 09.11.2026, Regel R5): frei über die
+          Seite gezogen war die Auswahl am Schreibtisch 1128 px breit — für
+          einen Baustellennamen. */}
+      <div className="formular space-y-2">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[14rem] flex-1">
             <BaustellenSelect
@@ -454,16 +457,29 @@ export default function OrderView() {
         )}
       </div>
 
-      <Card title="Katalog">
-        <InputField id="search" label="Suche"
-          placeholder="Name, Kategorie oder Art.-Nr."
-          value={search} onChange={(e) => {
-            setSearch(e.target.value);
-            setArtikelGezeigt(JE_SEITE);
-          }} />
-        <div className="mt-4">
+      {/*
+        DIE SUCHE WIE ÜBER JEDER LISTE (E72, 09.11.2026): die Listenleiste
+        mit Lupe im Blatt, die Zeilen von Kante zu Kante — wie im Lager und
+        im Katalog der Verwaltung. Vorher ein beschriftetes Feld „Suche“ ohne
+        Lupe über die ganze Breite, das aussah wie ein Formularfeld.
+      */}
+      <Card title="Katalog" buendig>
+        <Listenleiste
+          suche={{
+            id: 'search',
+            wert: search,
+            onChange: (wert) => {
+              setSearch(wert);
+              setArtikelGezeigt(JE_SEITE);
+            },
+            platzhalter: 'Name, Kategorie oder Art.-Nr.',
+          }}
+        />
+        <div>
           {loading ? (
-            <LoadingState />
+            <div className="blatt-einzug pb-6">
+              <LoadingState />
+            </div>
           ) : materials.length === 0 ? (
             /*
               ECHTE LEERE MIT ZEICHNUNG (Planlinie § 6), wie im Lager: der leere
@@ -535,7 +551,7 @@ export default function OrderView() {
         </div>
         {/* Erst mit dem Katalog — sonst schob der Katalog die Zeile beim Eintreffen nach unten. */}
         {!loading && (
-        <div className="mt-4 border-t border-line pt-4">
+        <div className="blatt-einzug border-t border-line pb-6 pt-4">
           <p className="section-label">Nicht im Katalog?</p>
           {/* `minmax(0,1fr)` statt `1fr`: sonst gibt die Spalte nicht unter
               die Eigenbreite des Eingabefelds nach, und bei 390 px liefen
@@ -592,9 +608,16 @@ export default function OrderView() {
             {/* Ein Zustand der Linie („offen“), mit seinem Zeichen wie in den Listen (E47). */}
             <span className="korb-info stand stand-offen">noch nicht abgeschickt</span>
           </p>
+          {/*
+            EINZEILIG AM HANDY (E72, 09.11.2026): „Liste leeren“ und
+            „Anforderung (2) abschicken“ brauchen zusammen 371 px, die Leiste
+            hat bei 390 px 358 — beide Knöpfe brachen in zwei Zeilen. Sichtbar
+            steht jetzt „Leeren“; der Name für die Vorlesehilfe bleibt „Liste
+            leeren“ und enthält das sichtbare Wort.
+          */}
           <div className="korb-knoepfe">
-            <Button variant="ghost" onClick={() => setCart([])}>
-              Liste leeren
+            <Button variant="ghost" aria-label="Liste leeren" onClick={() => setCart([])}>
+              Leeren
             </Button>
             <Button onClick={submitCart} loading={saving}>
               {`Anforderung (${cart.length}) abschicken`}
@@ -744,7 +767,14 @@ export default function OrderView() {
                     Der Abschluss zieht das Material vom Lager ab; deshalb
                     geht er weiterhin durch die Rückfrage.
                   */}
-                  <Button variant="primary" onClick={() => setToPickUp(o)}>
+                  {/*
+                    EIN ZWEITKNOPF, KEIN GEFÜLLTER (E72, 09.11.2026, Regel R2):
+                    gefüllt ist je Seite nur die Hauptaktion. In jeder Zeile
+                    gefüllt rief „Abgeholt“ lauter als „In die Liste“ und sah
+                    anders aus als der nächste Schritt in den Anforderungen.
+                    Die volle Größe bleibt — Handschuhe.
+                  */}
+                  <Button variant="secondary" onClick={() => setToPickUp(o)}>
                     Abgeholt
                   </Button>
                 </ListRow>
@@ -928,7 +958,9 @@ function QtyAdder({
             wer dreissig Meter Rohr braucht, tippt die Zahl trotzdem direkt ein,
             statt dreissig Mal zu drücken.
           */}
+          {/* Gerahmt (Regel R8): als Ziel erkennbar, nicht als graues Zeichen. */}
           <IconButton
+            gerahmt
             label={`Menge für ${material.name} verringern`}
             onClick={() => setMenge(zahlAlsText(Math.max(1, (gueltig ? zahl : 1) - 1)))}
             disabled={gueltig && zahl <= 1}
@@ -944,11 +976,13 @@ function QtyAdder({
             onChange={(e) => setMenge(e.target.value)}
             onFocus={(e) => e.currentTarget.select()}
             aria-label={`Menge ${material.unit ?? 'Stk'} für ${material.name}`}
-            className={`h-11 w-14 rounded border bg-surface text-center text-base font-semibold ${
-              gueltig ? 'border-line text-ink' : 'border-danger text-danger'
+            // So hoch und so gerahmt wie − und + daneben (48 px): eine Reihe, eine Höhe.
+            className={`h-12 w-14 rounded border bg-surface text-center text-base font-semibold ${
+              gueltig ? 'border-line-strong text-ink' : 'border-danger text-danger'
             }`}
           />
           <IconButton
+            gerahmt
             label={`Menge für ${material.name} erhöhen`}
             onClick={() => setMenge(zahlAlsText((gueltig ? zahl : 0) + 1))}
           >

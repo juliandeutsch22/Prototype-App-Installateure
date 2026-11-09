@@ -403,7 +403,7 @@ export default function BenutzerakteView() {
       </>} bereiche={[
         { id: 'profil', titel: 'Profil', sprungziele: ['akte-stammdaten', 'akte-geburtsdatum'], inhalt:
           <div className="akten-spalte">{stammdaten}{geburtsdatum}
-            <Card title="Arbeitszeit und Urlaub" action={<AktenVerweis bereich="arbeitszeit">Alle Einstellungen →</AktenVerweis>}>
+            <Card title="Arbeitszeit und Urlaub" action={<AktenVerweis bereich="arbeitszeit">Alle Einstellungen</AktenVerweis>}>
               <StammdatenLesen p={p} teil="arbeitsregel" />
             </Card>
             <Card title="Startwerte des Zeitkontos" hint="Das sind Einstellungen und Startwerte. Aktuelle Salden stehen in der Mitarbeiterübersicht.">

@@ -57,7 +57,14 @@
   /* Klebt am Handy über der Reiterleiste, ab dem Tablet am unteren Rand (`--reiter-hoehe` ist dort 0). */
   .rt-aktionen { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; padding-block: 0.75rem; border-top: 1px solid var(--border); background: var(--surface); }
 
-  .plattform-supportzeile { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.875rem 1.5rem; padding: 1.25rem 0; border-bottom: 1px solid var(--border); }
+  /*
+    DIE LINIE ZWISCHEN DEN ZUGÄNGEN, NICHT DARUNTER (E72, 09.11.2026): als
+    Linie unter jedem Eintrag stand nach dem letzten eine Trennlinie ohne
+    Folgezeile über dem Blattrand. Jetzt trägt jeder Eintrag nach dem ersten
+    die Linie oben — ohne Positionsselektor, wie die Zeilen der Listen.
+  */
+  .plattform-supportzeile { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.875rem 1.5rem; padding: 1.25rem 0; }
+  .plattform-supportzeile + .plattform-supportzeile { border-top: 1px solid var(--border); }
   .plattform-supportinfo { min-width: 0; }
   .plattform-supportinfo h3 { font-size: 0.875rem; font-weight: var(--gewicht-titel); }
   .plattform-supportinfo p { margin-top: 0.5rem; font-size: 0.8125rem; }

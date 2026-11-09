@@ -20,6 +20,7 @@ import type { Material, Project, WorkSheet, WorkSheetZeit } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import { knopfKlassen } from '@/components/knopf';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import { Marke } from '@/components/Badge';
@@ -1173,8 +1174,9 @@ export default function WorkSheetView() {
         title={entwurfId ? 'Handwerksschein — Entwurf' : 'Handwerksschein'}
         subtitle={
           entwurfId
-            ? 'Vorbereiteter Schein — ergänzen und unterschreiben lassen'
-            : 'Leistung vor Ort bestätigen lassen — Zeiten, Material, Unterschrift'
+            // Kurz genug für eine Zeile am Handy (E72, D8); das Weitere sagt die Hilfe.
+            ? 'Ergänzen und unterschreiben lassen'
+            : 'Zeiten, Material und Unterschrift vor Ort'
         }
         hilfe={
           <>
@@ -1641,14 +1643,14 @@ export default function WorkSheetView() {
                       Ein Knopf, kein unterstrichener Link. Ein <label> deshalb, weil
                       die Dateiauswahl nur ein <input type="file"> auslöst; „disabled"
                       kann ein Label nicht, also trägt das versteckte Feld die Sperre
-                      und das Label nur deren Aussehen.
+                      und das Label nur deren Aussehen. Die Gestalt ist die des
+                      Zweitknopfs aus `knopf.ts` (E72): vorher eine graue Fläche,
+                      halbfett und mit Skalierung, wie kein anderer Knopf.
                     */}
                     <label
                       aria-disabled={fotoKnopfAus}
-                      className={`mt-3 inline-flex min-h-touch w-full items-center justify-center gap-2 rounded border border-line px-4 py-2 text-base font-semibold transition sm:w-auto ${
-                        fotoKnopfAus
-                          ? 'cursor-not-allowed bg-surface-2 text-ink-muted opacity-60'
-                          : 'cursor-pointer bg-surface-2 text-ink active:scale-[0.98]'
+                      className={`${knopfKlassen('secondary')} mt-3 w-full sm:w-auto ${
+                        fotoKnopfAus ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
                       }`}
                     >
                       <input

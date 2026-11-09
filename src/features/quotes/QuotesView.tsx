@@ -44,6 +44,7 @@ import { leseZahl, preisAlsText, zahlAlsText, zahlOder } from '@/lib/zahl';
 import ZahlFeld from '@/components/ZahlFeld';
 import AdresseFeld from '@/components/AdresseFeld';
 import { useModul } from '@/lib/useModule';
+import { AB_TABLET } from '@/lib/breiten';
 import { getEingangZu } from '@/lib/db/auftragseingaenge';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import { zuordnungAenderung } from '@/features/liegenschaften/liegenschaftText';
@@ -201,6 +202,21 @@ function Gruppe<T>({ titel, zeilen, zeile }: { titel: string; zeilen: T[]; zeile
   );
 }
 
+/** Handy (unter 760 px)? Ohne `matchMedia` (Komponententests) gilt der Schreibtisch — wie `MonatsAnsicht`. */
+function useHandy(): boolean {
+  const frage = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && !window.matchMedia(AB_TABLET).matches;
+  const [handy, setHandy] = useState(frage);
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const m = window.matchMedia(AB_TABLET);
+    const neu = () => setHandy(!m.matches);
+    neu();
+    m.addEventListener?.('change', neu);
+    return () => m.removeEventListener?.('change', neu);
+  }, []);
+  return handy;
+}
+
 /**
  * Angebote und Vorkalkulation.
  *
@@ -226,6 +242,7 @@ export default function QuotesView() {
     längste der vier und der seltenste Vorgang; nachgeschlagen wird täglich.
   */
   const [formOffen, setFormOffen] = useState(false);
+  const handy = useHandy();
   /** Welcher Entwurf in den Papierkorb soll — erst nach der Rückfrage (M01d). */
   const [verwerfenFragen, setVerwerfenFragen] = useState<WithId<Quote> | null>(null);
   /*
@@ -766,7 +783,19 @@ export default function QuotesView() {
           ? 'Kein offenes Angebot.'
           : 'Noch kein Angebot angenommen oder abgelehnt.';
 
-  const zeile = (q: WithId<Quote>) => (
+  const zeile = (q: WithId<Quote>) => {
+    const schonAngenommen = fassungsHinweis(q, angebote).angenommen;
+    const annehmen = () => { setAbrechnung('Pauschal'); setAnnehmenFragen(q); };
+    /*
+      AM HANDY EIN KNOPF UND „⋯“ (E72, 09.11.2026): mit zwei Knöpfen brach
+      die Zeile auf 390 px in drei Reihen und wurde 280 px hoch. Dort bleibt
+      der naheliegende Schritt sichtbar — beim Entwurf „Bearbeiten“, beim
+      versendeten „Annehmen → Baustelle“ —, der zweite steht zuoberst im
+      Menü. Ab dem Tablet bleiben beide Knöpfe (Analyse 03.10.2026, Paket 2).
+    */
+    const annehmenInsMenue = handy && darfAendern && q.status === 'Entwurf' && !schonAngenommen;
+    const fassungInsMenue = handy && darfAendern && q.status === 'Versendet' && !schonAngenommen;
+    return (
     <ListRow
       key={q.id}
       // DIE GANZE ZEILE führt zur Angebotsseite — Positionen, Anmerkungen, PDF.
@@ -800,7 +829,7 @@ export default function QuotesView() {
         </Button>
       )}
       {/* M17: was beim Kunden liegt, wird als neue Fassung überarbeitet. */}
-      {darfAendern && (q.status === 'Versendet' || q.status === 'Abgelehnt') && (
+      {darfAendern && (q.status === 'Versendet' || q.status === 'Abgelehnt') && !fassungInsMenue && (
         <Button variant="ghost" disabled={busy} onClick={() => alsVorlage(q, true)}>
           Neue Fassung
         </Button>
@@ -811,10 +840,10 @@ export default function QuotesView() {
         nähme ohnehin nicht an; hier steht stattdessen, welche es ist.
       */}
       {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
-        fassungsHinweis(q, angebote).angenommen ? (
-          <Marke>Fassung {fassungsHinweis(q, angebote).angenommen!.quoteNumber} angenommen</Marke>
-        ) : (
-          <Button variant="ghost" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(q); }}>
+        schonAngenommen ? (
+          <Marke>Fassung {schonAngenommen.quoteNumber} angenommen</Marke>
+        ) : annehmenInsMenue ? null : (
+          <Button variant="ghost" loading={busy} onClick={annehmen}>
             Annehmen → Baustelle
           </Button>
         )
@@ -823,6 +852,9 @@ export default function QuotesView() {
         <RowMenu
           about={`Angebot ${q.quoteNumber}`}
           items={[
+            // Am Handy rückt der zweite Schritt hierher (E72), als Erstes im Menü.
+            ...(annehmenInsMenue ? [{ label: 'Annehmen → Baustelle', onSelect: annehmen }] : []),
+            ...(fassungInsMenue ? [{ label: 'Neue Fassung', onSelect: () => void alsVorlage(q, true) }] : []),
             ...(q.status === 'Entwurf'
               ? [{ label: 'Als versendet markieren', onSelect: () => void status(q, 'Versendet', 'Als versendet markiert') }]
               : []),
@@ -837,7 +869,8 @@ export default function QuotesView() {
         />
       )}
     </ListRow>
-  );
+    );
+  };
 
   const erstesAngebot = !loading && angebote.length === 0 && !begriff && !error && !formOffen;
 
@@ -876,8 +909,9 @@ export default function QuotesView() {
       {/*
         DAS FORMULAR BLEIBT AUF DER SEITE, nicht im Seitenfenster: es ist das
         längste der App, die Positionen brauchen Breite, und es klappt über
-        der Liste auf, nicht zwischen ihren Zeilen. Kopf und Fuss einspaltig
-        in 560 px (Regel 9), die Positionen dürfen breiter stehen.
+        der Liste auf, nicht zwischen ihren Zeilen. Kopf, Positionen und Fuss
+        in 560 px (Regel 9) — seit E72 auch die Positionen, damit das Formular
+        eine rechte Kante hat.
       */}
       {darfAendern && formOffen && (
         <Card
@@ -954,7 +988,12 @@ export default function QuotesView() {
             </WeitereAngaben>
           </div>
 
-          <div className="mt-6 max-w-[48rem]">
+          {/*
+            EINE RECHTE KANTE (E72, R5): die Positionen standen 48 rem breit,
+            der Rest des Formulars 35 rem — der Block endete 208 px weiter
+            rechts als Kunde, Anmerkungen und Knöpfe.
+          */}
+          <div className="formular mt-6">
             <h3 className="section-label">Positionen</h3>
             {/* Linien statt Kästen (Linie „Lot“, Regel 1): keine Karte in der Karte. */}
             <ul className="mt-2">
@@ -1182,7 +1221,8 @@ export default function QuotesView() {
 
             {error && <ErrorState message={error} />}
 
-            <div className="fuss-aktionen">
+            {/* Am Handy untereinander, die Hauptaktion oben und beide gleich breit (E72, R7). */}
+            <div className="fuss-aktionen flex-col-reverse md:flex-row">
               {/* Der Weg zurück zur Liste. */}
               <Button
                 type="button"

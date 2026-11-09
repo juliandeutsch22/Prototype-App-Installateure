@@ -320,20 +320,24 @@
   .unten-text { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; }
 
   /* ── Blatt „Mehr“ und Profil ─────────────────────────────────────────── */
-  .mehr-gruppe { margin: 0.75rem 0.25rem 0.25rem; font-size: 0.75rem; font-weight: var(--gewicht-titel); color: var(--text-muted); }
+  /* Gruppenköpfe wie in der Seitenleiste (E72): Versalien, gesperrt, mit Linie — dieselbe Ordnung auf jedem Gerät. */
+  .mehr-gruppe { display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0.75rem 0.375rem; font-size: 0.625rem; line-height: 1rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); }
+  .mehr-gruppe::after { content: ''; flex: 1; height: 1px; background: var(--border); }
   .mehr-punkt, .mehr-punkt-aktiv { display: flex; align-items: center; gap: 0.75rem; min-height: 3rem; padding: 0.5rem 0.75rem; border-radius: var(--radius); color: var(--text); text-decoration: none; background: none; border: 0; width: 100%; text-align: left; font-size: 0.9375rem; cursor: pointer; }
   .mehr-punkt:hover { background: var(--petrol-hell); }
   .mehr-punkt-aktiv { background: var(--petrol-hell); color: var(--accent-deep); font-weight: var(--gewicht-titel); }
 
   /* ── Suchfenster (Strg + K) ──────────────────────────────────────────── */
-  .suchfenster { position: absolute; top: 12vh; left: 0; right: 0; margin: 0 auto; width: 35rem; max-width: 94vw; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; }
+  /* Am Handy 16 px vom Rand wie jede Seite (vorher 94vw = 12 px). */
+  .suchfenster { position: absolute; top: 12vh; left: 1rem; right: 1rem; margin: 0 auto; width: auto; max-width: 35rem; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; }
   .suchfeld { width: 100%; border: 0; border-bottom: 1px solid var(--border); padding: 1rem 1.25rem; font-size: 1.0625rem; background: var(--surface); color: var(--text); }
   .suchfeld:focus { outline: none; box-shadow: none; border-color: var(--border); }
   .such-liste { max-height: 55vh; overflow-y: auto; overscroll-behavior: contain; padding: 0.25rem 0 0.5rem; }
   .such-gruppe { padding: 0.625rem 1.25rem 0.25rem; font-size: 0.75rem; font-weight: var(--gewicht-titel); color: var(--text-muted); }
   .such-treffer, .such-treffer-an { display: flex; align-items: center; gap: 0.75rem; min-height: 2.75rem; padding: 0.375rem 1.25rem; color: var(--text); cursor: pointer; }
   .such-treffer-an { background: var(--petrol-hell); color: var(--accent-deep); }
-  .such-nebeninfo { margin-left: auto; font-size: 0.8125rem; color: var(--text-muted); }
+  /* Die Baustellennummer bricht nicht in drei Zeilen („B-/2026-/0147“): sie bleibt ganz, der Name daneben nimmt den Rest. */
+  .such-nebeninfo { flex: none; margin-left: auto; white-space: nowrap; font-size: 0.8125rem; color: var(--text-muted); }
   .such-leer { padding: 1rem 1.25rem; color: var(--text-muted); font-size: 0.9375rem; }
 }
 

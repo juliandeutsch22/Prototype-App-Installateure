@@ -443,3 +443,34 @@ describe('Strg + K (Linie „Lot“)', () => {
     expect(screen.getByRole('dialog', { name: 'Suchen oder springen' })).toBeInTheDocument();
   });
 });
+
+/*
+  E72 (09.11.2026): im Blatt „Mehr“ steht „Einstellungen“ abgesetzt unter
+  einer Linie, nicht als letzter Punkt von „Material“; im Profil trägt der
+  Darstellungsschalter eine sichtbare Beschriftung, die mitschaltet.
+*/
+describe('Navigation und Profil am Telefon (E72)', () => {
+  it('setzt die Gruppe ohne Überschrift im Blatt „Mehr“ mit einer Linie ab', async () => {
+    ladenMock.mockResolvedValue(undefined);
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /^Mehr/ }));
+    const blatt = await screen.findByRole('navigation', { name: 'Weitere Bereiche' });
+    const gruppe = within(blatt).getByRole('link', { name: /^Einstellungen/ }).parentElement!.parentElement!;
+    expect(gruppe.className).toContain('border-t');
+    // Gleich geblieben: die erste Gruppe (mit Überschrift) bekommt keine Linie darüber.
+    expect((blatt.firstElementChild as HTMLElement).className).not.toContain('border-t');
+  });
+
+  it('beschriftet den Darstellungsschalter im Profil sichtbar — das Wort schaltet mit', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click((await screen.findAllByRole('button', { name: /Profil öffnen/ }))[0]);
+    const profil = screen.getByRole('dialog', { name: 'Profil' });
+    const schalter = within(profil).getByRole('switch', { name: 'Dunkle Darstellung' });
+    const wort = within(profil).getByText('Dunkle Darstellung');
+    expect(wort.closest('label')).toContainElement(schalter);
+    const vorher = schalter.getAttribute('aria-checked');
+    await nutzer.click(wort);
+    expect(schalter.getAttribute('aria-checked')).not.toBe(vorher);
+  });
+});

@@ -127,12 +127,13 @@ export default function PersonPicker({
             <label
               htmlFor={filterId}
               /*
-                `flex-wrap` und `min-w-0`: Beschriftung und Klammerzusatz waren
-                zwei Flex-Elemente in einer Zeile, die nicht umbrechen durfte —
-                „(2 sind an diesem Tag belegt)" lief damit auf 390 px rechts
-                aus dem Bild. Jetzt rutscht der Zusatz in die naechste Zeile.
+                Der Text bricht IN SICH um, nicht als Ganzes unter das
+                Kästchen: „(2 sind an diesem Tag belegt)" lief auf 390 px
+                rechts aus dem Bild; mit `flex-wrap` rutschte danach der
+                ganze Satz in die zweite Zeile, und das Kästchen stand allein
+                darüber (E72). `flex-1 min-w-0` lässt ihn neben dem Kästchen.
               */
-              className="mt-2 flex min-h-touch cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink"
+              className="mt-2 flex min-h-touch cursor-pointer items-center gap-3 text-sm text-ink"
             >
               <input
                 id={filterId}
@@ -141,7 +142,7 @@ export default function PersonPicker({
                 onChange={(e) => setNurFreie(e.target.checked)}
                 className="checkbox"
               />
-              <span className="min-w-0">
+              <span className="min-w-0 flex-1">
                 Nur freie anzeigen{' '}
                 <span className="text-ink-muted">
                   ({belegte} {belegte === 1 ? 'ist' : 'sind'} an diesem Tag belegt)
@@ -189,8 +190,15 @@ export default function PersonPicker({
                         01.10.2026, G6). „als Helfer“ erschien erst nach dem
                         Haken und brach am Telefon in eine zweite Zeile um —
                         alles darunter rutschte, und der nächste Tipp traf die
-                        falsche Person. Der Platz steht jetzt immer bereit,
-                        unsichtbar bis zum Haken; die Zeile bricht nicht um.
+                        falsche Person. Die Zeile bricht nicht um (`flex-nowrap`,
+                        Name und Hinweis einzeilig gekürzt).
+
+                        DER PLATZ WIRD NICHT MEHR VORAB FREIGEHALTEN (E72,
+                        09.11.2026): unsichtbar reserviert kürzte er am Handy
+                        jeden Namen und verschluckte „schon eingeteilt: …“ —
+                        auch bei allen, die gar nicht gewählt sind. Jetzt
+                        kommt die Zusatzwahl erst mit dem Haken; die Höhe
+                        bleibt, weil nichts umbricht.
                       */}
                       <div className="flex flex-nowrap items-center justify-between gap-2 px-3">
                         <label
@@ -211,11 +219,7 @@ export default function PersonPicker({
                             )}
                           </span>
                         </label>
-                        {renderExtra && (
-                          <div className={`shrink-0 ${an ? '' : 'invisible'}`} aria-hidden={!an}>
-                            {renderExtra(p.uid)}
-                          </div>
-                        )}
+                        {renderExtra && an && <div className="shrink-0">{renderExtra(p.uid)}</div>}
                       </div>
                     </li>
                   );

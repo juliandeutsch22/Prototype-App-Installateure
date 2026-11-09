@@ -586,22 +586,33 @@ export default function StockView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <Segmente
-        name="Bereich"
-        werte={[
-          { wert: 'bestand' as Tab, text: 'Bestand' },
-          { wert: 'katalog' as Tab, text: 'Katalog' },
-          /*
-            DAS EINSPIELEN STEHT ALS REITER DA, SOLANGE ES OFFEN IST (Runde 6,
-            G28): erreicht wird es über das „⋯“, und ohne eigenen Reiter war
-            in der Leiste keiner markiert — man wusste nicht, wo man ist.
-          */
-          ...(tab === 'import' ? [{ wert: 'import' as Tab, text: 'Einspielen' }] : []),
-          ...(tab === 'zuordnen' ? [{ wert: 'zuordnen' as Tab, text: 'Zuordnen' }] : []),
-        ]}
-        wert={tab}
-        onChange={setTab}
-      />
+      {/*
+        DIE BEREICHE SCHMAL LINKS, WIE IN DEN ANFORDERUNGEN (E72, 09.11.2026):
+        außerhalb einer Listenleiste streckten sich „Bestand“ und „Katalog“
+        über die ganze Breite, je 558 px mit dem Wort in der Mitte.
+      */}
+      <div className="anf-leiste">
+        <Listenleiste
+          reiter={
+            <Segmente
+              name="Bereich"
+              werte={[
+                { wert: 'bestand' as Tab, text: 'Bestand' },
+                { wert: 'katalog' as Tab, text: 'Katalog' },
+                /*
+                  DAS EINSPIELEN STEHT ALS REITER DA, SOLANGE ES OFFEN IST (Runde 6,
+                  G28): erreicht wird es über das „⋯“, und ohne eigenen Reiter war
+                  in der Leiste keiner markiert — man wusste nicht, wo man ist.
+                */
+                ...(tab === 'import' ? [{ wert: 'import' as Tab, text: 'Einspielen' }] : []),
+                ...(tab === 'zuordnen' ? [{ wert: 'zuordnen' as Tab, text: 'Zuordnen' }] : []),
+              ]}
+              wert={tab}
+              onChange={setTab}
+            />
+          }
+        />
+      </div>
 
       {error && <ErrorState message={error} />}
 
@@ -718,8 +729,18 @@ export default function StockView() {
                     const low = istKnapp(m.free, m, LOW_STOCK_THRESHOLD);
                     const einheit = m.unit ?? 'Stk';
                     return (
+                      /*
+                        GESTAPELT WIE RECHNUNGEN UND BAUSTELLEN (E40/E41; E72,
+                        09.11.2026): neben Zustand und Maßlinie blieben dem
+                        Namen am Tablet rund 200 px — er brach in zwei Zeilen,
+                        die Artikelnummer mitten in sich („CU-/22-5H“). Jetzt
+                        stehen Zustand und Maßlinie am Handy und Tablet unter
+                        dem Text, der Zustand links; am Schreibtisch rechts in
+                        festen Spalten.
+                      */
                       <ListRow
                         key={m.id}
+                        gestapelt
                         title={m.name}
                         onOeffnen={() => setArtikelId(m.id)}
                         subtitle={
@@ -744,37 +765,44 @@ export default function StockView() {
                             <Warnung stufe="dringend">{fmtMenge(-m.free)} {einheit} fehlen</Warnung>
                           ) : low ? (
                             <Warnung>knapp</Warnung>
-                          ) : undefined
+                          ) : (
+                            // Die Spalte bleibt frei, damit die Maßlinie in jeder Zeile an derselben Stelle beginnt (R11).
+                            <span className="lager-ohne-zustand" aria-hidden="true" />
+                          )
                         }
                         pfeil
-                      >
-                        {/*
-                          FREI, RESERVIERT, REGAL ALS MASSLINIE (Planlinie B2)
-                          statt „28 Stk frei · 20 reserviert“: das Reservierte
-                          läuft gegen den Regalbestand als Grenze, frei ist der
-                          Rest der Strecke. Wird mehr reserviert, als im Regal
-                          liegt, läuft es rot darüber — das sind die „fehlen“
-                          daneben. Die Zahlen stehen weiter an der Linie.
-                        */}
-                        {(m.stock ?? 0) > 0 ? (
-                          <div className="lager-masslinie">
-                            <Masslinie
-                              schmal
-                              ist={m.reserved}
-                              soll={m.stock ?? 0}
-                              istText={<><span>{fmtMenge(Math.max(m.free, 0))} {einheit} frei</span> · {fmtMenge(m.reserved)} reserviert</>}
-                              sollText={`Regal ${fmtMenge(m.stock ?? 0)}`}
-                              name={`${fmtMenge(Math.max(m.free, 0))} ${einheit} frei, ${fmtMenge(m.reserved)} reserviert von ${fmtMenge(m.stock ?? 0)} ${einheit} im Regal`}
-                            />
-                          </div>
-                        ) : (
-                          // Ein leeres Regal ist keine Grenze: ohne sie gibt es keine Maßlinie, nur die Zahlen.
-                          <span className="zeile-wert">
-                            <span>{fmtMenge(Math.max(m.free, 0))} {einheit} frei</span>
-                            <span className="text-ink-muted"> · {fmtMenge(m.reserved)} reserviert</span>
+                        wert={
+                          /*
+                            FREI, RESERVIERT, REGAL ALS MASSLINIE (Planlinie B2)
+                            statt „28 Stk frei · 20 reserviert“: das Reservierte
+                            läuft gegen den Regalbestand als Grenze, frei ist der
+                            Rest der Strecke. Wird mehr reserviert, als im Regal
+                            liegt, läuft es rot darüber — das sind die „fehlen“
+                            daneben. Die Zahlen stehen weiter an der Linie.
+                            Mit Linie und ohne in derselben festen Breite
+                            (`lager-masslinie`, Regel R11), sonst spränge der
+                            Zustand davor je Zeile.
+                          */
+                          <span className="lager-masslinie">
+                            {(m.stock ?? 0) > 0 ? (
+                              <Masslinie
+                                schmal
+                                ist={m.reserved}
+                                soll={m.stock ?? 0}
+                                istText={<><span>{fmtMenge(Math.max(m.free, 0))} {einheit} frei</span> · {fmtMenge(m.reserved)} reserviert</>}
+                                sollText={`Regal ${fmtMenge(m.stock ?? 0)}`}
+                                name={`${fmtMenge(Math.max(m.free, 0))} ${einheit} frei, ${fmtMenge(m.reserved)} reserviert von ${fmtMenge(m.stock ?? 0)} ${einheit} im Regal`}
+                              />
+                            ) : (
+                              // Ein leeres Regal ist keine Grenze: ohne sie gibt es keine Maßlinie, nur die Zahlen.
+                              <>
+                                <span>{fmtMenge(Math.max(m.free, 0))} {einheit} frei</span>
+                                <span className="text-ink-muted"> · {fmtMenge(m.reserved)} reserviert</span>
+                              </>
+                            )}
                           </span>
-                        )}
-                      </ListRow>
+                        }
+                      />
                     );
                   })}
                 </List>

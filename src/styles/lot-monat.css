@@ -136,20 +136,40 @@
     es sich schliesst, sobald jenes aufgeht. AM HANDY ein Blatt von unten im
     neutralen Schleier; es verdeckt die untere Leiste.
   */
-  .vorschau { position: fixed; z-index: 35; display: flex; flex-direction: column; width: 23.75rem; max-width: 94vw; max-height: 80vh; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: var(--shadow-lg); }
+  /*
+    DAS FELD WIE EIN FENSTER DER LINIE (E72, 09.11.2026): eckig, ohne
+    Schatten, mit Linie rundum — vorher 12 px Rundung und Schatten, als
+    einziges Fenster der App. Innenrand 20 px wie die Seitenfenster (vorher
+    18), am Handy 16 px wie dort. 30 rem breit wie `.fenster-breit`: so
+    stehen „Termin anlegen“, „Zur Woche“ und die Hauptaktion in normaler
+    Größe in einer Reihe, statt auf zwei zu brechen.
+  */
+  .vorschau { position: fixed; z-index: 35; display: flex; flex-direction: column; width: 30rem; max-width: 94vw; max-height: 80vh; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 0; }
   .vorschau-blatt { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; max-height: 82vh; padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--surface); border-radius: 16px 16px 0 0; box-shadow: var(--shadow-lg); }
-  .vorschau-kopf { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; padding: 0.75rem 0.5rem 0.625rem 1.125rem; border-bottom: 1px solid var(--border); }
-  .vorschau-kopftext { min-width: 0; padding-top: 0.25rem; }
+  /* Der Kopf wie `.fenster-kopf`: Titel links, rechts ‹ › und „Schließen“ (gerahmt, `.fenster-schliessen`). */
+  .vorschau-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
+  .vorschau-kopftext { min-width: 0; }
   .vorschau-ueber { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
   .vorschau-titel { font-size: 1rem; line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); overflow-wrap: break-word; hyphens: auto; }
-  .vorschau-nav { display: flex; flex: none; align-items: center; gap: 0.25rem; }
+  .vorschau-nav { display: flex; flex: none; align-items: center; gap: 0.5rem; }
   .vorschau-pfeil { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 1.125rem; cursor: pointer; }
   .vorschau-pfeil:hover { border-color: var(--petrol); color: var(--accent-deep); }
-  .vorschau-zu { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; background: none; color: var(--text-muted); border: 0; border-radius: var(--radius); font-size: 1.375rem; cursor: pointer; }
-  .vorschau-zu:hover { color: var(--text); }
-  .vorschau-inhalt { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0.25rem 1.125rem 0.75rem; }
-  /* Ohne eigene Linie: der letzte Abschnitt zieht sie schon, zwei Linien übereinander wirkten wie eine dicke. */
-  .vorschau-fuss { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; padding: 0.75rem 1.125rem; }
+  .vorschau-inhalt { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0.25rem 1.25rem 0; }
+  /* Ohne Fuß bleibt unten Luft bis zum Rand des Felds. */
+  .vorschau-inhalt-ohne-fuss { padding-bottom: 0.75rem; }
+  /*
+    DER FUSS WIE `.planung-fuss` (E72, R7): Linie darüber, rechtsbündig,
+    8 px zwischen den Knöpfen. Die Linie liegt 1 px über dem Inhalt, auf der
+    des letzten Abschnitts — endet der Inhalt mit einem Satz statt eines
+    Abschnitts, steht sie trotzdem da, und doppelt wird sie nie.
+  */
+  .vorschau-fuss { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; margin-top: -1px; padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); }
+  @media (max-width: 759px) {
+    .vorschau-kopf { padding: 0.75rem 1rem; }
+    .vorschau-inhalt { padding-inline: 1rem; }
+    /* Am Handy untereinander und gleich breit, die Hauptaktion (zuletzt im Code) oben. */
+    .vorschau-fuss { flex-direction: column-reverse; padding: 0.75rem 1rem; }
+  }
 
   .v-abschnitt { padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
   .v-titel { font-weight: var(--gewicht-titel); color: var(--ink-deep); overflow-wrap: break-word; hyphens: auto; }

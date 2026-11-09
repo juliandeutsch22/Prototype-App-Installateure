@@ -80,3 +80,35 @@ it('Gegenprobe: bei Arbeitszeit steht kein Hinweis auf den ursprünglichen Vorga
   await act(async () => { await Promise.resolve(); });
   expect(screen.queryByText(/stammt aus einer Abwesenheit/)).toBeNull();
 });
+
+/*
+  DAS FENSTER „KORREKTUR ANFRAGEN“ (E72, 09.11.2026): ohne Uhrzeit stand
+  „06.11.2026 · –.“, der Knopf klebte ohne Fuß am Feld. Jetzt der Stand statt
+  des Strichs und ein Fuß mit „Abbrechen“ und dem Hauptknopf.
+*/
+it('Korrektur anfragen: ohne Uhrzeit steht der Stand, der Fuß trägt Abbrechen und Hauptknopf', async () => {
+  const { KorrekturAnfordern } = await import('@/features/time/Zeitkorrekturen');
+  render(
+    <MemoryRouter><ToastProvider>
+      <KorrekturAnfordern eintrag={{ id: 'e1', date: '2026-11-06', status: 'Zeitausgleich' } as never} />
+    </ToastProvider></MemoryRouter>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Korrektur anfragen' }));
+  const fenster = await screen.findByRole('dialog');
+  expect(fenster).toHaveTextContent('06.11.2026 · Zeitausgleich.');
+  expect(fenster).not.toHaveTextContent('· –');
+  const fuss = screen.getByRole('button', { name: 'Beim Büro anfragen' }).parentElement!;
+  expect(fuss.className).toContain('fuss-aktionen');
+  expect(fuss).toContainElement(screen.getByRole('button', { name: 'Abbrechen' }));
+});
+
+it('gleich geblieben: mit Uhrzeit steht Von–Bis im Fenster', async () => {
+  const { KorrekturAnfordern } = await import('@/features/time/Zeitkorrekturen');
+  render(
+    <MemoryRouter><ToastProvider>
+      <KorrekturAnfordern eintrag={{ id: 'e2', date: '2026-11-06', status: 'Anwesend', startTime: '07:00', endTime: '15:30' } as never} />
+    </ToastProvider></MemoryRouter>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Korrektur anfragen' }));
+  expect(await screen.findByRole('dialog')).toHaveTextContent('06.11.2026 · 07:00–15:30.');
+});

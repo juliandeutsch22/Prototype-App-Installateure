@@ -2676,6 +2676,35 @@ Mitarbeiterübersicht und Einstellungen“.
   eine eigene Fassung statt des Ersatzsymbols. Die Skizzen im Seitenkopf
   bleiben. Steht in `src/components/naviSymbole.ts`.
 
+- **Durchgängig an jeder Stelle (zweite Durchsicht):** drei Prüfer haben
+  jede Seite in jeder Rolle bei 390, 834 und 1440 px gemessen; die Befunde
+  sind nach denselben Regeln behoben (R1–R13 der Durchsicht):
+  - Handlungen sind Knöpfe: „Schließen“ in Fenstern, „Bearbeiten“/„Neue
+    Fassung“ der Angebotsakte, „Handwerksschein schreiben“, „Groß
+    unterschreiben“, „Weiterbearbeiten“, „Foto aufnehmen“, „Auf mehrere
+    Baustellen aufteilen“, die Sammelleiste, der nächste Schritt einer
+    Arbeitszeile. Blättern ‹ › und Menge − + sind gerahmt (`IconButton`
+    „gerahmt“).
+  - Eine gefüllte Hauptaktion je Seite oder Fenster; in Listenzeilen
+    Zweitknöpfe. Unumkehrbares rot (`danger`) in normaler Größe. Frei
+    stehende Knöpfe am Handy 44 px.
+  - Einsatzaktionen als ein Baustein (`Einsatzaktionen.tsx`) auf Start,
+    Einsatzplan und Meine Baustellen; Adresse und Telefon überall mit
+    Linie und Symbol.
+  - Fensterfüße: Abbrechen gerahmt vor der Hauptaktion, am Handy gestapelt
+    mit der Hauptaktion oben; die Monatsvorschau ist ein Fenster der Linie.
+  - Fluchten: Zeilen in Fenstern bündig, im Blatt 24 px (`blatt-einzug`),
+    Reiterleisten 48 px samt Linie, Blätter 24 px auseinander, Arbeitstag
+    und Timer-Leiste im Takt.
+  - Wortbrüche nur mit Trennstrich, in schmalen Planungszellen ab 8
+    Zeichen; Aktenreiter am Handy in zwei Reihen statt abgeschnitten;
+    Positionen am Handy mit dem Betrag unter der Bezeichnung.
+  - „€“ bleibt mit einem geschützten Leerzeichen an der Zahl.
+
 **Grenze mit Grund:** keine. **Nachweis:** `naviSymbole.test.ts` (Rahmen und
 Mitte je Symbol, jedes Ziel mit eigener Fassung; mit den alten Pfaden sieben
-Fälle rot), `KnopfLink.test.tsx`, `planlinieStil.test.ts`.
+Fälle rot), `einheitlicheBausteine.test.ts`, `KnopfLink.test.tsx`,
+`IconButton.test.tsx`, `Einsatzaktionen.test.tsx`, `planlinieStil.test.ts`
+(Blöcke „E72 …“), je ohne die Änderung rot. **Offen zur Entscheidung:** die
+Zustandsspalte gestapelter Zeilen am Schreibtisch in fester Breite (betrifft
+den Zeilenbaustein app-weit) und eine Schreibweise für Anzahlen in Titeln.

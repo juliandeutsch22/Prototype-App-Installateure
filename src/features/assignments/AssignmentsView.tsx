@@ -549,7 +549,8 @@ export default function AssignmentsView() {
               Faellt das Laden ganz aus, steht das oben als Teilfehler.
             */}
             {dayAssignments.length > 0 && staff.length > 0 && (
-              <p className="border-t border-line px-4 py-3 text-sm text-ink-muted">
+              // `blatt-einzug`: auf der 24-px-Flucht der Zeilen darüber (E72, R5).
+              <p className="blatt-einzug border-t border-line px-4 py-3 text-sm text-ink-muted">
                 {nichtEingeteilt.length === 0 ? (
                   <>Alle verfügbaren Mitarbeiter sind an diesem Tag eingeteilt.</>
                 ) : (

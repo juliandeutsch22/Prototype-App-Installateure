@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { Material, Role } from '@/types';
@@ -355,6 +355,16 @@ describe('Materialkatalog — seitenweise vom Server (19.10.2026)', () => {
     );
     await screen.findByText('Artikel 00');
     expect(screen.getByText('1 knapp')).toBeInTheDocument();
+    /*
+      E72 (09.11.2026): der Zustand gehört zum Titel. Als drittes Element
+      zwischen Titel und Knopf verteilt, schwebte er mitten in der Kopfzeile;
+      `mr-auto` rückt ihn an den Titel. Gegenprobe: mit dem Stand davor rot.
+    */
+    const kopfzeile = screen.getByRole('heading', { name: /^Katalog/ }).parentElement!;
+    const zustand = screen.getByText('1 knapp').closest('.mr-auto');
+    expect(zustand).not.toBeNull();
+    expect(zustand!.parentElement).toBe(kopfzeile);
+    expect(zustand!.previousElementSibling).toBe(screen.getByRole('heading', { name: /^Katalog/ }));
   });
 
   it('löscht auch einen hereingereichten Artikel, der nicht auf der gezeigten Seite steht', async () => {
@@ -566,5 +576,65 @@ describe('Treffer über die Nummer eines Großhändlers (M03a)', () => {
     } as WithId<Material>];
     zeige();
     expect(await screen.findByText(/Art\.-Nr\. A-1 · Nr\. B-7788 bei Beta/)).toBeInTheDocument();
+  });
+});
+
+/*
+  E72 (09.11.2026), Leitfaden Regel 9: bis zu 13 Felder standen offen. Was
+  selten ist — Warengruppe, Sollbestand, Verpackungseinheit, Preise — steht
+  unter „Weitere Angaben“, zugeklappt, ausser es steht schon etwas darin.
+  Gegenprobe: mit dem Stand davor rot (die Felder standen in keinem Aufklapper).
+*/
+describe('Seltenes unter „Weitere Angaben“ (E72)', () => {
+  const aufklapper = (feld: HTMLElement) => feld.closest('details');
+
+  it('ein neues Material: zugeklappt, und Bezeichnung, Einheit, Bestand stehen offen', async () => {
+    angemeldet = CHEF;
+    const nutzer = userEvent.setup();
+    zeige();
+    await neuesMaterial(nutzer);
+    for (const name of [/Warengruppe/, /Verkaufspreis/, /Einkaufspreis/]) {
+      const d = aufklapper(screen.getByLabelText(name));
+      expect(d, String(name)).not.toBeNull();
+      expect(d).not.toHaveAttribute('open');
+    }
+    for (const name of [/Bezeichnung/, /Anfangsbestand/, /Mindestmenge/]) {
+      expect(aufklapper(screen.getByLabelText(name)), String(name)).toBeNull();
+    }
+    expect(screen.getByText('Weitere Angaben')).toBeInTheDocument();
+  });
+
+  it('ein Artikel mit Warengruppe: offen', async () => {
+    materialien = [{ id: 'm1', companyId: 'perl', name: 'Fitting', stock: 0, warengruppe: '1201' } as WithId<Material>];
+    const nutzer = userEvent.setup();
+    zeige();
+    await ersterArtikel(nutzer);
+    expect(aufklapper(await screen.findByLabelText(/Warengruppe/))).toHaveAttribute('open');
+  });
+
+  it('ein Artikel ohne seltene Angaben: zugeklappt; ein eingetroffener Einkaufspreis öffnet', async () => {
+    materialien = [{ id: 'm1', companyId: 'perl', name: 'Fitting', stock: 0, verkaufspreis: 0 } as WithId<Material>];
+    const nutzer = userEvent.setup();
+    zeige();
+    await ersterArtikel(nutzer);
+    expect(aufklapper(await screen.findByLabelText(/Warengruppe/))).not.toHaveAttribute('open');
+    cleanup();
+    angemeldet = CHEF;
+    preisLaden = async () => new Map([['m1', 4]]);
+    zeige();
+    await ersterArtikel(nutzer);
+    await waitFor(() => expect(aufklapper(screen.getByLabelText(/Einkaufspreis/))).toHaveAttribute('open'));
+  });
+
+  it('was im Aufklapper steht, wird mit gespeichert', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await neuesMaterial(nutzer);
+    await nutzer.type(await screen.findByLabelText(/Bezeichnung/), 'Fitting');
+    await nutzer.click(screen.getByText('Weitere Angaben'));
+    await nutzer.type(screen.getByLabelText(/Warengruppe/), '1201');
+    await nutzer.click(screen.getByRole('button', { name: 'Material anlegen' }));
+    await waitFor(() => expect(anlegen).toHaveBeenCalled());
+    expect(anlegen.mock.calls[0][1]).toMatchObject({ name: 'Fitting', warengruppe: '1201' });
   });
 });

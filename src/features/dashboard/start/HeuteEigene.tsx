@@ -1,8 +1,6 @@
-import { Link } from 'react-router-dom';
 import RuestlisteAbhaken from '@/features/assignments/RuestlisteAbhaken';
-import { KontaktZeile } from '@/components/Kontakt';
+import { EinsatzKnoepfe, EinsatzKontakt } from '@/features/assignments/Einsatzaktionen';
 import { Marke } from '@/components/Badge';
-import { calcWorkMin, fmtMin } from '@/lib/time';
 import StartKarte from './StartKarte';
 import type { EinsatzZeile, LetzteBuchung } from './laden';
 
@@ -82,10 +80,19 @@ function Einsatz({
   zeitImKopf?: boolean;
   zeitAn?: boolean;
 }) {
-  const zuletzt = letzteBuchung ? calcWorkMin({ ...letzteBuchung, status: 'Anwesend' }) : 0;
+  /*
+    DIE KNÖPFE WIE IM EINSATZPLAN (E72, 09.11.2026): Zweitknöpfe, Adresse und
+    Telefon als Kontakt mit Symbol (`Einsatzaktionen`). Am ersten Einsatz
+    „Wie zuletzt buchen“ — beim Monteur ohne „Andere Zeit“, weil „Zeit
+    erfassen“ schon im Seitenkopf steht; ohne letzte Buchung dort gar kein
+    Zeitknopf. Die weiteren Einsätze tragen „Zeit erfassen“ für ihre eigene
+    Baustelle.
+  */
+  const zeit = zeitAn && (gross ? !!letzteBuchung || !zeitImKopf : true);
   return (
     <div className={`start-einsatz ${gross ? 'start-einsatz-erster' : ''}`}>
-      <p className={`kein-trennen flex flex-wrap items-center gap-2 font-semibold text-ink-deep ${gross ? 'start-einsatz-titel' : ''}`}>
+      {/* `start-einsatz-name`: lange Namen trennen mit Strich — auch unter „Danach“ (R10). */}
+      <p className={`start-einsatz-name kein-trennen flex flex-wrap items-center gap-2 font-semibold text-ink-deep ${gross ? 'start-einsatz-titel' : ''}`}>
         {e.customerName}
         {e.asHelper && <Marke>Helfer</Marke>}
       </p>
@@ -93,72 +100,22 @@ function Einsatz({
         <span className="nr">{e.projectNumber}</span>
         {e.zeit ? ` · ${e.zeit}` : ''}
       </p>
-      <KontaktZeile adresse={e.address} nummer={e.contactPhone} name={e.contactName} className="start-einsatz-kontakt" />
+      <EinsatzKontakt adresse={e.address} nummer={e.contactPhone} name={e.contactName} className="start-einsatz-kontakt" />
       {/* Die Notiz des Büros: was heute zu tun ist. */}
       {e.comment && (
         <p className="start-einsatz-aufgabe">
           <b>Aufgabe:</b> {e.comment}
         </p>
       )}
-      {gross && (
-        <div className="start-einsatz-aktionen">
-          {zeitAn && letzteBuchung ? (
-            <Link
-              to="/time"
-              state={{
-                projectNumber: e.projectNumber,
-                asHelper: e.asHelper,
-                startTime: letzteBuchung.startTime,
-                endTime: letzteBuchung.endTime,
-                breakDuration: letzteBuchung.breakDuration,
-              }}
-              className={zeitImKopf ? 'start-wie-zuletzt' : 'flex min-h-touch flex-col items-center justify-center rounded bg-brand px-3 py-2 text-center text-brand-fg sm:px-5'}
-            >
-              <span className="text-fliess font-semibold">Wie zuletzt buchen</span>
-              <span className="text-xs">
-                {letzteBuchung.startTime}–{letzteBuchung.endTime} · {letzteBuchung.breakDuration} min Pause · {fmtMin(zuletzt)} Std
-              </span>
-            </Link>
-          ) : zeitAn && !zeitImKopf ? (
-            <Link
-              to="/time"
-              state={{ projectNumber: e.projectNumber, asHelper: e.asHelper }}
-              className="flex min-h-touch items-center justify-center rounded bg-brand px-2 py-2 text-center text-fliess font-semibold text-brand-fg sm:px-5"
-            >
-              Zeit erfassen
-            </Link>
-          ) : null}
-          {zeitAn && letzteBuchung && !zeitImKopf && (
-            <Link
-              to="/time"
-              state={{ projectNumber: e.projectNumber, asHelper: e.asHelper }}
-              className="flex min-h-touch items-center justify-center rounded border border-line bg-surface px-2 py-2 text-center text-fliess font-normal text-ink-deep sm:px-5"
-            >
-              Andere Zeit
-            </Link>
-          )}
-          {scheinVerweis && (
-            <Link
-              to={`/worksheet?projekt=${encodeURIComponent(e.projectNumber)}`}
-              className="flex min-h-touch items-center justify-center rounded border border-line bg-surface px-2 py-2 text-center text-fliess font-normal text-ink-deep sm:px-5"
-            >
-              Schein schreiben
-            </Link>
-          )}
-        </div>
-      )}
-      {!gross && (
-        <div className="mt-2 flex flex-wrap gap-x-4 text-sm">
-          {zeitAn && <Link to="/time" state={{ projectNumber: e.projectNumber, asHelper: e.asHelper }} className="link-weiter inline-flex min-h-touch items-center">
-            Zeit erfassen
-          </Link>}
-          {scheinVerweis && (
-            <Link to={`/worksheet?projekt=${encodeURIComponent(e.projectNumber)}`} className="link-weiter inline-flex min-h-touch items-center">
-              Schein schreiben
-            </Link>
-          )}
-        </div>
-      )}
+      <EinsatzKnoepfe
+        projectNumber={e.projectNumber}
+        asHelper={e.asHelper}
+        zeit={zeit}
+        zuletzt={gross ? letzteBuchung : null}
+        andereZeit={!zeitImKopf}
+        schein={scheinVerweis}
+        className="start-einsatz-aktionen"
+      />
       {materialAn && e.material && e.material.length > 0 && (
         <RuestlisteAbhaken
           date={e.date}

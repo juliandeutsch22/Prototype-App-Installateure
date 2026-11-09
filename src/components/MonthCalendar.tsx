@@ -1,4 +1,5 @@
 import { getAustrianHolidayName, localDateStr, todayStr } from '@/lib/time';
+import Button from './Button';
 
 const MONTHS = [
   'Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -74,26 +75,21 @@ export default function MonthCalendar({
       Hülle heraus.
     */
     <div className={ohneRahmen ? 'border-b border-line' : 'panel monatskalender rounded-none overflow-hidden'}>
+      {/*
+        BLÄTTERN WIE IN DER WOCHENLEISTE (E72, R8): gerahmte Zweitknöpfe,
+        48 × 48 px. Vorher standen ‹ › ohne Rahmen da und sahen aus wie
+        Satzzeichen neben dem Monatsnamen.
+      */}
       <div className="flex items-center justify-between border-b border-line px-2 py-2">
-        <button
-          type="button"
-          onClick={() => onShiftMonth(-1)}
-          aria-label="Vorheriger Monat"
-          className="min-h-touch min-w-touch rounded text-lg font-semibold text-ink-muted hover:bg-surface-2"
-        >
+        <Button type="button" variant="secondary" onClick={() => onShiftMonth(-1)} aria-label="Vorheriger Monat" className="min-w-touch text-xl sm:text-xl">
           ‹
-        </button>
+        </Button>
         <span className="font-semibold text-ink">
           {MONTHS[month]} {year}
         </span>
-        <button
-          type="button"
-          onClick={() => onShiftMonth(1)}
-          aria-label="Nächster Monat"
-          className="min-h-touch min-w-touch rounded text-lg font-semibold text-ink-muted hover:bg-surface-2"
-        >
+        <Button type="button" variant="secondary" onClick={() => onShiftMonth(1)} aria-label="Nächster Monat" className="min-w-touch text-xl sm:text-xl">
           ›
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-7 border-b border-line bg-surface-2">

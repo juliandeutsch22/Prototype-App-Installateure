@@ -324,7 +324,8 @@ export default function FirmendatenView() {
               Name und Anschrift stehen oben auf jedem Angebot und jeder Rechnung — hier einmal
               eintragen, dann stimmt jeder Beleg.
             </p>
-            <Button variant="secondary" groesse="klein" onClick={hinweisAusblenden}>
+            {/* Frei stehend, nicht in einer Zeile: normale Größe, 48 px (E72, R3). */}
+            <Button variant="secondary" onClick={hinweisAusblenden}>
               Hinweis ausblenden
             </Button>
           </div>

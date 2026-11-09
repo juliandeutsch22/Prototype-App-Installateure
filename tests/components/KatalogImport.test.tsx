@@ -386,3 +386,27 @@ describe('Bericht: offen zuzuordnen und Preissprünge (M03a)', () => {
     expect(geschickt[1].ean).toBeUndefined();
   });
 });
+
+/*
+  E72 (09.11.2026): die Datei wird über einen Knopf der Linie gewählt, wie in
+  der Dokumentablage — nicht mehr über das Feld des Browsers mit „Choose
+  File“. Das Feld bleibt, unsichtbar und ohne eigenen Tab-Halt, und heißt
+  weiter „DATANORM-Datei“. Gegenprobe: mit dem Stand davor rot.
+*/
+describe('Die Dateiauswahl in der Gestalt der Linie (E72)', () => {
+  it('ein Zweitknopf öffnet das unsichtbare Dateifeld', async () => {
+    zeige();
+    const feld = (await screen.findByLabelText('DATANORM-Datei')) as HTMLInputElement;
+    expect(feld).toHaveClass('sr-only');
+    expect(feld).toHaveAttribute('tabindex', '-1');
+    const knopf = screen.getByRole('button', { name: 'Datei auswählen' });
+    expect(knopf).toHaveClass('border-line-strong');
+    const geklickt = vi.spyOn(feld, 'click');
+    await userEvent.click(knopf);
+    expect(geklickt).toHaveBeenCalledTimes(1);
+  });
+
+  it('gleich geblieben: die gewählte Datei geht in den Probelauf', async () => {
+    expect(await einlesen(SAUBER)).toBeInTheDocument();
+  });
+});

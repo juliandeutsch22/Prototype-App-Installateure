@@ -274,7 +274,9 @@ describe('Ein Angebot ansehen', () => {
   it('warnt, wenn die Bindefrist eines offenen Angebots abgelaufen ist', async () => {
     angebot = { ...ANGEBOT, validUntil: '2020-01-01' };
     zeige();
-    expect(await screen.findByText('Bindefrist abgelaufen')).toBeInTheDocument();
+    // E72: im Seitenkopf kurz „abgelaufen“ wie in der Liste; der Verlauf sagt es ausführlich.
+    expect(await screen.findByText('abgelaufen')).toBeInTheDocument();
+    expect(screen.getByText(/Die Bindefrist ist abgelaufen/)).toBeInTheDocument();
   });
 });
 

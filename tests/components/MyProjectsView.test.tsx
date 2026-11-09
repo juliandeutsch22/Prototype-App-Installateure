@@ -95,7 +95,7 @@ describe('Meine Baustellen', () => {
     baustellen = [baustelle()];
     render(<MyProjectsView />);
 
-    const route = await screen.findByRole('link', { name: /Route:/ });
+    const route = await screen.findByRole('link', { name: /in Google Maps öffnen/ });
     expect(route.getAttribute('href')).toContain('Hauptstra');
     expect(screen.getByRole('link', { name: /0664/ }).getAttribute('href')).toBe(
       'tel:+436641234567',
@@ -271,7 +271,7 @@ describe('Meine Baustellen in der Linie „Lot“', () => {
     baustellen = viele(22);
     render(<MyProjectsView />);
     expect(await screen.findByText('Kunde 0')).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /Route:/ })).toHaveLength(20);
+    expect(screen.getAllByRole('link', { name: /in Google Maps öffnen/ })).toHaveLength(20);
     (await screen.findByRole('button', { name: 'und 2 weitere anzeigen' })).click();
     expect(await screen.findByText('Kunde 21')).toBeInTheDocument();
   });
@@ -286,8 +286,33 @@ describe('Meine Baustellen in der Linie „Lot“', () => {
   it('stellt die Route vor den Auftragsumfang', async () => {
     baustellen = [baustelle({ description: 'Bad erneuern' })];
     render(<MyProjectsView />);
-    const route = await screen.findByRole('link', { name: /Route:/ });
+    const route = await screen.findByRole('link', { name: /in Google Maps öffnen/ });
     const umfang = screen.getByText('Bad erneuern');
     expect(route.compareDocumentPosition(umfang) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
+/*
+  E72 (09.11.2026): die Adresse als Kontakt mit Symbol statt gefülltem Balken
+  „Route: …“ je Karte, der Zustand an fester Stelle unter dem Titel statt
+  rechts im Kopf — dort sprang er unter lange Namen.
+*/
+describe('Meine Baustellen — Adresse und Zustand (E72)', () => {
+  it('die Adresse ist ein `.link-kontakt` mit Symbol, kein gefüllter Knopf', async () => {
+    baustellen = [baustelle()];
+    render(<MyProjectsView />);
+    const adresse = await screen.findByRole('link', { name: /in Google Maps öffnen/ });
+    expect(adresse.className).toContain('link-kontakt');
+    expect(adresse.className).not.toContain('mb-route');
+    expect(adresse.querySelector('svg')).not.toBeNull();
+    expect(adresse).toHaveTextContent('Hauptstraße 12, 2700 Wiener Neustadt');
+  });
+
+  it('der Zustand steht im Körper der Karte, nicht im Kopf', async () => {
+    baustellen = [baustelle({ customerName: 'Wohnungseigentümergemeinschaft Hauptstraße 112–118' })];
+    render(<MyProjectsView />);
+    const stand = await screen.findByText('Aktiv');
+    expect(stand.closest('.karte-kopf')).toBeNull();
+    expect(stand.closest('.karte')).not.toBeNull();
   });
 });

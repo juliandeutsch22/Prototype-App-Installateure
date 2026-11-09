@@ -691,7 +691,12 @@ export default function UserMgmtView() {
           )}
 
           <Pflichthinweis />
-          <div className="fuss-aktionen">
+          {/*
+            AM HANDY DER HAUPTKNOPF OBEN (E72, R7): beide volle Breite, „Benutzer
+            anlegen“ zuerst unter den Feldern. Vorher stand „Abbrechen“ über dem
+            Hauptknopf. Ab dem Tablet nebeneinander, Hauptknopf rechts.
+          */}
+          <div className="fuss-aktionen flex-col-reverse md:flex-row">
             {/* Der Weg zurück zur Liste. */}
             <Button
               type="button"
@@ -702,11 +707,11 @@ export default function UserMgmtView() {
                 setAnmeldung('email');
                 setBenutzername('');
               }}
-              className="w-full sm:w-auto"
+              className="w-full md:w-auto"
             >
               Abbrechen
             </Button>
-            <Button type="submit" loading={saving} className="w-full sm:w-auto">
+            <Button type="submit" loading={saving} className="w-full md:w-auto">
               Benutzer anlegen
             </Button>
           </div>

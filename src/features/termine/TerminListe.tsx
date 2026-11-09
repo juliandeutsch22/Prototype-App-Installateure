@@ -1,11 +1,19 @@
 import type { AppUser, Termin } from '@/types';
 import Button from '@/components/Button';
 import { AdresseLink } from '@/components/Kontakt';
+import { List, ListRow } from '@/components/ListRow';
 import { bezugText, datumKurz, terminKopf } from './terminText';
 
 /**
  * Termine untereinander: Art und Uhrzeit, woran er hängt, wer teilnimmt, die
  * Notiz. Ändern und Löschen nur für die, die schreiben dürfen.
+ *
+ * EIN MUSTER MIT DEM TAGESFENSTER (E72, 09.11.2026): die Liste war eigens
+ * gebaut — eigener Takt (`py-2`), Knöpfe, die je nach Länge der Notiz
+ * sprangen, „Löschen“ klein 4 px neben „Ändern“. Jetzt ist jeder Termin eine
+ * `ListRow` wie im Seitenfenster „Tag“: Zeilenhöhe und Linien im Takt der
+ * Blätter, die Knöpfe rechts in der Zeile mit 44 px Tastfläche, „Löschen“
+ * rot wie jedes Unumkehrbare (R4) — die Rückfrage folgt wie bisher.
  */
 export default function TerminListe({
   termine,
@@ -29,39 +37,45 @@ export default function TerminListe({
 }) {
   const name = (uid: string) => personen.find((p) => p.uid === uid)?.name;
   return (
-    <ul className="divide-y divide-line">
+    <List>
       {termine.map((t) => {
         const namen = t.teilnehmer.map(name).filter(Boolean);
+        const bezug = !ohneBezug ? bezugText(t) : '';
+        const adresse = mitAdresse && t.ortAdresse;
+        const unten = !!bezug || !!adresse || namen.length > 0 || !!t.notiz;
         return (
-          <li key={t.id} className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 py-2">
-            <div className="min-w-0">
-              <p className="font-normal text-ink">
+          <ListRow
+            key={t.id}
+            title={
+              <span>
                 {mitDatum && <span className="nr">{datumKurz(t.datum)} · </span>}
                 {terminKopf(t)}
-              </p>
-              {!ohneBezug && <p className="text-sm text-ink-muted">{bezugText(t)}</p>}
-              {mitAdresse && t.ortAdresse && <AdresseLink adresse={t.ortAdresse} className="text-sm" />}
-              {namen.length > 0 && <p className="text-sm text-ink-muted">Teilnehmer: {namen.join(', ')}</p>}
-              {t.notiz && <p className="whitespace-pre-line text-sm text-ink">{t.notiz}</p>}
-            </div>
-            {(onAendern || onLoeschen) && (
-              <div className="flex shrink-0 gap-1">
-                {onAendern && (
-                  <Button variant="ghost" groesse="klein" onClick={() => onAendern(t)} aria-label={`${terminKopf(t)} am ${datumKurz(t.datum)} ändern`}>
-                    Ändern
-                  </Button>
-                )}
-                {onLoeschen && (
-                  <Button variant="ghost" groesse="klein" onClick={() => onLoeschen(t)} aria-label={`${terminKopf(t)} am ${datumKurz(t.datum)} löschen`}>
-                    Löschen
-                  </Button>
-                )}
-              </div>
+              </span>
+            }
+            subtitle={
+              unten ? (
+                <>
+                  {bezug && <span className="block">{bezug}</span>}
+                  {adresse && <AdresseLink adresse={t.ortAdresse} className="text-sm" />}
+                  {namen.length > 0 && <span className="block">Teilnehmer: {namen.join(', ')}</span>}
+                  {t.notiz && <span className="block whitespace-pre-line text-ink">{t.notiz}</span>}
+                </>
+              ) : undefined
+            }
+          >
+            {onAendern && (
+              <Button variant="secondary" onClick={() => onAendern(t)} aria-label={`${terminKopf(t)} am ${datumKurz(t.datum)} ändern`}>
+                Ändern
+              </Button>
             )}
-          </li>
+            {onLoeschen && (
+              <Button variant="danger" onClick={() => onLoeschen(t)} aria-label={`${terminKopf(t)} am ${datumKurz(t.datum)} löschen`}>
+                Löschen
+              </Button>
+            )}
+          </ListRow>
         );
       })}
-    </ul>
+    </List>
   );
 }
-

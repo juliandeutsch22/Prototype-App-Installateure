@@ -112,20 +112,43 @@ describe('PersonPicker — ohne Verfuegbarkeit unveraendert', () => {
 
 /*
   G6 (Nachtest 01.10.2026): „als Helfer“ erschien erst nach dem Haken und
-  machte die Zeile höher — die Liste darunter rutschte. Der Platz steht jetzt
-  immer da, unsichtbar und für den Vorleser stumm, bis angehakt ist.
+  machte die Zeile höher — die Liste darunter rutschte. Die Zeile bricht
+  deshalb nie um. E72 (09.11.2026): der Platz wird NICHT mehr unsichtbar
+  freigehalten — am Handy kürzte er jeden Namen und verschluckte den Hinweis
+  „schon eingeteilt: …“, auch bei allen, die nicht gewählt sind.
 */
-describe('PersonPicker — die Zeile behält beim Anhaken ihre Höhe (G6)', () => {
-  it('hält den Platz für die Zusatzwahl frei, sichtbar erst mit Haken', () => {
+describe('PersonPicker — die Zeile behält beim Anhaken ihre Höhe (G6, E72)', () => {
+  it('zeigt die Zusatzwahl nur mit Haken und hält keinen Platz frei', () => {
     const leute: PickablePerson[] = [{ uid: 'a', name: 'Anton' }, { uid: 'b', name: 'Berta' }];
     render(
       <PersonPicker legend="Mitarbeiter" people={leute} selected={['a']} onChange={() => {}} idPrefix="t"
         renderExtra={(uid) => <span data-testid={`extra-${uid}`}>als Helfer</span>} />,
     );
-    expect(screen.getByTestId('extra-a').parentElement).not.toHaveClass('invisible');
-    const frei = screen.getByTestId('extra-b').parentElement!;
-    expect(frei).toHaveClass('invisible');
-    expect(frei).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByTestId('extra-a')).toBeVisible();
+    // Gegenprobe zur alten Fassung: dort stand „extra-b“ unsichtbar im Baum.
+    expect(screen.queryByTestId('extra-b')).toBeNull();
+  });
+
+  it('bricht nicht um: Name und Zusatzwahl stehen in einer Zeile', () => {
+    const leute: PickablePerson[] = [{ uid: 'a', name: 'Anton', hint: 'schon eingeteilt: Gemeinde Neudorf' }];
+    render(
+      <PersonPicker legend="Mitarbeiter" people={leute} selected={['a']} onChange={() => {}} idPrefix="t"
+        renderExtra={() => <span data-testid="extra">als Helfer</span>} />,
+    );
+    const zeile = screen.getByTestId('extra').parentElement!.parentElement!;
+    expect(zeile).toHaveClass('flex-nowrap');
+    expect(screen.getByText('schon eingeteilt: Gemeinde Neudorf')).toHaveClass('truncate');
+  });
+});
+
+describe('PersonPicker — „Nur freie anzeigen“ bleibt neben seinem Kästchen (E72)', () => {
+  it('bricht den Text in sich um, statt ihn unter das Kästchen zu schieben', () => {
+    const leute: PickablePerson[] = [{ uid: 'a', name: 'Anton' }, { uid: 'b', name: 'Berta', nichtFrei: true }];
+    render(<PersonPicker legend="Mitarbeiter" people={leute} selected={[]} onChange={() => {}} idPrefix="t" />);
+    const kaestchen = screen.getByRole('checkbox', { name: /Nur freie anzeigen/ });
+    const zeile = kaestchen.closest('label')!;
+    expect(zeile).not.toHaveClass('flex-wrap');
+    expect(kaestchen.nextElementSibling).toHaveClass('flex-1');
   });
 });
 

@@ -572,7 +572,9 @@ describe('Anforderungen — die Reihenfolge der Arbeit', () => {
     // Im Seitenfenster steht kein Status zur Wahl — nur das Löschen.
     const fenster = await oeffnen();
     expect(within(fenster).queryByRole('button', { name: /setzen$/ })).toBeNull();
-    expect(within(fenster).getByRole('button', { name: /Anforderung löschen/ })).toBeInTheDocument();
+    // E72: eine Retoure heißt beim Löschen auch Retoure — im Knopf und in der Rückfrage.
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure löschen …' }));
+    expect(await screen.findByRole('dialog', { name: 'Retoure löschen?' })).toBeInTheDocument();
   });
 });
 
@@ -669,12 +671,12 @@ describe('Anforderungen — löschen', () => {
     await userEvent.click(within(fenster).getByRole('button', { name: /Anforderung löschen/ }));
     expect(loeschen).not.toHaveBeenCalled();
 
-    const dialog = await screen.findByRole('dialog', { name: /Eintrag löschen/ });
+    const dialog = await screen.findByRole('dialog', { name: 'Anforderung löschen?' });
     // Gleich geblieben: ohne Gegenbuchung derselbe Satz wie bisher.
     expect(await within(dialog).findByText('„Kupferrohr 15mm“ ×2 wird entfernt.')).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Löschen' }));
     await waitFor(() => expect(loeschen).toHaveBeenCalledWith('o1', []));
-    expect(await screen.findByText('Eintrag gelöscht')).toBeInTheDocument();
+    expect(await screen.findByText('Anforderung gelöscht')).toBeInTheDocument();
   });
 
   it('nennt bei einer verbuchten Anforderung, um wie viel der Bestand korrigiert wird', async () => {
@@ -689,13 +691,13 @@ describe('Anforderungen — löschen', () => {
     zeige();
     await userEvent.click(await bereich(/^Erledigt/));
     await userEvent.click(within(await oeffnen()).getByRole('button', { name: /Anforderung löschen/ }));
-    const dialog = await screen.findByRole('dialog', { name: /Eintrag löschen/ });
+    const dialog = await screen.findByRole('dialog', { name: 'Anforderung löschen?' });
     expect(await within(dialog).findByText(/Der Bestand wird um \+2 m Kupferrohr 15mm \(Hauptlager\) korrigiert/)).toBeInTheDocument();
     expect(loeschenPruefen).toHaveBeenCalledWith('o1');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Löschen' }));
     // Mit genau dem geprüften Stand.
     await waitFor(() => expect(loeschen).toHaveBeenCalledWith('o1', erwartet));
-    expect(await screen.findByText('Eintrag gelöscht — der Bestand ist zurückgebucht')).toBeInTheDocument();
+    expect(await screen.findByText('Anforderung gelöscht — der Bestand ist zurückgebucht')).toBeInTheDocument();
   });
 
   it('nennt den Grund, wenn Löschen nicht sauber geht — und löscht nicht', async () => {
@@ -704,7 +706,7 @@ describe('Anforderungen — löschen', () => {
     zeige();
     await userEvent.click(await bereich(/^Erledigt/));
     await userEvent.click(within(await oeffnen()).getByRole('button', { name: /Anforderung löschen/ }));
-    const dialog = await screen.findByRole('dialog', { name: /Eintrag löschen/ });
+    const dialog = await screen.findByRole('dialog', { name: 'Anforderung löschen?' });
     expect(await within(dialog).findByText(/Löschen geht hier nicht: Schon abgerechnet/)).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: 'Löschen' })).toBeDisabled();
     expect(loeschen).not.toHaveBeenCalled();
@@ -1253,5 +1255,36 @@ describe('Anforderungen — Retoure erfassen im Lager', () => {
     zeige();
     await screen.findByText('Aktuell keine offenen Bestellungen.');
     expect(screen.queryByRole('button', { name: 'Retoure erfassen' })).toBeNull();
+  });
+});
+
+/*
+  E72 (09.11.2026) — gemessen in der Vorschau: über der Liste eingeschoben,
+  rückte die Sammelleiste beim ersten Haken ab dem Tablet die Zeilen um 96 px
+  nach unten; im Seitenfenster stand „Status von Hand“ in Textbreite unter
+  Knöpfen voller Breite. Gegenprobe: mit dem Stand davor rot.
+*/
+describe('Anforderungen — nichts verschiebt sich, eine Knopfgestalt (E72)', () => {
+  it('die Sammelleiste steht hinter der Liste, als Kind der Seite (dort klebt sie unten)', async () => {
+    anforderungen = [anforderung({ id: 'a', materialName: 'Rohr A', status: 'Offen' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('checkbox', { name: /Rohr A .* auswählen/ }));
+    const leiste = screen.getByRole('region', { name: 'Auswahl' });
+    const liste = screen.getByRole('heading', { name: 'Offene Bestellungen' }).closest('section')!;
+    expect(liste.compareDocumentPosition(leiste) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(leiste.parentElement).toHaveClass('anf-seite');
+    // Gleich geblieben: die Sammelaktion selbst.
+    expect(within(leiste).getByRole('button', { name: 'Alle: nächster Schritt' })).toHaveClass('sammel-knopf');
+    expect(within(leiste).getByRole('button', { name: 'Auswahl aufheben' })).toHaveClass('sammel-text');
+  });
+
+  // Die Spalte selbst prüft planlinieStil.test.ts (E72); hier, dass die Knöpfe in ihr stehen.
+  it('gleich geblieben: „Status von Hand setzen“ steht in seiner Gruppe, die übrigen Aktionen in ihrer', async () => {
+    anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
+    zeige();
+    const fenster = await oeffnen();
+    const status = within(fenster).getByRole('button', { name: 'Auf „Erledigt“ setzen' });
+    expect(status.parentElement).toHaveClass('material-status');
+    expect(within(fenster).getByRole('button', { name: 'Nicht auf Lager – auf die Einkaufsliste' }).parentElement).toHaveClass('material-aktionen');
   });
 });

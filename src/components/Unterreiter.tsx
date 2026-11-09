@@ -98,8 +98,15 @@ export default function Unterreiter({
             wären es drei Zeilen Reiter über der Seite — dort läuft die Leiste
             wie am Telefon und wie die übrigen der App seitlich, der gewählte
             Reiter bleibt im Bild.
+
+            LEISTE SAMT LINIE 48 PX, KEIN EIGENER ABSTAND (E72, R12). Mit
+            `border-b` maß sie 49 px, mit `mb-4` stand das erste Blatt eine
+            Zelle zu tief; die Linie liegt jetzt innen (deckend, kein
+            Schatten), den Abstand darunter gibt die Seite wie unter jedem
+            Kopf. Die Schrift steht auf der Titelflucht wie in den Akten: kein
+            Einzug im Reiter, eine Zelle Luft zwischen den Reitern.
           */
-          className="mb-4 reiterleiste flex gap-1 overflow-x-auto border-b border-line lg:flex-wrap lg:overflow-visible"
+          className="reiterleiste flex gap-x-6 overflow-x-auto shadow-[inset_0_-1px_0_0_var(--border)] lg:flex-wrap lg:overflow-visible"
           aria-label="Bereiche"
         >
           {sichtbar.map((s) => (
@@ -109,7 +116,7 @@ export default function Unterreiter({
               state={ANSICHTSWECHSEL}
               className={({ isActive }) =>
                 [
-                  'lot-reiter min-h-touch whitespace-nowrap border-b-2 px-3 py-2 text-sm',
+                  'lot-reiter min-h-touch whitespace-nowrap border-b-2 px-0 py-2 text-sm',
                   // Dieselbe Markierung wie bei den Reitern in Material,
                   // Lager, Anforderungen und Urlaub: Kante UNTEN im festen
                   // Petrol des Produkts, Text halbfett in Tinte (Designlinie

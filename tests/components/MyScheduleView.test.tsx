@@ -142,6 +142,23 @@ describe('Mein Einsatzplan — der Einsatz selbst', () => {
     await screen.findByText('Bad');
     expect(screen.getAllByRole('link', { name: 'Zeit erfassen' })[0]).toHaveAttribute('href', '/time');
   });
+
+  /*
+    E72 (09.11.2026): jeder Einsatz ist eine Zeile der Liste — dort steht kein
+    gefüllter Knopf (R2). Vorher trug jeder Einsatz einen gefüllten „Zeit
+    erfassen“; Adresse und Telefon standen als gerahmte Knöpfe.
+  */
+  it('Zeit erfassen als Zweitknopf, Adresse und Telefon als Kontakt mit Symbol (E72)', async () => {
+    zeichne();
+    await screen.findByText('Bad');
+    for (const zeit of screen.getAllByRole('link', { name: 'Zeit erfassen' })) {
+      expect(zeit.className).toContain('border-line-strong');
+      expect(zeit.className).not.toContain('bg-brand');
+    }
+    for (const kontakt of screen.queryAllByRole('link', { name: /in Google Maps öffnen|anrufen/ })) {
+      expect(kontakt.className).toContain('link-kontakt');
+    }
+  });
 });
 
 /*

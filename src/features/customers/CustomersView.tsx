@@ -470,7 +470,7 @@ export default function CustomersView() {
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Kunden"
-        subtitle="Stammdaten, Ansprechpartner und Baustellenhistorie"
+        subtitle="Ansprechpartner, Baustellen und Belege"
         mehr={seitenMenue.length > 0 ? <RowMenu about="Kunden" items={seitenMenue} /> : undefined}
         action={
           darfAendern && !formOffen ? <Button onClick={neuerKunde}>Neuer Kunde</Button> : undefined

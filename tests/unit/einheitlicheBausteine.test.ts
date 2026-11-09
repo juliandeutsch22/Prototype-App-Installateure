@@ -76,6 +76,26 @@ describe('Aufklapper haben eine Gestalt', () => {
 });
 
 describe('Abstände im Takt', () => {
+  it('der Formularfuß am Handy: „Abbrechen“ in seiner Breite, die Hauptaktion nimmt den Rest', () => {
+    expect(regel(INDEX, '.aktionsleiste-knoepfe')).toContain('grid-template-columns: auto minmax(0, 1fr)');
+  });
+
+  it('das Suchfenster hält am Handy 16 px Rand, die Nummer daneben bricht nicht', () => {
+    expect(regel(LOT, '.suchfenster')).toContain('left: 1rem; right: 1rem;');
+    expect(regel(LOT, '.such-nebeninfo')).toContain('white-space: nowrap');
+  });
+
+  it('die Gruppenköpfe im Mehr-Blatt wie in der Seitenleiste: Versalien, gesperrt, mit Linie', () => {
+    const r = regel(LOT, '.mehr-gruppe');
+    expect(r).toContain('text-transform: uppercase');
+    expect(r).toContain('letter-spacing: 0.14em');
+    expect(LOT).toContain(".mehr-gruppe::after { content: ''; flex: 1; height: 1px; background: var(--border); }");
+  });
+
+  it('der Untertext einer Blattzeile ohne Zusatzabstand — zwei Textzeilen ergeben genau 72 px', () => {
+    expect(BLATT).toMatch(/\.zeile-meta \{ line-height: 1\.5rem; margin-top: 0; \}/);
+  });
+
   it('Zeilen in Fenstern stehen auf der Flucht des Fensters', () => {
     expect(INDEX).toContain(':is(.fenster-inhalt, .blatt-inhalt) .zeile { padding-inline: 0; }');
   });

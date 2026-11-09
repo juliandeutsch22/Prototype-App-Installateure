@@ -1053,7 +1053,8 @@ textarea {
   @media (min-width: 760px) { .aktionsleiste { margin: 0 -1.5rem; padding-inline: 1.5rem; } }
   .aktionsleiste-summe { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.5rem; }
   .aktionsleiste-summe b { color: var(--ink-deep); font-size: 0.9375rem; font-weight: var(--gewicht-titel); }
-  .aktionsleiste-knoepfe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 0.5rem; }
+  /* „Abbrechen“ so breit wie sein Wort samt Polster, die Hauptaktion nimmt den Rest (E72: bei 1fr/2fr stand die Schrift 5 px vom Rahmen). */
+  .aktionsleiste-knoepfe { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.5rem; }
   .aktionsleiste-knoepfe > :only-child { grid-column: 1 / -1; }
   /* „Abbrechen“ brach bei 390 px als „Abbreche|n“ um; ein Knopf trägt ein Wort. */
   .aktionsleiste-knoepfe > * { white-space: nowrap; }
@@ -1083,7 +1084,8 @@ textarea {
   .chip-an { color: var(--ink-deep); font-weight: var(--gewicht-titel); border-bottom-color: var(--petrol); }
   /* Ansichten und Filter tragen dieselbe ruhige Unterstreichung wie die Register. */
   .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0.75rem; border-bottom: 1px solid var(--border); background: transparent; }
-  .segment > * { display: flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 0.375rem; text-align: center; hyphens: auto; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); border-bottom: 2px solid transparent; }
+  /* Auch ein kurzes Wort („Alle“) hat 44 px Tastfläche in der Breite (E72, R3). */
+  .segment > * { display: flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0 0.375rem; text-align: center; hyphens: auto; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); border-bottom: 2px solid transparent; }
   @media (min-width: 760px) { .segment > * { padding: 0 0.625rem; } }
   .segment > .segment-an { color: var(--ink-deep); border-bottom-color: var(--petrol); font-weight: var(--gewicht-titel); }
 

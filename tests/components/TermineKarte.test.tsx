@@ -308,3 +308,22 @@ describe('Anlegen über den Zähler `anlegen`', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
+
+/*
+  E72 (09.11.2026), A4/C5/E5: die Terminliste ist eine Liste aus `ListRow`
+  wie im Tagesfenster — Zeilen im Takt der Blätter, „Löschen“ rot wie jedes
+  Unumkehrbare. Gegenprobe: die alte eigene `<ul className="divide-y">` mit
+  `ghost`-Knöpfen hat weder `.zeile` noch `text-danger`.
+*/
+describe('Die Liste wie im Tagesfenster (E72)', () => {
+  it('jeder Termin ist eine Listenzeile, Löschen rot, Ändern gerahmt', async () => {
+    termine = [LIEFERUNG];
+    zeige({ bezug: 'frei', datum: '2026-06-02' });
+    const loeschen = await screen.findByRole('button', { name: /Lieferung \(Aviso\) · 08:00–10:00 am .* löschen/ });
+    expect(loeschen.closest('li')).toHaveClass('zeile');
+    expect(loeschen).toHaveClass('text-danger');
+    expect(loeschen).not.toHaveClass('min-h-[2.25rem]');
+    const aendern = screen.getByRole('button', { name: /Lieferung \(Aviso\) · 08:00–10:00 am .* ändern/ });
+    expect(aendern).toHaveClass('border-line-strong');
+  });
+});

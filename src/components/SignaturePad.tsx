@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import Button from './Button';
+import { knopfKlassen } from './knopf';
 import { sichtbar, useFokusFalle } from './fokusFalle';
 import { useHintergrundSperre } from './hintergrundSperre';
 import { einpassen, type Masse, type Punkt } from './unterschriftEinpassen';
@@ -592,11 +593,17 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
           unterschrieben wird mit der Maus.
         */}
         {!disabled && (
+          /*
+            Ein Zweitknopf, kein Text (E72, R1). Die Gestalt aus `knopf.ts`
+            statt `Button`, weil der Fokus nach dem Blatt hierher zurück
+            muss und `Button` keinen Verweis weiterreicht. 8 px Luft, damit
+            der Rahmen nicht an der Zeichenfläche klebt.
+          */
           <button
             ref={grossKnopf}
             type="button"
             onClick={blattOeffnen}
-            className="link inline-flex min-h-touch shrink-0 items-center text-sm lg:hidden"
+            className={`${knopfKlassen('secondary')} mt-2 shrink-0 lg:hidden`}
           >
             Groß unterschreiben
           </button>

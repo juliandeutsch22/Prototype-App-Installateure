@@ -420,18 +420,21 @@ export default function LiegenschaftView() {
       <BottomSheet open={fenster?.art === 'top'} onClose={() => setFenster(null)} label={offenesTop ? 'Top ändern' : 'Top anlegen'} auchBreit
         titel={offenesTop ? `${offenesTop.bezeichnung} ändern` : 'Top anlegen'}>
         {fenster?.art === 'top' && (
-          <div className="flex flex-col gap-4">
-            <TopFormular companyId={companyId} liegenschaftId={l.id} top={offenesTop}
-              onGespeichert={() => { setFenster(null); neuLaden(); }} onAbbrechen={() => setFenster(null)} />
-            {offenesTop && (
+          <TopFormular companyId={companyId} liegenschaftId={l.id} top={offenesTop}
+            onGespeichert={() => { setFenster(null); neuLaden(); }} onAbbrechen={() => setFenster(null)}
+            /*
+              Über dem Fensterfuß, nicht darunter (E72): der Fuß klebt unten
+              und reicht bis an die Kante. Löschen rot wie jedes
+              Unumkehrbare (R4); die Rückfrage folgt wie bisher.
+            */
+            zusatz={offenesTop && (
               <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-                <Button variant="secondary" onClick={() => {
+                <Button type="button" variant="secondary" onClick={() => {
                   setFenster({ art: 'beteiligter', vorgabeTopId: offenesTop.id });
                 }}>Beteiligten an diesem Top eintragen</Button>
-                <Button variant="ghost" onClick={() => setFrage({ art: 'top', top: offenesTop })}>Top löschen</Button>
+                <Button type="button" variant="danger" onClick={() => setFrage({ art: 'top', top: offenesTop })}>Top löschen</Button>
               </div>
-            )}
-          </div>
+            )} />
         )}
       </BottomSheet>
 
@@ -443,15 +446,16 @@ export default function LiegenschaftView() {
             {offenerBeteiligter && <BeteiligterKontakt b={offenerBeteiligter} kunden={kunden} kundenOeffnen={kundenOeffnen} />}
             <BeteiligterFormular companyId={companyId} liegenschaftId={l.id} tops={topListe}
               beteiligter={offenerBeteiligter} vorgabeTopId={fenster.vorgabeTopId}
-              onGespeichert={() => { setFenster(null); neuLaden(); }} onAbbrechen={() => setFenster(null)} />
-            {offenerBeteiligter && (
-              <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-                {!offenerBeteiligter.customerId && (
-                  <Button variant="secondary" loading={busy} onClick={() => void zuKunde(offenerBeteiligter)}>Zum Kunden machen</Button>
-                )}
-                <Button variant="ghost" onClick={() => setFrage({ art: 'beteiligter', beteiligter: offenerBeteiligter })}>Entfernen</Button>
-              </div>
-            )}
+              onGespeichert={() => { setFenster(null); neuLaden(); }} onAbbrechen={() => setFenster(null)}
+              // Über dem Fensterfuß (E72, wie beim Top); Entfernen rot wie jedes Unumkehrbare (R4).
+              zusatz={offenerBeteiligter && (
+                <div className="flex flex-wrap gap-2 border-t border-line pt-4">
+                  {!offenerBeteiligter.customerId && (
+                    <Button type="button" variant="secondary" loading={busy} onClick={() => void zuKunde(offenerBeteiligter)}>Zum Kunden machen</Button>
+                  )}
+                  <Button type="button" variant="danger" onClick={() => setFrage({ art: 'beteiligter', beteiligter: offenerBeteiligter })}>Entfernen</Button>
+                </div>
+              )} />
           </div>
         )}
       </BottomSheet>

@@ -57,7 +57,7 @@ export default function MonatsVorschau({
   klickX: number | null;
   darfTermine: boolean;
   baustelleSichtbar: boolean;
-  /** `zurueck`: den Fokus an den Balken zurückgeben (Tastatur, ×, Esc). */
+  /** `zurueck`: den Fokus an den Balken zurückgeben (Tastatur, „Schließen“, Esc). */
   onSchliessen: (zurueck: boolean) => void;
   onBlaettern: (schritt: -1 | 1) => void;
   onEinsatz?: (start: FensterStart) => void;
@@ -84,7 +84,7 @@ export default function MonatsVorschau({
   */
   useHintergrundSperre(handy);
 
-  /* Der Fokus geht beim Öffnen auf ×, ohne die Seite zu verschieben. */
+  /* Der Fokus geht beim Öffnen auf „Schließen“, ohne die Seite zu verschieben. */
   useEffect(() => {
     zuRef.current?.focus({ preventScroll: true });
   }, []);
@@ -102,11 +102,17 @@ export default function MonatsVorschau({
       if (!el) return;
       const vw = document.documentElement.clientWidth || window.innerWidth;
       const vh = window.innerHeight;
+      /*
+        NICHT ÜBER DER NAVIGATION (E72, 09.11.2026): am Tablet lag die
+        Vorschau eines Tages am Monatsanfang halb über der Seitenleiste. Der
+        linke Rand ist deshalb der Rand des Inhalts, nicht der des Fensters.
+      */
+      const links = (document.querySelector('main')?.getBoundingClientRect().left ?? 0) + RAND;
       const r = anker?.isConnected ? anker.getBoundingClientRect() : null;
       const w = el.offsetWidth;
       const h = el.offsetHeight;
       const mitte = klickX ?? (r ? (r.left + r.right) / 2 : vw / 2);
-      let x = Math.max(RAND, Math.min(mitte - w / 2, vw - w - RAND));
+      let x = Math.max(links, Math.min(mitte - w / 2, vw - w - RAND));
       let y = r ? r.bottom + 8 : RAND;
       if (r && y + h > vh - RAND) y = r.top - h - 8;
       if (y < RAND) {
@@ -116,7 +122,7 @@ export default function MonatsVorschau({
           Balken — sonst verdeckte sie, worauf man gerade getippt hat.
         */
         y = Math.max(RAND, Math.min(r ? (r.top + r.bottom) / 2 - h / 2 : RAND, vh - h - RAND));
-        if (r) x = mitte + 16 + w <= vw - RAND ? mitte + 16 : Math.max(RAND, mitte - 16 - w);
+        if (r) x = mitte + 16 + w <= vw - RAND ? mitte + 16 : Math.max(links, mitte - 16 - w);
       }
       el.style.left = `${Math.round(x)}px`;
       el.style.top = `${Math.round(y)}px`;
@@ -220,6 +226,7 @@ export default function MonatsVorschau({
       haupt = { text: 'Einsatz planen', start: { datum: tag } };
     }
   }
+  const fuss = !!(onZurWoche || haupt || (onTerminNeu && darfTermine));
   // Je Abschnitt „Bearbeiten“, wo die Fusszeile es nicht eindeutig sagen kann.
   const jeAbschnitt = planen && (ziel.art === 'tag' || (ziel.art === 'person' && einsaetze.length > 1));
 
@@ -247,13 +254,18 @@ export default function MonatsVorschau({
           <button type="button" className="vorschau-pfeil" aria-label="Nächster Tag" onClick={() => onBlaettern(1)}>
             ›
           </button>
-          <button ref={zuRef} type="button" className="vorschau-zu" aria-label="Vorschau schließen" onClick={() => onSchliessen(true)}>
-            ×
+          {/*
+            „SCHLIESSEN“ WIE IM SEITENFENSTER (E72, 09.11.2026): ein gerahmter
+            Zweitknopf mit Wort statt eines „×“ ohne Rahmen. Der Name für den
+            Vorleser sagt, was geschlossen wird.
+          */}
+          <button ref={zuRef} type="button" className="fenster-schliessen" aria-label="Vorschau schließen" onClick={() => onSchliessen(true)}>
+            Schließen
           </button>
         </div>
       </div>
 
-      <div className="vorschau-inhalt">
+      <div className={fuss ? 'vorschau-inhalt' : 'vorschau-inhalt vorschau-inhalt-ohne-fuss'}>
         {!inhalt ? (
           <p className="v-leer" aria-busy="true">…</p>
         ) : (
@@ -301,28 +313,26 @@ export default function MonatsVorschau({
         )}
       </div>
 
-      {(onZurWoche || haupt || (onTerminNeu && darfTermine)) && (
+      {fuss && (
       <div className="vorschau-fuss">
         {/*
-          Links, als Zweitknopf: rechts stehen „Zur Woche“ und die Hauptaktion
-          des Tages. Als Geisterknopf (ohne Rahmen) las es sich wie ein
-          verirrter Text (Rückmeldung 09.11.2026).
+          DER FUSS WIE JEDER FENSTERFUSS (E72, R7): Linie darüber,
+          rechtsbündig, die Hauptaktion zuletzt und in normaler Größe — nie
+          `klein`. Am Handy untereinander, die Hauptaktion oben
+          (lot-monat.css). Die Zweitknöpfe sind gerahmt; als Geisterknopf
+          las sich „Termin anlegen“ wie ein verirrter Text.
         */}
         {onTerminNeu && darfTermine && (
-          <Button variant="secondary" groesse="klein" className="mr-auto" onClick={terminNeu}>
+          <Button variant="secondary" onClick={terminNeu}>
             Termin anlegen
           </Button>
         )}
         {onZurWoche && (
-          <Button variant="secondary" groesse="klein" onClick={zurWoche}>
+          <Button variant="secondary" onClick={zurWoche}>
             Zur Woche
           </Button>
         )}
-        {haupt && (
-          <Button groesse="klein" onClick={() => einsatz(haupt.start)}>
-            {haupt.text}
-          </Button>
-        )}
+        {haupt && <Button onClick={() => einsatz(haupt.start)}>{haupt.text}</Button>}
       </div>
       )}
     </div>

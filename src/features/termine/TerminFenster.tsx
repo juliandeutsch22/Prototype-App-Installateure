@@ -54,32 +54,37 @@ export default function TerminFenster({
   return (
     <BottomSheet open onClose={onClose} label={titel} auchBreit titel={titel}>
       {darf ? (
-        <div className="space-y-4">
-          <TerminFormular
-            companyId={user.companyId}
-            vorgabe={{ bezug: 'frei', datum: termin?.datum ?? datum }}
-            termin={termin ?? undefined}
-            personen={personen}
-            heute={todayStr()}
-            onGespeichert={() => {
-              onGeaendert();
-              onClose();
-            }}
-            onAbbrechen={onClose}
-          />
-          {termin && (
-            <div className="fuss-aktionen">
-              {/* Rot erst in der Rückfrage — wie „Löschen“ in der Terminkarte. */}
-              <Button
-                variant="ghost"
-                onClick={() => setLoeschFrage(true)}
-                aria-label={`${terminKopf(termin)} am ${datumKurz(termin.datum)} löschen`}
-              >
-                Termin löschen
-              </Button>
-            </div>
-          )}
-        </div>
+        <TerminFormular
+          companyId={user.companyId}
+          vorgabe={{ bezug: 'frei', datum: termin?.datum ?? datum }}
+          termin={termin ?? undefined}
+          personen={personen}
+          heute={todayStr()}
+          onGespeichert={() => {
+            onGeaendert();
+            onClose();
+          }}
+          onAbbrechen={onClose}
+          zusatz={
+            termin && (
+              /*
+                ÜBER DEM FENSTERFUSS, NICHT DARUNTER (E72): der Fuß klebt
+                unten und reicht bis an die Kante. Rot wie jedes
+                Unumkehrbare (R4); die Rückfrage folgt wie bisher.
+              */
+              <div>
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={() => setLoeschFrage(true)}
+                  aria-label={`${terminKopf(termin)} am ${datumKurz(termin.datum)} löschen`}
+                >
+                  Termin löschen
+                </Button>
+              </div>
+            )
+          }
+        />
       ) : termin ? (
         /* LESEANSICHT: dieselben Angaben wie im Formular, als Text. */
         <dl className="termin-lesen">

@@ -52,9 +52,11 @@ export const BLATT_SELEKTOR =
  * Was der Taktgeber ausrichtet: die Blätter und die Kontextspalten von Akte,
  * Beleg und Plattform (E48). Die stehen offen auf dem Raster (Eckmarken statt
  * Fläche, E30), ihre Karten sind keine eigenen Blätter; mit ihren Ecken
- * gehören sie genauso auf Linien.
+ * gehören sie genauso auf Linien. Dazu die Karte „Arbeitstag“ (E72): ein
+ * Blatt mit eigener Gestalt (`lot-timer.css`), keine `.karte` — ohne sie hier
+ * lag sie mit krummer Höhe zwischen den Blättern.
  */
-export const TAKT_SELEKTOR = `${BLATT_SELEKTOR}, .inhalt :is(.akten-kontext, .beleg-kontext, .plattform-kontext)`;
+export const TAKT_SELEKTOR = `${BLATT_SELEKTOR}, .inhalt :is(.akten-kontext, .beleg-kontext, .plattform-kontext, .arbeitstag)`;
 
 /** Um wie viel muss etwas nach unten, damit `oben` auf einer Linie liegt? 0 bis 23. */
 export function ausgleichOben(oben: number, ursprung: number): number {
@@ -104,6 +106,12 @@ export function ausrichten(flaeche: HTMLElement, neu = false): void {
   const spalte = taktBreite(innen);
   const breite = `${spalte}px`;
   if (inhalt.style.getPropertyValue('--takt-breite') !== breite) inhalt.style.setProperty('--takt-breite', breite);
+  /*
+    Auch an der Fläche (E72, 09.11.2026): die Timer-Leiste steht neben
+    `.inhalt` (sie blendet beim Seitenwechsel nicht mit ein) und braucht
+    dieselbe Spaltenbreite, um an der Kante der Blätter zu enden.
+  */
+  if (flaeche.style.getPropertyValue('--takt-breite') !== breite) flaeche.style.setProperty('--takt-breite', breite);
   // Von der rechten Kante der Spalte bis an den Rand der Fläche (ohne deren Bildlaufleiste).
   const auslauf = `${-Math.round(inhalt.clientWidth - parseFloat(stil.paddingLeft) - spalte)}px`;
   if (inhalt.style.getPropertyValue('--takt-auslauf') !== auslauf) inhalt.style.setProperty('--takt-auslauf', auslauf);

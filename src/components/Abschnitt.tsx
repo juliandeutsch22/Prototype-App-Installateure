@@ -59,16 +59,25 @@ export default function Abschnitt({
   steuert?: string;
 }) {
   if (onUmschalten) {
+    /*
+      DER KOPF AUF DER FLUCHT DES BLATTS (E72, 09.11.2026). Der Knopf trug
+      eigene 16 px Einzug, `p-0` am Abschnitt griff im Blatt nicht (dort
+      setzt `lot-blatt.css` 12 px 24 px): die Wochenköpfe in „Meine Einträge“
+      standen 40 px eingerückt, die Zeilen darunter 24. Jetzt gibt der
+      Abschnitt den Einzug wie jeder andere, und der Knopf greift mit
+      negativem Rand über dessen Polster oben und unten — die ganze Zeile
+      bleibt antippbar und 48 px hoch.
+    */
     return (
       <>
-        <div className="abschnitt p-0">
+        <div className="abschnitt">
           <h3 className="w-full">
             <button
               type="button"
               aria-expanded={!!offen}
               aria-controls={steuert}
               onClick={onUmschalten}
-              className="flex min-h-touch w-full items-center gap-3 px-4 py-2 text-left"
+              className="-my-3 flex min-h-touch w-full items-center gap-3 px-0 py-2 text-left"
             >
               <span className="abschnitt-kopf min-w-0">
                 <Kopf titel={titel} anzahl={anzahl} />

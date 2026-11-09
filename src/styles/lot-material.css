@@ -28,6 +28,27 @@
     Seitentitel und Karteninhalt (E24).
   */
   .anf-leiste .listenleiste { padding: 0; }
+  /*
+    Die Bereiche des Lagers stehen in derselben Leiste (E72, 09.11.2026):
+    außerhalb davon waren „Bestand“ und „Katalog“ je 558 px breit gestreckt,
+    der Text mittig — in den Anforderungen und Rechnungen stehen die Reiter
+    schmal links.
+
+    DIE SUCHE BEHÄLT IHRE BREITE BEIM REITERWECHSEL (E72): ohne die
+    Baustellenwahl daneben (Retouren) nahm sie den ganzen Platz und sprang
+    von 294 auf 480 px. Fest 18 rem (zwölf Zellen) ab dem Tablet; am Handy
+    weiter die volle Breite.
+  */
+  @media (min-width: 760px) { .anf-leiste .listenleiste-suche { flex: 0 1 18rem; } }
+  /*
+    DIE SAMMELLEISTE SCHIEBT DIE LISTE NICHT (E72, 09.11.2026). Über der
+    Liste eingeschoben, rückte sie ab dem Tablet die Liste beim ersten Haken
+    um 96 px nach unten — die nächste Zeile lag nicht mehr unter dem Finger.
+    Sie steht jetzt hinter der Liste und klebt unten im Bild, wie am Handy
+    (dort fest über der unteren Leiste, lot.css). Am Ende der Liste ruht sie
+    an ihrem Platz und verdeckt keine Zeile.
+  */
+  @media (min-width: 760px) { .anf-seite > .sammelleiste { top: auto; bottom: var(--reiter-hoehe, 0px); } }
 
   /* ── Anforderungen: Arbeitszeile ──────────────────────────────────────── */
   /* Eil und Beschaffung rechts im antippbaren Inhalt, am Handy darunter. */
@@ -41,9 +62,26 @@
   @media (max-width: 759px) { .sammel-platz { display: block; height: 5rem; } }
 
   /* ── Planlinie (E30): Maßlinien im Lager und beim Einspielen ─────────── */
-  /* Frei/reserviert gegen das Regal in der Bestandszeile — schmal, wie ein Maß am Rand. */
-  .lager-masslinie { width: 15rem; }
-  @media (max-width: 759px) { .lager-masslinie { width: 13.5rem; } }
+  /*
+    Frei/reserviert gegen das Regal in der Bestandszeile — schmal, wie ein
+    Maß am Rand. EINE FESTE BREITE, OB MIT LINIE ODER OHNE (E72, 09.11.2026,
+    Regel R11): ohne Regalbestand stehen nur die Zahlen da, und die waren
+    schmaler als die Linie — der Zustand davor sprang je Zeile um 14 px. Die
+    Zahlen stehen links wie die Beschriftung unter der Linie und brechen, wo
+    sie einmal länger sind, statt die Spalte zu verbreitern.
+  */
+  .lager-masslinie { display: block; width: 15rem; max-width: 100%; white-space: normal; text-align: left; }
+  /*
+    Ohne Zustand bleibt seine Spalte frei (`lager-ohne-zustand`), damit die
+    Linie ab dem Tablet in jeder Zeile an derselben Stelle beginnt. Am Handy
+    steht der Zustand über der Linie und die Linie über die ganze Breite des
+    Texts, wie bei den Rechnungen (E41) — dort braucht es keine leere Spalte.
+  */
+  @media (max-width: 759px) {
+    .lager-masslinie { width: 100%; }
+    .zeile-stand .zeile-wert:has(> .lager-masslinie) { flex: 1 1 100%; }
+    .zeile-zustand:has(> .lager-ohne-zustand) { display: none; }
+  }
   /* Der Fortschritt beim Einspielen unter den Knöpfen, so breit wie das Formular. */
   .import-masslinie { max-width: 35rem; }
 
@@ -62,8 +100,14 @@
 
   /* Alle Aktionen eines Seitenfensters untereinander, volle Breite. */
   .material-aktionen { display: flex; flex-direction: column; gap: 0.5rem; }
-  /* Seltenes kleiner und nebeneinander, das Unumkehrbare abgesetzt darunter. */
-  .material-status { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  /*
+    Der Status von Hand in derselben Gestalt (E72, 09.11.2026): nebeneinander
+    gedacht, brachen die drei Knöpfe im 400 px breiten Fenster doch
+    untereinander um und standen in ihrer Textbreite (234/213/181 px) unter
+    Knöpfen voller Breite — zwei Knopfgestalten in einem Fenster. Das
+    Unumkehrbare abgesetzt darunter.
+  */
+  .material-status { display: flex; flex-direction: column; gap: 0.5rem; }
   .material-gefahr { display: flex; flex-direction: column; padding-top: 1rem; border-top: 1px solid var(--border); }
 
   /* Artikelwahl für Wareneingang und Inventur aus dem Seitenkopf. */
@@ -108,6 +152,11 @@
   .korb-titel:hover { color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px; }
   .korb-info { font-size: 0.8125rem; }
   .korb-fehler { flex-basis: 100%; font-size: 0.875rem; color: var(--danger); }
-  .korb-knoepfe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 0.5rem; width: 100%; }
+  /*
+    Am Handy „Leeren“ in seiner Breite, das Abschicken nimmt den Rest (E72,
+    09.11.2026): mit einem Drittel zu zwei Dritteln brachen beide Knöpfe bei
+    390 px in zwei Zeilen.
+  */
+  .korb-knoepfe { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.5rem; width: 100%; }
   @media (min-width: 760px) { .korb-knoepfe { display: flex; width: auto; } }
 }

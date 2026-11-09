@@ -16,6 +16,7 @@ import type {
   Termin,
 } from '@/types';
 import Card from '@/components/Card';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import InfoHint from '@/components/InfoHint';
@@ -698,8 +699,12 @@ export default function EinsatzFormular({
         <InputField id="acomment" label="Kommentar / Aufgabe" value={comment}
           onChange={(e) => setComment(e.target.value)} />
       </div>
-      {/* M34: optional — ohne Uhrzeit gilt der ganze Tag. */}
-      <div className="mt-4 grid grid-cols-2 gap-4 sm:max-w-sm">
+      {/*
+        M34: optional — ohne Uhrzeit gilt der ganze Tag. Volle Breite wie
+        „Kommentar / Aufgabe“ darüber: mit `sm:max-w-sm` endete „Ende“ 16 px
+        vor der rechten Kante des Formulars (E72, R5).
+      */}
+      <div className="mt-4 grid grid-cols-2 gap-4">
         <InputField id="azeitvon" label="Beginn (optional)" type="time" value={zeitVon}
           onChange={(e) => setZeitVon(e.target.value)} />
         <InputField id="azeitbis" label="Ende (optional)" type="time" value={zeitBis}
@@ -822,23 +827,41 @@ export default function EinsatzFormular({
       {materialAn && projectNumber ? 'Einsatz und Rüstliste speichern' : 'Einsatz speichern'}
     </Button>
   );
+  /*
+    SPEICHERN IM BLATT, NICHT DARUNTER (E72, 09.11.2026): der Knopf stand
+    nach der letzten Karte frei auf dem Raster. Jetzt schließt er das letzte
+    Blatt ab — mit der Rüstliste das Material, sonst die Einteilung — als
+    Formularfuß wie überall (`Aktionsleiste`).
+  */
   const speichern = (
-    <div>
+    <>
       {speicherHinweise}
-      {speicherKnopf}
-    </div>
+      <Aktionsleiste rechts={speicherKnopf} />
+    </>
   );
 
   if (karten) {
     return (
       <>
-        <Card title={karten.titel}>{einteilung}</Card>
+        {/*
+          `lg:space-y-4`: ab 1.200 px steht der Fuß ohne Linie und ohne Rand
+          (index.css) — ohne die 16 px klebte „Einsatz speichern“ am Feld
+          „Ende“ (R7). Darunter bringt die Leiste ihren Abstand selbst mit.
+        */}
+        <Card title={karten.titel}>
+          <div className="lg:space-y-4">
+            {einteilung}
+            {!material && speichern}
+          </div>
+        </Card>
         {material && (
           <Card title="Material für diesen Einsatz" hint={MATERIAL_HINWEIS}>
-            {material}
+            <div className="lg:space-y-4">
+              {material}
+              {speichern}
+            </div>
           </Card>
         )}
-        {speichern}
       </>
     );
   }

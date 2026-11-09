@@ -32,10 +32,22 @@ export function KorrekturAnfordern({ eintrag }: { eintrag: TimeEntry }) {
   return <><Button variant="ghost" onClick={() => setOffen(true)}>Korrektur anfragen</Button>
     {/* Der feste Dialog darf nicht im Stapelkontext der Zeilenaktionen liegen. */}
     {createPortal(<BottomSheet open={offen} onClose={() => setOffen(false)} label="Korrektur anfragen" titel="Korrektur anfragen" auchBreit>
-      <p className="mb-3 text-sm">{datumAT(eintrag.date)} · {eintrag.startTime}–{eintrag.endTime}. Rechnungssperren und Abwesenheitsanträge bleiben geschützt.</p>
-      <InputField id="korrektur-wunsch" label="Was soll berichtigt werden und warum? (keine Diagnose)" required pflicht value={wunsch} onChange={(e) => setWunsch(e.target.value)} />
-      {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
-      <Button disabled={!wunsch.trim() || speichert} onClick={() => void senden()}>Beim Büro anfragen</Button>
+      {/*
+        FELDER UND FUSS IM TAKT (E72, 09.11.2026): 16 px zwischen den Teilen,
+        der Knopf im Fuß mit Linie und „Abbrechen“ daneben (R7) — er klebte
+        ohne Abstand am Feld. Ohne Uhrzeit (Abwesenheit, Stundeneintrag)
+        steht der Stand statt „· –“. Das Absenden bleibt im Fenster: über
+        das Portal liefe es sonst bis zu einem umgebenden Formular durch.
+      */}
+      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); if (wunsch.trim() && !speichert) void senden(); }}>
+        <p className="text-sm">{datumAT(eintrag.date)} · {eintrag.startTime && eintrag.endTime ? `${eintrag.startTime}–${eintrag.endTime}` : eintrag.status}. Rechnungssperren und Abwesenheitsanträge bleiben geschützt.</p>
+        <InputField id="korrektur-wunsch" label="Was soll berichtigt werden und warum? (keine Diagnose)" required pflicht value={wunsch} onChange={(e) => setWunsch(e.target.value)} />
+        {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+        <div className="fuss-aktionen">
+          <Button type="button" variant="secondary" onClick={() => setOffen(false)}>Abbrechen</Button>
+          <Button type="submit" disabled={!wunsch.trim() || speichert}>Beim Büro anfragen</Button>
+        </div>
+      </form>
     </BottomSheet>, document.body)}</>;
 }
 export default function Zeitkorrekturen() {
