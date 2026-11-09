@@ -18,6 +18,15 @@ import { anmelden } from './helfer';
  * dem man gerade liest — die App wechselt Seiten ohne Neuladen.
  */
 test.skip(({ browserName }) => browserName !== 'chromium', 'Push über die DevTools-Schnittstelle gibt es nur in Chromium');
+/*
+  DER VOLLE CHROMIUM, NICHT DIE „HEADLESS SHELL“. Ohne Kanal nimmt Playwright
+  ohne Fenster die abgespeckte Shell — und die kennt keine Meldungen: die
+  Erlaubnis bleibt dort „denied“, obwohl sie erteilt ist, `showNotification`
+  wirft (nachgestellt mit derselben Fassung wie in der CI). `channel:
+  'chromium'` nimmt den vollen Browser ohne Fenster; `playwright install
+  chromium` legt beide ab. Wo `CHROMIUM_PFAD` gesetzt ist, gilt dieser.
+*/
+test.use({ channel: 'chromium' });
 
 async function workerAnmelden(page: Page): Promise<{ cdp: CDPSession; registrierung: () => string }> {
   const cdp = await page.context().newCDPSession(page);
