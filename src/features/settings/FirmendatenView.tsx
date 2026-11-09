@@ -324,9 +324,9 @@ export default function FirmendatenView() {
               Name und Anschrift stehen oben auf jedem Angebot und jeder Rechnung — hier einmal
               eintragen, dann stimmt jeder Beleg.
             </p>
-            <button type="button" className="link min-h-touch" onClick={hinweisAusblenden}>
+            <Button variant="secondary" groesse="klein" onClick={hinweisAusblenden}>
               Hinweis ausblenden
-            </button>
+            </Button>
           </div>
         </div>
       )}

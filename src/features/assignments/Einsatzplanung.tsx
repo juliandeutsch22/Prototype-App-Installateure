@@ -484,9 +484,9 @@ export default function Einsatzplanung() {
                   {ohneEinsatz.length > 3 ? ` und ${ohneEinsatz.length - 3} weitere` : ''}
                 </span>
               </p>
-              <button type="button" className="wp-textknopf" onClick={() => setFenster({ art: 'noch' })}>
+              <Button variant="secondary" groesse="klein" onClick={() => setFenster({ art: 'noch' })}>
                 Noch einzuplanen …
-              </button>
+              </Button>
             </div>
           )}
           <Card buendig>

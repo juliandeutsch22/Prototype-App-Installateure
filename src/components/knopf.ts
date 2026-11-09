@@ -52,7 +52,16 @@ export const variants: Record<Variant, string> = {
     Hauptaktion ist `primary`, überall.
   */
   danger: 'border border-danger bg-surface font-semibold text-danger hover:bg-danger-bg',
-  ghost: 'bg-transparent font-normal text-ink-muted hover:bg-surface-2',
+  /*
+    JEDE NEBENHANDLUNG SIEHT AUS WIE EIN KNOPF (09.11.2026). `ghost` war
+    randlos, grau und ohne Fläche: „Termin anlegen“, „Einsatz planen“,
+    „Löschen“, „Bearbeiten“ standen in der Zeile wie Text, den jemand
+    vergessen hatte — an rund 190 Stellen. Jetzt trägt er die Gestalt des
+    Zweitknopfs. Es bleiben drei Gestalten: Hauptaktion (gefüllt),
+    Nebenhandlung (gerahmt), Gefahr (rot gerahmt). Der Name bleibt, damit
+    keine Stelle umgeschrieben werden muss und keine anders aussieht.
+  */
+  ghost: 'border border-line-strong bg-surface font-normal text-ink hover:border-brand-fixed',
   // Derselbe zurückhaltende Knopf, aber auf einer dunklen Trägerfläche
   // (Seitenleiste). Eine eigene Spielart statt einer mitgegebenen Klasse:
   // zwei Textfarben in einem class-Attribut entscheidet nicht die

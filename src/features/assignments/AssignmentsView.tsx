@@ -473,7 +473,7 @@ export default function AssignmentsView() {
                         </span>
                       </div>
                       {(aufgabe || material.length > 0 || termineDort.length > 0) && (
-                        <div className="space-y-2 border-t border-line px-4 py-2 text-sm">
+                        <div className="blatt-einzug space-y-2 border-t border-line px-4 py-2 text-sm">
                           {termineDort.length > 0 && (
                             <p className="text-ink">
                               <span className="font-normal">Am selben Tag:</span> {termineDort.join('; ')}

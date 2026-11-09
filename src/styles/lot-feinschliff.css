@@ -183,4 +183,5 @@
   .lot-overlay > [data-lot-inhalt], .lot-menue, .weiteres[open] > .weiteres-inhalt { animation: none !important; }
   .lot-knopf:active { transform: none !important; }
   :is(.zeile-ganz, .arbeitszeile-inhalt, .mehr-laden, .start-weiter, .mehr-punkt, .checkbox, .lot-zahl-neu) { animation: none !important; transition: none !important; }
+  :is(.weiteres-kopf, .weiteres-knopf)::after { transition: none !important; }
 }

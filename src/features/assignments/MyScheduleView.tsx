@@ -622,12 +622,12 @@ export default function MyScheduleView() {
                 </List>
               )}
               {anstehend.length > 15 && (
-                <p className="border-t border-line px-4 py-3 text-sm text-ink-muted">
+                <p className="blatt-einzug border-t border-line px-4 py-3 text-sm text-ink-muted">
                   und {anstehend.length - 15} weitere — im Kalender links nachschlagen.
                 </p>
               )}
               {ausgeblendet > 0 && (
-                <p className="border-t border-line px-4 py-3 text-sm text-ink-muted">
+                <p className="blatt-einzug border-t border-line px-4 py-3 text-sm text-ink-muted">
                   {ausgeblendet === 1
                     ? 'Ein Einsatz liegt an einem Tag, an dem du abwesend bist — das Büro plant ihn neu.'
                     : `${ausgeblendet} Einsätze liegen an Tagen, an denen du abwesend bist — das Büro plant sie neu.`}

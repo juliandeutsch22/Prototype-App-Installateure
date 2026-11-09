@@ -1,3 +1,4 @@
+import Button from '@/components/Button';
 import type { AppUser, Termin } from '@/types';
 import { Warnung } from '@/components/Badge';
 import { terminZeit } from '@/features/termine/terminText';
@@ -133,18 +134,18 @@ export default function HandyWoche({
           {info && <p className="tl-info">{info}</p>}
         </div>
         {!lesen && (
-          <button type="button" className="wp-textknopf" onClick={() => onTag(gewaehlt)}>
+          <Button variant="secondary" groesse="klein" onClick={() => onTag(gewaehlt)}>
             Ganzen Tag ansehen
-          </button>
+          </Button>
         )}
       </div>
 
       <div className="tl-gruppe">
         <span>{termine.length ? termineText(termine.length) : 'Keine Termine'}</span>
         {darf && !lesen && (
-          <button type="button" className="wp-textknopf" onClick={() => onTerminNeu(gewaehlt)}>
+          <Button variant="secondary" groesse="klein" onClick={() => onTerminNeu(gewaehlt)}>
             Termin anlegen
-          </button>
+          </Button>
         )}
       </div>
       {termine.map((t) =>
@@ -262,10 +263,12 @@ function TagesPerson({
         {/*
           WER FREI IST, wird hier gleich eingeteilt — auch mit einem Termin
           oder stundenweise weg: „frei“ heißt dasselbe wie im Kopf („N frei“).
-          Ruhig statt eines Rahmenknopfs (Auftrag 25.10.2026): „frei“ ist ein
-          Zustand wie jeder andere — ein leerer Ring und das Wort —, dahinter
-          „Einplanen“ als Verweis. Bei zehn freien Leuten standen vorher zehn
-          umrandete Knöpfe untereinander.
+          „frei“ ist ein Zustand wie jeder andere — ein leerer Ring und das
+          Wort —, dahinter „Einplanen“. Seit 09.11.2026 trägt „Einplanen“ die
+          Gestalt eines kleinen Zweitknopfs: jede Handlung ist als Knopf zu
+          erkennen (Auftrag 09.11.2026, geht dem „ruhig statt Rahmenknopf“ vom
+          25.10.2026 vor). Klein und rechtsbündig, damit zehn freie Leute
+          untereinander ruhig bleiben; die ganze Zeile bleibt die Tastfläche.
         */}
         {frei && (
           <button

@@ -170,6 +170,24 @@
   /* Kein Trennstrich im Wort („Weg-zeit“): umbrochen wird zwischen den Wörtern. */
   .weiteres-kopf { display: flex; flex-wrap: wrap; align-items: center; min-height: 2.75rem; padding: 0.375rem 0; cursor: pointer; font-weight: var(--gewicht-titel); color: var(--accent-deep); list-style: none; hyphens: manual; -webkit-hyphens: manual; }
   .weiteres-zusatz { flex-basis: 100%; font-size: 0.875rem; line-height: 1.25rem; font-weight: 400; color: var(--text-muted); }
+  /*
+    DER PFEIL ZEIGT, DASS SICH ETWAS AUFKLAPPEN LÄSST (09.11.2026). Ohne ihn
+    stand „Änderungsprotokoll deiner Buchungen“ da wie eine verirrte
+    Überschrift. Dasselbe Zeichen wie an den Wochen der Zeiterfassung, fest
+    am rechten Rand und senkrecht mittig — auch wenn der Titel umbricht oder
+    ein Hinweis (`.weiteres-zusatz`) darunter steht; geöffnet zeigt er nach
+    oben. Die ganze Zeile ist die Tastfläche.
+  */
+  .weiteres-kopf, .weiteres-knopf { position: relative; padding-right: 1.75rem; }
+  .weiteres-kopf::after, .weiteres-knopf::after {
+    content: ''; position: absolute; right: 0; top: 50%; width: 1rem; height: 1rem; transform: translateY(-50%);
+    background: var(--text-placeholder);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 1rem 1rem no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 1rem 1rem no-repeat;
+    transition: transform var(--motion-state, 160ms) var(--ease-response, ease);
+  }
+  .weiteres[open] > .weiteres-kopf::after, .weiteres-knopf[aria-expanded='true']::after { transform: translateY(-50%) rotate(180deg); }
+  .weiteres-kopf:hover::after, .weiteres-knopf:hover::after { background: var(--accent-deep); }
   .weiteres-kopf::-webkit-details-marker { display: none; }
   .weiteres-kopf::marker { content: ''; }
   .weiteres-inhalt { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 0.5rem; }

@@ -108,9 +108,9 @@ export default function UrlaubMonat({
             ohneRahmen
           />
           <div>
-            <h3 className="section-label px-4 pt-3">Am {fmtTag(tag)}</h3>
+            <h3 className="blatt-einzug section-label px-4 pt-3">Am {fmtTag(tag)}</h3>
             {geladen === 'fehler' ? null : genehmigt.length === 0 ? (
-              <p className="px-4 pb-4 pt-1 text-sm text-ink-muted">Niemand hat an diesem Tag frei.</p>
+              <p className="blatt-einzug px-4 pb-4 pt-1 text-sm text-ink-muted">Niemand hat an diesem Tag frei.</p>
             ) : (
               <List>
                 {genehmigt.map((v) => (

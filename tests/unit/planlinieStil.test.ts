@@ -321,6 +321,33 @@ describe('Durchsicht 09.11.2026', () => {
     expect(block).not.toMatch(/transform|scale|height|width/);
   });
 
+  it('ein Aufklapper zeigt seinen Pfeil fest rechts und dreht ihn beim Öffnen', () => {
+    const LOT = stil('lot.css');
+    expect(LOT).toMatch(/\.weiteres-kopf::after, \.weiteres-knopf::after \{[^}]*position: absolute; right: 0; top: 50%;/);
+    expect(LOT).toContain(".weiteres[open] > .weiteres-kopf::after, .weiteres-knopf[aria-expanded='true']::after { transform: translateY(-50%) rotate(180deg); }");
+    // Platz für den Pfeil, auch am Knopf-Aufklapper, der seinen Innenabstand selbst setzt.
+    expect(LOT).toContain('.weiteres-kopf, .weiteres-knopf { position: relative; padding-right: 1.75rem; }');
+    expect(stil('lot-verwaltung.css')).toMatch(/\.weiteres-knopf \{[^}]*padding: 0 1\.75rem 0 0;/);
+    expect(FEIN).toContain(':is(.weiteres-kopf, .weiteres-knopf)::after { transition: none !important; }');
+  });
+
+  it('der Textknopf der Planung ist weg — Nebenhandlungen sind Zweitknöpfe', () => {
+    expect(ALLE_STILE).not.toContain('.wp-textknopf');
+    for (const datei of ['src/features/assignments/HandyWoche.tsx', 'src/features/assignments/Einsatzplanung.tsx']) {
+      expect(readFileSync(datei, 'utf8')).not.toContain('wp-textknopf');
+    }
+  });
+
+  it('Hinweis und Änderungsprotokoll der Zeiterfassung stehen im Blatt eine Zelle vom Rand', () => {
+    const BLATT = stil('lot-blatt.css');
+    expect(BLATT).toMatch(/\.zeit-fenster-hinweis \{ padding-inline: 24px; \}/);
+    expect(BLATT).toMatch(/\.zeit-verlauf > \.weiteres > \.weiteres-kopf \{ padding-inline: 24px 52px; \}/);
+    // Das Ende der Liste im Takt: beide Handlungen 48 px hoch, der Hinweis eine Zelle plus eine halbe.
+    const ZEIT = stil('lot-zeit.css');
+    expect(ZEIT).toContain('.zeit-verlauf > .weiteres > .weiteres-kopf { min-height: 3rem; padding: 0.75rem 2.75rem 0.75rem 1rem;');
+    expect(ZEIT).toContain('.zeit-fenster-hinweis { padding: 0 1rem 0.75rem; font-size: 0.8125rem; line-height: 1.5rem;');
+  });
+
   it('bei reduzierter Bewegung entfallen auch diese Rückmeldungen', () => {
     const reduziert = FEIN.slice(FEIN.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
     expect(reduziert).toContain(':is(.zeile-ganz, .arbeitszeile-inhalt, .mehr-laden, .start-weiter, .mehr-punkt, .checkbox, .lot-zahl-neu) { animation: none !important; transition: none !important; }');

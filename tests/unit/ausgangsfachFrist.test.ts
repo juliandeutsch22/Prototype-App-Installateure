@@ -31,10 +31,23 @@ const netz = async (eingabe: RequestInfo | URL, init?: RequestInit): Promise<Res
   });
 };
 
+/*
+  OHNE ECHTZEIT. Der Client baut beim Anlegen seinen Echtzeit-Teil und sucht
+  dafür ein WebSocket. Node 22 hat eines eingebaut, Node 20 nicht — und die
+  CI prüft mit Node 20: dort scheiterte schon `createClient`. Geprüft wird
+  hier nur der Weg über `fetch`; der Platzhalter wird nie verbunden.
+*/
+class KeinWebSocket {
+  constructor() {
+    throw new Error('Echtzeit wird in diesem Test nicht verbunden.');
+  }
+}
+
 function echterClient() {
   return createClient('https://projekt.example.test', 'anon-schluessel', {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { fetch: netz },
+    realtime: { transport: KeinWebSocket as never },
   });
 }
 

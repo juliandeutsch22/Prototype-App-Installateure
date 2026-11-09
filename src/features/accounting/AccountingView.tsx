@@ -1087,9 +1087,10 @@ export default function AccountingView() {
         {!imSupport && ansicht === 'monat' && (
           <div className="ue-vergleich-wahl">
             <span className="sr-only">Stunden im gewählten Monat</span>
-            <button
-              type="button"
-              className="link-still"
+            {/* Ein Knopf, kein Text: als `link-still` stand er da wie eine Überschrift (09.11.2026). */}
+            <Button
+              variant="secondary"
+              groesse="klein"
               aria-pressed={tageZeigen}
               onClick={() => {
                 const neu = new URLSearchParams(adresse);
@@ -1099,7 +1100,7 @@ export default function AccountingView() {
               }}
             >
               {tageZeigen ? 'Personen vergleichen' : 'Alle Tage vergleichen'}
-            </button>
+            </Button>
           </div>
         )}
 

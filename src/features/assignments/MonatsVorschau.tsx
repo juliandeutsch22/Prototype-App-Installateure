@@ -303,9 +303,13 @@ export default function MonatsVorschau({
 
       {(onZurWoche || haupt || (onTerminNeu && darfTermine)) && (
       <div className="vorschau-fuss">
-        {/* Links, als Textknopf: rechts stehen „Zur Woche“ und die Hauptaktion des Tages. */}
+        {/*
+          Links, als Zweitknopf: rechts stehen „Zur Woche“ und die Hauptaktion
+          des Tages. Als Geisterknopf (ohne Rahmen) las es sich wie ein
+          verirrter Text (Rückmeldung 09.11.2026).
+        */}
         {onTerminNeu && darfTermine && (
-          <Button variant="ghost" groesse="klein" className="mr-auto" onClick={terminNeu}>
+          <Button variant="secondary" groesse="klein" className="mr-auto" onClick={terminNeu}>
             Termin anlegen
           </Button>
         )}

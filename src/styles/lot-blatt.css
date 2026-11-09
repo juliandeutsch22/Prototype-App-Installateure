@@ -67,6 +67,19 @@
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile-meta { line-height: 1.5rem; }
   /* Die Summenzeile über einer Rechnungsliste („davon 1 über 4 Wochen“) fluchtet mit Titel und Zeilen (09.11.2026: stand 8 px davor). */
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .rechnungen-summe { min-height: 48px; padding: 12px 24px 11px; line-height: 1.5rem; }
+  /* Hinweis und Änderungsprotokoll unter „Meine Einträge“ fluchten mit „Ältere Einträge laden“ und den Zeilen (09.11.2026: standen 8 px davor). */
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeit-fenster-hinweis { padding-inline: 24px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeit-verlauf > .weiteres > .weiteres-kopf { padding-inline: 24px 52px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeit-verlauf > .weiteres > .weiteres-kopf::after { right: 24px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeit-verlauf > .weiteres > .weiteres-inhalt { padding: 0 24px 24px; }
+  /*
+    EINE FLUCHT IM BLATT (09.11.2026). Was in einem bündigen Blatt neben den
+    Zeilen steht — Hinweise, Abschnittsköpfe, die Tagesliste der Woche am
+    Handy, der Kopf „Stunden ohne Buchung“ —, stand mit 16 px (`px-4`) eine
+    halbe Zelle vor Titel und Zeilen. `blatt-einzug` markiert solche Stellen;
+    die Regel greift nur im Blatt, in Fenstern bleibt ihr Abstand.
+  */
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) :is(.blatt-einzug, .ohne-buchung-kopf, .tl-kopf, .tl-gruppe, .tl-achse, .tl-termin, .tl-person) { padding-inline: 24px; }
   /* Gestapelte Zeilen (mehrzeilig, mit Maßlinie) mit einer halben Zelle mehr Luft oben und unten (Auftrag 04.11.2026). */
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile-gestapelt { padding-block: 18px 17px; }
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .karte-koerper .zeile { padding-inline: 0; }
