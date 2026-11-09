@@ -275,11 +275,20 @@
 
   .unten { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom, 0px); }
   @media (min-width: 760px) { .unten { display: none; } }
-  .unten-punkt, .unten-punkt-aktiv { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.125rem; min-height: 3.5rem; padding: 0.5rem 0.125rem 0.625rem; background: none; border: 0; color: var(--text-muted); font-size: 0.6875rem; line-height: 0.875rem; text-decoration: none; cursor: pointer; }
+  .unten-punkt, .unten-punkt-aktiv { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.125rem; min-height: 3.5rem; padding: 0.5rem 0 0.625rem; background: none; border: 0; color: var(--text-muted); font-size: 0.6875rem; line-height: 0.875rem; text-decoration: none; cursor: pointer; }
   .unten-punkt-aktiv { color: var(--accent-deep); font-weight: var(--gewicht-titel); }
   .unten-symbol { position: relative; display: flex; }
   .unten-zahl { position: absolute; top: -0.375rem; right: -0.75rem; display: flex; }
-  .unten-text { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 0.125rem; }
+  /*
+    DAS LÄNGSTE WORT GANZ (09.11.2026). „Rechnungen“ als aktiver, halbfetter
+    Punkt brauchte bei 390 px zwei, drei Pixel mehr, als die Fünftelbreite
+    nach je 2 px Innenabstand in Punkt und Text übrig liess — es stand
+    „Rechnung…“ da. Der seitliche Innenabstand von Punkt und Text entfällt
+    (bei 360 px fehlten sonst noch 2 px); die Punkte stossen ohnehin ohne
+    Linie aneinander, die Tastfläche bleibt die Fünftelbreite. „…“ bleibt
+    das Fangnetz für Längeres.
+  */
+  .unten-text { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; }
 
   /* ── Blatt „Mehr“ und Profil ─────────────────────────────────────────── */
   .mehr-gruppe { margin: 0.75rem 0.25rem 0.25rem; font-size: 0.75rem; font-weight: var(--gewicht-titel); color: var(--text-muted); }
@@ -349,7 +358,8 @@
   .listenleiste-zusatz { flex: none; max-width: 100%; }
   .listenleiste-suche { display: flex; align-items: center; gap: 0.5rem; flex: 1 1 14rem; min-width: 0; min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text-muted); }
   .listenleiste-suche:focus-within { border-color: var(--brand-fixed); box-shadow: 0 0 0 1px var(--brand-fixed); }
-  .listenleiste-suche input { flex: 1; min-width: 0; padding: 0.5rem 0; border: 0; background: transparent; color: var(--text); font-size: 1rem; }
+  /* Ein langer Hinweis endet am Handy mit „…“ statt mitten im Wort abgeschnitten („Kunde, Baustelle oder Mona“, 09.11.2026). */
+  .listenleiste-suche input { flex: 1; min-width: 0; padding: 0.5rem 0; border: 0; background: transparent; color: var(--text); font-size: 1rem; text-overflow: ellipsis; }
   .listenleiste-suche input::placeholder { color: var(--text-placeholder); }
   /* Der Fokusring wie bei jedem Feld (3 px), aber um Lupe und Feld zusammen — ein Ring ums Eingabefeld darin säße mitten im Rahmen. */
   .listenleiste-suche input:focus-visible { outline: none; }

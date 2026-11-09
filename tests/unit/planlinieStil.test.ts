@@ -276,3 +276,53 @@ describe('Abstand zur Linie und die obere Linie des Schriftfelds (02.11.2026)', 
     expect(regel('.schriftfeld .lage-wert-wort')).toMatch(/white-space: normal;.*overflow-wrap: anywhere;/);
   });
 });
+
+/*
+  DURCHSICHT DER OBERFLÄCHE (09.11.2026): Titel am Handy, lange Namen,
+  die untere Leiste und die Rückmeldung beim Antippen.
+*/
+describe('Durchsicht 09.11.2026', () => {
+  const FEIN = stil('lot-feinschliff.css');
+
+  it('am Handy trägt jede Titelzeile eine Zelle, einzeilig bleibt der Titel 48 px hoch', () => {
+    const handy = PLANLINIE.split('\n').find((z) => z.includes('@media (max-width: 759px) { .seitenkopf h1 {'));
+    expect(handy).toBeDefined();
+    // 24 px je Zeile + 2 × 12 px = 48 px einzeilig; jede weitere Zeile eine Zelle (E31, E33).
+    expect(handy).toContain('line-height: 1.5rem; padding-block: 0.75rem;');
+    expect(handy).not.toContain('line-height: 3rem');
+    // Gleich bleibt: Tablet und Schreibtisch mit 48-px-Zeile.
+    expect(PLANLINIE).toContain('@media (min-width: 760px) { .seitenkopf h1 { font-size: 1.875rem; line-height: 3rem; } }');
+  });
+
+  it('der grosse Name der Einsatzkarte trennt lange Wörter mit Strich, kurze nicht', () => {
+    expect(stil('lot-start.css')).toMatch(/\.start-einsatz-titel\.kein-trennen \{ hyphens: auto;[^}]*hyphenate-limit-chars: 13 6 5;/);
+  });
+
+  it('die untere Leiste lässt dem Wort die volle Fünftelbreite', () => {
+    const LOT = stil('lot.css');
+    expect(LOT).toMatch(/\.unten-punkt, \.unten-punkt-aktiv \{[^}]*padding: 0\.5rem 0 0\.625rem;/);
+    expect(LOT).toMatch(/\.unten-text \{[^}]*padding: 0; \}/);
+  });
+
+  it('die Summenzeile im Rechnungsblatt steht eine Zelle vom Rand wie die Zeilen', () => {
+    expect(stil('lot-blatt.css')).toMatch(/\.karte\) \.rechnungen-summe \{ min-height: 48px; padding: 12px 24px 11px;/);
+  });
+
+  it('ein langer Suchhinweis endet mit Auslassungspunkten statt mitten im Wort', () => {
+    expect(stil('lot.css')).toMatch(/\.listenleiste-suche input \{[^}]*text-overflow: ellipsis; \}/);
+  });
+
+  it('eine antippbare Zeile färbt sich beim Drücken, ohne Geometrie zu bewegen', () => {
+    expect(FEIN).toContain('.zeile-ganz:active, .mehr-laden:active, .start-weiter:active, .mehr-punkt:active { background: var(--petrol-hell); }');
+    expect(FEIN).toContain('transition: background-color var(--motion-press) var(--ease-response), color var(--motion-press) var(--ease-response);');
+    expect(FEIN).toContain('.checkbox:checked { animation: lot-haken var(--motion-state)');
+    // Keine Grössen- oder Lageanimation an Zeilen und Zähler (Premium-Linie).
+    const block = FEIN.slice(FEIN.indexOf('ANTIPPEN UND KLEINE BESTÄTIGUNGEN'), FEIN.indexOf('@keyframes lot-haken'));
+    expect(block).not.toMatch(/transform|scale|height|width/);
+  });
+
+  it('bei reduzierter Bewegung entfallen auch diese Rückmeldungen', () => {
+    const reduziert = FEIN.slice(FEIN.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
+    expect(reduziert).toContain(':is(.zeile-ganz, .arbeitszeile-inhalt, .mehr-laden, .start-weiter, .mehr-punkt, .checkbox, .lot-zahl-neu) { animation: none !important; transition: none !important; }');
+  });
+});

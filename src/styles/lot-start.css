@@ -89,6 +89,14 @@
   .start-einsatz-kontakt svg { display: none; }
   .start-einsatz-aufgabe { border-left: 2px solid var(--border-strong); padding-left: 1rem; margin-block: 1rem; font-size: 0.875rem; line-height: 1.75rem; }
   .start-einsatz-titel { font-size: 1.375rem; line-height: 1.875rem; }
+  /*
+    LANGE NAMEN MIT STRICH (09.11.2026). Der Name der Baustelle steht hier
+    gross und trägt `kein-trennen` (U1, U9: kurze Wörter nicht trennen). Ein
+    einzelnes langes Wort („Wohnungseigentümergemeinschaft“) brach damit
+    ohne Strich mitten im Wort — genau D3. Getrennt wird nur ab 13 Zeichen,
+    mit mindestens 6 vorn und 5 hinten, wie in Listen und Kennzahlen.
+  */
+  .start-einsatz-titel.kein-trennen { hyphens: auto; -webkit-hyphens: auto; hyphenate-limit-chars: 13 6 5; -webkit-hyphenate-limit-before: 6; -webkit-hyphenate-limit-after: 5; }
   .start-einsatz-aktionen { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-top: 1rem; }
   .start-wie-zuletzt { display: inline-flex; flex-direction: column; justify-content: center; min-height: 3rem; padding-block: 0.5rem; color: var(--accent-deep); }
   .start-wie-zuletzt .text-fliess { font-size: 0.8125rem; }

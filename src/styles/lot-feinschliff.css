@@ -133,6 +133,26 @@
   .navi .darstellung-griff { background: var(--navi-text); color: var(--navi); }
   .navi .darstellung-schalter:hover .darstellung-schiene { border-color: #fff; }
 }
+/*
+  ANTIPPEN UND KLEINE BESTÄTIGUNGEN (09.11.2026). Am Telefon gibt es kein
+  Darüberfahren: eine ganz antippbare Zeile zeigte erst mit dem Seitenwechsel,
+  dass der Finger getroffen hatte. Jetzt färbt sie sich beim Drücken in
+  derselben Zeit wie ein Knopf (`--motion-press`). Der Haken im Kästchen
+  erscheint mit einer kurzen Bewegung statt zu springen, und eine neue Zahl
+  am Menüpunkt blendet ein — beides ohne Geometrie: weder Zeile noch Knopf
+  ändern Grösse oder Lage (Premium-Linie, keine Layoutanimation).
+*/
+@layer components {
+  :where(.zeile-ganz, .arbeitszeile-inhalt, .mehr-laden, .start-weiter, .mehr-punkt) {
+    transition: background-color var(--motion-press) var(--ease-response), color var(--motion-press) var(--ease-response);
+  }
+  .zeile-ganz:active, .mehr-laden:active, .start-weiter:active, .mehr-punkt:active { background: var(--petrol-hell); }
+  .arbeitszeile-inhalt:active { color: var(--accent-deep); }
+  .checkbox:checked { animation: lot-haken var(--motion-state) var(--ease-response) both; }
+  .lot-zahl-neu { animation: lot-einblenden var(--motion-state) var(--ease-response) both; }
+}
+/* Ohne Zielwert: der Haken wächst auf die eigene Grösse des Kästchens (auch `.checkbox-lg`). */
+@keyframes lot-haken { from { background-size: 0 0; } }
 @keyframes lot-einblenden { from { opacity: 0; } to { opacity: 1; } }
 @keyframes lot-ausblenden { from { opacity: 1; } to { opacity: 0; } }
 /* Kontrast auf dunklen Trägern bleibt unabhängig von der Hausfarbe. */
@@ -162,4 +182,5 @@
   }
   .lot-overlay > [data-lot-inhalt], .lot-menue, .weiteres[open] > .weiteres-inhalt { animation: none !important; }
   .lot-knopf:active { transform: none !important; }
+  :is(.zeile-ganz, .arbeitszeile-inhalt, .mehr-laden, .start-weiter, .mehr-punkt, .checkbox, .lot-zahl-neu) { animation: none !important; transition: none !important; }
 }

@@ -44,7 +44,15 @@ const DATEN = {
   },
   company: { getCompany: 'D.firma', auszug: 'D.firma' },
   materialOrders: { '*': 'D.bestellungen' },
-  materials: { '*': 'D.materialien' },
+  /*
+    Die Nummernsuche (M03a) liefert eine Map je Artikel; als Liste geraten
+    brach das Lager beim Tippen ab (`treffer.keys`, 09.11.2026).
+  */
+  materials: { '*': 'D.materialien', nummernTreffer: 'new Map()' },
+  // Korrekturanträge (M06): eine Liste; als NOOP blieb die Zeiterfassung mit einer Fehlerseite stehen (09.11.2026).
+  zeitkorrekturen: { zeitkorrekturenLaden: '[]' },
+  // Der Stand des Baustellen-Threads (E64) ist ein Objekt; als NOOP stürzte die Baustellenakte ab (09.11.2026).
+  nachrichten: { baustelleStand: '{ kanal: null, anzahl: 0, zuletzt: null, ungelesen: 0, folgt: false }' },
   // „Zeitraum zusammenstellen“ fragt die Schlussrechnungen ohne Abzug mit; ohne Liste brach die Seite ab (K4, 17.10.2026).
   invoices: { '*': 'D.rechnungen', schlussrechnungenOhneAbzug: '[]' },
   /*
@@ -55,6 +63,8 @@ const DATEN = {
   workSheets: {
     '*': 'D.scheine', getWorkSheet: 'D.scheine[0]',
     listVerworfeneScheine: '[]', listAbgelaufeneScheine: '[]', zaehleVerworfeneScheine: '0',
+    // Vorgemerkte Scheine ohne Netz (§46): leer; als NOOP stürzte die Scheinliste ab (09.11.2026).
+    wartendeScheine: '[]',
   },
   vacations: {
     listOwnVacations: 'D.urlaube',
