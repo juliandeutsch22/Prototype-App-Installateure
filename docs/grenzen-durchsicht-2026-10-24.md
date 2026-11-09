@@ -231,3 +231,39 @@ Nachtlauf darf nicht wegzuklicken sein.
   zeigt dort jetzt ehrlich „bekommt noch keine Meldungen“; einmal
   „Auf diesem Gerät einschalten“ genügt. Grund: Datenschutz — wer
   abgeschaltet hat, bleibt aus.
+
+## Durchsicht der Abläufe — begründete Grenzen (09.11.2026, E70)
+
+- **Verbuchte Anforderungen von vor dem 30.09.2026 lassen sich nicht mehr
+  löschen.** Gelöscht wird eine verbuchte Anforderung oder Retoure nur über
+  „löschen“ in der App, und dabei wird ihre Bestandswirkung aus dem
+  Bewegungsprotokoll zurückgebucht. Zeilen, die vor dem Protokoll verbucht
+  wurden, haben dort keinen Beleg. Grund: Altdaten — ihre Wirkung auf den
+  Bestand ist nicht belegt, eine geratene Gegenbuchung wäre falsch. Den
+  Bestand korrigiert dann die Inventur. Ebenso abgewiesen: was schon auf
+  einer Rechnung steht (fachlich: die Rechnung ist ausgestellt).
+- **Gelöscht wird die Ausgabe, nicht der Wareneingang.** Wurde Ware „beim
+  Abholen geliefert“, liegt sie nach dem Löschen der Anforderung im Lager.
+  Grund fachlich: der Eingang ist geschehen, nur die Ausgabe an die Baustelle
+  wird zurückgenommen.
+- **Ausgelaufene Artikel mit Restbestand bleiben anforderbar.** Grund
+  fachlich: der Rest im Lager soll aufgebraucht werden können; ohne Bestand
+  bietet „Material anfordern“ sie nicht mehr an.
+- **Kunde löschen, Rolle ohne Einblick in Angebote und Rechnungen
+  (Verwaltung):** die Meldung nennt die Art, an der die Datenbank scheitert,
+  aber keine Anzahl. Grund: Datenschutz und Zeilenschutz — die Rolle sieht
+  diese Belege nicht und soll auch ihre Zahl nicht erfahren.
+- **Nachrichten, Restfall beim Löschen:** wer einem Baustellen-Thread folgt,
+  die Baustelle aber zeitweise nicht sieht, und eine Nachricht aus genau
+  dieser Zeit wird später gelöscht, kann eins zu viel abgezogen bekommen
+  (nie unter null). Grund Skalierung: es zu schließen hieße, bei jeder
+  Thread-Nachricht die Zeile jedes nicht sehenden Folgenden zu schreiben.
+  Der Zähler stimmt wieder, sobald die Person den Thread liest.
+- **Urlaubseinträge, die früher durch zwei gleichzeitige Entscheidungen
+  doppelt entstanden sind,** werden nicht umgeschrieben. Grund: Altdaten in
+  der Produktion bleiben, wie sie sind; die Zeitübersicht zeigt solche Tage
+  als „doppelt gebucht“, das Büro löscht den überzähligen Eintrag.
+- **Nach „Als Schlussrechnung stellen“** werden die Positionen nicht
+  selbsttätig neu zusammengestellt. Grund fachlich: die Art bestimmt, woraus
+  die Positionen entstehen; eine stehengebliebene Vorschau gehörte zur alten
+  Art. Derselbe Ablauf wie bei der Auswahl der Art.

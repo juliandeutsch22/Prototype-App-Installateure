@@ -2575,3 +2575,49 @@ Fenster (`rounded-none`). Nachweis: `MonthCalendar.test.tsx`, Gegenprobe rot.
 - `PushOrt.test.tsx`, `MeinKontoProbe.test.tsx`;
 - `fcmVersand.test.ts`, `notifyLogic.test.ts`;
 - `pushProbe.test.ts` (Supabase: nur das eigene Gerät, bis zum Versand).
+
+**E70 — Durchsicht aller Abläufe: 29 Lücken geschlossen, Feinschliff am Handy, Rückmeldung beim Antippen (09.11.2026).**
+
+Anlass: Auftrag, die ganze Software und alle Abläufe auf Fehler, Lücken und
+Schwächen zu prüfen und sie nachhaltig zu beheben, danach die Oberfläche quer
+durch alle Seiten anzusehen. Acht unabhängige Prüfungen je Bereich (Zeit,
+Rechnungen, Vertrieb, Baustellen und Planung, Material, Nachrichten und
+Startseite, Verwaltung und Rechte, Datenschicht und Offline). Gemeldet wurde
+nur, was einen konkreten Fehlerweg hatte; jeder Befund wurde vor dem Ändern
+im Code nachvollzogen, jede Behebung hat eine Prüfung mit Gegenprobe. Was
+behoben ist, steht im Stand (Abschnitt 67); die neuen Grenzen mit Grund in
+`docs/grenzen-durchsicht-2026-10-24.md`.
+
+**Entschieden:**
+- **Verbuchtes wird nur mit Gegenbuchung gelöscht** (`anforderung_loeschen`,
+  ein Riegel an der Tabelle). Löschen bleibt möglich — ein Tippfehler in
+  einer Retoure muss weg können —, aber Bestand und Rechnungsvorschlag
+  laufen nicht mehr auseinander.
+- **Umlagern über die freie Menge nur nach Rückfrage** wie bei „Aus Lager“
+  (K2): wer Zugesagtes ins Fahrzeug lädt, tut es wissentlich.
+- **„Rechnung (ganze Leistung)“ neben einer offenen Anzahlung wird nicht
+  gesperrt**, sondern mit einer Achtung-Zeile und „Als Schlussrechnung
+  stellen“ angezeigt: eine Zusatzleistung neben einer laufenden Anzahlung
+  ist legitim.
+- **Die eigene Rolle ändert eine zweite Leitung** — wie schon der eigene
+  Status. In der Akte gesperrt und in der Datenbank verriegelt.
+- **Das Ausgangsfach hat eine Abbruchfrist**, andere Schreibvorgänge weiter
+  nicht: nur dort ist jeder Vorgang wiederholbar gebaut.
+
+**Oberfläche (Linie „Lot“ unverändert, nur Feinschliff):**
+- Titel am Handy: jede Zeile eine Rasterzelle (24 px), einzeilig weiter 48 px
+  — ein langer Name lief vorher über drei 48-px-Zeilen.
+- Lange Namen in der Einsatzkarte mit Trennstrich (D3), „Rechnungen“ in der
+  unteren Leiste ungekürzt, Suchhinweise mit Auslassungspunkten, die
+  Summenzeile im Rechnungsblatt auf der Flucht der Zeilen.
+- **Mikroanimationen, wo sie Rückmeldung geben, ohne Geometrie:** eine ganz
+  antippbare Zeile färbt sich beim Drücken (100 ms, wie ein Knopf), der Haken
+  im Kästchen erscheint mit einer kurzen Bewegung, eine neue Zahl am
+  Menüpunkt blendet ein (160 ms). Keine Grössen- oder Lageanimation, bei
+  reduzierter Bewegung aus — im Rahmen des Premium-Feinschliffs vom
+  28.10.2026. Bewusst nicht: zählende Kennzahlen, wandernde Reiterstriche,
+  federnde Knöpfe — sie zögen den Blick von der Arbeit ab.
+
+**Nachweis:** je Befund Unit-, Komponenten- oder Supabase-Prüfung, ohne die
+Änderung rot; Stilregeln in `planlinieStil.test.ts`; Vorschau startfähig
+(`vorschauErsatz.test.ts`).
