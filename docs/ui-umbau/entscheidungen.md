@@ -2371,3 +2371,56 @@ ohne Modul, Verweis), `zeitsitzung.test.ts` (Uhr und Dauern),
 `arbeitstag.spec.ts` (Start auf der Startseite, Leiste unterwegs über der
 Reiterleiste, Pause aus der Leiste, Feierabend, Abschnitte prüfen — auf allen
 Monteurbreiten), `m06Zeit.spec.ts` (alle bisherigen Timerwege auf der Karte).
+
+**E67 — Fünf Kleinigkeiten nach dem Timer: Push bei Nachrichten, weiße Seite beim Start, Startbildschirm in der Linie, Abstand beim Verwerfen, Suchfeld der Nachrichten (09.11.2026).**
+Auftrag: „Nachrichten senden keine Pushbenachrichtigungen“, „bleibt die Seite
+beim ersten Aufrufen weiß“, „der Anmeldung-prüfen-Screen wurde seit Ewigkeiten
+nicht mehr an die neue Designlinie angepasst“, „bei Zeitsitzung verwerfen
+klebt der Button am Textfeld“, „die Suche bei Nachrichten hat noch diese
+komische Border innen“.
+
+- **Push:** Die Kette auf dem Server stimmt (lokal nachverfolgt bis zum
+  Versand: ein Empfänger, ein Gerät; die Function ist seit #426 eingespielt).
+  Auf dem Gerät waren drei Lücken.
+  - Bei sichtbar offener App gibt Firebase die Meldung an die Seite, und die
+    hörte nicht zu. Jetzt zeigt die Seite sie über den Service Worker an,
+    außer man steht schon dort (`PushVordergrund`, `pushImVordergrund`).
+  - Dieselbe Kennung je Gespräch ersetzte die vorige Meldung ohne Ton und
+    Vibration, so meldete sich die zweite Nachricht im selben Gespräch
+    nicht. Jetzt mit `renotify` (Worker und offene App,
+    `lib/pushAnzeige.ts`).
+  - Das Gerätezeichen wurde nur beim Einschalten geholt. Jetzt wird es beim
+    Start abgeglichen, aber nur, wo Meldungen in der App eingeschaltet
+    wurden. Geräte von vorher übernehmen ihr Zeichen, wenn der Server es
+    für die Person kennt.
+- **Weiße Seite:** Nachgestellt mit einem Produktionsbau. Nach dem Übernehmen
+  einer Fassung flog der ganze Speicher der Bausteine weg, auch der Einstieg
+  der laufenden Fassung. Beim nächsten Deploy lieferte der Worker deren
+  Hülle aus, und ihr Einstieg lag weder im Speicher noch auf dem Server
+  (504): weiß bis zum Neuladen. Behoben an zwei Stellen:
+  - Beim Übernehmen bleibt, womit die laufende Hülle startet.
+  - Eine Hülle, der ein Start-Baustein fehlt, wird nicht ausgeliefert;
+    stattdessen kommt die frische aus dem Netz (ohne Netz bleibt es bei der
+    vorgehaltenen).
+- **Startbildschirm** („Anmeldung wird geprüft …“): Er liegt auf dem
+  Zeichentisch der App (dasselbe Raster wie danach unter dem Inhalt), mittig
+  die Marke und darunter das pendelnde Lot. Keine Karte. Er erscheint weiter
+  sofort (`StartLaden`).
+- **Zeitsitzung verwerfen** in „Abschnitte prüfen“: Aufbau wie in der Karte
+  „Arbeitstag“ — Abstand zwischen den Teilen, Abbrechen und Verwerfen im
+  Fuß.
+- **Suchfeld der Nachrichten:** wie bei der Listensuche. Innen kein zweiter
+  Ring, außen der Tastaturrahmen.
+
+**Grenze mit Grund:** Ob eine Meldung auf dem Gerät erscheint, entscheidet
+am Ende das Betriebssystem. Auf dem iPhone kommt Push nur in der zum
+Home-Bildschirm hinzugefügten App, und die Mitteilungen müssen erlaubt sein
+(liegt beim Gerät). **Nachweis:**
+- `serviceWorker.test.ts` (Hülle und Aufräumen, Gegenprobe mit dem alten
+  Worker rot);
+- `swPush.test.ts` (renotify, gleiche Form in Worker und App);
+- `PushVordergrund.test.tsx` (Anzeige, Abgleich, Gegenproben rot);
+- `LadenStart.test.tsx`, `Planlinie.test.tsx`;
+- `Arbeitstag.test.tsx` (Verwerfen-Bogen, Gegenprobe rot);
+- `nachrichten.spec.ts` („Suche in den Nachrichten“, Gegenprobe rot).
+

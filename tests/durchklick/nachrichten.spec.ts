@@ -159,3 +159,28 @@ test('Senden springt nicht: die Nachricht steht durchgehend, nichts rollt zurüc
   }
   await keineFehlermeldung(seite);
 });
+
+/*
+ * DIE SUCHE IM POSTEINGANG UND IN „NEUE NACHRICHT“ (09.11.2026: „hat noch
+ * diese komische Border innen, die wir bei anderen Suchfeldern schon entfernt
+ * haben“). Die Pille ist der Rahmen; innen kein zweiter Ring, außen der
+ * Tastaturrahmen wie bei der Listensuche. Gegenprobe ohne die Regel rot.
+ */
+test('Suche in den Nachrichten: ein Rahmen außen, kein Ring innen', async ({ page }) => {
+  await anmelden(page, MONTEUR.email);
+  await page.goto('/nachrichten');
+  for (const [feld, vorher] of [
+    [page.locator('#nachrichten-suche'), null],
+    [page.locator('#neu-suche'), async () => page.getByRole('button', { name: 'Neue Nachricht' }).first().click()],
+  ] as const) {
+    if (vorher) await vorher();
+    await expect(feld).toBeVisible({ timeout: 15_000 });
+    await feld.focus();
+    await expect(feld).toHaveCSS('box-shadow', 'none');
+    await expect(feld).toHaveCSS('outline-style', 'none');
+    await expect(feld.locator('xpath=ancestor::label[1]')).toHaveCSS('outline-width', '3px');
+    await feld.fill('Büro');
+    await expect(feld).toHaveValue('Büro');
+  }
+  await keineFehlermeldung(page);
+});

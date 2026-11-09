@@ -31,6 +31,26 @@ describe('Ladeanzeige beim App-Start', () => {
     expect(status).not.toHaveClass('laden-verzoegert');
   });
 
+  /*
+    IN DER LINIE „LOT“ (09.11.2026): vorher eine kleine Zeile oben auf weißem
+    Grund. Jetzt der Zeichentisch der App mit der Marke in der Mitte.
+  */
+  it('steht auf dem Zeichentisch der App, mit der Marke über dem Lot', () => {
+    render(
+      <MemoryRouter>
+        <RequireAuth>
+          <p>Inhalt</p>
+        </RequireAuth>
+      </MemoryRouter>,
+    );
+    const status = screen.getByRole('status');
+    const flaeche = status.closest('.hauptflaeche');
+    expect(flaeche).not.toBeNull();
+    expect(flaeche).toHaveClass('start-laden');
+    expect(screen.getByRole('img', { name: 'Senklot' })).toBeInTheDocument();
+    expect(screen.queryByText('Inhalt')).not.toBeInTheDocument();
+  });
+
   it('Gegenprobe: jede andere Ladeanzeige erscheint weiter verzögert', () => {
     render(<LoadingState label="Wird geladen …" />);
     expect(screen.getByRole('status')).toHaveClass('laden-verzoegert');

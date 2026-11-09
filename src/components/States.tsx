@@ -2,26 +2,46 @@ import type { ReactNode } from 'react';
 import Button from './Button';
 import Hinweiszeile from './Hinweiszeile';
 import LotZeichnung, { type LotMotiv } from './LotZeichnung';
+import ProduktMarke from './ProduktMarke';
 import { LotZeichen } from './Planlinie';
 
 /**
  * Ladezustand — sichtbar, kein stiller Abbruch. Erst nach 200 ms
  * (`laden-verzoegert`): ein schnelles Laden blitzt sonst nur kurz auf.
- *
- * `sofort` nur für den ersten Bildschirm beim App-Start: dort ist er das
- * erste, was überhaupt erscheint. Verzögert zählte der Browser ihn nicht
- * als erste Anzeige, und die Seite blieb eine halbe Sekunde länger weiß
- * (Messung 17.10.2026, `docs/ui-umbau/messung-nachher.md`).
  */
-export function LoadingState({ label = 'Wird geladen …', sofort = false }: { label?: string; sofort?: boolean }) {
+export function LoadingState({ label = 'Wird geladen …' }: { label?: string }) {
   return (
-    <div
-      className={`${sofort ? '' : 'laden-verzoegert '}flex items-center justify-center gap-3 p-6 text-ink-muted`}
-      role="status"
-    >
+    <div className="laden-verzoegert flex items-center justify-center gap-3 p-6 text-ink-muted" role="status">
       {/* Das Lot pendelt zweimal aus und steht dann (Planlinie B4) — statt eines Kreisels ohne Ende. */}
       <LotZeichen pendelt />
       <span>{label}</span>
+    </div>
+  );
+}
+
+/**
+ * DER ERSTE BILDSCHIRM BEIM APP-START („Anmeldung wird geprüft …“).
+ *
+ * Er erscheint SOFORT, ohne die 200 ms der übrigen Ladeanzeigen: er ist das
+ * Erste, was überhaupt erscheint. Verzögert zählte der Browser ihn nicht als
+ * erste Anzeige, und die Seite blieb eine halbe Sekunde länger weiß (Messung
+ * 17.10.2026, `docs/ui-umbau/messung-nachher.md`).
+ *
+ * In der Linie „Lot“ (09.11.2026): bisher stand eine kleine Zeile oben auf
+ * weißem Grund. Jetzt der Zeichentisch der App (`hauptflaeche`, dasselbe
+ * Raster wie danach unter dem Inhalt), mittig die Marke und darunter das
+ * pendelnde Lot mit dem Text — kein Kasten, keine Karte.
+ */
+export function StartLaden({ label }: { label: string }) {
+  return (
+    <div className="hauptflaeche start-laden">
+      <div className="start-laden-mitte">
+        <ProduktMarke hoehe={40} className="text-accent-deep" />
+        <div className="start-laden-status" role="status">
+          <LotZeichen pendelt />
+          <span>{label}</span>
+        </div>
+      </div>
     </div>
   );
 }

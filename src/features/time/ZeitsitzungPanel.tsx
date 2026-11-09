@@ -80,10 +80,32 @@ export default function ZeitsitzungPanel({ profil }: { profil?: AppUser | null }
       {(segment?.buchung || segment?.verworfen_grund) && <p role="status">Dieser Abschnitt wurde inzwischen abgeschlossen. Bitte die vorhandene Buchung prüfen.</p>}
     </BottomSheet>
     <BottomSheet open={!!verwerfen} onClose={() => setVerwerfen(null)} label="Zeitsitzung verwerfen" titel="Zeitsitzung verwerfen" auchBreit>
-      <p className="mb-3 text-sm text-ink-muted">Hieraus wird keine Arbeitszeit gebucht. Der Grund bleibt nachvollziehbar erhalten.</p>
-      {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
-      <InputField id="timer-grund" label="Begründung" required pflicht value={grund} onChange={(e) => setGrund(e.target.value)} />
-      <Button disabled={!grund.trim() || speichert} onClick={() => { const s = sitzungen.find((x) => x.id === verwerfen?.id); if (!s || !verwerfen) return; if (verwerfen.index === undefined) void befehl('verwerfen', s, grund).then((ok) => { if (ok) { setVerwerfen(null); setGrund(''); } }); else { setSpeichert(true); void timerAbschnittVerwerfen(s, verwerfen.index, grund).then((stand) => { if (stand === 'queued') toast.info('Verwerfen auf diesem Gerät vorgemerkt'); setVerwerfen(null); setGrund(''); return laden(); }).catch((e) => setFehler(grundAus(e, 'Der Abschnitt konnte nicht verworfen werden.'))).finally(() => setSpeichert(false)); } }}>Begründet verwerfen</Button>
+      {/* Aufbau wie in der Karte „Arbeitstag“: Abstand zwischen den Teilen, Aktionen im Fuß — der Knopf klebte am Feld. */}
+      <form
+        className="space-y-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const s = sitzungen.find((x) => x.id === verwerfen?.id);
+          if (!s || !verwerfen || !grund.trim()) return;
+          if (verwerfen.index === undefined) {
+            void befehl('verwerfen', s, grund).then((ok) => { if (ok) { setVerwerfen(null); setGrund(''); } });
+            return;
+          }
+          setSpeichert(true);
+          void timerAbschnittVerwerfen(s, verwerfen.index, grund)
+            .then((stand) => { if (stand === 'queued') toast.info('Verwerfen auf diesem Gerät vorgemerkt'); setVerwerfen(null); setGrund(''); return laden(); })
+            .catch((e) => setFehler(grundAus(e, 'Der Abschnitt konnte nicht verworfen werden.')))
+            .finally(() => setSpeichert(false));
+        }}
+      >
+        <p className="text-sm text-ink-muted">Hieraus wird keine Arbeitszeit gebucht. Der Grund bleibt nachvollziehbar erhalten.</p>
+        {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+        <InputField id="timer-grund" label="Begründung" required pflicht value={grund} onChange={(e) => setGrund(e.target.value)} />
+        <div className="fuss-aktionen">
+          <Button type="button" variant="ghost" onClick={() => setVerwerfen(null)}>Abbrechen</Button>
+          <Button type="submit" variant="danger" disabled={!grund.trim()} loading={speichert}>Begründet verwerfen</Button>
+        </div>
+      </form>
     </BottomSheet>
   </>;
 }

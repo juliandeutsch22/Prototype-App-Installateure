@@ -35,6 +35,13 @@ class TestCache {
     const abgelegt = new Response(rumpf, { status: res.status, statusText: res.statusText, headers: res.headers });
     this.eintraege.set(typeof req === 'string' ? req : req.url.replace(/^https?:\/\/[^/]+/, ''), abgelegt);
   }
+  // Wie im Browser: die abgelegten Anfragen auflisten und einzelne löschen (Aufräumen nach dem Übernehmen).
+  async keys() {
+    return [...this.eintraege.keys()].map((pfad) => new Request(`https://app.test${pfad}`));
+  }
+  async delete(req: Request | string) {
+    return this.eintraege.delete(typeof req === 'string' ? req : req.url.replace(/^https?:\/\/[^/]+/, ''));
+  }
   async add(req: Request) {
     const res = await (globalThis as unknown as { fetch: typeof fetch }).fetch(req);
     await this.put(req, res);
@@ -56,6 +63,9 @@ interface SwUmgebung {
    * bevor er neu laedt.
    */
   geantwortet: string[];
+  /** Was die gerade ladende Seite gesagt bekommt (nur mit `neuesFenster`). */
+  gesagtNeu: string[];
+  neuesFenster: boolean;
   antwort: (url: string) => Response;
   /** Statt `antwort`: ein eigenes Netz, das auch auf `signal` hört (Stillstand). */
   holen?: (req: Request, init?: RequestInit) => Promise<Response>;
@@ -70,17 +80,22 @@ function ladeWorker(): SwUmgebung {
   const geholt: string[] = [];
   const gesagt: string[] = [];
   const geantwortet: string[] = [];
+  const gesagtNeu: string[] = [];
   const umgebung: SwUmgebung = {
     hoeren,
     speicher,
     geholt,
     gesagt,
+    gesagtNeu,
+    neuesFenster: false,
     geantwortet,
     antwort: () => new Response('erste Fassung', { status: 200 }),
     nachricht: async () => undefined,
   };
 
-  const fenster = { postMessage: (m: unknown) => gesagt.push(String(m)) };
+  const fenster = { id: 'altes-fenster', postMessage: (m: unknown) => gesagt.push(String(m)) };
+  // Die Seite, die gerade lädt — nur für den Test der frischen Hülle sichtbar (`umgebung.neuesFenster`).
+  const neues = { id: 'neues-fenster', postMessage: (m: unknown) => gesagtNeu.push(String(m)) };
 
   umgebung.nachricht = async (data: unknown) => {
     // `waitUntil` ist hier kein Beiwerk: der Worker raeumt darin auf, und
@@ -105,7 +120,7 @@ function ladeWorker(): SwUmgebung {
     registration: { showNotification: () => undefined },
     clients: {
       claim: async () => undefined,
-      matchAll: async () => [fenster],
+      matchAll: async () => (umgebung.neuesFenster ? [fenster, neues] : [fenster]),
       openWindow: async () => undefined,
     },
   };
@@ -167,9 +182,10 @@ function ladeWorker(): SwUmgebung {
 }
 
 /** Löst das fetch-Ereignis aus und gibt zurück, ob der SW geantwortet hat. */
-async function anfrage(u: SwUmgebung, url: string, mode = 'no-cors', method = 'GET') {
+async function anfrage(u: SwUmgebung, url: string, mode = 'no-cors', method = 'GET', resultingClientId?: string) {
   let antwort: Promise<Response> | null = null;
   const ereignis = {
+    resultingClientId,
     request: new Request(url, { method }),
     respondWith: (p: Promise<Response>) => {
       antwort = p;
@@ -327,7 +343,10 @@ describe('Service Worker — neue Fassung erkennen', () => {
 
     await u.nachricht('fassungUebernehmen');
 
-    expect(u.speicher.has('perl-teile')).toBe(false);
+    // BEWUSST ANGEPASST (09.11.2026): der alte Baustein geht; was die laufende
+    // Hülle zum Start braucht, bleibt (eigener Test unten). Vorher flog der
+    // ganze Speicher weg.
+    expect(u.speicher.get('perl-teile')?.eintraege.has('/assets/alt-111.js')).toBe(false);
     // Die Bestaetigung geht an den FRAGENDEN, nicht als Rundruf an alle.
     expect(u.geantwortet).toContain('fassungUebernommen');
   });
@@ -608,3 +627,96 @@ describe('Service Worker — ein Baustein, dessen Abruf stillsteht (01.11.2026)'
     expect(await zweite!.text()).toBe('erste Fassung');
   });
 });
+
+/*
+ * DIE WEISSE SEITE BEIM START (09.11.2026: „bleibt beim ersten Aufrufen weiß,
+ * man muss noch einmal aktualisieren“).
+ *
+ * Nachgestellt mit einem echten Produktionsbau: nach dem Übernehmen einer
+ * Fassung flog der ganze Speicher der Bausteine weg — auch der Einstieg der
+ * laufenden Fassung. Beim nächsten Deploy lieferte der Worker deren Hülle
+ * aus, ihr Einstieg lag weder im Speicher noch auf dem Server (504), und vor
+ * jedem JavaScript scheiterte der Start.
+ */
+describe('Service Worker — eine Hülle, die starten kann', () => {
+  const huelle = (n: string) =>
+    `<!doctype html><link rel="modulepreload" crossorigin href="/assets/react-${n}.js"><link rel="stylesheet" crossorigin href="/assets/index-${n}.css"><script type="module" crossorigin src="/assets/index-${n}.js"></script>`;
+  const netz = (fassung: string, offline = false) => (url: string) => {
+    if (offline) throw new TypeError('Failed to fetch');
+    return url.endsWith('/index.html')
+      ? new Response(huelle(fassung), { status: 200, headers: { 'content-type': 'text/html' } })
+      : new Response('baustein', { status: 200, headers: { 'content-type': 'text/javascript' } });
+  };
+
+  it('behält beim Übernehmen, womit die laufende Hülle startet — nur das', async () => {
+    u.antwort = netz('b2');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    for (const pfad of ['/assets/index-b2.js', '/assets/react-b2.js', '/assets/index-b2.css', '/assets/TimeView-b2.js', '/assets/index-a1.js']) {
+      await anfrage(u, `https://app.test${pfad}`);
+    }
+    await vi.waitFor(() => expect(u.speicher.get('perl-teile')?.eintraege.size).toBe(5));
+
+    await u.nachricht('fassungUebernehmen');
+
+    const teile = u.speicher.get('perl-teile')!.eintraege;
+    expect([...teile.keys()].sort()).toEqual(['/assets/index-b2.css', '/assets/index-b2.js', '/assets/react-b2.js']);
+    expect(u.geantwortet).toContain('fassungUebernommen');
+  });
+
+  it('liefert eine Hülle, deren Einstieg fehlt, nicht aus — sondern die frische vom Server', async () => {
+    // Vorgehalten: Fassung b2, aber ihre Bausteine liegen nicht im Speicher.
+    u.antwort = netz('b2');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    // Inzwischen ein Deploy: der Server kennt nur noch c3.
+    u.antwort = netz('c3');
+
+    const antwort = await anfrage(u, 'https://app.test/', 'navigate');
+    expect(await antwort!.text()).toBe(huelle('c3'));
+  });
+
+  it('gleich geblieben: liegt alles da, kommt die vorgehaltene Hülle sofort — ohne auf das Netz zu warten', async () => {
+    u.antwort = netz('b2');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    for (const pfad of ['/assets/index-b2.js', '/assets/react-b2.js', '/assets/index-b2.css']) await anfrage(u, `https://app.test${pfad}`);
+    await vi.waitFor(() => expect(u.speicher.get('perl-teile')?.eintraege.size).toBe(3));
+    // Das Netz antwortet nie: wer darauf wartete, hinge.
+    u.holen = () => new Promise<Response>(() => undefined);
+
+    const antwort = await anfrage(u, 'https://app.test/', 'navigate');
+    expect(await antwort!.text()).toBe(huelle('b2'));
+  });
+
+  it('die Seite, die die frische Hülle bekommt, erhält keine „neue Fassung“ — die anderen Fenster schon', async () => {
+    u.antwort = netz('b2');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    u.antwort = netz('c3');
+    u.neuesFenster = true;
+
+    const antwort = await anfrage(u, 'https://app.test/', 'navigate', 'GET', 'neues-fenster');
+    expect(await antwort!.text()).toBe(huelle('c3'));
+    await vi.waitFor(() => expect(u.gesagt).toContain('neueFassung'));
+    expect(u.gesagtNeu).toEqual([]);
+  });
+
+  it('gleich geblieben: bekommt die Seite die vorgehaltene Hülle, erfährt sie von der neuen Fassung', async () => {
+    u.antwort = netz('b2');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    for (const pfad of ['/assets/index-b2.js', '/assets/react-b2.js', '/assets/index-b2.css']) await anfrage(u, `https://app.test${pfad}`);
+    await vi.waitFor(() => expect(u.speicher.get('perl-teile')?.eintraege.size).toBe(3));
+    u.antwort = netz('c3');
+    u.neuesFenster = true;
+
+    await anfrage(u, 'https://app.test/', 'navigate', 'GET', 'neues-fenster');
+    await vi.waitFor(() => expect(u.gesagtNeu).toContain('neueFassung'));
+  });
+
+  it('ohne Netz bleibt es bei der vorgehaltenen Hülle — sie ist dann die einzige', async () => {
+    u.antwort = netz('b2');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    u.antwort = netz('b2', true);
+
+    const antwort = await anfrage(u, 'https://app.test/', 'navigate');
+    expect(await antwort!.text()).toBe(huelle('b2'));
+  });
+});
+
