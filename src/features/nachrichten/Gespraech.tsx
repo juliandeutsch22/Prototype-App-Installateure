@@ -13,7 +13,7 @@ import { MehrAnzeigen } from '@/components/LotBausteine';
 import { grundAus } from '@/lib/fehlerGrund';
 import { NACHRICHTEN_NEU } from './NachrichtenLive';
 import {
-  ART_TEXT, dateiPruefen, DATEI_TYPEN, erwaehnteIn, groesseText, GRUPPE_MS, istBild, kuerzel, tagText, tagVon, uhrText, zeitText,
+  ART_TEXT, dateiPruefen, DATEI_TYPEN, erwaehnteIn, groesseText, GRUPPE_MS, istBild, kuerzel, mitMausUndTastatur, PAUSE_MS, sendetMitTaste, tagText, tagVon, uhrText, zeitText,
 } from './text';
 import NachrichtAktionen from './NachrichtAktionen';
 import PersonWahl from './PersonWahl';
@@ -367,10 +367,29 @@ export default function Gespraech({
     </div>
   );
 
+  /** Gehören zwei aufeinanderfolgende Einträge in eine Gruppe (dieselbe Person, derselbe Tag, kurz nacheinander)? */
+  const zusammen = (a: Eintrag, b: Eintrag) =>
+    tagVon(a.zeit) === tagVon(b.zeit) && a.von === b.von && Date.parse(b.zeit) - Date.parse(a.zeit) <= GRUPPE_MS;
+  /** Die letzte eigene Nachricht im Verlauf — nur unter ihr steht, ob sie gesendet ist (wie bei Apple „Zugestellt“). */
+  const letzteEigene = [...eintraege].reverse().find((x) => x.eigene);
+
   const zeile = (e: Eintrag, i: number) => {
     const vorher = eintraege[i - 1];
+    const naechste = eintraege[i + 1];
     const neuerTag = !vorher || tagVon(vorher.zeit) !== tagVon(e.zeit);
-    const anfang = neuerTag || vorher.von !== e.von || Date.parse(e.zeit) - Date.parse(vorher.zeit) > GRUPPE_MS;
+    const anfang = !vorher || !zusammen(vorher, e);
+    const ende = !naechste || !zusammen(e, naechste);
+    /*
+      DIE ZEIT STEHT ÜBER DER GRUPPE, NICHT IN JEDER BLASE (E71, 09.11.2026):
+      am Tageswechsel und nach einer längeren Pause eine leise Zeile
+      „Heute 13:30“ — wie bei Apple. Jede Blase mit eigener Uhrzeit machte das
+      Gespräch unruhig. Den genauen Zeitpunkt jeder Nachricht nennt ihr
+      Fenster (Antippen) und der Vorleser.
+    */
+    const zeitKopf = neuerTag || Date.parse(e.zeit) - Date.parse(vorher.zeit) > PAUSE_MS;
+    const status = e === letzteEigene && e.art !== 'fach' && !(e.art === 'unterwegs' && e.u.stand === 'fehler')
+      ? (e.art === 'unterwegs' && e.u.stand === 'laeuft' ? 'Wird gesendet …' : 'Gesendet')
+      : null;
     // Den Namen braucht es nur, wo mehr als eine andere Person schreiben kann.
     const name = !e.eigene && anfang && kopf.art !== 'direkt' && e.art === 'server' ? e.n.vonName : null;
     const absender = e.eigene ? 'Du' : e.art === 'server' ? e.n.vonName : '';
@@ -380,8 +399,13 @@ export default function Gespraech({
         className="nachricht"
         data-eigene={e.eigene ? 'ja' : undefined}
         data-anfang={anfang ? 'ja' : undefined}
+        data-ende={ende ? 'ja' : undefined}
       >
-        {neuerTag && <div className="verlauf-tag"><span>{tagText(e.zeit)}</span></div>}
+        {zeitKopf && (
+          <div className="verlauf-tag">
+            <span><span className="verlauf-tag-tag">{tagText(e.zeit)}</span> {uhrText(e.zeit)}</span>
+          </div>
+        )}
         {name && <div className="nachricht-von" aria-hidden="true">{name}</div>}
         {e.art === 'server' && (
           <div className="nachricht-blatt" data-weg={e.n.geloeschtAm ? 'ja' : undefined}>
@@ -396,12 +420,13 @@ export default function Gespraech({
               {e.n.geloeschtAm
                 ? <span className="nachricht-weg">{e.n.vonUid ? 'Nachricht gelöscht' : 'Nachricht eines gelöschten Kontos'}</span>
                 : e.n.text && <span className="nachricht-text">{e.n.text}</span>}
-              <span className="nachricht-meta">
-                {e.n.gemeldet && <span>gemeldet</span>}
-                {e.n.uebernommen && <span>in die Baustelle übernommen</span>}
-                {e.n.bearbeitetAm && !e.n.geloeschtAm && <span>bearbeitet</span>}
-                <span className="nachricht-zeit">{uhrText(e.n.gesendetAm)}</span>
-              </span>
+              {(e.n.gemeldet || e.n.uebernommen || (e.n.bearbeitetAm && !e.n.geloeschtAm)) && (
+                <span className="nachricht-meta">
+                  {e.n.gemeldet && <span>gemeldet</span>}
+                  {e.n.uebernommen && <span>in die Baustelle übernommen</span>}
+                  {e.n.bearbeitetAm && !e.n.geloeschtAm && <span>bearbeitet</span>}
+                </span>
+              )}
             </button>
           </div>
         )}
@@ -424,13 +449,9 @@ export default function Gespraech({
               <div className="nachricht-ziel">
                 <span className="sr-only">Du: </span>
                 {e.u.text && <span className="nachricht-text">{e.u.text}</span>}
-                <span className="nachricht-meta">
-                  {e.u.stand === 'fehler'
-                    ? <Zustand stand="schlecht">Nicht gesendet: {e.u.grund}</Zustand>
-                    : e.u.stand === 'laeuft'
-                      ? <span>wird gesendet</span>
-                      : <span className="nachricht-zeit">{uhrText(e.zeit)}</span>}
-                </span>
+                {e.u.stand === 'fehler' && (
+                  <span className="nachricht-meta"><Zustand stand="schlecht">Nicht gesendet: {e.u.grund}</Zustand></span>
+                )}
               </div>
             </div>
             {e.u.stand === 'fehler' && (
@@ -441,12 +462,19 @@ export default function Gespraech({
             )}
           </>
         )}
+        {/*
+          OHNE SPRINGEN (E65): „Wird gesendet …“ und „Gesendet“ sind gleich
+          hoch, und die bestätigte Nachricht ersetzt die unterwegs an Ort und
+          Stelle — die Zeile darunter bleibt, nur ihr Wort wechselt.
+        */}
+        {status && <div className="nachricht-status" aria-live="polite">{status}</div>}
       </li>
     );
   };
 
   const leer = eintraege.length === 0;
   const kannSenden = !!text.trim() || dateien.length > 0;
+  const amSchreibtisch = mitMausUndTastatur();
 
   return (
     <>
@@ -538,29 +566,33 @@ export default function Gespraech({
                 </button>
               )}
               <label htmlFor="nachricht-text" className="sr-only">Nachricht</label>
-              <textarea
-                id="nachricht-text"
-                ref={eingabe}
-                className="eingabe-feld"
-                rows={1}
-                maxLength={20000}
-                value={text}
-                placeholder={privat ? 'Nachricht' : 'Nachricht an alle auf dieser Baustelle'}
-                onChange={(ev) => setText(ev.target.value)}
-                onKeyDown={(ev) => {
-                  // Am Schreibtisch sendet Strg + Eingabe (⌘ + Eingabe); Eingabe allein macht eine neue Zeile.
-                  if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); senden(); }
-                }}
-              />
-              <button
-                type="submit"
-                className="chat-rund chat-senden"
-                aria-label="Senden"
-                title="Senden (Strg + Eingabe)"
-                disabled={!kannSenden}
-              >
-                <Icon name="senden" size={22} />
-              </button>
+              {/* Feld und Senden in einer Pille, der Pfeil rechts im Feld (E71) — wie bei Apple. */}
+              <div className="eingabe-pille">
+                <textarea
+                  id="nachricht-text"
+                  ref={eingabe}
+                  className="eingabe-feld"
+                  rows={1}
+                  maxLength={20000}
+                  value={text}
+                  placeholder={privat ? 'Nachricht' : 'Nachricht an alle auf dieser Baustelle'}
+                  aria-describedby={amSchreibtisch ? 'nachricht-tasten' : undefined}
+                  onChange={(ev) => setText(ev.target.value)}
+                  onKeyDown={(ev) => {
+                    if (sendetMitTaste(ev, amSchreibtisch)) { ev.preventDefault(); senden(); }
+                  }}
+                />
+                <button
+                  type="submit"
+                  className="chat-senden"
+                  aria-label="Senden"
+                  title={amSchreibtisch ? 'Senden (Eingabe) — neue Zeile mit Umschalt + Eingabe' : 'Senden'}
+                  disabled={!kannSenden}
+                >
+                  <Icon name="senden" size={18} />
+                </button>
+              </div>
+              {amSchreibtisch && <span id="nachricht-tasten" className="sr-only">Eingabe sendet, Umschalt und Eingabe beginnt eine neue Zeile.</span>}
             </div>
           </form>
         )}

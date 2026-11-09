@@ -57,7 +57,18 @@ const DATEN = {
   // Korrekturanträge (M06): eine Liste; als NOOP blieb die Zeiterfassung mit einer Fehlerseite stehen (09.11.2026).
   zeitkorrekturen: { zeitkorrekturenLaden: '[]' },
   // Der Stand des Baustellen-Threads (E64) ist ein Objekt; als NOOP stürzte die Baustellenakte ab (09.11.2026).
-  nachrichten: { baustelleStand: '{ kanal: null, anzahl: 0, zuletzt: null, ungelesen: 0, folgt: false }' },
+  nachrichten: {
+    baustelleStand: '{ kanal: null, anzahl: 0, zuletzt: null, ungelesen: 0, folgt: false }',
+    // Ein Posteingang und ein Gespräch zum Ansehen (09.11.2026); vorher stand dort nur „konnte nicht geladen werden“.
+    postfach: '{ zeilen: D.postfach, weiter: null }',
+    kanalKopf: 'D.chatKopf',
+    verlauf: '{ nachrichten: D.chatVerlauf, weiter: null }',
+    wartendeNachrichten: '[]',
+    ungeleseneZahl: '2',
+    hatGespraeche: 'true',
+    meldungenOffen: '0',
+    anhangAdressen: 'new Map()',
+  },
   // „Zeitraum zusammenstellen“ fragt die Schlussrechnungen ohne Abzug mit; ohne Liste brach die Seite ab (K4, 17.10.2026).
   invoices: { '*': 'D.rechnungen', schlussrechnungenOhneAbzug: '[]' },
   /*
@@ -132,6 +143,11 @@ const FEST = {
     "export const nextInvoiceNumber = () => 'RE-2026-0234';\n" +
     'export const isInvoiceNumberTaken = () => false;\n',
   konten: 'export const buchungskonten = () => A([]);\n',
+  // Ein Abo gibt eine Aufräumfunktion zurück, kein Versprechen — sonst wirft React beim Verlassen der Seite.
+  nachrichten: 'export const abonniereNachrichtenStand = () => () => {};\n' +
+    // Synchron, nicht als Versprechen: der Verlauf mischt die Vorgemerkten sofort ein.
+    'export const vorgemerkteNachrichten = () => [];\n' +
+    "export const eimerFuer = (privat: boolean) => (privat ? 'nachrichten-privat' : 'nachrichten');\n",
   /*
     Seit E66 lädt der Timer-Stand im Layout auf jeder Seite. `zeitsitzungenLaden`
     passt auf kein Namensmuster und bekäme `undefined` — `sitzungen.find` warf,

@@ -60,6 +60,14 @@ export function tagText(iso: string, jetzt: Date = new Date()): string {
  */
 export const GRUPPE_MS = 5 * 60_000;
 
+/**
+ * Nach so langer Stille steht über der nächsten Nachricht wieder eine Zeile
+ * mit Tag und Uhrzeit (E71) — am Tageswechsel ohnehin. Eine Viertelstunde:
+ * kürzer, und ein lebhaftes Gespräch stünde voller Zeitzeilen; länger, und
+ * Vormittag und Nachmittag desselben Tages flössen ineinander.
+ */
+export const PAUSE_MS = 15 * 60_000;
+
 /** „AH“ für Anna Huber, „B“ für Büro — das Kürzel im Posteingang. */
 export function kuerzel(name: string): string {
   const teile = name.split(/\s+/).map((w) => w.replace(/^[^\p{L}]+/u, '')).filter((w) => /^\p{L}/u.test(w));
@@ -122,4 +130,32 @@ export function exportDateiname(person: string, wann: Date): string {
   const name = person.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'person';
   return `nachrichten-${name}-${wann.toISOString().slice(0, 10)}.json`;
+}
+
+/**
+ * Eine Maus und eine richtige Tastatur? Dann sendet „Eingabe“ wie in jedem
+ * Messenger am Schreibtisch (E71). Am Telefon und Tablet mit Bildschirm-
+ * tastatur bleibt „Eingabe“ ein Zeilenumbruch, gesendet wird mit dem Pfeil —
+ * wie bei iMessage, sonst ginge jede halbe Nachricht mit dem Zeilenumbruch
+ * hinaus.
+ */
+export function mitMausUndTastatur(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
+
+/**
+ * Sendet diese Taste die Nachricht? Am Schreibtisch „Eingabe“, mit Umschalt
+ * (oder Alt) eine neue Zeile; überall Strg/⌘ + Eingabe. Nie während einer
+ * Zusammensetzung (Akzente, Wortvorschläge, asiatische Eingabe): dort
+ * bestätigt „Eingabe“ das Zeichen, nicht die Nachricht.
+ */
+export function sendetMitTaste(
+  ev: { key: string; shiftKey: boolean; altKey: boolean; ctrlKey: boolean; metaKey: boolean; nativeEvent?: { isComposing?: boolean }; keyCode?: number },
+  amSchreibtisch: boolean,
+): boolean {
+  if (ev.key !== 'Enter') return false;
+  if (ev.nativeEvent?.isComposing || ev.keyCode === 229) return false;
+  if (ev.ctrlKey || ev.metaKey) return true;
+  return amSchreibtisch && !ev.shiftKey && !ev.altKey;
 }

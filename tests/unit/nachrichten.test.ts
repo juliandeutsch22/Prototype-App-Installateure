@@ -22,7 +22,7 @@ import { vorgemerkteNachrichten, NACHRICHT_TABELLE } from '@/lib/db/pg/nachricht
 import { AUFRUFE_OHNE_EMPFANG, EIMER_OHNE_EMPFANG } from '@/lib/sync/supabaseSender';
 import type { Vormerkung } from '@/lib/sync/ausgangsfach';
 import {
-  dateiPruefen, erwaehnteIn, exportDateiname, groesseText, istBild, kuerzel, tagText, tagVon, uhrText, zeitText,
+  dateiPruefen, erwaehnteIn, exportDateiname, groesseText, istBild, kuerzel, sendetMitTaste, tagText, tagVon, uhrText, zeitText,
 } from '@/features/nachrichten/text';
 import { meldungenZeile, nachrichtenZeile, ungeleseneNachrichten } from '@/features/dashboard/start/regeln';
 
@@ -171,5 +171,33 @@ describe('Startseite', () => {
   it('gemeldete Nachrichten für die Geschäftsführung, Bernstein', () => {
     expect(meldungenZeile(undefined)).toBeNull();
     expect(meldungenZeile(2)).toMatchObject({ titel: '2 gemeldete Nachrichten', to: '/settings/nachrichten', status: { ton: 'warn' } });
+  });
+});
+
+
+/*
+  SENDEN MIT DER TASTATUR (E71, 09.11.2026): am Schreibtisch sendet
+  „Eingabe“, Umschalt + Eingabe macht einen Absatz; am Telefon bleibt
+  „Eingabe“ ein Zeilenumbruch. Nie während einer Zusammensetzung.
+*/
+describe('Senden mit der Tastatur', () => {
+  const taste = (x: Partial<Parameters<typeof sendetMitTaste>[0]> = {}) =>
+    ({ key: 'Enter', shiftKey: false, altKey: false, ctrlKey: false, metaKey: false, ...x });
+  it('am Schreibtisch sendet Eingabe, Umschalt + Eingabe nicht', () => {
+    expect(sendetMitTaste(taste(), true)).toBe(true);
+    expect(sendetMitTaste(taste({ shiftKey: true }), true)).toBe(false);
+    expect(sendetMitTaste(taste({ altKey: true }), true)).toBe(false);
+  });
+  it('am Telefon bleibt Eingabe ein Zeilenumbruch — Strg/⌘ + Eingabe sendet überall', () => {
+    expect(sendetMitTaste(taste(), false)).toBe(false);
+    expect(sendetMitTaste(taste({ ctrlKey: true }), false)).toBe(true);
+    expect(sendetMitTaste(taste({ metaKey: true }), true)).toBe(true);
+  });
+  it('während einer Zusammensetzung (Akzente, Wortvorschläge) sendet Eingabe nie', () => {
+    expect(sendetMitTaste(taste({ nativeEvent: { isComposing: true } }), true)).toBe(false);
+    expect(sendetMitTaste(taste({ keyCode: 229 }), true)).toBe(false);
+  });
+  it('andere Tasten senden nicht', () => {
+    expect(sendetMitTaste(taste({ key: 'a' }), true)).toBe(false);
   });
 });
