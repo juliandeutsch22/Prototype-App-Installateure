@@ -1,7 +1,6 @@
-import { getMessaging, getToken, deleteToken, isSupported, onMessage } from 'firebase/messaging';
+import { getMessaging, getToken, deleteToken, isSupported } from 'firebase/messaging';
 import { firebaseApp, istEingerichtet } from '@/lib/firebase';
 import { addPushToken, getPrefs, removePushToken } from '@/lib/db/prefs';
-import { imVordergrundZeigen, meldungAnzeige, type PushDaten } from '@/lib/pushAnzeige';
 
 /**
  * Push-Benachrichtigungen aufs Telefon.
@@ -42,8 +41,16 @@ function isIosBrowserWithoutInstall(): boolean {
   return !standalone;
 }
 
-/** Was gilt gerade — ohne etwas zu verändern oder nachzufragen. */
-export async function getPushState(): Promise<PushState> {
+/**
+ * Was gilt gerade — ohne etwas zu verändern.
+ *
+ * „Bereit“ heißt seit dem 09.11.2026 (E69): dieses Gerät ist für DIESE Person
+ * beim Server angemeldet. Vorher genügte die Erlaubnis des Browsers — nach
+ * einem Ab- und Anmelden stand dann „Dieses Gerät ist angemeldet und bekommt
+ * Meldungen“, obwohl das Gerät beim Abmelden abgemeldet worden war und nichts
+ * mehr bekam. Läuft der Abgleich beim Start noch, wird auf ihn gewartet.
+ */
+export async function getPushState(uid: string): Promise<PushState> {
   // Ohne Zugangsdaten gibt es keinen Versandweg — dasselbe Ergebnis wie ohne
   // VAPID-Schlüssel, und für den Benutzer dieselbe Auskunft.
   if (!VAPID_KEY || !istEingerichtet()) return 'nicht-konfiguriert';
@@ -52,8 +59,15 @@ export async function getPushState(): Promise<PushState> {
   }
   if (typeof Notification === 'undefined') return 'nicht-unterstuetzt';
   if (Notification.permission === 'denied') return 'blockiert';
-  if (Notification.permission === 'granted') return 'bereit';
-  return 'aus';
+  if (Notification.permission !== 'granted') return 'aus';
+  await laufenderAbgleich?.catch(() => undefined);
+  const zeichen = gemerktesZeichen(uid);
+  if (!zeichen) return 'aus';
+  const registration = await navigator.serviceWorker?.getRegistration().catch(() => undefined);
+  const abo = await registration?.pushManager?.getSubscription().catch(() => null);
+  if (!abo) return 'aus';
+  const bekannt = (await getPrefs(uid))?.pushTokens ?? [];
+  return bekannt.includes(zeichen) ? 'bereit' : 'aus';
 }
 
 /**
@@ -89,16 +103,27 @@ export async function enablePush(companyId: string, uid: string): Promise<string
 
   if (!token) return null;
   await addPushToken(companyId, uid, token);
+  const alt = gemerktesZeichen(uid);
+  if (alt && alt !== token) await removePushToken(uid, alt).catch(() => undefined);
   zeichenMerken(uid, token);
+  geraetEingeschaltet(true);
   return token;
 }
 
 /*
- * DAS ZEICHEN DIESES GERÄTS, wie es beim Einschalten hinterlegt wurde — je
- * Person. Es sagt zweierlei: hier wurden Meldungen in der App eingeschaltet
- * (nur dann wird beim Start abgeglichen), und welches Zeichen der Server
- * dafür kennt.
+ * ZWEI MERKER AUF DEM GERÄT.
+ *
+ * `senklot.pushAn` — hier wurden Meldungen in der App eingeschaltet. Er gilt
+ * für das GERÄT, nicht für eine Person, und bleibt beim Abmelden stehen: wer
+ * sich danach anmeldet (dieselbe Person oder auf dem geteilten Tablet die
+ * nächste), wird beim Start angemeldet. Nur „Auf diesem Gerät abschalten“
+ * nimmt ihn weg — wer das gewählt hat, wird nicht still wieder angemeldet.
+ *
+ * `senklot.pushZeichen.<uid>` — welches Zeichen der Server für diese Person
+ * von diesem Gerät kennt. Damit fällt ein erneuertes Zeichen auf, und das
+ * alte wird abgemeldet.
  */
+const AN_MERKER = 'senklot.pushAn';
 const ZEICHEN_MERKER = 'senklot.pushZeichen';
 
 function gemerktesZeichen(uid: string): string | null {
@@ -118,82 +143,142 @@ function zeichenMerken(uid: string, token: string | null): void {
   }
 }
 
+function geraetIstEingeschaltet(): boolean {
+  try {
+    return localStorage.getItem(AN_MERKER) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function geraetEingeschaltet(an: boolean): void {
+  try {
+    if (an) localStorage.setItem(AN_MERKER, '1');
+    else localStorage.removeItem(AN_MERKER);
+  } catch {
+    /* Privates Fenster: dann eben ohne Merker. */
+  }
+}
+
+/** Der Abgleich, der gerade läuft — `getPushState` wartet auf ihn. */
+let laufenderAbgleich: Promise<void> | null = null;
+
 /**
- * BEI OFFENER APP — Meldungen zeigen und das Zeichen abgleichen
- * (09.11.2026: „Nachrichten senden keine Push-Benachrichtigungen“).
+ * BEIM START: DAS GERÄT FÜR DIE ANGEMELDETE PERSON ANMELDEN (E69).
  *
- * Ist die App sichtbar geöffnet, gibt Firebase eine Meldung an die Seite
- * statt an den Service Worker — und die Seite hörte nicht zu: es erschien
- * nichts. Jetzt zeigt sie die Meldung über denselben Worker an, in derselben
- * Form (`lib/pushAnzeige.ts`); ein Tipp darauf führt wie sonst hin. Nicht,
- * wenn man schon dort steht.
+ * Drei Fälle, in denen das Gerät bisher still nichts mehr bekam:
  *
- * Und das Zeichen: Firebase erneuert es von Zeit zu Zeit. Geholt wurde es
- * bisher nur beim Einschalten — danach schickte der Server an ein Zeichen,
- * das es nicht mehr gibt, räumte es als ungültig ab, und das Gerät bekam
- * still gar nichts mehr. Firebase sieht vor, es bei jedem Start abzugleichen;
- * das geschieht hier, aber nur, wo Meldungen in der App eingeschaltet wurden
- * — wer sie abgeschaltet hat, wird nicht still wieder angemeldet.
+ *  - Ab- und wieder angemeldet (oder auf dem geteilten Gerät ein anderes
+ *    Konto): das Abmelden meldet das Gerät für die Person ab — richtig, sonst
+ *    bekäme der Nächste ihre Meldungen —, danach meldete es aber niemand
+ *    wieder an.
+ *  - Firebase hat das Zeichen erneuert, oder iOS hat das Abonnement
+ *    entzogen: `getToken` legt dann ein neues an, der Server kannte nur das
+ *    alte.
+ *  - Der Server hat ein Zeichen als ungültig abgeräumt.
  *
- * Gibt die Abmeldung des Zuhörers zurück.
+ * Deshalb wird bei jedem Start nachgesehen, ob der Server das Zeichen dieses
+ * Geräts für die Person kennt, und es sonst angemeldet — aber nur, wo
+ * Meldungen in der App eingeschaltet wurden und der Browser sie erlaubt.
+ *
+ * GERÄTE VON VORHER haben den Merker `senklot.pushAn` noch nicht. Bei ihnen
+ * gilt als eingeschaltet, wer ein gemerktes Zeichen hat (E67) oder ein
+ * Abonnement, dessen Zeichen der Server für die Person kennt. Wer früher
+ * abgeschaltet hat, hat keines davon und bleibt aus.
  */
-export async function pushImVordergrund(companyId: string, uid: string, pfad: () => string): Promise<() => void> {
-  const app = firebaseApp();
-  const nichts = () => undefined;
-  if (!VAPID_KEY || !app) return nichts;
-  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return nichts;
-  if (!(await isSupported().catch(() => false))) return nichts;
-  const registration = await navigator.serviceWorker.ready;
-  const messaging = getMessaging(app);
-
-  /*
-    GERÄTE VON VORHER: wer Meldungen vor dem 09.11.2026 eingeschaltet hat,
-    hat noch kein gemerktes Zeichen. Nachgetragen wird es nur, wenn das Gerät
-    schon angemeldet ist (dann holt `getToken` das bestehende Zeichen und legt
-    kein neues an) und der Server genau dieses Zeichen für die Person kennt.
-  */
-  if (!gemerktesZeichen(uid) && (await registration.pushManager?.getSubscription().catch(() => null))) {
-    const jetzt = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration }).catch(() => null);
-    const bekannt = jetzt ? (await getPrefs(uid).catch(() => null))?.pushTokens ?? [] : [];
-    if (jetzt && bekannt.includes(jetzt)) zeichenMerken(uid, jetzt);
-  }
-
-  const alt = gemerktesZeichen(uid);
-  if (alt) {
-    const neu = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration }).catch(() => null);
-    if (neu && neu !== alt) {
-      try {
-        await addPushToken(companyId, uid, neu);
-        zeichenMerken(uid, neu);
-        await removePushToken(uid, alt);
-      } catch {
-        /* Ohne Netz: beim nächsten Start wieder. */
-      }
-    }
-  }
-
-  return onMessage(messaging, (payload) => {
-    const daten = payload.data as PushDaten | undefined;
-    if (!imVordergrundZeigen(daten, pfad())) return;
-    const { titel, optionen } = meldungAnzeige(daten);
-    void registration.showNotification(titel, optionen);
+export function pushAbgleichen(companyId: string, uid: string): Promise<void> {
+  const lauf = abgleichen(companyId, uid);
+  laufenderAbgleich = lauf;
+  return lauf.finally(() => {
+    if (laufenderAbgleich === lauf) laufenderAbgleich = null;
   });
 }
 
-/**
- * Gerät abmelden. Das Token wird bei Firebase UND in userPrefs entfernt —
- * bliebe es stehen, schickte der Server weiter an ein Gerät, das nichts
- * mehr anzeigen will, und liefe irgendwann in Zustellfehler.
- */
-export async function disablePush(uid: string): Promise<void> {
+async function abgleichen(companyId: string, uid: string): Promise<void> {
   const app = firebaseApp();
-  if (!app) return;
+  if (!VAPID_KEY || !app) return;
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
   if (!(await isSupported().catch(() => false))) return;
+  const registration = await navigator.serviceWorker.ready;
   const messaging = getMessaging(app);
-  const token = await getToken(messaging, { vapidKey: VAPID_KEY }).catch(() => null);
-  if (token) {
-    await removePushToken(uid, token).catch(() => undefined);
-    await deleteToken(messaging).catch(() => undefined);
+  const holen = () => getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration }).catch(() => null);
+
+  if (!geraetIstEingeschaltet()) {
+    let vonVorher = !!gemerktesZeichen(uid);
+    if (!vonVorher && (await registration.pushManager?.getSubscription().catch(() => null))) {
+      const jetzt = await holen();
+      vonVorher = !!jetzt && ((await getPrefs(uid))?.pushTokens ?? []).includes(jetzt);
+    }
+    if (!vonVorher) return;
+    geraetEingeschaltet(true);
   }
+
+  const token = await holen();
+  if (!token) return;
+  const bekannt = (await getPrefs(uid))?.pushTokens ?? [];
+  if (!bekannt.includes(token)) await addPushToken(companyId, uid, token);
+  const alt = gemerktesZeichen(uid);
+  if (alt && alt !== token) await removePushToken(uid, alt).catch(() => undefined);
+  zeichenMerken(uid, token);
+}
+
+/**
+ * Gerät abmelden. Das Token wird in userPrefs entfernt — bliebe es stehen,
+ * schickte der Server weiter an ein Gerät, das nichts mehr anzeigen soll.
+ *
+ * `ausdruecklich` — „Auf diesem Gerät abschalten“: dann auch bei Firebase
+ * abgemeldet, und das Gerät bleibt aus, bis jemand es wieder einschaltet.
+ * Ohne (beim Abmelden aus der App) bleibt das Abonnement, und wer sich
+ * danach anmeldet, wird beim Start angemeldet (`pushAbgleichen`).
+ */
+export async function disablePush(uid: string, ausdruecklich = false): Promise<void> {
+  if (ausdruecklich) geraetEingeschaltet(false);
+  const app = firebaseApp();
+  if (!app) return zeichenMerken(uid, null);
+  if (!(await isSupported().catch(() => false))) return zeichenMerken(uid, null);
+  const messaging = getMessaging(app);
+  // Ohne gemerktes Zeichen nur nachfragen, wo es ein Abonnement gibt: `getToken` legte sonst ausgerechnet beim Abmelden eines an.
+  const registration = await navigator.serviceWorker?.getRegistration().catch(() => undefined);
+  const abo = await registration?.pushManager?.getSubscription().catch(() => null);
+  const token = gemerktesZeichen(uid)
+    ?? (registration && abo ? await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration }).catch(() => null) : null);
+  if (token) await removePushToken(uid, token).catch(() => undefined);
+  if (ausdruecklich) await deleteToken(messaging).catch(() => undefined);
   zeichenMerken(uid, null);
+}
+
+/** Wie die Probemeldung ausging — in den Worten von „Mein Konto“. */
+export type ProbeErgebnis =
+  | { art: 'gesendet' }
+  /** Google kannte das Gerät nicht mehr; es wurde neu angemeldet, und die Probe ging dann durch. */
+  | { art: 'neu-angemeldet' }
+  | { art: 'nicht-angemeldet' }
+  | { art: 'abgelehnt'; code: string };
+
+/**
+ * PROBEMELDUNG AN DIESES GERÄT (E69) — derselbe Weg wie jede Meldung, mit
+ * Googles Antwort zurück. Vorher wird abgeglichen, damit der Server das
+ * Zeichen kennt. Sagt Google, das Gerät gebe es nicht mehr (iOS hat das
+ * Abonnement entzogen, Browserdaten gelöscht), wird es einmal frisch
+ * angemeldet und die Probe wiederholt.
+ */
+export async function pushProbe(companyId: string, uid: string): Promise<ProbeErgebnis> {
+  const { probeSenden } = await import('@/lib/db/pushProbe');
+  await pushAbgleichen(companyId, uid);
+  const zeichen = gemerktesZeichen(uid);
+  if (!zeichen) return { art: 'nicht-angemeldet' };
+  const erste = await probeSenden(zeichen);
+  if (erste.ergebnis === 'gesendet') return { art: 'gesendet' };
+  if (erste.ergebnis === 'abgelehnt') return { art: 'abgelehnt', code: erste.code ?? 'unbekannt' };
+
+  const app = firebaseApp();
+  if (!app) return { art: 'nicht-angemeldet' };
+  await deleteToken(getMessaging(app)).catch(() => undefined);
+  zeichenMerken(uid, null);
+  const neu = await enablePush(companyId, uid);
+  if (!neu) return { art: 'nicht-angemeldet' };
+  const zweite = await probeSenden(neu);
+  if (zweite.ergebnis === 'gesendet') return { art: 'neu-angemeldet' };
+  if (zweite.ergebnis === 'abgelehnt' || zweite.ergebnis === 'abgemeldet') return { art: 'abgelehnt', code: zweite.code ?? 'unbekannt' };
+  return { art: 'nicht-angemeldet' };
 }

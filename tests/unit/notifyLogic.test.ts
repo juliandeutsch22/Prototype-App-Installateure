@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  abgelehnteCodes,
   empfaengerNeueAnforderung,
   empfaengerAngebotLink,
   EMPFAENGER_ANGEBOT_LINK,
@@ -379,5 +380,25 @@ describe('Antwort eines Kunden über den Annahme-Link', () => {
   it('wer „Antwort über den Annahme-Link“ abgeschaltet hat, bekommt sie nicht', () => {
     expect(willMeldung({ notifyAngebot: false }, 'notifyAngebot')).toBe(false);
     expect(willMeldung({}, 'notifyAngebot')).toBe(true);
+  });
+});
+
+/*
+ * WAS GOOGLE ABGELEHNT HAT, OHNE DASS DAS GERÄT TOT IST (E69). `push-melden`
+ * antwortet dann mit einem Fehler, damit die Wache es zählt; vorher stand
+ * immer 200 da. Ein totes Gerät gehört nicht dazu — es wird abgeräumt.
+ */
+describe('abgelehnteCodes', () => {
+  it('nennt jede Ablehnung außer einem toten Gerät, jede einmal', () => {
+    expect(abgelehnteCodes([
+      {},
+      { error: { code: 'messaging/registration-token-not-registered' } },
+      { error: { code: 'messaging/invalid-registration-token' } },
+      { error: { code: 'messaging/invalid-argument' } },
+      { error: { code: 'messaging/third_party_auth_error' } },
+      { error: { code: 'messaging/invalid-argument' } },
+      { error: {} },
+    ])).toEqual(['messaging/invalid-argument', 'messaging/third_party_auth_error', 'unbekannt']);
+    expect(abgelehnteCodes([{}, { error: { code: 'messaging/registration-token-not-registered' } }])).toEqual([]);
   });
 });

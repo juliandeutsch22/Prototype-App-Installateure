@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { getPrefs, savePrefs, PREFS_DEFAULTS } from '@/lib/db/prefs';
-import { getPushState, enablePush, disablePush, type PushState } from '@/lib/push';
+import { getPushState, enablePush, disablePush, pushProbe, type PushState, type ProbeErgebnis } from '@/lib/push';
 import { canProcessOrders, isGF, isMitarbeiter, isTopLevel } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -44,6 +44,16 @@ const PUSH_TEXT: Record<PushState, { text: string; ton: 'ok' | 'hinweis' | 'aus'
   },
 };
 
+/** Wie die Probemeldung ausging (E69). Abgelehnt nennt Googles Code. */
+const PROBE_TEXT: Record<'gesendet' | 'neu-angemeldet' | 'nicht-angemeldet', string> = {
+  gesendet:
+    'Google hat die Probemeldung angenommen — sie sollte gleich erscheinen. Kommt keine, hält das ' +
+    'Telefon sie zurück: Mitteilungen für Senklot, Fokus oder „Nicht stören“ in seinen Einstellungen.',
+  'neu-angemeldet':
+    'Das Gerät war bei Google nicht mehr angemeldet und ist jetzt neu angemeldet. Die Probemeldung ist unterwegs.',
+  'nicht-angemeldet': 'Das Gerät ließ sich nicht anmelden. Bitte „Auf diesem Gerät einschalten“ noch einmal versuchen.',
+};
+
 /**
  * Persönliche Benachrichtigungen. Jeder stellt für sich ein, was er bekommen
  * will — die Geschäftsführung entscheidet über Sätze, nicht über das Telefon
@@ -66,6 +76,9 @@ export default function NotificationSettings() {
   const [vorschau, setVorschau] = useState(PREFS_DEFAULTS.nachrichtVorschau ?? false);
   const [push, setPush] = useState<PushState>('aus');
   const [busy, setBusy] = useState(false);
+  const [probeBusy, setProbeBusy] = useState(false);
+  /** Was die letzte Probemeldung ergab — bleibt stehen, bis die nächste läuft. */
+  const [probe, setProbe] = useState<ProbeErgebnis | null>(null);
   const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — die Seite steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
@@ -105,7 +118,7 @@ export default function NotificationSettings() {
       // und wer sie danach umlegt, ueberschreibt seine eigene Einstellung mit
       // dem Standard.
       .catch(() => setNebenFehler('Deine Einstellungen'));
-    getPushState().then(setPush).catch(() => setNebenFehler('Der Zustand der Meldungen'));
+    getPushState(user.uid).then(setPush).catch(() => setNebenFehler('Der Zustand der Meldungen'));
   }, [user]);
 
   /*
@@ -155,7 +168,7 @@ export default function NotificationSettings() {
     setError(null);
     try {
       const token = await enablePush(user.companyId, user.uid);
-      const state = await getPushState();
+      const state = await getPushState(user.uid);
       setPush(state);
       if (token) toast.success('Dieses Gerät bekommt jetzt Meldungen');
       else if (state === 'blockiert') setError(PUSH_TEXT.blockiert.text);
@@ -171,11 +184,28 @@ export default function NotificationSettings() {
     if (!user) return;
     setBusy(true);
     try {
-      await disablePush(user.uid);
-      setPush(await getPushState());
+      await disablePush(user.uid, true);
+      setProbe(null);
+      setPush(await getPushState(user.uid));
       toast.success('Dieses Gerät bekommt keine Meldungen mehr');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function probeSenden() {
+    if (!user) return;
+    setProbeBusy(true);
+    setProbe(null);
+    setError(null);
+    try {
+      const ergebnis = await pushProbe(user.companyId, user.uid);
+      setProbe(ergebnis);
+      setPush(await getPushState(user.uid));
+    } catch (err) {
+      setError(grundAus(err, 'Die Probemeldung konnte nicht verschickt werden.'));
+    } finally {
+      setProbeBusy(false);
     }
   }
 
@@ -228,14 +258,28 @@ export default function NotificationSettings() {
         {(push === 'aus' || push === 'bereit') && (
           <div className="mt-4">
             {push === 'bereit' ? (
-              <Button variant="ghost" loading={busy} onClick={() => void geraetAbmelden()}>
-                Auf diesem Gerät abschalten
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" loading={probeBusy} disabled={busy} onClick={() => void probeSenden()}>
+                  Probemeldung senden
+                </Button>
+                <Button variant="ghost" loading={busy} disabled={probeBusy} onClick={() => void geraetAbmelden()}>
+                  Auf diesem Gerät abschalten
+                </Button>
+              </div>
             ) : (
               <Button loading={busy} onClick={() => void geraetAnmelden()}>
                 Auf diesem Gerät einschalten
               </Button>
             )}
+          </div>
+        )}
+
+        {probe && (probe.art === 'gesendet' || probe.art === 'neu-angemeldet') && (
+          <p role="status" className="mt-3 text-sm text-ink-muted">{PROBE_TEXT[probe.art]}</p>
+        )}
+        {probe && (probe.art === 'abgelehnt' || probe.art === 'nicht-angemeldet') && (
+          <div className="mt-3">
+            <ErrorState message={probe.art === 'abgelehnt' ? `Google hat die Probemeldung abgelehnt (${probe.code}).` : PROBE_TEXT['nicht-angemeldet']} />
           </div>
         )}
 

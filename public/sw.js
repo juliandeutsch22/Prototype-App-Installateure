@@ -42,12 +42,109 @@ const SEITE = '/index.html';
 /* ---------------------------------------------------------------- Push --- */
 
 /*
- * Die Firebase-Bibliotheken kommen aus dem Netz. Schlägt das fehl — kein
- * Empfang beim allerersten Start —, darf der Worker trotzdem nicht scheitern:
- * ohne ihn gäbe es auch keine vorgehaltene App-Hülle, und die ist der
- * wichtigere Teil. Push fehlt dann eben bis zum nächsten Mal.
+ * DIE MELDUNG ZEIGT DIESER WORKER SELBST — immer, und er wartet darauf
+ * (09.11.2026, E69: „Push-Benachrichtigungen für Nachrichten funktionieren
+ * immer noch nicht“).
+ *
+ * Bis dahin lief jede Meldung durch Firebase, und das ging auf zwei Wegen
+ * schief:
+ *
+ *   1. War irgendein Fenster der App sichtbar, gab Firebase die Meldung an
+ *      die Seite weiter und zeigte selbst nichts. Auf dem iPhone ist das eine
+ *      „stille“ Meldung — und nach wenigen davon nimmt iOS der Seite das
+ *      Recht auf Meldungen. Danach kam auf dem Gerät gar nichts mehr an, bis
+ *      man es neu anmeldete. Wer mit offener App schreibt und liest, löste
+ *      das also gerade beim Ausprobieren aus.
+ *   2. Im Hintergrund zeigte Firebase sie zwar an, aber die Anzeige wurde
+ *      nicht abgewartet: der Handler gab das Versprechen nicht zurück. Endet
+ *      das Push-Ereignis vor der Anzeige, wertet iOS auch das als still.
+ *
+ * Jetzt hört dieser Worker als ERSTER auf `push` (angemeldet vor Firebase),
+ * zeigt die Meldung in `waitUntil` und lässt Firebase das Ereignis nicht
+ * mehr sehen. Kommt etwas, das nicht von uns ist (eine Meldung aus der
+ * Firebase-Konsole), bleibt es bei Firebase. Und die Anzeige hängt nicht mehr
+ * daran, dass die Firebase-Bibliotheken aus dem Netz geladen werden konnten.
  */
-let pushBereit = false;
+const UA = (self.navigator && self.navigator.userAgent) || '';
+/*
+ * WebKit (iPhone, iPad, Safari auf dem Mac) verlangt zu JEDER Meldung eine
+ * Anzeige. Alle anderen Browser lassen eine aus, wenn man ohnehin im
+ * Gespräch steht. Auf dem iPhone sind alle Browser WebKit.
+ */
+const WEBKIT = /AppleWebKit/.test(UA) && !/Chrome\/|Chromium|Edg\/|Android/.test(UA);
+
+/** Die Felder, die `push-melden` schickt — oder null, wenn die Meldung nicht von uns ist. */
+function pushDaten(event) {
+  try {
+    const roh = event.data ? event.data.json() : null;
+    const d = roh && roh.data;
+    return d && typeof d === 'object' && typeof d.title === 'string' ? d : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Wie die Meldung erscheint. Dieselbe Kennung je Gespräch ersetzt die vorige,
+ * statt dass sich zwanzig stapeln — `renotify`, damit sie dabei nicht STILL
+ * ersetzt wird: sonst meldete sich die zweite Nachricht im selben Gespräch
+ * ohne Ton und Vibration.
+ */
+function meldungAnzeige(d) {
+  return {
+    titel: d.title || 'Senklot',
+    optionen: {
+      body: d.body || '',
+      icon: '/marke/icon-192.png',
+      badge: '/marke/badge-96.png',
+      tag: d.tag || 'perl-allgemein',
+      renotify: true,
+      data: { link: d.link || '/' },
+    },
+  };
+}
+
+/*
+ * Steht jemand sichtbar genau dort, wohin die Meldung führt (im Gespräch, in
+ * dem die Nachricht gerade erscheint), braucht es keine Meldung — außer auf
+ * WebKit, das sie verlangt: dort erscheint sie ohne Ton und ersetzt nur die
+ * vorige desselben Gesprächs.
+ */
+async function meldungZeigen(d) {
+  const link = d.link || '/';
+  const fenster = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  const dort = fenster.some((f) => {
+    try {
+      return f.visibilityState === 'visible' && new URL(f.url).pathname === link;
+    } catch {
+      return false;
+    }
+  });
+  if (dort && !WEBKIT) return undefined;
+  const { titel, optionen } = meldungAnzeige(d);
+  return self.registration.showNotification(
+    titel,
+    dort ? { ...optionen, renotify: false, silent: true } : optionen,
+  );
+}
+
+self.addEventListener('push', (event) => {
+  const daten = pushDaten(event);
+  if (!daten) return;
+  event.stopImmediatePropagation();
+  event.waitUntil(meldungZeigen(daten));
+});
+
+/*
+ * Firebase bleibt geladen, aber nur noch für eines: erneuert der Browser das
+ * Abonnement von sich aus (`pushsubscriptionchange`), meldet Firebase das
+ * neue Zeichen bei Google an. Ob der Server es kennt, gleicht die App beim
+ * nächsten Start ab (`pushAbgleichen` in `src/lib/push.ts`).
+ *
+ * Die Bibliotheken kommen aus dem Netz. Schlägt das fehl — kein Empfang beim
+ * allerersten Start —, darf der Worker trotzdem nicht scheitern: ohne ihn
+ * gäbe es weder die vorgehaltene App-Hülle noch die Anzeige oben.
+ */
 try {
   importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
   importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
@@ -60,28 +157,10 @@ try {
       messagingSenderId: p.get('messagingSenderId'),
       appId: p.get('appId'),
     });
-
-    firebase.messaging().onBackgroundMessage((payload) => {
-      const { title, body, link } = payload.data ?? {};
-      self.registration.showNotification(title || 'Senklot', {
-        body: body || '',
-        icon: '/marke/icon-192.png',
-        badge: '/marke/badge-96.png',
-        // Gleiche Kennung = die neue Meldung ersetzt die alte. Fünf
-        // Anforderungen hintereinander sollen nicht fünf Einträge im
-        // Sperrbildschirm sein.
-        tag: payload.data?.tag || 'perl-allgemein',
-        // Ohne das ersetzt die neue Meldung die vorige STILL — ohne Ton und
-        // Vibration; die zweite Nachricht im selben Gespräch meldete sich nicht
-        // (09.11.2026). Dieselbe Form wie bei offener App: `src/lib/pushAnzeige.ts`.
-        renotify: true,
-        data: { link: link || '/' },
-      });
-    });
-    pushBereit = true;
+    firebase.messaging();
   }
 } catch {
-  pushBereit = false;
+  /* Ohne Firebase: angezeigt wird trotzdem, siehe oben. */
 }
 
 // Tippen öffnet die App an der passenden Stelle — und holt ein bereits
@@ -485,8 +564,6 @@ async function teileAufraeumen() {
 /* --------------------------------------------------------- Verständigung --- */
 
 self.addEventListener('message', (event) => {
-  if (event.data === 'pushBereit?') event.source?.postMessage({ pushBereit });
-
   /*
    * „Schau nach, ob es etwas Neues gibt." Die App ruft das, wenn sie wieder
    * in den Vordergrund kommt — der einzige Zeitpunkt, an dem eine

@@ -12,7 +12,7 @@
  * gelesen. Ungeprüft bleibt danach genau eine Runde — die zu Google.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
-import { jwtBauen, b64url, schluesselBytes, alsSdkCode, type Dienstkonto } from '@shared/fcmVersand';
+import { jwtBauen, b64url, schluesselBytes, alsSdkCode, fcmNachricht, type Dienstkonto } from '@shared/fcmVersand';
 
 let konto: Dienstkonto;
 let oeffentlich: CryptoKey;
@@ -136,5 +136,25 @@ describe('Die Fehlercodes von HTTP v1', () => {
   it('und ohne Code gibt es keinen', () => {
     expect(alsSdkCode({})).toBeUndefined();
     expect(alsSdkCode(undefined)).toBeUndefined();
+  });
+});
+
+/*
+ * DIE NACHRICHT AN GOOGLE (E69). Ein Pfad in `webpush.fcm_options.link` ist
+ * keine https-Adresse, wie Google sie dort verlangt — und gebraucht wurde das
+ * Feld nie, weil der Worker anzeigt. Gegenprobe: mit der Nachricht vor E69
+ * (`fcm_options: { link }`, ohne `Urgency`) ist die erste Prüfung rot.
+ */
+describe('Die Nachricht an Google', () => {
+  it('nur Daten, kein Link für Firebase, und eilig zugestellt', () => {
+    const n = fcmNachricht('t1', { title: 'A', body: 'B', link: '/nachrichten/k1', tag: 'x' });
+    expect(n).toEqual({
+      message: {
+        token: 't1',
+        data: { title: 'A', body: 'B', link: '/nachrichten/k1', tag: 'x' },
+        webpush: { headers: { Urgency: 'high' } },
+      },
+    });
+    expect(JSON.stringify(n)).not.toContain('fcm_options');
   });
 });
