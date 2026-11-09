@@ -2484,3 +2484,88 @@ freie Folge bräche beides (fachlich). **Nachweis:**
 - `startseiteEinrichten.spec.ts` (Browser auf allen Monteurbreiten: bleibt
   nach dem Neuladen, Vorgabe zurück; Gegenprobe rot).
 
+**E69 — Push-Meldungen: der Worker zeigt jede selbst, das Gerät bleibt angemeldet, Probemeldung in „Mein Konto“ (09.11.2026).**
+
+Anlass: „Die Push-Benachrichtigungen für Nachrichten funktionieren immer
+noch nicht.“ E67 hatte nur bis zum Versand an Google geprüft. Diesmal die
+ganze Kette bis zur Anzeige, auch im echten Browser. Der Versand zu Google
+lief: Materialmeldungen hat der Betrieb am 29.09.2026 auf dem iPhone
+bestätigt. Nachrichten probiert man aber mit offener App aus — und genau
+dann ging es schief. Gefunden:
+
+- **Stille Meldungen auf dem iPhone.** Bei sichtbarer App gab Firebase die
+  Meldung an die Seite weiter und zeigte selbst nichts; im Hintergrund wurde
+  die Anzeige nicht abgewartet (der Handler gab das Versprechen nicht
+  zurück). iOS wertet beides als stille Meldung und nimmt der Seite nach
+  wenigen davon das Abonnement. Wer mit offener App schreibt und liest, löste
+  das gerade beim Ausprobieren aus. **Jetzt:** `public/sw.js` hört als Erster
+  auf `push`, zeigt die Meldung in `waitUntil` und lässt Firebase das
+  Ereignis nicht mehr sehen. Die Anzeige hängt nicht mehr daran, dass die
+  Firebase-Bibliotheken geladen werden konnten.
+- **Im Gespräch selbst** keine Meldung — außer auf WebKit (iPhone, iPad,
+  Safari), das zu jeder Push-Nachricht eine Anzeige verlangt: dort erscheint
+  sie ohne Ton. Wo das Fenster steht, fragt der Worker das Fenster
+  (`ortGefragt`, Antwort aus `PushAnmeldung`): die App wechselt Seiten ohne
+  Neuladen, und die Adresse, die der Worker kennt, ist die vom Laden
+  (gemessen in Chromium). E67 hatte das an der Seite entschieden;
+  `lib/pushAnzeige.ts` und `PushVordergrund` entfallen.
+- **Nach Ab- und Anmelden kam nichts mehr.** Das Abmelden meldet das Gerät für
+  die Person ab (richtig, sonst bekäme der Nächste am geteilten Gerät ihre
+  Meldungen), danach meldete es niemand wieder an. „Mein Konto“ zeigte
+  trotzdem „angemeldet“, weil es nur die Erlaubnis des Browsers ansah.
+  **Jetzt:**
+  - Der Merker `senklot.pushAn` gilt für das Gerät und bleibt beim Abmelden
+    stehen.
+  - Beim Start (`pushAbgleichen`) wird das Gerät für die angemeldete Person
+    angemeldet, wenn der Server sein Zeichen nicht kennt. Das deckt auch ein
+    erneuertes Zeichen und ein vom Server abgeräumtes ab.
+  - Nur „Auf diesem Gerät abschalten“ nimmt den Merker weg und meldet bei
+    Firebase ab; dann bleibt das Gerät aus.
+  - „Bereit“ heißt: der Server kennt das Zeichen dieses Geräts für diese
+    Person.
+  - Geräte von vorher gelten als eingeschaltet, wenn sie ein gemerktes
+    Zeichen (E67) oder ein Abonnement haben, das der Server für die Person
+    kennt. Wer früher abgeschaltet hat, hat keines davon und bleibt aus.
+- **Ablehnungen von Google sah niemand.** `push-melden` antwortete immer 200,
+  die Wache zählte das als zugestellt. **Jetzt:** Lehnt Google ab, ohne dass
+  das Gerät tot ist (`abgelehnteCodes`), antwortet die Function 502 mit dem
+  Code, und „Kommen die Meldungen an?“ zeigt ihn.
+- **Die Nachricht an Google** (`fcmNachricht`, für alle Meldungen gleich):
+  - ohne `webpush.fcm_options.link`: Die Schnittstelle verlangt dort eine
+    https-Adresse, es stand ein Pfad. Angenommen hat Google ihn bisher (Push
+    kam am 29.09.2026 auf dem iPhone an), verlassen wird sich darauf nicht
+    mehr. Gebraucht wurde das Feld nie, weil der Worker anzeigt;
+  - mit `Urgency: high`, damit sie nicht erst nach dem Stromsparen kommt.
+- **Probemeldung** in „Mein Konto“ (`push-probe`): schickt auf demselben Weg
+  eine Meldung an das eigene Gerät und zeigt Googles Antwort.
+  - Gesendet wird nur an ein Zeichen, das der Server für die anrufende
+    Person kennt.
+  - Kennt Google das Gerät nicht mehr, wird es einmal frisch angemeldet und
+    die Probe wiederholt.
+
+**Grenzen mit Grund:**
+- „Google hat angenommen“ heißt noch nicht „erschienen“. Ob das Telefon sie
+  zeigt (Mitteilungen erlaubt, Fokus, „Nicht stören“), liegt beim Gerät, und
+  eine Seite kann es nicht abfragen. Die Probemeldung sagt das dazu.
+- Auf dem iPhone erscheint die Meldung auch im Gespräch selbst, ohne Ton.
+  Grund: iOS verlangt zu jeder Push-Nachricht eine Anzeige und entzieht
+  sonst das Abonnement (liegt beim Gerät).
+- Auf einem geteilten Gerät bekommt, wer sich anmeldet, die Meldungen dieses
+  Geräts, solange es nicht ausdrücklich abgeschaltet wurde. Grund: die
+  Erlaubnis gilt für das Gerät. Wer die Meldungen eines anderen nicht sehen
+  soll, bekommt sie nicht: das Abmelden meldet die vorige Person ab.
+- Ein Gerät von vorher, dem iOS das Abonnement schon entzogen hat, wird nicht
+  still wieder angemeldet: es ist von einem abgeschalteten nicht zu
+  unterscheiden. „Mein Konto“ zeigt dort jetzt „bekommt noch keine
+  Meldungen“; einmal einschalten genügt. Grund: Datenschutz.
+
+**Nachweis:**
+- `swPush.test.ts` (echter Worker, Push-Ereignis, Ort des Fensters,
+  WebKit; Gegenprobe mit dem alten Worker rot);
+- `pushMeldung.spec.ts` (angemeldete App in Chromium, Push über
+  `ServiceWorker.deliverPushMessage`; Gegenprobe mit dem alten Worker rot);
+- `PushAnmeldung.test.tsx` (Ab-/Anmelden, anderes Konto, Abschalten,
+  Abgleich, Zustand, Probe);
+- `PushOrt.test.tsx`, `MeinKontoProbe.test.tsx`;
+- `fcmVersand.test.ts`, `notifyLogic.test.ts`;
+- `pushProbe.test.ts` (Supabase: nur das eigene Gerät, bis zum Versand).
