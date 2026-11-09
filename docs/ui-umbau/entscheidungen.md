@@ -2543,6 +2543,12 @@ dann ging es schief. Gefunden:
   - Kennt Google das Gerät nicht mehr, wird es einmal frisch angemeldet und
     die Probe wiederholt.
 
+**Mitgenommen:** Der Monatskalender rundete unten noch: Die Kästchen in den
+unteren Ecken rundeten selbst mit, aus der Zeit, als der Rahmen rund war und
+die Markierung des Tages in der Ecke abschnitt. Der Rahmen ist seit E33
+eckig, also standen sie rund aus der Hülle. Jetzt ist alles eckig, auch im
+Fenster (`rounded-none`). Nachweis: `MonthCalendar.test.tsx`, Gegenprobe rot.
+
 **Grenzen mit Grund:**
 - „Google hat angenommen“ heißt noch nicht „erschienen“. Ob das Telefon sie
   zeigt (Mitteilungen erlaubt, Fokus, „Nicht stören“), liegt beim Gerät, und
