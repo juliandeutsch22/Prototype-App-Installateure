@@ -9,7 +9,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { useToast } from '@/components/Toast';
 import { datumAT } from '@/lib/datum';
-import { SOFORT_GELOESCHT, auskunftDateiname, zeigtAuskunft } from './auskunftDatei';
+import { auskunftDateiname, sofortBezeichnung, zeigtAuskunft } from './auskunftDatei';
 
 /**
  * Datenschutz je Person — Auskunft (Art. 15) und Löschung (Art. 17) — in der
@@ -86,9 +86,21 @@ export default function Datenauskunft({
     }
   }
 
-  const sofort = probe
-    ? Object.entries(probe.sofort).filter(([, n]) => n > 0)
-    : [];
+  /*
+    EIN UNBEKANNTER SCHLÜSSEL ERSCHEINT NICHT ROH. Kommt aus der Datenbank ein
+    Teil, den die Oberfläche noch nicht benennen kann, zählt er unter
+    „Weitere Einträge“ mit — die Zahl stimmt, nur der Name fehlt. Dass das
+    nicht vorkommt, prüft `tests/unit/loeschBezeichnungen.test.ts`.
+  */
+  const sofort: Array<[string, number]> = [];
+  let weitere = 0;
+  for (const [schluessel, n] of probe ? Object.entries(probe.sofort) : []) {
+    if (!(n > 0)) continue;
+    const name = sofortBezeichnung(art, schluessel);
+    if (name) sofort.push([name, n]);
+    else weitere += n;
+  }
+  if (weitere > 0) sofort.push(['Weitere Einträge', weitere]);
 
   return (
     <Card
@@ -154,9 +166,9 @@ export default function Datenauskunft({
                     <p className="text-ink-muted">Nichts — es gibt nichts, was sofort gehen darf.</p>
                   ) : (
                     <ul className="list-disc pl-5">
-                      {sofort.map(([schluessel, n]) => (
-                        <li key={schluessel}>
-                          {SOFORT_GELOESCHT[schluessel] ?? schluessel}: {n}
+                      {sofort.map(([name, n]) => (
+                        <li key={name}>
+                          {name}: {n}
                         </li>
                       ))}
                     </ul>
@@ -164,11 +176,18 @@ export default function Datenauskunft({
                 </div>
                 {probe.aufbewahren.length > 0 && (
                   <div>
-                    <p className="font-semibold">Bleibt gesperrt (§ 132 BAO)</p>
+                    {/*
+                      NICHT ALLES BLEIBT NACH § 132 BAO: gemeldete Nachrichten
+                      bleiben, bis die Geschäftsführung die Meldung erledigt
+                      (Art. 17 Abs. 3 lit. e DSGVO), ohne festes Ende. Deshalb
+                      steht der Grund je Eintrag, und „bis“ nur, wo es eines gibt.
+                    */}
+                    <p className="font-semibold">Bleibt gesperrt</p>
                     <ul className="list-disc pl-5">
                       {probe.aufbewahren.map((a) => (
                         <li key={a.was}>
-                          {a.was}: {a.anzahl}, bis {datumAT(a.bis)}
+                          {a.was}: {a.anzahl}{a.bis ? `, bis ${datumAT(a.bis)}` : ''}
+                          {a.grund && <span className="block text-ink-muted">{a.grund}</span>}
                         </li>
                       ))}
                     </ul>

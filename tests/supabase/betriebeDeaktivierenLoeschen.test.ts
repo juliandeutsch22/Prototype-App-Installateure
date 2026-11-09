@@ -34,6 +34,12 @@ let ehemaligeRuht: Konto;
 let chefinTest: Konto;
 let db: Client;
 let foto = '';
+/** Ein Freistellungsnachweis — der Betrieb steht dort an erster Stelle des Pfads, nicht an zweiter. */
+let nachweis = '';
+let nachweisBleibt = '';
+/** Ein Anhang aus einem Baustellen-Thread und einer aus einem privaten Gespräch. */
+let anhang = '';
+let anhangPrivat = '';
 
 async function rufe(fn: string, token: string, rumpf: unknown) {
   const antwort = await fetch(`${API}/functions/v1/${fn}`, {
@@ -118,10 +124,33 @@ beforeAll(async () => {
   const { error: uf } = await admin.storage.from('scheinfotos')
     .upload(foto, new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: 'image/jpeg' }), { upsert: true });
   if (uf) throw new Error(uf.message);
+
+  /*
+    JEDER EIMER MIT SEINER EIGENEN PFADFORM. Der Freistellungsnachweis liegt
+    unter `{betrieb}/{person}/{antrag}/…`, alle anderen unter `{art}/{betrieb}/…`.
+    Eine Löschung, die den Betrieb nur an zweiter Stelle sucht, liesse den
+    Nachweis — Gesundheitsdaten — im Speicher liegen. Der Nachweis des anderen
+    Betriebs prüft die Gegenrichtung: er bleibt.
+  */
+  const pdf = () => new Blob([new Uint8Array([0x25, 0x50, 0x44, 0x46])], { type: 'application/pdf' });
+  nachweis = `${LOESCHEN}/${monteur.uid}/${crypto.randomUUID()}/nachweis.pdf`;
+  nachweisBleibt = `${BLEIBT}/${chefinBleibt.uid}/${crypto.randomUUID()}/nachweis.pdf`;
+  anhang = `nachrichten/${LOESCHEN}/${crypto.randomUUID()}/${crypto.randomUUID()}/plan.pdf`;
+  anhangPrivat = `nachrichten/${LOESCHEN}/${crypto.randomUUID()}/${crypto.randomUUID()}/notiz.pdf`;
+  for (const [eimer, pfad] of [
+    ['freistellungsnachweise', nachweis], ['freistellungsnachweise', nachweisBleibt],
+    ['nachrichten', anhang], ['nachrichten-privat', anhangPrivat],
+  ] as const) {
+    const { error } = await admin.storage.from(eimer).upload(pfad, pdf(), { contentType: 'application/pdf', upsert: true });
+    if (error) throw new Error(`${eimer}: ${error.message}`);
+  }
 }, 180_000);
 
 afterAll(async () => {
-  try { if (db) await pruefFotosRaeumen(db); } finally { await db?.end(); }
+  try {
+    if (nachweisBleibt) await admin.storage.from('freistellungsnachweise').remove([nachweisBleibt]);
+    if (db) await pruefFotosRaeumen(db);
+  } finally { await db?.end(); }
 });
 
 describe('Deaktivieren', () => {
@@ -204,7 +233,8 @@ describe('Löschen', () => {
 
     const r = await rufe('daten-ausleitung', plattform.token, { betrieb: LOESCHEN, grund: 'Übergabe vor Löschung' });
     expect(r.status).toBe(200);
-    expect(r.daten.dateien).toBe(1);
+    // Das Scheinfoto und der Anhang aus dem Baustellen-Thread; Nachweis und privater Anhang gehen nicht in die Übergabe.
+    expect(r.daten.dateien).toBe(2);
     expect(Number(r.daten.zeilen)).toBeGreaterThan(5);
     expect(String(r.daten.datenLink)).toMatch(/^http/);
     // Lokal trägt der Link den Rechnernamen innerhalb des Stapels; gehostet ist es die öffentliche Adresse.
@@ -248,6 +278,24 @@ describe('Löschen', () => {
     expect(Object.keys(await zeilenJeTabelle(LOESCHEN)).length).toBeGreaterThan(5);
   });
 
+  it('der Plan nennt jede Datei des Betriebs, in jeder Pfadform — und keine fremde', async () => {
+    const { data, error } = await admin.rpc('betrieb_loeschen_pruefen', {
+      p_admin: plattform.uid, p_kennung: LOESCHEN, p_bestaetigung: LOESCHEN, p_grund: 'Antrag',
+    });
+    expect(error).toBeNull();
+    const plan = (data as { dateien: Array<{ eimer: string; pfad: string }> }).dateien;
+    const pfade = plan.map((d) => `${d.eimer}:${d.pfad}`);
+    expect(pfade).toEqual(expect.arrayContaining([
+      `scheinfotos:${foto}`,
+      `freistellungsnachweise:${nachweis}`,
+      `nachrichten:${anhang}`,
+      `nachrichten-privat:${anhangPrivat}`,
+    ]));
+    // Die Übergabe selbst liegt unter `uebergabe/{betrieb}/…` und geht mit.
+    expect(plan.some((d) => d.eimer === 'ausleitung' && d.pfad.startsWith(`uebergabe/${LOESCHEN}/`))).toBe(true);
+    expect(pfade).not.toContain(`freistellungsnachweise:${nachweisBleibt}`);
+  });
+
   it('löscht Zeilen, Dateien und Anmeldekonten — und nichts vom anderen Betrieb', async () => {
     const bleibtVorher = await zeilenJeTabelle(BLEIBT);
 
@@ -263,16 +311,24 @@ describe('Löschen', () => {
     expect(await zeilenJeTabelle(LOESCHEN)).toEqual({});
     const { rows: firma } = await db.query('select 1 from public.companies where id = $1', [LOESCHEN]);
     expect(firma).toEqual([]);
+    /*
+      NICHT ÜBER `foldername[2]` GEFRAGT — genau diese Annahme liess den
+      Freistellungsnachweis liegen. Gesucht wird die Kennung irgendwo im Pfad,
+      so fällt eine Datei in jeder Pfadform auf.
+    */
     const { rows: dateien } = await db.query(
-      `select name from storage.objects where (storage.foldername(name))[2] = $1`, [LOESCHEN]);
+      `select bucket_id, name from storage.objects where position($1 in name) > 0`, [LOESCHEN]);
     expect(dateien).toEqual([]);
     for (const uid of [chefin.uid, monteur.uid]) {
       const { data } = await admin.auth.admin.getUserById(uid);
       expect(data.user).toBeNull();
     }
 
-    // Der andere Betrieb: unverändert.
+    // Der andere Betrieb: unverändert, auch sein Nachweis im Speicher.
     expect(await zeilenJeTabelle(BLEIBT)).toEqual(bleibtVorher);
+    const { rows: bleibtDatei } = await db.query(
+      `select 1 from storage.objects where bucket_id = 'freistellungsnachweise' and name = $1`, [nachweisBleibt]);
+    expect(bleibtDatei).toHaveLength(1);
     const { data: bleibt } = await chefinBleibt.client.from('customers').select('id');
     expect((bleibt ?? []).length).toBe(1);
   });

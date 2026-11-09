@@ -295,10 +295,10 @@ export default function BenutzerakteView() {
           </Button>
         )}
         {eigenesKonto ? (
-          // Wer sich selbst sperrt, ist ausgesperrt — und niemand sonst
-          // muss den Fehler beheben können.
+          // Wer sich selbst sperrt oder aus der Leitung nimmt, ist ausgesperrt —
+          // und niemand sonst muss den Fehler beheben können.
           <span className="text-sm text-ink-muted">
-            Das eigene Konto lässt sich nicht sperren.
+            Das eigene Konto lässt sich nicht sperren, und die eigene Rolle ändert eine zweite Leitung.
           </span>
         ) : (
           <Button
@@ -621,8 +621,16 @@ function StammdatenFormular({
             onChange={() => undefined}
           />
         )}
+        {/*
+          DIE EIGENE ROLLE ÄNDERT EINE ZWEITE LEITUNG — wie beim Status: wer
+          sich selbst aus der Leitung nimmt, kann es nicht mehr zurückstellen,
+          und bei nur einer Leitung ist der Betrieb draussen. Die Datenbank
+          zieht dieselbe Grenze (`app.eigene_rolle_geschuetzt`).
+        */}
         <SelectField
           id="b-rolle" label="Rolle" value={entwurf.role}
+          disabled={eigenesKonto}
+          title={eigenesKonto ? 'Die eigene Rolle ändert eine zweite Leitung.' : undefined}
           onChange={(e) => setze('role', e.target.value as Role)}
         >
           {rollen.map((r) => <option key={r} value={r}>{r}</option>)}

@@ -504,6 +504,46 @@ describe('Der Zugang', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Zugang und Rechte' }));
     expect(screen.getByRole('button', { name: 'Passwort-Mail senden' })).toBeInTheDocument();
   });
+
+  it('lässt die EIGENE Rolle nicht ändern — das macht eine zweite Leitung (Prüfbefund 09.11.2026)', async () => {
+    /*
+      Wer sich selbst zum Monteur macht, hat danach kein Recht mehr, es
+      zurückzustellen; bei nur einer Geschäftsführung ist der Betrieb
+      draussen. Die Datenbank zieht dieselbe Grenze
+      (`tests/supabase/eigeneRolle.test.ts`); hier wird sie sichtbar.
+    */
+    gefunden = person({ uid: 'gf1', name: 'Chefin', role: 'Geschäftsführung' });
+    zeige('gf1');
+    await bearbeite();
+
+    expect(await screen.findByRole('textbox', { name: /^Name/ })).toBeInTheDocument();
+    const rolle = screen.getByRole('combobox', { name: /Rolle/ });
+    expect(rolle).toBeDisabled();
+    expect(rolle).toHaveAttribute('title', 'Die eigene Rolle ändert eine zweite Leitung.');
+    expect(screen.getByText(/die eigene Rolle ändert eine zweite Leitung/)).toBeInTheDocument();
+
+    // Der Rest der eigenen Akte bleibt bearbeitbar — und gespeichert wird die Rolle, wie sie ist.
+    const name = screen.getByRole('textbox', { name: /^Name/ });
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Chefin Neu');
+    await userEvent.click(await screen.findByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
+    expect(profilAendern.mock.calls[0][1]).toMatchObject({ name: 'Chefin Neu', role: 'Geschäftsführung' });
+  });
+
+  it('Gegenprobe: die Rolle einer anderen Person bleibt wählbar', async () => {
+    gefunden = person({ uid: 'gf2', name: 'Zweite Leitung', role: 'Geschäftsführung' });
+    zeige('gf2');
+    await bearbeite();
+
+    const rolle = await screen.findByRole('combobox', { name: /Rolle/ });
+    expect(rolle).toBeEnabled();
+    expect(rolle).not.toHaveAttribute('title');
+    await userEvent.selectOptions(rolle, 'Verwaltung');
+    await userEvent.click(await screen.findByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
+    expect(profilAendern.mock.calls[0][1]).toMatchObject({ role: 'Verwaltung' });
+  });
 });
 
 describe('Wenn es die Person nicht gibt', () => {

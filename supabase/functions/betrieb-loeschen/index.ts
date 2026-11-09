@@ -8,9 +8,10 @@
  *   - die Kennung ist zur Bestätigung genau eingetippt, ein Grund genannt.
  *
  * DANN IN DIESER REIHENFOLGE:
- *   1. die Dateien (Scheinfotos, Baustellendokumente, eigene Sicherungen und
- *      Übergaben) — über die Schnittstelle des Speichers, in dessen Tabellen
- *      niemand direkt schreibt;
+ *   1. die Dateien (Scheinfotos, Baustellendokumente, Freistellungsnachweise,
+ *      Nachrichtenanhänge, eigene Sicherungen und Übergaben — welche Datei zu
+ *      welchem Betrieb gehört, sagt `app.datei_betrieb`) — über die
+ *      Schnittstelle des Speichers, in dessen Tabellen niemand direkt schreibt;
  *   2. die Zeilen, in EINER Transaktion (`betrieb_loeschen_ausfuehren`), mit
  *      Löschprotokoll ohne Inhalte; die Kennung ist danach gesperrt;
  *   3. die Anmeldekonten über den Anmeldedienst. Bis dahin sind sie seit dem

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { ToastProvider } from '@/components/Toast';
 import Datenauskunft from '@/features/recht/Datenauskunft';
 import { auskunftDateiname, zeigtAuskunft } from '@/features/recht/auskunftDatei';
@@ -135,6 +135,84 @@ describe('Das Löschen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Löschen …' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Zuerst das Konto deaktivieren');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('Der Löschdialog nennt jeden Teil beim Namen (Prüfbefund 09.11.2026)', () => {
+  const zeichneMitarbeiter = () =>
+    render(
+      <ToastProvider>
+        <Datenauskunft art="mitarbeiter" id="u-1" />
+      </ToastProvider>,
+    );
+  const probe = (teil: Record<string, unknown>) => ({
+    art: 'mitarbeiter', person: 'Max', geloescht: false, ganz: false, hinweis: 'Das Konto bleibt deaktiviert.',
+    sofort: {}, aufbewahren: [], ...teil,
+  });
+
+  it('ohne Ende kein „bis“, und jeder Eintrag sagt seinen Grund', async () => {
+    loeschen.mockResolvedValue(probe({
+      aufbewahren: [
+        { was: 'Zeitbuchungen', anzahl: 12, bis: '2033-12-31', grund: '§ 132 BAO — sieben Jahre ab Ende des Kalenderjahrs' },
+        { was: 'Gemeldete Nachrichten', anzahl: 2, bis: null,
+          grund: 'Art. 17 Abs. 3 lit. e DSGVO — bis die Geschäftsführung die Meldung als erledigt löscht' },
+      ],
+    }));
+    zeichneMitarbeiter();
+    fireEvent.click(screen.getByRole('button', { name: /Löschen/ }));
+    const dialog = await screen.findByRole('dialog');
+
+    const eintraege = within(dialog).getAllByRole('listitem');
+    const meldungen = eintraege.find((e) => e.textContent?.startsWith('Gemeldete Nachrichten'))!;
+    expect(meldungen).toHaveTextContent('Gemeldete Nachrichten: 2');
+    expect(meldungen).not.toHaveTextContent(/bis \d|Invalid|–/);
+    expect(meldungen).toHaveTextContent('Art. 17 Abs. 3 lit. e DSGVO');
+    const zeiten = eintraege.find((e) => e.textContent?.startsWith('Zeitbuchungen'))!;
+    expect(zeiten).toHaveTextContent('Zeitbuchungen: 12, bis 31.12.2033');
+    expect(zeiten).toHaveTextContent('§ 132 BAO');
+    // Die Überschrift behauptet nicht für alle Einträge denselben Grund.
+    expect(within(dialog).getByText('Bleibt gesperrt')).toBeInTheDocument();
+    expect(within(dialog).queryByText(/Bleibt gesperrt \(§ 132 BAO\)/)).not.toBeInTheDocument();
+  });
+
+  it('die neueren Teile einer Person heissen, was sie sind — nicht wie ihr Schlüssel', async () => {
+    loeschen.mockResolvedValue(probe({
+      sofort: { termine: 3, geburtsdatum: 1, standardfahrer: 1, nachrichten: 4, nachrichten_teilnehmer: 2, startseite: 1 },
+    }));
+    zeichneMitarbeiter();
+    fireEvent.click(screen.getByRole('button', { name: /Löschen/ }));
+    const dialog = await screen.findByRole('dialog');
+
+    // Bei einer Person bleibt der Termin; nur ihre Teilnahme geht.
+    expect(dialog).toHaveTextContent('Teilnahmen an Terminen: 3');
+    expect(dialog).toHaveTextContent('Geburtsdatum: 1');
+    expect(dialog).toHaveTextContent('Eintragungen als Standardfahrer eines Fahrzeugs: 1');
+    expect(dialog).toHaveTextContent('Eigene Nachrichten (Text und Anhänge): 4');
+    expect(dialog).toHaveTextContent('Teilnahmen an Gesprächen: 2');
+    expect(dialog).toHaveTextContent('Eingerichtete Startseite: 1');
+    expect(dialog).not.toHaveTextContent(/nachrichten_teilnehmer|standardfahrer|startseite/);
+  });
+
+  it('beim Kunden gehen die Termine selbst', async () => {
+    loeschen.mockResolvedValue({
+      art: 'kunde', person: 'Familie Huber', geloescht: false, ganz: false, hinweis: '',
+      sofort: { termine: 2 }, aufbewahren: [],
+    });
+    zeichne();
+    fireEvent.click(screen.getByRole('button', { name: 'Löschen …' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('Termine: 2');
+    expect(dialog).not.toHaveTextContent('Teilnahmen');
+  });
+
+  it('ein unbekannter Schlüssel erscheint nicht roh, die Zahl zählt trotzdem mit', async () => {
+    loeschen.mockResolvedValue(probe({ sofort: { einsaetze: 1, kuenftig_neu: 3, noch_einer: 2 } }));
+    zeichneMitarbeiter();
+    fireEvent.click(screen.getByRole('button', { name: /Löschen/ }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('Einsätze: 1');
+    expect(dialog).toHaveTextContent('Weitere Einträge: 5');
+    expect(dialog).not.toHaveTextContent(/kuenftig_neu|noch_einer/);
   });
 });
 
