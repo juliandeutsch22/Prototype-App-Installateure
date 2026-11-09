@@ -22,8 +22,8 @@
       "bytes": 16293
     },
     "ausgangsbuch.csv": {
-      "sha256": "a4fd54c424998055574e39a13c384ab140e647e4049884f0656e36b17a02c9c1",
-      "bytes": 1034
+      "sha256": "c3b4b7753829b64a35330fc64e0a099023edb77833af4057483a6e1dc612e88c",
+      "bytes": 1069
     },
     "bmd-buchungen.csv": {
       "sha256": "8e6ed0d2fe209e05bbec27a33198319aaff1405bfdcf9d332e90199b5455a0d9",
@@ -38,8 +38,8 @@
       "bytes": 1275
     },
     "belegarchiv.zip": {
-      "sha256": "07255e8c522920912c4414ab1e304efa769957d006437199d11484ed3290e99c",
-      "bytes": 48899
+      "sha256": "2641044b67975539753a5a2b55b225aecc19550b0872db4e9a128ed76d034084",
+      "bytes": 49001
     }
   }
 }
