@@ -59,13 +59,18 @@ const LEER: Zeile = { konto: '', steuercode: '' };
  */
 const VORSCHLAG = {
   debitoren: { konto: '2000', steuercode: '' },
-  anzahlung: { konto: '3500', steuercode: 'M20' },
   reverse: { konto: '4005', steuercode: 'M00' },
+  anzahlungRc: { konto: '3505', steuercode: 'M00' },
   bank: { konto: '2800', steuercode: '' },
   skonto: { konto: '4420', steuercode: '' },
+  mahnkosten: { konto: '4880', steuercode: '' },
   saetze: [
     { satz: '20', konto: '4000', steuercode: 'M20' },
     { satz: '0', konto: '4009', steuercode: 'M00' },
+  ],
+  anzahlungen: [
+    { satz: '20', konto: '3500', steuercode: 'M20' },
+    { satz: '0', konto: '3509', steuercode: 'M00' },
   ],
 };
 
@@ -79,6 +84,36 @@ function alsAnteil(satz: string): number | null {
 const alsProzent = (anteil: number | null | undefined) =>
   anteil == null ? '' : String(Math.round((anteil ?? 0) * 10000) / 100);
 
+/** Was an einer Liste je Steuersatz nicht stimmt — `null`, wenn alles passt. */
+function satzEinwand(zeilen: Satzzeile[], wofuer: string): string | null {
+  for (const s of zeilen) {
+    if (s.konto.trim() === '') continue;
+    if (alsAnteil(s.satz) === null) return `„${s.satz}“ ist kein Steuersatz zwischen 0 und 100.`;
+  }
+  const doppelt = zeilen
+    .filter((s) => s.konto.trim() !== '')
+    .map((s) => alsAnteil(s.satz))
+    .filter((a): a is number => a !== null);
+  if (new Set(doppelt).size !== doppelt.length) {
+    return `Zwei ${wofuer} für denselben Steuersatz — das ist keine Auswahl, sondern eine offene Frage beim nächsten Export.`;
+  }
+  return null;
+}
+
+/** Die Zeilen eines Zwecks je Steuersatz, höchster Satz zuerst. */
+function nachSatz(rows: WithId<Buchungskonto>[], zweck: Buchungskonto['zweck']): Satzzeile[] {
+  return rows
+    .filter((r) => r.zweck === zweck)
+    /*
+      EIN ANZAHLUNGSKONTO OHNE SATZ stammt aus der Zeit, als es nur eines gab
+      (bis 09.11.2026). Der Buchungsstapel nimmt es für 20 % — so steht es
+      auch hier, und mit dem nächsten Speichern trägt es den Satz.
+    */
+    .map((r) => ({ r, satz: r.ustSatz ?? (zweck === 'anzahlung' ? 0.2 : 0) }))
+    .sort((a, b) => b.satz - a.satz)
+    .map(({ r, satz }) => ({ id: r.id, satz: alsProzent(satz), konto: r.konto, steuercode: r.steuercode ?? '' }));
+}
+
 export default function KontenrahmenView() {
   const { user } = useAuth();
   const toast = useToast();
@@ -91,11 +126,20 @@ export default function KontenrahmenView() {
   const [speichert, setSpeichert] = useState(false);
 
   const [debitoren, setDebitoren] = useState<Zeile>(LEER);
-  const [anzahlung, setAnzahlung] = useState<Zeile>(LEER);
   const [reverse, setReverse] = useState<Zeile>(LEER);
+  /*
+    ERHALTENE ANZAHLUNGEN JE STEUERBEHANDLUNG (Durchsicht 09.11.2026): eines
+    für Bauleistungen mit Übergang der Steuerschuld, sonst je Steuersatz —
+    gewählt wie das Erlöskonto. Bis dahin gab es eines für alle, und eine
+    Anzahlung ohne Steuer bekam dessen M20.
+  */
+  const [anzahlungRc, setAnzahlungRc] = useState<Zeile>(LEER);
+  const [anzahlungen, setAnzahlungen] = useState<Satzzeile[]>([]);
   /** Für den Zahlungsstapel (Testbericht 30.09.2026, H7 vorgebaut). */
   const [bank, setBank] = useState<Zeile>(LEER);
   const [skonto, setSkonto] = useState<Zeile>(LEER);
+  /** Bezahlte Mahnspesen und Verzugszinsen — ein Ertrag, keine Zahlung auf die Rechnung (09.11.2026). */
+  const [mahnkosten, setMahnkosten] = useState<Zeile>(LEER);
   const [saetze, setSaetze] = useState<Satzzeile[]>([]);
 
   useEffect(() => {
@@ -108,40 +152,22 @@ export default function KontenrahmenView() {
           return r ? { id: r.id, konto: r.konto, steuercode: r.steuercode ?? '' } : LEER;
         };
         setDebitoren(eines('debitoren'));
-        setAnzahlung(eines('anzahlung'));
         setReverse(eines('reverse_charge'));
+        setAnzahlungRc(eines('anzahlung_rc'));
+        setAnzahlungen(nachSatz(rows, 'anzahlung'));
         setBank(eines('bank'));
         setSkonto(eines('skonto'));
-        setSaetze(
-          rows
-            .filter((r) => r.zweck === 'erloes')
-            .sort((a, b) => (b.ustSatz ?? 0) - (a.ustSatz ?? 0))
-            .map((r) => ({
-              id: r.id,
-              satz: alsProzent(r.ustSatz),
-              konto: r.konto,
-              steuercode: r.steuercode ?? '',
-            })),
-        );
+        setMahnkosten(eines('mahnkosten'));
+        setSaetze(nachSatz(rows, 'erloes'));
       })
       .catch((e: Error) => setFehler(e.message));
   }, [betrieb]);
 
   /** Was beim Speichern abgewiesen würde — lieber vorher sagen. */
-  const einwand = useMemo(() => {
-    for (const s of saetze) {
-      if (s.konto.trim() === '') continue;
-      if (alsAnteil(s.satz) === null) return `„${s.satz}“ ist kein Steuersatz zwischen 0 und 100.`;
-    }
-    const doppelt = saetze
-      .filter((s) => s.konto.trim() !== '')
-      .map((s) => alsAnteil(s.satz))
-      .filter((a): a is number => a !== null);
-    if (new Set(doppelt).size !== doppelt.length) {
-      return 'Zwei Erlöskonten für denselben Steuersatz — das ist keine Auswahl, sondern eine offene Frage beim nächsten Export.';
-    }
-    return null;
-  }, [saetze]);
+  const einwand = useMemo(
+    () => satzEinwand(saetze, 'Erlöskonten') ?? satzEinwand(anzahlungen, 'Anzahlungskonten'),
+    [saetze, anzahlungen],
+  );
 
   async function speichern(e: FormEvent) {
     e.preventDefault();
@@ -165,22 +191,27 @@ export default function KontenrahmenView() {
         });
       };
       nimm(debitoren, 'debitoren');
-      nimm(anzahlung, 'anzahlung');
       nimm(reverse, 'reverse_charge');
+      nimm(anzahlungRc, 'anzahlung_rc');
       nimm(bank, 'bank');
       nimm(skonto, 'skonto');
-      for (const s of saetze) {
-        if (s.konto.trim() === '') continue;
-        gewollt.push({
-          id: s.id,
-          daten: {
-            zweck: 'erloes',
-            ustSatz: alsAnteil(s.satz),
-            konto: s.konto.trim(),
-            steuercode: s.steuercode.trim() || null,
-          },
-        });
-      }
+      nimm(mahnkosten, 'mahnkosten');
+      const jeSatz = (zeilen: Satzzeile[], zweck: Buchungskonto['zweck']) => {
+        for (const s of zeilen) {
+          if (s.konto.trim() === '') continue;
+          gewollt.push({
+            id: s.id,
+            daten: {
+              zweck,
+              ustSatz: alsAnteil(s.satz),
+              konto: s.konto.trim(),
+              steuercode: s.steuercode.trim() || null,
+            },
+          });
+        }
+      };
+      jeSatz(saetze, 'erloes');
+      jeSatz(anzahlungen, 'anzahlung');
 
       const behalten = new Set(gewollt.map((g) => g.id).filter(Boolean));
       for (const alt of geladen) {
@@ -203,16 +234,15 @@ export default function KontenrahmenView() {
   function vorschlagEinsetzen() {
     setVorschlagDrin(true);
     setDebitoren((z) => ({ ...z, ...VORSCHLAG.debitoren }));
-    setAnzahlung((z) => ({ ...z, ...VORSCHLAG.anzahlung }));
     setReverse((z) => ({ ...z, ...VORSCHLAG.reverse }));
+    setAnzahlungRc((z) => ({ ...z, ...VORSCHLAG.anzahlungRc }));
     setBank((z) => ({ ...z, ...VORSCHLAG.bank }));
     setSkonto((z) => ({ ...z, ...VORSCHLAG.skonto }));
-    setSaetze((alt) =>
-      VORSCHLAG.saetze.map((v) => {
-        const vorhanden = alt.find((a) => a.satz === v.satz);
-        return { ...v, id: vorhanden?.id };
-      }),
-    );
+    setMahnkosten((z) => ({ ...z, ...VORSCHLAG.mahnkosten }));
+    const mitIds = (vorschlag: Omit<Satzzeile, 'id'>[]) => (alt: Satzzeile[]) =>
+      vorschlag.map((v) => ({ ...v, id: alt.find((a) => a.satz === v.satz)?.id }));
+    setSaetze(mitIds(VORSCHLAG.saetze));
+    setAnzahlungen(mitIds(VORSCHLAG.anzahlungen));
   }
 
   if (geladen === null) {
@@ -282,34 +312,6 @@ export default function KontenrahmenView() {
           <div className="flex flex-wrap items-end gap-x-2 gap-y-3">
             <div className="min-w-[10rem] grow">
               <InputField
-                id="k-anzahlung"
-                label="Erhaltene Anzahlungen"
-                placeholder="z. B. 3500"
-                value={anzahlung.konto}
-                onChange={(e) => setAnzahlung({ ...anzahlung, konto: e.target.value })}
-              />
-            </div>
-            <div className="w-32">
-              <InputField
-                id="k-anzahlung-code"
-                label="Steuercode"
-                placeholder="z. B. M20"
-                value={anzahlung.steuercode}
-                onChange={(e) => setAnzahlung({ ...anzahlung, steuercode: e.target.value })}
-              />
-            </div>
-            <InfoHint about="erhaltene Anzahlungen">
-              Was der Kunde vorab zahlt, ist eine <strong>Verbindlichkeit</strong> und kein Erlös,
-              solange die Leistung aussteht. Die Umsatzsteuer schuldet der Betrieb trotzdem schon
-              — darum trägt auch diese Zeile einen Steuercode. Mit der Schlussrechnung wird der
-              Betrag von hier in den Erlös umgebucht; ohne diese Umbuchung bliebe das Konto für
-              immer stehen und der Umsatz wäre zu niedrig.
-            </InfoHint>
-          </div>
-
-          <div className="flex flex-wrap items-end gap-x-2 gap-y-3">
-            <div className="min-w-[10rem] grow">
-              <InputField
                 id="k-rc"
                 label="Bauleistung mit Übergang der Steuerschuld"
                 placeholder="z. B. 4005"
@@ -333,6 +335,99 @@ export default function KontenrahmenView() {
               eigenes Konto.
             </InfoHint>
           </div>
+        </div>
+      </Card>
+
+      <Card
+        title="Erhaltene Anzahlungen je Steuerbehandlung"
+        hint={
+          <>
+            Was der Kunde vorab zahlt, ist eine <strong>Verbindlichkeit</strong> und kein Erlös,
+            solange die Leistung aussteht. Die Umsatzsteuer schuldet der Betrieb trotzdem schon —
+            darum trägt das Konto einen Steuercode, und zwar den der Steuerbehandlung der
+            Anzahlung: <strong>je Steuersatz ein Konto, dazu eines für Bauleistungen mit Übergang
+            der Steuerschuld</strong>, gewählt wie das Erlöskonto. Mit der Schlussrechnung wird
+            der Betrag von genau diesem Konto in den Erlös umgebucht. Ein früher hinterlegtes
+            Anzahlungskonto ohne Satz gilt für 20 % und steht deshalb unter 20 %.
+          </>
+        }
+      >
+        <div className="formular space-y-4">
+          <div className="flex flex-wrap items-end gap-x-2 gap-y-3">
+            <div className="min-w-[10rem] grow">
+              <InputField
+                id="k-anzahlung-rc"
+                label="Anzahlungen auf Bauleistungen mit Übergang der Steuerschuld"
+                placeholder="z. B. 3505"
+                value={anzahlungRc.konto}
+                onChange={(e) => setAnzahlungRc({ ...anzahlungRc, konto: e.target.value })}
+              />
+            </div>
+            <div className="w-32">
+              <InputField
+                id="k-anzahlung-rc-code"
+                label="Steuercode"
+                placeholder="z. B. M00"
+                value={anzahlungRc.steuercode}
+                onChange={(e) => setAnzahlungRc({ ...anzahlungRc, steuercode: e.target.value })}
+              />
+            </div>
+          </div>
+          {anzahlungen.map((s, n) => (
+            <div key={s.id ?? `neu-${n}`} className="flex flex-wrap items-end gap-2">
+              <div className="w-24">
+                <InputField
+                  id={`k-anz-satz-${n}`}
+                  label="Steuersatz %"
+                  inputMode="decimal"
+                  value={s.satz}
+                  onChange={(e) =>
+                    setAnzahlungen(anzahlungen.map((x, i) => (i === n ? { ...x, satz: e.target.value } : x)))
+                  }
+                />
+              </div>
+              <div className="min-w-[8rem] grow">
+                <InputField
+                  id={`k-anz-konto-${n}`}
+                  label="Anzahlungskonto"
+                  placeholder="z. B. 3500"
+                  value={s.konto}
+                  onChange={(e) =>
+                    setAnzahlungen(anzahlungen.map((x, i) => (i === n ? { ...x, konto: e.target.value } : x)))
+                  }
+                />
+              </div>
+              <div className="w-32">
+                <InputField
+                  id={`k-anz-code-${n}`}
+                  label="Steuercode"
+                  placeholder="z. B. M20"
+                  value={s.steuercode}
+                  onChange={(e) =>
+                    setAnzahlungen(
+                      anzahlungen.map((x, i) => (i === n ? { ...x, steuercode: e.target.value } : x)),
+                    )
+                  }
+                />
+              </div>
+              <IconButton
+                label={`Anzahlungskonto für ${s.satz || '?'} % entfernen`}
+                tone="danger"
+                onClick={() => setAnzahlungen(anzahlungen.filter((_, i) => i !== n))}
+              >
+                ✕
+              </IconButton>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setAnzahlungen([...anzahlungen, { satz: '', konto: '', steuercode: '' }])}
+          >
+            + Anzahlungskonto
+          </Button>
         </div>
       </Card>
 
@@ -371,6 +466,23 @@ export default function KontenrahmenView() {
             <InfoHint about="das Skontokonto">
               Der Steuercode kommt aus dem Erlöskonto der jeweiligen Rechnung — so berichtigt die
               Buchhaltung die Umsatzsteuer im Satz, mit dem die Rechnung gestellt wurde.
+            </InfoHint>
+          </div>
+          <div className="flex flex-wrap items-end gap-x-2">
+            <div className="min-w-[10rem] grow">
+              <InputField
+                id="k-mahnkosten"
+                label="Mahnspesen und Verzugszinsen (Ertrag)"
+                placeholder="z. B. 4880"
+                value={mahnkosten.konto}
+                onChange={(e) => setMahnkosten({ ...mahnkosten, konto: e.target.value })}
+              />
+            </div>
+            <InfoHint about="das Konto für Mahnspesen und Verzugszinsen">
+              Zahlt der Kunde mit dem Rest auch die Mahnspesen und Verzugszinsen der letzten Mahnung,
+              ist das kein Geld auf die Rechnung, sondern ein eigener Ertrag. Er trägt keine
+              Umsatzsteuer: Mahnspesen und Zinsen sind Schadenersatz, kein Entgelt für eine
+              Leistung. Ob deine Kanzlei dafür ein anderes Konto führt, weiß nur sie.
             </InfoHint>
           </div>
         </div>

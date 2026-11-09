@@ -166,6 +166,8 @@ export function mahnungInhalt(o: MahnungOptionen): MahnungInhalt {
     zeilen,
     offen: Math.round((gefordert + spesen + pauschale + (zinsen?.betrag ?? 0)) * 100) / 100,
     kosten: Math.round((spesen + pauschale) * 100) / 100,
+    // Als Zahl festgehalten (09.11.2026): bis dahin begrenzt ein Eingang „Mahnkosten“ (`mahnforderung`).
+    zinsen: Math.round((zinsen?.betrag ?? 0) * 100) / 100,
   };
 }
 

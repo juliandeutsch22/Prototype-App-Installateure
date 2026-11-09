@@ -36,3 +36,19 @@ describe('Rechnung im Seitenfenster: Spalten (G1)', () => {
     expect(zellen[1].className).not.toContain('whitespace-nowrap');
   });
 });
+
+// Durchsicht 09.11.2026: bezahlte Mahnspesen und Zinsen stehen neben „Bezahlt“, nicht darin.
+describe('Rechnung im Seitenfenster: Zahlstand mit Mahnspesen', () => {
+  it('nennt bezahlte Mahnspesen und Zinsen eigens — und nur, wenn welche da sind', () => {
+    const { unmount } = render(<RechnungDetail
+      inv={{ ...RECHNUNG, paymentStatus: 'Bezahlt', bezahltBetrag: 9000.6, mahnkostenBetrag: 13.16 } as Invoice}
+      onClose={() => undefined} aktionen={[]} />);
+    const stand = screen.getByRole('region', { name: 'Zahlstand' });
+    expect(within(stand).getByText('Mahnspesen und Zinsen bezahlt')).toBeInTheDocument();
+    expect(within(stand).getByText('€ 13,16')).toBeInTheDocument();
+    expect(within(stand).queryByText('Guthaben des Kunden')).toBeNull();
+    unmount();
+    render(<RechnungDetail inv={RECHNUNG} onClose={() => undefined} aktionen={[]} />);
+    expect(within(screen.getByRole('region', { name: 'Zahlstand' })).queryByText('Mahnspesen und Zinsen bezahlt')).toBeNull();
+  });
+});

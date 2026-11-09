@@ -4,6 +4,7 @@ import {
   buildMahnungPdf, istMahnungInhalt, mahnungDateiname, mahnungInhalt, mahnungPdfAusInhalt,
 } from '@/features/invoices/mahnungPdf';
 import type { Company, Invoice } from '@/types';
+import { mahnforderungAus } from '@/features/invoices/mahnung';
 
 /**
  * Die Mahnung als Beleg.
@@ -299,6 +300,15 @@ describe('Gespeicherter Inhalt (seit 10.10.2026)', () => {
     const nachdruck = await blobText(await mahnungPdfAusInhalt(firma, gespeichert));
     expect(nachdruck).toContain('- 200,00');
     expect(nachdruck).not.toContain('- 900,00');
+  });
+
+  // Durchsicht 09.11.2026: die Zinsen als Zahl — daran misst sich ein Eingang „Mahnkosten“.
+  it('hält Kosten und Zinsen als Zahlen fest, und sie ergeben mit dem Rest den offenen Betrag', () => {
+    const i = mahnungInhalt(optionen);
+    expect(i.zinsen).toBe(4.46);
+    expect(i.kosten).toBeGreaterThan(0);
+    expect(mahnforderungAus(i)).toBe(Math.round((i.kosten + 4.46) * 100) / 100);
+    expect(mahnungInhalt({ ...optionen, zinsen: undefined }).zinsen).toBe(0);
   });
 
   it('Gegenprobe: ein unvollständiger Inhalt gilt nicht als druckbar', () => {

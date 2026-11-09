@@ -24,11 +24,22 @@ import { csvZelle as cell } from '@/lib/csvZelle';
  * und Steuer getrennt wären dasselbe Ergebnis mit doppeltem Abstimmaufwand.
  */
 
-export type Kontozweck = 'erloes' | 'reverse_charge' | 'anzahlung' | 'debitoren' | 'bank' | 'skonto';
+/*
+  `anzahlung` trägt seit 09.11.2026 einen Steuersatz wie das Erlöskonto, und
+  `anzahlung_rc` ist das Anzahlungskonto für Bauleistungen mit Übergang der
+  Steuerschuld — siehe `anzahlungskonto` in `buildBmdCsv`. `mahnkosten` nimmt
+  bezahlte Mahnspesen und Verzugszinsen auf (Zahlungsstapel).
+*/
+export type Kontozweck =
+  | 'erloes' | 'reverse_charge' | 'anzahlung' | 'anzahlung_rc' | 'debitoren' | 'bank' | 'skonto' | 'mahnkosten';
 
 export interface Buchungskonto {
   zweck: Kontozweck;
-  /** Nur beim Erlöskonto: der Steuersatz als Anteil (0.2 = 20 %). */
+  /**
+   * Beim Erlös- und beim Anzahlungskonto: der Steuersatz als Anteil
+   * (0.2 = 20 %). Ein Anzahlungskonto ohne Satz stammt aus der Zeit vor der
+   * Trennung nach Steuersätzen (bis 09.11.2026) und gilt für 20 %.
+   */
   ustSatz?: number | null;
   konto: string;
   steuercode?: string | null;
@@ -53,12 +64,18 @@ export interface BmdZeile {
 /** Die Debitorennummer einer Rechnung — aus dem Kundenstamm, von der Ansicht gereicht. */
 export type DebitorVon = (inv: Invoice) => string | null | undefined;
 
+/** Was der Stapel von einer abgezogenen Rechnung wissen muss: Art und Steuerbehandlung. */
+export type Abgezogene = { art?: RechnungsArt } & Pick<Invoice, 'reverseCharge' | 'vatRate'>;
+
 /**
- * Die Art einer abgezogenen Rechnung, nach ihrer Kennung — von der Ansicht
- * gereicht, weil die Anzahlung meist Monate vor der Schlussrechnung liegt und
- * damit nicht im Zeitraum. `undefined` heißt: nicht bekannt.
+ * Art und Steuerbehandlung einer abgezogenen Rechnung, nach ihrer Kennung —
+ * von der Ansicht gereicht, weil die Anzahlung meist Monate vor der
+ * Schlussrechnung liegt und damit nicht im Zeitraum. `undefined` heißt:
+ * nicht bekannt. Die Steuerbehandlung gehört dazu, seit jede ihr eigenes
+ * Anzahlungskonto hat (09.11.2026): umgebucht wird von dem Konto, auf das
+ * die Anzahlung gebucht wurde.
  */
-export type ArtVon = (invoiceId: string) => RechnungsArt | undefined;
+export type AbgezogeneVon = (invoiceId: string) => Abgezogene | undefined;
 
 export interface BmdErgebnis {
   /** Leer, solange etwas fehlt. */
@@ -136,18 +153,31 @@ export function buildBmdCsv(
   von: string,
   bis: string,
   debitorVon?: DebitorVon,
-  artVon?: ArtVon,
+  abgezogeneVon?: AbgezogeneVon,
 ): BmdErgebnis {
   const erloes = new Map<string, Buchungskonto>();
+  const anzahlungen = new Map<string, Buchungskonto>();
+  let altesAnzahlungskonto: Buchungskonto | undefined;
   let rc: Buchungskonto | undefined;
-  let anzahlung: Buchungskonto | undefined;
+  let anzahlungRc: Buchungskonto | undefined;
   let debitoren: Buchungskonto | undefined;
   for (const k of konten) {
     if (k.zweck === 'erloes') erloes.set(satzSchluessel(k.ustSatz), k);
     else if (k.zweck === 'reverse_charge') rc = k;
-    else if (k.zweck === 'anzahlung') anzahlung = k;
+    else if (k.zweck === 'anzahlung') {
+      if (k.ustSatz == null) altesAnzahlungskonto = k;
+      else anzahlungen.set(satzSchluessel(k.ustSatz), k);
+    } else if (k.zweck === 'anzahlung_rc') anzahlungRc = k;
     else if (k.zweck === 'debitoren') debitoren = k;
   }
+  /*
+    DAS ANZAHLUNGSKONTO OHNE SATZ (Altbestand bis 09.11.2026) gilt für 20 %.
+    Es war das eine Konto für alle Anzahlungen, im Vorschlag mit M20, und
+    richtig nur für den Normalsatz; die Daten werden nicht umgeschrieben.
+    Ein ausdrücklich für 20 % hinterlegtes Konto geht vor.
+  */
+  const NORMALSATZ = satzSchluessel(0.2);
+  if (altesAnzahlungskonto && !anzahlungen.has(NORMALSATZ)) anzahlungen.set(NORMALSATZ, altesAnzahlungskonto);
 
   const fehlend: string[] = [];
   const vermisst = (satz: string) => {
@@ -180,6 +210,34 @@ export function buildBmdCsv(
     return k;
   }
 
+  /**
+   * Das Anzahlungskonto einer Anzahlung — gewählt wie das Erlöskonto, nach
+   * ihrer Steuerbehandlung (Durchsicht 09.11.2026).
+   *
+   * Bis dahin ging jede Anzahlung auf das eine Anzahlungskonto mit dessen
+   * Steuercode. Eine Anzahlung mit Übergang der Steuerschuld oder mit 0 %
+   * bekam so 20 % Umsatzsteuer, die niemand schuldet, und die Umbuchung bei
+   * der Schlussrechnung zog vom Konto mehr ab, als darauf stand.
+   */
+  function anzahlungskonto(r: Pick<Invoice, 'invoiceNumber'> & Abgezogene): Buchungskonto | undefined {
+    if (r.reverseCharge) {
+      if (!anzahlungRc) {
+        vermisst('Konto für erhaltene Anzahlungen auf Bauleistungen mit Übergang der Steuerschuld (§ 19 Abs 1a UStG)');
+      }
+      return anzahlungRc;
+    }
+    if (r.vatRate == null) {
+      vermisst(
+        `Die Rechnung ${r.invoiceNumber} trägt keinen Steuersatz — ohne ihn ist kein Erlöskonto `
+        + 'zuzuordnen. Bitte den Beleg prüfen.',
+      );
+      return undefined;
+    }
+    const k = anzahlungen.get(satzSchluessel(r.vatRate));
+    if (!k) vermisst(`Konto für erhaltene Anzahlungen mit ${prozent(r.vatRate)} Umsatzsteuer`);
+    return k;
+  }
+
   const imZeitraum = invoices
     .filter((i) => {
       if (i.invoiceDate >= von && i.invoiceDate <= bis) return true;
@@ -197,7 +255,8 @@ export function buildBmdCsv(
 
   /*
     WIE DIE ANZAHLUNG IN DEN ERLÖS WANDERT — so, wie sie gebucht wurde
-    (offene Punkte A1, Prüflauf P2-06).
+    (offene Punkte A1, Prüflauf P2-06), und von DEM Konto, auf das sie
+    gebucht wurde (seit 09.11.2026 eines je Steuerbehandlung).
 
     Trägt das Anzahlungskonto einen Steuercode, hat BMD die Umsatzsteuer der
     Anzahlung schon beim Buchen der Anzahlungsrechnung abgespalten: auf dem
@@ -209,8 +268,12 @@ export function buildBmdCsv(
     Ohne Steuercode am Anzahlungskonto steht dort das Brutto, und die Steuer
     ist noch nicht gebucht; dann entsteht sie beim Umbuchen, wie bisher.
   */
-  const umbuchung = (v: { netto: number; brutto: number }, erloesCode: string | null | undefined) =>
-    anzahlung?.steuercode
+  const umbuchung = (
+    v: { netto: number; brutto: number },
+    konto: Buchungskonto,
+    erloesCode: string | null | undefined,
+  ) =>
+    konto.steuercode
       ? { betrag: v.netto, steuercode: '' }
       : { betrag: v.brutto, steuercode: erloesCode ?? '' };
 
@@ -228,18 +291,19 @@ export function buildBmdCsv(
     keine Datei: raten hieße, entweder Erlös doppelt oder gar nicht zu buchen.
   */
   const nachId = new Map(invoices.map((i) => [i.id, i]));
-  function istAnzahlung(v: Vorrechnung): boolean {
-    const geladen = nachId.get(v.invoiceId);
-    const art = geladen ? geladen.art ?? 'einzel' : artVon?.(v.invoiceId);
-    if (!art) {
+  /** Das Anzahlungskonto, von dem umzubuchen ist — `undefined`, wenn nichts umzubuchen ist oder es fehlt. */
+  function umzubuchenVon(v: Vorrechnung): Buchungskonto | undefined {
+    const abgezogen = nachId.get(v.invoiceId) ?? abgezogeneVon?.(v.invoiceId);
+    if (!abgezogen) {
       vermisst(
         `Von der abgezogenen Rechnung ${v.invoiceNumber} ist nicht bekannt, ob sie eine Anzahlung war — `
         + 'ohne das lässt sich nicht entscheiden, ob sie vom Anzahlungskonto umzubuchen ist. '
         + 'Bitte den Zeitraum erneut zusammenstellen',
       );
-      return false;
+      return undefined;
     }
-    return art === 'anzahlung';
+    if ((abgezogen.art ?? 'einzel') !== 'anzahlung') return undefined;
+    return anzahlungskonto({ ...abgezogen, invoiceNumber: v.invoiceNumber });
   }
 
   for (const i of imZeitraum) {
@@ -253,10 +317,7 @@ export function buildBmdCsv(
       Schlussrechnung macht daraus Umsatz. Die Umsatzsteuer schuldet der
       Betrieb trotzdem schon; darum trägt auch diese Zeile den Steuercode.
     */
-    const habenKonto = i.art === 'anzahlung' ? anzahlung : gegen;
-    if (i.art === 'anzahlung' && !anzahlung) {
-      vermisst('Konto für erhaltene Anzahlungen (eine Verbindlichkeit, kein Erlös)');
-    }
+    const habenKonto = i.art === 'anzahlung' ? anzahlungskonto(i) : gegen;
 
     if (i.invoiceDate >= von && i.invoiceDate <= bis && debitoren && habenKonto) {
       zeilen.push({
@@ -276,19 +337,15 @@ export function buildBmdCsv(
         bucht ja nur die RESTforderung.
       */
       for (const v of i.vorrechnungen ?? []) {
-        if (!istAnzahlung(v)) continue;
-        if (!anzahlung) {
-          vermisst('Konto für erhaltene Anzahlungen (eine Verbindlichkeit, kein Erlös)');
-          continue;
-        }
-        if (!gegen) continue;
+        const anzahlung = umzubuchenVon(v);
+        if (!anzahlung || !gegen) continue;
         zeilen.push({
           soll: anzahlung.konto,
           haben: gegen.konto,
           belegdatum: datum(i.invoiceDate),
           belegnummer: i.invoiceNumber,
           buchungstext: `Anzahlung ${v.invoiceNumber} verrechnet`,
-          ...umbuchung(v, gegen.steuercode),
+          ...umbuchung(v, anzahlung, gegen.steuercode),
         });
       }
     }
@@ -324,19 +381,15 @@ export function buildBmdCsv(
           wie beim Verrechnen, mit vertauschten Konten, am Stornotag.
         */
         for (const v of i.vorrechnungen ?? []) {
-          if (!istAnzahlung(v)) continue;
-          if (!anzahlung) {
-            vermisst('Konto für erhaltene Anzahlungen (eine Verbindlichkeit, kein Erlös)');
-            continue;
-          }
-          if (!gegen) continue;
+          const anzahlung = umzubuchenVon(v);
+          if (!anzahlung || !gegen) continue;
           zeilen.push({
             soll: gegen.konto,
             haben: anzahlung.konto,
             belegdatum: datum(tag),
             belegnummer: i.stornoNummer ?? i.invoiceNumber,
             buchungstext: `Storno: Anzahlung ${v.invoiceNumber} verrechnet`,
-            ...umbuchung(v, gegen.steuercode),
+            ...umbuchung(v, anzahlung, gegen.steuercode),
           });
         }
       }
@@ -376,6 +429,10 @@ export function buildBmdCsv(
  * - Skonto: Erlösschmälerung an Debitoren, mit dem Steuercode des
  *   Erlöskontos der Rechnung; so berichtigt BMD die Umsatzsteuer im Satz
  *   der Rechnung.
+ * - Mahnspesen und Verzugszinsen (Eingang „Mahnkosten“, seit 09.11.2026):
+ *   Bank an das Konto dafür, ohne Debitoren — sie sind keine Forderung aus
+ *   der Rechnung, sondern ein eigener Ertrag, und tragen keine Umsatzsteuer
+ *   (Schadenersatz, kein Entgelt). Zurückgebucht mit vertauschten Konten.
  *
  * Wie beim Rechnungsstapel: fehlt ein Konto, entsteht keine Datei.
  */
@@ -391,6 +448,7 @@ export function buildBmdZahlungenCsv(
   const erloes = new Map(konten.filter((k) => k.zweck === 'erloes').map((k) => [satzSchluessel(k.ustSatz), k]));
   const bank = zweck('bank');
   const skonto = zweck('skonto');
+  const mahnkosten = zweck('mahnkosten');
   const debitoren = zweck('debitoren');
   const rc = zweck('reverse_charge');
   const nachId = new Map(rechnungen.map((r) => [r.id, r]));
@@ -433,6 +491,24 @@ export function buildBmdZahlungenCsv(
     }
     if (!bank) {
       vermisst('Bankkonto (für Zahlungseingänge und Rückzahlungen)');
+      continue;
+    }
+    if (z.art === 'Mahnkosten') {
+      if (!mahnkosten) {
+        vermisst('Konto für bezahlte Mahnspesen und Verzugszinsen (Ertrag)');
+        continue;
+      }
+      const zurueck = z.betrag < 0;
+      zeilen.push({
+        soll: zurueck ? mahnkosten.konto : bank.konto,
+        haben: zurueck ? bank.konto : mahnkosten.konto,
+        belegdatum: datum(z.datum),
+        belegnummer: r.invoiceNumber,
+        buchungstext: `${zurueck ? 'Rückbuchung Mahnspesen und Zinsen' : 'Mahnspesen und Zinsen'} ${r.invoiceNumber} ${text}`,
+        betrag: Math.abs(z.betrag),
+        steuercode: mahnkosten.steuercode ?? '',
+        debitor,
+      });
       continue;
     }
     if (!debitoren) continue;

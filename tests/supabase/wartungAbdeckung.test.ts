@@ -312,9 +312,21 @@ describe('Eine Wartung macht eine Teilrechnung nicht „verbraucht“', () => {
   });
 
   it('die Liste der Schlussrechnungen ohne Abzug nennt sie', async () => {
-    // Eine Schlussrechnung, und erst danach die Teilrechnung — so entsteht der Altfall, den die Liste zeigt.
-    const schluss = await verrechnen('W-14', [], OHNE_ABZUG);
+    /*
+      Der Altfall, den die Liste zeigt: eine gültige Teilrechnung neben einer
+      Schlussrechnung, die sie nicht abzieht. Bis zum 09.11.2026 entstand er,
+      wenn die Teilrechnung nach der Schlussrechnung kam oder ihr Storno
+      danach aufgehoben wurde; beides weist die Datenbank jetzt ab. Hier
+      deshalb nachgestellt: Teilrechnung storniert, Schlussrechnung ohne sie,
+      dann der Storno mit dem Dienstschlüssel zurückgenommen — so, wie ein
+      Bestand von damals aussieht.
+    */
     const teil = await teilMitWartung('W-14');
+    await rechnungen.cancelInvoice({ id: teil } as unknown as WithId<Invoice>, 'Zahlendreher');
+    const schluss = await verrechnen('W-14', [], OHNE_ABZUG);
+    const { error: zurueck } = await admin.from('invoices')
+      .update({ payment_status: 'Offen', cancelled_at: null, cancellation_note: null }).eq('id', teil);
+    expect(zurueck).toBeNull();
     const { data, error } = await buch.client.rpc('schlussrechnungen_ohne_abzug');
     expect(error).toBeNull();
     expect(data).toContainEqual({ invoice_number: await nummer(schluss), fehlend: await nummer(teil) });

@@ -271,6 +271,8 @@ describe('Der Leistungszeitraum im Journal', () => {
       'Rücklass fällig am',
       // A3 (24.10.2026): der Tag der Ablöse durch Bankgarantie, wieder hinten an.
       'Rücklass abgelöst am',
+      // Durchsicht 09.11.2026: bezahlte Mahnspesen und Zinsen, wieder hinten an.
+      'Mahnspesen und Zinsen bezahlt',
     ]);
     const felder = zeile.split(';');
     expect(felder[2]).toBe('03.12.2026');
@@ -293,8 +295,26 @@ describe('Der Leistungszeitraum im Journal', () => {
       [], '2026-01-01', '2026-12-31',
     );
     const [, erste, zweite] = r.csv.split('\n');
-    expect(erste.split(';').slice(-6)[0]).toBe('anzahlung');
-    expect(zweite.split(';').slice(-6)[0]).toBe('einzel');
+    // Seit 09.11.2026 steht hinter dem Rücklass noch die Spalte der Mahnspesen.
+    expect(erste.split(';').slice(-7)[0]).toBe('anzahlung');
+    expect(zweite.split(';').slice(-7)[0]).toBe('einzel');
+  });
+
+  /*
+    DURCHSICHT 09.11.2026: bezahlte Mahnspesen und Zinsen begleichen die
+    Mahnung, nicht die Rechnung — eigene Spalte, nicht unter „Bezahlt“.
+  */
+  it('führt bezahlte Mahnspesen und Zinsen in eigener Spalte, nicht unter „Bezahlt“', () => {
+    const r = buildInvoiceCsv(
+      [{ ...re('RE-2026-0001', 1000), totalBrutto: 1000, bezahltBetrag: 1000, mahnkostenBetrag: 13.16, paymentStatus: 'Bezahlt' }],
+      [], '2026-01-01', '2026-12-31',
+    );
+    const [kopf, zeile] = r.csv.split('\n');
+    const spalte = (name: string) => zeile.split(';')[kopf.split(';').indexOf(name)];
+    expect(spalte('Bezahlt')).toBe('1000,00');
+    expect(spalte('Offener Rest')).toBe('0,00');
+    expect(spalte('Mahnspesen und Zinsen bezahlt')).toBe('13,16');
+    expect(spalte('Zahlungsstatus')).toBe('Bezahlt');
   });
 
   it('führt einen Skonto getrennt vom Geld, das gekommen ist (B7)', () => {
@@ -471,7 +491,8 @@ describe('Bestellnummer und Rücklass im Ausgangsbuch', () => {
       [], '2026-10-01', '2026-10-31',
     );
     const zeile = r.csv.split('\n')[1].split(';');
-    expect(zeile.slice(-4)).toEqual(['BE-4711', '60,00', '06.10.2029', '']);
+    // Seit 09.11.2026 steht dahinter die Spalte der Mahnspesen.
+    expect(zeile.slice(-5, -1)).toEqual(['BE-4711', '60,00', '06.10.2029', '']);
   });
 
   it('Gegenprobe: ohne Bestellnummer und Rücklass bleiben sie leer', () => {
@@ -483,7 +504,7 @@ describe('Bestellnummer und Rücklass im Ausgangsbuch', () => {
       } as never],
       [], '2026-10-01', '2026-10-31',
     );
-    expect(r.csv.split('\n')[1].split(';').slice(-4)).toEqual(['', '', '', '']);
+    expect(r.csv.split('\n')[1].split(';').slice(-5, -1)).toEqual(['', '', '', '']);
   });
 
   /*

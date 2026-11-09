@@ -216,6 +216,8 @@ export default function RechnungDetail({
             {zeile('Bezahlt', stand.bezahlt > 0 ? euro(stand.bezahlt) : null)}
             {zeile('Offen', inv.paymentStatus !== 'Storniert' ? euro(stand.rest) : null)}
             {zeile('Guthaben des Kunden', stand.guthaben > 0 ? euro(stand.guthaben) : null)}
+            {/* Begleichen die Mahnung, nicht die Rechnung (09.11.2026) — darum neben „Bezahlt“, nicht darin. */}
+            {zeile('Mahnspesen und Zinsen bezahlt', (inv.mahnkostenBetrag ?? 0) > 0 ? euro(inv.mahnkostenBetrag!) : null)}
             {zeile('Stand', inv.paymentStatus)}
             {zeile('Gemahnt', inv.mahnstufe
               ? `Stufe ${inv.mahnstufe}${inv.gemahntAm ? ` am ${datumAT(inv.gemahntAm)}` : ''}${inv.mahnfrist ? `, Frist bis ${datumAT(inv.mahnfrist)}` : ''}`

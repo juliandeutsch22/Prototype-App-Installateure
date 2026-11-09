@@ -2201,6 +2201,12 @@ export interface Invoice {
   /** Summe der Skonto-Einträge — abgeleitet wie `bezahltBetrag`, darin enthalten. */
   skontoBetrag?: number;
   /**
+   * Bezahlte Mahnspesen und Verzugszinsen (Eingänge der Art „Mahnkosten“,
+   * seit 09.11.2026) — abgeleitet wie `bezahltBetrag`, aber NICHT darin
+   * enthalten: sie begleichen die Mahnung, nicht die Rechnung.
+   */
+  mahnkostenBetrag?: number;
+  /**
    * MAHNWESEN — wie oft und wann gemahnt wurde.
    *
    * Vorher gab es nur den Status „Überfällig". Er wurde beim Öffnen der Liste
@@ -2271,6 +2277,11 @@ export interface MahnungInhalt {
   offen: number;
   /** Mahnspesen und Pauschale zusammen, in Euro. */
   kosten: number;
+  /**
+   * Die Verzugszinsen, in Euro (seit 09.11.2026). Ältere Mahnungen tragen sie
+   * nur als Zeile des Zahlenblocks — `mahnforderung` liest sie dort.
+   */
+  zinsen?: number;
 }
 
 /** Eine erzeugte Mahnung — unveränderlich, an ihrer Rechnung. */
@@ -2305,7 +2316,11 @@ export interface Zahlungseingang {
    * überzahlte Rechnung für immer überzahlt.
    */
   betrag: number;
-  art: 'Überweisung' | 'Bar' | 'Karte' | 'Sonstiges' | 'Skonto';
+  /**
+   * „Mahnkosten“ (seit 09.11.2026): bezahlte Mahnspesen und Verzugszinsen der
+   * letzten Mahnung — zählen nicht in den bezahlten Betrag der Rechnung.
+   */
+  art: 'Überweisung' | 'Bar' | 'Karte' | 'Sonstiges' | 'Skonto' | 'Mahnkosten';
   /** Freitext: „Skonto gezogen", „Teilzahlung laut Vereinbarung". */
   hinweis?: string;
   /** Wer ihn erfasst hat — eine Zahl ohne Herkunft lässt sich nicht klären. */

@@ -1,5 +1,6 @@
-import type { Invoice, InvoiceRates } from '@/types';
+import type { Invoice, InvoiceRates, Mahnung, MahnungInhalt } from '@/types';
 import { mahnbar, offenerRest, ruecklassFaelligAm } from './zahlstand';
+import { zahlOder } from '@/lib/zahl';
 
 /** TT.MM.JJJJ — hier ohne die Datumsbibliothek, die Datei bleibt ohne Oberflächen-Importe. */
 const datumKurzAT = (iso?: string | null) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '—');
@@ -458,4 +459,48 @@ function mitBetrag(
   const betrag = Math.round(rest * (satz / 100) * (tage / 365) * 100) / 100;
   if (betrag <= 0) return { art: 'keine' };
   return { art: 'berechnet', satz, tage, betrag, grundlage };
+}
+
+const cent = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * Was eine Mahnung an Mahnspesen und Verzugszinsen gefordert hat — das
+ * Gegenstück zu `app.mahnforderung` in der Datenbank (Durchsicht 09.11.2026).
+ *
+ * Die Kosten stehen als Zahl im Inhalt, die Zinsen seit 09.11.2026 ebenso.
+ * Ältere Mahnungen tragen die Zinsen nur als Zeile des Zahlenblocks
+ * („Verzugszinsen …“ / „3,16 €“), so, wie `mahnungInhalt` sie schrieb: gelesen
+ * werden Ziffern und Komma, der Tausenderpunkt fällt weg.
+ */
+export function mahnforderungAus(inhalt: Pick<MahnungInhalt, 'kosten' | 'zinsen' | 'zeilen'>): number {
+  const zinsen = inhalt.zinsen ?? (inhalt.zeilen ?? [])
+    .filter(([bezeichnung, wert]) => bezeichnung.startsWith('Verzugszinsen') && /[0-9]/.test(wert))
+    .reduce((s, [, wert]) => s + zahlOder(wert.replace(/[^0-9,]/g, ''), 0), 0);
+  return cent((inhalt.kosten ?? 0) + (Number.isFinite(zinsen) ? zinsen : 0));
+}
+
+/**
+ * Was die LETZTE Mahnung einer Rechnung an Spesen und Zinsen gefordert hat.
+ * Vor dem 10.10.2026 gab es kein gespeichertes Schreiben, nur den Mahnstand an
+ * der Rechnung — dann gelten dessen Mahnspesen (wie in der Datenbank).
+ */
+export function letzteMahnforderung(
+  mahnungen: Pick<Mahnung, 'datum' | 'angelegtAm' | 'inhalt'>[],
+  inv: Pick<Invoice, 'mahnstufe' | 'mahnspesen'>,
+): number {
+  const letzte = [...mahnungen].sort((a, b) =>
+    b.datum.localeCompare(a.datum) || (b.angelegtAm ?? 0) - (a.angelegtAm ?? 0))[0];
+  if (letzte) return mahnforderungAus(letzte.inhalt);
+  return (inv.mahnstufe ?? 0) > 0 ? cent(inv.mahnspesen ?? 0) : 0;
+}
+
+/**
+ * Wie viel eines Eingangs auf die Mahnkosten fällt, als Vorschlag: zuerst
+ * der Rest der Rechnung, was darüber hinausgeht, bis zur offenen
+ * Mahnforderung; erst was dann noch bleibt, ist ein Guthaben. Ein negativer
+ * Eingang (Rücklastschrift) teilt nichts auf.
+ */
+export function mahnkostenVorschlag(betrag: number, rest: number, mahnkostenOffen: number): number {
+  if (!(betrag > 0) || !(mahnkostenOffen > 0)) return 0;
+  return cent(Math.min(Math.max(betrag - Math.max(rest, 0), 0), mahnkostenOffen));
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildBmdCsv, buildBmdZahlungenCsv, type ArtVon, type Buchungskonto } from '@/features/invoices/bmdExport';
+import { buildBmdCsv, buildBmdZahlungenCsv, type AbgezogeneVon, type Buchungskonto } from '@/features/invoices/bmdExport';
 import type { Invoice, Vorrechnung } from '@/types';
 
 /**
@@ -36,15 +36,17 @@ const rechnung = (p: Partial<Invoice> = {}): Invoice =>
     ...p,
   }) as Invoice;
 
-const bauen = (rechnungen: Invoice[], konten = KONTEN, von = '2026-04-01', bis = '2026-04-30', artVon?: ArtVon) =>
+const bauen = (rechnungen: Invoice[], konten = KONTEN, von = '2026-04-01', bis = '2026-04-30', artVon?: AbgezogeneVon) =>
   buildBmdCsv(rechnungen, konten, von, bis, undefined, artVon);
 
 /*
   DIE ART DER ABGEZOGENEN RECHNUNG KOMMT VON DER ANSICHT, wenn sie nicht im
   Zeitraum liegt (Durchsicht 09.11.2026). 'a1' ist in diesen Prüfungen die
-  Anzahlung aus einem früheren Monat.
+  Anzahlung aus einem früheren Monat. Seit 09.11.2026 kommt die
+  Steuerbehandlung mit — von ihr hängt das Anzahlungskonto ab.
 */
-const ANZAHLUNG_A1: ArtVon = (id) => (id === 'a1' ? 'anzahlung' : undefined);
+const ANZAHLUNG_A1: AbgezogeneVon = (id) =>
+  (id === 'a1' ? { art: 'anzahlung', reverseCharge: false, vatRate: 0.2 } : undefined);
 
 describe('Eine gewöhnliche Rechnung', () => {
   it('bucht Debitor an Erlöskonto, brutto, mit Steuercode', () => {
@@ -237,7 +239,7 @@ describe('Anzahlung und Schlussrechnung', () => {
   it('verlangt das Anzahlungskonto auch dann, wenn nur eine Schlussrechnung im Zeitraum liegt', () => {
     const ohne = KONTEN.filter((k) => k.zweck !== 'anzahlung');
     const e = bauen([rechnung({ art: 'schluss', vorrechnungen: [anzahlung], totalBrutto: 600 })], ohne, undefined, undefined, ANZAHLUNG_A1);
-    expect(e.fehlend).toContain('Konto für erhaltene Anzahlungen (eine Verbindlichkeit, kein Erlös)');
+    expect(e.fehlend).toContain('Konto für erhaltene Anzahlungen mit 20 % Umsatzsteuer');
     expect(e.csv).toBe('');
   });
 });
@@ -249,6 +251,111 @@ describe('Anzahlung und Schlussrechnung', () => {
   (Debitoren an Erlös) — Erlös und Steuer standen doppelt in den Büchern, das
   Anzahlungskonto im Minus.
 */
+/*
+  DURCHSICHT 09.11.2026: jede Anzahlung ging auf DAS Anzahlungskonto mit
+  dessen Steuercode (M20). Eine Anzahlung mit Übergang der Steuerschuld oder
+  mit 0 % bekam so 20 % Umsatzsteuer, die niemand schuldet, und die
+  Umbuchung bei der Schlussrechnung holte vom Konto mehr, als darauf stand.
+  Jetzt gibt es je Steuerbehandlung ein Anzahlungskonto, gewählt wie das
+  Erlöskonto.
+*/
+describe('Anzahlungskonto je Steuerbehandlung', () => {
+  const RC = { zweck: 'anzahlung_rc', konto: '3505', steuercode: 'M00' } as const;
+  const NULL = { zweck: 'anzahlung', ustSatz: 0, konto: '3509', steuercode: 'M00' } as const;
+  const MIT_ALLEN: Buchungskonto[] = [...KONTEN, RC, NULL];
+  const rcAnzahlung = (p: Partial<Invoice> = {}) => rechnung({
+    id: 'a1', art: 'anzahlung', reverseCharge: true, vatRate: 0,
+    totalNetto: 500, totalVat: 0, totalBrutto: 500, ...p,
+  });
+  const nullAnzahlung = (p: Partial<Invoice> = {}) => rechnung({
+    id: 'a1', art: 'anzahlung', vatRate: 0, steuerbefreiung: 'Kleinunternehmer',
+    totalNetto: 500, totalVat: 0, totalBrutto: 500, ...p,
+  });
+  const abzugOhneSteuer: Vorrechnung = {
+    invoiceId: 'a1', invoiceNumber: 'RE-2026-0001', invoiceDate: '2026-04-05', netto: 500, vat: 0, brutto: 500,
+  };
+  const schlussRc = (p: Partial<Invoice> = {}) => rechnung({
+    id: 's1', invoiceNumber: 'RE-2026-0002', art: 'schluss', reverseCharge: true, vatRate: 0,
+    vorrechnungen: [abzugOhneSteuer],
+    gesamtNetto: 1000, gesamtVat: 0, gesamtBrutto: 1000, totalNetto: 500, totalVat: 0, totalBrutto: 500, ...p,
+  });
+
+  it('bucht eine Anzahlung mit Übergang der Steuerschuld auf ihr eigenes Konto, mit dessen Steuercode', () => {
+    const e = bauen([rcAnzahlung()], MIT_ALLEN);
+    expect(e.fehlend).toEqual([]);
+    expect(e.zeilen).toEqual([
+      expect.objectContaining({ soll: '2000', haben: '3505', betrag: 500, steuercode: 'M00' }),
+    ]);
+    expect(e.zeilen.some((z) => z.haben === '3500' || z.steuercode === 'M20')).toBe(false);
+  });
+
+  it('ohne dieses Konto entsteht keine Datei — die Anzahlung geht nicht auf das Konto mit M20', () => {
+    const e = bauen([rcAnzahlung()], KONTEN);
+    expect(e.fehlend).toEqual([
+      'Konto für erhaltene Anzahlungen auf Bauleistungen mit Übergang der Steuerschuld (§ 19 Abs 1a UStG)',
+    ]);
+    expect(e.csv).toBe('');
+  });
+
+  it('bucht eine Anzahlung mit 0 % auf das Anzahlungskonto für 0 %', () => {
+    const e = bauen([nullAnzahlung()], MIT_ALLEN);
+    expect(e.fehlend).toEqual([]);
+    expect(e.zeilen).toEqual([
+      expect.objectContaining({ soll: '2000', haben: '3509', betrag: 500, steuercode: 'M00' }),
+    ]);
+  });
+
+  it('fehlt das Konto für den Satz der Anzahlung, wird es mit dem Satz benannt', () => {
+    expect(bauen([nullAnzahlung()], KONTEN).fehlend).toEqual(['Konto für erhaltene Anzahlungen mit 0 % Umsatzsteuer']);
+    const zehn = rechnung({ id: 'a1', art: 'anzahlung', vatRate: 0.1, totalNetto: 500, totalVat: 50, totalBrutto: 550 });
+    const mitErloes10: Buchungskonto[] = [...KONTEN, { zweck: 'erloes', ustSatz: 0.1, konto: '4010', steuercode: 'M10' }];
+    expect(bauen([zehn], mitErloes10).fehlend).toEqual(['Konto für erhaltene Anzahlungen mit 10 % Umsatzsteuer']);
+  });
+
+  it('die Schlussrechnung bucht vom Konto der Anzahlung um, mit dessen Code und Betrag', () => {
+    const rcAbgezogen: AbgezogeneVon = (id) => (id === 'a1' ? { art: 'anzahlung', reverseCharge: true, vatRate: 0 } : undefined);
+    const e = bauen([schlussRc()], MIT_ALLEN, undefined, undefined, rcAbgezogen);
+    expect(e.fehlend).toEqual([]);
+    expect(e.zeilen).toEqual([
+      expect.objectContaining({ soll: '2000', haben: '4005', betrag: 500, steuercode: 'M00' }),
+      expect.objectContaining({
+        soll: '3505', haben: '4005', betrag: 500, steuercode: '', buchungstext: 'Anzahlung RE-2026-0001 verrechnet',
+      }),
+    ]);
+  });
+
+  it('und dreht genau diese Umbuchung beim Storno zurück', () => {
+    const e = bauen([
+      rcAnzahlung({ invoiceDate: '2026-04-05' }),
+      schlussRc({ paymentStatus: 'Storniert', cancelledAt: new Date('2026-04-20T10:00:00').getTime() }),
+    ], MIT_ALLEN);
+    expect(e.fehlend).toEqual([]);
+    expect(e.zeilen.filter((z) => z.soll === '3505' || z.haben === '3505').map((z) => [z.soll, z.haben, z.betrag])).toEqual([
+      ['2000', '3505', 500],
+      ['3505', '4005', 500],
+      ['4005', '3505', 500],
+    ]);
+    // Das Konto der 20-%-Anzahlungen bleibt unberührt.
+    expect(e.zeilen.some((z) => z.soll === '3500' || z.haben === '3500')).toBe(false);
+  });
+
+  it('Gleichbleiben: die 20-%-Anzahlung auf dem bisherigen Anzahlungskonto ohne Satz bucht wie zuvor', () => {
+    const e = bauen([rechnung({ art: 'anzahlung', totalBrutto: 600, totalNetto: 500, totalVat: 100 })], MIT_ALLEN);
+    expect(e.fehlend).toEqual([]);
+    expect(e.zeilen).toEqual([
+      expect.objectContaining({ soll: '2000', haben: '3500', betrag: 600, steuercode: 'M20' }),
+    ]);
+  });
+
+  it('ein ausdrücklich für 20 % hinterlegtes Anzahlungskonto geht dem ohne Satz vor', () => {
+    const e = bauen(
+      [rechnung({ art: 'anzahlung', totalBrutto: 600, totalNetto: 500, totalVat: 100 })],
+      [...KONTEN, { zweck: 'anzahlung', ustSatz: 0.2, konto: '3520', steuercode: 'M20' }],
+    );
+    expect(e.zeilen[0]).toMatchObject({ haben: '3520', betrag: 600, steuercode: 'M20' });
+  });
+});
+
 describe('Abgezogene Teil- und Einzelrechnungen', () => {
   const teil: Vorrechnung = {
     invoiceId: 't1', invoiceNumber: 'RE-2026-0001', invoiceDate: '2026-04-05',
@@ -261,7 +368,8 @@ describe('Abgezogene Teil- und Einzelrechnungen', () => {
       totalNetto: 500, totalVat: 100, totalBrutto: 600,
       ...p,
     });
-  const ALS = (art: 'teil' | 'einzel'): ArtVon => (id) => (id === 't1' ? art : undefined);
+  const ALS = (art: 'teil' | 'einzel'): AbgezogeneVon => (id) =>
+    (id === 't1' ? { art, reverseCharge: false, vatRate: 0.2 } : undefined);
 
   it('bucht für eine abgezogene Teilrechnung keine Umbuchung vom Anzahlungskonto', () => {
     const e = bauen([schluss()], KONTEN, undefined, undefined, ALS('teil'));
@@ -307,7 +415,10 @@ describe('Abgezogene Teil- und Einzelrechnungen', () => {
 
   it('bucht nur die Anzahlung um, wenn Anzahlung und Teilrechnung abgezogen sind', () => {
     const anzahlung: Vorrechnung = { ...teil, invoiceId: 'a1', invoiceNumber: 'RE-2026-0000', netto: 200, vat: 40, brutto: 240 };
-    const artVon: ArtVon = (id) => ({ a1: 'anzahlung', t1: 'teil' } as const)[id as 'a1' | 't1'];
+    const artVon: AbgezogeneVon = (id) => ({
+      a1: { art: 'anzahlung', reverseCharge: false, vatRate: 0.2 },
+      t1: { art: 'teil', reverseCharge: false, vatRate: 0.2 },
+    } as const)[id as 'a1' | 't1'];
     const e = bauen([schluss({ vorrechnungen: [anzahlung, teil], totalNetto: 300, totalVat: 60, totalBrutto: 360 })],
       KONTEN, undefined, undefined, artVon);
     expect(e.zeilen).toEqual([
@@ -519,5 +630,34 @@ describe('Der Zahlungsstapel', () => {
       [{ invoiceId: 'r1', datum: '2026-06-01', betrag: 100, art: 'Bar' }], [r], MIT_BANK, '2026-05-01', '2026-05-31',
     );
     expect(e.zeilen).toEqual([]);
+  });
+
+  /*
+    DURCHSICHT 09.11.2026: bezahlte Mahnspesen und Zinsen sind ein eigener
+    Ertrag, keine Zahlung auf die Forderung — Bank an das Konto dafür, ohne
+    Debitoren und ohne Umsatzsteuer.
+  */
+  it('bucht Mahnspesen und Zinsen Bank an ihr eigenes Konto, nicht an die Debitoren', () => {
+    const e = buildBmdZahlungenCsv([
+      { invoiceId: 'r1', datum: '2026-05-10', betrag: 1200, art: 'Überweisung' },
+      { invoiceId: 'r1', datum: '2026-05-10', betrag: 13.16, art: 'Mahnkosten' },
+      { invoiceId: 'r1', datum: '2026-05-20', betrag: -3.16, art: 'Mahnkosten', hinweis: 'Zinsen erlassen' },
+    ], [r], [...MIT_BANK, { zweck: 'mahnkosten', konto: '4880' }], '2026-05-01', '2026-05-31', () => '10042');
+    expect(e.fehlend).toEqual([]);
+    expect(e.zeilen.map((z) => [z.soll, z.haben, z.betrag, z.steuercode])).toEqual([
+      ['2800', '2000', 1200, ''],
+      ['2800', '4880', 13.16, ''],
+      ['4880', '2800', 3.16, ''],
+    ]);
+    expect(e.zeilen[1].buchungstext).toBe('Mahnspesen und Zinsen RE-2026-0001 Familie Huber');
+    expect(e.zeilen[2].buchungstext).toBe('Rückbuchung Mahnspesen und Zinsen RE-2026-0001 Familie Huber / Zinsen erlassen');
+  });
+
+  it('ohne Konto für Mahnspesen und Zinsen entsteht keine Datei', () => {
+    const e = buildBmdZahlungenCsv(
+      [{ invoiceId: 'r1', datum: '2026-05-10', betrag: 13.16, art: 'Mahnkosten' }], [r], MIT_BANK, '2026-05-01', '2026-05-31',
+    );
+    expect(e.csv).toBe('');
+    expect(e.fehlend).toEqual(['Konto für bezahlte Mahnspesen und Verzugszinsen (Ertrag)']);
   });
 });

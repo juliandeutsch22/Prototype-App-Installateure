@@ -62,12 +62,33 @@ export function createZahlung(companyId: string, z: NeueZahlung): Promise<string
  * Aufrufe hinterliessen sonst eine Zahlung ohne Ausgleich, und die Rechnung
  * stünde mit zwei Prozent Rest im Mahnlauf.
  */
-export async function createZahlungMitSkonto(
+export function createZahlungMitSkonto(
   companyId: string, z: NeueZahlung, skonto: number,
 ): Promise<void> {
-  const zeilen = [z, { ...z, betrag: skonto, art: 'Skonto' as const, hinweis: undefined }]
-    .map((d) => ({ ...objektAlsZeile(ZAHLUNGEN, d), company_id: companyId }));
-  const { error } = await derClient().from(ZAHLUNGEN).insert(zeilen);
+  return createZahlungAufgeteilt(companyId, z, { skonto });
+}
+
+/**
+ * Ein Eingang, aufgeteilt auf die Rechnung, den Skonto und die Mahnkosten
+ * (Mahnspesen und Verzugszinsen der letzten Mahnung, seit 09.11.2026) — in
+ * EINEM Insert, also einer Transaktion.
+ *
+ * `z.betrag` ist der Teil auf die Rechnung; ist er null, entsteht dafür keine
+ * Zeile (der Kunde zahlt nur noch die Mahnkosten). Weist die Datenbank einen
+ * Teil ab (`app.skonto_passt`, `app.mahnkosten_passt`), ist keiner gebucht —
+ * sonst stünde ein halber Eingang da, und aus dem Rest würde ein Guthaben.
+ */
+export async function createZahlungAufgeteilt(
+  companyId: string, z: NeueZahlung, teile: { skonto?: number; mahnkosten?: number },
+): Promise<void> {
+  const zeilen: NeueZahlung[] = [
+    ...(z.betrag !== 0 ? [z] : []),
+    ...(teile.skonto ? [{ ...z, betrag: teile.skonto, art: 'Skonto' as const, hinweis: undefined }] : []),
+    ...(teile.mahnkosten ? [{ ...z, betrag: teile.mahnkosten, art: 'Mahnkosten' as const }] : []),
+  ];
+  if (zeilen.length === 0) throw new Error('Ein Betrag von null ist kein Zahlungseingang.');
+  const { error } = await derClient().from(ZAHLUNGEN)
+    .insert(zeilen.map((d) => ({ ...objektAlsZeile(ZAHLUNGEN, d), company_id: companyId })));
   if (error) throw new Error(error.message);
 }
 

@@ -11,5 +11,6 @@ export const listZahlungen = pg.listZahlungen;
 export const listZahlungenImZeitraum = pg.listZahlungenImZeitraum;
 export const createZahlung = pg.createZahlung;
 export const createZahlungMitSkonto = pg.createZahlungMitSkonto;
+export const createZahlungAufgeteilt = pg.createZahlungAufgeteilt;
 export const updateZahlung = pg.updateZahlung;
 export const deleteZahlung = pg.deleteZahlung;
