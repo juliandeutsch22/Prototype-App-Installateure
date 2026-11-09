@@ -1206,6 +1206,16 @@ describe('Startseite — selbst eingerichtet', () => {
     expect(urlaub.compareDocumentPosition(saldo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it('mit eigener Wahl wird nur einmal geladen — nicht erst für die Vorgabe und dann noch einmal', async () => {
+    const { listOwnOpenOrders } = await import('@/lib/db/materialOrders');
+    vi.mocked(listOwnOpenOrders).mockClear();
+    startWahl.wert = { kennzahlen: ['urlaub'] };
+    zeichne();
+    await screen.findByRole('link', { name: /^Resturlaub/ });
+    await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
+    expect(vi.mocked(listOwnOpenOrders)).toHaveBeenCalledTimes(1);
+  });
+
   it('nur die gewählte Zahl — die andere der Vorgabe fehlt', async () => {
     startWahl.wert = { kennzahlen: ['urlaub'] };
     zeichne();

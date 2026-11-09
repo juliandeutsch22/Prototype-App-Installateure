@@ -142,7 +142,8 @@ export default function DashboardView() {
     queryKey: user
       ? schluessel('startseite', user, heute, { user, company, einblick: !!einblick, mitZeitkonto, materialAn, bereitschaftAn, scheineAn, angeboteAn, onlineAnnahmeAn, eingangAn, rechnungenAn, wartungAn, einsatzAn, urlaubEntscheiden, freistellungBestaetigen, nachrichtenAn, eigeneKennzahlen })
       : ['startseite'],
-    enabled: !!user,
+    // Erst mit der eigenen Wahl (E68): sonst liefe die Abfrage einmal für die Vorgabe und gleich noch einmal.
+    enabled: !!user && !wahlLaedt,
     queryFn: async () => {
       if (!user) return { data: {}, nichtGeladen: [] };
       // Die Belegschaft einmal für alle Blöcke dieses Aufbaus.
