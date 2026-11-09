@@ -43,6 +43,34 @@ export function subscribeAllOrders(
   });
 }
 
+/** Was noch nicht abgeholt ist — Offen, In Bearbeitung, Abholbereit. */
+const OFFEN = ['Offen', 'In Bearbeitung', 'Abholbereit'];
+
+/**
+ * DER ARBEITSSTAND DES LAGERS, live und OHNE ALTERSGRENZE: jede Anforderung
+ * (keine Retoure), die noch nicht abgeholt ist. Darin steckt auch alles auf
+ * der Einkaufsliste — sie führt nur, was nicht „Erledigt“ ist.
+ *
+ * Getrennt von `subscribeAllOrders`, weil dessen Grenze nach dem Alter
+ * schneidet: hinter zweihundert jüngeren, meist schon erledigten
+ * Anforderungen fiel eine offene aus „Laufend“ und von der Einkaufsliste,
+ * während Startseite und Menü (`listOpenOrders`) sie weiter zählten. Was
+ * offen ist, bleibt überschaubar; was wächst, ist das Erledigte.
+ */
+export function subscribeOffeneAnforderungen(
+  companyId: string,
+  cb: (rows: WithId<MaterialOrder>[]) => void,
+  onError: (e: Error) => void,
+) {
+  return abonnieren<MaterialOrder>(ANFORDERUNGEN, companyId, cb, onError, {
+    wo: [
+      { art: 'gleich', feld: 'transactionType', wert: 'order' },
+      { art: 'in', feld: 'status', werte: OFFEN },
+    ],
+    sortiere: { feld: 'createdAt', absteigend: true },
+  });
+}
+
 export type NewMaterialOrder = Omit<MaterialOrder, 'id' | 'companyId' | 'createdAt'>;
 
 /** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */
@@ -196,11 +224,18 @@ export async function createReturn(
   ret: Omit<NewMaterialOrder, 'status' | 'transactionType'> & { condition: string },
   /** Der Zielort (M04a); ohne ihn ins Hauptlager — der Beleg wie bisher. */
   ortId?: string | null,
+  /**
+   * Die Kennung des Belegs — EINMAL je geöffnetem Formular erzeugt und bei
+   * jedem erneuten Versuch dieselbe. Riss nach dem Senden das Netz ab, legt
+   * ein zweiter Tipp so keinen zweiten Beleg mit zweiter Gutschrift an: die
+   * Datenbank erkennt die Kennung und bucht nichts noch einmal.
+   */
+  kennung: string = crypto.randomUUID(),
 ): Promise<string> {
   // Auch die Retoure bekommt ihre Kennung vom Gerät — siehe oben.
   const beleg = {
     ...objektAlsZeile(ANFORDERUNGEN, ret),
-    id: crypto.randomUUID(),
+    id: kennung,
     company_id: companyId,
     ...(ortId ? { lagerort_id: ortId } : {}),
   };
@@ -213,7 +248,73 @@ export function deleteOrder(orderId: string) {
   return loeschen(ANFORDERUNGEN, orderId);
 }
 
-const OFFEN = ['Offen', 'In Bearbeitung', 'Abholbereit'];
+/** Eine Zeile der Gegenbuchung beim Löschen — mit Vorzeichen: + zurück ins Lager, − wieder heraus. */
+export interface Gegenbuchung {
+  materialId: string;
+  name: string;
+  einheit: string;
+  /** `null`: das Hauptlager. */
+  ortId: string | null;
+  ort: string;
+  menge: number;
+}
+
+/**
+ * Was das Löschen einer Anforderung oder Retoure bewirkt.
+ *
+ *   moeglich    gelöscht wird mit dieser Gegenbuchung (leer: der Bestand
+ *               bleibt, wie er ist). `erwartet` geht beim Löschen mit — die
+ *               Datenbank löscht nur auf genau diesem Stand.
+ *   geloescht   gelöscht, mit dieser Gegenbuchung.
+ *   abgewiesen  nicht sauber möglich, mit Grund (abgerechnet, ohne Beleg im
+ *               Bewegungsprotokoll, Gutschrift nicht mehr am Ort).
+ *   veraltet    weg, oder inzwischen eine andere Gegenbuchung.
+ */
+export type LoeschStand =
+  | { art: 'moeglich'; gegenbuchung: Gegenbuchung[]; erwartet: unknown }
+  | { art: 'geloescht'; gegenbuchung: Gegenbuchung[] }
+  | { art: 'abgewiesen'; grund: string }
+  | { art: 'veraltet' };
+
+function loeschStandAus(d: Record<string, unknown>): LoeschStand {
+  if (d.ergebnis === 'abgewiesen') return { art: 'abgewiesen', grund: String(d.grund ?? '') };
+  if (d.ergebnis !== 'moeglich' && d.ergebnis !== 'geloescht') return { art: 'veraltet' };
+  const roh = Array.isArray(d.gegenbuchung) ? (d.gegenbuchung as Record<string, unknown>[]) : [];
+  const gegenbuchung = roh.map((z) => ({
+    materialId: String(z.material_id ?? ''),
+    name: String(z.name ?? ''),
+    einheit: String(z.einheit ?? 'Stk'),
+    ortId: z.ort_id ? String(z.ort_id) : null,
+    ort: String(z.ort ?? ''),
+    menge: Number(z.menge) || 0,
+  }));
+  if (d.ergebnis === 'geloescht') return { art: 'geloescht', gegenbuchung };
+  // Die Liste unverändert zurück: die Datenbank vergleicht sie mit ihrer eigenen.
+  return { art: 'moeglich', gegenbuchung, erwartet: d.gegenbuchung ?? [] };
+}
+
+/**
+ * LÖSCHEN, ERST GEPRÜFT (`anforderung_loeschen`): was eine verbuchte Zeile
+ * im Bestand bewirkt hat, wird beim Löschen zurückgebucht — und die
+ * Rückfrage nennt es vorher. Bis 10.11.2026 löschte die Ansicht an der
+ * Tabelle: die Zeile fiel aus dem Rechnungsvorschlag, der Bestand blieb.
+ */
+export async function anforderungLoeschenPruefen(orderId: string): Promise<LoeschStand> {
+  const { data, error } = await derClient().rpc('anforderung_loeschen', { p_id: orderId, p_ausfuehren: false });
+  if (error) throw new Error(error.message);
+  return loeschStandAus((data ?? {}) as Record<string, unknown>);
+}
+
+/** Löschen — nur auf dem Stand, den die Prüfung gezeigt hat (`erwartet` aus `anforderungLoeschenPruefen`). */
+export async function anforderungLoeschen(orderId: string, erwartet: unknown): Promise<LoeschStand> {
+  const { data, error } = await derClient().rpc('anforderung_loeschen', {
+    p_id: orderId,
+    p_ausfuehren: true,
+    p_erwartet: erwartet ?? [],
+  });
+  if (error) throw new Error(error.message);
+  return loeschStandAus((data ?? {}) as Record<string, unknown>);
+}
 
 export function listOpenOrders(companyId: string) {
   return abfragen<MaterialOrder>(ANFORDERUNGEN, companyId, {

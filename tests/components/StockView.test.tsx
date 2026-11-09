@@ -441,10 +441,34 @@ describe('Lager — Wareneingang', () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     zeige();
     await eingangMit('12');
+    // Seit 10.11.2026 mit der Vorgangskennung des Dialogs (E58).
     await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
       materialId: 'm1', menge: 12, lieferant: 'Frauenthal', lieferschein: 'LS-4711', bezug: undefined,
+      vorgang: expect.stringMatching(/^[0-9a-f-]{36}$/),
     }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: /^Wareneingang: / })).not.toBeInTheDocument());
+  });
+
+  /*
+    EIN VORGANG JE GEÖFFNETEM DIALOG (Prüfbericht 10.11.2026): riss das Netz
+    nach dem Senden ab, buchte ein zweiter Tipp ein zweites Mal ein. Mit
+    derselben Kennung bucht die Datenbank höchstens einmal.
+  */
+  it('ein erneuter Versuch nach einem Fehler schickt denselben Vorgang — ein neuer Eingang einen neuen', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    bestandAendern.mockRejectedValueOnce(new Error('Netzwerkfehler'));
+    zeige();
+    const dialog = await eingangMit('12');
+    expect(await within(dialog).findByText(/Netzwerkfehler/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await waitFor(() => expect(bestandAendern).toHaveBeenCalledTimes(2));
+    const [erst, zweit] = bestandAendern.mock.calls.map((c) => (c[0] as { vorgang: string }).vorgang);
+    expect(erst).toMatch(/^[0-9a-f-]{36}$/);
+    expect(zweit).toBe(erst);
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /^Wareneingang: / })).not.toBeInTheDocument());
+    await eingangMit('3');
+    await waitFor(() => expect(bestandAendern).toHaveBeenCalledTimes(3));
+    expect((bestandAendern.mock.calls[2][0] as { vorgang: string }).vorgang).not.toBe(erst);
   });
 
   it('aus dem Seitenkopf: erst den Artikel wählen, dann buchen (Linie „Lot“, E3)', async () => {
@@ -482,6 +506,7 @@ describe('Lager — Wareneingang', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
     await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
       materialId: 'm1', menge: 2, lieferant: 'Baumarkt Mödling', lieferschein: undefined, bezug: undefined,
+      vorgang: expect.stringMatching(/^[0-9a-f-]{36}$/),
     }));
   });
 

@@ -209,7 +209,8 @@ export default function OrderView() {
     if (!user) return;
     // Eine überholte Antwort (inzwischen anders gesucht oder mehr verlangt) setzt nichts mehr.
     let weg = false;
-    katalogSeite(user.companyId, begriff, artikelGezeigt)
+    // Ausgelaufenes nicht neu anfordern — außer dem Rest, der noch im Lager liegt.
+    katalogSeite(user.companyId, begriff, artikelGezeigt, { nurAnforderbar: true })
       .then((s) => {
         if (weg) return;
         setSeite(s);

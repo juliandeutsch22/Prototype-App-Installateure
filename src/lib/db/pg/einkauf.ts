@@ -69,6 +69,8 @@ interface Erwartet {
   status?: MaterialOrder['status'];
   /** Noch keinem Großhändler zugeordnet. */
   ohneGrosshaendler?: boolean;
+  /** Noch nicht abgeholt und verbucht — der Bestand ist noch nicht abgezogen. */
+  nurUnverbucht?: boolean;
 }
 
 /**
@@ -88,6 +90,7 @@ async function schreiben(
   else if (erwartet.beschaffung) q = q.eq('beschaffung', erwartet.beschaffung);
   if (erwartet.status) q = q.eq('status', erwartet.status);
   if (erwartet.ohneGrosshaendler) q = q.is('supplier_id', null);
+  if (erwartet.nurUnverbucht) q = q.eq('processed', false);
   const { data, error } = await q.select('id');
   if (error) throw new Error(error.message);
   return ((data ?? []) as { id: string }[]).map((z) => String(z.id));
@@ -110,16 +113,24 @@ export async function ausLager(orderId: string, status?: MaterialOrder['status']
   return geaendert.length > 0;
 }
 
-/** Nicht im Lager: auf die Einkaufsliste, beim gewählten Grosshändler — dieselbe Bedingung wie „Aus Lager“. */
+/**
+ * Nicht im Lager: auf die Einkaufsliste, beim gewählten Grosshändler —
+ * dieselbe Bedingung wie „Aus Lager“.
+ *
+ * `von: 'lager'`: schon aus dem Lager zugesagt, aber das Regal gibt es doch
+ * nicht her. Dann nur, solange nichts abgeholt ist — die Zusage fällt mit
+ * dem Wechsel auf „einkauf“ weg (`lager_zugesagt` zählt sie nicht mehr).
+ */
 export async function aufEinkaufsliste(
   orderId: string,
   supplierId: string | null,
   status?: MaterialOrder['status'],
+  von: 'lager' | null = null,
 ): Promise<boolean> {
   const geaendert = await schreiben(
     [orderId],
     { beschaffung: 'einkauf', supplier_id: supplierId, status: 'In Bearbeitung' },
-    { beschaffung: null, status },
+    { beschaffung: von, status, nurUnverbucht: von === 'lager' },
   );
   return geaendert.length > 0;
 }

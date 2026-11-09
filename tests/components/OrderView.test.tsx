@@ -52,6 +52,8 @@ let katalogHalten = false;
 let katalogSenden: () => void = () => undefined;
 /** Was die Ansicht beim Server angefragt hat — Suchbegriff und Länge der Seite. */
 let katalogAbfragen: { begriff: string; anzahl: number }[] = [];
+/** Mit welcher Wahl der Katalog gefragt wurde — „nur anforderbar“ (10.11.2026). */
+let katalogWahl: unknown[] = [];
 /** Meldet der Ansicht eine Änderung im Katalog, wie es der Live-Kanal täte. */
 let katalogGeaendert: () => void = () => undefined;
 /** Hält die eigenen Anforderungen zurück, bis der Test sie schickt. */
@@ -67,8 +69,9 @@ vi.mock('@/lib/db/materials', () => ({
     Wie der Server (18.10.2026): nach Namen, gesucht in Bezeichnung,
     Kategorie und Artikelnummer, die ersten `anzahl` und die Zahl aller Treffer.
   */
-  katalogSeite: (_c: string, begriff: string, anzahl: number) => {
+  katalogSeite: (_c: string, begriff: string, anzahl: number, wie?: unknown) => {
     katalogAbfragen.push({ begriff, anzahl });
+    katalogWahl.push(wie);
     const ergebnis = () => {
       const treffer = katalogTreffer(begriff);
       return { zeilen: treffer.slice(0, anzahl), gesamt: treffer.length };
@@ -162,6 +165,7 @@ beforeEach(() => {
   localStorage.clear();
   materialien = [ROHR, DICHTUNG];
   katalogAbfragen = [];
+  katalogWahl = [];
   katalogGeaendert = () => undefined;
   projekte = [MIT_LEITUNG, OHNE_LEITUNG];
   eigene = [];
@@ -619,6 +623,19 @@ describe('Material anfordern — der Katalog vom Server', () => {
     expect(await screen.findByText('Artikel 0039')).toBeInTheDocument();
     expect(katalogAbfragen[katalogAbfragen.length - 1]).toEqual({ begriff: '', anzahl: 40 });
     expect(screen.getByRole('button', { name: 'und 5 weitere anzeigen' })).toBeInTheDocument();
+  });
+
+  /*
+    AUSGELAUFENES NICHT NEU ANFORDERN (Prüfbericht 10.11.2026) — wie bei den
+    übrigen Erfassungen; was davon noch im Lager liegt, filtert die
+    Datenbank nicht weg (`katalogSeite`, geprüft in tests/supabase).
+  */
+  it('fragt den Katalog „nur anforderbar“ — ohne Ausgelaufenes', async () => {
+    materialien = [artikel(1)];
+    zeige();
+    expect(await screen.findByText('Artikel 0001')).toBeInTheDocument();
+    expect(katalogWahl.length).toBeGreaterThan(0);
+    expect(katalogWahl.every((w) => (w as { nurAnforderbar?: boolean } | undefined)?.nurAnforderbar === true)).toBe(true);
   });
 
   it('findet auch, was hinter den ersten tausend Artikeln liegt', async () => {

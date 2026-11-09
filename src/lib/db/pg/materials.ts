@@ -69,16 +69,25 @@ export async function katalogAnzahl(companyId: string): Promise<number> {
  * jedem Neuladen (eine Änderung im Katalog, ein Wiederaufbau) in sich
  * stimmig, ohne Lücken und Doppel an einer Stückgrenze. Nach der Kennung
  * als zweitem Schlüssel, damit gleichnamige Artikel nicht springen.
+ *
+ * `nurAnforderbar` (Material anfordern, Prüfbericht 10.11.2026): ohne
+ * ausgelaufene Artikel — was der Großhändler nicht mehr führt, wird nicht
+ * neu angefordert, wie bei den übrigen Erfassungen. AUSSER es liegt noch im
+ * Lager: diesen Rest aufzubrauchen ist gerade erwünscht. Der Katalog und
+ * das Lager zeigen ausgelaufene Artikel weiter (mit Kennzeichen).
  */
 export async function katalogSeite(
   companyId: string,
   begriff: string,
   anzahl: number,
+  wie: { nurAnforderbar?: boolean } = {},
 ): Promise<{ zeilen: MitNummer<WithId<Material>>[]; gesamt: number }> {
   let abfrage = derClient()
     .from(MATERIAL)
     .select('*', { count: 'exact' })
     .eq('company_id', companyId);
+  // Ein eigener `or`-Parameter: PostgREST verknüpft mehrere mit UND — die Suche unten bleibt davon unberührt.
+  if (wie.nurAnforderbar) abfrage = abfrage.or('ausgelaufen.eq.false,stock.gt.0');
   // M03a: auch über die Nummer eines Großhändlers und die EAN (`nummernSuche.ts`).
   const nummern = await nummernTreffer(begriff);
   const oder = oderMitNummern(oderUeberSpalten(['name', 'article_number', 'category'], begriff), nummern);
@@ -152,9 +161,15 @@ export async function adjustStock(materialId: string, delta: number) {
 /**
  * Wareneingang mit Lieferant, Lieferschein und Bezug (Testbericht 30.09.2026,
  * M29). Zurück kommt der neue Bestand.
+ *
+ * `vorgang`: die Kennung des Vorgangs nach dem Schreibbefehls-Vertrag (E58),
+ * EINMAL je geöffnetem Dialog. Ein zweiter Tipp nach einem Netzabbruch bucht
+ * so nicht ein zweites Mal ein; mit anderen Angaben weist die Datenbank ihn
+ * ab, statt still den ersten Stand zu melden.
  */
 export async function lagerEingang(eingang: {
   materialId: string; menge: number; lieferant: string; lieferschein?: string; bezug?: string; ortId?: string;
+  vorgang?: string;
 }): Promise<number> {
   /*
     DER ORT NUR, WENN EINER GEWÄHLT IST (M04a): ins Hauptlager geht derselbe
@@ -167,8 +182,15 @@ export async function lagerEingang(eingang: {
     p_lieferschein: eingang.lieferschein ?? null,
     p_bezug: eingang.bezug ?? null,
     ...(eingang.ortId ? { p_ort: eingang.ortId } : {}),
+    ...(eingang.vorgang ? { p_vorgang: eingang.vorgang } : {}),
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    // 23505: dieselbe Kennung mit anderen Angaben — der erste Eingang ist schon gebucht.
+    if (error.code === '23505') {
+      throw new Error('Dieser Wareneingang ist schon gebucht — mit anderen Angaben. Bitte das Bewegungsprotokoll ansehen, bevor erneut gebucht wird.');
+    }
+    throw new Error(error.message);
+  }
   return Number(data);
 }
 

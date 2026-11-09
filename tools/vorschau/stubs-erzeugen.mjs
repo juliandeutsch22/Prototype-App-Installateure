@@ -43,7 +43,12 @@ const DATEN = {
     kundenAdressePruefen: 'D.kunden.filter((k) => k.adressePruefen)',
   },
   company: { getCompany: 'D.firma', auszug: 'D.firma' },
-  materialOrders: { '*': 'D.bestellungen' },
+  materialOrders: {
+    '*': 'D.bestellungen',
+    // Löschen mit Gegenbuchung (09.11.2026): ohne Antwort stand „gibt es so nicht mehr“ und ein gesperrter Knopf.
+    anforderungLoeschenPruefen: "{ art: 'moeglich', gegenbuchung: [], erwartet: [] }",
+    anforderungLoeschen: "{ art: 'geloescht', gegenbuchung: [] }",
+  },
   /*
     Die Nummernsuche (M03a) liefert eine Map je Artikel; als Liste geraten
     brach das Lager beim Tippen ab (`treffer.keys`, 09.11.2026).

@@ -52,8 +52,10 @@ export function katalogSeite(
   companyId: string,
   begriff: string,
   anzahl: number,
+  /** `nurAnforderbar`: ohne ausgelaufene Artikel, außer sie liegen noch im Lager — für „Material anfordern“. */
+  wie?: { nurAnforderbar?: boolean },
 ): Promise<{ zeilen: MitNummer<WithId<Material>>[]; gesamt: number }> {
-  return pg.katalogSeite(companyId, begriff, anzahl);
+  return pg.katalogSeite(companyId, begriff, anzahl, wie);
 }
 
 /** Meldet Änderungen am Katalog — siehe `pg.katalogBeobachten`. */
@@ -82,6 +84,8 @@ export function lagerEingang(eingang: {
   materialId: string; menge: number; lieferant: string; lieferschein?: string; bezug?: string;
   /** Der Zielort (M04a); ohne ihn ins Hauptlager, wie bisher. */
   ortId?: string;
+  /** Die Vorgangskennung (E58), einmal je geöffnetem Dialog — eine Wiederholung bucht nicht doppelt. */
+  vorgang?: string;
 }): Promise<number> {
   return pg.lagerEingang(eingang);
 }

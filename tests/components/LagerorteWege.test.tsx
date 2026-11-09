@@ -221,7 +221,13 @@ describe('Retoure in das eigene Fahrzeug', () => {
   it('Erhaltung: ins Hauptlager derselbe Aufruf wie bisher', async () => {
     await erfassen();
     await waitFor(() => expect(createReturn).toHaveBeenCalledTimes(1));
-    expect(createReturn.mock.calls[0]).toHaveLength(2);
+    /*
+      ANGEPASST (10.11.2026): dazu kommt die Kennung des Belegs, einmal je
+      geöffnetem Formular — eine Wiederholung bucht so nicht doppelt. Ein Ort
+      geht weiterhin nicht mit.
+    */
+    expect(createReturn.mock.calls[0]).toHaveLength(3);
+    expect(createReturn.mock.calls[0][2]).toMatch(/^[0-9a-f-]{36}$/);
     expect(createReturnInOrt).not.toHaveBeenCalled();
   });
 });

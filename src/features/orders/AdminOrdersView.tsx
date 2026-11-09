@@ -4,12 +4,16 @@ import { useAuth } from '@/app/AuthContext';
 import { postenNeuLaden } from '@/app/offenePosten';
 import {
   subscribeAllOrders,
+  subscribeOffeneAnforderungen,
   sucheAnforderungen,
   ANFORDERUNG_TREFFER,
   updateOrderStatus,
-  deleteOrder,
+  anforderungLoeschenPruefen,
+  anforderungLoeschen,
   ORDER_STATUS_FLOW,
   anforderungEiligSetzen,
+  type Gegenbuchung,
+  type LoeschStand,
   type Regalstand,
 } from '@/lib/db/materialOrders';
 import { eiligMoeglich } from './eilig';
@@ -154,6 +158,25 @@ function schrittFuer(o: MaterialOrder): Schritt | null {
   return null;
 }
 
+/** Eine Gegenbuchung, lesbar: „+2 m Kupferrohr 15mm (Hauptlager)“. */
+function gegenbuchungText(g: Gegenbuchung): string {
+  return `${g.menge > 0 ? '+' : '−'}${fmtMenge(Math.abs(g.menge))} ${g.einheit} ${g.name} (${g.ort})`;
+}
+
+/**
+ * DIE RÜCKFRAGE BEIM LÖSCHEN nennt die Folge im Bestand. Ohne Gegenbuchung
+ * (nichts verbucht) bleibt sie Wort für Wort wie bisher.
+ */
+function loeschText(o: MaterialOrder, stand: LoeschStand | { art: 'fehler'; text: string } | null): string {
+  const was = `„${o.materialName}“ ×${o.quantity} wird entfernt.`;
+  if (!stand) return `${was} Was das im Bestand bewirkt, wird geprüft …`;
+  if (stand.art === 'fehler') return stand.text;
+  if (stand.art === 'abgewiesen') return `Löschen geht hier nicht: ${stand.grund}`;
+  if (stand.art !== 'moeglich') return 'Diesen Eintrag gibt es so nicht mehr — bitte die Liste neu laden.';
+  if (stand.gegenbuchung.length === 0) return was;
+  return `${was} Der Bestand wird um ${stand.gegenbuchung.map(gegenbuchungText).join(', ')} korrigiert — die Gegenbuchung steht im Bewegungsprotokoll.`;
+}
+
 /** Datum und Uhrzeit eines Zeitstempels — für den Verlauf. */
 function zeitpunkt(v: unknown): string {
   const ms = toMillis(v);
@@ -280,11 +303,26 @@ export default function AdminOrdersView() {
   const [lagerStand, setLagerStand] = useState(0);
   /** „Nicht auf Lager" — bei welchem Grosshändler eingekauft wird. */
   const [einkaufFragen, setEinkaufFragen] = useState<{ o: WithId<MaterialOrder>; bei: string } | null>(null);
+  /** Die jüngsten Anforderungen bis zur Abfrage-Grenze — für „Erledigt“, „Retouren“ und die Suche. */
   const [orders, setOrders] = useState<WithId<MaterialOrder>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * DER ARBEITSSTAND: jede noch nicht abgeholte Anforderung, ohne
+   * Altersgrenze — für „Laufend“, die Einkaufsliste und deren Zahl. Aus dem
+   * Abo oben geschnitten, fehlte eine offene Anforderung hinter zweihundert
+   * jüngeren, während Startseite und Menü sie zählten.
+   */
+  const [arbeitsstand, setArbeitsstand] = useState<WithId<MaterialOrder>[]>([]);
+  const [arbeitLaedt, setArbeitLaedt] = useState(true);
+  const [arbeitFehler, setArbeitFehler] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<WithId<MaterialOrder> | null>(null);
+  /**
+   * Was das Löschen bewirkt — geprüft, sobald die Rückfrage aufgeht.
+   * `null`: die Antwort steht noch aus.
+   */
+  const [loeschStand, setLoeschStand] = useState<LoeschStand | { art: 'fehler'; text: string } | null>(null);
   const [adresse, setAdresse] = useSearchParams();
   const tab = reiterAusAdresse(adresse.get('reiter'));
   const setTab = (t: Tab) => {
@@ -328,6 +366,9 @@ export default function AdminOrdersView() {
    * Anforderung, und ab der zweihundertsten fehlten die ältesten — die Suche
    * fand sie nicht, und nichts unterschied das von „gibt es nicht". Genau
    * derselbe Fehler wie bei den Baustellen im September.
+   *
+   * Sie gilt nur für „Erledigt“ und „Retouren“ (und als Fallback der
+   * Suche); „Laufend“ und die Einkaufsliste kommen aus dem Arbeitsstand.
    */
   const [holgrenze, setHolgrenze] = useState(ANFORDERUNGEN_JE_SEITE);
   /** Bestätigung vor dem Abschluss — dabei wird das Lager reduziert. */
@@ -376,6 +417,40 @@ export default function AdminOrdersView() {
     );
     return unsub;
   }, [user, holgrenze, neuLaden]);
+
+  useEffect(() => {
+    if (!user) return;
+    return subscribeOffeneAnforderungen(
+      user.companyId,
+      (rows) => {
+        setArbeitsstand(rows);
+        setArbeitFehler(null);
+        setArbeitLaedt(false);
+      },
+      (e) => {
+        setArbeitFehler(e.message);
+        setArbeitLaedt(false);
+      },
+    );
+  }, [user, neuLaden]);
+
+  /*
+    LÖSCHEN NENNT SEINE FOLGE (Prüfbericht 10.11.2026). Eine verbuchte
+    Anforderung oder Retoure hat den Bestand bewegt; gelöscht wird das
+    zurückgebucht. Die Rückfrage fragt die Datenbank vorher, was genau —
+    oder warum es nicht geht.
+  */
+  useEffect(() => {
+    if (!toDelete) return;
+    let weg = false;
+    setLoeschStand(null);
+    anforderungLoeschenPruefen(toDelete.id)
+      .then((r) => { if (!weg) setLoeschStand(r); })
+      .catch((err) => {
+        if (!weg) setLoeschStand({ art: 'fehler', text: grundAus(err, 'Was das Löschen bewirkt, ließ sich nicht prüfen.') });
+      });
+    return () => { weg = true; };
+  }, [toDelete]);
 
   useEffect(() => {
     if (!user) return;
@@ -439,31 +514,40 @@ export default function AdminOrdersView() {
     () => (treffer && suchbegriff && treffer.begriff === suchbegriff ? treffer.zeilen : null),
     [treffer, suchbegriff],
   );
-  /** Geladene und gefundene zusammen — das Seitenfenster öffnet auch einen älteren Treffer. */
+  /**
+   * Geladene, offene und gefundene zusammen — das Seitenfenster öffnet jede
+   * davon. Der Arbeitsstand zuerst: er ist für Offenes der jüngere Stand.
+   */
   const bekannte = useMemo(() => {
-    if (!serverTreffer) return orders;
-    const ids = new Set(orders.map((o) => o.id));
-    return [...orders, ...serverTreffer.filter((o) => !ids.has(o.id))];
-  }, [orders, serverTreffer]);
+    const ids = new Set(arbeitsstand.map((o) => o.id));
+    const alle = [...arbeitsstand, ...orders.filter((o) => !ids.has(o.id))];
+    if (!serverTreffer) return alle;
+    for (const o of alle) ids.add(o.id);
+    return [...alle, ...serverTreffer.filter((o) => !ids.has(o.id))];
+  }, [arbeitsstand, orders, serverTreffer]);
 
+  /** Die Anforderungen (ohne Retouren) unter den geladenen — für „Erledigt“. */
   const purchases = useMemo(() => orders.filter((o) => o.transactionType !== 'return'), [orders]);
   /** Wie viele Anforderungen auf der Einkaufsliste noch nicht bestellt sind. */
   const zuBestellen = useMemo(
     () =>
-      purchases.filter((o) => aufDerListe(o) && !o.bestelltAm).length +
+      arbeitsstand.filter((o) => aufDerListe(o) && !o.bestelltAm).length +
       lagerPosten.filter((p) => !p.bestelltAm && !p.geliefertAm).length,
-    [purchases, lagerPosten],
+    [arbeitsstand, lagerPosten],
   );
   const returns = useMemo(() => orders.filter((o) => o.transactionType === 'return'), [orders]);
 
   const projectOptions = useMemo(
-    () => [...new Set(purchases.map((o) => o.projectNumber).filter(Boolean))].sort() as string[],
-    [purchases],
+    () => [...new Set([...arbeitsstand, ...purchases].map((o) => o.projectNumber).filter(Boolean))].sort() as string[],
+    [arbeitsstand, purchases],
   );
 
   const rows = useMemo(() => {
     // Mit Treffern vom Server: deren Anforderungen, sonst die geladenen.
-    const kaeufe = serverTreffer ? serverTreffer.filter((o) => o.transactionType !== 'return') : purchases;
+    // „Laufend“ aus dem Arbeitsstand, „Erledigt“ aus den geladenen.
+    const kaeufe = serverTreffer
+      ? serverTreffer.filter((o) => o.transactionType !== 'return')
+      : tab === 'aktiv' ? arbeitsstand : purchases;
     const rueck = serverTreffer ? serverTreffer.filter((o) => o.transactionType === 'return') : returns;
     const base =
       tab === 'retouren'
@@ -487,7 +571,7 @@ export default function AdminOrdersView() {
         v?.toLowerCase().includes(q),
       ),
     );
-  }, [tab, purchases, returns, projectFilter, suchbegriff, adressFilter, serverTreffer]);
+  }, [tab, arbeitsstand, purchases, returns, projectFilter, suchbegriff, adressFilter, serverTreffer]);
 
   /**
    * Offene Anforderungen nach Arbeitsschritt gruppiert, Eilfälle oben.
@@ -624,8 +708,8 @@ export default function AdminOrdersView() {
     KEIN „RÜCKGÄNGIG“: „Aus Lager“ setzt Beschaffung, Status und den
     Zeitstempel „abholbereit seit“ und schickt dem Monteur seine Meldung;
     „Abgeholt“ zieht den Bestand ab. Keine bestehende Funktion stellt das
-    genau wieder her — ein Zurücksetzen auf „Offen“ liesse Beschaffung,
-    Zeitstempel und Meldung stehen.
+    genau wieder her — ein Zurücksetzen auf „Offen“ nimmt zwar die Zusage
+    aus dem Lager zurück, die Meldung an den Monteur aber nicht.
   */
   async function sammelAusfuehren(liste: WithId<MaterialOrder>[]) {
     setSammelLaeuft(true);
@@ -731,8 +815,16 @@ export default function AdminOrdersView() {
       </Marke>
     ) : null;
 
+  /*
+    „NICHT AUF LAGER“ AUCH NACH „AUS LAGER“: wer am Regal merkt, dass die
+    zugesagte Ware doch nicht da ist, schickt sie von hier auf die
+    Einkaufsliste — solange nichts abgeholt ist. Vorher blieb sie zugesagt,
+    ohne Weg zum Großhändler.
+  */
   const darfNichtAufLager = (o: WithId<MaterialOrder>) =>
-    o.transactionType !== 'return' && !o.beschaffung && (o.status === 'Offen' || o.status === 'In Bearbeitung');
+    o.transactionType !== 'return'
+    && ((!o.beschaffung && (o.status === 'Offen' || o.status === 'In Bearbeitung'))
+      || (o.beschaffung === 'lager' && !o.processed && o.status === 'Abholbereit'));
 
   const ausgewaehlteMitSchritt = gewaehlt.filter((id) => {
     const o = bekannte.find((x) => x.id === id);
@@ -803,6 +895,9 @@ export default function AdminOrdersView() {
 
       {tab === 'einkauf' && company ? (
         <>
+          {arbeitFehler && (
+            <ErrorState message={`Die Anforderungen konnten nicht geladen werden — die Liste zeigt nur das eigene Material. (${arbeitFehler})`} />
+          )}
           {lagerFehler && (
             <ErrorState message="Das eigene Material auf der Einkaufsliste konnte nicht geladen werden — die Liste zeigt nur die Anforderungen." />
           )}
@@ -813,7 +908,7 @@ export default function AdminOrdersView() {
             company={company}
             meinUid={user.uid}
             meinName={user.name}
-            anforderungen={purchases}
+            anforderungen={arbeitsstand}
             lagerPosten={lagerPosten}
             grosshaendler={grosshaendler}
             onGrosshaendlerGeaendert={() => setGhStand((n) => n + 1)}
@@ -851,13 +946,13 @@ export default function AdminOrdersView() {
               Die {ANFORDERUNG_TREFFER} jüngsten Treffer — für ältere genauer suchen.
             </p>
           )}
-          {loading ? (
+          {(tab === 'aktiv' ? arbeitLaedt : loading) ? (
             <div className="p-4">
               <SkeletonList rows={4} />
             </div>
-          ) : error ? (
+          ) : (tab === 'aktiv' ? arbeitFehler : error) ? (
             <div className="p-4">
-              <ErrorState message={error} />
+              <ErrorState message={(tab === 'aktiv' ? arbeitFehler : error) ?? ''} />
             </div>
           ) : rows.length === 0 ? (
             /* Die Zeichnung nur bei „nichts offen“ im laufenden Bereich und bei einer Suche ohne Treffer. */
@@ -933,19 +1028,10 @@ export default function AdminOrdersView() {
                 );
               })}
               {/*
-                Die ABFRAGE-Grenze: „und N weitere“ zeigt nur mehr von dem, was
-                schon geladen ist. Wer sucht und nichts findet, muss den
-                Unterschied erfahren.
+                KEINE ABFRAGE-GRENZE HIER: „Laufend“ kommt aus dem Arbeitsstand,
+                der alles noch nicht Abgeholte holt. „und N weitere“ zeigt nur
+                mehr je Gruppe.
               */}
-              {!suchbegriff && (
-                <Nachladen
-                  geladen={orders.length}
-                  grenze={holgrenze}
-                  onMehr={() => setHolgrenze((g) => g + ANFORDERUNGEN_JE_SEITE)}
-                  einheit="Anforderungen"
-                  sucheImBrowser={false}
-                />
-              )}
               {ausgewaehlteMitSchritt.length > 0 && <div className="sammel-platz" aria-hidden="true" />}
             </div>
           ) : (
@@ -1179,7 +1265,8 @@ export default function AdminOrdersView() {
         confirmTone="primary"
         message={
           einkaufFragen
-            ? `„${einkaufFragen.o.materialName}“ ×${einkaufFragen.o.quantity} ist nicht im Lager und wird beim Großhändler bestellt.`
+            ? `„${einkaufFragen.o.materialName}“ ×${einkaufFragen.o.quantity} ist nicht im Lager und wird beim Großhändler bestellt.${
+              einkaufFragen.o.beschaffung === 'lager' ? ' Die Zusage aus dem Lager fällt weg.' : ''}`
             : ''
         }
         onCancel={() => setEinkaufFragen(null)}
@@ -1188,7 +1275,11 @@ export default function AdminOrdersView() {
           setEinkaufFragen(null);
           if (!f) return;
           try {
-            if (!(await aufEinkaufsliste(f.o.id, f.bei || null, f.o.status))) {
+            // Schon aus dem Lager zugesagt: nur auf genau diesem Stand (und unverbucht) umstellen.
+            const getan = f.o.beschaffung === 'lager'
+              ? await aufEinkaufsliste(f.o.id, f.bei || null, f.o.status, 'lager')
+              : await aufEinkaufsliste(f.o.id, f.bei || null, f.o.status);
+            if (!getan) {
               veraltet();
               return;
             }
@@ -1333,15 +1424,22 @@ export default function AdminOrdersView() {
       <ConfirmDialog
         open={!!toDelete}
         title="Eintrag löschen?"
-        message={toDelete ? `„${toDelete.materialName}“ ×${toDelete.quantity} wird entfernt.` : ''}
+        message={toDelete ? loeschText(toDelete, loeschStand) : ''}
+        gesperrt={loeschStand?.art !== 'moeglich'}
         onCancel={() => setToDelete(null)}
         onConfirm={async () => {
-          if (toDelete) {
-            await deleteOrder(toDelete.id);
+          if (toDelete && loeschStand?.art === 'moeglich') {
+            const r = await anforderungLoeschen(toDelete.id, loeschStand.erwartet);
+            if (r.art === 'abgewiesen') throw new Error(r.grund);
+            if (r.art !== 'geloescht') {
+              setToDelete(null);
+              veraltet();
+              return;
+            }
             // Auch das Löschen nimmt einen offenen Posten weg.
             void postenNeuLaden();
             setGewaehlt((alt) => alt.filter((x) => x !== toDelete.id));
-            toast.success('Eintrag gelöscht');
+            toast.success(r.gegenbuchung.length > 0 ? 'Eintrag gelöscht — der Bestand ist zurückgebucht' : 'Eintrag gelöscht');
           }
           setToDelete(null);
         }}

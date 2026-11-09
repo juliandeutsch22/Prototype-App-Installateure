@@ -38,6 +38,15 @@ export function subscribeAllOrders(
   return pg.subscribeAllOrders(companyId, max, cb, onError);
 }
 
+/** Der Arbeitsstand des Lagers — alles noch nicht Abgeholte, ohne Altersgrenze. */
+export function subscribeOffeneAnforderungen(
+  companyId: string,
+  cb: (rows: WithId<MaterialOrder>[]) => void,
+  onError: (e: Error) => void,
+): () => void {
+  return pg.subscribeOffeneAnforderungen(companyId, cb, onError);
+}
+
 export function createMaterialOrder(
   companyId: string, order: NewMaterialOrder,
 ): Promise<string> {
@@ -84,11 +93,13 @@ export function anforderungEiligSetzen(orderId: string, eilig: boolean): Promise
   return pg.anforderungEiligSetzen(orderId, eilig);
 }
 
+/** Retoure — `kennung` einmal je geöffnetem Formular, damit eine Wiederholung nicht doppelt bucht. */
 export function createReturn(
   companyId: string,
   ret: Omit<NewMaterialOrder, 'status' | 'transactionType'> & { condition: string },
+  kennung?: string,
 ): Promise<string> {
-  return pg.createReturn(companyId, ret);
+  return pg.createReturn(companyId, ret, null, kennung);
 }
 
 /** Retoure in einen weiteren Lagerort (M04a) — „neu“ geht dorthin zurück statt ins Hauptlager. */
@@ -96,12 +107,25 @@ export function createReturnInOrt(
   companyId: string,
   ret: Omit<NewMaterialOrder, 'status' | 'transactionType'> & { condition: string },
   ortId: string | null,
+  kennung?: string,
 ): Promise<string> {
-  return pg.createReturn(companyId, ret, ortId);
+  return pg.createReturn(companyId, ret, ortId, kennung);
 }
 
 export function deleteOrder(orderId: string): Promise<void> {
   return pg.deleteOrder(orderId);
+}
+
+export type { Gegenbuchung, LoeschStand } from './pg/materialOrders';
+
+/** Was das Löschen bewirkt — für die Rückfrage (Gegenbuchung oder Grund der Ablehnung). */
+export function anforderungLoeschenPruefen(orderId: string): Promise<pg.LoeschStand> {
+  return pg.anforderungLoeschenPruefen(orderId);
+}
+
+/** Löschen mit Gegenbuchung — nur auf dem geprüften Stand. */
+export function anforderungLoeschen(orderId: string, erwartet: unknown): Promise<pg.LoeschStand> {
+  return pg.anforderungLoeschen(orderId, erwartet);
 }
 
 export function listOpenOrders(companyId: string): Promise<WithId<MaterialOrder>[]> {
