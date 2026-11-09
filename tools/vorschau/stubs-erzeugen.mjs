@@ -117,6 +117,15 @@ const FEST = {
     "export const nextInvoiceNumber = () => 'RE-2026-0234';\n" +
     'export const isInvoiceNumberTaken = () => false;\n',
   konten: 'export const buchungskonten = () => A([]);\n',
+  /*
+    Seit E66 lädt der Timer-Stand im Layout auf jeder Seite. `zeitsitzungenLaden`
+    passt auf kein Namensmuster und bekäme `undefined` — `sitzungen.find` warf,
+    und jede Seite der Vorschau blieb weiß. Ohne laufenden Arbeitstag: leer.
+  */
+  zeitsitzungen:
+    'export const zeitsitzungenLaden = () => A([]);\n' +
+    'export const letzterTimerEntwurf = () => undefined;\n' +
+    'export const timerMerken = () => {};\n',
   // Die Grenzprüfung liest die Geburtsdaten als Map je Person; ein Feld liess
   // die Karte „Arbeitszeitgrenzen“ in der Vorschau mit einem Fehler stehen.
   arbeitszeitGrenzen: 'export const listGeburtsdaten = () => A(new Map<string, string>());\n',
