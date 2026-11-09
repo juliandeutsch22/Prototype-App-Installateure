@@ -348,6 +348,16 @@ describe('Durchsicht 09.11.2026', () => {
     expect(ZEIT).toContain('.zeit-fenster-hinweis { padding: 0 1rem 0.75rem; font-size: 0.8125rem; line-height: 1.5rem;');
   });
 
+  it('das Gespräch ist kein Fremdkörper: am Schreibtisch ein Blatt mit dem Posteingang, am Handy randlos (E71)', () => {
+    const N = stil('lot-nachrichten.css');
+    expect(N).toMatch(/\.nachrichten-raster \{ gap: 0; height: 76dvh;[^}]*border: 1px solid var\(--border\); background: var\(--surface\); \}/);
+    expect(N).toContain('.nachrichten-raster > .chat { min-height: 0; border: 0; }');
+    expect(N).toContain('.chat { margin: 0 var(--takt-auslauf, -1rem) 0 -1rem; border-inline: 0; border-bottom: 0; }');
+    // Apple-nah: Zeit über der Gruppe, nicht in der Blase; Zipfel an der letzten Blase.
+    expect(N).not.toContain('.nachricht-zeit');
+    expect(N).toMatch(/\.nachricht\[data-ende\]:not\(\[data-eigene\]\) \.nachricht-blatt:not\(\[data-weg\]\)::before/);
+  });
+
   it('bei reduzierter Bewegung entfallen auch diese Rückmeldungen', () => {
     const reduziert = FEIN.slice(FEIN.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
     expect(reduziert).toContain(':is(.zeile-ganz, .arbeitszeile-inhalt, .mehr-laden, .start-weiter, .mehr-punkt, .checkbox, .lot-zahl-neu) { animation: none !important; transition: none !important; }');

@@ -75,7 +75,8 @@
     aufeinandertreffen, fast gerade, die letzte trägt den Zipfel.
   */
   .gespraech-verlauf { background: var(--surface); }
-  .verlauf { list-style: none; margin: 0; padding: 0.5rem 0.75rem 0.75rem; display: flex; flex-direction: column; }
+  /* 16 px Rand: der Zipfel der Blase ragt 10 px hinaus und braucht Luft zum Bildschirmrand. */
+  .verlauf { list-style: none; margin: 0; padding: 0.5rem 1rem 0.75rem; display: flex; flex-direction: column; }
   .verlauf-leer { padding: 2.5rem 0.75rem; text-align: center; color: var(--text-muted); font-size: 0.875rem; }
   .nachricht { display: flex; flex-direction: column; align-items: flex-start; margin-top: 0.125rem; }
   .nachricht[data-anfang] { margin-top: 0.5rem; }
@@ -166,10 +167,34 @@
   .eingabe-datei { display: inline-flex; align-items: center; gap: 0.5rem; max-width: 100%; min-height: 2.75rem; padding: 0.25rem 0.25rem 0.25rem 0.5rem; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); font-size: 0.875rem; }
   .eingabe-datei-bild { width: 2.25rem; height: 2.25rem; object-fit: cover; border-radius: 999px; }
 
+  /*
+    KEIN FREMDKÖRPER (E71, 09.11.2026). Das Gespräch saß als eigene,
+    gerahmte Kiste auf dem Raster: am Schreibtisch mit fester Höhe neben der
+    Liste, am Handy mit Rand, während die Eingabe darunter randlos lief.
+    Jetzt am Handy randlos über die volle Breite wie die Eingabe, die
+    Nachrichten unten an ihr; am Schreibtisch sind Posteingang und Gespräch
+    EIN Blatt (wie das Fenster von Apple Nachrichten am Mac): links die
+    Liste, eine Linie, rechts das Gespräch, so hoch wie das Fenster, beide
+    rollen für sich.
+  */
+  .chat-leer { justify-content: center; align-items: center; padding: 2rem; text-align: center; color: var(--text-muted); font-size: 0.9375rem; }
+  @media (max-width: 759px) {
+    /* Rechts bis an den Rand der Fläche, auch wenn die Spalte auf ganze Zellen gerundet ist (`--takt-auslauf`, wie die Warenkorb-Leiste). */
+    .chat { margin: 0 var(--takt-auslauf, -1rem) 0 -1rem; border-inline: 0; border-bottom: 0; }
+    /* Mindestens so hoch, dass wenige Nachrichten unten an der Eingabe stehen statt oben über leerem Raster. */
+    .gespraech-verlauf { display: flex; flex-direction: column; min-height: 62dvh; }
+    .gespraech-verlauf > .verlauf { margin-top: auto; }
+  }
   @media (min-width: 760px) {
     .chat-nur-telefon { display: none; }
-    /* Etwa zwei Drittel der Fensterhöhe: Seitenkopf und Kartenkopf passen darüber, ohne dass die Seite rollt. */
-    .gespraech { height: 62dvh; min-height: 26rem; max-height: 60rem; }
+    /* Ein Blatt, fast fensterhoch: der Seitenkopf passt darüber, ohne dass die Seite rollt. */
+    .nachrichten-raster { gap: 0; height: 76dvh; min-height: 32rem; max-height: 64rem; grid-template-rows: minmax(0, 1fr); align-items: stretch; border: 1px solid var(--border); background: var(--surface); }
+    .nachrichten-raster > .postfach { min-height: 0; overflow-y: auto; overscroll-behavior: contain; gap: 0; border-right: 1px solid var(--border); }
+    .nachrichten-raster .postfach-leiste { padding: 0.75rem 0.75rem; border-bottom: 1px solid var(--border); }
+    .nachrichten-raster .postfach-blatt { border: 0; }
+    .nachrichten-raster .postfach-blatt > ul { border-bottom: 1px solid var(--border); }
+    .nachrichten-raster > .chat { min-height: 0; border: 0; }
+    .gespraech { flex: 1; min-height: 0; }
     .gespraech-verlauf { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; }
     /* Wenige Nachrichten stehen unten an der Eingabe, wie in jedem Messenger. */
     .gespraech-verlauf > .verlauf { margin-top: auto; padding-inline: 1.25rem; }

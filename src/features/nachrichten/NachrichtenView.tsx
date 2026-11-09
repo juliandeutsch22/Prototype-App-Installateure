@@ -213,9 +213,10 @@ export default function NachrichtenView() {
         <div className="nachrichten-raster">
           <Postfach aktiv={kanal} direktAn={direktAn} />
           {gespraech ?? (
-            <Card title="Gespräch">
-              <p className="text-ink-muted">Links ein Gespräch wählen — oder mit „Neue Nachricht“ eines beginnen.</p>
-            </Card>
+            /* Im selben Blatt wie der Posteingang, keine Karte in der Karte (E71). */
+            <div className="chat chat-leer">
+              <p>Links ein Gespräch wählen — oder mit „Neue Nachricht“ eines beginnen.</p>
+            </div>
           )}
         </div>
       ) : imGespraech ? gespraech : (
