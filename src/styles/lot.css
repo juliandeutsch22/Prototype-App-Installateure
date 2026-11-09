@@ -111,8 +111,9 @@
   .arbeitszeile-inhalt { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.75rem; padding: 0.375rem 0; background: none; border: 0; text-align: left; color: inherit; cursor: pointer; }
   .arbeitszeile-inhalt:hover { color: var(--accent-deep); }
   @media (max-width: 759px) { .arbeitszeile-inhalt { flex-direction: column; align-items: flex-start; gap: 0.25rem; } }
-  .arbeitszeile-schritt { flex: none; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); color: var(--accent-deep); border: 1px solid var(--petrol); border-radius: var(--radius); font-weight: var(--gewicht-titel); font-size: 0.875rem; white-space: nowrap; cursor: pointer; }
-  .arbeitszeile-schritt:hover { background: var(--petrol-hell); }
+  /* Der nächste Schritt in einer Zeile ist ein Zweitknopf wie überall (E72, R2) — nicht eine eigene Petrol-Gestalt. */
+  .arbeitszeile-schritt { flex: none; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font-weight: 400; font-size: 0.875rem; white-space: nowrap; cursor: pointer; }
+  .arbeitszeile-schritt:hover { border-color: var(--brand-fixed); }
   .arbeitszeile-schritt:disabled { opacity: 0.5; cursor: not-allowed; }
   /*
     DIE SAMMELLEISTE IST EIN BLATT (E72) wie die Leiste des Warenkorbs (E47):
@@ -120,6 +121,8 @@
     festen Farben, die dunkel hart aus dem Bild leuchtete.
   */
   .sammelleiste { position: sticky; top: 0; z-index: 12; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); }
+  /* Ab dem Tablet ein Blatt im Takt: 72 px hoch, Text auf der 24-px-Flucht. */
+  @media (min-width: 760px) { .sammelleiste { min-height: 4.5rem; padding: 0.75rem 1.5rem; } }
   @media (max-width: 759px) {
     .sammelleiste { position: fixed; left: 0; right: 0; top: auto; bottom: var(--reiter-hoehe, 0px); z-index: 22; border-inline: 0; border-bottom: 0; }
   }

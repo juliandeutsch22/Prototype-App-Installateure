@@ -285,3 +285,41 @@ Nachtlauf darf nicht wegzuklicken sein.
   selbsttätig neu zusammengestellt. Grund fachlich: die Art bestimmt, woraus
   die Positionen entstehen; eine stehengebliebene Vorschau gehörte zur alten
   Art. Derselbe Ablauf wie bei der Auswahl der Art.
+
+## Zweite, unabhängige Durchsicht — begründete Grenzen (09.11.2026, E70 Nachtrag)
+
+- **Mahnkosten einer Mahnung vor dem 10.10.2026:** ein Eingang „Mahnspesen
+  und Zinsen“ ist dort nur bis zu den Mahnspesen am Mahnstand möglich. Grund:
+  Altdaten — die Zinsen dieser Mahnungen sind nicht gespeichert; jüngere
+  Mahnungen halten sie als Zahl fest.
+- **Ein Anzahlungskonto ohne Steuersatz gilt im BMD-Stapel für 20 %.** Für
+  Übergang der Steuerschuld und 0 % legt der Betrieb im Kontenrahmen ein
+  eigenes Konto an; fehlt es, nennt der Stapel das Konto und entsteht nicht.
+  Grund: Altdaten — so war das eine Konto bisher gemeint, und eine geratene
+  Zuordnung buchte falsch.
+- **Deaktivierte Personen im Monat ihrer Buchungen:** Übersicht, Fenster und
+  CSV zeigen ihre Stunden, aber kein Soll, keinen Saldo und keinen
+  Resturlaub. Grund: Daten — die App führt kein Austrittsdatum; das Soll
+  eines Teilmonats wäre ohne es falsch, und eine falsche Zahl in der
+  Lohnverrechnung ist schlimmer als eine leere. Für die Endabrechnung führt
+  die Lohnverrechnung (Kanzlei) das Austrittsdatum.
+- **Ein wieder geöffneter Eingang verliert die Verbindung zum verworfenen
+  Angebot.** Das Journal hält den Wechsel des Stands, nicht den Verweis.
+  Grund fachlich: der Verweis auf das Angebot ist seit M02b vom Journal
+  ausgenommen — derselbe Zustand wie nach dem endgültigen Löschen eines
+  Entwurfs.
+- **Die Verwaltung sieht beim Eingang nicht, dass sein Angebot im
+  Papierkorb liegt,** und damit auch „Wieder öffnen“ nicht; Führung und
+  Buchhaltung sehen beides. Grund: Rechte — die Verwaltung liest keine
+  Angebote.
+- **Offene Korrekturanträge bei ausgeschaltetem Schalter** stehen nicht auf
+  der Startseite, bleiben aber unter „Zeiterfassung“ abschließbar. Grund
+  fachlich: ein ausgeschaltetes Modul meldet sich nicht auf der Startseite.
+- **Arbeitszeit am Tag eines alten Arztbesuchs, die ihn überschneidet,**
+  lässt sich in der Uhrzeit nicht mehr ändern (die Maske verhinderte das
+  schon vorher). Grund: Altdaten — die Überschneidung stammt aus der Zeit vor
+  der Prüfung und wird nicht umgeschrieben.
+- **Fassungswechsel, einmal je Gerät:** eine noch laufende App von vor dieser
+  Auslieferung kennt die neue Frage an den Worker nicht und kann bei sehr
+  zähem Netz noch einmal hart räumen. Grund: liegt beim alten Code auf dem
+  Gerät; ab dieser Fassung tritt es nicht mehr auf.

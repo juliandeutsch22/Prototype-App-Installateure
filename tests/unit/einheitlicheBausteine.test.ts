@@ -50,6 +50,13 @@ describe('Handlungen sehen aus wie Knöpfe', () => {
     expect(text).not.toContain('text-decoration: underline');
   });
 
+  it('der nächste Schritt in einer Arbeitszeile ist ein Zweitknopf, keine eigene Petrol-Gestalt', () => {
+    const r = regel(LOT, '.arbeitszeile-schritt');
+    expect(r).toContain('border: 1px solid var(--border-strong)');
+    expect(r).toContain('color: var(--text)');
+    expect(r).not.toContain('var(--petrol)');
+  });
+
   it('die Knöpfe der Plattform behalten ihr Polster', () => {
     expect(PLATTFORM).not.toMatch(/button \{[^}]*padding-inline: 0/);
   });

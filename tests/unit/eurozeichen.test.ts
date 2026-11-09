@@ -26,17 +26,24 @@ function quellen(): string[] {
 
 describe('Die vier Formen', () => {
   it('euro stellt das Zeichen voran', () => {
-    expect(euro(22104.6)).toMatch(/^€ 22.104,60$/);
+    expect(euro(22104.6)).toMatch(/^€\u00a022.104,60$/);
   });
   it('euroBetrag ist nur die Zahl', () => {
     expect(euroBetrag(60)).toBe('60,00');
   });
   it('euroGerundet rundet auf ganze Euro', () => {
-    expect(euroGerundet(1234.56)).toMatch(/^€ 1.235$/);
+    expect(euroGerundet(1234.56)).toMatch(/^€\u00a01.235$/);
   });
   it('euroPreis zeigt bis zu vier Nachkommastellen, mindestens zwei', () => {
-    expect(euroPreis(0.4375)).toBe('€ 0,4375');
-    expect(euroPreis(12.5)).toBe('€ 12,50');
+    expect(euroPreis(0.4375)).toBe('€\u00a00,4375');
+    expect(euroPreis(12.5)).toBe('€\u00a012,50');
+  });
+  // E72: mit dem gewöhnlichen Leerzeichen brach „€“ am Zeilenende von der Zahl ab.
+  it('Zeichen und Zahl trennt kein Zeilenumbruch — geschütztes Leerzeichen', () => {
+    for (const s of [euro(1), euroGerundet(1), euroPreis(1)]) {
+      expect(s.charAt(1)).toBe('\u00a0');
+      expect(s).not.toContain(' ');
+    }
   });
 });
 

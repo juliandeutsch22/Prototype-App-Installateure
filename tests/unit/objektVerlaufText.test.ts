@@ -119,7 +119,7 @@ describe('verlaufEintrag — Anlegen, Löschen, Zahlungen', () => {
     expect(verlaufEintrag(zeile({ ...z, art: 'angelegt' })))
       .toMatchObject({ titel: 'Zahlung erfasst von Berta Büro', zeilen: ['€ 100,00 vom 05.11.2026 · Überweisung'] });
     expect(verlaufEintrag(zeile({ ...z, art: 'geaendert', aenderungen: { betrag: { alt: 10, neu: 100 } } })).zeilen)
-      .toEqual(['€ 100,00 vom 05.11.2026 · Überweisung', 'Betrag € 10,00 → € 100,00']);
+      .toEqual(['€ 100,00 vom 05.11.2026 · Überweisung', 'Betrag €\u00a010,00 → €\u00a0100,00']);
     expect(verlaufEintrag(zeile({ ...z, art: 'geloescht' })).titel).toBe('Zahlung gelöscht von Berta Büro');
   });
 });
@@ -131,7 +131,7 @@ describe('verlaufEintrag — vorhandene Verläufe', () => {
       aenderungen: { stufe: 2, datum: '2026-11-06', frist: '2026-11-20', spesen: 5 },
     }))).toMatchObject({
       titel: 'Gemahnt (Stufe 2) von Berta Büro',
-      zeilen: ['Mahndatum 06.11.2026', 'Frist 20.11.2026', 'Spesen € 5,00'],
+      zeilen: ['Mahndatum 06.11.2026', 'Frist 20.11.2026', 'Spesen €\u00a05,00'],
     });
     expect(verlaufEintrag(zeile({
       quelle: 'wartung_ausfuehrung', objektart: 'wartung', art: 'ausgefuehrt',
