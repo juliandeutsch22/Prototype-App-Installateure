@@ -56,6 +56,7 @@ import { SCHEIN_FILTER, bekannt } from '@/features/dashboard/start/ziele';
 import { AUFFAELLIG_AB_TAGEN, UNVERRECHNET_BASIS, unverrechneteScheine } from './unverrechnet';
 import { SCHEIN_STAND } from './scheinStand';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
+import { PdfKnopf } from '@/components/Symbolknoepfe';
 
 const STAND = SCHEIN_STAND;
 
@@ -702,9 +703,8 @@ export default function WorkSheetsListView() {
             Wieder aufnehmen
           </Button>
         ) : (
-          <Button variant="ghost" loading={busy} onClick={() => pdfAusgeben(s)}>
-            PDF
-          </Button>
+          // Das Blatt mit dem Pfeil (E74): am Telefon teilen, am Rechner speichern.
+          <PdfKnopf label={`Schein ${s.projectNumber} vom ${datumAT(s.datum)} als PDF teilen oder speichern`} laeuft={busy} onClick={() => pdfAusgeben(s)} />
         )}
       </ListRow>
     );

@@ -103,14 +103,15 @@ describe('Karte „Arbeitstag“', () => {
     expect(screen.getByRole('button', { name: 'Stoppen und prüfen' })).toBeInTheDocument();
   });
 
-  // E72 (09.11.2026): „Verwerfen …“ war ein 20 px hoher grauer Text — jetzt ein Zweitknopf, der den Bogen öffnet.
-  it('„Verwerfen …“ ist ein Zweitknopf und öffnet weiter den Bogen', async () => {
+  // E74 (10.11.2026): „Verwerfen …“ ist der Papierkorb unten links — weit weg von Pause und Stopp; er öffnet weiter den Bogen.
+  it('„Verwerfen …“ ist der Papierkorb und öffnet weiter den Bogen', async () => {
     sitzungen = [sitzung('laeuft', [{ id: 'a', art: 'arbeit', von: '2026-11-09T07:00:00+01:00', baustelle: 'B-1' }])];
     zeigeKarte();
-    const knopf = await screen.findByRole('button', { name: 'Verwerfen …' });
-    expect(knopf.className).toContain('lot-knopf');
-    expect(knopf.className).toContain('border-line-strong');
-    expect(knopf.className).not.toContain('link');
+    const knopf = await screen.findByRole('button', { name: 'Arbeitstag verwerfen …' });
+    expect(knopf).toHaveClass('lot-knopf', 'hover:text-danger');
+    expect(knopf).toHaveTextContent(/^$/);
+    expect(knopf.closest('.arbeitstag-fuss')).not.toBeNull();
+    expect(knopf.closest('.arbeitstag-knoepfe')).toBeNull();
     await userEvent.click(knopf);
     expect(await screen.findByRole('dialog', { name: 'Zeitsitzung verwerfen' })).toBeInTheDocument();
   });

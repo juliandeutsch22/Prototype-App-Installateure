@@ -1024,7 +1024,7 @@ describe('Krank melden', () => {
     zeichne();
     expect(await screen.findByText('Vom Büro erfasst — ändert das Büro')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ende ändern' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: / löschen$/ })).not.toBeInTheDocument();
   });
 
   it('eine laufende eigene Meldung: nur noch das Ende ändern, nicht löschen (H8)', async () => {
@@ -1032,7 +1032,7 @@ describe('Krank melden', () => {
       gemeldetVonUid: 'm1', gemeldetVonName: 'Max' }];
     zeichne();
     expect(await screen.findByRole('button', { name: 'Ende ändern' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: / löschen$/ })).not.toBeInTheDocument();
   });
 
   it('zeigt die eigenen Krankmeldungen', async () => {

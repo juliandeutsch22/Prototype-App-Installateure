@@ -1,8 +1,8 @@
 import type { AppUser, Termin } from '@/types';
-import Button from '@/components/Button';
 import { AdresseLink } from '@/components/Kontakt';
 import { List, ListRow } from '@/components/ListRow';
 import { bezugText, datumKurz, terminKopf } from './terminText';
+import { BearbeitenKnopf, LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * Termine untereinander: Art und Uhrzeit, woran er hängt, wer teilnimmt, die
@@ -63,16 +63,9 @@ export default function TerminListe({
               ) : undefined
             }
           >
-            {onAendern && (
-              <Button variant="secondary" onClick={() => onAendern(t)} aria-label={`${terminKopf(t)} am ${datumKurz(t.datum)} ändern`}>
-                Ändern
-              </Button>
-            )}
-            {onLoeschen && (
-              <Button variant="danger" onClick={() => onLoeschen(t)} aria-label={`${terminKopf(t)} am ${datumKurz(t.datum)} löschen`}>
-                Löschen
-              </Button>
-            )}
+            {/* Stift und Papierkorb wie in jeder Zeile (E74); die Rückfrage vor dem Löschen bleibt beim Aufrufer. */}
+            {onAendern && <BearbeitenKnopf label={`${terminKopf(t)} am ${datumKurz(t.datum)} ändern`} onClick={() => onAendern(t)} />}
+            {onLoeschen && <LoeschenKnopf label={`${terminKopf(t)} am ${datumKurz(t.datum)} löschen`} onClick={() => onLoeschen(t)} />}
           </ListRow>
         );
       })}

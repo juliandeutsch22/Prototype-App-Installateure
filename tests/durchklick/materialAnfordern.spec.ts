@@ -37,14 +37,13 @@ test('Ein Monteur legt Material in den Korb und sendet es ab', async ({ page }) 
 });
 
 /*
-  DER KNOPF IM KATALOG BRICHT NICHT IM WORT UND BLEIBT LIEGEN (04.11.2026).
-  Am Telefon stand „Zur Anforderun / g“ auf drei Zeilen. Jetzt heißt er
-  „In die Liste“ und bleibt einzeilig; ist neben der Menge kein Platz, steht
-  er in einer eigenen Zeile darunter. Getippt wird oft mehrmals hintereinander
-  — der Knopf darf dabei nicht wandern: vorher schob das „×1“ davor ihn beim
-  ersten Tipp in die nächste Zeile, und der zweite traf das Plus.
+  „IN DIE LISTE“ IST DER PETROL-KREIS NEBEN DER MENGE (E74, 10.11.2026).
+  Vorher ein Wortknopf, der am Telefon brach („Zur Anforderun / g“, 04.11.)
+  und beim ersten Tipp wanderte. Jetzt: auf jeder Breite rund (48 × 48 px),
+  in einer Reihe mit − Menge +, in der Zeile, und er bleibt beim mehrmaligen
+  Tippen liegen — der zweite Tipp trifft wieder den Kreis, nicht das Plus.
 */
-test('Der Katalogknopf bleibt einzeilig und an seinem Platz, auf jeder Breite', async ({ page }) => {
+test('Der Katalogknopf ist ein runder Kreis neben der Menge und bleibt an seinem Platz, auf jeder Breite', async ({ page }) => {
   await anmelden(page, MONTEUR.email);
   await menue(page, 'Material anfordern', 'Material');
   const knopf = page.getByRole('button', { name: new RegExp(`${ARTIKEL.name} in die Liste$`) });
@@ -52,13 +51,12 @@ test('Der Katalogknopf bleibt einzeilig und an seinem Platz, auf jeder Breite', 
     knopf.evaluate((el) => {
       const zeile = el.closest('li')!.getBoundingClientRect();
       const r = el.getBoundingClientRect();
-      // Nur der Text selbst: jede Zeile, auf die er umbricht, ist ein Rechteck.
-      const knoten = document.createTreeWalker(el, NodeFilter.SHOW_TEXT).nextNode()!;
-      const text = document.createRange();
-      text.selectNodeContents(knoten);
+      const gruppe = el.parentElement!.querySelector('.mengen-wahl')!.getBoundingClientRect();
       return {
         x: r.left - zeile.left, y: r.top - zeile.top, breite: r.width, hoehe: r.height,
-        textzeilen: text.getClientRects().length,
+        rund: getComputedStyle(el).borderTopLeftRadius,
+        mitteGruppe: gruppe.top + gruppe.height / 2 - (r.top + r.height / 2),
+        abstand: r.left - gruppe.right,
         drin: r.left >= zeile.left - 0.5 && r.right <= zeile.right + 0.5,
       };
     });
@@ -82,9 +80,13 @@ test('Der Katalogknopf bleibt einzeilig und an seinem Platz, auf jeder Breite', 
 
   for (const breite of [320, 360, 375, 393, 430, 834, 1280]) {
     await page.setViewportSize({ width: breite, height: 900 });
-    await expect(knopf).toHaveText('In die Liste');
+    await expect(knopf).toHaveText('');
     const vor = await ruhig();
-    expect(vor.textzeilen, `${breite} px: Beschriftung auf einer Zeile`).toBe(1);
+    expect(vor.breite, `${breite} px: 48 px breit`).toBe(48);
+    expect(vor.hoehe, `${breite} px: 48 px hoch`).toBe(48);
+    expect(vor.rund, `${breite} px: ein Kreis`).toBe('999px');
+    expect(Math.abs(vor.mitteGruppe), `${breite} px: auf der Mitte der Menge`).toBeLessThanOrEqual(1);
+    expect(vor.abstand, `${breite} px: mit Abstand neben der Menge`).toBeGreaterThanOrEqual(8);
     expect(vor.drin, `${breite} px: Knopf in der Zeile`).toBe(true);
 
     await knopf.click();
@@ -92,20 +94,14 @@ test('Der Katalogknopf bleibt einzeilig und an seinem Platz, auf jeder Breite', 
     await knopf.click();
     await expect(page.getByText(`3 ${ARTIKEL.einheit} in der Liste`)).toBeVisible();
     const nach = await ruhig();
-    // Gefüllt so breit wie leer: sonst entschiede an einer Breite genau an der
-    // Grenze der Zustand, ob er neben der Menge oder darunter steht.
-    expect(Math.abs(nach.breite - vor.breite), `${breite} px: gleich breit`).toBeLessThanOrEqual(0.5);
-    // Wo der erste Tipp lag, trifft auch der nächste — mit Rand.
-    const mitteX = vor.x + vor.breite / 2;
-    const mitteY = vor.y + vor.hoehe / 2;
-    expect(mitteX > nach.x + 8 && mitteX < nach.x + nach.breite - 8, `${breite} px: waagrecht getroffen`).toBe(true);
-    expect(mitteY > nach.y + 8 && mitteY < nach.y + nach.hoehe - 8, `${breite} px: senkrecht getroffen`).toBe(true);
-    // Am Telefon steht er unter dem Text: dort wandert er gar nicht.
-    if (breite < 760) expect(Math.abs(nach.y - vor.y), `${breite} px: senkrecht`).toBeLessThanOrEqual(1);
+    // Wo der erste Tipp lag, liegt der Kreis auch danach.
+    expect(Math.abs(nach.x - vor.x), `${breite} px: waagrecht`).toBeLessThanOrEqual(1);
+    expect(Math.abs(nach.y - vor.y), `${breite} px: senkrecht`).toBeLessThanOrEqual(1);
 
     await page.getByRole('button', { name: 'Liste leeren' }).click();
     await expect(page.getByText(/ in der Liste$/)).toHaveCount(0);
   }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await keineFehlermeldung(page);
 });
 

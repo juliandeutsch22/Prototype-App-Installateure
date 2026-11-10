@@ -6,6 +6,7 @@ import { useHintergrundSperre } from './hintergrundSperre';
 import { useOverlayAnwesenheit } from '@/lib/useOverlayAnwesenheit';
 import { useBlattGeste } from './useBlattGeste';
 import { Stempel } from './Planlinie';
+import Icon from './Icon';
 
 interface BottomSheetProps {
   open: boolean;
@@ -19,7 +20,7 @@ interface BottomSheetProps {
    */
   auchBreit?: boolean;
   /**
-   * Sichtbarer Titel mit „Schließen“ im Kopf des Fensters. Ohne ihn bleibt
+   * Sichtbarer Titel mit dem ✕ „Schließen“ im Kopf des Fensters. Ohne ihn bleibt
    * das Fenster, wie es war: der Aufrufer setzt seinen eigenen Kopf, und
    * „Schließen“ gibt es für die Tastatur.
    */
@@ -167,8 +168,9 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
         {titel ? (
           <div className="fenster-kopf">
             <h2 className="fenster-titel">{titel}{stempel && <>{' '}<Stempel>{stempel}</Stempel></>}</h2>
-            <button type="button" onClick={schliessen} className="fenster-schliessen">
-              Schließen
+            {/* Das ✕ statt des Worts (E74); der Name bleibt für Vorlesehilfe und Hinweis. */}
+            <button type="button" onClick={schliessen} className="fenster-schliessen" aria-label="Schließen" title="Schließen">
+              <Icon name="schliessen" size={22} />
             </button>
           </div>
         ) : (

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FormGrid, InputField } from '@/components/Field';
 import { ZahlWertFeld } from '@/components/ZahlFeld';
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import type { Materialaufschlag } from '@/lib/aufschlag';
 
@@ -79,7 +80,7 @@ export default function MaterialaufschlagFelder({
             tone="danger"
             onClick={() => zeilenSetzen(zeilen.filter((_, j) => j !== i))}
           >
-            ✕
+            <Icon name="papierkorb" size={22} />
           </IconButton>
         </div>
       ))}

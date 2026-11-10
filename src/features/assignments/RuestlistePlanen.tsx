@@ -5,6 +5,7 @@ import { useKatalogSuche } from '@/features/orders/useKatalogSuche';
 import { gefundenUeberText } from '@/lib/katalogTreffer';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import { Marke, Zustand, type Stand } from '@/components/Badge';
 import { InputField } from '@/components/Field';
@@ -241,7 +242,7 @@ export default function RuestlistePlanen({
                     tone="danger"
                     onClick={() => onChange(positionen.filter((x) => x.id !== p.id))}
                   >
-                    ✕
+                    <Icon name="papierkorb" size={22} />
                   </IconButton>
                 </div>
 

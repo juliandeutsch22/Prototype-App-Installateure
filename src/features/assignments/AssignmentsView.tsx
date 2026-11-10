@@ -15,7 +15,6 @@ import { todayStr } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { Project, AppUser, Assignment, Betriebsurlaub, Termin } from '@/types';
 import Card from '@/components/Card';
-import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
 import { Marke } from '@/components/Badge';
 import { Stempel } from '@/components/Planlinie';
@@ -31,6 +30,7 @@ import { STUFEN_IM_EINSATZ, stufeAnzahl, stufeImEinsatz } from './stufeImEinsatz
 import EinsatzFormular from './EinsatzFormular';
 import { AnsichtWahl, PlanungsSeitenkopf } from './PlanungsKopf';
 import { abwesendAm, fmtDay, gleicherTagImMonat, useRuestlistenDesTages } from './einsatzDaten';
+import { BearbeitenKnopf, LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * „Tag planen“ (seit Runde 4 die Ansicht „Tag“ der Einsatzplanung):
@@ -459,16 +459,13 @@ export default function AssignmentsView() {
                           {inBearbeitung ? (
                             <span className="text-sm text-ink-muted">wird oben bearbeitet</span>
                           ) : (
-                            <Button
-                              variant="secondary"
-                              groesse="klein"
+                            <BearbeitenKnopf
+                              label={`Einsatz ${proj?.customerName ?? pn} (${pn}) bearbeiten`}
                               onClick={() => {
                                 setProjectNumber(pn);
                                 formular.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
                               }}
-                            >
-                              Bearbeiten
-                            </Button>
+                            />
                           )}
                         </span>
                       </div>
@@ -520,13 +517,7 @@ export default function AssignmentsView() {
                             }
                             zustand={stufeVon(a) !== 'Facharbeiter' ? <Marke>{stufeVon(a)}</Marke> : undefined}
                           >
-                            <Button
-                              variant="ghost"
-                              aria-label={`Einsatz von ${a.userName} löschen`}
-                              onClick={() => setToDelete(a)}
-                            >
-                              Löschen
-                            </Button>
+                            <LoeschenKnopf label={`Einsatz von ${a.userName} löschen`} onClick={() => setToDelete(a)} />
                           </ListRow>
                         ))}
                       </List>

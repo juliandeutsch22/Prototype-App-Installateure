@@ -21,6 +21,7 @@ import Button from '@/components/Button';
 import { Listenleiste, MehrAnzeigen } from '@/components/LotBausteine';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke, Warnung } from '@/components/Badge';
+import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
@@ -557,7 +558,8 @@ export default function OrderView() {
               die Eigenbreite des Eingabefelds nach, und bei 390 px liefen
               Menge und „Hinzufügen" 90–106 px aus der Karte, wo sie
               abgeschnitten wurden (Prüflauf 25.09.2026, P4-02). */}
-          <div className="mt-2 grid grid-cols-[minmax(0,1fr)_5rem] gap-2 sm:grid-cols-[minmax(0,1fr)_6rem_auto] sm:items-end">
+          {/* Derselbe Petrol-Kreis wie beim Artikel aus dem Katalog (E74): in jeder Breite in einer Reihe mit den Feldern. */}
+          <div className="mt-2 grid grid-cols-[minmax(0,1fr)_5rem_auto] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_6rem_auto]">
             <InputField
               id="frei-name"
               label="Bezeichnung"
@@ -572,14 +574,14 @@ export default function OrderView() {
               value={freiMenge}
               onChange={(e) => setFreiMenge(e.target.value)}
             />
-            <Button
-              variant="secondary"
-              className="col-span-2 sm:col-span-1"
+            <IconButton
+              rund
+              label={freiName.trim() ? `${freiName.trim()} in die Liste` : 'In die Liste'}
               disabled={!freiName.trim() || !(zahlOder(freiMenge, NaN) > 0)}
               onClick={freiHinzufuegen}
             >
-              In die Liste
-            </Button>
+              <Icon name="in-liste" size={20} />
+            </IconButton>
           </div>
         </div>
         )}
@@ -677,7 +679,7 @@ export default function OrderView() {
                   tone="danger"
                   onClick={() => setCart((prev) => prev.filter((_, x) => x !== i))}
                 >
-                  ✕
+                  <Icon name="papierkorb" size={22} />
                 </IconButton>
               </ListRow>
             ))}
@@ -934,12 +936,6 @@ function QtyAdder({
 
   return (
     /*
-      DER KNOPF BRICHT NIE IM WORT (04.11.2026). Am Telefon reichte der Platz
-      neben −/+ nicht für „Zur Anforderung“; weil am `body` jedes Wort brechen
-      darf, stand dort „Anforderun / g“. Jetzt bleibt die Beschriftung ganz:
-      Passt sie nicht mehr neben die Menge, rückt der Knopf in eine eigene
-      Zeile darunter und nimmt dort die volle Breite.
-
       WAS SCHON IN DER LISTE LIEGT, STEHT UNTER DEM KNOPF. Vorher stand „×2“
       vor dem Minus; dort kostete es genau die Breite, mit der der Knopf am
       Telefon noch neben die Menge passt, und er sprang beim ersten Tippen
@@ -949,24 +945,30 @@ function QtyAdder({
       Abschicken weiter da und fehlte nach einem Neustart.
     */
     <div className="flex flex-col items-end gap-1">
-      <div className="flex flex-wrap items-center justify-end gap-1">
-        <div className="flex items-center gap-1">
-          {/*
-            MINUS UND PLUS SIND DIE HAUPTBEDIENUNG, das Feld dazwischen der
-            Ausweg für grosse Mengen. Auf der Baustelle wird mit Handschuhen
-            getippt: zwei grosse Ziele treffen sicherer als ein Zahlenfeld, und
-            wer dreissig Meter Rohr braucht, tippt die Zahl trotzdem direkt ein,
-            statt dreissig Mal zu drücken.
-          */}
-          {/* Gerahmt (Regel R8): als Ziel erkennbar, nicht als graues Zeichen. */}
-          <IconButton
-            gerahmt
-            label={`Menge für ${material.name} verringern`}
+      <div className="flex items-center gap-3">
+        {/*
+          MINUS UND PLUS SIND DIE HAUPTBEDIENUNG, das Feld dazwischen der
+          Ausweg für grosse Mengen. Auf der Baustelle wird mit Handschuhen
+          getippt: zwei grosse Ziele treffen sicherer als ein Zahlenfeld, und
+          wer dreissig Meter Rohr braucht, tippt die Zahl trotzdem direkt ein,
+          statt dreissig Mal zu drücken.
+
+          EIN RAHMEN UM DIE MENGE (E74, 10.11.2026): − Feld + bilden eine
+          Einheit und tragen einen gemeinsamen Rahmen mit Trennstrichen statt
+          dreier Kästchen. Gerahmt wird nur noch, was mit einem Feld eine
+          Einheit bildet.
+        */}
+        <div className={`mengen-wahl${gueltig ? '' : ' mengen-wahl-fehler'}`}>
+          <button
+            type="button"
+            className="mengen-schritt"
+            aria-label={`Menge für ${material.name} verringern`}
+            title="Weniger"
             onClick={() => setMenge(zahlAlsText(Math.max(1, (gueltig ? zahl : 1) - 1)))}
             disabled={gueltig && zahl <= 1}
           >
             −
-          </IconButton>
+          </button>
           <input
             type="text"
             inputMode={mitKomma ? 'decimal' : 'numeric'}
@@ -976,37 +978,29 @@ function QtyAdder({
             onChange={(e) => setMenge(e.target.value)}
             onFocus={(e) => e.currentTarget.select()}
             aria-label={`Menge ${material.unit ?? 'Stk'} für ${material.name}`}
-            // So hoch und so gerahmt wie − und + daneben (48 px): eine Reihe, eine Höhe.
-            className={`h-12 w-14 rounded border bg-surface text-center text-base font-semibold ${
-              gueltig ? 'border-line-strong text-ink' : 'border-danger text-danger'
-            }`}
+            className="mengen-feld"
           />
-          <IconButton
-            gerahmt
-            label={`Menge für ${material.name} erhöhen`}
+          <button
+            type="button"
+            className="mengen-schritt"
+            aria-label={`Menge für ${material.name} erhöhen`}
+            title="Mehr"
             onClick={() => setMenge(zahlAlsText((gueltig ? zahl : 0) + 1))}
           >
             +
-          </IconButton>
+          </button>
         </div>
-        {/* „In die Liste“ wie beim Artikel, der nicht im Katalog steht: es
-            sagt, dass noch nichts abgeschickt ist (Testbericht M36), und ist
-            kurz genug für die Zeile neben der Menge. */}
-        {/* GLEICH BREIT, OB LEER ODER GEFÜLLT: Gefüllt hat der Knopf keine
-            Linie und halbfette Schrift und war so knapp 1 px schmaler. An
-            einer Breite genau an der Grenze entschiede das, ob er neben der
-            Menge oder darunter steht — er spränge beim ersten Tipp. Die
-            transparente Linie und die Breite der halbfetten Beschriftung
-            (`knopf-gleich-breit`) halten ihn in beiden Zuständen gleich. */}
-        <Button
-          variant={inListe > 0 ? 'primary' : 'secondary'}
-          className={`grow whitespace-nowrap${inListe > 0 ? ' border border-transparent' : ''}`}
-          aria-label={`${material.name} in die Liste`}
-          disabled={!gueltig}
-          onClick={anfordern}
-        >
-          <span className="knopf-gleich-breit" data-beschriftung="In die Liste">In die Liste</span>
-        </Button>
+        {/*
+          „IN DIE LISTE“ IST DER PETROL-KREIS DER ZEILE (E74): die eine
+          Hauptsache, die man hier oft drückt. Das Zeichen ist eine Liste mit
+          Zugang, bewusst kein Plus — das steht in der Menge daneben. Der Name
+          sagt weiter, dass noch nichts abgeschickt ist (Testbericht M36).
+          Ein Kreis bricht nie und springt nie in die nächste Zeile; was
+          schon in der Liste liegt, steht wie bisher darunter.
+        */}
+        <IconButton rund label={`${material.name} in die Liste`} disabled={!gueltig} onClick={anfordern}>
+          <Icon name="in-liste" size={20} />
+        </IconButton>
       </div>
       {inListe > 0 && (
         <p className="text-sm text-ink-muted" aria-live="polite">

@@ -28,6 +28,7 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke, Zustand } from '@/components/Badge';
 import { STAND } from './stand';
 import { verwerfenFrage, VERWORFEN_MELDUNG } from './verwerfen';
+import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import RowMenu from '@/components/RowMenu';
 import PageHeader from '@/components/PageHeader';
@@ -54,6 +55,7 @@ import Abschnitt from '@/components/Abschnitt';
 import BottomSheet from '@/components/BottomSheet';
 import Nachladen from '@/components/Nachladen';
 import { Listenleiste, MehrAnzeigen, Segmente, WeitereAngaben } from '@/components/LotBausteine';
+import { BearbeitenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * Zahl aus einem Eingabefeld — über die zentrale Lesung (M15). „7.500,50“
@@ -458,7 +460,7 @@ export default function QuotesView() {
             tone="danger"
             onClick={() => setZeilen((v) => v.filter((_, j) => j !== i))}
           >
-            ✕
+            <Icon name="papierkorb" size={22} />
           </IconButton>
         )}
       </div>
@@ -823,10 +825,9 @@ export default function QuotesView() {
         und Rechnungen steht das Seltenere jetzt im Menü, mit
         Namen, die sagen, was passiert.
       */}
+      {/* Die Zeile öffnet das Angebot; der Stift führt gleich ins Formular (E74). */}
       {darfAendern && q.status === 'Entwurf' && (
-        <Button variant="ghost" disabled={busy} onClick={() => bearbeiten(q)}>
-          Bearbeiten
-        </Button>
+        <BearbeitenKnopf label={`Angebot ${q.quoteNumber} bearbeiten`} disabled={busy} onClick={() => bearbeiten(q)} />
       )}
       {/* M17: was beim Kunden liegt, wird als neue Fassung überarbeitet. */}
       {darfAendern && (q.status === 'Versendet' || q.status === 'Abgelehnt') && !fassungInsMenue && (

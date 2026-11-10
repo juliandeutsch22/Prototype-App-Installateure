@@ -71,9 +71,26 @@
   }
   .fenster-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
   @media (min-width: 760px) { .fenster-kopf { padding: 1rem 1.25rem; } }
-  /* „Schließen“ ist eine Handlung und sieht aus wie der Zweitknopf (E72) — nicht wie ein unterstrichenes Wort. */
-  .fenster-schliessen { flex: none; white-space: nowrap; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); color: var(--text); font-size: 0.875rem; cursor: pointer; transition: border-color var(--motion-state, 160ms) var(--ease-response, ease); }
-  .fenster-schliessen:hover { border-color: var(--brand-fixed); }
+  /*
+    „SCHLIESSEN“ IST DAS ✕ (E74, 10.11.2026): ein Zeichen, das jeder vom
+    Telefon kennt, ohne Rahmen, 48 px Tastfläche wie jeder Knopf. Das Wort als gerahmter
+    Zweitknopf (E72) stand am Handy wie eine dritte Handlung neben dem Titel.
+    Der Rand gleicht die Luft der Tastfläche aus, damit das Zeichen mit der
+    Kante des Inhalts fluchtet. Wischen nach unten und Escape bleiben.
+  */
+  .fenster-schliessen { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; margin-right: -0.8125rem; padding: 0; background: transparent; border: 0; border-radius: var(--radius); color: var(--text-muted); cursor: pointer; transition: background-color var(--motion-state, 160ms) var(--ease-response, ease); }
+  .fenster-schliessen:hover { background: var(--surface-2); color: var(--text); }
+  .fenster-schliessen:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  /*
+    DER KLEINE PETROL-KREIS (E74): die eine Hauptsache einer Zeile oder
+    Steuerleiste — wie Start und Stopp der Karte „Arbeitstag“, nur kleiner.
+    Gefüllt in Petrol, das Zeichen in der Gegenfarbe; gesperrt die Fläche der
+    gesperrten Hauptaktion.
+  */
+  .symbol-rund { flex: none; width: 3rem; height: 3rem; padding: 0; border: 0; border-radius: 999px; background: var(--petrol); color: var(--auf-petrol); cursor: pointer; transition: background-color var(--motion-state, 160ms) var(--ease-response, ease); }
+  .symbol-rund:hover:not(:disabled) { background: var(--petrol-tief); }
+  .symbol-rund:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  .symbol-rund:disabled { background: var(--surface-3); color: var(--text-muted); cursor: not-allowed; }
   .fenster-titel { font-size: 1.125rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .fenster-inhalt { min-width: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; max-height: 70vh; padding-top: 1rem; }
   @media (min-width: 760px) { .fenster-inhalt { flex: 1; max-height: none; padding: 1.25rem; } }

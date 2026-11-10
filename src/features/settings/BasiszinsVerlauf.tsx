@@ -9,6 +9,7 @@ import { basiszinsVerlauf, halbjahresbeginn, halbjahreZurWahl, type Basiszinssat
 import { datumAT } from '@/lib/datum';
 import { todayStr } from '@/lib/time';
 import { listBasiszinssaetze, type ZentralerBasiszinssatz } from '@/lib/db/basiszins';
+import { LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 const pz = (n: number) => `${n.toLocaleString('de-AT', { maximumFractionDigits: 2 })} %`;
 
@@ -72,14 +73,10 @@ export default function BasiszinsVerlauf({
               {zentraleHalbjahre.has(b.ab) ? (
                 <span className="text-ink-muted">zentral</span>
               ) : (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  aria-label={`Basiszinssatz ab ${datumAT(b.ab)} entfernen`}
+                <LoeschenKnopf
+                  label={`Basiszinssatz ab ${datumAT(b.ab)} entfernen`}
                   onClick={() => setze(verlauf.filter((x) => x.ab !== b.ab))}
-                >
-                  Entfernen
-                </Button>
+                />
               )}
             </li>
           ))}

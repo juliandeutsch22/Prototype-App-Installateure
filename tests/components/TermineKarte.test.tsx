@@ -316,14 +316,21 @@ describe('Anlegen über den Zähler `anlegen`', () => {
   `ghost`-Knöpfen hat weder `.zeile` noch `text-danger`.
 */
 describe('Die Liste wie im Tagesfenster (E72)', () => {
-  it('jeder Termin ist eine Listenzeile, Löschen rot, Ändern gerahmt', async () => {
+  /*
+    E74 (10.11.2026): Ändern und Löschen sind Stift und Papierkorb wie in
+    jeder Zeile — schlicht, der Papierkorb färbt sich beim Antippen rot, die
+    Rückfrage bleibt. Gegenprobe: die Wortknöpfe aus E72 sind rot.
+  */
+  it('jeder Termin ist eine Listenzeile mit Stift und Papierkorb (E74)', async () => {
     termine = [LIEFERUNG];
     zeige({ bezug: 'frei', datum: '2026-06-02' });
     const loeschen = await screen.findByRole('button', { name: /Lieferung \(Aviso\) · 08:00–10:00 am .* löschen/ });
     expect(loeschen.closest('li')).toHaveClass('zeile');
-    expect(loeschen).toHaveClass('text-danger');
-    expect(loeschen).not.toHaveClass('min-h-[2.25rem]');
+    expect(loeschen).toHaveClass('hover:text-danger', 'min-h-touch');
+    expect(loeschen).toHaveTextContent(/^$/);
+    expect(loeschen.querySelector('path')?.getAttribute('d')).toMatch(/^M4 7h16/);
     const aendern = screen.getByRole('button', { name: /Lieferung \(Aviso\) · 08:00–10:00 am .* ändern/ });
-    expect(aendern).toHaveClass('border-line-strong');
+    expect(aendern).not.toHaveClass('border-line-strong');
+    expect(aendern.querySelector('path')?.getAttribute('d')).toMatch(/^M5 20h3/);
   });
 });

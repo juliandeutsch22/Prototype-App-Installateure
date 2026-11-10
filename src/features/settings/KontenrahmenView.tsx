@@ -11,6 +11,7 @@ import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
 import { InputField } from '@/components/Field';
@@ -415,7 +416,7 @@ export default function KontenrahmenView() {
                 tone="danger"
                 onClick={() => setAnzahlungen(anzahlungen.filter((_, i) => i !== n))}
               >
-                ✕
+                <Icon name="papierkorb" size={22} />
               </IconButton>
             </div>
           ))}
@@ -541,7 +542,7 @@ export default function KontenrahmenView() {
                   tone="danger"
                   onClick={() => setSaetze(saetze.filter((_, i) => i !== n))}
                 >
-                  ✕
+                  <Icon name="papierkorb" size={22} />
                 </IconButton>
               </div>
             ))}

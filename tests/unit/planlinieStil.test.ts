@@ -535,10 +535,12 @@ describe('E72 Aufträge und Planung', () => {
     const schein = quelle('src/features/worksheets/WorkSheetView.tsx');
     expect(schein).not.toContain("'cursor-pointer bg-surface-2 text-ink active:scale-[0.98]'");
     expect(schein).toContain("className={`${knopfKlassen('secondary')} mt-3 w-full sm:w-auto ${");
-    // Blättern im Monatskalender gerahmt wie die Wochenleiste (R8).
+    // Blättern im Monatskalender seit E74 wie die Wochenleiste: schlichte Zeichen ‹ › (vorher gerahmt, R8).
     const kalender = quelle('src/components/MonthCalendar.tsx');
     expect(kalender).not.toContain('rounded text-lg font-semibold text-ink-muted hover:bg-surface-2');
-    expect(kalender.match(/<Button type="button" variant="secondary" onClick=\{\(\) => onShiftMonth\(-?1\)\}/g)).toHaveLength(2);
+    expect(kalender).toContain('<IconButton label="Vorheriger Monat" onClick={() => onShiftMonth(-1)}>');
+    expect(kalender).toContain('<IconButton label="Nächster Monat" onClick={() => onShiftMonth(1)}>');
+    expect(kalender).not.toMatch(/<Button type="button" variant="secondary" onClick=\{\(\) => onShiftMonth/);
   });
 
   it('Telefon, E-Mail und Adresse in der Akte mit Linie und Symbol wie überall (A1)', () => {
@@ -604,8 +606,9 @@ describe('E72 Aufträge und Planung', () => {
     expect(quelle('src/features/angebotAnnahme/AngebotAnnahmeSeite.tsx')).toContain('<div className="fuss-aktionen flex-col-reverse md:flex-row">');
   });
 
-  it('Löschen ist rot und normal groß (A4, R4)', () => {
-    expect(quelle('src/features/termine/TerminListe.tsx')).toContain('<Button variant="danger" onClick={() => onLoeschen(t)}');
+  it('Löschen ist rot und normal groß (A4, R4) — in der Zeile seit E74 der Papierkorb', () => {
+    // In der Zeile der Papierkorb (E74); im Fenster bleibt Löschen der rote Wortknopf.
+    expect(quelle('src/features/termine/TerminListe.tsx')).toContain('<LoeschenKnopf label={`${terminKopf(t)} am ${datumKurz(t.datum)} löschen`} onClick={() => onLoeschen(t)} />');
     expect(quelle('src/features/termine/TerminFenster.tsx')).toMatch(/<Button\s+type="button"\s+variant="danger"\s+onClick=\{\(\) => setLoeschFrage\(true\)\}/);
     expect(quelle('src/features/worksheets/WorkSheetsListView.tsx')).not.toMatch(/variant="danger"\s+groesse="klein"/);
     const lieg = quelle('src/features/liegenschaften/LiegenschaftView.tsx');

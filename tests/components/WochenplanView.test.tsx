@@ -695,10 +695,11 @@ describe('Wochenplan — zwei Baustellen desselben Kunden (Design-Überarbeitung
 });
 
 describe('Wochenplan — Woche wechseln', () => {
-  it('hat Blätterpfeile mit vollem Ziel, auch am Schreibtisch gut sichtbar', async () => {
+  it('hat Blätterpfeile mit vollem Ziel, ohne Rahmen, als Zeichen wie die Navigation (E74)', async () => {
     /**
      * 48 × 48 px wie die Monatspfeile im Kalender — `min-h-touch` bringt
-     * `Button` mit. jsdom misst nicht; geprüft wird, dass die Klassen da sind.
+     * `IconButton` mit. jsdom misst nicht; geprüft wird, dass die Klassen da
+     * sind. Gegenprobe: der gerahmte Zweitknopf mit „‹“ (E72) ist rot.
      */
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
@@ -706,7 +707,10 @@ describe('Wochenplan — Woche wechseln', () => {
       const pfeil = screen.getByRole('button', { name });
       expect(pfeil.className).toMatch(/(^|\s)min-h-touch(\s|$)/);
       expect(pfeil.className).toMatch(/(^|\s)min-w-touch(\s|$)/);
-      expect(pfeil.className).toMatch(/(^|\s)sm:text-xl(\s|$)/);
+      expect(pfeil.className).not.toMatch(/(^|\s)border(\s|$)/);
+      expect(pfeil).toHaveAttribute('title', name);
+      expect(pfeil.querySelector('svg')).not.toBeNull();
+      expect(pfeil).toHaveTextContent(/^$/);
     }
   });
 
@@ -717,7 +721,7 @@ describe('Wochenplan — Woche wechseln', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Woche vor' }));
     await waitFor(() => expect(kopf(/Montag 07\.09\./)).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole('button', { name: 'Diese Woche' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Zurück zu dieser Woche' }));
     await waitFor(() => expect(kopf(/Montag 31\.08\./)).toBeInTheDocument());
   });
 });
@@ -1127,10 +1131,13 @@ describe('Planung — Kopf', () => {
     expect(screen.getByRole('heading', { name: 'Diese Woche' })).toBeInTheDocument();
     expect(screen.getByText('KW 36 · 31.08. – 06.09.')).toBeInTheDocument();
     // Auf der laufenden Woche gibt es nichts zurückzuspringen.
-    expect(screen.queryByRole('button', { name: 'Diese Woche' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Zurück zu dieser Woche' })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Woche vor' }));
     expect(screen.getByRole('heading', { name: 'Nächste Woche' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Diese Woche' })).toBeInTheDocument();
+    // Zurück zu heute ist der kleine Petrol-Kreis mit dem Kalender (E74), kein Wort.
+    const heute = screen.getByRole('button', { name: 'Zurück zu dieser Woche' });
+    expect(heute).toHaveClass('symbol-rund', 'planung-heute');
+    expect(heute).toHaveTextContent(/^$/);
   });
 });
 

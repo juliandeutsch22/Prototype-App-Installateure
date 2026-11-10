@@ -26,6 +26,7 @@ import { Hinweislinie } from '@/components/Planlinie';
 import { useToast } from '@/components/Toast';
 import { abfrageSpeicher } from '@/lib/zwischenspeicher';
 import { FELDSATZ_SCHLUESSEL } from '@/features/time/useZeitfelder';
+import { LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * DIE FREIEN ZEITFELDER (SHK-Ausbau M06b, N01) — Einstellungen › Zeitfelder.
@@ -410,14 +411,10 @@ export default function ZeitfelderView() {
                         optionen: entwurf.optionen.map((x) => (x.id === o.id ? { ...x, aktiv: e.target.checked } : x)),
                       })}
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      aria-label={`Option ${i + 1} entfernen`}
+                    <LoeschenKnopf
+                      label={`Option ${i + 1} entfernen`}
                       onClick={() => setEntwurf({ ...entwurf, optionen: entwurf.optionen.filter((x) => x.id !== o.id) })}
-                    >
-                      Entfernen
-                    </Button>
+                    />
                   </div>
                 ))}
                 <Button

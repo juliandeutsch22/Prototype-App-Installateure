@@ -20,6 +20,7 @@ import { WeitereAngaben } from '@/components/LotBausteine';
 import { useToast } from '@/components/Toast';
 import { zeitraumText } from './abwesenheitText';
 import { grundAus } from '@/lib/fehlerGrund';
+import { LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * Betriebsurlaub — der Betrieb hat zu.
@@ -280,7 +281,7 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
                 }
               >
                 <Marke>{b.urlaubAbbuchen ? 'vom Urlaub abgebucht' : 'nur Planungssperre'}</Marke>
-                <Button variant="ghost" onClick={() => setLoeschen(b)}>Löschen</Button>
+                <LoeschenKnopf label={`${b.bezeichnung} ${zeitraumText(b.von, b.bis)} löschen`} onClick={() => setLoeschen(b)} />
               </ListRow>
             ))}
           </List>

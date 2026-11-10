@@ -98,6 +98,7 @@ import type { Invoice, Mahnung, Project, RechnungsArt, WorkSheet, Zahlungseingan
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
+import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import WachsendesTextfeld from '@/components/WachsendesTextfeld';
 import StatusBadge from '@/components/StatusBadge';
@@ -145,6 +146,7 @@ import { firmenbuchFehlt } from '@/lib/firmenbuch';
 import { firmaSperrtRechnung } from './firmaSperre';
 import Adressfilter from '@/components/Adressfilter';
 import { RECHNUNGS_SICHTEN, bekannt, type RechnungsSicht } from '@/features/dashboard/start/ziele';
+import { LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 /** Rechnungen: aus Baustelle erzeugen, Zahlung verfolgen, stornieren. */
 /** Wie viele Rechnungen die Liste zunaechst zeigt. */
@@ -3906,7 +3908,7 @@ export default function InvoicesView() {
                         tone="danger"
                         onClick={() => entfernePos(i)}
                       >
-                        ✕
+                        <Icon name="papierkorb" size={22} />
                       </IconButton>
                     </td>
                   </tr>
@@ -3974,7 +3976,7 @@ export default function InvoicesView() {
                         tone="danger"
                         onClick={() => entfernePos(i)}
                       >
-                        ✕
+                        <Icon name="papierkorb" size={22} />
                       </IconButton>
                     </td>
                   </tr>
@@ -5496,9 +5498,7 @@ export default function InvoicesView() {
                       </Button>
                     </>
                   ) : (
-                    <Button variant="secondary" onClick={() => setZLoeschen(z.id)}>
-                      Löschen
-                    </Button>
+                    <LoeschenKnopf label={`Zahlung vom ${datumAT(z.datum)} löschen`} onClick={() => setZLoeschen(z.id)} />
                   )}
                 </ListRow>
               ))}

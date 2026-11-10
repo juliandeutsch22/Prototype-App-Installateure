@@ -909,7 +909,7 @@ describe('Einsätze am Tag — ansehen und bearbeiten', () => {
     const nutzer = userEvent.setup();
     zeige();
     const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
-    await nutzer.click(within(karte).getByRole('button', { name: 'Bearbeiten' }));
+    await nutzer.click(within(karte).getByRole('button', { name: / bearbeiten$/ }));
 
     // Das Formular übernimmt die vorhandene Planung — sonst löschte das
     // nächste Speichern die Mannschaft.

@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { todayStr } from '@/lib/time';
 import Card from '@/components/Card';
-import Button from '@/components/Button';
+import Icon from '@/components/Icon';
+import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
 import { ErrorState, EmptyState, LoadingState, TeilFehler } from '@/components/States';
 import { useAuth } from '@/app/AuthContext';
@@ -95,28 +96,22 @@ export default function TeamWoche() {
       {d.error && <ErrorState message={d.error} />}
 
       <div className="planung-steuerung">
-        {/*
-          EINE ZEILE, AUCH AUF 390 px: Pfeile, dazwischen groß „Diese Woche“
-          und klein die KW. Die Pfeile sind 48 × 48 px (`min-h-touch` aus
-          `Button`, `min-w-touch` hier); `sm:text-xl` neben `text-xl`, weil
-          `Button` ab 640 px `sm:text-base` mitbringt (Launch-Check 25.09.2026).
-        */}
+        {/* Dieselbe Leiste wie in der Einsatzplanung (E74): Pfeile ohne Rahmen, zurück zu heute als Petrol-Kreis. */}
         <div className="planung-woche">
-          <Button variant="ghost" aria-label="Woche zurück" className="min-w-touch text-xl sm:text-xl" onClick={() => setMontag(wocheVerschoben(montag, -1))}>
-            ‹
-          </Button>
+          <IconButton label="Woche zurück" onClick={() => setMontag(wocheVerschoben(montag, -1))}>
+            <Icon name="zurueck" size={22} />
+          </IconButton>
           <div className="planung-titelblock">
             <h2 className="planung-titel">{kopf.titel}</h2>
             <p className="planung-kw">{kopf.klein}</p>
           </div>
-          <Button variant="ghost" aria-label="Woche vor" className="min-w-touch text-xl sm:text-xl" onClick={() => setMontag(wocheVerschoben(montag, 1))}>
-            ›
-          </Button>
-          {/* Zurück zu heute — nur, wo man nicht schon dort ist. */}
+          <IconButton label="Woche vor" onClick={() => setMontag(wocheVerschoben(montag, 1))}>
+            <Icon name="weiter" size={22} />
+          </IconButton>
           {!jetzt && (
-            <Button variant="ghost" onClick={() => setMontag(montagDer(heute))}>
-              Diese Woche
-            </Button>
+            <IconButton rund className="planung-heute" label="Zurück zu dieser Woche" onClick={() => setMontag(montagDer(heute))}>
+              <Icon name="heute" size={20} />
+            </IconButton>
           )}
         </div>
       </div>

@@ -125,9 +125,9 @@ test('Termin aus der Woche über das ⋯ des Seitenkopfs — und im Monat aus de
     Der Monat folgt dem Donnerstag der gezeigten Woche, wie die KW. Liegt
     heute in einer Woche, die im Vormonat beginnt (So 01.11.2026: KW 44 ab
     26.10.), zeigt „Monat“ den Oktober — ohne „heute“. Deshalb ausdrücklich
-    der laufende Monat; den Knopf gibt es nur, wo man nicht schon dort ist.
+    der laufende Monat; den Petrol-Kreis gibt es nur, wo man nicht schon dort ist.
   */
-  const dieserMonat = page.getByRole('button', { name: 'Dieser Monat' });
+  const dieserMonat = page.getByRole('button', { name: 'Zurück zu diesem Monat' });
   if (await dieserMonat.count()) await dieserMonat.click();
   await page.getByRole('button', { name: /heute, 1 Termin.*alle Einsätze des Tages/ }).click({ timeout: 15_000 });
   await page.getByRole('dialog').getByRole('button', { name: 'Termin anlegen' }).click();

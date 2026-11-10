@@ -32,10 +32,12 @@ function tsxDateien(ordner: string): string[] {
 }
 
 describe('Handlungen sehen aus wie Knöpfe', () => {
-  it('„Schließen“ im Fenster ist ein gerahmter Zweitknopf, kein unterstrichenes Wort', () => {
+  // E74 (10.11.2026): das ✕ ohne Rahmen statt des gerahmten Worts (E72). Gegenprobe: die Regel aus E72 ist rot.
+  it('„Schließen“ im Fenster ist das ✕: schlicht, 48 px, kein unterstrichenes Wort', () => {
     const r = regel(LOT, '.fenster-schliessen');
-    expect(r).toContain('border: 1px solid var(--border-strong)');
-    expect(r).toContain('padding: 0 0.875rem');
+    expect(r).toContain('border: 0');
+    expect(r).toContain('width: 3rem; height: 3rem;');
+    expect(r).not.toContain('border: 1px solid');
     expect(r).not.toContain('text-decoration: underline');
   });
 

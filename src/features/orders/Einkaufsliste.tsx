@@ -25,6 +25,7 @@ import { datumAT } from '@/lib/datum';
 import { postenNeuLaden } from '@/app/offenePosten';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import InfoHint from '@/components/InfoHint';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -52,6 +53,7 @@ import { mengeFehler } from '@/lib/einheit';
 import { grundAus } from '@/lib/fehlerGrund';
 import { HAUPTLAGER, ortNameVon } from './lagerorte';
 import { OrtWahl } from './LagerDialoge';
+import { BearbeitenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * Die Einkaufsliste im Reiter „Einkauf" der Anforderungen.
@@ -329,7 +331,7 @@ export default function Einkaufsliste({
                             )
                           }
                         >
-                          ✕
+                          <Icon name="papierkorb" size={22} />
                         </IconButton>
                       </ListRow>
                     ))}
@@ -911,7 +913,7 @@ function GrosshaendlerPflege({
               ].filter(Boolean).join(' · ')}
             >
               {!h.bestellEmail && <Marke>ohne E-Mail</Marke>}
-              <Button variant="ghost" onClick={() => oeffnen(h)}>Bearbeiten</Button>
+              <BearbeitenKnopf label={`${h.name} bearbeiten`} onClick={() => oeffnen(h)} />
             </ListRow>
           ))}
         </List>

@@ -12,6 +12,7 @@ import { useToast } from '@/components/Toast';
 import { datumAT } from '@/lib/datum';
 import { grundAus } from '@/lib/fehlerGrund';
 import { leseZahl } from '@/lib/zahl';
+import { LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * „Anspruch anpassen" in der Benutzerakte (Plan 10.3, Entscheidung 6).
@@ -125,9 +126,10 @@ export default function UrlaubsanspruchKarte({
               title={`Urlaubsjahr ${a.urlaubsjahr}: ${vorzeichenTage(a.tage)}`}
               subtitle={`${a.grund}${a.angelegtVonName ? ` · ${a.angelegtVonName}` : ''}${a.createdAt ? `, ${datumAT(localDateStr(new Date(a.createdAt)))}` : ''}`}
             >
-              <Button variant="ghost" onClick={() => { setEntfernGrund(''); setEntfernen(a); }}>
-                Entfernen
-              </Button>
+              <LoeschenKnopf
+                label={`Anpassung für das Urlaubsjahr ${a.urlaubsjahr} entfernen`}
+                onClick={() => { setEntfernGrund(''); setEntfernen(a); }}
+              />
             </ListRow>
           ))}
         </List>

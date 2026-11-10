@@ -271,7 +271,7 @@ describe('Zeiterfassung — verrechnete Einträge', () => {
     const gesperrt = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
     expect(within(gesperrt).getByText('verrechnet')).toBeInTheDocument();
     expect(within(gesperrt).queryByRole('button', { name: BEARBEITEN })).toBeNull();
-    expect(within(gesperrt).queryByRole('button', { name: 'Löschen' })).toBeNull();
+    expect(within(gesperrt).queryByRole('button', { name: / löschen$/ })).toBeNull();
 
     // Der offene daneben bleibt bearbeitbar — sonst prüfte der Test nur, dass
     // es überhaupt keine Knöpfe gibt.
@@ -896,7 +896,7 @@ describe('Zeiterfassung — Abwesenheiten, die noch kommen', () => {
     zeigeMitRouter();
     expect(await screen.findByRole('button', { name: 'Urlaubsantrag' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: BEARBEITEN })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: / löschen$/ })).not.toBeInTheDocument();
   });
 });
 
@@ -922,7 +922,7 @@ describe('Zeiterfassung — vom Büro gebuchter Zeitausgleich (Prüflauf 25.09.2
     const za = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
     expect(within(za).getByText('vom Büro gebucht')).toBeInTheDocument();
     expect(within(za).queryByRole('button', { name: BEARBEITEN })).toBeNull();
-    expect(within(za).queryByRole('button', { name: 'Löschen' })).toBeNull();
+    expect(within(za).queryByRole('button', { name: / löschen$/ })).toBeNull();
 
     const offen = screen.getByText('31.08.2026').closest('li') as HTMLElement;
     expect(within(offen).getByRole('button', { name: BEARBEITEN })).toBeInTheDocument();
@@ -938,7 +938,7 @@ describe('Zeiterfassung — vom Büro gebuchter Zeitausgleich (Prüflauf 25.09.2
 
     const za = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
     expect(within(za).getByRole('button', { name: BEARBEITEN })).toBeInTheDocument();
-    expect(within(za).getByRole('button', { name: 'Löschen' })).toBeInTheDocument();
+    expect(within(za).getByRole('button', { name: / löschen$/ })).toBeInTheDocument();
   });
 });
 
@@ -975,7 +975,7 @@ describe('Zeiterfassung — die Zeile öffnet den Eintrag (Linie „Lot“)', ()
     eintraege = [eintrag({ id: 'offen', date: '2026-08-31' })];
     zeige();
     await screen.findByText('31.08.2026');
-    await userEvent.click(within(zeileVom('31.08.2026')).getByRole('button', { name: 'Löschen' }));
+    await userEvent.click(within(zeileVom('31.08.2026')).getByRole('button', { name: / löschen$/ }));
     expect(await screen.findByRole('dialog')).toHaveTextContent('Eintrag löschen?');
     expect(screen.getByTestId('zeitformular')).toHaveTextContent('leer');
   });
@@ -1153,7 +1153,7 @@ describe('Zeiterfassung — vom Büro gebucht, über der Grenze für Jugendliche
     await waitFor(() => expect(within(zeileVom('01.09.2026')).getByText('vom Büro gebucht')).toBeInTheDocument());
     const lang = zeileVom('01.09.2026');
     expect(within(lang).queryByRole('button', { name: BEARBEITEN })).toBeNull();
-    expect(within(lang).queryByRole('button', { name: 'Löschen' })).toBeNull();
+    expect(within(lang).queryByRole('button', { name: / löschen$/ })).toBeNull();
     const frueh = screen.getByText('31.08.2026').closest('li') as HTMLElement;
     expect(within(frueh).getByText('vom Büro gebucht')).toBeInTheDocument();
 
@@ -1176,7 +1176,7 @@ describe('Zeiterfassung — vom Büro gebucht, über der Grenze für Jugendliche
     const selbst = zeileVom('01.09.2026');
     expect(within(selbst).getByRole('button', { name: BEARBEITEN })).toBeInTheDocument();
     const kurz = screen.getByText('31.08.2026').closest('li') as HTMLElement;
-    expect(within(kurz).getByRole('button', { name: 'Löschen' })).toBeInTheDocument();
+    expect(within(kurz).getByRole('button', { name: / löschen$/ })).toBeInTheDocument();
   });
 
   it('Gegenprobe: erwachsen — die vom Büro gebuchte lange Zeit bleibt bearbeitbar', async () => {

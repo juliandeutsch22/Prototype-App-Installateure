@@ -13,6 +13,8 @@ import { notzugang, offeneFreigaben, type OffeneFreigabe } from '@/lib/db/suppor
 import { betriebFehler, kennungVorschlag, WARNUNG_OHNE_MAIL, type NeuerBetrieb } from '@shared/plattform';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
+import IconButton from '@/components/IconButton';
 import Card from '@/components/Card';
 import BottomSheet from '@/components/BottomSheet';
 import PageHeader from '@/components/PageHeader';
@@ -292,7 +294,7 @@ export default function PlattformView() {
               hilfe="Dieses Konto gehört zu keinem Betrieb und sieht in keinen hinein. Betriebsinhalte bleiben nur über eine gültige Supportfreigabe oder einen protokollierten Notzugang erreichbar."
               action={betriebSeite === 'liste' ? <Button onClick={() => setBetriebSeite('neu')}>Betrieb anlegen</Button> : undefined} />
             <div hidden={betriebSeite !== 'liste'} className="plattform-teilseite space-y-6">
-              {loeschErgebnis && <div className="plattform-ergebnis"><p role="status">{loeschErgebnis}</p><Button variant="ghost" onClick={() => setLoeschErgebnis(null)} aria-label="Löschmeldung schließen">Schließen</Button></div>}
+              {loeschErgebnis && <div className="plattform-ergebnis"><p role="status">{loeschErgebnis}</p><IconButton label="Löschmeldung schließen" onClick={() => setLoeschErgebnis(null)}><Icon name="schliessen" size={22} /></IconButton></div>}
               <div className="plattform-spalten">
                 <div>
                   <Card className="plattform-betriebsliste" title={`Betriebe (${sichtbar.length}${betriebe && sichtbar.length !== betriebe.length ? ` von ${betriebe.length}` : ''})`} hint="Name, Kennung und die Konten der Leitung — ohne Einblick in Inhalte. Hat keine Leitung eine E-Mail, gibt es für den Betrieb kein „Passwort vergessen“; dann hilft im Ernstfall nur der Notzugang." buendig>

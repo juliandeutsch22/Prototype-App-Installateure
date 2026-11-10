@@ -21,6 +21,7 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import { datumAT } from '@/lib/datum';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
+import { LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * DER ANTRAG AUF SONDERURLAUB, PFLEGEFREISTELLUNG ODER UNBEZAHLTEN URLAUB
@@ -275,7 +276,7 @@ export default function FreistellungFormular({
           {datei ? (
             <span className="flex flex-wrap items-center gap-2 text-sm text-ink">
               {datei.name}
-              <Button variant="ghost" onClick={() => setDatei(null)}>Entfernen</Button>
+              <LoeschenKnopf label={`${datei.name} entfernen`} onClick={() => setDatei(null)} />
             </span>
           ) : (
             <span className="text-sm text-ink-muted">freiwillig</span>

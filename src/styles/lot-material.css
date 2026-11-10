@@ -6,15 +6,22 @@
  * gestrichelten Linien. Farben nur aus den Grundwerten (var(--…)).
  */
 @layer components {
-  /* ── „In die Liste“ in beiden Zuständen gleich breit (E46) ─────────────── */
+  /* ── Die Menge als eine Einheit (E74, 10.11.2026) ──────────────────────── */
   /*
-    Die unsichtbare Zeile darunter trägt die Beschriftung in der Stärke des
-    gefüllten Knopfs; so ist die Beschriftung immer so breit wie halbfett.
-    Als erzeugter Inhalt steht sie nicht im Text des Knopfs, und sein Name
-    kommt ohnehin aus `aria-label`.
+    − Feld + tragen einen gemeinsamen Rahmen mit Trennstrichen statt dreier
+    Kästchen: gerahmt wird nur, was mit einem Feld eine Einheit bildet. Die
+    Schritte bleiben 48 px hoch (Handschuhe), die Zahl steht in Mono wie
+    alles Gemessene. Ungültig färbt sich der ganze Rahmen.
   */
-  .knopf-gleich-breit { display: inline-flex; flex-direction: column; align-items: center; }
-  .knopf-gleich-breit::after { content: attr(data-beschriftung); height: 0; overflow: hidden; visibility: hidden; font-weight: var(--gewicht-titel); }
+  .mengen-wahl { display: inline-flex; flex: none; align-items: stretch; height: 3rem; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+  .mengen-schritt { display: inline-flex; align-items: center; justify-content: center; width: 3rem; padding: 0; border: 0; background: transparent; color: var(--text); font-size: 1.25rem; line-height: 1; cursor: pointer; }
+  .mengen-schritt:hover:not(:disabled) { background: var(--surface-2); }
+  .mengen-schritt:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+  .mengen-schritt:disabled { color: var(--text-placeholder); cursor: not-allowed; }
+  .mengen-feld { width: 3.5rem; min-width: 0; padding: 0; border: 0; border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-radius: 0; background: transparent; color: var(--text); text-align: center; font-family: var(--schrift-mono); font-size: 1rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
+  .mengen-feld:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+  .mengen-wahl-fehler { border-color: var(--danger); }
+  .mengen-wahl-fehler .mengen-feld { color: var(--danger); }
   /* ── Bereichswahl mit Zählern ─────────────────────────────────────────── */
   /*
     Vier Segmente mit Zahl („Laufend 12“) brachen am Handy in zwei Zeilen um.

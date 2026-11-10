@@ -146,14 +146,14 @@
   */
   .vorschau { position: fixed; z-index: 35; display: flex; flex-direction: column; width: 30rem; max-width: 94vw; max-height: 80vh; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 0; }
   .vorschau-blatt { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; max-height: 82vh; padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--surface); border-radius: 16px 16px 0 0; box-shadow: var(--shadow-lg); }
-  /* Der Kopf wie `.fenster-kopf`: Titel links, rechts ‹ › und „Schließen“ (gerahmt, `.fenster-schliessen`). */
+  /* Der Kopf wie `.fenster-kopf`: Titel links, rechts ‹ › und das ✕ (`.fenster-schliessen`, E74). */
   .vorschau-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
   .vorschau-kopftext { min-width: 0; }
   .vorschau-ueber { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
   .vorschau-titel { font-size: 1rem; line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); overflow-wrap: break-word; hyphens: auto; }
-  .vorschau-nav { display: flex; flex: none; align-items: center; gap: 0.5rem; }
-  .vorschau-pfeil { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 1.125rem; cursor: pointer; }
-  .vorschau-pfeil:hover { border-color: var(--petrol); color: var(--accent-deep); }
+  .vorschau-nav { display: flex; flex: none; align-items: center; gap: 0.25rem; }
+  /* Das ✕ ist eine andere Handlung als das Blättern: mit Abstand, nicht als dritter Pfeil. */
+  .vorschau-nav .fenster-schliessen { margin-left: 0.75rem; }
   .vorschau-inhalt { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0.25rem 1.25rem 0; }
   /* Ohne Fuß bleibt unten Luft bis zum Rand des Felds. */
   .vorschau-inhalt-ohne-fuss { padding-bottom: 0.75rem; }

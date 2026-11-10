@@ -11,6 +11,7 @@ import type { AppUser, TimeEntry } from '@/types';
 import { durchrechnungsWochen, fallSchluessel, grenzText, kalenderwoche, type Grenzfall } from './arbeitszeitGrenzen';
 import { grenzZusatz, useArbeitszeitGrenzen, type GrenzDaten } from './useArbeitszeitGrenzen';
 import { istTagesfall } from './tagesauswertung';
+import { BearbeitenKnopf, LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 const MONATE = ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August',
   'September', 'Oktober', 'November', 'Dezember'];
@@ -233,26 +234,14 @@ export function GrenzListe({
 
   /** Was gespeichert ist — Begründung oder Notiz — mit Ändern und Entfernen. */
   const vermerk = (schluessel: string, b: Begruendung, wort: string) => (
-    <span className="flex flex-wrap items-center gap-x-3 text-ink-muted">
-      <span>
+    <span className="flex flex-wrap items-center gap-x-1 text-ink-muted">
+      <span className="mr-2">
         {wort}: <span className="text-ink">{b.text}</span>
         {b.vonName ? ` · ${b.vonName}, ${datumAT(b.am.slice(0, 10))}` : ''}
       </span>
-      <button
-        type="button"
-        className="link"
-        onClick={() => { setBearbeitet(schluessel); setText(b.text); }}
-      >
-        Ändern
-      </button>
-      <button
-        type="button"
-        className="link"
-        disabled={laeuft}
-        onClick={() => void entfernen(b)}
-      >
-        Entfernen
-      </button>
+      {/* Stift und Papierkorb wie in jeder Zeile (E74), nicht als unterstrichene Wörter. */}
+      <BearbeitenKnopf label={`${wort} ändern`} onClick={() => { setBearbeitet(schluessel); setText(b.text); }} />
+      <LoeschenKnopf label={`${wort} entfernen`} disabled={laeuft} onClick={() => void entfernen(b)} />
     </span>
   );
 
