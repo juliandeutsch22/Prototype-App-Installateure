@@ -76,8 +76,11 @@ describe('Aufklapper haben eine Gestalt', () => {
 });
 
 describe('Abstände im Takt', () => {
-  it('der Formularfuß am Handy: „Abbrechen“ in seiner Breite, die Hauptaktion nimmt den Rest', () => {
-    expect(regel(INDEX, '.aktionsleiste-knoepfe')).toContain('grid-template-columns: auto minmax(0, 1fr)');
+  it('der Formularfuß am Handy: feste Anteile 2 : 3 — gleiche Breite in jedem Zustand, Luft um „Abbrechen“', () => {
+    const r = regel(INDEX, '.aktionsleiste-knoepfe');
+    expect(r).toContain('grid-template-columns: minmax(0, 2fr) minmax(0, 3fr)');
+    // Eine Spalte nach Inhalt ließ den Speichern-Knopf zwischen „Verwerfen“ und Platzhalter springen.
+    expect(r).not.toContain('auto');
   });
 
   it('das Suchfenster hält am Handy 16 px Rand, die Nummer daneben bricht nicht', () => {

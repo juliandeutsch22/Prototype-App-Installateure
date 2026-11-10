@@ -1053,8 +1053,14 @@ textarea {
   @media (min-width: 760px) { .aktionsleiste { margin: 0 -1.5rem; padding-inline: 1.5rem; } }
   .aktionsleiste-summe { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.5rem; }
   .aktionsleiste-summe b { color: var(--ink-deep); font-size: 0.9375rem; font-weight: var(--gewicht-titel); }
-  /* „Abbrechen“ so breit wie sein Wort samt Polster, die Hauptaktion nimmt den Rest (E72: bei 1fr/2fr stand die Schrift 5 px vom Rahmen). */
-  .aktionsleiste-knoepfe { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.5rem; }
+  /*
+    FESTE ANTEILE, ZWEI ZU DREI (E72, 09.11.2026). Bei 1 : 2 stand „Abbrechen“
+    am Handy 5 px vom Rahmen. Eine Spalte nach Inhalt (`auto`) ging nicht: im
+    Zustand „Gespeichert“ steht links nur ein Platzhalter, und der
+    Speichern-Knopf sprang um 31 px in der Breite (premium.spec). Feste
+    Anteile halten beides: gleiche Breite in jedem Zustand, Luft um das Wort.
+  */
+  .aktionsleiste-knoepfe { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 0.5rem; }
   .aktionsleiste-knoepfe > :only-child { grid-column: 1 / -1; }
   /* „Abbrechen“ brach bei 390 px als „Abbreche|n“ um; ein Knopf trägt ein Wort. */
   .aktionsleiste-knoepfe > * { white-space: nowrap; }
