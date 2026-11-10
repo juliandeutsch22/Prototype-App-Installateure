@@ -2972,7 +2972,9 @@ die vor der Unterkante enden.
     am Einsatz, „Vorschlag einsetzen“).
 - **Kein Wort über den Rand.**
   - „Firmendaten speichern“ heißt „Speichern“ wie in den Akten; am Handy
-    passte es nicht in den Knopf (bei 320 px schon vorher nicht).
+    passte es nicht in den Knopf (bei 320 px schon vorher nicht). Am
+    Schreibtisch hält der Hauptknopf jeder Leiste 152 px, die Breite von
+    „Gespeichert“ mit Haken; sonst wuchs „Speichern“ beim Speichern um 34 px.
   - „Kalkulierte Arbeitszeit“ heißt im Schriftfeld des Angebots „Kalk.
     Stunden“; vorher endete es am Handy und am Tablet mit „…“.
   - Die Baustellennummer im Termin bricht nicht mehr um („B-“ / „2026-0147“).
@@ -2983,8 +2985,8 @@ die vor der Unterkante enden.
   Polster des Kopfs (12 px); die Zeile ist 72 px hoch.
 
 **Grenze mit Grund:** keine. **Nachweis:**
-- `blattKanten.test.ts` (17 Prüfungen) hält jede Regel im Quelltext fest.
-  Gegenprobe gegen den Stand davor: 16 von 17 rot; die eine grüne ist die
+- `blattKanten.test.ts` (18 Prüfungen) hält jede Regel im Quelltext fest.
+  Gegenprobe gegen den Stand davor: 17 von 18 rot; die eine grüne ist die
   Gleich-geblieben-Prüfung des Fensterfußes.
 - `blattKanten.spec.ts` (5 Browserwege) misst im Browser:
   - die klebende Leiste 1 px innen, Knöpfe auf 24 px;

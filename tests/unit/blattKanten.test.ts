@@ -125,6 +125,10 @@ describe('Kein Wort über den Rand (E76)', () => {
     expect(f).not.toContain('Firmendaten speichern');
   });
 
+  it('am Schreibtisch hält der Hauptknopf der Leiste die Breite von „Gespeichert“', () => {
+    expect(q('src/index.css')).toContain(".aktionsleiste-knoepfe > [type='submit'] { min-width: 9.5rem; }");
+  });
+
   it('die Kennzahl im Angebot passt ins Feld', () => {
     const a = q('src/features/quotes/AngebotView.tsx');
     expect(a).toContain('<Metric label="Kalk. Stunden"');
