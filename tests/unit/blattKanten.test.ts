@@ -51,7 +51,7 @@ describe('Kalender in ganzen Zellen (E76)', () => {
     expect(k).toContain('className="flex h-12 items-center justify-between border-b border-line px-2"');
     expect(k).toContain('className="grid h-6 grid-cols-7 border-b border-line bg-surface-2"');
     expect(k).toContain('className="h-[4.5rem] bg-surface-2"');
-    expect(k).toContain('relative flex h-[4.5rem] flex-col items-center gap-0.5 border-b border-r border-line pb-2 pt-3 transition-colors [&:nth-child(7n)]:border-r-0 [&:nth-last-child(-n+7)]:border-b-0');
+    expect(k).toContain("relative flex h-[4.5rem] flex-col items-center gap-0.5 border-line pb-2 pt-3 transition-colors ${i % 7 === 6 ? '' : 'border-r'} ${i >= cells.length - 7 ? '' : 'border-b'}");
     expect(k).not.toContain('min-h-[3.625rem]');
   });
 
@@ -74,7 +74,8 @@ describe('Kalender in ganzen Zellen (E76)', () => {
   });
 
   it('nach der letzten Person der Handy-Woche keine Linie vor der Kante', () => {
-    expect(q('src/styles/lot-planung.css')).toContain('div:last-child > .tl-person:last-child { border-bottom: 0; }');
+    expect(q('src/styles/lot-planung.css')).toContain('.tl-person-letzte { border-bottom: 0; }');
+    expect(q('src/features/assignments/HandyWoche.tsx')).toContain('letzte={gi === alle.length - 1 && i === g.leute.length - 1}');
   });
 });
 

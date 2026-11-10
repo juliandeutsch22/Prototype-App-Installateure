@@ -162,7 +162,7 @@ export default function MonthCalendar({
                 liegt die Kante des Blatts (oder der Karte), sonst stünde sie
                 doppelt (E76).
               */
-              className={`relative flex h-[4.5rem] flex-col items-center gap-0.5 border-b border-r border-line pb-2 pt-3 transition-colors [&:nth-child(7n)]:border-r-0 [&:nth-last-child(-n+7)]:border-b-0 ${
+              className={`relative flex h-[4.5rem] flex-col items-center gap-0.5 border-line pb-2 pt-3 transition-colors ${i % 7 === 6 ? '' : 'border-r'} ${i >= cells.length - 7 ? '' : 'border-b'} ${
                 isSelected
                   ? 'bg-info-bg ring-2 ring-inset ring-accent-deep'
                   : holiday
