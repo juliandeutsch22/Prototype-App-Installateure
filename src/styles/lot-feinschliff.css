@@ -161,10 +161,9 @@
    Der globale Feld-Schatten gehört hier nicht noch einmal ins Innere. */
 .listenleiste-suche input:focus { outline: none; box-shadow: none; }
 /* Dasselbe für die runde Suche der Nachrichten (Posteingang, Neue Nachricht):
-   die Pille ist der Rahmen, innen kein zweiter Ring; die Tastatur bekommt
-   außen denselben Rahmen wie die Listensuche. */
+   die Pille ist der Rahmen, innen kein zweiter Ring; im Fokus färbt sich
+   ihr Rand (`lot-nachrichten.css`), außen kommt keine zweite Linie (E75). */
 .chat-suche input:focus { outline: none; box-shadow: none; }
-.chat-suche:has(input:focus-visible) { outline: 3px solid var(--brand-fixed); outline-offset: 2px; }
 :root :where(.navi, .kopfzeile, .meldung, .meldung-fehler) :where(button, a, input):focus-visible { outline-color: #fff; }
 .unten :where(button, a):focus-visible { outline-offset: -4px; }
 @media (prefers-reduced-motion: reduce) {

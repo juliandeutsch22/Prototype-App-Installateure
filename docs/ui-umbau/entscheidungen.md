@@ -2852,3 +2852,55 @@ Senden in den Nachrichten, und eine Bedeutung soll ein Zeichen haben.
 - Browserweg `materialAnfordern.spec.ts`: der Kreis rund, 48 px, mittig zur
   Menge, bleibt beim Tippen liegen, auf sieben Breiten.
 
+**E75 — Fokus schlank, der Verweis auf den wartenden Arbeitstag schlank (10.11.2026).**
+Auftrag: „der untere Teil ist noch etwas unnötig hoch … und der Balken schaut
+schrecklich aus und schneidet außerdem den Text ab, das soll in der ganzen
+Software gefixt werden. Auch die doppelte Border um Such- und Eingabefelder
+ist zu dick und sieht aktiv sehr globig aus.“
+
+- **Felder:** Im Fokus färbt sich nur der Rand, von Hellgrau auf Petrol. Ein
+  Feld bekommt den Fokus auch mit dem Finger, und der Browser zählt ihn bei
+  Feldern immer als „sichtbar“. Deshalb ist die Anzeige auch dann ruhig.
+  - Weg sind: der 3-px-Hof jedes Felds (`index.css`), der 1-px-Ring der
+    Tailwind-Felder (`Field`, Problem melden, Kundenakte, Zeitformular,
+    Personenwahl) und der Ring mit Abstand um die Listensuche, die Suche der
+    Nachrichten und die Eingabe der Nachrichten. Dazu die zweite Linie der
+    Positionsfelder einer Rechnung (auch „Preis fehlt“ in Bernstein), der
+    Suche der Mitarbeiterübersicht und der Menge (jetzt der Rahmen der
+    Gruppe).
+  - Die Felder wachsen dabei nicht.
+- **Zeilen:** Den Fokus zeigt eine Zeile nur, wenn sie mit der Tastatur
+  erreicht wird (`:focus-visible` am Ziel): 2 px nach außen, mit der Fläche
+  wie beim Darüberfahren.
+  - Vorher zeichnete `:focus-within` einen 3 px breiten Rahmen nach innen,
+    auch nach einem Tipp oder wenn ein Fenster den Fokus zurückgab. In
+    bündigen Listen lag er auf dem ersten Buchstaben.
+  - Gleich gefasst: die Zeilen des Posteingangs, die Personenzeilen von
+    „Neue Nachricht“ und die Zeilen unter „Zu erledigen“.
+  - In Fenstern am Handy, wo die Zeile bis an den Rand reicht, schneidet der
+    Rand die Linie seitlich ab. Die Fläche zeigt den Fokus dort trotzdem.
+- **Knöpfe** behalten den Tastaturfokus der Linie (3 px, `:focus-visible`).
+  Mit Maus oder Finger zeigt ein Knopf ihn nicht.
+- **Verweis „Ein Arbeitstag wartet auf die Prüfung“:**
+  - Vorher: 15 px Luft über dem Text, 50 px darunter (Polster plus Auffüllen
+    des Taktgebers bis zur Rasterlinie).
+  - Jetzt: eine Fläche von 48 px bis an den Rand der Karte, der Text mittig.
+    Die Startzeile ist drei Rasterzellen hoch, so endet die Karte genau auf
+    dem Raster. Eine Zeile hat 24 px; am schmalen Telefon (zwei Zeilen)
+    wächst die Fläche um genau eine Zelle.
+  - Allein (ohne Start/Stopp) ohne Linie darüber.
+
+**Grenze mit Grund:** keine. **Nachweis:**
+- `fokusSchlank.test.ts`: Feldregel, kein Ring in Tailwind oder in den Stilen,
+  der Zeilenfokus nur mit der Tastatur und nach außen, kein Rahmen nach
+  innen. Gegenprobe gegen den Stand davor: 4 von 4 rot; die Prüfung fand
+  dabei noch das Feld „Preis fehlt“.
+- `fokusRahmen.spec.ts`: im Browser gemessen, auf Telefon, Tablet hoch, quer
+  und Schreibtisch. Suche und Feld nach dem Tipp eine Linie in Petrol, ohne
+  Schatten und Ring; die Zeile ohne Rahmen nach dem Tipp, mit der Tastatur
+  2 px außen.
+- `arbeitstag.spec.ts`: über und unter dem Text gleich viel Luft (±3 px),
+  darunter höchstens 16 px, Tastfläche ab 44 px. Das gilt in der Breite des
+  Laufs und bei 360 px. Gegenprobe: vorher 15 und 50 px, rot.
+- `Listenleiste.test.tsx`.
+

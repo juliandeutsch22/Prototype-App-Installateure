@@ -20,7 +20,7 @@ import { Children, isValidElement, type InputHTMLAttributes, type SelectHTMLAttr
  * sehen war am Feld selbst nichts. Rot ist der Zustand „Fehler“ der Linie.
  */
 const fieldBase =
-  'min-h-touch min-w-0 max-w-full rounded border border-line-strong bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder aria-[invalid=true]:border-danger focus:border-brand-fixed focus:ring-1 focus:ring-brand-fixed';
+  'min-h-touch min-w-0 max-w-full rounded border border-line-strong bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder aria-[invalid=true]:border-danger focus:border-brand-fixed';
 
 /**
  * Pflichtfelder kennzeichnen — der Stern und was daran hängt.

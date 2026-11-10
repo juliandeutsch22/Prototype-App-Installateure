@@ -163,10 +163,13 @@ test('Senden springt nicht: die Nachricht steht durchgehend, nichts rollt zurüc
 /*
  * DIE SUCHE IM POSTEINGANG UND IN „NEUE NACHRICHT“ (09.11.2026: „hat noch
  * diese komische Border innen, die wir bei anderen Suchfeldern schon entfernt
- * haben“). Die Pille ist der Rahmen; innen kein zweiter Ring, außen der
- * Tastaturrahmen wie bei der Listensuche. Gegenprobe ohne die Regel rot.
+ * haben“). Die Pille ist der Rahmen; innen kein zweiter Ring. Seit E75
+ * (10.11.2026) auch außen keiner mehr: im Fokus färbt sich nur der Rand der
+ * Pille. Geprüft wird der Linienstil, nicht die Breite: Chromium meldet bei
+ * `outline-style: none` als Breite den Grundwert 3 px. Gegenprobe: mit dem
+ * Stand vor E75 (Ring außen) rot.
  */
-test('Suche in den Nachrichten: ein Rahmen außen, kein Ring innen', async ({ page }) => {
+test('Suche in den Nachrichten: im Fokus nur der Rand der Pille, kein Ring innen oder außen', async ({ page }) => {
   await anmelden(page, MONTEUR.email);
   await page.goto('/nachrichten');
   for (const [feld, vorher] of [
@@ -178,7 +181,10 @@ test('Suche in den Nachrichten: ein Rahmen außen, kein Ring innen', async ({ pa
     await feld.focus();
     await expect(feld).toHaveCSS('box-shadow', 'none');
     await expect(feld).toHaveCSS('outline-style', 'none');
-    await expect(feld.locator('xpath=ancestor::label[1]')).toHaveCSS('outline-width', '3px');
+    const pille = feld.locator('xpath=ancestor::label[1]');
+    await expect(pille).toHaveCSS('outline-style', 'none');
+    await expect(pille).toHaveCSS('box-shadow', 'none');
+    await expect(pille).toHaveCSS('border-top-color', 'rgb(15, 69, 82)');
     await feld.fill('Büro');
     await expect(feld).toHaveValue('Büro');
   }

@@ -1,7 +1,13 @@
 import { test, expect, type Page, type CDPSession } from '@playwright/test';
 
+/*
+  Seit E75 (10.11.2026) zeigt ein Suchfeld den Fokus nur noch mit seinem Rand
+  in Petrol, ohne Ring außen herum. Geprüft wird der Linienstil, nicht die
+  Breite: Chromium meldet bei `outline-style: none` als Breite den Grundwert
+  3 px. Petrol ist im dunklen Bild heller, darum der Wert aus dem Token.
+*/
 for (const width of [390, 1440]) for (const theme of ['hell', 'dunkel']) {
-  test(`Suchfelder: ein äußerer Fokusrahmen ${width} ${theme}`, async ({ page }) => {
+  test(`Suchfelder: im Fokus nur der Rand, kein Ring ${width} ${theme}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
     await page.addInitScript(t => localStorage.setItem('senklot.darstellung', t), theme);
     for (const route of ['/invoices', '/quotes', '/customers']) await test.step(route, async () => {
@@ -10,7 +16,18 @@ for (const width of [390, 1440]) for (const theme of ['hell', 'dunkel']) {
       await feld.focus();
       await expect(feld).toHaveCSS('box-shadow', 'none');
       await expect(feld).toHaveCSS('outline-style', 'none');
-      await expect(feld.locator('..')).toHaveCSS('outline-width', '3px');
+      const petrol = await page.evaluate(() => {
+        const probe = document.createElement('i');
+        probe.style.color = 'var(--brand-fixed)';
+        document.body.append(probe);
+        const farbe = getComputedStyle(probe).color;
+        probe.remove();
+        return farbe;
+      });
+      const rahmen = feld.locator('..');
+      await expect(rahmen).toHaveCSS('outline-style', 'none');
+      await expect(rahmen).toHaveCSS('box-shadow', 'none');
+      await expect(rahmen).toHaveCSS('border-top-color', petrol);
       await feld.fill('Prüfung');
       await expect(feld).toHaveValue('Prüfung');
     });

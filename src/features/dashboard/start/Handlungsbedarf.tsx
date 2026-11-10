@@ -48,7 +48,7 @@ function EintragZeile({ z }: { z: Zeile }) {
   return (
     <li className="border-t border-line first:border-t-0">
       {z.to ? (
-        <Link to={z.to} className="start-zeile flex min-h-touch items-center gap-3 hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand">
+        <Link to={z.to} className="start-zeile flex min-h-touch items-center gap-3 hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-accent-deep">
           {inhalt}
         </Link>
       ) : (

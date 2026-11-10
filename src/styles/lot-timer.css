@@ -36,11 +36,26 @@
   /* Der Papierkorb unten links (E74); der Rand gleicht die Luft der Tastfläche aus, damit das Zeichen mit dem Text fluchtet. */
   .arbeitstag-fuss { display: flex; justify-content: flex-start; margin: 0.5rem 0 -0.75rem -0.8125rem; }
 
-  .arbeitstag-start { display: flex; align-items: center; gap: 1rem; padding-right: 2rem; }
+  /* Drei Rasterzellen hoch (72 px), auch wenn Titel und Baustelle 70 px brauchen: so trifft die Karte samt Verweis das Raster genau (E75). */
+  .arbeitstag-start { display: flex; align-items: center; gap: 1rem; min-height: 4.5rem; padding-right: 2rem; }
   .arbeitstag-start-text { display: flex; flex-direction: column; min-width: 0; }
   .arbeitstag-start-titel { font-size: 1.0625rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
 
-  .arbeitstag-pruefen { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; min-height: 2.75rem; margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border); color: var(--accent-deep); font-size: 0.9375rem; text-decoration: none; }
+  /*
+    DER VERWEIS IST SCHLANK (E75, 10.11.2026: „der untere Teil ist noch etwas
+    unnötig hoch“). Vorher standen unter dem Text 50 px, darüber 15: der
+    Verweis lag mit 8 px Polster auf der Linie, darunter das Polster der
+    Karte, und der Taktgeber füllte bis zur nächsten Rasterlinie auf. Jetzt
+    ist er eine Fläche von 48 px (zwei Rasterzellen), der Text mittig darin,
+    und sie reicht bis an den unteren Rand der Karte — die Karte endet so
+    genau auf dem Raster, nichts wird aufgefüllt. Die Zeile ist 24 px hoch:
+    bricht der Text am schmalen Telefon in zwei Zeilen, wächst die Fläche um
+    genau eine Rasterzelle, und er steht weiter mittig (Linie 1 + 11 px oben,
+    12 px unten). Steht der Verweis allein (Start/Stopp abgeschaltet), braucht
+    er keine Linie darüber.
+  */
+  .arbeitstag-pruefen { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; min-height: 3rem; margin: 1.5rem 0 -1.5rem; padding: 0.6875rem 0 0.75rem; border-top: 1px solid var(--border); color: var(--accent-deep); font-size: 0.9375rem; line-height: 1.5rem; text-decoration: none; }
+  .arbeitstag-pruefen-allein { margin: 0; padding-top: 0.75rem; border-top: 0; }
 
   /* Die runden Knöpfe — die einzige Rundung dieses Bereichs. */
   .rund-knopf { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface); color: var(--ink-deep); }
