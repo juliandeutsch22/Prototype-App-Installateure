@@ -325,7 +325,7 @@ describe('Einkaufsliste — ohne Großhändler', () => {
 describe('Einkaufsliste — die Großhändler pflegen', () => {
   it('legt einen Großhändler an und meldet es nach oben', async () => {
     const geaendert = zeige([], []);
-    await userEvent.click(await screen.findByRole('button', { name: '+ Großhändler' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Großhändler anlegen' }));
     await userEvent.type(screen.getByLabelText(/^Name/), 'Holter');
     await userEvent.type(screen.getByLabelText('Bestelladresse (E-Mail)'), 'bestellung@holter.test');
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
@@ -339,7 +339,7 @@ describe('Einkaufsliste — die Großhändler pflegen', () => {
 
   it('lehnt eine Bestelladresse ab, die keine E-Mail ist', async () => {
     zeige([], []);
-    await userEvent.click(await screen.findByRole('button', { name: '+ Großhändler' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Großhändler anlegen' }));
     await userEvent.type(screen.getByLabelText(/^Name/), 'Holter');
     await userEvent.type(screen.getByLabelText('Bestelladresse (E-Mail)'), 'holter');
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));

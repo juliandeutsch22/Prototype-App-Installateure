@@ -18,7 +18,7 @@ import Card from '@/components/Card';
 import Metric, { MetricRow } from '@/components/Metric';
 import { Marke } from '@/components/Badge';
 import { Stempel } from '@/components/Planlinie';
-import MonthCalendar from '@/components/MonthCalendar';
+import MonthCalendar, { KalenderLegende } from '@/components/MonthCalendar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import RowMenu from '@/components/RowMenu';
 import { List, ListRow } from '@/components/ListRow';
@@ -347,23 +347,7 @@ export default function AssignmentsView() {
             marks={marks}
             markLabel={(n) => `${n} ${n === 1 ? 'Baustelle' : 'Baustellen'} geplant`}
           />
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-ink-muted">
-            <span className="flex items-center gap-2">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-accent" />
-              Baustellen geplant
-            </span>
-            <span className="flex items-center gap-2">
-              {/* Dasselbe Lot wie über dem heutigen Tag im Kalender (Planlinie, B4). */}
-              <span className="lot-legende" aria-hidden="true">
-                <span className="tag-lot" />
-              </span>
-              Heute
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="inline-block h-2.5 w-5 rounded-sm border border-line bg-surface-2 shadow-[inset_0_2px_0_0_var(--warning)]" />
-              Feiertag (AT)
-            </span>
-          </div>
+          <KalenderLegende anzahl="Baustellen geplant" />
         </div>
 
         <div className="space-y-3 lg:col-span-3 lg:space-y-5">

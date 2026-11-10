@@ -5,6 +5,7 @@ import { terminZeit } from '@/features/termine/terminText';
 import { tagKurz, type Brett, type Gruppe, type TagStand } from './planTypen';
 import type { FensterStart } from './EinsatzFenster';
 import { PersonEintraege, type BaustellenInfo } from './WochenEintraege';
+import { NeuKnopf } from '@/components/Symbolknoepfe';
 import {
   feiertagAm,
   lieferungOhneAnnahme,
@@ -143,11 +144,8 @@ export default function HandyWoche({
 
       <div className="tl-gruppe">
         <span>{termine.length ? termineText(termine.length) : 'Keine Termine'}</span>
-        {darf && !lesen && (
-          <Button variant="secondary" onClick={() => onTerminNeu(gewaehlt)}>
-            Termin anlegen
-          </Button>
-        )}
+        {/* Wie im Kopf der Karte „Termine“ (E76): der Petrol-Kreis mit Plus. */}
+        {darf && !lesen && <NeuKnopf label="Termin anlegen" onClick={() => onTerminNeu(gewaehlt)} />}
       </div>
       {termine.map((t) =>
         lesen ? (
@@ -173,18 +171,19 @@ export default function HandyWoche({
         sind: sonst trüge jeder ein „nicht eingeteilt“, das an einem freien
         Tag niemand wissen muss.
       */}
-      {lesen && ruhetag(gewaehlt) && sichtbar(gruppen).length === 0 && <p className="tl-person tl-leer">Niemand eingeteilt.</p>}
-      {(lesen && ruhetag(gewaehlt) ? sichtbar(gruppen) : gruppen).map((g) => (
+      {lesen && ruhetag(gewaehlt) && sichtbar(gruppen).length === 0 && <p className="tl-person tl-person-letzte tl-leer">Niemand eingeteilt.</p>}
+      {(lesen && ruhetag(gewaehlt) ? sichtbar(gruppen) : gruppen).map((g, gi, alle) => (
         <div key={g.name}>
           {/* Die Einstufung als Achse wie im Raster (Planlinie, B5): Zahl im Achskreis, Name, Achslinie. */}
           <p className="tl-achse">
             <span className="achskreis">{g.leute.length}</span> <span>{g.name}</span>
             <span className="abschnitt-linie" aria-hidden="true" />
           </p>
-          {g.leute.map((u) => (
+          {g.leute.map((u, i) => (
             <TagesPerson
               key={u.uid}
               u={u}
+              letzte={gi === alle.length - 1 && i === g.leute.length - 1}
               tag={gewaehlt}
               datum={datum}
               brett={brett}
@@ -219,6 +218,7 @@ function TagesPerson({
   ich,
   onEinsatz,
   onTermin,
+  letzte = false,
 }: {
   u: AppUser;
   tag: string;
@@ -234,11 +234,13 @@ function TagesPerson({
   ich: boolean;
   onEinsatz: (start: FensterStart) => void;
   onTermin: (t: Termin) => void;
+  /** Die letzte Person des Tages: ohne Linie darunter, dort liegt die Kante des Blatts (E76). */
+  letzte?: boolean;
 }) {
   const z = brett.get(u.uid)?.get(tag);
   const leer = zelleLeer(z, zu, termine, u.uid);
   return (
-    <div className="tl-person">
+    <div className={letzte ? 'tl-person tl-person-letzte' : 'tl-person'}>
       <p className="tl-name">
         {u.name}
         {ich && <span className="wp-name-ich"> · du</span>}

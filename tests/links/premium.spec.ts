@@ -57,7 +57,7 @@ test('Premium: Maus über der Meldung pausiert, ohne Klicks auf die Seite zu spe
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('./?pfad=%2Fsettings%2Ffirma&rolle=Administrator');
   await page.getByLabel('Firmenname', { exact: true }).fill('Gespeicherter Teststand');
-  await page.getByRole('button', { name: 'Firmendaten speichern', exact: true }).click();
+  await page.getByRole('button', { name: 'Speichern', exact: true }).click();
   const text = page.getByText('Firmendaten gespeichert', { exact: true });
   await expect(text).toBeVisible();
   const zeile = text.locator('..');
@@ -113,8 +113,8 @@ for (const width of [320, 1440]) {
     await page.goto('./?pfad=%2Fsettings%2Ffirma&rolle=Administrator');
     await page.evaluate(() => document.fonts.ready);
     await page.getByLabel('Firmenname', { exact: true }).fill('Bestätigter Teststand');
-    const before = (await page.getByRole('button', { name: 'Firmendaten speichern', exact: true }).boundingBox())!;
-    await page.getByRole('button', { name: 'Firmendaten speichern', exact: true }).click();
+    const before = (await page.getByRole('button', { name: 'Speichern', exact: true }).boundingBox())!;
+    await page.getByRole('button', { name: 'Speichern', exact: true }).click();
     const pending = page.getByRole('button', { name: 'Speichert …', exact: true });
     await expect(pending).toBeDisabled(); await expect(pending).toHaveCSS('opacity', '1');
     expect(Math.abs((await pending.boundingBox())!.width - before.width)).toBeLessThanOrEqual(1);
@@ -137,7 +137,7 @@ for (const width of [320, 1440]) test(`Premium: unveränderte Ladebeschriftung l
   });
   await page.goto('./?pfad=%2Fsettings%2Ffirma&rolle=Administrator');
   await page.getByLabel('Firmenname', { exact: true }).fill('Gespeicherter Stand');
-  await page.getByRole('button', { name: 'Firmendaten speichern', exact: true }).click();
+  await page.getByRole('button', { name: 'Speichern', exact: true }).click();
   const retry = page.getByRole('button', { name: 'Anzeige erneut laden', exact: true });
   await page.evaluate(() => document.fonts.ready);
   const vorher = (await retry.boundingBox())!;

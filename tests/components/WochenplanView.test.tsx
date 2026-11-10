@@ -992,7 +992,7 @@ describe('Termine in der Einsatzplanung (Runde 4)', () => {
       await userEvent.click(kopf(new RegExp(`${wochentag} ${datum.replace(/\./g, '\\.')}`)));
       const zeile = within(screen.getByRole('region', { name: /^Termine am / }))
         .getAllByRole('button')
-        .find((b) => b.textContent !== 'Termin anlegen')!;
+        .find((b) => b.getAttribute('aria-label') !== 'Termin anlegen')!;
       await userEvent.click(zeile);
       expect(within(screen.getByRole('dialog', { name: 'Termin ändern' })).getByRole('combobox', { name: 'Art' }), t.id).toHaveValue(t.art);
       await userEvent.click(within(screen.getByRole('dialog', { name: 'Termin ändern' })).getByRole('button', { name: 'Abbrechen' }));

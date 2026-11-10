@@ -80,7 +80,8 @@
     Kante, also auf der Linie darunter. Dort hängt das Lineal, ohne Platz zu
     nehmen.
   */
-  .schriftfeld { position: relative; display: flex; margin-top: 1.5rem; box-shadow: 0 1px 0 var(--accent-deep); }
+  /* Rechts schließt eine Linie das Feld (E76): oben und unten liefen die Linien bis zur Kante und endeten dort im Raster. */
+  .schriftfeld { position: relative; display: flex; margin-top: 1.5rem; box-shadow: 0 1px 0 var(--accent-deep), 1px 0 0 var(--border-strong); }
   .schriftfeld .lage-zeile { flex: 0 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 0; margin: 0; padding: 0; }
   .schriftfeld .lage-punkt { position: relative; flex: 0 0 240px; min-width: 0; border-left: 1px solid var(--border-strong); }
   .schriftfeld .lage-punkt::before, .schriftfeld-skizze::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; border-top: 1px solid var(--border-strong); }

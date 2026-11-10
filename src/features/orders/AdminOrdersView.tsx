@@ -70,6 +70,7 @@ import { useLagerorte } from './useLagerorte';
 import { HAUPTLAGER, weitereOrte } from './lagerorte';
 import { OrtWahl } from './LagerDialoge';
 import { listUsers } from '@/lib/db/users';
+import { NeuKnopf } from '@/components/Symbolknoepfe';
 
 /** Was ein Filter aus der Adresse zeigt (Startseite, Nachtest 01.10.2026). */
 const FILTER_TEXT: Record<AnforderungsFilter, string> = {
@@ -922,9 +923,7 @@ export default function AdminOrdersView() {
               anfordern“.
             */
             tab === 'retouren' ? (
-              <Button variant="secondary" onClick={() => setRetoureOffen(true)}>
-                Retoure erfassen
-              </Button>
+              <NeuKnopf label="Retoure erfassen" onClick={() => setRetoureOffen(true)} />
             ) : undefined
           }
           buendig

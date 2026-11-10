@@ -81,7 +81,14 @@ export default function MonthCalendar({
         44 px Tastfläche, wie in der Wochenleiste. Gerahmt (E72, R8) standen
         drei Kästchen in einer Reihe; jetzt rahmen die Pfeile den Monat ein.
       */}
-      <div className="flex items-center justify-between border-b border-line px-2 py-2">
+      {/*
+        IN GANZEN ZELLEN (E76, 10.11.2026): Kopf 48 px, Wochentage 24 px, jede
+        Woche 72 px — zusammen immer ein Vielfaches der Rasterzelle, bei vier,
+        fünf oder sechs Wochen. Mit 61 + 33 + 58 px je Woche rundete der
+        Taktgeber das Blatt mit einem leeren Streifen unter der letzten Woche
+        auf („unten eine Lücke, kein schöner Abschluss“).
+      */}
+      <div className="flex h-12 items-center justify-between border-b border-line px-2">
         <IconButton label="Vorheriger Monat" onClick={() => onShiftMonth(-1)}>
           <Icon name="zurueck" size={22} />
         </IconButton>
@@ -93,7 +100,7 @@ export default function MonthCalendar({
         </IconButton>
       </div>
 
-      <div className="grid grid-cols-7 border-b border-line bg-surface-2">
+      <div className="grid h-6 grid-cols-7 border-b border-line bg-surface-2">
         {DOW.map((d, i) => (
           <div
             key={d}
@@ -102,7 +109,7 @@ export default function MonthCalendar({
               blassere Schrift: die lag mit 2,8 : 1 unter dem lesbaren
               Kontrast (axe, Stand 18, K2).
             */
-            className={`py-2 text-center text-xs text-ink-muted ${i > 4 ? 'font-normal' : 'font-semibold'}`}
+            className={`text-center text-xs leading-[1.4375rem] text-ink-muted ${i > 4 ? 'font-normal' : 'font-semibold'}`}
           >
             {d}
           </div>
@@ -112,7 +119,7 @@ export default function MonthCalendar({
       <div className="grid grid-cols-7">
         {cells.map((iso, i) => {
           if (!iso)
-            return <div key={`pad-${i}`} className="min-h-[3.625rem] bg-surface-2" />;
+            return <div key={`pad-${i}`} className="h-[4.5rem] bg-surface-2" />;
 
           const day = Number(iso.slice(8));
           const dow = new Date(`${iso}T00:00:00`).getDay();
@@ -150,7 +157,12 @@ export default function MonthCalendar({
                 heutigen Tag das Lot, und sein Senkblei soll ueber der Zahl
                 enden, nicht in ihrem Kreis.
               */
-              className={`relative flex min-h-[3.625rem] flex-col items-center gap-0.5 border-b border-r border-line pb-2 pt-3 transition-colors ${
+              /*
+                Die letzte Woche und die Spalte Sonntag ohne eigene Linie: dort
+                liegt die Kante des Blatts (oder der Karte), sonst stünde sie
+                doppelt (E76).
+              */
+              className={`relative flex h-[4.5rem] flex-col items-center gap-0.5 border-line pb-2 pt-3 transition-colors ${i % 7 === 6 ? '' : 'border-r'} ${i >= cells.length - 7 ? '' : 'border-b'} ${
                 isSelected
                   ? 'bg-info-bg ring-2 ring-inset ring-accent-deep'
                   : holiday
@@ -207,6 +219,40 @@ export default function MonthCalendar({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/**
+ * DIE LEGENDE ZEIGT DIE ZEICHEN DES KALENDERS (E76, 10.11.2026). In
+ * Einsatzplanung und „Mein Einsatzplan“ stand sie zweimal abgeschrieben und
+ * zeigte für die Anzahl einen runden Punkt — im Kalender steht seit U13 ein
+ * eckiges Abzeichen mit der Zahl; der Feiertag war grau statt getönt. Jetzt
+ * eine Legende, mit denselben Klassen wie die Kästchen oben.
+ */
+export function KalenderLegende({ anzahl }: { anzahl: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-ink-muted">
+      <span className="flex items-center gap-2">
+        <span
+          className="inline-flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-[3px] border border-accent-deep bg-surface px-1 text-xs font-semibold leading-none text-accent-deep"
+          aria-hidden="true"
+        >
+          2
+        </span>
+        {anzahl}
+      </span>
+      <span className="flex items-center gap-2">
+        {/* Dasselbe Lot wie über dem heutigen Tag im Kalender (Planlinie, B4). */}
+        <span className="lot-legende" aria-hidden="true">
+          <span className="tag-lot" />
+        </span>
+        Heute
+      </span>
+      <span className="flex items-center gap-2">
+        <span className="inline-block h-2.5 w-5 border border-line bg-warning-bg shadow-[inset_0_2px_0_0_var(--warning)]" aria-hidden="true" />
+        Feiertag (AT)
+      </span>
     </div>
   );
 }

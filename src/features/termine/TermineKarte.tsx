@@ -15,6 +15,7 @@ import TerminFormular, { type TerminVorgabe } from './TerminFormular';
 import TerminListe from './TerminListe';
 import { datumKurz, terminKopf } from './terminText';
 import type { AktenTerminStand } from '@/components/AktenTerminVorschau';
+import { NeuKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * DIE TERMINE AN EINER STELLE — Tagesplanung, Baustellenakte, Kundenakte
@@ -124,9 +125,7 @@ export default function TermineKarte({
       title={titel}
       action={
         darf && bearbeite === null ? (
-          <Button variant="secondary" groesse="klein" onClick={() => setBearbeite('neu')}>
-            Termin anlegen
-          </Button>
+          <NeuKnopf label="Termin anlegen" onClick={() => setBearbeite('neu')} />
         ) : undefined
       }
       hint="Termine sind Kundentermine, Besichtigungen, Besprechungen, Abnahmen, Lieferungen (Aviso) und Behördenwege — alles, was kein Einsatz ist. Ein Termin bucht keine Arbeitszeit. Teilnehmer sehen ihn auf der Startseite und in „Mein Einsatzplan“, ebenso wer an diesem Tag auf der Baustelle eingeteilt ist."

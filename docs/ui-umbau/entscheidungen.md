@@ -2904,3 +2904,101 @@ ist zu dick und sieht aktiv sehr globig aus.“
   Laufs und bei 360 px. Gegenprobe: vorher 15 und 50 px, rot.
 - `Listenleiste.test.tsx`.
 
+
+**E76 — Kanten, Abschlüsse und das Plus (10.11.2026).**
+Auftrag (vier Bildschirmfotos): „mitfliegender Button auf allen Seiten, wo er
+vorkommt, hat links keine Border. Bei der Monatsansicht mobil: ‚Für wen‘ klebt
+fast am Rand. Die Kalender haben unten eine Lücke, keinen schönen Abschluss.
+Bei Terminen wäre ‚Termin anlegen‘ ein Knopf, den man durch das runde Petrol
+mit weißem Plus ersetzen könnte … Gibt es noch andere Bereiche, die fehlerhaft
+gestylt sind oder noch alte Knöpfe ohne Grund haben?“
+
+Gefunden mit zwei Messläufen über jede Seite, je Rolle, bei 390, 834 und
+1.440 px. Der erste Lauf liest die linke Linie jedes Blatts Pixel für Pixel,
+beim Rollen in Schritten von 450 px. Der zweite meldet abgeschnittenen Text,
+Wortknöpfe in Kartenköpfen, Text an der Blattkante und Linien oder Flächen,
+die vor der Unterkante enden.
+
+- **Nichts Klebendes deckt die Linie eines Blatts zu.** Die linke und die
+  obere Linie liegen als Zeichnung auf Ebene 1 (E33). Was klebt und eine
+  eigene Fläche hat, lag darüber:
+  - **Aktionsleiste im Blatt** (Zeiterfassung, Einsatz planen): Ebene 10,
+    von Kante zu Kante. Sie beginnt jetzt einen Pixel innen; die Knöpfe
+    bleiben auf der 24-px-Flucht.
+  - **Aktionsleiste frei auf der Seite** (Firmendaten): Sie ragte am Handy
+    links bis an den Bildschirmrand und rechts 16 px über das Blatt hinaus.
+    Jetzt ist sie selbst ein Streifen Blatt: so breit wie die Spalte, mit der
+    Linie rundum.
+  - **Gruppenzeile der Planung** (Woche, Team-Woche) und **Kopfzeile des
+    Monatsrasters**: Sie zeichnen die Linie selbst, wie seit E33 die
+    Namensspalte.
+  - **Sprungleiste der Angebotsakte** (Handy, Tablet): Sie klebte ohne
+    Abstand am Schriftfeld und deckte dessen Kontur und Lineal zu. Daneben
+    lag sie als weiße Fläche ohne Linie auf dem Raster, mit 52 px Höhe und
+    einer grauen Linie, die nach dem letzten Eintrag endete. Jetzt ist sie
+    ein Streifen Blatt: zwei Zellen hoch, mit Linie rundum, eine Zelle unter
+    dem Kopf.
+- **Kalender in ganzen Zellen.**
+  - **Monatskalender** (Tagesplanung, Mein Einsatzplan, Urlaub im Monat):
+    Kopf 48 px, Wochentage 24 px, jede Woche 72 px. Das ergibt bei vier, fünf
+    und sechs Wochen ganze Zellen; vorher hängte der Taktgeber unter der
+    letzten Woche einen leeren Streifen an. Sonntag und letzte Woche ohne
+    eigene Linie, dort liegt die Kante.
+  - **Kalender am Handy** (Planung, Monat): eine Zelle Polster rundum.
+    „Für wen“ stand 0 px unter der Linie, weil das Blatt seit E33 kein
+    eigenes Polster mehr mitbringt. Jede Woche ist 68 + 4 px hoch, zusammen
+    168 + 72 px je Woche.
+  - **Die Legende** zeigt die Zeichen des Kalenders: das eckige Abzeichen
+    mit der Zahl statt eines runden Punkts, den Feiertag getönt statt grau.
+    Sie stand zweimal abgeschrieben im Code; jetzt gibt es sie einmal
+    (`KalenderLegende`).
+  - **Handy-Woche:** Nach der letzten Person keine Linie mehr vor der Kante.
+- **Das Plus zum Anlegen.** Etwas Neues in einer Liste ist der Petrol-Kreis
+  mit weißem Plus (`NeuKnopf`, Knopfart B aus E74). Er steht neben dem Titel;
+  bei einem langen Titel bricht der Titel um, nicht der Knopf.
+  - Umgestellt: „Termin anlegen“ (Karte „Termine“, Tagesfenster,
+    Handy-Woche), „Top anlegen“ und „Beteiligten eintragen“ (Liegenschaft),
+    „Großhändler anlegen“ (vorher „+ Großhändler“ als Geisterknopf),
+    „Neues Material“ (Katalog), „Retoure erfassen“.
+  - Das „Schließen“ im Kopf der Karte „Neue Rechnung aus Baustelle“ ist das
+    ✕, wie bei der Krankmeldung.
+  - **Der Kreis ist kleiner** (Nachtrag am selben Tag: „den Petrol-Symbolknopf
+    etwas kleiner“): sichtbar 40 statt 48 px, überall, wo er steht (Plus,
+    zurück zu heute, In die Liste). Die Tastfläche bleibt 48 px; die Fläche
+    endet 4 px vor dem Rand des Knopfs, der Fokusring liegt am Kreis.
+  - **Gleich geblieben:** Das Wort bleibt im Seitenkopf (Hauptaktion), im
+    Fensterfuß (Monatsvorschau), im Leerzustand und bei Entscheidungen
+    („Neue Fassung“, „Baustelle anlegen“ aus der Wartung, „Zeit erfassen“
+    am Einsatz, „Vorschlag einsetzen“).
+- **Kein Wort über den Rand.**
+  - „Firmendaten speichern“ heißt „Speichern“ wie in den Akten; am Handy
+    passte es nicht in den Knopf (bei 320 px schon vorher nicht). Am
+    Schreibtisch hält der Hauptknopf jeder Leiste 152 px, die Breite von
+    „Gespeichert“ mit Haken; sonst wuchs „Speichern“ beim Speichern um 34 px.
+  - „Kalkulierte Arbeitszeit“ heißt im Schriftfeld des Angebots „Kalk.
+    Stunden“; vorher endete es am Handy und am Tablet mit „…“.
+  - Die Baustellennummer im Termin bricht nicht mehr um („B-“ / „2026-0147“).
+  - Das Schriftfeld ist rechts mit einer Linie geschlossen.
+- **Geprüft und gelassen** (kein Fehler): Gekürzte Vorschauen im
+  Posteingang und in den Balken des Monatsrasters, jeweils mit vollem Namen
+  in der Vorlesehilfe. Der Abstand der Kartentitel zur Oberkante ist das
+  Polster des Kopfs (12 px); die Zeile ist 72 px hoch.
+
+**Grenze mit Grund:** keine. **Nachweis:**
+- `blattKanten.test.ts` (18 Prüfungen) hält jede Regel im Quelltext fest.
+  Gegenprobe gegen den Stand davor: 17 von 18 rot; die eine grüne ist die
+  Gleich-geblieben-Prüfung des Fensterfußes.
+- `blattKanten.spec.ts` (5 Browserwege) misst im Browser:
+  - die klebende Leiste 1 px innen, Knöpfe auf 24 px;
+  - die freie Leiste so breit wie das Blatt, der Knopf ohne abgeschnittenen
+    Text;
+  - „Für wen“ 24 px unter und neben der Kante, der Kalender ohne Ausgleich
+    und 24 px Luft unter der letzten Woche;
+  - der Kalender der Tagesplanung bündig mit der Kante, Wochen zu 72 px;
+  - das Plus neben dem Titel, auch am Handy, sichtbar 40 px bei 48 px
+    Tastfläche.
+
+  Gegenprobe: 5 von 5 rot.
+- Nachgezogen: `Einkaufsliste.test.tsx`, `FirmendatenView.test.tsx`,
+  `AngebotView.test.tsx`, `premium.spec.ts` (neue Namen der Knöpfe und der
+  Kennzahl).

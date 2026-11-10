@@ -10,7 +10,7 @@ import type { Brett, TagStand } from './planTypen';
 import type { FensterStart } from './EinsatzFenster';
 import { feiertagAm, lieferungOhneAnnahme, ruhetag } from './wochenTermine';
 import type { MaterialLage } from './materialDeckung';
-import { BearbeitenKnopf } from '@/components/Symbolknoepfe';
+import { BearbeitenKnopf, NeuKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * DAS SEITENFENSTER „TAG“ (Runde 4, Auftrag 4.3; Entscheidung R4-0, Frage 1):
@@ -89,11 +89,8 @@ export default function TagFenster({
         <div className="tag-abschnitt-kopf">
           <h3 className="planung-abschnitt">Termine am {kurz}</h3>
           {/* Anlegen nur, wer Termine schreiben darf — wie in der Terminkarte. */}
-          {darf && (
-            <Button variant="ghost" groesse="klein" onClick={() => onTerminNeu(datum)}>
-              Termin anlegen
-            </Button>
-          )}
+          {/* Der Petrol-Kreis mit Plus wie im Kopf der Karte „Termine“ (E76). */}
+          {darf && <NeuKnopf label="Termin anlegen" onClick={() => onTerminNeu(datum)} />}
         </div>
         {termine.length === 0 ? (
           <p className="tag-leer">Keine Termine an diesem Tag.</p>

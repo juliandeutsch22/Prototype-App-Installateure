@@ -57,7 +57,12 @@
   */
   .planung-gruppe-zelle { position: relative; padding: 0; text-align: left; font-weight: 400; border-bottom: 1px solid var(--border); }
   .planung-gruppe-zelle::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--border-strong); }
-  .planung-gruppe { position: sticky; left: 0; z-index: 1; display: inline-flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; padding: 0.5rem 0.75rem 0.5rem 0.625rem; background: var(--surface); border: 0; font-size: 0.71875rem; line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: var(--gewicht-titel); color: var(--text); text-align: left; cursor: pointer; }
+  /*
+    Die linke Linie des Blatts zeichnet der Knopf selbst, wie die
+    Namensspalte (E76, 10.11.2026): er klebt mit eigener Fläche über ihr, in
+    jeder Gruppenzeile fehlte sie sonst um seine Höhe.
+  */
+  .planung-gruppe { position: sticky; left: 0; z-index: 1; display: inline-flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; padding: 0.5rem 0.75rem 0.5rem 0.625rem; background: var(--surface); border: 0; box-shadow: inset 1px 0 0 var(--border-strong); font-size: 0.71875rem; line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: var(--gewicht-titel); color: var(--text); text-align: left; cursor: pointer; }
   .planung-gruppe:hover .gruppe-name, .mo-gruppe:hover .gruppe-name { color: var(--accent-deep); }
   .gruppe-name { flex: none; }
   .gruppe-winkel { flex: none; width: 0.75rem; font-size: 0.75rem; letter-spacing: 0; color: var(--text-muted); }
@@ -342,7 +347,8 @@
   .tl-info { font-size: 0.8125rem; color: var(--text-muted); }
   /* Gruppenköpfe wie `Abschnitt` in jeder Liste: eine Linie, keine graue Fläche (Linie „Lot“, E24). */
   /* Oben und unten gleich: rechts steht seit 09.11.2026 ein Zweitknopf („Termin anlegen“), kein Text mehr. */
-  .tl-gruppe { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; min-height: 2.75rem; padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.8125rem; font-weight: var(--gewicht-titel); color: var(--text-muted); }
+  /* Zwei Zellen hoch (E76): Platz für den Plus-Kreis ohne eigenes Polster. */
+  .tl-gruppe { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; min-height: 3rem; padding: 0 1rem; border-bottom: 1px solid var(--border); font-size: 0.8125rem; font-weight: var(--gewicht-titel); color: var(--text-muted); }
   /* Die Einstufung als Achse (Planlinie, B5): Zahl im Achskreis, Name in Versalien, Achslinie bis zum Rand. */
   .tl-achse { display: flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; padding: 0.75rem 1rem 0.25rem; font-size: 0.71875rem; line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: var(--gewicht-titel); color: var(--text); }
   .tl-termin { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 3rem; padding: 0.5rem 1rem; background: var(--surface); border: 0; border-bottom: 1px solid var(--border); text-align: left; cursor: pointer; }
@@ -350,6 +356,8 @@
   .tl-termin-titel { font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .tl-termin-ort { font-size: 0.8125rem; color: var(--text-muted); overflow-wrap: break-word; }
   .tl-person { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0.75rem; padding: 0.625rem 1rem; border-bottom: 1px solid var(--border); }
+  /* Nach der letzten Person keine Linie (E76): darunter kommt die Kante des Blatts, sonst stand sie doppelt. */
+  .tl-person-letzte { border-bottom: 0; }
   .tl-name { font-weight: var(--gewicht-titel); color: var(--text); overflow-wrap: break-word; hyphens: manual; -webkit-hyphens: manual; }
   .tl-eintraege { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
   .tl-leer { display: flex; align-items: center; min-height: 2.75rem; font-size: 0.875rem; color: var(--text-muted); }

@@ -640,7 +640,7 @@ export default function FirmendatenView() {
         <Aktionsleiste
           summe={{ name: <span role="status" className="lot-speicherstand">{saving ? 'Änderungen werden gespeichert …' : geaendert ? (bestaetigt ? 'Vorheriger Stand gespeichert · weitere Änderungen noch offen' : 'Nicht gespeicherte Änderungen') : bestaetigt ? 'Gespeichert' : 'Keine offenen Änderungen'}</span>, wert: null }}
           links={geaendert ? <Button type="button" variant="ghost" disabled={saving || logoLaeuft} onClick={verwerfen}>Verwerfen</Button> : <span className="lot-speicherplatz" aria-hidden="true" />}
-          rechts={<Button type="submit" loading={saving} gespeichert={bestaetigt && !geaendert && !saving} disabled={logoLaeuft || (bestaetigt && !geaendert)}>{saving ? 'Speichert …' : bestaetigt && !geaendert ? 'Gespeichert' : 'Firmendaten speichern'}</Button>}
+          rechts={<Button type="submit" loading={saving} gespeichert={bestaetigt && !geaendert && !saving} disabled={logoLaeuft || (bestaetigt && !geaendert)}>{saving ? 'Speichert …' : bestaetigt && !geaendert ? 'Gespeichert' : 'Speichern'}</Button>}
         />
       </form>
 

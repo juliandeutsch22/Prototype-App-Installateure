@@ -3374,11 +3374,8 @@ export default function InvoicesView() {
       <Card
         title="Neue Rechnung aus Baustelle"
         hint="Zusammengestellt wird, was auf dieser Baustelle als „Anwesend“ gebucht und noch NICHT verrechnet ist — dazu das ausgegebene Material. Eine Position kann deshalb nie zweimal auf eine Rechnung geraten. Gesperrt werden die Belege aber erst beim Anlegen, nicht schon beim Zusammenstellen: bis dahin lässt sich alles gefahrlos ansehen und wieder verwerfen."
-        action={
-          <Button variant="ghost" onClick={erstellenSchliessen}>
-            Schließen
-          </Button>
-        }
+        // Das ✕ wie in jedem Fensterkopf (E74, E76): die Karte steht hier an der Stelle eines Fensters.
+        action={<IconButton label="Schließen" onClick={erstellenSchliessen}><Icon name="schliessen" size={22} /></IconButton>}
       >
         <div className="formular space-y-4">
           <BaustellenSelect

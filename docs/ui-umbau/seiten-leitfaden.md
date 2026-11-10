@@ -97,8 +97,10 @@ Die Musterseite `/_muster` (`src/features/muster/MusterView.tsx`) zeigt alles.
   sagt als das Wort). Die vier Knopfarten (E74): **A** schlichtes Symbol aus
   `Symbolknoepfe.tsx` (Stift, Papierkorb, PDF) oder `IconButton` (✕ nur im
   Fensterkopf, ‹ › blättern) für Handlungen an einer Sache in einer Zeile;
-  **B** `IconButton rund` (Petrol-Kreis) für die eine Hauptsache einer
-  Zeile oder Leiste, höchstens einer; **C** gerahmt nur als Gruppe mit einem
+  **B** `IconButton rund` (Petrol-Kreis, sichtbar 40 px bei 48 px
+  Tastfläche, E76) für die eine Hauptsache einer Zeile oder Leiste,
+  höchstens einer — dazu `NeuKnopf` (Plus) im Kopf einer Liste, die etwas
+  Neues aufnimmt; **C** gerahmt nur als Gruppe mit einem
   Feld (`.mengen-wahl`); **D** das Wort für Entscheidungen, Hauptaktionen,
   Fensterfüße, Filter und Reiter. Jedes Symbol trägt einen Namen, der die
   Sache nennt.

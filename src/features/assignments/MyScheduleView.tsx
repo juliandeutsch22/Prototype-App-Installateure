@@ -26,7 +26,7 @@ import { EinsatzKnoepfe, EinsatzKontakt } from './Einsatzaktionen';
 import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
-import MonthCalendar from '@/components/MonthCalendar';
+import MonthCalendar, { KalenderLegende } from '@/components/MonthCalendar';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { ganztagsWeg } from './besetzung';
 import { einsatzZeit } from './einsatzZeit';
@@ -441,23 +441,7 @@ export default function MyScheduleView() {
               marks={marks}
               markLabel={(n) => `${n} ${n === 1 ? 'Einsatz' : 'Einsätze'}`}
             />
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-ink-muted">
-              <span className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-accent" />
-                Einsätze geplant
-              </span>
-              <span className="flex items-center gap-2">
-                {/* Dasselbe Lot wie über dem heutigen Tag im Kalender (Planlinie, B4). */}
-                <span className="lot-legende" aria-hidden="true">
-                  <span className="tag-lot" />
-                </span>
-                Heute
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-5 rounded-sm border border-line bg-surface-2 shadow-[inset_0_2px_0_0_var(--warning)]" />
-                Feiertag (AT)
-              </span>
-            </div>
+            <KalenderLegende anzahl="Einsätze geplant" />
           </div>
 
           <div>
