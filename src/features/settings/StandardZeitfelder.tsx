@@ -36,6 +36,7 @@ export default function StandardZeitfelder({ darf }: { darf: boolean }) {
       </div>)}
     </div>
     {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
-    {darf && <Button variant="secondary" disabled={!geaendert || speichert} onClick={() => void speichern()}>{speichert ? 'Speichert …' : 'Standardfelder speichern'}</Button>}
+    {/* Die Hauptaktion der Karte gefüllt im Fuß, wie jede Speichern-Aktion der Einstellungen (E72, R2/R7). */}
+    {darf && <div className="fuss-aktionen mt-4"><Button disabled={!geaendert || speichert} onClick={() => void speichern()}>{speichert ? 'Speichert …' : 'Standardfelder speichern'}</Button></div>}
   </Card>;
 }

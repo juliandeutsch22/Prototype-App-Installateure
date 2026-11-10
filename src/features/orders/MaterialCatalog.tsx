@@ -20,7 +20,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Marke, Warnung } from '@/components/Badge';
 import BottomSheet from '@/components/BottomSheet';
-import { Listenleiste, MehrAnzeigen } from '@/components/LotBausteine';
+import { Listenleiste, MehrAnzeigen, WeitereAngaben } from '@/components/LotBausteine';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { CheckboxField, InputField, FormGrid, Pflichthinweis } from '@/components/Field';
@@ -163,6 +163,13 @@ export default function MaterialCatalog({
     schriebe sonst 0 über den hinterlegten Preis.
   */
   const [ekStand, setEkStand] = useState<'da' | 'laedt' | 'fehlt'>('da');
+  /*
+    STEHT IN DEN WEITEREN ANGABEN SCHON ETWAS, SIND SIE OFFEN (Regel 9; E72,
+    09.11.2026). Festgehalten beim Öffnen des Artikels und beim Eintreffen des
+    Einkaufspreises — nicht aus dem Formular gerechnet: wer das letzte Feld
+    darin leert, dem klappten sie sonst unter dem Finger zu.
+  */
+  const [weitereVorbelegt, setWeitereVorbelegt] = useState(false);
   const offenerArtikel = useRef<string | null>(null);
   /*
     DER GEÖFFNETE ARTIKEL SELBST, nicht nur seine Kennung: „Material löschen“
@@ -231,6 +238,8 @@ export default function MaterialCatalog({
     setFormOffen(true);
     offenerArtikel.current = m.id;
     ekLaden(m.id);
+    // Ein Verkaufspreis von 0 heisst „nicht gepflegt“ (siehe `submit`) und öffnet nichts.
+    setWeitereVorbelegt(!!m.warengruppe || m.sollbestand != null || m.verpackungseinheit != null || (m.verkaufspreis ?? 0) > 0);
     setForm({
       name: m.name,
       category: m.category ?? '',
@@ -260,6 +269,7 @@ export default function MaterialCatalog({
         if (offenerArtikel.current !== id) return;
         const ek = preise.get(id);
         setForm((f) => ({ ...f, einkaufspreis: ek != null ? preisAlsText(ek) : '' }));
+        if (ek != null) setWeitereVorbelegt(true);
         setEkStand('da');
       },
       () => {
@@ -274,6 +284,7 @@ export default function MaterialCatalog({
     setOffenesMaterial(null);
     offenerArtikel.current = null;
     setEkStand('da');
+    setWeitereVorbelegt(false);
     setForm(empty);
   }
 
@@ -386,7 +397,13 @@ export default function MaterialCatalog({
         title={imKatalog === null ? 'Katalog' : `Katalog (${imKatalog})`}
         action={
           <>
-            {lowStock > 0 ? <Warnung>{lowStock} knapp</Warnung> : null}
+            {/*
+              DER ZUSTAND GEHÖRT ZUM TITEL (E72, 09.11.2026): als drittes
+              Element zwischen Titel und Knopf verteilt, schwebte „2 knapp“
+              mitten in der Kopfzeile. `mr-auto` rückt ihn an den Titel und
+              den Knopf an den rechten Rand.
+            */}
+            {lowStock > 0 ? <span className="mr-auto"><Warnung>{lowStock} knapp</Warnung></span> : null}
             <Button variant="secondary" onClick={neu}>Neues Material</Button>
           </>
         }
@@ -510,8 +527,6 @@ export default function MaterialCatalog({
                   </InfoHint>
                 </p>
               </div>
-              <InputField id="mwg" label="Warengruppe" placeholder="aus DATANORM, z. B. 1201" value={form.warengruppe}
-                onChange={(e) => setForm({ ...form, warengruppe: e.target.value })} />
             </FormGrid>
             {/*
               KATALOG UND LAGER GETRENNT (Testbericht 30.09.2026, M30). Nicht jeder
@@ -553,68 +568,85 @@ export default function MaterialCatalog({
                 <ZahlFeld id="mmin" label="Mindestmenge" placeholder="leer = knapp ab höchstens 5 frei"
                   value={form.mindestmenge} onChange={(t) => setForm({ ...form, mindestmenge: t })} />
               )}
-              {vorschlaegeAn && form.lagerartikel && (
-                <ZahlFeld id="msoll" label="Sollbestand" placeholder="leer = bis zur Mindestmenge"
-                  value={form.sollbestand} onChange={(t) => setForm({ ...form, sollbestand: t })} />
-              )}
-              {vorschlaegeAn && (
-                <ZahlFeld id="mvpe" label="Verpackungseinheit" placeholder="leer = unbekannt"
-                  value={form.verpackungseinheit} onChange={(t) => setForm({ ...form, verpackungseinheit: t })} />
-              )}
-              <div className="flex flex-col gap-1.5">
-                <ZahlFeld
-                  id="mpreis"
-                  label="Verkaufspreis netto je Einheit (€)"
-                  placeholder="leer = nicht gepflegt"
-                  value={form.verkaufspreis}
-                  onChange={(t) => setForm({ ...form, verkaufspreis: t })}
-                />
-                {/*
-                  DER VORSCHLAG AUS EINKAUF PLUS AUFSCHLAG (M31) — nur ein
-                  Vorschlag: der Verkaufspreis ist die Kalkulation des Betriebs
-                  und bleibt, was hier steht, bis jemand übernimmt.
-                */}
-                {(() => {
-                  if (!darfKosten || ekStand !== 'da') return null;
-                  const ek = leseZahl(form.einkaufspreis).wert;
-                  const vorschlag = verkaufspreisVorschlag(ek, aufschlag, form.warengruppe);
-                  if (vorschlag == null) return null;
-                  const prozent = aufschlagFuer(aufschlag, form.warengruppe);
-                  return (
-                    <p className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
-                      <span>Vorschlag: {euro(vorschlag)} (Einkauf + {fmtMenge(prozent ?? 0)} %)</span>
-                      <Button type="button" variant="ghost" onClick={() => setForm({ ...form, verkaufspreis: preisAlsText(vorschlag) })}>
-                        Übernehmen
-                      </Button>
-                    </p>
-                  );
-                })()}
-              </div>
-              {/*
-                Der EINKAUFSPREIS steht nur der Geschäftsführung offen: er ist
-                die Grundlage der Nachkalkulation, also Margendaten. SETZEN kann
-                ihn nur sie — das verweigert die Datenbank allen anderen
-                (Trigger `materials_felder`), und seit dem 29.09.2026 LESEN auch
-                nur sie (`material_einkaufspreise`, offene Punkte B1).
-              */}
-              {darfKosten && (
+            </FormGrid>
+            {/*
+              SELTENES ZUGEKLAPPT (Leitfaden Regel 9; E72, 09.11.2026): bis zu
+              13 Felder standen offen untereinander. Warengruppe, Sollbestand,
+              Verpackungseinheit und Preise kommen meist aus dem DATANORM-Katalog
+              oder werden einmal gepflegt; angelegt wird mit Bezeichnung,
+              Einheit und Bestand. Steht schon etwas darin, sind sie offen.
+            */}
+            <WeitereAngaben
+              key={editId ?? 'neu'}
+              offen={weitereVorbelegt}
+              zusatz={['Warengruppe', vorschlaegeAn && form.lagerartikel && 'Sollbestand', vorschlaegeAn && 'Verpackungseinheit', 'Preise'].filter(Boolean).join(', ')}
+            >
+              <FormGrid cols={1}>
+                <InputField id="mwg" label="Warengruppe" placeholder="aus DATANORM, z. B. 1201" value={form.warengruppe}
+                  onChange={(e) => setForm({ ...form, warengruppe: e.target.value })} />
+                {vorschlaegeAn && form.lagerartikel && (
+                  <ZahlFeld id="msoll" label="Sollbestand" placeholder="leer = bis zur Mindestmenge"
+                    value={form.sollbestand} onChange={(t) => setForm({ ...form, sollbestand: t })} />
+                )}
+                {vorschlaegeAn && (
+                  <ZahlFeld id="mvpe" label="Verpackungseinheit" placeholder="leer = unbekannt"
+                    value={form.verpackungseinheit} onChange={(t) => setForm({ ...form, verpackungseinheit: t })} />
+                )}
                 <div className="flex flex-col gap-1.5">
                   <ZahlFeld
-                    id="mek"
-                    label="Einkaufspreis netto je Einheit (€)"
-                    placeholder={ekStand === 'laedt' ? 'wird geladen …' : 'leer = nicht gepflegt'}
-                    disabled={ekStand !== 'da' || !darfEkSetzen}
-                    value={form.einkaufspreis}
-                    onChange={(t) => setForm({ ...form, einkaufspreis: t })}
+                    id="mpreis"
+                    label="Verkaufspreis netto je Einheit (€)"
+                    placeholder="leer = nicht gepflegt"
+                    value={form.verkaufspreis}
+                    onChange={(t) => setForm({ ...form, verkaufspreis: t })}
                   />
-                  {ekStand === 'fehlt' && (
-                    <p className="text-sm text-ink-muted">
-                      Der Einkaufspreis konnte nicht geladen werden — er bleibt beim Speichern, wie er ist.
-                    </p>
-                  )}
+                  {/*
+                    DER VORSCHLAG AUS EINKAUF PLUS AUFSCHLAG (M31) — nur ein
+                    Vorschlag: der Verkaufspreis ist die Kalkulation des Betriebs
+                    und bleibt, was hier steht, bis jemand übernimmt.
+                  */}
+                  {(() => {
+                    if (!darfKosten || ekStand !== 'da') return null;
+                    const ek = leseZahl(form.einkaufspreis).wert;
+                    const vorschlag = verkaufspreisVorschlag(ek, aufschlag, form.warengruppe);
+                    if (vorschlag == null) return null;
+                    const prozent = aufschlagFuer(aufschlag, form.warengruppe);
+                    return (
+                      <p className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+                        <span>Vorschlag: {euro(vorschlag)} (Einkauf + {fmtMenge(prozent ?? 0)} %)</span>
+                        <Button type="button" variant="ghost" onClick={() => setForm({ ...form, verkaufspreis: preisAlsText(vorschlag) })}>
+                          Übernehmen
+                        </Button>
+                      </p>
+                    );
+                  })()}
                 </div>
-              )}
-            </FormGrid>
+                {/*
+                  Der EINKAUFSPREIS steht nur der Geschäftsführung offen: er ist
+                  die Grundlage der Nachkalkulation, also Margendaten. SETZEN kann
+                  ihn nur sie — das verweigert die Datenbank allen anderen
+                  (Trigger `materials_felder`), und seit dem 29.09.2026 LESEN auch
+                  nur sie (`material_einkaufspreise`, offene Punkte B1).
+                */}
+                {darfKosten && (
+                  <div className="flex flex-col gap-1.5">
+                    <ZahlFeld
+                      id="mek"
+                      label="Einkaufspreis netto je Einheit (€)"
+                      placeholder={ekStand === 'laedt' ? 'wird geladen …' : 'leer = nicht gepflegt'}
+                      disabled={ekStand !== 'da' || !darfEkSetzen}
+                      value={form.einkaufspreis}
+                      onChange={(t) => setForm({ ...form, einkaufspreis: t })}
+                    />
+                    {ekStand === 'fehlt' && (
+                      <p className="text-sm text-ink-muted">
+                        Der Einkaufspreis konnte nicht geladen werden — er bleibt beim Speichern, wie er ist.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </FormGrid>
+            </WeitereAngaben>
             <Pflichthinweis />
             {error && <ErrorState message={error} />}
             <div className="fuss-aktionen">

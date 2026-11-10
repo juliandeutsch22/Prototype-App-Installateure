@@ -1063,6 +1063,11 @@ export default function VacationsView() {
     dieselben, mit derselben Rückfrage. Aus dem Fenster heraus schliesst es
     sich zuerst: die Rückfrage gehört allein in den Vordergrund.
   */
+  /** Den eigenen genehmigten Antrag zurücknehmen — nur, wenn sonst niemand darüber entscheidet. */
+  function zuruecknehmbar(v: WithId<Vacation>) {
+    return v.status === 'Genehmigt' && darfEntscheiden && !andereEntscheiden && !v.betriebsurlaubId;
+  }
+
   function antragsKnoepfe(v: WithId<Vacation>, ausFenster: boolean) {
     const davor = () => {
       if (ausFenster) setOffenerAntragId(null);
@@ -1088,7 +1093,12 @@ export default function VacationsView() {
           „Betriebsurlaub" da. Wer arbeiten soll, wird beim Anlegen
           ausgenommen — geändert wird im Reiter „Betriebsurlaub".
         */}
-        {v.status === 'Genehmigt' && darfEntscheiden && !v.betriebsurlaubId && (
+        {/*
+          DEN EIGENEN GENEHMIGTEN URLAUB NIMMT JEMAND ANDERER ZURÜCK (Befund
+          09.11.2026) — wie beim Genehmigen; die Datenbank lehnt es sonst ab.
+          Wer allein entscheidet, nimmt ihn weiter selbst zurück.
+        */}
+        {zuruecknehmbar(v) && (
           <Button
             variant={ausFenster ? 'secondary' : 'ghost'}
             loading={arbeitet === v.id}
@@ -1105,9 +1115,7 @@ export default function VacationsView() {
   }
   const offenerAntrag = offenerAntragId ? eigene.find((v) => v.id === offenerAntragId) ?? null : null;
   const fensterKnoepfe =
-    offenerAntrag &&
-    (offenerAntrag.status === 'Beantragt' ||
-      (offenerAntrag.status === 'Genehmigt' && darfEntscheiden && !offenerAntrag.betriebsurlaubId));
+    offenerAntrag && (offenerAntrag.status === 'Beantragt' || zuruecknehmbar(offenerAntrag));
 
   const REITER: { key: Reiter; label: string }[] = [
     { key: 'antraege', label: 'Anträge' },

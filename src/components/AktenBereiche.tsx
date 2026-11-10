@@ -66,7 +66,7 @@ export function AktenVerweis({ bereich, children }: { bereich: string; children:
   const [adresse] = useSearchParams();
   const neu = new URLSearchParams(adresse);
   neu.set('bereich', bereich);
-  return <Link to={{ search: `?${neu}` }} className="link-still akten-verweis">{children}</Link>;
+  return <Link to={{ search: `?${neu}` }} className="link-still link-still-weiter akten-verweis">{children}</Link>;
 }
 
 export function AktenAngaben({ children }: { children: ReactNode }) {

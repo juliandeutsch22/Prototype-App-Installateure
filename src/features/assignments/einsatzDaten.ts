@@ -61,16 +61,64 @@ export function useMaterialstamm(companyId: string | undefined, an: boolean): Wi
   return materials;
 }
 
-/** Die Rüstlisten eines Tages, live wie die Einteilung selbst. */
+/** Gleichbleibend leer: an der Identität der Liste hängt das Übernehmen ins Formular. */
+const KEINE_LISTEN: WithId<EinsatzMaterial>[] = [];
+
+/**
+ * Die Rüstlisten eines Tages, live wie die Einteilung selbst.
+ *
+ * `geladen` SAGT, OB DIE LISTEN ZU GENAU DIESEM TAG GEHÖREN. Nach einem
+ * Wechsel des Tages stand bis zur ersten Antwort noch die Liste des vorigen
+ * Tages da; das Formular übernahm sie für dieselbe Baustelle, und ein
+ * Speichern in dieser Zeit schrieb sie über die Liste des neuen Tages. Bis
+ * die Antwort für den Tag da ist, gibt es deshalb keine Liste und kein
+ * Speichern. Ein Fehlschlag zählt wie bisher als „keine Liste“ — die
+ * Einteilung ist die Aufgabe, das Material die Zugabe.
+ */
 export function useRuestlistenDesTages(
   companyId: string | undefined,
   date: string,
   an: boolean,
-): WithId<EinsatzMaterial>[] {
-  const [tagesListen, setTagesListen] = useState<WithId<EinsatzMaterial>[]>([]);
+): { listen: WithId<EinsatzMaterial>[]; geladen: boolean } {
+  const [stand, setStand] = useState<{ fuer: string; listen: WithId<EinsatzMaterial>[] } | null>(null);
   useEffect(() => {
     if (!companyId || !an) return;
-    return subscribeEinsatzMaterialForDate(companyId, date, setTagesListen, () => setTagesListen([]));
+    // Eine späte Meldung des abgelösten Tages darf den neuen nicht überschreiben.
+    let aktiv = true;
+    const beenden = subscribeEinsatzMaterialForDate(
+      companyId,
+      date,
+      (listen) => {
+        if (aktiv) setStand({ fuer: date, listen });
+      },
+      () => {
+        if (aktiv) setStand({ fuer: date, listen: KEINE_LISTEN });
+      },
+    );
+    return () => {
+      aktiv = false;
+      beenden();
+    };
   }, [companyId, date, an]);
-  return tagesListen;
+  if (!an) return { listen: KEINE_LISTEN, geladen: true };
+  return stand?.fuer === date ? { listen: stand.listen, geladen: true } : { listen: KEINE_LISTEN, geladen: false };
+}
+
+/**
+ * Derselbe Tag im Nachbarmonat — für das Blättern im Kalender.
+ *
+ * Der gewählte Tag wandert mit, damit Formular, Tagesliste und
+ * Abwesenheiten immer zum angezeigten (und geladenen) Monat gehören. Blieb
+ * er im alten Monat stehen, waren dessen Einsätze nicht mehr geladen: das
+ * Formular stand leer da, und Speichern löschte die bestehende Einteilung
+ * des Tages. Gibt es den Tag im neuen Monat nicht (31. → Februar), gilt
+ * dessen letzter.
+ */
+export function gleicherTagImMonat(iso: string, delta: number): string {
+  const [jahr, monat, tag] = iso.split('-').map(Number);
+  // Lokal gerechnet, nicht über toISOString: das rechnet in UTC.
+  const erster = new Date(jahr, monat - 1 + delta, 1);
+  const letzter = new Date(erster.getFullYear(), erster.getMonth() + 1, 0).getDate();
+  const zwei = (n: number) => String(n).padStart(2, '0');
+  return `${erster.getFullYear()}-${zwei(erster.getMonth() + 1)}-${zwei(Math.min(tag, letzter))}`;
 }

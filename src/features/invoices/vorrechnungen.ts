@@ -217,6 +217,22 @@ export function gueltigeSchlussrechnung<T extends Omit<Kopf, 'id' | 'invoiceDate
 }
 
 /**
+ * Warum nach der Schlussrechnung keine Anzahlungs- oder Teilrechnung mehr
+ * entsteht (Durchsicht 09.11.2026) — derselbe Ausweg wie bei der zweiten
+ * Schlussrechnung. Die Schlussrechnung zieht nur ab, was vor ihr kam; was
+ * danach als Anzahlung oder Teilbetrag hinausginge, zöge niemand mehr ab,
+ * und seine Umsatzsteuer stünde zweimal auf Belegen (§ 11 Abs 12 UStG).
+ * Die Datenbank (`app.vorrechnungen_pruefen`) weist es ebenso ab.
+ */
+export function nachSchlussrechnungText(art: 'anzahlung' | 'teil', schlussNummer: string): string {
+  const was = art === 'anzahlung' ? 'Anzahlungsrechnung' : 'Teilrechnung';
+  return `Für diese Baustelle gibt es schon die Schlussrechnung ${schlussNummer}. Eine ${was} danach zöge `
+    + 'niemand mehr ab, und ihre Umsatzsteuer stünde zweimal auf Belegen. Was nach der Schlussrechnung '
+    + `noch geleistet wurde, bitte als „Rechnung“ zusammenstellen — oder ${schlussNummer} stornieren, die `
+    + `${was} stellen und die Schlussrechnung neu ausstellen.`;
+}
+
+/**
  * Was ein Storno dieser Anzahlungs- oder Teilrechnung an einer späteren
  * Schlussrechnung berührt (Testbericht Runde 6, M7) — `null`, wenn nichts.
  *

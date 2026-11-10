@@ -193,6 +193,32 @@ describe('Jede Änderung, die dazugehört, kommt an', () => {
     expect(ergebnis.ok).toBe(true);
   }, 30_000);
 
+  /*
+    DER ARBEITSSTAND DES LAGERS (09.11.2026, E70): alle offenen Anforderungen
+    ohne Altersgrenze. Eine erledigte gehört nicht hinein — sie steht im
+    200er-Abo unter „Erledigt“.
+  */
+  it('die offenen Materialanforderungen — eine erledigte bleibt draußen', async () => {
+    clientEinreichen(chef.client);
+    const neu = (materialName: string, status: string) => async () => {
+      clientEinreichen(berta.client);
+      await anforderungen.createMaterialOrder(BETRIEB, {
+        materialName, quantity: 1, status,
+        transactionType: 'order', userId: berta.uid, userName: 'Berta',
+      } as Parameters<typeof anforderungen.createMaterialOrder>[1]);
+      clientEinreichen(chef.client);
+    };
+    const name = (n: string) => (rows: WithId<unknown>[]) =>
+      rows.some((r) => (r as { materialName?: string }).materialName === n);
+    const ergebnis = await bleibtDraussen<WithId<unknown>[]>(
+      (melde, fehler) => anforderungen.subscribeOffeneAnforderungen(BETRIEB, melde, fehler),
+      { ausloesen: neu('Fitting erledigt', 'Erledigt'), erkennen: name('Fitting erledigt') },
+      { ausloesen: neu('Fitting offen', 'Offen'), erkennen: name('Fitting offen') },
+    );
+    expect(ergebnis.falschDa).toBe(false);
+    expect(ergebnis.richtigDa).toBe(true);
+  }, 60_000);
+
   it('der Materialstamm', async () => {
     clientEinreichen(chef.client);
     const ergebnis = await meldetDurch<WithId<unknown>[]>(

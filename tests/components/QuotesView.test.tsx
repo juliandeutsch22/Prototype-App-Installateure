@@ -42,6 +42,10 @@ const sucheAngebote = vi.fn(async (_c: string, begriff: string) =>
   [...angebote, ...nurAufDemServer].filter((q) =>
     [q.quoteNumber, q.customerName, q.address, q.projectNumber].some((x) => x?.toLowerCase().includes(begriff.toLowerCase()))));
 
+/** Ein einzelnes Angebot — wie der Server, über alle, nicht nur die geladenen. */
+const getQuote = vi.fn(async (_c: string, id: string) =>
+  [...angebote, ...nurAufDemServer].find((q) => q.id === id) ?? null);
+
 vi.mock('@/lib/db/quotes', async () => ({
   ...await vi.importActual<typeof import('@/lib/db/quotes')>('@/lib/db/quotes'),
   ANGEBOT_TREFFER: 100,
@@ -51,8 +55,15 @@ vi.mock('@/lib/db/quotes', async () => ({
   updateQuote: (id: string, d: unknown) => updateQuote(id, d),
   deleteQuote: vi.fn(async () => undefined),
   reserveQuoteNumber: vi.fn(async () => 'AN-2026-0001'),
+  getQuote: (c: string, id: string) => getQuote(c, id),
 }));
 vi.mock('@/lib/db/customers', async () => (await import('./kundenAuswahl')).kundenAttrappe(() => kunden));
+/* Der Auftragseingang eines Angebots — für die Rückfrage vor dem Verwerfen (Befund 09.11.2026). */
+let ausEingang: { id: string; nummer: string } | null = null;
+const getEingangZu = vi.fn<(c: string, z: { quoteId: string }) => Promise<typeof ausEingang>>(async () => ausEingang);
+vi.mock('@/lib/db/auftragseingaenge', () => ({
+  getEingangZu: (c: string, z: { quoteId: string }) => getEingangZu(c, z),
+}));
 /* Liegenschaften (M02c) — nur gefragt, wenn die Unterfähigkeit an ist. */
 const LIEGENSCHAFT = { id: 'l1', companyId: 'perl', bezeichnung: 'WHA Neudorf 3', anschrift: 'Dorfplatz 3, 2000 Neudorf', aktiv: true };
 vi.mock('@/lib/db/liegenschaften', () => ({
@@ -134,6 +145,7 @@ beforeEach(() => {
   angebote.length = 0;
   nurAufDemServer.length = 0;
   sucheAngebote.mockClear();
+  getQuote.mockClear();
   // Bearbeiten scrollt zum Formular hinauf; jsdom kennt das nicht.
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
 });
@@ -584,6 +596,31 @@ describe('Die Liste führt zum Angebot', () => {
     expect(updateQuote).not.toHaveBeenCalled();
     await nutzer.click(within(dialog).getByRole('button', { name: 'Verwerfen' }));
     await waitFor(() => expect(updateQuote).toHaveBeenCalledWith(angebote[angebote.length - 1].id, { status: 'Verworfen' }));
+    // Ohne Eingang kein Satz dazu.
+    expect(dialog).not.toHaveTextContent(/Eingang/);
+  });
+
+  /*
+    Befund 09.11.2026: ein verworfener Entwurf ließ seinen Eingang
+    „übernommen“ zurück. Die Rückfrage nennt ihn jetzt — er lässt sich dort
+    wieder öffnen. Gegenprobe: ohne die Änderung fehlt der Satz.
+  */
+  it('stammt der Entwurf aus einem Eingang, nennt die Rückfrage ihn', async () => {
+    versendetesAngebot();
+    angebote[angebote.length - 1].status = 'Entwurf';
+    ausEingang = { id: 'e1', nummer: 'EG-2026-0005' };
+    try {
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/AN-2026-0007/);
+      await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+      await nutzer.click(screen.getByRole('menuitem', { name: 'Verwerfen' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Entwurf verwerfen?' });
+      await waitFor(() => expect(dialog).toHaveTextContent(/aus dem Eingang EG-2026-0005: Er bleibt übernommen und lässt sich dort wieder öffnen/));
+      expect(getEingangZu).toHaveBeenCalledWith('perl', { quoteId: angebote[angebote.length - 1].id });
+    } finally {
+      ausEingang = null;
+    }
   });
 });
 
@@ -1137,6 +1174,78 @@ describe('Angebote auf der Linie „Lot“', () => {
     expect(await screen.findByText('Angebot AN-2026-0008 bearbeiten')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
   });
+
+  /*
+    ÄLTER ALS DIE GELADENE LISTE: die Angebotsseite öffnet jedes Angebot, die
+    Liste hält nur die jüngsten hundert. „Bearbeiten“, „Neue Fassung“ und
+    „Als Kopie anlegen“ taten bei einem älteren nichts — der Parameter ging
+    weg, das Formular blieb zu.
+  */
+  function nurServer(id: string, nr: string, status: Quote['status']) {
+    nurAufDemServer.push({
+      id, companyId: 'perl', quoteNumber: nr, customerId: 'k1', customerName: 'Gemeinde Neudorf', address: 'Rathausplatz 1',
+      quoteDate: '2024-03-01', validUntil: '2024-04-01', status,
+      positions: [{ label: 'Montage', qty: 2, unit: 'Stk', unitPrice: 50, netto: 100 }],
+      subtotalNetto: 100, totalNetto: 100, totalVat: 20, totalBrutto: 120, vatRate: 0.2, kalkulierteStunden: 0,
+    });
+  }
+
+  it('ein älterer Entwurf außerhalb der Liste: wird nachgeladen und öffnet zum Bearbeiten', async () => {
+    angebot('jung', 'AN-2026-0100', 'Familie Huber', 'Entwurf', '2099-01-01');
+    nurServer('alt', 'AN-2024-0003', 'Entwurf');
+    zeichneMit('/quotes?bearbeiten=alt');
+    expect(await screen.findByText('Angebot AN-2024-0003 bearbeiten')).toBeInTheDocument();
+    expect(getQuote).toHaveBeenCalledWith('perl', 'alt');
+    expect(screen.getByLabelText('Bezeichnung')).toHaveValue('Montage');
+  });
+
+  it('ein älteres versendetes außerhalb der Liste: „Neue Fassung“ legt sie mit Verweis an', async () => {
+    const nutzer = userEvent.setup();
+    nurServer('alt', 'AN-2024-0003', 'Versendet');
+    zeichneMit('/quotes?neueFassung=alt');
+    expect(await screen.findByLabelText('Bezeichnung')).toHaveValue('Montage');
+    await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+    await waitFor(() => expect(createQuote).toHaveBeenCalled());
+    expect(createQuote.mock.calls[0][1]).toMatchObject({ vorgaengerId: 'alt', customerId: 'k1' });
+  });
+
+  it('ein älteres außerhalb der Liste: „Als Kopie anlegen“ übernimmt es ohne Verweis', async () => {
+    const nutzer = userEvent.setup();
+    nurServer('alt', 'AN-2024-0003', 'Angenommen');
+    zeichneMit('/quotes?kopie=alt');
+    expect(await screen.findByLabelText('Bezeichnung')).toHaveValue('Montage');
+    await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+    await waitFor(() => expect(createQuote).toHaveBeenCalled());
+    expect((createQuote.mock.calls[0][1] as Quote).vorgaengerId).toBeUndefined();
+  });
+
+  it('gibt es das Angebot nicht (mehr): die Seite sagt es, statt still nichts zu tun', async () => {
+    zeichneMit('/quotes?bearbeiten=weg');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Dieses Angebot gibt es nicht (mehr)');
+    expect(screen.queryByLabelText('Bezeichnung')).toBeNull();
+  });
+
+  it('scheitert das Nachladen: eine verständliche Meldung, kein technischer Text', async () => {
+    getQuote.mockRejectedValueOnce(new Error('Failed to fetch'));
+    zeichneMit('/quotes?kopie=alt');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Das Angebot konnte nicht geladen werden. Keine Verbindung zum Server');
+  });
+
+  it('Erhaltung: ein geladenes Angebot wird nicht noch einmal geholt', async () => {
+    angebot('q2', 'AN-2026-0008', 'Gemeinde Neudorf', 'Entwurf', '2099-01-01');
+    zeichneMit('/quotes?bearbeiten=q2');
+    expect(await screen.findByText('Angebot AN-2026-0008 bearbeiten')).toBeInTheDocument();
+    expect(getQuote).not.toHaveBeenCalled();
+  });
+
+  it('Erhaltung: ein nachgeladenes versendetes öffnet NICHT zum Bearbeiten', async () => {
+    nurServer('alt', 'AN-2024-0003', 'Versendet');
+    zeichneMit('/quotes?bearbeiten=alt');
+    await waitFor(() => expect(getQuote).toHaveBeenCalled());
+    await screen.findAllByRole('button', { name: 'Neues Angebot' });
+    expect(screen.queryByText(/bearbeiten$/)).toBeNull();
+    expect(screen.queryByLabelText('Bezeichnung')).toBeNull();
+  });
 });
 
 // Testbericht Runde 5, G8: die Hilfe kam erst mit dem offenen Formular.
@@ -1254,5 +1363,62 @@ describe('Liegenschaft am Angebot (M02c)', () => {
     const neu = createQuote.mock.calls[0][1] as Quote;
     expect(neu.liegenschaftId).toBeUndefined();
     expect(neu.topId).toBeUndefined();
+  });
+});
+
+/*
+  E72 (09.11.2026), A3: am Handy brach eine Angebotszeile mit zwei Knöpfen
+  und „⋯“ in drei Reihen (280 px). Dort bleibt ein Knopf sichtbar, der
+  zweite Schritt steht zuoberst im Menü — keine Handlung geht verloren.
+  Gegenprobe: ohne die Handy-Abfrage stehen beide Knöpfe in der Zeile, und
+  „Neue Fassung“ fehlt im Menü. Ab dem Tablet (und ohne `matchMedia`) bleibt
+  alles wie bisher — das prüft der Test „zeigt beim versendeten Angebot …“.
+*/
+describe('Angebotszeile am Handy (E72)', () => {
+  const vorher = window.matchMedia;
+  const handy = () => {
+    window.matchMedia = ((q: string) => ({
+      matches: !q.includes('min-width: 760px'), media: q,
+      addEventListener() {}, removeEventListener() {},
+    })) as unknown as typeof window.matchMedia;
+  };
+
+  it('versendet: „Annehmen → Baustelle“ in der Zeile, „Neue Fassung“ zuoberst im Menü', async () => {
+    handy();
+    try {
+      versendetesAngebot();
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/AN-2026-0007/);
+      expect(screen.getByRole('button', { name: 'Annehmen → Baustelle' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Neue Fassung' })).toBeNull();
+      await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+      expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Neue Fassung', 'Als abgelehnt markieren']);
+      await nutzer.click(screen.getByRole('menuitem', { name: 'Neue Fassung' }));
+      expect(await screen.findByText('Neue Fassung von AN-2026-0007')).toBeInTheDocument();
+    } finally {
+      window.matchMedia = vorher;
+    }
+  });
+
+  it('Entwurf: „Bearbeiten“ in der Zeile, „Annehmen → Baustelle“ zuoberst im Menü', async () => {
+    handy();
+    try {
+      versendetesAngebot();
+      angebote[angebote.length - 1].status = 'Entwurf';
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/AN-2026-0007/);
+      expect(screen.getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Annehmen → Baustelle' })).toBeNull();
+      await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+      expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual([
+        'Annehmen → Baustelle', 'Als versendet markieren', 'Als abgelehnt markieren', 'Verwerfen',
+      ]);
+      await nutzer.click(screen.getByRole('menuitem', { name: 'Annehmen → Baustelle' }));
+      expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    } finally {
+      window.matchMedia = vorher;
+    }
   });
 });

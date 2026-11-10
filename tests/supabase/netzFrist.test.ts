@@ -25,7 +25,20 @@ beforeAll(async () => {
 });
 afterAll(async () => { await db.end(); });
 
-/** Alle Namen, die die App über `.rpc('…')` aufruft. */
+/**
+ * Alle Namen, die die App womöglich als Datenbankfunktion aufruft: jede
+ * Zeichenkette in `src`, die wie ein Funktionsname aussieht.
+ *
+ * NICHT NUR `.rpc('…')`. Viele Aufrufe gehen über eine Hülle — `aufruf(f, p)`
+ * in den Nachrichten, `rpcOhneErgebnis(name, …)` auf der Plattform —, und
+ * an deren `.rpc(f, …)` steht kein Name. So blieb `nachrichten_ungelesen`
+ * (09.11.2026) ohne Frist, und mit ihr die Startseite. Was davon wirklich
+ * eine Funktion ist, entscheidet die Datenbank (`bestaendigkeit` fragt nur
+ * nach Funktionen in `public`); eine Zeichenkette, die zufällig so heißt,
+ * kostet höchstens einen Eintrag einer Funktion, die ohnehin nur liest.
+ * Kommentare (`…` in Backticks) zählen nicht: dort steht auch, was die App
+ * gar nicht aufruft.
+ */
 function aufgerufen(): Set<string> {
   const namen = new Set<string>();
   const gehe = (ordner: string) => {
@@ -33,7 +46,7 @@ function aufgerufen(): Set<string> {
       const pfad = join(ordner, e.name);
       if (e.isDirectory()) gehe(pfad);
       else if (/\.tsx?$/.test(e.name)) {
-        for (const m of readFileSync(pfad, 'utf8').matchAll(/\.rpc\(\s*'([a-z_0-9]+)'/g)) namen.add(m[1]);
+        for (const m of readFileSync(pfad, 'utf8').matchAll(/(['"])([a-z][a-z_0-9]*)\1/g)) namen.add(m[2]);
       }
     }
   };
@@ -62,6 +75,14 @@ describe('lesende Datenbankfunktionen mit Stillstandsfrist', () => {
       expect(karte.has(name), `${name} gibt es nicht`).toBe(true);
       expect(['s', 'i'], `${name} ist volatile`).toContain(karte.get(name));
     }
+  });
+
+  it('der Suchlauf findet auch Aufrufe über eine Hülle (aufruf, rpcOhneErgebnis)', () => {
+    const namen = aufgerufen();
+    expect(namen.has('nachrichten_ungelesen')).toBe(true);
+    expect(namen.has('plattform_geloeschte_betriebe')).toBe(true);
+    // Und weiterhin die direkten Aufrufe.
+    expect(namen.has('baustellen_stunden')).toBe(true);
   });
 
   it('jede stable-Funktion, die die App aufruft, steht in der Liste', async () => {

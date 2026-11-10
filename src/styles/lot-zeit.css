@@ -41,10 +41,21 @@
   .zeit-spalte { flex: 1 1 26rem; min-width: 0; display: flex; flex-direction: column; gap: 0.75rem; }
   @media (min-width: 1200px) { .zeit-spalte { gap: 1.25rem; } }
 
-  /* Der Zusatz unter „Ältere Einträge laden“: was gerade gezeigt wird. */
-  .zeit-fenster-hinweis { padding: 0 1rem 0.875rem; font-size: 0.8125rem; color: var(--text-muted); }
-  /* Das Protokoll am Ende der Liste: die Liste läuft randlos, der Text braucht Abstand zur Linie des Blatts (E50). */
-  .zeit-verlauf { padding: 0 1rem; }
+  /*
+    DAS ENDE DER LISTE IN EINEM TAKT (09.11.2026). „Ältere Einträge laden“,
+    der Hinweis darunter und das Änderungsprotokoll (E50) standen mit
+    48 + 34 + 8 + 60 + 16 px untereinander, das Protokoll hinter einer
+    eingerückten Linie — es sah aus wie hingestellt. Jetzt sind beide
+    Handlungen Zeilen wie jede andere: volle Breite, Linie von Rand zu Rand,
+    48 px hoch, dieselbe Schrift. Der Hinweis gehört zur Zeile darüber: eine
+    Zelle Text, eine halbe Luft.
+  */
+  .zeit-fenster-hinweis { padding: 0 1rem 0.75rem; font-size: 0.8125rem; line-height: 1.5rem; color: var(--text-muted); }
+  .zeit-verlauf { padding: 0; }
+  .zeit-verlauf > .weiteres { margin: 0; }
+  .zeit-verlauf > .weiteres > .weiteres-kopf { min-height: 3rem; padding: 0.75rem 2.75rem 0.75rem 1rem; font-size: 0.9375rem; line-height: 1.5rem; }
+  .zeit-verlauf > .weiteres > .weiteres-kopf::after { right: 1rem; }
+  .zeit-verlauf > .weiteres > .weiteres-inhalt { padding: 0 1rem 1rem; }
 
   /* Kopf des Antrags im Seitenfenster: Zeitraum, Umfang, Stand. */
   .antrag-kopf { display: flex; flex-direction: column; gap: 0.25rem; padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); }

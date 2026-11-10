@@ -102,6 +102,7 @@ export const THEMEN: Record<StartRolle, { key: string; name: string }[]> = {
     { key: 'tage', name: 'Tage ohne Buchung' },
     { key: 'nachtrag', name: 'Schein wartet auf Zeitbuchung' },
     { key: 'abholbereit', name: 'Material abholbereit' },
+    { key: 'urlaub', name: 'Urlaubsanträge' },
     { key: 'nachrichten', name: 'Ungelesene Nachrichten' },
     { key: 'jugendschutz', name: 'Grenzen für Jugendliche' },
   ],
@@ -112,6 +113,7 @@ export const THEMEN: Record<StartRolle, { key: string; name: string }[]> = {
     { key: 'anf-bestellt', name: 'Bestellt und überfällig' },
     { key: 'anf-alt', name: 'Seit über 3 Tagen abholbereit' },
     { key: 'knapp', name: 'Unter Mindestmenge' },
+    { key: 'urlaub', name: 'Urlaubsanträge' },
     { key: 'nachrichten', name: 'Ungelesene Nachrichten' },
     { key: 'jugendschutz', name: 'Grenzen für Jugendliche' },
   ],
@@ -127,6 +129,7 @@ export const THEMEN: Record<StartRolle, { key: string; name: string }[]> = {
     { key: 'basiszins', name: 'Basiszinssatz' },
     { key: 'urlaub', name: 'Urlaubsanträge' },
     { key: 'sonderurlaub', name: 'Sonderurlaub' },
+    { key: 'korrektur', name: 'Korrekturanträge' },
     { key: 'eingaenge', name: 'Auftragseingang' },
     { key: 'nachrichten', name: 'Ungelesene Nachrichten' },
     { key: 'jugendschutz', name: 'Grenzen für Jugendliche' },
@@ -143,6 +146,7 @@ export const THEMEN: Record<StartRolle, { key: string; name: string }[]> = {
     { key: 'ueber-link', name: 'Über Link angenommen' },
     { key: 'ende', name: 'Ende überschritten' },
     { key: 'ohne-leitung', name: 'Baustellen ohne Projektleiter' },
+    { key: 'urlaub', name: 'Urlaubsanträge' },
     { key: 'nachrichten', name: 'Ungelesene Nachrichten' },
     { key: 'jugendschutz', name: 'Grenzen für Jugendliche' },
   ],
@@ -164,9 +168,12 @@ export const THEMEN: Record<StartRolle, { key: string; name: string }[]> = {
     { key: 'eil', name: 'Eilanforderungen' },
     { key: 'urlaub', name: 'Urlaubsanträge' },
     { key: 'sonderurlaub', name: 'Anträge auf Sonderurlaub' },
+    { key: 'korrektur', name: 'Korrekturanträge' },
     { key: 'lieferung-heute', name: 'Erwartete Lieferungen' },
     { key: 'material-fehlt', name: 'Material fehlt' },
     { key: 'budget', name: 'Baustellen am Budgetlimit' },
+    { key: 'scheine', name: 'Scheine nicht verrechnet' },
+    { key: 'stunden', name: 'Stunden nicht verrechnet' },
     { key: 'ohne-einsatz', name: 'Baustellen ohne Einsatz' },
     { key: 'luecken', name: 'Personen mit Tagen ohne Buchung' },
     { key: 'wartung-bald', name: 'Wartungen demnächst fällig' },
@@ -182,6 +189,19 @@ export const THEMEN: Record<StartRolle, { key: string; name: string }[]> = {
     { key: 'jugendschutz', name: 'Grenzen für Jugendliche' },
   ],
 };
+
+/**
+ * DIE THEMEN IM BOGEN — ohne die, die bei dieser Person nie etwas zeigen:
+ * die Urlaubsanträge nur für den, der über Urlaub entscheidet (sonst stünde
+ * „Urlaubsanträge“ bei jedem Monteur), die Korrekturanträge nur mit ihrem
+ * Schalter. Eine gespeicherte Wahl bleibt davon unberührt.
+ */
+export function angeboteneThemen(
+  rolle: StartRolle,
+  r: { urlaubEntscheiden: boolean; korrekturen: boolean },
+): { key: string; name: string }[] {
+  return THEMEN[rolle].filter((t) => (t.key !== 'urlaub' || r.urlaubEntscheiden) && (t.key !== 'korrektur' || r.korrekturen));
+}
 
 /** Ist der Bereich oder das Thema ausgeblendet? */
 export function ausgeblendet(wahl: StartWahl | null | undefined, key: string): boolean {

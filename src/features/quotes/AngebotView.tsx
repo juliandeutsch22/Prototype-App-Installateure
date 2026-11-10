@@ -13,6 +13,7 @@ import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Aktenspalten from '@/components/Aktenspalten';
 import Button from '@/components/Button';
+import KnopfLink from '@/components/KnopfLink';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import RowMenu from '@/components/RowMenu';
@@ -351,12 +352,10 @@ export default function AngebotView() {
       {q.status === 'Entwurf' && (
         <>
           {/* Nur der Entwurf: was beim Kunden liegt, ändert sich nicht mehr. */}
-          <Link
-            to={`/quotes?bearbeiten=${q.id}`}
-            className="link inline-flex min-h-touch items-center px-4 text-sm"
-          >
+          {/* Ein Schritt wie seine Nachbarn, kein Text daneben (E72, R1). */}
+          <KnopfLink to={`/quotes?bearbeiten=${q.id}`} variant="secondary">
             Bearbeiten
-          </Link>
+          </KnopfLink>
           <Button
             variant="secondary"
             loading={busy}
@@ -391,12 +390,9 @@ export default function AngebotView() {
         die neue Fassung ist ein eigener Entwurf mit eigener Nummer.
       */}
       {(q.status === 'Versendet' || q.status === 'Abgelehnt') && (
-        <Link
-          to={`/quotes?neueFassung=${q.id}`}
-          className="link inline-flex min-h-touch items-center px-4 text-sm"
-        >
+        <KnopfLink to={`/quotes?neueFassung=${q.id}`} variant="secondary">
           Neue Fassung
-        </Link>
+        </KnopfLink>
       )}
     </span>
   ) : null;
@@ -598,7 +594,8 @@ export default function AngebotView() {
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>{q.customerName}</span>
             <Zustand stand={STAND[q.status]}>{standWort(q.status)}</Zustand>
-            {abgelaufen && <Zustand stand="achtung">Bindefrist abgelaufen</Zustand>}
+            {/* „abgelaufen“ wie in der Liste: am Handy lief die Zeile sonst auf drei Zeilen (E72, D8); „Gültig bis“ steht darunter. */}
+            {abgelaufen && <Zustand stand="achtung">abgelaufen</Zustand>}
           </span>
         }
         mehr={mehr}
@@ -717,7 +714,7 @@ export default function AngebotView() {
       <ConfirmDialog
         open={verwerfenFragen}
         title="Entwurf verwerfen?"
-        message={verwerfenFrage(q)}
+        message={verwerfenFrage(q, ausEingang)}
         confirmLabel="Verwerfen"
         confirmTone="primary"
         onCancel={() => setVerwerfenFragen(false)}

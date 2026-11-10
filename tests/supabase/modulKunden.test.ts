@@ -102,6 +102,45 @@ describe('Kunden auf Postgres', () => {
     expect(await kunden.listCustomersByIds('kunden-a', [leer])).toEqual([]);
   });
 
+  /*
+    WAS SONST NOCH HÄNGT: Angebote (auch verworfene), Wartungen,
+    Handwerksscheine und Rechnungen zeigen ohne `on delete` auf den Kunden.
+    Vorher kam dafür „violates foreign key constraint …“ auf Englisch.
+  */
+  it('ein verworfenes Angebot verhindert das Löschen — und heisst „im Papierkorb“', async () => {
+    const id = await kunden.createCustomer('kunden-a', { name: 'Mit verworfenem Angebot' });
+    expect((await admin.from('quotes').insert({
+      company_id: 'kunden-a', quote_number: 'AN-K-1', customer_id: id, customer_name: 'Mit verworfenem Angebot',
+      quote_date: '2026-10-01', valid_until: '2026-11-01', status: 'Verworfen', vat_rate: 20,
+      verworfen_am: '2026-10-02T08:00:00+00:00', verworfen_von_uid: leitung.uid, verworfen_von_name: 'Leitung',
+    })).error).toBeNull();
+    await expect(kunden.deleteCustomer('kunden-a', id)).rejects.toThrow(
+      'Der Kunde lässt sich nicht löschen: an ihm hängen noch 1 Angebot im Papierkorb.',
+    );
+    expect(await kunden.listCustomersByIds('kunden-a', [id])).toHaveLength(1);
+  });
+
+  it('was die Rolle nicht lesen darf, nennt die übersetzte Ablehnung der Datenbank', async () => {
+    // Die Verwaltung mit „Kunden pflegen“ darf löschen, Rechnungen aber nicht lesen.
+    const verwaltung = await konto('kunden-a', 'Verwaltung', 'verwaltung');
+    expect((await admin.from('users').update({ kunden_pflegen: true }).eq('id', verwaltung.uid)).error).toBeNull();
+    const id = await kunden.createCustomer('kunden-a', { name: 'Mit Rechnung' });
+    expect((await admin.from('invoices').insert({
+      company_id: 'kunden-a', invoice_number: 'RE-K-1', project_number: '2026-299', customer_id: id,
+      customer_name: 'Mit Rechnung', invoice_date: '2026-01-15', due_date: '2026-02-14',
+      total_netto: 100, total_vat: 20, total_brutto: 120, payment_status: 'Offen',
+    })).error).toBeNull();
+    clientEinreichen(verwaltung.client);
+    try {
+      await expect(kunden.deleteCustomer('kunden-a', id)).rejects.toThrow(
+        'Der Kunde lässt sich nicht löschen: an ihm hängen noch Rechnungen.',
+      );
+    } finally {
+      clientEinreichen(leitung.client);
+    }
+    expect(await kunden.listCustomersByIds('kunden-a', [id])).toHaveLength(1);
+  });
+
   it('ordnet eine Baustelle nachträglich zu', async () => {
     const id = await kunden.createCustomer('kunden-a', { name: 'Nachzügler' });
     const b = await admin.from('projects').insert({

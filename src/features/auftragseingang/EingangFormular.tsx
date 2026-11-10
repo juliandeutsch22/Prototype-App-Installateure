@@ -9,6 +9,7 @@ import { Segmente, WeitereAngaben } from '@/components/LotBausteine';
 import { ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
+import { datumAT } from '@/lib/datum';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import { zuordnungAenderung } from '@/features/liegenschaften/liegenschaftText';
 import {
@@ -19,6 +20,12 @@ import {
   eingangFehler,
   type EingangFormularStand,
 } from './eingangText';
+
+/** Der Wert des Zeitfelds („2026-11-09T22:24“) zum Lesen: „09.11.2026, 22:24“. */
+function feldzeitAT(feld: string): string {
+  const uhr = feld.slice(11, 16);
+  return uhr ? `${datumAT(feld)}, ${uhr}` : datumAT(feld);
+}
 
 function anfang(e: Auftragseingang | undefined, jetzt: number): EingangFormularStand {
   return {
@@ -229,7 +236,8 @@ export default function EingangFormular({
       />
       <InputField id="eingang-wunschtermin" label="Wunschtermin" type="date" value={f.wunschtermin} onChange={(e) => setze('wunschtermin', e.target.value)} />
 
-      <WeitereAngaben titel="Eingegangen am" offen={!!eingang} zusatz={f.eingegangenAm.replace('T', ', ')}>
+      {/* Zugeklappt steht der Zeitpunkt österreichisch da (E72): „09.11.2026, 22:24“, nicht ISO. */}
+      <WeitereAngaben titel="Eingegangen am" offen={!!eingang} zusatz={feldzeitAT(f.eingegangenAm)}>
         <InputField
           id="eingang-eingegangen"
           label="Eingegangen am"
@@ -241,9 +249,12 @@ export default function EingangFormular({
 
       {fehler && <ErrorState message={fehler} />}
 
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" loading={speichert}>{eingang ? 'Änderung speichern' : 'Eingang erfassen'}</Button>
-        <Button type="button" variant="ghost" onClick={onAbbrechen} disabled={speichert}>Abbrechen</Button>
+      {/* Der Fensterfuß wie überall (E72, R7): Linie darüber, Abbrechen gerahmt, die Hauptaktion zuletzt. */}
+      <div className="planung-fuss mt-0">
+        <div className="planung-fuss-knoepfe">
+          <Button type="button" variant="secondary" onClick={onAbbrechen} disabled={speichert}>Abbrechen</Button>
+          <Button type="submit" loading={speichert}>{eingang ? 'Änderung speichern' : 'Eingang erfassen'}</Button>
+        </div>
       </div>
     </form>
   );

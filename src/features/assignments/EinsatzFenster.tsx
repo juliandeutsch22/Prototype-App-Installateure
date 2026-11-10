@@ -68,7 +68,7 @@ export default function EinsatzFenster({
   const [datum, setDatum] = useState(start.datum);
   const [projectNumber, setProjectNumber] = useState(start.projectNumber ?? '');
 
-  const tagesListen = useRuestlistenDesTages(user?.companyId, datum, materialAn);
+  const { listen: tagesListen, geladen: listenDa } = useRuestlistenDesTages(user?.companyId, datum, materialAn);
   // Gleichbleibend, solange sich nichts ändert: daran hängt das Übernehmen ins Formular.
   const tagesEinsaetze = useMemo(() => einsaetze.filter((a) => a.date === datum), [einsaetze, datum]);
   const termineDesTages = useMemo(() => termine.filter((t) => t.datum === datum), [termine, datum]);
@@ -100,6 +100,8 @@ export default function EinsatzFenster({
           betriebsurlaube={betriebsurlaube}
           termineDesTages={termineDesTages}
           tagesListen={tagesListen}
+          // Die Einsätze der Woche sind da, sonst stünde das Fenster nicht offen — die Rüstliste lädt je Tag.
+          bereit={listenDa}
           onGespeichert={onClose}
           onLoeschen={(a) => deleteAssignment(a.id)}
           /*

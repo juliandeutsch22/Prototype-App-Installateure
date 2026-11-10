@@ -130,10 +130,13 @@ export default function NachrichtenView() {
 
   const menue: RowMenuItem[] = [];
   if (kopf) {
-    menue.push({
-      label: kopf.stumm ? 'Wieder melden' : 'Stumm schalten',
-      onSelect: () => void tun(() => stummSchalten(kopf.kanal, !kopf.stumm), kopf.stumm ? 'Meldet sich wieder' : 'Stumm geschaltet — außer jemand erwähnt dich'),
-    });
+    // Beim Thread meldet sich nur, wem man folgt — wer nur liest, hat nichts stumm zu schalten.
+    if (kopf.art !== 'baustelle' || kopf.folgt) {
+      menue.push({
+        label: kopf.stumm ? 'Wieder melden' : 'Stumm schalten',
+        onSelect: () => void tun(() => stummSchalten(kopf.kanal, !kopf.stumm), kopf.stumm ? 'Meldet sich wieder' : 'Stumm geschaltet — außer jemand erwähnt dich'),
+      });
+    }
     if (kopf.art === 'baustelle') {
       menue.push({
         label: kopf.folgt ? 'Nicht mehr folgen' : 'Folgen',
@@ -210,9 +213,10 @@ export default function NachrichtenView() {
         <div className="nachrichten-raster">
           <Postfach aktiv={kanal} direktAn={direktAn} />
           {gespraech ?? (
-            <Card title="Gespräch">
-              <p className="text-ink-muted">Links ein Gespräch wählen — oder mit „Neue Nachricht“ eines beginnen.</p>
-            </Card>
+            /* Im selben Blatt wie der Posteingang, keine Karte in der Karte (E71). */
+            <div className="chat chat-leer">
+              <p>Links ein Gespräch wählen — oder mit „Neue Nachricht“ eines beginnen.</p>
+            </div>
           )}
         </div>
       ) : imGespraech ? gespraech : (

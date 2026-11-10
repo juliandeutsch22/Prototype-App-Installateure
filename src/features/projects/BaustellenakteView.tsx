@@ -320,11 +320,13 @@ export default function BaustellenakteView() {
         status: entwurf.status,
         // Leer heisst „nicht festgelegt" — der Schein rechnet dann mit Regie,
         // wie bisher. Eine leere Zeichenkette in die Daten zu schreiben wäre
-        // ein dritter Zustand, den niemand entworfen hat.
-        billingMode: entwurf.billingMode || undefined,
+        // ein dritter Zustand, den niemand entworfen hat. `null`, nicht
+        // weglassen: weggelassen bliebe die alte Art in der Datenbank stehen.
+        billingMode: entwurf.billingMode || null,
         // Leeres Feld heisst „kein Budget" — dann bleibt die Ampel der
-        // Projektauswertung bewusst aus, statt 0 h anzunehmen.
-        estimatedHours: stundenbudgetAus(entwurf.estimatedHours),
+        // Projektauswertung bewusst aus, statt 0 h anzunehmen. Auch hier
+        // `null`, damit ein geleertes Budget wirklich weg ist.
+        estimatedHours: stundenbudgetAus(entwurf.estimatedHours) ?? null,
         description: entwurf.description,
         startDate: entwurf.startDate,
         endDate: entwurf.endDate,
@@ -419,7 +421,7 @@ export default function BaustellenakteView() {
         {angebote.map((q) => <Link key={q.id} to={`/quotes/${q.id}`} className="link akten-verweis">Angebot {q.quoteNumber}</Link>)}
         {ausEingang && <Link to={`/eingaenge/${ausEingang.id}`} className="link akten-verweis">Aus Eingang {ausEingang.nummer}</Link>}
       </div>
-      {verlauf.length > 1 && <details className="akten-weitere"><summary>Verlauf der Baustelle</summary>
+      {verlauf.length > 1 && <details className="akten-weitere"><summary className="weiteres-kopf">Verlauf der Baustelle</summary>
         <LotVerlauf name="Verlauf der Baustelle" punkte={verlauf} />
       </details>}
       {/* Wer was wann an der Baustelle geändert hat (M01b) — neben ihrem Verlauf, ebenso auf Klick. */}
@@ -475,14 +477,16 @@ export default function BaustellenakteView() {
       title="Handwerksscheine"
       id="b-scheine"
       buendig
-      // Wie „Termin anlegen“ bei den Terminen: der nächste Schritt im Kopf der Karte.
+      // Wie „Termin anlegen“ bei den Terminen: der nächste Schritt im Kopf der
+      // Karte — als Zweitknopf, nicht als Text (E72, R1).
       action={
-        <Link
+        <KnopfLink
           to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
-          className="link inline-flex min-h-touch items-center"
+          variant="secondary"
+          groesse="klein"
         >
           Handwerksschein schreiben
-        </Link>
+        </KnopfLink>
       }
     >
       <BaustellenScheine
@@ -527,7 +531,7 @@ export default function BaustellenakteView() {
           <Metric label="Stand" value={b.status} />
         </MetricRow>}
         title={baustellenTitel(b)}
-        kontakt={<><TelefonLink nummer={b.contactPhone} name={b.contactName} /><a className="akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a></>}
+        kontakt={<><TelefonLink nummer={b.contactPhone} name={b.contactName} /><a className="link-weiter akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a></>}
         action={(scheineSichtbar || darfAendern) && <div className="akten-aktionen">
           {scheineSichtbar && <KnopfLink to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}>Schein schreiben</KnopfLink>}
           {darfAendern && <Button variant={scheineSichtbar ? 'secondary' : 'primary'} onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
@@ -541,7 +545,7 @@ export default function BaustellenakteView() {
           <div className="akten-spalte">{auftrag}
             {nachrichtenAn && <BaustelleNachrichten projektId={b.id} />}
             {einsatzAn && <AktenTerminVorschau stand={terminStand} bereich="planung" />}
-            {scheineSichtbar && <Card title="Jüngste Handwerksscheine" action={<AktenVerweis bereich="dokumente">Alle Scheine →</AktenVerweis>}>
+            {scheineSichtbar && <Card title="Jüngste Handwerksscheine" action={<AktenVerweis bereich="dokumente">Alle Scheine</AktenVerweis>}>
               {scheinStand.fehler ? <TeilFehler was="die Handwerksscheine" /> : scheinStand.scheine === null ? <SkeletonList rows={2} />
                 : scheinStand.scheine.length === 0 ? <EmptyState>Zu dieser Baustelle gibt es noch keinen Handwerksschein.</EmptyState>
                 : <List><ScheinZeilen scheine={scheinStand.scheine.slice(0, 3)} verrechnet={user && canInvoice(user.role) ? scheinStand.verrechnet : new Set()} /></List>}

@@ -95,6 +95,12 @@ export function WareneingangDialog({
   const [lieferant, setLieferant] = useState('');
   const [lieferschein, setLieferschein] = useState('');
   const [bezug, setBezug] = useState('');
+  /*
+    EINE KENNUNG JE GEÖFFNETEM DIALOG (E58): ein zweiter Tipp nach einem
+    Netzabbruch schickt denselben Vorgang, und die Datenbank bucht ihn
+    höchstens einmal ein. Erst ein neu geöffneter Dialog ist ein neuer Eingang.
+  */
+  const [vorgang] = useState(() => crypto.randomUUID());
   const [vorschlaege, setVorschlaege] = useState<string[]>([]);
   /** Gewählter Großhändler; leer = noch keiner, `ANDERER` = getippt. */
   const [wahl, setWahl] = useState('');
@@ -130,6 +136,7 @@ export function WareneingangDialog({
       lieferschein: lieferschein.trim() || undefined,
       bezug: bezug.trim() || undefined,
       ...(ort ? { ortId: ort } : {}),
+      vorgang,
     });
     onFertig(
       ort
@@ -395,6 +402,14 @@ export function Bewegungsverlauf({
  * geht nicht — auch nicht „trotzdem“: was nicht da ist, lässt sich nicht
  * bewegen; stimmt die Zahl nicht, ist die Antwort eine Zählung am Ort.
  *
+ * ZUGESAGTES IM HAUPTLAGER (Prüfbericht 10.11.2026): was Anforderungen
+ * oder Rüstlisten zugesagt ist, liegt zwar im Regal, gehört aber schon
+ * jemandem. Will die Umlagerung mehr als frei ist, bucht der Server nichts
+ * und nennt die Zahlen; der Dialog fragt damit nach, und erst die
+ * ausdrückliche Bestätigung bucht — vermerkt im Bewegungsprotokoll. Vorher
+ * ging das still durch, und der Monteur sah „abholbereit“ für Ware, die im
+ * Fahrzeug lag.
+ *
  * `nurRueckgabe`: der Fahrer gibt aus seinem Fahrzeug ins Hauptlager zurück
  * (wenn der Betrieb es erlaubt) — Quelle und Ziel stehen fest.
  */
@@ -431,6 +446,14 @@ export function UmlagernDialog({
   );
   const [menge, setMenge] = useState('1');
   const [notiz, setNotiz] = useState('');
+  /** Die Rückfrage, wenn im Hauptlager zu wenig frei ist — die Zahlen des Servers. */
+  const [reserviert, setReserviert] = useState<
+    { bestand: number; zugesagt: number; frei: number; menge: number; einheit: string } | null
+  >(null);
+  // Wer danach Menge oder Orte ändert, bestätigt nicht mehr, was gefragt war.
+  useEffect(() => {
+    setReserviert(null);
+  }, [menge, von, nach]);
   const einheit = artikel.unit ?? 'Stk';
   const imSystem = (o: string) => (o ? bestaende.get(o) ?? 0 : artikel.stock ?? 0);
   const zahl = (o: string) => `${fmtMenge(imSystem(o))} ${einheit}`;
@@ -452,7 +475,13 @@ export function UmlagernDialog({
       einheit,
       erwartetVon: da,
       grund: notiz,
+      ...(reserviert ? { trotzReserviert: true } : {}),
     });
+    if (r.art === 'reserviert') {
+      // Nichts gebucht: erst fragen, mit genau diesen Zahlen.
+      setReserviert({ bestand: r.bestandVon, zugesagt: r.zugesagt, frei: r.frei, menge: r.menge, einheit: r.einheit });
+      return;
+    }
     if (r.art === 'veraltet') {
       onVeraltet?.();
       throw new Error(
@@ -473,16 +502,35 @@ export function UmlagernDialog({
       open
       title={nurRueckgabe ? `Zurücklagern: ${artikel.name}` : `Umlagern: ${artikel.name}`}
       message={
-        nurRueckgabe
-          ? `Aus ${ortNameVon(orte, von)} (${zahl(von)}) zurück ins ${ortNameVon(orte, HAUPTLAGER)}. Beide Bestände ändern sich in einem Zug und stehen im Bewegungsprotokoll.`
-          : 'Quelle und Ziel ändern sich in einem Zug — mit je einer Bewegung im Protokoll. Mehr als am Quellort liegt, lässt sich nicht umlagern.'
+        reserviert
+          ? `Im ${ortNameVon(orte, HAUPTLAGER)} ist nicht genug frei — ein Teil ist Anforderungen oder Rüstlisten zugesagt. Umgelagert fehlt diese Ware dort, wo sie zugesagt ist. Die Übersteuerung steht im Bewegungsprotokoll.`
+          : nurRueckgabe
+            ? `Aus ${ortNameVon(orte, von)} (${zahl(von)}) zurück ins ${ortNameVon(orte, HAUPTLAGER)}. Beide Bestände ändern sich in einem Zug und stehen im Bewegungsprotokoll.`
+            : 'Quelle und Ziel ändern sich in einem Zug — mit je einer Bewegung im Protokoll. Mehr als am Quellort liegt, lässt sich nicht umlagern; Zugesagtes nur nach Rückfrage.'
       }
-      confirmLabel={nurRueckgabe ? 'Zurücklagern' : 'Umlagern'}
-      confirmTone="primary"
+      confirmLabel={reserviert ? 'Trotzdem umlagern' : nurRueckgabe ? 'Zurücklagern' : 'Umlagern'}
+      confirmTone={reserviert ? 'danger' : 'primary'}
       onConfirm={buchen}
       onCancel={onAbbrechen}
     >
       <div className="space-y-3">
+        {reserviert && (
+          <dl className="angaben">
+            {(
+              [
+                ['Im Regal', reserviert.bestand],
+                ['Schon zugesagt', reserviert.zugesagt],
+                ['Frei', Math.max(reserviert.frei, 0)],
+                ['Umlagern', reserviert.menge],
+              ] as const
+            ).map(([wort, wert]) => (
+              <div className="angabe" key={wort}>
+                <dt>{wort}</dt>
+                <dd className="nr">{fmtMenge(wert)} {reserviert.einheit}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
         {!nurRueckgabe && (
           <>
             <OrtWahl id="umlagern-von" label="Von" alle={orte} wahl={wahl} wert={von} onChange={setVon} zahl={zahl} />

@@ -150,6 +150,7 @@ async function schonUnterschrieben(
   id: string,
   monteur: Unterschrift,
   kunde: Unterschrift,
+  signal: AbortSignal,
 ): Promise<boolean | null> {
   const { data, error } = await client
     .from('work_sheets')
@@ -158,6 +159,7 @@ async function schonUnterschrieben(
         'kunde_name:unterschrift_kunde->>name, kunde_zeit:unterschrift_kunde->geraetZeit',
     )
     .eq('id', id)
+    .abortSignal(signal)
     .maybeSingle();
   if (error) return null;
   const s = data as unknown as {
@@ -174,12 +176,12 @@ async function schonUnterschrieben(
   );
 }
 
-async function aufrufSenden(client: SupabaseClient, v: Sendung): Promise<Sendeergebnis> {
+async function aufrufSenden(client: SupabaseClient, v: Sendung, signal: AbortSignal): Promise<Sendeergebnis> {
   const { funktion, parameter } = v.daten as { funktion?: string; parameter?: Record<string, unknown> };
   if (!funktion || !parameter || !(AUFRUFE_OHNE_EMPFANG as readonly string[]).includes(funktion)) {
     return { art: 'abgelehnt', grund: `Der Aufruf „${funktion ?? '?'}“ wird nicht nachgesendet.` };
   }
-  const { data, error, status } = await client.rpc(funktion, parameter);
+  const { data, error, status } = await client.rpc(funktion, parameter).abortSignal(signal);
   const timerAbschluss = funktion === 'zeit_timer_buchen' || funktion === 'zeit_timer_abschnitt_verwerfen';
   if (!error) { if (timerAbschluss) timerAuftragErgebnis(v.uid, v.daten.timer, data); return { art: 'ok' }; }
   const ergebnis = einordnen(error, status);
@@ -190,6 +192,7 @@ async function aufrufSenden(client: SupabaseClient, v: Sendung): Promise<Sendeer
       String(parameter.p_id),
       parameter.p_monteur as Unterschrift,
       parameter.p_kunde as Unterschrift,
+      signal,
     );
     if (schon === true) return { art: 'ok' };
     if (schon === null) return { art: 'unklar', grund: ergebnis.grund };
@@ -197,12 +200,12 @@ async function aufrufSenden(client: SupabaseClient, v: Sendung): Promise<Sendeer
   return ergebnis;
 }
 
-async function dateiSenden(client: SupabaseClient, v: Sendung): Promise<Sendeergebnis> {
+async function dateiSenden(client: SupabaseClient, v: Sendung, signal: AbortSignal): Promise<Sendeergebnis> {
   const d = v.daten as { eimer?: string; pfad?: string; pfade?: string[]; inhalt?: ArrayBuffer; inhaltsart?: string };
   if (!d.eimer || !(EIMER_OHNE_EMPFANG as readonly string[]).includes(d.eimer)) {
     return { art: 'abgelehnt', grund: `In den Eimer „${d.eimer ?? '?'}“ wird nicht nachgesendet.` };
   }
-  const eimer = client.storage.from(d.eimer);
+  const eimer = eimerMitSignal(client, d.eimer, signal);
   if (v.art === 'hochladen') {
     if (!d.pfad || !d.inhalt) return { art: 'abgelehnt', grund: 'Die vorgemerkte Datei fehlt.' };
     const datei = new Blob([d.inhalt], { type: d.inhaltsart });
@@ -221,46 +224,118 @@ async function dateiSenden(client: SupabaseClient, v: Sendung): Promise<Sendeerg
   return ergebnis.art === 'abgelehnt' ? { art: 'ok' } : ergebnis;
 }
 
+/*
+ * EIN VORGANG, DER STILLSTEHT, HÄLT NICHT DAS GANZE FACH AUF (09.11.2026).
+ *
+ * Das Fach sendet der Reihe nach und unter einer Sperre — über alle Tabs.
+ * Schreibzugriffe haben sonst keine Frist (`netzFrist.ts`): ein abgebrochener
+ * Schreibvorgang ist womöglich schon geschehen. Blieb einer auf einer halb
+ * toten Verbindung hängen, wartete das Fach, bis der Browser aufgab — am
+ * Telefon Minuten oder nie —, und nichts dahinter ging mehr hinaus, auch
+ * nicht aus einem anderen Tab.
+ *
+ * Hier darf abgebrochen werden, weil jeder Vorgang im Fach wiederholbar ist
+ * (Kopf von `ausgangsfach.ts`, Eigenschaft 1): Anlegen mit `upsert` auf die
+ * Kennung vom Gerät, Ändern auf dieselbe Zeile, nur die aufgezählten Aufrufe
+ * (`AUFRUFE_OHNE_EMPFANG`), Hochladen mit `upsert` unter demselben Namen,
+ * Entfernen. Der Abbruch ist echt — das Signal geht bis in `fetch` — und gilt
+ * als fehlendes Netz: der Vorgang bleibt vorn liegen, wird nicht gezählt und
+ * geht mit dem nächsten Lauf in derselben Reihenfolge wieder hinaus.
+ *
+ * Die Frist gilt dem ganzen Vorgang. Was hinausgeht, wächst mit dem Inhalt —
+ * ein Foto im Keller braucht länger als eine Buchung —, deshalb kommt zur
+ * Grundfrist die Zeit für den Inhalt bei 64 kbit/s dazu. Was langsamer ist,
+ * kommt praktisch nicht an und blockierte nur die Warteschlange.
+ */
+export const SENDEFRIST_MS = 60_000;
+const MINDESTDURCHSATZ_BYTE_JE_S = 8_000;
+
+/** Wie lange ein Vorgang höchstens unterwegs sein darf. */
+export function sendefrist(v: Sendung): number {
+  const inhalt = (v.daten as { inhalt?: unknown }).inhalt;
+  let umfang = 0;
+  if (inhalt instanceof ArrayBuffer) umfang = inhalt.byteLength;
+  else {
+    try {
+      umfang = JSON.stringify(v.daten)?.length ?? 0;
+    } catch {
+      umfang = 0;
+    }
+  }
+  return SENDEFRIST_MS + Math.ceil((umfang / MINDESTDURCHSATZ_BYTE_JE_S) * 1000);
+}
+
+/**
+ * Der Eimer, dessen Zugriffe das Signal tragen.
+ *
+ * `upload` und `remove` nehmen keines entgegen (storage-js 2.116). Jeder
+ * Eimer aus `storage.from` ist aber ein eigenes Objekt mit eigenem `fetch` —
+ * dem des Clients, also mit Anmeldung —, und das bekommt hier das Signal
+ * mit. Ob es in der echten Bibliothek ankommt, prüft
+ * `tests/unit/ausgangsfachFrist.test.ts`; ändert eine neue Fassung das
+ * Innere, wird diese Prüfung rot.
+ */
+function eimerMitSignal(client: SupabaseClient, name: string, signal: AbortSignal) {
+  const eimer = client.storage.from(name);
+  const zugang = eimer as unknown as { fetch?: typeof fetch };
+  const basis = zugang.fetch;
+  if (basis) zugang.fetch = (eingabe, init) => basis(eingabe, { ...init, signal });
+  return eimer;
+}
+
 export function supabaseSender(client: SupabaseClient): Sender {
   return async (v: Sendung): Promise<Sendeergebnis> => {
+    const steuer = new AbortController();
+    const uhr = setTimeout(() => steuer.abort(), sendefrist(v));
     try {
-      // Während der Tabsperre kann das Konto gewechselt worden sein. Fremde
-      // Vormerkungen bleiben dann liegen, statt durch RLS endgültig zu scheitern.
-      if (v.uid) {
-        const { data } = await client.auth.getSession();
-        if (data.session?.user.id !== v.uid) return { art: 'kein-netz' };
-      }
-      if (v.art === 'aufruf') return await aufrufSenden(client, v);
-      if (v.art === 'hochladen' || v.art === 'entfernen') return await dateiSenden(client, v);
-      const { error, status, count } =
-        v.art === 'anlegen'
-          ? // Wiederholte Anlagen dürfen spätere Änderungen nicht überschreiben.
-            await client
-              .from(v.tabelle)
-              .upsert({ ...v.daten, id: v.zeile }, { onConflict: 'id', ignoreDuplicates: true })
-          : // Mit Trefferzahl — siehe unten.
-            await client.from(v.tabelle).update(v.daten, { count: 'exact' }).eq('id', v.zeile);
-
-      /*
-        EIN „ÄNDERN" OHNE TREFFER IST KEINE BESTÄTIGUNG (Prüflauf 25.09.2026,
-        P1-22). Der Zeilenschutz antwortet auf eine Zeile, die man nicht
-        ändern darf — oder die es nicht gibt —, nicht mit einem Fehler,
-        sondern mit null getroffenen Zeilen. Das Fach räumte die Vormerkung
-        dann als „gesendet" weg, und die Änderung war still verloren. Wie
-        `kern.aendern`: null heisst abgelehnt, und das wird gemeldet.
-      */
-      if (!error && v.art === 'aendern' && count === 0) {
-        return {
-          art: 'abgelehnt',
-          grund: `Kein Datensatz in ${v.tabelle} geändert — es gibt ihn nicht, oder er darf nicht geändert werden.`,
-        };
-      }
-      if (!error) return { art: 'ok' };
-      return einordnen(error, status);
-    } catch (e) {
-      // Wirft der Client selbst, ist praktisch immer das Netz schuld.
-      const f = e as { code?: string; message?: string };
-      return istNetzfehler(f) ? { art: 'kein-netz' } : { art: 'unklar', grund: String(f.message ?? e) };
+      const ergebnis = await senden(client, v, steuer.signal);
+      // Abgebrochen ist nichts Endgültiges, wie auch immer Bibliothek und Browser es nennen.
+      return ergebnis.art !== 'ok' && steuer.signal.aborted ? { art: 'kein-netz' } : ergebnis;
+    } finally {
+      clearTimeout(uhr);
     }
   };
+}
+
+async function senden(client: SupabaseClient, v: Sendung, signal: AbortSignal): Promise<Sendeergebnis> {
+  try {
+    // Während der Tabsperre kann das Konto gewechselt worden sein. Fremde
+    // Vormerkungen bleiben dann liegen, statt durch RLS endgültig zu scheitern.
+    if (v.uid) {
+      const { data } = await client.auth.getSession();
+      if (data.session?.user.id !== v.uid) return { art: 'kein-netz' };
+    }
+    if (v.art === 'aufruf') return await aufrufSenden(client, v, signal);
+    if (v.art === 'hochladen' || v.art === 'entfernen') return await dateiSenden(client, v, signal);
+    const { error, status, count } =
+      v.art === 'anlegen'
+        ? // Wiederholte Anlagen dürfen spätere Änderungen nicht überschreiben.
+          await client
+            .from(v.tabelle)
+            .upsert({ ...v.daten, id: v.zeile }, { onConflict: 'id', ignoreDuplicates: true })
+            .abortSignal(signal)
+        : // Mit Trefferzahl — siehe unten.
+          await client.from(v.tabelle).update(v.daten, { count: 'exact' }).eq('id', v.zeile).abortSignal(signal);
+
+    /*
+      EIN „ÄNDERN" OHNE TREFFER IST KEINE BESTÄTIGUNG (Prüflauf 25.09.2026,
+      P1-22). Der Zeilenschutz antwortet auf eine Zeile, die man nicht
+      ändern darf — oder die es nicht gibt —, nicht mit einem Fehler,
+      sondern mit null getroffenen Zeilen. Das Fach räumte die Vormerkung
+      dann als „gesendet" weg, und die Änderung war still verloren. Wie
+      `kern.aendern`: null heisst abgelehnt, und das wird gemeldet.
+    */
+    if (!error && v.art === 'aendern' && count === 0) {
+      return {
+        art: 'abgelehnt',
+        grund: `Kein Datensatz in ${v.tabelle} geändert — es gibt ihn nicht, oder er darf nicht geändert werden.`,
+      };
+    }
+    if (!error) return { art: 'ok' };
+    return einordnen(error, status);
+  } catch (e) {
+    // Wirft der Client selbst, ist praktisch immer das Netz schuld.
+    const f = e as { code?: string; message?: string };
+    return istNetzfehler(f) ? { art: 'kein-netz' } : { art: 'unklar', grund: String(f.message ?? e) };
+  }
 }

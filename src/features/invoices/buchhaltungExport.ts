@@ -146,6 +146,12 @@ const KOPF = [
     wieder leer.
   */
   'Rücklass abgelöst am',
+  /*
+    BEZAHLTE MAHNSPESEN UND ZINSEN, wieder am Ende (Durchsicht 09.11.2026).
+    Sie stehen nicht unter „Bezahlt“ — sie begleichen die Mahnung, nicht die
+    Rechnung — und sind ein eigener Ertrag ohne Umsatzsteuer.
+  */
+  'Mahnspesen und Zinsen bezahlt',
 ];
 
 export interface RechnungsExport {
@@ -251,6 +257,7 @@ export function buildInvoiceCsv(
           '',
           '',
           '',
+          '',
         ]),
       );
       summeNetto -= i.totalNetto ?? 0;
@@ -287,6 +294,7 @@ export function buildInvoiceCsv(
         i.ruecklassBetrag ? num(i.ruecklassBetrag) : '',
         i.ruecklassBis ? fmtDate(i.ruecklassBis) : '',
         i.ruecklassGarantieAm ? fmtDate(i.ruecklassGarantieAm) : '',
+        i.mahnkostenBetrag ? num(i.mahnkostenBetrag) : '',
       ]),
     );
     /**

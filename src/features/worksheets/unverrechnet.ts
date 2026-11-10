@@ -1,4 +1,4 @@
-import type { Invoice, WorkSheet } from '@/types';
+import type { Invoice, Project, WorkSheet } from '@/types';
 
 /**
  * Welche unterschriebenen Scheine noch auf keiner Rechnung stehen.
@@ -62,6 +62,10 @@ export const UNVERRECHNET_BASIS = 60;
  * storniert, nimmt die Forderung zurück; die Leistung steht dann wieder
  * offen. Zählte der Storno mit, verschwände genau die Arbeit aus der Liste,
  * die am ehesten vergessen wird.
+ *
+ * WAS IN EINER VERRECHNETEN PAUSCHALE STECKT, gilt als verrechnet
+ * (Befund 09.11.2026): die Aufrufer reichen dafür die Antwort von
+ * `scheineAufRechnung` herein, die das mitzählt (`inVerrechneterPauschale`).
  */
 export function unverrechneteScheine<S extends Pick<WorkSheet, 'status' | 'datum'> & { id: string }>(
   scheine: S[],
@@ -78,6 +82,55 @@ export function unverrechneteScheine<S extends Pick<WorkSheet, 'status' | 'datum
     .filter((s) => s.status === 'Unterschrieben' && !verrechnet.has(s.id))
     .map((schein) => ({ schein, tage: tageZwischen(schein.datum, heute) }))
     .sort((a, b) => b.tage - a.tage);
+}
+
+/** Die Nummer einer Baustelle ohne „PR-“ und Schreibung — wie `norm` der Rechnung. */
+function baustelleNorm(n?: string): string {
+  return (n ?? '').trim().toLowerCase().replace(/^pr-/, '');
+}
+
+/**
+ * Welche unterschriebenen Scheine in einer schon VERRECHNETEN PAUSCHALE
+ * stecken (Befund 09.11.2026).
+ *
+ * Auf einer Pauschal- oder Einheitspreisbaustelle ist das Angebot die
+ * Rechnung. Gibt es dort eine gültige Einzel- oder Schlussrechnung, verweigert
+ * die Rechnungsvorschau jede weitere („Pauschale bereits verrechnet …“,
+ * `pauschaleVerrechnetMit`); Stunden und Material danach sind darin
+ * enthalten. Ein Schein, der erst danach unterschrieben wird, steht auf
+ * keiner Rechnung und kann auch auf keine mehr kommen — er stand deshalb
+ * für immer unter „nicht verrechnet“ und mahnte Geld an, das es nicht gibt.
+ * Bei den Stunden ist das längst so gelöst: als unverrechnet zählen nur die
+ * der Regiebaustellen (`unverrechnete_stunden`).
+ *
+ * DIESELBE BEDINGUNG WIE DIE VORSCHAU: Abrechnung Pauschal oder
+ * Einheitspreis, und eine Rechnung dieser Baustelle, die nicht storniert und
+ * weder Anzahlung noch Teilrechnung ist. Wird die Rechnung storniert oder die
+ * Baustelle auf Regie gestellt, gilt der Schein wieder als offen — dann
+ * lässt er sich auch wieder verrechnen.
+ */
+export function inVerrechneterPauschale(
+  scheine: ReadonlyArray<Pick<WorkSheet, 'status' | 'projectNumber'> & { id: string }>,
+  baustellen: ReadonlyArray<Pick<Project, 'projectNumber' | 'billingMode'>>,
+  rechnungen: ReadonlyArray<Pick<Invoice, 'projectNumber' | 'paymentStatus' | 'art'>>,
+): string[] {
+  const nachAngebot = new Set(
+    baustellen
+      .filter((b) => b.billingMode === 'Pauschal' || b.billingMode === 'Einheitspreis')
+      .map((b) => baustelleNorm(b.projectNumber)),
+  );
+  const verrechnet = new Set(
+    rechnungen
+      .filter((r) => r.paymentStatus !== 'Storniert'
+        && (r.art ?? 'einzel') !== 'anzahlung' && (r.art ?? 'einzel') !== 'teil')
+      .map((r) => baustelleNorm(r.projectNumber)),
+  );
+  return scheine
+    .filter((s) => {
+      const nr = baustelleNorm(s.projectNumber);
+      return s.status === 'Unterschrieben' && !!nr && nachAngebot.has(nr) && verrechnet.has(nr);
+    })
+    .map((s) => s.id);
 }
 
 /** Wie viele davon schon auffällig lange offen sind. */

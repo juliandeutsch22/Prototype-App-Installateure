@@ -31,8 +31,8 @@ export interface LoeschBericht {
   hinweis: string;
   /** Was sofort gelöscht wird, je Art die Anzahl. */
   sofort: Record<string, number>;
-  /** Was aufbewahrt werden muss, und bis wann (ISO-Datum). */
-  aufbewahren: { was: string; anzahl: number; bis: string; grund: string }[];
+  /** Was aufbewahrt werden muss, und bis wann (ISO-Datum; `null`, wo kein festes Ende gilt — gemeldete Nachrichten). */
+  aufbewahren: { was: string; anzahl: number; bis: string | null; grund: string }[];
 }
 
 /**

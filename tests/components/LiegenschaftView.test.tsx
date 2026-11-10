@@ -8,7 +8,7 @@ import type { Customer, Liegenschaft, LiegenschaftBeteiligter, LiegenschaftTop, 
 /**
  * DIE AKTE EINER LIEGENSCHAFT (M02c, A09).
  *
- * - Tops und Beteiligte mit Rolle; wer nicht mehr gilt, steht unter „Früher“;
+ * - Tops und Beteiligte mit Rolle; wer nicht mehr gilt, steht unter „Früher“, wer erst später gilt, unter „Künftig“;
  * - Baustellen (und Wartungen) der Liegenschaft, je Top gefiltert — das Top
  *   steht in der Adresse und geht an die Abfrage;
  * - „Entfernen“ eines Beteiligten fragt und sagt, dass die Angaben auch aus
@@ -104,6 +104,38 @@ describe('Tops und Beteiligte', () => {
     expect(screen.getByText(/Nutzer bzw\. Mieter · Top 2 · 0664 1/)).toBeInTheDocument();
     const frueher = screen.getByRole('region', { name: 'Früher' });
     expect(within(frueher).getByRole('button', { name: /Alt Mieter/ })).toBeInTheDocument();
+  });
+
+  /*
+    KÜNFTIG IST NICHT FRÜHER. Wer erst ab einem späteren Tag gilt (der neue
+    Mieter ab nächstem Monat), stand unter „Früher“ — als wäre er schon weg.
+    Gegenprobe: mit der alten Zweiteilung gibt es keinen Bereich „Künftig“,
+    und „Neu Mieter“ steht unter „Früher“.
+  */
+  it('wer erst später gilt, steht unter „Künftig“ — nicht unter „Früher“', async () => {
+    BETEILIGTE.push(
+      { id: 'b4', companyId: 'perl', liegenschaftId: LID, topId: 't1', rolle: 'nutzer', name: 'Neu Mieter', gueltigAb: '2099-02-01' },
+      { id: 'b5', companyId: 'perl', liegenschaftId: LID, topId: 't1', rolle: 'eigentuemer', name: 'Jetzt Eigentümer', gueltigAb: '2020-02-01', gueltigBis: '2099-12-31' },
+    );
+    zeige();
+    const kuenftig = await screen.findByRole('region', { name: 'Künftig' });
+    expect(within(kuenftig).getByRole('button', { name: /Neu Mieter/ })).toBeInTheDocument();
+    expect(within(kuenftig).queryByRole('button', { name: /Alt Mieter/ })).toBeNull();
+    const frueher = screen.getByRole('region', { name: 'Früher' });
+    expect(within(frueher).getByRole('button', { name: /Alt Mieter/ })).toBeInTheDocument();
+    expect(within(frueher).queryByRole('button', { name: /Neu Mieter/ })).toBeNull();
+    // Wer heute gilt, steht oben, in keiner der beiden Gruppen.
+    const jetzt = screen.getByRole('button', { name: /Jetzt Eigentümer/ });
+    expect(kuenftig.contains(jetzt) || frueher.contains(jetzt)).toBe(false);
+    // Die Reihenfolge: heute, künftig, früher.
+    expect(jetzt.compareDocumentPosition(kuenftig) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(kuenftig.compareDocumentPosition(frueher) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('Erhaltung: ohne künftige Beteiligte kein leerer Bereich „Künftig“', async () => {
+    zeige();
+    await screen.findByRole('region', { name: 'Früher' });
+    expect(screen.queryByRole('region', { name: 'Künftig' })).toBeNull();
   });
 
   it('Entfernen fragt und sagt, dass Name, Telefon und E-Mail auch aus dem Verlauf gehen', async () => {

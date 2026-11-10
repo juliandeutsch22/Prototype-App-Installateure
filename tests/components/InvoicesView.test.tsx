@@ -244,12 +244,14 @@ vi.mock('@/lib/db/zahlungen', () => ({
   listZahlungen: (...a: unknown[]) => listZahlungen(...(a as [])),
   createZahlung: (...a: unknown[]) => createZahlung(...(a as [string, Record<string, unknown>])),
   createZahlungMitSkonto: (...a: unknown[]) => createZahlungMitSkonto(...(a as [])),
+  createZahlungAufgeteilt: (...a: unknown[]) => createZahlungAufgeteilt(...(a as [])),
   deleteZahlung: vi.fn(async () => undefined),
   // Die Kennzahl „Bezahlt im laufenden Monat“ (G27) liest die Eingänge des Monats.
   listZahlungenImZeitraum: (...a: unknown[]) => zahlungenImMonat(...(a as [])),
 }));
 const zahlungenImMonat = vi.fn<(...a: unknown[]) => Promise<unknown[]>>(async () => []);
 const createZahlungMitSkonto = vi.fn(async () => undefined);
+const createZahlungAufgeteilt = vi.fn(async () => undefined);
 
 vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () => [PROJEKT]),
@@ -1277,6 +1279,24 @@ describe('Eine überfällige Rechnung mahnen', () => {
     expect(mahnung.mock.calls[0][1]).toMatchObject({ stufe: 1, spesen: 7 });
     // Gespeichert wird genau der Inhalt, aus dem das Schreiben gedruckt wurde (seit 10.10.2026).
     expect((mahnung.mock.calls[0][1] as { inhalt: unknown }).inhalt).toBe((mahnungPdf.mock.calls[0] as unknown[])[0]);
+  });
+
+  /*
+    DURCHSICHT 09.11.2026: scheiterte das Mahnen, stand die Meldung hinter dem
+    offenen Dialog auf der Seite. Der Dialog sah unverändert aus, und ein
+    zweiter Klick erzeugte ein zweites Schreiben.
+  */
+  it('zeigt einen Fehler beim Mahnen im Dialog, nicht dahinter', async () => {
+    rechnungen = [UEBERFAELLIG];
+    mahnungPdf.mockRejectedValueOnce(new Error('Failed to fetch'));
+    await menue();
+    await userEvent.click(await screen.findByRole('button', { name: /erzeugen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Erzeugen' }));
+    const dialog = screen.getByRole('button', { name: 'Erzeugen' }).closest('[role="dialog"]') as HTMLElement;
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      /Die Mahnung konnte nicht erzeugt werden\. Keine Verbindung/,
+    );
+    expect(mahnung).not.toHaveBeenCalled();
   });
 
   /* Runde 3, M10: ohne Kundenart keine Mahnung — Zinsen und Spesen hängen an ihr. */
@@ -2482,6 +2502,87 @@ describe('Der Buchhaltungs-Export', () => {
     expect(screen.queryByText(/Schlussrechnung ohne Abzug/)).toBeNull();
   });
 
+  /*
+    DURCHSICHT 09.11.2026: der Stapel buchte eine abgezogene TEILRECHNUNG wie
+    eine Anzahlung vom Anzahlungskonto in den Erlös um. Die Art der
+    abgezogenen Rechnung holt die Ansicht jetzt mit dem Zeitraum.
+  */
+  describe('Buchungsstapel einer Schlussrechnung mit Abzug', () => {
+    const MIT_ANZAHLUNGSKONTO = [...KONTEN, { zweck: 'anzahlung', konto: '3500', steuercode: 'M20' }];
+    const vorher = (id: string, art: 'teil' | 'anzahlung') =>
+      ({ ...journal('0901', '2026-06-01'), id, art, totalNetto: 500, totalVat: 100, totalBrutto: 600 }) as Invoice & { id: string };
+    const schluss = (abgezogen: string) =>
+      ({
+        ...journal('0950', '2026-09-03'),
+        art: 'schluss',
+        totalNetto: 500, totalVat: 100, totalBrutto: 600,
+        gesamtNetto: 1000, gesamtVat: 200, gesamtBrutto: 1200,
+        vorrechnungen: [{
+          invoiceId: abgezogen, invoiceNumber: 'RE-2026-0901', invoiceDate: '2026-06-01',
+          netto: 500, vat: 100, brutto: 600,
+        }],
+      }) as unknown as Invoice & { id: string };
+
+    async function stapel(): Promise<string> {
+      const erzeugt = vi.fn<(b: Blob) => string>(() => 'blob:stapel');
+      const vorherErzeugen = URL.createObjectURL;
+      const vorherFreigeben = URL.revokeObjectURL;
+      URL.createObjectURL = erzeugt as unknown as typeof URL.createObjectURL;
+      URL.revokeObjectURL = vi.fn();
+      // Der Klick auf den Download-Link wäre in jsdom ein Seitenwechsel.
+      const klick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+      try {
+        zeige();
+        await userEvent.click(await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }));
+        const knopf = await screen.findByRole('button', { name: /Buchungsstapel für BMD/ });
+        await waitFor(() => expect(knopf).toBeEnabled());
+        await userEvent.click(knopf);
+        await waitFor(() => expect(erzeugt).toHaveBeenCalled());
+        // jsdom kennt `Blob.text()` nicht — gelesen wird wie im Browser über den FileReader.
+        return await new Promise<string>((fertig) => {
+          const leser = new FileReader();
+          leser.onload = () => fertig(String(leser.result));
+          leser.readAsText(erzeugt.mock.calls[0][0]);
+        });
+      } finally {
+        URL.createObjectURL = vorherErzeugen;
+        URL.revokeObjectURL = vorherFreigeben;
+        klick.mockRestore();
+      }
+    }
+
+    it('bucht für eine abgezogene Teilrechnung aus einem früheren Monat nichts vom Anzahlungskonto um', async () => {
+      konten = MIT_ANZAHLUNGSKONTO;
+      frisch = { t1: vorher('t1', 'teil') };
+      imZeitraum = [schluss('t1')];
+      const csv = await stapel();
+      expect(listInvoicesByIds).toHaveBeenCalledWith('perl', ['t1']);
+      expect(csv).toContain('RE-2026-0950');
+      expect(csv).not.toContain('verrechnet');
+      expect(csv).not.toContain('3500');
+    });
+
+    it('Gegenprobe: eine abgezogene Anzahlung wird weiter umgebucht', async () => {
+      konten = MIT_ANZAHLUNGSKONTO;
+      frisch = { a1: vorher('a1', 'anzahlung') };
+      imZeitraum = [schluss('a1')];
+      const csv = await stapel();
+      expect(csv).toContain('3500;4000;03.09.2026;RE-2026-0950;Anzahlung RE-2026-0901 verrechnet;500,00;;');
+    });
+
+    it('kommt die abgezogene Rechnung nicht, gibt es keinen Stapel — die Rechnung wird genannt', async () => {
+      konten = MIT_ANZAHLUNGSKONTO;
+      listInvoicesByIds.mockRejectedValueOnce(new Error('offline'));
+      imZeitraum = [schluss('t1')];
+      zeige();
+      await userEvent.click(await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }));
+      // Das Journal steht trotzdem.
+      expect(await screen.findByRole('button', { name: 'Als CSV herunterladen' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: /Buchungsstapel für BMD/ })).toBeDisabled();
+      expect(screen.getByText(/Von der abgezogenen Rechnung RE-2026-0901 ist nicht bekannt/)).toBeInTheDocument();
+    });
+  });
+
   it('rechnet nicht über die Liste, sondern holt den Zeitraum', async () => {
     // Die Arbeitsliste ist LEER — und das Journal trotzdem vollständig.
     rechnungen = [];
@@ -2980,7 +3081,7 @@ describe('Zahlungen erfassen', () => {
   it('führt eine angezahlte Rechnung nach Ablauf des Ziels als überfällig', async () => {
     rechnungen = [offeneRechnung({ paymentStatus: 'Teilbezahlt', bezahltBetrag: 400, dueDate: '2026-07-15' })];
     zeige();
-    const linie = await screen.findByRole('img', { name: /€ 800,00 offen, überfällig$/ });
+    const linie = await screen.findByRole('img', { name: /€\s800,00 offen, überfällig$/ });
     expect(linie).toHaveClass('masslinie-achtung');
     // Seit 04.11.2026 steht „überfällig“ am Fälligkeitsdatum, nicht unter der Linie.
     const zeile = linie.closest('li')!;
@@ -3329,6 +3430,56 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     // … mit Haken schon.
     await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
     expect(await screen.findByRole('checkbox', { name: /RE-2026-1001/ })).toBeInTheDocument();
+  });
+
+  /*
+    DURCHSICHT 09.11.2026: „Rechnung (ganze Leistung)“ auf einer Baustelle mit
+    offener Anzahlung zog nichts ab und sagte nichts — die Steuer der
+    Anzahlung stand ein zweites Mal auf einem Beleg.
+  */
+  it('warnt bei der Rechnung über die ganze Leistung vor der nicht abgezogenen Anzahlung', async () => {
+    derBaustelle = [ANZAHLUNG];
+    const bestaetigen = await bisZurVorschau();
+    expect(await screen.findByText(/Auf dieser Baustelle ist die Anzahlung RE-2026-1001 noch nicht abgezogen\./))
+      .toBeInTheDocument();
+    // Eine Warnung, keine Sperre.
+    expect(bestaetigen).toBeEnabled();
+  });
+
+  it('„Als Schlussrechnung stellen“ stellt die Art um — dort ist die Anzahlung abgezogen', async () => {
+    derBaustelle = [{ ...ANZAHLUNG, totalNetto: 200, totalVat: 40, totalBrutto: 240 }];
+    await bisZurVorschau();
+    await userEvent.click(await screen.findByRole('button', { name: 'Als Schlussrechnung stellen' }));
+    expect(screen.getByRole('combobox', { name: /Art der Rechnung/ })).toHaveValue('schluss');
+    await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
+    expect(await screen.findByRole('checkbox', { name: /RE-2026-1001.*wird abgezogen/ })).toBeChecked();
+    expect(screen.queryByText(/noch nicht abgezogen/)).toBeNull();
+  });
+
+  it('nennt auch eine nicht abgezogene Teilrechnung', async () => {
+    derBaustelle = [{ ...ANZAHLUNG, id: 't1', invoiceNumber: 'RE-2026-1002', art: 'teil' }, ANZAHLUNG];
+    await bisZurVorschau();
+    expect(await screen.findByText(
+      /sind die Teilrechnung RE-2026-1002 und die Anzahlung RE-2026-1001 noch nicht abgezogen/,
+    )).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne offene Anzahlung und bei der Schlussrechnung steht kein Hinweis', async () => {
+    derBaustelle = [];
+    await bisZurVorschau();
+    expect(screen.queryByText(/noch nicht abgezogen/)).toBeNull();
+    cleanup();
+    derBaustelle = [{ ...ANZAHLUNG, totalNetto: 200, totalVat: 40, totalBrutto: 240 }];
+    await bisZurVorschau('schluss');
+    expect(await screen.findByRole('checkbox', { name: /RE-2026-1001/ })).toBeChecked();
+    expect(screen.queryByText(/noch nicht abgezogen/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Als Schlussrechnung stellen' })).toBeNull();
+  });
+
+  it('Gegenprobe: eine freiwillig abziehbare Einzelrechnung ist keine offene Anzahlung', async () => {
+    derBaustelle = [{ ...ANZAHLUNG, art: 'einzel' }];
+    await bisZurVorschau();
+    expect(screen.queryByText(/noch nicht abgezogen/)).toBeNull();
   });
 
   it('lässt Art und Abzug beim erneuten Drucken nicht verschwinden', async () => {
@@ -3898,7 +4049,13 @@ describe('Die Kennzahlen „Offen“ und „Überfällig“', () => {
   const kachel = (name: string) =>
     screen.getAllByText(name).find((e) => e.classList.contains('lage-name'))!.parentElement!;
 
-  it('zählen auch eine alte Forderung, die in der Liste gar nicht mehr steht', async () => {
+  /*
+    Bis zum 09.11.2026 stand die alte Forderung in der Kachel und NICHT in
+    der Liste — der Test hielt genau das fest („die in der Liste gar nicht
+    mehr steht“). Seither bilden „offen“ und „Überfällig“ ihre Liste aus
+    allen unbezahlten; Kachel und Liste zählen dasselbe.
+  */
+  it('zählen auch eine alte Forderung außerhalb der jüngsten fünfzig — und die Liste zeigt sie', async () => {
     rechnungen = [];
     offene = [
       {
@@ -3915,6 +4072,62 @@ describe('Die Kennzahlen „Offen“ und „Überfällig“', () => {
     zeige();
     await waitFor(() => expect(kachel('Überfällig')).toHaveTextContent(/€ 1\s200,00/));
     expect(kachel('Offen')).toHaveTextContent('€ 120,00');
+    // Der Arbeitsstand (die Startseite verlinkt ihn als „/invoices“) zeigt beide.
+    expect(await screen.findByRole('button', { name: / RE-2024-1001$/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: / RE-2026-1001$/ })).toBeInTheDocument();
+  });
+
+  /*
+    DURCHSICHT 09.11.2026: die Kachel „Überfällig“ der Startseite verlinkt
+    `/invoices?status=Überfällig`. Die Liste filterte nur die fünfzig
+    jüngsten (`subscribeRecentInvoices`) und blieb leer, obwohl die Summe
+    eine überfällige Rechnung zählte.
+  */
+  it('„Überfällig“ zeigt die alte überfällige Rechnung, die nicht unter den jüngsten fünfzig ist', async () => {
+    rechnungen = Array.from({ length: 50 }, (_, n) => ({
+      id: `j${n}`, invoiceNumber: `RE-2026-${String(2000 + n)}`, projectNumber: '2026-001', customerName: 'Jung',
+      invoiceDate: '2026-08-30', dueDate: '2026-09-14', totalNetto: 100, totalVat: 20,
+      totalBrutto: 120, paymentStatus: 'Bezahlt', bezahltBetrag: 120,
+    })) as unknown as (Invoice & { id: string })[];
+    offene = [{
+      id: 'alt', invoiceNumber: 'RE-2024-1001', projectNumber: '2024-001', customerName: 'Altkunde',
+      invoiceDate: '2024-03-01', dueDate: '2024-03-15', totalNetto: 1000, totalVat: 200,
+      totalBrutto: 1200, paymentStatus: 'Überfällig',
+    }] as unknown as (Invoice & { id: string })[];
+    zeige('/invoices?status=%C3%9Cberf%C3%A4llig');
+    expect(await screen.findByRole('button', { name: /^Altkunde.* RE-2024-1001$/ })).toBeInTheDocument();
+    expect(screen.queryByText('Keine Rechnung in dieser Auswahl.')).toBeNull();
+    // Nur die überfällige — die bezahlten jüngeren stehen nicht in dieser Auswahl.
+    expect(screen.queryByRole('button', { name: / RE-2026-2000$/ })).toBeNull();
+  });
+
+  it('der jüngere Stand gewinnt auch in der Liste: eine eben bezahlte steht nicht mehr unter „Überfällig“', async () => {
+    const r = {
+      id: 'r', invoiceNumber: 'RE-2026-1004', projectNumber: '2026-001', customerName: 'Max',
+      invoiceDate: '2026-06-01', dueDate: '2026-06-15', totalNetto: 100, totalVat: 20,
+      totalBrutto: 120, paymentStatus: 'Überfällig',
+    } as unknown as Invoice & { id: string };
+    offene = [r];
+    rechnungen = [{ ...r, paymentStatus: 'Bezahlt', bezahltBetrag: 120 }];
+    zeige('/invoices?status=%C3%9Cberf%C3%A4llig');
+    expect(await screen.findByText('Keine Rechnung in dieser Auswahl.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: / RE-2026-1004$/ })).toBeNull();
+  });
+
+  it('Gleichbleiben: „Alle“ zeigt weiter nur die geladenen jüngsten', async () => {
+    rechnungen = [{
+      id: 'b', invoiceNumber: 'RE-2026-1003', projectNumber: '2026-001', customerName: 'Max',
+      invoiceDate: '2026-08-30', paymentStatus: 'Bezahlt', totalBrutto: 100, bezahltBetrag: 100,
+    }] as unknown as (Invoice & { id: string })[];
+    offene = [{
+      id: 'alt', invoiceNumber: 'RE-2024-1001', projectNumber: '2024-001', customerName: 'Altkunde',
+      invoiceDate: '2024-03-01', dueDate: '2024-03-15', totalNetto: 1000, totalVat: 200,
+      totalBrutto: 1200, paymentStatus: 'Überfällig',
+    }] as unknown as (Invoice & { id: string })[];
+    zeige('/invoices?ansicht=alle');
+    await waitFor(() => expect(kachel('Überfällig')).toHaveTextContent(/€ 1\s200,00/));
+    expect(await screen.findByRole('button', { name: / RE-2026-1003$/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: / RE-2024-1001$/ })).toBeNull();
   });
 
   it('der jüngere Stand aus der Liste gewinnt — eine eben erfasste Zahlung zählt sofort', async () => {
@@ -4445,6 +4658,131 @@ describe('Paket 5a — die Rechnungsliste', () => {
     expect(createZahlung).not.toHaveBeenCalled();
   });
 
+  /*
+    DURCHSICHT 09.11.2026: zahlte der Kunde die Mahnung samt Spesen und
+    Zinsen, wurde das Mehr zum Guthaben, und der Dialog schlug die Rückzahlung
+    vor. Jetzt teilt er auf: der Rest auf die Rechnung, das Mehr bis zur
+    Mahnforderung als Mahnspesen und Zinsen.
+  */
+  describe('Mahnspesen und Zinsen nach einer Mahnung', () => {
+    const gemahnt = {
+      id: 'g', companyId: 'perl', invoiceNumber: 'RE-2026-1600', projectNumber: '2026-042', customerName: 'Max',
+      invoiceDate: '2026-07-01', dueDate: '2026-07-15', paymentStatus: 'Überfällig', totalBrutto: 1200,
+      bezahltBetrag: 0, mahnstufe: 2, gemahntAm: '2026-08-20', mahnfrist: '2026-08-27', mahnspesen: 10,
+    } as unknown as Invoice & { id: string };
+    const mahnungMit = (inhalt: Record<string, unknown>) => gespeicherteMahnungen.mockImplementation(async () => [
+      { id: 'm2', invoiceId: 'g', stufe: 2, datum: '2026-08-20', frist: '2026-08-27', spesen: 10,
+        inhalt: { titel: 'Mahnung', stufe: 2, rechnung: { nummer: 'RE-2026-1600' }, offen: 1213.16, kosten: 10, zeilen: [], ...inhalt } },
+    ]);
+    async function dialog() {
+      zeige();
+      await rechnungOeffnen('RE-2026-1600');
+      await userEvent.click(await screen.findByRole('button', { name: 'Zahlung erfassen' }));
+      return screen.findByRole('dialog', { name: /Zahlungen — RE-2026-1600/ });
+    }
+    beforeEach(() => {
+      createZahlung.mockClear();
+      createZahlungAufgeteilt.mockClear();
+      erfassteZahlungen = [];
+      bisherigeZahlungen = [];
+      rechnungen = [gemahnt];
+    });
+
+    it('teilt den Eingang auf: Rest auf die Rechnung, Spesen und Zinsen getrennt — kein Guthaben', async () => {
+      mahnungMit({ zinsen: 3.16 });
+      const d = await dialog();
+      const betrag = within(d).getByLabelText(/^Betrag/);
+      await userEvent.clear(betrag);
+      await userEvent.type(betrag, '1213,16');
+      expect(await within(d).findByLabelText(/^Davon Mahnspesen und Zinsen/)).toHaveValue('13,16');
+      expect(within(d).getByText(/Die letzte Mahnung forderte € 13,16 an Mahnspesen und Zinsen/)).toBeInTheDocument();
+      await userEvent.click(within(d).getByRole('button', { name: 'Zahlung eintragen' }));
+      await waitFor(() => expect(createZahlungAufgeteilt).toHaveBeenCalled());
+      expect(createZahlungAufgeteilt.mock.calls[0]).toEqual([
+        'perl', expect.objectContaining({ invoiceId: 'g', betrag: 1200, art: 'Überweisung' }), { mahnkosten: 13.16 },
+      ]);
+      expect(createZahlung).not.toHaveBeenCalled();
+      expect(screen.queryByText(/mehr als offen — als Guthaben/)).toBeNull();
+    });
+
+    it('was über die Mahnforderung hinausgeht, bleibt eine Frage nach dem Guthaben', async () => {
+      mahnungMit({ zinsen: 3.16 });
+      const d = await dialog();
+      const betrag = within(d).getByLabelText(/^Betrag/);
+      await userEvent.clear(betrag);
+      await userEvent.type(betrag, '1300');
+      expect(await within(d).findByLabelText(/^Davon Mahnspesen und Zinsen/)).toHaveValue('13,16');
+      await userEvent.click(within(d).getByRole('button', { name: 'Zahlung eintragen' }));
+      expect(await within(d).findByText(/Das sind € 86,84 mehr als offen/)).toBeInTheDocument();
+      expect(createZahlungAufgeteilt).not.toHaveBeenCalled();
+    });
+
+    it('weist mehr Mahnspesen ab, als die Mahnung noch fordert', async () => {
+      mahnungMit({ zinsen: 3.16 });
+      bisherigeZahlungen = [{ id: 'z1', invoiceId: 'g', datum: '2026-08-25', betrag: 10, art: 'Mahnkosten' }];
+      const d = await dialog();
+      const betrag = within(d).getByLabelText(/^Betrag/);
+      await userEvent.clear(betrag);
+      await userEvent.type(betrag, '1213,16');
+      const anteil = await within(d).findByLabelText(/^Davon Mahnspesen und Zinsen/);
+      // Offen sind nur noch 3,16 €.
+      expect(anteil).toHaveValue('3,16');
+      await userEvent.clear(anteil);
+      await userEvent.type(anteil, '13,16');
+      await userEvent.click(within(d).getByRole('button', { name: 'Zahlung eintragen' }));
+      expect(await within(d).findByText(/höchstens € 3,16 verbuchen/)).toBeInTheDocument();
+      expect(createZahlungAufgeteilt).not.toHaveBeenCalled();
+      // Die schon bezahlten Mahnkosten zählen nicht auf die Rechnung und stehen als solche da.
+      expect(within(d).getByText(/· Mahnspesen und Zinsen/)).toBeInTheDocument();
+      expect(within(d).getByText(/· offen € 1\D?200,00/)).toBeInTheDocument();
+    });
+
+    it('ältere Mahnung: die Zinsen aus der Zeile des Zahlenblocks', async () => {
+      mahnungMit({ zeilen: [['Mahnspesen', '10,00 €'], ['Verzugszinsen 4 % p. a., 35 Tage', '3,16 €']] });
+      const d = await dialog();
+      const betrag = within(d).getByLabelText(/^Betrag/);
+      await userEvent.clear(betrag);
+      await userEvent.type(betrag, '1213,16');
+      expect(await within(d).findByLabelText(/^Davon Mahnspesen und Zinsen/)).toHaveValue('13,16');
+    });
+
+    it('Gleichbleiben: eine Teilzahlung ohne Mehr geht wie bisher ganz auf die Rechnung', async () => {
+      mahnungMit({ zinsen: 3.16 });
+      const d = await dialog();
+      const betrag = within(d).getByLabelText(/^Betrag/);
+      await userEvent.clear(betrag);
+      await userEvent.type(betrag, '400');
+      await userEvent.click(within(d).getByRole('button', { name: 'Zahlung eintragen' }));
+      await waitFor(() => expect(createZahlung).toHaveBeenCalled());
+      expect(erfassteZahlungen[0]).toMatchObject({ invoiceId: 'g', betrag: 400, art: 'Überweisung' });
+      expect(createZahlungAufgeteilt).not.toHaveBeenCalled();
+    });
+
+    it('eine stornierte Rechnung bietet keine Mahnspesen an — die Zahlung wird Guthaben', async () => {
+      mahnungMit({ zinsen: 3.16 });
+      rechnungen = [{ ...gemahnt, paymentStatus: 'Storniert', cancellationNote: 'Falscher Kunde', bezahltBetrag: 100 } as Invoice & { id: string }];
+      bisherigeZahlungen = [{ id: 'z1', invoiceId: 'g', datum: '2026-08-25', betrag: 100, art: 'Überweisung' }];
+      zeige();
+      await rechnungOeffnen('RE-2026-1600');
+      await userEvent.click(await screen.findByRole('button', { name: 'Guthaben zurückzahlen …' }));
+      const d = await screen.findByRole('dialog', { name: /Zahlungen — RE-2026-1600/ });
+      await userEvent.selectOptions(await within(d).findByLabelText('Richtung'), 'eingang');
+      await userEvent.type(within(d).getByLabelText(/^Betrag/), '50');
+      await waitFor(() => expect(gespeicherteMahnungen).toHaveBeenCalled());
+      expect(within(d).queryByLabelText(/^Davon Mahnspesen und Zinsen/)).toBeNull();
+      expect(within(d).getByText('Diese Rechnung ist storniert. Eine Zahlung hierauf wird zum Guthaben des Kunden.')).toBeInTheDocument();
+    });
+
+    it('Gleichbleiben: ohne Mahnung kein Feld für Mahnspesen, und keine Abfrage der Mahnungen', async () => {
+      rechnungen = [{ ...gemahnt, mahnstufe: 0, mahnspesen: 0 } as Invoice & { id: string }];
+      const d = await dialog();
+      await within(d).findByLabelText(/^Betrag/);
+      await waitFor(() => expect(listZahlungen).toHaveBeenCalled());
+      expect(within(d).queryByLabelText(/^Davon Mahnspesen und Zinsen/)).toBeNull();
+      expect(gespeicherteMahnungen).not.toHaveBeenCalled();
+    });
+  });
+
   it('sagt bei einer bezahlten Rechnung, dass eine weitere Zahlung Guthaben wird (G15)', async () => {
     rechnungen = [
       { id: 'b', invoiceNumber: 'RE-2026-1003', projectNumber: '2026-001', customerName: 'Max',
@@ -4653,6 +4991,23 @@ describe('Linie „Lot“ — die Rechnungsliste', () => {
     expect(within(fenster).getByRole('button', { name: 'Stornorechnung ausstellen …' })).toBeInTheDocument();
   });
 
+  /*
+    DURCHSICHT 09.11.2026: der Dialog versprach „das Datum des Stornos“; die
+    Stornorechnung trägt aber den Tag ihrer Ausstellung (`stornoBelegTag`).
+  */
+  it('der Dialog „Stornorechnung ausstellen?“ nennt das heutige Datum, nicht das des Stornos', async () => {
+    rechnungen = [rechnung('0042')];
+    zeige();
+    const fenster = await rechnungOeffnen('RE-2026-0042');
+    act(() => liveMeldung?.([rechnung('0042', { paymentStatus: 'Storniert', cancellationNote: 'Falscher Kunde' })]));
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Stornorechnung ausstellen …' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Stornorechnung ausstellen?' });
+    expect(within(dialog).getByText(
+      'Sie bekommt die nächste Nummer aus dem Rechnungskreis und das heutige Datum. Danach lässt sich der Storno von RE-2026-0042 nicht mehr aufheben.',
+    )).toBeInTheDocument();
+    expect(within(dialog).queryByText(/Datum des Stornos/)).toBeNull();
+  });
+
   it('die Zeile im Mahnlauf öffnet die Rechnung, auch wenn sie in der Liste nicht steht', async () => {
     rechnungen = [];
     offene = [rechnung('0001', { dueDate: '2024-03-01', customerName: 'Altkunde' })];
@@ -4716,6 +5071,39 @@ describe('Runde 6, Paket 2', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Ja, löschen' }));
       expect(await screen.findByText('Auf diese Rechnung ist noch nichts eingegangen.')).toBeInTheDocument();
       expect(screen.queryByText(/schon bezahlt/)).toBeNull();
+    });
+
+    /* Durchsicht 09.11.2026: ein Fehler beim Löschen ging ohne Meldung unter. */
+    it('nennt den Grund, wenn das Löschen einer Zahlung scheitert — die Zahlung bleibt stehen', async () => {
+      const db = await import('@/lib/db/zahlungen');
+      vi.mocked(db.deleteZahlung).mockRejectedValueOnce(new Error('Failed to fetch'));
+      rechnungen = [inv('b', 'RE-2026-1003', { paymentStatus: 'Bezahlt', totalBrutto: 100, bezahltBetrag: 100 })];
+      bisherigeZahlungen = [{ id: 'z1', invoiceId: 'b', datum: '2026-08-30', betrag: 100, art: 'Überweisung' }];
+      zeige('/invoices?ansicht=alle');
+      await rechnungOeffnen('RE-2026-1003');
+      await userEvent.click(await screen.findByRole('button', { name: 'Weitere Zahlung erfassen …' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Löschen' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Ja, löschen' }));
+      expect(await screen.findByText(/Die Zahlung konnte nicht gelöscht werden\. Keine Verbindung/)).toBeInTheDocument();
+      expect(screen.queryByText('Zahlung gelöscht')).toBeNull();
+      // Die Rückfrage steht noch: ein zweiter Versuch ist ein Klick.
+      expect(screen.getByRole('button', { name: 'Ja, löschen' })).toBeInTheDocument();
+    });
+
+    it('Gleichbleiben: gelingt das Löschen, meldet es das und zeigt keinen Fehler', async () => {
+      const db = await import('@/lib/db/zahlungen');
+      vi.mocked(db.deleteZahlung).mockClear();
+      rechnungen = [inv('b', 'RE-2026-1003', { paymentStatus: 'Bezahlt', totalBrutto: 100, bezahltBetrag: 100 })];
+      bisherigeZahlungen = [{ id: 'z1', invoiceId: 'b', datum: '2026-08-30', betrag: 100, art: 'Überweisung' }];
+      zeige('/invoices?ansicht=alle');
+      await rechnungOeffnen('RE-2026-1003');
+      await userEvent.click(await screen.findByRole('button', { name: 'Weitere Zahlung erfassen …' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Löschen' }));
+      bisherigeZahlungen = [];
+      await userEvent.click(screen.getByRole('button', { name: 'Ja, löschen' }));
+      expect(await screen.findByText('Zahlung gelöscht')).toBeInTheDocument();
+      expect(db.deleteZahlung).toHaveBeenCalledWith('z1');
+      expect(screen.queryByText(/nicht gelöscht werden/)).toBeNull();
     });
 
     it('fragt nach, bevor mehr als offen gebucht wird, und bucht dann als Guthaben (G26)', async () => {
@@ -4856,6 +5244,51 @@ describe('Runde 6, Paket 2', () => {
       // Ein Hinweis, kein Fehler (Testbericht Runde 7, R7-G2).
       expect(screen.getByText('Nichts zusammengestellt')).toBeInTheDocument();
       expect(screen.queryByText('Das hat nicht geklappt')).toBeNull();
+      expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull();
+    });
+
+    /*
+      DURCHSICHT 09.11.2026: nach der Schlussrechnung ließ sich noch eine
+      Anzahlung (und auf Pauschale eine Teilrechnung) stellen, die niemand
+      mehr abzog — ihre Umsatzsteuer stand zweimal auf Belegen.
+    */
+    it.each([
+      ['anzahlung', 'Anzahlung vorbereiten', 'Anzahlungsrechnung'],
+      ['teil', 'Positionen zusammenstellen', 'Teilrechnung'],
+    ])('stellt nach der Schlussrechnung keine %s zusammen und nennt den Ausweg', async (art, knopf, wort) => {
+      derBaustelle = [inv('s', 'RE-2026-1510', { art: 'schluss' })];
+      zeige();
+      await neueRechnung();
+      await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+      await userEvent.selectOptions(screen.getByRole('combobox', { name: /Art der Rechnung/ }), art);
+      await userEvent.click(screen.getByRole('button', { name: knopf }));
+      expect(await screen.findByText(new RegExp(
+        `Für diese Baustelle gibt es schon die Schlussrechnung RE-2026-1510\\. Eine ${wort} danach zöge niemand mehr ab`,
+      ))).toBeInTheDocument();
+      expect(screen.getByText(/bitte als „Rechnung“ zusammenstellen — oder RE-2026-1510 stornieren/)).toBeInTheDocument();
+      expect(screen.getByText('Nichts zusammengestellt')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull();
+    });
+
+    it('Erhaltung: vor der Schlussrechnung und nach ihrem Storno gehen Anzahlung und Teilrechnung weiter', async () => {
+      expect(await bisZurVorschau('anzahlung')).toBeInTheDocument();
+      cleanup();
+      expect(await bisZurVorschau('teil')).toBeInTheDocument();
+      cleanup();
+      derBaustelle = [inv('s', 'RE-2026-1510', { art: 'schluss', paymentStatus: 'Storniert' })];
+      expect(await bisZurVorschau('anzahlung')).toBeInTheDocument();
+      cleanup();
+      expect(await bisZurVorschau('teil')).toBeInTheDocument();
+    });
+
+    it('ohne die Rechnungen der Baustelle entsteht keine Anzahlung', async () => {
+      baustellenAbfrageWirft = true;
+      zeige();
+      await neueRechnung();
+      await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+      await userEvent.selectOptions(screen.getByRole('combobox', { name: /Art der Rechnung/ }), 'anzahlung');
+      await userEvent.click(screen.getByRole('button', { name: 'Anzahlung vorbereiten' }));
+      expect(await screen.findByText(/nicht ausschließen, dass die Schlussrechnung schon gestellt ist/)).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull();
     });
 

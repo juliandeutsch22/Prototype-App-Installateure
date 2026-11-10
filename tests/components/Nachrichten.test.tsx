@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -17,6 +17,8 @@ import type { KanalKopf, Nachricht, PostfachZeile } from '@/lib/db/nachrichten';
  * - an der fremden Nachricht „Melden …“, nicht „Bearbeiten“/„Löschen“; an
  *   der eigenen privaten „In eine Baustelle übernehmen …“; das Melden gibt
  *   genau diese Nachricht weiter;
+ * - „Stumm schalten“ beim Thread nur, wer folgt (sonst machte es zum
+ *   Folgenden); im privaten Gespräch immer;
  * - ist das Gespräch geschlossen, steht statt der Eingabe der Grund;
  * - ein Gespräch, das es nicht gibt (oder das nicht meins ist), sagt das.
  *
@@ -191,6 +193,28 @@ describe('Das Gespräch', () => {
     expect(screen.queryByRole('button', { name: 'In eine Baustelle übernehmen …' })).not.toBeInTheDocument();
   });
 
+  it('im Thread, dem man nicht folgt, gibt es kein „Stumm schalten“ — nur „Folgen“', async () => {
+    kopfWert = kopf({ art: 'baustelle', titel: 'B-12', teilnehmer: null, projectId: 'p1', folgt: false });
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für B-12' }));
+    const menue = screen.getByRole('menu', { name: 'Aktionen für B-12' });
+    expect(within(menue).getByRole('menuitem', { name: 'Folgen' })).toBeInTheDocument();
+    expect(within(menue).queryByRole('menuitem', { name: 'Stumm schalten' })).not.toBeInTheDocument();
+  });
+
+  it('gleich bleibt: wer dem Thread folgt oder im privaten Gespräch ist, schaltet stumm', async () => {
+    kopfWert = kopf({ art: 'baustelle', titel: 'B-12', teilnehmer: null, projectId: 'p1', folgt: true });
+    const { unmount } = zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für B-12' }));
+    expect(within(screen.getByRole('menu', { name: 'Aktionen für B-12' })).getByRole('menuitem', { name: 'Stumm schalten' })).toBeInTheDocument();
+    unmount();
+
+    kopfWert = kopf({ stumm: true });
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für Anna Huber' }));
+    expect(within(screen.getByRole('menu', { name: 'Aktionen für Anna Huber' })).getByRole('menuitem', { name: 'Wieder melden' })).toBeInTheDocument();
+  });
+
   it('ist das Gespräch geschlossen, steht statt der Eingabe der Grund', async () => {
     kopfWert = kopf({ sperre: 'Das Konto von Anna Huber ist deaktiviert — das Gespräch ist geschlossen.' });
     zeige();
@@ -202,6 +226,79 @@ describe('Das Gespräch', () => {
     kopfWert = new Error('Dieses Gespräch gibt es nicht oder es ist nicht deines');
     zeige();
     expect(await screen.findByText(/nicht deines/)).toBeInTheDocument();
+  });
+});
+
+/*
+  APPLE-NAH (E71, 09.11.2026): Tag und Uhrzeit stehen als Zeile über der
+  Gruppe, nicht in jeder Blase; unter der letzten eigenen Nachricht steht
+  „Gesendet“; am Schreibtisch sendet Eingabe, Umschalt + Eingabe macht einen
+  Absatz.
+*/
+describe('Das Gespräch, Apple-nah (E71)', () => {
+  const mitMaus = (an: boolean) => {
+    window.matchMedia = vi.fn((q: string) => ({
+      matches: an && q.includes('pointer: fine'), media: q, onchange: null,
+      addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia;
+  };
+  afterEach(() => { mitMaus(false); });
+
+  it('die Uhrzeit steht einmal über der Gruppe, nicht in jeder Blase', async () => {
+    const t = (min: number) => new Date(Date.parse('2026-11-09T12:00:00Z') + min * 60_000).toISOString();
+    verlaufWert = [
+      nachricht(1, { text: 'Eins', gesendetAm: t(0) }),
+      nachricht(2, { text: 'Zwei', gesendetAm: t(1) }),
+      nachricht(3, { text: 'Nach der Pause', gesendetAm: t(40) }),
+    ];
+    zeige();
+    const verlauf = await screen.findByRole('list', { name: 'Verlauf' });
+    const zeilen = within(verlauf).getAllByRole('listitem');
+    // Zeitzeile über der ersten Nachricht und nach der Pause — nicht über der zweiten.
+    expect(zeilen[0].querySelector('.verlauf-tag')).not.toBeNull();
+    expect(zeilen[1].querySelector('.verlauf-tag')).toBeNull();
+    expect(zeilen[2].querySelector('.verlauf-tag')).not.toBeNull();
+    // Keine Uhrzeit in der Blase mehr.
+    expect(verlauf.querySelector('.nachricht-zeit')).toBeNull();
+    // Gruppe: die erste beginnt, die zweite endet sie.
+    expect(zeilen[0]).toHaveAttribute('data-anfang', 'ja');
+    expect(zeilen[0]).not.toHaveAttribute('data-ende');
+    expect(zeilen[1]).toHaveAttribute('data-ende', 'ja');
+  });
+
+  it('unter der letzten eigenen Nachricht steht „Gesendet“ — und nur dort', async () => {
+    verlaufWert = [
+      nachricht(1, { eigene: true, vonUid: 'ich', vonName: 'Max Monteur', text: 'Erste' }),
+      nachricht(2, { eigene: true, vonUid: 'ich', vonName: 'Max Monteur', text: 'Letzte eigene' }),
+      nachricht(3, { text: 'Antwort' }),
+    ];
+    zeige();
+    const verlauf = await screen.findByRole('list', { name: 'Verlauf' });
+    const zeilen = within(verlauf).getAllByRole('listitem');
+    expect(within(verlauf).getAllByText('Gesendet')).toHaveLength(1);
+    expect(zeilen[1]).toHaveTextContent('Gesendet');
+  });
+
+  it('am Schreibtisch sendet Eingabe; Umschalt + Eingabe macht einen Absatz', async () => {
+    mitMaus(true);
+    zeige();
+    const feld = await screen.findByRole('textbox', { name: 'Nachricht' });
+    await userEvent.type(feld, 'Erste Zeile{Shift>}{Enter}{/Shift}zweite');
+    expect(senden).not.toHaveBeenCalled();
+    expect(feld).toHaveValue('Erste Zeile\nzweite');
+    await userEvent.type(feld, '{Enter}');
+    await waitFor(() => expect(senden).toHaveBeenCalledTimes(1));
+  });
+
+  it('gleich bleibt: am Telefon ist Eingabe ein Zeilenumbruch, gesendet wird mit dem Pfeil', async () => {
+    mitMaus(false);
+    zeige();
+    const feld = await screen.findByRole('textbox', { name: 'Nachricht' });
+    await userEvent.type(feld, 'Zeile{Enter}noch eine');
+    expect(senden).not.toHaveBeenCalled();
+    expect(feld).toHaveValue('Zeile\nnoch eine');
+    await userEvent.click(screen.getByRole('button', { name: 'Senden' }));
+    await waitFor(() => expect(senden).toHaveBeenCalledTimes(1));
   });
 });
 

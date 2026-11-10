@@ -173,7 +173,8 @@ for (const [breite, hoehe, wo] of [[390, 844, 'am Telefon'], [1150, 800, 'bei 1.
       const kontext = await page.getByRole('complementary', { name: 'Dein Tagesüberblick' }).boundingBox();
       expect(arbeit).not.toBeNull();
       expect(kontext).not.toBeNull();
-      if (breite >= 760) expect(kontext!.x).toBeGreaterThanOrEqual(arbeit!.x + arbeit!.width);
+      // Zwei Spalten erst am Schreibtisch (E72, 09.11.2026): darunter stand der Einsatz in einer 240-px-Spalte fünfzeilig.
+      if (breite >= 1200) expect(kontext!.x).toBeGreaterThanOrEqual(arbeit!.x + arbeit!.width);
       else expect(kontext!.y).toBeGreaterThanOrEqual(arbeit!.y + arbeit!.height);
       // Lagerarbeit gehört der Verwaltung, die es hier gibt.
       await expect(page.getByText(/Anforderungen offen/)).toHaveCount(0);

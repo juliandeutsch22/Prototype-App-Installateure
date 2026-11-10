@@ -155,3 +155,29 @@ describe('Lot: die Plattform in der Hülle der App', () => {
   });
 });
 
+
+/*
+  E72 (09.11.2026) — gemessen: die Hauptaktion der Supportzugänge stand als
+  einzige im Seitenkopf gerahmt statt gefüllt, und unter dem letzten Zugang
+  stand eine Linie ohne Folgezeile. Gegenprobe: mit dem Stand davor rot.
+*/
+describe('Lot: Supportzugänge in der Gestalt der übrigen Seiten (E72)', () => {
+  it('„Notzugang öffnen“ im Seitenkopf ist die gefüllte Hauptaktion', async () => {
+    const u = userEvent.setup(); zeige(); await u.click(bereich('Supportzugänge'));
+    const knopf = screen.getByRole('button', { name: 'Notzugang öffnen' });
+    expect(knopf).toHaveClass('bg-brand');
+    expect(knopf).not.toHaveClass('border-line-strong');
+  });
+
+  it('die Zugänge stehen ohne Zwischenrand untereinander — die Linie trennt sie (lot-plattform.css)', async () => {
+    api.freigaben.mockResolvedValue([
+      { id: 'f1', company_id: 'alpha', name: 'Alpha Technik', grund: 'Rückfrage', notzugang: false, stufe: 'ansehen', gilt_bis: '2026-11-01T12:00:00Z' },
+      { id: 'f2', company_id: 'beta', name: 'Beta Haustechnik', grund: 'Ausgesperrt', notzugang: true, stufe: 'ansehen', gilt_bis: '2026-11-01T12:00:00Z' },
+    ]);
+    const u = userEvent.setup(); zeige(); await u.click(bereich('Supportzugänge'));
+    const zeilen = await screen.findAllByRole('button', { name: 'Öffnen' });
+    const liste = zeilen[0].closest('ul')!;
+    expect(liste.querySelectorAll(':scope > .plattform-supportzeile')).toHaveLength(2);
+    expect(liste.className).not.toMatch(/space-y/);
+  });
+});

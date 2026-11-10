@@ -385,12 +385,15 @@ export const selbstexport = (client?: SupabaseClient) =>
 export const aufbewahrungSetzen = (monate: 6 | 12 | 24 | null, client?: SupabaseClient) =>
   aufruf<void>('nachrichten_aufbewahrung_setzen', { p_monate: monate }, client);
 
-/** Die eigene Zahl ungelesener Nachrichten — aus den eigenen Teilnahmen, die einzig direkt lesbaren Zeilen. */
-export async function ungeleseneZahl(uid: string, client?: SupabaseClient): Promise<number> {
-  const { data, error } = await derClient(client).from('nachrichten_teilnehmer')
-    .select('ungelesen').eq('user_id', uid).is('verlassen_am', null).gt('ungelesen', 0);
-  if (error) throw fehler(error);
-  return (data ?? []).reduce((s, z) => s + Number((z as { ungelesen: number }).ungelesen ?? 0), 0);
+/**
+ * Die eigene Zahl ungelesener Nachrichten — vom Server, nicht aus den eigenen
+ * Teilnahmen summiert: dort stünde auch der Thread einer Baustelle, die man
+ * nicht mehr sieht, und die Zahl bliebe stehen, ohne dass der Posteingang
+ * ihn zeigt (`nachrichten_ungelesen`). Die Kennung der Person bleibt für die
+ * Aufrufer stehen; der Server zählt für die angemeldete.
+ */
+export async function ungeleseneZahl(_uid: string, client?: SupabaseClient): Promise<number> {
+  return Number((await aufruf<number | string | null>('nachrichten_ungelesen', {}, client)) ?? 0);
 }
 
 /** Hat diese Person überhaupt Gespräche? Die eigene Teilnahme ist die eine direkt lesbare Zeile. */

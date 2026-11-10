@@ -27,7 +27,8 @@ const QUELLE = readFileSync(resolve(__dirname, '../../public/sw.js'), 'utf8');
 class TestCache {
   eintraege = new Map<string, Response>();
   async match(req: Request | string) {
-    return this.eintraege.get(typeof req === 'string' ? req : req.url.replace(/^https?:\/\/[^/]+/, ''));
+    // Wie im Browser: jeder Treffer ist eine eigene Antwort — wer ihn liest, verbraucht nicht den Speicher.
+    return this.eintraege.get(typeof req === 'string' ? req : req.url.replace(/^https?:\/\/[^/]+/, ''))?.clone();
   }
   async put(req: Request | string, res: Response) {
     // Wie im Browser: `put` liest den Rumpf ganz — bricht er ab, wird nichts abgelegt.
@@ -335,6 +336,8 @@ describe('Service Worker — neue Fassung erkennen', () => {
   it('raeumt erst auf, wenn die neue Fassung uebernommen wird', async () => {
     // Dann fordert sie niemand mehr an: die App laedt unmittelbar danach neu.
     await anfrage(u, 'https://app.test/assets/alt-111.js');
+    // Abgelegt wird nebenher; alt ist, was beim Erkennen des Deploys schon lag.
+    await vi.waitFor(() => expect(u.speicher.get('perl-teile')?.eintraege.has('/assets/alt-111.js')).toBe(true));
     await anfrage(u, 'https://app.test/', 'navigate');
     u.antwort = (url) =>
       new Response(url.endsWith('/index.html') ? 'zweite Fassung' : 'x', { status: 200 });
@@ -648,18 +651,73 @@ describe('Service Worker — eine Hülle, die starten kann', () => {
       : new Response('baustein', { status: 200, headers: { 'content-type': 'text/javascript' } });
   };
 
-  it('behält beim Übernehmen, womit die laufende Hülle startet — nur das', async () => {
-    u.antwort = netz('b2');
+  /**
+   * Fassung a1 lief, mit einer nachgeladenen Ansicht; dann ein Deploy auf b2,
+   * dessen Hülle der Worker samt Bausteinen ablegt.
+   */
+  async function vonA1AufB2() {
+    u.antwort = netz('a1');
     await anfrage(u, 'https://app.test/', 'navigate');
-    for (const pfad of ['/assets/index-b2.js', '/assets/react-b2.js', '/assets/index-b2.css', '/assets/TimeView-b2.js', '/assets/index-a1.js']) {
+    for (const pfad of ['/assets/index-a1.js', '/assets/react-a1.js', '/assets/index-a1.css', '/assets/TimeView-a1.js']) {
       await anfrage(u, `https://app.test${pfad}`);
     }
-    await vi.waitFor(() => expect(u.speicher.get('perl-teile')?.eintraege.size).toBe(5));
+    await vi.waitFor(() => expect(u.speicher.get('perl-teile')?.eintraege.size).toBe(4));
+    u.antwort = netz('b2');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    await vi.waitFor(() => expect(u.gesagt).toContain('neueFassung'));
+  }
+
+  it('behält beim Übernehmen, womit die laufende Hülle startet — die alte Fassung und ihre Ansichten gehen', async () => {
+    /*
+      BEWUSST ANGEPASST (09.11.2026). Hier lag vorher auch eine Ansicht der
+      NEUEN Fassung (TimeView-b2), die beim Übernehmen mit wegflog — genau
+      der Fehler, den der Test darunter festhält. Gleich geblieben ist: was
+      zur alten Fassung gehört, auch eine nachgeladene Ansicht, geht.
+    */
+    await vonA1AufB2();
 
     await u.nachricht('fassungUebernehmen');
 
     const teile = u.speicher.get('perl-teile')!.eintraege;
     expect([...teile.keys()].sort()).toEqual(['/assets/index-b2.css', '/assets/index-b2.js', '/assets/react-b2.js']);
+    expect(u.geantwortet).toContain('fassungUebernommen');
+  });
+
+  it('ein Baustein, den die neue Fassung nach dem Wechsel holt, überlebt das Übernehmen', async () => {
+    /*
+      Die neue Seite holt beim Start den Baustein ihrer Startansicht
+      (`startansichtVorladen`) und räumt erst bei `load` auf — danach holt sie
+      ihn in dieser Sitzung nie wieder. Flog er beim Aufräumen mit weg, fehlte
+      beim nächsten Start ohne Netz genau die zuletzt offene Ansicht.
+    */
+    await vonA1AufB2();
+    await anfrage(u, 'https://app.test/assets/TimeView-b2.js');
+    await vi.waitFor(() => expect(u.speicher.get('perl-teile')?.eintraege.has('/assets/TimeView-b2.js')).toBe(true));
+
+    await u.nachricht('fassungUebernehmen');
+
+    const teile = u.speicher.get('perl-teile')!.eintraege;
+    expect(teile.has('/assets/TimeView-b2.js')).toBe(true);
+    expect(teile.has('/assets/TimeView-a1.js')).toBe(false);
+
+    // Und beim nächsten Start ohne Netz liegt sie bereit.
+    u.antwort = netz('b2', true);
+    u.geholt.length = 0;
+    const ansicht = await anfrage(u, 'https://app.test/assets/TimeView-b2.js');
+    expect(ansicht!.status).toBe(200);
+    expect(u.geholt).toEqual([]);
+  });
+
+  it('ohne erkannten Wechsel löscht das Übernehmen nichts', async () => {
+    // Was nicht nachweislich alt ist, bleibt — schlimmstenfalls eine Fassung länger.
+    u.antwort = netz('b2');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    for (const pfad of ['/assets/index-b2.js', '/assets/TimeView-b2.js']) await anfrage(u, `https://app.test${pfad}`);
+    await vi.waitFor(() => expect(u.speicher.get('perl-teile')?.eintraege.size).toBe(2));
+
+    await u.nachricht('fassungUebernehmen');
+
+    expect(u.speicher.get('perl-teile')!.eintraege.size).toBe(2);
     expect(u.geantwortet).toContain('fassungUebernommen');
   });
 
@@ -717,6 +775,278 @@ describe('Service Worker — eine Hülle, die starten kann', () => {
 
     const antwort = await anfrage(u, 'https://app.test/', 'navigate');
     expect(await antwort!.text()).toBe(huelle('b2'));
+  });
+
+  /*
+   * DIE NEUE HÜLLE NUR MIT IHREN BAUSTEINEN (09.11.2026). Bis dahin legte der
+   * Vergleich die neue `index.html` sofort ab, ihre Bausteine aber nicht.
+   * Wer die App danach ohne Empfang öffnete, bekam die neue Hülle, deren
+   * Einstieg nirgends lag: weiße Seite.
+   */
+  const B2 = ['/assets/index-b2.js', '/assets/react-b2.js', '/assets/index-b2.css'];
+  const C3 = ['/assets/index-c3.js', '/assets/react-c3.js', '/assets/index-c3.css'];
+  const teile = () => u.speicher.get('perl-teile')!.eintraege;
+  const vorgehalten = async () => u.speicher.get('perl-huelle')!.eintraege.get('/index.html')!.clone().text();
+
+  /** Fassung b2 liegt vollständig: Hülle und alle Bausteine, mit denen sie startet. */
+  async function b2Vollstaendig() {
+    u.antwort = netz('b2');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    for (const pfad of B2) await anfrage(u, `https://app.test${pfad}`);
+    await vi.waitFor(() => expect(teile().size).toBe(3));
+  }
+
+  /** Der Server kennt `fassung`, ihre Bausteine kommen aber nicht an (Funkloch nach der Seite). */
+  const nurDieSeite = (fassung: string) => (url: string) => {
+    if (url.endsWith('/index.html')) return new Response(huelle(fassung), { status: 200, headers: { 'content-type': 'text/html' } });
+    throw new TypeError('Failed to fetch');
+  };
+
+  /** Bis der Hintergrund des Seitenaufrufs die Seite geholt und verarbeitet hat. */
+  async function hintergrundAbwarten(seitenabrufe: number) {
+    await vi.waitFor(() => expect(u.geholt.filter((x) => x.endsWith('/index.html')).length).toBe(seitenabrufe));
+    await new Promise((fertig) => setTimeout(fertig, 20));
+  }
+
+  it('kamen die Bausteine der neuen Fassung nicht an, startet die App ohne Netz mit der alten, vollständigen Hülle', async () => {
+    await b2Vollstaendig();
+    u.antwort = nurDieSeite('c3');
+
+    // Gelesen wird die Antwort erst am Ende: der Vergleich im Hintergrund soll laufen (eigener Test unten).
+    const online = await anfrage(u, 'https://app.test/', 'navigate');
+    await hintergrundAbwarten(2);
+
+    u.antwort = netz('c3', true);
+    const offline = await anfrage(u, 'https://app.test/', 'navigate');
+    expect(await offline!.text()).toBe(huelle('b2'));
+    // Gemeldet wird nichts: „Jetzt laden“ führte auf eine Hülle, die nicht liegt.
+    expect(u.gesagt).toEqual([]);
+    expect(await vorgehalten()).toBe(huelle('b2'));
+    expect(await online!.text()).toBe(huelle('b2'));
+  });
+
+  it('der Vergleich beim Seitenaufruf gelingt auch, wenn die Seite die vorgehaltene Hülle schon gelesen hat', async () => {
+    /*
+      Im Browser liest die Seite die ausgelieferte Hülle, bevor der Abruf im
+      Hintergrund zurück ist; danach lässt sie sich nicht mehr klonen. Der
+      Vergleich las sie erst dann — und scheiterte still: ein Deploy fiel
+      beim Seitenaufruf nie auf.
+    */
+    await b2Vollstaendig();
+    let seiteFreigeben: () => void = () => undefined;
+    u.holen = async (req) => {
+      if (req.url.endsWith('/index.html')) await new Promise<void>((weiter) => { seiteFreigeben = weiter; });
+      return netz('c3')(req.url);
+    };
+
+    const online = await anfrage(u, 'https://app.test/', 'navigate');
+    expect(await online!.text()).toBe(huelle('b2'));
+    seiteFreigeben();
+
+    await vi.waitFor(() => expect(u.gesagt).toContain('neueFassung'));
+    expect(await vorgehalten()).toBe(huelle('c3'));
+  });
+
+  it('kommen die Bausteine an, wird die neue Hülle mit ihnen abgelegt und gemeldet — und startet dann auch ohne Netz', async () => {
+    await b2Vollstaendig();
+    u.antwort = netz('c3');
+
+    await anfrage(u, 'https://app.test/', 'navigate');
+    await vi.waitFor(() => expect(u.gesagt).toContain('neueFassung'));
+    for (const pfad of C3) expect(teile().has(pfad), pfad).toBe(true);
+    expect(await vorgehalten()).toBe(huelle('c3'));
+
+    u.antwort = netz('c3', true);
+    const offline = await anfrage(u, 'https://app.test/', 'navigate');
+    expect(await offline!.text()).toBe(huelle('c3'));
+  });
+
+  it('auf Zuruf genauso: scheitert das Holen, bleibt die alte Hülle; die nächste Prüfung holt nach und meldet', async () => {
+    await b2Vollstaendig();
+    u.antwort = nurDieSeite('c3');
+
+    await u.nachricht('aufNeueFassungPruefen');
+    expect(u.gesagt).toEqual([]);
+    expect(await vorgehalten()).toBe(huelle('b2'));
+    // Der Frager bekommt seine Antwort trotzdem — er wartet darauf, bevor er neu lädt.
+    expect(u.geantwortet).toEqual(['fassungGeprueft']);
+
+    u.antwort = netz('c3');
+    await u.nachricht('aufNeueFassungPruefen');
+    expect(u.gesagt).toEqual(['neueFassung']);
+    expect(await vorgehalten()).toBe(huelle('c3'));
+    for (const pfad of C3) expect(teile().has(pfad), pfad).toBe(true);
+  });
+
+  it('gleich geblieben: kann schon die vorgehaltene Hülle nicht starten, wird die frische sofort abgelegt', async () => {
+    // Dann gibt es nichts Vollständiges zu schützen; die Seite lädt die Bausteine der frischen Hülle selbst.
+    u.antwort = netz('b2');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    u.antwort = nurDieSeite('c3');
+
+    const antwort = await anfrage(u, 'https://app.test/', 'navigate');
+    expect(await antwort!.text()).toBe(huelle('c3'));
+    expect(await vorgehalten()).toBe(huelle('c3'));
+    expect(u.gesagt).toContain('neueFassung');
+  });
+
+  it('kommt statt eines Bausteins die Startseite zurück, gilt er als nicht erhalten', async () => {
+    await b2Vollstaendig();
+    u.antwort = (url) => new Response(url.endsWith('/index.html') ? huelle('c3') : '<!doctype html>', {
+      status: 200,
+      headers: { 'content-type': 'text/html' },
+    });
+
+    await u.nachricht('aufNeueFassungPruefen');
+    expect(u.gesagt).toEqual([]);
+    expect(await vorgehalten()).toBe(huelle('b2'));
+    expect(teile().has('/assets/index-c3.js')).toBe(false);
+  });
+
+  /** Der Server kennt c3; ihre Bausteine kommen erst, wenn der Test sie freigibt. */
+  function bausteineHalten() {
+    const wartende: (() => void)[] = [];
+    u.holen = async (req) => {
+      if (req.url.endsWith('/index.html')) return new Response(huelle('c3'), { status: 200, headers: { 'content-type': 'text/html' } });
+      await new Promise<void>((weiter) => wartende.push(weiter));
+      return new Response('baustein', { status: 200, headers: { 'content-type': 'text/javascript' } });
+    };
+    return wartende;
+  }
+
+  it('„Jetzt laden“ während des Holens: der Seitenaufruf wartet die Ablage ganz ab und landet auf der neuen Fassung', async () => {
+    // Kann die App die Antwort nicht abwarten, lädt sie trotzdem neu — auch wenn der Worker noch holt, und länger als kurz.
+    await b2Vollstaendig();
+    const wartende = bausteineHalten();
+    vi.useFakeTimers();
+    try {
+      const wechsel = u.nachricht('fassungWechseln');
+      await vi.waitFor(() => expect(wartende.length).toBe(3));
+      let text: string | null = null;
+      void anfrage(u, 'https://app.test/', 'navigate').then(async (r) => { text = await r!.text(); });
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(text).toBeNull();
+      for (const weiter of wartende) weiter();
+      await vi.waitFor(() => expect(text).toBe(huelle('c3')));
+      await wechsel;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('ein gewöhnlicher Seitenaufruf wartet eine laufende Ablage höchstens kurz ab — dann kommt die vorgehaltene Hülle', async () => {
+    /*
+      Kaltstart, Neuladen, Tippen auf eine Benachrichtigung: niemand hat einen
+      Wechsel angestossen. Bis 09.11.2026 wartete jeder Seitenaufruf, bis der
+      Worker die Bausteine der neuen Fassung geholt hatte — auf einer zähen
+      Verbindung bis zum Stillstand (20 s) oder ohne Ende.
+    */
+    await b2Vollstaendig();
+    const wartende = bausteineHalten();
+    vi.useFakeTimers();
+    try {
+      // Die Prüfung beim Zurückkommen in den Vordergrund holt gerade die Bausteine.
+      void u.nachricht('aufNeueFassungPruefen');
+      await vi.waitFor(() => expect(wartende.length).toBe(3));
+      let text: string | null = null;
+      void anfrage(u, 'https://app.test/', 'navigate').then(async (r) => { text = await r!.text(); });
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(text).toBeNull();
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(text).toBe(huelle('b2'));
+      // Und er holt dieselben Bausteine nicht ein zweites Mal über dieselbe zähe Verbindung.
+      expect(wartende.length).toBe(3);
+    } finally {
+      for (const weiter of wartende) weiter();
+      vi.useRealTimers();
+    }
+  });
+
+  it('gleich geblieben: ist die Ablage binnen kurzem durch, kommt auch der gewöhnliche Seitenaufruf auf die neue Fassung', async () => {
+    await b2Vollstaendig();
+    const wartende = bausteineHalten();
+    const pruefung = u.nachricht('aufNeueFassungPruefen');
+    await vi.waitFor(() => expect(wartende.length).toBe(3));
+    const seite = anfrage(u, 'https://app.test/', 'navigate');
+    for (const weiter of wartende) weiter();
+
+    expect(await (await seite)!.text()).toBe(huelle('c3'));
+    await pruefung;
+  });
+});
+
+/*
+ * „WECHSELN“ NUR, WENN DIE NEUE HÜLLE LIEGT (09.11.2026). Lud die App nach der
+ * Prüfung in jedem Fall neu, obwohl die Bausteine der neuen Fassung nicht
+ * ankamen, landete sie auf derselben Fassung — und der nächste Start räumte
+ * mit der Notbremse alles weg. Jetzt sagt der Worker, wie es steht.
+ */
+describe('Service Worker — Wechseln auf Zuruf', () => {
+  const huelle = (n: string) => `<!doctype html><script type="module" crossorigin src="/assets/index-${n}.js"></script>`;
+  const netz = (fassung: string, bausteine: 'da' | 'fehlen' | 'offline' = 'da') => (url: string) => {
+    if (bausteine === 'offline') throw new TypeError('Failed to fetch');
+    if (url.endsWith('/index.html')) return new Response(huelle(fassung), { status: 200, headers: { 'content-type': 'text/html' } });
+    if (bausteine === 'fehlen') throw new TypeError('Failed to fetch');
+    return new Response('baustein', { status: 200, headers: { 'content-type': 'text/javascript' } });
+  };
+
+  async function b2Vollstaendig() {
+    u.antwort = netz('b2');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    await anfrage(u, 'https://app.test/assets/index-b2.js');
+    await vi.waitFor(() => expect(u.speicher.get('perl-teile')?.eintraege.has('/assets/index-b2.js')).toBe(true));
+    u.geantwortet.length = 0;
+  }
+
+  it('sagt sofort, dass er arbeitet — und dann, dass die neue Hülle liegt', async () => {
+    await b2Vollstaendig();
+    u.antwort = netz('c3');
+
+    await u.nachricht('fassungWechseln');
+
+    expect(u.geantwortet).toEqual(['wechselLaeuft', 'wechselBereit']);
+    expect(u.speicher.get('perl-teile')!.eintraege.has('/assets/index-c3.js')).toBe(true);
+  });
+
+  it('kommen die Bausteine nicht an, sagt er „ausstehend“ — die alte Hülle bleibt', async () => {
+    await b2Vollstaendig();
+    u.antwort = netz('c3', 'fehlen');
+
+    await u.nachricht('fassungWechseln');
+
+    expect(u.geantwortet).toEqual(['wechselLaeuft', 'wechselAusstehend']);
+    const vorrat = u.speicher.get('perl-huelle')!.eintraege.get('/index.html')!;
+    expect(await vorrat.clone().text()).toBe(huelle('b2'));
+  });
+
+  it('ohne Netz sagt er „ausstehend“ — er weiß nicht, was der Server ausliefert', async () => {
+    await b2Vollstaendig();
+    u.antwort = netz('c3', 'offline');
+
+    await u.nachricht('fassungWechseln');
+
+    expect(u.geantwortet).toEqual(['wechselLaeuft', 'wechselAusstehend']);
+  });
+
+  it('liegt die neue Hülle schon (vorher gemeldet), sagt er „bereit“', async () => {
+    await b2Vollstaendig();
+    u.antwort = netz('c3');
+    await u.nachricht('aufNeueFassungPruefen');
+    u.geantwortet.length = 0;
+
+    await u.nachricht('fassungWechseln');
+
+    expect(u.geantwortet).toEqual(['wechselLaeuft', 'wechselBereit']);
+  });
+
+  it('gleich geblieben: wer nur nachsehen lässt, bekommt wie bisher „fassungGeprueft“', async () => {
+    // Ältere Fassungen der App warten genau darauf, bevor sie neu laden.
+    await b2Vollstaendig();
+    u.antwort = netz('c3', 'fehlen');
+
+    await u.nachricht('aufNeueFassungPruefen');
+
+    expect(u.geantwortet).toEqual(['fassungGeprueft']);
   });
 });
 

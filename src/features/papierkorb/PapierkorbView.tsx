@@ -202,7 +202,7 @@ export default function PapierkorbView() {
       <PageHeader
         ort="Einstellungen"
         title="Papierkorb"
-        subtitle="Verworfene Entwürfe — wiederherstellen oder endgültig löschen"
+        subtitle="Verworfene Entwürfe wiederherstellen oder löschen"
         hilfe={
           <>
             Hier liegt, was verworfen wurde: {angeboteAn && 'Angebotsentwürfe'}{angeboteAn && scheineAn && ' und '}

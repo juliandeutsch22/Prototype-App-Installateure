@@ -1,6 +1,7 @@
 import { useContext, useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { AppUser, Krankmeldung } from '@/types';
 import type { WithId } from '@/lib/db/core';
+import type { KrankmeldungErgebnis } from '@/lib/db/abwesenheiten';
 import {
   getKrankmeldung,
   krankmeldungLoeschen,
@@ -30,6 +31,63 @@ import { grundAus } from '@/lib/fehlerGrund';
  * dabei nach — was wegfällt, geht heraus; was dazukommt und frei ist,
  * kommt hinein.
  */
+
+/**
+ * KRANK IM URLAUB (§ 5 UrlG, 09.11.2026). Dauert eine Erkrankung im Urlaub
+ * länger als drei Kalendertage, zählen ihre Werktage nicht als Urlaub — wenn
+ * sie gemeldet und ärztlich bestätigt ist. Das weiß das Büro; deshalb fragt
+ * die App nach dem Speichern, statt selbst umzuwandeln. Die Datenbank sagt,
+ * ob es solche Tage gibt und ob der Angemeldete umwandeln darf.
+ */
+interface UrlaubAngebot {
+  meldung: { id: string; von: string; bis: string; notiz: string };
+  name: string | null;
+  anzahl: number;
+  kalendertage: number;
+}
+
+function urlaubAngebot(
+  r: KrankmeldungErgebnis,
+  meldung: { von: string; bis: string; notiz: string },
+  name: string | null,
+): UrlaubAngebot | null {
+  if (!r.darfAnrechnen || !r.urlaubImZeitraum) return null;
+  return { meldung: { id: r.id, ...meldung }, name, anzahl: r.urlaubImZeitraum, kalendertage: r.kalendertage ?? 0 };
+}
+
+function UrlaubAnrechnenDialog({
+  angebot,
+  meinName,
+  onFertig,
+}: {
+  angebot: UrlaubAngebot | null;
+  meinName: string;
+  onFertig: (umgewandelt: boolean) => void;
+}) {
+  const toast = useToast();
+  async function umwandeln() {
+    if (!angebot) return;
+    const r = await krankmeldungSpeichern({ ...angebot.meldung, melderName: meinName, urlaubAnrechnen: true });
+    const n = r.urlaubAngerechnet ?? 0;
+    toast.success(`${n} ${n === 1 ? 'Urlaubstag' : 'Urlaubstage'} als Krankenstand gebucht — der Urlaub zählt ${n === 1 ? 'ihn' : 'sie'} nicht mehr`);
+    onFertig(true);
+  }
+  return (
+    <ConfirmDialog
+      open={!!angebot}
+      title="Urlaubstage als Krankenstand?"
+      confirmLabel="Als Krankenstand buchen"
+      confirmTone="primary"
+      message={
+        angebot
+          ? `${angebot.name ? `${angebot.name}: ` : ''}Im Krankenstand (${angebot.kalendertage} Kalendertage) ${angebot.anzahl === 1 ? 'liegt 1 genehmigter Urlaubstag' : `liegen ${angebot.anzahl} genehmigte Urlaubstage`}. Dauert eine Erkrankung im Urlaub länger als drei Kalendertage, zählen diese Tage nicht als Urlaub (§ 5 UrlG) — wenn sie gleich gemeldet wurde und ärztlich bestätigt ist. Ohne Bestätigung bleibt der Urlaub, wie er ist; wird die Meldung später kürzer oder gelöscht, kommt der Urlaub zurück.`
+          : ''
+      }
+      onCancel={() => onFertig(false)}
+      onConfirm={umwandeln}
+    />
+  );
+}
 
 /** Die Liste — mit „Ende ändern" und „Löschen". */
 export function KrankmeldungListe({
@@ -70,6 +128,7 @@ export function KrankmeldungListe({
   const zuAendern = !imFenster && bearbeitet ? meldungen.find((k) => k.id === bearbeitet) ?? null : null;
   const [endeFehler, setEndeFehler] = useState<string | null>(null);
   const [loeschen, setLoeschen] = useState<WithId<Krankmeldung> | null>(null);
+  const [angebot, setAngebot] = useState<UrlaubAngebot | null>(null);
   const heute = todayStr();
 
   async function endeSpeichern(k: WithId<Krankmeldung>) {
@@ -88,6 +147,7 @@ export function KrankmeldungListe({
       toast.success(`Ende geändert — ${ergebnisText(e)}`);
       setBearbeitet(null);
       onGeaendert();
+      setAngebot(urlaubAngebot(e, { von: k.von, bis: neuesEnde, notiz: k.notiz ?? '' }, mitNamen ? k.userName ?? null : null));
     } catch (e) {
       melden(grundAus(e, 'Das Ende konnte nicht geändert werden.'));
     } finally {
@@ -218,6 +278,15 @@ export function KrankmeldungListe({
         }
         onCancel={() => setLoeschen(null)}
         onConfirm={() => (loeschen ? loeschenBestaetigt(loeschen) : undefined)}
+      />
+
+      <UrlaubAnrechnenDialog
+        angebot={angebot}
+        meinName={meinName}
+        onFertig={(umgewandelt) => {
+          setAngebot(null);
+          if (umgewandelt) onGeaendert();
+        }}
       />
     </>
   );
@@ -373,6 +442,7 @@ export function KrankenstaendeReiter({ companyId, meinName }: { companyId: strin
   const [bis, setBis] = useState(todayStr());
   const [notiz, setNotiz] = useState('');
   const [sendet, setSendet] = useState(false);
+  const [angebot, setAngebot] = useState<UrlaubAngebot | null>(null);
 
   // Die letzten acht Wochen und alles, was noch läuft: das ist, was das Büro
   // für die Lohnverrechnung und die Planung braucht. Ältere stehen im
@@ -424,6 +494,7 @@ export function KrankenstaendeReiter({ companyId, meinName }: { companyId: strin
     try {
       const r = await krankmeldungSpeichern({ userId: wer, von, bis, notiz: notiz.trim(), melderName: meinName });
       toast.success(`Krankmeldung erfasst — ${ergebnisText(r)}`);
+      setAngebot(urlaubAngebot(r, { von, bis, notiz: notiz.trim() }, leute.find((u) => u.uid === wer)?.name ?? null));
       setNotiz('');
       setStand((n) => n + 1);
     } catch (err) {
@@ -445,7 +516,9 @@ export function KrankenstaendeReiter({ companyId, meinName }: { companyId: strin
           <>
             Für jemanden, der sich telefonisch krank meldet. Eingetragen wird „Krank“ an den
             Arbeitstagen des Zeitraums; Tage, an denen schon gearbeitet oder Urlaub gebucht ist,
-            bleiben, wie sie sind. Eine Diagnose gehört nicht in die Anmerkung — Krankenstände sind
+            bleiben, wie sie sind. Liegt genehmigter Urlaub im Krankenstand und dauert er länger als
+            drei Kalendertage, fragt die App danach, ob diese Tage als Krankenstand zählen (§ 5 UrlG) —
+            auch beim Ändern des Endes. Eine Diagnose gehört nicht in die Anmerkung — Krankenstände sind
             Gesundheitsdaten und nur für die Person selbst und das Büro sichtbar.
           </>
         }
@@ -507,6 +580,14 @@ export function KrankenstaendeReiter({ companyId, meinName }: { companyId: strin
         )}
       </Card>
       </div>
+      <UrlaubAnrechnenDialog
+        angebot={angebot}
+        meinName={meinName}
+        onFertig={(umgewandelt) => {
+          setAngebot(null);
+          if (umgewandelt) setStand((n) => n + 1);
+        }}
+      />
     </div>
   );
 }

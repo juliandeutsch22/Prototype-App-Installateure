@@ -294,7 +294,8 @@ export default function NotificationSettings() {
         title="Wovon möchtest du erfahren?"
         hint="Die Auswahl gilt für dich auf allen Geräten und wird sofort gespeichert."
       >
-        <div className="space-y-1">
+        {/* 8 px zwischen den Schaltern wie in den Einstellungen › Personal (E72, N11). */}
+        <div className="space-y-2">
           {zeigeNeueAnforderung && (
             <CheckboxField
               id="n-new-order"

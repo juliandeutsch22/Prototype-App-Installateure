@@ -13,5 +13,7 @@ export const supabaseClient = () => null;
 export const getPushState = async () => 'aus' as never;
 export const enablePush = async () => false;
 export const disablePush = async () => {};
+export const pushAbgleichen = async () => {};
+export const pushProbe = async () => ({ art: 'nicht-angemeldet' }) as never;
 export default leer;
 export const pruefClient = () => null as never;

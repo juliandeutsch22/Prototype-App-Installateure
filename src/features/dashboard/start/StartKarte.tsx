@@ -25,7 +25,8 @@ export default function StartKarte({
         <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <h2 id={id} className="titel-karte">
             {titel}
-            {zusatz && <span className="start-karte-zusatz font-normal text-ink-muted"> · {zusatz}</span>}
+            {/* Das Leerzeichen vor dem Zusatz steht außerhalb: dort darf die Zeile brechen, im Zusatz nicht. */}
+            {zusatz && <>{' '}<span className="start-karte-zusatz font-normal text-ink-muted">· {zusatz}</span></>}
           </h2>
           {verweis && !verweisUnten && (
             <Link to={verweis.to} className="link-weiter inline-flex min-h-touch items-center text-sm">

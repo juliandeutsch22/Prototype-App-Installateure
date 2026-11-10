@@ -1696,11 +1696,12 @@ export default function TimeForm({
                     Auf mehrere Baustellen aufteilen geht mit der gespeicherten Buchung — zuerst speichern.
                   </p>
                 ) : (
-                  // Klein und unter dem Feld: eine Handlung an der Baustelle, keine
-                  // zweite Überschrift neben „Weitere Angaben“.
-                  <button type="button" className="link -mt-2 self-start text-sm" onClick={() => setAufteilenOffen(true)}>
+                  // Unter dem Feld: eine Handlung an der Baustelle, keine zweite
+                  // Überschrift neben „Weitere Angaben“. Als Zweitknopf (E72, R1):
+                  // der 20 px hohe Link war mit Handschuhen kaum zu treffen.
+                  <Button type="button" variant="secondary" className="self-start" onClick={() => setAufteilenOffen(true)}>
                     Auf mehrere Baustellen aufteilen …
-                  </button>
+                  </Button>
                 )
               )}
 

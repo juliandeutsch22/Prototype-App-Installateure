@@ -41,6 +41,10 @@ import {
   unterMindestmenge,
   urlaubsantraege,
   freistellungsantraege,
+  urlaubZuEntscheiden,
+  sonderurlaubZuBestaetigen,
+  korrekturantraege,
+  korrekturThema,
   wartungenOhneBaustelle,
   zahlungenHeute,
   jugendschutzEigen,
@@ -182,6 +186,8 @@ function monteur(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(tageOhneBuchung(d.fehlendeTage ?? [], d.planNachTag), u),
     erlaubt(scheinOhneZeit(d.nachtraege ?? []), u),
     erlaubt(abholbereitEigen(d.eigeneOrders ?? []), u),
+    // Nur, wer als Genehmiger eingetragen ist.
+    urlaubAbschnitt(d, u),
     // M10/B09: die eigenen ungelesenen Nachrichten — eine Zeile, leise.
     erlaubt(ungeleseneNachrichten(d.ungeleseneNachrichten), u),
     // Zuletzt und leise: ein Hinweis für Jugendliche, keine Aufgabe (Runde 3, M2).
@@ -231,6 +237,24 @@ function eigeneTage(d: StartDaten, u: Umfeld): Abschnitt | null {
   return a ? erlaubt({ ...a, titel: 'Deine Tage ohne Buchung' }, u) : null;
 }
 
+/*
+  DIE URLAUBSANTRÄGE FÜR JEDEN, DER ÜBER URLAUB ENTSCHEIDET — auch für die
+  unter Einstellungen › Personal eingetragenen Genehmiger aus Projektleitung,
+  Verwaltung oder Mitarbeitern. Bis hierher wurden ihre Anträge geladen und
+  nirgends gezeigt. Der eigene Antrag fehlt, solange jemand anderer
+  entscheidet (Vier Augen).
+*/
+function urlaubAbschnitt(d: StartDaten, u: Umfeld): Abschnitt | null {
+  return u.urlaubEntscheiden ? erlaubt(urlaubsantraege(urlaubZuEntscheiden(d.antraege ?? [], u.ich, d.entscheidenAndere)), u) : null;
+}
+
+/** Offene Lieferungen von heute — führen sie alle zu Anforderungen, auf den Filter, sonst in den Einkauf. */
+function lieferungsZiel(zeilen: Zeile[]): { to: string; text: string } {
+  return zeilen.some((z) => z.to === ZIEL.einkauf)
+    ? { to: ZIEL.einkauf, text: 'Einkauf' }
+    : { to: ZIEL.anforderungen('lieferung-heute'), text: 'Anforderungen' };
+}
+
 // ──────────────────────────────────────────────────────────── Verwaltung ──
 
 function verwaltung(d: StartDaten, u: Umfeld): Startseite {
@@ -243,12 +267,18 @@ function verwaltung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(bestelltUeberfaellig(orders, u.heute), u),
     erlaubt(abholbereitAlt(orders, u.jetzt), u),
     erlaubt(unterMindestmenge(d.knapp ?? []), u),
+    urlaubAbschnitt(d, u),
     erlaubt(ungeleseneNachrichten(d.ungeleseneNachrichten), u),
     eigenerJugendschutz(d, u),
   ]);
   const lieferungen = u.darf(ZIEL.anforderungen('lieferung-heute'))
     ? lieferungenHeute(orders, d.lagerPosten ?? [], u.heute)
     : [];
+  /*
+    Material fürs Lager führt in den Einkauf (es ist keine Anforderung) —
+    dort stehen auch die bestellten Anforderungen. Ohne es bleibt der Weg
+    wie bisher auf den Filter „Lieferung heute“.
+  */
   return {
     ...trennen(abschnitte, u),
     kennzahlen: lagerKennzahlen(d, u),
@@ -257,7 +287,7 @@ function verwaltung(d: StartDaten, u: Umfeld): Startseite {
         art: 'liste',
         zusatz: anzahl(lieferungen.length, 'Lieferung', 'Lieferungen'),
         zeilen: lieferungen,
-        verweis: { to: ZIEL.anforderungen('lieferung-heute'), text: 'Anforderungen' },
+        verweis: lieferungsZiel(lieferungen),
       }
       : null,
   };
@@ -324,9 +354,13 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
     */
     erlaubt(stundenOhneBuchung((d.team ?? []).filter((t) => t.uid !== u.ich)), u),
     erlaubt(basiszinsFehlt(d.basiszinsFehltAb), u),
-    u.urlaubEntscheiden ? erlaubt(urlaubsantraege(d.antraege ?? []), u) : null,
+    urlaubAbschnitt(d, u),
     // Unbezahlten Urlaub entscheidet die Buchhaltung nicht — er steht hier nicht.
-    u.freistellungBestaetigen ? erlaubt(freistellungsantraege(d.freistellungen ?? [], false, u.sonderurlaubZiel), u) : null,
+    u.freistellungBestaetigen
+      ? erlaubt(freistellungsantraege(sonderurlaubZuBestaetigen(d.freistellungen ?? [], u.ich, d.entscheidenAndere), false, u.sonderurlaubZiel), u)
+      : null,
+    // Korrekturanträge (M06c): geladen nur fürs Büro und mit eingeschaltetem Schalter.
+    erlaubt(korrekturantraege(d.korrekturen ?? []), u),
     // Der Auftragseingang (M02b): die Buchhaltung nimmt die Mail der Hausverwaltung an.
     erlaubt(offeneEingaenge(d.offeneEingaenge), u),
     erlaubt(ungeleseneNachrichten(d.ungeleseneNachrichten), u),
@@ -411,6 +445,7 @@ function projektleitung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(ueberLinkAngenommen(d.ueberLinkAngenommen ?? []), u),
     erlaubt(endeUeberschritten(d.projekte ?? [], u.heute), u),
     erlaubt(ohneProjektleitung(d.projekte ?? []), u),
+    urlaubAbschnitt(d, u),
     erlaubt(ungeleseneNachrichten(d.ungeleseneNachrichten), u),
     eigenerJugendschutz(d, u),
   ]);
@@ -626,7 +661,10 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: 'heute', ton: 'warn' },
     }));
   }
-  const antraege = u.urlaubEntscheiden ? (d.antraege ?? []).filter((v) => v.status === 'Beantragt') : [];
+  // Der eigene Antrag nicht, solange jemand anderer entscheidet (Vier Augen).
+  const antraege = u.urlaubEntscheiden
+    ? urlaubZuEntscheiden(d.antraege ?? [], u.ich, d.entscheidenAndere).filter((v) => v.status === 'Beantragt')
+    : [];
   if (antraege.length) {
     const erster = [...antraege].sort((a, b) => a.von.localeCompare(b.von))[0];
     themen.push(wenn(ZIEL.urlaubsantraege, {
@@ -636,7 +674,9 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: 'entscheiden', ton: 'warn' },
     }));
   }
-  const frei = u.freistellungBestaetigen ? (d.freistellungen ?? []).filter((f) => f.status === 'Beantragt') : [];
+  const frei = u.freistellungBestaetigen
+    ? sonderurlaubZuBestaetigen(d.freistellungen ?? [], u.ich, d.entscheidenAndere).filter((f) => f.status === 'Beantragt')
+    : [];
   if (frei.length) {
     const erster = [...frei].sort((a, b) => a.von.localeCompare(b.von))[0];
     themen.push(wenn(u.sonderurlaubZiel ?? ZIEL.urlaubsantraege, {
@@ -646,10 +686,21 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: 'bestätigen', ton: 'warn' },
     }));
   }
+  // Korrekturanträge (M06c) wie der Sonderurlaub: jemand wartet auf das Büro.
+  const korrektur = korrekturThema(d.korrekturen ?? []);
+  if (korrektur) {
+    themen.push(wenn(korrektur.to, {
+      key: 'korrektur', wann: 'heute',
+      titel: korrektur.titel,
+      detail: korrektur.detail,
+      status: { text: 'prüfen', ton: 'warn' },
+    }));
+  }
   if (lagerHier) {
     const lief = lieferungenHeute(orders, d.lagerPosten ?? [], h);
     if (lief.length) {
-      themen.push(wenn(ZIEL.anforderungen('lieferung-heute'), {
+      // Mit Material fürs Lager in den Einkauf — der Filter „Lieferung heute“ zeigt nur Anforderungen.
+      themen.push(wenn(lieferungsZiel(lief).to, {
         key: 'lieferung-heute', wann: 'heute',
         titel: `${anzahl(lief.length, 'Lieferung', 'Lieferungen')} erwartet`,
         detail: lief[0].titel,

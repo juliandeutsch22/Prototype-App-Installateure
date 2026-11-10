@@ -23,7 +23,8 @@ export default function PositionenTabelle({ q }: { q: Pick<Quote, 'positions' | 
   });
   return (
     <div className="overflow-x-auto">
-      <table className="tabelle stueckliste">
+      {/* `positionen-tabelle`: am Handy steht der Betrag unter der Bezeichnung (lot-akten.css, E72). */}
+      <table className="tabelle stueckliste positionen-tabelle">
         <thead>
           <tr>
             <th scope="col">Pos</th>
@@ -43,7 +44,7 @@ export default function PositionenTabelle({ q }: { q: Pick<Quote, 'positions' | 
             ) : p.art === 'text' ? (
               <tr key={i}>
                 <td className="pos" />
-                <td colSpan={2} className="whitespace-pre-line text-ink-muted">{p.label}</td>
+                <td colSpan={2} className="positionen-text whitespace-pre-line text-ink-muted">{p.label}</td>
               </tr>
             ) : (
               <tr key={i}>

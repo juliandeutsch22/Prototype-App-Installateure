@@ -32,10 +32,22 @@ export function KorrekturAnfordern({ eintrag }: { eintrag: TimeEntry }) {
   return <><Button variant="ghost" onClick={() => setOffen(true)}>Korrektur anfragen</Button>
     {/* Der feste Dialog darf nicht im Stapelkontext der Zeilenaktionen liegen. */}
     {createPortal(<BottomSheet open={offen} onClose={() => setOffen(false)} label="Korrektur anfragen" titel="Korrektur anfragen" auchBreit>
-      <p className="mb-3 text-sm">{datumAT(eintrag.date)} · {eintrag.startTime}–{eintrag.endTime}. Rechnungssperren und Abwesenheitsanträge bleiben geschützt.</p>
-      <InputField id="korrektur-wunsch" label="Was soll berichtigt werden und warum? (keine Diagnose)" required pflicht value={wunsch} onChange={(e) => setWunsch(e.target.value)} />
-      {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
-      <Button disabled={!wunsch.trim() || speichert} onClick={() => void senden()}>Beim Büro anfragen</Button>
+      {/*
+        FELDER UND FUSS IM TAKT (E72, 09.11.2026): 16 px zwischen den Teilen,
+        der Knopf im Fuß mit Linie und „Abbrechen“ daneben (R7) — er klebte
+        ohne Abstand am Feld. Ohne Uhrzeit (Abwesenheit, Stundeneintrag)
+        steht der Stand statt „· –“. Das Absenden bleibt im Fenster: über
+        das Portal liefe es sonst bis zu einem umgebenden Formular durch.
+      */}
+      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); if (wunsch.trim() && !speichert) void senden(); }}>
+        <p className="text-sm">{datumAT(eintrag.date)} · {eintrag.startTime && eintrag.endTime ? `${eintrag.startTime}–${eintrag.endTime}` : eintrag.status}. Rechnungssperren und Abwesenheitsanträge bleiben geschützt.</p>
+        <InputField id="korrektur-wunsch" label="Was soll berichtigt werden und warum? (keine Diagnose)" required pflicht value={wunsch} onChange={(e) => setWunsch(e.target.value)} />
+        {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+        <div className="fuss-aktionen">
+          <Button type="button" variant="secondary" onClick={() => setOffen(false)}>Abbrechen</Button>
+          <Button type="submit" disabled={!wunsch.trim() || speichert}>Beim Büro anfragen</Button>
+        </div>
+      </form>
     </BottomSheet>, document.body)}</>;
 }
 export default function Zeitkorrekturen() {
@@ -105,7 +117,8 @@ export default function Zeitkorrekturen() {
           {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
           {buero && <>
             <p className="my-3 text-sm text-ink-muted">Stand und Abwesenheiten werden im ursprünglichen Vorgang geändert. Danach die tatsächlich durchgeführte Korrektur bestätigen.</p>
-            {buchung && besitzer && !buchung.isBilled && !buchung.vacationId && !buchung.krankmeldungId && !buchung.freistellungId && buchung.status !== 'Berufsschule' ?
+            {/* Dieselbe Grenze wie `zeit_korrektur_entscheiden`: nur Arbeitszeit und Zeitausgleich ohne Antrag oder Meldung. */}
+            {buchung && besitzer && !buchung.isBilled && !buchung.vacationId && !buchung.krankmeldungId && !buchung.freistellungId && (buchung.status === 'Anwesend' || buchung.status === 'Zeitausgleich') ?
               <TimeForm ownerRole={besitzer.role} besitzerProfil={besitzer} key={buchung.id} entry={buchung} speichernMit={(werte) => entscheiden('umgesetzt', werte)} onSaved={() => undefined} onCancel={schliessen} /> :
               <p className="my-3 text-sm text-ink-muted">Die Buchung ist gesperrt, stammt aus einer Abwesenheit oder wurde bereits entfernt. Eine protokollierte Entfernung lässt sich als durchgeführte Korrektur bestätigen. Sonst zuerst den ursprünglichen Vorgang prüfen: <Link className="link" to="/invoices">Rechnungen</Link> · <Link className="link" to="/vacations">Abwesenheiten</Link>. Danach den Antrag erneut öffnen.</p>}
             <div className="mt-3 flex flex-wrap gap-2"><Button variant="secondary" disabled={!grund.trim() || speichert} onClick={() => void entscheiden('umgesetzt').catch(() => undefined)}>Bereits durchgeführte Korrektur bestätigen</Button><Button variant="secondary" disabled={!grund.trim() || speichert} onClick={() => void entscheiden('abgelehnt').catch(() => undefined)}>Begründet ablehnen</Button></div>

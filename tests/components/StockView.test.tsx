@@ -441,10 +441,34 @@ describe('Lager — Wareneingang', () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     zeige();
     await eingangMit('12');
+    // Seit 10.11.2026 mit der Vorgangskennung des Dialogs (E58).
     await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
       materialId: 'm1', menge: 12, lieferant: 'Frauenthal', lieferschein: 'LS-4711', bezug: undefined,
+      vorgang: expect.stringMatching(/^[0-9a-f-]{36}$/),
     }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: /^Wareneingang: / })).not.toBeInTheDocument());
+  });
+
+  /*
+    EIN VORGANG JE GEÖFFNETEM DIALOG (Prüfbericht 10.11.2026): riss das Netz
+    nach dem Senden ab, buchte ein zweiter Tipp ein zweites Mal ein. Mit
+    derselben Kennung bucht die Datenbank höchstens einmal.
+  */
+  it('ein erneuter Versuch nach einem Fehler schickt denselben Vorgang — ein neuer Eingang einen neuen', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    bestandAendern.mockRejectedValueOnce(new Error('Netzwerkfehler'));
+    zeige();
+    const dialog = await eingangMit('12');
+    expect(await within(dialog).findByText(/Netzwerkfehler/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await waitFor(() => expect(bestandAendern).toHaveBeenCalledTimes(2));
+    const [erst, zweit] = bestandAendern.mock.calls.map((c) => (c[0] as { vorgang: string }).vorgang);
+    expect(erst).toMatch(/^[0-9a-f-]{36}$/);
+    expect(zweit).toBe(erst);
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /^Wareneingang: / })).not.toBeInTheDocument());
+    await eingangMit('3');
+    await waitFor(() => expect(bestandAendern).toHaveBeenCalledTimes(3));
+    expect((bestandAendern.mock.calls[2][0] as { vorgang: string }).vorgang).not.toBe(erst);
   });
 
   it('aus dem Seitenkopf: erst den Artikel wählen, dann buchen (Linie „Lot“, E3)', async () => {
@@ -482,6 +506,7 @@ describe('Lager — Wareneingang', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
     await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
       materialId: 'm1', menge: 2, lieferant: 'Baumarkt Mödling', lieferschein: undefined, bezug: undefined,
+      vorgang: expect.stringMatching(/^[0-9a-f-]{36}$/),
     }));
   });
 
@@ -710,6 +735,31 @@ describe('Lager — wenn ein Ladevorgang scheitert', () => {
     const ventil = screen.getByText('Eckventil').closest('li') as HTMLElement;
     expect(within(ventil).queryByRole('img')).not.toBeInTheDocument();
   });
+
+  /*
+    E72 (09.11.2026) — gemessen: am Tablet blieben dem Namen neben Zustand und
+    Maßlinie rund 200 px, die Artikelnummer brach in sich; am Schreibtisch
+    sprang der Zustand je Zeile um 14 px, weil die Zahlen ohne Regal schmaler
+    waren als die Linie. Gegenprobe: mit dem Stand davor rot.
+  */
+  it('die Zeile ist gestapelt; Maßlinie und Zahlen stehen in derselben festen Breite, der Zustand in seiner Spalte (E72)', async () => {
+    materialien = [
+      material({ id: 'm1', name: 'Kupferrohr 15', stock: 20 }),
+      material({ id: 'm3', name: 'Eckventil', stock: 0 }),
+    ];
+    anforderungen = [anforderung({ id: 'o1', materialId: 'm1', quantity: 5 })];
+    zeige();
+    const rohr = (await screen.findByText('Kupferrohr 15')).closest('li') as HTMLElement;
+    const ventil = screen.getByText('Eckventil').closest('li') as HTMLElement;
+    for (const zeile of [rohr, ventil]) {
+      expect(zeile).toHaveClass('zeile-gestapelt');
+      expect(zeile.querySelector('.zeile-stand > .zeile-wert > .lager-masslinie')).not.toBeNull();
+      // Eine Zustandsspalte auch ohne Zustand — sonst begänne die Linie dort weiter links.
+      expect(zeile.querySelector('.zeile-stand > .zeile-zustand')).not.toBeNull();
+    }
+    expect(within(rohr).getByRole('img', { name: /5 reserviert von 20 m im Regal/ }).closest('.lager-masslinie')).not.toBeNull();
+    expect(within(ventil).getByText(/0 m frei/).closest('.lager-masslinie')).not.toBeNull();
+  });
 });
 
 describe('Wer den Katalog einspielen darf', () => {
@@ -801,6 +851,14 @@ describe('Reiter in der Adresse', () => {
   it('Gegenprobe: ein unbekannter Reiter gilt als Bestand', async () => {
     zeige('/lager?reiter=irgendwas');
     expect(await screen.findByRole('button', { name: 'Bestand' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  // E72: die Bereiche stehen schmal links in der Listenleiste, nicht über die ganze Breite gestreckt.
+  it('die Bereiche stehen in einer Listenleiste wie in den Anforderungen (E72)', async () => {
+    zeige();
+    const bestand = await screen.findByRole('button', { name: 'Bestand' });
+    expect(bestand.closest('.listenleiste-reiter')).not.toBeNull();
+    expect(bestand.closest('.anf-leiste')).not.toBeNull();
   });
 });
 

@@ -115,6 +115,16 @@ const KALTSTART_FENSTER_MS = 12_000;
 const STILL_MERKER = 'senklot:stillUebernommen';
 
 /**
+ * Kurz nach dem Start, und noch nichts angefasst? Dann kostet ein Neustart
+ * niemanden eine Eingabe. Ohne den Merker gegen die Schleife — die Notbremse
+ * (`NeueFassung`) fragt das, nachdem eine stille Übernahme ihn schon
+ * verbraucht hat.
+ */
+export function nochKalt(gestartet: number, angefasst: boolean): boolean {
+  return !angefasst && Date.now() - gestartet <= KALTSTART_FENSTER_MS;
+}
+
+/**
  * Darf JETZT noch still übernommen werden?
  *
  * Zwei Bedingungen, und beide müssen gelten: es ist kurz nach dem Start, UND
@@ -123,8 +133,7 @@ const STILL_MERKER = 'senklot:stillUebernommen';
  * der zweiten Sekunde.
  */
 export function darfStillUebernehmen(gestartet: number, angefasst: boolean): boolean {
-  if (angefasst) return false;
-  if (Date.now() - gestartet > KALTSTART_FENSTER_MS) return false;
+  if (!nochKalt(gestartet, angefasst)) return false;
   try {
     if (sessionStorage.getItem(STILL_MERKER)) return false;
     sessionStorage.setItem(STILL_MERKER, '1');
@@ -137,6 +146,14 @@ export function darfStillUebernehmen(gestartet: number, angefasst: boolean): boo
 
 /** Wie lange auf eine Antwort des Workers gewartet wird. */
 const WORKER_FRIST_MS = 2500;
+
+/**
+ * Wie lange auf das Ergebnis eines Wechsels gewartet wird, wenn der Worker
+ * schon gesagt hat, dass er daran arbeitet. Er holt die Bausteine der neuen
+ * Fassung, und jeder davon endet spätestens nach 20 s Stillstand
+ * (`public/sw.js`); danach gilt die Verbindung als zu schwach.
+ */
+const WECHSEL_FRIST_MS = 30_000;
 
 /** Merker: die neue Fassung läuft, die alten Bausteine dürfen weg. */
 const AUFRAEUM_MERKER = 'senklot:aufraeumen';
@@ -166,6 +183,52 @@ function workerFragen(frage: string, antwort: string): Promise<void> {
 }
 
 /**
+ * Wie es um die neue Hülle steht:
+ *   `bereit`       — sie liegt; ein Neuladen landet auf der neuen Fassung.
+ *   `ausstehend`   — sie liegt (noch) nicht, das Netz reichte nicht; ein
+ *                    Neuladen brächte dieselbe alte Fassung zurück.
+ *   `keineAntwort` — kein Worker, oder einer, der nicht antwortet (beendet,
+ *                    oder eine ältere Fassung, die die Frage nicht kennt).
+ */
+export type Wechselstand = 'bereit' | 'ausstehend' | 'keineAntwort';
+
+/**
+ * Den Worker die Hülle erneuern lassen und sagen lassen, ob sie liegt.
+ *
+ * Antwortet er binnen `WORKER_FRIST_MS` gar nicht, gilt `keineAntwort`.
+ * Sagt er, dass er arbeitet (`wechselLaeuft`), wird auf sein Ergebnis bis
+ * `WECHSEL_FRIST_MS` gewartet — er lebt, er holt nur über ein zähes Netz;
+ * kommt dann noch immer nichts, reicht die Verbindung nicht (`ausstehend`).
+ */
+function wechselAnfragen(): Promise<Wechselstand> {
+  const worker = navigator.serviceWorker?.controller;
+  if (!worker) return Promise.resolve('keineAntwort');
+  return new Promise<Wechselstand>((fertig) => {
+    let uhr = setTimeout(() => ende('keineAntwort'), WORKER_FRIST_MS);
+    const hoerer = (e: MessageEvent) => {
+      if (e.data === 'wechselLaeuft') {
+        clearTimeout(uhr);
+        uhr = setTimeout(() => ende('ausstehend'), WECHSEL_FRIST_MS);
+      } else if (e.data === 'wechselBereit') {
+        ende('bereit');
+      } else if (e.data === 'wechselAusstehend') {
+        ende('ausstehend');
+      }
+    };
+    function ende(stand: Wechselstand) {
+      clearTimeout(uhr);
+      navigator.serviceWorker.removeEventListener('message', hoerer);
+      fertig(stand);
+    }
+    navigator.serviceWorker.addEventListener('message', hoerer);
+    worker.postMessage('fassungWechseln');
+  });
+}
+
+/** Was aus einem Wechsel wurde: neu geladen, die Hülle liegt noch nicht, oder angehalten. */
+export type Wechselergebnis = 'neuGeladen' | 'ausstehend' | 'angehalten';
+
+/**
  * Zur neuen Fassung wechseln.
  *
  * NUR NEU LADEN — das Aufräumen kommt danach.
@@ -187,8 +250,35 @@ function workerFragen(frage: string, antwort: string): Promise<void> {
  *
  * Aufgeräumt wird jetzt beim NÄCHSTEN Start, wenn die neue Fassung läuft und
  * niemand mehr etwas Altes anfordern kann.
+ *
+ * NUR LADEN, WENN DIE NEUE HÜLLE LIEGT (09.11.2026). Sagt der Worker, dass
+ * sie nicht liegt (`ausstehend`), bliebe ein Neuladen auf derselben
+ * Fassung — und weil der Versuch vorgemerkt wäre, hielte der nächste Start
+ * das für einen kaputten Wechsel und räumte mit der Notbremse alles weg.
+ * Dann wird weder vorgemerkt noch geladen; die nächste Prüfung versucht es
+ * neu. `darfLaden` fragt unmittelbar vor dem Neuladen, ob es noch passt —
+ * die stille Übernahme wartet unter Umständen eine Weile auf den Worker,
+ * und wer inzwischen tippt, wird nicht mitten im Satz neu geladen
+ * (`angehalten`).
  */
-export async function neueFassungUebernehmen(): Promise<void> {
+export async function neueFassungUebernehmen(darfLaden: () => boolean = () => true): Promise<Wechselergebnis> {
+  /*
+    ERST DIE HUELLE ERNEUERN LASSEN, DANN LADEN — auch hier.
+
+    Die Meldung kann aus zwei Quellen kommen: vom Worker (dann hat er die
+    neue Hülle schon abgelegt) oder von der App selbst, die beim Server
+    nachgefragt hat (`lib/fassungPruefen.ts`). Im zweiten Fall weiß der
+    Worker unter Umständen noch von nichts, und ein sofortiges Laden holte
+    die alte Hülle. Ein Weg für beide Quellen ist der einzige, der in beiden
+    Fällen richtig ist.
+
+    Gelöscht wird dabei NICHTS — deshalb ist es unschädlich, dass die alte
+    Seite noch weiterläuft, bis die Antwort da ist.
+  */
+  const stand = await wechselAnfragen();
+  if (stand === 'ausstehend') return 'ausstehend';
+  if (!darfLaden()) return 'angehalten';
+
   /*
     FESTHALTEN, VON WO AUS GEWECHSELT WIRD.
 
@@ -197,6 +287,8 @@ export async function neueFassungUebernehmen(): Promise<void> {
     eine andere anbietet, hat dieser Weg nicht funktioniert. Erst diese
     Feststellung erlaubt die Notbremse in `lib/erneuerung.ts` — vorher konnte
     die App nur immer wieder dasselbe versuchen und niemand erfuhr davon.
+    Antwortet der Worker gar nicht, gilt das wie bisher: er kann selbst das
+    sein, was festhängt.
   */
   uebernahmeVormerken(FASSUNG);
 
@@ -206,20 +298,8 @@ export async function neueFassungUebernehmen(): Promise<void> {
     // Ohne Merker bleiben die alten Bausteine eine Fassung länger liegen.
     // Das kostet Speicher und sonst nichts.
   }
-  /*
-    ERST DIE HUELLE ERNEUERN LASSEN, DANN LADEN — auch hier.
-    
-    Die Meldung kann aus zwei Quellen kommen: vom Worker (dann hat er die
-    neue Hülle schon abgelegt) oder von der App selbst, die beim Server
-    nachgefragt hat (`lib/fassungPruefen.ts`). Im zweiten Fall weiß der
-    Worker unter Umständen noch von nichts, und ein sofortiges Laden holte
-    die alte Hülle. Ein Weg für beide Quellen ist der einzige, der in beiden
-    Fällen richtig ist.
-
-    Gelöscht wird dabei NICHTS — deshalb ist es unschädlich, dass die alte
-    Seite noch bis zu zwei Sekunden weiterläuft.
-  */
-  await huelleErneuernUndNeuLaden();
+  window.location.reload();
+  return 'neuGeladen';
 }
 
 /**
@@ -256,6 +336,12 @@ function aufraeumenFallsUebernommen(): void {
  * hilft ohnehin nichts, und stehenbleiben ist der schlechtere Ausgang.
  */
 export async function huelleErneuernUndNeuLaden(): Promise<void> {
-  await workerFragen('aufNeueFassungPruefen', 'fassungGeprueft');
+  /*
+    Geladen wird hier in jedem Fall: die Seite ist schon kaputt, und das
+    Neuladen ist das Einzige, was sie heilt. Gefragt wird trotzdem als
+    WECHSEL — dann wartet der Seitenaufruf beim Worker die Ablage ab, statt
+    nach kurzer Zeit die alte Hülle mit dem fehlenden Baustein zu bekommen.
+  */
+  await wechselAnfragen();
   window.location.reload();
 }

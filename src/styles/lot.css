@@ -71,7 +71,9 @@
   }
   .fenster-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
   @media (min-width: 760px) { .fenster-kopf { padding: 1rem 1.25rem; } }
-  .fenster-schliessen { flex: none; white-space: nowrap; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: var(--text-muted); font-size: 0.875rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  /* „Schließen“ ist eine Handlung und sieht aus wie der Zweitknopf (E72) — nicht wie ein unterstrichenes Wort. */
+  .fenster-schliessen { flex: none; white-space: nowrap; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); color: var(--text); font-size: 0.875rem; cursor: pointer; transition: border-color var(--motion-state, 160ms) var(--ease-response, ease); }
+  .fenster-schliessen:hover { border-color: var(--brand-fixed); }
   .fenster-titel { font-size: 1.125rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .fenster-inhalt { min-width: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; max-height: 70vh; padding-top: 1rem; }
   @media (min-width: 760px) { .fenster-inhalt { flex: 1; max-height: none; padding: 1.25rem; } }
@@ -109,17 +111,26 @@
   .arbeitszeile-inhalt { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.75rem; padding: 0.375rem 0; background: none; border: 0; text-align: left; color: inherit; cursor: pointer; }
   .arbeitszeile-inhalt:hover { color: var(--accent-deep); }
   @media (max-width: 759px) { .arbeitszeile-inhalt { flex-direction: column; align-items: flex-start; gap: 0.25rem; } }
-  .arbeitszeile-schritt { flex: none; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); color: var(--accent-deep); border: 1px solid var(--petrol); border-radius: var(--radius); font-weight: var(--gewicht-titel); font-size: 0.875rem; white-space: nowrap; cursor: pointer; }
-  .arbeitszeile-schritt:hover { background: var(--petrol-hell); }
+  /* Der nächste Schritt in einer Zeile ist ein Zweitknopf wie überall (E72, R2) — nicht eine eigene Petrol-Gestalt. */
+  .arbeitszeile-schritt { flex: none; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font-weight: 400; font-size: 0.875rem; white-space: nowrap; cursor: pointer; }
+  .arbeitszeile-schritt:hover { border-color: var(--brand-fixed); }
   .arbeitszeile-schritt:disabled { opacity: 0.5; cursor: not-allowed; }
-  .sammelleiste { position: sticky; top: 0; z-index: 12; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--petrol); color: #ffffff; border-radius: var(--radius-lg); }
+  /*
+    DIE SAMMELLEISTE IST EIN BLATT (E72) wie die Leiste des Warenkorbs (E47):
+    eckig, Linie rundum, Haupt- und Zweitknopf — keine Petrolfläche mit
+    festen Farben, die dunkel hart aus dem Bild leuchtete.
+  */
+  .sammelleiste { position: sticky; top: 0; z-index: 12; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); }
+  /* Ab dem Tablet ein Blatt im Takt: 72 px hoch, Text auf der 24-px-Flucht. */
+  @media (min-width: 760px) { .sammelleiste { min-height: 4.5rem; padding: 0.75rem 1.5rem; } }
   @media (max-width: 759px) {
-    .sammelleiste { position: fixed; left: 0; right: 0; top: auto; bottom: var(--reiter-hoehe, 0px); z-index: 22; border-radius: 0; }
+    .sammelleiste { position: fixed; left: 0; right: 0; top: auto; bottom: var(--reiter-hoehe, 0px); z-index: 22; border-inline: 0; border-bottom: 0; }
   }
   .sammelleiste-knoepfe { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
-  .sammel-knopf { min-height: 2.75rem; padding: 0 0.875rem; background: #ffffff; color: #0f4552; border: 0; border-radius: var(--radius); font-weight: var(--gewicht-titel); cursor: pointer; }
+  .sammel-knopf { min-height: 2.75rem; padding: 0 1rem; background: var(--brand); color: var(--brand-fg); border: 1px solid var(--brand); border-radius: var(--radius); font-weight: var(--gewicht-titel); cursor: pointer; }
   .sammel-knopf:disabled { opacity: 0.6; cursor: not-allowed; }
-  .sammel-text { min-height: 2.75rem; background: none; border: 0; color: #ffffff; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .sammel-text { min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); color: var(--text); cursor: pointer; }
+  .sammel-text:hover { border-color: var(--brand-fixed); }
 
   /* ── Kurzzeile (Akten) ────────────────────────────────────────────────── */
   .kurz { border-top: 1px solid var(--border); }
@@ -170,6 +181,24 @@
   /* Kein Trennstrich im Wort („Weg-zeit“): umbrochen wird zwischen den Wörtern. */
   .weiteres-kopf { display: flex; flex-wrap: wrap; align-items: center; min-height: 2.75rem; padding: 0.375rem 0; cursor: pointer; font-weight: var(--gewicht-titel); color: var(--accent-deep); list-style: none; hyphens: manual; -webkit-hyphens: manual; }
   .weiteres-zusatz { flex-basis: 100%; font-size: 0.875rem; line-height: 1.25rem; font-weight: 400; color: var(--text-muted); }
+  /*
+    DER PFEIL ZEIGT, DASS SICH ETWAS AUFKLAPPEN LÄSST (09.11.2026). Ohne ihn
+    stand „Änderungsprotokoll deiner Buchungen“ da wie eine verirrte
+    Überschrift. Dasselbe Zeichen wie an den Wochen der Zeiterfassung, fest
+    am rechten Rand und senkrecht mittig — auch wenn der Titel umbricht oder
+    ein Hinweis (`.weiteres-zusatz`) darunter steht; geöffnet zeigt er nach
+    oben. Die ganze Zeile ist die Tastfläche.
+  */
+  .weiteres-kopf, .weiteres-knopf { position: relative; padding-right: 1.75rem; }
+  .weiteres-kopf::after, .weiteres-knopf::after {
+    content: ''; position: absolute; right: 0; top: 50%; width: 1rem; height: 1rem; transform: translateY(-50%);
+    background: var(--text-placeholder);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 1rem 1rem no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 1rem 1rem no-repeat;
+    transition: transform var(--motion-state, 160ms) var(--ease-response, ease);
+  }
+  details[open] > .weiteres-kopf::after, .weiteres-knopf[aria-expanded='true']::after { transform: translateY(-50%) rotate(180deg); }
+  .weiteres-kopf:hover::after, .weiteres-knopf:hover::after { background: var(--accent-deep); }
   .weiteres-kopf::-webkit-details-marker { display: none; }
   .weiteres-kopf::marker { content: ''; }
   .weiteres-inhalt { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 0.5rem; }
@@ -275,27 +304,40 @@
 
   .unten { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom, 0px); }
   @media (min-width: 760px) { .unten { display: none; } }
-  .unten-punkt, .unten-punkt-aktiv { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.125rem; min-height: 3.5rem; padding: 0.5rem 0.125rem 0.625rem; background: none; border: 0; color: var(--text-muted); font-size: 0.6875rem; line-height: 0.875rem; text-decoration: none; cursor: pointer; }
+  .unten-punkt, .unten-punkt-aktiv { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.125rem; min-height: 3.5rem; padding: 0.5rem 0 0.625rem; background: none; border: 0; color: var(--text-muted); font-size: 0.6875rem; line-height: 0.875rem; text-decoration: none; cursor: pointer; }
   .unten-punkt-aktiv { color: var(--accent-deep); font-weight: var(--gewicht-titel); }
   .unten-symbol { position: relative; display: flex; }
   .unten-zahl { position: absolute; top: -0.375rem; right: -0.75rem; display: flex; }
-  .unten-text { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 0.125rem; }
+  /*
+    DAS LÄNGSTE WORT GANZ (09.11.2026). „Rechnungen“ als aktiver, halbfetter
+    Punkt brauchte bei 390 px zwei, drei Pixel mehr, als die Fünftelbreite
+    nach je 2 px Innenabstand in Punkt und Text übrig liess — es stand
+    „Rechnung…“ da. Der seitliche Innenabstand von Punkt und Text entfällt
+    (bei 360 px fehlten sonst noch 2 px); die Punkte stossen ohnehin ohne
+    Linie aneinander, die Tastfläche bleibt die Fünftelbreite. „…“ bleibt
+    das Fangnetz für Längeres.
+  */
+  .unten-text { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; }
 
   /* ── Blatt „Mehr“ und Profil ─────────────────────────────────────────── */
-  .mehr-gruppe { margin: 0.75rem 0.25rem 0.25rem; font-size: 0.75rem; font-weight: var(--gewicht-titel); color: var(--text-muted); }
+  /* Gruppenköpfe wie in der Seitenleiste (E72): Versalien, gesperrt, mit Linie — dieselbe Ordnung auf jedem Gerät. */
+  .mehr-gruppe { display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0.75rem 0.375rem; font-size: 0.625rem; line-height: 1rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); }
+  .mehr-gruppe::after { content: ''; flex: 1; height: 1px; background: var(--border); }
   .mehr-punkt, .mehr-punkt-aktiv { display: flex; align-items: center; gap: 0.75rem; min-height: 3rem; padding: 0.5rem 0.75rem; border-radius: var(--radius); color: var(--text); text-decoration: none; background: none; border: 0; width: 100%; text-align: left; font-size: 0.9375rem; cursor: pointer; }
   .mehr-punkt:hover { background: var(--petrol-hell); }
   .mehr-punkt-aktiv { background: var(--petrol-hell); color: var(--accent-deep); font-weight: var(--gewicht-titel); }
 
   /* ── Suchfenster (Strg + K) ──────────────────────────────────────────── */
-  .suchfenster { position: absolute; top: 12vh; left: 0; right: 0; margin: 0 auto; width: 35rem; max-width: 94vw; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; }
+  /* Am Handy 16 px vom Rand wie jede Seite (vorher 94vw = 12 px). */
+  .suchfenster { position: absolute; top: 12vh; left: 1rem; right: 1rem; margin: 0 auto; width: auto; max-width: 35rem; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; }
   .suchfeld { width: 100%; border: 0; border-bottom: 1px solid var(--border); padding: 1rem 1.25rem; font-size: 1.0625rem; background: var(--surface); color: var(--text); }
   .suchfeld:focus { outline: none; box-shadow: none; border-color: var(--border); }
   .such-liste { max-height: 55vh; overflow-y: auto; overscroll-behavior: contain; padding: 0.25rem 0 0.5rem; }
   .such-gruppe { padding: 0.625rem 1.25rem 0.25rem; font-size: 0.75rem; font-weight: var(--gewicht-titel); color: var(--text-muted); }
   .such-treffer, .such-treffer-an { display: flex; align-items: center; gap: 0.75rem; min-height: 2.75rem; padding: 0.375rem 1.25rem; color: var(--text); cursor: pointer; }
   .such-treffer-an { background: var(--petrol-hell); color: var(--accent-deep); }
-  .such-nebeninfo { margin-left: auto; font-size: 0.8125rem; color: var(--text-muted); }
+  /* Die Baustellennummer bricht nicht in drei Zeilen („B-/2026-/0147“): sie bleibt ganz, der Name daneben nimmt den Rest. */
+  .such-nebeninfo { flex: none; margin-left: auto; white-space: nowrap; font-size: 0.8125rem; color: var(--text-muted); }
   .such-leer { padding: 1rem 1.25rem; color: var(--text-muted); font-size: 0.9375rem; }
 }
 
@@ -349,7 +391,8 @@
   .listenleiste-zusatz { flex: none; max-width: 100%; }
   .listenleiste-suche { display: flex; align-items: center; gap: 0.5rem; flex: 1 1 14rem; min-width: 0; min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text-muted); }
   .listenleiste-suche:focus-within { border-color: var(--brand-fixed); box-shadow: 0 0 0 1px var(--brand-fixed); }
-  .listenleiste-suche input { flex: 1; min-width: 0; padding: 0.5rem 0; border: 0; background: transparent; color: var(--text); font-size: 1rem; }
+  /* Ein langer Hinweis endet am Handy mit „…“ statt mitten im Wort abgeschnitten („Kunde, Baustelle oder Mona“, 09.11.2026). */
+  .listenleiste-suche input { flex: 1; min-width: 0; padding: 0.5rem 0; border: 0; background: transparent; color: var(--text); font-size: 1rem; text-overflow: ellipsis; }
   .listenleiste-suche input::placeholder { color: var(--text-placeholder); }
   /* Der Fokusring wie bei jedem Feld (3 px), aber um Lupe und Feld zusammen — ein Ring ums Eingabefeld darin säße mitten im Rahmen. */
   .listenleiste-suche input:focus-visible { outline: none; }

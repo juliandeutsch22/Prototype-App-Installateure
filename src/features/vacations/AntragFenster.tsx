@@ -2,11 +2,11 @@ import type { ReactNode } from 'react';
 import type { Freistellung, Vacation } from '@/types';
 import BottomSheet from '@/components/BottomSheet';
 import { LotVerlauf, type LotPunkt } from '@/components/LotBausteine';
-import { datumAusMs } from '@/lib/datum';
+import { datumAT, datumAusMs } from '@/lib/datum';
 import { todayStr } from '@/lib/time';
 import { ART_NAME, istArztbesuch } from '@shared/freistellung';
 import { ablehnungVermerk, anrechnungVermerk, freistellungWas, freistellungZeitraum, nachweisVermerk, ueberVermerk } from './freistellungText';
-import { zeitraumText } from './abwesenheitText';
+import { tageText, zeitraumText } from './abwesenheitText';
 
 /**
  * EIN ANTRAG MIT SEINEM VERLAUF (Protokoll E8: „Urlaub und Anträge — Antrag
@@ -111,6 +111,18 @@ export function UrlaubsantragFenster({
           text: vonUndGrund(v.entschiedenVonName, v.grund),
         });
       }
+    }
+    /*
+      KRANK IM URLAUB (§ 5 UrlG): welche Tage nicht als Urlaub zählen — am
+      Antrag, damit der kürzere Urlaub nicht wie ein Rechenfehler aussieht.
+    */
+    if (v.krankTage && v.krankTage.length > 0) {
+      const zuletzt = v.krankTage.map((k) => k.am ?? '').filter(Boolean).sort().slice(-1)[0];
+      punkte.push({
+        titel: 'Krankenstand im Urlaub',
+        zeit: zuletzt ? am(Date.parse(zuletzt)) : undefined,
+        text: `${tageText(v.krankTage.reduce((n, k) => n + (Number(k.anteil) || 0), 0))} nicht als Urlaub gezählt (§ 5 UrlG): ${v.krankTage.map((k) => datumAT(k.tag)).join(', ')}`,
+      });
     }
     if (v.status === 'Genehmigt') {
       punkte.push({

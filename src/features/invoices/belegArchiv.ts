@@ -339,7 +339,9 @@ export async function belegArchiv(o: {
     `Übersicht der letzten Mahnstufe je Rechnung: ${gemahnt.length ? MAHNUNGEN_CSV : 'keine'}`,
     '',
     'Jede Mahnung ab dem 10.10.2026 ist so gedruckt, wie sie hinausging;',
-    'Briefkopf und Bankverbindung stammen aus den heutigen Betriebsdaten.',
+    // Seit 24.10.2026 trägt jeder Beleg den Firmenstand seiner Ausstellung (`aussteller_staende`).
+    'Briefkopf und Bankverbindung tragen den Stand vom Tag ihrer Ausstellung',
+    '(bei Mahnungen vor dem 24.10.2026 die heutigen Betriebsdaten).',
     'Von älteren Mahnungen ist nur die letzte Stufe je Rechnung gespeichert —',
     'sie stehen in der Übersicht, ohne Schreiben.',
     'Alle übrigen Daten enthält die Datei aus „Alle Daten herunterladen“',

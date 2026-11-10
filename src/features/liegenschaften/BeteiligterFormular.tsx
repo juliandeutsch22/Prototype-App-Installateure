@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { beteiligterAendern, beteiligterAnlegen, type BeteiligterEingabe } from '@/lib/db/liegenschaften';
 import { BETEILIGTEN_ROLLEN, type BeteiligtenRolle, type LiegenschaftBeteiligter, type LiegenschaftTop } from '@/types';
 import KundenAuswahl from '@/components/KundenAuswahl';
@@ -31,6 +31,7 @@ export default function BeteiligterFormular({
   vorgabeTopId,
   onGespeichert,
   onAbbrechen,
+  zusatz,
 }: {
   companyId: string;
   liegenschaftId: string;
@@ -39,6 +40,13 @@ export default function BeteiligterFormular({
   vorgabeTopId?: string;
   onGespeichert: () => void;
   onAbbrechen: () => void;
+  /**
+   * Weitere Handlungen am Beteiligten („Zum Kunden machen“, „Entfernen“) —
+   * ÜBER dem Fensterfuß, im Formular (E72): danach stünden sie unter einer
+   * klebenden Fußleiste, die bis an die Kante reicht. Knöpfe darin brauchen
+   * `type="button"`.
+   */
+  zusatz?: ReactNode;
 }) {
   const toast = useToast();
   const [f, setF] = useState({
@@ -146,9 +154,13 @@ export default function BeteiligterFormular({
       </FormGrid>
 
       {fehler && <ErrorState message={fehler} />}
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" loading={speichert}>{beteiligter ? 'Änderung speichern' : 'Beteiligten eintragen'}</Button>
-        <Button type="button" variant="ghost" onClick={onAbbrechen} disabled={speichert}>Abbrechen</Button>
+      {zusatz}
+      {/* Der Fensterfuß wie überall (E72, R7): Linie darüber, Abbrechen gerahmt, die Hauptaktion zuletzt. */}
+      <div className="planung-fuss mt-0">
+        <div className="planung-fuss-knoepfe">
+          <Button type="button" variant="secondary" onClick={onAbbrechen} disabled={speichert}>Abbrechen</Button>
+          <Button type="submit" loading={speichert}>{beteiligter ? 'Änderung speichern' : 'Beteiligten eintragen'}</Button>
+        </div>
       </div>
     </form>
   );

@@ -52,6 +52,8 @@ let katalogHalten = false;
 let katalogSenden: () => void = () => undefined;
 /** Was die Ansicht beim Server angefragt hat — Suchbegriff und Länge der Seite. */
 let katalogAbfragen: { begriff: string; anzahl: number }[] = [];
+/** Mit welcher Wahl der Katalog gefragt wurde — „nur anforderbar“ (10.11.2026). */
+let katalogWahl: unknown[] = [];
 /** Meldet der Ansicht eine Änderung im Katalog, wie es der Live-Kanal täte. */
 let katalogGeaendert: () => void = () => undefined;
 /** Hält die eigenen Anforderungen zurück, bis der Test sie schickt. */
@@ -67,8 +69,9 @@ vi.mock('@/lib/db/materials', () => ({
     Wie der Server (18.10.2026): nach Namen, gesucht in Bezeichnung,
     Kategorie und Artikelnummer, die ersten `anzahl` und die Zahl aller Treffer.
   */
-  katalogSeite: (_c: string, begriff: string, anzahl: number) => {
+  katalogSeite: (_c: string, begriff: string, anzahl: number, wie?: unknown) => {
     katalogAbfragen.push({ begriff, anzahl });
+    katalogWahl.push(wie);
     const ergebnis = () => {
       const treffer = katalogTreffer(begriff);
       return { zeilen: treffer.slice(0, anzahl), gesamt: treffer.length };
@@ -162,6 +165,7 @@ beforeEach(() => {
   localStorage.clear();
   materialien = [ROHR, DICHTUNG];
   katalogAbfragen = [];
+  katalogWahl = [];
   katalogGeaendert = () => undefined;
   projekte = [MIT_LEITUNG, OHNE_LEITUNG];
   eigene = [];
@@ -581,7 +585,7 @@ describe('Material anfordern — gescheiterte Ladevorgänge', () => {
 
   it('sagt bei einer erfolglosen Suche, dass es an der Suche liegt', async () => {
     zeige();
-    await userEvent.type(await screen.findByRole('textbox', { name: /Suche/ }), 'Wasserhahn');
+    await userEvent.type(await screen.findByRole('searchbox', { name: /Suche/ }), 'Wasserhahn');
     expect(await screen.findByText('Kein Material passt zur Suche.')).toBeInTheDocument();
     // Gegenprobe zum leeren Katalog: hier die Lupe, nicht das Regal.
     expect(document.querySelector('.lot-zeichnung-leer[data-motiv="suche"]')).not.toBeNull();
@@ -590,7 +594,7 @@ describe('Material anfordern — gescheiterte Ladevorgänge', () => {
 
   it('sucht auch über Kategorie und Artikelnummer', async () => {
     zeige();
-    await userEvent.type(await screen.findByRole('textbox', { name: /Suche/ }), 'KR15');
+    await userEvent.type(await screen.findByRole('searchbox', { name: /Suche/ }), 'KR15');
     // Gesucht wird auf dem Server, kurz nach dem letzten Tastendruck.
     await waitFor(() => expect(screen.queryByText('Dichtung 1/2"')).not.toBeInTheDocument());
     expect(screen.getByText('Kupferrohr 15mm')).toBeInTheDocument();
@@ -621,11 +625,24 @@ describe('Material anfordern — der Katalog vom Server', () => {
     expect(screen.getByRole('button', { name: 'und 5 weitere anzeigen' })).toBeInTheDocument();
   });
 
+  /*
+    AUSGELAUFENES NICHT NEU ANFORDERN (Prüfbericht 10.11.2026) — wie bei den
+    übrigen Erfassungen; was davon noch im Lager liegt, filtert die
+    Datenbank nicht weg (`katalogSeite`, geprüft in tests/supabase).
+  */
+  it('fragt den Katalog „nur anforderbar“ — ohne Ausgelaufenes', async () => {
+    materialien = [artikel(1)];
+    zeige();
+    expect(await screen.findByText('Artikel 0001')).toBeInTheDocument();
+    expect(katalogWahl.length).toBeGreaterThan(0);
+    expect(katalogWahl.every((w) => (w as { nurAnforderbar?: boolean } | undefined)?.nurAnforderbar === true)).toBe(true);
+  });
+
   it('findet auch, was hinter den ersten tausend Artikeln liegt', async () => {
     materialien = [...Array.from({ length: 1200 }, (_, i) => artikel(i)), artikel(9999, 'Zylinderkopf Pressfitting 22')];
     zeige();
     await screen.findByText('Artikel 0000');
-    await userEvent.type(screen.getByRole('textbox', { name: /Suche/ }), 'Pressfitting');
+    await userEvent.type(screen.getByRole('searchbox', { name: /Suche/ }), 'Pressfitting');
     expect(await screen.findByText('Zylinderkopf Pressfitting 22')).toBeInTheDocument();
     expect(screen.queryByText('Artikel 0000')).not.toBeInTheDocument();
   });
@@ -1013,5 +1030,52 @@ describe('Material anfordern — Rückgabe sichtbar', () => {
     zeige();
     await screen.findByRole('button', { name: /^Material zurückgeben/ });
     expect(screen.queryByRole('dialog', { name: 'Material zurückgeben' })).toBeNull();
+  });
+});
+
+/*
+  E72 (09.11.2026) — gemessen in der Vorschau: „−“ und „+“ standen als graue
+  Zeichen ohne Rahmen neben der Menge, die Suche war ein beschriftetes Feld
+  ohne Lupe über die ganze Breite, die Baustellenwahl 1128 px breit, „Abgeholt“
+  in jeder Zeile gefüllt, und die Knöpfe des Warenkorbs brachen bei 390 px um.
+  Gegenprobe: mit dem Stand davor sind diese Prüfungen rot.
+*/
+describe('Material anfordern — Knöpfe und Fluchten der Linie (E72)', () => {
+  it('Minus und Plus sind gerahmte Steuerknöpfe wie der Zweitknopf, 48 px wie das Mengenfeld', async () => {
+    zeige();
+    const minus = await screen.findByRole('button', { name: 'Menge für Kupferrohr 15mm verringern' });
+    const plus = screen.getByRole('button', { name: 'Menge für Kupferrohr 15mm erhöhen' });
+    for (const k of [minus, plus]) expect(k).toHaveClass('border', 'border-line-strong', 'bg-surface', 'text-ink', 'min-h-touch');
+    expect(screen.getByRole('textbox', { name: /Menge m für Kupferrohr 15mm/ })).toHaveClass('h-12', 'border-line-strong');
+  });
+
+  it('die Suche steht als Listenleiste mit Lupe im Blatt „Katalog“', async () => {
+    zeige();
+    const suche = await screen.findByRole('searchbox', { name: 'Suche' });
+    expect(suche.closest('.listenleiste-suche')).not.toBeNull();
+    expect(suche.closest('section')).toHaveTextContent(/^Katalog/);
+  });
+
+  it('die Baustellenwahl steht in einem Formular von höchstens 560 px', async () => {
+    zeige();
+    expect((await baustelleFeld()).closest('.formular')).not.toBeNull();
+  });
+
+  it('„Abgeholt“ ist in der Zeile ein Zweitknopf, kein gefüllter', async () => {
+    eigene = [{ id: 'o1', companyId: 'perl', materialName: 'Kupferrohr 15mm', quantity: 2,
+      status: 'Offen', transactionType: 'order', userId: 'u1' } as WithId<MaterialOrder>];
+    zeige();
+    const knopf = await screen.findByRole('button', { name: 'Abgeholt' });
+    expect(knopf).toHaveClass('border-line-strong');
+    expect(knopf).not.toHaveClass('bg-brand');
+  });
+
+  it('der Warenkorb zeigt kurz „Leeren“; die Vorlesehilfe hört weiter „Liste leeren“', async () => {
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
+    const leiste = screen.getByRole('region', { name: 'Warenkorb' });
+    expect(within(leiste).getByRole('button', { name: 'Liste leeren' })).toHaveTextContent(/^Leeren$/);
+    // Gleich geblieben: das Abschicken heißt, wie es hieß.
+    expect(within(leiste).getByRole('button', { name: 'Anforderung (1) abschicken' })).toHaveTextContent('Anforderung (1) abschicken');
   });
 });

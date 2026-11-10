@@ -608,7 +608,33 @@ describe('Die Angebote der Akte', () => {
     */
     zeige();
     await screen.findByText('Kundendaten');
-    expect(listQuotesForCustomer).toHaveBeenCalledWith('perl', 'k1');
+    // Die Obergrenze geht ausdrücklich mit: die Akte sagt, wenn sie erreicht ist.
+    expect(listQuotesForCustomer).toHaveBeenCalledWith('perl', 'k1', 100);
+  });
+
+  /*
+    DIE GRENZE STEHT DA, WIE BEI DEN EINGÄNGEN. Vorher hörte die Liste bei
+    hundert still auf, und nichts unterschied das von „mehr gibt es nicht“.
+  */
+  const viele = (n: number) => Array.from({ length: n }, (_, i) => ({
+    id: `q${i}`, companyId: 'perl', quoteNumber: `AN-2026-${String(i).padStart(4, '0')}`, customerId: 'k1',
+    totalNetto: 100, status: 'Versendet',
+  }) as unknown as Quote & { id: string });
+
+  it('bei hundert Angeboten sagt die Akte, dass ältere die Suche findet', async () => {
+    angebote = viele(100);
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Belege' }));
+    await screen.findByRole('link', { name: 'AN-2026-0000' });
+    expect(document.getElementById('k-angebote')).toHaveTextContent('Die jüngsten 100 — ältere findet die Suche in den Angeboten.');
+  });
+
+  it('Erhaltung: darunter keine Grenzzeile', async () => {
+    angebote = viele(99);
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Belege' }));
+    await screen.findByRole('link', { name: 'AN-2026-0000' });
+    expect(document.getElementById('k-angebote')).not.toHaveTextContent('Die jüngsten');
   });
 });
 

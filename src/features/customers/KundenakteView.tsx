@@ -90,6 +90,9 @@ type Teil<T> = { zustand: 'laedt' } | { zustand: 'fehler' } | { zustand: 'bereit
 /** So viele Eingänge zeigt die Akte — die jüngsten; alle stehen im Auftragseingang. */
 const EINGAENGE_HOECHSTENS = 20;
 
+/** So viele Angebote zeigt die Akte — die jüngsten; ältere findet die Suche der Angebotsliste. */
+const ANGEBOTE_HOECHSTENS = 100;
+
 const LAEDT = { zustand: 'laedt' } as const;
 
 export default function KundenakteView() {
@@ -286,7 +289,7 @@ export default function KundenakteView() {
   useEffect(() => {
     if (!companyId || !id || !angeboteAn || !darfAngebote) return;
     let weg = false;
-    listQuotesForCustomer(companyId, id)
+    listQuotesForCustomer(companyId, id, ANGEBOTE_HOECHSTENS)
       .then((q) => !weg && setAngebote({ zustand: 'bereit', daten: q }))
       .catch(() => !weg && setAngebote({ zustand: 'fehler' }));
     return () => {
@@ -582,21 +585,27 @@ export default function KundenakteView() {
       ) : angebote.daten.length === 0 ? (
         <EmptyState>Noch kein Angebot.</EmptyState>
       ) : (
-        <ul className="divide-y divide-line">
-          {angebote.daten.map((q) => (
-            <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
-              <Link
-                to={`/quotes/${q.id}`}
-                className="link inline-flex min-h-touch min-w-0 items-center text-sm"
-              >
-                <span className="truncate">{q.quoteNumber}</span>
-              </Link>
-              <span className="text-sm text-ink-muted">
-                {euro(q.totalNetto)} netto · {q.status}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="divide-y divide-line">
+            {angebote.daten.map((q) => (
+              <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
+                <Link
+                  to={`/quotes/${q.id}`}
+                  className="link inline-flex min-h-touch min-w-0 items-center text-sm"
+                >
+                  <span className="truncate">{q.quoteNumber}</span>
+                </Link>
+                <span className="text-sm text-ink-muted">
+                  {euro(q.totalNetto)} netto · {q.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {/* Die Grenze sagen, statt still bei hundert aufzuhören — wie bei den Eingängen. */}
+          {angebote.daten.length >= ANGEBOTE_HOECHSTENS && (
+            <p className="mt-2 text-sm text-ink-muted">Die jüngsten {ANGEBOTE_HOECHSTENS} — ältere findet die Suche in den Angeboten.</p>
+          )}
+        </>
       )}
     </Card>
   ) : null;
@@ -643,7 +652,7 @@ export default function KundenakteView() {
         stempel={k.kundennummer ? `Nr. ${k.kundennummer}` : undefined}
         meta={<span className="akten-identitaet">
           <Zustand stand={k.active === false ? 'storniert' : 'gut'}>{k.active === false ? 'inaktiv' : 'aktiv'}</Zustand></span>}
-        kontakt={<><TelefonLink nummer={k.contactPhone} name={k.contactName} /><MailLink adresse={k.email} /><a className="akten-verweis" href="#kunde-kontext">Kontakt</a></>}
+        kontakt={<><TelefonLink nummer={k.contactPhone} name={k.contactName} /><MailLink adresse={k.email} /><a className="link-weiter akten-verweis" href="#kunde-kontext">Kontakt</a></>}
         action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>} />
       <AktenBereiche kennung="kunde" kontext={<>
         <Card title="Kontakt"><AktenAngaben>
@@ -655,20 +664,20 @@ export default function KundenakteView() {
         <Card title="Rechnungsanschrift">{k.address?.trim() ? <p><AdresseLink adresse={k.address} /></p>
           : <p className="text-sm text-ink-muted">nicht hinterlegt</p>}</Card>
         {k.notes?.trim() && <Card title="Notiz"><p className="akten-notiz whitespace-pre-line">{k.notes}</p></Card>}
-        {wartungAn && <Card title="Wartungen" action={<AktenVerweis bereich="wartung">Wartungen öffnen →</AktenVerweis>}>
+        {wartungAn && <Card title="Wartungen" action={<AktenVerweis bereich="wartung">Wartungen öffnen</AktenVerweis>}>
           {wartungen.zustand === 'laedt' ? <SkeletonList rows={1} /> : wartungen.zustand === 'fehler' ? <TeilFehler was="die Wartungen" onRetry={() => setVersuch((v) => v + 1)} />
             : <p className="text-sm text-ink-muted">{wartungen.daten.length} {wartungen.daten.length === 1 ? 'Wartungsvereinbarung' : 'Wartungsvereinbarungen'}</p>}
         </Card>}
       </>} bereiche={[
         { id: 'uebersicht', titel: 'Übersicht', inhalt: <div className="akten-spalte">
-          <Card title="Aktive Baustellen" action={<AktenVerweis bereich="baustellen">Alle Baustellen →</AktenVerweis>}>
+          <Card title="Aktive Baustellen" action={<AktenVerweis bereich="baustellen">Alle Baustellen</AktenVerweis>}>
             {baustellen.zustand === 'laedt' ? <SkeletonList rows={2} /> : baustellen.zustand === 'fehler'
               ? <TeilFehler was="die Baustellen" onRetry={() => setVersuch((v) => v + 1)} />
               : baustellen.daten.filter((p) => p.status !== 'Abgeschlossen').length === 0 ? <EmptyState>Keine aktive Baustelle.</EmptyState>
               : <BaustellenZeilen daten={baustellen.daten.filter((p) => p.status !== 'Abgeschlossen').slice(0, 3)} sichtbar={baustellenSichtbar} />}
           </Card>
           {terminKarte && <AktenTerminVorschau stand={terminStand} bereich="wartung" />}
-          {(rechnungKarte || angebotKarte) && <Card title="Jüngste Belege" action={<AktenVerweis bereich="belege">Alle Belege →</AktenVerweis>}>
+          {(rechnungKarte || angebotKarte) && <Card title="Jüngste Belege" action={<AktenVerweis bereich="belege">Alle Belege</AktenVerweis>}>
             <BelegeVorschau rechnungen={rechnungenAn && darfRechnungen ? rechnungen : null} angebote={angeboteAn && darfAngebote ? angebote : null} onRechnung={setOffeneRechnung} />
           </Card>}
         </div> },

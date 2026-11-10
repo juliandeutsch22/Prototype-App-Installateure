@@ -17,9 +17,10 @@ import type { Role, Wartung } from '@/types';
  */
 
 const HEUTE = '2026-06-01';
+let heute = HEUTE;
 vi.mock('@/lib/time', async () => {
   const echt = await vi.importActual<typeof import('@/lib/time')>('@/lib/time');
-  return { ...echt, todayStr: () => HEUTE };
+  return { ...echt, todayStr: () => heute };
 });
 
 let faellig: (Wartung & { id: string })[] = [];
@@ -62,6 +63,7 @@ function zeige() {
 }
 
 beforeEach(() => {
+  heute = HEUTE;
   faellig = [];
   modulAn = true;
   authWert.user.role = 'Geschäftsführung';
@@ -101,6 +103,30 @@ describe('Wenn etwas ansteht', () => {
     zeige();
     await waitFor(() => expect(listFaelligeWartungen).toHaveBeenCalled());
     expect(listFaelligeWartungen.mock.calls[0][1]).toBe('2026-07-01');
+  });
+});
+
+/*
+  DERSELBE VORLAUF WIE DIE LISTE (Prüfbericht 09.11.2026). Gefragt wurde
+  einen Kalendermonat voraus — im Februar 28 Tage, im Juli 31 —, die Liste
+  „Steht an“ rechnet 30 Tage, und der Satz hier sagt „in den nächsten 30
+  Tagen“. Gegenprobe: gegen den Stand davor fragt er bis zum 28.02. (rot).
+*/
+describe('Derselbe Vorlauf wie die Wartungsliste', () => {
+  it('fragt 30 Tage voraus, auch wo der Monat kürzer ist', async () => {
+    heute = '2027-01-31';
+    faellig = [w('a', '2027-03-01')];
+    zeige();
+    expect(await screen.findByText('Eine Wartung steht an')).toBeTruthy();
+    expect(listFaelligeWartungen.mock.calls[0][1]).toBe('2027-03-02');
+    expect(screen.getByText(/Fällig in den nächsten 30 Tagen/)).toBeTruthy();
+  });
+
+  it('beurteilt wie die Liste: heute fällig ist nicht überfällig, gestern schon', async () => {
+    faellig = [w('a', HEUTE), w('b', '2026-05-31')];
+    zeige();
+    expect(await screen.findByText('2 Wartungen stehen an')).toBeTruthy();
+    expect(screen.getByText(/1 davon ist überfällig/)).toBeTruthy();
   });
 });
 

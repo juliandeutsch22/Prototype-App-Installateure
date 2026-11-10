@@ -155,21 +155,68 @@ export async function updateCustomer(
   return Number(anzahl ?? 0);
 }
 
+/*
+  WAS AM KUNDEN HÄNGT UND DAS LÖSCHEN VERHINDERT. Diese fünf Tabellen zeigen
+  ohne `on delete` auf den Kunden — die Datenbank lehnt ab, solange eine
+  Zeile darauf zeigt. Was mitgeht (`on delete cascade`: Termine,
+  UID-Prüfungen, Beteiligungen an Liegenschaften) oder nur den Verweis
+  verliert (`set null`: Auftragseingänge), steht hier nicht: es hindert nicht.
+  Kommt eine Tabelle mit Verweis ohne `on delete` dazu, gehört sie hierher.
+*/
+const HAENGT: { tabelle: string; eins: string; mehr: string }[] = [
+  { tabelle: BAUSTELLEN, eins: 'Baustelle', mehr: 'Baustellen' },
+  { tabelle: 'quotes', eins: 'Angebot', mehr: 'Angebote' },
+  { tabelle: 'wartungen', eins: 'Wartung', mehr: 'Wartungen' },
+  { tabelle: 'work_sheets', eins: 'Handwerksschein', mehr: 'Handwerksscheine' },
+  { tabelle: 'invoices', eins: 'Rechnung', mehr: 'Rechnungen' },
+];
+
+function aufzaehlen(teile: string[]): string {
+  return teile.length <= 1 ? teile.join('') : `${teile.slice(0, -1).join(', ')} und ${teile[teile.length - 1]}`;
+}
+
 /**
- * Kunde löschen — nur ohne Baustellen.
+ * Kunde löschen — nur, solange nichts mehr an ihm hängt.
  *
  * Die Prüfung bleibt im Code und wandert nicht in einen Fremdschlüssel: die
- * Meldung nennt die ANZAHL der Baustellen, und das ist der Satz, den der
+ * Meldung nennt, WAS hängt und wie viel, und das ist der Satz, den der
  * Benutzer braucht. Ein `on delete restrict` sagte nur „geht nicht".
+ *
+ * VORHER ZÄHLTE NUR DIE BAUSTELLE. Ein Kunde mit Angebot, Wartung,
+ * Handwerksschein oder Rechnung lief durch die Prüfung, und die Datenbank
+ * lehnte mit „update or delete on table "customers" violates foreign key
+ * constraint …“ ab — auf Englisch, im Büro. Verworfene Angebote zählen mit:
+ * sie liegen im Papierkorb, zeigen aber weiter auf den Kunden.
+ *
+ * WAS DIE ROLLE NICHT SIEHT, ZÄHLT SIE NICHT. Kunden pflegen darf auch die
+ * Verwaltung; Angebote und Rechnungen liest sie nicht. Dann bleibt die Zahl
+ * bei null, und die Datenbank lehnt doch ab — deshalb wird auch deren
+ * Ablehnung übersetzt, mit der Art, die sie nennt.
  */
 export async function deleteCustomer(companyId: string, id: string) {
-  const betroffen = await listProjectsForCustomer(companyId, id);
-  if (betroffen.length > 0) {
-    throw new Error(
-      `Der Kunde hat noch ${betroffen.length} ${betroffen.length === 1 ? 'Baustelle' : 'Baustellen'}.`,
-    );
+  const kunde: Bedingung = { art: 'gleich', feld: 'customerId', wert: id };
+  const [anzahlen, verworfen] = await Promise.all([
+    Promise.all(HAENGT.map((h) => zaehlen(h.tabelle, companyId, { wo: [kunde] }))),
+    zaehlen('quotes', companyId, { wo: [kunde, { art: 'gleich', feld: 'status', wert: 'Verworfen' }] }),
+  ]);
+  const teile = HAENGT.flatMap((h, i) => {
+    const n = anzahlen[i];
+    if (n === 0) return [];
+    const text = `${n} ${n === 1 ? h.eins : h.mehr}`;
+    if (h.tabelle !== 'quotes' || verworfen === 0) return [text];
+    return [verworfen === n ? `${text} im Papierkorb` : `${text} (davon ${verworfen} im Papierkorb)`];
+  });
+  if (teile.length > 0) {
+    throw new Error(`Der Kunde lässt sich nicht löschen: an ihm hängen noch ${aufzaehlen(teile)}.`);
   }
-  await loeschen(KUNDEN, id);
+  try {
+    await loeschen(KUNDEN, id);
+  } catch (e) {
+    const tabelle = /violates foreign key constraint "(\w+?)_customer_id_fkey"/.exec((e as Error).message)?.[1];
+    const art = HAENGT.find((h) => h.tabelle === tabelle);
+    if (art) throw new Error(`Der Kunde lässt sich nicht löschen: an ihm hängen noch ${art.mehr}.`);
+    throw e;
+  }
 }
 
 export function assignProjectToCustomer(

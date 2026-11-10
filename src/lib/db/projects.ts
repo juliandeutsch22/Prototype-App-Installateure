@@ -70,7 +70,10 @@ export function createProject(companyId: string, p: NewProject): Promise<string>
   return pg.createProject(companyId, p);
 }
 
-export function updateProject(id: string, data: Partial<Project>): Promise<void> {
+/** Was beim Ändern mitgeht — `null` leert Abrechnungsart und Stundenbudget (siehe `pg/projects.ts`). */
+export type ProjektAenderung = pg.ProjektAenderung;
+
+export function updateProject(id: string, data: ProjektAenderung): Promise<void> {
   return pg.updateProject(id, data);
 }
 

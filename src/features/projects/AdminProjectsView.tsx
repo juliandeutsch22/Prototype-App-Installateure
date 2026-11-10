@@ -24,6 +24,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
 import {
+  listActiveProjects,
   subscribeRecentProjects,
   createProject,
   deleteProject,
@@ -248,6 +249,15 @@ export default function AdminProjectsView() {
   const adressFilter = bekannterWert(BAUSTELLEN_FILTER, suchparameter.get('filter'));
   const [lage, setLage] = useState<{ art: BaustellenFilter; nummern: Set<string> } | null>(null);
   const [nurMeine, setNurMeine] = useState(false);
+  /*
+    DIE LAUFENDEN BAUSTELLEN OHNE ALTERSGRENZE — wie der Arbeitsstand der
+    Anforderungen. Die Liste oben sind die zuletzt angelegten 300; die
+    Startseite zählt „Ende überschritten“, „ohne Projektleiter“ und das
+    Budget aber über alle laufenden (`listActiveProjects`). Eine ältere
+    aktive Baustelle fehlte dann im Filter, auf den die Startseite führt,
+    und im Schriftfeld. `null`: noch unterwegs.
+  */
+  const [laufende, setLaufende] = useState<WithId<Project>[] | 'fehler' | null>(null);
 
   /**
    * Auf eine Baustelle gehören Monteure, nicht Büro und nicht Leitung.
@@ -319,6 +329,22 @@ export default function AdminProjectsView() {
     // eine neue Grenze heisst also ein neues Abo.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- belegschaftMerken hängt nur am Benutzer
   }, [user, grenze]);
+
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    void (async () => {
+      try {
+        const rows = await listActiveProjects(user.companyId);
+        if (!weg) setLaufende(rows);
+      } catch {
+        if (!weg) setLaufende('fehler');
+      }
+    })();
+    return () => {
+      weg = true;
+    };
+  }, [user]);
 
   /*
     DIESES FORMULAR LEGT NUR NOCH AN. Geändert wird in der Akte der
@@ -451,6 +477,17 @@ export default function AdminProjectsView() {
     () => [...projects].sort((a, b) => byNewest(a, b)),
     [projects],
   );
+  /*
+    Worüber Schriftfeld und Startseiten-Filter rechnen: die Live-Liste und
+    dazu die laufenden, die nicht in ihr stehen. Die Live-Liste zuerst — sie
+    ist für dieselbe Baustelle der jüngere Stand. Kommen die laufenden nicht,
+    bleibt es bei der Live-Liste wie bisher, und ein Hinweis sagt es.
+  */
+  const basis = useMemo(() => {
+    if (!Array.isArray(laufende)) return sorted;
+    const bekannt = new Set(projects.map((p) => p.id));
+    return [...sorted, ...laufende.filter((p) => !bekannt.has(p.id)).sort((a, b) => byNewest(a, b))];
+  }, [sorted, projects, laufende]);
   /**
    * Was der Suchbegriff meint. Eine Baustellennummer geht auf den Server und
    * findet damit auch, was ausserhalb der geladenen Liste liegt; alles andere
@@ -509,8 +546,8 @@ export default function AdminProjectsView() {
 
   /** Die Nummern der aktiven Baustellen — woran die Auswertung hängt, nicht jede Live-Meldung. */
   const aktiveNummern = useMemo(
-    () => projects.filter((p) => p.status === 'Aktiv').map((p) => p.projectNumber).sort().join('|'),
-    [projects],
+    () => basis.filter((p) => p.status === 'Aktiv').map((p) => p.projectNumber).sort().join('|'),
+    [basis],
   );
   /*
     DER BUDGETSTAND JE BAUSTELLE (Planlinie, E30): dieselbe Rechnung wie die
@@ -523,7 +560,7 @@ export default function AdminProjectsView() {
   useEffect(() => {
     if (!user) return;
     let weg = false;
-    const mitBudget = projects.filter((p) => p.status === 'Aktiv' && (p.estimatedHours ?? 0) > 0);
+    const mitBudget = basis.filter((p) => p.status === 'Aktiv' && (p.estimatedHours ?? 0) > 0);
     void (async () => {
       try {
         const stunden = mitBudget.length ? await stundenDerBaustellen(mitBudget.map((p) => p.projectNumber)) : [];
@@ -543,7 +580,7 @@ export default function AdminProjectsView() {
       return;
     }
     let weg = false;
-    const aktiv = projects.filter((p) => p.status === 'Aktiv');
+    const aktiv = basis.filter((p) => p.status === 'Aktiv');
     void (async () => {
       try {
         const heute = todayStr();
@@ -574,19 +611,21 @@ export default function AdminProjectsView() {
     return { art: 'budget' as BaustellenFilter, nummern: new Set(nummern) };
   }, [adressFilter, budgetJe]);
   const filterLage = adressFilter === 'budget' ? budgetLage : lage;
-  const lageFehlt = (adressFilter === 'budget' || adressFilter === 'ohne-einsatz') && filterLage?.art !== adressFilter;
+  // Mit einem Filter der Startseite wartet die Liste auf die laufenden Baustellen — sonst spränge sie.
+  const lageFehlt = ((adressFilter === 'budget' || adressFilter === 'ohne-einsatz') && filterLage?.art !== adressFilter)
+    || (!!adressFilter && laufende === null);
 
   const budgetListe = budgetJe instanceof Map ? [...budgetJe.values()] : [];
   const ueberBudget = budgetListe.filter((b) => b.pct > 100).length;
   const nahBudget = budgetListe.filter((b) => b.pct >= BUDGET_AB_PROZENT && b.pct <= 100).length;
-  const aktivZahl = projects.filter((p) => p.status === 'Aktiv').length;
-  const endeZahl = projects.filter((p) => endeVorbei(p, todayStr())).length;
+  const aktivZahl = basis.filter((p) => p.status === 'Aktiv').length;
+  const endeZahl = basis.filter((p) => endeVorbei(p, todayStr())).length;
 
   const visible = useMemo(() => {
     const heute = todayStr();
     const nachAdresse = !adressFilter
       ? sorted
-      : sorted.filter((p) => {
+      : basis.filter((p) => {
         switch (adressFilter) {
           case 'aktiv':
             return p.status === 'Aktiv';
@@ -626,13 +665,13 @@ export default function AdminProjectsView() {
     */
     const bekannt = new Set(oertlich.map((p) => p.id));
     return [...oertlich, ...serverTreffer.filter((p) => !bekannt.has(p.id))];
-  }, [sorted, filter, suche, serverTreffer, nurMeine, user, adressFilter, filterLage]);
+  }, [sorted, basis, filter, suche, serverTreffer, nurMeine, user, adressFilter, filterLage]);
 
   /** Wie viele Treffer NUR vom Server kamen — das ist die Aussage, nicht die Summe. */
   const nurVomServer = useMemo(() => {
-    const geladen = new Set(sorted.map((p) => p.id));
+    const geladen = new Set((adressFilter ? basis : sorted).map((p) => p.id));
     return serverTreffer.filter((p) => !geladen.has(p.id)).length;
-  }, [serverTreffer, sorted]);
+  }, [serverTreffer, sorted, basis, adressFilter]);
 
   /*
     NACH STATUS GRUPPIERT (Linie „Lot“, Regel 4): „Aktiv“ vor „Pausiert“ vor
@@ -881,6 +920,8 @@ export default function AdminProjectsView() {
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
+      {/* Ohne die laufenden rechnen Schriftfeld und Filter nur über die geladene Liste — gesagt, nicht verschwiegen. */}
+      {laufende === 'fehler' && <TeilFehler was="Die Liste aller laufenden Baustellen" />}
 
       {adressFilter && (
         <Adressfilter

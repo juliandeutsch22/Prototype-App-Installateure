@@ -76,7 +76,7 @@ function Verlauf({ companyId, objektart, objektId, name, top, kunde, stil = 'wei
         if ((e.currentTarget as HTMLDetailsElement).open && stand === 'zu') erste();
       }}
     >
-      <summary className={stil === 'akte' ? undefined : 'weiteres-kopf'}>{titel}</summary>
+      <summary className="weiteres-kopf">{titel}</summary>
       <div className={stil === 'akte' ? undefined : 'weiteres-inhalt'}>
         {stand === 'laedt' && <p className="text-sm text-ink-muted">Wird geladen …</p>}
         {stand === 'fehler' && (

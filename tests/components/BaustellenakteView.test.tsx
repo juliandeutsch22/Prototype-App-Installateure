@@ -335,11 +335,16 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
     );
   });
 
-  it('macht aus einem geleerten Stundenbudget kein Budget von null', async () => {
+  it('macht aus einem geleerten Stundenbudget kein Budget von null — und leert es wirklich', async () => {
     /*
       `Number('')` ist `0`, und `0` hiesse „null Stunden kalkuliert" — die
       Ampel der Projektauswertung stünde ab da auf Rot. „Kein Budget" ist
       etwas anderes.
+
+      Bis 09.11.2026 erwartete diese Prüfung `undefined` — und schrieb damit
+      den Fehler fest: `undefined` heißt beim Ändern „nicht mitgeschickt“,
+      die Datenbank behielt die 40 h, und die Akte meldete trotzdem
+      „gespeichert“. `null` heißt „leeren“ (`tests/unit/baustelleAendern.test.ts`).
     */
     zeige();
     await bearbeite();
@@ -348,7 +353,31 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
 
     expect(updateProject).toHaveBeenCalledWith(
       'b1',
-      expect.objectContaining({ estimatedHours: undefined }),
+      expect.objectContaining({ estimatedHours: null }),
+    );
+  });
+
+  it('stellt die Abrechnung wirklich auf „nicht festgelegt“ zurück (09.11.2026)', async () => {
+    zeige();
+    await bearbeite();
+    await userEvent.selectOptions(await screen.findByLabelText(/Abrechnung/), '');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    expect(updateProject).toHaveBeenCalledWith(
+      'b1',
+      expect.objectContaining({ billingMode: null }),
+    );
+  });
+
+  it('Gegenprobe: unverändertes Budget und Abrechnung bleiben beim Speichern erhalten', async () => {
+    zeige();
+    await bearbeite();
+    await userEvent.type(await screen.findByLabelText(/Baustellenadresse/), '!');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    expect(updateProject).toHaveBeenCalledWith(
+      'b1',
+      expect.objectContaining({ estimatedHours: 40, billingMode: 'Pauschal' }),
     );
   });
 

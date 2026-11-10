@@ -167,3 +167,16 @@ describe('Liegenschaft und Top (M02c)', () => {
     expect(screen.queryByRole('searchbox', { name: 'Liegenschaft (freiwillig)' })).toBeNull();
   });
 });
+
+/*
+  E72 (09.11.2026), D9: zugeklappt stand „Eingegangen am 2026-11-07, 09:14“ —
+  das Feldformat. Gegenprobe: mit `f.eingegangenAm.replace('T', ', ')` steht
+  die ISO-Form da, und die Prüfung schlägt fehl.
+*/
+describe('Eingegangen am (E72)', () => {
+  it('steht zugeklappt österreichisch da: Tag.Monat.Jahr, Uhrzeit', () => {
+    zeige();
+    expect(screen.getByText(/07\.11\.2026, 09:14/)).toBeInTheDocument();
+    expect(screen.queryByText(/2026-11-07/)).toBeNull();
+  });
+});

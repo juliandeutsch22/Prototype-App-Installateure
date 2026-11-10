@@ -70,7 +70,7 @@ Alle drei erbracht (24.10.2026, T-45 bis T-47); sie stehen unter E.
 | Der Rücklauf hält einen Stand beim Einspielen ganz im Speicher des Rechners, auf dem er läuft (N1, 24.10.2026; geprüft mit 288 MB) | Liegt beim Gerät: der Rücklauf läuft im Ernstfall auf dem Rechner eines Menschen, nicht im Projekt; Node bekommt mit `--max-old-space-size` mehr Speicher |
 | „E-Mail an …“ (Bestellung, Angebot) öffnet das Mailprogramm; die App verschickt nichts an Kunden oder Großhändler und führt keinen Versandnachweis (Stand 24.5, Testbericht Runde 6, Hinweis 12) | Sicherheit und Betrieb: gesendet wird aus dem eigenen Postfach, damit Antworten und die gesendete Nachricht beim Betrieb liegen; die App hält keine Zugangsdaten zu diesem Postfach |
 | Planlinie: Felder und Maßlinien ohne geladene Zahl fehlen — kein Schriftfeld auf Angeboten, Kunden, Material anfordern, Anforderungen, Einstellungen; keine Fassungsbuchstaben, „gültig bis“, Wartung „zuletzt → nächste“, Kunde Offen/Umsatz, Wochensummen der Planung, „Heute/Kommend“ der Zeiterfassung (Stand 26, E30) | Fachlich: Die Zahl wird heute nicht geladen. Sie zu laden wäre eine neue Abfrage, und die schließt der Auftrag aus (§ 7.8) |
-| Stillstandsfrist (Stand 29, 01.11.2026): Schreibvorgänge (Speichern, Edge Functions, Hochladen) haben keine Frist | Sicherheit der Daten: ein abgebrochener Schreibvorgang ist auf dem Server womöglich schon geschehen; ein zweiter Versuch legte ihn doppelt an. Lesen und die Erneuerung der Sitzung haben eine Frist, und die hielten Schreibvorgänge bisher mit auf |
+| Stillstandsfrist (Stand 29, 01.11.2026): Schreibvorgänge (Speichern, Edge Functions, Hochladen) haben keine Frist | Sicherheit der Daten: ein abgebrochener Schreibvorgang ist auf dem Server womöglich schon geschehen; ein zweiter Versuch legte ihn doppelt an. Lesen und die Erneuerung der Sitzung haben eine Frist, und die hielten Schreibvorgänge bisher mit auf. Ausgenommen ist das Ausgangsfach (09.11.2026): jeder Vorgang darin ist wiederholbar gebaut (Kennung vom Gerät, `upsert`, nur aufgezählte Aufrufe und Eimer), deshalb bricht sein Sender nach 60 s (Hochladen: dazu die Zeit für den Inhalt bei 64 kbit/s) wirklich ab, der Vorgang bleibt liegen und geht in derselben Reihenfolge wieder hinaus — ein hängender Vorgang hält das Fach nicht mehr auf. Auch signierte Dateiadressen und Dateilisten (POST, schreiben nichts) haben seither die Lesefrist |
 | Stillstandsfrist: steht die Erneuerung der Sitzung zweimal hintereinander still, kann der Anmeldedienst sie als wiederverwendet werten und abmelden (Stand 29) | Liegt beim Anmeldedienst: er erkennt so gestohlene Tokens (`refresh_token_reuse_interval`, 10 s). Der erste Wiederholungsversuch liegt innerhalb des Fensters; der schlimmste Fall ist neu anmelden statt endlos warten |
 | Ein Seitenbaustein, der hängt, braucht ein Neuladen der App (Stand 29) | Liegt beim Browser: er merkt sich den hängenden Abruf eines Moduls und holt ihn nicht neu; die App lädt deshalb nach der Frist selbst neu |
 | Raster und Blätter (Stand 30, E33): Fenster, Dialoge und das Blatt am Handy folgen dem Raster nicht | Fachlich: sie liegen über der Seite, ihre Lage bestimmt das Fenster |
@@ -231,3 +231,95 @@ Nachtlauf darf nicht wegzuklicken sein.
   zeigt dort jetzt ehrlich „bekommt noch keine Meldungen“; einmal
   „Auf diesem Gerät einschalten“ genügt. Grund: Datenschutz — wer
   abgeschaltet hat, bleibt aus.
+
+## Durchsicht der Abläufe — begründete Grenzen (09.11.2026, E70)
+
+- **Verbuchte Anforderungen aus der Zeit vor dem Bewegungsprotokoll
+  (30.09.2026) lassen sich ohne Beleg nicht löschen.** Gelöscht wird eine
+  verbuchte Anforderung oder Retoure nur über „löschen“ in der App, und
+  dabei wird ihre Bestandswirkung aus dem Bewegungsprotokoll zurückgebucht.
+  Steht zu einer Zeile keine Bewegung im Protokoll und wurde sie angelegt,
+  bevor das Protokoll des Betriebs lief, ist ihre Wirkung nicht belegt.
+  Grund: Altdaten — eine geratene Gegenbuchung wäre falsch; den Bestand
+  korrigiert dann die Inventur. Eine später angelegte Zeile ohne Bewegung
+  (abgeholt bei leerem Regal) hat nichts gebucht und löscht sich ohne
+  Gegenbuchung (Nachtrag 09.11.2026).
+- **Was abgerechnet ist, wird weder gelöscht noch zurückgesetzt.** Steht
+  die Ausgabe auf einer Rechnung oder reicht ihr Abholtag bis zum Stichtag
+  der letzten gültigen Rechnung der Baustelle, weist die Datenbank Löschen
+  und „Status von Hand“ aus „Erledigt“ ab. Grund fachlich: die Rechnung ist
+  ausgestellt; korrigiert wird über ein Storno. Eine verbuchte Anforderung,
+  die vor der Rechnung zurückgesetzt wurde, gilt beim Löschen ebenfalls als
+  abgerechnet, sobald eine Rechnung ihren Abholtag abdeckt — die Rechnung
+  hält nicht je Zeile fest, was der Vorschlag enthielt; im Zweifel bleibt
+  der Bestand, die Inventur korrigiert.
+- **Die Fehlmenge einer schon eingeladenen Rüstliste und Buchungen an einem
+  stillgelegten Ort löschen sich nicht.** Grund fachlich: ohne die
+  Anforderung zählte die eingeladene Position wieder ganz (Lager und
+  Rechnungsvorschlag stimmten nicht mehr); an einem stillgelegten Ort läge
+  die zurückgebuchte Ware, wo sie niemand sieht. Die Meldung nennt den Weg
+  (Einladen am selben Tag zurücknehmen bzw. Retoure; den Ort wieder in
+  Betrieb nehmen).
+- **Gelöscht wird die Ausgabe, nicht der Wareneingang.** Wurde Ware „beim
+  Abholen geliefert“, liegt sie nach dem Löschen der Anforderung im Lager.
+  Grund fachlich: der Eingang ist geschehen, nur die Ausgabe an die Baustelle
+  wird zurückgenommen.
+- **Ausgelaufene Artikel mit Restbestand bleiben anforderbar.** Grund
+  fachlich: der Rest im Lager soll aufgebraucht werden können; ohne Bestand
+  bietet „Material anfordern“ sie nicht mehr an.
+- **Kunde löschen, Rolle ohne Einblick in Angebote und Rechnungen
+  (Verwaltung):** die Meldung nennt die Art, an der die Datenbank scheitert,
+  aber keine Anzahl. Grund: Datenschutz und Zeilenschutz — die Rolle sieht
+  diese Belege nicht und soll auch ihre Zahl nicht erfahren.
+- **Nachrichten, Restfall beim Löschen:** wer einem Baustellen-Thread folgt,
+  die Baustelle aber zeitweise nicht sieht, und eine Nachricht aus genau
+  dieser Zeit wird später gelöscht, kann eins zu viel abgezogen bekommen
+  (nie unter null). Grund Skalierung: es zu schließen hieße, bei jeder
+  Thread-Nachricht die Zeile jedes nicht sehenden Folgenden zu schreiben.
+  Der Zähler stimmt wieder, sobald die Person den Thread liest.
+- **Urlaubseinträge, die früher durch zwei gleichzeitige Entscheidungen
+  doppelt entstanden sind,** werden nicht umgeschrieben. Grund: Altdaten in
+  der Produktion bleiben, wie sie sind; die Zeitübersicht zeigt solche Tage
+  als „doppelt gebucht“, das Büro löscht den überzähligen Eintrag.
+- **Nach „Als Schlussrechnung stellen“** werden die Positionen nicht
+  selbsttätig neu zusammengestellt. Grund fachlich: die Art bestimmt, woraus
+  die Positionen entstehen; eine stehengebliebene Vorschau gehörte zur alten
+  Art. Derselbe Ablauf wie bei der Auswahl der Art.
+
+## Zweite, unabhängige Durchsicht — begründete Grenzen (09.11.2026, E70 Nachtrag)
+
+- **Mahnkosten einer Mahnung vor dem 10.10.2026:** ein Eingang „Mahnspesen
+  und Zinsen“ ist dort nur bis zu den Mahnspesen am Mahnstand möglich. Grund:
+  Altdaten — die Zinsen dieser Mahnungen sind nicht gespeichert; jüngere
+  Mahnungen halten sie als Zahl fest.
+- **Ein Anzahlungskonto ohne Steuersatz gilt im BMD-Stapel für 20 %.** Für
+  Übergang der Steuerschuld und 0 % legt der Betrieb im Kontenrahmen ein
+  eigenes Konto an; fehlt es, nennt der Stapel das Konto und entsteht nicht.
+  Grund: Altdaten — so war das eine Konto bisher gemeint, und eine geratene
+  Zuordnung buchte falsch.
+- **Deaktivierte Personen im Monat ihrer Buchungen:** Übersicht, Fenster und
+  CSV zeigen ihre Stunden, aber kein Soll, keinen Saldo und keinen
+  Resturlaub. Grund: Daten — die App führt kein Austrittsdatum; das Soll
+  eines Teilmonats wäre ohne es falsch, und eine falsche Zahl in der
+  Lohnverrechnung ist schlimmer als eine leere. Für die Endabrechnung führt
+  die Lohnverrechnung (Kanzlei) das Austrittsdatum.
+- **Ein wieder geöffneter Eingang verliert die Verbindung zum verworfenen
+  Angebot.** Das Journal hält den Wechsel des Stands, nicht den Verweis.
+  Grund fachlich: der Verweis auf das Angebot ist seit M02b vom Journal
+  ausgenommen — derselbe Zustand wie nach dem endgültigen Löschen eines
+  Entwurfs.
+- **Die Verwaltung sieht beim Eingang nicht, dass sein Angebot im
+  Papierkorb liegt,** und damit auch „Wieder öffnen“ nicht; Führung und
+  Buchhaltung sehen beides. Grund: Rechte — die Verwaltung liest keine
+  Angebote.
+- **Offene Korrekturanträge bei ausgeschaltetem Schalter** stehen nicht auf
+  der Startseite, bleiben aber unter „Zeiterfassung“ abschließbar. Grund
+  fachlich: ein ausgeschaltetes Modul meldet sich nicht auf der Startseite.
+- **Arbeitszeit am Tag eines alten Arztbesuchs, die ihn überschneidet,**
+  lässt sich in der Uhrzeit nicht mehr ändern (die Maske verhinderte das
+  schon vorher). Grund: Altdaten — die Überschneidung stammt aus der Zeit vor
+  der Prüfung und wird nicht umgeschrieben.
+- **Fassungswechsel, einmal je Gerät:** eine noch laufende App von vor dieser
+  Auslieferung kennt die neue Frage an den Worker nicht und kann bei sehr
+  zähem Netz noch einmal hart räumen. Grund: liegt beim alten Code auf dem
+  Gerät; ab dieser Fassung tritt es nicht mehr auf.

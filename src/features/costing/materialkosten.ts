@@ -1,5 +1,6 @@
 import type { Material, WorkSheet } from '@/types';
 import { artikelZuordnung, normName } from '@/features/invoices/materialPositionen';
+import type { Ausgabe } from '@/features/invoices/ausgegebenesMaterial';
 
 /**
  * Was das verbaute Material den Betrieb gekostet hat.
@@ -10,10 +11,15 @@ import { artikelZuordnung, normName } from '@/features/invoices/materialPosition
  * systematisch zu hoch, und zwar in der teuersten Richtung: eine Baustelle
  * sah tragfähig aus, die es nicht war.
  *
- * WOHER DIE MENGEN KOMMEN: aus den UNTERSCHRIEBENEN Handwerksscheinen. Das
- * ist das, was nachweislich verbaut wurde — vom Kunden bestätigt. Die
- * Materialanforderung wäre die falsche Quelle: sie sagt, was bestellt wurde,
- * nicht was auf dieser Baustelle geblieben ist.
+ * WOHER DIE MENGEN KOMMEN: aus den UNTERSCHRIEBENEN Handwerksscheinen — das
+ * ist, was nachweislich verbaut wurde, vom Kunden bestätigt — und aus dem,
+ * was das LAGER für die Baustelle ausgegeben hat (abgeholte Anforderungen,
+ * eingeladene Rüstlisten, abzüglich Retouren). Je Artikel zählt die größere
+ * der beiden Mengen (Befund 09.11.2026): steht ein ausgegebener Artikel auch
+ * auf einem Schein, ist es dasselbe Stück und zählt einmal; trägt kein
+ * Schein es, ist es trotzdem weg. Vorher zählten nur die Scheine, während
+ * die Regie-Rechnung das Ausgegebene als Erlös vorschlug
+ * (`materialAbgleich`) — Erlös ohne Kosten, die Marge zu hoch.
  *
  * WOHER DIE PREISE KOMMEN: aus dem Feld `einkaufspreis` im Materialstamm —
  * über den Artikel, aus dem die Zeile am Schein gewählt wurde, sonst über den
@@ -37,25 +43,39 @@ export interface Materialkosten {
   ohnePreis: string[];
   /** Wie viele Scheine überhaupt Material getragen haben. */
   scheine: number;
+  /**
+   * Bei wie vielen Artikeln die Menge aus dem Lager zählt — mehr ausgegeben,
+   * als auf den Scheinen steht. Fehlt es, ist nichts aus dem Lager
+   * eingerechnet.
+   */
+  ausLager?: number;
 }
 
 export const KEINE_MATERIALKOSTEN: Materialkosten = {
   kosten: 0,
   ohnePreis: [],
   scheine: 0,
+  ausLager: 0,
 };
+
+/** Eine Ausgabe des Lagers, wie die Nachkalkulation sie braucht (Retoure negativ). */
+export type LagerAusgabe = Pick<Ausgabe, 'materialId' | 'name' | 'menge'>;
+
+const menge3 = (x: number) => Math.round(x * 1000) / 1000;
 
 /**
  * Die Materialkosten einer Baustelle.
  *
- * Gezählt wird über ALLE unterschriebenen Scheine der Baustelle — anders als
- * bei der Rechnung, die nur das noch nicht Verrechnete zusammenstellt. Für
- * die Frage „hat die Baustelle etwas verdient" zählt alles, was verbaut
- * wurde, unabhängig davon, auf welcher Rechnung es gelandet ist.
+ * Gezählt wird über ALLE unterschriebenen Scheine und ALLE Ausgaben des
+ * Lagers der Baustelle — anders als bei der Rechnung, die nur das noch
+ * nicht Verrechnete zusammenstellt. Für die Frage „hat die Baustelle etwas
+ * verdient" zählt alles, was verbaut wurde, unabhängig davon, auf welcher
+ * Rechnung es gelandet ist.
  */
 export function materialkosten(
   scheine: Array<WorkSheet & { id: string }>,
   katalog: Material[],
+  ausgaben: readonly LagerAusgabe[] = [],
 ): Materialkosten {
   const preise = new Map<string, number>();
   for (const m of katalog) {
@@ -69,8 +89,24 @@ export function materialkosten(
 
   // Über die Kennung gilt genau dieser Artikel, auch ohne gepflegten Preis.
   const nachId = new Map(katalog.map((m) => [m.id, m]));
-  const mengen = new Map<string, { name: string; menge: number; preis: number | undefined }>();
+  const preisVon = (name: string, materialId?: string | null): number | undefined => {
+    const ausKatalog = materialId ? nachId.get(materialId) : undefined;
+    return ausKatalog
+      ? (typeof ausKatalog.einkaufspreis === 'number' && ausKatalog.einkaufspreis > 0 ? ausKatalog.einkaufspreis : undefined)
+      : preise.get(normName(name));
+  };
+  const mengen = new Map<string, { name: string; aufScheinen: number; ausLager: number; preis: number | undefined }>();
+  // Scheinzeilen und Ausgaben über DIESELBE Zuordnung: Kennung, sonst Name.
   const zuordnen = artikelZuordnung();
+  const eintrag = (name: string, materialId?: string | null) => {
+    const schluessel = zuordnen(name, materialId);
+    const vorhanden = mengen.get(schluessel);
+    // Der Preis kommt wie bisher aus der ersten Zeile des Artikels.
+    if (vorhanden) return vorhanden;
+    const neu = { name: name.trim(), aufScheinen: 0, ausLager: 0, preis: preisVon(name, materialId) };
+    mengen.set(schluessel, neu);
+    return neu;
+  };
   let scheineMitMaterial = 0;
 
   for (const schein of scheine) {
@@ -79,29 +115,30 @@ export function materialkosten(
     scheineMitMaterial++;
     for (const zeile of schein.material) {
       if (!zeile.name?.trim() || !(zeile.menge > 0)) continue;
-      const schluessel = zuordnen(zeile.name, zeile.materialId);
-      const vorhanden = mengen.get(schluessel);
-      if (vorhanden) {
-        vorhanden.menge += zeile.menge;
-        continue;
-      }
-      const ausKatalog = zeile.materialId ? nachId.get(zeile.materialId) : undefined;
-      const preis = ausKatalog
-        ? (typeof ausKatalog.einkaufspreis === 'number' && ausKatalog.einkaufspreis > 0 ? ausKatalog.einkaufspreis : undefined)
-        : preise.get(normName(zeile.name));
-      mengen.set(schluessel, { name: zeile.name.trim(), menge: zeile.menge, preis });
+      const e = eintrag(zeile.name, zeile.materialId);
+      e.aufScheinen = menge3(e.aufScheinen + zeile.menge);
     }
+  }
+  for (const a of ausgaben) {
+    if (!a.name?.trim() || !a.menge) continue;
+    const e = eintrag(a.name, a.materialId);
+    e.ausLager = menge3(e.ausLager + a.menge);
   }
 
   let kosten = 0;
+  let ausLager = 0;
   const ohnePreis: string[] = [];
-  for (const eintrag of mengen.values()) {
-    const preis = eintrag.preis;
-    if (preis === undefined) {
-      ohnePreis.push(eintrag.name);
+  for (const e of mengen.values()) {
+    // Mehr zurückgegeben als ausgegeben heißt: nichts aus dem Lager verbaut.
+    const lager = Math.max(0, e.ausLager);
+    const menge = Math.max(e.aufScheinen, lager);
+    if (!(menge > 0)) continue;
+    if (lager > e.aufScheinen) ausLager++;
+    if (e.preis === undefined) {
+      ohnePreis.push(e.name);
       continue;
     }
-    kosten += eintrag.menge * preis;
+    kosten += menge * e.preis;
   }
 
   return {
@@ -110,5 +147,6 @@ export function materialkosten(
     // Aufruf gleich aussehen, sonst liest sie sich wie eine Änderung.
     ohnePreis: ohnePreis.sort((a, b) => a.localeCompare(b, 'de')),
     scheine: scheineMitMaterial,
+    ausLager,
   };
 }

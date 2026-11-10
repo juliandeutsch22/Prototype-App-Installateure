@@ -161,6 +161,13 @@ export const MODULE: Modul[] = [
     betrifft: ['Einsatzplanung', 'Wochenplan', 'Mein Einsatzplan'],
     folgen: [
       'Die Kalender-Abos des ganzen Einsatzplans enden. Nach dem Wiedereinschalten richtet sie jeder neu ein.',
+      /*
+        Das persönliche Abo endet nicht, es ruht (Befund 09.11.2026): beendet
+        wird es unter „Mein Einsatzplan“, und der ist dann zu — deshalb gehen
+        Einsätze mit Kundenadresse und Telefon nicht mehr hinaus, solange die
+        Einsatzplanung aus ist (`kalender_abruf`).
+      */
+      'Persönliche Kalender-Abos liefern nichts, solange die Einsatzplanung aus ist. Danach liefert derselbe Link wieder.',
     ],
   },
   {

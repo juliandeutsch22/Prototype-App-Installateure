@@ -216,3 +216,33 @@ export const rechtstexte = {
     ],
   }),
 };
+
+/*
+  NACHRICHTEN (E64/E65) — ein Posteingang mit den drei Arten und ein
+  Gespräch mit Tageswechsel, Gruppen, eigener und fremder Nachricht, einer
+  Erwähnung und einem Anhang. Ohne sie zeigte die Vorschau nur „konnte nicht
+  geladen werden“, und der Messenger ließ sich nicht ansehen (09.11.2026).
+*/
+export const postfach = [
+  { kanal: 'k-direkt', art: 'direkt', titel: 'Max Mustermann', projectId: null, zuletzt: '2026-11-09T13:42:00+01:00', letzteText: 'Passt, ich bring die Pressbacken mit.', letzteVon: 'Max Mustermann', letzteEigene: false, ungelesen: 2, stumm: false, geschlossen: false },
+  { kanal: 'k-bau', art: 'baustelle', titel: 'B-2026-0147 · Hauptstraße 112–118', projectId: 'p1', zuletzt: '2026-11-09T11:05:00+01:00', letzteText: 'Steigleitung Stiege 2 ist gedruckt.', letzteVon: 'Lena Pichler', letzteEigene: false, ungelesen: 0, stumm: false, geschlossen: false },
+  { kanal: 'k-runde', art: 'runde', titel: 'Notdienst Wochenende', projectId: null, zuletzt: '2026-11-08T18:20:00+01:00', letzteText: 'Ich übernehme Samstag.', letzteVon: null, letzteEigene: true, ungelesen: 0, stumm: true, geschlossen: false },
+];
+export const chatKopf = {
+  kanal: 'k-direkt', art: 'direkt', titel: 'Max Mustermann', name: null, projectId: null,
+  teilnehmer: [{ uid: 'u1', name: 'Max Mustermann', aktiv: true, ich: false }, { uid: 'ich', name: 'Ich', aktiv: true, ich: true }],
+  folgt: true, stumm: false, ungelesen: 0, sperre: null,
+};
+const chat = (id: string, eigene: boolean, gesendetAm: string, text: string, anhaenge: unknown[] = []) => ({
+  id, vonUid: eigene ? 'ich' : 'u1', vonName: eigene ? 'Ich' : 'Max Mustermann', eigene, text, gesendetAm,
+  bearbeitetAm: null, geloeschtAm: null, erwaehnt: [], anhaenge, uebernommen: false, gemeldet: false,
+});
+/* Jüngste zuerst, wie `nachrichten_verlauf` sie liefert. */
+export const chatVerlauf = [
+  chat('n6', false, '2026-11-09T13:42:00+01:00', 'Passt, ich bring die Pressbacken mit.'),
+  chat('n5', false, '2026-11-09T13:41:00+01:00', 'Bin um halb zwei dort.'),
+  chat('n4', true, '2026-11-09T13:30:00+01:00', 'Kannst du heute Nachmittag noch bei Familie Huber vorbeischauen? Der Heizkörper im Bad wird nicht warm.'),
+  chat('n3', true, '2026-11-08T17:05:00+01:00', 'Danke dir, schönes Wochenende!'),
+  chat('n2', false, '2026-11-08T16:58:00+01:00', 'Fotos vom Verteiler hängen dran.', [{ id: 'a1', eimer: 'nachrichten-privat', pfad: 'x/verteiler.pdf', name: 'Verteiler_Stiege2.pdf', bytes: 482133, inhaltsart: 'application/pdf' }]),
+  chat('n1', false, '2026-11-08T16:57:00+01:00', 'Verteiler ist fertig montiert und gespült.'),
+];

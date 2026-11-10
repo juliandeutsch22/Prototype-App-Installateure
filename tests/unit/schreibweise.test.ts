@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import ts from 'typescript';
@@ -73,21 +73,32 @@ function sichtbareTexte(pfad: string): string[] {
 
 describe('Schreibweise im Sichtbaren', () => {
   const alle = dateien();
+  /*
+    EINMAL PARSEN, DREIMAL PRÜFEN (09.11.2026). Jede Prüfung parste vorher
+    den ganzen Quelltext neu — allein 2,7 s für die erste, unter Last über
+    die 5-s-Grenze je Test. Die Texte stehen jetzt einmal fest, mit eigener
+    Frist für das Lesen; geprüft wird dasselbe.
+  */
+  const texte = new Map<string, string[]>();
+  beforeAll(() => {
+    for (const p of alle) texte.set(p, sichtbareTexte(p));
+  }, 60_000);
+  const sichtbar = (p: string) => texte.get(p) ?? [];
 
   it('die Prüfung hat etwas zu prüfen', () => {
-    const mitSz = alle.filter((p) => sichtbareTexte(p).some((t) => /ß/.test(t)));
+    const mitSz = alle.filter((p) => sichtbar(p).some((t) => /ß/.test(t)));
     expect(mitSz.length).toBeGreaterThanOrEqual(10);
   });
 
   it('kein „ss“, wo „ß“ hingehört', () => {
     const funde = alle.flatMap((p) =>
-      sichtbareTexte(p).filter((t) => WORT.test(t)).map((t) => `${p}: ${t.trim().slice(0, 60)}`));
+      sichtbar(p).filter((t) => WORT.test(t)).map((t) => `${p}: ${t.trim().slice(0, 60)}`));
     expect(funde).toEqual([]);
   });
 
   it('Anführungszeichen unten und oben — „…“, nicht „…"', () => {
     const funde = alle.flatMap((p) =>
-      sichtbareTexte(p).filter((t) => ANFUEHRUNG.test(t)).map((t) => `${p}: ${t.trim().slice(0, 60)}`));
+      sichtbar(p).filter((t) => ANFUEHRUNG.test(t)).map((t) => `${p}: ${t.trim().slice(0, 60)}`));
     expect(funde).toEqual([]);
   });
 

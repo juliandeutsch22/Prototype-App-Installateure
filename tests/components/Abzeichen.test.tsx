@@ -226,3 +226,21 @@ describe('Der Zähler — die Zahl am Menüpunkt', () => {
     expect(screen.getByText('128 offene Materialanforderungen')).toBeInTheDocument();
   });
 });
+
+/*
+  EINE NEUE ZAHL BLENDET EIN (09.11.2026): der sichtbare Teil wird bei jeder
+  neuen Zahl neu gesetzt und trägt `.lot-zahl-neu`. Gleich bleibt: der
+  Vorleser hört die Zahl mit dem ausgeschriebenen Wort.
+*/
+describe('Zähler bei einer neuen Zahl', () => {
+  it('setzt die sichtbare Zahl neu und lässt sie einblenden', () => {
+    const { container, rerender } = render(<Zaehler anzahl={2} was="offene Anträge" />);
+    const vorher = container.querySelector('[aria-hidden="true"]');
+    expect(vorher).toHaveClass('lot-zahl-neu');
+    rerender(<Zaehler anzahl={3} was="offene Anträge" />);
+    const nachher = container.querySelector('[aria-hidden="true"]');
+    expect(nachher).toHaveTextContent('3');
+    expect(nachher).not.toBe(vorher);
+    expect(screen.getByText('3 offene Anträge')).toBeInTheDocument();
+  });
+});

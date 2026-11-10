@@ -59,6 +59,15 @@ const reserviere = vi.fn<(a0: string, a1: unknown) => Promise<string | null>>(as
 /* Mit welcher Grenze zuletzt abonniert wurde — der Nachladeknopf hebt sie an. */
 let letzteGrenze = 0;
 
+/*
+  DIE LAUFENDEN BAUSTELLEN OHNE ALTERSGRENZE (`listActiveProjects`). Ohne
+  eigene Vorgabe dieselben wie im Abo, nur „Aktiv“ und „Pausiert“ — so wie
+  die Datenbank sie liefert. `laufendeExtra` sind die, die älter sind als
+  die geladenen 300.
+*/
+let laufendeExtra: (Project & { id: string })[] = [];
+let laufendFehler = false;
+
 vi.mock('@/lib/db/projects', () => ({
   subscribeRecentProjects: (
     _c: string,
@@ -89,6 +98,10 @@ vi.mock('@/lib/db/projects', () => ({
     loesche(id);
     return loeschFehler ? Promise.reject(new Error(loeschFehler)) : Promise.resolve();
   },
+  listActiveProjects: () =>
+    laufendFehler
+      ? Promise.reject(new Error('kein Netz'))
+      : Promise.resolve([...baustellen, ...laufendeExtra].filter((p) => p.status === 'Aktiv' || p.status === 'Pausiert')),
   searchProjects: (c: string, begriff: string) => {
     gefragtMit(c, begriff);
     return serverFehler ? Promise.reject(new Error('kein Netz')) : Promise.resolve(serverBaustellen);
@@ -158,6 +171,8 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   baustellen = [];
+  laufendeExtra = [];
+  laufendFehler = false;
   kundenBestand = [KUNDE];
   ladefehler = false;
   abofehler = null;
@@ -1267,5 +1282,55 @@ describe('Baustellen — leer', () => {
     await userEvent.click(within(leer).getByRole('button', { name: 'Suche zurücksetzen' }));
     expect(screen.getByLabelText('Suche')).toHaveValue('');
     expect(await screen.findByText(/Heizungstausch/)).toBeInTheDocument();
+  });
+});
+
+/*
+  DIE FILTER DER STARTSEITE ÜBER ALLE LAUFENDEN BAUSTELLEN (Prüfbericht
+  09.11.2026). Die Liste hält die zuletzt angelegten 300; die Startseite
+  zählt „Ende überschritten“ und „ohne Projektleiter“ über alle laufenden.
+  Eine ältere aktive Baustelle fehlte dann genau auf der Seite, auf die die
+  Startseite führt. Gegenprobe: gegen den Stand davor fehlt sie (rot).
+*/
+describe('Filter von der Startseite — über alle laufenden Baustellen', () => {
+  const neu = {
+    id: 'p-neu', companyId: 'perl', projectNumber: '2026-300', customerName: 'Neu GmbH', status: 'Aktiv',
+    projectManagers: ['u1'], createdAt: Date.parse('2026-08-30T08:00:00Z'),
+  } as unknown as Project & { id: string };
+  // Älter als die geladenen 300: nur `listActiveProjects` kennt sie.
+  const alt = {
+    id: 'p-alt', companyId: 'perl', projectNumber: '2023-007', customerName: 'Altbau Gruber', status: 'Aktiv',
+    endDate: '2026-06-30', projectManagers: [], createdAt: Date.parse('2023-02-01T08:00:00Z'),
+  } as unknown as Project & { id: string };
+  const hrefs = () => zeilen().map((a) => a.getAttribute('href'));
+
+  beforeEach(() => {
+    baustellen = [neu];
+    laufendeExtra = [alt];
+  });
+
+  it.each(['ende-ueberschritten', 'ohne-leitung'])('?filter=%s findet auch die ältere aktive Baustelle', async (f) => {
+    zeige(`/admin-projects?filter=${f}`);
+    await waitFor(() => expect(hrefs()).toEqual(['/admin-projects/p-alt']));
+  });
+
+  it('das Schriftfeld zählt wie die Startseite über alle laufenden', async () => {
+    zeige();
+    const ende = await screen.findByRole('link', { name: /Ende überschritten/ });
+    await waitFor(() => expect(ende).toHaveTextContent('Ende überschritten 1'));
+    expect(screen.getByRole('link', { name: /Aktiv 2/ })).toHaveAttribute('href', '/admin-projects?filter=aktiv');
+  });
+
+  it('Gleichbleiben: ohne Filter bleibt die Liste die geladene — mit „Mehr laden“ wie bisher', async () => {
+    zeige();
+    await waitFor(() => expect(hrefs()).toEqual(['/admin-projects/p-neu']));
+  });
+
+  it('kommen die laufenden nicht, sagt es die Seite — und filtert über die geladene Liste wie bisher', async () => {
+    laufendFehler = true;
+    baustellen = [neu, { ...alt, id: 'p-alt2', projectNumber: '2026-200', createdAt: Date.parse('2026-05-01T08:00:00Z') } as Project & { id: string }];
+    zeige('/admin-projects?filter=ende-ueberschritten');
+    expect(await screen.findByText('Die Liste aller laufenden Baustellen konnte nicht geladen werden.')).toBeInTheDocument();
+    await waitFor(() => expect(hrefs()).toEqual(['/admin-projects/p-alt2']));
   });
 });

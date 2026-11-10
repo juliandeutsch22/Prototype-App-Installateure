@@ -116,7 +116,8 @@ export default function NachrichtenEinstellungen() {
       <PageHeader
         ort="Einstellungen"
         title="Nachrichten"
-        subtitle="Aufbewahrung privater Gespräche und gemeldete Nachrichten"
+        // Einzeilig am Handy (E72, N1); was aufbewahrt wird, sagt die Karte darunter.
+        subtitle="Aufbewahrung und gemeldete Nachrichten"
         hilfe={
           <>
             Private Gespräche (Direkt und Runden) liest nur, wer daran teilnimmt — auch die

@@ -223,3 +223,66 @@ describe('Bank und Skonto', () => {
     expect(gespeichert.some((g) => g.zweck === 'bank' || g.zweck === 'skonto')).toBe(false);
   });
 });
+
+/*
+  DURCHSICHT 09.11.2026: es gab EIN Anzahlungskonto für alle Anzahlungen.
+  Eine Anzahlung mit Übergang der Steuerschuld oder mit 0 % bekam dessen
+  Steuercode M20 — Umsatzsteuer, die niemand schuldet. Jetzt eines je
+  Steuersatz und eines für Bauleistungen mit Übergang der Steuerschuld.
+*/
+describe('Erhaltene Anzahlungen je Steuerbehandlung', () => {
+  it('zeigt das bisherige Anzahlungskonto ohne Satz unter 20 % — und speichert es mit dem Satz', async () => {
+    geladen = [{ id: 'z', companyId: 'perl', zweck: 'anzahlung', ustSatz: null, konto: '3500', steuercode: 'M20' }];
+    zeige();
+    expect(((await screen.findByLabelText('Steuersatz %')) as HTMLInputElement).value).toBe('20');
+    expect((screen.getByLabelText('Anzahlungskonto') as HTMLInputElement).value).toBe('3500');
+    await userEvent.click(speichern());
+    await waitFor(() => expect(gespeichert.length).toBe(1));
+    expect(gespeichert).toEqual([
+      { art: 'aendern', id: 'z', zweck: 'anzahlung', ustSatz: 0.2, konto: '3500', steuercode: 'M20' },
+    ]);
+  });
+
+  it('legt das Konto für Bauleistungen und eines je Satz an', async () => {
+    zeige();
+    await userEvent.type(
+      await screen.findByLabelText('Anzahlungen auf Bauleistungen mit Übergang der Steuerschuld'), '3505',
+    );
+    await userEvent.click(screen.getByRole('button', { name: '+ Anzahlungskonto' }));
+    await userEvent.type(screen.getByLabelText('Steuersatz %'), '0');
+    await userEvent.type(screen.getByLabelText('Anzahlungskonto'), '3509');
+    await userEvent.click(speichern());
+    await waitFor(() => expect(gespeichert.length).toBe(2));
+    expect(gespeichert).toContainEqual({ art: 'anlegen', zweck: 'anzahlung_rc', ustSatz: null, konto: '3505', steuercode: null });
+    expect(gespeichert).toContainEqual({ art: 'anlegen', zweck: 'anzahlung', ustSatz: 0, konto: '3509', steuercode: null });
+  });
+
+  it('der Vorschlag setzt Anzahlungskonten je Steuerbehandlung ein', async () => {
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Vorschlag einsetzen' }));
+    expect((screen.getByLabelText('Anzahlungen auf Bauleistungen mit Übergang der Steuerschuld') as HTMLInputElement).value).toBe('3505');
+    expect(screen.getAllByLabelText('Anzahlungskonto').map((e) => (e as HTMLInputElement).value)).toEqual(['3500', '3509']);
+    expect(screen.getAllByLabelText('Steuersatz %').map((e) => (e as HTMLInputElement).value)).toEqual(['20', '0']);
+  });
+
+  it('weist zwei Anzahlungskonten für denselben Steuersatz ab', async () => {
+    geladen = [{ id: 'z', companyId: 'perl', zweck: 'anzahlung', ustSatz: 0.2, konto: '3500', steuercode: 'M20' }];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: '+ Anzahlungskonto' }));
+    await userEvent.type(screen.getAllByLabelText('Steuersatz %')[1], '20');
+    await userEvent.type(screen.getAllByLabelText('Anzahlungskonto')[1], '3520');
+    expect(await screen.findByText(/Zwei Anzahlungskonten für denselben Steuersatz/)).toBeInTheDocument();
+    expect(speichern()).toBeDisabled();
+  });
+});
+
+// Durchsicht 09.11.2026: bezahlte Mahnspesen und Verzugszinsen haben ein eigenes Konto im Zahlungsstapel.
+describe('Mahnspesen und Verzugszinsen', () => {
+  it('legt das Konto an, wenn es eingetragen ist', async () => {
+    zeige();
+    await userEvent.type(await screen.findByLabelText('Mahnspesen und Verzugszinsen (Ertrag)'), '4881');
+    await userEvent.click(speichern());
+    await waitFor(() => expect(gespeichert.length).toBe(1));
+    expect(gespeichert).toEqual([{ art: 'anlegen', zweck: 'mahnkosten', ustSatz: null, konto: '4881', steuercode: null }]);
+  });
+});

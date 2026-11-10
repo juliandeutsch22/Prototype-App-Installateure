@@ -48,7 +48,7 @@ src/lib/db/materialOrders.ts#ORDER_STATUS_FLOW: ("Offen" | "In Bearbeitung" | "A
 src/lib/db/materialOrders.ts#anforderungEiligSetzen: (orderId: string, eilig: boolean) => Promise<void>
 src/lib/db/materialOrders.ts#createMaterialOrder: (companyId: string, order: NewMaterialOrder) => Promise<string>
 src/lib/db/materialOrders.ts#createMaterialOrderOhneEmpfang: (companyId: string, order: NewMaterialOrder) => Promise<WriteOutcome>
-src/lib/db/materialOrders.ts#createReturn: (companyId: string, ret: Omit<NewMaterialOrder, "status" | "transactionType"> & { condition: string; }) => Promise<string>
+src/lib/db/materialOrders.ts#createReturn: (companyId: string, ret: Omit<NewMaterialOrder, "status" | "transactionType"> & { condition: string; }, kennung?: string) => Promise<string>
 src/lib/db/materialOrders.ts#deleteOrder: (orderId: string) => Promise<void>
 src/lib/db/materialOrders.ts#listOpenOrders: (companyId: string) => Promise<WithId<MaterialOrder>[]>
 src/lib/db/materialOrders.ts#listOwnOpenOrders: (companyId: string, uid: string) => Promise<WithId<MaterialOrder>[]>
@@ -87,7 +87,7 @@ src/lib/db/projects.ts#listRecentProjects: (companyId: string, max: number) => P
 src/lib/db/projects.ts#reserveProjectNumber: (companyId: string, opts: { seedFrom: number; praefix?: string; }) => Promise<string | null>
 src/lib/db/projects.ts#searchProjects: (companyId: string, begriff: string, max?: number) => Promise<WithId<Project>[]>
 src/lib/db/projects.ts#subscribeRecentProjects: (companyId: string, max: number, cb: (rows: WithId<Project>[]) => void, onError: (e: Error) => void) => () => void
-src/lib/db/projects.ts#updateProject: (id: string, data: Partial<Project>) => Promise<void>
+src/lib/db/projects.ts#updateProject: (id: string, data: ProjektAenderung) => Promise<void>
 src/lib/db/quotes.ts#ANGEBOT_TREFFER: 100
 src/lib/db/quotes.ts#createQuote: (companyId: string, q: NewQuote) => Promise<string>
 src/lib/db/quotes.ts#deleteQuote: (id: string) => Promise<void>

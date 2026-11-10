@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { TERMIN_ARTEN, type AppUser, type Termin, type TerminArt } from '@/types';
 import { terminAendern, terminAnlegen } from '@/lib/db/termine';
 import KundenAuswahl from '@/components/KundenAuswahl';
@@ -38,6 +38,7 @@ export default function TerminFormular({
   vorbelegt,
   onGespeichert,
   onAbbrechen,
+  zusatz,
 }: {
   companyId: string;
   vorgabe: TerminVorgabe;
@@ -53,6 +54,13 @@ export default function TerminFormular({
   /** Mit der Kennung des Termins — der Eingang hält fest, welcher es ist. */
   onGespeichert: (id: string) => void;
   onAbbrechen: () => void;
+  /**
+   * Weitere Handlungen am Gegenstand (etwa „Termin löschen“) — sie stehen ÜBER
+   * dem Fensterfuß, im Formular (E72): danach stünden sie unter einer
+   * klebenden Fußleiste, die bis an die Kante reicht. Knöpfe darin brauchen
+   * `type="button"`.
+   */
+  zusatz?: ReactNode;
 }) {
   const toast = useToast();
   const [art, setArt] = useState<TerminArt>(termin?.art ?? vorbelegt?.art ?? 'Kundentermin');
@@ -198,9 +206,13 @@ export default function TerminFormular({
 
       {fehler && <ErrorState message={fehler} />}
 
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" loading={speichert}>{termin ? 'Änderung speichern' : 'Termin anlegen'}</Button>
-        <Button type="button" variant="ghost" onClick={onAbbrechen} disabled={speichert}>Abbrechen</Button>
+      {zusatz}
+      {/* Der Fensterfuß wie überall (E72, R7): Linie darüber, Abbrechen gerahmt, die Hauptaktion zuletzt. */}
+      <div className="planung-fuss mt-0">
+        <div className="planung-fuss-knoepfe">
+          <Button type="button" variant="secondary" onClick={onAbbrechen} disabled={speichert}>Abbrechen</Button>
+          <Button type="submit" loading={speichert}>{termin ? 'Änderung speichern' : 'Termin anlegen'}</Button>
+        </div>
       </div>
     </form>
   );

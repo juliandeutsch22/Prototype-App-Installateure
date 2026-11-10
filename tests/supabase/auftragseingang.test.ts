@@ -301,6 +301,36 @@ describe('Eingang → Angebot', () => {
     expect(await eingang(e.id as string)).toMatchObject({ stand: 'offen', uebernommen_am: null });
   });
 
+  /*
+    Befund 09.11.2026: liegt das Angebot nur im Papierkorb (verworfen, noch
+    nicht gelöscht), war der Eingang weder offen noch wieder zu öffnen.
+    Gegenprobe: ohne `20261110170000_wartung_abo_eingang_lager.sql` bricht
+    das Wieder-Öffnen mit „belegt, woher das Angebot kam“ ab.
+  */
+  it('liegt der Entwurf nur im Papierkorb, lässt sich der Eingang wieder öffnen — der Verweis wird leer', async () => {
+    const e = await erfassen(verwaltung);
+    const r = (await zuAngebot(chefin, e.id as string)).data as { quote_id: string };
+    expect((await chefin.client.from('quotes').update({ status: 'Verworfen' }).eq('id', r.quote_id)).error).toBeNull();
+    expect((await wiederOeffnen(verwaltung, e.id as string)).error).toBeNull();
+    expect(await eingang(e.id as string)).toMatchObject({ stand: 'offen', quote_id: null, uebernommen_am: null });
+    // Das Angebot selbst bleibt im Papierkorb, wie es war.
+    expect((await admin.from('quotes').select('status').eq('id', r.quote_id).single()).data).toEqual({ status: 'Verworfen' });
+    // Offen wird er wieder ein Angebot — ein neues, nicht das verworfene.
+    const neu = (await zuAngebot(chefin, e.id as string)).data as { quote_id: string; neu: boolean };
+    expect(neu.neu).toBe(true);
+    expect(neu.quote_id).not.toBe(r.quote_id);
+  });
+
+  it('Erhaltung: ein Angebot, das nicht verworfen ist, hält den Eingang fest — auch ein abgelehntes', async () => {
+    const e = await erfassen(verwaltung);
+    const r = (await zuAngebot(chefin, e.id as string)).data as { quote_id: string };
+    for (const status of ['Entwurf', 'Versendet', 'Abgelehnt']) {
+      expect((await admin.from('quotes').update({ status }).eq('id', r.quote_id)).error, status).toBeNull();
+      expect((await wiederOeffnen(chefin, e.id as string)).error?.message, status).toMatch(/belegt, woher das Angebot kam/);
+      expect(await eingang(e.id as string), status).toMatchObject({ stand: 'uebernommen', quote_id: r.quote_id });
+    }
+  });
+
   it('nur mit dem Modul Angebote', async () => {
     const e = await erfassen(verwaltung);
     await module({ angebote: false });

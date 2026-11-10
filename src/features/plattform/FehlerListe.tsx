@@ -68,7 +68,7 @@ export default function FehlerListe({ zeilen }: { zeilen: ProtokollZeile[] }) {
                   {g.fassungen.length > 0 && ` · Fassung ${g.fassungen.join(', ')}`}
                 </p>
                 <details className="text-xs text-ink-muted">
-                  <summary className="cursor-pointer">Technische Details</summary>
+                  <summary className="weiteres-kopf">Technische Details</summary>
                   <p className="mt-2 break-words">
                     Erstmals am {zeit(g.zuerst)}
                     {g.beispiel.betrieb && ` · ${g.beispiel.betrieb}`}

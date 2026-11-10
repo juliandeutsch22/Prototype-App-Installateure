@@ -7,7 +7,15 @@
   (Auftrag 08.11.2026). Farben nur aus den Grundwerten; die Uhr in Plex Mono.
 */
 @layer components {
-  .arbeitstag { position: relative; padding: 1rem 1.25rem; border: 1px solid var(--border); background: var(--surface); }
+  /*
+    EIN BLATT WIE JEDES ANDERE (E72, 09.11.2026): Linie in `--border-strong`
+    oben und links innen, rechts und unten außen an der Kante (wie
+    `lot-blatt.css`), Text eine Zelle vom Rand. Vorher 1 px `--border` rundum
+    und 16/20 px Polster — die Karte lag mit 21 px Einzug und krummer Höhe
+    neben den Blättern. Höhe und Oberkante rundet der Taktgeber (`takt.ts`).
+  */
+  .arbeitstag { position: relative; padding: 1.5rem; border: 0; background: var(--surface); box-shadow: 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), 1px 1px 0 var(--border-strong); }
+  .arbeitstag::before { content: ''; position: absolute; inset: 0; pointer-events: none; border-top: 1px solid var(--border-strong); border-left: 1px solid var(--border-strong); }
   .arbeitstag-hilfe { position: absolute; top: 0.375rem; right: 0.375rem; }
   .arbeitstag-fehler { margin-bottom: 0.5rem; padding-right: 2.5rem; font-size: 0.875rem; color: var(--danger); }
 
@@ -24,9 +32,8 @@
   .arbeitstag-baustelle:disabled { color: var(--text); cursor: default; }
   .arbeitstag-baustelle-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .arbeitstag-knoepfe { display: flex; gap: 0.75rem; margin-left: auto; }
-  .arbeitstag-fuss { margin-top: 0.25rem; text-align: right; }
-  /* Verwerfen ist der seltene Fehlgriff-Weg — leiser als Pause und Feierabend. */
-  .link.arbeitstag-verwerfen { color: var(--text-muted); }
+  /* Verwerfen ist der seltene Fehlgriff-Weg: ein Zweitknopf rechts unten, nicht mehr ein 20 px hoher grauer Text (E72, R1). */
+  .arbeitstag-fuss { display: flex; justify-content: flex-end; margin-top: 1rem; }
 
   .arbeitstag-start { display: flex; align-items: center; gap: 1rem; padding-right: 2rem; }
   .arbeitstag-start-text { display: flex; flex-direction: column; min-width: 0; }
@@ -53,7 +60,11 @@
   */
   .timer-leiste-telefon { position: fixed; left: 0; right: 0; bottom: var(--navi-hoehe, 0px); z-index: 29; }
   .timer-leiste-breit { display: none; }
-  .timer-leiste { display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem 0.375rem 1rem; border-top: 1px solid var(--border); background: var(--surface); }
+  /*
+    48 PX SAMT LINIE (E72): 2 + 44 + 2 px, die Linie in `--border-strong`
+    innen statt eines Rahmens, der 58 px ergab. Deckend, kein Schatten.
+  */
+  .timer-leiste { display: flex; align-items: center; gap: 0.5rem; padding: 0.125rem 0.125rem 0.125rem 1rem; background: var(--surface); box-shadow: inset 0 1px 0 var(--border-strong); }
   .timer-leiste-text { flex: 1; display: flex; align-items: center; gap: 0.625rem; min-width: 0; min-height: 2.75rem; color: var(--text); text-decoration: none; }
   .timer-leiste-text:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
   .timer-leiste-uhr { font-family: var(--schrift-mono); font-size: 1.0625rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; }
@@ -63,7 +74,16 @@
   @media (min-width: 760px) {
     .timer-leiste-telefon { display: none; }
     .timer-platz { display: none; }
-    .timer-leiste-breit { display: block; position: sticky; bottom: 1rem; z-index: 10; margin-top: 1.5rem; }
-    .timer-leiste-breit .timer-leiste { border: 1px solid var(--border); }
+    /*
+      AN DER KANTE DER BLÄTTER (E72): Einzug wie das Polster von `.inhalt`,
+      Breite der Inhaltsspalte (`--takt-breite`, vom Taktgeber auch an der
+      Fläche gesetzt). Vorher lief sie über Polster und Rest bis an die
+      Seitenleiste und den rechten Rand.
+    */
+    .timer-leiste-breit { display: block; position: sticky; bottom: 1rem; z-index: 10; max-width: var(--takt-breite, none); margin: 1.5rem 1.5rem 0; }
+    .timer-leiste-breit .timer-leiste { box-shadow: inset 0 0 0 1px var(--border-strong); }
+  }
+  @media (min-width: 1200px) {
+    .timer-leiste-breit { margin-inline: 2.5rem; }
   }
 }

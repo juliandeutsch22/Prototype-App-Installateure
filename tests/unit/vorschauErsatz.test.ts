@@ -27,6 +27,14 @@ describe('Ersatzmodule der Vorschau', () => {
   for (const [vorbild, ersatz] of [
     ['src/lib/auth/sitzung.ts', 'tools/vorschau/sitzung.ts'],
     ['src/lib/auth/provisionUser.ts', 'tools/vorschau/provisionUser.ts'],
+    /*
+      `leer.ts` steht auch für `lib/push.ts`. Am 09.11.2026 fehlten dort
+      `pushProbe` und `pushAbgleichen` (E69): die Abhängigkeitssuche brach ab
+      wie am 02.10. Firebase und Supabase prüft hier niemand mit — deren
+      übrige Exporte braucht nur `push.ts` selbst und `main.tsx`, beide
+      ersetzt die Vorschau ganz.
+    */
+    ['src/lib/push.ts', 'tools/vorschau/leer.ts'],
   ]) {
     it(`${ersatz} trägt jeden Export von ${vorbild}`, () => {
       const fehlt = exporte(vorbild).filter((x) => !exporte(ersatz).includes(x));

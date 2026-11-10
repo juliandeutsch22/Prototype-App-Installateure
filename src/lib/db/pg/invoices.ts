@@ -13,12 +13,13 @@
  * die sich auch nicht mehr wegräumen lässt.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt, RechnungsKopf } from '@/types';
+import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt, Project, RechnungsKopf, WorkSheet } from '@/types';
 import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 import { oderUeberSpalten } from './suche';
 import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
+import { inVerrechneterPauschale } from '@/features/worksheets/unverrechnet';
 
 const RECHNUNGEN = 'invoices';
 const POSITIONEN = 'invoice_lines';
@@ -436,8 +437,9 @@ export async function listInvoicesForProjects(
 }
 
 /**
- * Welche dieser Handwerksscheine auf einer GÜLTIGEN Rechnung stehen — über
- * ALLE Rechnungen, nicht nur die geladenen.
+ * Welche dieser Handwerksscheine VERRECHNET sind: auf einer GÜLTIGEN Rechnung
+ * stehen — über ALLE Rechnungen, nicht nur die geladenen — oder in einer
+ * schon verrechneten Pauschale stecken.
  *
  * Gebraucht für „nicht verrechnete Leistung" (Prüflauf 25.09.2026, P2-03).
  * Die Ansicht fragte bisher die fünfzig jüngsten Rechnungen und die offenen
@@ -445,6 +447,14 @@ export async function listInvoicesForProjects(
  * damit als unverrechnet da — eine falsche Anschuldigung, der jemand
  * nachgeht. Gefragt wird deshalb die Abdeckung selbst, und ein Storno zählt
  * nicht: er gibt seine Scheine frei.
+ *
+ * DIE PAUSCHALE (Befund 09.11.2026): ein Schein einer Pauschal- oder
+ * Einheitspreisbaustelle, der erst nach ihrer Einzel- oder Schlussrechnung
+ * unterschrieben wird, steht auf keiner Rechnung und kann auf keine mehr
+ * kommen — er ist darin enthalten (`inVerrechneterPauschale`). Die Frage
+ * steht HIER, nicht in jeder Ansicht: Startseite, Rechnungen, Scheinliste
+ * und Baustellenakte fragen alle diese Funktion und bekommen so dieselbe
+ * Antwort.
  */
 export async function scheineAufRechnung(
   companyId: string,
@@ -459,12 +469,31 @@ export async function scheineAufRechnung(
     ],
   });
   const rechnungsIds = [...new Set(abdeckung.map((a) => a.invoiceId))];
-  if (rechnungsIds.length === 0) return [];
-  const koepfe = await abfragen<Pick<Invoice, 'paymentStatus'>>(RECHNUNGEN, companyId, {
+  const koepfe = rechnungsIds.length === 0 ? [] : await abfragen<Pick<Invoice, 'paymentStatus'>>(RECHNUNGEN, companyId, {
     wo: [{ art: 'in', feld: 'id', werte: rechnungsIds }],
   });
   const gueltig = new Set(koepfe.filter((k) => k.paymentStatus !== 'Storniert').map((k) => k.id));
-  return [...new Set(abdeckung.filter((a) => gueltig.has(a.invoiceId)).map((a) => a.zielId))];
+  const verrechnet = new Set(abdeckung.filter((a) => gueltig.has(a.invoiceId)).map((a) => a.zielId));
+  const offen = ids.filter((id) => !verrechnet.has(id));
+  for (const id of await inPauschaleEnthalten(companyId, offen)) verrechnet.add(id);
+  return [...verrechnet];
+}
+
+/** Die Scheine unter `scheinIds`, die in einer verrechneten Pauschale stecken — siehe oben. */
+async function inPauschaleEnthalten(companyId: string, scheinIds: string[]): Promise<string[]> {
+  if (scheinIds.length === 0) return [];
+  const scheine = (await abfragen<Pick<WorkSheet, 'status' | 'projectNumber'>>('work_sheets', companyId, {
+    wo: [{ art: 'in', feld: 'id', werte: scheinIds }],
+  })).filter((s) => s.status === 'Unterschrieben' && s.projectNumber);
+  if (scheine.length === 0) return [];
+  const baustellen = (await abfragen<Pick<Project, 'projectNumber' | 'billingMode'>>('projects', companyId, {
+    wo: [{ art: 'in', feld: 'projectNumber', werte: formenAller(scheine.map((s) => s.projectNumber)) }],
+  })).filter((b) => b.billingMode === 'Pauschal' || b.billingMode === 'Einheitspreis');
+  if (baustellen.length === 0) return [];
+  const rechnungen = await abfragen<Pick<Invoice, 'projectNumber' | 'paymentStatus' | 'art'>>(RECHNUNGEN, companyId, {
+    wo: [{ art: 'in', feld: 'projectNumber', werte: formenAller(baustellen.map((b) => b.projectNumber)) }],
+  });
+  return inVerrechneterPauschale(scheine, baustellen, rechnungen);
 }
 
 /** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */

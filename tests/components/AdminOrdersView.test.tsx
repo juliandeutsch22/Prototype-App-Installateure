@@ -36,8 +36,12 @@ let anforderungen: WithId<MaterialOrder>[] = [];
 let ladefehler: string | null = null;
 
 const statusSetzen = vi.fn();
+/* Löschen über `anforderung_loeschen` (10.11.2026): erst geprüft, dann ausgeführt. */
+const loeschenPruefen = vi.fn();
 const loeschen = vi.fn();
 const eiligSetzen = vi.fn();
+/* Wie oft der Arbeitsstand (alles noch nicht Abgeholte, ohne Altersgrenze) abonniert wurde. */
+let offeneAbos = 0;
 
 /* Mit welcher ABFRAGE-Grenze zuletzt abonniert wurde. */
 let letzteHolgrenze = 0;
@@ -55,6 +59,7 @@ vi.mock('@/lib/db/materialOrders', () => ({
   ORDER_STATUS_FLOW: ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'],
   ANFORDERUNG_TREFFER: 100,
   sucheAnforderungen: (c: string, b: string) => sucheAnforderungen(c, b),
+  /* Wie der Server: die jüngsten bis zur Grenze — `anforderungen` steht jüngste zuerst. */
   subscribeAllOrders: (
     _c: string,
     max: number,
@@ -64,11 +69,26 @@ vi.mock('@/lib/db/materialOrders', () => ({
     letzteHolgrenze = max;
     abos += 1;
     if (ladefehler) onError(new Error(ladefehler));
-    else cb(anforderungen);
+    else cb(anforderungen.slice(0, max));
+    return () => undefined;
+  },
+  /* Wie der Server: jede Anforderung (keine Retoure), die noch nicht abgeholt ist — ohne Grenze. */
+  subscribeOffeneAnforderungen: (
+    _c: string,
+    cb: (rows: WithId<MaterialOrder>[]) => void,
+    onError: (e: Error) => void,
+  ) => {
+    offeneAbos += 1;
+    if (ladefehler) onError(new Error(ladefehler));
+    else {
+      cb(anforderungen.filter((o) => o.transactionType === 'order'
+        && ['Offen', 'In Bearbeitung', 'Abholbereit'].includes(o.status)));
+    }
     return () => undefined;
   },
   updateOrderStatus: (...a: unknown[]) => statusSetzen(...a),
-  deleteOrder: (...a: unknown[]) => loeschen(...a),
+  anforderungLoeschenPruefen: (...a: unknown[]) => loeschenPruefen(...a),
+  anforderungLoeschen: (...a: unknown[]) => loeschen(...a),
   anforderungEiligSetzen: (...a: unknown[]) => eiligSetzen(...a),
   createReturn: (...a: unknown[]) => retoureAnlegen(...a),
 }));
@@ -151,8 +171,11 @@ beforeEach(() => {
   ladefehler = null;
   statusSetzen.mockReset();
   statusSetzen.mockResolvedValue({ art: 'geaendert' });
+  loeschenPruefen.mockReset();
+  loeschenPruefen.mockResolvedValue({ art: 'moeglich', gegenbuchung: [], erwartet: [] });
   loeschen.mockReset();
-  loeschen.mockResolvedValue(undefined);
+  loeschen.mockResolvedValue({ art: 'geloescht', gegenbuchung: [] });
+  offeneAbos = 0;
   eiligSetzen.mockReset();
   eiligSetzen.mockResolvedValue(undefined);
   ausLager.mockReset();
@@ -549,7 +572,9 @@ describe('Anforderungen — die Reihenfolge der Arbeit', () => {
     // Im Seitenfenster steht kein Status zur Wahl — nur das Löschen.
     const fenster = await oeffnen();
     expect(within(fenster).queryByRole('button', { name: /setzen$/ })).toBeNull();
-    expect(within(fenster).getByRole('button', { name: /Anforderung löschen/ })).toBeInTheDocument();
+    // E72: eine Retoure heißt beim Löschen auch Retoure — im Knopf und in der Rückfrage.
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure löschen …' }));
+    expect(await screen.findByRole('dialog', { name: 'Retoure löschen?' })).toBeInTheDocument();
   });
 });
 
@@ -633,6 +658,11 @@ describe('Anforderungen — suchen und filtern', () => {
 });
 
 describe('Anforderungen — löschen', () => {
+  /*
+    ANGEPASST (10.11.2026): gelöscht wird über `anforderung_loeschen` mit dem
+    geprüften Stand, nicht mehr an der Tabelle — die Rückfrage nennt so die
+    Folge im Bestand. Was der Test sichert, bleibt: erst nach der Rückfrage.
+  */
   it('löscht erst nach der Rückfrage', async () => {
     anforderungen = [anforderung({ id: 'o1' })];
     zeige();
@@ -641,9 +671,45 @@ describe('Anforderungen — löschen', () => {
     await userEvent.click(within(fenster).getByRole('button', { name: /Anforderung löschen/ }));
     expect(loeschen).not.toHaveBeenCalled();
 
-    const dialog = await screen.findByRole('dialog', { name: /Eintrag löschen/ });
+    const dialog = await screen.findByRole('dialog', { name: 'Anforderung löschen?' });
+    // Gleich geblieben: ohne Gegenbuchung derselbe Satz wie bisher.
+    expect(await within(dialog).findByText('„Kupferrohr 15mm“ ×2 wird entfernt.')).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Löschen' }));
-    await waitFor(() => expect(loeschen).toHaveBeenCalledWith('o1'));
+    await waitFor(() => expect(loeschen).toHaveBeenCalledWith('o1', []));
+    expect(await screen.findByText('Anforderung gelöscht')).toBeInTheDocument();
+  });
+
+  it('nennt bei einer verbuchten Anforderung, um wie viel der Bestand korrigiert wird', async () => {
+    const erwartet = [{ material_id: 'm1', menge: 2 }];
+    loeschenPruefen.mockResolvedValue({
+      art: 'moeglich',
+      erwartet,
+      gegenbuchung: [{ materialId: 'm1', name: 'Kupferrohr 15mm', einheit: 'm', ortId: null, ort: 'Hauptlager', menge: 2 }],
+    });
+    loeschen.mockResolvedValue({ art: 'geloescht', gegenbuchung: [{ menge: 2 }] });
+    anforderungen = [anforderung({ id: 'o1', status: 'Erledigt', processed: true })];
+    zeige();
+    await userEvent.click(await bereich(/^Erledigt/));
+    await userEvent.click(within(await oeffnen()).getByRole('button', { name: /Anforderung löschen/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Anforderung löschen?' });
+    expect(await within(dialog).findByText(/Der Bestand wird um \+2 m Kupferrohr 15mm \(Hauptlager\) korrigiert/)).toBeInTheDocument();
+    expect(loeschenPruefen).toHaveBeenCalledWith('o1');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Löschen' }));
+    // Mit genau dem geprüften Stand.
+    await waitFor(() => expect(loeschen).toHaveBeenCalledWith('o1', erwartet));
+    expect(await screen.findByText('Anforderung gelöscht — der Bestand ist zurückgebucht')).toBeInTheDocument();
+  });
+
+  it('nennt den Grund, wenn Löschen nicht sauber geht — und löscht nicht', async () => {
+    loeschenPruefen.mockResolvedValue({ art: 'abgewiesen', grund: 'Schon abgerechnet — die Rechnung reicht bis 30.09.2026.' });
+    anforderungen = [anforderung({ id: 'o1', status: 'Erledigt', processed: true })];
+    zeige();
+    await userEvent.click(await bereich(/^Erledigt/));
+    await userEvent.click(within(await oeffnen()).getByRole('button', { name: /Anforderung löschen/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Anforderung löschen?' });
+    expect(await within(dialog).findByText(/Löschen geht hier nicht: Schon abgerechnet/)).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Löschen' })).toBeDisabled();
+    expect(loeschen).not.toHaveBeenCalled();
   });
 });
 
@@ -678,6 +744,7 @@ describe('Anforderungen — wie weit die Abfrage reicht', () => {
         quantity: 1,
         // Der Reiter „aktiv“ ist die Vorgabe und zeigt nur Offene.
         status: 'Offen',
+        transactionType: 'order',
         userId: 'u1',
         userName: 'Max Mustermann',
         projectNumber: '2026-001',
@@ -700,10 +767,16 @@ describe('Anforderungen — wie weit die Abfrage reicht', () => {
     ).not.toBeInTheDocument();
   });
 
+  /*
+    ANGEPASST (10.11.2026): die Abfrage-Grenze gilt nur noch für „Erledigt“
+    und „Retouren“. „Laufend“ kommt aus dem Arbeitsstand ohne Grenze —
+    dort gäbe es nichts nachzuladen.
+  */
   it('sagt es, sobald die Grenze erreicht ist, und holt dann mehr', async () => {
-    anforderungen = viele(200);
+    anforderungen = viele(200).map((o) => ({ ...o, status: 'Erledigt' as const }));
     const nutzer = userEvent.setup();
     zeige();
+    await nutzer.click(await bereich(/^Erledigt/));
     await screen.findByText(/Artikel 0/);
 
     // Seit 12.10.2026 (17 I) sucht die Suche über alle — der frühere Satz „nur in diesen gesucht“ wäre falsch.
@@ -719,6 +792,60 @@ describe('Anforderungen — wie weit die Abfrage reicht', () => {
  * Monteur bekommt seine Meldung), „Nicht auf Lager" schickt sie auf die
  * Einkaufsliste. Beides nur, solange noch niemand nachgesehen hat.
  */
+/*
+  DER ARBEITSSTAND OHNE ALTERSGRENZE (Prüfbericht 10.11.2026): „Laufend“ und
+  die Einkaufsliste zeigten nur, was unter den 200 jüngsten Anforderungen
+  stand. Startseite und Menü zählten alle offenen — ihr Verweis führte ins
+  Leere, und „Geliefert“ ließ sich nicht buchen.
+*/
+describe('Anforderungen — der Arbeitsstand reicht hinter die jüngsten 200', () => {
+  const erledigte = Array.from({ length: 200 }, (_, i) =>
+    anforderung({ id: `e${i}`, materialName: `Erledigt ${i}`, status: 'Erledigt', processed: true }));
+
+  it('eine offene Anforderung hinter 200 erledigten steht unter „Laufend“', async () => {
+    anforderungen = [...erledigte, anforderung({ id: 'alt', materialName: 'Altes Eckventil' })];
+    zeige();
+    expect(await screen.findByText('Altes Eckventil')).toBeInTheDocument();
+    expect(offeneAbos).toBeGreaterThan(0);
+  });
+
+  it('… und auf der Einkaufsliste, samt Zahl am Reiter', async () => {
+    anforderungen = [
+      ...erledigte,
+      anforderung({ id: 'alt', materialName: 'Altes Eckventil', status: 'In Bearbeitung', beschaffung: 'einkauf', supplierId: 'gh1' }),
+    ];
+    zeige();
+    expect(await bereich(/^Einkauf 1$/)).toBeInTheDocument();
+    await userEvent.click(await bereich(/^Einkauf/));
+    expect(await screen.findByText(/Altes Eckventil/)).toBeInTheDocument();
+  });
+
+  it('der Filter von der Startseite findet die überfällige Lieferung', async () => {
+    anforderungen = [
+      ...erledigte,
+      anforderung({ id: 'alt', materialName: 'Altes Eckventil', status: 'In Bearbeitung', beschaffung: 'einkauf',
+        supplierId: 'gh1', bestelltAm: Date.now() as never, liefertermin: '2026-08-20' }),
+    ];
+    render(
+      <MemoryRouter initialEntries={['/anforderungen?filter=bestellt-ueberfaellig']}>
+        <ToastProvider>
+          <AdminOrdersView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('Altes Eckventil')).toBeInTheDocument();
+  });
+
+  it('gleich geblieben: „Erledigt“ zeigt die geladenen, mit „Weitere laden“ an der Grenze', async () => {
+    anforderungen = [...erledigte, anforderung({ id: 'alt', materialName: 'Altes Eckventil' })];
+    zeige();
+    await userEvent.click(await bereich(/^Erledigt/));
+    expect(await screen.findByText('Erledigt 0')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Weitere Anforderungen laden/ })).toBeInTheDocument();
+    expect(screen.queryByText('Altes Eckventil')).not.toBeInTheDocument();
+  });
+});
+
 describe('Anforderungen — Lager oder Einkauf', () => {
   it('„Aus Lager“ bucht die Zeile als Lagerware', async () => {
     anforderungen = [anforderung({ id: 'o1', materialId: 'm1' })];
@@ -764,6 +891,27 @@ describe('Anforderungen — Lager oder Einkauf', () => {
     expect(screen.queryByRole('button', { name: /^Aus Lager/ })).not.toBeInTheDocument();
     expect(screen.getByText('aus Lager')).toBeInTheDocument();
     expect(await screen.findByText('bestellt · Holter')).toBeInTheDocument();
+  });
+
+  /*
+    NACH „AUS LAGER“ DOCH NICHT DA (Prüfbericht 10.11.2026): bisher blieb die
+    Anforderung zugesagt, ohne Weg auf die Einkaufsliste.
+  */
+  it('„Nicht auf Lager“ auch nach „Aus Lager“ — mit dem erwarteten Stand „lager“', async () => {
+    anforderungen = [anforderung({ id: 'o1', status: 'Abholbereit', beschaffung: 'lager', processed: false })];
+    zeige();
+    await userEvent.click(within(await oeffnen()).getByRole('button', { name: 'Nicht auf Lager – auf die Einkaufsliste' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Auf die Einkaufsliste?' });
+    expect(within(dialog).getByText(/Die Zusage aus dem Lager fällt weg/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Auf die Liste' }));
+    await waitFor(() => expect(aufEinkaufsliste).toHaveBeenCalledWith('o1', null, 'Abholbereit', 'lager'));
+  });
+
+  it('Gegenprobe: abgeholt und verbucht bietet es nicht an', async () => {
+    anforderungen = [anforderung({ id: 'o1', status: 'Abholbereit', beschaffung: 'lager', processed: true })];
+    zeige();
+    const fenster = await oeffnen();
+    expect(within(fenster).queryByRole('button', { name: 'Nicht auf Lager – auf die Einkaufsliste' })).not.toBeInTheDocument();
   });
 
   it('zählt im Reiter „Einkauf“, was noch zu bestellen ist', async () => {
@@ -1022,7 +1170,39 @@ describe('Anforderungen — Retoure erfassen im Lager', () => {
     await waitFor(() => expect(retoureAnlegen).toHaveBeenCalledTimes(1));
     expect(retoureAnlegen.mock.calls[0]).toEqual(['perl', expect.objectContaining({
       materialId: 'm1', quantity: 1, condition: 'gebraucht', userId: 'm7', userName: 'Max Monteur',
-    })]);
+    }), expect.stringMatching(/^[0-9a-f-]{36}$/)]);
+  });
+
+  /*
+    EINE KENNUNG JE GEÖFFNETEM FORMULAR (Prüfbericht 10.11.2026): riss das
+    Netz nach dem Senden ab, legte ein zweiter Tipp einen zweiten Beleg mit
+    zweiter Gutschrift an. Die Datenbank erkennt dieselbe Kennung — dafür
+    muss die Ansicht sie beim Wiederholen auch schicken.
+  */
+  it('ein erneuter Versuch nach einem Fehler schickt dieselbe Kennung, eine neue Retoure eine neue', async () => {
+    retoureAnlegen.mockReset();
+    retoureAnlegen.mockRejectedValueOnce(new Error('Netzwerkfehler'));
+    retoureAnlegen.mockResolvedValue('r1');
+    const fenster = await retoureBisPerson();
+    const wer = within(fenster).getByRole('combobox', { name: 'Zurückgebracht von' });
+    await waitFor(() => expect(within(wer).getByRole('option', { name: 'Max Monteur' })).toBeInTheDocument());
+    await userEvent.selectOptions(wer, 'm7');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    expect(await within(fenster).findByText(/Netzwerkfehler/)).toBeInTheDocument();
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await waitFor(() => expect(retoureAnlegen).toHaveBeenCalledTimes(2));
+    const [erst, zweit] = retoureAnlegen.mock.calls.map((c) => c[2]);
+    expect(zweit).toBe(erst);
+
+    // Die nächste Retoure ist ein neuer Beleg.
+    await userEvent.click(screen.getByRole('button', { name: 'Retoure erfassen' }));
+    const neu = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
+    await userEvent.type(within(neu).getByRole('searchbox', { name: /^Material/ }), 'Kupfer');
+    await userEvent.click(await within(neu).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
+    await userEvent.selectOptions(within(neu).getByRole('combobox', { name: 'Zurückgebracht von' }), 'm7');
+    await userEvent.click(within(neu).getByRole('button', { name: 'Retoure erfassen' }));
+    await waitFor(() => expect(retoureAnlegen).toHaveBeenCalledTimes(3));
+    expect(retoureAnlegen.mock.calls[2][2]).not.toBe(erst);
   });
 
   it('Gegenprobe: ohne Wahl erfasst das Lager nicht still auf den eigenen Namen', async () => {
@@ -1075,5 +1255,36 @@ describe('Anforderungen — Retoure erfassen im Lager', () => {
     zeige();
     await screen.findByText('Aktuell keine offenen Bestellungen.');
     expect(screen.queryByRole('button', { name: 'Retoure erfassen' })).toBeNull();
+  });
+});
+
+/*
+  E72 (09.11.2026) — gemessen in der Vorschau: über der Liste eingeschoben,
+  rückte die Sammelleiste beim ersten Haken ab dem Tablet die Zeilen um 96 px
+  nach unten; im Seitenfenster stand „Status von Hand“ in Textbreite unter
+  Knöpfen voller Breite. Gegenprobe: mit dem Stand davor rot.
+*/
+describe('Anforderungen — nichts verschiebt sich, eine Knopfgestalt (E72)', () => {
+  it('die Sammelleiste steht hinter der Liste, als Kind der Seite (dort klebt sie unten)', async () => {
+    anforderungen = [anforderung({ id: 'a', materialName: 'Rohr A', status: 'Offen' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('checkbox', { name: /Rohr A .* auswählen/ }));
+    const leiste = screen.getByRole('region', { name: 'Auswahl' });
+    const liste = screen.getByRole('heading', { name: 'Offene Bestellungen' }).closest('section')!;
+    expect(liste.compareDocumentPosition(leiste) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(leiste.parentElement).toHaveClass('anf-seite');
+    // Gleich geblieben: die Sammelaktion selbst.
+    expect(within(leiste).getByRole('button', { name: 'Alle: nächster Schritt' })).toHaveClass('sammel-knopf');
+    expect(within(leiste).getByRole('button', { name: 'Auswahl aufheben' })).toHaveClass('sammel-text');
+  });
+
+  // Die Spalte selbst prüft planlinieStil.test.ts (E72); hier, dass die Knöpfe in ihr stehen.
+  it('gleich geblieben: „Status von Hand setzen“ steht in seiner Gruppe, die übrigen Aktionen in ihrer', async () => {
+    anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
+    zeige();
+    const fenster = await oeffnen();
+    const status = within(fenster).getByRole('button', { name: 'Auf „Erledigt“ setzen' });
+    expect(status.parentElement).toHaveClass('material-status');
+    expect(within(fenster).getByRole('button', { name: 'Nicht auf Lager – auf die Einkaufsliste' }).parentElement).toHaveClass('material-aktionen');
   });
 });

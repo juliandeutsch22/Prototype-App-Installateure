@@ -55,7 +55,9 @@ vi.mock('@/lib/db/auftragseingaenge', () => ({
   eingangAnlegen: vi.fn(),
 }));
 vi.mock('@/lib/db/projects', () => ({ listProjectsByIds: vi.fn(async () => [{ id: PROJEKT, projectNumber: 'B-2026-0007' }]) }));
-vi.mock('@/lib/db/quotes', () => ({ getQuote: vi.fn(async () => ({ id: 'q1', quoteNumber: 'AN-2026-0042' })) }));
+/* Der Stand des Angebots, auf das ein übernommener Eingang zeigt — „Verworfen“ heißt im Papierkorb. */
+let angebotStatus = 'Entwurf';
+vi.mock('@/lib/db/quotes', () => ({ getQuote: vi.fn(async () => ({ id: 'q1', quoteNumber: 'AN-2026-0042', status: angebotStatus })) }));
 const terminAnlegen = vi.fn(async () => 't1');
 vi.mock('@/lib/db/termine', () => ({
   getTermin: vi.fn(async () => null),
@@ -104,6 +106,7 @@ const menue = async (nutzer: ReturnType<typeof userEvent.setup>) => {
 
 beforeEach(() => {
   eingang = OFFEN;
+  angebotStatus = 'Entwurf';
   rolle = 'Geschäftsführung';
   kundenPflegen = false;
   for (const f of Object.values(db)) f.mockClear();
@@ -262,6 +265,32 @@ describe('Abgelehnt und übernommen', () => {
     zeige();
     expect(await screen.findByRole('button', { name: 'Wieder öffnen' })).toBeInTheDocument();
     expect(screen.getByText(/gibt es nicht mehr/)).toBeInTheDocument();
+  });
+
+  /*
+    Befund 09.11.2026: liegt das Angebot im Papierkorb, war der Eingang
+    weder offen noch wieder zu öffnen. Gegenprobe: ohne die Änderung steht
+    „Zum Angebot“ da und kein „Wieder öffnen“.
+  */
+  it('übernommen, das Angebot liegt im Papierkorb: das steht da, und das Büro öffnet ihn wieder', async () => {
+    const nutzer = userEvent.setup();
+    eingang = { ...OFFEN, stand: 'uebernommen', projectId: null, quoteId: 'q1', uebernommenAm: T };
+    angebotStatus = 'Verworfen';
+    rolle = 'Buchhaltung';
+    zeige();
+    expect(await screen.findByText(/liegt im Papierkorb — der Eingang lässt sich wieder öffnen/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Angebot AN-2026-0042' })).toHaveAttribute('href', '/quotes/q1');
+    expect(screen.queryByRole('link', { name: 'Zum Angebot' })).toBeNull();
+    await nutzer.click(screen.getByRole('button', { name: 'Wieder öffnen' }));
+    await waitFor(() => expect(db.eingangWiederOeffnen).toHaveBeenCalledWith(ID));
+  });
+
+  it('gleich geblieben: übernommen als Angebot, das nicht verworfen ist — der Weg zum Angebot, kein Wieder öffnen', async () => {
+    eingang = { ...OFFEN, stand: 'uebernommen', projectId: null, quoteId: 'q1', uebernommenAm: T };
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Zum Angebot' })).toHaveAttribute('href', '/quotes/q1');
+    expect(screen.queryByRole('button', { name: 'Wieder öffnen' })).toBeNull();
+    expect(screen.queryByText(/Papierkorb/)).toBeNull();
   });
 
   it('nicht gefunden: ein Satz statt einer leeren Seite', async () => {

@@ -177,6 +177,8 @@ describe('Was sich nicht zurückholen lässt (M01a, E52)', () => {
 
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText(/Kalender-Abos des ganzen Einsatzplans enden/)).toBeInTheDocument();
+    // Befund 09.11.2026: auch, dass das persönliche Abo dann nichts liefert.
+    expect(within(dialog).getByText(/Persönliche Kalender-Abos liefern nichts/)).toBeInTheDocument();
     // Nur die ÜBRIGEN Daten bleiben — und „in beiden Fällen“ stimmt hier nicht, es geht nichts mit.
     expect(within(dialog).getByText(/Alle übrigen Daten bleiben erhalten/)).toBeInTheDocument();
     expect(within(dialog).queryByText(/in beiden Fällen/)).toBeNull();

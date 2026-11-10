@@ -673,3 +673,144 @@ describe('Modul aus, Direktnachrichten aus', () => {
     await module(A, { 'nachrichten.direktnachrichten': true });
   });
 });
+
+/*
+  DIE ZAHL BLEIBT EHRLICH (Durchsicht 10.11.2026, `20261110100000_nachrichten_zahl.sql`).
+
+  1. Wer die Baustelle nicht mehr sieht, hat dort auch nichts Ungelesenes
+     mehr — Menü und Startseite zählen, was der Posteingang zeigt.
+  2. Löschen nimmt nur eine Nachricht weg, die bei dieser Person gezählt
+     wurde: nicht bei einem später Hinzugekommenen, nicht bei jemandem, der
+     wieder folgt.
+  3. Stumm schalten macht nicht zum Folgenden.
+
+  Gegenprobe: ohne die Migration (und ohne die Umstellung von
+  `ungeleseneZahl`) sind alle drei rot.
+*/
+describe('Die Zahl bleibt ehrlich', () => {
+  async function zahlImMenue(wer: Konto): Promise<number> {
+    const { data, error } = await wer.client.rpc('offene_posten', { p_heute: '2026-11-10' }).single();
+    if (error) throw new Error(error.message);
+    return Number((data as Zeile).nachrichten);
+  }
+  async function ungelesen(kanal: string, uid: string): Promise<number | null> {
+    const { rows } = await db.query<{ ungelesen: number }>(
+      'select ungelesen from public.nachrichten_teilnehmer where kanal_id = $1 and user_id = $2', [kanal, uid]);
+    return rows[0]?.ungelesen ?? null;
+  }
+  async function neueBaustelle(team: string[]): Promise<string> {
+    const { data, error } = await admin.from('projects').insert({
+      company_id: A, project_number: `Z-${crypto.randomUUID().slice(0, 6)}`, customer_name: 'Familie Zahl',
+      status: 'Aktiv', assigned_employees: team, project_managers: [pl.uid],
+    }).select('id').single();
+    if (error) throw new Error(error.message);
+    return data!.id as string;
+  }
+
+  it('aus dem Team genommen: Menü, Startseite und Posteingang zeigen dasselbe — wieder im Team, ist die Zahl wieder da', async () => {
+    const { ungeleseneZahl } = await import('@/lib/db/pg/nachrichten');
+    const weg = await konto(A, 'Mitarbeiter', 'na-zahl-weg');
+    const baustelle = await neueBaustelle([weg.uid]);
+    const kanal = await rpc<string>(pl, 'nachrichten_kanal_baustelle', { p_projekt: baustelle });
+    for (const t of ['Eins', 'Zwei', 'Drei']) await senden(pl, kanal, t);
+    // Gleich bleibt: ein privates Gespräch zählt, solange man drin ist.
+    const privat = await rpc<string>(monteur, 'nachrichten_kanal_direkt', { p_mit: weg.uid });
+    await senden(monteur, privat, 'Privat');
+    expect(await zahlImMenue(weg)).toBe(4);
+    expect(await ungeleseneZahl(weg.uid, weg.client)).toBe(4);
+
+    expect((await admin.from('projects').update({ assigned_employees: [] }).eq('id', baustelle)).error).toBeNull();
+    expect((await rpc<Zeile[]>(weg, 'nachrichten_postfach', {})).map((z) => z.kanal)).not.toContain(kanal);
+    expect((await fehler(weg, 'nachrichten_gelesen', { p_kanal: kanal })).code).toBe('42501');
+    expect(await zahlImMenue(weg)).toBe(1);
+    expect(await ungeleseneZahl(weg.uid, weg.client)).toBe(1);
+
+    // Nichts ist verloren: wer die Baustelle wieder sieht, hat sein Ungelesenes wieder.
+    expect((await admin.from('projects').update({ assigned_employees: [weg.uid] }).eq('id', baustelle)).error).toBeNull();
+    expect(await zahlImMenue(weg)).toBe(4);
+    expect(await ungeleseneZahl(weg.uid, weg.client)).toBe(4);
+  });
+
+  it('Runde: eine alte Nachricht zu löschen nimmt dem später Hinzugekommenen nichts weg', async () => {
+    const runde = await rpc<string>(monteur, 'nachrichten_kanal_runde', { p_name: 'Zahl', p_teilnehmer: [kollege.uid] });
+    const { id: alt } = await senden(monteur, runde, 'Vor dem Beitritt');
+    await rpc(kollege, 'nachrichten_hinzufuegen', { p_kanal: runde, p_personen: [dritter.uid] });
+    await senden(kollege, runde, 'Nach dem Beitritt');
+    const { id: neu } = await senden(monteur, runde, 'Noch eine');
+    expect(await ungelesen(runde, dritter.uid)).toBe(2);
+    expect(await ungelesen(runde, kollege.uid)).toBe(1);
+
+    // Gleich bleibt: was gezählt wurde, geht beim Löschen weg.
+    await rpc(monteur, 'nachricht_loeschen', { p_id: neu });
+    expect(await ungelesen(runde, dritter.uid)).toBe(1);
+    expect(await ungelesen(runde, kollege.uid)).toBe(0);
+
+    await rpc(monteur, 'nachricht_loeschen', { p_id: alt });
+    expect(await ungelesen(runde, dritter.uid)).toBe(1);
+    expect(await ungelesen(runde, kollege.uid)).toBe(0);
+  });
+
+  it('Baustelle: wer wieder folgt oder als Entfolgter erwähnt wird, verliert beim Löschen nichts Gezähltes', async () => {
+    const baustelle = await neueBaustelle([]);
+    const kanal = await rpc<string>(pl, 'nachrichten_kanal_baustelle', { p_projekt: baustelle });
+    const [wieder, erwaehnt] = await Promise.all([konto(A, 'Verwaltung', 'na-wieder'), konto(A, 'Verwaltung', 'na-erwaehnt')]);
+    await rpc(wieder, 'nachrichten_folgen', { p_kanal: kanal, p_folgen: true });
+    await rpc(erwaehnt, 'nachrichten_folgen', { p_kanal: kanal, p_folgen: true });
+    await rpc(erwaehnt, 'nachrichten_folgen', { p_kanal: kanal, p_folgen: false });
+    const { id: alt } = await senden(pl, kanal, 'Vorher');
+    expect(await ungelesen(kanal, wieder.uid)).toBe(1);
+
+    await rpc(wieder, 'nachrichten_folgen', { p_kanal: kanal, p_folgen: false });
+    await rpc(wieder, 'nachrichten_folgen', { p_kanal: kanal, p_folgen: true });
+    const { id: jung } = await senden(pl, kanal, 'Nachher', { p_erwaehnt: [erwaehnt.uid] });
+    expect(await ungelesen(kanal, wieder.uid)).toBe(1);
+    expect(await ungelesen(kanal, erwaehnt.uid)).toBe(1);
+
+    await rpc(pl, 'nachricht_loeschen', { p_id: alt });
+    expect(await ungelesen(kanal, wieder.uid)).toBe(1);
+    expect(await ungelesen(kanal, erwaehnt.uid)).toBe(1);
+    // Gleich bleibt: die gezählte Nachricht geht beim Löschen weg.
+    await rpc(pl, 'nachricht_loeschen', { p_id: jung });
+    expect(await ungelesen(kanal, wieder.uid)).toBe(0);
+    expect(await ungelesen(kanal, erwaehnt.uid)).toBe(0);
+  });
+
+  it('gleich bleibt: wer schon folgt, behält seinen Beitritt — Folgen und Erwähnen setzen ihn nicht neu', async () => {
+    const baustelle = await neueBaustelle([]);
+    const kanal = await rpc<string>(pl, 'nachrichten_kanal_baustelle', { p_projekt: baustelle });
+    const dabei = await konto(A, 'Verwaltung', 'na-dabei');
+    await rpc(dabei, 'nachrichten_folgen', { p_kanal: kanal, p_folgen: true });
+    const beitritt = async () => (await db.query<{ b: string }>(
+      'select beigetreten_am::text as b from public.nachrichten_teilnehmer where kanal_id = $1 and user_id = $2',
+      [kanal, dabei.uid])).rows[0].b;
+    const vorher = await beitritt();
+    await rpc(dabei, 'nachrichten_folgen', { p_kanal: kanal, p_folgen: true });
+    await senden(pl, kanal, 'Hallo', { p_erwaehnt: [dabei.uid] });
+    expect(await beitritt()).toBe(vorher);
+  });
+
+  it('Stumm schalten im Thread, dem man nicht folgt, macht nicht zum Folgenden; eine verlassene Teilnahme bleibt verlassen', async () => {
+    const baustelle = await neueBaustelle([]);
+    const kanal = await rpc<string>(pl, 'nachrichten_kanal_baustelle', { p_projekt: baustelle });
+    const leser = await konto(A, 'Verwaltung', 'na-stumm-leser');
+    await rpc(leser, 'nachrichten_stumm', { p_kanal: kanal, p_stumm: true });
+    expect(await ungelesen(kanal, leser.uid)).toBeNull();
+    expect(await rpc<Zeile>(leser, 'nachrichten_kanal', { p_kanal: kanal })).toMatchObject({ folgt: false });
+
+    await rpc(leser, 'nachrichten_folgen', { p_kanal: kanal, p_folgen: true });
+    await rpc(leser, 'nachrichten_folgen', { p_kanal: kanal, p_folgen: false });
+    await rpc(leser, 'nachrichten_stumm', { p_kanal: kanal, p_stumm: true });
+    const { rows } = await db.query<{ verlassen: boolean; stumm: boolean }>(
+      'select verlassen_am is not null as verlassen, stumm from public.nachrichten_teilnehmer where kanal_id = $1 and user_id = $2',
+      [kanal, leser.uid]);
+    expect(rows[0]).toEqual({ verlassen: true, stumm: true });
+    expect(await rpc<Zeile>(leser, 'nachrichten_kanal', { p_kanal: kanal })).toMatchObject({ folgt: false });
+
+    // Gleich bleibt: wer folgt, schaltet stumm und wieder laut.
+    await rpc(leser, 'nachrichten_folgen', { p_kanal: kanal, p_folgen: true });
+    await rpc(leser, 'nachrichten_stumm', { p_kanal: kanal, p_stumm: false });
+    expect(await rpc<Zeile>(leser, 'nachrichten_kanal', { p_kanal: kanal })).toMatchObject({ folgt: true, stumm: false });
+    await rpc(leser, 'nachrichten_stumm', { p_kanal: kanal, p_stumm: true });
+    expect(await rpc<Zeile>(leser, 'nachrichten_kanal', { p_kanal: kanal })).toMatchObject({ folgt: true, stumm: true });
+  });
+});

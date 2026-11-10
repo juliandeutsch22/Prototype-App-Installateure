@@ -904,6 +904,13 @@ textarea {
   .inhalt .karte:not(:is(.akten-seite, .start-seite, .beleg-kontext, .fenster, .fenster-breit, .blatt, [role='dialog']) .karte) .karte-kopf .titel-karte { font-size: 1.125rem; line-height: 1.625rem; }
   .karte-koerper .zeile { padding-inline: 0; }
   /*
+    IN FENSTERN STEHT DIE ZEILE AUF DER FLUCHT DES FENSTERS (09.11.2026).
+    Das Fenster bringt seinen Innenrand selbst mit; die 16 px der Zeile kamen
+    dazu, und im Tagesfenster standen Überschriften auf 20 px, Zeilen auf
+    36 px, die Knöpfe rechts auf zwei verschiedenen Kanten.
+  */
+  :is(.fenster-inhalt, .blatt-inhalt) .zeile { padding-inline: 0; }
+  /*
     JEDE SEITE BEGINNT IHREN INHALT IM SELBEN ABSTAND ZUM KOPF (E31, 31.10.2026).
     Gemessen über alle Ansichten lag der erste Inhalt 20, 24, 60 oder 64 px
     unter dem Kopf: die Seiten sind teils mit 12/20 px, teils mit 24 px
@@ -1046,7 +1053,14 @@ textarea {
   @media (min-width: 760px) { .aktionsleiste { margin: 0 -1.5rem; padding-inline: 1.5rem; } }
   .aktionsleiste-summe { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.5rem; }
   .aktionsleiste-summe b { color: var(--ink-deep); font-size: 0.9375rem; font-weight: var(--gewicht-titel); }
-  .aktionsleiste-knoepfe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 0.5rem; }
+  /*
+    FESTE ANTEILE, ZWEI ZU DREI (E72, 09.11.2026). Bei 1 : 2 stand „Abbrechen“
+    am Handy 5 px vom Rahmen. Eine Spalte nach Inhalt (`auto`) ging nicht: im
+    Zustand „Gespeichert“ steht links nur ein Platzhalter, und der
+    Speichern-Knopf sprang um 31 px in der Breite (premium.spec). Feste
+    Anteile halten beides: gleiche Breite in jedem Zustand, Luft um das Wort.
+  */
+  .aktionsleiste-knoepfe { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 0.5rem; }
   .aktionsleiste-knoepfe > :only-child { grid-column: 1 / -1; }
   /* „Abbrechen“ brach bei 390 px als „Abbreche|n“ um; ein Knopf trägt ein Wort. */
   .aktionsleiste-knoepfe > * { white-space: nowrap; }
@@ -1076,7 +1090,8 @@ textarea {
   .chip-an { color: var(--ink-deep); font-weight: var(--gewicht-titel); border-bottom-color: var(--petrol); }
   /* Ansichten und Filter tragen dieselbe ruhige Unterstreichung wie die Register. */
   .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0.75rem; border-bottom: 1px solid var(--border); background: transparent; }
-  .segment > * { display: flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 0.375rem; text-align: center; hyphens: auto; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); border-bottom: 2px solid transparent; }
+  /* Auch ein kurzes Wort („Alle“) hat 44 px Tastfläche in der Breite (E72, R3). */
+  .segment > * { display: flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0 0.375rem; text-align: center; hyphens: auto; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); border-bottom: 2px solid transparent; }
   @media (min-width: 760px) { .segment > * { padding: 0 0.625rem; } }
   .segment > .segment-an { color: var(--ink-deep); border-bottom-color: var(--petrol); font-weight: var(--gewicht-titel); }
 

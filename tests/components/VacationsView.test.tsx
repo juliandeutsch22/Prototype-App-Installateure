@@ -785,6 +785,41 @@ describe('Über den eigenen Antrag entscheidet jemand anderer', () => {
   });
 });
 
+/*
+  ZURÜCKNEHMEN IST AUCH EINE ENTSCHEIDUNG (Befund 09.11.2026). Den eigenen
+  genehmigten Urlaub nahm die Chefin selbst zurück, obwohl sie ihn sich nicht
+  selbst genehmigen durfte. Die Datenbank lehnt es ab; hier steht kein Knopf,
+  der danach nur abgewiesen würde.
+*/
+describe('Den eigenen genehmigten Urlaub nimmt jemand anderer zurück', () => {
+  const chefin: AppUser = { ...monteur, id: 'chef', uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung' };
+  const buero: AppUser = { ...monteur, id: 'buch', uid: 'buch', name: 'Herr Bauer', role: 'Buchhaltung' };
+
+  beforeEach(() => {
+    rolle = { ...rolle, uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung', docId: 'chef' };
+    antraege.push({
+      id: 'v-genehmigt', companyId: 'perl', userId: 'chef', userName: 'Julian Deutsch',
+      von: '2026-08-03', bis: '2026-08-07', tage: 5, status: 'Genehmigt', entschiedenVonName: 'Herr Bauer',
+    });
+  });
+
+  it('kein „Zurücknehmen“, wenn die Buchhaltung entscheiden kann', async () => {
+    belegschaft = [monteur, chefin, buero];
+    zeichne();
+    expect(await screen.findByText('Genehmigt von Herr Bauer')).toBeInTheDocument();
+    const { listUsers } = await import('@/lib/db/users');
+    await waitFor(() => expect(listUsers).toHaveBeenCalled());
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.queryByRole('button', { name: 'Zurücknehmen' })).not.toBeInTheDocument();
+  });
+
+  it('gleich geblieben: wer allein entscheidet, nimmt ihn selbst zurück', async () => {
+    belegschaft = [monteur, chefin];
+    zeichne();
+    expect(await screen.findByRole('button', { name: 'Zurücknehmen' })).toBeInTheDocument();
+  });
+});
+
 /**
  * ZURÜCKZIEHEN IST LÖSCHEN, und der Knopf heisst nicht danach.
  *

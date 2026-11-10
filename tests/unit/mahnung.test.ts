@@ -11,8 +11,11 @@ import {
   verzugszinsen,
   halbjahresbeginn,
   mahnkosten,
+  letzteMahnforderung,
+  mahnforderungAus,
+  mahnkostenVorschlag,
 } from '@/features/invoices/mahnung';
-import type { Invoice } from '@/types';
+import type { Invoice, MahnungInhalt } from '@/types';
 
 /**
  * Das Mahnwesen.
@@ -284,5 +287,56 @@ describe('Mahnkosten je Kundenart', () => {
 
   it('ohne Einstellungen kostet eine Mahnung nichts', () => {
     expect(mahnkosten(3, undefined, true)).toEqual({ spesen: 0, pauschale: 0 });
+  });
+});
+
+/*
+  DURCHSICHT 09.11.2026: zahlte der Kunde die Mahnung samt Spesen und
+  Zinsen, wurde das Mehr zum Guthaben. Jetzt gehört es — bis zu dem, was
+  die letzte Mahnung gefordert hat — zu den Mahnkosten. Dieselbe Rechnung
+  steht in der Datenbank (`app.mahnforderung`).
+*/
+describe('Was die letzte Mahnung an Spesen und Zinsen gefordert hat', () => {
+  const inhalt = (p: Partial<MahnungInhalt> = {}): MahnungInhalt => ({
+    stufe: 2, datum: '2026-04-20', frist: '2026-04-27', titel: 'Mahnung', anrede: '', fristSatz: '',
+    empfaenger: { name: 'Huber' }, rechnung: { nummer: 'RE-1', baustelle: 'B-1' },
+    zeilen: [['Rechnungsbetrag', '1.200,00 €'], ['Mahnspesen', '10,00 €'], ['Verzugszinsen 4 % p. a., 35 Tage', '3,16 €']],
+    offen: 1213.16, kosten: 10, ...p,
+  });
+
+  it('Kosten und Zinsen als Zahl', () => {
+    expect(mahnforderungAus(inhalt({ zinsen: 3.16 }))).toBe(13.16);
+  });
+
+  it('ältere Mahnungen: die Zinsen aus der Zeile des Zahlenblocks, auch über tausend Euro', () => {
+    expect(mahnforderungAus(inhalt())).toBe(13.16);
+    expect(mahnforderungAus(inhalt({
+      kosten: 40,
+      zeilen: [['Verzugszinsen, 400 Tage ab 01.01.2025 (§ 456 UGB)', '1.234,56 €'], ['    9,2 % p. a. vom …', '']],
+    }))).toBe(1274.56);
+    // Ohne Zinsen nur die Kosten.
+    expect(mahnforderungAus(inhalt({ zeilen: [['Mahnspesen', '10,00 €']] }))).toBe(10);
+  });
+
+  it('die letzte Mahnung zählt; ohne gespeichertes Schreiben die Spesen am Mahnstand', () => {
+    const mahnungen = [
+      { datum: '2026-03-01', angelegtAm: 1, inhalt: inhalt({ kosten: 0, zinsen: 0 }) },
+      { datum: '2026-04-20', angelegtAm: 2, inhalt: inhalt({ zinsen: 3.16 }) },
+    ];
+    expect(letzteMahnforderung(mahnungen, { mahnstufe: 2, mahnspesen: 10 })).toBe(13.16);
+    expect(letzteMahnforderung([], { mahnstufe: 2, mahnspesen: 10 })).toBe(10);
+    expect(letzteMahnforderung([], { mahnstufe: 0, mahnspesen: 10 })).toBe(0);
+  });
+
+  it('Vorschlag: zuerst der Rest der Rechnung, darüber bis zur offenen Forderung, nie bei einer Rücklastschrift', () => {
+    expect(mahnkostenVorschlag(1213.16, 1200, 13.16)).toBe(13.16);
+    // Mehr als gefordert: der Überschuss bleibt Guthaben, nicht Mahnkosten.
+    expect(mahnkostenVorschlag(1300, 1200, 13.16)).toBe(13.16);
+    // Nur ein Teil des Rests: nichts für die Mahnkosten.
+    expect(mahnkostenVorschlag(600, 1200, 13.16)).toBe(0);
+    // Rechnung schon bezahlt: der Eingang geht auf die Mahnkosten.
+    expect(mahnkostenVorschlag(13.16, 0, 13.16)).toBe(13.16);
+    expect(mahnkostenVorschlag(-50, 0, 13.16)).toBe(0);
+    expect(mahnkostenVorschlag(1213.16, 1200, 0)).toBe(0);
   });
 });

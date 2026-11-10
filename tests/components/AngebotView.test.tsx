@@ -274,7 +274,9 @@ describe('Ein Angebot ansehen', () => {
   it('warnt, wenn die Bindefrist eines offenen Angebots abgelaufen ist', async () => {
     angebot = { ...ANGEBOT, validUntil: '2020-01-01' };
     zeige();
-    expect(await screen.findByText('Bindefrist abgelaufen')).toBeInTheDocument();
+    // E72: im Seitenkopf kurz „abgelaufen“ wie in der Liste; der Verlauf sagt es ausführlich.
+    expect(await screen.findByText('abgelaufen')).toBeInTheDocument();
+    expect(screen.getByText(/Die Bindefrist ist abgelaufen/)).toBeInTheDocument();
   });
 });
 
@@ -369,6 +371,18 @@ describe('Weiter mit dem Angebot', () => {
     await nutzer.click(within(dialog).getByRole('button', { name: 'Verwerfen' }));
     expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Verworfen' });
     expect(deleteQuote).not.toHaveBeenCalled();
+  });
+
+  // Befund 09.11.2026: der Eingang, aus dem der Entwurf stammt, steht in der Rückfrage. Gegenprobe: ohne die Änderung fehlt er.
+  it('stammt der Entwurf aus einem Eingang, nennt die Rückfrage ihn', async () => {
+    angebot = { ...ANGEBOT, status: 'Entwurf' };
+    ausEingang = { id: 'e1', nummer: 'EG-2026-0005' };
+    const nutzer = userEvent.setup();
+    zeige();
+    await screen.findByRole('link', { name: /Aus Eingang EG-2026-0005/ });
+    await mehrMenue(nutzer, 'Verwerfen');
+    const dialog = await screen.findByRole('dialog', { name: 'Entwurf verwerfen?' });
+    expect(dialog).toHaveTextContent(/aus dem Eingang EG-2026-0005: Er bleibt übernommen und lässt sich dort wieder öffnen/);
   });
 
   it('im Papierkorb: nur lesen, „Wiederherstellen“ als einziger Schritt — kein PDF, kein „⋯“', async () => {

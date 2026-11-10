@@ -192,9 +192,12 @@ export default function EinstellungenUebersicht() {
           /*
             „5 von 6 erledigt“ ALS MASSLINIE (Planlinie B2): eine Menge gegen
             ihre Grenze. Der Satz bleibt als Zahl an der Linie stehen.
+            Am Handy bricht sie unter den Titel; mit 12 px mehr Luft misst der
+            Kopf vier Zellen statt 84 px, und die Zeilen darunter liegen
+            wieder auf den Rasterlinien (E72, N10).
           */
           action={
-            <div className="einrichtung-masslinie">
+            <div className="einrichtung-masslinie max-md:mt-3">
               <Masslinie
                 schmal
                 ist={erledigt}

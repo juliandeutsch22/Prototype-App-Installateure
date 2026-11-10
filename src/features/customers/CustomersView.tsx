@@ -470,7 +470,7 @@ export default function CustomersView() {
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Kunden"
-        subtitle="Stammdaten, Ansprechpartner und Baustellenhistorie"
+        subtitle="Ansprechpartner, Baustellen und Belege"
         mehr={seitenMenue.length > 0 ? <RowMenu about="Kunden" items={seitenMenue} /> : undefined}
         action={
           darfAendern && !formOffen ? <Button onClick={neuerKunde}>Neuer Kunde</Button> : undefined
@@ -899,7 +899,7 @@ export default function CustomersView() {
         title="Kunde löschen?"
         message={
           toDelete
-            ? `„${toDelete.name}“ wird entfernt. Das geht nur, solange dem Kunden keine Baustelle zugeordnet ist.`
+            ? `„${toDelete.name}“ wird entfernt. Das geht nur, solange weder Baustellen, Angebote (auch im Papierkorb), Wartungen, Handwerksscheine noch Rechnungen an ihm hängen. Seine Termine und Beteiligungen an Liegenschaften gehen mit.`
             : ''
         }
         onCancel={() => setToDelete(null)}
@@ -910,7 +910,14 @@ export default function CustomersView() {
             toast.success('Kunde gelöscht');
             await nachAenderung();
           } catch (e) {
-            setError((e as Error).message);
+            /*
+              ALS MELDUNG, DIE STEHEN BLEIBT, nicht im Feld `error`: das steht
+              nur im Formular und bei der Übernahme — bei zugeklapptem
+              Formular sah man nichts, und beim nächsten Öffnen stand der
+              Grund im falschen Fenster. Der Satz nennt, was am Kunden hängt;
+              gelesen werden muss er, bevor er geht.
+            */
+            toast.wichtig(grundAus(e, 'Der Kunde konnte nicht gelöscht werden.'));
           }
           setToDelete(null);
         }}

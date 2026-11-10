@@ -26,7 +26,9 @@ import {
   RECHNUNG_TREFFER,
   listInvoicesByIds,
 } from '@/lib/db/invoices';
-import { listZahlungen, listZahlungenImZeitraum, createZahlung, createZahlungMitSkonto, deleteZahlung } from '@/lib/db/zahlungen';
+import {
+  listZahlungen, listZahlungenImZeitraum, createZahlung, createZahlungAufgeteilt, createZahlungMitSkonto, deleteZahlung,
+} from '@/lib/db/zahlungen';
 import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm, zahlstand } from './zahlstand';
 import { haftruecklassBisVorschlag, RUECKLASS_NAME, ruecklassArtFuer, ruecklassBetrag } from './ruecklass';
 import { skontoBedingung, skontoZumAusgleich, zugesagterSkonto } from './skonto';
@@ -34,7 +36,7 @@ import { listActiveProjects } from '@/lib/db/projects';
 import { kundenNachNamen, updateCustomer } from '@/lib/db/customers';
 import { useKundenFuer } from '@/features/customers/useKundenFuer';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
-import { buildBmdCsv, bmdCsvFilename, buildBmdZahlungenCsv, bmdZahlungenFilename } from './bmdExport';
+import { buildBmdCsv, bmdCsvFilename, buildBmdZahlungenCsv, bmdZahlungenFilename, type Abgezogene } from './bmdExport';
 import { buchungskonten, type Buchungskonto } from '@/lib/db/konten';
 import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects, unverrechneteStunden, type OffeneStunden } from '@/lib/db/timeEntries';
@@ -75,7 +77,7 @@ import {
   type AssembledInvoice,
 } from './assemble';
 import {
-  abziehbar, alsVorrechnung, gueltigeSchlussrechnung, leistungAusVorrechnungen, mitAbzug, nachSteuer, pflichtAbzug,
+  abziehbar, alsVorrechnung, gueltigeSchlussrechnung, leistungAusVorrechnungen, mitAbzug, nachSchlussrechnungText, nachSteuer, pflichtAbzug,
   schlussNachStorno, stornoText, teilrechnungenText,
 } from './vorrechnungen';
 import { scheinAbgleich } from './scheinAbgleich';
@@ -118,6 +120,7 @@ import {
 } from './RechnungsListe';
 import ZahlFeld, { ZahlWertFeld, ZahlZelle } from '@/components/ZahlFeld';
 import { leseZahl, unlesbareZahlIn, zahlAlsText, zahlOder } from '@/lib/zahl';
+import { letzteMahnforderung, mahnkostenVorschlag } from './mahnung';
 import PageHeader from '@/components/PageHeader';
 import { Masslinie } from '@/components/Planlinie';
 import { praefixeVon } from '@/lib/praefixe';
@@ -160,6 +163,11 @@ const LISTEN_TITEL: Record<string, string> = {
   erledigt: 'Erledigte Rechnungen',
   alle: 'Alle Rechnungen',
 };
+
+/** „A“, „A und B“, „A, B und C“ — `Intl.ListFormat` steht nicht in der Zielfassung ES2020. */
+function aufzaehlung(teile: string[]): string {
+  return teile.length < 2 ? teile.join('') : `${teile.slice(0, -1).join(', ')} und ${teile[teile.length - 1]}`;
+}
 
 export default function InvoicesView() {
   const { user, company, einblick } = useAuth();
@@ -318,6 +326,12 @@ export default function InvoicesView() {
   } | null>(null);
   /** Schlussrechnungen ohne Abzug ihrer Anzahlung — geholt mit dem Zeitraum (K2). */
   const [ohneAbzug, setOhneAbzug] = useState<SchlussOhneAbzug[]>([]);
+  /**
+   * Art und Steuerbehandlung jeder abgezogenen Rechnung, die NICHT im
+   * Zeitraum liegt — für den Buchungsstapel: nur eine Anzahlung wird
+   * umgebucht, und zwar von dem Anzahlungskonto ihrer Steuerbehandlung.
+   */
+  const [exportVorArten, setExportVorArten] = useState<ReadonlyMap<string, Abgezogene>>(new Map());
   /*
     Der Kontenrahmen des Betriebs — ohne ihn gibt es keinen Buchungsstapel.
     Er wird einmal geladen und nicht abonniert: er ändert sich einmal beim
@@ -438,6 +452,16 @@ export default function InvoicesView() {
     danach ändert, wird neu gefragt.
   */
   const [zUeberschuss, setZUeberschuss] = useState<{ betrag: string; mehr: number } | null>(null);
+  /*
+    MAHNSPESEN UND ZINSEN (Durchsicht 09.11.2026). Zahlte der Kunde die
+    Mahnung samt Spesen und Zinsen, wurde das Mehr zum Guthaben, und der
+    Dialog schlug die Rückzahlung vor. Jetzt teilt er auf: der Rest auf die
+    Rechnung, was darüber geht, bis zu dem, was die letzte Mahnung an Spesen
+    und Zinsen gefordert hat, als eigener Eingang „Mahnkosten“. `null` beim
+    Anteil heißt: der Vorschlag gilt.
+  */
+  const [zMahnforderung, setZMahnforderung] = useState(0);
+  const [zMahnTeil, setZMahnTeil] = useState<string | null>(null);
   /*
     DIE SUCHE KANN AUS DER ADRESSE KOMMEN — die Kundenakte verlinkt eine
     Rechnung hierher, mit ihrer Nummer als Suchbegriff.
@@ -915,13 +939,28 @@ export default function InvoicesView() {
     }, { replace: true });
   }, [oeffnenId, serverTreffer, invoices, offeneRechnungen, setSuchparameter]);
 
+  /*
+    „OFFEN“ UND „ÜBERFÄLLIG“ AUS ALLEN UNBEZAHLTEN (Durchsicht 09.11.2026).
+    Die Kacheln der Startseite zählen über alle unbezahlten Rechnungen und
+    verlinken hierher; die Liste filterte aber nur die fünfzig jüngsten. Eine
+    überfällige Rechnung von vor zwei Jahren stand in der Summe und nicht in
+    der Liste darunter. `offeneRechnungen` hat sie alle schon; der jüngere
+    Stand kommt aus `invoices` (eine eben erfasste Zahlung zählt sofort).
+  */
+  const mitOffenen = useMemo(() => {
+    const alle = new Map(offeneRechnungen.map((i) => [i.id, i]));
+    for (const i of invoices) alle.set(i.id, i);
+    return [...alle.values()].sort((a, b) => b.invoiceNumber.localeCompare(a.invoiceNumber));
+  }, [invoices, offeneRechnungen]);
+
   const visible = useMemo(() => {
     const heute = todayStr();
     const q = suchbegriff.toLowerCase();
+    const basis = filter === 'offen' || filter === 'Überfällig' ? mitOffenen : sorted;
     const grund = !q
-      ? sorted
+      ? basis
       : serverTreffer ??
-        sorted.filter((i) =>
+        basis.filter((i) =>
           [i.invoiceNumber, i.customerName, i.projectNumber].some((v) =>
             v?.toLowerCase().includes(q),
           ),
@@ -937,7 +976,7 @@ export default function InvoicesView() {
             ? istUeberfaellig(i, heute)
             : i.paymentStatus === filter,
     );
-  }, [sorted, filter, suchbegriff, serverTreffer]);
+  }, [sorted, mitOffenen, filter, suchbegriff, serverTreffer]);
   /*
     DIE KENNZAHLEN RECHNEN MIT DEM REST, nicht mit dem Rechnungsbetrag.
 
@@ -1061,6 +1100,8 @@ export default function InvoicesView() {
     setZArt('Überweisung');
     setZHinweis('');
     setZSkonto(false);
+    setZMahnforderung(0);
+    setZMahnTeil(null);
     const { rest, guthaben } = zahlstand(inv);
     /*
       EIN GUTHABEN WILL ZURÜCK (M21). Steht eines offen, ist die Rückzahlung
@@ -1090,6 +1131,15 @@ export default function InvoicesView() {
         erfasst" — und genau darauf würde jemand eine zweite Mahnung stützen.
       */
       setZFehler('Die bisherigen Zahlungen konnten nicht geladen werden.');
+      return;
+    }
+    // Nach einer Mahnung: was sie an Spesen und Zinsen gefordert hat.
+    if ((inv.mahnstufe ?? 0) > 0) {
+      try {
+        setZMahnforderung(letzteMahnforderung(await listMahnungenZurRechnung(inv.companyId, inv.id), inv));
+      } catch {
+        setZFehler('Die Mahnungen konnten nicht geladen werden — Mahnspesen und Zinsen lassen sich gerade nicht getrennt verbuchen.');
+      }
     }
   };
 
@@ -1101,9 +1151,27 @@ export default function InvoicesView() {
   */
   const zahlungsStand = zahlungFuer
     ? zahlungen
-      ? { ...zahlungFuer, bezahltBetrag: Math.round(zahlungen.reduce((s, z) => s + z.betrag, 0) * 100) / 100 }
+      ? {
+          ...zahlungFuer,
+          // Mahnkosten begleichen die Mahnung, nicht die Rechnung (09.11.2026).
+          bezahltBetrag: Math.round(
+            zahlungen.filter((z) => z.art !== 'Mahnkosten').reduce((s, z) => s + z.betrag, 0) * 100,
+          ) / 100,
+        }
       : zahlungFuer
     : null;
+  const mahnkostenBezahlt = zahlungen
+    ? Math.round(zahlungen.filter((z) => z.art === 'Mahnkosten').reduce((s, z) => s + z.betrag, 0) * 100) / 100
+    : zahlungFuer?.mahnkostenBetrag ?? 0;
+  // Eine stornierte Rechnung fordert nichts mehr, auch keine Mahnkosten (`app.mahnkosten_passt`).
+  const mahnkostenOffen = zahlungFuer?.paymentStatus === 'Storniert'
+    ? 0
+    : Math.max(Math.round((zMahnforderung - mahnkostenBezahlt) * 100) / 100, 0);
+  const zMahnFeld = !!zahlungFuer && zRichtung === 'eingang' && (mahnkostenOffen > 0 || mahnkostenBezahlt > 0);
+  const zMahnVorschlag = zahlungsStand
+    ? mahnkostenVorschlag(zahlOder(zBetrag, NaN, { negativ: true }), zahlstand(zahlungsStand).rest, mahnkostenOffen)
+    : 0;
+  const zMahnText = zMahnTeil ?? (zMahnVorschlag > 0 ? zahlAlsText(zMahnVorschlag) : '');
 
   /*
     DER SKONTO WIRD ANGEBOTEN, NICHT GEBUCHT. Passt die Zahlung zur Zusage —
@@ -1139,6 +1207,31 @@ export default function InvoicesView() {
       return;
     }
     /*
+      DER ANTEIL FÜR MAHNSPESEN UND ZINSEN — bei einem Eingang höchstens, was
+      von der letzten Mahnung noch offen ist; bei einer Rücklastschrift
+      höchstens, was darauf eingegangen ist. Die Datenbank prüft dasselbe
+      (`app.mahnkosten_passt`, `app.zahlung_nicht_unter_null`).
+    */
+    let mahnTeil = 0;
+    if (!rueck && zMahnFeld && zMahnText.trim() !== '') {
+      const m = leseZahl(zMahnText, { negativ: true });
+      if (m.fehler || m.wert == null || !Number.isFinite(m.wert)) {
+        setZFehler(m.fehler ?? 'Der Anteil für Mahnspesen und Zinsen ist keine Zahl.');
+        return;
+      }
+      mahnTeil = Math.round(m.wert * 100) / 100;
+      const zuViel = eingetragen > 0
+        ? mahnTeil < 0 || mahnTeil > Math.min(eingetragen, mahnkostenOffen)
+        : mahnTeil > 0 || mahnTeil < Math.max(eingetragen, -mahnkostenBezahlt);
+      if (zuViel) {
+        setZFehler(eingetragen > 0
+          ? `Als Mahnspesen und Zinsen lassen sich höchstens ${euro(Math.min(eingetragen, mahnkostenOffen))} verbuchen — so viel ist von der letzten Mahnung noch offen.`
+          : `Zurückgebucht werden können höchstens ${euro(Math.min(-eingetragen, mahnkostenBezahlt))} an Mahnspesen und Zinsen — so viel ist darauf eingegangen.`);
+        return;
+      }
+    }
+    const aufRechnung = Math.round((eingetragen - mahnTeil) * 100) / 100;
+    /*
       ZURÜCK GEHT HÖCHSTENS DAS GUTHABEN (M21). Danach ist es erledigt; mehr
       zurückzuzahlen hiesse, eine neue Forderung des Kunden zu erfinden. Wer
       eine Rücklastschrift buchen will, trägt sie als Eingang mit Minus ein.
@@ -1153,13 +1246,13 @@ export default function InvoicesView() {
       Zahlung Guthaben, und das weiß, wer sie einträgt.
     */
     const offen = zahlungsStand ? zahlstand(zahlungsStand).rest : 0;
-    const mehr = Math.round((eingetragen - offen) * 100) / 100;
+    const mehr = Math.round((aufRechnung - offen) * 100) / 100;
     if (!rueck && offen > 0 && mehr > 0 && zUeberschuss?.betrag !== zBetrag) {
       setZUeberschuss({ betrag: zBetrag, mehr });
       return;
     }
     setZUeberschuss(null);
-    const betrag = rueck ? -eingetragen : eingetragen;
+    const betrag = rueck ? -eingetragen : aufRechnung;
     const zahlung = {
       invoiceId: zahlungFuer.id,
       datum: zDatum,
@@ -1169,7 +1262,11 @@ export default function InvoicesView() {
       erfasstVon: user.uid,
       erfasstVonName: user.name,
     };
-    if (zSkonto && skontoAngebot) {
+    if (mahnTeil !== 0) {
+      await createZahlungAufgeteilt(zahlungFuer.companyId, zahlung, {
+        mahnkosten: mahnTeil, ...(zSkonto && skontoAngebot ? { skonto: skontoAngebot } : {}),
+      });
+    } else if (zSkonto && skontoAngebot) {
       await createZahlungMitSkonto(zahlungFuer.companyId, zahlung, skontoAngebot);
     } else {
       await createZahlung(zahlungFuer.companyId, zahlung);
@@ -1178,6 +1275,7 @@ export default function InvoicesView() {
     setZBetrag('');
     setZHinweis('');
     setZSkonto(false);
+    setZMahnTeil(null);
     setZFehler(null);
     setZRichtung('eingang');
     /*
@@ -1388,7 +1486,33 @@ export default function InvoicesView() {
           Ohne Angebot bleibt es bei der Null — siehe `anzahlung.ts`.
         */
         const baustelle = projects.find((x) => x.projectNumber === projectNumber);
-        const angebote = baustelle?.id ? await listQuotesForProject(user.companyId, baustelle.id) : [];
+        /*
+          NACH DER SCHLUSSRECHNUNG KEINE ANZAHLUNG MEHR (Durchsicht
+          09.11.2026). Die Schlussrechnung ist schon gestellt und zieht ab,
+          was vor ihr kam; eine Anzahlung danach zöge niemand mehr ab, und
+          ihre Steuer stünde zweimal auf Belegen (§ 11 Abs 12 UStG). Kommt
+          die Abfrage nicht, entsteht keine Vorschau — wie bei den übrigen
+          Arten. Die Datenbank weist den Fall ebenso ab.
+        */
+        const [angebote, derBaustelle] = await Promise.all([
+          baustelle?.id ? listQuotesForProject(user.companyId, baustelle.id) : Promise.resolve([]),
+          listInvoicesForProject(user.companyId, projectNumber).catch(() => null),
+        ]);
+        if (!derBaustelle) {
+          setPreview(null);
+          setError(
+            'Die bisherigen Rechnungen dieser Baustelle konnten nicht geladen werden. Ohne sie lässt '
+              + 'sich nicht ausschließen, dass die Schlussrechnung schon gestellt ist — bitte noch '
+              + 'einmal vorbereiten.',
+          );
+          return;
+        }
+        const schlussDavor = gueltigeSchlussrechnung(derBaustelle, projectNumber);
+        if (schlussDavor) {
+          setPreview(null);
+          setHinweis(nachSchlussrechnungText('anzahlung', schlussDavor.invoiceNumber));
+          return;
+        }
         const angebot = pauschalAngebot(angebote);
         setAnzahlungOhneAngebot(!angebot);
         await vorschauUebernehmen(
@@ -1501,13 +1625,21 @@ export default function InvoicesView() {
         anders aussehen, wird sie storniert und neu ausgestellt. Die
         Datenbank weist eine zweite gültige ebenso ab.
       */
-      const schonSchluss = art === 'schluss' ? gueltigeSchlussrechnung(derBaustelle, projectNumber) : null;
+      /*
+        Ebenso keine Teilrechnung danach (Durchsicht 09.11.2026): auf eine
+        Pauschale wäre sie ein Teilbetrag, den die Schlussrechnung nicht
+        mehr abzieht; nach Regie ist das, was nach der Endabrechnung kommt,
+        eine „Rechnung“.
+      */
+      const schonSchluss = art === 'schluss' || art === 'teil' ? gueltigeSchlussrechnung(derBaustelle, projectNumber) : null;
       if (schonSchluss) {
         setPreview(null);
         setHinweis(
-          `Für diese Baustelle gibt es schon die Schlussrechnung ${schonSchluss.invoiceNumber}. Eine zweite gibt es `
-            + 'nicht: Was danach noch geleistet wurde, bitte als „Rechnung“ zusammenstellen — oder '
-            + `${schonSchluss.invoiceNumber} stornieren und die Schlussrechnung neu ausstellen.`,
+          art === 'schluss'
+            ? `Für diese Baustelle gibt es schon die Schlussrechnung ${schonSchluss.invoiceNumber}. Eine zweite gibt es `
+              + 'nicht: Was danach noch geleistet wurde, bitte als „Rechnung“ zusammenstellen — oder '
+              + `${schonSchluss.invoiceNumber} stornieren und die Schlussrechnung neu ausstellen.`
+            : nachSchlussrechnungText('teil', schonSchluss.invoiceNumber),
         );
         return;
       }
@@ -2127,7 +2259,14 @@ export default function InvoicesView() {
       toast.success(`${TEXTE[stufe].titel} erzeugt`);
       setMahnFuer(null);
     } catch (err) {
-      setError(grundAus(err, 'Die Mahnung konnte nicht erzeugt werden.'));
+      /*
+        DER FEHLER GEHÖRT IN DEN DIALOG (Durchsicht 09.11.2026). `mahnen`
+        läuft nur aus dem Mahndialog, und der bleibt bei einem Fehler offen;
+        die Meldung stand bisher dahinter auf der Seite, der Dialog sah
+        unverändert aus — und ein zweiter Klick erzeugte ein zweites
+        Schreiben. `ConfirmDialog` zeigt, was hier geworfen wird.
+      */
+      throw new Error(grundAus(err, 'Die Mahnung konnte nicht erzeugt werden.'));
     } finally {
       setBusy(false);
     }
@@ -2432,6 +2571,34 @@ export default function InvoicesView() {
   const zieheAb = art === 'teil' || art === 'schluss';
 
   /*
+    DIE GANZE LEISTUNG NEBEN EINER OFFENEN ANZAHLUNG (Durchsicht 09.11.2026).
+    „Rechnung (ganze Leistung)“ ist die Vorgabe und zieht nichts ab. Steht auf
+    der Baustelle noch eine Anzahlung oder Teilrechnung, die keine Rechnung
+    abgezogen hat, weist der Betrieb deren Steuer ein zweites Mal aus (§ 11
+    Abs 12 UStG) — gemerkt hätte es erst die Kanzlei. Eine Warnung, keine
+    Sperre: wer die Anzahlung bewusst anders berichtigt, soll nicht festsitzen.
+
+    Noch einmal durch `abziehbar` mit der GEWÄHLTEN Baustelle: bis die
+    Abfrage zur neuen Vorschau zurück ist, steht hier noch die Liste der
+    vorigen — deren Anzahlung gehört nicht auf diese Rechnung.
+  */
+  const nichtAbgezogen = art === 'einzel' && !abzugFehler
+    ? abziehbar(abzugsfaehig, projectNumber).filter(pflichtAbzug)
+    : [];
+
+  /** Wie die Auswahl der Art: neu zusammenstellen, weil die Art bestimmt, woraus die Positionen entstehen. */
+  function alsSchlussrechnung() {
+    setArtWahl('schluss');
+    setPreview(null);
+    setGewaehlteAbzuege([]);
+    setError(null);
+    setHinweis(null);
+    const auswahl = document.getElementById('inv-art');
+    auswahl?.scrollIntoView?.({ block: 'center' });
+    auswahl?.focus();
+  }
+
+  /*
     Der Abgleich hängt an der Vorschau, nicht an der Liste: verglichen wird,
     was DIESE Rechnung nehmen würde, gegen die Scheine derselben Baustelle.
 
@@ -2500,9 +2667,13 @@ export default function InvoicesView() {
         einer Rechnung, die sie nicht selbst trägt, kommt über den Namen aus
         dem Kundenstamm (`buildInvoiceCsv`) — ohne sie stünde die Spalte leer.
       */
-      const kundenDerZeilen = await kundenNachNamen(user.companyId, zeilen.map((r) => r.customerName));
+      const [kundenDerZeilen, vorArten] = await Promise.all([
+        kundenNachNamen(user.companyId, zeilen.map((r) => r.customerName)),
+        artenDerAbgezogenen(zeilen),
+      ]);
       if (anfrage !== exportAnfrage.current) return;
       setKunden((alt) => [...new Map([...alt, ...kundenDerZeilen].map((k) => [k.id, k])).values()]);
+      setExportVorArten(vorArten);
       setExportZeilen(zeilen);
       setOhneAbzug(fehlAbzug);
       /*
@@ -2531,6 +2702,34 @@ export default function InvoicesView() {
       );
     } finally {
       if (anfrage === exportAnfrage.current) setExportLaeuft(false);
+    }
+  }
+
+  /**
+   * Art und Steuerbehandlung der abgezogenen Rechnungen, die nicht selbst im
+   * Zeitraum liegen (Durchsicht 09.11.2026, Steuerbehandlung seit 09.11.2026). Der Buchungsstapel bucht nur eine Anzahlung vom
+   * Anzahlungskonto in den Erlös um; eine Teilrechnung hat ihren Erlös schon
+   * selbst gebucht. Die Anzahlung liegt meist Monate früher, deshalb eigens
+   * geholt.
+   *
+   * SCHLÄGT DAS FEHL, BLEIBT DIE ZUORDNUNG LEER und der Stapel nennt die
+   * Rechnungen, statt zu raten — das Journal braucht die Art nicht und steht
+   * trotzdem.
+   */
+  async function artenDerAbgezogenen(zeilen: WithId<Invoice>[]): Promise<Map<string, Abgezogene>> {
+    if (!user) return new Map();
+    const imZeitraum = new Set(zeilen.map((r) => r.id));
+    const fehlen = [...new Set(zeilen.flatMap((r) => r.vorrechnungen?.map((v) => v.invoiceId) ?? []))]
+      .filter((id) => !imZeitraum.has(id));
+    if (fehlen.length === 0) return new Map();
+    try {
+      const geholt = await listInvoicesByIds(user.companyId, fehlen);
+      // Altbestand ohne Art ist `einzel` — so belegt die Datenbank die Spalte vor.
+      return new Map(geholt.map((r) => [
+        r.id, { art: r.art ?? 'einzel', reverseCharge: r.reverseCharge, vatRate: r.vatRate },
+      ]));
+    } catch {
+      return new Map();
     }
   }
 
@@ -4452,6 +4651,29 @@ export default function InvoicesView() {
                   : 'Eine Rechnung über null Euro wird nicht angelegt — bitte die Preise eintragen.'}
               </p>
             )}
+            {nichtAbgezogen.length > 0 && (
+              <Hinweiszeile stufe="warn" role="status">
+                <p>
+                  <strong>
+                    Auf dieser Baustelle {nichtAbgezogen.length === 1 ? 'ist' : 'sind'}{' '}
+                    {aufzaehlung(nichtAbgezogen.map(
+                      (r) => `${r.art === 'teil' ? 'die Teilrechnung' : 'die Anzahlung'} ${r.invoiceNumber}`,
+                    ))}{' '}
+                    noch nicht abgezogen.
+                  </strong>{' '}
+                  Eine Rechnung über die ganze Leistung weist deren Umsatzsteuer ein zweites Mal aus
+                  (§ 11 Abs 12 UStG); abgezogen wird auf der Schlussrechnung.
+                  {artWaehlbar
+                    ? ' Danach die Positionen neu zusammenstellen.'
+                    : ' Schlussrechnungen gibt es, sobald in den Einstellungen „Wir stellen Anzahlungs-, Teil- und Schlussrechnungen“ eingeschaltet ist.'}
+                </p>
+                {artWaehlbar && (
+                  <Button variant="secondary" onClick={alsSchlussrechnung}>
+                    Als Schlussrechnung stellen
+                  </Button>
+                )}
+              </Hinweiszeile>
+            )}
             {/* Die Fusszeile des Formulars (`fuss-aktionen`): verwerfen links, anlegen rechts. */}
             <div className="fuss-aktionen">
               <Button variant="ghost" onClick={() => setPreview(null)}>
@@ -4811,7 +5033,9 @@ export default function InvoicesView() {
                 */}
                 {konten.length > 0 && (() => {
                   const debitorVon = (inv: Invoice) => kundeDerRechnung(inv)?.kundennummer;
-                  const b = buildBmdCsv(exportZeilen, konten, exportVon, exportBis, debitorVon);
+                  const b = buildBmdCsv(
+                    exportZeilen, konten, exportVon, exportBis, debitorVon, (id) => exportVorArten.get(id),
+                  );
                   /*
                     DER ZAHLUNGSSTAPEL HAT IMMER SEINEN KNOPF (Runde 3, M5).
                     Bis zum 06.10. erschien er nur mit Bank- oder Skontokonto
@@ -4842,8 +5066,8 @@ export default function InvoicesView() {
                       </Button>
                       <InfoHint about="der Buchungsstapel">
                         Soll- und Habenkonto je Vorgang, brutto mit Steuercode — so, wie BMD es
-                        einliest. Anzahlungen gehen auf das Konto der erhaltenen Anzahlungen und
-                        werden mit der Schlussrechnung in den Erlös umgebucht; ein Storno kommt
+                        einliest. Anzahlungen gehen auf das Konto der erhaltenen Anzahlungen ihrer
+                        Steuerbehandlung und werden mit der Schlussrechnung in den Erlös umgebucht; ein Storno kommt
                         als Gegenbuchung am Stornotag. <strong>Der erste Stapel gehört vor dem
                         Import von deiner Kanzlei geprüft</strong> — die Konten stehen in den
                         Einstellungen und stammen von dort, nicht aus dieser App.
@@ -4936,7 +5160,7 @@ export default function InvoicesView() {
         title="Stornorechnung ausstellen?"
         message={
           stornoBeleg
-            ? `Sie bekommt die nächste Nummer aus dem Rechnungskreis und das Datum des Stornos. Danach lässt sich der Storno von ${stornoBeleg.invoiceNumber} nicht mehr aufheben.`
+            ? `Sie bekommt die nächste Nummer aus dem Rechnungskreis und das heutige Datum. Danach lässt sich der Storno von ${stornoBeleg.invoiceNumber} nicht mehr aufheben.`
             : ''
         }
         confirmLabel="Ausstellen"
@@ -5075,7 +5299,9 @@ export default function InvoicesView() {
               <p>
                 {zahlungFuer.paymentStatus === 'Storniert'
                   ? 'Diese Rechnung ist storniert. Eine Zahlung hierauf wird zum Guthaben des Kunden.'
-                  : 'Diese Rechnung ist schon bezahlt. Eine weitere Zahlung wird zum Guthaben des Kunden.'}
+                  : mahnkostenOffen > 0
+                    ? `Diese Rechnung ist schon bezahlt. Eine weitere Zahlung gilt bis ${euro(mahnkostenOffen)} als Mahnspesen und Zinsen der letzten Mahnung, darüber als Guthaben des Kunden.`
+                    : 'Diese Rechnung ist schon bezahlt. Eine weitere Zahlung wird zum Guthaben des Kunden.'}
               </p>
             </Hinweiszeile>
           </div>
@@ -5170,10 +5396,29 @@ export default function InvoicesView() {
             />
           </div>
         )}
+        {zMahnFeld && (
+          <div className="mt-3">
+            <ZahlFeld
+              id="z-mahnkosten"
+              label="Davon Mahnspesen und Zinsen (€)"
+              negativ
+              value={zMahnText}
+              onChange={(text) => setZMahnTeil(text)}
+            />
+            <p className="mt-1 text-sm text-ink-muted">
+              Die letzte Mahnung forderte {euro(zMahnforderung)} an Mahnspesen und Zinsen
+              {mahnkostenBezahlt > 0 ? `, davon sind ${euro(mahnkostenBezahlt)} eingegangen` : ''}.
+              Dieser Anteil zählt nicht auf die Rechnung, sondern als eigener Ertrag.
+            </p>
+          </div>
+        )}
         <InfoHint about="der Betrag">
           Vorausgefüllt steht der offene Rest, weil er fast immer stimmt. Bei einer Teilzahlung
           wird er überschrieben. Ein Guthaben des Kunden wird als Rückzahlung gebucht; ein
-          negativer Eingang ist eine Rücklastschrift.
+          negativer Eingang ist eine Rücklastschrift. Nach einer Mahnung teilt der Dialog auf:
+          der Rest auf die Rechnung, was darüber hinausgeht bis zu dem, was die letzte Mahnung an
+          Mahnspesen und Zinsen gefordert hat, als „Mahnspesen und Zinsen“ — erst was dann noch
+          bleibt, ist ein Guthaben.
         </InfoHint>
 
         {zUeberschuss && zUeberschuss.betrag === zBetrag && zRichtung === 'eingang' && (
@@ -5202,7 +5447,7 @@ export default function InvoicesView() {
                   title={<span>{z.betrag < 0 ? `Rückzahlung ${euro(-z.betrag)}` : euro(z.betrag)}</span>}
                   subtitle={
                     <span>
-                      {datumAT(z.datum)} · {z.art}
+                      {datumAT(z.datum)} · {z.art === 'Mahnkosten' ? 'Mahnspesen und Zinsen' : z.art}
                       {z.hinweis ? ` · ${z.hinweis}` : ''}
                       {z.erfasstVonName ? ` · erfasst von ${z.erfasstVonName}` : ''}
                     </span>
@@ -5219,12 +5464,29 @@ export default function InvoicesView() {
                       <Button
                         variant="danger"
                         onClick={async () => {
-                          await deleteZahlung(z.id);
-                          if (zahlungFuer) {
-                            setZahlungen(await listZahlungen(zahlungFuer.companyId, zahlungFuer.id));
+                          setZFehler(null);
+                          try {
+                            await deleteZahlung(z.id);
+                          } catch (e) {
+                            // Ohne Meldung stand die Zeile einfach weiter da (Durchsicht 09.11.2026).
+                            setZFehler(grundAus(e, 'Die Zahlung konnte nicht gelöscht werden.'));
+                            return;
                           }
                           setZLoeschen(null);
                           toast.success('Zahlung gelöscht');
+                          /*
+                            GELÖSCHT IST GELÖSCHT, auch wenn das Neuladen danach
+                            scheitert: dann fällt die Zeile hier heraus, statt als
+                            Zahlung stehen zu bleiben, die es nicht mehr gibt.
+                          */
+                          setZahlungen((alt) => alt?.filter((x) => x.id !== z.id) ?? alt);
+                          if (zahlungFuer) {
+                            try {
+                              setZahlungen(await listZahlungen(zahlungFuer.companyId, zahlungFuer.id));
+                            } catch {
+                              setZFehler('Die Zahlung ist gelöscht, die Liste konnte aber nicht neu geladen werden.');
+                            }
+                          }
                         }}
                       >
                         Ja, löschen

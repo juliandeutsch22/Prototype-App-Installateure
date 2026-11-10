@@ -165,6 +165,57 @@ describe('Lager je Ort', () => {
     expect(await screen.findByText(/5 m Kupferrohr 15mm umgelagert: Hauptlager → Fahrzeug W-123A/)).toBeInTheDocument();
   });
 
+  /*
+    ZUGESAGTES IM HAUPTLAGER (Prüfbericht 10.11.2026): mehr als frei bucht
+    der Server nicht, sondern nennt die Zahlen. Der Dialog fragt damit nach
+    und schickt erst nach der Bestätigung — ausdrücklich „trotz Reservierung“.
+  */
+  it('reserviert: fragt mit frei und zugesagt nach und bucht erst nach der Bestätigung', async () => {
+    umlagern
+      .mockResolvedValueOnce({ art: 'reserviert', vorgang: 'v1', bestandVon: 20, zugesagt: 18, frei: 2, menge: 5, einheit: 'm' })
+      .mockResolvedValueOnce({ art: 'ausgefuehrt', vorgang: 'v2', bestandVon: 15, bestandNach: 11 });
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm' }));
+    await userEvent.click(within(await screen.findByRole('dialog', { name: 'Artikel' })).getByRole('button', { name: 'Umlagern' }));
+    const dialog = await screen.findByRole('dialog', { name: /^Umlagern: / });
+    await userEvent.selectOptions(within(dialog).getByLabelText('Nach'), 'ort-bus');
+    const menge = within(dialog).getByLabelText(/Menge/);
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '5');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Umlagern' }));
+
+    // Nichts gebucht, die Rückfrage mit den Zahlen.
+    expect(await within(dialog).findByText(/nicht genug frei/)).toBeInTheDocument();
+    expect(within(dialog).getByText('Schon zugesagt').nextElementSibling).toHaveTextContent('18 m');
+    expect(within(dialog).getByText('Frei').nextElementSibling).toHaveTextContent('2 m');
+    expect(umlagern.mock.calls[0][0]).not.toHaveProperty('trotzReserviert');
+    expect(screen.queryByText(/umgelagert:/)).not.toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Trotzdem umlagern' }));
+    await waitFor(() => expect(umlagern).toHaveBeenCalledTimes(2));
+    expect(umlagern.mock.calls[1][0]).toMatchObject({ vonId: null, nachId: 'ort-bus', menge: 5, trotzReserviert: true });
+    expect(await screen.findByText(/5 m Kupferrohr 15mm umgelagert/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: wer nach der Rückfrage die Menge ändert, wird neu gefragt — nicht still übersteuert', async () => {
+    umlagern.mockResolvedValue({ art: 'reserviert', vorgang: 'v1', bestandVon: 20, zugesagt: 18, frei: 2, menge: 5, einheit: 'm' });
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm' }));
+    await userEvent.click(within(await screen.findByRole('dialog', { name: 'Artikel' })).getByRole('button', { name: 'Umlagern' }));
+    const dialog = await screen.findByRole('dialog', { name: /^Umlagern: / });
+    await userEvent.selectOptions(within(dialog).getByLabelText('Nach'), 'ort-bus');
+    const menge = within(dialog).getByLabelText(/Menge/);
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '5');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Umlagern' }));
+    await within(dialog).findByRole('button', { name: 'Trotzdem umlagern' });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '4');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Umlagern' }));
+    await waitFor(() => expect(umlagern).toHaveBeenCalledTimes(2));
+    expect(umlagern.mock.calls[1][0]).not.toHaveProperty('trotzReserviert');
+  });
+
   it('veraltet: sagt die neue Zahl, bucht nichts und holt neu', async () => {
     umlagern.mockResolvedValue({ art: 'veraltet', vorgang: 'v', bestandVon: 3, einheit: 'm' });
     zeige('/lager?ort=ort-bus');

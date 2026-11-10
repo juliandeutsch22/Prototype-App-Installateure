@@ -28,10 +28,20 @@ const BAUSTELLEN_JE_LAUF = 25;
 
 type Auswahl = 'Aktiv' | 'Abgeschlossen';
 
+/**
+ * Gehört die Baustelle in die Auswahl? „Laufend“ heißt Aktiv ODER Pausiert
+ * (Befund 09.11.2026), wie in der Baustellenwahl (`BaustellenSelect`): eine
+ * pausierte Baustelle ist nicht abgeschlossen, und vorher stand sie in
+ * keiner der beiden Auswahlen — ihre Zahlen waren nirgends zu sehen.
+ */
+function inAuswahl(p: Pick<Project, 'status'>, status: Auswahl): boolean {
+  return status === 'Aktiv' ? p.status === 'Aktiv' || p.status === 'Pausiert' : p.status === status;
+}
+
 /** Die Baustellen einer Auswahl, die gerechnet werden: die jüngsten zuerst, höchstens 25. */
 function auswahlVon(projekte: readonly WithId<Project>[], status: Auswahl): WithId<Project>[] {
   return projekte
-    .filter((p) => p.status === status)
+    .filter((p) => inAuswahl(p, status))
     // Abgeschlossene zuerst die jüngsten: sie sind noch im Gedächtnis.
     .sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))
     .slice(0, BAUSTELLEN_JE_LAUF);
@@ -80,7 +90,7 @@ export default function NachkalkulationView() {
   */
   const [gewaehlt, setGewaehlt] = useState<Auswahl | null>(null);
   const status: Auswahl = gewaehlt
-    ?? (!projekte.some((x) => x.status === 'Abgeschlossen') && projekte.some((x) => x.status === 'Aktiv') ? 'Aktiv' : 'Abgeschlossen');
+    ?? (!projekte.some((x) => x.status === 'Abgeschlossen') && projekte.some((x) => inAuswahl(x, 'Aktiv')) ? 'Aktiv' : 'Abgeschlossen');
 
   /*
     EINE ABFRAGE JE AUSWAHL, GEMERKT (Auftrag 04.11.2026: „beim Tabwechsel
@@ -146,7 +156,7 @@ export default function NachkalkulationView() {
     }
     return z;
   }, [ergebnisse]);
-  const inAuswahl = projekte.filter((p) => p.status === status).length;
+  const zahlInAuswahl = projekte.filter((p) => inAuswahl(p, status)).length;
   const loading = grund.isPending;
 
   if (!user) return null;
@@ -175,7 +185,7 @@ export default function NachkalkulationView() {
             <Metric
               label="Baustellen"
               value={ergebnisse.length}
-              hint={inAuswahl > ergebnisse.length ? `die ${ergebnisse.length} jüngsten von ${inAuswahl}` : status === 'Aktiv' ? 'laufend' : 'abgeschlossen'}
+              hint={zahlInAuswahl > ergebnisse.length ? `die ${ergebnisse.length} jüngsten von ${zahlInAuswahl}` : status === 'Aktiv' ? 'laufend' : 'abgeschlossen'}
             />
             <Metric
               label="Mit Verlust"
@@ -250,7 +260,8 @@ export default function NachkalkulationView() {
             />
             <InfoHint about="die Auswahl">
               Ein <strong>laufender</strong> Stand ist ein Zwischenstand: es kommen noch
-              Stunden dazu, und die Marge kann sich noch drehen. Bei{' '}
+              Stunden dazu, und die Marge kann sich noch drehen. Laufend sind aktive und
+              pausierte Baustellen. Bei{' '}
               <strong>abgeschlossenen</strong> Baustellen steht das Ergebnis fest. Gerechnet
               werden jeweils die {BAUSTELLEN_JE_LAUF} jüngsten.
             </InfoHint>

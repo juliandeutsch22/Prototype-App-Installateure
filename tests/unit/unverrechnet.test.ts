@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest';
+import { pauschaleVerrechnetMit } from '@/features/invoices/pauschale';
 import {
+  inVerrechneterPauschale,
   unverrechneteScheine,
   unverrechneteStundenZeilen,
   auffaellige,
   AUFFAELLIG_AB_TAGEN,
 } from '@/features/worksheets/unverrechnet';
-import type { Invoice, WorkSheet } from '@/types';
+import type { Invoice, Project, WorkSheet } from '@/types';
 
 /**
  * Unterschriebene Scheine, für die nie eine Rechnung geschrieben wurde.
@@ -153,5 +155,62 @@ describe('unverrechnete Stunden der Regiebaustellen (23.10.2026)', () => {
     ], '2026-09-30');
     expect(z.map((x) => [x.stunden.projectNumber, x.tage])).toEqual([['A', 60], ['B', 10]]);
     expect(auffaellige(z).map((x) => x.stunden.projectNumber)).toEqual(['A']);
+  });
+});
+
+/*
+  SCHEINE IN EINER VERRECHNETEN PAUSCHALE (Befund 09.11.2026). Nach der
+  Einzel- oder Schlussrechnung einer Pauschal- oder Einheitspreisbaustelle
+  verweigert die Vorschau jede weitere Rechnung; ein danach unterschriebener
+  Schein stand für immer unter „nicht verrechnet“. Die Regel steht hier,
+  gefragt wird sie in `scheineAufRechnung` — so bekommen Startseite,
+  Rechnungen und Scheinliste dieselbe Antwort.
+*/
+describe('In der verrechneten Pauschale enthalten', () => {
+  const s = (id: string, projectNumber: string, status: WorkSheet['status'] = 'Unterschrieben') =>
+    ({ id, projectNumber, status });
+  const b = (projectNumber: string, billingMode: Project['billingMode']) => ({ projectNumber, billingMode });
+  const r = (projectNumber: string, art?: Invoice['art'], paymentStatus: Invoice['paymentStatus'] = 'Offen') =>
+    ({ projectNumber, art, paymentStatus });
+
+  it('Pauschale mit Schlussrechnung: der Schein danach ist enthalten', () => {
+    expect(inVerrechneterPauschale([s('a', '2026-1')], [b('2026-1', 'Pauschal')], [r('2026-1', 'schluss')])).toEqual(['a']);
+  });
+
+  it('Einheitspreis mit Einzelrechnung ebenso — eine Rechnung ohne Art ist eine Einzelrechnung', () => {
+    expect(inVerrechneterPauschale([s('a', 'PR-2026-2')], [b('2026-2', 'Einheitspreis')], [r('pr-2026-2')])).toEqual(['a']);
+  });
+
+  it('Regie bleibt gezählt, auch mit Rechnung', () => {
+    expect(inVerrechneterPauschale([s('a', '2026-3')], [b('2026-3', 'Regie')], [r('2026-3', 'schluss')])).toEqual([]);
+  });
+
+  it('Pauschale ohne Einzel- oder Schlussrechnung bleibt gezählt — Anzahlung, Teilrechnung und Storno verrechnen sie nicht', () => {
+    expect(inVerrechneterPauschale(
+      [s('a', '2026-4')],
+      [b('2026-4', 'Pauschal')],
+      [r('2026-4', 'anzahlung'), r('2026-4', 'teil'), r('2026-4', 'schluss', 'Storniert')],
+    )).toEqual([]);
+  });
+
+  it('nur Unterschriebenes; eine Baustelle ohne Abrechnungsart ist keine Pauschale', () => {
+    expect(inVerrechneterPauschale(
+      [s('a', '2026-5', 'Entwurf'), s('b', '2026-6')],
+      [b('2026-5', 'Pauschal'), b('2026-6', undefined)],
+      [r('2026-5', 'schluss'), r('2026-6', 'schluss')],
+    )).toEqual([]);
+  });
+
+  it('dieselbe Bedingung wie die Vorschau (`pauschaleVerrechnetMit`)', () => {
+    const faelle: Array<[Invoice['art'] | undefined, Invoice['paymentStatus']]> = [
+      [undefined, 'Offen'], ['einzel', 'Bezahlt'], ['schluss', 'Offen'], ['anzahlung', 'Offen'],
+      ['teil', 'Offen'], ['schluss', 'Storniert'], ['einzel', 'Teilbezahlt'],
+    ];
+    for (const [art, paymentStatus] of faelle) {
+      const rechnung = { projectNumber: 'PR-2026-7', invoiceNumber: 'RE-1', art, paymentStatus } as Invoice;
+      const vorschau = pauschaleVerrechnetMit([rechnung], '2026-7') !== null;
+      const hier = inVerrechneterPauschale([s('a', '2026-7')], [b('2026-7', 'Pauschal')], [rechnung]).length > 0;
+      expect(hier, `${art} ${paymentStatus}`).toBe(vorschau);
+    }
   });
 });

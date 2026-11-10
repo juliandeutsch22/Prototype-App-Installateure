@@ -144,6 +144,11 @@ export interface UmlagerAuftrag {
   /** Der Bestand am Quellort, den die Ansicht gesehen hat. */
   erwartetVon: number;
   grund?: string;
+  /**
+   * Nur nach der Rückfrage mit den Zahlen: aus dem Hauptlager auch Ware, die
+   * Anforderungen oder Rüstlisten zugesagt ist. Steht im Bewegungsprotokoll.
+   */
+  trotzReserviert?: boolean;
 }
 
 export type UmlagerErgebnis =
@@ -151,7 +156,13 @@ export type UmlagerErgebnis =
   /** Nichts geschrieben: der Quellort stand nicht mehr so da (oder die Einheit ist eine andere). */
   | { art: 'veraltet'; vorgang: string; bestandVon: number; einheit: string }
   /** Nichts geschrieben: am Quellort liegt weniger als verlangt. */
-  | { art: 'fehlbestand'; vorgang: string; bestandVon: number; menge: number; einheit: string };
+  | { art: 'fehlbestand'; vorgang: string; bestandVon: number; menge: number; einheit: string }
+  /**
+   * Nichts geschrieben: aus dem Hauptlager sollte mehr weg, als frei ist —
+   * der Rest ist Anforderungen oder Rüstlisten zugesagt. Die Zahlen für die
+   * Rückfrage; bestätigt wird mit `trotzReserviert`.
+   */
+  | { art: 'reserviert'; vorgang: string; bestandVon: number; zugesagt: number; frei: number; menge: number; einheit: string };
 
 function ergebnisAus(d: Record<string, unknown>): UmlagerErgebnis {
   const vorgang = String(d.vorgang ?? '');
@@ -161,6 +172,12 @@ function ergebnisAus(d: Record<string, unknown>): UmlagerErgebnis {
   if (d.ergebnis === 'fehlbestand') {
     return {
       art: 'fehlbestand', vorgang, bestandVon: Number(d.bestand_von), menge: Number(d.menge), einheit: String(d.einheit ?? 'Stk'),
+    };
+  }
+  if (d.ergebnis === 'reserviert') {
+    return {
+      art: 'reserviert', vorgang, bestandVon: Number(d.bestand_von), zugesagt: Number(d.zugesagt),
+      frei: Number(d.frei), menge: Number(d.menge), einheit: String(d.einheit ?? 'Stk'),
     };
   }
   return { art: 'veraltet', vorgang, bestandVon: Number(d.bestand_von), einheit: String(d.einheit ?? 'Stk') };
@@ -202,6 +219,8 @@ export async function umlagern(a: UmlagerAuftrag, vorgang: string = crypto.rando
     menge: a.menge,
     einheit: a.einheit,
     grund: a.grund?.trim() || null,
+    // Nur wenn bestätigt — sonst bleibt der Befehl Wort für Wort wie bisher.
+    ...(a.trotzReserviert ? { trotz_reserviert: true } : {}),
   };
   const senden = async () => {
     const { data, error, status } = await derClient().rpc('umlagern', { p_befehl: befehl });

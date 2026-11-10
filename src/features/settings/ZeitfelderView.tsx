@@ -236,7 +236,8 @@ export default function ZeitfelderView() {
       <PageHeader
         ort="Einstellungen"
         title="Zeitfelder"
-        subtitle="Standardfelder und eigene Angaben zu jeder Zeitbuchung"
+        // Einzeilig am Handy (E72, N1): der Untertitel ist eine Zeile, keine Erklärung.
+        subtitle="Standardfelder und eigene Angaben je Buchung"
         action={darf ? <Button onClick={() => { setFehler(null); setEntwurf({ ...LEER, rollen: [...ZEITFELD_ROLLEN] }); }}>Feld anlegen</Button> : undefined}
         hilfe={
           <>

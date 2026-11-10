@@ -842,9 +842,11 @@ export default function TimeView() {
         AM TELEFON STEHT DIE LISTE WEIT UNTEN — unter Saldo und Maske. Wer nur
         nachsehen will, was er gestern gebucht hat, springt hierüber hin
         (Prüflauf 24.09.2026, D8). Am Schreibtisch ist der Weg kurz genug.
+        Als Zweitknopf, nicht als Petrol-Text (E72, R1).
       */}
-      <button
+      <Button
         type="button"
+        variant="secondary"
         onClick={() => {
           const ziel = document.getElementById('meine-eintraege');
           if (!ziel) return;
@@ -859,11 +861,11 @@ export default function TimeView() {
           ziel.setAttribute('tabindex', '-1');
           ziel.focus({ preventScroll: true });
         }}
-        className="inline-flex min-h-touch items-center gap-1 text-sm font-normal text-accent-deep sm:hidden"
+        className="sm:hidden"
       >
         Zu meinen Einträgen
         <Icon name="chevron" size={16} />
-      </button>
+      </Button>
 
       {profilFehler && <TeilFehler was="Dein Stammdatenblatt" onRetry={profilLaden} />}
 

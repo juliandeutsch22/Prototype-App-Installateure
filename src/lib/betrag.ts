@@ -12,9 +12,18 @@ const ZWEI_STELLEN = new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, 
 const GANZ = new Intl.NumberFormat('de-AT', { maximumFractionDigits: 0 });
 const BIS_VIER = new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 
+/*
+  ZEICHEN UND ZAHL BLEIBEN ZUSAMMEN (09.11.2026, E72): zwischen „€“ und
+  Betrag steht ein geschütztes Leerzeichen. Mit dem gewöhnlichen brach der
+  Zahlungsdialog bei 834 px zu „offen €“ am Zeilenende und „22 104,60“ in
+  der nächsten Zeile. Nur die Ansichten nutzen diese Formen; Belege und
+  Exporte schreiben `euroBetrag`.
+*/
+const ZEICHEN = '€\u00a0';
+
 /** „€ 1.234,56" — Betrag mit Zeichen davor, für die Ansichten. */
 export function euro(n: number): string {
-  return `€ ${ZWEI_STELLEN.format(n)}`;
+  return `${ZEICHEN}${ZWEI_STELLEN.format(n)}`;
 }
 
 /**
@@ -27,7 +36,7 @@ export function euroBetrag(n: number): string {
 
 /** „€ 1.235" — auf ganze Euro gerundet, für Kennzahlen auf der Startseite. */
 export function euroGerundet(n: number): string {
-  return `€ ${GANZ.format(n)}`;
+  return `${ZEICHEN}${GANZ.format(n)}`;
 }
 
 /**
@@ -36,5 +45,5 @@ export function euroGerundet(n: number): string {
  * Probelauf eines Katalogs anders aus als die Datei.
  */
 export function euroPreis(n: number): string {
-  return `€ ${BIS_VIER.format(n)}`;
+  return `${ZEICHEN}${BIS_VIER.format(n)}`;
 }

@@ -37,14 +37,14 @@
   .plattform-kontext h2 { margin-top: 0.5rem; font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); }
   .plattform-kontext h3 { margin-top: 1rem; font-size: 0.8125rem; line-height: 1.25rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .plattform-kontext p { margin-top: 0.25rem; font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
-  .plattform-kontext button { font-size: 0.8125rem; padding-inline: 0; justify-content: flex-start; color: var(--accent-deep); font-weight: var(--gewicht-titel); }
+  /* Knöpfe der Kontextspalte sind Zweitknöpfe wie überall (09.11.2026: ohne Polster lag der Text am Rahmen). */
+  .plattform-kontext button { margin-top: 0.5rem; }
   .plattform-kontextzeile { border-bottom: 1px solid var(--border); padding: 0.5rem 0 0.75rem; }
 
   .plattform-kennung { font-size: 0.75rem; color: var(--text-muted); font-weight: 400; }
   .plattform-zustaende { display: flex; flex-wrap: wrap; gap: 0.375rem 0.875rem; margin-top: 0.625rem; }
   .plattform-zustaende:empty { display: none; }
   .plattform-zeilenpfeil { display: none; }
-  .plattform .zeile-ziel { min-height: 2.75rem; }
   .plattform-verwaltung button { min-height: 2.75rem; }
   .plattform .link { display: inline-block; min-width: 2.75rem; min-height: 2.75rem; max-width: 100%; padding-block: 0.625rem; }
   .plattform-formulartitel { font-size: 0.9375rem; font-weight: var(--gewicht-titel); margin-top: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
@@ -57,14 +57,20 @@
   /* Klebt am Handy über der Reiterleiste, ab dem Tablet am unteren Rand (`--reiter-hoehe` ist dort 0). */
   .rt-aktionen { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; padding-block: 0.75rem; border-top: 1px solid var(--border); background: var(--surface); }
 
-  .plattform-supportzeile { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.875rem 1.5rem; padding: 1.25rem 0; border-bottom: 1px solid var(--border); }
+  /*
+    DIE LINIE ZWISCHEN DEN ZUGÄNGEN, NICHT DARUNTER (E72, 09.11.2026): als
+    Linie unter jedem Eintrag stand nach dem letzten eine Trennlinie ohne
+    Folgezeile über dem Blattrand. Jetzt trägt jeder Eintrag nach dem ersten
+    die Linie oben — ohne Positionsselektor, wie die Zeilen der Listen.
+  */
+  .plattform-supportzeile { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.875rem 1.5rem; padding: 1.25rem 0; }
+  .plattform-supportzeile + .plattform-supportzeile { border-top: 1px solid var(--border); }
   .plattform-supportinfo { min-width: 0; }
   .plattform-supportinfo h3 { font-size: 0.875rem; font-weight: var(--gewicht-titel); }
   .plattform-supportinfo p { margin-top: 0.5rem; font-size: 0.8125rem; }
   .plattform-supportstufen { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin-top: 0.5rem; }
   .plattform-supporthinweis { grid-column: 1 / -1; color: var(--text-muted); font-size: 0.8125rem; }
-  .plattform-supportaktionen { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0 1.5rem; border-top: 1px solid var(--border); padding-top: 0.5rem; }
-  .plattform-supportaktionen button { color: var(--accent-deep); font-size: 0.8125rem; padding-inline: 0; }
+  .plattform-supportaktionen { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.75rem; }
   .plattform-wiederherstellung { max-width: 35rem; padding: 1.25rem 0; border-top: 1px solid var(--border); }
   .plattform-ergebnis { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-block: 1px solid var(--border); padding: 0.75rem 0; font-size: 0.875rem; }
   .plattform-verwaltung { min-width: 0; }

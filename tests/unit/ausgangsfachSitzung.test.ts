@@ -42,15 +42,20 @@ function client(sitzungFuer: string | null, antwort: { error: unknown } = { erro
       }),
     },
     from: (tabelle: string) => ({
-      upsert: async () => {
-        gesendet.push(tabelle);
-        return antwort;
-      },
-      update: () => ({
-        eq: async () => {
+      // Die Kette endet wie in der Bibliothek mit dem Abbruchsignal des Senders.
+      upsert: () => ({
+        abortSignal: async () => {
           gesendet.push(tabelle);
-          return { ...antwort, count: 1 };
+          return antwort;
         },
+      }),
+      update: () => ({
+        eq: () => ({
+          abortSignal: async () => {
+            gesendet.push(tabelle);
+            return { ...antwort, count: 1 };
+          },
+        }),
       }),
     }),
   };

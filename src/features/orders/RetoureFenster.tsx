@@ -74,6 +74,17 @@ export default function RetoureFenster({
   const [fehler, setFehler] = useState<string | null>(null);
   const [speichert, setSpeichert] = useState(false);
   /*
+    DIE KENNUNG DES BELEGS, EINMAL JE GEÖFFNETEM FORMULAR. Riss nach dem
+    Senden das Netz ab, schickte ein zweiter Tipp früher einen neuen Beleg —
+    zweite Zeile, zweite Gutschrift. Mit derselben Kennung bucht die
+    Datenbank (`retoure_anlegen`) nichts noch einmal. Neu wird sie erst beim
+    nächsten Öffnen und nach einer erfassten Retoure.
+  */
+  const [kennung, setKennung] = useState(() => crypto.randomUUID());
+  useEffect(() => {
+    if (offen) setKennung(crypto.randomUUID());
+  }, [offen]);
+  /*
     WOHIN „NEU“ ZURÜCKGEHT (M04a): ins Hauptlager wie bisher, oder an einen
     weiteren Ort — der Monteur in sein eigenes Fahrzeug (Restmaterial bleibt
     im Bus), das Lager an jeden Ort. Dieselbe Grenze zieht `retoure_anlegen`.
@@ -153,8 +164,9 @@ export default function RetoureFenster({
       };
       // Ins Hauptlager derselbe Aufruf wie bisher; ein Ort nur bei „neu“ — nur das wird gutgeschrieben.
       const zielOrt = zustand === 'neu' && zielorte.some((o) => o.id === ziel) ? ziel : HAUPTLAGER;
-      if (zielOrt) await createReturnInOrt(companyId, beleg, zielOrt);
-      else await createReturn(companyId, beleg);
+      if (zielOrt) await createReturnInOrt(companyId, beleg, zielOrt, kennung);
+      else await createReturn(companyId, beleg, kennung);
+      setKennung(crypto.randomUUID());
       setGewaehlt(null);
       setVon('');
       setSuche('');

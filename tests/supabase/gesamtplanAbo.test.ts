@@ -211,19 +211,33 @@ describe('Wann der Gesamtplan endet', () => {
     expect((await abruf(gesamt as string))?.art).toBe('gesamt');
   });
 
-  it('schaltet der Betrieb die Einsatzplanung aus, ist er weg — das eigene Abo bleibt', async () => {
+  /*
+    Bis 09.11.2026 lieferte das eigene Abo bei abgeschalteter Einsatzplanung
+    weiter — Einsätze mit Kundenadresse und Telefon, obwohl „Mein
+    Einsatzplan“, wo man es beendet, zu war. Jetzt ruht es: die Zeile bleibt,
+    der Abruf liefert nichts, nach dem Wiedereinschalten wieder. Gegenprobe:
+    ohne `20261110170000_wartung_abo_eingang_lager.sql` liefert der Abruf
+    unten „eigen“ statt nichts.
+  */
+  it('schaltet der Betrieb die Einsatzplanung aus, ist er weg — das eigene Abo ruht und liefert nichts', async () => {
     const { data: eigen } = await anlegen(chefin, 'eigen');
     const { data: gesamt } = await anlegen(chefin, 'gesamt');
     await admin.from('companies').update({ modules: { einsatzplanung: false } }).eq('id', BETRIEB);
     try {
       expect(await abruf(gesamt as string)).toBeNull();
       expect((await admin.from('kalender_abos').select('id').eq('company_id', BETRIEB).eq('art', 'gesamt')).data).toEqual([]);
-      expect((await abruf(eigen as string))?.art).toBe('eigen');
-      // Und neu anlegen geht dann auch nicht.
+      expect(await abruf(eigen as string)).toBeNull();
+      // Auch die Kalenderdatei sagt dasselbe wie für einen ungültigen Link.
+      expect((await abrufen(eigen as string)).status).toBe((await abrufen('gibt-es-nicht')).status);
+      expect((await admin.from('kalender_abos').select('art').eq('user_id', chefin.uid)).data).toEqual([{ art: 'eigen' }]);
+      // Und neu anlegen geht dann auch nicht — weder der Gesamtplan noch ein eigenes.
       expect((await anlegen(chefin, 'gesamt')).error?.message).toMatch(/nur, wer die Einsatzplanung sieht/);
+      expect((await anlegen(chefin, 'eigen')).error?.message).toMatch(/Einsatzplanung ist in diesem Betrieb ausgeschaltet/);
     } finally {
       await admin.from('companies').update({ modules: null }).eq('id', BETRIEB);
     }
+    // Wieder an: derselbe Link liefert wieder.
+    expect((await abruf(eigen as string))?.art).toBe('eigen');
   });
 
   it('die Datenauskunft nennt, welche Abos es gibt', async () => {

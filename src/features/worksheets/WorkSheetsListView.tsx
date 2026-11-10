@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import KnopfLink from '@/components/KnopfLink';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   listRecentWorkSheets,
@@ -719,16 +719,14 @@ export default function WorkSheetsListView() {
 
     Ein Link im Aussehen des Zweitknopfs, KEIN Knopf im Link: das waren zwei
     Tab-Stopps für eine Aktion, und die Vorlesehilfe meldete einen Knopf in
-    einem Link (Prüflauf 25.09.2026, P4-12). Die Klassen sind die von
-    `Button` mit `variant="secondary"`.
+    einem Link (Prüflauf 25.09.2026, P4-12). Seit E72 (09.11.2026) mit
+    `KnopfLink`: die von Hand nachgebauten Klassen trugen Schatten, halbfette
+    Schrift und Skalierung, die der Zweitknopf „PDF“ daneben nicht hat.
   */
   const weiterbearbeitenLink = (s: WithId<WorkSheet>) => (
-    <Link
-      to={`/worksheet?entwurf=${s.id}`}
-      className="inline-flex min-h-touch items-center justify-center gap-2 rounded border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-2 active:scale-[0.98] sm:text-base"
-    >
+    <KnopfLink to={`/worksheet?entwurf=${s.id}`} variant="secondary">
       Weiterbearbeiten
-    </Link>
+    </KnopfLink>
   );
 
   /** Steht über der Liste etwas (Fehler, Suchauskunft, verworfene Entwürfe)? */
@@ -1340,9 +1338,9 @@ export default function WorkSheetsListView() {
                 */}
                 {darfDiesen(offenerSchein) && (offenerSchein.status === 'Entwurf' || offenerSchein.status === 'Verworfen') && (
                   <div className="schein-loeschen">
+                    {/* Unumkehrbar: `danger` in normaler Größe wie jeder Knopf im Fenster (E72, R4). */}
                     <Button
                       variant="danger"
-                      groesse="klein"
                       onClick={() => {
                         setLoeschenFuer(offenerSchein);
                         setOffen(null);

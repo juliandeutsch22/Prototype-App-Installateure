@@ -140,3 +140,30 @@ describe('Bank- und Skontokonto', () => {
     expect(error).not.toBeNull();
   });
 });
+
+/*
+  DURCHSICHT 09.11.2026: je Steuerbehandlung ein Anzahlungskonto, dazu das
+  Konto für bezahlte Mahnspesen und Zinsen.
+*/
+describe('Anzahlungskonten je Steuerbehandlung und Mahnkosten', () => {
+  it('nimmt Anzahlungskonten je Satz, eines für Bauleistungen und eines für Mahnkosten an', async () => {
+    await k.kontoAnlegen(BETRIEB, { zweck: 'anzahlung', ustSatz: 0.2, konto: '3500', steuercode: 'M20' });
+    await k.kontoAnlegen(BETRIEB, { zweck: 'anzahlung', ustSatz: 0, konto: '3509', steuercode: 'M00' });
+    await k.kontoAnlegen(BETRIEB, { zweck: 'anzahlung_rc', konto: '3505', steuercode: 'M00' });
+    await k.kontoAnlegen(BETRIEB, { zweck: 'mahnkosten', konto: '4880' });
+    expect(await k.buchungskonten(BETRIEB)).toHaveLength(4);
+  });
+
+  it('Erhaltung: das bisherige Anzahlungskonto ohne Satz bleibt möglich und lässt sich auf einen Satz stellen', async () => {
+    const id = await k.kontoAnlegen(BETRIEB, { zweck: 'anzahlung', konto: '3500', steuercode: 'M20' });
+    await k.kontoAendern(id, { ustSatz: 0.2 });
+    expect((await k.buchungskonten(BETRIEB))[0]).toMatchObject({ zweck: 'anzahlung', ustSatz: 0.2 });
+  });
+
+  it('weist zwei Anzahlungskonten für denselben Satz ab, und einen Satz am Konto für Bauleistungen', async () => {
+    await k.kontoAnlegen(BETRIEB, { zweck: 'anzahlung', ustSatz: 0.2, konto: '3500' });
+    await expect(k.kontoAnlegen(BETRIEB, { zweck: 'anzahlung', ustSatz: 0.2, konto: '3520' })).rejects.toThrow();
+    await expect(k.kontoAnlegen(BETRIEB, { zweck: 'anzahlung_rc', ustSatz: 0, konto: '3505' })).rejects.toThrow();
+    await expect(k.kontoAnlegen(BETRIEB, { zweck: 'mahnkosten', ustSatz: 0, konto: '4880' })).rejects.toThrow();
+  });
+});

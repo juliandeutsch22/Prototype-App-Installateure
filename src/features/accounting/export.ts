@@ -135,6 +135,11 @@ export interface UserWithEntries {
    * die Überstunden ab der 51. Wochenstunde (KV Metallgewerbe).
    */
   vorlauf?: TimeEntry[];
+  /**
+   * Deaktiviert (ausgeschieden), mit Buchungen im Monat. Ohne Austrittsdatum
+   * sind Soll, Saldo und Resturlaub keine Aussage: die Felder bleiben leer.
+   */
+  deaktiviert?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -214,6 +219,7 @@ export function buildMonthCsv(
     );
   }
 
+  const mitDeaktivierten = rows.some((r) => r.deaktiviert);
   lines.push('', 'Mitarbeiter-Zusammenfassung');
   lines.push(
     row([
@@ -246,11 +252,14 @@ export function buildMonthCsv(
       // Seit 02.11.2026 (E35), ganz hinten: angerechnete Arztbesuche. Sie
       // stecken schon in „Freigestellt stundenweise“ — „davon“, nicht dazu.
       'davon Arztbesuch(Std)',
+      // Seit 09.11.2026, ganz hinten und nur, wenn jemand Ausgeschiedener im
+      // Monat steht: eine Datei nur mit Aktiven bleibt Spalte für Spalte gleich.
+      ...(mitDeaktivierten ? ['Konto'] : []),
     ]),
   );
   // Das Lehrjahr am letzten Tag des Monats: wechselt es mittendrin, gilt für die Abrechnung der neue Stand.
   const monatsletzter = `${year}-${String(month + 1).padStart(2, '0')}-${String(new Date(year, month + 1, 0).getDate()).padStart(2, '0')}`;
-  for (const { user, monthEntries, stats, vorlauf } of [...rows].sort((a, b) => a.user.name.localeCompare(b.user.name, 'de'))) {
+  for (const { user, monthEntries, stats, vorlauf, deaktiviert } of [...rows].sort((a, b) => a.user.name.localeCompare(b.user.name, 'de'))) {
     // „davon beides" ist keine Zierde: der Rohrbruch um zwei Uhr früh trägt
     // beide Kennzeichen. Wer Nacht und Notdienst addiert, zählt diese
     // Stunden doppelt — und sähe es der Datei nicht an.
@@ -262,11 +271,11 @@ export function buildMonthCsv(
       row([
         user.name,
         hours(stats.istMin),
-        hours(stats.sollMin),
-        hours(stats.saldoMin),
+        deaktiviert ? '' : hours(stats.sollMin),
+        deaktiviert ? '' : hours(stats.saldoMin),
         stats.krankDays,
         tage(stats.urlaubDays),
-        tage(stats.urlaubRest),
+        deaktiviert ? '' : tage(stats.urlaubRest),
         hours(z.nachtMin),
         hours(z.notdienstMin),
         hours(z.beidesMin),
@@ -284,6 +293,7 @@ export function buildMonthCsv(
         ...(mitTagesgrenze(lohn) && ue ? [hours(ue.nachtAlsUeberstundeMin ?? 0)] : []),
         ...(mitTagesgrenze(lohn) && ue ? [hours(ue.mehrarbeitTeilzeitMin ?? 0)] : []),
         hours(stats.arztbesuchMin),
+        ...(mitDeaktivierten ? [deaktiviert ? 'deaktiviert' : ''] : []),
       ]),
     );
   }
@@ -376,10 +386,12 @@ export function buildUserCsv(
   vorlauf: TimeEntry[] = [],
   /** Die freien Zeitfelder (M06b) — hinten angehängt. */
   zeitfelder?: ExportZeitfelder,
+  /** Wie `UserWithEntries.deaktiviert`: Soll, Saldo und Resturlaub ohne Austrittsdatum keine Aussage. */
+  deaktiviert = false,
 ): string {
   const lines: string[] = [];
   const felder = feldSpalten(zeitfelder, monthEntries);
-  lines.push(row([`Zeiterfassung: ${user.name}`]));
+  lines.push(row([`Zeiterfassung: ${user.name}${deaktiviert ? ' (Konto deaktiviert)' : ''}`]));
   lines.push(row([`Monat: ${MONTHS[month]} ${year}`]));
   lines.push(
     row([`Wochensoll: ${stats.weeklyTarget} h · Jahresurlaub: ${stats.yearlyVacation} Tage`]),
@@ -415,12 +427,12 @@ export function buildUserCsv(
 
   lines.push('');
   lines.push(row(['Ist', `${hours(stats.istMin)} h`]));
-  lines.push(row(['Soll', `${hours(stats.sollMin)} h`]));
-  lines.push(row(['Saldo', `${hours(stats.saldoMin)} h`]));
+  lines.push(row(['Soll', deaktiviert ? '—' : `${hours(stats.sollMin)} h`]));
+  lines.push(row(['Saldo', deaktiviert ? '—' : `${hours(stats.saldoMin)} h`]));
   lines.push(row(['Krank', `${stats.krankDays} Tage`]));
   lines.push(row(['Urlaub (Monat)', `${tage(stats.urlaubDays)} Tage`]));
   lines.push(row([`Urlaub ${year} gesamt`, `${tage(stats.yearlyUrlaubDays)} Tage`]));
-  lines.push(row(['Resturlaub', `${tage(stats.urlaubRest)} Tage`]));
+  lines.push(row(['Resturlaub', deaktiviert ? '—' : `${tage(stats.urlaubRest)} Tage`]));
   lines.push(row(['Zeitausgleich', `${hours(stats.zaMin)} h`]));
   if (stats.berufsschuleDays > 0) {
     lines.push(row(['Berufsschule', `${stats.berufsschuleDays} Tage (${hours(stats.berufsschuleMin)} h)`]));

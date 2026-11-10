@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { topAendern, topAnlegen } from '@/lib/db/liegenschaften';
 import type { LiegenschaftTop } from '@/types';
 import Button from '@/components/Button';
@@ -18,12 +18,20 @@ export default function TopFormular({
   top,
   onGespeichert,
   onAbbrechen,
+  zusatz,
 }: {
   companyId: string;
   liegenschaftId: string;
   top?: LiegenschaftTop;
   onGespeichert: () => void;
   onAbbrechen: () => void;
+  /**
+   * Weitere Handlungen am Gegenstand (etwa „Top löschen“) — sie stehen ÜBER
+   * dem Fensterfuß, im Formular (E72): danach stünden sie unter einer
+   * klebenden Fußleiste, die bis an die Kante reicht. Knöpfe darin brauchen
+   * `type="button"`.
+   */
+  zusatz?: ReactNode;
 }) {
   const toast = useToast();
   const [f, setF] = useState({
@@ -77,9 +85,13 @@ export default function TopFormular({
           checked={f.aktiv} onChange={(e) => setF({ ...f, aktiv: e.target.checked })} />
       )}
       {fehler && <ErrorState message={fehler} />}
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" loading={speichert}>{top ? 'Änderung speichern' : 'Top anlegen'}</Button>
-        <Button type="button" variant="ghost" onClick={onAbbrechen} disabled={speichert}>Abbrechen</Button>
+      {zusatz}
+      {/* Der Fensterfuß wie überall (E72, R7): Linie darüber, Abbrechen gerahmt, die Hauptaktion zuletzt. */}
+      <div className="planung-fuss mt-0">
+        <div className="planung-fuss-knoepfe">
+          <Button type="button" variant="secondary" onClick={onAbbrechen} disabled={speichert}>Abbrechen</Button>
+          <Button type="submit" loading={speichert}>{top ? 'Änderung speichern' : 'Top anlegen'}</Button>
+        </div>
       </div>
     </form>
   );

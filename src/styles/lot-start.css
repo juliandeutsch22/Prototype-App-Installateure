@@ -38,8 +38,14 @@
   /* Die Blöcke der Kontextspalte trennt Luft, keine Linie (E24). */
   .start-kontext .start-karte { padding-bottom: 1.25rem; }
   .start-kontext .start-karte-kopf { padding-top: 1rem; padding-bottom: 0.75rem; }
-  .start-kontext .start-karte-kopf h2 { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.8125rem; line-height: 1.375rem; }
-  .start-kontext .start-karte-kopf h2 .start-karte-zusatz { flex: none; white-space: nowrap; font-weight: 400; font-size: 0.6875rem; margin-left: 0; }
+  /*
+    DER ZUSATZ FOLGT DEM TITEL (E72, 09.11.2026). Als Flex-Zeile mit
+    `space-between` brach „Die Mannschaft heute“ bei 1.440 px in zwei Zeilen,
+    und „· 5 im Einsatz“ stand rechts außen statt hinter dem Titel wie in der
+    Hauptspalte. Jetzt fließt er mit und bricht als Ganzes in die nächste Zeile.
+  */
+  .start-kontext .start-karte-kopf h2 { display: block; font-size: 0.8125rem; line-height: 1.375rem; }
+  .start-kontext .start-karte-kopf h2 .start-karte-zusatz { white-space: nowrap; font-weight: 400; font-size: 0.6875rem; margin-left: 0; }
   .start-karte-verweis { display: inline-flex; align-items: center; min-height: 2.75rem; margin: 0.5rem 1.5rem 0; font-size: 0.75rem; }
   .start-seite .start-gruppe { padding-bottom: 0.875rem; }
   .start-seite .start-abschnitt { display: flex; align-items: center; gap: 0.625rem; padding: 1rem 1.5rem 0.5rem; background: transparent; font-size: 0.71875rem; line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text); }
@@ -84,17 +90,36 @@
   .start-leer h2 { font-size: 1.25rem; line-height: 1.75rem; font-weight: var(--gewicht-titel); }
   .start-leer p { color: var(--text-muted); font-size: 0.875rem; line-height: 1.375rem; max-width: 32rem; margin-top: 0.5rem; }
   .start-einsatz { padding: 1rem 1.5rem; }
+  /*
+    ADRESSE UND TELEFON WIE ÜBERALL (E72, 09.11.2026): `.link-kontakt` mit
+    Symbol. Hier waren sie zu Petrol-Unterstrich ohne Symbol umgefärbt — auf
+    keiner anderen Seite sahen sie so aus. Lange Adressen brechen um.
+  */
   .start-einsatz-kontakt { margin-top: 0.75rem; }
-  .start-einsatz-kontakt a { border: 0; padding: 0.5rem 0; border-radius: 0; color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px; font-size: 0.8125rem; overflow-wrap: anywhere; }
-  .start-einsatz-kontakt svg { display: none; }
+  .start-einsatz-kontakt a { overflow-wrap: anywhere; }
   .start-einsatz-aufgabe { border-left: 2px solid var(--border-strong); padding-left: 1rem; margin-block: 1rem; font-size: 0.875rem; line-height: 1.75rem; }
   .start-einsatz-titel { font-size: 1.375rem; line-height: 1.875rem; }
-  .start-einsatz-aktionen { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-top: 1rem; }
-  .start-wie-zuletzt { display: inline-flex; flex-direction: column; justify-content: center; min-height: 3rem; padding-block: 0.5rem; color: var(--accent-deep); }
-  .start-wie-zuletzt .text-fliess { font-size: 0.8125rem; }
+  /*
+    LANGE NAMEN MIT STRICH (09.11.2026). Der Name der Baustelle steht hier
+    gross und trägt `kein-trennen` (U1, U9: kurze Wörter nicht trennen). Ein
+    einzelnes langes Wort („Wohnungseigentümergemeinschaft“) brach damit
+    ohne Strich mitten im Wort — genau D3. Getrennt wird nur ab 13 Zeichen,
+    mit mindestens 6 vorn und 5 hinten, wie in Listen und Kennzahlen.
+    E72: ebenso die Namen unter „Danach“ — dort brach „…gemeinschaf|t“ noch.
+  */
+  .start-einsatz-name.kein-trennen, .start-einsatz-titel.kein-trennen { hyphens: auto; -webkit-hyphens: auto; hyphenate-limit-chars: 13 6 5; -webkit-hyphenate-limit-before: 6; -webkit-hyphenate-limit-after: 5; }
+  .start-einsatz-aktionen { margin-top: 1rem; }
+  /* In der schmalen Spalte am Schreibtisch untereinander in voller Breite wie am Handy — nebeneinander brachen sie ungleich um. */
+  .start-kontext .einsatz-knoepfe { flex-direction: column; }
+  /*
+    AM TABLET EINSPALTIG (E72, 09.11.2026). In der 240-px-Spalte neben „Zu
+    erledigen“ stand „Dein Einsatz heute“ mit fünfzeiligem Namen und
+    gestapelten Knöpfen, die Mannschaft mit Namen in Einzelwörtern. Der
+    Tagesüberblick folgt bis 1.199 px unter der Arbeit, erst der Schreibtisch
+    hat Platz für eine Spalte daneben.
+  */
   @media (min-width: 760px) {
     .start-planaktion { display: inline-flex; }
-    .start-rahmen { grid-template-columns: minmax(0, 1fr) 15rem; gap: 1.5rem; }
   }
   @media (min-width: 1200px) {
     .start-rahmen { grid-template-columns: minmax(0, 1fr) 19.5rem; gap: 1.5rem; }

@@ -38,6 +38,13 @@
 const HUELLE = 'perl-huelle';
 const TEILE = 'perl-teile';
 const SEITE = '/index.html';
+/**
+ * Welche Bausteine lagen, als eine neue Hülle abgelegt wurde? Nur diese sind
+ * beim Übernehmen alt (`teileAufraeumen`). Ein Eintrag im Speicher der Hülle,
+ * weil der Worker zwischen Ablegen und Übernehmen beendet werden darf und
+ * eine Variable das nicht übersteht.
+ */
+const ALTE_TEILE = '/alte-teile.json';
 
 /* ---------------------------------------------------------------- Push --- */
 
@@ -294,37 +301,34 @@ self.addEventListener('fetch', (event) => {
  * Jetzt kann die App sie ausserdem auf Zuruf anstossen — sie tut das, sobald
  * sie wieder in den Vordergrund kommt.
  *
- * Die neue `index.html` wird dabei IMMER abgelegt. Das ist kein Detail: ohne
- * sie fände die nächste Prüfung denselben Unterschied noch einmal, und wer
- * still übernimmt, liefe in eine Schleife aus Melden und Neuladen.
+ * Gemeldet wird eine neue Fassung nur zusammen mit dem Ablegen ihrer
+ * `index.html` (`huelleAblegen`). Das ist kein Detail: ohne sie fände die
+ * nächste Prüfung denselben Unterschied noch einmal, und wer still übernimmt,
+ * liefe in eine Schleife aus Melden und Neuladen.
+ *
+ * Das Ergebnis sagt, ob danach die Hülle liegt, die der Server gerade
+ * ausliefert — nur dann führt ein Neuladen auf sie (`fassungWechseln`).
  */
-async function aufNeueFassungPruefen(quelle) {
+async function aufNeueFassungPruefen() {
+  await ablageAbwarten();
   const c = await caches.open(HUELLE);
   const vorrat = await c.match(SEITE);
+  const alterText = vorrat ? await vorrat.text() : null;
+  const startbereit = alterText !== null && (await huelleStartbereit(alterText));
   const res = await fetch(new Request(SEITE, { cache: 'reload' })).catch(() => null);
 
-  if (res && res.ok) {
-    const neuerText = await res.clone().text();
-    const alterText = vorrat ? await vorrat.clone().text() : null;
-    await c.put(SEITE, res.clone());
-
-    if (alterText !== null && alterText !== neuerText) {
-      await allenFensternSagen('neueFassung');
-    }
-  }
-
-  /*
-   * IMMER antworten, auch ohne Netz und auch ohne Unterschied.
-   *
-   * Der Aufrufer wartet darauf, BEVOR er neu lädt: lädt er zu früh, bekommt
-   * er dieselbe alte Hülle noch einmal, scheitert am selben fehlenden
-   * Baustein — und der Schleifenschutz hält ihn beim zweiten Mal davon ab.
-   * Genau so entstand die Fehlertafel, die aus dem Betrieb gemeldet wurde.
-   * Bliebe die Antwort bei einem Fehlschlag aus, wartete er ins Leere.
-   */
-  quelle?.postMessage('fassungGeprueft');
-  return res;
+  // Ohne Netz oder mit einer Fehlerantwort weiß der Worker nicht, was der Server ausliefert.
+  if (!res || !res.ok) return false;
+  // Scheitert das Ablegen (voller Speicher), bleibt es bei der alten Hülle.
+  return huelleAblegen(c, alterText, startbereit, res, () => allenFensternSagen('neueFassung')).catch(() => false);
 }
+
+/**
+ * Wie viele ausdrücklich angestossene Wechsel gerade laufen (`fassungWechseln`).
+ * Solange einer läuft, wartet ein Seitenaufruf die Ablage ganz ab — er ist
+ * dann das Neuladen, auf das der Wechsel zielt.
+ */
+let angestosseneWechsel = 0;
 
 /*
  * DIE BAUSTEINE, MIT DENEN EINE HUELLE STARTET (09.11.2026: „bleibt beim
@@ -340,27 +344,166 @@ function huellenBausteine(html) {
 }
 
 /** Liegt alles, womit diese Hülle startet, im Speicher? */
-async function huelleStartbereit(vorrat) {
+async function huelleStartbereit(html) {
   const teile = await caches.open(TEILE);
-  for (const pfad of huellenBausteine(await vorrat.clone().text())) {
+  for (const pfad of huellenBausteine(html)) {
     if (!(await teile.match(pfad))) return false;
   }
   return true;
 }
 
+/*
+ * EINE HUELLE, DIE STARTEN KANN, WIRD NUR DURCH EINE ERSETZT, DIE ES AUCH
+ * KANN (09.11.2026: nach einer gesehenen neuen Fassung ohne Netz geöffnet —
+ * weiße Seite).
+ *
+ * Bis dahin landete die neue `index.html` sofort im Speicher, ihre Bausteine
+ * aber erst, wenn eine Seite sie anforderte. Wer die App nach dem Vergleich
+ * ohne Empfang öffnete, bekam die neue Hülle (die alte war ersetzt), ihr
+ * Einstieg lag nirgends, und der Start scheiterte vor jedem JavaScript.
+ *
+ * Jetzt holt der Worker zuerst alles, womit die neue Hülle startet. Erst wenn
+ * alles da ist, ersetzt sie die alte, und erst dann wird die neue Fassung
+ * gemeldet — beides zusammen, damit kein „Jetzt laden“ auf eine Hülle führt,
+ * die nicht liegt. Scheitert das Holen, bleibt die alte, vollständige Hülle
+ * stehen und es wird nichts gemeldet; die nächste Prüfung versucht es neu.
+ * Unverändert, beim ersten Besuch oder wenn schon die vorgehaltene Hülle
+ * nicht starten kann, wird wie bisher sofort abgelegt: dann gibt es nichts
+ * Vollständiges zu schützen, und die Seite, die die frische Hülle bekommt,
+ * lädt deren Bausteine gerade selbst.
+ */
+async function bausteineVorhalten(html) {
+  const teile = await caches.open(TEILE);
+  try {
+    await Promise.all(
+      huellenBausteine(html).map(async (pfad) => {
+        if (await teile.match(pfad)) return;
+        const anfrage = new Request(pfad);
+        const res = await holenBisStillstand(anfrage);
+        if (!res.ok || res.status !== 200 || istStartseiteStattBaustein(new URL(anfrage.url), res)) {
+          throw new Error(`Baustein ${pfad} nicht erhalten`);
+        }
+        // `put` liest den Rumpf ganz; bleibt er stehen, scheitert es — nichts Halbes.
+        await teile.put(anfrage, res);
+      }),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Die gerade laufende Ablage einer neuen Hülle, falls eine läuft.
+ *
+ * WARUM SICH SEITENAUFRUFE DANACH RICHTEN. Kann die App die Antwort auf
+ * „Wechseln“ nicht abwarten (`lib/sw.ts`), lädt sie trotzdem neu. Holt der
+ * Worker die Bausteine noch, fände der Seitenaufruf sonst die alte Hülle und
+ * bliebe auf der alten Fassung. Er wartet deshalb, bis die Ablage durch ist —
+ * und bekommt die neue Hülle aus dem Speicher, oder, wenn das Holen
+ * scheiterte, die alte, die vollständig ist.
+ *
+ * ABER NUR DANN GANZ (09.11.2026). Jeder andere Seitenaufruf — der
+ * Kaltstart, ein Neuladen, das Tippen auf eine Benachrichtigung — wartet
+ * höchstens `KURZ_WARTEN_MS` und bekommt dann die vorgehaltene Hülle: ohne
+ * diese Grenze wartete er auf einer zähen Verbindung bis zum Stillstand
+ * eines Bausteins (20 s) oder, solange es tröpfelt, ohne Ende — und die
+ * vorgehaltene Hülle ist gerade dafür da, dass niemand auf das Netz wartet.
+ * Dass es eine neue Fassung gibt, meldet die Ablage, sobald sie liegt.
+ */
+let laufendeAblage = null;
+const KURZ_WARTEN_MS = 2500;
+
+/** Die laufende Ablage abwarten — ganz, oder höchstens `hoechstens` ms. */
+async function ablageAbwarten(hoechstens) {
+  if (!laufendeAblage) return;
+  if (hoechstens === undefined) {
+    await laufendeAblage;
+    return;
+  }
+  let uhr;
+  await Promise.race([laufendeAblage, new Promise((weiter) => { uhr = setTimeout(weiter, hoechstens); })]);
+  clearTimeout(uhr);
+}
+
+/**
+ * Was beim Ablegen einer neuen Hülle schon im Speicher der Bausteine liegt,
+ * ist ab dann alt — und nur das darf beim Übernehmen weg (`teileAufraeumen`).
+ * Was die neue Fassung danach holt, etwa den Baustein ihrer Startansicht,
+ * gehört zu ihr. Liegt schon eine Liste (ein Wechsel, der noch nicht
+ * übernommen ist), enthält die neue sie: gelöscht wurde seitdem nichts.
+ */
+async function alteTeileMerken(c) {
+  try {
+    const teile = await caches.open(TEILE);
+    const pfade = (await teile.keys()).map((req) => new URL(req.url).pathname);
+    await c.put(ALTE_TEILE, new Response(JSON.stringify(pfade), { headers: { 'content-type': 'application/json' } }));
+  } catch {
+    // Ohne Liste wird beim Übernehmen nichts gelöscht: eine Fassung länger liegen kostet Speicher, sonst nichts.
+  }
+}
+
+/**
+ * Ablegen, was die Prüfung geholt hat — und melden, wenn es eine neue Fassung ist.
+ * `alterText` ist die vorgehaltene Hülle, `null` beim ersten Besuch;
+ * `alteStartbereit`, ob mit ihr alles im Speicher liegt. Ergibt, ob die
+ * geholte Hülle danach im Speicher liegt.
+ */
+function huelleAblegen(c, alterText, alteStartbereit, res, melden) {
+  // Den Rumpf sofort teilen: die Antwort selbst geht unter Umständen an die Seite.
+  const zumAblegen = res.clone();
+  const zumLesen = res.clone();
+  const ablage = (async () => {
+    const neuerText = await zumLesen.text();
+    if (alterText === null || alterText === neuerText) {
+      await c.put(SEITE, zumAblegen);
+      return true;
+    }
+    if (alteStartbereit && !(await bausteineVorhalten(neuerText))) return false;
+    await alteTeileMerken(c);
+    await c.put(SEITE, zumAblegen);
+    try {
+      await melden();
+    } catch {
+      // Die Hülle liegt; ein Fenster, das die Meldung nicht annimmt, ändert daran nichts.
+    }
+    return true;
+  })();
+  const gemerkt = ablage.catch(() => undefined).then(() => {
+    if (laufendeAblage === gemerkt) laufendeAblage = null;
+  });
+  laufendeAblage = gemerkt;
+  return ablage;
+}
+
 async function huelleAusliefern(event) {
+  await ablageAbwarten(angestosseneWechsel > 0 ? undefined : KURZ_WARTEN_MS);
   const c = await caches.open(HUELLE);
   const vorrat = await c.match(SEITE);
-  const startbereit = vorrat ? await huelleStartbereit(vorrat) : false;
+  /*
+   * Den Text JETZT lesen, nicht erst nach dem Abruf im Hintergrund: die
+   * vorgehaltene Antwort geht unten an die Seite, und danach lässt sie sich
+   * nicht mehr lesen (`clone` wirft, der Rumpf ist vergeben). Der Vergleich
+   * scheiterte dann still, und ein Deploy fiel beim Seitenaufruf nie auf.
+   */
+  const alterText = vorrat ? await vorrat.clone().text() : null;
+  const startbereit = alterText !== null ? await huelleStartbereit(alterText) : false;
 
-  const nachziehen = fetch(new Request(SEITE, { cache: 'reload' }))
+  /*
+   * LÄUFT DIE ABLAGE NACH DEM KURZEN HALT NOCH, kein zweiter Vergleich: er
+   * holte über dieselbe zähe Verbindung dieselben Bausteine noch einmal. Die
+   * laufende Ablage meldet die neue Fassung, sobald sie liegt.
+   */
+  if (vorrat && startbereit && laufendeAblage) {
+    event.waitUntil(laufendeAblage);
+    return vorrat;
+  }
+
+  const holen = fetch(new Request(SEITE, { cache: 'reload' })).catch(() => null);
+  const nachziehen = holen
     .then(async (res) => {
-      if (!res.ok) return res;
-      const neuerText = await res.clone().text();
-      const alterText = vorrat ? await vorrat.clone().text() : null;
-      await c.put(SEITE, res.clone());
-
-      if (alterText !== null && alterText !== neuerText) {
+      if (!res || !res.ok) return;
+      await huelleAblegen(c, alterText, startbereit, res, async () => {
         /*
          * HIER WIRD NICHTS WEGGEWORFEN — und das ist der Punkt.
          *
@@ -388,10 +531,9 @@ async function huelleAusliefern(event) {
          * zu melden, hiesse ein überflüssiges „Jetzt laden“.
          */
         await allenFensternSagen('neueFassung', vorrat && !startbereit ? event.resultingClientId : undefined);
-      }
-      return res;
+      });
     })
-    .catch(() => null);
+    .catch(() => undefined);
 
   /*
    * EINE HUELLE, DIE NICHT STARTEN KANN, NICHT AUSLIEFERN.
@@ -405,7 +547,8 @@ async function huelleAusliefern(event) {
    * des Browsers hat den Baustein vielleicht noch.
    */
   if (vorrat && !startbereit) {
-    const frisch = await nachziehen;
+    const frisch = await holen;
+    await nachziehen;
     if (frisch && frisch.ok) return frisch;
     return vorrat;
   }
@@ -425,7 +568,8 @@ async function huelleAusliefern(event) {
   }
 
   // Erster Besuch: es gibt noch nichts vorzuhalten.
-  const res = await nachziehen;
+  const res = await holen;
+  await nachziehen;
   return res ?? new Response('Offline und noch nichts gespeichert.', { status: 503 });
 }
 
@@ -577,16 +721,29 @@ async function erstSpeicherDannNetz(event, request, url) {
  * HTTP-Speicher des Browsers, und den räumen gerade Telefone gern. Beim
  * nächsten Deploy lieferte der Worker die vorgehaltene Hülle aus, deren
  * Einstieg es weder im Speicher noch auf dem Server mehr gab: weiße Seite.
- * Jetzt bleibt, was die vorgehaltene `index.html` zum Start braucht; alles
- * andere — die alten Fassungen, nachgeladene Ansichten — geht.
+ * Jetzt bleibt, was die vorgehaltene `index.html` zum Start braucht.
+ *
+ * UND WAS DIE NEUE FASSUNG SCHON GEHOLT HAT. Aufgeräumt wird beim `load`
+ * der neuen Seite; bis dahin hat sie den Baustein ihrer Startansicht schon
+ * geholt (`startansichtVorladen`) und holt ihn in dieser Sitzung nie wieder.
+ * Flog er hier mit weg, fehlte beim nächsten Start ohne Netz genau die
+ * Ansicht, die man zuletzt offen hatte. Deshalb geht nur, was beim Ablegen
+ * der neuen Hülle schon lag (`alteTeileMerken`): die alten Fassungen und
+ * ihre nachgeladenen Ansichten.
  */
 async function teileAufraeumen() {
-  const vorrat = await (await caches.open(HUELLE)).match(SEITE);
+  const huelle = await caches.open(HUELLE);
+  const liste = await huelle.match(ALTE_TEILE);
+  if (!liste) return;
+  const alt = new Set(await liste.json().catch(() => []));
+  const vorrat = await huelle.match(SEITE);
   const behalten = new Set(vorrat ? huellenBausteine(await vorrat.text()) : []);
   const teile = await caches.open(TEILE);
   for (const req of await teile.keys()) {
-    if (!behalten.has(new URL(req.url).pathname)) await teile.delete(req);
+    const pfad = new URL(req.url).pathname;
+    if (alt.has(pfad) && !behalten.has(pfad)) await teile.delete(req);
   }
+  await huelle.delete(ALTE_TEILE);
 }
 
 /* --------------------------------------------------------- Verständigung --- */
@@ -598,7 +755,47 @@ self.addEventListener('message', (event) => {
    * Startbildschirm-App auf dem Telefon verlässlich etwas tut.
    */
   if (event.data === 'aufNeueFassungPruefen') {
-    event.waitUntil(aufNeueFassungPruefen(event.source));
+    /*
+     * IMMER antworten, auch ohne Netz und auch ohne Unterschied.
+     *
+     * Ältere Fassungen der App warten darauf, BEVOR sie neu laden: lädt eine
+     * zu früh, bekommt sie dieselbe alte Hülle noch einmal, scheitert am
+     * selben fehlenden Baustein — und der Schleifenschutz hält sie beim
+     * zweiten Mal davon ab. Bliebe die Antwort bei einem Fehlschlag aus,
+     * wartete sie ins Leere.
+     */
+    event.waitUntil(
+      aufNeueFassungPruefen()
+        .catch(() => false)
+        .then(() => event.source?.postMessage('fassungGeprueft')),
+    );
+  }
+
+  /*
+   * „Ich will auf die neue Fassung wechseln — liegt sie?“ (09.11.2026)
+   *
+   * Bis dahin lud die App nach der Prüfung in jedem Fall neu. Scheiterte das
+   * Holen der Bausteine (schwaches Netz), lag weiter die alte Hülle, das
+   * Neuladen landete auf derselben Fassung — und der nächste Start hielt das
+   * für einen kaputten Wechsel und räumte mit der Notbremse alles weg
+   * (`lib/erneuerung.ts`): über schwaches Netz eine weiße Seite, ohne Netz
+   * gar nichts mehr. Jetzt sagt der Worker, wie es steht, und die App lädt
+   * nur, wenn die neue Hülle liegt.
+   *
+   * `wechselLaeuft` sofort: daran erkennt die App, dass der Worker lebt und
+   * arbeitet, und wartet länger als auf einen, der nicht antwortet.
+   */
+  if (event.data === 'fassungWechseln') {
+    event.source?.postMessage('wechselLaeuft');
+    angestosseneWechsel += 1;
+    event.waitUntil(
+      aufNeueFassungPruefen()
+        .catch(() => false)
+        .then((liegt) => {
+          angestosseneWechsel -= 1;
+          event.source?.postMessage(liegt ? 'wechselBereit' : 'wechselAusstehend');
+        }),
+    );
   }
 
   /*

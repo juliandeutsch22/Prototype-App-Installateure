@@ -116,3 +116,23 @@ describe('Sonderurlaub: die Bestätigung bleibt nach der Rücknahme', () => {
     expect(verlauf().map(([t]) => t)).toEqual(['Beantragt', 'Storniert']);
   });
 });
+
+describe('Urlaubsantrag: Krankenstand im Urlaub (§ 5 UrlG, 09.11.2026)', () => {
+  it('nennt die Tage, die nicht als Urlaub zählen, mit dem Tag der Umwandlung', () => {
+    urlaubZeigen(urlaub({
+      status: 'Genehmigt', tage: 2, genehmigtAm: tag('2026-10-03'), entschiedenAm: tag('2026-10-03'),
+      krankTage: [
+        { tag: '2026-11-04', anteil: 1, am: '2026-11-05T09:00:00+01:00' },
+        { tag: '2026-11-05', anteil: 1, am: '2026-11-05T09:00:00+01:00' },
+        { tag: '2026-11-06', anteil: 1, am: '2026-11-05T09:00:00+01:00' },
+      ],
+    }));
+    expect(verlauf()).toContainEqual(['Krankenstand im Urlaub', '05.11.2026']);
+    expect(screen.getByText(/3 Tage nicht als Urlaub gezählt \(§ 5 UrlG\): 04\.11\.2026, 05\.11\.2026, 06\.11\.2026/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne umgewandelte Tage bleibt der Verlauf, wie er war', () => {
+    urlaubZeigen(urlaub({ status: 'Genehmigt', genehmigtAm: tag('2026-10-03'), entschiedenAm: tag('2026-10-03'), krankTage: [] }));
+    expect(verlauf().map(([t]) => t)).not.toContain('Krankenstand im Urlaub');
+  });
+});

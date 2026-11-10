@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { AppUser, Assignment, Project, Termin } from '@/types';
 import Card from '@/components/Card';
+import Button from '@/components/Button';
 import { useToast } from '@/components/Toast';
 import { PersonenWoche, type RasterGrund } from '@/features/assignments/WochenRaster';
 import HandyWoche from '@/features/assignments/HandyWoche';
@@ -119,9 +120,9 @@ export default function MusterPlanung() {
         <div className="p-4">
           <div className="planung-hinweiszeile">
             <p className="hinweis-text">2 laufende Baustellen ohne Einsatz in dieser Woche: Familie Huber, Bäckerei Mayr</p>
-            <button type="button" className="wp-textknopf" onClick={zeigen('Noch einzuplanen')}>
+            <Button variant="secondary" groesse="klein" onClick={zeigen('Noch einzuplanen')}>
               Noch einzuplanen …
-            </button>
+            </Button>
           </div>
         </div>
       </Card>

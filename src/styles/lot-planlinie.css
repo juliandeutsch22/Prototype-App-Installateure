@@ -50,7 +50,17 @@
   .seitenkopf h1 { font-size: 1.5rem; line-height: 3rem; font-weight: 500; letter-spacing: -0.005em; color: var(--ink-deep); }
   /* Feste Zeilenhöhe: die Knöpfe rechts sind genau eine Titelzeile hoch (index.css, E31). */
   /* Am Handy eine Stufe kleiner, damit ein langer Titel („Mitarbeiterübersicht“) neben den Knöpfen in einer Zeile bleibt. */
-  @media (max-width: 759px) { .seitenkopf h1 { font-size: 1.375rem; } }
+  /*
+    MEHRZEILIG AM HANDY ENG, EINZEILIG UNVERÄNDERT 48 PX (09.11.2026). Ein
+    langer Name in der Akte („Wohnungseigentümergemeinschaft Hauptstraße
+    112–118“) lief über drei Zeilen zu je 48 px — 144 px Luft für einen
+    Namen, der Inhalt rutschte unter die Leiste. Jetzt trägt jede Zeile eine
+    Zelle (24 px), dazu oben und unten eine halbe: einzeilig bleibt der Titel
+    genau eine Knopfhöhe (E31), mehrzeilig wächst er um je eine Zelle und
+    bleibt auf dem Raster (E33). 20 px statt 22 px, damit Umlaute und
+    Unterlängen zweier Zeilen bei 24 px Abstand nicht aneinanderstossen.
+  */
+  @media (max-width: 759px) { .seitenkopf h1 { font-size: 1.25rem; line-height: 1.5rem; padding-block: 0.75rem; } }
   @media (min-width: 760px) { .seitenkopf h1 { font-size: 1.875rem; line-height: 3rem; } }
   /* Der Rückweg in der Ortszeile (E31): so klein wie sie, mit 44 px Tastfläche, ohne die Zeile höher zu machen. */
   .seitenkopf-zurueck { display: inline-block; padding-block: 0.875rem; margin-block: -0.875rem; color: inherit; }

@@ -117,6 +117,20 @@ describe('Belegarchiv', () => {
   });
 
   /*
+    DURCHSICHT 09.11.2026: Seit dem 24.10.2026 trägt jeder Beleg den
+    Firmenstand vom Tag seiner Ausstellung. Der Satz, Briefkopf und
+    Bankverbindung stammten „aus den heutigen Betriebsdaten“, stimmte nur
+    noch für ältere Mahnungen.
+  */
+  it('sagt, dass Briefkopf und Bankverbindung den Stand der Ausstellung tragen', async () => {
+    const e = await belegArchiv({ company: firma, rechnungen: BESTAND, kunden: [], von: '2026-01-01', bis: '2026-12-31' });
+    const hinweise = new TextDecoder().decode((await entpacken(e.blob)).get('Hinweise.txt'));
+    expect(hinweise).toContain('Briefkopf und Bankverbindung tragen den Stand vom Tag ihrer Ausstellung');
+    expect(hinweise).toContain('(bei Mahnungen vor dem 24.10.2026 die heutigen Betriebsdaten).');
+    expect(hinweise).not.toContain('Briefkopf und Bankverbindung stammen aus den heutigen Betriebsdaten.');
+  });
+
+  /*
     RUNDE 3, M7: EINE QUELLE FÜR DAS BELEGDATUM (`stornoBelegTag`). Bis hier
     stand die Stornorechnung im Archiv und im Journal im Jahr des Stornos, auf
     dem Beleg und in der Liste mit dem Tag ihrer Ausstellung. Jetzt trägt sie

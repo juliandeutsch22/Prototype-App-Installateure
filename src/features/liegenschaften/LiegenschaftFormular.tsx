@@ -78,9 +78,12 @@ export default function LiegenschaftFormular({
           checked={f.aktiv} onChange={(e) => setF({ ...f, aktiv: e.target.checked })} />
       )}
       {fehler && <ErrorState message={fehler} />}
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" loading={speichert}>{liegenschaft ? 'Änderung speichern' : 'Liegenschaft anlegen'}</Button>
-        <Button type="button" variant="ghost" onClick={onAbbrechen} disabled={speichert}>Abbrechen</Button>
+      {/* Der Fensterfuß wie überall (E72, R7): Linie darüber, Abbrechen gerahmt, die Hauptaktion zuletzt. */}
+      <div className="planung-fuss mt-0">
+        <div className="planung-fuss-knoepfe">
+          <Button type="button" variant="secondary" onClick={onAbbrechen} disabled={speichert}>Abbrechen</Button>
+          <Button type="submit" loading={speichert}>{liegenschaft ? 'Änderung speichern' : 'Liegenschaft anlegen'}</Button>
+        </div>
       </div>
     </form>
   );

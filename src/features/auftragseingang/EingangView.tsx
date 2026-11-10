@@ -66,6 +66,12 @@ interface Ziel {
   id: string;
   /** `null`: das Ziel gibt es, aber diese Rolle liest es nicht (Angebote: nur Führung und Buchhaltung). */
   nummer: string | null;
+  /**
+   * Das Angebot ist verworfen und liegt im Papierkorb (Befund 09.11.2026) —
+   * dann lässt sich der Eingang wieder öffnen. Nur erkennbar, wer Angebote
+   * liest; für die übrigen bleibt es „ein Angebot“.
+   */
+  imPapierkorb: boolean;
 }
 
 /**
@@ -133,10 +139,10 @@ export default function EingangView() {
         let z: Ziel | null = null;
         if (projectId) {
           const [p] = await listProjectsByIds(companyId, [projectId]);
-          z = { art: 'baustelle', id: projectId, nummer: p?.projectNumber ?? null };
+          z = { art: 'baustelle', id: projectId, nummer: p?.projectNumber ?? null, imPapierkorb: false };
         } else if (quoteId) {
           const q = await getQuote(companyId, quoteId).catch(() => null);
-          z = { art: 'angebot', id: quoteId, nummer: q?.quoteNumber ?? null };
+          z = { art: 'angebot', id: quoteId, nummer: q?.quoteNumber ?? null, imPapierkorb: q?.status === 'Verworfen' };
         }
         const t = terminId ? await getTermin(companyId, terminId).catch(() => null) : null;
         if (!weg) {
@@ -197,6 +203,8 @@ export default function EingangView() {
   const kundePflegen = darfKundenPflegen(user);
   const zielDa = ziel.zustand === 'bereit' ? ziel.daten : null;
   const zielWeg = e.stand === 'uebernommen' && !e.projectId && !e.quoteId;
+  // Wie ein gelöschtes Angebot: aus dem Papierkorb heraus lässt sich der Eingang wieder öffnen (Befund 09.11.2026).
+  const imPapierkorb = e.stand === 'uebernommen' && !e.projectId && zielDa?.art === 'angebot' && zielDa.imPapierkorb;
   const besichtigungMoeglich = offen && buero && einsatzAn && darfTermineSchreiben(user.role) && !e.terminId;
   const z = zustandVon(e);
 
@@ -277,7 +285,7 @@ export default function EingangView() {
       return <Button loading={busy} onClick={() => void mitPruefung('baustelle')}>Baustelle anlegen</Button>;
     }
     if (offen && buero) return <Button onClick={() => setBearbeiten(true)}>Bearbeiten</Button>;
-    if ((e.stand === 'abgelehnt' || zielWeg) && buero) {
+    if ((e.stand === 'abgelehnt' || zielWeg || imPapierkorb) && buero) {
       return (
         <Button loading={busy} onClick={() => void schritt(async () => {
           await eingangWiederOeffnen(e.id);
@@ -339,7 +347,9 @@ export default function EingangView() {
             zeit: e.uebernommenAm ? wannText(e.uebernommenAm) : undefined,
             text: zielWeg
               ? 'Baustelle bzw. Angebot gibt es nicht mehr — der Eingang lässt sich wieder öffnen.'
-              : <>{zielText ?? '…'}{e.uebernommenVonName ? ` · ${e.uebernommenVonName}` : ''}</>,
+              : imPapierkorb
+                ? <>{zielText} liegt im Papierkorb — der Eingang lässt sich wieder öffnen.</>
+                : <>{zielText ?? '…'}{e.uebernommenVonName ? ` · ${e.uebernommenVonName}` : ''}</>,
             jetzt: true,
           },
   ];

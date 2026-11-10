@@ -416,7 +416,7 @@ test('Ausgegebenes Material ohne Schein wird übernommen und kommt nicht zweimal
   await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
 
   await expect(page.getByText('Ausgegeben, nicht auf einem Schein')).toBeVisible();
-  await expect(page.getByText(/ausgegeben 10 m · zurück 3 · € 4,20 je m/)).toBeVisible();
+  await expect(page.getByText(/ausgegeben 10 m · zurück 3 · €\s4,20 je m/)).toBeVisible();
   await page.getByRole('button', { name: 'Übernehmen' }).click();
   await expect(page.getByText('übernommen', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: /Rechnung erstellen/ }).click();

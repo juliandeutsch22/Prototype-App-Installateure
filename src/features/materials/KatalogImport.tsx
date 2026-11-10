@@ -348,7 +348,14 @@ export default function KatalogImport({
                 </button>
               </p>
             )}
-            <div className="flex flex-col gap-1">
+            {/*
+              DIE DATEI ÜBER EINEN KNOPF DER LINIE (E72, 09.11.2026), wie in der
+              Dokumentablage: das Feld des Browsers stand mit „Choose File“ /
+              „Keine ausgewählt“ in seiner eigenen Sprache und Gestalt da.
+              Das Feld selbst bleibt — unsichtbar, ohne eigenen Tab-Halt — und
+              trägt weiter den Namen „DATANORM-Datei“.
+            */}
+            <div className="flex flex-col items-start gap-2">
               <label htmlFor="dn-datei" className="text-sm font-normal">
                 DATANORM-Datei
               </label>
@@ -357,13 +364,17 @@ export default function KatalogImport({
                 id="dn-datei"
                 type="file"
                 accept=".001,.002,.003,.dat,.txt,text/plain"
+                tabIndex={-1}
+                className="sr-only"
                 disabled={busy}
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (f) void dateiLesen(f);
                 }}
-                className="min-h-touch text-sm file:mr-3 file:rounded file:border file:border-line file:bg-surface-2 file:px-3 file:py-2 file:text-sm"
               />
+              <Button variant="secondary" loading={busy} onClick={() => dateiFeld.current?.click()}>
+                Datei auswählen
+              </Button>
             </div>
           </div>
         </Card>
