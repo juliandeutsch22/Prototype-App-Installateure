@@ -11,6 +11,7 @@ import {
 import { halbjahresbeginn, halbjahreZurWahl } from '@/features/invoices/mahnung';
 import { datumAT } from '@/lib/datum';
 import { todayStr } from '@/lib/time';
+import { LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 const pz = (n: number) => `${n.toLocaleString('de-AT', { maximumFractionDigits: 2 })} %`;
 
@@ -79,15 +80,11 @@ export default function BasiszinsZentral() {
                   <span>
                     ab {datumAT(b.ab)}: <span className="nr">{pz(b.satz)}</span>
                   </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
+                  <LoeschenKnopf
                     disabled={laeuft}
-                    aria-label={`Basiszinssatz ab ${datumAT(b.ab)} entfernen`}
+                    label={`Basiszinssatz ab ${datumAT(b.ab)} entfernen`}
                     onClick={() => void ausfuehren(() => basiszinssatzEntfernen(b.ab))}
-                  >
-                    Entfernen
-                  </Button>
+                  />
                 </li>
               ))}
             </ul>

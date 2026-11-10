@@ -2684,7 +2684,8 @@ Mitarbeiterübersicht und Einstellungen“.
     unterschreiben“, „Weiterbearbeiten“, „Foto aufnehmen“, „Auf mehrere
     Baustellen aufteilen“, die Sammelleiste, der nächste Schritt einer
     Arbeitszeile. Blättern ‹ › und Menge − + sind gerahmt (`IconButton`
-    „gerahmt“).
+    „gerahmt“). *Abgelöst durch E74 (10.11.2026):* Blättern ohne Rahmen,
+    die Menge als eine gerahmte Gruppe, „Schließen“ als ✕.
   - Eine gefüllte Hauptaktion je Seite oder Fenster; in Listenzeilen
     Zweitknöpfe. Unumkehrbares rot (`danger`) in normaler Größe. Frei
     stehende Knöpfe am Handy 44 px.
@@ -2765,3 +2766,89 @@ Sitzung erhalten. **Nachweis:**
   Wiederholung, Wechsel, Grenzen, nichts doppelt, nur die eigene beendete
   Sitzung);
 - `m06Zeit.spec.ts` und `arbeitstag.spec.ts` (auf allen Monteurbreiten).
+
+**E74 — Symbole statt Text: vier Knopfarten, je eine Regel (10.11.2026).**
+Auftrag: „den Button zu diese Woche auch durch ein selbsterklärendes Icon
+tauschen … überlege dir danach generell quer durch die ganze Software, wo man
+Buttons mit ‚unnötigen‘ Text durch etwas Selbsterklärendes ersetzen könnte,
+eventuell auch mit einem kleinen petrolblauen Kreis mit einem Symbol darin“.
+Zum ersten Versuch (gerahmter Kalender neben ‹ ›): „viel zu nah dran … zu
+viele Outlines nebeneinander“. Das Konzept mit Beispielbildern wurde
+freigegeben („setze alles wie empfohlen um … keine Lücken und
+Uneinheitlichkeiten“).
+
+Ein Symbol ersetzt das Wort nur, wo jeder dasselbe darunter versteht. Rahmen
+nur dort, wo er etwas zu einer Einheit fasst.
+
+- **A · Schlichtes Symbol** (ohne Rahmen, 48 px Tastfläche, gedämpft, beim
+  Darüberfahren dunkel): Handlungen an einer Sache, die jeder kennt.
+  `src/components/Symbolknoepfe.tsx` hält sie fest, damit eine Bedeutung
+  genau ein Zeichen hat:
+  - Stift = bearbeiten (`BearbeitenKnopf`), nur wo die Zeile selbst etwas
+    anderes öffnet oder gar nichts;
+  - Papierkorb = löschen, entfernen, nicht buchen (`LoeschenKnopf`), rot
+    erst beim Antippen; die Rückfrage dahinter bleibt, wo sie war;
+  - Blatt mit Pfeil = PDF teilen oder speichern (`PdfKnopf`);
+  - ✕ = schließen, nur im Kopf eines Fensters (`.fenster-schliessen`);
+  - ‹ › = blättern (`zurueck`, `weiter`), ohne Rahmen, sie rahmen den Titel ein.
+
+  Umgestellt: Zeiterfassung, Tagesnachweis der Mitarbeiterübersicht,
+  Urlaubsanspruch, Krankmeldungen, Betriebsurlaub, Termine, Einsätze am Tag
+  und im Tagesfenster, Wartungen, Angebote, Scheine, Großhändler, Zahlungen,
+  Zeitfelder, Basiszinssätze, Vermerke der Arbeitszeitgrenzen, Schritte des
+  Scheins, Nachweise und Ablage von Dateien, die Arbeitstag-Karte
+  („Verwerfen …“ unten links, weit weg von Pause und Stopp) und jedes ✕ in
+  einer Zeile (Positionen, Pläne, Material am Schein, Warenkorb,
+  Einkaufsliste, Kontenrahmen, Aufschläge, Rüstliste) — dort jetzt der
+  Papierkorb. Das ✕ meint nur noch Schließen.
+- **B · Kleiner Petrol-Kreis** (48 px, `IconButton rund`, `.symbol-rund`): die
+  eine Hauptsache einer Zeile oder Steuerleiste, die man oft drückt.
+  Höchstens einer je Zeile.
+  - **Zurück zu heute** in Planung (Woche, Monat) und Team-Woche: der
+    Kalender mit dem Punkt. Er steht nur, wo man nicht schon dort ist,
+    am Handy allein am rechten Rand, ab dem Tablet mit Abstand neben ›.
+    Name „Zurück zu dieser Woche“ / „Zurück zu diesem Monat“.
+  - **In die Liste** bei Material anfordern, im Katalog und beim freien
+    Eintrag: eine Liste mit Zugang, bewusst kein Plus, das steht schon in
+    der Menge daneben. Was schon in der Liste liegt, steht wie bisher
+    darunter.
+- **C · Gerahmt nur als Gruppe:** − Menge + ist ein Rahmen mit
+  Trennstrichen (`.mengen-wahl`), die Zahl in Mono; ungültig färbt sich der
+  ganze Rahmen. Den gerahmten Symbolknopf (`IconButton gerahmt`, E72 R8) gibt
+  es nicht mehr.
+- **D · Das Wort bleibt** für:
+  - Entscheidungen mit Folgen (Genehmigen, Ablehnen, Mahnen, Annehmen →
+    Baustelle, Abgeholt, Erneut senden, Weiterbearbeiten, Wieder aufnehmen);
+  - die Hauptaktion einer Seite oder eines Abschnitts (Bearbeiten im
+    Seitenkopf einer Akte, „PDF herunterladen“ des Angebots, PDF und E-Mail
+    einer Bestellung);
+  - jeden Fensterfuß (Abbrechen, Speichern, Löschen im Fenster);
+  - Filter und Reiter;
+  - Schritte in Fensterabschnitten neben anderen Wörtern (Einsatz
+    „Bearbeiten“ neben „Baustelle öffnen“ in der Monatsvorschau,
+    Werkzeugleiste der Rechtstexte mit „Nach oben/unten“).
+- **Für jedes Symbol:** Name als `aria-label` und `title` (für Vorlesehilfe
+  und Hinweis beim Darüberfahren), und er nennt die Sache („Termin am 12.11.
+  löschen“). Gleiche Strichstärke wie die Navigation. Nie zwei Symbolarten
+  nebeneinander, außer dem Petrol-Kreis und einem schlichten.
+- **Bewusst Zeichen auf der Sache selbst:** das × im gewählten Namen
+  (Personenwahl) und das ✕ auf der Ecke eines Fotos bleiben. Dort sitzt das
+  Zeichen auf dem Ding, das wegkommt, nicht daneben in einer Zeile; so kennt
+  man es von jedem Telefon.
+
+**Grenze mit Grund:** keine. Die Pfeile zum Umsortieren (↑ ↓ der
+Angebotspositionen, „Nach oben/unten“ der Rechtstexte und der Startseite)
+bleiben, wie sie sind: Ein Pfeil nach oben ist schon das Zeichen für
+Senden in den Nachrichten, und eine Bedeutung soll ein Zeichen haben.
+**Nachweis:**
+- `symbolknoepfe.test.ts`: kein gerahmter Symbolknopf, kein ✕ zum Entfernen,
+  dasselbe Blättern an fünf Stellen, der Kreis in Planung und Team-Woche,
+  „In die Liste“ zweimal gleich, 25 Zeilenaktionen aus den Symbolknöpfen,
+  das Wort, wo es bleibt, die Gestalt der Knopfarten. Gegenprobe mit dem
+  Stand davor: 9 von 10 rot, die zehnte prüft, was gleich bleibt.
+- `IconButton.test.tsx`, `Fensterkopf.test.tsx` (✕ mit Namen; gegen E72 rot);
+- `OrderView.test.tsx` (Menge als Einheit, Kreis gesperrt bei ungültiger Menge);
+- `WochenplanView.test.tsx`, `TermineKarte.test.tsx`, `Arbeitstag.test.tsx`;
+- Browserweg `materialAnfordern.spec.ts`: der Kreis rund, 48 px, mittig zur
+  Menge, bleibt beim Tippen liegen, auf sieben Breiten.
+

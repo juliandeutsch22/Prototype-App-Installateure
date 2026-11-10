@@ -11,6 +11,7 @@ import { baustellenTitel } from '@/lib/baustellenTitel';
 import { dauerText, timerBaustelle, timerDauer, timerOrtszeit } from '@/lib/zeitsitzung';
 import { useBaustellenAuswahl } from '@/features/nachrichten/useBaustellenAuswahl';
 import { useZeitsitzung } from './zeitsitzungStand';
+import { LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * DIE KARTE „ARBEITSTAG“ (M06a, schlanke Fassung vom 08.11.2026) — auf der
@@ -153,8 +154,14 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
               )}
             </div>
           </div>
+          {/*
+            VERWERFEN IST DER PAPIERKORB (E74, 10.11.2026), grau und klein unten
+            links — weit weg von Pause und Stopp rechts, damit der Daumen ihn
+            nicht beim Feierabend trifft. Oben rechts steht schon die Hilfe.
+            Das Fenster mit dem Grund dahinter bleibt, wie es war.
+          */}
           <div className="arbeitstag-fuss">
-            <Button type="button" variant="secondary" disabled={z.speichert} onClick={() => setVerwerfen(true)}>Verwerfen …</Button>
+            <LoeschenKnopf label="Arbeitstag verwerfen …" disabled={z.speichert} onClick={() => setVerwerfen(true)} />
           </div>
         </>
       )}

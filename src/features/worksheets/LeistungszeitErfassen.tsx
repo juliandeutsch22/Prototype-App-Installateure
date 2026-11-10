@@ -4,6 +4,7 @@ import { fmtDauer } from '@/lib/time';
 import type { WorkSheetZeit } from '@/types';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
+import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import InfoHint from '@/components/InfoHint';
 import { InputField, CheckboxField, FormGrid } from '@/components/Field';
@@ -259,7 +260,7 @@ export default function LeistungszeitErfassen({
 export function ZeileEntfernen({ name, onWeg }: { name: string; onWeg: () => void }) {
   return (
     <IconButton label={`Zeile ${name} entfernen`} tone="danger" onClick={onWeg}>
-      ✕
+      <Icon name="papierkorb" size={22} />
     </IconButton>
   );
 }

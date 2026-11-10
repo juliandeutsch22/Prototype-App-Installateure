@@ -3,6 +3,7 @@ import BottomSheet from './BottomSheet';
 import Button from './Button';
 import LotZeichnung from './LotZeichnung';
 import { dateiGroesse } from '@/lib/dateiGroesse';
+import { LoeschenKnopf } from './Symbolknoepfe';
 
 /** Eine ausgewählte Datei — mit dem Grund, warum sie nicht hochgeht, oder einem Hinweis. */
 export interface AblageDatei {
@@ -145,16 +146,13 @@ export default function DokumentAblage({
                       {dateiGroesse(d.datei.size)} · {d.problem ?? d.hinweis ?? 'Bereit zum Hochladen'}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    groesse="klein"
+                  {/* Der Papierkorb wie in jeder Zeile (E74): die Datei kommt aus der Auswahl, hochgeladen ist noch nichts. */}
+                  <LoeschenKnopf
                     className="lot-ablage-entfernen"
                     disabled={laeuft}
-                    aria-label={`${d.datei.name} entfernen`}
+                    label={`${d.datei.name} entfernen`}
                     onClick={() => onEntfernen(d.id)}
-                  >
-                    Entfernen
-                  </Button>
+                  />
                 </li>
               ))}
             </ul>

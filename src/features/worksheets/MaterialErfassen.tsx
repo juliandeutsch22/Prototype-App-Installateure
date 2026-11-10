@@ -3,6 +3,7 @@ import type { Material } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
+import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
@@ -128,7 +129,7 @@ export default function MaterialErfassen({ companyId, materials, zeilen, onChang
                 tone="danger"
                 onClick={() => onChange(zeilen.filter((x) => x.id !== z.id))}
               >
-                ✕
+                <Icon name="papierkorb" size={22} />
               </IconButton>
               {/* Unterschrieben wird erst mit einer Menge über null — der
                   Schein sperrt den Abschluss und sagt es hier, am Feld. */}

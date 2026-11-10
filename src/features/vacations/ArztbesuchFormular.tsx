@@ -13,6 +13,7 @@ import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { NachweisWahl } from './FreistellungFormular';
 import { freistellungWas } from './freistellungText';
+import { LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * DER ARZTBESUCH (E35) — eine Dienstverhinderung mit Uhrzeit an einem Tag,
@@ -148,7 +149,7 @@ export default function ArztbesuchFormular({
         {datei ? (
           <span className="flex flex-wrap items-center gap-2 text-sm text-ink">
             {datei.name}
-            <Button variant="ghost" onClick={() => setDatei(null)}>Entfernen</Button>
+            <LoeschenKnopf label={`${datei.name} entfernen`} onClick={() => setDatei(null)} />
           </span>
         ) : (
           <span className="text-sm text-ink-muted">

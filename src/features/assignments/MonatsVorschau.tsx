@@ -2,6 +2,8 @@ import { useEffect, useId, useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import type { Termin } from '@/types';
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
+import IconButton from '@/components/IconButton';
 import { useFokusFalle, istOben } from '@/components/fokusFalle';
 import { useHintergrundSperre } from '@/components/hintergrundSperre';
 import type { FensterStart } from './EinsatzFenster';
@@ -248,19 +250,20 @@ export default function MonatsVorschau({
           </h2>
         </div>
         <div className="vorschau-nav">
-          <button type="button" className="vorschau-pfeil" aria-label="Vorheriger Tag" onClick={() => onBlaettern(-1)}>
-            ‹
-          </button>
-          <button type="button" className="vorschau-pfeil" aria-label="Nächster Tag" onClick={() => onBlaettern(1)}>
-            ›
-          </button>
           {/*
-            „SCHLIESSEN“ WIE IM SEITENFENSTER (E72, 09.11.2026): ein gerahmter
-            Zweitknopf mit Wort statt eines „×“ ohne Rahmen. Der Name für den
-            Vorleser sagt, was geschlossen wird.
+            BLÄTTERN UND SCHLIESSEN ALS ZEICHEN (E74, 10.11.2026): ‹ › ohne
+            Rahmen und das ✕ wie in jedem Fensterkopf. Drei gerahmte Kästchen
+            nebeneinander (E72) standen am Handy enger als der Titel daneben.
+            Die Namen bleiben für Vorlesehilfe und Hinweis.
           */}
-          <button ref={zuRef} type="button" className="fenster-schliessen" aria-label="Vorschau schließen" onClick={() => onSchliessen(true)}>
-            Schließen
+          <IconButton label="Vorheriger Tag" onClick={() => onBlaettern(-1)}>
+            <Icon name="zurueck" size={22} />
+          </IconButton>
+          <IconButton label="Nächster Tag" onClick={() => onBlaettern(1)}>
+            <Icon name="weiter" size={22} />
+          </IconButton>
+          <button ref={zuRef} type="button" className="fenster-schliessen" aria-label="Vorschau schließen" title="Schließen" onClick={() => onSchliessen(true)}>
+            <Icon name="schliessen" size={22} />
           </button>
         </div>
       </div>

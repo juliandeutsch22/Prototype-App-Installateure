@@ -6,6 +6,8 @@ import { todayStr } from '@/lib/time';
 import type { Project, Termin } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
+import IconButton from '@/components/IconButton';
 import Metric, { MetricRow } from '@/components/Metric';
 import LotZeichnung from '@/components/LotZeichnung';
 import BottomSheet from '@/components/BottomSheet';
@@ -370,34 +372,38 @@ export default function Einsatzplanung() {
 
       <div className="planung-steuerung">
         {/*
-          EINE ZEILE, AUCH AUF 390 px: Pfeile, dazwischen groß „Diese Woche“
-          und klein die KW. Die Pfeile sind 48 × 48 px (`min-h-touch` aus
-          `Button`, `min-w-touch` hier); `sm:text-xl` neben `text-xl`, weil
-          `Button` ab 640 px `sm:text-base` mitbringt (Launch-Check 25.09.2026).
+          EINE ZEILE, AUCH AUF 390 px: Pfeile ohne Rahmen, dazwischen groß
+          „Diese Woche“ und klein die KW (E74, 10.11.2026). Zurück zu heute ist
+          der kleine Petrol-Kreis mit dem Kalender — für sich am rechten Rand,
+          nicht als dritter Pfeil: das Wort „Diese Woche“ als gerahmter Knopf
+          drückte am Telefon Titel und Pfeile zusammen und brach in zwei Zeilen.
+          Er steht nur, wo man nicht schon dort ist; der Name bleibt für
+          Vorlesehilfe und Hinweis.
         */}
         <div className="planung-woche">
-          <Button variant="ghost" aria-label={`${einheit} zurück`} className="min-w-touch text-xl sm:text-xl" onClick={() => blaettern(-1)}>
-            ‹
-          </Button>
+          <IconButton label={`${einheit} zurück`} onClick={() => blaettern(-1)}>
+            <Icon name="zurueck" size={22} />
+          </IconButton>
           <div className="planung-titelblock">
             <h2 className="planung-titel">{kopf.titel}</h2>
             <p className="planung-kw">{kopf.klein}</p>
           </div>
-          <Button variant="ghost" aria-label={`${einheit} vor`} className="min-w-touch text-xl sm:text-xl" onClick={() => blaettern(1)}>
-            ›
-          </Button>
-          {/* Zurück zu heute — nur, wo man nicht schon dort ist. */}
+          <IconButton label={`${einheit} vor`} onClick={() => blaettern(1)}>
+            <Icon name="weiter" size={22} />
+          </IconButton>
           {!jetzt && (
-            <Button
-              variant="ghost"
+            <IconButton
+              rund
+              className="planung-heute"
+              label={ansicht === 'monat' ? 'Zurück zu diesem Monat' : 'Zurück zu dieser Woche'}
               onClick={() => {
                 setMontag(montagDer(heute));
                 setMonat({ jahr: Number(heute.slice(0, 4)), monat: Number(heute.slice(5, 7)) - 1 });
                 if (wocheAusAdresse || tagAusAdresse) aendereAdresse({ woche: null, tag: null });
               }}
             >
-              {ansicht === 'monat' ? 'Dieser Monat' : 'Diese Woche'}
-            </Button>
+              <Icon name="heute" size={20} />
+            </IconButton>
           )}
         </div>
         <div className="planung-wahl">

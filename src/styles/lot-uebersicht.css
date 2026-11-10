@@ -22,9 +22,11 @@
     .ue-steuerung-links { width: auto; justify-content: flex-start; }
     .ue-steuerung-rechts { width: auto; }
   }
-  .ue-pfeil { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; background: var(--surface); color: var(--text); border: 0; border-radius: var(--radius); font-size: 1.25rem; line-height: 1; cursor: pointer; }
-  .ue-pfeil:hover { border-color: var(--petrol); }
-  .ue-pfeil:disabled { opacity: 0.4; cursor: default; border-color: var(--border-strong); }
+  /* Wie jeder schlichte Symbolknopf (E74): das Zeichen gedämpft, beim Darüberfahren dunkel auf der zweiten Fläche. */
+  .ue-pfeil { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; background: transparent; color: var(--text-muted); border: 0; border-radius: var(--radius); cursor: pointer; }
+  .ue-pfeil:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+  .ue-pfeil:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  .ue-pfeil:disabled { opacity: 0.4; cursor: default; }
   /* Der Titel ist ein Knopf: ein Klick öffnet die bisherige Auswahl von Monat und Jahr. */
   .ue-titel { display: flex; flex-direction: column; align-items: center; min-height: 2.75rem; min-width: 10rem; padding: 0.125rem 0.5rem; background: none; border: 0; border-radius: var(--radius); color: var(--text); text-align: center; cursor: pointer; }
   @media (min-width: 760px) { .ue-titel { align-items: flex-start; text-align: left; } }

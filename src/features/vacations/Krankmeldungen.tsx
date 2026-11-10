@@ -12,6 +12,8 @@ import { listUsers } from '@/lib/db/users';
 import { localDateStr, todayStr } from '@/lib/time';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
+import IconButton from '@/components/IconButton';
 import BottomSheet from '@/components/BottomSheet';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Marke } from '@/components/Badge';
@@ -22,6 +24,7 @@ import { useToast } from '@/components/Toast';
 import { ergebnisText, fmtTag, zeitraumText } from './abwesenheitText';
 import { ImFensterContext } from '@/components/imFenster';
 import { grundAus } from '@/lib/fehlerGrund';
+import { LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * Krankmeldungen — die eigene Liste und die des Büros.
@@ -219,13 +222,11 @@ export function KrankmeldungListe({
                   Ende ändern
                 </Button>
                 {(buero || k.von > heute) && (
-                  <Button
-                    variant="ghost"
-                    loading={laeuft === k.id}
+                  <LoeschenKnopf
+                    label={`Krankmeldung ${zeitraumText(k.von, k.bis)} löschen`}
+                    laeuft={laeuft === k.id}
                     onClick={() => setLoeschen(k)}
-                  >
-                    Löschen
-                  </Button>
+                  />
                 )}
               </>
             )}
@@ -320,7 +321,8 @@ export function KrankmeldungKarte({
   return (
     <Card
       title="Krankmeldung"
-      action={<Button variant="ghost" onClick={onSchliessen}>Schließen</Button>}
+      // Das ✕ wie in jedem Fensterkopf (E74): die Karte steht hier an der Stelle eines Fensters.
+      action={<IconButton label="Schließen" onClick={onSchliessen}><Icon name="schliessen" size={22} /></IconButton>}
     >
       <KrankmeldungInhalt
         companyId={companyId}

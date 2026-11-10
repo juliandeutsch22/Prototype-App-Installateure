@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { dateiGroesse } from '@/lib/dateiGroesse';
 import type { BaustellenDokument } from '@/types';
 import type { WithId } from '@/lib/db/core';
+import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import { Marke } from '@/components/Badge';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -169,7 +170,7 @@ export default function PlaeneListe({
             </div>
             {onLoeschen && (
               <IconButton label={`${d.dateiname} löschen`} tone="danger" onClick={() => onLoeschen(d)}>
-                ✕
+                <Icon name="papierkorb" size={22} />
               </IconButton>
             )}
           </li>

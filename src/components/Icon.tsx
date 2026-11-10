@@ -40,12 +40,19 @@ export type IconName =
   | 'pause'
   | 'stopp'
   | 'wechsel'
-  | 'papierkorb';
+  | 'papierkorb'
+  | 'zurueck'
+  | 'schliessen'
+  | 'heute'
+  | 'pdf'
+  | 'in-liste';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
 // Ausserhalb der Navigation nur, wo das Zeichen mehr sagt als das Wort:
-// anrufen, hinfahren, schreiben, aufklappen. „Neu …" und „herunterladen"
-// sagt die Beschriftung selbst — dafür gibt es hier kein Zeichen mehr.
+// anrufen, hinfahren, schreiben, aufklappen — und seit E74 (10.11.2026) die
+// Handlungen an einer Sache, die jeder vom Telefon kennt: bearbeiten,
+// löschen, PDF, schließen, blättern. Eine Bedeutung hat genau ein Zeichen.
+// „Neu …“ und jede Hauptaktion sagt weiter die Beschriftung selbst.
 const paths: Record<IconName, string> = {
   home: 'M3 11.5 12 4l9 7.5M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9',
   clock: 'M12 7v5l3 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z',
@@ -133,7 +140,21 @@ const paths: Record<IconName, string> = {
   stopp: 'M6.5 6.5h11v11h-11z',
   wechsel: 'M7 4v12M3.5 12.5 7 16l3.5-3.5M17 20V8M13.5 11.5 17 8l3.5 3.5',
   // Nicht buchen (Arbeitstag prüfen, E73): eine Zeit aus dem Tag herausnehmen — mit Grund, nichts geht verloren.
+  // Löschen, entfernen, nicht buchen (E73, E74): überall dasselbe Zeichen für „das kommt weg“.
   papierkorb: 'M4 7h16M9.5 7V4.5h5V7M6.5 7l.9 12.1a1 1 0 0 0 1 .9h7.2a1 1 0 0 0 1-.9L17.5 7M10 11v5.5M14 11v5.5',
+  /*
+    SYMBOLKNÖPFE (E74, 10.11.2026). Blättern ist das Gegenstück zu `weiter`;
+    „schliessen“ steht nur im Kopf eines Fensters, nie für Entfernen (das ist
+    der Papierkorb). „heute“: der Kalender mit dem Punkt auf dem Tag —
+    zurück zur Woche oder zum Monat, in dem heute liegt. „pdf“: das Blatt mit
+    dem Pfeil hinaus, am Telefon teilen, am Rechner speichern. „in-liste“:
+    eine Liste mit Zugang, bewusst kein Plus — das steht in der Menge daneben.
+  */
+  zurueck: 'm15 6-6 6 6 6',
+  schliessen: 'M6 6l12 12M18 6 6 18',
+  heute: 'M8 3v3M16 3v3M4 8h16M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1ZM12 13a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z',
+  pdf: 'M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4ZM14 3v4h4M12 10v7M9 14l3 3 3-3',
+  'in-liste': 'M4 6h11M4 12h11M4 18h7M18 13v8M14 17h8',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:

@@ -10,6 +10,7 @@ import type { Brett, TagStand } from './planTypen';
 import type { FensterStart } from './EinsatzFenster';
 import { feiertagAm, lieferungOhneAnnahme, ruhetag } from './wochenTermine';
 import type { MaterialLage } from './materialDeckung';
+import { BearbeitenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * DAS SEITENFENSTER „TAG“ (Runde 4, Auftrag 4.3; Entscheidung R4-0, Frage 1):
@@ -151,14 +152,7 @@ export default function TagFenster({
                     </>
                   }
                 >
-                  <Button
-                    variant="secondary"
-                    groesse="klein"
-                    aria-label={`${b.name} (${b.nummer}) bearbeiten`}
-                    onClick={() => onEinsatz({ datum, projectNumber: b.nummer })}
-                  >
-                    Bearbeiten
-                  </Button>
+                  <BearbeitenKnopf label={`${b.name} (${b.nummer}) bearbeiten`} onClick={() => onEinsatz({ datum, projectNumber: b.nummer })} />
                 </ListRow>
               );
             })}

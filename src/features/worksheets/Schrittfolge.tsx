@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import Button from '@/components/Button';
 import { List, ListRow } from '@/components/ListRow';
 import { SCHRITTE, type Schritt } from './schritte';
+import { BearbeitenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * Der Handwerksschein als Schrittfolge — Zeiten, Material, Fotos, Unterschrift.
@@ -109,14 +109,8 @@ export function Zusammenfassung({
           }
         >
           {z.wert && <span className="font-normal text-ink">{z.wert}</span>}
-          <Button
-            variant="secondary"
-            groesse="klein"
-            aria-label={`${z.name} ändern`}
-            onClick={() => onAendern(z.schritt)}
-          >
-            Ändern
-          </Button>
+          {/* Der Stift wie in jeder Zeile (E74); der Name sagt, welcher Schritt. */}
+          <BearbeitenKnopf label={`${z.name} ändern`} onClick={() => onAendern(z.schritt)} />
         </ListRow>
       ))}
     </List>

@@ -4847,7 +4847,7 @@ describe('Die Projektleitung liest nur', () => {
     expect(await screen.findByText('Die Rechnungen Ihrer Baustellen — zum Lesen')).toBeInTheDocument();
     // „Ansehen“ ist das Seitenfenster selbst; darin nur „PDF laden“ — keine Handlung, die schreibt.
     const fenster = await rechnungOeffnen('RE-2026-0042');
-    const knoepfe = within(fenster).getAllByRole('button').map((e) => e.textContent);
+    const knoepfe = within(fenster).getAllByRole('button').map((e) => e.getAttribute('aria-label') ?? e.textContent);
     expect(knoepfe).toEqual(['Schließen', 'PDF laden']);
     expect(screen.queryByRole('button', { name: 'Neue Rechnung' })).toBeNull();
     expect(screen.queryByText('Neue Rechnung aus Baustelle')).toBeNull();
@@ -5066,7 +5066,7 @@ describe('Runde 6, Paket 2', () => {
       await rechnungOeffnen('RE-2026-1003');
       await userEvent.click(await screen.findByRole('button', { name: 'Weitere Zahlung erfassen …' }));
       expect(await screen.findByText(/schon bezahlt\. Eine weitere Zahlung wird zum Guthaben/)).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', { name: 'Löschen' }));
+      await userEvent.click(screen.getByRole('button', { name: /^Zahlung vom .* löschen$/ }));
       bisherigeZahlungen = [];
       await userEvent.click(screen.getByRole('button', { name: 'Ja, löschen' }));
       expect(await screen.findByText('Auf diese Rechnung ist noch nichts eingegangen.')).toBeInTheDocument();
@@ -5082,7 +5082,7 @@ describe('Runde 6, Paket 2', () => {
       zeige('/invoices?ansicht=alle');
       await rechnungOeffnen('RE-2026-1003');
       await userEvent.click(await screen.findByRole('button', { name: 'Weitere Zahlung erfassen …' }));
-      await userEvent.click(await screen.findByRole('button', { name: 'Löschen' }));
+      await userEvent.click(await screen.findByRole('button', { name: /^Zahlung vom .* löschen$/ }));
       await userEvent.click(screen.getByRole('button', { name: 'Ja, löschen' }));
       expect(await screen.findByText(/Die Zahlung konnte nicht gelöscht werden\. Keine Verbindung/)).toBeInTheDocument();
       expect(screen.queryByText('Zahlung gelöscht')).toBeNull();
@@ -5098,7 +5098,7 @@ describe('Runde 6, Paket 2', () => {
       zeige('/invoices?ansicht=alle');
       await rechnungOeffnen('RE-2026-1003');
       await userEvent.click(await screen.findByRole('button', { name: 'Weitere Zahlung erfassen …' }));
-      await userEvent.click(await screen.findByRole('button', { name: 'Löschen' }));
+      await userEvent.click(await screen.findByRole('button', { name: /^Zahlung vom .* löschen$/ }));
       bisherigeZahlungen = [];
       await userEvent.click(screen.getByRole('button', { name: 'Ja, löschen' }));
       expect(await screen.findByText('Zahlung gelöscht')).toBeInTheDocument();

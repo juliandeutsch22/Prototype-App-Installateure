@@ -34,6 +34,7 @@ import type { AppUser, Project, TimeEntry, UrlaubsanspruchAnpassung } from '@/ty
 import { fuehrtZeitkonto } from '@/lib/permissions';
 import { istDeaktiviert, personenImMonat } from './personenImMonat';
 import Hinweiszeile from '@/components/Hinweiszeile';
+import Icon from '@/components/Icon';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -1043,8 +1044,10 @@ export default function AccountingView() {
               onClick={() => blaettern(-1)}
               disabled={!zurueckMoeglich}
               aria-label={ansicht === 'woche' ? 'Vorige Woche' : 'Voriger Monat'}
+              title={ansicht === 'woche' ? 'Vorige Woche' : 'Voriger Monat'}
             >
-              ‹
+              {/* Dasselbe Zeichen wie überall beim Blättern (E74), nicht das Satzzeichen. */}
+              <Icon name="zurueck" size={22} />
             </button>
             <button
               type="button"
@@ -1062,8 +1065,9 @@ export default function AccountingView() {
               onClick={() => blaettern(1)}
               disabled={!vorMoeglich}
               aria-label={ansicht === 'woche' ? 'Nächste Woche' : 'Nächster Monat'}
+              title={ansicht === 'woche' ? 'Nächste Woche' : 'Nächster Monat'}
             >
-              ›
+              <Icon name="weiter" size={22} />
             </button>
           </div>
           <div className="ue-steuerung-rechts">

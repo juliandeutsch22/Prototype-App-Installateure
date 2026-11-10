@@ -63,6 +63,7 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { datumAT } from '@/lib/datum';
 import { ZahlWertFeld } from '@/components/ZahlFeld';
 import { euro } from '@/lib/betrag';
+import { BearbeitenKnopf } from '@/components/Symbolknoepfe';
 
 const fmtDatum = (iso?: string) =>
   datumAT(iso) || '—';
@@ -676,9 +677,8 @@ export default function WartungenView() {
             {ansicht === 'anstehend'
               ? kannEinplanen(w) && <Button onClick={() => einplanenFragen(w)}>Baustelle anlegen</Button>
               : (
-                <Button variant="ghost" onClick={() => formOeffnen(w)}>
-                  Bearbeiten
-                </Button>
+                // Die Zeile öffnet die Anlage; der Stift führt gleich ins Formular (E74).
+                <BearbeitenKnopf label={`Wartung ${w.customerName}${w.anlage ? `, ${w.anlage}` : ''} bearbeiten`} onClick={() => formOeffnen(w)} />
               )}
           </>
         )}

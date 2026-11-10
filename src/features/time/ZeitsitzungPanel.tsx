@@ -14,8 +14,6 @@ import { datumAT } from '@/lib/datum';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import BottomSheet from '@/components/BottomSheet';
-import Icon from '@/components/Icon';
-import IconButton from '@/components/IconButton';
 import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
@@ -23,6 +21,7 @@ import TimeForm from './TimeForm';
 import { useZeitsitzung } from './zeitsitzungStand';
 import { baustellenTitel } from '@/lib/baustellenTitel';
 import { useBaustellenAuswahl } from '@/features/nachrichten/useBaustellenAuswahl';
+import { LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * ARBEITSTAG PRÜFEN (M06a, neu gefasst in E73 am 10.11.2026) — nach
@@ -135,9 +134,7 @@ export default function ZeitsitzungPanel({ profil }: { profil?: AppUser | null }
             return <ListRow key={v.von} title={zeit}
               subtitle={`${wo} · ${vorschlagStand(v)}`}
               onOeffnen={kannBuchen ? () => oeffnen(s, v) : undefined} pfeil={kannBuchen}>
-              {kannBuchen && <IconButton label={`${zeit} nicht buchen`} tone="danger" disabled={speichert} onClick={() => { setFehler(null); setAlleVerwerfen(false); setVerwerfen({ id: s.id, vorschlag: v }); }}>
-                <Icon name="papierkorb" size={20} aria-hidden="true" />
-              </IconButton>}
+              {kannBuchen && <LoeschenKnopf label={`${zeit} nicht buchen`} disabled={speichert} onClick={() => { setFehler(null); setAlleVerwerfen(false); setVerwerfen({ id: s.id, vorschlag: v }); }} />}
             </ListRow>;
           })}</List>
           {s.entwuerfe?.filter((d) => !d.wartet).map((d) => <details key={d.kennung} className="my-3 break-words border-t border-line pt-3">

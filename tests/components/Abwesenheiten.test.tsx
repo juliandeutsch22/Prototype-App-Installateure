@@ -124,7 +124,7 @@ describe('Krankenstände', () => {
   it('löscht erst nach der Rückfrage', async () => {
     meldungen = [{ id: 'k1', companyId: 'perl', userId: 'm1', userName: 'Max Monteur', von: '2026-10-27', bis: '2026-10-30' }];
     zeige(<KrankenstaendeReiter companyId="perl" meinName="Brigitte" />);
-    await userEvent.click(await screen.findByRole('button', { name: 'Löschen' }));
+    await userEvent.click(await screen.findByRole('button', { name: / löschen$/ }));
     expect(loeschen).not.toHaveBeenCalled();
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Löschen' }));
@@ -270,7 +270,7 @@ describe('Betriebsurlaub', () => {
   it('löscht erst nach der Rückfrage, die sagt, was zurückgenommen wird', async () => {
     urlaube = [{ id: 'b1', companyId: 'perl', von: '2026-12-28', bis: '2026-12-31', bezeichnung: 'Weihnachten', urlaubAbbuchen: true }];
     zeige(<BetriebsurlaubReiter companyId="perl" meinName="Brigitte" />);
-    await userEvent.click(await screen.findByRole('button', { name: 'Löschen' }));
+    await userEvent.click(await screen.findByRole('button', { name: / löschen$/ }));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent(/werden bei allen wieder entfernt/);
     expect(buLoeschen).not.toHaveBeenCalled();

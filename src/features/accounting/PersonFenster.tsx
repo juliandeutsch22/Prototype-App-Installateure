@@ -30,6 +30,7 @@ import Aenderungsprotokoll from '@/features/time/Aenderungsprotokoll';
 import { listVerlaufZeitraum } from '@/lib/db/zeitbuchungVerlauf';
 import ZeitfeldAngaben from '@/features/time/ZeitfeldAngaben';
 import type { ZeitfeldAnzeige, ZeitfeldWert } from '@/lib/zeitfelder';
+import { BearbeitenKnopf, LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * Person im Monat: Kontostand, fehlende Tage und vollständiger Tagesnachweis.
@@ -205,13 +206,10 @@ export default function PersonFenster({
       // Ein Tag aus einem genehmigten Antrag ändert sich nur über den Antrag.
       <AntragKnopf eintrag={e} />
     ) : (
+      // Stift und Papierkorb wie in jeder Zeile (E74); der Name nennt den Tag.
       <>
-        <Button variant="ghost" onClick={() => onBearbeiten(e)}>
-          Bearbeiten
-        </Button>
-        <Button variant="ghost" onClick={() => onLoeschen(e)}>
-          Löschen
-        </Button>
+        <BearbeitenKnopf label={`${tagKurz(e.date)} bearbeiten`} onClick={() => onBearbeiten(e)} />
+        <LoeschenKnopf label={`${tagKurz(e.date)} löschen`} onClick={() => onLoeschen(e)} />
       </>
     );
 

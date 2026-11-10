@@ -452,7 +452,7 @@ describe('Mitarbeiteruebersicht — mehrere Buchungen an einem Tag', () => {
       Buchungen. Eine feste Zeilenzahl wäre brittle: der Nachweis führt auch
       Feiertage ohne Buchung (im August 2026 der 15.).
     */
-    expect(within(tabelle).getAllByRole('button', { name: 'Bearbeiten' })).toHaveLength(11);
+    expect(within(tabelle).getAllByRole('button', { name: / bearbeiten$/ })).toHaveLength(11);
   });
 
   it('zeigt den Notdienst-Haken — er hängt an einem Zuschlag', async () => {
@@ -604,7 +604,7 @@ describe('Mitarbeiteruebersicht — Abwesenheiten im Soll', () => {
     expect(within(fenster()).getByText(/von 72:00 Soll/)).toBeInTheDocument();
     const tabelle = tagesnachweis();
     expect(within(tabelle).getByRole('button', { name: 'Urlaubsantrag' })).toBeInTheDocument();
-    expect(within(tabelle).getAllByRole('button', { name: 'Bearbeiten' })).toHaveLength(9);
+    expect(within(tabelle).getAllByRole('button', { name: / bearbeiten$/ })).toHaveLength(9);
   });
 });
 
@@ -1335,7 +1335,7 @@ describe('Mitarbeiterübersicht in der Linie „Lot“ (E9)', () => {
   it('„Bearbeiten“ im Tagesnachweis öffnet den Eintrag im selben Fenster, danach wieder die Person', async () => {
     await oeffneMitarbeiter();
     const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    await nutzer.click(within(tagesnachweis()).getAllByRole('button', { name: 'Bearbeiten' })[0]);
+    await nutzer.click(within(tagesnachweis()).getAllByRole('button', { name: / bearbeiten$/ })[0]);
     const formular = screen.getByRole('dialog', { name: 'Eintrag korrigieren' });
     expect(within(formular).getByRole('heading', { name: 'Eintrag von Neu Eingestellt korrigieren' })).toBeInTheDocument();
     expect(within(formular).getByText(/Formular für e-2026-08-/)).toBeInTheDocument();
@@ -1347,7 +1347,7 @@ describe('Mitarbeiterübersicht in der Linie „Lot“ (E9)', () => {
   it('„Löschen“ fragt nach wie bisher', async () => {
     await oeffneMitarbeiter();
     const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    await nutzer.click(within(tagesnachweis()).getAllByRole('button', { name: 'Löschen' })[0]);
+    await nutzer.click(within(tagesnachweis()).getAllByRole('button', { name: / löschen$/ })[0]);
     expect(screen.getByText('Eintrag löschen?')).toBeInTheDocument();
     expect(screen.getByText('Der Eintrag von Neu Eingestellt vom 17.08.2026 wird endgültig entfernt.')).toBeInTheDocument();
   });

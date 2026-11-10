@@ -584,7 +584,7 @@ describe('Die Liste führt zum Angebot', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/AN-2026-0007/);
-    expect(screen.getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Angebot \S+ bearbeiten$/ })).toBeInTheDocument();
     await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
     expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual([
       'Als versendet markieren', 'Als abgelehnt markieren', 'Verwerfen',
@@ -654,7 +654,7 @@ describe('Einen Entwurf bearbeiten', () => {
   it('holt den Entwurf ins Formular und speichert Änderungen am selben Angebot', async () => {
     entwurf(true);
     zeichne();
-    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    await userEvent.click(await screen.findByRole('button', { name: /^Angebot \S+ bearbeiten$/ }));
 
     expect(screen.getByText('Angebot AN-2026-0008 bearbeiten')).toBeInTheDocument();
     expect(screen.getByLabelText('Anmerkungen')).toHaveValue('Steigleitung');
@@ -686,7 +686,7 @@ describe('Einen Entwurf bearbeiten', () => {
       subtotalNetto: 7120, totalNetto: 7120, totalVat: 1424, totalBrutto: 8544, vatRate: 20, kalkulierteStunden: 17,
     });
     zeichne();
-    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    await userEvent.click(await screen.findByRole('button', { name: /^Angebot \S+ bearbeiten$/ }));
     expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('16 h');
     await userEvent.type(screen.getByLabelText('Anmerkungen'), 'x');
     await userEvent.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
@@ -700,7 +700,7 @@ describe('Einen Entwurf bearbeiten', () => {
   it('zeigt Preise mit zwei Nachkommastellen — beim Öffnen und nach dem Tippen', async () => {
     entwurf(true);
     zeichne();
-    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    await userEvent.click(await screen.findByRole('button', { name: /^Angebot \S+ bearbeiten$/ }));
     expect(screen.getByLabelText('Einzelpreis netto', { selector: '#anqprice0' })).toHaveValue('70,00');
     const preis = screen.getByLabelText('Einzelpreis netto', { selector: '#anqprice1' });
     await userEvent.clear(preis);
@@ -713,7 +713,7 @@ describe('Einen Entwurf bearbeiten', () => {
   it('Gegenprobe: eine unlesbare Eingabe bleibt stehen, wie getippt', async () => {
     entwurf(true);
     zeichne();
-    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    await userEvent.click(await screen.findByRole('button', { name: /^Angebot \S+ bearbeiten$/ }));
     const preis = screen.getByLabelText('Einzelpreis netto', { selector: '#anqprice1' });
     await userEvent.clear(preis);
     await userEvent.type(preis, '4,2x');
@@ -724,7 +724,7 @@ describe('Einen Entwurf bearbeiten', () => {
   it('sagt es, wenn der Haken bei einem alten Angebot aus der Einheit abgeleitet wurde', async () => {
     entwurf(false);
     zeichne();
-    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    await userEvent.click(await screen.findByRole('button', { name: /^Angebot \S+ bearbeiten$/ }));
     expect(screen.getByText(/aus der Einheit abgeleitet — bitte prüfen/)).toBeInTheDocument();
     // Abgeleitet zählt auch die Anfahrt — genau deshalb der Hinweis.
     expect(screen.getByText('17 h')).toBeInTheDocument();
@@ -734,7 +734,7 @@ describe('Einen Entwurf bearbeiten', () => {
     versendetesAngebot();
     zeichne();
     await screen.findByText(/AN-2026-0007/);
-    expect(screen.queryByRole('button', { name: 'Bearbeiten' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Angebot \S+ bearbeiten$/ })).not.toBeInTheDocument();
   });
 
   it('speichert jedes neue Angebot mit dem Haken an der Position', async () => {
@@ -806,7 +806,7 @@ describe('Neue Fassung eines versendeten Angebots (M17)', () => {
     mitPositionen();
     angebote[0].status = 'Entwurf';
     zeichne();
-    expect(await screen.findByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /^Angebot \S+ bearbeiten$/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Neue Fassung' })).toBeNull();
   });
 });
@@ -949,7 +949,7 @@ describe('Titel, Text, Rabatt und Katalog (M18)', () => {
       subtotalNetto: 180, totalNetto: 180, totalVat: 36, totalBrutto: 216, vatRate: 0.2, kalkulierteStunden: 0,
     } as Quote & { id: string });
     zeichne();
-    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    await userEvent.click(await screen.findByRole('button', { name: /^Angebot \S+ bearbeiten$/ }));
     expect(screen.getByLabelText('Titel')).toHaveValue('Bad');
     expect(screen.getByLabelText('Rabatt %')).toHaveValue('10');
     await userEvent.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
@@ -1409,7 +1409,7 @@ describe('Angebotszeile am Handy (E72)', () => {
       const nutzer = userEvent.setup();
       zeichne();
       await screen.findByText(/AN-2026-0007/);
-      expect(screen.getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Angebot \S+ bearbeiten$/ })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Annehmen → Baustelle' })).toBeNull();
       await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
       expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual([

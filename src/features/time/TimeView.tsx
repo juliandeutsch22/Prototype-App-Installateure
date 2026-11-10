@@ -67,6 +67,7 @@ import { datumAT } from '@/lib/datum';
 import { offeneAngaben } from '@/lib/zeitfelder';
 import { useFeldsatz, useFeldwerte } from './useZeitfelder';
 import ZeitfeldAngaben from './ZeitfeldAngaben';
+import { LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 /** Wie viele Monate die Liste zunaechst zurueckreicht. */
 const MONATE_JE_SEITE = 3;
@@ -700,9 +701,7 @@ export default function TimeView() {
         ) : e.status === 'Berufsschule' ? (
           // Ein Berufsschultag wird nicht umgebaut, sondern gelöscht und
           // neu eingetragen — die Datenbank lässt es anders nicht zu (4.1).
-          <Button variant="ghost" onClick={() => setToDelete(e)}>
-            Löschen
-          </Button>
+          <LoeschenKnopf label={`${datumAT(e.date)} löschen`} onClick={() => setToDelete(e)} />
         ) : e.status === 'Zeitausgleich' && !(user && canEditTime(user.role)) ? (
           // Einen gebuchten Zeitausgleich ändert nur das Büro —
           // die Datenbank lehnt es sonst ab. Zwei Knöpfe, die
@@ -721,10 +720,8 @@ export default function TimeView() {
             </InfoHint>
           </span>
         ) : (
-          // „Bearbeiten“ ist die Zeile selbst; Löschen bleibt ein eigenes Ziel.
-          <Button variant="ghost" onClick={() => setToDelete(e)}>
-            Löschen
-          </Button>
+          // „Bearbeiten“ ist die Zeile selbst; Löschen bleibt ein eigenes Ziel, als Papierkorb (E74).
+          <LoeschenKnopf label={`${datumAT(e.date)} löschen`} onClick={() => setToDelete(e)} />
         )}
         {!bearbeitbar && <KorrekturAnfordern eintrag={e} />}
       </ListRow>

@@ -275,7 +275,8 @@ describe('Material anfordern — der Warenkorb', () => {
     zeige();
     // Die Zeile steht mit dem Katalog, und der kommt seit dem 18.10.2026 als Antwort des Servers.
     const raster = (await screen.findByLabelText('Bezeichnung')).closest('.grid') as HTMLElement;
-    expect(raster.className).toContain('grid-cols-[minmax(0,1fr)_5rem]');
+    // Seit E74 steht der Petrol-Kreis in jeder Breite in derselben Reihe — die Namensspalte schrumpft weiter.
+    expect(raster.className).toContain('grid-cols-[minmax(0,1fr)_5rem_auto]');
     expect(raster.className).toContain('sm:grid-cols-[minmax(0,1fr)_6rem_auto]');
     expect(raster.className).not.toMatch(/grid-cols-\[1fr/);
   });
@@ -919,7 +920,10 @@ describe('Was schon in der Liste liegt', () => {
   it('der Knopf heißt „In die Liste“; darunter steht die Menge aus der Liste, „Liste leeren“ nimmt sie weg', async () => {
     zeige();
     const knopf = await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ });
-    expect(knopf).toHaveTextContent(/^In die Liste$/);
+    // Seit E74 der Petrol-Kreis: kein Wort im Knopf, der Name als Hinweis beim Darüberfahren.
+    expect(knopf).toHaveClass('symbol-rund');
+    expect(knopf).toHaveTextContent(/^$/);
+    expect(knopf).toHaveAttribute('title', 'Kupferrohr 15mm in die Liste');
     expect(screen.queryByText(/ in der Liste$/)).toBeNull();
     await userEvent.click(knopf);
     await userEvent.click(knopf);
@@ -955,7 +959,7 @@ describe('Was schon in der Liste liegt', () => {
     zeige();
     await userEvent.click(await screen.findByRole('button', { name: /Dichtung .* in die Liste/ }));
     await userEvent.type(screen.getByLabelText('Bezeichnung'), 'Eckventil');
-    await userEvent.click(screen.getByRole('button', { name: 'In die Liste' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Eckventil in die Liste' }));
     expect(screen.getByText('1 Stk in der Liste')).toBeInTheDocument();
     expect(screen.getAllByText(/ in der Liste$/)).toHaveLength(1);
   });
@@ -1041,12 +1045,37 @@ describe('Material anfordern — Rückgabe sichtbar', () => {
   Gegenprobe: mit dem Stand davor sind diese Prüfungen rot.
 */
 describe('Material anfordern — Knöpfe und Fluchten der Linie (E72)', () => {
-  it('Minus und Plus sind gerahmte Steuerknöpfe wie der Zweitknopf, 48 px wie das Mengenfeld', async () => {
+  /*
+    E74 (10.11.2026): − Feld + tragen EINEN Rahmen mit Trennstrichen statt
+    dreier Kästchen, und „In die Liste“ ist der Petrol-Kreis daneben.
+    Gegenprobe: mit dem Stand E72 (drei gerahmte Kästchen, Wortknopf) rot.
+  */
+  it('Minus, Menge und Plus sind eine gerahmte Einheit, daneben der Petrol-Kreis „In die Liste“', async () => {
     zeige();
     const minus = await screen.findByRole('button', { name: 'Menge für Kupferrohr 15mm verringern' });
     const plus = screen.getByRole('button', { name: 'Menge für Kupferrohr 15mm erhöhen' });
-    for (const k of [minus, plus]) expect(k).toHaveClass('border', 'border-line-strong', 'bg-surface', 'text-ink', 'min-h-touch');
-    expect(screen.getByRole('textbox', { name: /Menge m für Kupferrohr 15mm/ })).toHaveClass('h-12', 'border-line-strong');
+    const feld = screen.getByRole('textbox', { name: /Menge m für Kupferrohr 15mm/ });
+    const gruppe = feld.closest('.mengen-wahl') as HTMLElement;
+    expect(gruppe).not.toBeNull();
+    for (const k of [minus, plus]) {
+      expect(k.parentElement).toBe(gruppe);
+      expect(k).toHaveClass('mengen-schritt');
+      expect(k).not.toHaveClass('border');
+    }
+    expect(feld).toHaveClass('mengen-feld');
+    expect(feld).not.toHaveClass('border');
+    const liste = screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' });
+    expect(liste).toHaveClass('symbol-rund');
+    expect(gruppe.contains(liste)).toBe(false);
+  });
+
+  it('eine ungültige Menge färbt den ganzen Rahmen und sperrt den Kreis', async () => {
+    zeige();
+    const feld = await screen.findByRole('textbox', { name: /Menge m für Kupferrohr 15mm/ });
+    await userEvent.clear(feld);
+    await userEvent.type(feld, 'abc');
+    expect(feld.closest('.mengen-wahl')).toHaveClass('mengen-wahl-fehler');
+    expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toBeDisabled();
   });
 
   it('die Suche steht als Listenleiste mit Lupe im Blatt „Katalog“', async () => {

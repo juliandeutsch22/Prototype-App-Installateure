@@ -839,7 +839,7 @@ describe('Urlaubsanspruch anpassen (Plan 10.3)', () => {
     zeige();
     await userEvent.click(await screen.findByRole('tab', { name: 'Arbeitszeit und Urlaub' }));
     expect(await screen.findByText('Urlaubsjahr 2026: −6,25 Tage')).toBeInTheDocument();
-    await nutzer.click(screen.getByRole('button', { name: 'Entfernen' }));
+    await nutzer.click(screen.getByRole('button', { name: / entfernen$/ }));
     const dialog = screen.getByRole('dialog', {});
     await nutzer.click(within(dialog).getByRole('button', { name: 'Entfernen' }));
     expect(await within(dialog).findByText(/Bitte einen Grund angeben/)).toBeInTheDocument();
