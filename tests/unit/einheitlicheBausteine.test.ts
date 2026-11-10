@@ -115,7 +115,8 @@ describe('Abstände im Takt', () => {
     expect(r).toContain('gap: 1rem');
   });
 
-  it('der Formularfuß im Blatt reicht von Kante zu Kante und steht auf der 24-px-Flucht', () => {
-    expect(BLATT).toMatch(/> \.karte-koerper \.aktionsleiste \{ margin: 1\.5rem -24px -24px; padding: 12px 24px; \}/);
+  // Seit E76 einen Pixel innen: klebend lag die Leiste über der linken Linie des Blatts.
+  it('der Formularfuß im Blatt reicht von der Linie links bis zur Kante rechts und steht auf der 24-px-Flucht', () => {
+    expect(BLATT).toMatch(/> \.karte-koerper \.aktionsleiste \{ margin: 1\.5rem -24px -24px -23px; padding: 12px 24px 12px 23px; \}/);
   });
 });

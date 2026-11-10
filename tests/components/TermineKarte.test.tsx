@@ -89,7 +89,9 @@ describe('Die Liste', () => {
     termine = [LIEFERUNG];
     zeige({ bezug: 'frei', datum: '2026-06-02' }, 'Termine am Di, 02.06.');
     expect(await screen.findByText('Lieferung (Aviso) · 08:00–10:00')).toBeInTheDocument();
-    expect(await screen.findByText('Familie Huber · 2026-042')).toBeInTheDocument();
+    // Die Nummer steht seit E76 in einem eigenen Span, damit sie nicht umbricht.
+    const bezug = await screen.findByText((_, el) => el?.tagName === 'SPAN' && el.classList.contains('block') && el.textContent === 'Familie Huber · 2026-042');
+    expect(bezug.querySelector('.nr')).toHaveTextContent('2026-042');
     expect(await screen.findByText('Teilnehmer: Anna Monteurin')).toBeInTheDocument();
     expect(screen.getByText('Wannen, 2 Paletten')).toBeInTheDocument();
   });
