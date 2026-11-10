@@ -86,10 +86,14 @@
     Steuerleiste — wie Start und Stopp der Karte „Arbeitstag“, nur kleiner.
     Gefüllt in Petrol, das Zeichen in der Gegenfarbe; gesperrt die Fläche der
     gesperrten Hauptaktion.
+    SICHTBAR 40 PX, GETIPPT 48 PX (E76, 10.11.2026: „den Petrol-Symbolknopf
+    etwas kleiner“): die Fläche endet 4 px vor dem Rand des Knopfs
+    (`background-clip`), die Tastfläche bleibt zwei Zellen groß.
   */
-  .symbol-rund { flex: none; width: 3rem; height: 3rem; padding: 0; border: 0; border-radius: 999px; background: var(--petrol); color: var(--auf-petrol); cursor: pointer; transition: background-color var(--motion-state, 160ms) var(--ease-response, ease); }
+  .symbol-rund { flex: none; width: 3rem; height: 3rem; padding: 4px; border: 0; border-radius: 999px; background: var(--petrol); background-clip: content-box; color: var(--auf-petrol); cursor: pointer; transition: background-color var(--motion-state, 160ms) var(--ease-response, ease); }
   .symbol-rund:hover:not(:disabled) { background: var(--petrol-tief); }
-  .symbol-rund:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  /* Der Fokusring 2 px außerhalb des sichtbaren Kreises, nicht der Tastfläche. */
+  .symbol-rund:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
   .symbol-rund:disabled { background: var(--surface-3); color: var(--text-muted); cursor: not-allowed; }
   .fenster-titel { font-size: 1.125rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .fenster-inhalt { min-width: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; max-height: 70vh; padding-top: 1rem; }

@@ -2962,6 +2962,10 @@ die vor der Unterkante enden.
     „Neues Material“ (Katalog), „Retoure erfassen“.
   - Das „Schließen“ im Kopf der Karte „Neue Rechnung aus Baustelle“ ist das
     ✕, wie bei der Krankmeldung.
+  - **Der Kreis ist kleiner** (Nachtrag am selben Tag: „den Petrol-Symbolknopf
+    etwas kleiner“): sichtbar 40 statt 48 px, überall, wo er steht (Plus,
+    zurück zu heute, In die Liste). Die Tastfläche bleibt 48 px; die Fläche
+    endet 4 px vor dem Rand des Knopfs, der Fokusring liegt am Kreis.
   - **Gleich geblieben:** Das Wort bleibt im Seitenkopf (Hauptaktion), im
     Fensterfuß (Monatsvorschau), im Leerzustand und bei Entscheidungen
     („Neue Fassung“, „Baustelle anlegen“ aus der Wartung, „Zeit erfassen“
@@ -2979,8 +2983,8 @@ die vor der Unterkante enden.
   Polster des Kopfs (12 px); die Zeile ist 72 px hoch.
 
 **Grenze mit Grund:** keine. **Nachweis:**
-- `blattKanten.test.ts` (16 Prüfungen) hält jede Regel im Quelltext fest.
-  Gegenprobe gegen den Stand davor: 15 von 16 rot; die eine grüne ist die
+- `blattKanten.test.ts` (17 Prüfungen) hält jede Regel im Quelltext fest.
+  Gegenprobe gegen den Stand davor: 16 von 17 rot; die eine grüne ist die
   Gleich-geblieben-Prüfung des Fensterfußes.
 - `blattKanten.spec.ts` (5 Browserwege) misst im Browser:
   - die klebende Leiste 1 px innen, Knöpfe auf 24 px;
@@ -2989,7 +2993,8 @@ die vor der Unterkante enden.
   - „Für wen“ 24 px unter und neben der Kante, der Kalender ohne Ausgleich
     und 24 px Luft unter der letzten Woche;
   - der Kalender der Tagesplanung bündig mit der Kante, Wochen zu 72 px;
-  - das Plus neben dem Titel, auch am Handy.
+  - das Plus neben dem Titel, auch am Handy, sichtbar 40 px bei 48 px
+    Tastfläche.
 
   Gegenprobe: 5 von 5 rot.
 - Nachgezogen: `Einkaufsliste.test.tsx`, `FirmendatenView.test.tsx`,

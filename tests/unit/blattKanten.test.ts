@@ -96,6 +96,13 @@ describe('Etwas Neues in die Liste: der Petrol-Kreis mit Plus (E76)', () => {
     expect(q('src/components/Icon.tsx')).toContain("plus: 'M12 5v14M5 12h14',");
   });
 
+  it('der Kreis sichtbar 40 px, die Tastfläche 48 px', () => {
+    const kreis = regel(q('src/styles/lot.css'), '.symbol-rund');
+    expect(kreis).toContain('width: 3rem; height: 3rem; padding: 4px;');
+    expect(kreis).toContain('background-clip: content-box;');
+    expect(regel(q('src/styles/lot.css'), '.symbol-rund:focus-visible')).toContain('outline-offset: -2px;');
+  });
+
   it('ein Symbolknopf bleibt neben dem Titel, der Titel bricht um', () => {
     const css = q('src/index.css');
     expect(css).toContain('.karte-kopf > div:has(> [data-icon]:last-child) { flex-wrap: nowrap; }');

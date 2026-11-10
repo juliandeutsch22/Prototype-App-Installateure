@@ -92,7 +92,9 @@ test('„Termin anlegen“ ist der Petrol-Kreis neben dem Titel der Karte, auch 
   await expect(plus).toHaveClass(/symbol-rund/);
   const m = await kopf.evaluate((k) => {
     const t = k.querySelector('h2')!.getBoundingClientRect(), p = k.querySelector('.symbol-rund')!.getBoundingClientRect();
-    return { nebenDemTitel: p.left > t.right && p.top < t.bottom, groesse: Math.round(p.width) };
+    const s = getComputedStyle(k.querySelector('.symbol-rund')!);
+    return { nebenDemTitel: p.left > t.right && p.top < t.bottom, tastflaeche: Math.round(p.width), kreis: Math.round(p.width - 2 * parseFloat(s.paddingLeft)), clip: s.backgroundClip };
   });
-  expect(m).toEqual({ nebenDemTitel: true, groesse: 48 });
+  // Sichtbar 40 px, getippt 48 px (E76: „etwas kleiner“).
+  expect(m).toEqual({ nebenDemTitel: true, tastflaeche: 48, kreis: 40, clip: 'content-box' });
 });
