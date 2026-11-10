@@ -2708,3 +2708,60 @@ Fälle rot), `einheitlicheBausteine.test.ts`, `KnopfLink.test.tsx`,
 (Blöcke „E72 …“), je ohne die Änderung rot. **Offen zur Entscheidung:** die
 Zustandsspalte gestapelter Zeilen am Schreibtisch in fester Breite (betrifft
 den Zeilenbaustein app-weit) und eine Schreibweise für Anzahlen in Titeln.
+
+**E73 — Arbeitstag prüfen: je Baustelle eine Zeit mit der Pause, ein Papierkorb statt zweier Verwerfen-Links, Feierabend öffnet das Formular (10.11.2026).**
+Auftrag: Bei „Abschnitte prüfen“ „machen Nicht buchen und Sitzung begründet
+verwerfen dasselbe und nehmen zu viel Platz weg … eigentlich würde ein
+Papierkorb-Icon reichen“. Der Ablauf wirke „sperrig, nicht intuitiv und nicht
+perfekt durchdacht“.
+
+Was am alten Ablauf nicht stimmte:
+- Zwei Textlinks verwarfen bei einem einzelnen Abschnitt dasselbe; Handlungen
+  als Text widersprechen auch E72.
+- Jeder Arbeitsabschnitt war eine eigene Buchung. Wer mittags Pause machte,
+  bekam für dieselbe Baustelle zwei Formulare mit je 0 Minuten Pause. Das
+  Formular warnte beim langen Abschnitt vor der fehlenden Pause, obwohl sie
+  aufgezeichnet war.
+- Pausen standen als eigene Zeilen da, mit denen man nichts tun konnte.
+- „Stoppen und prüfen“ prüfte nicht: auf der Startseite blieb man stehen.
+
+Jetzt:
+- **Je Baustelle eine Zeit** (`timerVorschlaege`): aufeinanderfolgende
+  Arbeitsabschnitte derselben Baustelle, die nur Pausen trennen, werden ein
+  Vorschlag von Beginn bis Ende, die Pausen als Minuten. Ein
+  Baustellenwechsel beginnt eine neue Zeit, eine Pause am Ende gehört zu
+  keiner. Gebucht wird der Zeitraum mit `zeit_timer_zeitraum_buchen` als
+  eine normale Buchung durch dieselben Trigger, wiederholbar aus dem
+  Ausgangsfach; ein schon gebuchter oder verworfener Abschnitt sperrt ihn.
+  `zeit_timer_buchen` bleibt für Abschlüsse, die eine ältere Fassung noch im
+  Ausgangsfach hat; deren Einzelbuchungen stehen weiter je Zeile da.
+- **Eine Zeile je Zeit:** groß die Uhrzeit, darunter Baustelle mit Namen,
+  Pause und Stand. Ein Tipp öffnet das gewohnte Formular, vorbelegt mit
+  Von, Bis, Pause und Baustelle; dort gelten alle Prüfungen.
+- **Ein Papierkorb** je offener Zeit (`IconButton`, Name „… nicht buchen“).
+  Er fragt nach dem Grund. Gibt es mehrere offene Zeiten, wählt man „Nur
+  07:00–14:00“ oder „Den ganzen Arbeitstag“. Der Link „Sitzung begründet
+  verwerfen“ entfällt; der ganze Tag geht über dieselbe Frage. Herausgenommen
+  wird jeder Arbeitsabschnitt einzeln (`zeit_timer_abschnitt_verwerfen`),
+  wiederholbar und ohne Netz vorzumerken.
+- **Feierabend öffnet das Formular:** „Stoppen und prüfen“ führt von Karte und
+  Leiste in die Zeiterfassung, und die erste offene Zeit steht gleich im
+  Formular. Einmal je Sitzung; Zurück oder Neuladen öffnet es nicht wieder.
+- Die Karte heißt „Arbeitstag prüfen“; über den Zeiten stehen Datum, Arbeit
+  und Pause des Tages.
+
+**Grenze mit Grund:** keine. Die Buchung trägt wie jede von Hand die
+Pausenminuten, nicht die Uhrzeit der Pause; die Abschnitte bleiben in der
+Sitzung erhalten. **Nachweis:**
+- `zeitsitzung.test.ts` (Vorschläge: Pause, Wechsel, Pause am Ende,
+  Gebuchtes, Verworfenes; Gegenprobe mit einer Zeile je Abschnitt rot);
+- `Arbeitstag.test.tsx` („Arbeitstag prüfen“: eine Zeit mit Pause und ein
+  Formular, Papierkorb ohne und mit Umfang, alle Abschnitte einer Zeit,
+  Feierabend öffnet das Formular; Gegenprobe mit Panel und Karte von vorher
+  7 von 8 rot);
+- `zeitsitzungenLaden.test.ts` (vorgemerkter Zeitraum ganz markiert,
+  Gegenprobe rot);
+- `timerZeitraum.test.ts` (Supabase: eine Buchung mit 30 Min. Pause,
+  Wiederholung, Wechsel, Grenzen, nichts doppelt, nur die eigene beendete
+  Sitzung);
+- `m06Zeit.spec.ts` und `arbeitstag.spec.ts` (auf allen Monteurbreiten).

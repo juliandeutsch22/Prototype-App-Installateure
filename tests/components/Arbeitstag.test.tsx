@@ -33,6 +33,9 @@ vi.mock('@/lib/db/zeitsitzungen', () => ({
   letzterTimerEntwurf: vi.fn(),
   timerEntwurfVerwerfen: vi.fn(),
 }));
+// Das gewohnte Formular hat eigene Prüfungen (TimeForm*.test.tsx) — hier zählt, womit es vorbelegt wird.
+const formular = vi.fn((p: unknown) => { void p; return null; });
+vi.mock('@/features/time/TimeForm', () => ({ default: (p: unknown) => formular(p) }));
 vi.mock('@/lib/db/projects', () => ({
   listProjectsForEmployee: vi.fn(async () => [{ id: 'p1', projectNumber: 'B-1', customerName: 'Familie Huber', name: 'Bad', status: 'active' }]),
   listActiveProjects: vi.fn(async () => [{ id: 'p1', projectNumber: 'B-1', customerName: 'Familie Huber', name: 'Bad', status: 'active' }]),
@@ -50,6 +53,7 @@ const { default: ArbeitstagKarte } = await import('@/features/time/ArbeitstagKar
 const { default: TimerLeiste } = await import('@/features/time/TimerLeiste');
 const { default: ZeitsitzungPanel } = await import('@/features/time/ZeitsitzungPanel');
 const { ToastProvider } = await import('@/components/Toast');
+const zs = await import('@/lib/db/zeitsitzungen');
 
 const sitzung = (stand: Zeitsitzung['stand'], segmente: Zeitsitzung['segmente']): Zeitsitzung => ({
   id: 's1', company_id: 'perl', user_id: 'ich', stand, revision: segmente.length, segmente,
@@ -201,43 +205,145 @@ describe('Timer-Leiste', () => {
 });
 
 /*
- * „ZEITSITZUNG VERWERFEN“ AUS „ABSCHNITTE PRÜFEN“ (09.11.2026: „der Knopf
- * klebt am Textfeld“). Aufbau jetzt wie in der Karte: ein Formular mit
- * Abstand zwischen den Teilen, Abbrechen und Verwerfen im Fuß. Gegenprobe:
- * mit dem alten Bogen (Knopf ohne Fuß, ohne Abbrechen) rot.
+ * ARBEITSTAG PRÜFEN (E73, 10.11.2026: „nicht buchen und Sitzung begründet
+ * verwerfen machen dasselbe und nehmen zu viel Platz weg … ein Papierkorb
+ * würde reichen“; „sperrig, nicht intuitiv“).
+ *
+ * - je Baustelle EINE Zeit von Beginn bis Ende, die Pause eingerechnet;
+ * - ein Papierkorb je offener Zeit statt zweier Textlinks; bei mehreren
+ *   offenen Zeiten fragt er, ob nur diese oder der ganze Tag;
+ * - „Stoppen und prüfen“ öffnet gleich das Formular der ersten Zeit.
+ *
+ * Gegenprobe: mit dem Panel vor E73 (Zeile je Abschnitt, „Nicht buchen …“
+ * und „Sitzung begründet verwerfen …“ als Links, Stopp ohne Formular) ist
+ * jede Prüfung hier rot.
  */
-describe('Abschnitte prüfen — Zeitsitzung verwerfen', () => {
-  const beendet = () => [sitzung('beendet', [{ id: 'a', art: 'arbeit', von: '2026-11-09T07:00:00+01:00', bis: '2026-11-09T09:00:00+01:00', baustelle: 'B-1' }])];
+describe('Arbeitstag prüfen', () => {
+  const tag = (segmente: Zeitsitzung['segmente']) => [sitzung('beendet', segmente)];
+  const mitPause: Zeitsitzung['segmente'] = [
+    { id: 'a', art: 'arbeit', von: '2026-11-09T07:00:00+01:00', bis: '2026-11-09T12:00:00+01:00', baustelle: 'B-1' },
+    { id: 'p', art: 'pause', von: '2026-11-09T12:00:00+01:00', bis: '2026-11-09T12:30:00+01:00', baustelle: 'B-1' },
+    { id: 'b', art: 'arbeit', von: '2026-11-09T12:30:00+01:00', bis: '2026-11-09T16:00:00+01:00', baustelle: 'B-1' },
+  ];
+  const mitWechsel: Zeitsitzung['segmente'] = [
+    { id: 'a', art: 'arbeit', von: '2026-11-09T07:00:00+01:00', bis: '2026-11-09T10:00:00+01:00', baustelle: 'B-1' },
+    { id: 'b', art: 'arbeit', von: '2026-11-09T10:00:00+01:00', bis: '2026-11-09T15:00:00+01:00', baustelle: 'B-2' },
+  ];
   function zeigePanel() {
     return render(<MemoryRouter><ToastProvider><ZeitsitzungPanel /></ToastProvider></MemoryRouter>);
   }
 
-  it('Begründung, dann Abbrechen und Verwerfen im Fuß — Verwerfen erst mit Grund', async () => {
-    sitzungen = beendet();
-    zeigePanel();
-    await userEvent.click(await screen.findByRole('button', { name: 'Sitzung begründet verwerfen …' }));
-    const bogen = await screen.findByRole('dialog', { name: 'Zeitsitzung verwerfen' });
-    const verwerfen = within(bogen).getByRole('button', { name: 'Begründet verwerfen' });
-    expect(verwerfen).toBeDisabled();
-    // Die Aktionen stehen in einem eigenen Fuß unter dem Feld, nicht an ihm.
-    const fuss = verwerfen.closest('.fuss-aktionen');
-    expect(fuss).not.toBeNull();
-    expect(within(fuss as HTMLElement).getByRole('button', { name: 'Abbrechen' })).toBeInTheDocument();
-    expect(verwerfen.closest('form')).toContainElement(within(bogen).getByLabelText(/Begründung/));
+  beforeEach(() => {
+    formular.mockClear();
+    vi.mocked(zs.timerAbschnittVerwerfen).mockReset().mockResolvedValue('confirmed');
+  });
 
-    await userEvent.type(within(bogen).getByLabelText(/Begründung/), 'Fehlstart');
-    await userEvent.click(verwerfen);
-    await waitFor(() => expect(gesendet).toHaveBeenCalledWith(expect.objectContaining({ p_art: 'verwerfen', p_baustelle: 'Fehlstart' })));
+  it('Arbeit, Pause, Arbeit an derselben Baustelle ist eine Zeit mit 30 Min. Pause — und ein Formular', async () => {
+    sitzungen = tag(mitPause);
+    zeigePanel();
+    const zeile = await screen.findByText('07:00–16:00');
+    // Die Baustelle mit Namen (wie auf der Karte), dann Pause und Stand.
+    expect(await screen.findByText('Familie Huber · 30 Min. Pause · noch nicht gebucht')).toBeInTheDocument();
+    // Keine Zeile für die Pause, keine je Abschnitt.
+    expect(screen.queryByText(/12:00–12:30/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/12:30–16:00/)).not.toBeInTheDocument();
+    await userEvent.click(zeile);
+    const bogen = await screen.findByRole('dialog', { name: 'Arbeitszeit buchen' });
+    expect(within(bogen).getByText(/07:00 bis 16:00, darin 30 Min\. Pause/)).toBeInTheDocument();
+    expect(formular).toHaveBeenLastCalledWith(expect.objectContaining({
+      vorbelegung: expect.objectContaining({ startTime: '07:00', endTime: '16:00', breakDuration: 30, projectNumber: 'B-1' }),
+    }));
+    // Gebucht wird der Zeitraum vom ersten bis zum letzten Arbeitsabschnitt.
+    const { speichernMit } = formular.mock.calls[formular.mock.calls.length - 1][0] as { speichernMit: (w: object) => unknown };
+    await speichernMit({ startTime: '07:00' });
+    expect(zs.timerBuchen).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), 0, 2, { startTime: '07:00' });
+  });
+
+  it('ein Baustellenwechsel sind zwei Zeiten', async () => {
+    sitzungen = tag(mitWechsel);
+    zeigePanel();
+    expect(await screen.findByText('07:00–10:00')).toBeInTheDocument();
+    expect(screen.getByText('10:00–15:00')).toBeInTheDocument();
+    expect(screen.getByText('B-2 · noch nicht gebucht')).toBeInTheDocument();
+  });
+
+  it('ein Papierkorb statt zweier Links; bei einer Zeit ohne Rückfrage nach dem Umfang', async () => {
+    sitzungen = tag([mitPause[0]]);
+    zeigePanel();
+    await screen.findByText('07:00–12:00');
+    expect(screen.queryByRole('button', { name: /Sitzung begründet verwerfen/ })).not.toBeInTheDocument();
+    expect(screen.queryByText('Nicht buchen …')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '07:00–12:00 nicht buchen' }));
+    const bogen = await screen.findByRole('dialog', { name: 'Nicht buchen' });
+    expect(within(bogen).queryByRole('radio')).not.toBeInTheDocument();
+    const knopf = within(bogen).getByRole('button', { name: 'Nicht buchen' });
+    expect(knopf).toBeDisabled();
+    expect(knopf.closest('.fuss-aktionen')).toContainElement(within(bogen).getByRole('button', { name: 'Abbrechen' }));
+    await userEvent.type(within(bogen).getByLabelText(/Grund/), 'Fehlstart');
+    await userEvent.click(knopf);
+    await waitFor(() => expect(zs.timerAbschnittVerwerfen).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), 0, 'Fehlstart'));
+    expect(zs.timerAbschnittVerwerfen).toHaveBeenCalledTimes(1);
+    expect(gesendet).not.toHaveBeenCalled();
+  });
+
+  it('eine Zeit mit Pause nimmt alle ihre Arbeitsabschnitte heraus', async () => {
+    sitzungen = tag(mitPause);
+    zeigePanel();
+    await userEvent.click(await screen.findByRole('button', { name: '07:00–16:00 nicht buchen' }));
+    const bogen = await screen.findByRole('dialog', { name: 'Nicht buchen' });
+    await userEvent.type(within(bogen).getByLabelText(/Grund/), 'Schulung');
+    await userEvent.click(within(bogen).getByRole('button', { name: 'Nicht buchen' }));
+    await waitFor(() => expect(zs.timerAbschnittVerwerfen).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(zs.timerAbschnittVerwerfen).mock.calls.map((c) => c[1])).toEqual([0, 2]);
+  });
+
+  it('bei mehreren offenen Zeiten: nur diese oder der ganze Arbeitstag', async () => {
+    sitzungen = tag(mitWechsel);
+    zeigePanel();
+    await userEvent.click(await screen.findByRole('button', { name: '10:00–15:00 nicht buchen' }));
+    const bogen = await screen.findByRole('dialog', { name: 'Nicht buchen' });
+    expect(within(bogen).getByRole('radio', { name: 'Nur 10:00–15:00' })).toBeChecked();
+    await userEvent.click(within(bogen).getByRole('radio', { name: /Den ganzen Arbeitstag \(2 offene Zeiten\)/ }));
+    await userEvent.type(within(bogen).getByLabelText(/Grund/), 'Timer vergessen');
+    await userEvent.click(within(bogen).getByRole('button', { name: 'Nicht buchen' }));
+    await waitFor(() => expect(zs.timerAbschnittVerwerfen).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(zs.timerAbschnittVerwerfen).mock.calls.map((c) => [c[1], c[2]])).toEqual([[0, 'Timer vergessen'], [1, 'Timer vergessen']]);
   });
 
   it('Abbrechen schließt den Bogen, ohne etwas zu senden', async () => {
-    sitzungen = beendet();
+    sitzungen = tag([mitPause[0]]);
     zeigePanel();
-    await userEvent.click(await screen.findByRole('button', { name: 'Sitzung begründet verwerfen …' }));
-    const bogen = await screen.findByRole('dialog', { name: 'Zeitsitzung verwerfen' });
+    await userEvent.click(await screen.findByRole('button', { name: '07:00–12:00 nicht buchen' }));
+    const bogen = await screen.findByRole('dialog', { name: 'Nicht buchen' });
     await userEvent.click(within(bogen).getByRole('button', { name: 'Abbrechen' }));
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Zeitsitzung verwerfen' })).not.toBeInTheDocument());
-    expect(gesendet).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Nicht buchen' })).not.toBeInTheDocument());
+    expect(zs.timerAbschnittVerwerfen).not.toHaveBeenCalled();
+  });
+
+  it('Gebuchtes und Verworfenes steht ohne Papierkorb da', async () => {
+    sitzungen = tag([
+      { ...mitWechsel[0], buchung: 'e1' },
+      { ...mitWechsel[1], verworfen_grund: 'Fehlstart' },
+      { id: 'c', art: 'arbeit', von: '2026-11-09T15:00:00+01:00', bis: '2026-11-09T16:00:00+01:00', baustelle: 'B-3' },
+    ]);
+    zeigePanel();
+    expect(await screen.findByText(/ · gebucht$/)).toBeInTheDocument();
+    expect(screen.getByText('B-2 · nicht gebucht: Fehlstart')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /nicht buchen$/ })).toHaveLength(1);
+  });
+
+  it('„Stoppen und prüfen“ öffnet gleich das Formular der ersten Zeit', async () => {
+    sitzungen = [sitzung('laeuft', [{ id: 'a', art: 'arbeit', von: '2026-11-09T07:00:00+01:00', baustelle: 'B-1' }])];
+    render(<MemoryRouter initialEntries={['/']}><ToastProvider><Routes>
+      <Route path="/" element={<ArbeitstagKarte aufStart />} />
+      <Route path="/time" element={<ZeitsitzungPanel />} />
+    </Routes></ToastProvider></MemoryRouter>);
+    const stopp = await screen.findByRole('button', { name: 'Stoppen und prüfen' });
+    sitzungen = tag([{ id: 'a', art: 'arbeit', von: '2026-11-09T07:00:00+01:00', bis: '2026-11-09T11:17:00+01:00', baustelle: 'B-1' }]);
+    await userEvent.click(stopp);
+    await waitFor(() => expect(gesendet).toHaveBeenCalledWith(expect.objectContaining({ p_art: 'stop' })));
+    expect(await screen.findByRole('dialog', { name: 'Arbeitszeit buchen' })).toBeInTheDocument();
+    expect(formular).toHaveBeenLastCalledWith(expect.objectContaining({ vorbelegung: expect.objectContaining({ startTime: '07:00', endTime: '11:17' }) }));
   });
 });
 

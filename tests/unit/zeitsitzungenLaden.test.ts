@@ -10,6 +10,7 @@ vi.mock('@/lib/db/pg/kern', () => ({ derClient: () => {
   return { from: () => abfrage };
 } }));
 import { timerMerken, zeitsitzungenLaden } from '@/lib/db/zeitsitzungen';
+import { timerEntwurfMerken } from '@/lib/zeitsitzungSpeicher';
 const sitzung = (i: number): Zeitsitzung => ({ id: String(i).padStart(6,'0'), company_id: 'c', user_id: 'u', stand: 'beendet', revision: 2,
   segmente: [], aktualisiert_am: '2026-11-08T07:00:00Z', erinnert_am: null, abgeschlossen: false });
 beforeEach(() => { antworten.length = 0; localStorage.clear(); vorgemerkt.mockResolvedValue([]); });
@@ -31,5 +32,24 @@ describe('Alle offenen Zeitsitzungen, auch ohne Verbindung', () => {
     timerMerken('c','u',[sitzung(1)]);
     antworten.push({ data: null, error: { message: 'Zugriff verweigert' }, count: null });
     await expect(zeitsitzungenLaden('c','u')).rejects.toThrow('Zugriff verweigert');
+  });
+  /*
+    EIN GEBUCHTER ZEITRAUM IST GANZ VORGEMERKT (E73): wartet die Buchung von
+    Arbeit, Pause, Arbeit im Ausgangsfach, stehen beide Arbeitsabschnitte als
+    vorgemerkt da — sonst böte die Liste den zweiten noch einmal zum Buchen an.
+    Gegenprobe: mit der Markierung nur des ersten Abschnitts rot.
+  */
+  it('ein vorgemerkter Zeitraum markiert alle seine Arbeitsabschnitte', async () => {
+    const s = { ...sitzung(1), segmente: [
+      { id: 'a', art: 'arbeit' as const, von: '2026-11-08T06:00:00Z', bis: '2026-11-08T11:00:00Z', baustelle: 'B-1' },
+      { id: 'p', art: 'pause' as const, von: '2026-11-08T11:00:00Z', bis: '2026-11-08T11:30:00Z', baustelle: 'B-1' },
+      { id: 'b', art: 'arbeit' as const, von: '2026-11-08T11:30:00Z', bis: '2026-11-08T15:00:00Z', baustelle: 'B-1' },
+      { id: 'c', art: 'arbeit' as const, von: '2026-11-08T15:00:00Z', bis: '2026-11-08T16:00:00Z', baustelle: 'B-2' },
+    ] };
+    timerEntwurfMerken({ kennung: 'k1', art: 'buchen', companyId: 'c', uid: 'u', segment: 0, bis: 2, basis: s, eintrag: {}, angelegtAm: 1 });
+    antworten.push({ data: [s], error: null, count: 1 });
+    vorgemerkt.mockResolvedValue([{ uid: 'u', daten: { funktion: 'zeit_timer_zeitraum_buchen', parameter: {}, timer: { uid: 'u', companyId: 'c', kennung: 'k1' } } }]);
+    const [geladen] = await zeitsitzungenLaden('c','u');
+    expect(geladen.segmente.map((v) => !!v.vorgemerkt)).toEqual([true, false, true, false]);
   });
 });

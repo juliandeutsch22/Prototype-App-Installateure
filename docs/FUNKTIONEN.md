@@ -703,7 +703,10 @@ sieht also keine Marge, weder im Angebot noch anderswo.
   Seit E66 steht der Timer als Karte „Arbeitstag“ auf der Startseite und in der
   Zeiterfassung (runder Start, Baustelle laut heutigem Einsatz vorgewählt, Uhr,
   Pause, Feierabend) und, solange er läuft, als Leiste auf allen anderen Seiten.
-  Feierabend führt zu „Abschnitte prüfen“.
+  Feierabend führt zu „Abschnitte prüfen“. Seit E73 (10.11.2026) „Arbeitstag
+  prüfen“: je Baustelle eine Zeit mit den Pausenminuten statt einer Buchung je
+  Abschnitt, ein Papierkorb je Zeit (auf Wunsch der ganze Tag), und
+  Feierabend öffnet gleich das Formular der ersten offenen Zeit.
 - **Timer-Erinnerung** im Betriebsintervall (Vorgabe 600 Minuten), Prüfung alle
   15 Minuten, zusätzlich in der App. Bewusst weiterlaufen ist möglich, automatisches
   Ausstempeln findet nicht statt. Push erfordert ein registriertes Gerät und die

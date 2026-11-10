@@ -39,7 +39,8 @@ export type IconName =
   | 'play'
   | 'pause'
   | 'stopp'
-  | 'wechsel';
+  | 'wechsel'
+  | 'papierkorb';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
 // Ausserhalb der Navigation nur, wo das Zeichen mehr sagt als das Wort:
@@ -131,6 +132,8 @@ const paths: Record<IconName, string> = {
   pause: 'M8.5 5.5v13M15.5 5.5v13',
   stopp: 'M6.5 6.5h11v11h-11z',
   wechsel: 'M7 4v12M3.5 12.5 7 16l3.5-3.5M17 20V8M13.5 11.5 17 8l3.5 3.5',
+  // Nicht buchen (Arbeitstag prüfen, E73): eine Zeit aus dem Tag herausnehmen — mit Grund, nichts geht verloren.
+  papierkorb: 'M4 7h16M9.5 7V4.5h5V7M6.5 7l.9 12.1a1 1 0 0 0 1 .9h7.2a1 1 0 0 0 1-.9L17.5 7M10 11v5.5M14 11v5.5',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:

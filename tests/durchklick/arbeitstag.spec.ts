@@ -8,8 +8,10 @@ import { anmelden, keineFehlermeldung } from './helfer';
  *
  *   Start auf der Startseite → die Leiste auf einer anderen Seite (am
  *   Telefon über der Reiterleiste, nicht darüber gelegt) → Pause aus der
- *   Leiste → zurück auf der Startseite in Pause → Feierabend → der Verweis
- *   führt zu „Abschnitte prüfen“ in der Zeiterfassung. Gebucht wird nichts.
+ *   Leiste → zurück auf der Startseite in Pause → Feierabend führt gleich
+ *   ins Formular der Zeiterfassung (E73) → abgebrochen steht die Zeit unter
+ *   „Arbeitstag prüfen“ mit dem Papierkorb → mit Grund nicht gebucht.
+ *   Gebucht wird nichts.
  */
 async function aufraeumen() {
   await admin.from('zeitsitzungen').delete().eq('company_id', BETRIEB);
@@ -21,7 +23,7 @@ test.afterEach(async () => {
   await admin.from('companies').update({ modules: {} }).eq('id', BETRIEB);
 });
 
-test('Arbeitstag: Start auf der Startseite, Leiste unterwegs, Pause, Feierabend, Abschnitte prüfen', async ({ page }) => {
+test('Arbeitstag: Start auf der Startseite, Leiste unterwegs, Pause, Feierabend, Arbeitstag prüfen', async ({ page }) => {
   test.setTimeout(120_000);
   const vorher = (await admin.from('time_entries').select('id').eq('company_id', BETRIEB)).data?.length ?? 0;
   await anmelden(page, MONTEUR.email);
@@ -51,13 +53,27 @@ test('Arbeitstag: Start auf der Startseite, Leiste unterwegs, Pause, Feierabend,
   await expect(page.getByRole('region', { name: 'Laufender Arbeitstag' })).toHaveCount(0);
   await karte.getByRole('button', { name: 'Stoppen und prüfen' }).click();
 
-  // Feierabend: der Verweis führt zu den Abschnitten; gebucht ist nichts.
-  const verweis = karte.getByRole('link', { name: /wartet auf die Prüfung/ });
-  await expect(verweis).toBeVisible({ timeout: 15_000 });
-  expect((await admin.from('time_entries').select('id').eq('company_id', BETRIEB)).data?.length ?? 0).toBe(vorher);
-  await verweis.click();
+  // Feierabend führt gleich ins Formular der Zeiterfassung (E73); gebucht ist noch nichts.
   await expect(page).toHaveURL(/\/time$/);
-  await expect(page.getByRole('heading', { name: 'Abschnitte prüfen' })).toBeVisible({ timeout: 15_000 });
+  const fenster = page.getByRole('dialog', { name: 'Arbeitszeit buchen' });
+  await expect(fenster).toBeVisible({ timeout: 15_000 });
+  expect((await admin.from('time_entries').select('id').eq('company_id', BETRIEB)).data?.length ?? 0).toBe(vorher);
+  await fenster.getByRole('button', { name: 'Abbrechen', exact: true }).click();
+  await expect(fenster).not.toBeVisible();
+  // Die Zeit steht weiter zur Prüfung da, mit dem Papierkorb daneben.
+  await expect(page.getByRole('heading', { name: /Arbeitstag prüfen/ })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('button', { name: /nicht buchen$/ })).toHaveCount(1);
+  // Zurück auf der Startseite verweist die Karte auf den Tag, der noch wartet.
+  await page.goto('/');
+  await expect(karte.getByRole('link', { name: /wartet auf die Prüfung/ })).toBeVisible({ timeout: 15_000 });
+  await page.goto('/time');
+  // Und weg damit, mit Grund: der Tag ist danach erledigt, gebucht ist nichts.
+  await page.getByRole('button', { name: /nicht buchen$/ }).click();
+  const weg = page.getByRole('dialog', { name: 'Nicht buchen' });
+  await weg.getByLabel(/Grund/).fill('Probelauf');
+  await weg.getByRole('button', { name: 'Nicht buchen', exact: true }).click();
+  await expect(page.getByRole('heading', { name: /Arbeitstag prüfen/ })).toHaveCount(0, { timeout: 15_000 });
+  expect((await admin.from('time_entries').select('id').eq('company_id', BETRIEB)).data?.length ?? 0).toBe(vorher);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await keineFehlermeldung(page);
 });
