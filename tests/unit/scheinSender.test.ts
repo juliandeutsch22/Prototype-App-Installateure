@@ -57,7 +57,7 @@ describe('Aufrufe', () => {
   it('nur ausdrücklich idempotente Funktionen von Schein, Timer und Nachricht gehen hinaus', async () => {
     // M10/B09 hat `nachricht_senden` bewusst dazugenommen (idempotent, `nachrichten.test.ts`).
     expect([...AUFRUFE_OHNE_EMPFANG]).toEqual([
-      'schein_speichern', 'schein_unterschreiben', 'zeit_timer_befehl', 'zeit_timer_buchen', 'zeit_timer_abschnitt_verwerfen', 'nachricht_senden',
+      'schein_speichern', 'schein_unterschreiben', 'zeit_timer_befehl', 'zeit_timer_buchen', 'zeit_timer_zeitraum_buchen', 'zeit_timer_abschnitt_verwerfen', 'nachricht_senden',
     ]);
     const { c, aufrufe } = client({});
     expect(await supabaseSender(c)(aufruf('schein_speichern'))).toEqual({ art: 'ok' });

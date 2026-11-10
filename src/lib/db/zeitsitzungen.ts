@@ -64,7 +64,12 @@ export async function zeitsitzungenLaden(companyId: string, uid: string): Promis
     const wartet = wartend.some((v) => v.uid === uid && (v.daten.timer as { kennung?: string } | undefined)?.kennung === d.kennung);
     s.entwuerfe ??= [];
     s.entwuerfe.push({ ...d, wartet });
-    if (wartet && s.segmente[d.segment]) s.segmente[d.segment] = { ...s.segmente[d.segment], vorgemerkt: true };
+    // Vorgemerkt ist der ganze gebuchte Zeitraum, nicht nur sein erster Abschnitt.
+    if (wartet) {
+      for (let i = d.segment; i <= (d.bis ?? d.segment); i += 1) {
+        if (s.segmente[i]?.art === 'arbeit') s.segmente[i] = { ...s.segmente[i], vorgemerkt: true };
+      }
+    }
   }
   const stand = [...sitzungen.values()].sort((a, b) => Date.parse(b.aktualisiert_am) - Date.parse(a.aktualisiert_am));
   if (ladeStand.get(key) === nr) timerMerken(companyId, uid, stand);
@@ -75,12 +80,13 @@ export async function timerSenden(b: TimerBefehl) {
     daten: { funktion: 'zeit_timer_befehl', parameter: b } });
 }
 /** Ein fehlgeschlagener Nachsendeversuch verliert seine Eingaben nicht mit dem Ausgangsfach. */
-async function abschlussSenden(s: Zeitsitzung, segment: number, art: TimerEntwurf['art'], eintrag?: Partial<TimeEntry>, grund?: string) {
+async function abschlussSenden(s: Zeitsitzung, segment: number, art: TimerEntwurf['art'], eintrag?: Partial<TimeEntry>, grund?: string, bis = segment) {
   const basis = { ...s }; delete basis.entwuerfe;
-  const d: TimerEntwurf = { kennung: crypto.randomUUID(), art, companyId: s.company_id, uid: s.user_id, segment, basis, eintrag, grund, angelegtAm: Date.now() };
-  const funktion = art === 'buchen' ? 'zeit_timer_buchen' : 'zeit_timer_abschnitt_verwerfen';
+  const d: TimerEntwurf = { kennung: crypto.randomUUID(), art, companyId: s.company_id, uid: s.user_id, segment, ...(art === 'buchen' ? { bis } : {}), basis, eintrag, grund, angelegtAm: Date.now() };
+  // Gebucht wird ein Zeitraum (E73) — Arbeit, Pausen, Arbeit derselben Baustelle als eine Buchung.
+  const funktion = art === 'buchen' ? 'zeit_timer_zeitraum_buchen' : 'zeit_timer_abschnitt_verwerfen';
   const parameter = art === 'buchen'
-    ? { p_id: s.id, p_segment: segment, p_eintrag: objektAlsZeile('time_entries', eintrag ?? {}) }
+    ? { p_id: s.id, p_von: segment, p_bis: bis, p_eintrag: objektAlsZeile('time_entries', eintrag ?? {}) }
     : { p_id: s.id, p_segment: segment, p_grund: grund };
   if (!timerEntwurfMerken(d)) {
     // Ohne dauerhaften Entwurf kein Nachsendeversprechen — direkte Bestätigung bleibt möglich.
@@ -94,7 +100,8 @@ async function abschlussSenden(s: Zeitsitzung, segment: number, art: TimerEntwur
     return stand;
   } catch (e) { timerEntwurfMerken({ ...d, fehler: e instanceof Error ? e.message : 'Der Server hat den Vorgang nicht bestätigt.' }); throw e; }
 }
-export function timerBuchen(s: Zeitsitzung, segment: number, eintrag: Partial<TimeEntry>) { return abschlussSenden(s, segment, 'buchen', eintrag); }
+/** Einen Zeitraum der Sitzung buchen — `von` bis `bis` sind Arbeitsabschnitte, die Pausen dazwischen gehören dazu (`timerVorschlaege`). */
+export function timerBuchen(s: Zeitsitzung, von: number, bis: number, eintrag: Partial<TimeEntry>) { return abschlussSenden(s, von, 'buchen', eintrag, undefined, bis); }
 export function timerAbschnittVerwerfen(s: Zeitsitzung, segment: number, grund: string) { return abschlussSenden(s, segment, 'verwerfen', undefined, grund); }
 export function letzterTimerEntwurf(s: Zeitsitzung, segment: number): TimerEntwurf | undefined {
   return timerEntwuerfeLesen(s.company_id, s.user_id).filter((d) => d.basis.id === s.id && d.segment === segment && d.art === 'buchen').pop();

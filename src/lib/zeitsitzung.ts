@@ -63,3 +63,90 @@ export function dauerText(ms: number, mitSekunden = true): string {
 export function timerBaustelle(s: Zeitsitzung): string {
   return [...s.segmente].reverse().find((v) => v.art === 'arbeit')?.baustelle ?? '';
 }
+
+/**
+ * WAS AUS EINEM BEENDETEN ARBEITSTAG GEBUCHT WIRD (E73, 10.11.2026).
+ *
+ * Eine Buchung der App ist „Von, Bis, Pause, Baustelle“. Aufeinanderfolgende
+ * Arbeitsabschnitte derselben Baustelle, die nur eine Pause trennt, werden
+ * deshalb EIN Vorschlag: von Beginn bis Ende, die Pausen dazwischen als
+ * Pausenminuten. Ein Baustellenwechsel beginnt einen neuen. Vorher war jeder
+ * Abschnitt ein eigenes Formular mit 0 Minuten Pause.
+ *
+ * Zusammengefasst wird nur, was denselben Stand hat: offene Abschnitte
+ * miteinander, gebuchte nur, wenn sie zu derselben Buchung gehören (eine
+ * ältere Fassung buchte je Abschnitt), verworfene mit demselben Grund. Eine
+ * Pause am Ende (Feierabend aus der Pause) gehört zu keinem Vorschlag.
+ */
+export interface TimerVorschlag {
+  /** Erster und letzter Arbeitsabschnitt — die Pausen dazwischen gehören dazu. */
+  von: number;
+  bis: number;
+  /** Die Arbeitsabschnitte darin, zum Verwerfen. */
+  arbeit: number[];
+  beginn: string;
+  ende: string | undefined;
+  pauseMin: number;
+  baustelle: string;
+  stand: 'offen' | 'gebucht' | 'verworfen' | 'vorgemerkt';
+  grund?: string;
+}
+
+function abschnittStand(v: Zeitsegment): TimerVorschlag['stand'] {
+  if (v.vorgemerkt) return 'vorgemerkt';
+  if (v.verworfen_grund) return 'verworfen';
+  return v.buchung ? 'gebucht' : 'offen';
+}
+
+function gehoertDazu(erster: Zeitsegment, w: Zeitsegment): boolean {
+  const stand = abschnittStand(erster);
+  if (abschnittStand(w) !== stand) return false;
+  if (stand === 'gebucht') return w.buchung === erster.buchung;
+  if (stand === 'verworfen') return w.verworfen_grund === erster.verworfen_grund && w.baustelle === erster.baustelle;
+  return w.baustelle === erster.baustelle;
+}
+
+export function timerVorschlaege(s: Zeitsitzung): TimerVorschlag[] {
+  const vorschlaege: TimerVorschlag[] = [];
+  const dauer = (v: Zeitsegment) => (v.bis ? Math.max(0, Date.parse(v.bis) - Date.parse(v.von)) : 0);
+  let i = 0;
+  while (i < s.segmente.length) {
+    const erster = s.segmente[i];
+    if (erster.art !== 'arbeit') { i += 1; continue; }
+    const arbeit = [i];
+    let bis = i;
+    let pauseMs = 0;
+    let dazwischen = 0;
+    for (let j = i + 1; j < s.segmente.length; j += 1) {
+      const w = s.segmente[j];
+      if (w.art === 'pause') {
+        if (!w.bis) break;
+        dazwischen += dauer(w);
+        continue;
+      }
+      if (!gehoertDazu(erster, w)) break;
+      pauseMs += dazwischen;
+      dazwischen = 0;
+      arbeit.push(j);
+      bis = j;
+    }
+    vorschlaege.push({
+      von: i,
+      bis,
+      arbeit,
+      beginn: erster.von,
+      ende: s.segmente[bis].bis,
+      pauseMin: Math.round(pauseMs / 60_000),
+      baustelle: erster.baustelle,
+      stand: abschnittStand(erster),
+      grund: erster.verworfen_grund,
+    });
+    i = bis + 1;
+  }
+  return vorschlaege;
+}
+
+/** Die Pausen eines Tages zusammen — für die Zeile über den Vorschlägen. */
+export function timerPauseMs(s: Zeitsitzung): number {
+  return s.segmente.filter((v) => v.art === 'pause' && v.bis).reduce((summe, v) => summe + Math.max(0, Date.parse(v.bis!) - Date.parse(v.von)), 0);
+}

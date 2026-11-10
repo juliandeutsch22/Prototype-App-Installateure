@@ -77,23 +77,22 @@ test('Timer: Arbeit, Pause, offline weiter, Stopp und bestätigte normale Buchun
   await expect(page.getByText(/Timer-Schritt auf diesem Gerät vorgemerkt/)).toBeVisible();
   await page.clock.setFixedTime(new Date('2026-11-05T12:00:00+01:00'));
   await page.getByRole('button', { name: 'Stoppen und prüfen' }).click();
-  await expect(page.getByText('Abschnitte prüfen', { exact: false })).toBeVisible();
-  for (const zeitraum of ['07:00–09:00', '09:30–12:00']) {
-    await page.getByRole('button', { name: new RegExp(zeitraum) }).click();
-    const fenster = page.getByRole('dialog', { name: 'Timer-Abschnitt prüfen' });
-    await expect(fenster).toBeVisible();
-    await expect(fenster.getByLabel('Baustelle', { exact: true })).toHaveValue(BAUSTELLE.nummer);
-    await fenster.getByRole('button', { name: 'Zeit buchen', exact: true }).click();
-    await expect(fenster).not.toBeVisible();
-  }
+  // E73: Feierabend öffnet gleich das Formular — eine Zeit von 07:00 bis 12:00, die Pause eingerechnet.
+  const fenster = page.getByRole('dialog', { name: 'Arbeitszeit buchen' });
+  await expect(fenster).toBeVisible();
+  await expect(fenster.getByText(/07:00 bis 12:00, darin 30 Min\. Pause/)).toBeVisible();
+  await expect(fenster.getByLabel('Baustelle', { exact: true })).toHaveValue(BAUSTELLE.nummer);
+  await expect(fenster.locator('#break')).toHaveValue('30');
+  await fenster.getByRole('button', { name: 'Zeit buchen', exact: true }).click();
+  await expect(fenster).not.toBeVisible();
   expect((await admin.from('time_entries').select('id').eq('company_id', BETRIEB)).data).toEqual([]);
-  await expect(page.getByText('Abschluss auf diesem Gerät vorgemerkt', { exact: true })).toHaveCount(2);
+  await expect(page.getByText('Auf diesem Gerät vorgemerkt', { exact: true })).toHaveCount(1);
   await context.setOffline(false);
   await expect(async () => {
     const { data } = await admin.from('time_entries').select('start_time,end_time,break_duration,customer_name').eq('company_id', BETRIEB).order('start_time');
-    expect(data).toEqual([{ start_time: '07:00:00', end_time: '09:00:00', break_duration: 0, customer_name: BAUSTELLE.kunde }, { start_time: '09:30:00', end_time: '12:00:00', break_duration: 0, customer_name: BAUSTELLE.kunde }]);
+    expect(data).toEqual([{ start_time: '07:00:00', end_time: '12:00:00', break_duration: 30, customer_name: BAUSTELLE.kunde }]);
   }).toPass();
-  await expect(page.getByText(/Abschnitte prüfen/)).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: /Arbeitstag prüfen/ })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: info.outputPath('zeit-bestaetigt.png'), fullPage: true });
   await keineFehlermeldung(page);
@@ -106,8 +105,8 @@ test('Timer ohne Baustelle bleibt Anwesenheit und lässt sich ohne erfundene Zuo
   await expect(page.getByRole('button', { name: 'Pause beginnen' })).toBeVisible();
   await page.clock.setFixedTime(new Date('2026-11-05T09:00:00+01:00'));
   await page.getByRole('button', { name: 'Stoppen und prüfen' }).click();
-  await page.getByRole('button', { name: /07:00–09:00/ }).click();
-  const fenster = page.getByRole('dialog', { name: 'Timer-Abschnitt prüfen' });
+  // E73: Feierabend öffnet die erste offene Zeit gleich im Formular.
+  const fenster = page.getByRole('dialog', { name: 'Arbeitszeit buchen' });
   await expect(fenster.getByText(/Ohne Baustelle zählt/)).toBeVisible();
   await fenster.getByRole('button', { name: 'Zeit buchen', exact: true }).click();
   await expect(fenster).not.toBeVisible();
@@ -178,14 +177,14 @@ test('Offline-Abschluss: abgelehnte Buchung behält Tätigkeiten und lässt sich
   await expect(page.getByRole('button', { name: 'Pause beginnen' })).toBeVisible();
   await page.clock.setFixedTime(new Date('2026-11-05T09:00:00+01:00'));
   await page.getByRole('button', { name: 'Stoppen und prüfen' }).click();
-  await page.getByRole('button', { name: /07:00–09:00/ }).click();
-  const fenster = page.getByRole('dialog', { name: 'Timer-Abschnitt prüfen' });
+  // E73: Feierabend öffnet die erste offene Zeit gleich im Formular.
+  const fenster = page.getByRole('dialog', { name: 'Arbeitszeit buchen' });
   await expect(fenster).toBeVisible();
   await context.setOffline(true);
   await fenster.locator('#comment').fill('Gesicherte Tätigkeit ohne Empfang');
   await fenster.getByRole('button', { name: 'Zeit buchen', exact: true }).click();
   await expect(fenster).not.toBeVisible();
-  await expect(page.getByText('Abschluss auf diesem Gerät vorgemerkt', { exact: true })).toBeVisible();
+  await expect(page.getByText('Auf diesem Gerät vorgemerkt', { exact: true })).toBeVisible();
   const { data: person } = await admin.from('users').select('id').eq('company_id', BETRIEB).eq('email', MONTEUR.email).single();
   const id = crypto.randomUUID();
   expect((await admin.from('time_entries').insert({ id, company_id: BETRIEB, user_id: person!.id, user_name: MONTEUR.name,
@@ -220,8 +219,8 @@ test('Offline gestarteter Timer behält offene Formulareingaben beim Serverabgle
   await expect(page.getByRole('button', { name: 'Pause beginnen' })).toBeVisible();
   await page.clock.setFixedTime(new Date('2026-11-05T09:00:00+01:00'));
   await page.getByRole('button', { name: 'Stoppen und prüfen' }).click();
-  await page.getByRole('button', { name: /07:00–09:00/ }).click();
-  const fenster = page.getByRole('dialog', { name: 'Timer-Abschnitt prüfen' });
+  // E73: Feierabend öffnet die erste offene Zeit gleich im Formular.
+  const fenster = page.getByRole('dialog', { name: 'Arbeitszeit buchen' });
   await fenster.locator('#comment').fill('Während des Abgleichs erhalten');
   await context.setOffline(false);
   await expect(async () => {

@@ -7,6 +7,8 @@ export interface TimerEntwurf {
   companyId: string;
   uid: string;
   segment: number;
+  /** Letzter Arbeitsabschnitt des gebuchten Zeitraums (E73) — fehlt bei Entwürfen einer älteren Fassung: dann nur `segment`. */
+  bis?: number;
   basis: Omit<Zeitsitzung, 'entwuerfe'>;
   eintrag?: Partial<TimeEntry>;
   grund?: string;

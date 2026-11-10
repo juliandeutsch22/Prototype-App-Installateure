@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import BottomSheet from '@/components/BottomSheet';
 import BaustellenSelect from '@/components/BaustellenSelect';
@@ -23,8 +23,9 @@ import { useZeitsitzung } from './zeitsitzungStand';
  *     Tipp wechselt sie), Pause und Feierabend;
  *   - Pause: seit wann und wie lange, die Arbeit bisher, Weiter und
  *     Feierabend.
- * Gebucht wird hier nichts: nach „Stoppen und prüfen“ bestätigt man jeden
- * Abschnitt im gewohnten Formular (Zeiterfassung, „Abschnitte prüfen“).
+ * Gebucht wird hier nichts: nach „Stoppen und prüfen“ bestätigt man je
+ * Baustelle eine Zeit im gewohnten Formular (Zeiterfassung, „Arbeitstag
+ * prüfen“, E73).
  */
 export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
   /** Die Baustelle laut heutigem Einsatz — vorgewählt, solange nichts läuft. */
@@ -34,6 +35,7 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
 }) {
   const { user } = useAuth();
   const z = useZeitsitzung();
+  const navigate = useNavigate();
   const [gewaehlt, setGewaehlt] = useState<string | null>(null);
   const [wahl, setWahl] = useState(false);
   const [entwurf, setEntwurf] = useState('');
@@ -60,6 +62,17 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
     </Link>
   );
 
+  /*
+    FEIERABEND FÜHRT INS FORMULAR (E73): „Stoppen und prüfen“ geht in die
+    Zeiterfassung, und dort öffnet sich die erste offene Zeit gleich
+    vorbelegt (`ZeitsitzungPanel`). Vorher blieb man auf der Startseite
+    stehen und musste den Arbeitstag erst suchen.
+  */
+  async function feierabend() {
+    if (!s) return;
+    if (await z.befehl('stop', s, laufendeBaustelle)) navigate('/time', { state: { pruefen: s.id } });
+  }
+
   async function wechseln() {
     if (!s) { setGewaehlt(entwurf); setWahl(false); return; }
     if (await z.befehl('wechsel', s, entwurf)) setWahl(false);
@@ -70,9 +83,9 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
       <h2 id="arbeitstag-titel" className="sr-only">Arbeitstag</h2>
       <div className="arbeitstag-hilfe">
         <InfoHint about="Arbeitstag">
-          Der Timer sammelt Anwesenheit, Pausen und Baustellenwechsel. Erst nach „Stoppen und prüfen“ bestätigst du
-          jeden Arbeitsabschnitt im gewohnten Formular — dadurch gelten alle bisherigen Prüfungen, Pflichtfelder und
-          Zuschläge. Ein vergessener Timer wird nie automatisch gebucht. Ohne Empfang warten Schritte im Ausgangsfach;
+          Der Timer sammelt Anwesenheit, Pausen und Baustellenwechsel. Nach „Stoppen und prüfen“ bestätigst du je
+          Baustelle eine Zeit im gewohnten Formular, die Pausen schon eingerechnet — dadurch gelten alle bisherigen
+          Prüfungen, Pflichtfelder und Zuschläge. Ein vergessener Timer wird nie automatisch gebucht. Ohne Empfang warten Schritte im Ausgangsfach;
           ein anderer Gerätestand wird als Konflikt gemeldet.
         </InfoHint>
       </div>
@@ -124,7 +137,7 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
                   <button type="button" className="rund-knopf rund-knopf-voll" aria-label="Weiterarbeiten" title="Weiterarbeiten" disabled={z.speichert} onClick={() => void z.befehl('weiter', s, laufendeBaustelle)}>
                     <Icon name="play" size={24} aria-hidden="true" />
                   </button>
-                  <button type="button" className="rund-knopf" aria-label="Stoppen und prüfen" title="Feierabend: stoppen und prüfen" disabled={z.speichert} onClick={() => void z.befehl('stop', s, laufendeBaustelle)}>
+                  <button type="button" className="rund-knopf" aria-label="Stoppen und prüfen" title="Feierabend: stoppen und prüfen" disabled={z.speichert} onClick={() => void feierabend()}>
                     <Icon name="stopp" size={22} aria-hidden="true" />
                   </button>
                 </>
@@ -133,7 +146,7 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
                   <button type="button" className="rund-knopf" aria-label="Pause beginnen" title="Pause beginnen" disabled={z.speichert} onClick={() => void z.befehl('pause', s, laufendeBaustelle)}>
                     <Icon name="pause" size={22} aria-hidden="true" />
                   </button>
-                  <button type="button" className="rund-knopf rund-knopf-voll" aria-label="Stoppen und prüfen" title="Feierabend: stoppen und prüfen" disabled={z.speichert} onClick={() => void z.befehl('stop', s, laufendeBaustelle)}>
+                  <button type="button" className="rund-knopf rund-knopf-voll" aria-label="Stoppen und prüfen" title="Feierabend: stoppen und prüfen" disabled={z.speichert} onClick={() => void feierabend()}>
                     <Icon name="stopp" size={22} aria-hidden="true" />
                   </button>
                 </>

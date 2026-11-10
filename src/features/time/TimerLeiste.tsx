@@ -70,7 +70,7 @@ const TimerLeiste = forwardRef<HTMLDivElement, { ort: 'telefon' | 'breit' }>(fun
           title="Feierabend: stoppen und prüfen"
           disabled={z.speichert}
           // Nach dem Stopp gleich zu den Abschnitten — gebucht wird erst dort.
-          onClick={() => void z.befehl('stop', s, baustelle).then((ok) => { if (ok) navigate('/time'); })}
+          onClick={() => void z.befehl('stop', s, baustelle).then((ok) => { if (ok) navigate('/time', { state: { pruefen: s.id } }); })}
         >
           <Icon name="stopp" size={18} aria-hidden="true" />
         </button>

@@ -122,7 +122,7 @@ function speicherEinordnen(fehler: { message?: string; status?: number; statusCo
  * gehört nicht hierher.
  */
 export const AUFRUFE_OHNE_EMPFANG = [
-  'schein_speichern', 'schein_unterschreiben', 'zeit_timer_befehl', 'zeit_timer_buchen', 'zeit_timer_abschnitt_verwerfen',
+  'schein_speichern', 'schein_unterschreiben', 'zeit_timer_befehl', 'zeit_timer_buchen', 'zeit_timer_zeitraum_buchen', 'zeit_timer_abschnitt_verwerfen',
   'nachricht_senden',
 ] as const;
 /**
@@ -182,7 +182,7 @@ async function aufrufSenden(client: SupabaseClient, v: Sendung, signal: AbortSig
     return { art: 'abgelehnt', grund: `Der Aufruf „${funktion ?? '?'}“ wird nicht nachgesendet.` };
   }
   const { data, error, status } = await client.rpc(funktion, parameter).abortSignal(signal);
-  const timerAbschluss = funktion === 'zeit_timer_buchen' || funktion === 'zeit_timer_abschnitt_verwerfen';
+  const timerAbschluss = funktion === 'zeit_timer_buchen' || funktion === 'zeit_timer_zeitraum_buchen' || funktion === 'zeit_timer_abschnitt_verwerfen';
   if (!error) { if (timerAbschluss) timerAuftragErgebnis(v.uid, v.daten.timer, data); return { art: 'ok' }; }
   const ergebnis = einordnen(error, status);
   if (timerAbschluss && (ergebnis.art === 'abgelehnt' || ergebnis.art === 'unklar')) timerAuftragErgebnis(v.uid, v.daten.timer, null, ergebnis.grund);
