@@ -86,7 +86,8 @@ test('Timer: Arbeit, Pause, offline weiter, Stopp und bestätigte normale Buchun
   await fenster.getByRole('button', { name: 'Zeit buchen', exact: true }).click();
   await expect(fenster).not.toBeVisible();
   expect((await admin.from('time_entries').select('id').eq('company_id', BETRIEB)).data).toEqual([]);
-  await expect(page.getByText('Auf diesem Gerät vorgemerkt', { exact: true })).toHaveCount(1);
+  // Die Zeile nennt den Stand hinter der Baustelle (E73), nicht mehr als eigenes Wort.
+  await expect(page.getByText(`${BAUSTELLE.nummer} · auf diesem Gerät vorgemerkt`, { exact: true })).toHaveCount(1);
   await context.setOffline(false);
   await expect(async () => {
     const { data } = await admin.from('time_entries').select('start_time,end_time,break_duration,customer_name').eq('company_id', BETRIEB).order('start_time');
@@ -184,7 +185,7 @@ test('Offline-Abschluss: abgelehnte Buchung behält Tätigkeiten und lässt sich
   await fenster.locator('#comment').fill('Gesicherte Tätigkeit ohne Empfang');
   await fenster.getByRole('button', { name: 'Zeit buchen', exact: true }).click();
   await expect(fenster).not.toBeVisible();
-  await expect(page.getByText('Auf diesem Gerät vorgemerkt', { exact: true })).toBeVisible();
+  await expect(page.getByText(/ · auf diesem Gerät vorgemerkt$/)).toBeVisible();
   const { data: person } = await admin.from('users').select('id').eq('company_id', BETRIEB).eq('email', MONTEUR.email).single();
   const id = crypto.randomUUID();
   expect((await admin.from('time_entries').insert({ id, company_id: BETRIEB, user_id: person!.id, user_name: MONTEUR.name,
