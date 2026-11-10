@@ -94,7 +94,14 @@ Die Musterseite `/_muster` (`src/features/muster/MusterView.tsx`) zeigt alles.
   `ring-…/30`), gestrichelte Linien, Emojis, Pillen, `font-medium`,
   `font-bold` (nur `font-normal` und `font-semibold`), Schatten auf Karten.
 - Symbole sparsam (Navigation hat sie; im Inhalt nur, wo das Zeichen mehr
-  sagt als das Wort).
+  sagt als das Wort). Die vier Knopfarten (E74): **A** schlichtes Symbol aus
+  `Symbolknoepfe.tsx` (Stift, Papierkorb, PDF) oder `IconButton` (✕ nur im
+  Fensterkopf, ‹ › blättern) für Handlungen an einer Sache in einer Zeile;
+  **B** `IconButton rund` (Petrol-Kreis) für die eine Hauptsache einer
+  Zeile oder Leiste, höchstens einer; **C** gerahmt nur als Gruppe mit einem
+  Feld (`.mengen-wahl`); **D** das Wort für Entscheidungen, Hauptaktionen,
+  Fensterfüße, Filter und Reiter. Jedes Symbol trägt einen Namen, der die
+  Sache nennt.
 - Breiten: `md:` = ab 760 px (Tablet), `lg:` = ab 1.200 px (Schreibtisch).
   Ohne Präfix = Handy. Prüfen bei 390, 834 und 1.440 px: kein seitliches
   Überlaufen, keine abgeschnittenen Beschriftungen, Tippflächen ≥ 44 px.
