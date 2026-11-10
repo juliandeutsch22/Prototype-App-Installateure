@@ -1127,7 +1127,7 @@ export default function TimeForm({
             )}
             <input
               id="vehiclePlate"
-              className={`min-h-touch w-full border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand ${
+              className={`min-h-touch w-full border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand-fixed ${
                 kennzeichenVorsatz ? 'rounded-r' : 'rounded'
               }`}
               placeholder={kennzeichenVorsatz ? 'z. B. 12345A' : 'z. B. W-12345A'}

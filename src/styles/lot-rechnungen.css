@@ -44,7 +44,7 @@
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   }
   .position-bezeichnung:focus, .position-titel:focus, .position-textzeile:focus, .position-menge:focus, .position-einheit:focus, .position-preis:focus {
-    outline: none; border-color: var(--brand-fixed); box-shadow: 0 0 0 1px var(--brand-fixed);
+    outline: none; border-color: var(--brand-fixed); box-shadow: none;
   }
   /*
     BEZEICHNUNG, TITEL UND TEXT SIND TEXTFELDER, DIE MITWACHSEN (Testbericht
@@ -66,7 +66,7 @@
     „Achtung“ der Linie — nicht Rot, denn falsch ist hier noch nichts.
   */
   .position-preis-fehlt { width: 7rem; text-align: right; border-color: var(--warning); }
-  .position-preis-fehlt:focus { outline: none; border-color: var(--warning); box-shadow: 0 0 0 1px var(--warning); }
+  .position-preis-fehlt:focus { outline: none; border-color: var(--warning); box-shadow: none; }
 }
 
 /*

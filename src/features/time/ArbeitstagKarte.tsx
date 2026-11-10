@@ -57,7 +57,7 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
   const laufendeBaustelle = s ? timerBaustelle(s) : '';
   const name = (nr: string) => namen.get(nr) ?? nr;
   const pruefen = aufStart && offen > 0 && (
-    <Link to="/time" className="arbeitstag-pruefen">
+    <Link to="/time" className={s || z.an ? 'arbeitstag-pruefen' : 'arbeitstag-pruefen arbeitstag-pruefen-allein'}>
       {offen === 1 ? 'Ein Arbeitstag wartet auf die Prüfung' : `${offen} Arbeitstage warten auf die Prüfung`}
       <Icon name="weiter" size={16} aria-hidden="true" />
     </Link>

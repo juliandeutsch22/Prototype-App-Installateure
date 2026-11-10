@@ -313,14 +313,21 @@ strong {
   border-radius: 0;
 }
 
-/* Formularfelder bekommen zusätzlich zur Randfarbe einen weichen Ring im
- * Cyan der Marke. */
+/*
+ * EIN FELD IM FOKUS IST EINE LINIE IN PETROL (E75, 10.11.2026: „die doppelte
+ * Border um Such- und Eingabefelder ist zu dick und sieht aktiv sehr globig
+ * aus“). Vorher lag um den Rand ein 3 px breiter Hof, um die Suchleiste dazu
+ * ein Ring mit Abstand — zwei Linien um ein Feld. Ein Feld bekommt den Fokus
+ * auch mit dem Finger (der Browser zählt es immer als „sichtbar“), also
+ * muss die Anzeige auch dann ruhig bleiben: nur der Rand färbt sich, von
+ * Hellgrau auf Petrol. Die Felder wachsen dabei nicht.
+ */
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--brand-fixed);
-  box-shadow: 0 0 0 3px var(--focus-ring);
+  box-shadow: none;
 }
 
 /*
@@ -961,7 +968,16 @@ textarea {
   .zeile-ziel { color: inherit; text-decoration: none; }
   .zeile-ziel::after { content: ''; position: absolute; inset: 0; }
   .zeile-ziel:focus-visible { outline: none; }
-  .zeile-ganz:focus-within { outline: 3px solid var(--brand-fixed); outline-offset: -3px; }
+  /*
+    DIE ZEILE IM FOKUS (E75, 10.11.2026: „der Balken schaut schrecklich aus und
+    schneidet den Text ab“). Vorher zeigte `:focus-within` einen 3 px breiten
+    Rahmen nach innen — auch nach einem Tipp mit dem Finger oder wenn ein
+    Fenster den Fokus zurückgab —, und in bündigen Listen lag er auf dem
+    ersten Buchstaben. Jetzt nur, wenn die Zeile mit der Tastatur erreicht
+    wird (`:focus-visible` am Ziel), 2 px nach außen, mit der Fläche wie beim
+    Darüberfahren. Ein Knopf in der Zeile zeigt seinen eigenen Fokus.
+  */
+  .zeile-ganz:has(.zeile-ziel:focus-visible) { outline: 2px solid var(--accent-deep); outline-offset: 0; background: var(--petrol-hell); }
   .zeile-text { flex: 1; min-width: 0; }
   .zeile-titel { font-size: 0.9375rem; line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .zeile-meta { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

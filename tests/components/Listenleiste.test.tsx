@@ -93,8 +93,11 @@ describe('Gestaltung', () => {
     expect(css).toMatch(/\.segment-anzahl \{[^}]*white-space: nowrap;/);
   });
 
-  it('der Fokusring wie bei jedem Feld: 3 px um Lupe und Feld', () => {
-    expect(css).toMatch(/\.listenleiste-suche:has\(input:focus-visible\) \{ outline: 3px solid var\(--brand-fixed\);/);
+  // E75 (10.11.2026): der Fokus wie bei jedem Feld — nur der Rand färbt sich, kein Ring außen herum. Gegenprobe: die Regel aus E72 ist rot.
+  it('der Fokus wie bei jedem Feld: nur der Rand um Lupe und Feld, keine zweite Linie', () => {
+    expect(css).toMatch(/\.listenleiste-suche:focus-within \{ border-color: var\(--brand-fixed\); \}/);
+    expect(css).not.toMatch(/\.listenleiste-suche:has\(input:focus-visible\)/);
+    expect(css).not.toMatch(/\.listenleiste-suche:focus-within \{[^}]*box-shadow/);
   });
 });
 

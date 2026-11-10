@@ -19,7 +19,9 @@
   .mengen-schritt:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
   .mengen-schritt:disabled { color: var(--text-placeholder); cursor: not-allowed; }
   .mengen-feld { width: 3.5rem; min-width: 0; padding: 0; border: 0; border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-radius: 0; background: transparent; color: var(--text); text-align: center; font-family: var(--schrift-mono); font-size: 1rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
-  .mengen-feld:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+  /* Den Fokus des Felds zeigt der Rahmen der Gruppe (E75); die Trennstriche bleiben grau. */
+  .mengen-feld:focus { outline: none; border-color: var(--border); box-shadow: none; }
+  .mengen-wahl:focus-within { border-color: var(--brand-fixed); }
   .mengen-wahl-fehler { border-color: var(--danger); }
   .mengen-wahl-fehler .mengen-feld { color: var(--danger); }
   /* ── Bereichswahl mit Zählern ─────────────────────────────────────────── */

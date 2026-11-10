@@ -65,7 +65,34 @@ test('Arbeitstag: Start auf der Startseite, Leiste unterwegs, Pause, Feierabend,
   await expect(page.getByRole('button', { name: /nicht buchen$/ })).toHaveCount(1);
   // Zurück auf der Startseite verweist die Karte auf den Tag, der noch wartet.
   await page.goto('/');
-  await expect(karte.getByRole('link', { name: /wartet auf die Prüfung/ })).toBeVisible({ timeout: 15_000 });
+  const wartet = karte.getByRole('link', { name: /wartet auf die Prüfung/ });
+  await expect(wartet).toBeVisible({ timeout: 15_000 });
+  /*
+    DER VERWEIS IST SCHLANK (E75, 10.11.2026: „der untere Teil ist noch etwas
+    unnötig hoch“). Über und unter dem Text gleich viel Luft, darunter nicht
+    mehr als eine Rasterzelle; die Tastfläche bleibt 44 px. Gegenprobe: mit
+    dem Stand davor stand unter dem Text gut doppelt so viel Luft wie darüber.
+  */
+  const messen = () => wartet.evaluate((el) => {
+    const k = el.closest('.arbeitstag')!.getBoundingClientRect();
+    const v = el.getBoundingClientRect();
+    const t = document.createRange();
+    t.selectNodeContents(el.firstChild!);
+    const r = t.getBoundingClientRect();
+    // Die Linie über dem Verweis ist sein oberer Rand: von dort bis zum Text, und vom Text bis zum Rand der Karte.
+    return { oben: Math.round(r.top - v.top), unten: Math.round(k.bottom - r.bottom), hoehe: Math.round(v.height) };
+  });
+  // In der Breite des Laufs und am schmalen Telefon, wo der Text in zwei Zeilen bricht.
+  const breite = page.viewportSize()!;
+  for (const b of [breite.width, 360]) {
+    await page.setViewportSize({ width: b, height: breite.height });
+    await page.waitForTimeout(300);
+    const mass = await messen();
+    expect(mass.hoehe, `${b} px: Tastfläche`).toBeGreaterThanOrEqual(44);
+    expect(mass.unten, `${b} px: Luft unter dem Text`).toBeLessThanOrEqual(16);
+    expect(Math.abs(mass.oben - mass.unten), `${b} px: über ${mass.oben} px, unter ${mass.unten} px`).toBeLessThanOrEqual(3);
+  }
+  await page.setViewportSize(breite);
   await page.goto('/time');
   // Und weg damit, mit Grund: der Tag ist danach erledigt, gebucht ist nichts.
   await page.getByRole('button', { name: /nicht buchen$/ }).click();
