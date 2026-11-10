@@ -21,7 +21,7 @@ const QUELLEN = alle('src', /\.tsx?$/).map((p) => ({ p, q: readFileSync(p, 'utf8
 describe('Fokus schlank (E75)', () => {
   it('ein Feld im Fokus: nur der Rand färbt sich', () => {
     const index = readFileSync('src/index.css', 'utf8');
-    expect(index).toMatch(/input:focus,\nselect:focus,\ntextarea:focus \{\n  outline: none;\n  border-color: var\(--brand-fixed\);\n  box-shadow: none;\n\}/);
+    expect(index).toContain('input:focus,\nselect:focus,\ntextarea:focus {\n  outline: none;\n  border-color: var(--brand-fixed);\n  box-shadow: none;\n}');
   });
 
   it('kein Feld trägt einen Ring dazu — weder in Tailwind noch in den Stilen', () => {
