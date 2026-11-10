@@ -5,6 +5,7 @@ import { terminZeit } from '@/features/termine/terminText';
 import { tagKurz, type Brett, type Gruppe, type TagStand } from './planTypen';
 import type { FensterStart } from './EinsatzFenster';
 import { PersonEintraege, type BaustellenInfo } from './WochenEintraege';
+import { NeuKnopf } from '@/components/Symbolknoepfe';
 import {
   feiertagAm,
   lieferungOhneAnnahme,
@@ -143,11 +144,8 @@ export default function HandyWoche({
 
       <div className="tl-gruppe">
         <span>{termine.length ? termineText(termine.length) : 'Keine Termine'}</span>
-        {darf && !lesen && (
-          <Button variant="secondary" onClick={() => onTerminNeu(gewaehlt)}>
-            Termin anlegen
-          </Button>
-        )}
+        {/* Wie im Kopf der Karte „Termine“ (E76): der Petrol-Kreis mit Plus. */}
+        {darf && !lesen && <NeuKnopf label="Termin anlegen" onClick={() => onTerminNeu(gewaehlt)} />}
       </div>
       {termine.map((t) =>
         lesen ? (

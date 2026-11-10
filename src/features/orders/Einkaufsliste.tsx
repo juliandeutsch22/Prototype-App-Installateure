@@ -53,7 +53,7 @@ import { mengeFehler } from '@/lib/einheit';
 import { grundAus } from '@/lib/fehlerGrund';
 import { HAUPTLAGER, ortNameVon } from './lagerorte';
 import { OrtWahl } from './LagerDialoge';
-import { BearbeitenKnopf } from '@/components/Symbolknoepfe';
+import { BearbeitenKnopf, NeuKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * Die Einkaufsliste im Reiter „Einkauf" der Anforderungen.
@@ -894,7 +894,7 @@ function GrosshaendlerPflege({
       }
       action={
         bearbeitet === null ? (
-          <Button variant="ghost" onClick={() => oeffnen(null)}>+ Großhändler</Button>
+          <NeuKnopf label="Großhändler anlegen" onClick={() => oeffnen(null)} />
         ) : undefined
       }
     >

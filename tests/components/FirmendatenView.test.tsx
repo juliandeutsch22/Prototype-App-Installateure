@@ -54,7 +54,7 @@ function zeige() {
 }
 
 const feld = (label: string) => screen.getByLabelText(label) as HTMLInputElement;
-const speichern = () => screen.getByRole('button', { name: 'Firmendaten speichern' });
+const speichern = () => screen.getByRole('button', { name: 'Speichern' });
 
 beforeEach(() => {
   updateCompany.mockClear();

@@ -494,7 +494,7 @@ describe('Die Akte auf der Linie „Lot“', () => {
   it('beginnt mit den Kennzahlen — Arbeitszeit und Bindefrist — vor den Positionen', async () => {
     zeige();
     const positionen = (await screen.findByText(/Positionen \(2\)/)).closest('section')!;
-    const kennzahl = screen.getByText('Kalkulierte Arbeitszeit');
+    const kennzahl = screen.getByText('Kalk. Stunden');
     expect(kennzahl.nextElementSibling).toHaveTextContent('16 h');
     expect(screen.getByText('Gültig bis').nextElementSibling).toHaveTextContent('01.10.2099');
     // Im Dokument vor den Positionen: am Handy steht sie zuerst.

@@ -43,6 +43,7 @@ import LiegenschaftFormular from './LiegenschaftFormular';
 import TopFormular from './TopFormular';
 import BeteiligterFormular from './BeteiligterFormular';
 import { ROLLE_TEXT, beteiligterName, giltAm, topText, zeitraumText } from './liegenschaftText';
+import { NeuKnopf } from '@/components/Symbolknoepfe';
 
 type Teil<T> = { zustand: 'laedt' } | { zustand: 'fehler' } | { zustand: 'bereit'; daten: T };
 const LAEDT = { zustand: 'laedt' } as const;
@@ -254,7 +255,7 @@ export default function LiegenschaftView() {
 
   const topsKarte = (
     <Card id="l-tops" title={`Tops${tops.zustand === 'bereit' ? ` (${tops.daten.length})` : ''}`}
-      action={pflegen ? <Button variant="secondary" groesse="klein" onClick={() => setFenster({ art: 'top' })}>Top anlegen</Button> : undefined}
+      action={pflegen ? <NeuKnopf label="Top anlegen" onClick={() => setFenster({ art: 'top' })} /> : undefined}
       buendig>
       {tops.zustand === 'laedt' ? <SkeletonList rows={2} />
         : tops.zustand === 'fehler' ? <TeilFehler was="die Tops" onRetry={neuLaden} />
@@ -274,7 +275,7 @@ export default function LiegenschaftView() {
 
   const beteiligteKarte = (
     <Card id="l-beteiligte" title="Beteiligte"
-      action={pflegen ? <Button variant="secondary" groesse="klein" onClick={() => setFenster({ art: 'beteiligter' })}>Beteiligten eintragen</Button> : undefined}
+      action={pflegen ? <NeuKnopf label="Beteiligten eintragen" onClick={() => setFenster({ art: 'beteiligter' })} /> : undefined}
       hint={
         <>
           Jeder Beteiligte hat eine Rolle — Eigentümer, Hausverwaltung, Betreiber, Nutzer bzw. Mieter,

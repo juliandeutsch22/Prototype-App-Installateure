@@ -961,6 +961,15 @@ textarea {
     Gegenrand behalten die Tastfläche.
   */
   .karte-kopf > div > a { min-height: 0; padding-block: 0.875rem; margin-block: -0.875rem; }
+  /*
+    EIN SYMBOLKNOPF BLEIBT NEBEN DEM TITEL (E76, 10.11.2026): ist die Aktion
+    ein Kreis oder ein Symbol, bricht der Titel um, nicht der Knopf. Mit
+    „Termine am Di., 10.11.2026“ stand das Plus am Handy allein unter dem
+    Titel am linken Rand.
+  */
+  .karte-kopf > div:has(> [data-icon]:last-child) { flex-wrap: nowrap; }
+  .karte-kopf > div:has(> [data-icon]:last-child) > h2 { min-width: 0; overflow-wrap: anywhere; }
+  .karte-kopf > div:has(> [data-icon]:last-child) > [data-icon] { flex: none; }
   .zeile { display: flex; align-items: center; gap: 0.75rem 1rem; min-height: 3.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: transparent; }
   .zeile:first-child { border-top: 0; }
   .zeile-ganz { position: relative; cursor: pointer; }

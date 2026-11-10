@@ -45,7 +45,8 @@ export type IconName =
   | 'schliessen'
   | 'heute'
   | 'pdf'
-  | 'in-liste';
+  | 'in-liste'
+  | 'plus';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
 // Ausserhalb der Navigation nur, wo das Zeichen mehr sagt als das Wort:
@@ -155,6 +156,8 @@ const paths: Record<IconName, string> = {
   heute: 'M8 3v3M16 3v3M4 8h16M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1ZM12 13a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z',
   pdf: 'M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4ZM14 3v4h4M12 10v7M9 14l3 3 3-3',
   'in-liste': 'M4 6h11M4 12h11M4 18h7M18 13v8M14 17h8',
+  // Etwas Neues in diese Liste (E76): im Kopf einer Karte, als Petrol-Kreis.
+  plus: 'M12 5v14M5 12h14',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:

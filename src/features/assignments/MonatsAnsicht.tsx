@@ -710,7 +710,7 @@ export default function MonatsAnsicht({
 
       <div className="kal">
         <Card buendig>
-          <div className="px-4 pb-4">
+          <div className="kal-huelle">
             <MonatsKalender
               tage={tage}
               heute={heute}

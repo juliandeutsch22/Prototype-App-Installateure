@@ -37,3 +37,18 @@ export function LoeschenKnopf(props: Eigen) {
 export function PdfKnopf(props: Eigen) {
   return <Symbol {...props} zeichen="pdf" />;
 }
+
+/**
+ * ETWAS NEUES IN DIESE LISTE (E76, 10.11.2026): der Petrol-Kreis mit Plus im
+ * Kopf einer Karte — „Termin anlegen“, „Top anlegen“, „Neues Material“. Vorher
+ * stand dort ein gerahmter Wortknopf, der am Handy unter den Titel rutschte.
+ * Der Name kommt als `aria-label` und `title`. Die Hauptaktion einer Seite im
+ * Seitenkopf bleibt das Wort (Knopfart D).
+ */
+export function NeuKnopf({ label, laeuft = false, disabled, ...rest }: Eigen) {
+  return (
+    <IconButton rund label={label} disabled={disabled || laeuft} aria-busy={laeuft || undefined} {...rest}>
+      <Icon name="plus" size={20} />
+    </IconButton>
+  );
+}

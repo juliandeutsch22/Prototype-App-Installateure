@@ -36,6 +36,7 @@ import ZahlFeld from '@/components/ZahlFeld';
 import EinheitFeld from '@/components/EinheitFeld';
 import Lieferantenvergleich from '@/features/materials/Lieferantenvergleich';
 import { useModul } from '@/lib/useModule';
+import { NeuKnopf } from '@/components/Symbolknoepfe';
 
 /*
   Die üblichen Mengeneinheiten im Sanitär- und Heizungsbau — als
@@ -404,7 +405,7 @@ export default function MaterialCatalog({
               den Knopf an den rechten Rand.
             */}
             {lowStock > 0 ? <span className="mr-auto"><Warnung>{lowStock} knapp</Warnung></span> : null}
-            <Button variant="secondary" onClick={neu}>Neues Material</Button>
+            <NeuKnopf label="Neues Material" onClick={neu} />
           </>
         }
         buendig

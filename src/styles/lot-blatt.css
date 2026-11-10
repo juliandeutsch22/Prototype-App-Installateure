@@ -90,8 +90,26 @@
     Gerechnet war er für 16-px-Karten; im Blatt endete die Linie 8 px vor dem
     Rand. Ab dem Schreibtisch steht der Fuß ohne Linie (index.css).
   */
+  /*
+    UND LÄSST DIE LINIE LINKS FREI (E76, 10.11.2026): klebend liegt die
+    Leiste auf Ebene 10, über der Zeichnung des Blatts (Ebene 1). Von Kante
+    zu Kante deckte sie die linke Linie um ihre Höhe zu („links keine
+    Border“). Sie beginnt deshalb einen Pixel innen; die Knöpfe bleiben auf
+    der 24-px-Flucht.
+  */
   @media (max-width: 1199px) {
-    .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-koerper .aktionsleiste { margin: 1.5rem -24px -24px; padding: 12px 24px; }
+    .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-koerper .aktionsleiste { margin: 1.5rem -24px -24px -23px; padding: 12px 24px 12px 23px; }
+    /*
+      FREI AUF DER SEITE (Firmendaten) ist die Leiste selbst ein Streifen
+      Blatt: so breit wie die Spalte, mit der Linie rundum wie jedes Blatt,
+      die Knöpfe auf der 24-px-Flucht. Mit dem Rand der Formularkarten
+      (−16/−24 px) ragte sie am Handy links bis an den Bildschirmrand und
+      rechts 16 px über das Blatt hinaus (E76).
+    */
+    .inhalt .aktionsleiste:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog'], .akten-editor) .aktionsleiste) {
+      margin: 1.5rem 0 0; padding: 12px 24px; border-top: 0;
+      box-shadow: inset 1px 0 0 var(--border-strong), inset 0 1px 0 var(--border-strong), 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), 1px 1px 0 var(--border-strong);
+    }
   }
   /* Ein Verweis in der Zeile trägt seine Tastfläche, ohne die Zeile höher zu machen. */
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile .link-kontakt { min-height: 0; padding-block: 0.75rem; margin-block: -0.75rem; vertical-align: top; }

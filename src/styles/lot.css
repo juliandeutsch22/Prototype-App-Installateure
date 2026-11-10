@@ -175,11 +175,20 @@
   .lot-zeit { font-size: 0.8125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
   /* ── Sprungleiste (Akten) ─────────────────────────────────────────────── */
-  .sprungleiste { position: sticky; top: 0; z-index: 5; display: flex; overflow-x: auto; gap: 0; padding: 0.25rem 0; background: var(--bg); scrollbar-width: none; }
-  .sprung-link { flex: none; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.75rem; color: var(--text-muted); text-decoration: none; white-space: nowrap; border-bottom: 2px solid var(--border); font-size: 0.875rem; }
+  /*
+    AN HANDY UND TABLET EIN STREIFEN BLATT (E76, 10.11.2026): zwei Zellen
+    hoch, mit der Linie rundum wie jedes Blatt, eine Zelle unter dem Kopf.
+    Vorher klebte die Leiste ohne Abstand am Schriftfeld (sie steht in einem
+    `display: contents`, der Abstand des Stapels erreichte sie nicht) und
+    deckte mit ihrer Fläche dessen Kontur und Lineal zu; die graue Linie
+    unter den Einträgen endete nach dem letzten, die Fläche daneben lag weiß
+    ohne Linie auf dem Raster, und mit 52 px stand sie neben den Linien.
+  */
+  .sprungleiste { position: sticky; top: 0; z-index: 5; display: flex; overflow-x: auto; gap: 0; margin-top: 1.5rem; padding: 0 0.75rem; background: var(--surface); scrollbar-width: none; box-shadow: inset 1px 0 0 var(--border-strong), inset 0 1px 0 var(--border-strong), inset -1px 0 0 var(--border-strong), inset 0 -1px 0 var(--border-strong); }
+  .sprung-link { flex: none; display: inline-flex; align-items: center; min-height: 3rem; padding: 0 0.75rem; color: var(--text-muted); text-decoration: none; white-space: nowrap; border-bottom: 2px solid transparent; font-size: 0.875rem; }
   .sprung-link:hover { color: var(--text); border-bottom-color: var(--petrol); }
   @media (min-width: 1200px) {
-    .sprungleiste { flex-direction: column; overflow: visible; top: 1rem; padding: 0; background: transparent; }
+    .sprungleiste { flex-direction: column; overflow: visible; top: 1rem; margin-top: 0; padding: 0; background: transparent; box-shadow: none; }
     .sprung-link { min-height: 2.25rem; border-bottom: 0; border-left: 2px solid var(--border); }
     .sprung-link:hover { border-left-color: var(--petrol); }
   }

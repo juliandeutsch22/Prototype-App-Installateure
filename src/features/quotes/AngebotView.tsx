@@ -337,7 +337,8 @@ export default function AngebotView() {
     <MetricRow>
       <Metric label="Brutto" value={euro(q.totalBrutto)} />
       <Metric label="Netto" value={euro(q.totalNetto)} />
-      <Metric label="Kalkulierte Arbeitszeit" value={`${fmtMenge(q.kalkulierteStunden)} h`} />
+      {/* Kurz (E76): „Kalkulierte Arbeitszeit“ passte am Handy und am Tablet nicht ins Feld und endete mit „…“. */}
+      <Metric label="Kalk. Stunden" value={`${fmtMenge(q.kalkulierteStunden)} h`} />
       <Metric label="Gültig bis" value={fmtDatum(q.validUntil)} tone={abgelaufen ? 'warning' : 'default'} />
     </MetricRow>
   );
