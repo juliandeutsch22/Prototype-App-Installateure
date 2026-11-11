@@ -33,7 +33,7 @@ const kopf = (x: Partial<KanalKopf> = {}): KanalKopf => ({
 const nachricht = (n: number, x: Partial<Nachricht> = {}): Nachricht => ({
   id: `n${n}`, vonUid: 'anna', vonName: 'Anna Huber', eigene: false, text: `Text ${n}`,
   gesendetAm: new Date(Date.now() - (10 - n) * 60_000).toISOString(), bearbeitetAm: null, geloeschtAm: null,
-  erwaehnt: [], anhaenge: [], uebernommen: false, gemeldet: false, ...x,
+  erwaehnt: [], anhaenge: [], uebernommen: false, gemeldet: false, reaktionen: [], ...x,
 });
 
 let kopfWert: KanalKopf | Error = kopf();
@@ -48,10 +48,22 @@ const senden = vi.fn(async () => {
   return sendenErgebnis;
 });
 const gelesen = vi.fn(async () => undefined);
+let reagierenErgebnis: Error | null = null;
+/** Ohne Netz lädt auch der Verlauf nicht — die Rücknahme muss ohne ihn stimmen. */
+let ohneNetz = false;
+/** Hält die Antwort des Servers zurück, bis `freigeben()` — so lässt sich „sofort im Verlauf“ sehen. */
+let warten: Promise<void> | null = null;
+let freigeben = () => {};
+const reagieren = vi.fn(async (...args: unknown[]) => {
+  void args;
+  if (warten) await warten;
+  if (reagierenErgebnis) throw reagierenErgebnis;
+});
+const zurueckhalten = () => { warten = new Promise((r) => { freigeben = r; }); };
 
 vi.mock('@/lib/db/nachrichten', () => ({
   kanalKopf: vi.fn(async () => { if (kopfWert instanceof Error) throw kopfWert; return kopfWert; }),
-  verlauf: vi.fn(async () => ({ nachrichten: [...verlaufWert].reverse(), weiter: null })),
+  verlauf: vi.fn(async () => { if (ohneNetz) throw new Error('Failed to fetch'); return { nachrichten: [...verlaufWert].reverse(), weiter: null }; }),
   wartendeNachrichten: vi.fn(async () => wartendWert),
   gelesen: () => gelesen(),
   anhangAdressen: vi.fn(async () => new Map()),
@@ -59,6 +71,9 @@ vi.mock('@/lib/db/nachrichten', () => ({
   nachrichtMelden: () => melden(),
   nachrichtBearbeiten: vi.fn(async () => undefined),
   nachrichtLoeschen: vi.fn(async () => undefined),
+  nachrichtReagieren: (...a: unknown[]) => reagieren(...a),
+  REAKTIONEN: ['👍', '❤️', '😆', '😮', '😢', '🙏'],
+  REAKTION_NAME: { '👍': 'Daumen hoch', '❤️': 'Herz', '😆': 'Lachen', '😮': 'Staunen', '😢': 'Traurig', '🙏': 'Danke' },
   postfach: vi.fn(async () => ({ zeilen: postfachWert, weiter: null })),
   kanalDirekt: vi.fn(async () => 'k1'),
   kanalRunde: vi.fn(async () => 'k2'),
@@ -107,6 +122,10 @@ beforeEach(() => {
   melden.mockClear();
   senden.mockClear();
   gelesen.mockClear();
+  reagieren.mockClear();
+  reagierenErgebnis = null;
+  warten = null;
+  ohneNetz = false;
 });
 
 describe('Der Posteingang', () => {
@@ -163,36 +182,155 @@ describe('Das Gespräch', () => {
     await waitFor(() => expect(screen.queryByText(/Nicht gesendet/)).not.toBeInTheDocument());
   });
 
-  it('an der fremden Nachricht Melden — es geht genau diese weiter; Bearbeiten und Löschen nicht', async () => {
+  /*
+    E77 (11.11.2026): beim Darüberfahren eine Leiste mit den Reaktionen und
+    den Handlungen als Zeichen, statt eines Fensters mit Wortknöpfen.
+    Gegenprobe: mit dem Stand vor E77 gibt es keine Leiste — rot.
+  */
+  const leisteVon = async (name: RegExp) => {
+    await userEvent.hover(await screen.findByRole('button', { name }));
+    return screen.findByRole('toolbar', { name: /^Zur Nachricht von/ });
+  };
+  const namen = (el: HTMLElement) => within(el).getAllByRole('button').map((b) => b.getAttribute('aria-label'));
+
+  it('an der fremden Nachricht: reagieren, kopieren, melden — Bearbeiten und Löschen nicht; Melden gibt genau diese weiter', async () => {
     verlaufWert = [nachricht(1, { text: 'Beleidigung' })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Nachricht von Anna Huber/ }));
-    expect(screen.queryByRole('button', { name: 'Bearbeiten' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Melden …' }));
-    expect(screen.getByText(/genau diese Nachricht/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'An die Geschäftsführung weitergeben' }));
+    const leiste = await leisteVon(/Nachricht von Anna Huber/);
+    expect(namen(leiste)).toEqual([
+      'Reagieren: Daumen hoch', 'Reagieren: Herz', 'Reagieren: Lachen', 'Reagieren: Staunen', 'Reagieren: Traurig', 'Reagieren: Danke',
+      'Text kopieren', 'Melden',
+    ]);
+    await userEvent.click(within(leiste).getByRole('button', { name: 'Melden' }));
+    const fenster = await screen.findByRole('dialog');
+    expect(within(fenster).getByText(/genau diese Nachricht/)).toBeInTheDocument();
+    await userEvent.click(within(fenster).getByRole('button', { name: 'An die Geschäftsführung weitergeben' }));
     await waitFor(() => expect(melden).toHaveBeenCalledTimes(1));
   });
 
-  it('an der eigenen privaten Nachricht: Bearbeiten, Löschen, In eine Baustelle übernehmen — Melden nicht', async () => {
+  it('an der eigenen privaten Nachricht: Bearbeiten, In eine Baustelle übernehmen, Kopieren, Löschen — Melden nicht', async () => {
     verlaufWert = [nachricht(1, { eigene: true, vonUid: 'ich', vonName: 'Max Monteur', text: 'Zählerstand 4711' })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Nachricht von dir/ }));
-    expect(screen.getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Löschen' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'In eine Baustelle übernehmen …' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Melden …' })).not.toBeInTheDocument();
+    const leiste = await leisteVon(/Nachricht von dir/);
+    expect(namen(leiste).slice(6)).toEqual(['Bearbeiten', 'In eine Baustelle übernehmen', 'Text kopieren', 'Löschen']);
+    // Löschen fragt nach, wie bisher.
+    await userEvent.click(within(leiste).getByRole('button', { name: 'Löschen' }));
+    expect(await screen.findByText('Nachricht löschen?')).toBeInTheDocument();
   });
 
   it('im Thread der Baustelle wird nichts „übernommen“ — er ist schon die Akte', async () => {
     kopfWert = kopf({ art: 'baustelle', titel: 'B-12', teilnehmer: null, projectId: 'p1' });
     verlaufWert = [nachricht(1, { eigene: true, vonUid: 'ich', vonName: 'Max Monteur' })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Nachricht von dir/ }));
-    expect(screen.queryByRole('button', { name: 'In eine Baustelle übernehmen …' })).not.toBeInTheDocument();
+    const leiste = await leisteVon(/Nachricht von dir/);
+    expect(namen(leiste).slice(6)).toEqual(['Bearbeiten', 'Text kopieren', 'Löschen']);
   });
 
+  it('ein Klick mit der Maus öffnet kein Fenster mehr; mit der Tastatur öffnet die Nachricht die Wahl mit allen Möglichkeiten beim Namen', async () => {
+    verlaufWert = [nachricht(1, { text: 'Bin um 7 dort' })];
+    zeige();
+    const blase = await screen.findByRole('button', { name: /Nachricht von Anna Huber/ });
+    await userEvent.click(blase);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    blase.focus();
+    await userEvent.keyboard('{Enter}');
+    const fenster = await screen.findByRole('dialog');
+    expect(within(fenster).getByRole('group', { name: 'Reagieren' })).toBeInTheDocument();
+    expect(within(fenster).getByRole('button', { name: 'Text kopieren' })).toBeInTheDocument();
+    expect(within(fenster).getByRole('button', { name: 'Melden …' })).toBeInTheDocument();
+    expect(within(fenster).queryByRole('button', { name: 'Bearbeiten' })).not.toBeInTheDocument();
+  });
+
+  it('eine gelöschte Nachricht hat keine Leiste und keine Reaktionen', async () => {
+    verlaufWert = [nachricht(1, { text: null, geloeschtAm: new Date().toISOString() }), nachricht(2, { text: 'Danach' })];
+    zeige();
+    await userEvent.hover(await screen.findByText('Nachricht gelöscht'));
+    await new Promise((r) => setTimeout(r, 300));
+    expect(screen.queryByRole('toolbar')).not.toBeInTheDocument();
+  });
+});
+
+/*
+  REAKTIONEN (E77): sofort im Verlauf, der Server bestätigt im Hintergrund;
+  geht es nicht durch, steht alles wie vorher und der Grund als Meldung.
+  Gegenprobe: ohne die Reaktionen (Stand vor E77) fehlt jedes Kästchen — rot.
+*/
+describe('Reaktionen', () => {
+  it('ein Zeichen in der Leiste setzt die eigene Reaktion — das Kästchen steht sofort, ein Klick darauf nimmt sie zurück', async () => {
+    verlaufWert = [nachricht(1, { text: 'Bin um 7 dort' })];
+    zeige();
+    await userEvent.hover(await screen.findByRole('button', { name: /Nachricht von Anna Huber/ }));
+    const leiste = await screen.findByRole('toolbar');
+    zurueckhalten();
+    await userEvent.click(within(leiste).getByRole('button', { name: 'Reagieren: Daumen hoch' }));
+    expect(reagieren).toHaveBeenCalledWith('n1', '👍', true);
+    // Der Server hat noch nicht geantwortet — das Kästchen steht trotzdem schon.
+    const kaestchen = screen.getByRole('button', { name: 'Daumen hoch, 1: Du — zurücknehmen' });
+    expect(kaestchen).toHaveAttribute('aria-pressed', 'true');
+    // Der Server bestätigt; der neu geladene Verlauf trägt die Reaktion.
+    verlaufWert = [nachricht(1, { text: 'Bin um 7 dort', reaktionen: [{ zeichen: '👍', anzahl: 1, meine: true, personen: [{ uid: 'ich', name: 'Max Monteur' }] }] })];
+    freigeben();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Daumen hoch, 1: Du — zurücknehmen' })).toBeInTheDocument());
+    zurueckhalten();
+    await userEvent.click(screen.getByRole('button', { name: 'Daumen hoch, 1: Du — zurücknehmen' }));
+    expect(reagieren).toHaveBeenLastCalledWith('n1', '👍', false);
+    expect(screen.queryByRole('button', { name: /^Daumen hoch, / })).not.toBeInTheDocument();
+    verlaufWert = [nachricht(1, { text: 'Bin um 7 dort' })];
+    freigeben();
+  });
+
+  it('wer reagiert hat, steht am Kästchen — die eigene Person als „Du“ und zuerst; ein Klick auf eine fremde setzt dieselbe', async () => {
+    verlaufWert = [nachricht(1, { reaktionen: [
+      { zeichen: '👍', anzahl: 2, meine: true, personen: [{ uid: 'ich', name: 'Max Monteur' }, { uid: 'anna', name: 'Anna Huber' }] },
+      { zeichen: '🙏', anzahl: 1, meine: false, personen: [{ uid: 'anna', name: 'Anna Huber' }] },
+    ] })];
+    zeige();
+    const daumen = await screen.findByRole('button', { name: 'Daumen hoch, 2: Du, Anna Huber — zurücknehmen' });
+    expect(daumen).toHaveAttribute('title', 'Du, Anna Huber');
+    expect(daumen).toHaveTextContent('2');
+    const danke = screen.getByRole('button', { name: 'Danke, 1: Anna Huber' });
+    expect(danke).toHaveAttribute('aria-pressed', 'false');
+    zurueckhalten();
+    await userEvent.click(danke);
+    expect(reagieren).toHaveBeenCalledWith('n1', '🙏', true);
+    expect(screen.getByRole('button', { name: 'Danke, 2: Du, Anna Huber — zurücknehmen' })).toBeInTheDocument();
+    freigeben();
+  });
+
+  it('ohne Netz: die Reaktion steht wieder wie vorher, mit dem Grund als Meldung', async () => {
+    reagierenErgebnis = new Error('Failed to fetch');
+    verlaufWert = [nachricht(1)];
+    zeige();
+    await userEvent.hover(await screen.findByRole('button', { name: /Nachricht von Anna Huber/ }));
+    zurueckhalten();
+    await userEvent.click(within(await screen.findByRole('toolbar')).getByRole('button', { name: 'Reagieren: Herz' }));
+    expect(screen.getByRole('button', { name: 'Herz, 1: Du — zurücknehmen' })).toBeInTheDocument();
+    ohneNetz = true;
+    freigeben();
+    expect(await screen.findByText(/Die Reaktion ging nicht durch\. Keine Verbindung/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Herz, 1/ })).not.toBeInTheDocument();
+  });
+
+  it('bei Schreibsperre: keine neuen Reaktionen, die eigene lässt sich zurücknehmen', async () => {
+    kopfWert = kopf({ sperre: 'Du bist nicht mehr in dieser Runde.' });
+    verlaufWert = [nachricht(1, { reaktionen: [
+      { zeichen: '👍', anzahl: 1, meine: true, personen: [{ uid: 'ich', name: 'Max Monteur' }] },
+      { zeichen: '🙏', anzahl: 1, meine: false, personen: [{ uid: 'anna', name: 'Anna Huber' }] },
+    ] })];
+    zeige();
+    await userEvent.hover(await screen.findByRole('button', { name: /Nachricht von Anna Huber/ }));
+    const leiste = await screen.findByRole('toolbar');
+    expect(within(leiste).queryByRole('button', { name: /^Reagieren/ })).not.toBeInTheDocument();
+    const danke = screen.getByRole('button', { name: 'Danke, 1: Anna Huber' });
+    expect(danke).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(danke);
+    expect(reagieren).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Daumen hoch, 1: Du — zurücknehmen' }));
+    expect(reagieren).toHaveBeenCalledWith('n1', '👍', false);
+  });
+});
+
+describe('Das Gespräch: Kopf und Sperre', () => {
   it('im Thread, dem man nicht folgt, gibt es kein „Stumm schalten“ — nur „Folgen“', async () => {
     kopfWert = kopf({ art: 'baustelle', titel: 'B-12', teilnehmer: null, projectId: 'p1', folgt: false });
     zeige();

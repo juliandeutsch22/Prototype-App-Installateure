@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 
 /*
-  HEUTE TRÄGT DAS LOT (Planlinie, B4; 30.10.2026). Bis dahin trug die Spalte
+  HEUTE TRÄGT DAS LOT (Planlinie, B4; 30.10.2026) — in der Woche und am
+  Handy weiter so; im Monat seit E77 als Spalte (siehe unten). Bis dahin trug die Spalte
   von heute einen leisen Ton (`--heute`) und der Kopf eine getönte Fläche
   mit Strich unten (Entscheidung vom 20.10.2026: keine Linien, weil zwei
   Linien je Zelle an jeder Zeilengrenze abbrachen). Jetzt ist es EINE Linie
@@ -22,23 +23,25 @@ function regel(css: string, selektor: string): string {
   return treffer[0][1];
 }
 
-describe('Monatsplan: heute als Lot', () => {
-  it('die Spalte trägt keinen Ton mehr, sondern links eine Linie in Petrol, die über die Zeilengrenze reicht', () => {
-    expect(regel(monat, '.mo-hg-heute')).toMatch(/background: var\(--surface\)/);
-    const linie = regel(monat, '.mo-hg-heute::before');
-    expect(linie).toMatch(/left: 0;/);
-    expect(linie).toMatch(/bottom: -1px;/);
-    expect(linie).toMatch(/width: 1px;/);
-    expect(linie).toMatch(/background: var\(--accent-deep\)/);
-    // Sie liegt über den Balken, fängt aber keinen Klick.
-    expect(linie).toMatch(/pointer-events: none/);
+/*
+  E77 (11.11.2026): IM MONAT IST HEUTE DIE SPALTE. Die eine Linie links (B4)
+  las sich wie die Grenze zwischen zwei Tagen („die Markierung für den
+  aktuellen Tag noch nicht gut gelöst“). Jetzt Variante A: die ganze Spalte
+  Petrol-hell, im Kopf die Zahl im Petrol-Kästchen, das Senkblei darüber.
+  Gegenprobe: mit dem Stand vor E77 (Fläche `--surface`, Linie `::before`)
+  ist jede dieser Prüfungen rot.
+*/
+describe('Monatsplan: heute als Spalte (E77)', () => {
+  it('die Spalte ist Petrol-hell, ohne Linie und ohne Rahmen um die einzelnen Zellen', () => {
+    expect(regel(monat, '.mo-hg-heute')).toBe(' background: var(--petrol-hell); ');
+    expect(monat).not.toMatch(/\.mo-(hg|kopf)-heute::before/);
   });
 
-  it('keine Regel zeichnet einen Rahmen um die Zellen von heute (nur die eine Linie links)', () => {
+  it('keine Regel zeichnet einen Rahmen um die Zellen von heute — außer der Maus darüber', () => {
     for (const datei of readdirSync('src/styles').filter((d) => d.endsWith('.css'))) {
       const css = readFileSync(`src/styles/${datei}`, 'utf8');
       for (const [, sel, rumpf] of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
-        if (!/\.mo-hg-heute\b/.test(sel)) continue;
+        if (!/\.mo-hg-heute\b/.test(sel) || /:hover/.test(sel)) continue;
         // Die gemeinsame Grundregel setzt `border: 0` und die Trennlinie in der
         // Farbe des Grunds — die gilt für jeden Tag gleich und bleibt.
         const ohneGrundregel = rumpf.replace(/border: 0;|border-right: 1px solid var\(--bg\);/g, '');
@@ -47,23 +50,36 @@ describe('Monatsplan: heute als Lot', () => {
     }
   });
 
-  it('der Kopf von heute: keine getönte Fläche, Petrol-Schrift, dieselbe Linie links', () => {
+  it('der Kopf von heute: Petrol-hell, die Zahl im Petrol-Kästchen — auch am gewählten Tag (`data-heute`)', () => {
     const r = regel(monat, '.mo-kopf-heute');
-    expect(r).toMatch(/background: var\(--surface\)/);
+    expect(r).toMatch(/background: var\(--petrol-hell\)/);
     expect(r).toMatch(/color: var\(--accent-deep\)/);
-    expect(r).not.toMatch(/petrol-hell|box-shadow/);
-    expect(regel(monat, '.mo-kopf-heute::before')).toMatch(/width: 1px; background: var\(--accent-deep\)/);
+    expect(r).not.toMatch(/box-shadow/);
+    expect(regel(monat, '[data-heute] > .mo-nr')).toMatch(/background: var\(--petrol\); color: var\(--auf-petrol\)/);
+    const ansicht = readFileSync('src/features/assignments/MonatsAnsicht.tsx', 'utf8');
+    expect(ansicht).toContain("data-heute={t === heute ? '' : undefined}");
+  });
+
+  it('das Senkblei hängt weiter über dem Tag', () => {
+    const ansicht = readFileSync('src/features/assignments/MonatsAnsicht.tsx', 'utf8');
+    expect(ansicht).toContain('{t === heute && <span className="spalten-lot" aria-hidden="true" />}');
+  });
+
+  it('Darüberfahren rahmt die Zelle (1 px) statt sie zu tönen — in der Spalte von heute wäre eine Fläche unsichtbar', () => {
+    expect(monat).toContain('.mo-hg:hover, .mo-hg-we:hover, .mo-hg-heute:hover { box-shadow: inset 0 0 0 1px var(--petrol); }');
+    expect(monat).toContain('.mo-kopf:hover, .mo-kopf-we:hover, .mo-kopf-heute:hover { color: var(--accent-deep); box-shadow: inset 0 0 0 1px var(--petrol); }');
+    expect(monat).not.toMatch(/:hover[^{]*\{[^}]*background: var\(--petrol-hell\)/);
+  });
+
+  it('die Legende zeigt dieselbe Fläche wie die Spalte', () => {
+    expect(regel(monat, '.mo-legende-heute::before')).toMatch(/background: var\(--petrol-hell\)/);
   });
 });
 
 describe('Monatsplan: was gleich bleibt', () => {
-  it('der gewählte Tag behält seinen Rahmen, in der Spalte wie im Kopf', () => {
+  it('der gewählte Tag behält seinen Rahmen (2 px), in der Spalte wie im Kopf', () => {
     expect(regel(monat, '.mo-hg-gewaehlt')).toMatch(/background: var\(--petrol-hell\); box-shadow: inset 0 0 0 2px var\(--petrol\)/);
     expect(regel(monat, '.mo-kopf-gewaehlt')).toMatch(/box-shadow: inset 0 0 0 2px var\(--petrol\)/);
-  });
-
-  it('Überfahren hebt heute weiter hervor', () => {
-    expect(monat).toMatch(/\.mo-hg:hover, \.mo-hg-we:hover, \.mo-hg-heute:hover \{ background: var\(--petrol-hell\); \}/);
   });
 });
 

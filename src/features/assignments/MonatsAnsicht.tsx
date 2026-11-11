@@ -601,6 +601,8 @@ export default function MonatsAnsicht({
               }}
               type="button"
               className={klasse}
+              // Die Zahl im Petrol-Kästchen trägt heute auch dann, wenn der Tag gewählt ist (E77).
+              data-heute={t === heute ? '' : undefined}
               title={vorlesen.join(' · ')}
               data-vorschau-ausloeser=""
               aria-label={`${vorlesen.join(', ')} – alle Einsätze des Tages`}
@@ -683,13 +685,8 @@ export default function MonatsAnsicht({
           </>
         )}
         <span className="mo-legende-ruhe">Wochenende, Feiertag</span>
-        {/* Das Lot ersetzt den getönten Tag — neu im Plan, darum hier benannt. */}
-        <span className="mo-legende-heute">
-          <span className="lot-legende" aria-hidden="true">
-            <span className="tag-lot" />
-          </span>
-          heute
-        </span>
+        {/* Heute ist die Spalte in Petrol-hell (E77) — die Legende zeigt dieselbe Fläche. */}
+        <span className="mo-legende-heute">heute</span>
         <span className="mo-legende-satz">Punkt im Kopf: Termine an diesem Tag · Tag antippen zeigt die Vorschau</span>
       </p>
     </div>

@@ -19,6 +19,9 @@ export {
   wartendeNachrichten,
   nachrichtBearbeiten,
   nachrichtLoeschen,
+  nachrichtReagieren,
+  REAKTIONEN,
+  REAKTION_NAME,
   gelesen,
   stummSchalten,
   folgen,
@@ -39,5 +42,5 @@ export {
 } from './pg/nachrichten';
 export type {
   KanalArt, PostfachAuswahl, PostfachZeile, PostfachZeiger, Teilnehmer, KanalKopf, Anhang, Nachricht,
-  VerlaufZeiger, Meldung, NeueDatei, Senden, VorgemerkteNachricht,
+  VerlaufZeiger, Meldung, NeueDatei, Senden, VorgemerkteNachricht, Reaktion, Reaktionszeichen,
 } from './pg/nachrichten';

@@ -46,7 +46,9 @@ export type IconName =
   | 'heute'
   | 'pdf'
   | 'in-liste'
-  | 'plus';
+  | 'plus'
+  | 'kopieren'
+  | 'melden';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
 // Ausserhalb der Navigation nur, wo das Zeichen mehr sagt als das Wort:
@@ -158,6 +160,14 @@ const paths: Record<IconName, string> = {
   'in-liste': 'M4 6h11M4 12h11M4 18h7M18 13v8M14 17h8',
   // Etwas Neues in diese Liste (E76): im Kopf einer Karte, als Petrol-Kreis.
   plus: 'M12 5v14M5 12h14',
+  /*
+    AN EINER NACHRICHT (E77, 11.11.2026), in der Leiste beim Darüberfahren:
+    „kopieren“ zwei Blätter übereinander, „melden“ die Fahne — die
+    Geschäftsführung bekommt genau diese Nachricht. Bearbeiten (Stift),
+    Löschen (Papierkorb) und die Baustelle (`building`) gibt es schon.
+  */
+  kopieren: 'M9 8h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1ZM16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3',
+  melden: 'M5 21V4M5 4h11l-2 4 2 4H5',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:
