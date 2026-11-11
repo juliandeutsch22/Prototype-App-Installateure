@@ -29,10 +29,12 @@ export const NachrichtLeiste = forwardRef<HTMLDivElement, {
   /** Die Maus auf der Leiste hält sie offen (E79: sonst geht sie mit der Maus von der Blase). */
   onZeigerHinein?: () => void;
   onZeigerHinaus?: () => void;
+  /** Nur in der schwebenden Leiste am Handy: den Text markieren (die Maus markiert direkt). */
+  onMarkieren?: () => void;
   style?: CSSProperties;
   onReagieren: (z: Reaktionszeichen, an: boolean) => void;
   onHandlung: (h: Handlung) => void;
-}>(function NachrichtLeiste({ n, m, zeilen, schwebend, seite, gross = false, style, onReagieren, onHandlung, onZeigerHinein, onZeigerHinaus }, ref) {
+}>(function NachrichtLeiste({ n, m, zeilen, schwebend, seite, gross = false, style, onReagieren, onHandlung, onZeigerHinein, onZeigerHinaus, onMarkieren }, ref) {
   const handlungen = HANDLUNGEN.filter((h) => m[h.art]);
   return (
     <div
@@ -65,8 +67,13 @@ export const NachrichtLeiste = forwardRef<HTMLDivElement, {
           ))}
         </div>
       )}
-      {handlungen.length > 0 && (
+      {(handlungen.length > 0 || onMarkieren) && (
         <div className="leiste-handlungen" data-getrennt={m.reagieren ? 'ja' : undefined}>
+          {onMarkieren && (
+            <button type="button" className="leiste-knopf" aria-label="Text markieren" title="Text markieren" onClick={onMarkieren}>
+              <Icon name="markieren" size={18} />
+            </button>
+          )}
           {handlungen.map((h) => (
             <button
               key={h.art}

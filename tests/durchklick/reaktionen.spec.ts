@@ -316,3 +316,136 @@ test('Die Leiste blendet ein, das Kästchen ist klein und ohne Rahmen', async ({
   })).toEqual({ name: 'leiste-ein', dauer: true });
   await expect(leiste).toHaveCSS('opacity', '1');
 });
+
+/*
+  AM HANDY VERLÄSSLICH (11.11.2026): „das längere Drücken, damit der Balken
+  erscheint, funktioniert noch nicht verlässlich, auch das Markieren des
+  Textes. Beim Auswählen eines Emojis im Balken passieren oft komische
+  Sprünge.“ Nachgestellt am Pixel 7 (Chromium, echte Berührungen über CDP):
+  die Tastatur offen (Eingabe im Fokus), eine vorher angetippte Nachricht,
+  das eigene lange Drücken von Android (`contextmenu`), eine Seite, die sich
+  unter der Leiste bewegt.
+*/
+async function amHandy(browser: import('@playwright/test').Browser) {
+  const ctx = await browser.newContext({ ...devices['Pixel 7'] });
+  const page = await ctx.newPage();
+  await anmelden(page, MONTEUR.email);
+  await page.goto(`/nachrichten/${kanal}`);
+  const nachrichten = page.getByRole('group', { name: new RegExp(`^Nachricht von ${BUERO.name}`) });
+  await expect(nachrichten.last()).toBeVisible({ timeout: 15_000 });
+  const cdp = await ctx.newCDPSession(page);
+  const mitte = async (wo: import('@playwright/test').Locator) => {
+    const b = (await wo.boundingBox())!;
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  };
+  const druecken = async (wo: import('@playwright/test').Locator, ms = 800) => {
+    const p = await mitte(wo);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [p] });
+    await page.waitForTimeout(ms);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  };
+  const oben = (wo: import('@playwright/test').Locator) => wo.evaluate((el) => Math.round(el.getBoundingClientRect().top));
+  return { ctx, page, cdp, nachrichten, druecken, mitte, oben };
+}
+
+test('Am Handy: die Leiste bleibt offen, auch wenn die Tastatur offen ist und die Seite sich bewegt', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const { ctx, page, nachrichten, druecken } = await amHandy(browser);
+  const ziel = nachrichten.nth(1);
+  await ziel.scrollIntoViewIfNeeded();
+  await page.locator('#nachricht-text').focus();
+  await druecken(ziel);
+  const wahl = page.getByRole('dialog', { name: `Zur Nachricht von ${BUERO.name}` });
+  await expect(wahl).toBeVisible();
+  // Die Tastatur bleibt, wie sie war: der Fokus wandert nicht in die Leiste.
+  expect(await page.evaluate(() => document.activeElement?.id)).toBe('nachricht-text');
+  // Was eine Tastatur am Telefon auslöst: die Ansicht ändert die Größe, die Seite rollt.
+  await page.evaluate(() => { window.dispatchEvent(new Event('resize')); window.scrollBy(0, 40); });
+  await page.waitForTimeout(300);
+  await expect(wahl).toBeVisible();
+  const abstand = await ziel.evaluate((el) => {
+    const w = document.querySelector('.wahl-schwebend')!.getBoundingClientRect();
+    const b = el.closest('.nachricht-blatt')!.getBoundingClientRect();
+    return Math.round(Math.min(Math.abs(b.top - w.bottom), Math.abs(w.top - b.bottom)));
+  });
+  // Sie folgt ihrer Nachricht.
+  expect(abstand).toBe(8);
+  // Ein Zeichen antippen: der Fokus bleibt in der Eingabe, die Tastatur bleibt offen.
+  const knopf = wahl.getByRole('button', { name: 'Reagieren: Herz' });
+  const k = (await knopf.boundingBox())!;
+  await page.touchscreen.tap(k.x + k.width / 2, k.y + k.height / 2);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Herz, 1: Du — zurücknehmen' })).toBeVisible({ timeout: 15_000 });
+  expect(await page.evaluate(() => document.activeElement?.id)).toBe('nachricht-text');
+  await ctx.close();
+});
+
+// Bleibt-so-Prüfung: Im Emulator sprang schon der alte Stand hier nicht (ohne
+// echte Tastatur ändert sich die Höhe nicht). Sie hält fest, dass die neue
+// Fokusführung keinen Sprung hinzufügt; die Ursache am echten Gerät deckt der
+// Fokus-Test darüber ab.
+test('Am Handy: ein Zeichen in der Leiste — die Nachricht bleibt stehen, nichts springt', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const { ctx, page, nachrichten, druecken, mitte, oben } = await amHandy(browser);
+  const a = nachrichten.nth(0);
+  const b = nachrichten.nth(1);
+  await b.scrollIntoViewIfNeeded();
+  // Vorher eine Nachricht angetippt: sie hält danach den Fokus.
+  const p = await mitte(a);
+  await page.touchscreen.tap(p.x, p.y);
+  await page.waitForTimeout(300);
+  await druecken(b);
+  const wahl = page.getByRole('dialog', { name: `Zur Nachricht von ${BUERO.name}` });
+  await expect(wahl).toBeVisible();
+  const vorher = { blase: await oben(b), rollen: await page.evaluate(() => Math.round(window.scrollY)) };
+  const knopf = wahl.getByRole('button', { name: 'Reagieren: Daumen hoch' });
+  const k = await mitte(knopf);
+  await page.touchscreen.tap(k.x, k.y);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Daumen hoch, 1: Du — zurücknehmen' })).toBeVisible({ timeout: 15_000 });
+  await page.waitForTimeout(500);
+  const nachher = { blase: await oben(b), rollen: await page.evaluate(() => Math.round(window.scrollY)) };
+  expect(nachher).toEqual(vorher);
+  // Keine Leiste im Verlauf, die nachträglich aufgeht.
+  await expect(page.locator('.verlauf .nachricht-leiste')).toHaveCount(0);
+  await ctx.close();
+});
+
+test('Am Handy: das lange Drücken von Android selbst öffnet die Leiste sofort', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const { ctx, page, cdp, nachrichten, mitte } = await amHandy(browser);
+  const ziel = nachrichten.last();
+  await ziel.scrollIntoViewIfNeeded();
+  const p = await mitte(ziel);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [p] });
+  await page.waitForTimeout(150);
+  // Android meldet sein langes Drücken als `contextmenu` — oft vor unserer Frist.
+  const verhindert = await ziel.evaluate((el) => {
+    const e = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+    el.dispatchEvent(e);
+    return e.defaultPrevented;
+  });
+  await page.waitForTimeout(50);
+  await expect(page.getByRole('dialog', { name: `Zur Nachricht von ${BUERO.name}` })).toBeVisible({ timeout: 100 });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  expect(verhindert).toBe(true);
+  await ctx.close();
+});
+
+test('Am Handy: „Text markieren“ markiert den Text der Nachricht', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const { ctx, page, nachrichten, druecken, mitte } = await amHandy(browser);
+  const ziel = nachrichten.last();
+  await ziel.scrollIntoViewIfNeeded();
+  await druecken(ziel);
+  const wahl = page.getByRole('dialog', { name: `Zur Nachricht von ${BUERO.name}` });
+  const knopf = wahl.getByRole('button', { name: 'Text markieren' });
+  const k = await mitte(knopf);
+  await page.touchscreen.tap(k.x, k.y);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const vomBuero = TEXTE.filter(([m]) => !m);
+  const text = vomBuero[vomBuero.length - 1][1];
+  await expect.poll(() => page.evaluate(() => String(getSelection()).trim())).toBe(text);
+  expect(await ziel.evaluate((el) => getComputedStyle(el).userSelect)).toBe('text');
+  await ctx.close();
+});

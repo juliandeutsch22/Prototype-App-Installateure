@@ -48,6 +48,7 @@ export type IconName =
   | 'in-liste'
   | 'plus'
   | 'kopieren'
+  | 'markieren'
   | 'melden';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
@@ -168,6 +169,8 @@ const paths: Record<IconName, string> = {
   */
   kopieren: 'M9 8h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1ZM16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3',
   melden: 'M5 21V4M5 4h11l-2 4 2 4H5',
+  // Textcursor: Text in einer Nachricht markieren (am Handy, wo langes Drücken die Leiste öffnet).
+  markieren: 'M9 4h6M9 20h6M12 4v16',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:

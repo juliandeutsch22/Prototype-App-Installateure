@@ -150,6 +150,8 @@
   */
   .nachricht-ziel { -webkit-touch-callout: none; }
   .chat[data-beruehrt] .nachricht-ziel { -webkit-user-select: none; user-select: none; }
+  /* „Text markieren“ (am Handy): diese Nachricht wieder wie jeder Text — mit den Griffen und dem Menü des Telefons. */
+  .chat[data-beruehrt] .nachricht-ziel[data-markiert] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 
   /*
     DIE LEISTE BEIM DARÜBERFAHREN (E77): eckig mit einer Linie rundum, ohne
