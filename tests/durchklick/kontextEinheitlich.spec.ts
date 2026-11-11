@@ -85,7 +85,7 @@ test('Eingang und Angebot: dieselbe Zusammenfassung wie Baustelle und Kunde', as
   // Die Akten untereinander gleich — der Maßstab.
   expect(kundeSpalte).toEqual(baustelle);
   // Eingang trägt rechts nur den Stand (ohne Angaben): verglichen wird, was er hat.
-  const ohneAngaben = ({ wort: _w, wert: _v, ...rest }: typeof baustelle) => rest;
+  const ohneAngaben = (m: typeof baustelle) => ({ ...m, wort: null, wert: null });
   expect(angebot).toEqual(baustelle);
   expect(ohneAngaben(eingang)).toEqual(ohneAngaben(baustelle));
   expect(baustelle).toMatchObject({ breite: 288, linien: 0, flaeche: 'rgba(0, 0, 0, 0)' });
