@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useAuth } from '@/app/AuthContext';
 import {
-  anhangAdressen, gelesen, nachrichtSenden, verlauf, wartendeNachrichten,
-  type KanalKopf, type Nachricht, type NeueDatei, type VerlaufZeiger, type VorgemerkteNachricht,
+  anhangAdressen, gelesen, nachrichtReagieren, nachrichtSenden, verlauf, wartendeNachrichten,
+  type KanalKopf, type Nachricht, type NeueDatei, type Reaktionszeichen, type VerlaufZeiger, type VorgemerkteNachricht,
 } from '@/lib/db/nachrichten';
 import { FACH_GELEERT } from '@/lib/sync/ausgangsfach';
 import { postenNeuLaden } from '@/app/offenePosten';
@@ -10,13 +11,20 @@ import Icon from '@/components/Icon';
 import { Zustand } from '@/components/Badge';
 import { ErrorState, SkeletonList } from '@/components/States';
 import { MehrAnzeigen } from '@/components/LotBausteine';
+import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
+import { useModul } from '@/lib/useModule';
 import { NACHRICHTEN_NEU } from './NachrichtenLive';
 import {
   ART_TEXT, dateiPruefen, DATEI_TYPEN, erwaehnteIn, groesseText, GRUPPE_MS, istBild, kuerzel, mitMausUndTastatur, PAUSE_MS, sendetMitTaste, tagText, tagVon, uhrText, zeitText,
 } from './text';
-import NachrichtAktionen from './NachrichtAktionen';
+import NachrichtAktionen, { type Auftrag } from './NachrichtAktionen';
+import { NachrichtLeiste, ReaktionsKaestchen } from './NachrichtLeiste';
 import PersonWahl from './PersonWahl';
+import { useLangDruck } from './langDruck';
+import { alsKasten, leistenPlatz, type Kasten } from './leistenPlatz';
+import { irgendwas, moeglichkeiten, textKopieren, type Handlung } from './moeglichkeiten';
+import { mitReaktion } from './reaktionen';
 
 /** Was gerade auf dem Weg ist — in dieser Sitzung gesendet, noch nicht bestätigt oder abgelehnt. */
 interface Unterwegs {
@@ -31,6 +39,51 @@ interface Unterwegs {
   stand: 'laeuft' | 'gesendet' | 'fehler';
   grund?: string;
 }
+
+/**
+ * Wo die Leiste einer Nachricht steht: noch beim Messen, frei schwebend an
+ * einem Platz ohne Text, oder in einer eigenen Zeile über (`oben`) oder
+ * unter der Blase, wenn nirgends Platz frei ist (E77).
+ */
+type Lage = 'messen' | 'zeile' | { links: number; oben: number; zeilen: 1 | 2 };
+interface Leiste { id: string; seite: 'oben' | 'unten'; lage: Lage }
+
+/** Was neben einer Nachricht steht und nicht verdeckt werden darf. */
+const HINDERNISSE = '.nachricht-blatt, .nachricht-reaktionen, .verlauf-tag > span, .nachricht-von, .nachricht-status, .nachricht-nochmal, .verlauf-leer, .mehr-laden';
+const zeileIn = (r: HTMLElement | null, id: string) => r?.querySelector<HTMLElement>(`li[data-nachricht="${CSS.escape(id)}"]`) ?? null;
+const blattIn = (r: HTMLElement | null, id: string) => zeileIn(r, id)?.querySelector<HTMLElement>('.nachricht-blatt') ?? null;
+/** Der Rest am Ende des Verlaufs (siehe `halten`); 12 px ist das eigene untere Polster der Liste. */
+function restSetzen(r: HTMLElement | null, rest: { current: number }, wert: number) {
+  rest.current = Math.max(0, wert);
+  const liste = r?.querySelector<HTMLElement>('.verlauf');
+  if (liste) liste.style.paddingBottom = rest.current ? `${rest.current + 12}px` : '';
+}
+
+/**
+ * Die Blase bleibt, wo sie war: zuerst rollt der Rahmen um die Differenz.
+ * Geht das nicht weit genug — ganz unten, wo eine verschwundene Zeile der
+ * Leiste den Verlauf kürzer macht, oder in einem kurzen Gespräch, das unten
+ * an der Eingabe steht —, nimmt ein Rest am Ende des Verlaufs die Höhe auf
+ * (gemessen 11.11.2026: sonst rückte die Blase am Tablet um 44 px). Der
+ * Rest geht, wenn die Leiste zugeht.
+ */
+function halten(blatt: HTMLElement, oben: number, r: HTMLElement | null, rest: { current: number }) {
+  for (let versuch = 0; versuch < 3; versuch++) {
+    const d = blatt.getBoundingClientRect().top - oben;
+    if (Math.abs(d) < 0.5) return;
+    // Am Telefon rollt die Seite, nicht der Rahmen.
+    if (!r || getComputedStyle(r).overflowY !== 'auto') { window.scrollBy?.(0, d); return; }
+    r.scrollTop += d;
+    const bleibt = blatt.getBoundingClientRect().top - oben;
+    if (Math.abs(bleibt) < 0.5) return;
+    // Nach unten gerückt: mehr Rest hebt den Verlauf (oder gibt Platz zum Rollen); nach oben gerückt: weniger Rest.
+    if (bleibt < 0 && rest.current === 0) return;
+    restSetzen(r, rest, rest.current + bleibt);
+  }
+}
+
+/** So lange ruht die Maus auf einer Nachricht, bis die Leiste kommt — beim Überstreichen bleibt es ruhig. */
+const LEISTE_MS = 120;
 
 /** Ein Eintrag im Verlauf — vom Server, im Ausgangsfach oder gerade unterwegs. */
 type Eintrag = { id: string; eigene: boolean; von: string; zeit: string } & (
@@ -48,9 +101,12 @@ type Eintrag = { id: string; eigene: boolean; von: string; zeit: string } & (
  * Blatt, der Tag als Trenner darüber. Nachrichten derselben Person dicht
  * hintereinander bilden eine Gruppe; den Namen trägt nur die erste, und nur
  * wo mehr als eine andere Person schreibt (Runde, Baustelle). Für die
- * Vorlesehilfe steht vor jeder Nachricht der Absender, auch „Du“. Das ganze
- * Blatt öffnet, was man mit ihr tun kann (bearbeiten, löschen, melden,
- * übernehmen).
+ * Vorlesehilfe steht vor jeder Nachricht der Absender, auch „Du“.
+ *
+ * WAS MAN MIT IHR TUN KANN (E77): am Schreibtisch kommt beim Darüberfahren
+ * (und mit der Tastatur beim Fokus) eine Leiste mit den Reaktionen und den
+ * Handlungen als Zeichen; am Handy öffnet langes Drücken die Wahl. Darunter
+ * stehen die Reaktionen als Kästchen.
  *
  * DIE FÜNF ZUSTÄNDE mit Text, nicht mit Farbe:
  *   - „wird gesendet“ (läuft), solange der Server noch nicht geantwortet hat;
@@ -85,7 +141,8 @@ export default function Gespraech({
   const [text, setText] = useState('');
   const [dateien, setDateien] = useState<NeueDatei[]>([]);
   const [dateiFehler, setDateiFehler] = useState<string | null>(null);
-  const [gewaehlt, setGewaehlt] = useState<Nachricht | null>(null);
+  const [auftrag, setAuftrag] = useState<Auftrag | null>(null);
+  const [leiste, setLeiste] = useState<Leiste | null>(null);
   const [erwaehnen, setErwaehnen] = useState(false);
   const [versuch, setVersuch] = useState(0);
   const lauf = useRef(0);
@@ -94,6 +151,10 @@ export default function Gespraech({
   const eingabe = useRef<HTMLTextAreaElement>(null);
   const dateiWahl = useRef<HTMLInputElement>(null);
   const privat = kopf.art !== 'baustelle';
+  const { user } = useAuth();
+  const toast = useToast();
+  const nachrichtenAn = useModul('nachrichten');
+  const langDruck = useLangDruck();
 
   /** Die erste Seite (neueste zuerst) — still heißt: der Verlauf bleibt stehen, bis die Antwort da ist. */
   const laden = useCallback(async (still: boolean) => {
@@ -232,6 +293,153 @@ export default function Gespraech({
     beobachter.observe(e);
     return () => beobachter.disconnect();
   }, [kopf.sperre]);
+
+  /*
+    DIE LEISTE BEIM DARÜBERFAHREN (E77) — „sie darf den Text nicht verdecken“.
+
+    Erst wird sie unsichtbar gemessen, dann sucht `leistenPlatz` einen freien
+    Platz neben, über oder unter der Blase. Gibt es keinen, rückt der Verlauf
+    auseinander: die Leiste bekommt eine eigene Zeile. Damit dabei nichts
+    unter der Maus wegrutscht, bleibt die Blase, auf die man zeigt, an ihrer
+    Stelle (`anker`) — der Rest rückt. Die Zeile öffnet sich auf der Seite,
+    von der die Maus kommt: von oben kommend über der Blase, von unten
+    darunter. So hebt das Schließen der alten das Öffnen der neuen auf, und
+    auch ein kurzes Gespräch, das unten an der Eingabe steht, rutscht nicht.
+  */
+  const leisteJetzt = useRef<Leiste | null>(null);
+  leisteJetzt.current = leiste;
+  const leisteRef = useRef<HTMLDivElement>(null);
+  const anker = useRef<{ id: string; oben: number } | null>(null);
+  const oeffnenZeit = useRef<number | null>(null);
+  const schliessenZeit = useRef<number | null>(null);
+  const zeigerDrin = useRef(false);
+
+  const warteNicht = () => {
+    if (oeffnenZeit.current !== null) window.clearTimeout(oeffnenZeit.current);
+    oeffnenZeit.current = null;
+  };
+  const schliessNicht = () => {
+    if (schliessenZeit.current !== null) window.clearTimeout(schliessenZeit.current);
+    schliessenZeit.current = null;
+  };
+  useEffect(() => () => { warteNicht(); schliessNicht(); }, []);
+
+  const leisteAuf = useCallback((id: string) => {
+    const alt = leisteJetzt.current;
+    if (alt?.id === id) return;
+    const blatt = blattIn(rahmen.current, id);
+    if (!blatt) return;
+    let seite: Leiste['seite'] = 'oben';
+    const vorher = alt && zeileIn(rahmen.current, alt.id);
+    // Liegt die neue über der alten, kommt die Maus von unten.
+    if (vorher && (vorher.compareDocumentPosition(blatt) & Node.DOCUMENT_POSITION_PRECEDING)) seite = 'unten';
+    anker.current = { id, oben: blatt.getBoundingClientRect().top };
+    setLeiste({ id, seite, lage: 'messen' });
+  }, []);
+
+  /*
+    HALTEN: zuerst rollt der Rahmen um die Differenz. Geht das nicht weit
+    genug — ganz unten, wo eine verschwundene Zeile der Leiste den Verlauf
+    kürzer macht, oder in einem kurzen Gespräch, das unten an der Eingabe
+    steht —, nimmt ein Rest am Ende des Verlaufs die Höhe auf (gemessen
+    11.11.2026: sonst rückte die Blase am Tablet um 44 px). Der Rest geht,
+    wenn die Leiste zugeht und die Maus nicht mehr im Verlauf ist.
+  */
+  const rest = useRef(0);
+
+  const leisteZu = useCallback(() => {
+    warteNicht();
+    anker.current = null;
+    setLeiste(null);
+    restSetzen(rahmen.current, rest, 0);
+  }, []);
+
+  useLayoutEffect(() => {
+    // 1. Die Blase unter der Maus bleibt, wo sie war.
+    const a = anker.current;
+    const blatt = a && blattIn(rahmen.current, a.id);
+    if (a && blatt) halten(blatt, a.oben, rahmen.current, rest);
+    if (leiste?.lage !== 'messen') { anker.current = null; return; }
+
+    // 2. Messen und einen freien Platz suchen.
+    const l = leisteRef.current;
+    const zeile = zeileIn(rahmen.current, leiste.id);
+    const eigenesBlatt = zeile?.querySelector<HTMLElement>('.nachricht-blatt');
+    const liste = zeile?.closest('.verlauf');
+    const r = rahmen.current;
+    if (!l || !zeile || !eigenesBlatt || !liste || !r) { setLeiste(null); return; }
+    const groesse = (z: '1' | '2') => { l.dataset.zeilen = z; return { breite: l.offsetWidth, hoehe: l.offsetHeight }; };
+    const eine = groesse('1');
+    const zwei = groesse('2');
+    l.dataset.zeilen = '1';
+    const b = alsKasten(eigenesBlatt.getBoundingClientRect());
+    const reaktionen = zeile.querySelector('.nachricht-reaktionen');
+    const unten = reaktionen ? Math.max(b.unten, reaktionen.getBoundingClientRect().bottom) : b.unten;
+    const hindernisse: Kasten[] = [...r.querySelectorAll(HINDERNISSE)]
+      .filter((el) => el !== eigenesBlatt)
+      .map((el) => alsKasten(el.getBoundingClientRect()));
+    const v = liste.getBoundingClientRect();
+    const sichtbar = r.getBoundingClientRect();
+    const eingabe = eingabeRef.current;
+    // Am Telefon steht die Eingabe fest über dem Verlauf — unter ihr ist nichts frei.
+    const eingabeOben = eingabe && getComputedStyle(eingabe).position === 'fixed' ? eingabe.getBoundingClientRect().top : Infinity;
+    const platz = leistenPlatz({
+      blatt: b,
+      zeile: { ...b, unten },
+      eigene: zeile.dataset.eigene === 'ja',
+      eine,
+      zwei,
+      hindernisse,
+      grenze: { links: v.left, rechts: v.right, oben: Math.max(sichtbar.top, 0), unten: Math.min(sichtbar.bottom, window.innerHeight, eingabeOben) },
+    });
+    const z = zeile.getBoundingClientRect();
+    setLeiste({ ...leiste, lage: platz ? { links: platz.links - z.left, oben: platz.oben - z.top, zeilen: platz.zeilen } : 'zeile' });
+  }, [leiste]);
+
+  // Ändert sich der Verlauf (eine Reaktion, eine neue Nachricht) oder die Breite, wird neu gesucht.
+  const neuMessen = useCallback(() => {
+    const l = leisteJetzt.current;
+    if (!l || l.lage === 'messen') return;
+    const blatt = blattIn(rahmen.current, l.id);
+    if (!blatt) { setLeiste(null); return; }
+    anker.current = { id: l.id, oben: blatt.getBoundingClientRect().top };
+    setLeiste({ ...l, lage: 'messen' });
+  }, []);
+  useLayoutEffect(neuMessen, [nachrichten, wartend, unterwegs, neuMessen]);
+  useEffect(() => {
+    window.addEventListener('resize', neuMessen);
+    return () => window.removeEventListener('resize', neuMessen);
+  }, [neuMessen]);
+
+  /*
+    REAGIEREN (E77): sofort im eigenen Verlauf, der Server bestätigt im
+    Hintergrund. Geht es nicht durch (kein Netz, keine Rechte mehr), steht
+    die Reaktion wieder wie vorher, mit dem Grund als Meldung. Vorgemerkt
+    wird nicht: eine Reaktion Stunden später hätte keinen Zusammenhang mehr.
+  */
+  const reagieren = useCallback(async (n: Nachricht, z: Reaktionszeichen, an: boolean) => {
+    if (!user) return;
+    const ich = { uid: user.uid, name: user.name };
+    const umschalten = (wert: boolean) =>
+      setNachrichten((alt) => alt && alt.map((x) => (x.id === n.id ? mitReaktion(x, z, wert, ich) : x)));
+    umschalten(an);
+    try {
+      await nachrichtReagieren(n.id, z, an);
+    } catch (e) {
+      umschalten(!an);
+      toast.error(grundAus(e, 'Die Reaktion ging nicht durch.'));
+    }
+    void laden(true);
+  }, [user, toast, laden]);
+
+  async function handlung(n: Nachricht, h: Handlung) {
+    if (h === 'kopieren') {
+      if (await textKopieren(n.text ?? '')) toast.success('Text kopiert');
+      else toast.error('Kopieren geht hier nicht — bitte den Text markieren.');
+      return;
+    }
+    setAuftrag({ n, schritt: h });
+  }
 
   // Das Schreibfeld wächst mit dem Text bis zur Obergrenze im Stil (max-height), dann rollt es.
   useEffect(() => {
@@ -393,13 +601,45 @@ export default function Gespraech({
     // Den Namen braucht es nur, wo mehr als eine andere Person schreiben kann.
     const name = !e.eigene && anfang && kopf.art !== 'direkt' && e.art === 'server' ? e.n.vonName : null;
     const absender = e.eigene ? 'Du' : e.art === 'server' ? e.n.vonName : '';
+    // Was man mit ihr tun kann — nur bei Nachrichten vom Server, gelöschte haben nichts mehr.
+    const m = e.art === 'server' ? moeglichkeiten(e.n, kopf, nachrichtenAn) : null;
+    const mitLeiste = !!m && irgendwas(m);
+    const l = mitLeiste && leiste?.id === e.id ? leiste : null;
+    const leisteHier = l && e.art === 'server' && m && (
+      <NachrichtLeiste
+        ref={leisteRef}
+        n={e.n}
+        m={m}
+        zeilen={typeof l.lage === 'object' ? l.lage.zeilen : 1}
+        schwebend={l.lage !== 'zeile'}
+        style={l.lage === 'messen' ? { visibility: 'hidden', left: 0, top: 0 } : typeof l.lage === 'object' ? { left: l.lage.links, top: l.lage.oben } : undefined}
+        onReagieren={(z, an) => void reagieren(e.n, z, an)}
+        onHandlung={(h) => void handlung(e.n, h)}
+      />
+    );
     return (
       <li
         key={e.id}
         className="nachricht"
+        data-nachricht={e.id}
         data-eigene={e.eigene ? 'ja' : undefined}
         data-anfang={anfang ? 'ja' : undefined}
         data-ende={ende ? 'ja' : undefined}
+        onPointerEnter={mitLeiste ? (ev) => {
+          // Mit dem Finger gibt es kein Darüberfahren — dort öffnet langes Drücken.
+          if (ev.pointerType === 'touch') return;
+          warteNicht();
+          oeffnenZeit.current = window.setTimeout(() => { oeffnenZeit.current = null; leisteAuf(e.id); }, LEISTE_MS);
+        } : undefined}
+        onPointerLeave={mitLeiste ? warteNicht : undefined}
+        // Nur mit der Tastatur: auch ein Tipp setzt den Fokus, und am Handy öffnet langes Drücken.
+        onFocus={mitLeiste ? (ev) => { if (ev.target.matches(':focus-visible')) { warteNicht(); leisteAuf(e.id); } } : undefined}
+        onBlur={mitLeiste ? (ev) => {
+          // Weiter in der Leiste oder zur nächsten Nachricht: dort entscheidet deren Fokus.
+          if (ev.relatedTarget instanceof Node && ev.currentTarget.contains(ev.relatedTarget)) return;
+          if (ev.relatedTarget instanceof Element && ev.relatedTarget.closest('li[data-nachricht]')) return;
+          if (leisteJetzt.current?.id === e.id && !zeigerDrin.current) leisteZu();
+        } : undefined}
       >
         {zeitKopf && (
           <div className="verlauf-tag">
@@ -407,14 +647,22 @@ export default function Gespraech({
           </div>
         )}
         {name && <div className="nachricht-von" aria-hidden="true">{name}</div>}
+        {l?.lage === 'zeile' && l.seite === 'oben' && leisteHier}
         {e.art === 'server' && (
           <div className="nachricht-blatt" data-weg={e.n.geloeschtAm ? 'ja' : undefined}>
             {!e.n.geloeschtAm && anhaenge(e.n)}
             <button
               type="button"
               className="nachricht-ziel"
-              onClick={() => setGewaehlt(e.n)}
-              aria-label={`Nachricht von ${e.eigene ? 'dir' : e.n.vonName}, ${zeitText(e.n.gesendetAm)} — Möglichkeiten`}
+              {...(mitLeiste ? langDruck(() => { leisteZu(); setAuftrag({ n: e.n, schritt: 'wahl' }); }) : {})}
+              /*
+                Maus und Finger öffnen hier nichts mehr (E77): die Maus hat die
+                Leiste, der Finger das lange Drücken. Mit der Tastatur oder der
+                Vorlesehilfe (ein Klick ohne Zeiger, `detail` 0) öffnet sich die
+                Wahl mit allen Möglichkeiten beim Namen.
+              */
+              onClick={(ev) => { if (mitLeiste && ev.detail === 0) setAuftrag({ n: e.n, schritt: 'wahl' }); }}
+              aria-label={`Nachricht von ${e.eigene ? 'dir' : e.n.vonName}, ${zeitText(e.n.gesendetAm)}${mitLeiste ? ' — Möglichkeiten' : ''}`}
             >
               <span className="sr-only">{absender}: </span>
               {e.n.geloeschtAm
@@ -430,6 +678,17 @@ export default function Gespraech({
             </button>
           </div>
         )}
+        {e.art === 'server' && !e.n.geloeschtAm && (
+          <ReaktionsKaestchen
+            reaktionen={e.n.reaktionen}
+            ichUid={user?.uid}
+            kannSetzen={!kopf.sperre}
+            onUmschalten={(z, an) => void reagieren(e.n, z, an)}
+            langDruck={() => langDruck(() => { leisteZu(); setAuftrag({ n: e.n, schritt: 'reaktionen' }); })}
+          />
+        )}
+        {l && l.lage !== 'zeile' && leisteHier}
+        {l?.lage === 'zeile' && l.seite === 'unten' && leisteHier}
         {e.art === 'fach' && (
           <div className="nachricht-blatt" data-lokal="ja">
             {lokaleDateien(e.w.dateien)}
@@ -491,7 +750,22 @@ export default function Gespraech({
         </div>
       )}
       <div className="gespraech">
-        <div className="gespraech-verlauf" ref={rahmen}>
+        <div
+          className="gespraech-verlauf"
+          ref={rahmen}
+          onPointerEnter={(ev) => { if (ev.pointerType !== 'touch') { zeigerDrin.current = true; schliessNicht(); } }}
+          onPointerLeave={(ev) => {
+            if (ev.pointerType === 'touch') return;
+            zeigerDrin.current = false;
+            warteNicht();
+            schliessNicht();
+            // Wer mit der Tastatur in der Leiste steht, behält sie.
+            schliessenZeit.current = window.setTimeout(() => {
+              schliessenZeit.current = null;
+              if (!rahmen.current?.contains(document.activeElement)) leisteZu();
+            }, LEISTE_MS);
+          }}
+        >
           {fehler && (
             <div className="px-4 py-4">
               <ErrorState message={fehler} onRetry={() => setVersuch((v) => v + 1)} />
@@ -601,11 +875,12 @@ export default function Gespraech({
     </section>
 
       <NachrichtAktionen
-        nachricht={gewaehlt}
+        auftrag={auftrag}
         kopf={kopf}
         companyId={companyId}
-        onClose={() => setGewaehlt(null)}
-        onGeaendert={() => { setGewaehlt(null); void laden(true); }}
+        onClose={() => setAuftrag(null)}
+        onGeaendert={() => { setAuftrag(null); void laden(true); }}
+        onReagieren={(n, z, an) => void reagieren(n, z, an)}
       />
       <PersonWahl
         open={erwaehnen}

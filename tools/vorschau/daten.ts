@@ -233,16 +233,20 @@ export const chatKopf = {
   teilnehmer: [{ uid: 'u1', name: 'Max Mustermann', aktiv: true, ich: false }, { uid: 'ich', name: 'Ich', aktiv: true, ich: true }],
   folgt: true, stumm: false, ungelesen: 0, sperre: null,
 };
-const chat = (id: string, eigene: boolean, gesendetAm: string, text: string, anhaenge: unknown[] = []) => ({
+const chat = (id: string, eigene: boolean, gesendetAm: string, text: string, anhaenge: unknown[] = [], reaktionen: unknown[] = []) => ({
   id, vonUid: eigene ? 'ich' : 'u1', vonName: eigene ? 'Ich' : 'Max Mustermann', eigene, text, gesendetAm,
-  bearbeitetAm: null, geloeschtAm: null, erwaehnt: [], anhaenge, uebernommen: false, gemeldet: false,
+  bearbeitetAm: null, geloeschtAm: null, erwaehnt: [], anhaenge, uebernommen: false, gemeldet: false, reaktionen,
 });
+/* Reaktionen zum Ansehen (E77): eine eigene, eine fremde. */
+// Die Vorschau meldet sich als u1 an — die eigene Reaktion trägt diese Kennung, damit dort „Du“ steht.
+const ICH = { uid: 'u1', name: 'Ich' };
+const MAX = { uid: 'max', name: 'Max Mustermann' };
 /* Jüngste zuerst, wie `nachrichten_verlauf` sie liefert. */
 export const chatVerlauf = [
   chat('n6', false, '2026-11-09T13:42:00+01:00', 'Passt, ich bring die Pressbacken mit.'),
-  chat('n5', false, '2026-11-09T13:41:00+01:00', 'Bin um halb zwei dort.'),
+  chat('n5', false, '2026-11-09T13:41:00+01:00', 'Bin um halb zwei dort.', [], [{ zeichen: '👍', anzahl: 1, meine: true, personen: [ICH] }]),
   chat('n4', true, '2026-11-09T13:30:00+01:00', 'Kannst du heute Nachmittag noch bei Familie Huber vorbeischauen? Der Heizkörper im Bad wird nicht warm.'),
   chat('n3', true, '2026-11-08T17:05:00+01:00', 'Danke dir, schönes Wochenende!'),
   chat('n2', false, '2026-11-08T16:58:00+01:00', 'Fotos vom Verteiler hängen dran.', [{ id: 'a1', eimer: 'nachrichten-privat', pfad: 'x/verteiler.pdf', name: 'Verteiler_Stiege2.pdf', bytes: 482133, inhaltsart: 'application/pdf' }]),
-  chat('n1', false, '2026-11-08T16:57:00+01:00', 'Verteiler ist fertig montiert und gespült.'),
+  chat('n1', false, '2026-11-08T16:57:00+01:00', 'Verteiler ist fertig montiert und gespült.', [], [{ zeichen: '👍', anzahl: 1, meine: true, personen: [ICH] }, { zeichen: '🙏', anzahl: 1, meine: false, personen: [MAX] }]),
 ];

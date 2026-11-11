@@ -3006,3 +3006,88 @@ die vor der Unterkante enden.
 - Nachgezogen: `Einkaufsliste.test.tsx`, `FirmendatenView.test.tsx`,
   `AngebotView.test.tsx`, `premium.spec.ts` (neue Namen der Knöpfe und der
   Kennzahl).
+
+
+**E77 — Reaktionen im Chat, Zeichen statt Fenster, heute im Monat (11.11.2026).**
+Auftrag (zwei Bildschirmfotos): „beim Chat: die Details sehen zu globig aus.
+Am liebsten wäre mir, wenn beim Hover einfach die Auswahlmöglichkeiten mit
+selbsterklärenden Icons kommen. Außerdem: kann man auf Nachrichten mit Emojis
+reagieren, so wie in Microsoft Teams? … Monatsansicht: die Markierung für den
+aktuellen Tag ist noch nicht gut gelöst.“ Freigabe des Konzepts mit
+Beispielbildern: „finde ich gut, nur die Leiste darf den Text nicht
+verdecken, und machen wir fürs Erste die sechs festen. Bei allen wie
+empfohlen umsetzen.“
+
+- **Die Leiste beim Darüberfahren (Variante A).** Vorne die sechs
+  Reaktionen, nach einer Linie die Handlungen als Zeichen: Stift
+  (bearbeiten), Gebäude (in eine Baustelle übernehmen — das Zeichen der
+  Baustelle, kein neues), zwei Blätter (kopieren, neu), Fahne (melden, neu),
+  Papierkorb in Rot (löschen). Eckig, eine Linie rundum, ohne Schatten.
+  - **Sie verdeckt nie Text.** `leistenPlatz` sucht einen freien Platz:
+    daneben auf der freien Seite (oben, dann unten bündig; einzeilig, dann
+    zweizeilig), dann über, dann unter der Blase. Frei heißt: keine Blase,
+    kein Kästchen, keine Tageszeile, kein Name, kein Zustand wird berührt,
+    und die Leiste liegt im sichtbaren Teil. Am Tablet ist neben der Blase
+    nie Platz (gemessen: 222–294 px Spalte), am Schreibtisch oft.
+  - **Ohne freien Platz rückt das Gespräch auseinander**: die Leiste
+    bekommt eine eigene Zeile, über der Blase, wenn die Maus von oben kommt,
+    darunter, wenn sie von unten kommt. Die Blase unter der Maus bleibt
+    stehen (`halten`: erst rollen, dann ein Rest am Ende des Verlaufs, der
+    mit der Leiste geht). Gemessen in 834/1.200/1.440 px, auf und ab: 0 px.
+  - Erst nach 120 ms Ruhe, damit beim Überstreichen nichts aufgeht. Mit
+    der Tastatur beim Fokus; die Eingabetaste öffnet die Wahl mit Namen.
+  - Ein Klick mit der Maus öffnet nichts mehr; das Fenster bleibt nur für
+    das, was ein Formular oder eine Rückfrage braucht (bearbeiten, melden,
+    löschen, die Baustelle wählen). Kopieren geht sofort.
+- **Am Handy langes Drücken** (500 ms): das Fenster mit den sechs
+  Reaktionen oben und einer knappen Liste mit Zeichen darunter — wie Teams
+  am Telefon. Ein kurzer Tipp tut nichts. Der Tipp, mit dem das lange
+  Drücken endet, wird geschluckt (sonst schloss der Schleier das eben
+  geöffnete Fenster wieder — im Browser gemessen).
+- **Reaktionen.** Sechs feste Zeichen; je Person mehrere, jedes einmal
+  (wie Teams). Unter der Blase ein eckiges Kästchen je Zeichen mit der Zahl
+  in IBM Plex Mono, das eigene Petrol umrandet auf Petrol-hell. Klick:
+  eigene zurück, fremde dazu. Namen beim Darüberfahren und nach langem
+  Drücken, „Du“ zuerst. Sofort im eigenen Verlauf, der Server bestätigt im
+  Hintergrund; geht es nicht durch, steht es wie vorher, mit dem Grund.
+  - **Live** über die eigene Teilnahme (`reaktion_am`), wie neue
+    Nachrichten — keine zweite Verbindung.
+  - **Keine Meldung aufs Telefon** (Empfehlung im Konzept).
+  - **Nur mit Netz**, wie Bearbeiten und Löschen: eine Reaktion ist eine
+    Antwort im Moment; vorgemerkt käme sie Stunden später ohne Zusammenhang.
+  - **Emojis nur hier.** Die Linie „Lot“ hat keine Emojis; die Reaktion ist
+    etwas, das eine Person setzt, kein Teil der Oberfläche. Die sechs Zeichen
+    stehen einmal in der Datenschicht (`REAKTIONEN`), geprüft.
+- **Daten.** Tabelle `nachricht_reaktionen` ohne direkten Zugriff, nur über
+  `nachricht_reagieren` (security definer, `search_path = ''`, nur für
+  angemeldete Konten) und den Verlauf. Lesbar nur, wer das Gespräch lesen
+  darf und ab seinem Beitritt; Schreibsperre gilt fürs Setzen, nicht fürs
+  Zurücknehmen; der Support setzt keine. Gelöschte Nachricht: Reaktionen
+  gehen mit. In Datenauskunft (Zahl), Selbstauszug (je Nachricht, wer
+  wann), Betriebsauszug (privat ausgenommen wie die Nachrichten) und in der
+  Löschung der Person.
+- **Heute im Monat (Variante A).** Die ganze Spalte Petrol-hell, die Zahl
+  im Kopf im Petrol-Kästchen (auch am gewählten Tag, `data-heute`), das
+  Senkblei darüber. Die Linie links (B4) entfällt im Monat; in der Woche
+  und am Handy bleibt sie. Darüberfahren rahmt (1 px) statt zu tönen — in
+  der Spalte von heute wäre die Fläche unsichtbar. Legende mit derselben
+  Fläche.
+
+**Grenze mit Grund:** freie Emoji-Auswahl gibt es nicht (Auftrag: „fürs
+Erste die sechs festen“). Reaktionen ohne Netz werden nicht vorgemerkt
+(fachlich, siehe oben). **Nachweis:**
+- `nachrichtReaktionen.test.ts` (Datenbank, 17 Prüfungen): Direkt, Thread,
+  Runde, gelöscht, Modul aus, Live, Vertraulichkeit, Support, Auskunft,
+  Auszüge, Löschung. Gegenprobe ohne die Funktion: 12 rot.
+- `nachrichtLeiste.test.ts`: freier Platz oder `null`, 400 zufällige
+  Gespräche ohne einen Treffer; sofortige Reaktion; Leiste und Wahl bieten
+  dasselbe; Emojis nur in der Datenschicht; keine Klasse doppelt (die
+  Lagerauswahl hatte schon `.wahl-liste`). Gegenprobe ohne Hindernisprüfung: rot.
+- `Nachrichten.test.tsx`: Leiste je Nachricht, Tastatur, gelöscht ohne
+  Leiste, Reaktion sofort, Rücknahme ohne Netz, Schreibsperre.
+  Gegenproben: ohne sofortiges Setzen 3 rot, ohne Rücknahme 1 rot.
+- `reaktionen.spec.ts` (Browser): die Leiste trifft in drei Breiten auf und
+  ab keinen Text, die Blase rückt nicht; Reaktion live beim anderen und nach
+  dem Neuladen; am Handy kurzer Tipp, langes Drücken, Namen am Kästchen.
+- `monatHeute.test.ts`, `monatHeute.spec.ts`: Spalte, Kästchen, Rahmen beim
+  Darüberfahren. Gegenprobe gegen den Stand davor: rot.

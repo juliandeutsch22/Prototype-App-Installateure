@@ -32,6 +32,8 @@ export const SOFORT_GELOESCHT: Record<string, string> = {
   // M10/B09: die Nachricht bleibt als Platzhalter „Gelöschtes Konto“, Text und Anhänge gehen.
   nachrichten: 'Eigene Nachrichten (Text und Anhänge)',
   nachrichten_teilnehmer: 'Teilnahmen an Gesprächen',
+  // E77: Reaktionen gehen mit der Person — auf eigene wie auf fremde Nachrichten.
+  nachricht_reaktionen: 'Reaktionen auf Nachrichten',
   geburtsdatum: 'Geburtsdatum',
   wartungen: 'Wartungen',
   kontaktdaten: 'Kontaktdaten (Ansprechpartner, Telefon, E-Mail, Notizen)',

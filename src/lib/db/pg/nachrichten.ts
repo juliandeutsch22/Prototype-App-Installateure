@@ -66,6 +66,32 @@ export interface Anhang {
   inhaltsart: string;
 }
 
+/**
+ * DIE SECHS REAKTIONEN (E77) — fest, in dieser Reihenfolge; die Datenbank
+ * nimmt keine anderen an. Wie in Teams: zustimmen, mögen, lachen, staunen,
+ * bedauern, danken.
+ */
+export const REAKTIONEN = ['👍', '❤️', '😆', '😮', '😢', '🙏'] as const;
+export type Reaktionszeichen = (typeof REAKTIONEN)[number];
+
+/** Die Namen der Zeichen — für die Vorlesehilfe und den Hinweis beim Darüberfahren. */
+export const REAKTION_NAME: Record<Reaktionszeichen, string> = {
+  '👍': 'Daumen hoch',
+  '❤️': 'Herz',
+  '😆': 'Lachen',
+  '😮': 'Staunen',
+  '😢': 'Traurig',
+  '🙏': 'Danke',
+};
+
+export interface Reaktion {
+  zeichen: Reaktionszeichen;
+  anzahl: number;
+  meine: boolean;
+  /** Wer reagiert hat — die eigene Person zuerst. */
+  personen: { uid: string; name: string }[];
+}
+
 export interface Nachricht {
   id: string;
   vonUid: string | null;
@@ -79,6 +105,7 @@ export interface Nachricht {
   anhaenge: Anhang[];
   uebernommen: boolean;
   gemeldet: boolean;
+  reaktionen: Reaktion[];
 }
 
 export interface VerlaufZeiger { gesendetAm: string; id: string }
@@ -200,6 +227,14 @@ function alsNachricht(z: Record<string, unknown>): Nachricht {
     })),
     uebernommen: z.uebernommen === true,
     gemeldet: z.gemeldet === true,
+    reaktionen: ((z.reaktionen as Record<string, unknown>[] | null) ?? [])
+      .filter((r) => (REAKTIONEN as readonly string[]).includes(String(r.zeichen)))
+      .map((r) => ({
+        zeichen: String(r.zeichen) as Reaktionszeichen,
+        anzahl: Number(r.anzahl ?? 0),
+        meine: r.meine === true,
+        personen: ((r.personen as { uid: string; name: string }[] | null) ?? []).map((x) => ({ uid: String(x.uid), name: String(x.name ?? '') })),
+      })),
   };
 }
 
@@ -337,6 +372,13 @@ export const nachrichtBearbeiten = (id: string, text: string, client?: SupabaseC
   aufruf<void>('nachricht_bearbeiten', { p_id: id, p_text: text }, client);
 export const nachrichtLoeschen = (id: string, client?: SupabaseClient) =>
   aufruf<void>('nachricht_loeschen', { p_id: id }, client);
+/**
+ * Eine Reaktion setzen oder zurücknehmen (E77). Wie Bearbeiten und Löschen
+ * nur mit Netz: eine Reaktion ist eine Antwort im Moment, vorgemerkt käme
+ * sie Stunden später ohne Zusammenhang an.
+ */
+export const nachrichtReagieren = (id: string, zeichen: Reaktionszeichen, an: boolean, client?: SupabaseClient) =>
+  aufruf<void>('nachricht_reagieren', { p_nachricht: id, p_zeichen: zeichen, p_an: an }, client);
 export const gelesen = (kanal: string, client?: SupabaseClient) =>
   aufruf<void>('nachrichten_gelesen', { p_kanal: kanal }, client);
 export const stummSchalten = (kanal: string, stumm: boolean, client?: SupabaseClient) =>

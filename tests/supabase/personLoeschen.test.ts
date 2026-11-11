@@ -119,6 +119,8 @@ describe('Eine Person der Belegschaft', () => {
       standardfahrer: 1,
       // M10/B09: Text und Anhänge ihrer Nachrichten, ihre Teilnahmen (Prüfung mit Inhalt: `nachrichten.test.ts`).
       nachrichten: 0, nachrichten_teilnehmer: 0,
+      // E77: die Reaktionen der Person (Prüfung mit Inhalt: `nachrichtReaktionen.test.ts`).
+      nachricht_reaktionen: 0,
       // E68: die eigene Einrichtung der Startseite (Prüfung mit Inhalt: `startseiteWahl.test.ts`).
       startseite: 0,
     });

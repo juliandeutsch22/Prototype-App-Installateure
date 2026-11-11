@@ -147,7 +147,10 @@ const FEST = {
   nachrichten: 'export const abonniereNachrichtenStand = () => () => {};\n' +
     // Synchron, nicht als Versprechen: der Verlauf mischt die Vorgemerkten sofort ein.
     'export const vorgemerkteNachrichten = () => [];\n' +
-    "export const eimerFuer = (privat: boolean) => (privat ? 'nachrichten-privat' : 'nachrichten');\n",
+    "export const eimerFuer = (privat: boolean) => (privat ? 'nachrichten-privat' : 'nachrichten');\n" +
+    // Die sechs Reaktionen (E77) sind Werte, keine Abfragen — als Fehlerklasse (Großbuchstabe) stürzte das Gespräch ab.
+    "export const REAKTIONEN = ['👍', '❤️', '😆', '😮', '😢', '🙏'] as const;\n" +
+    "export const REAKTION_NAME = { '👍': 'Daumen hoch', '❤️': 'Herz', '😆': 'Lachen', '😮': 'Staunen', '😢': 'Traurig', '🙏': 'Danke' } as const;\n",
   /*
     Seit E66 lädt der Timer-Stand im Layout auf jeder Seite. `zeitsitzungenLaden`
     passt auf kein Namensmuster und bekäme `undefined` — `sitzungen.find` warf,

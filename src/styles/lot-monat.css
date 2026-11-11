@@ -47,16 +47,19 @@
   }
   .mo-kopf-we { background: var(--bg); color: var(--text-muted); }
   /*
-    HEUTE TRÄGT DAS LOT (Planlinie, B4) wie in der Woche: im Kopf das
-    Senkblei (`.spalten-lot`), dazu links die Linie, die durch alle Zeilen
-    weiterläuft (`.mo-hg-heute`). Sie reicht einen Pixel über die Unterkante
-    hinaus — über die Trennlinie der Zeile —, damit sie nicht an jeder
-    Zeilengrenze abbricht.
+    HEUTE IST DIE SPALTE (E77, 11.11.2026; Variante A). Die eine Linie links
+    (B4) las sich wie die Grenze zwischen zwei Tagen, nicht wie „dieser
+    Tag“. Jetzt ist die ganze Spalte Petrol-hell, im Kopf steht die Zahl in
+    einem Petrol-Kästchen, und das Senkblei (`.spalten-lot`) hängt wie
+    bisher darüber. So findet man den Tag auch weit unten in der Liste.
   */
-  .mo-kopf-heute { background: var(--surface); color: var(--accent-deep); font-weight: var(--gewicht-titel); }
-  .mo-kopf-heute::before { content: ''; position: absolute; left: 0; top: 0; bottom: -1px; width: 1px; background: var(--accent-deep); }
+  .mo-kopf-heute { background: var(--petrol-hell); color: var(--accent-deep); font-weight: var(--gewicht-titel); }
+  /* Am Tablet ist ein Tag rund 20 px breit: das Kästchen bleibt in seiner Spalte. */
+  [data-heute] > .mo-nr { min-width: 1rem; padding: 0 1px; background: var(--petrol); color: var(--auf-petrol); text-align: center; }
+  @media (min-width: 1200px) { [data-heute] > .mo-nr { min-width: 1.375rem; padding: 0 0.125rem; } }
   .mo-kopf-gewaehlt { background: var(--petrol-hell); color: var(--accent-deep); font-weight: var(--gewicht-titel); box-shadow: inset 0 0 0 2px var(--petrol); }
-  .mo-kopf:hover, .mo-kopf-we:hover { background: var(--petrol-hell); color: var(--accent-deep); }
+  /* Darüberfahren rahmt den Tag, statt ihn zu tönen — eine Fläche wäre in der Spalte von heute unsichtbar (E77). */
+  .mo-kopf:hover, .mo-kopf-we:hover, .mo-kopf-heute:hover { color: var(--accent-deep); box-shadow: inset 0 0 0 1px var(--petrol); }
   /* Zwei Buchstaben am Schreibtisch, einer am Tablet („M“ allein hiesse Montag oder Mittwoch — dort steht die Zahl darunter). */
   .mo-wt { display: none; font-size: 0.75rem; }
   @media (min-width: 1200px) { .mo-wt { display: block; } }
@@ -85,18 +88,14 @@
   .mo-hg, .mo-hg-we, .mo-hg-heute, .mo-hg-gewaehlt { min-width: 0; min-height: 2.125rem; margin: 0; padding: 0; border: 0; border-right: 1px solid var(--bg); background: var(--surface); cursor: pointer; }
   .mo-hg-we { background: var(--bg); }
   /*
-    HEUTE: EINE LINIE, DIE DURCHLÄUFT (Planlinie, B4). Am 20.10.2026 waren
-    zwei Petrol-Linien je Zelle weggekommen — sie brachen an jeder
-    Zeilengrenze ab und lasen sich als Rahmen um viele kleine Kästchen.
-    Das Lot ist EINE Linie links, die über die Trennlinie der Zeile reicht
-    und so vom Kopf bis zur letzten Zeile durchgeht; sie liegt über den
-    Balken, wie ein Lot vor dem Plan hängt, und fängt keinen Klick. Einen
-    Rahmen hat weiter allein der gewählte Tag.
+    HEUTE: DIE GANZE SPALTE PETROL-HELL (E77). Ohne Rahmen um die einzelnen
+    Zellen — die brachen am 20.10.2026 an jeder Zeilengrenze ab. Den Rahmen
+    trägt allein der gewählte Tag (2 px) und, beim Darüberfahren, die Zelle
+    unter der Maus (1 px).
   */
-  .mo-hg-heute { position: relative; background: var(--surface); }
-  .mo-hg-heute::before { content: ''; position: absolute; left: 0; top: 0; bottom: -1px; z-index: 2; width: 1px; background: var(--accent-deep); pointer-events: none; }
+  .mo-hg-heute { background: var(--petrol-hell); }
   .mo-hg-gewaehlt { background: var(--petrol-hell); box-shadow: inset 0 0 0 2px var(--petrol); }
-  .mo-hg:hover, .mo-hg-we:hover, .mo-hg-heute:hover { background: var(--petrol-hell); }
+  .mo-hg:hover, .mo-hg-we:hover, .mo-hg-heute:hover { box-shadow: inset 0 0 0 1px var(--petrol); }
 
   /* Balken: Einsatz, eingeteilt aber abwesend, abwesend — und der gewählte. */
   .mo-balken, .mo-balken-gewaehlt, .mo-balken-konflikt, .mo-balken-konflikt-gewaehlt, .mo-balken-weg, .mo-balken-weg-gewaehlt { position: relative; z-index: 1; min-width: 0; height: 1.625rem; margin: 0.25rem 1px; padding: 0 0.3125rem; border: 0; border-radius: 0; font-size: 0.8125rem; line-height: 1.625rem; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
@@ -125,6 +124,8 @@
   .mo-legende-konflikt::before { content: ''; width: 1.125rem; height: 0.875rem; background: var(--warning-bg); box-shadow: inset 0 0 0 2px var(--warning); }
   /* Das Muster der Abwesenheit ist ein eigenes Kästchen mit `.schraffur` — so bleibt es dieselbe Schraffur wie im Plan. */
   .mo-legende-muster { flex: none; width: 1.125rem; height: 0.875rem; }
+  /* Heute in der Legende: dieselbe Fläche wie die Spalte. */
+  .mo-legende-heute::before { content: ''; width: 1.125rem; height: 0.875rem; background: var(--petrol-hell); box-shadow: inset 0 0 0 1px var(--border); }
   .mo-legende-ruhe::before { content: ''; width: 1.125rem; height: 0.875rem; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border); }
   /* Das Lot in der Legende: dasselbe Zeichen wie über dem Tag, stehend statt hängend am Kopf. */
   .lot-legende { position: relative; display: inline-block; flex: none; width: 6px; height: 0.6875rem; }
