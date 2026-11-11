@@ -109,27 +109,3 @@ export function MailLink({ adresse, variante = 'text', className = '' }: MailPro
     </a>
   );
 }
-
-/**
- * Beides nebeneinander, wie es am Einsatz gebraucht wird. Fehlt eines,
- * rutscht das andere nach — kein Platzhalter für Daten, die es nicht gibt.
- */
-export function KontaktZeile({
-  adresse,
-  nummer,
-  name,
-  className = '',
-}: {
-  adresse?: string | null;
-  nummer?: string | null;
-  name?: string | null;
-  className?: string;
-}) {
-  if (!adresse?.trim() && !nummer?.trim()) return null;
-  return (
-    <div className={`flex flex-wrap gap-2 ${className}`}>
-      <AdresseLink adresse={adresse} variante="knopf" />
-      <TelefonLink nummer={nummer} name={name} variante="knopf" />
-    </div>
-  );
-}

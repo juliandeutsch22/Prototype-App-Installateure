@@ -39,7 +39,7 @@ vi.mock('jspdf-autotable', async (original) => {
 import { generateInvoicePdf } from '@/features/invoices/pdf';
 import { druckAngaben } from '@/features/invoices/nachdruck';
 import { buildStornoPdf } from '@/features/invoices/stornoPdf';
-import { buildMahnungPdf } from '@/features/invoices/mahnungPdf';
+import { mahnungInhalt, mahnungPdfAusInhalt, type MahnungOptionen } from '@/features/invoices/mahnungPdf';
 import { buildWorkSheetPdf } from '@/features/worksheets/worksheetPdf';
 import { generateHoursPdf } from '@/features/accounting/hoursPdf';
 import { buildInvoiceCsv } from '@/features/invoices/buchhaltungExport';
@@ -48,6 +48,9 @@ import { buildMonthCsv, type UserWithEntries } from '@/features/accounting/expor
 import { belegArchiv } from '@/features/invoices/belegArchiv';
 import { calcMonthStats } from '@/lib/time';
 import type { AppUser, Company, Customer, Invoice, TimeEntry, WorkSheet } from '@/types';
+
+/** Wie die Rechnungsliste mahnt: erst der Inhalt, daraus das Schreiben. */
+const buildMahnungPdf = (o: MahnungOptionen) => mahnungPdfAusInhalt(o.company, mahnungInhalt(o));
 
 const REFERENZ = 'docs/ui-umbau/referenz.json';
 const UHR = new Date('2026-10-07T10:00:00+02:00');

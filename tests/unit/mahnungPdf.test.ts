@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import {
-  buildMahnungPdf, istMahnungInhalt, mahnungDateiname, mahnungInhalt, mahnungPdfAusInhalt,
+  istMahnungInhalt, mahnungDateiname, mahnungInhalt, mahnungPdfAusInhalt, type MahnungOptionen,
 } from '@/features/invoices/mahnungPdf';
 import type { Company, Invoice } from '@/types';
 import { mahnforderungAus } from '@/features/invoices/mahnung';
+
+/** Wie die Rechnungsliste mahnt: erst der Inhalt, daraus das Schreiben. */
+const buildMahnungPdf = (o: MahnungOptionen) => mahnungPdfAusInhalt(o.company, mahnungInhalt(o));
 
 /**
  * Die Mahnung als Beleg.

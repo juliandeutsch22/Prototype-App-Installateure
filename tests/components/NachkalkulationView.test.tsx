@@ -95,7 +95,6 @@ vi.mock('@/lib/listengrenzen', () => ({
   BAUSTELLEN_AUSWAHL_GRENZE: 500,
   abgeschnitten: (z: readonly unknown[], g: number) => z.length >= g,
   katalogAbgeschnitten: (z: readonly unknown[], g = 3) => z.length >= g,
-  kundenAbgeschnitten: (z: readonly unknown[], g = 500) => z.length >= g,
   baustellenAuswahlAbgeschnitten: (z: readonly unknown[], g = 500) => z.length >= g,
 }));
 

@@ -493,16 +493,6 @@ export function todayStr(): string {
   return localDateStr(new Date());
 }
 
-/** Letzter Werktag vor `fromDate` (überspringt Wochenende + Feiertage). */
-export function lastWorkday(fromDate: Date): string {
-  const d = new Date(fromDate);
-  d.setDate(d.getDate() - 1);
-  while (isWeekend(d) || isAustrianHoliday(d)) {
-    d.setDate(d.getDate() - 1);
-  }
-  return localDateStr(d);
-}
-
 /** ISO-8601-Kalenderwoche (Donnerstag-Regel). */
 export function getISOWeek(date: Date): { week: number; year: number } {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -511,12 +501,6 @@ export function getISOWeek(date: Date): { week: number; year: number } {
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   return { week, year: d.getUTCFullYear() };
-}
-
-/** ISO-Wochen-Label, z. B. "2026-W26". */
-export function isoWeekLabel(date: Date): string {
-  const { week, year } = getISOWeek(date);
-  return `${year}-W${String(week).padStart(2, '0')}`;
 }
 
 /**

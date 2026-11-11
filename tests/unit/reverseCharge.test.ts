@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   geltenderSatz,
   pruefeReverseCharge,
-  sichtAusWieUid,
   RC_HINWEIS,
 } from '@/features/invoices/reverseCharge';
+import { uidFehler } from '@/lib/uid';
 
 /**
  * Bauleistung mit Übergang der Steuerschuld — § 19 Abs 1a UStG.
@@ -76,18 +76,18 @@ describe('Wann die Rechnung vollständig ist', () => {
 
 describe('Die Form einer UID', () => {
   it('nimmt eine österreichische an', () => {
-    expect(sichtAusWieUid('ATU12345678')).toBe(true);
-    expect(sichtAusWieUid(' atu 1234 5678 ')).toBe(true);
+    expect(uidFehler('ATU12345678')).toBeNull();
+    expect(uidFehler(' atu 1234 5678 ')).toBeNull();
   });
 
   it('fängt den Vertipper', () => {
     // Eine Ziffer zu wenig, das „U" vergessen — genau das passiert beim
     // Abtippen vom Briefkopf.
-    expect(sichtAusWieUid('ATU1234567')).toBe(false);
+    expect(uidFehler('ATU1234567')).not.toBeNull();
     // Das vergessene „U“ wurde früher als „fremde Form“ durchgelassen
     // (Testbericht 30.09.2026, M10) — „AT“ ist aber Österreich.
-    expect(sichtAusWieUid('AT12345678')).toBe(false);
-    expect(sichtAusWieUid('12345678')).toBe(false);
+    expect(uidFehler('AT12345678')).not.toBeNull();
+    expect(uidFehler('12345678')).not.toBeNull();
   });
 
   it('lehnt eine fremde UID NICHT ab', () => {
@@ -97,8 +97,8 @@ describe('Die Form einer UID', () => {
       Rechnungsmaske nicht haben sollte. Andere Länder haben andere Formen —
       sie zurückzuweisen wäre falsch.
     */
-    expect(sichtAusWieUid('DE123456789')).toBe(true);
-    expect(sichtAusWieUid('IT12345678901')).toBe(true);
+    expect(uidFehler('DE123456789')).toBeNull();
+    expect(uidFehler('IT12345678901')).toBeNull();
   });
 });
 

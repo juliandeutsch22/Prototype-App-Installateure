@@ -19,18 +19,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const aendern = vi.fn();
 const eintraegeAmTag = vi.fn();
 
+/*
+  GEPRÜFT WIRD DER WEG, DEN DIE MASKE NIMMT (11.11.2026): `TimeForm` ändert
+  über `updateTimeEntryOhneEmpfang`, das auch ohne Netz vormerkt. Bis hierher
+  prüfte dieser Test `updateTimeEntry`, die ältere Fassung nur mit Netz, die
+  niemand mehr rief — dieselbe Regel, aber an einer Stelle, die nicht lief.
+*/
 vi.mock('@/lib/db/pg/timeEntries', () => ({
-  aendern: (...a: unknown[]) => aendern(...a),
+  aendernOhneEmpfang: (...a: unknown[]) => aendern(...a),
   eintraegeAmTag: (...a: unknown[]) => eintraegeAmTag(...a),
   eintraegeUmDenTag: (...a: unknown[]) => eintraegeAmTag(...a),
 }));
 
-const { updateTimeEntry, DuplicateEntryError } = await import('@/lib/db/timeEntries');
+const { updateTimeEntryOhneEmpfang: updateTimeEntry, DuplicateEntryError } = await import('@/lib/db/timeEntries');
 
 const OWNER = { companyId: 'perl', userId: 'monteur-1' };
 
 beforeEach(() => {
-  aendern.mockReset().mockResolvedValue(undefined);
+  aendern.mockReset().mockResolvedValue('confirmed');
   eintraegeAmTag.mockReset().mockResolvedValue([]);
 });
 

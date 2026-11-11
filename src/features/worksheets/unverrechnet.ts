@@ -21,12 +21,6 @@ import type { Invoice, Project, WorkSheet } from '@/types';
  * Schein müsste dafür jemand zurücksetzen; hier fällt es von selbst an.
  */
 
-export interface UnverrechneterSchein {
-  schein: WorkSheet & { id: string };
-  /** Wie viele Tage seit dem Leistungsdatum vergangen sind. */
-  tage: number;
-}
-
 /** Tage zwischen zwei ISO-Tagen, in UTC — ohne Sommerzeitfallen. */
 function tageZwischen(vonIso: string, bisIso: string): number {
   const von = Date.parse(`${vonIso}T00:00:00Z`);

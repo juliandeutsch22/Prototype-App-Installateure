@@ -170,15 +170,6 @@ export async function aendernOhneEmpfang(
 }
 
 /**
- * Ist auf diesem Gerät ein Ausgangsfach da? Ohne (privates Fenster,
- * gesperrter Speicher) wird direkt geschrieben, und die Maske verspricht
- * kein Nachsenden.
- */
-export function ausgangsfachDa(): boolean {
-  return lager() !== null;
-}
-
-/**
  * Einen Aufruf, ein Hochladen oder ein Entfernen schreiben — bestätigt oder
  * vorgemerkt (E49). Wirft nur, wenn der Vorgang WIRKLICH nicht angekommen
  * ist: abgelehnt, oder ohne Fach nicht durchgegangen.

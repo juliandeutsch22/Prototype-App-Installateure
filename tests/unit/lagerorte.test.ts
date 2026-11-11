@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Fahrzeug, Lagerort } from '@/types';
 import {
-  abhakOrte, eigeneFahrzeugOrte, fahrzeugText, HAUPTLAGER, kennzeichenSchluessel, ortName, ortNameVon,
+  abhakOrte, eigeneFahrzeugOrte, fahrzeugText, HAUPTLAGER, ortName, ortNameVon,
   ortReihenfolge, weitereOrte,
 } from '@/features/orders/lagerorte';
 
@@ -72,9 +72,9 @@ describe('Fahrzeuge einer Person', () => {
     expect(abhakOrte(ORTE, FAHRZEUGE, 'chef', [], true).orte.map((o) => o.id)).toEqual(['o-max', 'o-tom', 'o-pool']);
   });
 
-  it('ein Kennzeichen wird verglichen wie im eindeutigen Index der Datenbank', () => {
-    expect(kennzeichenSchluessel('W-123 4a')).toBe('W1234A');
-    expect(kennzeichenSchluessel('w 1234-A')).toBe(kennzeichenSchluessel('W-1234A'));
+  // Gleich geschrieben ist gleich (ohne Bindestrich, Leerzeichen) prüft die
+  // Datenbank selbst: tests/supabase/lagerorte.test.ts.
+  it('ein Fahrzeug steht mit Kennzeichen und Bezeichnung in der Liste', () => {
     expect(fahrzeugText({ kennzeichen: 'W-1A', bezeichnung: 'Sprinter' })).toBe('W-1A · Sprinter');
     expect(fahrzeugText({ kennzeichen: 'W-1A', bezeichnung: null })).toBe('W-1A');
   });

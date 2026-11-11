@@ -5,7 +5,6 @@ import {
   BAUSTELLEN_AUSWAHL_GRENZE,
   abgeschnitten,
   katalogAbgeschnitten,
-  kundenAbgeschnitten,
   baustellenAuswahlAbgeschnitten,
 } from '@/lib/listengrenzen';
 
@@ -62,16 +61,14 @@ describe('Wann der Katalog als abgeschnitten gilt', () => {
 describe('Kunden und laufende Baustellen', () => {
   it('teilen dieselbe Rechnung, nur mit anderer Grenze', () => {
     expect(abgeschnitten(new Array(500).fill(0), 500)).toBe(true);
-    expect(kundenAbgeschnitten(new Array(KUNDEN_GRENZE).fill(0))).toBe(true);
     expect(
       baustellenAuswahlAbgeschnitten(new Array(BAUSTELLEN_AUSWAHL_GRENZE).fill(0)),
     ).toBe(true);
   });
 
   it('schweigen bei einem gewöhnlichen Betrieb', () => {
-    // Achtzig laufende Baustellen und dreihundert Kunden sind viel für einen
-    // Installationsbetrieb — und weit unter beiden Grenzen.
-    expect(kundenAbgeschnitten(new Array(300).fill(0))).toBe(false);
+    // Achtzig laufende Baustellen sind viel für einen Installationsbetrieb —
+    // und weit unter der Grenze.
     expect(baustellenAuswahlAbgeschnitten(new Array(80).fill(0))).toBe(false);
   });
 

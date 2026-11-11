@@ -34,8 +34,6 @@ export const isMitarbeiter = (r: Role) => r === 'Mitarbeiter' || isAdmin(r);
 export const isVerw = (r: Role) => r === 'Verwaltung' || isAdmin(r);
 export const isBuch = (r: Role) => r === 'Buchhaltung' || isAdmin(r);
 
-export const canOrder = (r: Role) => isMitarbeiter(r) || isVerw(r) || isGF(r);
-
 /**
  * Zeitkonten aller Mitarbeiter einsehen und korrigieren.
  * Der Projektleiter ist hier ausgenommen — das ist der einzige Unterschied
@@ -76,14 +74,11 @@ export function darfUrlaubEntscheiden(
 
 /**
  * Sonderurlaub und Pflegefreistellung BESTÄTIGEN Büro, Geschäftsführung und
- * Administration — ohne Ermessen, der Anlass wird bestätigt (Plan 10.3).
- * Unbezahlten Urlaub ENTSCHEIDEN nur Geschäftsführung und Administration.
- * Dieselbe Grenze zieht `app.darf_freistellung_entscheiden`.
+ * Administration (`canEditTime`) — ohne Ermessen, der Anlass wird bestätigt
+ * (Plan 10.3). Unbezahlten Urlaub ENTSCHEIDEN nur Geschäftsführung und
+ * Administration. Dieselbe Grenze zieht `app.darf_freistellung_entscheiden`.
  */
-export const darfFreistellungBestaetigen = (r: Role) => canEditTime(r);
 export const darfUnbezahltEntscheiden = (r: Role) => isTopLevel(r);
-
-export const canManageProjects = (r: Role) => isGF(r);
 
 /**
  * Termine anlegen, ändern, löschen (Plan 10.4): wer plant — und die
@@ -106,16 +101,6 @@ export const darfEingangErfassen = (r: Role) => r !== 'Mitarbeiter';
  * `eingang_zu_angebot`, `auftragseingaenge_loeschen`).
  */
 export const darfEingangUmwandeln = (r: Role) => isGF(r);
-
-/**
- * Benutzer anlegen und Rollen vergeben — OHNE Projektleitung.
- *
- * Wer Rollen vergibt, vergibt sie auch an sich: mit diesem Recht könnte sich
- * die Projektleitung zur Geschäftsführung machen und danach alles. Die
- * Regel in der Datenbank sagte im Kommentar seit jeher „nur GF/Admin", liess aber
- * `isLeadership()` zu; hier stand dieselbe Lücke.
- */
-export const canManageUsers = (r: Role) => isTopLevel(r);
 
 /**
  * Administratoren anlegen, ändern und löschen darf nur ein Administrator.
@@ -228,7 +213,8 @@ export const darfKundenPflegen = (p: { role: Role; kundenPflegen?: boolean }) =>
  * M38; entschieden am 30.09.): keine neuen Rollen, sondern Haken in der
  * Benutzerakte. Die Grenze ziehen `app.darf_katalog_einspielen()`,
  * `app.darf_einkauf_sehen()` und `app.darf_rechnungen_lesen()`; das hier
- * entscheidet nur, welche Wege erscheinen.
+ * entscheidet nur, welche Wege erscheinen (Rechnungen lesen: als `zusatz`
+ * am Menüpunkt in `app/navigation.ts`).
  */
 export const darfKatalogEinspielen = (p: { role: Role; katalogEinspielen?: boolean }) =>
   isTopLevel(p.role) || (p.role === 'Verwaltung' && p.katalogEinspielen === true);
@@ -237,10 +223,6 @@ export const darfKatalogEinspielen = (p: { role: Role; katalogEinspielen?: boole
 export const darfEinkaufSehen = (p: { role: Role; einkaufSehen?: boolean; katalogEinspielen?: boolean }) =>
   isTopLevel(p.role)
   || (p.role === 'Verwaltung' && (p.einkaufSehen === true || p.katalogEinspielen === true));
-
-/** Nur die Projektleitung, und nur die Rechnungen ihrer Baustellen (die Datenbank grenzt ein). */
-export const darfRechnungenLesen = (p: { role: Role; rechnungenLesen?: boolean }) =>
-  p.role === 'Projektleiter' && p.rechnungenLesen === true;
 
 /**
  * Wer im Einsatzplan eingeteilt wird: der Außendienst — und die

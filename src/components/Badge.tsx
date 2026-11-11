@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import type { Role } from '@/types';
 
 /**
  * Abzeichen — DREI FORMEN, NACH AUFGABE GETRENNT.
@@ -149,17 +148,6 @@ export function Warnung({
       {children}
     </span>
   );
-}
-
-/**
- * Die Rolle eines Menschen — eine Marke, keine Farbe.
- *
- * Sechs Farben für sechs Rollen waren eine Legende, die niemand auswendig
- * lernt, und sie standen in Listen neben Status-Pillen, mit denen sie nichts
- * zu tun haben. „Buchhaltung" sagt, was „Gelb" nicht sagt.
- */
-export function RoleBadge({ role }: { role: Role }) {
-  return <Marke>{role}</Marke>;
 }
 
 /**

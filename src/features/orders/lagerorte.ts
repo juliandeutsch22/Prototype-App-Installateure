@@ -78,12 +78,3 @@ export function abhakOrte(
 export function fahrzeugText(f: Pick<Fahrzeug, 'kennzeichen' | 'bezeichnung'>): string {
   return f.bezeichnung ? `${f.kennzeichen} · ${f.bezeichnung}` : f.kennzeichen;
 }
-
-/**
- * Ein Kennzeichen, wie es verglichen wird — ohne Leerzeichen, Bindestriche
- * und Groß-/Kleinschreibung; dieselbe Regel wie der eindeutige Index in der
- * Datenbank.
- */
-export function kennzeichenSchluessel(k: string): string {
-  return k.toUpperCase().replace(/[^0-9A-ZÄÖÜ]/g, '');
-}

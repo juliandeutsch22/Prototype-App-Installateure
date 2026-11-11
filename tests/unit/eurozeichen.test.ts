@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
-import { euro, euroBetrag, euroGerundet, euroPreis } from '@/lib/betrag';
+import { euro, euroBetrag, euroPreis } from '@/lib/betrag';
 
 /**
  * „€ 22 104,60 €" — das Zeichen stand zweimal da.
@@ -14,8 +14,7 @@ import { euro, euroBetrag, euroGerundet, euroPreis } from '@/lib/betrag';
  * vorangestelltem Zeichen, mal ohne. Seit dem 28.09.2026 (offene Punkte B9)
  * steht der Formatierer an EINER Stelle, `src/lib/betrag.ts`, und jede Form
  * hat ihren eigenen Namen: `euro` (mit Zeichen), `euroBetrag` (nur die Zahl),
- * `euroGerundet` (mit Zeichen, ganze Euro), `euroPreis` (mit Zeichen, bis vier
- * Nachkommastellen). Diese Prüfung hält beides fest:
+ * `euroPreis` (mit Zeichen, bis vier Nachkommastellen). Diese Prüfung hält beides fest:
  * dass keine Kopie zurückkommt, und dass kein Aufruf ein zweites Zeichen setzt.
  */
 
@@ -31,16 +30,13 @@ describe('Die vier Formen', () => {
   it('euroBetrag ist nur die Zahl', () => {
     expect(euroBetrag(60)).toBe('60,00');
   });
-  it('euroGerundet rundet auf ganze Euro', () => {
-    expect(euroGerundet(1234.56)).toMatch(/^€\u00a01.235$/);
-  });
   it('euroPreis zeigt bis zu vier Nachkommastellen, mindestens zwei', () => {
     expect(euroPreis(0.4375)).toBe('€\u00a00,4375');
     expect(euroPreis(12.5)).toBe('€\u00a012,50');
   });
   // E72: mit dem gewöhnlichen Leerzeichen brach „€“ am Zeilenende von der Zahl ab.
   it('Zeichen und Zahl trennt kein Zeilenumbruch — geschütztes Leerzeichen', () => {
-    for (const s of [euro(1), euroGerundet(1), euroPreis(1)]) {
+    for (const s of [euro(1), euroPreis(1)]) {
       expect(s.charAt(1)).toBe('\u00a0');
       expect(s).not.toContain(' ');
     }

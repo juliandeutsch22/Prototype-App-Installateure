@@ -1117,9 +1117,6 @@ textarea {
   .schritt-jetzt i::after { content: ''; position: absolute; left: 0; top: -0.5rem; width: 6px; height: 10px; background: var(--accent-deep); clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%); }
   .schritt-jetzt { color: var(--ink-deep); font-weight: var(--gewicht-titel); }
   .suche { display: flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; padding: 0 0.75rem; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border-strong); font-size: 0.9375rem; flex: 1; }
-  .chips { display: flex; flex-wrap: wrap; column-gap: 1rem; }
-  .chip { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.75rem; padding: 0 0.125rem; border-bottom: 2px solid transparent; background: none; font-size: 0.875rem; font-weight: 400; color: var(--text-muted); white-space: nowrap; }
-  .chip-an { color: var(--ink-deep); font-weight: var(--gewicht-titel); border-bottom-color: var(--petrol); }
   /* Ansichten und Filter tragen dieselbe ruhige Unterstreichung wie die Register. */
   .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0.75rem; border-bottom: 1px solid var(--border); background: transparent; }
   /* Auch ein kurzes Wort („Alle“) hat 44 px Tastfläche in der Breite (E72, R3). */
@@ -1140,15 +1137,12 @@ textarea {
   .tabelle tr:last-child td { border-bottom: 0; }
   .tabelle .r { text-align: right; }
   .tabelle-eng th, .tabelle-eng td { padding: 0.5rem 0.3125rem; }
-  .zwei-spalten { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-items: start; }
-  @media (min-width: 1200px) { .zwei-spalten { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 1.5rem; } }
   .spalte { display: flex; flex-direction: column; gap: 1rem; }
   @media (min-width: 1200px) { .spalte { gap: 1.5rem; } }
   .link-still { color: var(--ink-deep); font-weight: var(--gewicht-titel); font-size: 0.875rem; text-decoration: none; }
-  .karte-kopf .link-still, .karte-fuss .link-still, .abschnitt .link-still, .textlinks .link-still { color: var(--accent-deep); }
+  .karte-kopf .link-still, .karte-fuss .link-still, .abschnitt .link-still { color: var(--accent-deep); }
   .link-still-weiter::after { content: '\00a0›'; }
   .link-still:hover { text-decoration: underline; text-underline-offset: 3px; }
-  .textlinks { display: flex; gap: 1.125rem; padding: 0.125rem 0.25rem; font-size: 0.875rem; flex-wrap: wrap; }
 }
 
 /* ── Startseite (Nachtest 01.10.2026, Paket B) ──────────────────────────── */

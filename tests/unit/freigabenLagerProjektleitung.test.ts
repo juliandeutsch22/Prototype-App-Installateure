@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { canAccess, navForRole, zusatzrechte } from '@/app/navigation';
 import {
-  darfEinkaufSehen, darfKatalogEinspielen, darfRechnungenLesen, einplanbar,
+  darfEinkaufSehen, darfKatalogEinspielen, einplanbar,
 } from '@/lib/permissions';
 import { alsEntwurf, alsProfil } from '@/features/users/benutzerEntwurf';
 import type { AppUser } from '@/types';
@@ -24,8 +24,8 @@ describe('M38 — Rechnungen lesen', () => {
 
   it('die Freigabe öffnet keiner anderen Rolle etwas', () => {
     expect(pfade('Mitarbeiter', { rechnungenLesen: true })).not.toContain('/invoices');
-    expect(darfRechnungenLesen({ role: 'Verwaltung', rechnungenLesen: true })).toBe(false);
-    expect(darfRechnungenLesen({ role: 'Projektleiter', rechnungenLesen: true })).toBe(true);
+    expect(pfade('Verwaltung', { rechnungenLesen: true })).not.toContain('/invoices');
+    expect(canAccess('Verwaltung', '/invoices', undefined, { rechnungenLesen: true })).toBe(false);
   });
 
   it('die Zusatzrechte kommen aus der eigenen Zeile und dem Betrieb', () => {

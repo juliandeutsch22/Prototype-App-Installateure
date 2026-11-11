@@ -60,7 +60,7 @@ const BREITEN = [375, 390, 834, 1440];
 
 fs.mkdirSync(ziel, { recursive: true });
 const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PFAD || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: process.env.CHROMIUM_PFAD || undefined,
 });
 const ergebnis = [];
 for (const [pfad, rollen] of ROUTEN) {

@@ -22,11 +22,6 @@
  * es war.
  */
 
-export interface ZipDatei {
-  name: string;
-  inhalt: Uint8Array;
-}
-
 const TABELLE = (() => {
   const t = new Uint32Array(256);
   for (let n = 0; n < 256; n++) {
@@ -177,10 +172,4 @@ export class ZipSchreiber {
 
     return new Blob([...this.teile, ...verzeichnis, ...schluss] as BlobPart[], { type: 'application/zip' });
   }
-}
-
-export function zipErstellen(dateien: ZipDatei[], jetzt = new Date()): Blob {
-  const schreiber = new ZipSchreiber(jetzt);
-  for (const d of dateien) schreiber.hinzufuegen(d.name, d.inhalt);
-  return schreiber.fertig();
 }
