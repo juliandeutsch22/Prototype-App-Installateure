@@ -20,6 +20,7 @@ import {
 } from './text';
 import NachrichtAktionen, { type Auftrag } from './NachrichtAktionen';
 import { NachrichtLeiste, ReaktionsKaestchen } from './NachrichtLeiste';
+import NachrichtWahl from './NachrichtWahl';
 import PersonWahl from './PersonWahl';
 import { useLangDruck } from './langDruck';
 import { alsKasten, leistenPlatz, type Kasten } from './leistenPlatz';
@@ -84,6 +85,8 @@ function halten(blatt: HTMLElement, oben: number, r: HTMLElement | null, rest: {
 
 /** So lange ruht die Maus auf einer Nachricht, bis die Leiste kommt — beim Überstreichen bleibt es ruhig. */
 const LEISTE_MS = 120;
+/** So lange bleibt sie, wenn die Maus die Blase verlässt — Zeit für den Weg über die Lücke zur Leiste. */
+const BLEIBT_MS = 250;
 
 /** Ein Eintrag im Verlauf — vom Server, im Ausgangsfach oder gerade unterwegs. */
 type Eintrag = { id: string; eigene: boolean; von: string; zeit: string } & (
@@ -103,10 +106,11 @@ type Eintrag = { id: string; eigene: boolean; von: string; zeit: string } & (
  * wo mehr als eine andere Person schreibt (Runde, Baustelle). Für die
  * Vorlesehilfe steht vor jeder Nachricht der Absender, auch „Du“.
  *
- * WAS MAN MIT IHR TUN KANN (E77): am Schreibtisch kommt beim Darüberfahren
- * (und mit der Tastatur beim Fokus) eine Leiste mit den Reaktionen und den
- * Handlungen als Zeichen; am Handy öffnet langes Drücken die Wahl. Darunter
- * stehen die Reaktionen als Kästchen.
+ * WAS MAN MIT IHR TUN KANN (E77, E79): am Schreibtisch kommt beim
+ * Darüberfahren der Blase (und mit der Tastatur beim Fokus) eine Leiste mit
+ * den Reaktionen und den Handlungen als Zeichen; am Handy öffnet langes
+ * Drücken dieselbe Leiste schwebend an der Nachricht (`NachrichtWahl`).
+ * Darunter stehen die Reaktionen als Kästchen.
  *
  * DIE FÜNF ZUSTÄNDE mit Text, nicht mit Farbe:
  *   - „wird gesendet“ (läuft), solange der Server noch nicht geantwortet hat;
@@ -143,6 +147,8 @@ export default function Gespraech({
   const [dateiFehler, setDateiFehler] = useState<string | null>(null);
   const [auftrag, setAuftrag] = useState<Auftrag | null>(null);
   const [leiste, setLeiste] = useState<Leiste | null>(null);
+  /** Die schwebende Leiste nach langem Drücken oder mit der Eingabetaste (E79). */
+  const [wahl, setWahl] = useState<Nachricht | null>(null);
   const [erwaehnen, setErwaehnen] = useState(false);
   const [versuch, setVersuch] = useState(0);
   const lauf = useRef(0);
@@ -312,7 +318,8 @@ export default function Gespraech({
   const anker = useRef<{ id: string; oben: number } | null>(null);
   const oeffnenZeit = useRef<number | null>(null);
   const schliessenZeit = useRef<number | null>(null);
-  const zeigerDrin = useRef(false);
+  /** Ist die Maus gerade auf der Blase oder der Leiste? Dann nimmt ein Fokuswechsel sie nicht weg. */
+  const zeigerAuf = useRef(false);
 
   const warteNicht = () => {
     if (oeffnenZeit.current !== null) window.clearTimeout(oeffnenZeit.current);
@@ -349,10 +356,42 @@ export default function Gespraech({
 
   const leisteZu = useCallback(() => {
     warteNicht();
-    anker.current = null;
+    schliessNicht();
+    /*
+      Auch beim Schließen bleibt die Blase, an der sie stand, an ihrem Platz:
+      war die Leiste eine eigene Zeile, rückte sonst der Verlauf unter der Maus.
+    */
+    const offen = leisteJetzt.current;
+    const blatt = offen && blattIn(rahmen.current, offen.id);
+    anker.current = offen && blatt ? { id: offen.id, oben: blatt.getBoundingClientRect().top } : null;
     setLeiste(null);
     restSetzen(rahmen.current, rest, 0);
   }, []);
+
+  /*
+    NUR DIREKT ÜBER DER NACHRICHT (E79, 11.11.2026): „der Balken sollte nur
+    erscheinen, wenn man direkt über die Nachricht hovert.“ Vorher reichte die
+    ganze Zeile bis zum Rand und die Tageszeile darüber. Jetzt öffnet nur die
+    Blase; verlässt die Maus Blase und Leiste, geht sie nach einer Viertelsekunde
+    — genug für den Weg über die Lücke zur Leiste.
+  */
+  const zeigerHinein = (id: string) => {
+    zeigerAuf.current = true;
+    schliessNicht();
+    if (leisteJetzt.current?.id === id) return;
+    warteNicht();
+    oeffnenZeit.current = window.setTimeout(() => { oeffnenZeit.current = null; leisteAuf(id); }, LEISTE_MS);
+  };
+  const zeigerHinaus = () => {
+    zeigerAuf.current = false;
+    warteNicht();
+    schliessNicht();
+    schliessenZeit.current = window.setTimeout(() => {
+      schliessenZeit.current = null;
+      // Wer mit der Tastatur in der Leiste steht, behält sie.
+      if (!leisteRef.current?.contains(document.activeElement)) leisteZu();
+    }, BLEIBT_MS);
+  };
 
   useLayoutEffect(() => {
     // 1. Die Blase unter der Maus bleibt, wo sie war.
@@ -616,6 +655,8 @@ export default function Gespraech({
         style={l.lage === 'messen' ? { visibility: 'hidden', left: 0, top: 0 } : typeof l.lage === 'object' ? { left: l.lage.links, top: l.lage.oben } : undefined}
         onReagieren={(z, an) => void reagieren(e.n, z, an)}
         onHandlung={(h) => void handlung(e.n, h)}
+        onZeigerHinein={() => { zeigerAuf.current = true; schliessNicht(); }}
+        onZeigerHinaus={zeigerHinaus}
       />
     );
     return (
@@ -626,20 +667,13 @@ export default function Gespraech({
         data-eigene={e.eigene ? 'ja' : undefined}
         data-anfang={anfang ? 'ja' : undefined}
         data-ende={ende ? 'ja' : undefined}
-        onPointerEnter={mitLeiste ? (ev) => {
-          // Mit dem Finger gibt es kein Darüberfahren — dort öffnet langes Drücken.
-          if (ev.pointerType === 'touch') return;
-          warteNicht();
-          oeffnenZeit.current = window.setTimeout(() => { oeffnenZeit.current = null; leisteAuf(e.id); }, LEISTE_MS);
-        } : undefined}
-        onPointerLeave={mitLeiste ? warteNicht : undefined}
         // Nur mit der Tastatur: auch ein Tipp setzt den Fokus, und am Handy öffnet langes Drücken.
         onFocus={mitLeiste ? (ev) => { if (ev.target.matches(':focus-visible')) { warteNicht(); leisteAuf(e.id); } } : undefined}
         onBlur={mitLeiste ? (ev) => {
           // Weiter in der Leiste oder zur nächsten Nachricht: dort entscheidet deren Fokus.
           if (ev.relatedTarget instanceof Node && ev.currentTarget.contains(ev.relatedTarget)) return;
           if (ev.relatedTarget instanceof Element && ev.relatedTarget.closest('li[data-nachricht]')) return;
-          if (leisteJetzt.current?.id === e.id && !zeigerDrin.current) leisteZu();
+          if (leisteJetzt.current?.id === e.id && !zeigerAuf.current) leisteZu();
         } : undefined}
       >
         {zeitKopf && (
@@ -649,20 +683,32 @@ export default function Gespraech({
         )}
         {name && <div className="nachricht-von" aria-hidden="true">{name}</div>}
         {e.art === 'server' && (
-          <div className="nachricht-blatt" data-weg={e.n.geloeschtAm ? 'ja' : undefined}>
+          <div
+            className="nachricht-blatt"
+            data-weg={e.n.geloeschtAm ? 'ja' : undefined}
+            onPointerEnter={mitLeiste ? (ev) => { if (ev.pointerType !== 'touch') zeigerHinein(e.id); } : undefined}
+            onPointerLeave={mitLeiste ? (ev) => { if (ev.pointerType !== 'touch') zeigerHinaus(); } : undefined}
+          >
             {!e.n.geloeschtAm && anhaenge(e.n)}
-            <button
-              type="button"
+            {/*
+              TEXT ZUM MARKIEREN (E79): „man sollte auch Nachrichtentext frei
+              markieren können.“ Darum kein Knopf mehr, sondern eine Gruppe, die
+              die Tastatur erreicht: der Fokus bringt die Leiste, die Eingabetaste
+              die schwebende Leiste. Maus und Finger öffnen hier nichts — die Maus
+              hat die Leiste beim Darüberfahren, der Finger das lange Drücken.
+            */}
+            <div
               className="nachricht-ziel"
-              {...(mitLeiste ? langDruck(() => { leisteZu(); setAuftrag({ n: e.n, schritt: 'wahl' }); }) : {})}
-              /*
-                Maus und Finger öffnen hier nichts mehr (E77): die Maus hat die
-                Leiste, der Finger das lange Drücken. Mit der Tastatur oder der
-                Vorlesehilfe (ein Klick ohne Zeiger, `detail` 0) öffnet sich die
-                Wahl mit allen Möglichkeiten beim Namen.
-              */
-              onClick={(ev) => { if (mitLeiste && ev.detail === 0) setAuftrag({ n: e.n, schritt: 'wahl' }); }}
-              aria-label={`Nachricht von ${e.eigene ? 'dir' : e.n.vonName}, ${zeitText(e.n.gesendetAm)}${mitLeiste ? ' — Möglichkeiten' : ''}`}
+              role="group"
+              tabIndex={mitLeiste ? 0 : undefined}
+              {...(mitLeiste ? langDruck(() => { leisteZu(); setWahl(e.n); }) : {})}
+              onKeyDown={mitLeiste ? (ev) => {
+                if (ev.target !== ev.currentTarget || (ev.key !== 'Enter' && ev.key !== ' ')) return;
+                ev.preventDefault();
+                leisteZu();
+                setWahl(e.n);
+              } : undefined}
+              aria-label={`Nachricht von ${e.eigene ? 'dir' : e.n.vonName}, ${zeitText(e.n.gesendetAm)}${mitLeiste ? ' — Eingabetaste für die Möglichkeiten' : ''}`}
             >
               <span className="sr-only">{absender}: </span>
               {e.n.geloeschtAm
@@ -675,7 +721,7 @@ export default function Gespraech({
                   {e.n.bearbeitetAm && !e.n.geloeschtAm && <span>bearbeitet</span>}
                 </span>
               )}
-            </button>
+            </div>
           </div>
         )}
         {e.art === 'server' && !e.n.geloeschtAm && (
@@ -758,17 +804,15 @@ export default function Gespraech({
         <div
           className="gespraech-verlauf"
           ref={rahmen}
-          onPointerEnter={(ev) => { if (ev.pointerType !== 'touch') { zeigerDrin.current = true; schliessNicht(); } }}
-          onPointerLeave={(ev) => {
-            if (ev.pointerType === 'touch') return;
-            zeigerDrin.current = false;
-            warteNicht();
-            schliessNicht();
-            // Wer mit der Tastatur in der Leiste steht, behält sie.
-            schliessenZeit.current = window.setTimeout(() => {
-              schliessenZeit.current = null;
-              if (!rahmen.current?.contains(document.activeElement)) leisteZu();
-            }, LEISTE_MS);
+          /*
+            Mit dem Finger markiert langes Drücken keinen Text — es öffnet die
+            Leiste. Mit der Maus bleibt der Text frei zu markieren (E79).
+          */
+          onPointerDownCapture={(ev) => {
+            const c = chatRef.current;
+            if (!c) return;
+            if (ev.pointerType === 'touch') c.dataset.beruehrt = 'ja';
+            else delete c.dataset.beruehrt;
           }}
         >
           {fehler && (
@@ -879,13 +923,24 @@ export default function Gespraech({
 
     </section>
 
+      {wahl && (() => {
+        const ziel = blattIn(rahmen.current, wahl.id);
+        return ziel && (
+          <NachrichtWahl
+            n={wahl}
+            m={moeglichkeiten(wahl, kopf, nachrichtenAn)}
+            ziel={ziel}
+            onReagieren={(z, an) => void reagieren(wahl, z, an)}
+            onHandlung={(h) => void handlung(wahl, h)}
+            onClose={() => setWahl(null)}
+          />
+        );
+      })()}
       <NachrichtAktionen
         auftrag={auftrag}
-        kopf={kopf}
         companyId={companyId}
         onClose={() => setAuftrag(null)}
         onGeaendert={() => { setAuftrag(null); void laden(true); }}
-        onReagieren={(n, z, an) => void reagieren(n, z, an)}
       />
       <PersonWahl
         open={erwaehnen}

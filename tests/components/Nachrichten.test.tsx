@@ -188,7 +188,7 @@ describe('Das Gespräch', () => {
     Gegenprobe: mit dem Stand vor E77 gibt es keine Leiste — rot.
   */
   const leisteVon = async (name: RegExp) => {
-    await userEvent.hover(await screen.findByRole('button', { name }));
+    await userEvent.hover(await screen.findByRole('group', { name }));
     return screen.findByRole('toolbar', { name: /^Zur Nachricht von/ });
   };
   const namen = (el: HTMLElement) => within(el).getAllByRole('button').map((b) => b.getAttribute('aria-label'));
@@ -226,19 +226,75 @@ describe('Das Gespräch', () => {
     expect(namen(leiste).slice(6)).toEqual(['Bearbeiten', 'Text kopieren', 'Löschen']);
   });
 
-  it('ein Klick mit der Maus öffnet kein Fenster mehr; mit der Tastatur öffnet die Nachricht die Wahl mit allen Möglichkeiten beim Namen', async () => {
+  /*
+    E79 (11.11.2026): „der Balken sollte nur erscheinen, wenn man direkt über
+    die Nachricht hovert“, „mobil viel schlanker“, „Nachrichtentext frei
+    markieren“. Gegenprobe: mit dem Stand von E78 öffnet die Zeile neben der
+    Blase die Leiste, die Blase ist ein Knopf (nicht markierbar), und die
+    Eingabetaste öffnet ein Fenster mit Liste — rot.
+  */
+  it('nur direkt über der Blase: neben ihr in der Zeile kommt keine Leiste; verlässt die Maus Blase und Leiste, geht sie', async () => {
     verlaufWert = [nachricht(1, { text: 'Bin um 7 dort' })];
     zeige();
-    const blase = await screen.findByRole('button', { name: /Nachricht von Anna Huber/ });
+    const blase = await screen.findByRole('group', { name: /Nachricht von Anna Huber/ });
+    // Die Zeile reicht über die ganze Breite — dort ist nichts.
+    await userEvent.hover(blase.closest('li')!);
+    await new Promise((r) => setTimeout(r, 300));
+    expect(screen.queryByRole('toolbar')).not.toBeInTheDocument();
+    await userEvent.hover(blase);
+    const leiste = await screen.findByRole('toolbar');
+    // Auf die Leiste: sie bleibt.
+    await userEvent.hover(leiste);
+    await new Promise((r) => setTimeout(r, 400));
+    expect(screen.getByRole('toolbar')).toBeInTheDocument();
+    // Weg von beiden: sie geht.
+    await userEvent.unhover(leiste);
+    await waitFor(() => expect(screen.queryByRole('toolbar')).not.toBeInTheDocument());
+  });
+
+  it('der Text ist kein Knopf mehr — er lässt sich markieren; ein Klick öffnet nichts', async () => {
+    verlaufWert = [nachricht(1, { text: 'Bin um 7 dort' })];
+    zeige();
+    const blase = await screen.findByRole('group', { name: /Nachricht von Anna Huber/ });
+    expect(blase.tagName).toBe('DIV');
+    expect(screen.queryByRole('button', { name: /Nachricht von/ })).not.toBeInTheDocument();
     await userEvent.click(blase);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('mit der Tastatur: die Eingabetaste öffnet die schwebende Leiste an der Nachricht, Escape schließt sie, der Fokus kehrt zurück', async () => {
+    verlaufWert = [nachricht(1, { text: 'Bin um 7 dort' })];
+    zeige();
+    const blase = await screen.findByRole('group', { name: /Nachricht von Anna Huber/ });
     blase.focus();
     await userEvent.keyboard('{Enter}');
-    const fenster = await screen.findByRole('dialog');
-    expect(within(fenster).getByRole('group', { name: 'Reagieren' })).toBeInTheDocument();
-    expect(within(fenster).getByRole('button', { name: 'Text kopieren' })).toBeInTheDocument();
-    expect(within(fenster).getByRole('button', { name: 'Melden …' })).toBeInTheDocument();
-    expect(within(fenster).queryByRole('button', { name: 'Bearbeiten' })).not.toBeInTheDocument();
+    const wahl = await screen.findByRole('dialog', { name: 'Zur Nachricht von Anna Huber' });
+    const leiste = within(wahl).getByRole('toolbar');
+    expect(within(leiste).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Reagieren: Daumen hoch', 'Reagieren: Herz', 'Reagieren: Lachen', 'Reagieren: Staunen', 'Reagieren: Traurig', 'Reagieren: Danke',
+      'Text kopieren', 'Melden',
+    ]);
+    // Zweizeilig, mit Zielen für den Finger.
+    expect(leiste).toHaveAttribute('data-zeilen', '2');
+    expect(leiste).toHaveAttribute('data-gross', 'ja');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(blase).toHaveFocus();
+  });
+
+  it('in der schwebenden Leiste: ein Zeichen setzt die Reaktion und schließt; „Melden“ öffnet das Formular', async () => {
+    verlaufWert = [nachricht(1, { text: 'Bin um 7 dort' })];
+    zeige();
+    const blase = await screen.findByRole('group', { name: /Nachricht von Anna Huber/ });
+    blase.focus();
+    await userEvent.keyboard('{Enter}');
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Reagieren: Herz' }));
+    expect(reagieren).toHaveBeenCalledWith('n1', '❤️', true);
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /^Zur Nachricht/ })).not.toBeInTheDocument());
+    blase.focus();
+    await userEvent.keyboard('{Enter}');
+    await userEvent.click(within(await screen.findByRole('dialog', { name: /^Zur Nachricht/ })).getByRole('button', { name: 'Melden' }));
+    expect(await screen.findByText(/genau diese Nachricht/)).toBeInTheDocument();
   });
 
   it('eine gelöschte Nachricht hat keine Leiste und keine Reaktionen', async () => {
@@ -259,7 +315,7 @@ describe('Reaktionen', () => {
   it('ein Zeichen in der Leiste setzt die eigene Reaktion — das Kästchen steht sofort, ein Klick darauf nimmt sie zurück', async () => {
     verlaufWert = [nachricht(1, { text: 'Bin um 7 dort' })];
     zeige();
-    await userEvent.hover(await screen.findByRole('button', { name: /Nachricht von Anna Huber/ }));
+    await userEvent.hover(await screen.findByRole('group', { name: /Nachricht von Anna Huber/ }));
     const leiste = await screen.findByRole('toolbar');
     zurueckhalten();
     await userEvent.click(within(leiste).getByRole('button', { name: 'Reagieren: Daumen hoch' }));
@@ -301,7 +357,7 @@ describe('Reaktionen', () => {
     reagierenErgebnis = new Error('Failed to fetch');
     verlaufWert = [nachricht(1)];
     zeige();
-    await userEvent.hover(await screen.findByRole('button', { name: /Nachricht von Anna Huber/ }));
+    await userEvent.hover(await screen.findByRole('group', { name: /Nachricht von Anna Huber/ }));
     zurueckhalten();
     await userEvent.click(within(await screen.findByRole('toolbar')).getByRole('button', { name: 'Reagieren: Herz' }));
     expect(screen.getByRole('button', { name: 'Herz, 1: Du — zurücknehmen' })).toBeInTheDocument();
@@ -318,7 +374,7 @@ describe('Reaktionen', () => {
       { zeichen: '🙏', anzahl: 1, meine: false, personen: [{ uid: 'anna', name: 'Anna Huber' }] },
     ] })];
     zeige();
-    await userEvent.hover(await screen.findByRole('button', { name: /Nachricht von Anna Huber/ }));
+    await userEvent.hover(await screen.findByRole('group', { name: /Nachricht von Anna Huber/ }));
     const leiste = await screen.findByRole('toolbar');
     expect(within(leiste).queryByRole('button', { name: /^Reagieren/ })).not.toBeInTheDocument();
     const danke = screen.getByRole('button', { name: 'Danke, 1: Anna Huber' });

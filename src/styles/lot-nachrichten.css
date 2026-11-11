@@ -143,11 +143,13 @@
   .nachricht-datei-name { min-width: 0; overflow-wrap: anywhere; }
   .nachricht-datei-groesse { flex: none; font-family: var(--schrift-mono); font-size: 0.75rem; color: var(--text-muted); }
   /*
-    DIE BLASE ÖFFNET NICHTS MEHR (E77): die Maus hat die Leiste, der Finger
-    das lange Drücken. Der Zeiger bleibt deshalb der Pfeil, und langes
-    Drücken markiert keinen Text und öffnet kein Menü des Telefons.
+    DER TEXT LÄSST SICH MARKIEREN (E79): mit der Maus wie jeder Text. Mit dem
+    Finger öffnet langes Drücken die Leiste — dafür markiert es dort keinen
+    Text und ruft kein Menü des Telefons auf (`data-beruehrt` setzt das
+    Gespräch beim Berühren).
   */
-  .nachricht-ziel { cursor: default; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .nachricht-ziel { -webkit-touch-callout: none; }
+  .chat[data-beruehrt] .nachricht-ziel { -webkit-user-select: none; user-select: none; }
 
   /*
     DIE LEISTE BEIM DARÜBERFAHREN (E77): eckig mit einer Linie rundum, ohne
@@ -172,7 +174,7 @@
   .leiste-knopf[data-ton="gefahr"] { color: var(--danger); }
   .leiste-knopf:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 0; }
   /* Die Zeichen in der Schrift des Geräts — die Reaktionen sind das Einzige mit Emojis (E77). */
-  .leiste-zeichen, .reaktion-zeichen, .nachricht-wahl-zeichen { font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; line-height: 1; }
+  .leiste-zeichen, .reaktion-zeichen { font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; line-height: 1; }
   .leiste-zeichen { font-size: 1.0625rem; }
 
   /*
@@ -195,20 +197,20 @@
   .reaktion-zeichen { font-size: 0.8125rem; }
   .reaktion-zahl { font-family: var(--schrift-mono); font-size: 0.6875rem; line-height: 1; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
 
-  /* DIE WAHL NACH LANGEM DRÜCKEN: oben die Reaktionen, darunter eine knappe Liste mit Zeichen. */
-  .nachricht-wahl-reaktionen { display: flex; justify-content: space-between; gap: 0.25rem; }
-  .nachricht-wahl-zeichen { display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border: 1px solid var(--border); background: var(--surface); font-size: 1.5rem; }
-  .nachricht-wahl-zeichen:hover { background: var(--surface-2); }
-  .nachricht-wahl-zeichen[aria-pressed="true"] { border-color: var(--petrol); background: var(--petrol-hell); }
-  .nachricht-wahl-zeichen:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  /*
+    DIE SCHWEBENDE LEISTE NACH LANGEM DRÜCKEN (E79): dieselbe Leiste, mit
+    44-px-Zielen für den Finger, an der Nachricht. Ein Tipp daneben schließt
+    (`.wahl-fang`, durchsichtig — die Nachricht bleibt zu sehen).
+  */
+  .wahl-fang { position: fixed; inset: 0; z-index: 45; }
+  .wahl-schwebend { position: fixed; z-index: 46; }
+  .wahl-schwebend:focus { outline: none; }
+  .wahl-schwebend > .nachricht-leiste { margin: 0; }
+  .nachricht-leiste[data-gross] .leiste-knopf { width: 2.75rem; height: 2.75rem; }
+  .nachricht-leiste[data-gross] .leiste-zeichen { font-size: 1.375rem; }
+  /* Wer reagiert hat (langes Drücken auf ein Kästchen). */
   .nachricht-wahl-wer { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.875rem; color: var(--text-muted); }
   .nachricht-wahl-wer > li { display: flex; align-items: baseline; gap: 0.5rem; }
-  .nachricht-wahl-liste { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border); }
-  .nachricht-wahl-zeile { display: flex; align-items: center; gap: 0.75rem; width: 100%; min-height: 3rem; padding: 0 0.25rem; border-bottom: 1px solid var(--border); text-align: left; color: var(--text); }
-  .nachricht-wahl-zeile:hover { background: var(--surface-2); }
-  .nachricht-wahl-zeile:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 0; }
-  .nachricht-wahl-zeile svg { flex: none; color: var(--text-muted); }
-  .nachricht-wahl-zeile[data-ton="gefahr"], .nachricht-wahl-zeile[data-ton="gefahr"] svg { color: var(--danger); }
 
   .verlauf-trenner { padding: 0.5rem 1rem; font-size: 0.8125rem; color: var(--text-muted); border-top: 1px solid var(--border); }
 
