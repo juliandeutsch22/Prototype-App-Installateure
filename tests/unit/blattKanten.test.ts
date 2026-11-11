@@ -103,6 +103,15 @@ describe('Etwas Neues in die Liste: der Petrol-Kreis mit Plus (E76)', () => {
     expect(regel(q('src/styles/lot.css'), '.symbol-rund:focus-visible')).toContain('outline-offset: -2px;');
   });
 
+  it('beim Darüberfahren und gesperrt bleibt der Kreis 40 px — nur die Farbe ändert sich', () => {
+    // Die Kurzform `background:` setzte `background-clip` zurück, der Kreis wuchs auf 48 px.
+    const css = q('src/styles/lot.css');
+    expect(regel(css, '.symbol-rund:hover:not(:disabled)')).toBe('  .symbol-rund:hover:not(:disabled) { background-color: var(--petrol-tief); }');
+    expect(regel(css, '.symbol-rund:disabled')).toContain('background-color: var(--surface-3);');
+    const zustaende = css.split('\n').filter((z) => /^\s*\.symbol-rund:[^{]*\{/.test(z));
+    expect(zustaende.filter((z) => /[{;]\s*background:/.test(z))).toEqual([]);
+  });
+
   it('ein Symbolknopf bleibt neben dem Titel, der Titel bricht um', () => {
     const css = q('src/index.css');
     expect(css).toContain('.karte-kopf > div:has(> [data-icon]:last-child) { flex-wrap: nowrap; }');

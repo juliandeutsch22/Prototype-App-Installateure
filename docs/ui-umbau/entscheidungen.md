@@ -2966,6 +2966,10 @@ die vor der Unterkante enden.
     etwas kleiner“): sichtbar 40 statt 48 px, überall, wo er steht (Plus,
     zurück zu heute, In die Liste). Die Tastfläche bleibt 48 px; die Fläche
     endet 4 px vor dem Rand des Knopfs, der Fokusring liegt am Kreis.
+    Nachtrag 11.11.2026 („die runden Icons werden beim Hover größer“):
+    Darüberfahren und gesperrt setzen nur noch die Farbe; die Kurzform
+    `background:` hatte `background-clip` zurückgesetzt, der Kreis wuchs
+    auf 48 px. Geprüft im Quelltext und im Browser (beim Darüberfahren).
   - **Gleich geblieben:** Das Wort bleibt im Seitenkopf (Hauptaktion), im
     Fensterfuß (Monatsvorschau), im Leerzustand und bei Entscheidungen
     („Neue Fassung“, „Baustelle anlegen“ aus der Wartung, „Zeit erfassen“

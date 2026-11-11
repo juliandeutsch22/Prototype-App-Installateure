@@ -97,4 +97,11 @@ test('„Termin anlegen“ ist der Petrol-Kreis neben dem Titel der Karte, auch 
   });
   // Sichtbar 40 px, getippt 48 px (E76: „etwas kleiner“).
   expect(m).toEqual({ nebenDemTitel: true, tastflaeche: 48, kreis: 40, clip: 'content-box' });
+  // Beim Darüberfahren bleibt er so groß (11.11.2026: „die runden Icons werden beim Hover größer“).
+  await plus.hover();
+  await expect(plus).toHaveCSS('background-color', await plus.evaluate(() => {
+    const p = document.createElement('i'); p.style.color = 'var(--petrol-tief)'; document.body.append(p);
+    const f = getComputedStyle(p).color; p.remove(); return f;
+  }));
+  await expect(plus).toHaveCSS('background-clip', 'content-box');
 });

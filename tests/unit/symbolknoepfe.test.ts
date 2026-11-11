@@ -118,13 +118,14 @@ describe('Die Gestalt der Knopfarten (E74)', () => {
   const PLANUNG = readFileSync('src/styles/lot-planung.css', 'utf8');
   const MATERIAL = readFileSync('src/styles/lot-material.css', 'utf8');
 
-  it('der Petrol-Kreis: rund, gefüllt, 48 px, gesperrt in der Fläche der gesperrten Hauptaktion', () => {
+  it('der Petrol-Kreis: rund, gefüllt, 48 px Tastfläche, gesperrt in der Fläche der gesperrten Hauptaktion', () => {
     const r = regel(LOT, '.symbol-rund');
     expect(r).toContain('width: 3rem; height: 3rem;');
     expect(r).toContain('border-radius: 999px');
     expect(r).toContain('background: var(--petrol)');
     expect(r).toContain('color: var(--auf-petrol)');
-    expect(regel(LOT, '.symbol-rund:disabled')).toContain('background: var(--surface-3)');
+    // Nur die Farbe (11.11.2026): die Kurzform `background:` setzte `background-clip` zurück.
+    expect(regel(LOT, '.symbol-rund:disabled')).toContain('background-color: var(--surface-3)');
   });
 
   it('der Kreis steht am Handy allein am rechten Rand, ab dem Tablet mit Abstand zum Pfeil', () => {
