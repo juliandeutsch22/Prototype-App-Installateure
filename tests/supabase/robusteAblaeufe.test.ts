@@ -75,6 +75,29 @@ describe('Atomare Arbeitsketten', () => {
     expect((await chef.client.rpc('wartung_einplanen', { ...args, p_faellig: '2025-10-13' })).error).not.toBeNull();
   });
 
+  /*
+    Aus `tests/unit/wartungBaustelle.test.ts` übernommen (11.11.2026): die
+    Baustelle entsteht seit dem Umzug in der Datenbank (`wartung_einplanen`);
+    die Fassung in TypeScript rief niemand mehr. Der Einfamilienhaus-Fall —
+    die Anlage hat keine eigene Adresse, dann gilt die des Kunden — und der
+    Hinweis in der Beschreibung (wer aufsperrt, wo der Schlüssel liegt) waren
+    nur dort geprüft.
+  */
+  it('nimmt die Kundenadresse, wenn die Anlage keine hat, und den Hinweis in die Beschreibung', async () => {
+    const id = (await db.query(`insert into wartungen(company_id,customer_id,customer_name,anlage,address,hinweis,intervall_monate,faellig_am)
+      values($1,$2,'Alter Name','Therme','  ','Schlüssel bei Frau Berger, Tür 3',12,'2026-10-13') returning id`, [B, kunde])).rows[0].id as string;
+    const r = await chef.client.rpc('wartung_einplanen', { p_wartung: id, p_nummer: 'HV-TEST-8', p_praefix: 'B', p_faellig: '2026-10-13' });
+    expect(r.error).toBeNull();
+    const { rows: [p] } = await db.query('select * from projects where company_id=$1 and project_number=$2', [B, 'HV-TEST-8']);
+    expect(p).toMatchObject({
+      address: 'Kundenadresse',
+      description: 'Wartung: Therme · Schlüssel bei Frau Berger, Tür 3',
+      customer_id: kunde,
+      status: 'Aktiv',
+      billing_mode: null,
+    });
+  });
+
   it('rollt eine Baustellenanlage mit ungültiger Zuordnung vollständig zurück', async () => {
     const id = await wartung();
     const r = await chef.client.rpc('wartung_einplanen', { p_wartung: id, p_nummer: 'HV-TEST-7', p_praefix: 'B', p_faellig: '2026-10-13' });

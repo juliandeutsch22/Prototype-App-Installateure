@@ -96,13 +96,13 @@ export function kundenEinspielen(
 }
 
 /** Kunden ohne Kundenart — „Kundenart prüfen“ (Runde 3, M10). */
-export function kundenOhneKundenart(companyId: string): Promise<WithId<Customer>[]> {
-  return pg.kundenOhneKundenart(companyId);
+export function kundenOhneKundenart(companyId: string, max = KUNDEN_GRENZE, begriff = ''): Promise<WithId<Customer>[]> {
+  return pg.kundenOhneKundenart(companyId, max, begriff);
 }
 
 /** Kunden, deren Anschrift zu prüfen ist (M12). */
-export function kundenAdressePruefen(companyId: string): Promise<WithId<Customer>[]> {
-  return pg.kundenAdressePruefen(companyId);
+export function kundenAdressePruefen(companyId: string, max = KUNDEN_GRENZE, begriff = ''): Promise<WithId<Customer>[]> {
+  return pg.kundenAdressePruefen(companyId, max, begriff);
 }
 
 /** Wie viele Kunden zu prüfen sind (Anschrift, Kundenart) — über den ganzen Bestand. */

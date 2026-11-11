@@ -250,15 +250,23 @@ export async function uebernehmen(
 /**
  * Einen Lauf verwerfen.
  *
- * Die Zeilen gehen mit (`on delete cascade`) — was nicht übernommen wurde,
- * soll nicht in jeder nächtlichen Sicherung mitfahren.
+ * Die Zeilen gehen mit — was nicht übernommen wurde, soll nicht in jeder
+ * nächtlichen Sicherung mitfahren. Was ein abgebrochener Lauf schon
+ * übernommen hat, bleibt im Katalog.
+ *
+ * NUR EIN OFFENER LAUF (11.11.2026). Ein übernommener behält die Zeilen, die
+ * noch zuzuordnen sind (`offenZuzuordnen`); sie zu löschen nähme dem Betrieb
+ * die Zuordnung. Ist der Lauf nicht mehr offen — inzwischen übernommen oder
+ * von jemand anderem verworfen —, bleibt alles stehen und es gibt eine Meldung.
  */
 export async function laufVerwerfen(laufId: string, client?: SupabaseClient): Promise<void> {
-  const { error } = await derClient(client)
+  const { error, count } = await derClient(client)
     .from('datanorm_laeufe')
-    .update({ status: 'verworfen', abgeschlossen_am: new Date().toISOString() })
-    .eq('id', laufId);
+    .update({ status: 'verworfen', abgeschlossen_am: new Date().toISOString() }, { count: 'exact' })
+    .eq('id', laufId)
+    .eq('status', 'offen');
   if (error) throw new Error(error.message);
+  if (count === 0) throw new Error('Der Lauf ist nicht mehr offen — er wurde inzwischen übernommen oder verworfen.');
   const weg = await derClient(client).from('datanorm_zeilen').delete().eq('lauf_id', laufId);
   if (weg.error) throw new Error(weg.error.message);
 }

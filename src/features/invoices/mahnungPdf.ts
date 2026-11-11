@@ -272,10 +272,6 @@ export async function mahnungPdfAusInhalt(company: Company, i: MahnungInhalt): P
   return doc.output('blob');
 }
 
-export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
-  return mahnungPdfAusInhalt(o.company, mahnungInhalt(o));
-}
-
 /** Ein sprechender Dateiname — nicht „download.pdf" im Ordner des Kunden. */
 export function mahnungDateiname(inv: Pick<Invoice, 'invoiceNumber'>, stufe: Mahnstufe): string {
   const wort = stufe === 1 ? 'Zahlungserinnerung' : stufe === 2 ? 'Mahnung' : 'Letzte_Mahnung';

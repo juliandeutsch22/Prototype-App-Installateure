@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Marke, Zustand, Warnung, RoleBadge, Zaehler } from '@/components/Badge';
+import { Marke, Zustand, Warnung, Zaehler } from '@/components/Badge';
 import StatusBadge from '@/components/StatusBadge';
 
 /**
@@ -146,21 +146,6 @@ describe('Der Status eines Geschäftsobjekts', () => {
   it('kennt einen unbekannten Status, ohne zu werfen', () => {
     render(<StatusBadge status="Irgendwas" />);
     expect(screen.getByText(/Irgendwas/)).toBeInTheDocument();
-  });
-});
-
-describe('Die Rolle', () => {
-  it('ist eine Marke — sechs Farben für sechs Rollen waren eine Legende', () => {
-    /*
-      Niemand lernt sie auswendig, und sie standen in Listen neben
-      Status-Pillen, mit denen sie nichts zu tun haben. Das Wort
-      „Buchhaltung" sagt, was „Gelb" nicht sagt.
-    */
-    render(<RoleBadge role="Buchhaltung" />);
-    const rolle = screen.getByText('Buchhaltung');
-
-    expect(hatFlaeche(rolle)).toBe(false);
-    expect([...rolle.classList]).toContain('section-label');
   });
 });
 

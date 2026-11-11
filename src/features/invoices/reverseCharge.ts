@@ -20,7 +20,6 @@
  * und ist eine Beurteilung, keine Rechnung. Der Betrieb entscheidet je
  * Rechnung — die App sorgt dafür, dass die Entscheidung vollständig wird.
  */
-import { uidFehler, uidNormalisieren } from '@/lib/uid';
 
 /** Der Pflichtsatz auf dem Beleg. Wortlaut nach § 11 Abs 1a UStG. */
 export const RC_HINWEIS =
@@ -68,17 +67,3 @@ export function geltenderSatz(aktiv: boolean, satz: number): number {
   return aktiv ? 0 : satz;
 }
 
-/**
- * Hat die UID die Form einer UID-Nummer?
- *
- * ABSICHTLICH NUR EINE FORMPRÜFUNG und keine Gültigkeitsabfrage: die läuft
- * über VIES und gehört zum Kunden, nicht zur einzelnen Rechnung — in der
- * Kundenakte, mit festgehaltenem Nachweis (seit 02.10.2026). Was hier
- * gefangen wird, ist der Vertipper — eine fehlende Ziffer, ein vergessenes „U".
- *
- * Die Muster je EU-Staat stehen seit dem Testbericht vom 30.09.2026 (M10) in
- * `@/lib/uid`; ausserhalb der EU gilt weiter nur die grobe Form.
- */
-export function sichtAusWieUid(uid: string): boolean {
-  return uidNormalisieren(uid) !== '' && uidFehler(uid) === null;
-}

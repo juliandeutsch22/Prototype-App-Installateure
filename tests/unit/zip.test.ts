@@ -1,10 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { crc32, zipErstellen, ZipSchreiber } from '@/lib/zip';
+import { crc32, ZipSchreiber } from '@/lib/zip';
 
 /**
  * Das ZIP des Belegarchivs (Stand-Datei 11.1, Punkt 6). Gelesen wird es hier
  * so, wie jedes Entpackprogramm es liest: vom Ende her über das Verzeichnis.
  */
+
+/** Alle Dateien auf einmal — so, wie das Belegarchiv den Schreiber füttert. */
+function zipErstellen(dateien: { name: string; inhalt: Uint8Array }[], jetzt = new Date()): Blob {
+  const schreiber = new ZipSchreiber(jetzt);
+  for (const d of dateien) schreiber.hinzufuegen(d.name, d.inhalt);
+  return schreiber.fertig();
+}
 
 interface Eintrag { name: string; flags: number; crc: number; inhalt: Uint8Array }
 

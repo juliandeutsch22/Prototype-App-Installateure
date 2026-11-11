@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { calcOverallSaldo, saldoAusBilanzen, localDateStr } from '@/lib/time';
 import {
   bilanzAusEintraegen,
-  betroffeneMonate,
   monatVon,
 } from '@shared/monatsbilanz';
 import type { AppUser, TimeEntry } from '@/types';
@@ -203,39 +202,6 @@ describe('Die Bilanz selbst', () => {
     expect(bilanzAusEintraegen('2026-09', eintraege)).toEqual(
       bilanzAusEintraegen('2026-09', eintraege),
     );
-  });
-});
-
-describe('Betroffene Monate bei einer Änderung', () => {
-  it('nimmt BEIDE Monate, wenn ein Eintrag über die Monatsgrenze verschoben wird', () => {
-    /**
-     * Wird der 31. März auf den 1. April geschoben, sind zwei Bilanzen
-     * falsch: die alte trägt die Stunden noch, die neue noch nicht. Wer nur
-     * den Zielmonat neu rechnet, lässt im alten eine Stunde stehen, die es
-     * nicht mehr gibt — aufgefallen wäre das erst am Jahressaldo.
-     */
-    const monate = betroffeneMonate(
-      { userId: 'u1', date: '2026-03-31' },
-      { userId: 'u1', date: '2026-04-01' },
-    );
-    expect(monate).toEqual([
-      { userId: 'u1', monat: '2026-03' },
-      { userId: 'u1', monat: '2026-04' },
-    ]);
-  });
-
-  it('nimmt beide Mitarbeiter, wenn ein Eintrag umgehängt wird', () => {
-    const monate = betroffeneMonate(
-      { userId: 'u1', date: '2026-03-10' },
-      { userId: 'u2', date: '2026-03-10' },
-    );
-    expect(monate).toHaveLength(2);
-  });
-
-  it('deckt Anlegen und Löschen ab', () => {
-    expect(betroffeneMonate(null, { userId: 'u1', date: '2026-03-10' })).toHaveLength(1);
-    expect(betroffeneMonate({ userId: 'u1', date: '2026-03-10' }, null)).toHaveLength(1);
-    expect(betroffeneMonate(null, null)).toHaveLength(0);
   });
 });
 

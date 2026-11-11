@@ -62,6 +62,27 @@ describe('Wie viele Kunden zu prüfen sind', () => {
     expect((await kundenOhneKundenart(BETRIEB, 1000)).length).toBe(zahl.ohneKundenart);
   });
 
+  /*
+    BLÄTTERN UND SUCHEN (11.11.2026): die Ansicht holt die Prüflisten in
+    Seiten zu 200 und gibt den Suchbegriff mit. Vorher kam fest die erste
+    Seite zu 500, und der Begriff blieb liegen.
+  */
+  it('eine größere Seite holt auch die hinter den ersten 500', async () => {
+    expect(await kundenOhneKundenart(BETRIEB, 600)).toHaveLength(540);
+    expect(await kundenAdressePruefen(BETRIEB, 600)).toHaveLength(520);
+  });
+
+  it('der Suchbegriff gilt innerhalb der Prüfliste', async () => {
+    // „Offen 51“ und „Offen 510“ bis „Offen 519“.
+    const anschrift = await kundenAdressePruefen(BETRIEB, 1000, 'Offen 51');
+    expect(anschrift.map((k) => k.name).sort()).toEqual(
+      ['Offen 51', ...Array.from({ length: 10 }, (_, i) => `Offen 51${i}`)].sort(),
+    );
+    // „Fertig 2“ hat eine Kundenart, „Fertig 20“ bis „Fertig 29“ nicht.
+    const ohneArt = await kundenOhneKundenart(BETRIEB, 1000, 'Fertig 2');
+    expect(ohneArt.map((k) => k.name).sort()).toEqual(Array.from({ length: 10 }, (_, i) => `Fertig 2${i}`).sort());
+  });
+
   it('nur der eigene Betrieb — der fremde zu prüfende Kunde zählt nicht', async () => {
     const fremd = await kundenZuPruefenAnzahl(FREMD);
     // Das Büro sieht den fremden Betrieb nicht: dort zählt es nichts.

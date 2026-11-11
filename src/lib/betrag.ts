@@ -9,7 +9,6 @@
  */
 
 const ZWEI_STELLEN = new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const GANZ = new Intl.NumberFormat('de-AT', { maximumFractionDigits: 0 });
 const BIS_VIER = new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 
 /*
@@ -32,11 +31,6 @@ export function euro(n: number): string {
  */
 export function euroBetrag(n: number): string {
   return ZWEI_STELLEN.format(n);
-}
-
-/** „€ 1.235" — auf ganze Euro gerundet, für Kennzahlen auf der Startseite. */
-export function euroGerundet(n: number): string {
-  return `${ZEICHEN}${GANZ.format(n)}`;
 }
 
 /**

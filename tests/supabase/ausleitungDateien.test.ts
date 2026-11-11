@@ -94,7 +94,18 @@ beforeAll(async () => {
   await speicherLeeren(FREMD);
 }, 240_000);
 
-afterAll(async () => { await db.end(); });
+afterAll(async () => {
+  /*
+    DER EIMER „AUSSER HAUS“ GEHT WIEDER (11.11.2026). Er ist ein Ersatz für den
+    Zielspeicher und trägt absichtlich keine Größen- und Typgrenze. Blieb er
+    stehen, fand ihn `mandantenTrennung.test.ts` („jeder Speicher … mit
+    Größen- und Typgrenze“) und wurde rot — je nachdem, welche Datei Vitest
+    zuerst laufen ließ.
+  */
+  await admin.storage.emptyBucket(S3.eimer);
+  await admin.storage.deleteBucket(S3.eimer);
+  await db.end();
+});
 
 describe('Welche Dateien noch hinaus müssen', () => {
   it('nennt jedes Foto des Betriebs — mit Eimer, Pfad und Grösse', async () => {

@@ -1,10 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
-  zuschlagszeit, hatZuschlaege, kennzeichen, LEERE_ZUSCHLAEGE,
+  zuschlagszeit, hatZuschlaege, kennzeichen, type Zuschlagszeit,
 } from '@/features/accounting/zuschlaege';
 import { buildMonthCsv, buildUserCsv } from '@/features/accounting/export';
 import { calcMonthStats } from '@/lib/time';
 import type { AppUser, TimeEntry } from '@/types';
+
+const LEERE_ZUSCHLAEGE: Zuschlagszeit = {
+  nachtMin: 0, notdienstMin: 0, beidesMin: 0, dezemberMin: 0, gesamtMin: 0,
+};
 
 /**
  * Verrechnet, aber nicht ausgewiesen.

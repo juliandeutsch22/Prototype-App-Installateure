@@ -142,29 +142,3 @@ export function bilanzAusEintraegen(monat: string, eintraege: EintragDoc[]): Mon
     tage: [...tage].sort(),
   };
 }
-
-/**
- * Welche Monate ein Schreibvorgang berührt.
- *
- * Wird ein Eintrag vom 31. März auf den 1. April verschoben, sind ZWEI
- * Monatsbilanzen falsch — die alte trägt ihn noch, die neue noch nicht. Wer
- * nur den neuen Monat neu rechnet, hinterlässt im alten eine Stunde, die es
- * nicht mehr gibt. Aufgefallen wäre das erst am Jahressaldo.
- */
-export function betroffeneMonate(
-  vorher: { userId: string; date: string } | null,
-  nachher: { userId: string; date: string } | null,
-): Array<{ userId: string; monat: string }> {
-  const raus = new Map<string, { userId: string; monat: string }>();
-  for (const d of [vorher, nachher]) {
-    if (!d?.userId || !d?.date) continue;
-    const eintrag = { userId: d.userId, monat: monatVon(d.date) };
-    raus.set(`${eintrag.userId}_${eintrag.monat}`, eintrag);
-  }
-  return [...raus.values()];
-}
-
-/** Die Dokument-ID einer Bilanz. Mandant zuerst — wie überall sonst. */
-export function bilanzId(companyId: string, userId: string, monat: string): string {
-  return `${companyId}_${userId}_${monat}`;
-}

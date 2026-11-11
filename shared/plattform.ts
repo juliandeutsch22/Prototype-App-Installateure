@@ -2,38 +2,29 @@
  * Der globale Administrator — ein Konto, das Betriebe ANLEGEN kann und in
  * keinen HINEINSIEHT.
  *
- * WOZU. Bisher entsteht ein neuer Betrieb über ein Skript, das jemand mit
- * einem Dienstkonto von Hand ausführt (`scripts/bootstrap-tenant.mjs`). Das
- * ist genau der Zustand, in dem ein Fehlgriff nicht auffällt: das Dienstkonto
- * kann alles, es bleibt kein Protokoll, und wer es hat, kommt auch an jeden
- * Kundenstamm.
+ * WOZU. Ein neuer Betrieb entsteht über die Edge Function `betrieb-anlegen`,
+ * nicht über ein Skript mit Dienstkonto: dort fiele ein Fehlgriff nicht auf,
+ * es bliebe kein Protokoll, und wer das Dienstkonto hat, käme an jeden
+ * Kundenstamm. Nur das allererste Mal (Henne und Ei) läuft über
+ * `scripts/bootstrap-postgres.mjs`, über dieselbe Datenbankfunktion.
  *
- * DIE ENTSCHEIDENDE EINSCHRÄNKUNG. Der globale Administrator bekommt einen
- * eigenen Claim (`plattformAdmin`) und mit ihm NICHT ein einziges Leserecht.
- * Die firestore.rules prüfen durchweg `resource.data.companyId ==
- * request.auth.token.companyId`; ein Token ohne `companyId` erfüllt das
- * nirgends. Das ist keine Nachlässigkeit, auf die man sich verlässt, sondern
- * die tragende Eigenschaft dieses Kontos — und sie ist in
- * `tests/rules/plattform.rules.test.ts` einzeln geprüft.
+ * DIE ENTSCHEIDENDE EINSCHRÄNKUNG. Wer in `platform_admins` steht, hat
+ * keinen Betrieb im Token und damit NICHT ein einziges Leserecht: jede
+ * Leseregel prüft den Betrieb (`app.lesebetrieb()`), und den hat dieses
+ * Konto nicht. Das ist die tragende Eigenschaft dieses Kontos — einzeln
+ * geprüft in `tests/supabase/regeln.test.ts` („kommt an kein Dokument
+ * eines Betriebs“).
  *
  * Anders gesagt: dieses Konto kann einen Betrieb ins Leben rufen und danach
  * nie wieder etwas über ihn erfahren. Wer mehr braucht, braucht ein Konto IN
  * dem Betrieb — und das legt dessen Administration an, nicht die Plattform.
  *
- * WARUM NICHT EINFACH EINE ROLLE MEHR. Weil eine Rolle im
- * `users`-Dokument eines Betriebs steht und damit an einen Betrieb gebunden
- * wäre. Der globale Administrator gehört zu keinem — er hat kein
- * `users`-Dokument, keine `companyId`, und die App zeigt ihm folglich auch
- * keinen einzigen Reiter.
+ * WARUM NICHT EINFACH EINE ROLLE MEHR. Weil eine Rolle in `users` an einen
+ * Betrieb gebunden ist. Der globale Administrator gehört zu keinem — die
+ * App zeigt ihm folglich nur den Bereich der Plattform.
  */
 
 import { benutzernameFehler, kunstadresse } from './benutzername';
-
-/** Wo die globalen Administratoren stehen. Kein Client kommt an diese Sammlung. */
-export const PLATTFORM_ADMINS = 'platformAdmins';
-
-/** Wo festgehalten wird, wer wann welchen Betrieb angelegt hat. */
-export const BETRIEBSANLAGEN = 'betriebsanlagen';
 
 /** Was beim Anlegen eines Betriebs angegeben werden muss. */
 export interface NeuerBetrieb {

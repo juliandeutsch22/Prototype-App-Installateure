@@ -26,9 +26,6 @@ import { useEffect, useState } from 'react';
 import { ladeOffenePosten, type OffenePosten } from '@/lib/db/offenePosten';
 import { todayStr } from '@/lib/time';
 
-/** Welche Zahl an welchem Menüpunkt hängt. */
-export type PostenArt = keyof OffenePosten;
-
 type Horcher = (posten: OffenePosten | undefined) => void;
 
 let stand: OffenePosten | undefined;

@@ -10,8 +10,8 @@ npm run vorschau:fotos -- fotos  # Bilder je Route × Rolle × Breite nach ./fot
 npm run pruefen:links            # jeder Link je Rolle gegen deren Rechte (startet die Vorschau selbst; läuft in der CI)
 ```
 
-Chromium: Standard ist der Pfad der Build-Umgebung; sonst `CHROMIUM_PFAD=…`
-setzen.
+Chromium: ohne `CHROMIUM_PFAD` nimmt Playwright seinen eigenen Browser; sonst
+`CHROMIUM_PFAD=…` setzen.
 
 Aufrufen lässt sich jede Route über Abfrageparameter:
 
@@ -66,6 +66,10 @@ Falschmeldungen der Messung, die keine Fehler sind:
 | `AuthStub.tsx` | Ersetzt `AuthContext`. Gibt ein **stabiles** Objekt zurück — sonst laufen die Abos endlos neu auf. |
 | `leer.ts` | Ersatz für Firebase, Supabase und Push. Nur Namen, keine Wirkung. |
 | `messen.mjs` | Der Durchgang über alle Routen. |
+| `schnell.mjs` | Eine Route auf einen Blick: ganzseitiges Bild und Breite der Seite, Fehler beim Rendern (`node tools/vorschau/schnell.mjs /time Mitarbeiter 390 /tmp/zeit.png`). |
+| `ausschnitt.mjs` | Ein Element fotografieren, wahlweise nach einem Klick (`… ausschnitt.mjs <pfad> <rolle> <breite> <datei> <selektor> [höhe] [klick-selektor]`) — für Vorher/Nachher eines Bausteins. |
+| `texte.mjs` | Liest den sichtbaren Text jeder Route (aufgeklappt) und meldet Formate zum Nachsehen: ISO-Datum, Dezimalpunkt, Monatsnamen, ungepolsterte Daten, ganze Stunden. Weiter gefasst als die feste Regel der Linkprüfung (`tests/links/schreibweise.ts`) — es meldet Kandidaten, keine Fehler. |
+| `unterschrift.mjs` | Geht am Telefon den Schein bis zur Unterschrift durch und fotografiert das Feld, das große Blatt hoch und quer (`… unterschrift.mjs <ordner>`). Die Funktion prüft `SignaturePad.test.tsx`; das hier ist der Blick darauf. |
 
 Die Stubs unter `db/` werden **erzeugt** und sind nicht eingecheckt
 (`.gitignore`). Damit können sie nicht veralten, wenn die Datenschicht eine

@@ -111,8 +111,8 @@ export const NAV: NavItem[] = [
   { path: '/', label: 'Start', short: 'Start', icon: 'home', roles: ALL, group: 'Start' },
 
   // JEDE Rolle muss die eigene Zeit buchen können (auch die Buchhaltung:
-  // Krankenstand und Urlaub). Legacy setzt den Tab unbedingt, ohne
-  // Rollenprüfung (perl-installateur-web-app.html:1954).
+  // Krankenstand und Urlaub). Die Altanwendung setzte den Tab unbedingt, ohne
+  // Rollenprüfung (perl-installateur-web-app.html:1954, in der Git-Geschichte).
   { path: '/time', label: 'Zeiterfassung', short: 'Zeit', icon: 'clock', roles: ALL, group: 'Team' },
   /*
    * MATERIAL SIND DREI EIGENE BEREICHE, KEIN REITER MIT UNTERREITERN.

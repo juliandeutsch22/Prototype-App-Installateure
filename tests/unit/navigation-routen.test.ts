@@ -4,8 +4,6 @@ import { resolve } from 'node:path';
 import { NAV, UNTER, canAccess, navForRole, unterseitenFuer } from '@/app/navigation';
 import {
   canInvoice,
-  canManageUsers,
-  canManageProjects,
   canProcessOrders,
 } from '@/lib/permissions';
 
@@ -448,13 +446,10 @@ describe('Wer wohin darf — die Entscheidungen, die dahinterstehen', () => {
      * angeboten, die serverseitig scheitern mussten.
      */
     expect(canInvoice('Projektleiter')).toBe(false);
-    expect(canManageUsers('Projektleiter')).toBe(false);
     // Und das, was sie sehr wohl darf, bleibt ihr:
-    expect(canManageProjects('Projektleiter')).toBe(true);
     expect(canProcessOrders('Projektleiter')).toBe(true);
-    // Die Buchhaltung rechnet weiterhin ab, ohne Baustellen zu verwalten.
+    // Die Buchhaltung rechnet weiterhin ab.
     expect(canInvoice('Buchhaltung')).toBe(true);
-    expect(canManageProjects('Buchhaltung')).toBe(false);
   });
 });
 

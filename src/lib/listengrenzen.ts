@@ -75,10 +75,6 @@ export function katalogAbgeschnitten(artikel: readonly unknown[], grenze = KATAL
  */
 export const KUNDEN_GRENZE = 500;
 
-export function kundenAbgeschnitten(kunden: readonly unknown[], grenze = KUNDEN_GRENZE) {
-  return abgeschnitten(kunden, grenze);
-}
-
 /**
  * Wie viele laufende Baustellen höchstens geholt werden.
  *

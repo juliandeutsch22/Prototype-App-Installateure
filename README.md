@@ -3,7 +3,9 @@
 Mandantenfähige Software für Zeiterfassung, Baustellen, Material,
 Einsatzplanung, Handwerksscheine, Angebote, Rechnungen, Mahnwesen, Urlaub und
 Wartungen. Entstanden aus einer monolithischen Einzeldatei
-(`perl-installateur-web-app.html`, rund 10 400 Zeilen).
+(`perl-installateur-web-app.html`, rund 10 400 Zeilen). Sie ist vollständig
+abgelöst und seit dem 11.11.2026 nicht mehr im Arbeitsstand; nachlesen lässt
+sie sich in der Git-Geschichte: `git show 28278154:perl-installateur-web-app.html`.
 
 ## Dokumentation
 

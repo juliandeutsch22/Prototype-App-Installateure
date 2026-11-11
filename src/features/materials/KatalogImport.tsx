@@ -10,6 +10,9 @@ import { InputField, SelectField } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
 import { Marke, Warnung } from '@/components/Badge';
 import { ErrorState } from '@/components/States';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import IconButton from '@/components/IconButton';
+import Icon from '@/components/Icon';
 import { useToast } from '@/components/Toast';
 import {
   befunde,
@@ -95,6 +98,8 @@ export default function KatalogImport({
   /** Der Lauf, dessen Bericht gerade steht — seine Preissprünge holt die Liste darunter. */
   const [fertigerLauf, setFertigerLauf] = useState<string | null>(null);
   const [laeufe, setLaeufe] = useState<WithId<dn.Lauf>[]>([]);
+  /** Ein liegengebliebener Lauf aus dem Protokoll, nach dem gefragt wird. */
+  const [verwerfenFrage, setVerwerfenFrage] = useState<WithId<dn.Lauf> | null>(null);
   const dateiFeld = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -223,6 +228,38 @@ export default function KatalogImport({
     }
   }
 
+  /*
+    VERWERFEN VERWIRFT (11.11.2026). Bis hierher setzte der Knopf nur die
+    Maske zurück: brach die Übernahme ab und man verwarf, blieb der Lauf
+    „nicht abgeschlossen“ stehen und seine übrigen Zeilen fuhren in jeder
+    Sicherung mit. Liegt ein Lauf im Zwischenlager, geht er jetzt mit; was er
+    schon übernommen hat, bleibt im Katalog.
+  */
+  async function laufWeg(lauf: string): Promise<boolean> {
+    try {
+      await dn.laufVerwerfen(lauf);
+    } catch (e) {
+      // Als Meldung, nicht als `fehler`: nach der Übernahme steht die Maske nicht, die ihn zeigt.
+      toast.error(`Der Lauf ließ sich nicht verwerfen: ${(e as Error).message}`);
+      return false;
+    } finally {
+      dn.laeufe(betrieb, 10).then(setLaeufe).catch(() => undefined);
+    }
+    toast.success('Lauf verworfen');
+    return true;
+  }
+
+  async function verwerfen() {
+    const lauf = laufInArbeitRef.current;
+    if (lauf) {
+      setBusy(true);
+      const weg = await laufWeg(lauf);
+      setBusy(false);
+      if (!weg) return;
+    }
+    zurueck();
+  }
+
   function zurueck() {
     setLaufInArbeit(null);
     setFertigerLauf(null);
@@ -232,6 +269,22 @@ export default function KatalogImport({
     setFehler(null);
     setSchritt('datei');
   }
+
+  const frage = (
+    <ConfirmDialog
+      open={!!verwerfenFrage}
+      title="Lauf verwerfen?"
+      confirmLabel="Verwerfen"
+      message={verwerfenFrage
+        ? `„${verwerfenFrage.dateiname ?? 'ohne Dateiname'}“ vom ${datumAusMs(verwerfenFrage.createdAt)} ist nicht abgeschlossen. Was er schon übernommen hat, bleibt im Katalog; seine übrigen Zeilen werden gelöscht.`
+        : ''}
+      onCancel={() => setVerwerfenFrage(null)}
+      onConfirm={async () => {
+        if (verwerfenFrage) await laufWeg(verwerfenFrage.id);
+        setVerwerfenFrage(null);
+      }}
+    />
+  );
 
   if (schritt === 'fertig' && bericht) {
     return (
@@ -282,7 +335,8 @@ export default function KatalogImport({
         {verlaufAn && fertigerLauf && (bericht.preisspruenge ?? 0) > 0 && (
           <Preisspruenge laufId={fertigerLauf} />
         )}
-        <Protokoll laeufe={laeufe} />
+        <Protokoll laeufe={laeufe} inArbeit={laufInArbeit} onVerwerfen={setVerwerfenFrage} />
+        {frage}
       </div>
     );
   }
@@ -526,7 +580,7 @@ export default function KatalogImport({
                   ? 'Weiter übernehmen'
                   : `${zahlen.artikel} Artikel übernehmen`}
             </Button>
-            <Button variant="ghost" onClick={zurueck} disabled={busy} className="w-full sm:w-auto">
+            <Button variant="ghost" onClick={() => void verwerfen()} disabled={busy} className="w-full sm:w-auto">
               Verwerfen
             </Button>
           </div>
@@ -549,7 +603,8 @@ export default function KatalogImport({
         </>
       )}
 
-      <Protokoll laeufe={laeufe} />
+      <Protokoll laeufe={laeufe} inArbeit={laufInArbeit} onVerwerfen={setVerwerfenFrage} />
+      {frage}
     </div>
   );
 }
@@ -561,7 +616,12 @@ export default function KatalogImport({
  * die stellt sich erst, wenn eine Rechnung nicht stimmt. Dann ist es zu spät,
  * sie erst zu beantworten.
  */
-function Protokoll({ laeufe }: { laeufe: WithId<dn.Lauf>[] }) {
+function Protokoll({ laeufe, inArbeit, onVerwerfen }: {
+  laeufe: WithId<dn.Lauf>[];
+  /** Der Lauf, an dem die Maske gerade arbeitet — er hat dort sein eigenes „Verwerfen“. */
+  inArbeit: string | null;
+  onVerwerfen: (l: WithId<dn.Lauf>) => void;
+}) {
   if (laeufe.length === 0) return null;
   return (
     <Card title="Bisher eingespielt">
@@ -569,7 +629,7 @@ function Protokoll({ laeufe }: { laeufe: WithId<dn.Lauf>[] }) {
         {laeufe.map((l) => {
           const u = (l.bericht as { uebernahme?: dn.UebernahmeBericht } | null)?.uebernahme;
           return (
-            <li key={l.id} className="flex flex-wrap items-baseline gap-x-2">
+            <li key={l.id} className="flex flex-wrap items-center gap-x-2">
               <span className="font-normal">{l.dateiname ?? 'ohne Dateiname'}</span>
               <span className="text-ink-muted">
                 {datumAusMs(l.createdAt)}
@@ -579,6 +639,12 @@ function Protokoll({ laeufe }: { laeufe: WithId<dn.Lauf>[] }) {
                     ? ' · verworfen'
                     : ' · nicht abgeschlossen'}
               </span>
+              {/* Liegengeblieben (etwa nach einem Neuladen mitten in der Übernahme): hier verwerfen. */}
+              {l.status === 'offen' && l.id !== inArbeit && (
+                <IconButton label={`Lauf „${l.dateiname ?? 'ohne Dateiname'}“ verwerfen`} tone="danger" className="ml-auto" onClick={() => onVerwerfen(l)}>
+                  <Icon name="papierkorb" size={22} />
+                </IconButton>
+              )}
             </li>
           );
         })}

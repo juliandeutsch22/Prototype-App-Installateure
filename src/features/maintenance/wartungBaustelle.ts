@@ -1,5 +1,3 @@
-import type { Customer, Project, Wartung } from '@/types';
-
 /**
  * Aus einer fälligen Wartung eine Baustelle machen.
  *
@@ -14,6 +12,11 @@ import type { Customer, Project, Wartung } from '@/types';
  * Dienstag dieselben drei Zeilen im selben Rot: „fällig" hiess sowohl „noch
  * nichts passiert" als auch „steht längst im Einsatzplan". Beim zweiten
  * Durchgang entsteht die Baustelle ein zweites Mal.
+ *
+ * Die Baustelle selbst legt die Datenbank an (`wartung_einplanen`: Anlagen-
+ * vor Kundenadresse, Name aus dem Kundenstamm, Abrechnungsart offen, geprüft
+ * in `tests/supabase/robusteAblaeufe.test.ts`). Hier bleibt nur die Prüfung
+ * einer selbst eingegebenen Nummer vor dem Absenden.
  */
 
 /*
@@ -29,45 +32,4 @@ export function nummerFrei(nummer: string, vorhandene: string[]): boolean {
   const gesucht = nummer.trim().toLowerCase();
   if (!gesucht) return false;
   return !vorhandene.some((n) => n.trim().toLowerCase() === gesucht);
-}
-
-/**
- * Die Baustelle, wie sie aus der Wartung entsteht.
- *
- * DIE ADRESSE IST DER GRUND, WARUM DAS EINE EIGENE FUNKTION IST. Eine
- * Hausverwaltung hat eine Rechnungsadresse und zwanzig Heizungen an zwanzig
- * anderen; die Anlagenadresse der Wartung gewinnt deshalb immer, und die
- * Kundenadresse tritt nur ein, wenn dort nichts steht. Andersherum führe der
- * Monteur zur Hausverwaltung.
- *
- * `billingMode` bleibt OFFEN. Ob eine Wartung pauschal oder nach Aufwand
- * abgerechnet wird, steht im Wartungsvertrag und nicht in dieser App; eine
- * Vorbelegung wäre eine Behauptung über den Vertrag, und sie stünde auf jedem
- * Handwerksschein.
- */
-export function baustelleAusWartung(
-  wartung: Wartung,
-  kunde: Customer | undefined,
-  projectNumber: string,
-): Omit<Project, 'id' | 'companyId' | 'createdAt'> {
-  const beschreibung = [`Wartung: ${wartung.anlage}`.trim(), wartung.hinweis?.trim()]
-    .filter(Boolean)
-    .join(' · ');
-  return {
-    projectNumber: projectNumber.trim(),
-    // Die Verknüpfung mitnehmen, nicht nur den Namen: sonst hinge die neue
-    // Baustelle in der Kundenakte nicht mit drin, und genau dort sucht sie
-    // jemand, der den Kunden am Telefon hat.
-    customerId: wartung.customerId || undefined,
-    /*
-      DER NAME VON HEUTE, nicht der beim Anlegen der Wartung (Prüflauf
-      25.09.2026, P2-18). Die Wartung trägt eine Kopie; heisst der Kunde
-      inzwischen anders, stünde der alte Name auf Baustelle, Schein und
-      Rechnung. Ohne Stammsatz bleibt die Kopie.
-    */
-    customerName: kunde?.name ?? wartung.customerName,
-    address: wartung.address?.trim() || kunde?.address || undefined,
-    description: beschreibung,
-    status: 'Aktiv',
-  };
 }

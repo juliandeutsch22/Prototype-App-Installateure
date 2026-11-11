@@ -244,6 +244,19 @@ export async function createTimeEntryOhneEmpfang(
   return stand;
 }
 
+/**
+ * Ändert einen Zeiteintrag — und blockt dabei dieselbe Doppelbuchung wie beim
+ * Anlegen.
+ *
+ * Die Prüfung fehlte hier einmal: `createTimeEntry` liess keine zweite
+ * Buchung am selben Tag zu, das BEARBEITEN durfte ein Datum aber auf einen
+ * Tag schieben, an dem bereits gebucht war. Danach stehen zwei Einträge auf
+ * demselben Tag, der Überstunden-Saldo zählt beide, und niemand sieht es.
+ *
+ * `owner` meint den EIGENTÜMER des Eintrags, nicht den Bearbeiter: korrigiert
+ * die Buchhaltung den Eintrag eines Monteurs, muss gegen dessen Tage geprüft
+ * werden, nicht gegen ihre eigenen.
+ */
 export async function updateTimeEntryOhneEmpfang(
   id: string,
   data: Partial<TimeEntry>,
@@ -263,40 +276,6 @@ export async function updateTimeEntryOhneEmpfang(
     if (grund) throw new DuplicateEntryError(data.date, grund);
   }
   return pg.aendernOhneEmpfang(id, data);
-}
-
-/**
- * Ändert einen Zeiteintrag — und blockt dabei dieselbe Doppelbuchung wie beim
- * Anlegen.
- *
- * Die Prüfung fehlte hier einmal: `createTimeEntry` liess keine zweite
- * Buchung am selben Tag zu, das BEARBEITEN durfte ein Datum aber auf einen
- * Tag schieben, an dem bereits gebucht war. Danach stehen zwei Einträge auf
- * demselben Tag, der Überstunden-Saldo zählt beide, und niemand sieht es.
- *
- * `owner` meint den EIGENTÜMER des Eintrags, nicht den Bearbeiter: korrigiert
- * die Buchhaltung den Eintrag eines Monteurs, muss gegen dessen Tage geprüft
- * werden, nicht gegen ihre eigenen.
- */
-export async function updateTimeEntry(
-  id: string,
-  data: Partial<TimeEntry>,
-  owner: { companyId: string; userId: string },
-): Promise<void> {
-  if (data.date) {
-    const vorhandene = await tagesbuchungenFuerPruefung(owner.companyId, owner.userId, data.date, id);
-    const grund = buchungKonflikt(
-      {
-        status: data.status ?? 'Anwesend',
-        projectNumber: data.projectNumber,
-        startTime: data.startTime,
-        endTime: data.endTime,
-      },
-      vorhandene,
-    );
-    if (grund) throw new DuplicateEntryError(data.date, grund);
-  }
-  return pg.aendern(id, data);
 }
 
 export function deleteTimeEntry(id: string): Promise<void> {

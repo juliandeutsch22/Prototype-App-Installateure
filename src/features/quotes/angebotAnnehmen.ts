@@ -3,24 +3,6 @@ import type { Abrechnungsart, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 
 /**
- * Was aus einem angenommenen Angebot in die Baustelle wandert.
- *
- * GEMELDET: „in der Baustellenbeschreibung steht nur ‚Aus Angebot
- * AN-2026-0001', und man kann nirgends sehen, was das Angebot war". Die
- * Anmerkungen des Angebots — dort steht, WAS gemacht werden soll — gingen
- * verloren. Der Monteur, der die Baustelle öffnet, sieht Angebote gar nicht
- * (sie tragen Preise); für ihn ist die Beschreibung der einzige Auftragstext.
- *
- * Jetzt stehen die Anmerkungen oben, der Verweis aufs Angebot darunter. Das
- * Angebot selbst ist von der Baustellenakte aus verlinkt.
- */
-export function beschreibungAusAngebot(q: Pick<Quote, 'notes' | 'quoteNumber'>): string {
-  const vermerk = `Aus Angebot ${q.quoteNumber}`;
-  const text = q.notes?.trim();
-  return text ? `${text}\n\n${vermerk}` : vermerk;
-}
-
-/**
  * Annehmen — und daraus die Baustelle machen.
  *
  * Der eigentliche Zweck des ganzen Schritts. Die kalkulierten Stunden

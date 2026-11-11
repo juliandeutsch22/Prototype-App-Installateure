@@ -111,7 +111,6 @@ src/lib/db/timeEntries.ts#listOwnEntriesSince: (companyId: string, uid: string, 
 src/lib/db/timeEntries.ts#listUrlaubstage: (companyId: string, from: string, to: string) => Promise<WithId<TimeEntry>[]>
 src/lib/db/timeEntries.ts#subscribeEntriesInRange: (companyId: string, from: string, to: string, cb: (rows: WithId<TimeEntry>[]) => void, onError: (e: Error) => void) => () => void
 src/lib/db/timeEntries.ts#subscribeOwnEntriesInRange: (companyId: string, uid: string, from: string, to: string, cb: (rows: WithId<TimeEntry>[]) => void, onError: (e: Error) => void) => () => void
-src/lib/db/timeEntries.ts#updateTimeEntry: (id: string, data: Partial<TimeEntry>, owner: { companyId: string; userId: string; }) => Promise<void>
 src/lib/db/timeEntries.ts#updateTimeEntryOhneEmpfang: (id: string, data: Partial<TimeEntry>, owner: { companyId: string; userId: string; }) => Promise<WriteOutcome>
 src/lib/db/users.ts#DEFAULT_VACATION_DAYS: 25
 src/lib/db/users.ts#DEFAULT_WEEKLY_HOURS: 40

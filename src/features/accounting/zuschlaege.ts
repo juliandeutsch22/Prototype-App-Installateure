@@ -59,10 +59,6 @@ export interface Zuschlagszeit {
   gesamtMin: number;
 }
 
-export const LEERE_ZUSCHLAEGE: Zuschlagszeit = {
-  nachtMin: 0, notdienstMin: 0, beidesMin: 0, dezemberMin: 0, gesamtMin: 0,
-};
-
 /** Die Normalarbeitszeit am 24. und 31. Dezember endet um 12 Uhr. */
 const MITTAG_MIN = 12 * 60;
 
