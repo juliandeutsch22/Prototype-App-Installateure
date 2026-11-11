@@ -232,6 +232,15 @@ Nachtlauf darf nicht wegzuklicken sein.
   „Auf diesem Gerät einschalten“ genügt. Grund: Datenschutz — wer
   abgeschaltet hat, bleibt aus.
 
+- **„from Senklot“ unter dem Absender (iPhone, 11.11.2026, E80).** iOS
+  setzt bei jeder Web-App vom Home-Bildschirm die Zeile „from“ und den Namen
+  der App unter den Titel einer Meldung; eine Web-App kann sie weder
+  entfernen noch übersetzen. Seit iOS 18.5 steht dort nur noch das englische
+  „from“ (davor „von“) — ein Fehler bei Apple. Der Rest der Meldung ist
+  gebaut wie bei WhatsApp: fett der Absender (in Runden die Runde), darunter
+  der Text. Grund: liegt beim Gerät; wegfallen würde die Zeile nur mit einer
+  eigenen App aus dem App Store.
+
 ## Durchsicht der Abläufe — begründete Grenzen (09.11.2026, E70)
 
 - **Verbuchte Anforderungen aus der Zeit vor dem Bewegungsprotokoll

@@ -1,5 +1,5 @@
 import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -280,6 +280,48 @@ describe('Das Gespräch', () => {
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(blase).toHaveFocus();
+  });
+
+  /*
+    AM HANDY VERLÄSSLICH (11.11.2026): mit dem Finger nimmt die Leiste den
+    Fokus nicht (die Tastatur bliebe sonst nicht offen), hat „Text markieren“,
+    und das `contextmenu` von Android ist das lange Drücken selbst.
+    Gegenprobe: mit dem Stand davor geht der Fokus in die Leiste, „Text
+    markieren“ fehlt, und das `contextmenu` öffnet nichts.
+  */
+  it('mit dem Finger: Leiste mit „Text markieren“, der Fokus bleibt in der Eingabe; Androids contextmenu öffnet sofort', async () => {
+    // jsdom kennt kein PointerEvent: die Art des Zeigers wird von Hand gesetzt.
+    const finger = (art: 'pointerDown' | 'pointerUp', el: Element) => {
+      const e = createEvent[art](el, { clientX: 10, clientY: 10 });
+      Object.defineProperty(e, 'pointerType', { value: 'touch' });
+      fireEvent(el, e);
+    };
+    verlaufWert = [nachricht(1, { text: 'Bin um 7 dort' })];
+    zeige();
+    const blase = await screen.findByRole('group', { name: /Nachricht von Anna Huber/ });
+    const feld = document.getElementById('nachricht-text') as HTMLTextAreaElement;
+    feld.focus();
+    finger('pointerDown', blase);
+    const wahl = await screen.findByRole('dialog', { name: 'Zur Nachricht von Anna Huber' }, { timeout: 1500 });
+    finger('pointerUp', blase);
+    expect(feld).toHaveFocus();
+    expect(within(wahl).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Reagieren: Daumen hoch', 'Reagieren: Herz', 'Reagieren: Lachen', 'Reagieren: Staunen', 'Reagieren: Traurig', 'Reagieren: Danke',
+      'Text markieren', 'Text kopieren', 'Melden',
+    ]);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(feld).toHaveFocus();
+
+    // Android: das contextmenu während des Drucks öffnet sofort, ohne die eigene Frist.
+    finger('pointerDown', blase);
+    const menue = createEvent.contextMenu(blase);
+    fireEvent(blase, menue);
+    expect(menue.defaultPrevented).toBe(true);
+    expect(screen.getByRole('dialog', { name: 'Zur Nachricht von Anna Huber' })).toBeInTheDocument();
+    finger('pointerUp', blase);
+    // Der Klick nach dem langen Drücken wird noch kurz geschluckt — nicht in die nächste Prüfung hinein.
+    await new Promise((r) => setTimeout(r, 450));
   });
 
   it('in der schwebenden Leiste: ein Zeichen setzt die Reaktion und schließt; „Melden“ öffnet das Formular', async () => {

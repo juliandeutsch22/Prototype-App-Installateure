@@ -147,8 +147,11 @@ export default function Gespraech({
   const [dateiFehler, setDateiFehler] = useState<string | null>(null);
   const [auftrag, setAuftrag] = useState<Auftrag | null>(null);
   const [leiste, setLeiste] = useState<Leiste | null>(null);
-  /** Die schwebende Leiste nach langem Drücken oder mit der Eingabetaste (E79). */
-  const [wahl, setWahl] = useState<Nachricht | null>(null);
+  /** Die schwebende Leiste nach langem Drücken (`finger`) oder mit der Eingabetaste (E79). */
+  const [wahl, setWahl] = useState<{ n: Nachricht; finger: boolean } | null>(null);
+  const wahlZu = useCallback(() => setWahl(null), []);
+  /** Die Nachricht, deren Text am Handy gerade markiert ist („Text markieren“). */
+  const [markiert, setMarkiert] = useState<string | null>(null);
   const [erwaehnen, setErwaehnen] = useState(false);
   const [versuch, setVersuch] = useState(0);
   const lauf = useRef(0);
@@ -161,6 +164,31 @@ export default function Gespraech({
   const toast = useToast();
   const nachrichtenAn = useModul('nachrichten');
   const langDruck = useLangDruck();
+
+  /*
+    TEXT MARKIEREN AM HANDY (11.11.2026): „auch das Markieren des Textes
+    funktioniert noch nicht verlässlich.“ Langes Drücken öffnet die Leiste —
+    dieselbe Geste kann nicht auch markieren, und wer zuerst kam (das System
+    oder die Leiste), war Zufall. „Text markieren“ in der Leiste markiert den
+    ganzen Text dieser Nachricht; solange die Markierung steht, gehört das
+    lange Drücken dort dem System, das die Griffe zum Anpassen und sein Menü
+    zum Kopieren bringt. Ein Tipp daneben hebt die Markierung auf — und die
+    Nachricht hat wieder die Leiste.
+  */
+  useLayoutEffect(() => {
+    if (!markiert) return;
+    const ziel = zeileIn(rahmen.current, markiert)?.querySelector<HTMLElement>('.nachricht-ziel');
+    const text = ziel?.querySelector('.nachricht-text');
+    const auswahl = window.getSelection();
+    if (!ziel || !text || !auswahl) { setMarkiert(null); return; }
+    auswahl.selectAllChildren(text);
+    const pruefen = () => {
+      const s = window.getSelection();
+      if (!s || s.isCollapsed || !s.anchorNode || !ziel.contains(s.anchorNode)) setMarkiert(null);
+    };
+    document.addEventListener('selectionchange', pruefen);
+    return () => document.removeEventListener('selectionchange', pruefen);
+  }, [markiert]);
 
   /** Die erste Seite (neueste zuerst) — still heißt: der Verlauf bleibt stehen, bis die Antwort da ist. */
   const laden = useCallback(async (still: boolean) => {
@@ -701,12 +729,14 @@ export default function Gespraech({
               className="nachricht-ziel"
               role="group"
               tabIndex={mitLeiste ? 0 : undefined}
-              {...(mitLeiste ? langDruck(() => { leisteZu(); setWahl(e.n); }) : {})}
+              data-markiert={markiert === e.n.id ? 'ja' : undefined}
+              // Markiert: das lange Drücken gehört dem System — es setzt die Griffe der Markierung.
+              {...(mitLeiste && markiert !== e.n.id ? langDruck(() => { leisteZu(); setWahl({ n: e.n, finger: true }); }) : {})}
               onKeyDown={mitLeiste ? (ev) => {
                 if (ev.target !== ev.currentTarget || (ev.key !== 'Enter' && ev.key !== ' ')) return;
                 ev.preventDefault();
                 leisteZu();
-                setWahl(e.n);
+                setWahl({ n: e.n, finger: false });
               } : undefined}
               aria-label={`Nachricht von ${e.eigene ? 'dir' : e.n.vonName}, ${zeitText(e.n.gesendetAm)}${mitLeiste ? ' — Eingabetaste für die Möglichkeiten' : ''}`}
             >
@@ -924,15 +954,18 @@ export default function Gespraech({
     </section>
 
       {wahl && (() => {
-        const ziel = blattIn(rahmen.current, wahl.id);
+        const ziel = blattIn(rahmen.current, wahl.n.id);
+        const n = wahl.n;
         return ziel && (
           <NachrichtWahl
-            n={wahl}
-            m={moeglichkeiten(wahl, kopf, nachrichtenAn)}
+            n={n}
+            m={moeglichkeiten(n, kopf, nachrichtenAn)}
             ziel={ziel}
-            onReagieren={(z, an) => void reagieren(wahl, z, an)}
-            onHandlung={(h) => void handlung(wahl, h)}
-            onClose={() => setWahl(null)}
+            finger={wahl.finger}
+            onMarkieren={wahl.finger && n.text && !n.geloeschtAm ? () => setMarkiert(n.id) : undefined}
+            onReagieren={(z, an) => void reagieren(n, z, an)}
+            onHandlung={(h) => void handlung(n, h)}
+            onClose={wahlZu}
           />
         );
       })()}

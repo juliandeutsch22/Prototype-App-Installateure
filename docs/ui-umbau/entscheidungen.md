@@ -3189,3 +3189,61 @@ Geste; „Text kopieren“ in der Leiste nimmt den ganzen Text. **Nachweis:**
   Blase keine Leiste, auf ihr schon, auf der Leiste bleibt sie, weg geht
   sie; Ziehen markiert den Text, Doppelklick ein Wort, nichts öffnet sich.
   Gegenprobe gegen den Stand davor: beide rot.
+
+
+**E80 — Am Handy verlässlich: langes Drücken, Text markieren, keine Sprünge (11.11.2026).**
+Auftrag: „Im Chat mobil: das längere Drücken, damit der Balken erscheint,
+funktioniert noch nicht verlässlich, auch das Markieren des Textes. Beim
+Auswählen eines z. B. Emojis im Balken passieren dann oft komische Sprünge.“
+
+Nachgestellt am Pixel 7 (Chromium, echte Berührungen): die Ursachen.
+- **Der Fokus verließ die Eingabe.** Beim Loslassen eines langen Drucks
+  schickt Chromium ein `mousedown` hinterher, und die schwebende Leiste holte
+  den Fokus zu sich. Am Telefon ging dabei die Tastatur zu, die Ansicht
+  änderte die Größe — und die Leiste schloss beim Rollen und bei jeder
+  Größenänderung. Nach einem Zeichen ging der Fokus zurück in die Eingabe,
+  die Tastatur sprang auf und schob die Seite: die „komischen Sprünge“.
+- **Android zählte mit.** Android meldet sein eigenes langes Drücken als
+  `contextmenu`, oft vor unseren 500 ms; wer zuerst kam, gewann (die Leiste
+  oder das System).
+
+Entschieden:
+- **Mit dem Finger bleibt der Fokus, wo er war**: das `mousedown` nach dem
+  langen Drücken wird geschluckt (wie schon der Klick), die Leiste holt den
+  Fokus nicht und gibt ihn nicht zurück, ein Tipp auf ein Zeichen nimmt ihn
+  auch nicht. Die Tastatur bleibt, wie sie war. Mit der Eingabetaste bleibt
+  alles wie in E79 (Fokus hinein und zurück).
+- **Die Leiste folgt ihrer Nachricht**, wenn die Seite rollt oder die
+  Tastatur kommt oder geht (`scroll`, `resize`, `visualViewport`), einmal je
+  Bild; sie geht erst, wenn die Nachricht den freien Teil zwischen Kopfleiste
+  und Eingabe ganz verlässt. Der freie Teil zählt nur, was die Tastatur übrig
+  lässt.
+- **Das `contextmenu` während eines Drucks ist das lange Drücken selbst**:
+  die Leiste kommt sofort, das Systemmenü nicht. iOS meldet keines, dort
+  zählt weiter die eigene Frist. Bewegungsspielraum 10 px (wie Apple).
+- **„Text markieren“** in der schwebenden Leiste (nur mit dem Finger; die
+  Maus markiert direkt): markiert den ganzen Text der Nachricht. Solange die
+  Markierung steht, gehört das lange Drücken auf dieser Nachricht dem System
+  — es bringt die Griffe zum Anpassen und sein Menü zum Kopieren. Ein Tipp
+  daneben hebt sie auf. Neues Zeichen `markieren` (Textcursor).
+
+**Grenze mit Grund:** Ob das Telefon zu einer so gesetzten Markierung gleich
+seine Griffe und sein Menü zeigt, entscheidet der Browser des Geräts (Gerät);
+tut er es nicht, bringt ein langes Drücken in den markierten Text beides.
+Hier nur im nachgebauten Telefon (Chromium) geprüft, nicht an einem echten
+Gerät. Dazu, auf Nachfrage geprüft: die Push-Meldung am iPhone zeigt unter
+dem Absender „from Senklot“. Die Zeile setzt iOS bei jeder Web-App vom
+Home-Bildschirm selbst, seit iOS 18.5 nur noch englisch (Fehler bei Apple);
+eine Web-App kann sie weder entfernen noch übersetzen (Gerät). Alles andere
+ist schon wie bei WhatsApp: fett der Absender, in Runden die Runde, darunter
+der Text bzw. „Name: Text“ — daran wird nichts geändert. **Nachweis:**
+- `reaktionen.spec.ts` (Browser, Pixel 7): Leiste bleibt bei offener
+  Tastatur, Größenänderung und Rollen offen und folgt (8 px), der Fokus
+  bleibt in der Eingabe auch nach einem Zeichen; Androids `contextmenu`
+  öffnet sofort; „Text markieren“ markiert den Text. Gegenprobe gegen den
+  Stand davor: 3 rot; ohne den Schutz beim Tipp auf ein Zeichen: rot. Dazu
+  „nichts springt“ (eine vorher angetippte Nachricht, ein Zeichen): Blase
+  und Rollstand bleiben — eine Prüfung, dass es so bleibt.
+- `Nachrichten.test.tsx`: mit dem Finger „Text markieren“ in der Leiste, der
+  Fokus bleibt in der Eingabe, `contextmenu` öffnet sofort; mit der
+  Eingabetaste ohne „Text markieren“ (unverändert). Gegenprobe: rot.
