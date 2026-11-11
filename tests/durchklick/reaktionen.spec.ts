@@ -129,9 +129,10 @@ test('Der eine reagiert, der andere sieht es ohne Neuladen und setzt dieselbe', 
   await anmelden(monteur, MONTEUR.email);
   await monteur.goto(`/nachrichten/${kanal}`);
   const letzte = TEXTE[TEXTE.length - 1][1];
-  await expect(monteur.getByText(letzte)).toBeVisible({ timeout: 15_000 });
+  // Im Verlauf — derselbe Text steht als Vorschau auch im Posteingang.
+  await expect(monteur.getByRole('list', { name: 'Verlauf' }).getByText(letzte)).toBeVisible({ timeout: 15_000 });
 
-  await buero.getByText(letzte).hover();
+  await buero.getByRole('list', { name: 'Verlauf' }).getByText(letzte).hover();
   const leiste = buero.getByRole('toolbar', { name: `Zur Nachricht von ${MONTEUR.name}` });
   await leiste.getByRole('button', { name: 'Reagieren: Daumen hoch' }).click();
   await expect(buero.getByRole('button', { name: 'Daumen hoch, 1: Du — zurücknehmen' })).toBeVisible();
