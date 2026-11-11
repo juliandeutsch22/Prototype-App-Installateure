@@ -166,8 +166,7 @@ describe('Emojis nur als die sechs Reaktionen', () => {
 */
 describe('Die Klassen von E77 gibt es nur bei den Nachrichten', () => {
   const NEU = ['nachricht-leiste', 'leiste-reaktionen', 'leiste-handlungen', 'leiste-knopf', 'leiste-zeichen', 'nachricht-reaktionen',
-    'reaktion', 'reaktion-zeichen', 'reaktion-zahl', 'nachricht-wahl-reaktionen', 'nachricht-wahl-zeichen',
-    'nachricht-wahl-wer', 'nachricht-wahl-liste', 'nachricht-wahl-zeile'];
+    'reaktion', 'reaktion-zeichen', 'reaktion-zahl', 'nachricht-wahl-wer', 'wahl-fang', 'wahl-schwebend'];
   const stile = readdirSync('src/styles').filter((d) => d.endsWith('.css') && d !== 'lot-nachrichten.css')
     .map((d) => readFileSync(`src/styles/${d}`, 'utf8')).concat(readFileSync('src/index.css', 'utf8')).join('\n');
   const definiert = (klasse: string, css: string) => new RegExp(`\\.${klasse}(?![\\w-])`).test(css);

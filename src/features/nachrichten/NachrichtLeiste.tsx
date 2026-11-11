@@ -24,10 +24,15 @@ export const NachrichtLeiste = forwardRef<HTMLDivElement, {
   schwebend: boolean;
   /** In eigener Zeile: über oder unter der Blase. */
   seite: 'oben' | 'unten';
+  /** Für den Finger (E79): 44-px-Ziele, in der schwebenden Leiste nach langem Drücken. */
+  gross?: boolean;
+  /** Die Maus auf der Leiste hält sie offen (E79: sonst geht sie mit der Maus von der Blase). */
+  onZeigerHinein?: () => void;
+  onZeigerHinaus?: () => void;
   style?: CSSProperties;
   onReagieren: (z: Reaktionszeichen, an: boolean) => void;
   onHandlung: (h: Handlung) => void;
-}>(function NachrichtLeiste({ n, m, zeilen, schwebend, seite, style, onReagieren, onHandlung }, ref) {
+}>(function NachrichtLeiste({ n, m, zeilen, schwebend, seite, gross = false, style, onReagieren, onHandlung, onZeigerHinein, onZeigerHinaus }, ref) {
   const handlungen = HANDLUNGEN.filter((h) => m[h.art]);
   return (
     <div
@@ -38,6 +43,9 @@ export const NachrichtLeiste = forwardRef<HTMLDivElement, {
       data-zeilen={zeilen}
       data-schwebend={schwebend ? 'ja' : undefined}
       data-seite={seite}
+      data-gross={gross ? 'ja' : undefined}
+      onPointerEnter={onZeigerHinein}
+      onPointerLeave={onZeigerHinaus}
       style={style}
     >
       {m.reagieren && (

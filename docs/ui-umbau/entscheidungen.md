@@ -3137,3 +3137,55 @@ Nachrichten direkt unter Start in Desktop/Tablet.“
   Gegenprobe mit dem alten CSS: rot (320 px, weiße Fläche, Linien, 16 px).
 - `reaktionen.spec.ts`: die Leiste blendet ein, das Kästchen 24 px ohne
   Rahmen, 10 px darüber noch getroffen. Gegenprobe mit E77: rot.
+
+
+**E79 — Leiste nur über der Blase, am Handy schwebend, Text markierbar (11.11.2026).**
+Auftrag: „Der Balken sollte nur erscheinen, wenn man direkt über die
+Nachricht hovert. Auch mobil hätte ich es gerne viel schlanker gelöst.
+Außerdem sollte man auch Nachrichtentext frei markieren können.“
+
+- **Nur über der Blase.** Bisher öffnete die ganze Zeile die Leiste — bis
+  zum Rand des Verlaufs, auch neben der Blase. Jetzt nur das Blatt der
+  Nachricht (Zeiger, kein Finger). Die Leiste selbst hält sich offen,
+  solange die Maus auf ihr ist; verlässt die Maus Blase und Leiste, geht
+  sie nach 250 ms (`BLEIBT_MS`) — genug für den Weg über die Lücke von 8 px.
+  Mit der Tastatur bleibt sie, solange der Fokus in ihr steht.
+- **Am Handy dieselbe Leiste, schwebend an der Nachricht**
+  (`NachrichtWahl`). Ersetzt das Fenster von unten mit Text, Reaktionen und
+  Liste aus E77. Zweizeilig — oben die sechs Reaktionen, darunter die
+  Handlungen als Zeichen —, jedes Ziel 44 px; rund 270 × 99 px. Sie steht
+  8 px über der Blase, wenn dort zwischen Kopfleiste und Blase Platz ist,
+  sonst darunter (über der festen Eingabe), und richtet sich nach der Seite
+  der Nachricht aus. Sie verdeckt die gedrückte Nachricht nicht (am Pixel 7
+  und iPhone SE gemessen, an der ersten, mittleren und letzten Nachricht).
+  Ein Tipp daneben, Rollen, Drehen oder Escape schließen sie; ohne Schleier,
+  die Nachricht bleibt zu sehen. Eine Reaktion schließt sie und steht sofort
+  unter der Blase; Bearbeiten, Melden, Löschen und Übernehmen öffnen danach
+  ihr Formular wie am Schreibtisch.
+- **Mit der Tastatur** öffnet die Eingabetaste (oder Leertaste) an der
+  Nachricht dieselbe schwebende Leiste; der Fokus geht hinein, Escape
+  schließt, der Fokus kehrt zurück. Der Zwischenschritt „Wahl“ im Fenster
+  entfällt — das Fenster bleibt für Formulare, Rückfragen und „Wer hat
+  reagiert“.
+- **Text frei markieren.** Die Nachricht ist kein Knopf mehr, sondern eine
+  Gruppe mit Fokus (`role="group"`, `tabIndex=0`); ein Klick öffnet nichts
+  (das tat er seit E77 schon nicht mehr). Mit der Maus markiert Ziehen den
+  Text, ein Doppelklick ein Wort. Nur während eine Berührung läuft
+  (`data-beruehrt`), ist das Markieren aus — sonst markierte das lange
+  Drücken ein Wort, statt die Leiste zu öffnen.
+
+**Grenze mit Grund:** Am Handy markiert langes Drücken keinen Text, es
+öffnet die Leiste — Grund: Gerät. Telefone kennen für beides nur dieselbe
+Geste; „Text kopieren“ in der Leiste nimmt den ganzen Text. **Nachweis:**
+- `Nachrichten.test.tsx`: nur über der Blase (die Zeile allein öffnet
+  nichts, die Leiste hält, weg schließt), der Text ist kein Knopf und ein
+  Klick öffnet nichts, Eingabetaste öffnet die schwebende Leiste mit Fokus
+  hinein und zurück, Reaktion und Melden aus ihr. Gegenprobe gegen den
+  Stand davor: 10 rot.
+- `nachrichtLeiste.test.ts`: die neuen Klassen nur bei den Nachrichten.
+- `reaktionen.spec.ts` (Browser): am Handy nach langem Drücken die
+  schwebende Leiste im Bild, neben der Blase (8 px), höchstens zwei Reihen,
+  44-px-Ziele; Tipp daneben schließt. Am Tablet und Schreibtisch neben der
+  Blase keine Leiste, auf ihr schon, auf der Leiste bleibt sie, weg geht
+  sie; Ziehen markiert den Text, Doppelklick ein Wort, nichts öffnet sich.
+  Gegenprobe gegen den Stand davor: beide rot.

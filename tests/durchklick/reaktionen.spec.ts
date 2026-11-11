@@ -13,9 +13,9 @@ import { anmelden } from './helfer';
  *      und die Blase unter der Maus bleibt stehen.
  *   2. Der eine reagiert, der andere sieht es ohne Neuladen und setzt
  *      dieselbe; nach dem Neuladen steht beides noch.
- *   3. Am Handy tut ein kurzer Tipp nichts; langes Drücken öffnet die Wahl,
- *      das Zeichen dort setzt die Reaktion; langes Drücken auf das Kästchen
- *      zeigt, wer reagiert hat.
+ *   3. Am Handy tut ein kurzer Tipp nichts; langes Drücken öffnet die
+ *      schwebende Leiste an der Nachricht (E79), das Zeichen dort setzt die
+ *      Reaktion; langes Drücken auf das Kästchen zeigt, wer reagiert hat.
  *
  * Gegenprobe: mit der Leiste aus dem Entwurf (an der Ecke der Blase, 22 px
  * über ihr) ist (1) rot; mit dem Stand vor E77 gibt es weder Leiste noch
@@ -151,13 +151,13 @@ test('Der eine reagiert, der andere sieht es ohne Neuladen und setzt dieselbe', 
   await expect(kaestchen).toHaveAttribute('title', `Du, ${MONTEUR.name}`);
 });
 
-test('Am Handy: kurzer Tipp tut nichts, langes Drücken öffnet die Wahl — und am Kästchen, wer reagiert hat', async ({ browser }) => {
+test('Am Handy: kurzer Tipp tut nichts, langes Drücken öffnet die Leiste an der Nachricht — und am Kästchen, wer reagiert hat', async ({ browser }) => {
   test.setTimeout(120_000);
   const ctx = await browser.newContext({ ...devices['Pixel 7'] });
   const page = await ctx.newPage();
   await anmelden(page, MONTEUR.email);
   await page.goto(`/nachrichten/${kanal}`);
-  const ziel = page.getByRole('button', { name: new RegExp(`^Nachricht von ${BUERO.name}`) }).last();
+  const ziel = page.getByRole('group', { name: new RegExp(`^Nachricht von ${BUERO.name}`) }).last();
   await expect(ziel).toBeVisible({ timeout: 15_000 });
   await ziel.scrollIntoViewIfNeeded();
   const cdp = await ctx.newCDPSession(page);
@@ -175,16 +175,46 @@ test('Am Handy: kurzer Tipp tut nichts, langes Drücken öffnet die Wahl — und
   await expect(page.getByRole('toolbar')).toHaveCount(0);
 
   await druecken(800);
-  const wahl = page.getByRole('dialog', { name: 'Nachricht' });
+  const wahl = page.getByRole('dialog', { name: `Zur Nachricht von ${BUERO.name}` });
   await expect(wahl).toBeVisible();
   // Eine fremde Nachricht: reagieren, kopieren, melden — nicht bearbeiten oder löschen.
-  await expect(wahl.getByRole('group', { name: 'Reagieren' }).getByRole('button')).toHaveCount(6);
-  await expect(wahl.getByRole('button', { name: 'Melden …' })).toBeVisible();
-  await expect(wahl.getByRole('button', { name: 'Löschen' })).toHaveCount(0);
-  await wahl.getByRole('button', { name: 'Reagieren: Herz' }).click();
+  const leiste = wahl.getByRole('toolbar');
+  await expect(leiste.getByRole('button', { name: /^Reagieren: / })).toHaveCount(6);
+  await expect(leiste.getByRole('button', { name: 'Melden' })).toBeVisible();
+  await expect(leiste.getByRole('button', { name: 'Löschen' })).toHaveCount(0);
+  await expect(leiste.getByRole('button', { name: 'Bearbeiten' })).toHaveCount(0);
+
+  /*
+    „Viel schlanker“ (E79): eine Leiste an der Nachricht statt eines Fensters
+    über die halbe Höhe — im Bild, neben der Blase (verdeckt sie nicht),
+    nicht höher als zwei Reihen, jedes Ziel 44 px für den Finger.
+    Gegenprobe: mit dem Stand von E78 gibt es keinen Dialog dieses Namens.
+  */
+  const lage = await ziel.evaluate((el) => {
+    const b = el.closest('.nachricht-blatt')!.getBoundingClientRect();
+    const w = document.querySelector('.wahl-schwebend')!.getBoundingClientRect();
+    const knoepfe = [...document.querySelectorAll('.wahl-schwebend .leiste-knopf')].map((k) => k.getBoundingClientRect());
+    return {
+      imBild: w.left >= 0 && w.right <= innerWidth && w.top >= 0 && w.bottom <= innerHeight,
+      deckt: w.top < b.bottom && w.bottom > b.top,
+      abstand: Math.round(Math.min(Math.abs(b.top - w.bottom), Math.abs(w.top - b.bottom))),
+      hoeheOk: w.height <= 2 * 44 + 16,
+      ziele: knoepfe.every((k) => Math.round(k.width) >= 44 && Math.round(k.height) >= 44),
+    };
+  });
+  expect(lage).toEqual({ imBild: true, deckt: false, abstand: 8, hoeheOk: true, ziele: true });
+
+  await leiste.getByRole('button', { name: 'Reagieren: Herz' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const kaestchen = page.getByRole('button', { name: 'Herz, 1: Du — zurücknehmen' });
   await expect(kaestchen).toBeVisible({ timeout: 15_000 });
+
+  // Ein Tipp daneben schließt die Leiste, ohne etwas auszulösen.
+  await druecken(800);
+  await expect(wahl).toBeVisible();
+  await page.touchscreen.tap(5, 300);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Herz, 1: Du — zurücknehmen' })).toHaveCount(1);
 
   await druecken(800, kaestchen);
   const wer = page.getByRole('dialog', { name: 'Nachricht' });
@@ -193,6 +223,61 @@ test('Am Handy: kurzer Tipp tut nichts, langes Drücken öffnet die Wahl — und
   // Das lange Drücken hat die eigene Reaktion nicht nebenbei zurückgenommen.
   await expect(page.getByRole('button', { name: 'Herz, 1: Du — zurücknehmen' })).toHaveCount(1);
   await ctx.close();
+});
+
+/*
+  E79 (11.11.2026): „der Balken sollte nur erscheinen, wenn man direkt über
+  die Nachricht hovert“ und „man sollte Nachrichtentext frei markieren
+  können“. Gemessen am Schreibtisch und am Tablet: neben der Blase (in
+  derselben Zeile) kommt keine Leiste, auf der Blase schon; die Maus auf der
+  Leiste hält sie, ganz weg geht sie zu. Ein Ziehen über den Text markiert
+  ihn, ein Doppelklick ein Wort — und beides öffnet nichts.
+  Gegenprobe: mit dem Stand von E78 öffnet die ganze Zeile die Leiste, und
+  der Text ist ein Knopf, den man nicht markieren kann.
+*/
+test('Die Leiste kommt nur über der Blase, und der Text lässt sich markieren', async ({ page }) => {
+  test.setTimeout(90_000);
+  await anmelden(page, BUERO.email);
+  for (const breite of [834, 1440]) {
+    await page.setViewportSize({ width: breite, height: 900 });
+    await page.goto(`/nachrichten/${kanal}`);
+    const verlauf = page.getByRole('list', { name: 'Verlauf' });
+    const text = TEXTE[TEXTE.length - 1][1];
+    await expect(verlauf.getByText(text)).toBeVisible({ timeout: 15_000 });
+    const zeile = page.locator('li[data-nachricht]').last();
+    const blatt = zeile.locator('.nachricht-blatt');
+    const leiste = page.getByRole('toolbar', { name: /^Zur Nachricht von/ });
+    const b = (await blatt.boundingBox())!, z = (await zeile.boundingBox())!;
+
+    // Rechts neben der Blase, in ihrer Zeile.
+    await page.mouse.move(z.x + z.width - 12, b.y + b.height / 2, { steps: 3 });
+    await page.waitForTimeout(500);
+    await expect(leiste, `${breite}: neben der Blase`).toHaveCount(0);
+
+    await page.mouse.move(b.x + 20, b.y + b.height / 2, { steps: 3 });
+    await expect(leiste, `${breite}: auf der Blase`).toBeVisible();
+    const l = (await leiste.boundingBox())!;
+    await page.mouse.move(l.x + l.width / 2, l.y + l.height / 2, { steps: 6 });
+    await page.waitForTimeout(500);
+    await expect(leiste, `${breite}: auf der Leiste`).toBeVisible();
+    // Ganz weg: in die Eingabe.
+    const e = (await page.locator('#nachricht-text').boundingBox())!;
+    await page.mouse.move(e.x + 20, e.y + e.height / 2, { steps: 3 });
+    await expect(leiste, `${breite}: Maus weg`).toHaveCount(0);
+
+    // Markieren durch Ziehen über die erste Zeile des Textes.
+    const t = (await zeile.locator('.nachricht-text').boundingBox())!;
+    await page.mouse.move(t.x + 1, t.y + 8);
+    await page.mouse.down();
+    await page.mouse.move(t.x + t.width - 1, t.y + 8, { steps: 10 });
+    await page.mouse.up();
+    const markiert = await page.evaluate(() => String(getSelection()));
+    expect(markiert.length, `${breite}: markiert „${markiert}“`).toBeGreaterThan(10);
+    expect(text.startsWith(markiert.trim()), `${breite}: „${markiert}“`).toBe(true);
+    await page.mouse.dblclick(t.x + 12, t.y + 8);
+    expect(await page.evaluate(() => String(getSelection()).trim())).toBe('Die');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  }
 });
 
 /*
