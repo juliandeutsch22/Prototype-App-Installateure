@@ -155,9 +155,13 @@
     Handlungen; zweizeilig, wo neben der Blase nur ein schmaler Platz frei
     ist. Ohne freien Platz steht sie in einer eigenen Zeile des Verlaufs.
   */
-  .nachricht-leiste { z-index: 5; display: flex; width: max-content; padding: 0.125rem; border: 1px solid var(--border-strong); background: var(--surface); }
+  .nachricht-leiste { z-index: 5; display: flex; width: max-content; padding: 0.125rem; border: 1px solid var(--border-strong); background: var(--surface); animation: leiste-ein var(--motion-state, 160ms) var(--ease-response, ease) both; }
   .nachricht-leiste[data-schwebend] { position: absolute; }
   .nachricht-leiste:not([data-schwebend]) { margin: 0.375rem 0 0.25rem; }
+  /* In eigener Zeile über oder unter der Blase — dieselbe Stelle im Baum, die Reihenfolge macht `order`. */
+  .nachricht > :is(.nachricht-blatt, .nachricht-reaktionen, .nachricht-nochmal) { order: 1; }
+  .nachricht > .nachricht-leiste[data-seite="unten"] { order: 2; }
+  .nachricht > .nachricht-status { order: 3; }
   .nachricht-leiste[data-zeilen="2"] { flex-direction: column; }
   .leiste-reaktionen, .leiste-handlungen { display: flex; }
   .leiste-handlungen[data-getrennt] { margin-left: 0.125rem; padding-left: 0.125rem; border-left: 1px solid var(--border); }
@@ -172,21 +176,24 @@
   .leiste-zeichen { font-size: 1.0625rem; }
 
   /*
-    DIE REAKTIONEN UNTER DER BLASE: je Zeichen ein eckiges Kästchen mit der
-    Zahl (IBM Plex Mono). Die eigene in Petrol umrandet auf Petrol-hell.
-    32 px hoch, getippt 44 px — die Fläche reicht über und unter das
-    Kästchen, ohne die Zeile höher zu machen.
+    DIE REAKTIONEN UNTER DER BLASE (E78, 11.11.2026): „der Kasten mit der
+    Outline ist zu groß, plump und sieht billig aus.“ Jetzt ein kleines
+    weiches Feld wie eine Mini-Blase — 24 px hoch, ohne Rahmen, in der
+    Fläche der fremden Blasen; die eigene in Petrol-hell mit der Zahl in
+    Petrol. Getippt werden weiter 44 px: die Fläche reicht über und unter
+    das Feld, ohne die Zeile höher zu machen.
   */
-  .nachricht-reaktionen { display: flex; flex-wrap: wrap; gap: 0.25rem; max-width: 78%; margin-top: 0.375rem; }
+  .nachricht-reaktionen { display: flex; flex-wrap: wrap; gap: 0.25rem; max-width: 78%; margin-top: 0.25rem; }
   .nachricht[data-eigene] .nachricht-reaktionen { justify-content: flex-end; }
-  .reaktion { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 0.3125rem; min-width: 2.75rem; height: 2rem; padding: 0 0.5rem; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
-  .reaktion::before { content: ''; position: absolute; inset: -0.375rem 0; }
-  .reaktion:hover { background: var(--surface-2); }
-  .reaktion[aria-pressed="true"] { border-color: var(--petrol); background: var(--petrol-hell); }
+  /* Über dem Inhalt der Blase (dort `z-index: 1`): sonst endete die Tastfläche nach 4 px am Rand der Blase (gemessen 11.11.2026). */
+  .reaktion { position: relative; z-index: 2; display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem; min-width: 2.25rem; height: 1.5rem; padding: 0 0.5rem; border: 0; border-radius: 999px; background: var(--surface-2); color: var(--text-muted); }
+  .reaktion::before { content: ''; position: absolute; inset: -0.625rem 0; }
+  .reaktion:hover { background: var(--surface-3); }
+  .reaktion[aria-pressed="true"] { background: var(--petrol-hell); color: var(--accent-deep); }
   .reaktion[aria-disabled="true"] { cursor: default; }
   .reaktion:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-  .reaktion-zeichen { font-size: 0.9375rem; }
-  .reaktion-zahl { font-family: var(--schrift-mono); font-size: 0.75rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
+  .reaktion-zeichen { font-size: 0.8125rem; }
+  .reaktion-zahl { font-family: var(--schrift-mono); font-size: 0.6875rem; line-height: 1; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
 
   /* DIE WAHL NACH LANGEM DRÜCKEN: oben die Reaktionen, darunter eine knappe Liste mit Zeichen. */
   .nachricht-wahl-reaktionen { display: flex; justify-content: space-between; gap: 0.25rem; }
@@ -300,4 +307,15 @@
   .neu-name { font-size: 0.9375rem; color: var(--ink-deep); overflow-wrap: anywhere; }
   .neu-rolle { font-size: 0.75rem; color: var(--text-muted); overflow-wrap: anywhere; }
   .neu-nr { font-family: var(--schrift-mono); }
+}
+
+/*
+  DIE LEISTE KOMMT SANFT (E78, 11.11.2026): „der Balken sollte einen
+  leichten Ease-in bekommen und nicht einfach plump erscheinen.“ Einblenden
+  und 4 px heranrücken in der Zeit eines Zustandswechsels. Bei reduzierter
+  Bewegung steht sie sofort da.
+*/
+@keyframes leiste-ein { from { opacity: 0; transform: translateY(0.25rem); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .nachricht-leiste { animation: none !important; }
 }

@@ -3091,3 +3091,49 @@ Erste die sechs festen“). Reaktionen ohne Netz werden nicht vorgemerkt
   dem Neuladen; am Handy kurzer Tipp, langes Drücken, Namen am Kästchen.
 - `monatHeute.test.ts`, `monatHeute.spec.ts`: Spalte, Kästchen, Rahmen beim
   Darüberfahren. Gegenprobe gegen den Stand davor: rot.
+
+
+**E78 — Leiste sanft, Reaktionen leicht, Zusammenfassung einheitlich, Nachrichten unter Start (11.11.2026).**
+Auftrag (vier Bildschirmfotos): „Der Balken sollte einen leichten Ease-in
+bekommen und nicht einfach plump erscheinen. Und die Reaktionen: der Kasten
+mit der Outline ist zu groß, plump und sieht billig aus. Auftragseingang und
+Angebote, Detailansicht: hier passt der Kasten mit der Zusammenfassung noch
+nicht zu Baustellen und Kunden, das muss einheitlich sein. Und Menüpunkt
+Nachrichten direkt unter Start in Desktop/Tablet.“
+
+- **Die Leiste kommt sanft.** Einblenden und 4 px heranrücken in der Zeit
+  eines Zustandswechsels (`--motion-state`, `--ease-response`); bei
+  reduzierter Bewegung sofort. Die Leiste hat jetzt eine Stelle im Baum —
+  über oder unter der Blase ordnet `order` —, damit sie nur einmal einblendet
+  und nicht bei jedem Neumessen (etwa nach einer Reaktion).
+- **Die Reaktion als Mini-Blase.** 24 px hoch, ohne Rahmen, weich wie die
+  Blasen (die Weiche des Chats, Auftrag 08.11.2026), in der Fläche der
+  fremden Blasen; die eigene Petrol-hell mit der Zahl in Petrol. Ersetzt das
+  eckige 32-px-Kästchen mit Umrandung aus E77. Getippt weiter 44 px; das
+  Kästchen liegt dafür über dem Inhalt der Blase (vorher endete die
+  Tastfläche nach 4 px am Rand der Blase — im Browser gemessen).
+- **Die Zusammenfassung rechts überall gleich.** Auftragseingang und Angebot
+  (`.beleg-kontext`) tragen jetzt die Spalte der Akten (`.akten-kontext`):
+  18 rem, eine Zelle Abstand, Eckmarken auf dem Raster ohne Fläche,
+  Überschriften wie die Felder eines Schriftfelds, Angaben in 13 px,
+  Abschnitte durch Luft statt Linien getrennt. Vorher: weiße Fläche, 20 rem,
+  32 px Abstand, Titel in 16 px, Linie über jedem Abschnitt. Ein Verweis in
+  einer Angabe (der Kunde) trägt seine Tastfläche über Polster und
+  Gegenrand und steht in der Zeilenhöhe — in beiden Spalten, auch „· Zur
+  Kundenakte“ der Baustelle. Der Änderungsverlauf in der Spalte in der
+  Schrift der Angaben.
+- **Nachrichten direkt unter Start**, ohne Überschrift, für jede Rolle. Am
+  Handy damit zuoberst unter „Mehr“; die vier Ziele der unteren Leiste
+  bleiben. Die Ortszeile über dem Seitentitel bleibt „Team“ (`ort`) — sonst
+  stünde der Titel als einziger ohne Ortszeile 24 px höher.
+
+**Grenze mit Grund:** keine. **Nachweis:**
+- `navigationLot.test.ts`: je Rolle Start und Nachrichten oben, ohne Modul
+  Start allein, die Ortszeile bleibt. Gegenprobe gegen den Stand davor: rot.
+- `nachrichtLeiste.test.ts`: Animation, reduzierte Bewegung, eine Stelle im
+  Baum, das Kästchen. Gegenprobe mit dem CSS von E77: 4 rot.
+- `kontextEinheitlich.spec.ts` (Browser): Eingang und Angebot gemessen gleich
+  wie Baustelle und Kunde; der Kunde als Verweis in der Zeilenhöhe.
+  Gegenprobe mit dem alten CSS: rot (320 px, weiße Fläche, Linien, 16 px).
+- `reaktionen.spec.ts`: die Leiste blendet ein, das Kästchen 24 px ohne
+  Rahmen, 10 px darüber noch getroffen. Gegenprobe mit E77: rot.

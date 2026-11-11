@@ -16,6 +16,12 @@ export interface NavItem {
   /** Gruppierung in der Navigation. */
   group: 'Start' | 'Aufträge' | 'Geld' | 'Team' | 'Material' | 'Einstellungen';
   /**
+   * Die Ortszeile über dem Seitentitel, wo sie nicht die Gruppe ist (E78):
+   * die Nachrichten stehen im Menü unter Start, ihr Kopf sagt weiter „Team“ —
+   * sonst stünde der Titel als einziger ohne Ortszeile 24 px höher.
+   */
+  ort?: string;
+  /**
    * Zu welchem abschaltbaren Modul — oder welcher Unterfähigkeit (M02b) —
    * dieser Eintrag gehört.
    *
@@ -135,8 +141,13 @@ export const NAV: NavItem[] = [
     NACHRICHTEN (M10/B09): für jede Rolle — jeder schreibt im Thread seiner
     Baustellen, und mit eingeschalteten Direktnachrichten jedem im Betrieb.
     Die Zahl ist die eigene der ungelesenen Nachrichten, nie die anderer.
+
+    DIREKT UNTER START (E78, 11.11.2026): „Menüpunkt Nachrichten direkt
+    unter Start, findest du nicht?“ — was man mehrmals am Tag öffnet, steht
+    oben, nicht zwischen Zeit, Urlaub und Benutzern. Am Handy steht er damit
+    zuoberst unter „Mehr“; die vier Ziele der unteren Leiste bleiben.
   */
-  { path: '/nachrichten', label: 'Nachrichten', short: 'Nachrichten', icon: 'nachricht', roles: ALL, group: 'Team', modul: 'nachrichten', hinweis: 'nachrichten' },
+  { path: '/nachrichten', label: 'Nachrichten', short: 'Nachrichten', icon: 'nachricht', roles: ALL, group: 'Start', ort: 'Team', modul: 'nachrichten', hinweis: 'nachrichten' },
   { path: '/sonderurlaub', label: 'Sonderurlaub', short: 'Sonderurl.', icon: 'sun', roles: ALL, group: 'Team', nurOhneModul: 'urlaub' },
   // Der Schein gehoert in den Aussendienst: er entsteht vor Ort beim Kunden,
   // nicht im Buero.
@@ -478,7 +489,7 @@ export const NAV_GROUPS = ['Start', 'Aufträge', 'Geld', 'Team', 'Material', 'Ei
 */
 const REIHENFOLGE = [
   // Der Eingang nach Baustellen und Planung, vor Scheinen und Angeboten: daraus werden sie.
-  '/', '/admin-projects', '/assignments', '/eingaenge', '/my-schedule', '/my-projects', '/worksheets', '/quotes',
+  '/', '/nachrichten', '/admin-projects', '/assignments', '/eingaenge', '/my-schedule', '/my-projects', '/worksheets', '/quotes',
   // Die Liegenschaften gleich nach den Kunden: dort sucht sie, wer für Hausverwaltungen arbeitet.
   '/customers', '/liegenschaften', '/wartungen', '/invoices', '/costing', '/time', '/vacations', '/accounting',
   '/user-mgmt', '/material', '/anforderungen', '/lager', '/settings',
@@ -578,6 +589,7 @@ export function hinweisSumme(items: NavItem[], posten: OffenePosten | undefined)
 export function gruppeVon(pfad: string): string | null {
   if (pfad === '/worksheet' || pfad.startsWith('/worksheet/')) return 'Aufträge';
   const treffer = eintragVon(pfad);
+  if (treffer?.ort) return treffer.ort;
   return treffer && treffer.group !== 'Start' ? treffer.group : null;
 }
 

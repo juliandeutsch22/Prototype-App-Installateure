@@ -22,10 +22,12 @@ export const NachrichtLeiste = forwardRef<HTMLDivElement, {
   zeilen: 1 | 2;
   /** Frei schwebend (`absolute`) oder in einer eigenen Zeile des Verlaufs. */
   schwebend: boolean;
+  /** In eigener Zeile: über oder unter der Blase. */
+  seite: 'oben' | 'unten';
   style?: CSSProperties;
   onReagieren: (z: Reaktionszeichen, an: boolean) => void;
   onHandlung: (h: Handlung) => void;
-}>(function NachrichtLeiste({ n, m, zeilen, schwebend, style, onReagieren, onHandlung }, ref) {
+}>(function NachrichtLeiste({ n, m, zeilen, schwebend, seite, style, onReagieren, onHandlung }, ref) {
   const handlungen = HANDLUNGEN.filter((h) => m[h.art]);
   return (
     <div
@@ -35,6 +37,7 @@ export const NachrichtLeiste = forwardRef<HTMLDivElement, {
       className="nachricht-leiste"
       data-zeilen={zeilen}
       data-schwebend={schwebend ? 'ja' : undefined}
+      data-seite={seite}
       style={style}
     >
       {m.reagieren && (
@@ -76,8 +79,8 @@ export const NachrichtLeiste = forwardRef<HTMLDivElement, {
 });
 
 /**
- * DIE REAKTIONEN UNTER DER BLASE: je Zeichen ein kleines eckiges Kästchen
- * mit der Zahl. Die eigene ist in Petrol umrandet; ein Klick darauf nimmt
+ * DIE REAKTIONEN UNTER DER BLASE: je Zeichen ein kleines weiches Feld mit
+ * der Zahl (seit E78 ohne Rahmen). Die eigene ist Petrol-hell; ein Klick darauf nimmt
  * sie zurück, auf eine fremde setzt man dieselbe. Wer reagiert hat, nennt
  * das Darüberfahren (`title`), am Handy das lange Drücken (`onNamen`).
  */
