@@ -194,3 +194,40 @@ test('Am Handy: kurzer Tipp tut nichts, langes Drücken öffnet die Wahl — und
   await expect(page.getByRole('button', { name: 'Herz, 1: Du — zurücknehmen' })).toHaveCount(1);
   await ctx.close();
 });
+
+/*
+  E78 (11.11.2026): die Leiste kommt sanft, das Kästchen ist leicht. Gemessen:
+  die Leiste blendet ein (Animation läuft, am Ende deckend), das Kästchen ist
+  24 px hoch, ohne Rahmen, rund wie eine Blase — und 10 px darüber trifft
+  ein Tipp noch das Kästchen (44 px Tastfläche). Gegenprobe: mit dem Stand von
+  E77 ist es 32 px hoch mit Rahmen, und die Leiste hat keine Animation.
+*/
+test('Die Leiste blendet ein, das Kästchen ist klein und ohne Rahmen', async ({ page }) => {
+  test.setTimeout(60_000);
+  const buero = await konto(BUERO.email);
+  const { data: n } = await buero.rpc('nachrichten_verlauf', { p_kanal: kanal, p_vor: null, p_vor_id: null, p_anzahl: 1 });
+  const id = String((n as { id: string }[])[0].id);
+  const { error } = await buero.rpc('nachricht_reagieren', { p_nachricht: id, p_zeichen: '👍', p_an: true });
+  expect(error).toBeNull();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await anmelden(page, BUERO.email);
+  await page.goto(`/nachrichten/${kanal}`);
+  const kaestchen = page.getByRole('button', { name: 'Daumen hoch, 1: Du — zurücknehmen' });
+  await expect(kaestchen).toBeVisible({ timeout: 15_000 });
+  const k = await kaestchen.evaluate((el) => {
+    const s = getComputedStyle(el), r = el.getBoundingClientRect();
+    const darueber = document.elementFromPoint(r.left + r.width / 2, r.top - 9);
+    return { hoehe: Math.round(r.height), rahmen: s.borderTopWidth, rund: parseFloat(s.borderTopLeftRadius) >= r.height / 2, tippDarueber: darueber === el };
+  });
+  expect(k).toEqual({ hoehe: 24, rahmen: '0px', rund: true, tippDarueber: true });
+
+  await page.getByRole('list', { name: 'Verlauf' }).getByText(TEXTE[TEXTE.length - 1][1]).hover();
+  const leiste = page.getByRole('toolbar', { name: /^Zur Nachricht von/ });
+  await expect(leiste).toBeVisible();
+  expect(await leiste.evaluate((l) => {
+    const s = getComputedStyle(l);
+    return { name: s.animationName, dauer: parseFloat(s.animationDuration) > 0 };
+  })).toEqual({ name: 'leiste-ein', dauer: true });
+  await expect(leiste).toHaveCSS('opacity', '1');
+});

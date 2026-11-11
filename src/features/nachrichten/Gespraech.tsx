@@ -612,6 +612,7 @@ export default function Gespraech({
         m={m}
         zeilen={typeof l.lage === 'object' ? l.lage.zeilen : 1}
         schwebend={l.lage !== 'zeile'}
+        seite={l.seite}
         style={l.lage === 'messen' ? { visibility: 'hidden', left: 0, top: 0 } : typeof l.lage === 'object' ? { left: l.lage.links, top: l.lage.oben } : undefined}
         onReagieren={(z, an) => void reagieren(e.n, z, an)}
         onHandlung={(h) => void handlung(e.n, h)}
@@ -647,7 +648,6 @@ export default function Gespraech({
           </div>
         )}
         {name && <div className="nachricht-von" aria-hidden="true">{name}</div>}
-        {l?.lage === 'zeile' && l.seite === 'oben' && leisteHier}
         {e.art === 'server' && (
           <div className="nachricht-blatt" data-weg={e.n.geloeschtAm ? 'ja' : undefined}>
             {!e.n.geloeschtAm && anhaenge(e.n)}
@@ -687,8 +687,13 @@ export default function Gespraech({
             langDruck={() => langDruck(() => { leisteZu(); setAuftrag({ n: e.n, schritt: 'reaktionen' }); })}
           />
         )}
-        {l && l.lage !== 'zeile' && leisteHier}
-        {l?.lage === 'zeile' && l.seite === 'unten' && leisteHier}
+        {/*
+          EINE STELLE IM BAUM, ob schwebend oder in eigener Zeile (E78): so
+          bleibt es dasselbe Element, und es blendet nur einmal ein — nicht
+          bei jedem Neumessen (etwa nach einer Reaktion). Über oder unter der
+          Blase ordnet die Zeile per `order` (lot-nachrichten.css).
+        */}
+        {leisteHier}
         {e.art === 'fach' && (
           <div className="nachricht-blatt" data-lokal="ja">
             {lokaleDateien(e.w.dateien)}

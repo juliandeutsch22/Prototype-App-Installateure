@@ -8,14 +8,36 @@
  * Gilt für: Baustellen, Kunden (Listen und Akten), Meine Baustellen.
  */
 @layer components {
-  .beleg-spalten { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 2rem; align-items: start; }
+  /*
+    DIE KONTEXTSPALTE WIE IN DEN AKTEN (E78, 11.11.2026): „hier passt der
+    Kasten mit der Zusammenfassung noch nicht zu Baustellen und Kunden, das
+    muss einheitlich sein.“ Auftragseingang und Angebot trugen eine weiße
+    Fläche, eine Linie über jedem Abschnitt, Titel in 16 px und eine eigene
+    Breite (20 rem, 32 px Abstand). Jetzt dieselbe Spalte wie `.akten-kontext`:
+    18 rem, eine Zelle Abstand, Eckmarken auf dem Raster, Überschriften wie
+    die Felder eines Schriftfelds, Angaben in 13 px, Abschnitte durch Luft
+    getrennt. Gemessen gleich: `kontextEinheitlich.spec.ts`.
+  */
+  .beleg-spalten { display: grid; grid-template-columns: minmax(0, 1fr) 18rem; gap: 1.5rem; align-items: start; }
   .beleg-inhalt { min-width: 0; display: flex; flex-direction: column; gap: 1.5rem; }
-  /* Wie die Kontextspalte der Akten: Eckmarken statt grauer Fläche (Planlinie B7) — der Akzent des Belegs. */
-  .beleg-kontext { min-width: 0; display: flex; flex-direction: column; gap: 1.5rem; padding: 1.25rem 1.375rem; background-color: var(--bg); background-image: linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)); background-repeat: no-repeat; background-size: 14px 1px, 1px 14px, 14px 1px, 1px 14px, 14px 1px, 1px 14px, 14px 1px, 1px 14px; background-position: left top, left top, right top, right top, left bottom, left bottom, right bottom, right bottom; }
-  .beleg-kontext .karte { background: none; }
-  .beleg-kontext .karte-kopf { padding-inline: 0; }
-  .beleg-kontext .karte-koerper { padding-inline: 0; }
-  .beleg-kontext .beleg-angaben { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  .beleg-kontext { min-width: 0; padding: 0.75rem 1.375rem 1rem; background-color: transparent; background-image: linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)); background-repeat: no-repeat; background-size: 14px 1px, 1px 14px, 14px 1px, 1px 14px, 14px 1px, 1px 14px, 14px 1px, 1px 14px; background-position: left top, left top, right top, right top, left bottom, left bottom, right bottom, right bottom; }
+  .beleg-kontext .karte { background: none; border-top: 0; }
+  .beleg-kontext .karte-kopf { min-height: 0; padding: 1.25rem 0 0.5rem; }
+  .beleg-kontext .karte-koerper { padding: 0; }
+  .beleg-kontext .karte-kopf h2 { font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); }
+  .beleg-kontext .beleg-angaben { grid-template-columns: minmax(0, 1fr); gap: 0.875rem; }
+  .beleg-kontext .beleg-angaben dt { font-size: 0.75rem; line-height: 1.125rem; color: var(--text-muted); margin-bottom: 0.125rem; }
+  .beleg-kontext :is(.beleg-angaben dd, .karte-koerper > p) { margin-top: 0; font-size: 0.8125rem; line-height: 1.25rem; }
+  /*
+    EIN VERWEIS IN DER SPALTE BEHÄLT SEINE TASTFLÄCHE, OHNE DIE ZEILE HÖHER
+    ZU MACHEN (wie E31 in den Akten): „Familie Huber“ stand 12 px tiefer als
+    jede andere Angabe, weil der Link seine 44 px als Zeilenhöhe trug. Gilt
+    in beiden Spalten — auch „· Zur Kundenakte“ der Baustelle.
+  */
+  :is(.akten-kontext .akten-angaben, .beleg-kontext .beleg-angaben) dd .link { min-height: 0; padding-block: 0.75rem; margin-block: -0.75rem; }
+  /* Der Änderungsverlauf in der Spalte: in der Schrift der Angaben, eine halbe Zelle unter dem Verlauf, ohne Luft danach. */
+  .beleg-kontext .weiteres { margin: 0.75rem 0 0; }
+  .beleg-kontext .weiteres-kopf { font-size: 0.8125rem; line-height: 1.25rem; }
   .beleg-kontext .beleg-angaben .link { max-width: 100%; overflow-wrap: anywhere; hyphens: auto; }
 
   /*

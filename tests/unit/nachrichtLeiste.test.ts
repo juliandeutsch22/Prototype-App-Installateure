@@ -181,3 +181,45 @@ describe('Die Klassen von E77 gibt es nur bei den Nachrichten', () => {
     expect(definiert('wahl-zeile', stile)).toBe(true);
   });
 });
+
+/*
+  E78 (11.11.2026): „der Balken sollte einen leichten Ease-in bekommen“ und
+  „der Kasten mit der Outline ist zu groß, plump und sieht billig aus“.
+  Gegenprobe: mit dem Stand von E77 (ohne Animation, Kästchen 32 px mit
+  Rahmen) ist jede dieser Prüfungen rot.
+*/
+describe('Die Leiste kommt sanft, die Reaktionen sind leicht (E78)', () => {
+  const css = readFileSync('src/styles/lot-nachrichten.css', 'utf8');
+  const regel = (sel: string) => {
+    const esc = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const t = [...css.matchAll(new RegExp(`(?:^|\\n)\\s*${esc}\\s*\\{([^}]*)\\}`, 'g'))];
+    expect(t, sel).toHaveLength(1);
+    return t[0][1];
+  };
+
+  it('die Leiste blendet ein und rückt 4 px heran, in der Zeit eines Zustandswechsels', () => {
+    expect(css).toMatch(/\.nachricht-leiste \{ z-index: 5;[^}]*animation: leiste-ein var\(--motion-state, 160ms\) var\(--ease-response, ease\) both; \}/);
+    expect(css).toContain('@keyframes leiste-ein { from { opacity: 0; transform: translateY(0.25rem); } to { opacity: 1; transform: none; } }');
+  });
+
+  it('bei reduzierter Bewegung steht sie sofort da', () => {
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.nachricht-leiste \{ animation: none !important; \}/);
+  });
+
+  it('eine Stelle im Baum: über oder unter der Blase ordnet `order`', () => {
+    expect(regel('.nachricht > :is(.nachricht-blatt, .nachricht-reaktionen, .nachricht-nochmal)')).toContain('order: 1;');
+    expect(regel('.nachricht > .nachricht-leiste[data-seite="unten"]')).toContain('order: 2;');
+    expect(regel('.nachricht > .nachricht-status')).toContain('order: 3;');
+  });
+
+  it('das Kästchen: 24 px hoch, ohne Rahmen, weich wie eine Blase; die eigene ohne Umrandung in Petrol-hell', () => {
+    const r = regel('.reaktion');
+    expect(r).toContain('height: 1.5rem;');
+    expect(r).toContain('border: 0;');
+    expect(r).toContain('border-radius: 999px;');
+    expect(r).toContain('background: var(--surface-2);');
+    expect(regel('.reaktion[aria-pressed="true"]')).toBe(' background: var(--petrol-hell); color: var(--accent-deep); ');
+    // Getippt weiter 44 px: 24 px plus 2 × 10 px über und unter dem Feld.
+    expect(regel('.reaktion::before')).toContain('inset: -0.625rem 0;');
+  });
+});

@@ -8,7 +8,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import type { Role } from '@/types';
-import { navForRole, navGroupsForRole, tabBarForRole, NAV_GROUPS } from '@/app/navigation';
+import { gruppeVon, navForRole, navGroupsForRole, tabBarForRole, NAV_GROUPS } from '@/app/navigation';
 
 const VORHER: Record<Role, string[]> = {
   Mitarbeiter: ['/', '/time', '/material', '/my-schedule', '/my-projects', '/vacations', '/worksheets', '/settings'],
@@ -78,6 +78,26 @@ describe('Die Gruppen der Linie', () => {
     expect(gf.map((g) => g.group)).toEqual(['Start', 'Aufträge', 'Geld', 'Team', 'Material', 'Einstellungen']);
   });
 
+  /*
+    E78 (11.11.2026): „Menüpunkt Nachrichten direkt unter Start“. Für jede
+    Rolle die zweite Zeile der Seitenleiste, ohne Überschrift; ohne das Modul
+    steht Start allein. Gegenprobe: mit dem Stand davor stand er unter
+    „Team“ — rot.
+  */
+  it.each(ROLLEN)('%s: Nachrichten direkt unter Start, ohne Modul nur Start', (rolle) => {
+    expect(navGroupsForRole(rolle)[0]).toMatchObject({ group: 'Start' });
+    expect(navGroupsForRole(rolle)[0].items.map((i) => i.path)).toEqual(['/', '/nachrichten']);
+    expect(navGroupsForRole(rolle, { nachrichten: false })[0].items.map((i) => i.path)).toEqual(['/']);
+    expect(navGroupsForRole(rolle).flatMap((g) => g.items).filter((i) => i.path === '/nachrichten')).toHaveLength(1);
+  });
+
+  it('gleich geblieben: der Kopf der Nachrichten trägt weiter die Ortszeile „Team“, die Startseite keine aus dem Menü', () => {
+    expect(gruppeVon('/nachrichten')).toBe('Team');
+    expect(gruppeVon('/nachrichten/k1')).toBe('Team');
+    expect(gruppeVon('/')).toBeNull();
+    expect(gruppeVon('/time')).toBe('Team');
+  });
+
   it('ordnen das Häufige nach oben: Baustellen und Planung zuerst', () => {
     const auftraege = navGroupsForRole('Geschäftsführung').find((g) => g.group === 'Aufträge')!;
     expect(auftraege.items.slice(0, 2).map((i) => i.path)).toEqual(['/admin-projects', '/assignments']);
@@ -87,8 +107,9 @@ describe('Die Gruppen der Linie', () => {
     const m = navGroupsForRole('Mitarbeiter');
     const von = (g: string) => m.find((x) => x.group === g)?.items.map((i) => i.path);
     expect(von('Aufträge')).toEqual(['/my-schedule', '/my-projects', '/worksheets']);
-    // Die Nachrichten (M10/B09) unter „Team“, nach dem Urlaub.
-    expect(von('Team')).toEqual(['/time', '/vacations', '/nachrichten']);
+    // Die Nachrichten (M10/B09) seit E78 direkt unter Start, ohne Überschrift.
+    expect(von('Start')).toEqual(['/', '/nachrichten']);
+    expect(von('Team')).toEqual(['/time', '/vacations']);
     expect(von('Material')).toEqual(['/material']);
   });
 });
