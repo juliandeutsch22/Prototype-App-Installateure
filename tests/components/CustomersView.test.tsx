@@ -96,14 +96,19 @@ const searchCustomers = vi.fn<(a0: string, a1: string, a2: number | undefined) =
 */
 const updateCustomer = vi.fn(async () => 0);
 const deleteCustomer = vi.fn<(c: string, id: string) => Promise<void>>(async () => undefined);
+const pruefListe = () => kunden.filter((k) => (k as { adressePruefen?: boolean }).adressePruefen);
+const ohneArtListe = () => artListe.filter((k) => !k.kundenart);
+type Pruefliste = (c: string, max?: number, begriff?: string) => Promise<ReturnType<typeof pruefListe>>;
+const kundenAdressePruefen = vi.fn<Pruefliste>(async () => pruefListe());
+const kundenOhneKundenart = vi.fn<Pruefliste>(async () => ohneArtListe());
 const kundenZuPruefenAnzahl = vi.fn<(c: string) => Promise<{ adressePruefen: number; ohneKundenart: number }>>(async () => ({ adressePruefen: 3, ohneKundenart: 2 }));
 vi.mock('@/lib/db/customers', () => ({
   searchCustomers: (c: string, begriff: string, max?: number) =>
     searchCustomers(c, begriff, max),
   createCustomer: (...a: unknown[]) => createCustomer(...(a as [])),
   naechsteKundennummer: vi.fn(async () => '10042'),
-  kundenAdressePruefen: vi.fn(async () => kunden.filter((k) => (k as { adressePruefen?: boolean }).adressePruefen)),
-  kundenOhneKundenart: vi.fn(async () => artListe.filter((k) => !k.kundenart)),
+  kundenAdressePruefen: (c: string, max?: number, begriff?: string) => kundenAdressePruefen(c, max, begriff),
+  kundenOhneKundenart: (c: string, max?: number, begriff?: string) => kundenOhneKundenart(c, max, begriff),
   kundenZuPruefenAnzahl: (c: string) => kundenZuPruefenAnzahl(c),
   updateCustomer: () => updateCustomer(),
   deleteCustomer: (c: string, id: string) => deleteCustomer(c, id),
@@ -159,6 +164,8 @@ async function ausDemMenue(eintrag: string) {
 
 beforeEach(() => {
   searchCustomers.mockClear().mockImplementation(async () => kunden);
+  kundenAdressePruefen.mockClear().mockImplementation(async () => pruefListe());
+  kundenOhneKundenart.mockClear().mockImplementation(async () => ohneArtListe());
   createCustomer.mockClear();
   assignProjectToCustomer.mockClear();
   listUnlinkedProjectsByName.mockClear();
@@ -490,6 +497,27 @@ describe('Wenn die Kundenliste an ihre Grenze stösst', () => {
     zeichne();
     expect(await screen.findByRole('button', { name: 'Weitere Kunden laden' })).toBeInTheDocument();
     expect(screen.queryByText(/Suche geht nur über diese/)).toBeNull();
+  });
+
+  /*
+    DIE PRÜFLISTEN BLÄTTERN UND SUCHEN WIE DIE ALLE-LISTE (11.11.2026).
+    Vorher holten sie fest 500 ohne den Begriff: „Weitere Kunden laden“ holte
+    dort nichts nach, und das Suchfeld wirkte nicht. Gegenprobe: mit dem Stand
+    davor kommen weder Seitengröße noch Begriff an.
+  */
+  it.each([
+    ['pruefen', () => kundenAdressePruefen],
+    ['ohne-art', () => kundenOhneKundenart],
+  ] as const)('Prüfliste „%s“: holt Seiten zu 200, lädt weiter und sucht mit', async (auswahl, liste) => {
+    liste().mockResolvedValue(volleSeite());
+    const nutzer = userEvent.setup();
+    zeichne(`/customers?auswahl=${auswahl}`);
+    await waitFor(() => expect(liste()).toHaveBeenLastCalledWith('perl', 200, ''));
+    await nutzer.click(await screen.findByRole('button', { name: 'Weitere Kunden laden' }));
+    await waitFor(() => expect(liste()).toHaveBeenLastCalledWith('perl', 400, ''));
+    await nutzer.type(screen.getByLabelText('Kunden durchsuchen'), 'Huber');
+    await waitFor(() => expect(liste()).toHaveBeenLastCalledWith('perl', 400, 'Huber'));
+    expect(searchCustomers).not.toHaveBeenCalledWith('perl', 'Huber', expect.anything());
   });
 
   it('lädt auf Wunsch weiter', async () => {

@@ -275,13 +275,14 @@ export type { WithId };
  * Postgres sucht über den ganzen Bestand und findet auch mitten im Wort.
  * `ilike` und nicht `like`: wer „huber" tippt, meint „Huber".
  */
+/** Worin die Suche der Kundenliste sucht — in der Alle-Liste wie in den Prüflisten. */
+const SUCHSPALTEN = ['name', 'address', 'contact_name', 'contact_phone', 'email'];
+
 export function searchCustomers(
   companyId: string, begriff: string, max = KUNDEN_GRENZE,
 ): Promise<WithId<Customer>[]> {
   return abfragen<Customer>(KUNDEN, companyId, {
-    oder: oderUeberSpalten(
-      ['name', 'address', 'contact_name', 'contact_phone', 'email'], begriff,
-    ),
+    oder: oderUeberSpalten(SUCHSPALTEN, begriff),
     sortiere: { feld: 'name' },
     grenze: max,
   });
@@ -302,12 +303,23 @@ const OHNE_KUNDENART: Bedingung[] = [{ art: 'leer', feld: 'kundenart' }];
 */
 const ADRESSE_PRUEFEN: Bedingung[] = [{ art: 'gleich', feld: 'angabenPruefen', wert: true }];
 
-export function kundenOhneKundenart(companyId: string, max = KUNDEN_GRENZE): Promise<WithId<Customer>[]> {
-  return abfragen<Customer>(KUNDEN, companyId, { wo: OHNE_KUNDENART, sortiere: { feld: 'name' }, grenze: max });
+/*
+  DIE PRÜFLISTEN BLÄTTERN UND SUCHEN WIE DIE ALLE-LISTE (11.11.2026). Bis
+  hierher holten sie fest die ersten 500 und übergingen den Suchbegriff: nach
+  einem Import mit 800 Kunden ohne Kundenart fehlten 300 ohne ein Wort, „Weitere
+  Kunden laden“ holte nichts nach, und wer im Suchfeld tippte, sah dieselbe
+  Liste. Jetzt bestimmt die Ansicht die Seitengröße, und der Begriff geht mit.
+*/
+export function kundenOhneKundenart(companyId: string, max = KUNDEN_GRENZE, begriff = ''): Promise<WithId<Customer>[]> {
+  return abfragen<Customer>(KUNDEN, companyId, {
+    wo: OHNE_KUNDENART, oder: oderUeberSpalten(SUCHSPALTEN, begriff), sortiere: { feld: 'name' }, grenze: max,
+  });
 }
 
-export function kundenAdressePruefen(companyId: string, max = KUNDEN_GRENZE): Promise<WithId<Customer>[]> {
-  return abfragen<Customer>(KUNDEN, companyId, { wo: ADRESSE_PRUEFEN, sortiere: { feld: 'name' }, grenze: max });
+export function kundenAdressePruefen(companyId: string, max = KUNDEN_GRENZE, begriff = ''): Promise<WithId<Customer>[]> {
+  return abfragen<Customer>(KUNDEN, companyId, {
+    wo: ADRESSE_PRUEFEN, oder: oderUeberSpalten(SUCHSPALTEN, begriff), sortiere: { feld: 'name' }, grenze: max,
+  });
 }
 
 /**

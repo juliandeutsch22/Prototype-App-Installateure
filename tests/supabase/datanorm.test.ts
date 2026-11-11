@@ -294,4 +294,28 @@ describe('Was nach der Übernahme bleibt', () => {
     expect(rest).toEqual([]);
     await expect(dn.uebernehmen(lauf)).rejects.toThrow(/bereits abgeschlossen/);
   });
+
+  /*
+    NUR EIN OFFENER LAUF (11.11.2026): seit „Verwerfen“ im Katalogimport den
+    Lauf wirklich verwirft, darf ein übernommener nicht mitgehen — er trägt
+    seinen Bericht, und Zeilen, die noch zuzuordnen sind, hängen an ihm.
+    Gegenprobe: ohne die Statusbedingung wird er „verworfen“ und die Zeile ist weg.
+  */
+  it('verwirft einen übernommenen oder schon verworfenen Lauf nicht — und meldet es', async () => {
+    const { lauf } = await einspielen([zeile()]);
+    // Eine Zeile, die nach der Übernahme noch zuzuordnen wäre.
+    const { error: einfuegen } = await admin.from('datanorm_zeilen').insert({
+      company_id: BETRIEB, lauf_id: lauf, zeile: 9, artikelnummer: 'OFFEN-1', preis_art: 'netto', verarbeitung: 'neu',
+    });
+    expect(einfuegen).toBeNull();
+    await expect(dn.laufVerwerfen(lauf)).rejects.toThrow(/nicht mehr offen/);
+    const { data } = await admin.from('datanorm_laeufe').select('status').eq('id', lauf).single();
+    expect(data).toEqual({ status: 'uebernommen' });
+    const { data: rest } = await admin.from('datanorm_zeilen').select('id').eq('lauf_id', lauf);
+    expect(rest).toHaveLength(1);
+
+    const zweiter = await dn.laufAnlegen(BETRIEB, lieferant, 'k.004', 'cp850', {});
+    await dn.laufVerwerfen(zweiter);
+    await expect(dn.laufVerwerfen(zweiter)).rejects.toThrow(/nicht mehr offen/);
+  });
 });

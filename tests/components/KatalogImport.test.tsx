@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import KatalogImport from '@/features/materials/KatalogImport';
@@ -21,6 +21,8 @@ const rabattsatzSetzen = vi.fn();
 const lieferantAnlegen = vi.fn();
 let saetze: Array<{ id: string; gruppe: string; prozent: number }> = [];
 const spruenge = vi.fn();
+const laufVerwerfen = vi.fn();
+let laeufe: unknown[] = [];
 
 /** Die Reihenfolge der Schreibzugriffe — sie ist hier die eigentliche Regel. */
 let reihenfolge: string[] = [];
@@ -48,7 +50,8 @@ vi.mock('@/lib/db/pg/datanorm', () => ({
     reihenfolge.push('uebernahme');
     return uebernehmen(...a);
   },
-  laeufe: () => Promise.resolve([]),
+  laeufe: () => Promise.resolve(laeufe),
+  laufVerwerfen: (...a: unknown[]) => laufVerwerfen(...a),
   // M03a: die Preissprünge des Laufs, seitenweise.
   preisspruenge: (...a: unknown[]) => spruenge(...a),
 }));
@@ -127,6 +130,8 @@ beforeEach(() => {
   lieferantAnlegen.mockReset().mockResolvedValue('neu');
   // Ohne Vorgabe gäbe der Bericht `undefined` zurück und die Ansicht stürzte nach dem Test unbehandelt ab.
   spruenge.mockReset().mockResolvedValue({ gesamt: 0, schwelle: 10, zeilen: [] });
+  laufVerwerfen.mockReset().mockResolvedValue(undefined);
+  laeufe = [];
   authWert.company = { id: 'perl', name: 'Perl Installationen' };
 });
 
@@ -266,6 +271,60 @@ describe('Übernahme in Blöcken (10.10.2026)', () => {
     expect(zeilenSchicken).toHaveBeenCalledTimes(1);
     expect(uebernehmen).toHaveBeenCalledTimes(2);
     expect(uebernehmen.mock.calls[1][0]).toBe('lauf-1');
+  });
+
+  /*
+    VERWERFEN VERWIRFT (11.11.2026): vorher setzte der Knopf nach einem
+    Abbruch nur die Maske zurück, und der Lauf blieb mit seinen übrigen
+    Zeilen stehen. Gegenprobe: mit dem Stand davor wird `laufVerwerfen` nie
+    gerufen.
+  */
+  it('nach einem Abbruch verwirft „Verwerfen“ den Lauf im Zwischenlager', async () => {
+    uebernehmen.mockRejectedValueOnce(new Error('Failed to fetch'));
+    await einlesen(SAUBER);
+    await userEvent.click(screen.getByRole('button', { name: /Artikel übernehmen/ }));
+    await screen.findByText(/Was bis hierher übernommen ist, bleibt im Katalog/);
+    await userEvent.click(screen.getByRole('button', { name: 'Verwerfen' }));
+    expect(await screen.findByLabelText('DATANORM-Datei')).toBeInTheDocument();
+    expect(laufVerwerfen).toHaveBeenCalledWith('lauf-1');
+  });
+
+  it('lässt sich der Lauf nicht verwerfen, bleibt die Maske und nennt den Grund', async () => {
+    uebernehmen.mockRejectedValueOnce(new Error('Failed to fetch'));
+    laufVerwerfen.mockRejectedValueOnce(new Error('Der Lauf ist nicht mehr offen'));
+    await einlesen(SAUBER);
+    await userEvent.click(screen.getByRole('button', { name: /Artikel übernehmen/ }));
+    await screen.findByText(/Was bis hierher übernommen ist, bleibt im Katalog/);
+    await userEvent.click(screen.getByRole('button', { name: 'Verwerfen' }));
+    expect(await screen.findByText(/Der Lauf ließ sich nicht verwerfen: Der Lauf ist nicht mehr offen/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Weiter übernehmen' })).toBeInTheDocument();
+  });
+
+  it('ein liegengebliebener Lauf lässt sich im Protokoll verwerfen — nach Rückfrage', async () => {
+    laeufe = [
+      { id: 'alt', companyId: 'perl', dateiname: 'alt.001', status: 'offen', createdAt: Date.parse('2026-11-10T09:00:00Z'), bericht: null },
+      { id: 'fertig', companyId: 'perl', dateiname: 'fertig.001', status: 'uebernommen', createdAt: Date.parse('2026-11-09T09:00:00Z'), bericht: null },
+    ];
+    zeige();
+    const knopf = await screen.findByRole('button', { name: 'Lauf „alt.001“ verwerfen' });
+    // Ein übernommener Lauf hat keinen: seine offenen Zuordnungen hängen an ihm.
+    expect(screen.queryByRole('button', { name: 'Lauf „fertig.001“ verwerfen' })).toBeNull();
+    await userEvent.click(knopf);
+    const frage = await screen.findByRole('dialog', { name: 'Lauf verwerfen?' });
+    expect(frage).toHaveTextContent('Was er schon übernommen hat, bleibt im Katalog');
+    await userEvent.click(within(frage).getByRole('button', { name: 'Verwerfen' }));
+    await waitFor(() => expect(laufVerwerfen).toHaveBeenCalledWith('alt'));
+  });
+
+  it('scheitert das Verwerfen nach der Übernahme, steht der Grund trotzdem da', async () => {
+    laeufe = [{ id: 'alt', companyId: 'perl', dateiname: 'alt.001', status: 'offen', createdAt: Date.parse('2026-11-10T09:00:00Z'), bericht: null }];
+    laufVerwerfen.mockRejectedValueOnce(new Error('Der Lauf ist nicht mehr offen'));
+    await einlesen(SAUBER);
+    await userEvent.click(screen.getByRole('button', { name: /Artikel übernehmen/ }));
+    expect(await screen.findByText('Übernommen')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: 'Lauf „alt.001“ verwerfen' }));
+    await userEvent.click(within(await screen.findByRole('dialog', { name: 'Lauf verwerfen?' })).getByRole('button', { name: 'Verwerfen' }));
+    expect(await screen.findByText(/Der Lauf ließ sich nicht verwerfen: Der Lauf ist nicht mehr offen/)).toBeInTheDocument();
   });
 });
 

@@ -211,10 +211,11 @@ export default function CustomersView() {
       setLoading(true);
       setListenFehler(null);
       try {
+        // Alle drei Listen blättern und suchen gleich (11.11.2026, siehe `kundenAdressePruefen`).
         const treffer = nurPruefen
-          ? await kundenAdressePruefen(user.companyId)
+          ? await kundenAdressePruefen(user.companyId, grenze, begriff)
           : nurOhneArt
-            ? await kundenOhneKundenart(user.companyId)
+            ? await kundenOhneKundenart(user.companyId, grenze, begriff)
             : await searchCustomers(user.companyId, begriff, grenze);
         setKunden(treffer);
         setListeFuer(nurPruefen || nurOhneArt ? null : begriff.trim());
