@@ -100,3 +100,10 @@ export function searchProjects(
 ): Promise<WithId<Project>[]> {
   return pg.searchProjects(companyId, begriff, max);
 }
+
+export type { Materialstand } from './pg/projects';
+
+/** Der Materialstand einer Baustelle — siehe `pg.baustelleMaterialstand`. */
+export function baustelleMaterialstand(companyId: string, projectNumber: string) {
+  return pg.baustelleMaterialstand(companyId, projectNumber);
+}

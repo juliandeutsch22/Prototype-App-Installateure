@@ -216,3 +216,36 @@ export function searchProjects(
     grenze: max,
   });
 }
+
+/** Was die Akte über das Material einer Baustelle zeigt (E84) — gezählt in der Datenbank. */
+export interface Materialstand {
+  angefordert: number;
+  abholbereit: number;
+  abgeholt: number;
+  zurueck: number;
+  zuletzt: string | null;
+  scheineMitMaterial: number;
+  positionen: number;
+}
+
+/**
+ * Der Materialstand einer Baustelle (`baustelle_materialstand`). `null`, wenn
+ * die Rolle die Anforderungen anderer nicht lesen darf — die Funktion gibt
+ * dann nichts zurück, und „nichts“ ist nicht „null Anforderungen“.
+ */
+export async function baustelleMaterialstand(companyId: string, projectNumber: string): Promise<Materialstand | null> {
+  type Zeile = { angefordert: number; abholbereit: number; abgeholt: number; zurueck: number; zuletzt: string | null; scheine_mit_material: number; positionen: number };
+  const { data, error } = await derClient().rpc('baustelle_materialstand', { p_company: companyId, p_projekt: projectNumber });
+  if (error) throw new Error(error.message);
+  const z = ((data ?? []) as Zeile[])[0];
+  if (!z) return null;
+  return {
+    angefordert: Number(z.angefordert) || 0,
+    abholbereit: Number(z.abholbereit) || 0,
+    abgeholt: Number(z.abgeholt) || 0,
+    zurueck: Number(z.zurueck) || 0,
+    zuletzt: z.zuletzt,
+    scheineMitMaterial: Number(z.scheine_mit_material) || 0,
+    positionen: Number(z.positionen) || 0,
+  };
+}

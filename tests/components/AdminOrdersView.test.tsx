@@ -645,6 +645,22 @@ describe('Anforderungen — suchen und filtern', () => {
     expect(screen.queryByRole('button', { name: /Weitere Anforderungen laden/ })).toBeNull();
   });
 
+  // E84: aus der Baustellenakte kommt die Nummer in der Adresse — gesucht wird über alle Anforderungen.
+  it('übernimmt die Suche aus der Adresse (Baustellenakte → „Alle Anforderungen“)', async () => {
+    anforderungen = [anforderung({ id: 'a', materialName: 'Rohr', projectNumber: '2026-101' }), anforderung({ id: 'b', materialName: 'Fremdes Ventil', projectNumber: '2026-999' })];
+    render(
+      <MemoryRouter initialEntries={['/anforderungen?suche=2026-101']}>
+        <ToastProvider>
+          <AdminOrdersView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('searchbox', { name: /Suche/ })).toHaveValue('2026-101');
+    await waitFor(() => expect(sucheAnforderungen).toHaveBeenLastCalledWith('perl', '2026-101'));
+    expect(await screen.findByText('Rohr')).toBeInTheDocument();
+    expect(screen.queryByText('Fremdes Ventil')).toBeNull();
+  });
+
   it('ist die Suche über alle nicht erreichbar, sagt sie es — und sucht im Geladenen', async () => {
     sucheAnforderungen.mockRejectedValueOnce(new Error('offline'));
     anforderungen = Array.from({ length: 10 }, (_, i) =>
