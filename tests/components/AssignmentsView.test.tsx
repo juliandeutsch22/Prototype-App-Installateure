@@ -104,7 +104,15 @@ vi.mock('@/lib/db/assignments', () => ({
     loesche(id);
     return loeschenScheitert ? Promise.reject(new Error('kein Netz')) : Promise.resolve();
   },
+  einsatzFolgetage: (...a: unknown[]) => {
+    folgetage(...a);
+    return folgeFehler ? Promise.reject(new Error('kein Netz')) : Promise.resolve(folgeAntwort);
+  },
 }));
+/* Was `einsatz_folgetage` antwortet (B4, E85) — geprüft wird die Datenbank in einsatzFolgetage.test.ts. */
+const folgetage = vi.fn();
+let folgeFehler = false;
+let folgeAntwort: { datum: string; ergebnis: string; eingeteilt: string[]; abwesend: string[]; anderswo: string[] }[] = [];
 
 const MATERIAL: (Material & { id: string })[] = [
   { id: 'm1', companyId: 'perl', name: 'Eckventil 1/2', category: 'Armaturen', stock: 10, unit: 'Stk' } as Material & { id: string },
@@ -189,7 +197,7 @@ vi.mock('@/lib/db/einsatzMaterial', () => ({
   },
 }));
 
-const authWert: { user: { uid: string; companyId: string; name: string; role: 'Projektleiter' }; company: { id: string; name: string; modules?: Record<string, boolean> } } = {
+const authWert: { user: { uid: string; companyId: string; name: string; role: 'Projektleiter' }; company: { id: string; name: string; modules?: Record<string, boolean> }; einblick?: object | null } = {
   user: { uid: 'pl', companyId: 'perl', name: 'Planer', role: 'Projektleiter' as const },
   company: { id: 'perl', name: 'Perl Installationen' },
 };
@@ -224,6 +232,9 @@ beforeEach(() => {
   loeschenScheitert = false;
   speichere.mockClear();
   loesche.mockClear();
+  folgetage.mockClear();
+  folgeFehler = false;
+  folgeAntwort = [];
   ruestSpeichern.mockClear();
   anforderungAnlegen.mockClear();
 });
@@ -1444,5 +1455,147 @@ describe('Tag planen — die Rüstliste gehört zum gewählten Tag', () => {
     await act(async () => listenAbo.offen.find((o) => o.tag === '2026-09-02')!.liefern());
     await waitFor(() => expect(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' })).toBeEnabled());
     expect(screen.queryByText('Eckventil 1/2')).toBeNull();
+  });
+});
+
+/*
+  ÜBER MEHRERE TAGE UND AUF DEN NÄCHSTEN WERKTAG (B4, F2, E85). Der erste
+  Tag läuft wie bisher über `saveAssignments` (samt Rüstliste); die Folgetage
+  übernimmt die Datenbank in einem Aufruf und sagt, was anders lief.
+*/
+describe('Einsatzplanung — mehrere Tage', () => {
+  async function waehleMax() {
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
+  }
+  const geplant = (datum: string) => ({ datum, ergebnis: 'geplant', eingeteilt: ['Max Mustermann'], abwesend: [], anderswo: [] });
+
+  it('Gegenprobe: ohne den Haken bleibt es ein Tag, die Folgetage werden nicht angefasst', async () => {
+    await waehleMax();
+    expect(screen.queryByLabelText('bis einschließlich')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+    expect(folgetage).not.toHaveBeenCalled();
+  });
+
+  it('plant den ersten Tag wie bisher und übergibt die Folgetage bis einschließlich, nur Werktage', async () => {
+    folgeAntwort = [geplant('2026-09-02'), geplant('2026-09-03'), geplant('2026-09-04')];
+    await waehleMax();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Auch an den folgenden Tagen' }));
+    expect(screen.getByRole('checkbox', { name: 'nur Werktage' })).toBeChecked();
+    await userEvent.type(screen.getByLabelText('bis einschließlich'), '2026-09-04');
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+
+    await waitFor(() => expect(folgetage).toHaveBeenCalled());
+    expect(speichere.mock.calls[0][1]).toBe(HEUTE);
+    const [betrieb, von, bis, baustelle, zeilen, nurWerktage] = folgetage.mock.calls[0];
+    expect([betrieb, von, bis, baustelle, nurWerktage]).toEqual(['perl', '2026-09-02', '2026-09-04', '2026-042', true]);
+    expect(zeilen[0]).toMatchObject({ userId: 'u1', projectNumber: '2026-042' });
+    expect(await screen.findByText(/dazu 3 weitere Tage/)).toBeInTheDocument();
+    // Lief alles wie gewählt, schließt das Formular wie nach einem Tag.
+    expect(screen.queryByText(/Nicht an jedem Tag wie gewählt/)).toBeNull();
+  });
+
+  it('nennt die Tage, an denen etwas anders lief, und bleibt bis „Fertig“ stehen', async () => {
+    folgeAntwort = [
+      { datum: '2026-09-02', ergebnis: 'geplant', eingeteilt: [], abwesend: ['Max Mustermann'], anderswo: [] },
+      { datum: '2026-09-03', ergebnis: 'ergaenzt', eingeteilt: ['Max Mustermann'], abwesend: [], anderswo: [] },
+    ];
+    await waehleMax();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Auch an den folgenden Tagen' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'nur Werktage' }));
+    await userEvent.type(screen.getByLabelText('bis einschließlich'), '2026-09-03');
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+
+    expect(await screen.findByText(/Nicht an jedem Tag wie gewählt/)).toBeInTheDocument();
+    expect(folgetage.mock.calls[0][5]).toBe(false);
+    expect(screen.getByText(/Max Mustermann abwesend, nicht eingeteilt/)).toBeInTheDocument();
+    expect(screen.getByText(/war schon geplant — ergänzt/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Fertig' }));
+    expect(screen.queryByText(/Nicht an jedem Tag wie gewählt/)).toBeNull();
+  });
+
+  it('verlangt ein Ende nach dem ersten Tag und höchstens 62 Tage', async () => {
+    await waehleMax();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Auch an den folgenden Tagen' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    expect(await screen.findByText(/„bis einschließlich“ nach dem ersten Tag/)).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('bis einschließlich'), '2026-11-02');
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    expect(await screen.findByText(/höchstens 62 Tage/)).toBeInTheDocument();
+    expect(speichere).not.toHaveBeenCalled();
+    expect(folgetage).not.toHaveBeenCalled();
+  });
+
+  it('scheitern die Folgetage, steht da, dass der erste Tag gespeichert ist', async () => {
+    folgeFehler = true;
+    await waehleMax();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Auch an den folgenden Tagen' }));
+    await userEvent.type(screen.getByLabelText('bis einschließlich'), '2026-09-04');
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    expect(await screen.findByText(/Die weiteren Tage sind nicht gespeichert/)).toBeInTheDocument();
+    expect(speichere).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Einsatzplanung — auf den nächsten Werktag kopieren', () => {
+  it('kopiert die Mannschaft einer Baustelle mit Zeit und Aufgabe auf den nächsten Werktag', async () => {
+    einsaetze = [
+      {
+        id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann',
+        asHelper: true, comment: 'Steigleitung', zeitVon: '07:00', zeitBis: '12:00',
+      } as Assignment & { id: string },
+    ];
+    folgeAntwort = [{ datum: '2026-09-02', ergebnis: 'geplant', eingeteilt: ['Max Mustermann'], abwesend: [], anderswo: [] }];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Familie Huber (2026-042) auf Mi., 02.09.2026 kopieren' }));
+    await waitFor(() => expect(folgetage).toHaveBeenCalled());
+    const [, von, bis, baustelle, zeilen, nurWerktage] = folgetage.mock.calls[0];
+    expect([von, bis, baustelle, nurWerktage]).toEqual(['2026-09-02', '2026-09-02', '2026-042', true]);
+    expect(zeilen[0]).toMatchObject({ userId: 'u1', asHelper: true, comment: 'Steigleitung', zeitVon: '07:00', zeitBis: '12:00', date: '2026-09-02' });
+    expect(await screen.findByText(/kopiert/)).toBeInTheDocument();
+    // Gegenprobe: der heutige Tag bleibt, wie er ist.
+    expect(speichere).not.toHaveBeenCalled();
+    expect(loesche).not.toHaveBeenCalled();
+  });
+
+  it('war am Ziel schon alles so geplant, sagt es das', async () => {
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' } as Assignment & { id: string },
+    ];
+    folgeAntwort = [{ datum: '2026-09-02', ergebnis: 'unveraendert', eingeteilt: [], abwesend: [], anderswo: [] }];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /kopieren/ }));
+    expect(await screen.findByText(/war schon alles so geplant/)).toBeInTheDocument();
+  });
+});
+
+/* Im Einblick des Supports liefert die Abwesenheit nichts — mehrere Tage und Kopieren wären dort blind (E85). */
+describe('Einsatzplanung — im Einblick des Supports', () => {
+  afterEach(() => { authWert.einblick = null; });
+
+  it('weder „Auch an den folgenden Tagen“ noch Kopieren; der einzelne Tag bleibt', async () => {
+    authWert.einblick = { stufe: 'mitarbeiten' };
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' } as Assignment & { id: string },
+    ];
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked());
+    expect(screen.queryByRole('checkbox', { name: 'Auch an den folgenden Tagen' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /kopieren$/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+  });
+
+  it('Gegenprobe: ohne Einblick sind beide da', async () => {
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' } as Assignment & { id: string },
+    ];
+    zeige();
+    expect(await screen.findByRole('button', { name: /kopieren$/ })).toBeInTheDocument();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    expect(screen.getByRole('checkbox', { name: 'Auch an den folgenden Tagen' })).toBeInTheDocument();
   });
 });

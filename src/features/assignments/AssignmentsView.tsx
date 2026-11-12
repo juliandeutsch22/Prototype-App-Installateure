@@ -8,7 +8,8 @@ import { listUsers } from '@/lib/db/users';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { listAbwesendInRange, type Abwesenheit } from '@/lib/db/vacations';
 import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
-import { subscribeAssignmentsForMonth, deleteAssignment } from '@/lib/db/assignments';
+import { subscribeAssignmentsForMonth, deleteAssignment, einsatzFolgetage } from '@/lib/db/assignments';
+import { folgeBericht, naechsterWerktag } from './folgetage';
 import TermineKarte from '@/features/termine/TermineKarte';
 import { terminKopf } from '@/features/termine/terminText';
 import { todayStr } from '@/lib/time';
@@ -30,7 +31,7 @@ import { STUFEN_IM_EINSATZ, stufeAnzahl, stufeImEinsatz } from './stufeImEinsatz
 import EinsatzFormular from './EinsatzFormular';
 import { AnsichtWahl, PlanungsSeitenkopf } from './PlanungsKopf';
 import { abwesendAm, fmtDay, gleicherTagImMonat, useRuestlistenDesTages } from './einsatzDaten';
-import { BearbeitenKnopf, LoeschenKnopf } from '@/components/Symbolknoepfe';
+import { BearbeitenKnopf, KopierenKnopf, LoeschenKnopf } from '@/components/Symbolknoepfe';
 
 /**
  * „Tag planen“ (seit Runde 4 die Ansicht „Tag“ der Einsatzplanung):
@@ -45,8 +46,37 @@ import { BearbeitenKnopf, LoeschenKnopf } from '@/components/Symbolknoepfe';
  * Seite: Formular, Termine des Tages und alle Einsätze darunter.
  */
 export default function AssignmentsView() {
-  const { user, company } = useAuth();
+  const { user, company, einblick } = useAuth();
   const toast = useToast();
+  /** Welche Baustelle gerade auf den nächsten Werktag kopiert wird. */
+  const [kopiert, setKopiert] = useState<string | null>(null);
+
+  /*
+    AUF DEN NÄCHSTEN WERKTAG KOPIEREN (B4, E85): dieselbe Mannschaft, Zeit
+    und Aufgabe am nächsten Werktag — mit den Prüfungen der Folgetage
+    (Abwesenheit, Betriebsurlaub, schon geplant: ergänzt). Die Rüstliste
+    gilt je Tag und wird nicht mitkopiert. Was anders lief, sagt die
+    Meldung; sie bleibt dafür stehen.
+  */
+  async function aufNaechstenWerktag(pn: string, rows: WithId<Assignment>[]) {
+    if (!user || kopiert) return;
+    const ziel = naechsterWerktag(date);
+    setKopiert(pn);
+    try {
+      const tage = await einsatzFolgetage(user.companyId, ziel, ziel, pn, rows.map((r) => ({
+        date: ziel, projectNumber: pn, userId: r.userId, userName: r.userName ?? '', asHelper: !!r.asHelper,
+        comment: r.comment ?? '', zeitVon: r.zeitVon ?? null, zeitBis: r.zeitBis ?? null, createdBy: user.uid,
+      })), true);
+      const { geplant, zeilen } = folgeBericht(tage);
+      if (zeilen.length > 0) toast.info(`Auf ${fmtDay(ziel)} kopiert — ${zeilen.join(' ')}`);
+      else if (geplant > 0) toast.success(`Auf ${fmtDay(ziel)} kopiert`);
+      else toast.info(`Am ${fmtDay(ziel)} war schon alles so geplant.`);
+    } catch (e) {
+      toast.error(`Nicht kopiert: ${e instanceof Error ? e.message : 'unbekannter Fehler'}`);
+    } finally {
+      setKopiert(null);
+    }
+  }
   const [projects, setProjects] = useState<Project[]>([]);
   /*
     DIE BELEGSCHAFT, gemerkt für den zweiten Besuch (Stufe 3) — derselbe
@@ -440,6 +470,15 @@ export default function AssignmentsView() {
                             oder über den Wochenplan. Das Formular übernimmt
                             die vorhandene Planung samt Rüstliste von selbst.
                           */}
+                          {/* Nicht im Einblick: die Abwesenheiten sieht nur der Betrieb (E85). */}
+                          {!einblick && (
+                            <KopierenKnopf
+                              label={`${proj?.customerName ?? pn} (${pn}) auf ${fmtDay(naechsterWerktag(date))} kopieren`}
+                              laeuft={kopiert === pn}
+                              disabled={!!kopiert && kopiert !== pn}
+                              onClick={() => void aufNaechstenWerktag(pn, rows)}
+                            />
+                          )}
                           {inBearbeitung ? (
                             <span className="text-sm text-ink-muted">wird oben bearbeitet</span>
                           ) : (

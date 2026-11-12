@@ -31,7 +31,8 @@ export type MeldungsArt =
   | 'notifyAbwesenheit'
   | 'notifyAngebot'
   | 'notifyZeiterfassung'
-  | 'notifyNachrichten';
+  | 'notifyNachrichten'
+  | 'notifyEinsaetze';
 
 /**
  * Eine Postgres-Zeile als `OrderDoc`.
@@ -565,5 +566,39 @@ export function textNachricht(e: NachrichtEreignis, mitVorschau: boolean, erwaeh
     body,
     link: `/nachrichten/${e.kanal}`,
     tag: `nachricht-${e.kanal}`,
+  };
+}
+
+
+/** Ein Einsatz im Plan der Person, wie `push_einsatz` ihn herausgibt (E85). */
+export interface EinsatzImPlan {
+  nr: string;
+  kunde: string;
+  /** 'HH:MM' oder leer: der ganze Tag. */
+  von?: string | null;
+}
+
+export interface EinsatzEreignis {
+  uid: string;
+  heute: EinsatzImPlan[];
+  morgen: EinsatzImPlan[];
+}
+
+/**
+ * DIE MELDUNG BEI GEÄNDERTEM PLAN (B6, E85): wie der Plan für heute und
+ * morgen JETZT aussieht — nicht, was sich geändert hat. Eine Liste der
+ * Änderungen wäre nach dem dritten Umplanen falsch; der Stand stimmt immer.
+ * Eine Kennung je Person: die neue Meldung ersetzt die vorige.
+ */
+export function textEinsatzplan(e: EinsatzEreignis): Meldung {
+  const tag = (einsaetze: EinsatzImPlan[]) =>
+    einsaetze.length === 0
+      ? 'kein Einsatz'
+      : einsaetze.map((x) => `${x.von ? `${x.von} ` : ''}${x.kunde || x.nr}`).join(', ');
+  return {
+    title: 'Dein Einsatzplan hat sich geändert',
+    body: `Heute: ${tag(e.heute)} · Morgen: ${tag(e.morgen)}`,
+    link: '/my-schedule',
+    tag: `einsatzplan-${e.uid}`,
   };
 }

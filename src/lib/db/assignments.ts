@@ -104,3 +104,13 @@ export function listEinsatztageInRange(companyId: string, from: string, to: stri
 export function einsaetzeDerBaustelle(companyId: string, projectNumber: string, heute: string, je = 20) {
   return pg.einsaetzeDerBaustelle(companyId, projectNumber, heute, je);
 }
+
+export type { FolgeTag } from './pg/assignments';
+
+/** Die Einteilung auf die Folgetage übernehmen — siehe `pg.einsatzFolgetage`. */
+export function einsatzFolgetage(
+  companyId: string, von: string, bis: string, projectNumber: string,
+  rows: Parameters<typeof pg.einsatzFolgetage>[4], nurWerktage: boolean,
+) {
+  return pg.einsatzFolgetage(companyId, von, bis, projectNumber, rows, nurWerktage);
+}

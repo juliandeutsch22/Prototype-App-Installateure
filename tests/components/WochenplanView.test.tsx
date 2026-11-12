@@ -1267,6 +1267,18 @@ describe('Planung — Noch einzuplanen', () => {
     expect(screen.queryByRole('button', { name: 'Noch einzuplanen …' })).toBeNull();
   });
 
+  /* B7, E85: pausiert heißt „wird gerade nicht bedient“ — dort fehlt kein Einsatz. */
+  it('eine pausierte Baustelle ohne Einsatz steht nicht unter „Noch einzuplanen“', async () => {
+    BAUSTELLEN.push({ id: 'pz', companyId: 'perl', projectNumber: 'P-01', customerName: 'Pause GmbH', status: 'Pausiert' } as Project);
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(hinweiszeile(/1 laufende Baustelle ohne Einsatz in dieser Woche: Familie Huber/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Noch einzuplanen …' }));
+    const dialog = within(screen.getByRole('dialog', { name: 'Noch einzuplanen' }));
+    expect(dialog.queryByRole('button', { name: /Pause GmbH/ })).toBeNull();
+    expect(dialog.getAllByRole('listitem')).toHaveLength(1);
+  });
+
   it('dieselbe Menge wie vorher: alle laufenden Baustellen ohne Einsatz in dieser Woche, 20 und „und N weitere“', async () => {
     for (let i = 1; i <= 23; i++) {
       BAUSTELLEN.push({ id: `x${i}`, companyId: 'perl', projectNumber: `X-${String(i).padStart(2, '0')}`, customerName: `Kunde ${String(i).padStart(2, '0')}`, status: 'Aktiv' } as Project);

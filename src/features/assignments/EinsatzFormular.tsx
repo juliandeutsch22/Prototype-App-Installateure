@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { materialdeckung, type DeckungsDaten } from '@/lib/db/materialdeckung';
-import { saveAssignments } from '@/lib/db/assignments';
+import { einsatzFolgetage, saveAssignments } from '@/lib/db/assignments';
+import { FOLGETAGE_HOECHSTENS, folgeBericht, tagDanach, tageEinschliesslich } from './folgetage';
 import { saveEinsatzMaterial } from '@/lib/db/einsatzMaterial';
 import type { Abwesenheit } from '@/lib/db/vacations';
 import { getAustrianHolidayName, isWeekend } from '@/lib/time';
@@ -133,7 +134,7 @@ export default function EinsatzFormular({
    */
   fussNeben?: ReactNode;
 }) {
-  const { user } = useAuth();
+  const { user, einblick } = useAuth();
   const toast = useToast();
   const materialAn = useModul('material');
   // Der Zustand je Position (M04b); die Fehlmenge selbst gibt es auch ohne.
@@ -155,6 +156,19 @@ export default function EinsatzFormular({
   const [zeitBis, setZeitBis] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  /*
+    ÜBER MEHRERE TAGE (B4, E85): dieselbe Einteilung bis einschließlich
+    einem Tag, ab Werk nur an Werktagen. Der erste Tag wird wie bisher
+    gespeichert, samt Rüstliste; die Folgetage übernimmt die Datenbank in
+    einem Aufruf (`einsatz_folgetage`) und sagt je Tag, was anders lief.
+  */
+  const [mehrereTage, setMehrereTage] = useState(false);
+  const [bisTag, setBisTag] = useState('');
+  const [nurWerktage, setNurWerktage] = useState(true);
+  /** Die Tage, an denen etwas anders lief — bis „Fertig“ bleibt das Formular stehen. */
+  const [folgeZeilen, setFolgeZeilen] = useState<string[] | null>(null);
+  // Ein anderer Tag oder eine andere Baustelle: der Bericht gehört zum vorigen Speichern.
+  useEffect(() => { setFolgeZeilen(null); }, [date, projectNumber]);
 
   /*
     Die Rüstliste. Sie hängt am Paar aus Tag und Baustelle, nicht an der
@@ -335,6 +349,14 @@ export default function EinsatzFormular({
       setError('Das Ende des Einsatzes liegt vor dem Beginn — bitte die Uhrzeiten prüfen.');
       return;
     }
+    if (mehrereTage && (!bisTag || bisTag <= date)) {
+      setError('Bitte „bis einschließlich“ nach dem ersten Tag wählen.');
+      return;
+    }
+    if (mehrereTage && tageEinschliesslich(date, bisTag) > FOLGETAGE_HOECHSTENS) {
+      setError(`Über höchstens ${FOLGETAGE_HOECHSTENS} Tage auf einmal — weiter reicht die Prüfung der Abwesenheiten nicht.`);
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -451,22 +473,50 @@ export default function EinsatzFormular({
         }
         setVorgemerkt(new Map());
         const angefordertJetzt = positionen.filter((p) => p.anfordern).length;
-        toast.success(
+        await abschliessen(
           angefordertJetzt > 0
             ? `Einsatz und Rüstliste gespeichert, ${angefordertJetzt === 1 ? 'eine Anforderung' : `${angefordertJetzt} Anforderungen`} angelegt`
             : 'Einsatz und Rüstliste gespeichert',
+          rows,
         );
-        onGespeichert?.();
         return;
       }
 
-      toast.success('Einsatz gespeichert');
-      onGespeichert?.();
+      await abschliessen('Einsatz gespeichert', rows);
     } catch (err) {
       setError(grundAus(err, 'Der Einsatz konnte nicht gespeichert werden.'));
     } finally {
       setSaving(false);
     }
+  }
+
+  /**
+   * Nach dem ersten Tag: die Folgetage, falls gewählt, dann die Meldung.
+   * Ging an einem Tag etwas anders, bleibt das Formular mit dem Bericht
+   * stehen — schlösse es, wüsste niemand, dass Anton am Dienstag fehlt.
+   */
+  async function abschliessen(meldung: string, rows: Parameters<typeof saveAssignments>[3]) {
+    if (!user) return;
+    if (!mehrereTage || !bisTag || bisTag <= date) {
+      toast.success(meldung);
+      onGespeichert?.();
+      return;
+    }
+    let bericht: ReturnType<typeof folgeBericht>;
+    try {
+      bericht = folgeBericht(await einsatzFolgetage(user.companyId, tagDanach(date), bisTag, projectNumber, rows, nurWerktage));
+    } catch (err) {
+      // Der erste Tag steht — das muss dastehen, sonst plante man ihn ein zweites Mal.
+      setError(`${meldung}. Die weiteren Tage sind nicht gespeichert: ${grundAus(err, 'unbekannter Fehler')} Bitte noch einmal speichern.`);
+      return;
+    }
+    toast.success(`${meldung}, dazu ${bericht.geplant === 1 ? 'ein weiterer Tag' : `${bericht.geplant} weitere Tage`}`);
+    if (bericht.zeilen.length > 0) {
+      setFolgeZeilen(bericht.zeilen);
+      return;
+    }
+    setMehrereTage(false);
+    onGespeichert?.();
   }
 
   /**
@@ -512,6 +562,7 @@ export default function EinsatzFormular({
       <BaustellenSelect
         id="aproj"
         companyId={user.companyId}
+        pausiertGetrennt
         value={projectNumber}
         onChange={(nr, p) => {
           onProjectNumber(nr);
@@ -731,6 +782,27 @@ export default function EinsatzFormular({
         </div>
       )}
       {/*
+        ÜBER MEHRERE TAGE (B4, E85). Zugeklappt hinter einem Haken: der
+        einzelne Tag bleibt der gewohnte Weg und das Formular so kurz wie
+        bisher. Nicht im Einblick des Supports: die Abwesenheiten der
+        Belegschaft sieht nur der Betrieb; ohne sie würde still jemand im
+        Urlaub eingeteilt.
+      */}
+      {!einblick && (
+        <div className="mt-4 space-y-3">
+          <CheckboxField id="amehrere" label="Auch an den folgenden Tagen" checked={mehrereTage}
+            onChange={(e) => { setMehrereTage(e.target.checked); setFolgeZeilen(null); }} />
+          {mehrereTage && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end">
+              <InputField id="abis" label="bis einschließlich" type="date" value={bisTag} min={tagDanach(date)}
+                max={tagDanach(date, FOLGETAGE_HOECHSTENS - 1)} onChange={(e) => setBisTag(e.target.value)} />
+              <CheckboxField id="awerktage" label="nur Werktage" checked={nurWerktage}
+                onChange={(e) => setNurWerktage(e.target.checked)} />
+            </div>
+          )}
+        </div>
+      )}
+      {/*
         Nicht verbieten, sondern sagen. Bei einem Notdienst holt man auch
         mal jemanden aus dem Urlaub; eine Sperre stünde dann im Weg. Ein
         stilles Durchwinken wäre aber genauso falsch.
@@ -794,6 +866,18 @@ export default function EinsatzFormular({
   const speicherHinweise = (
     <>
       {error && <div className="mb-3"><ErrorState message={error} /></div>}
+      {folgeZeilen && (
+        <div className="mb-3" role="status">
+          <Hinweiszeile stufe="warn">
+            <p><strong>Nicht an jedem Tag wie gewählt:</strong></p>
+            <ul className="mt-1 space-y-1">{folgeZeilen.map((z) => <li key={z}>{z}</li>)}</ul>
+          </Hinweiszeile>
+          <Button type="button" variant="secondary" className="mt-2"
+            onClick={() => { setFolgeZeilen(null); setMehrereTage(false); onGespeichert?.(); }}>
+            Fertig
+          </Button>
+        </div>
+      )}
       {/* Der Knopf ist gesperrt — hier steht, warum, statt dass er grundlos grau bleibt. */}
       {projectNumber && !bereit && (
         <p className="mb-3 text-sm text-ink-muted" role="status">

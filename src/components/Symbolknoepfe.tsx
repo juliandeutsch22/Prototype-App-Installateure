@@ -18,7 +18,7 @@ import IconButton from './IconButton';
 /** `laeuft`: die Handlung läuft gerade — gesperrt, damit sie nicht zweimal angestoßen wird. */
 type Eigen = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & { label: string; laeuft?: boolean };
 
-function Symbol({ label, laeuft = false, disabled, zeichen, tone, ...rest }: Eigen & { zeichen: 'pencil' | 'papierkorb' | 'pdf'; tone?: 'danger' }) {
+function Symbol({ label, laeuft = false, disabled, zeichen, tone, ...rest }: Eigen & { zeichen: 'pencil' | 'papierkorb' | 'pdf' | 'kopieren'; tone?: 'danger' }) {
   return (
     <IconButton label={label} tone={tone} disabled={disabled || laeuft} aria-busy={laeuft || undefined} {...rest}>
       <Icon name={zeichen} size={22} />
@@ -36,6 +36,11 @@ export function LoeschenKnopf(props: Eigen) {
 
 export function PdfKnopf(props: Eigen) {
   return <Symbol {...props} zeichen="pdf" />;
+}
+
+/** Eine Sache auf einen anderen Tag übernehmen (E85: Einsatz auf den nächsten Werktag). */
+export function KopierenKnopf(props: Eigen) {
+  return <Symbol {...props} zeichen="kopieren" />;
 }
 
 /**

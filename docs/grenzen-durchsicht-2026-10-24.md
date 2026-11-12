@@ -332,3 +332,15 @@ Nachtlauf darf nicht wegzuklicken sein.
   Auslieferung kennt die neue Frage an den Worker nicht und kann bei sehr
   zähem Netz noch einmal hart räumen. Grund: liegt beim alten Code auf dem
   Gerät; ab dieser Fassung tritt es nicht mehr auf.
+- **Einsatz über mehrere Tage: höchstens 62 Tage je Speichern** (E85).
+  Grund fachlich: so weit reicht die Prüfung der Abwesenheiten
+  (`wochenplan_abwesend`); darüber wüsste sie nichts mehr.
+- **Die Rüstliste entsteht an den Folgetagen nicht von selbst** (E85); eine
+  vorhandene bekommt die neue Mannschaft. Grund fachlich: Material wird
+  einmal geladen und verbaut, an jedem Tag stünde es doppelt angefordert.
+- **Push bei geändertem Einsatzplan nur für heute und morgen** (E85). Grund
+  fachlich: spätere Tage stehen im Plan; eine Wochenplanung meldete sich
+  sonst je Tag.
+- **Mehrere Tage und Kopieren nicht im Einblick des Supports** (E85), der
+  einzelne Tag schon. Grund: Datenschutz — die Abwesenheiten der Belegschaft
+  liest nur der Betrieb; ohne sie würde still jemand im Urlaub eingeteilt.

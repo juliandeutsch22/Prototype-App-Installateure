@@ -37,6 +37,8 @@ import {
   textFreistellungEntscheidung,
   textKrankmeldung,
   textNachricht,
+  textEinsatzplan,
+  type EinsatzEreignis,
   type NachrichtEreignis,
   type Belegschaftsmitglied,
   EMPFAENGER_NEUE_ANFORDERUNG,
@@ -116,6 +118,7 @@ async function tokensFuer(uids: string[], art: MeldungsArt): Promise<string[]> {
       notifyAngebot: zeile.notify_angebot,
       notifyZeiterfassung: zeile.notify_zeiterfassung,
       notifyNachrichten: zeile.notify_nachrichten,
+      notifyEinsaetze: zeile.notify_einsaetze,
     };
     if (!willMeldung(vorgaben, art)) continue;
     for (const t of (zeile.push_tokens as string[] | null) ?? []) tokens.push(t);
@@ -351,6 +354,23 @@ async function auftraegeNachricht(ereignis: Ereignis): Promise<Auftrag[] | null>
   }));
 }
 
+/**
+ * Einsatzplan (B6, E85): der Plan der Person für heute und morgen hat sich
+ * geändert. Die Datenbank sammelt je Person und stößt erst nach zwei Minuten
+ * Ruhe an; der Anstoß trägt nur die Kennung, der Plan kommt von
+ * `push_einsatz` — wie er jetzt ist.
+ */
+async function auftraegeEinsatz(ereignis: Ereignis): Promise<Auftrag[] | null> {
+  const uid = String(ereignis.zeile?.user_id ?? '');
+  if (ereignis.art !== 'plan' || !uid) return null;
+  const r = await fetch(`${URL_BASIS}/rest/v1/rpc/push_einsatz`, {
+    method: 'POST', headers: alsDienst, body: JSON.stringify({ p_user: uid }),
+  });
+  const e = r.ok ? (await r.json().catch(() => null)) as EinsatzEreignis | null : null;
+  if (!e) return [];
+  return [{ art: 'notifyEinsaetze' as const, uids: [uid], meldung: textEinsatzplan(e) }];
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return antwort({ error: 'Nur POST.' }, 405);
 
@@ -378,7 +398,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       ? await auftraegeAngebot(ereignis)
       : ereignis.quelle === 'nachricht'
         ? await auftraegeNachricht(ereignis)
-        : await auftraegeAnforderung(ereignis);
+        : ereignis.quelle === 'einsatz'
+          ? await auftraegeEinsatz(ereignis)
+          : await auftraegeAnforderung(ereignis);
   if (!auftraege) return antwort({ gesendet: 0, grund: 'kein Ereignis, das etwas meldet' });
 
   /*

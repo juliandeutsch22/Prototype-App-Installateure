@@ -288,3 +288,39 @@ export async function einsaetzeDerBaustelle(
   ]);
   return { kommend, vorher };
 }
+
+/** Was an einem Folgetag geschah (E85) — je Tag eine Zeile der Antwort. */
+export interface FolgeTag {
+  datum: string;
+  ergebnis: 'geplant' | 'ergaenzt' | 'unveraendert' | 'wochenende' | 'feiertag' | 'betriebsurlaub' | 'alle_abwesend';
+  eingeteilt: string[];
+  abwesend: string[];
+  anderswo: string[];
+}
+
+/**
+ * Die Einteilung eines Tages auf die Folgetage übernehmen
+ * (`einsatz_folgetage`) — in einem Aufruf, mit den Prüfungen je Tag.
+ * Die Zeilen sind dieselben wie für `saveAssignments`.
+ */
+export async function einsatzFolgetage(
+  companyId: string, von: string, bis: string, projectNumber: string, rows: AssignmentInput[], nurWerktage: boolean,
+): Promise<FolgeTag[]> {
+  void companyId;
+  const zeilen = rows.map(({ date: _tag, projectNumber: _bau, ...rest }) => {
+    void _tag;
+    void _bau;
+    return objektAlsZeile(EINSAETZE, rest);
+  });
+  const { data, error } = await derClient().rpc('einsatz_folgetage', {
+    p_von: von, p_bis: bis, p_baustelle: projectNumber, p_zeilen: zeilen, p_nur_werktage: nurWerktage,
+  });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as FolgeTag[]).map((t) => ({
+    datum: t.datum,
+    ergebnis: t.ergebnis,
+    eingeteilt: t.eingeteilt ?? [],
+    abwesend: t.abwesend ?? [],
+    anderswo: t.anderswo ?? [],
+  }));
+}
