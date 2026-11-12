@@ -127,6 +127,115 @@ export function inVerrechneterPauschale(
     .map((s) => s.id);
 }
 
+/** Ob ein Schein etwas trägt, das nur über ihn auf eine Rechnung kommt. */
+function traegtMaterial(s: Pick<WorkSheet, 'material'>): boolean {
+  return (s.material ?? []).some((z) => z.menge > 0 && !!z.name?.trim());
+}
+
+/**
+ * Scheine ohne Material, deren Tag eine gültige Rechnung derselben
+ * Baustelle schon abgerechnet hat (Gesamtanalyse 12.11.2026, A1).
+ *
+ * WARUM ES DIESE REGEL BRAUCHT. Bis zum 12.11.2026 verknüpfte eine Rechnung
+ * nur die Scheine, deren MATERIAL sie brachte. Ein Schein nur mit Stunden —
+ * bei Regie und Reparaturen der häufigste Fall — stand danach auf keiner
+ * Rechnung und galt für immer als „nicht verrechnet“, obwohl seine Stunden
+ * über die Buchungen längst auf der Rechnung standen. Neue Rechnungen
+ * verknüpfen ihn jetzt (`assembleInvoice`); für die schon ausgestellten
+ * entscheidet diese Regel, ohne eine Zeile der Produktion umzuschreiben.
+ *
+ * WARUM DAS STIMMT. Ein Schein ohne Material bringt selbst nichts auf eine
+ * Rechnung: die Stunden kommen aus den Buchungen, die ihren eigenen
+ * Verrechnungsstand tragen. Ist eine Buchung noch offen, steht sie als
+ * unverrechnete Stunde da; fehlt sie ganz, meldet es die Scheinliste unter
+ * „Stunden ohne Buchung“. Liegt sein Tag im Zeitraum einer Rechnung, die
+ * Belege dieser Baustelle verbraucht hat, ist er abgerechnet.
+ *
+ * NUR RECHNUNGEN, DIE BELEGE VERBRAUCHT HABEN: keine Anzahlung, keine
+ * Teilrechnung auf eine Pauschale, keine reine Wartungsrechnung — sie
+ * rechnen keinen Tag ab. Ein Storno gibt den Schein wieder frei. Der
+ * Zeitraum endet mit „Leistung bis“, ohne sie am Rechnungsdatum; ohne
+ * „Leistung von“ gilt alles bis dahin (wie `nachgetrageneScheine`).
+ */
+export function inAbgerechnetemZeitraum(
+  scheine: ReadonlyArray<Pick<WorkSheet, 'status' | 'projectNumber' | 'datum' | 'material'> & { id: string }>,
+  rechnungen: ReadonlyArray<Pick<Invoice, 'projectNumber' | 'paymentStatus' | 'art' | 'leistungVon' | 'leistungBis' | 'invoiceDate'
+    | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets'>>,
+): string[] {
+  const zeitraeume = new Map<string, Array<{ von?: string; bis: string }>>();
+  for (const r of rechnungen) {
+    if (r.paymentStatus === 'Storniert' || (r.art ?? 'einzel') === 'anzahlung') continue;
+    const belege = (r.linkedEntries?.length ?? 0) + (r.linkedOrders?.length ?? 0) + (r.linkedWorkSheets?.length ?? 0);
+    const bis = r.leistungBis || r.invoiceDate;
+    const nr = baustelleNorm(r.projectNumber);
+    if (belege === 0 || !bis || !nr) continue;
+    const liste = zeitraeume.get(nr) ?? [];
+    liste.push({ von: r.leistungVon || undefined, bis });
+    zeitraeume.set(nr, liste);
+  }
+  return scheine
+    .filter((s) => {
+      if (s.status !== 'Unterschrieben' || !s.datum || traegtMaterial(s)) return false;
+      return (zeitraeume.get(baustelleNorm(s.projectNumber)) ?? [])
+        .some((z) => s.datum <= z.bis && (!z.von || s.datum >= z.von));
+    })
+    .map((s) => s.id);
+}
+
+/**
+ * „Nicht verrechnete Leistung“ als EINE ZEILE JE BAUSTELLE (Gesamtanalyse
+ * 12.11.2026, A2).
+ *
+ * Vorher stand dieselbe Arbeit zweimal da: der Schein und die Stunden, die
+ * auf ihm stehen — mit demselben Knopf „Baustelle wählen“, und die Zahl im
+ * Titel zählte sie doppelt. Verrechnet wird eine Baustelle, nicht ein Schein
+ * (`assembleInvoice` nimmt alles Offene der Baustelle); deshalb steht sie
+ * hier einmal, mit allem, was offen ist. Gemessen wird am ältesten offenen
+ * Beleg, älteste Baustelle zuerst.
+ */
+export interface OffeneBaustelle<S, H> {
+  /** Die Baustellennummer, wie sie am ältesten Beleg steht. */
+  projectNumber: string;
+  kunde: string;
+  scheine: S[];
+  /** Ältester Tag unter den Scheinen. */
+  aeltesterSchein: string | null;
+  stunden: H | null;
+  tage: number;
+}
+
+export function nichtVerrechnetJeBaustelle<
+  S extends Pick<WorkSheet, 'projectNumber' | 'customerName' | 'datum'>,
+  H extends { projectNumber: string; kunde: string; aeltester: string },
+>(
+  scheine: Array<{ schein: S; tage: number }>,
+  stunden: Array<{ stunden: H; tage: number }>,
+): Array<OffeneBaustelle<S, H>> {
+  const nach = new Map<string, OffeneBaustelle<S, H>>();
+  const holen = (nummer: string, kunde: string) => {
+    const k = baustelleNorm(nummer);
+    let b = nach.get(k);
+    if (!b) {
+      b = { projectNumber: nummer, kunde, scheine: [], aeltesterSchein: null, stunden: null, tage: 0 };
+      nach.set(k, b);
+    }
+    if (!b.kunde && kunde) b.kunde = kunde;
+    return b;
+  };
+  for (const z of scheine) {
+    const b = holen(z.schein.projectNumber, z.schein.customerName ?? '');
+    b.scheine.push(z.schein);
+    if (!b.aeltesterSchein || z.schein.datum < b.aeltesterSchein) b.aeltesterSchein = z.schein.datum;
+    b.tage = Math.max(b.tage, z.tage);
+  }
+  for (const z of stunden) {
+    const b = holen(z.stunden.projectNumber, z.stunden.kunde);
+    b.stunden = z.stunden;
+    b.tage = Math.max(b.tage, z.tage);
+  }
+  return [...nach.values()].sort((a, b) => b.tage - a.tage || a.projectNumber.localeCompare(b.projectNumber));
+}
+
 /** Wie viele davon schon auffällig lange offen sind. */
 export function auffaellige<Z extends { tage: number }>(zeilen: Z[]): Z[] {
   return zeilen.filter((z) => z.tage >= AUFFAELLIG_AB_TAGEN);

@@ -302,8 +302,12 @@ describe('Die ganze Rechnung', () => {
       katalog: KATALOG,
     });
     expect(nurSchein.leistung).toEqual({ von: '2026-09-12', bis: '2026-09-12' });
-    // Material kam keines dazu, also merkt sich die Rechnung den Schein nicht als verbraucht.
-    expect(nurSchein.linkedWorkSheets).toEqual([]);
+    /*
+      SEIT 12.11.2026 (A1) merkt sich die Rechnung auch diesen Schein: sie
+      rechnet seinen Tag ab. Vorher stand hier „[]“ — und der Schein galt
+      danach für immer als „nicht verrechnet“.
+    */
+    expect(nurSchein.linkedWorkSheets).toEqual(['s1']);
 
     const mitStunden = assembleInvoice('B-001', zeiten, INVOICE_DEFAULTS, {
       scheine: [schein({ id: 's1', datum: '2026-09-12', material: [] })],
@@ -322,6 +326,27 @@ describe('Die ganze Rechnung', () => {
       bereitsVerrechnet: new Set(['s2']),
     });
     expect(r.leistung).toEqual({ von: '2026-09-07', bis: '2026-09-07' });
+    // … und verknüpft wird keiner von beiden (A1, Erhaltung).
+    expect(r.linkedWorkSheets).toEqual([]);
+  });
+
+  /*
+    GESAMTANALYSE 12.11.2026, A1: die Rechnung verknüpft jeden Schein, den sie
+    abrechnet — mit und ohne Material —, und nur die bis zum Stichtag.
+    Gegenprobe: mit `linkedWorkSheets: mat.herkunft.scheine` (vorher) ist
+    dieser Fall rot, die Erhaltung oben grün.
+  */
+  it('verknüpft auch die Scheine ohne Material — bis zum Stichtag (A1)', () => {
+    const scheine = [
+      schein({ id: 'ohne', datum: '2026-09-10', material: [] }),
+      schein({ id: 'mit', datum: '2026-09-11', material: [{ name: 'Eckventil 1/2 Zoll', menge: 1 }] }),
+      schein({ id: 'spaeter', datum: '2026-09-25', material: [] }),
+    ];
+    const alle = assembleInvoice('B-001', zeiten, INVOICE_DEFAULTS, { scheine, katalog: KATALOG });
+    expect([...alle.linkedWorkSheets].sort()).toEqual(['mit', 'ohne', 'spaeter']);
+    const bis = assembleInvoice('B-001', zeiten, INVOICE_DEFAULTS, { scheine, katalog: KATALOG }, undefined, '2026-09-20');
+    expect([...bis.linkedWorkSheets].sort()).toEqual(['mit', 'ohne']);
+    expect(bis.leistung).toEqual({ von: '2026-09-07', bis: '2026-09-11' });
   });
 
   // Testbericht 30.09.2026, G17 — die Tätigkeit aus dem Schein gehört in den Leistungsnachweis.

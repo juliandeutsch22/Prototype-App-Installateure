@@ -390,6 +390,63 @@ test('Alte, nicht verrechnete Stunden führen von der Startseite zur Rechnung', 
 });
 
 /**
+ * Ein Schein nur mit Stunden (Gesamtanalyse 12.11.2026, A1 und A2).
+ *
+ * Nachgestellt in der laufenden App: Schein ohne Material unterschrieben,
+ * Rechnung über alle Stunden erstellt — der Schein stand danach weiter unter
+ * „Nicht verrechnete Leistung“, weil die Rechnung nur Scheine mit Material
+ * verknüpfte. Und vorher stand dieselbe Baustelle dort zweimal: als Schein
+ * und als Stunden. Jetzt einmal, und nach der Rechnung gar nicht mehr.
+ */
+test('Ein Schein nur mit Stunden steht einmal da und ist nach der Rechnung verrechnet', async ({ page }) => {
+  const schein = crypto.randomUUID();
+  const { data: leute } = await admin.from('users').select('id').eq('email', MONTEUR.email).single();
+  // Erst als Entwurf: ein unterschriebener Schein nimmt keine Zeilen mehr an.
+  const { error } = await admin.from('work_sheets').insert({
+    id: schein, company_id: BETRIEB, project_number: BAUSTELLE.nummer, customer_name: BAUSTELLE.kunde,
+    datum: '2026-09-01', status: 'Entwurf', abrechnung: 'Regie',
+    erstellt_von_uid: leute!.id, erstellt_von_name: MONTEUR.name,
+  });
+  if (error) throw new Error(error.message);
+  try {
+    const { error: z } = await admin.from('work_sheet_hours').insert({
+      company_id: BETRIEB, work_sheet_id: schein, position: 0, datum: '2026-09-01',
+      mitarbeiter: MONTEUR.name, von: '07:00', bis: '16:00', pause_min: 30, minuten: 510,
+    });
+    if (z) throw new Error(z.message);
+    const { error: u } = await admin.from('work_sheets').update({ status: 'Unterschrieben' }).eq('id', schein);
+    if (u) throw new Error(u.message);
+
+    await anmelden(page, BUERO.email);
+    await page.getByRole('link', { name: 'Rechnungen' }).first().click();
+    // A2: Schein und Stunden derselben Baustelle als eine Zeile.
+    await expect(page.getByText(/^Nicht verrechnete Leistung \(1\)/)).toBeVisible();
+    await expect(page.getByText(/Schein vom 01\.09\.2026 · 08:30 Std gebucht seit 01\.09\.2026 · Regie/)).toBeVisible();
+    await page.getByRole('button', { name: 'Baustelle wählen' }).click();
+    await expect(page.locator('#invproj')).toHaveValue(BAUSTELLE.nummer);
+    await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
+    await page.getByRole('button', { name: /Rechnung erstellen/ }).click();
+
+    // A1: die Rechnung verknüpft den Schein …
+    await expect(async () => {
+      const { data } = await admin
+        .from('invoice_coverage').select('art, ziel_id').eq('company_id', BETRIEB).eq('art', 'work_sheet');
+      expect((data ?? []).map((d) => d.ziel_id)).toEqual([schein]);
+    }).toPass({ timeout: 25_000 });
+    // … und danach steht nichts mehr offen — auch nicht nach dem Neuladen.
+    await expect(page.getByText(/^Nicht verrechnete Leistung/)).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Rechnungen', level: 1 })).toBeVisible();
+    await expect(page.getByRole('button', { name: /RE-/ }).first()).toBeVisible();
+    await expect(page.getByText(/^Nicht verrechnete Leistung/)).toHaveCount(0);
+    await keineFehlermeldung(page);
+  } finally {
+    await admin.from('invoices').delete().eq('company_id', BETRIEB);
+    await admin.from('work_sheets').delete().eq('id', schein);
+  }
+});
+
+/**
  * Ausgegebenes Material ohne Schein (23.10.2026) — vom Lager bis auf die
  * Rechnung, und danach nicht noch einmal.
  */

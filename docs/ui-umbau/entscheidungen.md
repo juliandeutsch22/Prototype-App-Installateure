@@ -3247,3 +3247,60 @@ der Text bzw. „Name: Text“ — daran wird nichts geändert. **Nachweis:**
 - `Nachrichten.test.tsx`: mit dem Finger „Text markieren“ in der Leiste, der
   Fokus bleibt in der Eingabe, `contextmenu` öffnet sofort; mit der
   Eingabetaste ohne „Text markieren“ (unverändert). Gegenprobe: rot.
+
+**E81 — Verrechnungsstand der Scheine: Schein ohne Material, eine Zeile je Baustelle (12.11.2026).**
+Paket 1 des Gesamtplans vom 12.11.2026 (Befunde A1, A2), Reihenfolge und
+Empfehlungen freigegeben („nach deiner Empfehlung“).
+
+Befund A1, nachgestellt in der laufenden App: Schein nur mit Stunden
+unterschrieben, Rechnung über alle Stunden der Baustelle erstellt — danach
+stand der Schein weiter unter Rechnungen › „Nicht verrechnete Leistung“ und
+auf der Startseite als „1 Schein nicht verrechnet“, auch nach dem Neuladen.
+Ursache: die Rechnung verknüpfte nur Scheine, deren Material sie brachte
+(`materialPositionen`, `linkedWorkSheets`); der Leistungszeitraum zählte den
+Schein dagegen schon mit (G16). Befund A2: dieselbe Baustelle stand dort
+zweimal — als Schein und als „gebuchte Stunden“ —, mit demselben Knopf, und
+der Titel zählte dieselbe Arbeit doppelt.
+
+Entschieden:
+- **Die Rechnung verknüpft jeden Schein, den sie abrechnet** — dieselben,
+  deren Tag in ihren Zeitraum eingeht, mit und ohne Material, bei Regie bis
+  zum Stichtag. Ein Storno gibt sie wie bisher frei; die Datenbank wacht
+  unverändert darüber, dass ein Schein nur auf einer gültigen Rechnung steht.
+- **Die schon ausgestellten Rechnungen werden nicht umgeschrieben.** Für sie
+  gilt eine Regel (`inAbgerechnetemZeitraum`): ein unterschriebener Schein
+  OHNE Material, dessen Tag im Zeitraum einer gültigen Rechnung derselben
+  Baustelle liegt, die Belege verbraucht hat (keine Anzahlung, kein
+  Teilbetrag einer Pauschale, keine reine Wartungsrechnung), gilt als
+  verrechnet. Das stimmt, weil ein solcher Schein selbst nichts auf eine
+  Rechnung bringt: die Stunden kommen aus den Buchungen mit eigenem
+  Verrechnungsstand; eine offene Buchung steht weiter als offene Stunde da,
+  eine fehlende meldet die Scheinliste unter „Stunden ohne Buchung“. Ein
+  Schein MIT Material bleibt offen, bis eine Rechnung ihn trägt. Die Regel
+  steht an einer Stelle (`scheineAufRechnung`), die Startseite, Rechnungen,
+  Scheinliste und Baustellenakte gleich fragen, und beim Zusammenstellen
+  (sonst käme ein solcher Schein auf die nächste Rechnung und zöge deren
+  Zeitraum in einen schon abgerechneten zurück).
+- **„Nicht verrechnete Leistung“ zeigt eine Zeile je Baustelle**: Kunde,
+  Nummer, „Schein vom …“ bzw. „N Scheine seit …“, „… Std gebucht seit …“,
+  Abrechnung; gemessen am ältesten offenen Beleg. Die Zahl im Titel zählt
+  Baustellen.
+- **Die Startseite bleibt bei zwei Themen** („N Scheine nicht verrechnet“
+  führt zur Scheinliste, „N Baustellen mit Stunden nicht verrechnet“ zu den
+  Rechnungen): sie führen zu verschiedenen Seiten mit verschiedenen Rechten,
+  und ihre Schlüssel stehen in „Startseite einrichten“ (ausgeblendete Themen
+  blieben sonst nicht ausgeblendet). Die Hilfe der Karte sagt das.
+
+**Grenze mit Grund:** keine. **Nachweis:**
+- `unverrechnetZeitraum.test.ts` (Datenbank, 9): Schein nur mit Stunden im
+  Zeitraum gilt als verrechnet, auch am ersten und letzten Tag, ohne
+  Zeitraum bis zum Rechnungsdatum, in jeder Schreibweise der Nummer;
+  Erhaltung: mit Material, davor, danach, Storno, Anzahlung, ohne Belege.
+  Gegenprobe gegen den Stand davor: 5 rot, Erhaltung grün.
+- `unverrechnet.test.ts` (+7), `materialAufRechnung.test.ts` (+1, 1 an die
+  Regel angepasst: dort stand das alte Verhalten „[]“ als erwartet),
+  `InvoicesView.test.tsx` (+2: eine Zeile je Baustelle; der Schein ohne
+  Material wird verknüpft, ein schon abgerechneter nicht); Gegenproben rot.
+- Browserweg `rechnungStellen.spec.ts` (+1): eine Zeile für Schein und
+  Stunden, nach der Rechnung steht der Schein in der Abdeckung und nichts
+  mehr offen, auch nach dem Neuladen. Gegenprobe gegen den Stand davor: rot.
