@@ -67,7 +67,15 @@ vi.mock('@/lib/db/termine', () => ({
   terminAendern: vi.fn(async () => undefined),
   terminLoeschen: vi.fn(async () => undefined),
 }));
+/* Der Materialstand der Baustelle (E84) — gezählt in der Datenbank. */
+const MATERIAL = { angefordert: 2, abholbereit: 1, abgeholt: 4, zurueck: 1, zuletzt: '2026-10-05T08:00:00Z', scheineMitMaterial: 2, positionen: 5 };
+let materialstand: typeof MATERIAL | null | 'fehler' = MATERIAL;
+const baustelleMaterialstand = vi.fn(async () => {
+  if (materialstand === 'fehler') throw new Error('nicht geladen');
+  return materialstand;
+});
 vi.mock('@/lib/db/projects', () => ({
+  baustelleMaterialstand: () => baustelleMaterialstand(),
   listProjectsByIds: () => listProjectsByIds(),
   updateProject: (...a: unknown[]) => updateProject(...(a as [])),
   baustelleUmnummern: (id: string, neu: string) => baustelleUmnummern(id, neu),
@@ -134,8 +142,16 @@ const scheineAufRechnung = vi.fn(async (_c: string, ids: string[]) => ids.filter
 vi.mock('@/lib/db/workSheets', () => ({
   listWorkSheetsForProject: (c: string, p: string, max?: number) => listWorkSheetsForProject(c, p, max),
 }));
+/* Die Rechnungen der Baustelle (E84). */
+const RECHNUNG = (id: string, p: Record<string, unknown> = {}) => ({
+  id, companyId: 'perl', invoiceNumber: `RE-2026-${id}`, invoiceDate: '2026-10-10', projectNumber: '2026-101',
+  paymentStatus: 'Offen', totalNetto: 1000, totalBrutto: 1200, bezahltBetrag: 0, ...p,
+});
+let rechnungen: ReturnType<typeof RECHNUNG>[] = [];
+const listInvoicesForProject = vi.fn(async () => rechnungen);
 vi.mock('@/lib/db/invoices', () => ({
   scheineAufRechnung: (c: string, ids: string[]) => scheineAufRechnung(c, ids),
+  listInvoicesForProject: () => listInvoicesForProject(),
 }));
 
 vi.mock('@/lib/db/quotes', () => ({
@@ -222,6 +238,10 @@ function angabe(wort: string) {
 beforeEach(() => {
   baustellen = [BAUSTELLE];
   einsaetze = { kommend: [], vorher: [EINSATZ] };
+  materialstand = MATERIAL;
+  baustelleMaterialstand.mockClear();
+  rechnungen = [];
+  listInvoicesForProject.mockClear();
   belegschaft = BELEGSCHAFT;
   nebenladenScheitert = false;
   belegschaftWarten = null;
@@ -1111,5 +1131,95 @@ describe('Baustellenakte als Plankopf (Planlinie)', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+
+/*
+  DIE AKTE ALS DREHSCHEIBE (B1, E84): Einsätze, Material und Rechnungen als
+  kurze Blöcke in der Übersicht — mit dem Weg zu „Alle …“ und den Rechten
+  der Seiten, zu denen sie führen.
+*/
+describe('Übersicht: Einsätze, Material, Rechnungen (E84)', () => {
+  const block = async (titel: string) => (await screen.findByRole('heading', { name: titel })).closest('section.karte') as HTMLElement;
+
+  it('Einsätze: der nächste und der letzte Tag mit den Leuten', async () => {
+    einsaetze = {
+      kommend: [{ ...EINSATZ, id: 'k1', date: '2099-01-05', userId: 'u2' }, { ...EINSATZ, id: 'k2', date: '2099-01-05', userId: 'u1' }],
+      vorher: [{ ...EINSATZ, id: 'v1', date: '2026-10-05', userId: 'u1' }],
+    };
+    zeige();
+    const karte = await block('Einsätze');
+    await waitFor(() => expect(within(karte).getByText(/05\.01\.2099/)).toBeInTheDocument());
+    expect(karte).toHaveTextContent('05.01.2099 · Anton Meier, Berta Klein');
+    expect(karte).toHaveTextContent('05.10.2026 · Anton Meier');
+    expect(within(karte).getByRole('link', { name: 'Alle Einsätze' })).toHaveAttribute('href', expect.stringContaining('bereich=planung'));
+  });
+
+  it('Einsätze: ohne jeden steht es da; kamen sie nicht, steht das da — nicht „keiner“', async () => {
+    einsaetze = { kommend: [], vorher: [] };
+    const v = zeige();
+    expect(within(await block('Einsätze')).getByText('Noch kein Einsatz geplant.')).toBeInTheDocument();
+    v.unmount();
+    einsaetze = 'fehler';
+    zeige();
+    const karte = await block('Einsätze');
+    await waitFor(() => expect(within(karte).getByText(/Einsätze konnten nicht geladen werden|die Einsätze/)).toBeInTheDocument());
+    expect(within(karte).queryByText('Noch kein Einsatz geplant.')).toBeNull();
+  });
+
+  it('Material: gezählt nach Stand, laut Scheinen verbaut, mit dem Weg zu allen Anforderungen', async () => {
+    zeige();
+    const karte = await block('Material');
+    await waitFor(() => expect(within(karte).getByText('Laut Scheinen verbaut')).toBeInTheDocument());
+    expect(karte).toHaveTextContent('Angefordert, offen2');
+    expect(karte).toHaveTextContent('Abgeholt4');
+    expect(karte).toHaveTextContent('5 Positionen auf 2 Scheinen');
+    expect(within(karte).getByRole('link', { name: 'Alle Anforderungen' })).toHaveAttribute('href', '/anforderungen?suche=2026-101');
+  });
+
+  it('Rechnungen: gestellt, offen und die jüngsten — Stornos zählen nicht', async () => {
+    rechnungen = [
+      RECHNUNG('1', { invoiceDate: '2026-09-01', paymentStatus: 'Bezahlt', bezahltBetrag: 1200 }),
+      RECHNUNG('2', { invoiceDate: '2026-10-10' }),
+      RECHNUNG('3', { invoiceDate: '2026-10-11', paymentStatus: 'Storniert' }),
+    ];
+    zeige();
+    const karte = await block('Rechnungen');
+    await waitFor(() => expect(within(karte).getByText('RE-2026-2')).toBeInTheDocument());
+    // Österreichisch: „€ 2 400,00“ (Zeichen vorn, schmaler Abstand als Tausenderpunkt).
+    expect(karte).toHaveTextContent(/Gestellt€\s2\s400,00 brutto · 2 Rechnungen/);
+    expect(karte).toHaveTextContent(/Offen€\s1\s200,00/);
+    expect(within(karte).queryByText('RE-2026-3')).toBeNull();
+    expect(within(karte).getByRole('link', { name: /RE-2026-2/ })).toHaveAttribute('href', '/invoices?oeffnen=2');
+    expect(within(karte).getByRole('link', { name: 'Alle Rechnungen' })).toHaveAttribute('href', '/invoices?suche=2026-101');
+  });
+
+  it('Gegenprobe: die Verwaltung sieht das Material, aber keine Rechnungen — und lädt sie nicht', async () => {
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+    zeige();
+    await block('Material');
+    expect(screen.queryByRole('heading', { name: 'Rechnungen' })).toBeNull();
+    expect(listInvoicesForProject).not.toHaveBeenCalled();
+  });
+
+  it('Termine: die Einsatztage der Baustelle, kommend und zuletzt', async () => {
+    einsaetze = {
+      kommend: [{ ...EINSATZ, id: 'k1', date: '2099-01-05', userId: 'u2' }],
+      vorher: [{ ...EINSATZ, id: 'v1', date: '2026-10-05', userId: 'u1' }],
+    };
+    render(
+      <MemoryRouter initialEntries={['/admin-projects/b1?bereich=planung']}>
+        <ToastProvider>
+          <Routes>
+            <Route path="/admin-projects/:id" element={<BaustellenakteView />} />
+          </Routes>
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    const kommend = await screen.findByRole('region', { name: 'Kommend' });
+    await waitFor(() => expect(kommend).toHaveTextContent('05.01.2099 · Berta Klein'));
+    expect(screen.getByRole('region', { name: 'Zuletzt' })).toHaveTextContent('05.10.2026 · Anton Meier');
   });
 });

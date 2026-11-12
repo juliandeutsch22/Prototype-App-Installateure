@@ -3398,3 +3398,38 @@ Entschieden:
   `WorkSheetView.test.tsx` (+5), `BaustellenakteView.test.tsx` (+5),
   `Arbeitstag.test.tsx` (+1), `TimeFormNaechsterSchritt.test.tsx` (3).
   Gegenprobe gegen den Stand davor: 18 rot, die Erhaltungsprüfungen grün.
+
+**E84 — Die Baustellenakte als Drehscheibe: Einsätze, Material, Rechnungen in der Übersicht (12.11.2026).**
+Paket 4 des Gesamtplans vom 12.11.2026 (Befund B1).
+
+Zur Baustelle mit Rechnung, zwei Anforderungen und Einsatz heute zeigte die
+Akte nichts davon. Entschieden:
+- **Drei kurze Blöcke in der Übersicht, je mit „Alle …“:**
+  - *Einsätze*: der nächste und der letzte Einsatztag mit den Leuten. „Alle
+    Einsätze“ führt in den Bereich „Termine“, der jetzt auch die Einsatztage
+    zeigt (kommend und zuletzt, je bis zu 20; ist die Grenze erreicht, steht
+    es da).
+  - *Material*: angefordert und offen, abholbereit, abgeholt,
+    zurückgebracht und laut Scheinen verbaut. Gezählt wird in der Datenbank
+    (`baustelle_materialstand`), weil eine Seite mit Grenze bei langen
+    Baustellen zu wenig zählte. „Alle Anforderungen“ öffnet die
+    Anforderungen mit der Nummer in der Suche, die über alle Anforderungen
+    geht (`?suche=`).
+  - *Rechnungen*: gestellt (brutto, ohne Stornos), offen, die jüngsten drei.
+    Eine Zeile öffnet die Rechnung, „Alle Rechnungen“ die Liste mit der
+    Nummer in der Suche.
+- **Die Rechte bleiben, wie sie sind.** Material zeigt die Akte nur, wer die
+  Anforderungen sieht; Rechnungen nur, wer die Rechnungen sieht (dieselbe
+  Prüfung wie die Navigation, samt Zusatzrecht der Projektleitung). Wer
+  nicht darf, bekommt den Block nicht und lädt nichts; die Datenbank gibt
+  dann ebenfalls nichts heraus. „Lädt“, „nicht geladen“ und „keiner“ sind
+  drei verschiedene Anzeigen.
+- Neu in der Datenbank: Index `material_orders_baustelle`, Funktion
+  `baustelle_materialstand` (security definer, Rechte im Rumpf, `coalesce`
+  gegen die dreiwertige Logik — der fremde Betrieb kam ohne es durch).
+
+**Grenze mit Grund:** keine. **Nachweis:**
+- Datenbank: `baustelleMaterialstand.test.ts` (5): Zählung, Schreibweisen,
+  Nullen, Monteur und fremder Betrieb bekommen nichts (vor der Sicherung rot).
+- Komponenten: `BaustellenakteView.test.tsx` (+6), `AdminOrdersView.test.tsx`
+  (+1). Gegenprobe gegen den Stand davor: 7 rot.

@@ -337,7 +337,8 @@ export default function AdminOrdersView() {
   /** Ein Filter aus der Adresse — von der Startseite („und N weitere →“). */
   const adressFilter = bekannt(ANFORDERUNGS_FILTER, adresse.get('filter'));
   const [projectFilter, setProjectFilter] = useState('');
-  const [suche, setSuche] = useState('');
+  // Aus der Baustellenakte (E84): `?suche=<Nummer>` — die Suche läuft über alle Anforderungen, auch die erledigten.
+  const [suche, setSuche] = useState(() => adresse.get('suche') ?? '');
   /**
    * Die Treffer der Suche über ALLE Anforderungen (17 I) — `null`, solange
    * keine Antwort zum aktuellen Begriff da ist. Bis dahin (und falls sie

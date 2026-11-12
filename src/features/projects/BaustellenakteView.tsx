@@ -3,6 +3,10 @@ import KnopfLink from '@/components/KnopfLink';
 import { einsaetzeDerBaustelle } from '@/lib/db/assignments';
 import type { Assignment } from '@/types';
 import { akteHauptaktion } from './akteHauptaktion';
+import { EinsaetzeListe, EinsaetzeVorschau, MaterialVorschau, RechnungenVorschau } from './AkteUeberblick';
+import { baustelleMaterialstand, type Materialstand } from '@/lib/db/projects';
+import { listInvoicesForProject } from '@/lib/db/invoices';
+import type { Invoice } from '@/types';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { useUngespeichertWarnung } from '@/lib/ungespeichert';
@@ -19,7 +23,7 @@ import { getEingangZu } from '@/lib/db/auftragseingaenge';
 import { pauschalAngebot } from '@/features/invoices/pauschale';
 import { ABRECHNUNGSARTEN, abrechnungKurz } from '@/lib/abrechnung';
 import { euro } from '@/lib/betrag';
-import { canAccess } from '@/app/navigation';
+import { canAccess, zusatzrechte } from '@/app/navigation';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import { liegenschaftZeile } from '@/features/liegenschaften/liegenschaftText';
 import { canInvoice, canWriteWorkSheet, isGF } from '@/lib/permissions';
@@ -83,6 +87,8 @@ const BaustellenUebersicht = lazy(() => import('./BaustellenUebersicht'));
 type Teil<T> = { zustand: 'laedt' } | { zustand: 'fehler' } | { zustand: 'bereit'; daten: T };
 
 const LAEDT = { zustand: 'laedt' } as const;
+/** Wie viele Einsatztage je Richtung die Akte liest — die Planung zeigt den Rest. */
+const EINSAETZE_JE_RICHTUNG = 20;
 
 const fmtDatum = (iso?: string) =>
   datumAT(iso);
@@ -202,11 +208,39 @@ export default function BaustellenakteView() {
   useEffect(() => {
     if (!companyId || !nummerFuerEinsaetze) return;
     let weg = false;
-    einsaetzeDerBaustelle(companyId, nummerFuerEinsaetze, todayStr())
+    einsaetzeDerBaustelle(companyId, nummerFuerEinsaetze, todayStr(), EINSAETZE_JE_RICHTUNG)
       .then((r) => { if (!weg) setEinsatzStand({ nummer: nummerFuerEinsaetze, ...r }); })
       .catch(() => { if (!weg) setEinsatzStand('fehler'); });
     return () => { weg = true; };
   }, [companyId, nummerFuerEinsaetze, versuch]);
+
+  /*
+    MATERIAL UND RECHNUNGEN IN DER ÜBERSICHT (B1, E84) — mit den Rechten der
+    Seiten, zu denen sie führen: Material nur, wer die Anforderungen sieht,
+    Rechnungen nur, wer die Rechnungen sieht. Wer nicht darf, lädt nichts.
+  */
+  const materialSichtbar = !!user && canAccess(user.role, '/anforderungen', company?.modules);
+  const rechnungenSichtbar = !!user && canAccess(user.role, '/invoices', company?.modules, zusatzrechte(user, company));
+  const nummerFuerMaterial = materialSichtbar ? daten?.projectNumber : undefined;
+  const nummerFuerRechnungen = rechnungenSichtbar ? daten?.projectNumber : undefined;
+  const [materialStand, setMaterialStand] = useState<{ nummer: string; stand: Materialstand | null } | 'fehler' | null>(null);
+  const [rechnungStand, setRechnungStand] = useState<{ nummer: string; rechnungen: WithId<Invoice>[] } | 'fehler' | null>(null);
+  useEffect(() => {
+    if (!companyId || !nummerFuerMaterial) return;
+    let weg = false;
+    baustelleMaterialstand(companyId, nummerFuerMaterial)
+      .then((stand) => { if (!weg) setMaterialStand({ nummer: nummerFuerMaterial, stand }); })
+      .catch(() => { if (!weg) setMaterialStand('fehler'); });
+    return () => { weg = true; };
+  }, [companyId, nummerFuerMaterial, versuch]);
+  useEffect(() => {
+    if (!companyId || !nummerFuerRechnungen) return;
+    let weg = false;
+    listInvoicesForProject(companyId, nummerFuerRechnungen)
+      .then((rechnungen) => { if (!weg) setRechnungStand({ nummer: nummerFuerRechnungen, rechnungen }); })
+      .catch(() => { if (!weg) setRechnungStand('fehler'); });
+    return () => { weg = true; };
+  }, [companyId, nummerFuerRechnungen, versuch]);
 
   /*
     DAS ANGEBOT, AUS DEM DIE BAUSTELLE ENTSTAND. Gemeldet: in der Beschreibung
@@ -528,6 +562,12 @@ export default function BaustellenakteView() {
   ) : null;
 
   const einsaetzeBekannt = einsatzStand && einsatzStand !== 'fehler' && einsatzStand.nummer === b.projectNumber ? einsatzStand : null;
+  // Für die Blöcke: `null` lädt, 'fehler' kam nicht — nie dasselbe wie „keiner“.
+  const einsatzLage = einsatzStand === 'fehler' ? 'fehler' as const : einsaetzeBekannt;
+  const materialLage = materialStand === 'fehler' ? 'fehler' as const
+    : materialStand && materialStand.nummer === b.projectNumber ? materialStand.stand ?? 'fehler' as const : null;
+  const rechnungLage = rechnungStand === 'fehler' ? 'fehler' as const
+    : rechnungStand && rechnungStand.nummer === b.projectNumber ? rechnungStand.rechnungen : null;
   const darfRechnen = !!user && canInvoice(user.role) && canAccess(user.role, '/invoices', company?.modules);
   const hauptaktion = akteHauptaktion({
     darfPlanen: !!user && einsatzAn && canAccess(user.role, '/assignments', company?.modules),
@@ -583,7 +623,10 @@ export default function BaustellenakteView() {
         { id: 'uebersicht', titel: 'Übersicht', sprungziele: ['b-ueberblick', 'b-daten'], inhalt:
           <div className="akten-spalte">{auftrag}
             {nachrichtenAn && <BaustelleNachrichten projektId={b.id} />}
+            {einsatzAn && <EinsaetzeVorschau lage={einsatzLage} namen={(uid) => namen.get(uid)} />}
             {einsatzAn && <AktenTerminVorschau stand={terminStand} bereich="planung" />}
+            {materialSichtbar && <MaterialVorschau stand={materialLage} projectNumber={b.projectNumber} />}
+            {rechnungenSichtbar && <RechnungenVorschau rechnungen={rechnungLage} projectNumber={b.projectNumber} />}
             {scheineSichtbar && <Card title="Jüngste Handwerksscheine" action={<AktenVerweis bereich="dokumente">Alle Scheine</AktenVerweis>}>
               {scheinStand.fehler ? <TeilFehler was="die Handwerksscheine" /> : scheinStand.scheine === null ? <SkeletonList rows={2} />
                 : scheinStand.scheine.length === 0 ? <EmptyState>Zu dieser Baustelle gibt es noch keinen Handwerksschein.</EmptyState>
@@ -591,8 +634,9 @@ export default function BaustellenakteView() {
             </Card>}
           </div> },
         ...(scheineKarte ? [{ id: 'dokumente', titel: 'Scheine', sprungziele: ['b-scheine'], inhalt: scheineKarte }] : []),
-        { id: 'planung', titel: 'Termine', sprungziele: ['b-termine', 'b-team'], inhalt:
-          termineKarte || <Card title="Termine"><p className="text-sm text-ink-muted">Die Einsatzplanung ist für diesen Betrieb nicht aktiviert.</p></Card> },
+        { id: 'planung', titel: 'Termine', sprungziele: ['b-termine', 'b-einsaetze', 'b-team'], inhalt:
+          termineKarte ? <div className="akten-spalte">{termineKarte}<EinsaetzeListe lage={einsatzLage} namen={(uid) => namen.get(uid)} grenze={EINSAETZE_JE_RICHTUNG} /></div>
+            : <Card title="Termine"><p className="text-sm text-ink-muted">Die Einsatzplanung ist für diesen Betrieb nicht aktiviert.</p></Card> },
         { id: 'plaene', titel: 'Pläne', sprungziele: ['b-plaene'], inhalt: plaene },
       ]} />
       {darfAendern && entwurf && <AktenBearbeiten offen={bearbeitet} titel="Baustelle bearbeiten"
