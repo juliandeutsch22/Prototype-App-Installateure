@@ -29,6 +29,8 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, CheckboxField } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
+import { useBaustelleVorbelegung } from '@/features/projects/useBaustelleVorbelegung';
+import { VORBELEG_TEXT, zuletztMerken, type VorbelegGrund } from '@/lib/baustelleVorbelegen';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
@@ -157,7 +159,16 @@ export default function OrderView() {
   // Warenkorb übersteht einen Reload — auf der Baustelle geht die Verbindung
   // oder die App schon mal verloren, bevor abgeschickt wurde.
   const [cart, setCart] = useState<CartLine[]>([]);
-  const [projectNumber, setProjectNumber] = useState('');
+  /*
+    DIE BAUSTELLE KOMMT MIT (B2/B3, E83). Vom Einsatz aus steht sie in der
+    Adresse (`?projekt=`); sonst nach der einen Regel: laufender Arbeitstag,
+    Einsatz von heute, zuletzt benutzt. Belegt wird nur das leere,
+    unberührte Feld; darunter steht, woher der Wert kommt.
+  */
+  const projektAusAdresse = adresse.get('projekt') ?? '';
+  const [projectNumber, setProjectNumber] = useState(projektAusAdresse);
+  const [vorbelegt, setVorbelegt] = useState<VorbelegGrund | null>(null);
+  const [baustelleBeruehrt, setBaustelleBeruehrt] = useState(!!projektAusAdresse);
   const [note, setNote] = useState('');
   const [urgent, setUrgent] = useState(false);
   const [search, setSearch] = useState('');
@@ -193,6 +204,19 @@ export default function OrderView() {
     );
     return unsubO;
   }, [user, neuLaden]);
+
+  const vorbelegung = useBaustelleVorbelegung({
+    aktiv: !baustelleBeruehrt,
+    // Nur, was die Auswahl auch anbietet: eine abgeschlossene Baustelle wird nicht vorbelegt.
+    waehlbar: (nr) => projects.some((p) => p.projectNumber === nr),
+  });
+  useEffect(() => {
+    if (baustelleBeruehrt || !vorbelegung) return;
+    setBaustelleBeruehrt(true);
+    if (projectNumber) return;
+    setProjectNumber(vorbelegung.nr);
+    setVorbelegt(vorbelegung.grund);
+  }, [vorbelegung, baustelleBeruehrt, projectNumber]);
 
   /** Der Suchbegriff, wie er an den Server geht — kurz nach dem letzten Tastendruck, nicht je Taste. */
   const [begriff, setBegriff] = useState('');
@@ -355,6 +379,7 @@ export default function OrderView() {
     setSaving(false);
     if (failed.length === 0) {
       setNote('');
+      zuletztMerken(user.companyId, user.uid, cart[cart.length - 1]?.projectNumber);
       if (vorgemerkt) toast.info(vorgemerktMeldung('Anforderung abgeschickt'));
       else toast.success('Anforderung abgeschickt');
       // Zur Verfolgung: dort steht die Anforderung jetzt mit ihrem Stand.
@@ -413,6 +438,12 @@ export default function OrderView() {
               companyId={user.companyId}
               value={projectNumber}
               onChange={(nr, p) => {
+                // Von Hand gewählt: ab jetzt keine Vorbelegung mehr, und der Satz darunter fällt weg.
+                // Der Nachtrag des Datensatzes meldet dieselbe Nummer — das ist keine Wahl.
+                if (nr !== projectNumber) {
+                  setBaustelleBeruehrt(true);
+                  setVorbelegt(null);
+                }
                 setProjectNumber(nr);
                 // Den Datensatz mit aufnehmen: die Warenkorbzeilen und die
                 // Prüfung auf eine zuständige Projektleitung schlagen hier
@@ -421,6 +452,9 @@ export default function OrderView() {
                 if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
               }}
             />
+            {vorbelegt && projectNumber && (
+              <p className="mt-1 text-sm text-ink-muted">{VORBELEG_TEXT[vorbelegt]}</p>
+            )}
           </div>
         </div>
         {/* Direkt unter der Baustelle, weil er von ihr abhaengt: ohne

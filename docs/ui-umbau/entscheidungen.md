@@ -3348,3 +3348,53 @@ Entschieden:
 - Browser: `scheinUnterschreiben.spec.ts` prüft bei 390 px, dass kein Knopf
   der Aktionsleiste abgeschnitten ist; `arbeitstag.spec.ts` (+1) misst die
   Symbole bei langem Namen. Gegenprobe gegen den Stand davor: rot.
+
+**E83 — Zusammenhang mitnehmen: Material und Nachricht am Einsatz, die Baustelle wandert mit, die Akte zeigt den nächsten Schritt (12.11.2026).**
+Paket 3 des Gesamtplans vom 12.11.2026 (Befunde B2, B3, B5).
+
+Entschieden:
+- **B2: Am Einsatz stehen „Material anfordern“ und „Nachricht zur Baustelle“**
+  (Startseite, Mein Einsatzplan) — in der leisen Gestalt von Adresse und
+  Telefon, nicht als weitere Knöpfe: vier Knöpfe untereinander wären am
+  Handy eine Wand. „Material anfordern“ führt mit der Baustelle in die
+  Anforderung (`/material?projekt=`), „Nachricht“ in den Thread der
+  Baustelle, der wie in der Akte erst beim Öffnen angelegt wird. Angeboten
+  wird nur, was die Rolle mit ihren Modulen darf (dieselbe Prüfung wie die
+  Navigation); im Einblick des Supports kein Thread. Sichtbar heißen sie
+  „Anfordern“ (Paket-Symbol) und „Nachricht“, damit beide am Handy in eine
+  Zeile passen — ausgeschrieben brauchten sie zwei Zeilen je Einsatz, und
+  die Startseite des Monteurs wuchs mit zwei Einsätzen über zwei
+  Bildschirmhöhen (Prüfung `startseiteViel`); „Material“ allein ginge
+  nicht, so heißt im Einsatzplan die Rüstliste. Der zugängliche Name bleibt
+  ausgeschrieben.
+- **B3: Eine Regel für die Baustelle in den Formularen des Monteurs**
+  (`baustelleVorbelegen`): läuft der Arbeitstag, seine Baustelle (nur für
+  heute); sonst der Einsatz des Tages — bei mehreren der zuletzt benutzte
+  unter ihnen, sonst bleibt das Feld leer (P1-03: eine falsche Vorauswahl
+  wäre schlimmer als keine); ohne Einsatz die zuletzt benutzte Baustelle.
+  „Zuletzt benutzt“ merkt sich das Gerät beim Abschicken (Material, Schein,
+  Zeit, Start); weiß es nichts, gilt die letzte eigene Buchung auf dem
+  Server. Eine abgeschlossene Baustelle wird nie vorbelegt. Belegt wird nur
+  ein leeres, unberührtes Feld; Adresse, Entwurf und eigene Wahl gehen vor.
+  Unter dem Feld steht, woher der Wert kommt. Gilt in „Material anfordern“,
+  im neuen Schein, in einer neuen eigenen Zeitbuchung (nie beim Bearbeiten
+  oder Buchen für andere) und als Rückfall beim Start des Arbeitstags.
+- **B5: Die Hauptaktion der Baustellenakte folgt dem Stand**
+  (`akteHauptaktion`): ohne jeden Einsatz „Einsatz planen“ (mit der
+  Baustelle in die Planung), mit unterschriebenen Scheinen ohne Rechnung
+  „Rechnung stellen“ (`/invoices?neu=`), sonst „Schein schreiben“ wie
+  bisher — jeweils nur mit dem Recht dazu; was nicht geladen ist, zählt
+  nicht als „keiner“. „Schein schreiben“ bleibt in der Karte der Scheine.
+  Dafür liest die Akte die nächsten und letzten Einsätze der Baustelle
+  (`einsaetzeDerBaustelle`, neuer Index `assignments_baustelle_datum`).
+- **B5: Nach dem Buchen einer Zeit auf eine Baustelle** trägt die Meldung
+  „Schein schreiben“ mit Baustelle und Tag — auch aus dem Timer, nur für die
+  eigene Zeit und nur mit Modul und Recht.
+
+**Grenze mit Grund:** keine. **Nachweis:**
+- Datenbank: `einsaetzeDerBaustelle.test.ts` (5), `letzteEigeneBaustelle.test.ts` (3).
+- Module: `baustelleVorbelegen.test.ts` (10), `akteHauptaktion.test.ts` (6).
+- Komponenten: `Einsatzaktionen.test.tsx` (+5), `OrderView.test.tsx` (+7),
+  `WorkSheetView.test.tsx` (+5), `BaustellenakteView.test.tsx` (+5),
+  `Arbeitstag.test.tsx` (+1), `TimeFormNaechsterSchritt.test.tsx` (3).
+  Gegenprobe gegen den Stand davor: 18 rot, die Erhaltungsprüfungen grün.

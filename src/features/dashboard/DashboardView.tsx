@@ -275,6 +275,8 @@ export default function DashboardView() {
           titel="Dein Einsatz heute"
           zeitImKopf={monteurMitEinsatz}
           zeitAn={zeitAn}
+          // Im Einblick des Supports kein Thread: er schriebe sonst im Namen des Betriebs (wie in der Akte).
+          wege={{ material: darf('/material'), nachricht: !einblick && darf('/nachrichten') }}
         />
       )}
     </>

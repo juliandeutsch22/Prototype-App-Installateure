@@ -1,5 +1,11 @@
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import KnopfLink from '@/components/KnopfLink';
+import Icon from '@/components/Icon';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
+import { useToastWennDa } from '@/components/Toast';
+import { kanalBaustelle } from '@/lib/db/nachrichten';
+import { grundAus } from '@/lib/fehlerGrund';
 import { calcWorkMin, fmtMin } from '@/lib/time';
 
 /**
@@ -102,23 +108,101 @@ export function EinsatzKnoepfe({
   );
 }
 
-/** Adresse und Telefon des Einsatzes: Navigation und Anruf mit einem Tipp. Fehlt eines, rutscht das andere nach. */
+/**
+ * Adresse und Telefon des Einsatzes: Navigation und Anruf mit einem Tipp.
+ * Fehlt eines, rutscht das andere nach.
+ *
+ * DAZU MATERIAL UND NACHRICHT (B2, E83, 12.11.2026). Vor Ort braucht der
+ * Monteur vier Dinge: hinfahren, anrufen, Material nachfordern, Bescheid
+ * geben. Die letzten zwei fehlten am Einsatz — der Thread einer Baustelle
+ * erschien im Posteingang erst nach der ersten Nachricht, ein Einstieg vom
+ * Einsatz aus fehlte ganz. Sie stehen in derselben leisen Gestalt wie
+ * Adresse und Telefon: vier Knöpfe untereinander wären am Handy eine Wand.
+ * Sichtbar stehen nur „Anfordern“ (mit dem Paket der Navigation für
+ * Material) und „Nachricht“, damit beide am Handy in EINE Zeile passen —
+ * mit zwei Einsätzen wuchs die Startseite sonst um vier Zeilen. Der Name
+ * für Vorlesen und Suche bleibt vollständig. „Material“ allein ginge nicht:
+ * im Einsatzplan heißt so die Rüstliste darunter.
+ * Angeboten wird nur, was die Rolle mit ihren Modulen darf — das entscheidet
+ * die Seite (`wege`), wie bei Zeit und Schein.
+ */
 export function EinsatzKontakt({
   adresse,
   nummer,
   name,
+  projectNumber,
+  projectId,
+  wege,
   className = '',
 }: {
   adresse?: string | null;
   nummer?: string | null;
   name?: string | null;
+  /** Mit der Nummer: „Material anfordern“ für diese Baustelle. */
+  projectNumber?: string;
+  /** Mit der Kennung: „Nachricht“ in den Thread der Baustelle. */
+  projectId?: string;
+  /** Was die Rolle mit ihren Modulen darf; ohne Angabe nur Adresse und Telefon. */
+  wege?: EinsatzWege;
   className?: string;
 }) {
-  if (!adresse?.trim() && !nummer?.trim()) return null;
+  const material = !!wege?.material && !!projectNumber;
+  const nachricht = !!wege?.nachricht && !!projectId;
+  if (!adresse?.trim() && !nummer?.trim() && !material && !nachricht) return null;
   return (
     <div className={`einsatz-kontakt flex flex-wrap gap-x-6 ${className}`}>
       <AdresseLink adresse={adresse} />
       <TelefonLink nummer={nummer} name={name} />
+      {material && (
+        <Link
+          to={`/material?projekt=${encodeURIComponent(projectNumber!)}`}
+          className="link-kontakt inline-flex min-h-touch items-center gap-1.5"
+          aria-label="Material anfordern"
+        >
+          <Icon name="package" size={16} aria-hidden />
+          Anfordern
+        </Link>
+      )}
+      {nachricht && <NachrichtZurBaustelle projectId={projectId!} />}
     </div>
+  );
+}
+
+/** Die zwei Wege am Einsatz, die nicht jede Rolle hat. */
+export interface EinsatzWege {
+  material: boolean;
+  nachricht: boolean;
+}
+
+/**
+ * Öffnet den Thread der Baustelle; angelegt wird er erst dabei, wie in der
+ * Baustellenakte — eine Baustelle ohne Nachrichten hat keinen leeren Thread.
+ */
+function NachrichtZurBaustelle({ projectId }: { projectId: string }) {
+  const navigate = useNavigate();
+  // Die Startseite hat die Meldungen; eine Seite allein (Prüfungen) geht ohne.
+  const toast = useToastWennDa();
+  const [oeffnet, setOeffnet] = useState(false);
+  async function oeffnen() {
+    setOeffnet(true);
+    try {
+      navigate(`/nachrichten/${await kanalBaustelle(projectId)}`);
+    } catch (e) {
+      toast?.error(grundAus(e, 'Der Thread konnte nicht geöffnet werden.'));
+      setOeffnet(false);
+    }
+  }
+  return (
+    <button
+      type="button"
+      className="link-kontakt inline-flex min-h-touch items-center gap-1.5"
+      disabled={oeffnet}
+      aria-busy={oeffnet || undefined}
+      onClick={() => void oeffnen()}
+      aria-label="Nachricht zur Baustelle"
+    >
+      <Icon name="nachricht" size={16} aria-hidden />
+      Nachricht
+    </button>
   );
 }

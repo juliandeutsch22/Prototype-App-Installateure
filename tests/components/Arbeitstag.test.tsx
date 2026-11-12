@@ -36,7 +36,9 @@ vi.mock('@/lib/db/zeitsitzungen', () => ({
 // Das gewohnte Formular hat eigene Prüfungen (TimeForm*.test.tsx) — hier zählt, womit es vorbelegt wird.
 const formular = vi.fn((p: unknown) => { void p; return null; });
 vi.mock('@/features/time/TimeForm', () => ({ default: (p: unknown) => formular(p) }));
+vi.mock('@/lib/db/assignments', () => ({ listAssignmentsForUserInRange: vi.fn(async () => []) }));
 vi.mock('@/lib/db/projects', () => ({
+  listProjectsByNumbers: vi.fn(async () => [{ id: 'p1', projectNumber: 'B-1', customerName: 'Familie Huber', name: 'Bad', status: 'Aktiv' }]),
   listProjectsForEmployee: vi.fn(async () => [{ id: 'p1', projectNumber: 'B-1', customerName: 'Familie Huber', name: 'Bad', status: 'active' }]),
   listActiveProjects: vi.fn(async () => [{ id: 'p1', projectNumber: 'B-1', customerName: 'Familie Huber', name: 'Bad', status: 'active' }]),
   searchProjects: vi.fn(async () => []),
@@ -90,6 +92,17 @@ describe('Karte „Arbeitstag“', () => {
     await waitFor(() => expect(start).toBeEnabled());
     await userEvent.click(start);
     await waitFor(() => expect(gesendet).toHaveBeenCalledWith(expect.objectContaining({ p_art: 'start', p_baustelle: '' })));
+  });
+
+  // E83: ohne Einsatz die zuletzt benutzte Baustelle — sichtbar auf dem Knopf, mit einem Tipp geändert.
+  it('ohne Einsatz die zuletzt benutzte Baustelle', async () => {
+    localStorage.setItem('senklot:zuletzt-baustelle:perl:ich', 'B-1');
+    zeigeKarte();
+    const start = await screen.findByRole('button', { name: 'Arbeitstag starten' });
+    expect(await screen.findByText(/Familie Huber/)).toBeInTheDocument();
+    await waitFor(() => expect(start).toBeEnabled());
+    await userEvent.click(start);
+    await waitFor(() => expect(gesendet).toHaveBeenCalledWith(expect.objectContaining({ p_art: 'start', p_baustelle: 'B-1' })));
   });
 
   it('läuft: seit wann, die Arbeitszeit als Uhr, Pause und Feierabend', async () => {

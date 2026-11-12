@@ -1,5 +1,5 @@
 import RuestlisteAbhaken from '@/features/assignments/RuestlisteAbhaken';
-import { EinsatzKnoepfe, EinsatzKontakt } from '@/features/assignments/Einsatzaktionen';
+import { EinsatzKnoepfe, EinsatzKontakt, type EinsatzWege } from '@/features/assignments/Einsatzaktionen';
 import { Marke } from '@/components/Badge';
 import StartKarte from './StartKarte';
 import type { EinsatzZeile, LetzteBuchung } from './laden';
@@ -26,6 +26,7 @@ export default function HeuteEigene({
   titel = 'Heute',
   zeitImKopf = false,
   zeitAn = true,
+  wege,
 }: {
   einsaetze: EinsatzZeile[];
   letzteBuchung: LetzteBuchung | null | undefined;
@@ -37,6 +38,8 @@ export default function HeuteEigene({
   /** Der direkte Zeit-Einstieg steht dann bereits im gemeinsamen Seitenkopf. */
   zeitImKopf?: boolean;
   zeitAn?: boolean;
+  /** Material und Nachricht am Einsatz (E83) — was die Rolle darf. */
+  wege?: EinsatzWege;
 }) {
   if (einsaetze.length === 0) return null;
   const [erster, ...danach] = einsaetze;
@@ -46,7 +49,7 @@ export default function HeuteEigene({
       zusatz={einsaetze.length === 1 ? '1 Einsatz' : `${einsaetze.length} Einsätze`}
       verweis={planVerweis ? { to: '/my-schedule', text: 'Mein Einsatzplan' } : undefined}
     >
-      <Einsatz e={erster} letzteBuchung={letzteBuchung} materialAn={materialAn} scheinVerweis={scheinVerweis} zeitAn={zeitAn} zeitImKopf={zeitImKopf} gross />
+      <Einsatz e={erster} letzteBuchung={letzteBuchung} materialAn={materialAn} scheinVerweis={scheinVerweis} zeitAn={zeitAn} zeitImKopf={zeitImKopf} wege={wege} gross />
       {danach.length > 0 && (
         <section aria-label="Danach" className="border-t border-line">
           <h3 className="start-abschnitt">
@@ -54,7 +57,7 @@ export default function HeuteEigene({
           </h3>
           <div className="divide-y divide-line">
             {danach.map((e) => (
-              <Einsatz key={e.id} e={e} letzteBuchung={letzteBuchung} materialAn={materialAn} scheinVerweis={scheinVerweis} zeitAn={zeitAn} />
+              <Einsatz key={e.id} e={e} letzteBuchung={letzteBuchung} materialAn={materialAn} scheinVerweis={scheinVerweis} zeitAn={zeitAn} wege={wege} />
             ))}
           </div>
         </section>
@@ -71,6 +74,7 @@ function Einsatz({
   gross = false,
   zeitImKopf = false,
   zeitAn = true,
+  wege,
 }: {
   e: EinsatzZeile;
   letzteBuchung: LetzteBuchung | null | undefined;
@@ -79,6 +83,7 @@ function Einsatz({
   gross?: boolean;
   zeitImKopf?: boolean;
   zeitAn?: boolean;
+  wege?: EinsatzWege;
 }) {
   /*
     DIE KNÖPFE WIE IM EINSATZPLAN (E72, 09.11.2026): Zweitknöpfe, Adresse und
@@ -100,7 +105,7 @@ function Einsatz({
         <span className="nr">{e.projectNumber}</span>
         {e.zeit ? ` · ${e.zeit}` : ''}
       </p>
-      <EinsatzKontakt adresse={e.address} nummer={e.contactPhone} name={e.contactName} className="start-einsatz-kontakt" />
+      <EinsatzKontakt adresse={e.address} nummer={e.contactPhone} name={e.contactName} projectNumber={e.projectNumber} projectId={e.projectId} wege={wege} className="start-einsatz-kontakt" />
       {/* Die Notiz des Büros: was heute zu tun ist. */}
       {e.comment && (
         <p className="start-einsatz-aufgabe">

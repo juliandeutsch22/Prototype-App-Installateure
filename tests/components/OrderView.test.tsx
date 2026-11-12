@@ -124,6 +124,21 @@ vi.mock('@/lib/db/materialOrders', () => ({
   anforderungEiligSetzen: (...a: unknown[]) => eiligSetzen(...a),
 }));
 
+/*
+  DIE BAUSTELLE WANDERT MIT (B3, E83): Einsätze des Tages und der laufende
+  Arbeitstag — ab Werk keiner von beiden.
+*/
+let heuteEinsaetze: { projectNumber: string; zeitVon?: string }[] = [];
+vi.mock('@/lib/db/assignments', () => ({
+  listAssignmentsForUserInRange: vi.fn(async () => heuteEinsaetze),
+}));
+let letzteBuchung: string | null = null;
+vi.mock('@/lib/db/timeEntries', () => ({ letzteEigeneBaustelle: vi.fn(async () => letzteBuchung) }));
+let laufenderTag: { stand: string; segmente: { art: string; baustelle?: string; von: string }[] } | undefined;
+vi.mock('@/features/time/zeitsitzungStand', () => ({
+  useZeitsitzung: () => ({ laeuft: laufenderTag }),
+}));
+
 const authWert = {
   user: { uid: 'u1', companyId: 'perl', name: 'Max Mustermann', role: 'Mitarbeiter' as const },
   company: { id: 'perl', name: 'Perl Installationen' },
@@ -163,6 +178,9 @@ async function retoureOeffnen() {
 beforeEach(() => {
   eiligSetzen.mockClear();
   localStorage.clear();
+  heuteEinsaetze = [];
+  laufenderTag = undefined;
+  letzteBuchung = null;
   materialien = [ROHR, DICHTUNG];
   katalogAbfragen = [];
   katalogWahl = [];
@@ -1106,5 +1124,65 @@ describe('Material anfordern — Knöpfe und Fluchten der Linie (E72)', () => {
     expect(within(leiste).getByRole('button', { name: 'Liste leeren' })).toHaveTextContent(/^Leeren$/);
     // Gleich geblieben: das Abschicken heißt, wie es hieß.
     expect(within(leiste).getByRole('button', { name: 'Anforderung (1) abschicken' })).toHaveTextContent('Anforderung (1) abschicken');
+  });
+});
+
+
+describe('Die Baustelle ist schon gewählt (B2/B3, E83)', () => {
+  const feldWert = async () => (await baustelleFeld()) as HTMLSelectElement;
+
+  it('vom Einsatz aus kommt sie aus der Adresse — ohne Satz darunter', async () => {
+    heuteEinsaetze = [{ projectNumber: '2026-042' }];
+    zeige('/material?projekt=2026-099');
+    await waitFor(async () => expect((await feldWert()).value).toBe('2026-099'));
+    expect(screen.queryByText(/^Vorbelegt/)).toBeNull();
+  });
+
+  it('sonst nach dem Einsatz von heute, und es steht da, woher', async () => {
+    heuteEinsaetze = [{ projectNumber: '2026-042' }];
+    zeige();
+    await waitFor(async () => expect((await feldWert()).value).toBe('2026-042'));
+    expect(screen.getByText('Vorbelegt nach deinem Einsatz.')).toBeInTheDocument();
+  });
+
+  it('der laufende Arbeitstag geht vor dem Einsatz', async () => {
+    heuteEinsaetze = [{ projectNumber: '2026-042' }];
+    laufenderTag = { stand: 'laeuft', segmente: [{ art: 'arbeit', baustelle: '2026-099', von: '2026-11-12T07:00:00Z' }] };
+    zeige();
+    await waitFor(async () => expect((await feldWert()).value).toBe('2026-099'));
+    expect(screen.getByText('Vorbelegt vom laufenden Arbeitstag.')).toBeInTheDocument();
+  });
+
+  it('ohne Einsatz die zuletzt benutzte — gemerkt beim Abschicken', async () => {
+    localStorage.setItem('senklot:zuletzt-baustelle:perl:u1', '2026-099');
+    zeige();
+    await waitFor(async () => expect((await feldWert()).value).toBe('2026-099'));
+    expect(screen.getByText('Vorbelegt: zuletzt benutzt.')).toBeInTheDocument();
+  });
+
+  it('weiß das Gerät nichts, kommt „zuletzt“ aus der letzten eigenen Buchung', async () => {
+    letzteBuchung = '2026-099';
+    zeige();
+    await waitFor(async () => expect((await feldWert()).value).toBe('2026-099'));
+    expect(screen.getByText('Vorbelegt: zuletzt benutzt.')).toBeInTheDocument();
+  });
+
+  it('von Hand gewählt: der Satz fällt weg, und nichts überschreibt die Wahl', async () => {
+    heuteEinsaetze = [{ projectNumber: '2026-042' }];
+    zeige();
+    const feld = await feldWert();
+    await waitFor(() => expect(feld.value).toBe('2026-042'));
+    await userEvent.selectOptions(feld, '2026-099');
+    expect(feld.value).toBe('2026-099');
+    expect(screen.queryByText(/^Vorbelegt/)).toBeNull();
+  });
+
+  it('Gegenprobe: ohne Einsatz, Timer und zuletzt bleibt das Feld leer', async () => {
+    zeige();
+    const feld = await feldWert();
+    // Die Vorbelegung hätte nach dem Laden der Einsätze gegriffen — sie greift nicht.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(feld.value).toBe('');
+    expect(screen.queryByText(/^Vorbelegt/)).toBeNull();
   });
 });

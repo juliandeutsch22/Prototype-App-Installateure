@@ -434,3 +434,21 @@ export async function buchungstage(from: string, to: string, seite = SEITE): Pro
   }
   return alle.flatMap((z) => (z.tage ?? []).map((date) => ({ userId: z.user_id, date })));
 }
+
+/**
+ * DIE BAUSTELLE DER LETZTEN EIGENEN BUCHUNG (E83) — das „zuletzt benutzt“,
+ * wenn das Gerät selbst nichts weiß (neues Telefon, privates Fenster). Eine
+ * Zeile, über den Index nach Person und Tag.
+ */
+export async function letzteEigeneBaustelle(companyId: string, uid: string): Promise<string | null> {
+  const [z] = await abfragen<TimeEntry>(ZEITEN, companyId, {
+    wo: [
+      { art: 'gleich', feld: 'userId', wert: uid },
+      { art: 'ungleich', feld: 'projectNumber', wert: '' },
+    ],
+    sortiere: { feld: 'date', absteigend: true },
+    grenze: 1,
+    spalten: 'id,project_number,date',
+  });
+  return z?.projectNumber || null;
+}

@@ -15,6 +15,19 @@ afterEach(cleanup);
 */
 afterEach(() => zwischenspeicherLeeren());
 
+/*
+  „Zuletzt benutzt“ (E83) liegt im Gerätespeicher. Ein Test, der einen Schein
+  speichert oder Material abschickt, legte sonst dem nächsten seine Baustelle
+  vor. Nur dieser Schlüssel: andere Tests prüfen gerade, was im Speicher
+  überdauert.
+*/
+afterEach(() => {
+  if (typeof localStorage === 'undefined') return;
+  for (const k of Object.keys(localStorage)) {
+    if (k.startsWith('senklot:zuletzt-baustelle:')) localStorage.removeItem(k);
+  }
+});
+
 /**
  * Kein Komponenten-Test spricht mit Firebase.
  *
