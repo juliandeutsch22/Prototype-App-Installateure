@@ -871,7 +871,7 @@ describe('Stunden ohne Buchung', () => {
     await screen.findByText(/Familie Wagner/);
     await waitFor(() => expect(zeitenGeholt).toHaveBeenCalled());
     expect(await screen.findByText('Stunden ohne Buchung (0)')).toBeInTheDocument();
-    expect(screen.getByText(/gibt es eine Buchung in der Zeiterfassung/)).toBeInTheDocument();
+    expect(screen.getByText('Alle Stunden gebucht.')).toBeInTheDocument();
   });
 
   /*
@@ -903,7 +903,8 @@ describe('Stunden ohne Buchung', () => {
     geladen = [offenerSchein()];
     buchungen = [{ date: vorTagen(10), userName: 'Franz Huber', projectNumber: 'B-009', status: 'Anwesend' }];
     zeichne();
-    const satz = await screen.findByText('Zu jeder Stunde auf den geprüften Scheinen gibt es eine Buchung in der Zeiterfassung.');
+    // Eine Zeile bei null (D5, E86): was geprüft wird, steht in der Hilfe der Seite.
+    const satz = await screen.findByText('Alle Stunden gebucht.');
     const kopf = satz.closest('.ohne-buchung-kopf') as HTMLElement;
     expect(kopf).not.toBeNull();
     // Ein Schein geladen: Einzahl (E82) — vorher „über die 1 geladenen Scheine“.

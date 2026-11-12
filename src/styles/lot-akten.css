@@ -11,6 +11,11 @@
   .akten-kopf .daumen { order: -1; }
   .akten-identitaet { display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem 1rem; padding-top: 0.375rem; }
   .akten-mobil-kontakt { display: none; }
+  /* Das Blatt „Angaben“ und der Stand neben der Nummer gibt es nur am Handy; ab dem Tablet trägt beides das Schriftfeld im Kopf (E86). */
+  @media (min-width: 760px) {
+    .akten-angaben-handy { display: none; }
+    .plankopf-zusatz { display: none; }
+  }
   .akten-seite .karte-kopf { padding: 0.75rem 0; }
   .akten-hauptteil .karte-kopf .titel-karte { font-size: 1.125rem; line-height: 1.625rem; }
   .akten-seite .karte-koerper { padding-inline: 0; }
@@ -135,14 +140,17 @@
   }
   @media (max-width: 759px) {
     /*
-      AM HANDY BRECHEN DIE REITER UM, STATT ZU LAUFEN (E72, 09.11.2026): in
-      der Kundenakte stand „Stammdaten“ rechts außerhalb, ohne Hinweis, dass
-      die Leiste weitergeht. Eine weich auslaufende Kante bräuchte eine
-      halbtransparente Fläche; zwei Zeilen zeigen jeden Reiter.
+      REITER AM HANDY (D6, E86; ersetzt die zwei Zeilen aus E72). Bis vier
+      stehen gleich breit in einer Zeile wie die Segmente einer Liste; mehr
+      rollen waagrecht. Dass es weitergeht, sagt die Kante: sie blendet ab
+      dem ersten angeschnittenen Reiter aus — eine Maske über dem Inhalt,
+      keine halbtransparente Fläche (darum hatte E72 umgebrochen).
     */
-    .akten-bereiche { flex-wrap: wrap; gap: 0 1.25rem; overflow-x: visible; }
-    .akten-reiter { font-size: 0.8125rem; line-height: 1.125rem; }
+    .akten-bereiche { gap: 0 1.25rem; }
+    .akten-bereiche:not([data-viele]) { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0; overflow-x: visible; }
+    .akten-bereiche:not([data-viele]) > .akten-reiter { text-align: center; }
     .akten-kopf .seitenkopf-zeile { gap: 0.75rem; }
+    .akten-kopf .schriftfeld { display: none; }
     .akten-mobil-kontakt { display: flex; align-items: center; flex-wrap: wrap; gap: 0 1rem; margin-top: 0.75rem; font-size: 0.75rem; }
     .akten-mobil-kontakt > * { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
     .akten-kontext { border-left: 0; }

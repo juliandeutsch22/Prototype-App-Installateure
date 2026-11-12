@@ -168,4 +168,20 @@
   */
   .korb-knoepfe { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.5rem; width: 100%; }
   @media (min-width: 760px) { .korb-knoepfe { display: flex; width: auto; } }
+  /*
+    AM HANDY EINE ZEILE (D2, E86): Zahl und Ziel links, „Leeren“ und
+    „Abschicken“ rechts. Über dem Timer stand der Korb mit zwei Zeilen und
+    den Knöpfen darunter, 130 px hoch; dass er noch nicht abgeschickt ist,
+    sagt die Karte darunter, die Zahl steht schon links.
+  */
+  .korb-kurz { display: none; }
+  @media (max-width: 759px) {
+    .korb { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 0.75rem; row-gap: 0.5rem; padding-block: 0.5rem; }
+    .korb .korb-fehler { grid-column: 1 / -1; }
+    .korb .korb-info { display: none; }
+    .korb .korb-titel { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 2.75rem; }
+    .korb .korb-knoepfe { display: flex; width: auto; }
+    .korb-lang { display: none; }
+    .korb-kurz { display: inline; }
+  }
 }

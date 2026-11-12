@@ -34,6 +34,18 @@
   dort zeichnet die Namensspalte die linke Linie selbst (`lot-planung.css`).
 */
 @layer components {
+  /*
+    DAS INNENPOLSTER DER BLÄTTER (D4, E86): ab dem Tablet eine Zelle (24 px),
+    am Handy 16 px. Bei 390 px blieben nach Rand, Linie und 24 px Polster
+    rund 300 px für Text, und Namen brachen dreizeilig. Die Kanten der
+    Blätter bleiben auf dem Raster; nur der Text rückt näher an die Linie.
+    Die Gegenstücke (negativ, einen Pixel innen, mit Pfeil) stehen daneben,
+    weil das Raster keine Rechnung im Stil zulässt.
+  */
+  :root { --blatt-rand: 24px; --blatt-rand-innen: 23px; --blatt-rand-minus: -24px; --blatt-rand-minus-innen: -23px; --blatt-rand-pfeil: 52px; --blatt-rand-einzug: 28px; }
+  @media (max-width: 759px) {
+    :root { --blatt-rand: 16px; --blatt-rand-innen: 15px; --blatt-rand-minus: -16px; --blatt-rand-minus-innen: -15px; --blatt-rand-pfeil: 44px; --blatt-rand-einzug: 20px; }
+  }
   /* Die Inhaltsspalte in ganzen Zellen — rechte Kanten und Spalten auf Linien. */
   .inhalt > * { max-width: var(--takt-breite, none); }
 
@@ -56,22 +68,22 @@
     IM BLATT: Text eine Zelle vom Rand, Kopf und Körper im 24er-Takt. Das
     Raster ist darunter verdeckt; der Takt hält trotzdem die Höhen ruhig.
   */
-  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-kopf { min-height: 72px; padding: 12px 24px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-kopf { min-height: 72px; padding: 12px var(--blatt-rand); }
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-kopf .titel-karte { font-size: 1.125rem; line-height: 1.5rem; }
-  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-koerper { padding: 0 24px 24px; }
-  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-fuss { padding: 12px 24px; min-height: 48px; }
-  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .listenleiste { padding: 12px 24px; }
-  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .abschnitt { min-height: 48px; padding: 12px 24px; }
-  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile { min-height: 48px; padding: 12px 24px 11px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-koerper { padding: 0 var(--blatt-rand) 24px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-fuss { padding: 12px var(--blatt-rand); min-height: 48px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .listenleiste { padding: 12px var(--blatt-rand); }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .abschnitt { min-height: 48px; padding: 12px var(--blatt-rand); }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile { min-height: 48px; padding: 12px var(--blatt-rand) 11px; }
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile-titel { line-height: 1.5rem; }
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile-meta { line-height: 1.5rem; margin-top: 0; }
   /* Die Summenzeile über einer Rechnungsliste („davon 1 über 4 Wochen“) fluchtet mit Titel und Zeilen (09.11.2026: stand 8 px davor). */
-  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .rechnungen-summe { min-height: 48px; padding: 12px 24px 11px; line-height: 1.5rem; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .rechnungen-summe { min-height: 48px; padding: 12px var(--blatt-rand) 11px; line-height: 1.5rem; }
   /* Hinweis und Änderungsprotokoll unter „Meine Einträge“ fluchten mit „Ältere Einträge laden“ und den Zeilen (09.11.2026: standen 8 px davor). */
-  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeit-fenster-hinweis { padding-inline: 24px; }
-  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeit-verlauf > .weiteres > .weiteres-kopf { padding-inline: 24px 52px; }
-  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeit-verlauf > .weiteres > .weiteres-kopf::after { right: 24px; }
-  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeit-verlauf > .weiteres > .weiteres-inhalt { padding: 0 24px 24px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeit-fenster-hinweis { padding-inline: var(--blatt-rand); }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeit-verlauf > .weiteres > .weiteres-kopf { padding-inline: var(--blatt-rand) var(--blatt-rand-pfeil); }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeit-verlauf > .weiteres > .weiteres-kopf::after { right: var(--blatt-rand); }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeit-verlauf > .weiteres > .weiteres-inhalt { padding: 0 var(--blatt-rand) 24px; }
   /*
     EINE FLUCHT IM BLATT (09.11.2026). Was in einem bündigen Blatt neben den
     Zeilen steht — Hinweise, Abschnittsköpfe, die Tagesliste der Woche am
@@ -79,11 +91,11 @@
     halbe Zelle vor Titel und Zeilen. `blatt-einzug` markiert solche Stellen;
     die Regel greift nur im Blatt, in Fenstern bleibt ihr Abstand.
   */
-  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) :is(.blatt-einzug, .ohne-buchung-kopf, .tl-kopf, .tl-gruppe, .tl-achse, .tl-termin, .tl-person) { padding-inline: 24px; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) :is(.blatt-einzug, .ohne-buchung-kopf, .tl-kopf, .tl-gruppe, .tl-achse, .tl-termin, .tl-person) { padding-inline: var(--blatt-rand); }
   /* Gestapelte Zeilen (mehrzeilig, mit Maßlinie) mit einer halben Zelle mehr Luft oben und unten (Auftrag 04.11.2026). */
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .zeile-gestapelt { padding-block: 18px 17px; }
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .karte-koerper .zeile { padding-inline: 0; }
-  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .mehr-laden { padding-inline: 24px; background: transparent; }
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .mehr-laden { padding-inline: var(--blatt-rand); background: transparent; }
   /*
     DER FORMULARFUSS IM BLATT (09.11.2026): die Linie über den Knöpfen reicht
     von Kante zu Kante des Blatts, die Knöpfe stehen auf der 24-px-Flucht.
@@ -98,7 +110,7 @@
     der 24-px-Flucht.
   */
   @media (max-width: 1199px) {
-    .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-koerper .aktionsleiste { margin: 1.5rem -24px -24px -23px; padding: 12px 24px 12px 23px; }
+    .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-koerper .aktionsleiste { margin: 1.5rem var(--blatt-rand-minus) -24px var(--blatt-rand-minus-innen); padding: 12px var(--blatt-rand) 12px var(--blatt-rand-innen); }
     /*
       FREI AUF DER SEITE (Firmendaten) ist die Leiste selbst ein Streifen
       Blatt: so breit wie die Spalte, mit der Linie rundum wie jedes Blatt,
@@ -107,7 +119,7 @@
       rechts 16 px über das Blatt hinaus (E76).
     */
     .inhalt .aktionsleiste:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog'], .akten-editor) .aktionsleiste) {
-      margin: 1.5rem 0 0; padding: 12px 24px; border-top: 0;
+      margin: 1.5rem 0 0; padding: 12px var(--blatt-rand); border-top: 0;
       box-shadow: inset 1px 0 0 var(--border-strong), inset 0 1px 0 var(--border-strong), 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), 1px 1px 0 var(--border-strong);
     }
   }

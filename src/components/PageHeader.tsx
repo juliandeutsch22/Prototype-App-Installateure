@@ -1,9 +1,11 @@
-import { useContext, useLayoutEffect, type ReactNode } from 'react';
+import { useContext, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { Link, useInRouterContext, useLocation } from 'react-router-dom';
 import { SeitenHilfeKnopf } from './SeitenHilfe';
 import { Modulskizze, Stempel, type SkizzenMotiv } from './Planlinie';
 import { UnterreiterAnmeldung, UnterreiterLeiste } from './unterreiterLeiste';
 import { gruppeVon } from '@/app/navigation';
+import { wortfugen } from '@/lib/wortfugen';
+import { useKopfTitel } from './KopfTitel';
 
 /*
   DIE SKIZZE JE BEREICH (Planlinie, Seitenplan). Zentral nach der Adresse der
@@ -74,6 +76,7 @@ export default function PageHeader({
   hilfe,
   stand,
   stempel,
+  stempelZusatz,
   skizze,
   nebenAktion,
   zurueck,
@@ -93,6 +96,11 @@ export default function PageHeader({
   /** Nummernstempel neben dem Titel — bei Akten (PR-, AN-, RE-Nummer). */
   stempel?: ReactNode;
   /**
+   * Der Stand der Akte als Wort neben dem Stempel — nur am Handy, wo das
+   * Schriftfeld nicht im Kopf steht (D1, E86). Ab dem Tablet steht er dort.
+   */
+  stempelZusatz?: ReactNode;
+  /**
    * Die Skizze im Schriftfeld. Ohne Angabe die des Bereichs nach der Adresse
    * (`SKIZZE_JE_SEITE`); `false`, wo die Seite einen anderen Akzent trägt.
    */
@@ -107,6 +115,18 @@ export default function PageHeader({
   zurueck?: { to: string; text: string };
 }) {
   const imRouter = useInRouterContext();
+  /*
+    BESCHREIBUNG ODER ANGABE (D1, E86). Ein Untertitel als bloßer Text
+    beschreibt die Seite („Anfordern, Lieferung verfolgen, zurückgeben“) —
+    am Handy steht er in der Hilfe, damit der Inhalt früher beginnt. Ein
+    Untertitel aus Bausteinen trägt Angaben (Adresse, Datum, Stand) und
+    bleibt überall stehen.
+  */
+  const beschreibung = typeof subtitle === 'string' ? subtitle : undefined;
+  const h1 = useRef<HTMLHeadingElement>(null);
+  const satz = useRef<HTMLSpanElement>(null);
+  useKopfTitel(h1, satz, title);
+  const gefugt = wortfugen(title);
   const leiste = useContext(UnterreiterLeiste);
   const anmelden = useContext(UnterreiterAnmeldung);
   // Vor dem Zeichnen: sonst stünde die Leiste einen Augenblick doppelt.
@@ -119,17 +139,29 @@ export default function PageHeader({
         ) : ort ? <p className="seitenkopf-ort">{ort}</p> : imRouter ? <OrtAusDemMenue /> : null}
         <div className="seitenkopf-zeile">
           <div className="plankopf-titel">
-            <h1>{title}</h1>
+            {/*
+              Ein Block im Titel, damit seine Höhe ohne das Polster messbar ist
+              (Raster, E86). Trägt der Titel Wortfugen, steht er zweimal: mit
+              den unsichtbaren Trennzeichen für das Auge, ohne sie für
+              Vorlesehilfe, Suche und Kopieren — sonst hieße die Überschrift
+              „Handwerks‐scheine“, sobald jemand sie vorliest oder sucht.
+            */}
+            <h1 ref={h1}>
+              {gefugt === title
+                ? <span ref={satz} className="titel-satz">{title}</span>
+                : <><span ref={satz} className="titel-satz" aria-hidden="true">{gefugt}</span><span className="sr-only">{title}</span></>}
+            </h1>
             {stempel && <Stempel gross>{stempel}</Stempel>}
+            {stempelZusatz && <span className="plankopf-zusatz">{stempelZusatz}</span>}
           </div>
           <div className="seitenkopf-rechts">
-            <SeitenHilfeKnopf seite={title} einleitung={hilfe} />
+            <SeitenHilfeKnopf seite={title} einleitung={hilfe} beschreibung={beschreibung} />
             {mehr}
             {nebenAktion}
             {action && <div className="daumen">{action}</div>}
           </div>
         </div>
-        {subtitle && <div className="seitenkopf-meta">{subtitle}</div>}
+        {subtitle && <div className={beschreibung ? 'seitenkopf-meta seitenkopf-meta-beschreibung' : 'seitenkopf-meta'}>{subtitle}</div>}
       </div>
       {stand && (
         <>

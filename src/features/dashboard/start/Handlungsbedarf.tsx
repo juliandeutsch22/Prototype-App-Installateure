@@ -114,7 +114,13 @@ export default function Handlungsbedarf({
     <section className="panel karte start-karte start-aufgaben" aria-labelledby="zu-erledigen-titel">
       <header className="karte-kopf start-karte-kopf">
         <h2 id="zu-erledigen-titel" className="titel-karte">
-          Zu erledigen <span className="font-normal text-ink-muted">· {zahl}{zaehlwort ? ` ${zaehlwort}` : ''}</span>
+          {/*
+            EINE SCHREIBWEISE FÜR ANZAHLEN IN TITELN (D12, E86): die Zahl in
+            Klammern nach dem Titel, wie überall in der App („Positionen (3)“).
+            Das Zählwort bleibt, wo die Zahl sonst mehrdeutig wäre: bei der
+            Leitung zählt sie Themen, nicht Einträge.
+          */}
+          {`Zu erledigen (${zahl}${zaehlwort ? ` ${zaehlwort}` : ''})`}
         </h2>
       </header>
       <div className="karte-buendig start-karte-inhalt">

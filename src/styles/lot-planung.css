@@ -149,7 +149,7 @@
 
   /* Ecke und Namensspalte stehen beim Rollen fest. */
   /* Die festen Bänder liegen über der Linie des Blatts (E33) — die linke Linie zeichnen sie deshalb selbst. */
-  .wp-ecke { position: sticky; left: 0; top: 0; z-index: 30; padding: 0.5rem 0.75rem; background: var(--surface); border-bottom: 1px solid var(--accent-deep); text-align: left; vertical-align: bottom; box-shadow: inset 1px 0 0 var(--border-strong); }
+  .wp-ecke { position: sticky; left: 0; top: var(--kopf-oben); z-index: 30; padding: 0.5rem 0.75rem; background: var(--surface); border-bottom: 1px solid var(--accent-deep); text-align: left; vertical-align: bottom; box-shadow: inset 1px 0 0 var(--border-strong); }
   .wp-name { position: sticky; left: 0; z-index: 10; padding: 0.625rem 0.75rem; background: var(--surface); border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; font-size: 0.875rem; line-height: 1.25rem; font-weight: 400; color: var(--text); overflow-wrap: anywhere; hyphens: manual; -webkit-hyphens: manual; box-shadow: inset 1px 0 0 var(--border-strong); }
   /* Namen (Personen wie Baustellen) nie automatisch trennen — siehe `.tl-tag`. */
   .wp-name-titel { display: block; color: var(--text); overflow-wrap: break-word; hyphens: manual; -webkit-hyphens: manual; }
@@ -161,7 +161,7 @@
     Zeile), der Knopf darin ist durchsichtig und füllt sie aus.
   */
   /* Der Kopf endet auf einer Kontur wie der Kopf einer Stückliste (Planlinie, B6). */
-  .wp-kopf, .wp-kopf-heute, .wp-kopf-ruhe, .wp-kopf-schmal, .wp-kopf-schmal-heute, .wp-kopf-markiert { position: sticky; top: 0; z-index: 20; padding: 0; border-bottom: 1px solid var(--accent-deep); border-left: 1px solid var(--border); vertical-align: top; font-weight: 400; }
+  .wp-kopf, .wp-kopf-heute, .wp-kopf-ruhe, .wp-kopf-schmal, .wp-kopf-schmal-heute, .wp-kopf-markiert { position: sticky; top: var(--kopf-oben); z-index: 20; padding: 0; border-bottom: 1px solid var(--accent-deep); border-left: 1px solid var(--border); vertical-align: top; font-weight: 400; }
   .wp-kopf { background: var(--surface); }
   .wp-kopf-ruhe { background: var(--surface-2); }
   .wp-kopf-schmal { background: var(--surface-2); }

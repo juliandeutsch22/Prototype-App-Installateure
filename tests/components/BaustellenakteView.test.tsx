@@ -276,7 +276,8 @@ describe('Die Stammdaten für alle, die nur lesen', () => {
     zeige();
     expect(await screen.findByText('2026-101')).toBeInTheDocument();
     // Die Abrechnung steht seit der Planlinie im Schriftfeld des Kopfes (B1), nicht mehr in den Angaben.
-    expect(screen.getByText('Abrechnung').closest('.schriftfeld')).toHaveTextContent('Pauschal');
+    const kopf = document.querySelector('.akten-kopf') as HTMLElement;
+    expect(within(kopf).getByText('Abrechnung').closest('.schriftfeld')).toHaveTextContent('Pauschal');
     expect(angabe('Stundenbudget')).toBeInTheDocument();
     expect(screen.queryByLabelText(/Projektnummer/)).not.toBeInTheDocument();
   });
@@ -286,7 +287,7 @@ describe('Die Stammdaten für alle, die nur lesen', () => {
     baustellen = [{ ...BAUSTELLE, billingMode: 'Einheitspreis' }];
     zeige();
     expect(await screen.findByText('2026-101')).toBeInTheDocument();
-    const feld = screen.getByText('Abrechnung').closest('.lage-punkt') as HTMLElement;
+    const feld = within(document.querySelector('.akten-kopf') as HTMLElement).getByText('Abrechnung').closest('.lage-punkt') as HTMLElement;
     expect(feld.querySelector('.lage-wert')).toHaveTextContent(/^Einheitspreis$/);
     expect(feld.querySelector('.lage-zusatz')).toHaveTextContent(/^nach Aufmaß$/);
   });
@@ -1094,7 +1095,7 @@ describe('Baustellenakte als Plankopf (Planlinie)', () => {
       zeige();
       const stempel = await screen.findByText('2026-101', { selector: '.stempel' });
       expect(stempel.closest('.plankopf')).not.toBeNull();
-      const feld = screen.getByRole('list', { name: 'Eckdaten der Baustelle' });
+      const feld = within(document.querySelector('.akten-kopf') as HTMLElement).getByRole('list', { name: 'Eckdaten der Baustelle' });
       expect(feld.closest('.schriftfeld')).not.toBeNull();
       expect(feld).toHaveTextContent('Beginn 02.03.2026 Montag');
       expect(within(feld).getByText('überschritten')).toBeInTheDocument();

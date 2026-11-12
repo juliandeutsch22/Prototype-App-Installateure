@@ -60,7 +60,20 @@
     bleibt auf dem Raster (E33). 20 px statt 22 px, damit Umlaute und
     Unterlängen zweier Zeilen bei 24 px Abstand nicht aneinanderstossen.
   */
-  @media (max-width: 759px) { .seitenkopf h1 { font-size: 1.25rem; line-height: 1.5rem; padding-block: 0.75rem; } }
+  /*
+    GROSSER TITEL MIT LUFT (D11, E86; ersetzt die 20 px vom 09.11.). Am Handy
+    28 px, in einer Akte 24 px — der Name ist dort lang. Gestaucht wird nicht:
+    ein langer Name bricht an der Wortfuge (`wortfugen`), und das Polster
+    rechnet `useKopfTitel` so aus, dass der Titel auf einer Rasterlinie endet,
+    ein- wie mehrzeilig (E33). Beim Rollen steht er klein in der Kopfzeile.
+  */
+  @media (max-width: 759px) {
+    .seitenkopf h1 { font-size: 1.75rem; line-height: 2.25rem; padding-block: var(--titel-luft, 0.375rem); }
+    .akten-kopf .seitenkopf h1 { font-size: 1.5rem; line-height: 2rem; }
+  }
+  .titel-satz { display: block; }
+  /* Kopiert wird, was man sieht; der Text für die Vorlesehilfe käme sonst ein zweites Mal mit. */
+  .seitenkopf h1 .sr-only { user-select: none; }
   @media (min-width: 760px) { .seitenkopf h1 { font-size: 1.875rem; line-height: 3rem; } }
   /* Der Rückweg in der Ortszeile (E31): so klein wie sie, mit 44 px Tastfläche, ohne die Zeile höher zu machen. */
   .seitenkopf-zurueck { display: inline-block; padding-block: 0.875rem; margin-block: -0.875rem; color: inherit; }
@@ -140,16 +153,42 @@
     .schriftfeld-skizze { flex-basis: 96px; }
   }
   /*
-    AM HANDY zwei Felder zu je sieben Zellen nebeneinander, weitere brechen
-    um; jede Reihe trägt ihre Linie oben aus dem Feld selbst. Die Skizze
-    rückt klein neben den Titel.
+    AM HANDY EINE RUHIGE LISTE STATT DES SCHRIFTFELDS (D1, E86; Auftrag
+    12.11.2026: „alles zusammengepfercht … wie würde Apple das lösen?“).
+    Vier Kästchen zu je sieben Zellen standen zwei und zwei übereinander und
+    schoben den Inhalt unter den ersten Bildschirm — meist für Nullen. Jetzt:
+    was null ist, noch lädt oder am Handy schon anderswo steht, fällt weg;
+    was bleibt, steht als Blatt mit Zeilen von 48 px, links die Bezeichnung,
+    rechts der Wert, wie in den Einstellungen eines iPhones. Eine Warnung
+    wird ein Hinweis mit farbiger Kante, ganz antippbar. Bleibt nichts, fehlt
+    das Feld samt Lineal — der Inhalt beginnt unter dem Titel.
   */
   @media (max-width: 759px) {
-    .schriftfeld { margin-top: 1.5rem; }
-    .schriftfeld .lage-punkt { flex-basis: 168px; }
-    .schriftfeld .lage-eintrag { padding: 0.75rem; }
+    .schriftfeld { display: block; margin-top: 1.5rem; box-shadow: none; }
+    .schriftfeld::before, .schriftfeld .lage-zeile::after, .schriftfeld .lage-punkt::before { content: none; }
+    .schriftfeld .lage-zeile { display: flex; flex-direction: column; flex-wrap: nowrap; border: 1px solid var(--border-strong); background: var(--surface); }
+    .schriftfeld .lage-punkt { flex: none; border-left: 0; }
+    .schriftfeld .lage-punkt-null, .schriftfeld .lage-punkt-laedt, .schriftfeld .lage-punkt-breit, .schriftfeld [role='status'] { display: none; }
+    /* Die Trennlinie trägt nur, was nach einer sichtbaren Zeile kommt — über der ersten liegt die Kante des Blatts. */
+    .schriftfeld .lage-punkt:not(.lage-punkt-null, .lage-punkt-laedt, .lage-punkt-breit) ~ .lage-punkt { border-top: 1px solid var(--border); }
+    .schriftfeld .lage-eintrag { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 1rem; height: auto; min-height: 3rem; padding: 0.75rem 1rem; }
+    .schriftfeld .lage-name { grid-column: 1; font-size: 0.9375rem; line-height: 1.5rem; letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--text); white-space: normal; overflow: visible; }
+    .schriftfeld .lage-wert { grid-column: 2; grid-row: 1 / span 2; justify-self: end; text-align: right; font-size: 0.9375rem; font-weight: 500; }
+    .schriftfeld .lage-zusatz { grid-column: 1; font-size: 0.8125rem; line-height: 1.25rem; }
+    .schriftfeld .lage-punkt-achtung { background: var(--warning-bg); box-shadow: inset 3px 0 0 var(--warning); }
+    .schriftfeld .lage-punkt-achtung:has(.lage-wert-rot) { background: var(--danger-bg); box-shadow: inset 3px 0 0 var(--danger); }
     .schriftfeld-skizze { display: none; }
+    .lineal { display: none; }
+    .schriftfeld:not(:has(.lage-punkt:not(.lage-punkt-null, .lage-punkt-laedt, .lage-punkt-breit))) { display: none; }
+    /* Im Blatt einer Karte trägt die Karte die Kante — keine zweite Linie darin (keine Karte in der Karte). */
+    .schriftfeld-blatt { margin-top: 0; }
+    .schriftfeld-blatt .lage-zeile { border: 0; }
+    .plankopf-zusatz { font-size: 0.9375rem; line-height: 1.5rem; color: var(--text-muted); }
+    /* Was den Kopf nur beschreibt, steht am Handy in der Hilfe (D1, E86). */
+    .seitenkopf-meta-beschreibung { display: none; }
   }
+  /* Der Hilfeknopf, der am Handy nur die Beschreibung trägt, ist ab dem Tablet überflüssig: dort steht sie unter dem Titel. */
+  @media (min-width: 760px) { .seitenkopf-hilfe.seitenkopf-hilfe-handy { display: none; } }
 
   /* Der kleine Plankopf eines Seitenfensters: Titel 20 px, Stempel daneben, ohne Skizze und Lineal. */
   .fenster-titel { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.625rem; font-size: 1.25rem; line-height: 1.5rem; font-weight: 500; }

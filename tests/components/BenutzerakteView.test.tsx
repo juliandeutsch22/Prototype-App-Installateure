@@ -854,7 +854,7 @@ describe('Urlaubsanspruch anpassen (Plan 10.3)', () => {
     angemeldet = { uid: 'ad1', companyId: 'perl', name: 'Chef-Admin', role: 'Administrator' };
     zeige();
     await userEvent.click(await screen.findByRole('tab', { name: 'Arbeitszeit und Urlaub' }));
-    await screen.findByText('Ada Admin', { selector: 'h1' });
+    await screen.findByRole('heading', { level: 1, name: 'Ada Admin' });
     expect(screen.queryByRole('button', { name: 'Anspruch anpassen' })).not.toBeInTheDocument();
   });
 });

@@ -27,6 +27,11 @@ interface MetricProps {
    * Messung 11.10.2026).
    */
   zusatzMuster?: string;
+  /**
+   * Nur ab dem Tablet (E86): am Handy steht dieselbe Zahl schon an anderer
+   * Stelle der Seite (etwa als Zähler über der Liste) und wäre doppelt.
+   */
+  nurBreit?: boolean;
 }
 
 /*
@@ -58,6 +63,17 @@ const valueTone: Record<Tone, string> = {
  * Zahl bedeutet, steht in der Hilfe der Seite — dauerhaft auf der Seite
  * machte es den Kopf zu einem Absatz.
  */
+/**
+ * IST DER WERT NULL? (D1, E86) Am Handy steht der Stand als schmale Zeile;
+ * dort treten Nullen zurück, damit das, was zählt, auffällt. Eine Ziffer
+ * muss dabei sein: „—“ heißt „nichts festgelegt“, nicht null.
+ */
+function istNullWert(value: ReactNode): boolean {
+  if (typeof value === 'number') return value === 0;
+  if (typeof value !== 'string') return false;
+  return /\d/.test(value) && !/[1-9]/.test(value);
+}
+
 export function MetricRow({ children, label }: { children: ReactNode; label?: string }) {
   return (
     <ul className="lage-zeile" aria-label={label}>
@@ -66,7 +82,7 @@ export function MetricRow({ children, label }: { children: ReactNode; label?: st
   );
 }
 
-export default function Metric({ label, value, hint, tone = 'default', to, bereit, zusatzMuster = 'auf die 00 zuletzt' }: MetricProps) {
+export default function Metric({ label, value, hint, tone = 'default', to, bereit, zusatzMuster = 'auf die 00 zuletzt', nurBreit = false }: MetricProps) {
   // Ohne Angabe bleibt die Kennzahl, wie sie war — kein Platzhalter, kein Einblenden.
   const mitLaden = bereit !== undefined;
   const fertig = bereit ?? true;
@@ -78,7 +94,7 @@ export default function Metric({ label, value, hint, tone = 'default', to, berei
     <>
       <span className="lage-name">{label}</span>{' '}
       {/* Ein Wort ohne Ziffer („Pauschal“, „Aktiv“) ist nichts Gemessenes — im Schriftfeld nicht in Mono (Planlinie, E30). */}
-      <span className={`lage-wert ${typeof value === 'string' && !/\d/.test(value) ? 'lage-wert-wort ' : ''}${fertig ? valueTone[tone] : ''}`}>
+      <span className={`lage-wert ${typeof value === 'string' && !/\d/.test(value) ? 'lage-wert-wort ' : ''}${fertig && istNullWert(value) ? 'lage-wert-null ' : ''}${fertig ? valueTone[tone] : ''}`}>
         {mitLaden ? <Wert bereit={fertig} muster="€ 00 000,00">{value}</Wert> : value}
       </span>
       {/* Der Zusatz rechnet aus derselben Grundlage — bis dahin ein Platzhalter in seiner Zeile. */}
@@ -92,8 +108,18 @@ export default function Metric({ label, value, hint, tone = 'default', to, berei
       )}
     </>
   );
+  /*
+    AM HANDY EINE RUHIGE LISTE (E86): was null ist oder noch lädt, steht dort
+    nicht; was eine Warnung trägt, wird ein Hinweis. Die Klassen sagen es dem
+    Stil — ab dem Tablet bleibt das Schriftfeld, wie es ist.
+  */
+  const klassen = ['lage-punkt'];
+  if (!fertig) klassen.push('lage-punkt-laedt');
+  else if (istNullWert(value)) klassen.push('lage-punkt-null');
+  else if (tone === 'danger' || tone === 'warning') klassen.push('lage-punkt-achtung');
+  if (nurBreit) klassen.push('lage-punkt-breit');
   return (
-    <li className="lage-punkt">
+    <li className={klassen.join(' ')}>
       {to ? (
         <Link to={to} className="lage-eintrag">
           {inhalt}

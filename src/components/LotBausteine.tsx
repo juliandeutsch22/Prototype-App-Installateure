@@ -61,7 +61,8 @@ export function Segmente<T extends string>({
         >
           {w.text}
           {/* Ein echtes Leerzeichen, kein Abstand per CSS: vorgelesen wird „Retouren 1“, nicht „Retouren1“. */}
-          {w.anzahl !== undefined && <> <span className="segment-anzahl">{w.anzahl}</span></>}
+          {/* Eine Null zählt keinen Handlungsbedarf und steht nicht da (D6, E86) — der Reiter bleibt leise. */}
+          {w.anzahl !== undefined && w.anzahl > 0 && <> <span className="segment-anzahl">{w.anzahl}</span></>}
         </button>
       ))}
     </div>

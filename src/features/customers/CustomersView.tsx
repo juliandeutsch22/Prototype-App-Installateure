@@ -467,6 +467,17 @@ export default function CustomersView() {
       : []),
   ];
 
+  /*
+    EIN PRÜFFILTER STEHT DA, WENN ES ETWAS ZU PRÜFEN GIBT (D6, E86). „Anschrift
+    prüfen 0“ und „Ohne Kundenart 0“ waren zwei Reiter für nichts. Unbekannt
+    (noch nicht gezählt) bleibt er stehen, gewählt auch — sonst verschwände
+    die Auswahl, in der man gerade ist. Bleibt nur „Alle“, steht keine Leiste.
+  */
+  const pruefReiter: { wert: Auswahl; text: string; anzahl?: number }[] = [
+    { wert: 'alle', text: 'Alle' },
+    ...(zuPruefen?.adressePruefen === 0 && auswahl !== 'pruefen' ? [] : [{ wert: 'pruefen' as const, text: 'Anschrift prüfen', anzahl: zuPruefen?.adressePruefen }]),
+    ...(zuPruefen?.ohneKundenart === 0 && auswahl !== 'ohne-art' ? [] : [{ wert: 'ohne-art' as const, text: 'Ohne Kundenart', anzahl: zuPruefen?.ohneKundenart }]),
+  ];
   return (
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
@@ -494,20 +505,16 @@ export default function CustomersView() {
       <Card buendig>
         {!ersterKunde && (
           <Listenleiste
-            reiter={
+            reiter={pruefReiter.length > 1 ? (
               /* M12 und Runde 3, M10: die Kunden, die jemand prüfen muss. Ohne
                  Kundenart gehen Rechnung und Mahnung nicht. */
               <Segmente
                 name="Kunden filtern"
-                werte={[
-                  { wert: 'alle', text: 'Alle' },
-                  { wert: 'pruefen', text: 'Anschrift prüfen', anzahl: zuPruefen?.adressePruefen },
-                  { wert: 'ohne-art', text: 'Ohne Kundenart', anzahl: zuPruefen?.ohneKundenart },
-                ]}
+                werte={pruefReiter}
                 wert={auswahl}
                 onChange={setAuswahl}
               />
-            }
+            ) : undefined}
             suche={{ id: 'ksuche', wert: suche, onChange: setSuche, platzhalter: 'Name, Adresse oder Telefon', name: 'Kunden durchsuchen' }}
           />
         )}

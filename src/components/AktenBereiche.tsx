@@ -1,5 +1,6 @@
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { useReiterImBild } from './reiterImBild';
 
 export interface AktenBereich {
   id: string;
@@ -18,6 +19,8 @@ export default function AktenBereiche({ kennung, bereiche, kontext }: { kennung:
   const sprungBekannt = !!sprungBereich;
   const aktiv = sprungBereich
     ?? bereiche.find((b) => b.id === adresse.get('bereich')) ?? bereiche[0];
+  // Mehr als vier Reiter rollen am Handy; der gewählte bleibt im Bild, die Kante sagt „weiter“ (D6, E86).
+  const leiste = useReiterImBild<HTMLDivElement>(aktiv?.id);
 
   useEffect(() => {
     if (!sprung || !sprungBekannt) return;
@@ -45,7 +48,7 @@ export default function AktenBereiche({ kennung, bereiche, kontext }: { kennung:
   }
 
   return <>
-    <div className="akten-bereiche" role="tablist" aria-label="Bereiche der Akte">
+    <div ref={leiste} className="akten-bereiche" role="tablist" aria-label="Bereiche der Akte" data-viele={bereiche.length > 4 ? '' : undefined}>
       {bereiche.map((b, i) => <button key={b.id} type="button" role="tab" className="akten-reiter"
         id={`${kennung}-reiter-${b.id}`} aria-controls={`${kennung}-bereich-${b.id}`} aria-selected={b === aktiv}
         tabIndex={b === aktiv ? 0 : -1} ref={(el) => { knoepfe.current[i] = el; }}

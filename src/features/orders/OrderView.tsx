@@ -655,8 +655,10 @@ export default function OrderView() {
             <Button variant="ghost" aria-label="Liste leeren" onClick={() => setCart([])}>
               Leeren
             </Button>
-            <Button onClick={submitCart} loading={saving}>
-              {`Anforderung (${cart.length}) abschicken`}
+            {/* Am Handy steht nur „Abschicken“ — die Zahl steht links; der Name für die Vorlesehilfe bleibt ganz (D2, E86). */}
+            <Button onClick={submitCart} loading={saving} aria-label={`Anforderung (${cart.length}) abschicken`}>
+              <span className="korb-lang">{`Anforderung (${cart.length}) abschicken`}</span>
+              <span className="korb-kurz" aria-hidden="true">Abschicken</span>
             </Button>
           </div>
         </div>

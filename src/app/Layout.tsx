@@ -30,6 +30,7 @@ import AppErneuern from '@/components/AppErneuern';
 import ProblemMelden from '@/components/ProblemMelden';
 import RechtLinks from '@/components/RechtLinks';
 import { SeitenHilfeProvider } from '@/components/SeitenHilfe';
+import { KopfTitelKontext } from '@/components/KopfTitel';
 import { useDarstellung } from '@/lib/darstellung';
 import DarstellungsSchalter from '@/components/DarstellungsSchalter';
 import Suchfenster from './Suchfenster';
@@ -86,6 +87,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [profilOpen, setProfilOpen] = useState(false);
   const [sucheOffen, setSucheOffen] = useState(false);
+  /** Der Seitentitel, sobald er am Handy unter die Kopfzeile gerollt ist (D11, E86). */
+  const [kopfTitel, setKopfTitel] = useState<string | null>(null);
   const [darstellung, setDarstellung] = useDarstellung();
   const ort = useLocation();
   const posten = useOffenePosten();
@@ -94,6 +97,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [ungesendet, setUngesendet] = useState(0);
   const reiterleiste = useRef<HTMLElement>(null);
   const timerLeiste = useRef<HTMLDivElement>(null);
+  const kopfzeile = useRef<HTMLElement>(null);
   const inhalt = useRef<HTMLElement>(null);
   const ersterPfad = useRef(ort.pathname);
 
@@ -145,11 +149,14 @@ export default function Layout({ children }: { children: ReactNode }) {
       document.body.style.setProperty('--navi-hoehe', `${leiste.offsetHeight}px`);
       document.body.style.setProperty('--timer-hoehe', `${timer}px`);
       document.body.style.setProperty('--reiter-hoehe', `${leiste.offsetHeight + timer}px`);
+      // Am Wurzelelement: auch `scroll-padding-top` am `html` liest sie (D11, E86).
+      document.documentElement.style.setProperty('--kopf-oben', `${kopfzeile.current?.offsetHeight ?? 0}px`);
     };
     setzen();
     const beobachter = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(setzen);
     beobachter?.observe(leiste);
     if (timerLeiste.current) beobachter?.observe(timerLeiste.current);
+    if (kopfzeile.current) beobachter?.observe(kopfzeile.current);
     window.addEventListener('resize', setzen);
     return () => {
       beobachter?.disconnect();
@@ -157,6 +164,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       document.body.style.removeProperty('--reiter-hoehe');
       document.body.style.removeProperty('--navi-hoehe');
       document.body.style.removeProperty('--timer-hoehe');
+      document.documentElement.style.removeProperty('--kopf-oben');
     };
   }, [angemeldet]);
 
@@ -323,6 +331,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <ZeitsitzungAnbieter>
+    <KopfTitelKontext.Provider value={setKopfTitel}>
       {/* Beim Start das Gerät für die angemeldete Person anmelden, falls nötig (E69). */}
       <PushAnmeldung />
     <div className="huelle">
@@ -337,15 +346,26 @@ export default function Layout({ children }: { children: ReactNode }) {
         Telefon, das mehrere benutzen, ist „wer bin ich hier gerade?“ eine
         echte Frage. Die Suche (Strg + K) hat am Telefon hier ihren Knopf.
       */}
-      <header className="kopfzeile">
-        {BrandMarkMobile}
-        <div className="flex items-center gap-1">
+      {/*
+        BEIM ROLLEN STEHT HIER DER TITEL DER SEITE (D11, E86): die Kopfzeile
+        bleibt oben, und sobald der große Titel unter ihr verschwindet, tritt
+        er klein an die Stelle des Betriebs. Vorgelesen wird er nicht noch
+        einmal — die Überschrift der Seite ist dieselbe. Die Suche ist ein
+        Symbol: „Suchen“ als Wort nahm dem Titel die Breite.
+      */}
+      <header ref={kopfzeile} className="kopfzeile">
+        {kopfTitel
+          ? <span key={kopfTitel} className="kopfzeile-titel" aria-hidden="true">{kopfTitel}</span>
+          : BrandMarkMobile}
+        <div className="flex flex-none items-center gap-1">
           <button
             type="button"
             onClick={() => setSucheOffen(true)}
-            className="min-h-touch px-2 text-sm text-navi-text"
+            aria-label="Suchen"
+            title="Suchen"
+            className="kopfzeile-suche"
           >
-            Suchen
+            <Icon name="lupe" size={22} />
           </button>
           <button
             type="button"
@@ -664,6 +684,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         onCancel={() => setUngesendet(0)}
       />
     </div>
+    </KopfTitelKontext.Provider>
     </ZeitsitzungAnbieter>
   );
 }

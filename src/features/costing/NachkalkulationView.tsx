@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { canAccess, zusatzrechte } from '@/app/navigation';
 import { listRecentProjects } from '@/lib/db/projects';
@@ -20,6 +19,7 @@ import Metric, { MetricRow } from '@/components/Metric';
 import { Segmente } from '@/components/LotBausteine';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import InfoHint from '@/components/InfoHint';
+import KnopfLink from '@/components/KnopfLink';
 import { euro } from '@/lib/betrag';
 import { abfrageSpeicher, schluessel, useZwischengespeichert } from '@/lib/zwischenspeicher';
 
@@ -221,22 +221,27 @@ export default function NachkalkulationView() {
         */
         <section className="lot-einrichtung nachkalk-einrichtung" aria-labelledby="nachkalk-saetze-fehlen">
           <LotZeichnung motiv="einrichtung" art="hinweis" />
+          {/*
+            EIN SATZ UND EIN KNOPF (D5, E86). Zwei Absätze Erklärung standen
+            offen auf der Seite; warum der Verrechnungssatz nicht als Kosten
+            taugt, steht jetzt in der Hilfe der Seite.
+          */}
           <div>
             <h2 id="nachkalk-saetze-fehlen">Kostensätze fehlen</h2>
             <p className="mt-1">
+              Gerechnet wird, sobald feststeht, was eine Arbeitsstunde den Betrieb kostet.
+            </p>
+            <InfoHint about="Kostensätze">
               Für die Nachkalkulation wird gebraucht, was eine Arbeitsstunde den <strong>Betrieb
               kostet</strong> — Lohn, Lohnnebenkosten und anteilige Gemeinkosten. Das ist eine
-              andere Zahl als der Verrechnungssatz, der den Erlös bestimmt.
-            </p>
-            <p className="mt-2">
-              Würde man den Verrechnungssatz als Kosten ansetzen, ergäbe jede Baustelle eine Marge
-              von null — und das sähe aus wie ein Ergebnis.
-            </p>
-            <p className="mt-1">
-              <Link to="/settings/saetze" className="link-weiter inline-flex min-h-touch items-center">
-                Einstellungen → Sätze und Kosten → Interne Kostensätze
-              </Link>
-            </p>
+              andere Zahl als der Verrechnungssatz, der den Erlös bestimmt. Würde man den
+              Verrechnungssatz als Kosten ansetzen, ergäbe jede Baustelle eine Marge von null —
+              und das sähe aus wie ein Ergebnis. Eingetragen werden sie unter Einstellungen →
+              Sätze und Kosten → Interne Kostensätze.
+            </InfoHint>
+            <div className="mt-3">
+              <KnopfLink to="/settings/saetze">Kostensätze eintragen</KnopfLink>
+            </div>
           </div>
         </section>
       ) : (

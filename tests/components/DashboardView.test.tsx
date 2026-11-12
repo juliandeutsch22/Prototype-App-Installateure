@@ -657,7 +657,8 @@ describe('Startseite — Geschäftsführung', () => {
     await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
     // Seit der Linie „Lot“ heisst die Karte „Zu erledigen“ (Protokoll E1); geprüft wird dasselbe.
     const karte = await karteMit(/Zu erledigen/);
-    expect(within(karte).getByText(/Themen/)).toBeInTheDocument();
+    // Die Zahl in Klammern wie in jedem Kartentitel (D12, E86) — vorher „Zu erledigen · 7 Themen“.
+    expect(within(karte).getByRole('heading', { name: /^Zu erledigen \(\d+ Themen?\)$/ })).toBeInTheDocument();
     expect(within(karte).getByRole('region', { name: 'Dringend' })).toBeInTheDocument();
     expect(within(karte).getByRole('link', { name: /1 Eilanforderung offen/ })).toHaveAttribute('href', '/anforderungen?filter=eil');
   });
