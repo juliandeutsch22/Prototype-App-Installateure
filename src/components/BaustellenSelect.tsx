@@ -45,6 +45,7 @@ export default function BaustellenSelect({
   meineUid,
   nummerVorn = false,
   bekannteNummer,
+  pausiertGetrennt = false,
 }: {
   companyId: string;
   /**
@@ -71,6 +72,12 @@ export default function BaustellenSelect({
   nummerVorn?: boolean;
   /** Bereits aufgezeichnete Zuordnung eines Timer-Abschnitts: im Funkloch weiter prüfbar. */
   bekannteNummer?: string;
+  /**
+   * PAUSIERTE IN EINER EIGENEN GRUPPE (B7, E85): in der Planung. Eine
+   * pausierte Baustelle wird gerade nicht bedient, ihr Wiederbeginn aber
+   * geplant — wählbar bleibt sie, nur nicht zwischen den laufenden.
+   */
+  pausiertGetrennt?: boolean;
 }) {
   const [projekte, setProjekte] = useState<WithId<Project>[]>([]);
   const [zustand, setZustand] = useState<'laedt' | 'fehler' | 'bereit'>('laedt');
@@ -215,8 +222,9 @@ export default function BaustellenSelect({
       a.projectNumber.localeCompare(b.projectNumber, 'de'),
   );
   const laufend = sortiert.filter((p) => p.status === 'Aktiv' || p.status === 'Pausiert');
-  const meine = meineUid ? laufend.filter((p) => p.assignedEmployees?.includes(meineUid)) : [];
-  const aktiv = laufend.filter((p) => !meine.includes(p));
+  const pausiert = pausiertGetrennt ? laufend.filter((p) => p.status === 'Pausiert') : [];
+  const meine = meineUid ? laufend.filter((p) => p.assignedEmployees?.includes(meineUid) && !pausiert.includes(p)) : [];
+  const aktiv = laufend.filter((p) => !meine.includes(p) && !pausiert.includes(p));
   const uebrige = sortiert.filter((p) => !laufend.includes(p));
   const beschriften = (p: WithId<Project>) =>
     nummerVorn ? `${p.projectNumber} · ${p.customerName}` : `${p.customerName} (${p.projectNumber})`;
@@ -260,6 +268,15 @@ export default function BaustellenSelect({
         {aktiv.length > 0 && (
           <optgroup label={meine.length > 0 ? 'Weitere laufende Baustellen' : 'Laufende Baustellen'}>
             {aktiv.map((p) => (
+              <option key={p.id} value={p.projectNumber}>
+                {beschriften(p)}
+              </option>
+            ))}
+          </optgroup>
+        )}
+        {pausiert.length > 0 && (
+          <optgroup label="Pausiert">
+            {pausiert.map((p) => (
               <option key={p.id} value={p.projectNumber}>
                 {beschriften(p)}
               </option>

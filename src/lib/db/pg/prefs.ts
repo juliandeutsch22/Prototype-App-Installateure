@@ -108,6 +108,7 @@ export async function savePrefs(
       notify_angebot: prefs.notifyAngebot ?? true,
       ...(prefs.notifyZeiterfassung === undefined ? {} : { notify_zeiterfassung: prefs.notifyZeiterfassung }),
       notify_nachrichten: prefs.notifyNachrichten ?? true,
+      notify_einsaetze: prefs.notifyEinsaetze ?? true,
       // Die Vorschau bleibt aus, solange sie niemand ausdrücklich wählt.
       nachricht_vorschau: prefs.nachrichtVorschau ?? false,
       updated_at: new Date().toISOString(),

@@ -172,7 +172,8 @@ export default function Einsatzplanung() {
     if (ansicht !== 'woche') return [];
     const geplant = new Set(d.einsaetze.map((a) => a.projectNumber));
     return d.projects
-      .filter((p) => !geplant.has(p.projectNumber))
+      // Pausiert heißt „wird gerade nicht bedient“ — kein Einsatz ist dort kein Versäumnis (B7, E85).
+      .filter((p) => !geplant.has(p.projectNumber) && p.status !== 'Pausiert')
       .sort((a, b) => (a.customerName ?? '').localeCompare(b.customerName ?? '', 'de'));
   }, [ansicht, d.einsaetze, d.projects]);
 

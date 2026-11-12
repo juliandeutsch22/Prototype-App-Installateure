@@ -3433,3 +3433,68 @@ Akte nichts davon. Entschieden:
   Nullen, Monteur und fremder Betrieb bekommen nichts (vor der Sicherung rot).
 - Komponenten: `BaustellenakteView.test.tsx` (+6), `AdminOrdersView.test.tsx`
   (+1). Gegenprobe gegen den Stand davor: 7 rot.
+
+**E85 — Einsätze über mehrere Tage, auf den nächsten Werktag kopieren, Meldung an den Monteur, pausierte Baustellen (12.11.2026).**
+Paket 5 des Gesamtplans vom 12.11.2026 (Befunde B4, B6, B7, F2).
+
+„Einsatz planen“ kannte genau einen Tag; eine Woche Bad hieß fünfmal das
+Formular. Wer abends für morgen umgeplant wurde, erfuhr es erst beim Öffnen
+der App. Und pausierte Baustellen standen in der Woche als „ohne Einsatz“,
+als wäre dort etwas versäumt. Entschieden:
+- **Über mehrere Tage (B4/F2):** im Formular der Haken „Auch an den
+  folgenden Tagen“ mit „bis einschließlich“ und „nur Werktage“ (ab Werk
+  an). Der erste Tag wird wie bisher gespeichert, samt Rüstliste; die
+  Folgetage übernimmt die Datenbank in einem Aufruf
+  (`einsatz_folgetage`). Je Tag dieselben Prüfungen wie im Formular:
+  - Wochenende (mit „nur Werktage“), gesetzlicher Feiertag und
+    Betriebsurlaub: der Tag wird ausgelassen.
+  - Ganztags abwesend (Urlaub, Krankenstand, Berufsschule, Freistellung —
+    dieselbe Quelle wie der Wochenplan): diese Person an diesem Tag nicht.
+  - Schon auf einer anderen Baustelle: eingeteilt und genannt.
+  - Ist der Tag für diese Baustelle schon geplant, wird ERGÄNZT, nie
+    ersetzt; wer schon dort steht, bleibt, wie er ist.
+  Was an einem Tag anders lief, steht nach dem Speichern im Formular, bis
+  „Fertig“ — nichts wird still übersprungen. Scheitern die Folgetage, steht
+  da, dass der erste Tag gespeichert ist.
+- **Auf den nächsten Werktag kopieren (B4):** ein Symbolknopf je Baustelle
+  in der Tagesplanung. Dieselbe Mannschaft mit Zeit, Aufgabe und
+  Helfer-Haken am nächsten Werktag (Wochenende und Feiertag übersprungen),
+  mit denselben Prüfungen.
+- **Die Rüstliste gilt weiter je Tag:** eine vorhandene bekommt die neue
+  Mannschaft, eine neue entsteht an den Folgetagen nicht. Material wird
+  einmal geladen und verbaut; es an jeden Tag zu schreiben, hieße es
+  mehrfach anzufordern (fachlicher Grund).
+- **Meldung an den Monteur (B6):** Push „Dein Einsatzplan hat sich
+  geändert“ mit dem Plan für heute und morgen, wie er jetzt ist (Uhrzeit,
+  Kunde). Nur für heute und morgen; gesammelt je Person (zwei Minuten
+  Ruhe, dann eine Meldung, die neue ersetzt die alte); nur, wenn sich der
+  Plan im Ganzen geändert hat (Speichern löscht und schreibt neu); nicht
+  für die eigene Eintragung; abschaltbar in Mein Konto
+  („Geänderter Einsatzplan für heute und morgen“, ab Werk an, nur für
+  Eingeplante mit Einsatzplanung). Die Warteschlange sind zwei Spalten an
+  `user_prefs` — keine neue Tabelle mit Personenbezug; sie stehen schon in
+  Auskunft und Löschung und werden nach dem Versand geleert. Ein Zeitplan
+  sieht jede Minute nach (`einsatz-meldungen`).
+- **Pausierte Baustellen (B7):** zählen in der Woche nicht mehr als „ohne
+  Einsatz“; in der Auswahl der Planung stehen sie in einer eigenen Gruppe
+  „Pausiert“ vor den abgeschlossenen — wählbar, nur nicht zwischen den
+  laufenden.
+
+**Grenzen mit Grund:**
+- Höchstens 62 Tage je Speichern: so weit reicht die Prüfung der
+  Abwesenheiten (`wochenplan_abwesend`); darüber wüsste sie nichts mehr.
+- Spätere Tage melden sich nicht per Push: sie stehen im Plan, und eine
+  Wochenplanung piepte sonst je Tag (fachlich, so entschieden).
+- Nicht im Einblick des Supports, auch nicht mit „mitarbeiten“
+  (Datenschutz): die Abwesenheiten der Belegschaft liest nur der Betrieb
+  selbst; ohne sie würde still jemand im Urlaub eingeteilt. Der einzelne
+  Tag bleibt dem Support wie bisher; Haken und Kopieren fehlen dort, die
+  Datenbank lehnt den Aufruf ab.
+
+**Nachweis:**
+- Datenbank: `einsatzFolgetage.test.ts` (11), `einsatzMeldung.test.ts` (16).
+- Module: `einsatzMehrtage.test.ts` (12).
+- Komponenten: `AssignmentsView.test.tsx` (+9), `BaustellenSelect.test.tsx`
+  (+2), `WochenplanView.test.tsx` (+1), `MeinKontoEinsatzplan.test.tsx` (6).
+- Browser: `mehrtage.spec.ts` (3).
+- Gegenproben ohne die Änderung rot.

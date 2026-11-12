@@ -182,6 +182,37 @@ describe('Baustellenauswahl — Reihenfolge (Launch-Check 25.09.2026, R2)', () =
     expect(beschriftungen()).toEqual(['Aigner (B-3)', 'Müller (B-2)', 'Zach GmbH (B-1)']);
   });
 
+  /* B7, E85: in der Planung stehen pausierte Baustellen für sich — wählbar, nicht zwischen den laufenden. */
+  it('in der Planung kommen pausierte Baustellen in eine eigene Gruppe vor die abgeschlossenen', async () => {
+    listActiveProjects.mockResolvedValue([
+      ...drei,
+      { id: 'd', companyId: 'perl', projectNumber: 'B-4', customerName: 'Berger', status: 'Pausiert', assignedEmployees: ['max'] },
+    ]);
+    const onChange = vi.fn();
+    const { container } = render(
+      <BaustellenSelect companyId="perl" value="" onChange={onChange} meineUid="max" pausiertGetrennt />,
+    );
+    await screen.findByText('Berger (B-4)');
+    const gruppen = [...container.querySelectorAll('optgroup')].map((g) => [g.label, [...g.querySelectorAll('option')].map((o) => o.textContent)]);
+    expect(gruppen).toEqual([
+      ['Meine Baustellen', ['Aigner (B-3)']],
+      ['Weitere laufende Baustellen', ['Müller (B-2)', 'Zach GmbH (B-1)']],
+      ['Pausiert', ['Berger (B-4)']],
+    ]);
+    await userEvent.selectOptions(screen.getByLabelText('Baustelle'), 'B-4');
+    expect(onChange).toHaveBeenCalledWith('B-4', expect.objectContaining({ status: 'Pausiert' }));
+  });
+
+  it('Gegenprobe: ohne die Wahl bleibt die pausierte zwischen den laufenden', async () => {
+    listActiveProjects.mockResolvedValue([
+      ...drei,
+      { id: 'd', companyId: 'perl', projectNumber: 'B-4', customerName: 'Berger', status: 'Pausiert' },
+    ]);
+    const { container } = render(<BaustellenSelect companyId="perl" value="" onChange={() => undefined} />);
+    await screen.findByText('Berger (B-4)');
+    expect([...container.querySelectorAll('optgroup')].map((g) => g.label)).toEqual(['Laufende Baustellen']);
+  });
+
   it('ohne eigene Baustelle bleibt es bei einer Gruppe', async () => {
     listActiveProjects.mockResolvedValue(drei);
     const { container } = render(
