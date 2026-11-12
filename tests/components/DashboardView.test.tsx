@@ -334,6 +334,39 @@ const anforderung = (teil: Partial<MaterialOrder> & { id: string }): MaterialOrd
 });
 
 describe('Startseite — Monteur', () => {
+  /*
+    E82 (A5): Direkt unter „Dein Einsatz heute“ stand „Heute liegt nichts
+    an.“ — und widersprach dem Einsatz darüber.
+  */
+  it('mit Einsatz und sonst nichts offen: „Sonst ist nichts offen.“ unter dem Einsatz', async () => {
+    const eintritt = monteur.appStartDate;
+    (monteur as { appStartDate?: string }).appStartDate = undefined;
+    try {
+      zeichne();
+      const leer = await screen.findByRole('region', { name: 'Sonst ist nichts offen' });
+      expect(within(leer).getByRole('heading', { name: 'Sonst ist nichts offen.' })).toBeInTheDocument();
+      expect(screen.queryByText('Heute liegt nichts an.')).toBeNull();
+      // Der Einsatz steht darüber, in derselben Spalte.
+      const einsatz = await karteMit(/2 Einsätze/);
+      expect(einsatz.compareDocumentPosition(leer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    } finally {
+      (monteur as { appStartDate?: string }).appStartDate = eintritt;
+    }
+  });
+
+  it('Gegenprobe: ohne Einsatz heute bleibt es bei „Heute liegt nichts an.“', async () => {
+    const eintritt = monteur.appStartDate;
+    (monteur as { appStartDate?: string }).appStartDate = undefined;
+    abwesend.wert = [{ userId: 'm1', von: HEUTE, bis: HEUTE, grund: 'Urlaub', zeiten: null }];
+    try {
+      zeichne();
+      expect(await screen.findByRole('heading', { name: 'Heute liegt nichts an.' })).toBeInTheDocument();
+      expect(screen.queryByText('Sonst ist nichts offen.')).toBeNull();
+    } finally {
+      (monteur as { appStartDate?: string }).appStartDate = eintritt;
+    }
+  });
+
   it('wer heute krank ist, hat heute keinen Einsatz auf der Startseite (M33)', async () => {
     abwesend.wert = [{ userId: 'm1', von: HEUTE, bis: HEUTE, grund: 'Krank', zeiten: null }];
     zeichne();

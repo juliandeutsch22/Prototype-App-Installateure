@@ -912,7 +912,9 @@ export default function WorkSheetsListView() {
               <p className="mt-1 text-xs text-ink-muted">
                 {tiefePruefung
                   ? `Geprüft über die letzten ${tiefePruefung} Tage (${pruefBasis.length} unterschriebene Scheine).`
-                  : `Geprüft über die ${scheine.length} geladenen Scheine dieser Liste.`}
+                  : scheine.length === 1
+                    ? 'Geprüft über den einen geladenen Schein dieser Liste.'
+                    : `Geprüft über die ${scheine.length} geladenen Scheine dieser Liste.`}
                 {tiefeScheine && tiefeScheine.length >= PRUEF_GRENZE && (
                   <>
                     {' '}

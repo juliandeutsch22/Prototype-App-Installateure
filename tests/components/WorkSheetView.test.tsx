@@ -1286,7 +1286,7 @@ describe('Schrittfolge', () => {
     await screen.findByRole('link', { name: /Hauptstraße 12/ });
     expect(aktuell()).toBe('1 Zeiten');
     // Im ersten Schritt gibt es nichts, wohin man zurück könnte.
-    expect(screen.queryByRole('button', { name: 'Zurück' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Zurück/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Zeile hinzufügen' })).toBeInTheDocument();
     // Die Unterschriften sind eingehängt, aber noch nicht zu sehen.
     expect(
@@ -1314,13 +1314,16 @@ describe('Schrittfolge', () => {
       screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
     ).toBeInTheDocument();
 
-    await nutzer.click(screen.getByRole('button', { name: 'Zurück' }));
+    // „Zurück“ ist ein Pfeil (E82); sein Name sagt, wohin es geht.
+    const zurueck = screen.getByRole('button', { name: 'Zurück: Fotos' });
+    expect(zurueck).toHaveTextContent('');
+    await nutzer.click(zurueck);
     expect(aktuell()).toBe('3 Fotos');
     expect(
       screen.queryByRole('button', { name: 'Unterschreiben und abschließen' }),
     ).not.toBeInTheDocument();
-    await nutzer.click(screen.getByRole('button', { name: 'Zurück' }));
-    await nutzer.click(screen.getByRole('button', { name: 'Zurück' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Zurück: Material' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Zurück: Zeiten' }));
     expect(aktuell()).toBe('1 Zeiten');
   });
 
@@ -1666,7 +1669,7 @@ describe('Schrittfolge', () => {
       screen.queryByRole('navigation', { name: 'Schritte des Scheins' }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Weiter/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Zurück' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Zurück/ })).not.toBeInTheDocument();
     // Die Zusammenfassung braucht es dort nicht: alles steht darüber.
     expect(screen.queryByText('Zusammenfassung')).not.toBeInTheDocument();
     // Alles zugleich zu sehen, in der Reihenfolge wie immer.

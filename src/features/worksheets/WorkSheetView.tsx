@@ -20,6 +20,8 @@ import type { Material, Project, WorkSheet, WorkSheetZeit } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import IconButton from '@/components/IconButton';
+import Icon from '@/components/Icon';
 import { knopfKlassen } from '@/components/knopf';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Aktionsleiste from '@/components/Aktionsleiste';
@@ -1906,13 +1908,20 @@ export default function WorkSheetView() {
               steht über der Leiste, damit diese am Telefon schmal bleibt. */}
           {entwurfKnopf('w-full sm:w-auto')}
           {/* Zurück schmal links, Weiter breit rechts — am Telefon klebend
-              über der Reiterleiste (Designlinie „Fassung 3"). */}
+              über der Reiterleiste (Designlinie „Fassung 3").
+              ZURÜCK ALS PFEIL (E82): mit dem Wort blieben dem Abschluss im
+              letzten Schritt am Handy 168 px für 207 px Text. Der Name des
+              Schritts steht in der Vorlesehilfe und beim Darüberfahren. */}
           <Aktionsleiste
+            linksSymbol
             links={
               schritt > 1 ? (
-                <Button variant="secondary" onClick={() => springe((schritt - 1) as Schritt)}>
-                  Zurück
-                </Button>
+                <IconButton
+                  label={`Zurück: ${SCHRITTE[schritt - 2].name}`}
+                  onClick={() => springe((schritt - 1) as Schritt)}
+                >
+                  <Icon name="zurueck" />
+                </IconButton>
               ) : undefined
             }
             rechts={

@@ -125,6 +125,16 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
   await expect(page.getByText(/Nicht hochgeladen/)).toHaveCount(0);
   await page.getByRole('button', { name: 'Weiter: Unterschrift' }).click();
   await expect(schritt).toHaveText('4 Unterschrift');
+  /*
+    KEIN KNOPF DER LEISTE IST ABGESCHNITTEN (E82). Bei 390 px stand hier
+    „schreiben und abschli“: 207 px Text in 168 px Knopf, weil „Zurück“ als
+    Wort zwei Fünftel der Leiste nahm. Jetzt ist es ein Pfeil, der seinen
+    Schritt nennt, und der Abschluss hat den Rest.
+  */
+  await expect(page.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeVisible();
+  expect(await page.locator('.aktionsleiste-knoepfe > *').evaluateAll((knoepfe) =>
+    knoepfe.filter((k) => k.scrollWidth > k.clientWidth + 1).map((k) => k.textContent))).toEqual([]);
+  await expect(page.getByRole('button', { name: 'Zurück: Fotos' })).toBeVisible();
 
   // Die Zusammenfassung trägt die Zeit aus dem ersten Schritt: 08:00 bis 16:00.
   await expect(page.getByText('08:00 Std', { exact: true })).toBeVisible();
