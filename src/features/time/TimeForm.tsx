@@ -1,6 +1,10 @@
 import { standardZeitfeldAktiv, standardZeitwerteErhalten } from '@/lib/standardZeitfelder';
 import { useState, useEffect, useMemo, type FormEvent } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useModul } from '@/lib/useModule';
+import { canWriteWorkSheet } from '@/lib/permissions';
+import { useBaustelleVorbelegung } from '@/features/projects/useBaustelleVorbelegung';
+import { VORBELEG_TEXT, zuletztMerken, type VorbelegGrund } from '@/lib/baustelleVorbelegen';
 import { useAuth } from '@/app/AuthContext';
 import {
   createTimeEntryOhneEmpfang,
@@ -140,6 +144,8 @@ export default function TimeForm({
 }: Props) {
   const { user, company } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
+  const scheineAn = useModul('scheine');
   /*
     DER BEZIRKSKENNER KOMMT VOM BETRIEB. Hier stand `WZ-` fest — dreifach:
     als Konstante, als Regel zum Abziehen und als Beschriftung am Feld. Das
@@ -279,6 +285,34 @@ export default function TimeForm({
   );
 
   const target = staff?.find((u) => u.uid === targetUid);
+
+  /*
+    DIE BAUSTELLE NACH DER EINEN REGEL (B3, E83) — nur bei einer neuen
+    EIGENEN Buchung ohne Vorgabe: beim Bearbeiten steht sie in der Buchung,
+    aus Einsatz, Timer oder Nachtrag kommt sie mit, und wer für jemand anderen
+    bucht, bekäme sonst die eigene Baustelle vorgelegt.
+  */
+  const [baustelleBeruehrt, setBaustelleBeruehrt] = useState(!!entry || !!prefill?.projectNumber || !!staff || !!speichernMit);
+  const [vorbelegt, setVorbelegt] = useState<VorbelegGrund | null>(null);
+  const baustelleVorschlag = useBaustelleVorbelegung({ aktiv: !baustelleBeruehrt, datum: date });
+  useEffect(() => {
+    if (baustelleBeruehrt || !baustelleVorschlag) return;
+    setBaustelleBeruehrt(true);
+    if (projectNumber) return;
+    setProjectNumber(baustelleVorschlag.nr);
+    setVorbelegt(baustelleVorschlag.grund);
+  }, [baustelleVorschlag, baustelleBeruehrt, projectNumber]);
+
+  /*
+    DER NÄCHSTE SCHRITT NACH DEM BUCHEN (B5, E83): wer eine Zeit auf eine
+    Baustelle gebucht hat, schreibt oft gleich den Schein dafür. Die Meldung
+    trägt den Weg dorthin, mit Baustelle und Tag — nur für die eigene Zeit
+    und nur, wenn Modul und Rolle den Schein erlauben.
+  */
+  const scheinNachBuchung = (nr: string, tag: string) =>
+    nr && user && scheineAn && canWriteWorkSheet(user.role)
+      ? { label: 'Schein schreiben', onClick: () => navigate(`/worksheet?projekt=${encodeURIComponent(nr)}&datum=${tag}`) }
+      : undefined;
   // Beim Erfassen für jemand anderen zählt DESSEN Rolle für die
   // Projektfelder — sonst bekäme ein Monteur-Eintrag keine Baustelle.
   const effectiveRole = ownerRole ?? target?.role ?? user?.role;
@@ -1016,8 +1050,11 @@ export default function TimeForm({
 
       if (speichernMit) {
         const stand = await speichernMit(payload);
-        if (stand === 'queued') toast.info(vorgemerktMeldung('Zeit vorgemerkt'));
-        else toast.success(isEdit ? 'Eintrag aktualisiert' : 'Zeit gebucht');
+        // Aus dem Timer gebucht: die Zeit ist die eigene (B5).
+        const weiter = isEdit ? undefined : scheinNachBuchung(payload.projectNumber ?? '', payload.date ?? date);
+        if (payload.projectNumber && !isEdit) zuletztMerken(user.companyId, user.uid, payload.projectNumber);
+        if (stand === 'queued') toast.info(vorgemerktMeldung('Zeit vorgemerkt'), weiter);
+        else toast.success(isEdit ? 'Eintrag aktualisiert' : 'Zeit gebucht', weiter);
       } else if (isEdit && einfuegbar) {
         // Die anderen Buchungen ändern sich mit — am Stück (`zeit_einfuegen` mit der Kennung).
         await zeitEinfuegen({ ...payload, userId: entry.userId, userName: entry.userName, source: 'manual' as const }, entry.id);
@@ -1052,9 +1089,11 @@ export default function TimeForm({
           toast.success(target ? `Zeit für ${target.name} eingefügt` : 'Zeit eingefügt');
         } else {
           const stand = await createTimeEntryOhneEmpfang(user.companyId, neu);
-          if (stand === 'queued') toast.info(vorgemerktMeldung('Zeit gebucht'));
-          else toast.success(target ? `Zeit für ${target.name} gebucht` : 'Zeit gebucht');
+          const weiter = target ? undefined : scheinNachBuchung(neu.projectNumber ?? '', neu.date ?? date);
+          if (stand === 'queued') toast.info(vorgemerktMeldung('Zeit gebucht'), weiter);
+          else toast.success(target ? `Zeit für ${target.name} gebucht` : 'Zeit gebucht', weiter);
         }
+        if (!target) zuletztMerken(user.companyId, user.uid, neu.projectNumber);
         setComment('');
         /*
           ZUSCHLÄGE GELTEN FÜR EINEN EINSATZ, nicht für den nächsten
@@ -1678,11 +1717,16 @@ export default function TimeForm({
                 meineUid={target?.uid ?? entry?.userId ?? user.uid}
                 value={projectNumber}
                 onChange={(nr, p) => {
+                  if (nr !== projectNumber) {
+                    setBaustelleBeruehrt(true);
+                    setVorbelegt(null);
+                  }
                   setProjectNumber(nr);
                   if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
                 }}
                 required={brauchtBaustelle}
               />
+              {vorbelegt && projectNumber && <p className="text-sm text-ink-muted">{VORBELEG_TEXT[vorbelegt]}</p>}
               {baustelleFrei && <p className="text-sm text-ink-muted">Ohne Baustelle zählt die Zeit zum Zeitkonto, ohne eine Auftragsleistung oder Rechnungsquelle zu erzeugen.</p>}
               {/*
                 AUFTEILEN (10.10.2026): den Tag am Stück gebucht, danach auf

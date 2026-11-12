@@ -286,3 +286,8 @@ export function deleteTimeEntry(id: string): Promise<void> {
 export function buchungstage(from: string, to: string): Promise<{ userId: string; date: string }[]> {
   return pg.buchungstage(from, to);
 }
+
+/** Die Baustelle der letzten eigenen Buchung — siehe `pg.letzteEigeneBaustelle`. */
+export function letzteEigeneBaustelle(companyId: string, uid: string): Promise<string | null> {
+  return pg.letzteEigeneBaustelle(companyId, uid);
+}

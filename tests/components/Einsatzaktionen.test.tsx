@@ -1,8 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import HeuteEigene from '@/features/dashboard/start/HeuteEigene';
-import { EinsatzKnoepfe } from '@/features/assignments/Einsatzaktionen';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+
+// Der Thread der Baustelle (E83): angelegt erst beim Öffnen.
+const kanalBaustelle = vi.fn<(id: string) => Promise<string>>(async () => 'kanal-7');
+vi.mock('@/lib/db/nachrichten', () => ({ kanalBaustelle: (id: string) => kanalBaustelle(id) }));
+
+const { default: HeuteEigene } = await import('@/features/dashboard/start/HeuteEigene');
+const { EinsatzKnoepfe } = await import('@/features/assignments/Einsatzaktionen');
 import type { EinsatzZeile } from '@/features/dashboard/start/laden';
 
 /*
@@ -119,5 +125,57 @@ describe('Einsatzaktionen im Einsatzplan (E72, H1)', () => {
       </MemoryRouter>,
     );
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+
+/*
+  MATERIAL UND NACHRICHT AM EINSATZ (B2, E83): die zwei Dinge, die vor Ort
+  fehlten — leise wie Adresse und Telefon, nur mit dem Recht dazu.
+*/
+describe('Wege am Einsatz', () => {
+  const MIT = { material: true, nachricht: true };
+
+  it('führt mit der Baustelle zu „Material anfordern“', () => {
+    zeichne({ wege: MIT, einsaetze: [einsatz({ projectId: 'p1' })] });
+    const weg = screen.getByRole('link', { name: 'Material anfordern' });
+    expect(weg).toHaveAttribute('href', '/material?projekt=B-2026-0147');
+    expect(weg.className).toContain('link-kontakt');
+  });
+
+  it('öffnet den Thread der Baustelle — angelegt erst beim Tippen', async () => {
+    kanalBaustelle.mockClear();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<HeuteEigene einsaetze={[einsatz({ projectId: 'p1' })]} letzteBuchung={null} materialAn={false} scheinVerweis planVerweis wege={MIT} />} />
+          <Route path="/nachrichten/:kanal" element={<p>Thread offen</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(kanalBaustelle).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Nachricht zur Baustelle' }));
+    expect(kanalBaustelle).toHaveBeenCalledWith('p1');
+    expect(await screen.findByText('Thread offen')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne Recht keine der beiden', () => {
+    zeichne({ wege: { material: false, nachricht: false }, einsaetze: [einsatz({ projectId: 'p1' })] });
+    expect(screen.queryByRole('link', { name: 'Material anfordern' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Nachricht zur Baustelle' })).toBeNull();
+    // Adresse und Telefon bleiben.
+    expect(screen.getByRole('link', { name: /Hauptstraße 112–118, 2700/ })).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne Kennung der Baustelle kein Thread — die Nummer allein öffnet keinen', () => {
+    zeichne({ wege: MIT, einsaetze: [einsatz()] });
+    expect(screen.queryByRole('button', { name: 'Nachricht zur Baustelle' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Material anfordern' })).toBeInTheDocument();
+  });
+
+  it('auch ohne Adresse und Telefon stehen die Wege da', () => {
+    zeichne({ wege: MIT, einsaetze: [einsatz({ projectId: 'p1', address: undefined, contactPhone: undefined })] });
+    expect(screen.getByRole('link', { name: 'Material anfordern' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nachricht zur Baustelle' })).toBeInTheDocument();
   });
 });

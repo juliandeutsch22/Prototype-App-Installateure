@@ -108,6 +108,8 @@ export interface EinsatzZeile {
   /** Der Tag des Einsatzes — mitgeführt, damit ein Haken über Mitternacht am richtigen Dokument landet. */
   date: string;
   projectNumber: string;
+  /** Kennung der Baustelle — der Weg in ihren Thread braucht sie (B2). */
+  projectId?: string;
   customerName: string;
   address?: string;
   contactName?: string;
@@ -366,6 +368,7 @@ export async function persoenlich(
             id: a.id,
             date: a.date,
             projectNumber: a.projectNumber,
+            projectId: pr?.id,
             customerName: pr ? baustellenTitel(pr) : `Baustelle ${a.projectNumber}`,
             address: pr?.address,
             contactName: pr?.contactName,

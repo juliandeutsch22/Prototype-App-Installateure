@@ -24,6 +24,8 @@ import IconButton from '@/components/IconButton';
 import Icon from '@/components/Icon';
 import { knopfKlassen } from '@/components/knopf';
 import Hinweiszeile from '@/components/Hinweiszeile';
+import { useBaustelleVorbelegung } from '@/features/projects/useBaustelleVorbelegung';
+import { VORBELEG_TEXT, zuletztMerken, type VorbelegGrund } from '@/lib/baustelleVorbelegen';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import { Marke } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
@@ -286,6 +288,29 @@ export default function WorkSheetView() {
 
   const [bestehende, setBestehende] = useState<WithId<WorkSheet>[]>([]);
 
+  /*
+    VORBELEGT NACH DER EINEN REGEL (B3, E83): laufender Arbeitstag (nur für
+    heute), sonst der Einsatz des Tages — bei mehreren der zuletzt benutzte
+    unter ihnen, sonst keiner —, ohne Einsatz die zuletzt benutzte Baustelle.
+    Nie über die Adresse, einen Entwurf oder eine eigene Wahl hinweg, und nur
+    ins leere Feld (P1-03): die Antwort kommt womöglich erst, nachdem schon
+    gewählt ist, und ein Wechsel räumte das Material weg.
+  */
+  const [baustelleBeruehrt, setBaustelleBeruehrt] = useState(!!projektAusUrl || !!entwurfId);
+  const [vorbelegt, setVorbelegt] = useState<VorbelegGrund | null>(null);
+  const vorbelegung = useBaustelleVorbelegung({ aktiv: !baustelleBeruehrt, datum });
+  useEffect(() => {
+    if (baustelleBeruehrt || !vorbelegung) return;
+    setBaustelleBeruehrt(true);
+    if (projectNumber) return;
+    setProjectNumber(vorbelegung.nr);
+    setVorbelegt(vorbelegung.grund);
+  }, [vorbelegung, baustelleBeruehrt, projectNumber]);
+  const vonHandGewaehlt = () => {
+    setBaustelleBeruehrt(true);
+    setVorbelegt(null);
+  };
+
   /**
    * Die eigenen Einsätze am gewählten Tag — der eigentliche Einstieg.
    *
@@ -317,29 +342,12 @@ export default function WorkSheetView() {
             name: stamm.find((p) => p.projectNumber === nr)?.customerName ?? nr,
           })),
         );
-        // Nur vorauswählen, wenn nichts vorgegeben ist und die Lage eindeutig
-        // ist — eine falsche Vorauswahl wäre schlimmer als gar keine.
-        /*
-          UND NUR INS LEERE FELD (Prüflauf 25.09.2026, P1-03). Die Antwort
-          kommt womöglich erst, nachdem der Monteur schon gewählt hat oder
-          ein Entwurf seine Baustelle gesetzt hat; sie zu überschreiben hiesse
-          den Schein auf eine andere Baustelle zu legen — und der Wechsel
-          räumt obendrein das eingetragene Material weg. Deshalb der Blick
-          auf den AKTUELLEN Wert statt auf den beim Abschicken, und beim
-          Entwurf gar nicht: seine Baustelle steht im Entwurf.
-        */
-        if (nummern.length === 1 && !projektAusUrl && !entwurfId) {
-          setProjectNumber((bisher) => bisher || nummern[0]);
-        }
+        // Die Vorauswahl steht seit E83 in der einen Regel (`vorbelegung` oben), mit den Gründen von P1-03.
       })
       .catch(() => setHeutige([]));
     return () => {
       verworfen = true;
     };
-    // `projektAusUrl` und `entwurfId` sind beim ersten Zeichnen fix und
-    // gehören nicht ins Abhängigkeitsfeld: sonst liefe die Vorauswahl bei
-    // jeder Auswahl erneut.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, datum]);
 
   /**
@@ -917,10 +925,12 @@ export default function WorkSheetView() {
         Markierung gäbe es dort erst, wenn er angekommen ist.
       */
       if (await scheinWartet(id).catch(() => undefined)) {
+        zuletztMerken(user.companyId, user.uid, projectNumber);
         toast.info(vorgemerktMeldung('Handwerksschein unterschrieben'));
         navigate('/worksheets');
         return;
       }
+      zuletztMerken(user.companyId, user.uid, projectNumber);
       toast.success('Handwerksschein unterschrieben und eingefroren');
       navigate(`/worksheets?markiert=${id}`);
     } catch (err) {
@@ -1023,6 +1033,7 @@ export default function WorkSheetView() {
     const warSchonDa = !!(scheinIdRef.current ?? anlageRef.current);
     try {
       const id = await inhaltSchreiben();
+      zuletztMerken(user.companyId, user.uid, projectNumber);
       if (await scheinWartet(id).catch(() => undefined)) {
         toast.info(vorgemerktMeldung(warSchonDa ? 'Entwurf aktualisiert' : 'Als Entwurf gespeichert'));
         navigate('/worksheets');
@@ -1238,6 +1249,7 @@ export default function WorkSheetView() {
                         // Baustelle, und genau die ruft dann jemand an.
                         setProjekt(undefined);
                         setProjectNumber(e.projectNumber);
+                        vonHandGewaehlt();
                       }}
                       aria-pressed={projectNumber === e.projectNumber}
                       className={projectNumber === e.projectNumber ? 'schein-einsatz-an' : 'schein-einsatz'}
@@ -1256,11 +1268,16 @@ export default function WorkSheetView() {
               companyId={user.companyId}
               value={projectNumber}
               onChange={(nr, p) => {
+                // Auch der Nachtrag des Datensatzes ruft hier an — er ändert die Nummer nicht.
+                if (nr !== projectNumber) vonHandGewaehlt();
                 setProjectNumber(nr);
                 setProjekt(p);
               }}
               required
             />
+            {vorbelegt && projectNumber && (
+              <p className="mt-1 text-sm text-ink-muted">{VORBELEG_TEXT[vorbelegt]}</p>
+            )}
             <div className="mt-4">
               <InputField
                 id="wsdate"

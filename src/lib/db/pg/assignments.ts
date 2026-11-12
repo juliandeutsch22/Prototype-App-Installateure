@@ -7,6 +7,7 @@
  */
 import type { Assignment, KalenderAbo, KalenderAboArt } from '@/types';
 import { monatsEnde } from '@shared/feiertage';
+import { plusTage } from '@shared/freistellung';
 import { abfragen, abonnieren, derClient, loeschen, SEITE, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
 
@@ -255,4 +256,35 @@ export function listEinsatztageInRange(companyId: string, from: string, to: stri
     grenze: max,
     spalten: 'id,user_id,date,project_number',
   });
+}
+
+/**
+ * DIE EINSÄTZE EINER BAUSTELLE (B1/B5, E83): die nächsten ab heute und die
+ * letzten davor — für die Akte, die zeigt, wann dort jemand war und wann
+ * jemand kommt, und deren Hauptaktion „Einsatz planen“ heißt, solange es
+ * keinen gibt. Je Richtung mit Grenze: eine lange Baustelle hat Hunderte
+ * Einsatztage, die Akte zeigt davon wenige.
+ */
+export async function einsaetzeDerBaustelle(
+  companyId: string, projectNumber: string, heute: string, je = 20,
+): Promise<{ kommend: WithId<Assignment>[]; vorher: WithId<Assignment>[] }> {
+  const [kommend, vorher] = await Promise.all([
+    abfragen<Assignment>(EINSAETZE, companyId, {
+      wo: [
+        { art: 'gleich', feld: 'projectNumber', wert: projectNumber },
+        { art: 'ab', feld: 'date', wert: heute },
+      ],
+      sortiere: { feld: 'date' },
+      grenze: je,
+    }),
+    abfragen<Assignment>(EINSAETZE, companyId, {
+      wo: [
+        { art: 'gleich', feld: 'projectNumber', wert: projectNumber },
+        { art: 'bis', feld: 'date', wert: plusTage(heute, -1) },
+      ],
+      sortiere: { feld: 'date', absteigend: true },
+      grenze: je,
+    }),
+  ]);
+  return { kommend, vorher };
 }

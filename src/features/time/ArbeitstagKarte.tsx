@@ -9,6 +9,8 @@ import InfoHint from '@/components/InfoHint';
 import { InputField } from '@/components/Field';
 import { baustellenTitel } from '@/lib/baustellenTitel';
 import { dauerText, timerBaustelle, timerDauer, timerOrtszeit } from '@/lib/zeitsitzung';
+import { useBaustelleVorbelegung } from '@/features/projects/useBaustelleVorbelegung';
+import { zuletztMerken } from '@/lib/baustelleVorbelegen';
 import { useBaustellenAuswahl } from '@/features/nachrichten/useBaustellenAuswahl';
 import { useZeitsitzung } from './zeitsitzungStand';
 import { LoeschenKnopf } from '@/components/Symbolknoepfe';
@@ -42,6 +44,12 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
   const [entwurf, setEntwurf] = useState('');
   const [verwerfen, setVerwerfen] = useState(false);
   const [grund, setGrund] = useState('');
+  /*
+    OHNE EINSATZ DIE ZULETZT BENUTZTE BAUSTELLE (B3, E83) — nach der einen
+    Regel, nur solange nichts läuft und der Aufrufer nichts vorgibt. Sie steht
+    sichtbar auf dem Knopf darunter und ist dort mit einem Tipp geändert.
+  */
+  const regel = useBaustelleVorbelegung({ aktiv: !!user && !vorschlag && z.an && !z.laeuft });
   const baustellen = useBaustellenAuswahl(!!user && (z.an || !!z.laeuft), user?.companyId ?? '', user?.uid ?? '', user?.role ?? 'Mitarbeiter', '');
   const namen = useMemo(() => new Map((baustellen.liste ?? []).map((p) => [p.projectNumber, baustellenTitel(p) || p.projectNumber])), [baustellen.liste]);
 
@@ -52,8 +60,8 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
   const s = z.laeuft;
   const pause = s?.stand === 'pause';
   const dauer = s ? timerDauer(s, z.jetzt) : null;
-  // Vor Beginn: was jemand gewählt hat, sonst der heutige Einsatz laut Plan — nie eine geratene Baustelle.
-  const startBaustelle = gewaehlt ?? vorschlag ?? '';
+  // Vor Beginn: was jemand gewählt hat, sonst der heutige Einsatz laut Plan, sonst die zuletzt benutzte (E83).
+  const startBaustelle = gewaehlt ?? vorschlag ?? regel?.nr ?? '';
   const laufendeBaustelle = s ? timerBaustelle(s) : '';
   const name = (nr: string) => namen.get(nr) ?? nr;
   const pruefen = aufStart && offen > 0 && (
@@ -173,7 +181,7 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
             className="rund-knopf rund-knopf-voll rund-knopf-start"
             aria-label="Arbeitstag starten"
             disabled={z.speichert || !z.geladen}
-            onClick={() => void z.befehl('start', undefined, startBaustelle)}
+            onClick={() => { zuletztMerken(user.companyId, user.uid, startBaustelle); void z.befehl('start', undefined, startBaustelle); }}
           >
             <Icon name="play" size={28} aria-hidden="true" />
           </button>

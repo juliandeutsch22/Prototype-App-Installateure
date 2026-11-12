@@ -1,5 +1,8 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import KnopfLink from '@/components/KnopfLink';
+import { einsaetzeDerBaustelle } from '@/lib/db/assignments';
+import type { Assignment } from '@/types';
+import { akteHauptaktion } from './akteHauptaktion';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { useUngespeichertWarnung } from '@/lib/ungespeichert';
@@ -19,7 +22,7 @@ import { euro } from '@/lib/betrag';
 import { canAccess } from '@/app/navigation';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import { liegenschaftZeile } from '@/features/liegenschaften/liegenschaftText';
-import { canInvoice, isGF } from '@/lib/permissions';
+import { canInvoice, canWriteWorkSheet, isGF } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
 import BaustelleNachrichten from '@/features/nachrichten/BaustelleNachrichten';
 import type { Project, AppUser, Quote } from '@/types';
@@ -185,6 +188,25 @@ export default function BaustellenakteView() {
   }, [companyId, darfAendern, belegschaftMerken]);
 
   const daten = baustelle.zustand === 'bereit' ? baustelle.daten : null;
+
+  /*
+    DIE EINSÄTZE DER BAUSTELLE (E83): ob dort schon jemand eingeteilt war
+    oder kommt — davon hängt die Hauptaktion ab (`akteHauptaktion`). Nach der
+    Nummer gesucht, wie die Planung sie führt; neu geholt, wenn sie sich
+    ändert. `null` heißt: noch nicht da oder nicht geladen.
+  */
+  const nummerFuerEinsaetze = einsatzAn ? daten?.projectNumber : undefined;
+  const [einsatzStand, setEinsatzStand] = useState<{
+    nummer: string; kommend: WithId<Assignment>[]; vorher: WithId<Assignment>[];
+  } | 'fehler' | null>(null);
+  useEffect(() => {
+    if (!companyId || !nummerFuerEinsaetze) return;
+    let weg = false;
+    einsaetzeDerBaustelle(companyId, nummerFuerEinsaetze, todayStr())
+      .then((r) => { if (!weg) setEinsatzStand({ nummer: nummerFuerEinsaetze, ...r }); })
+      .catch(() => { if (!weg) setEinsatzStand('fehler'); });
+    return () => { weg = true; };
+  }, [companyId, nummerFuerEinsaetze, versuch]);
 
   /*
     DAS ANGEBOT, AUS DEM DIE BAUSTELLE ENTSTAND. Gemeldet: in der Beschreibung
@@ -505,6 +527,19 @@ export default function BaustellenakteView() {
     </div>
   ) : null;
 
+  const einsaetzeBekannt = einsatzStand && einsatzStand !== 'fehler' && einsatzStand.nummer === b.projectNumber ? einsatzStand : null;
+  const darfRechnen = !!user && canInvoice(user.role) && canAccess(user.role, '/invoices', company?.modules);
+  const hauptaktion = akteHauptaktion({
+    darfPlanen: !!user && einsatzAn && canAccess(user.role, '/assignments', company?.modules),
+    darfRechnen,
+    darfSchein: scheineSichtbar && !!user && canWriteWorkSheet(user.role),
+    hatEinsatz: einsaetzeBekannt ? einsaetzeBekannt.kommend.length + einsaetzeBekannt.vorher.length > 0 : null,
+    // Die Verrechnung kennt die Akte nur für Rollen, die sie sehen dürfen — genau die, die abrechnen.
+    offeneScheine: darfRechnen && scheinStand.scheine
+      ? scheinStand.scheine.filter((s) => s.status === 'Unterschrieben' && !scheinStand.verrechnet.has(s.id)).length
+      : null,
+    abgeschlossen: b.status === 'Abgeschlossen',
+  });
   return (
     <div className="akten-seite">
       {warnung}
@@ -533,9 +568,12 @@ export default function BaustellenakteView() {
         </MetricRow>}
         title={baustellenTitel(b)}
         kontakt={<><TelefonLink nummer={b.contactPhone} name={b.contactName} /><a className="link-weiter akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a></>}
-        action={(scheineSichtbar || darfAendern) && <div className="akten-aktionen">
-          {scheineSichtbar && <KnopfLink to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}>Schein schreiben</KnopfLink>}
-          {darfAendern && <Button variant={scheineSichtbar ? 'secondary' : 'primary'} onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
+        action={(hauptaktion || darfAendern) && <div className="akten-aktionen">
+          {/* Eine Hauptaktion je Seite; sie folgt dem Stand (E83). „Schein schreiben“ bleibt in der Karte der Scheine. */}
+          {hauptaktion === 'planen' && <KnopfLink to="/assignments/tag" state={{ datum: todayStr(), projectNumber: b.projectNumber }}>Einsatz planen</KnopfLink>}
+          {hauptaktion === 'rechnung' && <KnopfLink to={`/invoices?neu=${encodeURIComponent(b.projectNumber)}`}>Rechnung stellen</KnopfLink>}
+          {hauptaktion === 'schein' && <KnopfLink to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}>Schein schreiben</KnopfLink>}
+          {darfAendern && <Button variant={hauptaktion ? 'secondary' : 'primary'} onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
         </div>}
       />
 

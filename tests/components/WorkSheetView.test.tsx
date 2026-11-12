@@ -186,6 +186,12 @@ const authWert = {
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
+/* Der laufende Arbeitstag (E83) — ab Werk keiner. */
+let laufenderTag: { stand: string; segmente: { art: string; baustelle?: string; von: string }[] } | undefined;
+vi.mock('@/features/time/zeitsitzungStand', () => ({
+  useZeitsitzung: () => ({ laeuft: laufenderTag }),
+}));
+
 const { default: WorkSheetView } = await import('@/features/worksheets/WorkSheetView');
 
 /** Beide Unterschriften setzen — der Doppelgänger oben macht daraus einen Klick. */
@@ -206,6 +212,7 @@ function zeichne(adresse = '/worksheet') {
 }
 
 beforeEach(() => {
+  laufenderTag = undefined;
   listAssignmentsForUserInRange.mockClear().mockResolvedValue(einsaetze);
   listProjectsByNumbers.mockClear().mockResolvedValue(projekte);
   listActiveProjects.mockClear().mockResolvedValue(projekte);
@@ -263,6 +270,72 @@ describe('Handwerksschein', () => {
     // Eine falsche Vorauswahl wäre schlimmer als gar keine: der Schein liefe
     // auf die falsche Baustelle und würde dort unterschrieben.
     const feld = screen.getByLabelText<HTMLSelectElement>('Baustelle');
+    expect(feld.value).toBe('');
+  });
+
+  /*
+    DIE EINE REGEL (B3, E83): laufender Arbeitstag, sonst Einsatz — bei
+    mehreren der zuletzt benutzte unter ihnen —, sonst zuletzt benutzt.
+  */
+  const ZWEITE = { ...projekte[0], id: 'p2', projectNumber: 'B-002', customerName: 'Gemeinde Neudorf' };
+
+  it('bei zwei Einsätzen der zuletzt benutzte unter ihnen', async () => {
+    localStorage.setItem('senklot:zuletzt-baustelle:perl:m1', 'B-002');
+    listAssignmentsForUserInRange.mockResolvedValue([...einsaetze, { ...einsaetze[0], id: 'a2', projectNumber: 'B-002' }]);
+    listProjectsByNumbers.mockResolvedValue([...projekte, ZWEITE]);
+    listActiveProjects.mockResolvedValue([...projekte, ZWEITE]);
+    try {
+      zeichne();
+      const feld = await screen.findByLabelText<HTMLSelectElement>('Baustelle');
+      await waitFor(() => expect(feld.value).toBe('B-002'));
+      expect(screen.getByText('Vorbelegt nach deinem Einsatz.')).toBeInTheDocument();
+    } finally {
+      listActiveProjects.mockResolvedValue(projekte);
+    }
+  });
+
+  it('ohne Einsatz an dem Tag die zuletzt benutzte Baustelle', async () => {
+    localStorage.setItem('senklot:zuletzt-baustelle:perl:m1', 'B-001');
+    listAssignmentsForUserInRange.mockResolvedValue([]);
+    zeichne();
+    const feld = await screen.findByLabelText<HTMLSelectElement>('Baustelle');
+    await waitFor(() => expect(feld.value).toBe('B-001'));
+    expect(screen.getByText('Vorbelegt: zuletzt benutzt.')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: eine inzwischen abgeschlossene zuletzt benutzte wird nicht vorbelegt', async () => {
+    localStorage.setItem('senklot:zuletzt-baustelle:perl:m1', 'B-001');
+    listAssignmentsForUserInRange.mockResolvedValue([]);
+    listProjectsByNumbers.mockResolvedValue([{ ...projekte[0], status: 'Abgeschlossen' }]);
+    zeichne();
+    const feld = await screen.findByLabelText<HTMLSelectElement>('Baustelle');
+    await waitFor(() => expect(listProjectsByNumbers).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 30));
+    expect(feld.value).toBe('');
+    expect(screen.queryByText(/^Vorbelegt/)).toBeNull();
+  });
+
+  it('der laufende Arbeitstag geht vor dem Einsatz', async () => {
+    laufenderTag = { stand: 'laeuft', segmente: [{ art: 'arbeit', baustelle: 'B-002', von: `${heute}T07:00:00Z` }] };
+    listProjectsByNumbers.mockResolvedValue([...projekte, ZWEITE]);
+    listActiveProjects.mockResolvedValue([...projekte, ZWEITE]);
+    try {
+      zeichne();
+      const feld = await screen.findByLabelText<HTMLSelectElement>('Baustelle');
+      await waitFor(() => expect(feld.value).toBe('B-002'));
+      expect(screen.getByText('Vorbelegt vom laufenden Arbeitstag.')).toBeInTheDocument();
+    } finally {
+      listActiveProjects.mockResolvedValue(projekte);
+    }
+  });
+
+  it('Gegenprobe: für einen anderen Tag zählt der laufende Arbeitstag nicht', async () => {
+    laufenderTag = { stand: 'laeuft', segmente: [{ art: 'arbeit', baustelle: 'B-002', von: `${heute}T07:00:00Z` }] };
+    listAssignmentsForUserInRange.mockResolvedValue([]);
+    zeichne('/worksheet?datum=2026-01-05');
+    const feld = await screen.findByLabelText<HTMLSelectElement>('Baustelle');
+    await waitFor(() => expect(listAssignmentsForUserInRange).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 30));
     expect(feld.value).toBe('');
   });
 

@@ -99,3 +99,8 @@ export function baustellenEinsatzlage(companyId: string, von: string, heute: str
 export function listEinsatztageInRange(companyId: string, from: string, to: string, max = 3000) {
   return pg.listEinsatztageInRange(companyId, from, to, max);
 }
+
+/** Die nächsten und die letzten Einsätze einer Baustelle — siehe `pg.einsaetzeDerBaustelle`. */
+export function einsaetzeDerBaustelle(companyId: string, projectNumber: string, heute: string, je = 20) {
+  return pg.einsaetzeDerBaustelle(companyId, projectNumber, heute, je);
+}

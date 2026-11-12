@@ -23,6 +23,7 @@ import { localDateStr, tageWort, todayStr } from '@/lib/time';
 import Card from '@/components/Card';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { EinsatzKnoepfe, EinsatzKontakt } from './Einsatzaktionen';
+import { canAccess, zusatzrechte } from '@/app/navigation';
 import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
@@ -69,6 +70,16 @@ function fmtDay(iso: string): string {
  */
 export default function MyScheduleView() {
   const { user, company, einblick } = useAuth();
+  // Material und Nachricht am Einsatz (E83): dieselbe Prüfung wie die Navigation.
+  const wege = (() => {
+    if (!user) return { material: false, nachricht: false };
+    const zusatz = zusatzrechte(user, company);
+    return {
+      material: canAccess(user.role, '/material', company?.modules, zusatz),
+      // Im Einblick des Supports kein Thread — wie in der Baustellenakte.
+      nachricht: !einblick && canAccess(user.role, '/nachrichten', company?.modules, zusatz),
+    };
+  })();
   // Querverweise nur zeigen, wenn ihr Ziel ueberhaupt existiert — ein Link in
   // die Meldung „ist ausgeschaltet" ist eine Sackgasse.
   const zeitAn = useModul('zeiterfassung');
@@ -562,7 +573,7 @@ export default function MyScheduleView() {
                           schein={scheineAn}
                           className="mt-3"
                         />
-                        <EinsatzKontakt adresse={proj?.address} nummer={proj?.contactPhone} name={proj?.contactName} className="mt-1" />
+                        <EinsatzKontakt adresse={proj?.address} nummer={proj?.contactPhone} name={proj?.contactName} projectNumber={a.projectNumber} projectId={proj?.id} wege={wege} className="mt-1" />
                       </div>
                     );
                   })}

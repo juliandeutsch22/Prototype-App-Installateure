@@ -149,6 +149,20 @@ vi.mock('@/lib/db/auftragseingaenge', () => ({
   getEingangZu: (c: string, z: { projectId: string }) => getEingangZu(c, z),
 }));
 
+/*
+  DIE EINSÄTZE DER BAUSTELLE (E83). Ab Werk war schon jemand dort — sonst
+  hieße die Hauptaktion „Einsatz planen“, und jeder Test, der „Schein
+  schreiben“ erwartet, prüfte etwas anderes.
+*/
+const EINSATZ = { id: 'a1', companyId: 'perl', projectNumber: '2026-101', userId: 'm1', date: '2026-10-05' };
+let einsaetze: { kommend: typeof EINSATZ[]; vorher: typeof EINSATZ[] } | 'fehler' = { kommend: [], vorher: [EINSATZ] };
+vi.mock('@/lib/db/assignments', () => ({
+  einsaetzeDerBaustelle: vi.fn(async () => {
+    if (einsaetze === 'fehler') throw new Error('nicht geladen');
+    return einsaetze;
+  }),
+}));
+
 /* Der Thread der Baustelle (M10/B09): noch keine Nachricht. */
 vi.mock('@/lib/db/nachrichten', () => ({
   baustelleStand: vi.fn(async () => ({ kanal: null, anzahl: 0, zuletzt: null, ungelesen: 0, folgt: false })),
@@ -207,6 +221,7 @@ function angabe(wort: string) {
 
 beforeEach(() => {
   baustellen = [BAUSTELLE];
+  einsaetze = { kommend: [], vorher: [EINSATZ] };
   belegschaft = BELEGSCHAFT;
   nebenladenScheitert = false;
   belegschaftWarten = null;
@@ -580,6 +595,50 @@ describe('Was die Akte sonst noch zeigt', () => {
       'href',
       '/worksheet?projekt=2026-101',
     );
+  });
+
+  /*
+    DIE HAUPTAKTION FOLGT DEM STAND (B5, E83): ohne Einsatz „Einsatz
+    planen“, mit unterschriebenen Scheinen ohne Rechnung „Rechnung stellen“,
+    sonst „Schein schreiben“ wie bisher.
+  */
+  it('ohne Einsatz heißt die Hauptaktion „Einsatz planen“', async () => {
+    einsaetze = { kommend: [], vorher: [] };
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Einsatz planen' })).toHaveAttribute('href', '/assignments/tag');
+    expect(screen.queryByRole('link', { name: 'Schein schreiben' })).not.toBeInTheDocument();
+  });
+
+  it('mit unterschriebenem Schein ohne Rechnung heißt sie „Rechnung stellen“', async () => {
+    scheine = [SCHEIN('s1')];
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Rechnung stellen' })).toHaveAttribute('href', '/invoices?neu=2026-101');
+    expect(screen.queryByRole('link', { name: 'Schein schreiben' })).not.toBeInTheDocument();
+  });
+
+  it('Gegenprobe: alles verrechnet, Einsatz da — wieder „Schein schreiben“', async () => {
+    scheine = [SCHEIN('s1')];
+    aufRechnung = ['s1'];
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Schein schreiben' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Rechnung stellen|Einsatz planen/ })).not.toBeInTheDocument();
+  });
+
+  it('Gegenprobe: kamen die Einsätze nicht, ruft die Akte nicht „Einsatz planen“', async () => {
+    einsaetze = 'fehler';
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Schein schreiben' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Einsatz planen' })).not.toBeInTheDocument();
+  });
+
+  it('Gegenprobe: wer nicht abrechnen darf, bekommt „Rechnung stellen“ nicht', async () => {
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+    scheine = [SCHEIN('s1')];
+    zeige();
+    await screen.findByRole('heading', { name: 'Hausverwaltung Nord' });
+    await waitFor(() => expect(listWorkSheetsForProject).toHaveBeenCalled());
+    expect(screen.queryByRole('link', { name: 'Rechnung stellen' })).not.toBeInTheDocument();
   });
 
   it('zeigt den Schein-Verweis nicht, wenn das Modul aus ist', async () => {
