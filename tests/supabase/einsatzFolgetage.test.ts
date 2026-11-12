@@ -30,7 +30,7 @@ const zeilen = () => [
   { user_id: kollegin.uid, user_name: 'Erna Kollegin', as_helper: true, comment: 'Bad', created_by: planer.uid, zeit_von: '07:00', zeit_bis: '15:30' },
 ];
 
-const folgetage = (k: Konto, von: string, bis: string, nurWerktage = true, z = zeilen()) =>
+const folgetage = (k: Konto, von: string, bis: string, nurWerktage = true, z: Record<string, unknown>[] = zeilen()) =>
   k.client.rpc('einsatz_folgetage', { p_von: von, p_bis: bis, p_baustelle: BAU, p_zeilen: z, p_nur_werktage: nurWerktage });
 
 async function plan(datum: string) {
