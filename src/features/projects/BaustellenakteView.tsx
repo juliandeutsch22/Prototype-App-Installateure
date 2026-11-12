@@ -56,6 +56,7 @@ import { fmtStunden, todayStr } from '@/lib/time';
 import ZahlFeld from '@/components/ZahlFeld';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
+import { auftragsumfangZeigen } from './auftragsumfang';
 
 /**
  * Die Akte einer Baustelle — und die Stelle, an der sie bearbeitet wird.
@@ -407,7 +408,7 @@ export default function BaustellenakteView() {
   const auftrag = (
     <Card title="Auftrag" id="b-ueberblick">
       <AktenAngaben>
-        <AktenAngabe wort="Auftragsumfang" breit><span className="whitespace-pre-line">{b.description?.trim() || 'nicht hinterlegt'}</span></AktenAngabe>
+        <AktenAngabe wort="Auftragsumfang" breit><span className="whitespace-pre-line">{auftragsumfangZeigen(b.description, ausEingang?.nummer ?? null) || 'nicht hinterlegt'}</span></AktenAngabe>
         {/* Abrechnung, Beginn und Ende stehen seit der Planlinie im Schriftfeld des Aktenkopfs. */}
         <AktenAngabe wort="Stundenbudget">{b.estimatedHours ? `${fmtStunden(b.estimatedHours)} h` : 'nicht festgelegt'}</AktenAngabe>
       </AktenAngaben>

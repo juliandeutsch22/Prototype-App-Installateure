@@ -17,11 +17,19 @@ export default function Aktionsleiste({
   summe,
   links,
   rechts,
+  linksSymbol = false,
   erstNachDemRollen = false,
 }: {
   summe?: { name: ReactNode; wert: ReactNode };
   links?: ReactNode;
   rechts: ReactNode;
+  /**
+   * `links` ist ein Symbolknopf (E82): seine Spalte ist so breit wie er, der
+   * Hauptknopf bekommt den Rest. Ohne den Schalter bleibt es bei 2 : 3, damit
+   * ein Knopf, dessen linker Nachbar zwischen Text und Platzhalter wechselt,
+   * nicht in der Breite springt.
+   */
+  linksSymbol?: boolean;
   /**
    * ERST KLEBEN, WENN MAN INS FORMULAR GEROLLT IST (Runde 3, G22). Die
    * Zeiterfassung steht am Handy unter Saldo und Hinweisen; beim Öffnen lag
@@ -76,7 +84,7 @@ export default function Aktionsleiste({
           <b>{summe.wert}</b>
         </p>
       )}
-      <div className="aktionsleiste-knoepfe">
+      <div className={linksSymbol ? 'aktionsleiste-knoepfe aktionsleiste-knoepfe-symbol' : 'aktionsleiste-knoepfe'}>
         {links}
         {rechts}
       </div>

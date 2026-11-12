@@ -667,6 +667,35 @@ describe('Der Eingang hinter der Baustelle (M02b)', () => {
     expect(getEingangZu).toHaveBeenCalledWith('perl', { projectId: BAUSTELLE.id });
   });
 
+  /*
+    E82 (A5): Die Datenbank hängt „Aus Eingang EG-…“ an die Beschreibung;
+    in der Akte stand es dadurch zweimal untereinander.
+  */
+  it('nennt den Eingang einmal — als Verweis, nicht noch im Auftragsumfang', async () => {
+    ausEingang = { id: 'e1', nummer: 'EG-2026-0003' };
+    baustellen = [{ ...BAUSTELLE, description: 'Therme tropft\n\nAus Eingang EG-2026-0003' }];
+    try {
+      zeige();
+      await screen.findByRole('link', { name: 'Aus Eingang EG-2026-0003' });
+      expect(screen.getByText('Therme tropft')).toBeInTheDocument();
+      expect(screen.getAllByText(/Aus Eingang EG-2026-0003/)).toHaveLength(1);
+    } finally {
+      baustellen = [BAUSTELLE];
+    }
+  });
+
+  it('Gegenprobe: ohne gefundenen Eingang bleibt der Satz im Auftragsumfang stehen', async () => {
+    baustellen = [{ ...BAUSTELLE, description: 'Therme tropft\n\nAus Eingang EG-2026-0003' }];
+    try {
+      zeige();
+      await waitFor(() => expect(getEingangZu).toHaveBeenCalled());
+      expect(await screen.findByText(/Therme tropft\s+Aus Eingang EG-2026-0003/)).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /Aus Eingang/ })).toBeNull();
+    } finally {
+      baustellen = [BAUSTELLE];
+    }
+  });
+
   it('Gegenprobe: ohne Eingang kein Verweis; mit abgeschaltetem Auftragseingang keine Suche', async () => {
     const v = zeige();
     await screen.findByText('Stundenauswertung');

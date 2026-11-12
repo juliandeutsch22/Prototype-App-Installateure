@@ -3304,3 +3304,47 @@ Entschieden:
 - Browserweg `rechnungStellen.spec.ts` (+1): eine Zeile für Schein und
   Stunden, nach der Rechnung steht der Schein in der Abdeckung und nichts
   mehr offen, auch nach dem Neuladen. Gegenprobe gegen den Stand davor: rot.
+
+**E82 — Handy-Fehler: abgeschnittener Abschluss, gestauchte Symbole, drei Texte; was „Abgeholt“ bei „Offen“ bucht (12.11.2026).**
+Paket 2 des Gesamtplans vom 12.11.2026 (Befunde A3, A4, A5 und die Prüfung
+aus C7).
+
+Entschieden:
+- **A3: „Zurück“ ist in der Schrittfolge des Scheins ein Pfeil.** Im letzten
+  Schritt stand bei 390 px „schreiben und abschli“: der Text braucht 207 px,
+  bei 2 : 3 blieben neben dem Wort „Zurück“ 168 px. Der Pfeil nennt in
+  Vorlesehilfe und Hinweis den Schritt („Zurück: Fotos“). Die Leiste kennt
+  dafür `linksSymbol` (Symbolspalte fest, Hauptknopf den Rest); die Akten
+  behalten 2 : 3, weil dort links Text und Platzhalter wechseln. Dazu bricht
+  ein Knopf der Aktionsleiste, wenn er gar nicht anders kann, zwischen zwei
+  Wörtern um statt abgeschnitten zu werden; in einem Wort nie (das alte
+  „Abbreche|n“ kam vom seitenweiten `overflow-wrap: anywhere`, das dort
+  jetzt aus ist).
+- **A4: Die Symbole der Karte „Arbeitstag“ behalten 16 px**, nur der Name
+  der Baustelle kürzt — vor dem Start und im laufenden Zustand.
+- **A5:** Die Scheinliste sagt bei einem Schein „über den einen geladenen
+  Schein“. Unter „Dein Einsatz heute“ steht „Sonst ist nichts offen.“ statt
+  „Heute liegt nichts an.“ (ohne Einsatz bleibt der alte Satz). In der
+  Baustellenakte steht „Aus Eingang EG-…“ nur noch als Verweis: den Anhang,
+  den die Datenbank an die Beschreibung hängt, lässt die Akte in der Anzeige
+  weg — nur genau diesen, am Ende, in eigener Zeile, und nur, wenn der
+  Verweis auch gezeigt wird. Gespeichert bleibt der Text, wie er ist.
+- **C7 geprüft, kein Fehler:** „Abgeholt“ bei „Offen“ (`anforderung_abschliessen`)
+  bucht für einen Katalogartikel genau einen Abgang über die Menge mit Bezug
+  zur Anforderung; liegt weniger im Regal, bleibt der Bestand bei 0 und die
+  Abholung scheitert nicht; Freitext bucht nichts; bestellt und nicht
+  geliefert bucht Eingang und Abgang (Bestand gleich); doppelt abgeholt
+  bucht einmal. Die Rückfrage, solange das Büro nichts bereitgestellt hat,
+  kommt mit Paket 8 — dort auch die Frage, ob die Ware aus dem Lager kam
+  oder beim Händler mitgenommen wurde: heute zieht „Abgeholt“ bei „Offen“
+  einen Katalogartikel immer vom Lager ab, und der Dialog sagt das.
+
+**Grenze mit Grund:** keine. **Nachweis:**
+- `abgeholtBeiOffen.test.ts` (Datenbank, 5): hält die Buchungen aus C7 fest.
+- `auftragsumfang.test.ts` (Module, 5); `DashboardView.test.tsx` (+2),
+  `BaustellenakteView.test.tsx` (+2), `WorkSheetsListView.test.tsx` und
+  `WorkSheetView.test.tsx` angepasst (Einzahl, Pfeil mit Schrittnamen).
+  Gegenprobe gegen den Stand davor: 4 rot, die Erhaltungsprüfungen grün.
+- Browser: `scheinUnterschreiben.spec.ts` prüft bei 390 px, dass kein Knopf
+  der Aktionsleiste abgeschnitten ist; `arbeitstag.spec.ts` (+1) misst die
+  Symbole bei langem Namen. Gegenprobe gegen den Stand davor: rot.

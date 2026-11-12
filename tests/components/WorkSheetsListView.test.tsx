@@ -906,7 +906,8 @@ describe('Stunden ohne Buchung', () => {
     const satz = await screen.findByText('Zu jeder Stunde auf den geprüften Scheinen gibt es eine Buchung in der Zeiterfassung.');
     const kopf = satz.closest('.ohne-buchung-kopf') as HTMLElement;
     expect(kopf).not.toBeNull();
-    expect(kopf).toHaveTextContent(/geladenen Scheine dieser Liste/);
+    // Ein Schein geladen: Einzahl (E82) — vorher „über die 1 geladenen Scheine“.
+    expect(kopf).toHaveTextContent('Geprüft über den einen geladenen Schein dieser Liste.');
     expect(within(kopf.querySelector('.ohne-buchung-weiter') as HTMLElement).getAllByRole('button').map((b) => b.textContent))
       .toEqual(['30 Tage', '90 Tage', '1 Jahr']);
     const karte = kopf.closest('section') as HTMLElement;
@@ -978,7 +979,9 @@ describe('Stunden ohne Buchung', () => {
     const nutzer = userEvent.setup();
     zeichne();
 
-    expect(await screen.findByText(/geladenen Scheine dieser Liste/)).toBeInTheDocument();
+    // Gegenprobe zur Einzahl: mehrere Scheine, Mehrzahl mit Zahl.
+    expect(await screen.findByText(`Geprüft über die ${scheine.length} geladenen Scheine dieser Liste.`)).toBeInTheDocument();
+    expect(scheine.length).toBeGreaterThan(1);
     await nutzer.click(screen.getByRole('button', { name: '30 Tage' }));
     expect(await screen.findByText(/über die letzten 30 Tage/)).toBeInTheDocument();
   });

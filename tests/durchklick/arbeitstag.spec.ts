@@ -104,3 +104,34 @@ test('Arbeitstag: Start auf der Startseite, Leiste unterwegs, Pause, Feierabend,
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await keineFehlermeldung(page);
 });
+
+/*
+  LANGE BAUSTELLENNAMEN STAUCHEN DIE SYMBOLE NICHT (E82). Bei einem langen
+  Namen wurden Gebäude und Pfeil von 16 auf 5,8 px gedrückt — vor dem Start
+  wie im laufenden Zustand. Der Name wird im Browser verlängert: geprüft wird
+  die Aufteilung der Zeile, nicht ein bestimmter Datenbestand.
+*/
+test('Arbeitstag: bei langem Baustellennamen bleiben die Symbole 16 px, nur der Name kürzt', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await anmelden(page, MONTEUR.email);
+  const karte = page.getByRole('region', { name: 'Arbeitstag' });
+  const zeile = karte.locator('.arbeitstag-baustelle');
+  const messen = () => zeile.evaluate((knopf) => {
+    const name = knopf.querySelector('.arbeitstag-baustelle-name')!;
+    name.textContent = 'Wohnhausanlage Leopoldauer Straße 147–151, Stiege 3, Generalsanierung Heizung und Sanitär';
+    return {
+      symbole: [...knopf.querySelectorAll('svg')].map((s) => Math.round(s.getBoundingClientRect().width)),
+      gekuerzt: name.scrollWidth > name.clientWidth,
+      passt: knopf.getBoundingClientRect().right <= knopf.closest('.arbeitstag')!.getBoundingClientRect().right,
+    };
+  });
+
+  await expect(zeile).toBeVisible({ timeout: 15_000 });
+  expect(await messen()).toEqual({ symbole: [16, 16], gekuerzt: true, passt: true });
+
+  await karte.getByRole('button', { name: 'Arbeitstag starten', exact: true }).click();
+  await expect(karte.getByText(/^Läuft seit \d\d:\d\d$/)).toBeVisible({ timeout: 15_000 });
+  await expect(zeile).toBeVisible();
+  expect(await messen()).toEqual({ symbole: [16, 16], gekuerzt: true, passt: true });
+  await keineFehlermeldung(page);
+});

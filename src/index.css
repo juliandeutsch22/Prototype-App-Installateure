@@ -1087,8 +1087,23 @@ textarea {
   */
   .aktionsleiste-knoepfe { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 0.5rem; }
   .aktionsleiste-knoepfe > :only-child { grid-column: 1 / -1; }
-  /* „Abbrechen“ brach bei 390 px als „Abbreche|n“ um; ein Knopf trägt ein Wort. */
-  .aktionsleiste-knoepfe > * { white-space: nowrap; }
+  /*
+    LINKS NUR EIN SYMBOL (E82, 12.11.2026): in der Schrittfolge des Scheins
+    ist der Nebenknopf „Zurück“ ein Pfeil. „Unterschreiben und abschließen“
+    braucht 207 px Text; bei 2 : 3 blieben ihm am Handy 168 px, und es stand
+    „schreiben und abschli“ da. Mit fester Symbolspalte bekommt der
+    Hauptknopf den Rest. Nur dort gesetzt: die Akten wechseln links zwischen
+    Text und Platzhalter, ihr Speichern-Knopf soll dabei nicht springen.
+  */
+  .aktionsleiste-knoepfe-symbol { grid-template-columns: auto minmax(0, 1fr); }
+  /*
+    KEIN KNOPF WIRD ABGESCHNITTEN (E82). Vorher galt `nowrap`, weil
+    „Abbrechen“ bei 390 px als „Abbreche|n“ umbrach — das kam vom
+    seitenweiten `overflow-wrap: anywhere`, nicht vom Umbruch an sich. Jetzt
+    bricht ein Knopf, wenn er gar nicht anders kann, zwischen zwei Wörtern um
+    und nie in einem Wort; abgeschnitten wird nichts mehr.
+  */
+  .aktionsleiste-knoepfe > * { white-space: normal; overflow-wrap: normal; word-break: normal; hyphens: manual; -webkit-hyphens: manual; text-wrap: balance; text-align: center; }
   .karte-koerper .aktionsleiste { margin: 1rem -1rem -1rem; padding-inline: 1rem; }
   .aktionsleiste-frei { position: static; }
   @media (min-width: 1200px) {

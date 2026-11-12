@@ -402,6 +402,18 @@ export default function DashboardView() {
                   <h2>Aus den geladenen Bereichen steht nichts an.</h2>
                   <p>Nicht alles kam an — der Hinweis unten nennt, was fehlt. Ob dort etwas ansteht, zeigt erst ein neuer Versuch.</p>
                 </section>
+              ) : monteurMitEinsatz ? (
+                /*
+                  UNTER DEM EINSATZ HEISST „LEER“ NICHT „NICHTS ZU TUN“ (E82).
+                  Direkt unter „Dein Einsatz heute“ stand „Heute liegt nichts
+                  an.“ — und widersprach dem Einsatz darüber. Gemeint ist: außer
+                  dem Einsatz ist nichts offen.
+                */
+                <section className="start-leer" aria-label="Sonst ist nichts offen">
+                  <LotZeichnung motiv="fertig" art="leer" />
+                  <h2>Sonst ist nichts offen.</h2>
+                  <p>{leerText(rolle)}</p>
+                </section>
               ) : (
                 <section className="start-leer" aria-label="Heute liegt nichts an">
                   <LotZeichnung motiv="fertig" art="leer" />
