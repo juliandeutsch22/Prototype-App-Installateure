@@ -65,6 +65,8 @@ import { mahnlauf } from './mahnlauf';
 import {
   unverrechneteScheine,
   unverrechneteStundenZeilen,
+  inAbgerechnetemZeitraum,
+  nichtVerrechnetJeBaustelle,
   auffaellige,
   AUFFAELLIG_AB_TAGEN,
   UNVERRECHNET_BASIS,
@@ -1648,7 +1650,16 @@ export default function InvoicesView() {
       // Was auf einer bestehenden Rechnung steht, kommt nicht noch einmal.
       // Ein STORNIERTER Beleg zaehlt dabei nicht — sein Material ist wieder
       // offen.
-      const bereitsVerrechnet = verrechneteScheine(derBaustelle);
+      /*
+        Dazu die Scheine ohne Material, deren Tag eine gültige Rechnung schon
+        abgerechnet hat (A1, 12.11.2026): bis dahin verknüpfte die Rechnung
+        sie nicht. Ohne diese Regel kämen sie auf die nächste Rechnung und
+        zögen deren Leistungszeitraum in einen schon abgerechneten zurück.
+      */
+      const bereitsVerrechnet = new Set([
+        ...verrechneteScheine(derBaustelle),
+        ...inAbgerechnetemZeitraum(scheine, derBaustelle),
+      ]);
       const ausWartung = wartungsVorschlaege(wartungen, derBaustelle, projectNumber);
       /*
         DER STICHTAG GILT NUR BEI REGIE. Pauschale und Einheitspreis rechnen
@@ -2449,14 +2460,20 @@ export default function InvoicesView() {
     nirgends zu sehen. Jetzt steht hier dieselbe Menge; was über vier Wochen
     alt ist, trägt den Achtung-Zustand wie auf der Startseite.
   */
+  /*
+    EINE ZEILE JE BAUSTELLE (A2, 12.11.2026): Schein und Stunden derselben
+    Baustelle standen als zwei Zeilen da, mit demselben Knopf, und der Titel
+    zählte dieselbe Arbeit doppelt. Verrechnet wird eine Baustelle — sie
+    steht einmal da, mit allem, was offen ist (`nichtVerrechnetJeBaustelle`).
+  */
   const nichtVerrechnet = useMemo(() => {
     const scheine = !forderungenFehler && !abdeckungFehler && scheineVerrechnet !== null
-      ? offeneLeistung.map((z) => ({ art: 'schein' as const, ...z }))
+      ? offeneLeistung
       : [];
     const stunden = istAn(company?.modules, 'zeiterfassung') && offeneStunden
-      ? unverrechneteStundenZeilen(offeneStunden, todayStr()).map((z) => ({ art: 'stunden' as const, ...z }))
+      ? unverrechneteStundenZeilen(offeneStunden, todayStr())
       : [];
-    return [...scheine, ...stunden].sort((a, b) => b.tage - a.tage);
+    return nichtVerrechnetJeBaustelle(scheine, stunden);
   }, [forderungenFehler, abdeckungFehler, scheineVerrechnet, offeneLeistung, offeneStunden, company?.modules]);
 
   /**
@@ -3171,13 +3188,15 @@ export default function InvoicesView() {
         <Card
           title={`Nicht verrechnete Leistung (${nichtVerrechnet.length})`}
           hint={
-            'Unterschriebene Handwerksscheine, die auf keiner gültigen Rechnung stehen, und ' +
-            'Regiebaustellen mit gebuchten, noch nicht verrechneten Stunden — alle, älteste ' +
-            `zuerst; was älter als ${AUFFAELLIG_AB_TAGEN} Tage ist, trägt den Achtung-Zustand. ` +
-            'Dieselbe Menge zählt die Startseite. Bei den Stunden zählt der älteste ' +
-            'offene Tag; Pauschale und Einheitspreis rechnen nach dem Angebot ab und stehen hier ' +
-            'nicht. Wird eine Rechnung storniert, tauchen ihre Scheine und Stunden hier wieder ' +
-            'auf: der Storno nimmt die Forderung zurück, also steht die Leistung wieder offen.'
+            'Baustellen mit unterschriebenen Handwerksscheinen, die auf keiner gültigen Rechnung ' +
+            'stehen, oder mit gebuchten, noch nicht verrechneten Stunden (Regie) — je Baustelle ' +
+            'eine Zeile, älteste zuerst; was älter als ' +
+            `${AUFFAELLIG_AB_TAGEN} Tage ist, trägt den Achtung-Zustand. Gemessen wird am ältesten ` +
+            'offenen Beleg. Die Startseite zählt Scheine und Baustellen mit Stunden getrennt, ' +
+            'weil sie zu verschiedenen Seiten führen. Pauschale und Einheitspreis rechnen nach dem ' +
+            'Angebot ab; ihre Stunden stehen hier nicht. Wird eine Rechnung storniert, tauchen ' +
+            'ihre Scheine und Stunden hier wieder auf: der Storno nimmt die Forderung zurück, also ' +
+            'steht die Leistung wieder offen.'
           }
           buendig
         >
@@ -3191,37 +3210,37 @@ export default function InvoicesView() {
           })()}
           <GekuerzteListe
             eintraege={nichtVerrechnet}
-            zeile={(eintrag) => {
-              const nummer = eintrag.art === 'schein' ? eintrag.schein.projectNumber : eintrag.stunden.projectNumber;
+            zeile={(baustelle) => {
+              const nummer = baustelle.projectNumber;
+              const scheine = baustelle.scheine;
+              const scheinText = scheine.length === 0
+                ? null
+                : scheine.length === 1
+                  ? `Schein vom ${datumAT(scheine[0].datum)}`
+                  : `${scheine.length} Scheine seit ${datumAT(baustelle.aeltesterSchein ?? scheine[0].datum)}`;
+              const stundenText = baustelle.stunden
+                ? `${fmtDauer(baustelle.stunden.minuten)} gebucht seit ${datumAT(baustelle.stunden.aeltester)}`
+                : null;
+              // Stunden stehen hier nur für Regie (siehe oben); sonst gilt die Abrechnung des Scheins.
+              const abrechnung = scheine[0]?.abrechnung ?? 'Regie';
               return (
                 <ListRow
-                  key={eintrag.art === 'schein' ? eintrag.schein.id : `stunden-${nummer}`}
+                  key={`baustelle-${nummer}`}
                   title={
                     <>
-                      <span>
-                        {eintrag.art === 'schein'
-                          ? eintrag.schein.customerName
-                          : eintrag.stunden.kunde || `Baustelle ${nummer}`}
-                      </span>
-                      {eintrag.tage >= AUFFAELLIG_AB_TAGEN ? (
-                        <Warnung stufe={eintrag.tage >= 90 ? 'dringend' : 'achtung'}>{tageWort(eintrag.tage)}</Warnung>
+                      <span>{baustelle.kunde || `Baustelle ${nummer}`}</span>
+                      {baustelle.tage >= AUFFAELLIG_AB_TAGEN ? (
+                        <Warnung stufe={baustelle.tage >= 90 ? 'dringend' : 'achtung'}>{tageWort(baustelle.tage)}</Warnung>
                       ) : (
-                        <span className="text-sm text-ink-muted">{tageWort(eintrag.tage)}</span>
+                        <span className="text-sm text-ink-muted">{tageWort(baustelle.tage)}</span>
                       )}
                     </>
                   }
                   subtitle={
-                    eintrag.art === 'schein' ? (
-                      <span>
-                        Baustelle <span className="nr">{nummer}</span> · Leistung vom {datumAT(eintrag.schein.datum)} ·{' '}
-                        {eintrag.schein.abrechnung}
-                      </span>
-                    ) : (
-                      <span>
-                        Baustelle <span className="nr">{nummer}</span> · {fmtDauer(eintrag.stunden.minuten)} gebucht
-                        seit {datumAT(eintrag.stunden.aeltester)} · Regie
-                      </span>
-                    )
+                    <span>
+                      Baustelle <span className="nr">{nummer}</span>
+                      {[scheinText, stundenText, abrechnung].filter(Boolean).map((t) => ` · ${t}`).join('')}
+                    </span>
                   }
                 >
                   {/*

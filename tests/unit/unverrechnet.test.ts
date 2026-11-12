@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { pauschaleVerrechnetMit } from '@/features/invoices/pauschale';
 import {
+  inAbgerechnetemZeitraum,
+  nichtVerrechnetJeBaustelle,
   inVerrechneterPauschale,
   unverrechneteScheine,
   unverrechneteStundenZeilen,
@@ -212,5 +214,88 @@ describe('In der verrechneten Pauschale enthalten', () => {
       const hier = inVerrechneterPauschale([s('a', '2026-7')], [b('2026-7', 'Pauschal')], [rechnung]).length > 0;
       expect(hier, `${art} ${paymentStatus}`).toBe(vorschau);
     }
+  });
+});
+
+/*
+  SCHEINE OHNE MATERIAL IM ABGERECHNETEN ZEITRAUM (Gesamtanalyse 12.11.2026,
+  A1). Bis dahin verknüpfte eine Rechnung nur Scheine mit Material; ein
+  Schein nur mit Stunden galt danach für immer als „nicht verrechnet“.
+  Gegenprobe: ohne `inAbgerechnetemZeitraum` (Rückgabe []) sind die Fälle der
+  ersten Gruppe rot, die Erhaltung grün.
+*/
+describe('Im abgerechneten Zeitraum (A1)', () => {
+  const regie = (p: Partial<Invoice> = {}) => ({
+    projectNumber: '2026-001', paymentStatus: 'Offen' as Invoice['paymentStatus'], art: 'einzel' as Invoice['art'],
+    leistungVon: '2026-08-01', leistungBis: '2026-08-31', invoiceDate: '2026-09-02',
+    linkedEntries: ['t1'], linkedOrders: [], linkedWorkSheets: [], ...p,
+  });
+  const mitMaterial = (id: string, datum: string) =>
+    ({ ...schein(id, datum), material: [{ name: 'Eckventil', menge: 1 }] }) as WorkSheet & { id: string };
+
+  it('nennt einen Schein nur mit Stunden im Zeitraum einer Rechnung, die Belege verbraucht hat', () => {
+    expect(inAbgerechnetemZeitraum([schein('s1', '2026-08-15')], [regie()])).toEqual(['s1']);
+  });
+
+  it('der erste und der letzte Tag gehören dazu; ohne „Leistung bis“ gilt das Rechnungsdatum', () => {
+    expect(inAbgerechnetemZeitraum([schein('a', '2026-08-01'), schein('z', '2026-08-31')], [regie()])).toEqual(['a', 'z']);
+    expect(inAbgerechnetemZeitraum([schein('s', '2026-07-01')], [regie({ leistungVon: undefined, leistungBis: undefined })]))
+      .toEqual(['s']);
+  });
+
+  it('gleicht die Schreibweise der Nummer an (mit und ohne „PR-“)', () => {
+    expect(inAbgerechnetemZeitraum([{ ...schein('s1', '2026-08-15'), projectNumber: 'PR-2026-001' }], [regie()]))
+      .toEqual(['s1']);
+  });
+
+  it('Erhaltung: Material, außerhalb, andere Baustelle, Storno, Anzahlung, ohne Belege, Entwurf', () => {
+    const scheine = [
+      mitMaterial('mat', '2026-08-15'),
+      schein('nach', '2026-09-01'),
+      schein('vor', '2026-07-31'),
+      { ...schein('fremd', '2026-08-15'), projectNumber: '2026-002' },
+      schein('entwurf', '2026-08-15', 'Entwurf'),
+    ];
+    expect(inAbgerechnetemZeitraum(scheine, [regie()])).toEqual([]);
+    const s = [schein('s1', '2026-08-15')];
+    expect(inAbgerechnetemZeitraum(s, [regie({ paymentStatus: 'Storniert' })])).toEqual([]);
+    expect(inAbgerechnetemZeitraum(s, [regie({ art: 'anzahlung' })])).toEqual([]);
+    expect(inAbgerechnetemZeitraum(s, [regie({ linkedEntries: [] })])).toEqual([]);
+  });
+
+  it('eine Materialzeile ohne Menge oder Namen ist kein Material', () => {
+    const leer = { ...schein('s1', '2026-08-15'), material: [{ name: ' ', menge: 2 }, { name: 'Rohr', menge: 0 }] };
+    expect(inAbgerechnetemZeitraum([leer as WorkSheet & { id: string }], [regie()])).toEqual(['s1']);
+  });
+});
+
+/*
+  EINE ZEILE JE BAUSTELLE (A2): Schein und Stunden derselben Baustelle
+  standen doppelt da. Gegenprobe: mit zwei Zeilen je Baustelle (der alte
+  Weg) ist der erste Fall rot.
+*/
+describe('Nicht verrechnet je Baustelle (A2)', () => {
+  const std = (projectNumber: string, aeltester: string, kunde = 'Huber') =>
+    ({ stunden: { projectNumber, kunde, minuten: 510, aeltester }, tage: 0 });
+
+  it('führt Schein und Stunden derselben Baustelle als eine Zeile, gemessen am ältesten Beleg', () => {
+    const zeilen = nichtVerrechnetJeBaustelle(
+      [{ schein: schein('s1', '2026-09-01'), tage: 7 }, { schein: schein('s2', '2026-08-20'), tage: 19 }],
+      [{ ...std('PR-2026-001', '2026-08-01'), tage: 38 }],
+    );
+    expect(zeilen).toHaveLength(1);
+    expect(zeilen[0]).toMatchObject({ projectNumber: '2026-001', tage: 38, aeltesterSchein: '2026-08-20', kunde: 'Huber' });
+    expect(zeilen[0].scheine.map((s) => s.id)).toEqual(['s1', 's2']);
+    expect(zeilen[0].stunden?.minuten).toBe(510);
+  });
+
+  it('verschiedene Baustellen bleiben getrennt, älteste zuerst', () => {
+    const zeilen = nichtVerrechnetJeBaustelle(
+      [{ schein: schein('s1', '2026-09-01'), tage: 7 }],
+      [{ ...std('2026-009', '2026-07-01', 'Gruber'), tage: 69 }],
+    );
+    expect(zeilen.map((z) => [z.projectNumber, z.kunde, z.tage])).toEqual([['2026-009', 'Gruber', 69], ['2026-001', 'Huber', 7]]);
+    expect(zeilen[0].scheine).toEqual([]);
+    expect(zeilen[1].stunden).toBeNull();
   });
 });

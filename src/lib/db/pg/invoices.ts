@@ -19,7 +19,7 @@ import { objektAlsZeile } from './felder';
 import { oderUeberSpalten } from './suche';
 import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
-import { inVerrechneterPauschale } from '@/features/worksheets/unverrechnet';
+import { inAbgerechnetemZeitraum, inVerrechneterPauschale } from '@/features/worksheets/unverrechnet';
 
 const RECHNUNGEN = 'invoices';
 const POSITIONEN = 'invoice_lines';
@@ -475,25 +475,82 @@ export async function scheineAufRechnung(
   const gueltig = new Set(koepfe.filter((k) => k.paymentStatus !== 'Storniert').map((k) => k.id));
   const verrechnet = new Set(abdeckung.filter((a) => gueltig.has(a.invoiceId)).map((a) => a.zielId));
   const offen = ids.filter((id) => !verrechnet.has(id));
-  for (const id of await inPauschaleEnthalten(companyId, offen)) verrechnet.add(id);
+  if (offen.length === 0) return [...verrechnet];
+  const scheine = (await abfragen<Pick<WorkSheet, 'status' | 'projectNumber' | 'datum'>>('work_sheets', companyId, {
+    wo: [{ art: 'in', feld: 'id', werte: offen }],
+  })).filter((s) => s.status === 'Unterschrieben' && s.projectNumber);
+  if (scheine.length === 0) return [...verrechnet];
+  /*
+    DIE RECHNUNGEN DIESER BAUSTELLEN EINMAL — beide Regeln unten fragen
+    dieselben. Sie wachsen mit der Baustelle, nicht mit dem Betrieb.
+  */
+  const rechnungen = await abfragen<Pick<Invoice, 'projectNumber' | 'paymentStatus' | 'art' | 'leistungVon'
+    | 'leistungBis' | 'invoiceDate'>>(RECHNUNGEN, companyId, {
+    wo: [{ art: 'in', feld: 'projectNumber', werte: formenAller(scheine.map((s) => s.projectNumber)) }],
+  });
+  if (rechnungen.length === 0) return [...verrechnet];
+  const [inPauschale, imZeitraum] = await Promise.all([
+    inPauschaleEnthalten(companyId, scheine, rechnungen),
+    imAbgerechnetenZeitraum(companyId, scheine, rechnungen),
+  ]);
+  for (const id of [...inPauschale, ...imZeitraum]) verrechnet.add(id);
   return [...verrechnet];
 }
 
-/** Die Scheine unter `scheinIds`, die in einer verrechneten Pauschale stecken — siehe oben. */
-async function inPauschaleEnthalten(companyId: string, scheinIds: string[]): Promise<string[]> {
-  if (scheinIds.length === 0) return [];
-  const scheine = (await abfragen<Pick<WorkSheet, 'status' | 'projectNumber'>>('work_sheets', companyId, {
-    wo: [{ art: 'in', feld: 'id', werte: scheinIds }],
-  })).filter((s) => s.status === 'Unterschrieben' && s.projectNumber);
-  if (scheine.length === 0) return [];
+type OffenerSchein = WithId<Pick<WorkSheet, 'status' | 'projectNumber' | 'datum'>>;
+type BaustellenRechnung = WithId<Pick<Invoice, 'projectNumber' | 'paymentStatus' | 'art' | 'leistungVon'
+  | 'leistungBis' | 'invoiceDate'>>;
+
+/** Die Scheine, die in einer verrechneten Pauschale stecken — siehe oben. */
+async function inPauschaleEnthalten(
+  companyId: string,
+  scheine: OffenerSchein[],
+  rechnungen: BaustellenRechnung[],
+): Promise<string[]> {
   const baustellen = (await abfragen<Pick<Project, 'projectNumber' | 'billingMode'>>('projects', companyId, {
     wo: [{ art: 'in', feld: 'projectNumber', werte: formenAller(scheine.map((s) => s.projectNumber)) }],
   })).filter((b) => b.billingMode === 'Pauschal' || b.billingMode === 'Einheitspreis');
   if (baustellen.length === 0) return [];
-  const rechnungen = await abfragen<Pick<Invoice, 'projectNumber' | 'paymentStatus' | 'art'>>(RECHNUNGEN, companyId, {
-    wo: [{ art: 'in', feld: 'projectNumber', werte: formenAller(baustellen.map((b) => b.projectNumber)) }],
-  });
   return inVerrechneterPauschale(scheine, baustellen, rechnungen);
+}
+
+/**
+ * Die Scheine ohne Material, deren Tag eine gültige Rechnung schon
+ * abgerechnet hat (A1, 12.11.2026) — siehe `inAbgerechnetemZeitraum`. Bis
+ * dahin verknüpfte eine Rechnung nur Scheine mit Material; die schon
+ * ausgestellten werden nicht umgeschrieben, die Antwort kommt aus dieser
+ * Regel. Gebraucht werden das Material der Scheine und ob eine Rechnung
+ * Belege verbraucht hat (ihre Abdeckung).
+ */
+async function imAbgerechnetenZeitraum(
+  companyId: string,
+  scheine: OffenerSchein[],
+  rechnungen: BaustellenRechnung[],
+): Promise<string[]> {
+  const kandidaten = rechnungen.filter((r) => r.paymentStatus !== 'Storniert' && (r.art ?? 'einzel') !== 'anzahlung');
+  if (kandidaten.length === 0) return [];
+  const [material, belege] = await Promise.all([
+    abfragen<{ workSheetId: string; name: string; menge: number }>('work_sheet_material', companyId, {
+      wo: [{ art: 'in', feld: 'workSheetId', werte: scheine.map((s) => s.id) }],
+    }),
+    abfragen<Abdeckungszeile>(ABDECKUNG, companyId, {
+      wo: [
+        { art: 'in', feld: 'invoiceId', werte: kandidaten.map((r) => r.id) },
+        { art: 'in', feld: 'art', werte: ['time_entry', 'material_order', 'work_sheet'] },
+      ],
+    }),
+  ]);
+  const mitBelegen = new Set(belege.map((b) => b.invoiceId));
+  const materialJe = new Map<string, WorkSheet['material']>();
+  for (const z of material) {
+    const liste = materialJe.get(z.workSheetId) ?? [];
+    liste.push(z as WorkSheet['material'][number]);
+    materialJe.set(z.workSheetId, liste);
+  }
+  return inAbgerechnetemZeitraum(
+    scheine.map((s) => ({ ...s, material: materialJe.get(s.id) ?? [] })),
+    kandidaten.map((r) => ({ ...r, linkedEntries: mitBelegen.has(r.id) ? [r.id] : [] })),
+  );
 }
 
 /** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */

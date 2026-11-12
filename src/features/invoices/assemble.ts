@@ -34,7 +34,10 @@ export interface AssembledInvoice {
   totalBrutto: number;
   linkedEntries: string[];
   linkedOrders: string[];
-  /** Scheine, deren Material eingeflossen ist — die Rechnung merkt sie sich. */
+  /**
+   * Die Scheine, die diese Rechnung abrechnet — mit und ohne Material (seit
+   * 12.11.2026); die Rechnung merkt sie sich, ein Storno gibt sie frei.
+   */
   linkedWorkSheets: string[];
   /**
    * Vorschlag für den Leistungszeitraum, aus den Belegen abgeleitet.
@@ -322,13 +325,21 @@ export function assembleInvoice(
     Pauschale) liess den Zeitraum sonst leer, und die Rechnung war nach § 11
     UStG unvollständig.
   */
+  /*
+    DIE RECHNUNG VERKNÜPFT JEDEN SCHEIN, DEN SIE ABRECHNET (Gesamtanalyse
+    12.11.2026, A1) — dieselben, deren Tag in ihren Zeitraum eingeht. Bis
+    dahin nur die mit Material: ein Schein über reine Arbeitszeit stand nach
+    der Rechnung weiter als „nicht verrechnet“ da, obwohl seine Stunden über
+    die Buchungen darauf standen. Später Unterschriebenes mit einem Tag nach
+    dem Stichtag bleibt offen (siehe oben).
+  */
   const verbraucht = new Set(mat.herkunft.scheine);
+  const abgerechnet = material?.scheine
+    .filter((s) => verbraucht.has(s.id)
+      || (s.status === 'Unterschrieben' && !material.bereitsVerrechnet?.has(s.id))) ?? [];
   const leistung = leistungszeitraum([
     ...eligibleEntries.map((e) => e.date),
-    ...material?.scheine
-      .filter((s) => verbraucht.has(s.id)
-        || (s.status === 'Unterschrieben' && !material.bereitsVerrechnet?.has(s.id)))
-      .map((s) => s.datum) ?? [],
+    ...abgerechnet.map((s) => s.datum),
   ]);
 
   const taetigkeiten: Record<string, string> = {};
@@ -353,7 +364,7 @@ export function assembleInvoice(
     ...calcTotals(positions, rates.vatRate),
     linkedEntries: eligibleEntries.map((e) => e.id),
     linkedOrders: [],
-    linkedWorkSheets: mat.herkunft.scheine,
+    linkedWorkSheets: abgerechnet.map((s) => s.id),
     leistung,
     materialOhnePreis: mat.herkunft.ohnePreis,
     entries: eligibleEntries,

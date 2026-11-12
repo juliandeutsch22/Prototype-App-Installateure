@@ -530,6 +530,29 @@ describe('Rechnungen — der Weg von Zeiten zu einer Rechnung', () => {
     expect(lege.mock.calls[0][0].linkedEntries).toEqual(['z1']);
   });
 
+  /*
+    GESAMTANALYSE 12.11.2026, A1: die Rechnung verknüpft auch den Schein ohne
+    Material — sonst galt er danach für immer als „nicht verrechnet“. Einen
+    Schein ohne Material, dessen Tag eine frühere Rechnung schon abgerechnet
+    hat, nimmt sie nicht noch einmal: er zöge ihren Leistungszeitraum in
+    einen abgerechneten zurück. Gegenprobe: vorher [], ohne die Regel beim
+    Zusammenstellen ['s-alt', 's-neu'].
+  */
+  it('verknüpft den Schein ohne Material — einen schon abgerechneten nicht (A1)', async () => {
+    const ohne = (id: string, datum: string) => ({ ...SCHEIN, id, datum, material: [], zeiten: [] });
+    scheine = [ohne('s-alt', '2026-08-05'), ohne('s-neu', '2026-08-20')];
+    derBaustelle = [{
+      id: 'r-alt', invoiceNumber: 'RE-2026-0001', projectNumber: '2026-042', customerName: 'Baumeister Gruber',
+      invoiceDate: '2026-08-12', leistungVon: '2026-08-01', leistungBis: '2026-08-10', art: 'einzel',
+      totalBrutto: 600, paymentStatus: 'Offen', linkedEntries: ['z-alt'], linkedOrders: [], linkedWorkSheets: [],
+    } as unknown as Invoice & { id: string }];
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].linkedWorkSheets).toEqual(['s-neu']);
+    expect(lege.mock.calls[0][0].leistungVon).toBe('2026-08-20');
+  });
+
   it('schreibt die Bestellnummer des Kunden in die Rechnung (05.10.2026)', async () => {
     const bestaetigen = await bisZurVorschau();
     await userEvent.type(screen.getByLabelText('Bestellnummer des Kunden'), ' 4500123456 ');
@@ -2021,7 +2044,8 @@ describe('Nicht verrechnete Leistung', () => {
   });
 
   it('zählt alles und markiert, was über vier Wochen alt ist (M2)', async () => {
-    alleScheine = [schein('s1', '2026-08-30'), schein('s2', '2026-07-15')];
+    // Zwei Baustellen: seit A2 (12.11.2026) steht eine Baustelle einmal da.
+    alleScheine = [schein('s1', '2026-08-30'), schein('s2', '2026-07-15', { projectNumber: '2026-043', customerName: 'Familie Huber' })];
     zeige();
     expect(await screen.findByText(/^Nicht verrechnete Leistung \(2\)/)).toBeInTheDocument();
     expect(screen.getByText('davon 1 über 4 Wochen')).toBeInTheDocument();
@@ -2275,6 +2299,26 @@ describe('Nicht verrechnete Leistung — gebuchte Stunden', () => {
     expect(await screen.findByText(/^Nicht verrechnete Leistung \(2\)/)).toBeInTheDocument();
     const namen = screen.getAllByText(/^(Baumeister Gruber|Familie Huber)$/).map((e) => e.textContent);
     expect(namen).toEqual(['Baumeister Gruber', 'Familie Huber']);
+  });
+
+  /*
+    GESAMTANALYSE 12.11.2026, A2: Schein und Stunden derselben Baustelle
+    standen als zwei Zeilen da, mit demselben Knopf, und die Zahl im Titel
+    zählte dieselbe Arbeit doppelt. Gegenprobe: mit dem Stand davor „(2)“.
+  */
+  it('führt Schein und Stunden derselben Baustelle als eine Zeile (A2)', async () => {
+    alleScheine = [{
+      id: 's9', companyId: 'perl', projectNumber: '2026-042', customerName: 'Familie Huber',
+      datum: '2026-08-20', status: 'Unterschrieben', abrechnung: 'Regie', zeiten: [], material: [],
+      erstelltVonUid: 'm1', erstelltVonName: 'Max',
+    } as unknown as WorkSheet & { id: string }];
+    offeneStd = [ALT];
+    zeige();
+    expect(await screen.findByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Baustelle wählen' })).toHaveLength(1);
+    expect(screen.getByText(/Schein vom 20\.08\.2026 · 42:30 Std gebucht seit 01\.07\.2026 · Regie/)).toBeInTheDocument();
+    // Gemessen am ältesten Beleg: die Stunden seit 01.07.
+    expect(screen.getByText('62 Tage')).toHaveClass('stand-warn');
   });
 
   it('wählt die Baustelle der Stunden aus', async () => {
