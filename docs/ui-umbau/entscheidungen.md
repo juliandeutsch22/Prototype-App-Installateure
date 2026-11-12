@@ -3360,7 +3360,13 @@ Entschieden:
   Anforderung (`/material?projekt=`), „Nachricht“ in den Thread der
   Baustelle, der wie in der Akte erst beim Öffnen angelegt wird. Angeboten
   wird nur, was die Rolle mit ihren Modulen darf (dieselbe Prüfung wie die
-  Navigation); im Einblick des Supports kein Thread.
+  Navigation); im Einblick des Supports kein Thread. Sichtbar heißen sie
+  „Anfordern“ (Paket-Symbol) und „Nachricht“, damit beide am Handy in eine
+  Zeile passen — ausgeschrieben brauchten sie zwei Zeilen je Einsatz, und
+  die Startseite des Monteurs wuchs mit zwei Einsätzen über zwei
+  Bildschirmhöhen (Prüfung `startseiteViel`); „Material“ allein ginge
+  nicht, so heißt im Einsatzplan die Rüstliste. Der zugängliche Name bleibt
+  ausgeschrieben.
 - **B3: Eine Regel für die Baustelle in den Formularen des Monteurs**
   (`baustelleVorbelegen`): läuft der Arbeitstag, seine Baustelle (nur für
   heute); sonst der Einsatz des Tages — bei mehreren der zuletzt benutzte

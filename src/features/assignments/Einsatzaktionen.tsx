@@ -118,6 +118,11 @@ export function EinsatzKnoepfe({
  * erschien im Posteingang erst nach der ersten Nachricht, ein Einstieg vom
  * Einsatz aus fehlte ganz. Sie stehen in derselben leisen Gestalt wie
  * Adresse und Telefon: vier Knöpfe untereinander wären am Handy eine Wand.
+ * Sichtbar stehen nur „Anfordern“ (mit dem Paket der Navigation für
+ * Material) und „Nachricht“, damit beide am Handy in EINE Zeile passen —
+ * mit zwei Einsätzen wuchs die Startseite sonst um vier Zeilen. Der Name
+ * für Vorlesen und Suche bleibt vollständig. „Material“ allein ginge nicht:
+ * im Einsatzplan heißt so die Rüstliste darunter.
  * Angeboten wird nur, was die Rolle mit ihren Modulen darf — das entscheidet
  * die Seite (`wege`), wie bei Zeit und Schein.
  */
@@ -152,9 +157,10 @@ export function EinsatzKontakt({
         <Link
           to={`/material?projekt=${encodeURIComponent(projectNumber!)}`}
           className="link-kontakt inline-flex min-h-touch items-center gap-1.5"
+          aria-label="Material anfordern"
         >
           <Icon name="package" size={16} aria-hidden />
-          Material anfordern
+          Anfordern
         </Link>
       )}
       {nachricht && <NachrichtZurBaustelle projectId={projectId!} />}
@@ -193,9 +199,10 @@ function NachrichtZurBaustelle({ projectId }: { projectId: string }) {
       disabled={oeffnet}
       aria-busy={oeffnet || undefined}
       onClick={() => void oeffnen()}
+      aria-label="Nachricht zur Baustelle"
     >
       <Icon name="nachricht" size={16} aria-hidden />
-      Nachricht zur Baustelle
+      Nachricht
     </button>
   );
 }

@@ -31,6 +31,11 @@ test('Vom Einsatz aus Material anfordern: die Baustelle ist schon gewählt', asy
   await anmelden(page, MONTEUR.email);
   const einsatz = page.locator('.start-einsatz').first();
   await expect(einsatz).toBeVisible({ timeout: 15_000 });
+  // Am Handy stehen beide Wege in EINER Zeile — sonst wächst die Startseite je Einsatz um zwei.
+  await page.setViewportSize({ width: 390, height: 844 });
+  const material = await einsatz.getByRole('link', { name: 'Material anfordern' }).boundingBox();
+  const nachricht = await einsatz.getByRole('button', { name: 'Nachricht zur Baustelle' }).boundingBox();
+  expect(Math.abs(material!.y - nachricht!.y)).toBeLessThan(2);
   await einsatz.getByRole('link', { name: 'Material anfordern' }).click();
   await expect(page).toHaveURL(new RegExp(`/material\\?projekt=${BAUSTELLE.nummer}$`));
   await expect(page.getByLabel('Für welche Baustelle?')).toHaveValue(BAUSTELLE.nummer, { timeout: 15_000 });
