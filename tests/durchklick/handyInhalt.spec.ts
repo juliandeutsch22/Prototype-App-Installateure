@@ -157,3 +157,27 @@ test.describe('Läuft der Arbeitstag', () => {
     await keineFehlermeldung(page);
   });
 });
+
+/*
+  „MEINE EINTRÄGE“ NEBEN DEM FORMULAR (D12): ab dem Schreibtisch (1.200 px)
+  nebeneinander; am Tablet eine Spalte wie bisher.
+*/
+for (const [breite, nebeneinander] of [[1200, true], [834, false]] as const) {
+  test(`Zeiterfassung bei ${breite} px: „Meine Einträge“ ${nebeneinander ? 'neben' : 'unter'} dem Formular`, async ({ page }) => {
+    await page.setViewportSize({ width: breite, height: 900 });
+    await anmelden(page, MONTEUR.email);
+    await seite(page, '/time');
+    const formular = page.locator('.zeit-formularkarte');
+    const liste = page.locator('#meine-eintraege');
+    await expect(liste).toBeVisible({ timeout: 15_000 });
+    const f = (await formular.boundingBox())!;
+    const l = (await liste.boundingBox())!;
+    if (nebeneinander) {
+      // Rechts daneben, auf gleicher Höhe — der Taktgeber setzt jedes Blatt auf seine Rasterlinie, auf eine Zelle genau.
+      expect(l.x).toBeGreaterThan(f.x + f.width);
+      expect(Math.abs(l.y - f.y)).toBeLessThanOrEqual(24);
+    } else {
+      expect(l.y).toBeGreaterThan(f.y + f.height - 1);
+    }
+  });
+}

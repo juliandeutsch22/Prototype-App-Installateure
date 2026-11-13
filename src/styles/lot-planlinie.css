@@ -175,6 +175,8 @@
     .schriftfeld .lage-name { grid-column: 1; font-size: 0.9375rem; line-height: 1.5rem; letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--text); white-space: normal; overflow: visible; }
     .schriftfeld .lage-wert { grid-column: 2; grid-row: 1 / span 2; justify-self: end; text-align: right; font-size: 0.9375rem; font-weight: 500; }
     .schriftfeld .lage-zusatz { grid-column: 1; font-size: 0.8125rem; line-height: 1.25rem; }
+    /* Mit Zusatz zwei Textzeilen: eine Drittelzelle weniger Polster, damit die Zeile nicht über 60 px wächst — wie eine Untertitelzelle am iPhone. */
+    .schriftfeld .lage-eintrag:has(.lage-zusatz) { padding-block: 0.5rem; }
     .schriftfeld .lage-punkt-achtung { background: var(--warning-bg); box-shadow: inset 3px 0 0 var(--warning); }
     .schriftfeld .lage-punkt-achtung:has(.lage-wert-rot) { background: var(--danger-bg); box-shadow: inset 3px 0 0 var(--danger); }
     .schriftfeld-skizze { display: none; }

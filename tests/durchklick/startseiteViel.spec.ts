@@ -167,7 +167,8 @@ for (const [breite, hoehe, wo] of [[390, 844, 'am Telefon'], [1150, 800, 'bei 1.
       test.info().annotations.push({ type: 'Höhe', description: `${verhaeltnis.toFixed(2)} Bildschirme` });
       // Seit der Linie „Lot“ heisst die Karte „Zu erledigen“ (Protokoll E1).
       await expect(page.getByText(/Zu erledigen/).first()).toBeVisible();
-      await expect(page.getByText(/Themen?$/).first()).toBeVisible();
+      // Die Zahl in Klammern wie in jedem Kartentitel (D12, E86).
+      await expect(page.getByRole('heading', { name: /^Zu erledigen \(\d+ Themen?\)$/ })).toBeVisible();
       await expect(page.getByRole('link', { name: /Aktive Baustellen/ })).toContainText('40');
       const arbeit = await page.locator('.start-arbeit').boundingBox();
       const kontext = await page.getByRole('complementary', { name: 'Dein Tagesüberblick' }).boundingBox();
