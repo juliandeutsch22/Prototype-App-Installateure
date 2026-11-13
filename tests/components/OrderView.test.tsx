@@ -324,43 +324,41 @@ describe('Material anfordern — der Warenkorb', () => {
 
   it('nimmt eine frei eingetippte Menge', async () => {
     /**
-     * AUS DEM BETRIEB GEWUENSCHT. Vorher gab es nur „noch eins": wer dreissig
-     * Meter Rohr braucht, haette dreissig Mal tippen muessen — mit Handschuhen,
-     * auf der Baustelle. Der Knopf bleibt fuer den Regelfall, das Feld ist der
-     * Ausweg fuer alles darueber.
+     * AUS DEM BETRIEB GEWUENSCHT: wer dreissig Meter Rohr braucht, tippt die
+     * Zahl. Seit E89 (C1) erst ein Tipp auf den Kreis, dann steht die Menge
+     * der Liste da und nimmt jede Zahl.
      */
     zeige();
-    const menge = await screen.findByRole('textbox', { name: /Menge .* Kupferrohr 15mm/ });
+    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
+    const menge = screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ });
     await userEvent.clear(menge);
     await userEvent.type(menge, '30');
-    await userEvent.click(screen.getByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
     await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
     expect(anlegen.mock.calls[0][1].quantity).toBe(30);
   });
-
-  it('faellt nach dem Anfordern auf eins zurueck', async () => {
-    // Eine stehengebliebene 30 waere die teurere Ueberraschung: die naechste
-    // Position ist fast immer wieder eine.
+  it('nach dem Abschicken steht wieder der Kreis — keine stehengebliebene 30', async () => {
+    // Eine stehengebliebene 30 waere die teurere Ueberraschung.
     zeige();
-    const menge = await screen.findByRole('textbox', { name: /Menge .* Kupferrohr 15mm/ });
+    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
+    const menge = screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ });
     await userEvent.clear(menge);
     await userEvent.type(menge, '30');
-    await userEvent.click(screen.getByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
-
-    await waitFor(() => expect(menge).toHaveValue('1'));
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('symbol-rund'));
+    expect(screen.queryByRole('textbox', { name: /für Kupferrohr 15mm in der Liste/ })).toBeNull();
   });
-
-  it('fordert nichts an, solange die Menge unbrauchbar ist', async () => {
+  it('eine unbrauchbare Menge ändert die Liste nicht', async () => {
     // Ein leeres oder krummes Feld darf nicht als 0 oder NaN durchgehen.
     zeige();
-    const menge = await screen.findByRole('textbox', { name: /Menge .* Kupferrohr 15mm/ });
+    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
+    const menge = screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ });
     await userEvent.clear(menge);
-    expect(screen.getByRole('button', { name: /Kupferrohr 15mm in die Liste/ })).toBeDisabled();
-    expect(anlegen).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
+    expect(anlegen.mock.calls[0][1].quantity).toBe(1);
   });
-
   it('zählt dasselbe Material auf derselben Baustelle zusammen', async () => {
     // Sonst stünden drei Zeilen „Kupferrohr ×1" in der Anforderung, und die
     // Projektleitung müsste sie im Kopf addieren.
@@ -917,21 +915,21 @@ describe('Mengen je Einheit', () => {
 
   it('Rohr in Metern nimmt „2,5“ in die Anforderung', async () => {
     zeige();
-    const feld = await screen.findByRole('textbox', { name: /Menge m für Kupferrohr 15mm/ });
+    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
+    const feld = screen.getByRole('textbox', { name: /Menge m für Kupferrohr 15mm in der Liste/ });
     await userEvent.clear(feld);
     await userEvent.type(feld, '2,5');
-    const knopf = screen.getByRole('button', { name: /Kupferrohr 15mm in die Liste/ });
-    expect(knopf).toBeEnabled();
-    await userEvent.click(knopf);
     expect((await screen.findAllByText('×2,5')).length).toBeGreaterThan(0);
   });
-
-  it('Gegenprobe: bei Stück bleibt „1,5“ gesperrt', async () => {
+  it('Gegenprobe: bei Stück bleibt „1,5“ draußen — die Liste behält 1', async () => {
     zeige();
-    const feld = await screen.findByRole('textbox', { name: /Menge Stk für Dichtung/ });
+    await userEvent.click(await screen.findByRole('button', { name: 'Dichtung 1/2" in die Liste' }));
+    const feld = screen.getByRole('textbox', { name: /Menge Stk für Dichtung 1\/2" in der Liste/ });
     await userEvent.clear(feld);
     await userEvent.type(feld, '1,5');
-    expect(screen.getByRole('button', { name: /Dichtung 1\/2" in die Liste/ })).toBeDisabled();
+    expect(feld.closest('.mengen-wahl')).toHaveClass('mengen-wahl-fehler');
+    expect(screen.getAllByText('×1').length).toBeGreaterThan(0);
+    expect(screen.queryByText('×1,5')).toBeNull();
   });
 });
 
@@ -1005,22 +1003,22 @@ describe('Warenkorb-Beschriftung', () => {
 // Zeile). Gezählt wird aus der Liste selbst. Die Lage misst der Browserweg
 // in `tests/durchklick/materialAnfordern.spec.ts`.
 describe('Was schon in der Liste liegt', () => {
-  it('der Knopf heißt „In die Liste“; darunter steht die Menge aus der Liste, „Liste leeren“ nimmt sie weg', async () => {
+  it('ein Tipp auf den Kreis legt eines hinein; dann steht die Menge an derselben Stelle, einzeilig — „Liste leeren“ bringt den Kreis zurück', async () => {
     zeige();
-    const knopf = await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ });
-    // Seit E74 der Petrol-Kreis: kein Wort im Knopf, der Name als Hinweis beim Darüberfahren.
+    const knopf = await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' });
+    // Der Petrol-Kreis (E74), jetzt mit Plus: kein Wort im Knopf, der Name als Hinweis.
     expect(knopf).toHaveClass('symbol-rund');
     expect(knopf).toHaveTextContent(/^$/);
     expect(knopf).toHaveAttribute('title', 'Kupferrohr 15mm in die Liste');
+    await userEvent.click(knopf);
+    expect(screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ })).toHaveValue('1');
+    await userEvent.click(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste (eines mehr)' }));
+    expect(screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ })).toHaveValue('2');
+    // Keine zweite Zeile „… in der Liste“ darunter: die Menge steht im Feld.
     expect(screen.queryByText(/ in der Liste$/)).toBeNull();
-    await userEvent.click(knopf);
-    await userEvent.click(knopf);
-    expect(screen.getByText('2 m in der Liste')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Liste leeren' }));
-    // Vorher blieb „×2“ am Artikel stehen, obwohl die Liste leer war.
-    expect(screen.queryByText(/ in der Liste$/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('symbol-rund');
   });
-
   it('steht nach einem Neustart wieder da', async () => {
     localStorage.setItem(
       'senklot.warenkorb:perl:u1',
@@ -1036,20 +1034,20 @@ describe('Was schon in der Liste liegt', () => {
 
   it('ist nach dem Abschicken weg', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
-    expect(screen.getByText('1 m in der Liste')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
     await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(screen.queryByText(/ in der Liste$/)).toBeNull());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('symbol-rund'));
   });
-
   it('Gegenprobe: ein anderer Artikel und ein freier Eintrag zählen beim Kupferrohr nicht mit', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Dichtung .* in die Liste/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Dichtung 1/2" in die Liste' }));
     await userEvent.type(screen.getByLabelText('Bezeichnung'), 'Eckventil');
     await userEvent.click(screen.getByRole('button', { name: 'Eckventil in die Liste' }));
-    expect(screen.getByText('1 Stk in der Liste')).toBeInTheDocument();
-    expect(screen.getAllByText(/ in der Liste$/)).toHaveLength(1);
+    expect(screen.getByRole('textbox', { name: /für Dichtung 1\/2" in der Liste/ })).toHaveValue('1');
+    // Beim Kupferrohr steht weiter nur der Kreis.
+    expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('symbol-rund');
+    expect(screen.queryByRole('textbox', { name: /für Kupferrohr 15mm in der Liste/ })).toBeNull();
   });
 });
 
@@ -1138,11 +1136,12 @@ describe('Material anfordern — Knöpfe und Fluchten der Linie (E72)', () => {
     dreier Kästchen, und „In die Liste“ ist der Petrol-Kreis daneben.
     Gegenprobe: mit dem Stand E72 (drei gerahmte Kästchen, Wortknopf) rot.
   */
-  it('Minus, Menge und Plus sind eine gerahmte Einheit, daneben der Petrol-Kreis „In die Liste“', async () => {
+  it('Minus, Menge und Plus sind eine gerahmte Einheit — erst, wenn der Artikel in der Liste liegt (C1, E89)', async () => {
     zeige();
-    const minus = await screen.findByRole('button', { name: 'Menge für Kupferrohr 15mm verringern' });
-    const plus = screen.getByRole('button', { name: 'Menge für Kupferrohr 15mm erhöhen' });
-    const feld = screen.getByRole('textbox', { name: /Menge m für Kupferrohr 15mm/ });
+    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
+    const minus = screen.getByRole('button', { name: 'Kupferrohr 15mm aus der Liste nehmen' });
+    const plus = screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste (eines mehr)' });
+    const feld = screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ });
     const gruppe = feld.closest('.mengen-wahl') as HTMLElement;
     expect(gruppe).not.toBeNull();
     for (const k of [minus, plus]) {
@@ -1151,21 +1150,19 @@ describe('Material anfordern — Knöpfe und Fluchten der Linie (E72)', () => {
       expect(k).not.toHaveClass('border');
     }
     expect(feld).toHaveClass('mengen-feld');
-    expect(feld).not.toHaveClass('border');
-    const liste = screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' });
-    expect(liste).toHaveClass('symbol-rund');
-    expect(gruppe.contains(liste)).toBe(false);
+    // Bei eins nimmt Minus den Artikel heraus — der Kreis steht wieder da.
+    await userEvent.click(minus);
+    expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('symbol-rund');
   });
-
-  it('eine ungültige Menge färbt den ganzen Rahmen und sperrt den Kreis', async () => {
+  it('eine ungültige Menge färbt den ganzen Rahmen, die Liste bleibt', async () => {
     zeige();
-    const feld = await screen.findByRole('textbox', { name: /Menge m für Kupferrohr 15mm/ });
+    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
+    const feld = screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ });
     await userEvent.clear(feld);
     await userEvent.type(feld, 'abc');
     expect(feld.closest('.mengen-wahl')).toHaveClass('mengen-wahl-fehler');
-    expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toBeDisabled();
+    expect(screen.getAllByText('×1').length).toBeGreaterThan(0);
   });
-
   it('die Suche steht als Listenleiste mit Lupe im Blatt „Katalog“', async () => {
     zeige();
     const suche = await screen.findByRole('searchbox', { name: 'Suche' });
