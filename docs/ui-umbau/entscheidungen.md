@@ -3558,6 +3558,7 @@ am Reiter steht nur für Handlungsbedarf (Protokoll 7.7).
 **Offen, nächster PR:** das Austrittsdatum in der Benutzerverwaltung (D12)
 — es braucht eine Migration und ändert Soll, Saldo und Resturlaub im
 Austrittsmonat; deshalb ein eigener Schritt mit Datenbankprüfungen.
+Umgesetzt in E87.
 
 **Grenzen mit Grund:** keine neue.
 
@@ -3575,3 +3576,43 @@ eine Listenzeile am Handy 60 px statt 68 px hoch — so bleibt die Startseite
 des Monteurs im Rahmen von 2,25 Bildschirmen. „Meine Einträge“ rückt nur in
 der Zeiterfassung neben das Formular: die Urlaubsseiten mit zwei Listen
 behalten ihre Maße (sonst lagen sie am Tablet neben dem Raster).
+
+**E87 — Das Austrittsdatum (13.11.2026).**
+Aus Paket 6 (D12, Durchsicht vom 09.11.2026), als eigener Schritt, weil es
+eine Migration braucht und Lohnzahlen berührt. Bis hierher kannte die App
+keinen Austritt: ein deaktiviertes Konto stand im Monat seiner Buchungen
+ohne Soll und Saldo da, weil ein Teilmonat ohne den letzten Tag geraten
+gewesen wäre. Entschieden:
+- **`users.austritt`, der letzte Arbeitstag.** Er liegt nie vor dem Eintritt
+  oder dem Saldo-Start (Datenbank und Formular prüfen dasselbe).
+- **Eintragen:** in der Benutzerakte („Austrittsdatum (letzter
+  Arbeitstag)“), auch schon während der Kündigungsfrist — das Konto bleibt
+  aktiv, bis es jemand deaktiviert. Beim Deaktivieren fragt die Rückfrage
+  nach dem letzten Arbeitstag (vorgeschlagen: heute; leer, wenn er noch
+  nicht feststeht). Beim Aktivieren fällt er weg, sonst endete das
+  Zeitkonto weiter am alten Tag.
+- **Rechnen:** das Soll endet am Austritt (`pflichtTage`, die eine Quelle
+  für Monatsauswertung, Zeitkonto und Lückenprüfung). Mit Austrittsdatum
+  stehen Soll, Saldo, Gesamtsaldo und offene Tage bis dahin in
+  Mitarbeiterübersicht, Personenfenster und CSV; die Zeile sagt
+  „ausgetreten am …“, die Monats-CSV in der Spalte „Konto“ „Austritt …“.
+  Wer im Monat austritt, steht in dessen Übersicht auch ohne Eintrag.
+- **Danach:** keine Buchung und kein Einsatz (die Datenbank lehnt ab, die
+  Buchungsmaske sagt es vorher); der Wochenplan zeigt die Tage als abwesend,
+  „Ausgetreten“ für die Leitung, und „mehrere Tage“ (E85) überspringt sie.
+  Der Rücklauf unter dem Dienstschlüssel ist ausgenommen, eine alte Zeile
+  bleibt änderbar, solange ihr Tag bleibt — wie beim Eintritt (M7).
+- **Auskunft und Löschung:** die Spalte steht in der Zeile der Person, die
+  `person_auskunft` ganz ausgibt, und fällt mit ihr.
+
+**Grenzen mit Grund:**
+- Ohne Austrittsdatum bleiben Soll und Saldo eines deaktivierten Kontos
+  leer (Daten: geraten wäre falsch). Früher deaktivierte Konten bekommen es
+  nicht von selbst (Altdaten); der Betrieb trägt es in der Akte nach.
+- Den Resturlaub beim Austritt rechnet die Lohnverrechnung (Kanzlei): die
+  Ersatzleistung (§ 10 UrlG) gehört zum Entgelt.
+
+**Nachweis:** Datenbank `austritt.test.ts`, Module `austritt.test.ts` (15),
+Komponenten `AccountingView.test.tsx` (+1), `BenutzerakteView.test.tsx`
+(+3, zwei angepasst). Gegenproben: mit den Quellen vor E87 sind 7 der 15
+Modulprüfungen rot; die Datenbankprüfungen haben je eine Gegenprobe.

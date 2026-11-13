@@ -27,7 +27,7 @@ import { MailLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import {
-  alsEntwurf, alsProfil, entwurfFehler, gleich, jugendschutzHinweise, mitKundenFreigabe, mitLagerFreigaben,
+  alsEntwurf, alsProfil, austrittFehler, entwurfFehler, gleich, jugendschutzHinweise, mitKundenFreigabe, mitLagerFreigaben,
   mitRechnungsFreigabe, mitZeitkontoWahl,
   tagessollNachTagen, urlaubsfeldName, WEEKDAYS,
   type BenutzerEntwurf,
@@ -88,6 +88,8 @@ export default function BenutzerakteView() {
   const [bearbeitet, setBearbeitet] = useState(false);
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
   const [umschalten, setUmschalten] = useState(false);
+  /** Der letzte Arbeitstag, den das Deaktivieren mitschreibt (E87); leer heisst: nicht bekannt. */
+  const [austrittWahl, setAustrittWahl] = useState('');
   const [neuesPasswortFragen, setNeuesPasswortFragen] = useState(false);
   const [vergibt, setVergibt] = useState(false);
   /** Nur für diesen Augenblick sichtbar — nirgends gespeichert. */
@@ -224,6 +226,8 @@ export default function BenutzerakteView() {
   }
 
   const p = person.daten;
+  // Wie die Datenbank (`users_austritt_nach_eintritt`): nicht vor Eintritt oder Saldo-Start.
+  const austrittUngueltig = p ? austrittFehler(austrittWahl, p.eintritt, p.appStartDate) : null;
   if (!p || !user) {
     return (
       <div className="space-y-6">
@@ -303,7 +307,10 @@ export default function BenutzerakteView() {
         ) : (
           <Button
             variant={p.active === false ? 'secondary' : 'ghost'}
-            onClick={() => setUmschalten(true)}
+            onClick={() => {
+              setAustrittWahl(p.austritt ?? todayStr());
+              setUmschalten(true);
+            }}
           >
             {p.active === false ? 'Konto aktivieren' : 'Konto deaktivieren'}
           </Button>
@@ -471,18 +478,42 @@ export default function BenutzerakteView() {
         confirmTone={p.active === false ? 'primary' : 'danger'}
         message={
           p.active === false
-            ? `${p.name} kann sich danach wieder anmelden.`
+            ? `${p.name} kann sich danach wieder anmelden.${p.austritt ? ` Das Austrittsdatum (${datumAT(p.austritt)}) wird dabei entfernt — ab dann rechnet das Zeitkonto wieder weiter.` : ''}`
             : `${p.name} kann sich danach nicht mehr anmelden. Alle bisherigen Zeiteinträge bleiben erhalten.`
         }
+        gesperrt={p.active !== false && !!austrittUngueltig}
         onCancel={() => setUmschalten(false)}
         onConfirm={async () => {
           const naechster = p.active === false;
-          await updateUserProfile(p.uid, { active: naechster });
+          /*
+            MIT DEM AUSTRITT (E87): Soll und Saldo rechnen bis zu diesem Tag,
+            danach lässt sich nicht buchen und nicht einplanen. Beim
+            Aktivieren fällt er weg — sonst endete das Zeitkonto weiter am
+            alten Tag.
+          */
+          await updateUserProfile(p.uid, naechster ? { active: true, austritt: null } : { active: false, austritt: austrittWahl || null });
           setUmschalten(false);
           setVersuch((v) => v + 1);
           toast.success(naechster ? 'Benutzer aktiviert' : 'Benutzer deaktiviert');
         }}
-      />
+      >
+        {p.active !== false && (
+          <div className="mt-3">
+            <InputField
+              id="b-austritt-deaktivieren"
+              label="Letzter Arbeitstag"
+              type="date"
+              value={austrittWahl}
+              min={p.eintritt ?? p.appStartDate ?? undefined}
+              onChange={(e) => setAustrittWahl(e.target.value)}
+              aria-describedby="b-austritt-deaktivieren-hinweis"
+            />
+            {austrittUngueltig
+              ? <p id="b-austritt-deaktivieren-hinweis" role="alert" className="mt-1 text-sm text-danger">{austrittUngueltig}</p>
+              : <p id="b-austritt-deaktivieren-hinweis" className="mt-1 text-xs text-ink-muted">Bis zu diesem Tag rechnen Soll und Saldo. Leer lassen, wenn er noch nicht feststeht.</p>}
+          </div>
+        )}
+      </ConfirmDialog>
     </div>
   );
 }
@@ -512,6 +543,7 @@ function StammdatenLesen({ p, teil }: { p: AppUser; teil: 'profil' | 'arbeitszei
         )}
       </Angabe>
       <Angabe wort="Eintrittsdatum">{fmtDatum(p.eintritt ?? p.appStartDate)}</Angabe>
+      {p.austritt && <Angabe wort="Austrittsdatum">{fmtDatum(p.austritt)}</Angabe>}
     </>}
     {teil === 'rechte' && <>
       <Angabe wort="Rolle">{p.role}</Angabe>
@@ -760,6 +792,17 @@ function StammdatenFormular({
             id="b-start" label="Saldo-Startdatum (ab hier rechnet das Zeitkonto)" type="date"
             value={entwurf.appStartDate}
             onChange={(e) => setze('appStartDate', e.target.value)}
+          />
+          {/*
+            DER AUSTRITT (E87) — auch schon während der Kündigungsfrist: bis
+            zu ihm rechnet das Soll, danach lässt sich nicht buchen und nicht
+            einplanen. Das Konto bleibt aktiv, bis es jemand deaktiviert.
+          */}
+          <InputField
+            id="b-austritt" label="Austrittsdatum (letzter Arbeitstag)" type="date"
+            value={entwurf.austritt}
+            min={entwurf.appStartDate || entwurf.eintritt || undefined}
+            onChange={(e) => setze('austritt', e.target.value)}
           />
           <ZahlFeld
             id="b-saldo" label="Start-Saldo (Stunden)" negativ

@@ -152,7 +152,7 @@ export function updateUserProfile(uid: string, p: Partial<UserProfileInput>): Pr
   const daten: Record<string, unknown> = {};
   for (const feld of [
     'name', 'role', 'active', 'weeklyTargetHours', 'yearlyVacationDays',
-    'workDays', 'appStartDate', 'eintritt', 'tagessoll', 'initialOvertime', 'initialVacationDays',
+    'workDays', 'appStartDate', 'eintritt', 'austritt', 'tagessoll', 'initialOvertime', 'initialVacationDays',
     'kundenPflegen', 'fuehrtZeitkonto', 'katalogEinspielen', 'einkaufSehen', 'rechnungenLesen',
     'einstufung', 'lehrbeginn', 'lehrzeitMonate', 'stundenInsBudget',
   ] as const) {

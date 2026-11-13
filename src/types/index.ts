@@ -434,6 +434,12 @@ export interface AppUser {
    */
   eintritt?: string | null;
   /**
+   * Der letzte Arbeitstag im Betrieb (E87). Bis dahin rechnet das Soll, danach
+   * lässt sich nicht buchen und nicht einplanen. Ohne ihn steht ein
+   * deaktiviertes Konto ohne Soll und Saldo da — ein Teilmonat wäre geraten.
+   */
+  austritt?: string | null;
+  /**
    * Optional: Stunden je Wochentag, Schlüssel wie `workDays` ("0" = Sonntag
    * … "6" = Samstag), etwa ein kurzer Freitag (M5). Ohne Angabe gilt
    * Wochenstunden durch Arbeitstage — siehe `tagessollStunden`.
@@ -479,6 +485,8 @@ export interface CurrentUser {
   fuehrtZeitkonto?: boolean;
   /** Eintritt und Saldo-Start — die Buchungsmaske warnt davor (M7). */
   eintritt?: string | null;
+  /** Der letzte Arbeitstag (E87) — danach sperrt die Maske wie die Datenbank. */
+  austritt?: string | null;
   appStartDate?: string | null;
   /** Die eigene Einstufung — die Maske bietet „Berufsschule“ nur Lehrlingen an (4.1). */
   einstufung?: Einstufung | null;

@@ -12,7 +12,7 @@ import { datumAT } from '@/lib/datum';
  * still; jetzt sagt die Maske es vorher.
  */
 export function eintrittsHinweis(
-  person: Pick<AppUser, 'eintritt' | 'appStartDate'> | null | undefined,
+  person: Pick<AppUser, 'eintritt' | 'appStartDate' | 'austritt'> | null | undefined,
   datum: string,
 ): { sperrt: boolean; text: string } | null {
   if (!person || !datum) return null;
@@ -23,6 +23,13 @@ export function eintrittsHinweis(
     return {
       sperrt: true,
       text: `Vor dem Eintritt am ${datumAT(eintritt)} lässt sich nicht buchen.`,
+    };
+  }
+  // Nach dem Austritt sperrt die Datenbank ebenso (`time_entries_nicht_nach_austritt`, E87).
+  if (person.austritt && datum > person.austritt) {
+    return {
+      sperrt: true,
+      text: `Nach dem Austritt am ${datumAT(person.austritt)} lässt sich nicht buchen.`,
     };
   }
   if (saldoStart && datum < saldoStart) {

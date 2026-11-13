@@ -306,12 +306,17 @@ Nachtlauf darf nicht wegzuklicken sein.
   eigenes Konto an; fehlt es, nennt der Stapel das Konto und entsteht nicht.
   Grund: Altdaten — so war das eine Konto bisher gemeint, und eine geratene
   Zuordnung buchte falsch.
-- **Deaktivierte Personen im Monat ihrer Buchungen:** Übersicht, Fenster und
-  CSV zeigen ihre Stunden, aber kein Soll, keinen Saldo und keinen
-  Resturlaub. Grund: Daten — die App führt kein Austrittsdatum; das Soll
-  eines Teilmonats wäre ohne es falsch, und eine falsche Zahl in der
-  Lohnverrechnung ist schlimmer als eine leere. Für die Endabrechnung führt
-  die Lohnverrechnung (Kanzlei) das Austrittsdatum.
+- **Deaktivierte Personen ohne Austrittsdatum:** Übersicht, Fenster und CSV
+  zeigen ihre Stunden, aber kein Soll und keinen Saldo. Grund: Daten — ohne
+  den letzten Arbeitstag wäre das Soll eines Teilmonats geraten, und eine
+  falsche Zahl in der Lohnverrechnung ist schlimmer als eine leere. Seit E87
+  (13.11.2026) gibt es das Austrittsdatum; mit ihm rechnen Soll und Saldo bis
+  zum letzten Tag. Konten, die vorher deaktiviert wurden, bekommen es nicht
+  von selbst (Altdaten): der Betrieb trägt es in der Akte nach.
+- **Resturlaub beim Austritt:** steht bei Ausgeschiedenen nicht da. Grund:
+  liegt bei der Lohnverrechnung (Kanzlei) — die Ersatzleistung für nicht
+  verbrauchten Urlaub (§ 10 UrlG) rechnet sie aliquot mit dem Entgelt; eine
+  zweite Rechnung in der App stünde neben ihrer und widerspräche ihr.
 - **Ein wieder geöffneter Eingang verliert die Verbindung zum verworfenen
   Angebot.** Das Journal hält den Wechsel des Stands, nicht den Verweis.
   Grund fachlich: der Verweis auf das Angebot ist seit M02b vom Journal

@@ -14,6 +14,7 @@ import {
   vorzeichenTage,
 } from '@/lib/time';
 import { einstufungText } from '@/lib/einstufung';
+import { datumAT } from '@/lib/datum';
 import type { Nachtzeit } from '@/lib/lohnregeln';
 import Button from '@/components/Button';
 import { Marke } from '@/components/Badge';
@@ -112,7 +113,8 @@ export default function PersonFenster({
     Eintrittsdatum laesst sich keines rechnen — das ist unten mit einem
     eigenen Hinweis erklaert.
   */
-  const zeigtSaldo = stats.hasConfig && !deaktiviert;
+  // Ausgeschieden mit Austrittsdatum: Soll und Saldo bis zum letzten Tag (E87); ohne ihn keine Aussage.
+  const zeigtSaldo = stats.hasConfig && !(deaktiviert && !u.austritt);
   const fehlendeId = useId();
   const gezieltFehlend = !!tagVonAussen && completeness.missingDates.includes(tagVonAussen);
   // Eine gezielte Tagesauswahl muss auch am Handy sofort sichtbar sein.
@@ -139,7 +141,7 @@ export default function PersonFenster({
     behaelter.current?.querySelector('[data-markiert="ja"]')?.scrollIntoView?.({ block: 'center' });
   }, [markiert, fehlendeOffen]);
 
-  const ueber = [einstufungText(u, markiert ?? `${jahr}-${String(monat + 1).padStart(2, '0')}-01`) || u.role, deaktiviert ? 'deaktiviert' : '', monatsName]
+  const ueber = [einstufungText(u, markiert ?? `${jahr}-${String(monat + 1).padStart(2, '0')}-01`) || u.role, deaktiviert ? (u.austritt ? `ausgetreten am ${datumAT(u.austritt)}` : 'deaktiviert') : '', monatsName]
     .filter(Boolean)
     .join(' · ');
 
@@ -288,11 +290,18 @@ export default function PersonFenster({
       {deaktiviert && (
         <div className="mt-2">
           <Hinweiszeile>
-            <p>
-              Das Konto ist deaktiviert. Es steht hier, weil es in diesem Monat gebucht hat; die Buchungen gehen
-              in die Monats-CSV. Ein Austrittsdatum führt die App nicht — Soll, Saldo und Resturlaub für die
-              Endabrechnung rechnet deshalb die Lohnverrechnung.
-            </p>
+            {u.austritt ? (
+              <p>
+                Ausgetreten am {datumAT(u.austritt)}. Soll und Saldo rechnen bis zu diesem Tag und gehen so in die
+                Monats-CSV. Den Resturlaub beim Austritt (Ersatzleistung) rechnet die Lohnverrechnung.
+              </p>
+            ) : (
+              <p>
+                Das Konto ist deaktiviert, ein Austrittsdatum ist nicht hinterlegt — Soll und Saldo wären geraten
+                und stehen deshalb nicht da. Mit dem Austrittsdatum in der Benutzerakte rechnen sie bis zum
+                letzten Tag; den Resturlaub beim Austritt rechnet die Lohnverrechnung.
+              </p>
+            )}
           </Hinweiszeile>
         </div>
       )}

@@ -32,7 +32,7 @@ import { einstufungText } from '@/lib/einstufung';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry, UrlaubsanspruchAnpassung } from '@/types';
 import { fuehrtZeitkonto } from '@/lib/permissions';
-import { istDeaktiviert, personenImMonat } from './personenImMonat';
+import { istDeaktiviert, ohneSollAussage, personenImMonat } from './personenImMonat';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Icon from '@/components/Icon';
 import Button from '@/components/Button';
@@ -494,9 +494,14 @@ export default function AccountingView() {
     [entries, monthPrefix],
   );
   const personen = useMemo(
-    () => personenImMonat(users, new Set(gebuchtSchluessel.split('|'))),
-    [users, gebuchtSchluessel],
+    () => personenImMonat(users, new Set(gebuchtSchluessel.split('|')), monthPrefix),
+    [users, gebuchtSchluessel, monthPrefix],
   );
+  /*
+    MIT SALDO: die Aktiven und wer mit Austrittsdatum ausgeschieden ist (E87)
+    — dessen Gesamtsaldo am letzten Tag ist die Zahl für die Endabrechnung.
+  */
+  const mitSaldo = useMemo(() => personen.filter((u) => !ohneSollAussage(u)), [personen]);
 
   /*
     DER STAND DER BUCHUNGEN FÜR DIE ARBEITSZEITGRENZEN (Runde 3, G12). Die
@@ -525,14 +530,14 @@ export default function AccountingView() {
   */
   const [gesamt, setGesamt] = useState<Map<string, number> | 'laedt' | 'fehler'>('laedt');
   const gesamtGeholt = useRef(false);
-  const personenStand = relevant
-    .map((u) => [u.uid, u.appStartDate, u.weeklyTargetHours, u.initialOvertime, u.workDays?.join(','), JSON.stringify(u.tagessoll ?? null)].join(':'))
+  const personenStand = mitSaldo
+    .map((u) => [u.uid, u.appStartDate, u.austritt, u.weeklyTargetHours, u.initialOvertime, u.workDays?.join(','), JSON.stringify(u.tagessoll ?? null)].join(':'))
     .join('|');
   useEffect(() => {
     if (!user || imSupport || !bereit) return;
     let weg = false;
     const t = setTimeout(() => {
-      gesamtsaldenLaden(user.companyId, relevant, halbeTage)
+      gesamtsaldenLaden(user.companyId, mitSaldo, halbeTage)
         .then((m) => {
           if (weg) return;
           gesamtGeholt.current = true;
@@ -574,9 +579,11 @@ export default function AccountingView() {
         const monthEntries = ihre.filter((e) => e.date.startsWith(monthPrefix));
         const urlaub = urlaubJePerson.get(u.uid);
         const deaktiviert = istDeaktiviert(u);
+        const ohneSoll = ohneSollAussage(u);
         return {
           user: u,
           deaktiviert,
+          ohneSoll,
           monthEntries,
           vorlauf: ihre.filter((e) => e.date >= wochenbeginn && e.date < erster),
           // Vom Jahr zählt hier nur der Urlaub (`yearlyUrlaubDays`) — die übrigen Buchungen des Jahres braucht die Rechnung nicht.
@@ -585,8 +592,8 @@ export default function AccountingView() {
             regel: urlaubsRegel,
             anpassungen: anpassungen.filter((a) => a.userId === u.uid),
           }),
-          // Ohne Austrittsdatum ist ein Tag nach dem Ausscheiden keine Lücke.
-          completeness: deaktiviert
+          // Ohne Austrittsdatum ist ein Tag nach dem Ausscheiden keine Lücke; mit ihm zählt bis dahin jeder Tag (E87).
+          completeness: ohneSoll
             ? { status: 'complete' as const, missingCount: 0, missingDates: [] }
             : calcCompleteness(u, monthEntries, year, month),
         };
@@ -609,12 +616,12 @@ export default function AccountingView() {
     „GEBUCHT BISHER“ ÜBER ALLE: die Summe derselben Zahlen, die in den Zeilen
     stehen (`stats.istMin`, `stats.sollMin`) — nichts neu gerechnet.
   */
-  // Ohne die Deaktivierten: ihr Soll ist ohne Austrittsdatum keine Aussage, und Ist ohne Soll verzöge den Vergleich.
+  // Ohne die Deaktivierten ohne Austrittsdatum: ihr Soll ist keine Aussage, und Ist ohne Soll verzöge den Vergleich.
   const summe = useMemo(
-    () => alleRows.reduce((s, r) => (r.deaktiviert ? s : { ist: s.ist + r.stats.istMin, soll: s.soll + r.stats.sollMin }), { ist: 0, soll: 0 }),
+    () => alleRows.reduce((s, r) => (r.ohneSoll ? s : { ist: s.ist + r.stats.istMin, soll: s.soll + r.stats.sollMin }), { ist: 0, soll: 0 }),
     [alleRows],
   );
-  const aktiveZeilen = useMemo(() => alleRows.filter((r) => !r.deaktiviert).length, [alleRows]);
+  const aktiveZeilen = useMemo(() => alleRows.filter((r) => !r.ohneSoll).length, [alleRows]);
 
   /*
     DIE ARBEITSZEITGRENZEN — EINMAL geprüft für die ganze Seite: die Karte,
@@ -696,7 +703,7 @@ export default function AccountingView() {
   const angezeigteSumme = useMemo(() => {
     if (ansicht !== 'woche') return summe;
     return alleRows.reduce((s, r) => {
-      if (r.deaktiviert) return s;
+      if (r.ohneSoll) return s;
       const woche = summeDerTage(wochenWerte.get(r.user.uid) ?? []);
       return { ist: s.ist + woche.istMin, soll: s.soll + woche.sollMin };
     }, { ist: 0, soll: 0 });
@@ -719,20 +726,24 @@ export default function AccountingView() {
 
   const zeilen = useMemo((): UebersichtZeile[] => {
     const saldoText = (min: number) => `${min > 0 ? '+' : ''}${fmtMin(min)}`;
-    return rows.map(({ user: u, stats, completeness, deaktiviert }) => {
+    return rows.map(({ user: u, stats, completeness, deaktiviert, ohneSoll }) => {
       const rolle = einstufungText(u, heute) || u.role;
       if (imSupport) {
         return { user: u, status: 'nicht einsehbar', achtung: false, werte: [], offen: 0, gebucht: '', soll: '', saldo: '' };
       }
-      // Ohne Austrittsdatum: was gebucht ist, ja; Soll und Saldo sind keine Aussage.
-      const mitSoll = stats.hasConfig && !deaktiviert;
+      // Ohne Austrittsdatum: was gebucht ist, ja; Soll und Saldo sind keine Aussage. Mit ihm bis zum letzten Tag (E87).
+      const mitSoll = stats.hasConfig && !ohneSoll;
+      const ausgeschieden = deaktiviert
+        ? `${rolle} · ${u.austritt ? `ausgetreten am ${datumAT(u.austritt)}` : 'deaktiviert'}`
+        : null;
       if (ansicht === 'woche') {
         const werte = wochenWerte.get(u.uid) ?? [];
         const offen = werte.filter((t) => t.zustand === 'fehlt').length;
         const s = summeDerTage(werte);
         return {
           user: u,
-          status: deaktiviert ? `${rolle} · deaktiviert` : offen > 0 ? `${tageWort(offen)} ${offen === 1 ? 'fehlt' : 'fehlen'}` : rolle,
+          // Eine Lücke vor dem Austritt geht vor: sie ist zu tun (E87).
+          status: offen > 0 ? `${tageWort(offen)} ${offen === 1 ? 'fehlt' : 'fehlen'}` : ausgeschieden ?? rolle,
           achtung: offen > 0,
           werte,
           offen,
@@ -745,8 +756,8 @@ export default function AccountingView() {
       return {
         user: u,
         status:
-          deaktiviert
-            ? `${rolle} · deaktiviert`
+          ausgeschieden && offen === 0
+            ? ausgeschieden
             : offen > 0
             ? `${tageWort(offen)} ohne Buchung`
             : !stats.hasConfig
@@ -760,11 +771,11 @@ export default function AccountingView() {
         grenze: (grenzenJePerson.get(u.uid)?.length ?? 0) > 0,
         offen,
         gebucht: fmtMin(stats.istMin),
-        soll: deaktiviert ? '—' : fmtMin(stats.sollMin),
+        soll: ohneSoll ? '—' : fmtMin(stats.sollMin),
         /* Ohne Eintrittsdatum ist der Saldo keine Null, sondern gar keine Aussage. */
         saldo: mitSoll ? saldoText(stats.saldoMin) : '—',
         gesamt:
-          deaktiviert
+          ohneSoll
             ? '—'
             : gesamt === 'laedt'
             ? '…'
@@ -772,7 +783,7 @@ export default function AccountingView() {
               ? '—'
               : saldoText(Math.round(gesamt.get(u.uid)! * 60)),
         /* Dieselbe Zahl für die Saldolinie — gerundet wie im Text, damit Strecke und Zahl übereinstimmen. */
-        gesamtMinuten: !deaktiviert && gesamt instanceof Map && gesamt.has(u.uid) ? Math.round(gesamt.get(u.uid)! * 60) : null,
+        gesamtMinuten: !ohneSoll && gesamt instanceof Map && gesamt.has(u.uid) ? Math.round(gesamt.get(u.uid)! * 60) : null,
       };
     });
   }, [rows, imSupport, ansicht, wochenWerte, monatsWerte, heute, grenzenJePerson, gesamt]);
