@@ -393,12 +393,27 @@
 @layer components {
   /* Die Leiste: eckig, Linie rundum, wie im Chat (E77) — unter dem Einsatz, in der letzten Zeile darüber. */
   .einsatz-halter { position: relative; width: 100%; pointer-events: auto; }
-  .einsatz-leiste { display: none; position: absolute; top: 100%; right: 0; z-index: 30; padding: 0.125rem; border: 1px solid var(--border-strong); background: var(--surface); }
-  .einsatz-halter[data-leiste="oben"] > .einsatz-leiste { top: auto; bottom: 100%; }
+  .einsatz-leiste { display: none; position: absolute; top: 100%; left: 0; z-index: 30; padding: 0.125rem; border: 1px solid var(--border-strong); background: var(--surface); }
+  /*
+    Die Leiste steht immer unter dem Einsatz; unter der letzten Zeile hält das
+    Raster ihre Höhe frei (zwei Rasterzellen, auch für die 44-px-Ziele nach
+    langem Drücken) — sonst läge sie dort im Rollbereich verborgen.
+  */
+  @media (min-width: 760px) { .wp-huelle-planen { padding-bottom: 3rem; } }
+  /*
+    Die Einträge einer Zelle bilden eine eigene Ebene (`.zelle-inhalt`,
+    z-index 1): ohne Anheben läge die Leiste unter den Einträgen der Zeile
+    darunter und unter der klebenden Namensspalte (z-index 10).
+  */
+  .zelle-inhalt:has(.einsatz-halter:is(:hover, :focus-within, [data-offen])) { z-index: 20; }
   .einsatz-halter:hover > .einsatz-leiste { display: flex; }
   .einsatz-halter:focus-within > .einsatz-leiste, .einsatz-halter[data-offen] > .einsatz-leiste { display: flex; }
   /* Angehoben mit dem Finger: 44-px-Ziele, wie die schwebende Leiste im Chat (E79). */
-  .einsatz-halter[data-offen] .leiste-knopf { width: 2.75rem; height: 2.75rem; }
+  .einsatz-knopf { display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; color: var(--text-muted); }
+  .einsatz-knopf:hover { background: var(--surface-2); color: var(--text); }
+  .einsatz-knopf[data-ton="gefahr"] { color: var(--danger); }
+  .einsatz-knopf:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 0; }
+  .einsatz-halter[data-offen] .einsatz-knopf { width: 2.75rem; height: 2.75rem; }
   .einsatz-halter[data-offen] > .eintrag { outline: 2px solid var(--focus-ring); outline-offset: 0; }
   /* Am Schreibtisch zieht man den Einsatz: die Hand zeigt es. */
   @media (min-width: 760px) { [data-ziehbar] { cursor: grab; } }

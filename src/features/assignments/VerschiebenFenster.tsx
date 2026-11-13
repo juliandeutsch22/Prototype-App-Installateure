@@ -50,7 +50,7 @@ export default function VerschiebenFenster({
     <BottomSheet open onClose={onClose} label="Einsatz verschieben" titel="Einsatz verschieben" auchBreit>
       <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void absenden(); }}>
         <p className="fenster-ueber">{titel} · {wer} · {tagLang(einsatz.date)}</p>
-        <InputField id="verschieben-tag" label="Tag" type="date" required value={tag} onChange={(e) => setTag(e.target.value)} />
+        <InputField id="verschieben-tag" label="Tag" type="date" required pflicht value={tag} onChange={(e) => setTag(e.target.value)} />
         <SelectField id="verschieben-person" label="Person" value={person} onChange={(e) => setPerson(e.target.value)}>
           {/* Wer nicht mehr einplanbar ist, steht trotzdem da, solange er der Ausgangspunkt ist. */}
           {!personen.some((u) => u.uid === einsatz.userId) && <option value={einsatz.userId}>{wer}</option>}

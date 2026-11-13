@@ -246,14 +246,8 @@ export function PersonenWoche({
   infoFuer: (tag: string, nummer: string) => BaustellenInfo;
 }) {
   const mitKoepfen = gruppen.length > 1;
-  /*
-    In der letzten sichtbaren Zeile steht die Leiste eines Einsatzes über
-    ihm: darunter endet das Raster, und sie läge im Rollbereich verborgen.
-  */
-  const sichtbar = gruppen.filter((gr) => !mitKoepfen || !zu.has(gr.name)).flatMap((gr) => gr.leute);
-  const letzte = sichtbar[sichtbar.length - 1]?.uid;
   return (
-    <div className="wp-huelle" role="region" aria-label="Wochenplan seitlich und nach unten scrollen" tabIndex={0}>
+    <div className={g.aktionen ? 'wp-huelle wp-huelle-planen' : 'wp-huelle'} role="region" aria-label="Wochenplan seitlich und nach unten scrollen" tabIndex={0}>
       <table aria-label="Wochenplan als Tabelle" className={tabellenKlasse(g)}>
         <Spalten g={g} />
         <TagesKopf ecke="Mitarbeiter" g={g} />
@@ -279,7 +273,7 @@ export function PersonenWoche({
                         </span>
                       </th>
                       {g.tage.map((tag) => (
-                        <PersonenZelle key={tag} u={u} tag={tag} g={g} brett={brett} zuFuer={zuFuer} infoFuer={infoFuer} leisteOben={u.uid === letzte} />
+                        <PersonenZelle key={tag} u={u} tag={tag} g={g} brett={brett} zuFuer={zuFuer} infoFuer={infoFuer} />
                       ))}
                     </tr>
                   ))}
@@ -299,7 +293,6 @@ function PersonenZelle({
   brett,
   zuFuer,
   infoFuer,
-  leisteOben,
 }: {
   u: AppUser;
   tag: string;
@@ -307,7 +300,6 @@ function PersonenZelle({
   brett: Brett;
   zuFuer: (uid: string, tag: string) => boolean;
   infoFuer: (tag: string, nummer: string) => BaustellenInfo;
-  leisteOben?: boolean;
 }) {
   const z = brett.get(u.uid)?.get(tag);
   const { datum } = tagKurz(tag);
@@ -351,8 +343,7 @@ function PersonenZelle({
               onEinsatz={g.onEinsatz}
               onTermin={g.onTermin}
               aktionen={g.lesen ? undefined : g.aktionen}
-              leisteOben={leisteOben}
-            />
+                  />
           </div>
         )}
       </td>
@@ -394,8 +385,7 @@ function PersonenZelle({
             onEinsatz={g.onEinsatz}
             onTermin={g.onTermin}
             aktionen={g.aktionen}
-            leisteOben={leisteOben}
-          />
+              />
         </div>
       )}
     </td>

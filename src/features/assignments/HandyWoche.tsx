@@ -274,7 +274,6 @@ function TagesPerson({
             onEinsatz={onEinsatz}
             onTermin={onTermin}
             aktionen={aktionen}
-            leisteOben={letzte}
           />
         )}
         {/*

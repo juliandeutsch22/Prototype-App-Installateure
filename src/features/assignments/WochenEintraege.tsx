@@ -64,15 +64,12 @@ function Einsatzblock({
   lesen,
   onEinsatz,
   aktionen,
-  leisteOben,
 }: {
   person: AppUser;
   tag: string;
   datum: string;
   b: Zelle['baustellen'][number];
   aktionen?: EinsatzAktionen;
-  /** In der letzten Zeile steht die Leiste über dem Block, sonst darunter. */
-  leisteOben?: boolean;
   info: BaustellenInfo;
   /** Eingeteilt, aber ganztags weg: „Krank“ bzw. „abwesend“. */
   konflikt: string | null;
@@ -145,27 +142,26 @@ function Einsatzblock({
     <div
       className="einsatz-halter"
       data-offen={aktionen.offen === a.id ? '' : undefined}
-      data-leiste={leisteOben ? 'oben' : undefined}
     >
       {knopf(aktionen.griff({ art: 'einsatz', id: a.id, tag, person: person.uid, nummer: b.nummer, titel: b.name }))}
       {/* Eckig mit Linie rundum, wie die Leiste im Chat (E77) — nur die Zeichen, ihr Name im `title`. */}
       <div role="toolbar" aria-label={`Einsatz ${b.name}, ${person.name}, ${datum}`} className="einsatz-leiste">
-        <button type="button" className="leiste-knopf" aria-label="Bearbeiten" title="Bearbeiten" onClick={() => onEinsatz({ datum: tag, projectNumber: b.nummer })}>
+        <button type="button" className="einsatz-knopf" aria-label="Bearbeiten" title="Bearbeiten" onClick={() => onEinsatz({ datum: tag, projectNumber: b.nummer })}>
           <Icon name="pencil" size={18} />
         </button>
-        <button type="button" className="leiste-knopf" aria-label="Verschieben …" title="Verschieben …" onClick={() => aktionen.onVerschieben(a, b.name)}>
+        <button type="button" className="einsatz-knopf" aria-label="Verschieben …" title="Verschieben …" onClick={() => aktionen.onVerschieben(a, b.name)}>
           <Icon name="verschieben" size={18} />
         </button>
         <button
           type="button"
-          className="leiste-knopf"
+          className="einsatz-knopf"
           aria-label={`Auf ${tagKurzText(nach)} kopieren`}
           title={`Auf ${tagKurzText(nach)} kopieren`}
           onClick={() => aktionen.onKopieren(a, b.name, nach)}
         >
           <Icon name="kopieren" size={18} />
         </button>
-        <button type="button" className="leiste-knopf" data-ton="gefahr" aria-label="Entfernen …" title="Entfernen …" onClick={() => aktionen.onEntfernen(a, b.name)}>
+        <button type="button" className="einsatz-knopf" data-ton="gefahr" aria-label="Entfernen …" title="Entfernen …" onClick={() => aktionen.onEntfernen(a, b.name)}>
           <Icon name="papierkorb" size={18} />
         </button>
       </div>
@@ -240,14 +236,12 @@ export function PersonEintraege({
   onEinsatz,
   onTermin,
   aktionen,
-  leisteOben,
 }: {
   person: AppUser;
   tag: string;
   datum: string;
   zelle: Zelle | undefined;
   aktionen?: EinsatzAktionen;
-  leisteOben?: boolean;
   /** Der Betrieb hat für diese Person zu. */
   zu: boolean;
   /** Alle Termine dieses Tages. */
@@ -302,7 +296,6 @@ export function PersonEintraege({
         lesen={lesen}
         onEinsatz={onEinsatz}
         aktionen={lesen ? undefined : aktionen}
-        leisteOben={leisteOben}
       />,
     );
   }
