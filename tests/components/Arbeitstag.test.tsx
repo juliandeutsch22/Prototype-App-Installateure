@@ -285,9 +285,19 @@ describe('Timer-Leiste', () => {
     zeigeLeiste('/material', 'telefon');
     const leiste = await screen.findByRole('region', { name: 'Laufender Arbeitstag' });
     expect(within(leiste).getByText('4:17')).toBeInTheDocument();
-    expect(within(leiste).getByText('B-1')).toBeInTheDocument();
+    // Seit D7 (E90) der Name wie auf der Karte, nicht die Nummer.
+    expect(await within(leiste).findByText(/Familie Huber/)).toBeInTheDocument();
     expect(within(leiste).getByRole('button', { name: 'Pause beginnen' })).toBeInTheDocument();
     expect(within(leiste).getByRole('button', { name: 'Stoppen und prüfen' })).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ist die Baustelle nicht zu holen (ohne Netz), steht die Nummer', async () => {
+    sitzungen = laeuft();
+    const projekte = await import('@/lib/db/projects');
+    vi.mocked(projekte.listProjectsByNumbers).mockRejectedValueOnce(new Error('Failed to fetch'));
+    zeigeLeiste('/material', 'telefon');
+    const leiste = await screen.findByRole('region', { name: 'Laufender Arbeitstag' });
+    expect(within(leiste).getByText('B-1')).toBeInTheDocument();
   });
 
   it('nicht auf Start und Zeiterfassung — dort steht die Karte; am Telefon nicht im Gespräch', async () => {
