@@ -37,6 +37,8 @@ const OHNE_LEITUNG: Project = {
 } as Project;
 
 let materialien: WithId<Material>[] = [];
+/** Artikel, die nur über `katalogNachIds` kommen — nicht auf der ersten Seite des Katalogs. */
+let nurNachIds: WithId<Material>[] = [];
 let projekte: Project[] = [];
 let eigene: WithId<MaterialOrder>[] = [];
 let abosFehler: { material?: boolean; eigene?: boolean; projekte?: boolean } = {};
@@ -81,6 +83,8 @@ vi.mock('@/lib/db/materials', () => ({
     return Promise.resolve(ergebnis());
   },
   sucheKatalog: async (_c: string, begriff: string, max = 20) => katalogTreffer(begriff).slice(0, max),
+  // Zuletzt angefordert (C5): was nicht auf der geladenen Seite steht, holt die Ansicht nach.
+  katalogNachIds: async (_c: string, ids: readonly string[]) => [...materialien, ...nurNachIds].filter((m) => ids.includes(m.id)),
   katalogBeobachten: (_c: string, melde: () => void) => {
     katalogGeaendert = melde;
     return () => undefined;
@@ -182,6 +186,7 @@ beforeEach(() => {
   laufenderTag = undefined;
   letzteBuchung = null;
   materialien = [ROHR, DICHTUNG];
+  nurNachIds = [];
   katalogAbfragen = [];
   katalogWahl = [];
   katalogGeaendert = () => undefined;
@@ -1251,5 +1256,75 @@ describe('Die Baustelle ist schon gewählt (B2/B3, E83)', () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(feld.value).toBe('');
     expect(screen.queryByText(/^Vorbelegt/)).toBeNull();
+  });
+});
+
+/*
+  ZULETZT ANGEFORDERT (C5, E89): die eigenen letzten Artikel über dem
+  Katalog — mit Baustelle die dieser Baustelle, sonst der letzten vier Wochen.
+*/
+describe('Zuletzt angefordert (C5, E89)', () => {
+  const TAG = 24 * 60 * 60 * 1000;
+  const HANF: WithId<Material> = {
+    id: 'm9', companyId: 'perl', name: 'Hanf 100 g', category: 'Kleinteile', unit: 'Stk', stock: 8,
+  } as WithId<Material>;
+  const eigen = (rest: Partial<MaterialOrder>) =>
+    ({ id: `o-${Math.random()}`, companyId: 'perl', materialId: 'm1', materialName: 'Kupferrohr 15mm', quantity: 6,
+      status: 'Erledigt', transactionType: 'order', userId: 'u1', projectNumber: '2026-042',
+      createdAt: Date.now() - 2 * TAG, ...rest }) as WithId<MaterialOrder>;
+  const block = async () =>
+    (await screen.findByRole('heading', { name: 'Zuletzt angefordert' })).closest('section') as HTMLElement;
+  const keinBlock = () => expect(screen.queryByRole('heading', { name: 'Zuletzt angefordert' })).toBeNull();
+
+  it('mit Baustelle: die Artikel dieser Baustelle, neueste zuerst — ein Tipp legt eines in die Liste', async () => {
+    // Hanf steht nicht auf der ersten Seite des Katalogs — er wird nachgeholt.
+    nurNachIds = [HANF];
+    eigene = [
+      eigen({ materialId: 'm9', materialName: 'Hanf 100 g', quantity: 2, createdAt: Date.now() - TAG }),
+      eigen({}),
+      eigen({ materialId: 'm2', materialName: 'Dichtung 1/2"', projectNumber: '2026-099' }),
+    ];
+    zeige('/material?projekt=2026-042');
+    const b = within(await block());
+    expect(b.getByText('Für diese Baustelle')).toBeInTheDocument();
+    expect(await b.findByText('Hanf 100 g')).toBeInTheDocument();
+    const zeilen = b.getAllByRole('listitem').map((z) => z.textContent ?? '');
+    expect(zeilen[0]).toMatch(/^Hanf 100 g/);
+    expect(zeilen[1]).toMatch(/^Kupferrohr 15mm.*zuletzt 6 m/);
+    // Die Dichtung gehört zu einer anderen Baustelle.
+    expect(b.queryByText('Dichtung 1/2"')).toBeNull();
+    await userEvent.click(b.getByRole('button', { name: 'Hanf 100 g in die Liste' }));
+    expect(b.getByRole('textbox', { name: /für Hanf 100 g in der Liste/ })).toHaveValue('1');
+    expect(screen.getByRole('button', { name: /^Anforderung \(1\) abschicken$/ })).toBeInTheDocument();
+  });
+
+  it('ohne Baustelle: die letzten vier Wochen — Älteres und Retouren nicht', async () => {
+    eigene = [
+      eigen({ projectNumber: undefined }),
+      eigen({ materialId: 'm2', materialName: 'Dichtung 1/2"', createdAt: Date.now() - 40 * TAG }),
+      eigen({ materialId: 'm2', materialName: 'Dichtung 1/2"', transactionType: 'return' }),
+    ];
+    zeige();
+    const b = within(await block());
+    expect(b.getByText('In den letzten 4 Wochen')).toBeInTheDocument();
+    expect(b.getByText('Kupferrohr 15mm')).toBeInTheDocument();
+    expect(b.queryByText('Dichtung 1/2"')).toBeNull();
+  });
+
+  it('Gegenprobe: nur frei getippte Anforderungen — kein Block', async () => {
+    eigene = [eigen({ materialId: null, materialName: 'Eckventil' })];
+    zeige();
+    await screen.findByText(/Meine Anforderungen \(\d+\)/);
+    keinBlock();
+  });
+
+  it('beim Suchen verschwindet er, ohne Suche ist er wieder da', async () => {
+    eigene = [eigen({})];
+    zeige();
+    await block();
+    await userEvent.type(screen.getByRole('searchbox'), 'Dicht');
+    keinBlock();
+    await userEvent.clear(screen.getByRole('searchbox'));
+    expect(await block()).toBeInTheDocument();
   });
 });

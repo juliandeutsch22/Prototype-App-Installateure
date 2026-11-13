@@ -138,6 +138,13 @@ export function listOwnOpenOrders(
   return pg.listOwnOpenOrders(companyId, uid);
 }
 
+/** Selbst für eine Baustelle Abgeholtes in einem Zeitraum — die Vorschläge am Schein (C2, E89). */
+export function eigeneAbgeholt(
+  companyId: string, uid: string, projectNumber: string, abIso: string, bisIso: string,
+): Promise<WithId<MaterialOrder>[]> {
+  return pg.eigeneAbgeholt(companyId, uid, projectNumber, abIso, bisIso);
+}
+
 /** Ausgegebenes, noch nicht abgerechnetes Material einer Baustelle — für die Rechnung. */
 export function ausgegebenesMaterial(projectNumber: string) {
   return pg.ausgegebenesMaterial(projectNumber);

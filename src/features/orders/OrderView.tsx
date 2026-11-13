@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import Adressfilter from '@/components/Adressfilter';
-import { katalogSeite, katalogBeobachten, LOW_STOCK_THRESHOLD, lagerFrei, type LagerStand } from '@/lib/db/materials';
+import { katalogSeite, katalogBeobachten, katalogNachIds, LOW_STOCK_THRESHOLD, lagerFrei, type LagerStand } from '@/lib/db/materials';
 import { gefundenUeberText, type MitNummer } from '@/lib/katalogTreffer';
 import { Bereit, Wert } from '@/components/Wert';
 import { imLager, istKnapp } from './lagerartikel';
@@ -38,6 +38,7 @@ import { grundAus } from '@/lib/fehlerGrund';
 import { datumAusMs } from '@/lib/datum';
 import { abschlussText, herkunftFragen } from './abschlussText';
 import AnforderungFenster from './AnforderungFenster';
+import { zuletztAngefordert, ZULETZT_TAGE } from './zuletztAngefordert';
 import RetoureFenster from './RetoureFenster';
 import MeinFahrzeug from './MeinFahrzeug';
 import { zahlAlsText, zahlOder } from '@/lib/zahl';
@@ -282,6 +283,40 @@ export default function OrderView() {
   }, [projects, projectNumber]);
 
 
+  /*
+    ZULETZT ANGEFORDERT (C5, E89): die eigenen letzten Artikel dieser
+    Baustelle, sonst der letzten vier Wochen. Die Artikel kommen aus dem
+    Katalog — was nicht auf der geladenen Seite steht, wird nachgeholt.
+  */
+  const zuletzt = useMemo(() => zuletztAngefordert(myOrders, projectNumber, Date.now()), [myOrders, projectNumber]);
+  const [zuletztDazu, setZuletztDazu] = useState<Map<string, WithId<Material> | null>>(new Map());
+  const zuletztFehlen = zuletzt.artikel
+    .map((a) => a.materialId)
+    .filter((id) => !zuletztDazu.has(id) && !materials.some((m) => m.id === id))
+    .sort()
+    .join('|');
+  useEffect(() => {
+    if (!user || !zuletztFehlen) return;
+    let weg = false;
+    katalogNachIds(user.companyId, zuletztFehlen.split('|'))
+      .then((artikel) => {
+        if (weg) return;
+        // Auch was nicht (mehr) da ist, gilt als gefragt — sonst fragte jeder Durchlauf neu.
+        setZuletztDazu((alt) => {
+          const neu = new Map(alt);
+          for (const id of zuletztFehlen.split('|')) if (!neu.has(id)) neu.set(id, null);
+          for (const m of artikel) neu.set(m.id, m);
+          return neu;
+        });
+      })
+      .catch(() => undefined);
+    return () => { weg = true; };
+  }, [user, zuletztFehlen]);
+  const zuletztZeilen = zuletzt.artikel
+    .map((a) => ({ ...a, m: materials.find((m) => m.id === a.materialId) ?? zuletztDazu.get(a.materialId) ?? undefined }))
+    // Ausgelaufenes nur, solange noch etwas im Lager liegt — wie im Katalog darunter.
+    .filter((a): a is typeof a & { m: WithId<Material> } => !!a.m && (!a.m.ausgelaufen || (a.m.stock ?? 0) > 0));
+
   const activeOrders = useMemo(
     () => myOrders.filter((o) => o.status !== 'Erledigt' && o.transactionType !== 'return'
       && (!nurAbholbereit || o.status === 'Abholbereit')),
@@ -512,6 +547,30 @@ export default function OrderView() {
         im Katalog der Verwaltung. Vorher ein beschriftetes Feld „Suche“ ohne
         Lupe über die ganze Breite, das aussah wie ein Formularfeld.
       */}
+      {/* Nur ohne Suche: wer tippt, sucht etwas Bestimmtes, und die Zeilen schöben die Treffer nach unten. */}
+      {meineGeladen && search.trim() === '' && zuletztZeilen.length > 0 && (
+        <Card title="Zuletzt angefordert" buendig>
+          <p className="blatt-einzug pb-2 text-sm text-ink-muted">
+            {zuletzt.fuerBaustelle ? 'Für diese Baustelle' : `In den letzten ${ZULETZT_TAGE / 7} Wochen`}
+          </p>
+          <List>
+            {zuletztZeilen.map(({ m, menge, am }) => {
+              const inListe = cart.reduce((s, l) => (l.materialId === m.id ? s + l.quantity : s), 0);
+              const imKorb = cart.find((l) => passtZurZeile(l, m.id))?.quantity ?? 0;
+              return (
+                <ListRow
+                  key={m.id}
+                  title={m.name}
+                  subtitle={[`zuletzt ${fmtMenge(menge)} ${m.unit ?? 'Stk'}`, datumAusMs(am)].filter(Boolean).join(' · ')}
+                >
+                  <KorbMenge material={m} imKorb={imKorb} insgesamt={inListe} onMenge={mengeImKorb} />
+                </ListRow>
+              );
+            })}
+          </List>
+        </Card>
+      )}
+
       <Card title="Katalog" buendig>
         <Listenleiste
           suche={{

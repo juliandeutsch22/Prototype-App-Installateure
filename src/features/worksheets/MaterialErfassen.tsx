@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import type { Material } from '@/types';
+import { useEffect, useMemo, useState } from 'react';
+import type { Material, MaterialOrder } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
@@ -12,6 +12,11 @@ import { neueKennung, type MaterialZeile } from './materialZeilen';
 import { useKatalogSuche } from '@/features/orders/useKatalogSuche';
 import { gefundenUeberText } from '@/lib/katalogTreffer';
 import { ZahlWertFeld } from '@/components/ZahlFeld';
+import { eigeneAbgeholt } from '@/lib/db/materialOrders';
+import { katalogNachIds } from '@/lib/db/materials';
+import { fmtMenge } from '@/lib/belegLayout';
+import { datumAusMs } from '@/lib/datum';
+import { abgeholtVorschlaege, abgeholtZeitraum } from './abgeholtVorschlaege';
 
 /**
  * Das verbaute Material am Handwerksschein — vom Monteur selbst eingetragen.
@@ -53,9 +58,14 @@ interface Props {
    * `null`. Der Schein sperrt damit das Unterschreiben — siehe dort.
    */
   onOffen?: (offen: string | null) => void;
+  /** Wer den Schein schreibt — seine Abholungen für die Baustelle stehen als Vorschlag da (C2, E89). */
+  uid?: string;
+  /** Baustelle und Tag des Scheins; ohne Baustelle gibt es keine Vorschläge. */
+  projectNumber?: string;
+  datum?: string;
 }
 
-export default function MaterialErfassen({ companyId, materials, zeilen, onChange, onOffen }: Props) {
+export default function MaterialErfassen({ companyId, materials, zeilen, onChange, onOffen, uid, projectNumber, datum }: Props) {
   const [suche, setSuche] = useState('');
   const [freierName, setFreierName] = useState('');
 
@@ -84,10 +94,54 @@ export default function MaterialErfassen({ companyId, materials, zeilen, onChang
     .filter((m) => !m.ausgelaufen)
     .slice(0, 8);
 
-  function hinzufuegen(name: string, einheit?: string, materialId?: string) {
+  /*
+    FÜR DIESE BAUSTELLE ABGEHOLT (C2, E89): was man selbst in den zwei Wochen
+    bis zum Scheintag abgeholt hat. Nichts davon kommt von selbst auf den
+    Schein — ein Tipp übernimmt die Zeile mit der abgeholten Menge, die man
+    danach auf das Verbaute ändert.
+  */
+  const [abgeholt, setAbgeholt] = useState<MaterialOrder[]>([]);
+  const [abgeholtFehlt, setAbgeholtFehlt] = useState(false);
+  /** Einheiten der vorgeschlagenen Artikel, die nicht unter den geladenen stehen. */
+  const [einheiten, setEinheiten] = useState<Map<string, string | undefined>>(new Map());
+  useEffect(() => {
+    setAbgeholt([]);
+    setAbgeholtFehlt(false);
+    if (!companyId || !uid || !projectNumber || !datum) return;
+    let weg = false;
+    const { abIso, bisIso } = abgeholtZeitraum(datum);
+    // Über `then`, damit auch ein Fehler beim Aufruf selbst nur die Vorschläge kostet, nicht den Schein.
+    Promise.resolve()
+      .then(() => eigeneAbgeholt(companyId, uid, projectNumber, abIso, bisIso))
+      .then(async (rows) => {
+        if (weg) return;
+        setAbgeholt(rows);
+        const fehlen = rows.map((o) => o.materialId).filter((id): id is string => !!id && !materials.some((m) => m.id === id));
+        if (fehlen.length === 0) return;
+        const artikel = await katalogNachIds(companyId, fehlen).catch(() => []);
+        if (!weg) setEinheiten(new Map(artikel.map((m) => [m.id, m.unit])));
+      })
+      .catch(() => { if (!weg) setAbgeholtFehlt(true); });
+    return () => { weg = true; };
+    // `materials` nur für die Einheit: ein neu geladener Katalog holt die Abholungen nicht noch einmal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, uid, projectNumber, datum]);
+  const vorschlaege = useMemo(() => abgeholtVorschlaege(abgeholt, zeilen), [abgeholt, zeilen]);
+  const einheitVon = (materialId: string | null) =>
+    materialId ? materials.find((m) => m.id === materialId)?.unit ?? einheiten.get(materialId) : undefined;
+
+  function hinzufuegen(name: string, einheit?: string, materialId?: string, menge = 1) {
+    // Ein zweiter Tipp auf denselben Artikel legt eines dazu (C1, E89) — zwei
+    // Zeilen desselben Artikels auf einem Beleg, den der Kunde unterschreibt,
+    // sähen nach einem Fehler aus.
+    const schon = materialId ? zeilen.find((z) => z.materialId === materialId) : undefined;
+    if (schon) {
+      onChange(zeilen.map((z) => (z.id === schon.id ? { ...z, menge: (z.menge > 0 ? z.menge : 0) + 1 } : z)));
+      return;
+    }
     onChange([
       ...zeilen,
-      { id: neueKennung(), name, menge: 1, einheit, ...(materialId ? { materialId } : {}) },
+      { id: neueKennung(), name, menge, einheit, ...(materialId ? { materialId } : {}) },
     ]);
   }
 
@@ -145,6 +199,41 @@ export default function MaterialErfassen({ companyId, materials, zeilen, onChang
         </ul>
       )}
 
+      {vorschlaege.length > 0 && (
+        <div>
+          <p className="section-label">Für diese Baustelle abgeholt</p>
+          <List>
+            {vorschlaege.map((v) => {
+              const einheit = einheitVon(v.materialId);
+              return (
+                <ListRow
+                  key={v.materialId ?? `frei:${v.name}`}
+                  title={v.name}
+                  subtitle={[
+                    `${fmtMenge(v.menge)} ${einheit ?? 'Stk'} abgeholt`,
+                    v.zuletzt != null ? `zuletzt ${datumAusMs(v.zuletzt)}` : null,
+                    v.vomHaendler ? 'beim Händler mitgenommen' : null,
+                  ].filter(Boolean).join(' · ')}
+                >
+                  <IconButton
+                    rund
+                    label={`${v.name} auf den Schein`}
+                    onClick={() => hinzufuegen(v.name, einheit, v.materialId ?? undefined, v.menge)}
+                  >
+                    <Icon name="plus" size={20} />
+                  </IconButton>
+                </ListRow>
+              );
+            })}
+          </List>
+        </div>
+      )}
+      {abgeholtFehlt && (
+        <p className="text-sm text-ink-muted">
+          Was du für diese Baustelle abgeholt hast, ließ sich gerade nicht laden — suchen geht trotzdem.
+        </p>
+      )}
+
       <div>
         <InputField
           id="wsmsuche"
@@ -182,16 +271,17 @@ export default function MaterialErfassen({ companyId, materials, zeilen, onChang
                     title={m.name}
                     subtitle={[m.category, m.articleNumber, gefundenUeberText(m)].filter(Boolean).join(' · ') || undefined}
                   >
-                    <Button
-                      variant="secondary"
-                      aria-label={`${m.name} auf den Schein`}
+                    {/* Derselbe Petrol-Kreis wie im Katalog (C1, E89): ein Tipp legt eines hinein, die Menge steht danach in der Zeile oben. */}
+                    <IconButton
+                      rund
+                      label={`${m.name} auf den Schein`}
                       onClick={() => {
                         hinzufuegen(m.name, m.unit, m.id);
                         setSuche('');
                       }}
                     >
-                      Wählen
-                    </Button>
+                      <Icon name="plus" size={20} />
+                    </IconButton>
                   </ListRow>
                 ))}
               </List>

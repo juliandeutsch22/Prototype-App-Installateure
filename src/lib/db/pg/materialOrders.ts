@@ -335,6 +335,25 @@ export function listOwnOpenOrders(companyId: string, uid: string) {
 }
 
 /**
+ * Was jemand selbst für eine Baustelle abgeholt hat, erledigt zwischen `abIso`
+ * und `bisIso` — die Vorschläge am Schein (C2, E89). Neueste zuerst.
+ */
+export function eigeneAbgeholt(companyId: string, uid: string, projectNumber: string, abIso: string, bisIso: string) {
+  return abfragen<MaterialOrder>(ANFORDERUNGEN, companyId, {
+    wo: [
+      { art: 'gleich', feld: 'userId', wert: uid },
+      { art: 'gleich', feld: 'projectNumber', wert: projectNumber },
+      { art: 'gleich', feld: 'status', wert: 'Erledigt' },
+      { art: 'gleich', feld: 'transactionType', wert: 'order' },
+      { art: 'ab', feld: 'erledigtAm', wert: abIso },
+      { art: 'bis', feld: 'erledigtAm', wert: bisIso },
+    ],
+    sortiere: { feld: 'erledigtAm', absteigend: true },
+    grenze: 100,
+  });
+}
+
+/**
  * Was das Lager für eine Baustelle ausgegeben hat und noch nicht abgerechnet
  * ist (23.10.2026): abgeholte Anforderungen, eingeladene Rüstlisten,
  * Retouren negativ. Nur für wer Rechnungen schreibt; gerechnet in der
