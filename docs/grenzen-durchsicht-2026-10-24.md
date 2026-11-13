@@ -362,3 +362,14 @@ Nachtlauf darf nicht wegzuklicken sein.
   einen inzwischen vielleicht umgeplanten Einsatz samt Meldung neu anzulegen.
 - **Umplanen nicht im Einblick des Supports** (E88). Grund: Datenschutz, wie
   bei „mehrere Tage“ (E85).
+- **Menge in der Materialliste unter 390 px unter dem Namen** (E89). Grund
+  fachlich: drei Tippflächen von 44 px und der Name passen dort nicht
+  nebeneinander; kleinere wären mit Handschuhen nicht zu treffen.
+- **Zuletzt angefordert nur Katalogartikel aus den letzten hundert eigenen
+  Anforderungen** (E89). Grund fachlich: mehr lädt die Seite nicht, und eine
+  frei getippte Anforderung hat keinen Artikel, den die Liste wiederfände.
+- **Am Schein nur das selbst Abgeholte der letzten vierzehn Tage** (E89).
+  Grund: Datenschutz (fremde Anforderungen liest ein Monteur nicht) und
+  fachlich (Älteres stand meist auf einem früheren Schein).
+- **„Beim Händler mitgenommen“ nicht bei abholbereiter oder bestellter
+  Ware** (E89). Grund fachlich: dann kam sie nachweislich über den Betrieb.
