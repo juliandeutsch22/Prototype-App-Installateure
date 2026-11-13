@@ -380,3 +380,16 @@ Nachtlauf darf nicht wegzuklicken sein.
   nicht kennt — der Doppeltipp ist der häufigere Fall.
 - **Ohne Medienabfrage bleibt das Zeitformular auf der Seite** (E90). Grund:
   Gerät — ohne sie ist die Breite nicht zu erfragen.
+- **Scheine ohne eigene Nummer, auch in der Suche** (E91). Grund fachlich:
+  ein Schein ist über Baustelle und Tag bestimmt; eine Nummernvergabe wäre
+  ein neuer Nummernkreis auf einem unterschriebenen Beleg und liegt beim
+  Auftraggeber.
+- **Personen in der Suche nur mit der Benutzerverwaltung** (E91). Grund:
+  Datenschutz — ohne sie gibt es keine Akte, in die ein Treffer führt.
+- **Die Projektleitung öffnet eine gefundene Rechnung nicht im Fenster**
+  (E91). Grund fachlich (M38): ihre Liste ist eine Leseliste; der Treffer
+  führt in die auf die Nummer gefilterte Liste.
+- **Rasterprüfung lokal nur je Breite** (E91). Grund: Gerät — in der
+  Cloud-Umgebung lädt Chromium nach rund 40 Seitenwechseln in einem Tab die
+  Module des Entwicklungsservers nicht mehr; in der CI läuft der Weg am
+  Stück.

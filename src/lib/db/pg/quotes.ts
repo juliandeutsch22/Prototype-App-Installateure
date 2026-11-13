@@ -121,6 +121,37 @@ export async function sucheAngebote(
   return zusammensetzen(koepfe, companyId);
 }
 
+/** Ein Treffer im Suchfenster: nur der Kopf. */
+export interface AngebotsTreffer {
+  id: string;
+  quoteNumber: string;
+  customerName: string;
+  projectNumber?: string | null;
+  quoteDate: string;
+  status: Quote['status'];
+}
+
+/**
+ * ANGEBOTE NACH NUMMER, FÜR „SUCHEN ODER SPRINGEN“ (C3, E91) — aus
+ * demselben Grund wie bei den Rechnungen nur nach der Nummer, und ohne die
+ * verworfenen: die stehen im Papierkorb, nicht unter „Angebote“.
+ */
+export async function angeboteNachNummer(
+  companyId: string,
+  begriff: string,
+  max: number,
+): Promise<AngebotsTreffer[]> {
+  const oder = oderUeberSpalten(['quote_number'], begriff);
+  if (!oder) return [];
+  return abfragen<AngebotsTreffer>(ANGEBOTE, companyId, {
+    wo: [NICHT_VERWORFEN],
+    oder,
+    spalten: 'id,quote_number,customer_name,project_number,quote_date,status',
+    sortiere: { feld: 'createdAt', absteigend: true },
+    grenze: max,
+  });
+}
+
 /**
  * Die Angebote eines Zeitraums nach Angebotsdatum, OHNE GRENZE — für das
  * Belegarchiv. Eine Obergrenze ließe dort still Angebote weg; die Liste

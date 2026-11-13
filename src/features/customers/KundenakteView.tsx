@@ -627,7 +627,8 @@ export default function KundenakteView() {
           customerId: k.id,
           baustellen: (baustellen.zustand === 'bereit' ? baustellen.daten : []).map((b) => ({
             projectNumber: b.projectNumber,
-            label: [b.projectNumber, b.address].filter(Boolean).join(' · '),
+            // Mit der Kurzbezeichnung (C3, E91): zwei Baustellen an derselben Adresse unterschied sonst nur die Nummer.
+            label: [b.projectNumber, b.bezeichnung?.trim(), b.address].filter(Boolean).join(' · '),
           })),
         }}
       />

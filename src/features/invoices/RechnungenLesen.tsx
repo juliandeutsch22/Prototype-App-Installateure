@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
+import { useAdressSuche } from '@/lib/useAdressSuche';
 import { subscribeRecentInvoices } from '@/lib/db/invoices';
 import type { WithId } from '@/lib/db/core';
 import type { Invoice } from '@/types';
@@ -34,11 +35,19 @@ export default function RechnungenLesen() {
   const { user } = useAuth();
   const [zeilen, setZeilen] = useState<WithId<Invoice>[] | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
-  const [suche, setSuche] = useState('');
   // Die Ansicht steht in der Adresse wie bei der Rechnungsverwaltung (Regel 5).
   const [parameter, setParameter] = useSearchParams();
+  /*
+    DIE NUMMER AUS „SUCHEN ODER SPRINGEN“ (E91) kommt als `?suche=`, wie in
+    der Rechnungsverwaltung — und dann gilt „Alle“: die gesuchte Rechnung ist
+    oft längst bezahlt.
+  */
+  const [suche, setSuche] = useState(() => parameter.get('suche') ?? '');
+  useAdressSuche(setSuche);
   const ansicht = parameter.get('ansicht');
-  const bereich: Bereich = BEREICHE.some((b) => b.wert === ansicht) ? (ansicht as Bereich) : 'offen';
+  const bereich: Bereich = BEREICHE.some((b) => b.wert === ansicht)
+    ? (ansicht as Bereich)
+    : parameter.get('suche') ? 'alle' : 'offen';
 
   // An der Kennung des Betriebs, nicht am Objekt — sonst abonnierte jede neue Identität neu.
   const betrieb = user?.companyId;

@@ -344,6 +344,50 @@ describe('Materialkatalog — seitenweise vom Server (19.10.2026)', () => {
     expect(await screen.findByText(/Kein Material passt zu „Heizkessel“/)).toBeInTheDocument();
   });
 
+  /*
+    AUS „SUCHEN ODER SPRINGEN“ (C3, E91): das Lager reicht den Begriff aus
+    der Adresse herein — er steht im Feld und geht gleich an den Server, auch
+    wenn der Katalog schon offen war.
+  */
+  it('nimmt einen Suchbegriff von aussen — beim Öffnen und bei offenem Katalog', async () => {
+    materialien = viele(25);
+    const { rerender } = render(
+      <ToastProvider>
+        <MaterialCatalog suche="Artikel 24" />
+      </ToastProvider>,
+    );
+    expect(screen.getByLabelText('Suche')).toHaveValue('Artikel 24');
+    expect(await screen.findByText('Artikel 24')).toBeInTheDocument();
+    expect(katalogSeite).toHaveBeenCalledWith('perl', 'Artikel 24', 20);
+    expect(screen.queryByText('Artikel 00')).not.toBeInTheDocument();
+    rerender(
+      <ToastProvider>
+        <MaterialCatalog suche="Artikel 03" />
+      </ToastProvider>,
+    );
+    await waitFor(() => expect(screen.getByLabelText('Suche')).toHaveValue('Artikel 03'));
+    expect(await screen.findByText('Artikel 03')).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: eigenes Tippen bleibt stehen, solange von aussen nichts Neues kommt', async () => {
+    materialien = viele(25);
+    const nutzer = userEvent.setup();
+    const { rerender } = render(
+      <ToastProvider>
+        <MaterialCatalog suche="Artikel 24" />
+      </ToastProvider>,
+    );
+    await screen.findByText('Artikel 24');
+    await nutzer.clear(screen.getByLabelText('Suche'));
+    await nutzer.type(screen.getByLabelText('Suche'), 'Artikel 1');
+    rerender(
+      <ToastProvider>
+        <MaterialCatalog suche="Artikel 24" lagerartikel={[]} />
+      </ToastProvider>,
+    );
+    expect(screen.getByLabelText('Suche')).toHaveValue('Artikel 1');
+  });
+
   it('„knapp“ im Kopf kommt aus den Lagerartikeln, nicht aus der gezeigten Seite', async () => {
     materialien = viele(25);
     const knapp = { id: 'k1', companyId: 'perl', name: 'Zylinder knapp', stock: 1, lagerartikel: true } as WithId<Material>;

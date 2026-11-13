@@ -227,6 +227,22 @@ it('Aktenkontext 04 · hält den Bereichsnamen bei verzögert geladenen Baustell
   expect(screen.getByRole('tab', { name: 'Termine und Wartungen' })).toHaveAttribute('aria-selected', 'true');
 });
 
+// C3 (E91): zwei Baustellen eines Kunden unterschied in der Terminauswahl nur die Nummer.
+it('der Termin aus der Kundenakte nennt bei jeder Baustelle die Kurzbezeichnung', async () => {
+  zugeordnet = [
+    { id: 'p1', projectNumber: '2026-001', customerName: 'Familie Huber', customerId: 'k1', bezeichnung: 'Bad', address: 'Ringstraße 3' } as Project & { id: string },
+    { id: 'p2', projectNumber: '2026-002', customerName: 'Familie Huber', customerId: 'k1', bezeichnung: 'Heizung', address: 'Ringstraße 3' } as Project & { id: string },
+  ];
+  zeige();
+  await userEvent.click(await screen.findByRole('tab', { name: 'Termine und Wartungen' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Termin anlegen' }));
+  const auswahl = await screen.findByRole('combobox', { name: 'Baustelle' });
+  expect(within(auswahl).getAllByRole('option').map((o) => o.textContent)).toEqual([
+    '2026-001 · Bad · Ringstraße 3',
+    '2026-002 · Heizung · Ringstraße 3',
+  ]);
+});
+
 it('Aktenkontext 04 · ordnet die jüngsten Belege nach Datum und erhält Netto-/Bruttokennzeichnung und alle älteren Belege', async () => {
   rechnungen = [
     { id: 'r1', invoiceNumber: 'RE-neu', invoiceDate: '2026-09-12', projectNumber: '2026-001', totalBrutto: 1200, paymentStatus: 'Offen' },

@@ -32,6 +32,7 @@ import { useBaustelleVorbelegung } from '@/features/projects/useBaustelleVorbele
 import { VORBELEG_TEXT, zuletztMerken, type VorbelegGrund } from '@/lib/baustelleVorbelegen';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
+import { useAdressSuche } from '@/lib/useAdressSuche';
 import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -172,7 +173,12 @@ export default function OrderView() {
   const [baustelleBeruehrt, setBaustelleBeruehrt] = useState(!!projektAusAdresse);
   const [note, setNote] = useState('');
   const [urgent, setUrgent] = useState(false);
-  const [search, setSearch] = useState('');
+  /*
+    DER ARTIKEL AUS „SUCHEN ODER SPRINGEN“ (E91) steht als `?suche=` in der
+    Adresse — auch, wenn die Seite schon offen war.
+  */
+  const [search, setSearch] = useState(() => adresse.get('suche') ?? '');
+  useAdressSuche(setSearch);
   /** Ein Artikel, den der Katalog nicht kennt — frei getippt. */
   const [freiName, setFreiName] = useState('');
   const [freiMenge, setFreiMenge] = useState('1');

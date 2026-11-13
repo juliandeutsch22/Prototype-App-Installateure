@@ -17,6 +17,14 @@ const kundenSuche = vi.fn();
 const baustellenSuche = vi.fn();
 vi.mock('@/lib/db/customers', () => ({ searchCustomers: (...a: unknown[]) => kundenSuche(...a) }));
 vi.mock('@/lib/db/projects', () => ({ searchProjects: (...a: unknown[]) => baustellenSuche(...a) }));
+const rechnungsSuche = vi.fn();
+const angebotsSuche = vi.fn();
+const personenListe = vi.fn();
+const katalogSuche = vi.fn();
+vi.mock('@/lib/db/invoices', () => ({ rechnungenNachNummer: (...a: unknown[]) => rechnungsSuche(...a) }));
+vi.mock('@/lib/db/quotes', () => ({ angeboteNachNummer: (...a: unknown[]) => angebotsSuche(...a) }));
+vi.mock('@/lib/db/users', () => ({ listUsers: (...a: unknown[]) => personenListe(...a) }));
+vi.mock('@/lib/db/materials', () => ({ sucheKatalog: (...a: unknown[]) => katalogSuche(...a) }));
 
 const { default: Suchfenster } = await import('@/app/Suchfenster');
 
@@ -40,6 +48,10 @@ beforeEach(() => {
   nutzer = { uid: 'u1', companyId: 'perl', name: 'Max', role: 'Mitarbeiter', email: 'm@perl.at' } as AppUser;
   kundenSuche.mockReset().mockResolvedValue([{ id: 'k1', name: 'Familie Huber', ort: 'Gleisdorf' }]);
   baustellenSuche.mockReset().mockResolvedValue([{ id: 'b1', projectNumber: '2026-014', customerName: 'Familie Huber' }]);
+  rechnungsSuche.mockReset().mockResolvedValue([]);
+  angebotsSuche.mockReset().mockResolvedValue([]);
+  personenListe.mockReset().mockResolvedValue([]);
+  katalogSuche.mockReset().mockResolvedValue([]);
 });
 
 describe('Suchen oder springen', () => {
@@ -104,5 +116,147 @@ describe('Suchen oder springen', () => {
     expect(document.activeElement).toBe(document.body);
     await userEvent.keyboard('{Escape}');
     expect(zu).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+    C3 (E91): AUCH NUMMERN UND MENSCHEN — jede Gruppe nur mit der Seite, die
+    die Rolle in der Navigation hat.
+  */
+  it('zwei Baustellen eines Kunden: die Kurzbezeichnung steht als zweite Zeile', async () => {
+    nutzer = { ...nutzer, role: 'Geschäftsführung' };
+    baustellenSuche.mockResolvedValue([
+      { id: 'b1', projectNumber: '2026-014', customerName: 'Familie Huber', bezeichnung: 'Bad' },
+      { id: 'b2', projectNumber: '2026-019', customerName: 'Familie Huber', bezeichnung: 'Heizung' },
+    ]);
+    zeige();
+    await userEvent.type(screen.getByRole('combobox'), 'Huber');
+    const bad = await screen.findByRole('option', { name: /2026-014/ });
+    expect(bad).toHaveTextContent(/^Familie HuberBad2026-014$/);
+    expect(within(bad).getByText('Bad')).toHaveClass('such-zweite');
+    expect(screen.getByRole('option', { name: /2026-019/ })).toHaveTextContent('Heizung');
+  });
+
+  it('findet die Rechnungsnummer und öffnet die Rechnung im Fenster der Rechnungen', async () => {
+    nutzer = { ...nutzer, role: 'Buchhaltung' };
+    rechnungsSuche.mockResolvedValue([
+      { id: 'r9', invoiceNumber: 'RE-2026-0042', customerName: 'Familie Huber', projectNumber: '2026-014', invoiceDate: '2026-10-02' },
+    ]);
+    zeige();
+    await userEvent.type(screen.getByRole('combobox'), '0042');
+    const treffer = await screen.findByRole('option', { name: /RE-2026-0042/ });
+    expect(treffer).toHaveTextContent('02.10.2026');
+    expect(rechnungsSuche).toHaveBeenCalledWith('perl', '0042', 5);
+    await userEvent.click(treffer);
+    expect(screen.getByTestId('ort')).toHaveTextContent('/invoices');
+  });
+
+  it('die Projektleitung mit „Rechnungen lesen“ landet in ihrer Liste, gefiltert auf die Nummer', async () => {
+    nutzer = { ...nutzer, role: 'Projektleiter', rechnungenLesen: true } as AppUser;
+    rechnungsSuche.mockResolvedValue([
+      { id: 'r9', invoiceNumber: 'RE-2026-0042', customerName: 'Familie Huber', projectNumber: '2026-014', invoiceDate: '2026-10-02' },
+    ]);
+    let ziel = '';
+    function Adresse() {
+      const l = useLocation();
+      ziel = l.pathname + l.search;
+      return null;
+    }
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Suchfenster offen onSchliessen={vi.fn()} />
+        <Routes><Route path="*" element={<Adresse />} /></Routes>
+      </MemoryRouter>,
+    );
+    await userEvent.type(screen.getByRole('combobox'), '0042');
+    await userEvent.click(await screen.findByRole('option', { name: /RE-2026-0042/ }));
+    expect(ziel).toBe('/invoices?suche=RE-2026-0042');
+  });
+
+  it('Angebote nach Nummer führen in das Angebot', async () => {
+    nutzer = { ...nutzer, role: 'Geschäftsführung' };
+    angebotsSuche.mockResolvedValue([
+      { id: 'q3', quoteNumber: 'AN-2026-0007', customerName: 'Familie Huber', quoteDate: '2026-09-01', status: 'Versendet' },
+    ]);
+    zeige();
+    await userEvent.type(screen.getByRole('combobox'), 'AN-2026');
+    const treffer = await screen.findByRole('option', { name: /AN-2026-0007/ });
+    expect(treffer).toHaveTextContent('Versendet');
+    await userEvent.click(treffer);
+    expect(screen.getByTestId('ort')).toHaveTextContent('/quotes/q3');
+  });
+
+  it('Personen sucht nur, wer die Benutzerverwaltung hat — und holt die Liste einmal je Öffnen', async () => {
+    nutzer = { ...nutzer, role: 'Geschäftsführung' };
+    personenListe.mockResolvedValue([
+      { uid: 'u7', name: 'Lena Maier', email: 'lena@perl.at', role: 'Mitarbeiter' },
+      { uid: 'u8', name: 'Paul Gruber', email: 'paul@perl.at', role: 'Mitarbeiter', active: false },
+    ]);
+    zeige();
+    await userEvent.type(screen.getByRole('combobox'), 'Maier');
+    const lena = await screen.findByRole('option', { name: /Lena Maier/ });
+    expect(screen.queryByRole('option', { name: /Paul Gruber/ })).toBeNull();
+    await userEvent.clear(screen.getByRole('combobox'));
+    await userEvent.type(screen.getByRole('combobox'), 'Gruber');
+    expect(await screen.findByRole('option', { name: /Paul Gruber/ })).toHaveTextContent('Deaktiviert');
+    expect(personenListe).toHaveBeenCalledTimes(1);
+    expect(lena).toBeTruthy();
+    await userEvent.click(screen.getByRole('option', { name: /Paul Gruber/ }));
+    expect(screen.getByTestId('ort')).toHaveTextContent('/user-mgmt/u8');
+  });
+
+  it('Artikel: wer das Lager führt, landet im Katalog — mit der Artikelnummer als Suche', async () => {
+    nutzer = { ...nutzer, role: 'Geschäftsführung' };
+    katalogSuche.mockResolvedValue([{ id: 'm1', name: 'Pressfitting 15 mm', articleNumber: 'PF-15', category: 'Fittings' }]);
+    let ziel = '';
+    function Adresse() {
+      const l = useLocation();
+      ziel = l.pathname + l.search;
+      return null;
+    }
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Suchfenster offen onSchliessen={vi.fn()} />
+        <Routes><Route path="*" element={<Adresse />} /></Routes>
+      </MemoryRouter>,
+    );
+    await userEvent.type(screen.getByRole('combobox'), 'Press');
+    await userEvent.click(await screen.findByRole('option', { name: /Pressfitting 15 mm/ }));
+    expect(ziel).toBe('/lager?reiter=katalog&suche=PF-15');
+  });
+
+  it('Artikel: der Monteur landet bei „Material anfordern“ — und sieht keine Rechnung, kein Angebot, keine Person', async () => {
+    katalogSuche.mockResolvedValue([{ id: 'm1', name: 'Pressfitting 15 mm' }]);
+    let ziel = '';
+    function Adresse() {
+      const l = useLocation();
+      ziel = l.pathname + l.search;
+      return null;
+    }
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Suchfenster offen onSchliessen={vi.fn()} />
+        <Routes><Route path="*" element={<Adresse />} /></Routes>
+      </MemoryRouter>,
+    );
+    await userEvent.type(screen.getByRole('combobox'), 'Press');
+    await userEvent.click(await screen.findByRole('option', { name: /Pressfitting 15 mm/ }));
+    expect(ziel).toBe('/material?suche=Pressfitting%2015%20mm');
+    expect(rechnungsSuche).not.toHaveBeenCalled();
+    expect(angebotsSuche).not.toHaveBeenCalled();
+    expect(personenListe).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: ohne Modul „Rechnungen“ fragt auch die Geschäftsführung nicht nach Rechnungen', async () => {
+    nutzer = { ...nutzer, role: 'Geschäftsführung' };
+    const vorher = betrieb.modules;
+    betrieb.modules = { rechnungen: false } as Company['modules'];
+    try {
+      zeige();
+      await userEvent.type(screen.getByRole('combobox'), '0042');
+      await waitFor(() => expect(angebotsSuche).toHaveBeenCalled());
+      expect(rechnungsSuche).not.toHaveBeenCalled();
+    } finally {
+      betrieb.modules = vorher;
+    }
   });
 });

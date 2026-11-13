@@ -7,6 +7,7 @@ import { SelectField } from '@/components/Field';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { abgeschnittenerText } from '@/lib/auswahlAbgeschnitten';
+import { baustelleInAuswahl } from '@/lib/baustellenTitel';
 
 /**
  * Auswahl einer Baustelle — überall dort, wo eine gebraucht wird.
@@ -226,8 +227,8 @@ export default function BaustellenSelect({
   const meine = meineUid ? laufend.filter((p) => p.assignedEmployees?.includes(meineUid) && !pausiert.includes(p)) : [];
   const aktiv = laufend.filter((p) => !meine.includes(p) && !pausiert.includes(p));
   const uebrige = sortiert.filter((p) => !laufend.includes(p));
-  const beschriften = (p: WithId<Project>) =>
-    nummerVorn ? `${p.projectNumber} · ${p.customerName}` : `${p.customerName} (${p.projectNumber})`;
+  // Mit der Kurzbezeichnung (C3, E91): zwei Baustellen eines Kunden unterschied sonst nur die Nummer.
+  const beschriften = (p: WithId<Project>) => baustelleInAuswahl(p, nummerVorn);
 
   return (
     <div>

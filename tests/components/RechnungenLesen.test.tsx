@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 
 /**
  * Die Leseliste der Projektleitung (Testbericht 30.09.2026, M38): welche
@@ -86,6 +86,49 @@ describe('Rechnungen lesen', () => {
     zeige();
     expect(screen.getByText('RE-2026-0003')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Suche'), 'PR-2026-0003');
+    expect(screen.getByText('RE-2026-0007')).toBeInTheDocument();
+    expect(screen.queryByText('RE-2026-0003')).toBeNull();
+  });
+});
+
+/*
+  AUS „SUCHEN ODER SPRINGEN“ (C3, E91): die Nummer kommt als `?suche=`. Die
+  gesuchte Rechnung ist oft bezahlt — also gilt „Alle“, sonst stünde sie
+  nicht da.
+*/
+describe('Rechnungen lesen — Nummer aus der Adresse (E91)', () => {
+  it('filtert auf die Nummer und zeigt auch die bezahlte', () => {
+    zeilen = [TEILBEZAHLT, BEZAHLT];
+    zeige('/invoices?suche=RE-2026-0003');
+    expect(screen.getByText('RE-2026-0003')).toBeInTheDocument();
+    expect(screen.queryByText('RE-2026-0007')).toBeNull();
+    expect(screen.getByRole('searchbox')).toHaveValue('RE-2026-0003');
+  });
+
+  it('übernimmt eine neue Nummer auch, wenn die Liste schon offen ist', async () => {
+    zeilen = [TEILBEZAHLT, BEZAHLT];
+    let springen: (ziel: string) => void = () => undefined;
+    function Springer() {
+      const navigate = useNavigate();
+      springen = navigate;
+      return null;
+    }
+    render(
+      <MemoryRouter initialEntries={['/invoices?suche=RE-2026-0003']}>
+        <Springer />
+        <RechnungenLesen />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText('RE-2026-0007')).toBeNull();
+    const { act } = await import('@testing-library/react');
+    act(() => springen('/invoices?suche=RE-2026-0007'));
+    expect(await screen.findByText('RE-2026-0007')).toBeInTheDocument();
+    expect(screen.queryByText('RE-2026-0003')).toBeNull();
+  });
+
+  it('Gegenprobe: ohne Suche bleibt es beim Arbeitsstand „Offen“', () => {
+    zeilen = [TEILBEZAHLT, BEZAHLT];
+    zeige();
     expect(screen.getByText('RE-2026-0007')).toBeInTheDocument();
     expect(screen.queryByText('RE-2026-0003')).toBeNull();
   });

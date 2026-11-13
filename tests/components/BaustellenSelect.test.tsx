@@ -296,6 +296,34 @@ describe('Baustellenauswahl — Nummer vorn (Runde 6, G3)', () => {
   });
 });
 
+/*
+  C3 (E91): ZWEI BAUSTELLEN EINES KUNDEN. „Familie Huber (B-0147)“ und
+  „Familie Huber (B-0152)“ unterschied nur die Nummer; die Kurzbezeichnung
+  steht jetzt dabei — im Büro hinter dem Kunden, in der Zeiterfassung
+  hinter der Nummer.
+*/
+describe('Baustellenauswahl — mit Kurzbezeichnung (C3, E91)', () => {
+  const huber: (Project & { id: string })[] = [
+    { id: 'a', companyId: 'perl', projectNumber: 'B-0147', customerName: 'Familie Huber', bezeichnung: 'Bad', status: 'Aktiv' },
+    { id: 'b', companyId: 'perl', projectNumber: 'B-0152', customerName: 'Familie Huber', bezeichnung: 'Heizung', status: 'Aktiv' },
+  ];
+  const beschriftungen = () =>
+    screen.getAllByRole('option').map((o) => o.textContent).filter((t) => t !== '— wählen —');
+
+  it('im Büro: „Familie Huber · Bad (B-0147)“', async () => {
+    listActiveProjects.mockResolvedValue(huber);
+    render(<BaustellenSelect companyId="perl" value="" onChange={() => undefined} />);
+    await screen.findByText('Familie Huber · Bad (B-0147)');
+    expect(beschriftungen()).toEqual(['Familie Huber · Bad (B-0147)', 'Familie Huber · Heizung (B-0152)']);
+  });
+
+  it('in der Zeiterfassung: „B-0147 · Familie Huber · Bad“', async () => {
+    listActiveProjects.mockResolvedValue(huber);
+    render(<BaustellenSelect companyId="perl" value="" onChange={() => undefined} nummerVorn />);
+    await screen.findByText('B-0147 · Familie Huber · Bad');
+  });
+});
+
 it('behält eine bereits aufgezeichnete Timer-Baustelle bei fehlender Verbindung prüfbar', async () => {
   listActiveProjects.mockRejectedValue(new TypeError('Failed to fetch'));
   const onChange = vi.fn();

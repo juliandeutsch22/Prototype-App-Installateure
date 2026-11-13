@@ -7,7 +7,12 @@ import { ImFenster } from '@/components/imFenster';
 import { useHintergrundSperre } from '@/components/hintergrundSperre';
 import { searchCustomers } from '@/lib/db/customers';
 import { searchProjects } from '@/lib/db/projects';
-import { baustellenTitel } from '@/lib/baustellenTitel';
+import { rechnungenNachNummer } from '@/lib/db/invoices';
+import { angeboteNachNummer } from '@/lib/db/quotes';
+import { listUsers } from '@/lib/db/users';
+import { sucheKatalog } from '@/lib/db/materials';
+import { datumAT } from '@/lib/datum';
+import type { AppUser } from '@/types';
 
 /**
  * „SUCHEN ODER SPRINGEN“ (Strg + K, Linie „Lot“, Protokoll Abschnitt 5).
@@ -18,12 +23,22 @@ import { baustellenTitel } from '@/lib/baustellenTitel';
  * nicht hat. Kunden und Baustellen sucht es in der Datenbank, und nur, wenn
  * die Rolle die Liste sehen darf; was sie dort sehen darf, entscheidet wie
  * überall der Zeilenschutz.
+ *
+ * SEIT C3 (E91) AUCH NUMMERN UND MENSCHEN: Rechnungs- und Angebotsnummer,
+ * Personen und Artikel — jede Gruppe nach derselben Regel, nur mit der
+ * Seite, die die Rolle in der Navigation hat. Scheine fehlen mit Grund: sie
+ * tragen keine eigene Nummer; man findet sie über ihre Baustelle.
  */
+
+const GRUPPEN = ['Seiten', 'Kunden', 'Baustellen', 'Rechnungen', 'Angebote', 'Personen', 'Artikel'] as const;
+type Gruppe = (typeof GRUPPEN)[number];
 
 interface Treffer {
   schluessel: string;
-  gruppe: 'Seiten' | 'Kunden' | 'Baustellen';
+  gruppe: Gruppe;
   text: string;
+  /** Die zweite Zeile — bei Baustellen die Kurzbezeichnung, die zwei Baustellen eines Kunden unterscheidet. */
+  zweite?: string;
   neben?: string;
   ziel: string;
 }
@@ -42,6 +57,12 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
   const [laedt, setLaedt] = useState(false);
   const [an, setAn] = useState(0);
   const fenster = useRef<HTMLDivElement>(null);
+  /*
+    DIE PERSONEN EINMAL JE ÖFFNEN. Ein Betrieb hat Dutzende, nicht
+    Tausende; sie zu jedem Tastendruck neu zu holen, hiesse dieselbe Liste
+    fünfmal für „Maier“.
+  */
+  const personen = useRef<Promise<AppUser[]> | null>(null);
   useFokusFalle(fenster, offen, { zurueckGeben: true });
   // Die Seite dahinter steht still, solange das Suchfenster offen ist.
   useHintergrundSperre(offen);
@@ -85,6 +106,7 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
       setBegriff('');
       setDaten([]);
       setAn(0);
+      personen.current = null;
     }
   }, [offen]);
 
@@ -110,13 +132,77 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
               schluessel: `k-${k.id}`, gruppe: 'Kunden', text: k.name, neben: k.ort ?? undefined, ziel: `/customers/${k.id}`,
             })))
         : Promise.resolve([]);
-      const baustellen = canAccess(user.role, '/admin-projects', company?.modules, zusatz)
+      const darf = (pfad: string) => canAccess(user.role, pfad, company?.modules, zusatz);
+      const baustellen = darf('/admin-projects')
         ? searchProjects(user.companyId, b, HOECHSTENS).then((ps) =>
-            ps.map<Treffer>((p) => ({
-              schluessel: `b-${p.id}`, gruppe: 'Baustellen', text: baustellenTitel(p) || p.projectNumber, neben: p.projectNumber, ziel: `/admin-projects/${p.id}`,
+            ps.map<Treffer>((p) => {
+              const kunde = p.customerName?.trim() ?? '';
+              const name = p.bezeichnung?.trim() ?? '';
+              return {
+                schluessel: `b-${p.id}`, gruppe: 'Baustellen', text: kunde || name || p.projectNumber,
+                zweite: kunde && name ? name : undefined, neben: p.projectNumber, ziel: `/admin-projects/${p.id}`,
+              };
+            }))
+        : Promise.resolve([]);
+      /*
+        DIE PROJEKTLEITUNG LIEST NUR (M38): ihre Liste kennt kein Fenster zur
+        Rechnung, also führt der Treffer in die Liste, gefiltert auf die
+        Nummer. Welche Rechnungen sie überhaupt findet, entscheidet der
+        Zeilenschutz — nur die ihrer Baustellen.
+      */
+      const nurLesen = user.role === 'Projektleiter';
+      const rechnungen = darf('/invoices')
+        ? rechnungenNachNummer(user.companyId, b, HOECHSTENS).then((rs) =>
+            rs.map<Treffer>((r) => {
+              const storno = !!r.stornoNummer && r.stornoNummer.toLocaleLowerCase('de-AT').includes(b.toLocaleLowerCase('de-AT'));
+              return {
+                schluessel: `r-${r.id}`, gruppe: 'Rechnungen', text: r.customerName || r.invoiceNumber,
+                zweite: [storno ? `Storno ${r.stornoNummer}` : '', r.invoiceDate ? datumAT(r.invoiceDate) : ''].filter(Boolean).join(' · ') || undefined,
+                neben: r.invoiceNumber,
+                ziel: nurLesen
+                  ? `/invoices?suche=${encodeURIComponent(r.invoiceNumber)}`
+                  : `/invoices?suche=${encodeURIComponent(r.invoiceNumber)}&oeffnen=${encodeURIComponent(r.id)}`,
+              };
+            }))
+        : Promise.resolve([]);
+      const angebote = darf('/quotes')
+        ? angeboteNachNummer(user.companyId, b, HOECHSTENS).then((qs) =>
+            qs.map<Treffer>((q) => ({
+              schluessel: `a-${q.id}`, gruppe: 'Angebote', text: q.customerName || q.quoteNumber,
+              zweite: q.status, neben: q.quoteNumber, ziel: `/quotes/${q.id}`,
             })))
         : Promise.resolve([]);
-      void Promise.allSettled([kunden, baustellen]).then((ergebnisse) => {
+      const leute = darf('/user-mgmt')
+        ? (personen.current ??= listUsers(user.companyId).catch((e: unknown) => {
+            // Ein Fehlschlag bleibt nicht für die ganze Sitzung des Fensters liegen.
+            personen.current = null;
+            throw e;
+          })).then((us) =>
+            us
+              .filter((u) => passt(u.name ?? '', b) || passt(u.email ?? '', b))
+              .sort((x, y) => (x.name ?? '').localeCompare(y.name ?? '', 'de-AT'))
+              .slice(0, HOECHSTENS)
+              .map<Treffer>((u) => ({
+                schluessel: `p-${u.uid}`, gruppe: 'Personen', text: u.name || u.email,
+                zweite: u.active === false ? 'Deaktiviert' : undefined, neben: u.role, ziel: `/user-mgmt/${u.uid}`,
+              })))
+        : Promise.resolve([]);
+      /*
+        EIN ARTIKEL FÜHRT DORTHIN, WO DIE ROLLE MIT IHM ARBEITET: ins Lager
+        (Katalog), wer es führt; sonst zu „Material anfordern“ mit dem
+        Artikel im Suchfeld. Gesucht wird mit der Artikelnummer, wo es eine
+        gibt — sie ist eindeutig, der Name oft nicht.
+      */
+      const artikelZiel = darf('/lager') ? '/lager?reiter=katalog&suche=' : darf('/material') ? '/material?suche=' : null;
+      const artikel = artikelZiel
+        ? sucheKatalog(user.companyId, b, HOECHSTENS).then((ms) =>
+            ms.map<Treffer>((m) => ({
+              schluessel: `m-${m.id}`, gruppe: 'Artikel', text: m.name, zweite: m.category || undefined,
+              neben: m.articleNumber || undefined,
+              ziel: `${artikelZiel}${encodeURIComponent(m.articleNumber?.trim() || m.name)}`,
+            })))
+        : Promise.resolve([]);
+      void Promise.allSettled([kunden, baustellen, rechnungen, angebote, leute, artikel]).then((ergebnisse) => {
         if (!gilt) return;
         setDaten(ergebnisse.flatMap((e) => (e.status === 'fulfilled' ? e.value : [])));
         setLaedt(false);
@@ -158,7 +244,7 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
     }
   }
 
-  const gruppen = (['Seiten', 'Kunden', 'Baustellen'] as const)
+  const gruppen = GRUPPEN
     .map((g) => ({ g, liste: treffer.filter((t) => t.gruppe === g) }))
     .filter((x) => x.liste.length > 0);
 
@@ -182,7 +268,7 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
               setAn(0);
             }}
             onKeyDown={taste}
-            placeholder="Seite, Kunde oder Baustelle …"
+            placeholder="Seite, Kunde, Baustelle oder Nummer …"
             aria-label="Suchen oder springen"
             role="combobox"
             aria-expanded="true"
@@ -205,7 +291,10 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
                       onMouseEnter={() => setAn(i)}
                       onClick={() => oeffnen(t)}
                     >
-                      <span>{t.text}</span>
+                      <span className="such-text">
+                        <span>{t.text}</span>
+                        {t.zweite && <span className="such-zweite">{t.zweite}</span>}
+                      </span>
                       {t.neben && <span className="such-nebeninfo">{t.neben}</span>}
                     </div>
                   );

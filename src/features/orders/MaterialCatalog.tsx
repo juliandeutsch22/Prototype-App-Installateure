@@ -108,11 +108,14 @@ export default function MaterialCatalog({
   zuBearbeiten,
   onUebernommen,
   lagerartikel = [],
+  suche,
 }: {
   zuBearbeiten?: WithId<Material> | null;
   onUebernommen?: () => void;
   /** Die im Lager geführten Artikel (aus dem Lager) — für „N knapp“ im Kopf. */
   lagerartikel?: readonly WithId<Material>[];
+  /** Ein Suchbegriff aus der Adresse (`?suche=`, „Suchen oder springen“, E91). */
+  suche?: string;
 } = {}) {
   const { user, company } = useAuth();
   const aufschlag = company?.rates?.materialaufschlag;
@@ -179,10 +182,21 @@ export default function MaterialCatalog({
   */
   const [offenesMaterial, setOffenesMaterial] = useState<WithId<Material> | null>(null);
   const [saving, setSaving] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(suche ?? '');
   const [toDelete, setToDelete] = useState<WithId<Material> | null>(null);
   /** Der Suchbegriff, wie er an den Server geht — kurz nach dem letzten Tastendruck. */
-  const [begriff, setBegriff] = useState('');
+  const [begriff, setBegriff] = useState((suche ?? '').trim());
+  /*
+    EIN NEUER BEGRIFF AUS DER ADRESSE, AUCH BEI OFFENEM KATALOG (E91): wer
+    hier steht und über „Suchen oder springen“ einen anderen Artikel wählt,
+    sah sonst die alte Suche. Eigenes Tippen bleibt unberührt.
+  */
+  const sucheZuletzt = useRef(suche);
+  useEffect(() => {
+    if (suche === sucheZuletzt.current) return;
+    sucheZuletzt.current = suche;
+    if (suche !== undefined) setSearch(suche);
+  }, [suche]);
   useEffect(() => {
     const t = setTimeout(() => setBegriff(search.trim()), 250);
     return () => clearTimeout(t);

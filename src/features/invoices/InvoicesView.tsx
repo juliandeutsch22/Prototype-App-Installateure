@@ -136,6 +136,7 @@ import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/F
 import BaustellenSelect from '@/components/BaustellenSelect';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
+import { useAdressSuche } from '@/lib/useAdressSuche';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
@@ -471,6 +472,8 @@ export default function InvoicesView() {
     Rechnung hierher, mit ihrer Nummer als Suchbegriff.
   */
   const [rechnungSuche, setRechnungSuche] = useState(() => suchparameter.get('suche') ?? '');
+  // Auch auf der offenen Seite: „Suchen oder springen“ führt von hier hierher (E91).
+  useAdressSuche(setRechnungSuche);
   function sucheAendern(text: string) {
     const vorher = rechnungSuche.trim();
     if (!vorher && text.trim() && filter === 'offen') {
