@@ -3616,3 +3616,70 @@ gewesen wäre. Entschieden:
 Komponenten `AccountingView.test.tsx` (+1), `BenutzerakteView.test.tsx`
 (+3, zwei angepasst). Gegenproben: mit den Quellen vor E87 sind 7 der 15
 Modulprüfungen rot; die Datenbankprüfungen haben je eine Gegenprobe.
+
+**E88 — Einsatzplan: umplanen per Ziehen und eine ruhigere Woche (13.11.2026).**
+Auftrag vom 13.11.2026 („finde den Entwurf gut … passe es gegebenenfalls an
+und starte dann direkt“) zum Entwurf „Ziehen und Ablegen, und ein ruhigerer
+Einsatzplan“ vom 12.11.2026. Angepasst an die Linie, wie in der Antwort auf
+die Frage „passt das zur Lot-Linie, ist es zu hell?“ vorgeschlagen:
+Umschalter bleiben Reiter mit Unterstrich (keine Pillen), die Leiste am
+Einsatz ist eckig mit Linie, das Plus leise, Urlaub bleibt Zustand.
+- **Umplanen als eine Zeile** (`einsatz_umplanen`): ein Einsatz wandert auf
+  einen anderen Tag oder zu einer anderen Person, oder wird dorthin kopiert —
+  statt „öffnen, abwählen, speichern, am anderen Tag neu anlegen“. Abgewiesen
+  wird mit Grund, was „Auch an den folgenden Tagen“ (E85) auslässt: Feiertag,
+  Betriebsurlaub, ganztags abwesend (mit dem Grund aus dem Wochenplan, auch
+  „ausgetreten“, E87) und dieselbe Person zweimal auf derselben Baustelle.
+  Steht die Person am Zieltag anderswo, geht es und die Meldung sagt es. Die
+  Rüstliste bekommt an beiden Tagen die Mannschaft, wie sie danach steht;
+  `einsatz_entfernen` nimmt die Person auch dort heraus. Die Meldung an den
+  Monteur (E85) kommt vom bestehenden Trigger.
+- **Drei Wege zum selben Schritt:** Ziehen am Schreibtisch (mit Alt
+  kopieren), am Tablet nach langem Drücken; die Leiste am Einsatz
+  (Bearbeiten, Verschieben …, Auf nächsten Werktag kopieren, Entfernen …)
+  beim Darüberfahren, beim Fokus und nach langem Drücken — so geht es auch
+  mit Tastatur, Vorlesehilfe und am Handy; das Fenster „Verschieben“ fragt
+  Tag und Person (wahlweise kopieren). Nach Verschieben und Kopieren steht
+  „Rückgängig“ in der Meldung; Entfernen fragt vorher nach.
+- **Noch einzuplanen als Ablage** am Schreibtisch neben dem Raster: eine
+  Baustelle auf Person und Tag ziehen öffnet „Einsatz planen“ mit allen
+  dreien (Rüstliste und Zeit setzt man dort). Am Tablet und Handy bleibt die
+  Hinweiszeile (Auftrag 4.1: dort fehlt dem Raster die Breite).
+- **Ruhigere Woche:** der Einsatz als weißes Blatt mit Linie rundum und 4 px
+  Petrol-Kante, der Kunde in Tinte; nur die Spalte „heute“ (am Handy der
+  gewählte Tag, wenn er heute ist) trägt die volle Petrol-Fläche. Das löst
+  E33 für die Woche ab — zu hell wie vor E33 ist es nicht, weil Linie und
+  Kante bleiben. Der Termin verliert dafür seine Petrol-Kante und behält nur
+  die feine Linie. Kürzel-Kreis wie im Posteingang bei jeder Person. Leere
+  Zelle: ein leises Plus statt „+ Einsatz planen“. Das Schriftfeld (KW,
+  „Noch einzuplanen“) entfällt: die Woche steht in der Steuerzeile, die Zahl
+  in der Ablage bzw. Hinweiszeile.
+
+**Grenzen mit Grund:**
+- Ziehen nur in der Sicht „Personen“ (fachlich): in „Baustellen“ ist ein
+  Block die ganze Mannschaft eines Tages; ob jeder mitgeht, ist je Person zu
+  entscheiden (Abwesenheit, andere Baustelle) — das zeigt die Sicht
+  „Personen“. Klicken plant dort weiter wie bisher.
+- Nicht im Monat (fachlich): dort stehen Balken über Tage, kein einzelner
+  Einsatz; der Monat behält die volle Fläche (E33).
+- Feiertag: abgewiesen, auch für Notdienst (Sicherheit): eine Geste soll an
+  einem Feiertag nicht still landen; bewusst geht es über „Einsatz planen“.
+- Am Handy kein Ziehen (fachlich): dort gibt es kein Raster, sondern einen
+  Tag als Liste; umgeplant wird über die Leiste nach langem Drücken.
+- Entfernen ohne „Rückgängig“, mit Rückfrage (Daten): die Zeile ist danach
+  weg; sie wiederherzustellen hieße, einen Einsatz samt Meldung neu
+  anzulegen, der vielleicht schon umgeplant wurde.
+- Nicht im Einblick des Supports (Datenschutz), wie E85.
+
+**Abgelöst:** E33 für die Woche (siehe oben); die Prüfungen des
+Schriftfelds der Planung (Planlinie, 30.10.2026) sind auf die Ablage
+umgestellt (`WochenplanView.test.tsx`), „KW nn“ steht einmal statt zweimal.
+
+**Nachweis:** Datenbank `einsatzUmplanen.test.ts` (17), Module
+`umplanen.test.ts` (11), Komponenten `WochenplanView.test.tsx` (+8, drei
+ersetzt), `einsatzbalken.test.ts` (auf E88), Browser
+`einsatzplanUmplanen.spec.ts` (4: Ziehen mit Rückgängig und Alt, Ablehnung
+mit Grund, langes Drücken am Tablet und Handy). Gegenproben: mit dem Stand
+vor E88 sind 15 der neuen bzw. umgestellten Modul- und Komponentenprüfungen
+und alle 4 Browserwege rot; die Prüfungen auf Gleichbleibendes (Einblick,
+ohne Führungsrolle, nichts einzuplanen) bleiben grün.
