@@ -150,6 +150,8 @@ export interface StatusWie {
   ort?: string | null;
   /** Nur nach der Rückfrage mit den Zahlen: „Abholbereit“ trotz Fehlbestand, mit Protokolleintrag. */
   trotzFehlbestand?: boolean;
+  /** Beim Abholen (C7, E89): aus dem Lager (abgebucht, wie bisher) oder beim Händler mitgenommen (nicht abgebucht). */
+  herkunft?: 'lager' | 'haendler';
 }
 
 /**
@@ -174,6 +176,7 @@ export async function updateOrderStatus(
       p_order: orderId,
       p_status: wie.von ?? null,
       ...(wie.ort ? { p_ort: wie.ort } : {}),
+      ...(wie.herkunft ? { p_herkunft: wie.herkunft } : {}),
     });
     if (error) throw new Error(error.message);
     return Number(data ?? 0) > 0 ? { art: 'geaendert' } : { art: 'veraltet' };

@@ -12,7 +12,6 @@ import {
   updateOrderStatus,
   anforderungEiligSetzen,
 } from '@/lib/db/materialOrders';
-import { eiligMoeglich } from './eilig';
 import { listActiveProjects } from '@/lib/db/projects';
 import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder, Project } from '@/types';
@@ -37,7 +36,8 @@ import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAusMs } from '@/lib/datum';
-import { abschlussText } from './abschlussText';
+import { abschlussText, herkunftFragen } from './abschlussText';
+import AnforderungFenster from './AnforderungFenster';
 import RetoureFenster from './RetoureFenster';
 import MeinFahrzeug from './MeinFahrzeug';
 import { zahlAlsText, zahlOder } from '@/lib/zahl';
@@ -176,6 +176,10 @@ export default function OrderView() {
   const [freiName, setFreiName] = useState('');
   const [freiMenge, setFreiMenge] = useState('1');
   const [toPickUp, setToPickUp] = useState<WithId<MaterialOrder> | null>(null);
+  /** Beim Abholen, solange nichts bereitgestellt ist (C7, E89): aus dem Lager oder vom Händler. */
+  const [herkunft, setHerkunft] = useState<'lager' | 'haendler'>('lager');
+  /** Die Anforderung im Seitenfenster (C7, E89). */
+  const [fenster, setFenster] = useState<WithId<MaterialOrder> | null>(null);
   /** Nachträglich eilig (17 F) — mit Rückfrage, weil andere davon eine Meldung bekommen. */
   const [eilFrage, setEilFrage] = useState<WithId<MaterialOrder> | null>(null);
   /** Neu holen, wenn „Abgeholt“ einen veralteten Stand traf (Runde 7, R7-M3). */
@@ -391,6 +395,12 @@ export default function OrderView() {
     }
   }
 
+
+  /** „Abgeholt“ — die Rückfrage beginnt immer bei „Aus dem Lager“, wie bisher gebucht wurde. */
+  function abholen(o: WithId<MaterialOrder>) {
+    setHerkunft('lager');
+    setToPickUp(o);
+  }
 
   if (!user) return null;
 
@@ -770,49 +780,22 @@ export default function OrderView() {
                       {o.materialName} <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
                     </span>
                   }
-                  subtitle={[
-                    o.projectNumber,
-                    o.note,
-                    /*
-                      WARUM ES DAUERT. Liegt es nicht im Lager, wird es beim
-                      Grosshändler bestellt — das sagt dem Monteur, dass er
-                      nicht vergeblich ins Lager fährt.
-                    */
-                    o.beschaffung === 'einkauf' && !o.geliefertAm
-                      ? o.bestelltAm
-                        ? 'beim Großhändler bestellt'
-                        : 'nicht im Lager — wird bestellt'
-                      : '',
-                  ].filter(Boolean).join(' · ')}
+                  subtitle={[o.projectNumber, o.note, wasLaeuft(o)].filter(Boolean).join(' · ')}
+                  // STAND ZUERST (C7, E89): die ganze Zeile öffnet die Anforderung — dort steht „Eilig“.
+                  onOeffnen={() => setFenster(o)}
                 >
                   {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
-                  {!o.isUrgent && eiligMoeglich(o) && (
-                    <Button variant="ghost" groesse="klein" onClick={() => setEilFrage(o)}>
-                      Eilig
-                    </Button>
-                  )}
                   <StatusBadge status={o.status} />
                   {/*
-                    ABGEHOLT GEHT IMMER, nicht erst ab „Abholbereit".
-
-                    Der Status ist eine Absichtserklärung der Verwaltung, kein
-                    Tatsachenbericht. Wer sich das Material selbst aus dem
-                    Lager nimmt oder es beim Händler mitnimmt, ist fertig —
-                    unabhängig davon, ob jemand im Büro dazu gekommen ist,
-                    den Status weiterzuschalten. Vorher blieb so eine
-                    Anforderung ewig offen, und der Lagerabzug unterblieb.
-
-                    Der Abschluss zieht das Material vom Lager ab; deshalb
-                    geht er weiterhin durch die Rückfrage.
+                    ABGEHOLT GEHT IMMER, nicht erst ab „Abholbereit". Der Status
+                    ist eine Absichtserklärung der Verwaltung, kein
+                    Tatsachenbericht: wer sich das Material selbst nimmt oder
+                    beim Händler mitnimmt, ist fertig. Solange nichts
+                    bereitgestellt ist, fragt die Rückfrage, woher es kam (E89).
+                    Ein Zweitknopf, kein gefüllter (E72, R2); volle Größe für
+                    Handschuhe.
                   */}
-                  {/*
-                    EIN ZWEITKNOPF, KEIN GEFÜLLTER (E72, 09.11.2026, Regel R2):
-                    gefüllt ist je Seite nur die Hauptaktion. In jeder Zeile
-                    gefüllt rief „Abgeholt“ lauter als „In die Liste“ und sah
-                    anders aus als der nächste Schritt in den Anforderungen.
-                    Die volle Größe bleibt — Handschuhe.
-                  */}
-                  <Button variant="secondary" onClick={() => setToPickUp(o)}>
+                  <Button variant="secondary" onClick={() => abholen(o)}>
                     Abgeholt
                   </Button>
                 </ListRow>
@@ -843,6 +826,8 @@ export default function OrderView() {
                     // Wann es erledigt wurde — die letzte Änderung ist der Abschluss.
                     o.updatedAt ? datumAusMs(o.updatedAt) : '',
                     o.note,
+                    // Warum der Lagerbestand gleich blieb (C7, E89).
+                    o.abgeholtHerkunft === 'haendler' ? 'beim Händler mitgenommen' : '',
                   ].filter(Boolean).join(' · ')}
                 >
                   {o.transactionType === 'return' ? (
@@ -882,14 +867,17 @@ export default function OrderView() {
         confirmTone="primary"
         message={
           toPickUp
-            ? abschlussText(toPickUp)
+            ? abschlussText(toPickUp, herkunftFragen(toPickUp) ? herkunft : undefined)
             : ''
         }
         onCancel={() => setToPickUp(null)}
         onConfirm={async () => {
           if (toPickUp) {
             try {
-              const r = await updateOrderStatus(toPickUp.id, 'Erledigt', { von: toPickUp.status });
+              const r = await updateOrderStatus(toPickUp.id, 'Erledigt', {
+                von: toPickUp.status,
+                ...(herkunftFragen(toPickUp) ? { herkunft } : {}),
+              });
               if (r.art === 'geaendert') {
                 toast.success('Abholung bestätigt');
               } else {
@@ -903,7 +891,44 @@ export default function OrderView() {
           }
           setToPickUp(null);
         }}
-      />
+      >
+        {/*
+          WOHER DIE WARE KAM (C7, E89) — nur, solange das Büro nichts
+          bereitgestellt und nichts bestellt hat. „Aus dem Lager“ bucht wie
+          bisher ab; „Beim Händler mitgenommen“ lässt den Bestand stehen —
+          das Regal hat die Ware nie gesehen.
+        */}
+        {toPickUp && herkunftFragen(toPickUp) && (
+          <fieldset className="mt-3">
+            <legend className="section-label mb-1">Woher kommt das Material?</legend>
+            <div className="flex flex-col gap-1">
+              {([['lager', 'Aus dem Lager genommen'], ['haendler', 'Beim Händler mitgenommen']] as const).map(([wert, text]) => (
+                <label key={wert} className="flex min-h-touch items-center gap-3 py-1">
+                  <input
+                    type="radio"
+                    name="abgeholt-herkunft"
+                    className="h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                    checked={herkunft === wert}
+                    onChange={() => setHerkunft(wert)}
+                  />
+                  <span>{text}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+      </ConfirmDialog>
+
+      {fenster && (
+        <AnforderungFenster
+          key={fenster.id}
+          o={fenster}
+          wasLaeuft={wasLaeuft(fenster)}
+          onEilig={() => { setEilFrage(fenster); setFenster(null); }}
+          onAbgeholt={() => { abholen(fenster); setFenster(null); }}
+          onClose={() => setFenster(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={!!eilFrage}
@@ -1045,4 +1070,14 @@ function QtyAdder({
       )}
     </div>
   );
+}
+
+/**
+ * WARUM ES DAUERT. Liegt es nicht im Lager, wird es beim Großhändler
+ * bestellt — das sagt dem Monteur, dass er nicht vergeblich ins Lager fährt.
+ * In der Zeile und im Seitenfenster derselbe Satz.
+ */
+function wasLaeuft(o: MaterialOrder): string {
+  if (o.beschaffung !== 'einkauf' || o.geliefertAm) return '';
+  return o.bestelltAm ? 'beim Großhändler bestellt' : 'nicht im Lager — wird bestellt';
 }

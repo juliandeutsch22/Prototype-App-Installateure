@@ -709,7 +709,15 @@ describe('Nachträglich eilig (17 F)', () => {
     ({ id: 'o1', companyId: 'perl', materialName: 'Kupferrohr 15mm', quantity: 2, status: 'Offen',
       transactionType: 'order', userId: 'u1', projectNumber: '2026-042', ...rest }) as WithId<MaterialOrder>;
 
-  it('bietet „Eilig“ nur, wo es geht — offen oder in Arbeit, mit Baustelle, noch nicht eilig', async () => {
+  /*
+    SEIT E89 STEHT „EILIG“ IM SEITENFENSTER der Zeile, nicht als dritter Knopf
+    in ihr (C7: Stand zuerst). Geprüft wird dieselbe Bedingung an der neuen
+    Stelle.
+  */
+  const oeffnen = async (name: string) =>
+    userEvent.click(await screen.findByRole('button', { name: new RegExp(`^${name} ×`) }));
+
+  it('bietet „Als eilig markieren“ nur, wo es geht — offen oder in Arbeit, mit Baustelle, noch nicht eilig', async () => {
     eigene = [
       eigen({ id: 'a' }),
       eigen({ id: 'b', status: 'In Bearbeitung', materialName: 'Dichtung' }),
@@ -719,15 +727,26 @@ describe('Nachträglich eilig (17 F)', () => {
     ];
     zeige();
     await screen.findByText('Hanf');
-    expect(screen.getAllByRole('button', { name: 'Eilig' })).toHaveLength(2);
+    // In der Zeile steht kein „Eilig“ mehr.
+    expect(screen.queryByRole('button', { name: 'Eilig' })).toBeNull();
+    const kann: Record<string, boolean> = {};
+    for (const name of ['Kupferrohr 15mm', 'Dichtung', 'Hanf', 'Fitting', 'Rohrschelle']) {
+      await oeffnen(name);
+      const f = within(screen.getByRole('dialog', { name: `Anforderung ${name}` }));
+      kann[name] = !!f.queryByRole('button', { name: 'Als eilig markieren' });
+      await userEvent.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    }
+    expect(kann).toEqual({ 'Kupferrohr 15mm': true, Dichtung: true, Hanf: false, Fitting: false, Rohrschelle: false });
   });
 
   it('fragt nach, sagt, wer verständigt wird — und setzt erst nach dem Ja', async () => {
     projekte = [MIT_LEITUNG];
     eigene = [eigen({})];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Eilig' }));
-    const dialog = screen.getByRole('dialog');
+    await oeffnen('Kupferrohr 15mm');
+    await userEvent.click(screen.getByRole('button', { name: 'Als eilig markieren' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Als eilig markieren?' });
     expect(within(dialog).getByText(/Projektleitung der Baustelle wird verständigt/)).toBeInTheDocument();
     expect(eiligSetzen).not.toHaveBeenCalled();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Eilig' }));
@@ -738,8 +757,59 @@ describe('Nachträglich eilig (17 F)', () => {
     projekte = [OHNE_LEITUNG];
     eigene = [eigen({ projectNumber: '2026-099' })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Eilig' }));
-    expect(within(screen.getByRole('dialog')).getByText(/keine Projektleitung zugeteilt/)).toBeInTheDocument();
+    await oeffnen('Kupferrohr 15mm');
+    await userEvent.click(screen.getByRole('button', { name: 'Als eilig markieren' }));
+    expect(within(await screen.findByRole('dialog', { name: 'Als eilig markieren?' })).getByText(/keine Projektleitung zugeteilt/)).toBeInTheDocument();
+  });
+});
+
+/*
+  „ABGEHOLT“ MIT HERKUNFT (C7, E89): solange nichts bereitgestellt oder
+  bestellt ist, fragt die Rückfrage, woher die Ware kam, und gibt es weiter.
+*/
+describe('Abgeholt — aus dem Lager oder vom Händler (C7, E89)', () => {
+  const eigen = (rest: Partial<MaterialOrder>) =>
+    ({ id: 'o1', companyId: 'perl', materialName: 'Kupferrohr 15mm', quantity: 2, status: 'Offen',
+      transactionType: 'order', userId: 'u1', projectNumber: '2026-042', ...rest }) as WithId<MaterialOrder>;
+  beforeEach(() => {
+    statusSetzen.mockReset();
+    statusSetzen.mockResolvedValue({ art: 'geaendert' });
+  });
+
+  it('bei „Offen“: die Rückfrage fragt nach der Herkunft — „vom Händler“ bucht nichts ab und geht so weiter', async () => {
+    eigene = [eigen({})];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Abgeholt' }));
+    const d = within(screen.getByRole('dialog', { name: 'Material abgeholt?' }));
+    expect(d.getByRole('radio', { name: 'Aus dem Lager genommen' })).toBeChecked();
+    expect(d.getByText(/vom Lagerbestand abgezogen/)).toBeInTheDocument();
+    await userEvent.click(d.getByRole('radio', { name: 'Beim Händler mitgenommen' }));
+    expect(d.getByText(/Vom Lagerbestand wird nichts abgezogen/)).toBeInTheDocument();
+    await userEvent.click(d.getByRole('button', { name: 'Abgeholt' }));
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o1', 'Erledigt', { von: 'Offen', herkunft: 'haendler' }));
+  });
+
+  it('Gegenprobe: abholbereit oder bestellt — keine Frage, gebucht wird wie bisher', async () => {
+    eigene = [
+      eigen({ id: 'a', status: 'Abholbereit' }),
+      eigen({ id: 'b', materialName: 'Dichtung', status: 'In Bearbeitung', beschaffung: 'einkauf', bestelltAm: 1 }),
+    ];
+    zeige();
+    const knoepfe = await screen.findAllByRole('button', { name: 'Abgeholt' });
+    for (const [i, k] of knoepfe.entries()) {
+      await userEvent.click(k);
+      const d = within(screen.getByRole('dialog', { name: 'Material abgeholt?' }));
+      expect(d.queryByRole('radio')).toBeNull();
+      await userEvent.click(d.getByRole('button', { name: 'Abgeholt' }));
+      await waitFor(() => expect(statusSetzen).toHaveBeenCalledTimes(i + 1));
+    }
+    expect(statusSetzen.mock.calls.map((c) => c[2])).toEqual([{ von: 'Abholbereit' }, { von: 'In Bearbeitung' }]);
+  });
+
+  it('erledigt und vom Händler: die Zeile sagt es', async () => {
+    eigene = [eigen({ status: 'Erledigt', processed: true, abgeholtHerkunft: 'haendler' })];
+    zeige();
+    expect(await screen.findByText(/beim Händler mitgenommen/)).toBeInTheDocument();
   });
 });
 
