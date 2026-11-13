@@ -27,17 +27,30 @@ function regel(css: string, selektor: string): string {
 const VOLL = [/background: var\(--petrol\)/, /color: var\(--auf-petrol\)/];
 
 describe('Einsatz als volle Petrol-Fläche (Variante B)', () => {
-  it('Woche: volle Fläche, weiße Schrift, eckig, zwei Zellen hoch — keine Endmarken mehr', () => {
+  /*
+    E88 (13.11.2026) löst E33 für die Woche ab: der Einsatz ist ein weißes
+    Blatt mit Linie rundum und Petrol-Kante, nur heute voll. Der Monat
+    bleibt bei der vollen Fläche (eigene Prüfung darunter).
+  */
+  it('Woche (E88): weiß mit Linie rundum und 4 px Petrol-Kante, Kunde in Tinte, eckig, zwei Zellen hoch', () => {
     const r = regel(planung, '.eintrag');
-    for (const m of VOLL) expect(r).toMatch(m);
+    expect(r).toMatch(/background: var\(--surface\)/);
+    expect(r).toMatch(/color: var\(--ink-deep\)/);
+    expect(r).toMatch(/border: 1px solid var\(--border-strong\); border-left: 4px solid var\(--petrol\)/);
     expect(r).toMatch(/border-radius: 0/);
     expect(r).toMatch(/min-height: 3rem/);
-    expect(r).not.toMatch(/border-left: 2px|petrol-hell/);
-    expect(planung).toMatch(/\.eintrag:hover \{ background: var\(--petrol-tief\); \}/);
+    expect(r).not.toMatch(/background: var\(--petrol\)/);
   });
 
-  it('Ort, Zeit und Nummer eine Stufe leiser auf derselben Fläche', () => {
-    expect(regel(planung, '.eintrag .e-zeile, .eintrag .e-zeit, .eintrag .e-nr')).toMatch(/color: var\(--auf-petrol-leise\)/);
+  it('Gegenprobe: heute — und am Handy der gewählte Tag, wenn er heute ist — trägt die volle Fläche', () => {
+    const heute = regel(planung, ':is(.wp-zelle-heute, .wp-zelle-schmal-heute, .handy-woche[data-heute]) .eintrag');
+    for (const m of VOLL) expect(heute).toMatch(m);
+    expect(regel(planung, ':is(.wp-zelle-heute, .wp-zelle-schmal-heute, .handy-woche[data-heute]) .eintrag :is(.e-zeile, .e-zeit, .e-nr)'))
+      .toMatch(/color: var\(--auf-petrol-leise\)/);
+  });
+
+  it('Ort, Zeit und Nummer eine Stufe leiser — auf Weiß grau', () => {
+    expect(regel(planung, '.eintrag .e-zeile, .eintrag .e-zeit, .eintrag .e-nr')).toMatch(/color: var\(--text-muted\)/);
   });
 
   it('Monat: derselbe Einsatz, auch gewählt; Legende und Musterbaustein gleich', () => {

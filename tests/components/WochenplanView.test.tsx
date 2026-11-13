@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, render, screen, within, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -107,6 +107,8 @@ vi.mock('@/lib/db/einsatzMaterial', () => ({
 }));
 const speichere = vi.fn();
 const loesche = vi.fn();
+const umplane = vi.fn<(...a: unknown[]) => Promise<{ id: string; anderswo: boolean }>>(async () => ({ id: 'kopie', anderswo: false }));
+const entferne = vi.fn<(...a: unknown[]) => Promise<void>>(async () => undefined);
 /** Welche Zeiträume geladen wurden — Woche oder Monat. */
 const geladen: [string, string][] = [];
 /**
@@ -153,6 +155,8 @@ vi.mock('@/lib/db/assignments', () => ({
     loesche(id);
     return Promise.resolve();
   },
+  einsatzUmplanen: (...a: unknown[]) => umplane(...a),
+  einsatzEntfernen: (...a: unknown[]) => entferne(...a),
 }));
 
 const authWert: {
@@ -244,6 +248,10 @@ beforeEach(() => {
   gefahren.zustand = null;
   speichere.mockClear();
   loesche.mockClear();
+  umplane.mockClear();
+  umplane.mockImplementation(async () => ({ id: 'kopie', anderswo: false }));
+  entferne.mockClear();
+  authWert.einblick = false;
   termineGeladen.mockClear();
   terminGeloescht.mockClear();
   geladen.length = 0;
@@ -734,8 +742,8 @@ describe('Einsatzplanung — Woche und Tag aus der Adresse', () => {
   it('öffnet die Woche aus `?woche=` und markiert den Tag aus `?tag=`', async () => {
     zeige('/assignments/woche?woche=2026-W38&tag=2026-09-16');
     await screen.findByRole('row', { name: /Max Mustermann/ });
-    // Kopf der Planung und Schriftfeld nennen dieselbe Woche.
-    expect(screen.getAllByText(/^KW 38/)).toHaveLength(2);
+    // Die Woche nennt der Kopf der Planung — das Schriftfeld gibt es seit E88 nicht mehr.
+    expect(screen.getAllByText(/^KW 38/)).toHaveLength(1);
     expect(kopf(/Mittwoch 16\.09\./).closest('th')!.className).toBe('wp-kopf-markiert');
     // Gegenprobe: die übrigen Tage sind nicht markiert.
     expect(kopf(/Dienstag 15\.09\./).closest('th')!.className).toBe('wp-kopf');
@@ -746,15 +754,15 @@ describe('Einsatzplanung — Woche und Tag aus der Adresse', () => {
     await screen.findByRole('row', { name: /Max Mustermann/ });
     await userEvent.click(screen.getByRole('button', { name: 'Woche vor' }));
     await waitFor(() => expect(screen.getByLabelText('Adresse')).toHaveTextContent(/^$/));
-    // Kopf der Planung und Schriftfeld nennen dieselbe Woche.
-    expect(screen.getAllByText(/^KW 39/)).toHaveLength(2);
+    // Die Woche nennt der Kopf der Planung — das Schriftfeld gibt es seit E88 nicht mehr.
+    expect(screen.getAllByText(/^KW 39/)).toHaveLength(1);
   });
 
   it('eine kaputte Woche in der Adresse zeigt die laufende', async () => {
     zeige('/assignments/woche?woche=2026-W99');
     await screen.findByRole('row', { name: /Max Mustermann/ });
-    // Kopf der Planung und Schriftfeld nennen dieselbe Woche.
-    expect(screen.getAllByText(/^KW 36/)).toHaveLength(2);
+    // Die Woche nennt der Kopf der Planung — das Schriftfeld gibt es seit E88 nicht mehr.
+    expect(screen.getAllByText(/^KW 36/)).toHaveLength(1);
   });
 });
 
@@ -1335,8 +1343,8 @@ describe('Planung — Monat', () => {
     await userEvent.click(erna.getByRole('button', { name: /^Erna Beispiel, Mo\.? 14\.09\.: / }));
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Zur Woche' }));
     expect(await screen.findByRole('table', { name: 'Wochenplan als Tabelle' })).toBeInTheDocument();
-    // Kopf der Planung und Schriftfeld nennen dieselbe Woche.
-    expect(screen.getAllByText(/^KW 38/)).toHaveLength(2);
+    // Die Woche nennt der Kopf der Planung — das Schriftfeld gibt es seit E88 nicht mehr.
+    expect(screen.getAllByText(/^KW 38/)).toHaveLength(1);
     expect(screen.getByLabelText('Adresse')).toHaveTextContent('?woche=2026-W38&tag=2026-09-14');
     expect(kopf(/Montag 14\.09\./).closest('th')!.className).toBe('wp-kopf-markiert');
     // „Zurück“ führt in den Monat: der Sprung war ein neuer Eintrag im Verlauf.
@@ -1650,38 +1658,38 @@ describe('Einsatzplanung am Handy (25.10.2026)', () => {
   steht und nur dort, wo es hingehört (Gegenprobe je Test).
 */
 describe('Einsatzplanung — Planlinie', () => {
-  const schriftfeld = () => within(screen.getByRole('list', { name: 'Stand der Planung' }));
+  /*
+    SEIT E88 KEIN SCHRIFTFELD MEHR: die Woche steht in der Steuerzeile,
+    „Noch einzuplanen“ am Schreibtisch als Ablage neben dem Raster (zum
+    Ziehen), darunter weiter die Hinweiszeile. Abgelöst sind die drei
+    Prüfungen des Schriftfelds aus der Planlinie (30.10.2026).
+  */
+  const ablage = () => screen.queryByRole('complementary', { name: 'Noch einzuplanen' });
 
-  it('das Schriftfeld nennt KW und Zeitraum und was noch einzuplanen ist — in Ocker, solange es etwas gibt', async () => {
+  it('kein Schriftfeld; „Noch einzuplanen“ steht als Ablage mit Zahl und Baustelle', async () => {
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
-    const feld = schriftfeld();
-    expect(feld.getByText('KW 36')).toBeInTheDocument();
-    expect(feld.getByText('31.08. bis 06.09.2026')).toBeInTheDocument();
-    const noch = feld.getByText('Noch einzuplanen').closest('li')!;
-    expect(noch).toHaveTextContent('Noch einzuplanen 1 Baustelle ohne Einsatz');
-    expect(noch.querySelector('.lage-wert-warn')).not.toBeNull();
+    expect(screen.queryByRole('list', { name: 'Stand der Planung' })).toBeNull();
+    const a = within(ablage()!);
+    expect(a.getByRole('heading', { name: 'Noch einzuplanen (1)' })).toBeInTheDocument();
+    expect(a.getByRole('button', { name: /Familie Huber \(2026-042\) einplanen/ })).toBeInTheDocument();
   });
 
-  it('Gegenprobe: ist jede Baustelle eingeplant, steht 0 ohne Ocker — und im Monat gibt es das Feld nicht', async () => {
+  it('Gegenprobe: ist jede Baustelle eingeplant, gibt es keine Ablage — und im Monat auch nicht', async () => {
     einsaetze = [EINSATZ_MAX];
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
-    const noch = schriftfeld().getByText('Noch einzuplanen').closest('li')!;
-    expect(noch).toHaveTextContent('Noch einzuplanen 0 Baustellen ohne Einsatz');
-    expect(noch.querySelector('.lage-wert-warn')).toBeNull();
+    expect(ablage()).toBeNull();
     await userEvent.click(within(screen.getByRole('group', { name: 'Zeitraum' })).getByRole('button', { name: 'Monat' }));
-    await waitFor(() => expect(schriftfeld().getByText('Monat')).toBeInTheDocument());
-    expect(schriftfeld().queryByText('Noch einzuplanen')).toBeNull();
-    expect(schriftfeld().getByText('September')).toBeInTheDocument();
+    await screen.findByRole('region', { name: 'Monatsplan nach Personen' });
+    expect(ablage()).toBeNull();
   });
 
-  it('kommen die Baustellen nicht, fehlt das Feld — „0“ wäre keine Auskunft', async () => {
+  it('kommen die Baustellen nicht, gibt es keine Ablage — „nichts einzuplanen“ wäre keine Auskunft', async () => {
     vi.mocked(projekte.listActiveProjects).mockRejectedValueOnce(new Error('weg'));
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
-    expect(schriftfeld().getByText('KW 36')).toBeInTheDocument();
-    expect(schriftfeld().queryByText('Noch einzuplanen')).toBeNull();
+    expect(ablage()).toBeNull();
   });
 
   it('heute trägt das Lot: das Senkblei nur im Kopf von heute, die Linie in genau seinen Zellen', async () => {
@@ -1758,5 +1766,111 @@ describe('Einsatzplanung — Planlinie', () => {
     await screen.findByRole('rowheader', { name: /Familie Huber/ });
     expect(container.querySelector('svg[data-motiv="plan"]')).toBeNull();
     expect(screen.queryByText('In dieser Woche ist keine Baustelle eingeplant.')).toBeNull();
+  });
+});
+
+/*
+  UMPLANEN IM WOCHENPLAN (E88): die Leiste am Einsatz mit Bearbeiten,
+  Verschieben, Auf nächsten Werktag kopieren und Entfernen; „Rückgängig“ in
+  der Meldung; das Fenster „Verschieben“ zeigt den Grund, wenn der Server
+  ablehnt. Gezogen wird im Browser (`einsatzplanUmplanen.spec.ts`).
+*/
+describe('Einsatzplanung — Umplanen (E88)', () => {
+  const leiste = () => within(tabelle().getByRole('toolbar', { name: /Einsatz Familie Huber, Max Mustermann/ }));
+
+  it('die Leiste am Einsatz: vier Handlungen, „kopieren“ nennt den nächsten Werktag', async () => {
+    einsaetze = [EINSATZ_MAX];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(leiste().getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Bearbeiten', 'Verschieben …', 'Auf Do 03.09. kopieren', 'Entfernen …',
+    ]);
+  });
+
+  it('Gegenprobe: im Einblick des Supports und ohne Führungsrolle keine Leiste und kein Ablegen', async () => {
+    einsaetze = [EINSATZ_MAX];
+    authWert.einblick = true;
+    const { unmount } = zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(tabelle().queryByRole('toolbar')).toBeNull();
+    expect(screen.getByRole('table', { name: 'Wochenplan als Tabelle' }).querySelector('[data-ziel-tag]')).toBeNull();
+    unmount();
+    authWert.einblick = false;
+    authWert.user.role = 'Verwaltung';
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(tabelle().queryByRole('toolbar')).toBeNull();
+  });
+
+  it('kopieren: auf den nächsten Werktag, dieselbe Person — „Rückgängig“ entfernt die Kopie', async () => {
+    einsaetze = [EINSATZ_MAX];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(leiste().getByRole('button', { name: 'Auf Do 03.09. kopieren' }));
+    expect(umplane).toHaveBeenCalledWith('a1', '2026-09-03', 'u1', true);
+    expect(await screen.findByText(/Familie Huber kopiert: Donnerstag 03\.09\./)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Rückgängig' }));
+    await waitFor(() => expect(entferne).toHaveBeenCalledWith('kopie'));
+  });
+
+  it('verschieben: Tag und Person wählen — „Rückgängig“ setzt ihn zurück, wo er war', async () => {
+    einsaetze = [EINSATZ_MAX];
+    umplane.mockImplementation(async () => ({ id: 'a1', anderswo: true }));
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(leiste().getByRole('button', { name: 'Verschieben …' }));
+    const f = within(screen.getByRole('dialog', { name: 'Einsatz verschieben' }));
+    fireEvent.change(f.getByLabelText('Tag'), { target: { value: '2026-09-04' } });
+    await userEvent.selectOptions(f.getByLabelText('Person'), 'u2');
+    await userEvent.click(f.getByRole('button', { name: 'Verschieben' }));
+    expect(umplane).toHaveBeenCalledWith('a1', '2026-09-04', 'u2', false);
+    expect(await screen.findByText(/verschoben: Erna Beispiel, Freitag 04\.09\. — steht dort auch auf einer anderen Baustelle/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Einsatz verschieben' })).toBeNull());
+    await userEvent.click(screen.getByRole('button', { name: 'Rückgängig' }));
+    await waitFor(() => expect(umplane).toHaveBeenLastCalledWith('a1', MITTWOCH, 'u1', false));
+  });
+
+  it('lehnt der Server ab, bleibt das Fenster offen und nennt den Grund', async () => {
+    einsaetze = [EINSATZ_MAX];
+    umplane.mockImplementation(async () => { throw new Error('Erna Beispiel ist am 04.09.2026 abwesend (Urlaub)'); });
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(leiste().getByRole('button', { name: 'Verschieben …' }));
+    const f = within(screen.getByRole('dialog', { name: 'Einsatz verschieben' }));
+    fireEvent.change(f.getByLabelText('Tag'), { target: { value: '2026-09-04' } });
+    await userEvent.click(f.getByRole('button', { name: 'Verschieben' }));
+    expect(await f.findByRole('alert')).toHaveTextContent('Erna Beispiel ist am 04.09.2026 abwesend (Urlaub)');
+    expect(screen.getByRole('dialog', { name: 'Einsatz verschieben' })).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: auf dieselbe Stelle ohne Kopieren lässt sich nicht absenden', async () => {
+    einsaetze = [EINSATZ_MAX];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(leiste().getByRole('button', { name: 'Verschieben …' }));
+    const f = within(screen.getByRole('dialog', { name: 'Einsatz verschieben' }));
+    expect(f.getByRole('button', { name: 'Verschieben' })).toBeDisabled();
+    await userEvent.click(f.getByLabelText('Kopieren statt verschieben'));
+    expect(f.getByRole('button', { name: 'Kopieren' })).toBeEnabled();
+  });
+
+  it('entfernen fragt nach und entfernt dann genau diesen Einsatz', async () => {
+    einsaetze = [EINSATZ_MAX];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(leiste().getByRole('button', { name: 'Entfernen …' }));
+    const d = within(screen.getByRole('dialog', { name: 'Einsatz entfernen?' }));
+    expect(d.getByText(/Familie Huber · Max Mustermann · Mittwoch 02\.09\./)).toBeInTheDocument();
+    expect(entferne).not.toHaveBeenCalled();
+    await userEvent.click(d.getByRole('button', { name: 'Entfernen' }));
+    await waitFor(() => expect(entferne).toHaveBeenCalledWith('a1'));
+  });
+
+  it('die Zellen einplanbarer Personen nehmen Abgelegtes an; der Einsatz lässt sich ziehen', async () => {
+    einsaetze = [EINSATZ_MAX];
+    zeige();
+    const max = await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(max.querySelectorAll('td[data-ziel-tag][data-ziel-person="u1"]')).toHaveLength(7);
+    expect(tabelle().getByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09/ })).toHaveAttribute('data-ziehbar');
   });
 });

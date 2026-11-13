@@ -4,7 +4,8 @@ import { Warnung } from '@/components/Badge';
 import { terminZeit } from '@/features/termine/terminText';
 import { tagKurz, type Brett, type Gruppe, type TagStand } from './planTypen';
 import type { FensterStart } from './EinsatzFenster';
-import { PersonEintraege, type BaustellenInfo } from './WochenEintraege';
+import { PersonEintraege, type BaustellenInfo, type EinsatzAktionen } from './WochenEintraege';
+import { kuerzel } from '@/features/nachrichten/text';
 import { NeuKnopf } from '@/components/Symbolknoepfe';
 import {
   feiertagAm,
@@ -50,6 +51,7 @@ export default function HandyWoche({
   onTerminNeu,
   lesen,
   ich,
+  aktionen,
 }: {
   tage: string[];
   heute: string;
@@ -72,6 +74,8 @@ export default function HandyWoche({
   lesen?: boolean;
   /** Wer schaut — sein Name trägt „du“. */
   ich?: string;
+  /** Umplanen (E88): die Leiste am Einsatz nach langem Drücken. */
+  aktionen?: EinsatzAktionen;
 }) {
   const termine = termineAm(gewaehlt);
   /** Die Gruppen nur mit denen, die an diesem Tag einen Einsatz oder Termin haben. */
@@ -96,7 +100,8 @@ export default function HandyWoche({
     : (feiertag ?? (zu ? (frei > 0 ? `${zu} · ${frei} frei` : zu) : ruhetag(gewaehlt) ? 'Wochenende' : `${frei} frei`));
 
   return (
-    <section aria-label="Wochenplan als Liste" className="handy-woche">
+    // Heute gewählt: die Einsätze tragen die Petrol-Fläche wie die Spalte „heute“ im Raster (E88).
+    <section aria-label="Wochenplan als Liste" className="handy-woche" data-heute={gewaehlt === heute ? '' : undefined}>
       <div className="tagwahl" role="group" aria-label="Tag wählen">
         {tage.map((tag) => {
           const { wochentag } = tagKurz(tag);
@@ -196,6 +201,7 @@ export default function HandyWoche({
               ich={ich === u.uid}
               onEinsatz={onEinsatz}
               onTermin={onTermin}
+              aktionen={lesen ? undefined : aktionen}
             />
           ))}
         </div>
@@ -219,8 +225,10 @@ function TagesPerson({
   onEinsatz,
   onTermin,
   letzte = false,
+  aktionen,
 }: {
   u: AppUser;
+  aktionen?: EinsatzAktionen;
   tag: string;
   datum: string;
   brett: Brett;
@@ -242,8 +250,12 @@ function TagesPerson({
   return (
     <div className={letzte ? 'tl-person tl-person-letzte' : 'tl-person'}>
       <p className="tl-name">
-        {u.name}
-        {ich && <span className="wp-name-ich"> · du</span>}
+        {/* Der Kürzel-Kreis wie im Posteingang (E88). */}
+        <span className="wp-kuerzel" aria-hidden="true">{kuerzel(u.name)}</span>
+        <span>
+          {u.name}
+          {ich && <span className="wp-name-ich"> · du</span>}
+        </span>
       </p>
       <div className="tl-eintraege">
         {/* In der Team-Woche gibt es kein „frei“: eine leere Zeile sagt „nicht eingeteilt“. */}
@@ -261,6 +273,8 @@ function TagesPerson({
             lesen={lesen}
             onEinsatz={onEinsatz}
             onTermin={onTermin}
+            aktionen={aktionen}
+            leisteOben={letzte}
           />
         )}
         {/*

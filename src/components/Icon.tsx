@@ -49,7 +49,8 @@ export type IconName =
   | 'plus'
   | 'kopieren'
   | 'markieren'
-  | 'melden';
+  | 'melden'
+  | 'verschieben';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
 // Ausserhalb der Navigation nur, wo das Zeichen mehr sagt als das Wort:
@@ -171,6 +172,8 @@ const paths: Record<IconName, string> = {
   melden: 'M5 21V4M5 4h11l-2 4 2 4H5',
   // Textcursor: Text in einer Nachricht markieren (am Handy, wo langes Drücken die Leiste öffnet).
   markieren: 'M9 4h6M9 20h6M12 4v16',
+  // Einen Einsatz auf einen anderen Tag oder zu einer anderen Person setzen (E88): das Kreuz mit vier Pfeilen.
+  verschieben: 'M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:

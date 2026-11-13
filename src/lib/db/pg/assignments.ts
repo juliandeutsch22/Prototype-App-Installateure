@@ -324,3 +324,27 @@ export async function einsatzFolgetage(
     anderswo: t.anderswo ?? [],
   }));
 }
+
+/**
+ * Einen Einsatz auf einen anderen Tag oder zu einer anderen Person setzen,
+ * oder ihn dorthin kopieren (`einsatz_umplanen`, E88) — eine Zeile, mit den
+ * Prüfungen von „Auch an den folgenden Tagen“; die Rüstliste geht mit.
+ * `anderswo`: die Person steht am Zieltag auch auf einer anderen Baustelle.
+ */
+export async function einsatzUmplanen(
+  id: string, datum: string, userId: string, kopieren: boolean,
+): Promise<{ id: string; anderswo: boolean }> {
+  const { data, error } = await derClient().rpc('einsatz_umplanen', {
+    p_id: id, p_datum: datum, p_user: userId, p_kopieren: kopieren,
+  });
+  if (error) throw new Error(error.message);
+  const zeile = ((data ?? []) as { id: string; anderswo: boolean }[])[0];
+  if (!zeile) throw new Error('Der Einsatz wurde nicht umgeplant.');
+  return zeile;
+}
+
+/** Einen Einsatz entfernen — mit der Rüstliste (`einsatz_entfernen`, E88). */
+export async function einsatzEntfernen(id: string): Promise<void> {
+  const { error } = await derClient().rpc('einsatz_entfernen', { p_id: id });
+  if (error) throw new Error(error.message);
+}

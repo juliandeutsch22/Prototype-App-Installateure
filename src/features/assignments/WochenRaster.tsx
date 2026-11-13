@@ -4,7 +4,9 @@ import { EmptyState } from '@/components/States';
 import { tagKurz, type Brett, type Gruppe, type TagStand } from './planTypen';
 import type { FensterStart } from './EinsatzFenster';
 import { GruppenKopf } from './PlanRaster';
-import { PersonEintraege, TerminEintrag, type BaustellenInfo } from './WochenEintraege';
+import { PersonEintraege, TerminEintrag, type BaustellenInfo, type EinsatzAktionen } from './WochenEintraege';
+import { kuerzel } from '@/features/nachrichten/text';
+import Icon from '@/components/Icon';
 import type { MaterialLage } from './materialDeckung';
 import {
   feiertagAm,
@@ -65,6 +67,8 @@ interface RasterGrund {
   nichtEinplanbar?: ReadonlySet<string>;
   /** Die Materialbereitschaft eines Einsatzes (M04b) — in der Sicht „Baustellen“. */
   materialFuer?: (tag: string, nummer: string) => MaterialLage | undefined;
+  /** Umplanen (E88): Leiste und Ziehen am Einsatz, Ablegen in die Zellen — nur für die Führung im eigenen Betrieb. */
+  aktionen?: EinsatzAktionen;
 }
 
 /**
@@ -242,6 +246,12 @@ export function PersonenWoche({
   infoFuer: (tag: string, nummer: string) => BaustellenInfo;
 }) {
   const mitKoepfen = gruppen.length > 1;
+  /*
+    In der letzten sichtbaren Zeile steht die Leiste eines Einsatzes über
+    ihm: darunter endet das Raster, und sie läge im Rollbereich verborgen.
+  */
+  const sichtbar = gruppen.filter((gr) => !mitKoepfen || !zu.has(gr.name)).flatMap((gr) => gr.leute);
+  const letzte = sichtbar[sichtbar.length - 1]?.uid;
   return (
     <div className="wp-huelle" role="region" aria-label="Wochenplan seitlich und nach unten scrollen" tabIndex={0}>
       <table aria-label="Wochenplan als Tabelle" className={tabellenKlasse(g)}>
@@ -259,11 +269,17 @@ export function PersonenWoche({
                   gr.leute.map((u) => (
                     <tr key={u.uid}>
                       <th scope="row" className="wp-name">
-                        {u.name}
-                        {g.ich === u.uid && <span className="wp-name-ich"> · du</span>}
+                        {/* Der Kürzel-Kreis wie im Posteingang (E88): die Zeile findet man am Kreis, nicht nur am Namen. */}
+                        <span className="wp-name-zeile">
+                          <span className="wp-kuerzel" aria-hidden="true">{kuerzel(u.name)}</span>
+                          <span>
+                            {u.name}
+                            {g.ich === u.uid && <span className="wp-name-ich"> · du</span>}
+                          </span>
+                        </span>
                       </th>
                       {g.tage.map((tag) => (
-                        <PersonenZelle key={tag} u={u} tag={tag} g={g} brett={brett} zuFuer={zuFuer} infoFuer={infoFuer} />
+                        <PersonenZelle key={tag} u={u} tag={tag} g={g} brett={brett} zuFuer={zuFuer} infoFuer={infoFuer} leisteOben={u.uid === letzte} />
                       ))}
                     </tr>
                   ))}
@@ -283,6 +299,7 @@ function PersonenZelle({
   brett,
   zuFuer,
   infoFuer,
+  leisteOben,
 }: {
   u: AppUser;
   tag: string;
@@ -290,6 +307,7 @@ function PersonenZelle({
   brett: Brett;
   zuFuer: (uid: string, tag: string) => boolean;
   infoFuer: (tag: string, nummer: string) => BaustellenInfo;
+  leisteOben?: boolean;
 }) {
   const z = brett.get(u.uid)?.get(tag);
   const { datum } = tagKurz(tag);
@@ -332,21 +350,34 @@ function PersonenZelle({
               lesen={!!g.lesen}
               onEinsatz={g.onEinsatz}
               onTermin={g.onTermin}
+              aktionen={g.lesen ? undefined : g.aktionen}
+              leisteOben={leisteOben}
             />
           </div>
         )}
       </td>
     );
   }
+  /*
+    ABLEGEN (E88): eine Zelle einer einplanbaren Person nimmt einen gezogenen
+    Einsatz oder eine Baustelle aus „Noch einzuplanen“ an — auch die schmale
+    eines leeren Samstags (Notdienst).
+  */
+  const ziel = g.aktionen ? { 'data-ziel-tag': tag, 'data-ziel-person': u.uid } : {};
   return (
-    <td className={zellenKlasse(tag, g)}>
+    <td className={zellenKlasse(tag, g)} {...ziel}>
       <button
         type="button"
         className="zelle-planen"
         onClick={() => g.onEinsatz({ datum: tag, person: u.uid })}
         aria-label={`${u.name}, ${tagLang(tag)}: ${zustand} – Einsatz planen`}
       >
-        {leer && !schmal && <span className="zelle-plus">+ Einsatz planen</span>}
+        {/* Ein leises Plus statt der Schrift (E88): die Lücke fällt auf, das Zeichen nicht. */}
+        {leer && !schmal && (
+          <span className="zelle-plus" aria-hidden="true">
+            <Icon name="plus" size={16} />
+          </span>
+        )}
       </button>
       {/* Schmal steht nichts in der Zelle — der Tag ist leer, sonst wäre er breit. */}
       {!leer && !schmal && (
@@ -362,6 +393,8 @@ function PersonenZelle({
             darf={g.darf}
             onEinsatz={g.onEinsatz}
             onTermin={g.onTermin}
+            aktionen={g.aktionen}
+            leisteOben={leisteOben}
           />
         </div>
       )}

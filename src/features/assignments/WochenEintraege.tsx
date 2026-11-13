@@ -1,4 +1,7 @@
-import type { AppUser, Project, Termin } from '@/types';
+import type { HTMLAttributes } from 'react';
+import type { AppUser, Assignment, Project, Termin } from '@/types';
+import Icon from '@/components/Icon';
+import { naechsterWerktag, type Last } from './umplanen';
 import { artName } from '@/features/termine/terminText';
 import { alsHelferEingestuft, istLehrling } from './stufeImEinsatz';
 import type { TagBaustelle, Zelle } from './planTypen';
@@ -18,6 +21,24 @@ export interface BaustellenInfo {
   stand: TagBaustelle | undefined;
   /** Die Materialbereitschaft des Einsatzes (M04b) — nur mit Rüstliste und Modul. */
   material?: MaterialLage;
+}
+
+/**
+ * DIE HANDLUNGEN AM EINSATZ (E88): Bearbeiten, Verschieben, Auf nächsten
+ * Werktag kopieren, Entfernen — als Leiste beim Darüberfahren, beim Fokus
+ * und nach langem Drücken, und das Ziehen selbst. Nur für die Führung im
+ * eigenen Betrieb (`einsatz_umplanen`); ohne sie steht der Block wie bisher.
+ */
+export interface EinsatzAktionen {
+  /** Die Zeile dieses Einsatzes: Person, Tag, Baustelle. */
+  einsatzVon: (uid: string, tag: string, nummer: string) => Assignment | undefined;
+  onVerschieben: (a: Assignment, titel: string) => void;
+  onKopieren: (a: Assignment, titel: string, nach: string) => void;
+  onEntfernen: (a: Assignment, titel: string) => void;
+  /** Ziehen (`useZiehen`). */
+  griff: (last: Last) => HTMLAttributes<HTMLElement> & { 'data-ziehbar': string };
+  /** Der angehobene Einsatz (langes Drücken): seine Leiste steht offen. */
+  offen: string | null;
 }
 
 /**
@@ -42,11 +63,16 @@ function Einsatzblock({
   zusatz,
   lesen,
   onEinsatz,
+  aktionen,
+  leisteOben,
 }: {
   person: AppUser;
   tag: string;
   datum: string;
   b: Zelle['baustellen'][number];
+  aktionen?: EinsatzAktionen;
+  /** In der letzten Zeile steht die Leiste über dem Block, sonst darunter. */
+  leisteOben?: boolean;
   info: BaustellenInfo;
   /** Eingeteilt, aber ganztags weg: „Krank“ bzw. „abwesend“. */
   konflikt: string | null;
@@ -96,7 +122,7 @@ function Einsatzblock({
       </span>
     );
   }
-  return (
+  const knopf = (zusatzProps: HTMLAttributes<HTMLElement> = {}) => (
     <button
       type="button"
       className={konflikt ? 'eintrag-konflikt' : 'eintrag'}
@@ -107,10 +133,50 @@ function Einsatzblock({
         konflikt ? `, eingeteilt, fehlt: ${konflikt}` : b.zeit ? `, ${b.zeit}` : ''
       }${info.material ? `, ${info.material.text}` : ''}`}
       onClick={() => onEinsatz({ datum: tag, projectNumber: b.nummer })}
+      {...zusatzProps}
     >
       {inhalt}
     </button>
   );
+  const a = aktionen?.einsatzVon(person.uid, tag, b.nummer);
+  if (!aktionen || !a) return knopf();
+  const nach = naechsterWerktag(tag);
+  return (
+    <div
+      className="einsatz-halter"
+      data-offen={aktionen.offen === a.id ? '' : undefined}
+      data-leiste={leisteOben ? 'oben' : undefined}
+    >
+      {knopf(aktionen.griff({ art: 'einsatz', id: a.id, tag, person: person.uid, nummer: b.nummer, titel: b.name }))}
+      {/* Eckig mit Linie rundum, wie die Leiste im Chat (E77) — nur die Zeichen, ihr Name im `title`. */}
+      <div role="toolbar" aria-label={`Einsatz ${b.name}, ${person.name}, ${datum}`} className="einsatz-leiste">
+        <button type="button" className="leiste-knopf" aria-label="Bearbeiten" title="Bearbeiten" onClick={() => onEinsatz({ datum: tag, projectNumber: b.nummer })}>
+          <Icon name="pencil" size={18} />
+        </button>
+        <button type="button" className="leiste-knopf" aria-label="Verschieben …" title="Verschieben …" onClick={() => aktionen.onVerschieben(a, b.name)}>
+          <Icon name="verschieben" size={18} />
+        </button>
+        <button
+          type="button"
+          className="leiste-knopf"
+          aria-label={`Auf ${tagKurzText(nach)} kopieren`}
+          title={`Auf ${tagKurzText(nach)} kopieren`}
+          onClick={() => aktionen.onKopieren(a, b.name, nach)}
+        >
+          <Icon name="kopieren" size={18} />
+        </button>
+        <button type="button" className="leiste-knopf" data-ton="gefahr" aria-label="Entfernen …" title="Entfernen …" onClick={() => aktionen.onEntfernen(a, b.name)}>
+          <Icon name="papierkorb" size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** „Mo 16.11.“ — für den Knopf „Auf … kopieren“. */
+function tagKurzText(iso: string): string {
+  const d = new Date(`${iso}T12:00:00`);
+  return `${new Intl.DateTimeFormat('de-AT', { weekday: 'short' }).format(d).replace('.', '')} ${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.`;
 }
 
 /** DER TERMIN-EINTRAG: weiß, Petrol links; ein Klick öffnet „Termin ändern“. */
@@ -173,11 +239,15 @@ export function PersonEintraege({
   lesen,
   onEinsatz,
   onTermin,
+  aktionen,
+  leisteOben,
 }: {
   person: AppUser;
   tag: string;
   datum: string;
   zelle: Zelle | undefined;
+  aktionen?: EinsatzAktionen;
+  leisteOben?: boolean;
   /** Der Betrieb hat für diese Person zu. */
   zu: boolean;
   /** Alle Termine dieses Tages. */
@@ -231,6 +301,8 @@ export function PersonEintraege({
         zusatz={termine.filter((t) => t.projectNumber === b.nummer && !t.teilnehmer.includes(person.uid))}
         lesen={lesen}
         onEinsatz={onEinsatz}
+        aktionen={lesen ? undefined : aktionen}
+        leisteOben={leisteOben}
       />,
     );
   }
