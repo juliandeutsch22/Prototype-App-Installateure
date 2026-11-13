@@ -26,7 +26,8 @@ const abgeholt = (p: Partial<MaterialOrder>) =>
 
 let antwort: WithId<MaterialOrder>[] = [];
 let fehler = false;
-const eigeneAbgeholt = vi.fn(async (..._a: unknown[]) => {
+const eigeneAbgeholt = vi.fn(async (...a: unknown[]) => {
+  void a;
   if (fehler) throw new Error('Failed to fetch');
   return antwort;
 });

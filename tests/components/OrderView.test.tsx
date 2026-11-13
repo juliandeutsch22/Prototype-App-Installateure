@@ -1011,7 +1011,7 @@ describe('Was schon in der Liste liegt', () => {
   it('ein Tipp auf den Kreis legt eines hinein; dann steht die Menge an derselben Stelle, einzeilig — „Liste leeren“ bringt den Kreis zurück', async () => {
     zeige();
     const knopf = await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' });
-    // Der Petrol-Kreis (E74), jetzt mit Plus: kein Wort im Knopf, der Name als Hinweis.
+    // Der Petrol-Kreis (E74): kein Wort im Knopf, der Name als Hinweis.
     expect(knopf).toHaveClass('symbol-rund');
     expect(knopf).toHaveTextContent(/^$/);
     expect(knopf).toHaveAttribute('title', 'Kupferrohr 15mm in die Liste');

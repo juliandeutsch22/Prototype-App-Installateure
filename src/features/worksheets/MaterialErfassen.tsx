@@ -220,7 +220,7 @@ export default function MaterialErfassen({ companyId, materials, zeilen, onChang
                     label={`${v.name} auf den Schein`}
                     onClick={() => hinzufuegen(v.name, einheit, v.materialId ?? undefined, v.menge)}
                   >
-                    <Icon name="plus" size={20} />
+                    <Icon name="in-liste" size={20} />
                   </IconButton>
                 </ListRow>
               );
@@ -280,7 +280,7 @@ export default function MaterialErfassen({ companyId, materials, zeilen, onChang
                         setSuche('');
                       }}
                     >
-                      <Icon name="plus" size={20} />
+                      <Icon name="in-liste" size={20} />
                     </IconButton>
                   </ListRow>
                 ))}

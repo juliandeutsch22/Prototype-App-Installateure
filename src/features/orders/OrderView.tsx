@@ -1032,7 +1032,7 @@ export default function OrderView() {
  * stand in einer zweiten Zeile darunter. Jetzt:
  *
  * - Liegt der Artikel (für diese Baustelle) noch nicht in der Liste, steht da
- *   nur der Petrol-Kreis mit Plus: ein Tipp legt ein Stück hinein — der
+ *   nur der Petrol-Kreis „In die Liste“: ein Tipp legt eines hinein — der
  *   Regelfall auf der Baustelle.
  * - Danach steht AN DERSELBEN STELLE die Menge mit Minus und Plus; sie ist
  *   die Menge in der Liste, nicht ein Vorschlag daneben. Plus legt eines
@@ -1065,9 +1065,9 @@ function KorbMenge({
   if (imKorb <= 0) {
     return (
       <div className="flex flex-col items-end gap-1">
-        {/* Der Petrol-Kreis der Zeile (E74) — jetzt mit Plus: er legt genau eines hinein. */}
+        {/* Der Petrol-Kreis der Zeile (E74): er legt genau eines hinein. */}
         <IconButton rund label={`${material.name} in die Liste`} onClick={() => onMenge(material, 1)}>
-          <Icon name="plus" size={20} />
+          <Icon name="in-liste" size={20} />
         </IconButton>
         {insgesamt > 0 && (
           <p className="text-sm text-ink-muted" aria-live="polite">{`${fmtMenge(insgesamt)} ${einheit} in der Liste`}</p>
