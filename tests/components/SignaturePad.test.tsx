@@ -493,3 +493,25 @@ describe('Unterschriftsfeld — genug Tinte', () => {
     expect(gemeldet).not.toHaveBeenCalledWith(true);
   });
 });
+
+/*
+  DER HINWEIS IM LEEREN FELD (D8, E90): am Handy steht „Mit dem Finger
+  unterschreiben“ in der Zeichenfläche, nimmt keine Berührung weg und fehlt
+  in einem gesperrten Feld. Ab dem Tablet (`md:hidden`) bleibt er darunter.
+*/
+describe('Hinweis im leeren Feld (D8, E90)', () => {
+  it('steht im leeren Feld, nur am Handy, ohne Berührung abzufangen', () => {
+    const { container } = render(<SignaturePad titel="Kunde" onChange={() => undefined} />);
+    const hinweis = container.querySelector('.unterschrift-hinweis');
+    expect(hinweis).toHaveTextContent('Mit dem Finger unterschreiben');
+    expect(hinweis).toHaveClass('md:hidden');
+    expect(hinweis).toHaveAttribute('aria-hidden', 'true');
+    // Derselbe Satz unter dem Feld ist am Handy unsichtbar — er stünde sonst zweimal da.
+    expect(screen.getByText('Mit dem Finger im Feld unterschreiben.')).toHaveClass('max-md:invisible');
+  });
+
+  it('Gegenprobe: im gesperrten Feld kein Hinweis', () => {
+    const { container } = render(<SignaturePad titel="Kunde" onChange={() => undefined} disabled />);
+    expect(container.querySelector('.unterschrift-hinweis')).toBeNull();
+  });
+});

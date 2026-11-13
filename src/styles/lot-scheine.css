@@ -30,4 +30,7 @@
   /* Eigener heller Grund mit Linie statt Schatten — auf einem dunklen Foto
      wäre ein blosses Zeichen nicht zu sehen. */
   .schein-foto-weg { display: flex; width: 1.75rem; height: 1.75rem; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--danger); font-size: 0.875rem; }
+
+  /* Der Hinweis im leeren Unterschriftsfeld am Handy (D8, E90): mittig, leise, ohne Berührung abzufangen. */
+  .unterschrift-hinweis { position: absolute; inset: 0.25rem 0 0; display: flex; align-items: center; justify-content: center; pointer-events: none; font-size: 0.875rem; color: var(--text-placeholder); }
 }
