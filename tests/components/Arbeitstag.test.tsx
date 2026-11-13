@@ -155,6 +155,147 @@ describe('Karte „Arbeitstag“', () => {
   });
 });
 
+/*
+  DER TIMER ANTWORTET SOFORT (C4, E90). Der Tipp ändert die Anzeige im selben
+  Augenblick; der Server bestätigt im Hintergrund. Lehnt er ab, springt sie
+  zurück und nennt den Grund. Ein zweiter Tipp, solange der erste unterwegs
+  ist, geht nicht hinaus — nach „Pause“ liegt an derselben Stelle
+  „Weiterarbeiten“.
+*/
+describe('Der Timer antwortet sofort (C4, E90)', () => {
+  const laeuft = () => sitzung('laeuft', [{ id: 'a', art: 'arbeit', von: '2026-11-09T07:00:00+01:00', baustelle: 'B-1' }]);
+  let antworten: (wert: 'confirmed') => void = () => undefined;
+  let ablehnen: (e: Error) => void = () => undefined;
+  const haengt = () => new Promise<'confirmed'>((ja, nein) => { antworten = ja; ablehnen = nein; });
+
+  it('Pause gilt sofort — die Knöpfe bleiben bedienbar, gesendet wird einmal, danach der Stand des Servers', async () => {
+    sitzungen = [laeuft()];
+    gesendet.mockImplementationOnce(haengt);
+    zeigeKarte();
+    await userEvent.click(await screen.findByRole('button', { name: 'Pause beginnen' }));
+    // Noch ohne Antwort des Servers: die Pause steht schon da.
+    expect(screen.getByText('Pause seit 11:17')).toBeInTheDocument();
+    const weiter = screen.getByRole('button', { name: 'Weiterarbeiten' });
+    expect(weiter).toBeEnabled();
+    // Der zweite Tipp des Doppeltipps geht nicht hinaus.
+    await userEvent.click(weiter);
+    expect(gesendet).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Pause seit 11:17')).toBeInTheDocument();
+    const geladen = vi.mocked(zs.zeitsitzungenLaden).mock.calls.length;
+    sitzungen = [sitzung('pause', [
+      { id: 'a', art: 'arbeit', von: '2026-11-09T07:00:00+01:00', bis: '2026-11-09T11:17:32+01:00', baustelle: 'B-1' },
+      { id: 'p', art: 'pause', von: '2026-11-09T11:17:32+01:00', baustelle: 'B-1' },
+    ])];
+    antworten('confirmed');
+    await waitFor(() => expect(vi.mocked(zs.zeitsitzungenLaden).mock.calls.length).toBeGreaterThan(geladen));
+    expect(await screen.findByText('Pause seit 11:17')).toBeInTheDocument();
+  });
+
+  it('lehnt der Server ab, springt die Anzeige zurück und nennt den Grund', async () => {
+    sitzungen = [laeuft()];
+    gesendet.mockImplementationOnce(haengt);
+    zeigeKarte();
+    await userEvent.click(await screen.findByRole('button', { name: 'Pause beginnen' }));
+    expect(screen.getByText('Pause seit 11:17')).toBeInTheDocument();
+    ablehnen(new Error('Die Zeitsitzung wurde auf einem anderen Gerät geändert.'));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Die Zeitsitzung wurde auf einem anderen Gerät geändert.');
+    expect(screen.getByText('Läuft seit 07:00')).toBeInTheDocument();
+    expect(screen.queryByText(/Pause seit/)).toBeNull();
+  });
+
+  it('ohne Netz bleibt der Schritt stehen und ist vorgemerkt — wie bisher', async () => {
+    sitzungen = [laeuft()];
+    gesendet.mockImplementationOnce(async () => 'queued' as never);
+    render(<ToastProvider><MemoryRouter><ArbeitstagKarte /></MemoryRouter></ToastProvider>);
+    await userEvent.click(await screen.findByRole('button', { name: 'Pause beginnen' }));
+    expect(await screen.findByText(/Timer-Schritt auf diesem Gerät vorgemerkt/)).toBeInTheDocument();
+    expect(screen.getByText('Pause seit 11:17')).toBeInTheDocument();
+    expect(vi.mocked(zs.timerMerken)).toHaveBeenCalled();
+  });
+
+  it('zwei Schritte im Funkloch: „vorgemerkt“ steht einmal, nicht zweimal', async () => {
+    sitzungen = [laeuft()];
+    gesendet.mockImplementation(async () => 'queued' as never);
+    try {
+      render(<ToastProvider><MemoryRouter><ArbeitstagKarte /></MemoryRouter></ToastProvider>);
+      await userEvent.click(await screen.findByRole('button', { name: 'Pause beginnen' }));
+      await screen.findByText(/Timer-Schritt auf diesem Gerät vorgemerkt/);
+      // Das Ausgangsfach meldet sich nach jedem Versuch — auch ohne Empfang; das ist kein neues Funkloch.
+      window.dispatchEvent(new Event('senklot:ausgangsfach'));
+      await userEvent.click(await screen.findByRole('button', { name: 'Weiterarbeiten' }));
+      await waitFor(() => expect(gesendet).toHaveBeenCalledTimes(2));
+      expect(screen.getAllByText(/Timer-Schritt auf diesem Gerät vorgemerkt/)).toHaveLength(1);
+    } finally {
+      gesendet.mockImplementation(async () => 'confirmed' as const);
+    }
+  });
+
+  it('nach „Stoppen und prüfen“ wird erst gebucht, wenn der Server den Stopp kennt', async () => {
+    sitzungen = [laeuft()];
+    gesendet.mockImplementationOnce(haengt);
+    formular.mockClear();
+    // Wie im Layout: ein gemeinsamer Stand für Karte und „Arbeitstag prüfen“.
+    const { default: ZeitsitzungAnbieter } = await import('@/features/time/ZeitsitzungAnbieter');
+    module = { zeiterfassung: true, 'zeiterfassung.timer': true };
+    render(
+      <ToastProvider>
+        <MemoryRouter initialEntries={['/']}>
+          <ZeitsitzungAnbieter>
+            <Routes>
+              <Route path="/" element={<ArbeitstagKarte />} />
+              <Route path="/time" element={<><ArbeitstagKarte /><ZeitsitzungPanel /></>} />
+            </Routes>
+          </ZeitsitzungAnbieter>
+        </MemoryRouter>
+      </ToastProvider>,
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Stoppen und prüfen' }));
+    // Gleich auf „Arbeitstag prüfen“, aber noch ohne Formular und ohne Papierkorb.
+    expect(await screen.findByText('Arbeitstag prüfen')).toBeInTheDocument();
+    expect(formular).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /nicht buchen/ })).toBeNull();
+    sitzungen = [sitzung('beendet', [{ id: 'a', art: 'arbeit', von: '2026-11-09T07:00:00+01:00', bis: '2026-11-09T11:17:32+01:00', baustelle: 'B-1' }])];
+    antworten('confirmed');
+    await waitFor(() => expect(formular).toHaveBeenCalled());
+  });
+});
+
+/* Die kompakte Karte (D7, E90): dieselben Teile, die Baustelle mit Nummer, „Zeit von Hand“ nur auf Start. */
+describe('Karte „Arbeitstag“ kompakt (D7, E90)', () => {
+  const laeuft = () => sitzung('laeuft', [{ id: 'a', art: 'arbeit', von: '2026-11-09T07:00:00+01:00', baustelle: 'B-1' }]);
+
+  it('die Baustelle mit Namen und Nummer; Papierkorb, Uhr und Knöpfe in einem Raster', async () => {
+    sitzungen = [laeuft()];
+    const { container } = zeigeKarte();
+    const wechsel = await screen.findByRole('button', { name: /Baustelle wechseln — jetzt Familie Huber/ });
+    await waitFor(() => expect(wechsel.querySelector('.nr')).toHaveTextContent('B-1'));
+    const raster = container.querySelector('.arbeitstag-lauf') as HTMLElement;
+    for (const teil of ['.arbeitstag-stand', '.arbeitstag-fuss', '.arbeitstag-uhr', '.arbeitstag-knoepfe', '.arbeitstag-unten']) {
+      expect(raster.querySelector(`:scope > ${teil}`), teil).not.toBeNull();
+    }
+    expect(within(raster).getByRole('button', { name: 'Arbeitstag verwerfen …' })).toBeInTheDocument();
+  });
+
+  it('steht die Baustelle nicht in der eigenen Auswahl, holt die Karte ihren Namen nach', async () => {
+    sitzungen = [laeuft()];
+    const projekte = await import('@/lib/db/projects');
+    vi.mocked(projekte.listProjectsForEmployee).mockResolvedValueOnce([]);
+    zeigeKarte();
+    expect(await screen.findByRole('button', { name: /Baustelle wechseln — jetzt Familie Huber/ })).toBeInTheDocument();
+    expect(projekte.listProjectsByNumbers).toHaveBeenCalledWith('perl', ['B-1']);
+  });
+
+  it('„Zeit von Hand eintragen“ nur auf der Startseite — in der Zeiterfassung steht das Formular schon da', async () => {
+    sitzungen = [laeuft()];
+    const { unmount } = render(<MemoryRouter><ArbeitstagKarte aufStart handZeit={{ projectNumber: 'B-1' }} /></MemoryRouter>);
+    expect(await screen.findByRole('link', { name: /Zeit von Hand eintragen/ })).toHaveAttribute('href', '/time');
+    unmount();
+    zeigeKarte();
+    await screen.findByText('Läuft seit 07:00');
+    expect(screen.queryByRole('link', { name: /Zeit von Hand eintragen/ })).toBeNull();
+  });
+});
+
 describe('Timer-Leiste', () => {
   function zeigeLeiste(pfad: string, ort: 'telefon' | 'breit') {
     return render(
@@ -170,9 +311,19 @@ describe('Timer-Leiste', () => {
     zeigeLeiste('/material', 'telefon');
     const leiste = await screen.findByRole('region', { name: 'Laufender Arbeitstag' });
     expect(within(leiste).getByText('4:17')).toBeInTheDocument();
-    expect(within(leiste).getByText('B-1')).toBeInTheDocument();
+    // Seit D7 (E90) der Name wie auf der Karte, nicht die Nummer.
+    expect(await within(leiste).findByText(/Familie Huber/)).toBeInTheDocument();
     expect(within(leiste).getByRole('button', { name: 'Pause beginnen' })).toBeInTheDocument();
     expect(within(leiste).getByRole('button', { name: 'Stoppen und prüfen' })).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ist die Baustelle nicht zu holen (ohne Netz), steht die Nummer', async () => {
+    sitzungen = laeuft();
+    const projekte = await import('@/lib/db/projects');
+    vi.mocked(projekte.listProjectsByNumbers).mockRejectedValueOnce(new Error('Failed to fetch'));
+    zeigeLeiste('/material', 'telefon');
+    const leiste = await screen.findByRole('region', { name: 'Laufender Arbeitstag' });
+    expect(within(leiste).getByText('B-1')).toBeInTheDocument();
   });
 
   it('nicht auf Start und Zeiterfassung — dort steht die Karte; am Telefon nicht im Gespräch', async () => {

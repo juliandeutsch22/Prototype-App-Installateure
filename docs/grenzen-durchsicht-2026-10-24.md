@@ -373,3 +373,10 @@ Nachtlauf darf nicht wegzuklicken sein.
   fachlich (Älteres stand meist auf einem früheren Schein).
 - **„Beim Händler mitgenommen“ nicht bei abholbereiter oder bestellter
   Ware** (E89). Grund fachlich: dann kam sie nachweislich über den Betrieb.
+- **Paket 7 nur am Handy, Tablet und Schreibtisch unverändert** (E90). Grund
+  fachlich: dort hat das Formular neben den Einträgen Platz; so freigegeben.
+- **Ein Timer-Schritt nach dem anderen** (E90). Grund fachlich: ein zweiter,
+  solange der erste unterwegs ist, träfe eine Sitzung, die der Server noch
+  nicht kennt — der Doppeltipp ist der häufigere Fall.
+- **Ohne Medienabfrage bleibt das Zeitformular auf der Seite** (E90). Grund:
+  Gerät — ohne sie ist die Breite nicht zu erfragen.

@@ -2251,3 +2251,56 @@ describe('Ohne Netz (E49)', () => {
     expect(screen.queryByRole('button', { name: 'Unterschreiben und abschließen' })).not.toBeInTheDocument();
   });
 });
+
+/*
+  DER SCHEIN AM HANDY (D8, E90): die Baustelle einmal mit „ändern“, der
+  Entwurf als stiller Knopf in der Leiste, der Hinweis im leeren
+  Unterschriftsfeld. Am Tablet (Schritte, aber nicht Handy) wie bisher.
+*/
+describe('Schein am Handy (D8, E90)', () => {
+  const vorher = window.matchMedia;
+  /** `handy`: unter 760 px; sonst Tablet — Schritte, aber ab 760 px. */
+  function breite(handy: boolean) {
+    window.matchMedia = ((q: string) => ({
+      matches: !handy && q.includes('760px'),
+      media: q,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    })) as unknown as typeof window.matchMedia;
+  }
+  afterEach(() => { window.matchMedia = vorher; });
+
+  it('vorbelegt: die Baustelle einmal — Name, Nummer, Abrechnung, Adresse; erst „ändern“ zeigt Einsätze und Auswahl', async () => {
+    breite(true);
+    const nutzer = userEvent.setup();
+    zeichne();
+    const aendern = await screen.findByRole('button', { name: 'Baustelle ändern' });
+    expect(screen.getByRole('link', { name: /Hauptstraße 12/ })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Baustelle' })).toBeNull();
+    expect(screen.queryByText('Deine Einsätze an diesem Tag')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Baustelle und Tag' })).toBeNull();
+    await nutzer.click(aendern);
+    expect(screen.getByRole('combobox', { name: 'Baustelle' })).toBeInTheDocument();
+    expect(screen.getByText('Deine Einsätze an diesem Tag')).toBeInTheDocument();
+  });
+
+  it('der Entwurf ist ein stiller Knopf in der Leiste, kein eigener Kasten darüber', async () => {
+    breite(true);
+    zeichne();
+    await screen.findByRole('button', { name: 'Baustelle ändern' });
+    const entwurf = screen.getByRole('button', { name: 'Als Entwurf speichern' });
+    expect(entwurf).toHaveTextContent(/^Entwurf$/);
+    expect(entwurf.closest('.aktionsleiste')).not.toBeNull();
+    expect(screen.getAllByRole('button', { name: /Entwurf/ })).toHaveLength(1);
+  });
+
+  it('Gegenprobe Tablet: Auswahl, Einsätze und der Entwurf-Knopf über der Leiste wie bisher', async () => {
+    breite(false);
+    zeichne();
+    expect(await screen.findByRole('combobox', { name: 'Baustelle' })).toBeInTheDocument();
+    // Der Entwurf-Knopf kommt erst mit der übernommenen Baustelle — nach dem Auswahlfeld, auf der CI spürbar später.
+    const entwurf = await screen.findByRole('button', { name: 'Als Entwurf speichern' });
+    expect(screen.queryByRole('button', { name: 'Baustelle ändern' })).toBeNull();
+    expect(entwurf.closest('.aktionsleiste')).toBeNull();
+  });
+});

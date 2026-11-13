@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { admin, BAUSTELLE, BETRIEB, MONTEUR } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { anmelden, keineFehlermeldung, zeitFormularOeffnen } from './helfer';
 
 /**
  * Der Weg, an dem Arbeitszeit hängt.
@@ -25,6 +25,7 @@ test('Ein Monteur meldet sich an und bucht seine Zeit', async ({ page }) => {
   await anmelden(page, MONTEUR.email);
 
   await page.getByRole('link', { name: /Zeit/ }).first().click();
+  await zeitFormularOeffnen(page);
   await page.getByRole('button', { name: /Zeit buchen|Neue Buchung|Buchen/ }).first().click();
 
   /*
@@ -72,6 +73,8 @@ test('Getippter Text bleibt stehen, auch wenn direkt nach dem Laden getippt wird
   await anmelden(page, MONTEUR.email);
   // Nicht auf „load“ warten: getippt wird, sobald das Feld da ist.
   await page.goto('/time', { waitUntil: 'domcontentloaded' });
+  // Am Handy erst das Blatt (C6, E90); getippt wird, sobald das Feld darin steht.
+  await zeitFormularOeffnen(page);
   const kommentar = page.locator('#comment');
   await kommentar.waitFor({ state: 'visible', timeout: 20_000 });
   await kommentar.fill('Verteiler gesetzt, Leitung gespült');
@@ -102,6 +105,7 @@ test('Ein Monteur teilt seinen Tag auf zwei Baustellen auf', async ({ page }) =>
   try {
     await anmelden(page, MONTEUR.email);
     await page.getByRole('link', { name: /Zeit/ }).first().click();
+    await zeitFormularOeffnen(page);
     await page.getByLabel('Baustelle').selectOption(BAUSTELLE.nummer);
     await page.getByLabel(/^Von/).fill('07:00');
     await page.getByLabel(/^Bis/).fill('16:00');
@@ -117,7 +121,8 @@ test('Ein Monteur teilt seinen Tag auf zwei Baustellen auf', async ({ page }) =>
     await page.locator('#meine-eintraege')
       .getByRole('button', { name: new RegExp(`Familie Huber.*${BAUSTELLE.nummer}.*bearbeiten`) }).first().click();
     await page.getByRole('button', { name: 'Auf mehrere Baustellen aufteilen …' }).click();
-    const dialog = page.getByRole('dialog');
+    // Mit Namen: am Handy ist das Blatt des Formulars auch ein Dialog (C6, E90).
+    const dialog = page.getByRole('dialog', { name: 'Auf mehrere Baustellen aufteilen' });
     await dialog.getByLabel('Weitere Baustelle 1').selectOption(ZWEITE.nummer);
     await dialog.getByLabel('Stunden').fill('2');
     await expect(dialog.getByText(/14:00–16:00/)).toBeVisible();
@@ -156,6 +161,7 @@ test('Ein Monteur fügt eine Zeit in seinen gebuchten Tag ein', async ({ page })
   try {
     await anmelden(page, MONTEUR.email);
     await page.getByRole('link', { name: /Zeit/ }).first().click();
+    await zeitFormularOeffnen(page);
     await page.getByLabel('Baustelle').selectOption(BAUSTELLE.nummer);
     await page.getByLabel(/^Von/).fill('07:00');
     await page.getByLabel(/^Bis/).fill('16:00');
@@ -166,6 +172,8 @@ test('Ein Monteur fügt eine Zeit in seinen gebuchten Tag ein', async ({ page })
       expect(data ?? []).toHaveLength(1);
     }).toPass({ timeout: 15_000 });
 
+    // Am Handy schließt das Blatt nach dem Speichern; die nächste Zeit beginnt mit „Neuer Eintrag“ (C6, E90).
+    await zeitFormularOeffnen(page);
     await page.getByLabel('Baustelle').selectOption(ZWEITE.nummer);
     await page.getByLabel(/^Von/).fill('10:00');
     await page.getByLabel(/^Bis/).fill('12:00');

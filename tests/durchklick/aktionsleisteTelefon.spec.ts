@@ -13,6 +13,10 @@ import { anmelden } from './helfer';
  *
  * Läuft bei 390 px (Chromium mit eigener Breite, WebKit als iPhone 13 —
  * `MONTEUR_WEGE` in playwright.config.ts) und auf dem Tablet bei 834 px.
+ *
+ * SEIT C6 (E90) STEHT DAS FORMULAR AM HANDY IM BLATT VON UNTEN. Geprüft
+ * wird dasselbe dort: beim Öffnen liegt die Leiste über keinem Feld, und
+ * nach dem Rollen bis ans Ende bleibt „Zeit buchen“ im Blick.
  */
 test.use({ viewport: { width: 390, height: 664 }, hasTouch: true });
 
@@ -31,7 +35,8 @@ async function kasten(l: Locator): Promise<Kasten> {
 test('Zeit buchen: beim Öffnen deckt die Leiste kein Feld zu, nach dem Rollen klebt sie', async ({ page }) => {
   await anmelden(page, MONTEUR.email);
   await page.goto('/time');
-  const formular = page.locator('#zeit-formular');
+  await page.getByRole('button', { name: 'Neuer Eintrag' }).click();
+  const formular = page.getByRole('dialog', { name: 'Neuer Eintrag' });
   const datum = formular.getByLabel('Datum', { exact: true });
   await expect(datum).toBeVisible({ timeout: 20_000 });
   await page.waitForLoadState('networkidle');
@@ -54,8 +59,8 @@ test('Zeit buchen: beim Öffnen deckt die Leiste kein Feld zu, nach dem Rollen k
   // Und ausdrücklich das Feld aus dem Bericht.
   if (leisteKasten) expect(ueberlappt(await kasten(datum), leisteKasten)).toBe(false);
 
-  // 2. Ins Formular gerollt: der Knopf klebt unten und bleibt im Blick.
-  await formular.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  // 2. Bis ans Ende des Blatts gerollt: der Knopf bleibt im Blick.
+  await formular.getByRole('button', { name: 'Zeit buchen' }).scrollIntoViewIfNeeded();
   const knopf = formular.getByRole('button', { name: 'Zeit buchen' });
   await expect(async () => {
     const k = await kasten(knopf);

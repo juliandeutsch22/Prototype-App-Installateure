@@ -57,6 +57,7 @@ import { istNetzfehler } from '@/lib/sync/netzfehler';
 import { entwurfMitVorgemerktem } from './vorgemerkt';
 import { datumAT } from '@/lib/datum';
 import { abrechnungText, stundenSindGrundlage } from '@/lib/abrechnung';
+import { useAmHandy } from '@/lib/breiten';
 
 /**
  * Handwerksschein erstellen, unterschreiben lassen, einfrieren.
@@ -1076,6 +1077,17 @@ export default function WorkSheetView() {
     Tipp auf „4 Unterschrift" dort.
   */
   const eineSeite = useEineSeite();
+  /*
+    DIE BAUSTELLE STEHT AM HANDY EINMAL (D8, E90). Vorher stand sie in
+    Schritt 1 dreimal: als Einsatz-Knopf, als Auswahl und als Text darunter.
+    Steht sie schon fest (vorbelegt, vom Einsatz, aus dem Entwurf), zeigt der
+    Schein sie einmal mit Name, Nummer, Abrechnung und Adresse; erst
+    „ändern“ öffnet Einsätze und Auswahl. Ist nichts vorbelegt, steht die
+    Auswahl gleich da. Ab dem Tablet bleibt es, wie es war.
+  */
+  const amHandy = useAmHandy();
+  const [baustelleAendern, setBaustelleAendern] = useState(false);
+  const baustelleKompakt = amHandy && !!projekt && !!projectNumber && !baustelleAendern;
   const [schritt, setSchritt] = useState<Schritt>(1);
   /** Zählt jeden Sprung, damit auch ein Tipp auf den aktuellen Schritt hinrollt. */
   const [sprung, setSprung] = useState(0);
@@ -1230,12 +1242,30 @@ export default function WorkSheetView() {
           className="space-y-6"
           {...alsSchritt(1)}
         >
-          <Card title="Baustelle und Tag">
+          <Card title={baustelleKompakt ? undefined : 'Baustelle und Tag'}>
+            {baustelleKompakt && projekt && (
+              <div className="schein-baustelle pt-2">
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="titel-karte min-w-0">{projekt.customerName || projectNumber}</h2>
+                  <button type="button" className="link min-h-touch shrink-0" onClick={() => setBaustelleAendern(true)} aria-label="Baustelle ändern">
+                    ändern
+                  </button>
+                </div>
+                <p className="text-sm text-ink-muted">
+                  <span className="nr">{projectNumber}</span> · {abrechnungText(projekt.billingMode)}
+                </p>
+                <span className="mt-2 flex flex-wrap items-center gap-x-3 text-sm">
+                  <AdresseLink adresse={projekt.address} />
+                  <TelefonLink nummer={projekt.contactPhone} name={projekt.contactName} />
+                </span>
+                {vorbelegt && <p className="mt-1 text-sm text-ink-muted">{VORBELEG_TEXT[vorbelegt]}</p>}
+              </div>
+            )}
             {/*
               Die eigenen Einsätze zuerst und als Knopf, nicht als Listeneintrag:
               das ist am Telefon mit Handschuhen ein Ziel, das man trifft.
             */}
-            {heutige.length > 0 && (
+            {!baustelleKompakt && heutige.length > 0 && (
               <div className="mb-4">
                 <span className="section-label block">Deine Einsätze an diesem Tag</span>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -1263,6 +1293,7 @@ export default function WorkSheetView() {
               </div>
             )}
 
+            {!baustelleKompakt && (
             <BaustellenSelect
               id="wsproj"
               companyId={user.companyId}
@@ -1275,7 +1306,8 @@ export default function WorkSheetView() {
               }}
               required
             />
-            {vorbelegt && projectNumber && (
+            )}
+            {!baustelleKompakt && vorbelegt && projectNumber && (
               <p className="mt-1 text-sm text-ink-muted">{VORBELEG_TEXT[vorbelegt]}</p>
             )}
             <div className="mt-4">
@@ -1287,7 +1319,7 @@ export default function WorkSheetView() {
                 onChange={(e) => setDatum(e.target.value)}
               />
             </div>
-            {projekt && (
+            {projekt && !baustelleKompakt && (
               <div className="mt-3 space-y-2">
                 {/*
                   Adresse und Nummer anklickbar: wer den Schein schreibt, steht vor
@@ -1721,7 +1753,11 @@ export default function WorkSheetView() {
               {!eineSeite && (
                 <Card title="Zusammenfassung">
                   <Zusammenfassung
-                    onAendern={springe}
+                    onAendern={(nr, name) => {
+                      // Wer die Baustelle ändern will, soll nicht erst noch einmal „ändern“ tippen (D8).
+                      if (name === 'Baustelle und Tag') setBaustelleAendern(true);
+                      springe(nr);
+                    }}
                     zeilen={[
                       {
                         name: 'Baustelle und Tag',
@@ -1924,9 +1960,11 @@ export default function WorkSheetView() {
       {projectNumber && !eineSeite && (
         <div className="space-y-3">
           {error && <ErrorState message={error} />}
-          {/* Der Entwurf ist eine Nebenhandlung für jeden Schritt; er
-              steht über der Leiste, damit diese am Telefon schmal bleibt. */}
-          {entwurfKnopf('w-full sm:w-auto')}
+          {/* Der Entwurf ist eine Nebenhandlung für jeden Schritt; ab dem
+              Tablet steht er über der Leiste. Am Handy ist er ein stiller
+              Knopf links in ihr (D8, E90) — zwei Kästen übereinander nahmen
+              dort 130 px über der Navigation. */}
+          {!amHandy && entwurfKnopf('w-full sm:w-auto')}
           {/* Zurück schmal links, Weiter breit rechts — am Telefon klebend
               über der Reiterleiste (Designlinie „Fassung 3").
               ZURÜCK ALS PFEIL (E82): mit dem Wort blieben dem Abschluss im
@@ -1935,13 +1973,28 @@ export default function WorkSheetView() {
           <Aktionsleiste
             linksSymbol
             links={
-              schritt > 1 ? (
-                <IconButton
-                  label={`Zurück: ${SCHRITTE[schritt - 2].name}`}
-                  onClick={() => springe((schritt - 1) as Schritt)}
-                >
-                  <Icon name="zurueck" />
-                </IconButton>
+              schritt > 1 || amHandy ? (
+                <span className="flex items-center gap-1">
+                  {schritt > 1 && (
+                    <IconButton
+                      label={`Zurück: ${SCHRITTE[schritt - 2].name}`}
+                      onClick={() => springe((schritt - 1) as Schritt)}
+                    >
+                      <Icon name="zurueck" />
+                    </IconButton>
+                  )}
+                  {amHandy && (
+                    <Button
+                      variant="ghost"
+                      onClick={alsEntwurfSichern}
+                      loading={speichert}
+                      disabled={!projekt || entwurfLaedt || fotoLaeuft}
+                      aria-label={scheinId ? 'Entwurf aktualisieren' : 'Als Entwurf speichern'}
+                    >
+                      Entwurf
+                    </Button>
+                  )}
+                </span>
               ) : undefined
             }
             rechts={

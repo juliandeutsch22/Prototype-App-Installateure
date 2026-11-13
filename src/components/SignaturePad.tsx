@@ -572,17 +572,28 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
       {offen ? (
         <div className="mt-1 h-40 w-full rounded border border-line bg-surface" aria-hidden="true" />
       ) : (
-        zeichenflaeche(
-          `mt-1 h-40 w-full touch-none select-none rounded border bg-surface ${
-            disabled ? 'border-line opacity-60' : 'border-line'
-          }`,
-        )
+        <div className="relative">
+          {zeichenflaeche(
+            `mt-1 h-40 w-full touch-none select-none rounded border bg-surface ${
+              disabled ? 'border-line opacity-60' : 'border-line'
+            }`,
+          )}
+          {/*
+            AM HANDY STEHT DER HINWEIS IM LEEREN FELD (D8, E90) — dort, wo der
+            Finger hinsoll; darunter bleibt „Groß unterschreiben“. Er fängt
+            keine Berührung ab und verschwindet mit dem ersten Strich. Ab dem
+            Tablet steht er wie bisher unter dem Feld.
+          */}
+          {!hatStriche && !disabled && (
+            <span className="unterschrift-hinweis md:hidden" aria-hidden="true">Mit dem Finger unterschreiben</span>
+          )}
+        </div>
       )}
       {/* Ebenfalls immer da — verschwände er, ruckte das Feld nach unten. */}
       <div className="flex items-start justify-between gap-2">
         <p
           className={`mt-1 text-xs ${zuWenig ? 'text-warning' : 'text-ink-muted'} ${
-            (hatStriche && reicht) || disabled ? 'invisible' : ''
+            (hatStriche && reicht) || disabled ? 'invisible' : zuWenig ? '' : 'max-md:invisible'
           }`}
         >
           {hinweis}

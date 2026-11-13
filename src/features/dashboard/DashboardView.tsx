@@ -86,6 +86,7 @@ export default function DashboardView() {
   // Die Nachrichten (M10/B09): die eigene ungelesene Zahl, für die Führung die Meldungen.
   const nachrichtenAn = useModul('nachrichten');
   // Die Karte „Arbeitstag“ steht nur mit Start/Stopp da — nur dann gibt es sie im Bogen.
+  // Mit Start/Stopp ist der Timer am Handy auch der Weg zur Zeit (D7, E90).
   const timerAn = useModul('zeiterfassung.timer');
   // Die Korrekturanträge (M06c): das Büro prüft sie — sie stehen unter „Zu erledigen“.
   const korrekturAn = useModul('zeiterfassung.korrekturantraege');
@@ -275,6 +276,7 @@ export default function DashboardView() {
           titel="Dein Einsatz heute"
           zeitImKopf={monteurMitEinsatz}
           zeitAn={zeitAn}
+          timerAn={timerAn}
           // Im Einblick des Supports kein Thread: er schriebe sonst im Namen des Betriebs (wie in der Akte).
           wege={{ material: darf('/material'), nachricht: !einblick && darf('/nachrichten') }}
         />
@@ -309,7 +311,7 @@ export default function DashboardView() {
             <Link
               to="/time"
               state={{ projectNumber: eigene[0].projectNumber, asHelper: eigene[0].asHelper }}
-              className="start-hauptaktion"
+              className={timerAn && !ausgeblendet(wahl, BEREICH_ARBEITSTAG) ? 'start-hauptaktion start-zeit-mit-timer' : 'start-hauptaktion'}
             >
               Zeit erfassen
             </Link>
@@ -355,7 +357,7 @@ export default function DashboardView() {
         beendet den Tag gleich hier — die Baustelle laut heutigem Einsatz ist
         vorgewählt. Nach dem Stopp führt die Karte zu den Abschnitten.
       */}
-      {zeitAn && !ausgeblendet(wahl, BEREICH_ARBEITSTAG) && <ArbeitstagKarte aufStart vorschlag={eigene[0]?.projectNumber || undefined} />}
+      {zeitAn && !ausgeblendet(wahl, BEREICH_ARBEITSTAG) && <ArbeitstagKarte aufStart vorschlag={eigene[0]?.projectNumber || undefined} handZeit={eigene[0] ? { projectNumber: eigene[0].projectNumber, asHelper: eigene[0].asHelper } : undefined} />}
 
       {/* Die Verwaltung vereinbart Wartungstermine; bei der Leitung stehen sie unter „Zu erledigen“. */}
       {rolle === 'verwaltung' && <WartungHinweis />}

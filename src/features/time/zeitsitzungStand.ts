@@ -35,8 +35,13 @@ export interface ZeitsitzungStand {
   /** Jetzt — im Sekundentakt, solange eine Sitzung läuft (für die Uhr). */
   jetzt: number;
   laden: () => Promise<void>;
-  /** Ein Timer-Schritt. `baustelle` ist die Baustelle, beim Verwerfen der Grund. */
+  /**
+   * Ein Timer-Schritt. `baustelle` ist die Baustelle, beim Verwerfen der Grund.
+   * Wahr, sobald der Schritt angezeigt wird — nicht erst nach dem Server (C4).
+   */
   befehl: (art: TimerArt, s: Zeitsitzung | undefined, baustelle: string) => Promise<boolean>;
+  /** Ein Timer-Schritt ist auf dem Weg zum Server; ein zweiter wird bis dahin nicht angenommen. */
+  unterwegs: boolean;
 }
 
 export const ZeitsitzungKontext = createContext<ZeitsitzungStand | null>(null);
@@ -55,9 +60,26 @@ export function useZeitsitzungStand(aktiv = true): ZeitsitzungStand {
   const uid = user?.uid;
   const firma = user?.companyId;
   const ladeNummer = useRef(0);
+  /*
+    EIN SCHRITT UNTERWEGS (C4, E90). Als Ref, nicht als Zustand: ein zweiter
+    Tipp im selben Augenblick sieht sonst noch den alten Wert. Gerade beim
+    Doppeltipp wäre das teuer — nach „Pause“ steht an derselben Stelle
+    „Weiterarbeiten“, und der zweite Tipp hiebe die Pause gleich wieder ab.
+  */
+  const unterwegsRef = useRef(false);
+  /*
+    „VORGEMERKT“ EINMAL JE FUNKLOCH (C4, E90). Seit der Schritt sofort gilt,
+    tippt man im Keller leicht zwei Schritte hintereinander — die gleiche
+    Meldung zweimal übereinander sagt nichts Neues. Wieder gemeldet wird erst
+    nach dem nächsten Empfang.
+  */
+  const vorgemerktGemeldet = useRef(false);
+  const [unterwegs, setUnterwegs] = useState(false);
 
   const laden = useCallback(async () => {
     if (!aktiv || !firma || !uid) return;
+    // Der Abgleich alle 30 Sekunden darf den angezeigten Schritt nicht mit dem alten Stand überschreiben.
+    if (unterwegsRef.current) return;
     const nr = ++ladeNummer.current;
     try {
       const stand = await zeitsitzungenLaden(firma, uid);
@@ -81,11 +103,13 @@ export function useZeitsitzungStand(aktiv = true): ZeitsitzungStand {
       ? window.setInterval(() => { if (document.visibilityState === 'visible') void laden(); }, 30_000)
       : null;
     const wiederDa = () => { void laden(); };
-    window.addEventListener('online', wiederDa);
+    // Nur echter Empfang: das Ausgangsfach meldet sich nach jedem Versuch, auch im Funkloch.
+    const empfang = () => { vorgemerktGemeldet.current = false; void laden(); };
+    window.addEventListener('online', empfang);
     window.addEventListener(FACH_GELEERT, wiederDa);
     return () => {
       if (intervall !== null) window.clearInterval(intervall);
-      window.removeEventListener('online', wiederDa);
+      window.removeEventListener('online', empfang);
       window.removeEventListener(FACH_GELEERT, wiederDa);
     };
   }, [aktiv, laden, abgleichen]);
@@ -98,42 +122,74 @@ export function useZeitsitzungStand(aktiv = true): ZeitsitzungStand {
     return () => window.clearInterval(t);
   }, [aktiv, tickt]);
 
+  /*
+    DER TIMER ANTWORTET SOFORT (C4, E90). Vorher blieben die Knöpfe grau, bis
+    der Server geantwortet und die App neu geladen hatte — im Keller einige
+    Sekunden, in denen die Uhr scheinbar nichts tat. Jetzt gilt der Schritt
+    sofort, gerechnet wie ohne Netz (`timerFortschreiben`, dieselbe Rechnung
+    wie im Ausgangsfach). Der Server bestätigt im Hintergrund; lehnt er ab
+    (ein anderes Gerät war schneller, die Sitzung ist geschlossen), springt
+    die Anzeige auf den Stand davor zurück, der Grund steht in der Karte,
+    und der Stand des Servers wird geholt.
+  */
   const befehl = useCallback(async (art: TimerArt, s: Zeitsitzung | undefined, baustelle: string) => {
-    if (!firma || !uid || speichert) return false;
-    setSpeichert(true);
-    setFehler(null);
-    ladeNummer.current += 1;
+    if (!firma || !uid || unterwegsRef.current) return false;
     const b = {
       p_id: s?.id ?? crypto.randomUUID(), p_befehl: crypto.randomUUID(), p_revision: s?.revision ?? 0,
       p_art: art, p_zeit: new Date().toISOString(), p_baustelle: baustelle,
     };
+    let neu: Zeitsitzung;
     try {
-      const stand = await timerSenden(b);
-      if (stand === 'queued') {
-        const neu = timerFortschreiben(s ?? null, b, firma, uid);
-        setSitzungen((alt) => {
-          const naechste = [neu, ...alt.filter((x) => x.id !== neu.id)];
-          timerMerken(firma, uid, naechste);
-          return naechste;
-        });
-        toast?.info('Timer-Schritt auf diesem Gerät vorgemerkt. Er wird bei Verbindung gesendet.');
-      } else {
-        await laden();
-      }
-      setJetzt(Date.now());
-      return true;
+      neu = timerFortschreiben(s ?? null, b, firma, uid);
     } catch (e) {
+      // Der angezeigte Stand passt nicht mehr zur Sitzung: nichts senden, neu holen.
       setFehler(grundAus(e, 'Der Timer-Schritt konnte nicht übernommen werden.'));
+      void laden();
       return false;
-    } finally {
-      setSpeichert(false);
     }
-  }, [firma, uid, speichert, laden, toast]);
+    unterwegsRef.current = true;
+    setUnterwegs(true);
+    setFehler(null);
+    // Ein Laden, das vor dem Schritt begann, brächte den Stand davor zurück.
+    ladeNummer.current += 1;
+    let vorher: Zeitsitzung[] = [];
+    setSitzungen((alt) => {
+      vorher = alt;
+      return [neu, ...alt.filter((x) => x.id !== neu.id)];
+    });
+    setJetzt(Date.now());
+    void (async () => {
+      let bestaetigt = false;
+      try {
+        const stand = await timerSenden(b);
+        if (stand === 'queued') {
+          setSitzungen((alt) => {
+            timerMerken(firma, uid, alt);
+            return alt;
+          });
+          if (!vorgemerktGemeldet.current) toast?.info('Timer-Schritt auf diesem Gerät vorgemerkt. Er wird bei Verbindung gesendet.');
+          vorgemerktGemeldet.current = true;
+        } else {
+          bestaetigt = true;
+        }
+      } catch (e) {
+        setSitzungen(vorher);
+        setFehler(grundAus(e, 'Der Timer-Schritt konnte nicht übernommen werden.'));
+        bestaetigt = true;
+      } finally {
+        unterwegsRef.current = false;
+        setUnterwegs(false);
+      }
+      // Bestätigt oder abgelehnt: der Stand des Servers gilt — ohne dass jemand darauf wartet.
+      if (bestaetigt) void laden();
+    })();
+    return true;
+  }, [firma, uid, laden, toast]);
 
   const ueberfaellig = !!laeuft && istAn(company?.modules, 'zeiterfassung.timer_erinnerung')
     && jetzt - Date.parse(laeuft.weiterlaufen_am ?? laeuft.segmente[0].von) >= (company?.timerErinnerungMin ?? 600) * 60_000;
 
-  return { an, sitzungen, geladen, fehler, setFehler, speichert, setSpeichert, laeuft, offen, ueberfaellig, jetzt, laden, befehl };
+  return { an, sitzungen, geladen, fehler, setFehler, speichert, setSpeichert, laeuft, offen, ueberfaellig, jetzt, laden, befehl, unterwegs };
 }
 
 /**

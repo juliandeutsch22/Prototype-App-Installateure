@@ -44,7 +44,7 @@ interface Auswahl { id: string; von: number; bis: number; pauseMin: number; entw
 
 export default function ZeitsitzungPanel({ profil }: { profil?: AppUser | null }) {
   const { user } = useAuth();
-  const { sitzungen, offen, fehler, setFehler, speichert, setSpeichert, laden } = useZeitsitzung();
+  const { sitzungen, offen, fehler, setFehler, speichert, setSpeichert, laden, unterwegs } = useZeitsitzung();
   const [auswahl, setAuswahl] = useState<Auswahl | null>(null);
   const [verwerfen, setVerwerfen] = useState<{ id: string; vorschlag: TimerVorschlag } | null>(null);
   const [alleVerwerfen, setAlleVerwerfen] = useState(false);
@@ -66,14 +66,15 @@ export default function ZeitsitzungPanel({ profil }: { profil?: AppUser | null }
   */
   const zuPruefen = (ort.state as { pruefen?: string } | null)?.pruefen;
   useEffect(() => {
-    if (!zuPruefen || geoeffnet.current === zuPruefen) return;
+    // Erst, wenn der Server den Stopp kennt (C4): eine Buchung davor wiese er ab.
+    if (!zuPruefen || geoeffnet.current === zuPruefen || unterwegs) return;
     const s = offen.find((x) => x.id === zuPruefen);
     if (!s) return;
     geoeffnet.current = zuPruefen;
     const erste = s.stand === 'beendet' ? timerVorschlaege(s).find((v) => v.stand === 'offen') : undefined;
     if (erste) setAuswahl({ id: s.id, von: erste.von, bis: erste.bis, pauseMin: erste.pauseMin, entwurf: letzterTimerEntwurf(s, erste.von) });
     navigate(ort.pathname + ort.search, { replace: true, state: null });
-  }, [zuPruefen, offen, navigate, ort.pathname, ort.search]);
+  }, [zuPruefen, offen, navigate, ort.pathname, ort.search, unterwegs]);
 
   const gewaehlt = sitzungen.find((s) => s.id === auswahl?.id);
   const beginn = gewaehlt && auswahl ? gewaehlt.segmente[auswahl.von] : undefined;
@@ -128,7 +129,8 @@ export default function ZeitsitzungPanel({ profil }: { profil?: AppUser | null }
             {pauseMs > 0 && <> · Pause <span className="font-mono">{dauerText(pauseMs, false)}</span> h</>}
           </p>
           <List>{vorschlaege.map((v) => {
-            const kannBuchen = beendet && v.stand === 'offen';
+            // Solange der Stopp unterwegs ist (C4), kennt der Server die Sitzung noch als laufend.
+            const kannBuchen = beendet && v.stand === 'offen' && !unterwegs;
             const zeit = `${timerOrtszeit(v.beginn).time}–${v.ende ? timerOrtszeit(v.ende).time : '…'}`;
             const wo = v.baustelle ? namen.get(v.baustelle) ?? v.baustelle : 'Ohne Baustelle';
             return <ListRow key={v.von} title={zeit}

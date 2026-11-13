@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   anlegenOhneEmpfang,
@@ -136,5 +136,67 @@ describe('Ausgangsfach und Sitzung', () => {
     const selbst = client('max');
     await Promise.all([nachsendenJetzt(selbst.c), nachsendenJetzt(selbst.c)]);
     expect(selbst.gesendet).toEqual(['time_entries']);
+  });
+
+  /*
+    EIN ANSTOSS MITTEN IN EINEN SCHEITERNDEN LAUF (E90, C4). Der Lauf, den
+    ein offline getippter Schritt anstößt, scheitert manchmal erst, wenn das
+    Netz schon wieder da ist. Das `online` dazwischen fand den Lauf noch
+    unterwegs und wurde verschluckt — bis zum nächsten Zeitgeber eine Minute
+    später lag der Timer-Schritt im Gerät. Im Browserweg „Offline
+    gestarteter Timer …“ stand die Sitzung deshalb nach dem Wiederverbinden
+    nicht in der Datenbank.
+  */
+  it('holt einen Anstoß nach, der in einen scheiternden Lauf fiel', async () => {
+    const fach = lagerImKopf();
+    lagerEinreichen(fach);
+    ausgangsfachKonto('max');
+    offline();
+    await anlegenOhneEmpfang('time_entries', 'perl', { date: '2026-09-25' }, client(null).c);
+    online();
+
+    const gesendet: string[] = [];
+    let freigeben: (antwort: { error: unknown }) => void = () => undefined;
+    let erster = true;
+    const c = {
+      auth: { getSession: async () => ({ data: { session: { user: { id: 'max' } } }, error: null }) },
+      from: (tabelle: string) => ({
+        upsert: () => ({
+          abortSignal: () => {
+            gesendet.push(tabelle);
+            if (!erster) return Promise.resolve({ error: null });
+            erster = false;
+            // Der erste Versuch hängt, bis das Funkloch ihn scheitern lässt.
+            return new Promise<{ error: unknown }>((r) => { freigeben = r; });
+          },
+        }),
+      }),
+    } as unknown as SupabaseClient;
+
+    const lauf = nachsendenJetzt(c);
+    await vi.waitFor(() => expect(gesendet).toHaveLength(1));
+    // Das `online` kommt, während der erste Versuch noch unterwegs ist.
+    const anstoss = nachsendenJetzt(c);
+    freigeben({ error: { message: 'TypeError: Failed to fetch' } });
+
+    expect(await anstoss).toEqual({ gesendet: 1, abgelehnt: 0, offen: 0 });
+    await lauf;
+    expect(gesendet).toEqual(['time_entries', 'time_entries']);
+    expect(fach.inhalt()).toEqual([]);
+  });
+
+  it('läuft ohne weiteren Anstoß nicht nach — ein Funkloch bleibt ein Funkloch', async () => {
+    const fach = lagerImKopf();
+    lagerEinreichen(fach);
+    ausgangsfachKonto('max');
+    offline();
+    await anlegenOhneEmpfang('time_entries', 'perl', { date: '2026-09-25' }, client(null).c);
+    online();
+
+    const netzlos = client('max', { error: { message: 'TypeError: Failed to fetch' } });
+    const bericht = await nachsendenJetzt(netzlos.c);
+    expect(bericht.offen).toBe(1);
+    // Ein Versuch je Anstoß: kein Kreisen gegen ein Netz, das nicht da ist.
+    expect(netzlos.gesendet).toEqual(['time_entries']);
   });
 });

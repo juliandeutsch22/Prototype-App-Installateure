@@ -91,7 +91,8 @@ export function Zusammenfassung({
   onAendern,
 }: {
   zeilen: ZusammenfassungsZeile[];
-  onAendern: (nr: Schritt) => void;
+  /** Mit dem Namen der Zeile: „Baustelle und Tag“ öffnet am Handy gleich die Auswahl (D8). */
+  onAendern: (nr: Schritt, name: string) => void;
 }) {
   return (
     <List>
@@ -110,7 +111,7 @@ export function Zusammenfassung({
         >
           {z.wert && <span className="font-normal text-ink">{z.wert}</span>}
           {/* Der Stift wie in jeder Zeile (E74); der Name sagt, welcher Schritt. */}
-          <BearbeitenKnopf label={`${z.name} ändern`} onClick={() => onAendern(z.schritt)} />
+          <BearbeitenKnopf label={`${z.name} ändern`} onClick={() => onAendern(z.schritt, z.name)} />
         </ListRow>
       ))}
     </List>

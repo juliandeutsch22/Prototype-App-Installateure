@@ -60,6 +60,9 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import TimeForm from './TimeForm';
+import BottomSheet from '@/components/BottomSheet';
+import { useAmHandy } from '@/lib/breiten';
+import { useModul } from '@/lib/useModule';
 import { KrankmeldungFenster } from '@/features/vacations/Krankmeldungen';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import AntragKnopf, { FreistellungKnopf } from '@/features/time/AntragKnopf';
@@ -157,6 +160,27 @@ export default function TimeView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<WithId<TimeEntry> | null>(null);
+  /*
+    AM HANDY KOMMT DAS FORMULAR ALS BLATT VON UNTEN (C6, E90). Vorher war die
+    Seite über 2.000 px lang, davon 900 px Formular vor den eigenen
+    Einträgen. Jetzt stehen Saldo, Arbeitstag und Einträge oben; „Neuer
+    Eintrag“, Bearbeiten, „Nachtragen“ und „Zeit nachtragen“ öffnen dasselbe
+    Formular als Blatt, vorbelegt — wie „Arbeitstag prüfen“. Ab dem Tablet
+    bleibt es auf der Seite. Kommt jemand mit einer Baustelle oder Zeiten
+    hierher („Zeit von Hand eintragen“, „Wie zuletzt buchen“), ist das Blatt
+    gleich offen.
+  */
+  const amHandy = useAmHandy();
+  /*
+    IST DIE ZEITERFASSUNG AUSGESCHALTET, sagt es die Seite — auch am Handy,
+    wo das Formular (und mit ihm dieser Satz) sonst erst im Blatt stünde;
+    „Neuer Eintrag“ gibt es dann nicht. Vorhandenes bleibt lesbar.
+  */
+  const erfassungAn = useModul('zeiterfassung');
+  const [blatt, setBlatt] = useState(() => {
+    const s = vonStart as { projectNumber?: string; startTime?: string; vonHand?: boolean } | null;
+    return !!(s?.vonHand || s?.projectNumber || s?.startTime);
+  });
   const [toDelete, setToDelete] = useState<WithId<TimeEntry> | null>(null);
   /** Die Krankmeldung, die gerade offen ist — von einem Krank-Tag aus. */
   const [meldung, setMeldung] = useState<string | null>(null);
@@ -582,6 +606,15 @@ export default function TimeView() {
     ziel.focus({ preventScroll: true });
   };
 
+  // Ein neuer Eintrag nur mit eingeschalteter Erfassung; einen vorhandenen öffnen geht weiter.
+  const formularOffen = (erfassungAn && (blatt || !!vorbelegung)) || !!editing;
+  /** Blatt zu: Bearbeiten und Vorbelegung sind damit erledigt, wie nach dem Speichern. */
+  const formularSchliessen = () => {
+    setBlatt(false);
+    setEditing(null);
+    setVorbelegung(null);
+  };
+
   /** Eine Buchung als Zeile — in den Wochen wie unter „Kommende Wochen". */
   const zeile = (e: WithId<TimeEntry>) => {
     // Sprach-/Stundeneinträge haben keine Start-/Endzeit -> nicht "undefined–undefined" zeigen.
@@ -734,6 +767,11 @@ export default function TimeView() {
       {/* Ohne Zeitkonto kein Saldo — dann verspricht die Überschrift auch keinen (Launch-Check, M4). */}
       <PageHeader
         title="Zeiterfassung"
+        action={amHandy && erfassungAn ? (
+          <Button type="button" onClick={() => { setEditing(null); setVorbelegung(null); setBlatt(true); }}>
+            Neuer Eintrag
+          </Button>
+        ) : undefined}
         subtitle={fuehrtZeitkonto(profile ?? user) ? 'Deine gebuchten Zeiten und dein Saldo' : 'Deine gebuchten Zeiten'}
         hilfe="Der Saldo zählt Über- und Unterstunden seit deinem Eintritt; „Diese Woche“ die gebuchte Arbeitszeit ab Montag."
         /*
@@ -841,6 +879,8 @@ export default function TimeView() {
         (Prüflauf 24.09.2026, D8). Am Schreibtisch ist der Weg kurz genug.
         Als Zweitknopf, nicht als Petrol-Text (E72, R1).
       */}
+      {/* Am Handy stehen die Einträge gleich unter dem Arbeitstag — der Sprung entfällt (C6, E90). */}
+      {!amHandy && (
       <Button
         type="button"
         variant="secondary"
@@ -863,6 +903,7 @@ export default function TimeView() {
         Zu meinen Einträgen
         <Icon name="chevron" size={16} />
       </Button>
+      )}
 
       {profilFehler && <TeilFehler was="Dein Stammdatenblatt" onRetry={profilLaden} />}
 
@@ -1016,6 +1057,7 @@ export default function TimeView() {
 
       {/* Formular und eigene Einträge nebeneinander, wo beide Platz haben (lot-zeit.css). */}
       <div className="zeit-raster zeit-raster-buchen">
+      {!amHandy && (
       <Card
         id="zeit-formular"
         className="zeit-formularkarte"
@@ -1050,10 +1092,45 @@ export default function TimeView() {
           }
         />
       </Card>
+      )}
 
       {/* Bündig: die Wochen sind getönte Abschnitte, die Buchungen Zeilen von
           Kante zu Kante (Designlinie „Fassung 3"). Laden, Fehler und Leere
           stehen gepolstert darin. */}
+      {amHandy && !erfassungAn && (
+        <Card>
+          <p className="text-sm text-ink-muted">Die Zeiterfassung ist ausgeschaltet. Vorhandene Zeiten, Exporte und Änderungsprotokolle bleiben verfügbar.</p>
+        </Card>
+      )}
+      {amHandy && (
+        <BottomSheet
+          open={formularOffen}
+          onClose={formularSchliessen}
+          label={editing ? 'Eintrag bearbeiten' : 'Neuer Eintrag'}
+          titel={editing ? 'Eintrag bearbeiten' : 'Neuer Eintrag'}
+        >
+          {formularOffen && (
+            <TimeForm
+              /*
+                Der Schlüssel trägt die Vorbelegung mit: die Felder werden mit
+                `useState` INITIALISIERT, und ein React-Zustand ändert sich nicht,
+                weil eine Eigenschaft sich ändert. Ohne den neuen Schlüssel bliebe
+                das Formular auf dem alten Stand stehen, und der Klick auf
+                „Zeit nachtragen" täte sichtbar nichts.
+              */
+              key={editing?.id ?? (vorbelegung ? `nachtrag-${vorbelegung.date}-${vorbelegung.projectNumber}` : 'new')}
+              entry={editing ?? undefined}
+              lastEntry={lastEntry}
+              vorbelegung={editing ? null : vorbelegung}
+              // Tagessoll und Verteilung für die Rückfrage zum Jugendschutz (Runde 3, M2).
+              besitzerProfil={profile}
+              onSaved={formularSchliessen}
+              onCancel={formularSchliessen}
+            />
+          )}
+        </BottomSheet>
+      )}
+
       <Card title="Meine Einträge" id="meine-eintraege" className="zeit-liste" buendig>
         {loading ? (
           <div className="p-4">

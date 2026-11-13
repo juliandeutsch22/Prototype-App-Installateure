@@ -1,6 +1,6 @@
 import { test, expect, type Locator } from '@playwright/test';
 import { admin, BAUSTELLE, BETRIEB, MONTEUR } from './aufbau';
-import { anmelden } from './helfer';
+import { anmelden, zeitFormularOeffnen } from './helfer';
 
 /*
   KEIN FOKUSRAHMEN UM DEN GANZEN INHALT (gemeldet am 03.10.2026, iPhone).
@@ -62,6 +62,7 @@ test('Such- und Eingabefelder zeigen den Fokus als eine Linie, auch nach einem T
   expect(await fokus(suche.locator('input'))).toMatchObject({ schatten: 'none', linie: 'none' });
 
   await page.goto('/time');
+  await zeitFormularOeffnen(page);
   const feld = page.locator('#comment');
   await feld.click();
   expect(await fokus(feld)).toMatchObject({ rand: `1px ${PETROL}`, schatten: 'none', linie: 'none' });

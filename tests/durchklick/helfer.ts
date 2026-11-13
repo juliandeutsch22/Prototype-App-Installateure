@@ -80,3 +80,16 @@ export async function menue(page: Page, name: string, kurz?: string): Promise<vo
   await page.getByRole('button', { name: /^Mehr/ }).click();
   await page.getByRole('link', { name }).locator('visible=true').first().click();
 }
+
+/**
+ * Das Zeitformular öffnen, wo es nicht schon auf der Seite steht: am Handy
+ * kommt es seit C6 (E90) als Blatt über „Neuer Eintrag“. Wartet, bis eines
+ * von beiden da ist — das Formular auf der Seite oder der Knopf.
+ */
+export async function zeitFormularOeffnen(page: Page): Promise<void> {
+  const neu = page.getByRole('button', { name: 'Neuer Eintrag' });
+  const feld = page.locator('#comment');
+  await expect(neu.or(feld).first()).toBeVisible({ timeout: 20_000 });
+  if (await neu.isVisible()) await neu.click();
+  await expect(feld).toBeVisible();
+}

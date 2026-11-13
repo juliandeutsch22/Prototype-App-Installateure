@@ -1,4 +1,7 @@
-import { forwardRef } from 'react';
+import { forwardRef, useEffect, useState } from 'react';
+import { useAuth } from '@/app/AuthContext';
+import { listProjectsByNumbers } from '@/lib/db/projects';
+import { baustellenTitel } from '@/lib/baustellenTitel';
 import { Link, matchPath, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '@/components/Icon';
 import { dauerText, timerBaustelle, timerDauer } from '@/lib/zeitsitzung';
@@ -38,6 +41,22 @@ const TimerLeiste = forwardRef<HTMLDivElement, { ort: 'telefon' | 'breit' }>(fun
   const { wahl } = useStartWahl(!!s && aufStart);
   const ohne = ausgeblendet(wahl, BEREICH_ARBEITSTAG) ? OHNE[ort].filter((m) => m !== '/') : OHNE[ort];
   const zeigen = !!s && !ohne.some((muster) => matchPath({ path: muster, end: true }, pathname));
+  /*
+    DER NAME STATT DER NUMMER (D7, E90), wie auf der Karte: „B-2026-0001“
+    sagt im Vorbeisehen wenig. Geholt wird nur die eine laufende Baustelle,
+    und nur, solange die Leiste steht; bis dahin und ohne Netz die Nummer.
+  */
+  const { user } = useAuth();
+  const nr = s ? timerBaustelle(s) : '';
+  const [name, setName] = useState<{ nr: string; text: string } | null>(null);
+  useEffect(() => {
+    if (!zeigen || !nr || !user || name?.nr === nr) return;
+    let weg = false;
+    listProjectsByNumbers(user.companyId, [nr])
+      .then(([p]) => { if (!weg && p) setName({ nr, text: baustellenTitel(p) || nr }); })
+      .catch(() => undefined);
+    return () => { weg = true; };
+  }, [zeigen, nr, user, name?.nr]);
   // Ausgeschrieben, nicht zusammengesetzt: Tailwind behält nur Klassen, die wörtlich im Code stehen.
   const halter = ort === 'telefon' ? 'timer-leiste-halter timer-leiste-telefon' : 'timer-leiste-halter timer-leiste-breit';
   if (!zeigen || !s) return <div ref={ref} className={halter} />;
@@ -52,7 +71,7 @@ const TimerLeiste = forwardRef<HTMLDivElement, { ort: 'telefon' | 'breit' }>(fun
         <Link to="/" className="timer-leiste-text">
           <span className="arbeitstag-punkt" aria-hidden="true" />
           <span className="timer-leiste-uhr">{dauerText(pause ? d.pauseMs : d.arbeitMs, false)}</span>
-          <span className="timer-leiste-was">{pause ? 'Pause' : baustelle || 'Arbeitstag'}</span>
+          <span className="timer-leiste-was">{pause ? 'Pause' : (name?.nr === baustelle ? name.text : baustelle) || 'Arbeitstag'}</span>
         </Link>
         {pause ? (
           <button type="button" className="rund-knopf rund-knopf-voll rund-knopf-klein" aria-label="Weiterarbeiten" title="Weiterarbeiten" disabled={z.speichert} onClick={() => void z.befehl('weiter', s, baustelle)}>
