@@ -1315,29 +1315,20 @@ describe('Tag planen — Auswahl erst mit der Belegschaft', () => {
 });
 
 /*
-  DAS SCHRIFTFELD IN „TAG“ (Planlinie, B1): derselbe Plankopf wie in Woche
-  und Monat — der gewählte Tag, und wer verfügbar noch keinen Einsatz hat,
-  unter denselben Bedingungen wie die Zeile „Noch nicht eingeteilt“.
+  KEIN SCHRIFTFELD IN „TAG“ (E88), wie in Woche und Monat — der Umschalter
+  steht in allen drei Ansichten an derselben Stelle (Runde 5, G9). Was das
+  Schriftfeld nannte, steht weiter auf der Seite: der Tag im Kalender, wer
+  verfügbar noch keinen Einsatz hat in der Zeile unter den Einsätzen.
+  Abgelöst sind die zwei Prüfungen des Schriftfelds (Planlinie, B1).
 */
-describe('Einsatzplanung „Tag“ — Schriftfeld', () => {
-  const feld = () => within(screen.getByRole('list', { name: 'Stand der Planung' }));
-
-  it('nennt den Tag und wie viele verfügbar noch keinen Einsatz haben, sobald geplant ist', async () => {
+describe('Einsatzplanung „Tag“ — ohne Schriftfeld (E88)', () => {
+  it('kein Schriftfeld; „Noch nicht eingeteilt“ nennt weiter, wer verfügbar ist', async () => {
     einsaetze = [
       { id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' } as Assignment & { id: string },
     ];
     zeige();
-    await screen.findByText(/Noch nicht eingeteilt/);
-    expect(feld().getByText('01.09.2026')).toBeInTheDocument();
-    expect(feld().getByText('Dienstag')).toBeInTheDocument();
-    expect(feld().getByText('Ohne Einsatz').closest('li')).toHaveTextContent('Ohne Einsatz 1 verfügbar, noch nicht eingeteilt');
-  });
-
-  it('Gegenprobe: ist an dem Tag nichts geplant, steht nur der Tag da', async () => {
-    zeige();
-    await screen.findByText('Keine Einsätze an diesem Tag.');
-    expect(feld().getByText('01.09.2026')).toBeInTheDocument();
-    expect(feld().queryByText('Ohne Einsatz')).toBeNull();
+    expect(await screen.findByText(/Noch nicht eingeteilt \(1\)/)).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Stand der Planung' })).toBeNull();
   });
 });
 

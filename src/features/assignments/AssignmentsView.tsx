@@ -16,7 +16,6 @@ import { todayStr } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { Project, AppUser, Assignment, Betriebsurlaub, Termin } from '@/types';
 import Card from '@/components/Card';
-import Metric, { MetricRow } from '@/components/Metric';
 import { Marke } from '@/components/Badge';
 import { Stempel } from '@/components/Planlinie';
 import MonthCalendar, { KalenderLegende } from '@/components/MonthCalendar';
@@ -312,28 +311,6 @@ export default function AssignmentsView() {
     }
   }
 
-  /*
-    DAS SCHRIFTFELD WIE IN WOCHE UND MONAT (Planlinie, B1): derselbe Kopf in
-    allen drei Ansichten, damit der Umschalter darunter an derselben Stelle
-    steht (Runde 5, G9). Nur was diese Seite schon rechnet: der gewählte Tag
-    und — wie die Zeile unter den Einsätzen — wer verfügbar ist und noch
-    keinen Einsatz hat. Die Zahl steht unter denselben Bedingungen wie jene
-    Zeile: erst wenn an dem Tag geplant ist und die Belegschaft da ist.
-  */
-  const tagDatum = new Date(`${date}T00:00:00`);
-  const stand = (
-    <MetricRow label="Stand der Planung">
-      <Metric
-        label="Tag"
-        value={`${date.slice(8, 10)}.${date.slice(5, 7)}.${date.slice(0, 4)}`}
-        hint={tagDatum.toLocaleDateString('de-AT', { weekday: 'long' })}
-      />
-      {dayAssignments.length > 0 && staff.length > 0 && (
-        <Metric label="Ohne Einsatz" value={nichtEingeteilt.length} hint="verfügbar, noch nicht eingeteilt" />
-      )}
-    </MetricRow>
-  );
-
   return (
     <div className="space-y-3 lg:space-y-5">
       {/*
@@ -341,8 +318,12 @@ export default function AssignmentsView() {
         Einsatzplanung neben Woche und Monat — derselbe Seitenkopf, der
         Umschalter statt der Reiter, darunter die Seite wie bisher.
       */}
+      {/*
+        KEIN SCHRIFTFELD MEHR (E88), wie in Woche und Monat — sonst stünde der
+        Umschalter hier tiefer (Runde 5, G9). Der Tag steht im Kalender, wer
+        noch keinen Einsatz hat in der Zeile unter den Einsätzen.
+      */}
       <PlanungsSeitenkopf
-        stand={stand}
         mehr={
           // Dasselbe ⋯ wie in Woche und Monat; hier öffnet es das Fenster der Karte „Termine“ für den gewählten Tag.
           user && darfTermineSchreiben(user.role) ? (

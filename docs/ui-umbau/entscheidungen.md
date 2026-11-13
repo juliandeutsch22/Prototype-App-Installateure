@@ -3653,7 +3653,9 @@ Einsatz ist eckig mit Linie, das Plus leise, Urlaub bleibt Zustand.
   die feine Linie. Kürzel-Kreis wie im Posteingang bei jeder Person. Leere
   Zelle: ein leises Plus statt „+ Einsatz planen“. Das Schriftfeld (KW,
   „Noch einzuplanen“) entfällt: die Woche steht in der Steuerzeile, die Zahl
-  in der Ablage bzw. Hinweiszeile.
+  in der Ablage bzw. Hinweiszeile. Auch in „Tag“ entfällt es (der Tag steht
+  im Kalender, „Noch nicht eingeteilt“ unter den Einsätzen) — sonst stünde
+  der Umschalter dort tiefer als in Woche und Monat (Runde 5, G9).
 
 **Grenzen mit Grund:**
 - Ziehen nur in der Sicht „Personen“ (fachlich): in „Baustellen“ ist ein
@@ -3673,13 +3675,16 @@ Einsatz ist eckig mit Linie, das Plus leise, Urlaub bleibt Zustand.
 
 **Abgelöst:** E33 für die Woche (siehe oben); die Prüfungen des
 Schriftfelds der Planung (Planlinie, 30.10.2026) sind auf die Ablage
-umgestellt (`WochenplanView.test.tsx`), „KW nn“ steht einmal statt zweimal.
+umgestellt (`WochenplanView.test.tsx`), „KW nn“ steht einmal statt zweimal;
+die zwei Prüfungen des Schriftfelds in „Tag“ ersetzt eine ohne Schriftfeld
+(`AssignmentsView.test.tsx`).
 
 **Nachweis:** Datenbank `einsatzUmplanen.test.ts` (17), Module
 `umplanen.test.ts` (11), Komponenten `WochenplanView.test.tsx` (+8, drei
 ersetzt), `einsatzbalken.test.ts` (auf E88), Browser
-`einsatzplanUmplanen.spec.ts` (4: Ziehen mit Rückgängig und Alt, Ablehnung
-mit Grund, langes Drücken am Tablet und Handy). Gegenproben: mit dem Stand
+`einsatzplanUmplanen.spec.ts` (5: Ziehen mit Rückgängig und Alt, Ablehnung
+mit Grund, Ziehen mit dem Finger am Tablet, langes Drücken am Tablet und
+Handy). Gegenproben: mit dem Stand
 vor E88 sind 15 der neuen bzw. umgestellten Modul- und Komponentenprüfungen
 und alle 4 Browserwege rot; die Prüfungen auf Gleichbleibendes (Einblick,
 ohne Führungsrolle, nichts einzuplanen) bleiben grün.
