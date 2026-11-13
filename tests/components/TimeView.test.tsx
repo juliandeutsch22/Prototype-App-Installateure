@@ -1282,3 +1282,65 @@ describe('Zeiterfassung — freie Zeitfelder (M06b)', () => {
     expect(within(ohne).getByText('Nachpflege: Kostenstelle')).toBeInTheDocument();
   });
 });
+
+/*
+  AM HANDY DAS FORMULAR ALS BLATT (C6, E90). Die Seite zeigt Saldo,
+  Arbeitstag und Einträge; „Neuer Eintrag“, ein Tipp auf eine Zeile und
+  „Nachtragen“ öffnen dasselbe Formular als Blatt von unten. Ab dem Tablet
+  (und ohne Medienabfrage) bleibt es auf der Seite.
+*/
+describe('Zeiterfassung am Handy (C6, E90)', () => {
+  const vorher = window.matchMedia;
+  const alsHandy = () => {
+    window.matchMedia = ((q: string) => ({
+      matches: false, media: q, onchange: null,
+      addEventListener: () => undefined, removeEventListener: () => undefined,
+      addListener: () => undefined, removeListener: () => undefined, dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+  };
+  afterEach(() => { window.matchMedia = vorher; });
+
+  it('kein Formular auf der Seite und kein „Zu meinen Einträgen“; „Neuer Eintrag“ öffnet es als Blatt, Abbrechen schließt', async () => {
+    alsHandy();
+    eintraege = [eintrag({ id: 'offen', date: '2026-08-31' })];
+    const { container } = zeige();
+    await screen.findByText('31.08.2026');
+    expect(screen.queryByTestId('zeitformular')).toBeNull();
+    expect(container.querySelector('#zeit-formular')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Zu meinen Einträgen/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Neuer Eintrag' }));
+    const blatt = await screen.findByRole('dialog', { name: 'Neuer Eintrag' });
+    expect(within(blatt).getByTestId('zeitformular')).toHaveTextContent('leer');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('ein Tipp auf eine Zeile öffnet dasselbe Blatt mit dem Eintrag', async () => {
+    alsHandy();
+    eintraege = [eintrag({ id: 'offen', date: '2026-08-31' })];
+    zeige();
+    await screen.findByText('31.08.2026');
+    await userEvent.click(within(zeileVom('31.08.2026')).getByRole('button', { name: BEARBEITEN }));
+    const blatt = await screen.findByRole('dialog', { name: 'Eintrag bearbeiten' });
+    expect(within(blatt).getByTestId('zeitformular')).toHaveTextContent('bearbeitet: offen');
+  });
+
+  it('kommt man mit einer Baustelle her („Zeit von Hand eintragen“), ist das Blatt gleich offen', async () => {
+    alsHandy();
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/time', state: { projectNumber: 'B-1' } }]}>
+        <ToastProvider>
+          <TimeView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('dialog', { name: 'Neuer Eintrag' })).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne Handy-Breite steht das Formular auf der Seite, ohne „Neuer Eintrag“', async () => {
+    zeige();
+    expect(await screen.findByTestId('zeitformular')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Neuer Eintrag' })).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
