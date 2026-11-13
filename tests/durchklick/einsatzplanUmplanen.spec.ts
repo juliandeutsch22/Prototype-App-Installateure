@@ -121,6 +121,32 @@ test('was nicht geht, wird nicht still geschluckt: der Grund steht da, nichts ä
   expect((await zeilen([anna])).find((z) => z.id === id)?.date).toBe(MO);
 });
 
+test('Tablet: nach langem Drücken zieht der Finger den Einsatz auf einen anderen Tag', async ({ page }) => {
+  test.setTimeout(90_000);
+  const id = await einsatz(anna, 'Anna', MO);
+  await page.setViewportSize({ width: 834, height: 1112 });
+  await anmelden(page, CHEFIN.email);
+  await page.goto(`/assignments/woche?woche=${WOCHE}`);
+  const knopf = block(page, anna, MO);
+  await expect(knopf).toBeVisible({ timeout: 15_000 });
+  const von = await mitte(knopf);
+  const nach = await mitte(zelle(page, anna, MI));
+  const finger = { pointerType: 'touch', button: 0, isPrimary: true, pointerId: 9 };
+  await knopf.dispatchEvent('pointerdown', { ...finger, clientX: von.x, clientY: von.y });
+  await page.waitForTimeout(700);
+  // Bewegen und Loslassen gehen an das Fenster, wie beim Finger, der den Block verlässt.
+  await page.evaluate(([f, a, b]) => {
+    for (let i = 1; i <= 6; i += 1) {
+      const x = a.x + ((b.x - a.x) * i) / 6;
+      const y = a.y + ((b.y - a.y) * i) / 6;
+      window.dispatchEvent(new PointerEvent('pointermove', { ...f, clientX: x, clientY: y }));
+    }
+    window.dispatchEvent(new PointerEvent('pointerup', { ...f, clientX: b.x, clientY: b.y }));
+  }, [finger, von, nach] as const);
+  await expect(page.getByText(/Familie Huber verschoben: Mittwoch 10\.03\./)).toBeVisible({ timeout: 10_000 });
+  await expect.poll(() => zeilen([anna])).toEqual([{ id, date: MI, user_id: anna }]);
+});
+
 for (const [name, groesse] of [['Tablet', { width: 834, height: 1112 }], ['Handy', { width: 390, height: 844 }]] as const) {
   test(`${name}: langes Drücken zeigt die Leiste, „Verschieben …“ öffnet das Fenster`, async ({ page }) => {
     test.setTimeout(90_000);
