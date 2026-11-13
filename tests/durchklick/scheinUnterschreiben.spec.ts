@@ -87,8 +87,16 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
   const aendern = page.getByRole('button', { name: 'Baustelle ändern' });
   const auswahl = page.getByLabel('Baustelle', { exact: true });
   await expect(aendern.or(auswahl)).toBeVisible({ timeout: 15_000 });
-  if (await aendern.isVisible()) await aendern.click();
-  await auswahl.selectOption(BAUSTELLE.nummer);
+  /*
+    IN EINER SCHLEIFE, NICHT „ERST SCHAUEN, DANN WÄHLEN“: kommt die
+    Vorbelegung erst nach dem Blick an, ersetzt die kompakte Zeile die
+    Auswahl, und das Wählen wartete auf ein Feld, das nicht mehr da ist (CI
+    13.11.2026). Gewählt ist erst, wenn die Baustelle wirklich drinsteht.
+  */
+  await expect(async () => {
+    if (await aendern.isVisible()) await aendern.click();
+    await auswahl.selectOption(BAUSTELLE.nummer, { timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
   await expect(schritt).toHaveText('1 Zeiten');
   await page.getByLabel('Tätigkeit (optional)').fill('Bad entkernt, Leitungen neu verlegt.');
   await page.getByLabel(/^Bis/).fill('16:00');
