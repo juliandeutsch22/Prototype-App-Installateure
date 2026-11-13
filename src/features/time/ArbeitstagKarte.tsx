@@ -30,9 +30,11 @@ import { LoeschenKnopf } from '@/components/Symbolknoepfe';
  * Baustelle eine Zeit im gewohnten Formular (Zeiterfassung, „Arbeitstag
  * prüfen“, E73).
  */
-export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
+export default function ArbeitstagKarte({ vorschlag, aufStart = false, handZeit }: {
   /** Die Baustelle laut heutigem Einsatz — vorgewählt, solange nichts läuft. */
   vorschlag?: string;
+  /** Womit „Zeit von Hand eintragen“ die Zeiterfassung öffnet (Baustelle des Einsatzes). */
+  handZeit?: { projectNumber?: string; asHelper?: boolean };
   /** Auf der Startseite: offene Abschnitte als Verweis in die Zeiterfassung. */
   aufStart?: boolean;
 }) {
@@ -106,16 +108,49 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
       )}
 
       {s && dauer && (
-        <>
+        /*
+          KOMPAKT AM HANDY (D7, E90): Uhr und Knöpfe in einer Zeile, darunter
+          die Baustelle; der Papierkorb oben rechts in der Kopfzeile — eine
+          ganze Zeile über Pause und Stopp, damit der Daumen ihn beim
+          Feierabend nicht trifft (der Grund aus E74 bleibt). Ab dem Tablet
+          stehen die Teile wie bisher: Uhr, darunter Baustelle und Knöpfe,
+          der Papierkorb unten links. Dieselben Teile, nur anders im Raster
+          (`lot-timer.css`).
+        */
+        <div className="arbeitstag-lauf">
           <p className="arbeitstag-stand">
             <span className="arbeitstag-punkt" aria-hidden="true" />
             {pause && dauer.pauseSeit
               ? `Pause seit ${timerOrtszeit(dauer.pauseSeit).time}`
               : `Läuft seit ${timerOrtszeit(dauer.beginn).time}`}
           </p>
+          <div className="arbeitstag-fuss">
+            <LoeschenKnopf label="Arbeitstag verwerfen …" disabled={z.speichert} onClick={() => setVerwerfen(true)} />
+          </div>
           <p className="arbeitstag-uhr" aria-label={pause ? `Pause ${dauerText(dauer.pauseMs, false)} Stunden` : `Arbeitszeit ${dauerText(dauer.arbeitMs, false)} Stunden`}>
             <UhrText ms={pause ? dauer.pauseMs : dauer.arbeitMs} />
           </p>
+          <div className="arbeitstag-knoepfe">
+            {pause ? (
+              <>
+                <button type="button" className="rund-knopf rund-knopf-voll" aria-label="Weiterarbeiten" title="Weiterarbeiten" disabled={z.speichert} onClick={() => void z.befehl('weiter', s, laufendeBaustelle)}>
+                  <Icon name="play" size={24} aria-hidden="true" />
+                </button>
+                <button type="button" className="rund-knopf" aria-label="Stoppen und prüfen" title="Feierabend: stoppen und prüfen" disabled={z.speichert} onClick={() => void feierabend()}>
+                  <Icon name="stopp" size={22} aria-hidden="true" />
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" className="rund-knopf" aria-label="Pause beginnen" title="Pause beginnen" disabled={z.speichert} onClick={() => void z.befehl('pause', s, laufendeBaustelle)}>
+                  <Icon name="pause" size={22} aria-hidden="true" />
+                </button>
+                <button type="button" className="rund-knopf rund-knopf-voll" aria-label="Stoppen und prüfen" title="Feierabend: stoppen und prüfen" disabled={z.speichert} onClick={() => void feierabend()}>
+                  <Icon name="stopp" size={22} aria-hidden="true" />
+                </button>
+              </>
+            )}
+          </div>
           {z.ueberfaellig && (
             <p role="status" className="arbeitstag-erinnerung">
               Der Timer läuft schon länger. Bitte prüfen: beenden und Zeiten berichtigen oder bewusst weiterlaufen lassen.{' '}
@@ -137,41 +172,15 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
               >
                 <Icon name="building" size={16} aria-hidden="true" />
                 <span className="arbeitstag-baustelle-name">{laufendeBaustelle ? name(laufendeBaustelle) : 'Ohne Baustelle'}</span>
+                {/* Die Nummer dazu, wo der Name sie nicht schon ist: zwei Baustellen eines Kunden unterscheidet nur sie. */}
+                {laufendeBaustelle && name(laufendeBaustelle) !== laufendeBaustelle && (
+                  <span className="arbeitstag-baustelle-nr nr">{laufendeBaustelle}</span>
+                )}
                 {z.an && <Icon name="wechsel" size={16} aria-hidden="true" />}
               </button>
             )}
-            <div className="arbeitstag-knoepfe">
-              {pause ? (
-                <>
-                  <button type="button" className="rund-knopf rund-knopf-voll" aria-label="Weiterarbeiten" title="Weiterarbeiten" disabled={z.speichert} onClick={() => void z.befehl('weiter', s, laufendeBaustelle)}>
-                    <Icon name="play" size={24} aria-hidden="true" />
-                  </button>
-                  <button type="button" className="rund-knopf" aria-label="Stoppen und prüfen" title="Feierabend: stoppen und prüfen" disabled={z.speichert} onClick={() => void feierabend()}>
-                    <Icon name="stopp" size={22} aria-hidden="true" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button type="button" className="rund-knopf" aria-label="Pause beginnen" title="Pause beginnen" disabled={z.speichert} onClick={() => void z.befehl('pause', s, laufendeBaustelle)}>
-                    <Icon name="pause" size={22} aria-hidden="true" />
-                  </button>
-                  <button type="button" className="rund-knopf rund-knopf-voll" aria-label="Stoppen und prüfen" title="Feierabend: stoppen und prüfen" disabled={z.speichert} onClick={() => void feierabend()}>
-                    <Icon name="stopp" size={22} aria-hidden="true" />
-                  </button>
-                </>
-              )}
-            </div>
           </div>
-          {/*
-            VERWERFEN IST DER PAPIERKORB (E74, 10.11.2026), grau und klein unten
-            links — weit weg von Pause und Stopp rechts, damit der Daumen ihn
-            nicht beim Feierabend trifft. Oben rechts steht schon die Hilfe.
-            Das Fenster mit dem Grund dahinter bleibt, wie es war.
-          */}
-          <div className="arbeitstag-fuss">
-            <LoeschenKnopf label="Arbeitstag verwerfen …" disabled={z.speichert} onClick={() => setVerwerfen(true)} />
-          </div>
-        </>
+        </div>
       )}
 
       {!s && z.an && (
@@ -194,6 +203,20 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false }: {
             </button>
           </div>
         </div>
+      )}
+
+      {/*
+        ZEIT VON HAND, WO DER TIMER DER WEG ZUR ZEIT IST (D7, E90): am Handy
+        fällt auf der Startseite „Zeit erfassen“ unten weg — der Timer ist
+        der Weg. Wer doch von Hand bucht (Nachtrag, vergessener Start),
+        findet es hier. Ab dem Tablet steht „Zeit erfassen“ weiter im
+        Seitenkopf; dort braucht es die Zeile nicht.
+      */}
+      {aufStart && z.an && (
+        <Link to="/time" state={handZeit} className="arbeitstag-pruefen arbeitstag-hand">
+          Zeit von Hand eintragen
+          <Icon name="weiter" size={16} aria-hidden="true" />
+        </Link>
       )}
 
       {pruefen}

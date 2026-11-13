@@ -1,5 +1,5 @@
 import RuestlisteAbhaken from '@/features/assignments/RuestlisteAbhaken';
-import { EinsatzKnoepfe, EinsatzKontakt, type EinsatzWege } from '@/features/assignments/Einsatzaktionen';
+import { EinsatzKnoepfe, EinsatzKontakt, EinsatzWegeleiste, type EinsatzWege } from '@/features/assignments/Einsatzaktionen';
 import { Marke } from '@/components/Badge';
 import StartKarte from './StartKarte';
 import type { EinsatzZeile, LetzteBuchung } from './laden';
@@ -27,6 +27,7 @@ export default function HeuteEigene({
   zeitImKopf = false,
   zeitAn = true,
   wege,
+  timerAn = false,
 }: {
   einsaetze: EinsatzZeile[];
   letzteBuchung: LetzteBuchung | null | undefined;
@@ -40,6 +41,8 @@ export default function HeuteEigene({
   zeitAn?: boolean;
   /** Material und Nachricht am Einsatz (E83) — was die Rolle darf. */
   wege?: EinsatzWege;
+  /** Mit Start/Stopp ist am Handy der Timer der Weg zur Zeit (D7, E90). */
+  timerAn?: boolean;
 }) {
   if (einsaetze.length === 0) return null;
   const [erster, ...danach] = einsaetze;
@@ -49,7 +52,9 @@ export default function HeuteEigene({
       zusatz={einsaetze.length === 1 ? '1 Einsatz' : `${einsaetze.length} Einsätze`}
       verweis={planVerweis ? { to: '/my-schedule', text: 'Mein Einsatzplan' } : undefined}
     >
-      <Einsatz e={erster} letzteBuchung={letzteBuchung} materialAn={materialAn} scheinVerweis={scheinVerweis} zeitAn={zeitAn} zeitImKopf={zeitImKopf} wege={wege} gross />
+      <Einsatz e={erster} letzteBuchung={letzteBuchung} materialAn={materialAn} scheinVerweis={scheinVerweis} zeitAn={zeitAn} zeitImKopf={zeitImKopf} wege={wege} timerAn={timerAn} gross />
+      {/* Von Kante zu Kante unter dem ersten Einsatz — deshalb außerhalb seines Einzugs (D7, E90). */}
+      <EinsatzWegeleiste projectNumber={erster.projectNumber} projectId={erster.projectId} wege={wege} schein={scheinVerweis} datum={erster.date} />
       {danach.length > 0 && (
         <section aria-label="Danach" className="border-t border-line">
           <h3 className="start-abschnitt">
@@ -75,6 +80,7 @@ function Einsatz({
   zeitImKopf = false,
   zeitAn = true,
   wege,
+  timerAn = false,
 }: {
   e: EinsatzZeile;
   letzteBuchung: LetzteBuchung | null | undefined;
@@ -84,6 +90,7 @@ function Einsatz({
   zeitImKopf?: boolean;
   zeitAn?: boolean;
   wege?: EinsatzWege;
+  timerAn?: boolean;
 }) {
   /*
     DIE KNÖPFE WIE IM EINSATZPLAN (E72, 09.11.2026): Zweitknöpfe, Adresse und
@@ -105,7 +112,8 @@ function Einsatz({
         <span className="nr">{e.projectNumber}</span>
         {e.zeit ? ` · ${e.zeit}` : ''}
       </p>
-      <EinsatzKontakt adresse={e.address} nummer={e.contactPhone} name={e.contactName} projectNumber={e.projectNumber} projectId={e.projectId} wege={wege} className="start-einsatz-kontakt" />
+      {/* Am ersten Einsatz stehen Anfordern und Nachricht am Handy in der Leiste unten (D7, E90). */}
+      <EinsatzKontakt adresse={e.address} nummer={e.contactPhone} name={e.contactName} projectNumber={e.projectNumber} projectId={e.projectId} wege={wege} wegeNurBreit={gross} className="start-einsatz-kontakt" />
       {/* Die Notiz des Büros: was heute zu tun ist. */}
       {e.comment && (
         <p className="start-einsatz-aufgabe">
@@ -120,6 +128,8 @@ function Einsatz({
         andereZeit={!zeitImKopf}
         schein={scheinVerweis}
         className="start-einsatz-aktionen"
+        zeitNurBreit={gross && timerAn}
+        scheinNurBreit={gross}
       />
       {materialAn && e.material && e.material.length > 0 && (
         <RuestlisteAbhaken

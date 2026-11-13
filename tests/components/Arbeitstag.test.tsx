@@ -243,6 +243,33 @@ describe('Der Timer antwortet sofort (C4, E90)', () => {
   });
 });
 
+/* Die kompakte Karte (D7, E90): dieselben Teile, die Baustelle mit Nummer, „Zeit von Hand“ nur auf Start. */
+describe('Karte „Arbeitstag“ kompakt (D7, E90)', () => {
+  const laeuft = () => sitzung('laeuft', [{ id: 'a', art: 'arbeit', von: '2026-11-09T07:00:00+01:00', baustelle: 'B-1' }]);
+
+  it('die Baustelle mit Namen und Nummer; Papierkorb, Uhr und Knöpfe in einem Raster', async () => {
+    sitzungen = [laeuft()];
+    const { container } = zeigeKarte();
+    const wechsel = await screen.findByRole('button', { name: /Baustelle wechseln — jetzt Familie Huber/ });
+    await waitFor(() => expect(wechsel.querySelector('.nr')).toHaveTextContent('B-1'));
+    const raster = container.querySelector('.arbeitstag-lauf') as HTMLElement;
+    for (const teil of ['.arbeitstag-stand', '.arbeitstag-fuss', '.arbeitstag-uhr', '.arbeitstag-knoepfe', '.arbeitstag-unten']) {
+      expect(raster.querySelector(`:scope > ${teil}`), teil).not.toBeNull();
+    }
+    expect(within(raster).getByRole('button', { name: 'Arbeitstag verwerfen …' })).toBeInTheDocument();
+  });
+
+  it('„Zeit von Hand eintragen“ nur auf der Startseite — in der Zeiterfassung steht das Formular schon da', async () => {
+    sitzungen = [laeuft()];
+    const { unmount } = render(<MemoryRouter><ArbeitstagKarte aufStart handZeit={{ projectNumber: 'B-1' }} /></MemoryRouter>);
+    expect(await screen.findByRole('link', { name: /Zeit von Hand eintragen/ })).toHaveAttribute('href', '/time');
+    unmount();
+    zeigeKarte();
+    await screen.findByText('Läuft seit 07:00');
+    expect(screen.queryByRole('link', { name: /Zeit von Hand eintragen/ })).toBeNull();
+  });
+});
+
 describe('Timer-Leiste', () => {
   function zeigeLeiste(pfad: string, ort: 'telefon' | 'breit') {
     return render(

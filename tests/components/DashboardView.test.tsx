@@ -145,6 +145,8 @@ vi.mock('@/lib/db/projects', () => ({
   listProjectsByNumbers: vi.fn(async (_c: string, nummern: string[]) =>
     baustellen.filter((p) => nummern.includes(p.projectNumber)),
   ),
+  // Die Baustellen der Karte „Arbeitstag“ (mit Timer, D7).
+  listProjectsForEmployee: vi.fn(async () => baustellen),
 }));
 /** Wer heute ganztags weg ist (M33). */
 const abwesend: { wert: { userId: string; von: string; bis: string; grund: string | null; zeiten: string | null }[] } = { wert: [] };
@@ -251,6 +253,11 @@ vi.mock('@/lib/db/nachrichten', () => ({ ungeleseneZahl: vi.fn(async () => 0), m
 // Die eigene Einrichtung der Startseite (E68); ohne Wahl die Vorgabe der Rolle.
 const startWahl: { wert: { kennzahlen?: string[]; aus?: string[] } | null } = { wert: null };
 const wahlGespeichert = vi.fn(async (w: unknown) => { void w; });
+// Der Timer (D7, E90): ohne Sitzung — gezeigt wird nur, was die Startseite mit ihm anders macht.
+vi.mock('@/lib/db/zeitsitzungen', () => ({
+  zeitsitzungenLaden: vi.fn(async () => []), timerSenden: vi.fn(), timerMerken: vi.fn(),
+  timerBuchen: vi.fn(), timerAbschnittVerwerfen: vi.fn(), letzterTimerEntwurf: vi.fn(), timerEntwurfVerwerfen: vi.fn(),
+}));
 vi.mock('@/lib/db/startseiteWahl', () => ({
   ladeStartseiteWahl: vi.fn(async () => startWahl.wert),
   startseiteWahlSpeichern: (w: unknown) => wahlGespeichert(w),
@@ -956,12 +963,23 @@ describe('Startseite — offene Rechnungen', () => {
   Einsatzplan" (/my-schedule, nur Monteure) und „Schein schreiben" (nur wer
   Scheine schreibt) stehen nur da, wo sie hinführen dürfen.
 */
+/*
+  „SCHEIN SCHREIBEN“ STEHT ZWEIMAL IM DOM (D7, E90): ab dem Tablet als Knopf
+  am Einsatz, am Handy beim ersten Einsatz in der Leiste unten. jsdom kennt
+  die Breiten nicht — gezählt wird deshalb je Stelle.
+*/
+function scheinKnoepfe(wo: HTMLElement) {
+  const alle = within(wo).getAllByRole('link', { name: 'Schein schreiben' });
+  const leiste = alle.filter((l) => l.closest('.einsatz-wegeleiste')).length;
+  return { breit: alle.length - leiste, leiste };
+}
+
 describe('Startseite — Verweise nur, wohin man darf (P4-15)', () => {
   it('zeigt dem Monteur Einsatzplan und Schein', async () => {
     zeichne();
     const karte = await karteMit(/2 Einsätze/);
     expect(within(karte).getByRole('link', { name: 'Mein Einsatzplan' })).toHaveAttribute('href', '/my-schedule');
-    expect(within(karte).getAllByRole('link', { name: 'Schein schreiben' })).toHaveLength(2);
+    expect(scheinKnoepfe(karte)).toEqual({ breit: 2, leiste: 1 });
   });
 
   it.each(['Verwaltung', 'Buchhaltung'])('zeigt %s beides nicht', async (r) => {
@@ -980,7 +998,7 @@ describe('Startseite — Verweise nur, wohin man darf (P4-15)', () => {
     zeichne();
     const karte = await karteMit('Dein Einsatz heute');
     expect(within(karte).queryByRole('link', { name: 'Mein Einsatzplan' })).not.toBeInTheDocument();
-    expect(within(karte).getAllByRole('link', { name: 'Schein schreiben' })).toHaveLength(2);
+    expect(scheinKnoepfe(karte)).toEqual({ breit: 2, leiste: 1 });
   });
 });
 
@@ -1086,7 +1104,7 @@ describe('Startseite — Lot mit Tageskontext', () => {
     expect(einsatz.closest('aside')).toBeNull();
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
     expect(within(einsatz).getByRole('link', { name: /Wie zuletzt buchen/ })).toHaveAttribute('href', '/time');
-    expect(within(einsatz).getAllByRole('link', { name: 'Schein schreiben' })).toHaveLength(2);
+    expect(scheinKnoepfe(einsatz)).toEqual({ breit: 2, leiste: 1 });
   });
 
   it('bietet die direkte Zeitbuchung für den ersten Einsatz im bestehenden Seitenkopf an', async () => {
@@ -1391,5 +1409,58 @@ describe('Startseite — wer entscheidet, sieht es', () => {
     await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
     expect(korrekturen.zeitkorrekturenLaden).not.toHaveBeenCalled();
     expect(screen.queryByText('Korrekturanträge')).toBeNull();
+  });
+});
+
+/*
+  START AM HANDY (D7, E90). Mit Start/Stopp ist der Timer der Weg zur Zeit:
+  „Zeit erfassen“ trägt die Klasse, die ihn am Handy ausblendet, die Karte
+  „Arbeitstag“ dafür „Zeit von Hand eintragen“, und der erste Einsatz zeigt
+  seinen Zeitknopf nur ab dem Tablet. Die drei Wege stehen am Handy als
+  Leiste unter dem ersten Einsatz.
+*/
+describe('Startseite am Handy (D7, E90)', () => {
+  // „Zeit erfassen“ des Seitenkopfs — der zweite Einsatz trägt einen eigenen.
+  const zeitImKopf = () => document.querySelector('a.start-hauptaktion[href="/time"]');
+  const mitTimer = () => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen', modules: { 'zeiterfassung.timer': true } };
+  };
+
+  it('mit Timer: „Zeit erfassen“ nur ab dem Tablet, „Zeit von Hand eintragen“ in der Karte mit der Baustelle des Einsatzes', async () => {
+    mitTimer();
+    zeichne();
+    const einsatz = await karteMit(/2 Einsätze/);
+    expect(zeitImKopf()).toHaveClass('start-zeit-mit-timer');
+    const hand = await screen.findByRole('link', { name: /Zeit von Hand eintragen/ });
+    expect(hand).toHaveAttribute('href', '/time');
+    expect(hand).toHaveClass('arbeitstag-hand');
+    expect(within(einsatz).getByRole('link', { name: /Wie zuletzt buchen/ })).toHaveClass('max-md:hidden');
+  });
+
+  it('Gegenprobe ohne Timer: „Zeit erfassen“ bleibt unten, keine Zeile in einer Karte, der Zeitknopf am Einsatz bleibt', async () => {
+    zeichne();
+    const einsatz = await karteMit(/2 Einsätze/);
+    expect(zeitImKopf()).not.toHaveClass('start-zeit-mit-timer');
+    expect(screen.queryByRole('link', { name: /Zeit von Hand eintragen/ })).toBeNull();
+    expect(within(einsatz).getByRole('link', { name: /Wie zuletzt buchen/ })).not.toHaveClass('max-md:hidden');
+  });
+
+  it('ist die Karte „Arbeitstag“ ausgeblendet (E68), bleibt „Zeit erfassen“ auch mit Timer', async () => {
+    mitTimer();
+    startWahl.wert = { aus: ['bereich-arbeitstag'] };
+    zeichne();
+    await karteMit(/2 Einsätze/);
+    expect(zeitImKopf()).not.toHaveClass('start-zeit-mit-timer');
+  });
+
+  it('die drei Wege als Leiste unter dem ersten Einsatz; Anfordern und Nachricht oben nur ab dem Tablet', async () => {
+    zeichne();
+    const einsatz = await karteMit(/2 Einsätze/);
+    const leiste = einsatz.querySelector('.einsatz-wegeleiste') as HTMLElement;
+    expect(leiste).not.toBeNull();
+    expect(leiste).toHaveClass('md:hidden');
+    expect(within(leiste).getByRole('link', { name: 'Schein schreiben' })).toHaveAttribute('href', expect.stringMatching(/^\/worksheet\?projekt=/));
+    // Nur eine Leiste, auch bei zwei Einsätzen: der zweite steht unter „Danach“ wie bisher.
+    expect(einsatz.querySelectorAll('.einsatz-wegeleiste')).toHaveLength(1);
   });
 });
