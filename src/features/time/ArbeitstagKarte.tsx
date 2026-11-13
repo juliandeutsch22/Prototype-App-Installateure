@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { listProjectsByNumbers } from '@/lib/db/projects';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import BottomSheet from '@/components/BottomSheet';
@@ -53,7 +54,28 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false, handZeit 
   */
   const regel = useBaustelleVorbelegung({ aktiv: !!user && !vorschlag && z.an && !z.laeuft });
   const baustellen = useBaustellenAuswahl(!!user && (z.an || !!z.laeuft), user?.companyId ?? '', user?.uid ?? '', user?.role ?? 'Mitarbeiter', '');
-  const namen = useMemo(() => new Map((baustellen.liste ?? []).map((p) => [p.projectNumber, baustellenTitel(p) || p.projectNumber])), [baustellen.liste]);
+  /*
+    DIE LAUFENDE BAUSTELLE MIT NAMEN, auch wenn sie nicht in der eigenen
+    Auswahl steht (D7, E90) — etwa, wenn der Monteur nicht im Team der
+    Baustelle steht, aber für sie eingeteilt ist. Die Leiste holt sie
+    genauso; ohne Netz bleibt die Nummer.
+  */
+  const [nachgeholt, setNachgeholt] = useState<{ nr: string; text: string } | null>(null);
+  const laufendNr = z.laeuft ? timerBaustelle(z.laeuft) : '';
+  const inListe = !!baustellen.liste?.some((p) => p.projectNumber === laufendNr);
+  useEffect(() => {
+    if (!user || !laufendNr || (baustellen.liste === null && !baustellen.fehler) || inListe || nachgeholt?.nr === laufendNr) return;
+    let weg = false;
+    listProjectsByNumbers(user.companyId, [laufendNr])
+      .then(([p]) => { if (!weg && p) setNachgeholt({ nr: laufendNr, text: baustellenTitel(p) || laufendNr }); })
+      .catch(() => undefined);
+    return () => { weg = true; };
+  }, [user, laufendNr, baustellen.liste, baustellen.fehler, inListe, nachgeholt?.nr]);
+  const namen = useMemo(() => {
+    const m = new Map((baustellen.liste ?? []).map((p) => [p.projectNumber, baustellenTitel(p) || p.projectNumber]));
+    if (nachgeholt && !m.has(nachgeholt.nr)) m.set(nachgeholt.nr, nachgeholt.text);
+    return m;
+  }, [baustellen.liste, nachgeholt]);
 
   if (!user) return null;
   const offen = z.offen.length;

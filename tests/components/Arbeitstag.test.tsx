@@ -259,6 +259,15 @@ describe('Karte „Arbeitstag“ kompakt (D7, E90)', () => {
     expect(within(raster).getByRole('button', { name: 'Arbeitstag verwerfen …' })).toBeInTheDocument();
   });
 
+  it('steht die Baustelle nicht in der eigenen Auswahl, holt die Karte ihren Namen nach', async () => {
+    sitzungen = [laeuft()];
+    const projekte = await import('@/lib/db/projects');
+    vi.mocked(projekte.listProjectsForEmployee).mockResolvedValueOnce([]);
+    zeigeKarte();
+    expect(await screen.findByRole('button', { name: /Baustelle wechseln — jetzt Familie Huber/ })).toBeInTheDocument();
+    expect(projekte.listProjectsByNumbers).toHaveBeenCalledWith('perl', ['B-1']);
+  });
+
   it('„Zeit von Hand eintragen“ nur auf der Startseite — in der Zeiterfassung steht das Formular schon da', async () => {
     sitzungen = [laeuft()];
     const { unmount } = render(<MemoryRouter><ArbeitstagKarte aufStart handZeit={{ projectNumber: 'B-1' }} /></MemoryRouter>);
