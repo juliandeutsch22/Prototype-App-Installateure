@@ -49,6 +49,26 @@ function zeichne(props: Partial<Parameters<typeof HeuteEigene>[0]> = {}) {
   );
 }
 
+/*
+  ZWEIMAL IM DOM (D7, E90): Anfordern, Nachricht und Schein des ersten
+  Einsatzes stehen ab dem Tablet oben bzw. als Knopf, am Handy in der Leiste
+  darunter. jsdom kennt die Breiten nicht — die Prüfungen hier nehmen die
+  Stelle ab dem Tablet; die Leiste prüft ihr eigener Block.
+*/
+const ohneLeiste = <T extends HTMLElement>(alle: T[]) => alle.filter((el) => !el.closest('.einsatz-wegeleiste'));
+const breit = {
+  link: (name: string) => {
+    const [el, ...rest] = ohneLeiste(screen.queryAllByRole('link', { name }));
+    expect(rest).toEqual([]);
+    return el ?? null;
+  },
+  knopf: (name: string) => {
+    const [el, ...rest] = ohneLeiste(screen.queryAllByRole('button', { name }));
+    expect(rest).toEqual([]);
+    return el ?? null;
+  },
+};
+
 /** Ein Zweitknopf: Gestalt aus `knopf.ts`, gerahmt, nicht gefüllt. */
 function istZweitknopf(el: HTMLElement) {
   expect(el.className).toContain('lot-knopf');
@@ -77,7 +97,7 @@ describe('Einsatzaktionen auf der Startseite (E72, H1)', () => {
     const zeit = within(danach).getByRole('link', { name: 'Zeit erfassen' });
     istZweitknopf(zeit);
     expect(zeit.className).not.toContain('link-weiter');
-    for (const schein of screen.getAllByRole('link', { name: 'Schein schreiben' })) istZweitknopf(schein);
+    for (const schein of ohneLeiste(screen.getAllByRole('link', { name: 'Schein schreiben' }))) istZweitknopf(schein);
   });
 
   it('Adresse und Telefon tragen überall `.link-kontakt` mit Symbol', () => {
@@ -101,7 +121,7 @@ describe('Einsatzaktionen auf der Startseite (E72, H1)', () => {
   it('gleich geblieben: beim Monteur ohne letzte Buchung kein Zeitknopf am ersten Einsatz (der steht im Kopf)', () => {
     zeichne({ letzteBuchung: null, einsaetze: [einsatz()] });
     expect(screen.queryByRole('link', { name: /Zeit erfassen|Wie zuletzt/ })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Schein schreiben' })).toBeInTheDocument();
+    expect(breit.link('Schein schreiben')).toBeInTheDocument();
   });
 });
 
@@ -138,9 +158,11 @@ describe('Wege am Einsatz', () => {
 
   it('führt mit der Baustelle zu „Material anfordern“', () => {
     zeichne({ wege: MIT, einsaetze: [einsatz({ projectId: 'p1' })] });
-    const weg = screen.getByRole('link', { name: 'Material anfordern' });
+    const weg = breit.link('Material anfordern')!;
     expect(weg).toHaveAttribute('href', '/material?projekt=B-2026-0147');
     expect(weg.className).toContain('link-kontakt');
+    // Am Handy steht derselbe Weg in der Leiste; oben ist er dort ausgeblendet.
+    expect(weg).toHaveClass('max-md:hidden');
   });
 
   it('öffnet den Thread der Baustelle — angelegt erst beim Tippen', async () => {
@@ -154,7 +176,7 @@ describe('Wege am Einsatz', () => {
       </MemoryRouter>,
     );
     expect(kanalBaustelle).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole('button', { name: 'Nachricht zur Baustelle' }));
+    await userEvent.click(breit.knopf('Nachricht zur Baustelle')!);
     expect(kanalBaustelle).toHaveBeenCalledWith('p1');
     expect(await screen.findByText('Thread offen')).toBeInTheDocument();
   });
@@ -170,12 +192,32 @@ describe('Wege am Einsatz', () => {
   it('Gegenprobe: ohne Kennung der Baustelle kein Thread — die Nummer allein öffnet keinen', () => {
     zeichne({ wege: MIT, einsaetze: [einsatz()] });
     expect(screen.queryByRole('button', { name: 'Nachricht zur Baustelle' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Material anfordern' })).toBeInTheDocument();
+    expect(breit.link('Material anfordern')).toBeInTheDocument();
   });
 
   it('auch ohne Adresse und Telefon stehen die Wege da', () => {
     zeichne({ wege: MIT, einsaetze: [einsatz({ projectId: 'p1', address: undefined, contactPhone: undefined })] });
-    expect(screen.getByRole('link', { name: 'Material anfordern' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Nachricht zur Baustelle' })).toBeInTheDocument();
+    expect(breit.link('Material anfordern')).toBeInTheDocument();
+    expect(breit.knopf('Nachricht zur Baustelle')).toBeInTheDocument();
+  });
+});
+
+/* Die Leiste am Handy (D7, E90): dieselben Wege, je ein Drittel, nur unter dem ersten Einsatz. */
+describe('Wegeleiste am Handy (D7, E90)', () => {
+  const MIT = { material: true, nachricht: true };
+  it('Anfordern, Nachricht und Schein in einer Leiste — nur am Handy, nur einmal', () => {
+    const { container } = zeichne({ wege: MIT, einsaetze: [einsatz({ projectId: 'p1' }), einsatz({ id: 'a2', projectNumber: 'B-2026-0148', projectId: 'p2' })] });
+    const leisten = container.querySelectorAll('.einsatz-wegeleiste');
+    expect(leisten).toHaveLength(1);
+    const leiste = leisten[0] as HTMLElement;
+    expect(leiste).toHaveClass('md:hidden');
+    expect(within(leiste).getByRole('link', { name: 'Material anfordern' })).toHaveAttribute('href', '/material?projekt=B-2026-0147');
+    expect(within(leiste).getByRole('button', { name: 'Nachricht zur Baustelle' })).toBeInTheDocument();
+    expect(within(leiste).getByRole('link', { name: 'Schein schreiben' })).toHaveAttribute('href', expect.stringMatching(/^\/worksheet\?projekt=B-2026-0147&datum=\d{4}-\d{2}-\d{2}$/));
+  });
+
+  it('Gegenprobe: ohne Rechte und ohne Schein keine Leiste', () => {
+    const { container } = zeichne({ wege: { material: false, nachricht: false }, scheinVerweis: false, einsaetze: [einsatz({ projectId: 'p1' })] });
+    expect(container.querySelector('.einsatz-wegeleiste')).toBeNull();
   });
 });
