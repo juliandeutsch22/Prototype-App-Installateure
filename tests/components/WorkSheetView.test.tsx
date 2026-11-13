@@ -2298,8 +2298,9 @@ describe('Schein am Handy (D8, E90)', () => {
     breite(false);
     zeichne();
     expect(await screen.findByRole('combobox', { name: 'Baustelle' })).toBeInTheDocument();
+    // Der Entwurf-Knopf kommt erst mit der übernommenen Baustelle — nach dem Auswahlfeld, auf der CI spürbar später.
+    const entwurf = await screen.findByRole('button', { name: 'Als Entwurf speichern' });
     expect(screen.queryByRole('button', { name: 'Baustelle ändern' })).toBeNull();
-    const entwurf = screen.getByRole('button', { name: 'Als Entwurf speichern' });
     expect(entwurf.closest('.aktionsleiste')).toBeNull();
   });
 });
