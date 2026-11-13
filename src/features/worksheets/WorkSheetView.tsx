@@ -1244,7 +1244,7 @@ export default function WorkSheetView() {
         >
           <Card title={baustelleKompakt ? undefined : 'Baustelle und Tag'}>
             {baustelleKompakt && projekt && (
-              <div className="schein-baustelle">
+              <div className="schein-baustelle pt-2">
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="titel-karte min-w-0">{projekt.customerName || projectNumber}</h2>
                   <button type="button" className="link min-h-touch shrink-0" onClick={() => setBaustelleAendern(true)} aria-label="Baustelle ändern">
