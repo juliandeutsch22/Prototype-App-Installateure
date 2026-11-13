@@ -1,115 +1,171 @@
 /*
-  DER ARBEITSTAG (Timer, 08.11.2026) — Karte und Leiste.
+  DER ARBEITSTAG (Timer) — Karte und Leiste, Designlinie V10 (13.11.2026).
 
-  Ein Blatt der Linie „Lot“ wie jedes andere: deckend, Linie rundum, eckig.
-  Rund sind nur die Knöpfe (Start, Pause, Weiter, Feierabend) — „die runden
-  Knöpfe passen zur Linie, die abgerundeten Kanten der Boxen eher weniger“
-  (Auftrag 08.11.2026). Farben nur aus den Grundwerten; die Uhr in Plex Mono.
+  Drei eigenständige Zustände, auf einen Blick zu unterscheiden (style.md,
+  „Flächen, Auswahl und Tiefe“; Auftrag 11.1):
+    - bereit: helles Blatt wie jedes andere, der Start als Terrakotta-Kreis;
+    - läuft: eine dunkle, ruhige Fläche (`--dunkel-flaeche`) — Terrakotta
+      nur als kleiner Punkt, keine orange Karte;
+    - Pause: warmer neutraler Ton (`--pause-flaeche`), hell und klar anders
+      als bereit.
+  Die große Karte beschriftet Pause, Weiter und Stopp mit kurzen Wörtern;
+  die kompakte Karte am Handy und die Leiste tragen nur die Symbole (mit
+  `aria-label`, Ziele ab 44 px). Kein Puls, keine Bewegung der Uhr: die
+  Ziffern sind tabellarisch, ein Zustandswechsel blendet nur die Farbe über.
+  Mischtöne entstehen deckend aus den Grundwerten (`color-mix`), nie als
+  halbtransparente Fläche; davor steht jeweils ein Grundwert als Rückfall.
 */
 @layer components {
   /*
-    EIN BLATT WIE JEDES ANDERE (E72, 09.11.2026): Linie in `--border-strong`
-    oben und links innen, rechts und unten außen an der Kante (wie
-    `lot-blatt.css`), Text eine Zelle vom Rand. Vorher 1 px `--border` rundum
-    und 16/20 px Polster — die Karte lag mit 21 px Einzug und krummer Höhe
-    neben den Blättern. Höhe und Oberkante rundet der Taktgeber (`takt.ts`).
+    EIN BLATT DER LINIE V10: feine Kontur, 16 px Radius, kein Schatten. Das
+    Polster ist das der Blätter (`--blatt-rand`, am Handy 16 px); unten nur
+    12 px, weil die 44-px-Zeile der Baustelle ihre Luft schon mitbringt —
+    so misst die laufende Karte am Handy fast genau sieben Zellen und der
+    Taktgeber (`takt.ts`) füllt kaum auf.
   */
-  .arbeitstag { position: relative; padding: 1.5rem; border: 0; background: var(--surface); box-shadow: 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), 1px 1px 0 var(--border-strong); }
-  .arbeitstag::before { content: ''; position: absolute; inset: 0; pointer-events: none; border-top: 1px solid var(--border-strong); border-left: 1px solid var(--border-strong); }
+  .arbeitstag { position: relative; padding: 1rem var(--blatt-rand) 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); transition: background-color var(--motion-state, 160ms) var(--ease-response, ease), border-color var(--motion-state, 160ms) var(--ease-response, ease); }
+  .arbeitstag[data-stand='laeuft'] { border-color: var(--dunkel-flaeche); background: var(--dunkel-flaeche); color: var(--auf-dunkel); }
+  .arbeitstag[data-stand='pause'] { background: var(--pause-flaeche); }
   .arbeitstag-hilfe { position: absolute; top: 0.375rem; right: 0.375rem; }
-  .arbeitstag-fehler { margin-bottom: 0.5rem; padding-right: 2.5rem; font-size: 0.875rem; color: var(--danger); }
+  /* Der Fehler ist Text mit Zeichen, keine rote Fläche (Regel 3). */
+  .arbeitstag-fehler { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem; padding-right: 2.5rem; font-size: 0.875rem; line-height: 1.375rem; color: var(--danger); }
+  .arbeitstag-fehler svg { flex: none; margin-top: 0.1875rem; }
+  /* Auf der dunklen Fläche trüge `--danger` nur 2,5 : 1 — dort hell, das Zeichen sagt „Fehler“. */
+  .arbeitstag[data-stand='laeuft'] .arbeitstag-fehler { color: var(--auf-dunkel); }
 
-  .arbeitstag-stand { display: flex; align-items: center; gap: 0.5rem; padding-right: 2.5rem; font-size: 0.8125rem; color: var(--text-muted); }
+  .arbeitstag-stand { display: flex; align-items: center; gap: 0.5rem; min-height: 1.5rem; padding-right: 2.5rem; font-size: 0.8125rem; color: var(--text-muted); }
+  .arbeitstag[data-stand='laeuft'] .arbeitstag-stand { color: var(--auf-dunkel-leise); }
+  /* Auf dem Pausenton läge der Nebentext knapp unter 4,5 : 1 — dort in der Grundschrift. */
+  .arbeitstag[data-stand='pause'] .arbeitstag-stand { color: var(--text); }
   .arbeitstag-punkt { flex: none; width: 0.5rem; height: 0.5rem; border-radius: 999px; background: var(--accent-deep); }
-  [data-stand="pause"] .arbeitstag-punkt { background: var(--warning); }
-  .arbeitstag-uhr { margin: 0.375rem 0 0.125rem; font-family: var(--schrift-mono); font-size: 2.75rem; font-weight: var(--gewicht-zahl); line-height: 1.1; letter-spacing: -0.02em; color: var(--ink-deep); font-variant-numeric: tabular-nums; }
-  .arbeitstag-uhr small { font-size: 1.375rem; color: var(--text-muted); }
-  .arbeitstag-erinnerung { margin-top: 0.5rem; font-size: 0.875rem; color: var(--text); }
+  /* Der einzige Terrakotta-Akzent der laufenden Karte: aufgehellt, damit er auf dem Dunkel sichtbar bleibt (4,4 : 1). */
+  .arbeitstag[data-stand='laeuft'] .arbeitstag-punkt { background: var(--petrol); background: color-mix(in srgb, var(--petrol) 70%, var(--auf-dunkel)); }
+  [data-stand='pause'] .arbeitstag-punkt { background: var(--warning); }
+  .arbeitstag-uhr { margin: 0.25rem 0 0; font-family: var(--schrift-mono); font-size: 2.5rem; font-weight: var(--gewicht-zahl); line-height: 3rem; letter-spacing: -0.02em; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .arbeitstag-uhr small { font-size: 1.25rem; letter-spacing: 0; color: var(--text-muted); }
+  .arbeitstag[data-stand='laeuft'] .arbeitstag-uhr { color: var(--auf-dunkel); }
+  .arbeitstag[data-stand='laeuft'] .arbeitstag-uhr small { color: var(--auf-dunkel-leise); }
+  .arbeitstag[data-stand='pause'] .arbeitstag-uhr small { color: var(--text); }
+  .arbeitstag-erinnerung { margin-top: 0.75rem; font-size: 0.875rem; line-height: 1.375rem; color: var(--text); }
+  .arbeitstag[data-stand='laeuft'] .arbeitstag-erinnerung { color: var(--auf-dunkel); }
+  .arbeitstag[data-stand='laeuft'] .link { color: var(--auf-dunkel); text-decoration: underline; text-underline-offset: 3px; }
 
   /*
-    DIE TEILE IM RASTER (D7, E90). Ab dem Tablet wie bisher: Stand, Uhr,
-    darunter Baustelle und Knöpfe, der Papierkorb unten links. Am Handy
-    kompakt: der Papierkorb rechts neben dem Stand, die Knöpfe neben der Uhr,
-    die Baustelle darunter — die Karte ist 200 statt 240 px hoch.
+    DIE TEILE IM RASTER (D7, E90). Dieselben Teile in jeder Breite, nur anders
+    gestellt:
+      - am Handy kompakt: Stand und Papierkorb in der Kopfzeile, Uhr und
+        Knöpfe in einer Zeile, darunter die Baustelle mit Name und Nummer;
+      - ab dem Tablet eine breite Zeile: links die Uhr, in der Mitte die
+        Baustelle, rechts die beschrifteten Knöpfe — der Papierkorb bleibt
+        oben rechts, eine Zeile über Pause und Stopp (Fehlgriff, E74).
   */
-  .arbeitstag-lauf { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "stand stand" "uhr uhr" "erinnerung erinnerung" "unten knoepfe" "fuss fuss"; column-gap: 0.75rem; align-items: center; }
-  .arbeitstag-lauf > .arbeitstag-stand { grid-area: stand; }
+  .arbeitstag-lauf { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "stand fuss" "uhr knoepfe" "unten unten" "erinnerung erinnerung"; column-gap: 0.75rem; align-items: center; }
+  .arbeitstag-lauf > .arbeitstag-stand { grid-area: stand; padding-right: 0; }
   .arbeitstag-lauf > .arbeitstag-uhr { grid-area: uhr; }
-  .arbeitstag-lauf > .arbeitstag-erinnerung { grid-area: erinnerung; }
-  .arbeitstag-lauf > .arbeitstag-unten { grid-area: unten; }
-  .arbeitstag-lauf > .arbeitstag-knoepfe { grid-area: knoepfe; margin-top: 0.75rem; }
-  .arbeitstag-lauf > .arbeitstag-fuss { grid-area: fuss; }
-  @media (max-width: 759px) {
-    .arbeitstag-lauf { grid-template-areas: "stand fuss" "uhr knoepfe" "erinnerung erinnerung" "unten unten"; }
-    .arbeitstag-lauf > .arbeitstag-stand { padding-right: 0; }
-    /* Der Papierkorb fluchtet rechts mit den Knöpfen; die Tastfläche reicht über die Zeile hinaus, nicht die Zeile über ihn. */
-    .arbeitstag-lauf > .arbeitstag-fuss { justify-content: flex-end; margin: -0.875rem -0.8125rem -0.875rem 0; }
-    .arbeitstag-lauf > .arbeitstag-knoepfe { margin-top: 0; }
-    .arbeitstag-lauf > .arbeitstag-unten { margin-top: 0.5rem; }
+  .arbeitstag-lauf > .arbeitstag-erinnerung { grid-area: erinnerung; padding-bottom: 0.5rem; }
+  .arbeitstag-lauf > .arbeitstag-unten { grid-area: unten; margin-top: 0.25rem; }
+  .arbeitstag-lauf > .arbeitstag-knoepfe { grid-area: knoepfe; }
+  /* Der Papierkorb fluchtet rechts mit den Knöpfen; die Tastfläche reicht über die Zeile hinaus, nicht die Zeile über ihn. */
+  .arbeitstag-lauf > .arbeitstag-fuss { grid-area: fuss; display: flex; justify-content: flex-end; margin: -0.625rem -0.8125rem -0.625rem 0; }
+  @media (min-width: 760px) {
+    .arbeitstag-lauf { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "stand stand fuss" "uhr unten knoepfe" "erinnerung erinnerung erinnerung"; column-gap: 2rem; }
+    .arbeitstag-lauf > .arbeitstag-unten { margin-top: 0.25rem; }
   }
-  .arbeitstag-unten { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 0.75rem; min-width: 0; }
-  .arbeitstag-baustelle-nr { flex: none; font-family: var(--schrift-mono); font-size: 0.8125rem; color: var(--text-muted); }
-  .arbeitstag-neben { font-size: 0.875rem; color: var(--text-muted); }
+  .arbeitstag-unten { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+  .arbeitstag-neben { font-size: 0.875rem; line-height: 1.5rem; color: var(--text); }
+  /* Ein kurzer Satz, was „Stopp“ tut — nur in der großen Karte; am Handy steht er in der Hilfe. */
+  .arbeitstag-hinweis { display: none; font-size: 0.8125rem; line-height: 1.25rem; color: var(--text); }
+  .arbeitstag[data-stand='laeuft'] .arbeitstag-hinweis { color: var(--auf-dunkel-leise); }
+  @media (min-width: 760px) { .arbeitstag-hinweis { display: block; } }
+
   .arbeitstag-baustelle { display: inline-flex; align-items: center; gap: 0.375rem; min-width: 0; max-width: 100%; min-height: 2.75rem; color: var(--accent-deep); font-size: 0.9375rem; text-align: left; }
   .arbeitstag-baustelle:disabled { color: var(--text); cursor: default; }
+  .arbeitstag-baustelle:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-sm); }
+  .arbeitstag[data-stand='laeuft'] .arbeitstag-baustelle { color: var(--auf-dunkel); }
   .arbeitstag-baustelle-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .arbeitstag-baustelle-nr { flex: none; font-family: var(--schrift-mono); font-size: 0.8125rem; color: var(--text-muted); }
+  .arbeitstag[data-stand='laeuft'] .arbeitstag-baustelle-nr { color: var(--auf-dunkel-leise); }
   /* Bei einem langen Namen stauchte die Zeile Gebäude und Pfeil von 16 auf 5,8 px; kürzen soll nur der Name (E82). */
   .arbeitstag-baustelle svg { flex: none; }
-  .arbeitstag-knoepfe { display: flex; gap: 0.75rem; margin-left: auto; }
-  /* Verwerfen ist der seltene Fehlgriff-Weg: ein Zweitknopf rechts unten, nicht mehr ein 20 px hoher grauer Text (E72, R1). */
-  /* Der Papierkorb unten links (E74); der Rand gleicht die Luft der Tastfläche aus, damit das Zeichen mit dem Text fluchtet. */
-  .arbeitstag-fuss { display: flex; justify-content: flex-start; margin: 0.5rem 0 -0.75rem -0.8125rem; }
+  .arbeitstag[data-stand='laeuft'] .arbeitstag-baustelle svg { color: var(--auf-dunkel-leise); }
 
-  /* Drei Rasterzellen hoch (72 px), auch wenn Titel und Baustelle 70 px brauchen: so trifft die Karte samt Verweis das Raster genau (E75). */
+  .arbeitstag-knoepfe { display: flex; align-items: flex-start; gap: 0.75rem; margin-left: auto; }
+  /* Der Papierkorb auf dem Dunkel: leise, beim Darüberfahren hell — keine rote Fläche. */
+  .arbeitstag[data-stand='laeuft'] .arbeitstag-fuss .lot-knopf { color: var(--auf-dunkel-leise); }
+  .arbeitstag[data-stand='laeuft'] .arbeitstag-fuss .lot-knopf:hover { background: transparent; color: var(--auf-dunkel); }
+
+  /* Bereit: der Start als großer Kreis, daneben Titel und Baustelle. Drei Rasterzellen hoch (E75). */
   .arbeitstag-start { display: flex; align-items: center; gap: 1rem; min-height: 4.5rem; padding-right: 2rem; }
   .arbeitstag-start-text { display: flex; flex-direction: column; min-width: 0; }
-  .arbeitstag-start-titel { font-size: 1.0625rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
+  .arbeitstag-start-titel { font-size: 1.0625rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
 
   /*
-    DER VERWEIS IST SCHLANK (E75, 10.11.2026: „der untere Teil ist noch etwas
-    unnötig hoch“). Vorher standen unter dem Text 50 px, darüber 15: der
-    Verweis lag mit 8 px Polster auf der Linie, darunter das Polster der
-    Karte, und der Taktgeber füllte bis zur nächsten Rasterlinie auf. Jetzt
-    ist er eine Fläche von 48 px (zwei Rasterzellen), der Text mittig darin,
-    und sie reicht bis an den unteren Rand der Karte — die Karte endet so
-    genau auf dem Raster, nichts wird aufgefüllt. Die Zeile ist 24 px hoch:
-    bricht der Text am schmalen Telefon in zwei Zeilen, wächst die Fläche um
-    genau eine Rasterzelle, und er steht weiter mittig (Linie 1 + 11 px oben,
-    12 px unten). Steht der Verweis allein (Start/Stopp abgeschaltet), braucht
-    er keine Linie darüber.
+    DIE VERWEISE UNTEN („Zeit von Hand eintragen“, „… wartet auf die
+    Prüfung“) als Arbeitszeile von 48 px, mit einer Linie von Kante zu Kante
+    der Karte darüber (E75). Steht der Verweis allein (Start/Stopp
+    abgeschaltet), braucht er keine Linie.
   */
-  .arbeitstag-pruefen { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; min-height: 3rem; margin: 1.5rem 0 -1.5rem; padding: 0.6875rem 0 0.75rem; border-top: 1px solid var(--border); color: var(--accent-deep); font-size: 0.9375rem; line-height: 1.5rem; text-decoration: none; }
-  .arbeitstag-pruefen-allein { margin: 0; padding-top: 0.75rem; border-top: 0; }
+  .arbeitstag-pruefen { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; min-height: 3rem; margin: 1rem var(--blatt-rand-minus) -0.75rem; padding: 0.6875rem var(--blatt-rand) 0.75rem; border-top: 1px solid var(--border); color: var(--accent-deep); font-size: 0.9375rem; line-height: 1.5rem; text-decoration: none; }
+  .arbeitstag-pruefen + .arbeitstag-pruefen { margin-top: 0.75rem; }
+  .arbeitstag-pruefen:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+  .arbeitstag-pruefen-allein { margin: 0; padding: 0.75rem 0; border-top: 0; }
+  .arbeitstag[data-stand='laeuft'] .arbeitstag-pruefen { border-top-color: var(--auf-dunkel-leise); border-top-color: color-mix(in srgb, var(--dunkel-flaeche) 82%, var(--auf-dunkel)); color: var(--auf-dunkel); }
   /* „Zeit von Hand eintragen“ nur am Handy: ab dem Tablet steht „Zeit erfassen“ im Seitenkopf (D7, E90). */
   @media (min-width: 760px) { .arbeitstag-hand { display: none; } }
 
-  /* Die runden Knöpfe — die einzige Rundung dieses Bereichs. */
-  .rund-knopf { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface); color: var(--ink-deep); }
-  .rund-knopf:hover { border-color: var(--brand-fixed); }
-  .rund-knopf:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-  .rund-knopf:disabled { border-color: var(--border); color: var(--text-muted); cursor: not-allowed; }
+  /*
+    DIE RUNDEN KNÖPFE. `.rund-knopf` ist der Kreis — als Knopf selbst (Leiste,
+    Start) oder als Zeichen in `.rund-aktion` (große Karte: Kreis und Wort
+    darunter, beides ein Knopf, das Wort gehört zum Tastziel). Der Kreis ist
+    56 px, in der Leiste 44 px.
+  */
+  .rund-knopf { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface); color: var(--ink-deep); transition: background-color var(--motion-press, 100ms) var(--ease-response, ease), border-color var(--motion-press, 100ms) var(--ease-response, ease); }
+  .rund-knopf:hover, .rund-aktion:hover > .rund-knopf { border-color: var(--brand-fixed); }
+  .rund-knopf:focus-visible, .rund-aktion:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  .rund-knopf:disabled, .rund-aktion:disabled > .rund-knopf { border-color: var(--border); color: var(--text-muted); cursor: not-allowed; }
   .rund-knopf-voll { border-color: var(--petrol); background: var(--petrol); color: var(--auf-petrol); }
-  .rund-knopf-voll:hover { border-color: var(--petrol-tief); background: var(--petrol-tief); }
-  .rund-knopf-voll:disabled { border-color: var(--surface-3); background: var(--surface-3); color: var(--text-muted); }
+  .rund-knopf-voll:hover, .rund-aktion:hover > .rund-knopf-voll { border-color: var(--petrol-tief); background: var(--petrol-tief); }
+  .rund-knopf-voll:disabled, .rund-aktion:disabled > .rund-knopf-voll { border-color: var(--surface-3); background: var(--surface-3); color: var(--text-muted); }
   .rund-knopf-start { width: 4rem; height: 4rem; }
   .rund-knopf-klein { width: 2.75rem; height: 2.75rem; }
 
+  .rund-aktion { display: inline-flex; flex-direction: column; align-items: center; gap: 0.25rem; min-width: 3.5rem; padding: 0; border: 0; border-radius: var(--radius); background: none; color: inherit; cursor: pointer; }
+  .rund-aktion:disabled { cursor: not-allowed; }
+  /* Das Wort nur in der großen Karte; die kompakte Karte am Handy trägt die Symbole allein (style.md). */
+  .rund-aktion-text { display: none; font-size: 0.8125rem; line-height: 1.25rem; color: var(--text); }
+  @media (min-width: 760px) { .rund-aktion-text { display: block; } }
+  .arbeitstag[data-stand='laeuft'] .rund-aktion-text { color: var(--auf-dunkel-leise); }
+
   /*
-    DIE LEISTE. Am Telefon fest über der Reiterleiste (`--navi-hoehe`); das
-    Layout zählt ihre Höhe zu `--reiter-hoehe`, so kleben Aktionsleiste und
-    Warenkorb darüber. Ab dem Tablet klebt sie unten im Inhalt, als Blatt
-    mit Linie rundum.
+    AUF DEM DUNKEL: beide Kreise in einem deckend aufgehellten Ton der Fläche,
+    das Zeichen hell (8,3 : 1) — wie in der Mappe. Terrakotta bleibt dem
+    Punkt; keine zweite große Akzentfläche neben der Uhr.
   */
-  .timer-leiste-telefon { position: fixed; left: 0; right: 0; bottom: var(--navi-hoehe, 0px); z-index: 29; }
+  .arbeitstag[data-stand='laeuft'] .rund-knopf, .arbeitstag[data-stand='laeuft'] .rund-knopf-voll { border-color: var(--auf-dunkel-leise); background: var(--dunkel-flaeche); color: var(--auf-dunkel); }
+  @supports (background: color-mix(in srgb, red, blue)) {
+    .arbeitstag[data-stand='laeuft'] .rund-knopf, .arbeitstag[data-stand='laeuft'] .rund-knopf-voll { border-color: color-mix(in srgb, var(--dunkel-flaeche) 86%, var(--auf-dunkel)); background: color-mix(in srgb, var(--dunkel-flaeche) 86%, var(--auf-dunkel)); }
+    .arbeitstag[data-stand='laeuft'] .rund-aktion:hover > .rund-knopf { border-color: var(--auf-dunkel-leise); background: color-mix(in srgb, var(--dunkel-flaeche) 76%, var(--auf-dunkel)); }
+  }
+  .arbeitstag[data-stand='laeuft'] .rund-aktion:disabled > .rund-knopf { color: var(--auf-dunkel-leise); }
+
+  /*
+    DIE LEISTE. Am Telefon eine Insel über der Reiterleiste — derselbe Radius,
+    dieselbe Kontur und derselbe Schatten wie Kopf und Fuß (V10). Der Halter
+    trägt die Luft zur Reiterleiste und zum Rand als Polster: das Layout
+    misst seine Höhe (`--timer-hoehe`, `--reiter-hoehe`), so kleben
+    Aktionsleiste und Warenkorb darüber. Ohne laufenden Tag ist er leer und
+    nimmt keinen Platz. Ab dem Tablet klebt sie unten im Inhalt, als Blatt
+    an der Kante der Blätter, mit dem leisen Schatten des Schwebenden.
+  */
+  .timer-leiste-telefon { position: fixed; left: 0; right: 0; bottom: var(--navi-hoehe, 0px); z-index: 29; padding: 0 0.5rem 0.5rem; pointer-events: none; }
+  .timer-leiste-telefon:empty { padding: 0; }
+  .timer-leiste-telefon > .timer-leiste { pointer-events: auto; border: 1px solid var(--insel-kontur); border-radius: var(--radius-xl); box-shadow: var(--shadow-insel); }
   .timer-leiste-breit { display: none; }
-  /*
-    48 PX SAMT LINIE (E72): 2 + 44 + 2 px, die Linie in `--border-strong`
-    innen statt eines Rahmens, der 58 px ergab. Deckend, kein Schatten.
-  */
-  .timer-leiste { display: flex; align-items: center; gap: 0.5rem; padding: 0.125rem 0.125rem 0.125rem 1rem; background: var(--surface); box-shadow: inset 0 1px 0 var(--border-strong); }
+  /* 48 px samt Kontur: 2 + 44 + 2 px. Deckend; die Uhr in Plex Mono, tabellarisch. */
+  .timer-leiste { display: flex; align-items: center; gap: 0.5rem; min-height: 3rem; padding: 0.125rem 0.125rem 0.125rem 1rem; background: var(--surface); }
   .timer-leiste-text { flex: 1; display: flex; align-items: center; gap: 0.625rem; min-width: 0; min-height: 2.75rem; color: var(--text); text-decoration: none; }
-  .timer-leiste-text:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-  .timer-leiste-uhr { font-family: var(--schrift-mono); font-size: 1.0625rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; }
+  .timer-leiste-text:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-sm); }
+  .timer-leiste-uhr { font-family: var(--schrift-mono); font-size: 1.0625rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .timer-leiste-was { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; color: var(--text-muted); }
   .timer-platz { height: var(--timer-hoehe, 0px); }
 
@@ -119,11 +175,10 @@
     /*
       AN DER KANTE DER BLÄTTER (E72): Einzug wie das Polster von `.inhalt`,
       Breite der Inhaltsspalte (`--takt-breite`, vom Taktgeber auch an der
-      Fläche gesetzt). Vorher lief sie über Polster und Rest bis an die
-      Seitenleiste und den rechten Rand.
+      Fläche gesetzt).
     */
     .timer-leiste-breit { display: block; position: sticky; bottom: 1rem; z-index: 10; max-width: var(--takt-breite, none); margin: 1.5rem 1.5rem 0; }
-    .timer-leiste-breit .timer-leiste { box-shadow: inset 0 0 0 1px var(--border-strong); }
+    .timer-leiste-breit .timer-leiste { padding-right: 0.25rem; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-insel); }
   }
   @media (min-width: 1200px) {
     .timer-leiste-breit { margin-inline: 2.5rem; }

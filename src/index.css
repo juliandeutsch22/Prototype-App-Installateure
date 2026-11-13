@@ -233,7 +233,9 @@
     --dunkel-flaeche: #302c27;
     --auf-dunkel: #fff8ee;
     --auf-dunkel-leise: #b7aea3;
-    --pause-flaeche: #302c27;
+    /* Pause dunkel heller als „läuft“: sonst unterschieden sich die beiden
+       Zustände der Arbeitstag-Karte nur am Punkt und an einem Knopf. */
+    --pause-flaeche: #3a332c;
     --insel-kontur: #4b443c;
     --inaktiv-symbol: #a0978c;
     --chat-eigen: #43362f;
