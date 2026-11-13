@@ -213,7 +213,8 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false, handZeit 
         Seitenkopf; dort braucht es die Zeile nicht.
       */}
       {aufStart && z.an && (
-        <Link to="/time" state={handZeit} className="arbeitstag-pruefen arbeitstag-hand">
+        // `vonHand`: die Zeiterfassung öffnet das Formular gleich — auch ohne Einsatz, also ohne Baustelle.
+        <Link to="/time" state={{ ...handZeit, vonHand: true }} className="arbeitstag-pruefen arbeitstag-hand">
           Zeit von Hand eintragen
           <Icon name="weiter" size={16} aria-hidden="true" />
         </Link>

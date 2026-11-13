@@ -171,8 +171,8 @@ export default function TimeView() {
   */
   const amHandy = useAmHandy();
   const [blatt, setBlatt] = useState(() => {
-    const s = vonStart as { projectNumber?: string; startTime?: string } | null;
-    return !!(s?.projectNumber || s?.startTime);
+    const s = vonStart as { projectNumber?: string; startTime?: string; vonHand?: boolean } | null;
+    return !!(s?.vonHand || s?.projectNumber || s?.startTime);
   });
   const [toDelete, setToDelete] = useState<WithId<TimeEntry> | null>(null);
   /** Die Krankmeldung, die gerade offen ist — von einem Krank-Tag aus. */

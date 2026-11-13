@@ -1337,6 +1337,18 @@ describe('Zeiterfassung am Handy (C6, E90)', () => {
     expect(await screen.findByRole('dialog', { name: 'Neuer Eintrag' })).toBeInTheDocument();
   });
 
+  it('auch ohne Baustelle: „Zeit von Hand eintragen“ ohne Einsatz öffnet das Blatt', async () => {
+    alsHandy();
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/time', state: { vonHand: true } }]}>
+        <ToastProvider>
+          <TimeView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('dialog', { name: 'Neuer Eintrag' })).toBeInTheDocument();
+  });
+
   it('Gegenprobe: ohne Handy-Breite steht das Formular auf der Seite, ohne „Neuer Eintrag“', async () => {
     zeige();
     expect(await screen.findByTestId('zeitformular')).toBeInTheDocument();
