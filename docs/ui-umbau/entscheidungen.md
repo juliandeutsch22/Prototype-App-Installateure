@@ -3890,3 +3890,39 @@ rot; grün bleibt mit Absicht „ohne Suche bleibt es beim Arbeitsstand
 Offen“, ebenso die bisherigen Prüfungen des Suchfensters („der Monteur
 fragt die Datenbank gar nicht erst“).
 
+
+**E92 — Designlinie V10 „Warmes Papier, klare Arbeit“ (13.11.2026).**
+Auftrag: die ganze Anwendung in der Designlinie V10 überarbeiten — „auf jeder
+Seite, jedem Tab, jeder Akte, jedem Dialog“ —, ohne Funktion, Recht, Ablauf
+oder Datenlogik zu ändern; am Ende Merge und Auslieferung. Grundlage:
+`docs/design/v10/style.md`, `docs/design/v10/implementierungsauftrag.md`,
+`docs/design/v10/designmappe-v10.pptx` (42 Seiten). V10 ersetzt die rein
+visuellen Regeln der Linie „Lot“ (eckig, ohne Schatten, Petrol); fachliche
+Entscheidungen E1–E91 gelten weiter.
+
+- **Grundwerte:** die alten Token-Namen tragen die V10-Werte (Terrakotta
+  `#a85439` statt Petrol, Papier `#f4f0e8`, Blatt `#fffdf8`, App-Fläche
+  `#faf7f1`, warme Tinte), dazu neue Rollen (Auswahl, Auswahlkontur, Fokus,
+  dunkle Fläche, Pause, Insel, Chat, Raster, Insel-Schatten). Der dunkle
+  Satz ist eine eigene warme Tokenwelt. **Gemessen statt übernommen:** vier
+  Zielwerte lagen knapp unter 4,5:1 und sind minimal nachgezogen
+  (Terrakotta als Text `#9b4c33`, Nebentext `#6b645b`, Platzhalter und
+  inaktive Symbole `#776e63`, leiser Text auf Terrakotta `#fff8ee`).
+- **Schriften** lokal: DM Sans, Source Serif 4 (Seitentitel, regulär), IBM
+  Plex Mono; Poppins entfernt.
+- **Darstellung:** Hell (Standard, Baustelle in der Sonne), Dunkel, System
+  (folgt dem Gerät, auch live) unter „Mein Konto → Darstellung und
+  Bewegung“; der Schalter in der Navigation bleibt der schnelle Weg.
+- **Gestalt:** Blätter mit Kontur und 16 px Radius, Kennzahlenleiste als
+  Blatt ohne Skizze und Lineal, Raster mit Registrierungslinie alle vier
+  Zellen; am Handy Kopf- und Fußleiste als helle Inseln mit 24 px Radius
+  und leisem Schatten, aktiver Punkt mit Auswahlfläche; Hauptaktion am
+  Handy kompakt rechts ohne Balken; Seitenfenster schwebend; Meldung
+  dunkel-warm ohne rote Kante; Warn- und Fehlerflächen neutral, keine
+  Statuskanten.
+- **Belege und Exporte bleiben unverändert** (Petrol in PDFs, Prüfsummen
+  `belegReferenz`): Druck folgt seinen Fachregeln, nicht der Oberfläche.
+- **Kein Funktionsverlust:** `scripts/funktionsinventar.mjs` hat vor dem
+  Umbau 1.941 Bedienstellen erfasst; `funktionsinventar.test.ts` verlangt
+  jede danach oder eine begründete Entfernung (`v10-entfernt.json`).
+  Abdeckungsmatrix: `docs/ui-umbau/v10-abdeckung.md`.

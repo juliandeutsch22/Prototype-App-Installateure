@@ -21,24 +21,36 @@ Grenze, keine Annahme über „den“ Betrieb.
 
 ## Oberfläche
 
-- Designlinie **„Lot“** (`docs/design/senklot-designlinie-v2.html`, Leitfaden
-  für Seiten: `docs/ui-umbau/seiten-leitfaden.md`, Entscheidungen:
-  `docs/ui-umbau/entscheidungen.md`). Der Entwurf ist Orientierung, keine
-  1:1-Vorlage. Bausteine stehen in `src/styles/lot.css` und
-  `src/components/LotBausteine.tsx`; alles zum Ansehen auf `/_muster`.
-- Trotz vieler Funktionen nicht überladen oder chaotisch: das Raster ist der
-  Zeichentisch, Listen, Formulare und Tabellen liegen als Blätter darauf
-  (deckend, Linie rundum, jede Kante auf einer Rasterlinie, E33) — keine Karte
-  in einer Karte, keine Schatten oder Rundungen; jede Seite beginnt mit `PageHeader` (eine Hauptaktion, ⋯ nur
-  im Seitenkopf); ganze Zeilen antippbar; fünf Zustände (offen, läuft,
-  erledigt, Achtung, Fehler).
+- Designlinie **V10 „Warmes Papier, klare Arbeit“** (13.11.2026, Entscheidung
+  E92): Regelwerk `docs/design/v10/style.md`, Auftrag
+  `docs/design/v10/implementierungsauftrag.md`, Mappe
+  `docs/design/v10/designmappe-v10.pptx` (Orientierung, keine 1:1-Vorlage;
+  ihre kleinen Schriftgrößen sind keine CSS-Werte). Sie ersetzt die
+  rein visuellen Regeln der Linie „Lot“ (eckig, ohne Schatten, Petrol);
+  fachliche Entscheidungen aus `docs/ui-umbau/entscheidungen.md` gelten
+  weiter. Bausteine: Tokens in `src/index.css`, Stile in `src/styles/`,
+  `src/components/`; alles zum Ansehen auf `/_muster`.
+- Warmes Papier als Grund, helle Arbeitsblätter mit feiner Kontur darauf;
+  Terrakotta (`--brand`) für Primäraktion, aktive Auswahl und wenige
+  Markierungen; keine Karte in einer Karte; jede Seite beginnt mit
+  `PageHeader` (eine Hauptaktion, ⋯ nur im Seitenkopf); ganze Zeilen
+  antippbar; Zustände als Text und sparsames Symbol.
+- **Radien nach Rolle:** Arbeitszeile 8 px, Feld/Knopf 12 px, Blatt 16 px,
+  Sheet und mobile Kopf-/Fußinsel 24 px. **Schatten nur für Schwebendes**
+  (Fenster, Sheets, Menüs, Meldung, mobile Inseln), nie an Zeilen, Feldern
+  oder Blättern.
 - **Eine Hilfe pro Seite:** Erklärungen als `InfoHint` oder `hint` einer
   `Card` — sie erscheinen gesammelt unter „Hilfe zu dieser Seite“. Lange
   Texte nie offen auf die Seite.
-- Keine Pillen, nicht bunt, keine Emojis. Symbole sparsam, außer in der Navigation.
-- Keine halbtransparenten Farbflächen (nur der neutrale Schleier), keine
-  gestrichelten Linien, nur die Tokens der Grundwerte, Text/Titel in 400/500 (600 nur für den Firmennamen, Planlinie E30), Gemessenes in IBM Plex Mono; Zahlen in 500 nach der Freigabe des Gesamtkonzepts 10
-  (15.10.2026, Entscheidung E16). Hell ist Standard, dunkel nur auf Wahl.
+- Keine Pillen, keine Emojis, keine Verläufe, keine Glasflächen. Warnung und
+  Fehler färben keine Flächen und tragen keine farbige Kante — Text und
+  Symbol tragen die Bedeutung. Auswahl = `--auswahl` plus feine Kontur und
+  Häkchen. Keine halbtransparenten Farbflächen außer Schleier und Schatten.
+- Schriften lokal: DM Sans (Bedienung), Source Serif 4 regulär (größere
+  Titel), IBM Plex Mono (Gemessenes). Text/Titel in 400/500 (600 nur für
+  den Firmennamen). Hell ist Standard; „Dunkel“ und „System“ auf Wahl
+  (Mein Konto → Darstellung und Bewegung). Kontraste gemessen
+  (`lotGrundwerte.test.ts`), beide Sätze.
 - Breiten: Handy bis 759 px, Tablet 760–1.199 (`md:`), Schreibtisch ab 1.200 (`lg:`).
 - Markt Österreich. Oberfläche und Code-Kommentare auf Deutsch.
 - **Kommentare erklären das Warum, nicht das Was.**
