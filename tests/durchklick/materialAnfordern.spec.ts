@@ -37,39 +37,43 @@ test('Ein Monteur legt Material in den Korb und sendet es ab', async ({ page }) 
 });
 
 /*
-  „IN DIE LISTE“ IST DER PETROL-KREIS NEBEN DER MENGE (E74, 10.11.2026).
-  Vorher ein Wortknopf, der am Telefon brach („Zur Anforderun / g“, 04.11.)
-  und beim ersten Tipp wanderte. Jetzt: auf jeder Breite rund (48 × 48 px),
-  in einer Reihe mit − Menge +, in der Zeile, und er bleibt beim mehrmaligen
-  Tippen liegen — der zweite Tipp trifft wieder den Kreis, nicht das Plus.
+  EIN TIPP LEGT IN DIE LISTE (C1, E89, 13.11.2026). Vorher Minus, Menge, Plus
+  und daneben der Kreis — zwei Bedienungen für eine Absicht, und was schon in
+  der Liste lag, stand in einer zweiten Zeile. Jetzt steht nur der
+  Petrol-Kreis (48 × 48 px, rund, in der Zeile); ein Tipp legt eines hinein,
+  und AN DERSELBEN STELLE steht danach die Menge mit Minus und Plus: rechte
+  Kante und Mitte wie der Kreis, die Zeile bleibt so hoch wie vorher.
 */
-test('Der Katalogknopf ist ein runder Kreis neben der Menge und bleibt an seinem Platz, auf jeder Breite', async ({ page }) => {
+test('Ein Tipp auf den Kreis legt eines hinein, danach steht die Menge an derselben Stelle, auf jeder Breite', async ({ page }) => {
   await anmelden(page, MONTEUR.email);
   await menue(page, 'Material anfordern', 'Material');
-  const knopf = page.getByRole('button', { name: new RegExp(`${ARTIKEL.name} in die Liste$`) });
-  const lage = () =>
-    knopf.evaluate((el) => {
-      const zeile = el.closest('li')!.getBoundingClientRect();
+  const zeile = page.getByRole('listitem').filter({ has: page.getByRole('button', { name: `${ARTIKEL.name} in die Liste` }) });
+  const kreis = page.getByRole('button', { name: `${ARTIKEL.name} in die Liste`, exact: true });
+  const mehr = page.getByRole('button', { name: `${ARTIKEL.name} in die Liste (eines mehr)` });
+  const feld = page.getByRole('textbox', { name: `Menge ${ARTIKEL.einheit} für ${ARTIKEL.name} in der Liste` });
+  const lage = (wer: 'kreis' | 'gruppe') =>
+    page.evaluate(([w, name]) => {
+      const knopf = [...document.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === `${name} in die Liste`);
+      const feld = [...document.querySelectorAll('input')].find((i) => i.getAttribute('aria-label')?.endsWith(`für ${name} in der Liste`));
+      const el = (w === 'kreis' ? knopf : feld?.closest('.mengen-wahl')) as HTMLElement;
+      const z = el.closest('li')!.getBoundingClientRect();
       const r = el.getBoundingClientRect();
-      const gruppe = el.parentElement!.querySelector('.mengen-wahl')!.getBoundingClientRect();
       return {
-        x: r.left - zeile.left, y: r.top - zeile.top, breite: r.width, hoehe: r.height,
-        rund: getComputedStyle(el).borderTopLeftRadius,
-        mitteGruppe: gruppe.top + gruppe.height / 2 - (r.top + r.height / 2),
-        abstand: r.left - gruppe.right,
-        drin: r.left >= zeile.left - 0.5 && r.right <= zeile.right + 0.5,
+        rechts: z.right - r.right, mitte: r.top + r.height / 2 - z.top, zeile: z.height,
+        breite: r.width, hoehe: r.height, rund: getComputedStyle(el).borderTopLeftRadius,
+        drin: r.left >= z.left - 0.5 && r.right <= z.right + 0.5,
       };
-    });
+    }, [wer, ARTIKEL.name] as const);
 
   // Gemessen wird erst, wenn die Lage über zwei Bilder gleich bleibt: Nach
   // einem Breitenwechsel rastet das Blatt ein Bild später auf die Rasterlinien
   // ein (`taktHalten`) — in der CI lag „vorher“ sonst noch eine Zelle daneben.
-  const ruhig = async () => {
+  const ruhig = async (wer: 'kreis' | 'gruppe') => {
     let zuletzt = '';
     await expect
       .poll(async () => {
         await page.evaluate(() => new Promise((fertig) => requestAnimationFrame(() => requestAnimationFrame(fertig))));
-        const jetzt = JSON.stringify(await lage());
+        const jetzt = JSON.stringify(await lage(wer));
         const gleich = jetzt === zuletzt;
         zuletzt = jetzt;
         return gleich;
@@ -78,28 +82,33 @@ test('Der Katalogknopf ist ein runder Kreis neben der Menge und bleibt an seinem
     return JSON.parse(zuletzt) as Awaited<ReturnType<typeof lage>>;
   };
 
-  for (const breite of [320, 360, 375, 393, 430, 834, 1280]) {
+  for (const breite of [320, 360, 375, 390, 393, 430, 834, 1280]) {
     await page.setViewportSize({ width: breite, height: 900 });
-    await expect(knopf).toHaveText('');
-    const vor = await ruhig();
+    await expect(kreis).toHaveText('');
+    const vor = await ruhig('kreis');
     expect(vor.breite, `${breite} px: 48 px breit`).toBe(48);
     expect(vor.hoehe, `${breite} px: 48 px hoch`).toBe(48);
     expect(vor.rund, `${breite} px: ein Kreis`).toBe('999px');
-    expect(Math.abs(vor.mitteGruppe), `${breite} px: auf der Mitte der Menge`).toBeLessThanOrEqual(1);
-    expect(vor.abstand, `${breite} px: mit Abstand neben der Menge`).toBeGreaterThanOrEqual(8);
-    expect(vor.drin, `${breite} px: Knopf in der Zeile`).toBe(true);
+    expect(vor.drin, `${breite} px: Kreis in der Zeile`).toBe(true);
 
-    await knopf.click();
-    await knopf.click();
-    await knopf.click();
-    await expect(page.getByText(`3 ${ARTIKEL.einheit} in der Liste`)).toBeVisible();
-    const nach = await ruhig();
-    // Wo der erste Tipp lag, liegt der Kreis auch danach.
-    expect(Math.abs(nach.x - vor.x), `${breite} px: waagrecht`).toBeLessThanOrEqual(1);
-    expect(Math.abs(nach.y - vor.y), `${breite} px: senkrecht`).toBeLessThanOrEqual(1);
+    await kreis.click();
+    await expect(feld).toHaveValue('1');
+    await mehr.click();
+    await mehr.click();
+    await expect(feld).toHaveValue('3');
+    const nach = await ruhig('gruppe');
+    expect(nach.drin, `${breite} px: Menge in der Zeile`).toBe(true);
+    // Wo der Kreis lag, steht die Menge: dieselbe rechte Kante, dieselbe Mitte, die Zeile nicht höher.
+    expect(Math.abs(nach.rechts - vor.rechts), `${breite} px: rechte Kante`).toBeLessThanOrEqual(1);
+    if (breite >= 390) {
+      expect(Math.abs(nach.mitte - vor.mitte), `${breite} px: Mitte`).toBeLessThanOrEqual(1);
+      expect(nach.zeile, `${breite} px: einzeilig`).toBeLessThanOrEqual(vor.zeile + 0.5);
+    }
+    await expect(zeile.getByText(/ in der Liste$/)).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Liste leeren' }).click();
-    await expect(page.getByText(/ in der Liste$/)).toHaveCount(0);
+    await expect(kreis).toBeVisible();
+    await expect(feld).toHaveCount(0);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await keineFehlermeldung(page);
@@ -116,7 +125,7 @@ test('Der Katalogknopf ist ein runder Kreis neben der Menge und bleibt an seinem
 test('Die Warenkorb-Leiste liegt als Blatt auf dem Raster, am Handy als Balken', async ({ page }) => {
   await anmelden(page, MONTEUR.email);
   await menue(page, 'Material anfordern', 'Material');
-  await page.getByRole('button', { name: new RegExp(`${ARTIKEL.name} in die Liste$`) }).click();
+  await page.getByRole('button', { name: `${ARTIKEL.name} in die Liste`, exact: true }).click();
   const leiste = page.getByRole('region', { name: 'Warenkorb' });
   await expect(leiste).toBeVisible();
   await expect(leiste.locator('.korb-info')).toHaveClass(/stand-offen/);

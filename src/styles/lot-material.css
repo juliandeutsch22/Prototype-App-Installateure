@@ -24,6 +24,13 @@
   .mengen-wahl:focus-within { border-color: var(--brand-fixed); }
   .mengen-wahl-fehler { border-color: var(--danger); }
   .mengen-wahl-fehler .mengen-feld { color: var(--danger); }
+  /*
+    EINZEILIG AB 390 PX (C1, E89): am Handy die Schritte auf die kleinste
+    Tippfläche (44 px) und das Feld auf drei Stellen — so passt die Menge ab
+    390 px neben den Namen. Schmaler steht sie rechtsbündig darunter: Name
+    (9 rem) und drei Tippflächen haben dort nicht nebeneinander Platz.
+  */
+  @media (max-width: 759px) { .mengen-schritt { width: 2.75rem; } .mengen-feld { width: 3rem; } }
   /* ── Bereichswahl mit Zählern ─────────────────────────────────────────── */
   /*
     Vier Segmente mit Zahl („Laufend 12“) brachen am Handy in zwei Zeilen um.

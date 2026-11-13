@@ -356,13 +356,10 @@ export default function RuestlistePlanen({
                     title={m.name}
                     subtitle={[m.category, `Lager: ${fmtMenge(m.stock ?? 0)}`, gefundenUeberText(m)].filter(Boolean).join(' · ')}
                   >
-                    <Button
-                      variant="secondary"
-                      aria-label={`${m.name} auf die Rüstliste`}
-                      onClick={() => hinzufuegen(m)}
-                    >
-                      Wählen
-                    </Button>
+                    {/* Derselbe Petrol-Kreis wie im Katalog (C1, E89): ein Tipp legt eines hinein, die Menge steht danach in der Zeile oben. */}
+                    <IconButton rund label={`${m.name} auf die Rüstliste`} onClick={() => hinzufuegen(m)}>
+                      <Icon name="in-liste" size={20} />
+                    </IconButton>
                   </ListRow>
                 ))}
               </List>

@@ -1290,6 +1290,8 @@ export interface MaterialOrder {
    * Woher das Material kommt: `lager` aus dem Regal, `einkauf` über die
    * Einkaufsliste beim Grosshändler. Fehlt, solange niemand nachgesehen hat.
    */
+  /** Woher die abgeholte Ware kam (C7, E89): aus dem Lager abgebucht oder beim Händler mitgenommen. */
+  abgeholtHerkunft?: 'lager' | 'haendler' | null;
   beschaffung?: 'lager' | 'einkauf' | null;
   /** Bei welchem Grosshändler eingekauft wird. */
   supplierId?: string | null;

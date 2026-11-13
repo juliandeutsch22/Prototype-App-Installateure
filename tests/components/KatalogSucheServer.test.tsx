@@ -85,7 +85,11 @@ describe('Rüstliste am Einsatz', () => {
       <RuestlistePlanen companyId="perl" materials={[]} positionen={positionen} onChange={(p) => { positionen = p; }} />,
     );
     await userEvent.type(screen.getByLabelText('Artikel aus dem Lager'), 'Pressfitting');
-    await userEvent.click(await screen.findByRole('button', { name: 'Pressfitting 22 verzinkt auf die Rüstliste' }));
+    const knopf = await screen.findByRole('button', { name: 'Pressfitting 22 verzinkt auf die Rüstliste' });
+    // Derselbe Petrol-Kreis wie im Katalog (C1, E89) statt „Wählen“.
+    expect(knopf).toHaveClass('symbol-rund');
+    expect(knopf).toHaveTextContent(/^$/);
+    await userEvent.click(knopf);
     expect(positionen).toEqual([expect.objectContaining({ materialId: 'fern', name: 'Pressfitting 22 verzinkt' })]);
     rerender(<RuestlistePlanen companyId="perl" materials={[]} positionen={positionen} onChange={(p) => { positionen = p; }} />);
     expect(await screen.findByText(/Lager:/)).toHaveTextContent('Lager: 12');

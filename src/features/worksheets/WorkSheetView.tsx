@@ -1453,6 +1453,9 @@ export default function WorkSheetView() {
                   zeilen={material}
                   onChange={setMaterial}
                   onOffen={setOffenesMaterial}
+                  uid={user?.uid}
+                  projectNumber={projectNumber}
+                  datum={datum}
                 />
               </Card>
             </div>

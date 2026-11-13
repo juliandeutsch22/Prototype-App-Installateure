@@ -3688,3 +3688,66 @@ Handy). Gegenproben: mit dem Stand
 vor E88 sind 15 der neuen bzw. umgestellten Modul- und Komponentenprüfungen
 und alle 4 Browserwege rot; die Prüfungen auf Gleichbleibendes (Einblick,
 ohne Führungsrolle, nichts einzuplanen) bleiben grün.
+
+**E89 — Material: ein Tipp, zuletzt angefordert, Abgeholtes am Schein, Stand zuerst (13.11.2026).**
+Paket 8 des Plans aus der Gesamtanalyse (C1, C2, C5, C7). Zu C7 hielt E82
+fest, was „Abgeholt“ bei „Offen“ bucht, und verwies Rückfrage und Herkunft
+hierher; „Abgeholt“ bleibt bei „Offen“ möglich, wie bisher.
+- **C1 — ein Tipp legt in die Liste.** Vorher je Artikel Minus, Menge, Plus
+  und daneben der Kreis „In die Liste“, darunter in zweiter Zeile, was schon
+  in der Liste lag. Jetzt steht nur der Petrol-Kreis (Zeichen „in-liste“,
+  E74); ein Tipp legt eines hinein, und an derselben Stelle steht danach die
+  Menge mit Minus und Plus — sie IST die Menge in der Liste. Minus bei eins
+  nimmt den Artikel heraus; dreißig Meter tippt man ins Feld. Eine
+  unbrauchbare Menge färbt den Rahmen und ändert die Liste nicht. Nur wenn
+  derselbe Artikel auch für eine andere Baustelle in der Liste liegt, steht
+  „insgesamt …“ darunter. Am Handy sind die Schritte 44 px breit und das Feld
+  48 px, damit die Zeile ab 390 px einzeilig bleibt. Dasselbe Zeichen an der
+  Rüstliste und am Schein statt „Wählen“; am Schein legt ein zweiter Tipp auf
+  denselben Artikel eines dazu statt einer zweiten Zeile.
+- **C5 — zuletzt angefordert** über dem Katalog: die eigenen letzten
+  Katalogartikel (höchstens fünf), mit gewählter Baustelle die dieser
+  Baustelle, sonst der letzten vier Wochen; mit der zuletzt angeforderten
+  Menge und demselben Kreis. Beim Suchen ausgeblendet.
+- **C2 — für diese Baustelle abgeholt** am Schein, über der Suche: die
+  eigenen erledigten Anforderungen der Baustelle aus den vierzehn Tagen bis
+  zum Scheintag, je Artikel zusammengezählt, mit Datum und „beim Händler
+  mitgenommen“. Die Vorausfüllung bleibt abgeschafft: ein Tipp übernimmt die
+  Zeile mit der abgeholten Menge, sonst kommt nichts auf den Schein. Was schon
+  auf dem Schein steht, steht nicht als Vorschlag da.
+- **C7 — Stand zuerst.** Die Zeile unter „Meine Anforderungen“ trägt Stand
+  und „Abgeholt“; „Als eilig markieren“ und alle Angaben stehen im
+  Seitenfenster der Zeile (dieselbe Bedingung wie in der Datenbank). Solange
+  nichts bereitgestellt oder bestellt ist, fragt „Abgeholt“, ob die Ware aus
+  dem Lager kam oder beim Händler mitgenommen wurde
+  (`anforderung_abschliessen(…, p_herkunft)`, Spalte `abgeholt_herkunft`).
+  Vom Händler bucht nichts im Lager ab; die Anforderung ist erledigt und
+  steht in „Erledigt“ mit „beim Händler mitgenommen“.
+
+**Grenzen mit Grund:**
+- Unter 390 px steht die Menge rechtsbündig unter dem Namen (fachlich):
+  drei Tippflächen von 44 px und der Name (9 rem) passen dort nicht
+  nebeneinander; kleinere Tippflächen wären mit Handschuhen nicht zu treffen.
+- Zuletzt angefordert nur aus den letzten hundert eigenen Anforderungen und
+  nur Katalogartikel (fachlich): mehr lädt die Seite ohnehin nicht, und eine
+  frei getippte Anforderung hat keinen Artikel, den die Liste wiederfände.
+- Am Schein nur das selbst Abgeholte der letzten vierzehn Tage (Datenschutz
+  und fachlich): fremde Anforderungen liest ein Monteur nicht; was länger
+  zurückliegt, stand meist auf einem früheren Schein.
+- „Vom Händler“ nicht, wenn die Ware abholbereit liegt oder beim Großhändler
+  bestellt ist (fachlich): dann kam sie nachweislich über den Betrieb.
+
+**Abgelöst:** die zehn Prüfungen des alten Mengenfelds in
+`OrderView.test.tsx` sind auf „erst Kreis, dann Menge in der Liste“
+umgestellt; der Browserweg „Kreis neben der Menge“ misst jetzt „die Menge an
+der Stelle des Kreises“.
+
+**Nachweis:** Datenbank `abgeholtHerkunft.test.ts` (7), Module
+`materialVorschlaege.test.ts` (6), Komponenten `OrderView.test.tsx` (+7,
+zehn umgestellt), `AbgeholtAmSchein.test.tsx` (6), `KatalogSucheServer.test.tsx`
+(Kreis an der Rüstliste), Browser `materialAnfordern.spec.ts` (umgestellt)
+und `materialPaket8.spec.ts` (2: Anfordern bis „beim Händler mitgenommen“
+samt Bestand, Vorschlag am Schein). Gegenproben: mit dem Stand vor C1 sind
+9 der 10 umgestellten Prüfungen rot, mit dem Stand vor C2/C5 alle 8 neuen
+Komponentenprüfungen; die Prüfung „ohne Baustelle keine Vorschläge“ bleibt
+grün.

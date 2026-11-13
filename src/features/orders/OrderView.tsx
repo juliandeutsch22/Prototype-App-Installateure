@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import Adressfilter from '@/components/Adressfilter';
-import { katalogSeite, katalogBeobachten, LOW_STOCK_THRESHOLD, lagerFrei, type LagerStand } from '@/lib/db/materials';
+import { katalogSeite, katalogBeobachten, katalogNachIds, LOW_STOCK_THRESHOLD, lagerFrei, type LagerStand } from '@/lib/db/materials';
 import { gefundenUeberText, type MitNummer } from '@/lib/katalogTreffer';
 import { Bereit, Wert } from '@/components/Wert';
 import { imLager, istKnapp } from './lagerartikel';
@@ -12,7 +12,6 @@ import {
   updateOrderStatus,
   anforderungEiligSetzen,
 } from '@/lib/db/materialOrders';
-import { eiligMoeglich } from './eilig';
 import { listActiveProjects } from '@/lib/db/projects';
 import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder, Project } from '@/types';
@@ -37,7 +36,9 @@ import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAusMs } from '@/lib/datum';
-import { abschlussText } from './abschlussText';
+import { abschlussText, herkunftFragen } from './abschlussText';
+import AnforderungFenster from './AnforderungFenster';
+import { zuletztAngefordert, ZULETZT_TAGE } from './zuletztAngefordert';
 import RetoureFenster from './RetoureFenster';
 import MeinFahrzeug from './MeinFahrzeug';
 import { zahlAlsText, zahlOder } from '@/lib/zahl';
@@ -176,6 +177,10 @@ export default function OrderView() {
   const [freiName, setFreiName] = useState('');
   const [freiMenge, setFreiMenge] = useState('1');
   const [toPickUp, setToPickUp] = useState<WithId<MaterialOrder> | null>(null);
+  /** Beim Abholen, solange nichts bereitgestellt ist (C7, E89): aus dem Lager oder vom Händler. */
+  const [herkunft, setHerkunft] = useState<'lager' | 'haendler'>('lager');
+  /** Die Anforderung im Seitenfenster (C7, E89). */
+  const [fenster, setFenster] = useState<WithId<MaterialOrder> | null>(null);
   /** Nachträglich eilig (17 F) — mit Rückfrage, weil andere davon eine Meldung bekommen. */
   const [eilFrage, setEilFrage] = useState<WithId<MaterialOrder> | null>(null);
   /** Neu holen, wenn „Abgeholt“ einen veralteten Stand traf (Runde 7, R7-M3). */
@@ -278,6 +283,40 @@ export default function OrderView() {
   }, [projects, projectNumber]);
 
 
+  /*
+    ZULETZT ANGEFORDERT (C5, E89): die eigenen letzten Artikel dieser
+    Baustelle, sonst der letzten vier Wochen. Die Artikel kommen aus dem
+    Katalog — was nicht auf der geladenen Seite steht, wird nachgeholt.
+  */
+  const zuletzt = useMemo(() => zuletztAngefordert(myOrders, projectNumber, Date.now()), [myOrders, projectNumber]);
+  const [zuletztDazu, setZuletztDazu] = useState<Map<string, WithId<Material> | null>>(new Map());
+  const zuletztFehlen = zuletzt.artikel
+    .map((a) => a.materialId)
+    .filter((id) => !zuletztDazu.has(id) && !materials.some((m) => m.id === id))
+    .sort()
+    .join('|');
+  useEffect(() => {
+    if (!user || !zuletztFehlen) return;
+    let weg = false;
+    katalogNachIds(user.companyId, zuletztFehlen.split('|'))
+      .then((artikel) => {
+        if (weg) return;
+        // Auch was nicht (mehr) da ist, gilt als gefragt — sonst fragte jeder Durchlauf neu.
+        setZuletztDazu((alt) => {
+          const neu = new Map(alt);
+          for (const id of zuletztFehlen.split('|')) if (!neu.has(id)) neu.set(id, null);
+          for (const m of artikel) neu.set(m.id, m);
+          return neu;
+        });
+      })
+      .catch(() => undefined);
+    return () => { weg = true; };
+  }, [user, zuletztFehlen]);
+  const zuletztZeilen = zuletzt.artikel
+    .map((a) => ({ ...a, m: materials.find((m) => m.id === a.materialId) ?? zuletztDazu.get(a.materialId) ?? undefined }))
+    // Ausgelaufenes nur, solange noch etwas im Lager liegt — wie im Katalog darunter.
+    .filter((a): a is typeof a & { m: WithId<Material> } => !!a.m && (!a.m.ausgelaufen || (a.m.stock ?? 0) > 0));
+
   const activeOrders = useMemo(
     () => myOrders.filter((o) => o.status !== 'Erledigt' && o.transactionType !== 'return'
       && (!nurAbholbereit || o.status === 'Abholbereit')),
@@ -307,19 +346,23 @@ export default function OrderView() {
     setFreiMenge('1');
   }
 
-  function addToCart(m: WithId<Material>, qty: number) {
-    if (qty <= 0) return;
+  /** Die Zeile der Liste für diesen Artikel, die gewählte Baustelle und den Eil-Haken. */
+  function passtZurZeile(l: CartLine, materialId: string) {
+    return l.materialId === materialId && l.projectNumber === projectNumber && !!l.isUrgent === (urgent && !!projectNumber);
+  }
+
+  /**
+   * Die Menge eines Artikels in der Liste setzen (C1, E89): 0 nimmt ihn
+   * heraus. Gleiches Material auf derselben Baustelle bleibt eine Zeile —
+   * sonst stünden drei Zeilen „×1“ in der Anforderung.
+   */
+  function mengeImKorb(m: WithId<Material>, menge: number) {
     setCart((prev) => {
-      // Gleiches Material auf derselben Baustelle wird zusammengefasst.
-      const i = prev.findIndex(
-        (l) =>
-          l.materialId === m.id &&
-          l.projectNumber === projectNumber &&
-          !!l.isUrgent === (urgent && !!projectNumber),
-      );
+      const i = prev.findIndex((l) => passtZurZeile(l, m.id));
+      if (menge <= 0) return i >= 0 ? prev.filter((_, x) => x !== i) : prev;
       if (i >= 0) {
         const copy = [...prev];
-        copy[i] = { ...copy[i], quantity: copy[i].quantity + qty };
+        copy[i] = { ...copy[i], quantity: menge };
         return copy;
       }
       return [
@@ -327,7 +370,7 @@ export default function OrderView() {
         {
           materialId: m.id,
           materialName: m.name,
-          quantity: qty,
+          quantity: menge,
           projectNumber,
           // Ohne Baustelle gibt es keine zustaendige Projektleitung, also
           // auch keine Eilzustellung — der Haken wird dann nicht uebernommen.
@@ -391,6 +434,12 @@ export default function OrderView() {
     }
   }
 
+
+  /** „Abgeholt“ — die Rückfrage beginnt immer bei „Aus dem Lager“, wie bisher gebucht wurde. */
+  function abholen(o: WithId<MaterialOrder>) {
+    setHerkunft('lager');
+    setToPickUp(o);
+  }
 
   if (!user) return null;
 
@@ -498,6 +547,30 @@ export default function OrderView() {
         im Katalog der Verwaltung. Vorher ein beschriftetes Feld „Suche“ ohne
         Lupe über die ganze Breite, das aussah wie ein Formularfeld.
       */}
+      {/* Nur ohne Suche: wer tippt, sucht etwas Bestimmtes, und die Zeilen schöben die Treffer nach unten. */}
+      {meineGeladen && search.trim() === '' && zuletztZeilen.length > 0 && (
+        <Card title="Zuletzt angefordert" buendig>
+          <p className="blatt-einzug pb-2 text-sm text-ink-muted">
+            {zuletzt.fuerBaustelle ? 'Für diese Baustelle' : `In den letzten ${ZULETZT_TAGE / 7} Wochen`}
+          </p>
+          <List>
+            {zuletztZeilen.map(({ m, menge, am }) => {
+              const inListe = cart.reduce((s, l) => (l.materialId === m.id ? s + l.quantity : s), 0);
+              const imKorb = cart.find((l) => passtZurZeile(l, m.id))?.quantity ?? 0;
+              return (
+                <ListRow
+                  key={m.id}
+                  title={m.name}
+                  subtitle={[`zuletzt ${fmtMenge(menge)} ${m.unit ?? 'Stk'}`, datumAusMs(am)].filter(Boolean).join(' · ')}
+                >
+                  <KorbMenge material={m} imKorb={imKorb} insgesamt={inListe} onMenge={mengeImKorb} />
+                </ListRow>
+              );
+            })}
+          </List>
+        </Card>
+      )}
+
       <Card title="Katalog" buendig>
         <Listenleiste
           suche={{
@@ -536,6 +609,7 @@ export default function OrderView() {
                 const lager = imLager(m);
                 const low = lager && istKnapp(verfuegbar, m, LOW_STOCK_THRESHOLD);
                 const inListe = cart.reduce((s, l) => (l.materialId === m.id ? s + l.quantity : s), 0);
+                const imKorb = cart.find((l) => passtZurZeile(l, m.id))?.quantity ?? 0;
                 return (
                   <ListRow
                     key={m.id}
@@ -567,7 +641,7 @@ export default function OrderView() {
                       </>
                     }
                   >
-                    <QtyAdder material={m} inListe={inListe} onAdd={addToCart} />
+                    <KorbMenge material={m} imKorb={imKorb} insgesamt={inListe} onMenge={mengeImKorb} />
                   </ListRow>
                 );
               })}
@@ -770,49 +844,22 @@ export default function OrderView() {
                       {o.materialName} <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
                     </span>
                   }
-                  subtitle={[
-                    o.projectNumber,
-                    o.note,
-                    /*
-                      WARUM ES DAUERT. Liegt es nicht im Lager, wird es beim
-                      Grosshändler bestellt — das sagt dem Monteur, dass er
-                      nicht vergeblich ins Lager fährt.
-                    */
-                    o.beschaffung === 'einkauf' && !o.geliefertAm
-                      ? o.bestelltAm
-                        ? 'beim Großhändler bestellt'
-                        : 'nicht im Lager — wird bestellt'
-                      : '',
-                  ].filter(Boolean).join(' · ')}
+                  subtitle={[o.projectNumber, o.note, wasLaeuft(o)].filter(Boolean).join(' · ')}
+                  // STAND ZUERST (C7, E89): die ganze Zeile öffnet die Anforderung — dort steht „Eilig“.
+                  onOeffnen={() => setFenster(o)}
                 >
                   {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
-                  {!o.isUrgent && eiligMoeglich(o) && (
-                    <Button variant="ghost" groesse="klein" onClick={() => setEilFrage(o)}>
-                      Eilig
-                    </Button>
-                  )}
                   <StatusBadge status={o.status} />
                   {/*
-                    ABGEHOLT GEHT IMMER, nicht erst ab „Abholbereit".
-
-                    Der Status ist eine Absichtserklärung der Verwaltung, kein
-                    Tatsachenbericht. Wer sich das Material selbst aus dem
-                    Lager nimmt oder es beim Händler mitnimmt, ist fertig —
-                    unabhängig davon, ob jemand im Büro dazu gekommen ist,
-                    den Status weiterzuschalten. Vorher blieb so eine
-                    Anforderung ewig offen, und der Lagerabzug unterblieb.
-
-                    Der Abschluss zieht das Material vom Lager ab; deshalb
-                    geht er weiterhin durch die Rückfrage.
+                    ABGEHOLT GEHT IMMER, nicht erst ab „Abholbereit". Der Status
+                    ist eine Absichtserklärung der Verwaltung, kein
+                    Tatsachenbericht: wer sich das Material selbst nimmt oder
+                    beim Händler mitnimmt, ist fertig. Solange nichts
+                    bereitgestellt ist, fragt die Rückfrage, woher es kam (E89).
+                    Ein Zweitknopf, kein gefüllter (E72, R2); volle Größe für
+                    Handschuhe.
                   */}
-                  {/*
-                    EIN ZWEITKNOPF, KEIN GEFÜLLTER (E72, 09.11.2026, Regel R2):
-                    gefüllt ist je Seite nur die Hauptaktion. In jeder Zeile
-                    gefüllt rief „Abgeholt“ lauter als „In die Liste“ und sah
-                    anders aus als der nächste Schritt in den Anforderungen.
-                    Die volle Größe bleibt — Handschuhe.
-                  */}
-                  <Button variant="secondary" onClick={() => setToPickUp(o)}>
+                  <Button variant="secondary" onClick={() => abholen(o)}>
                     Abgeholt
                   </Button>
                 </ListRow>
@@ -843,6 +890,8 @@ export default function OrderView() {
                     // Wann es erledigt wurde — die letzte Änderung ist der Abschluss.
                     o.updatedAt ? datumAusMs(o.updatedAt) : '',
                     o.note,
+                    // Warum der Lagerbestand gleich blieb (C7, E89).
+                    o.abgeholtHerkunft === 'haendler' ? 'beim Händler mitgenommen' : '',
                   ].filter(Boolean).join(' · ')}
                 >
                   {o.transactionType === 'return' ? (
@@ -882,14 +931,17 @@ export default function OrderView() {
         confirmTone="primary"
         message={
           toPickUp
-            ? abschlussText(toPickUp)
+            ? abschlussText(toPickUp, herkunftFragen(toPickUp) ? herkunft : undefined)
             : ''
         }
         onCancel={() => setToPickUp(null)}
         onConfirm={async () => {
           if (toPickUp) {
             try {
-              const r = await updateOrderStatus(toPickUp.id, 'Erledigt', { von: toPickUp.status });
+              const r = await updateOrderStatus(toPickUp.id, 'Erledigt', {
+                von: toPickUp.status,
+                ...(herkunftFragen(toPickUp) ? { herkunft } : {}),
+              });
               if (r.art === 'geaendert') {
                 toast.success('Abholung bestätigt');
               } else {
@@ -903,7 +955,44 @@ export default function OrderView() {
           }
           setToPickUp(null);
         }}
-      />
+      >
+        {/*
+          WOHER DIE WARE KAM (C7, E89) — nur, solange das Büro nichts
+          bereitgestellt und nichts bestellt hat. „Aus dem Lager“ bucht wie
+          bisher ab; „Beim Händler mitgenommen“ lässt den Bestand stehen —
+          das Regal hat die Ware nie gesehen.
+        */}
+        {toPickUp && herkunftFragen(toPickUp) && (
+          <fieldset className="mt-3">
+            <legend className="section-label mb-1">Woher kommt das Material?</legend>
+            <div className="flex flex-col gap-1">
+              {([['lager', 'Aus dem Lager genommen'], ['haendler', 'Beim Händler mitgenommen']] as const).map(([wert, text]) => (
+                <label key={wert} className="flex min-h-touch items-center gap-3 py-1">
+                  <input
+                    type="radio"
+                    name="abgeholt-herkunft"
+                    className="h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                    checked={herkunft === wert}
+                    onChange={() => setHerkunft(wert)}
+                  />
+                  <span>{text}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+      </ConfirmDialog>
+
+      {fenster && (
+        <AnforderungFenster
+          key={fenster.id}
+          o={fenster}
+          wasLaeuft={wasLaeuft(fenster)}
+          onEilig={() => { setEilFrage(fenster); setFenster(null); }}
+          onAbgeholt={() => { abholen(fenster); setFenster(null); }}
+          onClose={() => setFenster(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={!!eilFrage}
@@ -935,114 +1024,113 @@ export default function OrderView() {
   );
 }
 
-/** Mengenfeld mit Hinzufügen-Knopf; hält seine Menge lokal. */
 /**
- * Anfordern mit einem Griff.
+ * EIN TIPP LEGT IN DIE LISTE (C1, E89, 13.11.2026).
  *
- * Vorher: Menge ins Zahlenfeld tippen, dann „Hinzufügen" — zwei Bedienungen
- * je Artikel, auf dem Telefon mit Arbeitshandschuhen. Der Regelfall ist ein
- * Stück, deshalb fügt „+" sofort eines hinzu; die Zahl daneben zählt hoch und
- * lässt sich für größere Mengen weiter antippen.
+ * Vorher standen je Artikel Minus, Menge, Plus und daneben der Kreis „In die
+ * Liste“ — zwei Bedienungen für eine Absicht, und was schon in der Liste lag,
+ * stand in einer zweiten Zeile darunter. Jetzt:
+ *
+ * - Liegt der Artikel (für diese Baustelle) noch nicht in der Liste, steht da
+ *   nur der Petrol-Kreis „In die Liste“: ein Tipp legt eines hinein — der
+ *   Regelfall auf der Baustelle.
+ * - Danach steht AN DERSELBEN STELLE die Menge mit Minus und Plus; sie ist
+ *   die Menge in der Liste, nicht ein Vorschlag daneben. Plus legt eines
+ *   dazu, Minus nimmt eines weg, bei eins nimmt es den Artikel heraus. Für
+ *   dreißig Meter Rohr tippt man die Zahl ins Feld.
+ *
+ * Die Zeile bleibt einzeilig. Nur wenn derselbe Artikel auch für eine andere
+ * Baustelle in der Liste liegt, steht die Summe klein darunter.
  */
-function QtyAdder({
+function KorbMenge({
   material,
-  inListe,
-  onAdd,
+  imKorb,
+  insgesamt,
+  onMenge,
 }: {
   material: WithId<Material>;
-  /** Wie viel davon schon in der Liste liegt — aus der Liste selbst gezählt. */
-  inListe: number;
-  onAdd: (m: WithId<Material>, qty: number) => void;
+  /** Menge in der Zeile für die gewählte Baustelle (und Eil-Haken). */
+  imKorb: number;
+  /** Was insgesamt davon in der Liste liegt — auch für andere Baustellen. */
+  insgesamt: number;
+  onMenge: (m: WithId<Material>, menge: number) => void;
 }) {
-  const [menge, setMenge] = useState('1');
-
-  // Zentral gelesen (M15), und je Einheit (M27): Meter und Kilo mit Komma,
-  // Stück ganz — „1,5 Stk“ ist ungültig, nicht still 1.
-  const zahl = zahlOder(menge, NaN);
-  const mitKomma = mengeMitKomma(material.unit);
+  const einheit = material.unit ?? 'Stk';
+  const [text, setText] = useState(zahlAlsText(imKorb));
+  // Ändert sich die Liste von außen (Plus, Minus, „Liste leeren“), zeigt das Feld es.
+  useEffect(() => setText(zahlAlsText(imKorb)), [imKorb]);
+  const zahl = zahlOder(text, NaN);
   const gueltig = mengeFehler(zahl, material.unit) === null;
 
-  function anfordern() {
-    if (!gueltig) return;
-    onAdd(material, zahl);
-    // Nach dem Anfordern zurück auf eins: die nächste Position ist wieder
-    // eine, und eine stehengebliebene 40 wäre die teurere Überraschung.
-    setMenge('1');
+  if (imKorb <= 0) {
+    return (
+      <div className="flex flex-col items-end gap-1">
+        {/* Der Petrol-Kreis der Zeile (E74): er legt genau eines hinein. */}
+        <IconButton rund label={`${material.name} in die Liste`} onClick={() => onMenge(material, 1)}>
+          <Icon name="in-liste" size={20} />
+        </IconButton>
+        {insgesamt > 0 && (
+          <p className="text-sm text-ink-muted" aria-live="polite">{`${fmtMenge(insgesamt)} ${einheit} in der Liste`}</p>
+        )}
+      </div>
+    );
   }
 
   return (
-    /*
-      WAS SCHON IN DER LISTE LIEGT, STEHT UNTER DEM KNOPF. Vorher stand „×2“
-      vor dem Minus; dort kostete es genau die Breite, mit der der Knopf am
-      Telefon noch neben die Menge passt, und er sprang beim ersten Tippen
-      in die nächste Zeile — der zweite Tipp traf dann das Plus. Darunter
-      wächst die Zeile nur nach unten. Gezählt wird aus der Liste selbst:
-      Die eigene Zahl dieses Feldes stand nach „Liste leeren“ und nach dem
-      Abschicken weiter da und fehlte nach einem Neustart.
-    */
     <div className="flex flex-col items-end gap-1">
-      <div className="flex items-center gap-3">
-        {/*
-          MINUS UND PLUS SIND DIE HAUPTBEDIENUNG, das Feld dazwischen der
-          Ausweg für grosse Mengen. Auf der Baustelle wird mit Handschuhen
-          getippt: zwei grosse Ziele treffen sicherer als ein Zahlenfeld, und
-          wer dreissig Meter Rohr braucht, tippt die Zahl trotzdem direkt ein,
-          statt dreissig Mal zu drücken.
-
-          EIN RAHMEN UM DIE MENGE (E74, 10.11.2026): − Feld + bilden eine
-          Einheit und tragen einen gemeinsamen Rahmen mit Trennstrichen statt
-          dreier Kästchen. Gerahmt wird nur noch, was mit einem Feld eine
-          Einheit bildet.
-        */}
-        <div className={`mengen-wahl${gueltig ? '' : ' mengen-wahl-fehler'}`}>
-          <button
-            type="button"
-            className="mengen-schritt"
-            aria-label={`Menge für ${material.name} verringern`}
-            title="Weniger"
-            onClick={() => setMenge(zahlAlsText(Math.max(1, (gueltig ? zahl : 1) - 1)))}
-            disabled={gueltig && zahl <= 1}
-          >
-            −
-          </button>
-          <input
-            type="text"
-            inputMode={mitKomma ? 'decimal' : 'numeric'}
-            autoComplete="off"
-            data-zahl=""
-            value={menge}
-            onChange={(e) => setMenge(e.target.value)}
-            onFocus={(e) => e.currentTarget.select()}
-            aria-label={`Menge ${material.unit ?? 'Stk'} für ${material.name}`}
-            className="mengen-feld"
-          />
-          <button
-            type="button"
-            className="mengen-schritt"
-            aria-label={`Menge für ${material.name} erhöhen`}
-            title="Mehr"
-            onClick={() => setMenge(zahlAlsText((gueltig ? zahl : 0) + 1))}
-          >
-            +
-          </button>
-        </div>
-        {/*
-          „IN DIE LISTE“ IST DER PETROL-KREIS DER ZEILE (E74): die eine
-          Hauptsache, die man hier oft drückt. Das Zeichen ist eine Liste mit
-          Zugang, bewusst kein Plus — das steht in der Menge daneben. Der Name
-          sagt weiter, dass noch nichts abgeschickt ist (Testbericht M36).
-          Ein Kreis bricht nie und springt nie in die nächste Zeile; was
-          schon in der Liste liegt, steht wie bisher darunter.
-        */}
-        <IconButton rund label={`${material.name} in die Liste`} disabled={!gueltig} onClick={anfordern}>
-          <Icon name="in-liste" size={20} />
-        </IconButton>
+      {/* Minus, Menge, Plus in einem Rahmen (E74) — die Menge IST die Liste. */}
+      <div className={`mengen-wahl${gueltig ? '' : ' mengen-wahl-fehler'}`}>
+        <button
+          type="button"
+          className="mengen-schritt"
+          aria-label={imKorb <= 1 ? `${material.name} aus der Liste nehmen` : `${material.name}: eines weniger`}
+          title={imKorb <= 1 ? 'Aus der Liste' : 'Weniger'}
+          onClick={() => onMenge(material, imKorb <= 1 ? 0 : imKorb - 1)}
+        >
+          −
+        </button>
+        <input
+          type="text"
+          inputMode={mengeMitKomma(material.unit) ? 'decimal' : 'numeric'}
+          autoComplete="off"
+          data-zahl=""
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+            const n = zahlOder(e.target.value, NaN);
+            // Erst eine brauchbare Menge geht in die Liste; leer heißt „ich tippe gerade“.
+            if (mengeFehler(n, material.unit) === null) onMenge(material, n);
+          }}
+          // Wer mit einer unbrauchbaren Menge weggeht, findet wieder, was in der Liste liegt.
+          onBlur={() => { if (!gueltig) setText(zahlAlsText(imKorb)); }}
+          onFocus={(e) => e.currentTarget.select()}
+          aria-label={`Menge ${einheit} für ${material.name} in der Liste`}
+          aria-invalid={!gueltig || undefined}
+          className="mengen-feld"
+        />
+        <button
+          type="button"
+          className="mengen-schritt"
+          aria-label={`${material.name} in die Liste (eines mehr)`}
+          title="Eines mehr"
+          onClick={() => onMenge(material, imKorb + 1)}
+        >
+          +
+        </button>
       </div>
-      {inListe > 0 && (
-        <p className="text-sm text-ink-muted" aria-live="polite">
-          {`${fmtMenge(inListe)} ${material.unit ?? 'Stk'} in der Liste`}
-        </p>
+      {insgesamt > imKorb && (
+        <p className="text-sm text-ink-muted" aria-live="polite">{`insgesamt ${fmtMenge(insgesamt)} ${einheit} in der Liste`}</p>
       )}
     </div>
   );
+}
+
+/**
+ * WARUM ES DAUERT. Liegt es nicht im Lager, wird es beim Großhändler
+ * bestellt — das sagt dem Monteur, dass er nicht vergeblich ins Lager fährt.
+ * In der Zeile und im Seitenfenster derselbe Satz.
+ */
+function wasLaeuft(o: MaterialOrder): string {
+  if (o.beschaffung !== 'einkauf' || o.geliefertAm) return '';
+  return o.bestelltAm ? 'beim Großhändler bestellt' : 'nicht im Lager — wird bestellt';
 }
