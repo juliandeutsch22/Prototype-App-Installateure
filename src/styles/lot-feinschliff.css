@@ -1,10 +1,19 @@
-/* Gemeinsame Rückmeldung der freigegebenen Premium-Linie. Keine Layoutanimation. */
+/*
+  BEWEGUNG V10 (13.11.2026, style.md „Motion und Feedback“): wenige Stufen.
+  Drücken 100 ms, Zustand/Tabs/Navigation 160 ms, Speichern und Ablegen
+  180 ms, Seitenfenster und Sheets 220 ms, Meldung 240 ms. Keine
+  Layoutanimation, kein Bounce; bei reduzierter Bewegung nur Opazität
+  (höchstens 80 ms) oder sofort.
+*/
 :root {
   --motion-press: 100ms;
   --motion-state: 160ms;
-  --motion-overlay: 200ms;
+  --motion-bestaetigt: 180ms;
+  --motion-overlay: 220ms;
+  --motion-meldung: 240ms;
   --motion-exit: 140ms;
   --motion-route: 160ms;
+  --motion-reduziert: 80ms;
   --ease-response: cubic-bezier(.22, 1, .36, 1);
 }
 @layer components {
