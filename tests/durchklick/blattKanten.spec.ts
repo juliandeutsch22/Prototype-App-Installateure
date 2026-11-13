@@ -35,7 +35,8 @@ test('Die mitfliegende Leiste der Zeiterfassung lässt die linke Linie des Blatt
     return { links: r.left - b.left, rechts: b.right - r.right, pos: getComputedStyle(l).position, knopf: l.querySelector('button')!.getBoundingClientRect().left - b.left };
   });
   expect(m.pos).toBe('sticky');
-  expect(m).toMatchObject({ links: 1, rechts: 0, knopf: 24 });
+  // Die Knöpfe auf dem Polster des Blatts: am Handy 16 px seit E86 (D4), vorher 24.
+  expect(m).toMatchObject({ links: 1, rechts: 0, knopf: 16 });
 });
 
 test('Frei auf der Seite ist die Leiste so breit wie die Spalte (Firmendaten)', async ({ page }) => {

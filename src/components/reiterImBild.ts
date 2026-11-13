@@ -60,6 +60,13 @@ export function insBild(leiste: HTMLElement, reiter: HTMLElement): void {
   else if (r.right > l.right) leiste.scrollLeft += r.right - l.right;
 }
 
+/*
+  KEIN HALBES WORT AM RAND (D6, E86). Die Kante lief auf den letzten 12 %
+  aus — „Sätz“ stand davor noch satt da, abgeschnitten mitten im Wort. Jetzt
+  beginnt das Ausblenden dort, wo der erste angeschnittene Reiter beginnt:
+  was satt steht, steht ganz da, und was blass wird, sagt „hier geht es
+  weiter“. Links ebenso, bis zum Ende des letzten angeschnittenen.
+*/
 function randMerken(el: HTMLElement | null): void {
   if (!el) return;
   const rechts = el.scrollWidth - el.clientWidth - el.scrollLeft > 2;
@@ -68,4 +75,14 @@ function randMerken(el: HTMLElement | null): void {
   else el.removeAttribute('data-mehr-rechts');
   if (links) el.setAttribute('data-mehr-links', '');
   else el.removeAttribute('data-mehr-links');
+  const l = el.getBoundingClientRect();
+  if (!l.width) return;
+  const reiter = Array.from(el.children) as HTMLElement[];
+  const angeschnittenRechts = rechts ? reiter.find((r) => r.getBoundingClientRect().right > l.right + 1) : undefined;
+  const angeschnittenLinks = links ? [...reiter].reverse().find((r) => r.getBoundingClientRect().left < l.left - 1) : undefined;
+  const anteil = (px: number) => `${Math.min(100, Math.max(0, Math.round((px / l.width) * 100)))}%`;
+  if (angeschnittenRechts) el.style.setProperty('--mehr-ab', anteil(angeschnittenRechts.getBoundingClientRect().left - l.left));
+  else el.style.removeProperty('--mehr-ab');
+  if (angeschnittenLinks) el.style.setProperty('--mehr-bis', anteil(angeschnittenLinks.getBoundingClientRect().right - l.left));
+  else el.style.removeProperty('--mehr-bis');
 }

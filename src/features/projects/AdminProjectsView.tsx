@@ -907,7 +907,7 @@ export default function AdminProjectsView() {
         */
         stand={!loading && aktivZahl > 0 ? (
           <MetricRow label="Stand der Baustellen">
-            <Metric label="Aktiv" value={aktivZahl} hint="laufende Baustellen" to={ZIEL.baustellen('aktiv')} />
+            <Metric label="Aktiv" value={aktivZahl} hint="laufende Baustellen" to={ZIEL.baustellen('aktiv')} nurBreit />
             {budgetJe !== 'fehler' && (
               <>
                 <Metric label="Über Budget" value={ueberBudget} hint="Stunden über Budget" tone={ueberBudget ? 'danger' : 'default'} to={ZIEL.baustellen('budget')} bereit={budgetJe !== null} zusatzMuster="Stunden über Budget" />

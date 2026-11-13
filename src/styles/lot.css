@@ -32,6 +32,18 @@
     .daumen > * { flex: 1; min-height: 3rem; }
     /* Platz am SEITENENDE, nicht unter dem Kopf: der letzte Inhalt rollt über die Leiste hinaus. */
     .inhalt:has(.daumen) { padding-bottom: 5.5rem; }
+    /*
+      NIE MEHR ALS EINE LEISTE ÜBER DER NAVIGATION (D2, E86). Läuft der
+      Arbeitstag oder liegt etwas im Warenkorb, steht dort schon eine; dann
+      stünden Hauptaktion, Timer und Korb übereinander — 260 von 844 px.
+      Die Hauptaktion rückt dann in den Seitenkopf, wie ab dem Tablet.
+    */
+    .huelle:has(.timer-leiste-telefon .timer-leiste, .korb) .daumen { display: contents; }
+    .huelle:has(.timer-leiste-telefon .timer-leiste, .korb) .daumen > * { flex: none; order: -1; min-height: 2.75rem; }
+    .huelle:has(.timer-leiste-telefon .timer-leiste, .korb) .inhalt:has(.daumen) { padding-bottom: 0; }
+    /* Im Kopf gibt der Titel nach bis 14 rem, dann rücken die Knöpfe unter ihn — wie ab dem Tablet; ein Wort bricht nie für einen Knopf. */
+    .huelle:has(.timer-leiste-telefon .timer-leiste, .korb) .seitenkopf-zeile:has(.daumen) { flex-wrap: wrap; }
+    .huelle:has(.timer-leiste-telefon .timer-leiste, .korb) .seitenkopf-zeile:has(.daumen) > .plankopf-titel { flex: 1 1 14rem; }
   }
 
   /* ── Hilfe zu dieser Seite ────────────────────────────────────────────── */
@@ -193,7 +205,7 @@
     unter den Einträgen endete nach dem letzten, die Fläche daneben lag weiß
     ohne Linie auf dem Raster, und mit 52 px stand sie neben den Linien.
   */
-  .sprungleiste { position: sticky; top: 0; z-index: 5; display: flex; overflow-x: auto; gap: 0; margin-top: 1.5rem; padding: 0 0.75rem; background: var(--surface); scrollbar-width: none; box-shadow: inset 1px 0 0 var(--border-strong), inset 0 1px 0 var(--border-strong), inset -1px 0 0 var(--border-strong), inset 0 -1px 0 var(--border-strong); }
+  .sprungleiste { position: sticky; top: var(--kopf-oben); z-index: 5; display: flex; overflow-x: auto; gap: 0; margin-top: 1.5rem; padding: 0 0.75rem; background: var(--surface); scrollbar-width: none; box-shadow: inset 1px 0 0 var(--border-strong), inset 0 1px 0 var(--border-strong), inset -1px 0 0 var(--border-strong), inset 0 -1px 0 var(--border-strong); }
   .sprung-link { flex: none; display: inline-flex; align-items: center; min-height: 3rem; padding: 0 0.75rem; color: var(--text-muted); text-decoration: none; white-space: nowrap; border-bottom: 2px solid transparent; font-size: 0.875rem; }
   .sprung-link:hover { color: var(--text); border-bottom-color: var(--petrol); }
   @media (min-width: 1200px) {
@@ -334,8 +346,23 @@
   @media (min-width: 1200px) { .navi-breit { display: block; } }
 
   /* ── Handy: Kopfzeile und untere Leiste ───────────────────────────────── */
-  .kopfzeile { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 1rem; padding-top: env(safe-area-inset-top, 0px); background: var(--navi); }
+  /*
+    DIE KOPFZEILE BLEIBT OBEN (D11, E86): beim Rollen trägt sie den Titel der
+    Seite. Was sonst oben klebt (Sprungleiste, Spaltenköpfe), klebt darunter
+    — `--kopf-oben` ist ihre Höhe am Handy, ab dem Tablet null. Ein Sprung
+    zu einem Anker hält denselben Abstand, sonst läge das Ziel unter ihr.
+    Gemessen wird sie im Layout wie die Reiterleiste: die Sicherheitszone
+    oben gehört dazu, und ab dem Tablet ist sie ausgeblendet (dann 0).
+  */
+  :root { --kopf-oben: 0px; }
+  .kopfzeile { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 1rem; padding-top: env(safe-area-inset-top, 0px); background: var(--navi); }
+  @media (max-width: 759px) { html { scroll-padding-top: var(--kopf-oben); } }
   @media (min-width: 760px) { .kopfzeile { display: none; } }
+  .kopfzeile-titel { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: #ffffff; animation: kopf-titel-ein 180ms ease-out; }
+  @keyframes kopf-titel-ein { from { opacity: 0; transform: translateY(0.375rem); } }
+  @media (prefers-reduced-motion: reduce) { .kopfzeile-titel { animation: none; } }
+  .kopfzeile-suche { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0; border: 0; background: none; color: var(--navi-text); cursor: pointer; }
+  .kopfzeile-suche:hover { color: #ffffff; }
 
   .unten { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom, 0px); }
   @media (min-width: 760px) { .unten { display: none; } }

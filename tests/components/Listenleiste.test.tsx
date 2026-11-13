@@ -67,9 +67,15 @@ describe('Die Zahl am Reiter', () => {
     expect(within(knopf).getByText('3')).toHaveClass('segment-anzahl');
   });
 
-  it('auch eine Null wird genannt — „nichts zu tun“ ist eine Auskunft', () => {
-    render(<Segmente name="Filter" werte={[{ wert: 'k', text: 'fehlt', anzahl: 0 }]} wert="k" onChange={() => {}} />);
-    expect(screen.getByRole('button', { name: 'fehlt 0' })).toBeInTheDocument();
+  /*
+    SEIT E86 (D6) steht eine Null nicht mehr da: „Anschrift prüfen 0“ und
+    „knapp 0“ meldeten nichts und zogen trotzdem den Blick. Der Reiter bleibt,
+    nur leise — bis dahin galt „auch eine Null wird genannt“.
+  */
+  it('eine Null steht nicht am Reiter — er bleibt, nur leise', () => {
+    const { container } = render(<Segmente name="Filter" werte={[{ wert: 'k', text: 'fehlt', anzahl: 0 }]} wert="k" onChange={() => {}} />);
+    expect(screen.getByRole('button', { name: 'fehlt' })).toBeInTheDocument();
+    expect(container.querySelector('.segment-anzahl')).toBeNull();
   });
 
   it('gleich geblieben: ohne Zahl ist der Reiter genau sein Wort', () => {

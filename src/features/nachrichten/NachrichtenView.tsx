@@ -189,16 +189,32 @@ export default function NachrichtenView() {
     )
   ) : null;
 
+  /*
+    DER KOPF EINES GESPRÄCHS AM HANDY (D3, E86): eine Zeile. Der Titel eines
+    Baustellen-Threads ist „Nummer · Bezeichnung · Kunde“ und lief in großer
+    Schrift über vier Zeilen, bevor die erste Nachricht kam. Jetzt steht der
+    Name als Titel, die Nummer klein darunter mit der Art des Gesprächs —
+    eine Angabe, keine Beschreibung, deshalb bleibt sie auch am Handy stehen.
+  */
+  const teile = kopf?.art === 'baustelle' ? kopf.titel.split(' · ') : [];
+  const kopfNummer = teile.length > 1 ? teile[0] : null;
+  const kopfTitel = kopf ? (kopfNummer ? teile.slice(1).join(' · ') : kopf.titel) : 'Gespräch';
+  const kopfAngabe = kopf ? (
+    <span>{[kopfNummer, ART_TEXT[kopf.art], kopf.stumm ? 'stumm' : ''].filter(Boolean).join(' · ')}</span>
+  ) : undefined;
+
   return (
     <div className="space-y-6">
       {imGespraech && !breit ? (
-        <PageHeader
-          zurueck={{ to: '/nachrichten', text: 'Nachrichten' }}
-          title={kopf?.titel ?? 'Gespräch'}
-          subtitle={kopf ? [ART_TEXT[kopf.art], kopf.stumm ? 'stumm' : ''].filter(Boolean).join(' · ') : undefined}
-          hilfe={hilfe}
-          mehr={mehr}
-        />
+        <div className="gespraech-kopf">
+          <PageHeader
+            zurueck={{ to: '/nachrichten', text: 'Nachrichten' }}
+            title={kopfTitel}
+            subtitle={kopfAngabe}
+            hilfe={hilfe}
+            mehr={mehr}
+          />
+        </div>
       ) : (
         <PageHeader
           title="Nachrichten"

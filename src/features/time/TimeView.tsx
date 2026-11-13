@@ -1015,7 +1015,7 @@ export default function TimeView() {
       <Zeitkorrekturen key={`korrekturen:${user?.uid}@${user?.companyId}:${user?.role}`} />
 
       {/* Formular und eigene Einträge nebeneinander, wo beide Platz haben (lot-zeit.css). */}
-      <div className="zeit-raster">
+      <div className="zeit-raster zeit-raster-buchen">
       <Card
         id="zeit-formular"
         className="zeit-formularkarte"

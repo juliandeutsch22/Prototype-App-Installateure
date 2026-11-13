@@ -205,13 +205,14 @@ describe('Abstand zur Linie und die obere Linie des Schriftfelds (02.11.2026)', 
     return zeile!;
   };
 
-  it('die Zeilen der Startseite stehen eine Zelle (24 px) von der Linie — wie der Kartenkopf darüber', () => {
-    expect(deklarationen(START, '.start-seite .start-zeile')).toContain('padding: 0.875rem 1.5rem;');
-    expect(deklarationen(START, '.start-seite .start-abschnitt')).toContain('padding: 1rem 1.5rem 0.5rem;');
-    expect(deklarationen(START, '.start-seite .start-weiter')).toContain('padding: 0.5rem 1.5rem;');
-    expect(deklarationen(START, '.start-seite .start-terminfolge')).toContain('margin: 0 1.5rem 0 1.75rem;');
-    expect(deklarationen(START, '.start-einsatz')).toContain('padding: 1rem 1.5rem;');
-    expect(deklarationen(START, '.start-karte-verweis')).toContain('margin: 0.5rem 1.5rem 0;');
+  /* Das Polster ist das der Blätter (`--blatt-rand`, E86): eine Zelle ab dem Tablet, 16 px am Handy. */
+  it('die Zeilen der Startseite stehen so weit von der Linie wie der Kartenkopf darüber', () => {
+    expect(deklarationen(START, '.start-seite .start-zeile')).toContain('padding: 0.875rem var(--blatt-rand);');
+    expect(deklarationen(START, '.start-seite .start-abschnitt')).toContain('padding: 1rem var(--blatt-rand) 0.5rem;');
+    expect(deklarationen(START, '.start-seite .start-weiter')).toContain('padding: 0.5rem var(--blatt-rand);');
+    expect(deklarationen(START, '.start-seite .start-terminfolge')).toContain('margin: 0 var(--blatt-rand) 0 var(--blatt-rand-einzug);');
+    expect(deklarationen(START, '.start-einsatz')).toContain('padding: 1rem var(--blatt-rand);');
+    expect(deklarationen(START, '.start-karte-verweis')).toContain('margin: 0.5rem var(--blatt-rand) 0;');
   });
 
   it('der Vergleich der Mitarbeiterübersicht hat auch am Handy sein Polster', () => {
@@ -234,10 +235,27 @@ describe('Abstand zur Linie und die obere Linie des Schriftfelds (02.11.2026)', 
     expect(regel('.schriftfeld-skizze')).toContain('padding: 0 0.75rem;');
   });
 
-  it('gleich geblieben: am Schreibtisch zehn Zellen je Feld mit 24 px Polster seitlich, am Handy sieben mit 12 px', () => {
+  it('gleich geblieben: am Schreibtisch zehn Zellen je Feld mit 24 px Polster seitlich', () => {
     expect(regel('.schriftfeld .lage-punkt')).toContain('flex: 0 0 240px;');
+  });
+
+  /*
+    AM HANDY EINE RUHIGE LISTE (E86, ersetzt die sieben Zellen je Feld):
+    Bezeichnung links, Wert rechts, Zeilen von 48 px; Nullen, Ladendes und
+    was am Handy schon anderswo steht, fallen weg — bleibt nichts, fehlt das
+    Feld samt Lineal.
+  */
+  it('am Handy steht der Stand als Liste mit 48-px-Zeilen; Null, Laden und Doppeltes fehlen', () => {
     const handy = PLANLINIE.slice(PLANLINIE.indexOf('@media (max-width: 759px) {\n    .schriftfeld'));
-    expect(handy.slice(0, handy.indexOf('\n  }'))).toContain('.schriftfeld .lage-punkt { flex-basis: 168px; }');
+    const block = handy.slice(0, handy.indexOf('\n  }'));
+    expect(block).toContain('.schriftfeld .lage-zeile { display: flex; flex-direction: column;');
+    expect(block).toMatch(/\.schriftfeld \.lage-eintrag \{ display: grid; grid-template-columns: minmax\(0, 1fr\) auto;[^}]*min-height: 3rem; padding: 0\.75rem 1rem;/);
+    expect(block).toContain('.schriftfeld .lage-punkt-null, .schriftfeld .lage-punkt-laedt, .schriftfeld .lage-punkt-breit');
+    expect(block).toContain('.schriftfeld:not(:has(.lage-punkt:not(.lage-punkt-null, .lage-punkt-laedt, .lage-punkt-breit))) { display: none; }');
+    expect(block).toContain('.lineal { display: none; }');
+    // Eine Warnung wird ein Hinweis mit farbiger Kante, nicht nur farbige Ziffern.
+    expect(block).toContain('.schriftfeld .lage-punkt-achtung { background: var(--warning-bg);');
+    expect(block).not.toContain('flex-basis: 168px');
   });
 
   /*
@@ -250,7 +268,8 @@ describe('Abstand zur Linie und die obere Linie des Schriftfelds (02.11.2026)', 
   it('Beschriftung und Wert haben oben und unten eine halbe Zelle Luft, in jeder Breite', () => {
     expect(regel('.schriftfeld .lage-eintrag')).toContain('padding: 0.75rem 1.5rem;');
     const handy = PLANLINIE.slice(PLANLINIE.indexOf('@media (max-width: 759px) {\n    .schriftfeld'));
-    expect(handy.slice(0, handy.indexOf('\n  }'))).toContain('.schriftfeld .lage-eintrag { padding: 0.75rem; }');
+    // Am Handy als Listenzeile: dieselbe halbe Zelle oben und unten, 16 px seitlich (E86).
+    expect(handy.slice(0, handy.indexOf('\n  }'))).toMatch(/\.schriftfeld \.lage-eintrag \{[^}]*padding: 0\.75rem 1rem;/);
   });
 
   /*
@@ -284,12 +303,17 @@ describe('Abstand zur Linie und die obere Linie des Schriftfelds (02.11.2026)', 
 describe('Durchsicht 09.11.2026', () => {
   const FEIN = stil('lot-feinschliff.css');
 
-  it('am Handy trägt jede Titelzeile eine Zelle, einzeilig bleibt der Titel 48 px hoch', () => {
-    const handy = PLANLINIE.split('\n').find((z) => z.includes('@media (max-width: 759px) { .seitenkopf h1 {'));
-    expect(handy).toBeDefined();
-    // 24 px je Zeile + 2 × 12 px = 48 px einzeilig; jede weitere Zeile eine Zelle (E31, E33).
-    expect(handy).toContain('line-height: 1.5rem; padding-block: 0.75rem;');
-    expect(handy).not.toContain('line-height: 3rem');
+  /*
+    SEIT E86 groß mit Luft: 28 px, in der Akte 24 px. Das Polster rechnet
+    `useKopfTitel` aus der gemessenen Höhe (tests/components/KopfTitel.test.tsx);
+    ohne Messung gilt eine Viertelzelle, damit ein Titel einzeilig 48 px hat.
+  */
+  it('am Handy steht der Titel groß, und sein Polster kommt aus der Messung auf dem Raster', () => {
+    const handy = PLANLINIE.slice(PLANLINIE.indexOf('@media (max-width: 759px) {\n    .seitenkopf h1'));
+    const block = handy.slice(0, handy.indexOf('\n  }'));
+    expect(block).toContain('.seitenkopf h1 { font-size: 1.75rem; line-height: 2.25rem; padding-block: var(--titel-luft, 0.375rem); }');
+    expect(block).toContain('.akten-kopf .seitenkopf h1 { font-size: 1.5rem; line-height: 2rem; }');
+    expect(PLANLINIE).not.toContain('font-size: 1.25rem; line-height: 1.5rem; padding-block: 0.75rem;');
     // Gleich bleibt: Tablet und Schreibtisch mit 48-px-Zeile.
     expect(PLANLINIE).toContain('@media (min-width: 760px) { .seitenkopf h1 { font-size: 1.875rem; line-height: 3rem; } }');
   });
@@ -305,7 +329,7 @@ describe('Durchsicht 09.11.2026', () => {
   });
 
   it('die Summenzeile im Rechnungsblatt steht eine Zelle vom Rand wie die Zeilen', () => {
-    expect(stil('lot-blatt.css')).toMatch(/\.karte\) \.rechnungen-summe \{ min-height: 48px; padding: 12px 24px 11px;/);
+    expect(stil('lot-blatt.css')).toMatch(/\.karte\) \.rechnungen-summe \{ min-height: 48px; padding: 12px var\(--blatt-rand\) 11px;/);
   });
 
   it('ein langer Suchhinweis endet mit Auslassungspunkten statt mitten im Wort', () => {
@@ -340,8 +364,8 @@ describe('Durchsicht 09.11.2026', () => {
 
   it('Hinweis und Änderungsprotokoll der Zeiterfassung stehen im Blatt eine Zelle vom Rand', () => {
     const BLATT = stil('lot-blatt.css');
-    expect(BLATT).toMatch(/\.zeit-fenster-hinweis \{ padding-inline: 24px; \}/);
-    expect(BLATT).toMatch(/\.zeit-verlauf > \.weiteres > \.weiteres-kopf \{ padding-inline: 24px 52px; \}/);
+    expect(BLATT).toMatch(/\.zeit-fenster-hinweis \{ padding-inline: var\(--blatt-rand\); \}/);
+    expect(BLATT).toMatch(/\.zeit-verlauf > \.weiteres > \.weiteres-kopf \{ padding-inline: var\(--blatt-rand\) var\(--blatt-rand-pfeil\); \}/);
     // Das Ende der Liste im Takt: beide Handlungen 48 px hoch, der Hinweis eine Zelle plus eine halbe.
     const ZEIT = stil('lot-zeit.css');
     expect(ZEIT).toContain('.zeit-verlauf > .weiteres > .weiteres-kopf { min-height: 3rem; padding: 0.75rem 2.75rem 0.75rem 1rem;');
@@ -553,8 +577,12 @@ describe('E72 Aufträge und Planung', () => {
     expect(AKTEN).toContain('.akten-kontext .karte-kopf .akten-verweis { font-size: 0.75rem; line-height: 1rem; padding-block: 0.875rem; margin-block: -0.875rem; }');
   });
 
-  it('Aktenreiter am Handy in zwei Reihen statt abgeschnitten, jeder mit 44 px (D4, D5)', () => {
-    expect(AKTEN).toContain('    .akten-bereiche { flex-wrap: wrap; gap: 0 1.25rem; overflow-x: visible; }');
+  /* Seit E86 (D6): bis vier gleich breit in einer Zeile, mehr rollen mit auslaufender Kante — nicht mehr zwei Reihen. */
+  it('Aktenreiter am Handy: bis vier gleich breit, mehr rollen; jeder mit 44 px', () => {
+    expect(AKTEN).not.toContain('.akten-bereiche { flex-wrap: wrap;');
+    expect(AKTEN).toContain('.akten-bereiche:not([data-viele]) { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0; overflow-x: visible; }');
+    expect(quelle('src/index.css')).toContain(':is(.reiterleiste, .akten-bereiche)[data-mehr-rechts] {');
+    expect(quelle('src/components/AktenBereiche.tsx')).toContain("data-viele={bereiche.length > 4 ? '' : undefined}");
     expect(regeln(AKTEN, '.akten-reiter')).toContain('min-width: 2.75rem;');
   });
 

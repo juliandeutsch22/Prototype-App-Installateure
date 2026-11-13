@@ -3498,3 +3498,80 @@ als wäre dort etwas versäumt. Entschieden:
   (+2), `WochenplanView.test.tsx` (+1), `MeinKontoEinsatzplan.test.tsx` (6).
 - Browser: `mehrtage.spec.ts` (3).
 - Gegenproben ohne die Änderung rot.
+
+**E86 — Handy: Inhalt zuerst (12.11.2026).**
+Paket 6 des Gesamtplans vom 12.11.2026 (Befunde D1 bis D6, D11, D12). Der
+erste Entwurf stellte dieselben Dinge enger und wurde abgelehnt („alles
+zusammengepfercht … wie würde Apple das lösen?“). Freigegeben ist der
+zweite: weglassen statt stauchen. Ab dem Tablet bleibt der Plankopf, wie er
+ist; alles Folgende gilt am Handy, wo nicht anders gesagt.
+- **Stand als ruhige Liste (D1):** Kennzahlen stehen als Blatt mit Zeilen
+  von 48 px, Bezeichnung links, Wert rechts. Was null ist, noch lädt oder am
+  Handy schon an anderer Stelle steht (`nurBreit`, etwa „Aktiv“ über der
+  Gruppe der Baustellenliste), fällt weg; „—“ (nicht festgelegt) bleibt.
+  Eine Warnung wird ein Hinweis mit farbiger Kante. Bleibt nichts, fehlen
+  Schriftfeld und Lineal ganz. Ein beschreibender Untertitel (bloßer Text)
+  steht am Handy in der Hilfe; ein Untertitel aus Bausteinen ist eine
+  Angabe und bleibt.
+- **Baustellenakte (D1):** die Eckdaten am Handy als Blatt „Angaben“ oben
+  in der Übersicht, der Stand als Wort neben der Nummer.
+- **Großer Titel mit Luft (D11, D3):** 28 px, in Akten 24 px. Das Polster
+  rechnet die Seite aus der gemessenen Höhe, damit der Titel ein- wie
+  mehrzeilig auf einer Rasterlinie endet (E33). Lange Wörter brechen an der
+  Wortfuge („Mitarbeiter-übersicht“, `wortfugen`), Hausnummernbereiche wie
+  „12–14“ bleiben zusammen; vorgelesen und gesucht wird der Titel ohne die
+  unsichtbaren Trennzeichen.
+- **Kopfzeile (D11):** sie bleibt oben stehen; ist der Titel unter ihr
+  verschwunden, steht er klein an der Stelle des Betriebs. Die Suche ist
+  eine Lupe mit 44 px Tastfläche. Was sonst oben klebt (Spaltenköpfe der
+  Wochenplanung und Mitarbeiterübersicht, Sprungleiste des Angebots), klebt
+  darunter; Sprünge zu Ankern halten denselben Abstand.
+- **Eine Leiste unten (D2):** läuft der Arbeitstag oder liegt etwas im
+  Warenkorb, rückt die Hauptaktion in den Seitenkopf (der Titel gibt bis
+  14 rem nach, dann stehen die Knöpfe unter ihm). Der Warenkorb ist eine
+  Zeile: Zahl und Ziel links, „Leeren“ und „Abschicken“ rechts.
+- **Gesprächskopf (D3):** im Baustellen-Thread der Name als einzeiliger
+  Titel, Nummer und Art klein darunter.
+- **Breite für Text (D4):** 16 px Innenpolster in Blättern (ab dem Tablet
+  24 px, `--blatt-rand`); trägt eine Zeile einen Textknopf, steht er unter
+  dem Text, Symbolknöpfe bleiben daneben.
+- **Lange Texte von der Seite (D5):** „Stunden ohne Buchung“ sagt bei null
+  „Alle Stunden gebucht.“; „Kostensätze fehlen“ ist ein Satz und der Knopf
+  „Kostensätze eintragen“, die Erklärung steht in der Hilfe.
+- **Reiter und Filter (D6):** Akten mit bis zu vier Reitern zeigen sie
+  gleich breit in einer Zeile (statt E72s zwei Reihen); mehr rollen. Jede
+  rollende Leiste blendet ab dem ersten angeschnittenen Reiter aus — eine
+  Maske über dem Inhalt, keine Fläche —, kein halbes Wort steht satt da.
+  Eine Anzahl von null steht an keinem Reiter (bis dahin galt seit E26
+  „auch eine Null wird genannt“; der Reiter bleibt, nur leise); die
+  Prüffilter der Kunden erscheinen erst, wenn es etwas zu prüfen gibt.
+- **Aus der Durchsicht vom 09.11. (D12):** die Zustandsspalte gestapelter
+  Zeilen am Schreibtisch ist sieben Zellen breit; „Meine Einträge“ steht ab
+  dem Schreibtisch neben dem Formular; Anzahlen stehen in Titeln in Klammern
+  („Zu erledigen (7 Themen)“, wie „Positionen (3)“) — das Zählwort bleibt,
+  wo die Zahl sonst mehrdeutig wäre.
+
+**Abweichung vom Entwurf:** „Laufend 2“ im Umschalter der Baustellenliste
+nicht — die Zahl der laufenden steht schon über ihrer Gruppe, und eine Zahl
+am Reiter steht nur für Handlungsbedarf (Protokoll 7.7).
+
+**Offen, nächster PR:** das Austrittsdatum in der Benutzerverwaltung (D12)
+— es braucht eine Migration und ändert Soll, Saldo und Resturlaub im
+Austrittsmonat; deshalb ein eigener Schritt mit Datenbankprüfungen.
+
+**Grenzen mit Grund:** keine neue.
+
+**Nachweis:** `handyInhaltZuerst.test.tsx` (13), `wortfugen.test.ts` (5),
+`planlinieStil.test.ts`, `blattKanten.test.ts` (+1), Browser
+`handyInhalt.spec.ts` (8: vier am Handy, „Meine Einträge“ bei 1.200 px,
+drei Gegenproben am Tablet). Gegenproben: mit den Bausteinen vor E86 sind 9
+der 13 Modul- und 4 der 6 Handy-Browserprüfungen rot, mit dem Stil vor E86
+steht „Meine Einträge“ bei 1.200 px unter dem Formular; grün bleiben die,
+die Gleichbleibendes prüfen. Angepasst, weil sie das Alte festhielten:
+`blattKanten.spec.ts` (Knöpfe am Handy auf 16 px), `rand.spec.ts` (am Handy
+die Liste statt der Zellen), `startseiteViel.spec.ts` („Zu erledigen (n
+Themen)“), `Listenleiste.test.tsx` (keine Null am Reiter). Mit Zusatz ist
+eine Listenzeile am Handy 60 px statt 68 px hoch — so bleibt die Startseite
+des Monteurs im Rahmen von 2,25 Bildschirmen. „Meine Einträge“ rückt nur in
+der Zeiterfassung neben das Formular: die Urlaubsseiten mit zwei Listen
+behalten ihre Maße (sonst lagen sie am Tablet neben dem Raster).

@@ -125,7 +125,7 @@ export function ListRow({
         // Tasthoehe bleibt bei 44 px, also innerhalb dessen, was die
         // Plattformrichtlinien verlangen. Symbolknoepfe sind ausgenommen,
         // sonst schruempfte das Symbol mit.
-        <div className="relative z-[1] ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-1 [&>button:not([data-icon])]:min-h-[2.75rem] [&>button:not([data-icon])]:px-3 [&>button:not([data-icon])]:text-sm">
+        <div className="zeile-rechts relative z-[1] ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-1 [&>button:not([data-icon])]:min-h-[2.75rem] [&>button:not([data-icon])]:px-3 [&>button:not([data-icon])]:text-sm">
           {/* Der Zustand in einer festen Spalte (Design-Entwurf, Punkt 3): untereinander stehen Punkt und Wort bündig. */}
           {zustand && <span className="zeile-zustand">{zustand}</span>}
           {wert != null && <span className="zeile-wert">{wert}</span>}

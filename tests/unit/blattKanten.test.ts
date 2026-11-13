@@ -17,12 +17,24 @@ const regel = (css: string, selektor: string) =>
 describe('Nichts Klebendes deckt die Linie eines Blatts zu (E76)', () => {
   const BLATT = q('src/styles/lot-blatt.css');
 
-  it('die Aktionsleiste im Blatt beginnt einen Pixel innen, die Knöpfe bleiben auf 24 px', () => {
-    expect(BLATT).toContain('.aktionsleiste { margin: 1.5rem -24px -24px -23px; padding: 12px 24px 12px 23px; }');
+  it('die Aktionsleiste im Blatt beginnt einen Pixel innen, die Knöpfe bleiben auf dem Polster des Blatts', () => {
+    expect(BLATT).toContain('.aktionsleiste { margin: 1.5rem var(--blatt-rand-minus) -24px var(--blatt-rand-minus-innen); padding: 12px var(--blatt-rand) 12px var(--blatt-rand-innen); }');
+  });
+
+  /*
+    DAS POLSTER DER BLÄTTER (D4, E86): 24 px ab dem Tablet, 16 px am Handy —
+    und jedes Gegenstück (negativ, einen Pixel innen, mit Pfeil) passt dazu.
+  */
+  it('das Polster der Blätter ist ab dem Tablet eine Zelle, am Handy 16 px, mit passenden Gegenstücken', () => {
+    expect(BLATT).toContain(':root { --blatt-rand: 24px; --blatt-rand-innen: 23px; --blatt-rand-minus: -24px; --blatt-rand-minus-innen: -23px; --blatt-rand-pfeil: 52px; --blatt-rand-einzug: 28px; }');
+    expect(BLATT).toMatch(/@media \(max-width: 759px\) \{\s*:root \{ --blatt-rand: 16px; --blatt-rand-innen: 15px; --blatt-rand-minus: -16px; --blatt-rand-minus-innen: -15px; --blatt-rand-pfeil: 44px; --blatt-rand-einzug: 20px; \}/);
+    // Keine Zeile im Blatt hat ihr seitliches Polster noch fest auf 24 px.
+    const blattZeilen = BLATT.split('\n').filter((z) => z.includes(".inhalt .karte:not(.karte .karte)") && /padding(-inline)?: [^;]*\b24px [^;]*;|padding-inline: 24px/.test(z));
+    expect(blattZeilen.filter((z) => /padding: \d+px 24px|padding-inline: 24px/.test(z))).toEqual([]);
   });
 
   it('frei auf der Seite ist die Leiste ein Streifen Blatt: Spaltenbreite, Linie rundum', () => {
-    expect(BLATT).toMatch(/\.inhalt \.aktionsleiste:not\(:is\(\.karte, \.fenster, \.fenster-breit, \.blatt, \[role='dialog'\], \.akten-editor\) \.aktionsleiste\) \{\s*margin: 1\.5rem 0 0; padding: 12px 24px; border-top: 0;\s*box-shadow: inset 1px 0 0 var\(--border-strong\), inset 0 1px 0 var\(--border-strong\), 1px 0 0/);
+    expect(BLATT).toMatch(/\.inhalt \.aktionsleiste:not\(:is\(\.karte, \.fenster, \.fenster-breit, \.blatt, \[role='dialog'\], \.akten-editor\) \.aktionsleiste\) \{\s*margin: 1\.5rem 0 0; padding: 12px var\(--blatt-rand\); border-top: 0;\s*box-shadow: inset 1px 0 0 var\(--border-strong\), inset 0 1px 0 var\(--border-strong\), 1px 0 0/);
   });
 
   it('Gruppenzeile der Planung und Kopfzeile des Monats zeichnen die Linie selbst', () => {

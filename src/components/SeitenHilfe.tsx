@@ -130,11 +130,18 @@ function zuZeigen(eintraege: Eintrag[], inhalte: Map<string, ReactNode>): Eintra
  * Der Zugang im Seitenkopf. Zeigt sich nur, wenn die Seite etwas zu erklären
  * hat — ein Knopf, hinter dem nichts steht, wäre schlimmer als keiner.
  */
-export function SeitenHilfeKnopf({ seite, einleitung }: { seite: string; einleitung?: ReactNode }) {
+export function SeitenHilfeKnopf({ seite, einleitung, beschreibung }: {
+  seite: string;
+  einleitung?: ReactNode;
+  /** Die Beschreibung der Seite aus dem Kopf — am Handy steht sie nur hier (D1, E86). */
+  beschreibung?: string;
+}) {
   const hilfe = useContext(HilfeContext);
   const [offen, setOffen] = useState(false);
   const eintraege = hilfe?.eintraege ?? [];
-  if (!einleitung && eintraege.length === 0) return null;
+  if (!einleitung && eintraege.length === 0 && !beschreibung) return null;
+  // Nur die Beschreibung: ab dem Tablet steht sie im Kopf, der Knopf wäre dort doppelt.
+  const nurHandy = !einleitung && eintraege.length === 0;
 
   return (
     <>
@@ -144,11 +151,12 @@ export function SeitenHilfeKnopf({ seite, einleitung }: { seite: string; einleit
         rechts im Kopf nur die Hauptaktion auffällt. Der Name für Vorlesehilfe
         und Mauszeiger bleibt ausgeschrieben.
       */}
-      <button type="button" className="seitenkopf-hilfe" onClick={() => setOffen(true)} aria-label="Hilfe zu dieser Seite" title="Hilfe zu dieser Seite">
+      <button type="button" className={nurHandy ? 'seitenkopf-hilfe seitenkopf-hilfe-handy' : 'seitenkopf-hilfe'} onClick={() => setOffen(true)} aria-label="Hilfe zu dieser Seite" title="Hilfe zu dieser Seite">
         <Icon name="hilfe" size={22} aria-hidden="true" />
       </button>
       <BottomSheet open={offen} onClose={() => setOffen(false)} label={`Hilfe zu ${seite}`} auchBreit titel={`Hilfe: ${seite}`}>
         <div className="hilfe-liste">
+          {beschreibung && <p className="hilfe-text pb-3">{beschreibung}</p>}
           {einleitung && <div className="hilfe-text pb-3">{einleitung}</div>}
           {zuZeigen(eintraege, hilfe?.inhalte.current ?? new Map()).map((e) => (
             <section key={e.id} className="hilfe-eintrag">

@@ -243,13 +243,16 @@ describe('Ohne interne Kostensätze', () => {
     expect(screen.queryByText('Ergebnis je Baustelle')).not.toBeInTheDocument();
   });
 
-  it('nennt den Weg dorthin vollständig', async () => {
+  it('führt mit einem Knopf dorthin; die Erklärung steht nicht offen auf der Seite (D5, E86)', async () => {
     // „In den Einstellungen hinterlegen" hat aus dem Betrieb die Rückmeldung
-    // ausgelöst, es gäbe kein solches Feld. Jetzt steht der ganze Pfad da.
+    // ausgelöst, es gäbe kein solches Feld — deshalb führt der Knopf direkt
+    // zu den Sätzen. Zwei Absätze Erklärung standen offen; jetzt ein Satz.
     kosten = null;
     zeige();
-    const link = await screen.findByRole('link', { name: /Interne Kostensätze/ });
+    const link = await screen.findByRole('link', { name: 'Kostensätze eintragen' });
     expect(link.getAttribute('href')).toBe('/settings/saetze');
+    expect(screen.queryByText(/ergäbe jede Baustelle eine Marge von null/)).toBeNull();
+    expect(screen.getByText('Gerechnet wird, sobald feststeht, was eine Arbeitsstunde den Betrieb kostet.')).toBeInTheDocument();
   });
 });
 

@@ -895,9 +895,8 @@ export default function WorkSheetsListView() {
           <div className="ohne-buchung-kopf">
             <div className="min-w-0">
               {ohneBuchung.length === 0 ? (
-                <p className="text-sm text-ink">
-                  Zu jeder Stunde auf den geprüften Scheinen gibt es eine Buchung in der Zeiterfassung.
-                </p>
+                /* Eine Zeile, wenn nichts offen ist (D5, E86) — was genau geprüft wird, sagt die Hilfe. */
+                <p className="text-sm text-ink">Alle Stunden gebucht.</p>
               ) : minutenOhneBuchung(ohneBuchung) > 0 && (
                 <p className="text-sm text-ink">
                   <strong>{fmtDauer(minutenOhneBuchung(ohneBuchung))}</strong> stehen unterschrieben

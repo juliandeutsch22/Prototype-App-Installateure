@@ -284,6 +284,11 @@
   @media (min-width: 1200px) {
     .nachricht-blatt, .nachricht-reaktionen { max-width: 62%; }
   }
+  /* Der Gesprächskopf am Handy in einer Zeile (D3, E86): ein langer Name endet mit Auslassungspunkten, die Kopfzeile zeigt ihn beim Rollen. */
+  @media (max-width: 759px) {
+    .gespraech-kopf .seitenkopf h1 { font-size: 1.25rem; }
+    .gespraech-kopf .seitenkopf h1 .titel-satz { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  }
 }
 
 /* ── Neue Nachricht: ein Bogen mit Suche, Personen und Baustellen ── */

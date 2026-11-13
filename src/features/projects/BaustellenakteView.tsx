@@ -580,6 +580,30 @@ export default function BaustellenakteView() {
       : null,
     abgeschlossen: b.status === 'Abgeschlossen',
   });
+  /*
+    DIE ECKDATEN ZWEIMAL GEBAUT, EINMAL GEZEIGT (D1, E86). Ab dem Tablet
+    stehen sie im Schriftfeld des Kopfs; am Handy schoben ihre vier Kästchen
+    die Reiter unter den ersten Bildschirm. Dort stehen sie als Blatt
+    „Angaben“ oben in der Übersicht — Zeilen, links die Bezeichnung, rechts
+    der Wert —, und der Stand rückt als Wort neben die Nummer.
+  */
+  const eckdaten = (
+    <MetricRow label="Eckdaten der Baustelle">
+      <Metric
+        label="Abrechnung"
+        value={b.billingMode ? abrechnungKurz(b.billingMode).wert : 'offen'}
+        hint={b.billingMode ? abrechnungKurz(b.billingMode).zusatz : 'nicht festgelegt'}
+      />
+      <Metric label="Beginn" value={fmtDatum(b.startDate) || '—'} hint={wochentag(b.startDate)} />
+      <Metric
+        label="Ende geplant"
+        value={fmtDatum(b.endDate) || '—'}
+        tone={endeVorbei(b, todayStr()) ? 'warning' : 'default'}
+        hint={endeVorbei(b, todayStr()) ? 'überschritten' : b.endDate === todayStr() ? 'heute' : wochentag(b.endDate)}
+      />
+      <Metric label="Stand" value={b.status} nurBreit />
+    </MetricRow>
+  );
   return (
     <div className="akten-seite">
       {warnung}
@@ -591,21 +615,8 @@ export default function BaustellenakteView() {
         */
         stempel={b.projectNumber}
         meta={b.address?.trim() ? <span className="akten-identitaet">{b.address}</span> : undefined}
-        stand={<MetricRow label="Eckdaten der Baustelle">
-          <Metric
-            label="Abrechnung"
-            value={b.billingMode ? abrechnungKurz(b.billingMode).wert : 'offen'}
-            hint={b.billingMode ? abrechnungKurz(b.billingMode).zusatz : 'nicht festgelegt'}
-          />
-          <Metric label="Beginn" value={fmtDatum(b.startDate) || '—'} hint={wochentag(b.startDate)} />
-          <Metric
-            label="Ende geplant"
-            value={fmtDatum(b.endDate) || '—'}
-            tone={endeVorbei(b, todayStr()) ? 'warning' : 'default'}
-            hint={endeVorbei(b, todayStr()) ? 'überschritten' : b.endDate === todayStr() ? 'heute' : wochentag(b.endDate)}
-          />
-          <Metric label="Stand" value={b.status} />
-        </MetricRow>}
+        stand={eckdaten}
+        standWort={b.status}
         title={baustellenTitel(b)}
         kontakt={<><TelefonLink nummer={b.contactPhone} name={b.contactName} /><a className="link-weiter akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a></>}
         action={(hauptaktion || darfAendern) && <div className="akten-aktionen">
@@ -621,7 +632,9 @@ export default function BaustellenakteView() {
 
       <AktenBereiche kennung="baustelle" kontext={<>{kundeOrt}{team}</>} bereiche={[
         { id: 'uebersicht', titel: 'Übersicht', sprungziele: ['b-ueberblick', 'b-daten'], inhalt:
-          <div className="akten-spalte">{auftrag}
+          <div className="akten-spalte">
+            <Card title="Angaben" buendig className="akten-angaben-handy"><div className="schriftfeld schriftfeld-blatt">{eckdaten}</div></Card>
+            {auftrag}
             {nachrichtenAn && <BaustelleNachrichten projektId={b.id} />}
             {einsatzAn && <EinsaetzeVorschau lage={einsatzLage} namen={(uid) => namen.get(uid)} />}
             {einsatzAn && <AktenTerminVorschau stand={terminStand} bereich="planung" />}

@@ -415,17 +415,18 @@ select:not([multiple]):not([size]) {
     display: none;
   }
   /* Hinweis, dass die Leiste weitergeht (U16) — kein Farbfeld, nur eine weich auslaufende Kante. */
-  .reiterleiste[data-mehr-rechts] {
-    -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
-    mask-image: linear-gradient(to right, #000 88%, transparent);
+  /* Wo die Kante beginnt, misst `reiterImBild` (D6, E86): am ersten angeschnittenen Reiter. */
+  :is(.reiterleiste, .akten-bereiche)[data-mehr-rechts] {
+    -webkit-mask-image: linear-gradient(to right, #000 var(--mehr-ab, 88%), transparent);
+    mask-image: linear-gradient(to right, #000 var(--mehr-ab, 88%), transparent);
   }
-  .reiterleiste[data-mehr-links] {
-    -webkit-mask-image: linear-gradient(to left, #000 88%, transparent);
-    mask-image: linear-gradient(to left, #000 88%, transparent);
+  :is(.reiterleiste, .akten-bereiche)[data-mehr-links] {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--mehr-bis, 12%));
+    mask-image: linear-gradient(to right, transparent, #000 var(--mehr-bis, 12%));
   }
-  .reiterleiste[data-mehr-links][data-mehr-rechts] {
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
-    mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  :is(.reiterleiste, .akten-bereiche)[data-mehr-links][data-mehr-rechts] {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--mehr-bis, 12%), #000 var(--mehr-ab, 88%), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 var(--mehr-bis, 12%), #000 var(--mehr-ab, 88%), transparent);
   }
 
   .panel {
@@ -1005,6 +1006,17 @@ textarea {
   .zeile-zustand { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.125rem 0.75rem; }
   @media (min-width: 760px) { .zeile-zustand { min-width: 8.5rem; } }
   /*
+    DER KNOPF UNTER DEM TEXT (D4, E86). Am Handy stand ein Textknopf
+    („Abgeholt“, „Genehmigen“) neben dem Namen und nahm ihm die Hälfte der
+    Zeile — Namen brachen dreizeilig. Trägt eine Zeile einen Textknopf,
+    nimmt der Text die ganze Breite, und Zustand und Knöpfe stehen darunter,
+    links bündig. Symbolknöpfe („⋯“, Stift) bleiben rechts daneben.
+  */
+  @media (max-width: 759px) {
+    .zeile:has(> .zeile-rechts > button:not([data-icon])) > .zeile-text { flex-basis: 100%; }
+    .zeile:has(> .zeile-rechts > button:not([data-icon])) > .zeile-rechts { margin-left: 0; justify-content: flex-start; }
+  }
+  /*
     DIE GESTAPELTE ZEILE (`ListRow gestapelt`, Auftrag 04.11.2026): Text und
     „⋯“ oben, Zustand und Wert darunter — am Handy und Tablet, wo eine breite
     Maßlinie neben dem Text diesen auf ein Drittel der Zeile drückte. Am
@@ -1025,6 +1037,13 @@ textarea {
     .zeile-gestapelt > .zeile-stand { flex-wrap: nowrap; justify-content: flex-end; gap: 0.75rem; margin-top: 0; }
     .zeile-gestapelt .zeile-stand .zeile-wert { text-align: right; }
     .zeile-gestapelt > .zeile-aktionen { margin-block: 0; }
+    /*
+      DIE ZUSTANDSSPALTE IN FESTER BREITE (D12, E86): mit nur einer
+      Mindestbreite schob ein langer Zustand („Teilbezahlt, überfällig“)
+      Wert und Maßlinie seiner Zeile nach links, und die Spalten liefen
+      auseinander. Sieben Zellen, ein längeres Wort bricht darin um.
+    */
+    .zeile-gestapelt .zeile-stand .zeile-zustand { flex: none; width: 10.5rem; }
   }
   /*
     BETRAG MIT MASSLINIE IN EINER GESTAPELTEN ZEILE (Nachkalkulation:

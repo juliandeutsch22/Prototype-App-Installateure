@@ -72,7 +72,7 @@ test('Stunden ohne Buchung: knapp, wenn nichts offen ist — „Weiter zurück p
   await page.goto('/worksheets');
   const karte = page.locator('section, .karte').filter({ has: page.getByRole('heading', { name: 'Stunden ohne Buchung (0)' }) }).last();
   await expect(karte).toBeVisible({ timeout: 15_000 });
-  await expect(karte.getByText('Zu jeder Stunde auf den geprüften Scheinen gibt es eine Buchung')).toBeVisible();
+  await expect(karte.getByText('Alle Stunden gebucht.')).toBeVisible();
   await expect(karte.getByRole('button', { name: '30 Tage' })).toBeVisible();
   // Vorher rund 300 px; jetzt Kopf und eine Zeile mit den Knöpfen daneben.
   expect((await karte.boundingBox())!.height).toBeLessThanOrEqual(168);

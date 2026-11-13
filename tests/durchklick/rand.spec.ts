@@ -136,6 +136,28 @@ test('Das Schriftfeld schließt oben über die ganze Breite und in jeder angebro
     await page.goto('/invoices');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('.schriftfeld .lage-punkt')).toHaveCount(3, { timeout: 15_000 });
+    /*
+      AM HANDY SEIT E86 KEIN SCHRIFTFELD, SONDERN EINE LISTE: was dort steht,
+      steht als Blatt mit Linie rundum, eine Zeile je Kennzahl — Nullen fehlen,
+      und fehlt alles, fehlt das Feld (`handyInhalt.spec.ts`).
+    */
+    if (breite.name === 'Handy') {
+      const liste = await page.evaluate(() => {
+        const feld = document.querySelector<HTMLElement>('.schriftfeld')!;
+        const zeile = feld.querySelector<HTMLElement>('.lage-zeile')!;
+        const sichtbar = [...zeile.querySelectorAll<HTMLElement>('.lage-punkt')].filter((p) => p.offsetParent !== null);
+        return {
+          sichtbar: sichtbar.length,
+          feldDa: getComputedStyle(feld).display !== 'none',
+          rahmen: getComputedStyle(zeile).borderTopWidth,
+          spalte: getComputedStyle(zeile).flexDirection,
+          volleBreite: sichtbar.every((p) => Math.round(p.getBoundingClientRect().width) === Math.round(zeile.clientWidth)),
+        };
+      });
+      expect(liste.feldDa).toBe(liste.sichtbar > 0);
+      if (liste.sichtbar > 0) expect(liste).toMatchObject({ rahmen: '1px', spalte: 'column', volleBreite: true });
+      continue;
+    }
     const lage = await page.evaluate(() => {
       const feld = document.querySelector<HTMLElement>('.schriftfeld')!;
       const zeile = feld.querySelector<HTMLElement>('.lage-zeile')!;
@@ -160,6 +182,5 @@ test('Das Schriftfeld schließt oben über die ganze Breite und in jeder angebro
       expect(lage.fuellBreite, `${breite.name}: freies Stück der letzten Reihe`).toBe(lage.frei);
       expect(lage.fuellStark).toBe('1px');
     }
-    if (breite.name === 'Handy') expect(lage.angebrochen, 'am Handy bricht die dritte Zelle um').toBe(true);
   }
 });

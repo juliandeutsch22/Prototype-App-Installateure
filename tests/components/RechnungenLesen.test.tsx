@@ -53,7 +53,8 @@ describe('Rechnungen lesen', () => {
     expect(screen.getByText(/offen € 1[.\s]000,00/)).toBeInTheDocument();
     expect(screen.getByText('Teilbezahlt')).toBeInTheDocument();
     // Die einzigen Knöpfe sind die der Auswahl; keine Zeile öffnet etwas, nichts legt an oder mahnt.
-    const knoepfe = screen.getAllByRole('button').map((b) => b.textContent);
+    // Die Hilfe der Seite zählt nicht: sie trägt am Handy den Untertitel (E86) und tut sonst nichts.
+    const knoepfe = screen.getAllByRole('button').filter((b) => b.getAttribute('aria-label') !== 'Hilfe zu dieser Seite').map((b) => b.textContent);
     expect(knoepfe).toEqual(['Offen', 'Erledigt', 'Alle']);
   });
 
