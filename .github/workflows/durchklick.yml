@@ -63,6 +63,14 @@ jobs:
     name: Die sechs Wege im Browser
     runs-on: ubuntu-latest
     steps:
+      # DIE PORTS DES STAPELS VOR DEM ERSTEN NETZZUGRIFF RESERVIEREN (13.11.2026).
+      # 54320–54329 liegen im Bereich, aus dem Linux Ports für ausgehende
+      # Verbindungen vergibt (32768–60999). Beim Holen der Images öffnet
+      # `supabase start` über hundert Verbindungen; hielt eine davon gerade
+      # 54322, scheiterte der Start mit „address already in use“ — zweimal
+      # hintereinander auf `main` (Lauf 43490981238), ohne dass eine Prüfung lief.
+      - name: Ports des Stapels reservieren
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -86,6 +94,11 @@ jobs:
 
       - name: Stapel hochfahren
         run: supabase start
+
+      # Scheitert der Start dennoch, steht hier, wer die Ports hält — Nachweis statt Vermutung.
+      - name: Wer hält die Ports des Stapels?
+        if: failure()
+        run: sudo ss -tanp | grep -E ':543(2[0-9])\b' || echo 'keiner'
 
       # Chromium für alle Wege, dazu WebKit (Safari) für die Wege des
       # Monteurs am Telefon (Nachtest 01.10.2026, Paket E) — Firefox nicht:
