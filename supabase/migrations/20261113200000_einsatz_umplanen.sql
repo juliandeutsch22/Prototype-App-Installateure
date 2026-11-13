@@ -46,7 +46,7 @@ $$;
 revoke all on function app.ruestliste_mannschaft(text, date, text) from public, anon, authenticated;
 
 /* Die gemeinsamen Vorbedingungen: Führung, im eigenen Betrieb, nicht im Einblick. */
-create or replace function app.umplanen_darf() returns text
+create or replace function app.darf_umplanen() returns text
   language plpgsql
   stable
   security definer
@@ -65,7 +65,7 @@ begin
 end;
 $$;
 
-revoke all on function app.umplanen_darf() from public, anon, authenticated;
+revoke all on function app.darf_umplanen() from public, anon, authenticated;
 
 create or replace function public.einsatz_umplanen(
   p_id uuid,
@@ -78,7 +78,7 @@ create or replace function public.einsatz_umplanen(
   set search_path = ''
 as $$
 declare
-  betrieb text := app.umplanen_darf();
+  betrieb text := app.darf_umplanen();
   a public.assignments;
   name text;
   urlaub text;
@@ -165,7 +165,7 @@ create or replace function public.einsatz_entfernen(p_id uuid) returns void
   set search_path = ''
 as $$
 declare
-  betrieb text := app.umplanen_darf();
+  betrieb text := app.darf_umplanen();
   a public.assignments;
 begin
   delete from public.assignments x where x.id = p_id and x.company_id = betrieb returning * into a;
