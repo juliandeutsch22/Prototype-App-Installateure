@@ -213,6 +213,8 @@ export async function wartendeVorgaenge(client?: SupabaseClient): Promise<Vormer
 
 /** Der gerade laufende Nachsendelauf, falls einer läuft. */
 let laufend: Promise<Bericht> | null = null;
+/** Während eines Laufs kam ein weiterer Anstoß. */
+let nochmal = false;
 
 /**
  * Was noch im Fach liegt, jetzt nachsenden.
@@ -227,26 +229,49 @@ export async function nachsendenJetzt(client?: SupabaseClient): Promise<Bericht>
     zusammenfallen; zwei Läufe über dasselbe Fach schickten dieselbe
     Vormerkung doppelt und räumten sie doppelt weg.
   */
-  if (laufend) return laufend;
-  laufend = (async () => {
-    const fach = lager();
-    if (!fach) return { gesendet: 0, abgelehnt: 0, offen: 0 };
-    const c = derClient(client);
+  if (laufend) {
     /*
-      NUR MIT EINER GÜLTIGEN SITZUNG, und nur deren eigene Vormerkungen
-      (Prüflauf 25.09.2026, P1-05). Ohne Sitzung ging der Aufruf als „anon"
-      hinaus, mit der eines Kollegen unter dessen Namen — beide lehnt der
-      Zeilenschutz ab, und das Fach warf die Buchung als endgültig verloren
-      weg. Jetzt bleibt sie liegen, bis ihr Besitzer wieder angemeldet ist.
+      DER ANSTOSS GEHT NICHT VERLOREN (E90, C4). Ein Lauf, der im Funkloch
+      begann, scheitert manchmal erst, wenn das Netz schon wieder da ist —
+      das `online` dazwischen fand ihn noch unterwegs. Ohne Nachlauf lag
+      der Vorgang dann bis zum nächsten Zeitgeber im Gerät, eine Minute.
     */
-    return nachsenden(fach, supabaseSender(c), await sitzungsKonto(c));
+    nochmal = true;
+    return laufend;
+  }
+  laufend = (async () => {
+    let bericht: Bericht;
+    do {
+      nochmal = false;
+      try {
+        bericht = await einLauf(client);
+      } finally {
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event(FACH_GELEERT));
+      }
+      // Nur wenn noch etwas liegt: ein leeres Fach braucht keinen zweiten Blick.
+    } while (nochmal && bericht.offen > 0);
+    return bericht;
   })();
   try {
     return await laufend;
   } finally {
     laufend = null;
-    if (typeof window !== 'undefined') window.dispatchEvent(new Event(FACH_GELEERT));
   }
+}
+
+
+async function einLauf(client?: SupabaseClient): Promise<Bericht> {
+  const fach = lager();
+  if (!fach) return { gesendet: 0, abgelehnt: 0, offen: 0 };
+  const c = derClient(client);
+  /*
+    NUR MIT EINER GÜLTIGEN SITZUNG, und nur deren eigene Vormerkungen
+    (Prüflauf 25.09.2026, P1-05). Ohne Sitzung ging der Aufruf als „anon"
+    hinaus, mit der eines Kollegen unter dessen Namen — beide lehnt der
+    Zeilenschutz ab, und das Fach warf die Buchung als endgültig verloren
+    weg. Jetzt bleibt sie liegen, bis ihr Besitzer wieder angemeldet ist.
+  */
+  return nachsenden(fach, supabaseSender(c), await sitzungsKonto(c));
 }
 
 /**

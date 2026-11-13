@@ -67,6 +67,13 @@ export function useZeitsitzungStand(aktiv = true): ZeitsitzungStand {
     „Weiterarbeiten“, und der zweite Tipp hiebe die Pause gleich wieder ab.
   */
   const unterwegsRef = useRef(false);
+  /*
+    „VORGEMERKT“ EINMAL JE FUNKLOCH (C4, E90). Seit der Schritt sofort gilt,
+    tippt man im Keller leicht zwei Schritte hintereinander — die gleiche
+    Meldung zweimal übereinander sagt nichts Neues. Wieder gemeldet wird erst
+    nach dem nächsten Empfang.
+  */
+  const vorgemerktGemeldet = useRef(false);
   const [unterwegs, setUnterwegs] = useState(false);
 
   const laden = useCallback(async () => {
@@ -96,11 +103,13 @@ export function useZeitsitzungStand(aktiv = true): ZeitsitzungStand {
       ? window.setInterval(() => { if (document.visibilityState === 'visible') void laden(); }, 30_000)
       : null;
     const wiederDa = () => { void laden(); };
-    window.addEventListener('online', wiederDa);
+    // Nur echter Empfang: das Ausgangsfach meldet sich nach jedem Versuch, auch im Funkloch.
+    const empfang = () => { vorgemerktGemeldet.current = false; void laden(); };
+    window.addEventListener('online', empfang);
     window.addEventListener(FACH_GELEERT, wiederDa);
     return () => {
       if (intervall !== null) window.clearInterval(intervall);
-      window.removeEventListener('online', wiederDa);
+      window.removeEventListener('online', empfang);
       window.removeEventListener(FACH_GELEERT, wiederDa);
     };
   }, [aktiv, laden, abgleichen]);
@@ -158,7 +167,8 @@ export function useZeitsitzungStand(aktiv = true): ZeitsitzungStand {
             timerMerken(firma, uid, alt);
             return alt;
           });
-          toast?.info('Timer-Schritt auf diesem Gerät vorgemerkt. Er wird bei Verbindung gesendet.');
+          if (!vorgemerktGemeldet.current) toast?.info('Timer-Schritt auf diesem Gerät vorgemerkt. Er wird bei Verbindung gesendet.');
+          vorgemerktGemeldet.current = true;
         } else {
           bestaetigt = true;
         }

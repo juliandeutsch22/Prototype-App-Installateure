@@ -62,6 +62,7 @@ import { useToast } from '@/components/Toast';
 import TimeForm from './TimeForm';
 import BottomSheet from '@/components/BottomSheet';
 import { useAmHandy } from '@/lib/breiten';
+import { useModul } from '@/lib/useModule';
 import { KrankmeldungFenster } from '@/features/vacations/Krankmeldungen';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import AntragKnopf, { FreistellungKnopf } from '@/features/time/AntragKnopf';
@@ -170,6 +171,12 @@ export default function TimeView() {
     gleich offen.
   */
   const amHandy = useAmHandy();
+  /*
+    IST DIE ZEITERFASSUNG AUSGESCHALTET, sagt es die Seite — auch am Handy,
+    wo das Formular (und mit ihm dieser Satz) sonst erst im Blatt stünde;
+    „Neuer Eintrag“ gibt es dann nicht. Vorhandenes bleibt lesbar.
+  */
+  const erfassungAn = useModul('zeiterfassung');
   const [blatt, setBlatt] = useState(() => {
     const s = vonStart as { projectNumber?: string; startTime?: string; vonHand?: boolean } | null;
     return !!(s?.vonHand || s?.projectNumber || s?.startTime);
@@ -599,7 +606,8 @@ export default function TimeView() {
     ziel.focus({ preventScroll: true });
   };
 
-  const formularOffen = blatt || !!editing || !!vorbelegung;
+  // Ein neuer Eintrag nur mit eingeschalteter Erfassung; einen vorhandenen öffnen geht weiter.
+  const formularOffen = (erfassungAn && (blatt || !!vorbelegung)) || !!editing;
   /** Blatt zu: Bearbeiten und Vorbelegung sind damit erledigt, wie nach dem Speichern. */
   const formularSchliessen = () => {
     setBlatt(false);
@@ -759,7 +767,7 @@ export default function TimeView() {
       {/* Ohne Zeitkonto kein Saldo — dann verspricht die Überschrift auch keinen (Launch-Check, M4). */}
       <PageHeader
         title="Zeiterfassung"
-        action={amHandy ? (
+        action={amHandy && erfassungAn ? (
           <Button type="button" onClick={() => { setEditing(null); setVorbelegung(null); setBlatt(true); }}>
             Neuer Eintrag
           </Button>
@@ -1089,6 +1097,11 @@ export default function TimeView() {
       {/* Bündig: die Wochen sind getönte Abschnitte, die Buchungen Zeilen von
           Kante zu Kante (Designlinie „Fassung 3"). Laden, Fehler und Leere
           stehen gepolstert darin. */}
+      {amHandy && !erfassungAn && (
+        <Card>
+          <p className="text-sm text-ink-muted">Die Zeiterfassung ist ausgeschaltet. Vorhandene Zeiten, Exporte und Änderungsprotokolle bleiben verfügbar.</p>
+        </Card>
+      )}
       {amHandy && (
         <BottomSheet
           open={formularOffen}

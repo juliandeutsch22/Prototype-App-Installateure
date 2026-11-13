@@ -213,6 +213,23 @@ describe('Der Timer antwortet sofort (C4, E90)', () => {
     expect(vi.mocked(zs.timerMerken)).toHaveBeenCalled();
   });
 
+  it('zwei Schritte im Funkloch: „vorgemerkt“ steht einmal, nicht zweimal', async () => {
+    sitzungen = [laeuft()];
+    gesendet.mockImplementation(async () => 'queued' as never);
+    try {
+      render(<ToastProvider><MemoryRouter><ArbeitstagKarte /></MemoryRouter></ToastProvider>);
+      await userEvent.click(await screen.findByRole('button', { name: 'Pause beginnen' }));
+      await screen.findByText(/Timer-Schritt auf diesem Gerät vorgemerkt/);
+      // Das Ausgangsfach meldet sich nach jedem Versuch — auch ohne Empfang; das ist kein neues Funkloch.
+      window.dispatchEvent(new Event('senklot:ausgangsfach'));
+      await userEvent.click(await screen.findByRole('button', { name: 'Weiterarbeiten' }));
+      await waitFor(() => expect(gesendet).toHaveBeenCalledTimes(2));
+      expect(screen.getAllByText(/Timer-Schritt auf diesem Gerät vorgemerkt/)).toHaveLength(1);
+    } finally {
+      gesendet.mockImplementation(async () => 'confirmed' as const);
+    }
+  });
+
   it('nach „Stoppen und prüfen“ wird erst gebucht, wenn der Server den Stopp kennt', async () => {
     sitzungen = [laeuft()];
     gesendet.mockImplementationOnce(haengt);

@@ -3766,6 +3766,15 @@ Linie; ab dem Tablet bleibt alles, wie es war.
   Doppeltipp höbe die Pause sonst gleich auf), und der Abgleich alle 30
   Sekunden überschreibt den angezeigten Schritt nicht. Nach „Stoppen und
   prüfen“ öffnet sich das Formular erst, wenn der Server den Stopp kennt.
+  Im Funkloch meldet die App „vorgemerkt“ einmal bis zum nächsten Empfang,
+  nicht bei jedem Tipp.
+- **Ausgangsfach: kein verschluckter Anstoß.** Seit C4 tippt man im Keller
+  schneller, als ein Nachsendelauf scheitert. Fiel das `online` in einen
+  Lauf, der gerade noch im Funkloch scheiterte, ging der Anstoß verloren,
+  und der Schritt lag bis zum Zeitgeber eine Minute im Gerät (im Browserweg
+  „Offline gestarteter Timer …“ jeder vierte Lauf rot). Jetzt merkt ein
+  Anstoß während eines Laufs einen Nachlauf vor, wenn danach noch etwas im
+  Fach liegt. Das gilt für alles im Ausgangsfach, nicht nur den Timer.
 - **D7 — Start.** Die Karte „Arbeitstag“ ist kompakt: Uhr und Knöpfe in
   einer Zeile, darunter die Baustelle mit Namen und Nummer, der Papierkorb
   oben rechts in der Kopfzeile — eine Zeile über Pause und Stopp (der Grund
@@ -3780,7 +3789,8 @@ Linie; ab dem Tablet bleibt alles, wie es war.
   „Nachtragen“ und „Zeit nachtragen“ öffnen dasselbe Formular als Blatt von
   unten, vorbelegt. „Zu meinen Einträgen“ entfällt. Kommt man mit Baustelle
   oder Zeiten her („Zeit von Hand eintragen“, „Wie zuletzt buchen“), ist das
-  Blatt gleich offen.
+  Blatt gleich offen. Ist die Zeiterfassung ausgeschaltet, steht am Handy
+  statt des Knopfs ein Hinweis, warum nichts zu buchen ist.
 - **D8 — Schein.** Steht die Baustelle fest, steht sie einmal da — Name,
   Nummer, Abrechnung, Adresse, „ändern“; erst „ändern“ (oder „Baustelle und
   Tag ändern“ in der Zusammenfassung) zeigt Einsätze und Auswahl. Ist
@@ -3807,4 +3817,10 @@ verzögerten Server; Schein am Handy; Tablet wie bisher). Gegenproben: mit
 dem Stand davor sind die neuen Prüfungen rot (C4 3, D7 7, C6 3, D8 3, Name
 der Karte 1) und beide Handy-Wege; „ohne Netz vorgemerkt“, „ohne Timer“,
 „Karte ausgeblendet“, „Tablet wie bisher“ und „gesperrtes Feld“ bleiben
-grün.
+grün. Ausgangsfach `ausgangsfachSitzung.test.ts` (+2: der Anstoß mitten in
+einen scheiternden Lauf wird nachgeholt — ohne die Änderung rot; ohne
+weiteren Anstoß bleibt es bei einem Versuch), `zeitsitzungStand` (Funkloch
+einmal gemeldet), `TimeView.test.tsx` (ausgeschaltet am Handy); der
+Browserweg „Offline gestarteter Timer …“ 12 von 12 grün (vorher 2 von 8
+rot). Die Browserwege am iPhone (`webkit-telefon`), die das Formular offen
+auf der Seite erwarteten, öffnen es jetzt über „Neuer Eintrag“.

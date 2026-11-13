@@ -1349,6 +1349,22 @@ describe('Zeiterfassung am Handy (C6, E90)', () => {
     expect(await screen.findByRole('dialog', { name: 'Neuer Eintrag' })).toBeInTheDocument();
   });
 
+  it('ist die Zeiterfassung ausgeschaltet, sagt es die Seite — ohne „Neuer Eintrag“', async () => {
+    alsHandy();
+    const vorher = authWert.company;
+    authWert.company = { ...vorher, modules: { zeiterfassung: false } } as typeof vorher;
+    try {
+      eintraege = [eintrag({ id: 'alt', date: '2026-08-31' })];
+      zeige();
+      expect(await screen.findByText(/Die Zeiterfassung ist ausgeschaltet/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Neuer Eintrag' })).toBeNull();
+      // Vorhandenes bleibt lesbar.
+      expect(await screen.findByText('31.08.2026')).toBeInTheDocument();
+    } finally {
+      authWert.company = vorher;
+    }
+  });
+
   it('Gegenprobe: ohne Handy-Breite steht das Formular auf der Seite, ohne „Neuer Eintrag“', async () => {
     zeige();
     expect(await screen.findByTestId('zeitformular')).toBeInTheDocument();
