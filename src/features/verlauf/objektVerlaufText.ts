@@ -278,6 +278,7 @@ export const VERLAUF_FELDER: Record<Objektart, Feld[]> = {
     ['lehrzeit_monate', 'Lehrzeit', monate],
     ['stunden_ins_budget', 'Stunden ins Projekt-Budget', janein],
     ['eintritt', 'Eintrittsdatum', datum],
+    ['austritt', 'Austrittsdatum', datum],
     ['kunden_pflegen', 'Kunden pflegen', janein],
     ['katalog_einspielen', 'Katalog einspielen', janein],
     ['einkauf_sehen', 'Einkaufspreise sehen', janein],

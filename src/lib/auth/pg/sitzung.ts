@@ -356,6 +356,7 @@ function profilAus(
     rechnungenLesen: zeile.rechnungen_lesen === true,
     fuehrtZeitkonto: zeile.fuehrt_zeitkonto === true,
     eintritt: (zeile.eintritt as string | null) ?? null,
+    austritt: (zeile.austritt as string | null) ?? null,
     appStartDate: (zeile.app_start_date as string | null) ?? null,
     // Die Maske bietet „Berufsschule“ nur Lehrlingen an (4.1).
     einstufung: (zeile.einstufung as CurrentUser['einstufung']) ?? null,

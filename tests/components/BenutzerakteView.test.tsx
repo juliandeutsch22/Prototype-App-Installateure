@@ -1,3 +1,4 @@
+import { todayStr } from '@/lib/time';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -185,6 +186,28 @@ describe('Die Stammdaten in der Akte', () => {
 
     expect(profilAendern).not.toHaveBeenCalled();
     expect(await screen.findByRole('alert')).toHaveTextContent(/Eintrittsdatum liegt nach dem Saldo-Start/);
+  });
+
+  it('trägt das Austrittsdatum ein — auch während der Kündigungsfrist, das Konto bleibt aktiv (E87)', async () => {
+    gefunden = person({ uid: 'u2', name: 'Erna Beispiel', eintritt: '2026-01-01', appStartDate: '2026-01-01' });
+    zeige();
+    await bearbeite();
+    const feld = await screen.findByLabelText(/Austrittsdatum \(letzter Arbeitstag\)/);
+    expect(feld).toHaveValue('');
+    await userEvent.type(feld, '2026-12-31');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
+    expect(profilAendern.mock.calls[0][1]).toMatchObject({ austritt: '2026-12-31', active: true });
+  });
+
+  it('Gegenprobe: ein Austritt vor dem Eintritt wird nicht gespeichert', async () => {
+    gefunden = person({ uid: 'u2', name: 'Erna Beispiel', eintritt: '2026-01-01', appStartDate: '2026-01-01' });
+    zeige();
+    await bearbeite();
+    await userEvent.type(await screen.findByLabelText(/Austrittsdatum \(letzter Arbeitstag\)/), '2025-12-31');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    expect(profilAendern).not.toHaveBeenCalled();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Austritt liegt vor dem Eintritt/);
   });
 
   it('zeigt die Speicherleiste erst bei einer echten Änderung', async () => {
@@ -439,7 +462,7 @@ describe('Der Zugang', () => {
     await waitFor(() => expect(passwortMail).toHaveBeenCalledWith('erna@perl.at'));
   });
 
-  it('schreibt erst nach der Rückfrage, und schreibt NUR den Status', async () => {
+  it('schreibt erst nach der Rückfrage, und schreibt NUR den Status und den letzten Arbeitstag', async () => {
     /*
       AUS DER LISTENPRÜFUNG ÜBERNOMMEN. Der Knopf muss „Deaktivieren"
       heissen: ohne gesetztes `confirmLabel` nimmt der Dialog seine Vorgabe
@@ -452,9 +475,27 @@ describe('Der Zugang', () => {
     expect(profilAendern).not.toHaveBeenCalled();
 
     const dialog = await screen.findByRole('dialog', {});
+    // Seit E87 fragt der Dialog den letzten Arbeitstag — vorgeschlagen ist heute.
+    expect(within(dialog).getByLabelText('Letzter Arbeitstag')).toHaveValue(todayStr());
     await userEvent.click(within(dialog).getByRole('button', { name: 'Deaktivieren' }));
 
-    await waitFor(() => expect(profilAendern).toHaveBeenCalledWith('u2', { active: false }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalledWith('u2', { active: false, austritt: todayStr() }));
+  });
+
+  it('der letzte Arbeitstag vor dem Eintritt sperrt das Deaktivieren; leer geht ohne Austritt (E87)', async () => {
+    gefunden = person({ uid: 'u4', name: 'Kündigung', eintritt: '2025-03-01', appStartDate: '2025-03-01' });
+    zeige('u4');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Konto deaktivieren' }));
+    const dialog = await screen.findByRole('dialog', {});
+    const feld = within(dialog).getByLabelText('Letzter Arbeitstag');
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '2025-02-28');
+    expect(within(dialog).getByRole('alert')).toHaveTextContent(/vor dem Eintritt/);
+    expect(within(dialog).getByRole('button', { name: 'Deaktivieren' })).toBeDisabled();
+    await userEvent.clear(feld);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Deaktivieren' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalledWith('u4', { active: false, austritt: null }));
   });
 
   it('dreht die Richtung bei einem bereits deaktivierten Konto um', async () => {
@@ -466,7 +507,8 @@ describe('Der Zugang', () => {
     const dialog = await screen.findByRole('dialog', {});
     await userEvent.click(within(dialog).getByRole('button', { name: 'Aktivieren' }));
 
-    await waitFor(() => expect(profilAendern).toHaveBeenCalledWith('u3', { active: true }));
+    // Mit dem Aktivieren fällt der Austritt weg — sonst endete das Zeitkonto weiter am alten Tag (E87).
+    await waitFor(() => expect(profilAendern).toHaveBeenCalledWith('u3', { active: true, austritt: null }));
   });
 
   it('nennt ein deaktiviertes Konto „deaktiviert“, nicht „inaktiv“ (Runde 3, G5)', async () => {

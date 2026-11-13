@@ -1287,7 +1287,7 @@ export interface CompletenessResult {
  *      `workDays`, nicht über eine feste Fünf-Tage-Annahme.
  */
 export function pflichtTage(
-  user: Pick<AppUser, 'workDays' | 'appStartDate'>,
+  user: Pick<AppUser, 'workDays' | 'appStartDate' | 'austritt'>,
   von: Date,
   bis: Date,
 ): string[] {
@@ -1310,13 +1310,18 @@ export function pflichtTage(
   const ende = new Date(bis);
   ende.setHours(0, 0, 0, 0);
   const schluss = gestern < ende ? gestern : ende;
+  // Regel 3 (E87): höchstens bis zum Austritt — danach gibt es kein Soll mehr.
+  if (user.austritt) {
+    const austritt = new Date(`${user.austritt}T00:00:00`);
+    if (austritt < schluss) schluss.setTime(austritt.getTime());
+  }
 
   return werktageImZeitraum(workDays, start, schluss);
 }
 
 /** Die Feiertage, die in denselben Zeitraum fallen — nur zur Anzeige. */
 export function feiertageImZeitraum(
-  user: Pick<AppUser, 'workDays' | 'appStartDate'>,
+  user: Pick<AppUser, 'workDays' | 'appStartDate' | 'austritt'>,
   von: Date,
   bis: Date,
 ): number {
@@ -1333,6 +1338,11 @@ export function feiertageImZeitraum(
   const ende = new Date(bis);
   ende.setHours(0, 0, 0, 0);
   const schluss = gestern < ende ? gestern : ende;
+  // Wie `pflichtTage`: nach dem Austritt (E87) zählt kein Tag mehr.
+  if (user.austritt) {
+    const austritt = new Date(`${user.austritt}T00:00:00`);
+    if (austritt < schluss) schluss.setTime(austritt.getTime());
+  }
 
   let n = 0;
   for (const tag = new Date(start); tag <= schluss; tag.setDate(tag.getDate() + 1)) {

@@ -27,6 +27,8 @@ export interface UserProfileInput {
   appStartDate?: string | null;
   /** Echter Eintritt in den Betrieb — getrennt vom Saldo-Start (M6). */
   eintritt?: string | null;
+  /** Der letzte Arbeitstag (E87); `null` nimmt ihn zurück. */
+  austritt?: string | null;
   /** Stunden je Wochentag, `null` = gleichmässig (M5). */
   tagessoll?: Record<string, number> | null;
   initialOvertime?: number;

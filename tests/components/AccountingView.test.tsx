@@ -1724,6 +1724,32 @@ describe('Mitarbeiterübersicht — deaktivierte Konten mit Buchungen im Monat',
     expect(csv).toMatch(/\nNeu Eingestellt;80,00;8[0-9],00;.*;(\n|$)/);
   });
 
+  /*
+    MIT AUSTRITTSDATUM (E87): Soll und Saldo rechnen bis zum letzten Tag und
+    stehen wieder da — in Liste, Fenster und CSV; den Resturlaub beim
+    Austritt rechnet weiter die Lohnverrechnung.
+  */
+  it('mit Austrittsdatum: Soll und Saldo bis zum letzten Tag, „ausgetreten am …“, Resturlaub leer', async () => {
+    const aus: AppUser = { ...weg, austritt: '2026-08-18' };
+    benutzer = [monteur, aus];
+    buchungen = [...eintraege, ...seine];
+    const nutzer = zeichneSeite('/accounting');
+    const knopf = await personKnopf('Ausgeschieden Anton');
+    expect(screen.getByText(/Mitarbeiter · ausgetreten am 18\.08\.2026/)).toBeInTheDocument();
+    await nutzer.click(knopf);
+    const f = screen.getByRole('dialog', { name: /Ausgeschieden Anton, August 2026/ });
+    expect(within(f).getByText(/Ausgetreten am 18\.08\.2026/)).toBeInTheDocument();
+    expect(within(f).getByText('Saldo im Monat')).toBeInTheDocument();
+    expect(within(f).queryByTestId('resturlaub')).toBeNull();
+    csvGeladen.mockClear();
+    await nutzer.click(within(f).getByRole('button', { name: 'Monat als CSV' }));
+    const eigene = csvGeladen.mock.calls[0][0] as string;
+    expect(eigene).toMatch(/Zeiterfassung: Ausgeschieden Anton \(ausgetreten am 18\.08\.2026\)/);
+    // 17. und 18.08. sind die Pflichttage bis zum Austritt: 16 Stunden Soll.
+    expect(eigene).toMatch(/\nIst;16,00 h\nSoll;16,00 h\nSaldo;0,00 h\n/);
+    expect(eigene).toMatch(/\nResturlaub;—\n/);
+  });
+
   it('Gegenprobe: ohne Buchung im Monat bleibt das deaktivierte Konto weg, und die Datei wie bisher', async () => {
     benutzer = [monteur, weg];
     buchungen = eintraege;

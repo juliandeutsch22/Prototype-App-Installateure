@@ -163,6 +163,8 @@ export interface BenutzerEntwurf {
   appStartDate: string;
   /** Eintritt in den Betrieb (M6) — bei einem Neueintritt gleich dem Saldo-Start. */
   eintritt: string;
+  /** Letzter Arbeitstag (E87); leer heisst: kein Austritt. */
+  austritt: string;
   initialOvertime: string;
   initialVacationDays: string;
   workDays: number[];
@@ -209,6 +211,7 @@ export function leererEntwurf(): BenutzerEntwurf {
     // Ohne Startdatum bliebe der Saldo dauerhaft „nicht konfiguriert".
     appStartDate: todayStr(),
     eintritt: todayStr(),
+    austritt: '',
     initialOvertime: '0',
     /*
       LEER UND NICHT VORBELEGT. Beim Überstundensaldo ist 0 die richtige
@@ -242,6 +245,7 @@ export function alsEntwurf(u: AppUser): BenutzerEntwurf {
     yearlyVacationDays: zahlAlsText(u.yearlyVacationDays ?? DEFAULT_VACATION_DAYS),
     appStartDate: u.appStartDate ?? todayStr(),
     eintritt: u.eintritt ?? u.appStartDate ?? todayStr(),
+    austritt: u.austritt ?? '',
     initialOvertime: zahlAlsText(u.initialOvertime ?? 0),
     initialVacationDays:
       u.initialVacationDays === null || u.initialVacationDays === undefined
@@ -295,7 +299,7 @@ export function tagessollNachTagen(f: Pick<BenutzerEntwurf, 'tagessoll' | 'workD
  */
 export function entwurfFehler(
   e: Pick<BenutzerEntwurf, 'tagessoll' | 'workDays' | 'eintritt' | 'appStartDate'> &
-    Partial<Pick<BenutzerEntwurf, 'weeklyTargetHours' | 'yearlyVacationDays' | 'initialOvertime' | 'initialVacationDays'
+    Partial<Pick<BenutzerEntwurf, 'austritt' | 'weeklyTargetHours' | 'yearlyVacationDays' | 'initialOvertime' | 'initialVacationDays'
       | 'einstufung' | 'lehrbeginn' | 'lehrzeitMonate'>>,
 ): string | null {
   // Eine Zahl, die sich nicht lesen lässt, geht nicht als Vorgabe durch (M15).
@@ -316,7 +320,22 @@ export function entwurfFehler(
   if (e.eintritt && e.appStartDate && e.eintritt > e.appStartDate) {
     return 'Das Eintrittsdatum liegt nach dem Saldo-Start — vor dem Eintritt kann das Zeitkonto nicht rechnen.';
   }
+  const austritt = austrittFehler(e.austritt, e.eintritt, e.appStartDate);
+  if (austritt) return austritt;
   return lehreFehler(e);
+}
+
+/**
+ * Wie die Datenbank (`users_austritt_nach_eintritt`, E87): der Austritt liegt
+ * nie vor dem Eintritt oder dem Saldo-Start — sonst hätte das Zeitkonto keinen
+ * Tag zu rechnen. Auch das Deaktivieren prüft damit. `null` heisst: in Ordnung.
+ */
+export function austrittFehler(austritt?: string | null, eintritt?: string | null, saldoStart?: string | null): string | null {
+  if (!austritt) return null;
+  if ((eintritt && austritt < eintritt) || (saldoStart && austritt < saldoStart)) {
+    return 'Der Austritt liegt vor dem Eintritt oder dem Saldo-Start — das Zeitkonto hätte keinen Tag zu rechnen.';
+  }
+  return null;
 }
 
 /**
@@ -361,6 +380,7 @@ export function alsProfil(e: BenutzerEntwurf): UserProfileInput {
     yearlyVacationDays: zahlOderVorgabe(e.yearlyVacationDays, DEFAULT_VACATION_DAYS),
     appStartDate: e.appStartDate || null,
     eintritt: e.eintritt || e.appStartDate || null,
+    austritt: e.austritt || null,
     tagessoll,
     initialOvertime: zahlOderVorgabe(e.initialOvertime, 0),
     initialVacationDays: zahlOderNull(e.initialVacationDays),

@@ -219,7 +219,17 @@ export function buildMonthCsv(
     );
   }
 
-  const mitDeaktivierten = rows.some((r) => r.deaktiviert);
+  /*
+    DIE SPALTE „KONTO“ (09.11.2026, mit Austritt seit E87): ausgeschieden mit
+    Tag, damit die Lohnverrechnung die Endabrechnung zuordnen kann. Sie steht,
+    sobald jemand im Monat ausgeschieden ist oder austritt.
+    Soll und Saldo fehlen nur, wo kein Austrittsdatum hinterlegt ist; der
+    Resturlaub beim Austritt (Ersatzleistung) bleibt der Lohnverrechnung.
+  */
+  const monatsEnde = `${year}-${String(month + 1).padStart(2, '0')}-31`;
+  const kontoText = (u: AppUser, deaktiviert?: boolean) =>
+    u.austritt && u.austritt <= monatsEnde ? `Austritt ${fmtDate(u.austritt)}` : deaktiviert ? 'deaktiviert' : '';
+  const mitDeaktivierten = rows.some((r) => kontoText(r.user, r.deaktiviert) !== '');
   lines.push('', 'Mitarbeiter-Zusammenfassung');
   lines.push(
     row([
@@ -271,8 +281,8 @@ export function buildMonthCsv(
       row([
         user.name,
         hours(stats.istMin),
-        deaktiviert ? '' : hours(stats.sollMin),
-        deaktiviert ? '' : hours(stats.saldoMin),
+        deaktiviert && !user.austritt ? '' : hours(stats.sollMin),
+        deaktiviert && !user.austritt ? '' : hours(stats.saldoMin),
         stats.krankDays,
         tage(stats.urlaubDays),
         deaktiviert ? '' : tage(stats.urlaubRest),
@@ -293,7 +303,7 @@ export function buildMonthCsv(
         ...(mitTagesgrenze(lohn) && ue ? [hours(ue.nachtAlsUeberstundeMin ?? 0)] : []),
         ...(mitTagesgrenze(lohn) && ue ? [hours(ue.mehrarbeitTeilzeitMin ?? 0)] : []),
         hours(stats.arztbesuchMin),
-        ...(mitDeaktivierten ? [deaktiviert ? 'deaktiviert' : ''] : []),
+        ...(mitDeaktivierten ? [kontoText(user, deaktiviert)] : []),
       ]),
     );
   }
@@ -391,7 +401,7 @@ export function buildUserCsv(
 ): string {
   const lines: string[] = [];
   const felder = feldSpalten(zeitfelder, monthEntries);
-  lines.push(row([`Zeiterfassung: ${user.name}${deaktiviert ? ' (Konto deaktiviert)' : ''}`]));
+  lines.push(row([`Zeiterfassung: ${user.name}${deaktiviert ? (user.austritt ? ` (ausgetreten am ${fmtDate(user.austritt)})` : ' (Konto deaktiviert)') : ''}`]));
   lines.push(row([`Monat: ${MONTHS[month]} ${year}`]));
   lines.push(
     row([`Wochensoll: ${stats.weeklyTarget} h · Jahresurlaub: ${stats.yearlyVacation} Tage`]),
@@ -427,8 +437,8 @@ export function buildUserCsv(
 
   lines.push('');
   lines.push(row(['Ist', `${hours(stats.istMin)} h`]));
-  lines.push(row(['Soll', deaktiviert ? '—' : `${hours(stats.sollMin)} h`]));
-  lines.push(row(['Saldo', deaktiviert ? '—' : `${hours(stats.saldoMin)} h`]));
+  lines.push(row(['Soll', deaktiviert && !user.austritt ? '—' : `${hours(stats.sollMin)} h`]));
+  lines.push(row(['Saldo', deaktiviert && !user.austritt ? '—' : `${hours(stats.saldoMin)} h`]));
   lines.push(row(['Krank', `${stats.krankDays} Tage`]));
   lines.push(row(['Urlaub (Monat)', `${tage(stats.urlaubDays)} Tage`]));
   lines.push(row([`Urlaub ${year} gesamt`, `${tage(stats.yearlyUrlaubDays)} Tage`]));
