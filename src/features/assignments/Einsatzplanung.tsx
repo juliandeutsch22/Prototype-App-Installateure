@@ -1,14 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
-import { darfTermineSchreiben } from '@/lib/permissions';
+import { darfTermineSchreiben, isGF } from '@/lib/permissions';
+import { einsatzEntfernen, einsatzUmplanen } from '@/lib/db/assignments';
+import { grundAus } from '@/lib/fehlerGrund';
+import { useToast } from '@/components/Toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import VerschiebenFenster from './VerschiebenFenster';
+import { useZiehen } from './useZiehen';
+import { aendertEtwas, umplanText, type Last } from './umplanen';
+import type { EinsatzAktionen } from './WochenEintraege';
 import { todayStr } from '@/lib/time';
-import type { Project, Termin } from '@/types';
+import type { Assignment, Project, Termin } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
-import Metric, { MetricRow } from '@/components/Metric';
 import LotZeichnung from '@/components/LotZeichnung';
 import BottomSheet from '@/components/BottomSheet';
 import RowMenu from '@/components/RowMenu';
@@ -17,7 +24,7 @@ import { MehrAnzeigen, Segmente } from '@/components/LotBausteine';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import TerminFenster from '@/features/termine/TerminFenster';
 import { montagDer, wocheAb, wocheVerschoben } from './wochenplan';
-import { kwSchluessel, monatsTage, monatsTitel, montagAusKw, wochenFeld, wochenTitel } from './planungKopf';
+import { kwSchluessel, monatsTage, monatsTitel, montagAusKw, wochenTitel } from './planungKopf';
 import MonatsAnsicht from './MonatsAnsicht';
 import EinsatzFenster, { type FensterStart } from './EinsatzFenster';
 import KalenderAboKarte from './KalenderAboKarte';
@@ -29,7 +36,7 @@ import { useWochenDaten } from './useWochenDaten';
 import { useMaterialLage } from './useMaterialLage';
 import { MATERIAL_FEHLER, tagZusammenfassen } from './materialDeckung';
 import { useModul } from '@/lib/useModule';
-import { naechsterArbeitstag, schmalerTag } from './wochenTermine';
+import { naechsterArbeitstag, schmalerTag, tagLang } from './wochenTermine';
 
 /**
  * DIE EINSATZPLANUNG: wer ist wann wo — und wer ist noch frei.
@@ -111,6 +118,11 @@ export default function Einsatzplanung() {
   const [ablageGezeigt, setAblageGezeigt] = useState(ABLAGE_SEITE);
   /** Der am Handy gewählte Tag. */
   const [handyWahl, setHandyWahl] = useState<string | null>(null);
+  /** Umplanen (E88): der angehobene Einsatz, und welches Fenster dafür offen ist. */
+  const [offen, setOffen] = useState<string | null>(null);
+  const [verschieben, setVerschieben] = useState<{ a: Assignment; titel: string } | null>(null);
+  const [entfernen, setEntfernen] = useState<{ a: Assignment; titel: string } | null>(null);
+  const toast = useToast();
 
   const tage = useMemo(
     () => (ansicht === 'monat' ? monatsTage(monat.jahr, monat.monat) : wocheAb(montag)),
@@ -193,6 +205,89 @@ export default function Einsatzplanung() {
     [d.projects, d.proTag, lageFuer],
   );
 
+  /*
+    UMPLANEN (E88): nur die Führung im eigenen Betrieb — `einsatz_umplanen`
+    weist alle anderen ab, und im Einblick fehlen die Abwesenheiten. Nur in
+    der Woche: der Monat zeigt Balken, keine Einsätze.
+  */
+  const planen = !!user && isGF(user.role) && !einblick && ansicht === 'woche';
+  const nameVon = useCallback(
+    (uid: string) => d.users.find((u) => u.uid === uid)?.name ?? d.einsaetze.find((a) => a.userId === uid)?.userName ?? 'Mitarbeiter',
+    [d.users, d.einsaetze],
+  );
+
+  /**
+   * Verschieben oder kopieren, mit „Rückgängig“ in der Meldung. Gibt den
+   * Grund zurück, wenn es nicht ging (das Fenster „Verschieben“ zeigt ihn),
+   * sonst `null`. Den neuen Stand bringt das Abonnement der Woche.
+   */
+  const umplanen = useCallback(
+    async (a: Assignment, titel: string, nachTag: string, nachPerson: string, kopieren: boolean): Promise<string | null> => {
+      setOffen(null);
+      try {
+        const r = await einsatzUmplanen(a.id, nachTag, nachPerson, kopieren);
+        const text = umplanText({ kopieren, titel, vonPerson: nameVon(a.userId), nachPerson: nameVon(nachPerson), nachTag, anderswo: r.anderswo });
+        toast.success(text, {
+          label: 'Rückgängig',
+          onClick: () => {
+            const zurueck = kopieren ? einsatzEntfernen(r.id) : einsatzUmplanen(a.id, a.date, a.userId, false).then(() => undefined);
+            zurueck.then(
+              () => toast.info(kopieren ? 'Die Kopie ist wieder weg.' : 'Der Einsatz steht wieder, wo er war.'),
+              (e) => toast.error(grundAus(e, 'Rückgängig ging nicht.')),
+            );
+          },
+        });
+        return null;
+      } catch (e) {
+        const grund = grundAus(e, 'Der Einsatz ließ sich nicht umplanen.');
+        toast.error(grund);
+        return grund;
+      }
+    },
+    [nameVon, toast],
+  );
+
+  const { griff, schatten } = useZiehen({
+    onAblegen: (last: Last, ziel, kopieren) => {
+      if (!aendertEtwas(last, ziel, kopieren)) return;
+      if (last.art === 'baustelle') {
+        // Aus „Noch einzuplanen“: das Formular mit Tag, Person und Baustelle — Rüstliste und Zeit setzt man dort.
+        setFenster({ art: 'einsatz', start: { datum: ziel.tag, person: ziel.person, projectNumber: last.nummer } });
+        return;
+      }
+      const a = d.einsaetze.find((x) => x.id === last.id);
+      if (a) void umplanen(a, last.titel, ziel.tag, ziel.person, kopieren);
+    },
+    onAnheben: (last) => {
+      if (last.art === 'einsatz') setOffen(last.id);
+    },
+  });
+
+  // Ein Tipp daneben schließt die Leiste des angehobenen Einsatzes.
+  useEffect(() => {
+    if (!offen) return;
+    const weg = (e: PointerEvent) => {
+      if (!(e.target as Element | null)?.closest?.('.einsatz-halter[data-offen]')) setOffen(null);
+    };
+    window.addEventListener('pointerdown', weg);
+    return () => window.removeEventListener('pointerdown', weg);
+  }, [offen]);
+
+  const aktionen = useMemo<EinsatzAktionen | undefined>(
+    () =>
+      planen
+        ? {
+            einsatzVon: (uid, tag, nummer) => d.einsaetze.find((a) => a.userId === uid && a.date === tag && a.projectNumber === nummer),
+            onVerschieben: (a, titel) => { setOffen(null); setVerschieben({ a, titel }); },
+            onKopieren: (a, titel, nach) => { void umplanen(a, titel, nach, a.userId, true); },
+            onEntfernen: (a, titel) => { setOffen(null); setEntfernen({ a, titel }); },
+            griff,
+            offen,
+          }
+        : undefined,
+    [planen, d.einsaetze, umplanen, griff, offen],
+  );
+
   /**
    * In „Tag planen“ — mit Tag und, wo eindeutig, Baustelle eingestellt.
    *
@@ -245,36 +340,8 @@ export default function Einsatzplanung() {
       : montag === montagDer(heute);
   const einheit = ansicht === 'monat' ? 'Monat' : 'Woche';
 
-  /*
-    DAS SCHRIFTFELD DES PLANKOPFS (Planlinie, B1) — nur, was die Seite
-    ohnehin rechnet: der Zeitraum und „Noch einzuplanen“ (dieselbe Liste wie
-    die Hinweiszeile und das Seitenfenster). Eine Wochensumme der Einsätze
-    oder der Abwesenden rechnet die Planung nirgends — sie kennt beides je
-    Tag und Zelle; ein Feld dafür wäre eine neue Kennzahl (Auftrag § 7.8).
-    „Noch einzuplanen“ gibt es nur für die Woche, wie die Liste selbst; und
-    nicht, wenn die Baustellen nicht kamen — dann wäre „0“ keine Auskunft.
-  */
-  const feld = wochenFeld(montag);
-  const nochZeigen = ansicht === 'woche' && d.nebenFehler !== 'Die Baustellen';
-  const stand = (
-    <MetricRow label="Stand der Planung">
-      {ansicht === 'woche' ? (
-        <Metric label="Woche" value={feld.kw} hint={feld.spanne} />
-      ) : (
-        <Metric label="Monat" value={kopf.titel} hint={kopf.klein} />
-      )}
-      {nochZeigen && (
-        <Metric
-          label="Noch einzuplanen"
-          value={ohneEinsatz.length}
-          hint={ohneEinsatz.length === 1 ? 'Baustelle ohne Einsatz' : 'Baustellen ohne Einsatz'}
-          tone={ohneEinsatz.length > 0 ? 'warning' : 'default'}
-          bereit={d.geladen}
-          zusatzMuster="Baustellen ohne Einsatz"
-        />
-      )}
-    </MetricRow>
-  );
+  /** Die Ablage neben dem Raster: zum Ziehen, also nur, wo umgeplant wird, und nur in der Sicht „Personen“. */
+  const ablage = planen && sicht === 'personen' && ohneEinsatz.length > 0;
 
   const grund: RasterGrund = {
     tage,
@@ -292,6 +359,7 @@ export default function Einsatzplanung() {
     onTermin: (termin) => setFenster({ art: 'termin', termin, datum: termin.datum }),
     nichtEinplanbar: d.nichtEinplanbar,
     materialFuer: lageFuer,
+    aktionen,
   };
   const termineDes = (tag: string) => d.termineAm(tag);
 
@@ -313,7 +381,6 @@ export default function Einsatzplanung() {
     // `einsatzplanung` gibt der Seite die volle Inhaltsbreite (lot-planung.css).
     <div className="einsatzplanung" lang="de-AT">
       <PlanungsSeitenkopf
-        stand={stand}
         hilfe={
           <>
             <p>
@@ -350,10 +417,22 @@ export default function Einsatzplanung() {
               abwesend.
             </p>
             <p className="mt-2">
-              Ein Einsatz steht als helles Feld mit einem Strich am Anfang und am Ende; wer
-              abwesend ist (Urlaub, Krankenstand, Berufsschule, Zeitausgleich) oder wann der
-              Betrieb zu hat, steht schraffiert. Die senkrechte Linie mit dem Senkblei im Kopf
-              markiert heute.
+              Ein Einsatz steht als weißes Feld mit einer Petrol-Kante, heute ganz in Petrol; ein
+              Termin hat nur die feine Linie. Wer abwesend ist (Urlaub, Krankenstand, Berufsschule,
+              Zeitausgleich) oder wann der Betrieb zu hat, steht schraffiert. Die senkrechte Linie
+              mit dem Senkblei im Kopf markiert heute.
+            </p>
+            <p className="mt-2">
+              Umplanen: Am Schreibtisch ziehst du einen Einsatz auf eine andere Person oder einen
+              anderen Tag; mit gedrückter Alt-Taste wird kopiert. Am Tablet hebst du ihn mit langem
+              Drücken an und ziehst dann. Beim Darüberfahren (am Tablet und Handy nach langem
+              Drücken) steht am Einsatz eine Leiste: Bearbeiten, Verschieben, Auf den nächsten
+              Werktag kopieren, Entfernen. Nach jedem Verschieben und Kopieren gibt es
+              „Rückgängig“. Feiertag, Betriebsurlaub, Abwesenheit und dieselbe Person zweimal auf
+              derselben Baustelle werden abgewiesen, mit Grund; wer dort wirklich arbeitet (etwa
+              Notdienst am Feiertag), plant über „Einsatz planen“. Eine Baustelle unter „Noch
+              einzuplanen“ ziehst du am Schreibtisch auf Person und Tag — das Formular öffnet mit
+              allen dreien.
             </p>
           </>
         }
@@ -477,7 +556,8 @@ export default function Einsatzplanung() {
             Seitenfenster; sind alle eingeplant, entfällt die Zeile.
           */}
           {ohneEinsatz.length > 0 && (
-            <div className="planung-hinweiszeile">
+            // Am Schreibtisch steht die Ablage neben dem Raster (E88) — dort entfällt die Zeile.
+            <div className={ablage ? 'planung-hinweiszeile lg:hidden' : 'planung-hinweiszeile'}>
               <p className="hinweis-text">
                 {ohneEinsatz.length === 1 ? '1 laufende Baustelle' : `${ohneEinsatz.length} laufende Baustellen`} ohne
                 Einsatz in dieser Woche
@@ -497,6 +577,7 @@ export default function Einsatzplanung() {
               </Button>
             </div>
           )}
+          <div className={ablage ? 'planung-mit-ablage' : undefined}>
           <Card buendig>
             {sicht === 'baustellen' ? (
               <BaustellenWoche g={grund} staff={d.staff} brett={d.brett} projects={d.projects} termine={d.termine} />
@@ -530,9 +611,44 @@ export default function Einsatzplanung() {
                 onEinsatz={grund.onEinsatz}
                 onTermin={grund.onTermin}
                 onTerminNeu={(tag) => setFenster({ art: 'termin', termin: null, datum: tag })}
+                aktionen={aktionen}
               />
             </div>
           </Card>
+          {ablage && (
+            /*
+              NOCH EINZUPLANEN ALS ABLAGE (E88), nur am Schreibtisch: von hier
+              zieht man eine Baustelle auf Person und Tag — das Formular öffnet
+              mit allen dreien. Ein Klick tut, was der Eintrag im Fenster tut.
+              Am Tablet und Handy bleibt die Hinweiszeile: dort fehlte dem
+              Raster die Breite (Auftrag 4.1).
+            */
+            <aside className="planung-ablage" aria-label="Noch einzuplanen">
+              <h2 className="planung-ablage-titel">Noch einzuplanen ({ohneEinsatz.length})</h2>
+              <p className="planung-ablage-hinweis">Auf Person und Tag ziehen</p>
+              <ul>
+                {ohneEinsatz.slice(0, ablageGezeigt).map((p) => (
+                  <li key={p.projectNumber}>
+                    <button
+                      type="button"
+                      className="ablage-baustelle"
+                      {...griff({ art: 'baustelle', nummer: p.projectNumber, titel: baustellenName(p) })}
+                      onClick={() => setFenster({ art: 'einsatz', start: { datum: naechsterArbeitstag(tage, heute), projectNumber: p.projectNumber } })}
+                      aria-label={`${mitNummer(p)} einplanen`}
+                    >
+                      <span className="e-titel">{baustellenName(p)}</span>
+                      <span className="e-zeile mono">{p.projectNumber}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <MehrAnzeigen
+                anzahl={Math.max(0, ohneEinsatz.length - ablageGezeigt)}
+                onClick={() => setAblageGezeigt((n) => n + ABLAGE_SEITE)}
+              />
+            </aside>
+          )}
+          </div>
         </>
       )}
 
@@ -621,6 +737,41 @@ export default function Einsatzplanung() {
             </>
           )}
         </BottomSheet>
+      )}
+      {verschieben && (
+        <VerschiebenFenster
+          key={verschieben.a.id}
+          einsatz={verschieben.a}
+          titel={verschieben.titel}
+          personen={d.staff.filter((u) => !d.nichtEinplanbar.has(u.uid))}
+          onUmplanen={(tag, person, kopieren) => umplanen(verschieben.a, verschieben.titel, tag, person, kopieren)}
+          onClose={() => setVerschieben(null)}
+        />
+      )}
+      <ConfirmDialog
+        open={!!entfernen}
+        title="Einsatz entfernen?"
+        message={entfernen ? `${entfernen.titel} · ${nameVon(entfernen.a.userId)} · ${tagLang(entfernen.a.date)}` : undefined}
+        confirmLabel="Entfernen"
+        onCancel={() => setEntfernen(null)}
+        onConfirm={async () => {
+          if (!entfernen) return;
+          const { a, titel } = entfernen;
+          try {
+            await einsatzEntfernen(a.id);
+            toast.success(`${titel} entfernt: ${nameVon(a.userId)}, ${tagLang(a.date)}`);
+            setEntfernen(null);
+          } catch (e) {
+            toast.error(grundAus(e, 'Der Einsatz ließ sich nicht entfernen.'));
+          }
+        }}
+      />
+      {/* Was gezogen wird, wandert mit dem Zeiger — mit Alt steht „kopieren“ dabei. */}
+      {schatten && (
+        <div className="zieh-schatten" aria-hidden="true" style={{ left: schatten.x + 12, top: schatten.y + 12 }}>
+          <span className="e-titel">{schatten.last.titel}</span>
+          {schatten.kopieren && <span className="e-zeile">kopieren</span>}
+        </div>
       )}
     </div>
   );

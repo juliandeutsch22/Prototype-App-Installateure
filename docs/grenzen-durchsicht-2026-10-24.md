@@ -349,3 +349,16 @@ Nachtlauf darf nicht wegzuklicken sein.
 - **Mehrere Tage und Kopieren nicht im Einblick des Supports** (E85), der
   einzelne Tag schon. Grund: Datenschutz — die Abwesenheiten der Belegschaft
   liest nur der Betrieb; ohne sie würde still jemand im Urlaub eingeteilt.
+- **Umplanen per Ziehen nur in der Sicht „Personen“, nicht im Monat und
+  nicht am Handy** (E88). Grund fachlich: in „Baustellen“ ist ein Block die
+  ganze Mannschaft eines Tages (ob jeder mitgeht, ist je Person zu
+  entscheiden), der Monat zeigt Balken über Tage, am Handy steht ein Tag als
+  Liste — dort plant die Leiste am Einsatz um.
+- **Umplanen auf einen Feiertag wird abgewiesen, auch für Notdienst** (E88).
+  Grund: Sicherheit — eine Geste soll dort nicht still landen; bewusst geht
+  es über „Einsatz planen“.
+- **Entfernen aus dem Wochenplan mit Rückfrage, ohne „Rückgängig“** (E88).
+  Grund: Daten — die Zeile ist danach weg; sie wiederherzustellen hieße,
+  einen inzwischen vielleicht umgeplanten Einsatz samt Meldung neu anzulegen.
+- **Umplanen nicht im Einblick des Supports** (E88). Grund: Datenschutz, wie
+  bei „mehrere Tage“ (E85).

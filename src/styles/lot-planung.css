@@ -215,11 +215,15 @@
     mit Tag und Person. Die Einträge darüber bleiben eigene Ziele.
   */
   .zelle-planen { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: flex-start; width: 100%; min-height: 3.25rem; padding: 0.5rem; background: none; border: 0; text-align: left; cursor: pointer; }
+  /*
+    DAS LEISE PLUS (E88): beim Darüberfahren ein Plus mit feiner Linie in der
+    Mitte der Zelle — keine Fläche, kein Wort. Die Lücke fällt auf, nicht der
+    Knopf; was er tut, sagt die Vorlesehilfe und der Hinweis der Seite.
+  */
   .zelle-plus { display: none; }
   @media (min-width: 1200px) {
-    .zelle-planen:hover { background: var(--petrol-hell); }
-    .zelle-planen:hover .zelle-plus { display: block; font-size: 0.8125rem; font-weight: var(--gewicht-titel); color: var(--accent-deep); }
-    .zelle-planen:focus-visible .zelle-plus { display: block; font-size: 0.8125rem; font-weight: var(--gewicht-titel); color: var(--accent-deep); }
+    .zelle-planen:is(:hover, :focus-visible) .zelle-plus { display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; margin: auto; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface); color: var(--accent-deep); }
+    .zelle-planen:hover .zelle-plus { border-color: var(--petrol); }
   }
   /*
     AM TABLET KNAPPERE INNENABSTÄNDE (Runde 5, G4): eine Tagesspalte misst dort
@@ -230,23 +234,26 @@
 
   /* ── Einsatzblock, Termin-Eintrag, abwesend ───────────────────────────── */
   /*
-    DER EINSATZ ALS VOLLE PETROL-FLÄCHE (E33, Variante B, freigegeben am
-    01.11.2026). Die helle Fläche mit Endmarken (Planlinie, B11) las sich im
-    Raster zu schwach; der Auftraggeber fand die frühere volle Fläche
-    schöner. Jetzt: volle Fläche, weiße Schrift, eckig wie das Raster, Ort
-    und Nummer eine Stufe leiser, mindestens zwei Zellen hoch. Ausnahmen
-    bleiben sichtbar anders: „eingeteilt, aber abwesend“ in Ocker,
-    Abwesenheit schraffiert, Termine als helle Karte. Der Kunde bricht um,
-    statt abgeschnitten zu werden (Silbentrennung bei `lang="de-AT"`).
+    DER EINSATZ ALS WEISSES BLATT MIT PETROL-KANTE, HEUTE VOLL (E88,
+    13.11.2026; löst E33 für die übrigen Tage ab). Volle Petrol-Flächen an
+    jedem Tag machten das Raster schwer, und heute ging darin unter. Jetzt:
+    weiß mit Linie rundum und 4 px Petrol links, der Kunde in Tinte — kräftig
+    genug, dass er nicht verblasst wie die helle Fläche vor E33. Nur die
+    Spalte „heute“ (und am Handy der gewählte Tag, wenn er heute ist) trägt
+    die volle Fläche: wo heute gearbeitet wird, sieht man auf einen Blick.
   */
-  .eintrag { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 3rem; padding: 0.375rem 0.375rem; background: var(--petrol); color: var(--auf-petrol); border: 0; border-radius: 0; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; }
-  .eintrag:hover { background: var(--petrol-tief); }
-  .eintrag .e-zeile, .eintrag .e-zeit, .eintrag .e-nr { color: var(--auf-petrol-leise); }
-  .eintrag .e-zusatz { border-top-color: var(--auf-petrol-leise); }
+  .eintrag { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 3rem; padding: 0.375rem 0.375rem 0.375rem 0.3125rem; background: var(--surface); color: var(--ink-deep); border: 1px solid var(--border-strong); border-left: 4px solid var(--petrol); border-radius: 0; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; }
+  .eintrag:hover { border-color: var(--petrol); }
+  .eintrag .e-zeile, .eintrag .e-zeit, .eintrag .e-nr { color: var(--text-muted); }
   .eintrag:hover .e-titel { text-decoration: underline; text-underline-offset: 3px; }
+  :is(.wp-zelle-heute, .wp-zelle-schmal-heute, .handy-woche[data-heute]) .eintrag { background: var(--petrol); color: var(--auf-petrol); border-color: var(--petrol); }
+  :is(.wp-zelle-heute, .wp-zelle-schmal-heute, .handy-woche[data-heute]) .eintrag:hover { background: var(--petrol-tief); border-color: var(--petrol-tief); }
+  :is(.wp-zelle-heute, .wp-zelle-schmal-heute, .handy-woche[data-heute]) .eintrag :is(.e-zeile, .e-zeit, .e-nr) { color: var(--auf-petrol-leise); }
+  :is(.wp-zelle-heute, .wp-zelle-schmal-heute, .handy-woche[data-heute]) .eintrag .e-zusatz { border-top-color: var(--auf-petrol-leise); }
   /* Eingeteilt, aber abwesend: Bernstein-hell mit 2 px Bernstein-Rand, nie Rot. */
   .eintrag-konflikt { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 2.75rem; padding: 0.3125rem 0.3125rem; background: var(--warning-bg); color: var(--warning); border: 2px solid var(--warning); border-radius: 0; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; }
-  .eintrag-termin { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 2.75rem; padding: 0.3125rem 0.375rem 0.3125rem 0.3125rem; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-left: 3px solid var(--petrol); border-radius: 0.25rem; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; }
+  .eintrag-termin { pointer-events: auto; display: flex; flex-direction: column; width: 100%; min-height: 2.75rem; padding: 0.3125rem 0.375rem 0.3125rem 0.3125rem; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 0; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; cursor: pointer; }
+  /* Der Termin ohne Petrol-Kante (E88): die Kante sagt „Einsatz“, die feine Linie „Termin“. */
   .eintrag-termin:hover { border-color: var(--petrol); }
   /*
     ABWESEND: schraffiert wie eine geschnittene Wand (Planlinie, B11 —
@@ -269,7 +276,7 @@
   .e-zeit { white-space: nowrap; font-variant-numeric: tabular-nums; }
   @media (min-width: 1200px) {
     .zelle-inhalt { padding: 0.25rem; }
-    .eintrag { padding: 0.375rem 0.5rem; }
+    .eintrag { padding: 0.375rem 0.5rem 0.375rem 0.4375rem; }
     .eintrag-konflikt { padding: 0.3125rem 0.4375rem; }
     .eintrag-termin { padding: 0.3125rem 0.5rem 0.3125rem 0.4375rem; }
   }
@@ -377,4 +384,61 @@
   /* Gestalt des kleinen Zweitknopfs (`knopf.ts`, secondary/klein) — die Zeile bleibt der eine Knopf. */
   .tl-frei-aktion { display: inline-flex; align-items: center; min-height: 2.25rem; padding: 0.375rem 0.75rem; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 0.875rem; transition: border-color var(--motion-press, 100ms) var(--ease-response, ease); }
   .tl-frei:hover .tl-frei-aktion { border-color: var(--brand-fixed); }
+}
+
+/*
+  UMPLANEN IM WOCHENPLAN (E88): die Leiste am Einsatz, das Ziel beim Ziehen,
+  der mitwandernde Schatten, die Ablage „Noch einzuplanen“ und der Kürzel-Kreis.
+*/
+@layer components {
+  /* Die Leiste: eckig, Linie rundum, wie im Chat (E77) — unter dem Einsatz, in der letzten Zeile darüber. */
+  .einsatz-halter { position: relative; width: 100%; pointer-events: auto; }
+  .einsatz-leiste { display: none; position: absolute; top: 100%; left: 0; z-index: 30; padding: 0.125rem; border: 1px solid var(--border-strong); background: var(--surface); }
+  /*
+    Die Leiste steht immer unter dem Einsatz; unter der letzten Zeile hält das
+    Raster ihre Höhe frei (zwei Rasterzellen, auch für die 44-px-Ziele nach
+    langem Drücken) — sonst läge sie dort im Rollbereich verborgen.
+  */
+  @media (min-width: 760px) { .wp-huelle-planen { padding-bottom: 3rem; } }
+  /*
+    Die Einträge einer Zelle bilden eine eigene Ebene (`.zelle-inhalt`,
+    z-index 1): ohne Anheben läge die Leiste unter den Einträgen der Zeile
+    darunter und unter der klebenden Namensspalte (z-index 10).
+  */
+  .zelle-inhalt:has(.einsatz-halter:is(:hover, :focus-within, [data-offen])) { z-index: 20; }
+  .einsatz-halter:hover > .einsatz-leiste { display: flex; }
+  .einsatz-halter:focus-within > .einsatz-leiste, .einsatz-halter[data-offen] > .einsatz-leiste { display: flex; }
+  /* Angehoben mit dem Finger: 44-px-Ziele, wie die schwebende Leiste im Chat (E79). */
+  .einsatz-knopf { display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; color: var(--text-muted); }
+  .einsatz-knopf:hover { background: var(--surface-2); color: var(--text); }
+  .einsatz-knopf[data-ton="gefahr"] { color: var(--danger); }
+  .einsatz-knopf:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 0; }
+  .einsatz-halter[data-offen] .einsatz-knopf { width: 2.75rem; height: 2.75rem; }
+  .einsatz-halter[data-offen] > .eintrag { outline: 2px solid var(--focus-ring); outline-offset: 0; }
+  /* Am Schreibtisch zieht man den Einsatz: die Hand zeigt es. */
+  @media (min-width: 760px) { [data-ziehbar] { cursor: grab; } }
+  /* Langes Drücken hebt an — kein Textmenü des Telefons dazwischen. */
+  [data-ziehbar] { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  html[data-zieht], html[data-zieht] * { cursor: grabbing; user-select: none; -webkit-user-select: none; }
+  /* Die Zelle unter dem Zeiger: eine Petrol-Linie innen und der helle Grund. */
+  [data-ziel-aktiv] { background: var(--petrol-hell); box-shadow: inset 0 0 0 2px var(--petrol); }
+  .zieh-schatten { position: fixed; z-index: 60; display: flex; flex-direction: column; max-width: 12rem; padding: 0.375rem 0.5rem; background: var(--surface); color: var(--ink-deep); border: 1px solid var(--petrol); border-left: 4px solid var(--petrol); font-size: 0.8125rem; line-height: 1.125rem; pointer-events: none; }
+  .zieh-schatten .e-zeile { color: var(--text-muted); }
+
+  /* Der Kürzel-Kreis wie im Posteingang, eine Stufe kleiner: im Raster und in der Liste am Handy. */
+  .wp-name-zeile, .tl-name { display: flex; align-items: center; gap: 0.5rem; }
+  .wp-kuerzel { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border-radius: 999px; background: var(--petrol-hell); color: var(--accent-deep); font-size: 0.6875rem; font-weight: var(--gewicht-titel); letter-spacing: 0.02em; }
+
+  /* Die Ablage „Noch einzuplanen“ — nur am Schreibtisch, rechts neben dem Raster. */
+  .planung-ablage { display: none; }
+  @media (min-width: 1200px) {
+    .planung-mit-ablage { display: grid; grid-template-columns: minmax(0, 1fr) 13.5rem; gap: 1.5rem; align-items: start; }
+    .planung-ablage { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background: var(--surface); border: 1px solid var(--border-strong); }
+    .planung-ablage ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  }
+  .planung-ablage-titel { margin: 0; font-size: 0.75rem; line-height: 1.5rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: var(--gewicht-titel); color: var(--text-muted); }
+  .planung-ablage-hinweis { margin: 0; font-size: 0.8125rem; color: var(--text-muted); }
+  .ablage-baustelle { display: flex; flex-direction: column; width: 100%; padding: 0.375rem 0.5rem; background: var(--surface); color: var(--ink-deep); border: 1px solid var(--border-strong); border-radius: 0; font-size: 0.8125rem; line-height: 1.125rem; text-align: left; touch-action: none; }
+  .ablage-baustelle:hover { border-color: var(--petrol); }
+  .ablage-baustelle .e-zeile { color: var(--text-muted); font-size: 0.75rem; }
 }

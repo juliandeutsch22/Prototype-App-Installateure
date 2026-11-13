@@ -114,3 +114,13 @@ export function einsatzFolgetage(
 ) {
   return pg.einsatzFolgetage(companyId, von, bis, projectNumber, rows, nurWerktage);
 }
+
+/** Einen Einsatz verschieben oder kopieren — siehe `pg.einsatzUmplanen`. */
+export function einsatzUmplanen(id: string, datum: string, userId: string, kopieren = false) {
+  return pg.einsatzUmplanen(id, datum, userId, kopieren);
+}
+
+/** Einen Einsatz entfernen, samt Rüstliste — siehe `pg.einsatzEntfernen`. */
+export function einsatzEntfernen(id: string) {
+  return pg.einsatzEntfernen(id);
+}
