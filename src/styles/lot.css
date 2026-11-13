@@ -28,8 +28,14 @@
   */
   .daumen { display: contents; }
   @media (max-width: 759px) {
-    .daumen { display: flex; gap: 0.5rem; position: fixed; left: 0; right: 0; bottom: var(--reiter-hoehe, 0px); z-index: 20; padding: 0.625rem 1rem; background: var(--surface); border-top: 1px solid var(--border); }
-    .daumen > * { flex: 1; min-height: 3rem; }
+    /*
+      V10 (13.11.2026): KOMPAKT RECHTS, OHNE KARTENFLÄCHE. Die Hauptaktion
+      steht in ihrer Breite in der Abschlusszone über der Fußinsel — kein
+      bildschirmbreiter Balken, keine eigene Fläche; der Daumen erreicht sie
+      rechts. `pointer-events` lässt neben dem Knopf den Inhalt antippbar.
+    */
+    .daumen { display: flex; justify-content: flex-end; gap: 0.5rem; position: fixed; left: 0; right: 0; bottom: var(--reiter-hoehe, 0px); z-index: 20; padding: 0.5rem 1rem; background: none; border: 0; pointer-events: none; }
+    .daumen > * { flex: none; min-height: 3rem; pointer-events: auto; box-shadow: var(--shadow-insel); }
     /* Platz am SEITENENDE, nicht unter dem Kopf: der letzte Inhalt rollt über die Leiste hinaus. */
     .inhalt:has(.daumen) { padding-bottom: 5.5rem; }
     /*
@@ -65,7 +71,7 @@
   .schleier { position: fixed; inset: 0; z-index: 40; margin: 0 !important; background: #00000059; }
   .schleier-dialog { position: fixed; inset: 0; z-index: 50; margin: 0 !important; display: flex; align-items: flex-end; justify-content: center; padding: 1rem; background: #00000059; }
   @media (min-width: 640px) { .schleier-dialog { align-items: center; } }
-  .blatt { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88vh; display: flex; flex-direction: column; background: var(--surface); border-radius: 1rem 1rem 0 0; box-shadow: var(--shadow-lg); padding: 0 1rem 1rem; }
+  .blatt { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88vh; display: flex; flex-direction: column; background: var(--surface); border-radius: var(--radius-xl) var(--radius-xl) 0 0; box-shadow: var(--shadow-lg); padding: 0 1rem 1rem; }
   .blatt-griff { padding: 0.75rem 1rem 0.5rem; cursor: grab; touch-action: none; }
   .blatt-griff-strich { width: 2.5rem; height: 4px; margin: 0 auto; border-radius: 999px; background: var(--border-strong); }
   /* `overscroll-behavior: contain`: am Ende der Liste geht das Wischen nicht an die Seite dahinter weiter. */
@@ -74,12 +80,17 @@
     AB DEM TABLET STEHT DAS FENSTER RECHTS, die Übersicht bleibt links
     sichtbar (Regel 8). Am Handy ist dasselbe Fenster ein Blatt von unten.
   */
-  .fenster { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88vh; display: flex; flex-direction: column; background: var(--surface); border-radius: 1rem 1rem 0 0; box-shadow: var(--shadow-lg); padding: 0 1rem 1rem; }
+  .fenster { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88vh; display: flex; flex-direction: column; background: var(--surface); border-radius: var(--radius-xl) var(--radius-xl) 0 0; box-shadow: var(--shadow-lg); padding: 0 1rem 1rem; }
   /* Die breitere Fassung (Runde 4, „Person im Monat“): gleich, nur 30rem breit. */
-  .fenster-breit { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88vh; display: flex; flex-direction: column; background: var(--surface); border-radius: 1rem 1rem 0 0; box-shadow: var(--shadow-lg); padding: 0 1rem 1rem; }
+  .fenster-breit { position: absolute; left: 0; right: 0; bottom: 0; max-height: 88vh; display: flex; flex-direction: column; background: var(--surface); border-radius: var(--radius-xl) var(--radius-xl) 0 0; box-shadow: var(--shadow-lg); padding: 0 1rem 1rem; }
   @media (min-width: 760px) {
-    .fenster { left: auto; top: 0; width: 27.5rem; max-width: 100%; max-height: none; border-radius: 0; padding: 0; }
-    .fenster-breit { left: auto; top: 0; width: 30rem; max-width: 100%; max-height: none; border-radius: 0; padding: 0; }
+    /*
+      V10 (13.11.2026): das Seitenfenster schwebt — 8 px vom Rand, mit dem
+      weichen Radius der Sheets und leisem Schatten; die Übersicht dahinter
+      bleibt als Zusammenhang sichtbar.
+    */
+    .fenster { left: auto; top: 0.5rem; right: 0.5rem; bottom: 0.5rem; width: 27.5rem; max-width: 96vw; max-height: none; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 0; }
+    .fenster-breit { left: auto; top: 0.5rem; right: 0.5rem; bottom: 0.5rem; width: 30rem; max-width: 96vw; max-height: none; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 0; }
   }
   .fenster-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
   @media (min-width: 760px) { .fenster-kopf { padding: 1rem 1.25rem; } }
@@ -129,10 +140,37 @@
   */
   .meldungen { pointer-events: none; position: fixed; left: 1rem; right: 1rem; top: 1rem; padding-top: env(safe-area-inset-top, 0px); z-index: 60; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
   @media (min-width: 760px) { .meldungen { top: auto; bottom: 1.5rem; padding-top: 0; } }
-  .meldung { pointer-events: none; display: flex; align-items: center; gap: 1.25rem; max-width: 32rem; padding: 0.75rem 1rem; border-radius: 0.625rem; background: #13262c; color: #ffffff; font-size: 0.9375rem; line-height: 1.375rem; box-shadow: var(--shadow-lg); }
-  .meldung-fehler { pointer-events: none; display: flex; align-items: center; gap: 1.25rem; max-width: 32rem; padding: 0.75rem 1rem; border-radius: 0.625rem; background: #13262c; color: #ffffff; font-size: 0.9375rem; line-height: 1.375rem; box-shadow: var(--shadow-lg); border-left: 4px solid #f07a6e; }
+  /*
+    V10 (13.11.2026): die Meldung liegt dunkel und warm (`--dunkel-flaeche`)
+    mit 12 px Radius. Ein Fehler trägt keine rote Kante mehr — sein Text
+    sagt, was passiert ist, und die Meldung bleibt stehen, bis sie gelesen ist.
+  */
+  .meldung { pointer-events: none; display: flex; align-items: center; gap: 1.25rem; max-width: 32rem; padding: 0.75rem 1rem; border-radius: var(--radius); background: var(--dunkel-flaeche); color: var(--auf-dunkel); font-size: 0.9375rem; line-height: 1.375rem; box-shadow: var(--shadow-lg); }
+  .meldung-fehler { pointer-events: none; display: flex; align-items: center; gap: 1.25rem; max-width: 32rem; padding: 0.75rem 1rem; border-radius: var(--radius); background: var(--dunkel-flaeche); color: var(--auf-dunkel); font-size: 0.9375rem; line-height: 1.375rem; box-shadow: var(--shadow-lg); }
   .meldung-text { flex: 1; }
-  .meldung-knopf { pointer-events: auto; flex: none; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: #9fe3ec; font-weight: var(--gewicht-titel); cursor: pointer; }
+  .meldung-knopf { pointer-events: auto; flex: none; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: #d08a68; font-weight: var(--gewicht-titel); cursor: pointer; }
+
+  /* V10: das Kürzel einer Person als kleines gerundetes Feld im Auswahlton, Schrift in Terrakotta — in beiden Sätzen lesbar. */
+  .lot-avatar { background: var(--auswahl); color: var(--accent-deep); border: 1px solid var(--auswahl-kontur); }
+
+  /* ── Auswahl mit Häkchen (V10) ───────────────────────────────────────── */
+  /*
+    EINE AUSWAHL SIEHT AUSGEWÄHLT AUS (V10, 13.11.2026): warme Tonfläche,
+    feine Kontur und ein Häkchen — nicht nur ein Punkt im Kreis. Passive
+    Optionen bleiben neutral. Das echte Optionsfeld bleibt für Tastatur und
+    Vorlesehilfe da; es ist nur unsichtbar.
+  */
+  .wahl-gruppe { display: grid; gap: 0.5rem; margin: 0; padding: 0; border: 0; min-width: 0; }
+  @media (min-width: 760px) { .wahl-gruppe { grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); } }
+  .wahl-option { position: relative; display: flex; align-items: flex-start; gap: 0.75rem; min-height: 3rem; padding: 0.75rem 2.75rem 0.75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; }
+  .wahl-option:hover { border-color: var(--auswahl-kontur); }
+  .wahl-option input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+  .wahl-option:focus-within { border-color: var(--fokus); }
+  .wahl-option:has(input:checked) { background: var(--auswahl); border-color: var(--auswahl-kontur); }
+  .wahl-option:has(input:checked)::after { content: ''; position: absolute; right: 1rem; top: 0.875rem; width: 1rem; height: 1rem; background: var(--accent-deep); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E") center / 1rem 1rem no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E") center / 1rem 1rem no-repeat; }
+  .wahl-text { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; }
+  .wahl-name { font-weight: var(--gewicht-titel); color: var(--ink-deep); }
+  .wahl-zusatz { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
 
   /* ── Gruppe und Zeilen ────────────────────────────────────────────────── */
   /* Ein Verweis im Untertitel einer ganz antippbaren Zeile (Telefon, Adresse) bleibt eigenes Ziel. */
@@ -355,19 +393,29 @@
     oben gehört dazu, und ab dem Tablet ist sie ausgeblendet (dann 0).
   */
   :root { --kopf-oben: 0px; }
-  .kopfzeile { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 1rem; padding-top: env(safe-area-inset-top, 0px); background: var(--navi); }
+  /*
+    V10 (13.11.2026): KOPF- UND FUSSLEISTE SIND INSELN — hell, mit feiner
+    Kontur, demselben weichen Radius (`--radius-xl`) und einem leisen Schatten,
+    eingelassen mit 8 px Luft zum Rand. Die Sicherheitszonen des Telefons
+    bleiben frei: die Luft ist mindestens so groß wie die Zone.
+  */
+  .kopfzeile { position: sticky; top: max(0.5rem, env(safe-area-inset-top, 0px)); z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin: max(0.5rem, env(safe-area-inset-top, 0px)) 0.5rem 0; padding: 0.125rem 0.375rem 0.125rem 0.875rem; background: var(--surface-2); border: 1px solid var(--insel-kontur); border-radius: var(--radius-xl); box-shadow: var(--shadow-insel); }
   @media (max-width: 759px) { html { scroll-padding-top: var(--kopf-oben); } }
   @media (min-width: 760px) { .kopfzeile { display: none; } }
-  .kopfzeile-titel { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: #ffffff; animation: kopf-titel-ein 180ms ease-out; }
+  .kopfzeile-titel { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); animation: kopf-titel-ein 180ms ease-out; }
   @keyframes kopf-titel-ein { from { opacity: 0; transform: translateY(0.375rem); } }
   @media (prefers-reduced-motion: reduce) { .kopfzeile-titel { animation: none; } }
-  .kopfzeile-suche { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0; border: 0; background: none; color: var(--navi-text); cursor: pointer; }
-  .kopfzeile-suche:hover { color: #ffffff; }
+  .kopfzeile-suche { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0; border: 0; background: none; color: var(--text); cursor: pointer; }
+  .kopfzeile-suche:hover { color: var(--accent-deep); }
 
-  .unten { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .unten { position: fixed; left: 0.5rem; right: 0.5rem; bottom: max(0.5rem, env(safe-area-inset-bottom, 0px)); z-index: 30; display: flex; padding: 0 0.25rem; background: var(--surface-2); border: 1px solid var(--insel-kontur); border-radius: var(--radius-xl); box-shadow: var(--shadow-insel); }
   @media (min-width: 760px) { .unten { display: none; } }
   .unten-punkt, .unten-punkt-aktiv { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.125rem; min-height: 3.5rem; padding: 0.5rem 0 0.625rem; background: none; border: 0; color: var(--text-muted); font-size: 0.6875rem; line-height: 0.875rem; text-decoration: none; cursor: pointer; }
+  .unten-punkt { color: var(--inaktiv-symbol); }
+  /* V10: der aktive Bereich trägt eine warme Auswahlfläche hinter Symbol und Text — nicht nur die Farbe. */
   .unten-punkt-aktiv { color: var(--accent-deep); font-weight: var(--gewicht-titel); }
+  .unten-punkt-aktiv::before { content: ''; position: absolute; inset: 0.3125rem 0.125rem; z-index: -1; border-radius: var(--radius); background: var(--auswahl); }
+  .unten-punkt, .unten-punkt-aktiv { isolation: isolate; }
   .unten-symbol { position: relative; display: flex; }
   .unten-zahl { position: absolute; top: -0.375rem; right: -0.75rem; display: flex; }
   /*

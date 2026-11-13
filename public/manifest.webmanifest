@@ -7,8 +7,8 @@
   "display": "standalone",
   "orientation": "portrait",
   "lang": "de-AT",
-  "background_color": "#ffffff",
-  "theme_color": "#0f3c47",
+  "background_color": "#f4f0e8",
+  "theme_color": "#f4f0e8",
   "icons": [
     {
       "src": "/marke/icon-192.png",

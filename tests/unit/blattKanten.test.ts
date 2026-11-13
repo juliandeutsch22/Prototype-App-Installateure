@@ -53,7 +53,8 @@ describe('Nichts Klebendes deckt die Linie eines Blatts zu (E76)', () => {
   });
 
   it('das Schriftfeld ist rechts geschlossen', () => {
-    expect(regel(q('src/styles/lot-planlinie.css'), '.schriftfeld')).toContain('box-shadow: 0 1px 0 var(--accent-deep), 1px 0 0 var(--border-strong);');
+    // V10: geschlossen durch die Kontur rundum statt durch eine gezeichnete Linie rechts.
+    expect(regel(q('src/styles/lot-planlinie.css'), '.schriftfeld')).toContain('border: 1px solid var(--border); border-radius: var(--radius-lg);');
   });
 });
 

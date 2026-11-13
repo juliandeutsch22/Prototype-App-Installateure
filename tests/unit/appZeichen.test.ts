@@ -179,8 +179,9 @@ describe('Einheitliche Senklot-Zeichen', () => {
     expect(worker).toContain("icon: '/marke/icon-192.png'");
   });
 
+  // V10 (13.11.2026): Startbildschirm und Statusleiste tragen das warme Papier der Oberfläche.
   it('behält Startbildschirm- und Statusleistenfarben der App bei', () => {
-    expect(manifest.background_color.toLowerCase()).toBe('#ffffff');
-    expect(manifest.theme_color.toLowerCase()).toBe('#0f3c47');
+    expect(manifest.background_color.toLowerCase()).toBe('#f4f0e8');
+    expect(manifest.theme_color.toLowerCase()).toBe('#f4f0e8');
   });
 });

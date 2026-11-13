@@ -17,6 +17,7 @@ import { istBenutzerkonto } from '@shared/benutzername';
 import { grundAus } from '@/lib/fehlerGrund';
 import { useModul } from '@/lib/useModule';
 import MeineNachrichten from '@/features/nachrichten/MeineNachrichten';
+import { useDarstellung, type Darstellung } from '@/lib/darstellung';
 
 /** Was der Zustand für den Nutzer bedeutet — in seinen Worten, nicht in Fehlercodes. */
 const PUSH_TEXT: Record<PushState, { text: string; ton: 'ok' | 'hinweis' | 'aus' }> = {
@@ -426,6 +427,8 @@ export default function NotificationSettings() {
         />
       )}
 
+      <DarstellungKarte />
+
       {passwortOffen ? (
         <PasswortAendern benutzerkonto={istBenutzerkonto(user?.email)} />
       ) : (
@@ -468,5 +471,47 @@ export default function NotificationSettings() {
         </Card>
       )}
     </div>
+  );
+}
+
+const DARSTELLUNGEN: { wert: Darstellung; label: string; zusatz: string }[] = [
+  { wert: 'hell', label: 'Hell', zusatz: 'Gut lesbar draußen und in der Sonne' },
+  { wert: 'dunkel', label: 'Dunkel', zusatz: 'Ruhiger am Abend und in dunklen Räumen' },
+  { wert: 'system', label: 'System', zusatz: 'Folgt der Einstellung dieses Geräts' },
+];
+
+/*
+  DARSTELLUNG UND BEWEGUNG (V10, 13.11.2026): Hell, Dunkel oder wie das
+  Gerät. Die Wahl gilt für dieses Gerät auf jeder Seite; der Schalter in der
+  Navigation bleibt der schnelle Weg zwischen Hell und Dunkel. Bewegung folgt
+  „Bewegung reduzieren“ des Geräts — dann wechseln Zustände ohne räumliche
+  Bewegung.
+*/
+function DarstellungKarte() {
+  const [darstellung, setDarstellung] = useDarstellung();
+  return (
+    <Card
+      title="Darstellung und Bewegung"
+      hint="Gilt für dieses Gerät. „System“ folgt der hellen oder dunklen Einstellung des Geräts, auch wenn sie sich während der Arbeit ändert. Bewegungen folgen „Bewegung reduzieren“ in den Einstellungen des Geräts."
+    >
+      <fieldset className="wahl-gruppe">
+        <legend className="sr-only">Darstellung</legend>
+        {DARSTELLUNGEN.map((d) => (
+          <label key={d.wert} className="wahl-option">
+            <input
+              type="radio"
+              name="darstellung"
+              value={d.wert}
+              checked={darstellung === d.wert}
+              onChange={() => setDarstellung(d.wert)}
+            />
+            <span className="wahl-text">
+              <span className="wahl-name">{d.label}</span>
+              <span className="wahl-zusatz">{d.zusatz}</span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+    </Card>
   );
 }

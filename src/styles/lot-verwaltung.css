@@ -57,7 +57,7 @@
   .nachkalk-detail { display: flex; flex-direction: column; gap: 1.25rem; }
   .nachkalk-kopf { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.75rem 1.5rem; }
   .nachkalk-db { font-family: var(--schrift-mono); font-size: 1.5rem; line-height: 2rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; }
-  .nachkalk-db small { display: block; font-family: Poppins, ui-sans-serif, system-ui, sans-serif; font-size: 0.8125rem; line-height: 1.25rem; font-weight: 400; color: var(--text-muted); }
+  .nachkalk-db small { display: block; font-family: var(--schrift-text); font-size: 0.8125rem; line-height: 1.25rem; font-weight: 400; color: var(--text-muted); }
   .nachkalk-gruppe { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; border-top: 1px solid var(--border); padding-top: 1rem; }
   .nachkalk-titel { font-size: 0.9375rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   /* Ein Posten: Wort links, Betrag rechts in Mono, darunter woher er kommt. */

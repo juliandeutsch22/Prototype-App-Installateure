@@ -144,13 +144,21 @@ export default function Layout({ children }: { children: ReactNode }) {
   useEffect(() => {
     const leiste = reiterleiste.current;
     if (!angemeldet || !leiste) return;
+    /*
+      V10 (13.11.2026): Kopf- und Fußleiste sind am Handy eingelassene Inseln
+      mit Abstand zum Rand. Gezählt wird deshalb der ganze Platz, den sie vom
+      Bild nehmen — Leiste samt Luft zur Kante —, nicht nur ihre Höhe; sonst
+      läge das Ende des Inhalts hinter der Insel.
+    */
     const setzen = () => {
       const timer = timerLeiste.current?.offsetHeight ?? 0;
-      document.body.style.setProperty('--navi-hoehe', `${leiste.offsetHeight}px`);
+      const navi = leiste.offsetHeight ? Math.max(leiste.offsetHeight, Math.round(window.innerHeight - leiste.getBoundingClientRect().top)) : 0;
+      const kopf = kopfzeile.current?.offsetHeight ? Math.max(kopfzeile.current.offsetHeight, Math.round(kopfzeile.current.getBoundingClientRect().bottom)) : 0;
+      document.body.style.setProperty('--navi-hoehe', `${navi}px`);
       document.body.style.setProperty('--timer-hoehe', `${timer}px`);
-      document.body.style.setProperty('--reiter-hoehe', `${leiste.offsetHeight + timer}px`);
+      document.body.style.setProperty('--reiter-hoehe', `${navi + timer}px`);
       // Am Wurzelelement: auch `scroll-padding-top` am `html` liest sie (D11, E86).
-      document.documentElement.style.setProperty('--kopf-oben', `${kopfzeile.current?.offsetHeight ?? 0}px`);
+      document.documentElement.style.setProperty('--kopf-oben', `${kopf}px`);
     };
     setzen();
     const beobachter = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(setzen);
@@ -314,7 +322,8 @@ export default function Layout({ children }: { children: ReactNode }) {
     lesbar, deshalb in der Seitenleiste grösser als in der schmalen mobilen
     Kopfleiste.
   */
-  const BrandMarkMobile = <BrandLogo height={28} className="rounded-sm text-white" />;
+  // V10: am Handy sitzt die Marke in der hellen Kopfinsel — Tinte statt Weiß.
+  const BrandMarkMobile = <BrandLogo height={28} className="rounded-sm text-ink-deep" />;
   const BrandMarkSidebar = <BrandLogo height={40} className="rounded-sm text-white" />;
 
   const unterGruppen = groups.filter((g) => g.group !== 'Einstellungen');

@@ -13,7 +13,8 @@ import { BLATT_SELEKTOR, TAKT_SELEKTOR, ZELLE, ausgleichHoehe, ausgleichOben, au
 describe('die Rechenregeln', () => {
   it('eine Zelle ist so groß wie das Raster der Arbeitsfläche', () => {
     expect(ZELLE).toBe(24);
-    expect(readFileSync('src/styles/lot-planlinie.css', 'utf8')).toContain('background-size: 24px 24px;');
+    // V10: Nebenlinien alle 24 px, Registrierungslinien alle vier Zellen (96 px).
+    expect(readFileSync('src/styles/lot-planlinie.css', 'utf8')).toContain('background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;');
   });
 
   it('nach unten bis zur nächsten Linie — nie nach oben, nie mehr als 23 px', () => {

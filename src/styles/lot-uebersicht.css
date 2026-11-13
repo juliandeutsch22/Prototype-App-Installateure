@@ -106,7 +106,7 @@
     .ue-zahl-stark { text-align: right; font-size: 0.9375rem; }
   }
   /* Am Handy steht über jeder Zahl ihr Name; ab dem Tablet trägt ihn die Kopfzeile. */
-  .ue-zahl-name { display: block; font-family: Poppins, ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; line-height: 1rem; font-weight: 400; color: var(--text-muted); }
+  .ue-zahl-name { display: block; font-family: var(--schrift-text); font-size: 0.75rem; line-height: 1rem; font-weight: 400; color: var(--text-muted); }
   @media (min-width: 760px) { .ue-zahl-name { display: none; } }
 
   /* Eine Zeile (am Handy höchstens zwei), die Erklärung steht in der Seitenhilfe. */

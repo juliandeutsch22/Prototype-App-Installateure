@@ -53,15 +53,20 @@
   .inhalt :is(.ue-liste, .ue-liste-woche, .ue-vergleich, .lot-einrichtung),
   .inhalt .monatskalender:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog']) .monatskalender) {
     position: relative;
-    margin-inline: 0; padding: 0; border: 0; border-radius: 0;
+    /*
+      V10 (13.11.2026): das Blatt ist ein helles Arbeitsblatt mit feiner
+      Kontur und 16 px Radius auf dem warmen Papier — kein Schatten, nur die
+      Kontur trägt die Grenze. Vorher eckig mit Linien, die als Zeichnung
+      über dem Inhalt lagen.
+    */
+    margin-inline: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-lg);
     background: var(--surface);
-    box-shadow: 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), 1px 1px 0 var(--border-strong);
+    box-shadow: none;
   }
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte)::before,
   .inhalt :is(.ue-liste, .ue-liste-woche, .ue-vergleich, .lot-einrichtung)::before,
   .inhalt .monatskalender:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog']) .monatskalender)::before {
-    content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
-    border-top: 1px solid var(--border-strong); border-left: 1px solid var(--border-strong);
+    content: none;
   }
 
   /*

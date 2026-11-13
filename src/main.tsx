@@ -12,12 +12,13 @@ import { schluesselUmziehen, firestoreResteEntfernen } from './lib/speicher';
 import { darstellungAnwenden } from './lib/darstellung';
 import { startansichtVorladen } from './lib/ansichten';
 import { sitzungVermutlich } from './lib/supabase';
-// Poppins self-gehostet (kein Google-CDN -> keine IP-Übermittlung an Google, DSGVO).
-// Text und Titel bleiben 400/600; Zahlen erhalten den freigegebenen leichteren Schnitt.
-import '@fontsource/poppins/latin-400.css';
-import '@fontsource/poppins/latin-500.css';
-import '@fontsource/poppins/latin-600.css';
-// IBM Plex Mono für alles Gemessene (Planlinie, E30) — ebenfalls lokal, die CSP lässt keine fremden Schriften zu.
+// V10 (13.11.2026): DM Sans für die Bedienung, Source Serif 4 für größere Titel,
+// IBM Plex Mono für alles Gemessene — alle drei self-gehostet (kein Google-CDN,
+// keine IP-Übermittlung, DSGVO; die CSP lässt keine fremden Schriften zu).
+import '@fontsource/dm-sans/latin-400.css';
+import '@fontsource/dm-sans/latin-500.css';
+import '@fontsource/dm-sans/latin-600.css';
+import '@fontsource/source-serif-4/latin-400.css';
 import '@fontsource/ibm-plex-mono/latin-400.css';
 import '@fontsource/ibm-plex-mono/latin-500.css';
 import './index.css';

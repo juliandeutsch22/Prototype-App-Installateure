@@ -70,15 +70,21 @@ describe('Die dunkle Trägerfläche', () => {
       auseinander — und dann sitzt ein dunkler Riegel über einer helleren
       Leiste. Genau das war vor der flachen Fläche der Fall.
     */
+    /*
+      V10 (13.11.2026): am Telefon liegt unter dem Balken das warme Papier mit
+      der hellen Kopfinsel darauf — der Balken trägt das Papier (`--bg`), nicht
+      mehr die dunkle Navigation. `darstellung.ts` setzt ihn je Satz neu.
+    */
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
     const balken = html.match(/name="theme-color" content="(#[0-9a-fA-F]{6})"/);
-    expect(balken?.[1]?.toLowerCase()).toBe(token('--navi').toLowerCase());
+    expect(balken?.[1]?.toLowerCase()).toBe(token('--bg').toLowerCase());
+    expect(readFileSync(resolve(process.cwd(), 'src/lib/darstellung.ts'), 'utf8')).toContain(`hell: '${token('--bg').toLowerCase()}'`);
   });
 
   it('steht auch im Manifest, damit die Startbildschirm-App nicht abweicht', () => {
     const manifest = JSON.parse(
       readFileSync(resolve(process.cwd(), 'public/manifest.webmanifest'), 'utf8'),
     ) as { theme_color: string };
-    expect(manifest.theme_color.toLowerCase()).toBe(token('--navi').toLowerCase());
+    expect(manifest.theme_color.toLowerCase()).toBe(token('--bg').toLowerCase());
   });
 });

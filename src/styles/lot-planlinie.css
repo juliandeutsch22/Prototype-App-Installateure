@@ -47,7 +47,8 @@
   .plankopf { display: flex; flex-direction: column; min-width: 0; }
   /* Der Kopf schreibt in die Zellen des Rasters (E33): Ortszeile 24, Titel 48, Untertitel 24 px. */
   .seitenkopf-ort { font-size: 0.6875rem; line-height: 1.5rem; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); margin-bottom: 0; }
-  .seitenkopf h1 { font-size: 1.5rem; line-height: 3rem; font-weight: 500; letter-spacing: -0.005em; color: var(--ink-deep); }
+  /* V10: der Seitentitel redaktionell in Source Serif 4, regulär — Gewicht trägt die Größe, nicht die Strichstärke. */
+  .seitenkopf h1 { font-family: var(--schrift-titel); font-size: 1.5rem; line-height: 3rem; font-weight: 400; letter-spacing: -0.005em; color: var(--ink-deep); }
   /* Feste Zeilenhöhe: die Knöpfe rechts sind genau eine Titelzeile hoch (index.css, E31). */
   /* Am Handy eine Stufe kleiner, damit ein langer Titel („Mitarbeiterübersicht“) neben den Knöpfen in einer Zeile bleibt. */
   /*
@@ -94,24 +95,30 @@
     nehmen.
   */
   /* Rechts schließt eine Linie das Feld (E76): oben und unten liefen die Linien bis zur Kante und endeten dort im Raster. */
-  .schriftfeld { position: relative; display: flex; margin-top: 1.5rem; box-shadow: 0 1px 0 var(--accent-deep), 1px 0 0 var(--border-strong); }
-  .schriftfeld .lage-zeile { flex: 0 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 0; margin: 0; padding: 0; }
-  .schriftfeld .lage-punkt { position: relative; flex: 0 0 240px; min-width: 0; border-left: 1px solid var(--border-strong); }
-  .schriftfeld .lage-punkt::before, .schriftfeld-skizze::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; border-top: 1px solid var(--border-strong); }
+  /*
+    V10 (13.11.2026): das Schriftfeld ist eine kompakte Kennzahlenleiste —
+    ein Blatt mit feiner Kontur und 16 px Radius, die Felder durch dünne
+    Linien getrennt. Keine farbige Unterkante, keine Skizze, kein Lineal:
+    Illustrationen gehören in echte Leerzustände (style.md).
+  */
+  .schriftfeld { position: relative; display: flex; margin-top: 1.5rem; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: none; }
+  .schriftfeld .lage-zeile { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 0; margin: 0 0 0 -1px; padding: 0; }
+  .schriftfeld .lage-punkt { position: relative; flex: 0 0 240px; min-width: 0; border-left: 1px solid var(--border); }
+  .schriftfeld .lage-punkt::before, .schriftfeld-skizze::before { content: none; }
   /*
     DIE OBERE LINIE GEHT DURCH (Auftrag 02.11.2026). Die Felder haben feste
     Breiten; zwischen dem letzten Feld und der Skizze blieb ein Stück frei,
     und dort fehlte die Linie — sie endete nach dem dritten Feld. Jetzt
     trägt das Schriftfeld sie über die ganze Breite, wie die Kontur unten.
   */
-  .schriftfeld::before { content: ''; position: absolute; top: 0; left: 0; right: 0; z-index: 1; pointer-events: none; border-top: 1px solid var(--border-strong); }
+  .schriftfeld::before { content: none; }
   /*
     Bricht eine Reihe um (Handy mit drei Feldern, Tablet und schmalere
     Schreibtische mit vier), füllt dieses Stück die letzte Reihe bis zum
     Rand und trägt deren obere Linie weiter. Ist die Reihe voll, bleibt es
     null breit.
   */
-  .schriftfeld .lage-zeile::after { content: ''; flex: 1 1 0; min-width: 0; border-top: 1px solid var(--border-strong); }
+  .schriftfeld .lage-zeile::after { content: none; }
   /*
     LUFT ÜBER UND UNTER DEN ZEILEN (Auftrag 03.11.2026: „die Abstände sehen
     so klein aus, alles wirkt zusammengepfercht“). Beschriftung und Wert
@@ -129,7 +136,7 @@
   .schriftfeld .lage-wert-warn { color: var(--warning); }
   .schriftfeld .lage-zusatz { font-size: 0.71875rem; line-height: 1.5rem; color: var(--text-muted); overflow-wrap: anywhere; }
   /* Die Skizze hält 12 px Abstand zu den Feldlinien — am Tablet berührte sie sie sonst links und rechts. */
-  .schriftfeld-skizze { position: relative; flex: 0 0 144px; margin-left: auto; display: flex; align-items: center; justify-content: center; padding: 0 0.75rem; border-left: 1px solid var(--border-strong); }
+  .schriftfeld-skizze { display: none; }
   /* Die Zeichnung passt sich dem Feld an, nicht umgekehrt — sonst bräche am Tablet das letzte Feld um. */
   .schriftfeld-skizze { min-width: 0; }
   .schriftfeld-skizze svg { max-height: 4.125rem; max-width: 100%; }
@@ -139,6 +146,7 @@
     40 px, die nie mit ihm zusammenfielen). Zwei Verläufe übereinander, kein
     Bild — so trägt es den dunklen Satz ohne eigene Fassung.
   */
+  .plankopf .lineal { display: none; }
   .lineal { height: 6px; margin-bottom: -6px; background-image: linear-gradient(90deg, var(--border-strong) 1px, transparent 1px), linear-gradient(90deg, var(--border-strong) 1px, transparent 1px); background-size: 24px 6px, 6px 3px; background-repeat: repeat-x, repeat-x; background-position: 0 0, 0 0; }
   /*
     AM TABLET SIEBEN ZELLEN JE FELD wie am Handy, mit 12 px Polster, die
@@ -166,7 +174,8 @@
   @media (max-width: 759px) {
     .schriftfeld { display: block; margin-top: 1.5rem; box-shadow: none; }
     .schriftfeld::before, .schriftfeld .lage-zeile::after, .schriftfeld .lage-punkt::before { content: none; }
-    .schriftfeld .lage-zeile { display: flex; flex-direction: column; flex-wrap: nowrap; border: 1px solid var(--border-strong); background: var(--surface); }
+    .schriftfeld { border: 0; background: transparent; overflow: visible; }
+    .schriftfeld .lage-zeile { display: flex; flex-direction: column; flex-wrap: nowrap; margin: 0; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--surface); }
     .schriftfeld .lage-punkt { flex: none; border-left: 0; }
     .schriftfeld .lage-punkt-null, .schriftfeld .lage-punkt-laedt, .schriftfeld .lage-punkt-breit, .schriftfeld [role='status'] { display: none; }
     /* Die Trennlinie trägt nur, was nach einer sichtbaren Zeile kommt — über der ersten liegt die Kante des Blatts. */
@@ -177,8 +186,9 @@
     .schriftfeld .lage-zusatz { grid-column: 1; font-size: 0.8125rem; line-height: 1.25rem; }
     /* Mit Zusatz zwei Textzeilen: eine Drittelzelle weniger Polster, damit die Zeile nicht über 60 px wächst — wie eine Untertitelzelle am iPhone. */
     .schriftfeld .lage-eintrag:has(.lage-zusatz) { padding-block: 0.5rem; }
-    .schriftfeld .lage-punkt-achtung { background: var(--warning-bg); box-shadow: inset 3px 0 0 var(--warning); }
-    .schriftfeld .lage-punkt-achtung:has(.lage-wert-rot) { background: var(--danger-bg); box-shadow: inset 3px 0 0 var(--danger); }
+    /* V10: Achtung ohne Farbfläche und ohne Kante — Text und Symbol tragen die Bedeutung. */
+    .schriftfeld .lage-punkt-achtung { background: none; box-shadow: none; }
+    .schriftfeld .lage-punkt-achtung:has(.lage-wert-rot) { background: none; box-shadow: none; }
     .schriftfeld-skizze { display: none; }
     .lineal { display: none; }
     .schriftfeld:not(:has(.lage-punkt:not(.lage-punkt-null, .lage-punkt-laedt, .lage-punkt-breit))) { display: none; }
@@ -419,9 +429,13 @@
   beides kaum heller als der Grund.
 */
 @layer components {
-  :root { --raster-linie: var(--surface-2); }
-  :root[data-theme='dark'] { --raster-linie: var(--surface); }
-  .hauptflaeche { background-color: var(--bg); background-image: linear-gradient(var(--raster-linie) 1px, transparent 1px), linear-gradient(90deg, var(--raster-linie) 1px, transparent 1px); background-size: 24px 24px; background-position: 16px 16px; }
+  /*
+    V10 (13.11.2026): Nebenlinien sehr leise (`--raster-neben`), jede vierte
+    Linie als Registrierungslinie minimal präziser (`--raster-haupt`) — das
+    Raster bleibt Herkunft, nicht Vordergrund, und liegt nur im Arbeitsgrund.
+  */
+  :root { --raster-linie: var(--raster-neben); }
+  .hauptflaeche { background-color: var(--bg); background-image: linear-gradient(var(--raster-haupt) 1px, transparent 1px), linear-gradient(90deg, var(--raster-haupt) 1px, transparent 1px), linear-gradient(var(--raster-linie) 1px, transparent 1px), linear-gradient(90deg, var(--raster-linie) 1px, transparent 1px); background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px; background-position: 16px 16px; }
   @media (min-width: 760px) { .hauptflaeche { background-position: 24px 20px; } }
   @media (min-width: 1200px) { .hauptflaeche { background-position: 40px 24px; } }
 }

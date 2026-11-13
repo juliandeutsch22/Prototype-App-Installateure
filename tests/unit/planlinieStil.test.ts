@@ -100,12 +100,12 @@ describe('B12 Raster — das Zeichenblatt der Arbeitsfläche (E32)', () => {
     expect(mitGitter.sort()).toEqual(['.anmelde-buehne', '.hauptflaeche', '.raster']);
   });
 
+  // V10 (13.11.2026): Nebenlinien `--raster-neben`, jede vierte Linie `--raster-haupt` — beide je Satz in index.css.
   it('hell wie dunkel, nur die Farbe der Linie wechselt — und an der Inhaltskante ausgerichtet', () => {
-    expect(PLANLINIE).toContain(':root { --raster-linie: var(--surface-2); }');
-    expect(PLANLINIE).toContain(":root[data-theme='dark'] { --raster-linie: var(--surface); }");
+    expect(PLANLINIE).toContain(':root { --raster-linie: var(--raster-neben); }');
     expect(PLANLINIE).not.toMatch(/data-theme='dark'\] \.hauptflaeche/);
     // Die Polster von `.inhalt` (lot.css): 16, 24 bzw. 20, 40 bzw. 24 px.
-    expect(PLANLINIE).toContain('background-size: 24px 24px; background-position: 16px 16px; }');
+    expect(PLANLINIE).toContain('background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px; background-position: 16px 16px; }');
     expect(PLANLINIE).toContain('@media (min-width: 760px) { .hauptflaeche { background-position: 24px 20px; } }');
     expect(PLANLINIE).toContain('@media (min-width: 1200px) { .hauptflaeche { background-position: 40px 24px; } }');
     const lot = readFileSync('src/styles/lot.css', 'utf8');
@@ -140,7 +140,8 @@ describe('B12 Raster — das Zeichenblatt der Arbeitsfläche (E32)', () => {
     expect(stil('lot-monat.css')).toContain('.mo-raster { display: block; border-top: 1px solid var(--border); }');
     // Seit E33 ragt keine Karte mehr in den Rand: die Planung ist ein Blatt wie jedes andere.
     expect(readFileSync('src/index.css', 'utf8')).not.toContain(':has(.wp-huelle, .mo-ecke)');
-    expect(stil('lot-blatt.css')).toMatch(/\.inhalt \.karte:not\(\.karte \.karte\)[^{]*\{\s*position: relative;\s*margin-inline: 0;/);
+    // V10: das Blatt trägt Kontur und 16 px Radius.
+    expect(stil('lot-blatt.css')).toMatch(/\.inhalt \.karte:not\(\.karte \.karte\)[^{]*\{\s*position: relative;[\s\S]*?margin-inline: 0; padding: 0; border: 1px solid var\(--border\); border-radius: var\(--radius-lg\);/);
   });
 
   it('die Klasse `raster` trägt nur noch die Musterseite', () => {
@@ -221,9 +222,11 @@ describe('Abstand zur Linie und die obere Linie des Schriftfelds (02.11.2026)', 
     expect(UEBERSICHT).toContain('.ue-massstab { display: block; margin: 0; padding: 0.75rem 1rem 0.25rem;');
   });
 
-  it('das Schriftfeld trägt die obere Linie über die ganze Breite, eine angebrochene Reihe führt sie zu Ende', () => {
-    expect(regel('.schriftfeld::before')).toMatch(/left: 0; right: 0;.*border-top: 1px solid var\(--border-strong\)/);
-    expect(regel('.schriftfeld .lage-zeile::after')).toMatch(/flex: 1 1 0;.*border-top: 1px solid var\(--border-strong\)/);
+  // V10 (13.11.2026): das Schriftfeld ist ein Blatt mit Kontur rundum — keine gezeichneten Einzellinien mehr.
+  it('das Schriftfeld ist ein geschlossenes Blatt mit Kontur und Radius, ohne Zusatzlinien', () => {
+    expect(regel('.schriftfeld')).toMatch(/background: var\(--surface\); border: 1px solid var\(--border\); border-radius: var\(--radius-lg\);/);
+    expect(regel('.schriftfeld::before')).toContain('content: none;');
+    expect(regel('.schriftfeld .lage-zeile::after')).toContain('content: none;');
   });
 
   it('am Tablet sieben Zellen je Feld mit 12 px Polster rundum; die Skizze hält Abstand zu den Feldlinien', () => {
@@ -231,8 +234,8 @@ describe('Abstand zur Linie und die obere Linie des Schriftfelds (02.11.2026)', 
     const block = tablet.slice(0, tablet.indexOf('\n  }'));
     expect(block).toContain('.schriftfeld .lage-punkt { flex-basis: 168px; }');
     expect(block).toContain('.schriftfeld .lage-eintrag { padding: 0.75rem; }');
-    expect(block).toContain('.schriftfeld-skizze { flex-basis: 96px; }');
-    expect(regel('.schriftfeld-skizze')).toContain('padding: 0 0.75rem;');
+    // V10: keine Skizze im Schriftfeld — Illustrationen gehören in echte Leerzustände.
+    expect(regel('.schriftfeld-skizze')).toContain('display: none;');
   });
 
   it('gleich geblieben: am Schreibtisch zehn Zellen je Feld mit 24 px Polster seitlich', () => {
@@ -253,8 +256,8 @@ describe('Abstand zur Linie und die obere Linie des Schriftfelds (02.11.2026)', 
     expect(block).toContain('.schriftfeld .lage-punkt-null, .schriftfeld .lage-punkt-laedt, .schriftfeld .lage-punkt-breit');
     expect(block).toContain('.schriftfeld:not(:has(.lage-punkt:not(.lage-punkt-null, .lage-punkt-laedt, .lage-punkt-breit))) { display: none; }');
     expect(block).toContain('.lineal { display: none; }');
-    // Eine Warnung wird ein Hinweis mit farbiger Kante, nicht nur farbige Ziffern.
-    expect(block).toContain('.schriftfeld .lage-punkt-achtung { background: var(--warning-bg);');
+    // V10: eine Warnung ohne Farbfläche und ohne Kante — Text und Symbol tragen sie.
+    expect(block).toContain('.schriftfeld .lage-punkt-achtung { background: none; box-shadow: none; }');
     expect(block).not.toContain('flex-basis: 168px');
   });
 

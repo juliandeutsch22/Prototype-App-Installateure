@@ -1,11 +1,12 @@
-import type { Darstellung } from '@/lib/darstellung';
+import { wirksam, type Darstellung } from '@/lib/darstellung';
 
 /** Gleiche Gerätewahl in der Navigation und im Profil, ohne sichtbaren Text. */
 export default function DarstellungsSchalter({ darstellung, onChange }: {
   darstellung: Darstellung;
   onChange: (darstellung: Darstellung) => void;
 }) {
-  const dunkel = darstellung === 'dunkel';
+  // Der Schalter zeigt, was zu sehen ist — auch wenn „System“ gewählt ist; ein Tipp wählt dann ausdrücklich.
+  const dunkel = wirksam(darstellung) === 'dunkel';
   return (
     <button
       type="button"

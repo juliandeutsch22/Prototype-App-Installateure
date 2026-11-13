@@ -56,12 +56,12 @@ test('Am Tablet steht „Einstellungen“ in der Seitenleiste in einer Zeile', a
   // Und es ragt höchstens in den Innenabstand (2 px je Seite), nicht über den Punkt hinaus.
   const ueberstand = () => kurz.evaluate((el) => el.scrollWidth - el.clientWidth);
   /*
-    GEMESSEN WIRD IN POPPINS, nicht in der Ersatzschrift, die bis zum Laden
+    GEMESSEN WIRD IN DM SANS (V10), nicht in der Ersatzschrift, die bis zum Laden
     dasteht. Der aktive Kurztext bleibt am Tablet dünn (siehe `lot.css`) —
     fett lief er in der CI 8 px über.
   */
   const schriftDa = async (gewicht: number) => {
-    const geladen = await page.evaluate((g) => document.fonts.load(`${g} 11px Poppins`).then((f) => f.length), gewicht);
+    const geladen = await page.evaluate((g) => document.fonts.load(`${g} 11px "DM Sans"`).then((f) => f.length), gewicht);
     expect(geladen).toBeGreaterThan(0);
   };
   await schriftDa(400);
