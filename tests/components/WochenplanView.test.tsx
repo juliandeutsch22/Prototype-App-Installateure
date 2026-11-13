@@ -1675,6 +1675,20 @@ describe('Einsatzplanung — Planlinie', () => {
     expect(a.getByRole('button', { name: /Familie Huber \(2026-042\) einplanen/ })).toBeInTheDocument();
   });
 
+  // C3 (E91): die Kurzbezeichnung als zweite Zeile — „Bad“ und „Heizung“ desselben Kunden.
+  it('die Ablage nennt die Kurzbezeichnung einer Baustelle', async () => {
+    // Für jeden Aufruf, nicht nur den ersten: lädt die Seite zweimal, fehlte die Bezeichnung sonst beim zweiten Mal.
+    vi.mocked(projekte.listActiveProjects).mockImplementation(async () => [{ ...BAUSTELLEN[0], bezeichnung: 'Bad' } as Project]);
+    try {
+      zeige();
+      const knopf = await screen.findByRole('button', { name: 'Familie Huber · Bad (2026-042) einplanen' });
+      expect(within(knopf).getByText('Bad')).toHaveClass('e-zeile');
+      expect(knopf.closest('[aria-label="Noch einzuplanen"]')).not.toBeNull();
+    } finally {
+      vi.mocked(projekte.listActiveProjects).mockImplementation(async () => BAUSTELLEN);
+    }
+  });
+
   it('Gegenprobe: ist jede Baustelle eingeplant, gibt es keine Ablage — und im Monat auch nicht', async () => {
     einsaetze = [EINSATZ_MAX];
     zeige();

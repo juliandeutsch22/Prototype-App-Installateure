@@ -630,6 +630,7 @@ export default function StockView() {
           zuBearbeiten={zuBearbeiten}
           onUebernommen={() => setZuBearbeiten(null)}
           lagerartikel={materials}
+          suche={params.get('suche') ?? undefined}
         />
       ) : (
         <>

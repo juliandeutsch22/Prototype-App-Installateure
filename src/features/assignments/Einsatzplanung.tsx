@@ -11,6 +11,7 @@ import { useZiehen } from './useZiehen';
 import { aendertEtwas, umplanText, type Last } from './umplanen';
 import type { EinsatzAktionen } from './WochenEintraege';
 import { todayStr } from '@/lib/time';
+import { baustelleInAuswahl } from '@/lib/baustellenTitel';
 import type { Assignment, Project, Termin } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -638,6 +639,8 @@ export default function Einsatzplanung() {
                     >
                       <span className="e-titel">{baustellenName(p)}</span>
                       <span className="e-zeile mono">{p.projectNumber}</span>
+                      {/* Die Kurzbezeichnung als zweite Zeile (C3, E91): „Bad“ und „Heizung“ desselben Kunden. */}
+                      {p.bezeichnung?.trim() && <span className="e-zeile">{p.bezeichnung.trim()}</span>}
                     </button>
                   </li>
                 ))}
@@ -779,8 +782,8 @@ export default function Einsatzplanung() {
 
 const baustellenName = (p: Project) => p.customerName ?? p.projectNumber;
 
-/** „CT Bau GmbH (PR-2026-0193)“ — zwei Baustellen desselben Kunden sind sonst nicht zu unterscheiden (Runde 5, G3). */
-const mitNummer = (p: Project) => (p.customerName ? `${p.customerName} (${p.projectNumber})` : p.projectNumber);
+/** „CT Bau GmbH · Bad (PR-2026-0193)“ — zwei Baustellen desselben Kunden sind sonst nicht zu unterscheiden (Runde 5, G3; Kurzbezeichnung seit C3, E91). */
+const mitNummer = (p: Project) => baustelleInAuswahl(p);
 
 function umschalten(alt: Set<string>, name: string): Set<string> {
   const neu = new Set(alt);

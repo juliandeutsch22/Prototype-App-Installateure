@@ -614,6 +614,14 @@ describe('Material anfordern — gescheiterte Ladevorgänge', () => {
     expect(document.querySelector('[data-motiv="lager"]')).toBeNull();
   });
 
+  // Aus „Suchen oder springen“ (C3, E91): der gewählte Artikel steht schon im Suchfeld.
+  it('nimmt den Artikel aus der Adresse ins Suchfeld', async () => {
+    zeige('/material?suche=KR15');
+    expect(await screen.findByRole('searchbox', { name: /Suche/ })).toHaveValue('KR15');
+    await waitFor(() => expect(screen.queryByText('Dichtung 1/2"')).not.toBeInTheDocument());
+    expect(screen.getByText('Kupferrohr 15mm')).toBeInTheDocument();
+  });
+
   it('sucht auch über Kategorie und Artikelnummer', async () => {
     zeige();
     await userEvent.type(await screen.findByRole('searchbox', { name: /Suche/ }), 'KR15');

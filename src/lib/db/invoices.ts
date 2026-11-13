@@ -94,6 +94,11 @@ export function sucheRechnungen(companyId: string, begriff: string): Promise<Wit
   return pg.sucheRechnungen(companyId, begriff);
 }
 
+/** Rechnungen nach Nummer, nur die Köpfe — für „Suchen oder springen“ (E91). */
+export function rechnungenNachNummer(companyId: string, begriff: string, max: number): Promise<pg.RechnungsTreffer[]> {
+  return pg.rechnungenNachNummer(companyId, begriff, max);
+}
+
 export function listInvoicesForCustomer(
   companyId: string, customerId: string, projektIds: string[],
 ): Promise<WithId<Invoice>[]> {

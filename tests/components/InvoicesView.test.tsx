@@ -2,7 +2,7 @@ import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { readdirSync, readFileSync } from 'node:fs';
 import { ToastProvider } from '@/components/Toast';
 import type { Invoice, Material, Project, TimeEntry, WorkSheet } from '@/types';
@@ -3667,6 +3667,33 @@ describe('Rechnungen suchen — über alle, nicht nur die geladenen', () => {
     zeige('/invoices?suche=RE-2025-1001');
     expect(await screen.findByLabelText('Suche')).toHaveValue('RE-2025-1001');
     expect(await screen.findByRole('button', { name: 'Familie Huber RE-2025-1001' })).toBeInTheDocument();
+  });
+
+  /*
+    „SUCHEN ODER SPRINGEN“ AUF DER OFFENEN SEITE (C3, E91): wer in den
+    Rechnungen steht und eine andere Nummer sucht, bekam die alte Suche
+    weiter angezeigt — der Begriff kam nur beim ersten Aufbau aus der Adresse.
+  */
+  it('übernimmt eine neue Nummer aus der Adresse auch auf der offenen Seite und öffnet die Rechnung', async () => {
+    suchTreffer = [rechnung('alt', 'RE-2025-1001', 'Familie Huber'), rechnung('b', 'RE-2025-1002', 'Gasthof Post')];
+    let springen: (ziel: string) => void = () => undefined;
+    function Springer() {
+      springen = useNavigate();
+      return null;
+    }
+    render(
+      <MemoryRouter initialEntries={['/invoices?suche=RE-2025-1001']}>
+        <ToastProvider>
+          <Springer />
+          <InvoicesView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByLabelText('Suche')).toHaveValue('RE-2025-1001');
+    act(() => springen('/invoices?suche=RE-2025-1002&oeffnen=b'));
+    await waitFor(() => expect(screen.getByLabelText('Suche')).toHaveValue('RE-2025-1002'));
+    await waitFor(() => expect(suche).toHaveBeenLastCalledWith('perl', 'RE-2025-1002'));
+    expect(await screen.findByRole('dialog', { name: /^Rechnung RE-2025-1002/ })).toBeInTheDocument();
   });
 
   it('sagt, wenn die Suche nicht erreichbar ist — und sucht im Geladenen', async () => {

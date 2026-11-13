@@ -3824,3 +3824,69 @@ einmal gemeldet), `TimeView.test.tsx` (ausgeschaltet am Handy); der
 Browserweg „Offline gestarteter Timer …“ 12 von 12 grün (vorher 2 von 8
 rot). Die Browserwege am iPhone (`webkit-telefon`), die das Formular offen
 auf der Seite erwarteten, öffnen es jetzt über „Neuer Eintrag“.
+
+**E91 — Suche mit Nummern und Kurzbezeichnung (13.11.2026).**
+Paket 9 des Plans (C3). „Suchen oder springen“ kannte Seiten, Kunden und
+Baustellen. Wer eine Rechnungsnummer vom Telefon notiert hatte, fand sie
+dort nicht, und zwei Baustellen desselben Kunden unterschied überall nur
+die Nummer.
+- **Neue Gruppen im Suchfenster**, jede nur mit der Seite, die die Rolle in
+  der Navigation hat (dieselbe Regel wie für Kunden und Baustellen):
+  Rechnungen und Angebote nach Nummer (auch die Stornonummer), Personen
+  nach Name oder E-Mail (wer die Benutzerverwaltung hat), Artikel nach
+  Name, Artikel-, Großhändlernummer oder EAN. Rechnungen und Angebote
+  suchen nur nach der Nummer: nach dem Kunden sucht die Gruppe „Kunden“,
+  sonst stünde zu „Huber“ jede seiner Rechnungen darunter. Geholt werden
+  nur die Köpfe (`rechnungenNachNummer`, `angeboteNachNummer`), keine
+  Positionen; was die Rolle sieht, entscheidet der Zeilenschutz.
+- **Wohin ein Treffer führt:** eine Rechnung in die Rechnungen mit offenem
+  Fenster (`?suche=…&oeffnen=…`), bei der Projektleitung mit „Rechnungen
+  lesen“ in ihre Leseliste, gefiltert auf die Nummer und auf „Alle“; ein
+  Angebot in das Angebot; eine Person in ihre Akte; ein Artikel ins Lager
+  (Katalog), wer es führt, sonst zu „Material anfordern“ mit dem Artikel im
+  Suchfeld.
+- **Zwei Zeilen je Treffer:** bei Baustellen der Kunde und darunter die
+  Kurzbezeichnung, bei Rechnungen das Datum, bei Angeboten der Stand.
+- **Kurzbezeichnung in den Auswahllisten** (`baustelleInAuswahl`): „Familie
+  Huber · Bad (B-0147)“, in der Zeiterfassung „B-0147 · Familie Huber ·
+  Bad“, in der Ablage der Einsatzplanung als zweite Zeile, in der
+  Terminauswahl der Kundenakte zwischen Nummer und Adresse. Ein natives
+  Auswahlfeld kennt keine zweite Zeile; was es abschneidet, zeigt die Zeile
+  darunter ganz.
+- **Der Suchbegriff aus der Adresse auch auf der offenen Seite**
+  (`useAdressSuche`): Rechnungen, Leseliste der Projektleitung, Katalog im
+  Lager und „Material anfordern“ übernehmen `?suche=` auch dann, wenn man
+  schon auf der Seite steht. Vorher kam der Begriff nur beim ersten Aufbau
+  an, und wer in den Rechnungen eine zweite Nummer suchte, sah die alte.
+
+**Grenzen mit Grund:**
+- Scheine haben keine eigene Nummer (fachlich): ein Schein ist über seine
+  Baustelle und seinen Tag bestimmt; man findet ihn über die Baustelle oder
+  in der Scheinliste (Baustelle, Monat, Kunde). Eine Nummernvergabe für
+  Scheine wäre ein neuer Nummernkreis auf einem unterschriebenen Beleg —
+  eine Entscheidung des Auftraggebers, nicht dieses Pakets.
+- Personen nur mit der Benutzerverwaltung (Datenschutz): wer sie nicht
+  hat, sieht keine Akte, in die ein Treffer führen könnte.
+- Die Projektleitung öffnet keine Rechnung im Fenster (fachlich, M38): ihre
+  Liste ist eine Leseliste ohne Fenster; der Treffer führt in die gefilterte
+  Liste.
+- Die Rasterprüfung (`raster.spec`) läuft in der Cloud-Umgebung nur je
+  Breite in einem frischen Browser durch (Gerät): nach rund 40
+  Seitenwechseln in einem Tab lädt Chromium dort die Module des
+  Entwicklungsservers nicht mehr (`ERR_INSUFFICIENT_RESOURCES`, weiße Seite)
+  — mit und ohne dieses Paket, in der CI nicht. Je Breite einzeln ist sie
+  mit diesem Paket grün.
+
+**Nachweis:** Komponenten `Suchfenster.test.tsx` (+8), `BaustellenSelect`
+(+2), `baustellenTitel` (+4), `RechnungenLesen` (+3), `InvoicesView` (+1),
+`MaterialCatalog` (+2), `OrderView` (+1), `KundenakteView` (+1),
+`WochenplanView` (+1), dazu die Durchsicht je Quelldatei für `useAdressSuche.ts`; Datenbank `sucheNummern.test.ts` (7: Nummer,
+Stornonummer, nicht nach Kunde, eigener Betrieb und Grenze, Monteur ohne
+Treffer, Angebot ohne verworfene); Browser `sucheNummern.spec.ts` (3: Büro
+bis zur offenen Rechnung, Monteur zum Artikel und ohne Rechnungen, zwei
+Baustellen eines Kunden in Suche und Auswahl). Gegenproben: mit dem Stand
+davor sind 22 der 23 neuen Komponentenprüfungen und alle 3 Browserwege
+rot; grün bleibt mit Absicht „ohne Suche bleibt es beim Arbeitsstand
+Offen“, ebenso die bisherigen Prüfungen des Suchfensters („der Monteur
+fragt die Datenbank gar nicht erst“).
+

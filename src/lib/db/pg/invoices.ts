@@ -580,6 +580,38 @@ export async function sucheRechnungen(
   return zusammensetzen(koepfe, companyId);
 }
 
+/** Ein Treffer im Suchfenster: nur der Kopf, ohne Positionen. */
+export interface RechnungsTreffer {
+  id: string;
+  invoiceNumber: string;
+  stornoNummer?: string | null;
+  customerName: string;
+  projectNumber: string;
+  invoiceDate: string;
+}
+
+/**
+ * RECHNUNGEN NACH NUMMER, FÜR „SUCHEN ODER SPRINGEN“ (C3, E91).
+ *
+ * Nur die Nummer und die Stornonummer: nach dem Kunden sucht das Fenster
+ * schon unter „Kunden“ — sonst stünde zu „Huber“ jede seiner Rechnungen
+ * darunter. Nur die Köpfe: fünf Treffer brauchen keine Positionen.
+ */
+export async function rechnungenNachNummer(
+  companyId: string,
+  begriff: string,
+  max: number,
+): Promise<RechnungsTreffer[]> {
+  const oder = oderUeberSpalten(['invoice_number', 'storno_nummer'], begriff);
+  if (!oder) return [];
+  return abfragen<RechnungsTreffer>(RECHNUNGEN, companyId, {
+    oder,
+    spalten: 'id,invoice_number,storno_nummer,customer_name,project_number,invoice_date',
+    sortiere: { feld: 'invoiceDate', absteigend: true },
+    grenze: max,
+  });
+}
+
 /** Wie viele Rechnungen die Kundenakte zeigt — die jüngsten zuerst. */
 const RECHNUNGEN_JE_KUNDE = 500;
 

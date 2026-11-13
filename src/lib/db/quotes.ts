@@ -25,6 +25,11 @@ export function sucheAngebote(companyId: string, begriff: string, max?: number):
 
 export { ANGEBOT_TREFFER } from './pg/quotes';
 
+/** Angebote nach Nummer, nur die Köpfe — für „Suchen oder springen“ (E91). */
+export function angeboteNachNummer(companyId: string, begriff: string, max: number): Promise<pg.AngebotsTreffer[]> {
+  return pg.angeboteNachNummer(companyId, begriff, max);
+}
+
 export function listQuotesForCustomer(
   companyId: string, customerId: string, max = 100,
 ): Promise<WithId<Quote>[]> {

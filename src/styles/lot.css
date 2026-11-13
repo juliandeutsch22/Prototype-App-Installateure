@@ -400,6 +400,9 @@
   .such-treffer-an { background: var(--petrol-hell); color: var(--accent-deep); }
   /* Die Baustellennummer bricht nicht in drei Zeilen („B-/2026-/0147“): sie bleibt ganz, der Name daneben nimmt den Rest. */
   .such-nebeninfo { flex: none; margin-left: auto; white-space: nowrap; font-size: 0.8125rem; color: var(--text-muted); }
+  /* Zwei Zeilen je Treffer (C3, E91): unten die Kurzbezeichnung einer Baustelle, das Datum einer Rechnung. */
+  .such-text { display: flex; flex-direction: column; min-width: 0; }
+  .such-zweite { font-size: 0.8125rem; color: var(--text-muted); }
   .such-leer { padding: 1rem 1.25rem; color: var(--text-muted); font-size: 0.9375rem; }
 }
 
