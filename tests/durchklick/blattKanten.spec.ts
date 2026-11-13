@@ -18,8 +18,13 @@ async function handy(page: Page) {
   await page.setViewportSize({ width: 390, height: 844 });
 }
 
+/*
+  SEIT C6 (E90) steht das Formular am Handy im Blatt von unten; auf der
+  Seite — und mit ihm die mitfliegende Leiste — erst ab dem Tablet.
+  Gemessen wird deshalb an dessen schmalster Breite.
+*/
 test('Die mitfliegende Leiste der Zeiterfassung lässt die linke Linie des Blatts frei', async ({ page }) => {
-  await handy(page);
+  await page.setViewportSize({ width: 760, height: 900 });
   await anmelden(page, MONTEUR.email);
   await page.goto('/time');
   const leiste = page.locator('.zeit-formularkarte .aktionsleiste');
@@ -35,8 +40,8 @@ test('Die mitfliegende Leiste der Zeiterfassung lässt die linke Linie des Blatt
     return { links: r.left - b.left, rechts: b.right - r.right, pos: getComputedStyle(l).position, knopf: l.querySelector('button')!.getBoundingClientRect().left - b.left };
   });
   expect(m.pos).toBe('sticky');
-  // Die Knöpfe auf dem Polster des Blatts: am Handy 16 px seit E86 (D4), vorher 24.
-  expect(m).toMatchObject({ links: 1, rechts: 0, knopf: 16 });
+  // Die Knöpfe auf dem Polster des Blatts: ab dem Tablet 24 px (am Handy waren es 16, E86).
+  expect(m).toMatchObject({ links: 1, rechts: 0, knopf: 24 });
 });
 
 test('Frei auf der Seite ist die Leiste so breit wie die Spalte (Firmendaten)', async ({ page }) => {
