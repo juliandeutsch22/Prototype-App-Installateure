@@ -102,6 +102,23 @@ describe('ausrichten', () => {
     expect(inhalt.style.getPropertyValue('--takt-auslauf')).toBe('-38px');
   });
 
+  it('am Handy reicht die Spalte gleichmäßig an beide Ränder — gerundet wird erst ab dem Tablet', () => {
+    // Gegenprobe: auf ganze Zellen gerundet stand ein Blatt bei 390 px rechts 38 px statt 16 px vom Rand.
+    const { flaeche, inhalt } = seite({ oben: 264, hoehe: 96 });
+    Object.defineProperty(inhalt, 'clientWidth', { value: 390, configurable: true });
+    inhalt.style.paddingLeft = '16px';
+    inhalt.style.paddingRight = '16px';
+    const vorher = window.matchMedia;
+    window.matchMedia = ((q: string) => ({ matches: q === '(max-width: 759px)', media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
+    try {
+      ausrichten(flaeche);
+      expect(inhalt.style.getPropertyValue('--takt-breite')).toBe('358px');
+      expect(inhalt.style.getPropertyValue('--takt-auslauf')).toBe('-16px');
+    } finally {
+      window.matchMedia = vorher;
+    }
+  });
+
   it('ein Blatt, das schon auf den Linien liegt, bleibt unberührt', () => {
     const { flaeche, blatt } = seite({ oben: 264, hoehe: 96 });
     ausrichten(flaeche);

@@ -103,7 +103,15 @@ export function ausrichten(flaeche: HTMLElement, neu = false): void {
   if (!inhalt) return;
   const stil = getComputedStyle(inhalt);
   const innen = inhalt.clientWidth - parseFloat(stil.paddingLeft) - parseFloat(stil.paddingRight);
-  const spalte = taktBreite(innen);
+  /*
+    AM HANDY DIE GANZE SPALTE (14.11.2026). Auf ganze Zellen gerundet stand
+    ein Blatt bei 390 px links 16 px, rechts 38 px vom Rand — neben den
+    gleichmäßigen Inseln oben und unten sah das verrutscht aus und kostete
+    ein Achtel der Breite. Ab dem Tablet bleiben rechte Kanten und Spalten
+    auf den Linien; die Oberkanten und Höhen hält der Takt überall.
+  */
+  const handy = typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 759px)').matches;
+  const spalte = handy ? Math.max(ZELLE, Math.round(innen)) : taktBreite(innen);
   const breite = `${spalte}px`;
   if (inhalt.style.getPropertyValue('--takt-breite') !== breite) inhalt.style.setProperty('--takt-breite', breite);
   /*

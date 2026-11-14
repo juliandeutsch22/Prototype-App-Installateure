@@ -35,8 +35,9 @@ describe('Nichts Klebendes deckt die Linie eines Blatts zu (E76)', () => {
     expect(blattZeilen.filter((z) => /padding: \d+px 24px|padding-inline: 24px/.test(z))).toEqual([]);
   });
 
-  it('frei auf der Seite ist die Leiste ein Streifen Blatt: Spaltenbreite, Linie rundum', () => {
-    expect(BLATT).toMatch(/\.inhalt \.aktionsleiste:not\(:is\(\.karte, \.fenster, \.fenster-breit, \.blatt, \[role='dialog'\], \.akten-editor\) \.aktionsleiste\) \{\s*margin: 1\.5rem 0 0; padding: 12px var\(--blatt-rand\); border-top: 0;\s*box-shadow: inset 1px 0 0 var\(--border-strong\), inset 0 1px 0 var\(--border-strong\), 1px 0 0/);
+  it('frei auf der Seite ist die Leiste ein Streifen Blatt: Spaltenbreite, Umriss und Radius wie jedes Blatt (V10)', () => {
+    // Gegenprobe: der Stand der Linie „Lot“ (gezeichnete eckige Linien per box-shadow) ist rot.
+    expect(BLATT).toMatch(/\.inhalt \.aktionsleiste:not\(:is\(\.karte, \.fenster, \.fenster-breit, \.blatt, \[role='dialog'\], \.akten-editor\) \.aktionsleiste\) \{\s*margin: 1\.5rem 0 0; padding: 12px var\(--blatt-rand\); border-top: 0;[^}]*border-radius: var\(--radius-lg\); outline: 1px solid var\(--border\); outline-offset: -1px; box-shadow: none;/);
   });
 
   it('Gruppenzeile der Planung und Kopfzeile des Monats zeichnen die Linie selbst', () => {

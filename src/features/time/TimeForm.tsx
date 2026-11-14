@@ -1592,14 +1592,17 @@ export default function TimeForm({
                   name={`Zeitverteilung ${startTime} bis ${endTime}: ${fmtMin(bild.minuten)} Std Arbeit, ${fmtMin(Math.max(0, Number(breakDuration) || 0))} Std unterbrochen`}
                 />
               )}
-              <p className="text-sm text-ink-muted">
-                Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
-                {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
-              </p>
-              <InfoHint about="Linie der Arbeitszeit">
-                Die Linie bemaßt die Zeit von Beginn bis Ende; die Pause ist schraffiert. Gebucht wird
-                nur ihre Dauer, nicht wann sie war — darum steht sie in der Mitte.
-              </InfoHint>
+              {/* Im Fenster (ohne Seitenhilfe) steht das (i) hinter dem Satz, nicht verwaist darunter (14.11.2026). */}
+              <div className="zeitbild-satz">
+                <p className="text-sm text-ink-muted">
+                  Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
+                  {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
+                </p>
+                <InfoHint about="Linie der Arbeitszeit">
+                  Die Linie bemaßt die Zeit von Beginn bis Ende; die Pause ist schraffiert. Gebucht wird
+                  nur ihre Dauer, nicht wann sie war — darum steht sie in der Mitte.
+                </InfoHint>
+              </div>
             </div>
           )}
           {bild && bild.befund !== 'ok' && (

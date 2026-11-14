@@ -57,7 +57,8 @@ test('Frei auf der Seite ist die Leiste so breit wie die Spalte (Firmendaten)', 
     const alle = [...document.querySelectorAll(sel)];
     const blatt = alle[alle.length - 1].getBoundingClientRect(), r = l.getBoundingClientRect();
     const knopf = l.querySelector('button[type=submit]')!;
-    return { links: r.left - blatt.left, rechts: r.right - blatt.right, linie: getComputedStyle(l).boxShadow.includes('inset'), passt: knopf.scrollWidth <= knopf.clientWidth };
+    // V10: der Umriss des Blatts statt gezeichneter Linien.
+    return { links: r.left - blatt.left, rechts: r.right - blatt.right, linie: getComputedStyle(l).outlineStyle === 'solid' && getComputedStyle(l).borderTopLeftRadius === '16px', passt: knopf.scrollWidth <= knopf.clientWidth };
   }, BLATT);
   expect(m).toEqual({ links: 0, rechts: 0, linie: true, passt: true });
 });

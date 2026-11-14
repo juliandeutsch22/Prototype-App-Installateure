@@ -330,9 +330,10 @@
 */
 @layer components {
   .ue-liste, .ue-liste-woche, .ue-vergleich { border-top: 0; }
-  .ue-kopfzeile, .mw-kopfzeile { border-top: 1px solid var(--accent-deep); border-bottom: 1px solid var(--border-strong); border-radius: 0; }
+  /* Die Kopflinie oben folgt der Rundung des Blatts (14.11.2026: stand eckig über die runden Ecken hinaus). */
+  .ue-kopfzeile, .mw-kopfzeile { border-top: 1px solid var(--accent-deep); border-bottom: 1px solid var(--border-strong); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
   @media (min-width: 760px) {
-    .ue-vergleich-kopf { border-top: 1px solid var(--accent-deep); border-bottom: 1px solid var(--border-strong); }
+    .ue-vergleich-kopf { border-top: 1px solid var(--accent-deep); border-bottom: 1px solid var(--border-strong); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
     /* Versalien und Sperrung tragen den Spaltenkopf; fett dazu wäre die verbotene Dreifachbetonung (V10, Regel 8). */
     .ue-kopf-person, .ue-kopf-zahl, .ue-vergleich-kopf { font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; }
   }

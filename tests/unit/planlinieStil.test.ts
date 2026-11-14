@@ -142,8 +142,10 @@ describe('B12 Raster — das Zeichenblatt der Arbeitsfläche (E32)', () => {
     expect(stil('lot-monat.css')).toContain('.mo-raster { display: block; border-top: 1px solid var(--border); }');
     // Seit E33 ragt keine Karte mehr in den Rand: die Planung ist ein Blatt wie jedes andere.
     expect(readFileSync('src/index.css', 'utf8')).not.toContain(':has(.wp-huelle, .mo-ecke)');
-    // V10: das Blatt trägt Kontur und 16 px Radius.
-    expect(stil('lot-blatt.css')).toMatch(/\.inhalt \.karte:not\(\.karte \.karte\)[^{]*\{\s*position: relative;[\s\S]*?margin-inline: 0; padding: 0; border: 0; outline: 1px solid var\(--border\); outline-offset: -1px; border-radius: var\(--radius-lg\);/);
+    // V10: das Blatt trägt 16 px Radius; die Kontur liegt als eigene Ebene darüber (keine Höhe, kein Tipp, über der klebenden Leiste).
+    // Gegenprobe: der Umriss (`outline`) wurde unter Kindern mit eigener Ebene gezeichnet und von Zeilen zugedeckt.
+    expect(stil('lot-blatt.css')).toMatch(/\.inhalt \.karte:not\(\.karte \.karte\)[^{]*\{\s*position: relative;[\s\S]*?margin-inline: 0; padding: 0; border: 0; border-radius: var\(--radius-lg\);/);
+    expect(stil('lot-blatt.css')).toContain("content: ''; position: absolute; inset: 0; z-index: 11; pointer-events: none;\n    border: 1px solid var(--border); border-radius: inherit;");
   });
 
   it('die Klasse `raster` trägt nur noch die Musterseite', () => {
