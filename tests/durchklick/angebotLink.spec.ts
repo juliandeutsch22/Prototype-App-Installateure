@@ -102,6 +102,17 @@ test('Büro erzeugt den Link, der Kunde nimmt am Handy an, das Büro sieht die B
     expect(await kunde.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
     expect(await befunde(kunde, 'Annahme-Link (offen)')).toEqual([]);
 
+    // Das Angebot als PDF, ohne Anmeldung (14.11.2026: PDF-Abläufe im echten Browser).
+    const [datei] = await Promise.all([
+      kunde.waitForEvent('download', { timeout: 30_000 }),
+      kunde.getByRole('button', { name: 'Als PDF' }).click(),
+    ]);
+    expect(datei.suggestedFilename()).toBe(`Angebot_${NUMMER}.pdf`);
+    const pdf = Buffer.concat(await (await datei.createReadStream()).toArray()).toString('latin1');
+    expect(pdf.startsWith('%PDF-')).toBe(true);
+    expect(pdf).toContain('Gastherme');
+    await expect(kunde.getByText('Das PDF konnte nicht erzeugt werden', { exact: false })).toHaveCount(0);
+
     // Ohne Unterschrift geht es nicht.
     await kunde.getByLabel(/Ihr Name/).fill('Maria Linkprobe');
     await kunde.getByLabel('Ich nehme dieses Angebot verbindlich an.').check();
