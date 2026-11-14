@@ -351,7 +351,7 @@ describe('Material anfordern — der Warenkorb', () => {
     await userEvent.clear(menge);
     await userEvent.type(menge, '30');
     await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('symbol-rund'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis'));
     expect(screen.queryByRole('textbox', { name: /für Kupferrohr 15mm in der Liste/ })).toBeNull();
   });
   it('eine unbrauchbare Menge ändert die Liste nicht', async () => {
@@ -1019,8 +1019,8 @@ describe('Was schon in der Liste liegt', () => {
   it('ein Tipp auf den Kreis legt eines hinein; dann steht die Menge an derselben Stelle, einzeilig — „Liste leeren“ bringt den Kreis zurück', async () => {
     zeige();
     const knopf = await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' });
-    // Der Petrol-Kreis (E74): kein Wort im Knopf, der Name als Hinweis.
-    expect(knopf).toHaveClass('symbol-rund');
+    // Der Kreis (E74, V10 als Linienkreis): kein Wort im Knopf, der Name als Hinweis.
+    expect(knopf).toHaveClass('korb-kreis');
     expect(knopf).toHaveTextContent(/^$/);
     expect(knopf).toHaveAttribute('title', 'Kupferrohr 15mm in die Liste');
     await userEvent.click(knopf);
@@ -1030,7 +1030,7 @@ describe('Was schon in der Liste liegt', () => {
     // Keine zweite Zeile „… in der Liste“ darunter: die Menge steht im Feld.
     expect(screen.queryByText(/ in der Liste$/)).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Liste leeren' }));
-    expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('symbol-rund');
+    expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis');
   });
   it('steht nach einem Neustart wieder da', async () => {
     localStorage.setItem(
@@ -1050,7 +1050,7 @@ describe('Was schon in der Liste liegt', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
     await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('symbol-rund'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis'));
   });
   it('Gegenprobe: ein anderer Artikel und ein freier Eintrag zählen beim Kupferrohr nicht mit', async () => {
     zeige();
@@ -1059,7 +1059,7 @@ describe('Was schon in der Liste liegt', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Eckventil in die Liste' }));
     expect(screen.getByRole('textbox', { name: /für Dichtung 1\/2" in der Liste/ })).toHaveValue('1');
     // Beim Kupferrohr steht weiter nur der Kreis.
-    expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('symbol-rund');
+    expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis');
     expect(screen.queryByRole('textbox', { name: /für Kupferrohr 15mm in der Liste/ })).toBeNull();
   });
 });
@@ -1165,7 +1165,7 @@ describe('Material anfordern — Knöpfe und Fluchten der Linie (E72)', () => {
     expect(feld).toHaveClass('mengen-feld');
     // Bei eins nimmt Minus den Artikel heraus — der Kreis steht wieder da.
     await userEvent.click(minus);
-    expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('symbol-rund');
+    expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis');
   });
   it('eine ungültige Menge färbt den ganzen Rahmen, die Liste bleibt', async () => {
     zeige();
@@ -1334,5 +1334,88 @@ describe('Zuletzt angefordert (C5, E89)', () => {
     keinBlock();
     await userEvent.clear(screen.getByRole('searchbox'));
     expect(await block()).toBeInTheDocument();
+  });
+});
+
+/*
+  V10 MATERIAL (13.11.2026): Laden, Fehler, Leere und Filterleere sind vier
+  Zustände; der Kreis „In die Liste“ ist eine Linie, die Zeile mit Artikel in
+  der Liste ist ausgewählt; die Herkunft ist eine Auswahl mit Häkchen.
+  Gegenprobe: mit dem Stand davor (Fehler oben, darunter „Noch kein Material
+  im Katalog“ und „Keine offenen Bestellungen“; Optionspunkte) rot.
+*/
+describe('V10 Material — Zustände und Auswahl', () => {
+  const eigen = (rest: Partial<MaterialOrder>) =>
+    ({ id: 'o1', companyId: 'perl', materialName: 'Kupferrohr 15mm', quantity: 2, status: 'Offen',
+      transactionType: 'order', userId: 'u1', projectNumber: '2026-042', ...rest }) as WithId<MaterialOrder>;
+
+  it('Katalog nicht geladen: ein Fehler mit „Erneut versuchen“, keine Leere', async () => {
+    abosFehler = { material: true };
+    zeige();
+    expect(await screen.findByText(/Der Katalog konnte nicht geladen werden/)).toBeInTheDocument();
+    expect(screen.queryByText('Noch kein Material im Katalog')).toBeNull();
+    expect(screen.queryByText('Kein Material passt zur Suche.')).toBeNull();
+    // Der freie Eintrag braucht keinen Katalog und bleibt.
+    expect(screen.getByRole('textbox', { name: 'Bezeichnung' })).toBeInTheDocument();
+    abosFehler = {};
+    await userEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
+    expect(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toBeInTheDocument();
+    expect(screen.queryByText(/Der Katalog konnte nicht geladen werden/)).toBeNull();
+  });
+
+  it('gleich geblieben: ein wirklich leerer Katalog sagt es weiter', async () => {
+    materialien = [];
+    zeige();
+    expect(await screen.findByText('Noch kein Material im Katalog')).toBeInTheDocument();
+    expect(screen.queryByText(/konnte nicht geladen werden/)).toBeNull();
+  });
+
+  it('eigene Anforderungen nicht geladen: keine „Keine offenen Bestellungen“, kein „Noch nichts erledigt“', async () => {
+    abosFehler = { eigene: true };
+    zeige();
+    expect(await screen.findByText('Deine Anforderungen konnten nicht geladen werden.')).toBeInTheDocument();
+    expect(screen.queryByText('Keine offenen Bestellungen.')).toBeNull();
+    expect(screen.queryByText('Noch nichts erledigt.')).toBeNull();
+    // Keine Zahl im Titel, die nach „null Anforderungen“ aussieht.
+    expect(screen.queryByText('Meine Anforderungen (0)')).toBeNull();
+  });
+
+  it('gleich geblieben: ohne Anforderungen stehen beide Leeren wie bisher', async () => {
+    zeige();
+    expect(await screen.findByText('Keine offenen Bestellungen.')).toBeInTheDocument();
+    expect(screen.getByText('Noch nichts erledigt.')).toBeInTheDocument();
+  });
+
+  it('mit dem Filter „abholbereit“ sagt die Leere, dass nur nichts abholbereit ist', async () => {
+    eigene = [eigen({ status: 'Offen' })];
+    zeige('/material?reiter=meine&status=Abholbereit');
+    expect(await screen.findByText('Gerade ist nichts abholbereit.')).toBeInTheDocument();
+    expect(screen.queryByText('Keine offenen Bestellungen.')).toBeNull();
+  });
+
+  it('der Kreis ist eine Linie, kein gefüllter Kreis; liegt der Artikel in der Liste, steht die Menge in der ausgewählten Zeile', async () => {
+    zeige();
+    const knopf = await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' });
+    expect(knopf).toHaveClass('korb-kreis');
+    expect(knopf).not.toHaveClass('symbol-rund');
+    expect(knopf.closest('.korb-menge')).not.toHaveClass('korb-menge-drin');
+    await userEvent.click(knopf);
+    const feld = screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ });
+    expect(feld.closest('.korb-menge')).toHaveClass('korb-menge-drin');
+    // An derselben Stelle: dieselbe Zeile trägt jetzt die Mengensteuerung.
+    expect(feld.closest('li')).toHaveTextContent('Kupferrohr 15mm');
+  });
+
+  it('die Herkunft ist eine Auswahl mit Häkchen-Baustein; der Name bleibt die Herkunft, der Zusatz beschreibt', async () => {
+    eigene = [eigen({})];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Abgeholt' }));
+    const d = within(screen.getByRole('dialog', { name: 'Material abgeholt?' }));
+    const lager = d.getByRole('radio', { name: 'Aus dem Lager genommen' });
+    const haendler = d.getByRole('radio', { name: 'Beim Händler mitgenommen' });
+    expect(lager.closest('label')).toHaveClass('wahl-option');
+    expect(lager.closest('fieldset')).toHaveClass('wahl-gruppe');
+    expect(lager).toHaveAccessibleDescription('bucht vom Lagerbestand ab');
+    expect(haendler).toHaveAccessibleDescription('der Lagerbestand bleibt');
   });
 });

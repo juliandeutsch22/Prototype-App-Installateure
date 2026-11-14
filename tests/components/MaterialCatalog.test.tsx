@@ -681,3 +681,27 @@ describe('Seltenes unter „Weitere Angaben“ (E72)', () => {
     expect(anlegen.mock.calls[0][1]).toMatchObject({ name: 'Fitting', warengruppe: '1201' });
   });
 });
+
+/*
+  V10 MATERIAL (13.11.2026): scheiterte schon das erste Holen, stand unter der
+  Fehlermeldung „Noch kein Material im Katalog“ mit „Erstes Material anlegen“.
+  Gegenprobe: mit dem Stand davor ist die erste Prüfung rot.
+*/
+describe('V10 Katalog — Fehler ist nicht leer', () => {
+  it('nach einem Ladefehler: der Fehler mit „Erneut versuchen“, keine Leere', async () => {
+    materialien = [{ id: 'm1', companyId: 'perl', name: 'Kupferrohr 15mm', unit: 'm', stock: 4 } as WithId<Material>];
+    katalogSeite.mockRejectedValueOnce(new Error('Keine Verbindung.'));
+    zeige();
+    expect(await screen.findByText(/Keine Verbindung\./)).toBeInTheDocument();
+    expect(screen.queryByText('Noch kein Material im Katalog')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Erstes Material anlegen' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
+    expect(await screen.findByText('Kupferrohr 15mm')).toBeInTheDocument();
+  });
+
+  it('gleich geblieben: ein leerer Katalog bietet das erste Material an', async () => {
+    zeige();
+    expect(await screen.findByText('Noch kein Material im Katalog')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Erstes Material anlegen' })).toBeInTheDocument();
+  });
+});

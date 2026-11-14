@@ -117,6 +117,8 @@ export default function StockView() {
   const [orders, setOrders] = useState<WithId<MaterialOrder>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** „Erneut versuchen“ nach einem Ladefehler: holt die Lagerartikel neu (V10). */
+  const [versuch, setVersuch] = useState(0);
   /** Ein Nebenladevorgang ist ausgefallen — der Bestand steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -169,6 +171,7 @@ export default function StockView() {
       user.companyId,
       (rows) => {
         setMaterials(rows);
+        setError(null);
         setLoading(false);
       },
       (e) => {
@@ -194,7 +197,12 @@ export default function StockView() {
       unsubM();
       unsubO();
     };
-  }, [user, grenze]);
+  }, [user, grenze, versuch]);
+  function neuVersuchen() {
+    setError(null);
+    setLoading(true);
+    setVersuch((n) => n + 1);
+  }
 
   /**
    * Was ist zugesagt, aber noch nicht abgeholt?
@@ -539,24 +547,29 @@ export default function StockView() {
         */
         stand={
           <MetricRow>
+            {/*
+              NACH EINEM LADEFEHLER KEINE GLAUBWÜRDIGEN NULLEN (V10, 13.11.2026):
+              vorher stand „Im Lager 0 · Knapp 0“ — als sei das Lager leer und
+              nichts knapp. Jetzt ein Strich und „nicht geladen“.
+            */}
             <Metric
               label="Im Lager"
-              value={materials.filter(imLager).length}
+              value={error ? '—' : materials.filter(imLager).length}
               // Mit dem Hinweis zusammen — käme er später, rückte die Zeile darunter nach.
               bereit={!loading && gezaehlt}
               // Katalog und Lager sind getrennt (M30): nicht jeder Katalogartikel liegt im Regal.
-              hint={imKatalog === null ? undefined : `von ${imKatalog} im Katalog`}
+              hint={error ? 'nicht geladen' : imKatalog === null ? undefined : `von ${imKatalog} im Katalog`}
             />
             <Metric
               label="Knapp"
-              tone={lowCount > 0 ? 'warning' : 'success'}
-              value={lowCount}
+              tone={error ? 'default' : lowCount > 0 ? 'warning' : 'success'}
+              value={error ? '—' : lowCount}
               bereit={bestandBereit}
-              to={lowCount > 0 && filter !== 'knapp' ? '/lager?filter=knapp' : undefined}
+              to={!error && lowCount > 0 && filter !== 'knapp' ? '/lager?filter=knapp' : undefined}
             />
             <Metric
               label="Reserviert"
-              value={fmtMenge([...reserved.values()].reduce((a, b) => a + b, 0))}
+              value={error ? '—' : fmtMenge([...reserved.values()].reduce((a, b) => a + b, 0))}
               bereit={bestandBereit}
             />
           </MetricRow>
@@ -614,7 +627,8 @@ export default function StockView() {
         />
       </div>
 
-      {error && <ErrorState message={error} />}
+      {/* Im Bestand steht der Fehler in der Liste selbst (unten); auf den anderen Reitern hier. */}
+      {error && tab !== 'bestand' && <ErrorState message={error} onRetry={neuVersuchen} />}
 
       {tab === 'import' ? (
         // Die Überschrift trägt die Karte des Einspielens selbst; eine zweite darüber stand doppelt (G28).
@@ -697,8 +711,20 @@ export default function StockView() {
               suche={{ id: 'stocksearch', wert: search, onChange: setSearch, platzhalter: 'Name, Kategorie oder Art.-Nr.' }}
             />
             <div>
-              {/* Ein leeres Lager wartet auf die Zahl des Katalogs: sie wählt den Hinweis. */}
-              {!bestandBereit || (materials.length === 0 && !gezaehlt) ? (
+              {/*
+                FEHLER ≠ LEER (V10, 13.11.2026): kamen die Lagerartikel nicht,
+                stand hier „Noch kein Artikel im Lager geführt“ — eine Auskunft
+                über ein Lager, das gar nicht gelesen wurde.
+              */}
+              {error ? (
+                <div className="px-4 pb-4">
+                  <ErrorState
+                    message={`Der Bestand konnte nicht geladen werden. (${error})`}
+                    onRetry={neuVersuchen}
+                  />
+                </div>
+              ) : /* Ein leeres Lager wartet auf die Zahl des Katalogs: sie wählt den Hinweis. */
+              !bestandBereit || (materials.length === 0 && !gezaehlt) ? (
                 <div className="px-4 pb-4">
                   <SkeletonList rows={5} />
                 </div>

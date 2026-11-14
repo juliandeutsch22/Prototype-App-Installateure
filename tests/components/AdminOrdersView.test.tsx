@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { MaterialOrder } from '@/types';
@@ -110,6 +110,9 @@ const aufEinkaufsliste = vi.fn();
 let vorschlag: string | null = null;
 let lagerPosten: unknown[] = [];
 let lagerFehler = false;
+/** Hält die eigenen Posten zurück, bis der Test sie schickt (V10: Laden ≠ leer). */
+let lagerHalten = false;
+let lagerSenden: () => void = () => undefined;
 const grosshaendler = [
   { id: 'gh1', companyId: 'perl', name: 'Holter', active: true, bestellEmail: 'vertreter@holter.test' },
   { id: 'gh2', companyId: 'perl', name: 'Frauenthal', active: true },
@@ -126,7 +129,9 @@ vi.mock('@/lib/db/einkauf', () => ({
   grosshaendlerZuordnen: vi.fn(),
   vonEinkaufslisteNehmen: vi.fn(),
   listLagerPosten: () =>
-    lagerFehler ? Promise.reject(new Error('weg')) : Promise.resolve(lagerPosten),
+    lagerFehler ? Promise.reject(new Error('weg'))
+      : lagerHalten ? new Promise((ok) => { lagerSenden = () => ok(lagerPosten); })
+        : Promise.resolve(lagerPosten),
   lagerPostenAnlegen: vi.fn(),
   lagerPostenBestellt: vi.fn(),
   lagerPostenLoeschen: vi.fn(),
@@ -186,6 +191,7 @@ beforeEach(() => {
   vorschlag = null;
   lagerPosten = [];
   lagerFehler = false;
+  lagerHalten = false;
   belegschaft = null;
 });
 
@@ -1302,5 +1308,44 @@ describe('Anforderungen — nichts verschiebt sich, eine Knopfgestalt (E72)', ()
     const status = within(fenster).getByRole('button', { name: 'Auf „Erledigt“ setzen' });
     expect(status.parentElement).toHaveClass('material-status');
     expect(within(fenster).getByRole('button', { name: 'Nicht auf Lager – auf die Einkaufsliste' }).parentElement).toHaveClass('material-aktionen');
+  });
+});
+
+/*
+  V10 MATERIAL (13.11.2026): Filterleere ist keine Leere, Laden ist keine
+  Leere. Gegenprobe: mit dem Stand davor stand „Noch nichts erledigt.“ unter
+  einem Baustellenfilter und „Nichts auf der Einkaufsliste“, solange die
+  Posten noch luden — beide Prüfungen rot.
+*/
+describe('V10 Anforderungen — Filterleere und Laden', () => {
+  it('mit gewählter Baustelle nennt die Leere die Baustelle und hebt den Filter auf', async () => {
+    anforderungen = [anforderung({ id: 'o1', projectNumber: '2026-042' })];
+    zeige();
+    const feld = await screen.findByRole('combobox', { name: 'Bestellungen nach Baustelle filtern' });
+    await userEvent.selectOptions(feld, '2026-042');
+    await userEvent.click(await bereich(/^Erledigt/));
+    expect(await screen.findByText('Für 2026-042 steht hier nichts.')).toBeInTheDocument();
+    expect(screen.queryByText('Noch nichts erledigt.')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Alle Baustellen' }));
+    expect(await screen.findByText('Noch nichts erledigt.')).toBeInTheDocument();
+  });
+
+  it('die Einkaufsliste ist nicht leer, solange die eigenen Posten laden', async () => {
+    lagerHalten = true;
+    zeige();
+    await userEvent.click(await bereich(/^Einkauf/));
+    await screen.findByText('Einkaufsliste');
+    expect(screen.queryByText(/Nichts auf der Einkaufsliste/)).toBeNull();
+    await act(async () => lagerSenden());
+    expect(await screen.findByText(/Nichts auf der Einkaufsliste/)).toBeInTheDocument();
+  });
+
+  it('fehlen Anforderungen und eigene Posten, steht keine Leere unter den Fehlern', async () => {
+    ladefehler = 'kein Netz';
+    lagerFehler = true;
+    zeige();
+    await userEvent.click(await bereich(/^Einkauf/));
+    expect(await screen.findByText(/Die Anforderungen konnten nicht geladen werden/)).toBeInTheDocument();
+    expect(screen.queryByText(/Nichts auf der Einkaufsliste/)).toBeNull();
   });
 });

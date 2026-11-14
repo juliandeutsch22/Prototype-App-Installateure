@@ -57,10 +57,17 @@ describe('Eine Bedeutung, ein Zeichen (E74)', () => {
     }
   });
 
+  /*
+    V10 (13.11.2026): „In die Liste“ ist der feine Linienkreis `InDieListe`
+    statt des gefüllten Petrol-Kreises — an beiden Stellen derselbe Baustein,
+    ein Zeichen. Gegenprobe: mit dem Stand E74 (zweimal `IconButton rund`)
+    ist die erste Erwartung rot.
+  */
   it('„In die Liste“ ist an beiden Stellen derselbe Kreis mit demselben Zeichen', () => {
     const q = quelle('src/features/orders/OrderView.tsx');
-    expect(q.match(/<IconButton\s+rund\b/g)).toHaveLength(2);
-    expect(q.match(/<Icon name="in-liste" size=\{20\} \/>/g)).toHaveLength(2);
+    expect(q.match(/<InDieListe\b/g)).toHaveLength(2);
+    expect(q).not.toMatch(/<IconButton\s+rund\b/);
+    expect(q.match(/<Icon name="in-liste" size=\{18\} \/>/g)).toHaveLength(1);
     expect(q).not.toMatch(/>\s*In die Liste\s*</);
   });
 

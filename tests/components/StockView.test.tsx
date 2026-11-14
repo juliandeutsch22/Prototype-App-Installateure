@@ -1037,3 +1037,39 @@ describe('Suche über die Nummer eines Großhändlers (M03a)', () => {
     expect(nummernSuche).not.toHaveBeenCalled();
   });
 });
+
+/*
+  V10 MATERIAL (13.11.2026): kamen die Lagerartikel nicht, stand „Noch kein
+  Artikel im Lager geführt“ und im Kopf „Im Lager 0 · Knapp 0“ — eine Leere
+  und Nullen über ein Lager, das nicht gelesen wurde. Gegenprobe: mit dem
+  Stand davor sind die ersten beiden Prüfungen rot.
+*/
+describe('V10 Lager — Fehler ist nicht leer', () => {
+  it('nach einem Ladefehler: der Fehler im Bestand, keine Leere, keine Nullen im Kopf', async () => {
+    katalogFehler = 'Fehlende Berechtigung';
+    zeige();
+    expect(await screen.findByText(/Der Bestand konnte nicht geladen werden/)).toBeInTheDocument();
+    expect(screen.queryByText(/Noch kein Artikel im Lager geführt/)).toBeNull();
+    expect(screen.queryByText('Noch kein Material im Katalog')).toBeNull();
+    const imLager = screen.getAllByText('Im Lager').find((e) => e.classList.contains('lage-name'))!.parentElement!;
+    expect(within(imLager).queryByText('0')).toBeNull();
+    expect(within(imLager).getByText('nicht geladen')).toBeInTheDocument();
+  });
+
+  it('„Erneut versuchen“ holt die Artikel neu', async () => {
+    katalogFehler = 'Fehlende Berechtigung';
+    materialien = [material({ id: 'm1', name: 'Kupferrohr 15mm', stock: 20 })];
+    zeige();
+    await screen.findByText(/Der Bestand konnte nicht geladen werden/);
+    katalogFehler = null;
+    await userEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
+    expect(await screen.findByRole('button', { name: 'Kupferrohr 15mm' })).toBeInTheDocument();
+    expect(screen.queryByText(/Der Bestand konnte nicht geladen werden/)).toBeNull();
+  });
+
+  it('gleich geblieben: ein Lager ohne geführte Artikel sagt es weiter', async () => {
+    materialien = [material({ id: 'k1', name: 'Kugelhahn', stock: 0, lagerartikel: false })];
+    zeige();
+    expect(await screen.findByText(/Noch kein Artikel im Lager geführt/)).toBeInTheDocument();
+  });
+});

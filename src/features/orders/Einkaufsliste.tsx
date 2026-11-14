@@ -33,7 +33,7 @@ import EinheitFeld from '@/components/EinheitFeld';
 import { Marke } from '@/components/Badge';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
-import { EmptyState, ErrorState } from '@/components/States';
+import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { fmtMenge } from '@/lib/belegLayout';
 import {
@@ -93,6 +93,7 @@ export default function Einkaufsliste({
   onVeraltet,
   orte,
   grundZeigen = false,
+  ladeStand = 'bereit',
 }: {
   company: Company;
   meinUid: string;
@@ -116,6 +117,12 @@ export default function Einkaufsliste({
    * Einkaufspreise sehen darf und mit Modul „Lieferantenvergleich“.
    */
   grundZeigen?: boolean;
+  /**
+   * Wie weit die Listen darüber geladen sind (V10, 13.11.2026): solange sie
+   * laden oder nach einem Fehler ist „Nichts auf der Einkaufsliste“ keine
+   * Auskunft. Die Fehler selbst stehen darüber (AdminOrdersView).
+   */
+  ladeStand?: 'laedt' | 'teilweise' | 'fehler' | 'bereit';
 }) {
   const toast = useToast();
   const [katalog, setKatalog] = useState<Map<string, Pick<Material, 'articleNumber' | 'unit'>>>(new Map());
@@ -222,12 +229,20 @@ export default function Einkaufsliste({
       )}
 
       {gruppen.length === 0 ? (
+        ladeStand === 'fehler' ? null : (
         <Card title="Einkaufsliste">
+          {ladeStand === 'laedt' ? (
+            <SkeletonList rows={3} />
+          ) : ladeStand === 'teilweise' ? (
+            <p className="text-fliess text-ink-muted">Im Geladenen steht nichts auf der Einkaufsliste — ein Teil fehlt, siehe oben.</p>
+          ) : (
           <EmptyState>
             Nichts auf der Einkaufsliste. Fehlt ein Artikel im Lager, bei der Anforderung auf
             „Nicht auf Lager“ tippen — oder oben Material dazusetzen.
           </EmptyState>
+          )}
         </Card>
+        )
       ) : (
         gruppen.map((g) => {
           const h = g.supplierId ? nachId.get(g.supplierId) : undefined;

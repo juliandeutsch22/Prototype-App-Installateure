@@ -31,6 +31,50 @@
     (9 rem) und drei Tippflächen haben dort nicht nebeneinander Platz.
   */
   @media (max-width: 759px) { .mengen-schritt { width: 2.75rem; } .mengen-feld { width: 3rem; } }
+
+  /* ── Material anfordern: ein Tipp legt in die Liste (E89, V10) ───────── */
+  /*
+    DER KREIS UND DIE MENGE AN DERSELBEN STELLE, GLEICH HOCH (V10, 13.11.2026).
+    Der Kreis ist eine Linie in Terrakotta, kein gefüllter Kreis: zwanzig
+    gefüllte Kreise untereinander waren eine Wand aus Hauptaktionen. Sichtbar
+    36 px, getippt 48 px — so hoch wie `.mengen-wahl`, damit die Zeile beim
+    Tipp nicht springt.
+  */
+  .korb-menge { display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
+  .korb-menge > p { font-size: 0.875rem; line-height: 1.25rem; color: var(--text-muted); }
+  .korb-kreis { position: relative; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--accent-deep); cursor: pointer; }
+  .korb-kreis::before { content: ''; position: absolute; inset: 0.375rem; border: 1px solid currentColor; border-radius: 999px; transition: background-color var(--motion-state, 160ms) var(--ease-response, ease); }
+  .korb-kreis > * { position: relative; }
+  .korb-kreis:hover:not(:disabled)::before { background: var(--auswahl); }
+  .korb-kreis:active:not(:disabled)::before { background: var(--auswahl); border-color: var(--auswahl-kontur); }
+  .korb-kreis:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+  /* Gesperrt lesbar, aber sichtbar nicht bedienbar: gedämpfte Linie statt blasser Fläche. */
+  .korb-kreis:disabled { color: var(--text-muted); cursor: not-allowed; }
+  .korb-kreis:disabled::before { border-color: var(--border-strong); }
+  /*
+    LIEGT DER ARTIKEL IN DER LISTE, IST DIE ZEILE AUSGEWÄHLT (V10): warme
+    Tonfläche, feine Kontur — wie jede Auswahl. Kein Rahmen um die Steuerung,
+    keine Karte in der Zeile. Das Feld der Menge behält seine helle Fläche,
+    damit man sieht, wo man tippt; seine Kontur nimmt den Ton der Auswahl.
+  */
+  .zeile:has(> .zeile-rechts > .korb-menge-drin) { background: var(--auswahl); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); border-radius: var(--radius-sm); }
+  .korb-menge-drin .mengen-wahl { border-color: var(--auswahl-kontur); }
+  .korb-menge-drin .mengen-wahl:focus-within { border-color: var(--brand-fixed); }
+
+  /*
+    DIE HERKUNFT BEIM ABHOLEN (E89, V10): in der Rückfrage untereinander, auch
+    ab dem Tablet — die Rückfrage ist 26 rem schmal, zwei Spalten brächen die
+    Wörter. Kompakt: 48 px je Wahl, nicht mehr.
+  */
+  @media (min-width: 760px) { .herkunft-wahl { grid-template-columns: minmax(0, 1fr); } }
+  /*
+    DAS UNSICHTBARE OPTIONSFELD DECKT DIE GANZE WAHL (V10, 14.11.2026). Im
+    Baustein liegt es 1 px groß und ohne Zeigerereignisse unter dem Text — ein
+    Tipp traf den Text, und wer das Feld selbst anspricht (Prüfungen im
+    Browser, manche Eingabehilfen), traf daneben. Über die ganze Fläche gelegt
+    trifft jeder Tipp das Feld; zu sehen bleibt nur die Wahl.
+  */
+  .herkunft-wahl .wahl-option input { inset: 0; width: 100%; height: 100%; margin: 0; pointer-events: auto; cursor: pointer; }
   /* ── Bereichswahl mit Zählern ─────────────────────────────────────────── */
   /*
     Vier Segmente mit Zahl („Laufend 12“) brachen am Handy in zwei Zeilen um.
@@ -114,8 +158,14 @@
   .fenster-zahl dd { margin: 0.125rem 0 0; font-size: 1.375rem; line-height: 1.75rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; }
   .fenster-zahl-zusatz { margin-top: 0.125rem; font-size: 0.8125rem; color: var(--text-muted); }
 
-  /* Alle Aktionen eines Seitenfensters untereinander, volle Breite. */
-  .material-aktionen { display: flex; flex-direction: column; gap: 0.5rem; }
+  /*
+    DIE AKTIONEN EINES SEITENFENSTERS KOMPAKT RECHTS (V10, 13.11.2026): vorher
+    untereinander in voller Breite — vier gleich breite Balken, die Bestand und
+    Bewegungen nach unten schoben. Jetzt in ihrer Textbreite, die Hauptaktion
+    (im Quelltext zuerst, also auch zuerst in der Tastaturfolge) ganz rechts,
+    die anderen links daneben; was nicht passt, bricht rechtsbündig um.
+  */
+  .material-aktionen { display: flex; flex-direction: row-reverse; flex-wrap: wrap; justify-content: flex-start; gap: 0.5rem; }
   /*
     Der Status von Hand in derselben Gestalt (E72, 09.11.2026): nebeneinander
     gedacht, brachen die drei Knöpfe im 400 px breiten Fenster doch
@@ -123,8 +173,9 @@
     Knöpfen voller Breite — zwei Knopfgestalten in einem Fenster. Das
     Unumkehrbare abgesetzt darunter.
   */
-  .material-status { display: flex; flex-direction: column; gap: 0.5rem; }
-  .material-gefahr { display: flex; flex-direction: column; padding-top: 1rem; border-top: 1px solid var(--border); }
+  /* V10: in derselben Gestalt wie die Aktionen darüber — Textbreite, nicht volle Breite. */
+  .material-status { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .material-gefahr { display: flex; flex-direction: column; align-items: flex-start; padding-top: 1rem; border-top: 1px solid var(--border); }
 
   /* Artikelwahl für Wareneingang und Inventur aus dem Seitenkopf. */
   .wahl-liste { margin: 0; padding: 0; list-style: none; border: 1px solid var(--border); border-top: 0; border-radius: var(--radius); overflow: hidden; }
