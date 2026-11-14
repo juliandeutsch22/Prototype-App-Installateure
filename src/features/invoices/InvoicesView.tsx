@@ -3042,6 +3042,7 @@ export default function InvoicesView() {
         wert={rechnungBetrag(inv)}
         zustand={<StatusBadge status={inv.paymentStatus} />}
         onOeffnen={() => setDetailFuer(inv)}
+        ausgewaehlt={detailFuer?.id === inv.id}
         pfeil
         subtitle={rechnungNotizen(inv)}
       />
@@ -3060,6 +3061,7 @@ export default function InvoicesView() {
           zustand={<Marke>Stornorechnung</Marke>}
           subtitle={`${stornoDatum(inv)} · zu ${inv.invoiceNumber}`}
           onOeffnen={() => setDetailFuer(inv)}
+          ausgewaehlt={detailFuer?.id === inv.id}
           pfeil
         />
       )}

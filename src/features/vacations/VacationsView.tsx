@@ -1566,6 +1566,7 @@ export default function VacationsView() {
                   </>
                 }
                 onOeffnen={() => setOffenerAntragId(v.id)}
+                ausgewaehlt={offenerAntragId === v.id}
                 subtitle={
                   <>
                     <span className="block">

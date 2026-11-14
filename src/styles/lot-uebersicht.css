@@ -30,7 +30,7 @@
   /* Der Titel ist ein Knopf: ein Klick öffnet die bisherige Auswahl von Monat und Jahr. */
   .ue-titel { display: flex; flex-direction: column; align-items: center; min-height: 2.75rem; min-width: 10rem; padding: 0.125rem 0.5rem; background: none; border: 0; border-radius: var(--radius); color: var(--text); text-align: center; cursor: pointer; }
   @media (min-width: 760px) { .ue-titel { align-items: flex-start; text-align: left; } }
-  .ue-titel:hover { background: var(--petrol-hell); }
+  .ue-titel:hover { background: var(--hover-flaeche); }
   .ue-titel-gross { font-size: 1rem; line-height: 1.5rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .ue-titel-klein { font-size: 0.75rem; line-height: 1.125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .ue-suche { flex: 1 1 10rem; min-width: 0; min-height: 2.75rem; padding: 0 0.75rem; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 1rem; }
@@ -83,15 +83,15 @@
 
   /* Am Handy eine Karte je Person: Name, darunter der Streifen in voller Breite, darunter drei Zahlen. */
   .ue-zeile { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; align-items: center; padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: transparent; cursor: pointer; }
-  .ue-zeile:hover { background: var(--petrol-hell); }
+  .ue-zeile:hover { background: var(--hover-flaeche); }
   @media (min-width: 760px) { .ue-zeile { grid-template-columns: 170px minmax(0, 1fr) 62px 62px 70px; gap: 12px; padding: 0.625rem 1rem; } }
   @media (min-width: 1200px) { .ue-zeile { grid-template-columns: 230px minmax(0, 1fr) 76px 76px 84px; gap: 16px; padding: 0.625rem 1.25rem; } }
   .mw-zeile { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; align-items: center; padding: 0.75rem 0.75rem; border-top: 1px solid var(--border); background: transparent; cursor: pointer; }
-  .mw-zeile:hover { background: var(--petrol-hell); }
+  .mw-zeile:hover { background: var(--hover-flaeche); }
   @media (min-width: 760px) { .mw-zeile { grid-template-columns: 150px minmax(0, 1fr) 58px 58px 64px; gap: 4px; padding: 0.5rem 1rem; } }
   @media (min-width: 1200px) { .mw-zeile { grid-template-columns: 210px minmax(0, 1fr) 70px 76px 76px; gap: 12px; padding: 0.5rem 1.25rem; } }
   .ue-zeile-einfach { display: flex; align-items: center; padding: 0.625rem 1rem; border-top: 1px solid var(--border); background: var(--surface); cursor: pointer; }
-  .ue-zeile-einfach:hover { background: var(--petrol-hell); }
+  .ue-zeile-einfach:hover { background: var(--hover-flaeche); }
 
   .ue-person { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0; background: none; border: 0; color: var(--text); text-align: left; cursor: pointer; }
   @media (min-width: 760px) { .ue-person { grid-column: auto; } }
@@ -212,7 +212,7 @@
   .grenz-verstoss-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
   .grenz-verstoss { font-weight: var(--gewicht-titel); color: var(--danger); }
   .grenz-schritt { flex: none; min-height: 2.75rem; padding: 0 0.875rem; background: var(--surface); color: var(--accent-deep); border: 1px solid var(--petrol); border-radius: var(--radius); font-weight: var(--gewicht-titel); font-size: 0.875rem; white-space: nowrap; cursor: pointer; }
-  .grenz-schritt:hover { background: var(--petrol-hell); }
+  .grenz-schritt:hover { background: var(--hover-flaeche); }
 
   /* ── Seitenfenster „Person im Monat“ (Auftrag 3.5) ───────────────────── */
   .pf { display: flex; flex-direction: column; }

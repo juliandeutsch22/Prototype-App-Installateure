@@ -627,6 +627,7 @@ export default function WartungenView() {
       <ListRow
         key={w.id}
         onOeffnen={() => setEinzelheitenId(w.id)}
+        ausgewaehlt={einzelheitenId === w.id}
         title={
           // Eigener Abstand: der Titel steht jetzt im Knopf der Zeile, nicht mehr direkt im Zeilenkopf.
           <span className="flex flex-wrap items-center gap-x-2">

@@ -141,7 +141,7 @@ export default {
         // V10: DM Sans self-gehostet (siehe main.tsx), System-Schriften als Fallback.
         sans: ['DM Sans', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
         // V10: größere Seiten- und Bereichstitel in Source Serif 4, regulär — nie für Bedienung, Tabellen oder Zeitwerte.
-        titel: ['Source Serif 4', 'Georgia', 'Cambria', 'Times New Roman', 'serif'],
+        titel: ['"Source Serif 4"', 'Georgia', 'Cambria', 'Times New Roman', 'serif'],
         // Gemessenes (Nummern, Beträge, Stunden) in IBM Plex Mono, lokal ausgeliefert (main.tsx).
         mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },

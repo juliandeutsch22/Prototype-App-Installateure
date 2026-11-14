@@ -154,7 +154,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="px-6 py-6">
             {/* Serifentitel wie jeder Seitentitel der App (V10), regulär. */}
-            <h1 className="mb-1 font-[family-name:var(--schrift-titel)] text-2xl font-normal text-ink-deep">
+            <h1 className="mb-1 font-titel text-2xl font-normal text-ink-deep">
               {resetMode ? 'Passwort zurücksetzen' : 'Anmelden'}
             </h1>
             <p className="mb-4 text-sm text-ink-muted">

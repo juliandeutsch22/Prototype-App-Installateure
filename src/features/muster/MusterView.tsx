@@ -127,8 +127,8 @@ export default function MusterView() {
           ))}
         </div>
         {/* V10: Serife nur für größere Titel, regulär; Bedienung in DM Sans; Gemessenes in Plex Mono. */}
-        <p className="mt-4 font-[family-name:var(--schrift-titel)] text-3xl font-normal text-ink-deep">Seitentitel in Source Serif 4</p>
-        <p className="font-[family-name:var(--schrift-titel)] text-xl font-normal text-ink-deep">Bereichstitel</p>
+        <p className="mt-4 font-titel text-3xl font-normal text-ink-deep">Seitentitel in Source Serif 4</p>
+        <p className="font-titel text-xl font-normal text-ink-deep">Bereichstitel</p>
         <p className="text-fliess">Fließtext und Bedienung in DM Sans</p>
         <p className="text-meta text-ink-muted">Nebeninfo und Metadaten</p>
         <p className="font-mono text-fliess tabular-nums">€ 18 240,00 · 07:30–16:15 · PR-2026-0190</p>

@@ -320,6 +320,7 @@ export default function NachkalkulationView() {
                         title={k.customerName}
                         nummer={k.projectNumber}
                         onOeffnen={() => setOffen(k.projectNumber)}
+                        ausgewaehlt={offen === k.projectNumber}
                         pfeil
                         gestapelt
                         subtitle={

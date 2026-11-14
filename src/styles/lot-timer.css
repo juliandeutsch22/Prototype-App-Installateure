@@ -39,7 +39,7 @@
   .arbeitstag[data-stand='pause'] .arbeitstag-stand { color: var(--text); }
   .arbeitstag-punkt { flex: none; width: 0.5rem; height: 0.5rem; border-radius: 999px; background: var(--accent-deep); }
   /* Der einzige Terrakotta-Akzent der laufenden Karte: aufgehellt, damit er auf dem Dunkel sichtbar bleibt (4,4 : 1). */
-  .arbeitstag[data-stand='laeuft'] .arbeitstag-punkt { background: var(--petrol); background: color-mix(in srgb, var(--petrol) 70%, var(--auf-dunkel)); }
+  .arbeitstag[data-stand='laeuft'] .arbeitstag-punkt { background: var(--auf-dunkel-akzent); }
   [data-stand='pause'] .arbeitstag-punkt { background: var(--warning); }
   .arbeitstag-uhr { margin: 0.25rem 0 0; font-family: var(--schrift-mono); font-size: 2.5rem; font-weight: var(--gewicht-zahl); line-height: 3rem; letter-spacing: -0.02em; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .arbeitstag-uhr small { font-size: 1.25rem; letter-spacing: 0; color: var(--text-muted); }

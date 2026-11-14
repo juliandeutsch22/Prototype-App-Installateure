@@ -65,7 +65,7 @@
   */
   .lot-zeichnung { display: block; flex: none; height: auto; aspect-ratio: 240 / 150; overflow: visible; pointer-events: none; user-select: none; }
   .lot-zeichnung .hilfe { fill: none; stroke: var(--border-strong); stroke-width: 1; vector-effect: non-scaling-stroke; }
-  .lot-zeichnung .kontur { fill: none; stroke: var(--accent-deep); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .lot-zeichnung .kontur { fill: none; stroke: var(--accent-deep); stroke-width: 1.25; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
   /* Nach Hilfe und Kontur: „papier kontur“ ist ein deckendes Blatt mit Umriss. */
   .lot-zeichnung .papier { fill: var(--surface); }
   .lot-zeichnung .flaeche { fill: var(--petrol-hell); }

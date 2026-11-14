@@ -159,6 +159,12 @@
   --fokus: #b97b5e;
   --dunkel-flaeche: #322e29;
   --auf-dunkel: #fff8ee;
+  /* Zeigen ist nicht Wählen: der Hover-Ton liegt neutral zwischen Blatt und
+     Papier, die warme Auswahlfläche bleibt der Auswahl vorbehalten. */
+  --hover-flaeche: #f5f0e8;
+  /* Terrakotta auf der dunklen Fläche (Meldung, laufender Arbeitstag): aufgehellt,
+     weil #a85439 dort nur 2,6:1 hätte. */
+  --auf-dunkel-akzent: #d08a68;
   --auf-dunkel-leise: #cfc6ba;
   --pause-flaeche: #eee6db;
   --insel-kontur: #e4dace;
@@ -232,6 +238,8 @@
     --fokus: #d08a68;
     --dunkel-flaeche: #302c27;
     --auf-dunkel: #fff8ee;
+    --hover-flaeche: #2d2925;
+    --auf-dunkel-akzent: #d08a68;
     --auf-dunkel-leise: #b7aea3;
     /* Pause dunkel heller als „läuft“: sonst unterschieden sich die beiden
        Zustände der Arbeitstag-Karte nur am Punkt und an einem Knopf. */
@@ -1026,7 +1034,8 @@ textarea {
   .zeile { display: flex; align-items: center; gap: 0.75rem 1rem; min-height: 3.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: transparent; }
   .zeile:first-child { border-top: 0; }
   .zeile-ganz { position: relative; cursor: pointer; }
-  .zeile-ganz:hover { background: var(--petrol-hell); }
+  .zeile-ganz:hover { background: var(--hover-flaeche); }
+  .zeile[aria-current='true'], .zeile[aria-current='true']:hover { border-radius: var(--radius-sm); background: var(--auswahl); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
   .zeile-ziel { color: inherit; text-decoration: none; }
   .zeile-ziel::after { content: ''; position: absolute; inset: 0; }
   .zeile-ziel:focus-visible { outline: none; }
@@ -1240,7 +1249,7 @@ textarea {
 @layer components {
   .start-abschnitt { padding: 0.75rem 1rem 0.5rem; font-size: 0.8125rem; font-weight: var(--gewicht-titel); color: var(--text-muted); background: var(--surface); border-bottom: 1px solid var(--border); }
   .start-weiter { display: flex; align-items: center; min-height: 2.75rem; padding: 0.5rem 1rem; border-top: 1px solid var(--border); font-size: 0.875rem; font-weight: var(--gewicht-titel); color: var(--accent-deep); }
-  .start-weiter:hover { background: var(--petrol-hell); }
+  .start-weiter:hover { background: var(--hover-flaeche); }
   /* Status: in schmalen Karten vorn in der Detailzeile, in breiten rechts. */
   .start-status-rechts { display: none; }
   @media (min-width: 1200px) {

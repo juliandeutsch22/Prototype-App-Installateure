@@ -1068,6 +1068,7 @@ export default function AdminOrdersView() {
                       <ListRow
                         key={o.id}
                         onOeffnen={() => setOffenId(o.id)}
+                        ausgewaehlt={offenId === o.id}
                         title={
                           <span className="inline-flex flex-wrap items-center gap-x-2">
                             <span>

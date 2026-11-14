@@ -677,6 +677,7 @@ export default function StockView() {
                           key={m.id}
                           title={m.name}
                           onOeffnen={() => setArtikelId(m.id)}
+                          ausgewaehlt={artikelId === m.id}
                           subtitle={[m.category, m.articleNumber && `Art.-Nr. ${m.articleNumber}`].filter(Boolean).join(' · ') || undefined}
                           wert={`${fmtMenge(m.amOrt)} ${m.unit ?? 'Stk'}`}
                           pfeil
@@ -770,6 +771,7 @@ export default function StockView() {
                         gestapelt
                         title={m.name}
                         onOeffnen={() => setArtikelId(m.id)}
+                        ausgewaehlt={artikelId === m.id}
                         subtitle={
                           [
                             m.category,

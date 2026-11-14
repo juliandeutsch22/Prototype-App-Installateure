@@ -148,7 +148,7 @@
   .meldung { pointer-events: none; display: flex; align-items: center; gap: 1.25rem; max-width: 32rem; padding: 0.75rem 1rem; border-radius: var(--radius); background: var(--dunkel-flaeche); color: var(--auf-dunkel); font-size: 0.9375rem; line-height: 1.375rem; box-shadow: var(--shadow-lg); }
   .meldung-fehler { pointer-events: none; display: flex; align-items: center; gap: 1.25rem; max-width: 32rem; padding: 0.75rem 1rem; border-radius: var(--radius); background: var(--dunkel-flaeche); color: var(--auf-dunkel); font-size: 0.9375rem; line-height: 1.375rem; box-shadow: var(--shadow-lg); }
   .meldung-text { flex: 1; }
-  .meldung-knopf { pointer-events: auto; flex: none; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: #d08a68; font-weight: var(--gewicht-titel); cursor: pointer; }
+  .meldung-knopf { pointer-events: auto; flex: none; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: var(--auf-dunkel-akzent); font-weight: var(--gewicht-titel); cursor: pointer; }
 
   /* V10: das Kürzel einer Person als kleines gerundetes Feld im Auswahlton, Schrift in Terrakotta — in beiden Sätzen lesbar. */
   .lot-avatar { background: var(--auswahl); color: var(--accent-deep); border: 1px solid var(--auswahl-kontur); }
@@ -180,7 +180,7 @@
   .zeile-griff { position: relative; z-index: 1; }
   .gruppe-anzahl { font-size: 0.8125rem; color: var(--text-muted); }
   .mehr-laden { display: flex; align-items: center; width: 100%; min-height: 3rem; padding: 0.75rem 1rem; background: var(--surface); border: 0; border-top: 1px solid var(--border); text-align: left; color: var(--accent-deep); font-weight: var(--gewicht-titel); font-size: 0.9375rem; cursor: pointer; }
-  .mehr-laden:hover { background: var(--petrol-hell); }
+  .mehr-laden:hover { background: var(--hover-flaeche); }
   .leer { padding: 1.25rem 1rem; color: var(--text-muted); font-size: 0.9375rem; }
 
   /* ── Arbeitszeile und Sammelleiste (Arbeitslisten) ────────────────────── */
@@ -440,7 +440,7 @@
   .mehr-gruppe { display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0.75rem 0.375rem; font-size: 0.625rem; line-height: 1rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); }
   .mehr-gruppe::after { content: ''; flex: 1; height: 1px; background: var(--border); }
   .mehr-punkt, .mehr-punkt-aktiv { display: flex; align-items: center; gap: 0.75rem; min-height: 3rem; padding: 0.5rem 0.75rem; border-radius: var(--radius); color: var(--text); text-decoration: none; background: none; border: 0; width: 100%; text-align: left; font-size: 0.9375rem; cursor: pointer; }
-  .mehr-punkt:hover { background: var(--petrol-hell); }
+  .mehr-punkt:hover { background: var(--hover-flaeche); }
   .mehr-punkt-aktiv { background: var(--petrol-hell); color: var(--accent-deep); font-weight: var(--gewicht-titel); }
 
   /* ── Suchfenster (Strg + K) ──────────────────────────────────────────── */

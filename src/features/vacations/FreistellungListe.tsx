@@ -124,6 +124,7 @@ export default function FreistellungListe({
                 </>
               }
               onOeffnen={() => setOffenId(f.id)}
+              ausgewaehlt={offenId === f.id}
               subtitle={
                 <>
                   <span className="block">

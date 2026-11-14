@@ -885,6 +885,7 @@ export default function OrderView() {
                   subtitle={[o.projectNumber, o.note, wasLaeuft(o)].filter(Boolean).join(' · ')}
                   // STAND ZUERST (C7, E89): die ganze Zeile öffnet die Anforderung — dort steht „Eilig“.
                   onOeffnen={() => setFenster(o)}
+                  ausgewaehlt={fenster?.id === o.id}
                 >
                   {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
                   <StatusBadge status={o.status} />

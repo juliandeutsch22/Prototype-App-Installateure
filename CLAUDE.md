@@ -42,7 +42,7 @@ Grenze, keine Annahme über „den“ Betrieb.
 - **Eine Hilfe pro Seite:** Erklärungen als `InfoHint` oder `hint` einer
   `Card` — sie erscheinen gesammelt unter „Hilfe zu dieser Seite“. Lange
   Texte nie offen auf die Seite.
-- Keine Pillen, keine Emojis, keine Verläufe, keine Glasflächen. Warnung und
+- Keine Pillen, keine Emojis als Gestaltung (Reaktionen im Chat sind Inhalt, E77), keine Verläufe, keine Glasflächen. Warnung und
   Fehler färben keine Flächen und tragen keine farbige Kante — Text und
   Symbol tragen die Bedeutung. Auswahl = `--auswahl` plus feine Kontur und
   Häkchen. Keine halbtransparenten Farbflächen außer Schleier und Schatten.
