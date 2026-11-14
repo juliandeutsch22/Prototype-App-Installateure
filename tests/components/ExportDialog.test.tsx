@@ -7,7 +7,7 @@ import type { AppUser } from '@/types';
 /*
   EINE HAUPTAKTION IM BERICHT-DIALOG (Anzeigefehler 14.11.2026): „Projekt-
   auswertung (CSV)“ hatte keine Variante und war damit ebenso gefüllt wie
-  „Stundennachweis (PDF)“ — zwei Terrakotta-Knöpfe untereinander. Gefüllt
+  „Stundennachweis (PDF)“ — zwei Akzentknöpfe untereinander. Gefüllt
   bleibt allein der Stundennachweis; beide tun weiter, was sie taten.
 */
 describe('Bericht exportieren', () => {

@@ -36,7 +36,7 @@ export default function MusterV10() {
 
   return (
     <>
-      <Card title="Knöpfe" hint="Eine Hauptaktion je Zusammenhang, gefüllt in Terrakotta; alles Weitere als Linien- oder Textaktion. Der Knopf behält beim Laden seine Breite.">
+      <Card title="Knöpfe" hint="Eine Hauptaktion je Zusammenhang, gefüllt in Kuppel-Blau; alles Weitere als Linien- oder Textaktion. Der Knopf behält beim Laden seine Breite.">
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <Button>Hauptaktion</Button>

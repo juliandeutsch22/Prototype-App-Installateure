@@ -3944,3 +3944,51 @@ Entscheidungen E1–E91 gelten weiter.
   Lager, Anforderungen; „Erneut versuchen“ wo eine Nachladung schon besteht.
 - **Grenzen mit Grund:** `docs/grenzen-durchsicht-2026-10-24.md`, Abschnitt
   „Designlinie V10“. Prüfbericht: `docs/ui-umbau/v10-pruefbericht.md`.
+
+**E93 — Kuppel-Blau und Oliv, neues Zeichen (14.11.2026).**
+Auftrag: die Farben der App ändern — Primär Kuppel-Blau `#2B5FA6` / dunkel
+`#7BA7DC`, Grundfläche `#F4F1E8`; Rollen: erledigt und Fehler → A (Blau),
+Hinweis und Achtung → B (Oliv `#7E8C5C` / `#9DAF7E`); fehlende Farben so
+festlegen, dass alles dazu passt. Dazu das Logo anpassen, in der Darstellung
+mit dem Eindruck von Anthropic/Claude (warm, redaktionell, Serife) — ohne
+fremde Markenteile. E92 gilt sonst weiter: Gestalt, Radien, Schatten,
+Schriften, Belege.
+
+- **Zwei Farben, Bedeutung durch Text und Symbol:** Blau trägt Marke,
+  Hauptaktion, Auswahl, Fokus, „erledigt“ und „Fehler“; Oliv „Achtung“ und
+  Hinweise. Dass „erledigt“ und „Fehler“ dieselbe Farbe tragen, ist so
+  vorgegeben; es trägt, weil V10 ohnehin verlangt, dass Text und Symbol
+  (Häkchen, Warnzeichen) die Bedeutung tragen, nie die Farbe allein.
+- **Gemessen statt übernommen:** Oliv `#7E8C5C` hat als Schrift auf Papier
+  und Blatt nur 3,2 bzw. 3,6:1; Schrift in Oliv ist deshalb `#5E6A40`
+  (5,2–5,7:1), derselbe Farbton tiefer. `#7E8C5C` bleibt der Ausgangston, als
+  Fläche trägt Oliv die Pause (`--pause-flaeche` `#E9ECDF` / `#33372B`).
+  Im dunklen Satz trägt `#7BA7DC` Schrift, Links, Fokus und Zeichen; gefüllte
+  Flächen sind `#3A6EB8` (helle Knopfschrift 4,9:1, Weiß 5,1:1), weil helle
+  Schrift auf `#7BA7DC` höchstens 2,5:1 hätte — dieselbe Teilung wie bei
+  Terrakotta in V10.
+- **Abgeleitete Töne** (hell / dunkel): Auswahl `#E3EAF3` / `#26303D`,
+  Auswahlkontur `#A9BEDB` / `#3E5675`, Fokusring `#5B85C0` / `#7BA7DC`,
+  Heute `#E6EBF1` / `#252A31`, eigene Chatblase `#DEE6F0` / `#2A3442`,
+  aktive Navigation `#38404C` / `#2D3644`, tieferes Blau für gedrückte
+  Flächen `#234E8A` / `#2F62AB`. Papier, Blatt, Tinte und die warme dunkle
+  Welt bleiben aus E92 — das Blau liegt auf warmem Grund.
+- **Linien und Raster kühl-neutral** (Nachtrag nach Rückfrage „warum ist der
+  Raster noch orange?“): die beigen V10-Linien wirkten neben Blau orange.
+  Hell Raster `#EBEBE6`, Registrierungslinie `#DDE2E8`, Kontur `#DCDCD5`,
+  kräftige Linie `#D4D5CF`, Inselkontur `#DDDCD6`; dunkel Raster `#2A2A2A` /
+  `#323843`, Linien `#44454A`. `v10Stil.test.ts` lässt keinen Linienton mit
+  Rot mehr als 8 über Blau zu (Gegenprobe: die alten Werte sind rot).
+- **Zeichen:** ein weicher Tropfen mit rundem Kragen und feinem Faden statt
+  Band und Spitze; Wortmarke in Source Serif 4 Regular (Titelschrift der
+  App, OFL-1.1), in Pfade umgewandelt. Dieselbe Form trägt das Senkblei der
+  Navigation und der Anmeldezeichnung. App-Symbole, Favicons und
+  Push-Abzeichen neu gerastert (`marke/rastern.mjs`); Startbildschirm,
+  Statusleiste und Reiterfarbe in `#F4F1E8`.
+- **Belege und Exporte bleiben unverändert** (Petrol, `belegReferenz`), wie
+  in E92 festgelegt: Druck folgt seinen Fachregeln, nicht der Oberfläche.
+- **Prüfungen:** `lotGrundwerte.test.ts` misst alle Paare in beiden Sätzen;
+  `appZeichen.test.ts` erkennt das Blau im Icon (Gegenprobe: Terrakotta und
+  Petrol zählen nicht) und bindet Manifest, Reiterfarbe und Grundfläche an
+  `--bg`; `ProduktMarke.test.tsx` bindet das reservierte Seitenverhältnis an
+  `marke/logo.svg` (Gegenprobe: altes Verhältnis rot).

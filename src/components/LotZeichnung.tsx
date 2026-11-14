@@ -27,8 +27,9 @@ const MOTIVE = {
     ['path', "hilfe", { d: "M18 134H222M30 16V142M210 16V142M26 34h8M26 58h8M26 82h8M26 106h8M206 34h8M206 58h8M206 82h8M206 106h8M120 10V24" }],
     ['path', "flaeche", { d: "M132 46L168 69V112H132Z" }],
     ['path', "kontur", { d: "M50 72L120 26L190 72M58 66.7V132M182 66.7V132" }],
-    ['path', "kontur", { d: "M120 26V84" }],
-    ['path', "papier kontur", { d: "M114 84h12v7h-12zM106 95h28l7 9H99zM99 108h42L120 132z" }],
+    ['path', "kontur", { d: "M120 26V84.4" }],
+    // Das Senkblei in der Form des Zeichens (E93): runder Kragen, weicher Tropfen.
+    ['path', "papier kontur", { d: "M117.25 84.4h5.5a3.85 3.85 0 0 1 0 7.7h-5.5a3.85 3.85 0 0 1 0-7.7zM103 100.17C103 96.74 105.74 94 109.17 94H130.83C134.26 94 137 96.74 137 100.17C137 106.2 132.89 115.8 124.11 130.06C122.33 132.94 117.67 132.94 115.89 130.06C107.11 115.8 103 106.2 103 100.17Z" }],
     // Ein Lot überträgt einen Punkt: die Spitze zeigt auf eine Marke am Boden, nicht durch ihn hindurch.
     ['path', "kontur", { d: "M113 134h14" }],
     ['rect', "zeile", { x: 74, y: 84, width: 24, height: 3 }],

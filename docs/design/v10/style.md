@@ -2,7 +2,7 @@
 
 ## Stil und Leitidee
 
-Die zehnte Entwurfsstufe gibt Senklot eine warme, redaktionelle und ruhige Arbeitsatmosphäre, inspiriert vom Look und Vibe von Anthropic/Claude, ohne fremde Markenassets zu kopieren. Warmes Papier, dunkle warme Tintenfarben, Terrakotta als Arbeitsakzent und serifige Überschriften ersetzen die bisherige kühle Petrolwelt. Der Senklot, das Bauplanraster und die sachlichen Modulicons bewahren die eigene Produktherkunft.
+Die zehnte Entwurfsstufe gibt Senklot eine warme, redaktionelle und ruhige Arbeitsatmosphäre, inspiriert vom Look und Vibe von Anthropic/Claude, ohne fremde Markenassets zu kopieren. Warmes Papier, dunkle warme Tintenfarben, Kuppel-Blau als Arbeitsakzent (seit E93, 14.11.2026; davor Terrakotta) und serifige Überschriften ersetzen die bisherige kühle Petrolwelt. Der Senklot, das Bauplanraster und die sachlichen Modulicons bewahren die eigene Produktherkunft.
 
 Premiumwirkung entsteht aus Typografie, Abstand, präzisen Konturen und verlässlicher Reaktion. Helle Arbeitsblätter liegen auf einem warmen Grund; Tiefe entsteht nur dort, wo ein Element tatsächlich schwebt, gezogen oder ausgewählt wird. Keine dekorativen Verläufe, Glasflächen, Bounce-Effekte, schweren Kachelwände oder beliebigen Schatten.
 
@@ -24,31 +24,33 @@ Acht Pixel bilden den Grundrhythmus; vier Pixel dienen nur der feinen inneren Au
 
 ## Farb- und Rollentokens
 
+Seit E93 (14.11.2026) gelten zwei Farben: **Kuppel-Blau (A)** `#2B5FA6` / dunkel `#7BA7DC` für Marke, Aktion, Auswahl, „erledigt“ und „Fehler“; **Oliv (B)** `#7E8C5C` / dunkel `#9DAF7E` für „Achtung“ und Hinweise. Die Grundfläche ist `#F4F1E8`. Gemessen statt übernommen: Oliv als Schrift ist hell `#5E6A40` (5,2–5,7 : 1; `#7E8C5C` hätte nur 3,2–3,6 : 1); gefüllte Flächen im dunklen Satz sind `#3A6EB8`, weil helle Schrift auf `#7BA7DC` höchstens 2,5 : 1 hätte. Da „erledigt“ und „Fehler“ dieselbe Farbe tragen, unterscheiden Text und Symbol sie immer. Linien und Raster sind kühl-neutral (hell Raster `#EBEBE6` / Registrierung `#DDE2E8`), damit sie neben dem Blau nicht beige oder orange wirken.
+
 | Rolle | Zielwert | Verwendung |
 |---|---:|---|
-| Primärakzent / Terrakotta | `#A85439` | Primäraktionen, aktive Auswahl, Senklotzeichen und wenige Arbeitsmarkierungen |
+| Primärakzent / Kuppel-Blau | `#2B5FA6` | Primäraktionen, aktive Auswahl, Senklotzeichen, Erledigt und Fehler, wenige Arbeitsmarkierungen |
 | Haupttext | `#25231F` | Titel und primäre Information |
 | Dunkle Arbeitsfläche | `#322E29` | laufender Arbeitstag, dunkle Schwerpunktkarten |
 | Navigation | `#292722` | Desktop-/Tablet-Navigation |
-| Aktive Navigation | `#473B32` | aktiver Menüpunkt |
-| Seitenhintergrund / Papier | `#F4F0E8` | Mappe und Arbeitsgrund |
+| Aktive Navigation | `#38404C` | aktiver Menüpunkt |
+| Seitenhintergrund / Papier | `#F4F1E8` | Mappe und Arbeitsgrund |
 | Karten / Arbeitsblätter | `#FFFDF8` | fachliche Arbeitsflächen |
 | App- und Geräteflächen | `#FAF7F1` | eingelassene mobile und Systemflächen |
 | Gedämpfter Text | `#6F685F` | Metadaten und sekundäre Erklärungen |
 | Inaktive mobile Icons | `#7F766B` | passive Docksteuerung |
-| Auswahl | `#F3E4D8` | ausgewählte Zeilen, Optionen und aktive mobile Navigation |
-| Auswahlkontur | `#D5B39E` | feine Auswahl, etwa 0,75 px auf der Referenzebene |
-| Fokus | `#B97B5E` | sichtbarer, ruhiger Fokus |
-| App-Konturen | `#E2D8CB` | Arbeitsblätter und Felder |
-| Kopf-/Dockkonturen | `#E4DACE` | mobile Kopf- und Navigationsinseln |
-| Funktionale Linien | `#DED4C7` | sinnvolle Trennung |
-| Pausierter Arbeitstag | `#EEE6DB` | warmer, neutraler Pausenzustand |
-| Warnung | `#8F5D20` | Statustext und sparsames Symbol |
-| Fehler | `#A5483B` | Statustext und sparsames Symbol |
+| Auswahl | `#E3EAF3` | ausgewählte Zeilen, Optionen und aktive mobile Navigation |
+| Auswahlkontur | `#A9BEDB` | feine Auswahl, etwa 0,75 px auf der Referenzebene |
+| Fokus | `#5B85C0` | sichtbarer, ruhiger Fokus |
+| App-Konturen | `#DCDCD5` | Arbeitsblätter und Felder |
+| Kopf-/Dockkonturen | `#DDDCD6` | mobile Kopf- und Navigationsinseln |
+| Funktionale Linien | `#D4D5CF` | sinnvolle Trennung |
+| Pausierter Arbeitstag | `#E9ECDF` | ruhiger Pausenzustand im Ton von Oliv |
+| Warnung / Hinweis (Oliv) | `#5E6A40` | Statustext und sparsames Symbol |
+| Fehler (Kuppel-Blau) | `#2B5FA6` | Statustext und sparsames Symbol |
 | Text auf dunklen Flächen | `#FFF8EE` | Arbeitstag und dunkle Primärflächen |
-| Eigene Chatblasen | `#E8DACC` | eigene Nachrichten mit dunklem Text |
+| Eigene Chatblasen | `#DEE6F0` | eigene Nachrichten mit dunklem Text |
 
-Terrakotta auf hellem Grund und helle Schrift auf Terrakotta erreichen auf der Referenzebene ausreichenden Textkontrast; reale Kombinationen, Zustände und Themes sind dennoch erneut zu messen. Farbe ist niemals der einzige Informationsträger.
+Kuppel-Blau auf hellem Grund und helle Schrift auf Kuppel-Blau erreichen auf der Referenzebene ausreichenden Textkontrast; reale Kombinationen, Zustände und Themes sind dennoch erneut zu messen. Farbe ist niemals der einzige Informationsträger.
 
 Die Trennung zwischen Produktfarbe und Mandantenbranding bleibt erhalten. Eine betriebliche Hausfarbe darf Navigation, Statussemantik oder Fehlerfarben nicht verfälschen. Druck- und PDF-Ausgaben folgen weiterhin ihren bestehenden Fachregeln.
 
@@ -62,16 +64,17 @@ Der Dark Mode ist eine vollständige zweite Oberflächenwelt, keine mechanische 
 | Arbeitsfläche | `#25221F` | Thread, Listen und große Arbeitsbereiche |
 | Karten / Eingaben | `#302C27` | Composer, Anhänge und erhöhte Felder |
 | Navigation | `#1F1D1A` | Desktop-/Tablet-Navigation |
-| Auswahl | `#3B312B` | aktive Zeile oder Navigation |
+| Auswahl | `#26303D` | aktive Zeile oder Navigation |
 | Haupttext | `#F3EEE6` | primäre Information |
 | Gedämpfter Text | `#B7AEA3` | Metadaten und sekundäre Erklärung |
-| Linien / Konturen | `#4B443C` | funktionale Trennung |
-| Akzent auf Dunkel | `#D08A68` | Textakzent, Fokus und aktive Symbole |
-| Primäraktion | `#A85439` mit `#FFF8EE` | unverändert kontraststarke Aktionsfläche |
-| Eigene Chatnachricht | `#43362F` mit `#F3EEE6` | eigene Beiträge, feine Kontur `#654C3E` |
-| Raster neben / Haupt | `#302C27` / `#3A342E` | sehr leise im Arbeitsgrund |
+| Linien / Konturen | `#44454A` | funktionale Trennung |
+| Akzent auf Dunkel | `#7BA7DC` | Textakzent, Fokus, aktive Symbole, Erledigt und Fehler |
+| Achtung auf Dunkel | `#9DAF7E` | Warnung und Hinweis |
+| Primäraktion | `#3A6EB8` mit `#FFF8EE` | kontraststarke Aktionsfläche (4,9 : 1) |
+| Eigene Chatnachricht | `#2A3442` mit `#F3EEE6` | eigene Beiträge, feine Kontur `#3E5675` |
+| Raster neben / Haupt | `#2A2A2A` / `#323843` | sehr leise im Arbeitsgrund |
 
-Reale Kontraste sind für jede Komponente und jeden Zustand zu messen. Helle Schrift auf Terrakotta und aufgehellter Terrakotta-Text auf dunklem Grund haben unterschiedliche Rollen und werden nicht vertauscht. Dunkle Flächen erhalten keine schweren schwarzen Schatten; Konturen und begrenzte Tonabstufungen tragen die Hierarchie. Systemwechsel dürfen keinen ungespeicherten Formular-, Timer-, Chat- oder Offline-Zustand zurücksetzen.
+Reale Kontraste sind für jede Komponente und jeden Zustand zu messen. Helle Schrift auf der blauen Aktionsfläche und aufgehellter blauer Text auf dunklem Grund haben unterschiedliche Rollen und werden nicht vertauscht. Dunkle Flächen erhalten keine schweren schwarzen Schatten; Konturen und begrenzte Tonabstufungen tragen die Hierarchie. Systemwechsel dürfen keinen ungespeicherten Formular-, Timer-, Chat- oder Offline-Zustand zurücksetzen.
 
 ## Flächen, Auswahl und Tiefe
 
@@ -79,7 +82,7 @@ Auswahl und passive Information sind nicht dieselbe helle Fläche. Ausgewählte 
 
 Warnung und Fehler färben keine vollständigen Listenzeilen, Arbeitskarten, Hinweisbalken oder Fehlerpaneele. Eindeutiger Statustext, sparsame Symbole und die nächste Aktion tragen die Bedeutung. Bestehende farbige Vertikalkanten werden nicht wieder als Statussystem eingeführt.
 
-Der laufende Arbeitstag bleibt bewusst dunkel und ruhig. Terrakotta wird dort nur als kleiner Status- oder Arbeitsakzent eingesetzt, nicht als große orangefarbene Karte. Bereit und pausiert bleiben helle, klar unterscheidbare Zustände.
+Der laufende Arbeitstag bleibt bewusst dunkel und ruhig. Der Akzent wird dort nur als kleiner Status- oder Arbeitsakzent eingesetzt, nicht als große farbige Karte. Bereit und pausiert bleiben helle, klar unterscheidbare Zustände.
 
 App- und Geräteflächen verwenden einen weichen Schatten mit etwa 20 px Unschärfe und 7 px Versatz. Mobile Kopf- und Navigationsinseln verwenden dasselbe Radiussystem sowie etwa 12 px Unschärfe und 4 px Versatz. Aktive Tagesköpfe und ausgewählte Einsätze dürfen eine geringe zusätzliche Tiefe erhalten. Kompakte Bedienzeilen, normale Plankarten, Felder und kleine Steuerungen bleiben ohne Schatten.
 
@@ -105,13 +108,13 @@ Das Raster bleibt ein erkennbares Herkunftsmerkmal, wird aber nicht zum dekorati
 - Rasterlinien nur im Arbeitsgrund, niemals über Text, Karten, Formularen oder Bedienzeilen.
 - Wenige Registrierungsmarken nur an sinnvollen Fixpunkten.
 
-Technische Illustrationen erscheinen nur in echten Leerzuständen oder bei erster Orientierung. Pro Ansicht höchstens ein monochromes Motiv mit ruhiger Terrakotta-/Ton-Strichführung und etwa 1,25 px Strichstärke. Keine Cartoons, Stockbilder oder wiederkehrenden Dekorationen.
+Technische Illustrationen erscheinen nur in echten Leerzuständen oder bei erster Orientierung. Pro Ansicht höchstens ein monochromes Motiv mit ruhiger Akzent-/Ton-Strichführung und etwa 1,25 px Strichstärke. Keine Cartoons, Stockbilder oder wiederkehrenden Dekorationen.
 
 Einsatzplanung, dichte Listen, Formulare, Finanzansichten, Fehler-, Offline- und Konfliktzustände bleiben ohne Illustration. Ein Ladezustand ist kein Leerzustand; ein Ladefehler ist kein Leerzustand; eine Filterleere benötigt eine andere Erklärung und Aktion als ein tatsächlich leerer Datenbestand.
 
 ## Markenzeichen und Navigation
 
-Der Senklot bleibt als vertikale Lotlinie mit spitzem Körper und Fußlinie erhalten. Auf Desktopseiten wandert er mit dem aktiven Menüpunkt und erscheint zusätzlich dezent am unteren Navigationsrand. Tablet nutzt dieselbe Markierung in der schmalen Navigation. Mobil führt das terrakottafarbene Zeichen in einer hellen Kopfinsel; der aktive Bereich der unteren Navigation erhält eine warme, hinter Icon und Text liegende Auswahlfläche.
+Der Senklot bleibt als vertikale Lotlinie mit spitzem Körper und Fußlinie erhalten. Auf Desktopseiten wandert er mit dem aktiven Menüpunkt und erscheint zusätzlich dezent am unteren Navigationsrand. Tablet nutzt dieselbe Markierung in der schmalen Navigation. Mobil führt das Zeichen in Kuppel-Blau in einer hellen Kopfinsel; der aktive Bereich der unteren Navigation erhält eine ruhige, hinter Icon und Text liegende Auswahlfläche. Seit E93 hat der Körper die Form des Zeichens: runder Kragen und weicher Tropfen.
 
 Die Desktopnavigation ist schmal, dunkel und ruhig. Modulicons bleiben als Navigationshilfe erhalten. Personennamen in der Einsatzplanung erscheinen ohne Kürzel-Kreise oder andere Begleitsymbole. Die mobile „Mehr“-Navigation verwendet zwei kompakte, gruppierte Listen für „Planung & Arbeit“ sowie „Vertrieb & Verwaltung“. Rollen- und Modulabhängigkeit bleibt sichtbar und vollständig bedienbar.
 
@@ -125,7 +128,7 @@ Große Arbeitstagkarten beschriften Pause, Weiter und Stopp mit kurzen Textlabel
 
 Woche/Monat/Tag, Personen-/Baustellensicht, freie Kapazitäten, Termine, Materialzustände, Abwesenheiten und „Noch einzuplanen“ bleiben erhalten. Desktop zeigt die komplette Woche und die Ablage. Tablet zeigt ausreichend breite Tage und hält die restliche Woche horizontal erreichbar. Mobil zeigt die siebentägige Auswahl und eine Tagesliste statt eines verkleinerten Wochenrasters.
 
-Normale Einsätze bleiben helle Arbeitsblätter mit feiner Kontur und sachlicher Terrakotta-Markierung. Der heutige Tag erhält einen dunklen Tageskopf und eine vertiefte warme Spalte. Nur der ausgewählte Einsatz wird vollflächig terrakotta; Auswahl verändert nicht den normalen Kartenradius.
+Normale Einsätze bleiben helle Arbeitsblätter mit feiner Kontur und sachlicher Akzentmarkierung. Der heutige Tag erhält einen dunklen Tageskopf und eine leicht getönte Spalte. Nur der ausgewählte Einsatz wird vollflächig im Akzent; Auswahl verändert nicht den normalen Kartenradius.
 
 Verschieben per Ziehen, Kopieren mit Alt, langes Drücken auf Touch-Tablets und die mobile Umplanung über die Einsatzaktionen bleiben erhalten. Am ausgewählten Einsatz erscheinen Bearbeiten, Verschieben, auf den nächsten Werktag kopieren und Entfernen; Rückgängig bleibt nach Verschieben oder Kopieren verfügbar. Entfernen bleibt dort bestätigungspflichtig, wo kein sicheres Rückgängig existiert. Konflikt- und Rechteprüfungen werden visuell nicht abgeschwächt. Ladefehler bei Abwesenheiten dürfen niemals wie freie Kapazität aussehen.
 
