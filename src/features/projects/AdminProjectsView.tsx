@@ -16,7 +16,6 @@ import {
   type BudgetZeile,
 } from './baustellenLage';
 import Metric, { MetricRow } from '@/components/Metric';
-import { Masslinie } from '@/components/Planlinie';
 import { ZIEL } from '@/features/dashboard/start/ziele';
 import { stundenDerBaustellen } from '@/lib/db/timeEntries';
 import { listAssignmentsInRange } from '@/lib/db/assignments';
@@ -1085,32 +1084,39 @@ export default function AdminProjectsView() {
                             )}
                           </>
                         }
-                        /* Ohne Leitung ist ein Zustand, keine Fußnote: er steht in der Spalte, wo man nach Achtung sucht. */
-                        zustand={leitung.length === 0 ? <Zustand stand="achtung">ohne Projektleitung</Zustand> : undefined}
                         /*
-                          DIE MASSLINIE STATT „16 h Budget“ (Planlinie B2): gebucht gegen
-                          das Budget, was darüber geht läuft rot über die Marke. Solange
-                          der Stand lädt (oder nicht kam), steht das Budget wie bisher.
+                          Ohne Leitung ist ein Zustand, keine Fußnote: er steht in der Spalte, wo man nach Achtung sucht.
+                          Ebenso das Budget, wenn es eng wird (14.11.2026): „nahe am Budget“ ab derselben Schwelle wie
+                          die Kennzahl „Ab 90 %“, darüber die Überschreitung in Stunden.
+                        */
+                        zustand={(() => {
+                          const b = budgetJe instanceof Map ? budgetJe.get(p.projectNumber) : undefined;
+                          // Dieselben Schwellen wie die Kennzahlen „Über Budget“ und „Ab 90 %“ darüber.
+                          const ueberMin = b ? b.usedMin - b.estimatedHours * 60 : 0;
+                          const budget = !b ? null
+                            : b.pct > 100 ? <Zustand stand="achtung">{ueberMin >= 6 ? `+${fmtStd(ueberMin)} h ` : ''}über Budget</Zustand>
+                            : b.pct >= BUDGET_AB_PROZENT ? <Zustand stand="achtung">nahe am Budget</Zustand>
+                            : null;
+                          if (leitung.length > 0 && !budget) return undefined;
+                          return <>{leitung.length === 0 && <Zustand stand="achtung">ohne Projektleitung</Zustand>}{budget}</>;
+                        })()}
+                        /*
+                          GEBUCHT VON BUDGET ALS ZAHL, NICHT ALS MASSLINIE (14.11.2026). Die
+                          schmale Maßlinie (Planlinie B2) brauchte in jeder Zeile drei Zeilen
+                          Höhe und sagte bei den meisten Baustellen nur „0,0 h gebucht“ unter
+                          einer leeren Linie. Was die Liste beantworten soll, ist: wo wird es
+                          eng? Das steht jetzt als Zustand links daneben; hier steht knapp der
+                          Stand, in Mono wie jede Zahl. Die Maßlinie bleibt in der Akte, wo
+                          Restbudget und Verlauf Platz haben. Solange der Stand lädt (oder
+                          nicht kam) und solange nichts gebucht ist, steht das Budget allein.
                         */
                         wert={p.estimatedHours ? (() => {
                           const b = budgetJe instanceof Map ? budgetJe.get(p.projectNumber) : undefined;
-                          if (!b) return <>{fmtStunden(p.estimatedHours)} h<small>Budget</small></>;
-                          const ist = b.usedMin / 60;
-                          const ueber = ist - b.estimatedHours;
+                          if (!b || b.usedMin === 0) {
+                            return <>{fmtStunden(p.estimatedHours)} h<small>{b ? 'Budget, nichts gebucht' : 'Budget'}</small></>;
+                          }
                           // Gebucht mit einer Nachkommastelle wie im Plan („45,0 h“), das Budget, wie es eingetragen ist.
-                          return (
-                            <span className="zeile-mass">
-                              <Masslinie
-                                schmal
-                                ist={ist}
-                                soll={b.estimatedHours}
-                                istText={`${fmtStd(b.usedMin)} h gebucht`}
-                                sollText={`${fmtStunden(b.estimatedHours)} h`}
-                                ueberText={`+${fmtStd(ueber * 60)} h`}
-                                name={`${fmtStd(b.usedMin)} h gebucht von ${fmtStunden(b.estimatedHours)} h Budget${ueber > 0 ? `, ${fmtStd(ueber * 60)} h darüber` : ''}`}
-                              />
-                            </span>
-                          );
+                          return <>{fmtStd(b.usedMin)} / {fmtStunden(b.estimatedHours)} h<small>gebucht · {b.pct} %</small></>;
                         })() : undefined}
                       >
                         {/*

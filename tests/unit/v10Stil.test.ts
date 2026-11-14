@@ -870,6 +870,16 @@ describe('Anzeigefehler (14.11.2026)', () => {
     Linie durch „Speichern“. Die Kontur ist jetzt eine innere Linie; sie
     gehört zum Hintergrund und wandert mit.
   */
+  it('die Beschriftung unter einem Listenwert steht in der Textschrift, der Wert selbst in Mono', () => {
+    const INDEX = readFileSync('src/index.css', 'utf8');
+    const wert = /\.zeile-wert \{([^}]*)\}/.exec(ohneKommentare(INDEX))?.[1] ?? '';
+    const klein = /\.zeile-wert small \{([^}]*)\}/.exec(ohneKommentare(INDEX))?.[1] ?? '';
+    expect(wert).toContain('font-family: var(--schrift-mono);');
+    expect(klein).toContain('font-family: var(--schrift-text);');
+    // Gegenprobe: ohne eigene Schrift erbte „Budget, nichts gebucht“ die Mono des Werts.
+    expect(' display: block; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); ').not.toContain('font-family');
+  });
+
   it('die aktive Fläche der unteren Leiste hat die Rundung der Insel, nach innen versetzt (24 − 6 = 18 px)', () => {
     const LOT = stil('lot.css');
     const flaeche = /\.unten-punkt-aktiv::before \{([^}]*)\}/.exec(ohneKommentare(LOT))?.[1] ?? '';

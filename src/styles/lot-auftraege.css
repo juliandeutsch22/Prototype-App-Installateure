@@ -78,8 +78,3 @@
   .budget-prozent { display: block; font-family: var(--schrift-mono); font-size: 1.5rem; line-height: 2rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
 }
 
-/* Die Maßlinie in der Wertspalte einer Baustellenzeile (Planlinie B2, schmale Fassung). */
-@layer components {
-  .zeile-mass { display: block; width: 15rem; max-width: 100%; text-align: left; font-size: 0.75rem; }
-  @media (max-width: 759px) { .zeile-mass { width: 13rem; } }
-}

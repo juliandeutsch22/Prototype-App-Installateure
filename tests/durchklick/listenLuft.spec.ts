@@ -9,10 +9,10 @@ import { anmelden, keineFehlermeldung } from './helfer';
  * einem Overlay … lädt sehr langsam, beim Tabwechsel wird nachgeladen.“
  *
  * Gemessen im echten Browser:
- * - Baustellen: am Tablet und Handy stehen Zustand und Maßlinie UNTER dem
+ * - Baustellen: am Tablet und Handy stehen Zustand und Budget UNTER dem
  *   Text (vorher daneben, der Name brach in drei Zeilen), am Schreibtisch
  *   rechts daneben; Adresse/Telefon und Leitung/Team in getrennten Zeilen;
- *   nirgends seitlich zu rollen; ein Tipp auf die Maßlinie öffnet die Akte.
+ *   nirgends seitlich zu rollen; ein Tipp auf das Budget öffnet die Akte (seit 14.11.2026 Zahl statt Maßlinie).
  * - Nachkalkulation: die Zeile nennt nur, wie viele Artikel ohne
  *   Einkaufspreis sind; das Seitenfenster schlüsselt auf; der Wechsel
  *   zwischen „Abgeschlossen“ und „Laufend“ zeigt die Liste sofort.
@@ -70,7 +70,7 @@ async function zeileMessen(page: Page) {
   }, NR);
 }
 
-test('Baustellen: Zustand und Maßlinie unter dem Text am Handy und Tablet, daneben am Schreibtisch', async ({ page }) => {
+test('Baustellen: Zustand und Budget unter dem Text am Handy und Tablet, daneben am Schreibtisch', async ({ page }) => {
   test.setTimeout(120_000);
   const { data: leute, error: leuteFehler } = await admin.from('users').select('id').eq('company_id', BETRIEB).limit(4);
   expect(leuteFehler).toBeNull();
@@ -97,15 +97,15 @@ test('Baustellen: Zustand und Maßlinie unter dem Text am Handy und Tablet, dane
     expect(m.ueberZeile, `${name}: nichts steht über die Zeile`).toBeLessThanOrEqual(0);
     expect(m.zeilenUntereinander, `${name}: Adresse/Telefon und Leitung/Team in zwei Zeilen`).toBe(true);
     if (width < 1200) {
-      expect(m.standUnterText, `${name}: Zustand und Maßlinie unter dem Text`).toBe(true);
+      expect(m.standUnterText, `${name}: Zustand und Budget unter dem Text`).toBe(true);
       expect(m.luckeVorAktionen, `${name}: der Text reicht bis an das „⋯“`).toBeLessThanOrEqual(16.5);
     } else {
-      expect(m.standRechts, `${name}: Zustand und Maßlinie rechts neben dem Text`).toBe(true);
+      expect(m.standRechts, `${name}: Zustand und Budget rechts neben dem Text`).toBe(true);
     }
   }
 
-  // Ein Tipp auf die Maßlinie öffnet die Akte wie jeder andere in der Zeile.
-  const stand = (await page.locator('li.zeile', { hasText: NR }).locator('.zeile-stand .masslinie').boundingBox())!;
+  // Ein Tipp auf das Budget öffnet die Akte wie jeder andere in der Zeile (seit 14.11.2026 als Zahl statt Maßlinie).
+  const stand = (await page.locator('li.zeile', { hasText: NR }).locator('.zeile-stand .zeile-wert').boundingBox())!;
   await page.mouse.click(stand.x + stand.width / 2, stand.y + stand.height / 2);
   await expect(page).toHaveURL(new RegExp(`/admin-projects/${neu!.id}$`));
   await keineFehlermeldung(page);
