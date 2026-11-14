@@ -163,6 +163,10 @@ export interface LotPunkt {
   text?: ReactNode;
   /** Der Punkt, an dem es gerade steht — als Ring in Bernstein. */
   jetzt?: boolean;
+  /** Eine Handlung am Eintrag, rechts auf Höhe des Titels (z. B. „ausblenden“). */
+  aktion?: ReactNode;
+  /** Fester Schlüssel des Eintrags — nötig, wenn Einträge verschwinden können. */
+  schluessel?: string;
 }
 
 /**
@@ -173,13 +177,24 @@ export function LotVerlauf({ punkte, name }: { punkte: LotPunkt[]; name: string 
   if (punkte.length === 0) return null;
   return (
     <ol className="lot" aria-label={name}>
-      {punkte.map((p, i) => (
-        <li key={i} className={p.jetzt ? 'lot-jetzt' : 'lot-punkt'} aria-current={p.jetzt ? 'step' : undefined}>
-          <p className="lot-titel">{p.titel}</p>
-          {p.zeit && <p className="lot-zeit">{p.zeit}</p>}
-          {p.text && <div className="text-sm text-ink-muted">{p.text}</div>}
-        </li>
-      ))}
+      {punkte.map((p, i) => {
+        const inhalt = (
+          <>
+            <p className="lot-titel">{p.titel}</p>
+            {p.zeit && <p className="lot-zeit">{p.zeit}</p>}
+            {p.text && <div className="text-sm text-ink-muted">{p.text}</div>}
+          </>
+        );
+        return (
+          <li
+            key={p.schluessel ?? i}
+            className={`${p.jetzt ? 'lot-jetzt' : 'lot-punkt'}${p.aktion ? ' lot-mit-aktion' : ''}`}
+            aria-current={p.jetzt ? 'step' : undefined}
+          >
+            {p.aktion ? <><div className="lot-inhalt">{inhalt}</div><div className="lot-aktion">{p.aktion}</div></> : inhalt}
+          </li>
+        );
+      })}
     </ol>
   );
 }

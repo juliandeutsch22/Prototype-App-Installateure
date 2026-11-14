@@ -153,7 +153,7 @@ test('Die Warenkorb-Leiste liegt als Blatt auf dem Raster, am Handy als Balken',
         linksAbs: k.left, rechtsAbs: k.right,
         oben: aufLinie(k.top), unten: aufLinie(k.bottom),
         rund: s.borderTopLeftRadius, polster: s.paddingLeft,
-        linie: s.boxShadow, linieBlatt: getComputedStyle(katalog).boxShadow,
+        linie: s.boxShadow,
         vorher: getComputedStyle(korb, '::before').borderTopColor + ' ' + getComputedStyle(korb, '::before').borderLeftWidth,
         vorherBlatt: getComputedStyle(katalog, '::before').borderTopColor + ' ' + getComputedStyle(katalog, '::before').borderLeftWidth,
         obenLinie: s.borderTopWidth + ' ' + s.borderTopColor, umriss: s.outlineWidth + ' ' + s.outlineColor, linieDerLeisten,
@@ -183,8 +183,9 @@ test('Die Warenkorb-Leiste liegt als Blatt auf dem Raster, am Handy als Balken',
     expect(m.rund, `${breite} px: Radius des Blatts`).toBe('16px');
     expect(m.polster, `${breite} px: Text eine Zelle vom Rand`).toBe('24px');
     expect(m.hoehe % 24, `${breite} px: ganze Zellen hoch (${m.hoehe})`).toBe(0);
-    expect(m.linie, `${breite} px: kein Schatten, wie das Blatt`).toBe(m.linieBlatt);
-    expect(m.umriss, `${breite} px: Umriss wie das Blatt`).toBe(`1px ${m.linieDerLeisten}`);
+    // Die Kontur als innere Linie (14.11.2026): kein Umriss, den Safari an der klebenden Leiste stehen ließe.
+    expect(m.linie, `${breite} px: Kontur als innere Linie`).toBe(`${m.linieDerLeisten} 0px 0px 0px 1px inset`);
+    expect(m.umriss.startsWith('0px'), `${breite} px: kein Umriss (${m.umriss})`).toBe(true);
     // In Ruhe, an ihrem Platz unter dem Katalog: beide Kanten auf Linien.
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     const r = await ruhig();

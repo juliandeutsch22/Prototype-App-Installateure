@@ -137,8 +137,16 @@
     */
     .inhalt .aktionsleiste:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog'], .akten-editor) .aktionsleiste) {
       margin: 1.5rem 0 0; padding: 12px var(--blatt-rand); border-top: 0;
-      /* V10 (14.11.2026): ein Blatt mit Umriss und Radius wie die darüber — vorher gezeichnete eckige Linien der Linie „Lot“. */
-      border-radius: var(--radius-lg); outline: 1px solid var(--border); outline-offset: -1px; box-shadow: none;
+      /*
+        V10 (14.11.2026): ein Blatt mit Kontur und Radius wie die darüber —
+        vorher gezeichnete eckige Linien der Linie „Lot“.
+        KONTUR ALS INNERE LINIE, NICHT ALS UMRISS (14.11.2026, iPhone): Safari
+        zeichnete den Umriss der klebenden Leiste beim Rollen nicht mit —
+        Rahmenstücke blieben stehen, eine Linie lief durch „Speichern“. Die
+        innere Linie gehört zum Hintergrund der Leiste, wandert mit ihr,
+        folgt dem Radius und hat wie der Umriss keine Höhe.
+      */
+      border-radius: var(--radius-lg); outline: 0; box-shadow: inset 0 0 0 1px var(--border);
     }
   }
   /* Ein Verweis in der Zeile trägt seine Tastfläche, ohne die Zeile höher zu machen. */

@@ -365,9 +365,10 @@ export default function NachkalkulationView() {
                   Die Einschraenkung gehoert unter die Zahlen, nicht ins
                   Kleingedruckte: „Deckungsbeitrag" als „Gewinn" zu lesen ist
                   der naheliegende Fehler, und darauf trifft jemand
-                  Entscheidungen.
+                  Entscheidungen. Mit dem Rand des Blatts, auf der Flucht des
+                  Kartentitels (14.11.2026; mit `px-4` 8 px daneben).
                 */}
-                <div className="flex flex-wrap items-center border-t border-line px-4 py-3 text-sm text-ink-muted [&_strong]:text-ink-deep">
+                <div className="flex flex-wrap items-center border-t border-line px-[var(--blatt-rand)] py-3 text-sm text-ink-muted [&_strong]:text-ink-deep">
                   <strong>Deckungsbeitrag, nicht Gewinn.</strong>
                   {/*
                     Die Warnung selbst bleibt stehen — sie ist die Aussage.

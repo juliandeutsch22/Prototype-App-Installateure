@@ -1128,7 +1128,7 @@ describe('Baustellen — Zeilen erst mit der Belegschaft', () => {
   festen Spalten rechts — und nie „⋯“ und „›“ nebeneinander.
 */
 describe('Baustellen — die Zeile', () => {
-  it('Name und Nummer ohne Klammer, Budget als Maßlinie, ohne Pfeil neben dem ⋯', async () => {
+  it('Name und Nummer ohne Klammer, Budget als Zahl, ohne Pfeil neben dem ⋯', async () => {
     baustellen = [{
       id: 'p-z', companyId: 'perl', projectNumber: '2026-077', customerName: 'Familie Zeiler', status: 'Aktiv',
       assignedEmployees: ['u1'], projectManagers: ['u1'], estimatedHours: 40,
@@ -1137,10 +1137,10 @@ describe('Baustellen — die Zeile', () => {
     const zeile = (await screen.findByText('2026-077')).closest('li')!;
     expect(within(zeile).getByText('2026-077')).toHaveClass('zeile-nr');
     expect(zeile.textContent).not.toContain('(2026-077)');
-    // Planlinie B2: gebucht gegen das Budget, als schmale Maßlinie im Wert der Zeile.
-    const linie = await within(zeile).findByRole('img', { name: '0,0 h gebucht von 40 h Budget' });
-    expect(linie).toHaveClass('masslinie', 'masslinie-schmal');
-    expect(linie.closest('.zeile-wert')).not.toBeNull();
+    // Nichts gebucht: das Budget allein, keine leere Maßlinie (14.11.2026).
+    await waitFor(() => expect(within(zeile).getByText('Budget, nichts gebucht')).toBeInTheDocument());
+    expect(within(zeile).getByText('Budget, nichts gebucht').closest('.zeile-wert')).toHaveTextContent('40 h');
+    expect(zeile.querySelector('.masslinie')).toBeNull();
     expect(zeile.querySelector('.zeile-pfeil')).toBeNull();
     expect(within(zeile).getByRole('button', { name: /Weitere Aktionen/ })).toBeInTheDocument();
     // Eine Detailzeile: Leitung und Team stehen in derselben wie die Adresse.
@@ -1149,22 +1149,67 @@ describe('Baustellen — die Zeile', () => {
     expect(within(zeile).getByText(/Team: Max Mustermann/).closest('.zeile-meta')).not.toBeNull();
   });
 
-  it('Planlinie B2 · über dem Budget läuft die Linie rot über die Marke, mit der Überschreitung als Zahl', async () => {
+  /*
+    GEBUCHT VON BUDGET ALS ZAHL, AUFFÄLLIGES ALS ZUSTAND (14.11.2026, statt der
+    schmalen Maßlinie): die Liste beantwortet „wo wird es eng?“. Gleiche
+    Schwellen wie die Kennzahlen „Über Budget“ und „Ab 90 %“.
+  */
+  it('gebucht von Budget in Mono mit Anteil; im Rahmen ohne Zustand', async () => {
     stundenDerBaustellen.mockImplementation(async () => [
-      { projectNumber: '2026-001', userId: 'u1', userName: 'Max Mustermann', art: 'fach' as const, minuten: 480, zuletzt: '2026-09-01' },
+      { projectNumber: '2026-002', userId: 'u1', userName: 'Max Mustermann', art: 'fach' as const, minuten: 750, zuletzt: '2026-09-01' },
     ]);
     baustellen = [{
-      id: 'p-u', companyId: 'perl', projectNumber: '2026-001', customerName: 'Familie Über', status: 'Aktiv',
-      assignedEmployees: ['u1'], projectManagers: ['u1'], estimatedHours: 6,
+      id: 'p-m', companyId: 'perl', projectNumber: '2026-002', customerName: 'Familie Mitte', status: 'Aktiv',
+      assignedEmployees: ['u1'], projectManagers: ['u1'], estimatedHours: 40,
     } as unknown as Project & { id: string }];
     zeige();
-    const zeile = (await screen.findByText('2026-001')).closest('li')!;
-    const linie = await within(zeile).findByRole('img', { name: '8,0 h gebucht von 6 h Budget, 2,0 h darüber' });
-    expect(linie.querySelector('.masslinie-marke-rot')).not.toBeNull();
-    expect(within(zeile).getByText('+2,0 h')).toBeInTheDocument();
+    const zeile = (await screen.findByText('2026-002')).closest('li')!;
+    const wert = await waitFor(() => {
+      const w = zeile.querySelector('.zeile-wert');
+      expect(w).toHaveTextContent('12,5 / 40 hgebucht · 31 %');
+      return w!;
+    });
+    expect(wert.querySelector('small')).toHaveTextContent('gebucht · 31 %');
+    expect(zeile.querySelector('.zeile-zustand')).toBeNull();
+    expect(zeile.querySelector('.masslinie')).toBeNull();
   });
 
-  it('Gegenprobe: kommt der Budgetstand nicht, steht das Budget wie bisher als Zahl — und keine Maßlinie', async () => {
+  it('ab 90 % „nahe am Budget“, darüber die Überschreitung in Stunden — als Zustand', async () => {
+    stundenDerBaustellen.mockImplementation(async () => [
+      { projectNumber: '2026-001', userId: 'u1', userName: 'Max Mustermann', art: 'fach' as const, minuten: 480, zuletzt: '2026-09-01' },
+      { projectNumber: '2026-003', userId: 'u1', userName: 'Max Mustermann', art: 'fach' as const, minuten: 570, zuletzt: '2026-09-01' },
+    ]);
+    baustellen = [
+      { id: 'p-u', companyId: 'perl', projectNumber: '2026-001', customerName: 'Familie Über', status: 'Aktiv',
+        assignedEmployees: ['u1'], projectManagers: ['u1'], estimatedHours: 6 },
+      { id: 'p-n', companyId: 'perl', projectNumber: '2026-003', customerName: 'Familie Nah', status: 'Aktiv',
+        assignedEmployees: ['u1'], projectManagers: ['u1'], estimatedHours: 10 },
+    ] as unknown as (Project & { id: string })[];
+    zeige();
+    const ueber = (await screen.findByText('2026-001')).closest('li')!;
+    await waitFor(() => expect(within(ueber).getByText('+2,0 h über Budget')).toBeInTheDocument());
+    expect(within(ueber).getByText('+2,0 h über Budget').closest('.zeile-zustand')).not.toBeNull();
+    expect(ueber.querySelector('.zeile-wert')).toHaveTextContent('8,0 / 6 hgebucht · 133 %');
+    const nah = screen.getByText('2026-003').closest('li')!;
+    expect(within(nah).getByText('nahe am Budget').closest('.zeile-zustand')).not.toBeNull();
+    // Gleich geblieben: „ohne Projektleitung“ steht weiter in derselben Spalte.
+  });
+
+  it('gleich geblieben: ohne Projektleitung steht der Zustand — neben einem Budgetzustand', async () => {
+    stundenDerBaustellen.mockImplementation(async () => [
+      { projectNumber: '2026-004', userId: 'u1', userName: 'Max Mustermann', art: 'fach' as const, minuten: 480, zuletzt: '2026-09-01' },
+    ]);
+    baustellen = [{
+      id: 'p-o', companyId: 'perl', projectNumber: '2026-004', customerName: 'Familie Ohne', status: 'Aktiv',
+      assignedEmployees: ['u1'], projectManagers: [], estimatedHours: 6,
+    } as unknown as Project & { id: string }];
+    zeige();
+    const zeile = (await screen.findByText('2026-004')).closest('li')!;
+    await waitFor(() => expect(within(zeile).getByText('+2,0 h über Budget')).toBeInTheDocument());
+    expect(within(zeile).getByText('ohne Projektleitung').closest('.zeile-zustand')).not.toBeNull();
+  });
+
+  it('Gegenprobe: kommt der Budgetstand nicht, steht das Budget allein als Zahl — kein Zustand geraten', async () => {
     stundenDerBaustellen.mockRejectedValueOnce(new Error('weg'));
     baustellen = [{
       id: 'p-z', companyId: 'perl', projectNumber: '2026-077', customerName: 'Familie Zeiler', status: 'Aktiv',
@@ -1210,7 +1255,8 @@ describe('Baustellen — die Zeile', () => {
     expect(within(team).getByText(', Otto Obermair, Paul Pichler')).toHaveClass('sr-only');
     // Gestapelt: Zustand und Wert in eigener Spalte, das „⋯“ für sich.
     expect(zeile).toHaveClass('zeile-gestapelt');
-    expect(zeile.querySelector('.zeile-stand .zeile-wert .masslinie')).not.toBeNull();
+    // Seit 14.11.2026 das Budget als Zahl statt Maßlinie — in derselben Spalte.
+    await waitFor(() => expect(zeile.querySelector('.zeile-stand .zeile-wert')).toHaveTextContent('40 h'));
     expect(within(zeile.querySelector('.zeile-aktionen') as HTMLElement).getByRole('button', { name: /Weitere Aktionen/ })).toBeInTheDocument();
   });
 

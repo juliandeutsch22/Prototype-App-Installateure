@@ -445,6 +445,11 @@ bleibt deshalb stehen — mit Grund:
   WebKit). Grund: Gerät — WebKit lässt sich in der Cloud-Umgebung nicht
   installieren, und ein echtes iPhone gibt es dort nicht; den letzten Blick
   am Gerät macht der Betrieb.
+- **Im Änderungsprotokoll Ausgeblendetes gilt nur auf diesem Gerät**
+  (14.11.2026). Grund Datenschutz: wer welche Änderung gesehen hat, wäre ein
+  neues Datum über jede Person, das der Betrieb auswerten könnte — dieselbe
+  Abwägung wie beim Datenschutz-Hinweis. Ausgeblendet ist nie gelöscht; die
+  Aufzeichnung bleibt vollständig (Arbeitszeitaufzeichnung).
 - **Am Handy liegt die rechte Kante eines Blatts nicht auf einer
   Rasterlinie** (14.11.2026). Grund fachlich: auf ganze Zellen gerundet stand
   ein Blatt bei 390 px links 16, rechts 38 px vom Rand; gleiche Ränder wiegen

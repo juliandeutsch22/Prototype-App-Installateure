@@ -1216,6 +1216,7 @@ export default function TimeView() {
                 mitTag
                 titel="Änderungsprotokoll deiner Buchungen"
                 felder={feldsatz.definitionen}
+                ausblendbar={{ liste: 'zeitprotokoll', uid: user.uid }}
                 laden={() => {
                   const { ab, bis } = listenZeitraum(monate);
                   return listVerlaufZeitraum(user.companyId, user.uid, ab, bis);

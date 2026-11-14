@@ -111,6 +111,14 @@ export const rechnungen = [
   { id: 'r3', companyId: 'perl', invoiceNumber: '2026-0230', projectNumber: 'B-2026-0149', customerName: 'Familie Huber', invoiceDate: '2026-07-20', dueDate: '2026-08-19', totalNetto: 1180, totalVat: 236, totalBrutto: 1416, paymentStatus: 'Bezahlt', vatRate: 0.2 },
 ];
 
+/* Änderungsprotokoll der Zeitbuchungen (E50): angelegt von der Person selbst, geändert vom Büro. */
+export const zeitVerlauf = [
+  { id: 'zv2', eintragId: 't1', userId: 'u1', datum: HEUTE, art: 'geaendert', vonUid: 'u4', vonName: 'Michaela Wagner', am: Date.now() - 3_600_000,
+    aenderungen: { end_time: { alt: '15:30:00', neu: '16:30:00' } } },
+  { id: 'zv1', eintragId: 't1', userId: 'u1', datum: HEUTE, art: 'angelegt', vonUid: 'u1', vonName: 'Max Mustermann', am: Date.now() - 7_200_000,
+    aenderungen: { date: HEUTE, status: 'Anwesend', start_time: '07:00:00', end_time: '15:30:00', break_duration: 30, notes: 'Verteiler gesetzt' } },
+];
+
 export const scheine = [
   { id: 's1', companyId: 'perl', projectNumber: 'B-2026-0147', customerName: 'Wohnungseigentümergemeinschaft Hauptstraße 112–118', address: 'Hauptstraße 112–118, 2700 Wiener Neustadt', datum: HEUTE, status: 'Entwurf', abrechnung: 'Regie', zeiten: [{ mitarbeiterUid: 'u1', mitarbeiterName: 'Max Mustermann', minuten: 510, stunden: 8.5, istHelfer: false }], material: [{ name: 'Kupferrohr 22 mm, Stange 5 m, hart', menge: 6, einheit: 'Stk' }], erstelltVonUid: 'u1', erstelltVonName: 'Max Mustermann', createdAt: Date.now() - 7200000 },
   { id: 's2', companyId: 'perl', projectNumber: 'B-2026-0148', customerName: 'Gemeinde Neudorf bei Wiener Neustadt', datum: '2026-09-16', status: 'Unterschrieben', abrechnung: 'Pauschal', zeiten: [], material: [], erstelltVonUid: 'u1', erstelltVonName: 'Max Mustermann', unterschriebenAm: Date.now() - 172800000, createdAt: Date.now() - 180000000 },

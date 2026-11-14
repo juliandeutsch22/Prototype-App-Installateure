@@ -210,9 +210,11 @@
   .korb { transform: translateZ(0); }
   .korb { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.625rem 1rem 0.75rem; margin: 0 var(--takt-auslauf, -1rem) 0 -1rem; background: var(--surface); border-top: 1px solid var(--border); }
   @media (min-width: 760px) {
-    /* V10 (13.11.2026): ein Blatt wie die darüber — Umriss und 16 px Radius statt
-       gezeichneter Linien; der Umriss hat keine Höhe, die Leiste misst ganze Zellen. */
-    .korb { margin: 0; row-gap: 0; padding: 12px 24px; border: 0; outline: 1px solid var(--border); outline-offset: -1px; border-radius: var(--radius-lg); box-shadow: none; }
+    /* V10 (13.11.2026): ein Blatt wie die darüber — Kontur und 16 px Radius statt
+       gezeichneter Linien; die Kontur hat keine Höhe, die Leiste misst ganze Zellen.
+       Als innere Linie, nicht als Umriss (14.11.2026): Safari zeichnet den Umriss
+       einer klebenden Leiste beim Rollen nicht zuverlässig mit (Firmendaten). */
+    .korb { margin: 0; row-gap: 0; padding: 12px 24px; border: 0; outline: 0; border-radius: var(--radius-lg); box-shadow: inset 0 0 0 1px var(--border); }
     .korb .korb-titel, .korb .korb-info, .korb .korb-fehler { line-height: 1.5rem; }
   }
   .korb-text { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; flex: 1; }

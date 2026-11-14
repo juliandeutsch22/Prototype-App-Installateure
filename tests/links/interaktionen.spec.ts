@@ -209,6 +209,37 @@ test('Warenkorb-Leiste: jeder weitere Artikel steht sofort und sauber im Titel',
 });
 
 /*
+  KLEBENDE SPEICHERLEISTE BEIM ROLLEN (iPhone, Firmendaten, 14.11.2026):
+  Safari ließ den Umriss der Leiste beim Rollen stehen — zwei Rahmenstücke,
+  eine Linie durch „Speichern“. Gerollt wird in Schritten; nach jedem muss
+  die Leiste gezeichnet so aussehen wie nach einem erzwungenen Neuzeichnen
+  und unten kleben. In der CI läuft das auch in WebKit (iPhone 13).
+*/
+test('Speicherleiste der Firmendaten: beim Rollen sauber gezeichnet, ohne stehengebliebene Kontur', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`./?pfad=${encodeURIComponent('/settings/firma')}&rolle=Administrator`);
+  const leiste = page.locator('.aktionsleiste').first();
+  await expect(leiste).toBeVisible();
+  const bild = async () => {
+    await page.evaluate(() => new Promise((fertig) => requestAnimationFrame(() => requestAnimationFrame(fertig))));
+    const r = (await leiste.boundingBox())!;
+    return { r, png: await page.screenshot({ clip: { x: r.x, y: r.y, width: r.width, height: r.height } }) };
+  };
+  for (const y of [300, 700, 1100]) {
+    // Gerollt per Skript: das Mausrad gibt es im mobilen WebKit (iPhone-Projekt der CI) nicht.
+    await page.evaluate((ziel) => window.scrollTo(0, ziel), y);
+    await page.waitForTimeout(250);
+    const gezeichnet = await bild();
+    await leiste.evaluate((l: HTMLElement) => { l.style.display = 'none'; void l.offsetHeight; l.style.display = ''; });
+    const neu = await bild();
+    expect(neu.r, `bei ${y} px: an derselben Stelle`).toEqual(gezeichnet.r);
+    expect(gezeichnet.png.equals(neu.png), `bei ${y} px: gezeichnet wie neu`).toBe(true);
+    // Die Kontur ist keine Umrisslinie (die Safari stehen ließ), sondern eine innere Linie.
+    expect(await leiste.evaluate((l) => getComputedStyle(l).outlineStyle)).toBe('none');
+  }
+});
+
+/*
   ZAHLENSPALTEN DER RECHNUNG (14.11.2026): Menge und Betrag in Mono klebten
   mit 10–15 px Lücke aneinander („1 pausch 18 420,50“), weil der Abstand an
   den Zellen gegen `.tabelle-eng td` verlor. Gemessen wird die Lücke zwischen
@@ -238,4 +269,47 @@ test('Rechnungsfenster: Menge und Betrag stehen getrennt und unter ihrem Kopf', 
     expect(m.luecke, `${breite} px`).toBeGreaterThanOrEqual(24);
     expect(m, `${breite} px`).toMatchObject({ mengeBuendig: true, betragBuendig: true });
   }
+});
+
+/*
+  BÜNDIGE KARTEN AUF DER FLUCHT (14.11.2026): „Nichts gemeldet“ klebte in
+  den Einstellungen am Rand des Blatts, ebenso in Papierkorb, Fahrzeugen und
+  Zeitfeldern; Projektauswertung und Nachkalkulation standen 8 px neben dem
+  Kartentitel. Geprüft wird, dass der erste Text jedes Kinds einer bündigen
+  Karte nicht links neben dem Titel beginnt — am Handy und am Schreibtisch.
+*/
+test('Bündige Karten: Leerzustände und Zeilen stehen auf der Flucht des Kartentitels', async ({ page }) => {
+  test.setTimeout(120_000);
+  const SEITEN = ['/settings/nachrichten', '/settings/papierkorb', '/settings/fahrzeuge', '/settings/zeitfelder', '/costing', '/accounting'];
+  const fehler: string[] = [];
+  for (const breite of [390, 1440]) {
+    await page.setViewportSize({ width: breite, height: 900 });
+    for (const pfad of SEITEN) {
+      await page.goto(`./?pfad=${encodeURIComponent(pfad)}&rolle=Administrator`);
+      await expect(page.locator('.inhalt .karte').first()).toBeVisible();
+      await page.waitForLoadState('networkidle');
+      const daneben = await page.evaluate(() => {
+        const out: string[] = [];
+        for (const k of document.querySelectorAll('.inhalt .karte')) {
+          const koerper = k.querySelector(':scope > .karte-buendig');
+          const titel = k.querySelector(':scope h2');
+          if (!koerper || !titel) continue;
+          const flucht = titel.getBoundingClientRect().left;
+          for (const kind of koerper.children) {
+            const gang = document.createTreeWalker(kind, NodeFilter.SHOW_TEXT);
+            let t: Node | null;
+            while ((t = gang.nextNode()) && !t.textContent?.trim());
+            if (!t) continue;
+            const r = document.createRange();
+            r.selectNodeContents(t);
+            const links = r.getClientRects()[0]?.left;
+            if (links !== undefined && links < flucht - 1) out.push(`${titel.textContent?.trim()}: „${t.textContent?.trim().slice(0, 30)}“ ${Math.round(links - flucht)} px`);
+          }
+        }
+        return out;
+      });
+      for (const d of daneben) fehler.push(`${breite} ${pfad}: ${d}`);
+    }
+  }
+  expect(fehler).toEqual([]);
 });

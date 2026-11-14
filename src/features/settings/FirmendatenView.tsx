@@ -121,6 +121,7 @@ export default function FirmendatenView() {
   const [laedtAnzeige, setLaedtAnzeige] = useState(false);
   const speichert = useRef(false);
   const logoLauf = useRef(0);
+  const logoFeld = useRef<HTMLInputElement>(null);
   const warnung = useUngespeichertWarnung(!!user && isTopLevel(user.role) && (geaendert || logoLaeuft));
   function verwerfen() {
     const v = letzterStand;
@@ -399,18 +400,33 @@ export default function FirmendatenView() {
             </p>
           )}
 
+          {/*
+            EIN KNOPF DER APP STATT DES FELDS DES BROWSERS (14.11.2026). Das
+            sichtbare Dateifeld zeigte, was der Browser mitbringt — eckig,
+            fremd im Stil und in seiner Sprache („Choose File / No file
+            chosen“ auf einem englisch eingestellten Gerät). Wie bei Plänen,
+            Nachweisen und Importen steht das Feld versteckt hinter einem
+            Knopf; das Ergebnis zeigt die Vorschau darüber.
+          */}
           <div className="mt-3">
-            <label htmlFor="fd-logo" className="section-label block">
-              Bilddatei wählen
-            </label>
             <input
+              ref={logoFeld}
               id="fd-logo"
               type="file"
               accept="image/png,image/jpeg,image/webp"
-              disabled={logoLaeuft}
-              onChange={(e) => void logoWaehlen(e.target.files?.[0])}
-              className="mt-1 block w-full text-sm text-ink file:mr-3 file:min-h-touch file:rounded file:border file:border-line file:bg-surface-2 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-ink"
+              className="sr-only"
+              aria-label="Logo auswählen"
+              tabIndex={-1}
+              onChange={(e) => {
+                const datei = e.target.files?.[0];
+                // Zurücksetzen, damit dieselbe Datei nach „Logo entfernen“ wieder gewählt werden kann.
+                e.target.value = '';
+                void logoWaehlen(datei);
+              }}
             />
+            <Button type="button" variant="secondary" loading={logoLaeuft} onClick={() => logoFeld.current?.click()}>
+              {istZeichenbar(logoUrl) ? 'Anderes Logo wählen' : 'Logo wählen'}
+            </Button>
           </div>
           {logoFehler && (
             <div className="mt-3">

@@ -58,7 +58,7 @@ export function StartLaden({ label }: { label: string }) {
  */
 export function SkeletonList({ rows = 3 }: { rows?: number }) {
   return (
-    <div role="status" aria-busy="true">
+    <div role="status" aria-busy="true" className="lade-liste">
       <span className="sr-only">Wird geladen …</span>
       <div className="divide-y divide-line" aria-hidden="true">
         {Array.from({ length: rows }).map((_, i) => (
@@ -86,7 +86,7 @@ export function SkeletonList({ rows = 3 }: { rows?: number }) {
  */
 export function SeitenPlatzhalter() {
   return (
-    <div role="status" aria-busy="true">
+    <div role="status" aria-busy="true" className="lade-liste">
       <span className="sr-only">Wird geladen …</span>
       <div aria-hidden="true" className="mb-6 space-y-2">
         <div className="skeleton h-3 w-16" />
@@ -105,7 +105,7 @@ export function SkeletonMetrics({ count = 3, zusatz = true }: { count?: number; 
     // Wert —, damit er beim Eintreffen in jeder Breite dieselbe Höhe findet.
     // Ein Platzhalter, der anders gebaut ist als sein Inhalt, lässt die Seite
     // springen — genau das, was er verhindern soll.
-    <div role="status" aria-busy="true">
+    <div role="status" aria-busy="true" className="lade-liste">
       <span className="sr-only">Wird geladen …</span>
       <div className="lage-zeile" aria-hidden="true">
         {Array.from({ length: count }).map((_, i) => (
@@ -216,7 +216,7 @@ export function EmptyState({
     Termin geplant.“ zwei Blätter tiefer — zwei Gestalten für dasselbe.
   */
   return (
-    <div className={zeichnung ? 'lot-erstnutzung' : 'flex flex-col items-start gap-3 py-3 text-ink-muted'}>
+    <div className={zeichnung ? 'lot-erstnutzung' : 'leer-satz flex flex-col items-start gap-3 py-3 text-ink-muted'}>
       {zeichnung && <LotZeichnung motiv={zeichnung} art="leer" />}
       {titel && <h2>{titel}</h2>}
       <p>{children}</p>
