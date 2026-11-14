@@ -155,8 +155,9 @@ test('Rechnung: Mahnung erneut laden, Stornorechnung ausstellen und erneut laden
     await storno.getByRole('button', { name: 'Stornieren' }).click();
     await expect.poll(async () => (await admin.from('invoices').select('payment_status').eq('id', rechnung!.id).single()).data?.payment_status, { timeout: 15_000 }).toBe('Storniert');
 
-    // 4. Die Stornorechnung ausstellen — sie kommt gleich als PDF.
+    // 4. Die Stornorechnung ausstellen — sie kommt gleich als PDF. Storniert steht sie unter „Erledigt“.
     await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 15_000 });
+    await page.getByRole('group', { name: 'Rechnungen zeigen' }).getByRole('button', { name: 'Erledigt' }).click();
     await oeffnen();
     await fenster.getByRole('button', { name: 'Stornorechnung ausstellen …' }).click();
     const ausstellen = page.getByRole('dialog').filter({ hasText: 'Stornorechnung ausstellen?' });

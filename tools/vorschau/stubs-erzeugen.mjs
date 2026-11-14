@@ -46,6 +46,8 @@ const DATEN = {
     kundenAdressePruefen: 'D.kunden.filter((k) => k.adressePruefen)',
   },
   company: { getCompany: 'D.firma', auszug: 'D.firma' },
+  // Bestellvorschläge über der Einkaufsliste: eine Liste — als NOOP stürzte „Einkauf“ ab (14.11.2026).
+  materialdeckung: { bestellvorschlaege: '[]' },
   // Firmendaten eines Belegs (Ausstellerstand): die heutigen — als NOOP brach jedes Beleg-PDF mit „konnte nicht erzeugt werden“ ab (14.11.2026).
   aussteller: { belegFirma: 'D.firma', ausstellerStaende: 'new Map()' },
   materialOrders: {
