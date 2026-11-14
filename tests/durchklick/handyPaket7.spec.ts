@@ -102,10 +102,12 @@ test('Tablet: Karte, Zeiterfassung und Schein wie bisher', async ({ page }, info
   const karte = page.getByRole('region', { name: 'Arbeitstag' });
   await karte.getByRole('button', { name: 'Arbeitstag starten', exact: true }).click();
   await expect(karte.getByText(/^Läuft seit \d\d:\d\d$/)).toBeVisible({ timeout: 15_000 });
-  // Der Papierkorb unten, unter den Knöpfen; keine Zeile „Zeit von Hand“.
+  // V10 (13.11.2026): der Papierkorb steht wie am Handy oben rechts, über den Knöpfen; keine Zeile „Zeit von Hand“.
   const knoepfe = (await karte.locator('.arbeitstag-knoepfe').boundingBox())!;
   const korb = (await karte.locator('.arbeitstag-fuss').boundingBox())!;
-  expect(korb.y).toBeGreaterThan(knoepfe.y + knoepfe.height - 1);
+  // Gemessen an der Mitte: die 44-px-Tastfläche des Papierkorbs ragt ein paar Pixel in die Höhe der Knöpfe.
+  expect(korb.y + korb.height / 2).toBeLessThan(knoepfe.y);
+  expect(korb.x + korb.width).toBeGreaterThanOrEqual(knoepfe.x + knoepfe.width - 1);
   await expect(karte.getByRole('link', { name: /Zeit von Hand eintragen/ })).toBeHidden();
   await page.goto('/time');
   await expect(page.locator('#zeit-formular')).toBeVisible({ timeout: 15_000 });

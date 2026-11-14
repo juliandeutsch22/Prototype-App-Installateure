@@ -195,11 +195,21 @@ export function taktHalten(flaeche: HTMLElement): () => void {
     planen();
   };
   window.addEventListener('resize', fenster);
+  /*
+    NACH DEM LADEN EINER SCHRIFT NEU (V10, 14.11.2026). Die Schriften kommen
+    nach dem ersten Zeichnen (`font-display: swap`); danach bricht ein
+    Hinweis anders um, und das Blatt darunter rutscht — ohne dass sich seine
+    Größe ändert. Das meldet kein ResizeObserver, und das Blatt lag neben
+    den Linien (Impressum am Handy, `rechtLot.spec.ts`).
+  */
+  const schriften = typeof document !== 'undefined' ? document.fonts : undefined;
+  schriften?.addEventListener?.('loadingdone', planen);
   planen();
   return () => {
     if (geplant) cancelAnimationFrame(geplant);
     groesse.disconnect();
     aenderung.disconnect();
     window.removeEventListener('resize', fenster);
+    schriften?.removeEventListener?.('loadingdone', planen);
   };
 }

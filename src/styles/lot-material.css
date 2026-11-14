@@ -202,8 +202,9 @@
   */
   .korb { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.625rem 1rem 0.75rem; margin: 0 var(--takt-auslauf, -1rem) 0 -1rem; background: var(--surface); border-top: 1px solid var(--border); }
   @media (min-width: 760px) {
-    .korb { margin: 0; row-gap: 0; padding: 12px 24px; border-top: 0; box-shadow: 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), 1px 1px 0 var(--border-strong); }
-    .korb::before { content: ''; position: absolute; inset: 0; pointer-events: none; border-top: 1px solid var(--border-strong); border-left: 1px solid var(--border-strong); }
+    /* V10 (13.11.2026): ein Blatt wie die darüber — Umriss und 16 px Radius statt
+       gezeichneter Linien; der Umriss hat keine Höhe, die Leiste misst ganze Zellen. */
+    .korb { margin: 0; row-gap: 0; padding: 12px 24px; border: 0; outline: 1px solid var(--border); outline-offset: -1px; border-radius: var(--radius-lg); box-shadow: none; }
     .korb .korb-titel, .korb .korb-info, .korb .korb-fehler { line-height: 1.5rem; }
   }
   .korb-text { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; flex: 1; }

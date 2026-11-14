@@ -60,7 +60,8 @@ for (const seite of [
         gewichte: [...document.querySelectorAll('h1, h2')].map((h) => getComputedStyle(h).fontWeight),
       }));
       expect(stil.dunklesBand, `${breite.name}: dunkles Band`).toBe(false);
-      expect(stil.ecke, `${breite.name}: Ecke des Blatts`).toBe('0px');
+      // V10 (13.11.2026): das Blatt hat 16 px Radius statt der eckigen Linie „Lot“.
+      expect(stil.ecke, `${breite.name}: Ecke des Blatts`).toBe('16px');
       expect(stil.gewichte.every((g) => g === '400' || g === '500'), `${breite.name}: ${stil.gewichte.join(', ')}`).toBe(true);
     }
 

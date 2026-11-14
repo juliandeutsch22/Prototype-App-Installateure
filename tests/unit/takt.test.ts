@@ -163,6 +163,33 @@ describe('ausrichten', () => {
 });
 
 describe('taktHalten', () => {
+  it('rechnet neu, wenn eine Schrift nachgeladen ist — das Blatt rutscht dabei, ohne die Größe zu ändern', () => {
+    // Gegenprobe: ohne den Rückruf an `document.fonts` bleibt der alte Ausgleich stehen.
+    const { flaeche, blatt } = seite({ oben: 264, hoehe: 96 });
+    const hoerer = new Map<string, () => void>();
+    const vorher = Object.getOwnPropertyDescriptor(document, 'fonts');
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { addEventListener: (n: string, f: () => void) => hoerer.set(n, f), removeEventListener: (n: string) => hoerer.delete(n) } });
+    const raf = globalThis.requestAnimationFrame;
+    globalThis.requestAnimationFrame = ((f: FrameRequestCallback) => { f(0); return 0; }) as typeof requestAnimationFrame;
+    class RO { observe() {} unobserve() {} disconnect() {} }
+    const altRO = (globalThis as { ResizeObserver?: unknown }).ResizeObserver;
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver = RO;
+    try {
+      const ende = taktHalten(flaeche);
+      expect(blatt.style.marginTop).toBe('');
+      // Die Schrift ist da, der Hinweis darüber bricht anders um: das Blatt steht 10 px tiefer.
+      blatt.getBoundingClientRect = () => ({ top: 274, height: 96, left: 272 }) as DOMRect;
+      hoerer.get('loadingdone')!();
+      expect(blatt.style.marginTop).toBe('14px');
+      ende();
+      expect(hoerer.has('loadingdone')).toBe(false);
+    } finally {
+      globalThis.requestAnimationFrame = raf;
+      (globalThis as { ResizeObserver?: unknown }).ResizeObserver = altRO;
+      if (vorher) Object.defineProperty(document, 'fonts', vorher); else delete (document as { fonts?: unknown }).fonts;
+    }
+  });
+
   it('ohne ResizeObserver (alte Browser, Testumgebung) tut er nichts und lässt sich trotzdem beenden', () => {
     const { flaeche, blatt } = seite({ oben: 250, hoehe: 100 });
     const vorher = (globalThis as { ResizeObserver?: unknown }).ResizeObserver;

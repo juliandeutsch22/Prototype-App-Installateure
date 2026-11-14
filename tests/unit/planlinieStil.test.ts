@@ -143,7 +143,7 @@ describe('B12 Raster — das Zeichenblatt der Arbeitsfläche (E32)', () => {
     // Seit E33 ragt keine Karte mehr in den Rand: die Planung ist ein Blatt wie jedes andere.
     expect(readFileSync('src/index.css', 'utf8')).not.toContain(':has(.wp-huelle, .mo-ecke)');
     // V10: das Blatt trägt Kontur und 16 px Radius.
-    expect(stil('lot-blatt.css')).toMatch(/\.inhalt \.karte:not\(\.karte \.karte\)[^{]*\{\s*position: relative;[\s\S]*?margin-inline: 0; padding: 0; border: 1px solid var\(--border\); border-radius: var\(--radius-lg\);/);
+    expect(stil('lot-blatt.css')).toMatch(/\.inhalt \.karte:not\(\.karte \.karte\)[^{]*\{\s*position: relative;[\s\S]*?margin-inline: 0; padding: 0; border: 0; outline: 1px solid var\(--border\); outline-offset: -1px; border-radius: var\(--radius-lg\);/);
   });
 
   it('die Klasse `raster` trägt nur noch die Musterseite', () => {
@@ -486,7 +486,8 @@ describe('E72 Team und Verwaltung', () => {
 
   /* V10 (13.11.2026): das Blatt trägt Kontur und Radius statt der gezeichneten Linie; der Taktgeber richtet es weiter aus. */
   it('Arbeitstag als Blatt: Kontur, Radius, Polster der Blätter, vom Taktgeber ausgerichtet (M8, V10)', () => {
-    expect(TIMER).toMatch(/\.arbeitstag \{ position: relative; padding: 1rem var\(--blatt-rand\) 0\.75rem; border: 1px solid var\(--border\); border-radius: var\(--radius-lg\); background: var\(--surface\);/);
+    // 24 px oben und unten: ganze Rasterzellen, der Taktgeber füllt unten nichts auf (E75, Browserweg arbeitstag.spec).
+    expect(TIMER).toMatch(/\.arbeitstag \{ position: relative; padding: 1\.5rem var\(--blatt-rand\); border: 0; outline: 1px solid var\(--border\); outline-offset: -1px; border-radius: var\(--radius-lg\); background: var\(--surface\);/);
     expect(TIMER).not.toMatch(/\.arbeitstag \{[^}]*box-shadow/);
     expect(TIMER).not.toContain('.link.arbeitstag-verwerfen');
     expect(quelle('src/lib/takt.ts')).toContain('.plattform-kontext, .arbeitstag)');

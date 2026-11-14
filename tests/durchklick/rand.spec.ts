@@ -158,29 +158,18 @@ test('Das Schriftfeld schließt oben über die ganze Breite und in jeder angebro
       if (liste.sichtbar > 0) expect(liste).toMatchObject({ rahmen: '1px', spalte: 'column', volleBreite: true });
       continue;
     }
+    /*
+      V10 (13.11.2026): das Schriftfeld ist ein Blatt mit Kontur rundum und
+      16 px Radius. Oben schließt es damit über die ganze Breite, und eine
+      angebrochene Reihe braucht kein Füllstück mehr — die Kontur des Blatts
+      umfasst sie. Gegenprobe: der Stand der Planlinie (Linie als `::before`,
+      ohne Kontur) ist rot.
+    */
     const lage = await page.evaluate(() => {
       const feld = document.querySelector<HTMLElement>('.schriftfeld')!;
-      const zeile = feld.querySelector<HTMLElement>('.lage-zeile')!;
-      const oben = getComputedStyle(feld, '::before');
-      const fuell = getComputedStyle(zeile, '::after');
-      const felder = [...zeile.querySelectorAll('.lage-punkt')].map((p) => p.getBoundingClientRect());
-      const letzte = felder[felder.length - 1];
-      return {
-        breite: Math.round(feld.getBoundingClientRect().width),
-        linieOben: oben.content !== 'none' ? Math.round(parseFloat(oben.width)) : 0,
-        linieObenStark: oben.borderTopWidth,
-        // Das freie Stück der letzten Reihe, wenn sie nicht bis zum Rand reicht.
-        frei: Math.round(zeile.getBoundingClientRect().right - letzte.right),
-        angebrochen: letzte.top > felder[0].top,
-        fuellBreite: Math.round(parseFloat(fuell.width) || 0),
-        fuellStark: fuell.borderTopWidth,
-      };
+      const s = getComputedStyle(feld);
+      return { oben: s.borderTopWidth, links: s.borderLeftWidth, rechts: s.borderRightWidth, unten: s.borderBottomWidth, radius: s.borderTopLeftRadius, vorher: getComputedStyle(feld, '::before').content };
     });
-    expect(lage.linieOben, `${breite.name}: obere Linie`).toBe(lage.breite);
-    expect(lage.linieObenStark).toBe('1px');
-    if (lage.angebrochen) {
-      expect(lage.fuellBreite, `${breite.name}: freies Stück der letzten Reihe`).toBe(lage.frei);
-      expect(lage.fuellStark).toBe('1px');
-    }
+    expect(lage, `${breite.name}: Kontur rundum`).toEqual({ oben: '1px', links: '1px', rechts: '1px', unten: '1px', radius: '16px', vorher: 'none' });
   }
 });

@@ -79,7 +79,8 @@ test('Baustellenakte am Handy: Angaben als Blatt, Stand neben der Nummer, Titel 
   await expect(kopf.locator('.kopfzeile-titel')).toHaveCount(0);
   await page.mouse.wheel(0, 600);
   await expect(kopf.locator('.kopfzeile-titel')).toHaveText(BAUSTELLE.kunde, { timeout: 5_000 });
-  expect((await kopf.boundingBox())!.y).toBe(0);
+  // V10: die Kopfzeile ist eine Insel, sie klebt 8 px unter der Oberkante (ohne Safe Area im Test).
+  expect((await kopf.boundingBox())!.y).toBe(8);
   await page.mouse.wheel(0, -2000);
   await expect(kopf.locator('.kopfzeile-titel')).toHaveCount(0, { timeout: 5_000 });
 

@@ -196,8 +196,9 @@ test('Plattform in der Linie Lot: Leiste, Raster, Blätter und Kontextspalte —
     expect(m.leiste, `${breite} px: Seitenleiste`).toBe(breite >= 760);
     expect(m.reiter, `${breite} px: Reiterleiste`).toBe(breite < 760);
     expect(m.kopfzeile, `${breite} px: Kopfzeile`).toBe(breite < 760);
-    expect(m.blattLinie, `${breite} px: Liste als Blatt mit Linie`).toContain('1px 0px 0px');
-    expect(m.blattEcke, `${breite} px: eckig`).toBe('0px');
+    // V10 (13.11.2026): das Blatt trägt eine echte Kontur und 16 px Radius, keinen Schatten.
+    expect(m.blattLinie, `${breite} px: Liste als Blatt ohne Schatten`).toBe('none');
+    expect(m.blattEcke, `${breite} px: Radius des Blatts`).toBe('16px');
     expect(m.blattOben, `${breite} px: Oberkante auf einer Linie`).toBeLessThanOrEqual(0.5);
     expect(m.blattUnten, `${breite} px: Unterkante auf einer Linie`).toBeLessThanOrEqual(0.5);
     expect(m.kontextFlaeche, `${breite} px: Kontextspalte ohne Fläche`).toBe('rgba(0, 0, 0, 0)');

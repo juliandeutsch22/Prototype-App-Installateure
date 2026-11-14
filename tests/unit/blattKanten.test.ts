@@ -17,8 +17,10 @@ const regel = (css: string, selektor: string) =>
 describe('Nichts Klebendes deckt die Linie eines Blatts zu (E76)', () => {
   const BLATT = q('src/styles/lot-blatt.css');
 
-  it('die Aktionsleiste im Blatt beginnt einen Pixel innen, die Knöpfe bleiben auf dem Polster des Blatts', () => {
-    expect(BLATT).toContain('.aktionsleiste { margin: 1.5rem var(--blatt-rand-minus) -24px var(--blatt-rand-minus-innen); padding: 12px var(--blatt-rand) 12px var(--blatt-rand-innen); }');
+  it('die Aktionsleiste im Blatt liegt innerhalb der Kontur, die Knöpfe bleiben auf dem Polster des Blatts', () => {
+    // V10: die Kontur ist ein Umriss über dem Inhalt — die Leiste darf von Kante zu Kante reichen,
+    // die Linie bleibt sichtbar. Gegenprobe: der Stand E76 (links einen Pixel innen, `-innen`) ist rot.
+    expect(BLATT).toContain('.aktionsleiste { margin: 1.5rem var(--blatt-rand-minus) -24px; padding: 12px var(--blatt-rand); }');
   });
 
   /*

@@ -235,9 +235,10 @@ describe('V10 Start und Zeit', () => {
 
   it('drei Zustände: bereit ein helles Blatt, läuft die dunkle Fläche, Pause der warme Pausenton', () => {
     const blatt = koerper(TK, '.arbeitstag');
-    expect(blatt).toContain('border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface);');
+    // Der Umriss statt eines Rands (14.11.2026): keine Höhe, der Taktgeber hängt nichts an.
+    expect(blatt).toContain('border: 0; outline: 1px solid var(--border); outline-offset: -1px; border-radius: var(--radius-lg); background: var(--surface);');
     expect(blatt).not.toMatch(/box-shadow/);
-    expect(koerper(TK, ".arbeitstag[data-stand='laeuft']")).toBe(' border-color: var(--dunkel-flaeche); background: var(--dunkel-flaeche); color: var(--auf-dunkel); ');
+    expect(koerper(TK, ".arbeitstag[data-stand='laeuft']")).toBe(' outline-color: var(--dunkel-flaeche); background: var(--dunkel-flaeche); color: var(--auf-dunkel); ');
     expect(koerper(TK, ".arbeitstag[data-stand='pause']")).toBe(' background: var(--pause-flaeche); ');
     expect(quelle('src/features/time/ArbeitstagKarte.tsx')).toContain("data-stand={s ? (pause ? 'pause' : 'laeuft') : 'bereit'}");
   });
