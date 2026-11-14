@@ -177,8 +177,10 @@ describe('Die Marke über dem Formular', () => {
     const { container } = zeige();
     const bilder = [...container.querySelectorAll('img')];
     expect(bilder).toHaveLength(2);
+    // V10 (13.11.2026): kein dunkles Band mehr über dem Formular — beide Male
+    // die Marke für helles Papier, nie die weiße Fassung (die läge unsichtbar auf Papier).
     expect(bilder.map((bild) => bild.getAttribute('src')).sort()).toEqual([
-      '/marke/logo-weiss.svg', '/marke/logo.svg',
+      '/marke/logo.svg', '/marke/logo.svg',
     ]);
   });
 });

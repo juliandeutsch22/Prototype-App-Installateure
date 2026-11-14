@@ -92,7 +92,13 @@ export default function TeamWoche() {
         }
       />
 
-      {d.nebenFehler && <TeilFehler was={d.nebenFehler} />}
+      {/*
+        FEHLEN ABWESENHEITEN ODER BETRIEBSURLAUB, ist „frei“ keine Auskunft
+        (V10): der Hinweis bleibt mit „Erneut versuchen“ stehen, bis sie da
+        sind; andere Teilfehler wie bisher ohne.
+      */}
+      {d.abwesenheitFehler && <TeilFehler was={d.abwesenheitFehler} onRetry={d.abwesenheitenNeuLaden} />}
+      {d.nebenFehler && d.nebenFehler !== d.abwesenheitFehler && <TeilFehler was={d.nebenFehler} />}
       {d.error && <ErrorState message={d.error} />}
 
       <div className="planung-steuerung">

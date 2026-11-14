@@ -2,12 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 /*
-  DER EINSATZ ALS VOLLE PETROL-FLÄCHE (E33, Variante B; 01.11.2026). Die helle
-  Fläche mit Endmarken (Planlinie B11, 30.10.) las sich im Raster zu schwach;
-  der Auftraggeber fand die frühere volle Fläche schöner und hat Variante B
-  freigegeben: volle Fläche, weiße Schrift, eckig, Ort und Nummer leiser.
-  Was bleibt: Bernstein für „eingeteilt, aber abwesend“, Schraffur für
-  Abwesenheit.
+  DER EINSATZ IM PLAN — Geschichte: helle Fläche mit Endmarken (Planlinie
+  B11, 30.10.), volle Petrol-Fläche (E33, Variante B, 01.11.), weißes Blatt
+  mit Kante und heute voll (E88, 13.11.), seit V10 (13.11.2026) das helle
+  Arbeitsblatt unten. Was bleibt: Schraffur für Abwesenheit.
 */
 
 const planung = readFileSync('src/styles/lot-planung.css', 'utf8');
@@ -24,52 +22,75 @@ function regel(css: string, selektor: string): string {
   return treffer.map((t) => t[1]).join(' ');
 }
 
-const VOLL = [/background: var\(--petrol\)/, /color: var\(--auf-petrol\)/];
-
-describe('Einsatz als volle Petrol-Fläche (Variante B)', () => {
-  /*
-    E88 (13.11.2026) löst E33 für die Woche ab: der Einsatz ist ein weißes
-    Blatt mit Linie rundum und Petrol-Kante, nur heute voll. Der Monat
-    bleibt bei der vollen Fläche (eigene Prüfung darunter).
-  */
-  it('Woche (E88): weiß mit Linie rundum und 4 px Petrol-Kante, Kunde in Tinte, eckig, zwei Zellen hoch', () => {
-    const r = regel(planung, '.eintrag');
+/*
+  V10 „WARMES PAPIER“ (13.11.2026, style.md „Einsatzplanung · E88“, Auftrag
+  11.2) löst E33 und die volle Fläche „heute“ ab: jeder Einsatz ist ein
+  helles Arbeitsblatt mit feiner Kontur, Terrakotta-Markierung und dem
+  normalen Einsatzradius — an jedem Tag gleich. Vollflächig Terrakotta ist
+  nur der AUSGEWÄHLTE Einsatz. „Eingeteilt, aber abwesend“ ist dasselbe
+  Blatt; den Konflikt sagt Text mit Warnzeichen, keine Bernsteinkante.
+  Gegenprobe: mit dem Stand vor V10 (Petrol-Fläche heute, Bernsteinrahmen,
+  eckig) ist jede Prüfung hier rot.
+*/
+describe('Einsatz als helles Arbeitsblatt (V10)', () => {
+  it('Woche: helles Blatt, feine Kontur, Terrakotta-Markierung, normaler Radius, zwei Zellen hoch', () => {
+    const r = regel(planung, '.eintrag, .eintrag-konflikt');
     expect(r).toMatch(/background: var\(--surface\)/);
     expect(r).toMatch(/color: var\(--ink-deep\)/);
-    expect(r).toMatch(/border: 1px solid var\(--border-strong\); border-left: 4px solid var\(--petrol\)/);
-    expect(r).toMatch(/border-radius: 0/);
+    expect(r).toMatch(/border: 1px solid var\(--border-strong\); border-left: 3px solid var\(--petrol\)/);
+    expect(r).toMatch(/border-radius: var\(--radius-sm\)/);
     expect(r).toMatch(/min-height: 3rem/);
-    expect(r).not.toMatch(/background: var\(--petrol\)/);
+    expect(r).not.toMatch(/background: var\(--(petrol|brand)\)/);
   });
 
-  it('Gegenprobe: heute — und am Handy der gewählte Tag, wenn er heute ist — trägt die volle Fläche', () => {
-    const heute = regel(planung, ':is(.wp-zelle-heute, .wp-zelle-schmal-heute, .handy-woche[data-heute]) .eintrag');
-    for (const m of VOLL) expect(heute).toMatch(m);
-    expect(regel(planung, ':is(.wp-zelle-heute, .wp-zelle-schmal-heute, .handy-woche[data-heute]) .eintrag :is(.e-zeile, .e-zeit, .e-nr)'))
-      .toMatch(/color: var\(--auf-petrol-leise\)/);
+  it('heute färbt die Einsätze nicht mehr — keine Regel setzt sie in der Spalte von heute voll', () => {
+    expect(planung).not.toMatch(/:is\(\.wp-zelle-heute[^{]*\.eintrag[^{]*\{[^}]*background: var\(--petrol\)/);
+    expect(planung).not.toMatch(/\.handy-woche\[data-heute\][^{]*\.eintrag/);
   });
 
-  it('Ort, Zeit und Nummer eine Stufe leiser — auf Weiß grau', () => {
-    expect(regel(planung, '.eintrag .e-zeile, .eintrag .e-zeit, .eintrag .e-nr')).toMatch(/color: var\(--text-muted\)/);
+  it('nur der ausgewählte Einsatz ist vollflächig Terrakotta — mit derselben Form', () => {
+    const sel = ':is(.einsatz-halter:is(:focus-within, [data-offen]) > :is(.eintrag, .eintrag-konflikt), :is(.eintrag, .eintrag-konflikt):focus-visible)';
+    const r = regel(planung, sel);
+    expect(r).toMatch(/background: var\(--petrol\); color: var\(--auf-petrol\)/);
+    expect(r).not.toMatch(/border-radius|padding|min-height/);
+    expect(regel(planung, `${sel} :is(.e-zeile, .e-zeit, .e-nr, .e-konflikt)`)).toMatch(/color: var\(--auf-petrol\)/);
   });
 
-  it('Monat: derselbe Einsatz, auch gewählt; Legende und Musterbaustein gleich', () => {
+  it('Gegenprobe: ein nicht ausgewählter Einsatz beim Darüberfahren bleibt hell', () => {
+    const r = regel(planung, '.eintrag:hover, .eintrag-konflikt:hover');
+    expect(r).not.toMatch(/background/);
+    expect(r).toMatch(/border-color: var\(--auswahl-kontur\)/);
+  });
+
+  it('Ort, Zeit und Nummer eine Stufe leiser', () => {
+    expect(regel(planung, ':is(.eintrag, .eintrag-konflikt) :is(.e-zeile, .e-zeit, .e-nr)')).toMatch(/color: var\(--text-muted\)/);
+  });
+
+  it('eingeteilt, aber abwesend: keine Bernsteinfläche und kein Bernsteinrahmen — Text mit Warnzeichen', () => {
+    expect(planung).not.toMatch(/\.eintrag-konflikt \{[^}]*(warning-bg|solid var\(--warning\))/);
+    expect(regel(planung, '.eintrag-konflikt .e-konflikt')).toMatch(/color: var\(--warning\)/);
+    const block = readFileSync('src/features/assignments/WochenEintraege.tsx', 'utf8');
+    expect(block).toMatch(/<span className="e-zeile e-konflikt">\s*<Icon name="warnung"/);
+  });
+
+  it('Monat: helle Balken mit Markierung, nur der gewählte voll; Konflikt ohne Bernsteinrahmen', () => {
     const r = regel(monat, '.mo-balken');
-    for (const m of VOLL) expect(r).toMatch(m);
-    expect(regel(monat, '.mo-balken-gewaehlt')).toMatch(/background: var\(--petrol-tief\); color: var\(--auf-petrol\)/);
-    expect(regel(monat, '.mo-legende-plan::before')).toMatch(/background: var\(--petrol\)/);
+    expect(r).toMatch(/background: var\(--surface-3\)/);
+    expect(r).toMatch(/inset 3px 0 0 var\(--petrol\)/);
+    expect(r).not.toMatch(/background: var\(--(petrol|brand)\)/);
+    expect(regel(monat, '.mo-balken-gewaehlt')).toMatch(/background: var\(--petrol\); color: var\(--auf-petrol\)/);
+    expect(regel(monat, '.mo-balken-konflikt')).not.toMatch(/warning-bg|inset 0 0 0 2px var\(--warning\)/);
+    expect(monat).not.toMatch(/\.mo-legende-konflikt::before/);
+  });
+
+  it('gleich geblieben: der Musterbaustein der Planlinie', () => {
     expect(regel(readFileSync('src/styles/lot-planlinie.css', 'utf8'), '.einsatzbalken')).toMatch(/background: var\(--petrol\); color: var\(--auf-petrol\)/);
   });
 
-  it('abwesend trägt keine eigene Fläche mehr — die Schraffur kommt aus `.schraffur`', () => {
+  it('abwesend trägt keine eigene Fläche — die Schraffur kommt aus `.schraffur`', () => {
     expect(regel(planung, '.eintrag-weg')).not.toMatch(/background/);
     expect(monat).not.toMatch(/\.mo-balken-weg \{/);
     const schraffur = regel(readFileSync('src/styles/lot-planlinie.css', 'utf8'), '.schraffur');
     expect(schraffur).toMatch(/repeating-linear-gradient\(135deg/);
-  });
-
-  it('gleich geblieben: eingeteilt, aber abwesend in Bernstein', () => {
-    expect(regel(planung, '.eintrag-konflikt')).toMatch(/background: var\(--warning-bg\); color: var\(--warning\); border: 2px solid var\(--warning\)/);
-    expect(monat).toMatch(/\.mo-balken-konflikt \{ background: var\(--warning-bg\); color: var\(--warning\)/);
   });
 });

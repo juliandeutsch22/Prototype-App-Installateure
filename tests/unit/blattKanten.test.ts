@@ -17,8 +17,10 @@ const regel = (css: string, selektor: string) =>
 describe('Nichts Klebendes deckt die Linie eines Blatts zu (E76)', () => {
   const BLATT = q('src/styles/lot-blatt.css');
 
-  it('die Aktionsleiste im Blatt beginnt einen Pixel innen, die Knöpfe bleiben auf dem Polster des Blatts', () => {
-    expect(BLATT).toContain('.aktionsleiste { margin: 1.5rem var(--blatt-rand-minus) -24px var(--blatt-rand-minus-innen); padding: 12px var(--blatt-rand) 12px var(--blatt-rand-innen); }');
+  it('die Aktionsleiste im Blatt liegt innerhalb der Kontur, die Knöpfe bleiben auf dem Polster des Blatts', () => {
+    // V10: die Kontur ist ein Umriss über dem Inhalt — die Leiste darf von Kante zu Kante reichen,
+    // die Linie bleibt sichtbar. Gegenprobe: der Stand E76 (links einen Pixel innen, `-innen`) ist rot.
+    expect(BLATT).toContain('.aktionsleiste { margin: 1.5rem var(--blatt-rand-minus) -24px; padding: 12px var(--blatt-rand); }');
   });
 
   /*
@@ -53,7 +55,8 @@ describe('Nichts Klebendes deckt die Linie eines Blatts zu (E76)', () => {
   });
 
   it('das Schriftfeld ist rechts geschlossen', () => {
-    expect(regel(q('src/styles/lot-planlinie.css'), '.schriftfeld')).toContain('box-shadow: 0 1px 0 var(--accent-deep), 1px 0 0 var(--border-strong);');
+    // V10: geschlossen durch die Kontur rundum statt durch eine gezeichnete Linie rechts.
+    expect(regel(q('src/styles/lot-planlinie.css'), '.schriftfeld')).toContain('border: 1px solid var(--border); border-radius: var(--radius-lg);');
   });
 });
 
@@ -82,7 +85,9 @@ describe('Kalender in ganzen Zellen (E76)', () => {
       expect(d, datei).toContain('<KalenderLegende anzahl=');
       expect(d, datei).not.toContain('rounded-full bg-accent');
     }
-    expect(q('src/components/MonthCalendar.tsx')).toMatch(/export function KalenderLegende[\s\S]*border-accent-deep[\s\S]*bg-warning-bg/);
+    // V10: der Feiertag ist kein Warnzustand mehr — Legende und Kästchen tragen dieselbe ruhige Fläche.
+    expect(q('src/components/MonthCalendar.tsx')).toMatch(/export function KalenderLegende[\s\S]*border-accent-deep[\s\S]*bg-surface-3 shadow-\[inset_0_2px_0_0_var\(--border-strong\)\]/);
+    expect(q('src/components/MonthCalendar.tsx')).not.toMatch(/bg-warning-bg|inset_0_\dpx_0_0_var\(--warning\)/);
   });
 
   it('nach der letzten Person der Handy-Woche keine Linie vor der Kante', () => {

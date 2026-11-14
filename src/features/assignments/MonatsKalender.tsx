@@ -109,33 +109,34 @@ export default function MonatsKalender({
             const eigeneTermine = termine.filter((t) => t.datum === tag && t.teilnehmer.includes(person)).length;
             if (z && z.baustellen.length > 0) {
               const konflikt = z.imUrlaub;
-              zeile1 = { klasse: istGewaehlt ? 'kal-balken-gewaehlt' : konflikt ? 'kal-balken-konflikt' : 'kal-balken' };
+              // Gewählt liegt der Tag auf der hellen Auswahlfläche (V10): Balken und Hinweis behalten ihre Bedeutung.
+              zeile1 = { klasse: konflikt ? 'kal-balken-konflikt' : 'kal-balken' };
               const anzahl = new Set(z.baustellen.map((b) => b.nummer)).size;
               zeile2 = {
-                klasse: konflikt && !istGewaehlt ? 'kal-info-achtung' : zeile2.klasse,
+                klasse: konflikt ? 'kal-info-achtung' : zeile2.klasse,
                 text: konflikt ? 'fehlt' : anzahl > 1 ? `${anzahl} Bst.` : '',
               };
               vorlesen.push(konflikt ? `eingeteilt, aber ${artWort(z.abwesendText)}` : `eingeplant (${z.baustellen.map((b) => b.name).join(', ')})`);
             } else if (z?.imUrlaub || zuFuer(person, tag)) {
-              zeile1 = { klasse: istGewaehlt ? 'kal-balken-gewaehlt' : 'kal-balken-weg' };
+              zeile1 = { klasse: 'kal-balken-weg' };
               zeile2 = { ...zeile2, text: ruhe ? '' : 'weg' };
               vorlesen.push(z?.imUrlaub ? artWort(z.abwesendText) : 'Betriebsurlaub');
             } else {
               vorlesen.push(ruhe ? 'kein Einsatz' : 'frei');
             }
             if (eigeneTermine > 0) {
-              punkt = istGewaehlt ? 'kal-punkt-hell' : 'mo-punkt';
+              punkt = 'mo-punkt';
               vorlesen.push(eigeneTermine === 1 ? '1 Termin' : `${eigeneTermine} Termine`);
             }
           } else if (info) {
             zeile2 = {
-              klasse: info.fehlt && !istGewaehlt ? 'kal-info-achtung' : zeile2.klasse,
+              klasse: info.fehlt ? 'kal-info-achtung' : zeile2.klasse,
               text: info.baustellen > 0 ? String(info.baustellen) : '',
             };
             if (info.baustellen > 0) vorlesen.push(info.baustellen === 1 ? '1 Baustelle' : `${info.baustellen} Baustellen`);
             if (info.fehlt) vorlesen.push('jemand Eingeteiltes fehlt');
             if (info.termine > 0) {
-              punkt = istGewaehlt ? 'kal-punkt-hell' : info.achtung ? 'mo-punkt-achtung' : 'mo-punkt';
+              punkt = info.achtung ? 'mo-punkt-achtung' : 'mo-punkt';
               vorlesen.push(info.termine === 1 ? '1 Termin' : `${info.termine} Termine`);
               if (info.achtung) vorlesen.push('Lieferung ohne Annahme');
             }

@@ -471,7 +471,7 @@ describe('Das Gespräch: Kopf und Sperre', () => {
   „Gesendet“; am Schreibtisch sendet Eingabe, Umschalt + Eingabe macht einen
   Absatz.
 */
-describe('Das Gespräch, Apple-nah (E71)', () => {
+describe('Das Gespräch, ruhiger Lesefluss (E71, V10)', () => {
   const mitMaus = (an: boolean) => {
     window.matchMedia = vi.fn((q: string) => ({
       matches: an && q.includes('pointer: fine'), media: q, onchange: null,
@@ -480,21 +480,37 @@ describe('Das Gespräch, Apple-nah (E71)', () => {
   };
   afterEach(() => { mitMaus(false); });
 
-  it('die Uhrzeit steht einmal über der Gruppe, nicht in jeder Blase', async () => {
+  /*
+    V10 (13.11.2026): die Uhrzeit steht weiter einmal je Gruppe, nicht in
+    jeder Blase — jetzt im Kopf der Gruppe neben Zeichen und Name; der Tag
+    als eigene Zeile nur über dem ersten Beitrag des Tages. Gegenprobe: mit
+    dem Stand von E71 (Tageszeile „Heute 13:30“ auch nach einer Pause, kein
+    Gruppenkopf, kein Name im Gespräch zu zweit) ist dieser Test rot.
+  */
+  it('die Uhrzeit steht einmal im Kopf der Gruppe, der Tag nur am Tageswechsel', async () => {
     const t = (min: number) => new Date(Date.parse('2026-11-09T12:00:00Z') + min * 60_000).toISOString();
     verlaufWert = [
       nachricht(1, { text: 'Eins', gesendetAm: t(0) }),
       nachricht(2, { text: 'Zwei', gesendetAm: t(1) }),
       nachricht(3, { text: 'Nach der Pause', gesendetAm: t(40) }),
+      nachricht(4, { eigene: true, vonUid: 'ich', vonName: 'Max Monteur', text: 'Meine', gesendetAm: t(41) }),
     ];
     zeige();
     const verlauf = await screen.findByRole('list', { name: 'Verlauf' });
     const zeilen = within(verlauf).getAllByRole('listitem');
-    // Zeitzeile über der ersten Nachricht und nach der Pause — nicht über der zweiten.
-    expect(zeilen[0].querySelector('.verlauf-tag')).not.toBeNull();
-    expect(zeilen[1].querySelector('.verlauf-tag')).toBeNull();
-    expect(zeilen[2].querySelector('.verlauf-tag')).not.toBeNull();
-    // Keine Uhrzeit in der Blase mehr.
+    // Der Tag: nur über der ersten Nachricht des Tages, ohne Uhrzeit.
+    expect(zeilen[0].querySelector('.verlauf-tag')).toHaveTextContent(/^(Heute|Gestern|\S+, \d+\. \S+)$/);
+    expect(zeilen.slice(1).map((z) => z.querySelector('.verlauf-tag'))).toEqual([null, null, null]);
+    // Der Kopf: über jeder Gruppe (auch nach der Pause), nicht über der zweiten.
+    const kopf = (z: HTMLElement) => z.querySelector('.nachricht-kopf');
+    expect(kopf(zeilen[0])).toHaveTextContent('AHAnna Huber13:00');
+    expect(kopf(zeilen[1])).toBeNull();
+    expect(kopf(zeilen[2])).toHaveTextContent('Anna Huber13:40');
+    // Der eigene Kopf trägt nur die Uhrzeit — kein Zeichen, kein Name.
+    expect(kopf(zeilen[3])).toHaveTextContent(/^13:41$/);
+    // Für die Vorlesehilfe nennt die Nachricht selbst Absender und Zeit; der Kopf ist verborgen.
+    expect(kopf(zeilen[0])).toHaveAttribute('aria-hidden', 'true');
+    // Keine Uhrzeit in der Blase.
     expect(verlauf.querySelector('.nachricht-zeit')).toBeNull();
     // Gruppe: die erste beginnt, die zweite endet sie.
     expect(zeilen[0]).toHaveAttribute('data-anfang', 'ja');

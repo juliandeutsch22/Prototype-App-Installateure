@@ -36,7 +36,8 @@ test('G1: das Seitenfenster beginnt am Rand — oben ist nichts von der Seite an
       return !!el?.closest('.schleier');
     });
     expect(oben, `oben links bei ${breite}`).toBe(true);
-    if (breite >= 760) expect((await rechteck(page, '[role="dialog"]')).y, `Fenster bei ${breite}`).toBe(0);
+    // V10 (13.11.2026): das Seitenfenster schwebt 8 px vom Rand; darüber liegt der Schleier (oben links geprüft).
+    if (breite >= 760) expect((await rechteck(page, '[role="dialog"]')).y, `Fenster bei ${breite}`).toBe(8);
     await page.keyboard.press('Escape');
   }
   await keineFehlermeldung(page);

@@ -156,7 +156,7 @@ test('Die Warenkorb-Leiste liegt als Blatt auf dem Raster, am Handy als Balken',
         linie: s.boxShadow, linieBlatt: getComputedStyle(katalog).boxShadow,
         vorher: getComputedStyle(korb, '::before').borderTopColor + ' ' + getComputedStyle(korb, '::before').borderLeftWidth,
         vorherBlatt: getComputedStyle(katalog, '::before').borderTopColor + ' ' + getComputedStyle(katalog, '::before').borderLeftWidth,
-        obenLinie: s.borderTopWidth + ' ' + s.borderTopColor, linieDerLeisten,
+        obenLinie: s.borderTopWidth + ' ' + s.borderTopColor, umriss: s.outlineWidth + ' ' + s.outlineColor, linieDerLeisten,
       };
     });
   const ruhig = async () => {
@@ -179,11 +179,12 @@ test('Die Warenkorb-Leiste liegt als Blatt auf dem Raster, am Handy als Balken',
     const m = await ruhig();
     expect(Math.abs(m.links), `${breite} px: linke Kante wie der Katalog`).toBeLessThanOrEqual(0.5);
     expect(Math.abs(m.rechts), `${breite} px: rechte Kante wie der Katalog`).toBeLessThanOrEqual(0.5);
-    expect(m.rund, `${breite} px: eckig`).toBe('0px');
+    // V10: ein Blatt mit 16 px Radius und Kontur, wie der Katalog darüber.
+    expect(m.rund, `${breite} px: Radius des Blatts`).toBe('16px');
     expect(m.polster, `${breite} px: Text eine Zelle vom Rand`).toBe('24px');
     expect(m.hoehe % 24, `${breite} px: ganze Zellen hoch (${m.hoehe})`).toBe(0);
-    expect(m.linie, `${breite} px: Linie rechts und unten wie das Blatt`).toBe(m.linieBlatt);
-    expect(m.vorher, `${breite} px: Linie oben und links wie das Blatt`).toBe(m.vorherBlatt);
+    expect(m.linie, `${breite} px: kein Schatten, wie das Blatt`).toBe(m.linieBlatt);
+    expect(m.umriss, `${breite} px: Umriss wie das Blatt`).toBe(`1px ${m.linieDerLeisten}`);
     // In Ruhe, an ihrem Platz unter dem Katalog: beide Kanten auf Linien.
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     const r = await ruhig();

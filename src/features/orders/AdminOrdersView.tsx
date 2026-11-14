@@ -301,6 +301,8 @@ export default function AdminOrdersView() {
    */
   const [lagerPosten, setLagerPosten] = useState<WithId<EinkaufPosten>[]>([]);
   const [lagerFehler, setLagerFehler] = useState(false);
+  /** Kamen die eigenen Posten schon (oder ihr Fehler)? Bis dahin ist die Einkaufsliste nicht leer, sondern lädt (V10). */
+  const [lagerGeladen, setLagerGeladen] = useState(false);
   const [lagerStand, setLagerStand] = useState(0);
   /** „Nicht auf Lager" — bei welchem Grosshändler eingekauft wird. */
   const [einkaufFragen, setEinkaufFragen] = useState<{ o: WithId<MaterialOrder>; bei: string } | null>(null);
@@ -478,6 +480,9 @@ export default function AdminOrdersView() {
       })
       .catch(() => {
         if (!weg) setLagerFehler(true);
+      })
+      .finally(() => {
+        if (!weg) setLagerGeladen(true);
       });
     return () => {
       weg = true;
@@ -911,6 +916,12 @@ export default function AdminOrdersView() {
             onVeraltet={() => setNeuLaden((n) => n + 1)}
             orte={lo.mitWeiteren ? { alle: lo.orte, wahl: weitere } : undefined}
             grundZeigen={grundZeigen}
+            ladeStand={
+              arbeitLaedt || !lagerGeladen ? 'laedt'
+                : arbeitFehler && lagerFehler ? 'fehler'
+                  : arbeitFehler || lagerFehler ? 'teilweise'
+                    : 'bereit'
+            }
           />
         </>
       ) : (
@@ -949,14 +960,26 @@ export default function AdminOrdersView() {
             </div>
           ) : rows.length === 0 ? (
             /* Die Zeichnung nur bei „nichts offen“ im laufenden Bereich und bei einer Suche ohne Treffer. */
+            /*
+              FILTERLEERE IST KEINE LEERE (V10, 13.11.2026): mit gewählter
+              Baustelle stand „Aktuell keine offenen Bestellungen.“ — als sei im
+              ganzen Betrieb nichts offen. Jetzt nennt der Satz die Baustelle,
+              und „Alle Baustellen“ hebt den Filter auf.
+            */
             <EmptyState
-              zeichnung={suche ? 'suche' : tab === 'aktiv' && !adressFilter ? 'lager' : undefined}
+              zeichnung={suche ? 'suche' : tab === 'aktiv' && !adressFilter && !projectFilter ? 'lager' : undefined}
               titel={suche ? 'Keine passenden Bestellungen.' : undefined}
-              action={suche ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button> : undefined}
+              action={
+                suche ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button>
+                  : projectFilter ? <Button variant="secondary" onClick={() => setProjectFilter('')}>Alle Baustellen</Button>
+                    : undefined
+              }
             >
               {suche
                 ? `Gesucht wurde „${suche.trim()}“ in Material, Person und Baustelle.`
-                : tab === 'retouren'
+                : projectFilter
+                  ? `Für ${projectFilter} steht hier nichts.`
+                  : tab === 'retouren'
                   ? 'Keine Retouren erfasst.'
                   : tab === 'archiv'
                     ? 'Noch nichts erledigt.'
@@ -1045,6 +1068,7 @@ export default function AdminOrdersView() {
                       <ListRow
                         key={o.id}
                         onOeffnen={() => setOffenId(o.id)}
+                        ausgewaehlt={offenId === o.id}
                         title={
                           <span className="inline-flex flex-wrap items-center gap-x-2">
                             <span>

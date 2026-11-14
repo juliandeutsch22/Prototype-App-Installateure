@@ -6,6 +6,7 @@ import { datumAT } from '@/lib/datum';
 import type { Invoice } from '@/types';
 import { zahlstand } from './zahlstand';
 import { detailSummen } from './detailSummen';
+import StatusBadge from '@/components/StatusBadge';
 
 const ARTNAME: Record<string, string> = {
   einzel: 'Rechnung',
@@ -79,14 +80,16 @@ export default function RechnungDetail({
   if (!inv) return null;
   const stand = zahlstand(inv);
   const name = `${ARTNAME[inv.art ?? 'einzel'] ?? 'Rechnung'} ${inv.invoiceNumber}`;
-  const zeile = (wort: string, wert: React.ReactNode) =>
+  /** `gemessen`: Betrag, Datum oder Nummer — in Plex Mono, tabellarisch (V10). Sätze bleiben in der Textschrift. */
+  const zeile = (wort: string, wert: React.ReactNode, gemessen = false) =>
     wert ? (
       <div className="rechnung-detail-zeile">
         {/* Die Bezeichnung bricht nicht: am Handy stand sonst „Gemahn|t“. */}
         <dt className="shrink-0 text-ink-muted">{wort}</dt>
-        <dd className="text-right text-ink">{wert}</dd>
+        <dd className={gemessen ? 'rechnung-detail-wert' : 'text-right text-ink'}>{wert}</dd>
       </div>
     ) : null;
+  const betrag = detailSummen(inv).find((z) => z.betont);
 
   return (
     <BottomSheet open auchBreit breit onClose={onClose} label={name} titel={ARTNAME[inv.art ?? 'einzel'] ?? 'Rechnung'} stempel={inv.invoiceNumber}>
@@ -94,6 +97,34 @@ export default function RechnungDetail({
         <p className="text-ink-muted">
           {inv.customerName}{inv.customerVatId ? ` · UID ${inv.customerVatId}` : ''}
         </p>
+
+        {/*
+          DER STAND AM BELEG (V10, 13.11.2026; Auftrag 11.5): Betrag, was davon
+          offen ist und bis wann, und wo die Rechnung steht — oben, direkt über
+          den Handlungen, statt erst unter Positionen und Summen. Gerechnet
+          wird nichts neu: dieselben Werte wie „Belegsumme“ und „Zahlstand“.
+        */}
+        <dl className="rechnung-stand" aria-label="Stand der Rechnung">
+          {betrag && (
+            <div className="rechnung-stand-punkt">
+              {/* Ein eigenes Wort, nicht „Brutto“: dieselbe Zeile steht unter „Belegsumme“ und hieße sonst zweimal gleich. */}
+              <dt className="rechnung-stand-name">{(inv.vorrechnungen ?? []).length > 0 ? 'Restforderung' : 'Betrag'}</dt>
+              <dd className="rechnung-stand-betrag">{euro(betrag.betrag)}</dd>
+            </div>
+          )}
+          {inv.paymentStatus !== 'Storniert' && (
+            <div className="rechnung-stand-punkt">
+              <dt className="rechnung-stand-name">Offen</dt>
+              <dd className="rechnung-stand-betrag">{euro(stand.rest)}</dd>
+              {stand.rest > 0 && inv.dueDate && <dd className="rechnung-stand-zusatz">fällig {datumAT(inv.dueDate)}</dd>}
+            </div>
+          )}
+          {/* Der Zustand mit seinem Zeichen — „Überfällig“ ohne rote Fläche, als Wort und Symbol. */}
+          <div className="rechnung-stand-punkt">
+            <dt className="rechnung-stand-name">Stand</dt>
+            <dd className="rechnung-stand-zustand"><StatusBadge status={inv.paymentStatus} /></dd>
+          </div>
+        </dl>
 
         {aktionen.length > 0 && (
           <div className="rechnung-detail-aktionen">
@@ -112,11 +143,11 @@ export default function RechnungDetail({
         <section className="rechnung-lesegruppe" aria-label="Rechnungsangaben">
           <h3 className="rechnung-lesetitel">Rechnungsangaben</h3>
           <dl className="divide-y divide-line">
-            {zeile('Rechnungsdatum', datumAT(inv.invoiceDate))}
-            {zeile('Fällig', datumAT(inv.dueDate))}
-            {zeile('Baustelle', inv.projectNumber)}
+            {zeile('Rechnungsdatum', datumAT(inv.invoiceDate), true)}
+            {zeile('Fällig', datumAT(inv.dueDate), true)}
+            {zeile('Baustelle', inv.projectNumber, true)}
             {zeile('Leistungszeitraum', inv.leistungVon && inv.leistungBis
-              ? `${datumAT(inv.leistungVon)} – ${datumAT(inv.leistungBis)}` : null)}
+              ? `${datumAT(inv.leistungVon)} – ${datumAT(inv.leistungBis)}` : null, true)}
             {zeile('Leistungsort', inv.leistungsort)}
             {zeile('Bestellnummer des Kunden', inv.bestellnummer)}
           </dl>
@@ -188,7 +219,7 @@ export default function RechnungDetail({
                   {z.wort}
                   {z.zusatz && <span className="rechnung-detail-zusatz">{z.zusatz}</span>}
                 </dt>
-                <dd className="shrink-0 whitespace-nowrap text-right text-ink">
+                <dd className="rechnung-detail-betrag">
                   {z.betont ? <b>{euro(z.betrag)}</b> : z.abzug ? `−${euro(z.betrag)}` : euro(z.betrag)}
                 </dd>
               </div>
@@ -213,17 +244,17 @@ export default function RechnungDetail({
         <section className="rechnung-lesegruppe" aria-label="Zahlstand">
           <h3 className="rechnung-lesetitel">Zahlstand</h3>
           <dl className="divide-y divide-line">
-            {zeile('Bezahlt', stand.bezahlt > 0 ? euro(stand.bezahlt) : null)}
-            {zeile('Offen', inv.paymentStatus !== 'Storniert' ? euro(stand.rest) : null)}
-            {zeile('Guthaben des Kunden', stand.guthaben > 0 ? euro(stand.guthaben) : null)}
+            {zeile('Bezahlt', stand.bezahlt > 0 ? euro(stand.bezahlt) : null, true)}
+            {zeile('Offen', inv.paymentStatus !== 'Storniert' ? euro(stand.rest) : null, true)}
+            {zeile('Guthaben des Kunden', stand.guthaben > 0 ? euro(stand.guthaben) : null, true)}
             {/* Begleichen die Mahnung, nicht die Rechnung (09.11.2026) — darum neben „Bezahlt“, nicht darin. */}
-            {zeile('Mahnspesen und Zinsen bezahlt', (inv.mahnkostenBetrag ?? 0) > 0 ? euro(inv.mahnkostenBetrag!) : null)}
+            {zeile('Mahnspesen und Zinsen bezahlt', (inv.mahnkostenBetrag ?? 0) > 0 ? euro(inv.mahnkostenBetrag!) : null, true)}
             {zeile('Stand', inv.paymentStatus)}
             {zeile('Gemahnt', inv.mahnstufe
               ? `Stufe ${inv.mahnstufe}${inv.gemahntAm ? ` am ${datumAT(inv.gemahntAm)}` : ''}${inv.mahnfrist ? `, Frist bis ${datumAT(inv.mahnfrist)}` : ''}`
               : null)}
             {zeile('Storno', inv.cancellationNote)}
-            {zeile('Stornorechnung', inv.stornoNummer)}
+            {zeile('Stornorechnung', inv.stornoNummer, true)}
           </dl>
         </section>
 

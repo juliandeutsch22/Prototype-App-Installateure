@@ -111,7 +111,8 @@ describe('Drei feste Zeilen: Ort, Titel mit Knöpfen, Meta (E31)', () => {
     const plan = readFileSync(join(process.cwd(), 'src/styles/lot-planlinie.css'), 'utf8');
     // Seit E33 ist die Titelzeile zwei Rasterzellen hoch (48 px), in jeder Breite.
     expect(css).toMatch(/\.seitenkopf-rechts \{[^}]*align-items: center;[^}]*height: 3rem; \}/);
-    expect(plan).toMatch(/\.seitenkopf h1 \{ font-size: 1\.5rem; line-height: 3rem;/);
+    // V10: der Titel in Source Serif 4 — Maße und Zeilenhöhe bleiben.
+    expect(plan).toMatch(/\.seitenkopf h1 \{ font-family: var\(--schrift-titel\); font-size: 1\.5rem; line-height: 3rem;/);
     expect(plan).toMatch(/@media \(min-width: 760px\) \{ \.seitenkopf h1 \{ font-size: 1\.875rem; line-height: 3rem; \} \}/);
   });
 

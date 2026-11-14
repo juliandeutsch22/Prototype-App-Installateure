@@ -56,17 +56,10 @@ export function tagText(iso: string, jetzt: Date = new Date()): string {
 
 /**
  * Nachrichten derselben Person dicht hintereinander (bis 5 Minuten) stehen
- * als eine Gruppe: Name nur über der ersten, wenig Abstand dazwischen.
+ * als eine Gruppe: der Kopf (Name, Uhrzeit) nur über der ersten, wenig
+ * Abstand dazwischen. Nach längerer Stille beginnt eine neue Gruppe mit Kopf.
  */
 export const GRUPPE_MS = 5 * 60_000;
-
-/**
- * Nach so langer Stille steht über der nächsten Nachricht wieder eine Zeile
- * mit Tag und Uhrzeit (E71) — am Tageswechsel ohnehin. Eine Viertelstunde:
- * kürzer, und ein lebhaftes Gespräch stünde voller Zeitzeilen; länger, und
- * Vormittag und Nachmittag desselben Tages flössen ineinander.
- */
-export const PAUSE_MS = 15 * 60_000;
 
 /** „AH“ für Anna Huber, „B“ für Büro — das Kürzel im Posteingang. */
 export function kuerzel(name: string): string {

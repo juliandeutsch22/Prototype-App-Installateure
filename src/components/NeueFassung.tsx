@@ -223,11 +223,12 @@ export default function NeueFassung() {
           Nicht gespeicherte Eingaben gehen beim Laden verloren.
         </span>
       </p>
-      <div className="mt-3 flex gap-2">
-        <Button onClick={jetztLaden} loading={laedt}>Jetzt laden</Button>
+      {/* V10: die Hauptaktion rechts am Daumen, „Später“ leise links davor. */}
+      <div className="mt-3 flex justify-end gap-2">
         <Button variant="ghost" onClick={() => setBereit(false)}>
           Später
         </Button>
+        <Button onClick={jetztLaden} loading={laedt}>Jetzt laden</Button>
       </div>
     </div>
   );

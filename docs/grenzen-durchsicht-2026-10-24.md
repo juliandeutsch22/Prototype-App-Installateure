@@ -393,3 +393,48 @@ Nachtlauf darf nicht wegzuklicken sein.
   Cloud-Umgebung lädt Chromium nach rund 40 Seitenwechseln in einem Tab die
   Module des Entwicklungsservers nicht mehr; in der CI läuft der Weg am
   Stück.
+
+## Designlinie V10 — begründete Grenzen (13.11.2026, E92)
+
+Der Auftrag V10 ändert die Gestalt, nicht Funktion, Recht, Ablauf oder
+Datenlogik. Was die Mappe zeigt, aber nur mit einer Änderung am Ablauf ginge,
+bleibt deshalb stehen — mit Grund:
+
+- **Akten am Schreibtisch nicht neben der Liste** (Mappe: „Liste links, Akte
+  rechts“ für Baustellen, Kunden, Angebote, Eingang). Grund fachlich: die
+  Akten sind eigene Seiten mit eigener Adresse, Rückweg und Reitern; ein
+  geteiltes Layout änderte Navigation und Ablauf und braucht eine eigene
+  Entscheidung des Auftraggebers.
+- **„Meine Baustellen“ bleibt ein Blatt je Baustelle.** Grund fachlich:
+  Monteure haben keine Akte; das Blatt trägt alle Vor-Ort-Angaben, kompakte
+  Zeilen bräuchten einen neuen Ort zum Aufklappen.
+- **Monat bleibt Personen × Tage, „Mein Einsatzplan“ und die Zeiterfassung
+  behalten ihren Aufbau** (Mappe S. 17, S. 18, Zeit mit Reitern). Grund
+  fachlich: die Mappe ist Orientierung; ein Umbau änderte, was die Seiten
+  zeigen und wie man sie bedient.
+- **Keine Kennzahlenzeile in den Anforderungen** (Mappe S. 20: Offen,
+  Abholbereit, Bestellwert). Grund fachlich: „Bestellwert“ ist eine neue
+  Auswertung, keine Gestalt.
+- **Rechnungsliste ohne eigenes „Erneut versuchen“.** Grund: der Auftrag
+  schließt Änderungen an der Ladelogik aus; die Liste meldet den Fehler, die
+  Kennzahlen sagen „nicht geladen“, die offenen Forderungen laden mit
+  „Erneut laden“ nach.
+- **Der Zwischenspeicher der Woche merkt sich auch einen Stand ohne
+  Abwesenheiten.** Beim nächsten Besuch steht kurz „keine Abwesenheit“, bis
+  die frische Abfrage antwortet (schon vor V10 so). Grund: Ladeverhalten,
+  nicht Gestalt; die Planung selbst zeigt einen Ladefehler jetzt als „frei
+  unklar“.
+- **Reaktionen im Chat bleiben die sechs Zeichen** (E77). Grund fachlich:
+  sie sind Inhalt, keine Gestaltung.
+- **Belege und Exporte unverändert** (Petrol in den PDFs, Prüfsummen
+  `belegReferenz`). Grund rechtlich und fachlich: ausgestellte Belege müssen
+  gleich bleiben; Druck folgt seinen Fachregeln.
+- **Installierte App-Zeichen erneuert das Gerät selbst.** Grund: Gerät —
+  iOS behält das Bild des Startbildschirms, bis die Verknüpfung neu
+  hinzugefügt wird.
+- **Geprüft in Chromium und nachgestellten Größen** (390, 834, 1194, 1440).
+  Grund: Gerät — WebKit/Safari und echte iOS-/Android-Geräte gibt es in der
+  Cloud-Umgebung nicht; das prüft der Betrieb.
+- **Der Ablege-Flug der Planung ist statisch und im Bild geprüft, nicht im
+  Komponententest.** Grund: Gerät — jsdom kennt kein Layout und kein
+  `elementFromPoint`.

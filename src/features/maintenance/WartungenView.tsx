@@ -627,6 +627,7 @@ export default function WartungenView() {
       <ListRow
         key={w.id}
         onOeffnen={() => setEinzelheitenId(w.id)}
+        ausgewaehlt={einzelheitenId === w.id}
         title={
           // Eigener Abstand: der Titel steht jetzt im Knopf der Zeile, nicht mehr direkt im Zeilenkopf.
           <span className="flex flex-wrap items-center gap-x-2">
@@ -674,8 +675,9 @@ export default function WartungenView() {
               (Bearbeiten) — dort stand „Bearbeiten“ schon bisher, und ein
               Klick mehr über das Seitenfenster wären dort zwei.
             */}
+            {/* Gerahmt, nicht gefüllt (V10): je Zeile eine Nebenhandlung — die eine Hauptaktion der Seite ist „Neue Wartung“. */}
             {ansicht === 'anstehend'
-              ? kannEinplanen(w) && <Button onClick={() => einplanenFragen(w)}>Baustelle anlegen</Button>
+              ? kannEinplanen(w) && <Button variant="secondary" onClick={() => einplanenFragen(w)}>Baustelle anlegen</Button>
               : (
                 // Die Zeile öffnet die Anlage; der Stift führt gleich ins Formular (E74).
                 <BearbeitenKnopf label={`Wartung ${w.customerName}${w.anlage ? `, ${w.anlage}` : ''} bearbeiten`} onClick={() => formOeffnen(w)} />

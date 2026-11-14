@@ -49,6 +49,12 @@ import { fmtMenge } from '@/lib/belegLayout';
 /** Gruppen höchstens 20 Zeilen (Regel 4), dann „und N weitere anzeigen“. */
 const JE_SEITE = 20;
 
+/** Die zwei Herkünfte beim Abholen (C7, E89) — mit dem, was sie am Bestand bewirken. */
+const HERKUNFT = [
+  ['lager', 'Aus dem Lager genommen', 'bucht vom Lagerbestand ab'],
+  ['haendler', 'Beim Händler mitgenommen', 'der Lagerbestand bleibt'],
+] as const;
+
 interface CartLine {
   materialId: string;
   materialName: string;
@@ -147,6 +153,13 @@ export default function OrderView() {
     im langsamen Netz, Analyse 10.10.2026) — eine Auskunft, die keine war.
   */
   const [meineGeladen, setMeineGeladen] = useState(false);
+  /*
+    DIE EIGENEN ANFORDERUNGEN KAMEN NICHT (V10, 13.11.2026): vorher stand dann
+    „Keine offenen Bestellungen“ und „Noch nichts erledigt“ — eine Leere, die
+    keine war. Jetzt sagt die Karte, dass nicht geladen wurde, und bietet das
+    Neuladen an.
+  */
+  const [meineFehler, setMeineFehler] = useState(false);
   const [loading, setLoading] = useState(true);
   /** Ein Nebenladevorgang ist ausgefallen — der Katalog steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
@@ -206,10 +219,11 @@ export default function OrderView() {
       EIGENE_ANFORDERUNGEN,
       (rows) => {
         setMyOrders(rows);
+        setMeineFehler(false);
         setMeineGeladen(true);
       },
       () => {
-        setNebenFehler('Deine Anforderungen');
+        setMeineFehler(true);
         setMeineGeladen(true);
       },
     );
@@ -475,8 +489,6 @@ export default function OrderView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      {katalogFehler && <ErrorState message={katalogFehler} />}
-
       {/* Eine Zeile statt einer eigenen Karte: vorher stand die
           Baustellenauswahl wie eine Hürde vor dem Katalog und schob ihn
           auf dem Telefon unter den Falz. Die Notiz ist in den Warenkorb
@@ -590,11 +602,26 @@ export default function OrderView() {
           }}
         />
         <div>
+          {/*
+            LADEN, FEHLER, LEERE UND SUCHE OHNE TREFFER SIND VIER ZUSTÄNDE (V10,
+            13.11.2026). Scheiterte das erste Holen, stand unter der
+            Fehlermeldung „Noch kein Material im Katalog“ — das stimmte nicht.
+            Jetzt steht der Fehler im Katalog selbst, mit „Erneut versuchen“;
+            eine schon geholte Seite bleibt darunter stehen.
+          */}
+          {katalogFehler && (
+            <div className="blatt-einzug pb-4">
+              <ErrorState
+                message={`Der Katalog konnte nicht geladen werden. (${katalogFehler})`}
+                onRetry={() => setKatalogStand((n) => n + 1)}
+              />
+            </div>
+          )}
           {loading ? (
             <div className="blatt-einzug pb-6">
               <LoadingState />
             </div>
-          ) : materials.length === 0 ? (
+          ) : !seite ? null : materials.length === 0 ? (
             /*
               ECHTE LEERE MIT ZEICHNUNG (Planlinie § 6), wie im Lager: der leere
               Katalog bekommt das Regal, die Suche ohne Treffer die Lupe.
@@ -657,9 +684,9 @@ export default function OrderView() {
               Anforderungen“ unter dem ganzen Katalog. Die Zahl der übrigen
               kommt vom Server — gesucht wird im ganzen Katalog, es gibt
               keine Grenze des Geladenen mehr, die jemand kennen müsste. */}
-          {!loading && (
+          {!loading && seite && (
             <MehrAnzeigen
-              anzahl={Math.max(0, (seite?.gesamt ?? 0) - materials.length)}
+              anzahl={Math.max(0, seite.gesamt - materials.length)}
               onClick={() => setArtikelGezeigt((n) => n + JE_SEITE)}
             />
           )}
@@ -672,7 +699,7 @@ export default function OrderView() {
               die Eigenbreite des Eingabefelds nach, und bei 390 px liefen
               Menge und „Hinzufügen" 90–106 px aus der Karte, wo sie
               abgeschnitten wurden (Prüflauf 25.09.2026, P4-02). */}
-          {/* Derselbe Petrol-Kreis wie beim Artikel aus dem Katalog (E74): in jeder Breite in einer Reihe mit den Feldern. */}
+          {/* Derselbe Kreis wie beim Artikel aus dem Katalog (E74, V10): in jeder Breite in einer Reihe mit den Feldern. */}
           <div className="mt-2 grid grid-cols-[minmax(0,1fr)_5rem_auto] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_6rem_auto]">
             <InputField
               id="frei-name"
@@ -688,14 +715,11 @@ export default function OrderView() {
               value={freiMenge}
               onChange={(e) => setFreiMenge(e.target.value)}
             />
-            <IconButton
-              rund
+            <InDieListe
               label={freiName.trim() ? `${freiName.trim()} in die Liste` : 'In die Liste'}
               disabled={!freiName.trim() || !(zahlOder(freiMenge, NaN) > 0)}
               onClick={freiHinzufuegen}
-            >
-              <Icon name="in-liste" size={20} />
-            </IconButton>
+            />
           </div>
         </div>
         )}
@@ -837,9 +861,17 @@ export default function OrderView() {
             Solange er lädt, auch kein Platzhalter — den schöbe die lange Liste ebenso weg (Messung
             11.10.2026: 0,29 am Handy); dass geladen wird, sagt der Katalog selbst. */}
         <Bereit wenn={meineGeladen && !loading} platzhalter={loading ? <></> : undefined} className="space-y-3 lg:space-y-5">
-        <Card title={`${nurAbholbereit ? 'Meine Anforderungen: abholbereit' : 'Meine Anforderungen'} (${activeOrders.length})`} buendig>
-          {activeOrders.length === 0 ? (
-            <EmptyState>Keine offenen Bestellungen.</EmptyState>
+        <Card title={`${nurAbholbereit ? 'Meine Anforderungen: abholbereit' : 'Meine Anforderungen'}${meineFehler ? '' : ` (${activeOrders.length})`}`} buendig>
+          {meineFehler ? (
+            <div className="blatt-einzug pb-4">
+              <ErrorState
+                message="Deine Anforderungen konnten nicht geladen werden."
+                onRetry={() => setNeuLaden((n) => n + 1)}
+              />
+            </div>
+          ) : activeOrders.length === 0 ? (
+            /* Mit dem Filter aus der Adresse ist „nichts abholbereit“ keine Auskunft über alle (V10: Filterleere ≠ Leere). */
+            <EmptyState>{nurAbholbereit ? 'Gerade ist nichts abholbereit.' : 'Keine offenen Bestellungen.'}</EmptyState>
           ) : (
             <List>
               {activeOrders.slice(0, meineGezeigt).map((o) => (
@@ -853,6 +885,7 @@ export default function OrderView() {
                   subtitle={[o.projectNumber, o.note, wasLaeuft(o)].filter(Boolean).join(' · ')}
                   // STAND ZUERST (C7, E89): die ganze Zeile öffnet die Anforderung — dort steht „Eilig“.
                   onOeffnen={() => setFenster(o)}
+                  ausgewaehlt={fenster?.id === o.id}
                 >
                   {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
                   <StatusBadge status={o.status} />
@@ -878,6 +911,8 @@ export default function OrderView() {
           />
         </Card>
 
+        {/* Ohne geladene Anforderungen gäbe es hier nur eine zweite Fehlermeldung — die erste reicht. */}
+        {!meineFehler && (
         <Card title={`Erledigt (${doneOrders.length})`} buendig>
           {doneOrders.length === 0 ? (
             <EmptyState>Noch nichts erledigt.</EmptyState>
@@ -914,6 +949,7 @@ export default function OrderView() {
             onClick={() => setErledigtGezeigt((n) => n + JE_SEITE)}
           />
         </Card>
+        )}
         </Bereit>
       </section>
 
@@ -968,23 +1004,33 @@ export default function OrderView() {
           bisher ab; „Beim Händler mitgenommen“ lässt den Bestand stehen —
           das Regal hat die Ware nie gesehen.
         */}
+        {/*
+          V10 (13.11.2026): eine kompakte Auswahl im Auswahlton mit feiner
+          Kontur und Häkchen (`.wahl-option`), nicht zwei Optionspunkte — und
+          kein großer dunkler Knopf mit einem Wort. Der Zusatz sagt, was die
+          Wahl am Bestand bewirkt; die Buchung selbst bleibt dieselbe.
+        */}
         {toPickUp && herkunftFragen(toPickUp) && (
-          <fieldset className="mt-3">
-            <legend className="section-label mb-1">Woher kommt das Material?</legend>
-            <div className="flex flex-col gap-1">
-              {([['lager', 'Aus dem Lager genommen'], ['haendler', 'Beim Händler mitgenommen']] as const).map(([wert, text]) => (
-                <label key={wert} className="flex min-h-touch items-center gap-3 py-1">
-                  <input
-                    type="radio"
-                    name="abgeholt-herkunft"
-                    className="h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
-                    checked={herkunft === wert}
-                    onChange={() => setHerkunft(wert)}
-                  />
-                  <span>{text}</span>
-                </label>
-              ))}
-            </div>
+          <fieldset className="herkunft-wahl wahl-gruppe mt-3">
+            <legend className="section-label mb-2">Woher kommt das Material?</legend>
+            {HERKUNFT.map(([wert, text, zusatz]) => (
+              <label key={wert} className="wahl-option">
+                {/* Der Name bleibt die Herkunft; was sie bewirkt, ist die Beschreibung. */}
+                <input
+                  type="radio"
+                  name="abgeholt-herkunft"
+                  value={wert}
+                  checked={herkunft === wert}
+                  onChange={() => setHerkunft(wert)}
+                  aria-labelledby={`herkunft-${wert}`}
+                  aria-describedby={`herkunft-${wert}-zusatz`}
+                />
+                <span className="wahl-text">
+                  <span className="wahl-name" id={`herkunft-${wert}`}>{text}</span>
+                  <span className="wahl-zusatz" id={`herkunft-${wert}-zusatz`}>{zusatz}</span>
+                </span>
+              </label>
+            ))}
           </fieldset>
         )}
       </ConfirmDialog>
@@ -1038,8 +1084,8 @@ export default function OrderView() {
  * stand in einer zweiten Zeile darunter. Jetzt:
  *
  * - Liegt der Artikel (für diese Baustelle) noch nicht in der Liste, steht da
- *   nur der Petrol-Kreis „In die Liste“: ein Tipp legt eines hinein — der
- *   Regelfall auf der Baustelle.
+ *   nur der Kreis „In die Liste“: ein Tipp legt eines hinein — der Regelfall
+ *   auf der Baustelle.
  * - Danach steht AN DERSELBEN STELLE die Menge mit Minus und Plus; sie ist
  *   die Menge in der Liste, nicht ein Vorschlag daneben. Plus legt eines
  *   dazu, Minus nimmt eines weg, bei eins nimmt es den Artikel heraus. Für
@@ -1047,6 +1093,11 @@ export default function OrderView() {
  *
  * Die Zeile bleibt einzeilig. Nur wenn derselbe Artikel auch für eine andere
  * Baustelle in der Liste liegt, steht die Summe klein darunter.
+ *
+ * V10 (13.11.2026): liegt der Artikel in der Liste, trägt die ganze Zeile den
+ * Auswahlton mit feiner Kontur (`.korb-menge-drin`, lot-material.css) — kein
+ * Rahmen um die Steuerung. Kreis und Mengensteuerung sind gleich hoch, die
+ * Zeile springt beim Tipp nicht.
  */
 function KorbMenge({
   material,
@@ -1070,11 +1121,9 @@ function KorbMenge({
 
   if (imKorb <= 0) {
     return (
-      <div className="flex flex-col items-end gap-1">
-        {/* Der Petrol-Kreis der Zeile (E74): er legt genau eines hinein. */}
-        <IconButton rund label={`${material.name} in die Liste`} onClick={() => onMenge(material, 1)}>
-          <Icon name="in-liste" size={20} />
-        </IconButton>
+      <div className="korb-menge">
+        {/* Der Kreis der Zeile (E74, V10): er legt genau eines hinein. */}
+        <InDieListe label={`${material.name} in die Liste`} onClick={() => onMenge(material, 1)} />
         {insgesamt > 0 && (
           <p className="text-sm text-ink-muted" aria-live="polite">{`${fmtMenge(insgesamt)} ${einheit} in der Liste`}</p>
         )}
@@ -1083,7 +1132,7 @@ function KorbMenge({
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="korb-menge korb-menge-drin">
       {/* Minus, Menge, Plus in einem Rahmen (E74) — die Menge IST die Liste. */}
       <div className={`mengen-wahl${gueltig ? '' : ' mengen-wahl-fehler'}`}>
         <button
@@ -1128,6 +1177,23 @@ function KorbMenge({
         <p className="text-sm text-ink-muted" aria-live="polite">{`insgesamt ${fmtMenge(insgesamt)} ${einheit} in der Liste`}</p>
       )}
     </div>
+  );
+}
+
+/**
+ * DER KREIS „IN DIE LISTE“ (V10, 13.11.2026). Bis dahin der gefüllte
+ * Petrol-Kreis (`IconButton rund`): in einem Katalog mit zwanzig Zeilen
+ * standen zwanzig gefüllte Terrakotta-Kreise untereinander — eine Wand aus
+ * Hauptaktionen, wo die Hauptaktion der Seite unten „Abschicken“ ist. Jetzt
+ * ein feiner Linienkreis in Terrakotta: sichtbar 36 px, getippt 48 px — so
+ * hoch wie die Mengensteuerung, die nach dem Tipp an derselben Stelle steht.
+ * `data-icon`, damit die Zeile ihn nicht wie einen Wortknopf verkleinert.
+ */
+function InDieListe({ label, disabled, onClick }: { label: string; disabled?: boolean; onClick: () => void }) {
+  return (
+    <button type="button" className="korb-kreis" data-icon="" aria-label={label} title={label} disabled={disabled} onClick={onClick}>
+      <Icon name="in-liste" size={18} />
+    </button>
   );
 }
 

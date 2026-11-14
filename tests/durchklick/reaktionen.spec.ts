@@ -80,7 +80,7 @@ async function messen(page: Page, i: number, vorher: number) {
     const l = document.querySelector('.nachricht-leiste');
     if (!l) return { leiste: false, treffer: [] as string[], ruck: 0, lage: '' };
     const k = l.getBoundingClientRect();
-    const treffer = [...document.querySelectorAll('.nachricht-text, .nachricht-blatt, .nachricht-reaktionen, .verlauf-tag > span, .nachricht-von, .nachricht-status, .chat-kopf, .eingabe')]
+    const treffer = [...document.querySelectorAll('.nachricht-text, .nachricht-blatt, .nachricht-reaktionen, .verlauf-tag > span, .nachricht-kopf, .nachricht-status, .chat-kopf, .eingabe')]
       .filter((el) => { const t = el.getBoundingClientRect(); return t.left < k.right && t.right > k.left && t.top < k.bottom && t.bottom > k.top; })
       .map((el) => `${el.className}: ${(el.textContent ?? '').slice(0, 30)}`);
     const r = document.querySelector('.gespraech-verlauf')!;
@@ -234,6 +234,9 @@ test('Am Handy: kurzer Tipp tut nichts, langes Drücken öffnet die Leiste an de
   ihn, ein Doppelklick ein Wort — und beides öffnet nichts.
   Gegenprobe: mit dem Stand von E78 öffnet die ganze Zeile die Leiste, und
   der Text ist ein Knopf, den man nicht markieren kann.
+  V10 (13.11.2026): eingehender Text steht ohne Blase und füllt am Tablet
+  die Zeile bis zum Rand; „neben dem Beitrag“ ist dort der Einzug links
+  (Flucht des Namens), nicht mehr der freie Platz rechts einer Blase.
 */
 test('Die Leiste kommt nur über der Blase, und der Text lässt sich markieren', async ({ page }) => {
   test.setTimeout(90_000);
@@ -249,8 +252,9 @@ test('Die Leiste kommt nur über der Blase, und der Text lässt sich markieren',
     const leiste = page.getByRole('toolbar', { name: /^Zur Nachricht von/ });
     const b = (await blatt.boundingBox())!, z = (await zeile.boundingBox())!;
 
-    // Rechts neben der Blase, in ihrer Zeile.
-    await page.mouse.move(z.x + z.width - 12, b.y + b.height / 2, { steps: 3 });
+    // Neben dem Beitrag, in seiner Zeile: im Einzug links davon (eigene Blasen: links der Blase).
+    expect(b.x - z.x, `${breite}: Einzug`).toBeGreaterThan(20);
+    await page.mouse.move(b.x - 12, b.y + b.height / 2, { steps: 3 });
     await page.waitForTimeout(500);
     await expect(leiste, `${breite}: neben der Blase`).toHaveCount(0);
 
@@ -283,9 +287,10 @@ test('Die Leiste kommt nur über der Blase, und der Text lässt sich markieren',
 /*
   E78 (11.11.2026): die Leiste kommt sanft, das Kästchen ist leicht. Gemessen:
   die Leiste blendet ein (Animation läuft, am Ende deckend), das Kästchen ist
-  24 px hoch, ohne Rahmen, rund wie eine Blase — und 10 px darüber trifft
-  ein Tipp noch das Kästchen (44 px Tastfläche). Gegenprobe: mit dem Stand von
-  E77 ist es 32 px hoch mit Rahmen, und die Leiste hat keine Animation.
+  24 px hoch, ohne Rahmen — und 10 px darüber trifft ein Tipp noch das
+  Kästchen (44 px Tastfläche). V10 (13.11.2026): keine Pille mehr, der
+  Radius einer Arbeitszeile (8 px). Gegenprobe: mit dem Stand von E77 ist es
+  32 px hoch mit Rahmen, und die Leiste hat keine Animation; mit E78 rund.
 */
 test('Die Leiste blendet ein, das Kästchen ist klein und ohne Rahmen', async ({ page }) => {
   test.setTimeout(60_000);
@@ -303,9 +308,9 @@ test('Die Leiste blendet ein, das Kästchen ist klein und ohne Rahmen', async ({
   const k = await kaestchen.evaluate((el) => {
     const s = getComputedStyle(el), r = el.getBoundingClientRect();
     const darueber = document.elementFromPoint(r.left + r.width / 2, r.top - 9);
-    return { hoehe: Math.round(r.height), rahmen: s.borderTopWidth, rund: parseFloat(s.borderTopLeftRadius) >= r.height / 2, tippDarueber: darueber === el };
+    return { hoehe: Math.round(r.height), rahmen: s.borderTopWidth, radius: s.borderTopLeftRadius, tippDarueber: darueber === el };
   });
-  expect(k).toEqual({ hoehe: 24, rahmen: '0px', rund: true, tippDarueber: true });
+  expect(k).toEqual({ hoehe: 24, rahmen: '0px', radius: '8px', tippDarueber: true });
 
   await page.getByRole('list', { name: 'Verlauf' }).getByText(TEXTE[TEXTE.length - 1][1]).hover();
   const leiste = page.getByRole('toolbar', { name: /^Zur Nachricht von/ });

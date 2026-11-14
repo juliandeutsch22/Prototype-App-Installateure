@@ -4,8 +4,8 @@ Seit 03.11.2026 gilt das freigegebene Markenpaket für die Produktmarke in der A
 
 ## Vorlagen
 
-- `logo.svg`: Zeichen und Schriftzug in Petrol, identisch mit `senklot-logo-petrol.svg` aus dem Markenpaket.
-- `logo-weiss.svg`: dieselbe Kontur in Weiß für dunkle Flächen.
+- `logo.svg`: Zeichen in Terrakotta `#A85439`, Schriftzug in warmer Tinte `#25231F` (seit V10, 13.11.2026, E92; bis dahin beides Petrol wie `senklot-logo-petrol.svg` aus dem Markenpaket). Form und Kontur sind unverändert.
+- `logo-weiss.svg`: dieselbe Kontur für dunkle Flächen, Schriftzug weiß, Zeichen im hellen Terrakotta `#D08A68`.
 - `zeichen.svg`: das einzelne Zeichen ohne Hintergrund; Quelle aller Icons.
 - `schriftzug.svg`: die Wortmarke einzeln.
 - `icon.svg`: Zeichen auf weißem, randlosem Quadrat, mit Abstand für Systemmasken.
@@ -18,7 +18,7 @@ Die zentrale `ProduktMarke` lädt die passende Pfadvorlage als zugänglich besch
 ## Favicon, iOS, Android und Push
 
 - Favicon als SVG und PNG in 16, 32 und 64 px, mit runden, durchsichtigen Ecken.
-- Installationsicons „any“: 192 und 512 px, Petrol `#0F4552` auf Weiß mit denselben runden Ecken — so zeigen Schreibtisch, Benachrichtigung und Startbild sie unverändert.
+- Installationsicons „any“: 192 und 512 px, Terrakotta `#A85439` auf Weiß (bis 13.11.2026 Petrol `#0F4552`) mit denselben runden Ecken — so zeigen Schreibtisch, Benachrichtigung und Startbild sie unverändert.
 - Apple-Touch-Icon: 180 × 180 px, randlos und deckend; iOS rundet selbst.
 - Android maskable: 512 × 512 px; die gesamte Figur liegt innerhalb des garantierten Kreises mit Radius 40 % der Seitenlänge. Die Kontur bleibt unverändert, nur ihre Größe innerhalb der Fläche wird angepasst.
 - Push-Abzeichen: weiße Silhouette auf transparentem Grund, ohne vollflächige Kachel.

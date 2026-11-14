@@ -51,67 +51,73 @@
 :root {
   color-scheme: light;
 
-  --brand: #0f4552;
-  --brand-fg: #ffffff;
-  --accent: #0f4552;
-  --accent-fg: #ffffff;
+  --brand: #a85439;
+  --brand-fg: #fff8ee;
+  --accent: #a85439;
+  --accent-fg: #fff8ee;
 
   /* Die Farbe des Produkts, nicht die des Betriebs: Statusbalken, Manifest,
    * Markierungen. Unverändert seit der Marke Senklot. */
-  --brand-fixed: #0f4552;
-  --ink-deep: #13262c;
+  --brand-fixed: #a85439;
+  --ink-deep: #25231f;
   /* Links und Häkchen: Petrol wie im Entwurf. */
-  --accent-deep: #0f4552;
+  --accent-deep: #9b4c33;
   /* Der helle Ton auf der dunklen Navigation (Avatar, Zähler). */
-  --accent-bright: #c6dce0;
+  --accent-bright: #f3e4d8;
 
-  --bg: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #f3f6f6;
-  --surface-3: #e9eeef;
+  --bg: #f4f0e8;
+  --surface: #fffdf8;
+  --surface-2: #faf7f1;
+  --surface-3: #eee6db;
   --gewicht-zahl: 500;
-  /* Titel und Hervorhebungen: Poppins 500 (Planlinie, E30); 600 trägt nur noch der Firmenname. */
+  /*
+    SCHRIFTEN V10 (13.11.2026): DM Sans für Bedienung und Text, Source Serif 4
+    regulär für größere Seiten- und Bereichstitel, IBM Plex Mono für alles
+    Gemessene. Titel und Hervorhebungen 500; 600 trägt nur der Firmenname.
+  */
+  --schrift-text: 'DM Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --schrift-titel: 'Source Serif 4', Georgia, Cambria, 'Times New Roman', serif;
   --gewicht-titel: 500;
   /* Alles Gemessene — Nummern, Beträge, Stunden, Mengen — in IBM Plex Mono (Planlinie, E30). */
   --schrift-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --text: #13262c;
+  --text: #25231f;
   /* Der Pfeil im Auswahlfeld, in der Farbe des Texts (eine Hintergrundgrafik kennt kein currentColor). */
-  --auswahl-pfeil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%2313262c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
+  --auswahl-pfeil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%2325231f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
   /* 5,4:1 auf Weiss, 5,0:1 auf Papier — AA für Fliesstext. */
-  --text-muted: #5a6d72;
+  --text-muted: #6b645b;
   /* Sichtbar heller als Eingegebenes, aber noch 4,6:1 auf Weiss. */
-  --text-placeholder: #66787d;
-  --border: #dfe7e9;
-  --border-strong: #c2d2d5;
+  --text-placeholder: #776e63;
+  --border: #e2d8cb;
+  --border-strong: #ded4c7;
   /* Deckend statt halbtransparent (Protokoll 0.2). */
-  --focus-ring: #c2d2d5;
+  --focus-ring: #b97b5e;
 
-  --success: #0f4552;
-  --success-bg: #e4eef0;
-  --warning: #94570a;
-  --warning-bg: #faf1e4;
-  --danger: #b42318;
-  --danger-bg: #f8e6e4;
-  --info: #0f4552;
-  --info-bg: #e4eef0;
+  --success: #25231f;
+  --success-bg: #fffdf8;
+  --warning: #8f5d20;
+  --warning-bg: #fffdf8;
+  --danger: #a5483b;
+  --danger-bg: #fffdf8;
+  --info: #25231f;
+  --info-bg: #fffdf8;
 
   /* Navigation: eigener, etwas tieferer Ton als Petrol, damit der aktive
    * Eintrag (navi-tief) und die Hauptknöpfe (Petrol) nicht verschwimmen. */
-  --navi: #0f3c47;
-  --navi-tief: #0a2f38;
-  --navi-text: #c6dce0;
-  --navi-gruppe: #8eafb5;
-  --navi-linie: #1e4c57;
+  --navi: #292722;
+  --navi-tief: #473b32;
+  --navi-text: #e9e1d6;
+  --navi-gruppe: #a89d8f;
+  --navi-linie: #3d3832;
 
   /* Radien 8/12. Karten tragen keinen Schatten mehr — Linien statt Karten
    * (Regel 1); nur was über der Seite schwebt, wirft einen. */
   --radius-sm: 0.5rem;
-  --radius: 0.5rem;
-  --radius-lg: 0.75rem;
+  --radius: 0.75rem;
+  --radius-lg: 1rem;
   --radius-pill: 999px;
   --shadow-sm: none;
   --shadow: none;
-  --shadow-lg: 0 16px 40px -24px #0f455299;
+  --shadow-lg: 0 7px 20px -6px #25231f2e;
 
   /* Lot-Namen für die Bausteine. */
   --papier: var(--bg);
@@ -120,20 +126,55 @@
   --grau: var(--text-muted);
   --linie: var(--border);
   --linie-stark: var(--border-strong);
-  --petrol: #0f4552;
-  --petrol-tief: #0a3540;
-  --petrol-hell: #e4eef0;
+  --petrol: #a85439;
+  --petrol-tief: #8e4630;
+  --petrol-hell: #f3e4d8;
   /* Schrift auf voller Petrol-Fläche (Einsätze, E33) — in beiden Sätzen, weil Petrol in beiden dunkel genug ist. */
-  --auf-petrol: #ffffff;
-  --auf-petrol-leise: #e4eef0;
+  --auf-petrol: #fff8ee;
+  --auf-petrol-leise: #fff8ee;
   /* Die Spalte „heute“ in Rastern (Runde 4): ein Hauch Petrol, leiser als
      --petrol-hell, damit ein Block darin noch hervortritt. */
-  --heute: #f4f8f9;
+  --heute: #efe6da;
   --achtung: var(--warning);
   --achtung-hell: var(--warning-bg);
   --fehler: var(--danger);
   --abwesend: var(--surface-3);
   --schatten: var(--shadow-lg);
+  /*
+    ROLLEN DER DESIGNLINIE V10 „WARMES PAPIER“ (13.11.2026, style.md). Die
+    alten Namen oben tragen jetzt die V10-Werte (Terrakotta statt Petrol,
+    Papier statt Weiß); diese hier kommen dazu.
+  */
+  /*
+    GEMESSEN STATT ÜBERNOMMEN: die Zielwerte der Mappe lagen an vier Stellen
+    knapp unter 4,5:1 (Terrakotta-Text auf der Auswahl 4,2, Nebentext auf
+    `--surface-3` 4,4, Platzhalter 4,4, leiser Text auf Terrakotta 4,2). Text
+    in Terrakotta ist deshalb einen Ton tiefer (`--accent-deep` #9b4c33),
+    Flächen bleiben #a85439; Nebentext, Platzhalter und leiser Text auf
+    Terrakotta sind entsprechend nachgezogen (`lotGrundwerte.test.ts`).
+  */
+  --radius-xl: 1.5rem;
+  --auswahl: #f3e4d8;
+  --auswahl-kontur: #d5b39e;
+  --fokus: #b97b5e;
+  --dunkel-flaeche: #322e29;
+  --auf-dunkel: #fff8ee;
+  /* Zeigen ist nicht Wählen: der Hover-Ton liegt neutral zwischen Blatt und
+     Papier, die warme Auswahlfläche bleibt der Auswahl vorbehalten. */
+  --hover-flaeche: #f5f0e8;
+  /* Terrakotta auf der dunklen Fläche (Meldung, laufender Arbeitstag): aufgehellt,
+     weil #a85439 dort nur 2,6:1 hätte. */
+  --auf-dunkel-akzent: #d08a68;
+  --auf-dunkel-leise: #cfc6ba;
+  --pause-flaeche: #eee6db;
+  --insel-kontur: #e4dace;
+  --inaktiv-symbol: #776e63;
+  --chat-eigen: #e8dacc;
+  --chat-eigen-text: #2d2924;
+  --chat-eigen-kontur: #dcc9b8;
+  --raster-neben: #f1ece4;
+  --raster-haupt: #e7ded2;
+  --shadow-insel: 0 4px 12px -4px #25231f24;
 }
 
 /*
@@ -151,47 +192,66 @@
 @media screen {
   :root[data-theme='dark'] {
     color-scheme: dark;
-    --brand: #236c7b !important;
-    --brand-fg: #ffffff !important;
-    --accent: #236c7b !important;
-    --accent-fg: #ffffff !important;
-    --brand-fixed: #2d8597;
-    --ink-deep: #e5eff0;
-    --accent-deep: #7cc4d2;
-    --accent-bright: #9fb9be;
-    --bg: #0c1c20;
-    --surface: #12262b;
-    --surface-2: #0f2226;
-    --surface-3: #1a3036;
-    --text: #e5eff0;
-    --auswahl-pfeil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23e5eff0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
-    --text-muted: #9fb5ba;
-    --text-placeholder: #84999e;
-    --border: #22393f;
-    --border-strong: #33515a;
-    --focus-ring: #33515a;
-    --success: #7cc4d2;
-    --success-bg: #17343b;
-    --warning: #e2a54a;
-    --warning-bg: #2a2316;
-    --danger: #f07a6e;
-    --danger-bg: #3a1f1c;
-    --info: #7cc4d2;
-    --info-bg: #17343b;
-    --navi: #091619;
-    --navi-tief: #0f2328;
-    --navi-text: #9fb9be;
-    --navi-gruppe: #7f9ca2;
-    --navi-linie: #1b3238;
-    --shadow-lg: 0 16px 40px -24px #000000;
+    --brand: #a85439 !important;
+    --brand-fg: #fff8ee !important;
+    --accent: #a85439 !important;
+    --accent-fg: #fff8ee !important;
+    --brand-fixed: #d08a68;
+    --ink-deep: #f3eee6;
+    --accent-deep: #d08a68;
+    --accent-bright: #3b312b;
+    --bg: #211f1c;
+    --surface: #25221f;
+    --surface-2: #211f1c;
+    --surface-3: #302c27;
+    --text: #f3eee6;
+    --auswahl-pfeil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23f3eee6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
+    --text-muted: #b7aea3;
+    --text-placeholder: #a0978c;
+    --border: #4b443c;
+    --border-strong: #4b443c;
+    --focus-ring: #d08a68;
+    --success: #f3eee6;
+    --success-bg: #25221f;
+    --warning: #d9a45f;
+    --warning-bg: #25221f;
+    --danger: #e08a7c;
+    --danger-bg: #25221f;
+    --info: #f3eee6;
+    --info-bg: #25221f;
+    --navi: #1f1d1a;
+    --navi-tief: #3b312b;
+    --navi-text: #e9e1d6;
+    --navi-gruppe: #a89d8f;
+    --navi-linie: #36312b;
+    --shadow-lg: 0 7px 20px -6px #00000059;
     /* Weiss auf Petrol (gewähltes Segment, Einsatzblock, Sammelleiste) braucht
        4,5:1 — der Ton des Entwurfs (#2d8597) hatte nur 4,3:1. */
-    --petrol: #236c7b;
-    --petrol-tief: #1b5763;
-    --petrol-hell: #17343b;
-    --auf-petrol: #ffffff;
-    --auf-petrol-leise: #e4eef0;
-    --heute: #132c32;
+    --petrol: #a85439;
+    --petrol-tief: #8e4630;
+    --petrol-hell: #3b312b;
+    --auf-petrol: #fff8ee;
+    --auf-petrol-leise: #fff8ee;
+    --heute: #2b2723;
+    --auswahl: #3b312b;
+    --auswahl-kontur: #654c3e;
+    --fokus: #d08a68;
+    --dunkel-flaeche: #302c27;
+    --auf-dunkel: #fff8ee;
+    --hover-flaeche: #2d2925;
+    --auf-dunkel-akzent: #d08a68;
+    --auf-dunkel-leise: #b7aea3;
+    /* Pause dunkel heller als „läuft“: sonst unterschieden sich die beiden
+       Zustände der Arbeitstag-Karte nur am Punkt und an einem Knopf. */
+    --pause-flaeche: #3a332c;
+    --insel-kontur: #4b443c;
+    --inaktiv-symbol: #a0978c;
+    --chat-eigen: #43362f;
+    --chat-eigen-text: #f3eee6;
+    --chat-eigen-kontur: #654c3e;
+    --raster-neben: #302c27;
+    --raster-haupt: #3a342e;
+    --shadow-insel: 0 4px 12px -4px #00000066;
   }
 }
 
@@ -269,9 +329,9 @@ body {
   background-color: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
-  /* Poppins wie im Prototyp; System-Schriften als Fallback, falls die
-   * Webfont (schlechtes Netz) noch nicht geladen ist. */
-  font-family: Poppins, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* V10: DM Sans; System-Schriften als Fallback, falls die Webfont
+   * (schlechtes Netz) noch nicht geladen ist. */
+  font-family: var(--schrift-text);
 }
 
 /* Überschriften fast schwarz, in normaler Laufweite und halbfett. Bis zum
@@ -974,7 +1034,8 @@ textarea {
   .zeile { display: flex; align-items: center; gap: 0.75rem 1rem; min-height: 3.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); background: transparent; }
   .zeile:first-child { border-top: 0; }
   .zeile-ganz { position: relative; cursor: pointer; }
-  .zeile-ganz:hover { background: var(--petrol-hell); }
+  .zeile-ganz:hover { background: var(--hover-flaeche); }
+  .zeile[aria-current='true'], .zeile[aria-current='true']:hover { border-radius: var(--radius-sm); background: var(--auswahl); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
   .zeile-ziel { color: inherit; text-decoration: none; }
   .zeile-ziel::after { content: ''; position: absolute; inset: 0; }
   .zeile-ziel:focus-visible { outline: none; }
@@ -1057,8 +1118,8 @@ textarea {
   .zeile-zahlen { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.75rem 1.5rem; }
   .zeile-zahlen-linie { display: block; width: 15rem; max-width: 100%; font-size: 0.75rem; text-align: left; }
   .zeile-zahlen-betrag { display: block; min-width: 7.5rem; text-align: right; }
-  /* Der Name unter einem Betrag gesprochen — in Poppins, nicht in der Schrift der Zahlen. */
-  .zeile-zahlen-betrag small { font-family: Poppins, ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; }
+  /* Der Name unter einem Betrag gesprochen — in der Textschrift, nicht in der Schrift der Zahlen. */
+  .zeile-zahlen-betrag small { font-family: var(--schrift-text); font-size: 0.75rem; }
   .zeile-stand .zeile-wert:has(> .zeile-zahlen) { flex: 1 1 auto; }
   @media (min-width: 1200px) {
     .zeile-stand .zeile-wert:has(> .zeile-zahlen) { flex: none; }
@@ -1155,7 +1216,12 @@ textarea {
   .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0.75rem; border-bottom: 1px solid var(--border); background: transparent; }
   /* Auch ein kurzes Wort („Alle“) hat 44 px Tastfläche in der Breite (E72, R3). */
   .segment > * { display: flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0 0.375rem; text-align: center; hyphens: auto; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); border-bottom: 2px solid transparent; }
-  @media (min-width: 760px) { .segment > * { padding: 0 0.625rem; } }
+  /*
+    V10 (13.11.2026): ab dem Tablet kompakte Texttabs in ihrer Breite, links
+    beginnend, mit präziser Unterlinie — keine über die Zeile gestreckten
+    Segmente. Am Handy teilen sie sich die Breite weiter (Daumen, kein Rollen).
+  */
+  @media (min-width: 760px) { .segment { grid-auto-columns: max-content; justify-content: start; gap: 1.5rem; } .segment > * { padding: 0 0.25rem; } }
   .segment > .segment-an { color: var(--ink-deep); border-bottom-color: var(--petrol); font-weight: var(--gewicht-titel); }
 
   /*
@@ -1183,7 +1249,7 @@ textarea {
 @layer components {
   .start-abschnitt { padding: 0.75rem 1rem 0.5rem; font-size: 0.8125rem; font-weight: var(--gewicht-titel); color: var(--text-muted); background: var(--surface); border-bottom: 1px solid var(--border); }
   .start-weiter { display: flex; align-items: center; min-height: 2.75rem; padding: 0.5rem 1rem; border-top: 1px solid var(--border); font-size: 0.875rem; font-weight: var(--gewicht-titel); color: var(--accent-deep); }
-  .start-weiter:hover { background: var(--petrol-hell); }
+  .start-weiter:hover { background: var(--hover-flaeche); }
   /* Status: in schmalen Karten vorn in der Detailzeile, in breiten rechts. */
   .start-status-rechts { display: none; }
   @media (min-width: 1200px) {
@@ -1220,5 +1286,3 @@ textarea {
   html { scroll-padding-bottom: 9rem; }
 }
 
-/* Die Pfadvorlage bleibt auch auf dunklen Inhaltsflächen lesbar. */
-:root[data-theme='dark'] .produkt-marke--flaeche { filter: brightness(0) invert(1); }

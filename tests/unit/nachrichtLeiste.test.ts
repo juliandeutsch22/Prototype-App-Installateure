@@ -211,13 +211,18 @@ describe('Die Leiste kommt sanft, die Reaktionen sind leicht (E78)', () => {
     expect(regel('.nachricht > .nachricht-status')).toContain('order: 3;');
   });
 
-  it('das Kästchen: 24 px hoch, ohne Rahmen, weich wie eine Blase; die eigene ohne Umrandung in Petrol-hell', () => {
+  /*
+    V10 (13.11.2026): keine Pille mehr — der Radius einer Arbeitszeile; die
+    eigene Reaktion ist eine Auswahl (warme Fläche, feine Kontur).
+    Gegenprobe: mit dem Stand von E78 (999px, Petrol-hell ohne Kontur) rot.
+  */
+  it('das Kästchen: 24 px hoch, ohne Rahmen, Radius einer Zeile; die eigene als Auswahl mit feiner Kontur', () => {
     const r = regel('.reaktion');
     expect(r).toContain('height: 1.5rem;');
     expect(r).toContain('border: 0;');
-    expect(r).toContain('border-radius: 999px;');
+    expect(r).toContain('border-radius: var(--radius-sm);');
     expect(r).toContain('background: var(--surface-2);');
-    expect(regel('.reaktion[aria-pressed="true"]')).toBe(' background: var(--petrol-hell); color: var(--accent-deep); ');
+    expect(regel('.reaktion[aria-pressed="true"]')).toBe(' background: var(--auswahl); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); color: var(--accent-deep); ');
     // Getippt weiter 44 px: 24 px plus 2 × 10 px über und unter dem Feld.
     expect(regel('.reaktion::before')).toContain('inset: -0.625rem 0;');
   });

@@ -1,11 +1,10 @@
-import { Fragment } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
 import type { AppUser, Assignment, Project, Termin } from '@/types';
 import { EmptyState } from '@/components/States';
 import { tagKurz, type Brett, type Gruppe, type TagStand } from './planTypen';
 import type { FensterStart } from './EinsatzFenster';
 import { GruppenKopf } from './PlanRaster';
 import { PersonEintraege, TerminEintrag, type BaustellenInfo, type EinsatzAktionen } from './WochenEintraege';
-import { kuerzel } from '@/features/nachrichten/text';
 import Icon from '@/components/Icon';
 import type { MaterialLage } from './materialDeckung';
 import {
@@ -69,6 +68,11 @@ interface RasterGrund {
   materialFuer?: (tag: string, nummer: string) => MaterialLage | undefined;
   /** Umplanen (E88): Leiste und Ziehen am Einsatz, Ablegen in die Zellen — nur für die Führung im eigenen Betrieb. */
   aktionen?: EinsatzAktionen;
+  /**
+   * Abwesenheiten oder Betriebsurlaub nicht geladen (V10): „N frei“ wäre
+   * dann eine falsche Auskunft — der Kopf sagt „frei unklar“.
+   */
+  abwesenheitUnklar?: boolean;
 }
 
 /**
@@ -119,9 +123,13 @@ function TagesKopf({ ecke, g }: { ecke: string; g: RasterGrund }) {
             (Prüflauf 24.09.2026, D15). Mit Ausgenommenen ist auch am
             Betriebsurlaub jemand frei — dann steht beides da.
           */
+          // Ohne Abwesenheiten keine Zahl: sie sähe aus wie freie Kapazität (V10, Auftrag 11.2).
+          const unklar = !g.lesen && !!g.abwesenheitUnklar && !feiertag && !ruhetag(tag);
           const info = g.lesen
             ? (feiertag ?? zu ?? null)
-            : (feiertag ?? (zu ? (frei > 0 ? `${zu} · ${frei} frei` : zu) : ruhetag(tag) ? null : `${frei} frei`));
+            : unklar
+              ? (zu ?? null)
+              : (feiertag ?? (zu ? (frei > 0 ? `${zu} · ${frei} frei` : zu) : ruhetag(tag) ? null : `${frei} frei`));
           const schmal = g.schmal.has(tag);
           const klasse =
             tag === g.markiert
@@ -139,6 +147,7 @@ function TagesKopf({ ecke, g }: { ecke: string; g: RasterGrund }) {
           const lot = tag === g.heute ? <span className="spalten-lot" aria-hidden="true" /> : null;
           const vorlesen = [
             info,
+            unklar ? 'frei unklar, Abwesenheiten nicht geladen' : null,
             ohneAnnahme > 0 ? ohneAnnahmeText(ohneAnnahme) : null,
             termine.length > 0 ? termineText(termine.length) : null,
           ].filter(Boolean);
@@ -191,7 +200,18 @@ function TagesKopf({ ecke, g }: { ecke: string; g: RasterGrund }) {
                       {wochentag.replace('.', '')} {datum}
                     </span>
                     {info && <span className="kopf-info">{info}</span>}
-                    {ohneAnnahme > 0 && <span className="kopf-warnung">{ohneAnnahmeText(ohneAnnahme)}</span>}
+                    {unklar && (
+                      <span className="kopf-warnung">
+                        <Icon name="warnung" size={12} />
+                        frei unklar
+                      </span>
+                    )}
+                    {ohneAnnahme > 0 && (
+                      <span className="kopf-warnung">
+                        <Icon name="warnung" size={12} />
+                        {ohneAnnahmeText(ohneAnnahme)}
+                      </span>
+                    )}
                     {termine.length > 0 && <span className="kopf-termine">{termineText(termine.length)}</span>}
                   </>
                 )}
@@ -221,6 +241,30 @@ const rasterKlasse = (g: RasterGrund) => RASTER[Math.max(0, Math.min(7, g.tage.l
 const tabellenKlasse = (g: RasterGrund) => rasterKlasse(g);
 
 /**
+ * HEUTE ROLLT INS BILD (V10, 13.11.2026): am Tablet sind die Tage breit
+ * genug für einen Kunden, dafür passt nicht die ganze Woche. Beim Öffnen
+ * und nach dem Blättern steht heute — bzw. der aus dem Monat markierte
+ * Tag — als erster Tag neben der Namensspalte (am Wochenende so weit wie
+ * möglich); der Rest rollt seitlich. Wo die Woche ganz passt
+ * (Schreibtisch), geschieht nichts.
+ */
+function useHeuteImBild(heute: string, tage: string[], markiert: string | null) {
+  const ref = useRef<HTMLDivElement>(null);
+  const woche = tage.join('|');
+  useEffect(() => {
+    const huelle = ref.current;
+    if (!huelle || huelle.scrollWidth <= huelle.clientWidth) return;
+    // Der aus dem Monat markierte Tag geht vor — dorthin wollte man; sonst heute, wenn er in der Woche liegt.
+    const kopf =
+      huelle.querySelector<HTMLElement>('th.wp-kopf-markiert') ??
+      (woche.includes(heute) ? huelle.querySelector<HTMLElement>('th[aria-current="date"]') : null);
+    const ecke = huelle.querySelector<HTMLElement>('.wp-ecke');
+    if (kopf) huelle.scrollLeft = Math.max(0, kopf.offsetLeft - (ecke?.offsetWidth ?? 0));
+  }, [heute, woche, markiert]);
+  return ref;
+}
+
+/**
  * PERSONEN × TAGE. Eine leere Zelle ist leer; ein Klick darauf öffnet
  * „Einsatz planen“ mit Tag und Person (am Schreibtisch zeigt das
  * Darüberfahren „+ Einsatz planen“). Der Knopf liegt unter den Einträgen
@@ -246,8 +290,9 @@ export function PersonenWoche({
   infoFuer: (tag: string, nummer: string) => BaustellenInfo;
 }) {
   const mitKoepfen = gruppen.length > 1;
+  const huelle = useHeuteImBild(g.heute, g.tage, g.markiert);
   return (
-    <div className={g.aktionen ? 'wp-huelle wp-huelle-planen' : 'wp-huelle'} role="region" aria-label="Wochenplan seitlich und nach unten scrollen" tabIndex={0}>
+    <div ref={huelle} className={g.aktionen ? 'wp-huelle wp-huelle-planen' : 'wp-huelle'} role="region" aria-label="Wochenplan seitlich und nach unten scrollen" tabIndex={0}>
       <table aria-label="Wochenplan als Tabelle" className={tabellenKlasse(g)}>
         <Spalten g={g} />
         <TagesKopf ecke="Mitarbeiter" g={g} />
@@ -263,9 +308,8 @@ export function PersonenWoche({
                   gr.leute.map((u) => (
                     <tr key={u.uid}>
                       <th scope="row" className="wp-name">
-                        {/* Der Kürzel-Kreis wie im Posteingang (E88): die Zeile findet man am Kreis, nicht nur am Namen. */}
+                        {/* Der Name ohne Kürzel-Kreis (V10): Personen stehen in der Planung ohne Begleitzeichen. */}
                         <span className="wp-name-zeile">
-                          <span className="wp-kuerzel" aria-hidden="true">{kuerzel(u.name)}</span>
                           <span>
                             {u.name}
                             {g.ich === u.uid && <span className="wp-name-ich"> · du</span>}
@@ -317,7 +361,9 @@ function PersonenZelle({
         ? 'eingeteilt'
         : ruhetag(tag)
           ? (feiertagAm(tag) ?? 'Wochenende')
-          : 'frei';
+          : g.abwesenheitUnklar
+            ? 'Abwesenheit nicht geladen'
+            : 'frei';
   /*
     Ohne Knopf „Einsatz planen“: in der Team-Woche gar keiner; bei jemandem,
     der nicht mehr einplanbar ist, nur der in der leeren Zelle — seine
@@ -425,9 +471,10 @@ export function BaustellenWoche({
   }
   const sortiert = [...zeilen.entries()].sort((a, b) => a[1].localeCompare(b[1], 'de'));
   const nameVon = (uid: string, ersatz: string | undefined) => staff.find((u) => u.uid === uid)?.name ?? ersatz ?? 'Mitarbeiter';
+  const huelle = useHeuteImBild(g.heute, g.tage, g.markiert);
 
   return (
-    <div className="wp-huelle" role="region" aria-label="Baustellenplan seitlich und nach unten scrollen" tabIndex={0}>
+    <div ref={huelle} className="wp-huelle" role="region" aria-label="Baustellenplan seitlich und nach unten scrollen" tabIndex={0}>
       <table aria-label="Wochenplan nach Baustellen" className={tabellenKlasse(g)}>
         <Spalten g={g} />
         <TagesKopf ecke="Baustelle" g={g} />
@@ -484,11 +531,15 @@ export function BaustellenWoche({
                               <span className="e-titel">
                                 {hier.map((a) => personKurz(nameVon(a.userId, a.userName))).join(', ')}
                               </span>
-                              <span className="e-zeile">
-                                {fehlen.length > 0
-                                  ? `${fehlen.map((a) => personKurz(nameVon(a.userId, a.userName))).join(', ')} fehlt`
-                                  : (zeit ?? 'ganztags')}
-                              </span>
+                              {fehlen.length > 0 ? (
+                                // Wer fehlt, steht als Text mit Warnzeichen da (V10), nicht als Bernsteinkante.
+                                <span className="e-zeile e-konflikt">
+                                  <Icon name="warnung" size={12} />
+                                  {`${fehlen.map((a) => personKurz(nameVon(a.userId, a.userName))).join(', ')} fehlt`}
+                                </span>
+                              ) : (
+                                <span className="e-zeile">{zeit ?? 'ganztags'}</span>
+                              )}
                               {material && <span className="e-zeile">{material.text}</span>}
                             </button>
                           )}

@@ -10,7 +10,6 @@ import BottomSheet from '@/components/BottomSheet';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { ListRow, List } from '@/components/ListRow';
 import { Zustand, Marke } from '@/components/Badge';
-import { EmptyState } from '@/components/States';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
 import {
   Arbeitszeile,
@@ -18,7 +17,6 @@ import {
   LotVerlauf,
   MehrAnzeigen,
   Sammelleiste,
-  Segmente,
   WeitereAngaben,
 } from '@/components/LotBausteine';
 import { useToast } from '@/components/Toast';
@@ -28,9 +26,11 @@ import MusterPlanung from './MusterPlanung';
 import MusterMonat from './MusterMonat';
 import MusterPlanlinie from './MusterPlanlinie';
 import MusterZeitfelder from './MusterZeitfelder';
+import MusterV10 from './MusterV10';
 
 /**
- * DIE MUSTERSEITE DER LINIE „LOT“ (Protokoll Abschnitt 4.2): jeder Baustein
+ * DIE MUSTERSEITE (Protokoll Abschnitt 4.2, seit 13.11.2026 die Referenz der
+ * Designlinie V10, Implementierungsauftrag 11.7): jeder Baustein
  * einmal, mit Beispieldaten und ohne Wirkung auf den Betrieb. Nur für
  * Administrator und globalen Admin — sie ist ein Werkzeug für die Abnahme,
  * kein Teil der Arbeit.
@@ -38,21 +38,31 @@ import MusterZeitfelder from './MusterZeitfelder';
  * Hier wird nichts gespeichert. Jede „Aktion“ zeigt nur eine Meldung.
  */
 
+/* Die Rollen der Designlinie V10 (style.md, „Farb- und Rollentokens“) — nach Aufgabe benannt, nicht nach Ton. */
 const FARBEN: [string, string][] = [
-  ['Papier', '--papier'],
-  ['Fläche', '--flaeche'],
-  ['Tinte', '--tinte'],
-  ['Grau', '--grau'],
-  ['Linie', '--linie'],
-  ['Linie stark', '--linie-stark'],
-  ['Petrol', '--petrol'],
-  ['Petrol tief', '--petrol-tief'],
-  ['Petrol hell', '--petrol-hell'],
+  ['Papier', '--bg'],
+  ['Blatt', '--surface'],
+  ['App-Fläche', '--surface-2'],
+  ['Tinte', '--text'],
+  ['Gedämpft', '--text-muted'],
+  ['Linie', '--border'],
+  ['Terrakotta', '--brand'],
+  ['Terrakotta als Text', '--accent-deep'],
+  ['Auswahl', '--auswahl'],
+  ['Auswahlkontur', '--auswahl-kontur'],
+  ['Fokus', '--fokus'],
+  ['Arbeitstag', '--dunkel-flaeche'],
+  ['Pause', '--pause-flaeche'],
   ['Navigation', '--navi'],
-  ['Achtung', '--achtung'],
-  ['Fehler', '--fehler'],
-  ['Abwesend', '--abwesend'],
+  ['Warnung', '--warning'],
+  ['Fehler', '--danger'],
 ];
+
+const DARSTELLUNGEN = [
+  { wert: 'hell', label: 'Hell', zusatz: 'Standard' },
+  { wert: 'dunkel', label: 'Dunkel', zusatz: 'Eigene warme Tonwelt' },
+  { wert: 'system', label: 'System', zusatz: 'Folgt dem Gerät' },
+] as const;
 
 const ANFORDERUNGEN = [
   { id: 'a1', titel: 'Kupferrohr 15 mm, 10 m', info: 'Baustelle Gleisdorf · eilt', schritt: 'Annehmen' },
@@ -63,7 +73,6 @@ const ANFORDERUNGEN = [
 export default function MusterView() {
   const toast = useToast();
   const [darstellung, setDarstellung] = useDarstellung();
-  const [ansicht, setAnsicht] = useState<'woche' | 'monat'>('woche');
   const [gewaehlt, setGewaehlt] = useState<string[]>([]);
   const [fenster, setFenster] = useState(false);
   const [dialog, setDialog] = useState(false);
@@ -78,7 +87,7 @@ export default function MusterView() {
       <PageHeader
         ort="Werkzeug für die Abnahme"
         title="Musterseite"
-        subtitle="Jeder Baustein der Linie „Lot“ einmal"
+        subtitle="Jeder Baustein der Designlinie V10 einmal"
         hilfe="Diese Seite zeigt die Bausteine der Oberfläche. Nichts hier wird gespeichert."
         mehr={
           <RowMenu
@@ -92,13 +101,20 @@ export default function MusterView() {
         action={<Button onClick={() => setFenster(true)}>Seitenfenster öffnen</Button>}
       />
 
-      <Card title="Darstellung" hint="Hell ist Standard. Dunkel gilt nur auf diesem Gerät und nur auf ausdrückliche Wahl.">
-        <Segmente
-          name="Darstellung"
-          werte={[{ wert: 'hell', text: 'Hell' }, { wert: 'dunkel', text: 'Dunkel' }]}
-          wert={darstellung}
-          onChange={setDarstellung}
-        />
+      {/* Dieselbe Wahl wie unter „Mein Konto → Darstellung und Bewegung“ — die Musterseite prüft beide Sätze. */}
+      <Card title="Darstellung" hint="Hell ist Standard. Dunkel und System gelten nur auf diesem Gerät und nur auf ausdrückliche Wahl.">
+        <fieldset className="wahl-gruppe">
+          <legend className="sr-only">Darstellung</legend>
+          {DARSTELLUNGEN.map((d) => (
+            <label key={d.wert} className="wahl-option">
+              <input type="radio" name="muster-darstellung" value={d.wert} checked={darstellung === d.wert} onChange={() => setDarstellung(d.wert)} />
+              <span className="wahl-text">
+                <span className="wahl-name">{d.label}</span>
+                <span className="wahl-zusatz">{d.zusatz}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
       </Card>
 
       <Card title="Grundwerte">
@@ -110,10 +126,12 @@ export default function MusterView() {
             </div>
           ))}
         </div>
-        <p className="mt-4 text-2xl font-semibold">Seitentitel 26</p>
-        <p className="text-lg font-semibold">Abschnitt 18</p>
-        <p className="text-fliess">Fließtext 15</p>
-        <p className="text-meta text-ink-muted">Nebeninfo 13</p>
+        {/* V10: Serife nur für größere Titel, regulär; Bedienung in DM Sans; Gemessenes in Plex Mono. */}
+        <p className="mt-4 font-titel text-3xl font-normal text-ink-deep">Seitentitel in Source Serif 4</p>
+        <p className="font-titel text-xl font-normal text-ink-deep">Bereichstitel</p>
+        <p className="text-fliess">Fließtext und Bedienung in DM Sans</p>
+        <p className="text-meta text-ink-muted">Nebeninfo und Metadaten</p>
+        <p className="font-mono text-fliess tabular-nums">€ 18 240,00 · 07:30–16:15 · PR-2026-0190</p>
       </Card>
 
       <MusterPlanlinie />
@@ -187,15 +205,6 @@ export default function MusterView() {
         </ul>
       </Card>
 
-      <Card title="Auswahl als Segmente">
-        <Segmente
-          name="Ansicht"
-          werte={[{ wert: 'woche', text: 'Woche' }, { wert: 'monat', text: 'Monat' }]}
-          wert={ansicht}
-          onChange={setAnsicht}
-        />
-      </Card>
-
       <Card title="Akte: Kurzzeilen und Verlauf" buendig>
         <Kurzzeile name="Kunde" wert="Familie Huber">Hauptplatz 1, 8200 Gleisdorf · 0664 123 45 67</Kurzzeile>
         <Kurzzeile name="Budget" wert="40 h, davon 31 h gebucht">Facharbeiter 24 h, Helfer 7 h</Kurzzeile>
@@ -238,9 +247,7 @@ export default function MusterView() {
       <MusterZeitfelder />
       <MusterZeitablauf />
 
-      <Card title="Leerer Zustand" buendig>
-        <EmptyState>Heute liegt nichts an.</EmptyState>
-      </Card>
+      <MusterV10 />
 
       {/* Runde 4: Bausteine der Mitarbeiterübersicht, der Woche und des Monats. */}
       <MusterUebersicht />

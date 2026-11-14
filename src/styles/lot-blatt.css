@@ -53,15 +53,27 @@
   .inhalt :is(.ue-liste, .ue-liste-woche, .ue-vergleich, .lot-einrichtung),
   .inhalt .monatskalender:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog']) .monatskalender) {
     position: relative;
-    margin-inline: 0; padding: 0; border: 0; border-radius: 0;
+    /*
+      V10 (13.11.2026): das Blatt ist ein helles Arbeitsblatt mit feiner
+      Kontur und 16 px Radius auf dem warmen Papier — kein Schatten, nur die
+      Kontur trägt die Grenze. Vorher eckig mit Linien, die als Zeichnung
+      über dem Inhalt lagen.
+
+      DIE KONTUR IST EIN UMRISS, KEIN RAND (14.11.2026). Ein 1-px-Rand machte
+      jedes Blatt 2 px höher als seinen Inhalt; der Taktgeber hängte dann
+      22 px Luft unten an, um wieder ganze Zellen zu treffen. Der Umriss
+      (`outline`, nach innen versetzt) hat keine Höhe, folgt dem Radius und
+      wird nach dem Inhalt gezeichnet — keine klebende Leiste und keine
+      Auswahlfläche deckt ihn zu (E76).
+    */
+    margin-inline: 0; padding: 0; border: 0; outline: 1px solid var(--border); outline-offset: -1px; border-radius: var(--radius-lg);
     background: var(--surface);
-    box-shadow: 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), 1px 1px 0 var(--border-strong);
+    box-shadow: none;
   }
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte)::before,
   .inhalt :is(.ue-liste, .ue-liste-woche, .ue-vergleich, .lot-einrichtung)::before,
   .inhalt .monatskalender:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog']) .monatskalender)::before {
-    content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
-    border-top: 1px solid var(--border-strong); border-left: 1px solid var(--border-strong);
+    content: none;
   }
 
   /*
@@ -107,10 +119,12 @@
     Leiste auf Ebene 10, über der Zeichnung des Blatts (Ebene 1). Von Kante
     zu Kante deckte sie die linke Linie um ihre Höhe zu („links keine
     Border“). Sie beginnt deshalb einen Pixel innen; die Knöpfe bleiben auf
-    der 24-px-Flucht.
+    der 24-px-Flucht. Seit V10 (14.11.2026) ist die Kontur ein Umriss, der
+    nach dem Inhalt gezeichnet wird: die Leiste reicht von Kante zu Kante und
+    deckt die Linie trotzdem nicht zu.
   */
   @media (max-width: 1199px) {
-    .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-koerper .aktionsleiste { margin: 1.5rem var(--blatt-rand-minus) -24px var(--blatt-rand-minus-innen); padding: 12px var(--blatt-rand) 12px var(--blatt-rand-innen); }
+    .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-koerper .aktionsleiste { margin: 1.5rem var(--blatt-rand-minus) -24px; padding: 12px var(--blatt-rand); }
     /*
       FREI AUF DER SEITE (Firmendaten) ist die Leiste selbst ein Streifen
       Blatt: so breit wie die Spalte, mit der Linie rundum wie jedes Blatt,

@@ -81,8 +81,10 @@ describe('B4 Lot in der Navigation', () => {
     expect(PLANLINIE).not.toContain('.navi-lot');
   });
 
-  it('der aktive Punkt hat keine gefüllte Fläche mehr — das Lot ersetzt sie', () => {
-    expect(regel('.navi-punkt-aktiv')).toContain('background: none');
+  it('V10: der aktive Punkt trägt das Lot und eine leise aufgehellte Fläche (Mappe S. 20)', () => {
+    // Gegenprobe: der Stand der Planlinie (`background: none`) ist rot.
+    expect(regel('.navi-punkt-aktiv')).toContain('background: var(--navi-tief)');
+    expect(PLANLINIE).toContain('.navi-blei');
   });
 });
 
@@ -100,12 +102,12 @@ describe('B12 Raster — das Zeichenblatt der Arbeitsfläche (E32)', () => {
     expect(mitGitter.sort()).toEqual(['.anmelde-buehne', '.hauptflaeche', '.raster']);
   });
 
+  // V10 (13.11.2026): Nebenlinien `--raster-neben`, jede vierte Linie `--raster-haupt` — beide je Satz in index.css.
   it('hell wie dunkel, nur die Farbe der Linie wechselt — und an der Inhaltskante ausgerichtet', () => {
-    expect(PLANLINIE).toContain(':root { --raster-linie: var(--surface-2); }');
-    expect(PLANLINIE).toContain(":root[data-theme='dark'] { --raster-linie: var(--surface); }");
+    expect(PLANLINIE).toContain(':root { --raster-linie: var(--raster-neben); }');
     expect(PLANLINIE).not.toMatch(/data-theme='dark'\] \.hauptflaeche/);
     // Die Polster von `.inhalt` (lot.css): 16, 24 bzw. 20, 40 bzw. 24 px.
-    expect(PLANLINIE).toContain('background-size: 24px 24px; background-position: 16px 16px; }');
+    expect(PLANLINIE).toContain('background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px; background-position: 16px 16px; }');
     expect(PLANLINIE).toContain('@media (min-width: 760px) { .hauptflaeche { background-position: 24px 20px; } }');
     expect(PLANLINIE).toContain('@media (min-width: 1200px) { .hauptflaeche { background-position: 40px 24px; } }');
     const lot = readFileSync('src/styles/lot.css', 'utf8');
@@ -140,7 +142,8 @@ describe('B12 Raster — das Zeichenblatt der Arbeitsfläche (E32)', () => {
     expect(stil('lot-monat.css')).toContain('.mo-raster { display: block; border-top: 1px solid var(--border); }');
     // Seit E33 ragt keine Karte mehr in den Rand: die Planung ist ein Blatt wie jedes andere.
     expect(readFileSync('src/index.css', 'utf8')).not.toContain(':has(.wp-huelle, .mo-ecke)');
-    expect(stil('lot-blatt.css')).toMatch(/\.inhalt \.karte:not\(\.karte \.karte\)[^{]*\{\s*position: relative;\s*margin-inline: 0;/);
+    // V10: das Blatt trägt Kontur und 16 px Radius.
+    expect(stil('lot-blatt.css')).toMatch(/\.inhalt \.karte:not\(\.karte \.karte\)[^{]*\{\s*position: relative;[\s\S]*?margin-inline: 0; padding: 0; border: 0; outline: 1px solid var\(--border\); outline-offset: -1px; border-radius: var\(--radius-lg\);/);
   });
 
   it('die Klasse `raster` trägt nur noch die Musterseite', () => {
@@ -221,9 +224,11 @@ describe('Abstand zur Linie und die obere Linie des Schriftfelds (02.11.2026)', 
     expect(UEBERSICHT).toContain('.ue-massstab { display: block; margin: 0; padding: 0.75rem 1rem 0.25rem;');
   });
 
-  it('das Schriftfeld trägt die obere Linie über die ganze Breite, eine angebrochene Reihe führt sie zu Ende', () => {
-    expect(regel('.schriftfeld::before')).toMatch(/left: 0; right: 0;.*border-top: 1px solid var\(--border-strong\)/);
-    expect(regel('.schriftfeld .lage-zeile::after')).toMatch(/flex: 1 1 0;.*border-top: 1px solid var\(--border-strong\)/);
+  // V10 (13.11.2026): das Schriftfeld ist ein Blatt mit Kontur rundum — keine gezeichneten Einzellinien mehr.
+  it('das Schriftfeld ist ein geschlossenes Blatt mit Kontur und Radius, ohne Zusatzlinien', () => {
+    expect(regel('.schriftfeld')).toMatch(/background: var\(--surface\); border: 1px solid var\(--border\); border-radius: var\(--radius-lg\);/);
+    expect(regel('.schriftfeld::before')).toContain('content: none;');
+    expect(regel('.schriftfeld .lage-zeile::after')).toContain('content: none;');
   });
 
   it('am Tablet sieben Zellen je Feld mit 12 px Polster rundum; die Skizze hält Abstand zu den Feldlinien', () => {
@@ -231,8 +236,8 @@ describe('Abstand zur Linie und die obere Linie des Schriftfelds (02.11.2026)', 
     const block = tablet.slice(0, tablet.indexOf('\n  }'));
     expect(block).toContain('.schriftfeld .lage-punkt { flex-basis: 168px; }');
     expect(block).toContain('.schriftfeld .lage-eintrag { padding: 0.75rem; }');
-    expect(block).toContain('.schriftfeld-skizze { flex-basis: 96px; }');
-    expect(regel('.schriftfeld-skizze')).toContain('padding: 0 0.75rem;');
+    // V10: keine Skizze im Schriftfeld — Illustrationen gehören in echte Leerzustände.
+    expect(regel('.schriftfeld-skizze')).toContain('display: none;');
   });
 
   it('gleich geblieben: am Schreibtisch zehn Zellen je Feld mit 24 px Polster seitlich', () => {
@@ -253,8 +258,8 @@ describe('Abstand zur Linie und die obere Linie des Schriftfelds (02.11.2026)', 
     expect(block).toContain('.schriftfeld .lage-punkt-null, .schriftfeld .lage-punkt-laedt, .schriftfeld .lage-punkt-breit');
     expect(block).toContain('.schriftfeld:not(:has(.lage-punkt:not(.lage-punkt-null, .lage-punkt-laedt, .lage-punkt-breit))) { display: none; }');
     expect(block).toContain('.lineal { display: none; }');
-    // Eine Warnung wird ein Hinweis mit farbiger Kante, nicht nur farbige Ziffern.
-    expect(block).toContain('.schriftfeld .lage-punkt-achtung { background: var(--warning-bg);');
+    // V10: eine Warnung ohne Farbfläche und ohne Kante — Text und Symbol tragen sie.
+    expect(block).toContain('.schriftfeld .lage-punkt-achtung { background: none; box-shadow: none; }');
     expect(block).not.toContain('flex-basis: 168px');
   });
 
@@ -377,9 +382,8 @@ describe('Durchsicht 09.11.2026', () => {
     expect(N).toMatch(/\.nachrichten-raster \{ gap: 0; height: 76dvh;[^}]*border: 1px solid var\(--border\); background: var\(--surface\); \}/);
     expect(N).toContain('.nachrichten-raster > .chat { min-height: 0; border: 0; }');
     expect(N).toContain('.chat { margin: 0 var(--takt-auslauf, -1rem) 0 -1rem; border-inline: 0; border-bottom: 0; }');
-    // Apple-nah: Zeit über der Gruppe, nicht in der Blase; Zipfel an der letzten Blase.
+    // Zeit über der Gruppe, nicht in der Blase. Den Zipfel der Apple-Blasen gibt es seit V10 nicht mehr (v10Stil.test.ts, „V10 Nachrichten“).
     expect(N).not.toContain('.nachricht-zeit');
-    expect(N).toMatch(/\.nachricht\[data-ende\]:not\(\[data-eigene\]\) \.nachricht-blatt:not\(\[data-weg\]\)::before/);
   });
 
   it('bei reduzierter Bewegung entfallen auch diese Rückmeldungen', () => {
@@ -419,9 +423,15 @@ describe('E72 Material und Plattform', () => {
     expect(MAT).toContain('.zeile-stand .zeile-wert:has(> .lager-masslinie) { flex: 1 1 100%; }');
   });
 
-  it('im Seitenfenster einer Anforderung eine Knopfgestalt: auch der Status von Hand untereinander', () => {
-    expect(MAT).toContain('.material-status { display: flex; flex-direction: column; gap: 0.5rem; }');
-    expect(MAT).toContain('.material-aktionen { display: flex; flex-direction: column; gap: 0.5rem; }');
+  /*
+    V10 (13.11.2026): weiter eine Knopfgestalt im Seitenfenster — jetzt
+    durchweg in Textbreite statt untereinander in voller Breite; die
+    Aktionen rechts mit der Hauptaktion außen (V10 Material in v10Stil.test.ts).
+  */
+  it('im Seitenfenster einer Anforderung eine Knopfgestalt: Aktionen und Status von Hand in Textbreite', () => {
+    expect(MAT).toContain('.material-status { display: flex; flex-wrap: wrap; gap: 0.5rem; }');
+    expect(MAT).toMatch(/\.material-aktionen \{ display: flex; flex-direction: row-reverse; flex-wrap: wrap;/);
+    expect(MAT).not.toMatch(/\.material-(aktionen|status) \{[^}]*flex-direction: column/);
   });
 
   it('der Warenkorb am Handy: „Leeren“ in seiner Breite, das Abschicken nimmt den Rest', () => {
@@ -474,14 +484,18 @@ describe('E72 Team und Verwaltung', () => {
     expect(START).toContain('.start-kontext .einsatz-knoepfe { flex-direction: column; }');
   });
 
-  it('Arbeitstag als Blatt: Linie in --border-strong, 24 px Polster, vom Taktgeber ausgerichtet (M8)', () => {
-    expect(TIMER).toContain('.arbeitstag { position: relative; padding: 1.5rem; border: 0; background: var(--surface); box-shadow: 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), 1px 1px 0 var(--border-strong); }');
+  /* V10 (13.11.2026): das Blatt trägt Kontur und Radius statt der gezeichneten Linie; der Taktgeber richtet es weiter aus. */
+  it('Arbeitstag als Blatt: Kontur, Radius, Polster der Blätter, vom Taktgeber ausgerichtet (M8, V10)', () => {
+    // 24 px oben und unten: ganze Rasterzellen, der Taktgeber füllt unten nichts auf (E75, Browserweg arbeitstag.spec).
+    expect(TIMER).toMatch(/\.arbeitstag \{ position: relative; padding: 1\.5rem var\(--blatt-rand\); border: 0; outline: 1px solid var\(--border\); outline-offset: -1px; border-radius: var\(--radius-lg\); background: var\(--surface\);/);
+    expect(TIMER).not.toMatch(/\.arbeitstag \{[^}]*box-shadow/);
     expect(TIMER).not.toContain('.link.arbeitstag-verwerfen');
     expect(quelle('src/lib/takt.ts')).toContain('.plattform-kontext, .arbeitstag)');
   });
 
-  it('Timer-Leiste: 48 px, Linie in --border-strong, an der Kante der Blätter (M8)', () => {
-    expect(TIMER).toMatch(/\.timer-leiste \{[^}]*padding: 0\.125rem 0\.125rem 0\.125rem 1rem;[^}]*box-shadow: inset 0 1px 0 var\(--border-strong\); \}/);
+  /* V10 (13.11.2026): am Handy eine Insel wie Kopf und Fuß, ab dem Tablet ein schwebendes Blatt — beides 48 px. */
+  it('Timer-Leiste: 48 px, an der Kante der Blätter (M8, V10)', () => {
+    expect(TIMER).toMatch(/\.timer-leiste \{[^}]*min-height: 3rem; padding: 0\.125rem 0\.125rem 0\.125rem 1rem;/);
     expect(TIMER).not.toMatch(/\.timer-leiste \{[^}]*border-top/);
     expect(TIMER).toContain('max-width: var(--takt-breite, none); margin: 1.5rem 1.5rem 0;');
     expect(TIMER).toContain('.timer-leiste-breit { margin-inline: 2.5rem; }');
@@ -502,8 +516,10 @@ describe('E72 Team und Verwaltung', () => {
   });
 
   it('Handlungen als Knöpfe, Füße nach R7, frei stehend nie klein (M3, M9, N13)', () => {
-    // Benutzer anlegen: am Handy der Hauptknopf oben, beide volle Breite.
-    expect(quelle('src/features/users/UserMgmtView.tsx')).toContain('<div className="fuss-aktionen flex-col-reverse md:flex-row">');
+    // Benutzer anlegen: V10 (13.11.2026) auch am Handy Abbrechen links, Anlegen rechts in einer Zeile.
+    // Gegenprobe: der Stand R7 (`flex-col-reverse md:flex-row`, gestapelt) ist rot.
+    expect(quelle('src/features/users/UserMgmtView.tsx')).toContain('<div className="fuss-aktionen">');
+    expect(quelle('src/features/users/UserMgmtView.tsx')).not.toContain('flex-col-reverse');
     // Standardfelder: gefüllt im Fuß wie jede Speichern-Aktion der Einstellungen.
     const standard = quelle('src/features/settings/StandardZeitfelder.tsx');
     expect(standard).toContain('<div className="fuss-aktionen mt-4"><Button disabled={!geaendert || speichert}');
@@ -596,15 +612,18 @@ describe('E72 Aufträge und Planung', () => {
     expect(AKTEN).toContain('.positionen-tabelle tbody td.r { grid-column: 1 / -1;');
   });
 
-  it('Monatsvorschau: Fenster der Linie — eckig, ohne Schatten, „Schließen“, Fuß nach R7, nicht über der Navigation (B2, E2, D7, A3, E1)', () => {
+  it('Monatsvorschau: schwebendes Fenster (V10: Radius und Schatten des Schwebenden), „Schließen“, Fuß nach R7, nicht über der Navigation (B2, E2, D7, A3, E1)', () => {
     const vorschau = regeln(MONAT, '.vorschau');
-    // Gegenprobe: vorher `border-radius: 12px; box-shadow: var(--shadow-lg)` und 18 px Innenrand.
-    expect(vorschau).toContain('border-radius: 0;');
-    expect(vorschau).not.toContain('box-shadow');
+    // V10 (13.11.2026): Schatten nur für Schwebendes — die Vorschau schwebt über dem Raster.
+    // Gegenprobe: der Stand der Linie Lot (`border-radius: 0`, ohne Schatten) ist rot.
+    expect(vorschau).toContain('border-radius: var(--radius-lg);');
+    expect(vorschau).toContain('box-shadow: var(--shadow-lg);');
     expect(MONAT).not.toContain('.vorschau-zu');
     expect(MONAT).toContain('.vorschau-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 1rem 1.25rem;');
     expect(MONAT).toContain('.vorschau-fuss { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; margin-top: -1px; padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); }');
-    expect(MONAT).toContain('    .vorschau-fuss { flex-direction: column-reverse; padding: 0.75rem 1rem; }');
+    // V10 (13.11.2026): am Handy in einer Zeile wie `.fuss-aktionen` — Gegenprobe: `flex-direction: column-reverse` (R7) ist rot.
+    expect(MONAT).toContain('    .vorschau-fuss { padding: 0.75rem 1rem; }');
+    expect(MONAT).not.toMatch(/\.vorschau-fuss \{[^}]*column-reverse/);
     const tsx = quelle('src/features/assignments/MonatsVorschau.tsx');
     expect(tsx).toContain('className="fenster-schliessen" aria-label="Vorschau schließen"');
     expect(tsx).not.toContain('groesse="klein" onClick={() => einsatz(haupt.start)}');
@@ -617,8 +636,10 @@ describe('E72 Aufträge und Planung', () => {
     expect(PLANUNG).toContain('.tag-abschnitt-kopf .planung-abschnitt { margin-bottom: 0; }');
   });
 
-  it('Fensterfüße einheitlich: Abbrechen gerahmt vor der Hauptaktion, am Handy gestapelt (E1, R7)', () => {
-    expect(PLANUNG).toContain('@media (max-width: 759px) { .planung-fuss-knoepfe { flex-direction: column-reverse; } }');
+  it('Fensterfüße einheitlich: Abbrechen gerahmt vor der Hauptaktion, auch am Handy in einer Zeile (E1; V10 statt R7)', () => {
+    // V10: Sekundär links, Hauptaktion rechts, nicht gestapelt — Gegenprobe: die Stapelregel von R7 ist rot.
+    expect(PLANUNG).toContain('.planung-fuss-knoepfe { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }');
+    expect(PLANUNG).not.toMatch(/\.planung-fuss-knoepfe \{[^}]*column-reverse/);
     for (const datei of [
       'src/features/termine/TerminFormular.tsx',
       'src/features/liegenschaften/LiegenschaftFormular.tsx',
@@ -630,8 +651,12 @@ describe('E72 Aufträge und Planung', () => {
       // Gegenprobe: `<div className="flex flex-wrap gap-2">` mit der Hauptaktion zuerst und Abbrechen als `ghost`.
       expect(q, datei).toMatch(/<div className="planung-fuss mt-0">\s*<div className="planung-fuss-knoepfe">\s*<Button type="button" variant="secondary" onClick=\{onAbbrechen\}[^\n]*\n\s*<Button type="submit"/);
     }
-    expect(quelle('src/features/quotes/QuotesView.tsx')).toContain('<div className="fuss-aktionen flex-col-reverse md:flex-row">');
-    expect(quelle('src/features/angebotAnnahme/AngebotAnnahmeSeite.tsx')).toContain('<div className="fuss-aktionen flex-col-reverse md:flex-row">');
+    // V10: nicht mehr gestapelt — Nebenhandlung links, Hauptaktion rechts, auch am Handy.
+    for (const datei of ['src/features/quotes/QuotesView.tsx', 'src/features/angebotAnnahme/AngebotAnnahmeSeite.tsx', 'src/components/ConfirmDialog.tsx']) {
+      expect(quelle(datei), datei).not.toContain('flex-col-reverse');
+    }
+    expect(quelle('src/features/quotes/QuotesView.tsx')).toContain('<div className="fuss-aktionen">');
+    expect(quelle('src/features/angebotAnnahme/AngebotAnnahmeSeite.tsx')).toContain('<div className="fuss-aktionen">');
   });
 
   it('Löschen ist rot und normal groß (A4, R4) — in der Zeile seit E74 der Papierkorb', () => {

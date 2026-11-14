@@ -726,7 +726,8 @@ describe('Die Rechnungen der Akte', () => {
     await userEvent.click(zeile);
     const fenster = await screen.findByRole('dialog', { name: 'Rechnung RE-2026-1001' });
     expect(within(fenster).getByText('Rechnungsdatum')).toBeInTheDocument();
-    expect(within(fenster).getByText('Teilbezahlt')).toBeInTheDocument();
+    // V10 (13.11.2026): der Stand steht oben am Beleg und weiter beim Zahlstand — zweimal im Fenster.
+    expect(within(fenster).getAllByText('Teilbezahlt').length).toBeGreaterThanOrEqual(1);
     expect(listInvoicesForCustomer).toHaveBeenCalledWith('perl', 'k1', ['p1']);
   });
 

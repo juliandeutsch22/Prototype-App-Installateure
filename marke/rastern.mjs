@@ -24,7 +24,7 @@ const favicon = zeichen.replace('</title>', '</title>' + grundRund);
 const appIcon = zeichen
   .replace('</title>', '</title>' + grund)
   .replace('<g fill=', '<g transform="translate(32 32) scale(0.92) translate(-32 -32)" fill=');
-const badge = zeichen.replaceAll('#0F4552', '#FFFFFF');
+const badge = zeichen.replaceAll('#A85439', '#FFFFFF');
 for (const [name, quelle] of [['icon.svg', appIcon], ['favicon.svg', favicon]]) {
   writeFileSync(resolve(HIER, name), quelle);
   writeFileSync(resolve(ZIEL, name), quelle);

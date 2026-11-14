@@ -79,7 +79,8 @@ test('Baustellenakte am Handy: Angaben als Blatt, Stand neben der Nummer, Titel 
   await expect(kopf.locator('.kopfzeile-titel')).toHaveCount(0);
   await page.mouse.wheel(0, 600);
   await expect(kopf.locator('.kopfzeile-titel')).toHaveText(BAUSTELLE.kunde, { timeout: 5_000 });
-  expect((await kopf.boundingBox())!.y).toBe(0);
+  // V10: die Kopfzeile ist eine Insel, sie klebt 8 px unter der Oberkante (ohne Safe Area im Test).
+  expect((await kopf.boundingBox())!.y).toBe(8);
   await page.mouse.wheel(0, -2000);
   await expect(kopf.locator('.kopfzeile-titel')).toHaveCount(0, { timeout: 5_000 });
 
@@ -170,14 +171,13 @@ for (const [breite, nebeneinander] of [[1200, true], [834, false]] as const) {
     const formular = page.locator('.zeit-formularkarte');
     const liste = page.locator('#meine-eintraege');
     await expect(liste).toBeVisible({ timeout: 15_000 });
-    const f = (await formular.boundingBox())!;
-    const l = (await liste.boundingBox())!;
-    if (nebeneinander) {
+    // Der Endstand zählt: Schriften und Taktgeber setzen die Blätter nach dem ersten Zeichnen noch (V10).
+    await expect.poll(async () => {
+      const f = (await formular.boundingBox())!;
+      const l = (await liste.boundingBox())!;
       // Rechts daneben, auf gleicher Höhe — der Taktgeber setzt jedes Blatt auf seine Rasterlinie, auf eine Zelle genau.
-      expect(l.x).toBeGreaterThan(f.x + f.width);
-      expect(Math.abs(l.y - f.y)).toBeLessThanOrEqual(24);
-    } else {
-      expect(l.y).toBeGreaterThan(f.y + f.height - 1);
-    }
+      if (nebeneinander) return l.x > f.x + f.width && Math.abs(l.y - f.y) <= 24;
+      return l.y > f.y + f.height - 1;
+    }, { timeout: 5_000 }).toBe(true);
   });
 }

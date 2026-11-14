@@ -22,6 +22,8 @@ interface Kante { blatt: string; kante: string; abstand: number }
 /** Wie weit liegt jede Kante jedes Blatts neben der nächsten Rasterlinie? */
 async function kanten(page: Page): Promise<{ anzahl: number; daneben: Kante[] }> {
   // Der Taktgeber rechnet je Bild nach; zwei Bilder abwarten.
+  // Erst wenn die Schriften da sind, steht der Text fest — danach richtet der Taktgeber neu aus (V10).
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
   await page.evaluate(() => new Promise((fertig) => requestAnimationFrame(() => requestAnimationFrame(fertig))));
   return page.evaluate((auswahl) => {
     const flaeche = document.querySelector<HTMLElement>('.hauptflaeche')!;

@@ -10,7 +10,7 @@ import { anmeldeAdresse, istBenutzerkonto, KEIN_MAILKONTO } from '@shared/benutz
 import Hinweiszeile from '@/components/Hinweiszeile';
 
 /**
- * Anmeldung. Dunkles Kopfband mit der Produktmarke, darunter das Formular —
+ * Anmeldung. Die Produktmarke über dem Formular auf hellem Papier (V10) —
  * die Marke trägt der Kopf, nicht die Eingabefelder.
  *
  * HIER STEHT DAS PRODUKT UND NICHT DER BETRIEB. Vor der Anmeldung ist der
@@ -140,29 +140,21 @@ export default function LoginPage() {
       <div className="anmelde-spalte">
         {/* Linie „Lot“: eine Fläche mit Rand, ohne Schatten. */}
         <div className="anmelde-karte">
-          {/* Markenband: dieselbe dunkle Trägerfläche wie Seitenleiste und
-              Tableiste. Die Marke steht ohne weitere Fassung darauf. Am
-              Schreibtisch trägt sie die Bühne daneben, hier entfällt es dann. */}
-          <div className="anmelde-markenband panel-dark px-6 py-6 text-center">
-            <ProduktMarke hoehe={44} hell className="text-white" />
-            {/* Volles Weiss, nicht 85 Prozent: auf dem Telefon im Freien ist der
-                abgedunkelte Text auf dem dunklen Band schlecht zu lesen.
-                `text-white` und nicht `brand-fg`, weil das Band nicht die
-                Markenfarbe des Mandanten traegt, sondern die feste dunkle
-                Flaeche — die Kontrastfarbe dazu ist Weiss, unabhaengig davon,
-                was der Betrieb als Marke hinterlegt hat. */}
-            <p className="mt-3 text-sm font-semibold text-white">
-              Mitarbeiter-Portal
-            </p>
+          {/*
+            V10 (13.11.2026): KEIN DUNKLES BAND MEHR ÜBER DEM FORMULAR. Vor der
+            Anmeldung gibt es keine App-Navigation, also auch keine dunkle
+            Trägerfläche, zu der das Band gehörte. Die Marke steht auf dem
+            hellen Blatt wie auf der Bühne daneben; am Schreibtisch trägt sie
+            die Bühne, hier entfällt sie dann (`.anmelde-markenband`).
+          */}
+          <div className="anmelde-markenband px-6 pt-6">
+            <ProduktMarke hoehe={32} />
+            <p className="mt-1 text-sm text-ink-muted">Mitarbeiter-Portal</p>
           </div>
-          {/* KEIN STREIFEN MEHR ZWISCHEN KOPF UND FORMULAR. Hier lag die
-              leuchtende Kante aus Cyan und Mint — eine dritte Farbe, die das
-              Zeichen selbst nicht kennt. Die Kante zwischen dunkler Fläche und
-              weissem Formular ist die Trennung; ein Streifen darauf wäre eine
-              zweite für dieselbe Sache. */}
 
           <form onSubmit={handleSubmit} className="px-6 py-6">
-            <h1 className="mb-1 text-xl font-semibold text-ink">
+            {/* Serifentitel wie jeder Seitentitel der App (V10), regulär. */}
+            <h1 className="mb-1 font-titel text-2xl font-normal text-ink-deep">
               {resetMode ? 'Passwort zurücksetzen' : 'Anmelden'}
             </h1>
             <p className="mb-4 text-sm text-ink-muted">

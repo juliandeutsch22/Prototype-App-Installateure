@@ -107,7 +107,7 @@ export default function Zeitkorrekturen() {
     {an && <CheckboxField id="korrekturen-erledigte" label="Auch entschiedene Anträge zeigen" checked={auchErledigte} onChange={(e) => setAuchErledigte(e.target.checked)} />}
     {(fehler || linkFehler) && <p role="alert" className="text-sm text-danger">{fehler ?? linkFehler}</p>}
     {!antraege.length && <p className="mt-3 text-sm text-ink-muted">Keine offenen Korrekturanträge.</p>}
-    <List>{antraege.map((a) => <ListRow key={a.id} title={`${datumAT(a.datum)} · ${String(a.vorher.user_name ?? '')}`} subtitle={`${a.wunsch} · ${STANDNAME[a.stand]}`} onOeffnen={() => setAuswahl(a)} pfeil />)}</List>
+    <List>{antraege.map((a) => <ListRow key={a.id} title={`${datumAT(a.datum)} · ${String(a.vorher.user_name ?? '')}`} subtitle={`${a.wunsch} · ${STANDNAME[a.stand]}`} onOeffnen={() => setAuswahl(a)} ausgewaehlt={auswahl?.id === a.id} pfeil />)}</List>
     {createPortal(<BottomSheet open={!!auswahl} onClose={schliessen} label="Korrekturantrag" titel="Korrekturantrag" auchBreit breit>
       {auswahl && <>
         <p className="mb-3">{datumAT(auswahl.datum)} · {auswahl.wunsch}</p>

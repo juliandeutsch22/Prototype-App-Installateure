@@ -12,6 +12,8 @@
   .plattform-marke { display: inline-flex; align-items: center; gap: 0.75rem; min-width: 0; }
   .plattform-markenzusatz { font-size: 0.75rem; line-height: 1rem; color: var(--navi-text); }
   .navi-betrieb .plattform-markenzusatz { margin-top: 0.5rem; }
+  /* In der hellen Kopfinsel (V10) gedämpfte Tinte statt des Tons der dunklen Leiste. */
+  .kopfzeile .plattform-markenzusatz { color: var(--text-muted); }
 
   /* Verborgen statt ausgehängt: einmalige Ergebnisse und Formulare überleben die Bereichswahl. */
   .plattform-bereich[hidden], .plattform-teilseite[hidden] { display: none; }
@@ -33,8 +35,9 @@
     grauer Fläche: vier Ecken wie Passermarken, die Fläche ist das Raster.
     Der Taktgeber setzt sie auf die Linien (TAKT_SELEKTOR).
   */
-  .plattform-kontext { min-width: 0; padding: 0.75rem 1.375rem 1rem; background-color: transparent; background-image: linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)), linear-gradient(var(--border-strong), var(--border-strong)); background-repeat: no-repeat; background-size: 14px 1px, 1px 14px, 14px 1px, 1px 14px, 14px 1px, 1px 14px, 14px 1px, 1px 14px; background-position: left top, left top, right top, right top, left bottom, left bottom, right bottom, right bottom; }
-  .plattform-kontext h2 { margin-top: 0.5rem; font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); }
+  /* V10 (13.11.2026): ruhig wie die Kontextspalte der Akten — eine feine Linie statt Eckmarken. */
+  .plattform-kontext { min-width: 0; padding: 0.75rem 0 1rem 1.375rem; border-left: 1px solid var(--border); background: transparent; }
+  .plattform-kontext h2 { margin-top: 0.5rem; font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); }
   .plattform-kontext h3 { margin-top: 1rem; font-size: 0.8125rem; line-height: 1.25rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .plattform-kontext p { margin-top: 0.25rem; font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
   /* Knöpfe der Kontextspalte sind Zweitknöpfe wie überall (09.11.2026: ohne Polster lag der Text am Rahmen). */
@@ -89,4 +92,34 @@
     .plattform-verwalten { min-width: 2.75rem; }
     .plattform input:not([type=checkbox]), .plattform select, .plattform textarea { font-size: 1rem; }
   }
+
+  /*
+    HÜLLE IN V10 (13.11.2026): was die globale Hülle außerhalb der zentralen
+    Inseln an eigenen Bausteinen hat — Blatt „Mehr“, Suchfenster, Anmeldung.
+    Es steht hier und nicht in lot.css, weil diese Teile zum Bereich
+    „Einstellungen und Hülle“ gehören; die Regeln greifen nach lot.css.
+  */
+
+  /* Die zwei Listen im Blatt „Mehr“: Zeilen unter einer feinen Linie, eingerückt wie der Text — keine Kachelwand. */
+  .mehr-liste { display: flex; flex-direction: column; }
+  .mehr-liste > :is(.mehr-punkt, .mehr-punkt-aktiv) { position: relative; border-radius: var(--radius-sm); }
+  .mehr-liste > * + *::before { content: ''; position: absolute; top: 0; left: 0.75rem; right: 0.75rem; height: 1px; background: var(--border); pointer-events: none; }
+  .mehr-punkt-aktiv { background: var(--auswahl); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
+  .mehr-punkt-aktiv::before, .mehr-punkt-aktiv + *::before { display: none; }
+  .mehr-pfeil { flex: none; color: var(--text-muted); }
+
+  /*
+    DIE TREFFER DER SUCHE (E91, V10): zwei ruhige Zeilen — was es ist, darunter
+    Kunde, Datum, Stand oder Bereich —, rechts die Nummer in Mono. Der
+    gewählte Treffer trägt die Auswahl der Linie (Fläche plus feine Kontur),
+    die Zeilen dazwischen eine Linie wie jede Arbeitszeile.
+  */
+  .such-treffer, .such-treffer-an { margin-inline: 0.5rem; padding-inline: 12px; border-radius: var(--radius-sm); min-height: 3rem; }
+  .such-treffer-an { background: var(--auswahl); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); color: var(--text); }
+  .such-treffer-an .such-nummer { color: var(--accent-deep); }
+  .such-nummer { font-family: var(--schrift-mono); font-variant-numeric: tabular-nums; font-size: 0.8125rem; }
+  .such-gruppe { padding-inline: 1.25rem; }
+
+  /* Das Warnzeichen einer Fehlermeldung steht dicht am Satz, nicht im Abstand zur Aktion. */
+  .meldung-fehler .meldung-symbol { margin-right: -0.625rem; }
 }

@@ -220,7 +220,7 @@ describe('Weiss steht nur auf Flächen, die es in beiden Sätzen tragen', () => 
   ohne eigene, gegen `--surface`.
 */
 describe('Schrift aus den Grundwerten trägt auf ihrer Fläche (beide Sätze)', () => {
-  const FLAECHEN = ['--surface', '--surface-2', '--bg', '--petrol-hell', '--petrol'];
+  const FLAECHEN = ['--surface', '--surface-2', '--bg', '--petrol-hell', '--petrol', '--dunkel-flaeche'];
   const quelle = (css.slice(css.indexOf('@layer components')) + lot).replace(/\/\*[\s\S]*?\*\//g, '');
 
   function regeln(text: string) {
@@ -232,7 +232,7 @@ describe('Schrift aus den Grundwerten trägt auf ihrer Fläche (beide Sätze)', 
       // Hat die Regel eine andere eigene Fläche (Navigation, Meldung), gilt sie hier nicht.
       if (/background(?:-color)?:\s*#/.test(rumpf)) continue;
       // Schrift für die volle Petrol-Fläche (Einsätze, E33) steht auf Petrol, nicht auf der Fläche der Seite.
-      const flaeche = eigene ?? (schrift.startsWith('--auf-petrol') ? '--petrol' : '--surface');
+      const flaeche = eigene ?? (schrift.startsWith('--auf-petrol') ? '--petrol' : schrift.startsWith('--auf-dunkel') ? '--dunkel-flaeche' : '--surface');
       if (!FLAECHEN.includes(flaeche)) continue;
       funde.push({ regel: sel.trim().replace(/\s+/g, ' '), schrift, flaeche });
     }

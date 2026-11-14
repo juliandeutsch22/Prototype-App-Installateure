@@ -17,6 +17,7 @@ export function ListRow({
   to,
   onOeffnen,
   gestapelt = false,
+  ausgewaehlt = false,
   children,
 }: {
   title: ReactNode;
@@ -54,6 +55,12 @@ export function ListRow({
    * rechts; am Schreibtisch rechts in festen Spalten wie sonst.
    */
   gestapelt?: boolean;
+  /**
+   * Die Zeile, deren Fenster gerade offen ist (V10, 13.11.2026): Auswahlton
+   * und feine Kontur, für Vorleser `aria-current`. So bleibt neben dem
+   * Seitenfenster sichtbar, wozu es gehört.
+   */
+  ausgewaehlt?: boolean;
   children?: ReactNode; // rechte Seite (Aktionen)
 }) {
   const ganz = !!to || !!onOeffnen;
@@ -73,7 +80,7 @@ export function ListRow({
   );
   if (gestapelt) {
     return (
-      <li className={ganz ? 'zeile zeile-gestapelt zeile-ganz' : 'zeile zeile-gestapelt'}>
+      <li className={ganz ? 'zeile zeile-gestapelt zeile-ganz' : 'zeile zeile-gestapelt'} aria-current={ausgewaehlt || undefined}>
         <div className="zeile-text">
           <div className="zeile-titel flex flex-wrap items-center gap-x-2">{titelInhalt}</div>
           {subtitle && <p className="zeile-meta mt-0.5 block">{subtitle}</p>}
@@ -94,7 +101,7 @@ export function ListRow({
     );
   }
   return (
-    <li className={ganz ? 'zeile zeile-ganz flex-wrap gap-y-2' : 'zeile flex-wrap gap-y-2'}>
+    <li className={ganz ? 'zeile zeile-ganz flex-wrap gap-y-2' : 'zeile flex-wrap gap-y-2'} aria-current={ausgewaehlt || undefined}>
       {/*
         Untergrenze statt min-w-0. `flex: 1` allein bedeutet flex-basis:0 — der
         Titel durfte damit auf 33 px schrumpfen, waehrend die Knoepfe den Rest

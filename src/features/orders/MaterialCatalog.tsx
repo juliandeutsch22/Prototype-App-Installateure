@@ -145,6 +145,8 @@ export default function MaterialCatalog({
     liess sich ein Artikel dahinter hier weder finden noch bearbeiten.
   */
   const [seite, setSeite] = useState<{ zeilen: MitNummer<WithId<Material>>[]; gesamt: number }>({ zeilen: [], gesamt: 0 });
+  /** Kam schon eine Seite? Ohne sie ist eine leere Liste keine Auskunft (V10: Fehler ≠ leer). */
+  const [geholt, setGeholt] = useState(false);
   /** Wie viele Artikel der ganze Katalog hat — unabhängig von der Suche. */
   const [imKatalog, setImKatalog] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -216,6 +218,7 @@ export default function MaterialCatalog({
         if (weg) return;
         setSeite(s);
         setImKatalog(anzahl);
+        setGeholt(true);
         setLadeFehler(null);
       })
       .catch((e: Error) => { if (!weg) setLadeFehler(e.message); })
@@ -437,12 +440,21 @@ export default function MaterialCatalog({
           }}
         />
         <div>
-          {ladeFehler && <div className="px-4 pb-4"><ErrorState message={ladeFehler} /></div>}
+          {/*
+            V10 (13.11.2026): scheiterte schon das erste Holen, stand unter der
+            Fehlermeldung „Noch kein Material im Katalog“ samt „Erstes Material
+            anlegen“ — ein Katalog, der nie gelesen wurde, ist nicht leer.
+          */}
+          {ladeFehler && (
+            <div className="px-4 pb-4">
+              <ErrorState message={ladeFehler} onRetry={() => setKatalogStand((n) => n + 1)} />
+            </div>
+          )}
           {loading ? (
             <div className="px-4 pb-4">
               <SkeletonList rows={4} />
             </div>
-          ) : visible.length === 0 ? (
+          ) : !geholt ? null : visible.length === 0 ? (
             <EmptyState
               // Echte Leere mit dem Regal, keine Treffer mit der Lupe (Planlinie § 6).
               zeichnung={leererKatalog ? 'lager' : 'suche'}

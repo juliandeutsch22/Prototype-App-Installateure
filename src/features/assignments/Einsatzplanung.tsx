@@ -361,6 +361,7 @@ export default function Einsatzplanung() {
     nichtEinplanbar: d.nichtEinplanbar,
     materialFuer: lageFuer,
     aktionen,
+    abwesenheitUnklar: d.abwesenheitUnklar,
   };
   const termineDes = (tag: string) => d.termineAm(tag);
 
@@ -405,7 +406,7 @@ export default function Einsatzplanung() {
             </p>
             <p className="mt-2">
               Im Monat am Handy steht je Tag eine Zahl: so viele Baustellen haben einen Einsatz;
-              Bernstein heißt, jemand Eingeteiltes fehlt, ein Punkt, dass Termine bestehen. Mit
+              in Warnfarbe heißt, jemand Eingeteiltes fehlt, ein Punkt, dass Termine bestehen. Mit
               „Für wen“ zeigt der Kalender den Monat einer Person: ein Balken heißt eingeplant, grau
               abwesend, „fehlt“ eingeteilt, aber abwesend. Ein Tipp auf einen Tag zeigt die Vorschau.
             </p>
@@ -414,14 +415,15 @@ export default function Einsatzplanung() {
               genehmigten Urlaub hat. Der Wochenplan zeigt Einsätze, nicht gebuchte Zeiten: wer
               ohne Einsatz Stunden bucht, steht hier trotzdem als frei. Samstag, Sonntag und
               Feiertage sind schmal, solange dort nichts steht — an einem Notdienst wird auch
-              sonntags gearbeitet, dann ist die Spalte breit. Bernstein heißt: eingeteilt, aber
-              abwesend.
+              sonntags gearbeitet, dann ist die Spalte breit. Kamen die Abwesenheiten nicht an,
+              steht statt der Zahl „frei unklar“ — mit „Erneut versuchen“ oben.
             </p>
             <p className="mt-2">
-              Ein Einsatz steht als weißes Feld mit einer Petrol-Kante, heute ganz in Petrol; ein
-              Termin hat nur die feine Linie. Wer abwesend ist (Urlaub, Krankenstand, Berufsschule,
-              Zeitausgleich) oder wann der Betrieb zu hat, steht schraffiert. Die senkrechte Linie
-              mit dem Senkblei im Kopf markiert heute.
+              Ein Einsatz steht als helles Feld mit einer Terrakotta-Markierung links; der
+              ausgewählte ist ganz in Terrakotta. Ein Termin hat nur die feine Linie. Eingeteilt,
+              aber abwesend steht mit dem Warnzeichen und „fehlt“ im Einsatz. Wer abwesend ist
+              (Urlaub, Krankenstand, Berufsschule, Zeitausgleich) oder wann der Betrieb zu hat,
+              steht schraffiert. Heute hat einen dunklen Kopf über einer warm getönten Spalte.
             </p>
             <p className="mt-2">
               Umplanen: Am Schreibtisch ziehst du einen Einsatz auf eine andere Person oder einen
@@ -447,7 +449,13 @@ export default function Einsatzplanung() {
         }
       />
 
-      {d.nebenFehler && <TeilFehler was={d.nebenFehler} />}
+      {/*
+        FEHLEN ABWESENHEITEN ODER BETRIEBSURLAUB, ist „frei“ keine Auskunft
+        (V10): der Hinweis bleibt mit „Erneut versuchen“ stehen, bis sie da
+        sind; andere Teilfehler wie bisher ohne.
+      */}
+      {d.abwesenheitFehler && <TeilFehler was={d.abwesenheitFehler} onRetry={d.abwesenheitenNeuLaden} />}
+      {d.nebenFehler && d.nebenFehler !== d.abwesenheitFehler && <TeilFehler was={d.nebenFehler} />}
       {material.fehler && <TeilFehler was="Die Materialbereitschaft" />}
       {d.error && <ErrorState message={d.error} />}
 
@@ -613,6 +621,7 @@ export default function Einsatzplanung() {
                 onTermin={grund.onTermin}
                 onTerminNeu={(tag) => setFenster({ art: 'termin', termin: null, datum: tag })}
                 aktionen={aktionen}
+                abwesenheitUnklar={d.abwesenheitUnklar}
               />
             </div>
           </Card>
@@ -698,6 +707,7 @@ export default function Einsatzplanung() {
           onInTag={() => zurTagesplanung(fenster.datum, fenster.projectNumber)}
           materialFuer={(nummer) => lageFuer(fenster.datum, nummer)}
           materialTag={material.fehler ? MATERIAL_FEHLER : tagZusammenfassen(material.lagenAm(fenster.datum))}
+          abwesenheitUnklar={d.abwesenheitUnklar}
         />
       )}
       {fenster?.art === 'termin' && (
@@ -769,9 +779,18 @@ export default function Einsatzplanung() {
           }
         }}
       />
-      {/* Was gezogen wird, wandert mit dem Zeiger — mit Alt steht „kopieren“ dabei. */}
+      {/*
+        Was gezogen wird, wandert mit dem Zeiger — mit Alt steht „kopieren“
+        dabei. Über `transform` statt `left`/`top` (V10, Motion): so gleitet
+        er beim Ablegen ohne Layoutrechnung in die Zelle.
+      */}
       {schatten && (
-        <div className="zieh-schatten" aria-hidden="true" style={{ left: schatten.x + 12, top: schatten.y + 12 }}>
+        <div
+          className="zieh-schatten"
+          aria-hidden="true"
+          data-landet={schatten.landet ? '' : undefined}
+          style={{ transform: `translate(${schatten.x + 12}px, ${schatten.y + 12}px)` }}
+        >
           <span className="e-titel">{schatten.last.titel}</span>
           {schatten.kopieren && <span className="e-zeile">kopieren</span>}
         </div>

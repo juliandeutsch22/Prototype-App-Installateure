@@ -217,10 +217,11 @@ describe('Leerzustand (Regel 5)', () => {
     expect(screen.getByRole('button', { name: 'Suche zurücksetzen' }).parentElement!.className).toBe('lot-naechster-schritt');
   });
 
-  it('gleich geblieben: ohne Zeichnung und ohne Aktion der ruhige Satz wie bisher', () => {
+  it('ohne Zeichnung und ohne Aktion ein ruhiger Satz auf der Flucht des Blatts (V10)', () => {
     const { container } = render(<EmptyState>Keine Anschrift ist zu prüfen.</EmptyState>);
     const leer = container.firstElementChild!;
-    expect(leer.className).toBe('flex flex-col items-center gap-3 px-4 py-6 text-center text-ink-muted');
+    // Gegenprobe: der Stand vor V10 (zentriert, `px-4 py-6 text-center`) ist rot.
+    expect(leer.className).toBe('flex flex-col items-start gap-3 py-3 text-ink-muted');
     expect(leer.querySelector('svg')).toBeNull();
     expect(leer.querySelector('h2')).toBeNull();
     expect(leer.querySelector('.lot-naechster-schritt')).toBeNull();

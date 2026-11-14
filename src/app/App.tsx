@@ -208,7 +208,7 @@ function AppInhalt() {
     return (
       <div className="mx-auto max-w-xl space-y-6 p-4 sm:p-6">
         <MarkenBand />
-        <h1 className="text-xl font-semibold text-ink">Zwei-Faktor-Anmeldung eingerichtet</h1>
+        <h1 className="font-titel text-2xl font-normal text-ink-deep">Zwei-Faktor-Anmeldung eingerichtet</h1>
         <WiederherstellungsCodes codes={neueCodes} onWeiter={() => setNeueCodes(null)} />
       </div>
     );
@@ -229,7 +229,7 @@ function AppInhalt() {
       <div className="mx-auto max-w-xl space-y-6 p-4 sm:p-6">
         <MarkenBand />
         <header className="space-y-1">
-          <h1 className="text-xl font-semibold text-ink">Willkommen</h1>
+          <h1 className="font-titel text-2xl font-normal text-ink-deep">Willkommen</h1>
           <p className="text-sm text-ink-muted">
             {passwortFaellig === 'start'
               ? 'Du bist mit einem Startpasswort angemeldet. Vergib zuerst ein eigenes — danach geht es weiter.'

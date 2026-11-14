@@ -18,18 +18,46 @@
 
   /* ── Schein: die Einsätze des Tages als Auswahl ───────────────────────── */
   /*
-    Die gewählte Baustelle trägt einen Petrol-Rand und den hellen Petrolgrund
-    der Linie statt einer vollen Fläche: die Auswahl soll erkennbar sein,
-    ohne lauter zu stehen als der Hauptknopf der Seite.
+    AUSWAHL NACH V10 (13.11.2026): die gewählte Baustelle trägt die warme
+    Auswahlfläche, eine feine Kontur und ein Häkchen — nicht mehr den 2-px-
+    Rand in der Akzentfarbe. Der Rand ist an beiden Zuständen 1 px, damit der
+    Text beim Wählen nicht um einen Pixel springt. Als Arbeitszeile 8 px rund.
   */
-  .schein-einsatz { min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 0.875rem; text-align: left; cursor: pointer; }
-  .schein-einsatz:hover { border-color: var(--petrol); }
-  .schein-einsatz-an { min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 2px solid var(--petrol); border-radius: var(--radius); background: var(--petrol-hell); color: var(--ink-deep); font-size: 0.875rem; font-weight: var(--gewicht-titel); text-align: left; cursor: pointer; }
+  .schein-einsatz { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 0.875rem; text-align: left; cursor: pointer; }
+  .schein-einsatz:hover { border-color: var(--auswahl-kontur); }
+  .schein-einsatz-an { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 1px solid var(--auswahl-kontur); border-radius: var(--radius-sm); background: var(--auswahl); color: var(--ink-deep); font-size: 0.875rem; font-weight: var(--gewicht-titel); text-align: left; cursor: pointer; }
+  .schein-einsatz-haken { flex: none; width: 1rem; height: 1rem; color: var(--accent-deep); }
+
+  /*
+    „WEITER ZURÜCK PRÜFEN“ ALS AUSWAHL (V10): der gewählte Zeitraum ist eine
+    Auswahl, keine Hauptaktion — warme Fläche und feine Kontur statt des
+    gefüllten Terrakotta-Knopfs, der neben „Neuer Schein“ als zweite
+    Primäraktion las. Die Rahmenstärke bleibt, nichts springt.
+  */
+  .pruef-zeitraum[aria-pressed='true'] { background: var(--auswahl); border-color: var(--auswahl-kontur); color: var(--ink-deep); }
+
+  /*
+    „ENTWURF“ LEISE LINKS IN DER ABSCHLUSSZONE (E90, V10): eine Textaktion
+    neben dem Zurück-Pfeil, kein zweiter gerahmter Knopf. Die Tastfläche
+    bleibt 48 px hoch; sichtbar ist nur das Wort.
+  */
+  .schein-entwurf-leise { display: inline-flex; align-items: center; min-height: 3rem; padding: 0 0.5rem; border: 0; background: none; color: var(--accent-deep); font-size: 0.9375rem; white-space: nowrap; cursor: pointer; }
+  .schein-entwurf-leise:disabled { color: var(--text-muted); cursor: default; }
+  /* Der Hauptschritt der Abschlusszone kompakt rechts, so breit wie sein Wort (V10, Auftrag 9.2). */
+  .schein-abschluss-haupt { justify-self: end; max-width: 100%; }
 
   /* ── Schein: Foto entfernen (das Kreuz auf dem Bild) ──────────────────── */
   /* Eigener heller Grund mit Linie statt Schatten — auf einem dunklen Foto
      wäre ein blosses Zeichen nicht zu sehen. */
   .schein-foto-weg { display: flex; width: 1.75rem; height: 1.75rem; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--danger); font-size: 0.875rem; }
+
+  /* „Neu zeichnen“ an der Beschriftung des Felds: Textaktion mit 44 px Tastfläche, ohne Rahmen (V10). */
+  .unterschrift-neu { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.25rem; border: 0; background: none; color: var(--accent-deep); font-size: 0.875rem; cursor: pointer; }
+  /* Das Blatt zum Unterschreiben: Titel als Serife wie jeder Fenstertitel, regulär (V10: 400/500, nie 600). */
+  .unterschrift-blatt-titel { margin: 0; font-family: var(--schrift-titel); font-size: 1.25rem; line-height: 1.75rem; font-weight: 400; color: var(--ink-deep); }
+  /* Sekundär links, Hauptschritt rechts, eine Zeile, eine Höhe (Auftrag 11.4). */
+  .unterschrift-blatt-aktionen { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+  .unterschrift-blatt-aktionen > * { flex: none; }
 
   /* Der Hinweis im leeren Unterschriftsfeld am Handy (D8, E90): mittig, leise, ohne Berührung abzufangen. */
   .unterschrift-hinweis { position: absolute; inset: 0.25rem 0 0; display: flex; align-items: center; justify-content: center; pointer-events: none; font-size: 0.875rem; color: var(--text-placeholder); }

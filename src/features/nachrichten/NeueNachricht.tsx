@@ -102,7 +102,7 @@ export default function NeueNachricht({
       )}
       {open && !benennen && (
         <div className="neu-bogen">
-          <label className="chat-suche">
+          <label className="suche chat-suche">
             <Icon name="lupe" size={20} aria-hidden="true" />
             <span className="sr-only">An</span>
             <input

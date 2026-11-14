@@ -23,6 +23,8 @@ const BREITEN = [
 
 /** Wie weit liegt jede Kante des Blatts neben der nächsten Rasterlinie (in px)? */
 async function blattKanten(page: Page) {
+  // Erst wenn die Schriften da sind, steht der Text fest — danach richtet der Taktgeber neu aus (V10).
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
   await page.evaluate(() => new Promise((fertig) => requestAnimationFrame(() => requestAnimationFrame(fertig))));
   return page.evaluate(() => {
     const flaeche = document.querySelector<HTMLElement>('.hauptflaeche');
@@ -51,7 +53,8 @@ for (const seite of [
 
       const kanten = await blattKanten(page);
       expect(kanten, `${breite.name}: Raster und genau ein Blatt`).toMatchObject({ blaetter: 1, raster: true });
-      expect(kanten.daneben, `${breite.name}: Kanten neben dem Raster`).toEqual([]);
+      // Der Endstand zählt: lädt eine Schrift nach dem ersten Zeichnen, richtet der Taktgeber neu aus.
+      await expect.poll(async () => (await blattKanten(page)).daneben, { message: `${breite.name}: Kanten neben dem Raster`, timeout: 5_000 }).toEqual([]);
       expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), `${breite.name}: seitlich`).toBe(0);
 
       const stil = await page.evaluate(() => ({
@@ -60,7 +63,8 @@ for (const seite of [
         gewichte: [...document.querySelectorAll('h1, h2')].map((h) => getComputedStyle(h).fontWeight),
       }));
       expect(stil.dunklesBand, `${breite.name}: dunkles Band`).toBe(false);
-      expect(stil.ecke, `${breite.name}: Ecke des Blatts`).toBe('0px');
+      // V10 (13.11.2026): das Blatt hat 16 px Radius statt der eckigen Linie „Lot“.
+      expect(stil.ecke, `${breite.name}: Ecke des Blatts`).toBe('16px');
       expect(stil.gewichte.every((g) => g === '400' || g === '500'), `${breite.name}: ${stil.gewichte.join(', ')}`).toBe(true);
     }
 

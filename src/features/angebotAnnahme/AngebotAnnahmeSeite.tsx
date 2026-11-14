@@ -227,8 +227,9 @@ function AngebotMitAntwort({
           {q.address?.trim() && q.address.trim() !== anschrift?.trim() && (
             <Angabe wort="Ort der Leistung">{q.address}</Angabe>
           )}
-          <Angabe wort="Angebotsdatum">{datumAT(q.quoteDate)}</Angabe>
-          <Angabe wort="Gültig bis">{datumAT(q.validUntil)}</Angabe>
+          {/* Datumswerte als Gemessenes in Plex Mono (V10), wie Beträge und Nummer im Kopf. */}
+          <Angabe wort="Angebotsdatum"><span className="mono">{datumAT(q.quoteDate)}</span></Angabe>
+          <Angabe wort="Gültig bis"><span className="mono">{datumAT(q.validUntil)}</span></Angabe>
         </dl>
       </Card>
 
@@ -360,7 +361,7 @@ function Antwort({
           </Hinweiszeile>
         )}
         {/* Am Handy untereinander, die Hauptaktion oben und beide gleich breit (E72, R7). */}
-        <div className="fuss-aktionen flex-col-reverse md:flex-row">
+        <div className="fuss-aktionen">
           {art === 'annehmen' ? (
             <>
               <Button type="button" variant="ghost" onClick={() => { setArt('ablehnen'); setFehler(null); }}>

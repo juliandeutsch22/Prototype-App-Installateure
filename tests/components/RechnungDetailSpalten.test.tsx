@@ -52,3 +52,42 @@ describe('Rechnung im Seitenfenster: Zahlstand mit Mahnspesen', () => {
     expect(within(screen.getByRole('region', { name: 'Zahlstand' })).queryByText('Mahnspesen und Zinsen bezahlt')).toBeNull();
   });
 });
+
+/*
+  DER STAND AM BELEG (V10, 13.11.2026; Auftrag 11.5): Betrag, Offen mit
+  Fälligkeit und Zustand stehen oben im Seitenfenster, vor den Handlungen —
+  Beträge in Plex Mono (`rechnung-stand-betrag`, `rechnung-detail-betrag`).
+*/
+describe('V10: Stand am Beleg', () => {
+  it('nennt Betrag, Offen mit Fälligkeit und den Zustand über den Handlungen', () => {
+    render(<RechnungDetail inv={{ ...RECHNUNG, paymentStatus: 'Überfällig' } as Invoice} onClose={() => undefined}
+      aktionen={[{ label: 'Zahlung erfassen', onSelect: () => undefined, haupt: true }]} />);
+    const stand = document.querySelector('dl[aria-label="Stand der Rechnung"]') as HTMLElement;
+    expect(stand).not.toBeNull();
+    expect(within(stand).getByText('Betrag')).toBeInTheDocument();
+    expect(within(stand).getByText('Offen')).toBeInTheDocument();
+    expect(within(stand).getByText('fällig 03.11.2026')).toBeInTheDocument();
+    expect(within(stand).getByText('Überfällig')).toBeInTheDocument();
+    for (const b of within(stand).getAllByText(/€\s9\s000,60/)) expect(b.className).toBe('rechnung-stand-betrag');
+    // Vor den Handlungen: wer zum Zahlen kommt, sieht zuerst, was offen ist.
+    const knopf = screen.getByRole('button', { name: 'Zahlung erfassen' });
+    expect(stand.compareDocumentPosition(knopf) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('eine stornierte Rechnung hat kein „Offen“ im Stand', () => {
+    render(<RechnungDetail inv={{ ...RECHNUNG, paymentStatus: 'Storniert' } as Invoice} onClose={() => undefined} aktionen={[]} />);
+    const stand = document.querySelector('dl[aria-label="Stand der Rechnung"]') as HTMLElement;
+    expect(within(stand).queryByText('Offen')).toBeNull();
+    expect(within(stand).getByText('Storniert')).toBeInTheDocument();
+  });
+
+  it('Summen und Zahlstand in Mono, Sätze in der Textschrift', () => {
+    render(<RechnungDetail inv={{ ...RECHNUNG, mahnstufe: 1, gemahntAm: '2026-11-05' } as Invoice} onClose={() => undefined} aktionen={[]} />);
+    const summe = screen.getByRole('region', { name: 'Belegsumme' });
+    for (const dd of summe.querySelectorAll('dd')) expect(dd.className).toBe('rechnung-detail-betrag');
+    const zahl = screen.getByRole('region', { name: 'Zahlstand' });
+    expect(within(zahl).getByText(/9\s000,60/).className).toBe('rechnung-detail-wert');
+    // Gleich bleibt: der Satz „Stufe 1 am …“ steht nicht in Mono.
+    expect(within(zahl).getByText(/^Stufe 1 am/).className).toBe('text-right text-ink');
+  });
+});

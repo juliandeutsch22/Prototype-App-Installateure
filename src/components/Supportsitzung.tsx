@@ -1,4 +1,5 @@
 import { useAuth } from '@/app/AuthContext';
+import Icon from './Icon';
 import Button from './Button';
 
 /**
@@ -26,7 +27,8 @@ export default function Supportsitzung() {
     <div
       role="status"
       className={[
-        'flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2 text-center text-sm',
+        // V10: neutrale Fläche mit Linie darunter; Farbe nur in Text und Zeichen.
+        'flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-line px-4 py-2 text-center text-sm',
         // Rot heisst hier: du änderst fremde Daten. Die Lesestufe bekommt den
         // ruhigeren Ton — sonst stumpft die Warnung ab, die im Ernstfall
         // zählt.
@@ -35,6 +37,7 @@ export default function Supportsitzung() {
           : 'bg-warning-bg font-normal text-warning',
       ].join(' ')}
     >
+      <Icon name="warnung" size={16} className="shrink-0" />
       <span>
         {schreibt ? 'MITARBEITEN' : 'Einblick'} in{' '}
         <strong>{einblick.name}</strong>

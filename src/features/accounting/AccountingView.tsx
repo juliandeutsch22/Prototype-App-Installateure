@@ -1238,6 +1238,7 @@ export default function AccountingView() {
                 }
               : undefined
           }
+          ausgewaehlt={person?.uid ?? null}
           onOeffnen={(uid, tag) => {
             setAufgabe(null);
             setPerson({ uid, tag });

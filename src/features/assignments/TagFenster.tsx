@@ -44,6 +44,7 @@ export default function TagFenster({
   onInTag,
   materialFuer,
   materialTag,
+  abwesenheitUnklar = false,
 }: {
   datum: string;
   stand: TagStand | undefined;
@@ -67,6 +68,8 @@ export default function TagFenster({
   materialFuer?: (nummer: string) => MaterialLage | undefined;
   /** Der Tag zusammengefasst; ohne Rüstliste nichts. */
   materialTag?: MaterialLage | null;
+  /** Abwesenheiten nicht geladen (V10): die Liste „Frei“ ist dann keine Auskunft. */
+  abwesenheitUnklar?: boolean;
 }) {
   const d = new Date(`${datum}T00:00:00`);
   // „Mittwoch, 07.10.“ — groß der Tag, darüber klein die Kalenderwoche.
@@ -163,6 +166,11 @@ export default function TagFenster({
           <h3 className="planung-abschnitt">{ruhetag(datum) ? 'Ohne Einsatz' : 'Frei'}</h3>
           <span className="gruppe-anzahl">{frei.length}</span>
         </div>
+        {abwesenheitUnklar && (
+          <p className="tag-leer">
+            <span className="tag-fehlt">Abwesenheiten nicht geladen — wer frei ist, ist unklar.</span>
+          </p>
+        )}
         {frei.length === 0 ? (
           <p className="tag-leer">{zu && !ruhetag(datum) ? `${zu} — niemand im Dienst.` : 'Niemand frei.'}</p>
         ) : (

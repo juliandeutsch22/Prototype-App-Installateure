@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import Icon from './Icon';
 
 type ToastTone = 'success' | 'error' | 'info';
 
@@ -50,9 +51,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       {/*
-        DIE MELDUNG DER LINIE „LOT“: eine dunkle Zeile, keine farbige Fläche.
-        Ob etwas gelungen ist, sagt der Text; nur ein Fehler trägt eine rote
-        Kante. Lage siehe `.meldungen` in src/styles/lot.css.
+        DIE MELDUNG: eine ruhige dunkle Zeile, keine farbige Fläche. Ob etwas
+        gelungen ist, sagt der Text. Ein Fehler trägt seit V10 (13.11.2026)
+        keine rote Kante mehr, sondern das kleine Warnzeichen vor dem Satz —
+        dieselbe Grammatik wie jeder Hinweis (Symbol, Satz, höchstens eine
+        Aktion). Lage siehe `.meldungen` in src/styles/lot.css.
       */}
       <div className="meldungen" aria-live="polite" role="status">
         {toasts.map((t) => <ToastZeile key={t.id} meldung={t} weg={weg} />)}
@@ -95,6 +98,7 @@ function ToastZeile({ meldung: t, weg }: { meldung: Toast; weg: (id: number) => 
       onFocusCapture={() => setFokus(true)}
       onBlurCapture={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFokus(false); }}
     >
+      {t.tone === 'error' && <Icon name="warnung" size={16} className="meldung-symbol shrink-0" />}
       <span className="meldung-text">{t.message}</span>
       {t.aktion && <button type="button" className="meldung-knopf" onClick={() => { weg(t.id); t.aktion!.onClick(); }}>{t.aktion.label}</button>}
       {t.dauerhaft && <button type="button" className="meldung-knopf" onClick={() => weg(t.id)}>Gelesen</button>}

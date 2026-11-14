@@ -47,8 +47,15 @@ describe('Belegfarben', () => {
     expect(FLAECHE).toEqual([241, 248, 250]);
   });
 
-  it('und Petrol ist weiter die Farbe des Produkts', () => {
-    expect(PETROL).toEqual(token('--brand-fixed'));
+  /*
+    V10 (13.11.2026): die Oberfläche trägt Terrakotta, die Belege bleiben,
+    wie sie sind — Druck- und PDF-Ausgaben folgen ihren bestehenden
+    Fachregeln (style.md) und sind prüfsummengleich (`belegReferenz`). Das
+    Petrol der Belege ist deshalb nicht mehr die Farbe der Oberfläche.
+  */
+  it('Petrol bleibt die Farbe der Belege, auch nachdem die Oberfläche Terrakotta trägt', () => {
+    expect(PETROL).toEqual([15, 69, 82]);
+    expect(token('--brand-fixed')).toEqual([168, 84, 57]);
   });
 });
 

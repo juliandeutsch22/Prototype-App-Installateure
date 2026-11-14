@@ -164,7 +164,12 @@ export function TeilFehler({ was, onRetry }: { was: string; onRetry?: () => void
       <p>
         {was} konnte nicht geladen werden.{' '}
         {onRetry && (
-          <button onClick={onRetry} className="link-hinweis min-h-touch">
+          /*
+            Das Ziel bleibt 44 px hoch, nimmt der Zeile aber keine Höhe: als
+            Zeilenteil zog es den Satz nach unten, das Warnzeichen stand allein
+            darüber (gesehen auf /_muster, V10, 13.11.2026).
+          */
+          <button onClick={onRetry} className="link-hinweis -my-3 inline-flex min-h-touch items-center">
             Erneut versuchen
           </button>
         )}
@@ -204,8 +209,14 @@ export function EmptyState({
   aktionImDaumen?: boolean;
 }) {
   const schritte = action || nebenAktion;
+  /*
+    OHNE ZEICHNUNG EIN RUHIGER SATZ AUF DER FLUCHT DES BLATTS (V10,
+    13.11.2026). Zentriert mit 24 px Luft darüber und darunter stand „Noch
+    kein Einsatz geplant.“ in der Akte doppelt so hoch wie „Kein kommender
+    Termin geplant.“ zwei Blätter tiefer — zwei Gestalten für dasselbe.
+  */
   return (
-    <div className={zeichnung ? 'lot-erstnutzung' : 'flex flex-col items-center gap-3 px-4 py-6 text-center text-ink-muted'}>
+    <div className={zeichnung ? 'lot-erstnutzung' : 'flex flex-col items-start gap-3 py-3 text-ink-muted'}>
       {zeichnung && <LotZeichnung motiv={zeichnung} art="leer" />}
       {titel && <h2>{titel}</h2>}
       <p>{children}</p>

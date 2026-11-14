@@ -20,8 +20,9 @@ import { LoeschenKnopf } from '@/components/Symbolknoepfe';
  * DIE KARTE „ARBEITSTAG“ (M06a, schlanke Fassung vom 08.11.2026) — auf der
  * Startseite und oben in der Zeiterfassung, dieselbe Sitzung.
  *
- * Ein Blatt der Linie „Lot“ (eckig, Linie rundum); rund sind nur die
- * Knöpfe. Darauf steht nur, was man im Laufen braucht:
+ * Drei eigene Zustände (V10, 13.11.2026): bereit ein helles Blatt, läuft
+ * eine dunkle ruhige Fläche, Pause ein warmer heller Ton (`lot-timer.css`).
+ * Darauf steht nur, was man im Laufen braucht:
  *   - vor Beginn: der runde Start-Knopf und die Baustelle (freiwillig);
  *   - läuft: seit wann, die Arbeitszeit bisher als Uhr, die Baustelle (ein
  *     Tipp wechselt sie), Pause und Feierabend;
@@ -112,7 +113,13 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false, handZeit 
   }
 
   return (
-    <section className="arbeitstag" aria-labelledby="arbeitstag-titel" data-stand={s ? (pause ? 'pause' : 'laeuft') : 'bereit'}>
+    /*
+      `aria-busy`, SOLANGE EIN SCHRITT UNTERWEGS IST (14.11.2026). Ein zweiter
+      Tipp in dieser Zeit geht bewusst nicht hinaus (C4, E90) — er bliebe
+      aber ohne jedes Zeichen. So sagt die Karte Vorlesehilfen und Prüfungen,
+      dass sie gerade bestätigt wird; die Knöpfe bleiben dabei bedienbar.
+    */
+    <section className="arbeitstag" aria-labelledby="arbeitstag-titel" aria-busy={z.unterwegs || undefined} data-stand={s ? (pause ? 'pause' : 'laeuft') : 'bereit'}>
       <h2 id="arbeitstag-titel" className="sr-only">Arbeitstag</h2>
       <div className="arbeitstag-hilfe">
         <InfoHint about="Arbeitstag">
@@ -125,7 +132,8 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false, handZeit 
 
       {z.fehler && (
         <p role="alert" className="arbeitstag-fehler">
-          {z.fehler} <button type="button" className="link" onClick={() => void z.laden()}>Erneut laden</button>
+          <Icon name="warnung" size={16} aria-hidden="true" />
+          <span>{z.fehler} <button type="button" className="link" onClick={() => void z.laden()}>Erneut laden</button></span>
         </p>
       )}
 
@@ -135,9 +143,9 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false, handZeit 
           die Baustelle; der Papierkorb oben rechts in der Kopfzeile — eine
           ganze Zeile über Pause und Stopp, damit der Daumen ihn beim
           Feierabend nicht trifft (der Grund aus E74 bleibt). Ab dem Tablet
-          stehen die Teile wie bisher: Uhr, darunter Baustelle und Knöpfe,
-          der Papierkorb unten links. Dieselben Teile, nur anders im Raster
-          (`lot-timer.css`).
+          eine breite Zeile: Uhr, Baustelle, beschriftete Knöpfe; der
+          Papierkorb bleibt oben rechts (V10). Dieselben Teile, nur anders im
+          Raster (`lot-timer.css`).
         */
         <div className="arbeitstag-lauf">
           <p className="arbeitstag-stand">
@@ -152,23 +160,33 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false, handZeit 
           <p className="arbeitstag-uhr" aria-label={pause ? `Pause ${dauerText(dauer.pauseMs, false)} Stunden` : `Arbeitszeit ${dauerText(dauer.arbeitMs, false)} Stunden`}>
             <UhrText ms={pause ? dauer.pauseMs : dauer.arbeitMs} />
           </p>
+          {/*
+            KREIS UND WORT (V10, 13.11.2026): in der großen Karte steht unter
+            jedem Kreis ein kurzes Wort, beides ist ein Knopf; am Handy trägt
+            die kompakte Karte nur die Symbole (`lot-timer.css`). Der Name für
+            die Vorlesehilfe bleibt der ausführliche.
+          */}
           <div className="arbeitstag-knoepfe">
             {pause ? (
               <>
-                <button type="button" className="rund-knopf rund-knopf-voll" aria-label="Weiterarbeiten" title="Weiterarbeiten" disabled={z.speichert} onClick={() => void z.befehl('weiter', s, laufendeBaustelle)}>
-                  <Icon name="play" size={24} aria-hidden="true" />
+                <button type="button" className="rund-aktion" aria-label="Weiterarbeiten" title="Weiterarbeiten" disabled={z.speichert} onClick={() => void z.befehl('weiter', s, laufendeBaustelle)}>
+                  <span className="rund-knopf rund-knopf-voll"><Icon name="play" size={24} aria-hidden="true" /></span>
+                  <span className="rund-aktion-text" aria-hidden="true">Weiter</span>
                 </button>
-                <button type="button" className="rund-knopf" aria-label="Stoppen und prüfen" title="Feierabend: stoppen und prüfen" disabled={z.speichert} onClick={() => void feierabend()}>
-                  <Icon name="stopp" size={22} aria-hidden="true" />
+                <button type="button" className="rund-aktion" aria-label="Stoppen und prüfen" title="Feierabend: stoppen und prüfen" disabled={z.speichert} onClick={() => void feierabend()}>
+                  <span className="rund-knopf"><Icon name="stopp" size={22} aria-hidden="true" /></span>
+                  <span className="rund-aktion-text" aria-hidden="true">Stopp</span>
                 </button>
               </>
             ) : (
               <>
-                <button type="button" className="rund-knopf" aria-label="Pause beginnen" title="Pause beginnen" disabled={z.speichert} onClick={() => void z.befehl('pause', s, laufendeBaustelle)}>
-                  <Icon name="pause" size={22} aria-hidden="true" />
+                <button type="button" className="rund-aktion" aria-label="Pause beginnen" title="Pause beginnen" disabled={z.speichert} onClick={() => void z.befehl('pause', s, laufendeBaustelle)}>
+                  <span className="rund-knopf"><Icon name="pause" size={22} aria-hidden="true" /></span>
+                  <span className="rund-aktion-text" aria-hidden="true">Pause</span>
                 </button>
-                <button type="button" className="rund-knopf rund-knopf-voll" aria-label="Stoppen und prüfen" title="Feierabend: stoppen und prüfen" disabled={z.speichert} onClick={() => void feierabend()}>
-                  <Icon name="stopp" size={22} aria-hidden="true" />
+                <button type="button" className="rund-aktion" aria-label="Stoppen und prüfen" title="Feierabend: stoppen und prüfen" disabled={z.speichert} onClick={() => void feierabend()}>
+                  <span className="rund-knopf rund-knopf-voll"><Icon name="stopp" size={22} aria-hidden="true" /></span>
+                  <span className="rund-aktion-text" aria-hidden="true">Stopp</span>
                 </button>
               </>
             )}
@@ -201,6 +219,8 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false, handZeit 
                 {z.an && <Icon name="wechsel" size={16} aria-hidden="true" />}
               </button>
             )}
+            {/* Was „Stopp“ tut, in der großen Karte als kurzer Satz (Mappe V10); am Handy steht es in der Hilfe. */}
+            <span className="arbeitstag-hinweis">Stopp führt zur Prüfung · keine automatische Buchung</span>
           </div>
         </div>
       )}

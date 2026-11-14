@@ -48,12 +48,17 @@ const DATEN = {
     // Löschen mit Gegenbuchung (09.11.2026): ohne Antwort stand „gibt es so nicht mehr“ und ein gesperrter Knopf.
     anforderungLoeschenPruefen: "{ art: 'moeglich', gegenbuchung: [], erwartet: [] }",
     anforderungLoeschen: "{ art: 'geloescht', gegenbuchung: [] }",
+    // Abgeholtes am Schein (E89): eine Liste; als NOOP stürzte das Scheinformular ab (13.11.2026).
+    eigeneAbgeholt: '[]',
   },
   /*
     Die Nummernsuche (M03a) liefert eine Map je Artikel; als Liste geraten
     brach das Lager beim Tippen ab (`treffer.keys`, 09.11.2026).
   */
-  materials: { '*': 'D.materialien', nummernTreffer: 'new Map()' },
+  // Lagerbewegungen sind keine Artikel: mit `*` stand „undefined NaN Stk“ im Artikelfenster (13.11.2026).
+  materials: { '*': 'D.materialien', nummernTreffer: 'new Map()', listLagerbewegungen: '[]' },
+  // Kennzeichen-Vorschläge der Fahrzeuge: eine Liste; als NOOP brach /settings/fahrzeuge ab (13.11.2026).
+  lagerorte: { kennzeichenAusBuchungen: '[]' },
   // Korrekturanträge (M06): eine Liste; als NOOP blieb die Zeiterfassung mit einer Fehlerseite stehen (09.11.2026).
   zeitkorrekturen: { zeitkorrekturenLaden: '[]' },
   // Der Stand des Baustellen-Threads (E64) ist ein Objekt; als NOOP stürzte die Baustellenakte ab (09.11.2026).
@@ -90,7 +95,8 @@ const DATEN = {
   },
   // Runde 4: Termine im Wochenplan, Monat und Tag planen.
   termine: { listTermineImZeitraum: 'D.termine', listTermineDerBaustelle: 'D.termine', listTermineDesKunden: 'D.termine' },
-  assignments: { '*': 'D.einsaetze' },
+  // Die Einsätze einer Baustelle sind geteilt (V10, 13.11.2026): als NOOP stürzte die Baustellenakte ab.
+  assignments: { '*': 'D.einsaetze', einsaetzeDerBaustelle: '{ kommend: [], vorher: [] }' },
   einsatzMaterial: { '*': 'D.ruestlisten', getEinsatzMaterial: 'D.ruestlisten[0]' },
   quotes: {
     '*': 'D.angebote', getQuote: 'D.angebote[0]', acceptQuote: "'B-2026-0042'",

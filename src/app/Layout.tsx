@@ -81,6 +81,36 @@ function ZeilenHinweis(
   );
 }
 
+/*
+  DIE ZWEI LISTEN IM BLATT „MEHR“ (V10, 13.11.2026, style.md „Markenzeichen
+  und Navigation“). Welche Einträge es gibt, entscheidet weiter allein
+  `navigation.ts` (Rolle, Modul, Zusatzrecht); hier wird nur zugeordnet, in
+  welcher der beiden Listen ein Eintrag steht. Was Kunden, Belege und Leute
+  verwaltet, steht unter „Vertrieb & Verwaltung“, die tägliche Arbeit unter
+  „Planung & Arbeit“. Ein neuer Eintrag ohne Zuordnung landet bei der Arbeit —
+  er geht nie verloren.
+*/
+const VERTRIEB_VERWALTUNG = new Set([
+  '/eingaenge', '/quotes', '/customers', '/liegenschaften', '/wartungen', '/user-mgmt', '/accounting',
+]);
+const VERWALTUNGSGRUPPEN = new Set(['Geld', 'Einstellungen']);
+
+function mehrBloeckeBilden(eintraege: NavItem[]): { titel?: string; items: NavItem[] }[] {
+  const zuVerwaltung = (i: NavItem) => VERWALTUNGSGRUPPEN.has(i.group) || VERTRIEB_VERWALTUNG.has(i.path);
+  const arbeit = eintraege.filter((i) => !zuVerwaltung(i));
+  const verwaltung = eintraege.filter(zuVerwaltung);
+  /*
+    Steht in der zweiten Liste nur „Einstellungen“ (Monteur), wäre die
+    Überschrift „Vertrieb & Verwaltung“ eine Behauptung über Bereiche, die
+    diese Rolle gar nicht hat — dann steht die Zeile ohne Überschrift.
+  */
+  const nurEinstellungen = verwaltung.every((i) => i.group === 'Einstellungen');
+  return [
+    { titel: 'Planung & Arbeit', items: arbeit },
+    { titel: nurEinstellungen ? undefined : 'Vertrieb & Verwaltung', items: verwaltung },
+  ].filter((b) => b.items.length > 0);
+}
+
 /** App-Shell: Desktop-Sidebar; mobil Top-Bar + Icon-Tab-Bar (4 + „Mehr"-Drawer). */
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, company, signOut, einblick } = useAuth();
@@ -144,13 +174,21 @@ export default function Layout({ children }: { children: ReactNode }) {
   useEffect(() => {
     const leiste = reiterleiste.current;
     if (!angemeldet || !leiste) return;
+    /*
+      V10 (13.11.2026): Kopf- und Fußleiste sind am Handy eingelassene Inseln
+      mit Abstand zum Rand. Gezählt wird deshalb der ganze Platz, den sie vom
+      Bild nehmen — Leiste samt Luft zur Kante —, nicht nur ihre Höhe; sonst
+      läge das Ende des Inhalts hinter der Insel.
+    */
     const setzen = () => {
       const timer = timerLeiste.current?.offsetHeight ?? 0;
-      document.body.style.setProperty('--navi-hoehe', `${leiste.offsetHeight}px`);
+      const navi = leiste.offsetHeight ? Math.max(leiste.offsetHeight, Math.round(window.innerHeight - leiste.getBoundingClientRect().top)) : 0;
+      const kopf = kopfzeile.current?.offsetHeight ? Math.max(kopfzeile.current.offsetHeight, Math.round(kopfzeile.current.getBoundingClientRect().bottom)) : 0;
+      document.body.style.setProperty('--navi-hoehe', `${navi}px`);
       document.body.style.setProperty('--timer-hoehe', `${timer}px`);
-      document.body.style.setProperty('--reiter-hoehe', `${leiste.offsetHeight + timer}px`);
+      document.body.style.setProperty('--reiter-hoehe', `${navi + timer}px`);
       // Am Wurzelelement: auch `scroll-padding-top` am `html` liest sie (D11, E86).
-      document.documentElement.style.setProperty('--kopf-oben', `${kopfzeile.current?.offsetHeight ?? 0}px`);
+      document.documentElement.style.setProperty('--kopf-oben', `${kopf}px`);
     };
     setzen();
     const beobachter = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(setzen);
@@ -295,9 +333,8 @@ export default function Layout({ children }: { children: ReactNode }) {
     Gruppen und Reihenfolge bleiben die der Seitenleiste.
   */
   const mehrPfade = new Set(mehr.map((i) => i.path));
-  const mehrGruppen = groups
-    .map((g) => ({ ...g, items: g.items.filter((i) => mehrPfade.has(i.path)) }))
-    .filter((g) => g.items.length > 0);
+  const mehrEintraege = groups.flatMap((g) => g.items.filter((i) => mehrPfade.has(i.path)));
+  const mehrBloecke = mehrBloeckeBilden(mehrEintraege);
 
   /*
     HIER STEHT DER BETRIEB, NICHT DAS PRODUKT. Die Seitenleiste ist der
@@ -314,7 +351,8 @@ export default function Layout({ children }: { children: ReactNode }) {
     lesbar, deshalb in der Seitenleiste grösser als in der schmalen mobilen
     Kopfleiste.
   */
-  const BrandMarkMobile = <BrandLogo height={28} className="rounded-sm text-white" />;
+  // V10: am Handy sitzt die Marke in der hellen Kopfinsel — Tinte statt Weiß.
+  const BrandMarkMobile = <BrandLogo height={28} className="rounded-sm text-ink-deep" />;
   const BrandMarkSidebar = <BrandLogo height={40} className="rounded-sm text-white" />;
 
   const unterGruppen = groups.filter((g) => g.group !== 'Einstellungen');
@@ -568,17 +606,24 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* „Mehr"-Blatt (Handy) */}
       <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} label="Weitere Bereiche">
         <nav className="flex flex-col" aria-label="Weitere Bereiche">
-          {mehrGruppen.map(({ group, items: groupItems }, index) => (
+          {mehrBloecke.map(({ titel, items: blockItems }, index) => (
             /*
-              EINE GRUPPE OHNE ÜBERSCHRIFT NACH ANDEREN (Einstellungen) bekommt
-              eine Linie darüber (E72, N5) — wie in der Seitenleiste, wo sie
-              abgesetzt im Fuß steht. Sonst las sich „Einstellungen“ als
-              letzter Punkt von „Material“.
+              ZWEI KOMPAKTE LISTEN STATT EINER WAND (V10, 13.11.2026): die
+              Einträge stehen als Zeilen unter einer Linie, gruppiert nach
+              „Planung & Arbeit“ und „Vertrieb & Verwaltung“. Ein Block ohne
+              Überschrift (nur „Einstellungen“, etwa beim Monteur) bekommt
+              die Linie darüber (E72, N5) — sonst läse er sich als letzter
+              Punkt der Liste davor.
             */
-            <div key={group} className={OHNE_UEBERSCHRIFT.has(group) && index > 0 ? 'mt-3 border-t border-line pt-3' : undefined}>
-              {!OHNE_UEBERSCHRIFT.has(group) && <p className="mehr-gruppe">{group}</p>}
-              <div className="flex flex-col gap-0.5">
-                {groupItems.map((item) => (
+            <div
+              key={titel ?? 'ohne'}
+              className={!titel && index > 0 ? 'mt-3 border-t border-line pt-3' : undefined}
+              role={titel ? 'group' : undefined}
+              aria-label={titel}
+            >
+              {titel && <p className="mehr-gruppe" aria-hidden="true">{titel}</p>}
+              <div className="mehr-liste">
+                {blockItems.map((item) => (
                   <NavLink
                     key={item.path}
                     to={item.path}
@@ -589,6 +634,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                     <NaviSymbol pfad={item.path} ersatz={item.icon} size={20} />
                     <span className="truncate">{item.label}</span>
                     <ZeilenHinweis item={item} posten={posten} auf="hell" />
+                    {/* Ohne Zahl schiebt der Pfeil sich selbst nach rechts; mit Zahl steht er gleich daneben. */}
+                    <Icon name="weiter" size={16} className={`mehr-pfeil ${item.hinweis ? '' : 'ml-auto'}`} />
                   </NavLink>
                 ))}
               </div>

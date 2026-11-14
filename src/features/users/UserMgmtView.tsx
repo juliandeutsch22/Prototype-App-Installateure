@@ -696,7 +696,7 @@ export default function UserMgmtView() {
             anlegen“ zuerst unter den Feldern. Vorher stand „Abbrechen“ über dem
             Hauptknopf. Ab dem Tablet nebeneinander, Hauptknopf rechts.
           */}
-          <div className="fuss-aktionen flex-col-reverse md:flex-row">
+          <div className="fuss-aktionen">
             {/* Der Weg zurück zur Liste. */}
             <Button
               type="button"

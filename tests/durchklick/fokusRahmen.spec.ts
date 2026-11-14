@@ -47,7 +47,8 @@ test('Der Inhalt bekommt nach dem Seitenwechsel den Fokus, aber keinen Rahmen', 
   Gegenprobe: mit dem Stand vor E75 (Hof von 3 px, Ring mit Abstand um die
   Suche, Rahmen nach innen bei jedem Fokus in der Zeile) sind beide rot.
 */
-const PETROL = 'rgb(15, 69, 82)';
+// V10 (13.11.2026): der Rand im Fokus ist Terrakotta (`--brand-fixed`), nicht mehr Petrol.
+const FOKUS = 'rgb(168, 84, 57)';
 const fokus = (l: Locator) => l.evaluate((el) => {
   const s = getComputedStyle(el);
   return { rand: `${s.borderTopWidth} ${s.borderTopColor}`, schatten: s.boxShadow, linie: s.outlineStyle, breite: s.outlineWidth, versatz: s.outlineOffset };
@@ -58,14 +59,14 @@ test('Such- und Eingabefelder zeigen den Fokus als eine Linie, auch nach einem T
   await page.goto('/material');
   const suche = page.locator('.listenleiste-suche').first();
   await suche.locator('input').click();
-  expect(await fokus(suche)).toMatchObject({ rand: `1px ${PETROL}`, schatten: 'none', linie: 'none' });
+  expect(await fokus(suche)).toMatchObject({ rand: `1px ${FOKUS}`, schatten: 'none', linie: 'none' });
   expect(await fokus(suche.locator('input'))).toMatchObject({ schatten: 'none', linie: 'none' });
 
   await page.goto('/time');
   await zeitFormularOeffnen(page);
   const feld = page.locator('#comment');
   await feld.click();
-  expect(await fokus(feld)).toMatchObject({ rand: `1px ${PETROL}`, schatten: 'none', linie: 'none' });
+  expect(await fokus(feld)).toMatchObject({ rand: `1px ${FOKUS}`, schatten: 'none', linie: 'none' });
 });
 
 test('Eine Zeile zeigt den Fokus nur mit der Tastatur, 2 px außen, nicht über dem Text', async ({ page, browserName }) => {

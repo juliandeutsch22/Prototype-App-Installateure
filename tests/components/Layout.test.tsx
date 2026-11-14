@@ -450,15 +450,47 @@ describe('Strg + K (Linie „Lot“)', () => {
   Darstellungsschalter eine sichtbare Beschriftung, die mitschaltet.
 */
 describe('Navigation und Profil am Telefon (E72)', () => {
-  it('setzt die Gruppe ohne Überschrift im Blatt „Mehr“ mit einer Linie ab', async () => {
-    ladenMock.mockResolvedValue(undefined);
+  /*
+    V10 (13.11.2026): das Blatt „Mehr“ zeigt zwei Listen, „Planung & Arbeit“
+    und „Vertrieb & Verwaltung“; „Einstellungen“ steht in der zweiten. Hat
+    eine Rolle dort nichts außer den Einstellungen (Monteur), steht die
+    Zeile ohne Überschrift unter einer Linie wie bisher (E72, N5).
+  */
+  it('gliedert das Blatt „Mehr“ in „Planung & Arbeit“ und „Vertrieb & Verwaltung“ (V10)', async () => {
     zeige();
     await userEvent.click(await screen.findByRole('button', { name: /^Mehr/ }));
     const blatt = await screen.findByRole('navigation', { name: 'Weitere Bereiche' });
-    const gruppe = within(blatt).getByRole('link', { name: /^Einstellungen/ }).parentElement!.parentElement!;
-    expect(gruppe.className).toContain('border-t');
-    // Gleich geblieben: die erste Gruppe (mit Überschrift) bekommt keine Linie darüber.
-    expect((blatt.firstElementChild as HTMLElement).className).not.toContain('border-t');
+    const arbeit = within(blatt).getByRole('group', { name: 'Planung & Arbeit' });
+    const verwaltung = within(blatt).getByRole('group', { name: 'Vertrieb & Verwaltung' });
+    expect(within(arbeit).getByRole('link', { name: /^Urlaub/ })).toBeInTheDocument();
+    expect(within(arbeit).getByRole('link', { name: /^Zeiterfassung/ })).toBeInTheDocument();
+    expect(within(verwaltung).getByRole('link', { name: /^Kunden/ })).toBeInTheDocument();
+    expect(within(verwaltung).getByRole('link', { name: /^Einstellungen/ })).toBeInTheDocument();
+    // Gegenprobe: kein Eintrag steht doppelt, keiner fehlt gegenüber der Seitenleiste ohne die untere Leiste.
+    expect(within(arbeit).queryByRole('link', { name: /^Kunden/ })).toBeNull();
+    const imBlatt = within(blatt).getAllByRole('link').map((a) => a.getAttribute('href'));
+    expect(new Set(imBlatt).size).toBe(imBlatt.length);
+    const aside = document.querySelector('aside')!;
+    const unten = [...document.querySelectorAll('nav.unten a')].map((a) => a.getAttribute('href'));
+    const alle = within(aside).getAllByRole('link').map((a) => a.getAttribute('href')).filter((h) => h && !['/_muster', '/impressum', '/datenschutz'].includes(h));
+    expect([...imBlatt, ...unten].sort()).toEqual([...new Set(alle)].sort());
+  });
+
+  it('beim Monteur steht „Einstellungen“ ohne Überschrift unter einer Linie', async () => {
+    const vorher = NUTZER.role;
+    NUTZER.role = 'Mitarbeiter';
+    try {
+      zeige();
+      await userEvent.click(await screen.findByRole('button', { name: /^Mehr/ }));
+      const blatt = await screen.findByRole('navigation', { name: 'Weitere Bereiche' });
+      expect(within(blatt).queryByRole('group', { name: 'Vertrieb & Verwaltung' })).toBeNull();
+      const gruppe = within(blatt).getByRole('link', { name: /^Einstellungen/ }).parentElement!.parentElement!;
+      expect(gruppe.className).toContain('border-t');
+      // Gleich geblieben: die erste Liste (mit Überschrift) bekommt keine Linie darüber.
+      expect((blatt.firstElementChild as HTMLElement).className).not.toContain('border-t');
+    } finally {
+      NUTZER.role = vorher;
+    }
   });
 
   it('beschriftet den Darstellungsschalter im Profil sichtbar — das Wort schaltet mit', async () => {

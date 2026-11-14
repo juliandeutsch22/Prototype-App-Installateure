@@ -59,7 +59,12 @@
   .start-kontext .start-karte-kopf h2 .start-karte-zusatz { white-space: nowrap; font-weight: 400; font-size: 0.6875rem; margin-left: 0; }
   .start-karte-verweis { display: inline-flex; align-items: center; min-height: 2.75rem; margin: 0.5rem var(--blatt-rand) 0; font-size: 0.75rem; }
   .start-seite .start-gruppe { padding-bottom: 0.875rem; }
-  .start-seite .start-abschnitt { display: flex; align-items: center; gap: 0.625rem; padding: 1rem var(--blatt-rand) 0.5rem; background: transparent; font-size: 0.71875rem; line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; color: var(--text); }
+  /*
+    ABSCHNITTSKÖPFE IN NORMALER SCHREIBUNG (V10, Regel 8): „Tage ohne
+    Buchung“, „Danach“ — vorher Versalien, gesperrt und halbfett wie ein
+    Etikett. Jetzt eine ruhige Zeile in 500, die Zahl im Achskreis davor.
+  */
+  .start-seite .start-abschnitt { display: flex; align-items: center; gap: 0.625rem; padding: 1rem var(--blatt-rand) 0.5rem; background: transparent; font-size: 0.875rem; line-height: 1.375rem; letter-spacing: 0; text-transform: none; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .stand-leise-wort { color: var(--text-muted); }
   /*
     IM BLATT EINE ZELLE VOM RAND (Auftrag 02.11.2026). Seit E33 tragen die

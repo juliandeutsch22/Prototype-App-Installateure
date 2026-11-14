@@ -670,6 +670,7 @@ export default function WorkSheetsListView() {
         wert={fmtDauer(gesamt)}
         zustand={<Zustand stand={STAND[s.status]}>{s.status}</Zustand>}
         onOeffnen={() => setOffen(s.id)}
+        ausgewaehlt={offen === s.id}
         title={s.customerName}
         nummer={s.projectNumber}
         subtitle={
@@ -942,7 +943,9 @@ export default function WorkSheetsListView() {
                   <Button
                     key={tage}
                     groesse="klein"
-                    variant={tiefePruefung === tage ? 'primary' : 'secondary'}
+                    variant="secondary"
+                    className="pruef-zeitraum"
+                    aria-pressed={tiefePruefung === tage}
                     disabled={pruefungLaeuft}
                     onClick={() => void tieferPruefen(tage)}
                   >
@@ -971,6 +974,7 @@ export default function WorkSheetsListView() {
                 <ListRow
                   key={schein.id}
                   onOeffnen={() => setOffen(schein.id)}
+                  ausgewaehlt={offen === schein.id}
                   pfeil
                   title={
                     <>

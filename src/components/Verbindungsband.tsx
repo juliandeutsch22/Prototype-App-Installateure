@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Icon from './Icon';
 import { abonniereVerbindung, verbindungSteht } from '@/lib/liveVerbindung';
 
 /**
@@ -62,8 +63,14 @@ export default function Verbindungsband() {
   return (
     <div
       role="status"
-      className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 bg-warning-bg px-4 py-2 text-center text-sm font-normal text-warning"
+      className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-b border-line bg-warning-bg px-4 py-2 text-center text-sm font-normal text-warning"
     >
+      {/*
+        V10 (13.11.2026): neutrale Fläche, eine Linie darunter; Bedeutung
+        tragen Satz und Warnzeichen in der Warnfarbe, keine gelbe Fläche.
+        Das Band verschwindet erst, wenn die Verbindung wieder steht.
+      */}
+      <Icon name="warnung" size={16} className="shrink-0" />
       {offline ? (
         <span>
           Keine Verbindung. Neue Daten können gerade nicht geladen werden.

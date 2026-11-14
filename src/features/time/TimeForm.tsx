@@ -1265,7 +1265,8 @@ export default function TimeForm({
           }}
           // Weiss mit Haarlinie wie ein Nebenknopf (Designlinie „Fassung 3"):
           // die türkis getönte Fläche war die einzige farbige im Formular.
-          className="flex min-h-touch w-full items-center gap-2 rounded border border-line bg-surface px-3 py-2 text-left text-sm font-normal text-ink-deep shadow-sm transition hover:bg-surface-2 active:scale-[0.99]"
+          // V10: ohne Schatten — Felder und Knöpfe liegen flach auf dem Blatt.
+          className="flex min-h-touch w-full items-center gap-2 rounded border border-line bg-surface px-3 py-2 text-left text-sm font-normal text-ink-deep transition hover:bg-surface-2 active:scale-[0.99]"
         >
           {/* Umbrechen statt abschneiden: der Kundenname ist das, woran man
               den Eintrag wiedererkennt. */}

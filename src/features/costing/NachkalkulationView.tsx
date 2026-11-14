@@ -133,6 +133,12 @@ export default function NachkalkulationView() {
     : ergebnis.isError
       ? 'Zeiten, Rechnungen, Angebote oder Materialpreise der Baustellen konnten nicht geladen werden.'
       : null;
+  /*
+    EIN FEHLER MIT NÄCHSTEM SCHRITT (V10, 13.11.2026; Auftrag 9.6): dieselbe
+    Abfrage noch einmal — die Grundlage, wenn sie fehlt, sonst das Ergebnis.
+    Vorher stand nur „Das hat nicht geklappt“ ohne Weg weiter.
+  */
+  const nochmal = () => void (grund.isError ? grund.refetch() : ergebnis.refetch());
 
   /** Die Baustelle im Seitenfenster — über ihre Nummer, damit ein neuer Stand sie mitnimmt. */
   const [offen, setOffen] = useState<string | null>(null);
@@ -212,7 +218,7 @@ export default function NachkalkulationView() {
         </Card>
       ) : grund.isError && !grund.data ? (
         /* Nicht geladen ist nicht „Kostensätze fehlen“: das wäre ein falscher Weg in die Einstellungen. */
-        <ErrorState message={fehler ?? 'Die Nachkalkulation konnte nicht geladen werden.'} />
+        <ErrorState message={fehler ?? 'Die Nachkalkulation konnte nicht geladen werden.'} onRetry={nochmal} />
       ) : !kosten ? (
         /*
           EINE FEHLENDE VORAUSSETZUNG, KEINE LEERE (Planlinie § 6): die kleine
@@ -276,7 +282,7 @@ export default function NachkalkulationView() {
           </div>
 
           {/* Scheitert nur das Nachsehen im Hintergrund, bleibt die Liste stehen und der Fehler darüber. */}
-          {fehler && ergebnisse !== null && <ErrorState message={fehler} />}
+          {fehler && ergebnisse !== null && <ErrorState message={fehler} onRetry={nochmal} />}
 
           {/* Bündig: Baustellen als Zeilen von Kante zu Kante, darunter die
               Einschränkung als Zeile (Designlinie „Fassung 3"). */}
@@ -284,7 +290,7 @@ export default function NachkalkulationView() {
             {ergebnisse === null ? (
               <div className="p-4">
                 {/* Nicht gerechnet ist nicht „lädt noch“: ohne Ergebnis steht der Fehler, kein Platzhalter. */}
-                {fehler ? <ErrorState message={fehler} /> : <SkeletonList rows={4} />}
+                {fehler ? <ErrorState message={fehler} onRetry={nochmal} /> : <SkeletonList rows={4} />}
               </div>
             ) : ergebnisse.length === 0 ? (
               <EmptyState>Keine Baustelle in dieser Auswahl.</EmptyState>
@@ -314,6 +320,7 @@ export default function NachkalkulationView() {
                         title={k.customerName}
                         nummer={k.projectNumber}
                         onOeffnen={() => setOffen(k.projectNumber)}
+                        ausgewaehlt={offen === k.projectNumber}
                         pfeil
                         gestapelt
                         subtitle={

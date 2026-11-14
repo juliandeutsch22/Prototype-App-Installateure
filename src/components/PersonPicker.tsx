@@ -184,7 +184,8 @@ export default function PersonPicker({
                   const an = selected.includes(p.uid);
                   const id = `${idPrefix}-${p.uid}`;
                   return (
-                    <li key={p.uid} className={an ? 'bg-surface-2' : p.abwesend ? 'bg-surface-3' : ''}>
+                    // Gewählt: die warme Auswahlfläche (V10) — das Häkchen sagt es mit; abwesend bleibt die ruhige Fläche.
+                    <li key={p.uid} className={an ? 'bg-[var(--auswahl)]' : p.abwesend ? 'bg-surface-3' : ''}>
                       {/*
                         DIE ZEILE ÄNDERT BEIM ANHAKEN IHRE HÖHE NICHT (Nachtest
                         01.10.2026, G6). „als Helfer“ erschien erst nach dem

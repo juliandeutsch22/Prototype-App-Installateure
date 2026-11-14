@@ -1284,9 +1284,13 @@ export default function WorkSheetView() {
                       aria-pressed={projectNumber === e.projectNumber}
                       className={projectNumber === e.projectNumber ? 'schein-einsatz-an' : 'schein-einsatz'}
                     >
-                      {e.name}
-                      {/* Die Nummer grau neben dem Namen, ohne Klammer — wie in jeder Zeile (Design-Entwurf, Punkt 3). */}
-                      <span className="zeile-nr ml-1.5">{e.projectNumber}</span>
+                      <span className="min-w-0">
+                        {e.name}
+                        {/* Die Nummer grau neben dem Namen, ohne Klammer — wie in jeder Zeile (Design-Entwurf, Punkt 3). */}
+                        <span className="zeile-nr ml-1.5">{e.projectNumber}</span>
+                      </span>
+                      {/* Auswahl nach V10: Fläche, Kontur und Häkchen — die Farbe allein trägt es nicht. */}
+                      {projectNumber === e.projectNumber && <Icon name="haken" className="schein-einsatz-haken" />}
                     </button>
                   ))}
                 </div>
@@ -1957,8 +1961,14 @@ export default function WorkSheetView() {
         Unterschriften: dort wäre sie ausgeblendet, wenn der Entwurf aus
         Schritt 1 gespeichert wird.
       */}
+      {/*
+        OHNE EIGENE HÜLLE (V10, 13.11.2026): in einem eigenen Kasten war die
+        Leiste genau so hoch wie er — `sticky` hatte keinen Weg und die
+        Abschlusszone stand erst am Seitenende statt über der Navigation.
+        Als Geschwister der Formularspalte klebt sie, wie beschrieben.
+      */}
       {projectNumber && !eineSeite && (
-        <div className="space-y-3">
+        <>
           {error && <ErrorState message={error} />}
           {/* Der Entwurf ist eine Nebenhandlung für jeden Schritt; ab dem
               Tablet steht er über der Leiste. Am Handy ist er ein stiller
@@ -1983,29 +1993,38 @@ export default function WorkSheetView() {
                       <Icon name="zurueck" />
                     </IconButton>
                   )}
+                  {/*
+                    LEISE LINKS (E90, V10 13.11.2026): „Entwurf“ ist eine
+                    Textaktion neben dem Pfeil, kein zweiter gerahmter Knopf
+                    — der Abschluss rechts bleibt die eine Hauptaktion. Beim
+                    Sichern steht „sichert …“ und der Knopf ist gesperrt; ein
+                    zweiter Tipp legt keinen zweiten Entwurf an.
+                  */}
                   {amHandy && (
-                    <Button
-                      variant="ghost"
+                    <button
+                      type="button"
+                      className="schein-entwurf-leise"
                       onClick={alsEntwurfSichern}
-                      loading={speichert}
-                      disabled={!projekt || entwurfLaedt || fotoLaeuft}
+                      disabled={speichert || !projekt || entwurfLaedt || fotoLaeuft}
+                      aria-busy={speichert || undefined}
                       aria-label={scheinId ? 'Entwurf aktualisieren' : 'Als Entwurf speichern'}
                     >
-                      Entwurf
-                    </Button>
+                      {speichert ? 'sichert …' : 'Entwurf'}
+                    </button>
                   )}
                 </span>
               ) : undefined
             }
             rechts={
               naechster ? (
-                <Button onClick={() => springe(naechster.nr)}>Weiter: {naechster.name}</Button>
+                // Kompakt rechts (V10): der Hauptschritt so breit wie sein Wort, nicht über die Zeile.
+                <Button className="schein-abschluss-haupt" onClick={() => springe(naechster.nr)}>Weiter: {naechster.name}</Button>
               ) : (
-                unterschreibenKnopf('')
+                unterschreibenKnopf('schein-abschluss-haupt')
               )
             }
           />
-        </div>
+        </>
       )}
     </div>
   );

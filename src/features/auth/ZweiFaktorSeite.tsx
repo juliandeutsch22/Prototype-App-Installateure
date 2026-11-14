@@ -43,7 +43,11 @@ export default function ZweiFaktorSeite({
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-6 p-4 sm:p-6">
+    /*
+      `inhalt` wie in der App (V10): erst darin wird die Karte ein Blatt mit
+      Kontur — ohne stand das Formular ohne Rand auf dem Papier.
+    */
+    <div className="inhalt mx-auto max-w-xl space-y-6 p-4 sm:p-6">
       <MarkenBand />
       {/* Seitenkopf wie überall (Linie „Lot“) — auch vor der App, ohne Hülle. */}
       <PageHeader
@@ -60,9 +64,10 @@ export default function ZweiFaktorSeite({
 
       <Card>
         {bedarf === 'einrichten' ? (
-          <ZweiFaktorEinrichten onCodes={onCodes} />
+          // Ohne Kartenkopf bringt das Blatt oben kein Polster mit (wie in `RechtSeite`).
+          <div className="pt-6"><ZweiFaktorEinrichten onCodes={onCodes} /></div>
         ) : (
-          <form onSubmit={pruefen} className="formular space-y-3">
+          <form onSubmit={pruefen} className="formular space-y-3 pt-6">
             <InputField
               id="zf-code"
               label={mitWiederherstellung ? 'Wiederherstellungscode' : 'Code aus der App'}

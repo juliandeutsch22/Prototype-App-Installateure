@@ -16,7 +16,7 @@ import { grundAus } from '@/lib/fehlerGrund';
 import { useModul } from '@/lib/useModule';
 import { NACHRICHTEN_NEU } from './NachrichtenLive';
 import {
-  ART_TEXT, dateiPruefen, DATEI_TYPEN, erwaehnteIn, groesseText, GRUPPE_MS, istBild, kuerzel, mitMausUndTastatur, PAUSE_MS, sendetMitTaste, tagText, tagVon, uhrText, zeitText,
+  ART_TEXT, dateiPruefen, DATEI_TYPEN, erwaehnteIn, groesseText, GRUPPE_MS, istBild, kuerzel, mitMausUndTastatur, sendetMitTaste, tagText, tagVon, uhrText, zeitText,
 } from './text';
 import NachrichtAktionen, { type Auftrag } from './NachrichtAktionen';
 import { NachrichtLeiste, ReaktionsKaestchen } from './NachrichtLeiste';
@@ -50,7 +50,7 @@ type Lage = 'messen' | 'zeile' | { links: number; oben: number; zeilen: 1 | 2 };
 interface Leiste { id: string; seite: 'oben' | 'unten'; lage: Lage }
 
 /** Was neben einer Nachricht steht und nicht verdeckt werden darf. */
-const HINDERNISSE = '.nachricht-blatt, .nachricht-reaktionen, .verlauf-tag > span, .nachricht-von, .nachricht-status, .nachricht-nochmal, .verlauf-leer, .mehr-laden';
+const HINDERNISSE = '.nachricht-blatt, .nachricht-reaktionen, .verlauf-tag > span, .nachricht-kopf, .nachricht-status, .nachricht-nochmal, .verlauf-leer, .mehr-laden';
 const zeileIn = (r: HTMLElement | null, id: string) => r?.querySelector<HTMLElement>(`li[data-nachricht="${CSS.escape(id)}"]`) ?? null;
 const blattIn = (r: HTMLElement | null, id: string) => zeileIn(r, id)?.querySelector<HTMLElement>('.nachricht-blatt') ?? null;
 /** Der Rest am Ende des Verlaufs (siehe `halten`); 12 px ist das eigene untere Polster der Liste. */
@@ -98,13 +98,14 @@ type Eintrag = { id: string; eigene: boolean; von: string; zeit: string } & (
 /**
  * DAS GESPRÄCH — der Verlauf von oben nach unten, die Eingabe darunter.
  *
- * Eine Nachricht ist ein kleines Blatt: die eigenen rechts in Petrol-hell,
- * die der anderen links in der zweiten Fläche — eckig, ohne Schatten, wie
- * alles in der Linie „Lot“. Die Uhrzeit (IBM Plex Mono) steht unten im
- * Blatt, der Tag als Trenner darüber. Nachrichten derselben Person dicht
- * hintereinander bilden eine Gruppe; den Namen trägt nur die erste, und nur
- * wo mehr als eine andere Person schreibt (Runde, Baustelle). Für die
- * Vorlesehilfe steht vor jeder Nachricht der Absender, auch „Du“.
+ * V10 (13.11.2026): ein ruhiger Lesefluss. Eingehende Nachrichten stehen
+ * ohne Blase im Text, nur die eigenen rechts in einer kompakten warmen
+ * Blase. Nachrichten derselben Person dicht hintereinander bilden eine
+ * Gruppe; über ihr steht ein Kopf — bei den anderen Absenderzeichen, Name
+ * und Uhrzeit (IBM Plex Mono), bei den eigenen nur die Uhrzeit. Der Tag
+ * steht als leise Zeile über dem ersten Beitrag des Tages. Für die
+ * Vorlesehilfe steht vor jeder Nachricht der Absender, auch „Du“; der Kopf
+ * ist für sie verborgen (die Nachricht nennt Absender und Zeit selbst).
  *
  * WAS MAN MIT IHR TUN KANN (E77, E79): am Schreibtisch kommt beim
  * Darüberfahren der Blase (und mit der Tastatur beim Fokus) eine Leiste mit
@@ -655,18 +656,17 @@ export default function Gespraech({
     const anfang = !vorher || !zusammen(vorher, e);
     const ende = !naechste || !zusammen(e, naechste);
     /*
-      DIE ZEIT STEHT ÜBER DER GRUPPE, NICHT IN JEDER BLASE (E71, 09.11.2026):
-      am Tageswechsel und nach einer längeren Pause eine leise Zeile
-      „Heute 13:30“ — wie bei Apple. Jede Blase mit eigener Uhrzeit machte das
-      Gespräch unruhig. Den genauen Zeitpunkt jeder Nachricht nennt ihr
-      Fenster (Antippen) und der Vorleser.
+      DIE ZEIT STEHT ÜBER DER GRUPPE, NICHT IN JEDER BLASE (E71) — seit V10
+      (13.11.2026) im Kopf der Gruppe neben dem Namen, wie im Entwurf: „Anna
+      Huber · 10:42“. Eine Gruppe endet ohnehin nach fünf Minuten Stille; der
+      Tag steht als eigene leise Zeile darüber. Den genauen Zeitpunkt jeder
+      Nachricht nennt der Vorleser.
     */
-    const zeitKopf = neuerTag || Date.parse(e.zeit) - Date.parse(vorher.zeit) > PAUSE_MS;
     const status = e === letzteEigene && e.art !== 'fach' && !(e.art === 'unterwegs' && e.u.stand === 'fehler')
       ? (e.art === 'unterwegs' && e.u.stand === 'laeuft' ? 'Wird gesendet …' : 'Gesendet')
       : null;
-    // Den Namen braucht es nur, wo mehr als eine andere Person schreiben kann.
-    const name = !e.eigene && anfang && kopf.art !== 'direkt' && e.art === 'server' ? e.n.vonName : null;
+    // Ohne Blase trägt der Kopf, wer schreibt — auch im Gespräch zu zweit.
+    const name = !e.eigene && e.art === 'server' ? e.n.vonName || 'Gelöschtes Konto' : null;
     const absender = e.eigene ? 'Du' : e.art === 'server' ? e.n.vonName : '';
     // Was man mit ihr tun kann — nur bei Nachrichten vom Server, gelöschte haben nichts mehr.
     const m = e.art === 'server' ? moeglichkeiten(e.n, kopf, nachrichtenAn) : null;
@@ -704,12 +704,18 @@ export default function Gespraech({
           if (leisteJetzt.current?.id === e.id && !zeigerAuf.current) leisteZu();
         } : undefined}
       >
-        {zeitKopf && (
+        {neuerTag && (
           <div className="verlauf-tag">
-            <span><span className="verlauf-tag-tag">{tagText(e.zeit)}</span> {uhrText(e.zeit)}</span>
+            <span className="verlauf-tag-tag">{tagText(e.zeit)}</span>
           </div>
         )}
-        {name && <div className="nachricht-von" aria-hidden="true">{name}</div>}
+        {anfang && (
+          <div className="nachricht-kopf" aria-hidden="true">
+            {name !== null && <span className="nachricht-zeichen">{kuerzel(name)}</span>}
+            {name !== null && <span className="nachricht-von">{name}</span>}
+            <span className="nachricht-uhr">{uhrText(e.zeit)}</span>
+          </div>
+        )}
         {e.art === 'server' && (
           <div
             className="nachricht-blatt"
@@ -906,21 +912,25 @@ export default function Gespraech({
                 className="sr-only"
                 onChange={(ev) => { dateienGewaehlt(ev.target.files); ev.target.value = ''; }}
               />
-              <button type="button" className="chat-rund" aria-label="Anhang" title="Anhang" onClick={() => dateiWahl.current?.click()}>
-                <Icon name="klammer" size={22} />
-              </button>
-              {/* Die Kamera direkt — am Telefon der häufigste Anhang; ab dem Tablet reicht der Anhang. */}
-              <button type="button" className="chat-rund chat-nur-telefon" aria-label="Foto aufnehmen" title="Foto aufnehmen" onClick={() => kameraWahl.current?.click()}>
-                <Icon name="kamera" size={22} />
-              </button>
-              {kopf.art !== 'direkt' && (
-                <button type="button" className="chat-rund" aria-label="Erwähnen" title="Erwähnen" onClick={() => setErwaehnen(true)}>
-                  <span aria-hidden="true" className="eingabe-at">@</span>
-                </button>
-              )}
               <label htmlFor="nachricht-text" className="sr-only">Nachricht</label>
-              {/* Feld und Senden in einer Pille, der Pfeil rechts im Feld (E71) — wie bei Apple. */}
+              {/*
+                EINE EINGABEFLÄCHE (V10, 13.11.2026): Anhang, Kamera und
+                Erwähnen links darin, das Feld in der Mitte, das runde
+                Sendeziel rechts — statt Zeichen neben einer Pille.
+              */}
               <div className="eingabe-pille">
+                <button type="button" className="chat-rund" aria-label="Anhang" title="Anhang" onClick={() => dateiWahl.current?.click()}>
+                  <Icon name="klammer" size={22} />
+                </button>
+                {/* Die Kamera direkt — am Telefon der häufigste Anhang; ab dem Tablet reicht der Anhang. */}
+                <button type="button" className="chat-rund chat-nur-telefon" aria-label="Foto aufnehmen" title="Foto aufnehmen" onClick={() => kameraWahl.current?.click()}>
+                  <Icon name="kamera" size={22} />
+                </button>
+                {kopf.art !== 'direkt' && (
+                  <button type="button" className="chat-rund" aria-label="Erwähnen" title="Erwähnen" onClick={() => setErwaehnen(true)}>
+                    <span aria-hidden="true" className="eingabe-at">@</span>
+                  </button>
+                )}
                 <textarea
                   id="nachricht-text"
                   ref={eingabe}
@@ -942,7 +952,7 @@ export default function Gespraech({
                   title={amSchreibtisch ? 'Senden (Eingabe) — neue Zeile mit Umschalt + Eingabe' : 'Senden'}
                   disabled={!kannSenden}
                 >
-                  <Icon name="senden" size={18} />
+                  <Icon name="senden" size={20} />
                 </button>
               </div>
               {amSchreibtisch && <span id="nachricht-tasten" className="sr-only">Eingabe sendet, Umschalt und Eingabe beginnt eine neue Zeile.</span>}

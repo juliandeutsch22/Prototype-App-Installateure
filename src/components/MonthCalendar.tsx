@@ -69,13 +69,10 @@ export default function MonthCalendar({
   return (
     /*
       `monatskalender`: frei auf der Seite ein Blatt des Rasters (E33,
-      `lot-blatt.css`). Eckig auch dort, wo er in einem Fenster steht
-      (`rounded-none`): die Linie Lot rundet keine Blätter. Die Kästchen in den
-      unteren Ecken rundeten bis zum 09.11.2026 noch selbst mit — aus der Zeit
-      des gerundeten Rahmens — und standen damit unten rund aus der eckigen
-      Hülle heraus.
+      `lot-blatt.css`, seit V10 mit dem Radius der Blätter). Die Kästchen
+      schneidet die Hülle (`overflow-hidden`) — sie runden nicht selbst mit.
     */
-    <div className={ohneRahmen ? 'border-b border-line' : 'panel monatskalender rounded-none overflow-hidden'}>
+    <div className={ohneRahmen ? 'border-b border-line' : 'panel monatskalender rounded-lg overflow-hidden'}>
       {/*
         BLÄTTERN OHNE RAHMEN (E74, 10.11.2026): ‹ › als schlichte Zeichen mit
         44 px Tastfläche, wie in der Wochenleiste. Gerahmt (E72, R8) standen
@@ -164,12 +161,13 @@ export default function MonthCalendar({
               */
               className={`relative flex h-[4.5rem] flex-col items-center gap-0.5 border-line pb-2 pt-3 transition-colors ${i % 7 === 6 ? '' : 'border-r'} ${i >= cells.length - 7 ? '' : 'border-b'} ${
                 isSelected
-                  ? 'bg-info-bg ring-2 ring-inset ring-accent-deep'
+                  ? // Gewählt: warme Auswahlfläche mit feiner Kontur (V10).
+                    'bg-[var(--auswahl)] ring-1 ring-inset ring-[var(--auswahl-kontur)]'
                   : holiday
-                    ? // Zusätzlich zur Fläche ein Balken oben: die getönte
-                      // Fläche allein war neben dem Wochenend-Grau kaum zu
-                      // unterscheiden.
-                      'bg-warning-bg shadow-[inset_0_3px_0_0_var(--warning)] hover:brightness-95'
+                    ? // Feiertag ist kein Warnzustand (V10): eine eigene
+                      // ruhige Fläche und eine feine Linie oben, der Name steht
+                      // im `title` und für die Vorlesehilfe.
+                      'bg-surface-3 shadow-[inset_0_2px_0_0_var(--border-strong)] hover:bg-surface-2'
                     : weekend
                       ? 'bg-surface-2 hover:bg-surface-3'
                       : 'hover:bg-surface-2'
@@ -185,9 +183,9 @@ export default function MonthCalendar({
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full font-mono text-xs ${
                   isSelected
-                    ? // Schrift in der Farbe der Fläche: im dunklen Satz ist
-                      // `accent-deep` hell, weiss darauf wäre unlesbar.
-                      'bg-accent-deep font-semibold text-surface'
+                    ? // Auf der Auswahlfläche die Zahl in Terrakotta, ohne
+                      // gefüllten Kreis — die Fläche sagt schon „gewählt“.
+                      'font-semibold text-accent-deep'
                     : isToday
                       ? 'font-semibold text-accent-deep'
                       : // Vergangene Tage ohne Planung treten zurück — grau und
@@ -250,7 +248,7 @@ export function KalenderLegende({ anzahl }: { anzahl: string }) {
         Heute
       </span>
       <span className="flex items-center gap-2">
-        <span className="inline-block h-2.5 w-5 border border-line bg-warning-bg shadow-[inset_0_2px_0_0_var(--warning)]" aria-hidden="true" />
+        <span className="inline-block h-2.5 w-5 border border-line bg-surface-3 shadow-[inset_0_2px_0_0_var(--border-strong)]" aria-hidden="true" />
         Feiertag (AT)
       </span>
     </div>

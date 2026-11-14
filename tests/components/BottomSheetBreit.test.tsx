@@ -16,7 +16,8 @@ describe('BottomSheet breit', () => {
   it('mit `breit` trägt es .fenster-breit, ab Tablet 30rem', () => {
     render(<BottomSheet open onClose={() => {}} label="x" auchBreit breit titel="T">Inhalt</BottomSheet>);
     expect(screen.getByRole('dialog').className).toMatch(/^fenster-breit /);
-    expect(readFileSync('src/styles/lot.css', 'utf8')).toMatch(/\.fenster-breit \{ left: auto; top: 0; width: 30rem;/);
+    // V10: das Fenster schwebt 8 px vom Rand, 30 rem breit.
+    expect(readFileSync('src/styles/lot.css', 'utf8')).toMatch(/\.fenster-breit \{ left: auto; top: 0\.5rem; right: 0\.5rem; bottom: 0\.5rem; width: 30rem;/);
   });
 
   it('am Handy ohne `auchBreit` bleibt es das Blatt, auch mit `breit`', () => {

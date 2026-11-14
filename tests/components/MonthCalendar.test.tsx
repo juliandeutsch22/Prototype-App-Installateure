@@ -98,17 +98,19 @@ describe('Monatskalender', () => {
     expect(onShiftMonth).toHaveBeenCalledWith(-1);
   });
 
-  it('der ausgewählte Tag in der Ecke bleibt ganz: der Rahmen ist eckig und schneidet nichts ab', () => {
+  it('der ausgewählte Tag in der Ecke: die Hülle rundet und schneidet, das Kästchen selbst rundet nicht', () => {
     /*
       GEMELDET AUS DEM BETRIEB: „im Eckkaestchen des Kalenders wird der blaue
-      Rahmen abgeschnitten." Damals rundete der Rahmen aussen und schnitt ab,
-      was ueber die Ecke ragte; die Eckkaestchen rundeten deshalb mit. Seit
-      09.11.2026 ist der Rahmen eckig (`rounded-none`) — es gibt keine Ecke
-      mehr, ueber die etwas ragen koennte, und die Kaestchen bleiben eckig.
+      Rahmen abgeschnitten." Damals war die Auswahl ein 2-px-Ring, der über
+      die Ecke ragte. Seit V10 (13.11.2026) rundet die Hülle wie jedes Blatt
+      (`rounded-lg`) und schneidet (`overflow-hidden`); die Auswahl ist eine
+      Fläche mit feiner Kontur innen — es ragt nichts mehr über die Ecke, und
+      die Kästchen runden nicht selbst mit.
     */
     aufbauen({ selected: '2026-08-31' });
     const rahmen = screen.getByText('August 2026').closest('div')!.parentElement!;
-    expect(rahmen).toHaveClass('rounded-none');
+    expect(rahmen).toHaveClass('rounded-lg', 'overflow-hidden');
+    expect(screen.getByRole('button', { name: /31\. August/ }).className).toMatch(/ring-1 ring-inset/);
     expect(screen.getByRole('button', { name: /31\. August/ }).className).not.toMatch(/rounded/);
   });
 
@@ -190,15 +192,16 @@ describe('Monatskalender — heute als Lot', () => {
   gerundeten Rahmens. Gegenprobe: mit `rounded-bl-[15px]`/`rounded-br-[15px]`
   am letzten Wochenrand ist die Prüfung rot.
 */
-describe('Monatskalender — eckig wie die Hülle', () => {
-  it('kein Kästchen und nicht der Rahmen ist gerundet, auch der ausgewählte Tag in der Ecke nicht', () => {
+describe('Monatskalender — die Kästchen runden nicht selbst (V10: die Hülle rundet)', () => {
+  it('kein Kästchen ist gerundet, auch der ausgewählte Tag in der Ecke nicht; die Hülle trägt den Radius der Blätter', () => {
     // September 2026: der 28. steht unten links, die letzte Zelle ist ein Füllfeld.
     const { container } = render(
       <MonthCalendar year={2026} month={8} selected="2026-09-28" onSelect={vi.fn()} onShiftMonth={vi.fn()} />,
     );
     const rahmen = container.querySelector('.monatskalender')!;
-    expect(rahmen.className).toContain('rounded-none');
-    const gerundet = [...container.querySelectorAll('[class*="rounded-b"], [class*="rounded-t"], [class*="rounded-l"], [class*="rounded-r"]')];
+    expect(rahmen.className).toContain('rounded-lg');
+    // Die Hülle selbst (`rounded-lg`) ausgenommen — gesucht sind Kästchen, die eine eigene Ecke runden.
+    const gerundet = [...container.querySelectorAll('[class*="rounded-b"], [class*="rounded-t"], [class*="rounded-l"], [class*="rounded-r"]')].filter((e) => e !== rahmen);
     expect(gerundet.map((e) => e.className)).toEqual([]);
   });
 });
