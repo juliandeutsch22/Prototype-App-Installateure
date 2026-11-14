@@ -226,7 +226,8 @@ test('Speicherleiste der Firmendaten: beim Rollen sauber gezeichnet, ohne stehen
     return { r, png: await page.screenshot({ clip: { x: r.x, y: r.y, width: r.width, height: r.height } }) };
   };
   for (const y of [300, 700, 1100]) {
-    await page.mouse.wheel(0, y - (await page.evaluate(() => window.scrollY)));
+    // Gerollt per Skript: das Mausrad gibt es im mobilen WebKit (iPhone-Projekt der CI) nicht.
+    await page.evaluate((ziel) => window.scrollTo(0, ziel), y);
     await page.waitForTimeout(250);
     const gezeichnet = await bild();
     await leiste.evaluate((l: HTMLElement) => { l.style.display = 'none'; void l.offsetHeight; l.style.display = ''; });
