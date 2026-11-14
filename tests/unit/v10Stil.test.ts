@@ -809,3 +809,45 @@ describe('V10 Einstellungen und Hülle', () => {
     expect(/#[0-9a-fA-F]{6}\b/.test('<span style={{ color: "#a85439" }} />')).toBe(true);
   });
 });
+
+describe('V10 zentrale Bausteine (Querschnitt)', () => {
+  const KNOPF = readFileSync('src/components/knopf.ts', 'utf8');
+  const TAILWIND = readFileSync('tailwind.config.js', 'utf8');
+
+  it('Gefahr trägt keine rote Kante — das Wort in Fehlerrot, die Kontur jeder Nebenhandlung', () => {
+    const danger = /\n\s*danger: '([^']+)'/.exec(KNOPF)![1];
+    expect(danger).not.toMatch(/(^|\s)border-danger(\s|$)/);
+    expect(danger).toContain('text-danger');
+    expect(danger).toContain('border-line-strong');
+    // Gegenprobe: der Stand vor V10 fiele auf.
+    expect('border border-danger bg-surface font-semibold text-danger').toMatch(/(^|\s)border-danger(\s|$)/);
+  });
+
+  it('Zeigen ist nicht Wählen: der Hover-Ton ist ein anderer als die Auswahl, in beiden Sätzen', () => {
+    for (const s of [satz('hell'), satz('dunkel')]) {
+      expect(wert(s, '--hover-flaeche')).toBeTruthy();
+      expect(wert(s, '--hover-flaeche')).not.toBe(wert(s, '--auswahl'));
+    }
+    const hoverAufAuswahl = ohneKommentare(ALLE_STILE).split('\n').filter((z) => /:hover \{ background: var\(--(petrol-hell|auswahl)\)/.test(z) && !/aria-current|data-aktiv|\[data-offen\]/.test(z));
+    expect(hoverAufAuswahl).toEqual([]);
+  });
+
+  it('Terrakotta auf Dunkel ist ein Token, kein fester Wert in den Bausteinen', () => {
+    expect(wert(satz('hell'), '--auf-dunkel-akzent')).toBe('#d08a68');
+    expect(LOT).toContain('.meldung-knopf { pointer-events: auto; flex: none; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: var(--auf-dunkel-akzent);');
+    expect(ohneKommentare(LOT)).not.toMatch(/#d08a68/i);
+  });
+
+  it('die Titelschrift ist in Tailwind gültig gequotet — sonst fiele font-titel still auf DM Sans zurück', () => {
+    expect(TAILWIND).toContain(`titel: ['"Source Serif 4"'`);
+  });
+
+  it('das Optionsfeld der Auswahl deckt die ganze Fläche (Tipp, Werkzeuge, Eingabehilfen)', () => {
+    expect(LOT).toContain('.wahl-option input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }');
+    expect(LOT).not.toMatch(/\.wahl-option input \{[^}]*pointer-events: none/);
+  });
+
+  it('Fensterfüße stehen auch am Handy in einer Zeile — nirgends mehr gestapelt', () => {
+    expect(ohneKommentare(ALLE_STILE)).not.toMatch(/(fuss|fuss-knoepfe|vorschau-fuss)[^{]*\{[^}]*flex-direction: column-reverse/);
+  });
+});
