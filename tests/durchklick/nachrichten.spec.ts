@@ -184,8 +184,8 @@ test('Suche in den Nachrichten: im Fokus nur der Rand der Pille, kein Ring innen
     const pille = feld.locator('xpath=ancestor::label[1]');
     await expect(pille).toHaveCSS('outline-style', 'none');
     await expect(pille).toHaveCSS('box-shadow', 'none');
-    // V10: der Rand nimmt die Fokusfarbe (#B97B5E) an — kein Petrol mehr.
-    await expect(pille).toHaveCSS('border-top-color', 'rgb(185, 123, 94)');
+    // Der Rand nimmt die Fokusfarbe (`--fokus`) an, seit E93 #5B85C0.
+    await expect(pille).toHaveCSS('border-top-color', 'rgb(91, 133, 192)');
     await feld.fill('Büro');
     await expect(feld).toHaveValue('Büro');
   }
