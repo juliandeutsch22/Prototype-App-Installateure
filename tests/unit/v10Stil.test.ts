@@ -358,6 +358,8 @@ describe('V10 Aufträge', () => {
   it('die Kontextspalte ist ruhig: keine Eckmarken, ab dem Tablet eine feine Linie — Akte und Beleg gleich', () => {
     expect(eckmarken(aRegel(AKTEN, '.akten-kontext'))).toBe(false);
     expect(eckmarken(aRegel(AUFTRAEGE, '.beleg-kontext'))).toBe(false);
+    expect(eckmarken(aRegel(stil('lot-plattform.css'), '.plattform-kontext'))).toBe(false);
+    expect(aRegel(stil('lot-plattform.css'), '.plattform-kontext')).toContain('border-left: 1px solid var(--border);');
     expect(AKTEN).toMatch(/@media \(min-width: 760px\) \{[^}]*\}\s*\.akten-kontext \{ padding-left: 1\.375rem; border-left: 1px solid var\(--border\); \}/);
     expect(aRegel(AUFTRAEGE, '.beleg-kontext')).toContain('padding: 0.75rem 0 1rem 1.375rem; border-left: 1px solid var(--border);');
     // Gleiche Überschriften: Versalien und Sperrung, aber nicht fett.

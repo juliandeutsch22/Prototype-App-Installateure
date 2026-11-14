@@ -143,7 +143,7 @@ test('Plattform: Benutzername, Notzugang und identitätsgeprüfte Wiederherstell
   oben, Reiter darunter, die Seite weiß und eine grau gefüllte Spalte. Jetzt
   dieselbe Hülle wie die App: Seitenleiste mit dem Lot am Seil (Tablet,
   Schreibtisch), Kopfzeile und Reiterleiste (Handy), Raster, Blätter auf den
-  Linien und die Kontextspalte mit Eckmarken.
+  Linien und die Kontextspalte (seit V10 mit feiner Linie statt Eckmarken).
 */
 test('Plattform in der Linie Lot: Leiste, Raster, Blätter und Kontextspalte — in drei Breiten', async ({ page }) => {
   await anmelden(page);
@@ -201,7 +201,8 @@ test('Plattform in der Linie Lot: Leiste, Raster, Blätter und Kontextspalte —
     expect(m.blattOben, `${breite} px: Oberkante auf einer Linie`).toBeLessThanOrEqual(0.5);
     expect(m.blattUnten, `${breite} px: Unterkante auf einer Linie`).toBeLessThanOrEqual(0.5);
     expect(m.kontextFlaeche, `${breite} px: Kontextspalte ohne Fläche`).toBe('rgba(0, 0, 0, 0)');
-    expect(m.kontextMarken, `${breite} px: Kontextspalte mit Eckmarken`).toBe(true);
+    // V10 (13.11.2026): die Kontextspalte ist ruhig — keine Eckmarken mehr, wie in Akte und Beleg.
+    expect(m.kontextMarken, `${breite} px: Kontextspalte ohne Eckmarken`).toBe(false);
     expect(m.kontextOben, `${breite} px: Kontextspalte auf einer Linie`).toBeLessThanOrEqual(0.5);
     expect(m.quer, `${breite} px: nichts rollt seitlich`).toBeLessThanOrEqual(0);
     await expect(page.getByRole('button', { name: 'Mein Konto', exact: true }), `${breite} px: „Mein Konto“ erreichbar`).toBeVisible();

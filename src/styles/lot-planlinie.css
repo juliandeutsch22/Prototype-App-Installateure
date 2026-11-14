@@ -299,11 +299,13 @@
   @media (prefers-reduced-motion: reduce) { .lot-pendel { animation: none; } }
 
   /*
-    DIE NAVIGATION: der aktive Punkt trägt das Lot statt einer gefüllten
-    Fläche — die Linie von oben, das Senkblei darunter, der Text weiß. Die
-    Gruppen tragen eine Linie bis zum Rand wie die Achsen im Plan.
+    DIE NAVIGATION: der aktive Punkt trägt das Lot — die Linie von oben, das
+    Senkblei daneben, der Text weiß. Seit V10 (13.11.2026, Mappe S. 20)
+    liegt er dazu auf einer leise aufgehellten Fläche (`--navi-tief`): das
+    Lot sagt, wo man ist, die Fläche fasst die ganze Zeile. Die Gruppen
+    tragen eine Linie bis zum Rand wie die Achsen im Plan.
   */
-  .navi-punkt-aktiv { background: none; font-weight: 500; }
+  .navi-punkt-aktiv { background: var(--navi-tief); font-weight: 500; }
   .navi-punkt-aktiv:hover { color: #ffffff; }
   /*
     EIN LOT AM SEIL FÜR DIE GANZE LEISTE (Auftrag 03.11.2026, E38). Der Haken

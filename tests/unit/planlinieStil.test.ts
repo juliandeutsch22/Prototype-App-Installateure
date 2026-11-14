@@ -81,8 +81,10 @@ describe('B4 Lot in der Navigation', () => {
     expect(PLANLINIE).not.toContain('.navi-lot');
   });
 
-  it('der aktive Punkt hat keine gefüllte Fläche mehr — das Lot ersetzt sie', () => {
-    expect(regel('.navi-punkt-aktiv')).toContain('background: none');
+  it('V10: der aktive Punkt trägt das Lot und eine leise aufgehellte Fläche (Mappe S. 20)', () => {
+    // Gegenprobe: der Stand der Planlinie (`background: none`) ist rot.
+    expect(regel('.navi-punkt-aktiv')).toContain('background: var(--navi-tief)');
+    expect(PLANLINIE).toContain('.navi-blei');
   });
 });
 
