@@ -41,6 +41,23 @@ describe('V10 Grundwerte', () => {
     expect(wert(dunkel, '--chat-eigen')).toBe('#2a3442');
   });
 
+  /*
+    E93 (14.11.2026, „warum ist der Raster noch orange?“): Raster und Linien
+    blieben nach dem Farbwechsel beige und wirkten neben Kuppel-Blau orange.
+    Linien sind kühl-neutral: Rot höchstens 8 über Blau. Gegenprobe: die
+    Werte vor der Korrektur (#e7ded2, #e2d8cb, dunkel #3a342e) sind rot.
+  */
+  const warm = (hex: string) => parseInt(hex.slice(1, 3), 16) - parseInt(hex.slice(5, 7), 16) > 8;
+  it('Raster und Linien sind kühl-neutral, nicht beige — in beiden Sätzen', () => {
+    for (const name of ['hell', 'dunkel'] as const) {
+      for (const t of ['--raster-neben', '--raster-haupt', '--border', '--border-strong', '--insel-kontur']) {
+        const w = wert(satz(name), t)!;
+        expect(warm(w), `${name} ${t} ${w}`).toBe(false);
+      }
+    }
+    expect(['#e7ded2', '#e2d8cb', '#3a342e'].map(warm)).toEqual([true, true, true]);
+  });
+
   it('Warnung und Fehler färben keine Flächen — ihre Hintergründe sind neutral', () => {
     const hell = satz('hell');
     for (const t of ['--warning-bg', '--danger-bg', '--info-bg', '--success-bg']) expect(wert(hell, t), t).toBe(wert(hell, '--surface'));

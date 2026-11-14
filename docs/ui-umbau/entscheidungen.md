@@ -3971,8 +3971,14 @@ Schriften, Belege.
   Auswahlkontur `#A9BEDB` / `#3E5675`, Fokusring `#5B85C0` / `#7BA7DC`,
   Heute `#E6EBF1` / `#252A31`, eigene Chatblase `#DEE6F0` / `#2A3442`,
   aktive Navigation `#38404C` / `#2D3644`, tieferes Blau für gedrückte
-  Flächen `#234E8A` / `#2F62AB`. Papier, Blatt, Tinte, Linien und die warme
-  dunkle Welt bleiben aus E92 — das Blau liegt auf warmem Grund.
+  Flächen `#234E8A` / `#2F62AB`. Papier, Blatt, Tinte und die warme dunkle
+  Welt bleiben aus E92 — das Blau liegt auf warmem Grund.
+- **Linien und Raster kühl-neutral** (Nachtrag nach Rückfrage „warum ist der
+  Raster noch orange?“): die beigen V10-Linien wirkten neben Blau orange.
+  Hell Raster `#EBEBE6`, Registrierungslinie `#DDE2E8`, Kontur `#DCDCD5`,
+  kräftige Linie `#D4D5CF`, Inselkontur `#DDDCD6`; dunkel Raster `#2A2A2A` /
+  `#323843`, Linien `#44454A`. `v10Stil.test.ts` lässt keinen Linienton mit
+  Rot mehr als 8 über Blau zu (Gegenprobe: die alten Werte sind rot).
 - **Zeichen:** ein weicher Tropfen mit rundem Kragen und feinem Faden statt
   Band und Spitze; Wortmarke in Source Serif 4 Regular (Titelschrift der
   App, OFL-1.1), in Pfade umgewandelt. Dieselbe Form trägt das Senkblei der

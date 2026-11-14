@@ -92,8 +92,9 @@
   --text-muted: #6b645b;
   /* Sichtbar heller als Eingegebenes, aber noch 4,6:1 auf Weiss. */
   --text-placeholder: #776e63;
-  --border: #e2d8cb;
-  --border-strong: #ded4c7;
+  /* E93: Linien und Raster kühl-neutral, damit sie neben Kuppel-Blau nicht orange wirken. */
+  --border: #dcdcd5;
+  --border-strong: #d4d5cf;
   /* Deckend statt halbtransparent (Protokoll 0.2). */
   --focus-ring: #5b85c0;
 
@@ -173,13 +174,13 @@
   --auf-dunkel-akzent: #7ba7dc;
   --auf-dunkel-leise: #cfc6ba;
   --pause-flaeche: #e9ecdf;
-  --insel-kontur: #e4dace;
+  --insel-kontur: #dddcd6;
   --inaktiv-symbol: #776e63;
   --chat-eigen: #dee6f0;
   --chat-eigen-text: #2d2924;
   --chat-eigen-kontur: #c3d1e3;
-  --raster-neben: #f1ece4;
-  --raster-haupt: #e7ded2;
+  --raster-neben: #ebebe6;
+  --raster-haupt: #dde2e8;
   --shadow-insel: 0 4px 12px -4px #25231f24;
 }
 
@@ -214,8 +215,8 @@
     --auswahl-pfeil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23f3eee6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E");
     --text-muted: #b7aea3;
     --text-placeholder: #a0978c;
-    --border: #4b443c;
-    --border-strong: #4b443c;
+    --border: #44454a;
+    --border-strong: #44454a;
     --focus-ring: #7ba7dc;
     --success: #7ba7dc;
     --success-bg: #25221f;
@@ -250,13 +251,13 @@
     /* Pause dunkel heller als „läuft“: sonst unterschieden sich die beiden
        Zustände der Arbeitstag-Karte nur am Punkt und an einem Knopf. */
     --pause-flaeche: #33372b;
-    --insel-kontur: #4b443c;
+    --insel-kontur: #44454a;
     --inaktiv-symbol: #a0978c;
     --chat-eigen: #2a3442;
     --chat-eigen-text: #f3eee6;
     --chat-eigen-kontur: #3e5675;
-    --raster-neben: #302c27;
-    --raster-haupt: #3a342e;
+    --raster-neben: #2a2a2a;
+    --raster-haupt: #323843;
     --shadow-insel: 0 4px 12px -4px #00000066;
   }
 }

@@ -24,7 +24,7 @@ Acht Pixel bilden den Grundrhythmus; vier Pixel dienen nur der feinen inneren Au
 
 ## Farb- und Rollentokens
 
-Seit E93 (14.11.2026) gelten zwei Farben: **Kuppel-Blau (A)** `#2B5FA6` / dunkel `#7BA7DC` für Marke, Aktion, Auswahl, „erledigt“ und „Fehler“; **Oliv (B)** `#7E8C5C` / dunkel `#9DAF7E` für „Achtung“ und Hinweise. Die Grundfläche ist `#F4F1E8`. Gemessen statt übernommen: Oliv als Schrift ist hell `#5E6A40` (5,2–5,7 : 1; `#7E8C5C` hätte nur 3,2–3,6 : 1); gefüllte Flächen im dunklen Satz sind `#3A6EB8`, weil helle Schrift auf `#7BA7DC` höchstens 2,5 : 1 hätte. Da „erledigt“ und „Fehler“ dieselbe Farbe tragen, unterscheiden Text und Symbol sie immer.
+Seit E93 (14.11.2026) gelten zwei Farben: **Kuppel-Blau (A)** `#2B5FA6` / dunkel `#7BA7DC` für Marke, Aktion, Auswahl, „erledigt“ und „Fehler“; **Oliv (B)** `#7E8C5C` / dunkel `#9DAF7E` für „Achtung“ und Hinweise. Die Grundfläche ist `#F4F1E8`. Gemessen statt übernommen: Oliv als Schrift ist hell `#5E6A40` (5,2–5,7 : 1; `#7E8C5C` hätte nur 3,2–3,6 : 1); gefüllte Flächen im dunklen Satz sind `#3A6EB8`, weil helle Schrift auf `#7BA7DC` höchstens 2,5 : 1 hätte. Da „erledigt“ und „Fehler“ dieselbe Farbe tragen, unterscheiden Text und Symbol sie immer. Linien und Raster sind kühl-neutral (hell Raster `#EBEBE6` / Registrierung `#DDE2E8`), damit sie neben dem Blau nicht beige oder orange wirken.
 
 | Rolle | Zielwert | Verwendung |
 |---|---:|---|
@@ -41,9 +41,9 @@ Seit E93 (14.11.2026) gelten zwei Farben: **Kuppel-Blau (A)** `#2B5FA6` / dunkel
 | Auswahl | `#E3EAF3` | ausgewählte Zeilen, Optionen und aktive mobile Navigation |
 | Auswahlkontur | `#A9BEDB` | feine Auswahl, etwa 0,75 px auf der Referenzebene |
 | Fokus | `#5B85C0` | sichtbarer, ruhiger Fokus |
-| App-Konturen | `#E2D8CB` | Arbeitsblätter und Felder |
-| Kopf-/Dockkonturen | `#E4DACE` | mobile Kopf- und Navigationsinseln |
-| Funktionale Linien | `#DED4C7` | sinnvolle Trennung |
+| App-Konturen | `#DCDCD5` | Arbeitsblätter und Felder |
+| Kopf-/Dockkonturen | `#DDDCD6` | mobile Kopf- und Navigationsinseln |
+| Funktionale Linien | `#D4D5CF` | sinnvolle Trennung |
 | Pausierter Arbeitstag | `#E9ECDF` | ruhiger Pausenzustand im Ton von Oliv |
 | Warnung / Hinweis (Oliv) | `#5E6A40` | Statustext und sparsames Symbol |
 | Fehler (Kuppel-Blau) | `#2B5FA6` | Statustext und sparsames Symbol |
@@ -67,12 +67,12 @@ Der Dark Mode ist eine vollständige zweite Oberflächenwelt, keine mechanische 
 | Auswahl | `#26303D` | aktive Zeile oder Navigation |
 | Haupttext | `#F3EEE6` | primäre Information |
 | Gedämpfter Text | `#B7AEA3` | Metadaten und sekundäre Erklärung |
-| Linien / Konturen | `#4B443C` | funktionale Trennung |
+| Linien / Konturen | `#44454A` | funktionale Trennung |
 | Akzent auf Dunkel | `#7BA7DC` | Textakzent, Fokus, aktive Symbole, Erledigt und Fehler |
 | Achtung auf Dunkel | `#9DAF7E` | Warnung und Hinweis |
 | Primäraktion | `#3A6EB8` mit `#FFF8EE` | kontraststarke Aktionsfläche (4,9 : 1) |
 | Eigene Chatnachricht | `#2A3442` mit `#F3EEE6` | eigene Beiträge, feine Kontur `#3E5675` |
-| Raster neben / Haupt | `#302C27` / `#3A342E` | sehr leise im Arbeitsgrund |
+| Raster neben / Haupt | `#2A2A2A` / `#323843` | sehr leise im Arbeitsgrund |
 
 Reale Kontraste sind für jede Komponente und jeden Zustand zu messen. Helle Schrift auf der blauen Aktionsfläche und aufgehellter blauer Text auf dunklem Grund haben unterschiedliche Rollen und werden nicht vertauscht. Dunkle Flächen erhalten keine schweren schwarzen Schatten; Konturen und begrenzte Tonabstufungen tragen die Hierarchie. Systemwechsel dürfen keinen ungespeicherten Formular-, Timer-, Chat- oder Offline-Zustand zurücksetzen.
 
