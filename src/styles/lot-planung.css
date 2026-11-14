@@ -184,7 +184,7 @@
     die warme Spalte darunter sagen „dieser Tag“, ohne die Einsätze darin zu
     färben. Auch an einem schmalen leeren Tag.
   */
-  /* Oben die Akzentlinie: im dunklen Satz liegt die dunkle Fläche nah am Blatt, die Linie hält den Tag auch dort fest. */
+  /* Oben die Terrakotta-Linie: im dunklen Satz liegt die dunkle Fläche nah am Blatt, die Linie hält den Tag auch dort fest. */
   .wp-kopf-heute, .wp-kopf-schmal-heute { background: var(--dunkel-flaeche); color: var(--auf-dunkel); box-shadow: inset 0 2px 0 var(--petrol); }
   .wp-kopf-heute :is(.kopf-tag, .kopf-warnung, .kopf-termine), .wp-kopf-schmal-heute .kopf-tag { color: var(--auf-dunkel); }
   .wp-kopf-heute .kopf-info, .wp-kopf-schmal-heute .kopf-info { color: var(--auf-dunkel-leise); }
@@ -253,11 +253,11 @@
   /* ── Einsatzblock, Termin-Eintrag, abwesend ───────────────────────────── */
   /*
     DER EINSATZ ALS HELLES ARBEITSBLATT (V10, 13.11.2026, E88 bleibt
-    fachlich): feine Kontur rundum, links die sachliche Akzentmarkierung,
+    fachlich): feine Kontur rundum, links die sachliche Terrakotta-Markierung,
     der normale Einsatzradius. An jedem Tag gleich — auch heute: die Spalte
     trägt den Tag (`--heute`), nicht die Einsätze darin. Vollflächig
-    Den Akzent trägt nur der AUSGEWÄHLTE Einsatz (unten); die Auswahl ändert
-    Farbe und Tiefe, nie die Form. Der Akzent hier aus `--petrol` (dem
+    Terrakotta wird nur der AUSGEWÄHLTE Einsatz (unten); die Auswahl ändert
+    Farbe und Tiefe, nie die Form. Terrakotta hier aus `--petrol` (dem
     festen Ton des Produkts), nicht aus `--brand`: Auswahl und Markierung
     sind Struktur und tragen keine Hausfarbe eines Betriebs (index.css).
   */
@@ -273,7 +273,7 @@
   .eintrag-konflikt .e-konflikt { display: inline-flex; align-items: flex-start; gap: 0.25rem; color: var(--warning); font-weight: var(--gewicht-titel); }
   .e-konflikt > svg { flex: none; margin-top: 0.125rem; }
   /*
-    DER AUSGEWÄHLTE EINSATZ: vollflächig im Akzent mit heller Schrift und
+    DER AUSGEWÄHLTE EINSATZ: vollflächig Terrakotta mit heller Schrift und
     etwas Tiefe — ausgewählt heißt angehoben (langes Drücken, `data-offen`),
     mit seiner Leiste in Arbeit (`:focus-within`) oder per Tastatur erreicht.
   */
@@ -483,7 +483,7 @@
   /* Ein Bereichstitel, keine Versalienzeile (V10: Serifen für größere Titel, keine Sperrung). */
   .planung-ablage-titel { margin: 0; font-family: var(--schrift-titel); font-size: 1.125rem; line-height: 1.5rem; font-weight: 400; color: var(--ink-deep); }
   .planung-ablage-hinweis { margin: 0; font-size: 0.8125rem; color: var(--text-muted); }
-  /* Dasselbe Arbeitsblatt wie ein Einsatz: feine Kontur, Akzentmarkierung, normaler Radius. */
+  /* Dasselbe Arbeitsblatt wie ein Einsatz: feine Kontur, Terrakotta-Markierung, normaler Radius. */
   .ablage-baustelle { display: flex; flex-direction: column; width: 100%; padding: 0.5rem 0.625rem; background: var(--surface); color: var(--ink-deep); border: 1px solid var(--border-strong); border-left: 3px solid var(--petrol); border-radius: var(--radius-sm); font-size: 0.8125rem; line-height: 1.125rem; text-align: left; touch-action: none; transition: border-color var(--motion-state) var(--ease-response); }
   .ablage-baustelle:hover { border-color: var(--auswahl-kontur); border-left-color: var(--petrol); }
   .ablage-baustelle .e-zeile { color: var(--text-muted); font-size: 0.75rem; }

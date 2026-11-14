@@ -3,8 +3,8 @@
 
   Drei eigenständige Zustände, auf einen Blick zu unterscheiden (style.md,
   „Flächen, Auswahl und Tiefe“; Auftrag 11.1):
-    - bereit: helles Blatt wie jedes andere, der Start als Akzentkreis;
-    - läuft: eine dunkle, ruhige Fläche (`--dunkel-flaeche`) — der Akzent
+    - bereit: helles Blatt wie jedes andere, der Start als Terrakotta-Kreis;
+    - läuft: eine dunkle, ruhige Fläche (`--dunkel-flaeche`) — Terrakotta
       nur als kleiner Punkt, keine orange Karte;
     - Pause: warmer neutraler Ton (`--pause-flaeche`), hell und klar anders
       als bereit.
@@ -41,7 +41,7 @@
   /* Auf dem Pausenton läge der Nebentext knapp unter 4,5 : 1 — dort in der Grundschrift. */
   .arbeitstag[data-stand='pause'] .arbeitstag-stand { color: var(--text); }
   .arbeitstag-punkt { flex: none; width: 0.5rem; height: 0.5rem; border-radius: 999px; background: var(--accent-deep); }
-  /* Der einzige Akzent der laufenden Karte: aufgehellt, damit er auf dem Dunkel sichtbar bleibt (5,4 : 1). */
+  /* Der einzige Terrakotta-Akzent der laufenden Karte: aufgehellt, damit er auf dem Dunkel sichtbar bleibt (4,4 : 1). */
   .arbeitstag[data-stand='laeuft'] .arbeitstag-punkt { background: var(--auf-dunkel-akzent); }
   [data-stand='pause'] .arbeitstag-punkt { background: var(--warning); }
   .arbeitstag-uhr { margin: 0.25rem 0 0; font-family: var(--schrift-mono); font-size: 2.5rem; font-weight: var(--gewicht-zahl); line-height: 3rem; letter-spacing: -0.02em; color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -140,7 +140,7 @@
 
   /*
     AUF DEM DUNKEL: beide Kreise in einem deckend aufgehellten Ton der Fläche,
-    das Zeichen hell (8,3 : 1) — wie in der Mappe. Der Akzent bleibt dem
+    das Zeichen hell (8,3 : 1) — wie in der Mappe. Terrakotta bleibt dem
     Punkt; keine zweite große Akzentfläche neben der Uhr.
   */
   .arbeitstag[data-stand='laeuft'] .rund-knopf, .arbeitstag[data-stand='laeuft'] .rund-knopf-voll { border-color: var(--auf-dunkel-leise); background: var(--dunkel-flaeche); color: var(--auf-dunkel); }

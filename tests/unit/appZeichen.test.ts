@@ -1,7 +1,8 @@
 /**
  * App-Zeichen und Favicon — das einheitliche Senklot auf Weiß. Es trägt den
- * Arbeitsakzent der Oberfläche: seit E93 (14.11.2026) Kuppel-Blau und als
- * ein weicher Tropfen mit Kragen und Faden, davor Terrakotta (E92).
+ * Arbeitsakzent der Oberfläche, Terrakotta (V10, E92). Seit E93/E94
+ * (14.11.2026) ist es ein weicher Tropfen mit Kragen und Faden; die Farbe
+ * blieb nach der Rückkehr von Kuppel-Blau Terrakotta (E94).
  *
  * Was hier steht, sieht kein Test der Oberfläche: der Reiter, der
  * Startbildschirm, der Start der App unter Android. Ein falsch
@@ -100,16 +101,16 @@ describe('Einheitliche Senklot-Zeichen', () => {
     expect(lies('public/marke/icon.svg').toString()).toContain('<rect width="64" height="64" fill="#FFFFFF"/>');
   });
 
-  it.each(ZEICHEN)('$datei hat die angegebene Größe und das Lot in Kuppel-Blau', ({ datei, groesse }) => {
+  it.each(ZEICHEN)('$datei hat die angegebene Größe und das Lot in Terrakotta', ({ datei, groesse }) => {
     const { breite, hoehe, pixel } = pngLesen(lies(`public/${datei}`));
     expect([breite, hoehe]).toEqual([groesse, groesse]);
-    // Kuppel-Blau #2B5FA6: blau deutlich über rot. Gegenprobe: weder Terrakotta (#A85439) noch das alte Petrol (#0F4552) zählen hier.
-    let blau=0;
+    // Terrakotta #A85439: rot deutlich über grün und blau. Gegenprobe: weder Kuppel-Blau (#2B5FA6, E93) noch das alte Petrol (#0F4552) zählen hier.
+    let terrakotta=0;
     for (let y=0;y<hoehe;y++) for (let x=0;x<breite;x++) {
-      const [r,,b]=pixel(x,y);
-      if(b>130 && r<90 && b-r>70) blau++;
+      const [r,g,b]=pixel(x,y);
+      if(r>140 && g<110 && b<90) terrakotta++;
     }
-    expect(blau).toBeGreaterThan(breite*hoehe*.02);
+    expect(terrakotta).toBeGreaterThan(breite*hoehe*.02);
   });
 
   it.each(RANDLOS.map((datei) => ({ datei })))('$datei bleibt randlos auf deckendem Weiß', ({ datei }) => {
@@ -182,10 +183,10 @@ describe('Einheitliche Senklot-Zeichen', () => {
     expect(worker).toContain("icon: '/marke/icon-192.png'");
   });
 
-  // Startbildschirm, Statusleiste und Reiterfarbe tragen die Grundfläche der Oberfläche (E93: #F4F1E8).
+  // Startbildschirm, Statusleiste und Reiterfarbe tragen die Grundfläche der Oberfläche (V10, wieder seit E94: #F4F0E8).
   it('behält Startbildschirm- und Statusleistenfarben der App bei', () => {
     const grund = /--bg:\s*(#[0-9a-f]{6})/i.exec(lies('src/index.css').toString('utf8'))![1].toLowerCase();
-    expect(grund).toBe('#f4f1e8');
+    expect(grund).toBe('#f4f0e8');
     expect(manifest.background_color.toLowerCase()).toBe(grund);
     expect(manifest.theme_color.toLowerCase()).toBe(grund);
     expect(html).toContain(`<meta name="theme-color" content="${grund}" />`);

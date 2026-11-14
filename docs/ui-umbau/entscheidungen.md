@@ -3945,7 +3945,7 @@ Entscheidungen E1–E91 gelten weiter.
 - **Grenzen mit Grund:** `docs/grenzen-durchsicht-2026-10-24.md`, Abschnitt
   „Designlinie V10“. Prüfbericht: `docs/ui-umbau/v10-pruefbericht.md`.
 
-**E93 — Kuppel-Blau und Oliv, neues Zeichen (14.11.2026).**
+**E93 — Kuppel-Blau und Oliv, neues Zeichen (14.11.2026; Farben noch am selben Tag durch E94 zurückgenommen, das Zeichen bleibt).**
 Auftrag: die Farben der App ändern — Primär Kuppel-Blau `#2B5FA6` / dunkel
 `#7BA7DC`, Grundfläche `#F4F1E8`; Rollen: erledigt und Fehler → A (Blau),
 Hinweis und Achtung → B (Oliv `#7E8C5C` / `#9DAF7E`); fehlende Farben so
@@ -3992,3 +3992,21 @@ Schriften, Belege.
   Petrol zählen nicht) und bindet Manifest, Reiterfarbe und Grundfläche an
   `--bg`; `ProduktMarke.test.tsx` bindet das reservierte Seitenverhältnis an
   `marke/logo.svg` (Gegenprobe: altes Verhältnis rot).
+
+**E94 — Zurück zu den V10-Farben, das neue Zeichen bleibt in Terrakotta (14.11.2026).**
+Auftrag nach dem Live-Gang von E93: „wieder zurück zur vorigen Version, das
+Logo soll aber bleiben, aber dann auch terrakotta werden.“
+
+- **Farben wie vor E93:** alle Tokens beider Sätze, Startbildschirm,
+  Statusleiste und Reiterfarbe (`#F4F0E8`), Raster und Linien (warm), Texte
+  der Musterseite und der Einsatzplanung, Prüfungen. E93 gilt in diesen
+  Punkten nicht mehr; E92 gilt wieder vollständig.
+- **Das Zeichen aus E93 bleibt:** weicher Tropfen mit Kragen und Faden,
+  Wortmarke Source Serif 4, Senkblei in Navigation und Anmeldezeichnung in
+  derselben Form, Seitenverhältnis in `ProduktMarke`. Gefärbt in Terrakotta
+  `#A85439`, auf dunklen Flächen `#D08A68` mit weißem Schriftzug — wie die
+  Marke in V10. Icons, Favicons und Push-Abzeichen neu gerastert.
+- **Prüfungen:** `appZeichen.test.ts` verlangt wieder Terrakotta im Icon
+  (Gegenprobe: das blaue Icon aus E93 ist rot); `ProduktMarke.test.tsx`
+  bindet weiter das Seitenverhältnis an `marke/logo.svg`. Die Prüfung gegen
+  warme Linientöne aus E93 entfällt mit den warmen Linien.

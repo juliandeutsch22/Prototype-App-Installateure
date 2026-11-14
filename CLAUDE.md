@@ -31,9 +31,9 @@ Grenze, keine Annahme über „den“ Betrieb.
   weiter. Bausteine: Tokens in `src/index.css`, Stile in `src/styles/`,
   `src/components/`; alles zum Ansehen auf `/_muster`.
 - Warmes Papier als Grund, helle Arbeitsblätter mit feiner Kontur darauf;
-  Kuppel-Blau (`--brand`, E93) für Primäraktion, aktive Auswahl, erledigt
-  und Fehler, Oliv für Achtung und Hinweise; keine Karte in einer Karte;
-  jede Seite beginnt mit `PageHeader` (eine Hauptaktion, ⋯ nur im Seitenkopf); ganze Zeilen
+  Terrakotta (`--brand`) für Primäraktion, aktive Auswahl und wenige
+  Markierungen; keine Karte in einer Karte; jede Seite beginnt mit
+  `PageHeader` (eine Hauptaktion, ⋯ nur im Seitenkopf); ganze Zeilen
   antippbar; Zustände als Text und sparsames Symbol.
 - **Radien nach Rolle:** Arbeitszeile 8 px, Feld/Knopf 12 px, Blatt 16 px,
   Sheet und mobile Kopf-/Fußinsel 24 px. **Schatten nur für Schwebendes**

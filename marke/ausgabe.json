@@ -1,19 +1,19 @@
 {
   "quelle": "Senklot-Markenpaket-2026-11-03",
   "vorlagen": {
-    "logo.svg": "9d12075b0c9916d4b13a6379b43ecb8fe0c95d11a4d383e8c60b8856ad90c45a",
-    "logo-weiss.svg": "6528939485e6b9a66fb69b3b6570011a3678b1b3afe8833388d5c4dd2cd3ee39",
-    "zeichen.svg": "af05d46128079c418fa79219668c80bc1da7cb68cad6136030210eda810d942f",
+    "logo.svg": "5efcbbb5eb54c530798e278e05415ccb7252e4fe2fd887a8b1c584531fb83fcc",
+    "logo-weiss.svg": "8a562a7f702913db7d7354aef4d012f72f19486679566082dd984fa4b8ee5c66",
+    "zeichen.svg": "a3d662fa381beadf2d2ef29f77de1cbda4f949115a35e61c8a2fc4d0da2419c2",
     "schriftzug.svg": "335bd20319df4b706f28b03a3aed2870272cb0ea8fe2772b1e433fb69bdfd8b9"
   },
   "bilder": {
-    "icon-192.png": "8bdaf8d7da50ce530724da6b4cf25ea59e41897ac37325b3fd682c7369adea7c",
-    "icon-512.png": "a380be44e0c2e1b636f3a43bd45c164ded21a3d35a0d18aa1d3695ed0e365f6f",
-    "icon-maskable-512.png": "47220bad5e5ee2abcfcd239d406cd91c6aba794c5d26ba07d4aed2e8751c5cfd",
-    "apple-touch-icon.png": "a5db791991c5f2e48edc8c67c3b5ef7edf93cc4b4265a1756d6161ac42f553b9",
-    "favicon-16.png": "9ca74df1149970646a966adcacc00072d11563bd4a336430ed00cd61e7441296",
-    "favicon-32.png": "81c2884d6fcd8aca0f3dcc56b8636d42f5fd52335c8947320b133c69e1905001",
-    "favicon-64.png": "ecd802b26e6c19d233387acb45c4c312b64f0a0c41dbcc3a1ce7652ae695db15",
+    "icon-192.png": "3da68a4a016ad8b762f5273f50f31a2fc4c2a1eadded1be320b044e073689921",
+    "icon-512.png": "18917f5e13d8b49ab5c99ea7fca1a1808acdf46ee8db1ef6787b30332cdc9e9c",
+    "icon-maskable-512.png": "9994acba34cf4537892efa40538b6286f1849c6951dbcd98f2bfd8d17a1eeecc",
+    "apple-touch-icon.png": "2d01b0c42e4c03431a192242f4be048c193481582b120d08f1a0f346fd7b19f7",
+    "favicon-16.png": "604c94a5a38d33f117ea8db2924df218fa6e6e133798584ea141ece7146517b1",
+    "favicon-32.png": "bce033238d464ea32785eee7a5faadd220e3444cec8ba0cd964f5a1ccb06d345",
+    "favicon-64.png": "616422b2ff769cae11501b809667e98eafeebe0a2ac498666eaebce74a6f0d6d",
     "badge-96.png": "23d722fe6d2cb39fc41dd6c61111f00501bc2e7c43bf7ee787dd02709c29f4bf"
   }
 }

@@ -25,7 +25,7 @@
   .akten-bereiche { display: flex; align-items: stretch; gap: 1.5rem; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
   /* Auch ein kurzer Reiter („Pläne“, 36 px) bietet 44 px zum Tippen (E72, R12). */
   .akten-reiter { flex: none; white-space: nowrap; min-width: 2.75rem; min-height: 3rem; padding: 0.625rem 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-muted); font-size: 0.875rem; text-align: left; cursor: pointer; transition: color var(--motion-state, 160ms) var(--ease-response, ease), border-color var(--motion-state, 160ms) var(--ease-response, ease); }
-  /* V10: kompakter Texttab, die präzise Unterlinie im Akzent trägt die Auswahl (Tabs 120–160 ms). */
+  /* V10: kompakter Texttab, die präzise Unterlinie in Terrakotta trägt die Auswahl (Tabs 120–160 ms). */
   .akten-reiter:hover { color: var(--text); }
   .akten-reiter[aria-selected='true'] { border-bottom-color: var(--brand); color: var(--ink-deep); font-weight: var(--gewicht-titel); }
   .akten-bereich { min-width: 0; }

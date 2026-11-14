@@ -2,12 +2,12 @@
 
 Seit 03.11.2026 gilt ein gemeinsames Markenpaket für die Produktmarke in der App, das Favicon und die installierte Web-App. Zeichen und Schriftzug sind flach, alles ist in Pfade umgewandelt (keine Schrift im SVG).
 
-**Seit E93 (14.11.2026)** ist das Zeichen ein weicher Tropfen mit rundem Kragen und feinem Faden, in Kuppel-Blau; die Wortmarke ist Source Serif 4 Regular 400 (OFL-1.1, dieselbe Titelschrift wie in der App), 31 Einheiten groß, Laufweite −0,012 em. Ruhig und redaktionell wie die Oberfläche, ohne fremde Markenteile. Davor: Zeichen aus Band und Spitze, Wortmarke Poppins Regular, Laufweite 0,02 em.
+**Seit E93/E94 (14.11.2026)** ist das Zeichen ein weicher Tropfen mit rundem Kragen und feinem Faden, in Terrakotta (E93 hatte es kurz in Kuppel-Blau; E94 kehrte zu den V10-Farben zurück und behielt die Form); die Wortmarke ist Source Serif 4 Regular 400 (OFL-1.1, dieselbe Titelschrift wie in der App), 31 Einheiten groß, Laufweite −0,012 em. Ruhig und redaktionell wie die Oberfläche, ohne fremde Markenteile. Davor: Zeichen aus Band und Spitze, Wortmarke Poppins Regular, Laufweite 0,02 em.
 
 ## Vorlagen
 
-- `logo.svg`: Zeichen in Kuppel-Blau `#2B5FA6`, Schriftzug in warmer Tinte `#25231F` (seit E93; V10 vom 13.11.2026 bis dahin Terrakotta, davor beides Petrol wie `senklot-logo-petrol.svg`).
-- `logo-weiss.svg`: dieselbe Kontur für dunkle Flächen, Schriftzug im hellen Papierton `#FFF8EE`, Zeichen im hellen Blau `#7BA7DC`.
+- `logo.svg`: Zeichen in Terrakotta `#A85439`, Schriftzug in warmer Tinte `#25231F` (seit V10, 13.11.2026, E92; davor beides Petrol wie `senklot-logo-petrol.svg`).
+- `logo-weiss.svg`: dieselbe Kontur für dunkle Flächen, Schriftzug weiß, Zeichen im hellen Terrakotta `#D08A68`.
 - `zeichen.svg`: das einzelne Zeichen ohne Hintergrund; Quelle aller Icons.
 - `schriftzug.svg`: die Wortmarke einzeln.
 - `icon.svg`: Zeichen auf weißem, randlosem Quadrat, mit Abstand für Systemmasken.
@@ -20,7 +20,7 @@ Die zentrale `ProduktMarke` lädt die passende Pfadvorlage als zugänglich besch
 ## Favicon, iOS, Android und Push
 
 - Favicon als SVG und PNG in 16, 32 und 64 px, mit runden, durchsichtigen Ecken.
-- Installationsicons „any“: 192 und 512 px, Kuppel-Blau `#2B5FA6` auf Weiß (13.–14.11.2026 Terrakotta, davor Petrol `#0F4552`) mit denselben runden Ecken — so zeigen Schreibtisch, Benachrichtigung und Startbild sie unverändert.
+- Installationsicons „any“: 192 und 512 px, Terrakotta `#A85439` auf Weiß (bis 13.11.2026 Petrol `#0F4552`, am 14.11.2026 kurz Kuppel-Blau) mit denselben runden Ecken — so zeigen Schreibtisch, Benachrichtigung und Startbild sie unverändert.
 - Apple-Touch-Icon: 180 × 180 px, randlos und deckend; iOS rundet selbst.
 - Android maskable: 512 × 512 px; die gesamte Figur liegt innerhalb des garantierten Kreises mit Radius 40 % der Seitenlänge. Die Form bleibt dieselbe, nur ihre Größe innerhalb der Fläche wird angepasst.
 - Push-Abzeichen: weiße Silhouette auf transparentem Grund, ohne vollflächige Kachel.

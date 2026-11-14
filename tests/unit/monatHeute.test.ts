@@ -54,7 +54,7 @@ describe('Monatsplan: heute als Spalte (E77, V10)', () => {
     const r = regel(monat, '.mo-kopf-heute');
     expect(r).toMatch(/background: var\(--dunkel-flaeche\)/);
     expect(r).toMatch(/color: var\(--auf-dunkel\)/);
-    // Nur die Akzentlinie oben, kein Rahmen rundum.
+    // Nur die Terrakotta-Linie oben, kein Rahmen rundum.
     expect(r).toMatch(/box-shadow: inset 0 2px 0 var\(--petrol\);/);
     expect(r).not.toMatch(/inset 0 0 0/);
     const ansicht = readFileSync('src/features/assignments/MonatsAnsicht.tsx', 'utf8');
