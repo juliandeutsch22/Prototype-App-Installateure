@@ -209,6 +209,36 @@ test('Warenkorb-Leiste: jeder weitere Artikel steht sofort und sauber im Titel',
 });
 
 /*
+  KLEBENDE SPEICHERLEISTE BEIM ROLLEN (iPhone, Firmendaten, 14.11.2026):
+  Safari ließ den Umriss der Leiste beim Rollen stehen — zwei Rahmenstücke,
+  eine Linie durch „Speichern“. Gerollt wird in Schritten; nach jedem muss
+  die Leiste gezeichnet so aussehen wie nach einem erzwungenen Neuzeichnen
+  und unten kleben. In der CI läuft das auch in WebKit (iPhone 13).
+*/
+test('Speicherleiste der Firmendaten: beim Rollen sauber gezeichnet, ohne stehengebliebene Kontur', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`./?pfad=${encodeURIComponent('/settings/firma')}&rolle=Administrator`);
+  const leiste = page.locator('.aktionsleiste').first();
+  await expect(leiste).toBeVisible();
+  const bild = async () => {
+    await page.evaluate(() => new Promise((fertig) => requestAnimationFrame(() => requestAnimationFrame(fertig))));
+    const r = (await leiste.boundingBox())!;
+    return { r, png: await page.screenshot({ clip: { x: r.x, y: r.y, width: r.width, height: r.height } }) };
+  };
+  for (const y of [300, 700, 1100]) {
+    await page.mouse.wheel(0, y - (await page.evaluate(() => window.scrollY)));
+    await page.waitForTimeout(250);
+    const gezeichnet = await bild();
+    await leiste.evaluate((l: HTMLElement) => { l.style.display = 'none'; void l.offsetHeight; l.style.display = ''; });
+    const neu = await bild();
+    expect(neu.r, `bei ${y} px: an derselben Stelle`).toEqual(gezeichnet.r);
+    expect(gezeichnet.png.equals(neu.png), `bei ${y} px: gezeichnet wie neu`).toBe(true);
+    // Die Kontur ist keine Umrisslinie (die Safari stehen ließ), sondern eine innere Linie.
+    expect(await leiste.evaluate((l) => getComputedStyle(l).outlineStyle)).toBe('none');
+  }
+});
+
+/*
   ZAHLENSPALTEN DER RECHNUNG (14.11.2026): Menge und Betrag in Mono klebten
   mit 10–15 px Lücke aneinander („1 pausch 18 420,50“), weil der Abstand an
   den Zellen gegen `.tabelle-eng td` verlor. Gemessen wird die Lücke zwischen

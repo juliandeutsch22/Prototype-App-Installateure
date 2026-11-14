@@ -863,4 +863,22 @@ describe('Anzeigefehler (14.11.2026)', () => {
     expect(MAT).toContain('.korb { transform: translateZ(0); }');
     expect(ORDER).toMatch(/<a key=\{`\$\{cart\.length\}\|\$\{korbZiel\}`\} href="#anforderung-korb" className="korb-titel">/);
   });
+
+  /*
+    KLEBENDE LEISTEN OHNE UMRISS (iPhone, Firmendaten): Safari ließ den Umriss
+    der klebenden Speicherleiste beim Rollen stehen — zwei Rahmenstücke, eine
+    Linie durch „Speichern“. Die Kontur ist jetzt eine innere Linie; sie
+    gehört zum Hintergrund und wandert mit.
+  */
+  it('Speicherleiste (frei) und Warenkorb-Leiste tragen die Kontur als innere Linie, nicht als Umriss', () => {
+    const BLATT = stil('lot-blatt.css');
+    const frei = /\.inhalt \.aktionsleiste:not\(:is\(\.karte, \.fenster, \.fenster-breit, \.blatt, \[role='dialog'\], \.akten-editor\) \.aktionsleiste\) \{([^}]*)\}/.exec(ohneKommentare(BLATT))?.[1] ?? '';
+    const korb = /@media \(min-width: 760px\) \{\s*\.korb \{([^}]*)\}/.exec(ohneKommentare(MAT))?.[1] ?? '';
+    for (const regel of [frei, korb]) {
+      expect(regel).toContain('box-shadow: inset 0 0 0 1px var(--border);');
+      expect(regel).not.toMatch(/outline: 1px/);
+    }
+    // Gegenprobe: der Stand mit Umriss fiele auf.
+    expect(' border: 0; outline: 1px solid var(--border); outline-offset: -1px; box-shadow: none;').toMatch(/outline: 1px/);
+  });
 });
