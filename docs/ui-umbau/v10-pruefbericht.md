@@ -1,4 +1,4 @@
-# V10 „Warmes Papier, klare Arbeit“ — Prüfbericht (13./14.11.2026)
+# V10 „Warmes Papier, klare Arbeit“ — Prüfbericht (13.–14.11.2026)
 
 Entscheidung E92. Auftrag: `docs/design/v10/implementierungsauftrag.md`,
 Regelwerk `docs/design/v10/style.md`. Ausgangsstand `main` 99b8787.
@@ -9,10 +9,10 @@ Regelwerk `docs/design/v10/style.md`. Ausgangsstand `main` 99b8787.
 |---|---|
 | `npx tsc --noEmit -p .` | ohne Fehler |
 | `npm run -s lint` (ESLint, `--max-warnings 0`) | ohne Befund |
-| Modulprüfungen Vitest, Node 20 (wie CI), `TZ=Europe/Vienna` | **STAND_UNIT** |
+| Modulprüfungen Vitest, Node 20 (wie CI), `TZ=Europe/Vienna` | 486 Dateien, **7.997 grün** |
 | Produktionsbuild `npm run build` | erfolgreich |
-| Browserwege Playwright, Chromium + `tablet-834` + `tablet-quer-1194`, lokaler Supabase-Stapel | **STAND_PW** |
-| Linkprüfung `npm run pruefen:links` | **STAND_LINKS** |
+| Browserwege Playwright, Chromium + `tablet-834` + `tablet-quer-1194`, lokaler Supabase-Stapel | **256 grün**, 7 übersprungen (projektgebunden), nach den Korrekturen in Abschnitt 2 |
+| Linkprüfung `npm run pruefen:links` | 35 grün in Chromium; die 28 Wege des Projekts `webkit-premium` laufen in der CI (WebKit ist in der Cloud-Umgebung nicht installiert) |
 | Funktionsinventar (`funktionsinventar.test.ts`) | grün: alle 1.941 Bedienstellen des Ausgangsstands vorhanden, keine Entfernung (`v10-entfernt.json` leer) |
 | Rundgang mit Bildern (Vorschau, sechs Rollen, 390/834/1440) | 255 Aufnahmen, 0 Laufzeitfehler; Vorher-Bilder zum Vergleich aus derselben Vorschau |
 | Hell und dunkel | je Modul in drei Breiten angesehen (Bilder der Modulberichte); Kontraste beider Sätze gemessen (`lotGrundwerte.test.ts`, `v10Stil.test.ts`) |
