@@ -114,7 +114,7 @@ export default function Postfach({
             {z.stumm && <span className="postfach-marke">stumm</span>}
             {z.geschlossen && <span className="postfach-marke">geschlossen</span>}
             {z.ungelesen > 0 && (
-              <span className="postfach-zahl">{z.ungelesen}<span className="sr-only"> neu</span></span>
+              <span className="postfach-zahl">{z.ungelesen} neu</span>
             )}
           </span>
         </span>
@@ -125,7 +125,7 @@ export default function Postfach({
   return (
     <section className="postfach" aria-label="Gespräche">
       <div className="postfach-leiste">
-        <label className="chat-suche">
+        <label className="suche chat-suche">
           <Icon name="lupe" size={20} aria-hidden="true" />
           <span className="sr-only">Gespräche suchen</span>
           <input
@@ -137,12 +137,13 @@ export default function Postfach({
             autoComplete="off"
           />
         </label>
-        <div className="chat-chips" role="group" aria-label="Auswahl">
+        {/* Texttabs mit Unterlinie wie jede Ansichtswahl (V10), keine Pillen. */}
+        <div className="segment chat-filter" role="group" aria-label="Auswahl">
           {reiter.map((r) => (
             <button
               key={r.wert}
               type="button"
-              className="chat-chip"
+              className={auswahl === r.wert ? 'segment-an' : undefined}
               aria-pressed={auswahl === r.wert}
               onClick={() => setAuswahl(r.wert)}
             >
