@@ -92,7 +92,11 @@ function Einsatzblock({
     <>
       <span className="e-titel">{b.name}</span>
       {konflikt ? (
-        <span className="e-zeile">{konflikt === 'abwesend' ? 'fehlt' : `fehlt: ${konflikt}`}</span>
+        // Der Konflikt als Text mit Warnzeichen, nicht als Bernsteinkante (V10).
+        <span className="e-zeile e-konflikt">
+          <Icon name="warnung" size={12} />
+          {konflikt === 'abwesend' ? 'fehlt' : `fehlt: ${konflikt}`}
+        </span>
       ) : (
         <>
           {b.zeit ? <span className="e-zeit">{b.zeit}</span> : ort ? <span className="e-zeile">{ort}</span> : null}
@@ -175,7 +179,7 @@ function tagKurzText(iso: string): string {
   return `${new Intl.DateTimeFormat('de-AT', { weekday: 'short' }).format(d).replace('.', '')} ${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.`;
 }
 
-/** DER TERMIN-EINTRAG: weiß, Petrol links; ein Klick öffnet „Termin ändern“. */
+/** DER TERMIN-EINTRAG: helles Blatt mit feiner Linie, ohne Markierung; ein Klick öffnet „Termin ändern“. */
 export function TerminEintrag({
   t,
   datum,

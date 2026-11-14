@@ -11,6 +11,7 @@ import type { WithId } from '@/lib/db/core';
 import type { AppUser, Assignment, Project, RuestPosition, Termin } from '@/types';
 import { bezugText } from '@/features/termine/terminText';
 import Card from '@/components/Card';
+import Icon from '@/components/Icon';
 import { List, ListRow } from '@/components/ListRow';
 import { EmptyState } from '@/components/States';
 import { MehrAnzeigen } from '@/components/LotBausteine';
@@ -561,7 +562,13 @@ export default function MonatsAnsicht({
               aria-label={`${name}, ${wann}: ${zustand}, ${b.lang} – Vorschau`}
               onClick={(e) => balkenKlick(e, schluessel, b, (t) => ziel(t, b.nummer))}
             >
-              {beschriftet(span, tagBreite) ? b.text : null}
+              {/* Der Konflikt mit Warnzeichen, nicht als Bernsteinrahmen (V10) — wo der Balken beschriftet ist. */}
+              {beschriftet(span, tagBreite) ? (
+                <>
+                  {b.art === 'konflikt' && <Icon name="warnung" size={12} />}
+                  {b.text}
+                </>
+              ) : null}
             </button>
           );
         })}
@@ -601,7 +608,7 @@ export default function MonatsAnsicht({
               }}
               type="button"
               className={klasse}
-              // Die Zahl im Petrol-Kästchen trägt heute auch dann, wenn der Tag gewählt ist (E77).
+              // Heute bleibt auch am gewählten Tag erkennbar: die Zahl kräftiger, das Senkblei darüber (E77, V10).
               data-heute={t === heute ? '' : undefined}
               title={vorlesen.join(' · ')}
               data-vorschau-ausloeser=""
@@ -672,12 +679,18 @@ export default function MonatsAnsicht({
         {sicht === 'baustellen' ? (
           <>
             <span className="mo-legende-plan">eingeplant</span>
-            <span className="mo-legende-konflikt">jemand Eingeteiltes fehlt</span>
+            <span className="mo-legende-konflikt">
+              <Icon name="warnung" size={14} />
+              jemand Eingeteiltes fehlt
+            </span>
           </>
         ) : (
           <>
             <span className="mo-legende-plan">eingeplant</span>
-            <span className="mo-legende-konflikt">eingeteilt, aber abwesend</span>
+            <span className="mo-legende-konflikt">
+              <Icon name="warnung" size={14} />
+              eingeteilt, aber abwesend
+            </span>
             <span className="mo-legende-weg">
               <span className="mo-legende-muster schraffur" aria-hidden="true" />
               abwesend
@@ -685,7 +698,7 @@ export default function MonatsAnsicht({
           </>
         )}
         <span className="mo-legende-ruhe">Wochenende, Feiertag</span>
-        {/* Heute ist die Spalte in Petrol-hell (E77) — die Legende zeigt dieselbe Fläche. */}
+        {/* Heute ist die warm vertiefte Spalte unter dem dunklen Kopf (E77, V10) — die Legende zeigt dieselbe Fläche. */}
         <span className="mo-legende-heute">heute</span>
         <span className="mo-legende-satz">Punkt im Kopf: Termine an diesem Tag · Tag antippen zeigt die Vorschau</span>
       </p>

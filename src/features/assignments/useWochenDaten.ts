@@ -80,6 +80,15 @@ export function useWochenDaten(tage: string[]) {
   const [termine, setTermine] = useState<Termin[]>(() => gemerkt?.termine ?? []);
   const [error, setError] = useState<string | null>(null);
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
+  /*
+    ABWESENHEITEN ODER BETRIEBSURLAUB NICHT GELADEN (V10, 13.11.2026, Auftrag
+    9.6/11.2): dann ist „frei“ keine Auskunft. Die Seiten zeigen statt der
+    Zahl „frei unklar“ und bieten „Erneut versuchen“ an — dieselben Abfragen
+    noch einmal (`abwesenheitenNeuLaden`), sonst nichts.
+  */
+  const [urlaubFehlt, setUrlaubFehlt] = useState(false);
+  const [zuFehlt, setZuFehlt] = useState(false);
+  const [abwesendStand, setAbwesendStand] = useState(0);
   /**
    * Ist die Belegschaft da? Vorher ist „niemand im Außendienst“ keine
    * Auskunft, sondern ein Ladezustand (Team-Woche, 10.10.2026).
@@ -158,12 +167,18 @@ export function useWochenDaten(tage: string[]) {
     const fuer = `${von}|${bis}`;
     listAbwesendInRange(von, bis)
       .then((r) => {
-        if (!verworfen) setUrlaube(r);
+        if (!verworfen) {
+          setUrlaube(r);
+          setUrlaubFehlt(false);
+        }
       })
       .catch(() => {
         if (!verworfen) setUrlaube([]);
         // Ohne Hinweis sähe „niemand abwesend" aus wie eine Auskunft.
-        if (!verworfen) setNebenFehler('Die Abwesenheiten');
+        if (!verworfen) {
+          setUrlaubFehlt(true);
+          setNebenFehler('Die Abwesenheiten');
+        }
       })
       .finally(() => {
         if (!verworfen) setAbwesendFuer(fuer);
@@ -171,7 +186,7 @@ export function useWochenDaten(tage: string[]) {
     return () => {
       verworfen = true;
     };
-  }, [user, von, bis]);
+  }, [user, von, bis, abwesendStand]);
 
   /*
     DIE TERMINE DES ZEITRAUMS (Plan 10.4): eine Lieferung am Dienstag 8–10
@@ -211,7 +226,10 @@ export function useWochenDaten(tage: string[]) {
     const fuer = `${von}|${bis}`;
     listBetriebsurlaubeImZeitraum(user.companyId, von, bis)
       .then((r) => {
-        if (!verworfen) setBetriebsurlaube(r);
+        if (!verworfen) {
+          setBetriebsurlaube(r);
+          setZuFehlt(false);
+        }
       })
       .finally(() => {
         if (!verworfen) setZuStandFuer(fuer);
@@ -219,6 +237,7 @@ export function useWochenDaten(tage: string[]) {
       .catch(() => {
         if (!verworfen) {
           setBetriebsurlaube([]);
+          setZuFehlt(true);
           // Ohne Hinweis sähe ein geschlossener Tag aus wie ein gewöhnlicher.
           setNebenFehler('Der Betriebsurlaub');
         }
@@ -226,7 +245,12 @@ export function useWochenDaten(tage: string[]) {
     return () => {
       verworfen = true;
     };
-  }, [user, von, bis]);
+  }, [user, von, bis, abwesendStand]);
+  /** Abwesenheiten und Betriebsurlaub noch einmal laden; der Hinweis geht, bis eine Antwort da ist. */
+  const abwesenheitenNeuLaden = useCallback(() => {
+    setNebenFehler((f) => (f === 'Die Abwesenheiten' || f === 'Der Betriebsurlaub' ? null : f));
+    setAbwesendStand((n) => n + 1);
+  }, []);
 
   /** Tag -> Bezeichnung des Betriebsurlaubs, falls einer ist. */
   const zuAm = useMemo(() => {
@@ -486,6 +510,11 @@ export function useWochenDaten(tage: string[]) {
     termineNeuLaden,
     error,
     nebenFehler,
+    /** Abwesenheiten oder Betriebsurlaub fehlen: „frei“ ist dann unklar (V10). */
+    abwesenheitUnklar: urlaubFehlt || zuFehlt,
+    /** Was davon fehlt — für den Hinweis mit „Erneut versuchen“. */
+    abwesenheitFehler: urlaubFehlt ? 'Die Abwesenheiten' : zuFehlt ? 'Der Betriebsurlaub' : null,
+    abwesenheitenNeuLaden,
     belegschaftGeladen,
     /** Alles da, woraus Raster, „frei“, Kunden und „niemand im Außendienst“ rechnen (siehe oben). */
     geladen,

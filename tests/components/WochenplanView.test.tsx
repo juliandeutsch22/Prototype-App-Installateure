@@ -1888,3 +1888,65 @@ describe('Einsatzplanung — Umplanen (E88)', () => {
     expect(tabelle().getByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09/ })).toHaveAttribute('data-ziehbar');
   });
 });
+
+/*
+  V10 PLANUNG (13.11.2026, Auftrag 9.6 und 11.2): „Abwesenheiten konnten
+  nicht geladen werden · Erneut versuchen“ statt scheinbar freier
+  Kapazität. Kamen Urlaub oder Betriebsurlaub nicht an, ist „N frei“ keine
+  Auskunft: der Kopf sagt „frei unklar“, die Tagesliste am Handy ebenso, und
+  der Hinweis bietet einen zweiten Versuch mit denselben Abfragen an.
+  Gegenprobe: ohne die Änderung stand „2 frei“ und der Hinweis ohne Knopf.
+*/
+describe('V10 Planung: nicht geladene Abwesenheiten sehen nicht wie freie Kapazität aus', () => {
+  it('statt „2 frei“ steht „frei unklar“ mit „Erneut versuchen“ — der zweite Versuch bringt die Zahl', async () => {
+    let fehlschlag = true;
+    vi.mocked(urlaubDb.listAbwesendInRange).mockImplementation(async () => {
+      if (fehlschlag) throw new Error('weg');
+      return abwesend as never;
+    });
+    try {
+      zeige();
+      expect(await screen.findByText(/Die Abwesenheiten konnte nicht geladen werden/)).toBeInTheDocument();
+      await screen.findByRole('row', { name: /Max Mustermann/ });
+      const mittwoch = kopf(/Mittwoch 02\.09\./);
+      expect(mittwoch).toHaveTextContent('frei unklar');
+      expect(mittwoch).not.toHaveTextContent(/\d frei/);
+      expect(mittwoch).toHaveAccessibleName(/frei unklar, Abwesenheiten nicht geladen/);
+      // Am Handy: kein „2 frei“ unter dem Tag, und wer sonst „frei“ trüge, steht als „unklar“ da.
+      expect(liste().getByText('frei unklar')).toBeInTheDocument();
+      expect(liste().queryByText('2 frei')).toBeNull();
+      expect(liste().getAllByText('unklar').length).toBeGreaterThan(0);
+
+      fehlschlag = false;
+      await userEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+      await waitFor(() => expect(kopf(/Mittwoch 02\.09\./)).toHaveTextContent('2 frei'));
+      expect(kopf(/Mittwoch 02\.09\./)).not.toHaveTextContent('frei unklar');
+      expect(screen.queryByText(/Die Abwesenheiten konnte nicht geladen werden/)).toBeNull();
+    } finally {
+      vi.mocked(urlaubDb.listAbwesendInRange).mockImplementation(async () => abwesend as never);
+    }
+  });
+
+  it('auch der Betriebsurlaub: ohne ihn ist „frei“ unklar, mit Hinweis und zweitem Versuch', async () => {
+    vi.mocked(abwesenheitenDb.listBetriebsurlaubeImZeitraum).mockImplementation(async () => {
+      throw new Error('weg');
+    });
+    try {
+      zeige();
+      expect(await screen.findByText(/Der Betriebsurlaub konnte nicht geladen werden/)).toBeInTheDocument();
+      await screen.findByRole('row', { name: /Max Mustermann/ });
+      expect(kopf(/Mittwoch 02\.09\./)).toHaveTextContent('frei unklar');
+      expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument();
+    } finally {
+      vi.mocked(abwesenheitenDb.listBetriebsurlaubeImZeitraum).mockImplementation(async () => betriebsurlaube as never);
+    }
+  });
+
+  it('gleich geblieben: mit geladenen Abwesenheiten steht die Zahl, kein „frei unklar“ und kein Hinweis', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(kopf(/Mittwoch 02\.09\./)).toHaveTextContent('2 frei');
+    expect(screen.queryByText('frei unklar')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Erneut versuchen' })).toBeNull();
+  });
+});

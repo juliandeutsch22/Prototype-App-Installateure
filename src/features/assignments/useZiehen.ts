@@ -18,6 +18,12 @@ import { zielAus, type Last, type Ziel } from './umplanen';
 
   Das Ziel ist die Zelle unter dem Zeiger (`data-ziel-tag`,
   `data-ziel-person`); sie trägt beim Darüberziehen `data-ziel-aktiv`.
+
+  ABLEGEN MIT EINRASTEN (V10, 13.11.2026): beim Loslassen gleitet der
+  Schatten in der Stufe „bestätigt“ (`--motion-bestaetigt`, etwa 180 ms) in
+  die Zielzelle und verschwindet — so sieht man, wohin der Einsatz ging. Die
+  Planungsaktion läuft sofort, nicht erst nach dem Flug; ob der Server sie
+  annimmt, sagt die Meldung. Bei reduzierter Bewegung kein Flug.
 */
 
 const MAUS_SCHWELLE = 6;
@@ -29,6 +35,17 @@ export interface Schatten {
   x: number;
   y: number;
   kopieren: boolean;
+  /** Abgelegt: der Schatten gleitet in die Zielzelle (nur ohne reduzierte Bewegung). */
+  landet?: boolean;
+}
+
+/** Reduzierte Bewegung: kein Flug, das Ergebnis steht sofort. */
+const ohneBewegung = () => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Die Dauer des Einrastens aus dem Bewegungs-Token, damit CSS und Zeitgeber dieselbe Stufe meinen. */
+function einrastDauer(): number {
+  const wert = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--motion-bestaetigt'));
+  return Number.isFinite(wert) && wert > 0 ? wert : 180;
 }
 
 export function useZiehen({
@@ -50,6 +67,7 @@ export function useZiehen({
     timer: number | null;
     ziel: HTMLElement | null;
   } | null>(null);
+  const landung = useRef<number | null>(null);
   const ablegenRef = useRef(onAblegen);
   const anhebenRef = useRef(onAnheben);
   ablegenRef.current = onAblegen;
@@ -70,6 +88,11 @@ export function useZiehen({
     lauf.current = null;
     document.documentElement.removeAttribute('data-zieht');
     setSchatten(null);
+  }, []);
+
+  // Ein laufender Flug endet mit der Seite — kein Zeitgeber überlebt das Raster.
+  useEffect(() => () => {
+    if (landung.current) window.clearTimeout(landung.current);
   }, []);
 
   useEffect(() => {
@@ -105,8 +128,21 @@ export function useZiehen({
         window.addEventListener('click', schlucken, { capture: true, once: true });
         window.setTimeout(() => window.removeEventListener('click', schlucken, { capture: true }), 0);
         const { last } = l;
+        const zelle = l.ziel;
         ende();
-        if (ziel) ablegenRef.current(last, ziel, e.altKey);
+        if (ziel) {
+          ablegenRef.current(last, ziel, e.altKey);
+          if (zelle && !ohneBewegung()) {
+            // Der Schatten steht 12 px neben dem Zeiger: so landet seine Ecke 4 px innen in der Zelle.
+            const r = zelle.getBoundingClientRect();
+            setSchatten({ last, x: r.left - 8, y: r.top - 8, kopieren: e.altKey, landet: true });
+            if (landung.current) window.clearTimeout(landung.current);
+            landung.current = window.setTimeout(() => {
+              landung.current = null;
+              setSchatten((s) => (s?.landet ? null : s));
+            }, einrastDauer());
+          }
+        }
         return;
       }
       if (l.angehoben) {
@@ -139,6 +175,12 @@ export function useZiehen({
     (last: Last) => ({
       onPointerDown: (e: ReactPointerEvent<HTMLElement>) => {
         if (e.button !== 0 || lauf.current) return;
+        // Ein neuer Griff während eines Flugs: der alte Schatten ist sofort weg.
+        if (landung.current) {
+          window.clearTimeout(landung.current);
+          landung.current = null;
+          setSchatten(null);
+        }
         const finger = e.pointerType !== 'mouse';
         const l = {
           last, x0: e.clientX, y0: e.clientY, finger, angehoben: false, zieht: false, timer: null as number | null, ziel: null,

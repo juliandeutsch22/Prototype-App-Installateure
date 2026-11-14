@@ -1,11 +1,11 @@
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
 import type { AppUser, Termin } from '@/types';
 import { Warnung } from '@/components/Badge';
 import { terminZeit } from '@/features/termine/terminText';
 import { tagKurz, type Brett, type Gruppe, type TagStand } from './planTypen';
 import type { FensterStart } from './EinsatzFenster';
 import { PersonEintraege, type BaustellenInfo, type EinsatzAktionen } from './WochenEintraege';
-import { kuerzel } from '@/features/nachrichten/text';
 import { NeuKnopf } from '@/components/Symbolknoepfe';
 import {
   feiertagAm,
@@ -52,6 +52,7 @@ export default function HandyWoche({
   lesen,
   ich,
   aktionen,
+  abwesenheitUnklar = false,
 }: {
   tage: string[];
   heute: string;
@@ -76,6 +77,8 @@ export default function HandyWoche({
   ich?: string;
   /** Umplanen (E88): die Leiste am Einsatz nach langem Drücken. */
   aktionen?: EinsatzAktionen;
+  /** Abwesenheiten nicht geladen: „frei“ ist keine Auskunft (V10). */
+  abwesenheitUnklar?: boolean;
 }) {
   const termine = termineAm(gewaehlt);
   /** Die Gruppen nur mit denen, die an diesem Tag einen Einsatz oder Termin haben. */
@@ -95,12 +98,15 @@ export default function HandyWoche({
   const zu = zuAm.get(gewaehlt);
   const frei = proTag.get(gewaehlt)?.frei.length ?? 0;
   // Wie im Tageskopf: „N frei“, am Betriebsurlaub mit den Ausgenommenen.
+  const unklar = !lesen && abwesenheitUnklar && !feiertag && !ruhetag(gewaehlt);
   const info = lesen
     ? (feiertag ?? zu ?? (ruhetag(gewaehlt) ? 'Wochenende' : null))
-    : (feiertag ?? (zu ? (frei > 0 ? `${zu} · ${frei} frei` : zu) : ruhetag(gewaehlt) ? 'Wochenende' : `${frei} frei`));
+    : unklar
+      ? (zu ?? null)
+      : (feiertag ?? (zu ? (frei > 0 ? `${zu} · ${frei} frei` : zu) : ruhetag(gewaehlt) ? 'Wochenende' : `${frei} frei`));
 
   return (
-    // Heute gewählt: die Einsätze tragen die Petrol-Fläche wie die Spalte „heute“ im Raster (E88).
+    // Heute gewählt: der Tag ist heute (`data-heute`) — die Einsätze bleiben helle Blätter (V10).
     <section aria-label="Wochenplan als Liste" className="handy-woche" data-heute={gewaehlt === heute ? '' : undefined}>
       <div className="tagwahl" role="group" aria-label="Tag wählen">
         {tage.map((tag) => {
@@ -138,6 +144,12 @@ export default function HandyWoche({
             {gewaehlt === heute && <span className="whitespace-nowrap"> · heute</span>}
           </p>
           {info && <p className="tl-info">{info}</p>}
+          {unklar && (
+            <p className="tl-info kopf-warnung">
+              <Icon name="warnung" size={12} />
+              frei unklar
+            </p>
+          )}
         </div>
         {!lesen && (
           // Normale Größe: die Woche am Handy, oft frei unter dem Tag (E72, R3).
@@ -194,6 +206,7 @@ export default function HandyWoche({
               brett={brett}
               zu={zuFuer(u.uid, gewaehlt)}
               frei={!lesen && !!proTag.get(gewaehlt)?.freiIds.includes(u.uid)}
+              unklar={unklar}
               termine={termine}
               infoFuer={infoFuer}
               darf={darf}
@@ -226,6 +239,7 @@ function TagesPerson({
   onTermin,
   letzte = false,
   aktionen,
+  unklar = false,
 }: {
   u: AppUser;
   aktionen?: EinsatzAktionen;
@@ -244,14 +258,15 @@ function TagesPerson({
   onTermin: (t: Termin) => void;
   /** Die letzte Person des Tages: ohne Linie darunter, dort liegt die Kante des Blatts (E76). */
   letzte?: boolean;
+  /** Abwesenheiten nicht geladen: statt „frei“ steht „unklar“ — einplanen geht trotzdem. */
+  unklar?: boolean;
 }) {
   const z = brett.get(u.uid)?.get(tag);
   const leer = zelleLeer(z, zu, termine, u.uid);
   return (
     <div className={letzte ? 'tl-person tl-person-letzte' : 'tl-person'}>
       <p className="tl-name">
-        {/* Der Kürzel-Kreis wie im Posteingang (E88). */}
-        <span className="wp-kuerzel" aria-hidden="true">{kuerzel(u.name)}</span>
+        {/* Der Name ohne Kürzel-Kreis (V10). */}
         <span>
           {u.name}
           {ich && <span className="wp-name-ich"> · du</span>}
@@ -290,10 +305,17 @@ function TagesPerson({
           <button
             type="button"
             className="tl-frei"
-            aria-label={`${u.name} am ${datum} einteilen`}
+            aria-label={`${u.name} am ${datum} einteilen${unklar ? ', Abwesenheit nicht geladen' : ''}`}
             onClick={() => onEinsatz({ datum: tag, person: u.uid })}
           >
-            <span className="stand stand-offen">frei</span>
+            {unklar ? (
+              <span className="kopf-warnung">
+                <Icon name="warnung" size={12} />
+                unklar
+              </span>
+            ) : (
+              <span className="stand stand-offen">frei</span>
+            )}
             <span className="tl-frei-aktion">Einplanen</span>
           </button>
         )}

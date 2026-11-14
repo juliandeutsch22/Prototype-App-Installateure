@@ -47,19 +47,27 @@
   }
   .mo-kopf-we { background: var(--bg); color: var(--text-muted); }
   /*
-    HEUTE IST DIE SPALTE (E77, 11.11.2026; Variante A). Die eine Linie links
-    (B4) las sich wie die Grenze zwischen zwei Tagen, nicht wie „dieser
-    Tag“. Jetzt ist die ganze Spalte Petrol-hell, im Kopf steht die Zahl in
-    einem Petrol-Kästchen, und das Senkblei (`.spalten-lot`) hängt wie
-    bisher darüber. So findet man den Tag auch weit unten in der Liste.
+    HEUTE IST DIE SPALTE (E77) — seit V10 (13.11.2026) wie in der Woche: der
+    Kopf dunkel in der Fläche des Arbeitstags, die Spalte darunter warm
+    vertieft (`--heute`). Das Senkblei (`.spalten-lot`) hängt mittig über
+    der Zahl, in der leisen Schrift auf Dunkel.
   */
-  .mo-kopf-heute { background: var(--petrol-hell); color: var(--accent-deep); font-weight: var(--gewicht-titel); }
-  /* Am Tablet ist ein Tag rund 20 px breit: das Kästchen bleibt in seiner Spalte. */
-  [data-heute] > .mo-nr { min-width: 1rem; padding: 0 1px; background: var(--petrol); color: var(--auf-petrol); text-align: center; }
-  @media (min-width: 1200px) { [data-heute] > .mo-nr { min-width: 1.375rem; padding: 0 0.125rem; } }
-  .mo-kopf-gewaehlt { background: var(--petrol-hell); color: var(--accent-deep); font-weight: var(--gewicht-titel); box-shadow: inset 0 0 0 2px var(--petrol); }
-  /* Darüberfahren rahmt den Tag, statt ihn zu tönen — eine Fläche wäre in der Spalte von heute unsichtbar (E77). */
-  .mo-kopf:hover, .mo-kopf-we:hover, .mo-kopf-heute:hover { color: var(--accent-deep); box-shadow: inset 0 0 0 1px var(--petrol); }
+  .mo-kopf-heute { background: var(--dunkel-flaeche); color: var(--auf-dunkel); font-weight: var(--gewicht-titel); box-shadow: inset 0 2px 0 var(--petrol); }
+  /*
+    Im dunklen Kopf trägt die Fläche den Tag; das Senkblei träfe bei 20 bis
+    40 px breiten Tagen die Schrift. Es hängt nur am gewählten Tag, der heute
+    ist (heller Kopf), wie früher am linken Rand der Spalte.
+  */
+  .mo-kopf-heute .spalten-lot { display: none; }
+  .mo-kopf-gewaehlt .spalten-lot { left: -4px; right: auto; }
+  .mo-kopf-heute .mo-punkt { background: var(--auf-dunkel); }
+  /* Die Zahl von heute ohne eigenes Kästchen: der dunkle Kopf trägt den Tag. */
+  [data-heute] > .mo-nr { font-weight: var(--gewicht-titel); }
+  /* Gewählt: warme Auswahlfläche mit feiner Kontur und Unterlinie, wie der gewählte Reiter (V10). */
+  .mo-kopf-gewaehlt { background: var(--auswahl); color: var(--accent-deep); font-weight: var(--gewicht-titel); box-shadow: inset 0 0 0 1px var(--auswahl-kontur), inset 0 -2px 0 var(--petrol); }
+  /* Darüberfahren rahmt den Tag fein, statt ihn zu tönen (E77). */
+  .mo-kopf:hover, .mo-kopf-we:hover { color: var(--accent-deep); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
+  .mo-kopf-heute:hover { box-shadow: inset 0 2px 0 var(--petrol), inset 0 0 0 1px var(--auf-dunkel-leise); }
   /* Zwei Buchstaben am Schreibtisch, einer am Tablet („M“ allein hiesse Montag oder Mittwoch — dort steht die Zahl darunter). */
   .mo-wt { display: none; font-size: 0.75rem; }
   @media (min-width: 1200px) { .mo-wt { display: block; } }
@@ -70,8 +78,8 @@
   .mo-punkt-achtung { width: 6px; height: 6px; border-radius: 999px; background: var(--warning); }
   .mo-punkt-ohne { width: 6px; height: 6px; }
 
-  /* Gruppe nach Einstufung, einklappbar — als Achse wie in der Woche (Planlinie, B5). */
-  .mo-gruppe { display: flex; align-items: center; gap: 0.625rem; width: 100%; min-height: 2.75rem; padding: 0.5rem 0.75rem 0.5rem 0.625rem; background: var(--surface); border: 0; border-bottom: 1px solid var(--border); font-size: 0.71875rem; line-height: 1.375rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: var(--gewicht-titel); color: var(--text); text-align: left; cursor: pointer; }
+  /* Gruppe nach Einstufung, einklappbar — als Achse wie in der Woche (Planlinie, B5), seit V10 ohne Versalien und Sperrung. */
+  .mo-gruppe { display: flex; align-items: center; gap: 0.625rem; width: 100%; min-height: 2.75rem; padding: 0.5rem 0.75rem 0.5rem 0.625rem; background: var(--surface); border: 0; border-bottom: 1px solid var(--border); font-size: 0.8125rem; line-height: 1.375rem; font-weight: var(--gewicht-titel); color: var(--text); text-align: left; cursor: pointer; }
 
   /* Name der Zeile: am Tablet kurz („Max M.“), der volle Name für Vorlesehilfe und `title`. */
   .mo-name { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding: 0.375rem 0.75rem; border-right: 1px solid var(--border); font-size: 0.875rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); background: var(--surface); }
@@ -88,44 +96,51 @@
   .mo-hg, .mo-hg-we, .mo-hg-heute, .mo-hg-gewaehlt { min-width: 0; min-height: 2.125rem; margin: 0; padding: 0; border: 0; border-right: 1px solid var(--bg); background: var(--surface); cursor: pointer; }
   .mo-hg-we { background: var(--bg); }
   /*
-    HEUTE: DIE GANZE SPALTE PETROL-HELL (E77). Ohne Rahmen um die einzelnen
-    Zellen — die brachen am 20.10.2026 an jeder Zeilengrenze ab. Den Rahmen
-    trägt allein der gewählte Tag (2 px) und, beim Darüberfahren, die Zelle
-    unter der Maus (1 px).
+    HEUTE: DIE GANZE SPALTE WARM VERTIEFT (E77, V10). Ohne Rahmen um die
+    einzelnen Zellen — die brachen am 20.10.2026 an jeder Zeilengrenze ab.
+    Den Rahmen trägt allein der gewählte Tag (Auswahlfläche, feine Kontur)
+    und, beim Darüberfahren, die Zelle unter der Maus (1 px).
   */
-  .mo-hg-heute { background: var(--petrol-hell); }
-  .mo-hg-gewaehlt { background: var(--petrol-hell); box-shadow: inset 0 0 0 2px var(--petrol); }
-  .mo-hg:hover, .mo-hg-we:hover, .mo-hg-heute:hover { box-shadow: inset 0 0 0 1px var(--petrol); }
+  .mo-hg-heute { background: var(--heute); }
+  .mo-hg-gewaehlt { background: var(--auswahl); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
+  .mo-hg:hover, .mo-hg-we:hover, .mo-hg-heute:hover { box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
 
-  /* Balken: Einsatz, eingeteilt aber abwesend, abwesend — und der gewählte. */
-  .mo-balken, .mo-balken-gewaehlt, .mo-balken-konflikt, .mo-balken-konflikt-gewaehlt, .mo-balken-weg, .mo-balken-weg-gewaehlt { position: relative; z-index: 1; min-width: 0; height: 1.625rem; margin: 0.25rem 1px; padding: 0 0.3125rem; border: 0; border-radius: 0; font-size: 0.8125rem; line-height: 1.625rem; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+  /* Balken: Einsatz, eingeteilt aber abwesend, abwesend — und der gewählte. Kompakter Einsatzradius (V10): ein eintägiger Balken ist am Tablet kaum breiter als hoch, 8 px machten ihn zur Kapsel. */
+  .mo-balken, .mo-balken-gewaehlt, .mo-balken-konflikt, .mo-balken-konflikt-gewaehlt, .mo-balken-weg, .mo-balken-weg-gewaehlt { position: relative; z-index: 1; min-width: 0; height: 1.625rem; margin: 0.25rem 1px; padding: 0 0.3125rem; border: 0; border-radius: 0.25rem; font-size: 0.8125rem; line-height: 1.625rem; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
   @media (min-width: 1200px) {
     .mo-balken, .mo-balken-gewaehlt, .mo-balken-konflikt, .mo-balken-konflikt-gewaehlt, .mo-balken-weg, .mo-balken-weg-gewaehlt { margin: 0.25rem 2px; padding: 0 0.5rem; }
   }
   /*
-    DER EINSATZBALKEN MIT ENDMARKEN wie in der Woche (Planlinie, B11):
-    helle Fläche, Anfang und Ende als 2 px Petrol, Text in Petrol. Ersetzt
-    den dunkel gefüllten Balken. Gewählt: derselbe Balken mit Ring.
+    DER EINSATZ WIE IN DER WOCHE (V10, 13.11.2026): ein helles Blatt mit
+    feiner Kontur und der Terrakotta-Markierung links, Text in Tinte. Nur
+    der GEWÄHLTE Balken wird vollflächig Terrakotta — mit derselben Form,
+    die Auswahl ändert Farbe und Tiefe.
   */
-  /* Wie der Einsatz in der Woche: volle Petrol-Fläche, weiße Schrift (E33, Variante B). */
-  .mo-balken { background: var(--petrol); color: var(--auf-petrol); }
-  .mo-balken:hover { background: var(--petrol-tief); }
-  .mo-balken-gewaehlt { background: var(--petrol-tief); color: var(--auf-petrol); font-weight: var(--gewicht-titel); box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--petrol); }
-  /* Bernstein heißt: braucht Aufmerksamkeit — eingeteilt, aber an dem Tag weg. */
-  .mo-balken-konflikt { background: var(--warning-bg); color: var(--warning); font-weight: var(--gewicht-titel); box-shadow: inset 0 0 0 2px var(--warning); }
-  .mo-balken-konflikt-gewaehlt { background: var(--warning-bg); color: var(--warning); font-weight: var(--gewicht-titel); box-shadow: inset 0 0 0 2px var(--warning), 0 0 0 2px var(--surface), 0 0 0 4px var(--petrol); }
-  /* Abwesend: schraffiert, ohne Urteil — Fläche, Rahmen und Farbe aus `.schraffur` (Planlinie, B11). */
-  .mo-balken-weg-gewaehlt { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--petrol); }
+  .mo-balken { background: var(--surface-3); color: var(--ink-deep); box-shadow: inset 3px 0 0 var(--petrol), inset 0 0 0 1px var(--border-strong); }
+  .mo-balken:hover { box-shadow: inset 3px 0 0 var(--petrol), inset 0 0 0 1px var(--auswahl-kontur); }
+  .mo-balken-gewaehlt { background: var(--petrol); color: var(--auf-petrol); font-weight: var(--gewicht-titel); box-shadow: var(--shadow-insel); }
+  /*
+    EINGETEILT, ABER WEG: dasselbe helle Blatt ohne Markierung, der Text in
+    Warnfarbe mit dem Warnzeichen davor (`MonatsAnsicht`) — kein
+    Bernsteinrahmen mehr (V10). Gewählt wie jeder gewählte Balken.
+  */
+  .mo-balken-konflikt { background: var(--surface); color: var(--warning); font-weight: var(--gewicht-titel); box-shadow: inset 0 0 0 1px var(--border-strong); }
+  .mo-balken-konflikt-gewaehlt { background: var(--petrol); color: var(--auf-petrol); font-weight: var(--gewicht-titel); box-shadow: var(--shadow-insel); }
+  .mo-balken-konflikt > svg, .mo-balken-konflikt-gewaehlt > svg { display: inline; vertical-align: -1px; margin-right: 0.25rem; }
+  /* Abwesend: schraffiert, ohne Urteil — Fläche, Rahmen und Farbe aus `.schraffur` (Planlinie, B11); gewählt mit feinem Ring. */
+  .mo-balken-weg-gewaehlt { box-shadow: 0 0 0 1px var(--surface), 0 0 0 3px var(--petrol); }
 
   /* Legende unter dem Raster, in Worten. */
   .mo-legende { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.125rem; padding: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); border-top: 1px solid var(--border); }
   .mo-legende-plan, .mo-legende-konflikt, .mo-legende-weg, .mo-legende-ruhe, .mo-legende-heute { display: inline-flex; align-items: center; gap: 0.375rem; }
-  .mo-legende-plan::before { content: ''; width: 1.125rem; height: 0.875rem; background: var(--petrol); }
-  .mo-legende-konflikt::before { content: ''; width: 1.125rem; height: 0.875rem; background: var(--warning-bg); box-shadow: inset 0 0 0 2px var(--warning); }
+  .mo-legende-plan::before { content: ''; width: 1.125rem; height: 0.875rem; border-radius: 3px; background: var(--surface-3); box-shadow: inset 3px 0 0 var(--petrol), inset 0 0 0 1px var(--border-strong); }
+  /* Der Konflikt in der Legende: das Warnzeichen wie am Balken, keine Farbfläche. */
+  .mo-legende-konflikt { color: var(--warning); }
+  .mo-legende-konflikt > svg { flex: none; }
   /* Das Muster der Abwesenheit ist ein eigenes Kästchen mit `.schraffur` — so bleibt es dieselbe Schraffur wie im Plan. */
   .mo-legende-muster { flex: none; width: 1.125rem; height: 0.875rem; }
   /* Heute in der Legende: dieselbe Fläche wie die Spalte. */
-  .mo-legende-heute::before { content: ''; width: 1.125rem; height: 0.875rem; background: var(--petrol-hell); box-shadow: inset 0 0 0 1px var(--border); }
+  .mo-legende-heute::before { content: ''; width: 1.125rem; height: 0.875rem; background: var(--heute); box-shadow: inset 0 3px 0 var(--dunkel-flaeche), inset 0 0 0 1px var(--border); }
   .mo-legende-ruhe::before { content: ''; width: 1.125rem; height: 0.875rem; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border); }
   /* Das Lot in der Legende: dasselbe Zeichen wie über dem Tag, stehend statt hängend am Kopf. */
   .lot-legende { position: relative; display: inline-block; flex: none; width: 6px; height: 0.6875rem; }
@@ -146,8 +161,9 @@
     stehen „Termin anlegen“, „Zur Woche“ und die Hauptaktion in normaler
     Größe in einer Reihe, statt auf zwei zu brechen.
   */
-  .vorschau { position: fixed; z-index: 35; display: flex; flex-direction: column; width: 30rem; max-width: 94vw; max-height: 80vh; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 0; }
-  .vorschau-blatt { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; max-height: 82vh; padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--surface); border-radius: 16px 16px 0 0; box-shadow: var(--shadow-lg); }
+  /* V10: das Feld schwebt — Radius und Schatten der schwebenden Teile; das Blatt am Handy mit dem Radius der Sheets. */
+  .vorschau { position: fixed; z-index: 35; display: flex; flex-direction: column; width: 30rem; max-width: 94vw; max-height: 80vh; overflow: hidden; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
+  .vorschau-blatt { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; max-height: 82vh; padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--surface); border-radius: var(--radius-xl) var(--radius-xl) 0 0; box-shadow: var(--shadow-lg); }
   /* Der Kopf wie `.fenster-kopf`: Titel links, rechts ‹ › und das ✕ (`.fenster-schliessen`, E74). */
   .vorschau-kopf { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); }
   .vorschau-kopftext { min-width: 0; }
@@ -160,7 +176,7 @@
   /* Ohne Fuß bleibt unten Luft bis zum Rand des Felds. */
   .vorschau-inhalt-ohne-fuss { padding-bottom: 0.75rem; }
   /*
-    DER FUSS WIE `.planung-fuss` (E72, R7): Linie darüber, rechtsbündig,
+    DER FUSS WIE `.planung-fuss` (E72; V10): Linie darüber, rechtsbündig,
     8 px zwischen den Knöpfen. Die Linie liegt 1 px über dem Inhalt, auf der
     des letzten Abschnitts — endet der Inhalt mit einem Satz statt eines
     Abschnitts, steht sie trotzdem da, und doppelt wird sie nie.
@@ -169,8 +185,8 @@
   @media (max-width: 759px) {
     .vorschau-kopf { padding: 0.75rem 1rem; }
     .vorschau-inhalt { padding-inline: 1rem; }
-    /* Am Handy untereinander und gleich breit, die Hauptaktion (zuletzt im Code) oben. */
-    .vorschau-fuss { flex-direction: column-reverse; padding: 0.75rem 1rem; }
+    /* Am Handy in einer Zeile wie `.planung-fuss-knoepfe` (V10): Sekundäres links, die Hauptaktion (zuletzt im Code) rechts. */
+    .vorschau-fuss { padding: 0.75rem 1rem; }
   }
 
   .v-abschnitt { padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
@@ -180,9 +196,13 @@
   .v-reihe { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: 0.75rem; padding: 0.1875rem 0; font-size: 0.875rem; line-height: 1.375rem; }
   .v-label { color: var(--text-muted); }
   .v-wert { margin: 0; color: var(--text); overflow-wrap: break-word; }
-  /* Hinweis Petrol-hell: ein Termin auf derselben Baustelle. Bernstein: jemand fehlt. */
-  .v-info { margin-top: 0.5rem; padding: 0.375rem 0.625rem; background: var(--petrol-hell); color: var(--text); border-radius: var(--radius-sm); font-size: 0.875rem; line-height: 1.25rem; }
-  .v-hinweis { margin-top: 0.5rem; padding: 0.375rem 0.625rem; background: var(--warning-bg); color: var(--warning); border-radius: var(--radius-sm); font-size: 0.875rem; line-height: 1.25rem; font-weight: var(--gewicht-titel); }
+  /*
+    Passive Information neutral (V10): ein Termin auf derselben Baustelle
+    auf der leisen Fläche; „jemand fehlt“ als Text in Warnfarbe, ohne
+    Fläche — die Auswahlfarbe hieße sonst „gewählt“.
+  */
+  .v-info { margin-top: 0.5rem; padding: 0.375rem 0.625rem; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.875rem; line-height: 1.25rem; }
+  .v-hinweis { margin-top: 0.5rem; padding: 0; background: none; color: var(--warning); font-size: 0.875rem; line-height: 1.25rem; font-weight: var(--gewicht-titel); }
   .v-aktion { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1rem; margin-top: 0.375rem; }
   .v-leer { padding: 0.875rem 0; color: var(--text-muted); font-size: 0.9375rem; }
 
@@ -210,17 +230,15 @@
   .kal-tag, .kal-tag-we, .kal-tag-heute, .kal-tag-gewaehlt { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; min-height: 0; padding: 0.6875rem 2px 0.375rem; border: 0; border-radius: 8px; background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); cursor: pointer; }
   .kal-tag-we { background: var(--bg); box-shadow: none; }
   .kal-tag-heute { color: var(--accent-deep); font-weight: var(--gewicht-titel); }
-  .kal-tag-gewaehlt { background: var(--petrol); color: #ffffff; box-shadow: none; }
-  /* Auf dem gewählten (gefüllten) Tag hängt das Lot in der Schrift des Tages. */
-  .kal-tag-gewaehlt .tag-lot::before, .kal-tag-gewaehlt .tag-lot::after { background: #ffffff; }
+  /* Gewählt: warme Auswahlfläche mit feiner Kontur (V10) — das Lot von heute bleibt darauf Terrakotta. */
+  .kal-tag-gewaehlt { background: var(--auswahl); color: var(--accent-deep); font-weight: var(--gewicht-titel); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
   .kal-nr { font-family: var(--schrift-mono); font-size: 0.875rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
   .kal-info { font-size: 0.75rem; line-height: 1rem; color: var(--text-muted); white-space: nowrap; }
   .kal-info-achtung { font-size: 0.75rem; line-height: 1rem; color: var(--warning); font-weight: var(--gewicht-titel); white-space: nowrap; }
-  .kal-info-gewaehlt { font-size: 0.75rem; line-height: 1rem; color: #ffffff; white-space: nowrap; }
+  .kal-info-gewaehlt { font-size: 0.75rem; line-height: 1rem; color: var(--accent-deep); white-space: nowrap; }
   .kal-balken { width: 70%; height: 5px; border-radius: 3px; background: var(--petrol); }
-  .kal-balken-konflikt { width: 70%; height: 5px; border-radius: 3px; background: var(--warning); }
+  /* Eingeteilt, aber weg: ein hohler Balken — die Fläche bleibt neutral, „fehlt“ steht darunter als Text (V10). */
+  .kal-balken-konflikt { width: 70%; height: 5px; border-radius: 3px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--border-strong); }
   .kal-balken-weg { width: 70%; height: 5px; border-radius: 3px; background: var(--border-strong); }
-  .kal-balken-gewaehlt { width: 70%; height: 5px; border-radius: 3px; background: #ffffff; }
   .kal-balken-ohne { width: 70%; height: 5px; }
-  .kal-punkt-hell { width: 6px; height: 6px; border-radius: 999px; background: #ffffff; }
 }

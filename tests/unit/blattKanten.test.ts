@@ -83,7 +83,9 @@ describe('Kalender in ganzen Zellen (E76)', () => {
       expect(d, datei).toContain('<KalenderLegende anzahl=');
       expect(d, datei).not.toContain('rounded-full bg-accent');
     }
-    expect(q('src/components/MonthCalendar.tsx')).toMatch(/export function KalenderLegende[\s\S]*border-accent-deep[\s\S]*bg-warning-bg/);
+    // V10: der Feiertag ist kein Warnzustand mehr — Legende und Kästchen tragen dieselbe ruhige Fläche.
+    expect(q('src/components/MonthCalendar.tsx')).toMatch(/export function KalenderLegende[\s\S]*border-accent-deep[\s\S]*bg-surface-3 shadow-\[inset_0_2px_0_0_var\(--border-strong\)\]/);
+    expect(q('src/components/MonthCalendar.tsx')).not.toMatch(/bg-warning-bg|inset_0_\dpx_0_0_var\(--warning\)/);
   });
 
   it('nach der letzten Person der Handy-Woche keine Linie vor der Kante', () => {
