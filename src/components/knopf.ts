@@ -43,7 +43,13 @@ export const variants: Record<Variant, string> = {
     wäre die lauteste Stelle der Seite; das Unumkehrbare soll erkennbar sein,
     nicht den Blick anziehen.
   */
-  primary: 'bg-brand font-semibold text-brand-fg hover:opacity-90',
+  /*
+    ZEIGEN DUNKELT DECKEND AB (14.11.2026). Mit `hover:opacity-90` wurde die
+    Hauptaktion beim Zeigen durchsichtig — am Telefon bleibt dieser Zustand
+    nach dem Tippen stehen, und durch den schwebenden Knopf schien der Text
+    darunter. `brightness` dunkelt jede Betriebsfarbe ab und bleibt deckend.
+  */
+  primary: 'bg-brand font-semibold text-brand-fg hover:brightness-90',
   secondary: 'border border-line-strong bg-surface font-normal text-ink hover:border-brand-fixed',
   /*
     „accent" GIBT ES NICHT MEHR. Anmelden, Passwort setzen, Betrieb anlegen

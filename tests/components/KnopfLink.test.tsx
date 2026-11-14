@@ -26,7 +26,8 @@ const VORHER_GROESSE: Record<Groesse, string> = {
   klein: 'min-h-[2.25rem] rounded-sm px-3 py-1.5 text-sm',
 };
 const VORHER_VARIANTE: Record<Variant, string> = {
-  primary: 'bg-brand font-semibold text-brand-fg hover:opacity-90',
+  // Bewusst geändert am 14.11.2026: beim Zeigen deckend dunkler statt durchsichtig.
+  primary: 'bg-brand font-semibold text-brand-fg hover:brightness-90',
   secondary: 'border border-line-strong bg-surface font-normal text-ink hover:border-brand-fixed',
   // Bewusst geändert am 13.11.2026 (V10): Gefahr ohne rote Kante, das Wort trägt die Bedeutung.
   danger: 'border border-line-strong bg-surface font-normal text-danger hover:border-danger',

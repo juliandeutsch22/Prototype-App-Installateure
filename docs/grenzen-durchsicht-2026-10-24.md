@@ -438,3 +438,15 @@ bleibt deshalb stehen — mit Grund:
 - **Der Ablege-Flug der Planung ist statisch und im Bild geprüft, nicht im
   Komponententest.** Grund: Gerät — jsdom kennt kein Layout und kein
   `elementFromPoint`.
+- **Der iPhone-Zeichenfehler der Warenkorb-Leiste (14.11.2026) ist lokal
+  nicht nachgestellt.** Behoben mit eigener Zeichenebene und neu gesetztem
+  Titel; geprüft im Komponententest, in Chromium (Bildvergleich vor und nach
+  erzwungenem Neuzeichnen) und im CI-Projekt `webkit-premium` (iPhone 13,
+  WebKit). Grund: Gerät — WebKit lässt sich in der Cloud-Umgebung nicht
+  installieren, und ein echtes iPhone gibt es dort nicht; den letzten Blick
+  am Gerät macht der Betrieb.
+- **Am Handy liegt die rechte Kante eines Blatts nicht auf einer
+  Rasterlinie** (14.11.2026). Grund fachlich: auf ganze Zellen gerundet stand
+  ein Blatt bei 390 px links 16, rechts 38 px vom Rand; gleiche Ränder wiegen
+  schwerer als die Linie. Oberkanten und Höhen hält der Takt weiter, ab dem
+  Tablet auch die rechten Kanten.

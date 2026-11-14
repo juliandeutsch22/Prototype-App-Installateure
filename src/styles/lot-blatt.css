@@ -59,21 +59,24 @@
       Kontur trägt die Grenze. Vorher eckig mit Linien, die als Zeichnung
       über dem Inhalt lagen.
 
-      DIE KONTUR IST EIN UMRISS, KEIN RAND (14.11.2026). Ein 1-px-Rand machte
-      jedes Blatt 2 px höher als seinen Inhalt; der Taktgeber hängte dann
-      22 px Luft unten an, um wieder ganze Zellen zu treffen. Der Umriss
-      (`outline`, nach innen versetzt) hat keine Höhe, folgt dem Radius und
-      wird nach dem Inhalt gezeichnet — keine klebende Leiste und keine
-      Auswahlfläche deckt ihn zu (E76).
+      DIE KONTUR LIEGT ALS EIGENE EBENE ÜBER DEM INHALT (14.11.2026), wie
+      die Linien der Linie „Lot“. Ein 1-px-Rand machte jedes Blatt 2 px
+      höher als seinen Inhalt; der Taktgeber hängte dann 22 px Luft unten
+      an. Ein Umriss (`outline`) hat keine Höhe, wird aber unter Kindern mit
+      eigener Ebene gezeichnet (Zeilen, Schriftfeld, klebende Leiste) — ihre
+      Fläche deckte die Kontur zu. Die Ebene (`::before`) hat keine Höhe,
+      folgt dem Radius, nimmt keinen Tipp an und liegt über der klebenden
+      Leiste im Blatt (Ebene 10, E76).
     */
-    margin-inline: 0; padding: 0; border: 0; outline: 1px solid var(--border); outline-offset: -1px; border-radius: var(--radius-lg);
+    margin-inline: 0; padding: 0; border: 0; border-radius: var(--radius-lg);
     background: var(--surface);
     box-shadow: none;
   }
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte)::before,
   .inhalt :is(.ue-liste, .ue-liste-woche, .ue-vergleich, .lot-einrichtung)::before,
   .inhalt .monatskalender:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog']) .monatskalender)::before {
-    content: none;
+    content: ''; position: absolute; inset: 0; z-index: 11; pointer-events: none;
+    border: 1px solid var(--border); border-radius: inherit;
   }
 
   /*
@@ -134,7 +137,8 @@
     */
     .inhalt .aktionsleiste:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog'], .akten-editor) .aktionsleiste) {
       margin: 1.5rem 0 0; padding: 12px var(--blatt-rand); border-top: 0;
-      box-shadow: inset 1px 0 0 var(--border-strong), inset 0 1px 0 var(--border-strong), 1px 0 0 var(--border-strong), 0 1px 0 var(--border-strong), 1px 1px 0 var(--border-strong);
+      /* V10 (14.11.2026): ein Blatt mit Umriss und Radius wie die darüber — vorher gezeichnete eckige Linien der Linie „Lot“. */
+      border-radius: var(--radius-lg); outline: 1px solid var(--border); outline-offset: -1px; box-shadow: none;
     }
   }
   /* Ein Verweis in der Zeile trägt seine Tastfläche, ohne die Zeile höher zu machen. */
@@ -142,8 +146,8 @@
 }
 
 @layer components {
-  /* Der Einrichtungshinweis ist ein Blatt: eckig, 24 Zellen breit statt 35 rem. */
-  .inhalt .lot-einrichtung { max-width: 36rem; border-radius: 0; padding: 24px; }
+  /* Der Einrichtungshinweis ist ein Blatt: 24 Zellen breit statt 35 rem, mit dem Radius jedes Blatts (V10, 14.11.2026; vorher eckig). */
+  .inhalt .lot-einrichtung { max-width: 36rem; border-radius: var(--radius-lg); padding: 24px; }
 }
 
 /*

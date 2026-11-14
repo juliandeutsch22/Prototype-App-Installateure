@@ -472,6 +472,29 @@ describe('Einen Entwurf löschen', () => {
   });
 });
 
+/*
+  ZEITEN OHNE UHRZEIT (Anzeigefehler 14.11.2026): eine nur als Dauer erfasste
+  Zeit stand als „Max · — · 08:30 Std“ im Fenster. Jetzt fällt der Teil weg;
+  mit Uhrzeit bleibt die Zeile, wie sie war.
+*/
+describe('Zeiten im Fenster', () => {
+  it('ohne Von/Bis steht nur die Dauer hinter dem Namen — kein „· — ·“', async () => {
+    geladen = [{ ...scheine[0], zeiten: [{ datum: '2026-09-04', mitarbeiter: 'Max', pauseMin: 0, minuten: 510 }] } as unknown as WorkSheet & { id: string }];
+    zeichne();
+    const fenster = await oeffne(/Familie Huber/);
+    const zeile = within(fenster).getByText(/^Max/, { selector: 'li' });
+    expect(zeile.textContent).toBe('Max · 08:30 Std');
+  });
+
+  it('mit Von/Bis bleibt die Zeile unverändert', async () => {
+    geladen = [{ ...scheine[0], zeiten: [{ datum: '2026-09-04', mitarbeiter: 'Max', von: '07:00', bis: '09:00', pauseMin: 0, minuten: 120 }] } as unknown as WorkSheet & { id: string }];
+    zeichne();
+    const fenster = await oeffne(/Familie Huber/);
+    const zeile = within(fenster).getByText(/^Max/, { selector: 'li' });
+    expect(zeile.textContent).toBe('Max · 07:00–09:00 · 02:00 Std');
+  });
+});
+
 describe('PDF aus der Liste (Scheinlisten ohne Unterschriftsbilder, 10.10.2026)', () => {
   const ohneBild = {
     ...scheine[1],

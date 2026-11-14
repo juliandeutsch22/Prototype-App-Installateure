@@ -581,13 +581,31 @@ export function hinweisSumme(items: NavItem[], posten: OffenePosten | undefined)
   return items.reduce((s, i) => s + hinweisZahl(i, posten), 0);
 }
 
+/** Der einzelne Schein (`/worksheet`, `/worksheet/…`) liegt nicht unter dem Pfad seiner Liste. */
+function istEinzelschein(pfad: string): boolean {
+  return pfad === '/worksheet' || pfad.startsWith('/worksheet/');
+}
+
+/**
+ * Der Menüpunkt, der für einen Pfad zusätzlich aktiv steht, obwohl der Pfad
+ * nicht unter ihm liegt — sonst `null` (dann entscheidet der Pfad allein).
+ *
+ * WARUM (Anzeigefehler 14.11.2026): Ein neuer oder offener Schein steht unter
+ * `/worksheet`, seine Liste unter `/worksheets`. Die Ortszeile sagte
+ * „Handwerksscheine“, im Menü war aber kein Punkt aktiv — das Lot der
+ * Seitenleiste hing leer am Haken.
+ */
+export function aktiverMenuepunktFuer(pfad: string): string | null {
+  return istEinzelschein(pfad) ? '/worksheets' : null;
+}
+
 /**
  * Die Gruppe des Menüs, zu der ein Pfad gehört — die Ortszeile über dem
  * Seitentitel (Design-Entwurf, Punkt 1: auf jeder Seite dieselbe Ortszeile).
  * Die Startseite hat ihre eigene; dort gibt es keine Gruppe.
  */
 export function gruppeVon(pfad: string): string | null {
-  if (pfad === '/worksheet' || pfad.startsWith('/worksheet/')) return 'Aufträge';
+  if (istEinzelschein(pfad)) return 'Aufträge';
   const treffer = eintragVon(pfad);
   if (treffer?.ort) return treffer.ort;
   return treffer && treffer.group !== 'Start' ? treffer.group : null;
@@ -606,6 +624,6 @@ function eintragVon(pfad: string): NavItem | undefined {
  * (`/customers/k1` → „Kunden"), der einzelne Schein zu den Scheinen.
  */
 export function bereichVon(pfad: string): string {
-  if (pfad === '/worksheet' || pfad.startsWith('/worksheet/')) return 'Handwerksscheine';
+  if (istEinzelschein(pfad)) return 'Handwerksscheine';
   return eintragVon(pfad)?.label ?? NAV.find((i) => i.path === '/')!.label;
 }

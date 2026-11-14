@@ -31,7 +31,10 @@ const DATEN = {
   // Rechtstexte (E45): die öffentlichen Seiten und der Hinweis in der App brauchen eine Antwort, die Plattform eine leere Liste.
   rechtstexte: { rechtstexteAktuell: 'D.rechtstexte', rechtstextVerlauf: '[]', verarbeiterAenderungen: '[]' },
   users: { listUsers: 'D.benutzer', getUserByUid: 'D.benutzer[0]' },
-  timeEntries: { '*': 'D.zeiten', arbeitszeitVorlauf: '[]', listUrlaubstage: '[]', subscribeUrlaubstage: '[]', stundenDerBaustellen: '[]' },
+  // Buchungstage je Person (Start, „Die Mannschaft“): eine Liste; als NOOP stand „Nicht geladen“ (14.11.2026).
+  timeEntries: { '*': 'D.zeiten', arbeitszeitVorlauf: '[]', listUrlaubstage: '[]', subscribeUrlaubstage: '[]', stundenDerBaustellen: '[]', buchungstage: '[]' },
+  // Auftragseingang: eine Seite und die Zählung — als NOOP stand dort nur ein Ladefehler (14.11.2026).
+  auftragseingaenge: { listEingaenge: '{ zeilen: [], weiter: null }', zaehleOffeneEingaenge: '{ offen: 0, dringend: 0, notfall: 0 }' },
   projects: { '*': 'D.baustellen' },
   customers: {
     listCustomers: 'D.kunden', listCustomersByIds: 'D.kunden', searchCustomers: 'D.kunden',
@@ -43,6 +46,10 @@ const DATEN = {
     kundenAdressePruefen: 'D.kunden.filter((k) => k.adressePruefen)',
   },
   company: { getCompany: 'D.firma', auszug: 'D.firma' },
+  // Bestellvorschläge über der Einkaufsliste: eine Liste — als NOOP stürzte „Einkauf“ ab (14.11.2026).
+  materialdeckung: { bestellvorschlaege: '[]' },
+  // Firmendaten eines Belegs (Ausstellerstand): die heutigen — als NOOP brach jedes Beleg-PDF mit „konnte nicht erzeugt werden“ ab (14.11.2026).
+  aussteller: { belegFirma: 'D.firma', ausstellerStaende: 'new Map()' },
   materialOrders: {
     '*': 'D.bestellungen',
     // Löschen mit Gegenbuchung (09.11.2026): ohne Antwort stand „gibt es so nicht mehr“ und ein gesperrter Knopf.
@@ -50,13 +57,15 @@ const DATEN = {
     anforderungLoeschen: "{ art: 'geloescht', gegenbuchung: [] }",
     // Abgeholtes am Schein (E89): eine Liste; als NOOP stürzte das Scheinformular ab (13.11.2026).
     eigeneAbgeholt: '[]',
+    // Die Nachkalkulation rechnet mit dem ausgegebenen Material je Baustelle (eine Map) — als NOOP stand ein Ladefehler.
+    ausgegebenesMaterialGesamt: 'new Map()',
   },
   /*
     Die Nummernsuche (M03a) liefert eine Map je Artikel; als Liste geraten
     brach das Lager beim Tippen ab (`treffer.keys`, 09.11.2026).
   */
   // Lagerbewegungen sind keine Artikel: mit `*` stand „undefined NaN Stk“ im Artikelfenster (13.11.2026).
-  materials: { '*': 'D.materialien', nummernTreffer: 'new Map()', listLagerbewegungen: '[]' },
+  materials: { '*': 'D.materialien', nummernTreffer: 'new Map()', listLagerbewegungen: '[]', katalogNachIds: 'D.materialien', katalogNachNamen: 'D.materialien' },
   // Kennzeichen-Vorschläge der Fahrzeuge: eine Liste; als NOOP brach /settings/fahrzeuge ab (13.11.2026).
   lagerorte: { kennzeichenAusBuchungen: '[]' },
   // Korrekturanträge (M06): eine Liste; als NOOP blieb die Zeiterfassung mit einer Fehlerseite stehen (09.11.2026).
@@ -75,7 +84,8 @@ const DATEN = {
     anhangAdressen: 'new Map()',
   },
   // „Zeitraum zusammenstellen“ fragt die Schlussrechnungen ohne Abzug mit; ohne Liste brach die Seite ab (K4, 17.10.2026).
-  invoices: { '*': 'D.rechnungen', schlussrechnungenOhneAbzug: '[]' },
+  // Mahnungen sind keine Rechnungen: mit `*` standen drei Zeilen „Mahnung vom “ ohne Datum im Fenster (14.11.2026).
+  invoices: { '*': 'D.rechnungen', schlussrechnungenOhneAbzug: '[]', listMahnungenZurRechnung: '[]', listMahnungenInRange: '[]' },
   /*
     Der Papierkorb (M01d) zählt und listet eigens: mit `*` wäre jede Zahl eine
     Liste, und die Seite stünde ohne Inhalt da. Leer, wie in einem Betrieb,

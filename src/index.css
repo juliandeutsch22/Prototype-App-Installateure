@@ -382,6 +382,16 @@ strong {
  * muss die Anzeige auch dann ruhig bleiben: nur der Rand färbt sich, von
  * Hellgrau auf Petrol. Die Felder wachsen dabei nicht.
  */
+/*
+ * ZU LANG FÜR DAS FELD: „…“ statt eines angeschnittenen Buchstabens
+ * (14.11.2026: „Österreic“, „Name, Anschrift, Telefon oder E-Ma“). Gilt für
+ * Wert und Platzhalter, solange das Feld nicht bearbeitet wird.
+ */
+input:not([type='checkbox']):not([type='radio']),
+select {
+  text-overflow: ellipsis;
+}
+
 input:focus,
 select:focus,
 textarea:focus {
@@ -473,6 +483,16 @@ select:not([multiple]):not([size]) {
   }
   .reiterleiste::-webkit-scrollbar {
     display: none;
+  }
+  /*
+    Umbrechende Leiste (Unterreiter, ab 1.200 px): die Linie liegt unter
+    jeder Zeile statt nur unter der letzten — jede Zeile ist genau 48 px
+    (`min-h-touch`, kein Zeilenabstand), die Linie das letzte Pixel davon.
+  */
+  @media (min-width: 1200px) {
+    .reiterleiste-umbruch {
+      background-image: repeating-linear-gradient(to bottom, transparent 0 47px, var(--border) 47px 48px);
+    }
   }
   /* Hinweis, dass die Leiste weitergeht (U16) — kein Farbfeld, nur eine weich auslaufende Kante. */
   /* Wo die Kante beginnt, misst `reiterImBild` (D6, E86): am ersten angeschnittenen Reiter. */
@@ -1156,6 +1176,13 @@ textarea {
   .hinweiszeile a { text-decoration: underline; text-underline-offset: 3px; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .aktionsleiste { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; background: var(--surface); border-top: 1px solid var(--border); padding: 0.625rem 1rem 0.75rem; margin: 0 -1rem; }
   @media (min-width: 760px) { .aktionsleiste { margin: 0 -1.5rem; padding-inline: 1.5rem; } }
+  /*
+    IM BLATT UND IM FENSTER AN DER UNTERKANTE (14.11.2026). Der Abstand zur
+    unteren Navigation gilt nur auf der Seite; ein Blatt liegt über der
+    Navigation. Mit ihm stand „Abbrechen / Änderungen speichern“ beim
+    Bearbeiten einer Zeit 70 px über dem Rand, mitten im Formular.
+  */
+  :is(.blatt, .fenster, .fenster-breit, [role='dialog']) .aktionsleiste { bottom: 0; }
   .aktionsleiste-summe { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.5rem; }
   .aktionsleiste-summe b { color: var(--ink-deep); font-size: 0.9375rem; font-weight: var(--gewicht-titel); }
   /*

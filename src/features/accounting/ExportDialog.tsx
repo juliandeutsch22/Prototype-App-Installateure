@@ -122,7 +122,13 @@ export default function ExportDialog({
           >
             Stundennachweis (PDF)
           </Button>
+          {/*
+            EINE HAUPTAKTION (V10, 14.11.2026): ohne `variant` war auch die
+            CSV gefüllt — zwei Terrakotta-Knöpfe untereinander, keiner war
+            erkennbar der nächste Schritt. Der Stundennachweis ist es.
+          */}
           <Button
+            variant="secondary"
             className="w-full justify-center"
             loading={busy === 'csv'}
             disabled={invalid || busy !== null}

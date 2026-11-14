@@ -11,6 +11,14 @@
   .rechnung-lesetitel { margin-bottom: 0.75rem; font-size: 0.9375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .rechnung-lesegruppe td, .rechnung-lesegruppe th { padding-block: 0.625rem; overflow-wrap: anywhere; }
   .rechnung-lesegruppe dd { min-width: 0; overflow-wrap: anywhere; }
+  /*
+    Zahlenspalten der Stückliste im Seitenfenster: mit zwei Klassen
+    spezifischer als `.tabelle-eng td` (5 px), sonst greift der Abstand nicht.
+    Vor dem Betrag eine ganze Zelle, damit Menge und Betrag in Mono nicht
+    zu einer Zahl verschmelzen.
+  */
+  .rechnung-stueckliste .stueck-menge { padding-left: 0.75rem; }
+  .rechnung-stueckliste .stueck-betrag { padding-left: 1.5rem; }
 
   /* ── Rechnungsliste ──────────────────────────────────────────────────── */
   /* „Ältere Rechnungen laden“ unter der letzten Gruppe. */

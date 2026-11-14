@@ -156,7 +156,12 @@
     */
     .akten-bereiche { gap: 0 1.25rem; }
     .akten-bereiche:not([data-viele]) { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0; overflow-x: visible; }
-    .akten-bereiche:not([data-viele]) > .akten-reiter { text-align: center; }
+    /*
+      Ein langer Name bricht in seiner Zelle um, statt in den Nachbarn zu
+      laufen (14.11.2026: „Arbeitszeit und Urlaub“ lag über „Zugang und
+      Rechte“). Die Zelle bleibt so breit wie die anderen.
+    */
+    .akten-bereiche:not([data-viele]) > .akten-reiter { text-align: center; white-space: normal; text-wrap: balance; line-height: 1.125rem; padding-inline: 0.25rem; }
     .akten-kopf .seitenkopf-zeile { gap: 0.75rem; }
     .akten-kopf .schriftfeld { display: none; }
     .akten-mobil-kontakt { display: flex; align-items: center; flex-wrap: wrap; gap: 0 1rem; margin-top: 0.75rem; font-size: 0.75rem; }

@@ -113,7 +113,8 @@ describe('Drei feste Zeilen: Ort, Titel mit Knöpfen, Meta (E31)', () => {
     expect(css).toMatch(/\.seitenkopf-rechts \{[^}]*align-items: center;[^}]*height: 3rem; \}/);
     // V10: der Titel in Source Serif 4 — Maße und Zeilenhöhe bleiben.
     expect(plan).toMatch(/\.seitenkopf h1 \{ font-family: var\(--schrift-titel\); font-size: 1\.5rem; line-height: 3rem;/);
-    expect(plan).toMatch(/@media \(min-width: 760px\) \{ \.seitenkopf h1 \{ font-size: 1\.875rem; line-height: 3rem; \} \}/);
+    // Ab dem Tablet (14.11.2026): 36-px-Zeile plus gemessenes Polster — einzeilig weiter genau 48 px.
+    expect(plan).toMatch(/@media \(min-width: 760px\) \{ \.seitenkopf h1 \{ font-size: 1\.875rem; line-height: 2\.25rem; padding-block: var\(--titel-luft, 0\.375rem\); \} \}/);
   });
 
   it('der Rückweg steht in der Ortszeile, nicht als Zeile darüber', () => {
