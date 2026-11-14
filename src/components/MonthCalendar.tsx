@@ -183,7 +183,7 @@ export default function MonthCalendar({
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full font-mono text-xs ${
                   isSelected
-                    ? // Auf der Auswahlfläche die Zahl in Terrakotta, ohne
+                    ? // Auf der Auswahlfläche die Zahl im Akzent, ohne
                       // gefüllten Kreis — die Fläche sagt schon „gewählt“.
                       'font-semibold text-accent-deep'
                     : isToday

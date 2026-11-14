@@ -49,7 +49,7 @@ export function wirksam(d: Darstellung): 'hell' | 'dunkel' {
   warme Papier, dunkel der warme Grund — sonst säße ein fremder Riegel über
   der Kopfinsel.
 */
-const STATUSBALKEN: Record<'hell' | 'dunkel', string> = { hell: '#f4f0e8', dunkel: '#211f1c' };
+const STATUSBALKEN: Record<'hell' | 'dunkel', string> = { hell: '#f4f1e8', dunkel: '#211f1c' };
 
 function anwenden(d: Darstellung): void {
   if (typeof document === 'undefined') return;

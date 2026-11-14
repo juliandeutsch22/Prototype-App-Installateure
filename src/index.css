@@ -41,8 +41,13 @@
  *
  * KEINE GRÜNE FARBE MEHR. Lot kennt fünf Zustände — offen, läuft, erledigt,
  * Achtung, Fehler —, und „erledigt“ tritt zurück, statt sich zu melden.
- * `--success` ist deshalb Petrol: was gelungen ist oder läuft, steht in der
- * Farbe der Marke, nicht in einer zusätzlichen Signalfarbe.
+ * `--success` steht deshalb in der Farbe der Marke (seit E93 Kuppel-Blau),
+ * nicht in einer zusätzlichen Signalfarbe.
+ *
+ * ZWEI FARBEN SEIT E93 (14.11.2026): Kuppel-Blau (A) für Marke, Aktion,
+ * Auswahl, „erledigt“ und „Fehler“; Oliv (B) für „Achtung“ und Hinweise.
+ * Dass „erledigt“ und „Fehler“ dieselbe Farbe tragen, geht nur, weil in
+ * dieser Linie Text und Symbol die Bedeutung tragen, nie die Farbe allein.
  *
  * BELEGE HABEN IHRE EIGENEN FARBEN (`src/lib/belegLayout.ts`). Sie waren bis
  * zum Umbau dieselben wie hier; das Protokoll verlangt Belege und Exporte
@@ -51,21 +56,21 @@
 :root {
   color-scheme: light;
 
-  --brand: #a85439;
+  --brand: #2b5fa6;
   --brand-fg: #fff8ee;
-  --accent: #a85439;
+  --accent: #2b5fa6;
   --accent-fg: #fff8ee;
 
   /* Die Farbe des Produkts, nicht die des Betriebs: Statusbalken, Manifest,
-   * Markierungen. Unverändert seit der Marke Senklot. */
-  --brand-fixed: #a85439;
+   * Markierungen. Kuppel-Blau seit E93. */
+  --brand-fixed: #2b5fa6;
   --ink-deep: #25231f;
-  /* Links und Häkchen: Petrol wie im Entwurf. */
-  --accent-deep: #9b4c33;
+  /* Links und Häkchen. Kuppel-Blau trägt auf Blatt und Papier über 5,6:1 — kein tieferer Ton nötig. */
+  --accent-deep: #2b5fa6;
   /* Der helle Ton auf der dunklen Navigation (Avatar, Zähler). */
-  --accent-bright: #f3e4d8;
+  --accent-bright: #e3eaf3;
 
-  --bg: #f4f0e8;
+  --bg: #f4f1e8;
   --surface: #fffdf8;
   --surface-2: #faf7f1;
   --surface-3: #eee6db;
@@ -90,21 +95,21 @@
   --border: #e2d8cb;
   --border-strong: #ded4c7;
   /* Deckend statt halbtransparent (Protokoll 0.2). */
-  --focus-ring: #b97b5e;
+  --focus-ring: #5b85c0;
 
-  --success: #25231f;
+  --success: #2b5fa6;
   --success-bg: #fffdf8;
-  --warning: #8f5d20;
+  --warning: #5e6a40;
   --warning-bg: #fffdf8;
-  --danger: #a5483b;
+  --danger: #2b5fa6;
   --danger-bg: #fffdf8;
-  --info: #25231f;
+  --info: #5e6a40;
   --info-bg: #fffdf8;
 
   /* Navigation: eigener, etwas tieferer Ton als Petrol, damit der aktive
    * Eintrag (navi-tief) und die Hauptknöpfe (Petrol) nicht verschwimmen. */
   --navi: #292722;
-  --navi-tief: #473b32;
+  --navi-tief: #38404c;
   --navi-text: #e9e1d6;
   --navi-gruppe: #a89d8f;
   --navi-linie: #3d3832;
@@ -126,52 +131,53 @@
   --grau: var(--text-muted);
   --linie: var(--border);
   --linie-stark: var(--border-strong);
-  --petrol: #a85439;
-  --petrol-tief: #8e4630;
-  --petrol-hell: #f3e4d8;
+  --petrol: #2b5fa6;
+  --petrol-tief: #234e8a;
+  --petrol-hell: #e3eaf3;
   /* Schrift auf voller Petrol-Fläche (Einsätze, E33) — in beiden Sätzen, weil Petrol in beiden dunkel genug ist. */
   --auf-petrol: #fff8ee;
   --auf-petrol-leise: #fff8ee;
   /* Die Spalte „heute“ in Rastern (Runde 4): ein Hauch Petrol, leiser als
      --petrol-hell, damit ein Block darin noch hervortritt. */
-  --heute: #efe6da;
+  --heute: #e6ebf1;
   --achtung: var(--warning);
   --achtung-hell: var(--warning-bg);
   --fehler: var(--danger);
   --abwesend: var(--surface-3);
   --schatten: var(--shadow-lg);
   /*
-    ROLLEN DER DESIGNLINIE V10 „WARMES PAPIER“ (13.11.2026, style.md). Die
-    alten Namen oben tragen jetzt die V10-Werte (Terrakotta statt Petrol,
-    Papier statt Weiß); diese hier kommen dazu.
+    ROLLEN DER DESIGNLINIE V10 „WARMES PAPIER“ (13.11.2026, style.md), seit
+    E93 in Kuppel-Blau und Oliv statt Terrakotta. Die alten Namen oben tragen
+    die aktuellen Werte; diese hier kommen dazu.
   */
   /*
-    GEMESSEN STATT ÜBERNOMMEN: die Zielwerte der Mappe lagen an vier Stellen
-    knapp unter 4,5:1 (Terrakotta-Text auf der Auswahl 4,2, Nebentext auf
-    `--surface-3` 4,4, Platzhalter 4,4, leiser Text auf Terrakotta 4,2). Text
-    in Terrakotta ist deshalb einen Ton tiefer (`--accent-deep` #9b4c33),
-    Flächen bleiben #a85439; Nebentext, Platzhalter und leiser Text auf
-    Terrakotta sind entsprechend nachgezogen (`lotGrundwerte.test.ts`).
+    GEMESSEN STATT ÜBERNOMMEN (E93): Oliv #7e8c5c hat als Schrift auf Blatt
+    und Papier nur 3,6 bzw. 3,2:1. Schrift in Oliv (`--warning`, `--info`) ist
+    deshalb einen Ton tiefer im selben Farbton (#5e6a40, 5,2–5,7:1); Oliv als
+    Fläche trägt die Pause (`--pause-flaeche`). Im dunklen Satz trägt #7ba7dc
+    Schrift, Zeichen und Fokus; gefüllte Knöpfe bleiben ein tieferes Blau
+    (#3a6eb8), weil weiße Schrift auf #7ba7dc nur 2,5:1 hätte
+    (`lotGrundwerte.test.ts`).
   */
   --radius-xl: 1.5rem;
-  --auswahl: #f3e4d8;
-  --auswahl-kontur: #d5b39e;
-  --fokus: #b97b5e;
+  --auswahl: #e3eaf3;
+  --auswahl-kontur: #a9bedb;
+  --fokus: #5b85c0;
   --dunkel-flaeche: #322e29;
   --auf-dunkel: #fff8ee;
   /* Zeigen ist nicht Wählen: der Hover-Ton liegt neutral zwischen Blatt und
      Papier, die warme Auswahlfläche bleibt der Auswahl vorbehalten. */
-  --hover-flaeche: #f5f0e8;
-  /* Terrakotta auf der dunklen Fläche (Meldung, laufender Arbeitstag): aufgehellt,
-     weil #a85439 dort nur 2,6:1 hätte. */
-  --auf-dunkel-akzent: #d08a68;
+  --hover-flaeche: #f8f5ee;
+  /* Der Akzent auf der dunklen Fläche (Meldung, laufender Arbeitstag): das helle
+     Kuppel-Blau, weil #2b5fa6 dort nur 2,1:1 hätte. */
+  --auf-dunkel-akzent: #7ba7dc;
   --auf-dunkel-leise: #cfc6ba;
-  --pause-flaeche: #eee6db;
+  --pause-flaeche: #e9ecdf;
   --insel-kontur: #e4dace;
   --inaktiv-symbol: #776e63;
-  --chat-eigen: #e8dacc;
+  --chat-eigen: #dee6f0;
   --chat-eigen-text: #2d2924;
-  --chat-eigen-kontur: #dcc9b8;
+  --chat-eigen-kontur: #c3d1e3;
   --raster-neben: #f1ece4;
   --raster-haupt: #e7ded2;
   --shadow-insel: 0 4px 12px -4px #25231f24;
@@ -192,14 +198,14 @@
 @media screen {
   :root[data-theme='dark'] {
     color-scheme: dark;
-    --brand: #a85439 !important;
+    --brand: #3a6eb8 !important;
     --brand-fg: #fff8ee !important;
-    --accent: #a85439 !important;
+    --accent: #3a6eb8 !important;
     --accent-fg: #fff8ee !important;
-    --brand-fixed: #d08a68;
+    --brand-fixed: #7ba7dc;
     --ink-deep: #f3eee6;
-    --accent-deep: #d08a68;
-    --accent-bright: #3b312b;
+    --accent-deep: #7ba7dc;
+    --accent-bright: #26303d;
     --bg: #211f1c;
     --surface: #25221f;
     --surface-2: #211f1c;
@@ -210,45 +216,45 @@
     --text-placeholder: #a0978c;
     --border: #4b443c;
     --border-strong: #4b443c;
-    --focus-ring: #d08a68;
-    --success: #f3eee6;
+    --focus-ring: #7ba7dc;
+    --success: #7ba7dc;
     --success-bg: #25221f;
-    --warning: #d9a45f;
+    --warning: #9daf7e;
     --warning-bg: #25221f;
-    --danger: #e08a7c;
+    --danger: #7ba7dc;
     --danger-bg: #25221f;
-    --info: #f3eee6;
+    --info: #9daf7e;
     --info-bg: #25221f;
     --navi: #1f1d1a;
-    --navi-tief: #3b312b;
+    --navi-tief: #2d3644;
     --navi-text: #e9e1d6;
     --navi-gruppe: #a89d8f;
     --navi-linie: #36312b;
     --shadow-lg: 0 7px 20px -6px #00000059;
-    /* Weiss auf Petrol (gewähltes Segment, Einsatzblock, Sammelleiste) braucht
-       4,5:1 — der Ton des Entwurfs (#2d8597) hatte nur 4,3:1. */
-    --petrol: #a85439;
-    --petrol-tief: #8e4630;
-    --petrol-hell: #3b312b;
+    /* Weiss auf der Akzentfläche (gewähltes Segment, Einsatzblock, Sammelleiste)
+       braucht 4,5:1 — mit #7ba7dc wären es 2,5:1, deshalb #3a6eb8 (5,1:1). */
+    --petrol: #3a6eb8;
+    --petrol-tief: #2f62ab;
+    --petrol-hell: #26303d;
     --auf-petrol: #fff8ee;
     --auf-petrol-leise: #fff8ee;
-    --heute: #2b2723;
-    --auswahl: #3b312b;
-    --auswahl-kontur: #654c3e;
-    --fokus: #d08a68;
+    --heute: #252a31;
+    --auswahl: #26303d;
+    --auswahl-kontur: #3e5675;
+    --fokus: #7ba7dc;
     --dunkel-flaeche: #302c27;
     --auf-dunkel: #fff8ee;
     --hover-flaeche: #2d2925;
-    --auf-dunkel-akzent: #d08a68;
+    --auf-dunkel-akzent: #7ba7dc;
     --auf-dunkel-leise: #b7aea3;
     /* Pause dunkel heller als „läuft“: sonst unterschieden sich die beiden
        Zustände der Arbeitstag-Karte nur am Punkt und an einem Knopf. */
-    --pause-flaeche: #3a332c;
+    --pause-flaeche: #33372b;
     --insel-kontur: #4b443c;
     --inaktiv-symbol: #a0978c;
-    --chat-eigen: #43362f;
+    --chat-eigen: #2a3442;
     --chat-eigen-text: #f3eee6;
-    --chat-eigen-kontur: #654c3e;
+    --chat-eigen-kontur: #3e5675;
     --raster-neben: #302c27;
     --raster-haupt: #3a342e;
     --shadow-insel: 0 4px 12px -4px #00000066;

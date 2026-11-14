@@ -1190,9 +1190,9 @@ function KorbMenge({
 /**
  * DER KREIS „IN DIE LISTE“ (V10, 13.11.2026). Bis dahin der gefüllte
  * Petrol-Kreis (`IconButton rund`): in einem Katalog mit zwanzig Zeilen
- * standen zwanzig gefüllte Terrakotta-Kreise untereinander — eine Wand aus
+ * standen zwanzig gefüllte Akzentkreise untereinander — eine Wand aus
  * Hauptaktionen, wo die Hauptaktion der Seite unten „Abschicken“ ist. Jetzt
- * ein feiner Linienkreis in Terrakotta: sichtbar 36 px, getippt 48 px — so
+ * ein feiner Linienkreis im Akzent: sichtbar 36 px, getippt 48 px — so
  * hoch wie die Mengensteuerung, die nach dem Tipp an derselben Stelle steht.
  * `data-icon`, damit die Zeile ihn nicht wie einen Wortknopf verkleinert.
  */
