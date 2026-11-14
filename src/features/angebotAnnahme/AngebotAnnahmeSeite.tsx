@@ -361,7 +361,7 @@ function Antwort({
           </Hinweiszeile>
         )}
         {/* Am Handy untereinander, die Hauptaktion oben und beide gleich breit (E72, R7). */}
-        <div className="fuss-aktionen flex-col-reverse md:flex-row">
+        <div className="fuss-aktionen">
           {art === 'annehmen' ? (
             <>
               <Button type="button" variant="ghost" onClick={() => { setArt('ablehnen'); setFehler(null); }}>

@@ -51,7 +51,13 @@ export const variants: Record<Variant, string> = {
     Petrol — zwei Farben für dieselbe Rolle (Prüflauf 24.09.2026, C11). Eine
     Hauptaktion ist `primary`, überall.
   */
-  danger: 'border border-danger bg-surface font-semibold text-danger hover:bg-danger-bg',
+  /*
+    V10 (13.11.2026): Gefahr trägt keine farbige Kante mehr. Das Wort in
+    Fehlerrot sagt, was der Knopf tut; die Kontur ist die jeder
+    Nebenhandlung, erst beim Zeigen wird sie rot. Bestätigt wird das
+    Unumkehrbare weiter im Dialog.
+  */
+  danger: 'border border-line-strong bg-surface font-normal text-danger hover:border-danger',
   /*
     JEDE NEBENHANDLUNG SIEHT AUS WIE EIN KNOPF (09.11.2026). `ghost` war
     randlos, grau und ohne Fläche: „Termin anlegen“, „Einsatz planen“,

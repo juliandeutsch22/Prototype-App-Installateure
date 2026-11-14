@@ -131,7 +131,7 @@ export default function ConfirmDialog({
             </Hinweiszeile>
           </div>
         )}
-        <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
           {nurSchliessen ? (
             <Button variant="primary" onClick={onCancel} autoFocus>
               Schließen

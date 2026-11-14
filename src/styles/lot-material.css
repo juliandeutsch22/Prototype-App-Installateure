@@ -67,14 +67,6 @@
     Wörter. Kompakt: 48 px je Wahl, nicht mehr.
   */
   @media (min-width: 760px) { .herkunft-wahl { grid-template-columns: minmax(0, 1fr); } }
-  /*
-    DAS UNSICHTBARE OPTIONSFELD DECKT DIE GANZE WAHL (V10, 14.11.2026). Im
-    Baustein liegt es 1 px groß und ohne Zeigerereignisse unter dem Text — ein
-    Tipp traf den Text, und wer das Feld selbst anspricht (Prüfungen im
-    Browser, manche Eingabehilfen), traf daneben. Über die ganze Fläche gelegt
-    trifft jeder Tipp das Feld; zu sehen bleibt nur die Wahl.
-  */
-  .herkunft-wahl .wahl-option input { inset: 0; width: 100%; height: 100%; margin: 0; pointer-events: auto; cursor: pointer; }
   /* ── Bereichswahl mit Zählern ─────────────────────────────────────────── */
   /*
     Vier Segmente mit Zahl („Laufend 12“) brachen am Handy in zwei Zeilen um.

@@ -28,7 +28,8 @@ const VORHER_GROESSE: Record<Groesse, string> = {
 const VORHER_VARIANTE: Record<Variant, string> = {
   primary: 'bg-brand font-semibold text-brand-fg hover:opacity-90',
   secondary: 'border border-line-strong bg-surface font-normal text-ink hover:border-brand-fixed',
-  danger: 'border border-danger bg-surface font-semibold text-danger hover:bg-danger-bg',
+  // Bewusst geändert am 13.11.2026 (V10): Gefahr ohne rote Kante, das Wort trägt die Bedeutung.
+  danger: 'border border-line-strong bg-surface font-normal text-danger hover:border-danger',
   // Bewusst geändert am 09.11.2026: der Geisterknopf trägt die Gestalt des Zweitknopfs (`knopf.ts`).
   ghost: 'border border-line-strong bg-surface font-normal text-ink hover:border-brand-fixed',
   'ghost-dark': 'bg-transparent font-normal text-navi-text hover:bg-navi-tief hover:text-white',

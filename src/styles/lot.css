@@ -164,7 +164,10 @@
   @media (min-width: 760px) { .wahl-gruppe { grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); } }
   .wahl-option { position: relative; display: flex; align-items: flex-start; gap: 0.75rem; min-height: 3rem; padding: 0.75rem 2.75rem 0.75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; }
   .wahl-option:hover { border-color: var(--auswahl-kontur); }
-  .wahl-option input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+  /* Das Optionsfeld deckt die ganze Fläche, unsichtbar: so trifft jeder Tipp
+     und jedes Werkzeug (Playwright `check()`, Sprachsteuerung) das echte
+     Feld statt der Beschriftung darüber. */
+  .wahl-option input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
   .wahl-option:focus-within { border-color: var(--fokus); }
   .wahl-option:has(input:checked) { background: var(--auswahl); border-color: var(--auswahl-kontur); }
   .wahl-option:has(input:checked)::after { content: ''; position: absolute; right: 1rem; top: 0.875rem; width: 1rem; height: 1rem; background: var(--accent-deep); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E") center / 1rem 1rem no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12 5 5 9-10'/%3E%3C/svg%3E") center / 1rem 1rem no-repeat; }
@@ -287,6 +290,9 @@
   .weiteres-kopf::-webkit-details-marker { display: none; }
   .weiteres-kopf::marker { content: ''; }
   .weiteres-inhalt { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 0.5rem; }
+  /* V10 (13.11.2026): auch am Handy Nebenhandlung links, Hauptaktion kompakt
+     rechts — nicht mehr gestapelt in voller Breite (R7). Passen beide nicht
+     in eine Zeile, rückt die Hauptaktion rechtsbündig darunter. */
   .fuss-aktionen { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
 
   /* ── Musterseite ─────────────────────────────────────────────────────── */
@@ -431,7 +437,7 @@
 
   /* ── Blatt „Mehr“ und Profil ─────────────────────────────────────────── */
   /* Gruppenköpfe wie in der Seitenleiste (E72): Versalien, gesperrt, mit Linie — dieselbe Ordnung auf jedem Gerät. */
-  .mehr-gruppe { display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0.75rem 0.375rem; font-size: 0.625rem; line-height: 1rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; color: var(--text-muted); }
+  .mehr-gruppe { display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0.75rem 0.375rem; font-size: 0.625rem; line-height: 1rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 400; color: var(--text-muted); }
   .mehr-gruppe::after { content: ''; flex: 1; height: 1px; background: var(--border); }
   .mehr-punkt, .mehr-punkt-aktiv { display: flex; align-items: center; gap: 0.75rem; min-height: 3rem; padding: 0.5rem 0.75rem; border-radius: var(--radius); color: var(--text); text-decoration: none; background: none; border: 0; width: 100%; text-align: left; font-size: 0.9375rem; cursor: pointer; }
   .mehr-punkt:hover { background: var(--petrol-hell); }
