@@ -942,7 +942,9 @@ export default function WorkSheetsListView() {
                   <Button
                     key={tage}
                     groesse="klein"
-                    variant={tiefePruefung === tage ? 'primary' : 'secondary'}
+                    variant="secondary"
+                    className="pruef-zeitraum"
+                    aria-pressed={tiefePruefung === tage}
                     disabled={pruefungLaeuft}
                     onClick={() => void tieferPruefen(tage)}
                   >

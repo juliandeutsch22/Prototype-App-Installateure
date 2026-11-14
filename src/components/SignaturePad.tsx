@@ -554,16 +554,21 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
       */}
       <div className="flex min-h-touch items-center justify-between">
         <span className="section-label">{titel}</span>
-        <Button
+        {/*
+          LEISE, NICHT ALS ZWEITER KNOPF (V10, 13.11.2026): „Neu zeichnen“
+          ist eine Textaktion an der Beschriftung des Felds, wie „ändern“
+          an der Baustelle. Platz, Sichtbarkeit und Fokusregeln bleiben,
+          wie sie waren — nur die Gestalt ist leiser.
+        */}
+        <button
           type="button"
-          variant="ghost"
           onClick={leeren}
-          className={hatStriche && !disabled ? undefined : 'invisible'}
+          className={`unterschrift-neu${hatStriche && !disabled ? '' : ' invisible'}`}
           tabIndex={hatStriche && !disabled ? undefined : -1}
           aria-hidden={hatStriche && !disabled ? undefined : true}
         >
           Neu zeichnen
-        </Button>
+        </button>
       </div>
       {/*
         Solange das Blatt offen ist, steht hier ein Platzhalter in derselben
@@ -634,19 +639,9 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
             */
             className="fixed inset-0 z-50 flex flex-col gap-2 bg-surface-2 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[max(1rem,env(safe-area-inset-top))]"
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 id={blattTitel} className="text-lg font-semibold text-ink">
-                {titel}
-              </h2>
-              <div className="flex gap-2">
-                <Button type="button" variant="secondary" onClick={leeren} disabled={!hatStriche}>
-                  Neu zeichnen
-                </Button>
-                <Button type="button" onClick={blattSchliessen} data-fertig="">
-                  Fertig
-                </Button>
-              </div>
-            </div>
+            <h2 id={blattTitel} className="unterschrift-blatt-titel">
+              {titel}
+            </h2>
             <p className="text-sm text-ink-muted landscape:hidden">
               Quer halten, dann ist mehr Platz. Unterschreiben geht auch so.
             </p>
@@ -654,6 +649,23 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
               {zeichenflaeche('h-full w-full touch-none select-none rounded border border-line bg-surface')}
             </div>
             <p className={`text-xs ${zuWenig ? 'text-warning' : 'text-ink-muted'}`}>{hinweis}</p>
+            {/*
+              LÖSCHEN UND ABSCHLIESSEN IN EINER ZEILE UNTER DEM FELD (Auftrag
+              11.4, V10): „Neu zeichnen“ leise links, „Fertig“ kompakt rechts
+              — auf einer Höhe, dort, wo der Daumen nach dem Unterschreiben
+              ist. Vorher standen beide rechts neben dem Titel und brachen am
+              Handy in eine eigene Zeile über dem Feld. Die Handgriffe selbst
+              sind unverändert: „Fertig“ schließt nur das Blatt, es bestätigt
+              keine Unterschrift.
+            */}
+            <div className="unterschrift-blatt-aktionen">
+              <Button type="button" variant="secondary" onClick={leeren} disabled={!hatStriche}>
+                Neu zeichnen
+              </Button>
+              <Button type="button" onClick={blattSchliessen} data-fertig="">
+                Fertig
+              </Button>
+            </div>
           </div>,
           document.body,
         )}
