@@ -422,7 +422,14 @@
   .unten-punkt { color: var(--inaktiv-symbol); }
   /* V10: der aktive Bereich trägt eine warme Auswahlfläche hinter Symbol und Text — nicht nur die Farbe. */
   .unten-punkt-aktiv { color: var(--accent-deep); font-weight: var(--gewicht-titel); }
-  .unten-punkt-aktiv::before { content: ''; position: absolute; inset: 0.3125rem 0.125rem; z-index: -1; border-radius: var(--radius); background: var(--auswahl); }
+  /*
+    DIE RUNDUNG DER INSEL, NACH INNEN VERSETZT (14.11.2026). Mit 12 px stand
+    die Fläche eckiger als die Insel (24 px). Gleich gerundet wirkt sie, wenn
+    beide Bögen denselben Mittelpunkt haben: rundum 6 px von der Außenkante
+    (1 px Kontur, 4 px Polster der Insel, 1 px hier) und 24 − 6 = 18 px Radius.
+    Volle 24 px machten die 50 px hohe Fläche zur Pille.
+  */
+  .unten-punkt-aktiv::before { content: ''; position: absolute; inset: 0.3125rem 0.0625rem; z-index: -1; border-radius: 18px; background: var(--auswahl); }
   .unten-punkt, .unten-punkt-aktiv { isolation: isolate; }
   .unten-symbol { position: relative; display: flex; }
   .unten-zahl { position: absolute; top: -0.375rem; right: -0.75rem; display: flex; }

@@ -870,6 +870,19 @@ describe('Anzeigefehler (14.11.2026)', () => {
     Linie durch „Speichern“. Die Kontur ist jetzt eine innere Linie; sie
     gehört zum Hintergrund und wandert mit.
   */
+  it('die aktive Fläche der unteren Leiste hat die Rundung der Insel, nach innen versetzt (24 − 6 = 18 px)', () => {
+    const LOT = stil('lot.css');
+    const flaeche = /\.unten-punkt-aktiv::before \{([^}]*)\}/.exec(ohneKommentare(LOT))?.[1] ?? '';
+    const insel = /\.unten \{([^}]*)\}/.exec(ohneKommentare(LOT))?.[1] ?? '';
+    expect(insel).toContain('border-radius: var(--radius-xl);');
+    expect(insel).toContain('padding: 0 0.25rem;');
+    // Rundum 6 px von der Außenkante: 1 px Kontur + 5 px oben/unten, 1 + 4 + 1 px seitlich.
+    expect(flaeche).toContain('inset: 0.3125rem 0.0625rem;');
+    expect(flaeche).toContain('border-radius: 18px;');
+    // Gegenprobe: der Stand davor (Feldradius, 7 px seitlich) fiele auf.
+    expect(' inset: 0.3125rem 0.125rem; z-index: -1; border-radius: var(--radius);').not.toContain('border-radius: 18px;');
+  });
+
   it('Speicherleiste (frei) und Warenkorb-Leiste tragen die Kontur als innere Linie, nicht als Umriss', () => {
     const BLATT = stil('lot-blatt.css');
     const frei = /\.inhalt \.aktionsleiste:not\(:is\(\.karte, \.fenster, \.fenster-breit, \.blatt, \[role='dialog'\], \.akten-editor\) \.aktionsleiste\) \{([^}]*)\}/.exec(ohneKommentare(BLATT))?.[1] ?? '';
