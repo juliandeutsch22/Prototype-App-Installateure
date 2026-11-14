@@ -47,8 +47,8 @@ test('Der Inhalt bekommt nach dem Seitenwechsel den Fokus, aber keinen Rahmen', 
   Gegenprobe: mit dem Stand vor E75 (Hof von 3 px, Ring mit Abstand um die
   Suche, Rahmen nach innen bei jedem Fokus in der Zeile) sind beide rot.
 */
-// Der Rand im Fokus ist der Akzent (`--brand-fixed`), seit E93 (14.11.2026) Kuppel-Blau.
-const FOKUS = 'rgb(43, 95, 166)';
+// V10 (13.11.2026): der Rand im Fokus ist Terrakotta (`--brand-fixed`), nicht mehr Petrol.
+const FOKUS = 'rgb(168, 84, 57)';
 const fokus = (l: Locator) => l.evaluate((el) => {
   const s = getComputedStyle(el);
   return { rand: `${s.borderTopWidth} ${s.borderTopColor}`, schatten: s.boxShadow, linie: s.outlineStyle, breite: s.outlineWidth, versatz: s.outlineOffset };

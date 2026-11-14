@@ -71,7 +71,7 @@
   .postfach-zeile[data-neu] .postfach-titel { font-weight: var(--gewicht-titel); }
   .postfach-zeile[data-neu] .postfach-vorschau { color: var(--text); }
   .postfach-zeile[data-neu] .postfach-zeit { color: var(--accent-deep); }
-  /* Ungelesen als Zahl im Akzent — „2 neu“, ohne gefüllte Pille (V10, 13.11.2026). */
+  /* Ungelesen als Zahl in Terrakotta — „2 neu“, ohne gefüllte Pille (V10, 13.11.2026). */
   .postfach-zahl { flex: none; color: var(--accent-deep); font-size: 0.8125rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .postfach-marke { flex: none; font-size: 0.75rem; color: var(--text-muted); }
 
@@ -196,7 +196,7 @@
     Outline ist zu groß, plump und sieht billig aus.“ Ein kleines Feld, 24 px
     hoch, ohne Rahmen. V10 (13.11.2026): keine Pille mehr, sondern der
     Radius einer Arbeitszeile (8 px); die eigene ist eine Auswahl — warme
-    Fläche, feine Kontur, Zahl im Akzent. Getippt werden weiter 44 px:
+    Fläche, feine Kontur, Zahl in Terrakotta. Getippt werden weiter 44 px:
     die Fläche reicht über und unter das Feld, ohne die Zeile höher zu machen.
   */
   .nachricht-reaktionen { display: flex; flex-wrap: wrap; gap: 0.25rem; max-width: 82%; margin-top: 0.375rem; }
@@ -230,7 +230,7 @@
     DIE EINGABE — V10, 13.11.2026 (style.md, Auftrag 11.6): EINE weich
     gerundete, konturierte Fläche. Links darin Anhang (am Telefon dazu die
     Kamera) und Erwähnen, in der Mitte das mehrzeilige Feld, rechts das
-    eigene runde Sendeziel, 44 px, im Akzent, gefüllt erst, wenn es
+    eigene runde Sendeziel, 44 px, in Terrakotta, gefüllt erst, wenn es
     etwas zu senden gibt. Am Telefon steht die Eingabe fest über der
     Reiterleiste (`--reiter-hoehe`), über die ganze Breite; der Verlauf hält
     unten genau ihre Höhe frei (`--eingabe-hoehe`). Die Timer-Leiste bleibt

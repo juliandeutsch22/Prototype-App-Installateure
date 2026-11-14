@@ -150,7 +150,7 @@
   .meldung-text { flex: 1; }
   .meldung-knopf { pointer-events: auto; flex: none; min-height: 2.75rem; padding: 0 0.25rem; background: none; border: 0; color: var(--auf-dunkel-akzent); font-weight: var(--gewicht-titel); cursor: pointer; }
 
-  /* V10: das Kürzel einer Person als kleines gerundetes Feld im Auswahlton, Schrift im Akzent — in beiden Sätzen lesbar. */
+  /* V10: das Kürzel einer Person als kleines gerundetes Feld im Auswahlton, Schrift in Terrakotta — in beiden Sätzen lesbar. */
   .lot-avatar { background: var(--auswahl); color: var(--accent-deep); border: 1px solid var(--auswahl-kontur); }
 
   /* ── Auswahl mit Häkchen (V10) ───────────────────────────────────────── */

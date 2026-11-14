@@ -48,15 +48,14 @@ describe('Belegfarben', () => {
   });
 
   /*
-    V10 (13.11.2026) und E93 (14.11.2026): die Oberfläche trägt ihren eigenen
-    Akzent (seit E93 Kuppel-Blau), die Belege bleiben,
+    V10 (13.11.2026): die Oberfläche trägt Terrakotta, die Belege bleiben,
     wie sie sind — Druck- und PDF-Ausgaben folgen ihren bestehenden
     Fachregeln (style.md) und sind prüfsummengleich (`belegReferenz`). Das
     Petrol der Belege ist deshalb nicht mehr die Farbe der Oberfläche.
   */
-  it('Petrol bleibt die Farbe der Belege, auch nachdem die Oberfläche Kuppel-Blau trägt', () => {
+  it('Petrol bleibt die Farbe der Belege, auch nachdem die Oberfläche Terrakotta trägt', () => {
     expect(PETROL).toEqual([15, 69, 82]);
-    expect(token('--brand-fixed')).toEqual([43, 95, 166]);
+    expect(token('--brand-fixed')).toEqual([168, 84, 57]);
   });
 });
 
