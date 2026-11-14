@@ -57,6 +57,7 @@ export default function UebersichtListe({
   imSupport,
   tageZeigen = false,
   summe,
+  ausgewaehlt = null,
   onOeffnen,
 }: {
   ansicht: 'monat' | 'woche';
@@ -68,6 +69,8 @@ export default function UebersichtListe({
   tageZeigen?: boolean;
   /** Die Summenzeile unter den Personen (Stückliste); im Supportzugang keine. */
   summe?: UebersichtSumme;
+  /** Die Person, deren Seitenfenster offen ist — ihre Zeile trägt die Auswahl (V10). */
+  ausgewaehlt?: string | null;
   onOeffnen: (uid: string, tag: string | null) => void;
 }) {
   const woche = ansicht === 'woche';
@@ -101,7 +104,7 @@ export default function UebersichtListe({
               titel={woche ? 'Mit Tagen ohne Buchung in dieser Woche' : 'Mit Tagen ohne Buchung'}
               anzahl={mitLuecken.length}
               zeilen={mitLuecken}
-              {...{ woche, vergleich, heute, imSupport, massstab, onOeffnen }}
+              {...{ woche, vergleich, heute, imSupport, massstab, ausgewaehlt, onOeffnen }}
             />
           )}
           {vollstaendig.length > 0 && (
@@ -109,7 +112,7 @@ export default function UebersichtListe({
               titel="Vollständig"
               anzahl={vollstaendig.length}
               zeilen={vollstaendig}
-              {...{ woche, vergleich, heute, imSupport, massstab, onOeffnen }}
+              {...{ woche, vergleich, heute, imSupport, massstab, ausgewaehlt, onOeffnen }}
             />
           )}
           {summe && <Summenzeile klasse={zeilenKlasse} summe={summe} vergleich={vergleich} />}
@@ -162,6 +165,7 @@ function Gruppe({
   heute,
   imSupport,
   massstab = 0,
+  ausgewaehlt = null,
   onOeffnen,
 }: {
   titel: string | null;
@@ -172,6 +176,7 @@ function Gruppe({
   heute: string;
   imSupport: boolean;
   massstab?: number;
+  ausgewaehlt?: string | null;
   onOeffnen: (uid: string, tag: string | null) => void;
 }) {
   const [alle, setAlle] = useState(false);
@@ -189,7 +194,7 @@ function Gruppe({
             </button>
           </div>
         ) : (
-          <Zeile key={z.user.uid} zeile={z} woche={woche} vergleich={vergleich} heute={heute} massstab={massstab} onOeffnen={onOeffnen} />
+          <Zeile key={z.user.uid} zeile={z} woche={woche} vergleich={vergleich} heute={heute} massstab={massstab} gewaehlt={ausgewaehlt === z.user.uid} onOeffnen={onOeffnen} />
         ),
       )}
       {zeilen.length > GRUPPE_HOECHSTENS && !alle && (
@@ -205,6 +210,7 @@ function Zeile({
   vergleich,
   heute,
   massstab,
+  gewaehlt,
   onOeffnen,
 }: {
   zeile: UebersichtZeile;
@@ -212,12 +218,18 @@ function Zeile({
   vergleich: boolean;
   heute: string;
   massstab: number;
+  gewaehlt: boolean;
   onOeffnen: (uid: string, tag: string | null) => void;
 }) {
   const oeffneTag = (tag: string) => onOeffnen(z.user.uid, tag);
   return (
     // Die Zeile ist für die Maus EIN Ziel; die Tastatur nimmt den Namen (ein Knopf).
-    <div className={woche ? 'mw-zeile' : vergleich ? 'ue-vergleich-zeile' : 'ue-zeile'} onClick={() => onOeffnen(z.user.uid, null)}>
+    <div
+      className={woche ? 'mw-zeile' : vergleich ? 'ue-vergleich-zeile' : 'ue-zeile'}
+      // Die offene Person bleibt in der Liste erkennbar (V10: Auswahlton und feine Kontur).
+      aria-current={gewaehlt ? 'true' : undefined}
+      onClick={() => onOeffnen(z.user.uid, null)}
+    >
       <button
         type="button"
         className="ue-person"

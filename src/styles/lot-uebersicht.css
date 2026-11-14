@@ -167,8 +167,9 @@
   .mw-kopf { font-size: 0.8125rem; line-height: 1.125rem; text-align: center; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .mw-kopf-heute { font-size: 0.8125rem; line-height: 1.125rem; text-align: center; color: var(--accent-deep); font-weight: var(--gewicht-titel); font-variant-numeric: tabular-nums; box-shadow: inset 0 -2px 0 var(--petrol); }
   .mw-zelle { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--petrol-hell); color: var(--text); font-size: 0.75rem; line-height: 1.2; text-align: center; cursor: pointer; }
-  .mw-zelle-grenze { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--petrol-hell); color: var(--text); font-size: 0.75rem; line-height: 1.2; text-align: center; cursor: pointer; box-shadow: inset 0 -3px 0 var(--danger); }
-  .mw-zelle-fehlt { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--warning-bg); color: var(--warning); font-size: 0.75rem; line-height: 1.2; font-weight: var(--gewicht-titel); text-align: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--warning); }
+  .mw-zelle-grenze { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--petrol-hell); color: var(--text); font-size: 0.75rem; line-height: 1.2; text-align: center; cursor: pointer; }
+  /* „fehlt“ trägt das Wort in Bernstein; die Kontur bleibt neutral (V10: kein Farbrahmen). */
+  .mw-zelle-fehlt { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--warning-bg); color: var(--warning); font-size: 0.75rem; line-height: 1.2; font-weight: var(--gewicht-titel); text-align: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--border-strong); }
   .mw-zelle-weg { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--abwesend); color: var(--text-muted); font-size: 0.75rem; line-height: 1.2; text-align: center; overflow-wrap: break-word; hyphens: auto; cursor: pointer; }
   .mw-zelle-frei { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border-radius: 6px; background: transparent; color: var(--text-muted); font-size: 0.75rem; line-height: 1.2; text-align: center; }
   .mw-zelle-zukunft { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 2.75rem; padding: 0.25rem 1px; border: 0; border-radius: 6px; background: var(--surface); color: var(--text-muted); font-size: 0.75rem; line-height: 1.2; text-align: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--border); }
@@ -218,7 +219,8 @@
   .pf-ueber { margin: 0 0 0.75rem; font-size: 0.8125rem; color: var(--text-muted); }
   .pf-kennzahlen { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0.75rem; margin-top: 0.25rem; padding-block: 1rem; border-block: 1px solid var(--border); }
   .pf-kennzahl { min-width: 0; background: var(--surface); }
-  .pf-kennzahl-wert { margin-top: 0.375rem; font-size: 1.125rem; line-height: 1.5rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
+  /* Salden, Stunden und Tage sind Gemessenes: Plex Mono, tabellarisch (V10). */
+  .pf-kennzahl-wert { margin-top: 0.375rem; font-family: var(--schrift-mono); font-size: 1.125rem; line-height: 1.5rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
   .pf-kennzahl-name { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
   .pf-kennzahl-text { margin-top: 0.375rem; font-size: 0.875rem; line-height: 1.25rem; color: var(--text-muted); }
   .pf-gebucht { margin-top: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
@@ -240,13 +242,16 @@
   .pf-abschnitt { margin: 1.25rem 0 0.5rem; font-size: 0.9375rem; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .pf-liste { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--border); }
   .pf-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.625rem 0.25rem; border-bottom: 1px solid var(--border); }
-  /* Der Tag, über den das Fenster geöffnet wurde: Petrol-hell mit 3 px Petrol links. */
-  .pf-zeile-markiert { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.625rem 0.25rem 0.625rem 0.75rem; border-bottom: 1px solid var(--border); background: var(--petrol-hell); box-shadow: inset 3px 0 0 var(--petrol); }
+  /*
+    Der Tag, über den das Fenster geöffnet wurde: die Auswahl der Linie V10 —
+    warmer Ton und feine Kontur rundum, keine Kante links (13.11.2026).
+  */
+  .pf-zeile-markiert { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.625rem 0.25rem 0.625rem 0.75rem; border-bottom: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--auswahl); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
   .pf-zeile-text { flex: 1 1 10rem; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
   .pf-zeile-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; }
   .pf-zeile-titel { font-weight: var(--gewicht-titel); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pf-zeile-info { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-  .pf-zeile-wert { flex: none; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pf-zeile-wert { flex: none; font-family: var(--schrift-mono); font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pf-aktionen { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.25rem; margin-left: auto; }
   .pf-summe { display: flex; justify-content: space-between; gap: 1rem; padding: 0.625rem 0.25rem; font-weight: var(--gewicht-zahl); color: var(--ink-deep); font-variant-numeric: tabular-nums; }
   /* Die Fussleiste bleibt beim Rollen unten im Fenster stehen. */
@@ -301,11 +306,12 @@
   .pk-wochentage, .pk-tage { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.125rem; }
   .pk-wochentage { padding-bottom: 0.5rem; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
   .pk-tag-ok, .pk-tag-grenze, .pk-tag-fehlt, .pk-tag-weg, .pk-tag-frei, .pk-tag-zukunft { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; min-width: 0; min-height: 3.75rem; padding: 0.375rem 0.125rem; border: 1px solid var(--border); border-radius: 0.25rem; background: var(--surface); color: var(--text); cursor: pointer; }
-  .pk-tag-grenze { border-bottom: 3px solid var(--danger); }
+  /* Die Grenze als kleines Zeichen unter dem Wert (unten, `.mw-zelle-grenze::after`), kein roter Strich. */
   .pk-tag-fehlt { background: var(--warning-bg); color: var(--warning); }
   .pk-tag-weg { background: var(--abwesend); color: var(--text-muted); }
   .pk-tag-frei { background: var(--surface-2); color: var(--text-muted); }
-  .pk-tage button[aria-pressed='true'] { outline: 2px solid var(--petrol); outline-offset: -2px; }
+  /* Der gewählte Tag: Auswahlton und feine Kontur (V10); die Schraffur eines abwesenden Tags bleibt darüber sichtbar. */
+  .pk-tage button[aria-pressed='true'] { background-color: var(--auswahl); border-color: var(--auswahl-kontur); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
   .pk-datum { font-size: 0.875rem; font-weight: var(--gewicht-zahl); font-variant-numeric: tabular-nums; }
   .pk-wert { font-size: 0.625rem; line-height: 1rem; font-variant-numeric: tabular-nums; }
 }
@@ -327,7 +333,8 @@
   .ue-kopfzeile, .mw-kopfzeile { border-top: 1px solid var(--accent-deep); border-bottom: 1px solid var(--border-strong); border-radius: 0; }
   @media (min-width: 760px) {
     .ue-vergleich-kopf { border-top: 1px solid var(--accent-deep); border-bottom: 1px solid var(--border-strong); }
-    .ue-kopf-person, .ue-kopf-zahl, .ue-vergleich-kopf { font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; }
+    /* Versalien und Sperrung tragen den Spaltenkopf; fett dazu wäre die verbotene Dreifachbetonung (V10, Regel 8). */
+    .ue-kopf-person, .ue-kopf-zahl, .ue-vergleich-kopf { font-size: 0.65625rem; line-height: 1rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; }
   }
 
   /* Die Gruppen tragen den Achskreis (`Abschnitt`); ihr Rand folgt den Zeilen der jeweiligen Liste. */
@@ -396,4 +403,22 @@
     border: 1px solid var(--border-strong);
   }
   .st-weg, .leg-weg { background-image: repeating-linear-gradient(135deg, var(--border-strong) 0, var(--border-strong) 1px, var(--bg) 1px, var(--bg) 4px); }
+}
+
+/*
+  V10 (13.11.2026): DIE GRENZE ALS ZEICHEN, DIE AUSWAHL ALS TON.
+
+  Eine überschrittene Arbeitszeitgrenze trug in Woche und Personenkalender
+  einen roten 3-px-Strich am Fuß der Zelle — ein Statusbalken, den V10
+  ausschließt. Jetzt steht unter dem Wert ein kleines Dreieck in Fehlerrot;
+  Wortlaut und Vorlesetext („Grenze …“) tragen weiter die Bedeutung. Im
+  Monatsstreifen bleibt die Markierung: dort ist die Zelle ein Datenpunkt
+  einer Grafik, kein Statusfeld, und die Legende erklärt sie.
+
+  Die Person, deren Fenster offen ist, trägt in der Liste die Auswahl:
+  Ton und feine Kontur (`aria-current`), wie jede ausgewählte Arbeitszeile.
+*/
+@layer components {
+  .mw-zelle-grenze::after, .pk-tag-grenze::after { content: ''; display: block; flex: none; width: 0.5rem; height: 0.4375rem; margin-top: 0.125rem; background: var(--danger); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+  .ue-zeile[aria-current='true'], .mw-zeile[aria-current='true'], .ue-vergleich-zeile[aria-current='true'] { border-radius: var(--radius-sm); background: var(--auswahl); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
 }

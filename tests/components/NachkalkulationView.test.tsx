@@ -821,3 +821,23 @@ describe('Wenn nichts gerechnet werden kann', () => {
     expect(document.querySelector('[aria-busy="true"]')).toBeNull();
   });
 });
+
+/*
+  EIN FEHLER MIT NÄCHSTEM SCHRITT (V10, 13.11.2026; Auftrag 9.6): scheitert
+  das Rechnen, steht „Erneut versuchen“ dabei — vorher nur „Das hat nicht
+  geklappt“. Und weiterhin keine Kennzahl über einem Fehler.
+*/
+describe('V10: Ladefehler', () => {
+  it('bietet „Erneut versuchen“ und rechnet damit neu', async () => {
+    projekte = [projekt('2026-001')];
+    eintraege = stunden('2026-001', 2);
+    rechnungen = [rechnung('2026-001', 2000)];
+    listEntriesForProjects.mockRejectedValueOnce(new Error('kein Netz'));
+    zeige();
+    const knopf = await screen.findByRole('button', { name: 'Erneut versuchen' });
+    // Gleich bleibt: über einem Fehler steht keine Zählung („0 mit Verlust“).
+    expect(screen.queryByText('Mit Verlust')).toBeNull();
+    await userEvent.click(knopf);
+    expect(await screen.findByText(/Kunde 2026-001/)).toBeInTheDocument();
+  });
+});

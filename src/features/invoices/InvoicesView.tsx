@@ -261,6 +261,12 @@ export default function InvoicesView() {
   /** Kamen die offenen Forderungen nicht? Dann darf keine Karte so tun, als wüsste sie Bescheid. */
   const [forderungenFehler, setForderungenFehler] = useState(false);
   /*
+    Kam die Liste der jüngsten Rechnungen nicht? Eigens, weil `error` auch
+    Fehler des Formulars trägt — die sagen nichts über die Grundlage der
+    Kennzahlen (V10, 13.11.2026).
+  */
+  const [listeFehler, setListeFehler] = useState(false);
+  /*
     SIND DIE GRUNDLAGEN DA? (Analyse 10.10.2026) Bis hierher rechneten
     Kennzahlen und Karten aus leeren Listen, solange diese noch luden:
     „€ 0,00 offen“, dann eine Teilsumme, dann die richtige; und Mahnlauf und
@@ -722,10 +728,12 @@ export default function InvoicesView() {
       grenze,
       (rows) => {
         setInvoices(rows);
+        setListeFehler(false);
         setLoading(false);
       },
       (e) => {
         setError(e.message);
+        setListeFehler(true);
         setLoading(false);
       },
       offeneNeuLaden,
@@ -1055,6 +1063,8 @@ export default function InvoicesView() {
     Platzhalter an ihrer Stelle.
   */
   const zahlenBereit = !loading && offeneGeladen;
+  /** Weder die jüngsten Rechnungen noch die offenen Forderungen kamen: Offen und Überfällig hätten keine Grundlage. */
+  const forderungenOhneGrundlage = zahlenBereit && forderungenFehler && listeFehler;
   const stundenFertig = offeneStunden !== null || stundenFehler;
   const basisBereit = zahlenBereit && (nurLesen || (scheineFertig && stundenFertig));
 
@@ -3084,12 +3094,31 @@ export default function InvoicesView() {
           <MetricRow>
             {/* Kamen die offenen Forderungen nicht, sagen es die beiden Zahlen dazu —
                 sonst stünde eine zu kleine Summe da, die niemand als solche erkennt. */}
-            <Metric label="Offen" value={euro(stats.offen)} to="/invoices?ansicht=offen" bereit={zahlenBereit}
-              hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
-            <Metric label="Überfällig" tone={stats.ueberfaellig > 0 ? 'danger' : 'default'} bereit={zahlenBereit}
-              value={euro(stats.ueberfaellig)} to={`/invoices?status=${encodeURIComponent('Überfällig')}`}
-              hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
-            {bezahltImMonat !== null || (!nurLesen && !bezahltGeladen) ? (
+            {/*
+              OHNE GRUNDLAGE KEINE ZAHL (V10, 13.11.2026; Auftrag 9.6/11.5). Kamen
+              weder die jüngsten Rechnungen noch die offenen Forderungen, rechnete
+              der Stand über zwei leere Listen und zeigte „€ 0,00“ — eine Zahl,
+              die wie „alles bezahlt“ aussieht. Dann steht „nicht geladen“ als
+              Wort; der Weg zum erneuten Laden steht in der Zeile darunter.
+            */}
+            {forderungenOhneGrundlage ? (
+              <>
+                <Metric label="Offen" value="nicht geladen" tone="warning" />
+                <Metric label="Überfällig" value="nicht geladen" tone="warning" />
+              </>
+            ) : (
+              <>
+                <Metric label="Offen" value={euro(stats.offen)} to="/invoices?ansicht=offen" bereit={zahlenBereit}
+                  hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
+                <Metric label="Überfällig" tone={stats.ueberfaellig > 0 ? 'danger' : 'default'} bereit={zahlenBereit}
+                  value={euro(stats.ueberfaellig)} to={`/invoices?status=${encodeURIComponent('Überfällig')}`}
+                  hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
+              </>
+            )}
+            {bezahltImMonat === null && (nurLesen || bezahltGeladen) && listeFehler ? (
+              // Die Ersatzzahl rechnet über die geladenen Rechnungen — kamen die nicht, hätte sie keine Grundlage.
+              <Metric label="Bezahlt" value="nicht geladen" tone="warning" />
+            ) : bezahltImMonat !== null || (!nurLesen && !bezahltGeladen) ? (
               // „im laufenden Monat“ wurde am Telefon gekürzt (U10); seit wann, sagt der Zusatz, „ohne Skonto“ die Hilfe.
               <Metric label="Bezahlt im Monat" tone="success" value={euro(bezahltImMonat ?? 0)} to="/invoices?sicht=bezahlt-monat"
                 bereit={bezahltGeladen} zusatzMuster="seit 00.00.0000"
@@ -3164,7 +3193,11 @@ export default function InvoicesView() {
           <p>
             <strong>Die offenen Forderungen konnten nicht geladen werden.</strong> Mahnlauf und
             „nicht verrechnete Leistung“ sind deshalb unvollständig — was hier fehlt, heißt
-            nicht, dass es nichts zu tun gibt. Bitte die Seite neu laden.
+            nicht, dass es nichts zu tun gibt.{' '}
+            {/* Dieselbe Nachladung, die nach jeder Änderung an einer Rechnung läuft — gelingt sie, verschwindet die Zeile. */}
+            <button type="button" onClick={offeneNeuLaden} className="link-hinweis min-h-touch">
+              Erneut laden
+            </button>
           </p>
         </Hinweiszeile>
       )}

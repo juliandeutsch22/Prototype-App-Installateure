@@ -78,6 +78,8 @@ let liveGeaendert: (() => void) | undefined;
 /** Was die Suche über ALLE Rechnungen auf dem Server findet. */
 let suchTreffer: (Invoice & { id: string })[] = [];
 let sucheWirft = false;
+/** Die Liste der jüngsten Rechnungen scheitert (V10, „ohne Grundlage keine Zahl“). */
+let listeWirft = false;
 const suche = vi.fn();
 let zeiten: (TimeEntry & { id: string })[] = [];
 let scheine: (WorkSheet & { id: string })[] = [];
@@ -181,6 +183,11 @@ vi.mock('@/lib/db/invoices', async () => {
     ) => {
       liveMeldung = cb;
       liveGeaendert = geaendert;
+      // V10: die Liste selbst kommt nicht (Prüfung „ohne Grundlage keine Zahl“).
+      if (listeWirft) {
+        _fehler?.(new Error('Die Rechnungen konnten nicht geladen werden.'));
+        return () => undefined;
+      }
       cb(rechnungen);
       return () => undefined;
     },
@@ -457,6 +464,7 @@ beforeEach(() => {
   rechnungen = [];
   suchTreffer = [];
   sucheWirft = false;
+  listeWirft = false;
   suche.mockReset();
   alleScheine = [];
   offene = [];
@@ -2921,6 +2929,48 @@ describe('Wenn die offenen Forderungen nicht kommen', () => {
     expect(
       screen.queryByText(/offenen Forderungen konnten nicht geladen werden/),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+  OHNE GRUNDLAGE KEINE ZAHL (V10, 13.11.2026; Auftrag 9.6 und 11.5). Kamen
+  weder die Liste noch die offenen Forderungen, stand im Seitenkopf „Offen
+  € 0,00“ und „Überfällig € 0,00“ — das liest sich wie „alles bezahlt“.
+*/
+describe('V10: Kennzahlen nach einem Ladefehler', () => {
+  it('zeigt „nicht geladen“ statt einer Null, wenn Liste und Forderungen fehlen', async () => {
+    listeWirft = true;
+    listUnpaidInvoices.mockRejectedValueOnce(new Error('kein Netz'));
+    zeige();
+    await screen.findByText('Die Rechnungen konnten nicht geladen werden.');
+    await waitFor(() => expect(screen.getAllByText('nicht geladen').length).toBeGreaterThanOrEqual(2));
+    const offen = screen.getByText('Offen', { selector: '.lage-name' }).closest('li')!;
+    expect(within(offen).getByText('nicht geladen')).toBeInTheDocument();
+    expect(offen.textContent).not.toMatch(/0,00/);
+    const ueber = screen.getByText('Überfällig', { selector: '.lage-name' }).closest('li')!;
+    expect(ueber.textContent).not.toMatch(/0,00/);
+  });
+
+  // Gegenprobe: fehlt nur die Liste, rechnet der Stand aus den offenen Forderungen — eine echte Zahl.
+  it('Gegenprobe: mit geladenen Forderungen bleibt die Zahl', async () => {
+    listeWirft = true;
+    offene = [{
+      id: 'o1', companyId: 'perl', invoiceNumber: 'RE-2026-0001', projectNumber: '2026-042', customerName: 'Familie Huber',
+      invoiceDate: '2026-08-20', dueDate: '2026-09-20', totalNetto: 100, totalVat: 20, totalBrutto: 120, paymentStatus: 'Offen',
+    } as unknown as Invoice & { id: string }];
+    zeige();
+    await screen.findByText('Die Rechnungen konnten nicht geladen werden.');
+    const offen = (await screen.findByText('Offen', { selector: '.lage-name' })).closest('li')!;
+    await waitFor(() => expect(offen.textContent).toMatch(/120,00/));
+    expect(within(offen).queryByText('nicht geladen')).toBeNull();
+  });
+
+  it('bietet „Erneut laden“ für die offenen Forderungen — gelingt es, verschwindet der Hinweis', async () => {
+    listUnpaidInvoices.mockRejectedValueOnce(new Error('kein Netz'));
+    zeige();
+    const knopf = await screen.findByRole('button', { name: 'Erneut laden' });
+    await userEvent.click(knopf);
+    await waitFor(() => expect(screen.queryByText(/offenen Forderungen konnten nicht geladen werden/)).toBeNull());
   });
 });
 
