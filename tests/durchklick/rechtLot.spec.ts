@@ -34,9 +34,13 @@ async function blattKanten(page: Page) {
     const [px, py] = getComputedStyle(flaeche).backgroundPosition.split(' ').map(parseFloat);
     const q = blaetter[0].getBoundingClientRect();
     const rest = (wert: number, ursprung: number) => ((Math.round(wert - ursprung) % 24) + 24) % 24;
+    // Am Handy nutzt das Blatt die ganze Spalte (14.11.2026, `lib/takt.ts`): gleiche Ränder statt einer
+    // rechten Kante auf der Linie — sie zählt dort nicht, die linke prüft die Flucht.
+    const handy = window.matchMedia('(max-width: 759px)').matches;
     const daneben = (
       [['oben', q.top, r.top + py], ['unten', q.bottom, r.top + py], ['links', q.left, r.left + px], ['rechts', q.right, r.left + px]] as const
-    ).filter(([, wert, ursprung]) => rest(wert, ursprung) !== 0).map(([kante]) => kante);
+    ).filter(([kante]) => !(handy && kante === 'rechts'))
+      .filter(([, wert, ursprung]) => rest(wert, ursprung) !== 0).map(([kante]) => kante);
     return { blaetter: 1, raster: getComputedStyle(flaeche).backgroundImage.includes('linear-gradient'), daneben };
   });
 }

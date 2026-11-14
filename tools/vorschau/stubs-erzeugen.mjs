@@ -46,6 +46,8 @@ const DATEN = {
     kundenAdressePruefen: 'D.kunden.filter((k) => k.adressePruefen)',
   },
   company: { getCompany: 'D.firma', auszug: 'D.firma' },
+  // Firmendaten eines Belegs (Ausstellerstand): die heutigen — als NOOP brach jedes Beleg-PDF mit „konnte nicht erzeugt werden“ ab (14.11.2026).
+  aussteller: { belegFirma: 'D.firma', ausstellerStaende: 'new Map()' },
   materialOrders: {
     '*': 'D.bestellungen',
     // Löschen mit Gegenbuchung (09.11.2026): ohne Antwort stand „gibt es so nicht mehr“ und ein gesperrter Knopf.
@@ -80,7 +82,8 @@ const DATEN = {
     anhangAdressen: 'new Map()',
   },
   // „Zeitraum zusammenstellen“ fragt die Schlussrechnungen ohne Abzug mit; ohne Liste brach die Seite ab (K4, 17.10.2026).
-  invoices: { '*': 'D.rechnungen', schlussrechnungenOhneAbzug: '[]' },
+  // Mahnungen sind keine Rechnungen: mit `*` standen drei Zeilen „Mahnung vom “ ohne Datum im Fenster (14.11.2026).
+  invoices: { '*': 'D.rechnungen', schlussrechnungenOhneAbzug: '[]', listMahnungenZurRechnung: '[]', listMahnungenInRange: '[]' },
   /*
     Der Papierkorb (M01d) zählt und listet eigens: mit `*` wäre jede Zahl eine
     Liste, und die Seite stünde ohne Inhalt da. Leer, wie in einem Betrieb,
