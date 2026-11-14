@@ -91,15 +91,19 @@ export default function PlattformHuelle({
         Zum Inhalt
       </a>
 
-      {/* Am Handy: die Marke und „Mein Konto“ — die Bereiche stehen in der Leiste unten. */}
+      {/*
+        Am Handy: die Marke und „Mein Konto“ — die Bereiche stehen in der Leiste
+        unten. V10 (13.11.2026): die Kopfzeile ist eine HELLE Insel; die weiße
+        Marke und der Navigationston standen darauf fast unsichtbar.
+      */}
       <header className="kopfzeile">
         <span className="plattform-marke">
-          <ProduktMarke hoehe={26} hell />
+          <ProduktMarke hoehe={26} />
           <span className="plattform-markenzusatz">Plattform</span>
         </span>
         <button
           type="button"
-          className="min-h-touch px-2 text-sm text-navi-text"
+          className="min-h-touch px-2 text-sm text-ink"
           aria-current={bereich === 'konto' ? 'page' : undefined}
           onClick={() => onBereich('konto')}
         >

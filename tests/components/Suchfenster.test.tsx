@@ -79,6 +79,21 @@ describe('Suchen oder springen', () => {
     expect(screen.getByTestId('ort')).toHaveTextContent('/settings/nummern');
   });
 
+  // V10 (13.11.2026): zwei ruhige Zeilen — der Bereich einer Unterseite steht unter ihr, rechts bleibt Platz für Nummern.
+  it('eine Unterseite nennt ihren Bereich als zweite Zeile, nicht rechts daneben', async () => {
+    nutzer = { ...nutzer, role: 'Geschäftsführung' };
+    zeige();
+    await userEvent.type(screen.getByRole('combobox'), 'nummern');
+    const treffer = screen.getByRole('option', { name: /Nummernkreise/ });
+    expect(within(treffer).getByText('Einstellungen')).toHaveClass('such-zweite');
+    // Gegenprobe: rechts steht bei einer Seite nichts.
+    expect(treffer.querySelector('.such-nebeninfo')).toBeNull();
+    // Gleich geblieben: auch der Bereich findet die Unterseite.
+    await userEvent.clear(screen.getByRole('combobox'));
+    await userEvent.type(screen.getByRole('combobox'), 'einstellungen');
+    expect(screen.getByRole('option', { name: /Nummernkreise/ })).toBeInTheDocument();
+  });
+
   it('sucht Kunden und Baustellen nur, wo die Rolle die Liste sehen darf', async () => {
     nutzer = { ...nutzer, role: 'Geschäftsführung' };
     zeige();
@@ -133,6 +148,8 @@ describe('Suchen oder springen', () => {
     const bad = await screen.findByRole('option', { name: /2026-014/ });
     expect(bad).toHaveTextContent(/^Familie HuberBad2026-014$/);
     expect(within(bad).getByText('Bad')).toHaveClass('such-zweite');
+    // V10: die Baustellennummer ist gemessen — Mono, ohne Umbruch.
+    expect(within(bad).getByText('2026-014')).toHaveClass('such-nummer');
     expect(screen.getByRole('option', { name: /2026-019/ })).toHaveTextContent('Heizung');
   });
 
@@ -198,6 +215,9 @@ describe('Suchen oder springen', () => {
     await userEvent.clear(screen.getByRole('combobox'));
     await userEvent.type(screen.getByRole('combobox'), 'Gruber');
     expect(await screen.findByRole('option', { name: /Paul Gruber/ })).toHaveTextContent('Deaktiviert');
+    // V10: die Anmeldung steht als zweite Zeile, die Nummer der Rolle rechts in gewöhnlicher Schrift.
+    expect(within(screen.getByRole('option', { name: /Paul Gruber/ })).getByText('paul@perl.at · Deaktiviert')).toHaveClass('such-zweite');
+    expect(within(screen.getByRole('option', { name: /Paul Gruber/ })).getByText('Mitarbeiter')).not.toHaveClass('such-nummer');
     expect(personenListe).toHaveBeenCalledTimes(1);
     expect(lena).toBeTruthy();
     await userEvent.click(screen.getByRole('option', { name: /Paul Gruber/ }));

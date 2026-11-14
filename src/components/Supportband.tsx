@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Icon from './Icon';
 import { useAuth } from '@/app/AuthContext';
 import { freigaben, istOffen } from '@/lib/db/support';
 
@@ -79,7 +80,8 @@ export default function Supportband() {
     <div
       role="status"
       className={[
-        'flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-2 text-center text-sm',
+        // V10: neutrale Fläche mit Linie darunter; Farbe nur in Text und Zeichen.
+        'flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-b border-line px-4 py-2 text-center text-sm',
         // „Er kann auch ändern" ist eine andere Nachricht als „er sieht zu"
         // und bekommt deshalb eine andere Farbe. Eine Warnfarbe für beides
         // hiesse: die eine stumpft die andere ab.
@@ -92,6 +94,7 @@ export default function Supportband() {
         ändern kann; „Details“ zeigt Grund und ganzen Satz. Am Schreibtisch
         steht wie bisher alles. Farbe und Inhalt bleiben gleich.
       */}
+      <Icon name="warnung" size={16} className="shrink-0" />
       <span className={details ? 'hidden' : 'md:hidden'}>
         {notzugang ? 'Notzugang: ' : ''}Support sieht mit — {schreibt ? 'kann ändern' : 'lesend'}
       </span>

@@ -164,7 +164,12 @@ export function TeilFehler({ was, onRetry }: { was: string; onRetry?: () => void
       <p>
         {was} konnte nicht geladen werden.{' '}
         {onRetry && (
-          <button onClick={onRetry} className="link-hinweis min-h-touch">
+          /*
+            Das Ziel bleibt 44 px hoch, nimmt der Zeile aber keine Höhe: als
+            Zeilenteil zog es den Satz nach unten, das Warnzeichen stand allein
+            darüber (gesehen auf /_muster, V10, 13.11.2026).
+          */
+          <button onClick={onRetry} className="link-hinweis -my-3 inline-flex min-h-touch items-center">
             Erneut versuchen
           </button>
         )}

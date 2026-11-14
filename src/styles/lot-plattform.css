@@ -12,6 +12,8 @@
   .plattform-marke { display: inline-flex; align-items: center; gap: 0.75rem; min-width: 0; }
   .plattform-markenzusatz { font-size: 0.75rem; line-height: 1rem; color: var(--navi-text); }
   .navi-betrieb .plattform-markenzusatz { margin-top: 0.5rem; }
+  /* In der hellen Kopfinsel (V10) gedämpfte Tinte statt des Tons der dunklen Leiste. */
+  .kopfzeile .plattform-markenzusatz { color: var(--text-muted); }
 
   /* Verborgen statt ausgehängt: einmalige Ergebnisse und Formulare überleben die Bereichswahl. */
   .plattform-bereich[hidden], .plattform-teilseite[hidden] { display: none; }
@@ -89,4 +91,34 @@
     .plattform-verwalten { min-width: 2.75rem; }
     .plattform input:not([type=checkbox]), .plattform select, .plattform textarea { font-size: 1rem; }
   }
+
+  /*
+    HÜLLE IN V10 (13.11.2026): was die globale Hülle außerhalb der zentralen
+    Inseln an eigenen Bausteinen hat — Blatt „Mehr“, Suchfenster, Anmeldung.
+    Es steht hier und nicht in lot.css, weil diese Teile zum Bereich
+    „Einstellungen und Hülle“ gehören; die Regeln greifen nach lot.css.
+  */
+
+  /* Die zwei Listen im Blatt „Mehr“: Zeilen unter einer feinen Linie, eingerückt wie der Text — keine Kachelwand. */
+  .mehr-liste { display: flex; flex-direction: column; }
+  .mehr-liste > :is(.mehr-punkt, .mehr-punkt-aktiv) { position: relative; border-radius: var(--radius-sm); }
+  .mehr-liste > * + *::before { content: ''; position: absolute; top: 0; left: 0.75rem; right: 0.75rem; height: 1px; background: var(--border); pointer-events: none; }
+  .mehr-punkt-aktiv { background: var(--auswahl); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); }
+  .mehr-punkt-aktiv::before, .mehr-punkt-aktiv + *::before { display: none; }
+  .mehr-pfeil { flex: none; color: var(--text-muted); }
+
+  /*
+    DIE TREFFER DER SUCHE (E91, V10): zwei ruhige Zeilen — was es ist, darunter
+    Kunde, Datum, Stand oder Bereich —, rechts die Nummer in Mono. Der
+    gewählte Treffer trägt die Auswahl der Linie (Fläche plus feine Kontur),
+    die Zeilen dazwischen eine Linie wie jede Arbeitszeile.
+  */
+  .such-treffer, .such-treffer-an { margin-inline: 0.5rem; padding-inline: 12px; border-radius: var(--radius-sm); min-height: 3rem; }
+  .such-treffer-an { background: var(--auswahl); box-shadow: inset 0 0 0 1px var(--auswahl-kontur); color: var(--text); }
+  .such-treffer-an .such-nummer { color: var(--accent-deep); }
+  .such-nummer { font-family: var(--schrift-mono); font-variant-numeric: tabular-nums; font-size: 0.8125rem; }
+  .such-gruppe { padding-inline: 1.25rem; }
+
+  /* Das Warnzeichen einer Fehlermeldung steht dicht am Satz, nicht im Abstand zur Aktion. */
+  .meldung-fehler .meldung-symbol { margin-right: -0.625rem; }
 }
