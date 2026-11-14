@@ -207,3 +207,35 @@ test('Warenkorb-Leiste: jeder weitere Artikel steht sofort und sauber im Titel',
     expect(gleich, `nach ${n} Artikel: gezeichnet wie neu`).toBe(true);
   }
 });
+
+/*
+  ZAHLENSPALTEN DER RECHNUNG (14.11.2026): Menge und Betrag in Mono klebten
+  mit 10–15 px Lücke aneinander („1 pausch 18 420,50“), weil der Abstand an
+  den Zellen gegen `.tabelle-eng td` verlor. Gemessen wird die Lücke zwischen
+  den Texten, in drei Breiten; Kopf und Wert stehen rechtsbündig übereinander.
+*/
+test('Rechnungsfenster: Menge und Betrag stehen getrennt und unter ihrem Kopf', async ({ page }) => {
+  for (const breite of [390, 834, 1440]) {
+    await page.setViewportSize({ width: breite, height: 900 });
+    await page.goto(`./?pfad=${encodeURIComponent('/invoices')}&rolle=Administrator`);
+    await page.locator('.inhalt .zeile-ganz .zeile-ziel').first().click();
+    const tabelle = page.locator('table.rechnung-stueckliste').first();
+    await expect(tabelle).toBeVisible();
+    const m = await tabelle.evaluate((t) => {
+      const text = (c: Element) => {
+        const r = document.createRange(); r.selectNodeContents(c);
+        const rs = [...r.getClientRects()].filter((x) => x.width > 0);
+        return { links: Math.min(...rs.map((x) => x.left)), rechts: Math.max(...rs.map((x) => x.right)) };
+      };
+      const kopf = [...t.querySelectorAll('thead th')].map(text);
+      const zeile = [...t.querySelectorAll('tbody tr:first-child td')].map(text);
+      return {
+        luecke: Math.round(zeile[3].links - zeile[2].rechts),
+        mengeBuendig: Math.abs(kopf[2].rechts - zeile[2].rechts) < 1,
+        betragBuendig: Math.abs(kopf[3].rechts - zeile[3].rechts) < 1,
+      };
+    });
+    expect(m.luecke, `${breite} px`).toBeGreaterThanOrEqual(24);
+    expect(m, `${breite} px`).toMatchObject({ mengeBuendig: true, betragBuendig: true });
+  }
+});

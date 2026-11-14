@@ -163,6 +163,12 @@ export default function RechnungDetail({
               „Menge“ brach dadurch zu „Meng/e“, und ohne Abstand las sich die
               Zeile „1 Stk7 500,50“. Köpfe und Zahlen bleiben ganz und halten
               Abstand zur Spalte davor.
+              ABSTAND AUS DER TABELLENREGEL (14.11.2026). Der Abstand stand als
+              `pl-3` an den Zellen und wirkte nie: `.tabelle-eng td` ist
+              spezifischer und setzte 5 px. Mit den Mono-Ziffern von V10 las
+              sich „1 pausch 18 420,50“ wie eine Zahl. Jetzt setzen
+              `stueck-menge` (12 px) und `stueck-betrag` (eine Zelle, 24 px)
+              den Abstand in lot-rechnungen.css.
             */}
             {/* Als Stückliste (Planlinie B6): Kopf zwischen zwei Linien, Pos-Nummer, Zahlen in Mono. */}
             <table className="tabelle tabelle-eng rechnung-stueckliste">
@@ -170,8 +176,8 @@ export default function RechnungDetail({
                 <tr>
                   <th scope="col">Pos</th>
                   <th scope="col">Bezeichnung</th>
-                  <th scope="col" className="r whitespace-nowrap pl-3">Menge</th>
-                  <th scope="col" className="r whitespace-nowrap pl-3">Netto</th>
+                  <th scope="col" className="r whitespace-nowrap stueck-menge">Menge</th>
+                  <th scope="col" className="r whitespace-nowrap stueck-betrag">Netto</th>
                 </tr>
               </thead>
               <tbody>
@@ -191,10 +197,10 @@ export default function RechnungDetail({
                           <span className="block text-xs text-ink-muted">{positionsRabattText(p.rabattProzent)}</span>
                         )}
                       </td>
-                      <td className="r whitespace-nowrap pl-3">
+                      <td className="r whitespace-nowrap stueck-menge">
                         {String(p.qty).replace('.', ',')} {p.unit}
                       </td>
-                      <td className="r whitespace-nowrap pl-3">{euroBetrag(p.netto)}</td>
+                      <td className="r whitespace-nowrap stueck-betrag">{euroBetrag(p.netto)}</td>
                     </tr>
                   ),
                 )}

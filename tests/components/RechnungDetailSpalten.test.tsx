@@ -20,18 +20,17 @@ describe('Rechnung im Seitenfenster: Spalten (G1)', () => {
   it('Köpfe „Menge“ und „Netto“ brechen nicht, und die Zahlen kleben nicht aneinander', () => {
     render(<RechnungDetail inv={RECHNUNG} onClose={() => undefined} aktionen={[]} />);
     const tabelle = within(screen.getByRole('region', { name: 'Leistungen' })).getByRole('table');
-    for (const name of ['Menge', 'Netto']) {
+    for (const [name, abstand] of [['Menge', 'stueck-menge'], ['Netto', 'stueck-betrag']]) {
       const kopf = within(tabelle).getByRole('columnheader', { name });
       expect(kopf.className).toContain('whitespace-nowrap');
-      expect(kopf.className).toContain('pl-3');
+      expect(kopf.className).toContain(abstand);
     }
     const zellen = within(tabelle).getAllByRole('cell');
     // Vorne die Pos-Nummer der Stückliste (Planlinie B6).
     expect(zellen.map((z) => z.textContent)).toEqual(['01', 'Therme samt Montage', '1 Stk', expect.stringContaining('7')]);
-    for (const zelle of zellen.slice(2)) {
-      expect(zelle.className).toContain('whitespace-nowrap');
-      expect(zelle.className).toContain('pl-3');
-    }
+    for (const zelle of zellen.slice(2)) expect(zelle.className).toContain('whitespace-nowrap');
+    expect(zellen[2].className).toContain('stueck-menge');
+    expect(zellen[3].className).toContain('stueck-betrag');
     // Gleich bleibt: die Bezeichnung darf weiter umbrechen.
     expect(zellen[1].className).not.toContain('whitespace-nowrap');
   });
@@ -89,5 +88,24 @@ describe('V10: Stand am Beleg', () => {
     expect(within(zahl).getByText(/9\s000,60/).className).toBe('rechnung-detail-wert');
     // Gleich bleibt: der Satz „Stufe 1 am …“ steht nicht in Mono.
     expect(within(zahl).getByText(/^Stufe 1 am/).className).toBe('text-right text-ink');
+  });
+});
+
+/*
+  DER ABSTAND WIRKT (14.11.2026). `pl-3` an den Zellen verlor gegen die
+  spezifischere Regel `.tabelle-eng td` (5 px) — jsdom rechnet keine Kaskade,
+  deshalb prüft diese Prüfung die Regeln selbst: zwei Klassen, spezifischer
+  als `.tabelle-eng td`, 12 px vor der Menge und 24 px vor dem Betrag.
+  Die gemessene Lücke im Browser prüft tests/links/interaktionen.spec.ts.
+*/
+describe('Rechnung im Seitenfenster: Abstand der Zahlenspalten', () => {
+  it('kommt aus Regeln, die gegen .tabelle-eng td gewinnen', async () => {
+    const { readFileSync } = await import('node:fs');
+    const css = readFileSync('src/styles/lot-rechnungen.css', 'utf8');
+    expect(css).toContain('.rechnung-stueckliste .stueck-menge { padding-left: 0.75rem; }');
+    expect(css).toContain('.rechnung-stueckliste .stueck-betrag { padding-left: 1.5rem; }');
+    const quelle = readFileSync('src/features/invoices/RechnungDetail.tsx', 'utf8');
+    // Gegenprobe: die wirkungslosen Utility-Abstände sind weg.
+    expect(quelle).not.toMatch(/className="r whitespace-nowrap pl-\d"/);
   });
 });
