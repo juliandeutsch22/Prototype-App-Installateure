@@ -1,5 +1,7 @@
 /**
- * App-Zeichen und Favicon — das einheitliche Senklot in Petrol auf Weiß.
+ * App-Zeichen und Favicon — das einheitliche Senklot auf Weiß, seit V10
+ * (13.11.2026, E92) in Terrakotta statt Petrol: das Senklotzeichen trägt
+ * den Arbeitsakzent der Oberfläche.
  *
  * Was hier steht, sieht kein Test der Oberfläche: der Reiter, der
  * Startbildschirm, der Start der App unter Android. Ein falsch
@@ -98,15 +100,16 @@ describe('Einheitliche Senklot-Zeichen', () => {
     expect(lies('public/marke/icon.svg').toString()).toContain('<rect width="64" height="64" fill="#FFFFFF"/>');
   });
 
-  it.each(ZEICHEN)('$datei hat die angegebene Größe und das Lot in Petrol', ({ datei, groesse }) => {
+  it.each(ZEICHEN)('$datei hat die angegebene Größe und das Lot in Terrakotta', ({ datei, groesse }) => {
     const { breite, hoehe, pixel } = pngLesen(lies(`public/${datei}`));
     expect([breite, hoehe]).toEqual([groesse, groesse]);
-    let petrol=0;
+    // Terrakotta #A85439: rot deutlich über grün und blau. Gegenprobe: das alte Petrol (#0F4552) zählt hier nicht.
+    let terrakotta=0;
     for (let y=0;y<hoehe;y++) for (let x=0;x<breite;x++) {
       const [r,g,b]=pixel(x,y);
-      if(r<100 && g<150 && b<170) petrol++;
+      if(r>140 && g<110 && b<90) terrakotta++;
     }
-    expect(petrol).toBeGreaterThan(breite*hoehe*.02);
+    expect(terrakotta).toBeGreaterThan(breite*hoehe*.02);
   });
 
   it.each(RANDLOS.map((datei) => ({ datei })))('$datei bleibt randlos auf deckendem Weiß', ({ datei }) => {

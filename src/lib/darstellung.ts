@@ -86,3 +86,24 @@ export function useDarstellung(): [Darstellung, (d: Darstellung) => void] {
   }, [d]);
   return [d, setzen];
 }
+
+/*
+  Ob gerade der dunkle Satz gezeigt wird — für das wenige, was CSS nicht
+  umfärben kann (die Produktmarke ist ein Bild mit zwei Farben). Gelesen wird
+  das Attribut am Wurzelelement, nicht die gespeicherte Wahl: so folgt jede
+  Stelle demselben Wechsel, egal welcher Schalter ihn ausgelöst hat.
+*/
+function dunkelGezeigt(): boolean {
+  return typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark';
+}
+
+export function useDunkelGezeigt(): boolean {
+  const [dunkel, setDunkel] = useState(dunkelGezeigt);
+  useEffect(() => {
+    if (typeof MutationObserver === 'undefined') return;
+    const beobachter = new MutationObserver(() => setDunkel(dunkelGezeigt()));
+    beobachter.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => beobachter.disconnect();
+  }, []);
+  return dunkel;
+}
