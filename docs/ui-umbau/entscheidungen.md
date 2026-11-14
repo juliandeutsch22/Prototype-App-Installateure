@@ -3926,3 +3926,21 @@ Entscheidungen E1–E91 gelten weiter.
   Umbau 1.941 Bedienstellen erfasst; `funktionsinventar.test.ts` verlangt
   jede danach oder eine begründete Entfernung (`v10-entfernt.json`).
   Abdeckungsmatrix: `docs/ui-umbau/v10-abdeckung.md`.
+- **Querschnitt:** Fensterfüße auch am Handy in einer Zeile (Nebenhandlung
+  links, Hauptaktion rechts; ersetzt R7); Gefahr ohne rote Kante, das Wort
+  in Fehlerrot; die Zeile des offenen Seitenfensters trägt die Auswahl
+  (`ListRow ausgewaehlt`, `aria-current`); Zeigen (`--hover-flaeche`) ist
+  nicht Wählen (`--auswahl`); Leerzustand ohne Zeichnung als ruhiger Satz
+  auf der Flucht des Blatts; leise Versalmarken in 400; aktiver Menüpunkt
+  am Schreibtisch mit leise aufgehellter Fläche und Lot.
+- **Die Kontur ist ein Umriss** (`outline`, −1 px versetzt): ein Rand hätte
+  jedes Blatt 2 px höher gemacht, und der Rastertakt hätte 22 px Luft
+  angehängt. Der Takt rechnet außerdem nach dem Laden der Schriften neu.
+- **Marke:** Senklotzeichen in Terrakotta, Schriftzug in Tinte; App-Zeichen
+  und Favicon neu gerastert (`marke/rastern.mjs`). Im dunklen Satz zeigt die
+  Produktmarke die Fassung für dunkle Flächen.
+- **Ehrliche Zustände:** keine Nullwerte nach Ladefehler (Rechnungen,
+  Lager), „frei unklar“ in der Planung, Fehler statt Leere in Katalog,
+  Lager, Anforderungen; „Erneut versuchen“ wo eine Nachladung schon besteht.
+- **Grenzen mit Grund:** `docs/grenzen-durchsicht-2026-10-24.md`, Abschnitt
+  „Designlinie V10“. Prüfbericht: `docs/ui-umbau/v10-pruefbericht.md`.
