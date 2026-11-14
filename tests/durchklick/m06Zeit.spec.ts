@@ -68,14 +68,25 @@ test('Timer: Arbeit, Pause, offline weiter, Stopp und bestätigte normale Buchun
   await page.getByRole('button', { name: 'Übernehmen', exact: true }).click();
   await page.getByRole('button', { name: 'Arbeitstag starten', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pause beginnen' })).toBeVisible();
+  /*
+    EIN SCHRITT NACH DEM ANDEREN (C4, E90): solange der Start zum Server
+    unterwegs ist, geht ein zweiter Tipp bewusst nicht hinaus. Die Karte sagt
+    das mit `aria-busy`; auf einer langsamen CI tippte der Weg sonst „Pause“
+    ins Leere (14.11.2026).
+  */
+  const karte = page.getByRole('region', { name: /Arbeitstag/ });
+  await expect(karte).not.toHaveAttribute('aria-busy', 'true');
   await page.clock.setFixedTime(new Date('2026-11-05T09:00:00+01:00'));
   await page.getByRole('button', { name: 'Pause beginnen' }).click();
   await expect(page.getByRole('button', { name: 'Weiterarbeiten' })).toBeVisible();
+  await expect(karte).not.toHaveAttribute('aria-busy', 'true');
   await context.setOffline(true);
   await page.clock.setFixedTime(new Date('2026-11-05T09:30:00+01:00'));
   await page.getByRole('button', { name: 'Weiterarbeiten' }).click();
   await expect(page.getByText(/Timer-Schritt auf diesem Gerät vorgemerkt/)).toBeVisible();
   await page.clock.setFixedTime(new Date('2026-11-05T12:00:00+01:00'));
+  // Erst wenn der Schritt davor bestätigt ist, geht der nächste hinaus (C4, E90).
+  await expect(page.getByRole('region', { name: /Arbeitstag/ })).not.toHaveAttribute('aria-busy', 'true');
   await page.getByRole('button', { name: 'Stoppen und prüfen' }).click();
   // E73: Feierabend öffnet gleich das Formular — eine Zeit von 07:00 bis 12:00, die Pause eingerechnet.
   const fenster = page.getByRole('dialog', { name: 'Arbeitszeit buchen' });
@@ -105,6 +116,8 @@ test('Timer ohne Baustelle bleibt Anwesenheit und lässt sich ohne erfundene Zuo
   await page.getByRole('button', { name: 'Arbeitstag starten', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pause beginnen' })).toBeVisible();
   await page.clock.setFixedTime(new Date('2026-11-05T09:00:00+01:00'));
+  // Erst wenn der Schritt davor bestätigt ist, geht der nächste hinaus (C4, E90).
+  await expect(page.getByRole('region', { name: /Arbeitstag/ })).not.toHaveAttribute('aria-busy', 'true');
   await page.getByRole('button', { name: 'Stoppen und prüfen' }).click();
   // E73: Feierabend öffnet die erste offene Zeit gleich im Formular.
   const fenster = page.getByRole('dialog', { name: 'Arbeitszeit buchen' });
@@ -177,6 +190,8 @@ test('Offline-Abschluss: abgelehnte Buchung behält Tätigkeiten und lässt sich
   await page.getByRole('button', { name: 'Arbeitstag starten', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pause beginnen' })).toBeVisible();
   await page.clock.setFixedTime(new Date('2026-11-05T09:00:00+01:00'));
+  // Erst wenn der Schritt davor bestätigt ist, geht der nächste hinaus (C4, E90).
+  await expect(page.getByRole('region', { name: /Arbeitstag/ })).not.toHaveAttribute('aria-busy', 'true');
   await page.getByRole('button', { name: 'Stoppen und prüfen' }).click();
   // E73: Feierabend öffnet die erste offene Zeit gleich im Formular.
   const fenster = page.getByRole('dialog', { name: 'Arbeitszeit buchen' });
@@ -219,6 +234,8 @@ test('Offline gestarteter Timer behält offene Formulareingaben beim Serverabgle
   await page.getByRole('button', { name: 'Arbeitstag starten', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pause beginnen' })).toBeVisible();
   await page.clock.setFixedTime(new Date('2026-11-05T09:00:00+01:00'));
+  // Erst wenn der Schritt davor bestätigt ist, geht der nächste hinaus (C4, E90).
+  await expect(page.getByRole('region', { name: /Arbeitstag/ })).not.toHaveAttribute('aria-busy', 'true');
   await page.getByRole('button', { name: 'Stoppen und prüfen' }).click();
   // E73: Feierabend öffnet die erste offene Zeit gleich im Formular.
   const fenster = page.getByRole('dialog', { name: 'Arbeitszeit buchen' });

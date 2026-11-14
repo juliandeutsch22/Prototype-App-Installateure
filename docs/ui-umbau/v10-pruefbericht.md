@@ -42,6 +42,14 @@ Fehler** des Umbaus, behoben mit Prüfung und Gegenprobe:
    anders um, das Blatt rutscht ohne Größenänderung. Der Taktgeber rechnet
    jetzt nach `document.fonts` → `loadingdone` neu.
 
+In der CI kam ein vierter hinzu, der aus E90 stammt und auf `main` nur
+zufällig grün war: **ein Timer-Tipp, solange der Schritt davor noch zum
+Server unterwegs ist, geht bewusst nicht hinaus** (Schutz vor Doppeltipp) —
+aber ohne jedes Zeichen. Auf der langsameren CI tippte der Weg „Pause“ ins
+Leere. Die Karte trägt jetzt `aria-busy`, solange ein Schritt unterwegs ist
+(Vorlesehilfen hören, dass sie bestätigt wird; die Knöpfe bleiben
+bedienbar), und die Wege warten darauf. Komponentenprüfung mit Gegenprobe.
+
 Die übrigen 17 hielten **Geometrie der Linie „Lot“** fest, die V10 bewusst
 ersetzt (eckig → 16 px Radius, gezeichnete Linien → Kontur, Petrol →
 Terrakotta, Kopfzeile am Rand → Insel 8 px, Seitenfenster am Rand →

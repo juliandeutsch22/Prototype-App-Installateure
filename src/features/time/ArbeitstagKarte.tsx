@@ -113,7 +113,13 @@ export default function ArbeitstagKarte({ vorschlag, aufStart = false, handZeit 
   }
 
   return (
-    <section className="arbeitstag" aria-labelledby="arbeitstag-titel" data-stand={s ? (pause ? 'pause' : 'laeuft') : 'bereit'}>
+    /*
+      `aria-busy`, SOLANGE EIN SCHRITT UNTERWEGS IST (14.11.2026). Ein zweiter
+      Tipp in dieser Zeit geht bewusst nicht hinaus (C4, E90) — er bliebe
+      aber ohne jedes Zeichen. So sagt die Karte Vorlesehilfen und Prüfungen,
+      dass sie gerade bestätigt wird; die Knöpfe bleiben dabei bedienbar.
+    */
+    <section className="arbeitstag" aria-labelledby="arbeitstag-titel" aria-busy={z.unterwegs || undefined} data-stand={s ? (pause ? 'pause' : 'laeuft') : 'bereit'}>
       <h2 id="arbeitstag-titel" className="sr-only">Arbeitstag</h2>
       <div className="arbeitstag-hilfe">
         <InfoHint about="Arbeitstag">

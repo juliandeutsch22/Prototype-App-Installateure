@@ -177,6 +177,8 @@ describe('Der Timer antwortet sofort (C4, E90)', () => {
     expect(screen.getByText('Pause seit 11:17')).toBeInTheDocument();
     const weiter = screen.getByRole('button', { name: 'Weiterarbeiten' });
     expect(weiter).toBeEnabled();
+    // Die Karte sagt, dass der Schritt noch bestätigt wird (Gegenprobe: ohne `aria-busy` rot).
+    expect(screen.getByRole('region', { name: /Arbeitstag/ })).toHaveAttribute('aria-busy', 'true');
     // Der zweite Tipp des Doppeltipps geht nicht hinaus.
     await userEvent.click(weiter);
     expect(gesendet).toHaveBeenCalledTimes(1);
@@ -188,6 +190,7 @@ describe('Der Timer antwortet sofort (C4, E90)', () => {
     ])];
     antworten('confirmed');
     await waitFor(() => expect(vi.mocked(zs.zeitsitzungenLaden).mock.calls.length).toBeGreaterThan(geladen));
+    expect(screen.getByRole('region', { name: /Arbeitstag/ })).not.toHaveAttribute('aria-busy');
     expect(await screen.findByText('Pause seit 11:17')).toBeInTheDocument();
   });
 
