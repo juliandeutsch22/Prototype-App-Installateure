@@ -506,3 +506,42 @@ describe('Navigation und Profil am Telefon (E72)', () => {
     expect(schalter.getAttribute('aria-checked')).not.toBe(vorher);
   });
 });
+
+/*
+  DER EINZELNE SCHEIN STEHT BEI SEINER LISTE (Anzeigefehler 14.11.2026).
+  `/worksheet` liegt nicht unter `/worksheets`; die Ortszeile sagte
+  „Handwerksscheine“, im Menü war aber nichts aktiv und das Lot hing leer.
+*/
+describe('Aktiver Menüpunkt beim einzelnen Schein', () => {
+  function zeigeAuf(pfad: string) {
+    return render(
+      <MemoryRouter initialEntries={[pfad]}>
+        <Layout>
+          <p>Inhalt</p>
+        </Layout>
+      </MemoryRouter>,
+    );
+  }
+  const seitenleistenPunkt = (name: RegExp) =>
+    within(document.querySelector('aside')!).getByRole('link', { name });
+
+  it('auf /worksheet und /worksheet/… steht „Handwerksscheine“ aktiv', async () => {
+    zeigeAuf('/worksheet');
+    expect((await screen.findAllByRole('link', { name: /^Handwerksscheine/ })).length).toBeGreaterThan(0);
+    expect(seitenleistenPunkt(/^Handwerksscheine/).className).toBe('navi-punkt-aktiv');
+    expect(document.querySelectorAll('aside .navi-punkt-aktiv')).toHaveLength(1);
+  });
+
+  it('auf einem bestehenden Schein ebenso', async () => {
+    zeigeAuf('/worksheet/s1');
+    await screen.findAllByRole('link', { name: /^Handwerksscheine/ });
+    expect(seitenleistenPunkt(/^Handwerksscheine/).className).toBe('navi-punkt-aktiv');
+  });
+
+  it('gleich geblieben: auf einer anderen Seite ist „Handwerksscheine“ nicht aktiv, der eigene Punkt schon', async () => {
+    zeigeAuf('/customers');
+    await screen.findAllByRole('link', { name: /^Handwerksscheine/ });
+    expect(seitenleistenPunkt(/^Handwerksscheine/).className).toBe('navi-punkt');
+    expect(seitenleistenPunkt(/^Kunden/).className).toBe('navi-punkt-aktiv');
+  });
+});

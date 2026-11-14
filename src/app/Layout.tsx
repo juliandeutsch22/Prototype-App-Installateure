@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { kontoAnzeige } from '@shared/benutzername';
 import {
-  navGroupsForRole, navForRole, OHNE_UEBERSCHRIFT, tabBarForRole, hinweisZahl, hinweisSumme, hinweisWort, zusatzrechte, type NavItem,
+  navGroupsForRole, navForRole, OHNE_UEBERSCHRIFT, tabBarForRole, hinweisZahl, hinweisSumme, hinweisWort, zusatzrechte, aktiverMenuepunktFuer, type NavItem,
 } from './navigation';
 import Seitenposition from './Seitenposition';
 import FehlerInsBlickfeld from './FehlerInsBlickfeld';
@@ -322,9 +322,11 @@ export default function Layout({ children }: { children: ReactNode }) {
     letzten Zeichnen aus anderem Grund gerade war. Aufgefallen ist es erst,
     als der Seitenwechsel für die Abzeichen ohnehin gebraucht wurde.
   */
+  /* Ein Schein (`/worksheet…`) steht bei seiner Liste, obwohl er nicht unter ihrem Pfad liegt. */
+  const auchAktiv = aktiverMenuepunktFuer(ort.pathname);
   /* Auch eine Unterseite oder Akte („/quotes/…“) liegt dort, wo ihre Liste liegt. */
   const moreActive = mehr.some(
-    (i) => i.path === ort.pathname || (i.path !== '/' && ort.pathname.startsWith(`${i.path}/`)),
+    (i) => i.path === ort.pathname || (i.path !== '/' && ort.pathname.startsWith(`${i.path}/`)) || i.path === auchAktiv,
   );
   /*
     IM BLATT „MEHR“ NUR, WAS UNTEN NICHT SCHON STEHT (Analyse 03.10.2026,
@@ -359,7 +361,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const einstellungen = groups.find((g) => g.group === 'Einstellungen')?.items ?? [];
 
   const naviEintrag = (item: NavItem) => (
-    <NavLink key={item.path} to={item.path} end={item.path === '/'} className={naviPunkt}>
+    <NavLink key={item.path} to={item.path} end={item.path === '/'} className={({ isActive }) => naviPunkt({ isActive: isActive || item.path === auchAktiv })}>
       <NaviSymbol pfad={item.path} ersatz={item.icon} size={16} />
       <span className="navi-text-lang">{item.label}</span>
       <span className="navi-text-kurz" aria-hidden="true">{item.short}</span>
@@ -554,7 +556,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             key={item.path}
             to={item.path}
             end={item.path === '/'}
-            className={({ isActive }) => (isActive ? 'unten-punkt-aktiv' : 'unten-punkt')}
+            className={({ isActive }) => (isActive || item.path === auchAktiv ? 'unten-punkt-aktiv' : 'unten-punkt')}
           >
             <span className="unten-lot" aria-hidden="true" />
             <span className="unten-symbol">
@@ -629,7 +631,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                     to={item.path}
                     end={item.path === '/'}
                     onClick={() => setMoreOpen(false)}
-                    className={mehrPunkt}
+                    className={({ isActive }) => mehrPunkt({ isActive: isActive || item.path === auchAktiv })}
                   >
                     <NaviSymbol pfad={item.path} ersatz={item.icon} size={20} />
                     <span className="truncate">{item.label}</span>

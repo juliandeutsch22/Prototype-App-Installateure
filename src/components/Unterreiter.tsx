@@ -105,8 +105,14 @@ export default function Unterreiter({
             Schatten), den Abstand darunter gibt die Seite wie unter jedem
             Kopf. Die Schrift steht auf der Titelflucht wie in den Akten: kein
             Einzug im Reiter, eine Zelle Luft zwischen den Reitern.
+
+            JEDE ZEILE MIT IHRER LINIE (14.11.2026). Bricht die Leiste am
+            Schreibtisch um, lag die eine Linie nur unter der zweiten Zeile —
+            die Markierung eines Reiters der ersten Zeile hing frei darüber.
+            `reiterleiste-umbruch` zieht ab 1.200 px die Linie unter jede
+            48-px-Zeile; mit einer Zeile sieht es aus wie vorher.
           */
-          className="reiterleiste flex gap-x-6 overflow-x-auto shadow-[inset_0_-1px_0_0_var(--border)] lg:flex-wrap lg:overflow-visible"
+          className="reiterleiste reiterleiste-umbruch flex gap-x-6 overflow-x-auto shadow-[inset_0_-1px_0_0_var(--border)] lg:flex-wrap lg:overflow-visible lg:shadow-none"
           aria-label="Bereiche"
         >
           {sichtbar.map((s) => (

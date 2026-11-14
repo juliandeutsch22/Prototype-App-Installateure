@@ -484,6 +484,16 @@ select:not([multiple]):not([size]) {
   .reiterleiste::-webkit-scrollbar {
     display: none;
   }
+  /*
+    Umbrechende Leiste (Unterreiter, ab 1.200 px): die Linie liegt unter
+    jeder Zeile statt nur unter der letzten — jede Zeile ist genau 48 px
+    (`min-h-touch`, kein Zeilenabstand), die Linie das letzte Pixel davon.
+  */
+  @media (min-width: 1200px) {
+    .reiterleiste-umbruch {
+      background-image: repeating-linear-gradient(to bottom, transparent 0 47px, var(--border) 47px 48px);
+    }
+  }
   /* Hinweis, dass die Leiste weitergeht (U16) — kein Farbfeld, nur eine weich auslaufende Kante. */
   /* Wo die Kante beginnt, misst `reiterImBild` (D6, E86): am ersten angeschnittenen Reiter. */
   :is(.reiterleiste, .akten-bereiche)[data-mehr-rechts] {

@@ -38,9 +38,16 @@ async function kanten(page: Page): Promise<{ anzahl: number; daneben: Kante[] }>
     for (const b of blaetter) {
       const q = b.getBoundingClientRect();
       const name = `${b.className.toString().split(' ').slice(0, 3).join('.')} „${(b.textContent ?? '').trim().slice(0, 30)}“`;
-      for (const [kante, wert, ursprung] of [
+      /*
+        AM HANDY NUTZT DAS BLATT DIE GANZE SPALTE (14.11.2026, `lib/takt.ts`):
+        links und rechts gleich weit vom Rand statt 16/38 px. Die rechte Kante
+        liegt dort deshalb bewusst nicht auf einer Linie; dafür prüft der
+        eigene Test unten die gleichen Ränder.
+      */
+      const handy = window.matchMedia('(max-width: 759px)').matches;
+      for (const [kante, wert, ursprung] of ([
         ['oben', q.top, r.top + py], ['unten', q.bottom, r.top + py], ['links', q.left, r.left + px], ['rechts', q.right, r.left + px],
-      ] as const) {
+      ] as const).filter(([k]) => !(handy && k === 'rechts'))) {
         const abstand = neben(wert, ursprung);
         if (abstand !== 0) daneben.push({ blatt: name, kante, abstand });
       }
@@ -81,6 +88,24 @@ test('Jedes Blatt liegt auf dem Raster — auf allen Seiten der Geschäftsführu
   expect(gemessen).toBeGreaterThan(40);
   expect(fehler).toEqual([]);
   await keineFehlermeldung(page);
+});
+
+test('Am Handy stehen die Blätter links und rechts gleich weit vom Rand', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await anmelden(page, CHEFIN.email);
+  for (const pfad of ['/admin-projects', '/customers', '/settings/firma']) {
+    await page.goto(pfad);
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15_000 });
+    await page.evaluate(() => document.fonts.ready.then(() => undefined));
+    await page.evaluate(() => new Promise((fertig) => requestAnimationFrame(() => requestAnimationFrame(fertig))));
+    const raender = await page.evaluate((auswahl) => {
+      const b = [...document.querySelectorAll<HTMLElement>(auswahl)].find((x) => x.getBoundingClientRect().height > 0)!;
+      const q = b.getBoundingClientRect();
+      return { links: Math.round(q.left), rechts: Math.round(document.documentElement.clientWidth - q.right) };
+    }, BLAETTER);
+    expect(raender, pfad).toEqual({ links: 16, rechts: 16 });
+  }
 });
 
 test('Die Blätter folgen, wenn sich der Inhalt ändert — ein Filter macht die Liste kürzer', async ({ page }) => {

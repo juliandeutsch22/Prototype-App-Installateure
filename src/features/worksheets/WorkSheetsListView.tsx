@@ -1474,8 +1474,11 @@ function ScheinEinzelheiten({
           <ul className="mt-1 space-y-1">
             {s.zeiten.map((z, i) => (
               <li key={i} className="text-sm text-ink">
+                {/* OHNE UHRZEIT KEIN PLATZHALTER (14.11.2026): Zeiten dürfen als
+                    reine Dauer erfasst sein; „Max · — · 08:30 Std“ las sich wie
+                    ein Anzeigefehler. Dann steht nur die Dauer hinter dem Namen. */}
                 {z.mitarbeiter}
-                {z.helfer ? ' (Helfer)' : ''} · {z.von && z.bis ? `${z.von}–${z.bis}` : '—'} ·{' '}
+                {z.helfer ? ' (Helfer)' : ''} · {z.von && z.bis ? `${z.von}–${z.bis} · ` : ''}
                 {fmtDauer(z.minuten)}
                 {z.taetigkeit ? ` · ${z.taetigkeit}` : ''}
               </li>

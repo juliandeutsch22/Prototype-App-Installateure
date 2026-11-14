@@ -321,8 +321,10 @@ describe('Durchsicht 09.11.2026', () => {
     expect(block).toContain('.seitenkopf h1 { font-size: 1.75rem; line-height: 2.25rem; padding-block: var(--titel-luft, 0.375rem); }');
     expect(block).toContain('.akten-kopf .seitenkopf h1 { font-size: 1.5rem; line-height: 2rem; }');
     expect(PLANLINIE).not.toContain('font-size: 1.25rem; line-height: 1.5rem; padding-block: 0.75rem;');
-    // Gleich bleibt: Tablet und Schreibtisch mit 48-px-Zeile.
-    expect(PLANLINIE).toContain('@media (min-width: 760px) { .seitenkopf h1 { font-size: 1.875rem; line-height: 3rem; } }');
+    // Ab dem Tablet (14.11.2026) ebenso: 36-px-Zeilen mit gemessenem Polster — einzeilig weiter 48 px.
+    expect(PLANLINIE).toContain('@media (min-width: 760px) { .seitenkopf h1 { font-size: 1.875rem; line-height: 2.25rem; padding-block: var(--titel-luft, 0.375rem); } }');
+    // Gegenprobe: die 48-px-Zeile (Loch zwischen zwei Titelzeilen) ist weg.
+    expect(PLANLINIE).not.toContain('font-size: 1.875rem; line-height: 3rem;');
   });
 
   it('der grosse Name der Einsatzkarte trennt lange Wörter mit Strich, kurze nicht', () => {
@@ -465,9 +467,15 @@ describe('E72 Team und Verwaltung', () => {
 
   it('Reiterleiste: 48 px samt Linie, kein eigener Abstand, Schrift auf der Titelflucht (R12)', () => {
     const reiter = quelle('src/components/Unterreiter.tsx');
-    expect(reiter).toContain('className="reiterleiste flex gap-x-6 overflow-x-auto shadow-[inset_0_-1px_0_0_var(--border)] lg:flex-wrap lg:overflow-visible"');
+    expect(reiter).toContain('className="reiterleiste reiterleiste-umbruch flex gap-x-6 overflow-x-auto shadow-[inset_0_-1px_0_0_var(--border)] lg:flex-wrap lg:overflow-visible lg:shadow-none"');
     expect(reiter).not.toMatch(/mb-4 reiterleiste|reiterleiste[^"]*border-b border-line/);
     expect(reiter).toContain("'lot-reiter min-h-touch whitespace-nowrap border-b-2 px-0 py-2 text-sm'");
+  });
+  it('umbrechende Reiterleiste: die Linie liegt unter jeder 48-px-Zeile, nicht nur unter der letzten (14.11.2026)', () => {
+    const regel = /@media \(min-width: 1200px\) \{\s*\.reiterleiste-umbruch \{\s*background-image: repeating-linear-gradient\(to bottom, transparent 0 47px, var\(--border\) 47px 48px\);\s*\}\s*\}/;
+    expect(quelle('src/index.css')).toMatch(regel);
+    // Gegenprobe: der Stand mit einer Linie unten (nur Schatten) fiele auf.
+    expect('.reiterleiste { scrollbar-width: none; }').not.toMatch(regel);
   });
 
   it('Wochenköpfe in „Meine Einträge“ auf der Flucht des Blatts, 48 px hoch (M7)', () => {

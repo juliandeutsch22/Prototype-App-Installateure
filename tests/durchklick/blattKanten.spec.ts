@@ -41,10 +41,14 @@ test('Die mitfliegende Leiste der Zeiterfassung lässt die linke Linie des Blatt
   });
   expect(m.pos).toBe('sticky');
   // Die Knöpfe auf dem Polster des Blatts: ab dem Tablet 24 px (am Handy waren es 16, E86).
-  // V10: die Kontur ist ein Umriss, der nach dem Inhalt gezeichnet wird — die Leiste reicht von
+  // V10: die Kontur liegt als eigene Ebene (::before) über dem Inhalt — die Leiste reicht von
   // Kante zu Kante und deckt die Linie trotzdem nicht zu (E76); die Knöpfe auf dem Polster.
   expect(m).toMatchObject({ links: 0, rechts: 0, knopf: 24 });
-  expect(await leiste.evaluate((l) => getComputedStyle(l.closest('.karte')!).outlineOffset)).toBe('-1px');
+  const kontur = await leiste.evaluate((l) => {
+    const k = getComputedStyle(l.closest('.karte')!, '::before');
+    return { linie: k.borderLeftStyle, ueber: Number(k.zIndex) > (Number(getComputedStyle(l).zIndex) || 0) };
+  });
+  expect(kontur).toEqual({ linie: 'solid', ueber: true });
 });
 
 test('Frei auf der Seite ist die Leiste so breit wie die Spalte (Firmendaten)', async ({ page }) => {
