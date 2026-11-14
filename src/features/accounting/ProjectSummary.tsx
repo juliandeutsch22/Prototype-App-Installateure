@@ -206,12 +206,14 @@ export default function ProjectSummary({
               Inhalt, den er ankündigte, und zwang zugleich jede Zahl darin in
               eine zweite Farbfassung. Offen genügt der hellere Grund des Kopfs.
             */
+            // Zeile und Aufgeklapptes mit dem Rand des Blatts (14.11.2026): mit `px-4` standen sie
+            // am Schreibtisch 8 px links neben dem Kartentitel.
             <li key={r.projectNumber} className="border-t border-line first:border-t-0">
               <button
                 type="button"
                 onClick={() => setOpen(isOpen ? null : r.projectNumber)}
                 aria-expanded={isOpen}
-                className={`w-full px-4 py-3 text-left transition-colors ${
+                className={`w-full px-[var(--blatt-rand)] py-3 text-left transition-colors ${
                   isOpen ? 'bg-surface-2' : 'bg-surface hover:bg-surface-2'
                 }`}
               >
@@ -311,7 +313,7 @@ export default function ProjectSummary({
               </button>
 
               {isOpen && (
-                <div className="border-t border-line px-4 py-3">
+                <div className="border-t border-line px-[var(--blatt-rand)] py-3">
                   {/* Als Textzeile, nicht als umrandete Pillen (Designlinie „Fassung 3"). */}
                   <div className="flex flex-wrap gap-x-4 gap-y-1">
                     {people.map((p) => (

@@ -269,3 +269,46 @@ test('Rechnungsfenster: Menge und Betrag stehen getrennt und unter ihrem Kopf', 
     expect(m, `${breite} px`).toMatchObject({ mengeBuendig: true, betragBuendig: true });
   }
 });
+
+/*
+  BÜNDIGE KARTEN AUF DER FLUCHT (14.11.2026): „Nichts gemeldet“ klebte in
+  den Einstellungen am Rand des Blatts, ebenso in Papierkorb, Fahrzeugen und
+  Zeitfeldern; Projektauswertung und Nachkalkulation standen 8 px neben dem
+  Kartentitel. Geprüft wird, dass der erste Text jedes Kinds einer bündigen
+  Karte nicht links neben dem Titel beginnt — am Handy und am Schreibtisch.
+*/
+test('Bündige Karten: Leerzustände und Zeilen stehen auf der Flucht des Kartentitels', async ({ page }) => {
+  test.setTimeout(120_000);
+  const SEITEN = ['/settings/nachrichten', '/settings/papierkorb', '/settings/fahrzeuge', '/settings/zeitfelder', '/costing', '/accounting'];
+  const fehler: string[] = [];
+  for (const breite of [390, 1440]) {
+    await page.setViewportSize({ width: breite, height: 900 });
+    for (const pfad of SEITEN) {
+      await page.goto(`./?pfad=${encodeURIComponent(pfad)}&rolle=Administrator`);
+      await expect(page.locator('.inhalt .karte').first()).toBeVisible();
+      await page.waitForLoadState('networkidle');
+      const daneben = await page.evaluate(() => {
+        const out: string[] = [];
+        for (const k of document.querySelectorAll('.inhalt .karte')) {
+          const koerper = k.querySelector(':scope > .karte-buendig');
+          const titel = k.querySelector(':scope h2');
+          if (!koerper || !titel) continue;
+          const flucht = titel.getBoundingClientRect().left;
+          for (const kind of koerper.children) {
+            const gang = document.createTreeWalker(kind, NodeFilter.SHOW_TEXT);
+            let t: Node | null;
+            while ((t = gang.nextNode()) && !t.textContent?.trim());
+            if (!t) continue;
+            const r = document.createRange();
+            r.selectNodeContents(t);
+            const links = r.getClientRects()[0]?.left;
+            if (links !== undefined && links < flucht - 1) out.push(`${titel.textContent?.trim()}: „${t.textContent?.trim().slice(0, 30)}“ ${Math.round(links - flucht)} px`);
+          }
+        }
+        return out;
+      });
+      for (const d of daneben) fehler.push(`${breite} ${pfad}: ${d}`);
+    }
+  }
+  expect(fehler).toEqual([]);
+});

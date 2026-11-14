@@ -962,6 +962,15 @@ textarea {
   /* Unter dem Kopf einer bündigen Karte zieht schon der Körper die Linie (E7). */
   .karte-buendig > .kurz:first-child { border-top: 0; }
   /*
+    LEER, LADEN, FEHLER IN EINER BÜNDIGEN KARTE (14.11.2026). Bündig heißt:
+    die Zeilen einer Liste reichen bis an den Rand und tragen ihr Polster
+    selbst. Ein Leer-, Lade- oder Fehlerzustand an ihrer Stelle hat keines —
+    „Nichts gemeldet“ klebte am Rand des Blatts (Einstellungen: Nachrichten,
+    Papierkorb, Fahrzeuge, Zeitfelder). Hier bekommt er den Rand des Blatts,
+    an einer Stelle für alle bündigen Karten.
+  */
+  .karte-buendig > :is(.leer-satz, .lade-liste, .hinweiszeile) { padding-inline: var(--blatt-rand); }
+  /*
     KARTE, ZEILE UND UMSCHALTER LASSEN DAS RASTER DURCH (E32, 31.10.2026).
     Als deckende Fläche legten sie Kästen auf das Zeichenblatt, deren Kanten
     weder zum Raster noch zueinander passten — dunkel sichtbar, seit dem
