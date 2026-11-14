@@ -5,7 +5,7 @@
  * fehlt der Anfang (Altdaten), sagt es das.
  * Gegenprobe: ohne den Baustein gibt es nichts aufzuklappen.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import Aenderungsprotokoll from '@/features/time/Aenderungsprotokoll';
 import type { VerlaufZeile } from '@/lib/db/zeitbuchungVerlauf';
@@ -69,5 +69,58 @@ describe('Aenderungsprotokoll', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
     await waitFor(() => expect(screen.getByText('Ende 15:00 → 14:00')).toBeInTheDocument());
     expect(abgeschickt).not.toHaveBeenCalled();
+  });
+});
+
+/*
+  EINTRÄGE WEGKLICKEN (14.11.2026): in der eigenen Übersicht lässt sich ein
+  Eintrag ausblenden, alle auf einmal, und alles wieder zeigen. Die Zeile
+  darüber sagt immer, wie viel ausgeblendet ist. Gegenprobe: ohne
+  `ausblendbar` (Verlauf einer Buchung, Fenster des Büros) gibt es kein ×.
+*/
+describe('Aenderungsprotokoll — ausblenden', () => {
+  const zwei = [
+    { ...geaendert, id: 'v2', am: am + 60_000, vonName: 'Büro Zwei' },
+    { ...geaendert, id: 'v1', vonName: 'Büro Eins' },
+  ];
+  const zeigen = () => render(
+    <Aenderungsprotokoll mitTag titel="Änderungsprotokoll deiner Buchungen" laden={async () => zwei} ausblendbar={{ liste: 'zeitprotokoll', uid: 'u1' }} />,
+  );
+  beforeEach(() => window.localStorage.clear());
+
+  it('× blendet einen Eintrag aus, die Zeile darüber sagt es, „zeigen“ und „alle wieder einblenden“ holen ihn zurück', async () => {
+    zeigen();
+    oeffnen('Änderungsprotokoll deiner Buchungen');
+    await screen.findByText(/Geändert von Büro Zwei/);
+    fireEvent.click(screen.getByRole('button', { name: /^Ausblenden: Buchung vom 02\.11\.2026 · Geändert von Büro Zwei/ }));
+    expect(screen.queryByText(/Geändert von Büro Zwei/)).toBeNull();
+    expect(screen.getByText(/Geändert von Büro Eins/)).toBeInTheDocument();
+    expect(screen.getByText('1 Eintrag auf diesem Gerät ausgeblendet')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'zeigen' }));
+    expect(screen.getByText(/Geändert von Büro Zwei/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'alle wieder einblenden' }));
+    expect(screen.queryByText(/auf diesem Gerät ausgeblendet/)).toBeNull();
+    expect(screen.getAllByRole('button', { name: /^Ausblenden:/ })).toHaveLength(2);
+  });
+
+  it('„alle ausblenden“ — danach ein Satz statt einer leeren Liste; es bleibt nach dem Neuladen', async () => {
+    const { unmount } = zeigen();
+    oeffnen('Änderungsprotokoll deiner Buchungen');
+    await screen.findByText(/Geändert von Büro Zwei/);
+    fireEvent.click(screen.getByRole('button', { name: 'alle ausblenden' }));
+    expect(screen.getByText(/Alle Einträge sind ausgeblendet/)).toBeInTheDocument();
+    expect(screen.getByText('2 Einträge auf diesem Gerät ausgeblendet')).toBeInTheDocument();
+    unmount();
+    zeigen();
+    oeffnen('Änderungsprotokoll deiner Buchungen');
+    expect(await screen.findByText(/Alle Einträge sind ausgeblendet/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ohne Freigabe (Verlauf einer Buchung, Fenster des Büros) kein × und keine Zeile', async () => {
+    render(<Aenderungsprotokoll titel="Verlauf dieser Buchung" laden={async () => zwei} />);
+    oeffnen('Verlauf dieser Buchung');
+    await screen.findByText(/Geändert von Büro Zwei/);
+    expect(screen.queryByRole('button', { name: /^Ausblenden:/ })).toBeNull();
+    expect(screen.queryByText(/ausgeblendet/)).toBeNull();
   });
 });

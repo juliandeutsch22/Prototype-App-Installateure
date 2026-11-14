@@ -235,6 +235,12 @@
   .lot-jetzt::before { content: ''; position: absolute; left: -1.75rem; top: 0.25rem; width: 14px; height: 14px; border-radius: 999px; background: var(--surface); border: 3px solid var(--warning); }
   .lot-titel { font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .lot-zeit { font-size: 0.8125rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  /* Eine Handlung am Eintrag (14.11.2026: „ausblenden“): rechts auf Höhe des Titels; die 48-px-Tastfläche ragt ins Polster, nicht in den Text. */
+  .lot-mit-aktion { display: flex; align-items: flex-start; gap: 0.5rem; }
+  .lot-inhalt { flex: 1 1 auto; min-width: 0; }
+  .lot-aktion { flex: none; margin: -0.75rem -0.75rem 0 0; }
+  /* Was im Protokoll ausgeblendet ist, steht als leise Zeile darüber — nie still (wie „Zu erledigen“ auf der Startseite). */
+  .protokoll-ausgeblendet { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 1rem; margin-bottom: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); }
 
   /* ── Sprungleiste (Akten) ─────────────────────────────────────────────── */
   /*
@@ -422,7 +428,14 @@
   .unten-punkt { color: var(--inaktiv-symbol); }
   /* V10: der aktive Bereich trägt eine warme Auswahlfläche hinter Symbol und Text — nicht nur die Farbe. */
   .unten-punkt-aktiv { color: var(--accent-deep); font-weight: var(--gewicht-titel); }
-  .unten-punkt-aktiv::before { content: ''; position: absolute; inset: 0.3125rem 0.125rem; z-index: -1; border-radius: var(--radius); background: var(--auswahl); }
+  /*
+    DIE RUNDUNG DER INSEL, NACH INNEN VERSETZT (14.11.2026). Mit 12 px stand
+    die Fläche eckiger als die Insel (24 px). Gleich gerundet wirkt sie, wenn
+    beide Bögen denselben Mittelpunkt haben: rundum 6 px von der Außenkante
+    (1 px Kontur, 4 px Polster der Insel, 1 px hier) und 24 − 6 = 18 px Radius.
+    Volle 24 px machten die 50 px hohe Fläche zur Pille.
+  */
+  .unten-punkt-aktiv::before { content: ''; position: absolute; inset: 0.3125rem 0.0625rem; z-index: -1; border-radius: 18px; background: var(--auswahl); }
   .unten-punkt, .unten-punkt-aktiv { isolation: isolate; }
   .unten-symbol { position: relative; display: flex; }
   .unten-zahl { position: absolute; top: -0.375rem; right: -0.75rem; display: flex; }

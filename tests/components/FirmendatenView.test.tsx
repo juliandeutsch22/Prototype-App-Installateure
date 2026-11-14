@@ -457,3 +457,24 @@ describe('Der Einrichtungshinweis', () => {
     expect(screen.getByRole('note')).toBeInTheDocument();
   });
 });
+
+/*
+  DIE DATEIWAHL DES LOGOS (14.11.2026): ein Knopf der App statt des Felds des
+  Browsers („Choose File / No file chosen“ auf einem englischen Gerät, im
+  Stil fremd). Das Feld bleibt da, versteckt — der Knopf öffnet es.
+*/
+describe('Das Logo — Dateiwahl', () => {
+  it('ein deutscher Knopf der App öffnet das versteckte Dateifeld', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    const knopf = screen.getByRole('button', { name: 'Logo wählen' });
+    expect(knopf.className).toContain('lot-knopf');
+    const feld = document.getElementById('fd-logo') as HTMLInputElement;
+    expect(feld.type).toBe('file');
+    expect(feld.className).toBe('sr-only');
+    expect(feld.accept).toBe('image/png,image/jpeg,image/webp');
+    const geklickt = vi.spyOn(feld, 'click');
+    await nutzer.click(knopf);
+    expect(geklickt).toHaveBeenCalledTimes(1);
+  });
+});

@@ -863,4 +863,45 @@ describe('Anzeigefehler (14.11.2026)', () => {
     expect(MAT).toContain('.korb { transform: translateZ(0); }');
     expect(ORDER).toMatch(/<a key=\{`\$\{cart\.length\}\|\$\{korbZiel\}`\} href="#anforderung-korb" className="korb-titel">/);
   });
+
+  /*
+    KLEBENDE LEISTEN OHNE UMRISS (iPhone, Firmendaten): Safari ließ den Umriss
+    der klebenden Speicherleiste beim Rollen stehen — zwei Rahmenstücke, eine
+    Linie durch „Speichern“. Die Kontur ist jetzt eine innere Linie; sie
+    gehört zum Hintergrund und wandert mit.
+  */
+  it('die Beschriftung unter einem Listenwert steht in der Textschrift, der Wert selbst in Mono', () => {
+    const INDEX = readFileSync('src/index.css', 'utf8');
+    const wert = /\.zeile-wert \{([^}]*)\}/.exec(ohneKommentare(INDEX))?.[1] ?? '';
+    const klein = /\.zeile-wert small \{([^}]*)\}/.exec(ohneKommentare(INDEX))?.[1] ?? '';
+    expect(wert).toContain('font-family: var(--schrift-mono);');
+    expect(klein).toContain('font-family: var(--schrift-text);');
+    // Gegenprobe: ohne eigene Schrift erbte „Budget, nichts gebucht“ die Mono des Werts.
+    expect(' display: block; font-size: 0.8125rem; font-weight: 400; color: var(--text-muted); ').not.toContain('font-family');
+  });
+
+  it('die aktive Fläche der unteren Leiste hat die Rundung der Insel, nach innen versetzt (24 − 6 = 18 px)', () => {
+    const LOT = stil('lot.css');
+    const flaeche = /\.unten-punkt-aktiv::before \{([^}]*)\}/.exec(ohneKommentare(LOT))?.[1] ?? '';
+    const insel = /\.unten \{([^}]*)\}/.exec(ohneKommentare(LOT))?.[1] ?? '';
+    expect(insel).toContain('border-radius: var(--radius-xl);');
+    expect(insel).toContain('padding: 0 0.25rem;');
+    // Rundum 6 px von der Außenkante: 1 px Kontur + 5 px oben/unten, 1 + 4 + 1 px seitlich.
+    expect(flaeche).toContain('inset: 0.3125rem 0.0625rem;');
+    expect(flaeche).toContain('border-radius: 18px;');
+    // Gegenprobe: der Stand davor (Feldradius, 7 px seitlich) fiele auf.
+    expect(' inset: 0.3125rem 0.125rem; z-index: -1; border-radius: var(--radius);').not.toContain('border-radius: 18px;');
+  });
+
+  it('Speicherleiste (frei) und Warenkorb-Leiste tragen die Kontur als innere Linie, nicht als Umriss', () => {
+    const BLATT = stil('lot-blatt.css');
+    const frei = /\.inhalt \.aktionsleiste:not\(:is\(\.karte, \.fenster, \.fenster-breit, \.blatt, \[role='dialog'\], \.akten-editor\) \.aktionsleiste\) \{([^}]*)\}/.exec(ohneKommentare(BLATT))?.[1] ?? '';
+    const korb = /@media \(min-width: 760px\) \{\s*\.korb \{([^}]*)\}/.exec(ohneKommentare(MAT))?.[1] ?? '';
+    for (const regel of [frei, korb]) {
+      expect(regel).toContain('box-shadow: inset 0 0 0 1px var(--border);');
+      expect(regel).not.toMatch(/outline: 1px/);
+    }
+    // Gegenprobe: der Stand mit Umriss fiele auf.
+    expect(' border: 0; outline: 1px solid var(--border); outline-offset: -1px; box-shadow: none;').toMatch(/outline: 1px/);
+  });
 });

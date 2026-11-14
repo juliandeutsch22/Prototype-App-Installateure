@@ -46,6 +46,8 @@ const DATEN = {
     kundenAdressePruefen: 'D.kunden.filter((k) => k.adressePruefen)',
   },
   company: { getCompany: 'D.firma', auszug: 'D.firma' },
+  // Änderungsprotokoll der Zeitbuchungen: zwei Einträge, damit „ausblenden“ zu sehen ist (14.11.2026).
+  zeitbuchungVerlauf: { listVerlaufZeitraum: 'D.zeitVerlauf', listVerlaufEintrag: 'D.zeitVerlauf' },
   // Bestellvorschläge über der Einkaufsliste: eine Liste — als NOOP stürzte „Einkauf“ ab (14.11.2026).
   materialdeckung: { bestellvorschlaege: '[]' },
   // Firmendaten eines Belegs (Ausstellerstand): die heutigen — als NOOP brach jedes Beleg-PDF mit „konnte nicht erzeugt werden“ ab (14.11.2026).

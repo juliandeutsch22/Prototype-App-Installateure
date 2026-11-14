@@ -221,7 +221,7 @@ describe('Leerzustand (Regel 5)', () => {
     const { container } = render(<EmptyState>Keine Anschrift ist zu prüfen.</EmptyState>);
     const leer = container.firstElementChild!;
     // Gegenprobe: der Stand vor V10 (zentriert, `px-4 py-6 text-center`) ist rot.
-    expect(leer.className).toBe('flex flex-col items-start gap-3 py-3 text-ink-muted');
+    expect(leer.className).toBe('leer-satz flex flex-col items-start gap-3 py-3 text-ink-muted');
     expect(leer.querySelector('svg')).toBeNull();
     expect(leer.querySelector('h2')).toBeNull();
     expect(leer.querySelector('.lot-naechster-schritt')).toBeNull();
