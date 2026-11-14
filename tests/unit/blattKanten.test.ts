@@ -50,7 +50,8 @@ describe('Nichts Klebendes deckt die Linie eines Blatts zu (E76)', () => {
     const leiste = regel(lot, '.sprungleiste');
     expect(leiste).toContain('margin-top: 1.5rem;');
     expect(leiste).toContain('background: var(--surface);');
-    expect(leiste).toContain('box-shadow: inset 1px 0 0 var(--border-strong)');
+    // V10 (14.11.2026): Kontur und Radius des Blatts statt gezeichneter eckiger Linien. Gegenprobe: der Stand „Lot“ ist rot.
+    expect(leiste).toContain('box-shadow: inset 0 0 0 1px var(--border); border-radius: var(--radius-lg);');
     expect(regel(lot, '.sprung-link')).toContain('min-height: 3rem;');
     expect(regel(lot, '.sprung-link')).toContain('border-bottom: 2px solid transparent;');
   });

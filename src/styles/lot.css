@@ -245,12 +245,14 @@
     deckte mit ihrer Fläche dessen Kontur und Lineal zu; die graue Linie
     unter den Einträgen endete nach dem letzten, die Fläche daneben lag weiß
     ohne Linie auf dem Raster, und mit 52 px stand sie neben den Linien.
+    V10 (14.11.2026): Kontur und Radius wie jedes Blatt (16 px, feine
+    Linie) — die kräftige eckige Linie stammte noch aus der Linie „Lot“.
   */
-  .sprungleiste { position: sticky; top: var(--kopf-oben); z-index: 5; display: flex; overflow-x: auto; gap: 0; margin-top: 1.5rem; padding: 0 0.75rem; background: var(--surface); scrollbar-width: none; box-shadow: inset 1px 0 0 var(--border-strong), inset 0 1px 0 var(--border-strong), inset -1px 0 0 var(--border-strong), inset 0 -1px 0 var(--border-strong); }
+  .sprungleiste { position: sticky; top: var(--kopf-oben); z-index: 5; display: flex; overflow-x: auto; gap: 0; margin-top: 1.5rem; padding: 0 0.75rem; background: var(--surface); scrollbar-width: none; box-shadow: inset 0 0 0 1px var(--border); border-radius: var(--radius-lg); }
   .sprung-link { flex: none; display: inline-flex; align-items: center; min-height: 3rem; padding: 0 0.75rem; color: var(--text-muted); text-decoration: none; white-space: nowrap; border-bottom: 2px solid transparent; font-size: 0.875rem; }
   .sprung-link:hover { color: var(--text); border-bottom-color: var(--petrol); }
   @media (min-width: 1200px) {
-    .sprungleiste { flex-direction: column; overflow: visible; top: 1rem; margin-top: 0; padding: 0; background: transparent; box-shadow: none; }
+    .sprungleiste { flex-direction: column; overflow: visible; top: 1rem; margin-top: 0; padding: 0; background: transparent; box-shadow: none; border-radius: 0; }
     .sprung-link { min-height: 2.25rem; border-bottom: 0; border-left: 2px solid var(--border); }
     .sprung-link:hover { border-left-color: var(--petrol); }
   }
