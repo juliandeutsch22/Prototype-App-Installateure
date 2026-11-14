@@ -852,3 +852,15 @@ describe('V10 zentrale Bausteine (Querschnitt)', () => {
     expect(ohneKommentare(ALLE_STILE)).not.toMatch(/(fuss|fuss-knoepfe|vorschau-fuss)[^{]*\{[^}]*flex-direction: column-reverse/);
   });
 });
+
+describe('Anzeigefehler (14.11.2026)', () => {
+  const MAT = stil('lot-material.css');
+  const ORDER = readFileSync('src/features/orders/OrderView.tsx', 'utf8');
+
+  it('die klebende Warenkorb-Leiste hat eine eigene Zeichenebene, ihr Titel wird je Stand neu eingesetzt', () => {
+    // Gemeldet vom iPhone: beim zweiten Artikel lagen alter und neuer Titel übereinander.
+    // Gegenprobe: der Stand vor der Behebung (ohne Ebene, Titel ohne Schlüssel) ist rot.
+    expect(MAT).toContain('.korb { transform: translateZ(0); }');
+    expect(ORDER).toMatch(/<a key=\{`\$\{cart\.length\}\|\$\{korbZiel\}`\} href="#anforderung-korb" className="korb-titel">/);
+  });
+});

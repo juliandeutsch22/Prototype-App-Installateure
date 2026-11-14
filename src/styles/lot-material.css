@@ -200,6 +200,14 @@
     eine klebende Leiste an ihrer Bildschirmlage messen würde, nicht an
     ihrem Platz.
   */
+  /*
+    EIGENE ZEICHENEBENE (14.11.2026, gemeldet mit Bildschirmfoto vom iPhone):
+    Safari ließ in der klebenden Leiste den alten Titel stehen, wenn ein
+    Artikel dazukam — zwei Texte übereinander, die Zahl scheinbar
+    unverändert. `translateZ(0)` gibt der Leiste eine eigene Ebene, die bei
+    jeder Änderung ganz neu gezeichnet wird; das Kleben bleibt.
+  */
+  .korb { transform: translateZ(0); }
   .korb { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.625rem 1rem 0.75rem; margin: 0 var(--takt-auslauf, -1rem) 0 -1rem; background: var(--surface); border-top: 1px solid var(--border); }
   @media (min-width: 760px) {
     /* V10 (13.11.2026): ein Blatt wie die darüber — Umriss und 16 px Radius statt

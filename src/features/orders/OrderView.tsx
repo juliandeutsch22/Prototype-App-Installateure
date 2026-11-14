@@ -742,7 +742,14 @@ export default function OrderView() {
             </p>
           )}
           <p className="korb-text">
-            <a href="#anforderung-korb" className="korb-titel">
+            {/*
+              NEU EINGESETZT STATT UMGESCHRIEBEN (14.11.2026): Safari am
+              iPhone zeichnete den Titel der klebenden Leiste beim zweiten
+              Artikel nicht neu — alter und neuer Text lagen übereinander.
+              Mit eigenem Schlüssel je Stand ersetzt React das Element, und
+              die Leiste trägt eine eigene Zeichenebene (lot-material.css).
+            */}
+            <a key={`${cart.length}|${korbZiel}`} href="#anforderung-korb" className="korb-titel">
               {cart.length} Artikel {korbZiel}
             </a>
             {/* Ein Zustand der Linie („offen“), mit seinem Zeichen wie in den Listen (E47). */}

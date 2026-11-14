@@ -164,3 +164,46 @@ test('Echter Touch am Griff schließt trotz nativer Pointer-Capture zuverlässig
   await expect(page.locator('html')).not.toHaveCSS('overflow', 'hidden');
 });
 });
+
+/*
+  DIE WARENKORB-LEISTE ZEIGT JEDEN NEUEN ARTIKEL (14.11.2026, gemeldet mit
+  Bildschirmfoto vom iPhone): Safari ließ in der klebenden Leiste den alten
+  Titel stehen — zwei Texte übereinander, die Zahl scheinbar unverändert.
+  Geprüft wird nach jedem Artikel der Text und das Bild: was gezeichnet ist,
+  muss dem gleichen, was nach einem erzwungenen Neuzeichnen dasteht. Läuft
+  in Chromium und in WebKit (iPhone 13).
+*/
+test('Warenkorb-Leiste: jeder weitere Artikel steht sofort und sauber im Titel', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`./?pfad=${encodeURIComponent('/material')}&rolle=Mitarbeiter`);
+  await page.locator('select').first().selectOption({ index: 1 });
+  const kreise = page.locator('.korb-kreis');
+  await expect(kreise.first()).toBeVisible();
+  const titel = page.locator('.korb .korb-titel');
+  for (let n = 1; n <= 3; n++) {
+    // Der erste noch freie Kreis — was in der Liste liegt, zeigt statt des Kreises die Menge.
+    // In die Mitte gerollt: am unteren Rand läge er unter der klebenden Leiste.
+    await kreise.first().evaluate((k) => k.scrollIntoView({ block: 'center' }));
+    await kreise.first().click();
+    await expect(titel).toHaveText(new RegExp(`^${n} Artikel`));
+    await expect(titel).toHaveCount(1);
+    // Ein fester Ausschnitt des Fensters: das Foto eines Elements rollt die Seite, und eine
+    // klebende Leiste stünde danach an ihrem Platz im Fluss statt unten.
+    const bild = async () => {
+      await page.evaluate(() => new Promise((fertig) => requestAnimationFrame(() => requestAnimationFrame(fertig))));
+      const r = (await page.locator('.korb').boundingBox())!;
+      return { r, png: await page.screenshot({ clip: { x: r.x, y: r.y, width: r.width, height: r.height } }) };
+    };
+    const gezeichnet = await bild();
+    await page.evaluate(() => {
+      const k = document.querySelector<HTMLElement>('.korb')!;
+      k.style.display = 'none';
+      void k.offsetHeight;
+      k.style.display = '';
+    });
+    const neu = await bild();
+    expect(neu.r, `nach ${n} Artikel: an derselben Stelle`).toEqual(gezeichnet.r);
+    const gleich = gezeichnet.png.equals(neu.png);
+    expect(gleich, `nach ${n} Artikel: gezeichnet wie neu`).toBe(true);
+  }
+});
