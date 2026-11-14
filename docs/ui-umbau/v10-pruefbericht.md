@@ -72,3 +72,23 @@ umgeschrieben, jeweils mit Kommentar im Test.
 ## 4. Grenzen mit Grund
 
 Siehe `docs/grenzen-durchsicht-2026-10-24.md`, Abschnitt „Designlinie V10“.
+
+## 5. Nachtrag 14.11.2026: Anzeigefehler und PDF-Abläufe
+
+Auftrag: die mitfliegende Leiste in „Material anfordern“, eine Durchsicht
+der ganzen App auf Anzeigefehler und die Abläufe beim Erzeugen eines PDFs.
+Einzelheiten in `docs/stand-2026-10-03.md`, Abschnitt 91.
+
+| Prüfung | Ergebnis |
+|---|---|
+| `npx tsc --noEmit -p .`, `npm run -s lint` | ohne Befund |
+| Vitest, Node 20, `TZ=Europe/Vienna` | 487 Dateien, **8.008 grün** |
+| Produktionsbuild | erfolgreich |
+| Browserwege Chromium + `tablet-834` + `tablet-quer-1194` | **267** Wege: 260 grün, 7 projektgebunden übersprungen. Im ersten Lauf waren 9 rot: 7 wegen der lokal nicht gestarteten Edge Functions (nach dem Start grün), 2 Rechtsseiten mit der alten Erwartung an die rechte Blattkante am Handy (nachgezogen) |
+| Linkprüfung | **37 grün** in Chromium; `webkit-premium` (iPhone 13) in der CI, darunter die Warenkorb-Leiste |
+| PDF-Abläufe | Rechnung, Angebot (Büro und Kunde), Schein aus der Liste, Mahnung erzeugen und erneut, Stornorechnung ausstellen und erneut, Stundennachweis, Belegarchiv: im echten Browser gegen die Datenbank grün |
+
+Gegenprobe je neuer Prüfung: ohne die Änderung rot, mit ihr grün
+(Warenkorb-Titel, Hauptaktion deckend, Reiterlinie, aktiver Menüpunkt am
+Schein, Schein-Zeiten, Titelzeile, Rechnungsspalten im Browser gemessen,
+eine Hauptaktion im Bericht-Dialog).
