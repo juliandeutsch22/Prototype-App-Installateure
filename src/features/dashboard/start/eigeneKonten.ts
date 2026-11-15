@@ -59,7 +59,7 @@ export function resturlaubAus(
   const posten = eigene
     // Zeitausgleich geht vom Zeitguthaben ab, nicht vom Urlaub.
     .filter((v) => v.status === 'Genehmigt' && v.art !== 'Zeitausgleich')
-    .flatMap((v) => antragNachUrlaubsjahr(v, profil.workDays, halbeTage, regel.jahresbeginn));
+    .flatMap((v) => antragNachUrlaubsjahr(v, profil, halbeTage, regel.jahresbeginn));
   const stand = urlaubsStand(profil, jahr, posten, regel, anpassungen);
   return { rest: stand.rest, anspruch: stand.anspruch };
 }

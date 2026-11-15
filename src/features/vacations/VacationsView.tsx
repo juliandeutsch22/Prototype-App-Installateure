@@ -515,8 +515,8 @@ export default function VacationsView() {
       eigene
         // Zeitausgleich geht vom Zeitguthaben ab, nicht vom Urlaub.
         .filter((v) => v.status === 'Genehmigt' && !istZa(v))
-        .flatMap((v) => antragNachUrlaubsjahr(v, profil?.workDays, halbeTage, regel.jahresbeginn)),
-    [eigene, profil?.workDays, halbeTage, regel.jahresbeginn],
+        .flatMap((v) => antragNachUrlaubsjahr(v, profil ?? undefined, halbeTage, regel.jahresbeginn)),
+    [eigene, profil, halbeTage, regel.jahresbeginn],
   );
   const stand = useMemo(
     () =>
@@ -634,7 +634,7 @@ export default function VacationsView() {
       );
     }
     const verteilen = (x: { von: string; bis?: string | null; tage: number }) =>
-      antragNachUrlaubsjahr(x, a.profil.workDays, halbeTage, regel.jahresbeginn);
+      antragNachUrlaubsjahr(x, a.profil, halbeTage, regel.jahresbeginn);
     const antragsjahr = urlaubsJahrVon(v.von, regel.jahresbeginn);
     const rest = urlaubsStand(a.profil, antragsjahr, a.genehmigt.flatMap(verteilen), regel, a.anpassungen).rest;
     /* Abgezogen wird, was von diesem Antrag in sein erstes Urlaubsjahr fällt. */

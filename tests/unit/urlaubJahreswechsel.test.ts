@@ -84,3 +84,33 @@ describe('Was sich nicht ändert', () => {
     ]);
   });
 });
+
+/*
+  Z3b (Durchsicht 15.11.2026): wer ab Jänner vier statt fünf Tage arbeitet,
+  bekommt im neuen Jahr nur die Tage zugeteilt, die dort Arbeitstage sind.
+  Die festgehaltene Tageszahl des Antrags bleibt die Summe.
+*/
+describe('Verteilung über den Jahreswechsel mit dem Verlauf der Arbeitstage (Z3b)', () => {
+  const person = {
+    workDays: [1, 2, 3, 4],
+    arbeitszeitVerlauf: [
+      { ab: '2025-01-01', wochenstunden: 40, arbeitstage: [1, 2, 3, 4, 5], tagessoll: null },
+      { ab: '2027-01-01', wochenstunden: 32, arbeitstage: [1, 2, 3, 4], tagessoll: null },
+    ],
+  };
+
+  it('2027 zählt nur Montag bis Donnerstag — die Summe bleibt 8', () => {
+    // 2027: 4., 5., 7. Jänner (6. ist Feiertag, 8. ein Freitag) — drei Tage statt vier.
+    const teile = antragNachUrlaubsjahr(BETRIEBSURLAUB, person, true);
+    expect(teile).toEqual([{ von: '2026-12-24', tage: 5 }, { von: '2027-01-04', tage: 3 }]);
+    expect(teile.reduce((s, t) => s + t.tage, 0)).toBe(8);
+  });
+
+  it('Gegenprobe: mit den Arbeitstagen von heute (noch Montag bis Freitag) zählte der 8. Jänner mit', () => {
+    expect(antragNachUrlaubsjahr(BETRIEBSURLAUB, MO_FR, true)).toEqual([{ von: '2026-12-24', tage: 4 }, { von: '2027-01-04', tage: 4 }]);
+  });
+
+  it('bleibt gleich: ohne Verlauf dieselben Teile wie mit der festen Liste', () => {
+    expect(antragNachUrlaubsjahr(BETRIEBSURLAUB, { workDays: MO_FR }, true)).toEqual(antragNachUrlaubsjahr(BETRIEBSURLAUB, MO_FR, true));
+  });
+});

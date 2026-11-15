@@ -233,7 +233,14 @@ export interface UrlaubsPosten {
  */
 export function antragNachUrlaubsjahr(
   antrag: { von: string; bis?: string | null; tage: number },
-  workDays: number[] | undefined,
+  /*
+    Die Arbeitstage — als feste Liste wie bisher, oder als Person: dann zählt
+    jeder Tag mit den Arbeitstagen, die an ihm gelten (Durchsicht 15.11.2026,
+    Z3b). Wer über den Jahreswechsel Urlaub hat und ab Jänner vier statt fünf
+    Tage arbeitet, bekäme sonst dem neuen Jahr Tage zugeteilt, die dort keine
+    Arbeitstage sind.
+  */
+  workDays: number[] | undefined | (Pick<AppUser, 'workDays'> & Partial<Pick<AppUser, 'arbeitszeitVerlauf' | 'weeklyTargetHours' | 'tagessoll'>>),
   halbeTage: boolean,
   beginn: string = JAHRESBEGINN_VORGABE,
 ): UrlaubsPosten[] {
@@ -243,7 +250,10 @@ export function antragNachUrlaubsjahr(
   if (urlaubsJahrVon(bis, beginn) === erstesJahr) return [{ von: antrag.von, tage }];
 
   const spaeter = new Map<number, { von: string; tage: number }>();
-  for (const t of urlaubsTageShared(workDays, antrag.von, bis)) {
+  const tageImAntrag = Array.isArray(workDays) || workDays === undefined
+    ? urlaubsTageShared(workDays, antrag.von, bis)
+    : urlaubsTage(workDays, antrag.von, bis);
+  for (const t of tageImAntrag) {
     const j = urlaubsJahrVon(t, beginn);
     if (j === erstesJahr) continue;
     const bisher = spaeter.get(j);
