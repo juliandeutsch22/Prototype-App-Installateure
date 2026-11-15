@@ -224,7 +224,8 @@ describe('Bestellt, zugesagt und vorhanden bleiben getrennt', () => {
     expect(listeVon(await deckung(tag(1)), 'MB-RETOURE').frei_vor[hahn]).toBe(0);
     const { error } = await verw.client.rpc('retoure_anlegen', { p_beleg: {
       id: crypto.randomUUID(), company_id: BETRIEB, material_id: hahn, material_name: 'Hahn', quantity: 2,
-      condition: 'neu', user_id: max.uid, user_name: 'Max', project_number: 'MB-RETOURE',
+      // Ohne Baustelle: für sie ist nichts ausgegeben — die Höchstmenge (M7) ließe sonst nichts zurück.
+      condition: 'neu', user_id: max.uid, user_name: 'Max', project_number: '',
     } });
     expect(error).toBeNull();
     expect(listeVon(await deckung(tag(1)), 'MB-RETOURE').frei_vor[hahn]).toBe(2);

@@ -93,6 +93,27 @@ export function anforderungEiligSetzen(orderId: string, eilig: boolean): Promise
   return pg.anforderungEiligSetzen(orderId, eilig);
 }
 
+export type { RetoureRahmen } from './pg/materialOrders';
+
+/** Retouren, die auf die Annahme im Lager warten (M7), live. */
+export function subscribeWartendeRetouren(
+  companyId: string,
+  cb: (rows: WithId<MaterialOrder>[]) => void,
+  onError: (e: Error) => void,
+): () => void {
+  return pg.subscribeWartendeRetouren(companyId, cb, onError);
+}
+
+/** Was für eine Baustelle höchstens zurück kann, und ob schon verrechnet (M7). */
+export function retoureRahmen(baustelle: string, materialId: string | null, name: string): Promise<pg.RetoureRahmen | null> {
+  return pg.retoureRahmen(baustelle, materialId, name);
+}
+
+/** Das Lager nimmt eine Retoure an (M7). */
+export function retoureAnnehmen(orderId: string, menge?: number, zustand?: 'neu' | 'gebraucht' | 'defekt'): Promise<boolean> {
+  return pg.retoureAnnehmen(orderId, menge, zustand);
+}
+
 /** Der Besteller zieht zurück, solange „Offen“ (M5). */
 export function anforderungZurueckziehen(orderId: string): Promise<boolean> {
   return pg.anforderungZurueckziehen(orderId);

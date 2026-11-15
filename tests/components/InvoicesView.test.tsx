@@ -2288,6 +2288,29 @@ describe('Ausgegebenes Material ohne Schein', () => {
     expect((lege.mock.calls[0][0] as Invoice).linkedOrders).toEqual(['a1']);
   });
 
+  /*
+    M7: eine Retoure nach der Rechnung, die die Ware schon enthielt. Bisher
+    fiel sie still aus der Vorschau — der Kunde bekam keine Gutschrift.
+  */
+  it('M7: Zurückgegebenes, das schon verrechnet war, steht als Hinweis auf eine Gutschrift da', async () => {
+    katalog = KATALOG;
+    ausgabenListe = [ausgabe(-2, { art: 'retoure', belegId: 'x' })];
+    await bisZurVorschau();
+    expect(screen.getByText(/Zurückgegeben, aber schon verrechnet/)).toBeInTheDocument();
+    expect(screen.getByText(/2 Stk · € 17,00/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    // Mit dem Anlegen verknüpft (M2) — gesagt wird es beim Zusammenstellen.
+    expect((lege.mock.calls[0][0] as Invoice).linkedOrders).toEqual(['x']);
+  });
+
+  it('Gleichbleiben (M7): ohne Retoure über das Offene hinaus kein Gutschrift-Hinweis', async () => {
+    katalog = KATALOG;
+    ausgabenListe = [ausgabe(5), ausgabe(-1, { art: 'retoure', belegId: 'x' })];
+    await bisZurVorschau();
+    expect(screen.queryByText(/Zurückgegeben, aber schon verrechnet/)).toBeNull();
+  });
+
   it('M2: die Pauschale verknüpft das Ausgegebene, ihre Teilrechnung nicht', async () => {
     PROJEKT.billingMode = 'Pauschal';
     authWert.company.rechnungsarten = true;

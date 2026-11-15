@@ -164,8 +164,9 @@ describe('Nach „Aus Lager“: zurück auf Offen und „Nicht auf Lager“', ()
 
 describe('Retoure und Wareneingang: eine Kennung, eine Buchung', () => {
   const beleg = (m: string, menge = 3) => ({
+    // Ohne Baustelle: für sie ist nichts ausgegeben — die Höchstmenge (M7) ließe sonst nichts zurück.
     materialId: m, materialName: '', quantity: menge, condition: 'neu', note: '',
-    projectNumber: 'PR-2026-0410', userId: monteur.uid, userName: 'Max Monteur',
+    projectNumber: '', userId: monteur.uid, userName: 'Max Monteur',
   });
 
   it('zweimal dieselbe Kennung: eine Zeile, eine Gutschrift — zurück kommt dieselbe Kennung', async () => {
@@ -304,7 +305,7 @@ describe('Löschen bucht den Bestand zurück', () => {
     const { data: a } = await admin.from('materials').select('name').eq('id', m).single();
     const id = await anforderungen.createReturn(BETRIEB, {
       materialId: m, materialName: (a as { name: string }).name, quantity: 2, condition: 'neu', note: '',
-      projectNumber: 'PR-2026-0411', userId: monteur.uid, userName: 'Max Monteur',
+      projectNumber: '', userId: monteur.uid, userName: 'Max Monteur',
     });
     expect(await bestand(m)).toBe(7);
     const p = await anforderungen.anforderungLoeschenPruefen(id);
@@ -478,12 +479,17 @@ describe('Nachtrag: gleichzeitige Retoure, Abgerechnetes, Rüstliste, leeres Reg
     const kennung = crypto.randomUUID();
     const beleg = JSON.stringify({
       id: kennung, company_id: BETRIEB, material_id: m, material_name: (a as { name: string }).name, quantity: 3,
-      condition: 'neu', note: '', project_number: 'PR-2026-0412', user_id: monteur.uid, user_name: 'Max Monteur',
+      condition: 'neu', note: '', project_number: '', user_id: monteur.uid, user_name: 'Max Monteur',
     });
-    // Der Monteur selbst, auf zwei Verbindungen — wie zwei Tipps, die beide durchs Netz kamen.
+    /*
+      Das Lager für den Monteur, auf zwei Verbindungen — wie zwei Tipps, die
+      beide durchs Netz kamen. Seit M7 schreibt nur noch das Lager beim
+      Erfassen gut (die Meldung des Monteurs wartet auf die Annahme), und ohne
+      Baustelle, weil für sie nichts ausgegeben ist (Höchstmenge).
+    */
     const anspruch = JSON.stringify({
-      sub: monteur.uid, role: 'authenticated', aal: 'aal1',
-      app_metadata: { company_id: BETRIEB, role: 'Mitarbeiter', active: true },
+      sub: lager.uid, role: 'authenticated', aal: 'aal1',
+      app_metadata: { company_id: BETRIEB, role: 'Verwaltung', active: true },
     });
     const erste = new Client({ connectionString: DB });
     const zweite = new Client({ connectionString: DB });

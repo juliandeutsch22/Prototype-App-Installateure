@@ -530,11 +530,14 @@ describe('Erhaltung: jeder bestehende Weg ohne Ort bucht wie bisher ins Hauptlag
 
   it('Retoure „neu“ und Abholen einer Anforderung', async () => {
     const m = await artikel(10);
+    // Seit M7: ohne Baustelle (für sie war nichts ausgegeben) — und gutgeschrieben erst mit der Annahme im Lager.
     const ret = await max.client.rpc('retoure_anlegen', { p_beleg: {
       id: crypto.randomUUID(), company_id: BETRIEB, material_id: m, material_name: 'Rohr', quantity: 3,
-      condition: 'neu', user_id: max.uid, user_name: 'Max', project_number: 'PR-ERH',
+      condition: 'neu', user_id: max.uid, user_name: 'Max', project_number: '',
     } });
     expect(ret.error).toBeNull();
+    expect(await haupt(m)).toBe(10);
+    expect((await lager.client.rpc('retoure_annehmen', { p_id: ret.data })).error).toBeNull();
     expect(await haupt(m)).toBe(13);
     expect((await admin.from('material_orders').select('lagerort_id').eq('id', ret.data).single()).data).toEqual({ lagerort_id: null });
     const id = crypto.randomUUID();
@@ -670,7 +673,8 @@ describe('Die bestehenden Wege mit Ort', () => {
     const m = await artikel(0, 'Stk');
     const beleg = (k: Konto, ort: string, zustand = 'neu') => ({
       id: crypto.randomUUID(), company_id: BETRIEB, material_id: m, material_name: 'Rohr', quantity: 2,
-      condition: zustand, user_id: k.uid, user_name: 'X', project_number: 'PR-RET', lagerort_id: ort,
+      // Ohne Baustelle: für sie ist nichts ausgegeben, und die Höchstmenge (M7) ließe nichts zurück.
+      condition: zustand, user_id: k.uid, user_name: 'X', project_number: '', lagerort_id: ort,
     });
     const eigen = await max.client.rpc('retoure_anlegen', { p_beleg: beleg(max, BUS) });
     expect(eigen.error).toBeNull();

@@ -71,6 +71,25 @@ export function subscribeOffeneAnforderungen(
   });
 }
 
+/**
+ * RETOUREN, DIE AUF DIE ANNAHME WARTEN (M7) — ohne Altersgrenze, wie die
+ * offenen Anforderungen: hinter zweihundert jüngeren Zeilen fiele sonst eine
+ * wartende aus dem Reiter „Retouren“ und aus seiner Zahl.
+ */
+export function subscribeWartendeRetouren(
+  companyId: string,
+  cb: (rows: WithId<MaterialOrder>[]) => void,
+  onError: (e: Error) => void,
+) {
+  return abonnieren<MaterialOrder>(ANFORDERUNGEN, companyId, cb, onError, {
+    wo: [
+      { art: 'gleich', feld: 'transactionType', wert: 'return' },
+      { art: 'gleich', feld: 'processed', wert: false },
+    ],
+    sortiere: { feld: 'createdAt', absteigend: true },
+  });
+}
+
 export type NewMaterialOrder = Omit<MaterialOrder, 'id' | 'companyId' | 'createdAt'>;
 
 /** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */
@@ -238,6 +257,57 @@ export async function anforderungMengeAendern(orderId: string, menge: number): P
     .select('id');
   if (error) throw new Error(error.message);
   return (data ?? []).length > 0;
+}
+
+/** Was für eine Baustelle höchstens zurück kann (M7) — siehe `retoure_rahmen`. */
+export interface RetoureRahmen {
+  ausgegeben: number;
+  zurueck: number;
+  hoechstens: number;
+  /** Eine dieser Ausgaben steht schon auf einer gültigen Rechnung. */
+  verrechnet: boolean;
+  /** Die Rechnungen — nur für wer Rechnungen sieht. */
+  rechnungen?: string[];
+}
+
+/**
+ * RETOURE MIT BAUSTELLE (M7, 16.11.2026): wie viel höchstens zurück kann
+ * (ausgegeben minus schon zurück) und ob die Ware schon verrechnet ist.
+ * `null` ohne Baustelle — dann gilt keine Grenze.
+ */
+export async function retoureRahmen(
+  baustelle: string, materialId: string | null, name: string,
+): Promise<RetoureRahmen | null> {
+  const { data, error } = await derClient().rpc('retoure_rahmen', {
+    p_baustelle: baustelle, p_material: materialId, p_name: name,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const d = data as Record<string, unknown>;
+  return {
+    ausgegeben: Number(d.ausgegeben) || 0,
+    zurueck: Number(d.zurueck) || 0,
+    hoechstens: Number(d.hoechstens) || 0,
+    verrechnet: d.verrechnet === true,
+    ...(Array.isArray(d.rechnungen) ? { rechnungen: d.rechnungen.map(String) } : {}),
+  };
+}
+
+/**
+ * DAS LAGER NIMMT EINE RETOURE AN (M7): mit der Menge, die ankam, und dem
+ * Zustand am Regal; erst jetzt wird „neu“ gutgeschrieben. `false`:
+ * inzwischen angenommen oder gelöscht.
+ */
+export async function retoureAnnehmen(
+  orderId: string, menge?: number, zustand?: 'neu' | 'gebraucht' | 'defekt',
+): Promise<boolean> {
+  const { data, error } = await derClient().rpc('retoure_annehmen', {
+    p_id: orderId,
+    ...(menge != null ? { p_menge: menge } : {}),
+    ...(zustand ? { p_zustand: zustand } : {}),
+  });
+  if (error) throw new Error(error.message);
+  return (data as { ergebnis?: string } | null)?.ergebnis === 'angenommen';
 }
 
 /**

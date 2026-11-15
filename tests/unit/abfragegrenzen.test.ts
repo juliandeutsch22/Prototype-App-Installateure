@@ -37,6 +37,9 @@ const AUSNAHMEN: Record<string, string> = {
   // Die Belegschaft. Wächst mit Einstellungen, nicht mit der Zeit — ein
   // Betrieb mit zwanzig Monteuren hat auch nach zehn Jahren zwanzig Zeilen.
   listUsers: 'Belegschaft — wächst nicht mit der Zeit',
+  // M7: Retouren, die auf die Annahme im Lager warten. Jede wird angenommen
+  // oder gelöscht; es bleiben so viele, wie gerade unterwegs sind.
+  subscribeWartendeRetouren: 'Wartende Retouren — jede wird angenommen oder gelöscht, wächst nicht mit der Zeit',
   /*
     LAGERORTE UND FAHRZEUGE (M04a): wie die Belegschaft ein Stamm des
     Betriebs — ein Fuhrpark von zwanzig Bussen hat auch nach zehn Jahren

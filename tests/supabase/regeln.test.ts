@@ -929,14 +929,20 @@ describe('Materialstamm — den Bestand bewegen Abholung und Retoure, gepflegt w
     expect(Number(data!.stock)).toBe(95);
   });
 
-  it('der Monteur schreibt eine Retoure zurück', async () => {
+  it('der Monteur meldet eine Retoure — gutgeschrieben wird mit der Annahme im Lager (M7)', async () => {
+    const id = crypto.randomUUID();
     const { error } = await a.client.rpc('retoure_anlegen', {
       p_beleg: {
-        id: crypto.randomUUID(), company_id: 'firma-a', material_id: artikel,
+        id, company_id: 'firma-a', material_id: artikel,
         material_name: 'Kupferrohr 15mm', quantity: 2, condition: 'neu', user_id: a.uid,
       },
     });
     expect(error).toBeNull();
+    const vorher = await admin.from('materials').select('stock').eq('id', artikel).single();
+    expect(Number(vorher.data!.stock)).toBe(95);
+    // Annehmen darf der Monteur nicht, die Verwaltung schon.
+    expect((await a.client.rpc('retoure_annehmen', { p_id: id })).error?.code).toBe('42501');
+    expect((await aVerwaltung.client.rpc('retoure_annehmen', { p_id: id })).error).toBeNull();
     const { data } = await admin.from('materials').select('stock').eq('id', artikel).single();
     expect(Number(data!.stock)).toBe(97);
   });

@@ -129,6 +129,7 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'preisspruenge',
   'preisverlauf',
   'rechtstexte_aktuell',
+  'retoure_rahmen',
   'ruest_angefordert',
   'schein_loeschbar',
   'schlussrechnungen_ohne_abzug',

@@ -91,7 +91,16 @@ vi.mock('@/lib/db/materialOrders', () => ({
   anforderungLoeschen: (...a: unknown[]) => loeschen(...a),
   anforderungEiligSetzen: (...a: unknown[]) => eiligSetzen(...a),
   createReturn: (...a: unknown[]) => retoureAnlegen(...a),
+  // M7: wartende Retouren, ihre Annahme und der Rahmen im Formular.
+  subscribeWartendeRetouren: (_c: string, cb: (rows: WithId<MaterialOrder>[]) => void) => {
+    cb(wartendeRetouren);
+    return () => undefined;
+  },
+  retoureAnnehmen: (...a: unknown[]) => annehmen(...a),
+  retoureRahmen: async () => null,
 }));
+let wartendeRetouren: WithId<MaterialOrder>[] = [];
+const annehmen = vi.fn<(...a: unknown[]) => Promise<boolean>>(async () => true);
 
 const retoureAnlegen = vi.fn<(...a: unknown[]) => Promise<string>>(async () => 'r1');
 vi.mock('@/lib/db/materials', async (echt) => ({
@@ -174,6 +183,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 2, 9, 0, 0));
   anforderungen = [];
+  wartendeRetouren = [];
   nurAufDemServer = [];
   sucheAnforderungen.mockClear();
   ladefehler = null;
@@ -1415,5 +1425,39 @@ describe('V10 Anforderungen — Filterleere und Laden', () => {
     await userEvent.click(await bereich(/^Einkauf/));
     expect(await screen.findByText(/Die Anforderungen konnten nicht geladen werden/)).toBeInTheDocument();
     expect(screen.queryByText(/Nichts auf der Einkaufsliste/)).toBeNull();
+  });
+});
+
+/*
+  M7 (16.11.2026): EINE RETOURE „NEU“ DES MONTEURS WARTET AUF DIE ANNAHME.
+  Vorher schrieb sie sofort gut, und der Reiter „Retouren“ war nur Bestand.
+*/
+describe('Retoure annehmen (M7)', () => {
+  const wartend = () => anforderung({
+    id: 'r9', transactionType: 'return', condition: 'neu', quantity: 3, processed: false,
+    status: 'Erledigt', materialName: 'Muffe', userName: 'Max Monteur', projectNumber: '2026-042',
+  });
+
+  it('der Reiter zählt die wartenden; das Fenster nimmt an — mit der Menge, die ankam', async () => {
+    annehmen.mockClear();
+    wartendeRetouren = [wartend()];
+    zeige();
+    expect(await bereich(/^Retouren/)).toHaveTextContent('1');
+    await userEvent.click(await bereich(/^Retouren/));
+    expect(await screen.findByText('wartet auf Annahme')).toBeInTheDocument();
+    await userEvent.click(within(await oeffnen(/^Muffe/)).getByRole('button', { name: 'Annehmen …' }));
+    const d = within(await screen.findByRole('dialog', { name: 'Retoure annehmen?' }));
+    await userEvent.clear(d.getByLabelText('Angekommen'));
+    await userEvent.type(d.getByLabelText('Angekommen'), '2');
+    await userEvent.click(d.getByRole('button', { name: 'Annehmen' }));
+    await waitFor(() => expect(annehmen).toHaveBeenCalledWith('r9', 2, 'neu'));
+  });
+
+  it('Gleichbleiben: eine schon gutgeschriebene Retoure hat kein „Annehmen“, und der Reiter keine Zahl', async () => {
+    anforderungen = [{ ...wartend(), processed: true }];
+    zeige();
+    expect(await bereich(/^Retouren/)).not.toHaveTextContent(/\d/);
+    await userEvent.click(await bereich(/^Retouren/));
+    expect(within(await oeffnen(/^Muffe/)).queryByRole('button', { name: 'Annehmen …' })).toBeNull();
   });
 });

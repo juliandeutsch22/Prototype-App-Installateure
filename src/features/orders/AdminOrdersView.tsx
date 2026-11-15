@@ -5,6 +5,8 @@ import { postenNeuLaden } from '@/app/offenePosten';
 import {
   subscribeAllOrders,
   subscribeOffeneAnforderungen,
+  subscribeWartendeRetouren,
+  retoureAnnehmen,
   sucheAnforderungen,
   ANFORDERUNG_TREFFER,
   updateOrderStatus,
@@ -183,6 +185,11 @@ function loeschText(o: MaterialOrder, stand: LoeschStand | { art: 'fehler'; text
 }
 
 /** Datum und Uhrzeit eines Zeitstempels — für den Verlauf. */
+/** Eine Retoure, die auf die Annahme im Lager wartet (M7) — noch nicht gutgeschrieben. */
+function wartetAufAnnahme(o: Pick<MaterialOrder, 'transactionType' | 'processed'>): boolean {
+  return o.transactionType === 'return' && o.processed === false;
+}
+
 function zeitpunkt(v: unknown): string {
   const ms = toMillis(v);
   if (!ms) return '';
@@ -214,7 +221,19 @@ function verlaufVon(o: MaterialOrder, haendler: string | undefined): LotPunkt[] 
         : o.userName,
     },
   ];
-  if (o.transactionType === 'return') return punkte;
+  if (o.transactionType === 'return') {
+    // M7: die Annahme im Lager — mit der gemeldeten Menge, wenn weniger ankam.
+    if (o.angenommenAm) {
+      punkte.push({
+        titel: 'Im Lager angenommen',
+        zeit: zeitpunkt(o.angenommenAm),
+        text: o.gemeldeteMenge != null ? `gemeldet ${fmtMenge(o.gemeldeteMenge)}, angenommen ${fmtMenge(o.quantity)}` : undefined,
+      });
+    } else if (o.processed === false) {
+      punkte.push({ titel: 'Wartet auf die Annahme im Lager' });
+    }
+    return punkte;
+  }
   if (o.beschaffung === 'lager') punkte.push({ titel: 'Aus dem Lager zugesagt' });
   if (o.beschaffung === 'einkauf') {
     punkte.push({ titel: 'Auf der Einkaufsliste', text: haendler ?? 'Großhändler noch offen' });
@@ -449,6 +468,19 @@ export default function AdminOrdersView() {
     return unsub;
   }, [user, holgrenze, neuLaden]);
 
+  /*
+    RETOUREN, DIE AUF DIE ANNAHME WARTEN (M7): ohne Altersgrenze, damit keine
+    hinter jüngeren Zeilen aus dem Reiter fällt. Kommen sie nicht, bleibt der
+    Reiter, wie er war — die geladenen Retouren tragen ihren Stand selbst.
+  */
+  const [wartende, setWartende] = useState<WithId<MaterialOrder>[]>([]);
+  useEffect(() => {
+    if (!user) return;
+    return subscribeWartendeRetouren(user.companyId, setWartende, () => setWartende([]));
+  }, [user, neuLaden]);
+  /** Annehmen (M7): Menge, die ankam, und Zustand am Regal. */
+  const [annahme, setAnnahme] = useState<{ o: WithId<MaterialOrder>; menge: string; zustand: 'neu' | 'gebraucht' | 'defekt' } | null>(null);
+
   useEffect(() => {
     if (!user) return;
     return subscribeOffeneAnforderungen(
@@ -554,11 +586,14 @@ export default function AdminOrdersView() {
    */
   const bekannte = useMemo(() => {
     const ids = new Set(arbeitsstand.map((o) => o.id));
-    const alle = [...arbeitsstand, ...orders.filter((o) => !ids.has(o.id))];
+    const geladen = [...arbeitsstand, ...orders.filter((o) => !ids.has(o.id))];
+    for (const o of geladen) ids.add(o.id);
+    // M7: auch die wartenden Retouren außerhalb der Altersgrenze öffnen sich.
+    const alle = [...geladen, ...wartende.filter((o) => !ids.has(o.id))];
     if (!serverTreffer) return alle;
     for (const o of alle) ids.add(o.id);
     return [...alle, ...serverTreffer.filter((o) => !ids.has(o.id))];
-  }, [arbeitsstand, orders, serverTreffer]);
+  }, [arbeitsstand, orders, wartende, serverTreffer]);
 
   /** Die Anforderungen (ohne Retouren) unter den geladenen — für „Erledigt“. */
   const purchases = useMemo(() => orders.filter((o) => o.transactionType !== 'return'), [orders]);
@@ -569,7 +604,16 @@ export default function AdminOrdersView() {
       lagerPosten.filter((p) => !p.bestelltAm && !p.geliefertAm).length,
     [arbeitsstand, lagerPosten],
   );
-  const returns = useMemo(() => orders.filter((o) => o.transactionType === 'return'), [orders]);
+  /*
+    Die wartenden zuerst (M7) — sie sind Arbeit; danach die erfassten, wie
+    bisher nach Datum. Eine wartende, die auch unter den geladenen steht,
+    einmal.
+  */
+  const returns = useMemo(() => {
+    const geladen = orders.filter((o) => o.transactionType === 'return');
+    const wartendIds = new Set(wartende.map((o) => o.id));
+    return [...wartende, ...geladen.filter((o) => !wartendIds.has(o.id))];
+  }, [orders, wartende]);
 
   const projectOptions = useMemo(
     () => [...new Set([...arbeitsstand, ...purchases].map((o) => o.projectNumber).filter(Boolean))].sort() as string[],
@@ -851,11 +895,14 @@ export default function AdminOrdersView() {
     laufenden steht über jeder Gruppe in der Liste, und Retouren sind
     erfasst, nicht zu tun. Beide Zahlen kamen zudem nur aus den geladenen
     Anforderungen.
+
+    SEIT M7 IST EINE RETOURE ARBEIT, solange sie auf die Annahme wartet: der
+    Reiter zählt genau diese, aus einer eigenen Abfrage ohne Altersgrenze.
   */
   const TABS: { key: Tab; label: string; count?: number }[] = [
     { key: 'aktiv', label: 'Laufend' },
     { key: 'einkauf', label: 'Einkauf', count: zuBestellen },
-    { key: 'retouren', label: 'Retouren' },
+    { key: 'retouren', label: 'Retouren', count: wartende.length || undefined },
     { key: 'archiv', label: 'Erledigt' },
   ];
 
@@ -1162,7 +1209,9 @@ export default function AdminOrdersView() {
                           </>
                         }
                         zustand={
-                          o.transactionType === 'return' ? <Marke>Retoure</Marke> : <StatusBadge status={o.status} />
+                          o.transactionType === 'return'
+                            ? (wartetAufAnnahme(o) ? <Warnung>wartet auf Annahme</Warnung> : <Marke>Retoure</Marke>)
+                            : <StatusBadge status={o.status} />
                         }
                         pfeil
                       />
@@ -1244,7 +1293,9 @@ export default function AdminOrdersView() {
               <div className="angabe">
                 <dt>Stand</dt>
                 <dd>
-                  {offen.transactionType === 'return' ? <Marke>Retoure</Marke> : <StatusBadge status={offen.status} />}
+                  {offen.transactionType === 'return'
+                    ? (wartetAufAnnahme(offen) ? <Warnung>wartet auf Annahme</Warnung> : <Marke>Retoure</Marke>)
+                    : <StatusBadge status={offen.status} />}
                   {offen.isUrgent && <> <Warnung stufe="dringend">Eil</Warnung></>}
                 </dd>
               </div>
@@ -1272,6 +1323,16 @@ export default function AdminOrdersView() {
             <LotVerlauf name="Verlauf der Anforderung" punkte={verlaufVon(offen, haendlerName(offen.supplierId))} />
 
             <div className="material-aktionen">
+              {wartetAufAnnahme(offen) && (
+                <Button
+                  onClick={() => {
+                    setOffenId(null);
+                    setAnnahme({ o: offen, menge: zahlAlsText(offen.quantity), zustand: (offen.condition as 'neu') ?? 'neu' });
+                  }}
+                >
+                  Annehmen …
+                </Button>
+              )}
               {(() => {
                 const s = schrittFuer(offen);
                 return s ? (
@@ -1427,6 +1488,65 @@ export default function AdminOrdersView() {
         )}
         {einkaufFragen && (
           <VorschlagGrund materialId={einkaufFragen.o.materialId} gewaehlt={einkaufFragen.bei} zeigen={grundZeigen} />
+        )}
+      </ConfirmDialog>
+
+      {/*
+        DIE ANNAHME IM LAGER (M7): erst sie schreibt „neu“ gut — mit der
+        Menge, die wirklich ankam, und dem Zustand, den das Lager am Regal
+        sieht. Kam nichts an, wird die Retoure gelöscht (nichts war gebucht).
+      */}
+      <ConfirmDialog
+        open={!!annahme}
+        title="Retoure annehmen?"
+        confirmLabel="Annehmen"
+        confirmTone="primary"
+        message={annahme
+          ? `${annahme.o.userName ?? 'Gemeldet'}: „${annahme.o.materialName}“ ×${fmtMenge(annahme.o.quantity)}${annahme.o.projectNumber ? ` von ${annahme.o.projectNumber}` : ''}. `
+            + 'Gutgeschrieben wird nur Neues. Kam nichts an, statt dessen die Retoure löschen.'
+          : ''}
+        gesperrt={!annahme || teilwahl(annahme.menge, annahme.o.quantity).art === 'fehler'}
+        onCancel={() => setAnnahme(null)}
+        onConfirm={async () => {
+          const f = annahme;
+          setAnnahme(null);
+          if (!f) return;
+          const w = teilwahl(f.menge, f.o.quantity);
+          if (w.art === 'fehler') return;
+          try {
+            const ok = await retoureAnnehmen(f.o.id, w.art === 'teil' ? w.menge : undefined, f.zustand);
+            if (!ok) {
+              veraltet();
+              return;
+            }
+            setLagerStand((n) => n + 1);
+            toast.success(f.zustand === 'neu' ? 'Retoure angenommen — gutgeschrieben' : 'Retoure angenommen');
+          } catch (err) {
+            toast.error(grundAus(err, 'Die Retoure konnte nicht angenommen werden.'));
+          }
+        }}
+      >
+        {annahme && (
+          <div className="space-y-3">
+            <TeilmengeFeld
+              id="annahme-menge"
+              label="Angekommen"
+              wert={annahme.menge}
+              angefordert={annahme.o.quantity}
+              rest="ist nicht angekommen und wird nicht gutgeschrieben"
+              onChange={(menge) => setAnnahme({ ...annahme, menge })}
+            />
+            <SelectField
+              id="annahme-zustand"
+              label="Zustand"
+              value={annahme.zustand}
+              onChange={(e) => setAnnahme({ ...annahme, zustand: e.target.value as 'neu' | 'gebraucht' | 'defekt' })}
+            >
+              <option value="neu">Neu / originalverpackt — wird gutgeschrieben</option>
+              <option value="gebraucht">Gebraucht — nur erfasst</option>
+              <option value="defekt">Defekt — nur erfasst</option>
+            </SelectField>
+          </div>
         )}
       </ConfirmDialog>
 

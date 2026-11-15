@@ -582,6 +582,8 @@ export default function InvoicesView() {
   */
   const [vorschlaege, setVorschlaege] = useState<MaterialVorschlag[]>([]);
   const [uebernommen, setUebernommen] = useState<string[]>([]);
+  /** Zurückgegeben, aber schon verrechnet (M7) — der Kunde braucht eine Gutschrift. */
+  const [gutschriften, setGutschriften] = useState<MaterialVorschlag[]>([]);
   /*
     DER VEREINBARTE PREIS DER WARTUNG (Testbericht Runde 6, M9) — Vorschläge
     wie beim Material, übernommen auf Klick. `ohneBelege`: die Vorschau steht,
@@ -1550,6 +1552,7 @@ export default function InvoicesView() {
     setStichtag(null);
     setBelegDaten([]);
     setVorschlaege([]);
+    setGutschriften([]);
     setUebernommen([]);
     setWartungVorschlaege([]);
     setOhneBelege(null);
@@ -1824,7 +1827,7 @@ export default function InvoicesView() {
         M4): was sie über das danach Ausgegebene hinaus tragen, kommt mit
         ihnen auf die nächste Rechnung und wird hier nicht vorgeschlagen.
       */
-      const { vorschlaege: vorschlag, spaeterGetragen: spaeterAbgezogen } = materialAbgleich(
+      const { vorschlaege: vorschlag, spaeterGetragen: spaeterAbgezogen, zurueckVerrechnet } = materialAbgleich(
         ausgaben,
         scheine.filter((s) =>
           ((s.status === 'Unterschrieben' && !bereitsVerrechnet.has(s.id)) || s.status === 'Entwurf')
@@ -1863,6 +1866,7 @@ export default function InvoicesView() {
       );
       setWartungVorschlaege(ausWartung);
       setVorschlaege(vorschlag);
+      setGutschriften(zurueckVerrechnet);
       setSpaeterGetragen(spaeterAbgezogen);
       setVorschauScheine({
         projectNumber,
@@ -4736,6 +4740,40 @@ export default function InvoicesView() {
                     </ListRow>
                   );
                 })}
+              </List>
+            </div>
+          )}
+
+          {/*
+            ZURÜCK, ABER SCHON VERRECHNET (M7, 16.11.2026): eine Retoure nach
+            der Rechnung, die die Ware enthielt. Bisher fiel sie aus der
+            Vorschau (nur Offenes über null) — der Kunde bekam keine Gutschrift,
+            und niemand erfuhr davon. Eine Position mit Minusmenge kennt die
+            Rechnung nicht (Menge und Preis sind nie negativ); die Gutschrift
+            stellt das Büro aus. Mit dem Anlegen verknüpft diese Rechnung die
+            Retoure (M2) — gesagt wird es hier, beim Zusammenstellen.
+          */}
+          {gutschriften.length > 0 && (
+            <div className="mt-4 border-t border-line pt-4">
+              <Hinweiszeile stufe="warn">
+                <p>
+                  Zurückgegeben, aber schon verrechnet: der Kunde hat diese Ware bezahlt und bekommt eine Gutschrift
+                  — oder sie wird mit ihm auf dieser Rechnung vereinbart (etwa als Nachlass). Nach dem Anlegen steht
+                  der Hinweis nicht mehr da.
+                </p>
+              </Hinweiszeile>
+              <List>
+                {gutschriften.map((v) => (
+                  <ListRow
+                    key={v.schluessel}
+                    title={v.name}
+                    subtitle={[
+                      `zurück ${fmtMenge(v.zurueck)} ${v.einheit}`,
+                      v.preis > 0 ? `${euro(v.preis)} je ${v.einheit}` : 'kein Preis im Katalog',
+                    ].join(' · ')}
+                    wert={`${fmtMenge(v.offen)} ${v.einheit}${v.preis > 0 ? ` · ${euro(v.offen * v.preis)}` : ''}`}
+                  />
+                ))}
               </List>
             </div>
           )}

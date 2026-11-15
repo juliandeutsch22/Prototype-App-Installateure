@@ -128,7 +128,10 @@ vi.mock('@/lib/db/materialOrders', () => ({
   anforderungEiligSetzen: (...a: unknown[]) => eiligSetzen(...a),
   anforderungMengeAendern: (...a: unknown[]) => mengeAendern(...a),
   anforderungZurueckziehen: (...a: unknown[]) => zurueckziehen(...a),
+  retoureRahmen: (...a: unknown[]) => rahmen(...a),
 }));
+/** M7: was für die Baustelle höchstens zurück kann — ohne Vorgabe nichts. */
+const rahmen = vi.fn<(...a: unknown[]) => Promise<unknown>>(async () => null);
 /** M5: der Besteller ändert oder zieht zurück, solange „Offen“. */
 const mengeAendern = vi.fn<(...a: unknown[]) => Promise<boolean>>(async () => true);
 const zurueckziehen = vi.fn<(...a: unknown[]) => Promise<boolean>>(async () => true);
@@ -588,6 +591,40 @@ describe('Material anfordern — Retoure', () => {
       condition: 'defekt',
       userId: 'u1',
     });
+  });
+});
+
+/*
+  M7 (16.11.2026): HÖCHSTMENGE UND ANNAHME. Vorher schrieb die Retoure
+  „neu“ sofort und unbegrenzt gut, und niemand erfuhr, dass die Ware schon
+  verrechnet war.
+*/
+describe('Retoure — Höchstmenge und Annahme (M7)', () => {
+  it('sagt, wie viel höchstens zurück kann und dass schon verrechnet ist — mehr erfasst es nicht', async () => {
+    rahmen.mockResolvedValue({ ausgegeben: 4, zurueck: 1, hoechstens: 3, verrechnet: true });
+    // Aus der Rüstliste: mit Baustelle vorbelegt.
+    zeige('/material?retoure=1&baustelle=2026-042');
+    const fenster = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
+    await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Kupfer');
+    await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
+    expect(await within(fenster).findByText(/ausgegeben: 4, schon zurück: 1 — höchstens 3/)).toBeInTheDocument();
+    expect(within(fenster).getByText(/schon verrechnet/)).toBeInTheDocument();
+    const menge = within(fenster).getByRole('textbox', { name: /Menge/ });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '5');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    expect(await within(fenster).findByText(/höchstens 3 zurückkommen/)).toBeInTheDocument();
+    expect(retoure).not.toHaveBeenCalled();
+    rahmen.mockResolvedValue(null);
+  });
+
+  it('„neu“ ins Lager: gemeldet, gutgeschrieben wird bei der Annahme', async () => {
+    zeige();
+    const fenster = await retoureOeffnen();
+    await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Kupfer');
+    await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    expect(await screen.findByText(/Retoure gemeldet — gutgeschrieben wird, sobald das Lager sie annimmt/)).toBeInTheDocument();
   });
 });
 

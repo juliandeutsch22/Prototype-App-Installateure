@@ -947,6 +947,8 @@ export default function OrderView() {
                     o.note,
                     // Warum der Lagerbestand gleich blieb (C7, E89).
                     o.abgeholtHerkunft === 'haendler' ? 'beim Händler mitgenommen' : '',
+                    // M7: die Retoure ist gemeldet, gutgeschrieben wird bei der Annahme im Lager.
+                    o.transactionType === 'return' && o.processed === false ? 'wartet auf Annahme im Lager' : '',
                   ].filter(Boolean).join(' · ')}
                 >
                   {o.transactionType === 'return' ? (

@@ -118,7 +118,14 @@ test('Fahrzeug anlegen, umlagern, aus dem Fahrzeug abhaken, Bestand je Ort, Reto
   await retoure.getByLabel('Menge').fill('1');
   await expect(retoure.getByLabel('Zurück in')).toHaveValue('');
   await retoure.getByRole('button', { name: 'Retoure erfassen' }).click();
-  await expect(monteurSeite.getByText('Retoure erfasst — Material wurde dem Lager gutgeschrieben')).toBeVisible();
+  // M7: gemeldet — gutgeschrieben erst, wenn das Lager sie annimmt.
+  await expect(monteurSeite.getByText('Retoure gemeldet — gutgeschrieben wird, sobald das Lager sie annimmt')).toBeVisible();
+  expect([await hauptlager(), await imFahrzeug(ort)]).toEqual([anfang - 5, 2]);
+  await chefSeite.goto('/anforderungen?reiter=retouren');
+  await chefSeite.getByRole('button', { name: new RegExp(`^${ARTIKEL.name}`) }).first().click();
+  await chefSeite.getByRole('dialog', { name: 'Anforderung' }).getByRole('button', { name: 'Annehmen …' }).click();
+  await chefSeite.getByRole('dialog', { name: 'Retoure annehmen?' }).getByRole('button', { name: 'Annehmen' }).click();
+  await expect(chefSeite.getByText('Retoure angenommen — gutgeschrieben')).toBeVisible();
   expect([await hauptlager(), await imFahrzeug(ort)]).toEqual([anfang - 4, 2]);
 
   await keineFehlermeldung(chefSeite);

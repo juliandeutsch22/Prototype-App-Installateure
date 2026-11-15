@@ -1375,6 +1375,13 @@ export interface MaterialOrder {
   /** Zuletzt stornierte Bestellung (M4): wann und warum — danach wieder „zu bestellen“. */
   bestellungStorniertAm?: number | null;
   bestellungStornoGrund?: string | null;
+  /**
+   * Retoure (M7): wann das Lager sie angenommen und gutgeschrieben hat. Eine
+   * Retoure mit `processed = false` wartet auf die Annahme.
+   */
+  angenommenAm?: number | null;
+  /** Retoure (M7): was gemeldet war, wenn das Lager weniger angenommen hat. */
+  gemeldeteMenge?: number | null;
   /** Seit wann abholbereit — setzt nur die Datenbank. */
   abholbereitSeit?: number | null;
   /** Wann „Erledigt“ — setzt nur die Datenbank (seit 24.10.2026). */

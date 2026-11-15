@@ -173,3 +173,31 @@ describe('ausgabenVerknuepfung (M2)', () => {
     expect(ausgabenVerknuepfung([])).toEqual({ linkedOrders: [], linkedRuestPositionen: [] });
   });
 });
+
+/*
+  M7 (16.11.2026): eine Retoure nach der Rechnung, die die Ware enthielt —
+  bisher fiel sie still aus der Vorschau (nur Offenes über null).
+*/
+describe('zurück, aber schon verrechnet (M7)', () => {
+  const a = (menge: number, art: Ausgabe['art'] = 'anforderung'): Ausgabe =>
+    ({ art, belegId: `${art}${menge}`, datum: '2026-11-12', materialId: 'k1', name: 'Muffe', einheit: 'Stk', menge });
+  const katalog = [{ id: 'k1', name: 'Muffe', unit: 'Stk', verkaufspreis: 2 } as unknown as Material];
+
+  it('die Retoure ohne Gegenstück wird als Gutschrift angeboten — höchstens was zurückkam', () => {
+    const r = materialAbgleich([a(-3, 'retoure')], [], katalog);
+    expect(r.vorschlaege).toEqual([]);
+    expect(r.zurueckVerrechnet.map((v) => [v.name, v.offen])).toEqual([['Muffe', 3]]);
+    expect(r.zurueckVerrechnet[0].preis).toBe(2);
+  });
+
+  it('Gleichbleiben: wird die Retoure durch neu Ausgegebenes aufgewogen, gibt es keine Gutschrift', () => {
+    const r = materialAbgleich([a(5), a(-3, 'retoure')], [], katalog);
+    expect(r.zurueckVerrechnet).toEqual([]);
+    expect(r.vorschlaege.map((v) => v.offen)).toEqual([2]);
+  });
+
+  it('ein Überhang aus Scheinen (Material von woanders) ist keine Gutschrift', () => {
+    const r = materialAbgleich([a(2)], [{ material: [{ name: 'Muffe', menge: 5, materialId: 'k1' }] }], katalog);
+    expect(r.zurueckVerrechnet).toEqual([]);
+  });
+});

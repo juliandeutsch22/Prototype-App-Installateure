@@ -367,10 +367,14 @@ describe('Durchstich 6b: Anforderung → Lager', () => {
     */
     await lagerAufbauen(12);
     clientEinreichen(monteur.client);
-    await anforderungenDb.createReturn(BETRIEB, {
+    const id = await anforderungenDb.createReturn(BETRIEB, {
       materialId: ARTIKEL, materialName: 'Kupferrohr 15mm', quantity: 5,
       userId: monteur.uid, userName: 'Max Mustermann', condition: 'neu',
     });
+    // Seit M7: gemeldet — gutgeschrieben erst mit der Annahme im Lager.
+    expect(await bestand()).toBe(12);
+    clientEinreichen(chef.client);
+    expect(await anforderungenDb.retoureAnnehmen(id)).toBe(true);
     expect(await bestand()).toBe(17);
   }, 120_000);
 

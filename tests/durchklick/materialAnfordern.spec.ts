@@ -233,8 +233,10 @@ test('Ein Monteur gibt übriges Material über die sichtbare Zeile zurück', asy
     expect(data ?? []).toHaveLength(1);
     expect(Number((data ?? [])[0].quantity)).toBe(2);
     expect((data ?? [])[0].condition).toBe('neu');
-    expect(await bestand()).toBe(vorher + 2);
+    // M7: gemeldet, gutgeschrieben erst mit der Annahme im Lager (`lagerorte.spec.ts`).
+    expect(await bestand()).toBe(vorher);
   }).toPass({ timeout: 15_000 });
+  await expect(page.getByText('wartet auf Annahme im Lager').first()).toBeVisible();
 
   await keineFehlermeldung(page);
 });

@@ -207,6 +207,9 @@ describe('Retoure', () => {
       userId: monteur.uid, condition: 'neu',
     } as Parameters<typeof anforderungen.createReturn>[1]);
     clientEinreichen(verwaltung.client);
+    // Seit M7: der Monteur meldet, das Lager nimmt an — erst dann die Gutschrift.
+    expect(await bestand(artikel)).toBe(5);
+    expect(await anforderungen.retoureAnnehmen(id)).toBe(true);
 
     expect(await bestand(artikel)).toBe(8);
     const { data } = await admin.from('material_orders').select('*').eq('id', id).single();
@@ -231,11 +234,13 @@ describe('Retoure', () => {
   it('findet den Katalogeintrag auch hier über den Namen', async () => {
     const artikel = await material.createMaterial('lager-a', { name: 'Namensretoure', stock: 1 });
     clientEinreichen(monteur.client);
-    await anforderungen.createReturn('lager-a', {
+    const id = await anforderungen.createReturn('lager-a', {
       materialName: 'namensretoure', quantity: 4,
       userId: monteur.uid, condition: 'neu',
     } as Parameters<typeof anforderungen.createReturn>[1]);
     clientEinreichen(verwaltung.client);
+    // Seit M7 mit der Annahme im Lager.
+    expect(await anforderungen.retoureAnnehmen(id)).toBe(true);
 
     expect(await bestand(artikel)).toBe(5);
   });

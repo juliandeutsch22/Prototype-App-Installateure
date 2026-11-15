@@ -99,6 +99,13 @@ export function materialAbgleich(
   vorschlaege: MaterialVorschlag[];
   /** Jeder Artikel, von dem spätere Scheine etwas tragen — auch ganz abgezogene. */
   spaeterGetragen: MaterialVorschlag[];
+  /**
+   * ZURÜCK, ABER SCHON VERRECHNET (M7, 16.11.2026): mehr zurückgegeben als
+   * noch offen war — der Kunde hat es bezahlt. `offen` ist hier die Menge
+   * der Gutschrift (positiv): höchstens, was zurückkam. Ein Überhang aus
+   * Scheinen (Material von woanders) zählt nicht dazu.
+   */
+  zurueckVerrechnet: MaterialVorschlag[];
 } {
   const je = new Map<string, MaterialVorschlag>();
   // Beide Wege zum selben Artikel: über die Kennung und über den Namen.
@@ -168,6 +175,9 @@ export function materialAbgleich(
   return {
     vorschlaege: alle.filter((v) => v.offen > 0),
     spaeterGetragen: alle.filter((v) => (v.spaeterAbgezogen ?? 0) > 0),
+    zurueckVerrechnet: alle
+      .filter((v) => v.zurueck > 0 && v.offen < 0)
+      .map((v) => ({ ...v, offen: menge(Math.min(v.zurueck, -v.offen)) })),
   };
 }
 
