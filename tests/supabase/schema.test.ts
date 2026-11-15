@@ -210,6 +210,8 @@ describe('Interne Hilfsfunktionen', () => {
       'app.sitzungen_beenden(uuid)',
       // K2: die Push-Anmeldungen eines Kontos — nur über Sperren und Sitzungsende.
       'app.push_anmeldungen_entfernen(uuid)',
+      // K10: offene Passwort-Bitten beim Sperren schließen — nur über `app.konto_sperren`.
+      'app.passwort_anfragen_schliessen(uuid)',
       'app.ausleitung_anstossen()',
       'app.ausleitung_nachsehen()',
       // K3: Warteschlange des Nachtlaufs — nur pg_cron stößt sie an.
