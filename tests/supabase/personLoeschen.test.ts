@@ -117,6 +117,9 @@ describe('Eine Person der Belegschaft', () => {
       einstellungen: 1, fehlerprotokoll: 1, einsaetze: 1, ruestlisten: 1, baustellen: 1, termine: 0, geburtsdatum: 0,
       // M04a: als Standardfahrer eingetragen — das geht sofort, das Fahrzeug bleibt.
       standardfahrer: 1,
+      // F13/F16: ihr Name an verbuchten Bankbewegungen und an Belegen per Mail (Prüfungen mit Inhalt:
+      // `kontoauszugVerbuchen.test.ts`, `belegMail.test.ts`).
+      bank_buchungen: 0, beleg_versand: 0,
       // M10/B09: Text und Anhänge ihrer Nachrichten, ihre Teilnahmen (Prüfung mit Inhalt: `nachrichten.test.ts`).
       nachrichten: 0, nachrichten_teilnehmer: 0,
       // E77: die Reaktionen der Person (Prüfung mit Inhalt: `nachrichtReaktionen.test.ts`).
@@ -211,6 +214,8 @@ describe('Ein Kunde', () => {
     // seit M02c seine Beteiligungen an Liegenschaften.
     expect(probe.b!.sofort).toEqual({
       wartungen: 1, kontaktdaten: 2, termine: 0, auftragseingaenge: 2, liegenschaft_beteiligungen: 1, annahme_links: 0,
+      // F16: Empfängeradressen seiner Belege per Mail (hier keine; mit Inhalt: `belegMail.test.ts`).
+      mailversand_adressen: 0,
     });
     expect(await zaehle('liegenschaft_beteiligte', 'id', beteiligung)).toBe(1);
     expect(await zaehle('auftragseingaenge', 'customer_id', kunde)).toBe(3);
