@@ -155,9 +155,12 @@ vi.mock('@/features/time/TimeForm', () => ({
   default: function Zeitformular({
     vorbelegung,
     entry,
+    loeschen,
   }: {
     vorbelegung?: Record<string, unknown> | null;
     entry?: { id: string };
+    /** Das Löschen über dem Fuß (U7) — zeichnet die Attrappe mit. */
+    loeschen?: import('react').ReactNode;
   }) {
     useEffect(() => {
       formularAufbauten += 1;
@@ -166,6 +169,7 @@ vi.mock('@/features/time/TimeForm', () => ({
       <div data-testid="zeitformular">
         {/* Welcher Eintrag bearbeitet wird — für die antippbare Zeile (Linie „Lot“). */}
         {entry ? `bearbeitet: ${entry.id}` : vorbelegung ? `vorbelegt: ${JSON.stringify(vorbelegung)}` : 'leer'}
+        {loeschen}
       </div>
     );
   },
@@ -1309,7 +1313,8 @@ describe('Zeiterfassung am Handy (C6, E90)', () => {
     alsHandy();
     eintraege = [eintrag({ id: 'offen', date: '2026-08-31' })];
     const { container } = zeige();
-    await screen.findByText('31.08.2026');
+    // Am Handy kompakt (U7): „Mo., 31.08. · …“ statt des ganzen Datums.
+    await screen.findByText(/31\.08\./);
     expect(screen.queryByTestId('zeitformular')).toBeNull();
     expect(container.querySelector('#zeit-formular')).toBeNull();
     expect(screen.queryByRole('button', { name: /Zu meinen Einträgen/ })).toBeNull();
@@ -1324,8 +1329,9 @@ describe('Zeiterfassung am Handy (C6, E90)', () => {
     alsHandy();
     eintraege = [eintrag({ id: 'offen', date: '2026-08-31' })];
     zeige();
-    await screen.findByText('31.08.2026');
-    await userEvent.click(within(zeileVom('31.08.2026')).getByRole('button', { name: BEARBEITEN }));
+    // Am Handy kompakt (U7): „Mo., 31.08. · …“ statt des ganzen Datums.
+    await screen.findByText(/31\.08\./);
+    await userEvent.click(within(screen.getByText(/31\.08\./).closest('li') as HTMLElement).getByRole('button', { name: BEARBEITEN }));
     const blatt = await screen.findByRole('dialog', { name: 'Eintrag bearbeiten' });
     expect(within(blatt).getByTestId('zeitformular')).toHaveTextContent('bearbeitet: offen');
   });
@@ -1354,6 +1360,23 @@ describe('Zeiterfassung am Handy (C6, E90)', () => {
     expect(await screen.findByRole('dialog', { name: 'Neuer Eintrag' })).toBeInTheDocument();
   });
 
+  /*
+    U7 (15.11.2026): am Handy trägt die Zeile keinen Papierkorb mehr; Löschen
+    steht im Blatt der Buchung — mit derselben Rückfrage. Ab dem Tablet
+    bleibt der Papierkorb an der Zeile (Prüfung „löscht …“ oben).
+  */
+  it('U7: kompakte Zeile ohne Papierkorb; „Eintrag löschen“ im Blatt fragt wie bisher nach', async () => {
+    alsHandy();
+    eintraege = [eintrag({ id: 'offen', date: '2026-08-31' })];
+    zeige();
+    const zeile = (await screen.findByText(/31\.08\./)).closest('li') as HTMLElement;
+    expect(within(zeile).queryByRole('button', { name: / löschen$/ })).toBeNull();
+    await userEvent.click(within(zeile).getByRole('button', { name: BEARBEITEN }));
+    const blatt = await screen.findByRole('dialog', { name: 'Eintrag bearbeiten' });
+    await userEvent.click(within(blatt).getByRole('button', { name: 'Eintrag löschen' }));
+    expect(await screen.findByRole('dialog', { name: 'Eintrag löschen?' })).toBeInTheDocument();
+  });
+
   it('ist die Zeiterfassung ausgeschaltet, sagt es die Seite — ohne „Neuer Eintrag“', async () => {
     alsHandy();
     const vorher = authWert.company;
@@ -1363,8 +1386,8 @@ describe('Zeiterfassung am Handy (C6, E90)', () => {
       zeige();
       expect(await screen.findByText(/Die Zeiterfassung ist ausgeschaltet/)).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Neuer Eintrag' })).toBeNull();
-      // Vorhandenes bleibt lesbar.
-      expect(await screen.findByText('31.08.2026')).toBeInTheDocument();
+      // Vorhandenes bleibt lesbar — am Handy in der kompakten Zeile (U7).
+      expect(await screen.findByText(/31\.08\./)).toBeInTheDocument();
     } finally {
       authWert.company = vorher;
     }

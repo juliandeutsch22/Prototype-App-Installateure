@@ -67,6 +67,7 @@ import { offeneAngaben } from '@/lib/zeitfelder';
 import { useFeldsatz, useFeldwerte } from './useZeitfelder';
 import ZeitfeldAngaben from './ZeitfeldAngaben';
 import { LoeschenKnopf } from '@/components/Symbolknoepfe';
+import { datumKurz } from '@/features/termine/terminText';
 import NochNichtGesendet from './NochNichtGesendet';
 import { entwurfAlsEintrag, zeitEntwurfEntfernen, type ZeitEntwurf } from '@/lib/zeitEntwuerfe';
 
@@ -602,6 +603,22 @@ export default function TimeView() {
     document.getElementById('zeit-formular')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   };
 
+  /**
+   * Darf diese Buchung hier gelöscht werden? Genau dort, wo die Zeile den
+   * Papierkorb trägt: nicht im abgeschlossenen Monat, nicht verrechnet, nicht
+   * aus Krankmeldung, Sonderurlaub oder Antrag, kein vom Büro gebuchter
+   * Zeitausgleich und keine vom Büro gesperrte Zeit (U7: dieselbe Regel für
+   * das Löschen im Fenster und per Wischen).
+   */
+  const darfLoeschen = (e: WithId<TimeEntry>) =>
+    !abgeschlossen.has(e.date.slice(0, 7)) &&
+    !e.isBilled &&
+    !e.krankmeldungId &&
+    !e.freistellungId &&
+    !e.vacationId &&
+    !(e.status === 'Zeitausgleich' && !canEditTime(user.role)) &&
+    !(!canEditTime(user.role) && buerobuchungGesperrt(e, entries, geburtsdatum));
+
   /** Eine Buchung als Zeile — in den Wochen wie unter „Kommende Wochen". */
   const zeile = (e: WithId<TimeEntry>) => {
     // Sprach-/Stundeneinträge haben keine Start-/Endzeit -> nicht "undefined–undefined" zeigen.
@@ -640,10 +657,23 @@ export default function TimeView() {
       e.status !== 'Berufsschule' &&
       !(e.status === 'Zeitausgleich' && !canEditTime(user.role)) &&
       !vomBueroGesperrt;
+    // Am Handy kompakt (U7); ab dem Tablet wie bisher.
+    const kompakt = amHandy;
     return (
       <ListRow
         key={e.id}
-        title={
+        title={kompakt ? (
+          /*
+            AM HANDY EINE KOMPAKTE ZEILE (U7, 15.11.2026): Tag und Zeitraum,
+            darunter die Baustelle, rechts die Dauer — vorher drei bis vier
+            Zeilen je Buchung (152–176 px). Notiz, Zeitangaben und „Bearbeitet
+            von“ stehen im Fenster, das ein Tipp auf die Zeile öffnet.
+          */
+          <>
+            <span>{datumKurz(e.date)}{timeLabel && ` · ${timeLabel}`}</span>
+            {bearbeitbar && <span className="sr-only"> bearbeiten</span>}
+          </>
+        ) : (
           <>
             <span>
               {datumAT(e.date)}
@@ -660,9 +690,17 @@ export default function TimeView() {
             {/* Die Zeile öffnet das Formular — die Vorlesehilfe soll es hören. */}
             {bearbeitbar && <span className="sr-only"> bearbeiten</span>}
           </>
-        }
+        )}
         onOeffnen={bearbeitbar ? () => bearbeiten(e) : undefined}
-        subtitle={
+        subtitle={kompakt ? (
+          (e.customerName || e.projectNumber) ? (
+            <span className="zeit-kurz-baustelle">
+              {e.status !== 'Anwesend' && <span className="zeit-schraffur schraffur" aria-hidden="true" />}
+              {e.customerName && <span className="zeit-kurz-name">{e.customerName}</span>}
+              {e.projectNumber && <> <span className="zeile-nr">{e.projectNumber}</span></>}
+            </span>
+          ) : e.status !== 'Anwesend' ? <span className="zeit-schraffur schraffur" aria-hidden="true" /> : undefined
+        ) : (
           <>
             {/*
               ABWESENHEIT SCHRAFFIERT (Planlinie B11): Urlaub, Krankenstand,
@@ -689,7 +727,7 @@ export default function TimeView() {
               </span>
             )}
           </>
-        }
+        )}
         zustand={
           <>
             {doppelteTage.has(e.date) && (
@@ -744,6 +782,13 @@ export default function TimeView() {
               {' '}Ändern oder löschen kann sie deshalb nur das Büro. Stimmt etwas nicht, sag es dort.
             </InfoHint>
           </span>
+        ) : kompakt ? (
+          /*
+            AM HANDY OHNE PAPIERKORB IN DER ZEILE (U7): Löschen steht im
+            Fenster, das ein Tipp öffnet, und kommt per Wischen nach links
+            (F15) — mit derselben Rückfrage.
+          */
+          null
         ) : (
           // „Bearbeiten“ ist die Zeile selbst; Löschen bleibt ein eigenes Ziel, als Papierkorb (E74).
           <LoeschenKnopf label={`${datumAT(e.date)} löschen`} onClick={() => setToDelete(e)} />
@@ -1124,6 +1169,16 @@ export default function TimeView() {
               besitzerProfil={profile}
               onSaved={() => { nachSpeichern(); formularSchliessen(); }}
               onCancel={formularSchliessen}
+              /*
+                LÖSCHEN IM FENSTER (U7): die Zeile trägt am Handy keinen
+                Papierkorb mehr. Dieselbe Regel wie dort (`darfLoeschen`),
+                dieselbe Rückfrage danach.
+              */
+              loeschen={editing && darfLoeschen(editing) ? (
+                <Button type="button" variant="danger" onClick={() => { const e = editing; formularSchliessen(); setToDelete(e); }}>
+                  Eintrag löschen
+                </Button>
+              ) : undefined}
             />
           )}
         </BottomSheet>

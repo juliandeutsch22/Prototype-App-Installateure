@@ -722,3 +722,32 @@ test.describe('B12 Seitenwechsel Liste → Akte', () => {
     expect((await lesen(page)).every((x) => x === 0)).toBe(true);
   });
 });
+
+test.describe('U7 Zeiterfassung am Handy', () => {
+  test('kompakte Zeile, Löschen im Fenster mit derselben Rückfrage', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(pfad('/time', 'Mitarbeiter'));
+    const zeilen = page.locator('#meine-eintraege li.zeile');
+    await expect(zeilen.first()).toBeVisible();
+    const hoehen = await zeilen.evaluateAll((z) => z.slice(0, 6).map((e) => e.getBoundingClientRect().height));
+    // Vorher 152–176 px je Buchung (drei bis vier Zeilen und ein Papierkorb).
+    expect(Math.max(...hoehen)).toBeLessThan(110);
+    const erste = zeilen.first();
+    await expect(erste.getByRole('button', { name: /löschen$/ })).toHaveCount(0);
+    await erste.locator('.zeile-ziel').click();
+    const fenster = page.getByRole('dialog', { name: 'Eintrag bearbeiten' });
+    await expect(fenster).toBeVisible();
+    await fenster.getByRole('button', { name: 'Eintrag löschen' }).click();
+    await expect(page.getByRole('dialog', { name: 'Eintrag löschen?' })).toBeVisible();
+    await expect(fenster).toHaveCount(0);
+  });
+
+  test('gleich geblieben: ab dem Tablet die Zeile wie bisher, mit Papierkorb', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(pfad('/time', 'Mitarbeiter'));
+    const erste = page.locator('#meine-eintraege li.zeile').first();
+    await expect(erste).toBeVisible();
+    await expect(erste.getByRole('button', { name: /löschen$/ })).toHaveCount(1);
+    await expect(erste).toContainText(/\d{2}\.\d{2}\.\d{4} · /);
+  });
+});

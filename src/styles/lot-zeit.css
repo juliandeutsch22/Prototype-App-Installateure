@@ -109,3 +109,15 @@
   .verlauf-angaben { margin: 0.125rem 0 0; padding: 0; list-style: none; }
   .verlauf-angaben li { overflow-wrap: anywhere; }
 }
+
+/*
+  DIE KOMPAKTE BUCHUNG AM HANDY (U7, 15.11.2026): oben Tag und Zeitraum, rechts
+  die Dauer, darunter die Baustelle in EINER Zeile — ein langer Name endet mit
+  „…“, die Nummer bleibt stehen (sie unterscheidet drei Buchungen beim selben
+  Kunden, G3). Der ganze Name steht im Fenster, das ein Tipp öffnet.
+*/
+@layer components {
+  .zeit-kurz-baustelle { display: flex; align-items: baseline; gap: 0.375rem; min-width: 0; }
+  .zeit-kurz-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .zeit-kurz-baustelle .zeile-nr { flex: none; }
+}
