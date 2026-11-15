@@ -329,6 +329,71 @@ export function listLagerPosten(companyId: string): Promise<WithId<EinkaufPosten
   });
 }
 
+/**
+ * WAS VON DIESEM ARTIKEL NOCH KOMMT (M12): offene Zeilen der Einkaufsliste —
+ * Anforderungen und eigene Posten, noch nicht geliefert. Der Wareneingang im
+ * Lager bietet die bestellten davon an und erledigt sie mit; dazu die in den
+ * letzten Tagen schon als geliefert gebuchten, damit niemand eine Lieferung
+ * ein zweites Mal einbucht.
+ *
+ * Die Grenze ist großzügig: offene Bestellungen eines Artikels sind eine
+ * Handvoll, nicht hundert.
+ */
+const JE_ARTIKEL_GRENZE = 100;
+/** Wie weit „schon geliefert“ zurückreicht — eine Lieferung, die man noch auspackt. */
+export const GELIEFERT_ZURUECK_TAGE = 14;
+
+export async function lieferungenFuerArtikel(
+  companyId: string,
+  materialId: string,
+  jetzt = Date.now(),
+): Promise<{
+  anforderungen: WithId<MaterialOrder>[];
+  posten: WithId<EinkaufPosten>[];
+  geliefert: Array<WithId<MaterialOrder> | WithId<EinkaufPosten>>;
+}> {
+  const seit = new Date(jetzt - GELIEFERT_ZURUECK_TAGE * 86_400_000).toISOString();
+  const [anforderungen, posten, angeliefert, postenGeliefert] = await Promise.all([
+    abfragen<MaterialOrder>(ANFORDERUNGEN, companyId, {
+      wo: [
+        { art: 'gleich', feld: 'materialId', wert: materialId },
+        { art: 'gleich', feld: 'beschaffung', wert: 'einkauf' },
+        { art: 'gleich', feld: 'transactionType', wert: 'order' },
+        { art: 'gleich', feld: 'processed', wert: false },
+        { art: 'leer', feld: 'geliefertAm' },
+      ],
+      sortiere: { feld: 'createdAt' },
+      grenze: JE_ARTIKEL_GRENZE,
+    }),
+    abfragen<EinkaufPosten>(POSTEN, companyId, {
+      wo: [
+        { art: 'gleich', feld: 'materialId', wert: materialId },
+        { art: 'leer', feld: 'geliefertAm' },
+      ],
+      sortiere: { feld: 'createdAt' },
+      grenze: JE_ARTIKEL_GRENZE,
+    }),
+    abfragen<MaterialOrder>(ANFORDERUNGEN, companyId, {
+      wo: [
+        { art: 'gleich', feld: 'materialId', wert: materialId },
+        { art: 'gleich', feld: 'beschaffung', wert: 'einkauf' },
+        { art: 'ab', feld: 'geliefertAm', wert: seit },
+      ],
+      sortiere: { feld: 'geliefertAm', absteigend: true },
+      grenze: JE_ARTIKEL_GRENZE,
+    }),
+    abfragen<EinkaufPosten>(POSTEN, companyId, {
+      wo: [
+        { art: 'gleich', feld: 'materialId', wert: materialId },
+        { art: 'ab', feld: 'geliefertAm', wert: seit },
+      ],
+      sortiere: { feld: 'geliefertAm', absteigend: true },
+      grenze: JE_ARTIKEL_GRENZE,
+    }),
+  ]);
+  return { anforderungen, posten, geliefert: [...angeliefert, ...postenGeliefert] };
+}
+
 export type NeuerLagerPosten = Pick<
   EinkaufPosten,
   'materialId' | 'materialName' | 'menge' | 'einheit' | 'supplierId' | 'notiz'

@@ -570,7 +570,7 @@ export default function Einkaufsliste({
         confirmTone="primary"
         message={lieferung
           ? `${fmtMenge(lieferung.o.menge)}${lieferung.o.einheit ? ` ${lieferung.o.einheit}` : ''} × ${lieferung.o.bezeichnung} — ${
-            lieferung.o.art === 'lager' ? 'geht ins Lager' : 'die Anforderung wird abholbereit'}.`
+            lieferung.o.art === 'lager' ? 'geht ins Lager' : 'die Anforderung wird abholbereit'}. Das ist der Wareneingang — im Lager nicht noch einmal einbuchen.`
           : ''}
         gesperrt={!lieferung || teilwahl(lieferung.menge, lieferung.o.menge).art === 'fehler'}
         onCancel={() => setLieferung(null)}

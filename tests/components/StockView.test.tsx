@@ -6,7 +6,7 @@ import { ToastProvider } from '@/components/Toast';
 import type { Material, MaterialOrder } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import StockView from '@/features/orders/StockView';
-import { listGrosshaendler } from '@/lib/db/einkauf';
+import { listGrosshaendler, lieferungenFuerArtikel } from '@/lib/db/einkauf';
 import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 
 /**
@@ -92,6 +92,9 @@ const inventurBuchen = vi.fn();
 const bewegungenLaden = vi.fn<(...a: unknown[]) => Promise<unknown[]>>(async () => []);
 vi.mock('@/lib/db/einkauf', () => ({
   listGrosshaendler: vi.fn(async () => [{ id: 'g1', name: 'Frauenthal', active: true }]),
+  // M12: was von diesem Artikel noch kommt — ohne eigene Vorgabe nichts.
+  lieferungenFuerArtikel: vi.fn(async () => ({ anforderungen: [], posten: [], geliefert: [] })),
+  GELIEFERT_ZURUECK_TAGE: 14,
 }));
 
 vi.mock('@/lib/db/materialOrders', () => ({
@@ -546,6 +549,76 @@ describe('Lager — Wareneingang', () => {
     const dialog = await eingangMit('');
     expect(await within(dialog).findByText(/Bitte eine Menge eintragen/)).toBeInTheDocument();
     expect(bestandAendern).not.toHaveBeenCalled();
+  });
+
+  /*
+    EIN WEG FÜR EINE LIEFERUNG (M12, B17): der Wareneingang erledigt die
+    offenen Bestellungen des Artikels mit — vorher buchte, wer danach auf der
+    Einkaufsliste „Geliefert“ drückte, die Menge ein zweites Mal ein.
+    Gegenprobe: ohne die Bestellungen im Dialog fehlen sie im Aufruf (rot);
+    ohne offene Bestellung bleibt der Aufruf wie bisher (die Tests oben).
+  */
+  const offen = () => ({
+    anforderungen: [anforderung({
+      id: 'a1', materialId: 'm1', quantity: 10, beschaffung: 'einkauf', supplierId: 'g1',
+      bestelltAm: Date.UTC(2026, 10, 12), userName: 'Max Mustermann', projectNumber: 'B-2026-0001',
+      status: 'In Bearbeitung',
+    })],
+    posten: [{ id: 'p1', companyId: 'perl', materialId: 'm1', materialName: 'Kupferrohr 15mm', menge: 20,
+      supplierId: 'g1', bestelltAm: Date.UTC(2026, 10, 10) }],
+    // Noch nicht bestellt: kann nicht ankommen, wird nicht angeboten.
+    geliefert: [],
+  } as unknown as Awaited<ReturnType<typeof lieferungenFuerArtikel>>);
+
+  it('erledigt die offenen Bestellungen mit — Anforderung zuerst, die letzte als Teillieferung (M12)', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    vi.mocked(lieferungenFuerArtikel).mockResolvedValueOnce(offen());
+    zeige();
+    const dialog = await eingangOeffnen();
+    const a = await within(dialog).findByRole('checkbox', { name: /^10 m · Max Mustermann · B-2026-0001 · Frauenthal/ });
+    const p = within(dialog).getByRole('checkbox', { name: /^20 m · fürs Lager · Frauenthal/ });
+    expect(a).toBeChecked();
+    expect(p).toBeChecked();
+    // Beide beim selben Großhändler: er steht schon als Lieferant da.
+    expect(within(dialog).getByRole('combobox', { name: /^Lieferant/ })).toHaveValue('Frauenthal');
+    const feld = within(dialog).getByLabelText(/^Menge/);
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '25');
+    expect(within(dialog).getByText('1 Bestellung ist damit geliefert; eine teilweise (15 von 20), der Rest bleibt bestellt.'))
+      .toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
+      materialId: 'm1', menge: 25, lieferant: 'Frauenthal', lieferschein: undefined, bezug: undefined,
+      vorgang: expect.stringMatching(/^[0-9a-f-]{36}$/), bestellungen: ['a1', 'p1'],
+    }));
+  });
+
+  it('abgehakt geht alles frei in den Bestand — wie bisher (M12)', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    vi.mocked(lieferungenFuerArtikel).mockResolvedValueOnce(offen());
+    zeige();
+    const dialog = await eingangOeffnen();
+    await userEvent.click(await within(dialog).findByRole('checkbox', { name: /Max Mustermann/ }));
+    await userEvent.click(within(dialog).getByRole('checkbox', { name: /fürs Lager/ }));
+    expect(within(dialog).getByText(/Keine Bestellung gewählt/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
+      materialId: 'm1', menge: 1, lieferant: 'Frauenthal', lieferschein: undefined, bezug: undefined,
+      vorgang: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    }));
+  });
+
+  it('nennt, was in den letzten Tagen schon als geliefert gebucht ist (M12)', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    vi.mocked(lieferungenFuerArtikel).mockResolvedValueOnce({
+      anforderungen: [], posten: [],
+      geliefert: [{ id: 'p9', menge: 12, lieferschein: 'LS-0815', geliefertAm: Date.UTC(2026, 10, 14, 9) }],
+    } as unknown as Awaited<ReturnType<typeof lieferungenFuerArtikel>>);
+    zeige();
+    const dialog = await eingangOeffnen();
+    expect(await within(dialog).findByText(/12 m am 14\.11\.2026 \(Lieferschein LS-0815\)/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/nicht noch einmal einbuchen/)).toBeInTheDocument();
+    expect(within(dialog).queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
   it('bucht nichts, wenn der Dialog abgebrochen wird', async () => {

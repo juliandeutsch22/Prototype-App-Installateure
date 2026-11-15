@@ -53,7 +53,11 @@ vi.mock('@/lib/db/materials', () => ({
   nummernTreffer: async () => new Map(),
 }));
 const inventur = vi.fn<(...a: unknown[]) => Promise<number>>(async () => 0);
-vi.mock('@/lib/db/einkauf', () => ({ listGrosshaendler: vi.fn(async () => []) }));
+vi.mock('@/lib/db/einkauf', () => ({
+  listGrosshaendler: vi.fn(async () => []),
+  lieferungenFuerArtikel: vi.fn(async () => ({ anforderungen: [], posten: [], geliefert: [] })),
+  GELIEFERT_ZURUECK_TAGE: 14,
+}));
 vi.mock('@/lib/db/materialOrders', () => ({
   subscribeAllOrders: (_c: string, _m: number, cb: (rows: unknown[]) => void) => {
     cb([]);

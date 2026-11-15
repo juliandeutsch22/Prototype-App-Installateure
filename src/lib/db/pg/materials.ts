@@ -230,6 +230,11 @@ export async function adjustStock(materialId: string, delta: number) {
 export async function lagerEingang(eingang: {
   materialId: string; menge: number; lieferant: string; lieferschein?: string; bezug?: string; ortId?: string;
   vorgang?: string;
+  /**
+   * Die offenen Bestellungen, die diese Lieferung erledigt (M12) — in der
+   * Reihenfolge, in der die Menge sie füllt. Ohne: nur der Bestand, wie bisher.
+   */
+  bestellungen?: readonly string[];
 }): Promise<number> {
   /*
     DER ORT NUR, WENN EINER GEWÄHLT IST (M04a): ins Hauptlager geht derselbe
@@ -243,6 +248,7 @@ export async function lagerEingang(eingang: {
     p_bezug: eingang.bezug ?? null,
     ...(eingang.ortId ? { p_ort: eingang.ortId } : {}),
     ...(eingang.vorgang ? { p_vorgang: eingang.vorgang } : {}),
+    ...(eingang.bestellungen?.length ? { p_bestellungen: eingang.bestellungen } : {}),
   });
   if (error) {
     // 23505: dieselbe Kennung mit anderen Angaben — der erste Eingang ist schon gebucht.

@@ -9,7 +9,9 @@ import { describe, it, expect } from 'vitest';
 import type { EinkaufPosten, MaterialOrder } from '@/types';
 import { bestellTabelle } from '@/features/orders/bestellungPdf';
 import type { WithId } from '@/lib/db/core';
-import { bestellMail, bestellText, einkaufsliste, MAILTO_GRENZE } from '@/features/orders/einkauf';
+import {
+  bestellMail, bestellText, einkaufsliste, eingangsBestellungen, eingangVerteilen, MAILTO_GRENZE,
+} from '@/features/orders/einkauf';
 
 let n = 0;
 function a(rest: Partial<MaterialOrder>): WithId<MaterialOrder> {
@@ -180,5 +182,45 @@ describe('Nummer des Großhändlers (M03a)', () => {
   it('gleich geblieben: ohne Nummern wie bisher die Artikelnummer des Stamms', () => {
     const [g] = einkaufsliste([a({ materialId: 'm1' })], KATALOG);
     expect(g.zuBestellen[0].artikelnummer).toBe('EV-12');
+  });
+});
+
+/*
+  WARENEINGANG ERLEDIGT DIE BESTELLUNGEN MIT (M12). Dieselbe Reihenfolge und
+  Rechnung wie `lager_eingang` — der Dialog sagt vorher, was geschieht.
+*/
+describe('Wareneingang und offene Bestellungen', () => {
+  const posten = (rest: Partial<EinkaufPosten> & { id: string }) => ({
+    companyId: 'perl', materialId: 'm1', materialName: 'Eckventil 1/2', menge: 5, supplierId: 'holter', ...rest,
+  }) as WithId<EinkaufPosten>;
+
+  it('nur Bestelltes; Anforderungen vor eigenen Posten, jeweils die zuerst bestellte zuerst', () => {
+    const z = eingangsBestellungen(
+      [
+        a({ id: 'spaet', materialId: 'm1', quantity: 2, bestelltAm: 300 }),
+        a({ id: 'frueh', materialId: 'm1', quantity: 3, bestelltAm: 100 }),
+        a({ id: 'nichtBestellt', materialId: 'm1', quantity: 9 }),
+        a({ id: 'schonDa', materialId: 'm1', quantity: 9, bestelltAm: 50, geliefertAm: 60 }),
+      ],
+      [posten({ id: 'pA', bestelltAm: 10 }), posten({ id: 'pB' })],
+    );
+    expect(z.map((b) => b.id)).toEqual(['frueh', 'spaet', 'pA']);
+    expect(z[2]).toMatchObject({ art: 'lager', kommission: 'Lager', menge: 5 });
+  });
+
+  it('verteilt der Reihe nach: ganz, dann teilweise, der Rest bleibt bestellt', () => {
+    const b = (id: string, menge: number) => ({ id, art: 'anforderung' as const, menge });
+    expect(eingangVerteilen(7, [b('x', 3), b('y', 6), b('z', 2)])).toEqual({
+      ganz: [b('x', 3)], teil: { bestellung: b('y', 6), menge: 4 }, offen: [b('z', 2)], frei: 0,
+    });
+    expect(eingangVerteilen(12, [b('x', 3), b('y', 6)])).toEqual({ ganz: [b('x', 3), b('y', 6)], offen: [], frei: 3 });
+    expect(eingangVerteilen(9, [b('x', 3), b('y', 6)])).toEqual({ ganz: [b('x', 3), b('y', 6)], offen: [], frei: 0 });
+    // Ohne Auswahl geht alles frei in den Bestand — wie vor M12.
+    expect(eingangVerteilen(4, [])).toEqual({ ganz: [], offen: [], frei: 4 });
+  });
+
+  it('rechnet mit Komma ohne Rundungsrest', () => {
+    const b = (id: string, menge: number) => ({ id, art: 'lager' as const, menge });
+    expect(eingangVerteilen(0.3, [b('x', 0.1), b('y', 0.2)]).frei).toBe(0);
   });
 });

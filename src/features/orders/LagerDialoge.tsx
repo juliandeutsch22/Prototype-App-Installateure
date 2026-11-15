@@ -3,16 +3,18 @@ import type { Lagerbewegung, Lagerort, Material } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { lagerEingang, lagerInventur, listLagerbewegungen } from '@/lib/db/materials';
 import { umlagern } from '@/lib/db/lagerorte';
-import { listGrosshaendler } from '@/lib/db/einkauf';
+import { GELIEFERT_ZURUECK_TAGE, listGrosshaendler, lieferungenFuerArtikel } from '@/lib/db/einkauf';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import ZahlFeld from '@/components/ZahlFeld';
-import { InputField, SelectField } from '@/components/Field';
+import Hinweiszeile from '@/components/Hinweiszeile';
+import { CheckboxField, InputField, SelectField } from '@/components/Field';
 import { LotVerlauf, MehrAnzeigen } from '@/components/LotBausteine';
 import { zahlAlsText, zahlOder } from '@/lib/zahl';
 import { mengeFehler } from '@/lib/einheit';
 import { fmtMenge } from '@/lib/belegLayout';
 import { datumAusMs } from '@/lib/datum';
 import { HAUPTLAGER, ortName, ortNameVon } from './lagerorte';
+import { eingangsBestellungen, eingangVerteilen, type EingangsBestellung } from './einkauf';
 
 /**
  * DIE WAHL EINES LAGERORTS (M04a) — in jedem Dialog dieselbe: das Hauptlager
@@ -68,8 +70,40 @@ export function OrtWahl({
  * Auswahl der angelegten Großhändler; „Anderer Lieferant …“ öffnet das
  * Textfeld, denn Ware kommt auch vom Baumarkt oder direkt vom Hersteller.
  * Ohne angelegte Großhändler bleibt es beim Textfeld allein.
+ *
+ * EIN WEG FÜR EINE LIEFERUNG (M12, B17): der Wareneingang bietet die
+ * bestellten, noch nicht gelieferten Zeilen der Einkaufsliste für diesen
+ * Artikel an — vorgehakt — und erledigt sie mit, genau wie „Geliefert“ auf
+ * der Einkaufsliste: die Anforderung wird abholbereit, der Posten geliefert.
+ * Vorher waren es zwei Wege, und wer beide nahm, buchte doppelt; wer nur den
+ * Wareneingang nahm, ließ den Monteur warten. Was in den letzten Tagen schon
+ * als geliefert gebucht ist, steht als Hinweis da — damit es nicht ein
+ * zweites Mal eingebucht wird.
  */
 const ANDERER = '__anderer';
+
+/** Wie eine angebotene Bestellung heißt: Menge, für wen, bei wem. */
+function bestellungLabel(b: EingangsBestellung, haendler: (id?: string | null) => string, einheit: string): string {
+  const wofuer = b.art === 'anforderung'
+    ? [b.wer, b.kommission].filter(Boolean).join(' · ') || 'Anforderung'
+    : 'fürs Lager';
+  const bei = haendler(b.supplierId);
+  return `${fmtMenge(b.menge)} ${b.einheit || einheit} · ${wofuer}${bei ? ` · ${bei}` : ''}${
+    b.bestelltAm ? ` · bestellt ${datumAusMs(b.bestelltAm)}` : ''}`;
+}
+
+/** Was mit der Menge geschieht — vor dem Buchen, als ein Satz. */
+function verteilungText(menge: number, gewaehlt: readonly EingangsBestellung[], einheit: string): string {
+  if (gewaehlt.length === 0) return 'Keine Bestellung gewählt — die ganze Menge geht frei in den Bestand.';
+  const v = eingangVerteilen(menge, gewaehlt);
+  const teile: string[] = [];
+  if (v.ganz.length > 0) teile.push(v.ganz.length === 1 ? '1 Bestellung ist damit geliefert' : `${v.ganz.length} Bestellungen sind damit geliefert`);
+  if (v.teil) teile.push(`eine teilweise (${fmtMenge(v.teil.menge)} von ${fmtMenge(v.teil.bestellung.menge)}), der Rest bleibt bestellt`);
+  if (v.offen.length > 0) teile.push(v.offen.length === 1 ? '1 bleibt bestellt' : `${v.offen.length} bleiben bestellt`);
+  if (v.frei > 0) teile.push(`${fmtMenge(v.frei)} ${einheit} gehen frei in den Bestand`);
+  const satz = teile.join('; ');
+  return satz ? `${satz.charAt(0).toUpperCase()}${satz.slice(1)}.` : '';
+}
 
 export function WareneingangDialog({
   companyId,
@@ -102,10 +136,19 @@ export function WareneingangDialog({
   */
   const [vorgang] = useState(() => crypto.randomUUID());
   const [vorschlaege, setVorschlaege] = useState<string[]>([]);
+  /** Alle Großhändler (Kennung → Name) — für den Namen an der Bestellung. */
+  const [haendlerNamen, setHaendlerNamen] = useState<ReadonlyMap<string, string>>(new Map());
   /** Gewählter Großhändler; leer = noch keiner, `ANDERER` = getippt. */
   const [wahl, setWahl] = useState('');
   // Wer schon tippte, bevor die Liste kam, verliert seinen Text nicht.
   const getippt = useRef('');
+  /** Die offenen Bestellungen dieses Artikels, in der Reihenfolge, in der sie erledigt werden. */
+  const [bestellungen, setBestellungen] = useState<EingangsBestellung[]>([]);
+  const [gewaehlt, setGewaehlt] = useState<ReadonlySet<string>>(new Set());
+  /** In den letzten Tagen schon als geliefert gebucht: Menge und Lieferschein. */
+  const [schonGeliefert, setSchonGeliefert] = useState<Array<{ id: string; menge: number; schein?: string | null; am?: number | null }>>([]);
+  /** Konnten die Bestellungen nicht geladen werden, sagt der Dialog es. */
+  const [bestellungenFehlen, setBestellungenFehlen] = useState(false);
 
   useEffect(() => {
     let weg = false;
@@ -115,11 +158,48 @@ export function WareneingangDialog({
       .then((g) => {
         if (weg) return;
         setVorschlaege(g.filter((x) => x.active).map((x) => x.name));
+        setHaendlerNamen(new Map(g.map((x) => [x.id, x.name])));
         if (getippt.current.trim()) setWahl(ANDERER);
       })
       .catch(() => undefined);
     return () => { weg = true; };
   }, [companyId]);
+
+  useEffect(() => {
+    let weg = false;
+    Promise.resolve()
+      .then(() => lieferungenFuerArtikel(companyId, artikel.id))
+      .then((l) => {
+        if (weg) return;
+        const offen = eingangsBestellungen(l.anforderungen, l.posten);
+        setBestellungen(offen);
+        // Vorgehakt: wer eine Lieferung einbucht, hat in aller Regel genau diese Bestellung bekommen.
+        setGewaehlt(new Set(offen.map((b) => b.id)));
+        setSchonGeliefert(l.geliefert.map((z) => ({
+          id: z.id,
+          menge: Number('quantity' in z ? z.quantity : z.menge) || 0,
+          schein: z.lieferschein,
+          am: z.geliefertAm,
+        })));
+      })
+      .catch(() => { if (!weg) setBestellungenFehlen(true); });
+    return () => { weg = true; };
+  }, [companyId, artikel.id]);
+
+  const haendler = (id?: string | null) => (id ? haendlerNamen.get(id) ?? '' : '');
+  const einheit = artikel.unit ?? 'Stk';
+  const auswahl = bestellungen.filter((b) => gewaehlt.has(b.id));
+
+  /*
+    DER LIEFERANT AUS DER BESTELLUNG: kommen alle angebotenen vom selben
+    Großhändler, steht er schon in der Auswahl — die Ware kommt von dort.
+  */
+  useEffect(() => {
+    if (wahl || getippt.current.trim() || bestellungen.length === 0) return;
+    const namen = new Set(bestellungen.map((b) => (b.supplierId ? haendlerNamen.get(b.supplierId) ?? '' : '')));
+    const [einziger] = [...namen];
+    if (namen.size === 1 && einziger && vorschlaege.includes(einziger)) setWahl(einziger);
+  }, [bestellungen, haendlerNamen, vorschlaege, wahl]);
 
   const tippen = vorschlaege.length === 0 || wahl === ANDERER;
   const name = tippen ? lieferant.trim() : wahl;
@@ -137,11 +217,13 @@ export function WareneingangDialog({
       bezug: bezug.trim() || undefined,
       ...(ort ? { ortId: ort } : {}),
       vorgang,
+      ...(auswahl.length > 0 ? { bestellungen: auswahl.map((b) => b.id) } : {}),
     });
+    const v = eingangVerteilen(n, auswahl);
+    const erledigt = v.ganz.length + (v.teil ? 1 : 0);
     onFertig(
-      ort
-        ? `${fmtMenge(n)} ${artikel.unit ?? 'Stk'} ${artikel.name} eingebucht — ${ortNameVon(orte, ort)}`
-        : `${fmtMenge(n)} ${artikel.unit ?? 'Stk'} ${artikel.name} eingebucht`,
+      `${fmtMenge(n)} ${einheit} ${artikel.name} eingebucht${ort ? ` — ${ortNameVon(orte, ort)}` : ''}${
+        erledigt === 1 ? ' · 1 Bestellung geliefert' : erledigt > 1 ? ` · ${erledigt} Bestellungen geliefert` : ''}`,
     );
   }
 
@@ -149,7 +231,9 @@ export function WareneingangDialog({
     <ConfirmDialog
       open
       title={`Wareneingang: ${artikel.name}`}
-      message="Die Menge kommt zum Bestand dazu und steht mit Lieferant und Lieferschein im Bewegungsprotokoll."
+      message={bestellungen.length > 0
+        ? 'Die Menge kommt zum Bestand dazu und steht mit Lieferant und Lieferschein im Bewegungsprotokoll. Gewählte Bestellungen sind damit geliefert — auf der Einkaufsliste ist nichts mehr abzuhaken.'
+        : 'Die Menge kommt zum Bestand dazu und steht mit Lieferant und Lieferschein im Bewegungsprotokoll.'}
       confirmLabel="Einbuchen"
       confirmTone="primary"
       onConfirm={buchen}
@@ -166,6 +250,42 @@ export function WareneingangDialog({
           value={menge}
           onChange={setMenge}
         />
+        {bestellungen.length > 0 && (
+          <fieldset className="space-y-1">
+            <legend className="text-meta text-ink-muted">Offene Bestellungen — mit dieser Lieferung geliefert</legend>
+            {bestellungen.map((b) => (
+              <CheckboxField
+                key={b.id}
+                id={`eingang-bestellung-${b.id}`}
+                label={bestellungLabel(b, haendler, einheit)}
+                checked={gewaehlt.has(b.id)}
+                onChange={(e) => {
+                  const neu = new Set(gewaehlt);
+                  if (e.target.checked) neu.add(b.id); else neu.delete(b.id);
+                  setGewaehlt(neu);
+                }}
+              />
+            ))}
+            <p className="text-meta text-ink-muted" aria-live="polite">
+              {verteilungText(zahlOder(menge, 0), auswahl, einheit)}
+            </p>
+          </fieldset>
+        )}
+        {bestellungenFehlen && (
+          <Hinweiszeile stufe="warn">
+            <b>Offene Bestellungen nicht geladen.</b> Eingebucht wird nur der Bestand — eine Bestellung
+            dieses Artikels danach auf der Einkaufsliste nicht noch einmal als geliefert buchen.
+          </Hinweiszeile>
+        )}
+        {schonGeliefert.length > 0 && (
+          <Hinweiszeile>
+            <b>Schon als geliefert gebucht:</b>{' '}
+            {schonGeliefert.slice(0, 3).map((g) => `${fmtMenge(g.menge)} ${einheit}${g.am ? ` am ${datumAusMs(g.am)}` : ''}${
+              g.schein ? ` (Lieferschein ${g.schein})` : ''}`).join(', ')}
+            {schonGeliefert.length > 3 ? ` und ${schonGeliefert.length - 3} weitere` : ''} in den letzten{' '}
+            {GELIEFERT_ZURUECK_TAGE} Tagen. Dieselbe Lieferung nicht noch einmal einbuchen.
+          </Hinweiszeile>
+        )}
         {vorschlaege.length > 0 && (
           <SelectField
             id="eingang-grosshaendler"
