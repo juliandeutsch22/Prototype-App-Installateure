@@ -19,8 +19,10 @@ interface Props {
 
 /**
  * Zeitraum-Auswahl für die Mitarbeiter-Exporte (Legacy:8195-8242). Der
- * Stundennachweis geht oft an Kunden oder die Lohnverrechnung und braucht
- * deshalb einen frei wählbaren Zeitraum statt nur den Monatsfilter.
+ * Stundennachweis geht an die Lohnverrechnung und braucht deshalb einen frei
+ * wählbaren Zeitraum statt nur den Monatsfilter. Für Kunden ist er nicht
+ * gedacht (Z8): er zeigt auch Krankenstand und andere Kunden — der Dialog
+ * verweist auf den Nachweis der Baustelle (F12).
  */
 export default function ExportDialog({
   user,
@@ -87,6 +89,10 @@ export default function ExportDialog({
           Bericht exportieren
         </h2>
         <p className="mt-1 text-sm text-ink-muted">{user.name}</p>
+        <p className="mt-1 text-sm text-ink-muted">
+          Für die Lohnverrechnung — mit allen Buchungen der Person. Für einen Kunden: „Stundennachweis“ im ⋯
+          der Baustellen- oder Kundenakte.
+        </p>
 
         <div className="mt-4">
           <FormGrid>

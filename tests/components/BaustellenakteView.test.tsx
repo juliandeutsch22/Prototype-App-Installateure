@@ -1224,3 +1224,50 @@ describe('Übersicht: Einsätze, Material, Rechnungen (E84)', () => {
     expect(screen.getByRole('region', { name: 'Zuletzt' })).toHaveTextContent('05.10.2026 · Anton Meier');
   });
 });
+
+/*
+  F12: DER STUNDENNACHWEIS FÜR DEN KUNDEN im ⋯ der Akte — für die, die
+  fremde Zeiten lesen (Buchhaltung, Geschäftsführung, Administration).
+*/
+const nachweisSpeichern = vi.fn();
+const nachweisErzeugen = vi.fn((opts: unknown) => { void opts; return { save: nachweisSpeichern }; });
+vi.mock('@/features/accounting/baustellenNachweisPdf', () => ({
+  generateBaustellenNachweisPdf: (opts: unknown) => nachweisErzeugen(opts),
+}));
+const nachweisBuchungen = vi.fn(async (companyId: string, nummern: string[]) => { void companyId; void nummern; return [
+  { id: 't1', companyId: 'perl', date: '2026-11-03', status: 'Anwesend', userId: 'u1', userName: 'Anton Meier', startTime: '07:00', endTime: '15:30', breakDuration: 30, projectNumber: '2026-101' },
+  { id: 't2', companyId: 'perl', date: '2026-11-04', status: 'Krank', userId: 'u1', userName: 'Anton Meier', projectNumber: '' },
+]; });
+vi.mock('@/lib/db/timeEntries', async (original) => ({
+  ...(await original<typeof import('@/lib/db/timeEntries')>()),
+  listEntriesForProjectsInRange: (companyId: string, nummern: string[]) => nachweisBuchungen(companyId, nummern),
+}));
+
+describe('Stundennachweis der Baustelle (F12)', () => {
+  it('steht im ⋯ und erzeugt das Blatt nur mit der Arbeitszeit dieser Baustelle', async () => {
+    firma = { id: 'perl' };
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Baustelle 2026-101/ }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Stundennachweis' }));
+    const dialog = screen.getByRole('dialog', { name: 'Stundennachweis' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'PDF erstellen' }));
+    await waitFor(() => expect(nachweisSpeichern).toHaveBeenCalledTimes(1));
+    expect(nachweisBuchungen.mock.calls[0][1]).toEqual(['2026-101']);
+    const { zeilen, bezug } = nachweisErzeugen.mock.calls[0][0] as { zeilen: { eintrag: { id: string } }[]; bezug: string[] };
+    expect(zeilen.map((z) => z.eintrag.id)).toEqual(['t1']);
+    expect(bezug[1]).toMatch(/^2026-101/);
+  });
+
+  it('bleibt gleich: wer fremde Zeiten nicht liest, hat kein ⋯ dafür', async () => {
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+    zeige();
+    await screen.findByRole('heading', { level: 1 });
+    expect(screen.queryByRole('menuitem', { name: 'Stundennachweis' })).toBeNull();
+    const knopf = screen.queryByRole('button', { name: /Weitere Aktionen für Baustelle/ });
+    if (knopf) {
+      await userEvent.click(knopf);
+      expect(screen.queryByRole('menuitem', { name: 'Stundennachweis' })).toBeNull();
+    }
+  });
+});

@@ -99,6 +99,13 @@ export function listEntriesForProjects(
   return pg.listEntriesForProjects(companyId, projectNumbers);
 }
 
+/** Die Buchungen auf diesen Baustellen in einem Zeitraum — siehe `pg.listEntriesForProjectsInRange`. */
+export function listEntriesForProjectsInRange(
+  companyId: string, projectNumbers: string[], von: string, bis: string,
+): Promise<WithId<TimeEntry>[]> {
+  return pg.listEntriesForProjectsInRange(companyId, projectNumbers, von, bis);
+}
+
 export type { BaustellenStunden } from './pg/timeEntries';
 
 export type { OffeneStunden } from './pg/timeEntries';

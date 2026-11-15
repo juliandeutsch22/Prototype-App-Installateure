@@ -17,7 +17,9 @@ import { listWartungenForCustomer } from '@/lib/db/wartungen';
 import { listEingaengeDesKunden } from '@/lib/db/auftragseingaenge';
 import { kundeText, zustandVon, wannText } from '@/features/auftragseingang/eingangText';
 import { useModul } from '@/lib/useModule';
-import { canInvoice, darfKundenPflegen, darfTermineSchreiben, isGF } from '@/lib/permissions';
+import { canEditTime, canInvoice, darfKundenPflegen, darfTermineSchreiben, isGF } from '@/lib/permissions';
+import RowMenu from '@/components/RowMenu';
+import StundennachweisDialog from '@/features/accounting/StundennachweisDialog';
 import TermineKarte from '@/features/termine/TermineKarte';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { todayStr } from '@/lib/time';
@@ -125,6 +127,8 @@ export default function KundenakteView() {
   const [entwurf, setEntwurf] = useState<NewCustomer | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const [bearbeitet, setBearbeitet] = useState(false);
+  /** Der Stundennachweis über alle Baustellen des Kunden (F12). */
+  const [nachweisOffen, setNachweisOffen] = useState(false);
   const [terminStand, setTerminStand] = useState<AktenTerminStand>({ termine: null, fehler: false });
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
   /** Runde 6, M6: was an PLZ oder E-Mail nicht stimmt — die Rückfrage „Trotzdem speichern“. */
@@ -654,7 +658,21 @@ export default function KundenakteView() {
         meta={<span className="akten-identitaet">
           <Zustand stand={k.active === false ? 'storniert' : 'gut'}>{k.active === false ? 'inaktiv' : 'aktiv'}</Zustand></span>}
         kontakt={<><TelefonLink nummer={k.contactPhone} name={k.contactName} /><MailLink adresse={k.email} /><a className="link-weiter akten-verweis" href="#kunde-kontext">Kontakt</a></>}
-        action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>} />
+        action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
+        /* Der Stundennachweis über die Baustellen des Kunden (F12) — erst, wenn sie geladen sind. */
+        mehr={user && canEditTime(user.role) && !einblick && baustellen.zustand === 'bereit' && baustellen.daten.length > 0 ? (
+          <RowMenu about={k.name} items={[{ label: 'Stundennachweis', onSelect: () => setNachweisOffen(true) }]} />
+        ) : undefined} />
+      {nachweisOffen && baustellen.zustand === 'bereit' && (
+        <StundennachweisDialog
+          offen
+          onClose={() => setNachweisOffen(false)}
+          nummern={baustellen.daten.map((p) => p.projectNumber)}
+          bezug={['Kunde:', k.name]}
+          angaben={[['Anschrift:', k.address ?? '']]}
+          dateiBezug={k.name}
+        />
+      )}
       <AktenBereiche kennung="kunde" kontext={<>
         <Card title="Kontakt"><AktenAngaben>
           <AktenAngabe wort="Ansprechpartner">{k.contactName}</AktenAngabe>

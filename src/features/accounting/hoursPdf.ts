@@ -47,7 +47,11 @@ function zuschlagKuerzel(e: TimeEntry, nacht: Nachtzeit): string {
 /**
  * Stundennachweis als PDF (Legacy:8244-8382). Anders als das CSV enthält der
  * Nachweis bewusst KEIN Soll und keinen Saldo — er belegt die geleisteten
- * Stunden eines Zeitraums und geht so auch an Kunden oder die Lohnverrechnung.
+ * Stunden eines Zeitraums für die Lohnverrechnung und die Ablage.
+ *
+ * NICHT FÜR KUNDEN (Z8, F12): er zeigt jede Buchung der Person, mit
+ * Krankenstand, Arztbesuch und den Baustellen anderer Kunden. Für den Kunden
+ * gibt es den Stundennachweis der Baustelle (`baustellenNachweisPdf.ts`).
  */
 export function generateHoursPdf(opts: {
   company: Company;

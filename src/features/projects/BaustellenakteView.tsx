@@ -26,7 +26,9 @@ import { euro } from '@/lib/betrag';
 import { canAccess, zusatzrechte } from '@/app/navigation';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import { liegenschaftZeile } from '@/features/liegenschaften/liegenschaftText';
-import { canInvoice, canWriteWorkSheet, isGF } from '@/lib/permissions';
+import { canEditTime, canInvoice, canWriteWorkSheet, isGF } from '@/lib/permissions';
+import RowMenu from '@/components/RowMenu';
+import StundennachweisDialog from '@/features/accounting/StundennachweisDialog';
 import { useModul } from '@/lib/useModule';
 import BaustelleNachrichten from '@/features/nachrichten/BaustelleNachrichten';
 import type { Project, AppUser, Quote } from '@/types';
@@ -133,6 +135,8 @@ export default function BaustellenakteView() {
   const [entwurf, setEntwurf] = useState<BaustellenEntwurf | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const [bearbeitet, setBearbeitet] = useState(false);
+  /** Der Stundennachweis für den Kunden (F12) — offen oder nicht. */
+  const [nachweisOffen, setNachweisOffen] = useState(false);
   const [terminStand, setTerminStand] = useState<AktenTerminStand>({ termine: null, fehler: false });
   const [scheinStand, setScheinStand] = useState<AktenScheineStand>({ scheine: null, verrechnet: new Set(), fehler: false });
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
@@ -619,6 +623,14 @@ export default function BaustellenakteView() {
         standWort={b.status}
         title={baustellenTitel(b)}
         kontakt={<><TelefonLink nummer={b.contactPhone} name={b.contactName} /><a className="link-weiter akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a></>}
+        /*
+          DER STUNDENNACHWEIS FÜR DEN KUNDEN (F12) im ⋯: selten gebraucht, und
+          nur von denen, die fremde Zeiten lesen — im Supportzugang sind
+          Zeitbuchungen verschlossen.
+        */
+        mehr={user && canEditTime(user.role) && !einblick ? (
+          <RowMenu about={`Baustelle ${b.projectNumber}`} items={[{ label: 'Stundennachweis', onSelect: () => setNachweisOffen(true) }]} />
+        ) : undefined}
         action={(hauptaktion || darfAendern) && <div className="akten-aktionen">
           {/* Eine Hauptaktion je Seite; sie folgt dem Stand (E83). „Schein schreiben“ bleibt in der Karte der Scheine. */}
           {hauptaktion === 'planen' && <KnopfLink to="/assignments/tag" state={{ datum: todayStr(), projectNumber: b.projectNumber }}>Einsatz planen</KnopfLink>}
@@ -658,6 +670,17 @@ export default function BaustellenakteView() {
           geaendert={geaendert} speichert={speichert} fehler={speicherFehler} onSpeichern={() => void stammdatenSpeichern()}
           onVerwerfen={() => setEntwurf(alsEntwurf(b))} angebote={angebote} angeboteSichtbar={angeboteSichtbar} />
       </AktenBearbeiten>}
+
+      {nachweisOffen && (
+        <StundennachweisDialog
+          offen
+          onClose={() => setNachweisOffen(false)}
+          nummern={[b.projectNumber]}
+          bezug={['Baustelle:', `${b.projectNumber}${b.bezeichnung?.trim() ? ` · ${b.bezeichnung.trim()}` : ''}`]}
+          angaben={[['Kunde:', b.customerName ?? ''], ['Anschrift:', b.address ?? '']]}
+          dateiBezug={b.projectNumber}
+        />
+      )}
 
       <ConfirmDialog
         open={!!nummerFragen}
