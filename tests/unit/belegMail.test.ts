@@ -92,3 +92,45 @@ describe('Dieselben Zahlen in der Datenbank', () => {
     expect(sql).toBe(ADRESSE_FORM.source);
   });
 });
+
+/*
+  DIE MAHNUNG PER MAIL (F16, Nacharbeit): eigene Vorlage, eigener Dateiname
+  je Stufe — derselbe wie beim „PDF“ der Mahnung und wie in der Datenbank.
+*/
+const MAHNUNG_MIGRATION = readFileSync('supabase/migrations/20261117043000_mahnung_per_mail.sql', 'utf8');
+
+describe('Mahnung per Mail', () => {
+  it('die Standardvorlage nennt Titel, Rechnung, offenen Betrag und Frist — ohne unbekannte Platzhalter', () => {
+    expect(unbekanntePlatzhalter('mahnung', STANDARD_VORLAGEN.mahnung.betreff)).toEqual([]);
+    expect(unbekanntePlatzhalter('mahnung', STANDARD_VORLAGEN.mahnung.text)).toEqual([]);
+    const text = vorlageFuellen(STANDARD_VORLAGEN.mahnung.text, {
+      nummer: 'RE-2026-1001', titel: 'Mahnung', offen: '€ 120,00', frist: '30.11.2026', firma: 'Perl',
+    });
+    expect(text).toContain('unsere Mahnung zur Rechnung RE-2026-1001. Offen sind € 120,00');
+    expect(text).toContain('bis 30.11.2026.');
+    expect(vorlageFuellen(STANDARD_VORLAGEN.mahnung.betreff, { nummer: 'RE-2026-1001', titel: 'Zahlungserinnerung', firma: 'Perl' }))
+      .toBe('Zahlungserinnerung zu Rechnung RE-2026-1001 — Perl');
+  });
+
+  it('Gegenprobe: der Link des Angebots ist bei der Mahnung unbekannt, Titel und Frist bei der Rechnung', () => {
+    expect(unbekanntePlatzhalter('mahnung', '{link} {betrag}')).toEqual(['link', 'betrag']);
+    expect(unbekanntePlatzhalter('rechnung', '{titel} {frist}')).toEqual(['titel', 'frist']);
+  });
+
+  it('Dateiname je Stufe — wie `mahnungDateiname` und wie in der Datenbank', async () => {
+    const { mahnungDateiname } = await import('@/features/invoices/mahnungPdf');
+    for (const stufe of [1, 2, 3] as const) {
+      expect(anhangName('mahnung', 'RE-2026-1001', stufe)).toBe(mahnungDateiname({ invoiceNumber: 'RE-2026-1001' }, stufe));
+    }
+    expect(MAHNUNG_MIGRATION).toContain(
+      "case mahnung.stufe when 1 then 'Zahlungserinnerung_' when 2 then 'Mahnung_' else 'Letzte_Mahnung_' end",
+    );
+  });
+
+  it('das Rate-Limit zählt Rechnung und Mahnungen zusammen; die Datenbank kennt die Vorlage', () => {
+    expect(MAHNUNG_MIGRATION).toMatch(new RegExp(
+      `\\(v\\.invoice_id = coalesce\\(rechnung\\.id, p_beleg\\) or v\\.quote_id = p_beleg\\)\\) >= ${JE_BELEG_JE_STUNDE}`,
+    ));
+    expect(MAHNUNG_MIGRATION).toContain("k not in ('rechnung', 'angebot', 'mahnung')");
+  });
+});

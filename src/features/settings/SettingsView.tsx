@@ -693,7 +693,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
         </form>
       )}
 
-      {/* F16: Antwortadresse und Vorlagen für Rechnungen und Angebote per Mail — die Leitung pflegt sie. */}
+      {/* F16: Antwortadresse und Vorlagen für Rechnungen, Mahnungen und Angebote per Mail — die Leitung pflegt sie. */}
       {teil === 'rechnung' && <BelegMailEinstellungen bearbeiten={darfGenehmigerSetzen} />}
 
       {teil === 'saetze' && (

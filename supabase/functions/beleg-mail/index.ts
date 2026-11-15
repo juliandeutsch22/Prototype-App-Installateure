@@ -1,5 +1,7 @@
 /**
- * Rechnung oder Angebot per Mail (Durchsicht 15.11.2026, F16; Roadmap 11.2 Nr. 1).
+ * Rechnung, Mahnung oder Angebot per Mail (Durchsicht 15.11.2026, F16; Roadmap 11.2 Nr. 1).
+ * Bei der Mahnung ist `beleg` die gespeicherte Mahnung — ihre Stufe setzt wie
+ * bisher das Erstellen (`mahnung_festhalten`), nicht das Senden.
  *
  * DER ABLAUF:
  *   1. Ist der Versand eingerichtet (`SMTP_*`-Secrets, `docs/DEPLOYMENT.md`)?
@@ -92,7 +94,7 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   if (!DIENST) return fehler(SCHLUESSEL_FEHLT, 503);
 
   const art = e.art as BelegArt;
-  if (art !== 'rechnung' && art !== 'angebot') return fehler('Per Mail gehen Rechnungen und Angebote.', 400);
+  if (art !== 'rechnung' && art !== 'angebot' && art !== 'mahnung') return fehler('Per Mail gehen Rechnungen, Mahnungen und Angebote.', 400);
   const beleg = String(e.beleg ?? '');
   if (!UUID.test(beleg)) return fehler('Welcher Beleg, steht nicht in der Anfrage.', 400);
   const empfaenger = empfaengerLesen(Array.isArray(e.an) ? e.an.map(String).join(',') : '');

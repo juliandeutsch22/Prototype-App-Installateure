@@ -251,3 +251,20 @@ describe('verlaufEintrag — Liegenschaft, Top, Beteiligter (M02c)', () => {
     expect(verlaufSichtbar('Geschäftsführung', 'liegenschaft', true)).toBe(false);
   });
 });
+
+describe('verlaufEintrag — Versand per Mail (F16)', () => {
+  const versand = (beleg_art?: string) => verlaufEintrag(zeile({
+    quelle: 'beleg_versand', objektart: 'rechnung', art: 'per_mail_versendet',
+    aenderungen: { an: ['kunde@huber.at'], betreff: 'Mahnung zu Rechnung RE-2026-1001', anhang: 'Mahnung_RE-2026-1001.pdf', beleg_art },
+  }));
+
+  it('im Verlauf der Rechnung sagt der Titel, dass ihre Mahnung hinausging', () => {
+    expect(versand('mahnung').titel).toBe('Mahnung per Mail versendet');
+    expect(versand('mahnung').zeilen).toContain('Anhang: Mahnung_RE-2026-1001.pdf');
+  });
+
+  it('bleibt gleich: die Rechnung selbst und ältere Einträge ohne Belegart', () => {
+    expect(versand('rechnung').titel).toBe('Per Mail versendet');
+    expect(versand(undefined).titel).toBe('Per Mail versendet');
+  });
+});

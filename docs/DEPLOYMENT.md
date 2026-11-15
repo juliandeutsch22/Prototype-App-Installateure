@@ -211,10 +211,11 @@ wurden und wohin. Eine Sicherung, die niemand je ausgelöst hat, ist keine.
 
 ---
 
-## 5a · Rechnungen und Angebote per Mail (seit 17.11.2026, F16)
+## 5a · Rechnungen, Mahnungen und Angebote per Mail (seit 17.11.2026, F16)
 
-Die Edge Function `beleg-mail` verschickt Rechnungen und Angebote aus der App
-über SMTP. **Die Zugangsdaten der Anmeldemails (Authentication → SMTP)
+Die Edge Function `beleg-mail` verschickt Rechnungen, gespeicherte Mahnungen
+(Zahlungserinnerung und Mahnstufen) und Angebote aus der App über SMTP —
+dieselben Secrets für alle drei. **Die Zugangsdaten der Anmeldemails (Authentication → SMTP)
 erreicht sie nicht** — Supabase gibt sie an keine Function weiter. Dieselben
 Werte (oder ein eigenes Postfach wie `belege@senklot.at`) gehören deshalb
 zusätzlich unter *Project Settings → Edge Functions → Secrets*:

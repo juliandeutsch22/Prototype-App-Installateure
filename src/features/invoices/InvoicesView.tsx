@@ -118,7 +118,7 @@ import { Marke, Warnung } from '@/components/Badge';
 import RechnungDetail, { type MahnungZeile, type RechnungAktion } from './RechnungDetail';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
-import { mahnungPdfLaden, rechnungPdfBlob, rechnungPdfLaden } from './belegeLaden';
+import { mahnungPdfBlob, mahnungPdfLaden, rechnungPdfBlob, rechnungPdfLaden } from './belegeLaden';
 import BelegMailDialog from '@/features/belegMail/BelegMailDialog';
 import BankgarantieDialog from './BankgarantieDialog';
 import EbInterfaceDialog from './EbInterfaceDialog';
@@ -479,6 +479,8 @@ export default function InvoicesView() {
   const [eRechnungFuer, setERechnungFuer] = useState<{ inv: WithId<Invoice>; storno: boolean } | null>(null);
   /** Die Rechnung, die gerade per Mail hinausgeht (F16). */
   const [mailFuer, setMailFuer] = useState<WithId<Invoice> | null>(null);
+  /** Die gespeicherte Mahnung, die gerade per Mail hinausgeht — mit ihrer Rechnung (F16, Nacharbeit). */
+  const [mahnMail, setMahnMail] = useState<{ inv: WithId<Invoice>; m: Mahnung } | null>(null);
   const [zahlungen, setZahlungen] = useState<WithId<Zahlungseingang>[] | null>(null);
   const [zDatum, setZDatum] = useState(todayStr());
   const [zBetrag, setZBetrag] = useState('');
@@ -2676,14 +2678,25 @@ export default function InvoicesView() {
       await shareOrDownloadPdf(blob, mahnungDateiname(inv, stufe));
 
       // Festgehalten wird, was die Mahnung an Kosten verlangt — Spesen oder Pauschale.
-      await mahnungFesthalten(inv.id, {
+      const mahnungId = await mahnungFesthalten(inv.id, {
         stufe, gemahntAm: heute, frist, spesen: inhalt.kosten, inhalt,
       });
       // Das Abzeichen im Menü zählt mit: diese Rechnung ist bis zum Ablauf
       // der neuen Frist keine fällige Mahnung mehr. Ebenso der Mahnlauf.
       void postenNeuLaden();
       offeneNeuLaden();
-      toast.success(`${TEXTE[stufe].titel} erzeugt`);
+      /*
+        PER MAIL GLEICH DANACH (F16, Nacharbeit): Stufe und `gemahnt_am` hat
+        das Festhalten eben gesetzt — genau wie bisher. Die Mail schickt
+        dieses gespeicherte Schreiben, sie mahnt nicht ein zweites Mal.
+      */
+      const erzeugt: Mahnung = {
+        id: mahnungId, companyId: inv.companyId, invoiceId: inv.id, stufe, datum: heute, frist, spesen: inhalt.kosten, inhalt,
+      };
+      toast.success(`${TEXTE[stufe].titel} erzeugt`, einblick ? undefined : {
+        label: 'Per Mail senden',
+        onClick: () => setMahnMail({ inv, m: erzeugt }),
+      });
       setMahnFuer(null);
     } catch (err) {
       /*
@@ -2722,6 +2735,27 @@ export default function InvoicesView() {
     return () => { weg = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- detailMahnKey trägt Rechnung und Stand
   }, [user?.companyId, detailMahnKey]);
+
+  /**
+   * Die jüngste Mahnung der Rechnung per Mail (F16, Nacharbeit) — frisch
+   * gelesen: nur sie lässt die Datenbank hinaus, eine ältere Stufe nach einer
+   * neueren nähme die Mahnung zurück.
+   */
+  async function mahnungMailOeffnen(inv: WithId<Invoice>) {
+    if (!user) return;
+    try {
+      const liste = await listMahnungenZurRechnung(user.companyId, inv.id);
+      const juengste = [...liste].sort((x, y) => y.stufe - x.stufe || y.datum.localeCompare(x.datum)
+        || (y.angelegtAm ?? 0) - (x.angelegtAm ?? 0))[0];
+      if (!juengste) {
+        toast.error(`Zu ${inv.invoiceNumber} ist keine Mahnung gespeichert.`);
+        return;
+      }
+      setMahnMail({ inv, m: juengste });
+    } catch (err) {
+      toast.error(grundAus(err, 'Die Mahnungen der Rechnung ließen sich nicht laden.'));
+    }
+  }
 
   /** Eine gespeicherte Mahnung erneut als PDF — genau das Schreiben von damals. */
   async function mahnungErneutLaden(id: string) {
@@ -3377,6 +3411,17 @@ export default function InvoicesView() {
       */
       ...(darfMahnen(inv, todayStr()).moeglich
         ? [{ label: `${TEXTE[naechsteStufe(inv)!].titel} erzeugen`, onSelect: ausDemFenster(() => mahnenOeffnen(inv)) }]
+        : []),
+      /*
+        DIE LETZTE MAHNUNG PER MAIL (F16, Nacharbeit) — für eine gemahnte,
+        noch offene Rechnung. Gemahnt ist sie schon mit dem Erzeugen; die
+        Mail schickt das gespeicherte Schreiben. Nicht im Supporteinblick.
+      */
+      ...((inv.mahnstufe ?? 0) > 0 && inv.paymentStatus !== 'Storniert' && stand.rest > 0 && !einblick
+        ? [{
+            label: `${TEXTE[Math.min(inv.mahnstufe ?? 1, 3) as 1 | 2 | 3].titel} per Mail senden …`,
+            onSelect: ausDemFenster(() => void mahnungMailOeffnen(inv)),
+          }]
         : []),
       /*
         DIE BANKGARANTIE (seit 10.10.2026): nur, wo ein Rücklass offen ist —
@@ -5949,6 +5994,27 @@ export default function InvoicesView() {
           pdfErzeugen={() => rechnungPdfBlob(company, mailFuer)}
           pdfLaden={() => void redownload(mailFuer)}
           onClose={() => setMailFuer(null)}
+        />
+      )}
+      {mahnMail && company && (
+        <BelegMailDialog
+          key={mahnMail.m.id}
+          open
+          art="mahnung"
+          belegId={mahnMail.m.id}
+          kundenEmail={kundeZu((mahnMail.inv as WithId<Invoice> & { customerId?: string }).customerId, mahnMail.inv.customerName)?.email || undefined}
+          werte={{
+            nummer: mahnMail.inv.invoiceNumber,
+            kunde: mahnMail.inv.customerName,
+            titel: TEXTE[mahnMail.m.inhalt.stufe].titel,
+            mahnstufe: mahnMail.m.inhalt.stufe,
+            // Was das Schreiben als offen nennt — der Stand am Mahntag, wie im PDF.
+            offen: euro(mahnMail.m.inhalt.offen),
+            frist: datumAT(mahnMail.m.frist),
+          }}
+          pdfErzeugen={() => mahnungPdfBlob(company, mahnMail.m)}
+          pdfLaden={() => void mahnungPdfLaden(company, mahnMail.m).catch((err) => toast.error(grundAus(err, 'Die Mahnung konnte nicht geladen werden.')))}
+          onClose={() => setMahnMail(null)}
         />
       )}
       <ConfirmDialog

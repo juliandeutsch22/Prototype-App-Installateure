@@ -24,6 +24,7 @@ import {
 const ARTEN: { art: BelegArt; titel: string }[] = [
   { art: 'rechnung', titel: 'Rechnung' },
   { art: 'angebot', titel: 'Angebot' },
+  { art: 'mahnung', titel: 'Mahnung' },
 ];
 
 export default function BelegMailEinstellungen({ bearbeiten }: { bearbeiten: boolean }) {
@@ -31,7 +32,7 @@ export default function BelegMailEinstellungen({ bearbeiten }: { bearbeiten: boo
   const toast = useToast();
   const [antwort, setAntwort] = useState('');
   const [vorlagen, setVorlagen] = useState<Record<BelegArt, { betreff: string; text: string }>>({
-    rechnung: { betreff: '', text: '' }, angebot: { betreff: '', text: '' },
+    rechnung: { betreff: '', text: '' }, angebot: { betreff: '', text: '' }, mahnung: { betreff: '', text: '' },
   });
   const [laeuft, setLaeuft] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
@@ -42,6 +43,7 @@ export default function BelegMailEinstellungen({ bearbeiten }: { bearbeiten: boo
     setVorlagen({
       rechnung: { betreff: v.rechnung?.betreff ?? '', text: v.rechnung?.text ?? '' },
       angebot: { betreff: v.angebot?.betreff ?? '', text: v.angebot?.text ?? '' },
+      mahnung: { betreff: v.mahnung?.betreff ?? '', text: v.mahnung?.text ?? '' },
     });
   }, [company]);
 
@@ -97,10 +99,12 @@ export default function BelegMailEinstellungen({ bearbeiten }: { bearbeiten: boo
         title="Belege per Mail"
         hint={
           <>
-            Rechnungen und Angebote gehen aus der App per Mail an den Kunden — mit dem PDF im Anhang. Abgesendet wird
+            Rechnungen, Mahnungen und Angebote gehen aus der App per Mail an den Kunden — mit dem PDF im Anhang. Abgesendet wird
             über die Adresse von Senklot mit dem Namen des Betriebs; der Kunde antwortet an die Antwortadresse, und
             dorthin geht auf Wunsch die Kopie. Leere Vorlagen heißen „Standard“. Platzhalter: bei der Rechnung{' '}
-            {PLATZHALTER.rechnung.map((p) => `{${p}}`).join(', ')}; beim Angebot {PLATZHALTER.angebot.map((p) => `{${p}}`).join(', ')}.
+            {PLATZHALTER.rechnung.map((p) => `{${p}}`).join(', ')}; beim Angebot {PLATZHALTER.angebot.map((p) => `{${p}}`).join(', ')};
+            bei der Mahnung {PLATZHALTER.mahnung.map((p) => `{${p}}`).join(', ')} — {'{titel}'} ist „Zahlungserinnerung“,
+            „Mahnung“ oder „Letzte Mahnung“.
             Eine Zeile mit {'{link}'} fällt weg, wenn kein Annahme-Link mitgeht.
           </>
         }

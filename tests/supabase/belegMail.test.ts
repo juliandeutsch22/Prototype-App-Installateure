@@ -22,7 +22,7 @@
  */
 import { describe, it, expect, beforeAll } from 'vitest';
 import { createHash } from 'node:crypto';
-import { admin, ANON, API, betriebAnlegen, deaktivieren, konto, type Konto } from './helfer';
+import { admin, ANON, API, betriebAnlegen, deaktivieren, konto, type Konto, mahnInhalt } from './helfer';
 import * as rechnungen from '@/lib/db/pg/invoices';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 
@@ -54,6 +54,16 @@ async function senden(wer: Konto, rumpf: Record<string, unknown>) {
   return { status: a.status, daten: await a.json().catch(() => null) as Record<string, unknown> | null };
 }
 
+/** Eine gespeicherte Mahnung zur Rechnung — wie sie `mahnung_festhalten` hinterlässt (Stufe, Tag, Frist, Inhalt). */
+async function gespeicherteMahnung(r: { id: string; nummer: string }, stufe: 1 | 2 | 3, datum: string): Promise<string> {
+  const { data, error } = await admin.from('mahnungen').insert({
+    company_id: BETRIEB, invoice_id: r.id, stufe, datum, frist: '2099-01-01', spesen: 0,
+    inhalt: mahnInhalt(stufe, datum, '2099-01-01', r.nummer),
+  }).select('id').single();
+  if (error) throw new Error(error.message);
+  return (data as { id: string }).id;
+}
+
 async function rechnung(kunde = 'Familie Mail'): Promise<{ id: string; nummer: string }> {
   clientEinreichen(buch.client);
   const r = await rechnungen.rechnungAusstellen(BETRIEB, {
@@ -83,7 +93,7 @@ async function angebot(status = 'Entwurf', quoteDate = heute()): Promise<{ id: s
   return { id: String(data), nummer };
 }
 
-const auftrag = (art: 'rechnung' | 'angebot', beleg: string, betreff: string, mehr: Record<string, unknown> = {}) => ({
+const auftrag = (art: 'rechnung' | 'angebot' | 'mahnung', beleg: string, betreff: string, mehr: Record<string, unknown> = {}) => ({
   art, beleg, an: ['kunde@familie-mail.test'], kopie: true, betreff, text: 'Sehr geehrte Damen und Herren,\n\nanbei …\n\nPerl', anhang: PDF_B64,
   ...mehr,
 });
@@ -277,5 +287,54 @@ describe('beleg-mail (F16)', () => {
     expect(error).toBeNull();
     const { data: nachher } = await admin.from('beleg_versand').select('an, beleg_nummer, betreff').eq('invoice_id', r.id);
     expect(nachher).toEqual([{ an: ['entfernt'], beleg_nummer: r.nummer, betreff: `Auskunft ${r.nummer}` }]);
+  });
+
+  describe('Mahnung per Mail (Nacharbeit)', () => {
+    it('die jüngste Mahnung kommt an — Anhang je Stufe, Protokoll an Mahnung und Rechnung, im Verlauf der Rechnung', async () => {
+      const r = await rechnung();
+      await gespeicherteMahnung(r, 1, '2026-10-01');
+      const m2 = await gespeicherteMahnung(r, 2, '2026-10-15');
+      const { data: vorher } = await admin.from('invoices').select('mahnstufe, gemahnt_am').eq('id', r.id).single();
+      const betreff = `Mahnung ${r.nummer} Probe ${Date.now()}`;
+      const a = await senden(buch, auftrag('mahnung', m2, betreff));
+      expect(a.status, JSON.stringify(a.daten)).toBe(200);
+      const m = await angekommen(betreff);
+      expect(m!.Attachments).toEqual([expect.objectContaining({ FileName: `Mahnung_${r.nummer}.pdf`, ContentType: 'application/pdf' })]);
+      const { data: zeile } = await admin.from('beleg_versand').select('*').eq('id', a.daten!.versand as string).single();
+      expect(zeile).toMatchObject({ art: 'mahnung', mahnung_id: m2, invoice_id: r.id, beleg_nummer: r.nummer, zustand: 'versendet' });
+      // Die Stufe setzt das Erstellen der Mahnung — das Senden ändert sie nicht.
+      const { data: nachher } = await admin.from('invoices').select('mahnstufe, gemahnt_am').eq('id', r.id).single();
+      expect(nachher).toEqual(vorher);
+      const { data: verlauf } = await buch.client.from('objekt_verlauf').select('art, aenderungen')
+        .eq('objektart', 'rechnung').eq('objekt_id', r.id).eq('quelle', 'beleg_versand');
+      expect(verlauf).toEqual([expect.objectContaining({ art: 'per_mail_versendet', aenderungen: expect.objectContaining({ beleg_art: 'mahnung' }) })]);
+    });
+
+    it('Gegenprobe: keine ältere Stufe, nicht nach Bezahlung, nicht von der Projektleitung', async () => {
+      const r = await rechnung();
+      const m1 = await gespeicherteMahnung(r, 1, '2026-10-01');
+      const m2 = await gespeicherteMahnung(r, 2, '2026-10-15');
+      const alt = await senden(buch, auftrag('mahnung', m1, `Alt ${r.nummer}`));
+      expect(alt.status).toBe(409);
+      expect(String(alt.daten?.error)).toMatch(/neuere Mahnung/);
+      expect((await senden(pl, auftrag('mahnung', m2, `PL ${r.nummer}`))).status).toBe(403);
+      const { error: zahlung } = await admin.from('zahlungseingaenge').insert({
+        company_id: BETRIEB, invoice_id: r.id, datum: heute(), betrag: 120, art: 'Überweisung',
+      });
+      expect(zahlung).toBeNull();
+      const bezahlt = await senden(buch, auftrag('mahnung', m2, `Bezahlt ${r.nummer}`));
+      expect(bezahlt.status).toBe(409);
+      expect(String(bezahlt.daten?.error)).toMatch(/bezahlt/);
+      const { count } = await admin.from('beleg_versand').select('id', { count: 'exact', head: true }).eq('invoice_id', r.id);
+      expect(count).toBe(0);
+    });
+
+    it('Rate-Limit: Rechnung und ihre Mahnungen zählen zusammen', async () => {
+      const r = await rechnung();
+      const m = await gespeicherteMahnung(r, 1, '2026-10-01');
+      for (let i = 0; i < 3; i += 1) expect((await senden(buch, auftrag('rechnung', r.id, `Zus ${r.nummer} ${i}`))).status).toBe(200);
+      for (let i = 3; i < 5; i += 1) expect((await senden(buch, auftrag('mahnung', m, `Zus ${r.nummer} ${i}`))).status).toBe(200);
+      expect((await senden(buch, auftrag('mahnung', m, `Zus ${r.nummer} 5`))).status).toBe(429);
+    });
   });
 });

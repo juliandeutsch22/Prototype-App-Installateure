@@ -157,3 +157,46 @@ describe('Beleg per Mail', () => {
     expect(await within(fenster).findByText(/12\.11\.2026, 14:05 an alt@huber\.at · Bea/)).toBeInTheDocument();
   });
 });
+
+describe('Mahnung per Mail (F16, Nacharbeit)', () => {
+  function zeigeMahnung() {
+    return render(
+      <MemoryRouter>
+        <ToastProvider>
+          <BelegMailDialog
+            open
+            art="mahnung"
+            belegId="m2"
+            kundenEmail="kunde@huber.at"
+            werte={{ nummer: 'RE-2026-1001', kunde: 'Maria Huber', titel: 'Letzte Mahnung', mahnstufe: 3, offen: '€ 120,00', frist: '30.11.2026' }}
+            pdfErzeugen={async () => PDF}
+            pdfLaden={pdfLaden}
+            onClose={onClose}
+          />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+  }
+
+  it('Titel der Stufe, Vorlage der Mahnung, Anhang je Stufe; gesendet wird die Mahnung mit ihrem PDF', async () => {
+    auth.company = { ...auth.company, belegMailVorlagen: { mahnung: { betreff: '{titel}: Rechnung {nummer}' } } };
+    belegPerMail.mockResolvedValue({ versand: 'v1', an: ['kunde@huber.at'], kopie: 'office@perl.at' });
+    zeigeMahnung();
+    const fenster = await screen.findByRole('dialog', { name: 'Letzte Mahnung per Mail' });
+    expect(within(fenster).getByLabelText(/^Betreff/)).toHaveValue('Letzte Mahnung: Rechnung RE-2026-1001');
+    expect((within(fenster).getByLabelText(/^Text/) as HTMLTextAreaElement).value)
+      .toContain('Offen sind € 120,00; bitte begleichen Sie den Betrag samt den im Schreiben genannten Kosten bis 30.11.2026.');
+    expect(within(fenster).getByText(/Anhang: Letzte_Mahnung_RE-2026-1001\.pdf/)).toBeInTheDocument();
+    await userEvent.click(await within(fenster).findByRole('button', { name: 'Senden' }));
+    await waitFor(() => expect(belegPerMail).toHaveBeenCalledTimes(1));
+    expect(belegPerMail.mock.calls[0][0]).toMatchObject({ art: 'mahnung', beleg: 'm2', mitLink: false });
+    expect(belegPerMail.mock.calls[0][0].pdf).toBe(PDF);
+  });
+
+  it('bleibt gleich: die Vorlage der Rechnung gilt nicht für die Mahnung', async () => {
+    auth.company = { ...auth.company, belegMailVorlagen: { rechnung: { betreff: 'Ihre Rechnung {nummer}' } } };
+    zeigeMahnung();
+    const fenster = await screen.findByRole('dialog', { name: 'Letzte Mahnung per Mail' });
+    expect(within(fenster).getByLabelText(/^Betreff/)).toHaveValue('Letzte Mahnung zu Rechnung RE-2026-1001 — Perl Installationen');
+  });
+});

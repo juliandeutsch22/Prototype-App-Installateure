@@ -1,6 +1,7 @@
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, cleanup, render, screen, waitFor, within, fireEvent } from '@testing-library/react';
+import { euro } from '@/lib/betrag';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -432,6 +433,15 @@ const authWert = {
   },
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
+
+/** Der Mailversand (F16): welcher Beleg im Fenster steht — die Function selbst prüft `BelegMail.test.tsx`. */
+const versandListe = vi.fn<(...a: unknown[]) => Promise<unknown[]>>(async () => []);
+vi.mock('@/lib/db/belegMail', () => ({
+  BelegMailNichtEingerichtet: class extends Error {},
+  belegMailStand: vi.fn(async () => ({ eingerichtet: true, absender: 'office@senklot.at' })),
+  belegPerMail: vi.fn(),
+  listBelegVersand: (...a: unknown[]) => versandListe(...a),
+}));
 
 function zeige(adresse = '/invoices') {
   return render(
@@ -1309,6 +1319,54 @@ describe('Eine überfällige Rechnung mahnen', () => {
     rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 3 }];
     await menue();
     expect(screen.queryByRole('button', { name: /erzeugen/ })).not.toBeInTheDocument();
+  });
+
+  describe('per Mail (F16, Nacharbeit)', () => {
+    const gespeichert = (id: string, stufe: 1 | 2 | 3, datum: string) => ({
+      id, companyId: 'perl', invoiceId: UEBERFAELLIG.id, stufe, datum, frist: '2026-09-15', spesen: 0,
+      inhalt: { stufe, datum, frist: '2026-09-15', titel: 'x', offen: 1200 },
+    });
+
+    it('schickt die jüngste gespeicherte Mahnung — Fenster mit ihrer Stufe und ihrem Anhang', async () => {
+      versandListe.mockClear();
+      gespeicherteMahnungen.mockImplementation(async () => [gespeichert('m1', 1, '2026-08-20'), gespeichert('m2', 2, '2026-08-30')]);
+      rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 2, gemahntAm: '2026-08-30', mahnfrist: '2026-09-15' }];
+      await menue();
+      await userEvent.click(await screen.findByRole('button', { name: 'Mahnung per Mail senden …' }));
+      const fenster = await screen.findByRole('dialog', { name: 'Mahnung per Mail' });
+      expect(within(fenster).getByText(/Anhang: Mahnung_RE-2026-0009\.pdf/)).toBeInTheDocument();
+      expect((within(fenster).getByLabelText(/^Text/) as HTMLTextAreaElement).value).toContain(`Offen sind ${euro(1200)}`);
+      await waitFor(() => expect(versandListe).toHaveBeenCalledWith('perl', 'mahnung', 'm2'));
+    });
+
+    it('Gegenprobe: ohne Mahnung, nach Bezahlung oder Storno kein Senden', async () => {
+      for (const r of [
+        UEBERFAELLIG,
+        { ...UEBERFAELLIG, mahnstufe: 2, paymentStatus: 'Bezahlt', bezahltBetrag: 1200 },
+        { ...UEBERFAELLIG, mahnstufe: 2, paymentStatus: 'Storniert' },
+      ]) {
+        cleanup();
+        rechnungen = [r as Invoice & { id: string }];
+        await menue();
+        expect(screen.queryByRole('button', { name: /per Mail senden/ })).not.toBeInTheDocument();
+      }
+    });
+
+    it('gleich nach dem Erzeugen: die Meldung bietet das Senden an — gemahnt ist mit dem Erzeugen, wie bisher', async () => {
+      versandListe.mockClear();
+      mahnung.mockResolvedValueOnce('m-neu');
+      rechnungen = [UEBERFAELLIG];
+      await menue();
+      await userEvent.click(await screen.findByRole('button', { name: 'Zahlungserinnerung erzeugen' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Erzeugen' }));
+      await waitFor(() => expect(mahnung).toHaveBeenCalled());
+      // Die Stufe setzt das Festhalten, nicht die Mail.
+      expect(mahnung.mock.calls[mahnung.mock.calls.length - 1][1]).toMatchObject({ stufe: 1 });
+      await userEvent.click(await screen.findByRole('button', { name: 'Per Mail senden' }));
+      const fenster = await screen.findByRole('dialog', { name: 'Zahlungserinnerung per Mail' });
+      expect(within(fenster).getByText(/Anhang: Zahlungserinnerung_RE-2026-0009\.pdf/)).toBeInTheDocument();
+      await waitFor(() => expect(versandListe).toHaveBeenCalledWith('perl', 'mahnung', 'm-neu'));
+    });
   });
 
   it('nennt beim zweiten Mal die nächste Stufe', async () => {

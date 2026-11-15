@@ -12,7 +12,8 @@
  * Ohne Importe — die Function lädt die Kopie in `supabase/functions/_shared/`.
  */
 
-export type BelegArt = 'rechnung' | 'angebot';
+/** Rechnung, Angebot — und die gespeicherte Mahnung einer Rechnung (Zahlungserinnerung, Mahnung, letzte Mahnung). */
+export type BelegArt = 'rechnung' | 'angebot' | 'mahnung';
 
 /** Höchstens so viele Empfänger je Mail — ein Kunde, eine Hausverwaltung, ein Planer. Mehr wäre ein Verteiler. */
 export const EMPFAENGER_MAX = 3;
@@ -36,7 +37,7 @@ export const ANHANG_MAX_BYTES = 6 * 1024 * 1024;
 export const JE_PERSON_JE_STUNDE = 30;
 export const JE_BETRIEB_JE_STUNDE = 100;
 export const JE_BETRIEB_JE_TAG = 400;
-/** Derselbe Beleg in einer Stunde — mehr ist ein Doppelklick oder ein Irrtum. */
+/** Derselbe Beleg in einer Stunde — mehr ist ein Doppelklick oder ein Irrtum. Eine Rechnung und ihre Mahnungen zählen zusammen. */
 export const JE_BELEG_JE_STUNDE = 5;
 
 /**
@@ -110,6 +111,7 @@ export type MailVorlagen = Partial<Record<BelegArt, Partial<MailVorlage>>>;
 export const PLATZHALTER: Record<BelegArt, readonly string[]> = {
   rechnung: ['nummer', 'kunde', 'betrag', 'faellig', 'baustelle', 'firma'],
   angebot: ['nummer', 'kunde', 'betrag', 'gueltig_bis', 'link', 'firma'],
+  mahnung: ['nummer', 'kunde', 'titel', 'offen', 'frist', 'firma'],
 };
 
 /**
@@ -139,6 +141,19 @@ export const STANDARD_VORLAGEN: Record<BelegArt, MailVorlage> = {
       'anbei erhalten Sie unser Angebot {nummer} über {betrag}, gültig bis {gueltig_bis}.',
       '',
       'Unter diesem Link können Sie es ansehen und mit Ihrer Unterschrift annehmen: {link}',
+      '',
+      'Mit freundlichen Grüßen',
+      '{firma}',
+    ].join('\n'),
+  },
+  mahnung: {
+    betreff: '{titel} zu Rechnung {nummer} — {firma}',
+    text: [
+      'Sehr geehrte Damen und Herren,',
+      '',
+      'anbei erhalten Sie unsere {titel} zur Rechnung {nummer}. Offen sind {offen}; bitte begleichen Sie den Betrag samt den im Schreiben genannten Kosten bis {frist}.',
+      '',
+      'Haben Sie inzwischen bezahlt, betrachten Sie dieses Schreiben bitte als gegenstandslos.',
       '',
       'Mit freundlichen Grüßen',
       '{firma}',
@@ -186,9 +201,15 @@ export function unbekanntePlatzhalter(art: BelegArt, vorlage: string): string[] 
   return [...new Set([...vorlage.matchAll(/\{([a-z_]+)\}/g)].map((m) => m[1]).filter((n) => !bekannt.has(n)))];
 }
 
-/** Der Dateiname des Anhangs — dieselbe Regel wie `beleg_versand_vorbereiten`. */
-export function anhangName(art: BelegArt, nummer: string): string {
-  return `${art === 'rechnung' ? 'Rechnung' : 'Angebot'}_${nummer.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`;
+/**
+ * Der Dateiname des Anhangs — dieselbe Regel wie `beleg_versand_vorbereiten`
+ * (und für die Mahnung wie `mahnungDateiname`); `nummer` ist bei der Mahnung
+ * die Nummer der Rechnung.
+ */
+export function anhangName(art: BelegArt, nummer: string, mahnstufe: 1 | 2 | 3 = 1): string {
+  const wort = art === 'rechnung' ? 'Rechnung' : art === 'angebot' ? 'Angebot'
+    : mahnstufe === 1 ? 'Zahlungserinnerung' : mahnstufe === 2 ? 'Mahnung' : 'Letzte_Mahnung';
+  return `${wort}_${nummer.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`;
 }
 
 /** Die Antwort der Function, wenn der Versand nicht eingerichtet ist — die App zeigt dann den bisherigen Weg. */

@@ -54,6 +54,13 @@ export async function mahnungPdfLaden(company: Company, m: Mahnung): Promise<voi
   }
 }
 
+/** Dieselbe gespeicherte Mahnung als Datei für den Mailversand (F16) — genau das Schreiben von damals. */
+export async function mahnungPdfBlob(company: Company, m: Mahnung): Promise<Blob> {
+  const { istMahnungInhalt, mahnungPdfAusInhalt } = await import('./mahnungPdf');
+  if (!istMahnungInhalt(m.inhalt)) throw new Error('Der gespeicherte Inhalt dieser Mahnung ist nicht lesbar.');
+  return mahnungPdfAusInhalt(await belegFirma(company, m.ausstellerStand), m.inhalt);
+}
+
 /**
  * Die AUSGESTELLTE Stornorechnung erneut als PDF. Ausstellen (eine Nummer aus
  * dem Rechnungskreis vergeben) bleibt bei der Rechnungsseite.

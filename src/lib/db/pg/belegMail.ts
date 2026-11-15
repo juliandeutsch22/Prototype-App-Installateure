@@ -91,10 +91,14 @@ export interface BelegVersand {
   vonName?: string | null;
 }
 
-/** Die letzten Versände eines Belegs, der jüngste zuerst. */
+/**
+ * Die letzten Versände eines Belegs, der jüngste zuerst. Bei einer Rechnung
+ * auch die ihrer Mahnungen (sie tragen die Rechnung mit) — so sieht das Büro
+ * vor dem Senden alles, was zu dieser Forderung hinausging.
+ */
 export function listBelegVersand(companyId: string, art: BelegArt, belegId: string): Promise<BelegVersand[]> {
   return abfragen<BelegVersand>('beleg_versand', companyId, {
-    wo: [{ art: 'gleich', feld: art === 'rechnung' ? 'invoiceId' : 'quoteId', wert: belegId }],
+    wo: [{ art: 'gleich', feld: art === 'rechnung' ? 'invoiceId' : art === 'mahnung' ? 'mahnungId' : 'quoteId', wert: belegId }],
     sortiere: { feld: 'angefragtAm', absteigend: true },
     grenze: 20,
   });

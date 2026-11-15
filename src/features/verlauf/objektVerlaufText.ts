@@ -395,9 +395,12 @@ function quellenEintrag(z: ObjektVerlaufZeile): { titel: string; zeilen: string[
       if (!leer(a.betreff)) zeilen.push(`Betreff: ${String(a.betreff)}`);
       if (!leer(a.anhang)) zeilen.push(`Anhang: ${String(a.anhang)}${a.mit_link === true ? ' · mit Annahme-Link' : ''}`);
       if (z.art === 'mailversand_gescheitert' && !leer(a.fehler)) zeilen.push(`Grund: ${String(a.fehler)}`);
+      // Im Verlauf der Rechnung steht auch ihre Mahnung — der Titel sagt, welcher Beleg hinausging.
+      const mahnung = a.beleg_art === 'mahnung';
       return {
-        titel: z.art === 'per_mail_versendet' ? 'Per Mail versendet'
-          : z.art === 'mailversand_gescheitert' ? 'Mailversand gescheitert' : 'Mailversand ohne Rückmeldung',
+        titel: z.art === 'per_mail_versendet' ? (mahnung ? 'Mahnung per Mail versendet' : 'Per Mail versendet')
+          : z.art === 'mailversand_gescheitert' ? (mahnung ? 'Mailversand der Mahnung gescheitert' : 'Mailversand gescheitert')
+            : mahnung ? 'Mailversand der Mahnung ohne Rückmeldung' : 'Mailversand ohne Rückmeldung',
         zeilen,
       };
     }

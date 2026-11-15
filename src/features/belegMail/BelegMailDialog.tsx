@@ -32,13 +32,20 @@ import {
  */
 
 export interface BelegMailWerte {
+  /** Bei der Mahnung die Nummer der Rechnung. */
   nummer: string;
   kunde: string;
-  betrag: string;
+  betrag?: string;
   faellig?: string;
   gueltig_bis?: string;
   baustelle?: string;
   link?: string;
+  /** Mahnung: „Zahlungserinnerung“, „Mahnung“, „Letzte Mahnung“ — und ihre Stufe für den Dateinamen. */
+  titel?: string;
+  mahnstufe?: 1 | 2 | 3;
+  /** Mahnung: der offene Rest der Rechnung und die Frist des Schreibens. */
+  offen?: string;
+  frist?: string;
 }
 
 type Stand = { art: 'pruefe' } | { art: 'bereit'; absender: string } | { art: 'nicht' } | { art: 'fehler'; text: string };
@@ -72,7 +79,9 @@ export default function BelegMailDialog({
   const toast = useToast();
   const vorlage = useMemo(() => vorlageFuer(art, company?.belegMailVorlagen), [art, company?.belegMailVorlagen]);
   const firma = company?.name ?? '';
-  const fuellen = (t: string) => vorlageFuellen(t, { ...werte, firma });
+  // Die Stufe ist kein Platzhalter, nur der Dateiname braucht sie.
+  const { mahnstufe, ...platzhalter } = werte;
+  const fuellen = (t: string) => vorlageFuellen(t, { ...platzhalter, firma });
   const [an, setAn] = useState(kundenEmail ?? '');
   const [kopie, setKopie] = useState(true);
   const [betreff, setBetreff] = useState(() => fuellen(vorlage.betreff));
@@ -118,7 +127,7 @@ export default function BelegMailDialog({
       const r = await belegPerMail({
         art, beleg: belegId, an: empfaenger.adressen, kopie, betreff: betreff.trim(), text, pdf, mitLink: !!werte.link && text.includes(werte.link),
       });
-      toast.success(`${art === 'rechnung' ? 'Rechnung' : 'Angebot'} ${werte.nummer} an ${r.an.join(', ')} gesendet${r.kopie ? ' — Kopie an den Betrieb' : ''}`);
+      toast.success(`${belegWort} ${werte.nummer} an ${r.an.join(', ')} gesendet${r.kopie ? ' — Kopie an den Betrieb' : ''}`);
       if (r.hinweis) toast.error(r.hinweis);
       onClose(true);
     } catch (e) {
@@ -129,7 +138,8 @@ export default function BelegMailDialog({
     }
   }
 
-  const titel = art === 'rechnung' ? 'Rechnung per Mail' : 'Angebot per Mail';
+  const belegWort = art === 'rechnung' ? 'Rechnung' : art === 'angebot' ? 'Angebot' : (werte.titel ?? 'Mahnung');
+  const titel = `${belegWort} per Mail`;
   const bisherigerWeg = (
     <div className="fuss-aktionen">
       <Button variant="secondary" onClick={pdfLaden}>PDF laden</Button>
@@ -191,7 +201,7 @@ export default function BelegMailDialog({
         <InputField id="beleg-mail-betreff" label="Betreff" pflicht value={betreff} onChange={(e) => setBetreff(e.target.value)} />
         <TextareaField id="beleg-mail-text" label="Text" pflicht rows={10} value={text} onChange={(e) => setText(e.target.value)} />
         <p className="text-sm text-ink-muted">
-          Anhang: {anhangName(art, werte.nummer)} — wie beim „PDF laden“.
+          Anhang: {anhangName(art, werte.nummer, mahnstufe)} — {art === 'mahnung' ? 'das gespeicherte Schreiben, wie beim „PDF“ der Mahnung' : 'wie beim „PDF laden“'}.
           {stand.art === 'bereit' && antwort && ` Gesendet über ${stand.absender} im Namen von ${firma}; Antworten gehen an ${antwort}.`}
         </p>
 
