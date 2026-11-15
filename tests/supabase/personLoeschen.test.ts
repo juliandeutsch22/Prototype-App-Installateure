@@ -95,6 +95,12 @@ beforeAll(async () => {
   // M04a: der Monteur ist Standardfahrer eines Fahrzeugs; ein zweites gehört dem Kollegen.
   await einfuegen('fahrzeuge', { company_id: BETRIEB, kennzeichen: 'W-LO-1', standardfahrer_uid: monteur.uid });
   await einfuegen('fahrzeuge', { company_id: BETRIEB, kennzeichen: 'W-LO-2', standardfahrer_uid: kollege.uid });
+  // Eine Bewegung im Lager, die er erfasst hat — Buchhaltungsunterlage, sie bleibt (Befund aus F14).
+  const artikel = await einfuegen('materials', { company_id: BETRIEB, name: 'Rohr LO', lagerartikel: true, stock: 0 });
+  await einfuegen('lagerbewegungen', {
+    company_id: BETRIEB, material_id: artikel, art: 'zugang', menge: 1, bestand_nachher: 1,
+    erfasst_von: monteur.uid, erfasst_von_name: 'M', created_at: '2099-02-02T10:00:00Z',
+  });
   await admin.from('user_prefs').upsert({ user_id: monteur.uid, company_id: BETRIEB, push_tokens: ['t'] });
   // Die Kennung setzt ein Auslöser aus der Anmeldung — also schreibt der Monteur selbst.
   const { error } = await monteur.client.from('fehlerprotokoll').insert({ company_id: BETRIEB, art: 'fehler', nachricht: 'Absturz' });
@@ -128,6 +134,8 @@ describe('Eine Person der Belegschaft', () => {
       startseite: 0,
       // Paket 8 (Welle 2): Kontoumstellungen, Passwort-Bitten und Rücksetzungen des zweiten Faktors.
       kontoumstellungen: 0, passwort_anfragen: 0, zwei_faktor_ruecksetzungen: 0,
+      // F14: Zählungen in offenen Zähllisten (Prüfung mit Inhalt: `inventurZaehlliste.test.ts`).
+      offene_zaehllisten: 0,
     });
     expect(b!.aufbewahren).toEqual([
       { was: 'Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
@@ -140,6 +148,8 @@ describe('Eine Person der Belegschaft', () => {
       { was: 'Krankmeldungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
       // Entsteht aus der Zeitbuchung (Auslöser der Monatsbilanz) und ist Lohnunterlage wie sie.
       { was: 'Monatsbilanzen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
+      // Befund aus F14: ihr Name im Bewegungsprotokoll des Lagers bleibt — und der Bericht sagt es.
+      { was: 'Bewegungsprotokoll des Lagers', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },
     ]);
     expect(await zaehle('assignments', 'user_id', monteur.uid)).toBe(1);
     expect(await zaehle('user_prefs', 'user_id', monteur.uid)).toBe(1);
