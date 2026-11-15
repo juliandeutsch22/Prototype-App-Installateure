@@ -213,6 +213,26 @@ function zweitschluessel(tabelle: string): string[] {
   return ['id'];
 }
 
+/**
+ * Die Spalten einer Suche über `suche_<tabelle>` — mit allem, wonach sortiert wird.
+ *
+ * PostgREST sortiert das Ergebnis einer FUNKTION nur nach Spalten, die es auch
+ * ausgibt: `select=id&order=created_at` scheitert mit „column … does not
+ * exist“, bei einer Tabelle nicht. So brach die Suche nach Angebotsnummer ab
+ * (Integration Welle 3, `sucheNummern.test.ts`). Die zusätzlichen Spalten
+ * stehen danach in der Zeile — ein Feld mehr, das niemand liest.
+ */
+export function spaltenFuerSuche(abfrage: Pick<Abfrage, 'spalten' | 'sortiere'>, tabelle: string): string | undefined {
+  const spalten = abfrage.spalten;
+  if (!spalten || spalten.trim() === '*') return spalten;
+  const da = new Set(spalten.split(',').map((t) => t.trim()));
+  const noetig = [
+    ...(abfrage.sortiere ? [alsSpalteSicher(abfrage.sortiere.feld)] : []),
+    ...zweitschluessel(tabelle),
+  ].filter((t) => !da.has(t));
+  return noetig.length ? `${spalten},${[...new Set(noetig)].join(',')}` : spalten;
+}
+
 /** Feldnamen kommen aus dem Quelltext, nie aus Eingaben — trotzdem geprüft. */
 function alsSpalteSicher(feld: string): string {
   const spalte = feld.replace(/[A-Z]/g, (z) => `_${z.toLowerCase()}`);
@@ -393,10 +413,11 @@ export async function abfragen<T>(
   const gesamt: Record<string, unknown>[] = [];
 
   const suche = mitSuche(abfrage);
+  const sucheSpalten = suche ? spaltenFuerSuche(abfrage, tabelle) : undefined;
   /** Eine Seite holen; auf Wunsch mit der Gesamtzahl der passenden Zeilen. */
   const seite = async (von: number, anzahl: number, zaehlen: boolean) => {
     const quelle = suche
-      ? c.rpc(`suche_${tabelle}`, suche, zaehlen ? { count: 'exact' } : undefined).select(abfrage.spalten ?? '*')
+      ? c.rpc(`suche_${tabelle}`, suche, zaehlen ? { count: 'exact' } : undefined).select(sucheSpalten ?? '*')
       : zaehlen
         ? c.from(tabelle).select(abfrage.spalten ?? '*', { count: 'exact' })
         : c.from(tabelle).select(abfrage.spalten ?? '*');
