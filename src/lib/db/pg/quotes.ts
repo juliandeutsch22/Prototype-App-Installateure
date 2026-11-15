@@ -96,6 +96,55 @@ export async function listRecentQuotes(companyId: string, max = 100) {
   return zusammensetzen(koepfe, companyId);
 }
 
+/**
+ * OFFEN HEISST ENTWURF ODER VERSENDET — gefragt bei der Datenbank, nicht im
+ * Geladenen (Durchsicht 15.11.2026, A6). „Offen“ filterte vorher nur die
+ * hundert zuletzt angelegten: ein versendetes Angebot vom Jänner, auf das der
+ * Kunde nie antwortete, stand nach hundert jüngeren weder unter „Bindefrist
+ * abgelaufen“ noch sonst irgendwo.
+ *
+ * Die älteste Bindefrist zuerst: was am längsten wartet, steht oben — und
+ * nachgeladen wird von dort weiter.
+ */
+const OFFEN: Bedingung = { art: 'in', feld: 'status', werte: ['Entwurf', 'Versendet'] };
+
+export async function listOffeneQuotes(companyId: string, max = 100) {
+  const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
+    wo: [OFFEN],
+    sortiere: { feld: 'validUntil' },
+    grenze: max,
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/**
+ * Die Fassungen rund um geladene Angebote — ihre Vorgänger und ihre neuen
+ * Fassungen (eine Stufe, wie `fassungsHinweis` sie liest). „Offen“ lädt nur
+ * Offenes; ob daneben schon eine Fassung angenommen ist (G15), sagt erst
+ * diese Abfrage.
+ */
+export async function listFassungsNachbarn(companyId: string, ids: string[], vorgaengerIds: string[]) {
+  const [vorher, nachher] = await Promise.all([
+    vorgaengerIds.length
+      ? abfragen<KopfZeile>(ANGEBOTE, companyId, { wo: [{ art: 'in', feld: 'id', werte: [...new Set(vorgaengerIds)] }, NICHT_VERWORFEN] })
+      : Promise.resolve([]),
+    ids.length
+      ? abfragen<KopfZeile>(ANGEBOTE, companyId, { wo: [{ art: 'in', feld: 'vorgaengerId', werte: [...new Set(ids)] }, NICHT_VERWORFEN] })
+      : Promise.resolve([]),
+  ]);
+  return zusammensetzen([...new Map([...vorher, ...nachher].map((k) => [k.id, k])).values()], companyId);
+}
+
+/** Wie viele offen sind — dieselbe Bedingung wie die Liste, damit Zahl und Liste nie auseinanderlaufen. */
+export function zaehleOffeneQuotes(companyId: string): Promise<number> {
+  return zaehlen(ANGEBOTE, companyId, { wo: [OFFEN] });
+}
+
+/** Wie viele es überhaupt gibt (ohne Papierkorb) — für „noch keines“ gegenüber „keines offen“. */
+export function zaehleQuotes(companyId: string): Promise<number> {
+  return zaehlen(ANGEBOTE, companyId, { wo: [NICHT_VERWORFEN] });
+}
+
 /** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */
 export const ANGEBOT_TREFFER = 100;
 

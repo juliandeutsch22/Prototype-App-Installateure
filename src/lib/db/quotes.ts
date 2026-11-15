@@ -18,6 +18,26 @@ export function listRecentQuotes(companyId: string, max = 100): Promise<WithId<Q
   return pg.listRecentQuotes(companyId, max);
 }
 
+/** Die offenen Angebote, älteste Bindefrist zuerst (A6) — siehe `pg.listOffeneQuotes`. */
+export function listOffeneQuotes(companyId: string, max = 100): Promise<WithId<Quote>[]> {
+  return pg.listOffeneQuotes(companyId, max);
+}
+
+/** Wie viele offen sind — aus derselben Bedingung wie die Liste (A6). */
+export function zaehleOffeneQuotes(companyId: string): Promise<number> {
+  return pg.zaehleOffeneQuotes(companyId);
+}
+
+/** Vorgänger und neue Fassungen geladener Angebote (A6, für G15) — siehe `pg.listFassungsNachbarn`. */
+export function listFassungsNachbarn(companyId: string, ids: string[], vorgaengerIds: string[]): Promise<WithId<Quote>[]> {
+  return pg.listFassungsNachbarn(companyId, ids, vorgaengerIds);
+}
+
+/** Wie viele Angebote es gibt, ohne Papierkorb (A6). */
+export function zaehleQuotes(companyId: string): Promise<number> {
+  return pg.zaehleQuotes(companyId);
+}
+
 /** Angebote suchen — über alle, auf dem Server (17 I). */
 export function sucheAngebote(companyId: string, begriff: string, max?: number): Promise<WithId<Quote>[]> {
   return pg.sucheAngebote(companyId, begriff, max);

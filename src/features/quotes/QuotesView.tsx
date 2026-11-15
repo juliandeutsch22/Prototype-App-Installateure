@@ -4,6 +4,10 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   listRecentQuotes,
+  listOffeneQuotes,
+  zaehleOffeneQuotes,
+  zaehleQuotes,
+  listFassungsNachbarn,
   getQuote,
   sucheAngebote,
   ANGEBOT_TREFFER,
@@ -362,19 +366,45 @@ export default function QuotesView() {
   const vatRate = bearbeitet?.vatRate ?? company?.rates?.vatRate ?? INVOICE_DEFAULTS.vatRate;
   const darfAendern = user ? isGF(user.role) : false;
 
+  /*
+    „OFFEN“ FRAGT DIE DATENBANK NACH DEM ZUSTAND (A6), seitenweise ab der
+    ältesten Bindefrist; Zahl und Liste aus derselben Bedingung. Vorher
+    filterte „Offen“ nur die hundert jüngsten — ältere, längst abgelaufene
+    versendete Angebote fielen still heraus. „Erledigt“ und „Alle“ bleiben
+    die jüngsten zuerst.
+  */
+  const [zahlen, setZahlen] = useState<{ offen: number; alle: number } | null>(null);
+  /** Fassungen neben den geladenen offenen — ob eine schon angenommen ist (G15). */
+  const [nachbarn, setNachbarn] = useState<WithId<Quote>[]>([]);
   const laden = useMemo(
     () => async () => {
       if (!user) return;
       setLoading(true);
       try {
-        setAngebote(await listRecentQuotes(user.companyId, grenze));
+        if (ansicht === 'offen') {
+          const [liste, offen, alle] = await Promise.all([
+            listOffeneQuotes(user.companyId, grenze),
+            zaehleOffeneQuotes(user.companyId),
+            zaehleQuotes(user.companyId),
+          ]);
+          setAngebote(liste);
+          setZahlen({ offen, alle });
+          // Scheitert das, fehlt nur der Hinweis „Fassung … angenommen“ — die Datenbank nähme ohnehin nicht an.
+          setNachbarn(await listFassungsNachbarn(
+            user.companyId, liste.map((q) => q.id), liste.flatMap((q) => (q.vorgaengerId ? [q.vorgaengerId] : [])),
+          ).catch(() => []));
+        } else {
+          setAngebote(await listRecentQuotes(user.companyId, grenze));
+          setZahlen(null);
+          setNachbarn([]);
+        }
       } catch (e) {
         setError((e as Error).message);
       } finally {
         setLoading(false);
       }
     },
-    [user, grenze],
+    [user, grenze, ansicht],
   );
 
   useEffect(() => {
@@ -851,14 +881,14 @@ export default function QuotesView() {
   const leer =
     begriff
       ? `Gesucht wurde „${suchbegriff}“ in Nummer, Kunde, Ort und Baustelle.`
-      : angebote.length === 0
+      : (zahlen ? zahlen.alle : angebote.length) === 0
         ? 'Noch kein Angebot erstellt.'
         : ansicht === 'offen'
           ? 'Kein offenes Angebot.'
           : 'Noch kein Angebot angenommen oder abgelehnt.';
 
   const zeile = (q: WithId<Quote>) => {
-    const schonAngenommen = fassungsHinweis(q, angebote).angenommen;
+    const schonAngenommen = fassungsHinweis(q, [...angebote, ...nachbarn]).angenommen;
     const annehmen = () => { setAbrechnung('Pauschal'); setZiel(zielVorgabe(q)); setAnnehmenFragen(q); };
     /*
       AM HANDY EIN KNOPF UND „⋯“ (E72, 09.11.2026): mit zwei Knöpfen brach
@@ -945,13 +975,17 @@ export default function QuotesView() {
     );
   };
 
-  const erstesAngebot = !loading && angebote.length === 0 && !begriff && !error && !formOffen;
+  // In „Offen“ heißt eine leere Liste nicht „noch keines“ — das sagt die Zahl aller (A6).
+  const erstesAngebot = !loading && angebote.length === 0 && (!zahlen || zahlen.alle === 0) && !begriff && !error && !formOffen;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Angebote"
-        subtitle="Kalkulieren, versenden, in einen Auftrag überführen"
+        // A6: die Zahl der offenen aus derselben Abfrage wie die Liste „Offen“.
+        subtitle={zahlen
+          ? `${zahlen.offen} ${zahlen.offen === 1 ? 'offenes Angebot' : 'offene Angebote'} · kalkulieren, versenden, in einen Auftrag überführen`
+          : 'Kalkulieren, versenden, in einen Auftrag überführen'}
         // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
         hilfe={
           <>
@@ -1427,6 +1461,7 @@ export default function QuotesView() {
               einheit="Angebote"
               onMehr={() => setGrenze((n) => n + ANGEBOTE_JE_SEITE)}
               sucheImBrowser={false}
+              gesamt={ansicht === 'offen' && zahlen ? zahlen.offen : undefined}
             />
           </div>
         )}
@@ -1457,9 +1492,9 @@ export default function QuotesView() {
           if (q) await annehmen(q);
         }}
       >
-        {annehmenFragen && fassungsHinweis(annehmenFragen, angebote).ersetzt.length > 0 && (
+        {annehmenFragen && fassungsHinweis(annehmenFragen, [...angebote, ...nachbarn]).ersetzt.length > 0 && (
           <p className="text-sm text-ink">
-            Damit gilt {fassungsHinweis(annehmenFragen, angebote).ersetzt.map((x) => x.quoteNumber).join(', ')} als
+            Damit gilt {fassungsHinweis(annehmenFragen, [...angebote, ...nachbarn]).ersetzt.map((x) => x.quoteNumber).join(', ')} als
             ersetzt und lässt sich nicht mehr annehmen.
           </p>
         )}

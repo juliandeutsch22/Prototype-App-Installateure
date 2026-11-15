@@ -35,6 +35,8 @@ const createProject = vi.fn<(a0: string, a1: unknown) => Promise<string>>(async 
 const updateQuote = vi.fn<(a0: string, a1: unknown) => Promise<void>>(async () => undefined);
 const angebote: (Quote & { id: string })[] = [];
 
+/** A6: ältere offene Angebote — die jüngsten hundert kennen sie nicht, „Offen“ über die Datenbank schon. */
+const aeltereOffene: (Quote & { id: string })[] = [];
 /** Ältere Angebote, die nur die Suche auf dem Server kennt (17 I) — nicht in der geladenen Liste. */
 const nurAufDemServer: (Quote & { id: string })[] = [];
 /** Wie der Server: dieselben Felder, über alle Angebote. */
@@ -51,6 +53,16 @@ vi.mock('@/lib/db/quotes', async () => ({
   ANGEBOT_TREFFER: 100,
   sucheAngebote: (c: string, b: string) => sucheAngebote(c, b),
   listRecentQuotes: vi.fn(async () => angebote),
+  // A6: „Offen“ fragt wie der Server nach dem Zustand, älteste Bindefrist zuerst — und zählt dasselbe.
+  listOffeneQuotes: vi.fn(async (_c: string, max: number) => [...angebote, ...aeltereOffene]
+    .filter((q) => q.status === 'Entwurf' || q.status === 'Versendet')
+    .sort((x, y) => x.validUntil.localeCompare(y.validUntil))
+    .slice(0, max)),
+  zaehleOffeneQuotes: vi.fn(async () => [...angebote, ...aeltereOffene]
+    .filter((q) => q.status === 'Entwurf' || q.status === 'Versendet').length),
+  zaehleQuotes: vi.fn(async () => angebote.length + aeltereOffene.length),
+  listFassungsNachbarn: vi.fn(async (_c: string, ids: string[], vorgaenger: string[]) =>
+    angebote.filter((q) => vorgaenger.includes(q.id) || (q.vorgaengerId && ids.includes(q.vorgaengerId)))),
   createQuote: (c: string, q: unknown) => createQuote(c, q),
   updateQuote: (id: string, d: unknown) => updateQuote(id, d),
   deleteQuote: vi.fn(async () => undefined),
@@ -1275,8 +1287,9 @@ describe('Hilfe zu dieser Seite (Runde 5, G8)', () => {
 */
 describe('Angebote — leer', () => {
   it('nicht geladen: der Fehler steht oben — nicht „Noch kein Angebot erstellt.“', async () => {
-    const { listRecentQuotes } = await import('@/lib/db/quotes');
-    vi.mocked(listRecentQuotes).mockRejectedValueOnce(new Error('Die Angebote konnten nicht geladen werden.'));
+    // Seit A6 lädt „Offen“ (die Vorgabe) über die Abfrage nach dem Zustand.
+    const { listOffeneQuotes } = await import('@/lib/db/quotes');
+    vi.mocked(listOffeneQuotes).mockRejectedValueOnce(new Error('Die Angebote konnten nicht geladen werden.'));
     zeichne();
     expect(await screen.findByRole('alert')).toHaveTextContent('Die Angebote konnten nicht geladen werden.');
     expect(screen.queryByText(/Noch kein Angebot/)).toBeNull();
@@ -1481,5 +1494,32 @@ describe('Nachtrag an eine Baustelle (A3)', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
     await waitFor(() => expect(createQuote).toHaveBeenCalled());
     expect(createQuote.mock.calls[createQuote.mock.calls.length - 1]?.[1]).toMatchObject({ projectNumber: 'PR-2026-0009', customerId: 'k1' });
+  });
+});
+
+/*
+  „OFFEN“ AUS DER DATENBANK (Durchsicht 15.11.2026, A6). Vorher filterte
+  „Offen“ nur die hundert zuletzt angelegten; ein altes versendetes Angebot
+  mit abgelaufener Bindefrist fiel still heraus.
+*/
+describe('Offene Angebote über alle (A6)', () => {
+  it('ein altes versendetes Angebot außerhalb der jüngsten steht unter „Bindefrist abgelaufen“ — mit der Zahl aus derselben Abfrage', async () => {
+    aeltereOffene.push({
+      id: 'jaenner', companyId: 'perl', quoteNumber: 'AN-2026-0020', customerName: 'Familie Jänner',
+      quoteDate: '2026-01-10', validUntil: '2026-02-10', status: 'Versendet', positions: [],
+      subtotalNetto: 0, totalNetto: 0, totalVat: 0, totalBrutto: 0, vatRate: 0.2, kalkulierteStunden: 0,
+    });
+    try {
+      const { listRecentQuotes, listOffeneQuotes } = await import('@/lib/db/quotes');
+      vi.mocked(listRecentQuotes).mockClear();
+      zeichne();
+      expect(await screen.findByText('Familie Jänner')).toBeInTheDocument();
+      expect(screen.getByText('Bindefrist abgelaufen')).toBeInTheDocument();
+      expect(screen.getByText(/1 offenes Angebot/)).toBeInTheDocument();
+      expect(listOffeneQuotes).toHaveBeenCalled();
+      expect(listRecentQuotes).not.toHaveBeenCalled();
+    } finally {
+      aeltereOffene.length = 0;
+    }
   });
 });
