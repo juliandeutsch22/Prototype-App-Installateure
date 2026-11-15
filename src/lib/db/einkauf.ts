@@ -14,6 +14,8 @@ export {
   grosshaendlerZuordnen,
   alsBestelltMarkieren,
   geliefert,
+  teillieferung,
+  bestellungStornieren,
   katalogFuer,
   lieferantVorschlag,
   lieferantVorschlagGrund,

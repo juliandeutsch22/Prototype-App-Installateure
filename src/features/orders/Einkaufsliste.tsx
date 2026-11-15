@@ -4,7 +4,9 @@ import type { WithId } from '@/lib/db/core';
 import {
   alsBestelltMarkieren,
   artikelSuchen,
+  bestellungStornieren,
   geliefert,
+  teillieferung,
   grosshaendlerSpeichern,
   grosshaendlerZuordnen,
   katalogFuer,
@@ -48,7 +50,9 @@ import {
   type Unterwegs,
 } from './einkauf';
 import { downloadBestellungPdf } from './bestellungPdf';
-import { zahlOder } from '@/lib/zahl';
+import { zahlAlsText, zahlOder } from '@/lib/zahl';
+import { TeilmengeFeld } from './Teilmenge';
+import { teilwahl } from './teilmengeWahl';
 import { mengeFehler } from '@/lib/einheit';
 import { grundAus } from '@/lib/fehlerGrund';
 import { HAUPTLAGER, ortNameVon } from './lagerorte';
@@ -137,6 +141,17 @@ export default function Einkaufsliste({
   /** Die bestellte Zeile, deren Liefertermin gerade geändert wird. */
   const [terminFuer, setTerminFuer] = useState<Unterwegs | null>(null);
   const [terminNeu, setTerminNeu] = useState('');
+  /*
+    DIE LIEFERUNG IN EINEM DIALOG (M4, 16.11.2026): Menge und Lieferschein-Nr.
+    Weniger als bestellt bucht den Teil, der Rest bleibt bestellt. Vorher war
+    „Geliefert“ alles oder nichts, und die Lieferschein-Nr. kannte nur der
+    Wareneingang im Lager — ein zweiter Weg für dieselbe Lieferung.
+  */
+  const [lieferung, setLieferung] = useState<{ o: Unterwegs; menge: string; schein: string } | null>(null);
+  /** „Alles geliefert“ einer Gruppe — mit einer Lieferschein-Nr. für alle. */
+  const [alleLieferung, setAlleLieferung] = useState<{ g: EinkaufsGruppe; schein: string } | null>(null);
+  /** Bestellung stornieren (M4) — nur mit Grund; er steht danach im Verlauf. */
+  const [storno, setStorno] = useState<{ o: Unterwegs; grund: string } | null>(null);
   const [lieferOrt, setLieferOrt] = useState(HAUPTLAGER);
   const zielOrt = orte?.wahl.some((o) => o.id === lieferOrt) ? lieferOrt : HAUPTLAGER;
   /** Wohin „Geliefert“ gebucht hat — für die Meldung. */
@@ -286,7 +301,9 @@ export default function Einkaufsliste({
                         }
                         subtitle={
                           // Die Anmerkung schon hier, nicht erst nach „bestellt“ (G21): sie geht mit hinaus.
-                          [z.kommissionen.length ? `Kommission ${z.kommissionen.join(', ')}` : '', anmerkungText(z)]
+                          [z.kommissionen.length ? `Kommission ${z.kommissionen.join(', ')}` : '', anmerkungText(z),
+                            // M4: warum die Zeile wieder hier steht.
+                            ...(z.stornos ?? [])]
                             .filter(Boolean).join(' · ') || undefined
                         }
                       >
@@ -424,21 +441,9 @@ export default function Einkaufsliste({
                       <Button
                         variant="ghost"
                         loading={laeuft === `alle-${g.supplierId}`}
-                        onClick={() =>
-                          void tun(
-                            `alle-${g.supplierId}`,
-                            async () =>
-                              nichtAlleGetroffen(
-                                await (zielOrt ? geliefert(g.unterwegs.map((o) => o.id), zielOrt) : geliefert(g.unterwegs.map((o) => o.id))),
-                                g.unterwegs.length,
-                                'Inzwischen von jemand anderem als geliefert gebucht',
-                                (rest) => `Geliefert gebucht — ${rest} hatte inzwischen jemand anderes gebucht.`,
-                              ),
-                            `Alles geliefert ${imLager}, Anforderungen abholbereit`,
-                          )
-                        }
+                        onClick={() => setAlleLieferung({ g, schein: '' })}
                       >
-                        Alles geliefert
+                        Alles geliefert …
                       </Button>
                     )}
                   </h3>
@@ -470,25 +475,18 @@ export default function Einkaufsliste({
                           {o.liefertermin ? 'Termin ändern' : 'Termin'}
                         </Button>
                         <Button
+                          variant="ghost"
+                          disabled={laeuft !== null}
+                          onClick={() => setStorno({ o, grund: '' })}
+                        >
+                          Stornieren …
+                        </Button>
+                        <Button
                           variant="secondary"
                           loading={laeuft === o.id}
-                          onClick={() =>
-                            void tun(
-                              o.id,
-                              async () =>
-                                nichtAlleGetroffen(
-                                  await (zielOrt ? geliefert([o.id], zielOrt) : geliefert([o.id])),
-                                  1,
-                                  'Inzwischen von jemand anderem als geliefert gebucht',
-                                  () => '',
-                                ),
-                              o.art === 'lager'
-                                ? `${o.bezeichnung} ist da ${imLager}`
-                                : `${o.bezeichnung} ist da — abholbereit`,
-                            )
-                          }
+                          onClick={() => setLieferung({ o, menge: zahlAlsText(o.menge), schein: '' })}
                         >
-                          Geliefert
+                          Geliefert …
                         </Button>
                       </ListRow>
                     ))}
@@ -563,6 +561,129 @@ export default function Einkaufsliste({
           value={termin}
           onChange={(e) => setTermin(e.target.value)}
         />
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={!!lieferung}
+        title="Lieferung buchen"
+        confirmLabel="Geliefert"
+        confirmTone="primary"
+        message={lieferung
+          ? `${fmtMenge(lieferung.o.menge)}${lieferung.o.einheit ? ` ${lieferung.o.einheit}` : ''} × ${lieferung.o.bezeichnung} — ${
+            lieferung.o.art === 'lager' ? 'geht ins Lager' : 'die Anforderung wird abholbereit'}.`
+          : ''}
+        gesperrt={!lieferung || teilwahl(lieferung.menge, lieferung.o.menge).art === 'fehler'}
+        onCancel={() => setLieferung(null)}
+        onConfirm={async () => {
+          const f = lieferung;
+          setLieferung(null);
+          if (!f) return;
+          const w = teilwahl(f.menge, f.o.menge);
+          if (w.art === 'fehler') return;
+          const menge = w.art === 'teil' ? w.menge : f.o.menge;
+          await tun(
+            f.o.id,
+            async () => ((await teillieferung(f.o.id, menge, f.schein, zielOrt || undefined))
+              ? undefined
+              : 'Inzwischen von jemand anderem als geliefert gebucht oder storniert'),
+            w.art === 'teil'
+              ? `${fmtMenge(menge)} × ${f.o.bezeichnung} geliefert — der Rest bleibt bestellt`
+              : f.o.art === 'lager'
+                ? `${f.o.bezeichnung} ist da ${imLager}`
+                : `${f.o.bezeichnung} ist da — abholbereit`,
+          );
+        }}
+      >
+        {lieferung && (
+          <div className="space-y-3">
+            <TeilmengeFeld
+              id="lieferung-menge"
+              label="Geliefert"
+              wert={lieferung.menge}
+              angefordert={lieferung.o.menge}
+              einheit={lieferung.o.einheit}
+              rest="bleibt bestellt"
+              onChange={(menge) => setLieferung({ ...lieferung, menge })}
+            />
+            <InputField
+              id="lieferung-schein"
+              label="Lieferschein-Nr. (freiwillig)"
+              value={lieferung.schein}
+              onChange={(e) => setLieferung({ ...lieferung, schein: e.target.value })}
+            />
+          </div>
+        )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={!!alleLieferung}
+        title="Alles geliefert?"
+        confirmLabel="Alles geliefert"
+        confirmTone="primary"
+        message={alleLieferung
+          ? `${alleLieferung.g.unterwegs.length} bestellte Zeilen werden als vollständig geliefert gebucht. Fehlt etwas, die Zeile einzeln mit „Geliefert …“ und der gelieferten Menge buchen.`
+          : ''}
+        onCancel={() => setAlleLieferung(null)}
+        onConfirm={async () => {
+          const f = alleLieferung;
+          setAlleLieferung(null);
+          if (!f) return;
+          const ids = f.g.unterwegs.map((o) => o.id);
+          await tun(
+            `alle-${f.g.supplierId}`,
+            async () =>
+              nichtAlleGetroffen(
+                await geliefert(ids, zielOrt || undefined, f.schein),
+                ids.length,
+                'Inzwischen von jemand anderem als geliefert gebucht',
+                (rest) => `Geliefert gebucht — ${rest} hatte inzwischen jemand anderes gebucht.`,
+              ),
+            `Alles geliefert ${imLager}, Anforderungen abholbereit`,
+          );
+        }}
+      >
+        {alleLieferung && (
+          <InputField
+            id="alle-lieferung-schein"
+            label="Lieferschein-Nr. (freiwillig)"
+            value={alleLieferung.schein}
+            onChange={(e) => setAlleLieferung({ ...alleLieferung, schein: e.target.value })}
+          />
+        )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={!!storno}
+        title="Bestellung stornieren?"
+        confirmLabel="Stornieren"
+        message={storno
+          ? `${fmtMenge(storno.o.menge)}${storno.o.einheit ? ` ${storno.o.einheit}` : ''} × ${storno.o.bezeichnung} kommt nicht. `
+            + 'Die Zeile steht danach wieder unter „Zu bestellen“ — dort neu bestellen oder von der Liste nehmen. Der Grund steht im Verlauf.'
+          : ''}
+        gesperrt={!storno || storno.grund.trim() === ''}
+        onCancel={() => setStorno(null)}
+        onConfirm={async () => {
+          const f = storno;
+          setStorno(null);
+          if (!f) return;
+          await tun(
+            `storno-${f.o.id}`,
+            async () => ((await bestellungStornieren([f.o.id], f.grund)) > 0
+              ? undefined
+              : 'Inzwischen geliefert oder schon storniert'),
+            'Bestellung storniert — wieder unter „Zu bestellen“',
+          );
+        }}
+      >
+        {storno && (
+          <InputField
+            id="storno-grund"
+            label="Grund"
+            placeholder="z. B. Großhändler kann nicht liefern"
+            value={storno.grund}
+            onChange={(e) => setStorno({ ...storno, grund: e.target.value })}
+          />
+        )}
       </ConfirmDialog>
 
       {/*

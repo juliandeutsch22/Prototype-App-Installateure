@@ -4,5 +4,17 @@
     "art": "knopf",
     "text": "Rechnungsliste prüfen",
     "grund": "Durchsicht 15.11.2026, G2: nach einer unterbrochenen Antwort klärt die Ansicht über die Kennung des Erstellungsversuchs selbst, ob die Rechnung entstand (rechnung_versuch_klaeren); ein Listenvergleich von Hand ist nicht mehr nötig. An seiner Stelle steht „Jetzt prüfen“."
+  },
+  {
+    "datei": "src/features/orders/Einkaufsliste.tsx",
+    "art": "knopf",
+    "text": "Geliefert",
+    "grund": "M4 (16.11.2026): heißt jetzt „Geliefert …“ und öffnet den Dialog mit Menge und Lieferschein-Nr.; „Geliefert“ ist dort der Knopf, der bucht."
+  },
+  {
+    "datei": "src/features/orders/Einkaufsliste.tsx",
+    "art": "knopf",
+    "text": "Alles geliefert",
+    "grund": "M4 (16.11.2026): heißt jetzt „Alles geliefert …“ und fragt nach der Lieferschein-Nr.; „Alles geliefert“ ist dort der Knopf, der bucht."
   }
 ]

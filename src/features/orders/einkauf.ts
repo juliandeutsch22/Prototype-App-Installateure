@@ -46,6 +46,11 @@ export interface EinkaufsZeile {
    * sie ist für den Monteur („Für den Einsatz am …“).
    */
   anmerkungen: string[];
+  /**
+   * Stornierte Bestellungen dieser Zeile (M4) — „storniert TT.MM.JJJJ: Grund“.
+   * Nur für die Liste, nicht für PDF und E-Mail: der Grund ist fürs Büro.
+   */
+  stornos?: string[];
 }
 
 /** Bestellt und noch nicht da — eine Anforderung oder ein eigener Posten. */
@@ -143,6 +148,12 @@ export function einkaufsliste(
     }
     return z;
   };
+  const stornoMerken = (z: EinkaufsZeile, x: { bestellungStorniertAm?: number | null; bestellungStornoGrund?: string | null }) => {
+    if (!x.bestellungStorniertAm) return;
+    const text = `storniert ${datumAT(new Date(x.bestellungStorniertAm).toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' }))}${
+      x.bestellungStornoGrund ? `: ${x.bestellungStornoGrund}` : ''}`;
+    z.stornos = [...new Set([...(z.stornos ?? []), text])];
+  };
   const dazu = (z: EinkaufsZeile, menge: number, kommission?: string) => {
     z.menge = Math.round((z.menge + (Number(menge) || 0)) * 1000) / 1000;
     if (kommission && !z.kommissionen.includes(kommission)) z.kommissionen.push(kommission);
@@ -167,6 +178,7 @@ export function einkaufsliste(
     const z = zeile(g, o);
     dazu(z, o.quantity, o.projectNumber);
     z.anforderungen.push(o.id);
+    stornoMerken(z, o);
   }
 
   for (const p of posten) {
@@ -190,6 +202,7 @@ export function einkaufsliste(
     const z = zeile(g, p, p.einheit);
     dazu(z, p.menge, LAGER_KOMMISSION);
     z.posten.push(p.id);
+    stornoMerken(z, p);
     const anmerkung = p.notiz?.trim();
     if (anmerkung && !z.anmerkungen.includes(anmerkung)) z.anmerkungen.push(anmerkung);
   }

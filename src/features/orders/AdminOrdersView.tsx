@@ -226,7 +226,17 @@ function verlaufVon(o: MaterialOrder, haendler: string | undefined): LotPunkt[] 
       text: !o.geliefertAm && o.liefertermin ? lieferterminText(o.liefertermin) : undefined,
     });
   }
-  if (o.geliefertAm) punkte.push({ titel: 'Geliefert', zeit: zeitpunkt(o.geliefertAm) });
+  // M4: eine stornierte Bestellung mit Grund — auch wenn danach neu bestellt wurde.
+  if (o.bestellungStorniertAm) {
+    punkte.push({ titel: 'Bestellung storniert', zeit: zeitpunkt(o.bestellungStorniertAm), text: o.bestellungStornoGrund ?? undefined });
+  }
+  if (o.geliefertAm) {
+    punkte.push({
+      titel: o.kommission ? 'Geliefert — Kommission, nicht im Bestand' : 'Geliefert',
+      zeit: zeitpunkt(o.geliefertAm),
+      text: o.lieferschein ? `Lieferschein ${o.lieferschein}` : undefined,
+    });
+  }
   if (o.status === 'In Bearbeitung' && !o.beschaffung) punkte.push({ titel: 'In Bearbeitung' });
   /*
     ABHOLBEREIT TROTZ FEHLBESTAND (Runde 7, R7-M2): jede bewusste

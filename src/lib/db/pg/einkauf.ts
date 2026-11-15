@@ -195,13 +195,45 @@ export function alsBestelltMarkieren(orderIds: string[]): Promise<string[]> {
  * Als EIN Aufruf (`einkauf_geliefert`): zweimal gedrückt bucht nicht zweimal
  * ein, und Bestand und Status laufen nie auseinander.
  */
-export async function geliefert(orderIds: string[], ortId?: string): Promise<number> {
+export async function geliefert(orderIds: string[], ortId?: string, lieferschein?: string): Promise<number> {
   if (orderIds.length === 0) return 0;
   // Der Zielort (M04a) nur, wenn einer gewählt ist — ins Hauptlager der Aufruf wie bisher.
   const { data, error } = await derClient().rpc('einkauf_geliefert', {
     p_ids: orderIds,
     ...(ortId ? { p_ort: ortId } : {}),
+    ...(lieferschein?.trim() ? { p_lieferschein: lieferschein.trim() } : {}),
   });
+  if (error) throw new Error(error.message);
+  return Number(data ?? 0);
+}
+
+/**
+ * TEILLIEFERUNG (M4, 16.11.2026): `menge` einer bestellten Zeile ist da —
+ * der Teil wird gebucht, der Rest bleibt bestellt (`einkauf_teillieferung`).
+ * Mit der ganzen Menge wie „Geliefert“. `false`: inzwischen schon geliefert
+ * oder nicht mehr bestellt.
+ */
+export async function teillieferung(
+  id: string, menge: number, lieferschein?: string, ortId?: string,
+): Promise<boolean> {
+  const { data, error } = await derClient().rpc('einkauf_teillieferung', {
+    p_id: id,
+    p_menge: menge,
+    ...(lieferschein?.trim() ? { p_lieferschein: lieferschein.trim() } : {}),
+    ...(ortId ? { p_ort: ortId } : {}),
+  });
+  if (error) throw new Error(error.message);
+  return (data as { ergebnis?: string } | null)?.ergebnis === 'geliefert';
+}
+
+/**
+ * BESTELLUNG STORNIEREN (M4): bestellte, noch nicht gelieferte Zeilen mit
+ * Grund zurück auf „zu bestellen“ (`einkauf_stornieren`). Zurück: wie viele
+ * es traf.
+ */
+export async function bestellungStornieren(ids: string[], grund: string): Promise<number> {
+  if (ids.length === 0) return 0;
+  const { data, error } = await derClient().rpc('einkauf_stornieren', { p_ids: ids, p_grund: grund });
   if (error) throw new Error(error.message);
   return Number(data ?? 0);
 }

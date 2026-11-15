@@ -1151,6 +1151,11 @@ export interface EinkaufPosten {
   geliefertAm?: number | null;
   /** Erwarteter Liefertermin ('YYYY-MM-DD') — nur an bestellten Posten. */
   liefertermin?: string | null;
+  /** Die Lieferschein-Nr. (M4). */
+  lieferschein?: string | null;
+  /** Zuletzt stornierte Bestellung (M4): wann und warum. */
+  bestellungStorniertAm?: number | null;
+  bestellungStornoGrund?: string | null;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -1360,6 +1365,16 @@ export interface MaterialOrder {
   geliefertAm?: number | null;
   /** Erwarteter Liefertermin ('YYYY-MM-DD') — nur an bestellten Zeilen, vom Lager gesetzt. */
   liefertermin?: string | null;
+  /**
+   * Kommissionsware (M6): geliefert, ohne in den Bestand zu gehen — der
+   * Artikel wird nicht im Lager geführt. Setzt nur die Datenbank.
+   */
+  kommission?: boolean;
+  /** Die Lieferschein-Nr. der Lieferung von der Einkaufsliste (M4). */
+  lieferschein?: string | null;
+  /** Zuletzt stornierte Bestellung (M4): wann und warum — danach wieder „zu bestellen“. */
+  bestellungStorniertAm?: number | null;
+  bestellungStornoGrund?: string | null;
   /** Seit wann abholbereit — setzt nur die Datenbank. */
   abholbereitSeit?: number | null;
   /** Wann „Erledigt“ — setzt nur die Datenbank (seit 24.10.2026). */
