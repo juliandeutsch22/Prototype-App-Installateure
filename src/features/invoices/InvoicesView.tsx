@@ -34,6 +34,7 @@ import { offenenVersuchLesen, offenenVersuchMerken, offenenVersuchVergessen, typ
 import { leistungsnachweisZeilen } from './leistungsnachweis';
 import {
   listZahlungen, listZahlungenImZeitraum, createZahlung, createZahlungAufgeteilt, createZahlungMitSkonto, deleteZahlung,
+  guthabenUmbuchen,
 } from '@/lib/db/zahlungen';
 import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm, zahlstand } from './zahlstand';
 import { haftruecklassBisVorschlag, RUECKLASS_NAME, ruecklassArtFuer, ruecklassBetrag } from './ruecklass';
@@ -485,6 +486,14 @@ export default function InvoicesView() {
    */
   const [zRichtung, setZRichtung] = useState<'eingang' | 'rueckzahlung'>('eingang');
   const [zLoeschen, setZLoeschen] = useState<string | null>(null);
+  /** Guthaben umbuchen (V7): die Zielrechnung und der Betrag. */
+  const [umbuchungZiel, setUmbuchungZiel] = useState('');
+  const [umbuchungBetrag, setUmbuchungBetrag] = useState('');
+  const [umbuchungLaeuft, setUmbuchungLaeuft] = useState(false);
+  /** Nach „Stornieren und neu ausstellen“: das Guthaben der alten gleich auf die neue umbuchen (V6 + V7). */
+  const [umbuchungAngebot, setUmbuchungAngebot] = useState<{
+    vonId: string; vonNummer: string; aufId: string; aufNummer: string; betrag: number;
+  } | null>(null);
   const [zFehler, setZFehler] = useState<string | null>(null);
   /*
     MEHR ALS OFFEN — ERST NACH RÜCKFRAGE (Testbericht Runde 6, G26). 3.700 €
@@ -1109,7 +1118,8 @@ export default function InvoicesView() {
         for (const i of nachgeholt) bekannt.set(i.id, i.paymentStatus);
         const storniert = new Set([...bekannt].filter(([, stand]) => stand === 'Storniert').map(([id]) => id));
         const summe = z
-          .filter((x) => x.art !== 'Skonto' && !storniert.has(x.invoiceId))
+          // Eine Umbuchung (V7) ist kein Geld, das kam — sie verschiebt ein Guthaben.
+          .filter((x) => x.art !== 'Skonto' && x.art !== 'Umbuchung' && !storniert.has(x.invoiceId))
           .reduce((s, x) => s + (Number(x.betrag) || 0), 0);
         setBezahltImMonat(cent(summe));
         setBezahltGeladen(true);
@@ -1186,6 +1196,8 @@ export default function InvoicesView() {
     setZMahnforderung(0);
     setZMahnTeil(null);
     const { rest, guthaben } = zahlstand(inv);
+    setUmbuchungZiel('');
+    setUmbuchungBetrag('');
     /*
       EIN GUTHABEN WILL ZURÜCK (M21). Steht eines offen, ist die Rückzahlung
       vorgewählt und der Betrag eingesetzt — das war der Fall aus dem Bericht:
@@ -2349,7 +2361,7 @@ export default function InvoicesView() {
         STORNIEREN UND NEU AUSSTELLEN IN EINEM ZUG (V6): scheitert das
         Ausstellen, bleibt auch der Storno aus — die alte gilt weiter.
       */
-      const { invoiceNumber: reserved } = ersatz
+      const { id: neueId, invoiceNumber: reserved } = ersatz
         ? await rechnungErsetzen(user.companyId, { id: ersatz.alt.id, grund: ersatz.grund }, neueRechnung, {
             praefix: vorsaetze.rechnung,
             versuch: versuchDiesesAusstellens.kennung,
@@ -2412,6 +2424,18 @@ export default function InvoicesView() {
       toast.success(ersetzt
         ? `Rechnung ${reserved} erstellt — ${ersetzt.invoiceNumber} ist storniert`
         : `Rechnung ${reserved} erstellt`);
+      /*
+        WAR AUF DIE ALTE SCHON GEZAHLT, ist das jetzt ein Guthaben — die
+        Stornorechnung sagt „verrechnen“. Angeboten wird, es gleich auf die
+        neue umzubuchen (V7); entschieden wird bewusst.
+      */
+      const schonBezahlt = ersetzt ? cent(ersetzt.bezahltBetrag ?? 0) : 0;
+      if (ersetzt && schonBezahlt > 0) {
+        setUmbuchungAngebot({
+          vonId: ersetzt.id, vonNummer: ersetzt.invoiceNumber, aufId: neueId, aufNummer: reserved,
+          betrag: cent(Math.min(schonBezahlt, summen.totalBrutto)),
+        });
+      }
       /*
         DIE KORRIGIERTE UID IN DEN KUNDEN (Testbericht 30.09.2026, M10) — nur
         auf Wunsch und erst, wenn die Rechnung steht. Schlägt es fehl, ist die
@@ -2730,7 +2754,9 @@ export default function InvoicesView() {
     const von = sicht === 'bezahlt-heute' ? heute : `${heute.slice(0, 7)}-01`;
     void (async () => {
       try {
-        const zahlungen = (await listZahlungenImZeitraum(user.companyId, von, heute)).filter((z) => z.art !== 'Skonto');
+        // Skonto und Umbuchung (V7) sind kein Geld, das kam.
+        const zahlungen = (await listZahlungenImZeitraum(user.companyId, von, heute))
+          .filter((z) => z.art !== 'Skonto' && z.art !== 'Umbuchung');
         const ids = [...new Set(zahlungen.map((z) => z.invoiceId))];
         const zeilen = ids.length ? await listInvoicesByIds(user.companyId, ids) : [];
         if (!weg) {
@@ -3772,6 +3798,33 @@ export default function InvoicesView() {
           catch { toast.error('Die PDF-Ausgabe ist weiterhin nicht möglich. Die Rechnung bleibt gespeichert.'); }
           finally { setPdfLaedt(false); }
         }}>{pdfNachholen.geklaert ? 'PDF laden' : 'PDF erneut laden'}</Button>
+      </Hinweiszeile>}
+
+      {umbuchungAngebot && <Hinweiszeile role="status">
+        <p><b>Auf {umbuchungAngebot.vonNummer} sind {euro(umbuchungAngebot.betrag)} schon bezahlt.</b></p>
+        <p>
+          Nach dem Storno ist das ein Guthaben des Kunden. Umgebucht auf {umbuchungAngebot.aufNummer} gilt es dort als
+          bezahlt — im Zahlungsstapel steht eine Umbuchung, keine Bankbewegung.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" loading={umbuchungLaeuft} onClick={async () => {
+            if (umbuchungLaeuft) return;
+            const a = umbuchungAngebot;
+            setUmbuchungLaeuft(true);
+            try {
+              await guthabenUmbuchen(a.vonId, a.aufId, a.betrag);
+              setUmbuchungAngebot(null);
+              toast.success(`Guthaben auf ${a.aufNummer} umgebucht`);
+              offeneNeuLaden();
+              void postenNeuLaden();
+            } catch (e) {
+              toast.error(grundAus(e, 'Das Guthaben konnte nicht umgebucht werden.'));
+            } finally {
+              setUmbuchungLaeuft(false);
+            }
+          }}>Auf {umbuchungAngebot.aufNummer} umbuchen</Button>
+          <Button variant="ghost" onClick={() => setUmbuchungAngebot(null)}>Später</Button>
+        </div>
       </Hinweiszeile>}
 
       {!nurLesen && erstellen && (
@@ -5933,6 +5986,88 @@ export default function InvoicesView() {
         )}
         {zFehler && <p className="mt-3 text-sm text-danger">{zFehler}</p>}
 
+        {/*
+          GUTHABEN MIT EINER NEUEN RECHNUNG VERRECHNEN (V7) — die Zusage der
+          Stornorechnung. Ein Vorgang statt Rückzahlung hier und Eingang dort;
+          im Zahlungsstapel eine Umbuchung, keine zwei Bankzeilen.
+        */}
+        {zahlungsStand && zahlungen && zahlstand(zahlungsStand).guthaben > 0 && (() => {
+          const guthaben = zahlstand(zahlungsStand).guthaben;
+          const kunde = zahlungsStand.customerName.trim().toLowerCase();
+          const ziele = [...new Map([...offeneRechnungen, ...invoices].map((r) => [r.id, r])).values()]
+            .filter((r) => r.id !== zahlungsStand.id && r.paymentStatus !== 'Storniert'
+              && r.customerName.trim().toLowerCase() === kunde && zahlstand(r).rest > 0)
+            .sort((a, b) => b.invoiceNumber.localeCompare(a.invoiceNumber));
+          return (
+            <div className="mt-4">
+              <p className="section-label">Mit einer offenen Rechnung verrechnen</p>
+              {ziele.length === 0 ? (
+                <p className="text-sm text-ink-muted">
+                  {zahlungsStand.customerName} hat keine offene Rechnung. Das Guthaben von {euro(guthaben)} lässt sich
+                  zurückzahlen oder später mit der nächsten Rechnung verrechnen.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <SelectField
+                    id="umbuchung-ziel"
+                    label="Auf Rechnung"
+                    value={umbuchungZiel}
+                    onChange={(e) => {
+                      setUmbuchungZiel(e.target.value);
+                      const ziel = ziele.find((r) => r.id === e.target.value);
+                      setUmbuchungBetrag(ziel ? zahlAlsText(Math.min(guthaben, zahlstand(ziel).rest)) : '');
+                    }}
+                  >
+                    <option value="">Rechnung wählen …</option>
+                    {ziele.map((r) => (
+                      <option key={r.id} value={r.id}>{`${r.invoiceNumber} · offen ${euro(zahlstand(r).rest)}`}</option>
+                    ))}
+                  </SelectField>
+                  <InputField
+                    id="umbuchung-betrag"
+                    label="Betrag"
+                    inputMode="decimal"
+                    value={umbuchungBetrag}
+                    onChange={(e) => setUmbuchungBetrag(e.target.value)}
+                  />
+                  <Button
+                    variant="secondary"
+                    loading={umbuchungLaeuft}
+                    disabled={!umbuchungZiel || !(zahlOder(umbuchungBetrag, 0) > 0)}
+                    onClick={async () => {
+                      if (umbuchungLaeuft) return;
+                      const ziel = ziele.find((r) => r.id === umbuchungZiel);
+                      if (!ziel) return;
+                      setUmbuchungLaeuft(true);
+                      setZFehler(null);
+                      try {
+                        await guthabenUmbuchen(zahlungsStand.id, ziel.id, cent(zahlOder(umbuchungBetrag, 0)));
+                      } catch (e) {
+                        setZFehler(grundAus(e, 'Das Guthaben konnte nicht umgebucht werden.'));
+                        setUmbuchungLaeuft(false);
+                        return;
+                      }
+                      setUmbuchungLaeuft(false);
+                      setUmbuchungZiel('');
+                      setUmbuchungBetrag('');
+                      toast.success(`Guthaben auf ${ziel.invoiceNumber} umgebucht`);
+                      offeneNeuLaden();
+                      void postenNeuLaden();
+                      try {
+                        setZahlungen(await listZahlungen(zahlungsStand.companyId, zahlungsStand.id));
+                      } catch {
+                        setZFehler('Umgebucht — die Liste konnte aber nicht neu geladen werden.');
+                      }
+                    }}
+                  >
+                    Guthaben umbuchen
+                  </Button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         <div className="mt-4">
           <p className="section-label">Bisher eingegangen</p>
           {zahlungen === null ? (
@@ -5948,6 +6083,7 @@ export default function InvoicesView() {
                   subtitle={
                     <span>
                       {datumAT(z.datum)} · {z.art === 'Mahnkosten' ? 'Mahnspesen und Zinsen' : z.art}
+                      {z.art === 'Umbuchung' ? ' (Löschen nimmt beide Seiten zurück)' : ''}
                       {z.hinweis ? ` · ${z.hinweis}` : ''}
                       {z.erfasstVonName ? ` · erfasst von ${z.erfasstVonName}` : ''}
                     </span>

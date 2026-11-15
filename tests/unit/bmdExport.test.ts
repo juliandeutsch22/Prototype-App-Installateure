@@ -661,3 +661,37 @@ describe('Der Zahlungsstapel', () => {
     expect(e.fehlend).toEqual(['Konto für bezahlte Mahnspesen und Verzugszinsen (Ertrag)']);
   });
 });
+
+/*
+  DURCHSICHT 15.11.2026, V7: ein umgebuchtes Guthaben ist keine
+  Bankbewegung. Vorher (Rückzahlung von Hand auf der alten, Eingang auf der
+  neuen) standen zwei Bankzeilen im Stapel. Gegenprobe: ohne die Änderung
+  entstehen zwei Zeilen mit dem Bankkonto.
+*/
+describe('Zahlungsstapel: Umbuchung eines Guthabens (V7)', () => {
+  const mitBank: Buchungskonto[] = [...KONTEN, { zweck: 'bank', konto: '2800' }];
+  const alt = rechnung({ id: 'alt', invoiceNumber: 'RE-2026-0001', paymentStatus: 'Storniert', bezahltBetrag: 0 });
+  const neu = rechnung({ id: 'neu', invoiceNumber: 'RE-2026-0002', bezahltBetrag: 1200 });
+
+  it('eine Zeile Debitoren an Debitoren, keine Bank', () => {
+    const e = buildBmdZahlungenCsv([
+      { invoiceId: 'alt', datum: '2026-04-20', betrag: -1200, art: 'Umbuchung', umbuchung: 'u1' },
+      { invoiceId: 'neu', datum: '2026-04-20', betrag: 1200, art: 'Umbuchung', umbuchung: 'u1' },
+    ], [alt, neu] as (Invoice & { id: string })[], mitBank, '2026-04-01', '2026-04-30');
+    expect(e.fehlend).toEqual([]);
+    expect(e.zeilen).toHaveLength(1);
+    expect(e.zeilen[0]).toMatchObject({
+      soll: '2000', haben: '2000', belegnummer: 'RE-2026-0002', betrag: 1200, steuercode: '',
+    });
+    expect(e.zeilen[0].buchungstext).toContain('RE-2026-0001');
+    expect(e.csv).not.toContain('2800');
+  });
+
+  // Bleibt gleich: ein echter Eingang ist weiter Bank an Debitoren.
+  it('ein Eingang daneben bleibt eine Bankzeile', () => {
+    const e = buildBmdZahlungenCsv([
+      { invoiceId: 'neu', datum: '2026-04-21', betrag: 100, art: 'Überweisung' },
+    ], [neu] as (Invoice & { id: string })[], mitBank, '2026-04-01', '2026-04-30');
+    expect(e.zeilen[0]).toMatchObject({ soll: '2800', haben: '2000' });
+  });
+});

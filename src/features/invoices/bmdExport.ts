@@ -433,11 +433,15 @@ export function buildBmdCsv(
  *   Bank an das Konto dafür, ohne Debitoren — sie sind keine Forderung aus
  *   der Rechnung, sondern ein eigener Ertrag, und tragen keine Umsatzsteuer
  *   (Schadenersatz, kein Entgelt). Zurückgebucht mit vertauschten Konten.
+ * - Umbuchung eines Guthabens (V7, 15.11.2026): EINE Zeile Debitoren an
+ *   Debitoren, Beleg die Zielrechnung, der Text nennt beide Rechnungen. Es
+ *   hat sich kein Geld bewegt — zwei Bankzeilen buchten eine Rückzahlung und
+ *   einen Eingang, die es nie gab. Die negative Hälfte schreibt keine Zeile.
  *
  * Wie beim Rechnungsstapel: fehlt ein Konto, entsteht keine Datei.
  */
 export function buildBmdZahlungenCsv(
-  zahlungen: Pick<Zahlungseingang, 'invoiceId' | 'datum' | 'betrag' | 'art' | 'hinweis'>[],
+  zahlungen: Pick<Zahlungseingang, 'invoiceId' | 'datum' | 'betrag' | 'art' | 'hinweis' | 'umbuchung'>[],
   rechnungen: (Invoice & { id: string })[],
   konten: Buchungskonto[],
   von: string,
@@ -476,6 +480,18 @@ export function buildBmdZahlungenCsv(
     const text = `${r.customerName}${z.hinweis ? ` / ${z.hinweis}` : ''}`;
     // Kundennummer, sonst das Sammelkonto der Debitoren (Runde 3, M5).
     const debitor = debitorVon?.(r)?.trim() || debitoren?.konto || '';
+    if (z.art === 'Umbuchung') {
+      // Eine Zeile je Umbuchung, an der Zielrechnung; die Gegenhälfte nennt die Quelle.
+      if (z.betrag < 0 || !debitoren) continue;
+      const gegen = imZeitraum.find((x) => x.umbuchung && x.umbuchung === z.umbuchung && x.betrag < 0);
+      const quelle = gegen ? nachId.get(gegen.invoiceId) : undefined;
+      zeilen.push({
+        soll: debitoren.konto, haben: debitoren.konto, belegdatum: datum(z.datum), belegnummer: r.invoiceNumber,
+        buchungstext: `Umbuchung Guthaben ${quelle ? `${quelle.invoiceNumber} ` : ''}auf ${r.invoiceNumber} ${r.customerName}`,
+        betrag: Math.abs(z.betrag), steuercode: '', debitor,
+      });
+      continue;
+    }
     if (z.art === 'Skonto') {
       if (!skonto) {
         vermisst('Konto für gewährte Skonti (Erlösschmälerung)');

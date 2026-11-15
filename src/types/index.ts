@@ -2427,7 +2427,14 @@ export interface Zahlungseingang {
    * „Mahnkosten“ (seit 09.11.2026): bezahlte Mahnspesen und Verzugszinsen der
    * letzten Mahnung — zählen nicht in den bezahlten Betrag der Rechnung.
    */
-  art: 'Überweisung' | 'Bar' | 'Karte' | 'Sonstiges' | 'Skonto' | 'Mahnkosten';
+  /*
+   * „Umbuchung“ (seit 15.11.2026, V7): ein Guthaben, mit einer anderen
+   * Rechnung desselben Kunden verrechnet — negativ auf der einen, positiv auf
+   * der anderen, verbunden über `umbuchung`. Kein Geld hat sich bewegt.
+   */
+  art: 'Überweisung' | 'Bar' | 'Karte' | 'Sonstiges' | 'Skonto' | 'Mahnkosten' | 'Umbuchung';
+  /** Die gemeinsame Kennung beider Hälften einer Umbuchung (V7). */
+  umbuchung?: string | null;
   /** Freitext: „Skonto gezogen", „Teilzahlung laut Vereinbarung". */
   hinweis?: string;
   /** Wer ihn erfasst hat — eine Zahl ohne Herkunft lässt sich nicht klären. */

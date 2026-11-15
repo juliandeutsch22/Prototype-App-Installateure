@@ -14,3 +14,4 @@ export const createZahlungMitSkonto = pg.createZahlungMitSkonto;
 export const createZahlungAufgeteilt = pg.createZahlungAufgeteilt;
 export const updateZahlung = pg.updateZahlung;
 export const deleteZahlung = pg.deleteZahlung;
+export const guthabenUmbuchen = pg.guthabenUmbuchen;

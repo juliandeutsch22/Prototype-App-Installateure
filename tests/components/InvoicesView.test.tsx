@@ -276,10 +276,13 @@ vi.mock('@/lib/db/zahlungen', () => ({
   createZahlungMitSkonto: (...a: unknown[]) => createZahlungMitSkonto(...(a as [])),
   createZahlungAufgeteilt: (...a: unknown[]) => createZahlungAufgeteilt(...(a as [])),
   deleteZahlung: vi.fn(async () => undefined),
+  guthabenUmbuchen: (...a: unknown[]) => umbuchen(...a),
   // Die Kennzahl „Bezahlt im laufenden Monat“ (G27) liest die Eingänge des Monats.
   listZahlungenImZeitraum: (...a: unknown[]) => zahlungenImMonat(...(a as [])),
 }));
 const zahlungenImMonat = vi.fn<(...a: unknown[]) => Promise<unknown[]>>(async () => []);
+/** Guthaben umbuchen (V7). */
+const umbuchen = vi.fn<(...a: unknown[]) => Promise<string>>(async () => 'u1');
 const createZahlungMitSkonto = vi.fn(async () => undefined);
 const createZahlungAufgeteilt = vi.fn(async () => undefined);
 
@@ -6214,6 +6217,22 @@ describe('Stornieren und neu ausstellen (V6/F4)', () => {
     expect(screen.queryByText('Ersetzt RE-2026-0040.')).toBeNull();
   });
 
+  it('war auf die alte gezahlt: bietet an, das Guthaben gleich auf die neue umzubuchen (V7)', async () => {
+    umbuchen.mockClear();
+    rechnungen = [{ ...ALT, bezahltBetrag: 300 } as Invoice & { id: string }];
+    zeige();
+    await screen.findAllByText(/RE-2026-0040/);
+    await rechnungOeffnen('RE-2026-0040');
+    await userEvent.click(await screen.findByRole('button', { name: 'Stornieren und neu ausstellen …' }));
+    const dialog = await screen.findByRole('dialog', { name: /Stornieren und neu ausstellen/ });
+    await userEvent.type(within(dialog).getByLabelText(/Grund/), 'Preis');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Neue Rechnung vorbereiten' }));
+    await screen.findByText('Ersetzt RE-2026-0040.');
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Auf RE-2026-1099 umbuchen' }));
+    await waitFor(() => expect(umbuchen).toHaveBeenCalledWith('alt1', 'neu', 300));
+  });
+
   // Bleibt gleich: verworfen, ist die neue Rechnung kein Ersatz mehr — die alte bleibt.
   it('Verwerfen beendet den Ersatz', async () => {
     await vorbereiten();
@@ -6221,5 +6240,54 @@ describe('Stornieren und neu ausstellen (V6/F4)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Verwerfen' }));
     expect(screen.queryByText('Ersetzt RE-2026-0040.')).toBeNull();
     expect(ersetze).not.toHaveBeenCalled();
+  });
+});
+
+/*
+  DURCHSICHT 15.11.2026, V7: ein Guthaben mit einer neuen Rechnung
+  verrechnen — die Zusage der Stornorechnung. Vorher ging es nur über
+  Rückzahlung hier und Eingang dort, von Hand. Gegenprobe: vor der Änderung
+  gibt es den Abschnitt nicht.
+*/
+describe('Guthaben umbuchen (V7)', () => {
+  const STORNIERT = {
+    id: 's', invoiceNumber: 'RE-2026-1500', projectNumber: '2026-042', customerName: 'Max',
+    invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Storniert', totalBrutto: 504, bezahltBetrag: 200,
+  } as unknown as Invoice & { id: string };
+  const OFFENE = {
+    id: 'o', invoiceNumber: 'RE-2026-1510', projectNumber: '2026-042', customerName: 'Max',
+    invoiceDate: '2026-09-02', dueDate: '2026-09-16', paymentStatus: 'Offen', totalBrutto: 450, bezahltBetrag: 0,
+  } as unknown as Invoice & { id: string };
+  beforeEach(() => {
+    umbuchen.mockClear();
+    bisherigeZahlungen = [{ id: 'z1', invoiceId: 's', datum: '2026-09-10', betrag: 200, art: 'Überweisung' }];
+  });
+  afterEach(() => {
+    bisherigeZahlungen = [];
+    offene = [];
+  });
+
+  it('bucht das Guthaben auf eine offene Rechnung desselben Kunden um — ein Vorgang', async () => {
+    rechnungen = [STORNIERT, OFFENE];
+    offene = [OFFENE];
+    zeige();
+    await rechnungOeffnen('RE-2026-1500');
+    await userEvent.click(await screen.findByRole('button', { name: 'Guthaben zurückzahlen …' }));
+    await userEvent.selectOptions(await screen.findByLabelText('Auf Rechnung'), 'o');
+    expect(screen.getByLabelText('Betrag')).toHaveValue('200');
+    await userEvent.click(screen.getByRole('button', { name: 'Guthaben umbuchen' }));
+    await waitFor(() => expect(umbuchen).toHaveBeenCalledWith('s', 'o', 200));
+    expect(createZahlung).not.toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ betrag: -200 }));
+  });
+
+  it('ohne offene Rechnung des Kunden: sagt es, statt eine fremde anzubieten', async () => {
+    const fremd = { ...OFFENE, id: 'f', invoiceNumber: 'RE-2026-1511', customerName: 'Anderer Kunde' } as Invoice & { id: string };
+    rechnungen = [STORNIERT, fremd];
+    offene = [fremd];
+    zeige();
+    await rechnungOeffnen('RE-2026-1500');
+    await userEvent.click(await screen.findByRole('button', { name: 'Guthaben zurückzahlen …' }));
+    expect(await screen.findByText(/hat keine offene Rechnung/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Auf Rechnung')).toBeNull();
   });
 });
