@@ -131,21 +131,21 @@ vi.mock('@/lib/db/timeEntries', () => ({
   }),
   /*
     Der Urlaubsverlauf für den Übertrag — dieselben Buchungen, auf Urlaub
-    gefiltert. Die echte Abfrage filtert serverseitig; hier ist das die
-    ehrlichste Attrappe, weil sie liefert, was die Datenbank auch liefern
-    würde, statt einer leeren Liste, die jeden Übertrag unsichtbar machte.
+    gefiltert, und wie `urlaubstage_je_person` seit L5 nur Person und Tag:
+    sonst rechnete eine Prüfung mit Feldern, die die Seite nicht mehr bekommt.
   */
-  subscribeUrlaubstage: vi.fn(
+  beobachteUrlaubstage: vi.fn(
     (
       _company: string,
       from: string,
       to: string,
-      cb: (rows: (TimeEntry & { id: string })[]) => void,
+      cb: (rows: Array<{ id: string; companyId: string; userId: string; date: string; status: 'Urlaub' }>) => void,
       onError: (e: Error) => void,
     ) => {
       // Z7: die Abfrage kann in die Frist laufen — dann meldet sie den Fehler statt Zeilen.
       if (urlaubScheitert) onError(new Error('Zeitüberschreitung'));
-      else cb(buchungen.filter((b) => b.status === 'Urlaub' && b.date >= from && b.date <= to));
+      else cb(buchungen.filter((b) => b.status === 'Urlaub' && b.date >= from && b.date <= to)
+        .map((b) => ({ id: `urlaub:${b.userId}:${b.date}`, companyId: b.companyId, userId: b.userId, date: b.date, status: 'Urlaub' as const })));
       return () => undefined;
     },
   ),

@@ -83,6 +83,19 @@ export function listUrlaubstage(
   return pg.listUrlaubstage(companyId, from, to);
 }
 
+export type { Urlaubstag } from './pg/timeEntries';
+
+/** Die Urlaubstage je Person, live — siehe `pg.beobachteUrlaubstage` (L5). */
+export function beobachteUrlaubstage(
+  companyId: string,
+  von: string,
+  bis: string,
+  cb: (tage: import('./pg/timeEntries').Urlaubstag[]) => void,
+  onError: (e: Error) => void,
+): () => void {
+  return pg.beobachteUrlaubstage(companyId, von, bis, cb, onError);
+}
+
 /** Dieselben Urlaubstage als Live-Liste — siehe `pg.subscribeUrlaubstage`. */
 export function subscribeUrlaubstage(
   companyId: string,
