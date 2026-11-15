@@ -11,6 +11,7 @@ import { plusTage } from '@shared/freistellung';
 import { abfragen, abonnieren, derClient, SEITE, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
 import { paarGeaendertAus, type PaarGrundlage } from '../paarFassung';
+import { ruestlisteFrageAus, type RuestlisteErgebnis, type RuestlisteUmzug, type RuestlisteWahl } from '../ruestlisteFrage';
 
 const EINSAETZE = 'assignments';
 
@@ -184,15 +185,14 @@ export async function saveAssignments(
 }
 
 /**
- * Einen einzelnen Einsatz entfernen.
+ * Einen einzelnen Einsatz entfernen (Formular „Einsatz löschen“).
  *
- * WAS HIER BEWUSST NICHT PASSIERT: `uids` an der Rüstliste schrumpft nicht
- * mit. Wer hier entfernt wird, steht dort also weiter — und dürfte noch
- * abhaken. Den Weg dorthin gibt es in der App nicht: ohne Einsatz erscheint
- * die Baustelle auf seiner Startseite nicht. Beim nächsten Speichern der
- * Einteilung steht `uids` ohnehin wieder richtig.
+ * DIE RÜSTLISTE ZIEHT MIT (P2): die Mannschaft der Liste schrumpft im selben
+ * Zug. War es der Letzte und hängt eine Liste am Paar, fragt die Datenbank
+ * bei `wahl = 'fragen'` zurück (`RuestlisteFrage`), statt die Liste still
+ * verwaist stehen zu lassen. Ohne Wahl bleibt sie stehen, wie bisher.
  */
-export async function deleteAssignment(id: string): Promise<void> {
+export async function deleteAssignment(id: string, wahl?: RuestlisteWahl): Promise<RuestlisteErgebnis | null> {
   /*
     ÜBER `einsatz_loeschen`, NICHT DIREKT IN DER TABELLE (P1): die Funktion
     sperrt erst das Paar aus Tag und Baustelle, dann die Zeile — wie jedes
@@ -200,8 +200,9 @@ export async function deleteAssignment(id: string): Promise<void> {
     in ein Speichern desselben Paares hinein, und die Prüfung der Fassung
     sieht es. Rechte und Fehlermeldung bleiben die des direkten Löschens.
   */
-  const { error } = await derClient().rpc('einsatz_loeschen', { p_id: id });
-  if (error) throw new Error(error.message);
+  const { data, error } = await derClient().rpc('einsatz_loeschen', { p_id: id, ...(wahl ? { p_ruestliste: wahl } : {}) });
+  if (error) throw ruestlisteFrageAus(error) ?? new Error(error.message);
+  return (data ?? null) as RuestlisteErgebnis | null;
 }
 
 /*
@@ -344,23 +345,29 @@ export async function einsatzFolgetage(
 /**
  * Einen Einsatz auf einen anderen Tag oder zu einer anderen Person setzen,
  * oder ihn dorthin kopieren (`einsatz_umplanen`, E88) — eine Zeile, mit den
- * Prüfungen von „Auch an den folgenden Tagen“; die Rüstliste geht mit.
+ * Prüfungen von „Auch an den folgenden Tagen“.
  * `anderswo`: die Person steht am Zieltag auch auf einer anderen Baustelle.
+ * `ruestliste` (P2): ob die Rüstliste mitzog oder am Zieltag dazukam — sie
+ * wandert, sobald am alten Tag niemand mehr auf der Baustelle steht.
  */
 export async function einsatzUmplanen(
   id: string, datum: string, userId: string, kopieren: boolean,
-): Promise<{ id: string; anderswo: boolean }> {
+): Promise<{ id: string; anderswo: boolean; ruestliste: RuestlisteUmzug }> {
   const { data, error } = await derClient().rpc('einsatz_umplanen', {
     p_id: id, p_datum: datum, p_user: userId, p_kopieren: kopieren,
   });
   if (error) throw new Error(error.message);
-  const zeile = ((data ?? []) as { id: string; anderswo: boolean }[])[0];
+  const zeile = ((data ?? []) as { id: string; anderswo: boolean; ruestliste?: RuestlisteUmzug }[])[0];
   if (!zeile) throw new Error('Der Einsatz wurde nicht umgeplant.');
-  return zeile;
+  return { id: zeile.id, anderswo: zeile.anderswo, ruestliste: zeile.ruestliste ?? null };
 }
 
-/** Einen Einsatz entfernen — mit der Rüstliste (`einsatz_entfernen`, E88). */
-export async function einsatzEntfernen(id: string): Promise<void> {
-  const { error } = await derClient().rpc('einsatz_entfernen', { p_id: id });
-  if (error) throw new Error(error.message);
+/**
+ * Einen Einsatz entfernen (Wochenplan, `einsatz_entfernen`, E88) — die
+ * Rüstliste wie bei `deleteAssignment`, mit derselben Frage beim Letzten.
+ */
+export async function einsatzEntfernen(id: string, wahl?: RuestlisteWahl): Promise<RuestlisteErgebnis | null> {
+  const { data, error } = await derClient().rpc('einsatz_entfernen', { p_id: id, ...(wahl ? { p_ruestliste: wahl } : {}) });
+  if (error) throw ruestlisteFrageAus(error) ?? new Error(error.message);
+  return (data ?? null) as RuestlisteErgebnis | null;
 }

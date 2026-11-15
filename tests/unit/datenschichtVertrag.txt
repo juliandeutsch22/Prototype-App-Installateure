@@ -1,4 +1,4 @@
-src/lib/db/assignments.ts#deleteAssignment: (id: string) => Promise<void>
+src/lib/db/assignments.ts#deleteAssignment: (id: string, wahl?: RuestlisteWahl) => Promise<import("src/lib/db/ruestlisteFrage").RuestlisteErgebnis | null>
 src/lib/db/assignments.ts#listAssignmentsForDate: (companyId: string, date: string) => Promise<WithId<Assignment>[]>
 src/lib/db/assignments.ts#listAssignmentsForUserInRange: (companyId: string, uid: string, from: string, to: string) => Promise<WithId<Assignment>[]>
 src/lib/db/assignments.ts#listUpcomingAssignments: (companyId: string, uid: string, from: string, max?: number) => Promise<WithId<Assignment>[]>

@@ -5,6 +5,8 @@ import { einsatzFolgetage, saveAssignments } from '@/lib/db/assignments';
 import { FOLGETAGE_HOECHSTENS, folgeBericht, tagDanach, tageEinschliesslich } from './folgetage';
 import { saveEinsatzMaterial } from '@/lib/db/einsatzMaterial';
 import { PaarGeaendert, type EinteilungsZeile, type ListenZeile, type PaarGrundlage } from '@/lib/db/paarFassung';
+import { entferntText, RuestlisteFrage, type RuestlisteErgebnis, type RuestlisteWahl as Wahl } from '@/lib/db/ruestlisteFrage';
+import RuestlisteWahl from './RuestlisteWahl';
 import type { Abwesenheit } from '@/lib/db/vacations';
 import { getAustrianHolidayName, isWeekend } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
@@ -222,7 +224,7 @@ export default function EinsatzFormular({
    * Im Seitenfenster: die gespeicherten Einsätze dieser Baustelle einzeln
    * löschen. Erst nach der Rückfrage im Fenster; ein Fehlschlag wirft.
    */
-  onLoeschen?: (a: WithId<Assignment>) => Promise<void>;
+  onLoeschen?: (a: WithId<Assignment>, wahl: Wahl) => Promise<RuestlisteErgebnis | null>;
   /**
    * Im Seitenfenster: ein Nebenknopf in der Fußleiste neben dem Speichern
    * (Runde 4: „Ganzen Tag ansehen“).
@@ -289,6 +291,9 @@ export default function EinsatzFormular({
   /** Welcher Einsatz gerade gelöscht werden soll — die Rückfrage steht im Fenster. */
   const [loeschFrage, setLoeschFrage] = useState<WithId<Assignment> | null>(null);
   const [loeschtGerade, setLoeschtGerade] = useState(false);
+  /** Beim Letzten des Paares: was mit der Rüstliste geschieht (P2) — gehört zur offenen Rückfrage. */
+  const [ruestFrage, setRuestFrage] = useState<{ frage: RuestlisteFrage; wahl: 'aufloesen' | 'behalten' | null } | null>(null);
+  useEffect(() => { setRuestFrage(null); }, [loeschFrage]);
 
   /** Mit welcher Person das Fenster geöffnet wurde — sie kommt zur übernommenen Planung dazu. */
   const startPick = useMemo(() => {
@@ -1421,15 +1426,37 @@ export default function EinsatzFormular({
                     <strong>Einsatz löschen?</strong> Der Einsatz von {loeschFrage.userName} am{' '}
                     {fmtDay(loeschFrage.date)} wird entfernt.
                   </p>
+                  {ruestFrage && (
+                    <RuestlisteWahl
+                      name="formular-ruestliste"
+                      frage={ruestFrage.frage}
+                      wahl={ruestFrage.wahl}
+                      onWahl={(w) => setRuestFrage((f) => (f ? { ...f, wahl: w } : f))}
+                    />
+                  )}
                   <div className="flex flex-wrap gap-2">
                     <Button
                       variant="danger"
                       loading={loeschtGerade}
+                      disabled={!!ruestFrage && !ruestFrage.wahl}
                       onClick={async () => {
                         const weg = loeschFrage;
                         setLoeschtGerade(true);
+                        let ergebnis: RuestlisteErgebnis | null;
                         try {
-                          await onLoeschen(weg);
+                          ergebnis = await onLoeschen(weg, ruestFrage?.wahl ?? 'fragen');
+                        } catch (e) {
+                          setLoeschtGerade(false);
+                          // Der Letzte, und eine Rüstliste hängt daran: die Frage bleibt im Fenster stehen.
+                          if (e instanceof RuestlisteFrage) {
+                            setRuestFrage({ frage: e, wahl: null });
+                            return;
+                          }
+                          toast.error(`Der Einsatz von ${weg.userName} konnte nicht gelöscht werden.`);
+                          setLoeschFrage(null);
+                          return;
+                        }
+                        try {
                           /*
                             DAS EIGENE LÖSCHEN IST KEINE FREMDE ÄNDERUNG (P1):
                             die Person geht aus der Auswahl, der Rest wird
@@ -1451,9 +1478,7 @@ export default function EinsatzFormular({
                               });
                             }
                           }
-                          toast.success('Einsatz gelöscht');
-                        } catch {
-                          toast.error(`Der Einsatz von ${weg.userName} konnte nicht gelöscht werden.`);
+                          toast.success(`Einsatz gelöscht${entferntText(ergebnis)}`);
                         } finally {
                           setLoeschtGerade(false);
                           setLoeschFrage(null);

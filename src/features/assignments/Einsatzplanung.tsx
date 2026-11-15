@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { darfTermineSchreiben, isGF } from '@/lib/permissions';
 import { einsatzEntfernen, einsatzUmplanen } from '@/lib/db/assignments';
+import { entferntText, RuestlisteFrage, umzugText } from '@/lib/db/ruestlisteFrage';
+import RuestlisteWahl from './RuestlisteWahl';
 import { grundAus } from '@/lib/fehlerGrund';
 import { useToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -123,6 +125,12 @@ export default function Einsatzplanung() {
   const [offen, setOffen] = useState<string | null>(null);
   const [verschieben, setVerschieben] = useState<{ a: Assignment; titel: string } | null>(null);
   const [entfernen, setEntfernen] = useState<{ a: Assignment; titel: string } | null>(null);
+  /**
+   * Die Rückfrage der Datenbank beim Letzten eines Paares (P2): was mit der
+   * Rüstliste geschehen soll. Gehört zum offenen „Entfernen“ und geht mit ihm.
+   */
+  const [ruestFrage, setRuestFrage] = useState<{ frage: RuestlisteFrage; wahl: 'aufloesen' | 'behalten' | null } | null>(null);
+  useEffect(() => { setRuestFrage(null); }, [entfernen]);
   const toast = useToast();
 
   const tage = useMemo(
@@ -227,11 +235,20 @@ export default function Einsatzplanung() {
       setOffen(null);
       try {
         const r = await einsatzUmplanen(a.id, nachTag, nachPerson, kopieren);
-        const text = umplanText({ kopieren, titel, vonPerson: nameVon(a.userId), nachPerson: nameVon(nachPerson), nachTag, anderswo: r.anderswo });
+        const text = umplanText({ kopieren, titel, vonPerson: nameVon(a.userId), nachPerson: nameVon(nachPerson), nachTag, anderswo: r.anderswo })
+          + umzugText(r.ruestliste);
         toast.success(text, {
           label: 'Rückgängig',
           onClick: () => {
-            const zurueck = kopieren ? einsatzEntfernen(r.id) : einsatzUmplanen(a.id, a.date, a.userId, false).then(() => undefined);
+            /*
+              Zurück stellt den Stand davor her: die Kopie brachte keine Liste
+              mit, also bleibt eine Liste am Zieltag, wie sie war. Beim
+              Verschieben zieht die Liste wieder mit zurück, sobald der
+              Zieltag leer wird — außer sie wurde dort zusammengeführt (P2).
+            */
+            const zurueck = kopieren
+              ? einsatzEntfernen(r.id, 'behalten').then(() => undefined)
+              : einsatzUmplanen(a.id, a.date, a.userId, false).then(() => undefined);
             zurueck.then(
               () => toast.info(kopieren ? 'Die Kopie ist wieder weg.' : 'Der Einsatz steht wieder, wo er war.'),
               (e) => toast.error(grundAus(e, 'Rückgängig ging nicht.')),
@@ -766,19 +783,34 @@ export default function Einsatzplanung() {
         title="Einsatz entfernen?"
         message={entfernen ? `${entfernen.titel} · ${nameVon(entfernen.a.userId)} · ${tagLang(entfernen.a.date)}` : undefined}
         confirmLabel="Entfernen"
+        gesperrt={!!ruestFrage && !ruestFrage.wahl}
         onCancel={() => setEntfernen(null)}
         onConfirm={async () => {
           if (!entfernen) return;
           const { a, titel } = entfernen;
           try {
-            await einsatzEntfernen(a.id);
-            toast.success(`${titel} entfernt: ${nameVon(a.userId)}, ${tagLang(a.date)}`);
+            // Erst fragen lassen: ist es der Letzte und hängt eine Rüstliste daran, kommt die Frage (P2).
+            const r = await einsatzEntfernen(a.id, ruestFrage?.wahl ?? 'fragen');
+            toast.success(`${titel} entfernt: ${nameVon(a.userId)}, ${tagLang(a.date)}${entferntText(r)}`);
             setEntfernen(null);
           } catch (e) {
+            if (e instanceof RuestlisteFrage) {
+              setRuestFrage({ frage: e, wahl: null });
+              return;
+            }
             toast.error(grundAus(e, 'Der Einsatz ließ sich nicht entfernen.'));
           }
         }}
-      />
+      >
+        {ruestFrage && (
+          <RuestlisteWahl
+            name="entfernen-ruestliste"
+            frage={ruestFrage.frage}
+            wahl={ruestFrage.wahl}
+            onWahl={(w) => setRuestFrage((f) => (f ? { ...f, wahl: w } : f))}
+          />
+        )}
+      </ConfirmDialog>
       {/*
         Was gezogen wird, wandert mit dem Zeiger — mit Alt steht „kopieren“
         dabei. Über `transform` statt `left`/`top` (V10, Motion): so gleitet

@@ -67,15 +67,22 @@ beforeEach(aufraeumen);
 afterAll(aufraeumen);
 
 describe('verschieben', () => {
-  it('auf einen anderen Tag und zu einer anderen Person — Baustelle, Zeit, Aufgabe und Helfer bleiben', async () => {
+  it('auf einen anderen Tag und zu einer anderen Person — Baustelle, Zeit und Aufgabe bleiben', async () => {
     const id = await einsatz(monteur.uid, 'Max Monteur', '2027-12-06');
     const { data, error } = await umplanen(planer, id, '2027-12-07', kollegin.uid);
     expect(error).toBeNull();
-    expect(data).toEqual([{ id, anderswo: false }]);
+    expect(data).toEqual([{ id, anderswo: false, ruestliste: null }]);
+    // Das Helfer-Kennzeichen kommt seit P2 von der neuen Person (ohne Einstufung: keins).
     expect(await zeile(id)).toEqual({
       date: '2027-12-07', user_id: kollegin.uid, user_name: 'Erna Kollegin', project_number: BAU,
-      as_helper: true, comment: 'Bad', zeit_von: '07:00:00', zeit_bis: '15:30:00',
+      as_helper: false, comment: 'Bad', zeit_von: '07:00:00', zeit_bis: '15:30:00',
     });
+  });
+
+  it('nur auf einen anderen Tag, dieselbe Person: das Helfer-Kennzeichen bleibt (P2, bleibt gleich)', async () => {
+    const id = await einsatz(monteur.uid, 'Max Monteur', '2027-12-06');
+    expect((await umplanen(planer, id, '2027-12-07', monteur.uid)).error).toBeNull();
+    expect((await zeile(id))?.as_helper).toBe(true);
   });
 
   it('Gegenprobe: auf dieselbe Stelle — nichts geändert, kein Fehler', async () => {
@@ -90,7 +97,7 @@ describe('verschieben', () => {
     await einsatz(monteur.uid, 'Max Monteur', '2027-12-07', ANDERE);
     const { data, error } = await umplanen(planer, id, '2027-12-07', monteur.uid);
     expect(error).toBeNull();
-    expect(data).toEqual([{ id, anderswo: true }]);
+    expect(data).toEqual([{ id, anderswo: true, ruestliste: null }]);
   });
 });
 

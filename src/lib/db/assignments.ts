@@ -5,6 +5,7 @@ import type { Assignment, KalenderAbo, KalenderAboArt } from '@/types';
 import type { WithId } from './core';
 import * as pg from './pg/assignments';
 import type { PaarGrundlage } from './paarFassung';
+import type { RuestlisteWahl } from './ruestlisteFrage';
 
 export type AssignmentInput = Omit<Assignment, 'id' | 'companyId' | 'createdAt'>;
 
@@ -73,8 +74,9 @@ export function saveAssignments(
   return pg.saveAssignments(companyId, date, projectNumber, rows, grundlage);
 }
 
-export function deleteAssignment(id: string): Promise<void> {
-  return pg.deleteAssignment(id);
+/** Einen Einsatz löschen; zur Rüstliste beim Letzten siehe `ruestlisteFrage.ts`. */
+export function deleteAssignment(id: string, wahl?: RuestlisteWahl) {
+  return pg.deleteAssignment(id, wahl);
 }
 
 /** Ein Kalender-Abo der Person — ob es eines gibt, und wann es zuletzt abgeholt wurde. */
@@ -124,6 +126,6 @@ export function einsatzUmplanen(id: string, datum: string, userId: string, kopie
 }
 
 /** Einen Einsatz entfernen, samt Rüstliste — siehe `pg.einsatzEntfernen`. */
-export function einsatzEntfernen(id: string) {
-  return pg.einsatzEntfernen(id);
+export function einsatzEntfernen(id: string, wahl?: RuestlisteWahl) {
+  return pg.einsatzEntfernen(id, wahl);
 }
