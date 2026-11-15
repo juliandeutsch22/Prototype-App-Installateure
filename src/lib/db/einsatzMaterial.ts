@@ -14,6 +14,7 @@
 import type { EinsatzMaterial, RuestPosition } from '@/types';
 import type { WithId } from './core';
 import * as pg from './pg/einsatzMaterial';
+import type { ListenZeile } from './paarFassung';
 
 export function listEinsatzMaterialForDate(
   companyId: string,
@@ -46,8 +47,10 @@ export function saveEinsatzMaterial(
   positionen: RuestPosition[],
   uids: string[],
   updatedBy: string,
+  /** Auf welcher Liste die Eingabe beruht (P1, `paarFassung.ts`); ohne Angabe keine Prüfung. */
+  grundlage?: ListenZeile[],
 ): Promise<void> {
-  return pg.saveEinsatzMaterial(companyId, date, projectNumber, positionen, uids, updatedBy);
+  return pg.saveEinsatzMaterial(companyId, date, projectNumber, positionen, uids, updatedBy, undefined, grundlage);
 }
 
 export function ladenUmschalten(

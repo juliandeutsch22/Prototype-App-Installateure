@@ -10,6 +10,7 @@ import { monatsEnde } from '@shared/feiertage';
 import { plusTage } from '@shared/freistellung';
 import { abfragen, abonnieren, derClient, loeschen, SEITE, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
+import { paarGeaendertAus, type PaarGrundlage } from '../paarFassung';
 
 const EINSAETZE = 'assignments';
 
@@ -146,6 +147,12 @@ export async function saveAssignments(
   date: string,
   projectNumber: string,
   rows: AssignmentInput[],
+  /**
+   * Worauf die Eingabe beruht (P1). Weicht das Paar in der Datenbank davon
+   * ab, wird nichts geschrieben und `PaarGeaendert` geworfen. Ohne Angabe
+   * wird nicht geprüft — wie bisher.
+   */
+  grundlage?: PaarGrundlage,
 ): Promise<void> {
   /*
     Der Betrieb steht im Anmeldekontext, die Datenbankfunktion holt ihn sich
@@ -171,8 +178,9 @@ export async function saveAssignments(
     p_datum: date,
     p_baustelle: projectNumber,
     p_zeilen: zeilen,
+    ...(grundlage ? { p_grundlage: grundlage } : {}),
   });
-  if (error) throw new Error(error.message);
+  if (error) throw paarGeaendertAus(error) ?? new Error(error.message);
 }
 
 /**

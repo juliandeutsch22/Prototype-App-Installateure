@@ -4,6 +4,7 @@ import { materialdeckung, type DeckungsDaten } from '@/lib/db/materialdeckung';
 import { einsatzFolgetage, saveAssignments } from '@/lib/db/assignments';
 import { FOLGETAGE_HOECHSTENS, folgeBericht, tagDanach, tageEinschliesslich } from './folgetage';
 import { saveEinsatzMaterial } from '@/lib/db/einsatzMaterial';
+import { PaarGeaendert, type EinteilungsZeile, type ListenZeile, type PaarGrundlage } from '@/lib/db/paarFassung';
 import type { Abwesenheit } from '@/lib/db/vacations';
 import { getAustrianHolidayName, isWeekend } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
@@ -94,10 +95,45 @@ interface Abgleich {
   paar: string;
   /** Übernommen, als die Planung des Tages schon geladen war? Vorher ist es noch das Öffnen. */
   bereit: boolean;
-  grundlage: { einteilung: string; liste: string };
-  gesehen: { einteilung: string; liste: string; anforderungen: string };
+  grundlage: Teile<string>;
+  gesehen: Teile<string> & { anforderungen: string };
   /** Fremd geändert, während hier getippt war — bis übernommen oder behalten. */
-  fremd: { einteilung: boolean; liste: boolean };
+  fremd: Teile<boolean>;
+  /**
+   * Selbst gespeichert, die Live-Meldung aber noch nicht ganz da: der
+   * geschriebene Stand. Kommt die Meldung in Teilschritten, ist ein
+   * Zwischenstand die eigene Meldung und nichts Fremdes.
+   */
+  erwartet: Teile<string | null>;
+  /**
+   * Von der Datenbank abgewiesen (`PaarGeaendert`): ihr Stand in diesem
+   * Moment, bis die Live-Meldung ihn bringt. Darauf speichert „Meine Eingabe
+   * behalten“; „Übernehmen“ braucht die Zeilen und wartet auf die Meldung.
+   */
+  abgelehnt: Teile<string | null>;
+}
+type Teile<T> = { einteilung: T; liste: T };
+
+const KEINE: Teile<null> = { einteilung: null, liste: null };
+
+/**
+ * Wie lange eine eigene Meldung höchstens in Teilschritten kommen darf. Was
+ * danach noch vom Gespeicherten abweicht, ist nicht mehr die eigene Meldung:
+ * dann fragt das Formular. Großzügig, weil ein schwaches Netz dauert — zu
+ * lang kostet nichts, denn überschrieben wird ohnehin nur, was die Datenbank
+ * als unverändert bestätigt.
+ */
+const EIGENE_MELDUNG_MS = 10_000;
+
+/** Der Schlüssel als Stand, wie ihn die Datenbank prüft (`paarFassung.ts`). */
+function standAus<T>(schluessel: string): T[] {
+  return schluessel ? schluessel.split('\n').map((z) => JSON.parse(z) as T) : [];
+}
+
+/** Der Stand, den die Datenbank bei einer Ablehnung meldet, als Schlüssel — wie die Live-Daten ihn hätten. */
+function schluesselAus(teil: keyof Teile<unknown>, stand: unknown[]): string {
+  const zeilen = stand.map((z) => JSON.stringify(z));
+  return (teil === 'einteilung' ? zeilen.sort() : zeilen).join('\n');
 }
 
 const MATERIAL_HINWEIS = (
@@ -280,6 +316,15 @@ export default function EinsatzFormular({
   useEffect(() => {
     paarJetzt.current = paar;
   }, [paar]);
+  /** Die Wartezeiten auf eigene Meldungen (`eigenesSpeichern`) — beim Schließen weg damit. */
+  const zeitgeber = useRef(new Set<ReturnType<typeof setTimeout>>());
+  useEffect(() => {
+    const offen = zeitgeber.current;
+    return () => {
+      for (const t of offen) clearTimeout(t);
+      offen.clear();
+    };
+  }, []);
 
   /** Wie das Formular zu den Live-Daten steht; `null` nur vor dem ersten Übernehmen. */
   const [abgleich, setAbgleich] = useState<Abgleich | null>(null);
@@ -347,6 +392,8 @@ export default function EinsatzFormular({
         grundlage: { einteilung: liveEinteilung, liste: liveListe },
         gesehen: live,
         fremd: { einteilung: false, liste: false },
+        erwartet: KEINE,
+        abgelehnt: KEINE,
       });
       return;
     }
@@ -357,11 +404,20 @@ export default function EinsatzFormular({
 
     const grundlage = { ...a.grundlage };
     const fremd = { ...a.fremd };
+    const erwartet = { ...a.erwartet };
+    // Was live kommt, ist mindestens so neu wie das, was die Datenbank beim Abweisen sagte.
+    const abgelehnt = {
+      einteilung: neuEinteilung ? null : a.abgelehnt.einteilung,
+      liste: neuListe ? null : a.abgelehnt.liste,
+    };
     // Bis die Planung des Tages geladen ist, gilt jede Antwort als Teil des Öffnens.
     if (neuEinteilung) {
       if (liveEinteilung === grundlage.einteilung) {
         // Zurück auf der Grundlage — etwa die Meldung des eigenen Speicherns.
         fremd.einteilung = false;
+        erwartet.einteilung = null;
+      } else if (erwartet.einteilung !== null) {
+        // Ein Zwischenstand der eigenen Meldung — das Ganze kommt gleich.
       } else if (!a.bereit || !bearbeitet.einteilung) {
         einteilungUebernehmen();
         grundlage.einteilung = liveEinteilung;
@@ -374,6 +430,9 @@ export default function EinsatzFormular({
     if (neuListe) {
       if (liveListe === grundlage.liste) {
         fremd.liste = false;
+        erwartet.liste = null;
+      } else if (erwartet.liste !== null) {
+        // Zwischenstand der eigenen Meldung.
       } else if (!a.bereit || !bearbeitet.liste) {
         listeUebernehmen();
         listeGeholt = true;
@@ -401,7 +460,7 @@ export default function EinsatzFormular({
         }),
       );
     }
-    setAbgleich({ paar, bereit, grundlage, gesehen: live, fremd });
+    setAbgleich({ paar, bereit, grundlage, gesehen: live, fremd, erwartet, abgelehnt });
   }, [
     abgleich, paar, bereit, bearbeitet, listeHier, einteilungUebernehmen, listeUebernehmen,
     liveEinteilung, liveListe, liveAnforderungen,
@@ -471,6 +530,12 @@ export default function EinsatzFormular({
   const fremdeListe = abgleich?.paar === paar && abgleich.fremd.liste;
   const inzwischenGeaendert = (fremdeEinteilung || fremdeListe) && !saving && !loeschtGerade;
   /*
+    Die Datenbank hat abgewiesen, die Live-Meldung mit dem neuen Stand ist
+    aber noch unterwegs: „Übernehmen“ hätte nichts zu übernehmen.
+  */
+  const neuerStandUnterwegs = (fremdeEinteilung && abgleich?.abgelehnt.einteilung != null)
+    || (fremdeListe && abgleich?.abgelehnt.liste != null);
+  /*
     EINGETEILT, ABER NICHT (MEHR) EINPLANBAR (10.10.2026): deaktiviert, oder
     Projektleitung bei ausgeschaltetem Schalter. Die Auswahl unten kennt nur
     Einplanbare; gespeichert wurde bisher nur, was dort angehakt war — so fiel
@@ -510,24 +575,59 @@ export default function EinsatzFormular({
    * gespeicherten Stand. Nur, wenn noch dasselbe Paar dasteht; wurde während
    * des Speicherns umgeschaltet, hat das Formular die neue Planung schon.
    */
-  function eigenesSpeichern(fuer: string, teil: { einteilung?: string; liste?: string }) {
+  function eigenesSpeichern(fuer: string, welcher: keyof Teile<unknown>, geschrieben: string) {
     if (paarJetzt.current !== fuer) return;
     setAbgleich((a) =>
       a && a.paar === fuer
         ? {
             ...a,
-            grundlage: { ...a.grundlage, ...teil },
-            fremd: {
-              einteilung: teil.einteilung !== undefined ? false : a.fremd.einteilung,
-              liste: teil.liste !== undefined ? false : a.fremd.liste,
-            },
+            grundlage: { ...a.grundlage, [welcher]: geschrieben },
+            fremd: { ...a.fremd, [welcher]: false },
+            abgelehnt: { ...a.abgelehnt, [welcher]: null },
+            // Schon live angekommen (während des Speicherns)? Dann wird nichts mehr erwartet.
+            erwartet: { ...a.erwartet, [welcher]: a.gesehen[welcher] === geschrieben ? null : geschrieben },
           }
         : a,
     );
-    setBearbeitet((b) => ({
-      einteilung: teil.einteilung !== undefined ? false : b.einteilung,
-      liste: teil.liste !== undefined ? false : b.liste,
-    }));
+    setBearbeitet((b) => ({ ...b, [welcher]: false }));
+    /*
+      Kommt die eigene Meldung nicht vollständig, war etwas anderes dazwischen.
+      Dann fragt das Formular, statt den Unterschied weiter für eigen zu halten.
+    */
+    const t = setTimeout(() => {
+      zeitgeber.current.delete(t);
+      setAbgleich((a) =>
+        a && a.paar === fuer && a.erwartet[welcher] === geschrieben
+          ? {
+              ...a,
+              erwartet: { ...a.erwartet, [welcher]: null },
+              fremd: { ...a.fremd, [welcher]: a.fremd[welcher] || a.gesehen[welcher] !== a.grundlage[welcher] },
+            }
+          : a,
+      );
+    }, EIGENE_MELDUNG_MS);
+    zeitgeber.current.add(t);
+  }
+
+  /**
+   * Die Datenbank hat abgewiesen: das Paar sieht inzwischen anders aus (P1).
+   * Der Teil gilt als getippt — es ist ja die Eingabe, die gespeichert werden
+   * sollte — und das Formular fragt wie bei einer fremden Live-Meldung.
+   */
+  function abgewiesen(fuer: string, e: PaarGeaendert) {
+    if (paarJetzt.current !== fuer) return;
+    const welcher = e.teil;
+    setBearbeitet((b) => ({ ...b, [welcher]: true }));
+    setAbgleich((a) =>
+      a && a.paar === fuer
+        ? {
+            ...a,
+            fremd: { ...a.fremd, [welcher]: true },
+            erwartet: { ...a.erwartet, [welcher]: null },
+            abgelehnt: { ...a.abgelehnt, [welcher]: e.stand ? schluesselAus(welcher, e.stand) : null },
+          }
+        : a,
+    );
   }
 
   /**
@@ -540,10 +640,11 @@ export default function EinsatzFormular({
         ? {
             ...a,
             grundlage: {
-              einteilung: a.fremd.einteilung ? liveEinteilung : a.grundlage.einteilung,
-              liste: a.fremd.liste ? liveListe : a.grundlage.liste,
+              einteilung: a.fremd.einteilung ? (a.abgelehnt.einteilung ?? liveEinteilung) : a.grundlage.einteilung,
+              liste: a.fremd.liste ? (a.abgelehnt.liste ?? liveListe) : a.grundlage.liste,
             },
             fremd: { einteilung: false, liste: false },
+            abgelehnt: KEINE,
           }
         : a,
     );
@@ -605,15 +706,6 @@ export default function EinsatzFormular({
             createdBy: user.uid,
           })),
         );
-      await saveAssignments(user.companyId, date, projectNumber, rows);
-      /*
-        DAS EIGENE SPEICHERN IST KEINE FREMDE ÄNDERUNG (P1): was gleich live
-        zurückkommt, ist genau das hier Geschriebene. Es wird zur Grundlage,
-        bevor die Meldung da ist — sonst hielte das Formular die eigene
-        Einteilung für eine fremde, sobald danach weitergetippt wird.
-      */
-      eigenesSpeichern(gespeichertesPaar, { einteilung: einteilungsSchluessel(rows) });
-
       /*
         DIE RUESTLISTE GEHT IM SELBEN ZUG MIT.
 
@@ -673,7 +765,30 @@ export default function EinsatzFormular({
             : p;
         });
       const hatGespeicherteListe = tagesListen.some((l) => l.projectNumber === projectNumber);
-      if (materialAn && (positionen.length > 0 || hatGespeicherteListe)) {
+      const listeMit = materialAn && (positionen.length > 0 || hatGespeicherteListe);
+      /*
+        WORAUF DIE EINGABE BERUHT (P1), für die Prüfung in der Datenbank:
+        Einteilung und — wenn sie mitgeht — Rüstliste. Weicht eins davon ab,
+        schreibt `einsatz_speichern` gar nichts; die Rüstliste prüft beim
+        eigenen Speichern noch einmal, denn dazwischen kann jemand speichern.
+      */
+      const listenGrundlage = abgleich?.paar === paar ? standAus<ListenZeile>(abgleich.grundlage.liste) : undefined;
+      const grundlage: PaarGrundlage | undefined = abgleich?.paar === paar
+        ? {
+            einteilung: standAus<EinteilungsZeile>(abgleich.grundlage.einteilung),
+            ...(listeMit ? { liste: listenGrundlage } : {}),
+          }
+        : undefined;
+      await saveAssignments(user.companyId, date, projectNumber, rows, grundlage);
+      /*
+        DAS EIGENE SPEICHERN IST KEINE FREMDE ÄNDERUNG (P1): was gleich live
+        zurückkommt, ist genau das hier Geschriebene. Es wird zur Grundlage,
+        bevor die Meldung da ist — sonst hielte das Formular die eigene
+        Einteilung für eine fremde, sobald danach weitergetippt wird.
+      */
+      eigenesSpeichern(gespeichertesPaar, 'einteilung', einteilungsSchluessel(rows));
+
+      if (listeMit) {
         try {
           await saveEinsatzMaterial(
             user.companyId,
@@ -682,21 +797,39 @@ export default function EinsatzFormular({
             positionen,
             rows.map((r) => r.userId),
             user.uid,
+            listenGrundlage,
           );
-        } catch {
+        } catch (err) {
           /*
             Der Einsatz steht bereits — das muss dastehen. „Speichern
             fehlgeschlagen" liesse den Planer glauben, auch die Einteilung
             sei weg, und er teilte sie ein zweites Mal ein.
           */
+          if (err instanceof PaarGeaendert) {
+            abgewiesen(gespeichertesPaar, err);
+            setError('Der Einsatz ist gespeichert, die Rüstliste nicht: sie wurde inzwischen anderswo geändert.');
+            return;
+          }
           setError(
             'Der Einsatz ist gespeichert, die Rüstliste nicht. Bitte noch einmal speichern.',
           );
           return;
         }
         setVorgemerkt(new Map());
+        /*
+          DAS GESPEICHERTE STEHT DA, wie vorher nach der Live-Meldung: Zeilen
+          mit Menge 0 sind nicht gespeichert und fallen weg. Die Meldung selbst
+          bringt dann nur noch `angefordert` der neuen Anforderungen.
+        */
+        setRuestliste(
+          positionen.map((p) => {
+            const ohne = { ...p };
+            delete ohne.anfordern;
+            return ohne;
+          }),
+        );
         // Leer gespeichert heißt gelöscht (`saveEinsatzMaterial`) — live steht dann keine Liste, also ''.
-        eigenesSpeichern(gespeichertesPaar, { liste: listenSchluessel(positionen) });
+        eigenesSpeichern(gespeichertesPaar, 'liste', listenSchluessel(positionen));
         const angefordertJetzt = positionen.filter((p) => p.anfordern).length;
         await abschliessen(
           angefordertJetzt > 0
@@ -709,7 +842,9 @@ export default function EinsatzFormular({
 
       await abschliessen('Einsatz gespeichert', rows);
     } catch (err) {
-      setError(grundAus(err, 'Der Einsatz konnte nicht gespeichert werden.'));
+      // Abgewiesen, weil das Paar inzwischen anders aussieht: nichts ist geschrieben, der Hinweis fragt.
+      if (err instanceof PaarGeaendert) abgewiesen(gespeichertesPaar, err);
+      else setError(grundAus(err, 'Der Einsatz konnte nicht gespeichert werden.'));
     } finally {
       setSaving(false);
     }
@@ -1118,10 +1253,12 @@ export default function EinsatzFormular({
                     : 'Die Rüstliste dieser Baustelle wurde'}{' '}
                 für diesen Tag anderswo geändert, während hier bearbeitet wurde. Wer die eigene
                 Eingabe behält, überschreibt die Änderung beim Speichern.
+                {neuerStandUnterwegs && ' Die Eingabe ist noch nicht gespeichert; der neue Stand wird geladen.'}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="secondary"
+                  disabled={neuerStandUnterwegs}
                   onClick={() => {
                     // Nur der fremd geänderte Teil; was sonst getippt ist, bleibt.
                     if (fremdeEinteilung) einteilungUebernehmen();

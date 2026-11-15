@@ -6,6 +6,7 @@ import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Assignment, EinsatzMaterial, Material, Project } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import EinsatzFormular from '@/features/assignments/EinsatzFormular';
+import { PaarGeaendert } from '@/lib/db/paarFassung';
 
 /**
  * DAS OFFENE EINSATZFORMULAR UND DIE LIVE-DATEN (Durchsicht 15.11.2026, P1).
@@ -45,6 +46,8 @@ const MATERIAL = [
 const speichere = vi.fn();
 const ruestSpeichern = vi.fn();
 const loesche = vi.fn();
+/** Was die Datenbank beim nächsten Speichern ablehnt — der Reihe nach. */
+const abweisen: { einsatz: unknown[]; liste: unknown[] } = { einsatz: [], liste: [] };
 
 vi.mock('@/app/AuthContext', () => ({
   useAuth: () => ({
@@ -78,13 +81,17 @@ vi.mock('@/lib/db/materialOrders', () => ({ createMaterialOrder: vi.fn(async () 
 vi.mock('@/lib/db/assignments', () => ({
   saveAssignments: (...a: unknown[]) => {
     speichere(...a);
-    return Promise.resolve();
+    // Die Datenbank weist ab, solange eine Abweisung ansteht (P1, Fassung des Paares).
+    const nein = abweisen.einsatz.shift();
+    return nein ? Promise.reject(nein) : Promise.resolve();
   },
   einsatzFolgetage: vi.fn(async () => []),
 }));
 vi.mock('@/lib/db/einsatzMaterial', () => ({
   saveEinsatzMaterial: (...a: unknown[]) => {
     ruestSpeichern(...a);
+    const nein = abweisen.liste.shift();
+    if (nein) return Promise.reject(nein);
     return Promise.resolve();
   },
 }));
@@ -186,6 +193,8 @@ beforeEach(() => {
   speichere.mockClear();
   ruestSpeichern.mockClear();
   loesche.mockClear();
+  abweisen.einsatz = [];
+  abweisen.liste = [];
 });
 
 describe('Einsatzformular — fremde Änderung an einer ANDEREN Baustelle', () => {
@@ -407,5 +416,149 @@ describe('Einsatzformular im Seitenfenster — das eigene Löschen ist keine fre
     act(() => senden({ einsaetze: [einsatz('a1', MAX)], listen: ANFANG.listen }));
     expect(erna()).not.toBeChecked();
     expect(hinweis()).toBeNull();
+  });
+});
+
+/*
+  DIE DATENBANK PRÜFT DIE FASSUNG (P1, 20261115500000_einsatz_fassung.sql).
+  Was gleichzeitig gespeichert wird, kommt live nicht rechtzeitig an — dann
+  weist `einsatz_speichern` ab, und das Formular fragt wie bei einer Meldung.
+  Die Datenbank selbst ist in tests/supabase/einsatzFassung.test.ts geprüft.
+*/
+describe('Einsatzformular — die Datenbank weist ab, was auf überholtem Stand beruht', () => {
+  const SILIKON = [['u3', false, 'Silikon', '', '']];
+
+  it('schickt mit, worauf die Eingabe beruht — Einteilung und Rüstliste, wie übernommen', async () => {
+    zeige(ANFANG);
+    await eingeben();
+    await userEvent.click(speichernKnopf());
+    await waitFor(() => expect(ruestSpeichern).toHaveBeenCalled());
+
+    expect(speichere.mock.calls[0][4]).toEqual({
+      einteilung: [['u1', false, 'Rohinstallation', '', '']],
+      liste: [['r1', 'm1', 'Eckventil 1/2', 4, '']],
+    });
+    // Die Rüstliste prüft beim eigenen Speichern noch einmal — auf derselben Grundlage.
+    expect(ruestSpeichern.mock.calls[0][6]).toEqual([['r1', 'm1', 'Eckventil 1/2', 4, '']]);
+  });
+
+  it('abgewiesen: die Eingabe bleibt, der Hinweis fragt; behalten speichert auf dem gemeldeten Stand', async () => {
+    abweisen.einsatz.push(new PaarGeaendert('geändert', 'einteilung', SILIKON as never));
+    zeige(ANFANG);
+    await eingeben();
+    await userEvent.click(speichernKnopf());
+
+    expect(await screen.findByText(/Inzwischen geändert — übernehmen\?/)).toBeInTheDocument();
+    expect(screen.getByText(/noch nicht gespeichert; der neue Stand wird geladen/)).toBeInTheDocument();
+    await eingabeSteht();
+    expect(ruestSpeichern).not.toHaveBeenCalled();
+    expect(speichernKnopf()).toBeDisabled();
+    // Ohne die Live-Meldung gibt es nichts zu übernehmen.
+    expect(screen.getByRole('button', { name: 'Übernehmen' })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Meine Eingabe behalten' }));
+    await userEvent.click(speichernKnopf());
+    await waitFor(() => expect(speichere).toHaveBeenCalledTimes(2));
+    expect(speichere.mock.calls[1][4].einteilung).toEqual(SILIKON);
+    expect(speichere.mock.calls[1][3].map((z: { comment: string }) => z.comment)).toEqual(['Vorwand setzen', 'Vorwand setzen']);
+  });
+
+  it('abgewiesen, dann kommt die Meldung: „Übernehmen“ holt den neuen Stand', async () => {
+    abweisen.einsatz.push(new PaarGeaendert('geändert', 'einteilung', SILIKON as never));
+    zeige(ANFANG);
+    await eingeben();
+    await userEvent.click(speichernKnopf());
+    await screen.findByText(/Inzwischen geändert — übernehmen\?/);
+
+    act(() => senden({ einsaetze: [einsatz('f1', PAUL, HIER, { comment: 'Silikon' })], listen: ANFANG.listen }));
+    expect(screen.queryByText(/der neue Stand wird geladen/)).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Übernehmen' }));
+    expect(kommentar().value).toBe('Silikon');
+    expect(screen.getByRole('checkbox', { name: /^Paul Neu/ })).toBeChecked();
+    expect(hinweis()).toBeNull();
+  });
+
+  it('die Rüstliste abgewiesen, der Einsatz gespeichert: das steht da, und der Hinweis fragt nach der Liste', async () => {
+    abweisen.liste.push(new PaarGeaendert('geändert', 'liste', [['r1', 'm1', 'Eckventil 1/2', 9, '']] as never));
+    zeige(ANFANG);
+    await eingeben();
+    await userEvent.click(speichernKnopf());
+
+    expect(await screen.findByText(/Der Einsatz ist gespeichert, die Rüstliste nicht: sie wurde inzwischen anderswo geändert/)).toBeInTheDocument();
+    expect(screen.getByText(/Die Rüstliste dieser Baustelle wurde/)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Menge' })).toHaveValue('6');
+  });
+});
+
+describe('Einsatzformular — nach dem eigenen Speichern (bleibt gleich)', () => {
+  it('Positionen mit Menge 0 sind nicht gespeichert und verschwinden aus dem Formular', async () => {
+    zeige({
+      einsaetze: ANFANG.einsaetze,
+      listen: [liste(HIER, [
+        { id: 'r1', materialId: 'm1', name: 'Eckventil 1/2', menge: 4 },
+        { id: 'r2', materialId: 'm2', name: 'Mischbatterie', menge: 1 },
+      ])],
+    });
+    await waitFor(() => expect(screen.getAllByRole('textbox', { name: 'Menge' })).toHaveLength(2));
+    const zweite = screen.getAllByRole('textbox', { name: 'Menge' })[1];
+    await userEvent.clear(zweite);
+    await userEvent.type(zweite, '0');
+    await userEvent.click(speichernKnopf());
+    await waitFor(() => expect(ruestSpeichern).toHaveBeenCalled());
+    expect((ruestSpeichern.mock.calls[0][3] as { id: string }[]).map((p) => p.id)).toEqual(['r1']);
+
+    // Die Meldung des eigenen Speicherns: die Liste ohne die Mischbatterie.
+    act(() => senden({ einsaetze: ANFANG.einsaetze, listen: [liste(HIER, [{ id: 'r1', materialId: 'm1', name: 'Eckventil 1/2', menge: 4 }])] }));
+    expect(screen.getAllByRole('textbox', { name: 'Menge' })).toHaveLength(1);
+    expect(screen.queryByText('Mischbatterie')).toBeNull();
+    expect(hinweis()).toBeNull();
+  });
+});
+
+describe('Einsatzformular — die eigene Meldung in Teilschritten', () => {
+  it('ein Zwischenstand der eigenen Meldung löst keinen Hinweis aus', async () => {
+    zeige(ANFANG);
+    await eingeben();
+    await userEvent.click(speichernKnopf());
+    await waitFor(() => expect(ruestSpeichern).toHaveBeenCalled());
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Paul Neu/ }));
+
+    // Erst nur das Löschen (alles weg), dann das Anlegen (alles neu).
+    act(() => senden({ einsaetze: [], listen: ANFANG.listen }));
+    expect(hinweis()).toBeNull();
+    act(() => senden({
+      einsaetze: [
+        einsatz('n1', ERNA, HIER, { comment: 'Vorwand setzen', zeitVon: '07:30' }),
+        einsatz('n2', MAX, HIER, { comment: 'Vorwand setzen', zeitVon: '07:30' }),
+      ],
+      listen: [liste(HIER, [{ id: 'r1', materialId: 'm1', name: 'Eckventil 1/2', menge: 6 }])],
+    }));
+    expect(hinweis()).toBeNull();
+    expect(screen.getByRole('checkbox', { name: /^Paul Neu/ })).toBeChecked();
+  });
+
+  it('kommt die eigene Meldung nicht vollständig, fragt das Formular nach einer Weile doch', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      zeige(ANFANG);
+      await waitFor(() => expect(max()).toBeChecked());
+      await nutzer.clear(kommentar());
+      await nutzer.type(kommentar(), 'Vorwand setzen');
+      await nutzer.click(speichernKnopf());
+      await waitFor(() => expect(speichere).toHaveBeenCalled());
+      await nutzer.type(kommentar(), ', danach Silikon');
+
+      // Nur der Zwischenstand kommt — dann kommt nichts mehr.
+      act(() => senden({ einsaetze: [], listen: ANFANG.listen }));
+      expect(hinweis()).toBeNull();
+      await act(async () => {
+        vi.advanceTimersByTime(10_500);
+      });
+      expect(hinweis()).toBeInTheDocument();
+      expect(kommentar().value).toBe('Vorwand setzen, danach Silikon');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
