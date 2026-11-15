@@ -34,3 +34,14 @@ it('Transportabbruch und unbestimmte Gateway-Antwort sind kein Rollback-Beweis',
   await expect(rechnungAusstellen('firma', inv, {})).rejects.toBeInstanceOf(RechnungsAntwortUnklar);
   expect(rpc).toHaveBeenCalledTimes(2);
 });
+it('Datum und Jahr bestimmt die Datenbank: kein Gerätejahr im Aufruf, ein anderes Datum nur ausdrücklich (G5)', async () => {
+  rpc.mockResolvedValue({ data: { id: 'beleg-id', invoice_number: 'RE-2026-1001', invoice_date: '2026-10-28' }, error: null });
+  await expect(rechnungAusstellen('firma', inv, {})).resolves.toEqual({
+    id: 'beleg-id', invoiceNumber: 'RE-2026-1001', invoiceDate: '2026-10-28',
+  });
+  const [, args] = rpc.mock.calls[0];
+  expect(args).not.toHaveProperty('p_jahr');
+  expect(args).not.toHaveProperty('p_datum_ausdruecklich');
+  await rechnungAusstellen('firma', inv, { datumAusdruecklich: true });
+  expect(rpc.mock.calls[1][1]).toMatchObject({ p_datum_ausdruecklich: true });
+});

@@ -710,18 +710,24 @@ export async function createInvoice(companyId: string, inv: NewInvoice): Promise
  *
  * `desired` ist die eigene Nummer beim Umstieg — die Datenbank nimmt sie nur
  * bei der allerersten Rechnung an (K8).
+ *
+ * DATUM UND JAHR BESTIMMT DIE DATENBANK (Durchsicht 15.11.2026, G5). Das
+ * Jahr der Nummer folgt dem Rechnungsdatum, und das muss der heutige Tag in
+ * Wien sein; ein Gerät mit falscher Uhr bekommt eine Absage statt einer
+ * „RE-2020-…“. `datumAusdruecklich` lässt ein anderes Datum zu — nur für
+ * Übernahmen und Prüfungen, die Oberfläche setzt es nie.
  */
 export async function rechnungAusstellen(
   companyId: string,
   inv: Omit<NewInvoice, 'invoiceNumber'>,
-  nummer: { praefix?: string; desired?: number },
-): Promise<{ id: string; invoiceNumber: string }> {
+  nummer: { praefix?: string; desired?: number; datumAusdruecklich?: boolean },
+): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string }> {
   void companyId;
   const { data, error } = await derClient().rpc('rechnung_ausstellen', {
     ...anlegeDaten(inv),
     p_praefix: nummer.praefix ?? PRAEFIX_VORGABE.rechnung,
-    p_jahr: new Date().getFullYear(),
     p_wunsch: nummer.desired ?? null,
+    ...(nummer.datumAusdruecklich ? { p_datum_ausdruecklich: true } : {}),
   }).then((antwort) => antwort, () => { throw new RechnungsAntwortUnklar(); });
   if (error) {
     // SQL-Ablehnung bzw. abgewiesene Authentifizierung vor dem RPC-Aufruf.
@@ -734,8 +740,12 @@ export async function rechnungAusstellen(
       || typeof data.invoice_number !== 'string' || !data.invoice_number.trim()) {
     throw new RechnungsAntwortUnklar();
   }
-  const r = data as { id: string; invoice_number: string };
-  return { id: String(r.id), invoiceNumber: String(r.invoice_number) };
+  const r = data as { id: string; invoice_number: string; invoice_date?: string };
+  return {
+    id: String(r.id),
+    invoiceNumber: String(r.invoice_number),
+    ...(typeof r.invoice_date === 'string' ? { invoiceDate: r.invoice_date } : {}),
+  };
 }
 
 /**
@@ -857,7 +867,11 @@ export async function schlussrechnungenOhneAbzug(): Promise<SchlussOhneAbzug[]> 
  */
 export async function mahnungFesthalten(
   id: string,
-  daten: { stufe: number; gemahntAm: string; frist: string; spesen: number; inhalt: MahnungInhalt },
+  daten: {
+    stufe: number; gemahntAm: string; frist: string; spesen: number; inhalt: MahnungInhalt;
+    /** Ein anderer Mahntag als heute — nur für Übernahmen und Prüfungen (G5). */
+    datumAusdruecklich?: boolean;
+  },
 ): Promise<string> {
   const { data, error } = await derClient().rpc('mahnung_festhalten', {
     p_invoice: id,
@@ -866,6 +880,7 @@ export async function mahnungFesthalten(
     p_frist: daten.frist,
     p_spesen: daten.spesen,
     p_inhalt: daten.inhalt,
+    ...(daten.datumAusdruecklich ? { p_datum_ausdruecklich: true } : {}),
   });
   if (error) throw new Error(error.message);
   return data as string;

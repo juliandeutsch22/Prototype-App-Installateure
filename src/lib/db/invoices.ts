@@ -129,8 +129,8 @@ export function createInvoice(companyId: string, inv: NewInvoice): Promise<strin
 export function rechnungAusstellen(
   companyId: string,
   inv: Omit<NewInvoice, 'invoiceNumber'>,
-  nummer: { praefix?: string; desired?: number },
-): Promise<{ id: string; invoiceNumber: string }> {
+  nummer: { praefix?: string; desired?: number; datumAusdruecklich?: boolean },
+): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string }> {
   return pg.rechnungAusstellen(companyId, inv, nummer);
 }
 

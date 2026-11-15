@@ -180,7 +180,7 @@ describe('Das Journal schreibt mit', () => {
     });
     clientEinreichen(buch.client);
     await rechnungen.mahnungFesthalten(id, {
-      stufe: 1, gemahntAm: '2026-11-20', frist: '2026-11-27', spesen: 0, inhalt: mahnInhalt(1, '2026-11-20', '2026-11-27', 'RE-J-1'),
+      datumAusdruecklich: true, stufe: 1, gemahntAm: '2026-11-20', frist: '2026-11-27', spesen: 0, inhalt: mahnInhalt(1, '2026-11-20', '2026-11-27', 'RE-J-1'),
     });
     expect((await buch.client.from('zahlungseingaenge').delete().eq('id', zahlung)).error).toBeNull();
 

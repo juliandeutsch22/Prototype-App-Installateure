@@ -75,8 +75,8 @@ const entwurf = (rest: Record<string, unknown> = {}) => ({
   projectNumber: 'B-300',
   customerName: 'Familie Huber',
   address: 'Hauptplatz 1, 8200 Gleisdorf',
-  invoiceDate: '2026-04-30', leistungVon: '2026-04-30', leistungBis: '2026-04-30',
-  dueDate: '2026-05-14',
+  invoiceDate: `${JAHR}-04-30`, leistungVon: `${JAHR}-04-30`, leistungBis: `${JAHR}-04-30`,
+  dueDate: `${JAHR}-05-14`,
   subtotalNetto: 800,
   totalNetto: 800,
   totalVat: 160,
@@ -93,7 +93,7 @@ describe('Ausstellen: Nummer, Sperre und Rechnung zusammen (P2-04)', () => {
     const b = await stunde();
 
     const r = await rechnungen.rechnungAusstellen(BETRIEB, entwurf({ linkedEntries: [b] }), {
-      praefix: 'RE',
+      praefix: 'RE', datumAusdruecklich: true,
     });
 
     expect(r.invoiceNumber).toBe(`RE-${JAHR}-1001`);
@@ -107,10 +107,10 @@ describe('Ausstellen: Nummer, Sperre und Rechnung zusammen (P2-04)', () => {
     await leeren();
     const frei = await stunde('2026-04-13');
     const vergeben = await stunde('2026-04-14');
-    await rechnungen.rechnungAusstellen(BETRIEB, entwurf({ linkedEntries: [vergeben] }), { praefix: 'RE' });
+    await rechnungen.rechnungAusstellen(BETRIEB, entwurf({ linkedEntries: [vergeben] }), { praefix: 'RE', datumAusdruecklich: true });
 
     await expect(
-      rechnungen.rechnungAusstellen(BETRIEB, entwurf({ linkedEntries: [frei, vergeben] }), { praefix: 'RE' }),
+      rechnungen.rechnungAusstellen(BETRIEB, entwurf({ linkedEntries: [frei, vergeben] }), { praefix: 'RE', datumAusdruecklich: true }),
     ).rejects.toThrow(/inzwischen verrechnet/);
 
     // Die freie Stunde ist frei geblieben …
@@ -119,7 +119,7 @@ describe('Ausstellen: Nummer, Sperre und Rechnung zusammen (P2-04)', () => {
     expect(await rechnungen.listUnpaidInvoices(BETRIEB)).toHaveLength(1);
     // … und die Nummer ist nicht verbraucht: die nächste ist die 1002.
     const danach = await rechnungen.rechnungAusstellen(BETRIEB, entwurf({ linkedEntries: [frei] }), {
-      praefix: 'RE',
+      praefix: 'RE', datumAusdruecklich: true,
     });
     expect(danach.invoiceNumber).toBe(`RE-${JAHR}-1002`);
   });
@@ -129,14 +129,14 @@ describe('Ausstellen: Nummer, Sperre und Rechnung zusammen (P2-04)', () => {
     const b = await stunde();
 
     const ergebnisse = await Promise.allSettled([
-      rechnungen.rechnungAusstellen(BETRIEB, entwurf({ linkedEntries: [b] }), { praefix: 'RE' }),
-      rechnungen.rechnungAusstellen(BETRIEB, entwurf({ linkedEntries: [b] }), { praefix: 'RE' }),
+      rechnungen.rechnungAusstellen(BETRIEB, entwurf({ linkedEntries: [b] }), { praefix: 'RE', datumAusdruecklich: true }),
+      rechnungen.rechnungAusstellen(BETRIEB, entwurf({ linkedEntries: [b] }), { praefix: 'RE', datumAusdruecklich: true }),
     ]);
 
     expect(ergebnisse.filter((e) => e.status === 'fulfilled')).toHaveLength(1);
     expect(await rechnungen.listUnpaidInvoices(BETRIEB)).toHaveLength(1);
     // Und keine Lücke: die gescheiterte hat ihre Nummer nicht behalten.
-    const naechste = await rechnungen.rechnungAusstellen(BETRIEB, entwurf(), { praefix: 'RE' });
+    const naechste = await rechnungen.rechnungAusstellen(BETRIEB, entwurf(), { praefix: 'RE', datumAusdruecklich: true });
     expect(naechste.invoiceNumber).toBe(`RE-${JAHR}-1002`);
   }, 30_000);
 
@@ -144,7 +144,7 @@ describe('Ausstellen: Nummer, Sperre und Rechnung zusammen (P2-04)', () => {
     await leeren();
     await expect(
       rechnungen.rechnungAusstellen(
-        BETRIEB, entwurf({ linkedEntries: [crypto.randomUUID()] }), { praefix: 'RE' },
+        BETRIEB, entwurf({ linkedEntries: [crypto.randomUUID()] }), { praefix: 'RE', datumAusdruecklich: true },
       ),
     ).rejects.toThrow(/inzwischen verrechnet oder gehört nicht zu diesem Betrieb/);
     expect(await rechnungen.listUnpaidInvoices(BETRIEB)).toEqual([]);
@@ -154,7 +154,7 @@ describe('Ausstellen: Nummer, Sperre und Rechnung zusammen (P2-04)', () => {
     await leeren();
     clientEinreichen(anton.client);
     await expect(
-      rechnungen.rechnungAusstellen(BETRIEB, entwurf(), { praefix: 'RE' }),
+      rechnungen.rechnungAusstellen(BETRIEB, entwurf(), { praefix: 'RE', datumAusdruecklich: true }),
     ).rejects.toThrow();
   });
 });
@@ -212,7 +212,7 @@ describe('Keine Rechnung über nichts (P2-10)', () => {
   it('ohne Positionen wird nichts angelegt', async () => {
     await leeren();
     await expect(
-      rechnungen.rechnungAusstellen(BETRIEB, entwurf({ positions: [] }), { praefix: 'RE' }),
+      rechnungen.rechnungAusstellen(BETRIEB, entwurf({ positions: [] }), { praefix: 'RE', datumAusdruecklich: true }),
     ).rejects.toThrow(/ohne Positionen/);
     expect(await rechnungen.listUnpaidInvoices(BETRIEB)).toEqual([]);
   });
@@ -223,7 +223,7 @@ describe('Keine Rechnung über nichts (P2-10)', () => {
       rechnungen.rechnungAusstellen(BETRIEB, entwurf({
         subtotalNetto: 0, totalNetto: 0, totalVat: 0, totalBrutto: 0,
         positions: [{ label: 'Anzahlung', qty: 1, unit: 'Pauschale', unitPrice: 0, netto: 0 }],
-      }), { praefix: 'RE' }),
+      }), { praefix: 'RE', datumAusdruecklich: true }),
     ).rejects.toThrow(/null Euro/);
   });
 

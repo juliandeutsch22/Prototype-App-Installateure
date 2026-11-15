@@ -278,7 +278,7 @@ describe('Eine ausgestellte Rechnung ist zu', () => {
 
     /* Gemahnt wird zuerst — das ist die Reihenfolge des Alltags. */
     await rechnungen.mahnungFesthalten(r.id, {
-      stufe: 1, gemahntAm: '2026-05-20', frist: '2026-06-03', spesen: 15,
+      datumAusdruecklich: true, stufe: 1, gemahntAm: '2026-05-20', frist: '2026-06-03', spesen: 15,
       inhalt: mahnInhalt(1, '2026-05-20', '2026-06-03'),
     });
     const [gemahnt] = await rechnungen.listUnpaidInvoices(BETRIEB);
@@ -309,7 +309,7 @@ describe('Eine ausgestellte Rechnung ist zu', () => {
       festgehalten.
     */
     await rechnungen.mahnungFesthalten(r.id, {
-      stufe: 2, gemahntAm: '2026-06-10', frist: '2026-06-20', spesen: 25,
+      datumAusdruecklich: true, stufe: 2, gemahntAm: '2026-06-10', frist: '2026-06-20', spesen: 25,
       inhalt: mahnInhalt(2, '2026-06-10', '2026-06-20'),
     });
     const [zweite] = await rechnungen.listUnpaidInvoices(BETRIEB);

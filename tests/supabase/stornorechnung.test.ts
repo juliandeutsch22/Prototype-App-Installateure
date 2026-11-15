@@ -44,7 +44,7 @@ async function ausstellen(): Promise<WithId<Invoice>> {
     vatRate: 0.2,
     paymentStatus: 'Offen',
     positions: [{ label: 'Leistung', qty: 1, unit: 'Pauschale', unitPrice: 1000, netto: 1000 }],
-  }, { praefix: 'RE' });
+  }, { praefix: 'RE', datumAusdruecklich: true });
   return lies(id);
 }
 
