@@ -12,10 +12,19 @@ import { firma, benutzer } from './daten';
  * Vorschau hereingefallen.
  */
 const ROLLE = new URLSearchParams(location.search).get('rolle') ?? 'Administrator';
+/*
+ * ZUSÄTZLICHE SCHALTER FÜR EINE PRÜFUNG (`?module=zeiterfassung.timer,…`):
+ * so lässt sich etwa der Arbeitstag (Start/Stopp) in der Vorschau zeigen,
+ * ohne die Beispielfirma für alle anderen Aufnahmen zu ändern.
+ */
+const MODULE = (new URLSearchParams(location.search).get('module') ?? '').split(',').filter(Boolean);
+const FIRMA = MODULE.length
+  ? { ...firma, modules: { ...firma.modules, ...Object.fromEntries(MODULE.map((m) => [m, true])) } }
+  : firma;
 
 const WERT = {
   user: { uid: 'u1', name: benutzer[0].name, email: benutzer[0].email, role: ROLLE, companyId: 'perl' },
-  company: firma,
+  company: FIRMA,
   loading: false,
   error: null,
   plattformAdmin: ROLLE === 'Plattformadministrator',

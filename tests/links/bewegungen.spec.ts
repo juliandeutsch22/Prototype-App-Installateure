@@ -306,3 +306,51 @@ test.describe('B5 Unterlinie gleitet', () => {
     expect(kante).not.toBe('rgba(0, 0, 0, 0)');
   });
 });
+
+test.describe('B7 Arbeitstag Start/Pause/Stopp', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  /** Den Tag starten und je Bild aufzeichnen: Fläche, Deckkraft des Inhalts, Lage des neuen Knopfs. */
+  async function starten(page: Page) {
+    await page.goto(pfad('/', 'Mitarbeiter') + '&module=zeiterfassung.timer');
+    const start = page.getByRole('button', { name: 'Arbeitstag starten' });
+    await expect(start).toBeVisible();
+    await page.evaluate(() => {
+      const w = window as unknown as { tag: Array<{ stand?: string; deck: number; knopf: string }>; tagFertig: boolean };
+      w.tag = []; w.tagFertig = false;
+      let t0 = -1;
+      const bild = () => {
+        const a = document.querySelector<HTMLElement>('.arbeitstag')!;
+        const lauf = a.querySelector('.arbeitstag-lauf');
+        if (lauf && t0 < 0) t0 = performance.now();
+        if (t0 >= 0) {
+          const k = a.querySelector('.arbeitstag-knoepfe .rund-knopf');
+          w.tag.push({ stand: a.dataset.stand, deck: Number(getComputedStyle(lauf!).opacity), knopf: k ? getComputedStyle(k).transform : '—' });
+        }
+        if (t0 < 0 || performance.now() - t0 < 300) requestAnimationFrame(bild); else w.tagFertig = true;
+      };
+      requestAnimationFrame(bild);
+    });
+    await start.click();
+    await page.waitForFunction(() => (window as unknown as { tagFertig: boolean }).tagFertig);
+    return page.evaluate(() => (window as unknown as { tag: Array<{ stand?: string; deck: number; knopf: string }> }).tag);
+  }
+
+  test('der Inhalt blendet mit der Fläche ein, der neue Knopf kommt aus der Verkleinerung', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    const tag = await starten(page);
+    expect(tag[0].stand).toBe('laeuft');
+    expect(tag[0].deck).toBeLessThan(0.5);
+    expect(tag[0].knopf).not.toBe('none');
+    expect(tag[tag.length - 1]).toEqual({ stand: 'laeuft', deck: 1, knopf: 'none' });
+    // Die Knöpfe sind währenddessen bedienbar: „Pause“ greift sofort.
+    await page.getByRole('button', { name: 'Pause beginnen' }).click();
+    await expect(page.locator('.arbeitstag')).toHaveAttribute('data-stand', 'pause');
+  });
+
+  test('mit reduzierter Bewegung wechselt alles sofort', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const tag = await starten(page);
+    expect(tag.every((b) => b.stand === 'laeuft' && b.deck === 1 && b.knopf === 'none')).toBe(true);
+  });
+});

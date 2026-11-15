@@ -73,6 +73,13 @@ const DATEN = {
   lagerorte: { kennzeichenAusBuchungen: '[]' },
   // Die Zähllisten der Inventur (F14): eine leere Liste — der Reiter „Inventur“ zeigt dann „Keine offene Zählliste“.
   inventur: { inventurListen: '[]' },
+  /*
+    Der Arbeitstag (B7, 15.11.2026): ein gesendeter Schritt gilt als vorgemerkt —
+    sonst holte die Karte gleich danach den leeren Stand und stand wieder auf
+    „bereit“. So lässt sich Start, Pause und Stopp in der Vorschau zeigen
+    (mit `?module=zeiterfassung.timer`).
+  */
+  zeitsitzungen: { timerSenden: "'queued'" },
   // Korrekturanträge (M06): eine Liste; als NOOP blieb die Zeiterfassung mit einer Fehlerseite stehen (09.11.2026).
   zeitkorrekturen: { zeitkorrekturenLaden: '[]' },
   // Der Stand des Baustellen-Threads (E64) ist ein Objekt; als NOOP stürzte die Baustellenakte ab (09.11.2026).
