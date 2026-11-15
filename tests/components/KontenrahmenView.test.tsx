@@ -236,6 +236,11 @@ describe('Erhaltene Anzahlungen je Steuerbehandlung', () => {
     zeige();
     expect(((await screen.findByLabelText('Steuersatz %')) as HTMLInputElement).value).toBe('20');
     expect((screen.getByLabelText('Anzahlungskonto') as HTMLInputElement).value).toBe('3500');
+    // Gespeichert wird mit der nächsten Änderung (Speicherleiste, U1) — hier am Steuercode des Kontos.
+    const code = screen.getAllByLabelText(/Steuercode/).find((e) => (e as HTMLInputElement).value === 'M20') as HTMLInputElement;
+    await userEvent.clear(code);
+    await userEvent.type(code, 'M20');
+    await userEvent.type(code, ' ');
     await userEvent.click(speichern());
     await waitFor(() => expect(gespeichert.length).toBe(1));
     expect(gespeichert).toEqual([

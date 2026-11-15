@@ -12,6 +12,7 @@ import { grundAus } from '@/lib/fehlerGrund';
 import PageHeader from '@/components/PageHeader';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Speicherleiste from '@/components/Speicherleiste';
 import BottomSheet from '@/components/BottomSheet';
 import { List, ListRow } from '@/components/ListRow';
 import { Zustand } from '@/components/Badge';
@@ -231,16 +232,7 @@ export default function FahrzeugeView() {
             onChange={(e) => setRueckgabe(e.target.checked)}
           />
           {spitze && (
-            <div className="fuss-aktionen">
-              <Button
-                type="button"
-                loading={rueckgabeSpeichert}
-                disabled={rueckgabe === rueckgabeGespeichert}
-                onClick={() => void rueckgabeSpeichern()}
-              >
-                Speichern
-              </Button>
-            </div>
+            <Speicherleiste geaendert={rueckgabe !== rueckgabeGespeichert} speichert={rueckgabeSpeichert} onVerwerfen={() => setRueckgabe(rueckgabeGespeichert)} onSpeichern={() => void rueckgabeSpeichern()} />
           )}
         </div>
       </Card>

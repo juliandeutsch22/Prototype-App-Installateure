@@ -4,7 +4,7 @@ import { useInhaltUebernehmen } from '@/lib/useInhaltUebernehmen';
 import { updateCompany } from '@/lib/db/company';
 import { leseZahl } from '@/lib/zahl';
 import Card from '@/components/Card';
-import Button from '@/components/Button';
+import Speicherleiste from '@/components/Speicherleiste';
 import { FormGrid } from '@/components/Field';
 import ZahlFeld from '@/components/ZahlFeld';
 import { useToast } from '@/components/Toast';
@@ -40,13 +40,14 @@ export default function KatalogEinstellungenKarte() {
   const [fehler, setFehler] = useState<string | null>(null);
 
   // Nur, wenn sich DIESE Werte im Betrieb geändert haben (P10) — speichert eine andere Karte, bleibt das Getippte.
-  useInhaltUebernehmen(
-    { schwelle: company?.preissprungSchwelleProzent ?? SCHWELLE_VORGABE, tage: company?.katalogVeraltetTage ?? VERALTET_VORGABE },
-    (w) => {
-      setSchwelle(String(w.schwelle).replace('.', ','));
-      setTage(String(w.tage));
-    },
-  );
+  const gespeichert = { schwelle: company?.preissprungSchwelleProzent ?? SCHWELLE_VORGABE, tage: company?.katalogVeraltetTage ?? VERALTET_VORGABE };
+  const uebernehmen = (w: typeof gespeichert) => {
+    setSchwelle(String(w.schwelle).replace('.', ','));
+    setTage(String(w.tage));
+  };
+  useInhaltUebernehmen(gespeichert, uebernehmen);
+  // Die Speicherleiste erscheint erst, wenn etwas vom gespeicherten Stand abweicht (U1).
+  const geaendert = schwelle !== String(gespeichert.schwelle).replace('.', ',') || tage !== String(gespeichert.tage);
 
   async function speichern() {
     if (!user) return;
@@ -108,11 +109,7 @@ export default function KatalogEinstellungenKarte() {
           />
         </FormGrid>
         {fehler && <ErrorState message={fehler} />}
-        <div className="fuss-aktionen">
-          <Button type="button" loading={speichert} onClick={() => void speichern()}>
-            Katalog-Einstellungen speichern
-          </Button>
-        </div>
+        <Speicherleiste geaendert={geaendert} speichert={speichert} onVerwerfen={() => { setFehler(null); uebernehmen(gespeichert); }} onSpeichern={() => void speichern()} speichernText="Katalog-Einstellungen speichern" />
       </div>
     </Card>
   );

@@ -218,6 +218,8 @@ test('Warenkorb-Leiste: jeder weitere Artikel steht sofort und sauber im Titel',
 test('Speicherleiste der Firmendaten: beim Rollen sauber gezeichnet, ohne stehengebliebene Kontur', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`./?pfad=${encodeURIComponent('/settings/firma')}&rolle=Administrator`);
+  // Die Speicherleiste erscheint erst mit einer Änderung (U1).
+  await page.getByLabel('Firmenname', { exact: true }).fill('Offene Änderung');
   const leiste = page.locator('.aktionsleiste').first();
   await expect(leiste).toBeVisible();
   const bild = async () => {

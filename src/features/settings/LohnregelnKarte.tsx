@@ -3,7 +3,7 @@ import { useAuth } from '@/app/AuthContext';
 import { useInhaltUebernehmen } from '@/lib/useInhaltUebernehmen';
 import { updateCompany } from '@/lib/db/company';
 import Card from '@/components/Card';
-import Button from '@/components/Button';
+import Speicherleiste from '@/components/Speicherleiste';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -68,30 +68,46 @@ export default function LohnregelnKarte() {
   }
 
   // Nur, wenn sich DIESE Werte im Betrieb geändert haben (P10) — speichert eine andere Karte, bleibt das Getippte.
-  useInhaltUebernehmen(
-    {
-      nachtVon: company?.nachtVon ?? '22:00',
-      nachtBis: company?.nachtBis ?? '06:00',
-      regel: ueberstundenRegelVon(company),
-      durchrechnung: durchrechnungsWochen(company?.durchrechnungWochen),
-      kjbgKv: company?.kjbgVerteilungKv === true,
-    },
-    ({ nachtVon: von, nachtBis: bis, regel, durchrechnung: wochen, kjbgKv: kv }) => {
-      setNachtVon(von);
-      setNachtBis(bis);
-      setModell(regel.modell);
-      setGrenze(regel.grenze);
-      setHundert(regel.hundertSonnFeiertag);
-      setKvMetall(regel.kvMetall);
-      setVollzeit(String(regel.vollzeitStunden).replace('.', ','));
-      setVerteilt(regel.vollzeitVerteilung !== null);
-      setTage(Object.fromEntries(WOCHENTAGE.map(([tag]) => [
-        tag, regel.vollzeitVerteilung?.[tag] ? String(regel.vollzeitVerteilung[tag]).replace('.', ',') : '',
-      ])));
-      setDurchrechnung(String(wochen));
-      setKjbgKv(kv);
-    },
-  );
+  const gespeichert = {
+    nachtVon: company?.nachtVon ?? '22:00',
+    nachtBis: company?.nachtBis ?? '06:00',
+    regel: ueberstundenRegelVon(company),
+    durchrechnung: durchrechnungsWochen(company?.durchrechnungWochen),
+    kjbgKv: company?.kjbgVerteilungKv === true,
+  };
+  /** Der gespeicherte Stand, wie ihn die Felder zeigen — für Laden, Verwerfen und den Vergleich der Speicherleiste (U1). */
+  const alsEingabe = ({ nachtVon: von, nachtBis: bis, regel, durchrechnung: wochen, kjbgKv: kv }: typeof gespeichert) => ({
+    nachtVon: von,
+    nachtBis: bis,
+    modell: regel.modell,
+    grenze: regel.grenze,
+    hundert: regel.hundertSonnFeiertag,
+    kvMetall: regel.kvMetall,
+    vollzeit: String(regel.vollzeitStunden).replace('.', ','),
+    verteilt: regel.vollzeitVerteilung !== null,
+    tage: Object.fromEntries(WOCHENTAGE.map(([tag]) => [
+      tag, regel.vollzeitVerteilung?.[tag] ? String(regel.vollzeitVerteilung[tag]).replace('.', ',') : '',
+    ])),
+    durchrechnung: String(wochen),
+    kjbgKv: kv,
+  });
+  const uebernehmen = (w: typeof gespeichert) => {
+    const e = alsEingabe(w);
+    setNachtVon(e.nachtVon);
+    setNachtBis(e.nachtBis);
+    setModell(e.modell);
+    setGrenze(e.grenze);
+    setHundert(e.hundert);
+    setKvMetall(e.kvMetall);
+    setVollzeit(e.vollzeit);
+    setVerteilt(e.verteilt);
+    setTage(e.tage);
+    setDurchrechnung(e.durchrechnung);
+    setKjbgKv(e.kjbgKv);
+  };
+  useInhaltUebernehmen(gespeichert, uebernehmen);
+  const geaendert = JSON.stringify({ nachtVon, nachtBis, modell, grenze, hundert, kvMetall, vollzeit, verteilt, tage, durchrechnung, kjbgKv })
+    !== JSON.stringify(alsEingabe(gespeichert));
 
   const vollzeitSichtbar = modell === 'tagesgrenze' && grenze === 'tagessoll';
 
@@ -327,11 +343,7 @@ export default function LohnregelnKarte() {
         />
       </div>
       {fehler && !fehler.feld && <p role="alert" className="mt-2 text-sm text-danger">{fehler.text}</p>}
-      <div className="fuss-aktionen mt-4">
-        <Button type="button" loading={speichert} onClick={speichern}>
-          Speichern
-        </Button>
-      </div>
+      <Speicherleiste geaendert={geaendert} speichert={speichert} onVerwerfen={() => { setFehler(null); uebernehmen(gespeichert); }} onSpeichern={() => void speichern()} />
       </div>
     </Card>
   );

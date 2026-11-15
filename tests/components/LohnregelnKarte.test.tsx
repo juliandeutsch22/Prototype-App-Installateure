@@ -153,6 +153,8 @@ describe('Vollzeit je Woche für die Mehrarbeit in Teilzeit (19.10.2026)', () =>
     firma = { ...firma, ueberstundenModell: 'tagesgrenze', ueberstundenGrenze: 'zehn' };
     zeige();
     expect(screen.queryByLabelText('Vollzeit je Woche (Std.)')).not.toBeInTheDocument();
+    // Eine Änderung an anderer Stelle — ohne sie gibt es keine Speicherleiste (U1).
+    fireEvent.change(screen.getByLabelText(/Durchrechnung für den Schnitt/), { target: { value: '20' } });
     fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(updateCompany).toHaveBeenCalled());
     expect(updateCompany.mock.calls[0]).not.toContainEqual(expect.objectContaining({ vollzeitWochenstunden: expect.anything() }));
@@ -304,6 +306,7 @@ describe('Die Meldung steht beim Feld (Runde 6, G14)', () => {
   it('gleich geblieben: scheitert das Speichern, steht die Meldung beim Knopf und kein Feld ist markiert', async () => {
     updateCompany.mockRejectedValueOnce(new Error('Netz weg'));
     zeige();
+    fireEvent.change(screen.getByLabelText(/Durchrechnung für den Schnitt/), { target: { value: '20' } });
     fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
     const meldung = await screen.findByRole('alert');
     expect(meldung).toHaveTextContent(/Netz weg|konnten nicht gespeichert werden/);

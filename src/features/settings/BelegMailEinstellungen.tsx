@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import Card from '@/components/Card';
-import Button from '@/components/Button';
+import Speicherleiste from '@/components/Speicherleiste';
 import { ErrorState } from '@/components/States';
 import { InputField, TextareaField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
@@ -37,15 +37,24 @@ export default function BelegMailEinstellungen({ bearbeiten }: { bearbeiten: boo
   const [laeuft, setLaeuft] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
 
-  useEffect(() => {
-    setAntwort(company?.belegMailAntwort ?? '');
+  const gespeichert = () => {
     const v = company?.belegMailVorlagen ?? {};
-    setVorlagen({
-      rechnung: { betreff: v.rechnung?.betreff ?? '', text: v.rechnung?.text ?? '' },
-      angebot: { betreff: v.angebot?.betreff ?? '', text: v.angebot?.text ?? '' },
-      mahnung: { betreff: v.mahnung?.betreff ?? '', text: v.mahnung?.text ?? '' },
-    });
-  }, [company]);
+    return {
+      antwort: company?.belegMailAntwort ?? '',
+      vorlagen: {
+        rechnung: { betreff: v.rechnung?.betreff ?? '', text: v.rechnung?.text ?? '' },
+        angebot: { betreff: v.angebot?.betreff ?? '', text: v.angebot?.text ?? '' },
+        mahnung: { betreff: v.mahnung?.betreff ?? '', text: v.mahnung?.text ?? '' },
+      },
+    };
+  };
+  const uebernehmen = () => {
+    const g = gespeichert();
+    setAntwort(g.antwort);
+    setVorlagen(g.vorlagen);
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- nur bei einem neuen Stand des Betriebs, wie bisher
+  useEffect(uebernehmen, [company]);
 
   if (!bearbeiten) {
     return (
@@ -149,11 +158,14 @@ export default function BelegMailEinstellungen({ bearbeiten }: { bearbeiten: boo
         </div>
       </Card>
       {fehler && <ErrorState message={fehler} />}
-      <div className="fuss-aktionen">
-        <Button type="submit" loading={laeuft} disabled={!!adressGrund || !!vorlagenGrund}>
-          Belege per Mail speichern
-        </Button>
-      </div>
+      {/* Die Speicherleiste erscheint erst bei einer Änderung (U1). */}
+      <Speicherleiste
+        geaendert={JSON.stringify({ antwort, vorlagen }) !== JSON.stringify(gespeichert())}
+        speichert={laeuft}
+        gesperrt={!!adressGrund || !!vorlagenGrund}
+        onVerwerfen={() => { setFehler(null); uebernehmen(); }}
+        speichernText="Belege per Mail speichern"
+      />
     </form>
   );
 }

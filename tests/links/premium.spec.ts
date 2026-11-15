@@ -28,7 +28,8 @@ for (const width of [390, 834, 1440]) for (const reducedMotion of ['no-preferenc
     // Das mobile Mehr-Blatt bleibt absichtlich unter der abgebrochenen Rückfrage.
     if (width < 760) { await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0); }
     await page.getByRole('button', { name: 'Verwerfen', exact: true }).click();
-    await expect(page.getByText('Keine offenen Änderungen', { exact: true })).toBeVisible();
+    // Die Speicherleiste steht nur, solange etwas geändert ist (U1).
+    await expect(page.locator('.aktionsleiste')).toHaveCount(0);
     await expect(page.locator('html')).not.toHaveCSS('overflow', 'hidden');
     const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
     expect(axe.violations).toEqual([]);

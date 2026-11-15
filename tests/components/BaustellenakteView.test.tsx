@@ -362,10 +362,10 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
     zeige();
     await bearbeite();
     await screen.findByLabelText(/Projektnummer/);
-    expect(screen.queryByText(/ungespeicherte Änderungen/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Nicht gespeicherte Änderungen')).not.toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText(/Baustellenadresse/), '!');
-    expect(await screen.findByText(/ungespeicherte Änderungen/)).toBeInTheDocument();
+    expect(await screen.findByText('Nicht gespeicherte Änderungen')).toBeInTheDocument();
   });
 
   it('nimmt die Änderung mit, nicht nur die Anzeige', async () => {
@@ -569,7 +569,7 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Verwerfen' }));
 
     expect(feld).toHaveValue('Ringstraße 3, 2700 Wiener Neustadt');
-    expect(screen.queryByText(/ungespeicherte Änderungen/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Nicht gespeicherte Änderungen')).not.toBeInTheDocument();
   });
 
   it('warnt, solange keine Projektleitung zugeteilt ist', async () => {

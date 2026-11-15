@@ -4,7 +4,7 @@ import { updateCompany } from '@/lib/db/company';
 import { STANDARD_ZEITFELDER, standardZeitfeldAktiv, type StandardZeitfelder as Auswahl } from '@/lib/standardZeitfelder';
 import { grundAus } from '@/lib/fehlerGrund';
 import Card from '@/components/Card';
-import Button from '@/components/Button';
+import Speicherleiste from '@/components/Speicherleiste';
 import { CheckboxField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 
@@ -36,7 +36,7 @@ export default function StandardZeitfelder({ darf }: { darf: boolean }) {
       </div>)}
     </div>
     {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
-    {/* Die Hauptaktion der Karte gefüllt im Fuß, wie jede Speichern-Aktion der Einstellungen (E72, R2/R7). */}
-    {darf && <div className="fuss-aktionen mt-4"><Button disabled={!geaendert || speichert} onClick={() => void speichern()}>{speichert ? 'Speichert …' : 'Standardfelder speichern'}</Button></div>}
+    {/* Die Speicherleiste wie auf jeder Einstellungsseite: erst bei einer Änderung (U1). */}
+    {darf && <Speicherleiste geaendert={geaendert} speichert={speichert} onVerwerfen={() => { setFehler(null); setFelder(company?.zeitStandardfelder ?? {}); }} onSpeichern={() => void speichern()} speichernText="Standardfelder speichern" />}
   </Card>;
 }

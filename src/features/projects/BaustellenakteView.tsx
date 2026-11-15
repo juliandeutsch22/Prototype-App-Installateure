@@ -8,7 +8,6 @@ import { baustelleMaterialstand, type Materialstand } from '@/lib/db/projects';
 import { listInvoicesForProject } from '@/lib/db/invoices';
 import type { Invoice } from '@/types';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import RowMenu from '@/components/RowMenu';
 import BaustelleAbschliessen from './BaustelleAbschliessen';
 import { useAuth } from '@/app/AuthContext';
 import { useUngespeichertWarnung } from '@/lib/ungespeichert';
@@ -36,7 +35,7 @@ import { EINGANG_DRINGLICHKEITEN, type Project, type AppUser, type Quote } from 
 import { DRINGLICHKEIT_TEXT } from '@/features/auftragseingang/eingangText';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
-import Aktionsleiste from '@/components/Aktionsleiste';
+import Speicherleiste from '@/components/Speicherleiste';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import AktenBereiche, { AktenAngaben, AktenAngabe, AktenVerweis } from '@/components/AktenBereiche';
 import AktenKopf from '@/components/AktenKopf';
@@ -676,24 +675,27 @@ export default function BaustellenakteView() {
           - der Stundennachweis für den Kunden (F12) — nur für die, die fremde
             Zeiten lesen; im Supportzugang sind Zeitbuchungen verschlossen.
         */
-        mehr={(() => {
-          const eintraege = [
-            ...(darfAendern && b.status !== 'Abgeschlossen' && hauptaktion !== 'abschliessen'
-              ? [{ label: 'Abschließen', onSelect: () => setAbschliessen(true) }] : []),
-            ...(user && canEditTime(user.role) && !einblick
-              ? [{ label: 'Stundennachweis', onSelect: () => setNachweisOffen(true) }] : []),
-          ];
-          return eintraege.length ? <RowMenu about={`Baustelle ${b.projectNumber}`} items={eintraege} /> : undefined;
-        })()}
+        ueber={`Baustelle ${b.projectNumber}`}
+        weitere={[
+          ...(darfAendern && b.status !== 'Abgeschlossen' && hauptaktion !== 'abschliessen'
+            ? [{ label: 'Abschließen', onSelect: () => setAbschliessen(true) }] : []),
+          ...(user && canEditTime(user.role) && !einblick
+            ? [{ label: 'Stundennachweis', onSelect: () => setNachweisOffen(true) }] : []),
+        ]}
         kontakt={<><TelefonLink nummer={b.contactPhone} name={b.contactName} /><a className="link-weiter akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a></>}
-        action={(hauptaktion || darfAendern) && <div className="akten-aktionen">
-          {/* Eine Hauptaktion je Seite; sie folgt dem Stand (E83). „Schein schreiben“ bleibt in der Karte der Scheine. */}
-          {hauptaktion === 'planen' && <KnopfLink to="/assignments/tag" state={{ datum: todayStr(), projectNumber: b.projectNumber }}>Einsatz planen</KnopfLink>}
-          {hauptaktion === 'rechnung' && <KnopfLink to={`/invoices?neu=${encodeURIComponent(b.projectNumber)}`}>Rechnung stellen</KnopfLink>}
-          {hauptaktion === 'schein' && <KnopfLink to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}>Schein schreiben</KnopfLink>}
-          {hauptaktion === 'abschliessen' && <Button onClick={() => setAbschliessen(true)}>Abschließen</Button>}
-          {darfAendern && <Button variant={hauptaktion ? 'secondary' : 'primary'} onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
-        </div>}
+        /*
+          EINE HAUPTAKTION, SIE FOLGT DEM STAND (E83); „Schein schreiben“ bleibt
+          in der Karte der Scheine. „Bearbeiten“ ist der Nebenweg (U1): ab dem
+          Tablet als Zweitknopf daneben, am Handy im ⋯. Ohne Hauptaktion wird
+          „Bearbeiten“ selbst die Hauptaktion.
+        */
+        action={hauptaktion === 'planen' ? <KnopfLink to="/assignments/tag" state={{ datum: todayStr(), projectNumber: b.projectNumber }}>Einsatz planen</KnopfLink>
+          : hauptaktion === 'rechnung' ? <KnopfLink to={`/invoices?neu=${encodeURIComponent(b.projectNumber)}`}>Rechnung stellen</KnopfLink>
+          : hauptaktion === 'schein' ? <KnopfLink to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}>Schein schreiben</KnopfLink>
+          : hauptaktion === 'abschliessen' ? <Button onClick={() => setAbschliessen(true)}>Abschließen</Button>
+          : darfAendern ? <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>
+          : null}
+        zweit={hauptaktion && darfAendern ? { label: 'Bearbeiten', onSelect: () => setBearbeitet(true) } : null}
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
@@ -1109,21 +1111,7 @@ function StammdatenFormular({
         Schreibtisch steht sie rechtsbündig unter den Daten. So ist
         „Speichern" nach einer Änderung zu erreichen, ohne ans Ende zu rollen.
       */}
-      {geaendert && (
-        <Aktionsleiste
-          summe={{ name: 'Es gibt ungespeicherte Änderungen.', wert: null }}
-          links={
-            <Button variant="ghost" onClick={onVerwerfen} disabled={speichert}>
-              Verwerfen
-            </Button>
-          }
-          rechts={
-            <Button onClick={onSpeichern} loading={speichert}>
-              Speichern
-            </Button>
-          }
-        />
-      )}
+      <Speicherleiste geaendert={geaendert} speichert={speichert} onVerwerfen={onVerwerfen} onSpeichern={onSpeichern} />
     </>
   );
 }

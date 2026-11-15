@@ -20,7 +20,7 @@ import AdressteileFelder from '@/components/AdressteileFelder';
 import { adresseZeile, angabenZuPruefen, type Adressteile } from '@/lib/adresse';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { uidFehler, uidSperrt } from '@/lib/uid';
-import Aktionsleiste from '@/components/Aktionsleiste';
+import Speicherleiste from '@/components/Speicherleiste';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import { bicFehler, ibanAnzeige, ibanFehler, ibanNormal } from '@shared/iban';
@@ -653,10 +653,18 @@ export default function FirmendatenView() {
         {error && <ErrorState message={error} />}
 
         {anzeigeFehler && <Hinweiszeile stufe="warn" role="status"><p>Firmendaten gespeichert. Die Anzeige konnte noch nicht aktualisiert werden.</p><Button type="button" variant="secondary" groesse="klein" loading={laedtAnzeige} onClick={anzeigeLaden}>Anzeige erneut laden</Button></Hinweiszeile>}
-        <Aktionsleiste
-          summe={{ name: <span role="status" className="lot-speicherstand">{saving ? 'Änderungen werden gespeichert …' : geaendert ? (bestaetigt ? 'Vorheriger Stand gespeichert · weitere Änderungen noch offen' : 'Nicht gespeicherte Änderungen') : bestaetigt ? 'Gespeichert' : 'Keine offenen Änderungen'}</span>, wert: null }}
-          links={geaendert ? <Button type="button" variant="ghost" disabled={saving || logoLaeuft} onClick={verwerfen}>Verwerfen</Button> : <span className="lot-speicherplatz" aria-hidden="true" />}
-          rechts={<Button type="submit" loading={saving} gespeichert={bestaetigt && !geaendert && !saving} disabled={logoLaeuft || (bestaetigt && !geaendert)}>{saving ? 'Speichert …' : bestaetigt && !geaendert ? 'Gespeichert' : 'Speichern'}</Button>}
+        {/*
+          DIE SPEICHERLEISTE (U1): erst bei einer Änderung, dann bis zum
+          bestätigten „Gespeichert“ — wie auf jeder Einstellungsseite. Vorher
+          stand sie hier immer, mit „Keine offenen Änderungen“.
+        */}
+        <Speicherleiste
+          geaendert={geaendert}
+          speichert={saving}
+          gespeichert={bestaetigt}
+          gesperrt={logoLaeuft}
+          onVerwerfen={verwerfen}
+          stand={!saving && geaendert && bestaetigt ? 'Vorheriger Stand gespeichert · weitere Änderungen noch offen' : undefined}
         />
       </form>
 

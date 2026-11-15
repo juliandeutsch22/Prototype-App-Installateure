@@ -22,6 +22,8 @@ import KatalogEinstellungenKarte from './KatalogEinstellungenKarte';
 import SonderurlaubKarte from './SonderurlaubKarte';
 import BasiszinsVerlauf from './BasiszinsVerlauf';
 import Button from '@/components/Button';
+import Speicherleiste from '@/components/Speicherleiste';
+import RowMenu from '@/components/RowMenu';
 import PageHeader from '@/components/PageHeader';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import PersonPicker from '@/components/PersonPicker';
@@ -402,6 +404,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   */
   const companyId = user?.companyId;
   const [kostenStand, setKostenStand] = useState(0);
+  /** Die Kostensätze, wie sie gespeichert sind — der Vergleich für die Speicherleiste (U1). */
+  const [kostenBasis, setKostenBasis] = useState<{ satz: { fach: string; helper: string }; stufen: Partial<Record<Stufe, string>> }>({ satz: { fach: '', helper: '' }, stufen: {} });
   useEffect(() => {
     // Nur auf „Sätze und Kosten“: die Kostensätze liest nur die Spitze, und
     // die Buchhaltung auf ihrem Reiter bekäme sonst eine Fehlermeldung.
@@ -410,15 +414,15 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     kostensaetze(companyId)
       .then((k) => {
         if (weg || !k) return;
-        setCostRates({
-          fach: String(k.fach).replace('.', ','),
-          helper: String(k.helper).replace('.', ','),
-        });
-        setCostStufen(
-          Object.fromEntries(
+        const basis = {
+          satz: { fach: String(k.fach).replace('.', ','), helper: String(k.helper).replace('.', ',') },
+          stufen: Object.fromEntries(
             Object.entries(k.stufen ?? {}).map(([s, v]) => [s, String(v).replace('.', ',')]),
-          ),
-        );
+          ) as Partial<Record<Stufe, string>>,
+        };
+        setKostenBasis(basis);
+        setCostRates(basis.satz);
+        setCostStufen(basis.stufen);
       })
       // Nicht still leer lassen: leere Felder sähen aus wie „nie hinterlegt".
       .catch((err) => {
@@ -562,6 +566,75 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     }
   }
 
+  /*
+    DIE SPEICHERLEISTE JE KARTE (U1, Durchsicht 15.11.2026). Vorher stand
+    „… speichern“ im Fluss am Ende jeder Karte — sechs Knöpfe auf „Personal“,
+    am Handy eine Bildschirmhöhe unter dem geänderten Feld. Jetzt erscheint
+    die Leiste erst, wenn in DIESER Karte etwas vom gespeicherten Stand
+    abweicht, und „Verwerfen“ holt genau diesen Stand zurück. Der Vergleich
+    geht gegen den Betrieb, wie er geladen ist — derselbe Wert, den
+    `useInhaltUebernehmen` beim Laden einsetzt.
+  */
+  const gleich = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  const ratesGespeichert: InvoiceRates = company?.rates ? { ...INVOICE_DEFAULTS, ...company.rates } : INVOICE_DEFAULTS;
+  const steuerGespeichert = company?.steuerbefreiungVorgabe ?? '';
+  const artenGespeichert = company?.rechnungsarten ?? false;
+  const rechnungGeaendert = !gleich(rates, ratesGespeichert)
+    || (darfGenehmigerSetzen && (steuerbefreiungVorgabe !== steuerGespeichert || rechnungsarten !== artenGespeichert));
+  const rechnungVerwerfen = () => {
+    setRates(ratesGespeichert);
+    setSteuerbefreiungVorgabe(steuerGespeichert);
+    setRechnungsarten(artenGespeichert);
+  };
+  const saetzeGeaendert = !gleich(rates, ratesGespeichert) || !gleich(costRates, kostenBasis.satz) || !gleich(
+    Object.fromEntries(Object.entries(costStufen).filter(([, v]) => (v ?? '') !== '')),
+    Object.fromEntries(Object.entries(kostenBasis.stufen).filter(([, v]) => (v ?? '') !== '')),
+  );
+  const saetzeVerwerfen = () => {
+    setRates(ratesGespeichert);
+    setCostRates(kostenBasis.satz);
+    setCostStufen(kostenBasis.stufen);
+  };
+  const vorsaetzeGespeichert = praefixeVon(company);
+  const vorsaetzeGeaendert = !gleich(vorsaetze, vorsaetzeGespeichert);
+  const genehmigerGespeichert = company?.vacationApprovers ?? [];
+  const genehmigerGeaendert = !gleich([...genehmiger].sort(), [...genehmigerGespeichert].sort());
+  const wochenplanGespeichert = {
+    alle: company?.wochenplanFuerAlle ?? false,
+    pl: company?.projektleitungImEinsatzplan === true,
+    leitung: company?.leitungImEinsatzplan === true,
+    abo: company?.kalenderAboErlaubt === true,
+  };
+  const wochenplanGeaendert = !gleich({ alle: wochenplanFuerAlle, pl: plImPlan, leitung: leitungImPlan, abo: kalenderAbo }, wochenplanGespeichert);
+  const wochenplanVerwerfen = () => {
+    setWochenplanFuerAlle(wochenplanGespeichert.alle);
+    setPlImPlan(wochenplanGespeichert.pl);
+    setLeitungImPlan(wochenplanGespeichert.leitung);
+    setKalenderAbo(wochenplanGespeichert.abo);
+  };
+  const dezemberGespeichert = company?.dezemberHalbtage !== false;
+  const urlaubsjahrGespeichert = {
+    beginn: company?.urlaubJahresbeginn ?? '01-01',
+    uebertrag: company?.urlaubUebertrag ?? 'verjaehrung',
+    aliquot: company?.urlaubEintrittAliquot === 'zwoelftel' ? 'zwoelftel' : 'taggenau',
+    stichtag: company?.urlaubStichtag ?? null,
+  };
+  // Der Stichtag zählt nur, wenn er gilt: bei „Verjährung“ steht er im Formular, wird aber nicht gespeichert.
+  const urlaubsjahrGeaendert = !gleich(
+    { beginn: `${beginnMonat}-${beginnTag}`, uebertrag, aliquot: eintrittAliquot, stichtag: uebertrag === 'stichtag' ? `${stichtagMonat}-${stichtagTag}` : null },
+    { ...urlaubsjahrGespeichert, stichtag: urlaubsjahrGespeichert.uebertrag === 'stichtag' ? urlaubsjahrGespeichert.stichtag : null },
+  );
+  const urlaubsjahrVerwerfen = () => {
+    setBeginnMonat(urlaubsjahrGespeichert.beginn.slice(0, 2));
+    setBeginnTag(urlaubsjahrGespeichert.beginn.slice(3, 5));
+    setUebertrag(urlaubsjahrGespeichert.uebertrag);
+    setEintrittAliquot(urlaubsjahrGespeichert.aliquot === 'zwoelftel' ? 'zwoelftel' : 'taggenau');
+    if (urlaubsjahrGespeichert.stichtag) {
+      setStichtagMonat(urlaubsjahrGespeichert.stichtag.slice(0, 2));
+      setStichtagTag(urlaubsjahrGespeichert.stichtag.slice(3, 5));
+    }
+  };
+
   if (!user) return null;
 
   const nightFach = rates.fach * (1 + rates.nightSurcharge);
@@ -573,7 +646,14 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   return (
     <div className="space-y-6">
       {/* Die Ortszeile sagt, wo die Unterseite hingehört — die Reiter darüber laufen am Handy seitlich aus dem Bild. */}
-      <PageHeader ort="Einstellungen" title={KOPF[teil].titel} subtitle={KOPF[teil].unter} />
+      <PageHeader
+        ort="Einstellungen"
+        title={KOPF[teil].titel}
+        subtitle={KOPF[teil].unter}
+        mehr={teil === 'saetze' ? (
+          <RowMenu about={KOPF[teil].titel} items={[{ label: 'Auf Standardwerte zurücksetzen …', onSelect: () => setZuruecksetzenFragen(true) }]} />
+        ) : undefined}
+      />
 
       {/*
         EIN REITER FÜR BUCHHALTUNG UND LEITUNG (Analyse 03.10.2026, Paket 2).
@@ -668,11 +748,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             </div>
           </Card>
           {fehlerBei('rechnung')}
-          <div className="fuss-aktionen">
-            <Button type="submit" loading={saving}>
-              Rechnungsvorgaben speichern
-            </Button>
-          </div>
+          <Speicherleiste geaendert={rechnungGeaendert} speichert={saving} onVerwerfen={rechnungVerwerfen} speichernText="Rechnungsvorgaben speichern" />
         </form>
       )}
 
@@ -690,11 +766,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             </div>
           </Card>
           {fehlerBei('rechnung')}
-          <div className="fuss-aktionen">
-            <Button type="submit" loading={saving}>
-              Rechnungsvorgaben speichern
-            </Button>
-          </div>
+          <Speicherleiste geaendert={rechnungGeaendert} speichert={saving} onVerwerfen={rechnungVerwerfen} speichernText="Rechnungsvorgaben speichern" />
         </form>
       )}
 
@@ -926,29 +998,17 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
 
         {fehlerBei('saetze')}
 
-        {/* Fusszeile der Aktionen (Linie „Lot“): Speichern ganz rechts, das Zurücksetzen davor. */}
-        <div className="fuss-aktionen">
-          {/*
-            ERST FRAGEN, DANN SAGEN, WAS PASSIERT IST (Testbericht 30.09.2026,
-            G11): der Knopf setzte die Felder still zurück, und niemand sah,
-            dass das noch nicht gespeichert war.
-          */}
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setZuruecksetzenFragen(true)}
-            className="w-full sm:w-auto"
-          >
-            Auf Standardwerte zurücksetzen
-          </Button>
-          <Button type="submit" loading={saving} className="w-full sm:w-auto">
-            Sätze speichern
-          </Button>
-        </div>
+        {/*
+          „AUF STANDARDWERTE ZURÜCKSETZEN“ STEHT IM ⋯ DES SEITENKOPFS (U1): es
+          speichert nichts, es füllt nur die Felder — danach erscheint die
+          Speicherleiste. Neben „Sätze speichern“ war es ein zweiter
+          gleichrangiger Knopf für etwas Seltenes.
+        */}
+        <Speicherleiste geaendert={saetzeGeaendert} speichert={saving} onVerwerfen={saetzeVerwerfen} speichernText="Sätze speichern" />
         <ConfirmDialog
           open={zuruecksetzenFragen}
           title="Auf Standardwerte zurücksetzen?"
-          message="Stundensätze, Zuschläge und Rechnungsvorgaben dieser Seite stehen danach auf den Werten ab Werk. Gespeichert wird erst mit „Sätze speichern“."
+          message="Stundensätze, Zuschläge und Rechnungsvorgaben dieser Seite stehen danach auf den Werten ab Werk. Gespeichert wird erst mit „Sätze speichern“ in der Leiste unten."
           confirmLabel="Zurücksetzen"
           confirmTone="primary"
           onCancel={() => setZuruecksetzenFragen(false)}
@@ -1142,12 +1202,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             </p>
           </div>
 
-          <div className="fuss-aktionen mt-4">
-            <Button type="button" loading={uebertragSpeichert} onClick={uebertragSpeichern}>
-              Urlaubsjahr speichern
-            </Button>
-          </div>
           {fehlerBei('uebertrag')}
+          <Speicherleiste geaendert={urlaubsjahrGeaendert} speichert={uebertragSpeichert} onVerwerfen={urlaubsjahrVerwerfen} onSpeichern={uebertragSpeichern} speichernText="Urlaubsjahr speichern" />
           </div>
         </Card>
       )}
@@ -1231,12 +1287,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             <span> {belegNummer('', naechste?.jahr ?? new Date().getFullYear(), 1001)}</span>.
           </p>
 
-          <div className="fuss-aktionen mt-4">
-            <Button type="button" loading={vorsaetzeSpeichert} onClick={vorsaetzeSpeichern}>
-              Nummernkreise speichern
-            </Button>
-          </div>
           {fehlerBei('nummern')}
+          <Speicherleiste geaendert={vorsaetzeGeaendert} speichert={vorsaetzeSpeichert} onVerwerfen={() => setVorsaetze(vorsaetzeGespeichert)} onSpeichern={vorsaetzeSpeichern} speichernText="Nummernkreise speichern" />
           </div>
         </Card>
       )}
@@ -1281,16 +1333,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             />
           </div>
 
-          <div className="fuss-aktionen mt-4">
-            <Button
-              type="button"
-              loading={genehmigerSpeichert}
-              onClick={genehmigerSpeichern}
-            >
-              Genehmigende speichern
-            </Button>
-          </div>
           {fehlerBei('genehmiger')}
+          <Speicherleiste geaendert={genehmigerGeaendert} speichert={genehmigerSpeichert} onVerwerfen={() => setGenehmiger(genehmigerGespeichert)} onSpeichern={genehmigerSpeichern} speichernText="Genehmigende speichern" />
           </div>
         </Card>
       )}
@@ -1346,12 +1390,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           onChange={(e) => setKalenderAbo(e.target.checked)}
         />
         </div>
-        <div className="fuss-aktionen mt-4">
-          <Button type="button" loading={wochenplanSpeichert} onClick={wochenplanSpeichern}>
-            Speichern
-          </Button>
-        </div>
         {fehlerBei('wochenplan')}
+        <Speicherleiste geaendert={wochenplanGeaendert} speichert={wochenplanSpeichert} onVerwerfen={wochenplanVerwerfen} onSpeichern={wochenplanSpeichern} />
         </div>
       </Card>
       )}
@@ -1382,12 +1422,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           checked={dezemberHalbtage}
           onChange={(e) => setDezemberHalbtage(e.target.checked)}
         />
-        <div className="fuss-aktionen mt-4">
-          <Button type="button" loading={dezemberSpeichert} onClick={dezemberSpeichern}>
-            Speichern
-          </Button>
-        </div>
         {fehlerBei('dezember')}
+        <Speicherleiste geaendert={dezemberHalbtage !== dezemberGespeichert} speichert={dezemberSpeichert} onVerwerfen={() => setDezemberHalbtage(dezemberGespeichert)} onSpeichern={dezemberSpeichern} />
         </div>
       </Card>
       )}

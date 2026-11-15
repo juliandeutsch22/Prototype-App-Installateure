@@ -121,6 +121,20 @@ Woche/Monat/Tag sowie Personen/Baustellen verwenden kompakte Texttabs mit einer 
 
 Große Arbeitstagkarten beschriften Pause, Weiter und Stopp mit kurzen Textlabels. Die kompakte mobile Arbeitstagkarte und die globale Timer-Leiste dürfen bewährte Symbole ohne sichtbare Zusatzlabels verwenden. Alle Iconbuttons benötigen verständliche `aria-label`-Texte und ausreichend große Ziele. Lade-, Speicher-, Deaktivierungs-, Fehler- und Fokuszustände bleiben sichtbar und funktional; die vorhandene Breitenreservierung von Buttons darf nicht verloren gehen.
 
+## Hauptaktion, Neu und Fenster · Durchsicht 15.11.2026 (U1–U4)
+
+Die Hauptaktion stand am Handy an fünf verschiedenen Stellen. Seit der Durchsicht gibt es genau drei Muster, und jedes ist ein Baustein — keine Konvention, die jede Seite neu auslegt. Die Musterseite zeigt sie unter „Hauptaktion: drei Muster“; die Wächter in `tests/unit/bedienregeln.test.ts` halten sie im Quelltext.
+
+1. **Liste** — eine kompakte Aktion rechts unten über der Fußinsel (`PageHeader.action`, am Handy im Daumenbereich). Ab dem Tablet steht sie rechts im Seitenkopf.
+2. **Akte** — eine kompakte Aktion an derselben Stelle (`AktenKopf.action`), alles Weitere im ⋯ des Seitenkopfs (`AktenKopf.weitere`). Der eine häufige Nebenweg (`AktenKopf.zweit`, etwa „Bearbeiten“ neben „Einsatz planen“) steht ab dem Tablet als Zweitknopf links neben der Hauptaktion und am Handy als erster Eintrag im ⋯. Eine Gruppe von Knöpfen als Hauptaktion gibt es nicht mehr — sie wurde am Handy zu Balken über die ganze Breite.
+3. **Formular und Einstellung** — eine klebende Speicherleiste (`Speicherleiste`), überall gleich: sie erscheint erst, wenn etwas vom gespeicherten Stand abweicht, „Verwerfen“ links, „Speichern“ rechts, darüber ein Satz zum Stand; nach bestätigtem Schreiben „Gespeichert“ im selben Knopf. In einem Blatt klebt sie am unteren Rand des Blatts, frei am unteren Rand über der Fußinsel. Seltenes, das nur Felder füllt („Auf Standardwerte zurücksetzen“), steht im ⋯ des Seitenkopfs.
+
+**Neu anlegen (U2).** Am Handy öffnet „Neu …“ immer ein Blatt von unten; die Seite zeigt zuerst den Bestand. Ab dem Tablet darf das Formular als Blatt neben dem Bestand stehen. Baustein: `NeuFormular` (am Handy `BottomSheet`, ab dem Tablet `Card`), die Hauptaktion im Seitenkopf öffnet es. Ein Neu-Ablauf, der eine eigene Seite ist (Schein, Angebot, Rechnung als Arbeitsbereich mit Vorschau), bleibt eine Seite.
+
+**Keine Aktion doppelt (U3).** Was ein Blatt auf dem Bildschirm schon trägt, steht nicht noch einmal schwebend darüber. Je Einsatz eine Aktionszeile in einer Form.
+
+**Fenster (U4).** Ein Fenster hat eine gefüllte Hauptaktion rechts, höchstens eine zweite (gerahmt) links daneben, alles Weitere im ⋯ ganz links (`Fensteraktionen`). Unumkehrbares (Löschen, Stornieren) steht immer im ⋯, nie als Knopf neben dem nächsten Schritt. Eine Knopfreihe trägt höchstens zwei Knöpfe und höchstens eine Hauptaktion; die Rückfrage (`ConfirmDialog`) bleibt, wie sie ist — ihr Bestätigen ist der Schritt selbst.
+
 ## Schalter und Kästchen · Durchsicht 15.11.2026 (U6, E3)
 
 Ein **Schalter** (`Schalter`) für alles, was sofort wirkt: Module, Meldungen, eine Pflicht für den ganzen Betrieb, ein Filter der Ansicht. Er ist ein echter Knopf mit `role="switch"` und `aria-checked`, schaltet mit Leertaste und Enter, und die ganze Zeile samt Etikett ist das Ziel. Den Zustand tragen Lage, Farbe und ein Häkchen im Griff — Farbe allein nie. Braucht ein Wechsel eine Rückfrage (ein Modul, an dem etwas hängt), springt der Schalter erst nach der Bestätigung um; scheitert das Speichern, steht er wieder, wo er war, und der Grund steht daneben. Während er schreibt, ist er gesperrt.

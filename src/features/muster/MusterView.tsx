@@ -27,6 +27,7 @@ import MusterMonat from './MusterMonat';
 import MusterPlanlinie from './MusterPlanlinie';
 import MusterZeitfelder from './MusterZeitfelder';
 import MusterV10 from './MusterV10';
+import MusterBedienung from './MusterBedienung';
 import MusterSchalter from './MusterSchalter';
 
 /**
@@ -244,6 +245,8 @@ export default function MusterView() {
         </div>
       </Card>
 
+      {/* Durchsicht 15.11.2026 (U1–U4): Hauptaktion, Neu und Fenster. */}
+      <MusterBedienung />
       {/* U6, E3: Schalter für Sofortiges, Kästchen für die Auswahl im Formular. */}
       <MusterSchalter />
 

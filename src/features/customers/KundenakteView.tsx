@@ -20,7 +20,6 @@ import { listEingaengeDesKunden } from '@/lib/db/auftragseingaenge';
 import { kundeText, zustandVon, wannText } from '@/features/auftragseingang/eingangText';
 import { useModul } from '@/lib/useModule';
 import { canEditTime, canInvoice, darfKundenPflegen, darfTermineSchreiben, isGF } from '@/lib/permissions';
-import RowMenu from '@/components/RowMenu';
 import StundennachweisDialog from '@/features/accounting/StundennachweisDialog';
 import TermineKarte from '@/features/termine/TermineKarte';
 import { beurteile } from '@/features/maintenance/wartungsplan';
@@ -29,7 +28,7 @@ import type { Auftragseingang, Customer, Invoice, Project, Quote, Wartung } from
 import type { WithId } from '@/lib/db/core';
 import Nachladen from '@/components/Nachladen';
 import Card from '@/components/Card';
-import Aktionsleiste from '@/components/Aktionsleiste';
+import Speicherleiste from '@/components/Speicherleiste';
 import AktenBereiche, { AktenAngaben, AktenAngabe, AktenVerweis } from '@/components/AktenBereiche';
 import AktenBearbeiten from '@/components/AktenBearbeiten';
 import AktenKopf from '@/components/AktenKopf';
@@ -735,17 +734,15 @@ export default function KundenakteView() {
           Stundennachweis über die Baustellen des Kunden (F12), erst wenn sie
           geladen sind und nur für die, die fremde Zeiten lesen.
         */
-        mehr={(() => {
-          const eintraege = [
-            ...(!einblick ? neuFuer : []),
-            ...(user && canEditTime(user.role) && !einblick && baustellen.zustand === 'bereit' && baustellen.daten.length > 0
-              ? [{ label: 'Stundennachweis', onSelect: () => setNachweisOffen(true) }] : []),
-            // F9: eine Dublette mit Belegen — wer Kunden pflegt, führt sie hier zusammen.
-            ...(darfAendern && !einblick
-              ? [{ label: 'Mit anderem Kunden zusammenführen …', onSelect: () => setZusammenfuehrenOffen(true) }] : []),
-          ];
-          return eintraege.length ? <RowMenu about={`Kunde ${k.name}`} items={eintraege} /> : undefined;
-        })()} />
+        ueber={`Kunde ${k.name}`}
+        weitere={[
+          ...(!einblick ? neuFuer : []),
+          ...(user && canEditTime(user.role) && !einblick && baustellen.zustand === 'bereit' && baustellen.daten.length > 0
+            ? [{ label: 'Stundennachweis', onSelect: () => setNachweisOffen(true) }] : []),
+          // F9: eine Dublette mit Belegen — wer Kunden pflegt, führt sie hier zusammen.
+          ...(darfAendern && !einblick
+            ? [{ label: 'Mit anderem Kunden zusammenführen …', onSelect: () => setZusammenfuehrenOffen(true) }] : []),
+        ]} />
       {zusammenfuehrenOffen && companyId && (
         <KundenZusammenfuehren
           companyId={companyId}
@@ -1048,21 +1045,7 @@ function StammdatenFormular({
           Schreibtisch steht sie rechtsbündig unter dem Formular. So ist
           „Speichern" nach einer Änderung zu erreichen, ohne ans Ende zu rollen.
         */}
-        {geaendert && (
-          <Aktionsleiste
-            summe={{ name: 'Es gibt ungespeicherte Änderungen.', wert: null }}
-            links={
-              <Button variant="ghost" onClick={onVerwerfen} disabled={speichert}>
-                Verwerfen
-              </Button>
-            }
-            rechts={
-              <Button onClick={onSpeichern} loading={speichert}>
-                Speichern
-              </Button>
-            }
-          />
-        )}
+        <Speicherleiste geaendert={geaendert} speichert={speichert} onVerwerfen={onVerwerfen} onSpeichern={onSpeichern} />
     </>
   );
 }

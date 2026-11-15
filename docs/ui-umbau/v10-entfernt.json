@@ -99,5 +99,71 @@
     "text": "Für Administrator, Geschäftsführung und Buchhaltung in diesem Betrieb verpflichtend",
     "ziel": "CheckboxField",
     "grund": "U6/E3: dieselbe Beschriftung an einem Schalter — die Pflicht gilt sofort für den Betrieb, mit der Rückfrage wie bisher."
+  },
+  {
+    "datei": "src/features/settings/FirmendatenView.tsx",
+    "art": "knopf",
+    "text": "Speichert …|Gespeichert|Speichern",
+    "grund": "U1 (Durchsicht 15.11.2026): „Speichern“, „Speichert …“ und „Gespeichert“ stehen jetzt in der gemeinsamen Speicherleiste (src/components/Speicherleiste.tsx), die erst bei einer Änderung erscheint."
+  },
+  {
+    "datei": "src/features/settings/KatalogEinstellungenKarte.tsx",
+    "art": "knopf",
+    "text": "Katalog-Einstellungen speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Karte (speichernText), sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/KontenrahmenView.tsx",
+    "art": "knopf",
+    "text": "Kontenrahmen speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Seite (speichernText), sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "knopf",
+    "text": "Auf Standardwerte zurücksetzen",
+    "grund": "U1: steht als „Auf Standardwerte zurücksetzen …“ im ⋯ des Seitenkopfs von „Sätze und Kosten“; es füllt nur Felder, danach erscheint die Speicherleiste."
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "knopf",
+    "text": "Genehmigende speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Karte „Wer Urlaub genehmigt“, sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "knopf",
+    "text": "Nummernkreise speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Karte, sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "knopf",
+    "text": "Rechnungsvorgaben speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Seite, sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "knopf",
+    "text": "Sätze speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Seite, sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/SettingsView.tsx",
+    "art": "knopf",
+    "text": "Urlaubsjahr speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Karte, sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/StandardZeitfelder.tsx",
+    "art": "knopf",
+    "text": "Speichert …|Standardfelder speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Karte (speichernText), sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/settings/TimerEinstellungen.tsx",
+    "art": "knopf",
+    "text": "Erinnerung speichern",
+    "grund": "U1: derselbe Knopf in der Speicherleiste der Karte (speichernText), sichtbar ab der ersten Änderung."
   }
 ]

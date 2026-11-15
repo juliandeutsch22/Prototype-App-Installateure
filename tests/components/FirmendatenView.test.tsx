@@ -215,6 +215,8 @@ describe('Im Firmenbuch eingetragen', () => {
     const nutzer = userEvent.setup();
     zeige();
     expect(haken().checked).toBe(true);
+    // Gespeichert wird erst nach einer Änderung (Speicherleiste, U1) — hier an einem anderen Feld.
+    await nutzer.type(feld('Firmenname'), ' Wien');
     await nutzer.click(speichern());
     expect(updateCompany.mock.calls[0][1]).toMatchObject({ imFirmenbuch: null });
   });
@@ -324,6 +326,8 @@ describe('PLZ der Firma (Runde 6, M6)', () => {
     firma = { ...firma, strasse: 'Teststraße 1', plz: '82', ort: 'Gleisdorf', land: 'AT' };
     const nutzer = userEvent.setup();
     zeige();
+    // Eine Änderung an einem anderen Feld — ohne Änderung gibt es keine Speicherleiste (U1).
+    await nutzer.type(feld('Firmenname'), ' neu');
     await nutzer.click(speichern());
     await waitFor(() => expect(updateCompany).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole('dialog', { name: /PLZ prüfen/ })).toBeNull();

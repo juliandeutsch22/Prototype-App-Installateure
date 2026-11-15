@@ -1,4 +1,4 @@
-import { useContext, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useContext, useLayoutEffect, useRef, type ReactElement, type ReactNode } from 'react';
 import { Link, useInRouterContext, useLocation } from 'react-router-dom';
 import { SeitenHilfeKnopf } from './SeitenHilfe';
 import { Modulskizze, Stempel, type SkizzenMotiv } from './Planlinie';
@@ -86,8 +86,14 @@ export default function PageHeader({
   subtitle?: ReactNode;
   /** Ortszeile über dem Titel. */
   ort?: ReactNode;
-  /** Die Hauptaktion der Seite — am Handy im Daumenbereich. */
-  action?: ReactNode;
+  /**
+   * Die EINE Hauptaktion der Seite — am Handy kompakt rechts unten im
+   * Daumenbereich (Muster 1 und 2 der Hauptaktion, U1). Ein Knopf, keine
+   * Gruppe: zwei Knöpfe im Daumenbereich wurden am Handy zu zwei halben
+   * Balken (Baustellenakte). Den Nebenweg einer Akte trägt `AktenKopf.zweit`,
+   * Seltenes das ⋯ (`mehr`). Die Wächter in `bedienregeln.test.ts` prüfen das.
+   */
+  action?: ReactElement | false | null;
   /** Das ⋯-Menü der Seite (ein `RowMenu`); das einzige ⋯ im Seitenkopf. */
   mehr?: ReactNode;
   /** Einleitung für „Hilfe zu dieser Seite“, vor den gesammelten Erklärungen. */
@@ -111,7 +117,7 @@ export default function PageHeader({
    * Daumenbereich rückt (Start: „Einsatzplanung“ — dort ist die untere Leiste
    * schon der Weg).
    */
-  nebenAktion?: ReactNode;
+  nebenAktion?: ReactElement | false | null;
   /** Der Weg zurück (Akte, Angebot) — steht als Ortszeile, nicht darüber. */
   zurueck?: { to: string; text: string };
 }) {

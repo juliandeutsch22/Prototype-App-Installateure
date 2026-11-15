@@ -302,6 +302,8 @@
      rechts — nicht mehr gestapelt in voller Breite (R7). Passen beide nicht
      in eine Zeile, rückt die Hauptaktion rechtsbündig darunter. */
   .fuss-aktionen { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+  /* Fensteraktionen (U4): das ⋯ mit dem Seltenen und Unumkehrbaren ganz links, die Knöpfe rechts. */
+  .fensteraktionen-mehr { display: inline-flex; margin-right: auto; }
 
   /* ── Schalter (U6, E3) ─────────────────────────────────────────────────── */
   /*
