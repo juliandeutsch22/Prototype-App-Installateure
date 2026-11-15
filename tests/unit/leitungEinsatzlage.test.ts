@@ -20,12 +20,10 @@ vi.mock('@/lib/db/assignments', () => ({
     gefragt.tage = a;
     return [{ userId: 'm1', date: '2026-10-13', projectNumber: 'B-1' }];
   }),
-  baustellenEinsatzlage: vi.fn(async (...a: unknown[]) => {
+  // Seit P8 entscheidet die Datenbank über alle aktiven Baustellen (`baustellen_ohne_einsatz`).
+  baustellenOhneEinsatz: vi.fn(async (...a: unknown[]) => {
     gefragt.lage = a;
-    return [
-      { projectNumber: 'B-1', zuletzt: '2026-10-09', naechster: '2026-10-14' },
-      { projectNumber: 'B-2', zuletzt: '2026-09-20', naechster: null },
-    ];
+    return [{ projectNumber: 'B-2', zuletzt: '2026-09-20' }, { projectNumber: 'B-3' }];
   }),
 }));
 vi.mock('@/lib/db/projects', () => ({
@@ -46,13 +44,13 @@ const { leitung } = await import('@/features/dashboard/start/laden');
 const k = { user: { uid: 'gf', companyId: 'c1', role: 'Geschäftsführung' as const }, company: null, heute: '2026-10-13' };
 
 describe('Leitung: Einsatzlage statt jedes Einsatzes', () => {
-  it('fragt je Baustelle den letzten und nächsten Einsatz im Fenster — und die Woche allein', async () => {
+  it('fragt „ohne Einsatz“ die Datenbank für heute — und die Woche allein (P8: dieselbe Quelle wie die Baustellenliste)', async () => {
     await leitung(k, { einsatzplanung: true, wartung: false, budget: false });
-    expect(gefragt.lage).toEqual(['c1', '2026-07-15', '2026-10-13', '2026-10-27']);
+    expect(gefragt.lage).toEqual(['2026-10-13']);
     expect(gefragt.tage).toEqual(['c1', '2026-10-12', '2026-10-18']);
   });
 
-  it('Gleichbleiben: ohne kommenden Einsatz mit dem letzten davor, ganz ohne Einsatz ohne Datum', async () => {
+  it('Gleichbleiben: die Baustellen der Antwort, mit dem letzten Einsatz davor, ganz ohne Einsatz ohne Datum', async () => {
     const d = await leitung(k, { einsatzplanung: true, wartung: false, budget: false });
     expect(d.ohneEinsatz).toEqual([
       { projectNumber: 'B-2', zuletzt: '2026-09-20' },
@@ -64,5 +62,14 @@ describe('Leitung: Einsatzlage statt jedes Einsatzes', () => {
     const d = await leitung(k, { einsatzplanung: true, wartung: false, budget: false });
     // Ein Monteur, fünf Arbeitstage, an einem davon eingeteilt.
     expect(d.auslastung).toBe(20);
+  });
+});
+
+describe('P8: kommt die Antwort nicht, fehlt die Zeile', () => {
+  it('statt jede aktive Baustelle als „ohne Einsatz“ zu melden', async () => {
+    const { baustellenOhneEinsatz } = await import('@/lib/db/assignments');
+    vi.mocked(baustellenOhneEinsatz).mockRejectedValueOnce(new Error('kein Netz'));
+    const d = await leitung(k, { einsatzplanung: true, wartung: false, budget: false });
+    expect(d.ohneEinsatz).toBeUndefined();
   });
 });

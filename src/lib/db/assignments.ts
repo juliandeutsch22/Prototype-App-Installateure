@@ -100,6 +100,11 @@ export function baustellenEinsatzlage(companyId: string, von: string, heute: str
   return pg.baustellenEinsatzlage(companyId, von, heute, bis);
 }
 
+/** Aktive Baustellen ohne Einsatz in den nächsten 14 Tagen — siehe `pg.baustellenOhneEinsatz` (P8). */
+export function baustellenOhneEinsatz(heute: string) {
+  return pg.baustellenOhneEinsatz(heute);
+}
+
 /** Nur Person, Tag und Baustelle — siehe `pg.listEinsatztageInRange`. */
 export function listEinsatztageInRange(companyId: string, from: string, to: string, max = 3000) {
   return pg.listEinsatztageInRange(companyId, from, to, max);

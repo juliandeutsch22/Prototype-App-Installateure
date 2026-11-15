@@ -108,6 +108,10 @@ vi.mock('@/lib/db/projects', () => ({
   },
 }));
 
+/* „Ohne Einsatz“ aus der Datenbank (P8, `baustellen_ohne_einsatz`) — dieselbe Antwort wie der Zähler der Startseite. */
+const ohneEinsatz = vi.fn<(heute: string) => Promise<{ projectNumber: string; zuletzt?: string }[]>>(async () => []);
+vi.mock('@/lib/db/assignments', () => ({ baustellenOhneEinsatz: (heute: string) => ohneEinsatz(heute) }));
+
 vi.mock('@/lib/db/users', () => ({
   listUsers: vi.fn(async () => {
     if (ladefehler) throw new Error('kein Netz');
@@ -1378,5 +1382,25 @@ describe('Filter von der Startseite — über alle laufenden Baustellen', () => 
     zeige('/admin-projects?filter=ende-ueberschritten');
     expect(await screen.findByText('Die Liste aller laufenden Baustellen konnte nicht geladen werden.')).toBeInTheDocument();
     await waitFor(() => expect(hrefs()).toEqual(['/admin-projects/p-alt2']));
+  });
+});
+
+/*
+  P8 (Durchsicht 15.11.2026): der Filter „ohne Einsatz“ nimmt die Antwort der
+  Datenbank — wie der Zähler der Startseite. Gegenprobe: vorher rechnete er
+  über alle Einsätze mit Grenze 3.000 und zeigte ab dort fast jede aktive
+  Baustelle.
+*/
+describe('Filter „ohne Einsatz“ (P8)', () => {
+  it('zeigt genau die Baustellen, die die Datenbank nennt', async () => {
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: '2026-001', customerName: 'Familie Huber', status: 'Aktiv' } as Project & { id: string },
+      { id: 'p2', companyId: 'perl', projectNumber: '2026-002', customerName: 'Firma Gruber', status: 'Aktiv' } as Project & { id: string },
+    ];
+    ohneEinsatz.mockResolvedValue([{ projectNumber: '2026-002' }]);
+    zeige('/admin-projects?filter=ohne-einsatz');
+    await waitFor(() => expect(zeilen().map((a) => a.getAttribute('href'))).toEqual(['/admin-projects/p2']));
+    expect(ohneEinsatz).toHaveBeenCalledWith('2026-09-01');
+    ohneEinsatz.mockResolvedValue([]);
   });
 });

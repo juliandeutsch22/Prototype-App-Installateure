@@ -10,15 +10,13 @@ import {
   BUDGET_AB_PROZENT,
   budgetStand,
   endeVorbei,
-  ohneEinsatzListe,
   ohneProjektleiter,
-  planFenster,
   type BudgetZeile,
 } from './baustellenLage';
 import Metric, { MetricRow } from '@/components/Metric';
 import { ZIEL } from '@/features/dashboard/start/ziele';
 import { stundenDerBaustellen } from '@/lib/db/timeEntries';
-import { listAssignmentsInRange } from '@/lib/db/assignments';
+import { baustellenOhneEinsatz } from '@/lib/db/assignments';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
@@ -579,13 +577,10 @@ export default function AdminProjectsView() {
       return;
     }
     let weg = false;
-    const aktiv = basis.filter((p) => p.status === 'Aktiv');
     void (async () => {
       try {
-        const heute = todayStr();
-        const { von, bis } = planFenster(heute);
-        const plan = await listAssignmentsInRange(user.companyId, von, bis);
-        const nummern = ohneEinsatzListe(aktiv, plan, heute).map((x) => x.projectNumber);
+        // Dieselbe Antwort wie der Zähler der Startseite (P8): über alle aktiven Baustellen, in der Datenbank.
+        const nummern = (await baustellenOhneEinsatz(todayStr())).map((x) => x.projectNumber);
         if (!weg) setLage({ art: adressFilter, nummern: new Set(nummern) });
       } catch {
         if (!weg) setLage({ art: adressFilter, nummern: new Set() });
@@ -594,7 +589,7 @@ export default function AdminProjectsView() {
     return () => {
       weg = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- an den aktiven Nummern, nicht an jeder Live-Meldung
+    // Neu gefragt, wenn sich die aktiven Baustellen ändern — nicht bei jeder Live-Meldung.
   }, [user, adressFilter, aktiveNummern]);
   /*
     Der Budgetfilter liest den Budgetstand, den die Seite für Maßlinie und

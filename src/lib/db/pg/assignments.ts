@@ -263,6 +263,28 @@ export async function baustellenEinsatzlage(
   return alle.map((z) => ({ projectNumber: z.project_number, zuletzt: z.zuletzt, naechster: z.naechster }));
 }
 
+/**
+ * DIE AKTIVEN BAUSTELLEN OHNE EINSATZ in den nächsten 14 Tagen
+ * (`baustellen_ohne_einsatz`, Durchsicht 15.11.2026, P8) — über alle aktiven
+ * Baustellen, in der Datenbank entschieden. Startseite (Zähler) und
+ * Baustellenliste (Filter) fragen beide hier; vorher zählte die eine über
+ * eine Zeile je Baustelle und die andere über alle Einsätze mit Grenze 3.000.
+ */
+export async function baustellenOhneEinsatz(
+  heute: string, seite = SEITE,
+): Promise<{ projectNumber: string; zuletzt?: string }[]> {
+  type Zeile = { project_number: string; zuletzt: string | null };
+  const alle: Zeile[] = [];
+  for (let ab = 0; ; ab += seite) {
+    const { data, error } = await derClient().rpc('baustellen_ohne_einsatz', { p_heute: heute }).range(ab, ab + seite - 1);
+    if (error) throw new Error(error.message);
+    const teil = (data ?? []) as Zeile[];
+    alle.push(...teil);
+    if (teil.length < seite) break;
+  }
+  return alle.map((z) => (z.zuletzt ? { projectNumber: z.project_number, zuletzt: z.zuletzt } : { projectNumber: z.project_number }));
+}
+
 export function listEinsatztageInRange(companyId: string, from: string, to: string, max = 3000) {
   return abfragen<Pick<Assignment, 'userId' | 'date' | 'projectNumber'>>(EINSAETZE, companyId, {
     wo: [

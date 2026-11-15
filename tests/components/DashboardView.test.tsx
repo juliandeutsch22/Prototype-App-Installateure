@@ -165,6 +165,8 @@ vi.mock('@/lib/db/assignments', () => ({
   listAssignmentsForUserInRange: vi.fn(async () => []),
   listAssignmentsInRange: vi.fn(async () => einsaetze),
   listEinsatztageInRange: vi.fn(async () => einsaetze),
+  // „Ohne Einsatz“ entscheidet seit P8 die Datenbank (`baustellen_ohne_einsatz`); hier: keine.
+  baustellenOhneEinsatz: vi.fn(async () => []),
   // Wie `baustellen_einsatzlage`: je Baustelle der letzte Einsatz vor heute und der nächste ab heute.
   baustellenEinsatzlage: vi.fn(async (_c: string, von: string, heute: string, bis: string) => {
     const lage = new Map<string, { projectNumber: string; zuletzt: string | null; naechster: string | null }>();

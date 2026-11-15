@@ -26,7 +26,7 @@ import {
   listAssignmentsForDate,
   listAssignmentsForUserInRange,
   listEinsatztageInRange,
-  baustellenEinsatzlage,
+  baustellenOhneEinsatz,
 } from '@/lib/db/assignments';
 import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
@@ -69,7 +69,7 @@ import { mahnlauf, type Mahnlauf } from '@/features/invoices/mahnlauf';
 import { basiszinsVerlauf, halbjahresbeginn } from '@/features/invoices/mahnung';
 import { VORLAUF_TAGE } from '@/features/maintenance/wartungsplan';
 import { eigenerResturlaub, eigenerSaldo } from './eigeneKonten';
-import { budgetStand, ohneEinsatzListe, planFenster } from '@/features/projects/baustellenLage';
+import { budgetStand } from '@/features/projects/baustellenLage';
 import { firmaSperrtRechnung } from '@/features/invoices/firmaSperre';
 import {
   type BudgetZeile,
@@ -609,7 +609,6 @@ export async function leitung(
     : undefined;
   const montag = montagDer(heute);
   const woche = wocheAb(montag);
-  const { von: vorher, bis } = planFenster(heute);
   /*
     Die fälligen Wartungen hängen an nichts hier: gleich mit losschicken
     (Ladezeit, 19.10.2026). Bis zum selben Stichtag wie die Wartungsliste
@@ -650,18 +649,19 @@ export async function leitung(
           19.10.2026). Bis hierher kam jeder Einsatz der 15 Wochen dazwischen
           — mit der Belegschaft mehr, und ab 3.000 still abgeschnitten.
         */
-        const [lage, woche7] = await Promise.all([
-          baustellenEinsatzlage(user.companyId, vorher, heute, bis),
+        /*
+          „Ohne Einsatz“ entscheidet seit P8 die Datenbank über alle aktiven
+          Baustellen (`baustellen_ohne_einsatz`) — dieselbe Antwort wie der
+          Filter der Baustellenliste. Kommt sie nicht, fehlt die Zeile (statt
+          jede Baustelle als „ohne Einsatz“ zu melden).
+        */
+        const [ohne, woche7] = await Promise.all([
+          still(() => baustellenOhneEinsatz(heute), undefined),
           listEinsatztageInRange(user.companyId, woche[0], woche[6]),
         ]);
-        return {
-          lage: lage.flatMap((l) => [l.zuletzt, l.naechster]
-            .filter((d): d is string => !!d)
-            .map((date) => ({ projectNumber: l.projectNumber, date }))),
-          woche: woche7,
-        };
-      }, { lage: [], woche: [] })
-      : Promise.resolve({ lage: [], woche: [] }),
+        return { ohne, woche: woche7 };
+      }, { ohne: undefined, woche: [] })
+      : Promise.resolve({ ohne: undefined, woche: [] }),
   ]);
   out.projekte = projekte;
   out.hatVerwaltung = alle.some((u) => u.role === 'Verwaltung' && u.active !== false);
@@ -693,7 +693,7 @@ export async function leitung(
       .map((a) => ({ uid: a.userId, name: nameVon.get(a.userId)!, grund: a.grund, bis: a.bis, zeiten: a.zeiten }))
       .sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
-    out.ohneEinsatz = ohneEinsatzListe(projekte, plan.lage, heute);
+    if (plan.ohne) out.ohneEinsatz = plan.ohne;
     out.auslastung = auslastung(alle, company, plan.woche, abwesend, woche);
   }
 
