@@ -2272,6 +2272,11 @@ export interface Invoice {
   /** Firmendaten der Stornorechnung, festgehalten mit ihrer Nummer (seit 24.10.2026). */
   stornoAusstellerStand?: string;
   stornoAm?: number | null;
+  /**
+   * Was bis zum Ausstellen der Stornorechnung bezahlt war (G8, 15.11.2026) —
+   * so nennt es ihr Text, auch wenn danach zurückgezahlt wird. Null davor.
+   */
+  stornoBezahlt?: number | null;
   /** Zugesagtes Skonto in % und bis wann (eingefroren mit der Rechnung). */
   skontoProzent?: number | null;
   skontoBis?: string | null;

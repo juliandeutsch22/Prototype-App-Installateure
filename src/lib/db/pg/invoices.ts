@@ -357,6 +357,42 @@ export async function listInvoicesInRange(companyId: string, von: string, bis: s
 }
 
 /**
+ * Die Rechnungs- und Stornonummern desselben Jahres VOR einem Zeitraum —
+ * für die Lückenprüfung an der Grenze zweier Exporte (Durchsicht 15.11.2026,
+ * G8). Nur die Nummern und was es braucht, um eine Stornorechnung ihrem Tag
+ * zuzuordnen; das Jahr hat so viele Rechnungen, wie es hat.
+ */
+export async function rechnungsnummernVorZeitraum(companyId: string, von: string): Promise<string[]> {
+  const jahrBeginn = `${von.slice(0, 4)}-01-01`;
+  if (von <= jahrBeginn) return [];
+  const vortag = tagVerschoben(von, -1);
+  const [rechnungen, stornos] = await Promise.all([
+    abfragen<{ invoiceNumber: string }>(RECHNUNGEN, companyId, {
+      wo: [
+        { art: 'ab', feld: 'invoiceDate', wert: jahrBeginn },
+        { art: 'bis', feld: 'invoiceDate', wert: vortag },
+      ],
+      spalten: 'id,invoice_number',
+    }),
+    abfragen<Pick<Invoice, 'stornoNummer' | 'stornoAm' | 'cancelledAt'>>(RECHNUNGEN, companyId, {
+      wo: [
+        { art: 'ab', feld: 'stornoAm', wert: tagVerschoben(jahrBeginn, -1) },
+        { art: 'bis', feld: 'stornoAm', wert: tagVerschoben(von, 1) },
+      ],
+      spalten: 'id,storno_nummer,storno_am,cancelled_at',
+    }),
+  ]);
+  // Der Tag der Stornorechnung zählt in Wien (`stornoBelegTag`), die Spalte steht in UTC.
+  const tagIn = (ms: number) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Vienna' }).format(new Date(ms));
+  return [
+    ...rechnungen.map((r) => r.invoiceNumber),
+    ...stornos
+      .filter((r) => r.stornoNummer && r.stornoAm != null && tagIn(r.stornoAm) >= jahrBeginn && tagIn(r.stornoAm) < von)
+      .map((r) => r.stornoNummer!),
+  ];
+}
+
+/**
  * Bestimmte Rechnungen, nach Kennung — für den Zahlungsstapel (Testbericht
  * 30.09.2026, H7 vorgebaut): eine Zahlung im Zeitraum gehört oft zu einer
  * Rechnung aus einem früheren.

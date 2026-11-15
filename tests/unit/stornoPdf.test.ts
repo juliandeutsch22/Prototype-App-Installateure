@@ -108,3 +108,29 @@ describe('Datum und Dateiname', () => {
     expect(stornoDateiname('RE-2026-0051')).toBe('Stornorechnung_RE-2026-0051.pdf');
   });
 });
+
+/*
+  DURCHSICHT 15.11.2026, G8: der Text zum Bezahlten steht fest, sobald die
+  Stornorechnung ausgestellt ist. Am Tag des Ausstellens 200 € bezahlt,
+  danach zurückgezahlt — der Nachdruck sagt weiter „erstatten wir“, nicht
+  „entfällt“. Gegenprobe: vor der Änderung druckt er „entfällt“.
+*/
+describe('Der Satz zum Bezahlten bleibt, wie er ausgestellt wurde (G8)', () => {
+  it('nach der Rückzahlung: weiter die Erstattung der damals bezahlten 200 €', async () => {
+    const nachRueckzahlung = { ...rechnung, bezahltBetrag: 0, stornoBezahlt: 200, stornoNummer: 'RE-2026-0051' } as Invoice;
+    const s = await text(nachRueckzahlung);
+    expect(s).toContain('erstatten');
+    expect(s).toMatch(betrag('200,00'));
+    expect(s).not.toContain('entfällt');
+  });
+
+  it('beim Ausstellen nichts bezahlt: die Forderung entfällt — auch wenn später etwas eingeht', async () => {
+    const s = await text({ ...rechnung, bezahltBetrag: 50, stornoBezahlt: 0 } as Invoice);
+    expect(s).toContain('entfällt');
+  });
+
+  // Bleibt gleich: Stornorechnungen davor tragen den Betrag nicht — es gilt der Stand.
+  it('ohne festgehaltenen Betrag: wie bisher aus dem Stand', async () => {
+    expect(await text({ ...rechnung, bezahltBetrag: 200 } as Invoice)).toContain('erstatten');
+  });
+});

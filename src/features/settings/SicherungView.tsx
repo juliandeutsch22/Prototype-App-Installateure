@@ -10,7 +10,7 @@ import { ErrorState } from '@/components/States';
 import LaufStatus from './LaufStatus';
 import { useToast } from '@/components/Toast';
 import { SelectField } from '@/components/Field';
-import { listGemahntInRange, listInvoicesInRange, listMahnungenInRange } from '@/lib/db/invoices';
+import { listGemahntInRange, listInvoicesInRange, listMahnungenInRange, rechnungsnummernVorZeitraum } from '@/lib/db/invoices';
 import { listQuotesInRange } from '@/lib/db/quotes';
 import { getWorkSheetsVoll, listBelegScheineInRange } from '@/lib/db/workSheets';
 import { ausstellerStaende } from '@/lib/db/aussteller';
@@ -169,6 +169,8 @@ export default function SicherungView() {
         : z.von;
       const e = await belegArchiv({
         company, rechnungen, kunden, von, bis: z.bis, angebote, scheine, gemahnt, mahnungen,
+        // Für die Lückenprüfung an der Grenze zum vorigen Zeitraum (G8).
+        nummernVorher: await rechnungsnummernVorZeitraum(user.companyId, von),
         scheineVoll: (ids) => getWorkSheetsVoll(user.companyId, ids),
         staende: (ids) => ausstellerStaende(user.companyId, ids),
         fortschritt: (fertig, gesamt) => setArchivStand({ fertig, gesamt }),

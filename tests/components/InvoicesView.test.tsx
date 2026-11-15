@@ -90,6 +90,8 @@ let ausstellungWartet: Promise<{ id: string; invoiceNumber: string }> | null = n
 
 const reserve = vi.fn();
 const lege = vi.fn();
+/** Die Nummern desselben Jahres vor dem Exportzeitraum (G8). */
+let nummernVorDemZeitraum: string[] = [];
 /** Die Klärung eines unterbrochenen Versuchs (G2); ohne Vorgabe: weiter kein Netz. */
 const klaerung = vi.fn<(kennung: string) => Promise<unknown>>(async () => { throw new RechnungsAntwortUnklar(); });
 const mahnung = vi.fn();
@@ -190,6 +192,8 @@ vi.mock('@/lib/db/invoices', async () => {
     */
     listInvoicesInRange: (c: string, von: string, bis: string) =>
       listInvoicesInRange(c, von, bis),
+    // Die Nummern des Jahres vor dem Zeitraum (G8).
+    rechnungsnummernVorZeitraum: async () => nummernVorDemZeitraum,
     schlussrechnungenOhneAbzug: async () => ohneAbzug,
     subscribeRecentInvoices: (
       _c: string,
@@ -516,6 +520,7 @@ beforeEach(() => {
   reihenfolge.length = 0;
   reserve.mockClear();
   lege.mockClear();
+  nummernVorDemZeitraum = [];
   klaerung.mockReset().mockImplementation(async () => { throw new RechnungsAntwortUnklar(); });
   try { window.localStorage.clear(); } catch { /* ohne Speicher */ }
   pdfAusgabe.mockClear();
@@ -6103,5 +6108,32 @@ describe('Leistungsnachweis wird mit der Rechnung festgehalten (G6)', () => {
     await userEvent.click(bestaetigen);
     await waitFor(() => expect(lege).toHaveBeenCalledOnce());
     expect(lege.mock.calls[0][0].leistungsnachweis).toBeNull();
+  });
+});
+
+/*
+  DURCHSICHT 15.11.2026, G8: „Bezahlt im Monat“ zählte eine Zahlung auf eine
+  ältere stornierte Rechnung mit, die nicht in der geladenen Liste steht —
+  die Menge „storniert“ kam nur aus der Liste. Gegenprobe: vor der Änderung
+  steht die Kachel bei € 900,00.
+*/
+describe('Bezahlt im Monat: stornierte Rechnungen außerhalb der Liste (G8)', () => {
+  afterEach(() => {
+    zahlungenImMonat.mockResolvedValue([]);
+    frisch = {};
+  });
+
+  it('holt den Stand der Rechnungen, die die Liste nicht kennt, und zählt Storniertes nicht', async () => {
+    rechnungen = [{ id: 'jung', invoiceNumber: 'RE-2026-1050', paymentStatus: 'Bezahlt', totalBrutto: 600 } as Invoice & { id: string }];
+    frisch = { alt: { id: 'alt', invoiceNumber: 'RE-2026-1001', paymentStatus: 'Storniert', totalBrutto: 300 } as Invoice & { id: string } };
+    zahlungenImMonat.mockResolvedValue([
+      { invoiceId: 'jung', datum: '2026-09-01', betrag: 600, art: 'Überweisung' },
+      { invoiceId: 'alt', datum: '2026-09-01', betrag: 300, art: 'Überweisung' },
+    ]);
+    zeige();
+    const kachel = (await screen.findByText('Bezahlt im Monat', { selector: 'p, span, div, dt' })).parentElement!;
+    await waitFor(() => expect(kachel.textContent).toContain('600,00'));
+    expect(kachel.textContent).not.toContain('900,00');
+    expect(listInvoicesByIds).toHaveBeenCalledWith('perl', ['alt']);
   });
 });

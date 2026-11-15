@@ -96,6 +96,8 @@ export interface Nachkalkulation {
   erloes: number;
   /** Woher der Erlös stammt: verrechnet oder erst kalkuliert. */
   erloesQuelle: 'Rechnungen' | 'Angebot' | 'unbekannt';
+  /** Gewährter Skonto, netto — schon vom Erlös abgezogen (G8). */
+  skontoNetto: number;
   /** Wie viele gültige (nicht stornierte) Rechnungen den Erlös tragen. */
   rechnungen: number;
   /** Erlös minus Personal- und Materialkosten. VOR Gemeinkosten. */
@@ -199,8 +201,22 @@ export function rechneBaustelle(
   */
   let erloes = 0;
   let erloesQuelle: Nachkalkulation['erloesQuelle'] = 'unbekannt';
+  /*
+    GEWÄHRTER SKONTO IST KEIN ERLÖS (Durchsicht 15.11.2026, G8). Er mindert
+    das Entgelt: 10.000 € netto mit 3 % Skonto bezahlt sind 9.700 € verdient,
+    nicht 10.000 — vorher war der Deckungsbeitrag um den Skonto zu hoch. Der
+    Skonto steht brutto an der Rechnung (`skontoBetrag`, aus den Eingängen);
+    netto ist sein Anteil im Verhältnis von Netto zu Brutto derselben
+    Rechnung — so stimmt es auch bei Reverse Charge und 0 %.
+  */
+  let skontoNetto = 0;
   if (eigene.length > 0) {
-    erloes = cent(eigene.reduce((s, i) => s + (i.totalNetto ?? 0), 0));
+    skontoNetto = cent(eigene.reduce((s, i) => {
+      const skonto = i.skontoBetrag ?? 0;
+      const brutto = i.totalBrutto ?? 0;
+      return skonto > 0 && brutto > 0 ? s + cent(skonto * (i.totalNetto ?? 0) / brutto) : s;
+    }, 0));
+    erloes = cent(eigene.reduce((s, i) => s + (i.totalNetto ?? 0), 0) - skontoNetto);
     erloesQuelle = 'Rechnungen';
   } else if (quote && quote.status === 'Angenommen') {
     erloes = quote.totalNetto;
@@ -267,6 +283,7 @@ export function rechneBaustelle(
     materialLuecken: [...material.ohnePreis, ...ausAngebot],
     erloes,
     erloesQuelle,
+    skontoNetto,
     rechnungen: eigene.length,
     deckungsbeitrag,
     // Ohne bekannten Erlös gibt es keine Marge — nicht null Prozent, sondern

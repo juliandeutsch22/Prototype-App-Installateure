@@ -120,6 +120,8 @@ export async function belegArchiv(o: {
   gemahnt?: GemahnteRechnung[];
   /** Die gespeicherten Mahnungen des Zeitraums (nach ihrem Tag). */
   mahnungen?: Mahnung[];
+  /** Die Rechnungsnummern desselben Jahres vor dem Zeitraum — für die Lückenprüfung (G8). */
+  nummernVorher?: string[];
   /** Für die Anzeige „120 von 800“ — die Erzeugung dauert bei vielen Belegen. */
   fortschritt?: (fertig: number, gesamt: number) => void;
   /**
@@ -318,7 +320,7 @@ export async function belegArchiv(o: {
     }
   }
 
-  const journal = buildInvoiceCsv(o.rechnungen, o.kunden, von, bis);
+  const journal = buildInvoiceCsv(o.rechnungen, o.kunden, von, bis, o.nummernVorher ?? []);
   if (journal.luecken.length) {
     hinweise.unshift(`Fehlende Nummern im Nummernkreis: ${journal.luecken.join(', ')}.`);
   }

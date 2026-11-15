@@ -43,6 +43,8 @@ const gemahntImZeitraum = vi.fn(async () => [] as unknown[]);
 const mahnungenImZeitraum = vi.fn(async () => [{ id: 'm1' }] as unknown[]);
 vi.mock('@/lib/db/invoices', () => ({
   listInvoicesInRange: (...a: unknown[]) => rechnungenImZeitraum(...(a as [])),
+  // Die Nummern vor dem Zeitraum — für die Lückenprüfung an seiner Grenze (G8).
+  rechnungsnummernVorZeitraum: async () => [],
   listGemahntInRange: (...a: unknown[]) => gemahntImZeitraum(...(a as [])),
   listMahnungenInRange: (...a: unknown[]) => mahnungenImZeitraum(...(a as [])),
 }));

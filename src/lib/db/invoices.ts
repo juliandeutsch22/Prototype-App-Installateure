@@ -112,6 +112,11 @@ export function listInvoicesForCustomer(
   return pg.listInvoicesForCustomer(companyId, customerId, projektIds);
 }
 
+/** Die Nummern desselben Jahres vor einem Zeitraum — für die Lückenprüfung (G8). */
+export function rechnungsnummernVorZeitraum(companyId: string, von: string): Promise<string[]> {
+  return pg.rechnungsnummernVorZeitraum(companyId, von);
+}
+
 export function reserveInvoiceNumber(
   companyId: string, opts: { seedFrom: number; desired?: number; praefix?: string },
 ): Promise<string> {

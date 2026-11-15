@@ -107,6 +107,7 @@ export default function NachkalkulationDetail({
               woher={
                 k.erloesQuelle === 'Rechnungen'
                   ? (k.rechnungen === 1 ? 'aus 1 Rechnung, netto' : `aus ${k.rechnungen} Rechnungen, netto`)
+                    + (k.skontoNetto > 0 ? `, ohne gewährten Skonto (${euro(k.skontoNetto)})` : '')
                   : k.erloesQuelle === 'Angebot'
                     ? 'aus dem angenommenen Angebot, netto — noch nicht verrechnet'
                     : 'kein Erlös hinterlegt — weder Rechnung noch angenommenes Angebot'

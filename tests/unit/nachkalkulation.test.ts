@@ -325,3 +325,30 @@ describe('Nachkalkulation — die Aufstellung', () => {
     expect(ohne.materialQuelle).toBeNull();
   });
 });
+
+/*
+  DURCHSICHT 15.11.2026, G8: gewährter Skonto ist kein Erlös. 10.000 € netto,
+  3 % Skonto auf 12.000 € brutto gezogen (360 €) — verdient sind 9.700 €.
+  Gegenprobe: vor der Änderung stand der Erlös bei 10.000 €.
+*/
+describe('Skonto mindert den Erlös (G8)', () => {
+  it('der Netto-Anteil des gezogenen Skontos geht vom Erlös ab', () => {
+    const mitSkonto = { ...rechnung(10000), skontoBetrag: 360 } as Invoice;
+    const k = rechneBaustelle('B-001', 'Huber', [zeit(60)], [mitSkonto], undefined, kosten);
+    expect(k.skontoNetto).toBe(300);
+    expect(k.erloes).toBe(9700);
+  });
+
+  it('bei Reverse Charge ist der Skonto schon netto', () => {
+    const rc = { ...rechnung(1000), totalVat: 0, totalBrutto: 1000, skontoBetrag: 20 } as Invoice;
+    const k = rechneBaustelle('B-001', 'Huber', [zeit(60)], [rc], undefined, kosten);
+    expect(k.erloes).toBe(980);
+  });
+
+  // Bleibt gleich: ohne Skonto zählt die Rechnung voll.
+  it('ohne Skonto: unverändert', () => {
+    const k = rechneBaustelle('B-001', 'Huber', [zeit(60)], [rechnung(1000), { ...rechnung(500), skontoBetrag: 0 } as Invoice], undefined, kosten);
+    expect(k.skontoNetto).toBe(0);
+    expect(k.erloes).toBe(1500);
+  });
+});

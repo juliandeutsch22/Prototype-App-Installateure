@@ -27,6 +27,7 @@ import {
   RECHNUNG_TREFFER,
   listInvoicesByIds,
   rechnungVersuchKlaeren,
+  rechnungsnummernVorZeitraum,
 } from '@/lib/db/invoices';
 import { offenenVersuchLesen, offenenVersuchMerken, offenenVersuchVergessen, type OffenerVersuch } from './offenerVersuch';
 import { leistungsnachweisZeilen } from './leistungsnachweis';
@@ -332,6 +333,8 @@ export default function InvoicesView() {
     leere Datei, die wie ein Erfolg aussah.
   */
   const [exportZeilen, setExportZeilen] = useState<WithId<Invoice>[] | null>(null);
+  /** Die Nummern des Jahres vor dem Zeitraum — für die Lückenprüfung an seiner Grenze (G8). */
+  const [exportVorher, setExportVorher] = useState<string[]>([]);
   /**
    * Zahlungen des Zeitraums samt ihren Rechnungen — für den eigenen
    * Zahlungsstapel (Testbericht 30.09.2026, H7 vorgebaut). `null`: nicht
@@ -1059,11 +1062,22 @@ export default function InvoicesView() {
     if (!user || nurLesen) return;
     let weg = false;
     listZahlungenImZeitraum(user.companyId, monatsErster, todayStr())
-      .then((z) => {
+      .then(async (z) => {
+        /*
+          Zahlungen auf eine stornierte Rechnung sind Guthaben des Kunden, keine
+          beglichene Forderung (Launch-Check, M13) — sie zählen hier nicht.
+          DER STAND JEDER RECHNUNG, auf die etwas einging (Durchsicht
+          15.11.2026, G8) — nicht nur der geladenen: eine ältere stornierte
+          Rechnung außerhalb der Liste zählte sonst als bezahlt. Nachgeholt
+          wird nur, was die Liste nicht kennt; dieselbe Grundlage wie die
+          Sicht „Im laufenden Monat bezahlt“.
+        */
+        const bekannt = new Map(invoices.map((i) => [i.id, i.paymentStatus]));
+        const fehlen = [...new Set(z.map((x) => x.invoiceId).filter((id) => !bekannt.has(id)))];
+        const nachgeholt = fehlen.length ? await listInvoicesByIds(user.companyId, fehlen) : [];
         if (weg) return;
-        // Zahlungen auf eine stornierte Rechnung sind Guthaben des Kunden, keine
-        // beglichene Forderung (Launch-Check, M13) — sie zählen hier nicht.
-        const storniert = new Set(invoices.filter((i) => i.paymentStatus === 'Storniert').map((i) => i.id));
+        for (const i of nachgeholt) bekannt.set(i.id, i.paymentStatus);
+        const storniert = new Set([...bekannt].filter(([, stand]) => stand === 'Storniert').map(([id]) => id));
         const summe = z
           .filter((x) => x.art !== 'Skonto' && !storniert.has(x.invoiceId))
           .reduce((s, x) => s + (Number(x.betrag) || 0), 0);
@@ -2483,13 +2497,21 @@ export default function InvoicesView() {
   }
 
   async function stornorechnungDrucken(inv: WithId<Invoice>) {
-    if (!company) return;
+    if (!company || !user) return;
     const nummer = inv.stornoNummer ?? (await stornorechnungAusstellen(inv, vorsaetze.rechnung));
+    /*
+      BEIM ERSTEN DRUCK DER FRISCHE STAND (G8): Tag und bezahlter Betrag, wie
+      die Datenbank sie eben festgehalten hat — so ist der erste Druck
+      derselbe Beleg wie jeder Nachdruck.
+    */
+    const beleg = inv.stornoNummer
+      ? inv
+      : ((await listInvoicesByIds(user.companyId, [inv.id]))[0] ?? inv);
     const { buildStornoPdf, stornoDateiname } = await import('./stornoPdf');
     // Beim ersten Druck wird sie eben ausgestellt — mit den heutigen Daten,
     // die die Datenbank gerade festgehalten hat. Danach gilt ihr Stand.
     const firma = inv.stornoNummer ? await belegFirma(company, inv.stornoAusstellerStand) : company;
-    const blob = await buildStornoPdf({ company: firma, invoice: inv, nummer });
+    const blob = await buildStornoPdf({ company: firma, invoice: beleg, nummer });
     const { shareOrDownloadPdf } = await import('@/features/worksheets/worksheetPdf');
     await shareOrDownloadPdf(blob, stornoDateiname(nummer));
     if (!inv.stornoNummer) toast.success(`Stornorechnung ${nummer} ausgestellt`);
@@ -2827,9 +2849,10 @@ export default function InvoicesView() {
         ÜBER ALLE ZEITRÄUME, nicht nur über den gewählten: die Anzahlung liegt
         typischerweise Monate vor der Schlussrechnung.
       */
-      const [zeilen, fehlAbzug] = await Promise.all([
+      const [zeilen, fehlAbzug, vorher] = await Promise.all([
         listInvoicesInRange(user.companyId, exportVon, exportBis),
         schlussrechnungenOhneAbzug(),
+        rechnungsnummernVorZeitraum(user.companyId, exportVon),
       ]);
       /*
         DIE KUNDEN DIESER RECHNUNGEN, bevor das Ausgangsbuch steht: die UID
@@ -2843,6 +2866,7 @@ export default function InvoicesView() {
       if (anfrage !== exportAnfrage.current) return;
       setKunden((alt) => [...new Map([...alt, ...kundenDerZeilen].map((k) => [k.id, k])).values()]);
       setExportVorArten(vorArten);
+      setExportVorher(vorher);
       setExportZeilen(zeilen);
       setOhneAbzug(fehlAbzug);
       /*
@@ -5205,7 +5229,7 @@ export default function InvoicesView() {
         </div>
         {exportFehler && <div className="mt-3"><ErrorState message={exportFehler} /></div>}
         {exportZeilen !== null && (() => {
-          const e = buildInvoiceCsv(exportZeilen, kunden, exportVon, exportBis);
+          const e = buildInvoiceCsv(exportZeilen, kunden, exportVon, exportBis, exportVorher);
           return (
             <>
               <p className="mt-3 text-sm text-ink">

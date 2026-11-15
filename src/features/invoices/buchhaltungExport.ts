@@ -184,6 +184,12 @@ export function buildInvoiceCsv(
   kunden: Customer[],
   von: string,
   bis: string,
+  /**
+   * Die Nummern desselben Jahres VOR dem Zeitraum (Rechnungen und
+   * Stornorechnungen, G8). Ohne sie sah die Prüfung keine Lücke an der
+   * Grenze zweier Exportzeiträume.
+   */
+  nummernVorher: string[] = [],
 ): RechnungsExport {
   const imZeitraum = invoices
     .filter((i) => i.invoiceDate >= von && i.invoiceDate <= bis)
@@ -348,7 +354,7 @@ export function buildInvoiceCsv(
       ...invoices
         .filter((i) => i.stornoNummer && storniertIm(i))
         .map((i) => ({ invoiceNumber: i.stornoNummer! })),
-    ]),
+    ], nummernVorher),
     gegenbuchungen: eintraege.filter((e) => e.storno).length,
     ohneStornorechnung: eintraege.filter((e) => e.storno && !e.i.stornoNummer).map((e) => e.i.invoiceNumber),
   };
@@ -362,19 +368,40 @@ export function buildInvoiceCsv(
  * geklärt, BEVOR der Export in die Kanzlei geht. Die Prüfung läuft nur
  * innerhalb eines Jahres, weil der Kreis jährlich neu beginnt.
  */
-export function findeLuecken(invoices: Pick<Invoice, 'invoiceNumber'>[]): string[] {
+export function findeLuecken(invoices: Pick<Invoice, 'invoiceNumber'>[], nummernVorher: string[] = []): string[] {
   /*
     VORSATZ UND JAHR AUS DER NUMMER SELBST. Hier stand „RE-" fest und das
     Jahr als zweites Stück zwischen Bindestrichen — bei einem Betrieb ohne
     Vorsatz („2026-1001") wäre das die laufende Nummer gewesen.
   */
-  const nachJahr = new Map<string, { vorsatz: string; nummern: number[] }>();
+  const nachJahr = new Map<string, { vorsatz: string; nummern: number[]; anker?: number }>();
   for (const i of invoices) {
     const m = /^(.*?)(\d{4})-(\d+)$/.exec(i.invoiceNumber.trim());
     if (!m) continue;
     const eintrag = nachJahr.get(m[2]) ?? { vorsatz: m[1], nummern: [] };
     eintrag.nummern.push(Number(m[3]));
     nachJahr.set(m[2], eintrag);
+  }
+
+  /*
+    DIE GRENZE ZUM VORIGEN ZEITRAUM (Durchsicht 15.11.2026, G8). Geprüft
+    wurde nur zwischen kleinster und größter Nummer DES Zeitraums: endete der
+    September mit …1049 und begann der Oktober mit …1051, meldete keiner der
+    beiden Exporte die 1050. Jetzt zählt die höchste Nummer desselben Jahres
+    vor dem Zeitraum als Anfang — gemeldet wird, was zwischen ihr und dem
+    Zeitraum fehlt; ältere Lücken hat der Export ihres Zeitraums gemeldet.
+  */
+  for (const n of nummernVorher) {
+    const m = /^(.*?)(\d{4})-(\d+)$/.exec(n.trim());
+    const eintrag = m ? nachJahr.get(m[2]) : undefined;
+    if (!m || !eintrag) continue;
+    const lfd = Number(m[3]);
+    const kleinste = Math.min(...eintrag.nummern);
+    if (lfd >= kleinste) continue;
+    if (eintrag.anker === undefined || lfd > eintrag.anker) eintrag.anker = lfd;
+  }
+  for (const eintrag of nachJahr.values()) {
+    if (eintrag.anker !== undefined) eintrag.nummern.push(eintrag.anker);
   }
 
   const fehlend: string[] = [];
