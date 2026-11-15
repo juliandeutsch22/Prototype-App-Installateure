@@ -27,6 +27,7 @@ on:
       - 'tests/durchklick/**'
       - 'tests/links/**'
       - 'tools/vorschau/**'
+      - 'tools/testbestand/**'
       - 'playwright.config.ts'
       - 'playwright.links.config.ts'
       # Die Inhaltsregel: ein neuer Kopf, eine neue Seite oder Bibliothek kann
