@@ -27,6 +27,14 @@ export function listKontoUmstellungen(uid: string, max?: number): Promise<KontoU
   return pg.listKontoUmstellungen(uid, max);
 }
 
+export function zweiterFaktorVon(uid: string): Promise<boolean> {
+  return pg.zweiterFaktorVon(uid);
+}
+
+export function zweitenFaktorZuruecksetzen(uid: string, grund: string): Promise<void> {
+  return pg.zweitenFaktorZuruecksetzen(uid, grund);
+}
+
 export function updateUserProfile(
   uid: string, p: Partial<UserProfileInput>,
 ): Promise<void> {

@@ -21,6 +21,7 @@ import {
   angemeldet,
   fehlerEintragen,
   fehlerVorAnmeldungEintragen,
+  ohneMailadresse,
   type NeuerFehlerEintrag,
 } from '@/lib/db/fehlerprotokoll';
 import { istNachladeFehler } from '@/lib/nachladen';
@@ -160,6 +161,11 @@ export function letzterFehler(): string | undefined {
  * Meldung (das setzt die Datenbank). Wirft, damit die Maske sagen kann, dass
  * es nicht ging.
  */
+/** Hat das angemeldete Konto keine E-Mail-Adresse (Benutzername)? — für den Text von „Problem melden“. */
+export function meldendeOhneMail(): Promise<boolean> {
+  return ohneMailadresse().catch(() => false);
+}
+
 export async function problemMelden(beschreibung: string): Promise<void> {
   const text = beschreibung.trim();
   if (!text) throw new Error('Bitte beschreiben, was passiert ist.');

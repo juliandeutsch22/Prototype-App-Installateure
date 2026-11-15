@@ -101,8 +101,9 @@ export default function ZweiFaktorSeite({
       </Card>
 
       <p className="text-sm text-ink-muted">
-        Weder Telefon noch Code? Bei einem Konto der Leitung oder Buchhaltung setzt der Senklot-Support den zweiten Faktor
-        über den Notzugang zurück — mit Rückruf an die Nummer aus dem Firmenbuch.{' '}
+        Weder Telefon noch Code? Die Geschäftsführung oder Administration deines Betriebs setzt den zweiten Faktor in
+        deiner Benutzerakte zurück. Hat der Betrieb nur eine Leitung, tut es für deren Konto der Senklot-Support über den
+        Notzugang — mit Rückruf an die Nummer aus dem Firmenbuch.{' '}
         <button type="button" className="link inline-flex min-h-touch items-center" onClick={onAbmelden}>
           Abmelden
         </button>

@@ -1,8 +1,15 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import ConfirmDialog from './ConfirmDialog';
 import { useToastWennDa } from './Toast';
-import { problemMelden } from '@/lib/fehlerprotokoll';
+import { meldendeOhneMail, problemMelden } from '@/lib/fehlerprotokoll';
+
+/** Was der Dialog über Rückfragen zusagt — je nachdem, ob es eine Adresse gibt. */
+function meldeText(ohneMail: boolean): string {
+  return ohneMail
+    ? 'Die Meldung geht an den Senklot-Support, mit deinem Namen. Dein Konto hat keine E-Mail-Adresse — für Rückfragen wendet sich der Support an die Leitung deines Betriebs. Mitgeschickt werden die Ansicht, die Fassung der App und das Gerät.'
+    : 'Die Meldung geht an den Senklot-Support, mit deinem Namen und deiner E-Mail-Adresse, damit er nachfragen kann. Mitgeschickt werden die Ansicht, die Fassung der App und das Gerät.';
+}
 
 /**
  * „Problem melden" — von überall, wo jemand hängenbleibt.
@@ -24,6 +31,19 @@ export default function ProblemMelden({
   const toast = useToastWennDa();
   const [offen, setOffen] = useState(false);
   const [text, setText] = useState('');
+  /*
+    OHNE KUNSTADRESSE (K7, Durchsicht 15.11.2026): ein Benutzernamen-Konto
+    hat kein Postfach. Der Dialog versprach trotzdem eine Rückfrage per
+    E-Mail, und beim Support kam `…@benutzer.senklot.invalid` an. Gefragt
+    wird beim Öffnen, aus der gespeicherten Sitzung.
+  */
+  const [ohneMail, setOhneMail] = useState(false);
+  useEffect(() => {
+    if (!offen) return undefined;
+    let weg = false;
+    void meldendeOhneMail().then((ja) => { if (!weg) setOhneMail(ja); });
+    return () => { weg = true; };
+  }, [offen]);
 
   const schliessen = useCallback(() => setOffen(false), []);
 
@@ -47,7 +67,7 @@ export default function ProblemMelden({
         <ConfirmDialog
           open={offen}
           title="Problem melden"
-          message="Die Meldung geht an den Senklot-Support, mit deinem Namen und deiner E-Mail-Adresse, damit er nachfragen kann. Mitgeschickt werden die Ansicht, die Fassung der App und das Gerät."
+          message={meldeText(ohneMail)}
           confirmLabel="Senden"
           confirmTone="primary"
           onConfirm={senden}

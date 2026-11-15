@@ -6,7 +6,7 @@ import { getUserByUid, updateUserProfile } from '@/lib/db/users';
 import { generatePassword, resendPasswordReset } from '@/lib/auth/provisionUser';
 import { passwortVergeben } from '@/lib/auth/sitzung';
 import { istBenutzerkonto, kontoAnzeige } from '@shared/benutzername';
-import { canManageAdmins, fuehrtZeitkonto } from '@/lib/permissions';
+import { canManageAdmins, fuehrtZeitkonto, isTopLevel } from '@/lib/permissions';
 import { ROLES, type AppUser, type Role } from '@/types';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
@@ -43,6 +43,7 @@ import Datenauskunft from '@/features/recht/Datenauskunft';
 import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
 import ZahlFeld from '@/components/ZahlFeld';
 import KontoUmstellen from './KontoUmstellen';
+import ZweiterFaktorZuruecksetzen from './ZweiterFaktorZuruecksetzen';
 import UrlaubsanspruchKarte from './UrlaubsanspruchKarte';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
@@ -344,6 +345,14 @@ export default function BenutzerakteView() {
           setVersuch((v) => v + 1);
         }}
       />
+      {/* K7: nur die Spitze des Betriebs, nicht im Einblick des Supports (der setzt über den Notzugang zurück). */}
+      {isTopLevel(user.role) && !einblick && (
+        <ZweiterFaktorZuruecksetzen
+          person={p}
+          eigenesKonto={eigenesKonto}
+          onZurueckgesetzt={() => setVersuch((v) => v + 1)}
+        />
+      )}
       {/*
         DEAKTIVIEREN IST NICHT LÖSCHEN. Hier stand „Gelöscht wird ein Benutzer
         nie“ — und dieselbe Seite bietet unter „Datenschutz“ die Löschung nach

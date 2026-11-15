@@ -7,6 +7,7 @@ const gemeldet = vi.fn();
 vi.mock('@/lib/fehlerprotokoll', () => ({
   fehlerErfassen: (...a: unknown[]) => erfasst(...a),
   problemMelden: (...a: unknown[]) => gemeldet(...a),
+  meldendeOhneMail: async () => false,
 }));
 
 import ErrorBoundary, { istNachladeFehler } from '@/app/ErrorBoundary';

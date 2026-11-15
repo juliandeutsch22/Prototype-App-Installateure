@@ -22,7 +22,9 @@ export type Aktenart = Exclude<Objektart, OhneAkte>;
 
 export type ObjektVerlaufArt =
   | 'angelegt' | 'geaendert' | 'geloescht'
-  | 'gemahnt' | 'ausgefuehrt' | 'konto_umgestellt' | 'urlaubsanspruch_angepasst' | 'urlaubsanspruch_entfernt';
+  | 'gemahnt' | 'ausgefuehrt' | 'konto_umgestellt' | 'urlaubsanspruch_angepasst' | 'urlaubsanspruch_entfernt'
+  // K7: eine zweite Leitung hat den zweiten Faktor zurückgesetzt.
+  | 'zweiter_faktor_zurueckgesetzt';
 
 export interface ObjektVerlaufZeile {
   /** `journal` oder die Quelle eines vorhandenen Verlaufs (`mahnung`, …). */

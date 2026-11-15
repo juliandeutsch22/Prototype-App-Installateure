@@ -232,3 +232,24 @@ export async function listKontoUmstellungen(uid: string, max = 20): Promise<Kont
     return { ...k, id: String(k.id) };
   });
 }
+
+/**
+ * Hat diese Person einen zweiten Faktor? Nur für die Spitze des eigenen
+ * Betriebs (`zweiter_faktor_von`) — die Akte zeigt das Zurücksetzen nur,
+ * wo es etwas tut.
+ */
+export async function zweiterFaktorVon(uid: string): Promise<boolean> {
+  const { data, error } = await derClient().rpc('zweiter_faktor_von', { p_uid: uid });
+  if (error) throw new Error(error.message);
+  return data === true;
+}
+
+/**
+ * Den zweiten Faktor eines Kollegen zurücksetzen (K7, Durchsicht
+ * 15.11.2026) — mit Grund, der im Protokoll steht. Was erlaubt ist,
+ * entscheidet die Datenbank (`zweiter_faktor_zuruecksetzen`).
+ */
+export async function zweitenFaktorZuruecksetzen(uid: string, grund: string): Promise<void> {
+  const { error } = await derClient().rpc('zweiter_faktor_zuruecksetzen', { p_uid: uid, p_grund: grund });
+  if (error) throw new Error(error.message);
+}

@@ -52,7 +52,11 @@ vi.mock('@/lib/db/users', () => ({
   },
   updateUserProfile: (...a: unknown[]) => profilAendern(...a),
   listKontoUmstellungen: async () => protokoll,
+  zweiterFaktorVon: async () => hatFaktor,
+  zweitenFaktorZuruecksetzen: (uid: string, grund: string) => zuruecksetzen(uid, grund),
 }));
+let hatFaktor = false;
+const zuruecksetzen = vi.fn<(uid: string, grund: string) => Promise<void>>(async () => undefined);
 
 vi.mock('@/lib/auth/provisionUser', () => ({
   resendPasswordReset: (...a: unknown[]) => passwortMail(...(a as [])),
@@ -129,6 +133,8 @@ beforeEach(() => {
   anpassungen = [];
   anpassen.mockClear();
   entfernen.mockClear();
+  hatFaktor = false;
+  zuruecksetzen.mockReset().mockResolvedValue(undefined);
 });
 
 describe('Die Stammdaten in der Akte', () => {
@@ -1079,4 +1085,61 @@ it('Aktenlinie 03 · schützt den eigenen Geburtsdatumsentwurf und verwendet den
   await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
   expect(screen.getByRole('dialog', { name: /ist unter 18/ })).toBeInTheDocument();
   expect(profilAendern).not.toHaveBeenCalled();
+});
+
+/*
+  K7 (Durchsicht 15.11.2026): eine zweite Leitung setzt den zweiten Faktor
+  eines Kollegen zurück — mit Grund. GEGENPROBE (Erwartung): ohne
+  `ZweiterFaktorZuruecksetzen` in der Akte gibt es den Knopf nicht — die
+  ersten beiden Fälle sind rot; „ohne Faktor“, „eigenes Konto“ und
+  „Verwaltung“ sind in beiden Fassungen grün.
+*/
+describe('Den zweiten Faktor zurücksetzen', () => {
+  it('mit Grund — erst dann geht es an die Datenbank', async () => {
+    hatFaktor = true;
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Zweiten Faktor zurücksetzen …' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Zurücksetzen' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Bitte einen Grund angeben');
+    expect(zuruecksetzen).not.toHaveBeenCalled();
+    await userEvent.type(screen.getByLabelText(/Grund/), 'Telefon verloren');
+    await userEvent.click(screen.getByRole('button', { name: 'Zurücksetzen' }));
+    await waitFor(() => expect(zuruecksetzen).toHaveBeenCalledWith('u2', 'Telefon verloren'));
+  });
+
+  it('zeigt die Absage der Datenbank, wie sie kommt', async () => {
+    hatFaktor = true;
+    zuruecksetzen.mockRejectedValue(new Error('Den zweiten Faktor eines Administrators setzt nur ein Administrator zurück'));
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Zweiten Faktor zurücksetzen …' }));
+    await userEvent.type(screen.getByLabelText(/Grund/), 'x');
+    await userEvent.click(screen.getByRole('button', { name: 'Zurücksetzen' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('nur ein Administrator');
+  });
+
+  it('ohne Faktor kein Knopf', async () => {
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await screen.findByRole('button', { name: 'Passwort-Mail senden' });
+    expect(screen.queryByRole('button', { name: 'Zweiten Faktor zurücksetzen …' })).not.toBeInTheDocument();
+  });
+
+  it('nicht beim eigenen Konto', async () => {
+    hatFaktor = true;
+    gefunden = person({ uid: 'gf1', name: 'Chefin', email: 'chefin@perl.at', role: 'Geschäftsführung' });
+    zeige('gf1');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await screen.findByText(/Das eigene Konto lässt sich nicht sperren/);
+    expect(screen.queryByRole('button', { name: 'Zweiten Faktor zurücksetzen …' })).not.toBeInTheDocument();
+  });
+
+  it('nicht für die Verwaltung — nur die Spitze setzt zurück', async () => {
+    hatFaktor = true;
+    angemeldet = { uid: 'v1', companyId: 'perl', name: 'Vera', role: 'Verwaltung' };
+    zeige();
+    await screen.findAllByText('Erna Beispiel');
+    expect(screen.queryByRole('button', { name: 'Zweiten Faktor zurücksetzen …' })).not.toBeInTheDocument();
+  });
 });

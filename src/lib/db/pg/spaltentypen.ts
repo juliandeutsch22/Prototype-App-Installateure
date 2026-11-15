@@ -157,4 +157,5 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   /* Nur über Funktionen erreichbar (Runde 3, H1); die Zeile steht da, weil die Karte das Schema abbildet. */
   zwei_faktor_codes: { created_at: 'zeitpunkt', ungueltig_am: 'zeitpunkt', verbraucht_am: 'zeitpunkt' },
   zwei_faktor_fehlversuche: { am: 'zeitpunkt' },
+  zwei_faktor_ruecksetzungen: { am: 'zeitpunkt' },
 };

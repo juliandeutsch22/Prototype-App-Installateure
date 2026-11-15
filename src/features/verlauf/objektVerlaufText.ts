@@ -371,6 +371,9 @@ function quellenEintrag(z: ObjektVerlaufZeile): { titel: string; zeilen: string[
       zeilen.push(`Anmeldung jetzt mit ${a.nach === 'benutzername' ? 'Benutzername' : 'E-Mail-Adresse'}`);
       if (!leer(a.grund)) zeilen.push(`Grund: ${String(a.grund)}`);
       return { titel: 'Konto umgestellt', zeilen };
+    case 'zweiter_faktor_zurueckgesetzt':
+      if (!leer(a.grund)) zeilen.push(`Grund: ${String(a.grund)}`);
+      return { titel: 'Zweiter Faktor zurückgesetzt', zeilen };
     case 'urlaubsanspruch_angepasst':
     case 'urlaubsanspruch_entfernt': {
       const tage = Number(a.tage);

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import {
-  anhangAdressen, gelesen, nachrichtReagieren, nachrichtSenden, verlauf, wartendeNachrichten,
+  gelesen, nachrichtReagieren, nachrichtSenden, verlauf, wartendeNachrichten,
   type KanalKopf, type Nachricht, type NeueDatei, type Reaktionszeichen, type VerlaufZeiger, type VorgemerkteNachricht,
 } from '@/lib/db/nachrichten';
 import { FACH_GELEERT } from '@/lib/sync/ausgangsfach';
@@ -21,6 +21,7 @@ import {
 import NachrichtAktionen, { type Auftrag } from './NachrichtAktionen';
 import { NachrichtLeiste, ReaktionsKaestchen } from './NachrichtLeiste';
 import NachrichtWahl from './NachrichtWahl';
+import { useAnhangAdressen } from './useAnhangAdressen';
 import PersonWahl from './PersonWahl';
 import { useLangDruck } from './langDruck';
 import { alsKasten, leistenPlatz, type Kasten } from './leistenPlatz';
@@ -141,7 +142,6 @@ export default function Gespraech({
   const [mehrLaeuft, setMehrLaeuft] = useState(false);
   const [wartend, setWartend] = useState<VorgemerkteNachricht[]>([]);
   const [unterwegs, setUnterwegs] = useState<Unterwegs[]>([]);
-  const [adressen, setAdressen] = useState<Map<string, string>>(new Map());
   const [vorschau, setVorschau] = useState<Map<string, string>>(new Map());
   const [text, setText] = useState('');
   const [dateien, setDateien] = useState<NeueDatei[]>([]);
@@ -244,14 +244,9 @@ export default function Gespraech({
     };
   }, [kanal, laden, wartendeLaden]);
 
-  // Die Anhänge über kurzlebige Adressen — neu signiert mit jedem Laden.
-  useEffect(() => {
-    const alle = (nachrichten ?? []).flatMap((n) => n.anhaenge);
-    if (alle.length === 0) return;
-    let weg = false;
-    void anhangAdressen(alle).then((m) => { if (!weg) setAdressen(m); }).catch(() => undefined);
-    return () => { weg = true; };
-  }, [nachrichten]);
+  // Die Anhänge über kurzlebige Adressen — neu signiert mit jedem Laden und vor Ablauf (K7).
+  const alleAnhaenge = useMemo(() => (nachrichten ?? []).flatMap((n) => n.anhaenge), [nachrichten]);
+  const adressen = useAnhangAdressen(alleAnhaenge);
 
   // Vorschau der Bilder, die noch auf dem Gerät liegen (vor dem Senden und im Ausgangsfach).
   useEffect(() => {

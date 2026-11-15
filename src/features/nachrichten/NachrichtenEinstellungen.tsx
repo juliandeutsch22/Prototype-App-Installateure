@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import {
-  anhangAdressen, aufbewahrungSetzen, meldungen, meldungErledigen, meldungLoeschen, type Meldung,
+  aufbewahrungSetzen, meldungen, meldungErledigen, meldungLoeschen, type Meldung,
 } from '@/lib/db/nachrichten';
 import PageHeader from '@/components/PageHeader';
 import Card from '@/components/Card';
@@ -16,6 +16,10 @@ import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { postenNeuLaden } from '@/app/offenePosten';
 import { ART_TEXT, groesseText, istBild, zeitText } from './text';
+import { useAnhangAdressen } from './useAnhangAdressen';
+
+/** Fest, damit eine Meldung ohne Anhänge nicht bei jedem Zeichnen „neue“ Anhänge meldet. */
+const KEINE_ANHAENGE: { eimer: string; pfad: string }[] = [];
 
 const FRISTEN: { wert: string; text: string }[] = [
   { wert: '', text: 'Nie automatisch löschen' },
@@ -44,7 +48,6 @@ export default function NachrichtenEinstellungen() {
   const [vermerk, setVermerk] = useState('');
   const [laeuft, setLaeuft] = useState(false);
   const [loeschen, setLoeschen] = useState<Meldung | null>(null);
-  const [adressen, setAdressen] = useState<Map<string, string>>(new Map());
   const [versuch, setVersuch] = useState(0);
 
   useEffect(() => {
@@ -58,13 +61,9 @@ export default function NachrichtenEinstellungen() {
   }, [einblick]);
   useEffect(() => { laden(); }, [laden, versuch]);
 
-  useEffect(() => {
-    setVermerk('');
-    if (!offen || offen.anhaenge.length === 0) { setAdressen(new Map()); return; }
-    let weg = false;
-    void anhangAdressen(offen.anhaenge).then((m) => { if (!weg) setAdressen(m); }).catch(() => undefined);
-    return () => { weg = true; };
-  }, [offen]);
+  useEffect(() => { setVermerk(''); }, [offen]);
+  // Die Anhänge der geöffneten Meldung — erneuert vor Ablauf (K7).
+  const adressen = useAnhangAdressen(offen?.anhaenge ?? KEINE_ANHAENGE);
 
   async function fristSpeichern(wert: string) {
     setFrist(wert);

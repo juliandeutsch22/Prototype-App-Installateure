@@ -21,6 +21,8 @@ export function zeigtAuskunft(role: Role | undefined, imEinblick: boolean): bool
  */
 export const SOFORT_GELOESCHT: Record<string, string> = {
   einstellungen: 'Einstellungen und Push-Adressen',
+  // K7: wann ihr zweiter Faktor zurückgesetzt wurde — und bei dem, der es tat, sein Name daran.
+  zwei_faktor_ruecksetzungen: 'Protokoll zum Zurücksetzen des zweiten Faktors',
   startseite: 'Eingerichtete Startseite',
   fehlerprotokoll: 'Einträge im Fehlerprotokoll',
   einsaetze: 'Einsätze',

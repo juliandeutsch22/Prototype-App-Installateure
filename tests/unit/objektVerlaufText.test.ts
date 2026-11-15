@@ -144,6 +144,14 @@ describe('verlaufEintrag — vorhandene Verläufe', () => {
       titel: 'Konto umgestellt von Carla Chefin',
       zeilen: ['Anmeldung jetzt mit Benutzername', 'Grund: Kein Postfach'],
     });
+    // K7: ohne eigenen Fall stünde hier „Eintrag“ ohne Grund.
+    expect(verlaufEintrag(zeile({
+      quelle: 'zweiter_faktor', objektart: 'benutzer', art: 'zweiter_faktor_zurueckgesetzt', vonName: 'Carla Chefin',
+      aenderungen: { grund: 'Telefon verloren' },
+    }))).toMatchObject({
+      titel: 'Zweiter Faktor zurückgesetzt von Carla Chefin',
+      zeilen: ['Grund: Telefon verloren'],
+    });
     expect(verlaufEintrag(zeile({
       quelle: 'urlaubsanspruch', objektart: 'benutzer', art: 'urlaubsanspruch_angepasst',
       aenderungen: { urlaubsjahr: 2026, tage: -2, grund: 'Unbezahlter Urlaub' },
