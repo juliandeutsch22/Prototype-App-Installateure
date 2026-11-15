@@ -1151,6 +1151,8 @@ export default function AdminOrdersView() {
                                 ? { text: s.text, onClick: () => schrittEinzeln(o), laeuft: busyId === o.id || sammelLaeuft }
                                 : undefined
                             }
+                            // Nach links wischen: derselbe Schritt (F15, „erledigen“), mit derselben Rückfrage wo es eine gibt.
+                            wischen={s && !(busyId === o.id || sammelLaeuft) ? [{ text: s.text, name: `${s.text}: ${name}`, onClick: () => schrittEinzeln(o) }] : undefined}
                           >
                             <span className="zeile-text">
                               <span className="zeile-titel block">

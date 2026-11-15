@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, type CDPSession } from '@playwright/test';
 
 /*
   BEWEGUNGEN UND GESTEN (Plan 15.11.2026, Abschnitt 4 B1–B12, F15) im echten
@@ -793,5 +793,61 @@ test.describe('F15 Aktionen in „Suchen oder springen“', () => {
     await expect(page.getByRole('group', { name: 'Aktionen' }).getByRole('option', { name: 'Neue Rechnung' })).toBeVisible();
     await feld.press('Enter');
     await expect(page.getByRole('group', { name: 'Rechnung erstellen' })).toBeVisible();
+  });
+});
+
+test.describe('F15 Wischen an der Zeile', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+
+  /** Ein echter Finger über die Chromium-Schnittstelle (wie in interaktionen.spec.ts). */
+  async function finger(page: Page, cdp: CDPSession, x: number, y: number, dx: number, dy: number) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+    for (let i = 1; i <= 12; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + dx * i / 12, y: y + dy * i / 12 }] });
+      await page.waitForTimeout(16);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  }
+
+  test('Zeiterfassung: nach links gewischt steht „Löschen“, ein Tipp fragt wie bisher nach', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Echte Touchereignisse werden über die Chromium-Schnittstelle eingespeist.');
+    await page.goto(pfad('/time', 'Mitarbeiter'));
+    const zeile = page.locator('#meine-eintraege li.zeile[data-wischbar]').first();
+    await expect(zeile).toBeVisible();
+    await zeile.evaluate((z) => z.scrollIntoView({ block: 'center' }));
+    const loeschen = zeile.locator('.wisch-aktionen').getByRole('button', { name: /löschen$/ });
+    // Zu: stumm und unsichtbar.
+    await expect(zeile.locator('.wisch-aktionen')).toHaveAttribute('inert', '');
+    const cdp = await page.context().newCDPSession(page);
+    const box = (await zeile.boundingBox())!;
+    // Senkrecht bleibt Rollen: die Zeile bewegt sich nicht.
+    const vorher = await page.evaluate(() => scrollY);
+    await finger(page, cdp, box.x + 200, box.y + 30, 0, -120);
+    expect(await page.evaluate(() => scrollY)).toBeGreaterThan(vorher + 40);
+    expect(await zeile.evaluate((z) => z.style.getPropertyValue('--wisch-x') || '0px')).toBe('0px');
+    const box2 = (await zeile.boundingBox())!;
+    await finger(page, cdp, box2.x + 300, box2.y + 30, -160, 4);
+    await expect(zeile.locator('.wisch-aktionen')).not.toHaveAttribute('inert', '');
+    await expect(loeschen).toBeInViewport();
+    await loeschen.click();
+    await expect(page.getByRole('dialog', { name: 'Eintrag löschen?' })).toBeVisible();
+  });
+
+  test('Anforderungen: nach links gewischt steht derselbe Schritt', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Touch-Schnittstelle von Chromium.');
+    await page.goto(pfad('/anforderungen'));
+    const zeile = page.locator('.arbeitszeile[data-wischbar]').first();
+    await expect(zeile).toBeVisible();
+    const cdp = await page.context().newCDPSession(page);
+    const box = (await zeile.boundingBox())!;
+    await finger(page, cdp, box.x + 300, box.y + 30, -160, 2);
+    await expect(zeile.locator('.wisch-aktionen').getByRole('button', { name: /^Aus Lager: / })).toBeInViewport();
+  });
+
+  test('gleich geblieben: am Schreibtisch keine Wischfläche', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(pfad('/time', 'Mitarbeiter'));
+    await expect(page.locator('#meine-eintraege li.zeile').first()).toBeVisible();
+    await expect(page.locator('[data-wischbar], .wisch-aktionen')).toHaveCount(0);
   });
 });

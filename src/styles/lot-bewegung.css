@@ -138,3 +138,20 @@
 @keyframes fenster-herein { from { transform: translateX(105%); } }
 @keyframes fenster-hinaus { to { transform: translateX(105%); } }
 @keyframes haken-zeichnen { from { stroke-dashoffset: 21; } to { stroke-dashoffset: 0; } }
+
+/*
+  F15 — WISCHEN AN DER ZEILE (`components/useWischen.tsx`). Die Zeile schneidet
+  ab, was rechts neben ihr liegt: die Aktionen stehen außerhalb der Zeile und
+  fahren mit ihrem Inhalt herein (`--wisch-x`). So scheinen sie nie durch den
+  Text, und zu sind sie unsichtbar. Folgt dem Finger ohne Übergang; los-
+  gelassen rastet die Zeile weich auf oder zu.
+*/
+@layer components {
+  [data-wischbar] { position: relative; overflow: hidden; touch-action: pan-y; }
+  [data-wischbar] > * { transform: translateX(var(--wisch-x, 0px)); transition: transform var(--motion-state) var(--ease-response); }
+  [data-wischbar][data-wischt] > * { transition: none; }
+  .wisch-aktionen { position: absolute; top: 0; bottom: 0; left: 100%; display: flex; }
+  /* Keine rote Fläche (V10: Warnung und Fehler färben keine Flächen) — die Farbe trägt das Wort. */
+  .wisch-knopf { display: flex; align-items: center; justify-content: center; min-width: 5.5rem; padding: 0 1rem; border: 0; border-left: 1px solid var(--border); background: var(--surface-2); color: var(--ink-deep); font-size: 0.9375rem; font-weight: var(--gewicht-titel); cursor: pointer; }
+  .wisch-knopf-gefahr { color: var(--danger); }
+}

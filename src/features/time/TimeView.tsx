@@ -692,6 +692,8 @@ export default function TimeView() {
           </>
         )}
         onOeffnen={bearbeitbar ? () => bearbeiten(e) : undefined}
+        // Nach links wischen: Löschen (F15) — derselbe Aufruf und dieselbe Rückfrage wie im Fenster.
+        wischen={kompakt && darfLoeschen(e) ? [{ text: 'Löschen', name: `${datumAT(e.date)} löschen`, gefahr: true, onClick: () => setToDelete(e) }] : undefined}
         subtitle={kompakt ? (
           (e.customerName || e.projectNumber) ? (
             <span className="zeit-kurz-baustelle">
