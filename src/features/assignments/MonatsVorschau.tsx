@@ -179,13 +179,16 @@ export default function MonatsVorschau({
   /*
     EIN KLICK AUSSERHALB SCHLIESST (Schreibtisch). Ein Klick auf einen
     anderen Balken oder Tag öffnet dessen Vorschau — der schliesst hier
-    nicht erst, sonst flackerte sie.
+    nicht erst, sonst flackerte sie. Das ⋯ des Fußes (U4) öffnet sein Menü
+    in `body`, also außerhalb; ohne Ausnahme schlösse schon das Drücken auf
+    „Termin anlegen“ die Vorschau, das Menü verschwände mit ihr, und der
+    Klick käme nie an.
   */
   useEffect(() => {
     if (handy) return;
     const druck = (e: MouseEvent) => {
       const t = e.target as Element | null;
-      if (!t || ref.current?.contains(t) || t.closest('[data-vorschau-ausloeser]')) return;
+      if (!t || ref.current?.contains(t) || t.closest('[data-vorschau-ausloeser]') || t.closest('[role="menu"]')) return;
       onSchliessen(false);
     };
     document.addEventListener('mousedown', druck);
