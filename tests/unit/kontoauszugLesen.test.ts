@@ -134,12 +134,13 @@ describe('Beträge und Tage, wie Banken sie schreiben', () => {
     expect(betragLesen('1,234.56')).toBe(1234.56);
     expect(betragLesen('1 234,56 EUR')).toBe(1234.56);
     expect(betragLesen('€ 7,5')).toBe(7.5);
-    expect(betragLesen('1.234')).toBe(1234);
   });
   it('erfindet keinen Betrag', () => {
     expect(betragLesen('')).toBeNull();
     expect(betragLesen('Saldo')).toBeNull();
     expect(betragLesen('12a')).toBeNull();
+    // Ohne Cent mehrdeutig (1.234 € oder 1,234 €?) — wird nicht geraten.
+    expect(betragLesen('1.234')).toBeNull();
   });
   it('liest Tage in österreichischer und ISO-Schreibweise, auch mit Uhrzeit', () => {
     expect(datumLesen('31.10.2026')).toBe('2026-10-31');

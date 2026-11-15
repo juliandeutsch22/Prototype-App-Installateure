@@ -1,4 +1,5 @@
 import { cent } from '@/lib/betrag';
+import { leseZahl } from '@/lib/zahl';
 import { liesCsv } from '@/features/customers/kundenCsv';
 import { IBAN_LAENGEN, ibanFehler } from '@shared/iban';
 
@@ -96,39 +97,20 @@ export function ibanSauber(s: string | undefined | null): string | undefined {
  * Ein Betrag, wie Banken ihn schreiben: „1.234,56“, „+1.234,56“, „-12,00“,
  * „1234.56“, „1 234,56 EUR“. Gibt `null` zurück, wenn es keiner ist.
  *
- * DAS LETZTE TRENNZEICHEN ENTSCHEIDET, wenn beide vorkommen. Kommt nur eines
- * vor, ist es ein Dezimaltrenner, wenn ein oder zwei Ziffern folgen — Banken
- * schreiben Cent immer aus, und „1.234“ ohne Cent ist ein Tausenderpunkt.
+ * DAS LETZTE TRENNZEICHEN ENTSCHEIDET, wenn beide vorkommen (wie überall in
+ * der App, `leseZahl`). Banken schreiben Cent immer aus; ein „1.234“ ohne
+ * Cent ist mehrdeutig (1.234 € oder 1,234 €?) und wird nicht geraten — die
+ * Zeile steht dann unter „ließ sich nicht lesen“.
  */
 export function betragLesen(roh: string | undefined): number | null {
   let s = (roh ?? '').replace(/[\s\u00a0\u202f]/g, '').replace(/EUR|€/gi, '');
   if (!s) return null;
-  let vorzeichen = 1;
-  if (/^[+-]/.test(s)) {
-    if (s[0] === '-') vorzeichen = -1;
-    s = s.slice(1);
-  }
   // Manche Banken setzen das Vorzeichen ans Ende („12,00-“).
-  if (/-$/.test(s)) {
-    vorzeichen = -1;
-    s = s.slice(0, -1);
-  }
-  if (!/^[\d.,']+$/.test(s) || !/\d/.test(s)) return null;
-  s = s.replace(/'/g, '');
-  const komma = s.lastIndexOf(',');
-  const punkt = s.lastIndexOf('.');
-  let zahl: string;
-  if (komma >= 0 && punkt >= 0) {
-    zahl = komma > punkt ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
-  } else if (komma >= 0) {
-    zahl = /,\d{1,2}$/.test(s) && s.indexOf(',') === komma ? s.replace(',', '.') : s.replace(/,/g, '');
-  } else if (punkt >= 0) {
-    zahl = /\.\d{1,2}$/.test(s) && s.indexOf('.') === punkt ? s : s.replace(/\./g, '');
-  } else {
-    zahl = s;
-  }
-  const n = Number(zahl);
-  return Number.isFinite(n) ? cent(vorzeichen * n) : null;
+  if (/^[^-].*-$/.test(s)) s = `-${s.slice(0, -1)}`;
+  if (!/^[+-]?[\d.,']+$/.test(s) || !/\d/.test(s)) return null;
+  // Gelesen wie jede Zahl der App (`lib/zahl.ts`): Tausenderpunkt und Dezimalkomma, auch umgekehrt.
+  const { wert } = leseZahl(s, { negativ: true });
+  return wert === null || !Number.isFinite(wert) ? null : cent(wert);
 }
 
 /** „31.10.2026“, „1.3.26“, „2026-10-31“, „31/10/2026“, auch mit Uhrzeit dahinter → `JJJJ-MM-TT`. */

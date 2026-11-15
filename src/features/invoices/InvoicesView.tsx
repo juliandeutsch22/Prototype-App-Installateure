@@ -136,7 +136,7 @@ import ZahlFeld, { ZahlWertFeld, ZahlZelle } from '@/components/ZahlFeld';
 import { leseZahl, unlesbareZahlIn, zahlAlsText, zahlOder } from '@/lib/zahl';
 import { letzteMahnforderung, mahnkostenVorschlag } from './mahnung';
 import PageHeader from '@/components/PageHeader';
-import RowMenu from '@/components/RowMenu';
+import RechnungenMenue from './RechnungenMenue';
 import { Masslinie } from '@/components/Planlinie';
 import { praefixeVon } from '@/lib/praefixe';
 import { darfKundenPflegen, isGF, isTopLevel } from '@/lib/permissions';
@@ -3523,9 +3523,7 @@ export default function InvoicesView() {
           DER KONTOAUSZUG (F13) im ⋯ der Seite: eine seltene Seitenaktion (einmal
           je Auszug), nicht die Hauptaktion. Die Projektleitung liest nur.
         */
-        mehr={nurLesen ? undefined : (
-          <RowMenu about="Rechnungen" items={[{ label: 'Kontoauszug abgleichen', onSelect: () => navigate('/invoices/kontoauszug') }]} />
-        )}
+        mehr={nurLesen ? undefined : <RechnungenMenue />}
         /*
           DIE KENNZAHLEN SIND ANTIPPBAR (Linie „Lot“, Regel 4): eine Zahl, hinter
           der Arbeit steht, ohne Weg dorthin, lässt einen suchen. Sie setzen den
