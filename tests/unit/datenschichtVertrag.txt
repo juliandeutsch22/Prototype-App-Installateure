@@ -8,7 +8,6 @@ src/lib/db/assignments.ts#subscribeAssignmentsInRange: (companyId: string, from:
 src/lib/db/benutzerVorgaben.ts#DEFAULT_VACATION_DAYS: 25
 src/lib/db/benutzerVorgaben.ts#DEFAULT_WEEKLY_HOURS: 40
 src/lib/db/benutzerVorgaben.ts#DEFAULT_WORK_DAYS: number[]
-src/lib/db/company.ts#auszug: () => Promise<pg.BetriebsAuszug>
 src/lib/db/company.ts#getCompany: (companyId: string) => Promise<Company | null>
 src/lib/db/company.ts#updateCompany: (companyId: string, data: Partial<Omit<Company, "id">>) => Promise<void>
 src/lib/db/customers.ts#assignProjectToCustomer: (projectId: string, customerId: string, customerName: string) => Promise<void>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { ausleitungJetzt } from '@/lib/db/laeufe';
-import { auszug } from '@/lib/db/company';
+import { betriebAuszugDatei } from '@/lib/db/company';
 import { mitFrist, FristAbgelaufen } from '@/lib/frist';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -32,10 +32,10 @@ import { todayStr } from '@/lib/time';
  *   „Sind meine Daten woanders?"    → Sicherung jetzt erstellen.
  *   „Gib mir meine Daten heraus."   → Herunterladen (DSGVO Art. 15/20).
  *
- * Der Unterschied ist nicht kosmetisch: der Download kommt in EINER Antwort
- * zurück und ist bei 10 MB gedeckelt — für einen Betrieb mit Historie zu
- * wenig. Die Ausleitung schreibt in einen Speicherort und kennt diese Grenze
- * nicht. Deshalb steht sie oben.
+ * Bis 16.11.2026 kam der Download in EINER Antwort und brach über 8 MB ab —
+ * für einen Betrieb mit Historie zu wenig, und der genannte Ausweg (die
+ * Ausleitung) lag in einem Speicher, den der Betrieb nicht lesen kann. Seit
+ * K4 kommt er in Teilen wie die Ausleitung, ohne Obergrenze.
  */
 
 /**
@@ -73,6 +73,7 @@ export default function SicherungView() {
   } | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [laufStand, setLaufStand] = useState(0);
+  const [teile, setTeile] = useState<{ fertig: number; gesamt: number } | null>(null);
   const [letzte, setLetzte] = useState<
     { zeilen: number; bytes: number; ziel: string; dateien?: number; dateienOffen?: number } | null
   >(null);
@@ -109,29 +110,29 @@ export default function SicherungView() {
   async function herunterladen() {
     setLaeuft('download');
     setFehler(null);
+    setTeile(null);
     try {
-      const data = await mitFrist(auszug(), FRIST_MS);
-      const inhalt = JSON.stringify(data, null, 2);
-      const url = URL.createObjectURL(new Blob([inhalt], { type: 'application/json' }));
+      /*
+        OHNE FRIST FÜR DAS GANZE: ein großer Betrieb braucht viele Teile, und
+        jeder einzelne ist eine kurze Antwort. Wie weit es ist, steht unter
+        dem Knopf; hängt ein Teil, meldet ihn die Verbindung.
+      */
+      const { blob, kopf } = await betriebAuszugDatei((fertig, gesamt) => setTeile({ fertig, gesamt }));
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${company?.name ?? 'betrieb'}-${data.exportedAt.slice(0, 10)}.json`;
+      a.download = `${company?.name ?? 'betrieb'}-${String(kopf.exportedAt ?? '').slice(0, 10)}.json`;
       a.click();
       // Ohne das Freigeben bleibt der ganze Bestand im Speicher der Seite
       // liegen, bis sie neu geladen wird.
       URL.revokeObjectURL(url);
-      const gesamt = Object.values(data.anzahl).reduce((s, n) => s + n, 0);
+      const gesamt = Object.values((kopf.anzahl ?? {}) as Record<string, number>).reduce((s, n) => s + n, 0);
       toast.success(`${gesamt} Datensätze heruntergeladen`);
     } catch (e) {
-      setFehler(
-        e instanceof FristAbgelaufen
-          ? 'Der Export hat nicht innerhalb von zwei Minuten geantwortet.'
-          : e instanceof Error
-            ? e.message
-            : 'Der Export konnte nicht erstellt werden.',
-      );
+      setFehler(e instanceof Error ? e.message : 'Der Export konnte nicht erstellt werden.');
     } finally {
       setLaeuft(null);
+      setTeile(null);
     }
   }
 
@@ -267,9 +268,8 @@ export default function SicherungView() {
         hint={
           <>
             Der komplette Bestand als Datei, für eine Auskunft nach Art. 15 DSGVO oder für den
-            Umzug zu einem anderen Anbieter. Bei einem großen Betrieb kann der Download an seine
-            Grenze stoßen — dann ist die nächtliche Sicherung der vollständige Weg, und die
-            Meldung sagt das auch.
+            Umzug zu einem anderen Anbieter. Ein großer Betrieb kommt in Teilen — das dauert
+            etwas länger, die Datei ist am Ende dieselbe.
           </>
         }
       >
@@ -278,6 +278,11 @@ export default function SicherungView() {
           <Button variant="secondary" onClick={() => void herunterladen()} disabled={laeuft !== null}>
             {laeuft === 'download' ? 'Wird zusammengestellt …' : 'Alle Daten herunterladen'}
           </Button>
+          {laeuft === 'download' && teile && teile.gesamt > 1 && (
+            <p className="text-sm text-ink-muted" role="status">
+              Teil {teile.fertig} von {teile.gesamt} abgeholt
+            </p>
+          )}
         </div>
       </Card>
 
