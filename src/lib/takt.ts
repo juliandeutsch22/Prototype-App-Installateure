@@ -93,6 +93,12 @@ function ursprungVon(flaeche: HTMLElement): { x: number; y: number } {
  * glich das als Sprung aus (ein Filter „sprang“ um einige Pixel,
  * `tests/links/interaktionen.spec.ts`).
  *
+ * DAS ZURÜCKLESEN SETZT VORAUS, DASS NICHTS DEN ABSTAND ÜBERGEHEN LÄSST (S2,
+ * 15.11.2026). Ein Übergang auf `margin`/`padding` (oder `all`) liefert im
+ * nächsten Bild noch den alten Wert, und der Grundwert stimmt nicht mehr —
+ * so geschehen mit „Bewegung reduzieren“ (`index.css`). Wer Blätter bewegen
+ * will, nimmt `transform`; `taktOhneUebergang.test.ts` hält das fest.
+ *
  * `neu`: beim ersten Lauf und nach einer Größenänderung des Fensters wird der
  * eigene Ausgleich doch entfernt und neu gemessen — dort kann sich der
  * Grundwert des Stylesheets mit der Breite ändern (12, 20, 24 px …), und ein
