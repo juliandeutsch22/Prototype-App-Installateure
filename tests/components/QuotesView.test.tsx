@@ -564,9 +564,10 @@ describe('Die Liste führt zum Angebot', () => {
     // Seit Paket 2 (03.10.2026) im „⋯“-Menü, mit sprechendem Namen.
     await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
     await nutzer.click(screen.getByRole('menuitem', { name: 'Als abgelehnt markieren' }));
-    expect(
-      await screen.findByText(/^Der Status konnte nicht gespeichert werden\. Keine Verbindung zum Server/),
-    ).toBeInTheDocument();
+    // Seit A5 nach der Rückfrage; scheitert es, bleibt sie offen und sagt den Grund.
+    const dialog = await screen.findByRole('dialog', { name: 'Als abgelehnt markieren?' });
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Als abgelehnt markieren' }));
+    expect(await within(dialog).findByText(/Keine Verbindung zum Server/)).toBeInTheDocument();
   });
 
   // Analyse 03.10.2026, Paket 2 — höchstens zwei Knöpfe, der Rest im Menü.

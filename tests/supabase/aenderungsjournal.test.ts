@@ -159,6 +159,11 @@ describe('Das Journal schreibt mit', () => {
       company_id: A, quote_number: 'AN-J-1', customer_name: 'Familie Gruber', quote_date: '2026-11-06',
       valid_until: '2026-12-06', status: 'Entwurf', vat_rate: 0.2,
     });
+    // Seit A5 (Durchsicht 15.11.2026) geht nur ein Angebot mit Position hinaus.
+    const { error: zeileFehler } = await admin.from('quote_lines').insert({
+      company_id: A, quote_id: id, position: 0, label: 'Montage', qty: 1, unit: 'h', unit_price: 70, netto: 70,
+    });
+    expect(zeileFehler).toBeNull();
     await aendern(chefin, 'quotes', id, { status: 'Versendet' });
     const zeilen = await journal(id);
     expect(zeilen.map((z) => z.art)).toEqual(['angelegt', 'geaendert']);

@@ -32,6 +32,7 @@ import { fassungsHinweis } from './fassungen';
 import { downloadAngebotPdf } from './angebotPdf';
 import { STAND, standWort } from './stand';
 import { verwerfenFrage, VERWORFEN_MELDUNG, WIEDERHERGESTELLT_MELDUNG } from './verwerfen';
+import { hatPosition, statusFrage, type StatusFrage } from './statusFrage';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import AnnahmeZiel from './AnnahmeZiel';
 import { zielBereit, zielVorgabe, type AnnahmeZielWert } from './annahmeZiel';
@@ -79,6 +80,8 @@ export default function AngebotView() {
   const [pdfLaeuft, setPdfLaeuft] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [verwerfenFragen, setVerwerfenFragen] = useState(false);
+  /** Ein Standwechsel, der erst nach der Rückfrage gilt (A5). */
+  const [wechselFrage, setWechselFrage] = useState<{ q: WithId<Quote>; frage: StatusFrage } | null>(null);
   const [annehmenFragen, setAnnehmenFragen] = useState(false);
   /*
     DIE RÜCKNAHME EINER ANNAHME (A1, F7): Fehlklick oder Rücktritt des
@@ -290,6 +293,13 @@ export default function AngebotView() {
     }
   }
 
+  /** Nach der Rückfrage (A5): scheitert es, bleibt der Dialog offen und sagt den Grund der Datenbank. */
+  async function statusNachFrage(q: WithId<Quote>, neu: Quote['status'], meldung: string) {
+    await updateQuote(q.id, { status: neu });
+    toast.success(meldung);
+    setVersuch((v) => v + 1);
+  }
+
   async function annehmen(q: WithId<Quote>) {
     if (!companyId) return;
     setBusy(true);
@@ -376,6 +386,9 @@ export default function AngebotView() {
   const linkNeuMoeglich = offen && !nachbarn.angenommen;
   const linkMoeglich = linkNeuMoeglich && darfAendern && onlineAnnahme && !einblick;
   const linkListe = links.zustand === 'bereit' ? links.daten : [];
+  /* Hat der Kunde einen Link schon geöffnet oder entschieden? Solange die Links nicht geladen sind: vorsichtshalber ja. */
+  const linkGesehen = links.zustand !== 'bereit'
+    || linkListe.some((l) => l.zuerstGeoeffnetAm || l.angenommenAm || l.abgelehntAm);
   /*
     IM PAPIERKORB (M01d): nur lesen. Der einzige Schritt ist das
     Wiederherstellen — außer, eine andere Fassung ist inzwischen angenommen;
@@ -418,7 +431,7 @@ export default function AngebotView() {
           <Button
             variant="secondary"
             loading={busy}
-            onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
+            onClick={() => setWechselFrage({ q, frage: statusFrage(q, 'versenden') })}
           >
             Als versendet markieren
           </Button>
@@ -434,10 +447,14 @@ export default function AngebotView() {
         selbst an. Nicht im Supporteinblick — der Link ist eine Erklärung des
         Betriebs an seinen Kunden (die Datenbank weist den Support ab).
       */}
-      {linkMoeglich && (
+      {linkMoeglich && hatPosition(q) && (
         <Button variant="secondary" onClick={() => setLinkDialog(true)}>
           Annahme-Link
         </Button>
+      )}
+      {/* A5: ein leeres Angebot geht nicht hinaus — weder als versendet noch über den Link. */}
+      {offen && !hatPosition(q) && (
+        <span className="text-sm text-ink-muted">Noch ohne Position — versenden und verlinken geht erst mit einer.</span>
       )}
       {offen && nachbarn.angenommen && (
         <span className="text-sm text-ink-muted">
@@ -639,7 +656,15 @@ export default function AngebotView() {
       about={`Angebot ${q.quoteNumber}`}
       items={[
         ...(offen
-          ? [{ label: 'Als abgelehnt markieren', onSelect: () => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt') }]
+          ? [{ label: 'Als abgelehnt markieren', onSelect: () => setWechselFrage({ q, frage: statusFrage(q, 'ablehnen') }) }]
+          : []),
+        // A5: der Rückweg, solange der Kunde den Link nicht geöffnet hat (die Datenbank prüft dasselbe).
+        ...(q.status === 'Versendet' && !linkGesehen
+          ? [{ label: 'Zurück in den Entwurf', onSelect: () => setWechselFrage({ q, frage: statusFrage(q, 'zurueckInEntwurf') }) }]
+          : []),
+        // A5: eine im Büro vermerkte Ablehnung lässt sich zurücknehmen — die des Kunden über den Link nicht.
+        ...(q.status === 'Abgelehnt' && !linkListe.some((l) => l.abgelehntAm)
+          ? [{ label: 'Ablehnung zurücknehmen', onSelect: () => setWechselFrage({ q, frage: statusFrage(q, 'ablehnungZurueck') }) }]
           : []),
         // A1: der Rückweg aus „Angenommen“ — nicht rot im Menü, die Rückfrage sagt, was geschieht.
         ...(q.status === 'Angenommen'
@@ -786,6 +811,23 @@ export default function AngebotView() {
           <AnnahmeZiel companyId={companyId} angebot={q} ziel={ziel} onZiel={setZiel} abrechnung={abrechnung} onAbrechnung={setAbrechnung} />
         )}
       </ConfirmDialog>
+
+      {/* A5: kein Standwechsel mit einem Tipp — erst fragen, und sagen, wie es zurückgeht. */}
+      <ConfirmDialog
+        open={!!wechselFrage}
+        title={wechselFrage?.frage.titel ?? ''}
+        message={wechselFrage?.frage.text}
+        confirmLabel={wechselFrage?.frage.label}
+        confirmTone="primary"
+        gesperrt={!!wechselFrage?.frage.gesperrt}
+        onCancel={() => setWechselFrage(null)}
+        onConfirm={async () => {
+          const w = wechselFrage;
+          if (!w) return;
+          await statusNachFrage(w.q, w.frage.neu, w.frage.meldung);
+          setWechselFrage(null);
+        }}
+      />
 
       {/* A1: Annahme zurücknehmen — Grund ist Pflicht, die Folge für die Baustelle steht davor. */}
       <ConfirmDialog

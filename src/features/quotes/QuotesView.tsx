@@ -28,6 +28,7 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke, Zustand } from '@/components/Badge';
 import { STAND } from './stand';
 import { verwerfenFrage, VERWORFEN_MELDUNG } from './verwerfen';
+import { statusFrage, type StatusFrage } from './statusFrage';
 import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import RowMenu from '@/components/RowMenu';
@@ -250,6 +251,8 @@ export default function QuotesView() {
   const handy = useHandy();
   /** Welcher Entwurf in den Papierkorb soll — erst nach der Rückfrage (M01d). */
   const [verwerfenFragen, setVerwerfenFragen] = useState<WithId<Quote> | null>(null);
+  /** Ein Standwechsel, der erst nach der Rückfrage gilt (A5). */
+  const [wechselFrage, setWechselFrage] = useState<{ q: WithId<Quote>; frage: StatusFrage } | null>(null);
   /*
     DER EINGANG DES ENTWURFS (Befund 09.11.2026): die Rückfrage nennt ihn,
     denn er bleibt „übernommen“ und muss danach wieder geöffnet werden. Nur
@@ -759,6 +762,13 @@ export default function QuotesView() {
     }
   }
 
+  /** Nach der Rückfrage (A5): scheitert es, bleibt der Dialog offen und sagt den Grund der Datenbank. */
+  async function statusNachFrage(q: WithId<Quote>, neu: Quote['status'], meldung: string) {
+    await updateQuote(q.id, { status: neu });
+    toast.success(meldung);
+    await laden();
+  }
+
   /** Annehmen — der Ablauf steht in `angebotAnnehmen`, für Liste und Angebotsseite. */
   async function annehmen(q: WithId<Quote>) {
     if (!user) return;
@@ -919,9 +929,9 @@ export default function QuotesView() {
             ...(annehmenInsMenue ? [{ label: 'Annehmen → Baustelle', onSelect: annehmen }] : []),
             ...(fassungInsMenue ? [{ label: 'Neue Fassung', onSelect: () => void alsVorlage(q, true) }] : []),
             ...(q.status === 'Entwurf'
-              ? [{ label: 'Als versendet markieren', onSelect: () => void status(q, 'Versendet', 'Als versendet markiert') }]
+              ? [{ label: 'Als versendet markieren', onSelect: () => setWechselFrage({ q, frage: statusFrage(q, 'versenden') }) }]
               : []),
-            { label: 'Als abgelehnt markieren', onSelect: () => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt') },
+            { label: 'Als abgelehnt markieren', onSelect: () => setWechselFrage({ q, frage: statusFrage(q, 'ablehnen') }) },
             // Verwerfen nur im Entwurf: alles Versendete bleibt
             // nachvollziehbar, auch ein abgelehntes Angebot. Nicht rot —
             // es landet im Papierkorb und lässt sich zurückholen (M01d).
@@ -1457,6 +1467,23 @@ export default function QuotesView() {
           <AnnahmeZiel companyId={user.companyId} angebot={annehmenFragen} ziel={ziel} onZiel={setZiel} abrechnung={abrechnung} onAbrechnung={setAbrechnung} />
         )}
       </ConfirmDialog>
+
+      {/* A5: kein Standwechsel mit einem Tipp — erst fragen, und sagen, wie es zurückgeht. */}
+      <ConfirmDialog
+        open={!!wechselFrage}
+        title={wechselFrage?.frage.titel ?? ''}
+        message={wechselFrage?.frage.text}
+        confirmLabel={wechselFrage?.frage.label}
+        confirmTone="primary"
+        gesperrt={!!wechselFrage?.frage.gesperrt}
+        onCancel={() => setWechselFrage(null)}
+        onConfirm={async () => {
+          const w = wechselFrage;
+          if (!w) return;
+          await statusNachFrage(w.q, w.frage.neu, w.frage.meldung);
+          setWechselFrage(null);
+        }}
+      />
 
       {/*
         VERWERFEN STATT LÖSCHEN (M01d). Bis hierher löschte der Knopf den

@@ -361,11 +361,14 @@ describe('Weiter mit dem Angebot', () => {
     expect(within(await screen.findByRole('dialog')).getByText(/Damit gilt AN-2026-0008 als ersetzt/)).toBeInTheDocument();
   });
 
-  it('vermerkt die Ablehnung', async () => {
+  it('vermerkt die Ablehnung — seit A5 erst nach der Rückfrage', async () => {
     const nutzer = userEvent.setup();
     zeige();
     await mehrMenue(nutzer, 'Als abgelehnt markieren');
-    expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Abgelehnt' });
+    const dialog = await screen.findByRole('dialog', { name: 'Als abgelehnt markieren?' });
+    expect(updateQuote).not.toHaveBeenCalled();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Als abgelehnt markieren' }));
+    await waitFor(() => expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Abgelehnt' }));
   });
 
   /*
@@ -678,5 +681,67 @@ describe('Annahme zurücknehmen (A1)', () => {
     await nutzer.click(await screen.findByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
     expect(screen.queryByRole('menuitem', { name: 'Annahme zurücknehmen' })).toBeNull();
     expect(screen.getByRole('menuitem', { name: 'Als abgelehnt markieren' })).toBeInTheDocument();
+  });
+});
+
+/*
+  VERSENDEN ERST MIT POSITION, RÜCKFRAGE UND RÜCKWEG (Durchsicht 15.11.2026,
+  A5). Ein Tipp machte einen leeren Entwurf zum versendeten Angebot — ohne
+  Rückfrage und ohne Weg zurück.
+*/
+describe('Versenden und der Weg zurück (A5)', () => {
+  it('ein leerer Entwurf wird nicht versendet: die Rückfrage sagt warum, ein Annahme-Link wird nicht angeboten', async () => {
+    angebot = { ...ANGEBOT, status: 'Entwurf', positions: [] };
+    const nutzer = userEvent.setup();
+    zeige();
+    expect(await screen.findByText(/Noch ohne Position — versenden und verlinken geht erst mit einer/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Annahme-Link' })).toBeNull();
+    await nutzer.click(screen.getByRole('button', { name: 'Als versendet markieren' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Als versendet markieren?' });
+    expect(within(dialog).getByText(/hat noch keine Position/)).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Als versendet markieren' })).toBeDisabled();
+    expect(updateQuote).not.toHaveBeenCalled();
+  });
+
+  it('mit Position: erst nach der Rückfrage versendet', async () => {
+    angebot = { ...ANGEBOT, status: 'Entwurf' };
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Als versendet markieren' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Als versendet markieren?' });
+    expect(within(dialog).getByText(/Zurück in den Entwurf geht, solange kein Annahme-Link geöffnet wurde/)).toBeInTheDocument();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Als versendet markieren' }));
+    await waitFor(() => expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Versendet' }));
+  });
+
+  it('versendet, Link nie geöffnet: „Zurück in den Entwurf“ — geöffnet: nicht mehr', async () => {
+    const nutzer = userEvent.setup();
+    const r = zeige();
+    await mehrMenue(nutzer, 'Zurück in den Entwurf');
+    const dialog = await screen.findByRole('dialog', { name: 'Zurück in den Entwurf?' });
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Zurück in den Entwurf' }));
+    await waitFor(() => expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Entwurf' }));
+    r.unmount();
+
+    const { listAngebotLinks } = await import('@/lib/db/angebotLinks');
+    vi.mocked(listAngebotLinks).mockResolvedValueOnce([{
+      id: 'l1', quoteId: ANGEBOT.id, abrechnung: 'Pauschal', praefix: 'PB', gueltigBis: '2099-01-01',
+      schnappschussHash: 'a'.repeat(64), erzeugtAm: 1, geoeffnetAnzahl: 1, zuerstGeoeffnetAm: 2, zustand: 'offen',
+    }]);
+    zeige();
+    await screen.findByText(/Geöffnet am/);
+    await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+    expect(screen.queryByRole('menuitem', { name: 'Zurück in den Entwurf' })).toBeNull();
+  });
+
+  it('eine im Büro vermerkte Ablehnung lässt sich zurücknehmen — zurück auf „Versendet“', async () => {
+    angebot = { ...ANGEBOT, status: 'Abgelehnt', versendetAm: Date.parse('2026-09-02T08:00:00Z') };
+    const nutzer = userEvent.setup();
+    zeige();
+    await mehrMenue(nutzer, 'Ablehnung zurücknehmen');
+    const dialog = await screen.findByRole('dialog', { name: 'Ablehnung zurücknehmen?' });
+    expect(within(dialog).getByText(/ist danach wieder versendet/)).toBeInTheDocument();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Ablehnung zurücknehmen' }));
+    await waitFor(() => expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Versendet' }));
   });
 });

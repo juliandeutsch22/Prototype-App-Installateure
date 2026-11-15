@@ -285,6 +285,10 @@ describe('Interne Hilfsfunktionen', () => {
       'app.angebot_link_anfrage_zaehlen(uuid)',
       // A4: welche Fassung einen Link überholt hat.
       'app.angebot_link_neuere_fassung(public.angebot_links)',
+      // A5: Versand nur mit Position, Rückwege mit Regeln.
+      'app.angebot_hat_position(uuid)',
+      'app.angebot_versand_pruefen()',
+      'app.angebot_links_nur_mit_positionen()',
       'app.angebot_fassungen_sperren(uuid)',
       'app.journal_kunde_ueber_link(text, jsonb, jsonb, text[], text, text)',
       // Der Auftragseingang (M02b): Kern des Registers, Kunde, Sperre, Nummer und Auslöser.
