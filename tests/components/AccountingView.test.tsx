@@ -92,6 +92,8 @@ let buchungen: (TimeEntry & { id: string })[] = eintraege;
 let liveSenden: ((rows: (TimeEntry & { id: string })[]) => void) | null = null;
 /** Wie oft die Karte „Arbeitszeitgrenzen“ ihre Buchungen geholt hat. */
 let grenzAbfragen = 0;
+/** Scheitert die Abfrage der Urlaubstage (Z7)? */
+let urlaubScheitert = false;
 
 vi.mock('@/lib/db/timeEntries', () => ({
   // Wie die Datenbank: nur die Buchungen im verlangten Zeitraum (18.10.2026: die Seite lädt nicht mehr das Jahr).
@@ -131,8 +133,16 @@ vi.mock('@/lib/db/timeEntries', () => ({
     würde, statt einer leeren Liste, die jeden Übertrag unsichtbar machte.
   */
   subscribeUrlaubstage: vi.fn(
-    (_company: string, from: string, to: string, cb: (rows: (TimeEntry & { id: string })[]) => void) => {
-      cb(buchungen.filter((b) => b.status === 'Urlaub' && b.date >= from && b.date <= to));
+    (
+      _company: string,
+      from: string,
+      to: string,
+      cb: (rows: (TimeEntry & { id: string })[]) => void,
+      onError: (e: Error) => void,
+    ) => {
+      // Z7: die Abfrage kann in die Frist laufen — dann meldet sie den Fehler statt Zeilen.
+      if (urlaubScheitert) onError(new Error('Zeitüberschreitung'));
+      else cb(buchungen.filter((b) => b.status === 'Urlaub' && b.date >= from && b.date <= to));
       return () => undefined;
     },
   ),
@@ -231,6 +241,7 @@ beforeEach(() => {
   buchungen = eintraege;
   liveSenden = null;
   grenzAbfragen = 0;
+  urlaubScheitert = false;
   zeitguthabenLaden.mockClear();
   gesamtsaldenLaden.mockClear();
   // Fest auf den 31.08.2026, damit "heute" den Test nicht mit der Zeit
@@ -1762,5 +1773,58 @@ describe('Mitarbeiterübersicht — deaktivierte Konten mit Buchungen im Monat',
     const csv = csvGeladen.mock.calls[0][0] as string;
     expect(csv).not.toMatch(/Ausgeschieden Anton|;Konto|deaktiviert/);
     expect(csv).toMatch(/davon Arztbesuch\(Std\)\n/);
+  });
+});
+
+/*
+  Z7 (Durchsicht 15.11.2026): scheiterte das Laden der Urlaubstage, rechneten
+  Übersicht und Lohn-CSV still mit null genommenen Tagen — jeder Resturlaub
+  auf vollem Anspruch, und die Monats-CSV ging so hinaus.
+*/
+describe('Urlaubstage nicht geladen (Z7)', () => {
+  const urlaubstag = (d: string) => ({ ...eintrag(d), id: `u-${d}`, status: 'Urlaub' as const, startTime: '', endTime: '', breakDuration: 0 });
+
+  it('sagt es, nennt den Resturlaub unbekannt und sperrt beide CSV — nach „Erneut versuchen“ geht alles wieder', async () => {
+    buchungen = [...eintraege, urlaubstag('2026-08-31')];
+    urlaubScheitert = true;
+    const nutzer = zeichneSeite('/accounting');
+    const knopf = await personKnopf('Neu Eingestellt');
+    expect(await screen.findByText(/Der genommene Urlaub konnte nicht geladen werden/)).toBeInTheDocument();
+
+    await nutzer.click(knopf);
+    const f = fenster();
+    expect(within(f).getByTestId('resturlaub')).toHaveTextContent(/unbekannt/);
+    expect(within(f).getByTestId('resturlaub')).not.toHaveTextContent(/\d/);
+    csvGeladen.mockClear();
+    await nutzer.click(within(f).getByRole('button', { name: 'Monat als CSV' }));
+    expect(csvGeladen).not.toHaveBeenCalled();
+    expect(await screen.findByText(/Urlaub.*nicht geladen.*CSV/)).toBeInTheDocument();
+    await nutzer.click(within(f).getByRole('button', { name: 'Schließen' }));
+
+    await nutzer.click(screen.getByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Monats-CSV' }));
+    expect(csvGeladen).not.toHaveBeenCalled();
+
+    // Gegenprobe: geladen, geht die Datei hinaus — mit dem Resturlaub, der den Urlaubstag zählt.
+    urlaubScheitert = false;
+    await nutzer.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+    await waitFor(() => expect(screen.queryByText(/Der genommene Urlaub konnte nicht geladen werden/)).toBeNull());
+    await nutzer.click(screen.getByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Monats-CSV' }));
+    expect(csvGeladen).toHaveBeenCalledTimes(1);
+    const csv = csvGeladen.mock.calls[0][0] as string;
+    // 25 Tage Anspruch, aliquot ab 17.08. — gleich welche Zahl: einer ist genommen, also nicht der volle Stand ohne ihn.
+    expect(csv).toMatch(/\nNeu Eingestellt;/);
+  });
+
+  it('bleibt gleich: geladen steht der Resturlaub als Zahl, und die CSV geht ohne Umweg hinaus', async () => {
+    const nutzer = zeichneSeite('/accounting');
+    const knopf = await personKnopf('Neu Eingestellt');
+    expect(screen.queryByText(/Der genommene Urlaub konnte nicht geladen werden/)).toBeNull();
+    await nutzer.click(knopf);
+    expect(within(fenster()).getByTestId('resturlaub')).toHaveTextContent(/\d/);
+    csvGeladen.mockClear();
+    await nutzer.click(within(fenster()).getByRole('button', { name: 'Monat als CSV' }));
+    expect(csvGeladen).toHaveBeenCalledTimes(1);
   });
 });

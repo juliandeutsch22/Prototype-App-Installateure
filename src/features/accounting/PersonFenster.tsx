@@ -64,6 +64,7 @@ export default function PersonFenster({
   gesamtsaldoH,
   zeitfelder,
   deaktiviert = false,
+  urlaubUnbekannt = false,
 }: {
   /**
    * Das Konto ist deaktiviert (ausgeschieden) und steht nur wegen seiner
@@ -71,6 +72,8 @@ export default function PersonFenster({
    * Resturlaub keine Aussage — gezeigt wird, was gebucht ist.
    */
   deaktiviert?: boolean;
+  /** Der genommene Urlaub konnte nicht geladen werden (Z7): der Resturlaub ist dann keine Zahl. */
+  urlaubUnbekannt?: boolean;
   user: AppUser;
   stats: MonthStats;
   completeness: CompletenessResult;
@@ -271,10 +274,15 @@ export default function PersonFenster({
         */}
         {!deaktiviert && <div className="pf-kennzahl" data-testid="resturlaub">
           <p className="pf-kennzahl-name">Resturlaub</p>
-          <p className={`pf-kennzahl-wert ${stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'}`}>
-            {tageZahl(stats.urlaubRest)} {Math.abs(stats.urlaubRest) === 1 ? 'Tag' : 'Tage'}
-          </p>
-          {stats.urlaubAngepasst !== 0 && (
+          {urlaubUnbekannt ? (
+            /* Unbekannt statt null (Z7): ohne den genommenen Urlaub stünde der volle Anspruch da. */
+            <p className="pf-kennzahl-wert text-ink-muted">unbekannt</p>
+          ) : (
+            <p className={`pf-kennzahl-wert ${stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'}`}>
+              {tageZahl(stats.urlaubRest)} {Math.abs(stats.urlaubRest) === 1 ? 'Tag' : 'Tage'}
+            </p>
+          )}
+          {!urlaubUnbekannt && stats.urlaubAngepasst !== 0 && (
             <p className="pf-kennzahl-text">Anspruch angepasst: {vorzeichenTage(stats.urlaubAngepasst)}</p>
           )}
         </div>}
