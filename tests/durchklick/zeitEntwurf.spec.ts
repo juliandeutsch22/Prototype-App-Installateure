@@ -23,11 +23,6 @@ test.beforeEach(async () => {
 test('ohne Netz gebucht, vom Server abgelehnt: Entwurf mit Tag und Grund', async ({ page, context }) => {
   test.setTimeout(120_000);
   const { data: person } = await admin.from('users').select('id').eq('company_id', BETRIEB).eq('email', MONTEUR.email).single();
-  const { error } = await admin.from('time_entries').insert({
-    id: crypto.randomUUID(), company_id: BETRIEB, user_id: person!.id, user_name: MONTEUR.name, date: heute,
-    status: 'Anwesend', start_time: '07:00', end_time: '12:00', break_duration: 0, project_number: BAUSTELLE.nummer,
-  });
-  expect(error).toBeNull();
 
   await anmelden(page, MONTEUR.email);
   await page.goto('/time');
@@ -35,6 +30,18 @@ test('ohne Netz gebucht, vom Server abgelehnt: Entwurf mit Tag und Grund', async
   // Die Baustellen kommen mit Netz; danach geht es in den Keller.
   await expect(page.getByLabel('Baustelle').locator(`option[value="${BAUSTELLE.nummer}"]`)).toHaveCount(1, { timeout: 15_000 });
   await context.setOffline(true);
+
+  /*
+    DIE ERSTE BUCHUNG KENNT NUR DER SERVER: angelegt, während das Gerät
+    schon offline ist (etwa vom Kollegen am Tablet nachgetragen). Stünde sie
+    vorher in der Liste, erkennte die App die Überschneidung selbst und
+    sperrte „Zeit buchen“ — dann gäbe es nichts, was der Server ablehnt.
+  */
+  const { error } = await admin.from('time_entries').insert({
+    id: crypto.randomUUID(), company_id: BETRIEB, user_id: person!.id, user_name: MONTEUR.name, date: heute,
+    status: 'Anwesend', start_time: '07:00', end_time: '12:00', break_duration: 0, project_number: BAUSTELLE.nummer,
+  });
+  expect(error).toBeNull();
 
   // 1. Ohne Netz buchen: vorgemerkt.
   await page.getByLabel('Baustelle').selectOption(BAUSTELLE.nummer);
