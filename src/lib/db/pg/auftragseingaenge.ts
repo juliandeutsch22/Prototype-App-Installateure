@@ -10,7 +10,6 @@
 import type { Abrechnungsart, Auftragseingang, EingangStand } from '@/types';
 import { aendern, anlegen, derClient, loeschen, zaehlen, abfragen } from './kern';
 import { zeileAlsObjekt } from './felder';
-import { oderUeberSpalten } from './suche';
 
 const TABELLE = 'auftragseingaenge';
 
@@ -73,8 +72,8 @@ export async function listEingaenge(
   o: { stand: EingangStand; suche?: string; nach?: EingangZeiger | null },
 ): Promise<EingangSeite> {
   const teile: string[] = [];
-  const suche = oderUeberSpalten(['nummer', 'kunde_name', 'ort', 'anliegen', 'auftraggeber_nummer'], o.suche ?? '');
-  if (suche) teile.push(`or(${suche})`);
+  // Die Suche über den Index (Befund 1 zu L3): `suche_auftragseingaenge` statt `or(…ilike…)`.
+  const begriff = (o.suche ?? '').trim();
   const offen = o.stand === 'offen';
   if (o.nach) {
     if (!UUID.test(o.nach.id)) throw new Error(`Keine Kennung: ${o.nach.id}`);
@@ -86,9 +85,11 @@ export async function listEingaenge(
       : `or(eingegangen_am.lt.${am},and(eingegangen_am.eq.${am},id.gt.${id}))`);
   }
 
-  let abfrage = derClient()
-    .from(TABELLE)
-    .select('*,am_roh:eingegangen_am::text')
+  let abfrage = (begriff
+    ? derClient().rpc('suche_auftragseingaenge', {
+        p_spalten: ['nummer', 'kunde_name', 'ort', 'anliegen', 'auftraggeber_nummer'], p_begriff: begriff, p_muster: null,
+      }).select('*,am_roh:eingegangen_am::text')
+    : derClient().from(TABELLE).select('*,am_roh:eingegangen_am::text'))
     .eq('company_id', companyId)
     .eq('stand', o.stand);
   if (teile.length > 0) abfrage = abfrage.or(`and(${teile.join(',')})`);

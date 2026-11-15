@@ -16,7 +16,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt, RechnungsKopf, WorkSheet } from '@/types';
 import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, SEITE, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
-import { oderUeberSpalten } from './suche';
 import { KOPF_SPALTEN } from './rechnungSpalten';
 import { PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
@@ -568,10 +567,9 @@ export async function sucheRechnungen(
   max = RECHNUNG_TREFFER,
 ): Promise<WithId<Invoice>[]> {
   // Auch nach der Nummer einer Stornorechnung: sie steht an der stornierten Rechnung.
-  const oder = oderUeberSpalten(['invoice_number', 'storno_nummer', 'customer_name', 'project_number'], begriff);
-  if (!oder) return [];
+  if (!begriff.trim()) return [];
   const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
-    oder,
+    suche: { spalten: ['invoice_number', 'storno_nummer', 'customer_name', 'project_number'], begriff },
     sortiere: { feld: 'invoiceDate', absteigend: true },
     grenze: max,
   });
@@ -600,10 +598,9 @@ export async function rechnungenNachNummer(
   begriff: string,
   max: number,
 ): Promise<RechnungsTreffer[]> {
-  const oder = oderUeberSpalten(['invoice_number', 'storno_nummer'], begriff);
-  if (!oder) return [];
+  if (!begriff.trim()) return [];
   return abfragen<RechnungsTreffer>(RECHNUNGEN, companyId, {
-    oder,
+    suche: { spalten: ['invoice_number', 'storno_nummer'], begriff },
     spalten: 'id,invoice_number,storno_nummer,customer_name,project_number,invoice_date',
     sortiere: { feld: 'invoiceDate', absteigend: true },
     grenze: max,

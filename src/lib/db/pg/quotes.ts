@@ -13,7 +13,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Quote, InvoiceDiscount, Abrechnungsart } from '@/types';
 import { abfragen, derClient, loeschen, zaehlen, type Bedingung, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
-import { oderUeberSpalten } from './suche';
 import { PRAEFIX_VORGABE } from '@/lib/praefixe';
 
 const ANGEBOTE = 'quotes';
@@ -159,11 +158,10 @@ export async function sucheAngebote(
   begriff: string,
   max = ANGEBOT_TREFFER,
 ): Promise<WithId<Quote>[]> {
-  const oder = oderUeberSpalten(['quote_number', 'customer_name', 'address', 'project_number'], begriff);
-  if (!oder) return [];
+  if (!begriff.trim()) return [];
   const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
     wo: [NICHT_VERWORFEN],
-    oder,
+    suche: { spalten: ['quote_number', 'customer_name', 'address', 'project_number'], begriff },
     sortiere: { feld: 'createdAt', absteigend: true },
     grenze: max,
   });
@@ -190,11 +188,10 @@ export async function angeboteNachNummer(
   begriff: string,
   max: number,
 ): Promise<AngebotsTreffer[]> {
-  const oder = oderUeberSpalten(['quote_number'], begriff);
-  if (!oder) return [];
+  if (!begriff.trim()) return [];
   return abfragen<AngebotsTreffer>(ANGEBOTE, companyId, {
     wo: [NICHT_VERWORFEN],
-    oder,
+    suche: { spalten: ['quote_number'], begriff },
     spalten: 'id,quote_number,customer_name,project_number,quote_date,status',
     sortiere: { feld: 'createdAt', absteigend: true },
     grenze: max,

@@ -105,6 +105,17 @@ export interface Abfrage {
    */
   oder?: string | null;
   /**
+   * DIE SUCHE ÜBER DEN INDEX (Befund 1 zu L3, Durchsicht 15.11.2026): statt
+   * `or(spalte.ilike.…)` die Funktion `suche_<tabelle>`, die die Treffer über
+   * den Trigramm-Index findet und die Zeilen mit der Leseregel des Aufrufers
+   * liefert. Mit Zeilenschutz wertet Postgres `ilike` nie über einen Index
+   * aus — jede Suche lief als Durchlauf über die Tabelle aller Betriebe.
+   * `begriff` sucht `%begriff%` in den Spalten (leer = keine Suche, alle
+   * Zeilen wie ohne `oder`), `muster` fertige Muster in der ersten Spalte.
+   * Alles andere (Bedingungen, Reihenfolge, Grenze, Zählung) wie gewohnt.
+   */
+  suche?: { spalten: string[]; begriff?: string; muster?: string[] };
+  /**
    * Welche Spalten (PostgREST-`select`), ohne Angabe alle. Für Listen, die
    * schwere Spalten nicht brauchen — etwa die Unterschriftsbilder der
    * Scheine (Analyse 09.10.2026).
@@ -321,6 +332,19 @@ export async function zaehlen(
   return count ?? 0;
 }
 
+/**
+ * Die Argumente für `suche_<tabelle>` — oder `null`, wenn nichts gesucht
+ * wird (leerer Begriff, keine Muster): dann gilt die Tabelle selbst, wie
+ * bisher ohne `oder`.
+ */
+export function mitSuche(abfrage: Abfrage): { p_spalten: string[]; p_begriff: string | null; p_muster: string[] | null } | null {
+  const s = abfrage.suche;
+  if (!s) return null;
+  if (s.muster) return s.muster.length > 0 ? { p_spalten: s.spalten, p_begriff: null, p_muster: s.muster } : null;
+  const begriff = (s.begriff ?? '').trim();
+  return begriff ? { p_spalten: s.spalten, p_begriff: begriff, p_muster: null } : null;
+}
+
 /** Abfrage innerhalb eines Mandanten. */
 export async function abfragen<T>(
   tabelle: string,
@@ -368,13 +392,16 @@ export async function abfragen<T>(
   const c = derClient(client);
   const gesamt: Record<string, unknown>[] = [];
 
+  const suche = mitSuche(abfrage);
   /** Eine Seite holen; auf Wunsch mit der Gesamtzahl der passenden Zeilen. */
   const seite = async (von: number, anzahl: number, zaehlen: boolean) => {
-    const bauer = anwenden(
-      (zaehlen
+    const quelle = suche
+      ? c.rpc(`suche_${tabelle}`, suche, zaehlen ? { count: 'exact' } : undefined).select(abfrage.spalten ?? '*')
+      : zaehlen
         ? c.from(tabelle).select(abfrage.spalten ?? '*', { count: 'exact' })
-        : c.from(tabelle).select(abfrage.spalten ?? '*')
-      ).eq('company_id', companyId) as unknown as Filterbar,
+        : c.from(tabelle).select(abfrage.spalten ?? '*');
+    const bauer = anwenden(
+      quelle.eq('company_id', companyId) as unknown as Filterbar,
       // `grenze` wird HIER nicht mitgegeben: sie steckt schon in `anzahl`,
       // und ein `limit` neben einem `range` liefert deren Schnittmenge —
       // also beim zweiten Durchgang nichts mehr.

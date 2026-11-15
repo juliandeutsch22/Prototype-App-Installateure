@@ -19,7 +19,6 @@ import type {
 } from '@/types';
 import { abfragen, aendern, derClient, zaehlen, type Bedingung, type WithId } from './kern';
 import { ohneZeitpunktUeberFrist } from '@/lib/papierkorb';
-import { oderUeberSpalten } from './suche';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
 import { vorgangOhneEmpfang, wartendeVorgaenge } from './ohneEmpfang';
 import {
@@ -420,11 +419,10 @@ export async function getWorkSheetsVoll(companyId: string, ids: string[]): Promi
  * demselben Grund wie beim Zeitraum.
  */
 export async function searchWorkSheets(companyId: string, begriff: string, max = 150) {
-  const oder = oderUeberSpalten(['customer_name', 'notizen'], begriff);
-  if (!oder) return [];
+  if (!begriff.trim()) return [];
   const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
     spalten: LISTENKOPF,
-    oder,
+    suche: { spalten: ['customer_name', 'notizen'], begriff },
     sortiere: { feld: 'datum', absteigend: true },
     grenze: max,
   });
