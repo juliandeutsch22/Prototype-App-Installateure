@@ -340,6 +340,8 @@ describe('Interne Hilfsfunktionen', () => {
       // A12: die Besichtigung eines abgelehnten oder gelöschten Eingangs.
       'app.eingang_besichtigung_entfernen(public.auftragseingaenge)',
       'app.eingang_termin_mitnehmen()',
+      // A13: ein neuer Wartungstag ohne neue Baustelle hat keine Baustelle.
+      'app.wartung_bezug_mit_tag()',
       // Was nur die Function mit dem Dienstschlüssel ruft.
       'public.angebot_link_abruf(text)',
       'public.angebot_link_annehmen(text, text, text, boolean)',
