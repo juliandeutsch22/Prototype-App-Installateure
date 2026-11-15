@@ -1180,3 +1180,39 @@ function Ziel() {
   const { search } = useLocation();
   return <p>Angebote {search}</p>;
 }
+
+/*
+  L8 (17.11.2026): beim zweiten Besuch steht die Akte sofort da — Kopf und
+  Bereiche aus dem gemerkten Stand; frisch geholt wird im Hintergrund. Die
+  Rechnungen nicht (mit ihnen wird Geld bewegt, Regel aus Stand 16.3).
+  GEGENPROBE (Erwartung): vor L8 ist „zweiter Besuch sofort“ rot,
+  „Rechnungen laden jedes Mal“ in beiden Fassungen grün.
+*/
+describe('Gemerkter Stand der Akte (L8)', () => {
+  beforeEach(async () => {
+    const { zwischenspeicherLeeren } = await import('@/lib/zwischenspeicher');
+    const { zwischenspeicherFuer } = await import('@/lib/liveSpeicher');
+    zwischenspeicherLeeren();
+    zwischenspeicherFuer('chef', 'perl');
+  });
+
+  it('der zweite Besuch zeigt den Kunden sofort, ohne Platzhalter', async () => {
+    const erst = zeige();
+    expect(await screen.findByRole('heading', { name: /Hausverwaltung Nord/ })).toBeInTheDocument();
+    erst.unmount();
+    let freigeben: () => void = () => undefined;
+    listCustomersByIds.mockImplementationOnce(() => new Promise((f) => { freigeben = () => f(kunden); }));
+    zeige();
+    expect(screen.getByRole('heading', { name: /Hausverwaltung Nord/ })).toBeInTheDocument();
+    await act(async () => { freigeben(); });
+  });
+
+  it('bleibt gleich: die Rechnungen laden bei jedem Besuch neu', async () => {
+    const erst = zeige();
+    await screen.findByRole('heading', { name: /Hausverwaltung Nord/ });
+    await waitFor(() => expect(listInvoicesForCustomer).toHaveBeenCalledTimes(1));
+    erst.unmount();
+    zeige();
+    await waitFor(() => expect(listInvoicesForCustomer).toHaveBeenCalledTimes(2));
+  });
+});

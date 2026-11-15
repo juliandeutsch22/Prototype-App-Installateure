@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import OhneUmbruch from '@/components/OhneUmbruch';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { schluessel as speicherSchluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { naechsterSchritt } from '@/features/projects/naechsterSchritt';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -265,8 +266,23 @@ export default function QuotesView() {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const [angebote, setAngebote] = useState<WithId<Quote>[]>([]);
-  const [loading, setLoading] = useState(true);
+  /*
+    SUCHE, ANSICHT UND GEMERKTER STAND (L8, 17.11.2026) — das Muster der
+    Baustellen: wer aus einem Angebot zurückkommt, findet die Liste so, wie er
+    sie verlassen hat, sofort; frisch geholt wird im Hintergrund.
+  */
+  const [suchParameter, setSuchParameter] = useSearchParams();
+  const ansichtWert = suchParameter.get('ansicht');
+  const ansicht: Ansicht = ansichtWert === 'erledigt' || ansichtWert === 'alle' ? ansichtWert : 'offen';
+  const { anfang: gemerkt, merken } = useGemerkt<{
+    angebote: WithId<Quote>[];
+    zahlen: { offen: number; alle: number } | null;
+    nachbarn: WithId<Quote>[];
+  }>(user ? speicherSchluessel('angebotsliste', user, ansicht) : null);
+  /** Der erste Lauf mit gemerktem Stand lädt im Hintergrund, ohne Platzhalter. */
+  const stillLaden = useRef(gemerkt?.angebote !== undefined);
+  const [angebote, setAngebote] = useState<WithId<Quote>[]>(() => gemerkt?.angebote ?? []);
+  const [loading, setLoading] = useState(() => gemerkt?.angebote === undefined);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   /*
@@ -353,10 +369,24 @@ export default function QuotesView() {
   const [rabattVorlage, setRabattVorlage] = useState<InvoiceDiscount | null>(null);
   /** Gespeicherte Stunden eines alten Angebots, dessen Haken abgeleitet wurden. */
   const [stundenVorher, setStundenVorher] = useState<number | null>(null);
-  const [suchParameter, setSuchParameter] = useSearchParams();
   /** Wie weit die Liste geladen ist (siehe `ANGEBOTE_JE_SEITE`). */
   const [grenze, setGrenze] = useState(ANGEBOTE_JE_SEITE);
-  const [suche, setSuche] = useState('');
+  const [suche, setSucheFeld] = useState(() => suchParameter.get('suche') ?? '');
+  /*
+    Suche und Ansicht in EINEM Schritt in die Adresse: zwei Aufrufe im selben
+    Zug gingen beide vom selben Stand aus, und der zweite höbe den ersten auf.
+  */
+  const setSuche = (text: string, neueAnsicht?: Ansicht) => {
+    setSucheFeld(text);
+    setSuchParameter((alt) => {
+      const p = new URLSearchParams(alt);
+      if (text.trim()) p.set('suche', text);
+      else p.delete('suche');
+      if (neueAnsicht === 'offen') p.delete('ansicht');
+      else if (neueAnsicht) p.set('ansicht', neueAnsicht);
+      return p;
+    }, { replace: true });
+  };
   /**
    * Die Treffer der Suche über ALLE Angebote (17 I) — `null`, solange keine
    * Antwort zum aktuellen Begriff da ist. Bis dahin (und falls sie ausbleibt)
@@ -364,13 +394,13 @@ export default function QuotesView() {
    */
   const [treffer, setTreffer] = useState<{ begriff: string; zeilen: WithId<Quote>[] } | null>(null);
   const [suchFehler, setSuchFehler] = useState(false);
-  const ansichtWert = suchParameter.get('ansicht');
-  const ansicht: Ansicht = ansichtWert === 'erledigt' || ansichtWert === 'alle' ? ansichtWert : 'offen';
   function ansichtWaehlen(neu: Ansicht) {
-    const p = new URLSearchParams(suchParameter);
-    if (neu === 'offen') p.delete('ansicht');
-    else p.set('ansicht', neu);
-    setSuchParameter(p, { replace: true });
+    setSuchParameter((alt) => {
+      const p = new URLSearchParams(alt);
+      if (neu === 'offen') p.delete('ansicht');
+      else p.set('ansicht', neu);
+      return p;
+    }, { replace: true });
   }
   /**
    * Die Ansicht vor dem Suchen, wenn die Suche sie auf „Alle“ gestellt hat —
@@ -382,14 +412,15 @@ export default function QuotesView() {
   const vorDerSuche = useRef<Ansicht | null>(null);
   function sucheAendern(text: string) {
     const vorher = suche.trim();
+    let neueAnsicht: Ansicht | undefined;
     if (!vorher && text.trim() && ansicht === 'offen') {
       vorDerSuche.current = ansicht;
-      ansichtWaehlen('alle');
+      neueAnsicht = 'alle';
     } else if (vorher && !text.trim() && vorDerSuche.current) {
-      ansichtWaehlen(vorDerSuche.current);
+      neueAnsicht = vorDerSuche.current;
       vorDerSuche.current = null;
     }
-    setSuche(text);
+    setSuche(text, neueAnsicht);
   }
 
   /*
@@ -406,13 +437,16 @@ export default function QuotesView() {
     versendete Angebote fielen still heraus. „Erledigt“ und „Alle“ bleiben
     die jüngsten zuerst.
   */
-  const [zahlen, setZahlen] = useState<{ offen: number; alle: number } | null>(null);
+  const [zahlen, setZahlen] = useState<{ offen: number; alle: number } | null>(() => gemerkt?.zahlen ?? null);
   /** Fassungen neben den geladenen offenen — ob eine schon angenommen ist (G15). */
-  const [nachbarn, setNachbarn] = useState<WithId<Quote>[]>([]);
+  const [nachbarn, setNachbarn] = useState<WithId<Quote>[]>(() => gemerkt?.nachbarn ?? []);
   const laden = useMemo(
     () => async () => {
       if (!user) return;
-      setLoading(true);
+      if (stillLaden.current) stillLaden.current = false;
+      else setLoading(true);
+      // Gemerkt nur die erste Seite — „weitere laden“ beginnt beim nächsten Besuch wieder oben.
+      const merkenWenn = (teil: Parameters<typeof merken>[0]) => { if (grenze === ANGEBOTE_JE_SEITE) merken(teil); };
       try {
         if (ansicht === 'offen') {
           const [liste, offen, alle] = await Promise.all([
@@ -423,13 +457,17 @@ export default function QuotesView() {
           setAngebote(liste);
           setZahlen({ offen, alle });
           // Scheitert das, fehlt nur der Hinweis „Fassung … angenommen“ — die Datenbank nähme ohnehin nicht an.
-          setNachbarn(await listFassungsNachbarn(
+          const fassungen = await listFassungsNachbarn(
             user.companyId, liste.map((q) => q.id), liste.flatMap((q) => (q.vorgaengerId ? [q.vorgaengerId] : [])),
-          ).catch(() => []));
+          ).catch(() => []);
+          setNachbarn(fassungen);
+          merkenWenn({ angebote: liste, zahlen: { offen, alle }, nachbarn: fassungen });
         } else {
-          setAngebote(await listRecentQuotes(user.companyId, grenze));
+          const liste = await listRecentQuotes(user.companyId, grenze);
+          setAngebote(liste);
           setZahlen(null);
           setNachbarn([]);
+          merkenWenn({ angebote: liste, zahlen: null, nachbarn: [] });
         }
       } catch (e) {
         setError((e as Error).message);
@@ -437,7 +475,7 @@ export default function QuotesView() {
         setLoading(false);
       }
     },
-    [user, grenze, ansicht],
+    [user, grenze, ansicht, merken],
   );
 
   useEffect(() => {

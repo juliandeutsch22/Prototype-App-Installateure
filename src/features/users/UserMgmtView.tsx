@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { useAuth } from '@/app/AuthContext';
 import { listUsers } from '@/lib/db/users';
 import { provisionUser } from '@/lib/auth/provisionUser';
@@ -38,8 +39,19 @@ import ZahlFeld from '@/components/ZahlFeld';
 export default function UserMgmtView() {
   const { user, company } = useAuth();
   const toast = useToast();
-  const [users, setUsers] = useState<AppUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  /*
+    DIE BELEGSCHAFT, GEMERKT (L8, 17.11.2026) — derselbe Stand, den die
+    Baustellen sich merken: zurück aus einer Akte steht die Liste sofort da
+    (Suche und Auswahl stehen schon in der Adresse), frisch geholt wird im
+    Hintergrund.
+  */
+  const { anfang: gemerkt, merken } = useGemerkt<{ users: AppUser[] }>(user ? schluessel('belegschaft', user) : null);
+  const [users, setUsersZustand] = useState<AppUser[]>(() => gemerkt?.users ?? []);
+  const setUsers = (liste: AppUser[]) => {
+    setUsersZustand(liste);
+    merken({ users: liste });
+  };
+  const [loading, setLoading] = useState(() => gemerkt?.users === undefined);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<BenutzerEntwurf>(leererEntwurf);
   const [saving, setSaving] = useState(false);
@@ -134,6 +146,7 @@ export default function UserMgmtView() {
       .then(setUsers)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `setUsers` merkt nur mit; geladen wird je Benutzer einmal
   }, [user]);
 
   const sorted = useMemo(

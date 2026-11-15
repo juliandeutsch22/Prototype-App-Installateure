@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { useUngespeichertWarnung } from '@/lib/ungespeichert';
@@ -88,7 +89,16 @@ export default function BenutzerakteView() {
   const urlaubsweg = useModul('urlaub') ? '/vacations' : '/sonderurlaub';
   const toast = useToast();
 
-  const [person, setPerson] = useState<Teil<AppUser | null>>(LAEDT);
+  /*
+    GEMERKT (L8, 17.11.2026): beim zweiten Besuch — oder nach dem Berühren
+    der Zeile in der Benutzerliste (L12) — steht die Person sofort da;
+    frisch geholt wird im Hintergrund. Ändert sich nichts, bleibt der Stand
+    derselbe (ein offener Entwurf wird nicht neu gesetzt).
+  */
+  const { anfang: gemerkt, merken } = useGemerkt<{ person: AppUser | null }>(user && uid ? schluessel('benutzerakte', user, uid) : null);
+  const vorab = useRef(gemerkt !== undefined && 'person' in gemerkt);
+  const [person, setPerson] = useState<Teil<AppUser | null>>(() =>
+    gemerkt && 'person' in gemerkt ? { zustand: 'bereit', daten: gemerkt.person ?? null } : LAEDT);
   const [entwurf, setEntwurf] = useState<BenutzerEntwurf | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const [bearbeitet, setBearbeitet] = useState(false);
@@ -118,11 +128,16 @@ export default function BenutzerakteView() {
   useEffect(() => {
     if (!companyId || !uid) return;
     let weg = false;
-    setPerson(LAEDT);
+    if (vorab.current) vorab.current = false;
+    else setPerson(LAEDT);
     void (async () => {
       try {
         const gefunden = await getUserByUid(companyId, uid);
-        if (!weg) setPerson({ zustand: 'bereit', daten: gefunden });
+        if (weg) return;
+        setPerson((alt) => (alt.zustand === 'bereit' && JSON.stringify(alt.daten) === JSON.stringify(gefunden)
+          ? alt
+          : { zustand: 'bereit', daten: gefunden }));
+        merken({ person: gefunden });
       } catch {
         if (!weg) setPerson({ zustand: 'fehler' });
       }
@@ -130,7 +145,7 @@ export default function BenutzerakteView() {
     return () => {
       weg = true;
     };
-  }, [companyId, uid, versuch]);
+  }, [companyId, uid, versuch, merken]);
 
   const daten = person.zustand === 'bereit' ? person.daten : null;
 

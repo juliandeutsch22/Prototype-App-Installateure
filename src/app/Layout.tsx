@@ -12,6 +12,7 @@ import NachrichtenLive from '@/features/nachrichten/NachrichtenLive';
 import ZeitsitzungAnbieter from '@/features/time/ZeitsitzungAnbieter';
 import PushAnmeldung from '@/components/PushAnmeldung';
 import TimerLeiste from '@/features/time/TimerLeiste';
+import { listenAdresseMerken } from '@/lib/listenAdresse';
 import type { OffenePosten } from '@/lib/db/offenePosten';
 import { Zaehler } from '@/components/Badge';
 import Button from '@/components/Button';
@@ -121,6 +122,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [kopfTitel, setKopfTitel] = useState<string | null>(null);
   const [darstellung, setDarstellung] = useDarstellung();
   const ort = useLocation();
+  // Suche und Filter einer Liste gehen mit dem Rückweg aus ihrer Akte mit (L8).
+  useEffect(() => listenAdresseMerken(ort.pathname, ort.search), [ort.pathname, ort.search]);
   const posten = useOffenePosten();
   const angemeldet = !!user;
   /** Wie viele eigene Buchungen noch im Fach liegen, wenn abgemeldet werden soll. */

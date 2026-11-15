@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { schluessel as speicherSchluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { canAccess } from '@/app/navigation';
@@ -75,8 +76,20 @@ export default function AngebotView() {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const [angebot, setAngebot] = useState<Teil<WithId<Quote> | null>>(LAEDT);
-  const [kunde, setKunde] = useState<Teil<WithId<Customer> | null>>(LAEDT);
+  /*
+    GEMERKT (L8, 17.11.2026): beim zweiten Besuch — oder nach dem Berühren
+    der Zeile in der Angebotsliste (L12) — stehen Angebot und Kunde sofort
+    da; frisch geholt wird im Hintergrund. Annehmen, Versenden und Verwerfen
+    prüft die Datenbank am aktuellen Stand.
+  */
+  const { anfang: gemerkt, merken } = useGemerkt<{ angebot: WithId<Quote> | null; kunde: WithId<Customer> | null }>(
+    user && id ? speicherSchluessel('angebotsakte', user, id) : null,
+  );
+  const vorab = useRef(new Set(Object.keys(gemerkt ?? {})));
+  const [angebot, setAngebot] = useState<Teil<WithId<Quote> | null>>(() =>
+    gemerkt && 'angebot' in gemerkt ? { zustand: 'bereit', daten: gemerkt.angebot ?? null } : LAEDT);
+  const [kunde, setKunde] = useState<Teil<WithId<Customer> | null>>(() =>
+    gemerkt && 'kunde' in gemerkt ? { zustand: 'bereit', daten: gemerkt.kunde ?? null } : LAEDT);
   const [versuch, setVersuch] = useState(0);
   const [busy, setBusy] = useState(false);
   const [pdfLaeuft, setPdfLaeuft] = useState(false);
@@ -120,11 +133,13 @@ export default function AngebotView() {
   useEffect(() => {
     if (!companyId || !id) return;
     let weg = false;
-    setAngebot(LAEDT);
+    if (!vorab.current.delete('angebot')) setAngebot(LAEDT);
     void (async () => {
       try {
         const q = await getQuote(companyId, id);
-        if (!weg) setAngebot({ zustand: 'bereit', daten: q });
+        if (weg) return;
+        setAngebot((alt) => (alt.zustand === 'bereit' && JSON.stringify(alt.daten) === JSON.stringify(q) ? alt : { zustand: 'bereit', daten: q }));
+        merken({ angebot: q });
       } catch {
         if (!weg) setAngebot({ zustand: 'fehler' });
       }
@@ -132,7 +147,7 @@ export default function AngebotView() {
     return () => {
       weg = true;
     };
-  }, [companyId, id, versuch]);
+  }, [companyId, id, versuch, merken]);
 
   /* Der Eingang lädt für sich (M02b): scheitert er, fehlt nur der Verweis. */
   useEffect(() => {
@@ -228,11 +243,13 @@ export default function AngebotView() {
       return;
     }
     let weg = false;
-    setKunde(LAEDT);
+    if (!vorab.current.delete('kunde')) setKunde(LAEDT);
     void (async () => {
       try {
         const treffer = await listCustomersByIds(companyId, [kundenId]);
-        if (!weg) setKunde({ zustand: 'bereit', daten: treffer[0] ?? null });
+        if (weg) return;
+        setKunde({ zustand: 'bereit', daten: treffer[0] ?? null });
+        merken({ kunde: treffer[0] ?? null });
       } catch {
         if (!weg) setKunde({ zustand: 'fehler' });
       }
@@ -240,7 +257,7 @@ export default function AngebotView() {
     return () => {
       weg = true;
     };
-  }, [companyId, kundenId, angebot.zustand, versuch]);
+  }, [companyId, kundenId, angebot.zustand, versuch, merken]);
 
   const ruecknahmeProjekt = ruecknahme && angebot.zustand === 'bereit' ? angebot.daten?.projectId ?? null : null;
   const ruecknahmeNummer = angebot.zustand === 'bereit' ? angebot.daten?.projectNumber ?? '' : '';
