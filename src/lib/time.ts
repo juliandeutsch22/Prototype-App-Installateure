@@ -872,14 +872,6 @@ export function calcOverallSaldo(
     Urlaubstage in der Zahl für die Endabrechnung.
   */
   const ende = user.austritt && user.austritt < heuteIso ? user.austritt : heuteIso;
-  const arbeit = arbeitJeTag(entries);
-  for (const e of entries) {
-    if (e.date < user.appStartDate || e.date > ende) continue;
-    bookedDates.add(e.date);
-    if (e.status === 'Anwesend') istMin += calcWorkMin(e);
-    else if (ganztagGutschreiben(e, heuteIso)) istMin += ganztagMinuten(user, e, halbeTage, arbeit);
-    else istMin += freigestelltGutschreiben(e, heuteIso);
-  }
 
   /**
    * Soll und Lücken aus derselben Quelle wie überall sonst.
@@ -890,6 +882,25 @@ export function calcOverallSaldo(
    * Genau das war passiert.
    */
   const pflicht = pflichtTage(user, new Date(`${user.appStartDate}T00:00:00`), new Date());
+  /*
+    GUTSCHRIFT NUR AN EINEM TAG MIT SOLL (Durchsicht 15.11.2026, Z12). Krank,
+    Urlaub, Schule und Freistellung ersetzen das Soll eines Arbeitstags; an
+    einem freien Tag (Wochenende, Feiertag, freier Wochentag der Teilzeit)
+    gibt es nichts zu ersetzen. `calcMonthStats` rechnete schon so („ein
+    Krank-Tag an einem freien Tag zählt nicht“), der Saldo schrieb das
+    Tagessoll trotzdem gut — Monats- und Gesamtsaldo widersprachen sich.
+  */
+  const sollTage = new Set(pflicht);
+  const arbeit = arbeitJeTag(entries);
+  for (const e of entries) {
+    if (e.date < user.appStartDate || e.date > ende) continue;
+    bookedDates.add(e.date);
+    if (e.status === 'Anwesend') istMin += calcWorkMin(e);
+    else if (!sollTage.has(e.date)) continue;
+    else if (ganztagGutschreiben(e, heuteIso)) istMin += ganztagMinuten(user, e, halbeTage, arbeit);
+    else istMin += freigestelltGutschreiben(e, heuteIso);
+  }
+
   const sollMin = sollMinuten(user, pflicht, halbeTage);
   const daysWithoutEntry = pflicht.filter((d) => !bookedDates.has(d)).length;
 

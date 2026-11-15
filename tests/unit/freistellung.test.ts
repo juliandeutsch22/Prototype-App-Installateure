@@ -185,9 +185,10 @@ describe('Im Zeitkonto', () => {
   });
 
   it('Monatsbilanz und Einzelbuchungen kommen auf denselben Saldo', () => {
+    // Der unbezahlte Tag am 5.6., nicht am 4.6.: Fronleichnam hat kein Soll, also auch keine Gutschrift (Z12).
     const eintraege = juni({
       '2026-06-03': [e('2026-06-03', 'Dienstverhinderung')],
-      '2026-06-04': [e('2026-06-04', 'Unbezahlt')],
+      '2026-06-05': [e('2026-06-05', 'Unbezahlt')],
       '2026-06-10': [e('2026-06-10', 'Anwesend', '07:00', '11:00'), e('2026-06-10', 'Pflegefreistellung', '12:00', '16:00')],
       '2026-06-17': [e('2026-06-17', 'Anwesend', '07:00', '13:00'), e('2026-06-17', 'Dienstverhinderung', '13:30', '15:30')],
     });
