@@ -30,7 +30,12 @@ export function useEinziehen(ref: RefObject<HTMLElement>, einziehbar: boolean): 
         return;
       }
       // Erst ab einer kleinen Strecke: ein Zittern des Fingers ist keine Richtung.
-      if (y > letzte + 8) el.setAttribute('data-eingezogen', '');
+      if (y > letzte + 8) {
+        // Wie viel links abfällt, damit rechts der 48-px-Kreis bleibt (ohne calc() im Stil, Linie 0.2).
+        const knopf = el.querySelector<HTMLElement>(':scope > :not(.daumen-symbol)');
+        if (knopf) el.style.setProperty('--daumen-einzug', `${Math.max(0, knopf.offsetWidth - 48)}px`);
+        el.setAttribute('data-eingezogen', '');
+      }
       else if (y < letzte - 8) el.removeAttribute('data-eingezogen');
       else return;
       letzte = y;

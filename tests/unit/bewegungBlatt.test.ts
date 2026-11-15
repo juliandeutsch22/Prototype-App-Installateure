@@ -18,7 +18,7 @@ describe('B1 Blatt von unten', () => {
   it('Blatt und Fenster fahren von unten herein und hinaus, ab dem Tablet von rechts', () => {
     expect(css).toMatch(/@keyframes blatt-herein \{ from \{ transform: translateY\(100%\); \} \}/);
     expect(css).toMatch(/@keyframes blatt-hinaus \{ to \{ transform: translateY\(100%\); \} \}/);
-    expect(css).toMatch(/@keyframes fenster-herein \{ from \{ transform: translateX\(calc\(100% \+ 0\.5rem\)\); \} \}/);
+    expect(css).toMatch(/@keyframes fenster-herein \{ from \{ transform: translateX\(105%\); \} \}/);
     expect(css).toMatch(/\.lot-overlay > \.blatt\[data-lot-inhalt\],[\s\S]*?animation: blatt-herein var\(--motion-overlay\)/);
     expect(css).toMatch(/@media \(min-width: 760px\) \{[\s\S]*?animation-name: fenster-herein;/);
   });

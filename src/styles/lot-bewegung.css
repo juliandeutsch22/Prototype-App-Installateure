@@ -82,26 +82,27 @@
     dem Symbol; die Schaltfläche und ihr Name bleiben dieselben, getippt
     wird nur noch im Kreis (`clip-path` schneidet auch die Trefferfläche).
     Der Ausschnitt reicht im Ruhezustand über den Knopf hinaus, damit der
-    Schatten der Insel nicht abgeschnitten wird; eingezogen trägt der
-    Kreis seinen Schatten als `drop-shadow` am Halter.
+    Schatten der Insel nicht abgeschnitten wird; eingezogen liegt das
+    Symbol als eigener Kreis mit Fläche und Schatten der Insel darüber
+    (stumm, ohne Klickfläche — getippt wird der Knopf darunter).
   */
   .daumen-symbol { display: none; }
   @media (max-width: 759px) {
     .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen-symbol {
       display: grid; place-items: center; position: absolute; right: 1rem; bottom: 0.5rem; width: 3rem; height: 3rem;
-      color: var(--brand-fg); pointer-events: none; opacity: 0; transform: scale(0.6);
+      border-radius: 999px; background: var(--brand); color: var(--brand-fg); box-shadow: var(--shadow-insel);
+      pointer-events: none; opacity: 0; transform: scale(0.6);
       transition: opacity var(--motion-state) var(--ease-response), transform var(--motion-state) var(--ease-response);
     }
     .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen > :not(.daumen-symbol) {
       clip-path: inset(-1.5rem round 2rem);
-      transition: clip-path var(--motion-state) var(--ease-response), color var(--motion-press) var(--ease-response), opacity var(--motion-state) var(--ease-response);
+      transition: clip-path var(--motion-state) var(--ease-response), opacity var(--motion-state) var(--ease-response);
     }
+    /* Sichtbar bleibt der Kreis rechts: links fällt ab, was über 48 px hinausgeht (`--daumen-einzug`, aus `useEinziehen`). */
     .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen[data-eingezogen] > :not(.daumen-symbol) {
-      clip-path: inset(0 0 0 calc(100% - 3rem) round 1.5rem);
-      color: transparent;
+      clip-path: inset(0 0 0 var(--daumen-einzug, 0) round 1.5rem);
     }
     .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen[data-eingezogen] .daumen-symbol { opacity: 1; transform: none; }
-    .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen[data-eingezogen] { filter: drop-shadow(0 4px 6px #25231f2e); }
   }
 
   /*
@@ -121,10 +122,11 @@
   @media (max-width: 1199px) {
     .aktionsleiste { transition: transform var(--motion-overlay) var(--ease-response), opacity var(--motion-overlay) var(--ease-response); }
     .aktionsleiste[data-ruht] {
-      transform: translateY(calc(100% + 1rem));
+      transform: translateY(120%);
       opacity: 0;
       visibility: hidden;
-      transition: transform var(--motion-overlay) var(--ease-response) 1.2s, opacity var(--motion-overlay) var(--ease-response) 1.2s, visibility 0s linear calc(1.2s + var(--motion-overlay));
+      /* Lesezeit 1,2 s, dann der Weg (220 ms); unsichtbar erst danach (1,42 s). */
+      transition: transform var(--motion-overlay) var(--ease-response) 1.2s, opacity var(--motion-overlay) var(--ease-response) 1.2s, visibility 0s linear 1.42s;
     }
   }
 }
@@ -132,7 +134,7 @@
 
 @keyframes blatt-herein { from { transform: translateY(100%); } }
 @keyframes blatt-hinaus { to { transform: translateY(100%); } }
-/* Um die eigene Breite und den Abstand zum Rand (`right: 0.5rem`): ganz aus dem Bild. */
-@keyframes fenster-herein { from { transform: translateX(calc(100% + 0.5rem)); } }
+/* Um mehr als die eigene Breite und den Abstand zum Rand (`right: 0.5rem`; bei 440 px Breite 22 px): ganz aus dem Bild. Ohne calc() (Linie, Protokoll 0.2). */
+@keyframes fenster-herein { from { transform: translateX(105%); } }
+@keyframes fenster-hinaus { to { transform: translateX(105%); } }
 @keyframes haken-zeichnen { from { stroke-dashoffset: 21; } to { stroke-dashoffset: 0; } }
-@keyframes fenster-hinaus { to { transform: translateX(calc(100% + 0.5rem)); } }
