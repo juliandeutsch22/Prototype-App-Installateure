@@ -76,16 +76,37 @@ const LAEUFE = Number(process.argv.find((a) => a.startsWith('--laeufe='))?.split
 const NUR = process.argv.find((a) => a.startsWith('--nur='))?.split('=')[1].split(',') ?? null;
 const OHNE_HINTERGRUND = process.argv.includes('--ohne-hintergrund');
 const WIEDERKEHR = process.argv.includes('--wiederkehr');
-const ZUSATZ = `${OHNE_HINTERGRUND ? '-ohne-hintergrund' : ''}${WIEDERKEHR ? '-wiederkehr' : ''}`;
+/*
+  ALS MONTEUR (`--monteur`, L11, 17.11.2026): bis hierher maß dieses Skript
+  nur die Geschäftsführung — Zeiterfassung, eigene Startseite, Scheine,
+  Urlaub und Nachrichten des Monteurs fehlten, und damit gerade die Wege mit
+  Tagessoll (Analyse 15.11.2026, B1). Mit `--konto=<kurz>` ein anderes Konto
+  des Testbestands; ohne Angabe `monteur2` — im gewachsenen Bestand
+  (`TESTBESTAND_GEWACHSEN=1`) seit über acht Jahren dabei, mit kurzem Freitag.
+*/
+const MONTEUR = process.argv.includes('--monteur');
+const KONTO_KURZ = process.argv.find((a) => a.startsWith('--konto='))?.split('=')[1] ?? (MONTEUR ? 'monteur2' : 'gf');
+const ZUSATZ = `${OHNE_HINTERGRUND ? '-ohne-hintergrund' : ''}${WIEDERKEHR ? '-wiederkehr' : ''}${MONTEUR ? '-monteur' : ''}`;
 const MARKE = `messung${ZUSATZ}`;
 const ORT = `https://127.0.0.1:${APP_PORT}`;
 const API = `https://127.0.0.1:${API_PORT}`;
 // Öffentlicher Anon-Schlüssel der Supabase-CLI (wie playwright.config.ts) — kein Geheimnis.
 const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
-const KONTO = { email: 'gf@ui-testbestand.test', passwort: 'Testbestand-2026!' };
+const KONTO = { email: `${KONTO_KURZ}@ui-testbestand.test`, passwort: 'Testbestand-2026!' };
+
+/** Die Seiten des Monteurs (L11). */
+const SEITEN_MONTEUR = [
+  ['Start', '/'],
+  ['Zeiterfassung', '/time'],
+  ['Material anfordern', '/material'],
+  ['Mein Einsatzplan', '/my-schedule'],
+  ['Handwerksscheine', '/worksheets'],
+  ['Urlaub', '/vacations'],
+  ['Nachrichten', '/nachrichten'],
+];
 
 /** Die wichtigen Seiten aus dem Auftrag (B2). */
-const SEITEN = [
+const SEITEN_LEITUNG = [
   ['Start', '/'],
   ['Planung (Tag)', '/assignments/tag'],
   ['Planung (Woche)', '/assignments/woche'],
@@ -99,6 +120,7 @@ const SEITEN = [
   ['Mitarbeiterübersicht', '/accounting'],
   ['Einstellungen', '/settings/meldungen'],
 ];
+const SEITEN = MONTEUR ? SEITEN_MONTEUR : SEITEN_LEITUNG;
 
 /** „Langsames 4G“ wie im Handy-Profil von Lighthouse. */
 const NETZ = { offline: false, latency: 150, downloadThroughput: (1.6 * 1024 * 1024) / 8, uploadThroughput: (750 * 1024) / 8 };
@@ -106,7 +128,7 @@ const CPU = 4;
 const GRENZE = 50;
 
 const CHROMIUM = process.env.CHROMIUM_PFAD
-  || (() => { try { return execSync('ls -d /opt/pw-browsers/chromium-*/chrome-linux/chrome | head -1').toString().trim(); } catch { return ''; } })()
+  || (() => { try { return execSync('ls -d /opt/pw-browsers/chromium-*/chrome-linux*/chrome | head -1').toString().trim(); } catch { return ''; } })()
   || undefined;
 
 function bauen() {
@@ -277,7 +299,7 @@ function bericht(ergebnisse) {
   const kb = (b) => `${Math.round(b / 1024).toLocaleString('de-AT')} KB`;
   const s = (ms) => (ms == null ? '–' : `${(ms / 1000).toFixed(1).replace('.', ',')} s`);
   const zeilen = [
-    `Gemessen am ${new Date().toLocaleDateString('de-AT')} · ${LAEUFE} Läufe je Seite, Median · Handy 390 × 844, langsames 4G (150 ms, 1,6 Mbit/s), CPU ×${CPU}, ${WIEDERKEHR ? '**Wiederkehr:** Programmdateien im Zwischenspeicher' : 'erster Besuch ohne Zwischenspeicher'} · ausgeliefert wie draussen (HTTP/2, gepackt, \`auslieferung.mjs\`) · angemeldet als Geschäftsführung des Testbetriebs \`ui-testbestand\`${OHNE_HINTERGRUND ? ' · **ohne Hintergrund:** Service Worker gesperrt, Datensparmodus an (kein Vorladen)' : ''}.`,
+    `Gemessen am ${new Date().toLocaleDateString('de-AT')} · ${LAEUFE} Läufe je Seite, Median · Handy 390 × 844, langsames 4G (150 ms, 1,6 Mbit/s), CPU ×${CPU}, ${WIEDERKEHR ? '**Wiederkehr:** Programmdateien im Zwischenspeicher' : 'erster Besuch ohne Zwischenspeicher'} · ausgeliefert wie draussen (HTTP/2, gepackt, \`auslieferung.mjs\`) · angemeldet als ${MONTEUR ? `Monteur (\`${KONTO_KURZ}\`)` : 'Geschäftsführung'} des Testbetriebs \`ui-testbestand\`${OHNE_HINTERGRUND ? ' · **ohne Hintergrund:** Service Worker gesperrt, Datensparmodus an (kein Vorladen)' : ''}.`,
     '',
     '| Seite | Pfad | erste Anzeige (FCP) | Inhalt da (h1) | bereit (ohne Platzhalter) | Netz ruhig | Anfragen | übertragen | DB-Anfragen | DB-Daten | grösste Liste (Zeilen) |',
     '|---|---|---|---|---|---|---|---|---|---|---|',
