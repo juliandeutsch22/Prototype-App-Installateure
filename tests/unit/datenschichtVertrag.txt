@@ -97,7 +97,7 @@ src/lib/db/quotes.ts#updateQuote: (id: string, data: pg.AngebotAenderung) => Pro
 src/lib/db/scheinFotos.ts#fotoAdresse: (pfad: string) => Promise<string>
 src/lib/db/scheinFotos.ts#fotoEntfernen: (pfad: string) => Promise<void>
 src/lib/db/scheinFotos.ts#fotoHochladen: (companyId: string, scheinId: string, daten: Blob, geraetZeit: number) => Promise<WorkSheetFoto>
-src/lib/db/scheinFotos.ts#komprimiere: (datei: Blob) => Promise<Blob>
+src/lib/db/scheinFotos.ts#komprimiere: (datei: Blob, kante?: number, guete?: number) => Promise<Blob>
 src/lib/db/timeEntries.ts#DuplicateEntryError: typeof DuplicateEntryError
 src/lib/db/timeEntries.ts#createTimeEntry: (companyId: string, entry: NewTimeEntry) => Promise<string>
 src/lib/db/timeEntries.ts#createTimeEntryOhneEmpfang: (companyId: string, entry: NewTimeEntry) => Promise<WriteOutcome>
