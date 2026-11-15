@@ -1,4 +1,5 @@
 import TimerEinstellungen from './TimerEinstellungen';
+import MonatsabschlussEinstellung from './MonatsabschlussEinstellung';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { updateCompany, naechsteNummern, rechnungsvorgabenSpeichern, type NaechsteNummern } from '@/lib/db/company';
@@ -1383,6 +1384,9 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
       )}
 
       {teil === 'personal' && <><TimerEinstellungen /><LohnregelnKarte /></>}
+
+      {/* Monatsabschluss der Zeiten (Z6, E1) — nur, wer die Einstellungen des Betriebs ändert. */}
+      {teil === 'personal' && darfGenehmigerSetzen && <MonatsabschlussEinstellung />}
 
       {teil === 'personal' && darfGenehmigerSetzen && <SonderurlaubKarte />}
 

@@ -152,6 +152,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   zeitbuchung_verlauf: { am: 'zeitpunkt' },
   zeitfeld_definitionen: { angelegt_am: 'zeitpunkt', geaendert_am: 'zeitpunkt' },
   zeitfeld_fassungen: { veroeffentlicht_am: 'zeitpunkt' },
+  zeit_monatsabschluesse: { am: 'zeitpunkt' },
   zeitkorrekturen: { angelegt_am: 'zeitpunkt', entschieden_am: 'zeitpunkt' },
   zeitsitzungen: { aktualisiert_am: 'zeitpunkt', erinnert_am: 'zeitpunkt', weiterlaufen_am: 'zeitpunkt' },
   zeitkonto_anfang: { updated_at: 'zeitpunkt' },

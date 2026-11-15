@@ -124,3 +124,33 @@ export async function zeitsitzungBeendenFuer(userId: string): Promise<void> {
   const { error } = await derClient().rpc('zeitsitzung_beenden_fuer', { p_user: userId });
   if (error) throw new Error(error.message);
 }
+
+/** Ein Eintrag im Verlauf des Monatsabschlusses (Z6) — der jüngste je Monat gilt. */
+export interface Monatsabschluss {
+  /** 'YYYY-MM' */
+  monat: string;
+  aktion: 'abgeschlossen' | 'geoeffnet';
+  grund: string | null;
+  vonName: string | null;
+  am: string;
+}
+
+/** Der Verlauf der Monatsabschlüsse des Betriebs, jüngster zuerst. */
+export async function listMonatsabschluesse(companyId: string): Promise<Monatsabschluss[]> {
+  void companyId;
+  const { data, error } = await derClient().from('zeit_monatsabschluesse')
+    .select('monat, aktion, grund, von_name, am').order('am', { ascending: false }).limit(1000);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Array<{ monat: string; aktion: Monatsabschluss['aktion']; grund: string | null; von_name: string | null; am: string }>)
+    .map((z) => ({ monat: z.monat.slice(0, 7), aktion: z.aktion, grund: z.grund, vonName: z.von_name, am: z.am }));
+}
+
+export async function monatAbschliessen(monat: string): Promise<void> {
+  const { error } = await derClient().rpc('zeit_monat_abschliessen', { p_monat: `${monat}-01` });
+  if (error) throw new Error(error.message);
+}
+
+export async function monatOeffnen(monat: string, grund: string): Promise<void> {
+  const { error } = await derClient().rpc('zeit_monat_oeffnen', { p_monat: `${monat}-01`, p_grund: grund });
+  if (error) throw new Error(error.message);
+}

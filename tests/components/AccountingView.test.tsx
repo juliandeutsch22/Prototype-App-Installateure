@@ -178,6 +178,20 @@ const authWert = {
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
+/* Der Monatsabschluss (Z6) — die Funktionen der Datenbank als Attrappe, die Rechnung echt. */
+const abschliessen = vi.fn(async (monat: string) => { void monat; });
+const oeffnen = vi.fn(async (monat: string, grund: string) => { void monat; void grund; });
+let abschlussVerlauf: Array<{ monat: string; aktion: 'abgeschlossen' | 'geoeffnet'; grund: string | null; vonName: string | null; am: string }> = [];
+vi.mock('@/lib/db/zeitkonto', async () => {
+  const echt = await vi.importActual<typeof import('@/lib/db/zeitkonto')>('@/lib/db/zeitkonto');
+  return {
+    ...echt,
+    listMonatsabschluesse: async () => abschlussVerlauf,
+    monatAbschliessen: (m: string) => abschliessen(m),
+    monatOeffnen: (m: string, g: string) => oeffnen(m, g),
+  };
+});
+
 /*
   DIE FREIEN ZEITFELDER (M06b) — ohne Felder wie bisher; der eigene Block
   unten setzt einen Feldsatz und Werte.
@@ -1857,5 +1871,58 @@ describe('Exporte je Person fragen nur die Person ab (Z8)', () => {
     const csv = csvGeladen.mock.calls[0][0] as string;
     expect(csv).toMatch(/\nPR-1;;10;80,00\n/);
     expect(csv).not.toMatch(/PR-7/);
+  });
+});
+
+describe('Monatsabschluss in der Mitarbeiterübersicht (Durchsicht 15.11.2026, Z6)', () => {
+  const menue = async (nutzer: ReturnType<typeof zeichneSeite>) => {
+    await nutzer.click(await screen.findByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
+  };
+  afterEach(() => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen GmbH' };
+    abschlussVerlauf = [];
+    abschliessen.mockClear();
+    oeffnen.mockClear();
+  });
+
+  it('schließt einen vergangenen Monat ab — und zeigt den Stand', async () => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen GmbH', zeitMonatsabschluss: true } as never;
+    const nutzer = zeichneSeite('/accounting?monat=2026-07');
+    expect(await screen.findByText('noch nicht abgeschlossen')).toBeInTheDocument();
+    await menue(nutzer);
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Monat abschließen' }));
+    const dialog = await screen.findByRole('dialog', { name: /abschließen/ });
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await waitFor(() => expect(abschliessen).toHaveBeenCalledWith('2026-07'));
+  });
+
+  it('wieder öffnen verlangt einen Grund', async () => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen GmbH', zeitMonatsabschluss: true } as never;
+    abschlussVerlauf = [{ monat: '2026-07', aktion: 'abgeschlossen', grund: null, vonName: 'Petra Perl', am: '2026-08-03T08:00:00Z' }];
+    const nutzer = zeichneSeite('/accounting?monat=2026-07');
+    expect(await screen.findByText(/abgeschlossen am 03\.08\.2026 von Petra Perl/)).toBeInTheDocument();
+    await menue(nutzer);
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Monat wieder öffnen' }));
+    const dialog = await screen.findByRole('dialog', { name: /wieder öffnen/ });
+    expect(within(dialog).getByRole('button', { name: 'Wieder öffnen' })).toBeDisabled();
+    await nutzer.type(within(dialog).getByLabelText(/Grund/), 'Nachtrag Krankenstand');
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Wieder öffnen' }));
+    await waitFor(() => expect(oeffnen).toHaveBeenCalledWith('2026-07', 'Nachtrag Krankenstand'));
+  });
+
+  it('bleibt gleich: ohne Monatsabschluss des Betriebs weder Stand noch Menüpunkt', async () => {
+    const nutzer = zeichneSeite('/accounting?monat=2026-07');
+    await personKnopf('Neu Eingestellt').catch(() => undefined);
+    await menue(nutzer);
+    expect(screen.queryByRole('menuitem', { name: /Monat abschließen/ })).toBeNull();
+    expect(screen.queryByText('noch nicht abgeschlossen')).toBeNull();
+  });
+
+  it('der laufende Monat lässt sich nicht abschließen', async () => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen GmbH', zeitMonatsabschluss: true } as never;
+    const nutzer = zeichneSeite('/accounting');
+    await personKnopf('Neu Eingestellt');
+    await menue(nutzer);
+    expect(screen.queryByRole('menuitem', { name: /Monat abschließen/ })).toBeNull();
   });
 });

@@ -31,7 +31,7 @@ import {
 } from '@/lib/time';
 import { tageMitEchterDoppelung } from '@/lib/tagesbuchungen';
 import { canEditTime, fuehrtZeitkonto } from '@/lib/permissions';
-import { zeitkontoSaldo } from '@/lib/db/zeitkonto';
+import { abgeschlosseneMonate, listMonatsabschluesse, zeitkontoSaldo } from '@/lib/db/zeitkonto';
 import { listVerlaufZeitraum } from '@/lib/db/zeitbuchungVerlauf';
 import Aenderungsprotokoll from './Aenderungsprotokoll';
 import type { WithId } from '@/lib/db/core';
@@ -327,6 +327,24 @@ export default function TimeView() {
   const saldoGeladen = saldoAbfrage.data !== undefined || saldoAbfrage.isError;
 
   /*
+    ABGESCHLOSSENE MONATE (Durchsicht 15.11.2026, Z6, E1): dort ist eine
+    Zeile nicht mehr zu bearbeiten oder zu löschen — die Datenbank lehnt es
+    ab, die Zeile sagt es vorher und bietet den Korrekturantrag an. Nur, wenn
+    der Betrieb den Monatsabschluss führt; scheitert das Laden, bleibt es
+    beim Zustand ohne Sperre — die Datenbank sperrt trotzdem.
+  */
+  const abschlussAn = company?.zeitMonatsabschluss === true;
+  const abschlussAbfrage = useZwischengespeichert({
+    queryKey: user ? schluessel('monatsabschluesse', user) : ['monatsabschluesse'],
+    enabled: !!user && abschlussAn,
+    queryFn: () => listMonatsabschluesse(user!.companyId),
+  });
+  const abgeschlossen = useMemo(
+    () => abgeschlosseneMonate(abschlussAbfrage.data ?? [], abschlussAn),
+    [abschlussAbfrage.data, abschlussAn],
+  );
+
+  /*
     Auch die Grundlage des Saldos darf nicht stumm ausbleiben (siehe beim
     Stammdatenblatt): er ist die Zahl, auf die es dem Monteur ankommt.
     „Erneut versuchen“ holt beides — vorher nur das Stammdatenblatt, und der
@@ -610,7 +628,9 @@ export default function TimeView() {
       Berufsschule, kein vom Büro gebuchter Zeitausgleich und keine vom Büro
       gesperrte Zeit — dieselben Bedingungen wie die Knöpfe unten.
     */
+    const imAbschluss = abgeschlossen.has(e.date.slice(0, 7));
     const bearbeitbar =
+      !imAbschluss &&
       !e.isBilled &&
       !e.krankmeldungId &&
       !e.freistellungId &&
@@ -682,7 +702,10 @@ export default function TimeView() {
       >
         {/* Verrechnete Einträge sind Grundlage einer
             verschickten Rechnung und bleiben gesperrt. */}
-        {e.isBilled ? (
+        {imAbschluss ? (
+          // Der Monat ist abgeschlossen (Z6): ändern nur noch über den Korrekturantrag darunter.
+          <Zustand stand="erledigt">Monat abgeschlossen</Zustand>
+        ) : e.isBilled ? (
           /* Verrechnet ist abgeschlossen: das Zeichen „erledigt“ mit dem Wort (Planlinie B3). */
           <Zustand stand="erledigt">verrechnet</Zustand>
         ) : e.krankmeldungId ? (

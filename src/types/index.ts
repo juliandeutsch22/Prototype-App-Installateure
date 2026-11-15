@@ -195,6 +195,12 @@ export interface Company {
    */
   dezemberHalbtage?: boolean;
   /**
+   * Monatsabschluss der Zeiten (Durchsicht 15.11.2026, Z6, E1). An: ein
+   * abgeschlossener Monat ist gesperrt, Änderungen nur über einen
+   * Korrekturantrag. Ab Werk aus — dann wie bisher.
+   */
+  zeitMonatsabschluss?: boolean;
+  /**
    * Die Nachtzeit, 'HH:MM' (Testbericht 30.09.2026, M35). Vorgabe 22:00–06:00;
    * nur die Stunden darin tragen den Nachtzuschlag. Siehe `lib/lohnregeln.ts`.
    */

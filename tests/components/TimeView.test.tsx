@@ -119,12 +119,19 @@ vi.mock('@/lib/db/monatsbilanzen', () => ({
   Attrappe rechnet ihn wie die Datenbank aus den Buchungen — dass beide
   gleich rechnen, prüft `tests/supabase/zeitkontoSaldo.test.ts`.
 */
-vi.mock('@/lib/db/zeitkonto', () => ({
+/* Der Monatsabschluss (Z6) — ab Werk führt der Betrieb keinen. */
+let abschluesse: Array<{ monat: string; aktion: 'abgeschlossen' | 'geoeffnet'; grund: string | null; vonName: string | null; am: string }> = [];
+vi.mock('@/lib/db/zeitkonto', async () => {
+  const echt = await vi.importActual<typeof import('@/lib/db/zeitkonto')>('@/lib/db/zeitkonto');
+  return {
+  abgeschlosseneMonate: echt.abgeschlosseneMonate,
+  listMonatsabschluesse: async () => abschluesse,
   zeitkontoSaldo: (uid: string) => {
     listeSeit(uid);
     return (seitHalten ?? Promise.resolve(eintraege)).then((rows) => calcOverallSaldo({ ...MONTEUR, role: rolle }, rows, true));
   },
-}));
+  };
+});
 
 /*
   Das Formular hat seine eigenen Belange (und seine eigenen Tests). Hier geht
@@ -249,6 +256,8 @@ beforeEach(() => {
   profilFehlerWerfen = false;
   rolle = 'Mitarbeiter';
   authWert.user.role = 'Mitarbeiter';
+  abschluesse = [];
+  authWert.company = { id: 'perl', name: 'Perl Installationen' };
   schnappschussSenden = null;
   seitHalten = null;
   fensterHalten = false;
@@ -1393,5 +1402,42 @@ describe('Abgelehnte Buchung als Entwurf (Z4)', () => {
     zeige();
     await screen.findAllByTestId('zeitformular');
     expect(screen.queryByText('Noch nicht beim Server')).toBeNull();
+  });
+});
+
+describe('Zeiterfassung — abgeschlossener Monat (Durchsicht 15.11.2026, Z6)', () => {
+  const august = () => {
+    eintraege = [eintrag({ id: 'alt', date: '2026-08-31' }), eintrag({ id: 'neu', date: '2026-09-01' })];
+    abschluesse = [{ monat: '2026-08', aktion: 'abgeschlossen', grund: null, vonName: 'Büro', am: '2026-09-01T07:00:00Z' }];
+  };
+  const zeile = (datum: string) => screen.getByText(datum).closest('li') as HTMLElement;
+
+  it('eine Zeile im abgeschlossenen Monat ist gesperrt — statt Löschen der Korrekturantrag', async () => {
+    authWert.company = {
+      id: 'perl', name: 'Perl Installationen', zeitMonatsabschluss: true,
+      modules: { 'zeiterfassung.korrekturantraege': true },
+    } as never;
+    august();
+    zeige();
+    await waitFor(() => expect(within(zeile('31.08.2026')).getByText('Monat abgeschlossen')).toBeInTheDocument());
+    expect(within(zeile('31.08.2026')).queryByRole('button', { name: /löschen/ })).toBeNull();
+    expect(within(zeile('31.08.2026')).getByRole('button', { name: /Korrektur/ })).toBeInTheDocument();
+    // Der laufende Monat bleibt, wie er ist (dieselbe Woche, ein anderer Monat).
+    expect(within(zeile('01.09.2026')).getByRole('button', { name: /löschen/ })).toBeInTheDocument();
+  });
+
+  it('bleibt gleich: ohne Monatsabschluss des Betriebs zählt ein Eintrag im Verlauf nicht', async () => {
+    august();
+    zeige();
+    await waitFor(() => expect(within(zeile('31.08.2026')).getByRole('button', { name: /löschen/ })).toBeInTheDocument());
+    expect(within(zeile('31.08.2026')).queryByText('Monat abgeschlossen')).toBeNull();
+  });
+
+  it('wieder geöffnet: der jüngste Eintrag gilt', async () => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen', zeitMonatsabschluss: true } as never;
+    august();
+    abschluesse = [...abschluesse, { monat: '2026-08', aktion: 'geoeffnet', grund: 'Nachtrag', vonName: 'Büro', am: '2026-09-01T08:00:00Z' }];
+    zeige();
+    await waitFor(() => expect(within(zeile('31.08.2026')).getByRole('button', { name: /löschen/ })).toBeInTheDocument());
   });
 });

@@ -27,6 +27,7 @@ import {
   tageWort,
   dezemberHalbtage,
   tagesAnteil,
+  todayStr,
 } from '@/lib/time';
 import { einstufungText } from '@/lib/einstufung';
 import type { WithId } from '@/lib/db/core';
@@ -65,7 +66,9 @@ import { wochenTitel } from '@/features/assignments/planungKopf';
 import TimeForm from '@/features/time/TimeForm';
 import { KrankmeldungKarte } from '@/features/vacations/Krankmeldungen';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { SelectField } from '@/components/Field';
+import { InputField, SelectField } from '@/components/Field';
+import { abgeschlosseneMonate, abschlussStand, listMonatsabschluesse, monatAbschliessen, monatOeffnen, type Monatsabschluss } from '@/lib/db/zeitkonto';
+import { grundAus } from '@/lib/fehlerGrund';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import {
@@ -213,6 +216,31 @@ export default function AccountingView() {
     Live-Abfrage (`urlaubAlle` unten).
   */
   const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+  /*
+    DER MONATSABSCHLUSS (Durchsicht 15.11.2026, Z6, E1) — nur, wenn der
+    Betrieb ihn führt. Abschließen lässt sich ein vergangener Monat; danach
+    gehen Änderungen nur über den Korrekturantrag, oder der Monat wird mit
+    Grund wieder geöffnet. Die Datenbank sperrt, die Seite sagt es.
+  */
+  const abschlussAn = company?.zeitMonatsabschluss === true;
+  const [abschluesse, setAbschluesse] = useState<Monatsabschluss[]>([]);
+  const [abschlussVersuch, setAbschlussVersuch] = useState(0);
+  const [abschlussFrage, setAbschlussFrage] = useState<'abschliessen' | 'oeffnen' | null>(null);
+  const [oeffnenGrund, setOeffnenGrund] = useState('');
+  useEffect(() => {
+    if (!user || !abschlussAn) return;
+    let weg = false;
+    listMonatsabschluesse(user.companyId)
+      .then((rows) => { if (!weg) setAbschluesse(rows); })
+      .catch(() => { if (!weg) setNebenFehler('Der Stand des Monatsabschlusses'); });
+    return () => { weg = true; };
+  }, [user, abschlussAn, abschlussVersuch]);
+  const abschlussDesMonats = abschlussStand(abschluesse).get(monthPrefix) ?? null;
+  const monatAbgeschlossen = abgeschlosseneMonate(abschluesse, abschlussAn).has(monthPrefix);
+  const monatVergangen = monthPrefix < todayStr().slice(0, 7);
+  // Wie `zeit_monat_abschliessen`: Buchhaltung, Geschäftsführung, Administration — im Supportzugang nicht.
+  const darfAbschliessen = !!user && !imSupport && ['Buchhaltung', 'Geschäftsführung', 'Administrator'].includes(user.role);
   const monatsAnfang = `${monthPrefix}-01`;
   const monatsLetzter = localDateStr(new Date(year, month + 1, 0));
   const ladenVon = [plusTage(monatsAnfang, -7), ...(ansicht === 'woche' ? [montag] : [])].sort()[0];
@@ -1031,8 +1059,15 @@ export default function AccountingView() {
           </Button> : undefined
         }
         mehr={
-          rows.length > 0 && !imSupport ? (
-            <RowMenu about="Mitarbeiterübersicht" items={[{ label: 'Monats-CSV', onSelect: exportMonthCsv }]} />
+          (rows.length > 0 || (abschlussAn && monatVergangen)) && !imSupport ? (
+            <RowMenu about="Mitarbeiterübersicht" items={[
+              ...(rows.length > 0 ? [{ label: 'Monats-CSV', onSelect: exportMonthCsv }] : []),
+              ...(abschlussAn && monatVergangen && darfAbschliessen
+                ? [monatAbgeschlossen
+                  ? { label: 'Monat wieder öffnen', onSelect: () => { setOeffnenGrund(''); setAbschlussFrage('oeffnen'); } }
+                  : { label: 'Monat abschließen', onSelect: () => setAbschlussFrage('abschliessen') }]
+                : []),
+            ]} />
           ) : undefined
         }
         /*
@@ -1047,6 +1082,15 @@ export default function AccountingView() {
           !imSupport && !error && (!bereit || alleRows.length > 0) ? (
             <MetricRow label="Stand der Auswertung">
               <Metric label={ansicht === 'woche' ? 'Woche' : 'Monat'} value={titel} hint={unterzeile || undefined} />
+              {abschlussAn && monatVergangen && (
+                <Metric
+                  label="Abschluss"
+                  value={monatAbgeschlossen ? 'abgeschlossen' : 'offen'}
+                  hint={abschlussDesMonats
+                    ? `${abschlussDesMonats.aktion === 'abgeschlossen' ? 'abgeschlossen' : 'wieder geöffnet'} am ${datumAT(abschlussDesMonats.am.slice(0, 10))}${abschlussDesMonats.vonName ? ` von ${abschlussDesMonats.vonName}` : ''}${abschlussDesMonats.grund ? ` — ${abschlussDesMonats.grund}` : ''}`
+                    : 'noch nicht abgeschlossen'}
+                />
+              )}
               <Metric
                 label="Gebucht"
                 value={fmtMin(angezeigteSumme.ist)}
@@ -1413,6 +1457,51 @@ export default function AccountingView() {
           setToDelete(null);
         }}
       />
+
+      <ConfirmDialog
+        open={abschlussFrage === 'abschliessen'}
+        title={`${monatsName} abschließen?`}
+        confirmLabel="Abschließen"
+        confirmTone="primary"
+        message="Danach lässt sich in diesem Monat nichts mehr buchen, ändern oder löschen — auch nicht vom Büro und nicht über Urlaub, Krankmeldung oder Timer. Wer noch etwas ändern muss, stellt einen Korrekturantrag. Der Monat lässt sich mit Grund wieder öffnen."
+        onCancel={() => setAbschlussFrage(null)}
+        onConfirm={async () => {
+          try {
+            await monatAbschliessen(monthPrefix);
+          } catch (e) {
+            throw new Error(grundAus(e, 'Der Monat konnte nicht abgeschlossen werden.'));
+          }
+          setAbschlussFrage(null);
+          setAbschlussVersuch((v) => v + 1);
+          toast.success(`${monatsName} abgeschlossen`);
+        }}
+      />
+
+      <ConfirmDialog
+        open={abschlussFrage === 'oeffnen'}
+        title={`${monatsName} wieder öffnen?`}
+        confirmLabel="Wieder öffnen"
+        confirmTone="primary"
+        message="Danach lässt sich in diesem Monat wieder buchen und ändern. Der Grund steht mit Name und Zeit im Verlauf des Abschlusses."
+        gesperrt={oeffnenGrund.trim().length < 3}
+        onCancel={() => setAbschlussFrage(null)}
+        onConfirm={async () => {
+          try {
+            await monatOeffnen(monthPrefix, oeffnenGrund.trim());
+          } catch (e) {
+            throw new Error(grundAus(e, 'Der Monat konnte nicht geöffnet werden.'));
+          }
+          setAbschlussFrage(null);
+          setAbschlussVersuch((v) => v + 1);
+          toast.success(`${monatsName} wieder geöffnet`);
+        }}
+      >
+        <InputField
+          id="monat-oeffnen-grund" label="Grund" pflicht
+          placeholder="etwa: Nachtrag Krankenstand nach Lohnexport"
+          value={oeffnenGrund} onChange={(e) => setOeffnenGrund(e.target.value)}
+        />
+      </ConfirmDialog>
 
       {exportFor && (
         <ExportDialog
