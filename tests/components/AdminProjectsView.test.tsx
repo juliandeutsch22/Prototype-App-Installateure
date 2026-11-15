@@ -128,6 +128,15 @@ vi.mock('@/lib/db/projects', () => ({
 
 /* „Ohne Einsatz“ aus der Datenbank (P8, `baustellen_ohne_einsatz`) — dieselbe Antwort wie der Zähler der Startseite. */
 const ohneEinsatz = vi.fn<(heute: string) => Promise<{ projectNumber: string; zuletzt?: string }[]>>(async () => []);
+/*
+  DIE NÄCHSTE NUMMER VOM SERVER (Befund aus G12). Ohne Angabe scheitert die
+  Abfrage — wie ohne Verbindung; dann gilt der bisherige Vorschlag mit dem
+  Jahr des Geräts. Einzelne Prüfungen liefern ein abweichendes Serverjahr.
+*/
+const naechsteNummernImJahr = vi.fn<() => Promise<{ jahr: number; rechnung: number; angebot: number; baustelle: number }>>(
+  async () => { throw new Error('offline'); },
+);
+vi.mock('@/lib/db/company', () => ({ naechsteNummernImJahr: () => naechsteNummernImJahr() }));
 vi.mock('@/lib/db/assignments', () => ({ baustellenOhneEinsatz: (heute: string) => ohneEinsatz(heute) }));
 
 vi.mock('@/lib/db/users', () => ({
@@ -185,6 +194,8 @@ async function formOeffnen() {
 }
 
 beforeEach(() => {
+  naechsteNummernImJahr.mockReset();
+  naechsteNummernImJahr.mockRejectedValue(new Error('offline'));
   loeschFehler = null;
   verwendungen = [LEER];
   abschlussLage = OFFEN_NICHTS;
@@ -1552,5 +1563,32 @@ describe('Baustellen: Suche in der Adresse', () => {
     expect(p.get('stand')).toBe('alle');
     expect(p.get('suche')).toBe('B-2026-00011');
     expect(p.has('baustelle')).toBe(false);
+  });
+});
+
+/* Befund aus G12 (Durchsicht 15.11.2026): der Vorschlag nimmt das Jahr, in dem der Server vergibt. */
+describe('Nummernvorschlag mit dem Jahr vom Server', () => {
+  it('schlägt Jahr und nächste Zahl des Servers vor — nicht das Jahr des Geräts', async () => {
+    // Gerät: 2026 (fester Tag oben). Server: 2031, der Zähler stünde bei 7.
+    naechsteNummernImJahr.mockResolvedValue({ jahr: 2031, rechnung: 1001, angebot: 1, baustelle: 7 });
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: 'B-2026-0004', customerName: 'Familie Huber', customerId: 'k1', status: 'Aktiv' } as Project & { id: string },
+    ];
+    zeige();
+    await formOeffnen();
+    const feld = (await screen.findByLabelText('Projektnummer')) as HTMLInputElement;
+    await waitFor(() => expect(feld.value).toBe('B-2031-0007'));
+    expect(screen.queryByText(/Beispiel ohne Verbindung/)).toBeNull();
+  });
+
+  it('bleibt gleich ohne Verbindung: Jahr des Geräts, Nummer aus der Liste — als Beispiel gekennzeichnet', async () => {
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: 'B-2026-0004', customerName: 'Familie Huber', customerId: 'k1', status: 'Aktiv' } as Project & { id: string },
+    ];
+    zeige();
+    await formOeffnen();
+    const feld = (await screen.findByLabelText('Projektnummer')) as HTMLInputElement;
+    await waitFor(() => expect(feld.value).toBe('B-2026-0005'));
+    expect(screen.getByText(/Beispiel ohne Verbindung zum Server \(Jahr vom Gerät\)/)).toBeInTheDocument();
   });
 });

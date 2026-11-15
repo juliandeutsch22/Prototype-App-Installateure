@@ -47,7 +47,8 @@ import { Zustand } from '@/components/Badge';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import PageHeader from '@/components/PageHeader';
 import RowMenu from '@/components/RowMenu';
-import { praefixeVon, belegNummer, hoechsteLfdImJahr } from '@/lib/praefixe';
+import { praefixeVon } from '@/lib/praefixe';
+import { useBaustellenVorschlag } from './useBaustellenVorschlag';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, TextareaField, FormGrid, Pflichthinweis, CheckboxField } from '@/components/Field';
@@ -506,15 +507,10 @@ export default function AdminProjectsView() {
    * anlegt; verbindlich wird die Nummer erst beim Speichern.
    */
   const vorsaetze = praefixeVon(company);
-  const nummernVorschlag = useMemo(
-    () =>
-      belegNummer(
-        vorsaetze.baustelle,
-        new Date().getFullYear(),
-        hoechsteLfdImJahr(projects.map((p) => p.projectNumber), new Date().getFullYear()) + 1,
-      ),
-    [projects, vorsaetze.baustelle],
-  );
+  // Das Jahr vom Server, wie die Vergabe (Befund aus G12); ohne Verbindung das des Geräts.
+  const projektNummern = useMemo(() => projects.map((p) => p.projectNumber), [projects]);
+  const { vorschlag: nummernVorschlag, vomServer: vorschlagVomServer } =
+    useBaustellenVorschlag(projektNummern, vorsaetze.baustelle);
 
   /*
     DER VORSCHLAG GEHÖRT IN DEN ZUSTAND, NICHT IN DIE ANZEIGE.
@@ -809,6 +805,16 @@ export default function AdminProjectsView() {
           required
           pflicht
         />
+        {/*
+          OHNE VERBINDUNG IST DER VORSCHLAG NUR EIN BEISPIEL: Jahr und Zahl kommen
+          dann vom Gerät. Bleibt er stehen, vergibt der Server beim Speichern
+          ohnehin die verbindliche Nummer.
+        */}
+        {!vorschlagVomServer && form.projectNumber === nummernVorschlag && (
+          <p className="-mt-2 text-sm text-ink-muted">
+            Beispiel ohne Verbindung zum Server (Jahr vom Gerät) — die Nummer vergibt der Server beim Speichern.
+          </p>
+        )}
         {/*
           Kunde AUSWÄHLEN statt tippen.
           Vorher war das ein freies Textfeld, und zwei Schreibweisen

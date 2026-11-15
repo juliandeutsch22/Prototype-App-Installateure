@@ -94,6 +94,15 @@ const listRecentProjects = vi.fn(async () => baustellen);
 const reserveProjectNumber = vi.fn<(a0: string, a1: unknown) => Promise<string | null>>(
   async () => 'B-2026-0015',
 );
+/*
+  DIE NÄCHSTE NUMMER VOM SERVER (Befund aus G12). Ohne Angabe scheitert die
+  Abfrage — wie ohne Verbindung; dann gilt der bisherige Vorschlag mit dem
+  Jahr des Geräts. Einzelne Prüfungen liefern ein abweichendes Serverjahr.
+*/
+const naechsteNummernImJahr = vi.fn<() => Promise<{ jahr: number; rechnung: number; angebot: number; baustelle: number }>>(
+  async () => { throw new Error('offline'); },
+);
+vi.mock('@/lib/db/company', () => ({ naechsteNummernImJahr: () => naechsteNummernImJahr() }));
 vi.mock('@/lib/db/projects', () => ({
   listRecentProjects: () => listRecentProjects(),
   createProject: (c: string, p: Record<string, unknown>) => createProject(c, p),
@@ -147,6 +156,8 @@ function zeichne() {
   geändert hätte.
 */
 beforeEach(() => {
+  naechsteNummernImJahr.mockReset();
+  naechsteNummernImJahr.mockRejectedValue(new Error('offline'));
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-10-20T10:00:00+02:00'));
 });
@@ -464,6 +475,30 @@ describe('Wartungen', () => {
  * längst im Einsatzplan".
  */
 describe('Baustelle aus einer Wartung', () => {
+  it('schlägt die Nummer mit dem Jahr und der Zahl des Servers vor (Befund aus G12)', async () => {
+    naechsteNummernImJahr.mockResolvedValue({ jahr: 2031, rechnung: 1001, angebot: 1, baustelle: 3 });
+    listRecentProjects.mockResolvedValue([{ projectNumber: 'B-2026-0014' }]);
+    bestand = [wartung('w1', 'Bäckerei Stein', '2026-04-10')];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findAllByText(/Bäckerei Stein/);
+    await vi.waitFor(() => expect(naechsteNummernImJahr).toHaveBeenCalled());
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Baustelle anlegen' }))[0]);
+    expect(await screen.findByLabelText(/Projektnummer/)).toHaveValue('B-2031-0003');
+    expect(screen.getByText('Vorgeschlagen nach dem Schema des Betriebs — änderbar.')).toBeInTheDocument();
+  });
+
+  it('bleibt gleich ohne Verbindung: Jahr des Geräts — der Vorschlag heißt Beispiel', async () => {
+    listRecentProjects.mockResolvedValue([{ projectNumber: 'B-2026-0014' }]);
+    bestand = [wartung('w1', 'Bäckerei Stein', '2026-04-10')];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findAllByText(/Bäckerei Stein/);
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Baustelle anlegen' }))[0]);
+    expect(await screen.findByLabelText(/Projektnummer/)).toHaveValue('B-2026-0015');
+    expect(screen.getByText(/Beispiel nach dem Schema des Betriebs, ohne Verbindung zum Server/)).toBeInTheDocument();
+  });
+
   it('legt sie mit Kunde, Standort und Anlage an und merkt sie vor', async () => {
     // Der Bestand nach dem Schema des Betriebs — Vorsatz B, wie ab Werk.
     listRecentProjects.mockResolvedValue([{ projectNumber: 'B-2026-0014' }]);

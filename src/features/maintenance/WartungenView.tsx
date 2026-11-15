@@ -20,7 +20,8 @@ import WartungVerlauf from './WartungVerlauf';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 import { listProjectsByNumbers, listRecentProjects } from '@/lib/db/projects';
-import { belegNummer, hoechsteLfdImJahr, praefixeVon } from '@/lib/praefixe';
+import { praefixeVon } from '@/lib/praefixe';
+import { useBaustellenVorschlag } from '@/features/projects/useBaustellenVorschlag';
 import { isGF } from '@/lib/permissions';
 import { todayStr } from '@/lib/time';
 import { useModul } from '@/lib/useModule';
@@ -141,6 +142,8 @@ interface Einplanung {
   nummer: string;
   /** Der Vorschlag, wie er ins Feld kam — bleibt er stehen, vergibt der Zähler. */
   vorschlag: string;
+  /** Ohne Verbindung gerechnet (Jahr vom Gerät) — dann nur ein Beispiel. */
+  beispiel: boolean;
 }
 
 /**
@@ -245,6 +248,8 @@ export default function WartungenView() {
     der Nummer hängen und nicht an der Dokument-ID.
   */
   const [nummern, setNummern] = useState<string[]>(() => gemerkt?.nummern ?? []);
+  // Das Jahr vom Server, wie die Vergabe (Befund aus G12); ohne Verbindung das des Geräts.
+  const baustellenVorschlag = useBaustellenVorschlag(nummern, vorsaetze.baustelle);
   /*
     Wie weit der Bestand geladen ist. Vorher stand hier die Voreinstellung der
     Abfrage — fünfhundert —, und ein Betrieb mit mehr Vereinbarungen verlor
@@ -696,12 +701,8 @@ export default function WartungenView() {
     });
 
   const einplanenFragen = (w: WithId<Wartung>) => {
-    const vorschlag = belegNummer(
-      vorsaetze.baustelle,
-      new Date().getFullYear(),
-      hoechsteLfdImJahr(nummern, new Date().getFullYear()) + 1,
-    );
-    setEinplanung({ wartung: w, nummer: vorschlag, vorschlag });
+    const { vorschlag, vomServer } = baustellenVorschlag;
+    setEinplanung({ wartung: w, nummer: vorschlag, vorschlag, beispiel: !vomServer });
   };
 
   /*
@@ -1233,7 +1234,9 @@ export default function WartungenView() {
               gespeichert wird, und dabei wird sie noch einmal geprüft.
             */}
             <p className="flex flex-wrap items-center text-sm text-ink-muted">
-              Vorgeschlagen nach dem Schema des Betriebs — änderbar.
+              {!einplanung.beispiel || einplanung.nummer !== einplanung.vorschlag
+                ? 'Vorgeschlagen nach dem Schema des Betriebs — änderbar.'
+                : 'Beispiel nach dem Schema des Betriebs, ohne Verbindung zum Server (Jahr vom Gerät) — die Nummer vergibt der Server beim Anlegen.'}
               <InfoHint about="die neue Baustelle">
                 Die Baustelle entsteht mit Kunde, Standort und der Anlage in der Beschreibung;
                 einzuteilen ist sie danach im Einsatzplan. Die Abrechnungsart bleibt offen: was
