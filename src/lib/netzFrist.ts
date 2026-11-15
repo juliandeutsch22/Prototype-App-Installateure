@@ -104,6 +104,7 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'kennzeichen_aus_buchungen',
   'kollegen',
   'kontoauszug_schon_verbucht',
+  'kunden_zusammenfuehren_vorschau',
   'lager_frei',
   'lager_knapp',
   'lieferant_vorschlag',

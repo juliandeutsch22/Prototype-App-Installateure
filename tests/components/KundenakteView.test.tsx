@@ -1216,3 +1216,27 @@ describe('Gemerkter Stand der Akte (L8)', () => {
     await waitFor(() => expect(listInvoicesForCustomer).toHaveBeenCalledTimes(2));
   });
 });
+
+/* F9 (Durchsicht 15.11.2026): eine Dublette wird aus der Akte zusammengeführt. */
+describe('Kunden zusammenführen aus der Akte (F9)', () => {
+  it('wer Kunden pflegt, findet „Mit anderem Kunden zusammenführen …“ im ⋯ — es öffnet das Fenster', async () => {
+    const nutzerEvent = userEvent.setup();
+    zeige();
+    await nutzerEvent.click(await screen.findByRole('button', { name: /^Weitere Aktionen für Kunde/ }));
+    await nutzerEvent.click(screen.getByRole('menuitem', { name: 'Mit anderem Kunden zusammenführen …' }));
+    expect(await screen.findByRole('dialog', { name: 'Kunden zusammenführen' })).toBeInTheDocument();
+  });
+
+  it('bleibt gleich: die Buchhaltung ohne Kundenrecht bekommt den Eintrag nicht', async () => {
+    rolle = 'Buchhaltung';
+    nutzer = NUTZER();
+    const nutzerEvent = userEvent.setup();
+    zeige();
+    await screen.findByRole('heading', { level: 1 });
+    const mehr = screen.queryByRole('button', { name: /^Weitere Aktionen für Kunde/ });
+    if (mehr) {
+      await nutzerEvent.click(mehr);
+      expect(screen.queryByRole('menuitem', { name: 'Mit anderem Kunden zusammenführen …' })).toBeNull();
+    }
+  });
+});

@@ -58,6 +58,7 @@ import KundenartUidFelder from '@/components/KundenartUidFelder';
 import { uidNormalisieren, uidSperrt } from '@/lib/uid';
 import UidVies from './UidVies';
 import KundenRechnungFenster from './KundenRechnungFenster';
+import KundenZusammenfuehren from './KundenZusammenfuehren';
 import useUidVies from './useUidVies';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import KundenLiegenschaften from '@/features/liegenschaften/KundenLiegenschaften';
@@ -162,6 +163,8 @@ export default function KundenakteView() {
   const [bearbeitet, setBearbeitet] = useState(false);
   /** Der Stundennachweis über alle Baustellen des Kunden (F12). */
   const [nachweisOffen, setNachweisOffen] = useState(false);
+  /** Mit einem doppelt angelegten Kunden zusammenführen (F9). */
+  const [zusammenfuehrenOffen, setZusammenfuehrenOffen] = useState(false);
   const [terminStand, setTerminStand] = useState<AktenTerminStand>({ termine: null, fehler: false });
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
   /** Runde 6, M6: was an PLZ oder E-Mail nicht stimmt — die Rückfrage „Trotzdem speichern“. */
@@ -737,9 +740,26 @@ export default function KundenakteView() {
             ...(!einblick ? neuFuer : []),
             ...(user && canEditTime(user.role) && !einblick && baustellen.zustand === 'bereit' && baustellen.daten.length > 0
               ? [{ label: 'Stundennachweis', onSelect: () => setNachweisOffen(true) }] : []),
+            // F9: eine Dublette mit Belegen — wer Kunden pflegt, führt sie hier zusammen.
+            ...(darfAendern && !einblick
+              ? [{ label: 'Mit anderem Kunden zusammenführen …', onSelect: () => setZusammenfuehrenOffen(true) }] : []),
           ];
           return eintraege.length ? <RowMenu about={`Kunde ${k.name}`} items={eintraege} /> : undefined;
         })()} />
+      {zusammenfuehrenOffen && companyId && (
+        <KundenZusammenfuehren
+          companyId={companyId}
+          kunde={k}
+          onSchliessen={() => setZusammenfuehrenOffen(false)}
+          onFertig={(bleibt, name) => {
+            setZusammenfuehrenOffen(false);
+            toast.success(`Kunden zusammengeführt: ${name}`);
+            // Blieb der Kunde dieser Akte, lädt sie neu; sonst gibt es diese Akte nicht mehr.
+            if (bleibt === k.id) setVersuch((n) => n + 1);
+            else navigate(`/customers/${bleibt}`);
+          }}
+        />
+      )}
       {nachweisOffen && baustellen.zustand === 'bereit' && (
         <StundennachweisDialog
           offen

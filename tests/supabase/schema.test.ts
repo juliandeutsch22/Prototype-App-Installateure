@@ -344,6 +344,11 @@ describe('Interne Hilfsfunktionen', () => {
       'app.wartung_bezug_mit_tag()',
       // A14: angenommen wird nur mit Position.
       'app.angebot_annahme_pruefen()',
+      // F9: Wächterliste, Lage und Prüfung des Zusammenführens — nur die öffentlichen Funktionen rufen sie.
+      'app.kundenbezug_tabellen()',
+      'app.kundenbezug_unbekannt()',
+      'app.kunden_zusammenfuehren_lage(uuid, uuid)',
+      'app.kunden_zusammenfuehren_pruefen(uuid, uuid)',
       // Was nur die Function mit dem Dienstschlüssel ruft.
       'public.angebot_link_abruf(text)',
       'public.angebot_link_annehmen(text, text, text, boolean)',
