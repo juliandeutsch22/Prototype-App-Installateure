@@ -533,7 +533,8 @@ describe('E72 Team und Verwaltung', () => {
     expect(quelle('src/features/users/UserMgmtView.tsx')).not.toContain('flex-col-reverse');
     // Standardfelder: gefüllt im Fuß wie jede Speichern-Aktion der Einstellungen.
     const standard = quelle('src/features/settings/StandardZeitfelder.tsx');
-    expect(standard).toContain('<div className="fuss-aktionen mt-4"><Button disabled={!geaendert || speichert}');
+    // Seit U1 (15.11.2026) über die Speicherleiste, gefüllt und erst bei einer Änderung.
+    expect(standard).toContain('<Speicherleiste geaendert={geaendert} speichert={speichert}');
     expect(standard).not.toContain('<Button variant="secondary" disabled={!geaendert');
     // Zeit bearbeiten: Aufteilen als Zweitknopf statt 20-px-Link.
     expect(quelle('src/features/time/TimeForm.tsx')).toMatch(/<Button type="button" variant="secondary" className="self-start" onClick=\{\(\) => setAufteilenOffen\(true\)\}>/);
@@ -576,8 +577,10 @@ describe('E72 Aufträge und Planung', () => {
     // Gegenprobe: vorher standen „Bearbeiten“ und „Neue Fassung“ als `.link` mit px-4 neben gerahmten Knöpfen.
     const angebot = quelle('src/features/quotes/AngebotView.tsx');
     expect(angebot).not.toContain('className="link inline-flex min-h-touch items-center px-4 text-sm"');
-    expect(angebot).toContain('<KnopfLink to={`/quotes?neueFassung=${q.id}`} variant="secondary">');
-    expect(angebot).toContain('<KnopfLink to={`/quotes?bearbeiten=${q.id}`} variant="secondary">');
+    // Seit U4 (15.11.2026) aus einer Liste der Schritte: die ersten zwei als Knopf, Wege auf andere Seiten als KnopfLink.
+    expect(angebot).toContain("{ label: 'Neue Fassung', to: `/quotes?neueFassung=${q.id}`");
+    expect(angebot).toContain("{ label: 'Bearbeiten', to: `/quotes?bearbeiten=${q.id}`");
+    expect(angebot).toContain('<KnopfLink key={sch.label} to={sch.to} variant="secondary">{sch.label}</KnopfLink>');
     const akte = quelle('src/features/projects/BaustellenakteView.tsx');
     expect(akte).toMatch(/<KnopfLink\s+to=\{`\/worksheet\?projekt=\$\{encodeURIComponent\(b\.projectNumber\)\}`\}\s+variant="secondary"\s+groesse="klein"\s*>\s*Handwerksschein schreiben/);
     expect(quelle('src/components/SignaturePad.tsx')).toContain("className={`${knopfKlassen('secondary')} mt-2 shrink-0 lg:hidden`}");
@@ -673,11 +676,12 @@ describe('E72 Aufträge und Planung', () => {
   it('Löschen ist rot und normal groß (A4, R4) — in der Zeile seit E74 der Papierkorb', () => {
     // In der Zeile der Papierkorb (E74); im Fenster bleibt Löschen der rote Wortknopf.
     expect(quelle('src/features/termine/TerminListe.tsx')).toContain('<LoeschenKnopf label={`${terminKopf(t)} am ${datumKurz(t.datum)} löschen`} onClick={() => onLoeschen(t)} />');
-    expect(quelle('src/features/termine/TerminFenster.tsx')).toMatch(/<Button\s+type="button"\s+variant="danger"\s+onClick=\{\(\) => setLoeschFrage\(true\)\}/);
+    // Im Fenster seit U4 (15.11.2026) im ⋯, rot und mit Rückfrage.
+    expect(quelle('src/features/termine/TerminFenster.tsx')).toContain("weitere={[{ label: 'Termin löschen', danger: true, onSelect: () => setLoeschFrage(true) }]}");
     expect(quelle('src/features/worksheets/WorkSheetsListView.tsx')).not.toMatch(/variant="danger"\s+groesse="klein"/);
     const lieg = quelle('src/features/liegenschaften/LiegenschaftView.tsx');
-    expect(lieg).toContain('<Button type="button" variant="danger" onClick={() => setFrage({ art: \'top\', top: offenesTop })}>Top löschen</Button>');
-    expect(lieg).toContain('<Button type="button" variant="danger" onClick={() => setFrage({ art: \'beteiligter\', beteiligter: offenerBeteiligter })}>Entfernen</Button>');
+    expect(lieg).toContain("weitere={[{ label: 'Top löschen …', danger: true, onSelect: () => setFrage({ art: 'top', top: offenesTop }) }]}");
+    expect(lieg).toContain("weitere={[{ label: 'Entfernen …', danger: true, onSelect: () => setFrage({ art: 'beteiligter', beteiligter: offenerBeteiligter }) }]}");
   });
 
   it('frei stehende Knöpfe am Handy in normaler Größe (D5, R3)', () => {

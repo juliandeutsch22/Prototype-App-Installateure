@@ -142,14 +142,17 @@ describe('Etwas Neues in die Liste: der Petrol-Kreis mit Plus (E76)', () => {
   });
 
   it('gleich geblieben: im Fensterfuß bleibt das Wort', () => {
-    expect(q('src/features/assignments/MonatsVorschau.tsx')).toMatch(/<Button variant="secondary" onClick=\{terminNeu\}>\s*Termin anlegen\s*<\/Button>/);
+    // Seit U4 (15.11.2026) steht „Termin anlegen“ im ⋯ des Fensterfußes — als Wort, nicht als Zeichen.
+    expect(q('src/features/assignments/MonatsVorschau.tsx')).toContain("weitere={onTerminNeu && darfTermine ? [{ label: 'Termin anlegen', onSelect: terminNeu }] : []}");
   });
 });
 
 describe('Kein Wort über den Rand (E76)', () => {
   it('„Speichern“ in den Firmendaten wie in den Akten — „Firmendaten speichern“ passte am Handy nicht', () => {
     const f = q('src/features/settings/FirmendatenView.tsx');
-    expect(f).toContain(": 'Speichern'}</Button>}");
+    // Seit U1 (15.11.2026) über die Speicherleiste — ohne eigenen Text heißt ihr Knopf „Speichern“.
+    expect(f).toContain('<Speicherleiste');
+    expect(f).not.toContain('speichernText=');
     expect(f).not.toContain('Firmendaten speichern');
   });
 
