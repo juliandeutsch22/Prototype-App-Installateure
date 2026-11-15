@@ -49,6 +49,18 @@
       (ff.kis.v2.scr.kaspersky-labs.com) wurde entfernt — es gehörte nicht
       zur App. Tailwind läuft jetzt als Build-Dependency, nicht via CDN.
     -->
+    <!--
+      DUNKEL AB DEM ERSTEN BILD (L10, Nacharbeit 17.11.2026). Wer „Dunkel“ —
+      oder „System“ bei dunklem Gerät — gewählt hat, sah bis zum ersten
+      JavaScript die helle Papierfarbe. Dieses kleine Skript liest nur die
+      gespeicherte Wahl (wie `lesen`/`wirksam` in src/lib/darstellung.ts) und
+      setzt den dunklen Grund, bevor gezeichnet wird. Die Inhaltsregel erlaubt
+      es über seinen Hash (firebase.json, script-src); `sicherheitsKopfzeilen`
+      und der Bau (`startStil`) prüfen, dass jedes eingebettete Skript genau
+      seinen Hash hat — eine Änderung ohne neuen Hash ist rot.
+      Kein Zeichen darin ändern, ohne den Hash nachzuziehen.
+    -->
+    <script>try{var d=localStorage.getItem('senklot.darstellung');if(d==='dunkel'||(d==='system'&&matchMedia('(prefers-color-scheme: dark)').matches)){var h=document.documentElement;h.setAttribute('data-theme','dark');h.style.backgroundColor='#211f1c';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content','#211f1c')}}catch(e){}</script>
   </head>
   <body>
     <div id="root"></div>

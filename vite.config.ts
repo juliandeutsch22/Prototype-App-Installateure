@@ -4,6 +4,7 @@ import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
 
 /**
  * Welche Fassung laeuft hier eigentlich?
@@ -246,6 +247,29 @@ export function startBausteineFehlen(
   return fehlen.sort();
 }
 
+/** Die eingebetteten Skripte einer Seite (ohne `src`), Zeichen für Zeichen. */
+export function eingebetteteSkripte(html: string): string[] {
+  return Array.from(html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g))
+    .filter((m) => !/\bsrc=/.test(m[1]))
+    .map((m) => m[2]);
+}
+
+/** Der Eintrag, mit dem die Inhaltsregel ein eingebettetes Skript erlaubt. */
+export function skriptHash(text: string): string {
+  return `'sha256-${createHash('sha256').update(text, 'utf8').digest('base64')}'`;
+}
+
+/**
+ * Eingebettete Skripte, die die Inhaltsregel aus `firebase.json` NICHT
+ * erlaubt (L10). Live liefe ein solches Skript nicht — und das, was es tun
+ * soll (den dunklen Grund vor dem ersten Bild), fiele still aus.
+ */
+export function skripteOhneHash(html: string, konfig: Hosting): string[] {
+  const regel = auslieferungsKopfzeilen(konfig)['Content-Security-Policy'] ?? '';
+  const erlaubt = (regel.split(';').map((t) => t.trim()).find((t) => t.startsWith('script-src ')) ?? '').split(/\s+/);
+  return eingebetteteSkripte(html).filter((t) => !erlaubt.includes(skriptHash(t)));
+}
+
 function startStil(): Plugin {
   return {
     name: 'start-stil',
@@ -256,6 +280,10 @@ function startStil(): Plugin {
         const raus = startStilEinsetzen(html, Object.keys(ctx.bundle ?? {}));
         const bausteine = Object.values(ctx.bundle ?? {}).flatMap((t) =>
           t.type === 'chunk' ? [{ datei: t.fileName, statisch: t.imports, einstieg: t.isEntry }] : []);
+        const ohneHash = skripteOhneHash(raus, JSON.parse(readFileSync(path.resolve(__dirname, 'firebase.json'), 'utf8')) as Hosting);
+        if (ohneHash.length) {
+          throw new Error(`Eingebettetes Skript ohne passenden Hash in der Inhaltsregel (firebase.json, script-src): ${ohneHash.map(skriptHash).join(', ')}`);
+        }
         const fehlen = startBausteineFehlen(raus, bausteine);
         if (fehlen.length) {
           throw new Error(`index.html nennt nicht alle Start-Bausteine (der Service Worker hielte sie nicht vor): ${fehlen.join(', ')}`);
