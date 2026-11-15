@@ -439,10 +439,10 @@ export async function acceptQuote(
 export interface AnnahmeRuecknahme {
   /** Wieder „Versendet“ (war schon versendet) oder „Entwurf“. */
   status: 'Versendet' | 'Entwurf';
-  /** Die Baustelle der Annahme — gelöscht, abgeschlossen oder (schon vorher) abgeschlossen. */
+  /** Die Baustelle der Annahme — gelöscht, abgeschlossen, (schon vorher) abgeschlossen, oder ein Nachtrag wurde von ihr gelöst (A3). */
   baustelle: string | null;
   baustelleId: string | null;
-  ergebnis: 'geloescht' | 'abgeschlossen' | 'war_abgeschlossen' | 'keine';
+  ergebnis: 'geloescht' | 'abgeschlossen' | 'war_abgeschlossen' | 'nachtrag_entfernt' | 'keine';
   /** Fassungen, die die Annahme ersetzt hatte und die jetzt wieder offen sind. */
   wiederOffen: string[];
 }
@@ -460,7 +460,7 @@ export async function annahmeZuruecknehmen(id: string, grund: string): Promise<A
     status: d.status === 'Entwurf' ? 'Entwurf' : 'Versendet',
     baustelle: typeof d.baustelle === 'string' ? d.baustelle : null,
     baustelleId: typeof d.baustelle_id === 'string' ? d.baustelle_id : null,
-    ergebnis: (['geloescht', 'abgeschlossen', 'war_abgeschlossen'] as const).find((e) => e === d.ergebnis) ?? 'keine',
+    ergebnis: (['geloescht', 'abgeschlossen', 'war_abgeschlossen', 'nachtrag_entfernt'] as const).find((e) => e === d.ergebnis) ?? 'keine',
     wiederOffen: Array.isArray(d.wieder_offen) ? d.wieder_offen.map(String) : [],
   };
 }

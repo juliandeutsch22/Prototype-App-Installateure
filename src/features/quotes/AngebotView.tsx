@@ -4,7 +4,7 @@ import { useAuth } from '@/app/AuthContext';
 import { canAccess } from '@/app/navigation';
 import { annahmeZuruecknehmen, getQuote, listFassungen, updateQuote } from '@/lib/db/quotes';
 import { baustelleVerwendung } from '@/lib/db/projects';
-import { ruecknahmeFolge } from '@/features/projects/baustelleVerwendung';
+import { nachtragFolge, ruecknahmeFolge } from '@/features/projects/baustelleVerwendung';
 import { TextareaField } from '@/components/Field';
 import { listCustomersByIds } from '@/lib/db/customers';
 import { belegFirma } from '@/lib/db/aussteller';
@@ -244,6 +244,8 @@ export default function AngebotView() {
 
   const ruecknahmeProjekt = ruecknahme && angebot.zustand === 'bereit' ? angebot.daten?.projectId ?? null : null;
   const ruecknahmeNummer = angebot.zustand === 'bereit' ? angebot.daten?.projectNumber ?? '' : '';
+  const ruecknahmeNachtrag = angebot.zustand === 'bereit' && !!angebot.daten?.nachtrag;
+  const ruecknahmeNachtragStunden = angebot.zustand === 'bereit' ? angebot.daten?.kalkulierteStunden ?? 0 : 0;
   useEffect(() => {
     if (!ruecknahme || !id) {
       setRuecknahmeFolgeText(null);
@@ -251,6 +253,16 @@ export default function AngebotView() {
     }
     if (!ruecknahmeProjekt) {
       setRuecknahmeFolgeText({ zustand: 'bereit', daten: 'An diesem Angebot hängt keine Baustelle mehr.' });
+      return;
+    }
+    /*
+      EIN NACHTRAG (A3) wird nur von seiner Baustelle gelöst — sie gehört dem
+      Hauptauftrag und bleibt. Was an ihr hängt, entscheidet hier nichts;
+      sonst stünde „wird gelöscht“ da, wo die Datenbank nur die Stunden
+      des Nachtrags abzieht.
+    */
+    if (ruecknahmeNachtrag) {
+      setRuecknahmeFolgeText({ zustand: 'bereit', daten: nachtragFolge(ruecknahmeNummer, ruecknahmeNachtragStunden) });
       return;
     }
     let weg = false;
@@ -261,7 +273,7 @@ export default function AngebotView() {
     return () => {
       weg = true;
     };
-  }, [ruecknahme, ruecknahmeProjekt, ruecknahmeNummer, id]);
+  }, [ruecknahme, ruecknahmeProjekt, ruecknahmeNummer, ruecknahmeNachtrag, ruecknahmeNachtragStunden, id]);
 
   async function annahmeZurueck(q: WithId<Quote>) {
     const r = await annahmeZuruecknehmen(q.id, ruecknahmeGrund.trim());
@@ -270,7 +282,9 @@ export default function AngebotView() {
         ? ` Baustelle ${r.baustelle} gelöscht.`
         : r.ergebnis === 'abgeschlossen'
           ? ` Baustelle ${r.baustelle} abgeschlossen.`
-          : ''
+          : r.ergebnis === 'nachtrag_entfernt'
+            ? ` Nachtrag von Baustelle ${r.baustelle} gelöst.`
+            : ''
       : '';
     toast.success(
       `Annahme zurückgenommen — ${q.quoteNumber} ist wieder ${r.status === 'Entwurf' ? 'ein Entwurf' : 'versendet'}.${baustelle}`,

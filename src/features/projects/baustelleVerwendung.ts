@@ -1,4 +1,5 @@
 import type { BaustellenVerwendung } from '@/lib/db/projects';
+import { fmtStunden } from '@/lib/time';
 
 /**
  * WAS AN EINER BAUSTELLE HÄNGT — in Worten (A1, F7).
@@ -94,4 +95,9 @@ export function ruecknahmeFolge(v: BaustellenVerwendung, angebotId: string, numm
   ];
   if (teile.length === 0) return `Die Baustelle ${nummer} wird gelöscht — an ihr hängt sonst nichts.`;
   return `Die Baustelle ${nummer} wird abgeschlossen, nicht gelöscht: an ihr ${teile.length === 1 && /^1 /.test(teile[0]) ? 'hängt' : 'hängen'} ${aufzaehlen(teile)}. Nichts davon geht verloren.`;
+}
+
+/** Was die Rücknahme eines Nachtrags mit seiner Baustelle tut (A3): nur seine Stunden gehen mit. */
+export function nachtragFolge(nummer: string, stunden: number): string {
+  return `Der Nachtrag wird von Baustelle ${nummer} gelöst${stunden > 0 ? `, ihr Stundenbudget sinkt um ${fmtStunden(stunden)} h` : ''}. Die Baustelle selbst bleibt, wie sie ist.`;
 }

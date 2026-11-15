@@ -665,6 +665,26 @@ describe('Annahme zurücknehmen (A1)', () => {
     expect(await screen.findByText(/wird abgeschlossen, nicht gelöscht: an ihr hängen 2 Zeitbuchungen und 1 Einsatz/)).toBeInTheDocument();
   });
 
+  /*
+    EIN NACHTRAG (A3) wird nur von seiner Baustelle gelöst. Gegenprobe: vorher
+    stand hier „Die Baustelle … wird gelöscht“ — die Rückfrage fragte nach
+    dem, was an der Baustelle hängt, und die Meldung verschwieg die Folge.
+  */
+  it('ein Nachtrag: die Rückfrage sagt „gelöst, Budget sinkt“, nicht „gelöscht“ — und die Meldung ebenso', async () => {
+    angebot = { ...ANGENOMMEN, nachtrag: true };
+    verwendung = { ...LEER, angebote: [{ id: ANGEBOT.id, nummer: 'AN-2026-0007', status: 'Angenommen' }] };
+    zuruecknehmen.mockResolvedValueOnce({ status: 'Versendet', baustelle: 'PR-2026-0007', baustelleId: null, ergebnis: 'nachtrag_entfernt', wiederOffen: [] });
+    const nutzer = userEvent.setup();
+    zeige();
+    await mehrMenue(nutzer, 'Annahme zurücknehmen');
+    const dialog = await screen.findByRole('dialog');
+    expect(await within(dialog).findByText('Der Nachtrag wird von Baustelle PR-2026-0007 gelöst, ihr Stundenbudget sinkt um 16 h. Die Baustelle selbst bleibt, wie sie ist.')).toBeInTheDocument();
+    expect(within(dialog).queryByText(/wird gelöscht/)).toBeNull();
+    await nutzer.type(within(dialog).getByLabelText(/Grund/), 'Nachtrag doppelt erfasst');
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Annahme zurücknehmen' }));
+    expect(await screen.findByText(/Annahme zurückgenommen — AN-2026-0007 ist wieder versendet\. Nachtrag von Baustelle PR-2026-0007 gelöst\./)).toBeInTheDocument();
+  });
+
   it('der Verlauf nennt die Rücknahme mit ihrem Grund', async () => {
     angebot = {
       ...ANGEBOT, status: 'Versendet', versendetAm: Date.parse('2026-09-02T08:00:00Z'),
