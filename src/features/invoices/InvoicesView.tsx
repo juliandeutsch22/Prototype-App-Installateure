@@ -1,6 +1,6 @@
 import { istAn } from '@/lib/module';
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon } from '@/lib/lohnregeln';
@@ -117,12 +117,25 @@ import StatusBadge from '@/components/StatusBadge';
 import { Marke, Warnung } from '@/components/Badge';
 import RechnungDetail, { type MahnungZeile, type RechnungAktion } from './RechnungDetail';
 import { mitBeleg } from './mitBeleg';
+/*
+  Die E-Rechnung bleibt fest eingebunden: sie teilt sich `ebinterface.ts` mit
+  dieser Ansicht. Nachgeladen hinge sie an deren Baustein, und der
+  Leistungswächter verlöre die Ansicht aus dem Blick (er erkennt sie dann
+  nicht mehr als eigene Ansicht — gemessen).
+*/
+import EbInterfaceDialog from './EbInterfaceDialog';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 import { mahnungPdfBlob, mahnungPdfLaden, rechnungPdfBlob, rechnungPdfLaden } from './belegeLaden';
-import BelegMailDialog from '@/features/belegMail/BelegMailDialog';
-import BankgarantieDialog from './BankgarantieDialog';
-import EbInterfaceDialog from './EbInterfaceDialog';
+/*
+  SELTEN GEÖFFNETE FENSTER KOMMEN ERST BEIM ERSTEN ÖFFNEN (Nacharbeit
+  15.11.2026). Die Rechnungsansicht lag mit 134,4 KB knapp unter der Grenze
+  des Leistungswächters (135 KB je Ansicht, L11). Mail und Bankgarantie
+  braucht man selten; sie laden beim ersten Öffnen nach und bleiben danach
+  geladen (Schließen mit Bewegung wie bisher). Gemessen: 129,3 KB.
+*/
+const BelegMailDialog = lazy(() => import('@/features/belegMail/BelegMailDialog'));
+const BankgarantieDialog = lazy(() => import('./BankgarantieDialog'));
 import {
   anzahlText,
   BEREICHE,
@@ -479,6 +492,8 @@ export default function InvoicesView() {
   const [garantieFuer, setGarantieFuer] = useState<(Invoice & { id: string }) | null>(null);
   // Die E-Rechnung (ebInterface) — zur Rechnung oder zu ihrer Stornorechnung.
   const [eRechnungFuer, setERechnungFuer] = useState<{ inv: WithId<Invoice>; storno: boolean } | null>(null);
+  // Einmal geöffnet, bleiben die nachgeladenen Fenster stehen — ihr Schließen läuft wie bisher.
+  const garantieGeladen = useEinmal(!!garantieFuer);
   /** Die Rechnung, die gerade per Mail hinausgeht (F16). */
   const [mailFuer, setMailFuer] = useState<WithId<Invoice> | null>(null);
   /** Die gespeicherte Mahnung, die gerade per Mail hinausgeht — mit ihrer Rechnung (F16, Nacharbeit). */
@@ -6012,7 +6027,8 @@ export default function InvoicesView() {
           />
         );
       })()}
-      <BankgarantieDialog inv={garantieFuer} onClose={() => setGarantieFuer(null)} />
+      <Suspense fallback={null}>
+      {garantieGeladen && <BankgarantieDialog inv={garantieFuer} onClose={() => setGarantieFuer(null)} />}
       <EbInterfaceDialog
         inv={eRechnungFuer?.inv ?? null}
         storno={eRechnungFuer?.storno ?? false}
@@ -6061,6 +6077,7 @@ export default function InvoicesView() {
           onClose={() => setMahnMail(null)}
         />
       )}
+      </Suspense>
       <ConfirmDialog
         open={!!zahlungFuer}
         title={zahlungFuer ? `Zahlungen — ${zahlungFuer.invoiceNumber}` : 'Zahlungen'}
@@ -6480,4 +6497,11 @@ export default function InvoicesView() {
       </ConfirmDialog>
     </div>
   );
+}
+
+/** Wird `wahr`, sobald die Bedingung einmal galt, und bleibt es. */
+function useEinmal(bedingung: boolean): boolean {
+  const [war, setWar] = useState(bedingung);
+  if (bedingung && !war) setWar(true);
+  return war || bedingung;
 }
