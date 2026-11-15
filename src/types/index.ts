@@ -2375,8 +2375,20 @@ export interface MahnungInhalt {
   /**
    * Die Verzugszinsen, in Euro (seit 09.11.2026). Ältere Mahnungen tragen sie
    * nur als Zeile des Zahlenblocks — `mahnforderung` liest sie dort.
+   * Seit G3 (15.11.2026) über die ganze Zeit des Verzugs bis zum Mahntag.
    */
   zinsen?: number;
+  /**
+   * Die Mahnkosten der Rechnung bis zum Mahntag (seit 15.11.2026, G3): Kosten
+   * aller Schreiben bis hierher und die Zinsen. Die Verbuchung nimmt genau
+   * diese Zahl (`app.mahnforderung`). Ältere Mahnungen ohne — dort gilt
+   * `kosten + zinsen`.
+   */
+  forderung?: number;
+  /** Kosten der früheren Schreiben, in `forderung` enthalten (G3). */
+  kostenFrueher?: number;
+  /** Was an Mahnkosten beim Mahnen schon bezahlt war (G3) — steht auf dem Schreiben. */
+  mahnkostenBezahlt?: number;
 }
 
 /** Eine erzeugte Mahnung — unveränderlich, an ihrer Rechnung. */

@@ -64,6 +64,8 @@ import {
   FRIST_TAGE,
   verzugszinsen,
   zinssatzText,
+  mahnforderungRechnen,
+  mahnkosten,
   type Mahnstufe,
 } from './mahnung';
 import { postenNeuLaden } from '@/app/offenePosten';
@@ -593,6 +595,14 @@ export default function InvoicesView() {
    */
   /** Welche Rechnung gerade gemahnt wird — samt vorgeschlagener Frist. */
   const [mahnFuer, setMahnFuer] = useState<WithId<Invoice> | null>(null);
+  /*
+    DIE GRUNDLAGE DES MAHNDIALOGS (G3): die Eingänge und die früheren
+    Mahnungen der Rechnung — mit ihnen rechnet der Dialog dieselben Zinsen und
+    Mahnkosten wie das Schreiben.
+  */
+  const [mahnGrundlage, setMahnGrundlage] = useState<{
+    fuer: string; zahlungen: Zahlungseingang[]; frueher: Mahnung[];
+  } | null>(null);
   const [mahnFrist, setMahnFrist] = useState('');
   const [reverseCharge, setReverseCharge] = useState(false);
   const [kundenUid, setKundenUid] = useState('');
@@ -2313,6 +2323,23 @@ export default function InvoicesView() {
     }
   }
 
+  /* Die Grundlage des Mahndialogs, sobald er für eine Rechnung aufgeht (G3). */
+  const mahnFuerId = mahnFuer?.id;
+  useEffect(() => {
+    if (!user || !mahnFuerId) {
+      setMahnGrundlage(null);
+      return;
+    }
+    let weg = false;
+    Promise.all([listZahlungen(user.companyId, mahnFuerId), listMahnungenZurRechnung(user.companyId, mahnFuerId)])
+      .then(([zahlungenDerRechnung, frueher]) => {
+        if (!weg) setMahnGrundlage({ fuer: mahnFuerId, zahlungen: zahlungenDerRechnung, frueher });
+      })
+      // Ohne Grundlage zeigt der Dialog die Zinsen wie bisher; das Schreiben lädt selbst und bricht sonst ab.
+      .catch(() => { if (!weg) setMahnGrundlage(null); });
+    return () => { weg = true; };
+  }, [user?.companyId, mahnFuerId]); // eslint-disable-line react-hooks/exhaustive-deps -- die Kennung trägt die Rechnung
+
   /** Der Kunde einer Rechnung im Stamm — über die Baustelle, sonst über den Namen. */
   function kundeDerRechnung(inv: Invoice) {
     return kundeZu(projects.find((p) => p.projectNumber === inv.projectNumber)?.customerId, inv.customerName);
@@ -2327,8 +2354,13 @@ export default function InvoicesView() {
     return istUnternehmerKunde(kundeDerRechnung(inv), inv.customerVatId);
   }
 
-  function zinsenFuer(inv: Invoice, stufe: Mahnstufe, datum: string) {
+  function zinsenFuer(inv: Invoice, stufe: Mahnstufe, datum: string, zahlungen?: Zahlungseingang[]) {
     return verzugszinsen({
+      /*
+        JEDER TAG AUF DEN BETRAG, DER AN IHM OFFEN WAR (G3): mit den Eingängen
+        auf die Rechnung (ohne Mahnkosten — sie begleichen die Mahnung).
+      */
+      zahlungen: zahlungen?.filter((z) => z.art !== 'Mahnkosten').map((z) => ({ datum: z.datum, betrag: z.betrag })),
       stufe,
       // Ohne einen Rücklass, der noch nicht fällig ist (seit 05.10.2026).
       rest: mahnbar(inv, datum).rest,
@@ -2379,7 +2411,16 @@ export default function InvoicesView() {
         Teilzahlung steht so auch der richtige Rest auf dem Beleg. Ohne Netz
         entsteht kein Beleg mehr, den danach niemand festhalten kann.
       */
-      const [inv] = await listInvoicesByIds(user.companyId, [gezeigt.id]);
+      /*
+        Dazu die Eingänge und die früheren Mahnungen (G3): das Schreiben
+        fordert die Mahnkosten der ganzen Rechnung und nennt, was davon
+        schon bezahlt ist — gerechnet wie die Verbuchung.
+      */
+      const [[inv], zahlungenDerRechnung, frueher] = await Promise.all([
+        listInvoicesByIds(user.companyId, [gezeigt.id]),
+        listZahlungen(user.companyId, gezeigt.id),
+        listMahnungenZurRechnung(user.companyId, gezeigt.id),
+      ]);
       const pruefung = inv ? darfMahnen(inv, heute) : { moeglich: false, grund: 'Die Rechnung ist nicht mehr da.' };
       if (!inv || !pruefung.moeglich || naechsteStufe(inv) !== stufe) {
         const grund = pruefung.moeglich ? `Sie ist schon mit Stufe ${inv!.mahnstufe} gemahnt.` : pruefung.grund;
@@ -2409,8 +2450,10 @@ export default function InvoicesView() {
         frist,
         adresse: kunde?.address?.trim() || inv.address,
         kundenUid: inv.customerVatId,
-        zinsen: zinsenFuer(inv, stufe, heute),
+        zinsen: zinsenFuer(inv, stufe, heute, zahlungenDerRechnung),
         unternehmer,
+        frueher,
+        mahnkostenBezahlt: cent(zahlungenDerRechnung.filter((z) => z.art === 'Mahnkosten').reduce((s, z) => s + z.betrag, 0)),
       });
       const blob = await mahnungPdfAusInhalt(company, inhalt);
       /*
@@ -5832,14 +5875,38 @@ export default function InvoicesView() {
           onChange={(e) => setMahnFrist(e.target.value)}
         />
         {mahnFuer && naechsteStufe(mahnFuer) && (() => {
-          const z = zinsenFuer(mahnFuer, naechsteStufe(mahnFuer)!, todayStr());
+          const grundlage = mahnGrundlage?.fuer === mahnFuer.id ? mahnGrundlage : null;
+          const stufe = naechsteStufe(mahnFuer)!;
+          const z = zinsenFuer(mahnFuer, stufe, todayStr(), grundlage?.zahlungen);
+          /*
+            DIE MAHNKOSTEN WIE AUF DEM SCHREIBEN (G3): frühere Schreiben, diese
+            Stufe, Zinsen — und was davon schon bezahlt ist.
+          */
+          const k = mahnkosten(stufe, company?.rates, istUnternehmer(mahnFuer));
+          const mk = grundlage ? mahnforderungRechnen({
+            kosten: k.spesen + k.pauschale,
+            frueher: grundlage.frueher,
+            zinsen: z.art === 'berechnet' ? z.betrag : 0,
+            bezahlt: grundlage.zahlungen.filter((x) => x.art === 'Mahnkosten').reduce((s, x) => s + x.betrag, 0),
+          }) : null;
+          const kostenZeile = mk && (mk.kostenFrueher > 0 || mk.bezahlt > 0) && (
+            <p className="mt-3 text-sm text-ink-muted">
+              Mahnkosten bis heute {euro(mk.forderung)}
+              {mk.kostenFrueher > 0 ? `, davon ${euro(mk.kostenFrueher)} aus früheren Schreiben` : ''}
+              {mk.bezahlt > 0 ? `; bezahlt sind ${euro(mk.bezahlt)}` : ''} — das Schreiben fordert
+              noch {euro(mk.offen)}.
+            </p>
+          );
           if (z.art === 'berechnet') {
             return (
-              <p className="mt-3 text-sm text-ink-muted">
-                Verzugszinsen {euro(z.betrag)} ({zinssatzText(z, datumAT)}, {z.tage} Tage
-                {z.ab ? ` ab ${datumAT(z.ab)}` : ''}, {z.grundlage}) stehen auf dem
-                Beleg.{z.ab ? ' Für die Zeit davor ist kein Basiszinssatz eingetragen.' : ''}
-              </p>
+              <>
+                <p className="mt-3 text-sm text-ink-muted">
+                  Verzugszinsen {euro(z.betrag)} ({zinssatzText(z, datumAT)}, {z.tage} Tage
+                  {z.ab ? ` ab ${datumAT(z.ab)}` : ''}, {z.grundlage}) stehen auf dem
+                  Beleg.{z.ab ? ' Für die Zeit davor ist kein Basiszinssatz eingetragen.' : ''}
+                </p>
+                {kostenZeile}
+              </>
             );
           }
           if (z.art === 'fehlt') {
@@ -5852,7 +5919,7 @@ export default function InvoicesView() {
               </p>
             );
           }
-          return null;
+          return kostenZeile || null;
         })()}
       </ConfirmDialog>
     </div>

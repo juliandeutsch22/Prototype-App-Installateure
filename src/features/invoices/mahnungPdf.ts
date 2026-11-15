@@ -11,9 +11,9 @@ import {
   titel,
 } from '@/lib/belegLayout';
 import { ibanAnzeige } from '@shared/iban';
-import { TEXTE, mahnkosten, type Mahnstufe, type Verzugszinsen } from './mahnung';
+import { TEXTE, mahnforderungRechnen, mahnkosten, type Mahnstufe, type Verzugszinsen } from './mahnung';
 import { mahnbar, ruecklassFaelligAm, zahlstand } from './zahlstand';
-import type { Company, Invoice, MahnungInhalt } from '@/types';
+import type { Company, Invoice, Mahnung, MahnungInhalt } from '@/types';
 import { cent, euroBetrag } from '@/lib/betrag';
 
 /**
@@ -68,6 +68,14 @@ export interface MahnungOptionen {
   zinsen?: Verzugszinsen;
   /** Firmenkunde (mit UID)? Bestimmt, welche Mahnkosten gelten — siehe `mahnkosten`. */
   unternehmer?: boolean;
+  /**
+   * Die früheren Mahnungen dieser Rechnung (G3). Ihre Kosten fordert dieses
+   * Schreiben mit — vorher forderte jedes nur die seiner Stufe, und die der
+   * früheren verschwanden.
+   */
+  frueher?: Pick<Mahnung, 'spesen' | 'inhalt'>[];
+  /** Was an Mahnspesen und Zinsen schon eingegangen ist (G3) — steht als Abzug da. */
+  mahnkostenBezahlt?: number;
 }
 
 /**
@@ -122,9 +130,21 @@ export function mahnungInhalt(o: MahnungOptionen): MahnungInhalt {
       `- ${euroBetrag(nichtFaellig)} €`,
     ]);
   }
+  const zinsen = o.zinsen?.art === 'berechnet' ? o.zinsen : null;
+  /*
+    DIE MAHNKOSTEN NACH DEM EINEN MODELL (G3): frühere Schreiben, diese
+    Stufe, die Zinsen über die ganze Zeit — abzüglich dessen, was davon
+    schon bezahlt ist. Genau diese Forderung lässt die Verbuchung zu.
+  */
+  const mk = mahnforderungRechnen({
+    kosten: spesen + pauschale,
+    frueher: o.frueher ?? [],
+    zinsen: zinsen?.betrag ?? 0,
+    bezahlt: o.mahnkostenBezahlt ?? 0,
+  });
+  if (mk.kostenFrueher > 0) zeilen.push(['Mahnspesen früherer Schreiben', `${euroBetrag(mk.kostenFrueher)} €`]);
   if (spesen > 0) zeilen.push(['Mahnspesen', `${euroBetrag(spesen)} €`]);
   if (pauschale > 0) zeilen.push(['Pauschale für Betreibungskosten (§ 458 UGB)', `${euroBetrag(pauschale)} €`]);
-  const zinsen = o.zinsen?.art === 'berechnet' ? o.zinsen : null;
   if (zinsen && zinsen.abschnitte) {
     /*
       ÜBER MEHRERE HALBJAHRE (Testbericht 30.09.2026, G30): eine Zeile mit
@@ -136,8 +156,9 @@ export function mahnungInhalt(o: MahnungOptionen): MahnungInhalt {
       `${euroBetrag(zinsen.betrag)} €`,
     ]);
     for (const a of zinsen.abschnitte) {
+      // Seit G3 mit dem Betrag, der in diesem Abschnitt offen war — sonst ist die Zahl nicht nachzurechnen.
       zeilen.push([
-        `    ${a.satz.toLocaleString('de-AT', { maximumFractionDigits: 2 })} % p. a. vom ${fmtDatum(a.von)} bis ${fmtDatum(a.bis)}, ${a.tage} Tage`,
+        `    ${a.satz.toLocaleString('de-AT', { maximumFractionDigits: 2 })} % p. a.${a.rest !== undefined ? ` auf ${euroBetrag(a.rest)} €` : ''} vom ${fmtDatum(a.von)} bis ${fmtDatum(a.bis)}, ${a.tage} Tage`,
         '',
       ]);
     }
@@ -148,6 +169,10 @@ export function mahnungInhalt(o: MahnungOptionen): MahnungInhalt {
         `${zinsen.ab ? ` ab ${fmtDatum(zinsen.ab)}` : ''} (${zinsen.grundlage})`,
       `${euroBetrag(zinsen.betrag)} €`,
     ]);
+  }
+  // Was der Kunde an Mahnkosten schon gezahlt hat, sieht er — sonst forderte das Schreiben es scheinbar noch einmal.
+  if (mk.bezahlt > 0) {
+    zeilen.push(['Bereits bezahlte Mahnspesen und Zinsen', `- ${euroBetrag(Math.min(mk.bezahlt, mk.forderung))} €`]);
   }
 
   return {
@@ -164,10 +189,14 @@ export function mahnungInhalt(o: MahnungOptionen): MahnungInhalt {
     },
     rechnung: { nummer: o.invoice.invoiceNumber, baustelle: o.invoice.projectNumber },
     zeilen,
-    offen: cent(gefordert + spesen + pauschale + (zinsen?.betrag ?? 0)),
-    kosten: cent(spesen + pauschale),
+    offen: cent(gefordert + mk.offen),
+    kosten: mk.kosten,
     // Als Zahl festgehalten (09.11.2026): bis dahin begrenzt ein Eingang „Mahnkosten“ (`mahnforderung`).
-    zinsen: cent(zinsen?.betrag ?? 0),
+    zinsen: mk.zinsen,
+    // G3: die ganze Mahnforderung — die Verbuchung nimmt genau sie.
+    forderung: mk.forderung,
+    kostenFrueher: mk.kostenFrueher,
+    mahnkostenBezahlt: mk.bezahlt,
   };
 }
 

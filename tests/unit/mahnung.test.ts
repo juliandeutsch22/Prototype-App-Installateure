@@ -280,7 +280,8 @@ describe('Mahnkosten je Kundenart', () => {
     const saetze = { mahnspesen: [5, 10, 20], mahnspesenVerbraucher: [0, 3, 5], pauschale458: true };
     expect(mahnkosten(1, saetze, true)).toEqual({ spesen: 0, pauschale: 0 });
     expect(mahnkosten(2, saetze, true)).toEqual({ spesen: 0, pauschale: 40 });
-    expect(mahnkosten(3, saetze, true)).toEqual({ spesen: 0, pauschale: 40 });
+    // Einmal je Rechnung (G3, 15.11.2026): die letzte Mahnung führt sie als früheres Schreiben mit.
+    expect(mahnkosten(3, saetze, true)).toEqual({ spesen: 0, pauschale: 0 });
     // Privatkunden bekommen nie die Pauschale.
     expect(mahnkosten(2, saetze, false)).toEqual({ spesen: 3, pauschale: 0 });
   });
