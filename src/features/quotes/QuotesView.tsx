@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import OhneUmbruch from '@/components/OhneUmbruch';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { naechsterSchritt } from '@/features/projects/naechsterSchritt';
 import { useAuth } from '@/app/AuthContext';
 import {
   listRecentQuotes,
@@ -262,6 +263,7 @@ export default function QuotesView() {
   const { user, company } = useAuth();
   const vorsaetze = praefixeVon(company);
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [angebote, setAngebote] = useState<WithId<Quote>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -881,9 +883,11 @@ export default function QuotesView() {
     setBusy(true);
     setError(null);
     try {
-      toast.success(annahmeMeldung(await angebotAnnehmen(
+      const r = await angebotAnnehmen(
         user.companyId, q, vorsaetze.baustelle, abrechnung, ziel.art === 'nachtrag' ? ziel.baustelleId : null,
-      )));
+      );
+      // V4: die Meldung trägt den nächsten Schritt.
+      toast.success(annahmeMeldung(r), naechsterSchritt(user.role, company?.modules, r.projectNumber, navigate));
       await laden();
     } catch (err) {
       setError(grundAus(err, 'Die Baustelle konnte nicht angelegt werden.'));

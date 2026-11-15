@@ -1564,3 +1564,16 @@ describe('Neu für diesen Kunden (V3)', () => {
     expect(screen.getByLabelText('Ort der Leistung')).toHaveValue(kunden[0].address ?? '');
   });
 });
+
+/* V4 (Durchsicht 15.11.2026): nach der Annahme kein nächster Schritt — jetzt trägt die Meldung ihn. */
+describe('Der nächste Schritt nach der Annahme (V4)', () => {
+  it('die Meldung „Baustelle … angelegt“ bietet „Einsatz planen“ an', async () => {
+    versendetesAngebot();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await annehmenBestaetigt(nutzer);
+    expect(await screen.findByText('Baustelle B-2026-0012 angelegt')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Einsatz planen' })).toBeInTheDocument();
+  });
+});

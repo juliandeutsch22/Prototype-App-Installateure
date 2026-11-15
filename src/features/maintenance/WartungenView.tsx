@@ -14,6 +14,7 @@ import {
 } from '@/lib/db/wartungen';
 import { getWartung, wartungEinplanen } from '@/lib/db/wartungen';
 import { neuFuerLaden, neuFuerLesen, ohneNeuFuer } from '@/features/customers/neuFuer';
+import { naechsterSchritt } from '@/features/projects/naechsterSchritt';
 import WartungVerlauf from './WartungVerlauf';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
@@ -589,7 +590,9 @@ export default function WartungenView() {
       setNummern((n) => [...n, nummer]);
       setEinplanung(null);
       await neuLaden();
-      toast.success(`Baustelle ${nummer} angelegt. Jetzt im Einsatzplan einteilen.`);
+      // V4: der Satz führt jetzt auch hin.
+      const schritt = user ? naechsterSchritt(user.role, company?.modules, nummer, navigate) : undefined;
+      toast.success(schritt?.label === 'Einsatz planen' ? `Baustelle ${nummer} angelegt — jetzt einteilen.` : `Baustelle ${nummer} angelegt.`, schritt);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {

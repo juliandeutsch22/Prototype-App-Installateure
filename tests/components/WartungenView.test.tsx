@@ -980,3 +980,15 @@ describe('Neu für diesen Kunden (V3)', () => {
     expect(screen.getAllByText('Hausverwaltung Nord').length).toBeGreaterThan(0);
   });
 });
+
+/* V4 (Durchsicht 15.11.2026): „Jetzt im Einsatzplan einteilen“ führte nicht hin — die Meldung trägt den Sprung. */
+describe('Der nächste Schritt nach „Baustelle anlegen“ (V4)', () => {
+  it('die Meldung bietet „Einsatz planen“ an', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findAllByText(/Bäckerei Stein/);
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Baustelle anlegen' }))[0]);
+    await nutzer.click(await screen.findByRole('button', { name: 'Anlegen' }));
+    expect(await screen.findByRole('button', { name: 'Einsatz planen' })).toBeInTheDocument();
+  });
+});

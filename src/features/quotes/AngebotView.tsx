@@ -28,6 +28,7 @@ import { Zustand } from '@/components/Badge';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
 import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
+import { naechsterSchritt } from '@/features/projects/naechsterSchritt';
 import { fassungsHinweis } from './fassungen';
 import { downloadAngebotPdf } from './angebotPdf';
 import { STAND, standWort } from './stand';
@@ -310,9 +311,11 @@ export default function AngebotView() {
     setBusy(true);
     setFehler(null);
     try {
-      toast.success(annahmeMeldung(await angebotAnnehmen(
+      const r = await angebotAnnehmen(
         companyId, q, praefixeVon(company).baustelle, abrechnung, ziel.art === 'nachtrag' ? ziel.baustelleId : null,
-      )));
+      );
+      // V4: die Meldung trägt den nächsten Schritt.
+      toast.success(annahmeMeldung(r), user ? naechsterSchritt(user.role, company?.modules, r.projectNumber, navigate) : undefined);
       setVersuch((v) => v + 1);
     } catch (err) {
       setFehler(grundAus(err, 'Die Baustelle konnte nicht angelegt werden.'));
