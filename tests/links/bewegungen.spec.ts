@@ -118,3 +118,84 @@ test.describe('B1 Seitenfenster ab dem Tablet', () => {
     expect(s[s.length - 1]).toEqual([0, 0]);
   });
 });
+
+/** Eine Liste mit mindestens vier Zeilen auf der Seite: ihre Zeilen in DOM-Reihenfolge. */
+async function listeMitZeilen(page: Page) {
+  await page.waitForFunction(() => [...document.querySelectorAll('ul')].some((u) => u.querySelectorAll(':scope > li.zeile').length >= 4));
+  // Die Ruhe nach dem Seitenwechsel abwarten (`zeilenflussRuhe`).
+  await page.waitForTimeout(700);
+}
+
+test.describe('B2 Zeile verschwindet', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  for (const reduziert of [false, true]) test(`klappt zusammen, Nachbarn rücken nach${reduziert ? ' — reduziert: sofort, dasselbe Endbild' : ''}`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: reduziert ? 'reduce' : 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    const ergebnis = await page.evaluate(async () => {
+      const ul = [...document.querySelectorAll('ul')].find((u) => u.querySelectorAll(':scope > li.zeile').length >= 4)!;
+      const zeilen = [...ul.querySelectorAll<HTMLElement>(':scope > li.zeile')];
+      const weg = zeilen[1], nachbar = zeilen[2];
+      const hoehe = weg.getBoundingClientRect().height;
+      const vorher = nachbar.getBoundingClientRect().top;
+      // React nimmt eine Zeile heraus — hier von Hand, derselbe Eingriff im DOM.
+      weg.remove();
+      const bilder: Array<{ geist: boolean; y: number; top: number }> = [];
+      const t0 = performance.now();
+      await new Promise<void>((fertig) => {
+        const bild = () => {
+          const t = getComputedStyle(nachbar).transform;
+          bilder.push({ geist: !!ul.querySelector('[data-geist]'), y: t === 'none' ? 0 : new DOMMatrixReadOnly(t).m42, top: nachbar.getBoundingClientRect().top });
+          if (performance.now() - t0 < 400) requestAnimationFrame(bild); else fertig();
+        };
+        requestAnimationFrame(bild);
+      });
+      const geist = ul.querySelector('[data-geist]');
+      return { hoehe, vorher, bilder, geistAmEnde: !!geist, endeOben: nachbar.getBoundingClientRect().top };
+    });
+    // Am Ende: die Lücke ist zu, kein Abbild bleibt — mit und ohne Bewegung gleich.
+    expect(ergebnis.geistAmEnde).toBe(false);
+    expect(Math.abs(ergebnis.vorher - ergebnis.hoehe - ergebnis.endeOben)).toBeLessThan(1.5);
+    if (reduziert) {
+      expect(ergebnis.bilder.every((b) => !b.geist && b.y === 0)).toBe(true);
+    } else {
+      expect(ergebnis.bilder[0].geist).toBe(true);
+      // Der Nachbar startet an seiner alten Stelle (sichtbar) und gleitet hinauf.
+      expect(ergebnis.bilder[0].y).toBeGreaterThan(ergebnis.hoehe * 0.5);
+      for (let i = 1; i < ergebnis.bilder.length; i++) expect(ergebnis.bilder[i].y).toBeLessThanOrEqual(ergebnis.bilder[i - 1].y + 0.5);
+      expect(ergebnis.bilder[ergebnis.bilder.length - 1].y).toBe(0);
+    }
+  });
+
+  test('das Abbild ist stumm und nicht bedienbar; der Fokus geht auf die nächste Zeile', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    const r = await page.evaluate(() => {
+      const ul = [...document.querySelectorAll('ul')].find((u) => u.querySelectorAll(':scope > li.zeile').length >= 4)!;
+      const zeilen = [...ul.querySelectorAll<HTMLElement>(':scope > li.zeile')];
+      const ziel = zeilen[1].querySelector<HTMLElement>('a, button')!;
+      ziel.focus();
+      const naechstes = zeilen[2].querySelector<HTMLElement>('a, button')!;
+      zeilen[1].remove();
+      return new Promise<{ aria: string | null; inert: boolean; ids: number; fokusNaechste: boolean }>((fertig) => requestAnimationFrame(() => {
+        const g = ul.querySelector<HTMLElement>('[data-geist]');
+        fertig({ aria: g?.getAttribute('aria-hidden') ?? null, inert: !!g?.hasAttribute('inert'), ids: g ? g.querySelectorAll('[id]').length + (g.id ? 1 : 0) : -1, fokusNaechste: document.activeElement === naechstes });
+      }));
+    });
+    expect(r).toEqual({ aria: 'true', inert: true, ids: 0, fokusNaechste: true });
+  });
+
+  test('ein Austausch vieler Zeilen (Filter) bewegt nichts', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    const geister = await page.evaluate(() => {
+      const ul = [...document.querySelectorAll('ul')].find((u) => u.querySelectorAll(':scope > li.zeile').length >= 4)!;
+      for (const z of [...ul.querySelectorAll(':scope > li.zeile')].slice(0, 4)) z.remove();
+      return new Promise<number>((fertig) => requestAnimationFrame(() => fertig(ul.querySelectorAll('[data-geist]').length)));
+    });
+    expect(geister).toBe(0);
+  });
+});

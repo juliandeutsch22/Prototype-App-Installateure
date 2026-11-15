@@ -39,6 +39,7 @@ import { SeilLot } from './NaviLot';
 import Ladebalken from '@/components/Ladebalken';
 import { datenSparen, imLeerlauf, vorladen } from '@/lib/ansichten';
 import { taktHalten } from '@/lib/takt';
+import { zeilenflussHalten, zeilenflussRuhe } from '@/lib/zeilenfluss';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { offeneVormerkungen } from '@/lib/db/pg/ohneEmpfang';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
@@ -157,6 +158,15 @@ export default function Layout({ children }: { children: ReactNode }) {
   useEffect(() => {
     const main = inhalt.current;
     return main ? taktHalten(main) : undefined;
+  }, []);
+
+  /*
+    ZEILEN GEHEN UND KOMMEN SICHTBAR (B2, B3): für jede Liste der App an
+    einer Stelle, wie der Takt (`lib/zeilenfluss.ts`).
+  */
+  useEffect(() => {
+    const main = inhalt.current;
+    return main ? zeilenflussHalten(main) : undefined;
   }, []);
 
   /*
@@ -285,6 +295,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     if (ort.pathname === vorigerPfad.current) return;
     vorigerPfad.current = ort.pathname;
+    // Die neue Seite baut ihre Listen auf — das ist kein „diese Zeile ging“.
+    zeilenflussRuhe();
     const el = seite.current;
     if (!el || typeof el.animate !== 'function') return;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
