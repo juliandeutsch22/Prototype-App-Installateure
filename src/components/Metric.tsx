@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Wert } from './Wert';
+import RollZahl from './RollZahl';
 
 type Tone = 'default' | 'success' | 'danger' | 'warning' | 'brand';
 
@@ -82,6 +83,12 @@ export function MetricRow({ children, label }: { children: ReactNode; label?: st
   );
 }
 
+/** Nur Gemessenes rollt: eine Zahl oder ein Text mit Ziffer. Ein Wort („Pauschal“) wechselt, es zählt nicht. */
+function rollend(value: ReactNode): ReactNode {
+  if (typeof value === 'number' || (typeof value === 'string' && /\d/.test(value))) return <RollZahl wert={value} />;
+  return value;
+}
+
 export default function Metric({ label, value, hint, tone = 'default', to, bereit, zusatzMuster = 'auf die 00 zuletzt', nurBreit = false }: MetricProps) {
   // Ohne Angabe bleibt die Kennzahl, wie sie war — kein Platzhalter, kein Einblenden.
   const mitLaden = bereit !== undefined;
@@ -95,7 +102,8 @@ export default function Metric({ label, value, hint, tone = 'default', to, berei
       <span className="lage-name">{label}</span>{' '}
       {/* Ein Wort ohne Ziffer („Pauschal“, „Aktiv“) ist nichts Gemessenes — im Schriftfeld nicht in Mono (Planlinie, E30). */}
       <span className={`lage-wert ${typeof value === 'string' && !/\d/.test(value) ? 'lage-wert-wort ' : ''}${fertig && istNullWert(value) ? 'lage-wert-null ' : ''}${fertig ? valueTone[tone] : ''}`}>
-        {mitLaden ? <Wert bereit={fertig} muster="€ 00 000,00">{value}</Wert> : value}
+        {/* Eine geänderte Zahl rollt (B6); Bausteine statt Text bleiben, wie sie sind. */}
+        {mitLaden ? <Wert bereit={fertig} muster="€ 00 000,00">{rollend(value)}</Wert> : rollend(value)}
       </span>
       {/* Der Zusatz rechnet aus derselben Grundlage — bis dahin ein Platzhalter in seiner Zeile. */}
       {hint && (

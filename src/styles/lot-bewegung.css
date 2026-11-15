@@ -52,6 +52,16 @@
   */
   .reiterleiste, .segment, .akten-bereiche, [role="tablist"] { position: relative; }
   [data-unterlinie-weg] { border-bottom-color: transparent !important; transition: none !important; }
+
+  /*
+    B6 — ZAHLEN ROLLEN (`components/RollZahl.tsx`). Inline-Block, weil
+    `transform` an reinem Text nicht greift; `clip-path` statt `overflow`,
+    damit die Grundlinie bleibt, wo sie war. Seitlich darf der Wert über den
+    Rahmen (ein Abbild kann breiter sein als der neue Wert).
+  */
+  .rollzahl { position: relative; display: inline-block; clip-path: inset(0 -100vw); }
+  .rollzahl-neu { display: inline-block; }
+  .rollzahl-alt { position: absolute; inset: 0; white-space: nowrap; pointer-events: none; }
 }
 
 @keyframes blatt-herein { from { transform: translateY(100%); } }
