@@ -759,14 +759,28 @@ export async function rechnungAusstellen(
   nummer: { praefix?: string; desired?: number; datumAusdruecklich?: boolean; versuch?: string },
 ): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string; bereits?: boolean }> {
   void companyId;
-  const { data, error } = await derClient().rpc('rechnung_ausstellen', {
+  return ausstellenAufruf('rechnung_ausstellen', {
     ...anlegeDaten(inv),
     p_praefix: nummer.praefix ?? PRAEFIX_VORGABE.rechnung,
     p_wunsch: nummer.desired ?? null,
     ...(nummer.datumAusdruecklich ? { p_datum_ausdruecklich: true } : {}),
     // Die Kennung dieses Versuchs (G2) — damit lässt sich eine unterbrochene Antwort klären.
     ...(nummer.versuch ? { p_versuch: nummer.versuch } : {}),
-  }).then((antwort) => antwort, () => { throw new RechnungsAntwortUnklar(); });
+  });
+}
+
+/**
+ * Der Aufruf, der eine Rechnung entstehen lässt — mit der Unterscheidung
+ * zwischen bestätigter Ablehnung und unklarer Antwort. EINE Stelle für das
+ * Ausstellen und das Ersetzen (V6): zwei Fassungen liefen beim nächsten
+ * Fehlerbild auseinander.
+ */
+async function ausstellenAufruf(
+  funktion: 'rechnung_ausstellen' | 'rechnung_ersetzen',
+  args: Record<string, unknown>,
+): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string; bereits?: boolean }> {
+  const { data, error } = await derClient().rpc(funktion, args)
+    .then((antwort) => antwort, () => { throw new RechnungsAntwortUnklar(); });
   if (error) {
     // SQL-Ablehnung bzw. abgewiesene Authentifizierung vor dem RPC-Aufruf.
     if (/^[0-9A-Z]{5}$/.test(error.code ?? '') || error.code === 'PGRST301' || error.code === 'PGRST302') {
@@ -785,6 +799,29 @@ export async function rechnungAusstellen(
     ...(typeof r.invoice_date === 'string' ? { invoiceDate: r.invoice_date } : {}),
     ...(r.bereits === true ? { bereits: true } : {}),
   };
+}
+
+/**
+ * Eine Rechnung durch eine neue ersetzen: die alte stornieren und die neue
+ * ausstellen — in EINER Transaktion (Durchsicht 15.11.2026, V6/F4,
+ * `public.rechnung_ersetzen`). Scheitert das Ausstellen, ist auch der Storno
+ * nicht geschehen. Unklare Antworten wie beim Ausstellen; die Kennung des
+ * Versuchs klärt sie (G2).
+ */
+export async function rechnungErsetzen(
+  companyId: string,
+  alt: { id: string; grund: string },
+  inv: Omit<NewInvoice, 'invoiceNumber'>,
+  nummer: { praefix?: string; versuch?: string },
+): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string; bereits?: boolean }> {
+  void companyId;
+  return ausstellenAufruf('rechnung_ersetzen', {
+    p_alt: alt.id,
+    p_grund: alt.grund,
+    ...anlegeDaten(inv),
+    p_praefix: nummer.praefix ?? PRAEFIX_VORGABE.rechnung,
+    ...(nummer.versuch ? { p_versuch: nummer.versuch } : {}),
+  });
 }
 
 /** Was die Klärung eines Erstellungsversuchs ergibt (G2). */

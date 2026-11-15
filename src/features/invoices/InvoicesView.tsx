@@ -28,6 +28,7 @@ import {
   listInvoicesByIds,
   rechnungVersuchKlaeren,
   rechnungsnummernVorZeitraum,
+  rechnungErsetzen,
 } from '@/lib/db/invoices';
 import { offenenVersuchLesen, offenenVersuchMerken, offenenVersuchVergessen, type OffenerVersuch } from './offenerVersuch';
 import { leistungsnachweisZeilen } from './leistungsnachweis';
@@ -104,7 +105,7 @@ import { listBasiszinssaetze, type ZentralerBasiszinssatz } from '@/lib/db/basis
 import { discountLabel, istPreiszeile, positionsRabattText, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtDauer, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { Invoice, Mahnung, Project, RechnungsArt, WorkSheet, Zahlungseingang } from '@/types';
+import type { Invoice, LeistungsnachweisZeile, Mahnung, Project, RechnungsArt, TimeEntry, WorkSheet, Zahlungseingang } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -378,6 +379,16 @@ export default function InvoicesView() {
   const [pdfNachholen, setPdfNachholen] = useState<{ nummer: string; erneut: () => Promise<void>; geklaert?: boolean } | null>(null);
   const [pdfLaedt, setPdfLaedt] = useState(false);
   const [toCancel, setToCancel] = useState<WithId<Invoice> | null>(null);
+  /*
+    STORNIEREN UND NEU AUSSTELLEN (V6/F4). `ersetzenFrage` ist die Rückfrage
+    nach dem Grund; `ersatz` die Rechnung, die die neue ersetzt — bis zum
+    Ausstellen ist nichts storniert, `rechnung_ersetzen` tut beides in einem
+    Zug. `ersatzNachweis` ist ihr festgehaltener Leistungsnachweis (G6).
+  */
+  const [ersetzenFrage, setErsetzenFrage] = useState<WithId<Invoice> | null>(null);
+  const [ersetzenGrund, setErsetzenGrund] = useState('');
+  const [ersatz, setErsatz] = useState<{ alt: WithId<Invoice>; grund: string } | null>(null);
+  const [ersatzNachweis, setErsatzNachweis] = useState<LeistungsnachweisZeile[] | null>(null);
   /** Welcher Storno gerade aufgehoben werden soll — erst nach der Rückfrage. */
   const [aufheben, setAufheben] = useState<WithId<Invoice> | null>(null);
   /** Zu welchem Storno die Stornorechnung erst ausgestellt werden soll — nach der Rückfrage. */
@@ -661,13 +672,22 @@ export default function InvoicesView() {
   const konditionenZuruecksetzen = () => setRates(betriebSaetze);
   /** Eine andere Baustelle ist eine andere Rechnung; die erste Wahl gehört noch zu dieser. */
   const baustelleWaehlen = (nr: string) => {
-    if (projectNumber && nr !== projectNumber) konditionenZuruecksetzen();
+    if (projectNumber && nr !== projectNumber) {
+      konditionenZuruecksetzen();
+      ersatzBeenden();
+    }
     setProjectNumber(nr);
   };
   /** Verwerfen beendet die Rechnung, die gerade entsteht — angelegt ist bis dahin nichts. */
   const vorschauVerwerfen = () => {
     setPreview(null);
     konditionenZuruecksetzen();
+    ersatzBeenden();
+  };
+  /** Die neue Rechnung ersetzt keine mehr — die alte bleibt, wie sie ist (V6). */
+  const ersatzBeenden = () => {
+    setErsatz(null);
+    setErsatzNachweis(null);
   };
   /** Schliessen verwirft eine offene Vorschau — wie „Verwerfen“; angelegt ist bis dahin nichts. */
   const erstellenSchliessen = () => {
@@ -1508,6 +1528,8 @@ export default function InvoicesView() {
    */
   async function buildPreview(bis?: string) {
     if (!user || !projectNumber) return;
+    // Neu zusammengestellt ist eine neue Rechnung, kein Ersatz (V6).
+    ersatzBeenden();
     setBusy(true);
     setError(null);
     setHinweis(null);
@@ -1956,7 +1978,99 @@ export default function InvoicesView() {
     setArtWahl('einzel');
     setAbzugsfaehig([]);
     setGewaehlteAbzuege([]);
+    ersatzBeenden();
     setStundenStand((n) => n + 1);
+  }
+
+  /**
+   * „Stornieren und neu ausstellen“ vorbereiten (V6/F4): die neue Rechnung
+   * mit allem aus der alten vorbelegen — Positionen samt eigener Zeilen und
+   * Texte, Rabatt, Art und Abzüge, Zeitraum, Konditionen, Empfänger-UID,
+   * Bestellnummer, Rücklass, die verrechneten Belege und den Leistungs-
+   * nachweis. Storniert wird erst beim Ausstellen, zusammen mit der neuen
+   * (`rechnung_ersetzen`); bis dahin gilt die alte unverändert.
+   */
+  async function ersetzenVorbereiten(alt: WithId<Invoice>, grund: string) {
+    if (!user) return;
+    setError(null);
+    setHinweis(null);
+    erstellenOeffnen();
+    setProjectNumber(alt.projectNumber);
+    setArtWahl(alt.art ?? 'einzel');
+    const tage = (von: string, bis?: string | null) =>
+      bis ? Math.max(Math.round((Date.parse(`${bis}T00:00:00Z`) - Date.parse(`${von}T00:00:00Z`)) / 86_400_000), 0) : 0;
+    setRates({
+      ...betriebSaetze,
+      vatRate: alt.reverseCharge ? betriebSaetze.vatRate : (alt.vatRate ?? betriebSaetze.vatRate),
+      dueDays: tage(alt.invoiceDate, alt.dueDate),
+      skontoProzent: alt.skontoProzent ?? 0,
+      skontoTage: alt.skontoProzent ? tage(alt.invoiceDate, alt.skontoBis) : 0,
+    });
+    setReverseCharge(!!alt.reverseCharge);
+    setSteuerbefreiung(alt.steuerbefreiung ?? company?.steuerbefreiungVorgabe ?? '');
+    setDiscount(alt.discount
+      ? { mode: alt.discount.mode, value: zahlAlsText(alt.discount.value), label: alt.discount.label ?? '' }
+      : { mode: 'percent', value: '', label: '' });
+    setKundenUid(alt.customerVatId ?? '');
+    setUidInKunden(false);
+    setBestellnummer(alt.bestellnummer ?? '');
+    setRuecklassAn(!!alt.ruecklassArt);
+    setRuecklassProzent(alt.ruecklassProzent ?? null);
+    setRuecklassBis(alt.ruecklassBis ?? '');
+    setLeistungVon(alt.leistungVon ?? '');
+    setLeistungBis(alt.leistungBis ?? '');
+    setAppendDetail(!!alt.leistungsnachweis?.length || (alt.linkedEntries?.length ?? 0) > 0);
+    const satzDerAlten = geltenderSatz(!!alt.reverseCharge, alt.vatRate ?? betriebSaetze.vatRate);
+    const zeitraum = alt.leistungVon && alt.leistungBis ? { von: alt.leistungVon, bis: alt.leistungBis } : null;
+    /*
+      DIE ZEITBUCHUNGEN FÜR DEN LEISTUNGSNACHWEIS — nur wenn die alte keinen
+      festgehaltenen trägt (vor G6). Mit festgehaltenem gilt der, wie er
+      hinausging.
+    */
+    let eintraege: WithId<TimeEntry>[] = [];
+    if (!alt.leistungsnachweis && (alt.linkedEntries?.length ?? 0) > 0) {
+      try {
+        const ids = new Set(alt.linkedEntries);
+        eintraege = (await listEntriesForProjects(user.companyId, [alt.projectNumber])).filter((e) => ids.has(e.id));
+      } catch {
+        eintraege = [];
+      }
+    }
+    setErsatzNachweis(alt.leistungsnachweis ?? null);
+    setPreview(recalc({
+      positions: alt.positions ?? [],
+      subtotalNetto: alt.subtotalNetto ?? alt.totalNetto,
+      discount: alt.discount ?? null,
+      discountAmount: alt.discountAmount ?? 0,
+      totalNetto: alt.gesamtNetto ?? alt.totalNetto,
+      totalVat: alt.gesamtVat ?? alt.totalVat,
+      totalBrutto: alt.gesamtBrutto ?? alt.totalBrutto,
+      linkedEntries: alt.linkedEntries ?? [],
+      linkedOrders: alt.linkedOrders ?? [],
+      linkedWorkSheets: alt.linkedWorkSheets ?? [],
+      leistung: zeitraum,
+      materialOhnePreis: [],
+      entries: eintraege,
+    }, alt.positions ?? [], satzDerAlten, alt.discount ?? null));
+    setErsatz({ alt, grund });
+    /*
+      DIE ABZÜGE DER ALTEN — die Anzahlungen, die sie abzog, sind nach ihrem
+      Storno wieder abziehbar. Bis dahin gilt sie hier schon als storniert,
+      sonst stünden ihre Abzüge als „schon abgezogen“ da.
+    */
+    try {
+      const derBaustelle = await listInvoicesForProject(user.companyId, alt.projectNumber);
+      const ohneAlte = derBaustelle.map((r) => (r.id === alt.id ? { ...r, paymentStatus: 'Storniert' as const } : r));
+      setAbzugsfaehig(abziehbar(ohneAlte, alt.projectNumber));
+      setGewaehlteAbzuege((alt.vorrechnungen ?? []).map((v) => v.invoiceId));
+      setAbzugFehler(false);
+    } catch {
+      setAbzugsfaehig([]);
+      setAbzugFehler(true);
+    }
+    const vorschlag = nextInvoiceNumber(invoices, vorsaetze.rechnung);
+    setSuggestedNumber(vorschlag);
+    setInvoiceNumber(vorschlag);
   }
 
   /*
@@ -2162,9 +2276,10 @@ export default function InvoicesView() {
         und Belegarchiv drucken sie danach von dort, auch wenn sich eine
         Buchung später ändert. Ohne Haken oder ohne Buchungen: keiner.
       */
-      const nachweis = appendDetail ? leistungsnachweisZeilen(preview) : [];
+      // Beim Ersatz der festgehaltene Nachweis der alten Rechnung (V6), sonst aus den Buchungen.
+      const nachweis = appendDetail ? (ersatz && ersatzNachweis ? ersatzNachweis : leistungsnachweisZeilen(preview)) : [];
       const leistungsnachweis = nachweis.length > 0 ? nachweis : null;
-      const { invoiceNumber: reserved } = await rechnungAusstellen(user.companyId, {
+      const neueRechnung = {
         projectNumber,
         customerName: project?.customerName ?? '–',
         address: anschrift,
@@ -2226,14 +2341,25 @@ export default function InvoicesView() {
         // Die Scheine, deren Material eingeflossen ist. Sie sind damit
         // verbraucht — bis diese Rechnung storniert wird.
         linkedWorkSheets: preview.linkedWorkSheets,
-        // Die Wartungen, deren Zeile noch in der Vorschau steht (M01e).
-        linkedWartungen: wartungenDerPositionen(preview.positions),
+        // Die Wartungen, deren Zeile noch in der Vorschau steht (M01e) — beim Ersatz die der alten (V6).
+        linkedWartungen: ersatz ? (ersatz.alt.linkedWartungen ?? []) : wartungenDerPositionen(preview.positions),
         leistungsnachweis,
-      }, {
-        praefix: vorsaetze.rechnung,
-        desired: vonHand ? typedSeq : undefined,
-        versuch: versuchDiesesAusstellens.kennung,
-      });
+      } satisfies Parameters<typeof rechnungAusstellen>[1];
+      /*
+        STORNIEREN UND NEU AUSSTELLEN IN EINEM ZUG (V6): scheitert das
+        Ausstellen, bleibt auch der Storno aus — die alte gilt weiter.
+      */
+      const { invoiceNumber: reserved } = ersatz
+        ? await rechnungErsetzen(user.companyId, { id: ersatz.alt.id, grund: ersatz.grund }, neueRechnung, {
+            praefix: vorsaetze.rechnung,
+            versuch: versuchDiesesAusstellens.kennung,
+          })
+        : await rechnungAusstellen(user.companyId, neueRechnung, {
+            praefix: vorsaetze.rechnung,
+            desired: vonHand ? typedSeq : undefined,
+            versuch: versuchDiesesAusstellens.kennung,
+          });
+      const ersetzt = ersatz?.alt;
 
       // Ab jetzt steht die Rechnung. PDF-Ausgabe ist ein unabhängiger Folgeschritt.
       const pdfErzeugen = async () => {
@@ -2283,7 +2409,9 @@ export default function InvoicesView() {
       catch { setPdfNachholen({ nummer: reserved, erneut: pdfErzeugen }); }
 
       nachDemAusstellen();
-      toast.success(`Rechnung ${reserved} erstellt`);
+      toast.success(ersetzt
+        ? `Rechnung ${reserved} erstellt — ${ersetzt.invoiceNumber} ist storniert`
+        : `Rechnung ${reserved} erstellt`);
       /*
         DIE KORRIGIERTE UID IN DEN KUNDEN (Testbericht 30.09.2026, M10) — nur
         auf Wunsch und erst, wenn die Rechnung steht. Schlägt es fehl, ist die
@@ -3188,6 +3316,18 @@ export default function InvoicesView() {
               ergibt sich aus Zahlungsziel und Eingängen; die Datenbank lässt
               nichts anderes mehr zu. Die Korrektur ist der Storno.
             */
+            /*
+              DIE HÄUFIGSTE KORREKTUR IN EINEM ZUG (V6/F4): falscher Preis,
+              falsche Anschrift. Die neue Rechnung kommt mit allem aus dieser
+              vorbelegt; storniert wird erst, wenn sie ausgestellt wird.
+            */
+            {
+              label: 'Stornieren und neu ausstellen …',
+              onSelect: ausDemFenster(() => {
+                setErsetzenFrage(inv);
+                setErsetzenGrund('');
+              }),
+            },
             {
               label: 'Stornieren',
               danger: true,
@@ -3644,15 +3784,33 @@ export default function InvoicesView() {
         action={<IconButton label="Schließen" onClick={erstellenSchliessen}><Icon name="schliessen" size={22} /></IconButton>}
       >
         <div className="formular space-y-4">
+          {ersatz && (
+            <Hinweiszeile>
+              <p><b>Ersetzt {ersatz.alt.invoiceNumber}.</b></p>
+              <p>
+                Beim Erstellen wird {ersatz.alt.invoiceNumber} storniert (Grund: {ersatz.grund}) und diese Rechnung im
+                selben Zug ausgestellt. Geht dabei etwas schief, bleibt {ersatz.alt.invoiceNumber} unverändert. Die
+                Stornorechnung dazu stellst du danach an {ersatz.alt.invoiceNumber} aus, wenn sie schon beim Kunden war.
+              </p>
+            </Hinweiszeile>
+          )}
           <BaustellenSelect
             id="invproj"
             companyId={user.companyId}
             value={projectNumber}
             onChange={(nr, p) => {
-              baustelleWaehlen(nr);
-              setPreview(null);
-              setError(null);
-              setHinweis(null);
+              /*
+                DIE AUSWAHL MELDET DIE BAUSTELLE ZURÜCK, sobald ihre Stammdaten
+                da sind. Beim Ersatz (V6) ist das die vorbelegte Baustelle —
+                kein Wechsel, die vorbelegte Vorschau bleibt.
+              */
+              const rueckmeldung = !!ersatz && nr === ersatz.alt.projectNumber;
+              if (!rueckmeldung) {
+                baustelleWaehlen(nr);
+                setPreview(null);
+                setError(null);
+                setHinweis(null);
+              }
               // Abgerechnet wird typischerweise NACH dem Abschluss der
               // Baustelle. Sie muss deshalb auch dann auffindbar sein, wenn
               // sie nicht mehr laeuft — und ihre Stammdaten mit ihr.
@@ -5543,6 +5701,29 @@ export default function InvoicesView() {
           <InputField id="cancelnote" label="Grund (erscheint in der Liste)" required pflicht value={cancelNote}
             onChange={(e) => setCancelNote(e.target.value)} placeholder="z. B. Falscher Kunde" />
         )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={!!ersetzenFrage}
+        title="Stornieren und neu ausstellen?"
+        message={ersetzenFrage
+          ? `Die neue Rechnung kommt mit allem aus ${ersetzenFrage.invoiceNumber} vorbelegt — Positionen, Rabatt, Zeitraum und Konditionen lassen sich davor ändern. ${ersetzenFrage.invoiceNumber} wird erst storniert, wenn die neue ausgestellt wird.`
+          : ''}
+        confirmLabel="Neue Rechnung vorbereiten"
+        onCancel={() => setErsetzenFrage(null)}
+        onConfirm={async () => {
+          if (!ersetzenFrage) return;
+          // Ohne Grund kein Storno (H4) — auch nicht in einem Zug.
+          if (!ersetzenGrund.trim()) {
+            throw new Error('Bitte einen Grund angeben — er steht in der Liste, im Ausgangsbuch und im Buchungsstapel.');
+          }
+          const alt = ersetzenFrage;
+          setErsetzenFrage(null);
+          await ersetzenVorbereiten(alt, ersetzenGrund.trim());
+        }}
+      >
+        <InputField id="ersetzengrund" label="Grund des Stornos (erscheint in der Liste)" required pflicht value={ersetzenGrund}
+          onChange={(e) => setErsetzenGrund(e.target.value)} placeholder="z. B. Falscher Stundensatz" />
       </ConfirmDialog>
 
       {/*

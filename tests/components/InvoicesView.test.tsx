@@ -92,6 +92,8 @@ const reserve = vi.fn();
 const lege = vi.fn();
 /** Die Nummern desselben Jahres vor dem Exportzeitraum (G8). */
 let nummernVorDemZeitraum: string[] = [];
+/** Stornieren und neu ausstellen in einem Zug (V6): was die Transaktion bekäme. */
+const ersetze = vi.fn<(...a: unknown[]) => Promise<{ id: string; invoiceNumber: string }>>(async () => ({ id: 'neu', invoiceNumber: 'RE-2026-1099' }));
 /** Die Klärung eines unterbrochenen Versuchs (G2); ohne Vorgabe: weiter kein Netz. */
 const klaerung = vi.fn<(kennung: string) => Promise<unknown>>(async () => { throw new RechnungsAntwortUnklar(); });
 const mahnung = vi.fn();
@@ -185,6 +187,7 @@ vi.mock('@/lib/db/invoices', async () => {
     listUnpaidInvoices: () => listUnpaidInvoices(),
     listInvoicesByIds: (c: string, ids: string[]) => listInvoicesByIds(c, ids),
     rechnungVersuchKlaeren: (kennung: string) => klaerung(kennung),
+    rechnungErsetzen: (...a: unknown[]) => ersetze(...a),
     /*
       Und der Buchhaltungs-Export holt seinen Zeitraum selbst, statt die
       geladene Liste zu filtern. Der Doppelgänger gibt zurück, was der Test
@@ -522,6 +525,7 @@ beforeEach(() => {
   lege.mockClear();
   nummernVorDemZeitraum = [];
   klaerung.mockReset().mockImplementation(async () => { throw new RechnungsAntwortUnklar(); });
+  ersetze.mockClear();
   try { window.localStorage.clear(); } catch { /* ohne Speicher */ }
   pdfAusgabe.mockClear();
   belegFirma.mockClear();
@@ -6135,5 +6139,87 @@ describe('Bezahlt im Monat: stornierte Rechnungen außerhalb der Liste (G8)', ()
     await waitFor(() => expect(kachel.textContent).toContain('600,00'));
     expect(kachel.textContent).not.toContain('900,00');
     expect(listInvoicesByIds).toHaveBeenCalledWith('perl', ['alt']);
+  });
+});
+
+/*
+  DURCHSICHT 15.11.2026, V6/F4: „Stornieren und neu ausstellen“ in einem Zug.
+  Vorher hieß die häufigste Korrektur: stornieren, Baustelle neu wählen,
+  alles neu zusammenstellen — eigene Zeilen, Rabatt und Texte waren weg.
+  Gegenprobe: vor der Änderung gibt es die Aktion nicht.
+*/
+describe('Stornieren und neu ausstellen (V6/F4)', () => {
+  const ALT = {
+    id: 'alt1', companyId: 'perl', invoiceNumber: 'RE-2026-0040', projectNumber: '2026-042', customerName: 'Familie Huber',
+    address: 'Bergweg 3, 2700 Wiener Neustadt', invoiceDate: '2026-08-20', dueDate: '2026-09-03',
+    leistungVon: '2026-08-18', leistungBis: '2026-08-20',
+    positions: [
+      { label: 'Facharbeiterstunden', qty: 8, unit: 'h', unitPrice: 70, netto: 560 },
+      { label: 'Eigene Zeile: Anfahrt pauschal', qty: 1, unit: 'Pauschale', unitPrice: 40, netto: 40 },
+    ],
+    subtotalNetto: 600, discount: { mode: 'percent', value: 5, label: 'Treuerabatt' }, discountAmount: 30,
+    totalNetto: 570, totalVat: 114, totalBrutto: 684, vatRate: 0.2, paymentStatus: 'Offen',
+    bestellnummer: 'B-4711', linkedEntries: ['z1'], linkedWorkSheets: ['s1'], linkedWartungen: ['w1'],
+    leistungsnachweis: [{ uid: 'u1', datum: '2026-08-20', mitarbeiter: 'Max', typ: 'Fachkraft', taetigkeit: 'Bad', minuten: 480 }],
+  } as unknown as Invoice & { id: string };
+
+  async function vorbereiten(grund = 'Falscher Stundensatz') {
+    rechnungen = [ALT];
+    zeige();
+    await screen.findAllByText(/RE-2026-0040/);
+    await rechnungOeffnen('RE-2026-0040');
+    await userEvent.click(await screen.findByRole('button', { name: 'Stornieren und neu ausstellen …' }));
+    const dialog = await screen.findByRole('dialog', { name: /Stornieren und neu ausstellen/ });
+    if (grund) await userEvent.type(within(dialog).getByLabelText(/Grund/), grund);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Neue Rechnung vorbereiten' }));
+    return dialog;
+  }
+
+  it('belegt die neue Rechnung mit allem aus der alten vor — storniert ist noch nichts', async () => {
+    vi.mocked(cancelInvoice).mockClear();
+    await vorbereiten();
+    expect(await screen.findByText('Ersetzt RE-2026-0040.')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Eigene Zeile: Anfahrt pauschal')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Treuerabatt')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('B-4711')).toBeInTheDocument();
+    expect(cancelInvoice).not.toHaveBeenCalled();
+    expect(ersetze).not.toHaveBeenCalled();
+  });
+
+  it('beim Erstellen: alte stornieren und neue ausstellen in EINEM Aufruf, mit Belegen und Nachweis der alten', async () => {
+    vi.mocked(cancelInvoice).mockClear();
+    await vorbereiten();
+    await screen.findByText('Ersetzt RE-2026-0040.');
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(ersetze).toHaveBeenCalledOnce());
+    const [, alt, neu] = ersetze.mock.calls[0] as [string, { id: string; grund: string }, Record<string, unknown>];
+    expect(alt).toEqual({ id: 'alt1', grund: 'Falscher Stundensatz' });
+    expect((neu.positions as { label: string }[]).map((p) => p.label)).toEqual([
+      'Facharbeiterstunden', 'Eigene Zeile: Anfahrt pauschal',
+    ]);
+    expect(neu).toMatchObject({
+      linkedEntries: ['z1'], linkedWorkSheets: ['s1'], linkedWartungen: ['w1'], bestellnummer: 'B-4711',
+      leistungVon: '2026-08-18', leistungBis: '2026-08-20',
+      discount: { mode: 'percent', value: 5, label: 'Treuerabatt' },
+      leistungsnachweis: ALT.leistungsnachweis,
+    });
+    // Kein getrennter Storno und kein gewöhnliches Ausstellen daneben.
+    expect(cancelInvoice).not.toHaveBeenCalled();
+    expect(reserve).not.toHaveBeenCalled();
+  });
+
+  it('ohne Grund kein Ersatz', async () => {
+    const dialog = await vorbereiten('');
+    expect(await within(dialog).findByText(/Bitte einen Grund angeben/)).toBeInTheDocument();
+    expect(screen.queryByText('Ersetzt RE-2026-0040.')).toBeNull();
+  });
+
+  // Bleibt gleich: verworfen, ist die neue Rechnung kein Ersatz mehr — die alte bleibt.
+  it('Verwerfen beendet den Ersatz', async () => {
+    await vorbereiten();
+    await screen.findByText('Ersetzt RE-2026-0040.');
+    await userEvent.click(screen.getByRole('button', { name: 'Verwerfen' }));
+    expect(screen.queryByText('Ersetzt RE-2026-0040.')).toBeNull();
+    expect(ersetze).not.toHaveBeenCalled();
   });
 });

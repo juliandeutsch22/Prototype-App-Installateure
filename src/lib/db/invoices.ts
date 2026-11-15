@@ -141,6 +141,16 @@ export function rechnungAusstellen(
 
 export type { VersuchGeklaert } from './pg/invoices';
 
+/** Die alte Rechnung stornieren und die neue ausstellen — in einem Zug (V6/F4). */
+export function rechnungErsetzen(
+  companyId: string,
+  alt: { id: string; grund: string },
+  inv: Omit<NewInvoice, 'invoiceNumber'>,
+  nummer: { praefix?: string; versuch?: string },
+): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string; bereits?: boolean }> {
+  return pg.rechnungErsetzen(companyId, alt, inv, nummer);
+}
+
 /** Nach einer unterbrochenen Antwort: ist die Rechnung dieses Versuchs entstanden? (G2) */
 export function rechnungVersuchKlaeren(versuch: string): Promise<pg.VersuchGeklaert> {
   return pg.rechnungVersuchKlaeren(versuch);
