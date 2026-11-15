@@ -148,7 +148,8 @@ const FEST = {
   prefs:
     'const P = {} as never;\nexport const getPrefs = () => A(P);\nexport const subscribePrefs = SUB(P);\n',
   // Formen, die die Heuristik falsch raten wuerde (Prueflauf 25.09.2026, C11).
-  workSheets: 'export const vorbereiten = () => A({ zeiten: [], material: [] });\n',
+  workSheets: 'export const vorbereiten = () => A({ zeiten: [], material: [] });\n' +
+    'export const listWorkSheetsByIds = () => A([]);\n',
   /*
     EIN SCHLÜSSEL JE MODUL: stand `invoices` zweimal da, galt nur der zweite —
     `scheineAufRechnung` fehlte, und Startseite, Scheinliste und Rechnungen
@@ -157,6 +158,8 @@ const FEST = {
   */
   invoices:
     'export const scheineAufRechnung = () => A([]);\n' +
+    // „Nicht verrechnet“ über alle Scheine (P3): eine Liste, kein `undefined`.
+    'export const scheineUnverrechnet = () => A([]);\n' +
     'export const sucheRechnungen = () => A([]);\n' +
     "export const nextInvoiceNumber = () => 'RE-2026-0234';\n" +
     'export const isInvoiceNumberTaken = () => false;\n',

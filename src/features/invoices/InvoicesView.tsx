@@ -22,7 +22,8 @@ import {
   mahnungFesthalten,
   listMahnungenZurRechnung,
   sucheRechnungen,
-  scheineAufRechnung,
+  scheineUnverrechnet,
+  type UnverrechneterSchein,
   RECHNUNG_TREFFER,
   listInvoicesByIds,
 } from '@/lib/db/invoices';
@@ -41,7 +42,7 @@ import { buildBmdCsv, bmdCsvFilename, buildBmdZahlungenCsv, bmdZahlungenFilename
 import { buchungskonten, type Buchungskonto } from '@/lib/db/konten';
 import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects, unverrechneteStunden, type OffeneStunden } from '@/lib/db/timeEntries';
-import { listWorkSheetsForProject, listRecentWorkSheets } from '@/lib/db/workSheets';
+import { listWorkSheetsForProject } from '@/lib/db/workSheets';
 import { katalogNachIds, katalogNachNamen } from '@/lib/db/materials';
 import { belegFirma } from '@/lib/db/aussteller';
 import { leistungszeitraum, verrechneteScheine } from './materialPositionen';
@@ -64,13 +65,12 @@ import {
 import { postenNeuLaden } from '@/app/offenePosten';
 import { mahnlauf } from './mahnlauf';
 import {
-  unverrechneteScheine,
+  unverrechnetZeilen,
   unverrechneteStundenZeilen,
   inAbgerechnetemZeitraum,
   nichtVerrechnetJeBaustelle,
   auffaellige,
   AUFFAELLIG_AB_TAGEN,
-  UNVERRECHNET_BASIS,
 } from '@/features/worksheets/unverrechnet';
 import { geltenderSatz, pruefeReverseCharge } from './reverseCharge';
 import { istUnternehmerKunde, uidFehler, uidNormalisieren } from '@/lib/uid';
@@ -226,20 +226,21 @@ export default function InvoicesView() {
   /** Die letzte Anzahlung entstand ohne angenommenes Angebot — Betrag von Hand. */
   const [anzahlungOhneAngebot, setAnzahlungOhneAngebot] = useState(false);
   /*
-    Die unterschriebenen Scheine des Betriebs — für die Frage, welche Leistung
-    noch auf keiner Rechnung steht. Einmal geladen, nicht abonniert: die
-    Antwort ändert sich im Takt von Tagen, nicht von Sekunden, und ein
-    zweiter laufender Zuhörer kostete auf einer Baustelle Verbindung für
-    nichts.
+    DIE UNVERRECHNETEN SCHEINE DES BETRIEBS (P3) — nur der Kopf, über alle,
+    älteste zuerst. Einmal geladen, nicht abonniert: die Antwort ändert sich
+    im Takt von Tagen, nicht von Sekunden. `null`: noch nicht da.
   */
-  const [scheineAllerBaustellen, setScheineAllerBaustellen] = useState<WithId<WorkSheet>[]>([]);
-  /*
-    Welche dieser Scheine auf einer gültigen Rechnung stehen — aus der
-    Abdeckung ALLER Rechnungen, nicht aus den geladenen (Prüflauf 25.09.2026,
-    P2-03). `null`: noch nicht bekannt oder nicht geladen.
-  */
-  const [scheineVerrechnet, setScheineVerrechnet] = useState<string[] | null>(null);
+  const [unverrechnetDB, setUnverrechnetDB] = useState<UnverrechneterSchein[] | null>(null);
   const [abdeckungFehler, setAbdeckungFehler] = useState(false);
+  /*
+    DIE SCHEINE DER BAUSTELLE IN DER VORSCHAU, für den Abgleich der Stunden
+    (`scheinAbgleich`) — samt der Frage, welche davon noch offen sind. Vorher
+    nahm der Abgleich die 60 jüngsten Scheine des Betriebs; ein älterer
+    offener Schein der Baustelle fehlte darin (P3).
+  */
+  const [vorschauScheine, setVorschauScheine] = useState<{
+    projectNumber: string; scheine: WithId<WorkSheet>[]; offen: Set<string>;
+  } | null>(null);
   /*
     UNVERRECHNETE STUNDEN DER REGIEBAUSTELLEN (23.10.2026) — die zweite
     Hälfte von „nicht verrechnet“: gebuchte Zeit ohne Schein fiel bisher
@@ -831,35 +832,24 @@ export default function InvoicesView() {
       .finally(() => {
         if (!weg) setOffeneGeladen(true);
       });
-    // Ohne Zugriff auf die Abdeckung stünde jeder Schein als unverrechnet da.
-    if (!nurLesen) listRecentWorkSheets(user.companyId, UNVERRECHNET_BASIS)
-      .then(async (rows) => {
+    /*
+      DIE UNVERRECHNETEN SCHEINE ÜBER ALLE (P3, `scheine_unverrechnet`).
+      Vorher die 60 jüngsten, dazu die Abdeckung — ein älterer Schein fiel
+      heraus, bevor er „über 4 Wochen“ alt werden konnte. Kommt die Antwort
+      nicht, bleibt die Karte weg und eine Zeile sagt warum: eine leere Liste
+      hieße „alles verrechnet“. Ohne Zugriff auf die Verrechnung (nur lesen)
+      wird nicht gefragt.
+    */
+    if (!nurLesen) scheineUnverrechnet()
+      .then((rows) => {
         if (weg) return;
-        setScheineAllerBaustellen(rows);
-        /*
-          OB EIN SCHEIN VERRECHNET IST, SAGT DIE ABDECKUNG — über alle
-          Rechnungen (P2-03). Vorher wurde das aus den fünfzig jüngsten und
-          den offenen Rechnungen geschlossen; ein Schein auf einer älteren,
-          längst bezahlten stand dann als „nicht verrechnet" da. Kommt die
-          Antwort nicht, bleibt die Karte weg und eine Zeile sagt warum.
-        */
-        try {
-          const verrechnet = await scheineAufRechnung(user.companyId, rows.map((r) => r.id));
-          if (!weg) {
-            setScheineVerrechnet(verrechnet);
-            setAbdeckungFehler(false);
-          }
-        } catch {
-          if (!weg) setAbdeckungFehler(true);
-        }
-        if (!weg) setScheineFertig(true);
+        setUnverrechnetDB(rows);
+        setAbdeckungFehler(false);
       })
-      /*
-        Still: die Liste ist eine ZUSATZangabe. Fiele die ganze
-        Rechnungsansicht aus, weil sie nicht kommt, wäre das Verhältnis
-        zwischen Nutzen und Schaden verkehrt herum.
-      */
       .catch(() => {
+        if (!weg) setAbdeckungFehler(true);
+      })
+      .finally(() => {
         if (!weg) setScheineFertig(true);
       });
     return () => {
@@ -1791,6 +1781,11 @@ export default function InvoicesView() {
       setWartungVorschlaege(ausWartung);
       setVorschlaege(vorschlag);
       setSpaeterGetragen(spaeterAbgezogen);
+      setVorschauScheine({
+        projectNumber,
+        scheine,
+        offen: new Set(scheine.filter((s) => s.status === 'Unterschrieben' && !bereitsVerrechnet.has(s.id)).map((s) => s.id)),
+      });
       const scheineDerRechnung = scheine.filter((s) => assembled.linkedWorkSheets.includes(s.id));
       const nachgetrageneHier = nachgetrageneScheine(scheineDerRechnung, derBaustelle);
       setNachgetragen(nachgetrageneHier);
@@ -2459,27 +2454,8 @@ export default function InvoicesView() {
    * man später sieht, sondern Geld, das nie eingefordert wird.
    */
   const offeneLeistung = useMemo(
-    /*
-      HIER BRAUCHT ES BEIDE LISTEN, und das ist kein Versehen: gesucht sind
-      Scheine, die auf KEINER Rechnung stehen. Eine bezahlte Rechnung ist
-      genauso ein Beleg dafür, dass verrechnet wurde, wie eine offene — sie
-      steht nur nicht in `offeneRechnungen`. Die Arbeitsliste deckt die
-      jüngeren ab, die offenen die älteren; zusammen ist das die belastbare
-      Auskunft, die es vorher nicht gab.
-    */
-    () =>
-      unverrechneteScheine(
-        scheineAllerBaustellen,
-        [
-          ...invoices,
-          ...offeneRechnungen,
-          // Die Abdeckung ALLER gültigen Rechnungen (P2-03) — als eine
-          // Rechnung gelesen, die genau diese Scheine trägt.
-          { linkedWorkSheets: scheineVerrechnet ?? [], paymentStatus: 'Offen' },
-        ],
-        todayStr(),
-      ),
-    [scheineAllerBaustellen, invoices, offeneRechnungen, scheineVerrechnet],
+    () => unverrechnetZeilen(unverrechnetDB ?? [], todayStr()),
+    [unverrechnetDB],
   );
 
   /*
@@ -2502,14 +2478,13 @@ export default function InvoicesView() {
     steht einmal da, mit allem, was offen ist (`nichtVerrechnetJeBaustelle`).
   */
   const nichtVerrechnet = useMemo(() => {
-    const scheine = !forderungenFehler && !abdeckungFehler && scheineVerrechnet !== null
-      ? offeneLeistung
-      : [];
+    // Die Liste kommt seit P3 fertig aus der Datenbank; offene Forderungen braucht sie nicht mehr.
+    const scheine = !abdeckungFehler && unverrechnetDB !== null ? offeneLeistung : [];
     const stunden = istAn(company?.modules, 'zeiterfassung') && offeneStunden
       ? unverrechneteStundenZeilen(offeneStunden, todayStr())
       : [];
     return nichtVerrechnetJeBaustelle(scheine, stunden);
-  }, [forderungenFehler, abdeckungFehler, scheineVerrechnet, offeneLeistung, offeneStunden, company?.modules]);
+  }, [abdeckungFehler, unverrechnetDB, offeneLeistung, offeneStunden, company?.modules]);
 
   /**
    * Stellt dieser Betrieb überhaupt Anzahlungen und Teilrechnungen?
@@ -2688,8 +2663,8 @@ export default function InvoicesView() {
         ? scheinAbgleich(
             projectNumber,
             preview.entries,
-            scheineAllerBaustellen,
-            new Set(offeneLeistung.map((o) => o.schein.id)),
+            vorschauScheine?.projectNumber === projectNumber ? vorschauScheine.scheine : [],
+            vorschauScheine?.projectNumber === projectNumber ? vorschauScheine.offen : new Set<string>(),
             // Mit Stichtag zählt jede Zeitzeile nach ihrem Tag; Späteres kommt auf die nächste.
             stichtag ?? undefined,
           )
@@ -2697,7 +2672,7 @@ export default function InvoicesView() {
             verrechnetMin: 0, bestaetigtMin: 0, scheine: 0, mehrMin: 0, auffaellig: false,
             wenigerMin: 0, zuWenig: false, fehlend: [], ohneSchein: [],
           },
-    [preview, art, projectNumber, scheineAllerBaustellen, offeneLeistung, stichtag],
+    [preview, art, projectNumber, vorschauScheine, stichtag],
   );
 
   /*

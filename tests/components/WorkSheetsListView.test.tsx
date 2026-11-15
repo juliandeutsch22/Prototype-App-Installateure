@@ -103,6 +103,8 @@ const wartendeScheine = vi.fn<() => Promise<VorgemerkterSchein[]>>(async () => [
 const einzeln = vi.fn<(id: string) => Promise<(WorkSheet & { id: string }) | undefined>>(async () => undefined);
 vi.mock('@/lib/db/workSheets', () => ({
   listRecentWorkSheets: vi.fn(async () => geladen),
+  listWorkSheetsByIds: vi.fn(async (_c: string, ids: readonly string[]) =>
+    [...geladen, ...nurInDerDatenbank].filter((x) => ids.includes(x.id))),
   listSignedWorkSheetsInRange: (...a: unknown[]) => tiefeAbfrage(...(a as [])),
   listWorkSheetsInRange: (...a: unknown[]) => zeitraumSuche(...(a as [])),
   listWorkSheetsForProject: (...a: unknown[]) => baustellenSuche(...(a as [])),
@@ -141,9 +143,22 @@ vi.mock('@/lib/db/timeEntries', () => ({
   schreiben (Gruppe „Nicht verrechnet“ in der offenen Ansicht).
 */
 let aufRechnung: string[] = [];
+/** Ältere Scheine, die die Liste nicht geladen hat — nur die Datenbank kennt sie (P3). */
+let nurInDerDatenbank: (WorkSheet & { id: string })[] = [];
 const verrechnungGeholt = vi.fn(async () => aufRechnung);
+/*
+  Seit P3 fragt die Liste `scheine_unverrechnet` (über alle Scheine) — hier
+  aus dem geladenen Bestand und `aufRechnung` nachgebildet, älteste zuerst,
+  wie die Datenbank antwortet; die Zeilen dazu holt `listWorkSheetsByIds`.
+*/
 vi.mock('@/lib/db/invoices', () => ({
-  scheineAufRechnung: (...a: unknown[]) => verrechnungGeholt(...(a as [])),
+  scheineUnverrechnet: async () => {
+    const verrechnet = await verrechnungGeholt();
+    return [...geladen, ...nurInDerDatenbank]
+      .filter((x) => x.status === 'Unterschrieben' && !verrechnet.includes(x.id))
+      .sort((a, b) => a.datum.localeCompare(b.datum) || a.id.localeCompare(b.id))
+      .map((x) => ({ id: x.id, projectNumber: x.projectNumber, customerName: x.customerName, datum: x.datum, abrechnung: x.abrechnung }));
+  },
 }));
 
 /** Die Firmendaten der Ausstellung (seit 24.10.2026): mit Stand die von damals. */
@@ -217,6 +232,7 @@ beforeEach(() => {
   wartendeScheine.mockReset().mockResolvedValue([]);
   authWert.user.role = 'Mitarbeiter';
   aufRechnung = [];
+  nurInDerDatenbank = [];
   verrechnungGeholt.mockClear();
   stornieren.mockClear();
   geladen = scheine;
@@ -1296,6 +1312,22 @@ describe('Ansicht und Seitenfenster', () => {
     expect(screen.queryByText('Familie Verrechnet')).not.toBeInTheDocument();
     // Die Entwürfe bleiben dabei.
     expect(screen.getByText(/Familie Huber/)).toBeInTheDocument();
+  });
+
+  /*
+    P3 (Durchsicht 15.11.2026): „Nicht verrechnet“ über ALLE Scheine. Vorher
+    nur unter den geladenen (60 jüngsten) — ein älterer Schein stand nirgends.
+    Gegenprobe: mit der alten Suche unter `geladen` fehlt „Familie Vergessen“
+    und die Zahl ist 1.
+  */
+  it('P3: der ältere Schein, den die Liste nicht geladen hat, steht unter „Nicht verrechnet“ — vorne', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [scheine[0], unterschrieben('n1', '2026-09-20', 'Familie Neu')];
+    nurInDerDatenbank = [unterschrieben('v1', '2026-05-04', 'Familie Vergessen')];
+    zeichne();
+    expect(await screen.findByRole('heading', { name: /Nicht verrechnet/ })).toHaveTextContent('2 Nicht verrechnet');
+    const alt = screen.getByText('Familie Vergessen');
+    expect(alt.compareDocumentPosition(screen.getByText('Familie Neu')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   /*

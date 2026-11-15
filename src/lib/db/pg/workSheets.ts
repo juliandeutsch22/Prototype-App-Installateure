@@ -376,6 +376,20 @@ export async function listBelegScheineInRange(companyId: string, von: string, bi
 }
 
 /**
+ * Bestimmte Scheine wie in der Liste — ohne Unterschriftsbilder (P3: die
+ * unverrechneten über alle, deren Kennungen `scheine_unverrechnet` liefert).
+ * Lange Kennungslisten stückelt `abfragen` selbst.
+ */
+export async function listWorkSheetsByIds(companyId: string, ids: readonly string[]): Promise<WithId<WorkSheet>[]> {
+  if (ids.length === 0) return [];
+  const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
+    spalten: LISTENKOPF,
+    wo: [{ art: 'in', feld: 'id', werte: ids }],
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/**
  * Ganze Scheine samt Unterschriftsbildern, mehrere auf einmal — für das
  * Belegarchiv. Die Aufrufer geben kleine Blöcke (rund 25 Scheine): zwei
  * Bilder je Schein sind rund 140 KB, und mehr auf einmal hielte der Browser

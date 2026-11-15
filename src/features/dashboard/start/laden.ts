@@ -35,9 +35,9 @@ import { materialdeckung } from '@/lib/db/materialdeckung';
 import { deckungJeEinsatz } from '@/features/assignments/materialDeckung';
 import { lagerKnapp, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
-import { listGarantienEndenIn, listUnpaidInvoiceKoepfe, listInvoicesByIds, scheineAufRechnung, type GarantieRechnung } from '@/lib/db/invoices';
+import { listGarantienEndenIn, listUnpaidInvoiceKoepfe, listInvoicesByIds, scheineUnverrechnet, type GarantieRechnung } from '@/lib/db/invoices';
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
-import { listRecentWorkSheetKoepfe, listOwnWorkSheetsSince, zaehleVerworfeneScheine } from '@/lib/db/workSheets';
+import { listOwnWorkSheetsSince, zaehleVerworfeneScheine } from '@/lib/db/workSheets';
 import { zaehleVerworfeneAngebote } from '@/lib/db/quotes';
 import { listUeberLinkAngenommen, type UeberLinkAngenommen } from '@/lib/db/angebotLinks';
 import { zaehleOffeneEingaenge } from '@/lib/db/auftragseingaenge';
@@ -64,7 +64,7 @@ import { besetzung, ganztagsWeg } from '@/features/assignments/besetzung';
 import { einsatzZeit } from '@/features/assignments/einsatzZeit';
 import { montagDer, wocheAb } from '@/features/assignments/wochenplan';
 import { offeneNachtraege, NACHTRAG_TAGE, type OffenerNachtrag } from '@/features/worksheets/zeitNachtrag';
-import { unverrechneteScheine, unverrechneteStundenZeilen, UNVERRECHNET_BASIS } from '@/features/worksheets/unverrechnet';
+import { unverrechnetZeilen, unverrechneteStundenZeilen } from '@/features/worksheets/unverrechnet';
 import { mahnlauf, type Mahnlauf } from '@/features/invoices/mahnlauf';
 import { basiszinsVerlauf, halbjahresbeginn } from '@/features/invoices/mahnung';
 import { VORLAUF_TAGE } from '@/features/maintenance/wartungsplan';
@@ -522,10 +522,8 @@ export async function buchhaltung(
     })() : undefined,
     was.scheine ? (async () => {
       out.unverrechnet = await still(async () => {
-        const scheine = await listRecentWorkSheetKoepfe(user.companyId, UNVERRECHNET_BASIS);
-        // Ob verrechnet, sagt die Abdeckung über ALLE Rechnungen (P2-03) — wie unter Rechnungen.
-        const verrechnet = await scheineAufRechnung(user.companyId, scheine.map((s) => s.id));
-        return unverrechneteScheine(scheine, [{ linkedWorkSheets: verrechnet, paymentStatus: 'Offen' }], heute);
+        // Über ALLE unterschriebenen Scheine (P3) — dieselbe Antwort wie unter Rechnungen und in der Scheinliste.
+        return unverrechnetZeilen(await scheineUnverrechnet(), heute);
       }, undefined);
     })() : undefined,
   ]);

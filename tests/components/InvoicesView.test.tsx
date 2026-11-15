@@ -131,7 +131,21 @@ let ohneAbzug: { invoiceNumber: string; fehlend: string }[] = [];
   25.09.2026, P2-03) — die Quelle für „nicht verrechnete Leistung".
 */
 let aufRechnung: string[] = [];
-const scheineAufRechnung = vi.fn(async () => aufRechnung);
+/*
+  „Nicht verrechnet“ kommt seit P3 (Durchsicht 15.11.2026) aus der Datenbank
+  über alle Scheine (`scheine_unverrechnet`). Hier nachgebildet mit ihren
+  Regeln: unterschrieben, nicht auf einer gültigen Rechnung (Abdeckung
+  `aufRechnung` oder eine nicht stornierte Rechnung, die ihn trägt),
+  älteste zuerst.
+*/
+const scheineUnverrechnet = vi.fn(async () => {
+  const gueltig = [...rechnungen, ...offene].filter((r) => r.paymentStatus !== 'Storniert');
+  const verrechnet = new Set([...aufRechnung, ...gueltig.flatMap((r) => r.linkedWorkSheets ?? [])]);
+  return alleScheine
+    .filter((x) => x.status === 'Unterschrieben' && !verrechnet.has(x.id))
+    .sort((a, b) => a.datum.localeCompare(b.datum) || a.id.localeCompare(b.id))
+    .map((x) => ({ id: x.id, projectNumber: x.projectNumber, customerName: x.customerName, datum: x.datum, abrechnung: x.abrechnung }));
+});
 
 /*
   DIE GRENZE IM TEST KLEIN HALTEN.
@@ -214,7 +228,7 @@ vi.mock('@/lib/db/invoices', async () => {
       noch verlässlich unter den jüngsten Rechnungen steht.
     */
     listInvoicesForProject: () => listInvoicesForProject(),
-    scheineAufRechnung: () => scheineAufRechnung(),
+    scheineUnverrechnet: () => scheineUnverrechnet(),
     sucheRechnungen: (c: string, b: string) => {
       suche(c, b);
       return sucheWirft ? Promise.reject(new Error('weg')) : Promise.resolve(suchTreffer);
@@ -301,10 +315,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
   Baustelle gerade NICHT gewählt ist.
 */
 let alleScheine: (WorkSheet & { id: string })[] = [];
-const listRecentWorkSheets = vi.fn(async () => alleScheine);
-
 vi.mock('@/lib/db/workSheets', () => ({
-  listRecentWorkSheets: () => listRecentWorkSheets(),
   listWorkSheetsForProject: vi.fn(async () => scheine),
 }));
 /*
@@ -479,9 +490,8 @@ beforeEach(() => {
   frisch = {};
   listInvoicesByIds.mockClear();
   listInvoicesInRange.mockClear();
-  listRecentWorkSheets.mockClear();
+  scheineUnverrechnet.mockClear();
   aufRechnung = [];
-  scheineAufRechnung.mockClear();
   zeiten = [ZEIT];
   offeneStd = [];
   stundenAbfrage.mockClear();
@@ -2075,7 +2085,7 @@ describe('Nicht verrechnete Leistung', () => {
       } as unknown as Invoice & { id: string },
     ];
     zeige();
-    await waitFor(() => expect(listRecentWorkSheets).toHaveBeenCalled());
+    await waitFor(() => expect(scheineUnverrechnet).toHaveBeenCalled());
     expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
   });
 
@@ -2091,13 +2101,13 @@ describe('Nicht verrechnete Leistung', () => {
     offene = [];
     aufRechnung = ['s1'];
     zeige();
-    await waitFor(() => expect(scheineAufRechnung).toHaveBeenCalled());
+    await waitFor(() => expect(scheineUnverrechnet).toHaveBeenCalled());
     expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
   });
 
   it('sagt es, wenn die Abdeckung nicht geladen werden konnte, statt falsch zu melden', async () => {
     alleScheine = [schein('s1', '2026-06-01')];
-    scheineAufRechnung.mockRejectedValueOnce(new Error('kein Netz'));
+    scheineUnverrechnet.mockRejectedValueOnce(new Error('kein Netz'));
     zeige();
     expect(await screen.findByText(/schon verrechnet sind, konnte nicht geladen werden/)).toBeInTheDocument();
     expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
@@ -2129,7 +2139,7 @@ describe('Nicht verrechnete Leistung', () => {
   it('führt Entwürfe gar nicht — sie sind noch keine Leistung', async () => {
     alleScheine = [schein('s1', '2026-06-01', { status: 'Entwurf' })];
     zeige();
-    await waitFor(() => expect(listRecentWorkSheets).toHaveBeenCalled());
+    await waitFor(() => expect(scheineUnverrechnet).toHaveBeenCalled());
     expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
   });
 
@@ -2379,7 +2389,7 @@ describe('Nicht verrechnete Leistung — gebuchte Stunden', () => {
     } as unknown as Invoice & { id: string }];
     zeige();
     await waitFor(() => expect(h.gefragt).toBe(true));
-    await waitFor(() => expect(listRecentWorkSheets).toHaveBeenCalled());
+    await waitFor(() => expect(scheineUnverrechnet).toHaveBeenCalled());
     expect(screen.queryByRole('button', { name: / RE-2026-0001$/ })).toBeNull();
     await act(async () => h.liefern([ALT]));
     expect(await screen.findByRole('button', { name: / RE-2026-0001$/ })).toBeInTheDocument();
@@ -2391,7 +2401,7 @@ describe('Nicht verrechnete Leistung — gebuchte Stunden', () => {
     try {
       offeneStd = [ALT];
       zeige('/invoices?neu=2026-042');
-      await waitFor(() => expect(listRecentWorkSheets).not.toHaveBeenCalled());
+      await waitFor(() => expect(scheineUnverrechnet).not.toHaveBeenCalled());
       await screen.findAllByRole('heading', { name: /Rechnungen/ });
       expect(stundenAbfrage).not.toHaveBeenCalled();
       expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
@@ -2716,6 +2726,11 @@ describe('Der Buchhaltungs-Export', () => {
  * und die Reklamation kommt erst, wenn sie schon draussen ist.
  */
 describe('Rechnung gegen Schein', () => {
+  /*
+    Seit P3 nimmt der Abgleich die Scheine DER BAUSTELLE (wie die Vorschau
+    sie lädt), nicht die 60 jüngsten des Betriebs — deshalb steht der Schein
+    hier in beiden Listen.
+  */
   const mitZeiten = (minuten: number[]): WorkSheet & { id: string } =>
     ({
       id: 'sa1',
@@ -2734,7 +2749,7 @@ describe('Rechnung gegen Schein', () => {
   it('stellt bestätigte und verrechnete Stunden nebeneinander', async () => {
     // Der Zeiteintrag ergibt 8 h; der Schein bestätigt 7 h — knapp darunter,
     // also kein Befund, aber die Zahl gehört trotzdem vor Augen.
-    alleScheine = [mitZeiten([420])];
+    alleScheine = scheine = [mitZeiten([420])];
     await bisZurVorschau();
 
     expect(screen.getByText(/Ein noch nicht verrechneter Schein bestätigt/)).toBeInTheDocument();
@@ -2748,7 +2763,7 @@ describe('Rechnung gegen Schein', () => {
     wird danach fragen, und besser jetzt als nach dem Versand.
   */
   it('warnt, wenn deutlich mehr verrechnet wird als bestätigt', async () => {
-    alleScheine = [mitZeiten([240])];
+    alleScheine = scheine = [mitZeiten([240])];
     await bisZurVorschau();
 
     expect(
@@ -2769,7 +2784,7 @@ describe('Rechnung gegen Schein', () => {
         positions: [{ label: 'Heizkörper tauschen', qty: 1, unit: 'Pauschale', unitPrice: 200, netto: 200 }],
         discount: null, subtotalNetto: 200, totalNetto: 200, totalVat: 40, totalBrutto: 240,
       }];
-      alleScheine = [mitZeiten([240])];
+      alleScheine = scheine = [mitZeiten([240])];
       await bisZurVorschau();
       expect(screen.getByText(/werden nicht einzeln verrechnet/)).toBeInTheDocument();
       expect(screen.queryByText(/mehr, als der Kunde unterschrieben hat/)).toBeNull();
@@ -2785,7 +2800,7 @@ describe('Rechnung gegen Schein', () => {
     hinaus — und der Abgleich stand bisher in Grau darüber.
   */
   it('warnt, wenn deutlich weniger verrechnet wird als auf offenen Scheinen steht', async () => {
-    alleScheine = [mitZeiten([960])];
+    alleScheine = scheine = [mitZeiten([960])];
     await bisZurVorschau();
 
     expect(
@@ -2799,7 +2814,7 @@ describe('Rechnung gegen Schein', () => {
     sind Manfreds vom 21., und verrechnet werden Max' vom 20.
   */
   it('nennt unterschriebene Stunden, die trotz gleicher Summe fehlen', async () => {
-    alleScheine = [
+    alleScheine = scheine = [
       {
         ...mitZeiten([]),
         datum: '2026-08-21',
@@ -2816,8 +2831,8 @@ describe('Rechnung gegen Schein', () => {
   it('schweigt, wenn der Schein schon auf einer Rechnung steht', async () => {
     // Folgerechnung: die sechzehn Stunden sind verrechnet, der Schein steht
     // auf der ersten Rechnung. Sonst schlüge jede zweite Rechnung Alarm.
-    alleScheine = [mitZeiten([960])];
-    offene = [
+    alleScheine = scheine = [mitZeiten([960])];
+    offene = derBaustelle = [
       {
         id: 'r0', companyId: 'perl', invoiceNumber: 'RE-2026-0001', projectNumber: '2026-042',
         customerName: 'Baumeister Gruber', paymentStatus: 'Offen', linkedWorkSheets: ['sa1'],
@@ -2844,7 +2859,7 @@ describe('Rechnung gegen Schein', () => {
     bestätigt sind 0" stünde sonst bei jeder Baustelle ohne Schein da.
   */
   it('sagt gar nichts, wenn es keinen unterschriebenen Schein gibt', async () => {
-    alleScheine = [];
+    alleScheine = scheine = [];
     await bisZurVorschau();
 
     // Beide Wortformen: bei null Scheinen hiesse es „0 Scheine bestätigen",
@@ -2857,7 +2872,7 @@ describe('Rechnung gegen Schein', () => {
   it('kappt die Rechnung nicht auf die Scheinstunden', async () => {
     // Die Warnung ist ein Hinweis, keine Grenze: geleistete Arbeit zu
     // verschenken wäre der teurere Fehler.
-    alleScheine = [mitZeiten([240])];
+    alleScheine = scheine = [mitZeiten([240])];
     const bestaetigen = await bisZurVorschau();
     expect(bestaetigen).toBeInTheDocument();
     // 8 h stehen weiterhin in der Vorschau, nicht 4 h.
@@ -2897,7 +2912,13 @@ describe('Wenn die offenen Forderungen nicht kommen', () => {
     UND ZIEHT BEIDE KARTEN EIN. Eine Karte, die auf unvollständiger Grundlage
     rechnet, ist schlimmer als keine — sie wird geglaubt.
   */
-  it('meldet keine unverrechnete Leistung auf halber Grundlage', async () => {
+  /*
+    SEIT P3 HÄNGT „NICHT VERRECHNETE LEISTUNG“ NICHT MEHR AN DEN FORDERUNGEN:
+    die Datenbank sagt über alle Rechnungen, welche Scheine offen sind
+    (`scheine_unverrechnet`). Fehlen die offenen Forderungen, ist die Liste
+    trotzdem richtig — sie bleibt stehen; nur der Mahnlauf geht.
+  */
+  it('P3: die unverrechnete Leistung bleibt richtig, auch wenn die Forderungen fehlen', async () => {
     // Ein alter Schein, der bei geglückter Abfrage als unverrechnet gälte.
     alleScheine = [
       {
@@ -2911,7 +2932,7 @@ describe('Wenn die offenen Forderungen nicht kommen', () => {
     zeige();
 
     await screen.findByText(/offenen Forderungen konnten nicht geladen werden/);
-    expect(screen.queryByText(/Nicht verrechnete Leistung/)).not.toBeInTheDocument();
+    expect(await screen.findByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
   });
 
   it('zeigt beide Karten wieder, sobald die Abfrage durchgeht', async () => {
@@ -4977,7 +4998,7 @@ describe('Die Projektleitung liest nur', () => {
     expect(screen.queryByText('Buchhaltungs-Export')).toBeNull();
     expect(screen.queryByText(/^Mahnlauf/)).toBeNull();
     // Was sie nicht lesen darf, wird gar nicht erst gefragt — und kein Status von hier aus gesetzt.
-    expect(listRecentWorkSheets).not.toHaveBeenCalled();
+    expect(scheineUnverrechnet).not.toHaveBeenCalled();
     expect(updateInvoiceStatus).not.toHaveBeenCalled();
   });
 
@@ -5464,21 +5485,21 @@ describe('Runde 6, Paket 2', () => {
 
     it('die Anzahlung zeigt keinen Abgleich — sie verrechnet keine Stunden (G17)', async () => {
       authWert.company.rechnungsarten = true;
-      alleScheine = [offenerSchein];
+      alleScheine = scheine = [offenerSchein];
       await bisZurVorschau('anzahlung');
       expect(screen.queryByText(/noch nicht verrechneter Schein bestätigt/)).toBeNull();
       expect(screen.queryByText(/Gebucht, aber ohne unterschriebenen Schein/)).toBeNull();
     });
 
     it('Gleichbleiben: bei der Rechnung steht der Abgleich weiter da', async () => {
-      alleScheine = [offenerSchein];
+      alleScheine = scheine = [offenerSchein];
       await bisZurVorschau();
       expect(screen.getByText(/Ein noch nicht verrechneter Schein bestätigt/)).toBeInTheDocument();
     });
 
     it('nennt bei Lehrlingsstunden ohne Schein das Lehrjahr, nicht „Facharbeiter“ (G16)', async () => {
       zeiten = [{ ...ZEIT, id: 'zl', userName: 'Test Lehrling', satz: 'lj2' } as TimeEntry & { id: string }];
-      alleScheine = [{ ...offenerSchein, zeiten: [{ datum: '2026-08-21', mitarbeiter: 'Max', minuten: 60 }] }];
+      alleScheine = scheine = [{ ...offenerSchein, zeiten: [{ datum: '2026-08-21', mitarbeiter: 'Max', minuten: 60 }] }];
       await bisZurVorschau();
       expect(screen.getByText(/20\.08\. · Test Lehrling · Lehrling, 2\. Lehrjahr:/)).toBeInTheDocument();
       expect(screen.queryByText(/Test Lehrling · Facharbeiter/)).toBeNull();

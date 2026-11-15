@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   listRecentWorkSheets,
+  listWorkSheetsByIds,
   listSignedWorkSheetsInRange,
   listWorkSheetsInRange,
   searchWorkSheets,
@@ -51,9 +52,9 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import Adressfilter from '@/components/Adressfilter';
-import { scheineAufRechnung } from '@/lib/db/invoices';
+import { scheineUnverrechnet } from '@/lib/db/invoices';
 import { SCHEIN_FILTER, bekannt } from '@/features/dashboard/start/ziele';
-import { AUFFAELLIG_AB_TAGEN, UNVERRECHNET_BASIS, unverrechneteScheine } from './unverrechnet';
+import { AUFFAELLIG_AB_TAGEN, unverrechnetZeilen } from './unverrechnet';
 import { SCHEIN_STAND } from './scheinStand';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { PdfKnopf } from '@/components/Symbolknoepfe';
@@ -84,7 +85,8 @@ interface ScheinlisteStand {
   scheine: WithId<WorkSheet>[];
   buchungen: Buchungszeile[];
   buchungenStand: { fuer: string; ok: boolean };
-  verrechnet: string[];
+  /** Die unverrechneten Scheine über alle (P3), älteste zuerst. */
+  unverrechnet: WithId<WorkSheet>[];
 }
 
 /**
@@ -199,8 +201,8 @@ export default function WorkSheetsListView() {
     decken bei einem Fünf-Mann-Betrieb gut einen Monat ab, und wer weiter
     zurück muss, lädt nach — sichtbar, statt es nie zu erfahren.
   */
-  // Mit der Verrechnung über dieselben jüngsten Scheine wie Startseite und Rechnungen (UNVERRECHNET_BASIS).
-  const grenzeAnfang = mitVerrechnung ? Math.max(SCHEINE_JE_SEITE, UNVERRECHNET_BASIS) : SCHEINE_JE_SEITE;
+  // „Nicht verrechnet“ kommt seit P3 aus einer eigenen Abfrage über alle Scheine — die Liste braucht dafür nicht mehr.
+  const grenzeAnfang = SCHEINE_JE_SEITE;
   const [grenze, setGrenze] = useState(grenzeAnfang);
   const [loading, setLoading] = useState(() => anfang?.scheine === undefined);
   const [error, setError] = useState<string | null>(null);
@@ -489,43 +491,67 @@ export default function WorkSheetsListView() {
   */
   const trefferGelten = treffer !== null && trefferZu === suche.trim() && trefferZu !== '';
 
-  /** Welche der geladenen Scheine auf einer gültigen Rechnung stehen — nur mit dem Filter geholt. */
-  const [verrechnet, setVerrechnet] = useState<string[] | null>(() => anfang?.verrechnet ?? null);
-  const scheinSchluessel = useMemo(() => scheine.map((x) => x.id).join('|'), [scheine]);
+  /*
+    DIE UNVERRECHNETEN SCHEINE ÜBER ALLE (Durchsicht 15.11.2026, P3) — aus
+    `scheine_unverrechnet`, derselben Antwort wie auf der Startseite und unter
+    Rechnungen, älteste zuerst. Vorher wurde unter den geladenen gesucht (die
+    60 jüngsten): ein älterer Schein fiel heraus, bevor er „über 4 Wochen“
+    alt werden konnte. Neu gefragt wird, wenn sich die Liste ändert (Storno,
+    Unterschrift, Nachladen). `null`: noch unbekannt; `'fehler'`: nicht
+    gekommen — dann steht das da, nicht „keiner unverrechnet“.
+  */
+  const [unverrechnetDB, setUnverrechnetDB] = useState<WithId<WorkSheet>[] | 'fehler' | null>(
+    () => anfang?.unverrechnet ?? null,
+  );
+  const scheinSchluessel = useMemo(() => scheine.map((x) => `${x.id}:${x.status}`).join('|'), [scheine]);
   useEffect(() => {
     if (!user || !mitVerrechnung) {
-      setVerrechnet(null);
+      setUnverrechnetDB(null);
       return;
     }
     let weg = false;
-    scheineAufRechnung(user.companyId, scheinSchluessel ? scheinSchluessel.split('|') : [])
-      .then((ids) => { if (!weg) { setVerrechnet(ids); merken({ verrechnet: ids }); } })
-      .catch(() => { if (!weg) setVerrechnet([]); });
+    scheineUnverrechnet()
+      .then(async (koepfe) => {
+        const voll = await listWorkSheetsByIds(user.companyId, koepfe.map((k) => k.id));
+        const nachId = new Map(voll.map((v) => [v.id, v]));
+        // Die Reihenfolge der Datenbank: älteste zuerst.
+        const geordnet = koepfe.map((k) => nachId.get(k.id)).filter((v): v is WithId<WorkSheet> => !!v);
+        if (!weg) {
+          setUnverrechnetDB(geordnet);
+          merken({ unverrechnet: geordnet });
+        }
+      })
+      .catch(() => { if (!weg) setUnverrechnetDB('fehler'); });
     return () => {
       weg = true;
     };
   }, [user, mitVerrechnung, scheinSchluessel, merken]);
+  const unverrechnetFehler = unverrechnetDB === 'fehler';
+  const unverrechnetZeilenAlle = useMemo(
+    () => (Array.isArray(unverrechnetDB) ? unverrechnetZeilen(unverrechnetDB, todayStr()) : null),
+    [unverrechnetDB],
+  );
   /*
     Die unverrechneten Scheine, ÄLTESTE ZUERST — dieselbe Reihenfolge wie auf
     der Startseite (Regel 7.3: nach Dringlichkeit). Eine Leistung von
     vorgestern ist normal, eine von vor drei Monaten ist ein Befund.
   */
   const unverrechnetAlle = useMemo(() => {
-    if (!mitVerrechnung || !verrechnet) return null;
-    const zeilen = unverrechneteScheine(scheine, [{ linkedWorkSheets: verrechnet, paymentStatus: 'Offen' }], todayStr());
+    if (!mitVerrechnung || !unverrechnetZeilenAlle) return null;
+    const zeilen = unverrechnetZeilenAlle;
     return (nurUnverrechnet === 'nicht-verrechnet-alt' ? zeilen.filter((z) => z.tage >= AUFFAELLIG_AB_TAGEN) : zeilen)
       .map((z) => z.schein);
-  }, [mitVerrechnung, nurUnverrechnet, verrechnet, scheine]);
+  }, [mitVerrechnung, nurUnverrechnet, unverrechnetZeilenAlle]);
   /*
     FÜR DAS SCHRIFTFELD (Planlinie B1): dieselbe Zählung wie die Gruppe
     „Nicht verrechnet“, nur ohne den Filter aus der Adresse — das Feld sagt,
     wie die Liste steht, nicht, was gerade gefiltert ist.
   */
   const unverrechnetStand = useMemo(() => {
-    if (!mitVerrechnung || !verrechnet) return null;
-    const zeilen = unverrechneteScheine(scheine, [{ linkedWorkSheets: verrechnet, paymentStatus: 'Offen' }], todayStr());
+    if (!mitVerrechnung || !unverrechnetZeilenAlle) return null;
+    const zeilen = unverrechnetZeilenAlle;
     return { anzahl: zeilen.length, alt: zeilen.filter((z) => z.tage >= AUFFAELLIG_AB_TAGEN).length };
-  }, [mitVerrechnung, verrechnet, scheine]);
+  }, [mitVerrechnung, unverrechnetZeilenAlle]);
   /** Nur für den Filter aus der Adresse: welche Scheine er durchlässt. */
   const unverrechnet = useMemo(
     () => (nurUnverrechnet && unverrechnetAlle ? new Set(unverrechnetAlle.map((s) => s.id)) : null),
@@ -1141,10 +1167,13 @@ export default function WorkSheetsListView() {
           </div>
         )}
 
-        {loading || (nurUnverrechnet && !unverrechnet) ? (
+        {loading || (nurUnverrechnet && !unverrechnet && !unverrechnetFehler) ? (
           <div className="px-4 py-4">
             <SkeletonList rows={4} />
           </div>
+        ) : nurUnverrechnet && unverrechnetFehler ? (
+          // Nicht gekommen ist nicht „alles verrechnet“ — und nicht „alle Scheine“.
+          <p className="leer">Ob Scheine verrechnet sind, konnte nicht geladen werden. Bitte die Seite neu laden.</p>
         ) : offeneAnsicht ? (
           scheine.length === 0 ? (
             /* Nicht geladen ist nicht „noch keiner“: der Fehler oben sagt, was los ist. */
@@ -1169,14 +1198,16 @@ export default function WorkSheetsListView() {
               </Abschnitt>
               {verrechnungSehen && (
                 <Abschnitt titel="Nicht verrechnet" anzahl={unverrechnetAlle ? unverrechnetAlle.length : undefined}>
-                  {!unverrechnetAlle ? (
+                  {unverrechnetFehler ? (
+                    <p className="leer">Ob Scheine verrechnet sind, konnte nicht geladen werden. Bitte die Seite neu laden.</p>
+                  ) : !unverrechnetAlle ? (
                     <div className="px-4 pb-4">
                       <SkeletonList rows={2} />
                     </div>
                   ) : unverrechnetAlle.length > 0 ? (
                     <Gruppe key="unverrechnet" eintraege={unverrechnetAlle} zeile={scheinZeile} />
                   ) : (
-                    <p className="leer">Unter den jüngsten Scheinen ist keiner unverrechnet.</p>
+                    <p className="leer">Kein unterschriebener Schein ist unverrechnet.</p>
                   )}
                 </Abschnitt>
               )}
@@ -1196,7 +1227,7 @@ export default function WorkSheetsListView() {
             action={!unverrechnet && scheine.length > 0 && suchend ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button> : undefined}
           >
             {unverrechnet
-              ? 'Unter den jüngsten Scheinen ist keiner unverrechnet.'
+              ? 'Kein unterschriebener Schein ist unverrechnet.'
               : scheine.length === 0
               ? 'Noch kein Handwerksschein erstellt.'
               : suchend

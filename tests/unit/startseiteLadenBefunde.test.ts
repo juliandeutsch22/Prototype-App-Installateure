@@ -40,17 +40,17 @@ const zeitkorrekturenLaden = vi.fn<(c: string, offen: boolean) => Promise<{ id: 
 vi.mock('@/lib/db/zeitkorrekturen', () => ({
   zeitkorrekturenLaden: (c: string, offen: boolean) => zeitkorrekturenLaden(c, offen),
 }));
+// „Nicht verrechnet“ über alle Scheine (P3) — eine Abfrage statt Liste plus Abdeckung.
+const scheineUnverrechnet = vi.fn(async () => [] as never[]);
 vi.mock('@/lib/db/invoices', () => ({
   listUnpaidInvoiceKoepfe: vi.fn(async () => []),
   listInvoicesByIds: vi.fn(async () => []),
   listGarantienEndenIn: vi.fn(async () => []),
-  scheineAufRechnung: vi.fn(async () => []),
+  scheineUnverrechnet: () => scheineUnverrechnet(),
 }));
 vi.mock('@/lib/db/zahlungen', () => ({ listZahlungenImZeitraum: vi.fn(async () => []) }));
-const listRecentWorkSheetKoepfe = vi.fn(async () => []);
 vi.mock('@/lib/db/workSheets', () => ({
   listOwnWorkSheetsSince: vi.fn(async () => []),
-  listRecentWorkSheetKoepfe: () => listRecentWorkSheetKoepfe(),
 }));
 vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () => []),
@@ -73,7 +73,7 @@ beforeEach(() => {
   belegschaft = [];
   belegschaftFehlt = false;
   unverrechneteStunden.mockClear();
-  listRecentWorkSheetKoepfe.mockClear();
+  scheineUnverrechnet.mockClear();
   zeitkorrekturenLaden.mockClear();
   listFaelligeWartungen.mockClear();
 });
@@ -136,7 +136,7 @@ describe('4 — unverrechnete Stunden nur mit der Zeiterfassung', () => {
     const d = await buchhaltung(kontext({ modules: { zeiterfassung: false } }), { rechnungen: true, scheine: true });
     expect(unverrechneteStunden).not.toHaveBeenCalled();
     expect(d.offeneStunden).toBeUndefined();
-    expect(listRecentWorkSheetKoepfe).toHaveBeenCalledTimes(1);
+    expect(scheineUnverrechnet).toHaveBeenCalledTimes(1);
     expect(d.unverrechnet).toEqual([]);
   });
 

@@ -79,6 +79,11 @@ export function listBelegScheineInRange(companyId: string, von: string, bis: str
   return pg.listBelegScheineInRange(companyId, von, bis);
 }
 
+/** Bestimmte Scheine wie in der Liste, ohne Bilder — siehe `pg.listWorkSheetsByIds`. */
+export function listWorkSheetsByIds(companyId: string, ids: readonly string[]): Promise<WithId<WorkSheet>[]> {
+  return pg.listWorkSheetsByIds(companyId, ids);
+}
+
 /** Ganze Scheine samt Unterschriftsbildern — siehe `pg.getWorkSheetsVoll`. */
 export function getWorkSheetsVoll(companyId: string, ids: string[]): Promise<WithId<WorkSheet>[]> {
   return pg.getWorkSheetsVoll(companyId, ids);

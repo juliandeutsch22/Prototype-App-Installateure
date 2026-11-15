@@ -13,13 +13,12 @@
  * die sich auch nicht mehr wegräumen lässt.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt, Project, RechnungsKopf, WorkSheet } from '@/types';
-import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, type WithId } from './kern';
+import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt, RechnungsKopf, WorkSheet } from '@/types';
+import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, SEITE, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 import { oderUeberSpalten } from './suche';
 import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
-import { inAbgerechnetemZeitraum, inVerrechneterPauschale } from '@/features/worksheets/unverrechnet';
 
 const RECHNUNGEN = 'invoices';
 const POSITIONEN = 'invoice_lines';
@@ -438,119 +437,64 @@ export async function listInvoicesForProjects(
 
 /**
  * Welche dieser Handwerksscheine VERRECHNET sind: auf einer GÜLTIGEN Rechnung
- * stehen — über ALLE Rechnungen, nicht nur die geladenen — oder in einer
- * schon verrechneten Pauschale stecken.
+ * stehen — über ALLE Rechnungen, nicht nur die geladenen —, in einer schon
+ * verrechneten Pauschale stecken (Befund 09.11.2026) oder, ohne Material, an
+ * einem Tag liegen, den eine gültige Rechnung schon abgerechnet hat (A1,
+ * 12.11.2026).
  *
- * Gebraucht für „nicht verrechnete Leistung" (Prüflauf 25.09.2026, P2-03).
- * Die Ansicht fragte bisher die fünfzig jüngsten Rechnungen und die offenen
- * Forderungen; ein Schein auf einer älteren, längst BEZAHLTEN Rechnung stand
- * damit als unverrechnet da — eine falsche Anschuldigung, der jemand
- * nachgeht. Gefragt wird deshalb die Abdeckung selbst, und ein Storno zählt
- * nicht: er gibt seine Scheine frei.
+ * Gebraucht für „nicht verrechnete Leistung" (Prüflauf 25.09.2026, P2-03)
+ * und die Rechnung einer Baustelle. Ein Storno zählt nicht: er gibt seine
+ * Scheine frei.
  *
- * DIE PAUSCHALE (Befund 09.11.2026): ein Schein einer Pauschal- oder
- * Einheitspreisbaustelle, der erst nach ihrer Einzel- oder Schlussrechnung
- * unterschrieben wird, steht auf keiner Rechnung und kann auf keine mehr
- * kommen — er ist darin enthalten (`inVerrechneterPauschale`). Die Frage
- * steht HIER, nicht in jeder Ansicht: Startseite, Rechnungen, Scheinliste
- * und Baustellenakte fragen alle diese Funktion und bekommen so dieselbe
- * Antwort.
+ * DIE REGELN STEHEN IN DER DATENBANK (Durchsicht 15.11.2026, P3):
+ * `scheine_verrechnet` fragt denselben Kern wie `scheine_unverrechnet`, aus
+ * dem Startseite, Rechnungen und Scheinliste ihre Liste über ALLE Scheine
+ * holen. Vorher standen sie hier in vier Abfragen — und die Listen sahen nur
+ * die 60 jüngsten Scheine. Eine Quelle, damit Baustellenakte und Liste nie
+ * verschiedene Antworten geben.
  */
 export async function scheineAufRechnung(
   companyId: string,
   scheinIds: string[],
 ): Promise<string[]> {
+  void companyId;
   const ids = [...new Set(scheinIds.filter(Boolean))];
   if (ids.length === 0) return [];
-  const abdeckung = await abfragen<Abdeckungszeile>(ABDECKUNG, companyId, {
-    wo: [
-      { art: 'gleich', feld: 'art', wert: 'work_sheet' },
-      { art: 'in', feld: 'zielId', werte: ids },
-    ],
-  });
-  const rechnungsIds = [...new Set(abdeckung.map((a) => a.invoiceId))];
-  const koepfe = rechnungsIds.length === 0 ? [] : await abfragen<Pick<Invoice, 'paymentStatus'>>(RECHNUNGEN, companyId, {
-    wo: [{ art: 'in', feld: 'id', werte: rechnungsIds }],
-  });
-  const gueltig = new Set(koepfe.filter((k) => k.paymentStatus !== 'Storniert').map((k) => k.id));
-  const verrechnet = new Set(abdeckung.filter((a) => gueltig.has(a.invoiceId)).map((a) => a.zielId));
-  const offen = ids.filter((id) => !verrechnet.has(id));
-  if (offen.length === 0) return [...verrechnet];
-  const scheine = (await abfragen<Pick<WorkSheet, 'status' | 'projectNumber' | 'datum'>>('work_sheets', companyId, {
-    wo: [{ art: 'in', feld: 'id', werte: offen }],
-  })).filter((s) => s.status === 'Unterschrieben' && s.projectNumber);
-  if (scheine.length === 0) return [...verrechnet];
-  /*
-    DIE RECHNUNGEN DIESER BAUSTELLEN EINMAL — beide Regeln unten fragen
-    dieselben. Sie wachsen mit der Baustelle, nicht mit dem Betrieb.
-  */
-  const rechnungen = await abfragen<Pick<Invoice, 'projectNumber' | 'paymentStatus' | 'art' | 'leistungVon'
-    | 'leistungBis' | 'invoiceDate'>>(RECHNUNGEN, companyId, {
-    wo: [{ art: 'in', feld: 'projectNumber', werte: formenAller(scheine.map((s) => s.projectNumber)) }],
-  });
-  if (rechnungen.length === 0) return [...verrechnet];
-  const [inPauschale, imZeitraum] = await Promise.all([
-    inPauschaleEnthalten(companyId, scheine, rechnungen),
-    imAbgerechnetenZeitraum(companyId, scheine, rechnungen),
-  ]);
-  for (const id of [...inPauschale, ...imZeitraum]) verrechnet.add(id);
-  return [...verrechnet];
+  const { data, error } = await derClient().rpc('scheine_verrechnet', { p_ids: ids });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as (string | { scheine_verrechnet: string })[])
+    .map((z) => (typeof z === 'string' ? z : z.scheine_verrechnet));
 }
 
-type OffenerSchein = WithId<Pick<WorkSheet, 'status' | 'projectNumber' | 'datum'>>;
-type BaustellenRechnung = WithId<Pick<Invoice, 'projectNumber' | 'paymentStatus' | 'art' | 'leistungVon'
-  | 'leistungBis' | 'invoiceDate'>>;
-
-/** Die Scheine, die in einer verrechneten Pauschale stecken — siehe oben. */
-async function inPauschaleEnthalten(
-  companyId: string,
-  scheine: OffenerSchein[],
-  rechnungen: BaustellenRechnung[],
-): Promise<string[]> {
-  const baustellen = (await abfragen<Pick<Project, 'projectNumber' | 'billingMode'>>('projects', companyId, {
-    wo: [{ art: 'in', feld: 'projectNumber', werte: formenAller(scheine.map((s) => s.projectNumber)) }],
-  })).filter((b) => b.billingMode === 'Pauschal' || b.billingMode === 'Einheitspreis');
-  if (baustellen.length === 0) return [];
-  return inVerrechneterPauschale(scheine, baustellen, rechnungen);
+/** Ein unterschriebener Schein, der auf keiner Rechnung steht — nur der Kopf. */
+export interface UnverrechneterSchein {
+  id: string;
+  projectNumber: string;
+  customerName: string;
+  datum: string;
+  abrechnung: WorkSheet['abrechnung'];
 }
 
 /**
- * Die Scheine ohne Material, deren Tag eine gültige Rechnung schon
- * abgerechnet hat (A1, 12.11.2026) — siehe `inAbgerechnetemZeitraum`. Bis
- * dahin verknüpfte eine Rechnung nur Scheine mit Material; die schon
- * ausgestellten werden nicht umgeschrieben, die Antwort kommt aus dieser
- * Regel. Gebraucht werden das Material der Scheine und ob eine Rechnung
- * Belege verbraucht hat (ihre Abdeckung).
+ * ALLE UNVERRECHNETEN SCHEINE DES BETRIEBS, älteste zuerst (P3,
+ * `scheine_unverrechnet`). Zähler, Liste und Vier-Wochen-Schwelle kommen
+ * überall aus dieser einen Antwort. Seitenweise, weil auch die Antwort einer
+ * Funktion bei 1.000 Zeilen endet — eine Obergrenze wäre genau die Lücke,
+ * die P3 schließt.
  */
-async function imAbgerechnetenZeitraum(
-  companyId: string,
-  scheine: OffenerSchein[],
-  rechnungen: BaustellenRechnung[],
-): Promise<string[]> {
-  const kandidaten = rechnungen.filter((r) => r.paymentStatus !== 'Storniert' && (r.art ?? 'einzel') !== 'anzahlung');
-  if (kandidaten.length === 0) return [];
-  const [material, belege] = await Promise.all([
-    abfragen<{ workSheetId: string; name: string; menge: number }>('work_sheet_material', companyId, {
-      wo: [{ art: 'in', feld: 'workSheetId', werte: scheine.map((s) => s.id) }],
-    }),
-    abfragen<Abdeckungszeile>(ABDECKUNG, companyId, {
-      wo: [
-        { art: 'in', feld: 'invoiceId', werte: kandidaten.map((r) => r.id) },
-        { art: 'in', feld: 'art', werte: ['time_entry', 'material_order', 'work_sheet'] },
-      ],
-    }),
-  ]);
-  const mitBelegen = new Set(belege.map((b) => b.invoiceId));
-  const materialJe = new Map<string, WorkSheet['material']>();
-  for (const z of material) {
-    const liste = materialJe.get(z.workSheetId) ?? [];
-    liste.push(z as WorkSheet['material'][number]);
-    materialJe.set(z.workSheetId, liste);
+export async function scheineUnverrechnet(seite = SEITE): Promise<UnverrechneterSchein[]> {
+  type Zeile = { id: string; project_number: string; customer_name: string; datum: string; abrechnung: WorkSheet['abrechnung'] };
+  const alle: Zeile[] = [];
+  for (let ab = 0; ; ab += seite) {
+    const { data, error } = await derClient().rpc('scheine_unverrechnet').range(ab, ab + seite - 1);
+    if (error) throw new Error(error.message);
+    const teil = (data ?? []) as Zeile[];
+    alle.push(...teil);
+    if (teil.length < seite) break;
   }
-  return inAbgerechnetemZeitraum(
-    scheine.map((s) => ({ ...s, material: materialJe.get(s.id) ?? [] })),
-    kandidaten.map((r) => ({ ...r, linkedEntries: mitBelegen.has(r.id) ? [r.id] : [] })),
-  );
+  return alle.map((z) => ({
+    id: z.id, projectNumber: z.project_number, customerName: z.customer_name, datum: z.datum, abrechnung: z.abrechnung,
+  }));
 }
 
 /** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */

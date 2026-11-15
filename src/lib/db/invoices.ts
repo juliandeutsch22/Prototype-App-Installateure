@@ -88,6 +88,13 @@ export function scheineAufRechnung(companyId: string, scheinIds: string[]): Prom
   return pg.scheineAufRechnung(companyId, scheinIds);
 }
 
+export type { UnverrechneterSchein } from './pg/invoices';
+
+/** Alle unterschriebenen, unverrechneten Scheine des Betriebs, älteste zuerst — siehe `pg.scheineUnverrechnet`. */
+export function scheineUnverrechnet() {
+  return pg.scheineUnverrechnet();
+}
+
 export const RECHNUNG_TREFFER = pg.RECHNUNG_TREFFER;
 
 export function sucheRechnungen(companyId: string, begriff: string): Promise<WithId<Invoice>[]> {
