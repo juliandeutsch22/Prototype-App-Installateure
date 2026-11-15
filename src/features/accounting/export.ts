@@ -36,14 +36,52 @@ const MONTHS = [
 */
 export const BRAND_RGB: [number, number, number] = PETROL;
 
-/** Deutsche Dezimalzahl mit zwei Nachkommastellen. */
-function num(n: number): string {
-  return n.toFixed(2).replace('.', ',');
+/*
+  EINE RUNDUNGSREGEL FÜR MINUTEN (Z8, Durchsicht 15.11.2026).
+
+  Minuten werden als Hundertstelstunden ausgegeben, kaufmännisch gerundet,
+  in ganzen Zahlen gerechnet (`hundertstel`) — nicht über `toFixed` auf
+  einer Kommazahl. Steht unter einer Spalte eine Summe (das „Ist“ unter den
+  Tagen, „Gesamt“ unter den Baustellen), wird die Spalte so gerundet, dass
+  sie auf genau diese Summe aufgeht (`stundenSpalte`): bisher ergaben 20 Tage
+  zu 7:40 je Zeile 7,67, zusammen 153,40, das Ist aber 153,33 — wer in der
+  Lohnverrechnung die Zeilen summierte, hatte 4 Minuten mehr.
+*/
+
+/** Hundertstelstunden einer Minutenzahl, kaufmännisch (halbe weg von null). */
+function hundertstel(min: number): number {
+  const h = (Math.abs(min) * 100) / 60;
+  return Math.sign(min) * Math.round(h);
+}
+
+/** Hundertstelstunden als deutsche Dezimalzahl („7,67“) — ohne Umweg über eine Kommazahl. */
+function hundertstelText(h: number): string {
+  const betrag = Math.abs(h);
+  return `${h < 0 ? '-' : ''}${Math.floor(betrag / 100)},${String(betrag % 100).padStart(2, '0')}`;
 }
 
 /** Minuten als Dezimalstunden ("7,50"). */
 export function hours(min: number): string {
-  return num(min / 60);
+  return hundertstelText(hundertstel(min));
+}
+
+/**
+ * EINE SPALTE, UNTER DER EINE SUMME STEHT: jede Zeile ist der Zuwachs der
+ * gerundeten laufenden Summe. Damit geht die Spalte genau auf `hours(Summe)`
+ * auf, und keine Zeile weicht um eine Hundertstelstunde oder mehr von ihrem
+ * genauen Wert ab. Gleiche Minuten können dabei um 0,01 verschieden stehen
+ * (7,67 und 7,66 für 7:40) — der Preis dafür, dass die Summe stimmt.
+ */
+export function stundenSpalte(minuten: readonly number[]): string[] {
+  let summe = 0;
+  let vorher = 0;
+  return minuten.map((m) => {
+    summe += m;
+    const jetzt = hundertstel(summe);
+    const zeile = jetzt - vorher;
+    vorher = jetzt;
+    return hundertstelText(zeile);
+  });
 }
 
 /**
@@ -193,8 +231,21 @@ export function buildMonthCsv(
     .flatMap(({ user, monthEntries }) => monthEntries.map((e) => ({ user, e })))
     .sort((a, b) => a.e.date.localeCompare(b.e.date));
 
+  /*
+    JE PERSON GEHT DIE SPALTE AUF IHR IST AUF (Z8): gerundet wird über ihre
+    Zeilen in der Reihenfolge der Datei, auch wenn dazwischen Zeilen anderer
+    stehen.
+  */
+  const arbeitText = new Map<TimeEntry, string>();
+  const gesamtText = new Map<TimeEntry, string>();
+  for (const { user } of rows) {
+    const ihre = all.filter((x) => x.user === user).map((x) => x.e);
+    const arbeit = stundenSpalte(ihre.map((e) => calcWorkMin(e)));
+    const gesamt = stundenSpalte(ihre.map((e) => calcWorkMin(e) + (Number(e.travelTime ?? 0) || 0)));
+    ihre.forEach((e, i) => { arbeitText.set(e, arbeit[i]); gesamtText.set(e, gesamt[i]); });
+  }
+
   for (const { user, e } of all) {
-    const wm = calcWorkMin(e);
     const travel = Number(e.travelTime ?? 0) || 0;
     lines.push(
       row([
@@ -209,9 +260,9 @@ export function buildMonthCsv(
         e.breakDuration ?? 0,
         travel,
         e.comment ?? '',
-        hours(wm),
+        arbeitText.get(e),
         // Gesamtzeit schließt die Wegzeit ein — nur in diesem Export.
-        hours(wm + travel),
+        gesamtText.get(e),
         kennzeichen(nachtArbeitMin(e, lohn.nacht) > 0),
         kennzeichen(e.isEmergency),
         ...felder.map((d) => spaltenWert(d, zeitfelder?.werte.get(e.id)?.[d.id])),
@@ -338,12 +389,11 @@ export function buildMonthCsv(
       // Die Nummer, wie sie gebucht wurde — der Gruppenschlüssel lässt den Vorsatz weg.
       const nummer = p.entries[0]?.projectNumber ?? p.projectNumber;
       const je = minutenJeEinstufung(p.entries);
+      // Quer gerundet: die vier Einstufungen gehen auf „Gesamt“ auf (Z8).
+      const vier = stundenSpalte([je.facharbeiter, je.obermonteur, je.helfer, je.lehrling]);
       lines.push(row([
         nummer,
-        hours(je.facharbeiter),
-        hours(je.obermonteur),
-        hours(je.helfer),
-        hours(je.lehrling),
+        ...vier,
         hours(je.facharbeiter + je.obermonteur + je.helfer + je.lehrling),
         hours(p.lehrlingMin),
       ]));
@@ -415,7 +465,10 @@ export function buildUserCsv(
     ]),
   );
 
-  for (const e of [...monthEntries].sort((a, b) => a.date.localeCompare(b.date))) {
+  const sortiert = [...monthEntries].sort((a, b) => a.date.localeCompare(b.date));
+  // Die Spalte geht auf das „Ist“ darunter auf (Z8).
+  const arbeit = stundenSpalte(sortiert.map((e) => calcWorkMin(e)));
+  for (const [i, e] of sortiert.entries()) {
     lines.push(
       row([
         fmtDate(e.date),
@@ -426,7 +479,7 @@ export function buildUserCsv(
         e.endTime ?? '',
         e.breakDuration ?? 0,
         e.travelTime ?? 0,
-        hours(calcWorkMin(e)),
+        arbeit[i],
         kennzeichen(nachtArbeitMin(e, lohn.nacht) > 0),
         kennzeichen(e.isEmergency),
         e.comment ?? '',
@@ -517,10 +570,13 @@ export function buildUserProjectCsv(
   lines.push(row(['Projektnummer', 'Kunde/Baustelle', 'Einsatztage', 'Gesamtstunden']));
 
   let totalMin = 0;
-  for (const key of [...byProject.keys()].sort()) {
+  const schluessel = [...byProject.keys()].sort();
+  // Die Spalte geht auf „Gesamt“ darunter auf (Z8).
+  const stunden = stundenSpalte(schluessel.map((k) => byProject.get(k)!.min));
+  for (const [i, key] of schluessel.entries()) {
     const p = byProject.get(key) as { customer: string; min: number; days: Set<string> };
     totalMin += p.min;
-    lines.push(row([key, p.customer, p.days.size, hours(p.min)]));
+    lines.push(row([key, p.customer, p.days.size, stunden[i]]));
   }
 
   lines.push('');

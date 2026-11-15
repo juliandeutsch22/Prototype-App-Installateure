@@ -110,6 +110,9 @@ vi.mock('@/lib/db/timeEntries', () => ({
     },
   ),
   listEntriesInRange: vi.fn(async () => buchungen),
+  // Die Exporte je Person fragen nur deren Buchungen ab (Z8) — wie die Datenbank: Person und Zeitraum.
+  listOwnEntriesInRange: vi.fn(async (_c: string, uid: string, from: string, to: string) =>
+    buchungen.filter((b) => b.userId === uid && b.date >= from && b.date <= to)),
   /*
     Der Vorlauf für den Durchschnitt der 17 Wochen — hier ohne Buchungen.
     Jede Prüfung der Karte holt ihn einmal; daran wird sie gezählt. Die
@@ -1826,5 +1829,31 @@ describe('Urlaubstage nicht geladen (Z7)', () => {
     csvGeladen.mockClear();
     await nutzer.click(within(fenster()).getByRole('button', { name: 'Monat als CSV' }));
     expect(csvGeladen).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+  Z8: DIE ZEITRAUM-EXPORTE JE PERSON holten die Buchungen ALLER Personen
+  (`listEntriesInRange`) und filterten erst im Browser — ein Jahresnachweis in
+  einem 30-Personen-Betrieb rund 10.000 Zeilen. Jetzt nur die der Person.
+*/
+describe('Exporte je Person fragen nur die Person ab (Z8)', () => {
+  it('Projektauswertung: Abfrage nach Person und Zeitraum, nicht nach dem ganzen Betrieb', async () => {
+    const { listEntriesInRange, listOwnEntriesInRange } = await import('@/lib/db/timeEntries');
+    const anderer = { ...eintrag('2026-08-18'), id: 'x1', userId: 'u9', userName: 'Andere', projectNumber: 'PR-7' };
+    buchungen = [...eintraege.map((e) => ({ ...e, projectNumber: 'PR-1' })), anderer];
+    const nutzer = zeichneSeite('/accounting');
+    await nutzer.click(await personKnopf('Neu Eingestellt'));
+    await nutzer.click(within(fenster()).getByRole('button', { name: 'Bericht für Zeitraum' }));
+    vi.mocked(listEntriesInRange).mockClear();
+    csvGeladen.mockClear();
+    await nutzer.click(screen.getByRole('button', { name: 'Projektauswertung (CSV)' }));
+    await waitFor(() => expect(csvGeladen).toHaveBeenCalledTimes(1));
+    expect(listOwnEntriesInRange).toHaveBeenCalledWith('perl', 'u1', '2026-08-01', '2026-08-31');
+    expect(listEntriesInRange).not.toHaveBeenCalled();
+    // Bleibt gleich: der Inhalt — nur die eigene Baustelle, zehn Tage zu acht Stunden.
+    const csv = csvGeladen.mock.calls[0][0] as string;
+    expect(csv).toMatch(/\nPR-1;;10;80,00\n/);
+    expect(csv).not.toMatch(/PR-7/);
   });
 });

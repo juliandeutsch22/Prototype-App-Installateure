@@ -8,7 +8,7 @@ import {
 } from '@/lib/time';
 import { freigestelltMin } from '@shared/arbeitszeit';
 import { istArztbesuchTag } from '@shared/freistellung';
-import { BRAND_RGB, fmtDate, hours, type ExportZeitfelder } from './export';
+import { BRAND_RGB, fmtDate, hours, stundenSpalte, type ExportZeitfelder } from './export';
 import { angabenText } from '@/lib/zeitfelder';
 import { FLAECHE, GRAU, TINTE } from '@/lib/belegLayout';
 import { zuschlagszeit, hatZuschlaege } from './zuschlaege';
@@ -108,7 +108,9 @@ export function generateHoursPdf(opts: {
 
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
   let totalMin = 0;
-  const body = sorted.map((e) => {
+  // Die Spalte „Dauer“ geht auf die Gesamtstunden darunter auf (Z8).
+  const dauer = stundenSpalte(sorted.map((e) => calcWorkMin(e)));
+  const body = sorted.map((e, i) => {
     const wm = calcWorkMin(e);
     totalMin += wm;
     return [
@@ -119,7 +121,7 @@ export function generateHoursPdf(opts: {
       e.projectNumber || '–',
       e.customerName || '–',
       e.startTime && e.endTime ? `${e.startTime}–${e.endTime}` : '–',
-      wm > 0 ? `${hours(wm)} h` : '–',
+      wm > 0 ? `${dauer[i]} h` : '–',
       // Kurz, weil die Spalte schmal ist; die Legende steht im Summenblock.
       zuschlagKuerzel(e, nachtzeitVon(company)),
       [e.comment || '', ...(zeitfelder ? angabenText(zeitfelder.definitionen, zeitfelder.werte.get(e.id)) : [])]

@@ -9,7 +9,7 @@ import { listProjectsByNumbers } from '@/lib/db/projects';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import {
   subscribeEntriesInRange,
-  listEntriesInRange,
+  listOwnEntriesInRange,
   stundenDerBaustellen,
   deleteTimeEntry,
   subscribeUrlaubstage,
@@ -910,7 +910,8 @@ export default function AccountingView() {
     // kann über das geladene Jahr hinausreichen.
     // Ab dem Montag davor: die Tage vor `from` in derselben Woche zählen für die 51. Wochenstunde (KV).
     const wochenbeginn = montagVon(from);
-    const geladen = await listEntriesInRange(user!.companyId, wochenbeginn, to);
+    // Nur die Buchungen dieser Person (Z8) — bisher die des ganzen Betriebs, im Browser gefiltert.
+    const geladen = await listOwnEntriesInRange(user!.companyId, u.uid, wochenbeginn, to);
     const range = entriesInRange(geladen, u.uid, from, to);
     if (range.length === 0) throw new Error('Keine Einträge im gewählten Zeitraum.');
     const vorlauf = geladen.filter((e) => e.userId === u.uid && e.date >= wochenbeginn && e.date < from);
@@ -936,7 +937,7 @@ export default function AccountingView() {
 
   async function exportProjectCsv(u: AppUser, from: string, to: string) {
     const range = entriesInRange(
-      await listEntriesInRange(user!.companyId, from, to),
+      await listOwnEntriesInRange(user!.companyId, u.uid, from, to),
       u.uid,
       from,
       to,
