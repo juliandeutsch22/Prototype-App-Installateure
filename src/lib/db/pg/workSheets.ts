@@ -212,15 +212,21 @@ export function listRecentWorkSheetKoepfe(companyId: string, max = 100) {
  * Die EIGENEN Scheine ab einem Tag — für die offenen Zeit-Nachtragungen.
  *
  * Eng gefasst, und zwar aus Gewicht: ein unterschriebener Schein trägt zwei
- * Unterschriftsbilder als PNG, nachgemessen rund 70 KB je Stück. Sie alle zu
- * holen, um die eigenen herauszufiltern, wären auf dem Telefon eines
- * Monteurs schnell mehrere Megabyte für eine Handvoll Zeilen.
+ * Unterschriftsbilder als PNG, nachgemessen rund 70 KB je Stück. Geholt wird
+ * deshalb nur der Kopf (`LISTENKOPF`, ohne Bilder) und nur ab dem Tag.
+ *
+ * OHNE FESTE ZAHL (Durchsicht 15.11.2026, P6). Bis dahin endete die Abfrage
+ * bei 20 Scheinen, absteigend nach Datum: ein Kundendiensttechniker mit vier
+ * Scheinen am Tag hatte sie nach fünf Arbeitstagen beisammen, und ein Schein
+ * von vor sechs Tagen ohne Buchung stand in keiner Erinnerung mehr — die
+ * Stunde blieb unverrechnet. Die Menge begrenzt jetzt allein das Fenster
+ * der Aufrufer (`NACHTRAG_TAGE`); gelesen wird seitenweise wie überall.
  */
 export async function listOwnWorkSheetsSince(
   companyId: string,
   uid: string,
   abDatum: string,
-  max = 20,
+  max?: number,
 ) {
   const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
     spalten: LISTENKOPF,
@@ -229,7 +235,7 @@ export async function listOwnWorkSheetsSince(
       { art: 'ab', feld: 'datum', wert: abDatum },
     ],
     sortiere: { feld: 'datum', absteigend: true },
-    grenze: max,
+    ...(max !== undefined ? { grenze: max } : {}),
   });
   return zusammensetzen(koepfe, companyId);
 }

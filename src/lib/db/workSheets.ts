@@ -36,8 +36,9 @@ export function listRecentWorkSheetKoepfe(companyId: string, max = 100) {
   return pg.listRecentWorkSheetKoepfe(companyId, max);
 }
 
+/** Ohne `max` alle seit dem Tag (P6) — siehe `pg.listOwnWorkSheetsSince`. */
 export function listOwnWorkSheetsSince(
-  companyId: string, uid: string, abDatum: string, max = 20,
+  companyId: string, uid: string, abDatum: string, max?: number,
 ): Promise<WithId<WorkSheet>[]> {
   return pg.listOwnWorkSheetsSince(companyId, uid, abDatum, max);
 }
