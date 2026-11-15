@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { grundAus } from '@/lib/fehlerGrund';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import AktenBearbeiten from '@/components/AktenBearbeiten';
@@ -60,12 +61,29 @@ export default function GeburtsdatumKarte({
 
   async function speichern() {
     setLaeuft(true);
+    const vorher = gespeichert ?? null;
     try {
       await setGeburtsdatum(companyId, uid, wert || null);
       setGespeichert(wert || null);
       setBearbeitet(false);
       onStand?.(wert || null);
-      toast.success(wert ? 'Geburtsdatum gespeichert' : 'Geburtsdatum entfernt');
+      /*
+        RÜCKGÄNGIG NACH DEM ENTFERNEN (F15, Nacharbeit): derselbe Weg wie das
+        Eintragen, mit dem Tag, der eben dastand. Zulässig (Datenschutz): wer
+        es entfernt hat, nimmt seinen eigenen Schritt zurück, solange die
+        Meldung steht; mit dem Datum wurde nichts anderes gelöscht.
+      */
+      if (!wert && vorher) {
+        toast.success('Geburtsdatum entfernt', {
+          label: 'Rückgängig',
+          onClick: () => void setGeburtsdatum(companyId, uid, vorher).then(() => {
+            setGespeichert(vorher);
+            setWert(vorher);
+            onStand?.(vorher);
+            toast.success('Geburtsdatum wieder eingetragen');
+          }, (e) => toast.error(grundAus(e, 'Rückgängig ging nicht.'))),
+        });
+      } else toast.success(wert ? 'Geburtsdatum gespeichert' : 'Geburtsdatum entfernt');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {

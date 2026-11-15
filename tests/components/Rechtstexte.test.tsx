@@ -156,6 +156,18 @@ describe('Editor', () => {
     await waitFor(() => expect(verwerfen).toHaveBeenCalledWith('impressum'));
   });
 
+  // F15 (Nacharbeit): „Rückgängig“ speichert den Entwurf mit demselben Inhalt wieder. Gegenprobe: ohne die Änderung kein Knopf.
+  it('ein verworfener Entwurf kommt mit „Rückgängig“ wieder — derselbe Inhalt', async () => {
+    const inhalt = { abschnitte: [{ titel: 'Neu', text: 'x' }] };
+    daten.impressum = [zeile('impressum', null, inhalt), zeile('impressum', 2, { abschnitte: [{ titel: 'Zwei', text: 'y' }] })];
+    zeige();
+    await oeffnen(/^Impressum/);
+    fireEvent.click(screen.getByRole('button', { name: 'Entwurf verwerfen' }));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Entwurf verwerfen' })).getByRole('button', { name: 'Verwerfen' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Rückgängig' }));
+    await waitFor(() => expect(speichern).toHaveBeenCalledWith('impressum', inhalt));
+  });
+
   it('wer mit ungespeicherten Änderungen zurückgeht, wird gefragt', async () => {
     zeige();
     await oeffnen(/^Impressum/);

@@ -100,10 +100,23 @@ export default function UrlaubsanspruchKarte({
       // Geworfen, damit der Dialog offen bleibt und es selbst sagt.
       throw new Error('Bitte einen Grund angeben — mindestens drei Zeichen.');
     }
-    await anpassungEntfernen(entfernen.id, entfernGrund.trim());
+    const alt = entfernen;
+    await anpassungEntfernen(alt.id, entfernGrund.trim());
     setEntfernen(null);
     setEntfernGrund('');
-    toast.success('Anpassung entfernt');
+    /*
+      RÜCKGÄNGIG (F15, Nacharbeit): dieselbe Anpassung wieder anlegen —
+      Jahr, Tage und Grund wie eben, über denselben Weg wie „Anpassen“. Das
+      Entfernen bleibt mit seinem Grund im Verlauf stehen; die Anpassung
+      kommt als neue Zeile dazu.
+    */
+    toast.success('Anpassung entfernt', {
+      label: 'Rückgängig',
+      onClick: () => void anspruchAnpassen({ userId: alt.userId, urlaubsjahr: alt.urlaubsjahr, tage: alt.tage, grund: alt.grund }).then(() => {
+        toast.success('Anpassung wieder eingetragen');
+        setVersuch((v) => v + 1);
+      }, (e) => toast.error(grundAus(e, 'Rückgängig ging nicht.'))),
+    });
     setVersuch((v) => v + 1);
   }
 
