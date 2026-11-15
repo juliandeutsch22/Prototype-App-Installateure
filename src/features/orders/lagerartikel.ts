@@ -18,7 +18,12 @@ export function imLager(m: Pick<Material, 'lagerartikel'>): boolean {
 /**
  * Knapp ist ein Artikel unter seiner Mindestmenge; ohne Mindestmenge, wenn
  * höchstens `grenze` frei sind (G8).
+ *
+ * Ein ausgelaufener Artikel ist nie knapp (M9, Entscheidung 15.11.2026): er
+ * wird nicht mehr nachbestellt, die Warnung forderte genau das. Dieselbe
+ * Regel rechnet die Datenbank für die Startseite (`lager_knapp`).
  */
-export function istKnapp(frei: number, m: Pick<Material, 'mindestmenge'>, grenze: number): boolean {
+export function istKnapp(frei: number, m: Pick<Material, 'mindestmenge' | 'ausgelaufen'>, grenze: number): boolean {
+  if (m.ausgelaufen) return false;
   return m.mindestmenge != null ? frei < m.mindestmenge : frei <= grenze;
 }
