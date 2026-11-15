@@ -396,8 +396,17 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
-# [edge_runtime.secrets]
-# secret_key = "env(SECRET_VALUE)"
+# NUR FÜR DEN STAPEL AUF DIESEM RECHNER (F16): Rechnungen und Angebote per
+# Mail gehen örtlich an den Mailfänger (Mailpit, im Docker-Netz „inbucket“,
+# Ansicht unter http://127.0.0.1:54324) — nie hinaus. Diese Werte erreichen
+# das gehostete Projekt nicht (`functions deploy` lädt keine Secrets); dort
+# setzt der Betreiber die SMTP_*-Secrets (docs/DEPLOYMENT.md, Abschnitt 5a).
+# Unverschlüsselt erlaubt `smtpEinstellung` nur zu diesem Host.
+[edge_runtime.secrets]
+SMTP_HOST = "inbucket"
+SMTP_PORT = "1025"
+SMTP_SICHERHEIT = "keine"
+SMTP_ABSENDER = "belege@senklot.invalid"
 
 # DAS KALENDER-ABO KOMMT OHNE ANMELDUNG. Google, Apple und Outlook holen es
 # selbst ab und schicken keinen Anmeldekopf mit; die geheime Adresse ist die

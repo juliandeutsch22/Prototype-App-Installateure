@@ -50,7 +50,18 @@ vi.mock('@/lib/db/customers', () => ({
   listCustomersByIds: vi.fn(async () => [{ id: 'k1', companyId: 'perl', name: 'Gemeinde Neudorf', email: 'amt@neudorf.at' }]),
 }));
 vi.mock('@/lib/db/aussteller', () => ({ belegFirma: vi.fn(async (f: unknown) => f) }));
-vi.mock('@/features/quotes/angebotPdf', () => ({ downloadAngebotPdf: vi.fn() }));
+vi.mock('@/features/quotes/angebotPdf', () => ({
+  downloadAngebotPdf: vi.fn(),
+  angebotPdfBlob: vi.fn(async () => new Blob(['%PDF-1.4'], { type: 'application/pdf' })),
+}));
+/* F16: der Versand aus der App — hier nur, dass der eben erzeugte Link mitgeht. */
+const belegPerMail = vi.fn<(a: { text: string; mitLink?: boolean }) => Promise<object>>(async () => ({ versand: 'v1', an: ['amt@neudorf.at'], kopie: null }));
+vi.mock('@/lib/db/belegMail', () => ({
+  BelegMailNichtEingerichtet: class extends Error {},
+  belegMailStand: vi.fn(async () => ({ eingerichtet: true, absender: 'office@senklot.at' })),
+  belegPerMail: (a: { text: string; mitLink?: boolean }) => belegPerMail(a),
+  listBelegVersand: vi.fn(async () => []),
+}));
 
 let links: AngebotLink[] = [];
 const listAngebotLinks = vi.fn<(id: string) => Promise<AngebotLink[]>>(async () => links);
@@ -72,7 +83,7 @@ let einblick: object | null = null;
 vi.mock('@/app/AuthContext', () => ({
   useAuth: () => ({
     user: { uid: 'chef', email: 'c@perl.at', name: 'Chefin', role: rolle.wert, companyId: 'perl', docId: 'chef' },
-    company: { id: 'perl', name: 'Perl Installationen', praefixBaustelle: 'PB', modules: module },
+    company: { id: 'perl', name: 'Perl Installationen', praefixBaustelle: 'PB', modules: module, belegMailAntwort: 'office@perl.at' },
     einblick,
   }),
 }));
@@ -149,6 +160,25 @@ describe('Der Dialog „Annahme-Link“', () => {
     // Erst beim Schließen lädt die Seite neu: vorher wäre der Link mit ihr verschwunden.
     const geladen = getQuote.mock.calls.length;
     await nutzer.click(within(fenster).getByRole('button', { name: 'Fertig' }));
+    await waitFor(() => expect(getQuote.mock.calls.length).toBeGreaterThan(geladen));
+  });
+
+  it('F16: der eben erzeugte Link geht mit dem PDF aus der App — im Text, als „mit Link“; danach lädt die Seite neu', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Annahme-Link' }));
+    const fenster = await screen.findByRole('dialog', { name: 'Annahme-Link' });
+    await nutzer.selectOptions(within(fenster).getByLabelText(/Abrechnung der Baustelle/), 'Pauschal');
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Link erzeugen' }));
+    await nutzer.click(await within(fenster).findByRole('button', { name: 'Mit PDF aus der App senden' }));
+    const mail = await screen.findByRole('dialog', { name: 'Angebot per Mail' });
+    expect(within(mail).getByLabelText(/^An/)).toHaveValue('amt@neudorf.at');
+    const adresse = `${window.location.origin}/angebot/annehmen#${'S'.repeat(43)}`;
+    expect((within(mail).getByLabelText(/^Text/) as HTMLTextAreaElement).value).toContain(adresse);
+    const geladen = getQuote.mock.calls.length;
+    await nutzer.click(await within(mail).findByRole('button', { name: 'Senden' }));
+    await waitFor(() => expect(belegPerMail).toHaveBeenCalled());
+    expect(belegPerMail.mock.calls[0][0]).toMatchObject({ mitLink: true });
     await waitFor(() => expect(getQuote.mock.calls.length).toBeGreaterThan(geladen));
   });
 

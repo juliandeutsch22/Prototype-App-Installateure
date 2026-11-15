@@ -61,6 +61,7 @@ export function AnnahmeLinkDialog({
   vorsatz,
   heute,
   ersetztOffenenLink,
+  onMailSenden,
 }: {
   open: boolean;
   /** `erzeugt`: ein Link ist entstanden — die Seite lädt danach neu. */
@@ -74,6 +75,8 @@ export function AnnahmeLinkDialog({
   heute: string;
   /** Steht noch ein offener Link? Dann sagt der Dialog, dass er aufhört. */
   ersetztOffenenLink: boolean;
+  /** F16: den Link mit dem PDF aus der App senden — fehlt, wenn es (noch) nicht geht. */
+  onMailSenden?: (adresse: string) => void;
 }) {
   const toast = useToast();
   const [abrechnung, setAbrechnung] = useState<Abrechnungsart | ''>('');
@@ -159,6 +162,10 @@ export function AnnahmeLinkDialog({
             >
               Per Mail-Programm senden
             </KnopfLink>
+            {/* F16: mit dem PDF aus der App — der Link steht im Text. */}
+            {onMailSenden && (
+              <Button variant="secondary" onClick={() => onMailSenden(link.adresse)}>Mit PDF aus der App senden</Button>
+            )}
             <Button onClick={schliessen}>Fertig</Button>
           </div>
         </div>

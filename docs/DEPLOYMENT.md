@@ -19,7 +19,7 @@
 | Anmeldung | **Supabase Auth** | Rolle und Betrieb stehen im `app_metadata`, gesetzt von zwei Triggern |
 | Dateien (Scheinfotos, Pläne an der Baustelle, Logo) | **Supabase Storage** | |
 | Serverlogik | **Postgres-Funktionen, Trigger, `pg_cron`** | Was früher vierzehn Cloud Functions taten |
-| Konten anlegen, Startpasswort vergeben, Betrieb anlegen, Sicherung, Push-Versand | **Supabase Edge Functions** | `mitarbeiter-anlegen`, `passwort-vergeben`, `betrieb-anlegen`, `daten-ausleitung`, `push-melden` |
+| Konten anlegen, Startpasswort vergeben, Betrieb anlegen, Sicherung, Push-Versand, Rechnung und Angebot per Mail | **Supabase Edge Functions** | `mitarbeiter-anlegen`, `passwort-vergeben`, `betrieb-anlegen`, `daten-ausleitung`, `push-melden`, `beleg-mail` |
 | Auslieferung der App | **Firebase Hosting** | Nur statische Dateien |
 | Push aufs Telefon | **Firebase Cloud Messaging** | Ausgelöst von einem Postgres-Trigger, verschickt von `push-melden` |
 
@@ -211,6 +211,56 @@ wurden und wohin. Eine Sicherung, die niemand je ausgelöst hat, ist keine.
 
 ---
 
+## 5a · Rechnungen und Angebote per Mail (seit 17.11.2026, F16)
+
+Die Edge Function `beleg-mail` verschickt Rechnungen und Angebote aus der App
+über SMTP. **Die Zugangsdaten der Anmeldemails (Authentication → SMTP)
+erreicht sie nicht** — Supabase gibt sie an keine Function weiter. Dieselben
+Werte (oder ein eigenes Postfach wie `belege@senklot.at`) gehören deshalb
+zusätzlich unter *Project Settings → Edge Functions → Secrets*:
+
+| Name | Bedeutung | Pflicht |
+| --- | --- | --- |
+| `SMTP_HOST` | Mailserver, z. B. `smtp.world4you.com` | **ja** |
+| `SMTP_ABSENDER` | Absenderadresse der Domain mit SPF und DKIM, z. B. `office@senklot.at` — der Name des Betriebs steht davor, Antworten gehen an die Antwortadresse des Betriebs | **ja** |
+| `SMTP_BENUTZER` | Anmeldename am Mailserver | mit Passwort |
+| `SMTP_PASSWORT` | Passwort | mit Benutzer |
+| `SMTP_SICHERHEIT` | `tls` (Vorgabe, TLS von Anfang an), `starttls`, oder `keine` (nur örtlicher Mailfänger) | nein |
+| `SMTP_PORT` | Vorgabe 465 bei `tls`, 587 bei `starttls` | nein |
+
+> **Port 465 mit `tls`.** Gehostete Edge Functions dürfen keine Verbindung
+> zu den Ports 25 und 587 aufbauen. Bietet der Anbieter nur 587 an, ist
+> `starttls` mit einem anderen Port seines Servers (oft 2525) der Weg.
+
+> **Diese Zugangsdaten gehören ausschließlich in die Edge-Function-Secrets.**
+> Nicht in GitHub, nicht ins Repository, nicht in eine Chatnachricht.
+
+**Nichts gesetzt** heißt „nicht eingerichtet“: die App zeigt im Mailfenster
+den bisherigen Weg (PDF laden, Mailprogramm). **Halb gesetzt** (Host ohne
+Absender, Benutzer ohne Passwort) gilt als falsch eingerichtet — auch dann
+bleibt der bisherige Weg, und die Function schreibt den fehlenden Namen nicht
+nach außen, sondern sagt „bitte dem Betreiber melden“.
+
+Je Betrieb trägt die Geschäftsführung unter *Einstellungen → Rechnungsvorgaben
+→ Belege per Mail* die **Antwortadresse** ein (dorthin antwortet der Kunde,
+dorthin geht die Kopie) und auf Wunsch eigene Vorlagen. Ohne Antwortadresse
+geht keine Mail hinaus — sonst landeten Antworten der Kunden beim Betreiber.
+
+**Rate-Limit:** je Person 30 Mails je Stunde, je Betrieb 100 je Stunde und
+400 je Tag, derselbe Beleg höchstens fünfmal je Stunde (`shared/belegMail.ts`,
+`beleg_versand_vorbereiten`). Der Anhang höchstens 6 MB.
+
+**Örtlich** zeigt `supabase/config.toml` (`[edge_runtime.secrets]`) auf den
+Mailfänger des Stapels (Mailpit, im Docker-Netz `inbucket`, Ansicht unter
+http://127.0.0.1:54324). Diese Werte erreichen das gehostete Projekt nicht.
+
+Danach **einmal ausprobieren**: eine Rechnung an eine eigene Adresse senden,
+mit Kopie. Kommt sie an und steht im Verlauf der Rechnung „Per Mail
+versendet“, stimmt alles; kommt sie nicht, steht im Verlauf „Mailversand
+gescheitert“ mit der Antwort des Servers.
+
+---
+
 ## 6 · Die App ausliefern
 
 `.github/workflows/deploy.yml` läuft auf `main`: Prüfungen, Bauen, Deploy auf
@@ -397,7 +447,8 @@ des Betriebs. Jederzeit rückgängig.
   ruht, und steht hinter jeder Richtlinie.
 - Ein Supportzugang greift nicht mehr.
 - Push und die nächtliche Sicherung ruhen für diesen Betrieb; der letzte
-  Stand bleibt liegen. Eine Mail verschickt die App ohnehin nicht selbst.
+  Stand bleibt liegen. Belege per Mail gehen nicht mehr hinaus (die
+  Datenbank weist jede Anfrage eines ruhenden Betriebs ab).
 - Die Daten bleiben unverändert. Wieder aktivieren entsperrt genau die Konten,
   die in der Belegschaft aktiv sind, und bricht eine geplante Löschung ab.
 - Eine Stufe „nur lesen“ gibt es nicht. Soll der Betrieb nach der Kündigung

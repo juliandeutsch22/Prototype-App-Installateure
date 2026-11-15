@@ -118,7 +118,8 @@ import { Marke, Warnung } from '@/components/Badge';
 import RechnungDetail, { type MahnungZeile, type RechnungAktion } from './RechnungDetail';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
-import { mahnungPdfLaden, rechnungPdfLaden } from './belegeLaden';
+import { mahnungPdfLaden, rechnungPdfBlob, rechnungPdfLaden } from './belegeLaden';
+import BelegMailDialog from '@/features/belegMail/BelegMailDialog';
 import BankgarantieDialog from './BankgarantieDialog';
 import EbInterfaceDialog from './EbInterfaceDialog';
 import {
@@ -476,6 +477,8 @@ export default function InvoicesView() {
   const [garantieFuer, setGarantieFuer] = useState<(Invoice & { id: string }) | null>(null);
   // Die E-Rechnung (ebInterface) — zur Rechnung oder zu ihrer Stornorechnung.
   const [eRechnungFuer, setERechnungFuer] = useState<{ inv: WithId<Invoice>; storno: boolean } | null>(null);
+  /** Die Rechnung, die gerade per Mail hinausgeht (F16). */
+  const [mailFuer, setMailFuer] = useState<WithId<Invoice> | null>(null);
   const [zahlungen, setZahlungen] = useState<WithId<Zahlungseingang>[] | null>(null);
   const [zDatum, setZDatum] = useState(todayStr());
   const [zBetrag, setZBetrag] = useState('');
@@ -3386,6 +3389,14 @@ export default function InvoicesView() {
           }]
         : []),
       pdf,
+      /*
+        PER MAIL (F16) neben dem PDF: derselbe Beleg, gleich beim Kunden. Nicht
+        nach einem Storno (eine stornierte Forderung geht nicht mehr hinaus)
+        und nicht im Supporteinblick (die Mail ist eine Erklärung des Betriebs).
+      */
+      ...(inv.paymentStatus !== 'Storniert' && !einblick
+        ? [{ label: 'Per Mail senden …', onSelect: ausDemFenster(() => setMailFuer(inv)) }]
+        : []),
       ...eRechnung,
       ...(inv.paymentStatus !== 'Storniert'
         ? [
@@ -5922,6 +5933,26 @@ export default function InvoicesView() {
         darfKundenPflegen={!!user && darfKundenPflegen(user)}
         onClose={() => setERechnungFuer(null)}
       />
+      {mailFuer && company && (
+        <BelegMailDialog
+          key={mailFuer.id}
+          open
+          art="rechnung"
+          belegId={mailFuer.id}
+          kundenEmail={kundeZu((mailFuer as WithId<Invoice> & { customerId?: string }).customerId, mailFuer.customerName)?.email || undefined}
+          werte={{
+            nummer: mailFuer.invoiceNumber,
+            kunde: mailFuer.customerName,
+            // Was der Kunde zahlen soll: die Forderung dieses Belegs (bei Schlussrechnung nach Abzug).
+            betrag: euro(mailFuer.totalBrutto),
+            faellig: datumAT(mailFuer.dueDate),
+            baustelle: mailFuer.projectNumber,
+          }}
+          pdfErzeugen={() => rechnungPdfBlob(company, mailFuer)}
+          pdfLaden={() => void redownload(mailFuer)}
+          onClose={() => setMailFuer(null)}
+        />
+      )}
       <ConfirmDialog
         open={!!zahlungFuer}
         title={zahlungFuer ? `Zahlungen — ${zahlungFuer.invoiceNumber}` : 'Zahlungen'}

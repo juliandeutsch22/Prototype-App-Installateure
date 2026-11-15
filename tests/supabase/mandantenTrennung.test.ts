@@ -81,6 +81,8 @@ const ZUSATZ: Record<string, (betrieb: string) => Record<string, unknown>> = {
   // M10/B09: eine Runde braucht weder Baustelle noch Paar (Prüfregel über die Art).
   nachrichten_kanaele: () => ({ art: 'runde' }),
   // F13: die Kennung einer Bankbewegung ist eine Prüfsumme (64 Hex), je Betrieb eindeutig.
+  // F16: ein bis drei Empfänger und die Prüfsumme des Anhangs haben eine Form; gelesen wie die Rechnung.
+  beleg_versand: () => ({ art: 'rechnung', an: '{kunde@mt.test}', anhang_sha256: 'a'.repeat(64) }),
   bank_buchungen: () => ({ kennung: Array.from(crypto.getRandomValues(new Uint8Array(32)), (x) => x.toString(16).padStart(2, '0')).join('') }),
 };
 
@@ -121,7 +123,9 @@ const LOHN_UND_RECHNUNG = ['arbeitszeit_begruendungen', 'freistellungen', 'gebur
   // M06b: die Werte der freien Zeitfelder — wer die Buchung liest.
   'zeitbuchung_feldwerte', 'zeitsitzungen', 'zeitkorrekturen',
   // F13: verbuchte Bankbewegungen lesen wie die Zahlungseingänge.
-  'bank_buchungen'];
+  'bank_buchungen',
+  // F16: der Mailversand einer Rechnung liest wie die Rechnung (der eines Angebots wie das Angebot, `belegMail.test.ts`).
+  'beleg_versand'];
 /**
  * Kunden, Lager, Anforderungen, Pläne, UID-Prüfungen und der Auftragseingang
  * (M02b: wer Kunden liest, liest Eingänge): das Büro und die Leitung.

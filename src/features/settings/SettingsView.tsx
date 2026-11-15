@@ -3,6 +3,7 @@ import MonatsabschlussEinstellung from './MonatsabschlussEinstellung';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { updateCompany, naechsteNummern, rechnungsvorgabenSpeichern, type NaechsteNummern } from '@/lib/db/company';
+import BelegMailEinstellungen from './BelegMailEinstellungen';
 import { kostensaetze } from '@/lib/db/kosten';
 import { STUFEN, satzName, stufeLeerHeisst, type Stufe } from '@/lib/einstufung';
 import { verkaufspreiseVorschlagen } from '@/lib/db/materials';
@@ -691,6 +692,9 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           </div>
         </form>
       )}
+
+      {/* F16: Antwortadresse und Vorlagen für Rechnungen und Angebote per Mail — die Leitung pflegt sie. */}
+      {teil === 'rechnung' && <BelegMailEinstellungen bearbeiten={darfGenehmigerSetzen} />}
 
       {teil === 'saetze' && (
       <form onSubmit={submit} className="space-y-6">

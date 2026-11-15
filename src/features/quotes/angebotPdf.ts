@@ -137,6 +137,11 @@ export function angebotDateiname(q: Pick<Quote, 'quoteNumber'>): string {
   return `Angebot_${q.quoteNumber}.pdf`;
 }
 
+/** Dasselbe PDF als Datei für den Mailversand (F16) — kein zweiter Weg zum Beleg. */
+export async function angebotPdfBlob(o: AngebotPdfOptionen): Promise<Blob> {
+  return (await buildAngebotPdf(o)).output('blob');
+}
+
 /** Erzeugen und herunterladen. */
 export async function downloadAngebotPdf(o: AngebotPdfOptionen): Promise<void> {
   (await buildAngebotPdf(o)).save(angebotDateiname(o.quote));

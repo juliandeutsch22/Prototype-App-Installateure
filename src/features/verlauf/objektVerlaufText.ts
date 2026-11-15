@@ -386,6 +386,21 @@ function quellenEintrag(z: ObjektVerlaufZeile): { titel: string; zeilen: string[
     case 'zweiter_faktor_zurueckgesetzt':
       if (!leer(a.grund)) zeilen.push(`Grund: ${String(a.grund)}`);
       return { titel: 'Zweiter Faktor zurückgesetzt', zeilen };
+    // F16: Rechnung oder Angebot per Mail — an wen, mit welchem Anhang, und was daraus wurde.
+    case 'per_mail_versendet':
+    case 'mailversand_gescheitert':
+    case 'mailversand_laeuft': {
+      const an = Array.isArray(a.an) ? (a.an as string[]).join(', ') : '';
+      if (an) zeilen.push(`An ${an}${leer(a.kopie) ? '' : `, Kopie an ${String(a.kopie)}`}`);
+      if (!leer(a.betreff)) zeilen.push(`Betreff: ${String(a.betreff)}`);
+      if (!leer(a.anhang)) zeilen.push(`Anhang: ${String(a.anhang)}${a.mit_link === true ? ' · mit Annahme-Link' : ''}`);
+      if (z.art === 'mailversand_gescheitert' && !leer(a.fehler)) zeilen.push(`Grund: ${String(a.fehler)}`);
+      return {
+        titel: z.art === 'per_mail_versendet' ? 'Per Mail versendet'
+          : z.art === 'mailversand_gescheitert' ? 'Mailversand gescheitert' : 'Mailversand ohne Rückmeldung',
+        zeilen,
+      };
+    }
     case 'urlaubsanspruch_angepasst':
     case 'urlaubsanspruch_entfernt': {
       const tage = Number(a.tage);

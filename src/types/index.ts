@@ -298,6 +298,14 @@ export interface Company {
   katalogVeraltetTage?: number;
   /** Vorschlag für den Grund der Steuerbefreiung auf Rechnungen mit 0 % (A2). */
   steuerbefreiungVorgabe?: string;
+  /**
+   * Rechnung und Angebot per Mail (F16): die Adresse, an die der Kunde
+   * antwortet und an die die Kopie geht. Abgesendet wird über die Adresse der
+   * Plattform (SPF/DKIM); ohne Antwortadresse geht keine Mail hinaus.
+   */
+  belegMailAntwort?: string | null;
+  /** Betreff und Text je Belegart; leer heißt Standardvorlage (`shared/belegMail.ts`). */
+  belegMailVorlagen?: import('@shared/belegMail').MailVorlagen | null;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';
   /**
    * Wie der Vorschlag für das angebrochene erste Urlaubsjahr rechnet:
