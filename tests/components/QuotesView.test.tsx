@@ -1523,3 +1523,28 @@ describe('Offene Angebote über alle (A6)', () => {
     }
   });
 });
+
+/* A8: Arbeitsangaben aus dem Eingang — im Formular sichtbar, änderbar und gespeichert. */
+describe('Ansprechpartner, Dringlichkeit und Wunschtermin (A8)', () => {
+  it('ein Entwurf aus dem Eingang zeigt sie beim Bearbeiten und speichert sie mit', async () => {
+    angebote.push({
+      id: 'e8', companyId: 'perl', quoteNumber: 'AN-2026-0088', customerId: 'k1', customerName: 'Gemeinde Neudorf',
+      quoteDate: '2026-11-01', validUntil: '2099-12-01', status: 'Entwurf',
+      positions: [{ label: 'Montage', qty: 1, unit: 'h', unitPrice: 70, netto: 70, istArbeitszeit: true }],
+      subtotalNetto: 70, totalNetto: 70, totalVat: 14, totalBrutto: 84, vatRate: 0.2, kalkulierteStunden: 1,
+      ansprechpartnerName: 'Frau Huber', ansprechpartnerTelefon: '0664 555', dringlichkeit: 'dringend', wunschtermin: '2026-11-20',
+    });
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Angebot AN-2026-0088 bearbeiten' }));
+    expect(screen.getByLabelText('Ansprechpartner vor Ort')).toHaveValue('Frau Huber');
+    expect(screen.getByLabelText('Dringlichkeit')).toHaveValue('dringend');
+    await nutzer.clear(screen.getByLabelText('Telefon vor Ort'));
+    await nutzer.type(screen.getByLabelText('Telefon vor Ort'), '0664 777');
+    await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await waitFor(() => expect(updateQuote).toHaveBeenCalled());
+    expect(updateQuote.mock.calls[updateQuote.mock.calls.length - 1][1]).toMatchObject({
+      ansprechpartnerName: 'Frau Huber', ansprechpartnerTelefon: '0664 777', dringlichkeit: 'dringend', wunschtermin: '2026-11-20',
+    });
+  });
+});

@@ -31,7 +31,8 @@ import RowMenu from '@/components/RowMenu';
 import StundennachweisDialog from '@/features/accounting/StundennachweisDialog';
 import { useModul } from '@/lib/useModule';
 import BaustelleNachrichten from '@/features/nachrichten/BaustelleNachrichten';
-import type { Project, AppUser, Quote } from '@/types';
+import { EINGANG_DRINGLICHKEITEN, type Project, type AppUser, type Quote } from '@/types';
+import { DRINGLICHKEIT_TEXT } from '@/features/auftragseingang/eingangText';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
@@ -280,13 +281,21 @@ export default function BaustellenakteView() {
       return;
     }
     let weg = false;
+    /*
+      AUCH ÜBER DAS ANGEBOT (A8): entstand die Baustelle aus „Eingang →
+      Angebot → Annahme“, hängt der Eingang am Angebot, nicht an ihr — vorher
+      waren das zwei Sprünge. Gefragt wird das Angebot, das die Baustelle
+      angelegt hat (kein Nachtrag).
+    */
+    const hauptangebot = angebote.find((q) => q.status === 'Angenommen' && !q.nachtrag);
     getEingangZu(companyId, { projectId: baustellenId })
+      .then(async (e) => e ?? (hauptangebot ? getEingangZu(companyId, { quoteId: hauptangebot.id }) : null))
       .then((e) => { if (!weg) setAusEingang(e); })
       .catch(() => { if (!weg) setNebenFehler('Der Eingang zu dieser Baustelle'); });
     return () => {
       weg = true;
     };
-  }, [companyId, baustellenId, eingaengeSichtbar]);
+  }, [companyId, baustellenId, eingaengeSichtbar, angebote]);
 
   /*
     Der Entwurf folgt der geladenen Baustelle — aber NUR, wenn diese sich
@@ -393,6 +402,9 @@ export default function BaustellenakteView() {
         endDate: entwurf.endDate,
         contactName: entwurf.contactName,
         contactPhone: entwurf.contactPhone,
+        // A8: leer heißt „nicht angegeben“ — `null`, damit ein geleertes Feld wirklich leer ist.
+        dringlichkeit: entwurf.dringlichkeit || null,
+        wunschtermin: entwurf.wunschtermin || null,
         assignedEmployees: entwurf.assignedEmployees,
         projectManagers: entwurf.projectManagers,
         /*
@@ -471,6 +483,9 @@ export default function BaustellenakteView() {
         <AktenAngabe wort="Auftragsumfang" breit><span className="whitespace-pre-line">{auftragsumfangZeigen(b.description, ausEingang?.nummer ?? null) || 'nicht hinterlegt'}</span></AktenAngabe>
         {/* Abrechnung, Beginn und Ende stehen seit der Planlinie im Schriftfeld des Aktenkopfs. */}
         <AktenAngabe wort="Stundenbudget">{b.estimatedHours ? `${fmtStunden(b.estimatedHours)} h` : 'nicht festgelegt'}</AktenAngabe>
+        {/* A8: aus dem Eingang — direkt oder über das Angebot. */}
+        {b.dringlichkeit && b.dringlichkeit !== 'normal' && <AktenAngabe wort="Dringlichkeit">{DRINGLICHKEIT_TEXT[b.dringlichkeit]}</AktenAngabe>}
+        {b.wunschtermin && <AktenAngabe wort="Wunschtermin">{fmtDatum(b.wunschtermin)}</AktenAngabe>}
       </AktenAngaben>
       {(b.billingMode === 'Pauschal' || b.billingMode === 'Einheitspreis') &&
         <PauschalHinweis angebote={angebote} sichtbar={angeboteSichtbar} art={b.billingMode} baustelleId={darfAendern ? b.id : undefined} />}
@@ -895,6 +910,18 @@ function StammdatenFormular({
             <InputField
               id="b-telefon" label="Telefon vor Ort" type="tel" value={entwurf.contactPhone}
               onChange={(e) => setze('contactPhone', e.target.value)}
+            />
+            {/* A8: wie eilig und wann gewünscht — aus dem Eingang, hier änderbar. */}
+            <SelectField
+              id="b-dringlich" label="Dringlichkeit" value={entwurf.dringlichkeit}
+              onChange={(e) => setze('dringlichkeit', e.target.value as BaustellenEntwurf['dringlichkeit'])}
+            >
+              <option value="">nicht angegeben</option>
+              {EINGANG_DRINGLICHKEITEN.map((d) => <option key={d} value={d}>{DRINGLICHKEIT_TEXT[d]}</option>)}
+            </SelectField>
+            <InputField
+              id="b-wunsch" label="Wunschtermin" type="date" value={entwurf.wunschtermin}
+              onChange={(e) => setze('wunschtermin', e.target.value)}
             />
           </FormGrid>
         </Gruppe>

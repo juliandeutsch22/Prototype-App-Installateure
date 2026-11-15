@@ -160,9 +160,12 @@ vi.mock('@/lib/db/quotes', () => ({
 
 /* Der Auftragseingang, aus dem die Baustelle entstand (M02b) — ab Werk keiner. */
 let ausEingang: { id: string; nummer: string } | null = null;
-const getEingangZu = vi.fn<(c: string, z: { projectId: string }) => Promise<typeof ausEingang>>(async () => ausEingang);
+const getEingangZu = vi.fn<(c: string, z: { projectId: string } | { quoteId: string }) => Promise<typeof ausEingang>>(
+  async (_c, z) => ('quoteId' in z ? ausEingangUeberAngebot : ausEingang));
+/** A8: der Eingang hängt am Angebot, aus dem die Baustelle entstand. */
+let ausEingangUeberAngebot: { id: string; nummer: string } | null = null;
 vi.mock('@/lib/db/auftragseingaenge', () => ({
-  getEingangZu: (c: string, z: { projectId: string }) => getEingangZu(c, z),
+  getEingangZu: (c: string, z: { projectId: string } | { quoteId: string }) => getEingangZu(c, z),
 }));
 
 /*
@@ -262,6 +265,7 @@ beforeEach(() => {
   geloescht.length = 0;
   listQuotesForProject.mockClear();
   ausEingang = null;
+  ausEingangUeberAngebot = null;
   firma = undefined;
   getEingangZu.mockClear();
 });
@@ -1282,5 +1286,19 @@ describe('Stundennachweis der Baustelle (F12)', () => {
       await userEvent.click(knopf);
       expect(screen.queryByRole('menuitem', { name: 'Stundennachweis' })).toBeNull();
     }
+  });
+});
+
+/* A8: Eingang → Angebot → Baustelle — Dringlichkeit, Wunschtermin und der Eingang stehen in der Akte. */
+describe('Aus dem Eingang über das Angebot (A8)', () => {
+  it('zeigt Dringlichkeit und Wunschtermin und findet den Eingang über das Angebot', async () => {
+    baustellen = [{ ...BAUSTELLE, dringlichkeit: 'dringend', wunschtermin: '2026-11-20' }];
+    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007', status: 'Angenommen', positions: [] }];
+    ausEingangUeberAngebot = { id: 'e9', nummer: 'EG-2026-0009' };
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Aus Eingang EG-2026-0009' })).toHaveAttribute('href', '/eingaenge/e9');
+    expect(getEingangZu).toHaveBeenCalledWith('perl', { quoteId: 'q7' });
+    expect(screen.getByText('Dringend')).toBeInTheDocument();
+    expect(screen.getByText('20.11.2026')).toBeInTheDocument();
   });
 });

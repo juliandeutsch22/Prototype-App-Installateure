@@ -21,7 +21,8 @@ import { calcTotals, cent, positionNetto, rabattAnteil, titelSummen, type Invoic
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { todayStr, localDateStr, fmtStunden } from '@/lib/time';
 import { isGF } from '@/lib/permissions';
-import type { Abrechnungsart, InvoiceDiscount, Quote } from '@/types';
+import { EINGANG_DRINGLICHKEITEN, type Abrechnungsart, type EingangDringlichkeit, type InvoiceDiscount, type Quote } from '@/types';
+import { DRINGLICHKEIT_TEXT } from '@/features/auftragseingang/eingangText';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
 import KundenAuswahl from '@/components/KundenAuswahl';
@@ -39,7 +40,7 @@ import RowMenu from '@/components/RowMenu';
 import PageHeader from '@/components/PageHeader';
 import { praefixeVon } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, TextareaField } from '@/components/Field';
+import { InputField, SelectField, TextareaField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
@@ -168,6 +169,25 @@ function zeilenFehler(zeilen: ZeilenEingabe[]): string | null {
     }
   }
   return null;
+}
+
+/** Die Arbeitsangaben vor Ort (A8) im Formular. */
+interface VorOrt {
+  name: string;
+  telefon: string;
+  dringlichkeit: '' | EingangDringlichkeit;
+  wunschtermin: string;
+}
+const LEER_VOR_ORT: VorOrt = { name: '', telefon: '', dringlichkeit: '', wunschtermin: '' };
+
+/** Leer heißt „nicht angegeben“ — in der Datenbank `null`, keine leere Zeichenkette. */
+function vorOrtFelder(v: VorOrt): Pick<Quote, 'ansprechpartnerName' | 'ansprechpartnerTelefon' | 'dringlichkeit' | 'wunschtermin'> {
+  return {
+    ansprechpartnerName: v.name.trim() || null,
+    ansprechpartnerTelefon: v.telefon.trim() || null,
+    dringlichkeit: v.dringlichkeit || null,
+    wunschtermin: v.wunschtermin || null,
+  };
 }
 
 /** Die Bindefrist eines neuen Angebots: heute plus dreissig Tage. */
@@ -300,6 +320,12 @@ export default function QuotesView() {
     anzulegen.
   */
   const [nachtragZu, setNachtragZu] = useState<{ id: string; nummer: string } | null>(null);
+  /*
+    ARBEITSANGABEN AUS DEM EINGANG (A8): wer vor Ort aufmacht, wie eilig,
+    wann gewünscht. Sie stehen nicht auf dem Angebot beim Kunden; die Annahme
+    gibt sie an die Baustelle weiter.
+  */
+  const [vorOrt, setVorOrt] = useState<VorOrt>(LEER_VOR_ORT);
   const [zeilen, setZeilen] = useState<ZeilenEingabe[]>([{ ...LEERE_ZEILE }]);
   /** Ist die Suche im Katalog offen (M18)? */
   const [katalogOffen, setKatalogOffen] = useState(false);
@@ -517,6 +543,7 @@ export default function QuotesView() {
     setAddress('');
     setOrt({ liegenschaftId: '', topId: '' });
     setNachtragZu(null);
+    setVorOrt(LEER_VOR_ORT);
     setNotes('');
     setZeilen([{ ...LEERE_ZEILE }]);
     setKatalogOffen(false);
@@ -531,6 +558,10 @@ export default function QuotesView() {
     setCustomerId(q.customerId ?? '');
     setAddress(q.address ?? '');
     setNotes(q.notes ?? '');
+    setVorOrt({
+      name: q.ansprechpartnerName ?? '', telefon: q.ansprechpartnerTelefon ?? '',
+      dringlichkeit: q.dringlichkeit ?? '', wunschtermin: q.wunschtermin ?? '',
+    });
     // Auch eine neue Fassung und eine Kopie stehen in derselben Liegenschaft (M02c).
     setOrt({ liegenschaftId: q.liegenschaftId ?? '', topId: q.topId ?? '' });
     /*
@@ -710,6 +741,7 @@ export default function QuotesView() {
         vatRate,
         kalkulierteStunden,
         notes,
+        ...vorOrtFelder(vorOrt),
         // A3: die Baustelle des Nachtrags — `null` löst eine Zuordnung, die es gab.
         ...(nachtragZu || bearbeitet.projectNumber ? { projectNumber: nachtragZu?.nummer ?? null } : {}),
         // M02c: nur was sich an Liegenschaft und Top geändert hat.
@@ -756,6 +788,7 @@ export default function QuotesView() {
         kalkulierteStunden,
         notes,
         ...(fassungVon ? { vorgaengerId: fassungVon.id } : {}),
+        ...vorOrtFelder(vorOrt),
         ...(nachtragZu ? { projectNumber: nachtragZu.nummer } : {}),
         // M02c: nur mit der Unterfähigkeit — ohne sie entsteht das Angebot wie bisher.
         ...(liegenschaftenAn ? zuordnungAenderung(ort, null) : {}),
@@ -1093,6 +1126,20 @@ export default function QuotesView() {
                 value={validUntil}
                 onChange={(e) => setValidUntil(e.target.value)}
               />
+              {/* A8: Arbeitsangaben — die Annahme gibt sie an die Baustelle weiter. */}
+              <div className="grid grid-cols-1 gap-x-3 gap-y-4 md:grid-cols-2">
+                <InputField id="anqvorort" label="Ansprechpartner vor Ort" value={vorOrt.name}
+                  onChange={(e) => setVorOrt((v) => ({ ...v, name: e.target.value }))} />
+                <InputField id="anqvorortfon" label="Telefon vor Ort" type="tel" value={vorOrt.telefon}
+                  onChange={(e) => setVorOrt((v) => ({ ...v, telefon: e.target.value }))} />
+                <SelectField id="anqdringlich" label="Dringlichkeit" value={vorOrt.dringlichkeit}
+                  onChange={(e) => setVorOrt((v) => ({ ...v, dringlichkeit: e.target.value as VorOrt['dringlichkeit'] }))}>
+                  <option value="">nicht angegeben</option>
+                  {EINGANG_DRINGLICHKEITEN.map((d) => <option key={d} value={d}>{DRINGLICHKEIT_TEXT[d]}</option>)}
+                </SelectField>
+                <InputField id="anqwunsch" label="Wunschtermin" type="date" value={vorOrt.wunschtermin}
+                  onChange={(e) => setVorOrt((v) => ({ ...v, wunschtermin: e.target.value }))} />
+              </div>
               {/* A3: optional — beim Annehmen lässt sich das Ziel noch ändern. */}
               <BaustellenSuche
                 companyId={user.companyId}

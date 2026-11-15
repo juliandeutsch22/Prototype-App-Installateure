@@ -46,6 +46,7 @@ import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT, datumAusMs } from '@/lib/datum';
 import { verworfenText } from '@/features/papierkorb/papierkorbText';
 import { euro } from '@/lib/betrag';
+import { DRINGLICHKEIT_TEXT } from '@/features/auftragseingang/eingangText';
 
 /**
  * Ein Angebot auf seiner eigenen Seite.
@@ -592,6 +593,16 @@ export default function AngebotView() {
           </Angabe>
         )}
         <Angabe wort="Angebotsdatum">{fmtDatum(q.quoteDate)}</Angabe>
+        {/* A8: Arbeitsangaben aus dem Eingang — nicht auf dem Angebot beim Kunden, die Annahme gibt sie weiter. */}
+        {(q.ansprechpartnerName || q.ansprechpartnerTelefon) && (
+          <Angabe wort="Ansprechpartner vor Ort">
+            {[q.ansprechpartnerName, q.ansprechpartnerTelefon].filter(Boolean).join(' · ')}
+          </Angabe>
+        )}
+        {q.dringlichkeit && q.dringlichkeit !== 'normal' && (
+          <Angabe wort="Dringlichkeit">{DRINGLICHKEIT_TEXT[q.dringlichkeit]}</Angabe>
+        )}
+        {q.wunschtermin && <Angabe wort="Wunschtermin">{fmtDatum(q.wunschtermin)}</Angabe>}
         {ausEingang && (
           <Angabe wort="Herkunft">
             <Link to={`/eingaenge/${ausEingang.id}`} className="link inline-flex min-h-touch items-center">

@@ -7,7 +7,7 @@
  * einzeln prüfen können muss: durch die Ansicht hindurch sähe ein falscher
  * Vergleich nur wie „der Speichern-Balken benimmt sich komisch" aus.
  */
-import type { Abrechnungsart, Project } from '@/types';
+import type { Abrechnungsart, EingangDringlichkeit, Project } from '@/types';
 import { leseZahl, zahlAlsText } from '@/lib/zahl';
 
 /**
@@ -33,6 +33,9 @@ export interface BaustellenEntwurf {
   endDate: string;
   contactName: string;
   contactPhone: string;
+  /** Aus dem Eingang (A8) — leer heißt nicht angegeben. */
+  dringlichkeit: '' | EingangDringlichkeit;
+  wunschtermin: string;
   assignedEmployees: string[];
   projectManagers: string[];
   /** Liegenschaft und Top (M02c) — leer heißt keine. */
@@ -55,6 +58,8 @@ export function alsEntwurf(p: Project): BaustellenEntwurf {
     endDate: p.endDate ?? '',
     contactName: p.contactName ?? '',
     contactPhone: p.contactPhone ?? '',
+    dringlichkeit: p.dringlichkeit ?? '',
+    wunschtermin: p.wunschtermin ?? '',
     assignedEmployees: p.assignedEmployees ?? [],
     projectManagers: p.projectManagers ?? [],
     liegenschaftId: p.liegenschaftId ?? '',

@@ -733,6 +733,15 @@ export interface Quote {
   topId?: string | null;
   liegenschaftBezeichnung?: string | null;
   topBezeichnung?: string | null;
+  /**
+   * Arbeitsangaben aus dem Eingang (A8): wer vor Ort aufmacht, wie eilig,
+   * wann gewünscht. Nicht auf dem Angebot beim Kunden; die Annahme gibt sie
+   * an die Baustelle weiter (der Ansprechpartner vor dem des Kunden).
+   */
+  ansprechpartnerName?: string | null;
+  ansprechpartnerTelefon?: string | null;
+  dringlichkeit?: EingangDringlichkeit | null;
+  wunschtermin?: string | null;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -1040,6 +1049,10 @@ export interface Project {
   topId?: string | null;
   liegenschaftBezeichnung?: string | null;
   topBezeichnung?: string | null;
+  /** Dringlichkeit aus dem Eingang (A8) — direkt oder über das Angebot; leer = nicht angegeben. */
+  dringlichkeit?: EingangDringlichkeit | null;
+  /** Wunschtermin des Kunden aus dem Eingang (A8), `JJJJ-MM-TT`. */
+  wunschtermin?: string | null;
   createdAt?: number;
 }
 

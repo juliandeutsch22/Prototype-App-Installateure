@@ -745,3 +745,20 @@ describe('Versenden und der Weg zurück (A5)', () => {
     await waitFor(() => expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Versendet' }));
   });
 });
+
+/* A8: die Arbeitsangaben aus dem Eingang stehen beim Angebot. */
+describe('Angaben vor Ort (A8)', () => {
+  it('zeigt Ansprechpartner, Dringlichkeit und Wunschtermin — ohne sie keine leeren Zeilen', async () => {
+    angebot = { ...ANGEBOT, ansprechpartnerName: 'Frau Huber', ansprechpartnerTelefon: '0664 555', dringlichkeit: 'notfall', wunschtermin: '2026-11-20' };
+    const r = zeige();
+    expect(await screen.findByText('Frau Huber · 0664 555')).toBeInTheDocument();
+    expect(screen.getByText('Notfall')).toBeInTheDocument();
+    expect(screen.getByText('20.11.2026')).toBeInTheDocument();
+    r.unmount();
+    angebot = { ...ANGEBOT };
+    zeige();
+    await screen.findByText('Ort der Leistung');
+    expect(screen.queryByText('Ansprechpartner vor Ort')).toBeNull();
+    expect(screen.queryByText('Wunschtermin')).toBeNull();
+  });
+});
