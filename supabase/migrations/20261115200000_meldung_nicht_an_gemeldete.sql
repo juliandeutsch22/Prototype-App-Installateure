@@ -172,6 +172,56 @@ $$;
 revoke all on function app.nachrichten_datei_lesbar(text, text) from public, anon, authenticated;
 grant execute on function app.nachrichten_datei_lesbar(text, text) to authenticated;
 
+/*
+  DER ZWEITE WEG ZUR DATEI. Die Speicherregel lässt den Hochladenden seine
+  „noch nicht gesendete“ Datei lesen und überschreiben (Wiederholung aus dem
+  Ausgangsfach) — erkannt daran, dass kein Anhang auf sie zeigt. Nach dem
+  Löschen der Nachricht zeigt keiner mehr auf sie, die Meldung hält sie aber
+  fest: der Absender hätte sie über diesen Weg weiter gelesen (und damit von
+  der Meldung erfahren) und sogar überschreiben, also das Beweisstück der
+  Meldung austauschen können. Eine Datei, die eine Meldung hält, ist deshalb
+  für niemanden mehr „noch nicht gesendet“. Sonst wie in
+  `20261108800000_nachrichten.sql`.
+*/
+create or replace function app.nachrichten_datei_schreibbar(p_eimer text, p_pfad text) returns boolean
+  language plpgsql
+  stable
+  security definer
+  set search_path = ''
+as $$
+declare
+  teile text[] := storage.foldername(p_pfad);
+  k public.nachrichten_kanaele;
+begin
+  if array_length(teile, 1) is distinct from 4 or teile[1] <> 'nachrichten' or teile[2] is distinct from app.betrieb() then
+    return false;
+  end if;
+  begin
+    select * into k from public.nachrichten_kanaele where id = teile[3]::uuid;
+    perform teile[4]::uuid;
+    perform (storage.filename(p_pfad))::uuid;
+  exception when invalid_text_representation then
+    return false;
+  end;
+  if k.id is null or (k.privat and p_eimer <> 'nachrichten-privat') or (not k.privat and p_eimer <> 'nachrichten') then
+    return false;
+  end if;
+  if exists (select 1 from public.nachricht_anhaenge a where a.eimer = p_eimer and a.pfad = p_pfad) then
+    return false;
+  end if;
+  -- K1: eine Datei, die eine Meldung festhält, ist gesendet — auch wenn ihre Nachricht gelöscht ist.
+  if exists (select 1 from public.nachricht_meldungen m
+              where m.company_id = k.company_id
+                and m.anhaenge @> jsonb_build_array(jsonb_build_object('eimer', p_eimer, 'pfad', p_pfad))) then
+    return false;
+  end if;
+  return app.nachrichten_schreibsperre(k.id) is null;
+end;
+$$;
+
+revoke all on function app.nachrichten_datei_schreibbar(text, text) from public, anon, authenticated;
+grant execute on function app.nachrichten_datei_schreibbar(text, text) to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- 3. Auszug, Datenauskunft, Löschbericht — gezielt eingefügt, wiederholbar
 -- ---------------------------------------------------------------------------

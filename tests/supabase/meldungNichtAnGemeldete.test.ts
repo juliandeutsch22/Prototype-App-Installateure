@@ -11,7 +11,8 @@
  * Geschäftsführung) und einem Monteur (Max), der eine Nachricht von Anna
  * meldet:
  * - Anna: nichts in der Liste, Zahl 0, Erledigen und Löschen abgewiesen wie
- *   eine Kennung, die es nicht gibt, die Datei aus der Meldung nicht lesbar,
+ *   eine Kennung, die es nicht gibt, die Datei aus der Meldung weder lesbar
+ *   noch überschreibbar (auch nicht als „eigene, noch nicht gesendete“),
  *   nichts im Auszug, nichts in Datenauskunft und Löschbericht;
  * - Berta: alles wie bisher (Gegenprobe innerhalb des Tests);
  * - bleibt gleich: eine Meldung über den Monteur sehen beide Leitungen;
@@ -117,8 +118,19 @@ describe('Max meldet eine Nachricht von Anna (Leitung)', () => {
 
   it('nach dem Löschen ihrer Nachricht liest Anna die Datei aus der Meldung nicht mehr — Berta schon', async () => {
     await rpc(anna, 'nachricht_loeschen', { p_id: nachricht });
+    /*
+      Zwei Wege führten zur Datei: die Meldung (`nachrichten_datei_lesbar`)
+      und „eigene, noch nicht gesendete Datei“ (`nachrichten_datei_schreibbar`
+      samt `owner_id`) — nach dem Löschen zeigt kein Anhang mehr auf sie.
+      Beide sind zu, und überschreiben lässt sich das Beweisstück auch nicht.
+    */
     expect((await anna.client.storage.from('nachrichten-privat').download(pfad)).error).not.toBeNull();
-    expect((await berta.client.storage.from('nachrichten-privat').download(pfad)).error).toBeNull();
+    const ersetzt = await anna.client.storage.from('nachrichten-privat').upload(
+      pfad, new Blob(['Anderes'], { type: 'image/png' }), { contentType: 'image/png', upsert: true });
+    expect(ersetzt.error).not.toBeNull();
+    const beiBerta = await berta.client.storage.from('nachrichten-privat').download(pfad);
+    expect(beiBerta.error).toBeNull();
+    expect(await beiBerta.data!.text()).toBe('Bild');
   });
 
   it('Anna erledigt und löscht nicht — dieselbe Antwort wie für eine Kennung, die es nicht gibt', async () => {
