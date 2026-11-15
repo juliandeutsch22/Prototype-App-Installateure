@@ -59,7 +59,7 @@ Falschmeldungen der Messung, die keine Fehler sind:
 
 | Datei | Rolle |
 |---|---|
-| `daten.ts` | Beispieldaten. Absichtlich **lange** Namen — daran zeigen sich Umbrüche. |
+| `daten.ts` | Beispieldaten. Absichtlich **lange** Namen — daran zeigen sich Umbrüche. Mit `?bestand=gewachsen` kommt der Bestand eines Betriebs nach zehn Jahren dazu (`tools/testbestand/gewachsenerBetrieb.ts`: 50 Personen, 2.000 Kunden, 4.000 Baustellen, 6.000 Rechnungen; Buchungen ab dem Vormonat). |
 | `stubs-erzeugen.mjs` | Liest die Exporte aus `src/lib/db/*.ts` und `src/lib/db/pg/*.ts` und schreibt passende Stubs nach `db/`. Läuft vor jedem Start. Formen, die sich nicht aus dem Namen ableiten lassen, stehen dort in `FEST`. |
 | `fest/` | Handgeschriebene Stubs (Ausgangsfach, Katalogimport), werden nach dem Erzeugen über `db/` gelegt. |
 | `fotos.mjs` | Fotografiert jede Route je Rolle auf 390 / 834 / 1440 px. |
@@ -70,6 +70,17 @@ Falschmeldungen der Messung, die keine Fehler sind:
 | `ausschnitt.mjs` | Ein Element fotografieren, wahlweise nach einem Klick (`… ausschnitt.mjs <pfad> <rolle> <breite> <datei> <selektor> [höhe] [klick-selektor]`) — für Vorher/Nachher eines Bausteins. |
 | `texte.mjs` | Liest den sichtbaren Text jeder Route (aufgeklappt) und meldet Formate zum Nachsehen: ISO-Datum, Dezimalpunkt, Monatsnamen, ungepolsterte Daten, ganze Stunden. Weiter gefasst als die feste Regel der Linkprüfung (`tests/links/schreibweise.ts`) — es meldet Kandidaten, keine Fehler. |
 | `unterschrift.mjs` | Geht am Telefon den Schein bis zur Unterschrift durch und fotografiert das Feld, das große Blatt hoch und quer (`… unterschrift.mjs <ordner>`). Die Funktion prüft `SignaturePad.test.tsx`; das hier ist der Blick darauf. |
+
+## Leistung je Seite (L11)
+
+Die Attrappen zählen jeden Aufruf in `window.__datenaufrufe` (gesamt, je
+Art, je Name). `tests/links/leistung.spec.ts` öffnet die Seiten des Monteurs
+und die wachsenden Listen mit beiden Beständen und prüft: Datenaufrufe unter
+dem Budget, mit dem großen Bestand nicht mehr als mit dem kleinen (sonst
+fragt die Seite je Zeile nach), höchstens 8.000 gezeichnete Elemente im
+Inhalt. Läuft mit `npm run pruefen:links` in der CI. Zeilen und Dauer je
+Abfrage misst das nicht — die Attrappen filtern nicht —, dafür ist
+`scripts/ui-umbau/messung.mjs` gegen den örtlichen Stapel da.
 
 Die Stubs unter `db/` werden **erzeugt** und sind nicht eingecheckt
 (`.gitignore`). Damit können sie nicht veralten, wenn die Datenschicht eine

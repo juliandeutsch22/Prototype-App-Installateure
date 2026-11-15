@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
 
 /**
  * Welche Fassung laeuft hier eigentlich?
@@ -178,10 +179,236 @@ function vorschauSicherheit(): Plugin {
   };
 }
 
+/* ------------------------------------------------------ Leistungswächter --- */
+
+/** Ein Baustein des Baus, so weit der Wächter ihn braucht. */
+export interface Baustein {
+  datei: string;
+  /** Inhalt; gemessen wird die gepackte Größe, wie sie übers Netz geht. */
+  inhalt: string | Uint8Array;
+  statisch: string[];
+  dynamisch: string[];
+  einstieg: boolean;
+  /** Die Quelldatei, für die der Baustein steht (bei Ansichten der Pfad unter `src/`). */
+  modul: string | null;
+  /** Stylesheets, die mit diesem Baustein geladen werden. */
+  css: string[];
+}
+
+export interface Leistungsbudget {
+  /** Gepackt vor dem ersten Bild: Einstieg, seine festen Bausteine und Stile. */
+  vorErstemBildKB: number;
+  /** Der Einstieg allein. */
+  einstiegKB: number;
+  /** Zahl der JavaScript-Bausteine. */
+  bausteine: number;
+  /** Größter Baustein, außer den Bibliotheken, die nur auf Abruf kommen. */
+  groessterBausteinKB: number;
+  /** Dateinamen-Anfänge der Bibliotheken auf Abruf (PDF, Push). */
+  aufAbruf: string[];
+  /** Was eine Ansicht beim ersten Öffnen über den Start hinaus holt — gepackt … */
+  jeAnsichtKB: number;
+  /** … und in wie vielen Dateien (= Anfragen). */
+  jeAnsichtDateien: number;
+  /**
+   * Wie viele Bausteine den Einstieg fest einbinden. Jeder davon bekommt mit
+   * jeder Änderung am Einstieg einen neuen Namen (Analyse 15.11.2026, B8).
+   */
+  importierenEinstieg: number;
+}
+
+export interface AnsichtMessung {
+  modul: string;
+  datei: string;
+  kb: number;
+  dateien: number;
+}
+
+export interface LeistungsMessung {
+  startDateien: string[];
+  vorErstemBildKB: number;
+  einstiegKB: number;
+  bausteine: number;
+  groessterBaustein: { datei: string; kb: number };
+  importierenEinstieg: number;
+  ansichten: AnsichtMessung[];
+}
+
+const kb = (n: number) => Math.round((n / 1024) * 10) / 10;
+const gepackt = (inhalt: string | Uint8Array) => gzipSync(inhalt, { level: 9 }).length;
+
+/**
+ * Misst einen Bau: was vor dem ersten Bild übers Netz muss, wie viele und wie
+ * große Bausteine es gibt, und was jede Ansicht beim ersten Öffnen dazuholt.
+ *
+ * ANSICHT heißt hier: jeder Baustein, den der Start nur auf Abruf lädt
+ * (`ansicht()` in `App.tsx`, die Anmeldung, Push). Gezählt wird, was er
+ * FEST einbindet — sein eigenes Nachladen (PDF) kommt erst auf einen Knopf.
+ */
+export function leistungMessen(bausteine: Baustein[], stile: Record<string, string | Uint8Array>): LeistungsMessung {
+  const nachName = new Map(bausteine.map((b) => [b.datei, b]));
+  const groesse = new Map<string, number>();
+  const groesseVon = (datei: string) => {
+    let g = groesse.get(datei);
+    if (g === undefined) {
+      const inhalt = nachName.get(datei)?.inhalt ?? stile[datei];
+      g = inhalt === undefined ? 0 : gepackt(inhalt);
+      groesse.set(datei, g);
+    }
+    return g;
+  };
+  const huelle = (anfang: string[]) => {
+    const da = new Set<string>();
+    const weiter = [...anfang];
+    while (weiter.length) {
+      const d = weiter.pop()!;
+      if (da.has(d)) continue;
+      da.add(d);
+      const b = nachName.get(d);
+      if (!b) continue;
+      weiter.push(...b.statisch, ...b.css);
+    }
+    // Als Liste: `tsconfig.node.json` übersetzt ohne Ziel, und dort lässt sich eine Menge nicht ausbreiten.
+    return Array.from(da);
+  };
+
+  const einstieg = bausteine.find((b) => b.einstieg);
+  const startListe = huelle(einstieg ? [einstieg.datei] : []);
+  const start = new Set(startListe);
+  const summe = (dateien: string[]) => dateien.reduce((s, d) => s + groesseVon(d), 0);
+
+  /*
+    Was der Start auf Abruf lädt, und darin wieder jede nachgeladene
+    Komponente (`.tsx`: die Rechnungsverwaltung hinter `RechnungenSeite`, die
+    Übersicht der Baustellenakte). Nachgeladenes Rechnen (`.ts`: PDF) kommt
+    erst auf einen Knopf und zählt nicht zur Ansicht.
+  */
+  const ansichten: AnsichtMessung[] = [];
+  const gesehen = new Set<string>();
+  const offen: string[] = [];
+  const vormerken = (von: string[], nurKomponenten: boolean) => {
+    for (const d of von) {
+      for (const z of nachName.get(d)?.dynamisch ?? []) {
+        if (start.has(z) || gesehen.has(z)) continue;
+        if (nurKomponenten && !nachName.get(z)?.modul?.endsWith('.tsx')) continue;
+        gesehen.add(z);
+        offen.push(z);
+      }
+    }
+  };
+  vormerken(startListe, false);
+  while (offen.length) {
+    const datei = offen.shift()!;
+    const alle = huelle([datei]);
+    const dazu = alle.filter((d) => !start.has(d));
+    ansichten.push({ modul: nachName.get(datei)?.modul ?? datei, datei, kb: kb(summe(dazu)), dateien: dazu.length });
+    vormerken(alle, true);
+  }
+  ansichten.sort((a, b) => b.kb - a.kb);
+
+  const js = bausteine.map((b) => ({ datei: b.datei, kb: kb(groesseVon(b.datei)) }));
+  return {
+    startDateien: startListe.slice().sort(),
+    vorErstemBildKB: kb(summe(startListe)),
+    einstiegKB: einstieg ? kb(groesseVon(einstieg.datei)) : 0,
+    bausteine: bausteine.length,
+    groessterBaustein: js.sort((a, b) => b.kb - a.kb)[0] ?? { datei: '', kb: 0 },
+    importierenEinstieg: einstieg ? bausteine.filter((b) => b.statisch.includes(einstieg.datei)).length : 0,
+    ansichten,
+  };
+}
+
+/** Die Verstöße gegen das Budget, als Sätze — leer heißt: im Budget. */
+export function leistungPruefen(m: LeistungsMessung, budget: Leistungsbudget, bausteine: Baustein[]): string[] {
+  const fehler: string[] = [];
+  const ueber = (was: string, ist: number, grenze: number, einheit: string) => {
+    if (ist > grenze) fehler.push(`${was}: ${ist} ${einheit} statt höchstens ${grenze} ${einheit}`);
+  };
+  ueber('Vor dem ersten Bild (gepackt)', m.vorErstemBildKB, budget.vorErstemBildKB, 'KB');
+  ueber('Einstieg (gepackt)', m.einstiegKB, budget.einstiegKB, 'KB');
+  ueber('JavaScript-Bausteine', m.bausteine, budget.bausteine, 'Stück');
+  ueber('Bausteine, die den Einstieg fest einbinden', m.importierenEinstieg, budget.importierenEinstieg, 'Stück');
+  const name = (datei: string) => datei.split('/').pop() ?? datei;
+  const eigene = bausteine
+    .filter((b) => !budget.aufAbruf.some((a) => name(b.datei).startsWith(a)))
+    .map((b) => ({ datei: b.datei, kb: kb(gepackt(b.inhalt)) }))
+    .sort((a, b) => b.kb - a.kb);
+  if (eigene[0]) ueber(`Größter Baustein (${name(eigene[0].datei)})`, eigene[0].kb, budget.groessterBausteinKB, 'KB');
+  for (const a of m.ansichten) {
+    ueber(`Ansicht ${a.modul} holt dazu`, a.kb, budget.jeAnsichtKB, 'KB');
+    ueber(`Ansicht ${a.modul} holt dazu`, a.dateien, budget.jeAnsichtDateien, 'Dateien');
+  }
+  return fehler;
+}
+
+/**
+ * DER LEISTUNGSWÄCHTER (Plan 15.11.2026, L11). Jeder Bau misst sich selbst
+ * und scheitert, wenn er über dem Budget in `leistungsbudget.json` liegt.
+ *
+ * WARUM IM BAU UND NICHT ALS EIGENE PRÜFUNG. Gebaut wird in der CI an zwei
+ * Stellen: im Durchklick (für die Inhaltsregel, bei jedem Pull Request, der
+ * Code berührt) und vor jeder Auslieferung. Hängt der Wächter am Bau, läuft
+ * er dort mit, ohne einen Auftrag zu verlängern oder einen neuen zu brauchen
+ * — und ein Rückschritt kann nicht ausgeliefert werden.
+ *
+ * Gemessen wird gepackt (gzip), wie es übers Netz geht. Die Grenzen haben
+ * Luft über dem gemessenen Stand; wer sie anhebt, schreibt den Grund dazu.
+ */
+function leistungswaechter(): Plugin {
+  let melden: (text: string) => void = () => undefined;
+  return {
+    name: 'leistungswaechter',
+    apply: 'build',
+    configResolved(config) {
+      // `this.info` blendet Vite aus; die Zeile soll im Bauprotokoll stehen.
+      melden = (text) => config.logger.info(text);
+    },
+    generateBundle(_optionen, bundle) {
+      const budget = JSON.parse(
+        readFileSync(path.resolve(__dirname, 'leistungsbudget.json'), 'utf8'),
+      ) as Leistungsbudget;
+      const wurzel = path.resolve(__dirname) + path.sep;
+      const bausteine: Baustein[] = [];
+      const stile: Record<string, string | Uint8Array> = {};
+      for (const teil of Object.values(bundle)) {
+        if (teil.type === 'asset') {
+          if (teil.fileName.endsWith('.css')) stile[teil.fileName] = teil.source;
+          continue;
+        }
+        bausteine.push({
+          datei: teil.fileName,
+          inhalt: teil.code,
+          statisch: teil.imports,
+          dynamisch: teil.dynamicImports,
+          einstieg: teil.isEntry,
+          modul: teil.facadeModuleId?.startsWith(wurzel) ? teil.facadeModuleId.slice(wurzel.length) : null,
+          css: Array.from(teil.viteMetadata?.importedCss ?? []),
+        });
+      }
+      const m = leistungMessen(bausteine, stile);
+      const fehler = leistungPruefen(m, budget, bausteine);
+      // `LEISTUNG_ALLES=1 npx vite build` zeigt die ganze Messung — für das Vorher/Nachher einer Änderung.
+      if (process.env.LEISTUNG_ALLES) melden(JSON.stringify(m, null, 1));
+      const schwerste = m.ansichten
+        .slice(0, 3)
+        .map((a) => `${a.modul.split('/').pop()} ${a.kb} KB/${a.dateien}`)
+        .join(', ');
+      melden(
+        `Leistung: vor dem ersten Bild ${m.vorErstemBildKB} KB (${m.startDateien.length} Dateien), ` +
+          `Einstieg ${m.einstiegKB} KB, ${m.bausteine} Bausteine, ${m.importierenEinstieg} binden den Einstieg ein; ` +
+          `schwerste Ansichten: ${schwerste}`,
+      );
+      if (fehler.length) {
+        this.error(`Leistungsbudget überschritten (leistungsbudget.json):\n  - ${fehler.join('\n  - ')}`);
+      }
+    },
+  };
+}
+
 const KENNUNG = fassungsKennung();
 
 export default defineConfig({
-  plugins: [react(), fassungsDatei(KENNUNG), datenbankVorverbinden(), vorschauSicherheit()],
+  plugins: [react(), fassungsDatei(KENNUNG), datenbankVorverbinden(), vorschauSicherheit(), leistungswaechter()],
   define: {
     __FASSUNG__: JSON.stringify(KENNUNG),
   },

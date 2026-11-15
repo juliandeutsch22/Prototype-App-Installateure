@@ -1,0 +1,11 @@
+{
+  "_warum": "Grenzen des Leistungswächters (vite.config.ts, leistungswaechter). Gemessen gzip am 15.11.2026: vor dem ersten Bild 265,8 KB, Einstieg 108,9 KB, 228 Bausteine, schwerste Ansicht 112,8 KB in 60 Dateien, 179 Bausteine binden den Einstieg ein. Etwa 10 % Luft. Wer eine Grenze anhebt, nennt den Grund im Commit.",
+  "vorErstemBildKB": 295,
+  "einstiegKB": 125,
+  "bausteine": 260,
+  "groessterBausteinKB": 125,
+  "aufAbruf": ["jspdf", "html2canvas", "index.es", "purify", "firebase"],
+  "jeAnsichtKB": 130,
+  "jeAnsichtDateien": 70,
+  "importierenEinstieg": 200
+}

@@ -32,7 +32,8 @@ const DATEN = {
   rechtstexte: { rechtstexteAktuell: 'D.rechtstexte', rechtstextVerlauf: '[]', verarbeiterAenderungen: '[]' },
   users: { listUsers: 'D.benutzer', getUserByUid: 'D.benutzer[0]' },
   // Buchungstage je Person (Start, „Die Mannschaft“): eine Liste; als NOOP stand „Nicht geladen“ (14.11.2026).
-  timeEntries: { '*': 'D.zeiten', arbeitszeitVorlauf: '[]', listUrlaubstage: '[]', subscribeUrlaubstage: '[]', stundenDerBaustellen: '[]', buchungstage: '[]' },
+  // Die eigenen Buchungen sind im gewachsenen Bestand weiter die der Beispiele (L11): die Attrappe kennt die Person nicht.
+  timeEntries: { '*': 'D.zeiten', listOwnEntriesSince: 'D.zeitenEigene', listOwnEntriesInRange: 'D.zeitenEigene', subscribeOwnEntriesInRange: 'D.zeitenEigene', arbeitszeitVorlauf: '[]', listUrlaubstage: '[]', subscribeUrlaubstage: '[]', stundenDerBaustellen: '[]', buchungstage: '[]' },
   // Auftragseingang: eine Seite und die Zählung — als NOOP stand dort nur ein Ladefehler (14.11.2026).
   auftragseingaenge: { listEingaenge: '{ zeilen: [], weiter: null }', zaehleOffeneEingaenge: '{ offen: 0, dringend: 0, notfall: 0 }' },
   projects: { '*': 'D.baustellen' },
@@ -128,6 +129,12 @@ const DATEN = {
   offenePosten: { ladeOffenePosten: '{ urlaub: 1, anforderungen: 2, mahnungen: 1 }' },
   laeufe: { ladeLauf: 'null' },
   monatsbilanzen: { bilanzMarker: 'null' },
+  // Monatsabschluss (Z6): eine leere Liste — als NOOP blieben Zeiterfassung und Mitarbeiterübersicht weiß (15.11.2026).
+  zeitkonto: { listMonatsabschluesse: '[]' },
+  // Freie Zeitfelder: ein leerer Feldsatz statt `undefined` (React Query verweigert `undefined`).
+  zeitfelder: { feldsatzLaden: '{ fassung: null, definitionen: [] }' },
+  // Vorgemerkte Buchungen ohne Netz (Z4): keine — als NOOP stürzte „Noch nicht gesendet“ ab (15.11.2026).
+  wartendeZeiten: { wartendeZeitbuchungen: '[]' },
 };
 
 /** Was sich nicht aus dem Namen ableiten laesst. */
@@ -168,6 +175,10 @@ const FEST = {
     "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n",
   quelle: 'export const nutztPostgres = () => false;\n',
   monatsbilanzen: "export const monatVon = (d: string) => d.slice(0, 7);\n",
+  zeitfelder: 'export const gemerkterFeldsatz = () => null;\n',
+  // Ohne Wartende der Stand vom Server — gefiltert wie im Vorbild, sonst zeigte die Zeiterfassung die Buchungen aller.
+  wartendeZeiten: 'export const mitWartenden = (server: Array<{ id: string; userId: string; date: string }>, _w: unknown, uid: string, imFenster: (d: string) => boolean, ohne?: string) =>\n' +
+    '  server.filter((e) => e.id !== ohne && e.userId === uid && imFenster(e.date));\n',
   prefs:
     'const P = {} as never;\nexport const getPrefs = () => A(P);\nexport const subscribePrefs = SUB(P);\n',
   // Formen, die die Heuristik falsch raten wuerde (Prueflauf 25.09.2026, C11).
@@ -221,12 +232,26 @@ const FEST = {
 };
 
 const KOPF = `import * as D from '../daten';
-const A = <T,>(v: T) => Promise.resolve(v);
-const NOOP = () => Promise.resolve(undefined as never);
+/* JEDER AUFRUF WIRD GEZÄHLT (L11): \`window.__datenaufrufe\` sagt der
+   Leistungsprüfung (tests/links/leistung.spec.ts), wie viele Abfragen und Abos
+   eine Seite stellt — und ob es mit dem Bestand mehr werden. Der Name kommt
+   aus dem Aufrufstapel; er dient nur der Meldung. */
+const ZAEHLEN = (art) => {
+  const g = globalThis as unknown as { __datenaufrufe?: Record<string, number> };
+  const z = (g.__datenaufrufe ??= {});
+  const zeile = (new Error().stack ?? '').split('\\n')[3] ?? '';
+  const name = /at (?:Object\\.)?([\\w$]+)/.exec(zeile)?.[1] ?? '?';
+  z.gesamt = (z.gesamt ?? 0) + 1;
+  z[art] = (z[art] ?? 0) + 1;
+  z[art + ':' + name] = (z[art + ':' + name] ?? 0) + 1;
+};
+const A = <T,>(v: T) => (ZAEHLEN('abfrage'), Promise.resolve(v));
+const NOOP = () => (ZAEHLEN('schreiben'), Promise.resolve(undefined as never));
 /* Der Daten-Rueckruf ist in jeder Abo-Signatur dieses Projekts das ERSTE
    Funktionsargument (danach kommt onError). Damit sind die Stubs unabhaengig
    davon, an welcher Stelle er steht. */
 const SUB = (daten) => (...args) => {
+  ZAEHLEN('abo');
   const cb = args.find((a) => typeof a === 'function');
   setTimeout(() => cb?.(daten), 0);
   return () => {};

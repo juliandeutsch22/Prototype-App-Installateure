@@ -144,6 +144,20 @@ describe('Erzeugte Ersatzmodule der Vorschau', () => {
     expect(modul('invoices')).toMatch(/export const subscribe\w+ = SUB\(/);
   });
 
+  it('Monatsabschluss, Zeitfelder und Wartende haben ihre Form (15.11.2026: Zeiterfassung und Übersicht blieben weiß)', () => {
+    expect(modul('zeitkonto')).toContain('export const listMonatsabschluesse = () => A([]);');
+    expect(modul('zeitfelder')).toContain('export const feldsatzLaden = () => A({ fassung: null, definitionen: [] });');
+    expect(modul('wartendeZeiten')).toContain('export const wartendeZeitbuchungen = () => A([]);');
+    expect(modul('wartendeZeiten')).toMatch(/export const mitWartenden = \(server/);
+  });
+
+  it('jeder Aufruf wird gezählt — für die Leistungsprüfung (L11)', () => {
+    expect(modul('customers')).toContain("const A = <T,>(v: T) => (ZAEHLEN('abfrage'), Promise.resolve(v));");
+    expect(modul('customers')).toContain("ZAEHLEN('abo');");
+    // Die eigenen Buchungen bleiben im gewachsenen Bestand die der Beispiele.
+    expect(modul('timeEntries')).toContain('export const listOwnEntriesSince = () => A(D.zeitenEigene);');
+  });
+
   it('die laufende Vorschau bleibt unberührt: geschrieben wird nur ins Prüfziel', () => {
     expect(ziel).not.toContain('tools/vorschau');
     expect(modul('customers')).toContain("import * as D from '../daten';");

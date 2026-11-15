@@ -1,3 +1,4 @@
+import { gewachsenerBetrieb } from '../testbestand/gewachsenerBetrieb';
 /*
  * Beispieldaten fuer die Vorschau.
  *
@@ -7,6 +8,27 @@
  * Umbrueche. Wer hier „Meier GmbH" einsetzt, misst nichts mehr.
  */
 export const HEUTE = new Date().toISOString().slice(0, 10);
+
+/*
+  GEWACHSENER BETRIEB (L11): mit \`?bestand=gewachsen\` kommen zu den
+  Beispieldaten 50 Personen, 2.000 Kunden, 4.000 Baustellen usw. aus
+  \`tools/testbestand/gewachsenerBetrieb.ts\` dazu — für Messungen, ob eine
+  Seite mit dem Bestand mehr fragt oder mehr zeichnet. Buchungen nur ab dem
+  Vormonat: die Attrappen filtern nicht nach Person oder Zeitraum, jede
+  Buchungsliste bekäme sonst alle zehn Jahre aller Personen.
+*/
+const GEWACHSEN =
+  typeof location !== 'undefined' && new URLSearchParams(location.search).get('bestand') === 'gewachsen'
+    ? gewachsenerBetrieb({
+        zeitenAb: (() => {
+          const d = new Date(`${HEUTE.slice(0, 8)}01T00:00:00Z`);
+          d.setUTCMonth(d.getUTCMonth() - 1);
+          return d.toISOString().slice(0, 10);
+        })(),
+      })
+    : null;
+/** Die Beispiele, im gewachsenen Bestand um dessen Zeilen ergänzt (die Beispiele zuerst: Links wie `/customers/k1` bleiben gültig). */
+const mit = <T,>(klein: T[], gross: unknown[] | undefined): T[] => (gross ? [...klein, ...(gross as T[])] : klein);
 
 /*
   TAGE RELATIV ZUR LAUFENDEN WOCHE (Runde 4). Wochenplan, Monat und
@@ -46,7 +68,7 @@ export const firma = {
   wochenplanFuerAlle: true,
 };
 
-export const benutzer = [
+export const benutzer = mit([
   { id: 'u1', companyId: 'perl', uid: 'u1', name: 'Max Mustermann', email: 'max.mustermann@perl.at', role: 'Mitarbeiter', active: true, weeklyTargetHours: 40, yearlyVacationDays: 25, initialVacationDays: 25, appStartDate: '2026-01-08', workDays: [1, 2, 3, 4, 5] },
   { id: 'u2', companyId: 'perl', uid: 'u2', name: 'Anton Berger-Steinmetz', email: 'anton.berger@perl.at', role: 'Mitarbeiter', active: true, weeklyTargetHours: 38.5, yearlyVacationDays: 25, appStartDate: '2025-03-01', workDays: [1, 2, 3, 4, 5] },
   { id: 'u3', companyId: 'perl', uid: 'u3', name: 'Michaela Wagner', email: 'm.wagner@perl.at', role: 'Buchhaltung', active: true, weeklyTargetHours: 30, yearlyVacationDays: 25, appStartDate: '2024-09-01', workDays: [1, 2, 3, 4] },
@@ -55,21 +77,21 @@ export const benutzer = [
   { id: 'u5', companyId: 'perl', uid: 'u5', name: 'Lena Pichler', email: 'l.pichler@perl.at', role: 'Mitarbeiter', einstufung: 'lehrling', lehrbeginn: '2025-09-01', lehrzeitMonate: 36, active: true, weeklyTargetHours: 40, yearlyVacationDays: 25, appStartDate: '2025-09-01', workDays: [1, 2, 3, 4, 5] },
   { id: 'u6', companyId: 'perl', uid: 'u6', name: 'Stefan Gruber', email: 's.gruber@perl.at', role: 'Mitarbeiter', einstufung: 'obermonteur', active: true, weeklyTargetHours: 38.5, yearlyVacationDays: 25, appStartDate: '2022-02-01', workDays: [1, 2, 3, 4, 5] },
   { id: 'u7', companyId: 'perl', uid: 'u7', name: 'Jürgen Fasching', email: 'j.fasching@perl.at', role: 'Mitarbeiter', einstufung: 'helfer', active: true, weeklyTargetHours: 38.5, yearlyVacationDays: 25, appStartDate: '2024-04-02', workDays: [1, 2, 3, 4, 5] },
-];
+], GEWACHSEN?.benutzer);
 
-export const kunden = [
+export const kunden = mit([
   { id: 'k1', companyId: 'perl', name: 'Wohnungseigentümergemeinschaft Hauptstraße 112–118', address: 'Hauptstraße 112–118, 2700 Wiener Neustadt', contactName: 'Hausverwaltung Mayrhofer', contactPhone: '0664 1234567', email: 'office@hv-mayrhofer.at', vatId: 'ATU87654321', active: true },
   { id: 'k2', companyId: 'perl', name: 'Gemeinde Neudorf bei Wiener Neustadt', address: 'Rathausplatz 1, 2620 Neunkirchen', contactPhone: '+43 2635 12345', active: true },
   { id: 'k3', companyId: 'perl', name: 'Familie Huber', address: 'Ringstraße 3', contactPhone: '0699 9876543', active: true },
-];
+], GEWACHSEN?.kunden);
 
-export const baustellen = [
+export const baustellen = mit([
   { id: 'p1', companyId: 'perl', projectNumber: 'B-2026-0147', customerId: 'k1', customerName: 'Wohnungseigentümergemeinschaft Hauptstraße 112–118', address: 'Hauptstraße 112–118, 2700 Wiener Neustadt', status: 'Aktiv', billingMode: 'Regie', estimatedHours: 240, contactName: 'Hausverwaltung Mayrhofer', contactPhone: '0664 1234567', description: 'Heizungstausch inkl. Verteiler und hydraulischem Abgleich', startDate: '2026-08-03', assignedEmployees: ['u1', 'u2'], projectManagers: ['u4'] },
   { id: 'p2', companyId: 'perl', projectNumber: 'B-2026-0148', customerId: 'k2', customerName: 'Gemeinde Neudorf bei Wiener Neustadt', address: 'Rathausplatz 1, 2620 Neunkirchen', status: 'Aktiv', billingMode: 'Pauschal', estimatedHours: 80, contactPhone: '+43 2635 12345' },
   { id: 'p3', companyId: 'perl', projectNumber: 'B-2026-0149', customerId: 'k3', customerName: 'Familie Huber', address: 'Ringstraße 3', status: 'Pausiert', estimatedHours: 40 },
-];
+], GEWACHSEN?.baustellen);
 
-export const zeiten = [
+export const zeiten = mit([
   { id: 't1', companyId: 'perl', date: HEUTE, status: 'Anwesend', startTime: '07:00', endTime: '16:30', breakDuration: 30, travelTime: 45, projectNumber: 'B-2026-0147', customerName: 'Wohnungseigentümergemeinschaft Hauptstraße 112–118', userId: 'u1', userName: 'Max Mustermann', comment: 'Verteiler gesetzt, Steigleitungen gespült', isNightWork: true, isEmergency: true, vehiclePlate: 'WN-123XY' },
   { id: 't2', companyId: 'perl', date: '2026-09-17', status: 'Anwesend', startTime: '07:30', endTime: '17:00', breakDuration: 45, projectNumber: 'B-2026-0148', customerName: 'Gemeinde Neudorf bei Wiener Neustadt', userId: 'u1', userName: 'Max Mustermann', helperName: 'Anton Berger-Steinmetz' },
   { id: 't3', companyId: 'perl', date: '2026-09-16', status: 'Krank', userId: 'u1', userName: 'Max Mustermann' },
@@ -91,7 +113,9 @@ export const zeiten = [
     if (i < 2) liste.push(b('j', 'u7', 'Jürgen Fasching', arbeit));
     return liste;
   }),
-];
+], GEWACHSEN?.zeiten);
+/** Die Buchungen der angemeldeten Person: im gewachsenen Bestand ohne dessen Zeilen — die gehören anderen. */
+export const zeitenEigene = GEWACHSEN ? zeiten.filter((z) => z.companyId !== GEWACHSEN.companyId) : zeiten;
 
 export const bestellungen = [
   { id: 'o1', companyId: 'perl', materialId: 'm1', materialName: 'Kupferrohr 22 mm, Stange 5 m, hart', quantity: 12, status: 'Offen', transactionType: 'order', userId: 'u2', userName: 'Anton Berger-Steinmetz', projectNumber: 'B-2026-0147', isUrgent: true, note: 'Wird morgen früh auf der Baustelle gebraucht', createdAt: Date.now() - 3600000 },
@@ -105,11 +129,11 @@ export const materialien = [
   { id: 'm3', companyId: 'perl', name: 'Dichtungsmaterial Sortiment', category: 'Kleinmaterial', stock: 0, articleNumber: 'DICHT-SORT', unit: 'Pkg', verkaufspreis: 12.4, einkaufspreis: 6.2 },
 ];
 
-export const rechnungen = [
+export const rechnungen = mit([
   { id: 'r1', companyId: 'perl', invoiceNumber: '2026-0231', projectNumber: 'B-2026-0147', customerName: 'Wohnungseigentümergemeinschaft Hauptstraße 112–118', invoiceDate: '2026-08-14', dueDate: '2026-09-13', totalNetto: 18420.5, totalVat: 3684.1, totalBrutto: 22104.6, paymentStatus: 'Überfällig', mahnstufe: 1, gemahntAm: '2026-09-15', mahnfrist: '2026-09-29', vatRate: 0.2, address: 'Hauptstraße 112–118, 2700 Wiener Neustadt', positions: [{ label: 'Heizungstausch inkl. Verteiler', qty: 1, unit: 'pausch', unitPrice: 18420.5, netto: 18420.5 }] },
   { id: 'r2', companyId: 'perl', invoiceNumber: '2026-0232', projectNumber: 'B-2026-0148', customerName: 'Gemeinde Neudorf bei Wiener Neustadt', invoiceDate: '2026-09-01', dueDate: '2026-10-01', totalNetto: 6240, totalVat: 1248, totalBrutto: 7488, paymentStatus: 'Offen', vatRate: 0.2 },
   { id: 'r3', companyId: 'perl', invoiceNumber: '2026-0230', projectNumber: 'B-2026-0149', customerName: 'Familie Huber', invoiceDate: '2026-07-20', dueDate: '2026-08-19', totalNetto: 1180, totalVat: 236, totalBrutto: 1416, paymentStatus: 'Bezahlt', vatRate: 0.2 },
-];
+], GEWACHSEN?.rechnungen);
 
 /* Änderungsprotokoll der Zeitbuchungen (E50): angelegt von der Person selbst, geändert vom Büro. */
 export const zeitVerlauf = [
@@ -176,15 +200,15 @@ export const ruestlisten = [
   },
 ];
 
-export const angebote = [
+export const angebote = mit([
   { id: 'q1', companyId: 'perl', quoteNumber: 'A-2026-0088', customerId: 'k1', customerName: 'Wohnungseigentümergemeinschaft Hauptstraße 112–118', address: 'Hauptstraße 112–118, 2700 Wiener Neustadt', quoteDate: '2026-09-01', validUntil: '2026-10-01', status: 'Versendet', positions: [{ label: 'Heizungstausch inkl. Verteiler und hydraulischem Abgleich', qty: 1, unit: 'pausch', unitPrice: 18400, netto: 18400 }], subtotalNetto: 18400, totalNetto: 18400, totalVat: 3680, totalBrutto: 22080, vatRate: 0.2, kalkulierteStunden: 240 },
   { id: 'q2', companyId: 'perl', quoteNumber: 'A-2026-0089', customerId: 'k3', customerName: 'Familie Huber', quoteDate: '2026-09-10', validUntil: '2026-10-10', status: 'Entwurf', positions: [], subtotalNetto: 0, totalNetto: 0, totalVat: 0, totalBrutto: 0, vatRate: 0.2, kalkulierteStunden: 0 },
-];
+], GEWACHSEN?.angebote);
 
-export const wartungen = [
+export const wartungen = mit([
   { id: 'w1', companyId: 'perl', customerId: 'k1', customerName: 'Wohnungseigentümergemeinschaft Hauptstraße 112–118', anlage: 'Gasbrennwertkessel Vaillant ecoTEC plus VC 206', address: 'Hauptstraße 112–118, 2700 Wiener Neustadt', intervallMonate: 12, zuletztAm: '2025-09-20', faelligAm: '2026-09-20', aktiv: true, hinweis: 'Schlüssel bei der Hausverwaltung abholen' },
   { id: 'w2', companyId: 'perl', customerId: 'k2', customerName: 'Gemeinde Neudorf bei Wiener Neustadt', anlage: 'Wärmepumpe', intervallMonate: 24, faelligAm: '2027-03-01', aktiv: true },
-];
+], GEWACHSEN?.wartungen);
 
 /** Eine VIES-Abfrage zum ersten Kunden (UID ATU87654321). */
 export const uidPruefungen = [
