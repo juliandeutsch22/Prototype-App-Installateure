@@ -9,6 +9,14 @@ import { zwischenspeicherLeeren } from '@/lib/zwischenspeicher';
 afterEach(cleanup);
 
 /*
+  DIE GERÄTESPRACHE IST DEUTSCH, wie die Zeitzone Wien ist (vitest.config.ts).
+  jsdom meldet „en-US“; damit stünde unter jedem Datumsfeld der Wert noch
+  einmal deutsch (U10, `zeitfeldDeutsch`). Wer das prüft, stellt die Sprache
+  im Test selbst um.
+*/
+if (typeof window !== 'undefined') Object.defineProperty(window.navigator, 'language', { value: 'de-AT', configurable: true });
+
+/*
   Der Zwischenspeicher der App (Stufe 3) lebt auf Modulebene. Ohne Leeren sähe
   ein Test den Stand des vorigen — mit denselben gestellten Benutzern hätte er
   denselben Schlüssel.

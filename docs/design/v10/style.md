@@ -147,6 +147,8 @@ Das **Kästchen** bleibt für die Auswahl in einem Formular, das erst mit „Spe
 
 **Lange Warntexte: ein Satz plus „Anzeigen“ (U9).** Auf einer Seite steht von einer Warnung der eine Satz, der sagt, was los ist; was ihn erklärt oder aufzählt, steht in `Hinweiszeile.einzelheiten` und kommt auf „Anzeigen“. In einem Fenster und an einer Warnung mit Knopf bleibt der Text offen — dort ist er die Grundlage der Entscheidung, wie in einer Rückfrage. Wo die Zahlen der Warnung die Auskunft selbst sind, sagt `offenWeil`, warum. Wächter: `tests/unit/warntextKurz.test.ts` (über 160 Zeichen gilt als lang).
 
+**Datums- und Zeitfelder (U10, E5).** Das Rad des Geräts bleibt. Wo das Gerät das Feld nicht deutsch zeichnet („11/15/2026“, „07:00 AM“), steht darunter der Wert deutsch: TT.MM.JJJJ, HH:MM, in Plex Mono und leise (`InputField`, `zeitfeldDeutsch`). Gefragt wird nach dem Format der Gerätesprache, nicht nach ihrem Kürzel: ein britisches Gerät zeichnet die Uhrzeit wie wir, das Datum nicht — dort steht nur unter dem Datum eine Zeile. Jedes Datums- und Zeitfeld läuft über `InputField` (Wächter in `tests/unit/zeitfeldDeutsch.test.ts`).
+
 ## Einsatzplanung · E88 bleibt fachlich maßgeblich
 
 Woche/Monat/Tag, Personen-/Baustellensicht, freie Kapazitäten, Termine, Materialzustände, Abwesenheiten und „Noch einzuplanen“ bleiben erhalten. Desktop zeigt die komplette Woche und die Ablage. Tablet zeigt ausreichend breite Tage und hält die restliche Woche horizontal erreichbar. Mobil zeigt die siebentägige Auswahl und eine Tagesliste statt eines verkleinerten Wochenrasters.

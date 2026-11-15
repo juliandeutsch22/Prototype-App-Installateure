@@ -1,4 +1,5 @@
-import { Children, isValidElement, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes, type ReactNode } from 'react';
+import { Children, isValidElement, useState, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes, type ReactNode } from 'react';
+import { geraetZeigtDeutsch, istZeitfeld, zeitfeldDeutsch } from '@/lib/zeitfeldDeutsch';
 
 /*
  * `max-w-full min-w-0` GEHOEREN ZUR GRUNDAUSSTATTUNG, nicht zur Zierde.
@@ -101,8 +102,20 @@ interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   pflicht?: boolean;
 }
 
-/** Beschriftetes Eingabefeld — Label ist Pflicht (Barrierearmut). */
+/**
+ * Beschriftetes Eingabefeld — Label ist Pflicht (Barrierearmut).
+ *
+ * Bei Datum und Uhrzeit steht der Wert darunter deutsch, wo das Gerät das
+ * Feld in seinem eigenen Format zeichnet (U10, E5: das Rad des Geräts
+ * bleibt, der Text daneben ist immer deutsch — `zeitfeldDeutsch`). Für die
+ * Vorlesehilfe ist die Zeile ausgeblendet: sie liest den Wert im Feld.
+ */
 export function InputField({ label, id, pflicht, className = '', ...rest }: InputFieldProps) {
+  const zeitfeld = istZeitfeld(rest.type);
+  // Auch ohne `value` (ungesteuertes Feld) folgt die Zeile der Eingabe.
+  const [eigenerWert, setEigenerWert] = useState(String(rest.defaultValue ?? ''));
+  const wert = rest.value !== undefined ? String(rest.value ?? '') : eigenerWert;
+  const deutsch = zeitfeld && !geraetZeigtDeutsch(rest.type as 'date') ? zeitfeldDeutsch(wert, rest.type as 'date') : '';
   return (
     <div className="flex flex-col gap-1.5">
       <Beschriftung label={label} pflicht={pflicht} id={id} />
@@ -111,7 +124,9 @@ export function InputField({ label, id, pflicht, className = '', ...rest }: Inpu
         aria-required={pflicht || undefined}
         className={`${fieldBase} ${className}`}
         {...rest}
+        onChange={zeitfeld && rest.value === undefined ? (e) => { setEigenerWert(e.target.value); rest.onChange?.(e); } : rest.onChange}
       />
+      {deutsch && <p className="feld-deutsch" aria-hidden="true">{deutsch}</p>}
     </div>
   );
 }

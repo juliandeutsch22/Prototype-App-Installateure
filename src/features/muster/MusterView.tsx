@@ -31,6 +31,7 @@ import MusterBedienung from './MusterBedienung';
 import MusterSchalter from './MusterSchalter';
 import MusterGefahr from './MusterGefahr';
 import MusterHinweise from './MusterHinweise';
+import MusterDatum from './MusterDatum';
 
 /**
  * DIE MUSTERSEITE (Protokoll Abschnitt 4.2, seit 13.11.2026 die Referenz der
@@ -255,6 +256,8 @@ export default function MusterView() {
       <MusterGefahr />
       {/* U5/U9: Warnung mit Zeichen, ein Satz plus „Anzeigen“. */}
       <MusterHinweise />
+      {/* U10, E5: Datum und Uhrzeit deutsch neben dem Feld des Geräts. */}
+      <MusterDatum />
 
       {/* M06b: die freien Zeitfelder in Maske und Liste. */}
       <MusterZeitfelder />
