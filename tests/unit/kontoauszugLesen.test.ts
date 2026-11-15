@@ -43,6 +43,14 @@ const CAMT_02 = `<?xml version="1.0" encoding="UTF-8"?>
         <CdtDbtInd>DBIT</CdtDbtInd>
         <Sts>BOOK</Sts>
         <BookgDt><Dt>2026-11-11</Dt></BookgDt>
+        <NtryDtls><TxDtls>
+          <RltdPties>
+            <Dbtr><Nm>Perl Installationen</Nm></Dbtr>
+            <Cdtr><Nm>Maria Huber</Nm></Cdtr>
+            <CdtrAcct><Id><IBAN>AT611904300234573201</IBAN></Id></CdtrAcct>
+          </RltdPties>
+          <RmtInf><Ustrd>Rueckzahlung Guthaben RE-2026-0990</Ustrd></RmtInf>
+        </TxDtls></NtryDtls>
       </Ntry>
       <Ntry>
         <Amt Ccy="EUR">50.00</Amt>
@@ -161,7 +169,12 @@ describe('camt.053', () => {
       stelle: 1, buchungstag: '2026-11-11', valuta: '2026-11-11', betrag: 1234.56,
       name: 'Maria Huber', iban: 'AT611904300234573201', zweck: 'RE-2026-1001 / B-2026- 0007',
     }]);
-    expect(a.nichtBetrachtet).toEqual({ abbuchungen: 1, vorgemerkt: 1, rueckbuchungen: 0, fremdwaehrung: 1 });
+    expect(a.nichtBetrachtet).toEqual({ vorgemerkt: 1, rueckbuchungen: 0, fremdwaehrung: 1 });
+    // Die Abbuchung mit dem EMPFÄNGER als Gegenseite (Kreditor), nicht dem eigenen Betrieb.
+    expect(a.ausgaenge).toEqual([{
+      stelle: 2, buchungstag: '2026-11-11', betrag: 89.9, ausgang: true,
+      name: 'Maria Huber', iban: 'AT611904300234573201', zweck: 'Rueckzahlung Guthaben RE-2026-0990',
+    }]);
     expect(a.von).toBe('2026-11-11');
   });
 
@@ -189,7 +202,7 @@ describe('MT940', () => {
       stelle: 1, buchungstag: '2026-11-11', valuta: '2026-11-11', betrag: 240,
       name: 'Josef Steiner', iban: 'AT611904300234573201', zweck: 'RE-2026-1004 Dankefuer die Arbeit',
     }]);
-    expect(a.nichtBetrachtet.abbuchungen).toBe(1);
+    expect(a.ausgaenge.map((x) => [x.betrag, x.ausgang, x.zweck])).toEqual([[35.5, true, 'Strom']]);
   });
 });
 
@@ -202,7 +215,9 @@ describe('CSV', () => {
       { stelle: 1, buchungstag: '2026-11-11', valuta: '2026-11-11', betrag: 1500, name: 'Anna Berger', iban: 'AT022050302101023600', zweck: 'Überweisung RE-2026-1005' },
       { stelle: 3, buchungstag: '2026-11-12', valuta: '2026-11-12', betrag: 99.99, name: 'Karl Fuchs', zweck: 'Gutschrift Rechnung RE 2026 1006' },
     ]);
-    expect(a.nichtBetrachtet.abbuchungen).toBe(1);
+    expect(a.ausgaenge).toEqual([
+      { stelle: 2, buchungstag: '2026-11-11', valuta: '2026-11-11', betrag: 120, ausgang: true, name: 'Stadtwerke', iban: 'AT111100000012345678', zweck: 'Lastschrift Strom Oktober' },
+    ]);
   });
 
   it('ohne Kopfzeile (ELBA): Datum, Text, Betrag am Inhalt erkannt; die IBAN steht im Text', () => {
@@ -212,7 +227,7 @@ describe('CSV', () => {
       stelle: 1, buchungstag: '2026-11-11', valuta: '2026-11-11', betrag: 2400,
       iban: 'AT611904300234573201', zweck: 'Gutschrift Überweisung WALTER LANG AT61 1904 3002 3457 3201 RE-2026-1007',
     }]);
-    expect(a.nichtBetrachtet.abbuchungen).toBe(1);
+    expect(a.ausgaenge.map((x) => [x.betrag, x.ausgang, x.zweck])).toEqual([[62.4, true, 'Bezahlung Karte Tankstelle']]);
   });
 
   it('ohne Kopfzeile (BAWAG): die gleichbleibende IBAN vorne ist das eigene Konto', () => {
@@ -257,6 +272,13 @@ describe('Die Kennung einer Bewegung', () => {
     const [x] = await kontoauszugKennungen([{ ...basis, zweck: 'RE-2026-1001 / B-2026-0007' }]);
     const [y] = await kontoauszugKennungen([{ ...basis, zweck: 'RE-2026-1001 /  B-2026- 0007' }]);
     expect(x).toBe(y);
+  });
+
+  it('Gegenprobe: dieselbe Zahl als Abbuchung ist eine andere Bewegung als der Eingang', async () => {
+    const basis = { stelle: 1, buchungstag: '2026-11-11', betrag: 10, zweck: 'RE-2026-1001' };
+    const [ein] = await kontoauszugKennungen([basis]);
+    const [aus] = await kontoauszugKennungen([{ ...basis, ausgang: true }]);
+    expect(ein).not.toBe(aus);
   });
 
   it('Gegenprobe: ein anderer Betrag ist eine andere Bewegung', async () => {

@@ -28,11 +28,13 @@ vi.mock('@/lib/db/invoices', () => ({
 vi.mock('@/lib/db/zahlungen', () => ({ listZahlungenImZeitraum: vi.fn(async () => []) }));
 
 let verbucht = new Map<string, { am: number }>();
+let mitGuthaben: typeof OFFEN = [];
 const kontoauszugVerbuchen = vi.fn<(p: ZuVerbuchen[]) => Promise<VerbuchtErgebnis[]>>();
 vi.mock('@/lib/db/kontoauszug', () => ({
   kontoauszugVerbuchen: (p: ZuVerbuchen[]) => kontoauszugVerbuchen(p),
   kontoauszugSchonVerbucht: vi.fn(async () => verbucht),
   rechnungsKoepfeNachNummer: vi.fn(async () => []),
+  rechnungsKoepfeMitGuthaben: vi.fn(async () => mitGuthaben),
 }));
 
 vi.mock('@/app/AuthContext', () => ({
@@ -72,21 +74,23 @@ async function dateiWaehlen(inhalt = CSV) {
 beforeEach(() => {
   offen = OFFEN;
   verbucht = new Map();
+  mitGuthaben = [];
   kontoauszugVerbuchen.mockReset();
 });
 
 describe('Kontoauszug abgleichen', () => {
-  it('zeigt Vorschläge: zugeordnet vorgewählt, ohne Zuordnung sichtbar, Abbuchungen genannt', async () => {
+  it('zeigt Vorschläge: zugeordnet vorgewählt, ohne Zuordnung sichtbar, Abbuchungen ohne Rechnung gezählt', async () => {
     zeige();
     await dateiWaehlen();
     expect(await screen.findByRole('heading', { name: /Zugeordnet \(1\)/ })).toBeInTheDocument();
     expect(screen.getByText('Gleicht RE-2026-1001 aus.')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /über €\s120,00 verbuchen/ })).toBeChecked();
     expect(screen.getByRole('heading', { name: /Ohne Zuordnung \(1\)/ })).toBeInTheDocument();
-    expect(screen.getByText(/Nicht abgeglichen: 1 Abbuchung\./)).toBeInTheDocument();
+    expect(screen.getByText(/2 Eingänge, 1 Abbuchung — davon 1 nicht Rechnungen betreffend/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Nicht Rechnungen betreffend \(1\)/ })).toBeInTheDocument();
     // Ohne Zuordnung gibt es nichts zu verbuchen — kein Häkchen.
     expect(screen.queryByRole('checkbox', { name: /über €\s77,70 verbuchen/ })).toBeNull();
-    expect(screen.getByRole('button', { name: '1 Eingang verbuchen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '1 Bewegung verbuchen' })).toBeInTheDocument();
   });
 
   it('verbucht nach Rückfrage genau das Gewählte und gleicht danach neu ab', async () => {
@@ -97,9 +101,9 @@ describe('Kontoauszug abgleichen', () => {
     });
     zeige();
     await dateiWaehlen();
-    await userEvent.click(await screen.findByRole('button', { name: '1 Eingang verbuchen' }));
+    await userEvent.click(await screen.findByRole('button', { name: '1 Bewegung verbuchen' }));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText(/Zusammen €\s120,00 auf 1 Rechnung,/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Eingänge zusammen €\s120,00, auf 1 Rechnung,/)).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Verbuchen' }));
     await waitFor(() => expect(kontoauszugVerbuchen).toHaveBeenCalledTimes(1));
     const [posten] = kontoauszugVerbuchen.mock.calls[0];
@@ -123,7 +127,7 @@ describe('Kontoauszug abgleichen', () => {
     expect(within(fenster).getByLabelText('Auf die Rechnung (€)')).toHaveValue('77,7');
     await userEvent.click(within(fenster).getByRole('button', { name: 'Übernehmen' }));
     expect(await screen.findByRole('checkbox', { name: /über €\s77,70 verbuchen/ })).toBeChecked();
-    expect(screen.getByRole('button', { name: '2 Eingänge verbuchen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '2 Bewegungen verbuchen' })).toBeInTheDocument();
   });
 
   it('Gegenprobe: mehr zuordnen als eingegangen lässt sich nicht übernehmen', async () => {
@@ -145,10 +149,32 @@ describe('Kontoauszug abgleichen', () => {
     })));
     zeige();
     await dateiWaehlen();
-    await userEvent.click(await screen.findByRole('button', { name: '1 Eingang verbuchen' }));
+    await userEvent.click(await screen.findByRole('button', { name: '1 Bewegung verbuchen' }));
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Verbuchen' }));
     expect(await screen.findByText('Abgewiesen: Diese Rechnung sagt keinen Skonto zu.')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /über €\s120,00 verbuchen/ })).toBeChecked();
+  });
+
+  it('Abbuchung: die Rückzahlung eines Guthabens wird zugeordnet und als Rückzahlung verbucht', async () => {
+    mitGuthaben = [{ ...OFFEN[0], id: 'r3', invoiceNumber: 'RE-2026-1003', bezahltBetrag: 150, paymentStatus: 'Überzahlt' }];
+    kontoauszugVerbuchen.mockImplementation(async (p) => p.map((x) => ({ kennung: x.kennung, ergebnis: 'gebucht' as const })));
+    zeige();
+    await dateiWaehlen([
+      'Buchungsdatum;Partnername;Betrag;Währung;Zahlungsreferenz',
+      '11.11.2026;Maria Huber;-30,00;EUR;Rückzahlung Guthaben RE-2026-1003',
+    ].join('\n'));
+    expect(await screen.findByText('Zahlt das Guthaben auf RE-2026-1003 zurück.')).toBeInTheDocument();
+    expect(screen.getAllByText(/^−€\s30,00$/).length).toBeGreaterThan(0);
+    expect(screen.getByRole('checkbox', { name: /Abbuchung vom 11\.11\.2026 über €\s30,00 verbuchen/ })).toBeChecked();
+    await userEvent.click(screen.getByRole('button', { name: '1 Bewegung verbuchen' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/Rückzahlungen zusammen €\s30,00/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Verbuchen' }));
+    await waitFor(() => expect(kontoauszugVerbuchen).toHaveBeenCalled());
+    expect(kontoauszugVerbuchen.mock.calls[0][0][0]).toMatchObject({
+      richtung: 'aus', betrag: 30, hinweis: 'Kontoauszug: Rückzahlung an Maria Huber — Rückzahlung Guthaben RE-2026-1003',
+      teile: [{ rechnung: 'r3', betrag: 0, skonto: 0, mahnkosten: 0, rueckzahlung: 30 }],
+    });
   });
 
   it('eine Datei, die kein Auszug ist, sagt, was zu tun ist — nichts wird geraten', async () => {

@@ -23,9 +23,10 @@ import { IBAN_LAENGEN, ibanFehler } from '@shared/iban';
  *     (George, Bank Austria, Volksbank, N26 …), ohne Kopfzeile der Inhalt der
  *     Spalten (ELBA/Raiffeisen, BAWAG/easybank): Datum, Betrag, Währung, Text.
  *
- * Übernommen werden gebuchte Eingänge in Euro. Abbuchungen, vorgemerkte
- * Bewegungen, Rückbuchungen und fremde Währungen werden gezählt und genannt —
- * nicht still übergangen.
+ * Übernommen werden gebuchte Bewegungen in Euro: Eingänge und Abbuchungen
+ * (unter ihnen Rückzahlungen an Kunden). Vorgemerkte Bewegungen,
+ * Rückbuchungen und fremde Währungen werden gezählt und genannt — nicht still
+ * übergangen.
  */
 
 export interface BankBuchung {
@@ -34,11 +35,16 @@ export interface BankBuchung {
   /** Buchungstag `JJJJ-MM-TT`. */
   buchungstag: string;
   valuta?: string;
-  /** Eingang in Euro, immer größer null. */
+  /** Betrag in Euro, immer größer null — die Richtung sagt `ausgang`. */
   betrag: number;
-  /** Auftraggeber, wenn die Datei ihn eigens nennt. */
+  /**
+   * Eine Abbuchung (Rückzahlung an einen Kunden, aber auch Lieferant, Lohn,
+   * Gebühr). Fehlt das Feld, ist es ein Eingang.
+   */
+  ausgang?: true;
+  /** Die Gegenseite, wenn die Datei sie eigens nennt: beim Eingang der Auftraggeber, bei der Abbuchung der Empfänger. */
   name?: string;
-  /** IBAN des Auftraggebers, ohne Leerzeichen. */
+  /** IBAN der Gegenseite, ohne Leerzeichen. */
   iban?: string;
   /** Verwendungszweck und Zahlungsreferenz, zu einer Zeile gefügt. */
   zweck: string;
@@ -55,8 +61,10 @@ export interface Kontoauszug {
   von?: string;
   bis?: string;
   eingaenge: BankBuchung[];
+  /** Gebuchte Abbuchungen in Euro — der Abgleich sucht darin Rückzahlungen an Kunden. */
+  ausgaenge: BankBuchung[];
   /** Was bewusst nicht abgeglichen wird, mit Anzahl. */
-  nichtBetrachtet: { abbuchungen: number; vorgemerkt: number; rueckbuchungen: number; fremdwaehrung: number };
+  nichtBetrachtet: { vorgemerkt: number; rueckbuchungen: number; fremdwaehrung: number };
   /** Zeilen, die sich nicht lesen ließen — mit Grund, damit niemand glaubt, sie seien mitgekommen. */
   unlesbar: { stelle: number; grund: string }[];
 }
@@ -80,7 +88,7 @@ export function kontoauszugLesen(roh: string): Kontoauszug {
 // Gemeinsames
 // ---------------------------------------------------------------------------
 
-const leer = { abbuchungen: 0, vorgemerkt: 0, rueckbuchungen: 0, fremdwaehrung: 0 };
+const leer = { vorgemerkt: 0, rueckbuchungen: 0, fremdwaehrung: 0 };
 
 /** Leerzeichen zusammenfassen, Ränder weg. */
 function eineZeile(s: string | undefined | null): string {
@@ -136,8 +144,8 @@ export function datumLesen(roh: string | undefined): string | null {
   return `${j}-${String(m).padStart(2, '0')}-${String(t).padStart(2, '0')}`;
 }
 
-function zeitraum(eingaenge: BankBuchung[]): { von?: string; bis?: string } {
-  const tage = eingaenge.map((e) => e.buchungstag).sort();
+function zeitraum(...listen: BankBuchung[][]): { von?: string; bis?: string } {
+  const tage = listen.flat().map((e) => e.buchungstag).sort();
   return { von: tage[0], bis: tage[tage.length - 1] };
 }
 
@@ -190,6 +198,7 @@ function camtLesen(text: string): Kontoauszug {
 
   const nicht = { ...leer };
   const eingaenge: BankBuchung[] = [];
+  const ausgaenge: BankBuchung[] = [];
   const unlesbar: Kontoauszug['unlesbar'] = [];
   let stelle = 0;
 
@@ -204,10 +213,14 @@ function camtLesen(text: string): Kontoauszug {
       nicht.rueckbuchungen += 1;
       continue;
     }
-    if (textVon(ntry, 'CdtDbtInd') !== 'CRDT') {
-      nicht.abbuchungen += 1;
+    const richtung = textVon(ntry, 'CdtDbtInd');
+    if (richtung !== 'CRDT' && richtung !== 'DBIT') {
+      unlesbar.push({ stelle, grund: 'Soll oder Haben fehlt' });
       continue;
     }
+    const ausgang = richtung === 'DBIT';
+    const ziel = ausgang ? ausgaenge : eingaenge;
+    const art = ausgang ? { ausgang: true as const } : {};
     const amt = pfad(ntry, 'Amt');
     const waehrung = amt?.getAttribute('Ccy') ?? 'EUR';
     if (waehrung !== 'EUR') {
@@ -238,10 +251,10 @@ function camtLesen(text: string): Kontoauszug {
 
     if (einzeln) {
       details.forEach((d, i) => {
-        eingaenge.push({ stelle, buchungstag, valuta, betrag: betragJe[i]!, ...camtTeil(d, nebentext) });
+        ziel.push({ stelle, buchungstag, valuta, betrag: betragJe[i]!, ...art, ...camtTeil(d, nebentext, [], ausgang) });
       });
     } else {
-      eingaenge.push({ stelle, buchungstag, valuta, betrag: gesamt, ...camtTeil(details[0], nebentext, details.slice(1)) });
+      ziel.push({ stelle, buchungstag, valuta, betrag: gesamt, ...art, ...camtTeil(details[0], nebentext, details.slice(1), ausgang) });
     }
   }
 
@@ -249,19 +262,24 @@ function camtLesen(text: string): Kontoauszug {
     format,
     beschreibung: `ISO 20022 ${format}`,
     konto,
-    ...zeitraum(eingaenge),
+    ...zeitraum(eingaenge, ausgaenge),
     eingaenge,
+    ausgaenge,
     nichtBetrachtet: nicht,
     unlesbar,
   };
 }
 
 /** Auftraggeber und Zweck einer Zahlung im camt. */
-function camtTeil(d: Element | undefined, nebentext: string, weitere: Element[] = []): Pick<BankBuchung, 'name' | 'iban' | 'zweck'> {
+function camtTeil(
+  d: Element | undefined, nebentext: string, weitere: Element[] = [], ausgang = false,
+): Pick<BankBuchung, 'name' | 'iban' | 'zweck'> {
   const parteien = pfad(d, 'RltdPties');
-  const name = textVon(parteien, 'Dbtr', 'Nm') || textVon(parteien, 'Dbtr', 'Pty', 'Nm')
-    || textVon(parteien, 'UltmtDbtr', 'Nm') || textVon(parteien, 'UltmtDbtr', 'Pty', 'Nm');
-  const iban = ibanSauber(textVon(parteien, 'DbtrAcct', 'Id', 'IBAN'));
+  // Die Gegenseite: beim Eingang zahlt der Debitor, bei der Abbuchung empfängt der Kreditor.
+  const p = ausgang ? 'Cdtr' : 'Dbtr';
+  const name = textVon(parteien, p, 'Nm') || textVon(parteien, p, 'Pty', 'Nm')
+    || textVon(parteien, `Ultmt${p}`, 'Nm') || textVon(parteien, `Ultmt${p}`, 'Pty', 'Nm');
+  const iban = ibanSauber(textVon(parteien, `${p}Acct`, 'Id', 'IBAN'));
   const teile: string[] = [];
   for (const el of [d, ...weitere]) {
     if (!el) continue;
@@ -302,6 +320,7 @@ function mt940Lesen(text: string): Kontoauszug {
 
   const nicht = { ...leer };
   const eingaenge: BankBuchung[] = [];
+  const ausgaenge: BankBuchung[] = [];
   const unlesbar: Kontoauszug['unlesbar'] = [];
   let konto: string | undefined;
   let stelle = 0;
@@ -324,10 +343,7 @@ function mt940Lesen(text: string): Kontoauszug {
       nicht.rueckbuchungen += 1;
       continue;
     }
-    if (m[5] !== 'C') {
-      nicht.abbuchungen += 1;
-      continue;
-    }
+    const ausgang = m[5] === 'D';
     if (waehrung !== 'EUR') {
       nicht.fremdwaehrung += 1;
       continue;
@@ -346,15 +362,16 @@ function mt940Lesen(text: string): Kontoauszug {
       unlesbar.push({ stelle, grund: 'Buchungstag oder Betrag fehlt' });
       continue;
     }
-    eingaenge.push({ stelle, buchungstag, valuta, betrag, ...mt940Text(naechstes) });
+    (ausgang ? ausgaenge : eingaenge).push({ stelle, buchungstag, valuta, betrag, ...(ausgang ? { ausgang: true as const } : {}), ...mt940Text(naechstes) });
   }
 
   return {
     format: 'mt940',
     beschreibung: 'MT940',
     konto,
-    ...zeitraum(eingaenge),
+    ...zeitraum(eingaenge, ausgaenge),
     eingaenge,
+    ausgaenge,
     nichtBetrachtet: nicht,
     unlesbar,
   };
@@ -481,6 +498,7 @@ function csvMitKopf(zeilen: string[][], kopfIndex: number): Kontoauszug {
   const wert = (z: string[], f: Feld) => (spalten.get(f) ?? []).map((i) => z[i] ?? '');
   const nicht = { ...leer };
   const eingaenge: BankBuchung[] = [];
+  const ausgaenge: BankBuchung[] = [];
   const unlesbar: Kontoauszug['unlesbar'] = [];
 
   daten.forEach((z, n) => {
@@ -500,8 +518,8 @@ function csvMitKopf(zeilen: string[][], kopfIndex: number): Kontoauszug {
       unlesbar.push({ stelle, grund: 'Buchungstag oder Betrag nicht lesbar' });
       return;
     }
-    if (!(betrag > 0)) {
-      nicht.abbuchungen += 1;
+    if (betrag === 0) {
+      unlesbar.push({ stelle, grund: 'Betrag null' });
       return;
     }
     const waehrung = eineZeile(wert(z, 'waehrung')[0]).toUpperCase();
@@ -512,11 +530,12 @@ function csvMitKopf(zeilen: string[][], kopfIndex: number): Kontoauszug {
     const name = eineZeile(wert(z, 'name').filter(Boolean).join(' '));
     const iban = ibanSpalten.map((i) => ibanSauber(z[i])).find(Boolean);
     const zweck = eineZeile(wert(z, 'zweck').filter(Boolean).join(' '));
-    eingaenge.push({
+    (betrag < 0 ? ausgaenge : eingaenge).push({
       stelle,
       buchungstag,
       ...(datumLesen(wert(z, 'valuta')[0]) ? { valuta: datumLesen(wert(z, 'valuta')[0])! } : {}),
-      betrag,
+      betrag: Math.abs(betrag),
+      ...(betrag < 0 ? { ausgang: true as const } : {}),
       ...(name ? { name } : {}),
       ...(iban ? { iban } : {}),
       zweck,
@@ -528,8 +547,9 @@ function csvMitKopf(zeilen: string[][], kopfIndex: number): Kontoauszug {
     format: 'csv',
     beschreibung: `CSV mit Kopfzeile — erkannt: ${erkannt.join(', ')}`,
     konto,
-    ...zeitraum(eingaenge),
+    ...zeitraum(eingaenge, ausgaenge),
     eingaenge,
+    ausgaenge,
     nichtBetrachtet: nicht,
     unlesbar,
   };
@@ -580,6 +600,7 @@ function csvOhneKopf(zeilen: string[][]): Kontoauszug {
 
   const nicht = { ...leer };
   const eingaenge: BankBuchung[] = [];
+  const ausgaenge: BankBuchung[] = [];
   const unlesbar: Kontoauszug['unlesbar'] = [];
   zeilen.forEach((z, n) => {
     const stelle = n + 1;
@@ -589,8 +610,8 @@ function csvOhneKopf(zeilen: string[][]): Kontoauszug {
       unlesbar.push({ stelle, grund: 'Buchungstag oder Betrag nicht lesbar' });
       return;
     }
-    if (!(betrag > 0)) {
-      nicht.abbuchungen += 1;
+    if (betrag === 0) {
+      unlesbar.push({ stelle, grund: 'Betrag null' });
       return;
     }
     const waehrung = waehrungSpalte >= 0 ? (z[waehrungSpalte] ?? '').trim().toUpperCase() : 'EUR';
@@ -601,7 +622,10 @@ function csvOhneKopf(zeilen: string[][]): Kontoauszug {
     const zweck = eineZeile(zweckSpalte >= 0 ? z[zweckSpalte] : '');
     const valuta = datumsSpalten[1] !== undefined ? datumLesen(z[datumsSpalten[1]]) : null;
     const iban = ibanImText(zweck);
-    eingaenge.push({ stelle, buchungstag, ...(valuta ? { valuta } : {}), betrag, ...(iban ? { iban } : {}), zweck });
+    (betrag < 0 ? ausgaenge : eingaenge).push({
+      stelle, buchungstag, ...(valuta ? { valuta } : {}), betrag: Math.abs(betrag),
+      ...(betrag < 0 ? { ausgang: true as const } : {}), ...(iban ? { iban } : {}), zweck,
+    });
   });
 
   const erkannt = ['Buchungstag', ...(datumsSpalten.length > 1 ? ['Valuta'] : []), 'Betrag',
@@ -610,8 +634,9 @@ function csvOhneKopf(zeilen: string[][]): Kontoauszug {
     format: 'csv',
     beschreibung: `CSV ohne Kopfzeile — erkannt am Inhalt: ${erkannt.join(', ')}`,
     konto: kontoSpalte >= 0 ? ibanSauber(zeilen[0][kontoSpalte]) : undefined,
-    ...zeitraum(eingaenge),
+    ...zeitraum(eingaenge, ausgaenge),
     eingaenge,
+    ausgaenge,
     nichtBetrachtet: nicht,
     unlesbar,
   };
@@ -636,10 +661,11 @@ function csvOhneKopf(zeilen: string[][]): Kontoauszug {
  * GESPEICHERT WIRD NUR DIE PRÜFSUMME, nicht Name, IBAN oder Zweck: aus ihr
  * lässt sich nichts zurücklesen.
  */
-export async function kontoauszugKennungen(eingaenge: BankBuchung[]): Promise<string[]> {
+export async function kontoauszugKennungen(bewegungen: BankBuchung[]): Promise<string[]> {
   const gesehen = new Map<string, number>();
-  const texte = eingaenge.map((b) => {
-    const grund = ['v1', b.buchungstag, cent(b.betrag).toFixed(2), b.iban ?? '', b.zweck.replace(/\s+/g, '').toUpperCase()].join('|');
+  const texte = bewegungen.map((b) => {
+    // Abbuchungen mit eigener Vorsilbe: dieselbe Zahl in die Gegenrichtung ist eine andere Bewegung.
+    const grund = [b.ausgang ? 'v1a' : 'v1', b.buchungstag, cent(b.betrag).toFixed(2), b.iban ?? '', b.zweck.replace(/\s+/g, '').toUpperCase()].join('|');
     const n = (gesehen.get(grund) ?? 0) + 1;
     gesehen.set(grund, n);
     return n === 1 ? grund : `${grund}#${n}`;

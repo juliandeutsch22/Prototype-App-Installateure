@@ -10,3 +10,4 @@ export type { ZuVerbuchen, VerbuchtErgebnis } from './pg/kontoauszug';
 export const kontoauszugVerbuchen = pg.kontoauszugVerbuchen;
 export const kontoauszugSchonVerbucht = pg.kontoauszugSchonVerbucht;
 export const rechnungsKoepfeNachNummer = pg.rechnungsKoepfeNachNummer;
+export const rechnungsKoepfeMitGuthaben = pg.rechnungsKoepfeMitGuthaben;

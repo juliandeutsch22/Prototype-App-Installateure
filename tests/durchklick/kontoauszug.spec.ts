@@ -51,9 +51,9 @@ test('Kontoauszug: Datei einlesen, Vorschlag verbuchen, dieselbe Datei kein zwei
   await page.locator('#kontoauszug-datei').setInputFiles(datei);
   await expect(page.getByRole('heading', { name: 'Zugeordnet (1)' })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText(`Gleicht ${NUMMER} aus.`)).toBeVisible();
-  await expect(page.getByText(/Nicht abgeglichen: 1 Abbuchung\./)).toBeVisible();
+  await expect(page.getByText(/1 Eingang, 1 Abbuchung — davon 1 nicht Rechnungen betreffend/)).toBeVisible();
 
-  await page.getByRole('button', { name: '1 Eingang verbuchen' }).click();
+  await page.getByRole('button', { name: '1 Bewegung verbuchen' }).click();
   const frage = page.getByRole('dialog');
   await expect(frage.getByText(/auf 1 Rechnung,/)).toBeVisible();
   await frage.getByRole('button', { name: 'Verbuchen' }).click();
@@ -71,6 +71,6 @@ test('Kontoauszug: Datei einlesen, Vorschlag verbuchen, dieselbe Datei kein zwei
   await page.locator('#kontoauszug-datei').setInputFiles(datei);
   await expect(page.getByRole('heading', { name: 'Schon erfasst (1)' })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('Diese Bewegung ist schon verbucht.')).toBeVisible();
-  await expect(page.getByRole('button', { name: /Eingang verbuchen|Eingänge verbuchen/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Bewegungen? verbuchen/ })).toHaveCount(0);
   await keineFehlermeldung(page);
 });

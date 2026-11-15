@@ -38,7 +38,7 @@ import type { BankBuchung } from './kontoauszugLesen';
 export type AbgleichRechnung = Pick<Invoice,
   | 'invoiceNumber' | 'customerName' | 'invoiceDate' | 'totalBrutto' | 'bezahltBetrag'
   | 'paymentStatus' | 'skontoProzent' | 'skontoBis' | 'skontoBetrag' | 'ruecklassBetrag' | 'mahnkostenBetrag'
-  | 'mahnstufe' | 'mahnspesen'> & {
+  | 'mahnstufe' | 'mahnspesen' | 'stornoNummer'> & {
   id: string;
   /** Was die letzte Mahnung an Spesen und Zinsen fordert (`letzteMahnforderung`) — 0 ohne Mahnung. */
   mahnforderung?: number;
@@ -60,15 +60,19 @@ export interface Teil {
   skonto: number;
   /** Mahnspesen und Verzugszinsen der letzten Mahnung. */
   mahnkosten: number;
+  /** Bei einer Abbuchung: was vom Guthaben des Kunden auf dieser Rechnung zurückgezahlt wird. */
+  rueckzahlung?: number;
 }
 
 /**
  * - `passt`: eindeutig über die Rechnungsnummer — vorgewählt;
  * - `pruefen`: ein Vorschlag, der einen Blick braucht — nicht vorgewählt;
  * - `offen`: nichts gefunden — von Hand zuordnen oder liegen lassen;
- * - `erledigt`: schon verbucht (dieselbe Bewegung) oder schon von Hand erfasst.
+ * - `erledigt`: schon verbucht (dieselbe Bewegung) oder schon von Hand erfasst;
+ * - `fremd`: eine Abbuchung ohne Bezug zu einem Guthaben — Lieferant, Lohn,
+ *   Gebühr. Senklot führt keine Eingangsrechnungen; sie wird nur gezählt.
  */
-export type Stufe = 'passt' | 'pruefen' | 'offen' | 'erledigt';
+export type Stufe = 'passt' | 'pruefen' | 'offen' | 'erledigt' | 'fremd';
 
 export interface Vorschlag {
   buchung: BankBuchung;
@@ -82,24 +86,44 @@ export interface Vorschlag {
   hinweise: string[];
 }
 
-/** Was von einem Eingang keiner Rechnung zugeordnet ist. */
-export function nichtZugeordnet(buchung: Pick<BankBuchung, 'betrag'>, teile: Teil[]): number {
-  return cent(buchung.betrag - teile.reduce((s, t) => s + t.betrag + t.mahnkosten, 0));
+/** Was von einer Bewegung keiner Rechnung zugeordnet ist. */
+export function nichtZugeordnet(buchung: Pick<BankBuchung, 'betrag' | 'ausgang'>, teile: Teil[]): number {
+  const zugeordnet = buchung.ausgang
+    ? teile.reduce((s, t) => s + (t.rueckzahlung ?? 0), 0)
+    : teile.reduce((s, t) => s + t.betrag + t.mahnkosten, 0);
+  return cent(buchung.betrag - zugeordnet);
 }
 
-/** Prüft eine Zuordnung, wie die Datenbank sie prüfen wird — `null`, wenn sie so hinaus darf. */
-export function zuordnungFehler(buchung: Pick<BankBuchung, 'betrag'>, teile: Teil[]): string | null {
+/**
+ * Prüft eine Zuordnung, wie die Datenbank sie prüfen wird — `null`, wenn sie
+ * so hinaus darf. Bei einer Abbuchung nur Rückzahlungen, je Rechnung nicht
+ * mehr als ihr Guthaben (wenn `rechnungen` gegeben ist).
+ */
+export function zuordnungFehler(
+  buchung: Pick<BankBuchung, 'betrag' | 'ausgang'>, teile: Teil[], rechnungen?: AbgleichRechnung[],
+): string | null {
   if (teile.length === 0) return 'Keine Rechnung gewählt.';
   const ids = new Set<string>();
   for (const t of teile) {
     if (!t.rechnungId) return 'Bitte zu jedem Teil eine Rechnung wählen.';
-    if (ids.has(t.rechnungId)) return 'Jede Rechnung nur einmal je Eingang.';
+    if (ids.has(t.rechnungId)) return 'Jede Rechnung nur einmal je Bewegung.';
     ids.add(t.rechnungId);
-    if (t.betrag < 0 || t.skonto < 0 || t.mahnkosten < 0) return 'Beträge sind nicht negativ.';
-    if (!(t.betrag > 0 || t.skonto > 0 || t.mahnkosten > 0)) return 'Ein Teil ohne Betrag verbucht nichts.';
+    const rueck = t.rueckzahlung ?? 0;
+    if (t.betrag < 0 || t.skonto < 0 || t.mahnkosten < 0 || rueck < 0) return 'Beträge sind nicht negativ.';
+    if (buchung.ausgang) {
+      if (t.betrag > 0 || t.skonto > 0 || t.mahnkosten > 0) return 'Eine Abbuchung ist eine Rückzahlung — kein Eingang auf die Rechnung.';
+      if (!(rueck > 0)) return 'Ein Teil ohne Betrag verbucht nichts.';
+      const r = rechnungen?.find((x) => x.id === t.rechnungId);
+      if (r && rueck > zahlstand(r).guthaben) {
+        return `Auf ${r.invoiceNumber} stehen ${euro(zahlstand(r).guthaben)} Guthaben — mehr lässt sich nicht zurückzahlen.`;
+      }
+    } else {
+      if (rueck > 0) return 'Eine Rückzahlung gehört zu einer Abbuchung.';
+      if (!(t.betrag > 0 || t.skonto > 0 || t.mahnkosten > 0)) return 'Ein Teil ohne Betrag verbucht nichts.';
+    }
   }
   if (nichtZugeordnet(buchung, teile) < 0) {
-    return `Zugeordnet ist mehr als eingegangen (${euro(buchung.betrag)}).`;
+    return `Zugeordnet ist mehr als ${buchung.ausgang ? 'abgebucht' : 'eingegangen'} (${euro(buchung.betrag)}).`;
   }
   return null;
 }
@@ -261,7 +285,7 @@ function anrechnen(stand: Map<string, Stand>, teile: Teil[]): void {
     if (!r) continue;
     stand.set(r.id, {
       ...r,
-      bezahltBetrag: cent((r.bezahltBetrag ?? 0) + t.betrag + t.skonto),
+      bezahltBetrag: cent((r.bezahltBetrag ?? 0) + t.betrag + t.skonto - (t.rueckzahlung ?? 0)),
       skontoBetrag: cent((r.skontoBetrag ?? 0) + t.skonto),
       mahnkostenBetrag: cent((r.mahnkostenBetrag ?? 0) + t.mahnkosten),
     });
@@ -295,6 +319,11 @@ export function abgleichen(
 
     if (verbucht.has(kennung)) {
       fertig({ stufe: 'erledigt', teile: [], grund: 'Diese Bewegung ist schon verbucht.', hinweise: [] });
+      continue;
+    }
+
+    if (b.ausgang) {
+      fertig(abbuchung(b, [...stand.values()], erfasst));
       continue;
     }
 
@@ -401,5 +430,105 @@ function sammel(treffer: Stand[], b: BankBuchung): Omit<Vorschlag, 'buchung' | '
     teile,
     grund: `Mehrere Rechnungen im Zweck (${nummern}); der Betrag passt nicht zu ihrer Summe von ${euro(summe)}.`,
     hinweise: bleibt > 0 ? [`${euro(bleibt)} bleiben ohne Zuordnung.`] : [],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Abbuchungen: Rückzahlungen an Kunden
+// ---------------------------------------------------------------------------
+
+/**
+ * EINE ABBUCHUNG IST NUR DANN EINE RECHNUNGSBEWEGUNG, WENN SIE EIN GUTHABEN
+ * ZURÜCKZAHLT — nach einer Überzahlung oder einem Storno (`zahlstand().guthaben`,
+ * gebucht wie im Zahlungsdialog als negativer Eingang). Zugeordnet wird wie
+ * beim Eingang: über die Nummer der Rechnung oder ihrer Stornorechnung im
+ * Zweck (vorgewählt), sonst über Betrag und Name (bitte prüfen). Alles andere
+ * — Lieferanten, Löhne, Gebühren — betrifft keine Rechnung des Betriebs und
+ * wird nur gezählt (`fremd`).
+ */
+function abbuchung(b: BankBuchung, alle: Stand[], erfasst: ErfassterEingang[]): Omit<Vorschlag, 'buchung' | 'kennung'> {
+  const text = `${b.zweck} ${b.name ?? ''}`;
+  const stufeIn = (r: Stand) => Math.max(nummerImText(r.invoiceNumber, text), r.stornoNummer ? nummerImText(r.stornoNummer, text) : 0);
+  let treffer = alle.filter((r) => stufeIn(r) === 2);
+  if (treffer.length === 0) treffer = alle.filter((r) => stufeIn(r) === 1);
+  treffer.sort((x, y) => x.invoiceDate.localeCompare(y.invoiceDate) || x.invoiceNumber.localeCompare(y.invoiceNumber));
+  const teil = (r: Stand, rueckzahlung: number): Teil => ({ rechnungId: r.id, betrag: 0, skonto: 0, mahnkosten: 0, rueckzahlung });
+
+  const doppelt = treffer.find((r) => erfasst.some((z) =>
+    z.invoiceId === r.id && z.datum === b.buchungstag && cent(z.betrag) === cent(-b.betrag)));
+  if (doppelt) {
+    return {
+      stufe: 'erledigt', teile: [],
+      grund: `Auf ${doppelt.invoiceNumber} ist am ${datumAT(b.buchungstag)} schon eine Rückzahlung über ${euro(b.betrag)} erfasst.`,
+      hinweise: [],
+    };
+  }
+
+  const mitGuthaben = treffer.filter((r) => zahlstand(r).guthaben > 0);
+  if (treffer.length > 0 && mitGuthaben.length === 0) {
+    return {
+      stufe: 'offen', teile: [],
+      grund: `${treffer.map((r) => r.invoiceNumber).join(', ')} im Zweck, aber ohne Guthaben — keine Rückzahlung zu buchen.`,
+      hinweise: [],
+    };
+  }
+  if (mitGuthaben.length === 1) {
+    const r = mitGuthaben[0];
+    const g = zahlstand(r).guthaben;
+    if (cent(b.betrag) === g) {
+      return { stufe: 'passt', teile: [teil(r, b.betrag)], grund: `Zahlt das Guthaben auf ${r.invoiceNumber} zurück.`, hinweise: [] };
+    }
+    if (b.betrag < g) {
+      return {
+        stufe: 'passt', teile: [teil(r, b.betrag)], grund: `Teil des Guthabens auf ${r.invoiceNumber} zurückgezahlt.`,
+        hinweise: [`Guthaben bleibt ${euro(cent(g - b.betrag))}.`],
+      };
+    }
+    return {
+      stufe: 'pruefen', teile: [teil(r, g)],
+      grund: `Mehr abgebucht, als auf ${r.invoiceNumber} an Guthaben steht (${euro(g)}).`,
+      hinweise: [`${euro(cent(b.betrag - g))} bleiben ohne Zuordnung.`],
+    };
+  }
+  if (mitGuthaben.length > 1) {
+    const summe = cent(mitGuthaben.reduce((s, r) => s + zahlstand(r).guthaben, 0));
+    if (cent(b.betrag) === summe) {
+      return {
+        stufe: 'passt', teile: mitGuthaben.map((r) => teil(r, zahlstand(r).guthaben)),
+        grund: `Zahlt die Guthaben auf ${mitGuthaben.map((r) => r.invoiceNumber).join(', ')} zurück.`, hinweise: [],
+      };
+    }
+    let bleibt = b.betrag;
+    const teile: Teil[] = [];
+    for (const r of mitGuthaben) {
+      if (!(bleibt > 0)) break;
+      const anteil = Math.min(zahlstand(r).guthaben, bleibt);
+      teile.push(teil(r, cent(anteil)));
+      bleibt = cent(bleibt - anteil);
+    }
+    return {
+      stufe: 'pruefen', teile,
+      grund: `Mehrere Rechnungen mit Guthaben im Zweck; der Betrag passt nicht zu ihrer Summe von ${euro(summe)}.`,
+      hinweise: bleibt > 0 ? [`${euro(bleibt)} bleiben ohne Zuordnung.`] : [],
+    };
+  }
+
+  // Ohne Nummer: ein Guthaben über genau diesen Betrag, am besten beim Kunden dieses Namens.
+  const passend = alle.filter((r) => zahlstand(r).guthaben > 0 && cent(zahlstand(r).guthaben) === cent(b.betrag));
+  const mitName = passend.filter((r) => namePasstZu(r.customerName, b));
+  const einer = mitName.length === 1 ? mitName[0] : passend.length === 1 ? passend[0] : null;
+  if (einer) {
+    return {
+      stufe: 'pruefen', teile: [teil(einer, b.betrag)],
+      grund: `Ohne Rechnungsnummer im Zweck — ${mitName.length === 1 ? 'Betrag und Name passen' : 'nur der Betrag passt'} zum Guthaben auf ${einer.invoiceNumber} (${einer.customerName}).`,
+      hinweise: [],
+    };
+  }
+  return {
+    stufe: 'fremd', teile: [],
+    grund: passend.length > 1
+      ? `Der Betrag passt zu ${passend.length} Guthaben — ohne Rechnungsnummer nicht eindeutig.`
+      : 'Keine Rückzahlung eines Guthabens erkennbar — betrifft keine Rechnung (etwa Lieferant, Lohn, Gebühr).',
+    hinweise: [],
   };
 }

@@ -198,3 +198,80 @@ describe('Die Zuordnung von Hand', () => {
     expect(zuordnungFehler(b, [{ rechnungId: 'r1', betrag: 100, skonto: 2, mahnkosten: 0 }])).toBeNull();
   });
 });
+
+/*
+  ABBUCHUNGEN (Nacharbeit F13): eine Rückzahlung gehört zu einem Guthaben
+  (überzahlt oder storniert und bezahlt) und wird gebucht wie im
+  Zahlungsdialog — als negativer Eingang. Vorgewählt nur über die Nummer;
+  was kein Guthaben betrifft, ist „nicht Rechnungen betreffend“.
+*/
+describe('Abbuchungen', () => {
+  const ab = (betrag: number, zweck: string, rest: Partial<BankBuchung> = {}) => buchung(betrag, zweck, { ausgang: true, ...rest });
+  const ueberzahlt = (n: number, mehr: number, rest: Partial<AbgleichRechnung> = {}) =>
+    rechnung(n, { bezahltBetrag: 120 + mehr, paymentStatus: 'Überzahlt', ...rest });
+
+  it('Nummer im Zweck, genau das Guthaben: Rückzahlung, vorgewählt', () => {
+    const [v] = abgleichen([ab(30, 'Rückzahlung RE-2026-1001')], [ueberzahlt(1, 30)]);
+    expect(v).toMatchObject({ stufe: 'passt', teile: [{ rechnungId: 'r1', betrag: 0, skonto: 0, mahnkosten: 0, rueckzahlung: 30 }] });
+  });
+
+  it('über die Nummer der Stornorechnung: das Guthaben der stornierten Rechnung', () => {
+    const storniert = rechnung(1, { paymentStatus: 'Storniert', bezahltBetrag: 120, stornoNummer: 'RE-2026-1050' });
+    const [v] = abgleichen([ab(120, 'Gutschrift zu RE-2026-1050')], [storniert]);
+    expect(v).toMatchObject({ stufe: 'passt', teile: [{ rueckzahlung: 120 }] });
+  });
+
+  it('weniger als das Guthaben: Teil zurück, mit Hinweis; mehr: prüfen, Rest ohne Zuordnung', () => {
+    const [a] = abgleichen([ab(10, 'RE-2026-1001')], [ueberzahlt(1, 30)]);
+    expect(a.stufe).toBe('passt');
+    expect(a.hinweise[0]).toMatch(/Guthaben bleibt €\s20,00/);
+    const [b] = abgleichen([ab(50, 'RE-2026-1001')], [ueberzahlt(1, 30)]);
+    expect(b).toMatchObject({ stufe: 'pruefen', teile: [{ rueckzahlung: 30 }] });
+    expect(b.hinweise[0]).toMatch(/€\s20,00 bleiben ohne Zuordnung/);
+  });
+
+  it('Gegenprobe: Nummer im Zweck, aber kein Guthaben — keine Rückzahlung zu buchen', () => {
+    const [v] = abgleichen([ab(30, 'RE-2026-1001')], [rechnung(1)]);
+    expect(v).toMatchObject({ stufe: 'offen', teile: [] });
+  });
+
+  it('ohne Nummer: Betrag und Name eines Guthabens — prüfen; sonst nicht Rechnungen betreffend', () => {
+    const [a, b] = abgleichen(
+      [ab(30, 'Danke', { name: 'Maria Huber' }), ab(1450, 'Rechnung 4711 Großhandel', { name: 'Frauenthal Handel' })],
+      [ueberzahlt(1, 30)],
+    );
+    expect(a).toMatchObject({ stufe: 'pruefen', teile: [{ rueckzahlung: 30 }] });
+    expect(a.grund).toMatch(/Betrag und Name passen/);
+    expect(b).toMatchObject({ stufe: 'fremd', teile: [] });
+  });
+
+  it('schon erfasste Rückzahlung (gleiche Rechnung, Tag, Betrag) und schon verbuchte Bewegung: erledigt', () => {
+    const [a] = abgleichen([ab(30, 'RE-2026-1001')], [ueberzahlt(1, 30)], [{ invoiceId: 'r1', datum: '2026-11-10', betrag: -30 }]);
+    expect(a.stufe).toBe('erledigt');
+    const e = ab(30, 'RE-2026-1001');
+    const [b] = abgleichen([e], [ueberzahlt(1, 30)], [], new Set([e.kennung]));
+    expect(b.stufe).toBe('erledigt');
+  });
+
+  it('ein Eingang und eine Rückzahlung derselben Datei greifen ineinander', () => {
+    // Erst 150 € auf eine 120-€-Rechnung (Guthaben 30), dann die Rückzahlung der 30 €.
+    const [ein, aus] = abgleichen(
+      [buchung(150, 'RE-2026-1001'), ab(30, 'RE-2026-1001', { buchungstag: '2026-11-12' })],
+      [rechnung(1)],
+    );
+    expect(ein.stufe).toBe('pruefen');
+    expect(aus).toMatchObject({ stufe: 'passt', teile: [{ rueckzahlung: 30 }] });
+  });
+
+  it('Zuordnung von Hand: nur Rückzahlungen, nicht mehr als das Guthaben', () => {
+    const r = ueberzahlt(1, 30);
+    expect(zuordnungFehler({ betrag: 40, ausgang: true }, [{ rechnungId: 'r1', betrag: 0, skonto: 0, mahnkosten: 0, rueckzahlung: 40 }], [r]))
+      .toMatch(/€\s30,00 Guthaben/);
+    expect(zuordnungFehler({ betrag: 40, ausgang: true }, [{ rechnungId: 'r1', betrag: 40, skonto: 0, mahnkosten: 0 }], [r]))
+      .toMatch(/Rückzahlung/);
+    expect(zuordnungFehler({ betrag: 40, ausgang: true }, [{ rechnungId: 'r1', betrag: 0, skonto: 0, mahnkosten: 0, rueckzahlung: 30 }], [r])).toBeNull();
+    expect(nichtZugeordnet({ betrag: 40, ausgang: true }, [{ rechnungId: 'r1', betrag: 0, skonto: 0, mahnkosten: 0, rueckzahlung: 30 }])).toBe(10);
+    // Bleibt gleich: beim Eingang ist eine Rückzahlung kein Teil.
+    expect(zuordnungFehler({ betrag: 40 }, [{ rechnungId: 'r1', betrag: 0, skonto: 0, mahnkosten: 0, rueckzahlung: 10 }])).toMatch(/Abbuchung/);
+  });
+});

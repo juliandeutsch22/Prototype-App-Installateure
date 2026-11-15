@@ -192,6 +192,36 @@ describe('Kontoauszug verbuchen (F13)', () => {
     expect((await kontoauszugVerbuchen([p]))[0].ergebnis).toBe('gebucht');
   });
 
+  it('Abbuchung: die Rückzahlung eines Guthabens wird ein negativer Eingang — höchstens das Guthaben, nur einmal', async () => {
+    const r = await rechnung();
+    await kontoauszugVerbuchen([posten(r.id, 1250)]);
+    expect(await stand(r.id)).toMatchObject({ status: 'Überzahlt', bezahlt: 1250 });
+    const rueck = (betrag: number, k = kennung()): ZuVerbuchen => ({
+      kennung: k, buchungstag: heute(), betrag, richtung: 'aus', hinweis: 'Kontoauszug: Rückzahlung an Huber',
+      teile: [{ rechnung: r.id, betrag: 0, skonto: 0, mahnkosten: 0, rueckzahlung: betrag }],
+    });
+    const zuViel = await kontoauszugVerbuchen([rueck(60)]);
+    expect(zuViel[0]).toMatchObject({ ergebnis: 'abgewiesen' });
+    expect(zuViel[0].grund).toMatch(/50,00 € Guthaben/);
+    const p = rueck(50);
+    expect(await kontoauszugVerbuchen([p])).toEqual([{ kennung: p.kennung, ergebnis: 'gebucht' }]);
+    expect(await stand(r.id)).toMatchObject({ status: 'Bezahlt', bezahlt: 1200 });
+    const { data } = await admin.from('zahlungseingaenge').select('betrag, art, hinweis, bank_buchung').eq('invoice_id', r.id).lt('betrag', 0);
+    expect(data).toEqual([expect.objectContaining({ betrag: -50, art: 'Überweisung', hinweis: 'Kontoauszug: Rückzahlung an Huber' })]);
+    // Dieselbe Datei noch einmal: „schon verbucht“, nicht „kein Guthaben mehr“.
+    expect(await kontoauszugVerbuchen([p])).toEqual([{ kennung: p.kennung, ergebnis: 'schon_verbucht' }]);
+  });
+
+  it('Gegenprobe: eine Abbuchung bucht keinen Eingang, ein Eingang keine Rückzahlung', async () => {
+    const r = await rechnung();
+    const e = await kontoauszugVerbuchen([
+      { kennung: kennung(), buchungstag: heute(), betrag: 10, richtung: 'aus', teile: [{ rechnung: r.id, betrag: 10, skonto: 0, mahnkosten: 0 }] },
+      { kennung: kennung(), buchungstag: heute(), betrag: 10, teile: [{ rechnung: r.id, betrag: 0, skonto: 0, mahnkosten: 0, rueckzahlung: 10 }] },
+    ]);
+    expect(e.map((x) => x.ergebnis)).toEqual(['abgewiesen', 'abgewiesen']);
+    expect((await stand(r.id)).bezahlt).toBe(0);
+  });
+
   it('Gegenprobe der Leseregel: ein fremder Betrieb sieht keine Bewegung', async () => {
     const r = await rechnung();
     const p = posten(r.id, 10);

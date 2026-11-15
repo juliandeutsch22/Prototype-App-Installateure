@@ -14,7 +14,9 @@ export interface ZuVerbuchen {
   buchungstag: string;
   betrag: number;
   hinweis?: string;
-  teile: { rechnung: string; betrag: number; skonto: number; mahnkosten: number }[];
+  /** `aus`: eine Abbuchung — die Teile sind Rückzahlungen eines Guthabens. Ohne Angabe ein Eingang. */
+  richtung?: 'ein' | 'aus';
+  teile: { rechnung: string; betrag: number; skonto: number; mahnkosten: number; rueckzahlung?: number }[];
 }
 
 export interface VerbuchtErgebnis {
@@ -62,5 +64,16 @@ export async function rechnungsKoepfeNachNummer(companyId: string, nummern: stri
   if (nummern.length === 0) return [];
   return abfragen<RechnungsKopf>('invoices', companyId, {
     wo: [{ art: 'in', feld: 'invoiceNumber', werte: [...new Set(nummern)] }],
+  });
+}
+
+/**
+ * Rechnungen mit Guthaben des Kunden — die Köpfe. Für Abbuchungen im
+ * Kontoauszug: eine Rückzahlung gehört zu einer überzahlten oder stornierten,
+ * aber bezahlten Rechnung (`zahlstand().guthaben`).
+ */
+export async function rechnungsKoepfeMitGuthaben(companyId: string): Promise<WithId<RechnungsKopf>[]> {
+  return abfragen<RechnungsKopf>('invoices', companyId, {
+    oder: 'payment_status.eq.Überzahlt,and(payment_status.eq.Storniert,bezahlt_betrag.gt.0)',
   });
 }
