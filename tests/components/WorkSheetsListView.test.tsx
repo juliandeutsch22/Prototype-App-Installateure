@@ -417,6 +417,20 @@ describe('Einen Entwurf aufgeben', () => {
     await waitFor(() => expect(verwerfen).toHaveBeenCalledWith('e1', 'Max Mustermann'));
   });
 
+  /*
+    RÜCKGÄNGIG IN DER MELDUNG (F15, 15.11.2026): derselbe Weg wie
+    „Wiederherstellen“ im Papierkorb. Gegenprobe: ohne die Änderung hat die
+    Meldung keinen Knopf.
+  */
+  it('holt den verworfenen Entwurf mit „Rückgängig“ zurück', async () => {
+    zeichne();
+    await userEvent.click(within(await oeffne(/Familie Huber/)).getByRole('button', { name: 'Verwerfen' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Verwerfen' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Rückgängig' }));
+    await waitFor(() => expect(zurueckholen).toHaveBeenCalledWith('e1'));
+    expect(await screen.findByText('Schein wiederhergestellt — wieder ein Entwurf')).toBeInTheDocument();
+  });
+
   it('bricht ab, ohne etwas zu tun', async () => {
     zeichne();
     await userEvent.click(handlung({ name: 'Verwerfen' }, await oeffne(/Familie Huber/)));

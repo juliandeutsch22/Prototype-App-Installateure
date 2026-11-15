@@ -1224,6 +1224,12 @@ describe('Was schon in der Liste liegt', () => {
     expect(screen.queryByText(/ in der Liste$/)).toBeNull();
     await userEvent.click(handlung({ name: 'Liste leeren' }));
     expect(handlung({ name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis');
+    /*
+      RÜCKGÄNGIG (F15, 15.11.2026): die Liste kommt genau so zurück — sie lag
+      nur auf diesem Gerät. Gegenprobe: ohne die Änderung kein Knopf.
+    */
+    await userEvent.click(await screen.findByRole('button', { name: 'Rückgängig' }));
+    expect(screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ })).toHaveValue('2');
   });
   it('steht nach einem Neustart wieder da', async () => {
     localStorage.setItem(

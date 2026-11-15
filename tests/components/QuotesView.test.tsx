@@ -626,6 +626,27 @@ describe('Die Liste führt zum Angebot', () => {
   });
 
   /*
+    RÜCKGÄNGIG IN DER MELDUNG (F15, 15.11.2026): nach dem Verwerfen steht
+    „Rückgängig“ in der Meldung — derselbe Weg wie „Wiederherstellen“ im
+    Papierkorb (Status wieder „Entwurf“). Gegenprobe: ohne die Änderung
+    hat die Meldung keinen Knopf.
+  */
+  it('nach dem Verwerfen holt „Rückgängig“ den Entwurf zurück', async () => {
+    versendetesAngebot();
+    angebote[angebote.length - 1].status = 'Entwurf';
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Verwerfen' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Entwurf verwerfen?' });
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Verwerfen' }));
+    await nutzer.click(await screen.findByRole('button', { name: 'Rückgängig' }));
+    await waitFor(() => expect(updateQuote).toHaveBeenLastCalledWith(angebote[angebote.length - 1].id, { status: 'Entwurf' }));
+    expect(await screen.findByText('Wiederhergestellt — wieder ein Entwurf')).toBeInTheDocument();
+  });
+
+  /*
     Befund 09.11.2026: ein verworfener Entwurf ließ seinen Eingang
     „übernommen“ zurück. Die Rückfrage nennt ihn jetzt — er lässt sich dort
     wieder öffnen. Gegenprobe: ohne die Änderung fehlt der Satz.

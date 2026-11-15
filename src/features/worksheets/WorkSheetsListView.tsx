@@ -1640,8 +1640,20 @@ export default function WorkSheetsListView() {
         onCancel={() => setVerwerfenFuer(null)}
         onConfirm={async () => {
           if (!verwerfenFuer) return;
-          await discardWorkSheetDraft(verwerfenFuer.id, user.name);
-          toast.success('Entwurf verworfen');
+          const id = verwerfenFuer.id;
+          await discardWorkSheetDraft(id, user.name);
+          /*
+            RÜCKGÄNGIG IN DER MELDUNG (F15): derselbe Weg wie „Wiederherstellen“
+            im Papierkorb (M01d) — der Entwurf ist mit Zeiten, Material und
+            Fotos wieder in der Arbeitsliste.
+          */
+          toast.success('Entwurf verworfen', {
+            label: 'Rückgängig',
+            onClick: () => void restoreWorkSheetDraft(id).then(
+              () => { toast.success('Schein wiederhergestellt — wieder ein Entwurf'); void laden(); },
+              (e) => toast.error(grundAus(e, 'Rückgängig ging nicht.')),
+            ),
+          });
           setVerwerfenFuer(null);
           await laden();
         }}

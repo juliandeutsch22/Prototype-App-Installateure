@@ -26,7 +26,7 @@ import { LotVerlauf, Sprungleiste, type LotPunkt } from '@/components/LotBaustei
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 import { Zustand } from '@/components/Badge';
-import { useToast } from '@/components/Toast';
+import { useToast, type MeldungAktion } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
 import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
 import { naechsterSchritt } from '@/features/projects/naechsterSchritt';
@@ -323,12 +323,12 @@ export default function AngebotView() {
     setVersuch((v) => v + 1);
   }
 
-  async function status(q: WithId<Quote>, neu: Quote['status'], meldung: string) {
+  async function status(q: WithId<Quote>, neu: Quote['status'], meldung: string, aktion?: MeldungAktion) {
     setBusy(true);
     setFehler(null);
     try {
       await updateQuote(q.id, { status: neu });
-      toast.success(meldung);
+      toast.success(meldung, aktion);
       setVersuch((v) => v + 1);
     } catch (err) {
       setFehler(grundAus(err, 'Der Status konnte nicht gespeichert werden.'));
@@ -996,7 +996,11 @@ export default function AngebotView() {
         onCancel={() => setVerwerfenFragen(false)}
         onConfirm={async () => {
           setVerwerfenFragen(false);
-          await status(q, 'Verworfen', VERWORFEN_MELDUNG);
+          // Rückgängig (F15): derselbe Weg wie „Wiederherstellen“ im Papierkorb.
+          await status(q, 'Verworfen', VERWORFEN_MELDUNG, {
+            label: 'Rückgängig',
+            onClick: () => void status(q, 'Entwurf', WIEDERHERGESTELLT_MELDUNG),
+          });
         }}
       />
     </div>

@@ -796,7 +796,23 @@ export default function OrderView() {
             leeren“ und enthält das sichtbare Wort.
           */}
           <div className="korb-knoepfe">
-            <Button variant="ghost" aria-label="Liste leeren" onClick={() => setCart([])}>
+            <Button
+              variant="ghost"
+              aria-label="Liste leeren"
+              onClick={() => {
+                /*
+                  RÜCKGÄNGIG IN DER MELDUNG (F15): die Liste liegt nur auf
+                  diesem Gerät, nichts ist gesendet — sie kommt genau so
+                  zurück. Was inzwischen neu dazukam, bleibt dahinter stehen.
+                */
+                const vorher = cart;
+                setCart([]);
+                toast.info(vorher.length === 1 ? 'Liste geleert — 1 Artikel' : `Liste geleert — ${vorher.length} Artikel`, {
+                  label: 'Rückgängig',
+                  onClick: () => setCart((jetzt) => [...vorher, ...jetzt.filter((z) => !vorher.some((v) => v.materialId === z.materialId && v.projectNumber === z.projectNumber))]),
+                });
+              }}
+            >
               Leeren
             </Button>
             {/* Am Handy steht nur „Abschicken“ — die Zahl steht links; der Name für die Vorlesehilfe bleibt ganz (D2, E86). */}

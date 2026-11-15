@@ -438,6 +438,17 @@ describe('Weiter mit dem Angebot', () => {
     expect(deleteQuote).not.toHaveBeenCalled();
   });
 
+  // F15 (15.11.2026): „Rückgängig“ in der Meldung, derselbe Weg wie „Wiederherstellen“. Gegenprobe: ohne die Änderung kein Knopf.
+  it('nach dem Verwerfen holt „Rückgängig“ den Entwurf zurück', async () => {
+    angebot = { ...ANGEBOT, status: 'Entwurf' };
+    const nutzer = userEvent.setup();
+    zeige();
+    await mehrMenue(nutzer, 'Verwerfen');
+    await nutzer.click(within(await screen.findByRole('dialog', { name: 'Entwurf verwerfen?' })).getByRole('button', { name: 'Verwerfen' }));
+    await nutzer.click(await screen.findByRole('button', { name: 'Rückgängig' }));
+    await waitFor(() => expect(updateQuote).toHaveBeenLastCalledWith(ANGEBOT.id, { status: 'Entwurf' }));
+  });
+
   // Befund 09.11.2026: der Eingang, aus dem der Entwurf stammt, steht in der Rückfrage. Gegenprobe: ohne die Änderung fehlt er.
   it('stammt der Entwurf aus einem Eingang, nennt die Rückfrage ihn', async () => {
     angebot = { ...ANGEBOT, status: 'Entwurf' };
