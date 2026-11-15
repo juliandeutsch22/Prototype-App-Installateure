@@ -220,3 +220,62 @@ describe('Wer die Vorbelegung bekommt, und was darin steht', () => {
     expect(error?.code).toBe('42501');
   }, 60_000);
 });
+
+/*
+  DER ZWEITE SCHEIN AM SELBEN TAG (Durchsicht 15.11.2026, P5) —
+  `20261116010300_schein_vorbereiten_ohne_doppelte.sql`. Gegenprobe: vorher
+  kam die Vormittagszeile, die schon auf dem unterschriebenen Schein steht,
+  in `zeiten` wieder mit; `auf_schein` und `gebucht_am` gab es nicht.
+*/
+describe('Was schon auf einem unterschriebenen Schein steht (P5)', () => {
+  const NR = '2026-P5';
+  const T = '2026-03-12';
+
+  async function scheinMit(status: string, zeilen: { mitarbeiter: string; von: string; bis: string; minuten: number }[]) {
+    const id = crypto.randomUUID();
+    const { error } = await admin.from('work_sheets').insert({
+      id, company_id: BETRIEB, project_number: NR, customer_name: 'Familie Huber', datum: T, status: 'Entwurf',
+      abrechnung: 'Regie', erstellt_von_uid: monteur.uid, erstellt_von_name: 'Berger',
+    });
+    if (error) throw new Error(error.message);
+    const { error: f } = await admin.from('work_sheet_hours').insert(zeilen.map((z, position) => ({
+      company_id: BETRIEB, work_sheet_id: id, position, datum: T, pause_min: 0, helfer: false, ...z,
+    })));
+    if (f) throw new Error(f.message);
+    if (status !== 'Entwurf') {
+      const { error: u } = await admin.from('work_sheets').update({ status }).eq('id', id);
+      if (u) throw new Error(u.message);
+    }
+  }
+
+  it('schlägt die Vormittagszeile nicht noch einmal vor — sie steht in `auf_schein`', async () => {
+    await buchen([
+      buchung(monteur, T, { project_number: NR, user_name: 'Berger', start_time: '07:00', end_time: '12:00', break_duration: 0, is_helper: false }),
+      buchung(monteur, T, { project_number: NR, user_name: 'Berger', start_time: '13:00', end_time: '16:00', break_duration: 0, is_helper: false }),
+    ]);
+    await scheinMit('Unterschrieben', [{ mitarbeiter: 'Berger', von: '07:00', bis: '12:00', minuten: 300 }]);
+    const { data } = await vorbereiten(monteur, NR, T);
+    const d = data as unknown as { zeiten: { von: string }[]; auf_schein: { von: string }[]; gebucht_am: number[] };
+    expect(d.zeiten.map((z) => z.von)).toEqual(['13:00']);
+    expect(d.auf_schein.map((z) => z.von)).toEqual(['07:00']);
+    expect(d.gebucht_am).toHaveLength(1);
+    expect(d.gebucht_am[0]).toBeGreaterThan(0);
+  }, 60_000);
+
+  it('bleibt gleich: ein Entwurf bestätigt nichts — alles kommt in `zeiten`', async () => {
+    const NR2 = '2026-P5B';
+    await buchen([
+      buchung(monteur, T, { project_number: NR2, user_name: 'Berger', start_time: '07:00', end_time: '12:00', break_duration: 0, is_helper: false }),
+    ]);
+    const id = crypto.randomUUID();
+    await admin.from('work_sheets').insert({
+      id, company_id: BETRIEB, project_number: NR2, customer_name: 'K', datum: T, status: 'Entwurf',
+      abrechnung: 'Regie', erstellt_von_uid: monteur.uid, erstellt_von_name: 'Berger',
+    });
+    await admin.from('work_sheet_hours').insert({ company_id: BETRIEB, work_sheet_id: id, position: 0, datum: T,
+      mitarbeiter: 'Berger', von: '07:00', bis: '12:00', minuten: 300, pause_min: 0, helfer: false });
+    const { data } = await vorbereiten(monteur, NR2, T);
+    expect((data as unknown as { zeiten: unknown[]; auf_schein: unknown[] }).zeiten).toHaveLength(1);
+    expect((data as unknown as { auf_schein: unknown[] }).auf_schein).toEqual([]);
+  }, 60_000);
+});

@@ -162,7 +162,7 @@ vi.mock('@/components/SignaturePad', () => ({
   }),
 }));
 
-const callScheinVorbereiten = vi.fn<() => Promise<{ zeiten: WorkSheetZeit[] }>>(
+const callScheinVorbereiten = vi.fn<() => Promise<{ zeiten: WorkSheetZeit[]; gebuchtAm?: number[]; aufSchein?: WorkSheetZeit[] }>>(
   async () => ({ zeiten: [] }),
 );
 
@@ -1879,15 +1879,14 @@ describe('Prüflauf 25.09.2026', () => {
       minuten: 120,
     };
 
-    it('überleben die Vorausfüllung — als selbst erfasst, also wegnehmbar', async () => {
+    it('überleben die Vorausfüllung — und bleiben wegnehmbar', async () => {
       entwurf = { ...basis, zeiten: [getippt] };
       callScheinVorbereiten.mockResolvedValue({ zeiten: [gebucht] });
       const nutzer = userEvent.setup();
       zeichne('/worksheet?entwurf=e1');
-      expect(
-        await screen.findByRole('button', { name: 'Zeile Max Mustermann entfernen' }),
-      ).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Zeile Kollege entfernen' })).toBeNull();
+      // Seit P5 ist auch die gebuchte Zeile wegnehmbar (sie bliebe dann unter „Gebucht, nicht auf diesem Schein“).
+      expect(await screen.findByRole('button', { name: 'Zeile Kollege entfernen' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Zeile Max Mustermann entfernen' })).toBeInTheDocument();
 
       await nutzer.click(screen.getByRole('button', { name: 'Entwurf aktualisieren' }));
       await waitFor(() => expect(updateWorkSheetDraft).toHaveBeenCalled());
@@ -2108,9 +2107,10 @@ describe('Linie „Lot“', () => {
     const nutzer = userEvent.setup();
     zeichne();
     const satz = await screen.findByText(/Für diesen Tag gibt es bereits/);
-    expect(satz.textContent).not.toMatch(/doppelt bestätigen/);
+    expect(satz.textContent).not.toMatch(/nicht noch einmal vorgeschlagen/);
     await nutzer.click(screen.getByRole('button', { name: /ein zweiter Schein am selben Tag/ }));
-    expect(screen.getByText(/doppelt bestätigen/)).toBeInTheDocument();
+    // Seit P5 sagt der Hinweis, was das Formular tut, statt nur zu mahnen.
+    expect(screen.getByText(/nicht noch einmal\s+vorgeschlagen/)).toBeInTheDocument();
   });
 });
 
@@ -2343,5 +2343,68 @@ describe('Ersatzschein (P4)', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
     await waitFor(() => expect(createWorkSheet).toHaveBeenCalled());
     expect(createWorkSheet.mock.calls[0][1]).not.toHaveProperty('ersetzt');
+  });
+});
+
+/*
+  DER ZWEITE SCHEIN AM SELBEN TAG (Durchsicht 15.11.2026, P5). Was schon auf
+  einem unterschriebenen Schein steht, schlägt die Datenbank nicht noch
+  einmal vor (`auf_schein`); gebuchte Zeilen lassen sich wegnehmen und bleiben
+  dann sichtbar. Gegenprobe: vorher stand die Vormittagszeile auf Schein 2,
+  ohne Kreuz — der Kunde unterschrieb sie ein zweites Mal.
+*/
+describe('Zweiter Schein am selben Tag (P5)', () => {
+  const vormittag = { datum: heute, mitarbeiter: 'Max Mustermann', von: '07:00', bis: '12:00', minuten: 300 };
+  const nachmittag = { datum: heute, mitarbeiter: 'Max Mustermann', von: '13:00', bis: '16:00', minuten: 180 };
+
+  it('schlägt die schon unterschriebenen Stunden nicht vor — sie stehen mit Grund daneben', async () => {
+    callScheinVorbereiten.mockResolvedValue({ zeiten: [nachmittag], gebuchtAm: [1], aufSchein: [vormittag] });
+    const nutzer = userEvent.setup();
+    zeichne();
+    const liste = await screen.findByRole('region', { name: 'Nicht auf diesem Schein' });
+    expect(liste).toHaveTextContent(/07:00–12:00 · steht schon auf einem unterschriebenen Schein dieses Tages/);
+    await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+    await waitFor(() => expect(createWorkSheet).toHaveBeenCalled());
+    expect(createWorkSheet.mock.calls[0][1].zeiten).toEqual([nachmittag]);
+  });
+
+  it('„Übernehmen“ nimmt sie bewusst doch auf', async () => {
+    callScheinVorbereiten.mockResolvedValue({ zeiten: [nachmittag], gebuchtAm: [1], aufSchein: [vormittag] });
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByRole('region', { name: 'Nicht auf diesem Schein' });
+    await nutzer.click(screen.getByRole('button', { name: 'Übernehmen' }));
+    expect(screen.queryByRole('region', { name: 'Nicht auf diesem Schein' })).toBeNull();
+    await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+    await waitFor(() => expect(createWorkSheet).toHaveBeenCalled());
+    expect(createWorkSheet.mock.calls[0][1].zeiten).toEqual([nachmittag, vormittag]);
+  });
+
+  it('eine gebuchte Zeile lässt sich wegnehmen — sie bleibt sichtbar „hier weggenommen“', async () => {
+    callScheinVorbereiten.mockResolvedValue({ zeiten: [vormittag, nachmittag], gebuchtAm: [1, 1], aufSchein: [] });
+    const nutzer = userEvent.setup();
+    zeichne();
+    const kreuze = await screen.findAllByRole('button', { name: 'Zeile Max Mustermann entfernen' });
+    await nutzer.click(kreuze[0]);
+    expect(await screen.findByText(/07:00–12:00 · hier weggenommen/)).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+    await waitFor(() => expect(createWorkSheet).toHaveBeenCalled());
+    expect(createWorkSheet.mock.calls[0][1].zeiten).toEqual([nachmittag]);
+  });
+
+  it('beim Wiederöffnen bleibt weggenommen, was vor dem letzten Speichern gebucht war — Neueres kommt dazu', async () => {
+    entwurf = {
+      id: 'e1', companyId: 'perl', projectNumber: 'B-001', customerName: 'Familie Huber', datum: heute,
+      status: 'Entwurf', abrechnung: 'Regie', zeiten: [nachmittag], material: [], erstelltVonUid: 'u1',
+      erstelltVonName: 'Max', updatedAt: 1000,
+    } as WorkSheet & { id: string; updatedAt: number };
+    const spaeter = { datum: heute, mitarbeiter: 'Max Mustermann', von: '17:00', bis: '18:00', minuten: 60 };
+    callScheinVorbereiten.mockResolvedValue({ zeiten: [vormittag, nachmittag, spaeter], gebuchtAm: [500, 600, 2000], aufSchein: [] });
+    const nutzer = userEvent.setup();
+    zeichne('/worksheet?entwurf=e1');
+    expect(await screen.findByText(/07:00–12:00 · hier weggenommen/)).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Entwurf aktualisieren' }));
+    await waitFor(() => expect(updateWorkSheetDraft).toHaveBeenCalled());
+    expect(updateWorkSheetDraft.mock.calls[0][1].zeiten).toEqual([nachmittag, spaeter]);
   });
 });

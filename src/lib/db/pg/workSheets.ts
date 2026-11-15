@@ -764,11 +764,18 @@ export interface ScheinZeit {
  */
 export async function vorbereiten(
   projectNumber: string, datum: string,
-): Promise<{ zeiten: ScheinZeit[] }> {
+): Promise<{ zeiten: ScheinZeit[]; gebuchtAm: number[]; aufSchein: ScheinZeit[] }> {
   const { data, error } = await derClient().rpc('schein_vorbereiten', {
     p_baustelle: projectNumber,
     p_datum: datum,
   });
   if (error) throw new Error(error.message);
-  return data as { zeiten: ScheinZeit[] };
+  /*
+    SEIT P5 (Durchsicht 15.11.2026): `zeiten` nur, was noch auf keinem
+    unterschriebenen Schein steht; `aufSchein` das übrige; `gebuchtAm` je
+    Zeile von `zeiten`, wann die Buchung zuletzt geändert wurde. Fehlen die
+    beiden (älterer Stand der Datenbank), gilt: nichts schon auf einem Schein.
+  */
+  const d = data as { zeiten: ScheinZeit[]; gebucht_am?: number[]; auf_schein?: ScheinZeit[] };
+  return { zeiten: d.zeiten ?? [], gebuchtAm: d.gebucht_am ?? [], aufSchein: d.auf_schein ?? [] };
 }

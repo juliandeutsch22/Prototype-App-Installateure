@@ -173,7 +173,7 @@ export function zaehleVerworfeneScheine(companyId: string, bis?: string): Promis
  */
 export function vorbereiten(
   projectNumber: string, datum: string,
-): Promise<{ zeiten: pg.ScheinZeit[] }> {
+): Promise<{ zeiten: pg.ScheinZeit[]; gebuchtAm: number[]; aufSchein: pg.ScheinZeit[] }> {
   return pg.vorbereiten(projectNumber, datum);
 }
 
