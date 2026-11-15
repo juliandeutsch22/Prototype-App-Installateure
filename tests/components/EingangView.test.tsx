@@ -373,3 +373,32 @@ describe('Gleichnamige Kunden', () => {
     expect(searchCustomers).not.toHaveBeenCalled();
   });
 });
+
+/*
+  A12 (Durchsicht 15.11.2026): ein abgelehnter oder gelöschter Eingang ließ
+  seine Besichtigung im Einsatzplan stehen. Die Datenbank nimmt eine kommende
+  jetzt mit — die Rückfrage sagt es vorher.
+*/
+describe('Die Besichtigung beim Ablehnen und Löschen (A12)', () => {
+  it('die Rückfrage nennt die kommende Besichtigung — eine vergangene nicht', async () => {
+    const { getTermin } = await import('@/lib/db/termine');
+    eingang = { ...OFFEN, terminId: 't9' };
+    vi.mocked(getTermin).mockResolvedValue({ id: 't9', companyId: 'perl', art: 'Besichtigung', datum: '2099-03-04', teilnehmer: [] } as never);
+    const nutzer = userEvent.setup();
+    const r = zeige();
+    await nutzer.click(await screen.findByRole('button', { name: /^Weitere Aktionen/ }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Ablehnen' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Eingang ablehnen?' });
+    expect(within(dialog).getByText(/Die Besichtigung am 04\.03\.2099 wird aus dem Einsatzplan genommen\./)).toBeInTheDocument();
+    r.unmount();
+
+    vi.mocked(getTermin).mockResolvedValue({ id: 't9', companyId: 'perl', art: 'Besichtigung', datum: '2020-03-04', teilnehmer: [] } as never);
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: /^Weitere Aktionen/ }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Ablehnen' }));
+    const zweite = await screen.findByRole('dialog', { name: 'Eingang ablehnen?' });
+    expect(within(zweite).queryByText(/Besichtigung am/)).toBeNull();
+    vi.mocked(getTermin).mockResolvedValue(null as never);
+    eingang = OFFEN;
+  });
+});

@@ -711,7 +711,8 @@ describe('Versenden und der Weg zurück (A5)', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Als versendet markieren?' });
     expect(within(dialog).getByText(/Zurück in den Entwurf geht, solange kein Annahme-Link geöffnet wurde/)).toBeInTheDocument();
     await nutzer.click(within(dialog).getByRole('button', { name: 'Als versendet markieren' }));
-    await waitFor(() => expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Versendet' }));
+    // Seit A12 kommt das Angebotsdatum mit, wenn es zurückliegt (eigene Prüfung unten).
+    await waitFor(() => expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, expect.objectContaining({ status: 'Versendet' })));
   });
 
   it('versendet, Link nie geöffnet: „Zurück in den Entwurf“ — geöffnet: nicht mehr', async () => {
@@ -760,5 +761,22 @@ describe('Angaben vor Ort (A8)', () => {
     await screen.findByText('Ort der Leistung');
     expect(screen.queryByText('Ansprechpartner vor Ort')).toBeNull();
     expect(screen.queryByText('Wunschtermin')).toBeNull();
+  });
+});
+
+/* A12: das Angebotsdatum — beim Versand auf heute, wenn es zurückliegt. */
+describe('Angebotsdatum beim Versand (A12)', () => {
+  it('bietet „auf heute setzen“ an und schickt Datum und verschobene Bindefrist mit dem Versand', async () => {
+    const { todayStr } = await import('@/lib/time');
+    angebot = { ...ANGEBOT, status: 'Entwurf', quoteDate: '2020-01-01', validUntil: '2020-01-31' };
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Als versendet markieren' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Als versendet markieren?' });
+    expect(within(dialog).getByRole('checkbox', { name: /Angebotsdatum auf heute setzen \(statt 01\.01\.2020\)/ })).toBeChecked();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Als versendet markieren' }));
+    await waitFor(() => expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, expect.objectContaining({
+      status: 'Versendet', quoteDate: todayStr(),
+    })));
   });
 });

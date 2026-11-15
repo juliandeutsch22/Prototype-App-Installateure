@@ -337,6 +337,9 @@ describe('Interne Hilfsfunktionen', () => {
       'app.baustelle_haengt_etwas(jsonb)',
       // A11: die Zählung vor dem Abschließen — die öffentlichen Fassungen prüfen die Rolle.
       'app.baustelle_abschluss_zaehlen(public.projects)',
+      // A12: die Besichtigung eines abgelehnten oder gelöschten Eingangs.
+      'app.eingang_besichtigung_entfernen(public.auftragseingaenge)',
+      'app.eingang_termin_mitnehmen()',
       // Was nur die Function mit dem Dienstschlüssel ruft.
       'public.angebot_link_abruf(text)',
       'public.angebot_link_annehmen(text, text, text, boolean)',

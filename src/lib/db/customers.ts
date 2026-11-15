@@ -34,9 +34,14 @@ export function kundenNachNamen(companyId: string, namen: readonly string[]): Pr
 }
 
 export function listProjectsForCustomer(
-  companyId: string, customerId: string, max = 300,
+  companyId: string, customerId: string, max = 100,
 ): Promise<WithId<Project>[]> {
   return pg.listProjectsForCustomer(companyId, customerId, max);
+}
+
+/** Wie viele Baustellen ein Kunde hat (A12) — siehe `pg.zaehleProjekteDesKunden`. */
+export function zaehleProjekteDesKunden(companyId: string, customerId: string): Promise<number> {
+  return pg.zaehleProjekteDesKunden(companyId, customerId);
 }
 
 export function listUnlinkedProjectsByName(

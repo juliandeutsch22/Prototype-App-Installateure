@@ -23,6 +23,22 @@ export function hatPosition(q: Pick<Quote, 'positions'>): boolean {
   return q.positions.some((p) => (p.art ?? 'position') === 'position');
 }
 
+/**
+ * DAS ANGEBOTSDATUM BEIM VERSAND (A12). Es war der Tag des Anlegens und nicht
+ * änderbar: ein Entwurf vom 01.10., versendet am 20.10., trug auf dem PDF den
+ * 01.10. — und seine 30 Tage Bindefrist waren beim Versand zu zwei Dritteln
+ * um. Liegt das Datum zurück, bietet die Rückfrage an, es auf heute zu
+ * setzen; die Bindefrist rückt um dieselben Tage mit.
+ */
+export function datumAufHeute(q: Pick<Quote, 'quoteDate' | 'validUntil'>, heute: string): Pick<Quote, 'quoteDate' | 'validUntil'> | null {
+  if (!q.quoteDate || q.quoteDate >= heute) return null;
+  const tag = (iso: string) => Date.parse(`${iso}T12:00:00Z`);
+  const spanne = Math.max(0, Math.round((tag(q.validUntil) - tag(q.quoteDate)) / 86_400_000));
+  const bis = new Date(tag(heute));
+  bis.setUTCDate(bis.getUTCDate() + spanne);
+  return { quoteDate: heute, validUntil: bis.toISOString().slice(0, 10) };
+}
+
 export type Standwechsel = 'versenden' | 'ablehnen' | 'zurueckInEntwurf' | 'ablehnungZurueck';
 
 export function statusFrage(q: Pick<Quote, 'quoteNumber' | 'positions' | 'versendetAm'>, wechsel: Standwechsel): StatusFrage {

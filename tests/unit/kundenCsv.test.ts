@@ -65,10 +65,29 @@ describe('Probelauf', () => {
     expect(k[1].address).toBe('Gasse 2, 1010 Wien');
   });
 
-  it('übernimmt die Kundennummer des Altsystems in die Notiz — und nennt, was ignoriert wird', () => {
+  /*
+    BEWUSST ANGEPASST (Durchsicht 15.11.2026, A12): die Kundennummer ging als
+    Satz in die Notiz, obwohl es seit M12 ein Feld dafür gibt. Geschützt
+    bleibt, dass sie ankommt und dass Unbekanntes genannt wird.
+  */
+  it('übernimmt die Kundennummer des Altsystems in ihr Feld — und nennt, was ignoriert wird', () => {
     const p = probe('Kd.-Nr.;Name;Umsatz 2024\n4711;Huber;12000');
-    expect(p.kunden[0].kunde.notes).toBe('Kundennummer im Altsystem: 4711');
+    expect(p.kunden[0].kunde).toMatchObject({ kundennummer: '4711', notes: '' });
     expect(p.ignoriert).toEqual(['Umsatz 2024']);
+  });
+
+  /* A12: die Kundenart — aus der Datei, aus der UID oder offen; nie geraten. */
+  it('liest die Kundenart, nimmt bei einer UID „Unternehmen“ an und meldet Unbekanntes', () => {
+    const p = probe('Name;Kundenart;UID\nHuber;Privatkunde;\nBau GmbH;;ATU12345678\nMaier;;\nBerger;Verein;');
+    expect(p.kunden.map((k) => [k.kunde.name, k.kunde.kundenart])).toEqual([
+      ['Huber', 'privat'], ['Bau GmbH', 'unternehmen'], ['Maier', null],
+    ]);
+    expect(p.fehler).toEqual([expect.objectContaining({ zeile: 5, grund: 'Kundenart „Verein“ ist weder privat noch Unternehmen' })]);
+  });
+
+  it('gibt die Anschrift auch in ihren Teilen mit', () => {
+    const k = probe('Name;Straße;Hausnummer;PLZ;Ort\nHuber;Weg;1;1010;Wien').kunden[0].kunde;
+    expect(k).toMatchObject({ address: 'Weg 1, 1010 Wien', strasse: 'Weg 1', plz: '1010', ort: 'Wien' });
   });
 
   it('meldet jede fehlerhafte Zeile mit Zeile und Grund — und übernimmt sie nicht', () => {

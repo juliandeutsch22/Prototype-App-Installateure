@@ -32,7 +32,7 @@ import { fassungsHinweis } from './fassungen';
 import { downloadAngebotPdf } from './angebotPdf';
 import { STAND, standWort } from './stand';
 import { verwerfenFrage, VERWORFEN_MELDUNG, WIEDERHERGESTELLT_MELDUNG } from './verwerfen';
-import { hatPosition, statusFrage, type StatusFrage } from './statusFrage';
+import { datumAufHeute, hatPosition, statusFrage, type StatusFrage } from './statusFrage';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import AnnahmeZiel from './AnnahmeZiel';
 import { zielBereit, zielVorgabe, type AnnahmeZielWert } from './annahmeZiel';
@@ -83,6 +83,8 @@ export default function AngebotView() {
   const [verwerfenFragen, setVerwerfenFragen] = useState(false);
   /** Ein Standwechsel, der erst nach der Rückfrage gilt (A5). */
   const [wechselFrage, setWechselFrage] = useState<{ q: WithId<Quote>; frage: StatusFrage } | null>(null);
+  /** A12: beim Versand das Angebotsdatum auf heute setzen (vorgewählt, wenn es zurückliegt). */
+  const [datumHeute, setDatumHeute] = useState(true);
   const [annehmenFragen, setAnnehmenFragen] = useState(false);
   /*
     DIE RÜCKNAHME EINER ANNAHME (A1, F7): Fehlklick oder Rücktritt des
@@ -296,7 +298,9 @@ export default function AngebotView() {
 
   /** Nach der Rückfrage (A5): scheitert es, bleibt der Dialog offen und sagt den Grund der Datenbank. */
   async function statusNachFrage(q: WithId<Quote>, neu: Quote['status'], meldung: string) {
-    await updateQuote(q.id, { status: neu });
+    // A12: liegt das Angebotsdatum zurück, im selben Schritt auf heute (samt Bindefrist) — der Entwurf ist noch änderbar.
+    const datum = neu === 'Versendet' && q.status === 'Entwurf' && datumHeute ? datumAufHeute(q, todayStr()) : null;
+    await updateQuote(q.id, { status: neu, ...(datum ?? {}) });
     toast.success(meldung);
     setVersuch((v) => v + 1);
   }
@@ -432,7 +436,7 @@ export default function AngebotView() {
           <Button
             variant="secondary"
             loading={busy}
-            onClick={() => setWechselFrage({ q, frage: statusFrage(q, 'versenden') })}
+            onClick={() => { setDatumHeute(true); setWechselFrage({ q, frage: statusFrage(q, 'versenden') }); }}
           >
             Als versendet markieren
           </Button>
@@ -838,7 +842,15 @@ export default function AngebotView() {
           await statusNachFrage(w.q, w.frage.neu, w.frage.meldung);
           setWechselFrage(null);
         }}
-      />
+      >
+        {wechselFrage && !wechselFrage.frage.gesperrt && wechselFrage.frage.neu === 'Versendet' && wechselFrage.q.status === 'Entwurf'
+          && datumAufHeute(wechselFrage.q, todayStr()) && (
+          <label className="flex min-h-touch items-center gap-2 text-sm text-ink">
+            <input type="checkbox" className="checkbox" checked={datumHeute} onChange={(e) => setDatumHeute(e.target.checked)} />
+            Angebotsdatum auf heute setzen (statt {datumAT(wechselFrage.q.quoteDate)}) — die Bindefrist rückt mit
+          </label>
+        )}
+      </ConfirmDialog>
 
       {/* A1: Annahme zurücknehmen — Grund ist Pflicht, die Folge für die Baustelle steht davor. */}
       <ConfirmDialog

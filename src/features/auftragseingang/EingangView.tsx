@@ -206,6 +206,13 @@ export default function EingangView() {
   // Wie ein gelöschtes Angebot: aus dem Papierkorb heraus lässt sich der Eingang wieder öffnen (Befund 09.11.2026).
   const imPapierkorb = e.stand === 'uebernommen' && !e.projectId && zielDa?.art === 'angebot' && zielDa.imPapierkorb;
   const besichtigungMoeglich = offen && buero && einsatzAn && darfTermineSchreiben(user.role) && !e.terminId;
+  /*
+    A12: Ablehnen und Löschen nehmen eine kommende Besichtigung mit — vorher
+    stand sie weiter im Plan der eingeteilten Person. Die Rückfrage sagt es.
+  */
+  const besichtigungGehtMit = termin && termin.datum >= todayStr()
+    ? ` Die Besichtigung am ${datumAT(termin.datum)} wird aus dem Einsatzplan genommen.`
+    : '';
   const z = zustandVon(e);
 
   const neuLaden = () => setVersuch((v) => v + 1);
@@ -544,7 +551,7 @@ export default function EingangView() {
       <ConfirmDialog
         open={frage === 'ablehnen'}
         title="Eingang ablehnen?"
-        message={`${e.nummer} steht danach unter „Abgelehnt“ und lässt sich wieder öffnen.`}
+        message={`${e.nummer} steht danach unter „Abgelehnt“ und lässt sich wieder öffnen.${besichtigungGehtMit}`}
         confirmLabel="Ablehnen"
         confirmTone="primary"
         gesperrt={grund.trim().length < 3}
@@ -562,7 +569,7 @@ export default function EingangView() {
       <ConfirmDialog
         open={frage === 'loeschen'}
         title="Eingang löschen?"
-        message={`${e.nummer} wird endgültig gelöscht. Ein Eingang ist kein Beleg — übernommene bleiben, weil sie belegen, woher Baustelle bzw. Angebot kamen.`}
+        message={`${e.nummer} wird endgültig gelöscht. Ein Eingang ist kein Beleg — übernommene bleiben, weil sie belegen, woher Baustelle bzw. Angebot kamen.${besichtigungGehtMit}`}
         onCancel={() => setFrage(null)}
         onConfirm={async () => {
           await eingangLoeschen(e.id);

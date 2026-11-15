@@ -121,3 +121,19 @@ describe('Kunden aus einer Datei', () => {
     expect(screen.getByLabelText('CSV-Datei')).toBeInTheDocument();
   });
 });
+
+/* A12 (Durchsicht 15.11.2026): die Kundenart für alle ohne Angabe in einem Zug, statt jede Akte einzeln. */
+describe('Kundenart beim Einlesen (A12)', () => {
+  it('setzt die gewählte Kundenart bei denen ohne Angabe — wer eine hat, behält sie', async () => {
+    vorhanden.mockResolvedValue([]);
+    einspielen.mockResolvedValue({ angelegt: 2, uebersprungen: 0 });
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.upload(screen.getByLabelText('CSV-Datei'), datei('Name;Kundenart\nHuber;Privat\nBau GmbH;\n'));
+    await nutzer.selectOptions(await screen.findByLabelText('Kundenart für 1 ohne Angabe'), 'unternehmen');
+    await nutzer.click(screen.getByRole('button', { name: '2 Kunden übernehmen' }));
+    await waitFor(() => expect(einspielen).toHaveBeenCalledTimes(1));
+    expect(einspielen.mock.calls[0][0].map((k: { name: string; kundenart: string }) => [k.name, k.kundenart]))
+      .toEqual([['Huber', 'privat'], ['Bau GmbH', 'unternehmen']]);
+  });
+});

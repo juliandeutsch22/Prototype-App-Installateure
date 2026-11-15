@@ -42,7 +42,9 @@ let angebote: (Quote & { id: string })[] = [];
 let wartungen: (Wartung & { id: string })[] = [];
 
 const listCustomersByIds = vi.fn(async () => kunden);
-const listProjectsForCustomer = vi.fn(async () => zugeordnet);
+const listProjectsForCustomer = vi.fn(async (max?: number) => zugeordnet.slice(0, max ?? zugeordnet.length));
+/** A12: wie viele Baustellen der Kunde wirklich hat, wenn mehr als geladen. */
+let baustellenZahl: number | null = null;
 const listUnlinkedProjectsByName = vi.fn(async () => namensgleich);
 const assignProjectToCustomer = vi.fn(async () => undefined);
 const listQuotesForCustomer = vi.fn(async () => angebote);
@@ -71,7 +73,9 @@ vi.mock('@/lib/db/termine', () => ({
 }));
 vi.mock('@/lib/db/customers', () => ({
   listCustomersByIds: () => listCustomersByIds(),
-  listProjectsForCustomer: () => listProjectsForCustomer(),
+  listProjectsForCustomer: (_b: string, _k: string, max: number) => listProjectsForCustomer(max),
+  // A12: gezählt in der Datenbank — sonst die Zahl der geladenen.
+  zaehleProjekteDesKunden: async () => baustellenZahl ?? zugeordnet.length,
   listUnlinkedProjectsByName: () => listUnlinkedProjectsByName(),
   assignProjectToCustomer: (...a: unknown[]) => assignProjectToCustomer(...(a as [])),
   updateCustomer: (...a: unknown[]) => updateCustomer(...(a as [])),
@@ -1123,5 +1127,28 @@ describe('Liegenschaften des Kunden (M02c)', () => {
     zeige('k1#k-liegenschaften');
     expect(await screen.findByRole('link', { name: 'WHA Hauptstraße 12' })).toHaveAttribute('href', '/liegenschaften/l1');
     expect(listBeteiligungenDesKunden).toHaveBeenCalled();
+  });
+});
+
+/*
+  A12 (Durchsicht 15.11.2026): die Baustellen der Kundenakte endeten still bei
+  300, in beliebiger Reihenfolge, und der Titel nannte die Grenze als Zahl.
+*/
+describe('Viele Baustellen eines Kunden (A12)', () => {
+  it('nennt die gezählte Zahl und lädt nach, statt still abzuschneiden', async () => {
+    const vorher = zugeordnet;
+    zugeordnet = Array.from({ length: 150 }, (_, i) => ({ ...vorher[0], id: `px${i}`, projectNumber: `2026-${String(i).padStart(3, '0')}` }));
+    baustellenZahl = 150;
+    try {
+      zeige();
+      await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen' }));
+      expect(await screen.findByRole('heading', { name: 'Baustellen (150)' })).toBeInTheDocument();
+      expect(screen.getByText('100 von 150 geladen.')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Weitere Baustellen laden' }));
+      await waitFor(() => expect(listProjectsForCustomer).toHaveBeenLastCalledWith(200));
+    } finally {
+      zugeordnet = vorher;
+      baustellenZahl = null;
+    }
   });
 });

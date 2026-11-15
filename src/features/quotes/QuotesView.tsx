@@ -33,7 +33,7 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke, Zustand } from '@/components/Badge';
 import { STAND } from './stand';
 import { verwerfenFrage, VERWORFEN_MELDUNG } from './verwerfen';
-import { statusFrage, type StatusFrage } from './statusFrage';
+import { datumAufHeute, statusFrage, type StatusFrage } from './statusFrage';
 import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import RowMenu from '@/components/RowMenu';
@@ -277,6 +277,8 @@ export default function QuotesView() {
   const [verwerfenFragen, setVerwerfenFragen] = useState<WithId<Quote> | null>(null);
   /** Ein Standwechsel, der erst nach der Rückfrage gilt (A5). */
   const [wechselFrage, setWechselFrage] = useState<{ q: WithId<Quote>; frage: StatusFrage } | null>(null);
+  /** A12: beim Versand das Angebotsdatum auf heute setzen (vorgewählt, wenn es zurückliegt). */
+  const [datumHeute, setDatumHeute] = useState(true);
   /*
     DER EINGANG DES ENTWURFS (Befund 09.11.2026): die Rückfrage nennt ihn,
     denn er bleibt „übernommen“ und muss danach wieder geöffnet werden. Nur
@@ -309,6 +311,8 @@ export default function QuotesView() {
   const [kunde, setKunde] = useKunde(user?.companyId, customerId);
   const [address, setAddress] = useState('');
   const [validUntil, setValidUntil] = useState(standardGueltigkeit);
+  /** A12: das Angebotsdatum — vorher immer der Tag des Anlegens und nicht änderbar. */
+  const [quoteDate, setQuoteDate] = useState(todayStr);
   const [notes, setNotes] = useState('');
   /** Liegenschaft und Top (M02c) — nur mit der Unterfähigkeit; die Annahme gibt sie an die Baustelle weiter. */
   const liegenschaftenAn = useModul('kunden.liegenschaften');
@@ -540,6 +544,7 @@ export default function QuotesView() {
 
   function formularLeeren() {
     setCustomerId('');
+    setQuoteDate(todayStr());
     setAddress('');
     setOrt({ liegenschaftId: '', topId: '' });
     setNachtragZu(null);
@@ -598,6 +603,7 @@ export default function QuotesView() {
   /** Einen Entwurf ins Formular holen. */
   function bearbeiten(q: WithId<Quote>) {
     formularAus(q);
+    setQuoteDate(q.quoteDate || todayStr());
     setNachtragZu(q.projectId && q.projectNumber ? { id: q.projectId, nummer: q.projectNumber } : null);
     setValidUntil(q.validUntil);
     setFassungVon(null);
@@ -613,6 +619,7 @@ export default function QuotesView() {
    */
   function alsVorlage(q: WithId<Quote>, fassung: boolean) {
     formularAus(q);
+    setQuoteDate(todayStr());
     // Eine neue Fassung eines Nachtrags bleibt ein Nachtrag; eine Kopie ist ein eigenes Angebot.
     setNachtragZu(fassung && q.status !== 'Angenommen' && q.projectId && q.projectNumber
       ? { id: q.projectId, nummer: q.projectNumber }
@@ -734,6 +741,7 @@ export default function QuotesView() {
         customerId: kunde.id,
         customerName: kunde.name,
         address,
+        quoteDate,
         validUntil,
         positions: positionen,
         discount: rabatt,
@@ -775,7 +783,7 @@ export default function QuotesView() {
         customerId: kunde.id,
         customerName: kunde.name,
         address,
-        quoteDate: todayStr(),
+        quoteDate,
         validUntil,
         status: 'Entwurf',
         positions: positionen,
@@ -827,7 +835,9 @@ export default function QuotesView() {
 
   /** Nach der Rückfrage (A5): scheitert es, bleibt der Dialog offen und sagt den Grund der Datenbank. */
   async function statusNachFrage(q: WithId<Quote>, neu: Quote['status'], meldung: string) {
-    await updateQuote(q.id, { status: neu });
+    // A12: liegt das Angebotsdatum zurück, im selben Schritt auf heute (samt Bindefrist) — der Entwurf ist noch änderbar.
+    const datum = neu === 'Versendet' && q.status === 'Entwurf' && datumHeute ? datumAufHeute(q, todayStr()) : null;
+    await updateQuote(q.id, { status: neu, ...(datum ?? {}) });
     toast.success(meldung);
     await laden();
   }
@@ -992,7 +1002,7 @@ export default function QuotesView() {
             ...(annehmenInsMenue ? [{ label: 'Annehmen → Baustelle', onSelect: annehmen }] : []),
             ...(fassungInsMenue ? [{ label: 'Neue Fassung', onSelect: () => void alsVorlage(q, true) }] : []),
             ...(q.status === 'Entwurf'
-              ? [{ label: 'Als versendet markieren', onSelect: () => setWechselFrage({ q, frage: statusFrage(q, 'versenden') }) }]
+              ? [{ label: 'Als versendet markieren', onSelect: () => { setDatumHeute(true); setWechselFrage({ q, frage: statusFrage(q, 'versenden') }); } }]
               : []),
             { label: 'Als abgelehnt markieren', onSelect: () => setWechselFrage({ q, frage: statusFrage(q, 'ablehnen') }) },
             // Verwerfen nur im Entwurf: alles Versendete bleibt
@@ -1116,9 +1126,17 @@ export default function QuotesView() {
               einem Entwurf, dessen Frist schon von der Vorgabe abweicht.
             */}
             <WeitereAngaben
-              titel={`Weitere Angaben · gültig bis ${datumAT(validUntil)}${nachtragZu ? ` · Nachtrag zu ${nachtragZu.nummer}` : ''}`}
+              titel={`Weitere Angaben · ${quoteDate !== todayStr() ? `vom ${datumAT(quoteDate)} · ` : ''}gültig bis ${datumAT(validUntil)}${nachtragZu ? ` · Nachtrag zu ${nachtragZu.nummer}` : ''}`}
               offen={(!!bearbeitet && bearbeitet.validUntil !== standardGueltigkeit()) || !!nachtragZu}
             >
+              {/* A12: das Datum auf dem Angebot — beim Versand bietet die Rückfrage an, es auf heute zu setzen. */}
+              <InputField
+                id="anqdatum"
+                label="Angebotsdatum"
+                type="date"
+                value={quoteDate}
+                onChange={(e) => setQuoteDate(e.target.value || todayStr())}
+              />
               <InputField
                 id="anqgueltig"
                 label="Gültig bis"
@@ -1565,7 +1583,15 @@ export default function QuotesView() {
           await statusNachFrage(w.q, w.frage.neu, w.frage.meldung);
           setWechselFrage(null);
         }}
-      />
+      >
+        {wechselFrage && !wechselFrage.frage.gesperrt && wechselFrage.frage.neu === 'Versendet' && wechselFrage.q.status === 'Entwurf'
+          && datumAufHeute(wechselFrage.q, todayStr()) && (
+          <label className="flex min-h-touch items-center gap-2 text-sm text-ink">
+            <input type="checkbox" className="checkbox" checked={datumHeute} onChange={(e) => setDatumHeute(e.target.checked)} />
+            Angebotsdatum auf heute setzen (statt {datumAT(wechselFrage.q.quoteDate)}) — die Bindefrist rückt mit
+          </label>
+        )}
+      </ConfirmDialog>
 
       {/*
         VERWERFEN STATT LÖSCHEN (M01d). Bis hierher löschte der Knopf den

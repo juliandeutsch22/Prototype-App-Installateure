@@ -23,7 +23,7 @@ export const HOECHSTENS = 5000;
 type Feld =
   | 'firma' | 'name' | 'vorname' | 'nachname' | 'ansprechpartner'
   | 'adresse' | 'strasse' | 'hausnummer' | 'plz' | 'ort' | 'land'
-  | 'telefon' | 'email' | 'uid' | 'notiz' | 'kundennummer';
+  | 'telefon' | 'email' | 'uid' | 'notiz' | 'kundennummer' | 'kundenart';
 
 /**
  * Welche Spaltennamen was bedeuten — verglichen ohne Gross-/Kleinschreibung,
@@ -46,7 +46,26 @@ const NAMEN: Record<Feld, string[]> = {
   uid: ['uid', 'uidnr', 'uidnummer', 'ustid', 'ustidnr', 'umsatzsteuerid'],
   notiz: ['notiz', 'notizen', 'bemerkung', 'bemerkungen', 'anmerkung', 'info'],
   kundennummer: ['kundennummer', 'kundennr', 'kdnr'],
+  // A12: die Kundenart entscheidet über Zinsen und Mahnspesen — ohne sie stand jeder Import unter „prüfen“.
+  kundenart: ['kundenart', 'kundentyp', 'kundengruppe'],
 };
+
+/**
+ * DIE KUNDENART AUS DER DATEI (Durchsicht 15.11.2026, A12). Vorher übernahm
+ * der Import keine: 800 eingelesene Kunden standen alle unter „Kundenart
+ * prüfen“ und mussten einzeln geöffnet werden, bevor Rechnung und Mahnung
+ * gingen. Ein Wert, der keiner der beiden ist, wird nicht geraten — die Zeile
+ * steht dann im Probelauf.
+ */
+const ARTEN: Record<string, 'privat' | 'unternehmen'> = {
+  privat: 'privat', privatkunde: 'privat', privatperson: 'privat', verbraucher: 'privat', konsument: 'privat', b2c: 'privat',
+  unternehmen: 'unternehmen', firma: 'unternehmen', firmenkunde: 'unternehmen', gewerbe: 'unternehmen',
+  geschaeftskunde: 'unternehmen', geschäftskunde: 'unternehmen', unternehmer: 'unternehmen', b2b: 'unternehmen',
+};
+export function leseKundenart(wert: string | undefined): 'privat' | 'unternehmen' | null | 'unbekannt' {
+  if (!wert?.trim()) return null;
+  return ARTEN[spaltenSchluessel(wert)] ?? 'unbekannt';
+}
 
 const FELD_VON = new Map<string, Feld>(
   (Object.entries(NAMEN) as [Feld, string[]][]).flatMap(([feld, namen]) =>
@@ -249,11 +268,19 @@ export function pruefeKunden(zeilen: string[][]): KundenProbelauf {
         ],
         ', ',
       ) || undefined);
+    /*
+      A12: die Kundennummer in ihr Feld (seit M12 gibt es eins), nicht als
+      Satz in die Notiz. Ist sie im Betrieb schon vergeben, legt die
+      Datenbank sie in die Notiz — eine doppelte Nummer bräche den Import.
+    */
     const kundennummer = eins('kundennummer');
-    const notiz = verbinde(
-      [...alle('notiz'), kundennummer ? `Kundennummer im Altsystem: ${kundennummer}` : undefined],
-      '\n',
-    );
+    const notiz = verbinde(alle('notiz'), '\n');
+    const artRoh = eins('kundenart');
+    const art = leseKundenart(artRoh);
+    if (art === 'unbekannt') {
+      falsch(`Kundenart „${artRoh}“ ist weder privat noch Unternehmen`);
+      return;
+    }
 
     kunden.push({
       zeile: nr,
@@ -266,6 +293,14 @@ export function pruefeKunden(zeilen: string[][]): KundenProbelauf {
         vatId: uid ?? '',
         notes: notiz,
         active: true,
+        // Mit UID ist es ein Unternehmen; sonst gilt, was die Datei sagt, oder es bleibt offen (die Übernahme kann es für alle setzen).
+        kundenart: art ?? (uid ? 'unternehmen' : null),
+        ...(kundennummer ? { kundennummer } : {}),
+        // Die Anschrift auch in ihren Teilen — die Prüfung der Anschrift (M12) liest sie von dort.
+        ...(eins('strasse') ? { strasse: verbinde([eins('strasse'), eins('hausnummer')]) } : {}),
+        ...(eins('plz') ? { plz: eins('plz') } : {}),
+        ...(eins('ort') ? { ort: eins('ort') } : {}),
+        ...(land ? { land } : {}),
       },
     });
   });
@@ -275,6 +310,6 @@ export function pruefeKunden(zeilen: string[][]): KundenProbelauf {
 
 /** Die Vorlage zum Herunterladen — mit Strichpunkt, wie Excel in Österreich sie öffnet. */
 export const VORLAGE =
-  'Firma;Vorname;Nachname;Straße;PLZ;Ort;Telefon;E-Mail;UID;Notiz\r\n' +
-  'Muster Bau GmbH;Anna;Muster;Hauptstraße 1;1010;Wien;+43 1 234567;office@muster.at;ATU12345678;\r\n' +
-  ';Franz;Huber;Dorfweg 3;3100;St. Pölten;0664 1234567;;;Schlüssel beim Nachbarn\r\n';
+  'Firma;Vorname;Nachname;Straße;PLZ;Ort;Telefon;E-Mail;UID;Kundenart;Kundennummer;Notiz\r\n' +
+  'Muster Bau GmbH;Anna;Muster;Hauptstraße 1;1010;Wien;+43 1 234567;office@muster.at;ATU12345678;Unternehmen;10001;\r\n' +
+  ';Franz;Huber;Dorfweg 3;3100;St. Pölten;0664 1234567;;;Privat;10002;Schlüssel beim Nachbarn\r\n';

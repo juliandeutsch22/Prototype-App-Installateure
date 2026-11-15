@@ -6,6 +6,7 @@ import { canAccess } from '@/app/navigation';
 import {
   listCustomersByIds,
   listProjectsForCustomer,
+  zaehleProjekteDesKunden,
   listUnlinkedProjectsByName,
   assignProjectToCustomer,
   updateCustomer,
@@ -25,6 +26,7 @@ import { beurteile } from '@/features/maintenance/wartungsplan';
 import { todayStr } from '@/lib/time';
 import type { Auftragseingang, Customer, Invoice, Project, Quote, Wartung } from '@/types';
 import type { WithId } from '@/lib/db/core';
+import Nachladen from '@/components/Nachladen';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import AktenBereiche, { AktenAngaben, AktenAngabe, AktenVerweis } from '@/components/AktenBereiche';
@@ -94,6 +96,8 @@ const EINGAENGE_HOECHSTENS = 20;
 
 /** So viele Angebote zeigt die Akte — die jüngsten; ältere findet die Suche der Angebotsliste. */
 const ANGEBOTE_HOECHSTENS = 100;
+/** Baustellen je Seite (A12) — wer mehr hat, lädt nach; die Zahl im Titel ist die gezählte. */
+const BAUSTELLEN_JE_SEITE = 100;
 
 const LAEDT = { zustand: 'laedt' } as const;
 
@@ -109,6 +113,8 @@ export default function KundenakteView() {
 
   const [kunde, setKunde] = useState<Teil<WithId<Customer> | null>>(LAEDT);
   const [baustellen, setBaustellen] = useState<Teil<WithId<Project>[]>>(LAEDT);
+  const [baustellenGrenze, setBaustellenGrenze] = useState(BAUSTELLEN_JE_SEITE);
+  const [baustellenZahl, setBaustellenZahl] = useState<number | null>(null);
   const [namensgleich, setNamensgleich] = useState<WithId<Project>[]>([]);
   const [angebote, setAngebote] = useState<Teil<WithId<Quote>[]>>(LAEDT);
   const [rechnungen, setRechnungen] = useState<Teil<WithId<Invoice>[]>>(LAEDT);
@@ -259,12 +265,15 @@ export default function KundenakteView() {
     let weg = false;
     void (async () => {
       try {
-        const [zugeordnet, offen] = await Promise.all([
-          listProjectsForCustomer(companyId, id),
+        const [zugeordnet, offen, zahl] = await Promise.all([
+          listProjectsForCustomer(companyId, id, baustellenGrenze),
           listUnlinkedProjectsByName(companyId, kundeName),
+          // Scheitert nur das Zählen, steht die Zahl der geladenen.
+          zaehleProjekteDesKunden(companyId, id).catch(() => null),
         ]);
         if (weg) return;
         setBaustellen({ zustand: 'bereit', daten: zugeordnet });
+        setBaustellenZahl(zahl);
         setNamensgleich(offen);
       } catch {
         if (!weg) setBaustellen({ zustand: 'fehler' });
@@ -273,7 +282,7 @@ export default function KundenakteView() {
     return () => {
       weg = true;
     };
-  }, [companyId, id, kundeName, versuch]);
+  }, [companyId, id, kundeName, versuch, baustellenGrenze]);
 
   /*
     DIE ANGEBOTE HINGEN AM NAMEN UND MUSSTEN AN DER KENNUNG HÄNGEN.
@@ -383,7 +392,7 @@ export default function KundenakteView() {
     {companyId && verlaufSichtbar(user.role, 'kunde', !!einblick) && <ObjektVerlauf companyId={companyId} objektart="kunde" objektId={k.id} />}
   </Card>;
   const baustellenKarte = (
-    <Card id="k-baustellen" title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellen.daten.length})` : ''}`}>
+    <Card id="k-baustellen" title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellenZahl ?? baustellen.daten.length})` : ''}`}>
       {baustellen.zustand === 'laedt' ? (
         <SkeletonList rows={2} />
       ) : baustellen.zustand === 'fehler' ? (
@@ -391,7 +400,18 @@ export default function KundenakteView() {
       ) : baustellen.daten.length === 0 ? (
         <EmptyState>Noch keine Baustelle zugeordnet.</EmptyState>
       ) : (
-        <BaustellenZeilen daten={baustellen.daten.slice().sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))} sichtbar={baustellenSichtbar} />
+        <>
+          <BaustellenZeilen daten={baustellen.daten.slice().sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))} sichtbar={baustellenSichtbar} />
+          {/* A12: vorher endete die Liste still bei 300 — jetzt sagt sie es und lädt nach. */}
+          <Nachladen
+            geladen={baustellen.daten.length}
+            grenze={baustellenGrenze}
+            gesamt={baustellenZahl ?? undefined}
+            einheit="Baustellen"
+            onMehr={() => setBaustellenGrenze((g) => g + BAUSTELLEN_JE_SEITE)}
+            sucheImBrowser={false}
+          />
+        </>
       )}
 
       {/*
@@ -496,9 +516,10 @@ export default function KundenakteView() {
   ) : null;
   const rechnungKarte = rechnungenAn && darfRechnungen ? (
     <Card title="Rechnungen" id="k-rechnungen">
-      {rechnungen.zustand === 'laedt' || baustellen.zustand === 'laedt' ? (
+      {/* Seit A10 hängen die Rechnungen nicht mehr an den geladenen Baustellen. */}
+      {rechnungen.zustand === 'laedt' ? (
         <SkeletonList rows={1} />
-      ) : rechnungen.zustand === 'fehler' || baustellen.zustand === 'fehler' ? (
+      ) : rechnungen.zustand === 'fehler' ? (
         <TeilFehler was="die Rechnungen" onRetry={() => setVersuch((v) => v + 1)} />
       ) : rechnungen.daten.length === 0 ? (
         <EmptyState>Noch keine Rechnung.</EmptyState>
