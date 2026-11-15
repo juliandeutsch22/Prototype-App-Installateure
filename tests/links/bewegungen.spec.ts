@@ -781,3 +781,17 @@ test.describe('U8 Anforderungen (Büro) am Handy', () => {
     expect(l.schrittOben).toBeLessThan(l.textUnten);
   });
 });
+
+test.describe('F15 Aktionen in „Suchen oder springen“', () => {
+  test('Strg + K, „neue rechnung“, Enter: das Formular steht offen', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(pfad('/'));
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await page.keyboard.press('Control+k');
+    const feld = page.getByRole('combobox', { name: 'Suchen oder springen' });
+    await feld.fill('neue rechnung');
+    await expect(page.getByRole('group', { name: 'Aktionen' }).getByRole('option', { name: 'Neue Rechnung' })).toBeVisible();
+    await feld.press('Enter');
+    await expect(page.getByRole('group', { name: 'Rechnung erstellen' })).toBeVisible();
+  });
+});

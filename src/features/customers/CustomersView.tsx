@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useNeuAusAdresse } from '@/lib/useNeuAusAdresse';
 import { schluessel as speicherSchluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import BottomSheet from '@/components/BottomSheet';
 import InfoHint from '@/components/InfoHint';
@@ -183,6 +184,8 @@ export default function CustomersView() {
     Datenbank fehl.
   */
   const darfAendern = user ? darfKundenPflegen(user) : false;
+  // „Neuer Kunde“ aus „Suchen oder springen“ (F15): `?neu` öffnet das Formular — nur, wo der Knopf steht.
+  useNeuAusAdresse(() => neuerKunde(), darfAendern);
   const darfBaustellenZuordnen = user ? isGF(user.role) : false;
 
   /*

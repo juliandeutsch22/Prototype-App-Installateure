@@ -45,6 +45,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, TextareaField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast, type MeldungAktion } from '@/components/Toast';
+import { useNeuAusAdresse } from '@/lib/useNeuAusAdresse';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
@@ -430,6 +431,8 @@ export default function QuotesView() {
   */
   const vatRate = bearbeitet?.vatRate ?? company?.rates?.vatRate ?? INVOICE_DEFAULTS.vatRate;
   const darfAendern = user ? isGF(user.role) : false;
+  // „Neues Angebot“ aus „Suchen oder springen“ (F15): `?neu` öffnet das Formular — nur, wo der Knopf steht.
+  useNeuAusAdresse(() => setFormOffen(true), darfAendern);
 
   /*
     „OFFEN“ FRAGT DIE DATENBANK NACH DEM ZUSTAND (A6), seitenweise ab der

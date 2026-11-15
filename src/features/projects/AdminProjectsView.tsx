@@ -1,4 +1,6 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNeuAusAdresse } from '@/lib/useNeuAusAdresse';
+import { isGF } from '@/lib/permissions';
 import OhneUmbruch from '@/components/OhneUmbruch';
 import BottomSheet from '@/components/BottomSheet';
 import Abschnitt from '@/components/Abschnitt';
@@ -201,6 +203,8 @@ export default function AdminProjectsView() {
     wieder; verworfen wird erst mit „Abbrechen“.
   */
   const [formOffen, setFormOffen] = useState(false);
+  // „Neue Baustelle“ aus „Suchen oder springen“ (F15): `?neu` öffnet das Formular, wie der Knopf.
+  useNeuAusAdresse(() => setFormOffen(true), !!user && isGF(user.role));
   const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
   /** Geführt abschließen (A11) — aus dem Zeilenmenü und aus dem Löschdialog. */
   const [zuSchliessen, setZuSchliessen] = useState<WithId<Project> | null>(null);

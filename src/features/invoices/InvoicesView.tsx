@@ -991,8 +991,9 @@ export default function InvoicesView() {
   */
   useEffect(() => {
     const neu = suchparameter.get('neu');
-    if (!neu || nurLesen) return;
-    baustelleWaehlen(neu);
+    // Auch ohne Baustelle (`?neu`, F15: „Neue Rechnung“ aus „Suchen oder springen“) — dann wählt man sie im Formular.
+    if (neu === null || nurLesen) return;
+    if (neu) baustelleWaehlen(neu);
     setPreview(null);
     erstellenOeffnen();
     setSuchparameter((alt) => {

@@ -26,6 +26,7 @@ import { useBaustellenVorschlag } from '@/features/projects/useBaustellenVorschl
 import { isGF } from '@/lib/permissions';
 import { todayStr } from '@/lib/time';
 import { useModul } from '@/lib/useModule';
+import { useNeuAusAdresse } from '@/lib/useNeuAusAdresse';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import { liegenschaftZeile, zuordnungAenderung } from '@/features/liegenschaften/liegenschaftText';
 import type { Wartung } from '@/types';
@@ -261,6 +262,8 @@ export default function WartungenView() {
   const [toDelete, setToDelete] = useState<WithId<Wartung> | null>(null);
 
   const darfAendern = user ? isGF(user.role) : false;
+  // „Neue Wartung“ aus „Suchen oder springen“ (F15): `?neu` öffnet das Formular — nur, wo der Knopf steht.
+  useNeuAusAdresse(() => formOeffnen(), darfAendern);
   const heute = todayStr();
   /** „Fällig, ohne Baustelle“ aus der Adresse — von der Startseite (Nachtest 01.10.2026). */
   const nurOhneBaustelle = adresse.get('filter') === 'faellig-ohne-baustelle';

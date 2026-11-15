@@ -280,3 +280,53 @@ describe('Suchen oder springen', () => {
     }
   });
 });
+
+/*
+  AKTIONEN (F15, 15.11.2026): „Neue Rechnung“, „Zeit erfassen“ … nach den
+  Rechten des Knopfs auf der Seite. Gegenprobe: ohne die Änderung gibt es
+  die Gruppe nicht.
+*/
+describe('Aktionen in „Suchen oder springen“', () => {
+  function ZeitOrt() {
+    const ort = useLocation();
+    return <p data-testid="ort">{ort.pathname}{ort.search}{ort.state ? ` ${JSON.stringify(ort.state)}` : ''}</p>;
+  }
+  function zeigeMitZustand() {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Suchfenster offen onSchliessen={vi.fn()} />
+        <Routes><Route path="*" element={<ZeitOrt />} /></Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  it('der Monteur: Zeit erfassen, Material, Schein — keine Rechnung, kein Kunde', async () => {
+    zeigeMitZustand();
+    const gruppe = screen.getByRole('group', { name: 'Aktionen' });
+    const namen = within(gruppe).getAllByRole('option').map((o) => o.textContent);
+    expect(namen).toEqual(expect.arrayContaining(['Zeit erfassen', 'Material anfordern', 'Neuer Schein']));
+    expect(namen).not.toContain('Neue Rechnung');
+    expect(namen).not.toContain('Neuer Kunde');
+    // „Zeit erfassen“ geht denselben Weg wie „Zeit von Hand eintragen“.
+    await userEvent.click(within(gruppe).getByRole('option', { name: 'Zeit erfassen' }));
+    expect(screen.getByTestId('ort')).toHaveTextContent('/time {"vonHand":true}');
+  });
+
+  it('die Geschäftsführung findet „Neue Rechnung“ auch unter „Rechnung erstellen“ und kommt mit ?neu an', async () => {
+    nutzer = { ...nutzer, role: 'Geschäftsführung' } as AppUser;
+    zeigeMitZustand();
+    await userEvent.type(screen.getByRole('combobox', { name: 'Suchen oder springen' }), 'rechnung erstellen');
+    const gruppe = screen.getByRole('group', { name: 'Aktionen' });
+    expect(within(gruppe).getAllByRole('option').map((o) => o.textContent)).toEqual(['Neue Rechnung']);
+    await userEvent.keyboard('{Enter}');
+    expect(screen.getByTestId('ort')).toHaveTextContent('/invoices?neu');
+  });
+
+  it('die Projektleitung liest Rechnungen nur — dort keine „Neue Rechnung“', () => {
+    nutzer = { ...nutzer, role: 'Projektleiter', rechnungenLesen: true } as AppUser;
+    zeigeMitZustand();
+    const namen = within(screen.getByRole('group', { name: 'Aktionen' })).getAllByRole('option').map((o) => o.textContent);
+    expect(namen).not.toContain('Neue Rechnung');
+    expect(namen).toContain('Neue Baustelle');
+  });
+});
