@@ -132,11 +132,13 @@ describe('Ein neues Startpasswort vergeben', () => {
 
   /*
     K2 (Durchsicht 15.11.2026): die Geräte des Kontos zeigen danach keine
-    Meldungen mehr — die angemeldeten Sitzungen bleiben aber (beim
-    vergessenen Passwort richtig). GEGENPROBE (Erwartung): ohne den Aufruf von
+    Meldungen mehr. GEGENPROBE (Erwartung): ohne den Aufruf von
     `push_geraete_vergessen` in der Function ist der erste Teil rot.
+    Abgemeldet werden sie vom Anmeldedienst selbst (gemessen 15.11.2026 —
+    die Annahme „sie bleiben angemeldet“ war falsch und stand so in Akte,
+    „Passwort ändern“ und Handbuch).
   */
-  it('nimmt die Push-Anmeldungen weg, lässt die Anmeldung auf den Geräten aber stehen', async () => {
+  it('nimmt die Push-Anmeldungen weg — und die Geräte sind abgemeldet', async () => {
     const { uid, name } = await benutzerkonto(BETRIEB);
     const geraet = createClient(API, ANON, { auth: { persistSession: false } });
     const an = await geraet.auth.signInWithPassword({ email: anmeldeAdresse(name), password: 'Anfang-2026!' });
@@ -147,10 +149,10 @@ describe('Ein neues Startpasswort vergeben', () => {
     expect(status).toBe(200);
     const { data } = await admin.from('user_prefs').select('push_tokens').eq('user_id', uid).single();
     expect(data!.push_tokens).toEqual([]);
-    // Bleibt gleich: das angemeldete Gerät liest weiter (Sitzung nicht beendet).
+    // Die Sitzung des Geräts ist beendet: es liest nichts mehr.
     const { data: ich, error } = await geraet.from('users').select('id').eq('id', uid);
     expect(error).toBeNull();
-    expect(ich).toHaveLength(1);
+    expect(ich).toEqual([]);
   }, 120_000);
 
   it('NICHT für ein Konto mit E-Mail-Adresse — dort setzt der Mensch sein Passwort selbst', async () => {

@@ -20,11 +20,12 @@ let lager: Konto;
 beforeAll(async () => {
   await betriebAnlegen(BETRIEB);
   lager = await konto(BETRIEB, 'Verwaltung', 'm9-lager');
+  // Mehrere Zeilen in einem Aufruf: PostgREST setzt fehlende Spalten auf null, nicht auf den Vorgabewert — daher alle Schalter ausdrücklich.
   const { error } = await admin.from('materials').insert([
-    { id: randomUUID(), company_id: BETRIEB, name: 'Fitting alt (Katalog)', unit: 'Stk', stock: 2, lagerartikel: true, mindestmenge: 10, ausgelaufen: true },
+    { id: randomUUID(), company_id: BETRIEB, name: 'Fitting alt (Katalog)', unit: 'Stk', stock: 2, lagerartikel: true, mindestmenge: 10, ausgelaufen: true, ausgelaufen_von_hand: false },
     { id: randomUUID(), company_id: BETRIEB, name: 'Fitting alt (von Hand)', unit: 'Stk', stock: 1, lagerartikel: true, ausgelaufen: true, ausgelaufen_von_hand: true },
-    { id: randomUUID(), company_id: BETRIEB, name: 'Fitting neu', unit: 'Stk', stock: 2, lagerartikel: true, mindestmenge: 10 },
-    { id: randomUUID(), company_id: BETRIEB, name: 'Fitting voll', unit: 'Stk', stock: 20, lagerartikel: true, mindestmenge: 10 },
+    { id: randomUUID(), company_id: BETRIEB, name: 'Fitting neu', unit: 'Stk', stock: 2, lagerartikel: true, mindestmenge: 10, ausgelaufen: false, ausgelaufen_von_hand: false },
+    { id: randomUUID(), company_id: BETRIEB, name: 'Fitting voll', unit: 'Stk', stock: 20, lagerartikel: true, mindestmenge: 10, ausgelaufen: false, ausgelaufen_von_hand: false },
   ]);
   if (error) throw new Error(error.message);
   clientEinreichen(lager.client);

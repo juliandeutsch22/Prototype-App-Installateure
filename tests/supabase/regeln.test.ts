@@ -1195,6 +1195,26 @@ describe('Angebotszaehler — steigend, Neubeginn nur zum Jahreswechsel', () => 
     expect(neu.data).toBeLessThan(412);
   });
 
+  /*
+    DER JAHRESWECHSEL, NACHGESTELLT (Welle 2): ein Betrieb, dessen Kreis im
+    Vorjahr bei 412 stand und der im laufenden Jahr noch keine Nummer
+    gezogen hat — so steht jeder Betrieb am 1. Jänner da.
+  */
+  it('zum Jahreswechsel beginnt er bei genau 1', async () => {
+    await betriebAnlegen('firma-jahreswechsel', 'Firma Jahreswechsel');
+    const leitung = await konto('firma-jahreswechsel', 'Projektleiter', 'jw-leitung');
+    await admin.from('number_counters').upsert({ company_id: 'firma-jahreswechsel', art: 'quotes', jahr: JAHR_WIEN - 1, stand: 412 });
+    const neu = await leitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    expect(neu.data).toBe(1);
+  });
+
+  it('der Jahreswechsel ist kein Freibrief fuer irgendeine Zahl', async () => {
+    // Niemand schlägt eine Zahl vor: nach der 1 kommt die 2, nicht die 413.
+    const leitung = await konto('firma-jahreswechsel', 'Projektleiter', 'jw-leitung-2');
+    const zweite = await leitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    expect(zweite.data).toBe(2);
+  });
+
   it('ein Gerät mit falschem Jahr bekommt keine Nummer (G10)', async () => {
     const { error } = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN + 14 });
     expect(error?.message).toMatch(/nicht das laufende Jahr/);

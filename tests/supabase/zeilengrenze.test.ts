@@ -187,10 +187,15 @@ describe('Der Zweitschlüssel und die Beziehungen ohne Kennung', () => {
       Person und Zeichen, Schlüssel aus allen dreien. Kein Konto liest sie
       direkt; sie kommen gezählt mit dem Verlauf (`nachrichten_verlauf`) —
       nie über `abfragen`.
+
+      `rechnungsversuche_ohne_beleg` (G2, Welle 2): Schlüssel aus Betrieb und
+      Versuch. Kein Konto liest sie; nur `rechnung_versuch_klaeren` und
+      `rechnung_ausstellen` fragen einen einzelnen Versuch — nie über `abfragen`.
     */
     expect(rows.map((r) => r.table_name).sort()).toEqual([
       'ausleitung_dateien', 'basiszinssaetze', 'betrieb_zustand', 'betriebsanlagen', 'geburtsdaten', 'lagerbestaende', 'monthly_stats',
       'nachricht_reaktionen', 'nachrichten_teilnehmer', 'number_counters', 'startseite_wahl', 'system_laeufe', 'user_prefs',
+      'rechnungsversuche_ohne_beleg',
     ].sort());
   }, 60_000);
 

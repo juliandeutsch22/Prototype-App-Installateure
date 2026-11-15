@@ -506,7 +506,7 @@ export default function BenutzerakteView() {
         open={neuesPasswortFragen}
         title="Neues Startpasswort vergeben?"
         confirmLabel="Vergeben"
-        message={`Das bisherige Passwort von ${p.name} gilt danach nicht mehr. Bereits angemeldete Geräte bleiben angemeldet, zeigen aber keine Meldungen mehr, bis die App dort wieder geöffnet wird — wer ein verlorenes Telefon sperren will, deaktiviert das Konto.`}
+        message={`Das bisherige Passwort von ${p.name} gilt danach nicht mehr. Jedes Gerät, auf dem ${p.name} angemeldet ist, wird abgemeldet und zeigt keine Meldungen mehr — angemeldet wird mit dem neuen Startpasswort.`}
         onCancel={() => setNeuesPasswortFragen(false)}
         onConfirm={() => {
           setNeuesPasswortFragen(false);

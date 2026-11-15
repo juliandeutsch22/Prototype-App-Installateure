@@ -72,10 +72,14 @@ describe('A14 — angenommen wird nur mit Position', () => {
     expect((await admin.from('quote_lines').delete().eq('quote_id', id)).error).toBeNull();
     const vorher = await baustellen();
     const schluessel = (l as { schluessel: string }).schluessel;
-    expect((await admin.rpc('angebot_link_abruf', { p_hash: sha(schluessel) })).data).toMatchObject({ zustand: 'gegenstandslos' });
+    // Der Kunde sieht ihn wie jeden gegenstandslosen Link gar nicht (`app.angebot_link_kundensicht`).
+    const abruf = await admin.rpc('angebot_link_abruf', { p_hash: sha(schluessel) });
+    expect(abruf.error).toBeNull();
+    expect(abruf.data).toBeNull();
     const an = await admin.rpc('angebot_link_annehmen', { p_hash: sha(schluessel), p_name: 'Franz Leer', p_unterschrift: BILD, p_bestaetigt: true });
     expect(an.error).toBeNull();
-    expect(an.data).toMatchObject({ zustand: 'gegenstandslos', neu: false });
+    // Wie beim Abruf: ein gegenstandsloser Link antwortet nicht — und nimmt nichts an.
+    expect(an.data).toBeNull();
     expect(await status(id)).toBe('Versendet');
     expect(await baustellen()).toBe(vorher);
   });

@@ -327,7 +327,8 @@ begin
     raise exception 'Diese Person ist im Betrieb nicht aktiv' using errcode = '22023';
   end if;
   -- NEU (P2): dieselbe Person behält ihr Kennzeichen, eine andere bringt ihre Einstufung mit.
-  helfer := case when p_user = a.user_id then coalesce(a.as_helper, false) else einstufung = 'helfer' end;
+  -- Ohne Einstufung ist niemand Helfer: `null = 'helfer'` wäre null, und `as_helper` ist Pflicht.
+  helfer := case when p_user = a.user_id then coalesce(a.as_helper, false) else coalesce(einstufung = 'helfer', false) end;
 
   if app.ist_feiertag(p_datum) then
     raise exception 'Am % ist Feiertag. Wer da arbeitet, wird über „Einsatz planen“ eingeteilt', tag_text using errcode = '23514';

@@ -120,7 +120,8 @@ describe('der Ersatzschein erbt die Verrechnung', () => {
     const alt = await schein('Storniert');
     const r = await rechnung([alt]);
     const ersatz = await schein('Unterschrieben', { ersetzt: alt });
-    await admin.from('invoices').update({ payment_status: 'Storniert' }).eq('id', r);
+    // Ein Storno braucht seinen Grund (`app.storno_braucht_grund`) — ohne ihn bliebe die Rechnung gültig.
+    expect((await admin.from('invoices').update({ payment_status: 'Storniert', cancellation_note: 'Prüfung' }).eq('id', r)).error).toBeNull();
     expect(await offen()).toContain(ersatz);
   });
 

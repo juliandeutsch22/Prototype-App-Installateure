@@ -67,6 +67,8 @@ const OHNE_SPALTE: Record<string, string> = {
   'Invoice.linkedOrders': 'Tabelle `invoice_coverage`',
   'Invoice.linkedWorkSheets': 'Tabelle `invoice_coverage`',
   'Invoice.linkedWartungen': 'Tabelle `invoice_coverage`',
+  // M2 (Welle 2): die gesehenen Rüstlistenpositionen, über ihre feste Kennung.
+  'Invoice.linkedRuestPositionen': 'Tabelle `invoice_coverage`',
   'WorkSheet.zeiten': 'Tabelle `work_sheet_hours`',
   'WorkSheet.material': 'Tabelle `work_sheet_material`',
   'WorkSheet.unterschriften': 'Spalten `unterschrift_*`',

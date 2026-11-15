@@ -870,10 +870,13 @@ describe('Modul aus: nur das Hauptlager (V3)', () => {
 
       // Dieselben Wege ohne Ort: wie bisher, im Hauptlager.
       expect(Number((await max.client.rpc('laden_umschalten', { p_datum: heute, p_baustelle: 'PR-V3', p_position: 'p1', p_an: true, p_von: 'Max' })).data)).toBe(2);
-      expect((await max.client.rpc('retoure_anlegen', { p_beleg: retoure() })).error).toBeNull();
+      const ohneOrt = retoure();
+      expect((await max.client.rpc('retoure_anlegen', { p_beleg: ohneOrt })).error).toBeNull();
+      // Seit M7 (Durchsicht 15.11.2026) bucht die Retoure erst mit der Annahme im Lager.
+      expect((await lager.client.rpc('retoure_annehmen', { p_id: ohneOrt.id })).error).toBeNull();
       expect(Number((await max.client.rpc('anforderung_abschliessen', { p_order: abholen, p_status: 'Abholbereit' })).data)).toBe(1);
       expect(Number((await lager.client.rpc('einkauf_geliefert', { p_ids: [einkauf] })).data)).toBe(1);
-      // 15 − 2 (Haken) + 1 (Retoure) − 3 (Abholen) + 4 (geliefert); das Fahrzeug unberührt.
+      // 15 − 2 (Haken) + 1 (Retoure, angenommen) − 3 (Abholen) + 4 (geliefert); das Fahrzeug unberührt.
       expect([await haupt(m), await amOrt(BUS, m)]).toEqual([15, 5]);
       expect((await admin.from('material_orders').select('lagerort_id').in('id', [abholen, einkauf])).data)
         .toEqual([{ lagerort_id: null }, { lagerort_id: null }]);

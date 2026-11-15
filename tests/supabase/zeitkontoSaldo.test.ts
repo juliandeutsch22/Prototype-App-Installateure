@@ -47,6 +47,8 @@ beforeAll(async () => {
       weekly_target_hours: p.weeklyTargetHours ?? null, work_days: p.workDays, tagessoll: p.tagessoll ?? null,
       yearly_vacation_days: p.yearlyVacationDays ?? 25, app_start_date: p.appStartDate ?? null, eintritt: null,
       initial_overtime: p.initialOvertime ?? 0, fuehrt_zeitkonto: p.fuehrtZeitkonto === true,
+      // Z2: der Bestand kennt einen Ausgetretenen — sein Saldo endet am Austrittstag.
+      austritt: p.austritt ?? null,
     }).eq('id', k.uid);
     if (error) throw new Error(error.message);
     const zeilen = bestand.buchungen.filter((e) => e.userId === p.uid).map((e) => zeile(e, k.uid));

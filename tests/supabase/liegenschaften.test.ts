@@ -540,6 +540,10 @@ describe('Angebot mit Liegenschaft', () => {
     expect(r.error).toBeNull();
     const qid = (r.data as { quote_id: string }).quote_id;
     expect(await zeile('quotes', qid)).toMatchObject({ liegenschaft_id: l.id, top_id: t.id, address: 'Weggasse 2, 1040 Wien' });
+    // Seit A14 (Durchsicht 15.11.2026) wird nur ein Angebot mit Position angenommen.
+    expect((await admin.from('quote_lines').insert({
+      company_id: A, quote_id: qid, position: 0, label: 'Strang tauschen', qty: 1, unit: 'h', unit_price: 70, netto: 70,
+    })).error).toBeNull();
     expect((await chefin.client.rpc('angebot_annehmen', { p_angebot: qid, p_praefix: 'LG', p_abrechnung: 'Regie' })).error).toBeNull();
     expect(await baustelleZu(qid)).toMatchObject({ liegenschaft_id: l.id, top_id: t.id });
   });

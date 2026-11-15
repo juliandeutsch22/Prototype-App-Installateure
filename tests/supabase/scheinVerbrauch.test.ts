@@ -100,7 +100,7 @@ describe('M3: Verbrauch am Schein', () => {
     expect(await scheinVerbrauchBuchen(erster, [])).toBe(false);
     const v = await scheinVerbrauchVorschlag(erster);
     expect(v?.entschieden).toBe(true);
-    expect(v?.gebucht.map((g) => [g.menge, g.ort])).toEqual([[2, 'W-123M3']]);
+    expect(v?.gebucht.map((g) => [g.menge, g.ort])).toEqual([[2, 'Fahrzeug W-123M3']]);
   });
 
   it('der nächste Schein rechnet mit: der gebuchte Verbrauch zählt als ausgegeben', async () => {

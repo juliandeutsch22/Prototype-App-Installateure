@@ -45,7 +45,9 @@ beforeAll(async () => {
   max = await konto(A, 'Mitarbeiter', 'm6max');
   const { error } = await admin.from('materials').insert([
     { id: sonder, company_id: A, name: 'Sonderfitting', unit: 'Stk', stock: 0, lagerartikel: false },
-    { id: rohr, company_id: A, name: 'Kupferrohr 15', unit: 'm', stock: 0, lagerartikel: true },
+    // Geführt heißt hier auch: mit Mindestmenge. Sonst sähe er nach „Gleichbleiben“ (nur über eine
+    // Anforderung geliefert, wieder auf 0) genau wie ein alter Kommissionsartikel aus.
+    { id: rohr, company_id: A, name: 'Kupferrohr 15', unit: 'm', stock: 0, lagerartikel: true, mindestmenge: 5 },
     // Altdaten: so sah ein Kommissionsartikel nach dem alten Weg aus — und einer, den das Lager gezählt hat.
     { id: altKommission, company_id: A, name: 'Alt Kommission', unit: 'Stk', stock: 0, lagerartikel: true },
     { id: altGezaehlt, company_id: A, name: 'Alt gezählt', unit: 'Stk', stock: 0, lagerartikel: true },

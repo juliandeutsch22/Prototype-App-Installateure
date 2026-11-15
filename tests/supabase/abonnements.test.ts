@@ -219,6 +219,32 @@ describe('Jede Änderung, die dazugehört, kommt an', () => {
     expect(ergebnis.richtigDa).toBe(true);
   }, 60_000);
 
+  /*
+    M7 (Welle 2): die Retouren, die auf die Annahme warten — ohne
+    Altersgrenze. Eine Anforderung gehört nicht hinein, auch eine offene nicht.
+  */
+  it('die wartenden Retouren — eine Anforderung bleibt draußen', async () => {
+    clientEinreichen(chef.client);
+    const neu = (materialName: string, transactionType: 'order' | 'return') => async () => {
+      clientEinreichen(berta.client);
+      await anforderungen.createMaterialOrder(BETRIEB, {
+        materialName, quantity: 1, status: 'Offen', processed: false,
+        transactionType, userId: berta.uid, userName: 'Berta',
+        ...(transactionType === 'return' ? { condition: 'neu' } : {}),
+      } as Parameters<typeof anforderungen.createMaterialOrder>[1]);
+      clientEinreichen(chef.client);
+    };
+    const name = (n: string) => (rows: WithId<unknown>[]) =>
+      rows.some((r) => (r as { materialName?: string }).materialName === n);
+    const ergebnis = await bleibtDraussen<WithId<unknown>[]>(
+      (melde, fehler) => anforderungen.subscribeWartendeRetouren(BETRIEB, melde, fehler),
+      { ausloesen: neu('Ventil angefordert', 'order'), erkennen: name('Ventil angefordert') },
+      { ausloesen: neu('Ventil zurück', 'return'), erkennen: name('Ventil zurück') },
+    );
+    expect(ergebnis.falschDa).toBe(false);
+    expect(ergebnis.richtigDa).toBe(true);
+  }, 60_000);
+
   it('der Materialstamm', async () => {
     clientEinreichen(chef.client);
     const ergebnis = await meldetDurch<WithId<unknown>[]>(

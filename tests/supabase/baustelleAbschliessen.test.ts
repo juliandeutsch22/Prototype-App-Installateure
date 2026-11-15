@@ -50,10 +50,10 @@ describe('Was vor dem Abschließen offen ist', () => {
       id: crypto.randomUUID(), company_id: A, project_id: b.id, project_number: b.nummer, customer_name: 'Familie Ende',
       datum: tagPlus(-3), status: 'Entwurf', abrechnung: 'Regie', erstellt_von_uid: monteur.uid, erstellt_von_name: 'M',
     });
-    await admin.from('material_orders').insert({
-      company_id: A, project_id: b.id, project_number: b.nummer, material_name: 'Rohr', quantity: 2, status: 'Offen',
+    expect((await admin.from('material_orders').insert({
+      id: crypto.randomUUID(), company_id: A, project_id: b.id, project_number: b.nummer, material_name: 'Rohr', quantity: 2, status: 'Offen',
       transaction_type: 'order', user_id: monteur.uid, user_name: 'M',
-    });
+    })).error).toBeNull();
     const t = await admin.from('time_entries').insert(buchung(monteur, tagPlus(-3), { project_number: b.nummer, project_id: b.id }));
     expect(t.error).toBeNull();
     const { data, error } = await lage(b.id);

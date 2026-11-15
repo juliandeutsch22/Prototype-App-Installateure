@@ -25,14 +25,16 @@
  * Das neue Passwort ist wieder ein STARTPASSWORT: beim nächsten Anmelden
  * fragt die App nach einem eigenen.
  *
- * ANGEMELDETE GERÄTE BLEIBEN ANGEMELDET. Das ist beim vergessenen Passwort
- * richtig; bei einem verlorenen Telefon ist das Mittel „Konto deaktivieren",
- * das die offenen Sitzungen sofort beendet (`app.konto_sperren`).
+ * ANGEMELDETE GERÄTE WERDEN ABGEMELDET. Das tut der Anmeldedienst selbst,
+ * sobald ein Passwort neu gesetzt wird (gemessen am 15.11.2026, Supabase Auth
+ * v2.197: die Sitzungen des Kontos enden, `app.sitzung_lebt` sagt danach
+ * „nein“). Bis dahin stand hier das Gegenteil.
  *
- * DIE MELDUNGEN ABER NICHT (K2, Durchsicht 15.11.2026): die Push-Anmeldungen
- * des Kontos gehen, BEVOR das Passwort gesetzt wird. Geräte, auf denen die
- * App weiter benutzt wird, melden sich beim nächsten Start selbst wieder an;
- * ein verlorenes Telefon zeigt ab jetzt nichts mehr am Sperrbildschirm. Die
+ * DIE MELDUNGEN GEHEN MIT (K2, Durchsicht 15.11.2026): die Push-Anmeldungen
+ * des Kontos gehen, BEVOR das Passwort gesetzt wird — das Abmelden beendet
+ * nur die Sitzung, die Meldungen kamen sonst weiter. Wer sich mit dem neuen
+ * Passwort anmeldet, meldet das Gerät selbst wieder an; ein verlorenes
+ * Telefon zeigt ab jetzt nichts mehr am Sperrbildschirm. Die
  * Reihenfolge, weil ein Fehlschlag dann nichts halb lässt: scheitert das
  * Abräumen, bleibt auch das alte Passwort, und das Büro versucht es noch
  * einmal.

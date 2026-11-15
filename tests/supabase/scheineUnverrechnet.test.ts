@@ -34,13 +34,21 @@ async function schein(datum: string, p: { status?: string; nummer?: string; betr
   return id;
 }
 
-async function rechnung(nummer: string, p: { art?: string; status?: string; scheine?: string[] } = {}): Promise<string> {
+/*
+  DER LEISTUNGSZEITRAUM IST EIN TAG (15.10.), wenn nichts anderes verlangt ist.
+  Sonst deckte eine gültige Rechnung mit verknüpftem Schein über die Regel
+  „Schein ohne Material im abgerechneten Zeitraum“ (A1, `inAbgerechnetemZeitraum`)
+  jeden früheren Schein der Baustelle — dieselbe Regel prüft der eigene Fall unten.
+*/
+async function rechnung(nummer: string, p: { art?: string; status?: string; scheine?: string[]; von?: string | null; bis?: string } = {}): Promise<string> {
   const id = crypto.randomUUID();
   laufend += 1;
   const { error } = await admin.from('invoices').insert({
     id, company_id: B, invoice_number: `RE-2026-${laufend}`, project_number: nummer, customer_name: 'Familie Huber',
     invoice_date: '2026-10-15', due_date: '2026-10-29', total_netto: 100, total_vat: 20, total_brutto: 120,
     payment_status: p.status ?? 'Offen', art: p.art ?? 'einzel',
+    leistung_von: p.von === undefined ? '2026-10-15' : p.von, leistung_bis: p.bis ?? '2026-10-15',
+    ...(p.status === 'Storniert' ? { cancellation_note: 'Prüfung' } : {}),
   });
   if (error) throw new Error(error.message);
   if (p.scheine?.length) {
@@ -116,6 +124,21 @@ describe('dieselben Regeln wie bisher', () => {
     await rechnung('SU-REGIE', { scheine: [verrechnet] });
     await rechnung('SU-REGIE', { scheine: [freigegeben], status: 'Storniert' });
     expect((await liste()).map((z) => z.id)).toEqual([offen, freigegeben]);
+  });
+
+  it('ein Schein ohne Material im Zeitraum einer Rechnung, die Belege verbraucht hat: verrechnet (A1) — mit Material nicht', async () => {
+    const imZeitraum = await schein('2026-09-10');
+    const davor = await schein('2026-08-31');
+    // Material kommt nur auf einen Entwurf; unterschrieben ist der Schein danach.
+    const mitMaterial = await schein('2026-09-12', { status: 'Entwurf' });
+    expect((await admin.from('work_sheet_material').insert({
+      work_sheet_id: mitMaterial, company_id: B, name: 'Therme', menge: 1, position: 0,
+    })).error).toBeNull();
+    expect((await admin.from('work_sheets').update({ status: 'Unterschrieben' }).eq('id', mitMaterial)).error).toBeNull();
+    const beleg = await schein('2026-09-20');
+    await rechnung('SU-REGIE', { scheine: [beleg], von: '2026-09-01', bis: '2026-09-30' });
+    expect((await liste()).map((z) => z.id)).toEqual([davor, mitMaterial]);
+    void imZeitraum;
   });
 
   it('Pauschale: dieselbe Bedingung wie die Vorschau (`pauschaleVerrechnetMit`)', async () => {
