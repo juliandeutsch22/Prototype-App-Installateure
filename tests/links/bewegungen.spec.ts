@@ -751,3 +751,33 @@ test.describe('U7 Zeiterfassung am Handy', () => {
     await expect(erste).toContainText(/\d{2}\.\d{2}\.\d{4} · /);
   });
 });
+
+test.describe('U8 Anforderungen (Büro) am Handy', () => {
+  const lage = (page: Page) => page.evaluate(() => {
+    const z = document.querySelector('.arbeitszeile:has(> .arbeitszeile-wahl)')!;
+    const r = (s: string) => z.querySelector(s)!.getBoundingClientRect();
+    const zeile = z.getBoundingClientRect();
+    return { textBreite: r('.arbeitszeile-inhalt').width, zeileBreite: zeile.width, textUnten: r('.arbeitszeile-inhalt').bottom, wahlOben: r('.arbeitszeile-wahl').top, schrittOben: r('.arbeitszeile-schritt').top, wahlHoehe: r('.arbeitszeile-wahl').height, schrittHoehe: r('.arbeitszeile-schritt').height };
+  });
+
+  test('der Text steht über die volle Breite, Kästchen und Schritt darunter', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(pfad('/anforderungen'));
+    await expect(page.locator('.arbeitszeile-schritt').first()).toBeVisible();
+    const l = await lage(page);
+    // Vorher rund 165 px zwischen Kästchen und „Aus Lager“.
+    expect(l.textBreite).toBeGreaterThan(l.zeileBreite - 40);
+    expect(l.wahlOben).toBeGreaterThanOrEqual(l.textUnten - 1);
+    expect(l.schrittOben).toBeGreaterThanOrEqual(l.textUnten - 1);
+    expect(Math.min(l.wahlHoehe, l.schrittHoehe)).toBeGreaterThanOrEqual(44);
+  });
+
+  test('gleich geblieben: am Schreibtisch eine Zeile mit Kästchen links, Schritt rechts', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(pfad('/anforderungen'));
+    await expect(page.locator('.arbeitszeile-schritt').first()).toBeVisible();
+    const l = await lage(page);
+    expect(l.wahlOben).toBeLessThan(l.textUnten);
+    expect(l.schrittOben).toBeLessThan(l.textUnten);
+  });
+});
