@@ -1040,8 +1040,17 @@ export interface Material {
    * Handwerksschein oder einer Rechnung stand. Verschwände er, fehlte er
    * rückwirkend in jeder Auswertung. Er bleibt also im Katalog, wird dort
    * gekennzeichnet und für NEUE Erfassungen nicht mehr angeboten.
+   *
+   * Seit dem 15.11.2026 (M1) setzt ihn auch der Betrieb selbst — statt einen
+   * Artikel mit Spuren zu löschen („auslaufen lassen“).
    */
   ausgelaufen?: boolean;
+  /**
+   * Der Betrieb hat ihn selbst auslaufen lassen. Dann holt ihn der Katalog
+   * eines Großhändlers nicht zurück, nur „Wieder aufnehmen“ — die Datenbank
+   * setzt den Merker, die Ansicht liest ihn nur.
+   */
+  ausgelaufenVonHand?: boolean;
   /**
    * Führt der Betrieb den Artikel im Lager (Testbericht 30.09.2026, M30)?
    * Ein Katalogartikel ist es nicht von selbst — nach einem DATANORM-Import

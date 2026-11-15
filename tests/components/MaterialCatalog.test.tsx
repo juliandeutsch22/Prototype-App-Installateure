@@ -64,7 +64,16 @@ vi.mock('@/lib/db/materials', () => ({
   createMaterial: (...a: unknown[]) => anlegen(...a),
   updateMaterial: (...a: unknown[]) => aendern(...a),
   deleteMaterial: vi.fn(),
+  artikelVerwendung: (...a: unknown[]) => verwendung(...a),
+  artikelAuslaufen: (...a: unknown[]) => auslaufen(...a),
 }));
+
+/*
+  WAS AM ARTIKEL HÄNGT (M1) fragt die Ansicht die Datenbank; die Sätze kommen
+  von dort. Vorgabe: nichts — dann ist Löschen wie bisher.
+*/
+const verwendung = vi.fn();
+const auslaufen = vi.fn();
 
 /*
   Der Einkaufspreis kommt seit dem 29.09.2026 NICHT mit dem Artikel, sondern
@@ -125,6 +134,10 @@ beforeEach(() => {
   anlegen.mockResolvedValue('m1');
   aendern.mockReset();
   aendern.mockResolvedValue(undefined);
+  verwendung.mockReset();
+  verwendung.mockResolvedValue({ imWeg: [], ausgelaufen: false, vonHand: false });
+  auslaufen.mockReset();
+  auslaufen.mockResolvedValue(undefined);
   preisLaden = async () => new Map();
 });
 
@@ -551,8 +564,140 @@ describe('Das Formular im Seitenfenster (Linie „Lot“, Regel 8)', () => {
     await nutzer.click(within(screen.getByRole('dialog', { name: 'Material bearbeiten' })).getByRole('button', { name: /Material löschen/ }));
     const frage = await screen.findByRole('dialog', { name: 'Material löschen?' });
     expect(loeschen).not.toHaveBeenCalled();
+    // Bleibt gleich (M1): hängt nichts daran, ist es dieselbe Rückfrage mit „Löschen“ wie bisher.
+    await waitFor(() => expect(within(frage).getByRole('button', { name: 'Löschen' })).toBeEnabled());
     await nutzer.click(within(frage).getByRole('button', { name: 'Löschen' }));
     await waitFor(() => expect(loeschen).toHaveBeenCalledWith('m1'));
+  });
+});
+
+/*
+  LÖSCHEN ODER AUSLAUFEN LASSEN (Durchsicht 15.11.2026, M1). Bis hierher
+  sagte die Rückfrage nur „wird aus dem Katalog entfernt. Bereits erfasste
+  Bestellungen bleiben erhalten“ — und dann nahm das Löschen Bestand und
+  Bewegungsprotokoll still mit oder scheiterte mit einem nichtssagenden Satz.
+  Jetzt nennt sie, was im Weg steht (die Sätze kommen aus der Datenbank), und
+  bietet stattdessen „Auslaufen lassen“ an. GEGENPROBE: ohne die Änderung
+  steht in jedem dieser Fälle die alte Rückfrage mit „Löschen“ da.
+*/
+describe('Löschen oder auslaufen lassen (M1)', () => {
+  const rohr = () => [{ id: 'm1', companyId: 'perl', name: 'Kupferrohr 15 mm', stock: 50, unit: 'm' } as WithId<Material>];
+
+  async function loeschenAntippen(nutzer: ReturnType<typeof userEvent.setup>) {
+    await ersterArtikel(nutzer);
+    await nutzer.click(within(screen.getByRole('dialog', { name: 'Material bearbeiten' })).getByRole('button', { name: /Material löschen/ }));
+  }
+
+  it('nennt, was im Weg steht, und bietet „Auslaufen lassen“ statt „Löschen“', async () => {
+    const loeschen = vi.mocked((await import('@/lib/db/materials')).deleteMaterial);
+    loeschen.mockClear();
+    verwendung.mockResolvedValue({
+      imWeg: ['50 m im Lager', '3 Buchungen im Bewegungsprotokoll', '2 Anforderungen'],
+      ausgelaufen: false,
+      vonHand: false,
+    });
+    materialien = rohr();
+    const nutzer = userEvent.setup();
+    zeige();
+    await loeschenAntippen(nutzer);
+
+    const frage = await screen.findByRole('dialog', { name: 'Auslaufen lassen statt löschen?' });
+    expect(within(frage).getByText(/„Kupferrohr 15 mm“ lässt sich nicht löschen/)).toBeInTheDocument();
+    for (const grund of ['50 m im Lager', '3 Buchungen im Bewegungsprotokoll', '2 Anforderungen']) {
+      expect(within(frage).getByText(grund)).toBeInTheDocument();
+    }
+    // Das alte Versprechen ist weg, und gelöscht werden kann von hier aus nicht.
+    expect(within(frage).queryByText(/Bereits erfasste Bestellungen bleiben erhalten/)).toBeNull();
+    expect(within(frage).queryByRole('button', { name: 'Löschen' })).toBeNull();
+
+    await nutzer.click(within(frage).getByRole('button', { name: 'Auslaufen lassen' }));
+    await waitFor(() => expect(auslaufen).toHaveBeenCalledWith('m1', true));
+    expect(loeschen).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Auslaufen lassen statt löschen?' })).toBeNull());
+  });
+
+  it('hängt nichts daran, sagt die Rückfrage das — und löscht', async () => {
+    const loeschen = vi.mocked((await import('@/lib/db/materials')).deleteMaterial);
+    loeschen.mockClear();
+    materialien = [{ ...rohr()[0], stock: 0 }];
+    const nutzer = userEvent.setup();
+    zeige();
+    await loeschenAntippen(nutzer);
+    const frage = await screen.findByRole('dialog', { name: 'Material löschen?' });
+    expect(await within(frage).findByText(/Daran hängt nichts/)).toBeInTheDocument();
+    expect(verwendung).toHaveBeenCalledWith('m1');
+    await nutzer.click(within(frage).getByRole('button', { name: 'Löschen' }));
+    await waitFor(() => expect(loeschen).toHaveBeenCalledWith('m1'));
+    expect(auslaufen).not.toHaveBeenCalled();
+  });
+
+  it('schon ausgelaufen: sagt, was noch daran hängt, und bietet nur „Schließen“', async () => {
+    const loeschen = vi.mocked((await import('@/lib/db/materials')).deleteMaterial);
+    loeschen.mockClear();
+    verwendung.mockResolvedValue({ imWeg: ['1 Rüstliste'], ausgelaufen: true, vonHand: true });
+    materialien = [{ ...rohr()[0], stock: 0, ausgelaufen: true, ausgelaufenVonHand: true }];
+    const nutzer = userEvent.setup();
+    zeige();
+    await loeschenAntippen(nutzer);
+
+    const frage = await screen.findByRole('dialog', { name: 'Löschen geht nicht' });
+    expect(within(frage).getByText('1 Rüstliste')).toBeInTheDocument();
+    expect(within(frage).getByText(/ist schon ausgelaufen/)).toBeInTheDocument();
+    expect(within(frage).queryByRole('button', { name: 'Löschen' })).toBeNull();
+    expect(within(frage).queryByRole('button', { name: 'Auslaufen lassen' })).toBeNull();
+    await nutzer.click(within(frage).getByRole('button', { name: 'Schließen' }));
+    expect(loeschen).not.toHaveBeenCalled();
+    expect(auslaufen).not.toHaveBeenCalled();
+  });
+
+  it('solange gefragt wird, ist „Löschen“ gesperrt', async () => {
+    let antworten: (v: unknown) => void = () => undefined;
+    verwendung.mockReturnValue(new Promise((r) => { antworten = r; }));
+    materialien = rohr();
+    const nutzer = userEvent.setup();
+    zeige();
+    await loeschenAntippen(nutzer);
+    const frage = await screen.findByRole('dialog', { name: 'Material löschen?' });
+    expect(within(frage).getByRole('button', { name: 'Löschen' })).toBeDisabled();
+    expect(within(frage).getByText(/wird geprüft/)).toBeInTheDocument();
+    antworten({ imWeg: [], ausgelaufen: false, vonHand: false });
+    await waitFor(() => expect(within(frage).getByRole('button', { name: 'Löschen' })).toBeEnabled());
+  });
+
+  it('ließ sich nichts prüfen: Löschen bleibt möglich, die Datenbank prüft selbst', async () => {
+    const loeschen = vi.mocked((await import('@/lib/db/materials')).deleteMaterial);
+    loeschen.mockClear();
+    verwendung.mockRejectedValue(new Error('Failed to fetch'));
+    materialien = rohr();
+    const nutzer = userEvent.setup();
+    zeige();
+    await loeschenAntippen(nutzer);
+    const frage = await screen.findByRole('dialog', { name: 'Material löschen?' });
+    expect(await within(frage).findByText(/ließ sich nicht prüfen/)).toBeInTheDocument();
+    await nutzer.click(within(frage).getByRole('button', { name: 'Löschen' }));
+    await waitFor(() => expect(loeschen).toHaveBeenCalledWith('m1'));
+  });
+
+  it('ein ausgelaufener Artikel lässt sich im Artikel wieder aufnehmen', async () => {
+    materialien = [{ ...rohr()[0], ausgelaufen: true, ausgelaufenVonHand: true }];
+    const nutzer = userEvent.setup();
+    zeige();
+    await ersterArtikel(nutzer);
+    const fenster = screen.getByRole('dialog', { name: 'Material bearbeiten' });
+    expect(within(fenster).getByText(/Vom Betrieb auslaufen gelassen/)).toBeInTheDocument();
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Wieder aufnehmen' }));
+    await waitFor(() => expect(auslaufen).toHaveBeenCalledWith('m1', false));
+    // Danach steht der Hinweis nicht mehr da — der Artikel wird wieder angeboten.
+    await waitFor(() => expect(within(fenster).queryByRole('button', { name: 'Wieder aufnehmen' })).toBeNull());
+  });
+
+  it('Gegenprobe: ein nicht ausgelaufener Artikel hat kein „Wieder aufnehmen“', async () => {
+    materialien = rohr();
+    const nutzer = userEvent.setup();
+    zeige();
+    await ersterArtikel(nutzer);
+    const fenster = screen.getByRole('dialog', { name: 'Material bearbeiten' });
+    expect(within(fenster).queryByRole('button', { name: 'Wieder aufnehmen' })).toBeNull();
   });
 });
 

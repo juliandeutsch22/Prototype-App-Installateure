@@ -75,6 +75,18 @@ export function deleteMaterial(id: string): Promise<void> {
   return pg.deleteMaterial(id);
 }
 
+export type { ArtikelVerwendung } from './pg/materials';
+
+/** Was einem Löschen im Weg stünde, in Worten der Datenbank (M1). */
+export function artikelVerwendung(materialId: string): Promise<pg.ArtikelVerwendung> {
+  return pg.artikelVerwendung(materialId);
+}
+
+/** Auslaufen lassen oder wieder aufnehmen (M1) — siehe `pg.artikelAuslaufen`. */
+export function artikelAuslaufen(materialId: string, aus: boolean): Promise<void> {
+  return pg.artikelAuslaufen(materialId, aus);
+}
+
 export function adjustStock(materialId: string, delta: number): Promise<void> {
   return pg.adjustStock(materialId, delta);
 }
