@@ -94,7 +94,7 @@
     }
     .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen > :not(.daumen-symbol) {
       clip-path: inset(-1.5rem round 2rem);
-      transition: clip-path var(--motion-state) var(--ease-response), color var(--motion-press) var(--ease-response);
+      transition: clip-path var(--motion-state) var(--ease-response), color var(--motion-press) var(--ease-response), opacity var(--motion-state) var(--ease-response);
     }
     .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen[data-eingezogen] > :not(.daumen-symbol) {
       clip-path: inset(0 0 0 calc(100% - 3rem) round 1.5rem);
@@ -102,6 +102,16 @@
     }
     .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen[data-eingezogen] .daumen-symbol { opacity: 1; transform: none; }
     .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen[data-eingezogen] { filter: drop-shadow(0 4px 6px #25231f2e); }
+  }
+
+  /*
+    B12 — WÄHREND DIE SEITE GLEITET (Layout, Liste → Akte) ist `.inhalt`
+    Bezugsrahmen für Festes darin; die schwebende Hauptaktion stünde am
+    Seitenende. Sie wartet, bis die Seite steht, und blendet dann ein.
+  */
+  @media (max-width: 759px) {
+    .inhalt[data-seitenwechsel] .daumen > * { opacity: 0 !important; transition: none !important; }
+    .inhalt .daumen > :not(.daumen-symbol) { transition: opacity var(--motion-state) var(--ease-response); }
   }
 
   /* B8 — das Abbild des Platzhalters steht still: kein zweites Warten, kein Puls. */

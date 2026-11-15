@@ -44,6 +44,8 @@ import { unterlinieHalten } from '@/lib/unterlinie';
 import { platzhalterHalten } from '@/lib/platzhalter';
 import { aufklappenHalten } from '@/lib/aufklappen';
 import { feldfehlerHalten } from '@/lib/feldfehler';
+import { seitenRichtung } from '@/lib/seitenrichtung';
+import { DAUER, EASE } from '@/lib/bewegung';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { offeneVormerkungen } from '@/lib/db/pg/ohneEmpfang';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
@@ -322,13 +324,41 @@ export default function Layout({ children }: { children: ReactNode }) {
   const vorigerPfad = useRef(ort.pathname);
   useLayoutEffect(() => {
     if (ort.pathname === vorigerPfad.current) return;
+    const von = vorigerPfad.current;
     vorigerPfad.current = ort.pathname;
     // Die neue Seite baut ihre Listen auf — das ist kein „diese Zeile ging“.
     zeilenflussRuhe();
     const el = seite.current;
     if (!el || typeof el.animate !== 'function') return;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' });
+    /*
+      LISTE → AKTE VON RECHTS, ZURÜCK VON LINKS (B12, 15.11.2026). Die Akte
+      schiebt sich ein Stück von rechts herein, die Liste kommt beim
+      Zurückgehen von links — die Akte geht gedanklich nach rechts hinaus,
+      wie am iPhone. Ein Stück (3 rem) und mit Einblenden, nicht über die
+      ganze Breite: die alte Seite ist schon weg (kein Abbild — das verlöre
+      Eingaben auf der neuen Seite während der Bewegung, s. Bericht), und
+      eine ganze Breite vor leerem Grund sähe aus wie ein Ladefehler.
+      Alles andere blendet nur ein, wie bisher.
+
+      Solange die Seite gleitet, ist `.inhalt` Bezugsrahmen für alles Feste
+      darin (transform); die schwebende Hauptaktion stünde dann am Ende der
+      Seite statt am Daumen. Sie blendet deshalb erst danach ein
+      (`data-seitenwechsel`, lot-bewegung.css).
+    */
+    const richtung = seitenRichtung(von, ort.pathname);
+    if (richtung === 'quer') {
+      el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' });
+      return;
+    }
+    el.setAttribute('data-seitenwechsel', '');
+    const fahrt = el.animate(
+      [{ opacity: 0, transform: `translateX(${richtung === 'tiefer' ? '' : '-'}3rem)` }, { opacity: 1, transform: 'none' }],
+      { duration: DAUER.fenster, easing: EASE },
+    );
+    const fertig = () => el.removeAttribute('data-seitenwechsel');
+    fahrt.onfinish = fertig;
+    fahrt.oncancel = fertig;
   }, [ort.pathname]);
 
   /*

@@ -664,3 +664,61 @@ test.describe('B11 Fehler am Feld', () => {
   });
 
 });
+
+test.describe('B12 Seitenwechsel Liste → Akte', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  /** Ab jetzt je Bild die waagrechte Lage der Seite aufzeichnen (bis 700 ms nach dem Start: die Akte lädt erst ihren Baustein). */
+  const aufnehmen = (page: Page) => page.evaluate(() => {
+    const w = window as unknown as { seite: number[]; seiteFertig: boolean };
+    w.seite = []; w.seiteFertig = false;
+    const t0 = performance.now();
+    const bild = () => {
+      const t = getComputedStyle(document.querySelector('.inhalt')!).transform;
+      w.seite.push(t === 'none' ? 0 : new DOMMatrixReadOnly(t).m41);
+      if (performance.now() - t0 < 700) requestAnimationFrame(bild); else w.seiteFertig = true;
+    };
+    requestAnimationFrame(bild);
+  });
+  const lesen = async (page: Page) => {
+    await page.waitForFunction(() => (window as unknown as { seiteFertig: boolean }).seiteFertig);
+    return page.evaluate(() => (window as unknown as { seite: number[] }).seite);
+  };
+
+  test('die Akte kommt von rechts, zurück kommt die Liste von links; quer bleibt ohne Seitenbewegung', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/customers'));
+    const zeile = page.locator('li.zeile .zeile-ziel').first();
+    await expect(zeile).toBeVisible();
+    await aufnehmen(page);
+    await zeile.click();
+    const hinein = await lesen(page);
+    expect(Math.max(...hinein)).toBeGreaterThan(10);
+    expect(hinein[hinein.length - 1]).toBe(0);
+    // Die Vorschau führt die Adresse im Speicher: zurück über den Weg der Akte.
+    const zurueckWeg = page.locator('.seitenkopf-zurueck');
+    await expect(zurueckWeg).toBeVisible();
+    await page.waitForTimeout(300);
+    await aufnehmen(page);
+    await zurueckWeg.click();
+    const zurueck = await lesen(page);
+    expect(Math.min(...zurueck)).toBeLessThan(-10);
+    expect(zurueck[zurueck.length - 1]).toBe(0);
+    await page.waitForTimeout(300);
+    // Die schwebende Hauptaktion der Liste ist nach der Bewegung wieder da.
+    await expect(page.locator('.daumen > *').first()).toHaveCSS('opacity', '1');
+    await aufnehmen(page);
+    await page.locator('.unten a, .unten button').filter({ hasText: 'Rechnungen' }).first().click();
+    expect((await lesen(page)).every((x) => x === 0)).toBe(true);
+  });
+
+  test('mit reduzierter Bewegung kein Gleiten', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(pfad('/customers'));
+    const zeile = page.locator('li.zeile .zeile-ziel').first();
+    await expect(zeile).toBeVisible();
+    await aufnehmen(page);
+    await zeile.click();
+    expect((await lesen(page)).every((x) => x === 0)).toBe(true);
+  });
+});
