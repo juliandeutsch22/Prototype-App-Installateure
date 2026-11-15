@@ -52,7 +52,7 @@ import { listWorkSheetsForProject } from '@/lib/db/workSheets';
 import { katalogNachIds, katalogNachNamen } from '@/lib/db/materials';
 import { belegFirma } from '@/lib/db/aussteller';
 import { leistungszeitraum, verrechneteScheine } from './materialPositionen';
-import { alsPosition, materialAbgleich, type Ausgabe, type MaterialVorschlag } from './ausgegebenesMaterial';
+import { alsPosition, ausgabenVerknuepfung, materialAbgleich, type Ausgabe, type MaterialVorschlag } from './ausgegebenesMaterial';
 import {
   nachgetrageneScheine, offeneEntwuerfe, schonOhneScheinVerrechnet,
   type NachgetragenerSchein, type OffenerEntwurf, type SchonOhneSchein,
@@ -1654,16 +1654,16 @@ export default function InvoicesView() {
         }),
         listInvoicesForProject(user.companyId, projectNumber).catch(() => null),
         /*
-          Was das Lager ausgegeben hat — nur bei Regie; Pauschale und
-          Einheitspreis rechnen nach dem Angebot ab. Kommt es nicht, entsteht
+          Was das Lager ausgegeben hat. Vorgeschlagen wird es nur bei Regie;
+          Pauschale und Einheitspreis rechnen nach dem Angebot ab — ihre
+          Schlussrechnung verknüpft es aber (M2), sonst stünde es nach einem
+          Wechsel auf Regie noch einmal im Vorschlag. Kommt es nicht, entsteht
           die Rechnung trotzdem; eine Zeile sagt, was dabei gilt.
         */
-        nachAngebot
-          ? Promise.resolve([] as Ausgabe[])
-          : ausgegebenesMaterial(projectNumber).catch(() => {
-            setAusgabenFehler(true);
-            return [] as Ausgabe[];
-          }),
+        ausgegebenesMaterial(projectNumber).catch(() => {
+          setAusgabenFehler(true);
+          return [] as Ausgabe[];
+        }),
         /*
           Die Wartungen dieser Baustelle — für ihren vereinbarten Preis (M9).
           Kommen sie nicht, entsteht die Rechnung trotzdem; die Zeile oben
@@ -1795,6 +1795,12 @@ export default function InvoicesView() {
           hergeben (Testbericht Runde 6, M8) — siehe `leistungNachAngebot`.
         */
         vorschau.leistung = leistungNachAngebot(vorschau.leistung, baustelle, todayStr());
+        /*
+          M2: die Pauschale enthält das ausgegebene Material — die Rechnung
+          über sie verknüpft es, wie ihre Stunden und Scheine. Die
+          Teilrechnung ist ein Teilbetrag und verbraucht nichts.
+        */
+        if (art !== 'teil') Object.assign(vorschau, ausgabenVerknuepfung(ausgabenAlle));
         await vorschauUebernehmen(vorschau);
         setWartungVorschlaege(ausWartung);
         return;
@@ -1803,11 +1809,16 @@ export default function InvoicesView() {
         AUSGEGEBENES MATERIAL GEGEN DIE SCHEINE. Abgezogen wird, was auf den
         Scheinen dieser Rechnung steht — und auf Entwürfen, die noch
         unterschrieben werden: ihr Material kommt mit dem Schein. Die Tage
-        der Ausgaben gehören in den Leistungszeitraum, denn mit dem
-        Leistungsende dieser Rechnung gelten sie als abgerechnet
-        (`ausgegebenes_material`).
+        der Ausgaben gehören in den Leistungszeitraum, denn diese Rechnung
+        rechnet sie ab (verknüpft je Ausgabe, M2).
       */
       const ausgaben = bis ? ausgabenAlle.filter((a) => a.datum <= bis) : ausgabenAlle;
+      /*
+        VERRECHNET IST, WAS DIESE RECHNUNG SIEHT (M2): jede Ausgabe bis zum
+        Stichtag, übernommen oder nicht. Was danach ausgegeben wird — auch am
+        selben Tag, auch eine spät abgehakte Rüstliste —, bleibt offen.
+      */
+      Object.assign(assembled, ausgabenVerknuepfung(ausgaben));
       /*
         MIT STICHTAG ZÄHLEN AUCH DIE SPÄTEREN SCHEINE (Testbericht Runde 6,
         M4): was sie über das danach Ausgegebene hinaus tragen, kommt mit
@@ -2350,6 +2361,7 @@ export default function InvoicesView() {
         leistungBis,
         linkedEntries: preview.linkedEntries,
         linkedOrders: preview.linkedOrders,
+        linkedRuestPositionen: preview.linkedRuestPositionen,
         // Die Scheine, deren Material eingeflossen ist. Sie sind damit
         // verbraucht — bis diese Rechnung storniert wird.
         linkedWorkSheets: preview.linkedWorkSheets,
@@ -4040,8 +4052,9 @@ export default function InvoicesView() {
             'bis“ zugleich der Stichtag: wer ihn früher setzt, kann bis dahin neu zusammenstellen — ' +
             'spätere Stunden und Scheine bleiben für die nächste Rechnung offen. Darunter steht, was ' +
             'das Lager für die Baustelle ausgegeben hat und auf keinem Schein steht; „Übernehmen“ ' +
-            'setzt es zum Katalogpreis ein. Mit dem Leistungsende dieser Rechnung gilt das ' +
-            'Ausgegebene als abgerechnet, übernommen oder nicht. Ohne Leistungszeitraum entsteht ' +
+            'setzt es zum Katalogpreis ein. Was diese Vorschau zeigt, gilt mit dem Anlegen als ' +
+            'abgerechnet, übernommen oder nicht; was danach ausgegeben wird — auch am selben Tag ' +
+            'oder als spät abgehakte Rüstliste —, kommt auf die nächste Rechnung. Ohne Leistungszeitraum entsteht ' +
             'keine Rechnung (außer der Anzahlung); bei Pauschale und Einheitspreis ist er aus den ' +
             'Belegen vorbelegt, sonst aus Beginn und Ende der Baustelle (höchstens bis heute). Ist ' +
             'die Baustelle aus einer Wartung mit Preis entstanden, steht die Wartung „laut ' +
@@ -4639,9 +4652,9 @@ export default function InvoicesView() {
             für die Baustelle ausgegeben hat — abgeholt, eingeladen, minus
             Retouren und minus dem, was die Scheine schon tragen. Nur ein
             Vorschlag: übernommen wird auf Klick, zum Katalogpreis, und die
-            Zeile bleibt änderbar. Mit dem Leistungsende dieser Rechnung gilt
-            das Ausgegebene als abgerechnet — übernommen oder nicht; so kommt
-            nichts zweimal (siehe `ausgegebenes_material`).
+            Zeile bleibt änderbar. Was die Vorschau zeigt, verknüpft die
+            Rechnung (M2) — übernommen oder nicht; so kommt nichts zweimal,
+            und später Ausgegebenes fällt nicht heraus.
           */}
           {/*
             ENTWÜRFE, DEREN MATERIAL ABGEZOGEN IST (24.10.2026). Es kommt mit
@@ -4667,9 +4680,9 @@ export default function InvoicesView() {
             <div className="mt-4">
               <Hinweiszeile stufe="warn">
                 <p>
-                  Was das Lager für diese Baustelle ausgegeben hat, konnte nicht geladen werden. Mit
-                  dem Leistungsende dieser Rechnung gilt es trotzdem als abgerechnet — bitte erst neu
-                  zusammenstellen.
+                  Was das Lager für diese Baustelle ausgegeben hat, konnte nicht geladen werden. Diese
+                  Rechnung verknüpft deshalb kein Material — es bleibt offen und steht im Vorschlag der
+                  nächsten. Wer es auf dieser haben will, stellt neu zusammen.
                 </p>
               </Hinweiszeile>
             </div>

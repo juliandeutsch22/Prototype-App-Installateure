@@ -63,6 +63,7 @@ export function anzahlungVorschau(args: {
     discount: null,
     linkedEntries: [],
     linkedOrders: [],
+    linkedRuestPositionen: [],
     linkedWorkSheets: [],
     leistung: von && bis ? { von, bis } : null,
     materialOhnePreis: [],

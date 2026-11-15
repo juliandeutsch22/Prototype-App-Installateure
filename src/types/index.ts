@@ -2295,6 +2295,20 @@ export interface Invoice {
    * ihn wieder frei. Ältere Rechnungen tragen das Feld nicht.
    */
   linkedWartungen?: string[];
+  /**
+   * Eingeladene Rüstlistenpositionen, die diese Rechnung als ausgegeben
+   * gesehen hat (M2, 16.11.2026) — über die feste Kennung der Position.
+   * Zusammen mit den Anforderungen und Retouren in `linkedOrders` ist das,
+   * was „verrechnet“ heißt: was eine Rechnung trägt, nicht was vor ihrem
+   * Leistungsende liegt.
+   */
+  linkedRuestPositionen?: string[];
+  /**
+   * Gesetzt von jeder Rechnung dieser Fassung: sie verknüpft das gesehene
+   * Material je Ausgabe. Ältere Rechnungen decken es weiter über ihr
+   * Leistungsende (`app.ausgabe_alt_abgerechnet`).
+   */
+  materialJeAusgabe?: boolean;
   cancellationNote?: string | null;
   cancelledAt?: number | null;
   /**
@@ -2365,7 +2379,7 @@ export interface Invoice {
  * braucht nicht mehr; ein eigener Typ statt leerer Positionen, damit keine
  * Stelle eine Rechnung über nichts für die ganze hält.
  */
-export type RechnungsKopf = Omit<Invoice, 'positions' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets' | 'linkedWartungen'>;
+export type RechnungsKopf = Omit<Invoice, 'positions' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets' | 'linkedWartungen' | 'linkedRuestPositionen'>;
 
 /**
  * Rabatt auf eine Rechnung.

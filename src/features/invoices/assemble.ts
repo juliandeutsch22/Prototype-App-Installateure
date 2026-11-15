@@ -34,7 +34,14 @@ export interface AssembledInvoice {
   totalVat: number;
   totalBrutto: number;
   linkedEntries: string[];
+  /**
+   * Abgeholte Anforderungen und Retouren, die diese Rechnung als ausgegeben
+   * gesehen hat (M2) — gesetzt von der Vorschau, nicht hier: das Material
+   * des Lagers kennt erst sie.
+   */
   linkedOrders: string[];
+  /** Eingeladene Rüstlistenpositionen, ebenso (M2). Fehlt es, sind es keine. */
+  linkedRuestPositionen?: string[];
   /**
    * Die Scheine, die diese Rechnung abrechnet — mit und ohne Material (seit
    * 12.11.2026); die Rechnung merkt sie sich, ein Storno gibt sie frei.
@@ -366,6 +373,7 @@ export function assembleInvoice(
     ...calcTotals(positions, rates.vatRate),
     linkedEntries: eligibleEntries.map((e) => e.id),
     linkedOrders: [],
+    linkedRuestPositionen: [],
     linkedWorkSheets: abgerechnet.map((s) => s.id),
     leistung,
     materialOhnePreis: mat.herkunft.ohnePreis,

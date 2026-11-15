@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { alsPosition, materialAbgleich, materialOhneSchein, type Ausgabe } from '@/features/invoices/ausgegebenesMaterial';
+import { alsPosition, ausgabenVerknuepfung, materialAbgleich, materialOhneSchein, type Ausgabe } from '@/features/invoices/ausgegebenesMaterial';
 import type { Material } from '@/types';
 
 /**
@@ -153,5 +153,23 @@ describe('Spätere Scheine bei Stichtag (M4)', () => {
       ausgegeben: 6, zurueck: 0, aufScheinen: 0, offen: 6, preis: 0,
     }]);
     expect(materialAbgleich([ruest('Pressfitting', 6)], [], KATALOG).spaeterGetragen).toEqual([]);
+  });
+});
+
+/*
+  M2 (16.11.2026): die Rechnung hält fest, welche Ausgaben sie gesehen hat —
+  Anforderungen und Retouren als Anforderung, Rüstlistenpositionen über ihre
+  feste Kennung. Doppelte Zeilen derselben Ausgabe zählen einmal.
+*/
+describe('ausgabenVerknuepfung (M2)', () => {
+  it('teilt nach Belegart und nennt jede Ausgabe einmal', () => {
+    const a = (art: Ausgabe['art'], belegId: string): Ausgabe =>
+      ({ art, belegId, datum: '2026-11-10', materialId: null, name: 'Rohr', einheit: 'm', menge: 1 });
+    expect(ausgabenVerknuepfung([a('anforderung', 'o1'), a('retoure', 'o2'), a('ruestliste', 'p1'), a('anforderung', 'o1')]))
+      .toEqual({ linkedOrders: ['o1', 'o2'], linkedRuestPositionen: ['p1'] });
+  });
+
+  it('ohne Ausgaben verknüpft sie nichts', () => {
+    expect(ausgabenVerknuepfung([])).toEqual({ linkedOrders: [], linkedRuestPositionen: [] });
   });
 });

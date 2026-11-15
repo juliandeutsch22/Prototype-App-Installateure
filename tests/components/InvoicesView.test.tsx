@@ -2243,7 +2243,7 @@ describe('Ausgegebenes Material ohne Schein', () => {
     expect(screen.getByText(/ausgegeben hat, konnte nicht geladen werden/)).toBeInTheDocument();
   });
 
-  it('Gleichbleiben: bei Pauschale wird gar nicht gefragt, und ohne Ausgaben steht nichts da', async () => {
+  it('Gleichbleiben: bei Pauschale wird nichts vorgeschlagen, und ohne Ausgaben steht nichts da', async () => {
     await bisZurVorschau();
     expect(screen.queryByText('Ausgegeben, nicht auf einem Schein')).toBeNull();
     expect(screen.queryByText(/konnte nicht geladen werden/)).toBeNull();
@@ -2252,8 +2252,71 @@ describe('Ausgegebenes Material ohne Schein', () => {
     PROJEKT.billingMode = 'Pauschal';
     ausgabenListe = [ausgabe(5)];
     await bisZurVorschau();
-    expect(ausgabenAbfrage).not.toHaveBeenCalled();
+    // Seit M2 gefragt — die Pauschale verknüpft es —, aber nicht vorgeschlagen.
+    expect(ausgabenAbfrage).toHaveBeenCalled();
     expect(screen.queryByText('Ausgegeben, nicht auf einem Schein')).toBeNull();
+  });
+
+  /*
+    M2 (16.11.2026): VERRECHNET IST, WAS DIE RECHNUNG TRÄGT. Bis dahin galt
+    alles bis zum Leistungsende als abgerechnet, und die Rechnung hielt
+    nichts fest (`linkedOrders` war immer leer). Jetzt verknüpft sie jede
+    Ausgabe ihrer Vorschau — übernommen oder nicht.
+  */
+  it('M2: die Rechnung verknüpft jede Ausgabe ihrer Vorschau — auch die nicht übernommene', async () => {
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    ausgabenListe = [ausgabe(5), ausgabe(4, { art: 'ruestliste', belegId: 'r1' }), ausgabe(-1, { art: 'retoure', belegId: 'x' })];
+    await bisZurVorschau();
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const inv = lege.mock.calls[0][0] as Invoice;
+    expect([...(inv.linkedOrders ?? [])].sort()).toEqual(['a5', 'x']);
+    expect(inv.linkedRuestPositionen).toEqual(['r1']);
+  });
+
+  it('M2: mit Stichtag bleibt die spätere Ausgabe unverknüpft — sie kommt auf die nächste Rechnung', async () => {
+    zeiten = [];
+    katalog = KATALOG;
+    ausgabenListe = [ausgabe(1, { datum: '2026-08-21' }), ausgabe(2, { belegId: 'spaet', datum: '2026-09-12' })];
+    await bisZurVorschau();
+    fireEvent.change(screen.getByLabelText('Leistung bis'), { target: { value: '2026-08-31' } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Bis 31.08.2026 neu zusammenstellen' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Übernehmen' }));
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect((lege.mock.calls[0][0] as Invoice).linkedOrders).toEqual(['a1']);
+  });
+
+  it('M2: die Pauschale verknüpft das Ausgegebene, ihre Teilrechnung nicht', async () => {
+    PROJEKT.billingMode = 'Pauschal';
+    authWert.company.rechnungsarten = true;
+    angebote = [{
+      id: 'q1', quoteNumber: 'AN-2026-0003', status: 'Angenommen', quoteDate: '2026-08-01',
+      positions: [{ label: 'Heizkörper tauschen', qty: 1, unit: 'Pauschale', unitPrice: 200, netto: 200 }],
+      discount: null, subtotalNetto: 200, totalNetto: 200, totalVat: 40, totalBrutto: 240,
+    } as unknown as typeof angebote[number]];
+    ausgabenListe = [ausgabe(5), ausgabe(4, { art: 'ruestliste', belegId: 'r1' })];
+    await bisZurVorschau('schluss');
+    expect(screen.queryByText('Ausgegeben, nicht auf einem Schein')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect((lege.mock.calls[0][0] as Invoice).linkedOrders).toEqual(['a5']);
+    expect((lege.mock.calls[0][0] as Invoice).linkedRuestPositionen).toEqual(['r1']);
+  });
+
+  it('M2: die Teilrechnung auf eine Pauschale verknüpft nichts — sie ist ein Teilbetrag', async () => {
+    PROJEKT.billingMode = 'Pauschal';
+    authWert.company.rechnungsarten = true;
+    ausgabenListe = [ausgabe(5), ausgabe(4, { art: 'ruestliste', belegId: 'r1' })];
+    await bisZurVorschau('teil');
+    const preis = screen.getByLabelText('Einzelpreis Position 1');
+    await userEvent.clear(preis);
+    await userEvent.type(preis, '500');
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect((lege.mock.calls[0][0] as Invoice).linkedOrders ?? []).toEqual([]);
+    expect((lege.mock.calls[0][0] as Invoice).linkedRuestPositionen ?? []).toEqual([]);
   });
 });
 

@@ -98,6 +98,7 @@ export function pauschalVorschau(
       ...calcTotals([zeile], vatRate),
       linkedEntries: [],
       linkedOrders: [],
+      linkedRuestPositionen: [],
       linkedWorkSheets: [],
       materialOhnePreis: [],
       entries: [],
@@ -160,7 +161,7 @@ export function einheitspreisVorschau(
     ...calcTotals(positionen, vatRate, discount),
     materialOhnePreis: [],
     ...(teil
-      ? { linkedEntries: [], linkedOrders: [], linkedWorkSheets: [], entries: [] }
+      ? { linkedEntries: [], linkedOrders: [], linkedRuestPositionen: [], linkedWorkSheets: [], entries: [] }
       : {}),
   };
 }

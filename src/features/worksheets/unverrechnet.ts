@@ -126,12 +126,13 @@ function traegtMaterial(s: Pick<WorkSheet, 'material'>): boolean {
 export function inAbgerechnetemZeitraum(
   scheine: ReadonlyArray<Pick<WorkSheet, 'status' | 'projectNumber' | 'datum' | 'material'> & { id: string }>,
   rechnungen: ReadonlyArray<Pick<Invoice, 'projectNumber' | 'paymentStatus' | 'art' | 'leistungVon' | 'leistungBis' | 'invoiceDate'
-    | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets'>>,
+    | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets' | 'linkedRuestPositionen'>>,
 ): string[] {
   const zeitraeume = new Map<string, Array<{ von?: string; bis: string }>>();
   for (const r of rechnungen) {
     if (r.paymentStatus === 'Storniert' || (r.art ?? 'einzel') === 'anzahlung') continue;
-    const belege = (r.linkedEntries?.length ?? 0) + (r.linkedOrders?.length ?? 0) + (r.linkedWorkSheets?.length ?? 0);
+    const belege = (r.linkedEntries?.length ?? 0) + (r.linkedOrders?.length ?? 0)
+      + (r.linkedRuestPositionen?.length ?? 0) + (r.linkedWorkSheets?.length ?? 0);
     const bis = r.leistungBis || r.invoiceDate;
     const nr = baustelleNorm(r.projectNumber);
     if (belege === 0 || !bis || !nr) continue;

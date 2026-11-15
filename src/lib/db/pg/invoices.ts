@@ -30,6 +30,7 @@ type Position = NonNullable<Invoice['positions']>[number];
 type KopfZeile = Omit<
   Invoice,
   'positions' | 'discount' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets' | 'linkedWartungen'
+  | 'linkedRuestPositionen'
 > & {
   discountMode?: InvoiceDiscount['mode'];
   discountValue?: number;
@@ -50,6 +51,8 @@ const ABDECKUNGSARTEN = [
   ['work_sheet', 'linkedWorkSheets'],
   // Seit M01e: die Wartung über ihre Kennung (Muster in `20261106300000_wartung_abdeckung.sql`).
   ['wartung', 'linkedWartungen'],
+  // Seit M2: die eingeladene Rüstlistenposition (`20261116060000_material_verrechnet_je_ausgabe.sql`).
+  ['ruest_position', 'linkedRuestPositionen'],
 ] as const;
 
 interface Abdeckungszeile {
@@ -658,17 +661,24 @@ function leerAlsNull(wert: string | undefined): string | null | undefined {
  */
 function anlegeDaten(inv: Omit<NewInvoice, 'invoiceNumber'> & { invoiceNumber?: string }) {
   const {
-    positions, discount, linkedEntries, linkedOrders, linkedWorkSheets, linkedWartungen, ...roh
+    positions, discount, linkedEntries, linkedOrders, linkedWorkSheets, linkedWartungen, linkedRuestPositionen, ...roh
   } = inv;
   const kopf = {
     ...roh,
+    /*
+      M2: jede Rechnung dieser Fassung hält ihr Material je Ausgabe fest —
+      auch eine ohne Material, denn sie deckt dann keines über ihr
+      Leistungsende. Hier und nicht in der Maske, damit kein Weg zum
+      Anlegen es vergisst.
+    */
+    materialJeAusgabe: true,
     leistungVon: leerAlsNull(roh.leistungVon),
     leistungBis: leerAlsNull(roh.leistungBis),
   };
 
   const belege: Record<string, string[]> = {};
   for (const [art, feld] of ABDECKUNGSARTEN) {
-    const liste = { linkedEntries, linkedOrders, linkedWorkSheets, linkedWartungen }[feld];
+    const liste = { linkedEntries, linkedOrders, linkedWorkSheets, linkedWartungen, linkedRuestPositionen }[feld];
     if (liste && liste.length > 0) belege[art] = liste;
   }
 

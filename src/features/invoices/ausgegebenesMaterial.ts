@@ -181,6 +181,27 @@ export function materialOhneSchein(
   return materialAbgleich(ausgaben, scheine, katalog, spaeter).vorschlaege;
 }
 
+/**
+ * WAS DIE RECHNUNG ALS VERRECHNET FESTHÄLT (M2, 16.11.2026): jede Ausgabe,
+ * die ihre Vorschau gesehen hat — übernommen oder nicht, wie bisher. Bis
+ * dahin galt alles bis zum Leistungsende als abgerechnet; eine Abholung am
+ * Nachmittag desselben Tags oder eine spät abgehakte Rüstliste fiel so still
+ * aus jeder Rechnung. Anforderungen und Retouren über ihre Kennung, eine
+ * eingeladene Rüstlistenposition über ihre feste Kennung (`beleg_id`).
+ */
+export function ausgabenVerknuepfung(ausgaben: ReadonlyArray<Pick<Ausgabe, 'art' | 'belegId'>>): {
+  linkedOrders: string[];
+  linkedRuestPositionen: string[];
+} {
+  const orders = new Set<string>();
+  const ruest = new Set<string>();
+  for (const a of ausgaben) {
+    if (a.art === 'ruestliste') ruest.add(a.belegId);
+    else orders.add(a.belegId);
+  }
+  return { linkedOrders: [...orders], linkedRuestPositionen: [...ruest] };
+}
+
 /** Der Vorschlag als Rechnungsposition — mit Katalogbezug, wenn es ihn gibt. */
 export function alsPosition(v: MaterialVorschlag): InvoicePosition {
   return {

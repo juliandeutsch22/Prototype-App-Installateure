@@ -659,7 +659,11 @@ describe('Die bestehenden Wege mit Ort', () => {
     const { data } = await buch.client.rpc('ausgegebenes_material', { p_baustelle: 'PR-FZ' });
     const zeilen = (data ?? []) as { art: string; beleg_id: string; menge: number }[];
     // p1 wurde zurückgenommen, p2 ist eingeladen — aus dem Fahrzeug.
-    expect(zeilen.map((z) => [z.art, z.beleg_id, Number(z.menge)])).toEqual([['ruestliste', 'p2', 8]]);
+    // Seit M2 ist `beleg_id` die feste Kennung der Position (`beleg_id` der Tabelle), unter der die Rechnung sie verknüpft.
+    const { data: kopf } = await admin.from('einsatz_material').select('id').eq('company_id', BETRIEB).eq('project_number', 'PR-FZ').single();
+    const { data: p2 } = await admin.from('einsatz_material_positionen').select('beleg_id')
+      .eq('einsatz_material_id', (kopf as { id: string }).id).eq('id', 'p2').single();
+    expect(zeilen.map((z) => [z.art, z.beleg_id, Number(z.menge)])).toEqual([['ruestliste', (p2 as { beleg_id: string }).beleg_id, 8]]);
   });
 
   it('Retoure ins Fahrzeug: der Fahrer in sein eigenes, das Lager in jedes; „gebraucht“ bucht nichts', async () => {
