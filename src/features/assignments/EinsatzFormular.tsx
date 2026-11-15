@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { materialdeckung, type DeckungsDaten } from '@/lib/db/materialdeckung';
-import { einsatzFolgetage, saveAssignments } from '@/lib/db/assignments';
-import { FOLGETAGE_HOECHSTENS, folgeBericht, tagDanach, tageEinschliesslich } from './folgetage';
+import { einsatzFolgetage, einsatzFolgetageEntfernen, saveAssignments } from '@/lib/db/assignments';
+import { FOLGETAGE_HOECHSTENS, entferntBericht, folgeBericht, folgetageGueltig, tagDanach, tageEinschliesslich, type FolgetageStand } from './folgetage';
+import FolgetageWahl from './FolgetageWahl';
 import { saveEinsatzMaterial } from '@/lib/db/einsatzMaterial';
 import { PaarGeaendert, type EinteilungsZeile, type ListenZeile, type PaarGrundlage } from '@/lib/db/paarFassung';
 import { entferntText, RuestlisteFrage, type RuestlisteErgebnis, type RuestlisteWahl as Wahl } from '@/lib/db/ruestlisteFrage';
@@ -299,7 +300,9 @@ export default function EinsatzFormular({
   const [loeschtGerade, setLoeschtGerade] = useState(false);
   /** Beim Letzten des Paares: was mit der Rüstliste geschieht (P2) — gehört zur offenen Rückfrage. */
   const [ruestFrage, setRuestFrage] = useState<{ frage: RuestlisteFrage; wahl: 'aufloesen' | 'behalten' | null } | null>(null);
-  useEffect(() => { setRuestFrage(null); }, [loeschFrage]);
+  /** Beim Löschen: auch an den folgenden Tagen (V13). Gehört zur offenen Rückfrage. */
+  const [loeschFolge, setLoeschFolge] = useState<FolgetageStand>({ an: false, bis: '' });
+  useEffect(() => { setRuestFrage(null); setLoeschFolge({ an: false, bis: '' }); }, [loeschFrage]);
 
   /** Mit welcher Person das Fenster geöffnet wurde — sie kommt zur übernommenen Planung dazu. */
   const startPick = useMemo(() => {
@@ -823,6 +826,13 @@ export default function EinsatzFormular({
             ...(listeMit ? { liste: listenGrundlage } : {}),
           }
         : undefined;
+      /*
+        WAR DAS PAAR SCHON GEPLANT, IST „AUCH AN DEN FOLGENDEN TAGEN“ EIN
+        ÄNDERN (V13): die Folgetage werden angeglichen — wer hier nicht mehr
+        steht, geht auch dort. Beim Anlegen wird nur ergänzt; ein anderes Team
+        an einem Folgetag bliebe sonst nicht stehen.
+      */
+      const angleichen = existingForProject.length > 0;
       await saveAssignments(user.companyId, date, projectNumber, rows, grundlage);
       /*
         DAS EIGENE SPEICHERN IST KEINE FREMDE ÄNDERUNG (P1): was gleich live
@@ -880,11 +890,12 @@ export default function EinsatzFormular({
             ? `Einsatz und Rüstliste gespeichert, ${angefordertJetzt === 1 ? 'eine Anforderung' : `${angefordertJetzt} Anforderungen`} angelegt`
             : 'Einsatz und Rüstliste gespeichert',
           rows,
+          angleichen,
         );
         return;
       }
 
-      await abschliessen('Einsatz gespeichert', rows);
+      await abschliessen('Einsatz gespeichert', rows, angleichen);
     } catch (err) {
       // Abgewiesen, weil das Paar inzwischen anders aussieht: nichts ist geschrieben, der Hinweis fragt.
       if (err instanceof PaarGeaendert) abgewiesen(gespeichertesPaar, err);
@@ -899,7 +910,7 @@ export default function EinsatzFormular({
    * Ging an einem Tag etwas anders, bleibt das Formular mit dem Bericht
    * stehen — schlösse es, wüsste niemand, dass Anton am Dienstag fehlt.
    */
-  async function abschliessen(meldung: string, rows: Parameters<typeof saveAssignments>[3]) {
+  async function abschliessen(meldung: string, rows: Parameters<typeof saveAssignments>[3], angleichen = false) {
     if (!user) return;
     if (!mehrereTage || !bisTag || bisTag <= date) {
       toast.success(meldung);
@@ -908,7 +919,7 @@ export default function EinsatzFormular({
     }
     let bericht: ReturnType<typeof folgeBericht>;
     try {
-      bericht = folgeBericht(await einsatzFolgetage(user.companyId, tagDanach(date), bisTag, projectNumber, rows, nurWerktage));
+      bericht = folgeBericht(await einsatzFolgetage(user.companyId, tagDanach(date), bisTag, projectNumber, rows, nurWerktage, angleichen));
     } catch (err) {
       // Der erste Tag steht — das muss dastehen, sonst plante man ihn ein zweites Mal.
       setError(`${meldung}. Die weiteren Tage sind nicht gespeichert: ${grundAus(err, 'unbekannter Fehler')} Bitte noch einmal speichern.`);
@@ -1221,6 +1232,13 @@ export default function EinsatzFormular({
         <div className="mt-4 space-y-3">
           <CheckboxField id="amehrere" label="Auch an den folgenden Tagen" checked={mehrereTage}
             onChange={(e) => { setMehrereTage(e.target.checked); setFolgeZeilen(null); }} />
+          {mehrereTage && existingForProject.length > 0 && (
+            // V13: am geplanten Paar ist das ein Ändern der Folgetage, kein Ergänzen.
+            <p className="text-sm text-ink-muted">
+              Die folgenden Tage werden angeglichen: wer hier nicht mehr eingeteilt ist, wird dort herausgenommen;
+              Aufgabe und Uhrzeit kommen von hier.
+            </p>
+          )}
           {mehrereTage && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end">
               <InputField id="abis" label="bis einschließlich" type="date" value={bisTag} min={tagDanach(date)}
@@ -1493,11 +1511,14 @@ export default function EinsatzFormular({
                       onWahl={(w) => setRuestFrage((f) => (f ? { ...f, wahl: w } : f))}
                     />
                   )}
+                  {!einblick && (
+                    <FolgetageWahl id="formular-folge" tag={loeschFrage.date} stand={loeschFolge} onStand={setLoeschFolge} />
+                  )}
                   <div className="flex flex-wrap gap-2">
                     <Button
                       variant="danger"
                       loading={loeschtGerade}
-                      disabled={!!ruestFrage && !ruestFrage.wahl}
+                      disabled={(!!ruestFrage && !ruestFrage.wahl) || !folgetageGueltig(loeschFrage.date, loeschFolge)}
                       onClick={async () => {
                         const weg = loeschFrage;
                         setLoeschtGerade(true);
@@ -1537,7 +1558,23 @@ export default function EinsatzFormular({
                               });
                             }
                           }
-                          toast.success(`Einsatz gelöscht${entferntText(ergebnis)}`);
+                          /*
+                            AUCH AN DEN FOLGENDEN TAGEN (V13): dieselbe Person,
+                            dieselbe Baustelle — leer gewordene Tage behalten
+                            ihre Rüstliste nach derselben Wahl wie heute.
+                          */
+                          let folge = '';
+                          if (loeschFolge.an) {
+                            try {
+                              folge = entferntBericht(await einsatzFolgetageEntfernen(
+                                tagDanach(weg.date), loeschFolge.bis, weg.projectNumber, weg.userId,
+                                ruestFrage?.wahl === 'aufloesen' ? 'aufloesen' : 'behalten',
+                              ));
+                            } catch (e) {
+                              folge = ` · an den folgenden Tagen nicht entfernt: ${grundAus(e, 'unbekannter Fehler')}`;
+                            }
+                          }
+                          toast.success(`Einsatz gelöscht${entferntText(ergebnis)}${folge}`);
                         } finally {
                           setLoeschtGerade(false);
                           setLoeschFrage(null);

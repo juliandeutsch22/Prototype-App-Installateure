@@ -6,12 +6,12 @@
  * Datenbank fragt.
  */
 import { describe, it, expect } from 'vitest';
-import { folgeBericht, naechsterWerktag, tagDanach, tageEinschliesslich, FOLGETAGE_HOECHSTENS } from '@/features/assignments/folgetage';
+import { entferntBericht, folgeBericht, naechsterWerktag, tagDanach, tageEinschliesslich, FOLGETAGE_HOECHSTENS } from '@/features/assignments/folgetage';
 import type { FolgeTag } from '@/lib/db/assignments';
 import { textEinsatzplan, willMeldung } from '@shared/notifyLogic';
 
 const tag = (datum: string, ergebnis: FolgeTag['ergebnis'], mehr: Partial<FolgeTag> = {}): FolgeTag => ({
-  datum, ergebnis, eingeteilt: [], abwesend: [], anderswo: [], ...mehr,
+  datum, ergebnis, eingeteilt: [], abwesend: [], anderswo: [], entfernt: [], ...mehr,
 });
 
 describe('Kalendertage', () => {
@@ -105,5 +105,31 @@ describe('Push bei geändertem Einsatzplan', () => {
     expect(willMeldung({}, 'notifyEinsaetze')).toBe(true);
     expect(willMeldung({ notifyEinsaetze: false }, 'notifyEinsaetze')).toBe(false);
     expect(willMeldung(undefined, 'notifyEinsaetze')).toBe(false);
+  });
+});
+
+/*
+  V13 (Durchsicht 15.11.2026): mehrtägig ändern und entfernen. Gegenprobe:
+  vorher gab es weder 'geaendert' noch `entfernt` noch das Entfernen über
+  mehrere Tage.
+*/
+describe('Mehrtägig ändern und entfernen (V13)', () => {
+  it('der Bericht zählt geänderte Tage mit und nennt, wer herausgenommen wurde', () => {
+    const b = folgeBericht([
+      tag('2026-10-06', 'geaendert', { entfernt: ['Bernd'] }),
+      tag('2026-10-07', 'geaendert'),
+      tag('2026-10-08', 'unveraendert'),
+    ]);
+    expect(b.geplant).toBe(2);
+    expect(b.zeilen).toEqual(['Di., 06.10.2026: Bernd herausgenommen']);
+  });
+
+  it('die Meldung nach dem Entfernen nennt Tage und Rüstlisten', () => {
+    expect(entferntBericht([])).toBe(' · an den folgenden Tagen war nichts mehr zu entfernen');
+    expect(entferntBericht([
+      { datum: '2026-10-07', entfernt: 1, ruestliste: null, inArbeit: 0 },
+      { datum: '2026-10-08', entfernt: 2, ruestliste: 'behalten', inArbeit: 0 },
+      { datum: '2026-10-09', entfernt: 2, ruestliste: 'aufgeloest', inArbeit: 0 },
+    ])).toBe(' · dazu an 3 weiteren Tagen; eine Rüstliste aufgelöst; eine Rüstliste bleibt ohne Mannschaft stehen');
   });
 });

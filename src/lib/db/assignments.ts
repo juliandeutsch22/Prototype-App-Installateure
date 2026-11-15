@@ -120,9 +120,18 @@ export type { FolgeTag } from './pg/assignments';
 /** Die Einteilung auf die Folgetage übernehmen — siehe `pg.einsatzFolgetage`. */
 export function einsatzFolgetage(
   companyId: string, von: string, bis: string, projectNumber: string,
-  rows: Parameters<typeof pg.einsatzFolgetage>[4], nurWerktage: boolean,
+  rows: Parameters<typeof pg.einsatzFolgetage>[4], nurWerktage: boolean, angleichen = false,
 ) {
-  return pg.einsatzFolgetage(companyId, von, bis, projectNumber, rows, nurWerktage);
+  return pg.einsatzFolgetage(companyId, von, bis, projectNumber, rows, nurWerktage, angleichen);
+}
+
+export type { FolgeEntfernt } from './pg/assignments';
+
+/** Eine Person oder alle an den Folgetagen herausnehmen — siehe `pg.einsatzFolgetageEntfernen` (V13). */
+export function einsatzFolgetageEntfernen(
+  von: string, bis: string, projectNumber: string, userId: string | null, wahl: 'aufloesen' | 'behalten',
+) {
+  return pg.einsatzFolgetageEntfernen(von, bis, projectNumber, userId, wahl);
 }
 
 /** Einen Einsatz verschieben oder kopieren — siehe `pg.einsatzUmplanen`. */

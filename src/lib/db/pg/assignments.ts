@@ -331,10 +331,12 @@ export async function einsaetzeDerBaustelle(
 /** Was an einem Folgetag geschah (E85) — je Tag eine Zeile der Antwort. */
 export interface FolgeTag {
   datum: string;
-  ergebnis: 'geplant' | 'ergaenzt' | 'unveraendert' | 'wochenende' | 'feiertag' | 'betriebsurlaub' | 'alle_abwesend';
+  ergebnis: 'geplant' | 'ergaenzt' | 'geaendert' | 'unveraendert' | 'wochenende' | 'feiertag' | 'betriebsurlaub' | 'alle_abwesend';
   eingeteilt: string[];
   abwesend: string[];
   anderswo: string[];
+  /** Beim Angleichen (V13): wer an dem Tag herausgenommen wurde. */
+  entfernt: string[];
 }
 
 /**
@@ -344,6 +346,12 @@ export interface FolgeTag {
  */
 export async function einsatzFolgetage(
   companyId: string, von: string, bis: string, projectNumber: string, rows: AssignmentInput[], nurWerktage: boolean,
+  /**
+   * V13: die Folgetage der Einteilung des ersten Tages ANGLEICHEN — wer dort
+   * nicht steht, geht; Aufgabe, Uhrzeit und Kennzeichen von der Zeile der
+   * Person. Ohne: nur ergänzen (Anlegen, wie bisher).
+   */
+  angleichen = false,
 ): Promise<FolgeTag[]> {
   void companyId;
   const zeilen = rows.map(({ date: _tag, projectNumber: _bau, ...rest }) => {
@@ -353,6 +361,7 @@ export async function einsatzFolgetage(
   });
   const { data, error } = await derClient().rpc('einsatz_folgetage', {
     p_von: von, p_bis: bis, p_baustelle: projectNumber, p_zeilen: zeilen, p_nur_werktage: nurWerktage,
+    ...(angleichen ? { p_angleichen: true } : {}),
   });
   if (error) throw new Error(error.message);
   return ((data ?? []) as FolgeTag[]).map((t) => ({
@@ -361,7 +370,33 @@ export async function einsatzFolgetage(
     eingeteilt: t.eingeteilt ?? [],
     abwesend: t.abwesend ?? [],
     anderswo: t.anderswo ?? [],
+    entfernt: t.entfernt ?? [],
   }));
+}
+
+/** Was beim Entfernen über mehrere Tage je Tag geschah (V13). */
+export interface FolgeEntfernt {
+  datum: string;
+  entfernt: number;
+  /** Wurde der Tag leer und hing eine Liste daran: was mit ihr geschah. */
+  ruestliste: 'aufgeloest' | 'behalten' | null;
+  inArbeit: number;
+}
+
+/**
+ * Eine Person (oder alle) an den Tagen eines Zeitraums aus der Einteilung
+ * einer Baustelle nehmen (`einsatz_folgetage_entfernen`, V13). Leer
+ * gewordene Tage behandeln ihre Rüstliste nach `wahl`.
+ */
+export async function einsatzFolgetageEntfernen(
+  von: string, bis: string, projectNumber: string, userId: string | null, wahl: 'aufloesen' | 'behalten',
+): Promise<FolgeEntfernt[]> {
+  const { data, error } = await derClient().rpc('einsatz_folgetage_entfernen', {
+    p_von: von, p_bis: bis, p_baustelle: projectNumber, p_ruestliste: wahl, ...(userId ? { p_user: userId } : {}),
+  });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as { datum: string; entfernt: number; ruestliste: FolgeEntfernt['ruestliste']; in_arbeit: number }[])
+    .map((z) => ({ datum: z.datum, entfernt: z.entfernt, ruestliste: z.ruestliste ?? null, inArbeit: z.in_arbeit ?? 0 }));
 }
 
 /**

@@ -8,10 +8,12 @@ import { listUsers } from '@/lib/db/users';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { listAbwesendInRange, type Abwesenheit } from '@/lib/db/vacations';
 import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
-import { subscribeAssignmentsForMonth, deleteAssignment, einsatzFolgetage } from '@/lib/db/assignments';
+import { subscribeAssignmentsForMonth, deleteAssignment, einsatzFolgetage, einsatzFolgetageEntfernen } from '@/lib/db/assignments';
+import FolgetageWahl from './FolgetageWahl';
 import { entferntText, RuestlisteFrage } from '@/lib/db/ruestlisteFrage';
 import RuestlisteWahl from './RuestlisteWahl';
-import { folgeBericht, naechsterWerktag } from './folgetage';
+import { entferntBericht, folgeBericht, folgetageGueltig, naechsterWerktag, tagDanach, type FolgetageStand } from './folgetage';
+import { grundAus } from '@/lib/fehlerGrund';
 import TermineKarte from '@/features/termine/TermineKarte';
 import { terminKopf } from '@/features/termine/terminText';
 import { todayStr } from '@/lib/time';
@@ -144,7 +146,9 @@ export default function AssignmentsView() {
   const [toDelete, setToDelete] = useState<WithId<Assignment> | null>(null);
   /** Die Frage nach der Rüstliste beim Letzten des Paares (P2) — gehört zum offenen Löschen. */
   const [ruestFrage, setRuestFrage] = useState<{ frage: RuestlisteFrage; wahl: 'aufloesen' | 'behalten' | null } | null>(null);
-  useEffect(() => { setRuestFrage(null); }, [toDelete]);
+  /** Auch an den folgenden Tagen entfernen (V13) — gehört zum offenen Löschen. */
+  const [loeschFolge, setLoeschFolge] = useState<FolgetageStand>({ an: false, bis: '' });
+  useEffect(() => { setRuestFrage(null); setLoeschFolge({ an: false, bis: '' }); }, [toDelete]);
   /** „Termin anlegen“ im ⋯: zählt hoch, die Karte „Termine“ öffnet ihr Fenster. */
   const [terminAnlegen, setTerminAnlegen] = useState(0);
 
@@ -575,7 +579,7 @@ export default function AssignmentsView() {
             ? `Der Einsatz von ${toDelete.userName} am ${fmtDay(toDelete.date)} wird entfernt.`
             : ''
         }
-        gesperrt={!!ruestFrage && !ruestFrage.wahl}
+        gesperrt={(!!ruestFrage && !ruestFrage.wahl) || (!!toDelete && !folgetageGueltig(toDelete.date, loeschFolge))}
         onCancel={() => setToDelete(null)}
         onConfirm={async () => {
           const weg = toDelete;
@@ -584,8 +588,20 @@ export default function AssignmentsView() {
           try {
             // Beim Letzten des Paares fragt die Datenbank nach der Rüstliste (P2).
             const r = await deleteAssignment(weg.id, ruestFrage?.wahl ?? 'fragen');
+            // V13: dieselbe Person auf derselben Baustelle auch an den folgenden Tagen.
+            let folge = '';
+            if (loeschFolge.an) {
+              try {
+                folge = entferntBericht(await einsatzFolgetageEntfernen(
+                  tagDanach(weg.date), loeschFolge.bis, weg.projectNumber, weg.userId,
+                  ruestFrage?.wahl === 'aufloesen' ? 'aufloesen' : 'behalten',
+                ));
+              } catch (e) {
+                folge = ` · an den folgenden Tagen nicht entfernt: ${grundAus(e, 'unbekannter Fehler')}`;
+              }
+            }
             setToDelete(null);
-            toast.success(`Einsatz gelöscht${entferntText(r)}`);
+            toast.success(`Einsatz gelöscht${entferntText(r)}${folge}`);
           } catch (e) {
             if (e instanceof RuestlisteFrage) {
               setRuestFrage({ frage: e, wahl: null });
@@ -596,6 +612,9 @@ export default function AssignmentsView() {
           }
         }}
       >
+        {toDelete && !einblick && (
+          <FolgetageWahl id="tag-folge" tag={toDelete.date} stand={loeschFolge} onStand={setLoeschFolge} />
+        )}
         {ruestFrage && (
           <RuestlisteWahl
             name="tag-ruestliste"

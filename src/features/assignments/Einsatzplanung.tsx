@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { darfTermineSchreiben, isGF } from '@/lib/permissions';
-import { einsatzEntfernen, einsatzUmplanen } from '@/lib/db/assignments';
+import { einsatzEntfernen, einsatzFolgetageEntfernen, einsatzUmplanen } from '@/lib/db/assignments';
+import FolgetageWahl from './FolgetageWahl';
+import { entferntBericht, folgetageGueltig, tagDanach, type FolgetageStand } from './folgetage';
 import { entferntText, RuestlisteFrage, umzugText } from '@/lib/db/ruestlisteFrage';
 import RuestlisteWahl from './RuestlisteWahl';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -130,7 +132,9 @@ export default function Einsatzplanung() {
    * Rüstliste geschehen soll. Gehört zum offenen „Entfernen“ und geht mit ihm.
    */
   const [ruestFrage, setRuestFrage] = useState<{ frage: RuestlisteFrage; wahl: 'aufloesen' | 'behalten' | null } | null>(null);
-  useEffect(() => { setRuestFrage(null); }, [entfernen]);
+  /** Auch an den folgenden Tagen entfernen (V13) — gehört zum offenen „Entfernen“. */
+  const [entfernenFolge, setEntfernenFolge] = useState<FolgetageStand>({ an: false, bis: '' });
+  useEffect(() => { setRuestFrage(null); setEntfernenFolge({ an: false, bis: '' }); }, [entfernen]);
   const toast = useToast();
 
   const tage = useMemo(
@@ -784,7 +788,7 @@ export default function Einsatzplanung() {
         title="Einsatz entfernen?"
         message={entfernen ? `${entfernen.titel} · ${nameVon(entfernen.a.userId)} · ${tagLang(entfernen.a.date)}` : undefined}
         confirmLabel="Entfernen"
-        gesperrt={!!ruestFrage && !ruestFrage.wahl}
+        gesperrt={(!!ruestFrage && !ruestFrage.wahl) || (!!entfernen && !folgetageGueltig(entfernen.a.date, entfernenFolge))}
         onCancel={() => setEntfernen(null)}
         onConfirm={async () => {
           if (!entfernen) return;
@@ -792,7 +796,19 @@ export default function Einsatzplanung() {
           try {
             // Erst fragen lassen: ist es der Letzte und hängt eine Rüstliste daran, kommt die Frage (P2).
             const r = await einsatzEntfernen(a.id, ruestFrage?.wahl ?? 'fragen');
-            toast.success(`${titel} entfernt: ${nameVon(a.userId)}, ${tagLang(a.date)}${entferntText(r)}`);
+            // V13: dieselbe Person auf derselben Baustelle auch an den folgenden Tagen.
+            let folge = '';
+            if (entfernenFolge.an) {
+              try {
+                folge = entferntBericht(await einsatzFolgetageEntfernen(
+                  tagDanach(a.date), entfernenFolge.bis, a.projectNumber, a.userId,
+                  ruestFrage?.wahl === 'aufloesen' ? 'aufloesen' : 'behalten',
+                ));
+              } catch (e) {
+                folge = ` · an den folgenden Tagen nicht entfernt: ${grundAus(e, 'unbekannter Fehler')}`;
+              }
+            }
+            toast.success(`${titel} entfernt: ${nameVon(a.userId)}, ${tagLang(a.date)}${entferntText(r)}${folge}`);
             setEntfernen(null);
           } catch (e) {
             if (e instanceof RuestlisteFrage) {
@@ -803,6 +819,9 @@ export default function Einsatzplanung() {
           }
         }}
       >
+        {entfernen && (
+          <FolgetageWahl id="entfernen-folge" tag={entfernen.a.date} stand={entfernenFolge} onStand={setEntfernenFolge} />
+        )}
         {ruestFrage && (
           <RuestlisteWahl
             name="entfernen-ruestliste"
