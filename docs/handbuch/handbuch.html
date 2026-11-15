@@ -689,7 +689,7 @@
       Belege und Exporte sind dieselben. Alles im Abschnitt
       <a href="#v10">„13. November: Warmes Papier, klare Arbeit“</a>,
       <a href="#e93">„14. November: Ein neues Zeichen“</a> und
-      <a href="#leisten-s1">„15. November: Leisten und Abstände“</a>; die Fehler aus der Durchsicht vom selben Tag stehen unter <a href="#paket2">„Verlässlich speichern, rechnen und melden“</a>.
+      <a href="#leisten-s1">„15. November: Leisten und Abstände“</a>; die Fehler aus der Durchsicht vom selben Tag stehen unter <a href="#paket2">„Verlässlich speichern, rechnen und melden“</a>. Am selben Tag folgten die Pakete 3 bis 8 der Durchsicht: <a href="#paket3">„Planung und Scheine“</a>, <a href="#paket4a">„Zeitkonto ab einem Tag und Monatsabschluss“</a>, <a href="#paket4b">„Urlaub ändern, Zeiten ohne Netz, Exporte“</a>, <a href="#paket5">„Vom Angebot bis zum Abschluss der Baustelle“</a>, <a href="#paket6">„Rechnungen, Zahlungen und Mahnungen“</a>, <a href="#paket7">„Material vom Regal bis zur Rechnung“</a> und <a href="#paket8">„Konto, Anmeldung und Daten“</a>. <strong>Für das Zeitkonto wichtig:</strong> Krank, Urlaub und Freistellung an Tagen ohne Soll zählen nicht mehr, und 0 Wochenstunden heißen kein Soll — einzelne Salden können sich dadurch ändern (<a href="#paket4a">Einzelheiten</a>).
     </p>
     <div class="stempel">
       <span>Stand <b>15.11.2026</b></span>
@@ -698,6 +698,324 @@
       <span><a href="https://app.senklot.at/">app.senklot.at</a></span>
     </div>
   </header>
+
+  <section id="paket8">
+    <div class="abschnittskopf">
+      <h2>15. November: Konto, Anmeldung und Daten</h2>
+      <p class="frage">Ein verlorenes Telefon bekommt keine Meldungen mehr, die nächtliche Sicherung läuft je Betrieb, und „Alle Daten herunterladen“ hat keine Größengrenze mehr. Dazu Zwei-Faktor, „Passwort vergessen“ mit Benutzername und die Löschung einer Person.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Verlorenes Telefon: keine Meldungen mehr<span class="neu">behoben</span></h3>
+        <p>„Auf allen Geräten abmelden“, „Konto deaktivieren“ (auch für einen ganzen Betrieb), ein Rollenwechsel, ein zurückgesetzter zweiter Faktor und ein neues Startpasswort nehmen jetzt auch die Push-Anmeldungen der Geräte mit. Ein verlorenes Telefon zeigt danach keine Meldung und keine Nachrichtenvorschau mehr. Meldungen gehen überhaupt nur noch an aktive Konten eines laufenden Betriebs. Gelingt das Abmelden der Geräte nicht, meldet „Auf allen Geräten abmelden“ das, statt halb abzumelden. Nach einem neuen Startpasswort bleiben angemeldete Geräte angemeldet (wie bisher); für ein verlorenes Telefon gilt weiter „Konto deaktivieren“.</p>
+        <p class="wer">alle · Mein Konto; Geschäftsführung, Administration · Benutzerakte</p>
+      </div>
+      <div class="bereich">
+        <h3>Nächtliche Sicherung je Betrieb<span class="neu">geändert</span></h3>
+        <p>Die nächtliche Ausleitung arbeitet die Betriebe nicht mehr in einem einzigen Aufruf ab, sondern reiht jeden Betrieb ein und sichert ihn in einem eigenen Lauf. Ein Fehlschlag steht nur noch beim betroffenen Betrieb, nicht mehr bei allen. Eine einzelne sehr große Zeile (über 1 MB) bricht die Sicherung nicht mehr ab; bisher scheiterte der Nachtlauf eines solchen Betriebs jede Nacht mit „Datenstand verworfen“.</p>
+        <p class="wer">Geschäftsführung, Administration · Einstellungen → Datensicherung</p>
+      </div>
+      <div class="bereich">
+        <h3>Alle Daten herunterladen und Datenauskunft ohne Größengrenze<span class="neu">behoben</span></h3>
+        <p>„Alle Daten herunterladen“ und die Datenauskunft einer Person kommen jetzt in Teilen; die App zeigt „Teil x von y“ und setzt daraus dieselbe Datei zusammen wie bisher. Bisher brachen beide bei etwa 8 MB ab, etwa bei einem großen Katalog. Die Arbeitskopie auf dem Server liest nur, wer sie angelegt hat, und sie wird nach dem Abholen sofort verworfen.</p>
+        <p class="wer">Geschäftsführung, Administration · Einstellungen → Datensicherung, Benutzerakte</p>
+      </div>
+      <div class="bereich">
+        <h3>Zwei-Faktor-Pflicht: wer betroffen ist<span class="neu">neu</span></h3>
+        <p>Bevor die Zwei-Faktor-Pflicht eingeschaltet wird, nennt ein Dialog alle aus Administration, Geschäftsführung und Buchhaltung, die noch keinen zweiten Faktor haben; solange die Pflicht gilt, steht in der Karte, wer noch fehlt. Wer betroffen und gerade angemeldet ist, kommt spätestens nach einer Minute (oder beim Zurückkehren in die App) zur Einrichtung, statt bis zu einer Stunde eine leere App zu sehen.</p>
+        <p class="wer">Geschäftsführung, Administration · Einstellungen, Karte „Zwei-Faktor-Anmeldung“</p>
+      </div>
+      <div class="bereich">
+        <h3>Zweiten Faktor im Betrieb zurücksetzen<span class="neu">neu</span></h3>
+        <p>Hat jemand das Telefon mit dem zweiten Faktor verloren, setzt ihn die Geschäftsführung oder Administration in der Benutzerakte zurück: „Zweiten Faktor zurücksetzen“, mit Pflichtgrund. Danach sind offene Codes ungültig, die Person ist überall abgemeldet und richtet den Faktor beim nächsten Anmelden neu ein. Das eigene Konto setzt jemand anderer zurück, einen Administrator nur ein Administrator. Der Vorgang steht mit Grund im Verlauf der Akte und in der Datenauskunft.</p>
+        <p class="wer">Geschäftsführung, Administration · Benutzerakte</p>
+      </div>
+      <div class="bereich">
+        <h3>„Passwort vergessen“ mit Benutzername<span class="neu">neu</span></h3>
+        <p>Wer sich mit Benutzernamen anmeldet und „Passwort vergessen“ wählt, schickt jetzt eine Bitte an die Leitung; die Maske sagt, dass die Bitte an den Betrieb ging. Auf der Startseite steht unter „Heute“ „… bittet um ein neues Passwort“ und führt in die Akte. Dort vergibt die Leitung ein neues Startpasswort, das erledigt die Bitte; „Bitte verwerfen“ schließt sie ohne neues Passwort. Wird das Konto oder der Betrieb deaktiviert, schließen sich offene Bitten mit; nach einem späteren Aktivieren tauchen sie nicht wieder auf. Ob es ein Konto gibt, verrät die Maske auch hier nicht.</p>
+        <p class="wer">alle mit Benutzernamen · Anmeldung; Geschäftsführung, Administration · Startseite, Benutzerakte</p>
+      </div>
+      <div class="bereich">
+        <h3>Kleinere Korrekturen<span class="neu">behoben</span></h3>
+        <p><strong>Support „Nur ansehen“</strong> sieht jetzt auch Einkaufsliste, Sicherungsläufe, Lagerbewegungen, Anforderungen, Kontoumstellungen und Termine; bisher waren diese Listen leer. Die Ausnahmen der Zusage und das Änderungsjournal bleiben zu. <strong>Anhänge</strong> in einem offenen Gespräch und in den Meldungen bleiben abrufbar, auch wenn das Fenster länger offen ist. <strong>„Problem melden“</strong> verspricht bei Konten mit Benutzernamen keine Rückfrage per E-Mail mehr; der Support sieht „ohne E-Mail, Rückfrage über den Betrieb“. <strong>Löschen einer Person</strong> nimmt jetzt auch die Umstellungen ihrer Anmeldung mit und nennt sie im Bericht.</p>
+        <p class="wer">Geschäftsführung, Administration, Support · verschiedene Stellen</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="paket7">
+    <div class="abschnittskopf">
+      <h2>15. November: Material vom Regal bis zur Rechnung</h2>
+      <p class="frage">Kein Material fällt mehr still aus der Rechnung, Teilmengen gehen überall, Retouren schreiben erst nach der Annahme gut, und der unterschriebene Schein bucht den Verbrauch. Was schon verrechnet ist, bleibt verrechnet.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Verrechnet ist, was auf der Rechnung steht<span class="neu">behoben</span></h3>
+        <p>Eine neue Rechnung merkt sich jede Materialausgabe ihrer Vorschau — übernommen oder nicht. Was danach ausgegeben wird, auch am selben Tag nach der Rechnung oder als spät abgehakte Rüstliste, steht im Vorschlag der nächsten Rechnung. Bisher galt alles bis zum Leistungsende der letzten Rechnung als verrechnet und kam nie mehr in einen Vorschlag. Ein Storno gibt die Ausgaben wieder frei. Rechnungen von vor dieser Änderung decken weiter, was es beim Anlegen schon gab; Ausgaben, die erst danach entstanden, erscheinen jetzt im Vorschlag, weil sie nie auf einer Rechnung standen.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung · Rechnungen</p>
+      </div>
+      <div class="bereich">
+        <h3>Teilmengen bei Ausgabe und Abholung<span class="neu">neu</span></h3>
+        <p>Das Lager gibt mit „Teilweise aus Lager …“ heraus, was da ist; der Rest bleibt als eigene Anforderung offen oder geht in den Einkauf. „Abgeholt“ fragt nach der Menge. Der Monteur ändert in seinem Fenster die Menge („Menge ändern“) oder zieht die Anforderung zurück („Zurückziehen“), solange sie offen ist. Ändern und Zurückziehen brauchen Netz; anfordern ohne Netz geht wie bisher.</p>
+        <p class="wer">Lager, Büro · Anforderungen; Monteure · Material</p>
+      </div>
+      <div class="bereich">
+        <h3>Einkaufsliste: Storno, Teillieferung, Wareneingang<span class="neu">neu</span></h3>
+        <p>„Geliefert …“ fragt nach Menge und Lieferschein-Nr.; eine Teillieferung lässt den Rest bestellt. „Stornieren …“ nimmt eine Bestellung mit Grund zurück auf „Zu bestellen“. Der Besteller bekommt dazu eine Meldung, und seine Anforderung zeigt „Bestellung storniert (Grund) — wird neu bestellt“, bis wieder bestellt ist. Der <strong>Wareneingang</strong> im Lager und „Geliefert“ sind jetzt ein Weg: der Wareneingang bietet die offenen Bestellungen des Artikels an (Anforderungen zuerst, vorgehakt), sagt vorher, was mit der Menge geschieht, und erledigt sie; nur was darüber hinaus kam, geht frei in den Bestand. Bisher stand eine so gebuchte Lieferung doppelt im Bestand, oder die Anforderung blieb auf „bestellt“.</p>
+        <p class="wer">Lager, Einkauf · Einkaufsliste, Lager; Monteure · Material</p>
+      </div>
+      <div class="bereich">
+        <h3>Retouren: Gutschrift erst nach der Annahme<span class="neu">geändert</span></h3>
+        <p>Bringt ein Monteur Ware „neu“ zurück ins Lager, wird sie erst gutgeschrieben, wenn das Lager sie im Reiter <strong>Retouren</strong> mit „Annehmen …“ bestätigt; der Reiter zählt die wartenden. Mit Baustelle geht höchstens zurück, was dorthin ausgegeben wurde. Steht die Ware schon auf einer Rechnung, sagt das Formular es, und die Rechnungsvorschau nennt die Rückgabe als Anlass für eine Gutschrift an den Kunden. Neu ist <strong>„Zurückgeben“</strong> an jeder abgeholten Anforderung (Lager: „Zurückgeben …“), alles vorbelegt — auch für frei getippte Ware über „… ohne Katalog zurückgeben“ in der Suche; ohne Katalogartikel gibt es keine Gutschrift ins Lager.</p>
+        <p class="wer">Monteure · Material; Lager · Lager → Retouren</p>
+      </div>
+      <div class="bereich">
+        <h3>Verbrauch am Schein bucht das Lager<span class="neu">neu</span></h3>
+        <p>Nach dem Unterschreiben bietet der Schein an, was darauf steht, aber nicht über eine Ausgabe kam: je Lagerartikel aus dem Hauptlager oder einem Fahrzeug abbuchen (das eigene ist vorgewählt) oder nicht abbuchen. Das geht einmal je Schein; danach korrigiert die Inventur. Fahrzeuge stehen nur mit eingeschaltetem Modul Lagerorte zur Wahl. Am Schein steht außerdem <strong>„Für diesen Einsatz eingeladen“</strong>: die abgehakten Positionen der Rüstliste des Scheintags, für jeden im Team, mit „von …“ — als Vorschlag, nichts kommt von selbst auf den Schein. Eine eingeladene Rüstlistenposition reserviert ab dem Haken nichts mehr im Lager, auch wenn beim Einladen nichts gebucht wurde.</p>
+        <p class="wer">Monteure · Handwerksschein; Lager · Lager</p>
+      </div>
+      <div class="bereich">
+        <h3>Kommissionsware und ausgelaufene Artikel<span class="neu">behoben</span></h3>
+        <p>Ware für eine Anforderung, deren Artikel das Lager nicht führt, geht nicht mehr in den Bestand und macht den Artikel nicht zum Lagerartikel. Alte Fälle räumt „Lager › ⋯ › Kommissionsware aus dem Lager nehmen …“ mit Rückfrage auf. Ausgelaufene Artikel erscheinen nirgends mehr als „knapp“ — weder im Lager noch im Katalog oder auf der Startseite — und werden nicht nachbestellt.</p>
+        <p class="wer">Lager, Geschäftsführung · Lager, Startseite</p>
+      </div>
+      <div class="bereich">
+        <h3>Kleinigkeiten<span class="neu">behoben</span></h3>
+        <p>Anforderungen tragen ihre Einheit („×2,5 m“). Eine freie Zeile mit Kommamenge blockiert „Abgeholt“ nicht mehr. Das Lager kann „Beim Händler mitgenommen“ wählen. Scheitert eine Position im Warenkorb, steht der Grund dabei. Die Nachkalkulation rechnet mit dem Einkaufspreis zum Zeitpunkt der Ausgabe; Belege von vor dieser Änderung mit dem Stammpreis.</p>
+        <p class="wer">Lager, Monteure, Geschäftsführung · Material, Nachkalkulation</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="paket6">
+    <div class="abschnittskopf">
+      <h2>15. November: Rechnungen, Zahlungen und Mahnungen</h2>
+      <p class="frage">Zahlstand, Datum und Nummern kommen verlässlich vom Server, eine Rechnung lässt sich in einem Zug stornieren und neu ausstellen, ein Guthaben mit einer neuen Rechnung verrechnen, und Mahnspesen rechnen nach einem Modell. Ausgestellte Belege bleiben, wie sie sind.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Stornieren und neu ausstellen<span class="neu">neu</span></h3>
+        <p>„Stornieren und neu ausstellen …“ an einer Rechnung fragt nach dem Grund und belegt eine neue Rechnung mit allem aus der alten vor: Positionen, Rabatt, Art und Abzüge, Zeitraum, Konditionen, UID, Bestellnummer, Rücklass, Belege samt Wartungen und Leistungsnachweis. Du änderst, was falsch war. Erst beim Ausstellen wird die alte storniert, in einem Zug mit der neuen; geht dabei etwas schief, bleibt die alte gültig. Die Stornorechnung zur alten bleibt ein eigener Schritt, wie bisher.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung · Rechnungen</p>
+      </div>
+      <div class="bereich">
+        <h3>Guthaben mit einer offenen Rechnung verrechnen<span class="neu">neu</span></h3>
+        <p>Hat ein Kunde ein Guthaben (etwa nach einem Storno), steht im Zahlungsdialog „Mit einer offenen Rechnung verrechnen“: Senklot bucht beide Hälften in einem Zug — höchstens das Guthaben und höchstens den Rest der anderen Rechnung desselben Kunden. Nach „Stornieren und neu ausstellen“ wird das gleich angeboten. Eine Umbuchung ist kein Geld: „Bezahlt im Monat“ zählt sie nicht, und der <strong>BMD-Zahlungsstapel</strong> schreibt eine Zeile Debitoren an Debitoren statt einer Bankbewegung. Ob die Kanzlei diese Zeile übernimmt oder den offenen Posten selbst ausgleicht, klärt der Betrieb mit ihr.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung · Rechnungen, Export</p>
+      </div>
+      <div class="bereich">
+        <h3>Mahnung: Spesen und Zinsen nach einem Modell<span class="neu">behoben</span></h3>
+        <p>Jede Mahnung fordert die Mahnspesen aller bisherigen Schreiben, die eigenen und die Verzugszinsen bis zum Mahntag (je Tag auf den Betrag, der an diesem Tag offen war) und nennt, was davon schon bezahlt ist. Einstellung, Mahndialog, Schreiben und Verbuchung rechnen dieselbe Summe; was der Brief verlangt, lässt sich beim Zahlungseingang immer ganz verbuchen. Bisher konnte nach einer Teilzahlung ein Teil davon als Guthaben stehen bleiben. Die Pauschale nach § 458 UGB steht einmal, auf der zweiten Stufe. Mahnungen von vor dieser Änderung werden wie bisher verbucht.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung · Mahnungen</p>
+      </div>
+      <div class="bereich">
+        <h3>Datum und Nummern vom Server<span class="neu">behoben</span></h3>
+        <p>Rechnungsdatum, Nummernjahr und Mahntag nimmt Senklot vom Server, ebenso das Jahr der Angebots- und Baustellennummern. Ein Gerät mit falscher Uhr bekommt eine Meldung; es entsteht kein Beleg, und keine Nummer wird verbraucht. Rechnungsnummern entstehen nur noch zusammen mit der Rechnung oder Stornorechnung, die sie trägt — es gibt keinen Weg mehr, eine Rechnungsnummer zu ziehen, ohne dass ein Beleg entsteht. Ein abweichendes Rechnungsdatum bietet die Oberfläche bewusst nicht an.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung · Rechnungen, Angebote, Baustellen</p>
+      </div>
+      <div class="bereich">
+        <h3>Zahlstand stimmt auch bei gleichzeitigen Eingängen<span class="neu">behoben</span></h3>
+        <p>Werden zwei Zahlungen gleichzeitig erfasst oder fällt eine Zahlung mit einem Storno zusammen, ergibt sich immer der richtige Zahlstand. Bisher konnte der zweite Eingang den ersten überschreiben (100 € und 50 € ergaben „bezahlt 50 €“), oder „Bezahlt“ stand über „Storniert“. Eine <strong>Schlussrechnung</strong>, die nach dem Abzug der Anzahlungen nichts mehr fordert, steht gleich nach dem Ausstellen als „Bezahlt“; ältere solche Rechnungen bleiben „Offen“, bis eine Zahlung sie neu rechnet.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung · Rechnungen</p>
+      </div>
+      <div class="bereich">
+        <h3>Abgebrochene Antwort beim Erstellen<span class="neu">behoben</span></h3>
+        <p>Bricht die Antwort beim Erstellen einer Rechnung ab, klärt Senklot von selbst — sofort, bei wiederkehrendem Netz und auch nach dem Neuladen —, ob die Rechnung entstanden ist. Ist sie entstanden, schließt sich die Vorschau, und „PDF laden“ holt den gespeicherten Beleg. Ist sie nicht entstanden, kann sofort neu erstellt werden; die Angaben bleiben. „Jetzt prüfen“ stößt die Klärung von Hand an. Bisher blieb das Anlegen gesperrt, bis die Seite neu geladen war, und die Angaben waren dabei weg.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung · Rechnungen</p>
+      </div>
+      <div class="bereich">
+        <h3>Beleg und Auswertungen<span class="neu">behoben</span></h3>
+        <p>Der angehängte <strong>Leistungsnachweis</strong> gehört jetzt zur Rechnung: „PDF erneut laden“ und das Belegarchiv geben ihn so aus, wie er hinausging (ältere Rechnungen ohne). Die <strong>Stornorechnung</strong> nennt dauerhaft, was beim Ausstellen bezahlt war, statt ihren Text beim Nachdruck dem heutigen Stand anzupassen. Die <strong>Nachkalkulation</strong> zieht gewährten Skonto vom Erlös ab und nennt ihn. Die <strong>Lückenprüfung</strong> im Export und im Belegarchiv erkennt auch eine Lücke zum vorigen Zeitraum. <strong>„Bezahlt im Monat“</strong> zählt keine Zahlung auf eine stornierte Rechnung.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung · Rechnungen, Belegarchiv, Nachkalkulation, Export</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="paket5">
+    <div class="abschnittskopf">
+      <h2>15. November: Vom Angebot bis zum Abschluss der Baustelle</h2>
+      <p class="frage">Die Kette vom Eingang über das Angebot zur Baustelle hat jetzt Rückwege und nächste Schritte: Annahme zurücknehmen, Nachtrag an eine laufende Baustelle, geführter Abschluss, „Neu für diesen Kunden“. Angaben aus dem Eingang gehen nicht mehr verloren.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Annahme zurücknehmen<span class="neu">neu</span></h3>
+        <p>Ein angenommenes Angebot lässt sich in seiner Akte unter ⋯ mit „Annahme zurücknehmen“ zurücknehmen, etwa nach einem Fehlklick oder einem Rücktritt des Kunden; ein Grund ist Pflicht. Hängt an der entstandenen Baustelle noch nichts, wird sie gelöscht, sonst abgeschlossen. War das Angebot ein Nachtrag, wird nur der Nachtrag von der Baustelle gelöst und ihr Stundenbudget sinkt um seine Stunden; die Baustelle selbst bleibt. Das Angebot steht danach wieder auf „Versendet“. Der Löschdialog der Baustellenliste nennt jetzt, was wirklich an einer Baustelle hängt.</p>
+        <p class="wer">Geschäftsführung, Buchhaltung · Angebote, Baustellen</p>
+      </div>
+      <div class="bereich">
+        <h3>Nachtrag an eine laufende Baustelle<span class="neu">neu</span></h3>
+        <p>Beim Annehmen lässt sich wählen: neue Baustelle oder eine laufende Baustelle desselben Kunden. Budget und Stunden werden addiert, eine abgeschlossene Baustelle öffnet sich wieder; eine zweite Baustelle entsteht nicht. Aus der Baustellenakte beginnt „Nachtrag“ ein Angebot mit dieser Baustelle als Ziel. Die Pauschalrechnung fasst Angebot und Nachträge zusammen.</p>
+        <p class="wer">Geschäftsführung, Buchhaltung · Angebote, Baustellenakte</p>
+      </div>
+      <div class="bereich">
+        <h3>Versenden, Annehmen und Links<span class="neu">behoben</span></h3>
+        <p>Versendet, verlinkt und angenommen wird nur ein Angebot mit mindestens einer Position (Titel und Text zählen nicht) — an jedem Weg, auch über einen alten Link. „Als versendet markieren“ und „Als abgelehnt markieren“ fragen vorher nach. „Zurück in den Entwurf“ geht, solange der Kunde den Link nicht geöffnet hat; offene Links werden dabei widerrufen. Eine im Büro vermerkte Ablehnung lässt sich mit „Ablehnung zurücknehmen“ aufheben. Gibt es eine <strong>neuere Fassung</strong>, gilt der Link der alten nicht mehr: der Kunde sieht „Es gibt eine neuere Fassung“, das Büro sieht es am Link. Beim Versand lässt sich das Angebotsdatum auf heute setzen.</p>
+        <p class="wer">Geschäftsführung, Buchhaltung · Angebote; Kunden · Annahme-Link</p>
+      </div>
+      <div class="bereich">
+        <h3>„Offen“ in der Angebotsliste<span class="neu">behoben</span></h3>
+        <p>„Offen“ zeigt alle Entwürfe und versendeten Angebote aus der Datenbank, auch ältere mit abgelaufener Frist; die Zahl daneben kommt aus derselben Abfrage. Bisher fielen Angebote heraus, die nicht unter den zuletzt geladenen waren.</p>
+        <p class="wer">Geschäftsführung, Buchhaltung · Angebote</p>
+      </div>
+      <div class="bereich">
+        <h3>Angaben aus dem Eingang gehen mit<span class="neu">behoben</span></h3>
+        <p>Ansprechpartner vor Ort, Dringlichkeit und Wunschtermin des Eingangs gehen ins Angebot und weiter in die Baustelle und stehen dort sichtbar. Beim Ablehnen eines Eingangs fällt eine künftige Besichtigung weg. Der Kundenimport übernimmt Kundenart, Kundennummer und Anschrift in eigenen Feldern; eine schon vergebene Kundennummer landet in der Notiz. Eine Namensänderung des Kunden zieht in Wartungen und Angebotsentwürfe nach.</p>
+        <p class="wer">wer Eingänge, Angebote und Kunden pflegt · Auftragseingang, Angebote, Kunden</p>
+      </div>
+      <div class="bereich">
+        <h3>Baustelle geführt abschließen<span class="neu">neu</span></h3>
+        <p>„Abschließen“ (Akte ⋯, Baustellenliste) zeigt vorher, was noch offen ist — kommende Einsätze, Schein-Entwürfe, Anforderungen, ausgegebenes und unverrechnetes Material, unverrechnete Leistung —, jeweils mit dem Weg dorthin. Kommende Einsätze müssen vorher umgeplant oder entfernt werden; alles andere darf bleiben („Trotzdem abschließen“). Angeboten wird der Schritt auch nach einer bezahlten Schlussrechnung und nach „Wartung erledigt“. Auswahlfelder für Baustellen suchen auf dem Server und finden auch abgeschlossene; eine Grenze von 500 trägt dort nicht mehr.</p>
+        <p class="wer">Geschäftsführung, Projektleitung, Buchhaltung · Baustellen, Rechnungen, Wartungen</p>
+      </div>
+      <div class="bereich">
+        <h3>Wartungen<span class="neu">behoben</span></h3>
+        <p>Eine Wartung mit eingeplanter Baustelle bleibt unter „Eingeplante Wartungen“ auf der Startseite der Projektleitung. Ist ein Schein der Baustelle unterschrieben oder die Baustelle abgeschlossen, fragt die Startseite der Leitung „Wartung erledigt?“ und öffnet die Wartung mit dem Datum vorbelegt; gebucht wird erst mit deiner Bestätigung. Beide Zeilen lassen sich in „Startseite einrichten“ ausblenden. „Erledigt“ ohne Baustelle trägt die Ausführung jetzt auch ohne Baustelle ein; bisher erbte sie still die Baustelle der vorigen Wartung, und dort ließ sich eine zweite Wartungsrechnung stellen.</p>
+        <p class="wer">Projektleitung, Geschäftsführung · Startseite, Wartungen</p>
+      </div>
+      <div class="bereich">
+        <h3>Kundenakte und Liegenschaftsakte<span class="neu">neu</span></h3>
+        <p>Unter ⋯ steht „Neu für diesen Kunden“: neuer Eingang, neues Angebot, neue Baustelle oder neue Wartung, mit Kunde und Ort vorbelegt (je nach Recht und Modul); ebenso in der Liegenschaftsakte. Die Kundenakte zeigt alle Rechnungen des Kunden, auch bei vielen Baustellen, und die Baustellen vollständig zum Nachladen. Nach einer Annahme, einer neuen Baustelle oder einer Wartung trägt die Meldung den nächsten Schritt, etwa „Einsatz planen“.</p>
+        <p class="wer">Büro, Geschäftsführung · Kunden, Liegenschaften</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="paket4b">
+    <div class="abschnittskopf">
+      <h2>15. November: Urlaub ändern, Zeiten ohne Netz, Exporte</h2>
+      <p class="frage">Genehmigter Urlaub lässt sich kürzen und zurücknehmen, ohne Netz gebuchte Zeiten gehen nicht mehr verloren, die Exporte runden gleich, und der Stundennachweis für Kunden kommt aus der Akte.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Genehmigten Urlaub kürzen oder zurücknehmen<span class="neu">neu</span></h3>
+        <p>Auf der Seite Urlaub steht für alle, die entscheiden, die Liste „Genehmigt, noch nicht vorbei“. Eine Zeile öffnet den Antrag mit Verlauf: „Kürzen“ (später weg, früher zurück oder einen Tag streichen, mit Vorschau) oder „Zurücknehmen“, jeweils mit Grund. Der Grund steht im Verlauf und geht als Meldung an die Person. Ein gestrichener Tag mitten im Urlaub teilt den Antrag in zwei. Den eigenen Urlaub ändert jemand anderer. „Urlaubsantrag“ an einem Urlaubstag öffnet genau diesen Antrag; ohne Modul Urlaub steht dort neben „Zurücknehmen“ ein „Kürzen“. Auch die Meldung zu einer Entscheidung (genehmigt, abgelehnt, zurückgenommen) öffnet jetzt den Antrag. Betriebsurlaub, Urlaub zu einem Sonderurlaub und stundenweiser Zeitausgleich werden nicht gekürzt, sondern über ihren eigenen Weg geändert oder ganz zurückgenommen.</p>
+        <p class="wer">Geschäftsführung, Buchhaltung, wer Urlaub entscheidet · Urlaub</p>
+      </div>
+      <div class="bereich">
+        <h3>Zeiten ohne Netz: nichts geht verloren<span class="neu">behoben</span></h3>
+        <p>Ohne Netz gebuchte Zeiten stehen in „Meine Einträge“ unter „Noch nicht beim Server“ als „wartet auf Verbindung“. Antwortet der Server nur nicht, versucht die App es ohne Grenze weiter; „Nicht senden“ macht daraus einen Entwurf. Lehnt der Server eine Buchung ab, bleibt sie als Entwurf mit Tag und Grund stehen; antippen öffnet sie zum Korrigieren. Bisher war eine abgelehnte Buchung weg, nach etwa fünf Minuten Serverstörung auch eine gültige. Die Prüfung auf Doppelbuchungen zählt die wartenden Buchungen mit. Entwürfe liegen auf dem Gerät, wie beim Timer.</p>
+        <p class="wer">alle, die Zeiten buchen · Zeiterfassung</p>
+      </div>
+      <div class="bereich">
+        <h3>Exporte runden gleich<span class="neu">behoben</span></h3>
+        <p>Alle Exporte runden Minuten nach derselben Regel: Spalten mit einer Summe darunter gehen genau auf diese Summe auf (bisher 153,40 gegen 153,33). Deshalb kann eine Zeile 0,01 Std. von einer Nachbarzeile mit gleicher Dauer abweichen (7,67 und 7,66 für 7:40). Personen-Exporte laden nur noch die Buchungen dieser Person. Ein Zeitausgleich, für den kein Tag frei ist, wird nicht mehr genehmigt. Lädt der genommene Urlaub nicht, sagt die Mitarbeiterübersicht das mit „Erneut versuchen“, der Resturlaub heißt „unbekannt“, und die CSV wartet, bis er geladen ist — bisher rechnete sie still mit null Tagen.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung · Mitarbeiterübersicht, Exporte</p>
+      </div>
+      <div class="bereich">
+        <h3>Stundennachweis für Kunden<span class="neu">neu</span></h3>
+        <p>„Stundennachweis“ im ⋯ der Baustellen- oder Kundenakte: Zeitraum wählen; das PDF zeigt nur die Arbeitszeit auf dieser Baustelle bzw. den Baustellen des Kunden, alle Personen, mit Einstufung, Zuschlag und Tätigkeit — ohne Abwesenheiten, andere Aufträge und freie Zeitfelder. Der Nachweis einer Person in der Mitarbeiterübersicht heißt jetzt „für die Lohnverrechnung“; er ist nicht für Kunden gedacht.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung, Administration · Baustellenakte, Kundenakte</p>
+      </div>
+      <div class="bereich">
+        <h3>Heute im Dienst<span class="neu">neu</span></h3>
+        <p>Oben in der Mitarbeiterübersicht zeigt „Heute im Dienst“, wer gerade mit Start/Stopp einen Arbeitstag laufen hat — seit wann, auf welcher Baustelle, ob in der Pause, und die Arbeitszeit bisher. Ein Arbeitstag, der vor heute begann, steht mit seinem Datum da — meist ein vergessenes „Stopp“; beenden kann ihn nur die Person. Die Zeile öffnet die Person.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung · Mitarbeiterübersicht</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="paket4a">
+    <div class="abschnittskopf">
+      <h2>15. November: Zeitkonto ab einem Tag und Monatsabschluss</h2>
+      <p class="frage">Arbeitszeit und Urlaubsanspruch gelten ab einem Tag statt rückwirkend, der Saldo endet am Austrittstag, und auf Wunsch lässt sich ein Monat abschließen. Zwei Rechenregeln sind jetzt in Monatsauswertung und Gesamtsaldo gleich — das kann einzelne Salden ändern.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Krank, Urlaub und Freistellung an freien Tagen zählen nicht<span class="neu">geändert</span></h3>
+        <p>Eine Abwesenheit wird nur noch an einem Tag mit Soll gutgeschrieben, also an einem Arbeitstag der Person, der kein Feiertag ist. Die Monatsauswertung rechnete schon so; der Gesamtsaldo schrieb bisher auch für Krank am Samstag oder Urlaub am Feiertag das Tagessoll gut, und beide Zahlen widersprachen sich. Der Tag bleibt als gebucht stehen. <strong>Worauf achten:</strong> Krankmeldung, Urlaub und Freistellung tragen ohnehin nur Arbeitstage ein. Betroffen sind Tage, die von Hand, aus einem Import oder vor einem Wechsel der Arbeitstage an einem freien Tag gebucht wurden. Dort sinkt der Gesamtsaldo um das Tagessoll dieses Tages. Bitte nach der Auslieferung die Salden der Personen ansehen, bei denen das vorkommen kann, und solche Tage bei Bedarf berichtigen.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung · Mitarbeiterübersicht, Zeiterfassung</p>
+      </div>
+      <div class="bereich">
+        <h3>0 Wochenstunden heißt kein Soll<span class="neu">geändert</span></h3>
+        <p>Trägt die Akte 0 Wochenstunden (etwa geringfügig ohne feste Zeit oder ein ruhendes Dienstverhältnis), hat die Person kein Soll: keine Lücken, keine Minusstunden, keine Gutschrift für Abwesenheiten. Bisher rechneten App und Datenbank eine eingetragene 0 still als 40 Stunden — rund 170 Minusstunden im Monat. Ein leeres Feld gilt weiter als 40 Stunden.</p>
+        <p class="wer">Geschäftsführung, Administration · Benutzerakte</p>
+      </div>
+      <div class="bereich">
+        <h3>Arbeitszeit und Urlaubsanspruch ab einem Tag<span class="neu">neu</span></h3>
+        <p>Wochenstunden, Arbeitstage, Tagessoll und Urlaubstage ändern sich in der Benutzerakte in der Karte „Arbeitszeit und Anspruch ab einem Tag“ mit „Arbeitszeit ändern“ bzw. „Urlaubsanspruch ändern“. Eine Arbeitszeit gilt ab dem gewählten Tag, ein Urlaubsanspruch ab einem Urlaubsjahr; was davor liegt, bleibt. Ein Tag vor dem Saldo-Start berichtigt den Anfang; für einen Teil des Jahres gilt weiter die Anpassung des Anspruchs. Bisher rechnete jede Änderung rückwirkend ab dem Saldo-Start (40 → 30 Std. veränderte jeden alten Monat). Soll, Urlaub, Monatsauswertung, Überstunden, Teilzeit-Mehrarbeit und die Arbeitszeitgrenzen rechnen jeden Tag bzw. jede Woche mit der Arbeitszeit, die damals galt; ein Urlaub über den Jahreswechsel verteilt sich mit den Arbeitstagen der jeweiligen Tage. Das Formular der Akte selbst hat diese Felder nicht mehr. Solange niemand etwas ändert, bleiben alle Salden gleich.</p>
+        <p class="wer">Geschäftsführung, Administration · Benutzerakte</p>
+      </div>
+      <div class="bereich">
+        <h3>Saldo schneller<span class="neu">geändert</span></h3>
+        <p>Zeiterfassung, Startseite, Urlaub und Mitarbeiterübersicht holen den Saldo als eine Zahl aus der Datenbank, statt alle Buchungen seit dem Eintritt in den Browser zu laden. Nach jeder Buchung lädt die Mitarbeiterübersicht nicht mehr den ganzen Betrieb nach. Gerechnet wird dasselbe.</p>
+        <p class="wer">alle mit Zeitkonto · Zeiterfassung, Startseite, Urlaub, Mitarbeiterübersicht</p>
+      </div>
+      <div class="bereich">
+        <h3>Austritt in einem Zug<span class="neu">neu</span></h3>
+        <p>Beim Deaktivieren zeigt der Dialog „Konto deaktivieren“, was nach dem letzten Arbeitstag noch gebucht, genehmigt, beantragt, eingeplant oder als Zeitsitzung offen ist, jeweils mit einem Link zur Stelle, an der es erledigt wird; danach steht es als Karte in der Akte. Soll und Saldo enden am Austrittstag; Urlaub und Krank danach zählen nicht mehr. Eine laufende Zeitsitzung beendet das Büro dort, erst nach dem Austritt. „Konto aktivieren“ nach einem Austritt ist ein Wiedereintritt mit neuem Eintritt, Saldo-Start und Startwerten.</p>
+        <p class="wer">Geschäftsführung, Administration · Benutzerakte</p>
+      </div>
+      <div class="bereich">
+        <h3>Rest am Monatsende<span class="neu">geändert</span></h3>
+        <p>Mitarbeiterübersicht und CSV nennen statt „Resturlaub“ den „Rest am Monatsende“ und darunter „davon verplant“ (danach im selben Urlaubsjahr schon genehmigt). Bisher zog die Zahl künftigen Urlaub mit ab und hing vom Tag des Exports ab. In der Monats-CSV steht „Rest am Monatsende“ an der bisherigen Stelle, „davon verplant“ hinten vor „Konto“.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung · Mitarbeiterübersicht, Exporte</p>
+      </div>
+      <div class="bereich">
+        <h3>Monatsabschluss<span class="neu">neu</span></h3>
+        <p>In Einstellungen → Personal lässt sich der „Monatsabschluss der Zeiten“ einschalten; ab Werk ist er aus, dann bleibt alles wie bisher. Ist er an, schließen Buchhaltung, Geschäftsführung oder Administration in der Mitarbeiterübersicht (⋯) einen vergangenen Monat ab. Danach ändert niemand mehr Buchungen darin, auch nicht über Urlaub, Krankmeldung oder Timer; die Zeiterfassung zeigt „Monat abgeschlossen“, Änderungen gehen über den Korrekturantrag. „Monat wieder öffnen“ geht nur mit Grund. Den Saldo-Start, die Startwerte, den Urlaubsanspruch und die Einstellung zum 24. und 31. Dezember sperrt der Abschluss nicht. Ohne Modul Korrekturanträge bleibt nur das Wiederöffnen durch das Büro.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung, Administration · Einstellungen → Personal, Mitarbeiterübersicht</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="paket3">
+    <div class="abschnittskopf">
+      <h2>15. November: Planung und Scheine</h2>
+      <p class="frage">Die Rüstliste zieht beim Umplanen mit, mehrtägige Einsätze ändern sich als Ganzes, Abwesenheit und Einsatzplan wissen voneinander, und „Nicht verrechnet“ sieht alle Scheine. Rechte und Belege bleiben, wie sie sind.</p>
+    </div>
+    <div class="bereiche">
+      <div class="bereich">
+        <h3>Umplanen: die Rüstliste geht mit<span class="neu">behoben</span></h3>
+        <p>Wer einen Einsatz auf einen anderen Tag oder eine andere Person umplant, nimmt die Rüstliste mit; gibt es dort schon eine, werden beide zusammengeführt. Das Helfer-Kennzeichen kommt von der neuen Person. Wird der letzte Eingeteilte entfernt oder der Einsatz gelöscht, fragt Senklot, was mit der Rüstliste geschehen soll: auflösen (offene, noch nicht bestellte Anforderungen fallen weg) oder behalten. Bisher blieb sie verwaist am alten Tag.</p>
+        <p class="wer">Büro, Projektleitung, Geschäftsführung · Einsatzplanung</p>
+      </div>
+      <div class="bereich">
+        <h3>Mehrtägigen Einsatz als Ganzes ändern<span class="neu">neu</span></h3>
+        <p>Bei einem mehrtägigen Einsatz fragt Senklot beim Ändern oder Entfernen, ob nur dieser Tag oder auch die folgenden Tage gemeint sind.</p>
+        <p class="wer">Büro, Projektleitung, Geschäftsführung · Einsatzplanung</p>
+      </div>
+      <div class="bereich">
+        <h3>Einsatz planen: jede Person behält ihren Stand<span class="neu">behoben</span></h3>
+        <p>Haben die Eingeteilten eines Einsatzes verschiedene Aufgaben oder Uhrzeiten, zeigt das Formular das an und behält beim Speichern jeden Stand. Neu Eingeteilte bekommen Aufgabe und Uhrzeit aus dem Formular. Mit „Allen dieselbe Aufgabe und Uhrzeit geben“ wird angeglichen. Bisher bekamen beim Speichern still alle dieselbe.</p>
+        <p class="wer">Büro, Projektleitung, Geschäftsführung · Einsatzplanung</p>
+      </div>
+      <div class="bereich">
+        <h3>Abwesenheit und Einsatzplan<span class="neu">neu</span></h3>
+        <p>Beim Genehmigen von Urlaub und bei einer Krankmeldung zeigt Senklot, an wie vielen Tagen die Person eingeteilt ist („an 3 Tagen eingeteilt“), mit Verweis in den Wochenplan. Auf der Startseite der Projektleitung und im Thema der Leitung steht „Eingeteilte fehlen“ für heute und morgen. Urlaub, Krankenstand und Betriebsurlaub zählen überall gleich: bei Lieferungen ohne Annahme, bei der Auslastung (Betriebsurlaub ist nicht verfügbar, außer für Ausgenommene) und im eigenen Kalender-Abo, das ganztags abwesende Tage weglässt.</p>
+        <p class="wer">wer Urlaub entscheidet oder Krankmeldungen erfasst · Urlaub, Zeiterfassung; Projektleitung · Startseite</p>
+      </div>
+      <div class="bereich">
+        <h3>Geschäftsführung und Administrator einplanen<span class="neu">neu</span></h3>
+        <p>In Einstellungen → Personal kann der Betrieb beim Einsatzplan festlegen, dass Geschäftsführung und Administrator einteilbar sind. Dann erscheinen beide in der Einsatzplanung, sehen „Mein Einsatzplan“, und ihre Startseite zeigt den persönlichen Einsatz. Ab Werk ist das aus.</p>
+        <p class="wer">Geschäftsführung, Administration · Einstellungen → Personal</p>
+      </div>
+      <div class="bereich">
+        <h3>Meldungen für Termine und Notfälle<span class="neu">neu</span></h3>
+        <p>Die Push-Meldung zum Einsatzplan nennt auch Termine von heute und morgen. Geschäftsführung und Leitung können sich einen Notfall im Auftragseingang sofort melden lassen (Mein Konto → Meldungen); die Meldung nennt nur Nummer und Ort, weil sie am Sperrbildschirm steht.</p>
+        <p class="wer">alle mit Push · Mein Konto → Meldungen</p>
+      </div>
+      <div class="bereich">
+        <h3>Scheine: nichts bleibt unverrechnet liegen<span class="neu">behoben</span></h3>
+        <p>„Nicht verrechnet“ zeigt jetzt alle unterschriebenen Scheine ohne gültige Rechnung, auch sehr alte, älteste zuerst; Startseite, Rechnungen und Scheinliste nennen dieselbe Zahl. Bisher sah die Liste nur die 60 zuletzt angelegten Scheine. Vor dem <strong>Storno eines Scheins</strong>, der schon auf einer Rechnung steht, weist Senklot darauf hin; wer Rechnungen lesen darf, sieht auch die Rechnungsnummer. Danach legt „Ersatzschein anlegen“ einen Ersatz an. Er gilt als verrechnet, solange die Rechnung des alten Scheins gilt, und kommt so nicht ein zweites Mal auf eine Rechnung.</p>
+        <p class="wer">Buchhaltung, Geschäftsführung, Projektleitung · Startseite, Rechnungen, Handwerksscheine</p>
+      </div>
+      <div class="bereich">
+        <h3>Zweiter Schein am selben Tag<span class="neu">behoben</span></h3>
+        <p>Wer am selben Tag einen zweiten Schein schreibt, bekommt Stunden, die schon auf einem unterschriebenen Schein stehen, nicht noch einmal vorgeschlagen. Sie stehen unter „Gebucht, nicht auf diesem Schein“ und lassen sich mit „doch übernehmen“ übernehmen. Jede Zeile lässt sich wieder entfernen. „Zeit nachtragen“ zeigt alle eigenen Scheine der letzten 14 Tage, nicht mehr höchstens 20.</p>
+        <p class="wer">Monteure · Handwerksschein, Startseite</p>
+      </div>
+      <div class="bereich">
+        <h3>Neu eingegangene Scheine und Baustellen ohne Einsatz<span class="neu">neu</span></h3>
+        <p>Projektleitung und Verwaltung sehen auf der Startseite unter „Neu eingegangen“, welche Scheine seit ihrem letzten Blick unterschrieben wurden (ohne die eigenen). Ein Tipp öffnet die Liste „neu eingegangen“; danach verschwindet die Zeile. Das Thema lässt sich in „Startseite einrichten“ ausblenden. „Ohne Einsatz in den nächsten 14 Tagen“ zählt alle aktiven Baustellen; Startseite und Baustellenliste zeigen dieselben.</p>
+        <p class="wer">Projektleitung, Verwaltung · Startseite, Handwerksscheine, Baustellen</p>
+      </div>
+      <div class="bereich">
+        <h3>Einstellungen: Eingaben bleiben stehen<span class="neu">behoben</span></h3>
+        <p>Ungespeicherte Eingaben in einer Einstellungskarte bleiben stehen, wenn eine andere Karte derselben Seite gespeichert wird — etwa in Einstellungen → Personal. Bisher setzte das Speichern einer Karte die Nachbarkarten zurück.</p>
+        <p class="wer">Geschäftsführung, Administration · Einstellungen</p>
+      </div>
+    </div>
+  </section>
 
   <section id="paket2">
     <div class="abschnittskopf">
