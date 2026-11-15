@@ -61,6 +61,8 @@ const materialien: (Material & { id: string })[] = [
 const listAssignmentsForUserInRange = vi.fn(async () => einsaetze);
 const listProjectsByNumbers = vi.fn(async () => projekte);
 
+// V5: die Rüstliste des Scheintags (MaterialErfassen) — hier keine.
+vi.mock('@/lib/db/einsatzMaterial', () => ({ listEinsatzMaterialForDate: async () => [] }));
 vi.mock('@/lib/db/assignments', () => ({
   listAssignmentsForUserInRange: () => listAssignmentsForUserInRange(),
 }));

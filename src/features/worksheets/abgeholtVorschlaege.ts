@@ -1,4 +1,4 @@
-import type { MaterialOrder } from '@/types';
+import type { EinsatzMaterial, MaterialOrder } from '@/types';
 import type { MaterialZeile } from './materialZeilen';
 
 /**
@@ -75,4 +75,51 @@ export function abgeholtVorschlaege(
     }
   }
   return [...je.values()].sort((a, b) => (b.zuletzt ?? 0) - (a.zuletzt ?? 0) || a.name.localeCompare(b.name, 'de-AT'));
+}
+
+/**
+ * „FÜR DIESEN EINSATZ EINGELADEN“ AM SCHEIN (V5, 16.11.2026).
+ *
+ * Was für den Einsatz geplant und eingeladen wurde, musste der Monteur am
+ * Schein noch einmal suchen, Position für Position. Jetzt steht die
+ * Rüstliste des Einsatzes (Baustelle und Tag des Scheins) als Vorschlag da —
+ * nur, was abgehakt ist. Die Rüstliste gehört dem Einsatz, nicht einer
+ * Person: auch der Kollege im Team, der den Schein schreibt, sieht, was ein
+ * anderer eingeladen hat. Wie bei den Abholungen kommt nichts von selbst auf
+ * den Schein; ein Tipp übernimmt die Zeile mit der eingeladenen Menge.
+ */
+export interface EingeladenVorschlag {
+  materialId: string | null;
+  name: string;
+  einheit?: string;
+  menge: number;
+  /** Wer eingeladen hat — bei mehreren Positionen desselben Artikels der erste. */
+  von: string;
+}
+
+export function eingeladenVorschlaege(
+  liste: Pick<EinsatzMaterial, 'positionen' | 'geladen'> | null,
+  zeilen: readonly MaterialZeile[],
+): EingeladenVorschlag[] {
+  if (!liste) return [];
+  const drauf = new Set(zeilen.map((z) => schluessel(z.materialId, z.name)));
+  const je = new Map<string, EingeladenVorschlag>();
+  for (const p of liste.positionen ?? []) {
+    const haken = liste.geladen?.[p.id];
+    if (!haken) continue;
+    const k = schluessel(p.materialId, p.name);
+    if (drauf.has(k)) continue;
+    const menge = Number(p.menge) || 0;
+    if (menge <= 0) continue;
+    const da = je.get(k);
+    if (da) da.menge = Math.round((da.menge + menge) * 1000) / 1000;
+    else je.set(k, { materialId: p.materialId ?? null, name: p.name, einheit: p.einheit || undefined, menge, von: haken.von });
+  }
+  return [...je.values()].sort((a, b) => a.name.localeCompare(b.name, 'de-AT'));
+}
+
+/** Dieselbe Baustelle — mit oder ohne „PR-“, ohne Rücksicht auf die Schreibweise. */
+export function gleicheBaustelle(a?: string | null, b?: string | null): boolean {
+  const n = (x?: string | null) => (x ?? '').trim().toLowerCase().replace(/^pr-/, '');
+  return n(a) !== '' && n(a) === n(b);
 }
