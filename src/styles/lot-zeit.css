@@ -52,6 +52,20 @@
   */
   .zeit-raster-buchen > .zeit-formularkarte { flex: 1 1 30rem; max-width: 36rem; }
   .zeit-raster-buchen > .zeit-liste { flex-basis: 20rem; }
+  /*
+    AM SCHREIBTISCH DIE LISTE BREITER, DAS FORMULAR SCHMALER (U12,
+    Durchsicht 15.11.2026). Bei 1.440 px bekam das Formular seine vollen
+    36 rem und „Meine Einträge“ blieb schmal: lange Baustellennamen brachen
+    in drei Zeilen, neben Zustand, Dauer und Papierkorb. Das Formular kommt
+    mit 30 rem aus (drei Felder in einer Reihe: Von, Bis, Pause) und wächst
+    nicht mehr; jeder Pixel darüber geht an die Liste. Ihre Grundbreite
+    bleibt bei 20 rem — mit mehr rutschte sie bei 1.200 px wieder unter das
+    Formular (D12).
+  */
+  @media (min-width: 1200px) {
+    .zeit-raster-buchen > .zeit-formularkarte { flex: 0 1 30rem; }
+    .zeit-raster-buchen > .zeit-liste { flex: 1 1 20rem; }
+  }
   @media (min-width: 1200px) { .zeit-spalte { gap: 1.25rem; } }
 
   /*

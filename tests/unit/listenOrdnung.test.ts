@@ -57,3 +57,41 @@ describe('U11 · Baustellenliste: Zustand und Budget in fester Anordnung', () =>
     expect(allgemein).not.toContain('.zeile-gestapelt .zeile-stand .zeile-zustand { flex-direction: column');
   });
 });
+
+describe('U12 · Zeiterfassung am Schreibtisch: Liste breiter, Formular schmaler', () => {
+  function listeBreiter(css: string): boolean {
+    const schreibtisch = medien(css, 'min-width: 1200px');
+    if (schreibtisch < 0) return false;
+    const formular = wert(regel(css, '.zeit-raster-buchen > .zeit-formularkarte', schreibtisch), 'flex');
+    const liste = wert(regel(css, '.zeit-raster-buchen > .zeit-liste', schreibtisch), 'flex');
+    if (!formular || !liste) return false;
+    const [fWachsen, , fBasis] = formular.split(/\s+/);
+    const [lWachsen, , lBasis] = liste.split(/\s+/);
+    return Number(fWachsen) === 0 && Number(lWachsen) > 0
+      && fBasis === '30rem'
+      // Nebeneinander ab 1.200 px (D12): 30 + 20 rem passen in die Seite, mehr nicht.
+      && parseFloat(lBasis) <= 20;
+  }
+
+  it('das Formular wächst nicht über 30 rem, die Liste nimmt den Rest und bleibt ab 1.200 px daneben', () => {
+    expect(listeBreiter(lies('src/styles/lot-zeit.css'))).toBe(true);
+  });
+
+  it('Gegenprobe: der alte Stand (Formular wächst bis 36 rem) fiele auf, ebenso eine Liste, die bei 1.200 px umbricht', () => {
+    expect(listeBreiter(`@media (min-width: 1200px) {
+    .zeit-raster-buchen > .zeit-formularkarte { flex: 1 1 30rem; max-width: 36rem; }
+    .zeit-raster-buchen > .zeit-liste { flex: 1 1 20rem; }
+  }`)).toBe(false);
+    expect(listeBreiter(`@media (min-width: 1200px) {
+    .zeit-raster-buchen > .zeit-formularkarte { flex: 0 1 30rem; }
+    .zeit-raster-buchen > .zeit-liste { flex: 1 1 32rem; }
+  }`)).toBe(false);
+  });
+
+  it('bleibt gleich: am Tablet und am Handy die alten Maße (eine Spalte)', () => {
+    const css = lies('src/styles/lot-zeit.css');
+    expect(wert(regel(css, '.zeit-raster-buchen > .zeit-formularkarte'), 'flex')).toBe('1 1 30rem');
+    expect(wert(regel(css, '.zeit-raster-buchen > .zeit-formularkarte'), 'max-width')).toBe('36rem');
+    expect(wert(regel(css, '.zeit-raster-buchen > .zeit-liste'), 'flex-basis')).toBe('20rem');
+  });
+});

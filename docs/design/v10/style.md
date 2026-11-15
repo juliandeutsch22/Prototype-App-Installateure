@@ -151,7 +151,7 @@ Das **Kästchen** bleibt für die Auswahl in einem Formular, das erst mit „Spe
 
 ## Listen in fester Ordnung · Durchsicht 15.11.2026 (U11–U13)
 
-In der Baustellenliste stehen die Zustände untereinander links und das Budget immer rechts — nicht mal neben-, mal untereinander (U11, `.baustellen-gruppe`). Nur dort: Lager und Rechnungen tragen in ihren gestapelten Zeilen eine Maßlinie, die neben einem Zustand keinen Platz hat.
+In der Baustellenliste stehen die Zustände untereinander links und das Budget immer rechts — nicht mal neben-, mal untereinander (U11, `.baustellen-gruppe`). Nur dort: Lager und Rechnungen tragen in ihren gestapelten Zeilen eine Maßlinie, die neben einem Zustand keinen Platz hat. In der Zeiterfassung am Schreibtisch ist die Liste breiter als das Formular (U12).
 
 ## Einsatzplanung · E88 bleibt fachlich maßgeblich
 
