@@ -43,6 +43,10 @@ let sendenErgebnis: 'confirmed' | 'queued' | Error = 'confirmed';
 let postfachWert: PostfachZeile[] = [];
 let direktAn = true;
 const melden = vi.fn(async () => 'm1');
+/** Ob außer dem Absender (und mir) jemand Meldungen sieht — K1. */
+let erreichtWert: boolean | Error = true;
+const erreicht = vi.fn(async () => { if (erreichtWert instanceof Error) throw erreichtWert; return erreichtWert; });
+let rolle = 'Mitarbeiter';
 const senden = vi.fn(async () => {
   if (sendenErgebnis instanceof Error) throw sendenErgebnis;
   return sendenErgebnis;
@@ -69,6 +73,7 @@ vi.mock('@/lib/db/nachrichten', () => ({
   anhangAdressen: vi.fn(async () => new Map()),
   nachrichtSenden: () => senden(),
   nachrichtMelden: () => melden(),
+  meldungErreichtJemanden: () => erreicht(),
   nachrichtBearbeiten: vi.fn(async () => undefined),
   nachrichtLoeschen: vi.fn(async () => undefined),
   nachrichtReagieren: (...a: unknown[]) => reagieren(...a),
@@ -94,7 +99,7 @@ vi.mock('@/app/offenePosten', () => ({ postenNeuLaden: vi.fn(async () => undefin
 vi.mock('@/lib/useModule', () => ({ useModul: (id: string) => (id === 'nachrichten.direktnachrichten' ? direktAn : true) }));
 let einblick: { id: string; stufe: string } | null = null;
 vi.mock('@/app/AuthContext', () => ({
-  useAuth: () => ({ user: { uid: 'ich', companyId: 'perl', role: 'Mitarbeiter', name: 'Max Monteur' }, company: { id: 'perl', name: 'Perl' }, einblick }),
+  useAuth: () => ({ user: { uid: 'ich', companyId: 'perl', role: rolle, name: 'Max Monteur' }, company: { id: 'perl', name: 'Perl' }, einblick }),
 }));
 
 const { default: NachrichtenView } = await import('@/features/nachrichten/NachrichtenView');
@@ -120,6 +125,9 @@ beforeEach(() => {
   einblick = null;
   kollegen = [];
   melden.mockClear();
+  erreicht.mockClear();
+  erreichtWert = true;
+  rolle = 'Mitarbeiter';
   senden.mockClear();
   gelesen.mockClear();
   reagieren.mockClear();
@@ -204,8 +212,54 @@ describe('Das Gespräch', () => {
     await userEvent.click(within(leiste).getByRole('button', { name: 'Melden' }));
     const fenster = await screen.findByRole('dialog');
     expect(within(fenster).getByText(/genau diese Nachricht/)).toBeInTheDocument();
+    await waitFor(() => expect(erreicht).toHaveBeenCalledTimes(1));
+    // Gleich bleibt: erreicht die Meldung jemanden, steht keine Warnung da und die Zusage gilt.
+    expect(fenster).toHaveTextContent('Anna Huber erfährt von der Meldung nichts durch die App.');
+    expect(within(fenster).queryByText(/sieht derzeit niemand|Außer dir sieht/)).not.toBeInTheDocument();
     await userEvent.click(within(fenster).getByRole('button', { name: 'An die Geschäftsführung weitergeben' }));
     await waitFor(() => expect(melden).toHaveBeenCalledTimes(1));
+  });
+
+  /*
+    K1 (Durchsicht 15.11.2026): Meldungen über die eigene Nachricht sieht
+    niemand selbst. Ist die Absenderin die einzige Leitung, läge die Meldung
+    bei niemandem — der Dialog sagt das VOR dem Absenden.
+    Gegenprobe: ohne die Frage an den Server steht dort nur die Zusage — rot.
+  */
+  const meldeFenster = async () => {
+    verlaufWert = [nachricht(1, { text: 'Von der Chefin' })];
+    zeige();
+    const leiste = await leisteVon(/Nachricht von Anna Huber/);
+    await userEvent.click(within(leiste).getByRole('button', { name: 'Melden' }));
+    return screen.findByRole('dialog');
+  };
+
+  it('Melden, wenn außer der Absenderin niemand Meldungen sieht: der Dialog sagt es vorher, Melden geht trotzdem', async () => {
+    erreichtWert = false;
+    const fenster = await meldeFenster();
+    expect(await within(fenster).findByText('Diese Meldung sieht derzeit niemand.')).toBeInTheDocument();
+    expect(fenster).toHaveTextContent('außer dem Absender niemanden in Geschäftsführung oder Administration');
+    expect(fenster).not.toHaveTextContent('Die Geschäftsführung bekommt');
+    expect(within(fenster).queryByRole('button', { name: 'An die Geschäftsführung weitergeben' })).not.toBeInTheDocument();
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Trotzdem melden' }));
+    await waitFor(() => expect(melden).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('Gemeldet')).toBeInTheDocument();
+  });
+
+  it('meldet die einzige weitere Leitung selbst, heißt es „Außer dir sieht diese Meldung niemand“', async () => {
+    erreichtWert = false;
+    rolle = 'Geschäftsführung';
+    const fenster = await meldeFenster();
+    expect(await within(fenster).findByText('Außer dir sieht diese Meldung niemand.')).toBeInTheDocument();
+    expect(fenster).not.toHaveTextContent('Arbeiterkammer');
+  });
+
+  it('scheitert die Frage (kein Netz), bleibt der übliche Text — keine Warnung aus Vermutung', async () => {
+    erreichtWert = new Error('Failed to fetch');
+    const fenster = await meldeFenster();
+    await waitFor(() => expect(erreicht).toHaveBeenCalledTimes(1));
+    expect(fenster).toHaveTextContent('Die Geschäftsführung bekommt');
+    expect(within(fenster).queryByText(/sieht derzeit niemand|Außer dir sieht/)).not.toBeInTheDocument();
   });
 
   it('an der eigenen privaten Nachricht: Bearbeiten, In eine Baustelle übernehmen, Kopieren, Löschen — Melden nicht', async () => {

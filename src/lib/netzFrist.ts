@@ -106,6 +106,7 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'mein_zustand',
   'mein_zweiter_faktor',
   'monatsbilanzen_alle',
+  'nachricht_meldung_erreicht_jemanden',
   'nachricht_meldungen',
   'nachricht_meldungen_offen',
   'nachrichten_baustelle_stand',

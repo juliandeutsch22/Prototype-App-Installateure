@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
-  anhangAdressen, kanalBaustelle, nachrichtBearbeiten, nachrichtLoeschen, nachrichtMelden, nachrichtSenden,
-  REAKTION_NAME,
+  anhangAdressen, kanalBaustelle, meldungErreichtJemanden, nachrichtBearbeiten, nachrichtLoeschen, nachrichtMelden,
+  nachrichtSenden, REAKTION_NAME,
   type Nachricht, type NeueDatei,
 } from '@/lib/db/nachrichten';
 import BottomSheet from '@/components/BottomSheet';
 import Button from '@/components/Button';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { TextareaField } from '@/components/Field';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -55,6 +56,12 @@ export default function NachrichtAktionen({
   const [grund, setGrund] = useState('');
   const [laeuft, setLaeuft] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
+  /**
+   * Sieht außer dem Absender (und mir) jemand die Meldung? `null`, solange
+   * die Antwort fehlt oder die Frage scheiterte — dann bleibt der übliche
+   * Text; ohne Netz geht das Melden selbst ohnehin nicht durch.
+   */
+  const [erreicht, setErreicht] = useState<boolean | null>(null);
 
   useEffect(() => {
     setText(auftrag?.n.text ?? '');
@@ -62,9 +69,28 @@ export default function NachrichtAktionen({
     setFehler(null);
   }, [auftrag]);
 
+  /*
+    VOR DEM ABSENDEN FRAGEN, nicht danach (K1): Meldungen über die eigene
+    Nachricht sieht niemand selbst. Ist der Absender die einzige Leitung im
+    Betrieb (oder bin ich selbst die einzige weitere), läge die Meldung bei
+    niemandem bzw. nur bei mir — das muss man wissen, bevor man sich
+    entscheidet, und nicht erst aus der Stille danach.
+  */
+  useEffect(() => {
+    setErreicht(null);
+    if (!auftrag || auftrag.schritt !== 'melden') return;
+    let gilt = true;
+    meldungErreichtJemanden(auftrag.n.id)
+      .then((ja) => { if (gilt) setErreicht(ja); })
+      .catch(() => undefined);
+    return () => { gilt = false; };
+  }, [auftrag]);
+
   if (!user) return null;
   const n = auftrag?.n ?? null;
   const schritt = auftrag?.schritt ?? null;
+  const selbstLeitung = user.role === 'Geschäftsführung' || user.role === 'Administrator';
+  const niemand = erreicht === false;
   const imFenster = !!n && (schritt === 'bearbeiten' || schritt === 'melden' || schritt === 'reaktionen');
 
   async function tun(was: () => Promise<unknown>, erfolg: string) {
@@ -168,19 +194,41 @@ export default function NachrichtAktionen({
                 className="space-y-3"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  void tun(() => nachrichtMelden(n.id, grund), 'An die Geschäftsführung weitergegeben');
+                  void tun(() => nachrichtMelden(n.id, grund), niemand ? 'Gemeldet' : 'An die Geschäftsführung weitergegeben');
                 }}
               >
                 <p className="text-sm">
-                  Die Geschäftsführung bekommt <strong>genau diese Nachricht</strong> — Absender, Zeit, Text
-                  {n.anhaenge.length > 0 ? ' und Anhänge' : ''} — als Kopie. Das übrige Gespräch sieht sie nicht.
+                  {niemand ? 'Gemeldet wird ' : 'Die Geschäftsführung bekommt '}
+                  <strong>genau diese Nachricht</strong> — Absender, Zeit, Text
+                  {n.anhaenge.length > 0 ? ' und Anhänge' : ''} — als Kopie.
+                  {niemand ? ' Das übrige Gespräch ist nicht dabei.' : ' Das übrige Gespräch sieht sie nicht.'}
                   {n.vonName ? ` ${n.vonName} erfährt von der Meldung nichts durch die App.` : ''}
                 </p>
+                {niemand && (
+                  <Hinweiszeile stufe="warn">
+                    {selbstLeitung ? (
+                      <>
+                        <b>Außer dir sieht diese Meldung niemand.</b> In diesem Betrieb gibt es sonst niemanden in
+                        Geschäftsführung oder Administration, der sie bekäme.
+                      </>
+                    ) : (
+                      <>
+                        <b>Diese Meldung sieht derzeit niemand.</b> In diesem Betrieb gibt es außer dem Absender
+                        niemanden in Geschäftsführung oder Administration, und Meldungen über die eigene Nachricht
+                        sieht niemand. Sie bleibt gespeichert und erscheint, sobald jemand weiterer diese Rolle
+                        bekommt. Brauchst du jetzt Hilfe, wende dich außerhalb der App an eine Vertrauensperson,
+                        etwa den Betriebsrat oder die Arbeiterkammer.
+                      </>
+                    )}
+                  </Hinweiszeile>
+                )}
                 {n.text && <blockquote className="whitespace-pre-wrap border-l-2 border-line-strong pl-3 [overflow-wrap:anywhere]">{n.text}</blockquote>}
                 <TextareaField id="melden-grund" label="Warum (freiwillig)" rows={3} maxLength={2000} value={grund} onChange={(e) => setGrund(e.target.value)} />
                 <div className="fuss-aktionen">
                   <Button type="button" variant="ghost" onClick={onClose}>Abbrechen</Button>
-                  <Button type="submit" loading={laeuft}>An die Geschäftsführung weitergeben</Button>
+                  {niemand
+                    ? <Button type="submit" loading={laeuft}>Trotzdem melden</Button>
+                    : <Button type="submit" loading={laeuft}>An die Geschäftsführung weitergeben</Button>}
                 </div>
               </form>
             )}

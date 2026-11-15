@@ -124,7 +124,8 @@ export default function NachrichtenEinstellungen() {
             Geschäftsführung nicht. Hier steht deshalb kein Gespräch, sondern nur, was jemand
             ausdrücklich gemeldet hat: genau diese eine Nachricht als Kopie, mit Absender, Zeit
             und Anhängen. Die Kopie bleibt, auch wenn der Absender seine Nachricht löscht, bis
-            die Meldung als erledigt gelöscht wird.
+            die Meldung als erledigt gelöscht wird. Eine Meldung über eine Nachricht von dir
+            steht hier nicht — sie bearbeitet die übrige Geschäftsführung und Administration.
           </>
         }
       />

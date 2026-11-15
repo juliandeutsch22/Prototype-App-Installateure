@@ -29,6 +29,7 @@ export {
   rundeHinzufuegen,
   rundeBenennen,
   nachrichtMelden,
+  meldungErreichtJemanden,
   meldungen,
   meldungenOffen,
   meldungErledigen,
