@@ -10,9 +10,10 @@
  *
  * WIE: Der Server nennt die Kennungen der Stammartikel, deren Nummer oder EAN
  * passt (Index, höchstens zwanzig, erst ab drei Zeichen); die Suche nimmt sie
- * mit `id.in.(…)` in ihre bestehende `or`-Bedingung. So bleiben Sortierung,
- * Grenze und Gesamtzahl die der einen Abfrage. Scheitert die Nummernsuche
- * (kein Netz, ältere Datenbank), sucht die App wie bisher.
+ * als `p_ids` in ihre eine Abfrage (`katalog_suchen`, seit L3 eine
+ * Datenbankfunktion). So bleiben Sortierung, Grenze und Gesamtzahl die der
+ * einen Abfrage. Scheitert die Nummernsuche (kein Netz, ältere Datenbank),
+ * sucht die App wie bisher.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { derClient } from './kern';
@@ -41,13 +42,6 @@ export async function nummernTreffer(
   } catch {
     return new Map();
   }
-}
-
-/** Die `or`-Bedingung der Suche, erweitert um die über Nummern gefundenen Artikel. */
-export function oderMitNummern(oder: string | null, treffer: ReadonlyMap<string, unknown>): string | null {
-  if (!oder || treffer.size === 0) return oder;
-  // Kennungen sind UUIDs — keine Zeichen, die die `or`-Syntax stören.
-  return `${oder},id.in.(${[...treffer.keys()].join(',')})`;
 }
 
 /** Hängt an die gefundenen Zeilen, über welche Nummer sie kamen. */

@@ -8,8 +8,8 @@
  */
 import type { EinkaufPosten, Material, MaterialOrder } from '@/types';
 import { abfragen, anlegen, aendern, derClient, type WithId } from './kern';
-import { mitNummern, nummernTreffer, oderMitNummern, type MitNummer } from './nummernSuche';
-import { oderUeberSpalten } from './suche';
+import { mitNummern, nummernTreffer, type MitNummer } from './nummernSuche';
+import { katalogSuchenOhneAusgelaufene } from './materials';
 
 const ANFORDERUNGEN = 'material_orders';
 
@@ -495,15 +495,11 @@ export async function artikelSuchen(
   companyId: string,
   begriff: string,
 ): Promise<MitNummer<WithId<Material>>[]> {
-  const basis = oderUeberSpalten(['name', 'article_number'], begriff);
-  if (!basis) return [];
+  void companyId;
+  if (!begriff.trim()) return [];
   // M03a: auch über die Nummer eines Großhändlers und die EAN (`nummernSuche.ts`).
   const nummern = await nummernTreffer(begriff, ARTIKEL_TREFFER);
-  const zeilen = await abfragen<Material>('materials', companyId, {
-    wo: [{ art: 'gleich', feld: 'ausgelaufen', wert: false }],
-    oder: oderMitNummern(basis, nummern),
-    sortiere: { feld: 'name' },
-    grenze: ARTIKEL_TREFFER,
-  });
+  // Über `katalog_suchen` (L3): mit Zeilenschutz nimmt nur die Datenbankfunktion den Index.
+  const zeilen = await katalogSuchenOhneAusgelaufene(begriff, ARTIKEL_TREFFER, [...nummern.keys()]);
   return mitNummern(zeilen, nummern);
 }

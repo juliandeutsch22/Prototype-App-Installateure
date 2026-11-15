@@ -5,8 +5,8 @@ import type { Lagerbewegung, Material } from '@/types';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import { abfragen, abonnieren, anlegen as kernAnlegen, aendern, loeschen, derClient, kanalHalten, SEITE, type WithId } from './kern';
 import { zeileAlsObjekt } from './felder';
-import { alsOderWert, ohneJoker, oderUeberSpalten } from './suche';
-import { mitNummern, nummernTreffer, oderMitNummern, type MitNummer } from './nummernSuche';
+import { ohneJoker } from './suche';
+import { mitNummern, nummernTreffer, type MitNummer } from './nummernSuche';
 
 const MATERIAL = 'materials';
 
@@ -82,20 +82,57 @@ export async function katalogSeite(
   anzahl: number,
   wie: { nurAnforderbar?: boolean } = {},
 ): Promise<{ zeilen: MitNummer<WithId<Material>>[]; gesamt: number }> {
-  let abfrage = derClient()
-    .from(MATERIAL)
-    .select('*', { count: 'exact' })
-    .eq('company_id', companyId);
-  // Ein eigener `or`-Parameter: PostgREST verknüpft mehrere mit UND — die Suche unten bleibt davon unberührt.
-  if (wie.nurAnforderbar) abfrage = abfrage.or('ausgelaufen.eq.false,stock.gt.0');
+  void companyId;
   // M03a: auch über die Nummer eines Großhändlers und die EAN (`nummernSuche.ts`).
   const nummern = await nummernTreffer(begriff);
-  const oder = oderMitNummern(oderUeberSpalten(['name', 'article_number', 'category'], begriff), nummern);
-  if (oder) abfrage = abfrage.or(oder);
-  const { data, error, count } = await abfrage.order('name').order('id').range(0, Math.max(0, anzahl - 1));
+  const { zeilen, gesamt } = await katalogSuchen(begriff, Math.max(1, anzahl), {
+    ids: [...nummern.keys()],
+    filter: wie.nurAnforderbar ? 'anforderbar' : 'alle',
+    zaehlen: true,
+  });
+  return { zeilen: mitNummern(zeilen, nummern), gesamt: gesamt ?? zeilen.length };
+}
+
+/**
+ * DIE SUCHE ÜBER DIE DATENBANKFUNKTION `katalog_suchen` (L3, Durchsicht
+ * 15.11.2026) — nicht als `or(…ilike…)` über PostgREST.
+ *
+ * Mit Zeilenschutz darf Postgres `ilike` nicht über einen Index auswerten
+ * (der Operator ist nicht „leakproof“): bei 120.000 Artikeln lief jede Suche
+ * als Durchlauf, 285 ms und noch einmal 253 ms fürs Zählen, `katalogNachNamen`
+ * 2,1 s. Die Funktion prüft den Betrieb selbst und nimmt die Trigramm-Indizes
+ * je Spalte — seltener Begriff samt Zählung unter 3 ms. Gesucht wird wie
+ * vorher (`%begriff%` in Name, Artikelnummer, Kategorie, dazu `ids`), sortiert
+ * nach Name und Kennung.
+ */
+async function katalogSuchen(
+  begriff: string,
+  anzahl: number,
+  wie: { ids?: string[]; filter?: 'alle' | 'anforderbar' | 'aktiv'; kategorie?: boolean; zaehlen?: boolean } = {},
+): Promise<{ zeilen: WithId<Material>[]; gesamt: number | null }> {
+  const { data, error } = await derClient().rpc('katalog_suchen', {
+    p_begriff: begriff,
+    p_anzahl: anzahl,
+    p_ids: wie.ids ?? [],
+    p_filter: wie.filter ?? 'alle',
+    p_kategorie: wie.kategorie ?? true,
+    p_zaehlen: wie.zaehlen ?? false,
+  });
   if (error) throw new Error(error.message);
-  const zeilen = (data ?? []).map((z) => zeileAlsObjekt<WithId<Material>>(MATERIAL, z));
-  return { zeilen: mitNummern(zeilen, nummern), gesamt: count ?? zeilen.length };
+  const antwort = (data ?? { zeilen: [], gesamt: null }) as { zeilen: Record<string, unknown>[] | null; gesamt: number | string | null };
+  return {
+    zeilen: (antwort.zeilen ?? []).map((z) => zeileAlsObjekt<WithId<Material>>(MATERIAL, z)),
+    gesamt: antwort.gesamt == null ? null : Number(antwort.gesamt),
+  };
+}
+
+/** Die Suche im Katalog für die Einkaufsliste — siehe `artikelSuchen` in `einkauf.ts`. */
+export async function katalogSuchenOhneAusgelaufene(
+  begriff: string,
+  anzahl: number,
+  ids: string[],
+): Promise<WithId<Material>[]> {
+  return (await katalogSuchen(begriff, anzahl, { ids, filter: 'aktiv', kategorie: false })).zeilen;
 }
 
 /**
@@ -366,17 +403,14 @@ export async function sucheKatalog(
   max = 20,
 ): Promise<MitNummer<WithId<Material>>[]> {
   // M03a: auch über die Nummer eines Großhändlers und die EAN (`nummernSuche.ts`).
+  void companyId;
   const nummern = await nummernTreffer(begriff, max);
-  const zeilen = await abfragen<Material>(MATERIAL, companyId, {
-    oder: oderMitNummern(oderUeberSpalten(['name', 'article_number', 'category'], begriff), nummern),
-    sortiere: { feld: 'name' },
-    grenze: max,
-  });
+  const { zeilen } = await katalogSuchen(begriff, Math.max(1, max), { ids: [...nummern.keys()] });
   return mitNummern(zeilen, nummern);
 }
 
-/** So viele Namen je Anfrage — die `or`-Bedingung steht in der Adresse. */
-const NAMEN_JE_ANFRAGE = 20;
+/** So viele Namen je Anfrage — `katalog_nach_namen` nimmt höchstens 200. */
+const NAMEN_JE_ANFRAGE = 100;
 
 /**
  * DIE KATALOGARTIKEL ZU GENANNTEN NAMEN (19.10.2026) — für die Preise auf
@@ -400,14 +434,16 @@ export async function katalogNachNamen(companyId: string, namen: readonly string
       .filter(Boolean)
       .map((n) => n.split(/\s+/).map(ohneJoker).join('%')),
   )];
+  void companyId;
   const teile: string[][] = [];
   for (let i = 0; i < muster.length; i += NAMEN_JE_ANFRAGE) teile.push(muster.slice(i, i + NAMEN_JE_ANFRAGE));
+  // Über `katalog_nach_namen` (L3): je Muster über den Index statt eines Durchlaufs je Anfrage.
   const treffer = await Promise.all(
-    teile.map((teil) =>
-      abfragen<Material>(MATERIAL, companyId, {
-        oder: teil.map((m) => `name.ilike.${alsOderWert(m)}`).join(','),
-      }),
-    ),
+    teile.map(async (teil) => {
+      const { data, error } = await derClient().rpc('katalog_nach_namen', { p_muster: teil });
+      if (error) throw new Error(error.message);
+      return ((data ?? []) as Record<string, unknown>[]).map((z) => zeileAlsObjekt<WithId<Material>>(MATERIAL, z));
+    }),
   );
   return eindeutig(treffer.flat());
 }
