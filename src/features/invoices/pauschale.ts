@@ -1,6 +1,7 @@
 import type { Invoice, Project, Quote, RechnungsArt } from '@/types';
 import type { AssembledInvoice } from './assemble';
 import { norm } from './assemble';
+import { cent } from '@/lib/betrag';
 import { calcTotals, istPreiszeile, zeilenNetto, type InvoicePosition } from './totals';
 
 /**
@@ -83,7 +84,7 @@ export function pauschalAngebot<T extends Quote>(angebote: T[]): T | null {
         }]
       : []),
   ]);
-  const summe = (f: (q: T) => number) => Math.round(alle.reduce((n, q) => n + f(q), 0) * 100) / 100;
+  const summe = (f: (q: T) => number) => cent(alle.reduce((n, q) => n + f(q), 0));
   return {
     ...alle[0],
     quoteNumber: alle.map((q) => q.quoteNumber).join(' + '),

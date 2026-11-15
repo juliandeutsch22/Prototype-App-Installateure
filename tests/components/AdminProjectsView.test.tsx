@@ -578,7 +578,7 @@ describe('Baustellen — löschen', () => {
     verwendungen = [{ ...LEER, zeitbuchungen: 3, scheine: 1 }];
     const dialog = await loeschenOeffnen();
     expect(await within(dialog).findByText(/hängen 3 Zeitbuchungen und 1 Handwerksschein/)).toBeInTheDocument();
-    expect(within(dialog).getByRole('heading', { name: 'Baustelle lässt sich nicht löschen' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Löschen' })).toBeNull();
     // Seit A11 führt der Weg in den geführten Abschluss (eine offene Baustelle).
     await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen …' }));
     expect(await screen.findByRole('dialog', { name: 'Baustelle 2026-042 abschließen?' })).toBeInTheDocument();

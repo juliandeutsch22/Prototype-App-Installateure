@@ -93,7 +93,7 @@ src/lib/db/quotes.ts#listQuotesForCustomer: (companyId: string, customerId: stri
 src/lib/db/quotes.ts#listRecentQuotes: (companyId: string, max?: number) => Promise<WithId<Quote>[]>
 src/lib/db/quotes.ts#reserveQuoteNumber: (companyId: string, praefix?: string) => Promise<string>
 src/lib/db/quotes.ts#sucheAngebote: (companyId: string, begriff: string, max?: number) => Promise<WithId<Quote>[]>
-src/lib/db/quotes.ts#updateQuote: (id: string, data: Partial<NewQuote>) => Promise<void>
+src/lib/db/quotes.ts#updateQuote: (id: string, data: pg.AngebotAenderung) => Promise<void>
 src/lib/db/scheinFotos.ts#fotoAdresse: (pfad: string) => Promise<string>
 src/lib/db/scheinFotos.ts#fotoEntfernen: (pfad: string) => Promise<void>
 src/lib/db/scheinFotos.ts#fotoHochladen: (companyId: string, scheinId: string, daten: Blob, geraetZeit: number) => Promise<WorkSheetFoto>

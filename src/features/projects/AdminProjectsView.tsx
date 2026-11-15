@@ -1246,7 +1246,7 @@ export default function AdminProjectsView() {
 
       <ConfirmDialog
         open={!!toDelete}
-        title={loeschWegJetzt && loeschWegJetzt.art !== 'frei' ? 'Baustelle lässt sich nicht löschen' : 'Baustelle löschen?'}
+        title="Baustelle löschen?"
         message={
           !toDelete
             ? ''
