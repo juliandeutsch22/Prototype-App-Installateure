@@ -15,6 +15,7 @@ import Card from '@/components/Card';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import LohnregelnKarte from './LohnregelnKarte';
+import { useInhaltUebernehmen } from '@/lib/useInhaltUebernehmen';
 import KatalogEinstellungenKarte from './KatalogEinstellungenKarte';
 import SonderurlaubKarte from './SonderurlaubKarte';
 import BasiszinsVerlauf from './BasiszinsVerlauf';
@@ -162,30 +163,57 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   */
   const [naechste, setNaechste] = useState<NaechsteNummern | null>(null);
 
-  useEffect(() => {
-    if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
-    setSteuerbefreiungVorgabe(company?.steuerbefreiungVorgabe ?? '');
-    setGenehmiger(company?.vacationApprovers ?? []);
-    // Der Betrieb kommt womöglich erst nach dem ersten Zeichnen an; ohne
-    // diese Zeile stünden hier die Vorgaben statt der gespeicherten Vorsätze.
-    setVorsaetze(praefixeVon(company));
-    setRechnungsarten(company?.rechnungsarten ?? false);
-    setWochenplanFuerAlle(company?.wochenplanFuerAlle ?? false);
-    setPlImPlan(company?.projektleitungImEinsatzplan === true);
-    setLeitungImPlan(company?.leitungImEinsatzplan === true);
-    setKalenderAbo(company?.kalenderAboErlaubt === true);
-    setDezemberHalbtage(company?.dezemberHalbtage !== false);
-    const beginn = company?.urlaubJahresbeginn ?? '01-01';
-    setBeginnMonat(beginn.slice(0, 2));
-    setBeginnTag(beginn.slice(3, 5));
-    setUebertrag(company?.urlaubUebertrag ?? 'verjaehrung');
-    setEintrittAliquot(company?.urlaubEintrittAliquot === 'zwoelftel' ? 'zwoelftel' : 'taggenau');
-    if (company?.urlaubStichtag) {
-      const [m, d] = company.urlaubStichtag.split('-');
-      setStichtagMonat(m);
-      setStichtagTag(d);
-    }
-  }, [company]);
+  /*
+    JE KARTE NUR IHRE WERTE ÜBERNEHMEN (P10): nach dem Speichern einer Karte
+    lädt die Seite den Betrieb neu — ein neues Objekt. Am Inhalt verglichen
+    bleiben ungespeicherte Eingaben der anderen Karten stehen.
+  */
+  useInhaltUebernehmen(
+    { rates: company?.rates ?? null, steuer: company?.steuerbefreiungVorgabe ?? '' },
+    ({ rates: r, steuer }) => {
+      if (r) setRates({ ...INVOICE_DEFAULTS, ...r });
+      setSteuerbefreiungVorgabe(steuer);
+    },
+  );
+  useInhaltUebernehmen(company?.vacationApprovers ?? [], setGenehmiger);
+  // Der Betrieb kommt womöglich erst nach dem ersten Zeichnen an; ohne diese
+  // Übernahme stünden hier die Vorgaben statt der gespeicherten Vorsätze.
+  useInhaltUebernehmen(praefixeVon(company), setVorsaetze);
+  useInhaltUebernehmen(company?.rechnungsarten ?? false, setRechnungsarten);
+  useInhaltUebernehmen(
+    {
+      alle: company?.wochenplanFuerAlle ?? false,
+      pl: company?.projektleitungImEinsatzplan === true,
+      leitung: company?.leitungImEinsatzplan === true,
+      abo: company?.kalenderAboErlaubt === true,
+    },
+    (w) => {
+      setWochenplanFuerAlle(w.alle);
+      setPlImPlan(w.pl);
+      setLeitungImPlan(w.leitung);
+      setKalenderAbo(w.abo);
+    },
+  );
+  useInhaltUebernehmen(company?.dezemberHalbtage !== false, setDezemberHalbtage);
+  useInhaltUebernehmen(
+    {
+      beginn: company?.urlaubJahresbeginn ?? '01-01',
+      uebertrag: company?.urlaubUebertrag ?? 'verjaehrung',
+      aliquot: company?.urlaubEintrittAliquot === 'zwoelftel' ? 'zwoelftel' as const : 'taggenau' as const,
+      stichtag: company?.urlaubStichtag ?? null,
+    },
+    (w) => {
+      setBeginnMonat(w.beginn.slice(0, 2));
+      setBeginnTag(w.beginn.slice(3, 5));
+      setUebertrag(w.uebertrag);
+      setEintrittAliquot(w.aliquot);
+      if (w.stichtag) {
+        const [m, d] = w.stichtag.split('-');
+        setStichtagMonat(m);
+        setStichtagTag(d);
+      }
+    },
+  );
 
   useEffect(() => {
     if (!user || !darfGenehmigerSetzen) return;

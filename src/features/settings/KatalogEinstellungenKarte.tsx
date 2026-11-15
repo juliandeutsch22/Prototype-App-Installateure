@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
+import { useInhaltUebernehmen } from '@/lib/useInhaltUebernehmen';
 import { updateCompany } from '@/lib/db/company';
 import { leseZahl } from '@/lib/zahl';
 import Card from '@/components/Card';
@@ -38,10 +39,14 @@ export default function KatalogEinstellungenKarte() {
   const [speichert, setSpeichert] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
 
-  useEffect(() => {
-    setSchwelle(String(company?.preissprungSchwelleProzent ?? SCHWELLE_VORGABE).replace('.', ','));
-    setTage(String(company?.katalogVeraltetTage ?? VERALTET_VORGABE));
-  }, [company]);
+  // Nur, wenn sich DIESE Werte im Betrieb geändert haben (P10) — speichert eine andere Karte, bleibt das Getippte.
+  useInhaltUebernehmen(
+    { schwelle: company?.preissprungSchwelleProzent ?? SCHWELLE_VORGABE, tage: company?.katalogVeraltetTage ?? VERALTET_VORGABE },
+    (w) => {
+      setSchwelle(String(w.schwelle).replace('.', ','));
+      setTage(String(w.tage));
+    },
+  );
 
   async function speichern() {
     if (!user) return;

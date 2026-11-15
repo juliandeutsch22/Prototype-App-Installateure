@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
+import { useInhaltUebernehmen } from '@/lib/useInhaltUebernehmen';
 import { updateCompany } from '@/lib/db/company';
 import { ANLAESSE, KUERZUNG_AB_VORGABE } from '@shared/freistellung';
 import { leseZahl } from '@/lib/zahl';
@@ -32,12 +33,20 @@ export default function SonderurlaubKarte() {
   const [speichert, setSpeichert] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
 
-  useEffect(() => {
-    const abweichend = company?.freistellungAnlaesse ?? {};
-    setTage(Object.fromEntries(MIT_TAGEN.map((a) => [a.schluessel, String(abweichend[a.schluessel] ?? a.tage)])));
-    setAb(String(company?.kuerzungAbTagen ?? KUERZUNG_AB_VORGABE));
-    setNachweis(company?.arztbesuchNachweis !== false);
-  }, [company]);
+  // Nur, wenn sich DIESE Werte im Betrieb geändert haben (P10) — speichert eine andere Karte, bleibt das Getippte.
+  useInhaltUebernehmen(
+    {
+      anlaesse: company?.freistellungAnlaesse ?? {},
+      ab: company?.kuerzungAbTagen ?? KUERZUNG_AB_VORGABE,
+      nachweis: company?.arztbesuchNachweis !== false,
+    },
+    (w) => {
+      const abweichend: Record<string, number | undefined> = w.anlaesse;
+      setTage(Object.fromEntries(MIT_TAGEN.map((a) => [a.schluessel, String(abweichend[a.schluessel] ?? a.tage)])));
+      setAb(String(w.ab));
+      setNachweis(w.nachweis);
+    },
+  );
 
   async function speichern() {
     if (!user) return;
