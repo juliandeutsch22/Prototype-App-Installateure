@@ -11,8 +11,8 @@
 @layer components {
   .ue-bedienung { display: flex; flex-direction: column; gap: 0.75rem; }
   .ue-pruefung { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 1.5rem; }
-  .ue-fehlfilter { display: inline-flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; cursor: pointer; font-size: 0.8125rem; }
-  .ue-fehlfilter input { width: 1.125rem; height: 1.125rem; accent-color: var(--petrol); }
+  /* Der Filter ist ein Schalter (U6): eine Zeile, nicht über die ganze Breite gestreckt. */
+  .ue-pruefung .schalter-zeile { flex: 0 1 auto; gap: 0.75rem; }
 
   /* ── Steuerung: ‹ Titel ›, Suche, Monat | Woche (Auftrag 3.2, Punkt 3) ─ */
   .ue-steuerung { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }

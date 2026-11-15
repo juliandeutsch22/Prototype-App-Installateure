@@ -1102,7 +1102,7 @@ describe('Mitarbeiterübersicht: kompakter Prüfbereich', () => {
     luecke();
     const nutzer = zeichneSeite('/accounting');
     await personKnopf('Neu Eingestellt');
-    const kennzahl = screen.getByRole('checkbox', { name: /Nur Tage ohne Buchung/ });
+    const kennzahl = screen.getByRole('switch', { name: /Nur Tage ohne Buchung/ });
     // Die Zahl steht im Schriftfeld des Kopfs (Planlinie B1), nicht mehr als Satz über der Liste.
     const feld = schriftfeld('Tage ohne Buchung');
     expect(feld.querySelector('.lage-wert')).toHaveTextContent(/^2$/);
@@ -1124,7 +1124,7 @@ describe('Mitarbeiterübersicht: kompakter Prüfbereich', () => {
     luecke();
     zeichneSeite('/accounting?filter=luecken&monat=2026-08');
     await personKnopf('Anna Zweite');
-    expect(screen.getByRole('checkbox', { name: /Nur Tage ohne Buchung/ })).toBeChecked();
+    expect(screen.getByRole('switch', { name: /Nur Tage ohne Buchung/ })).toBeChecked();
     expect(Array.from(document.querySelectorAll('.ue-name')).map((n) => n.textContent)).toEqual(['Anna Zweite']);
     expect(screen.getByRole('button', { name: /August 2026/ })).toBeInTheDocument();
   });
@@ -1150,7 +1150,7 @@ describe('Mitarbeiterübersicht: kompakter Prüfbereich', () => {
     const summe = screen.getByRole('region', { name: 'Gesamt aller Personen' });
     expect(person.compareDocumentPosition(summe) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(summe).toHaveTextContent('144:00');
-    await nutzer.click(screen.getByRole('checkbox', { name: /Nur Tage ohne Buchung/ }));
+    await nutzer.click(screen.getByRole('switch', { name: /Nur Tage ohne Buchung/ }));
     expect(document.querySelectorAll('.ue-name')).toHaveLength(1);
     expect(summe).toHaveTextContent('144:00');
     expect(summe).toHaveTextContent('160:00');

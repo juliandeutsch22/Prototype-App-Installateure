@@ -6,7 +6,7 @@ import { updateCompany } from '@/lib/db/company';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { CheckboxField } from '@/components/Field';
+import Schalter from '@/components/Schalter';
 import { ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import ZweiFaktorEinrichten, { WiederherstellungsCodes } from '@/features/auth/ZweiFaktorEinrichten';
@@ -162,13 +162,14 @@ export default function ZweiFaktorKarte({
 
       {betrieb && !stand.plattform && (
         <div className="mt-4 border-t border-line pt-3">
-          <CheckboxField
+          {/* Ein Schalter (U6, E3): die Pflicht gilt sofort für den ganzen Betrieb, es gibt kein „Speichern“. */}
+          <Schalter
             id="zf-pflicht"
             label="Für Administrator, Geschäftsführung und Buchhaltung in diesem Betrieb verpflichtend"
-            checked={stand.betriebPflicht}
-            disabled={laeuft || (!stand.eingerichtet && !stand.betriebPflicht)}
-            onChange={(e) => {
-              const an = e.target.checked;
+            an={stand.betriebPflicht}
+            laeuft={laeuft}
+            gesperrt={!stand.eingerichtet && !stand.betriebPflicht}
+            onChange={(an) => {
               if (an && (ohne === null || ohne.length > 0)) {
                 setPflichtFragen(true);
                 return;

@@ -38,6 +38,7 @@ import { istDeaktiviert, ohneSollAussage, personenImMonat } from './personenImMo
 import Hinweiszeile from '@/components/Hinweiszeile';
 import Icon from '@/components/Icon';
 import Button from '@/components/Button';
+import Schalter from '@/components/Schalter';
 import PageHeader from '@/components/PageHeader';
 import Metric, { MetricRow } from '@/components/Metric';
 import RowMenu from '@/components/RowMenu';
@@ -1217,10 +1218,8 @@ export default function AccountingView() {
 
         {!imSupport && bereit && !error && alleRows.length > 0 && (
           <div className="ue-pruefung">
-            <label className="ue-fehlfilter">
-              <input type="checkbox" checked={nurLuecken} onChange={filterUmschalten} />
-              Nur Tage ohne Buchung{ansicht === 'woche' ? ' (im Monat)' : ''}
-            </label>
+            {/* Ein Schalter (U6, E3): die Ansicht folgt sofort, gespeichert wird nur in der Adresse. */}
+            <Schalter id="ue-nur-luecken" label={`Nur Tage ohne Buchung${ansicht === 'woche' ? ' (im Monat)' : ''}`} an={nurLuecken} onChange={filterUmschalten} />
           </div>
         )}
 

@@ -6,7 +6,7 @@ import { canProcessOrders, isGF, isMitarbeiter, isTopLevel } from '@/lib/permiss
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
-import { CheckboxField } from '@/components/Field';
+import Schalter from '@/components/Schalter';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, TeilFehler } from '@/components/States';
@@ -153,7 +153,7 @@ export default function NotificationSettings() {
     notifyNotfall: boolean;
   }>) {
     if (!user) return;
-    const next = {
+    const vorher = {
       notifyNewOrder: newOrder,
       notifyOrderReady: orderReady,
       notifyUrgentDelivery: urgent,
@@ -164,21 +164,30 @@ export default function NotificationSettings() {
       nachrichtVorschau: vorschau,
       notifyEinsaetze: einsaetze,
       notifyNotfall: notfall,
-      ...aenderung,
     };
-    setNewOrder(next.notifyNewOrder);
-    setOrderReady(next.notifyOrderReady);
-    setUrgent(next.notifyUrgentDelivery);
-    setAbwesenheit(next.notifyAbwesenheit);
-    setAngebot(next.notifyAngebot);
-    setTimer(next.notifyZeiterfassung);
-    setNachrichten(next.notifyNachrichten);
-    setVorschau(next.nachrichtVorschau);
-    setEinsaetze(next.notifyEinsaetze);
-    setNotfall(next.notifyNotfall);
+    const next = { ...vorher, ...aenderung };
+    const setzen = (w: typeof vorher) => {
+      setNewOrder(w.notifyNewOrder);
+      setOrderReady(w.notifyOrderReady);
+      setUrgent(w.notifyUrgentDelivery);
+      setAbwesenheit(w.notifyAbwesenheit);
+      setAngebot(w.notifyAngebot);
+      setTimer(w.notifyZeiterfassung);
+      setNachrichten(w.notifyNachrichten);
+      setVorschau(w.nachrichtVorschau);
+      setEinsaetze(w.notifyEinsaetze);
+      setNotfall(w.notifyNotfall);
+    };
+    setzen(next);
     try {
       await savePrefs(user.companyId, user.uid, next);
     } catch (err) {
+      /*
+        DER SCHALTER ZEIGT, WAS GILT (U6). Er springt beim Tippen sofort um;
+        scheitert das Speichern, steht er wieder, wo er war — sonst zeigte er
+        „an“ für eine Meldung, die nie kommt.
+      */
+      setzen(vorher);
       setError(grundAus(err, 'Die Einstellung konnte nicht gespeichert werden.'));
     }
   }
@@ -315,134 +324,112 @@ export default function NotificationSettings() {
         title="Wovon möchtest du erfahren?"
         hint="Die Auswahl gilt für dich auf allen Geräten und wird sofort gespeichert."
       >
-        {/* 8 px zwischen den Schaltern wie in den Einstellungen › Personal (E72, N11). */}
-        <div className="space-y-2">
+        {/* Schalter, keine Kästchen (U6, E3): jede Zeile gilt beim Tippen, es gibt nichts zu speichern. */}
+        <div>
           {zeigeNeueAnforderung && (
-            <CheckboxField
-              id="n-new-order"
-              label="Eine neue Materialanforderung geht ein"
-              checked={newOrder}
-              onChange={(e) => void speichern({ notifyNewOrder: e.target.checked })}
-            />
+            <Schalter id="n-new-order" label="Eine neue Materialanforderung geht ein" an={newOrder} onChange={(an) => void speichern({ notifyNewOrder: an })} />
           )}
+          {/* M11: der Storno ist derselbe Stand SEINER Anforderung — keine eigene Einstellung. */}
           {zeigeAbholbereit && (
-            <div className="flex flex-wrap items-center gap-2">
-              <CheckboxField
-                id="n-order-ready"
-                label="Mein angefordertes Material ist abholbereit"
-                checked={orderReady}
-                onChange={(e) => void speichern({ notifyOrderReady: e.target.checked })}
-              />
-              {/* M11: der Storno ist derselbe Stand SEINER Anforderung — keine eigene Einstellung. */}
-              <InfoHint about="Abholbereit">
+            <Schalter
+              id="n-order-ready"
+              label="Mein angefordertes Material ist abholbereit"
+              an={orderReady}
+              onChange={(an) => void speichern({ notifyOrderReady: an })}
+              zusatz={<InfoHint about="Abholbereit">
                 Auch wenn das Lager die Bestellung beim Großhändler storniert — mit Grund. Es wird dann
                 neu beschafft.
-              </InfoHint>
-            </div>
+              </InfoHint>}
+            />
           )}
           {zeigeEil && (
-            <div className="flex flex-wrap items-center gap-2">
-              <CheckboxField
-                id="n-urgent"
-                label="Eilzustellung für meine Baustellen"
-                checked={urgent}
-                onChange={(e) => void speichern({ notifyUrgentDelivery: e.target.checked })}
-              />
-              <InfoHint about="Eilzustellungen">
+            <Schalter
+              id="n-urgent"
+              label="Eilzustellung für meine Baustellen"
+              an={urgent}
+              onChange={(an) => void speichern({ notifyUrgentDelivery: an })}
+              zusatz={<InfoHint about="Eilzustellungen">
                 Zwei Meldungen je Anforderung: sobald sie eingeht, und noch einmal, sobald das
                 Material abholbereit ist.
-              </InfoHint>
-            </div>
+              </InfoHint>}
+            />
           )}
           {/*
             FÜR JEDE ROLLE: jeder kann Urlaub oder Zeitausgleich beantragen
             und bekommt die Entscheidung gemeldet.
           */}
-          <div className="flex flex-wrap items-center gap-2">
-            <CheckboxField
+          <Schalter
               id="n-abwesenheit"
               label="Urlaub, Zeitausgleich und Krankmeldungen"
-              checked={abwesenheit}
-              onChange={(e) => void speichern({ notifyAbwesenheit: e.target.checked })}
-            />
-            <InfoHint about="Abwesenheiten">
+              an={abwesenheit}
+              onChange={(an) => void speichern({ notifyAbwesenheit: an })}
+              zusatz={<InfoHint about="Abwesenheiten">
               Du erfährst, wenn über deinen Antrag entschieden ist. Wer Urlaub genehmigt, bekommt
               neue Anträge gemeldet; Buchhaltung und Geschäftsführung zusätzlich Krankmeldungen.
-            </InfoHint>
-          </div>
-          <CheckboxField id="n-timer" label="Zeiterfassung: Timer und Korrekturanträge" checked={timer} onChange={(e) => void speichern({ notifyZeiterfassung: e.target.checked })} />
+            </InfoHint>}
+            />
+          <Schalter id="n-timer" label="Zeiterfassung: Timer und Korrekturanträge" an={timer} onChange={(an) => void speichern({ notifyZeiterfassung: an })} />
           {zeigeEinsaetze && (
-            <div className="flex flex-wrap items-center gap-2">
-              <CheckboxField
-                id="n-einsaetze"
-                label="Geänderter Einsatzplan für heute und morgen"
-                checked={einsaetze}
-                onChange={(e) => void speichern({ notifyEinsaetze: e.target.checked })}
-              />
-              <InfoHint about="Einsatzplan">
+            <Schalter
+              id="n-einsaetze"
+              label="Geänderter Einsatzplan für heute und morgen"
+              an={einsaetze}
+              onChange={(an) => void speichern({ notifyEinsaetze: an })}
+              zusatz={<InfoHint about="Einsatzplan">
                 Plant das Büro dich für heute oder morgen um, oder ändert sich ein Termin, an dem du
                 teilnimmst, kommt eine Meldung mit deinem Plan, wie er jetzt ist. Mehrere Änderungen
                 kurz hintereinander kommen als eine Meldung; Änderungen für spätere Tage stehen im
                 Plan und melden sich nicht.
-              </InfoHint>
-            </div>
+              </InfoHint>}
+            />
           )}
           {zeigeNotfall && (
-            <div className="flex flex-wrap items-center gap-2">
-              <CheckboxField
-                id="n-notfall"
-                label="Notfall im Auftragseingang"
-                checked={notfall}
-                onChange={(e) => void speichern({ notifyNotfall: e.target.checked })}
-              />
-              <InfoHint about="Notfälle">
+            <Schalter
+              id="n-notfall"
+              label="Notfall im Auftragseingang"
+              an={notfall}
+              onChange={(an) => void speichern({ notifyNotfall: an })}
+              zusatz={<InfoHint about="Notfälle">
                 Wird ein Eingang als Notfall erfasst, kommt sofort eine Meldung mit Nummer und Ort —
                 nicht an den, der ihn erfasst hat.
-              </InfoHint>
-            </div>
+              </InfoHint>}
+            />
           )}
           {zeigeAngebot && (
-            <div className="flex flex-wrap items-center gap-2">
-              <CheckboxField
-                id="n-angebot"
-                label="Antwort eines Kunden über den Annahme-Link"
-                checked={angebot}
-                onChange={(e) => void speichern({ notifyAngebot: e.target.checked })}
-              />
-              <InfoHint about="Annahme-Link">
+            <Schalter
+              id="n-angebot"
+              label="Antwort eines Kunden über den Annahme-Link"
+              an={angebot}
+              onChange={(an) => void speichern({ notifyAngebot: an })}
+              zusatz={<InfoHint about="Annahme-Link">
                 Du erfährst, wenn ein Kunde ein Angebot über den Link annimmt oder ablehnt — mit
                 Angebotsnummer und Namen, ohne Betrag.
-              </InfoHint>
-            </div>
+              </InfoHint>}
+            />
           )}
           {zeigeNachrichten && (
             <>
-              <div className="flex flex-wrap items-center gap-2">
-                <CheckboxField
-                  id="n-nachrichten"
-                  label="Neue Nachrichten"
-                  checked={nachrichten}
-                  onChange={(e) => void speichern({ notifyNachrichten: e.target.checked })}
-                />
-                <InfoHint about="Nachrichten">
+              <Schalter
+              id="n-nachrichten"
+              label="Neue Nachrichten"
+              an={nachrichten}
+              onChange={(an) => void speichern({ notifyNachrichten: an })}
+              zusatz={<InfoHint about="Nachrichten">
                   Aus deinen Gesprächen und aus den Baustellen, denen du folgst. Ein stumm
                   geschaltetes Gespräch meldet sich nur, wenn dich jemand erwähnt.
-                </InfoHint>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <CheckboxField
-                  id="n-vorschau"
-                  label="Text der Nachricht im Sperrbildschirm zeigen"
-                  checked={vorschau}
-                  disabled={!nachrichten}
-                  onChange={(e) => void speichern({ nachrichtVorschau: e.target.checked })}
-                />
-                <InfoHint about="Vorschau">
+                </InfoHint>}
+            />
+              <Schalter
+              id="n-vorschau"
+              label="Text der Nachricht im Sperrbildschirm zeigen"
+              an={vorschau} gesperrt={!nachrichten}
+              onChange={(an) => void speichern({ nachrichtVorschau: an })}
+              zusatz={<InfoHint about="Vorschau">
                   Aus heißt: die Meldung sagt nur, wer geschrieben hat. An heißt: die ersten 80
                   Zeichen stehen im Sperrbildschirm — sichtbar für jeden, der dein Telefon sieht,
                   und auf dem Weg über den Push-Dienst des Browsers.
-                </InfoHint>
-              </div>
+                </InfoHint>}
+            />
             </>
           )}
         </div>

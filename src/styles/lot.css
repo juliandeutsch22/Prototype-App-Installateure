@@ -303,6 +303,32 @@
      in eine Zeile, rückt die Hauptaktion rechtsbündig darunter. */
   .fuss-aktionen { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
 
+  /* ── Schalter (U6, E3) ─────────────────────────────────────────────────── */
+  /*
+    Für alles, was sofort wirkt. Dieselbe Schiene wie „Dunkle Darstellung“:
+    aus = helle Schiene mit gedämpfter Kontur und grauem Griff links, an =
+    Terrakotta mit hellem Griff rechts und Häkchen. Die Zeile ist 48 px hoch
+    und ganz antippbar (das Etikett gehört zum Knopf). Kein Schatten: der
+    Schalter schwebt nicht.
+  */
+  .schalter-zeile { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 3rem; padding-block: 0.25rem; }
+  .schalter-text { display: flex; flex-direction: column; min-width: 0; flex: 1; cursor: pointer; }
+  .schalter-name { font-size: 0.9375rem; line-height: 1.375rem; color: var(--text); overflow-wrap: anywhere; }
+  .schalter-beschreibung { font-size: 0.8125rem; line-height: 1.25rem; color: var(--text-muted); }
+  .schalter { display: inline-flex; align-items: center; justify-content: center; flex: none; min-width: 3.5rem; min-height: 2.75rem; padding: 0; border: 0; border-radius: var(--radius); background: none; cursor: pointer; }
+  .schalter:focus-visible { outline: 2px solid var(--fokus); outline-offset: 2px; }
+  .schalter-schiene { position: relative; display: block; width: 3rem; height: 1.75rem; border: 1px solid var(--text-muted); border-radius: var(--radius-pill); background: var(--surface-3); transition: background-color var(--motion-state, 160ms) var(--ease-response, ease), border-color var(--motion-state, 160ms) var(--ease-response, ease); }
+  .schalter-griff { position: absolute; top: 2px; left: 2px; display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 50%; background: var(--text-muted); color: var(--brand); transition: transform var(--motion-state, 160ms) var(--ease-response, ease); }
+  .schalter[aria-checked='true'] .schalter-schiene { border-color: var(--brand); background: var(--brand); }
+  .schalter[aria-checked='true'] .schalter-griff { transform: translateX(1.25rem); background: var(--brand-fg); }
+  .schalter:hover:not(:disabled) .schalter-schiene { border-color: var(--text); }
+  .schalter[aria-checked='true']:hover:not(:disabled) .schalter-schiene { border-color: var(--brand); }
+  /* Gesperrt bleibt lesbar (V10 9.3): nicht durchsichtig, sondern ruhig — der Zeiger sagt den Rest. */
+  .schalter:disabled { cursor: not-allowed; }
+  .schalter-zeile[data-gesperrt] .schalter-text { cursor: not-allowed; }
+  .schalter-zeile[data-gesperrt] .schalter-name { color: var(--text-muted); }
+  .schalter-allein { min-height: 0; padding: 0; flex: none; }
+
   /* ── Musterseite ─────────────────────────────────────────────────────── */
   .muster-farbe { display: flex; align-items: center; gap: 0.75rem; min-height: 2.75rem; font-size: 0.875rem; }
   .muster-feld { width: 2rem; height: 2rem; flex: none; border-radius: var(--radius-sm); border: 1px solid var(--border); }

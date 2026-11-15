@@ -44,7 +44,7 @@ beforeEach(() => {
 describe('Mein Konto — Einsatzplan', () => {
   it('ein Monteur sieht den Schalter, ab Werk an, und legt ihn um', async () => {
     render(<NotificationSettings />);
-    const schalter = await screen.findByRole('checkbox', { name: SCHALTER });
+    const schalter = await screen.findByRole('switch', { name: SCHALTER });
     expect(schalter).toBeChecked();
     await userEvent.click(schalter);
     await waitFor(() => expect(savePrefs).toHaveBeenCalled());
@@ -55,14 +55,14 @@ describe('Mein Konto — Einsatzplan', () => {
   it('übernimmt eine gespeicherte Abwahl', async () => {
     gelesen = { notifyEinsaetze: false };
     render(<NotificationSettings />);
-    await waitFor(() => expect(screen.getByRole('checkbox', { name: SCHALTER })).not.toBeChecked());
+    await waitFor(() => expect(screen.getByRole('switch', { name: SCHALTER })).not.toBeChecked());
   });
 
   it('ein anderer Schalter lässt die Wahl für den Einsatzplan stehen', async () => {
     gelesen = { notifyEinsaetze: false };
     render(<NotificationSettings />);
-    await waitFor(() => expect(screen.getByRole('checkbox', { name: SCHALTER })).not.toBeChecked());
-    await userEvent.click(screen.getByRole('checkbox', { name: /Zeiterfassung/ }));
+    await waitFor(() => expect(screen.getByRole('switch', { name: SCHALTER })).not.toBeChecked());
+    await userEvent.click(screen.getByRole('switch', { name: /Zeiterfassung/ }));
     await waitFor(() => expect(savePrefs).toHaveBeenCalled());
     expect(gespeichert).toMatchObject({ notifyEinsaetze: false, notifyZeiterfassung: false });
   });
@@ -70,8 +70,8 @@ describe('Mein Konto — Einsatzplan', () => {
   it('Gegenprobe: ohne Einsatzplanung im Betrieb kein Schalter', async () => {
     auth.company = { id: 'perl', modules: { einsatzplanung: false } };
     render(<NotificationSettings />);
-    await screen.findByRole('checkbox', { name: /Zeiterfassung/ });
-    expect(screen.queryByRole('checkbox', { name: SCHALTER })).toBeNull();
+    await screen.findByRole('switch', { name: /Zeiterfassung/ });
+    expect(screen.queryByRole('switch', { name: SCHALTER })).toBeNull();
   });
 
   /*
@@ -84,13 +84,13 @@ describe('Mein Konto — Einsatzplan', () => {
   it('V8: auch wer nicht eingeplant wird (Geschäftsführung), sieht ihn — wegen der Termine', async () => {
     auth.user = { ...auth.user, role: 'Geschäftsführung' };
     render(<NotificationSettings />);
-    expect(await screen.findByRole('checkbox', { name: SCHALTER })).toBeChecked();
+    expect(await screen.findByRole('switch', { name: SCHALTER })).toBeChecked();
   });
 
   it('V8: die Projektleitung ebenso, unabhängig vom Einsatzplan', async () => {
     auth.user = { ...auth.user, role: 'Projektleiter' };
     render(<NotificationSettings />);
-    expect(await screen.findByRole('checkbox', { name: SCHALTER })).toBeChecked();
+    expect(await screen.findByRole('switch', { name: SCHALTER })).toBeChecked();
   });
 });
 
@@ -104,7 +104,7 @@ describe('Mein Konto — Notfall im Auftragseingang (V8)', () => {
   it('die Führung sieht ihn (ab Werk an) und schaltet ihn ab', async () => {
     auth.user = { ...auth.user, role: 'Geschäftsführung' };
     render(<NotificationSettings />);
-    const schalter = await screen.findByRole('checkbox', { name: NOTFALL });
+    const schalter = await screen.findByRole('switch', { name: NOTFALL });
     expect(schalter).toBeChecked();
     await userEvent.click(schalter);
     await waitFor(() => expect(savePrefs).toHaveBeenCalled());
@@ -114,13 +114,13 @@ describe('Mein Konto — Notfall im Auftragseingang (V8)', () => {
   it('bleibt gleich: der Monteur bekommt keinen; ohne Auftragseingang auch die Führung nicht', async () => {
     auth.user = { ...auth.user, role: 'Mitarbeiter' };
     const { unmount } = render(<NotificationSettings />);
-    await screen.findByRole('checkbox', { name: /Zeiterfassung/ });
-    expect(screen.queryByRole('checkbox', { name: NOTFALL })).toBeNull();
+    await screen.findByRole('switch', { name: /Zeiterfassung/ });
+    expect(screen.queryByRole('switch', { name: NOTFALL })).toBeNull();
     unmount();
     auth.user = { ...auth.user, role: 'Geschäftsführung' };
     auth.company = { id: 'perl', modules: { 'baustellen.auftragseingang': false } };
     render(<NotificationSettings />);
-    await screen.findByRole('checkbox', { name: /Zeiterfassung/ });
-    expect(screen.queryByRole('checkbox', { name: NOTFALL })).toBeNull();
+    await screen.findByRole('switch', { name: /Zeiterfassung/ });
+    expect(screen.queryByRole('switch', { name: NOTFALL })).toBeNull();
   });
 });

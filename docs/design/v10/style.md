@@ -121,6 +121,12 @@ Woche/Monat/Tag sowie Personen/Baustellen verwenden kompakte Texttabs mit einer 
 
 Große Arbeitstagkarten beschriften Pause, Weiter und Stopp mit kurzen Textlabels. Die kompakte mobile Arbeitstagkarte und die globale Timer-Leiste dürfen bewährte Symbole ohne sichtbare Zusatzlabels verwenden. Alle Iconbuttons benötigen verständliche `aria-label`-Texte und ausreichend große Ziele. Lade-, Speicher-, Deaktivierungs-, Fehler- und Fokuszustände bleiben sichtbar und funktional; die vorhandene Breitenreservierung von Buttons darf nicht verloren gehen.
 
+## Schalter und Kästchen · Durchsicht 15.11.2026 (U6, E3)
+
+Ein **Schalter** (`Schalter`) für alles, was sofort wirkt: Module, Meldungen, eine Pflicht für den ganzen Betrieb, ein Filter der Ansicht. Er ist ein echter Knopf mit `role="switch"` und `aria-checked`, schaltet mit Leertaste und Enter, und die ganze Zeile samt Etikett ist das Ziel. Den Zustand tragen Lage, Farbe und ein Häkchen im Griff — Farbe allein nie. Braucht ein Wechsel eine Rückfrage (ein Modul, an dem etwas hängt), springt der Schalter erst nach der Bestätigung um; scheitert das Speichern, steht er wieder, wo er war, und der Grund steht daneben. Während er schreibt, ist er gesperrt.
+
+Das **Kästchen** bleibt für die Auswahl in einem Formular, das erst mit „Speichern“ gilt, und für das Abhaken einer Liste (Rüstliste). „ein“/„aus“ als Wort neben einem Kästchen gibt es nicht. Wächter: `tests/unit/schalterRegel.test.ts`.
+
 ## Einsatzplanung · E88 bleibt fachlich maßgeblich
 
 Woche/Monat/Tag, Personen-/Baustellensicht, freie Kapazitäten, Termine, Materialzustände, Abwesenheiten und „Noch einzuplanen“ bleiben erhalten. Desktop zeigt die komplette Woche und die Ablage. Tablet zeigt ausreichend breite Tage und hält die restliche Woche horizontal erreichbar. Mobil zeigt die siebentägige Auswahl und eine Tagesliste statt eines verkleinerten Wochenrasters.

@@ -27,6 +27,7 @@ import MusterMonat from './MusterMonat';
 import MusterPlanlinie from './MusterPlanlinie';
 import MusterZeitfelder from './MusterZeitfelder';
 import MusterV10 from './MusterV10';
+import MusterSchalter from './MusterSchalter';
 
 /**
  * DIE MUSTERSEITE (Protokoll Abschnitt 4.2, seit 13.11.2026 die Referenz der
@@ -242,6 +243,9 @@ export default function MusterView() {
           </div>
         </div>
       </Card>
+
+      {/* U6, E3: Schalter für Sofortiges, Kästchen für die Auswahl im Formular. */}
+      <MusterSchalter />
 
       {/* M06b: die freien Zeitfelder in Maske und Liste. */}
       <MusterZeitfelder />
