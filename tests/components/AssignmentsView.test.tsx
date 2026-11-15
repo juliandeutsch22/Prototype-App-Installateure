@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -114,11 +114,16 @@ vi.mock('@/lib/db/assignments', () => ({
     loesche(id);
     return loeschenScheitert ? Promise.reject(new Error('kein Netz')) : Promise.resolve();
   },
+  einsatzFolgetageEntfernen: (...a: unknown[]) => folgeEntfernen(...a),
   einsatzFolgetage: (...a: unknown[]) => {
     folgetage(...a);
     return folgeFehler ? Promise.reject(new Error('kein Netz')) : Promise.resolve(folgeAntwort);
   },
 }));
+/* Entfernen über mehrere Tage (V13) — geprüft wird die Datenbank in einsatzFolgetageAendern.test.ts. */
+const folgeEntfernen = vi.fn<(...a: unknown[]) => Promise<unknown>>(async () => [
+  { datum: '2026-09-02', entfernt: 1, ruestliste: null, inArbeit: 0 },
+]);
 /* Was `einsatz_folgetage` antwortet (B4, E85) — geprüft wird die Datenbank in einsatzFolgetage.test.ts. */
 const folgetage = vi.fn();
 let folgeFehler = false;
@@ -972,6 +977,59 @@ describe('Einsatz löschen', () => {
   });
 });
 
+/*
+  V13 (Durchsicht 15.11.2026): mehrtägig entfernen und ändern. Gegenprobe:
+  vorher gab es im Löschdialog keine Folgetage, und „Auch an den folgenden
+  Tagen“ ergänzte nur — an einem geplanten Paar blieb, wer herausgenommen war.
+*/
+describe('Mehrtägig entfernen und ändern (V13)', () => {
+  const MAX_HEUTE = {
+    id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann',
+  } as Assignment & { id: string };
+
+  it('löscht auf Wunsch auch an den folgenden Tagen — dieselbe Person, dieselbe Baustelle', async () => {
+    einsaetze = [MAX_HEUTE];
+    folgeEntfernen.mockClear();
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Einsatz von Max Mustermann löschen' }));
+    const dialog = await screen.findByRole('dialog');
+    await nutzer.click(within(dialog).getByRole('checkbox', { name: 'Auch an den folgenden Tagen entfernen' }));
+    const bis = within(dialog).getByLabelText('bis einschließlich');
+    fireEvent.change(bis, { target: { value: '2026-09-04' } });
+    await nutzer.click(within(dialog).getByRole('button', { name: /löschen/i }));
+    await waitFor(() => expect(folgeEntfernen).toHaveBeenCalledWith('2026-09-02', '2026-09-04', '2026-042', 'u1', 'behalten'));
+    expect(await screen.findByText(/Einsatz gelöscht · dazu an einem weiteren Tag/)).toBeInTheDocument();
+  });
+
+  it('bleibt gleich: ohne Haken nur dieser Tag', async () => {
+    einsaetze = [MAX_HEUTE];
+    folgeEntfernen.mockClear();
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Einsatz von Max Mustermann löschen' }));
+    const dialog = await screen.findByRole('dialog');
+    await nutzer.click(within(dialog).getByRole('button', { name: /löschen/i }));
+    await waitFor(() => expect(loesche).toHaveBeenCalled());
+    expect(folgeEntfernen).not.toHaveBeenCalled();
+  });
+
+  it('am geplanten Paar gleicht „Auch an den folgenden Tagen“ an; beim Anlegen ergänzt es nur', async () => {
+    einsaetze = [MAX_HEUTE];
+    folgetage.mockClear();
+    folgeAntwort = [];
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    expect(await screen.findByText(/Für diese Baustelle ist der Tag bereits geplant/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Auch an den folgenden Tagen' }));
+    expect(screen.getByText(/Die folgenden Tage werden angeglichen/)).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('bis einschließlich'), '2026-09-04');
+    await userEvent.click(screen.getByRole('button', { name: /speichern/i }));
+    await waitFor(() => expect(folgetage).toHaveBeenCalled());
+    expect(folgetage.mock.calls[0][6]).toBe(true);
+  });
+});
+
 // Testbericht 30.09.2026, G14 und M32 — Rüstliste und Lager.
 describe('Rüstliste: Zustand je Position (M04b, E13)', () => {
   async function mischbatterie(menge: string) {
@@ -1571,6 +1629,8 @@ describe('Einsatzplanung — mehrere Tage', () => {
 
     expect(await screen.findByText(/Nicht an jedem Tag wie gewählt/)).toBeInTheDocument();
     expect(folgetage.mock.calls[0][5]).toBe(false);
+    // Bleibt gleich (V13): ein neues Paar wird nur ergänzt, nicht angeglichen.
+    expect(folgetage.mock.calls[0][6]).toBe(false);
     expect(screen.getByText(/Max Mustermann abwesend, nicht eingeteilt/)).toBeInTheDocument();
     expect(screen.getByText(/war schon geplant — ergänzt/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Fertig' }));

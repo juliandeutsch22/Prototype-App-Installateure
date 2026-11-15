@@ -6,7 +6,7 @@ import { ToastProvider } from '@/components/Toast';
 import type { Material, MaterialOrder } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import StockView from '@/features/orders/StockView';
-import { listGrosshaendler } from '@/lib/db/einkauf';
+import { listGrosshaendler, lieferungenFuerArtikel } from '@/lib/db/einkauf';
 import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 
 /**
@@ -79,7 +79,12 @@ vi.mock('@/lib/db/materials', () => ({
   // M03a: die Suche über Nummern der Großhändler — der Server nennt die Artikel.
   NUMMER_AB: 3,
   nummernTreffer: (begriff: string) => nummernSuche(begriff),
+  kommissionsartikelImLager: (ids?: readonly string[]) => kommissionAufruf(ids),
 }));
+/** M6: die Kommissionsware, die schon im Lager steht — wie die Datenbank sie nennt. */
+const kommissionAufruf = vi.fn<(ids?: readonly string[]) => Promise<Array<{ id: string; name: string }>>>(
+  async (ids) => (ids ? ids.map((id) => ({ id, name: 'Sonderfitting' })) : [{ id: 'k9', name: 'Sonderfitting' }]),
+);
 const nummernSuche = vi.fn<(begriff: string) => Promise<Map<string, unknown>>>(async () => new Map());
 // Ohne eigene Vorgabe rechnet die Ansicht selbst — wie wenn die Zahlen ausbleiben.
 const lagerStand = vi.fn<(ids?: readonly string[]) => Promise<Map<string, unknown>>>(async () => { throw new Error('nicht geladen'); });
@@ -87,6 +92,9 @@ const inventurBuchen = vi.fn();
 const bewegungenLaden = vi.fn<(...a: unknown[]) => Promise<unknown[]>>(async () => []);
 vi.mock('@/lib/db/einkauf', () => ({
   listGrosshaendler: vi.fn(async () => [{ id: 'g1', name: 'Frauenthal', active: true }]),
+  // M12: was von diesem Artikel noch kommt — ohne eigene Vorgabe nichts.
+  lieferungenFuerArtikel: vi.fn(async () => ({ anforderungen: [], posten: [], geliefert: [] })),
+  GELIEFERT_ZURUECK_TAGE: 14,
 }));
 
 vi.mock('@/lib/db/materialOrders', () => ({
@@ -543,6 +551,76 @@ describe('Lager — Wareneingang', () => {
     expect(bestandAendern).not.toHaveBeenCalled();
   });
 
+  /*
+    EIN WEG FÜR EINE LIEFERUNG (M12, B17): der Wareneingang erledigt die
+    offenen Bestellungen des Artikels mit — vorher buchte, wer danach auf der
+    Einkaufsliste „Geliefert“ drückte, die Menge ein zweites Mal ein.
+    Gegenprobe: ohne die Bestellungen im Dialog fehlen sie im Aufruf (rot);
+    ohne offene Bestellung bleibt der Aufruf wie bisher (die Tests oben).
+  */
+  const offen = () => ({
+    anforderungen: [anforderung({
+      id: 'a1', materialId: 'm1', quantity: 10, beschaffung: 'einkauf', supplierId: 'g1',
+      bestelltAm: Date.UTC(2026, 10, 12), userName: 'Max Mustermann', projectNumber: 'B-2026-0001',
+      status: 'In Bearbeitung',
+    })],
+    posten: [{ id: 'p1', companyId: 'perl', materialId: 'm1', materialName: 'Kupferrohr 15mm', menge: 20,
+      supplierId: 'g1', bestelltAm: Date.UTC(2026, 10, 10) }],
+    // Noch nicht bestellt: kann nicht ankommen, wird nicht angeboten.
+    geliefert: [],
+  } as unknown as Awaited<ReturnType<typeof lieferungenFuerArtikel>>);
+
+  it('erledigt die offenen Bestellungen mit — Anforderung zuerst, die letzte als Teillieferung (M12)', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    vi.mocked(lieferungenFuerArtikel).mockResolvedValueOnce(offen());
+    zeige();
+    const dialog = await eingangOeffnen();
+    const a = await within(dialog).findByRole('checkbox', { name: /^10 m · Max Mustermann · B-2026-0001 · Frauenthal/ });
+    const p = within(dialog).getByRole('checkbox', { name: /^20 m · fürs Lager · Frauenthal/ });
+    expect(a).toBeChecked();
+    expect(p).toBeChecked();
+    // Beide beim selben Großhändler: er steht schon als Lieferant da.
+    expect(within(dialog).getByRole('combobox', { name: /^Lieferant/ })).toHaveValue('Frauenthal');
+    const feld = within(dialog).getByLabelText(/^Menge/);
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '25');
+    expect(within(dialog).getByText('1 Bestellung ist damit geliefert; eine teilweise (15 von 20), der Rest bleibt bestellt.'))
+      .toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
+      materialId: 'm1', menge: 25, lieferant: 'Frauenthal', lieferschein: undefined, bezug: undefined,
+      vorgang: expect.stringMatching(/^[0-9a-f-]{36}$/), bestellungen: ['a1', 'p1'],
+    }));
+  });
+
+  it('abgehakt geht alles frei in den Bestand — wie bisher (M12)', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    vi.mocked(lieferungenFuerArtikel).mockResolvedValueOnce(offen());
+    zeige();
+    const dialog = await eingangOeffnen();
+    await userEvent.click(await within(dialog).findByRole('checkbox', { name: /Max Mustermann/ }));
+    await userEvent.click(within(dialog).getByRole('checkbox', { name: /fürs Lager/ }));
+    expect(within(dialog).getByText(/Keine Bestellung gewählt/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
+      materialId: 'm1', menge: 1, lieferant: 'Frauenthal', lieferschein: undefined, bezug: undefined,
+      vorgang: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    }));
+  });
+
+  it('nennt, was in den letzten Tagen schon als geliefert gebucht ist (M12)', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    vi.mocked(lieferungenFuerArtikel).mockResolvedValueOnce({
+      anforderungen: [], posten: [],
+      geliefert: [{ id: 'p9', menge: 12, lieferschein: 'LS-0815', geliefertAm: Date.UTC(2026, 10, 14, 9) }],
+    } as unknown as Awaited<ReturnType<typeof lieferungenFuerArtikel>>);
+    zeige();
+    const dialog = await eingangOeffnen();
+    expect(await within(dialog).findByText(/12 m am 14\.11\.2026 \(Lieferschein LS-0815\)/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/nicht noch einmal einbuchen/)).toBeInTheDocument();
+    expect(within(dialog).queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
   it('bucht nichts, wenn der Dialog abgebrochen wird', async () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     zeige();
@@ -779,7 +857,7 @@ describe('Wer den Katalog einspielen darf', () => {
     zeige();
     expect(await screen.findByRole('button', { name: 'Katalog' })).toBeInTheDocument();
     // M04a (bewusst nachgezogen): die Lagerorte pflegt, wer das Lager führt — auch die Verwaltung.
-    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …']);
+    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Kommissionsware aus dem Lager nehmen …']);
   });
 
   it('zeigt ihn der Geschäftsführung und öffnet ihn', async () => {
@@ -790,7 +868,7 @@ describe('Wer den Katalog einspielen darf', () => {
       auch „Offene Lieferantenartikel“ — für dieselben Rollen wie das
       Einspielen (eigene Prüfungen unten, „Offene Lieferantenartikel“).
     */
-    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Katalog einspielen', 'Offene Lieferantenartikel']);
+    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Katalog einspielen', 'Offene Lieferantenartikel', 'Kommissionsware aus dem Lager nehmen …']);
     await userEvent.click(screen.getByRole('menuitem', { name: 'Katalog einspielen' }));
     expect(await screen.findByText('Katalog einspielen (Inhalt)')).toBeInTheDocument();
     expect(screen.getByTestId('adresse')).toHaveTextContent('/lager?reiter=import');
@@ -1004,7 +1082,7 @@ describe('Offene Lieferantenartikel', () => {
     zeige('/lager?reiter=zuordnen');
     expect(await screen.findByRole('button', { name: 'Bestand' })).toHaveAttribute('aria-pressed', 'true');
     // „Lagerorte …“ (M04a) hängt an seiner eigenen Unterfähigkeit, nicht an dieser.
-    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Katalog einspielen']);
+    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Katalog einspielen', 'Kommissionsware aus dem Lager nehmen …']);
   });
 });
 
@@ -1071,5 +1149,34 @@ describe('V10 Lager — Fehler ist nicht leer', () => {
     materialien = [material({ id: 'k1', name: 'Kugelhahn', stock: 0, lagerartikel: false })];
     zeige();
     expect(await screen.findByText(/Noch kein Artikel im Lager geführt/)).toBeInTheDocument();
+  });
+});
+
+/*
+  M6 (16.11.2026): KOMMISSIONSWARE, DIE SCHON IM LAGER STEHT. Bis dahin
+  machte jede Lieferung für eine Anforderung den Artikel für immer zum
+  Lagerartikel. Die Rückfrage zeigt, was die Datenbank nennt, und nimmt nur
+  diese Artikel aus dem Lager.
+*/
+describe('Kommissionsware aus dem Lager nehmen (M6)', () => {
+  it('zeigt die Artikel und nimmt genau diese heraus', async () => {
+    kommissionAufruf.mockClear();
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für Lager' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Kommissionsware aus dem Lager nehmen …' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Kommissionsware aus dem Lager nehmen?' });
+    expect(within(dialog).getByText('Sonderfitting')).toBeInTheDocument();
+    expect(kommissionAufruf).toHaveBeenCalledWith(undefined);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Aus dem Lager nehmen' }));
+    await waitFor(() => expect(kommissionAufruf).toHaveBeenLastCalledWith(['k9']));
+  });
+
+  it('Gleichbleiben: ohne solche Artikel kein Fenster, nur eine Meldung', async () => {
+    kommissionAufruf.mockResolvedValueOnce([]);
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für Lager' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Kommissionsware aus dem Lager nehmen …' }));
+    expect(await screen.findByText('Kein Artikel kam nur als Kommissionsware ins Lager.')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Kommissionsware aus dem Lager nehmen?' })).toBeNull();
   });
 });

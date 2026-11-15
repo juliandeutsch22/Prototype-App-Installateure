@@ -27,6 +27,24 @@ export function listKontoUmstellungen(uid: string, max?: number): Promise<KontoU
   return pg.listKontoUmstellungen(uid, max);
 }
 
+export function zweiterFaktorVon(uid: string): Promise<boolean> {
+  return pg.zweiterFaktorVon(uid);
+}
+
+export function zweitenFaktorZuruecksetzen(uid: string, grund: string): Promise<void> {
+  return pg.zweitenFaktorZuruecksetzen(uid, grund);
+}
+
+export type { PasswortAnfrage } from './pg/users';
+
+export function listPasswortAnfragen(companyId: string, uid?: string): Promise<pg.PasswortAnfrage[]> {
+  return pg.listPasswortAnfragen(companyId, uid);
+}
+
+export function passwortAnfrageVerwerfen(id: string): Promise<void> {
+  return pg.passwortAnfrageVerwerfen(id);
+}
+
 export function updateUserProfile(
   uid: string, p: Partial<UserProfileInput>,
 ): Promise<void> {

@@ -139,7 +139,7 @@ describe('Mahnung', () => {
     const id = await rechnung();
     clientEinreichen(buch.client);
     const mahnung = await rechnungen.mahnungFesthalten(id, {
-      stufe: 1, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0,
+      datumAusdruecklich: true, stufe: 1, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0,
       inhalt: mahnInhalt(1, '2026-02-01', '2026-02-08', 'RE-AS'),
     });
     const stand = await staendeVon('mahnungen', mahnung);

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import SicherungView from '@/features/settings/SicherungView';
@@ -35,7 +35,7 @@ vi.mock('@/lib/db/laeufe', () => ({
   ausleitungJetzt: (...a: unknown[]) => ausleitung(...a),
 }));
 vi.mock('@/lib/db/company', () => ({
-  auszug: (...a: unknown[]) => export_(...a),
+  betriebAuszugDatei: (...a: unknown[]) => export_(...a),
 }));
 
 const rechnungenImZeitraum = vi.fn(async () => [] as unknown[]);
@@ -43,6 +43,8 @@ const gemahntImZeitraum = vi.fn(async () => [] as unknown[]);
 const mahnungenImZeitraum = vi.fn(async () => [{ id: 'm1' }] as unknown[]);
 vi.mock('@/lib/db/invoices', () => ({
   listInvoicesInRange: (...a: unknown[]) => rechnungenImZeitraum(...(a as [])),
+  // Die Nummern vor dem Zeitraum — für die Lückenprüfung an seiner Grenze (G8).
+  rechnungsnummernVorZeitraum: async () => [],
   listGemahntInRange: (...a: unknown[]) => gemahntImZeitraum(...(a as [])),
   listMahnungenInRange: (...a: unknown[]) => mahnungenImZeitraum(...(a as [])),
 }));
@@ -203,6 +205,34 @@ describe('Datensicherung', () => {
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent('Nur Geschäftsführung/Administrator.'),
     );
+  });
+
+  /*
+    K4 (Durchsicht 15.11.2026): der Download kommt in Teilen. Die Ansicht
+    zeigt, wie weit er ist, und speichert die zusammengesetzte Datei unter dem
+    Tag des Auszugs.
+  */
+  it('holt den Bestand in Teilen, zeigt den Fortschritt und speichert die Datei', async () => {
+    let weiter: (w: unknown) => void = () => undefined;
+    let melden: (fertig: number, gesamt: number) => void = () => undefined;
+    export_.mockImplementation((fortschritt: (f: number, g: number) => void) => {
+      melden = fortschritt;
+      return new Promise((gut) => (weiter = gut));
+    });
+    const url = vi.fn(() => 'blob:auszug');
+    Object.assign(URL, { createObjectURL: url, revokeObjectURL: vi.fn() });
+    const klick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    zeige();
+    await userEvent.click(screen.getByRole('button', { name: 'Alle Daten herunterladen' }));
+    act(() => melden(3, 12));
+    expect(await screen.findByText('Teil 3 von 12 abgeholt')).toBeInTheDocument();
+
+    weiter({ blob: new Blob(['{}']), kopf: { exportedAt: '2026-11-16T01:00:00.000Z', anzahl: { customers: 40, companies: 1 } } });
+    await waitFor(() => expect(klick).toHaveBeenCalled());
+    const a = klick.mock.instances[0] as unknown as HTMLAnchorElement;
+    expect(a.download).toMatch(/-2026-11-16\.json$/);
+    expect(await screen.findByText('41 Datensätze heruntergeladen')).toBeInTheDocument();
+    klick.mockRestore();
   });
 
   it('sperrt beide Knoepfe, solange einer laeuft', async () => {

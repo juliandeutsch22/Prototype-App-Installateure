@@ -141,7 +141,8 @@ describe('Mitarbeiter-CSV', () => {
     expect(csv).toContain('Monat: Juni 2025');
     expect(csv).toContain('Wochensoll: 40 h');
     expect(csv).toContain('Ist;9,00 h');
-    expect(csv).toContain('Resturlaub;25 Tage');
+    expect(csv).toContain('Rest am Monatsende;25 Tage');
+    expect(csv).toContain('davon verplant;0 Tage');
   });
 });
 
@@ -190,5 +191,75 @@ describe('entriesInRange', () => {
   it('schließt die Grenztage ein', () => {
     const all = [entry({ id: 'a', date: '2025-06-01' }), entry({ id: 'b', date: '2025-06-30' })];
     expect(entriesInRange(all, 'u1', '2025-06-01', '2025-06-30')).toHaveLength(2);
+  });
+});
+
+/*
+  Z8 (Durchsicht 15.11.2026): EINE RUNDUNGSREGEL FÜR MINUTEN. 20 Tage zu 7:40
+  ergaben in der Detailspalte je Zeile 7,67 — Summe 153,40 —, im „Ist“ aber
+  153,33. Wer in der Lohnverrechnung die Zeilen summierte, hatte 4 Minuten
+  mehr als die Zusammenfassung. Jetzt geht jede Spalte, unter der eine Summe
+  steht, auf diese Summe auf; jede Zeile bleibt unter einer Hundertstelstunde
+  bei ihrem genauen Wert.
+*/
+describe('Rundung der Minuten (Z8)', () => {
+  // 20 Arbeitstage im Juni 2025 zu je 7:40 (07:00–15:10, 30 Minuten Pause).
+  const tage = ['02', '03', '04', '05', '06', '10', '11', '12', '13', '16', '17', '18', '20', '23', '24', '25', '26', '27', '30', '19']
+    .map((d, i) => entry({ id: `e${i}`, date: `2025-06-${d}`, endTime: '15:10', projectNumber: 'PR-1', customerName: 'Kunde' }));
+  const zahl = (s: string) => Math.round(Number(s.replace(',', '.')) * 100);
+
+  it('Monats-CSV: die Detailspalte summiert sich auf das Ist', () => {
+    const csv = buildMonthCsv([makeRow(tage)], 2025, 5, true);
+    const zeilen = csv.split('\n');
+    const kopf = zeilen[0].split(';');
+    const detail = zeilen.slice(1, 21).map((z) => z.split(';')[kopf.indexOf('Arbeitszeit(Std)')]);
+    const gesamt = zeilen.slice(1, 21).map((z) => z.split(';')[kopf.indexOf('Gesamtzeit(Std)')]);
+    const ist = zeilen.find((z) => z.startsWith('Max Mustermann;') && !/;\d\d\.\d\d\.2025;/.test(z))!.split(';')[1];
+    expect(ist).toBe('153,33');
+    expect(detail.reduce((s, x) => s + zahl(x), 0)).toBe(15333);
+    expect(gesamt.reduce((s, x) => s + zahl(x), 0)).toBe(15333);
+    // Keine Zeile weicht mehr als eine Hundertstelstunde von 7:40 (766,67) ab.
+    for (const x of detail) expect(Math.abs(zahl(x) - 766.67)).toBeLessThan(1);
+  });
+
+  it('Personen-CSV: die Detailspalte summiert sich auf das Ist', () => {
+    const u = user();
+    const csv = buildUserCsv(u, tage, calcMonthStats(u, tage, tage, 2025, 5, true), 2025, 5, true);
+    const zeilen = csv.split('\n');
+    const kopfIndex = zeilen.findIndex((z) => z.startsWith('Datum;'));
+    const spalte = zeilen[kopfIndex].split(';').indexOf('Arbeitszeit(Std)');
+    const detail = zeilen.slice(kopfIndex + 1, kopfIndex + 21).map((z) => z.split(';')[spalte]);
+    expect(detail.reduce((s, x) => s + zahl(x), 0)).toBe(15333);
+    expect(csv).toMatch(/\nIst;153,33 h\n/);
+  });
+
+  it('Projektauswertung: die Zeilen summieren sich auf „Gesamt“, auch quer über die Einstufungen', () => {
+    const projekte = [1, 2, 3].map((n) => entry({ id: `p${n}`, date: `2025-06-0${n + 1}`, endTime: '07:50', breakDuration: 30, projectNumber: `PR-${n}` }));
+    // je 20 Minuten auf drei Baustellen: 0,33 + 0,33 + 0,33 ≠ 1,00
+    const csv = buildUserProjectCsv(user(), projekte, '2025-06-01', '2025-06-30');
+    const zeilen = csv.trim().split('\n');
+    const werte = zeilen.filter((z) => /^PR-\d;/.test(z)).map((z) => zahl(z.split(';')[3]));
+    expect(zeilen[zeilen.length - 1]).toBe('Gesamt;;3;1,00');
+    expect(werte.reduce((s, x) => s + x, 0)).toBe(100);
+
+    // Monats-CSV: 20 Minuten je Einstufung, „Gesamt“ = Summe der vier Spalten.
+    const quer = [
+      entry({ id: 'q1', endTime: '07:50', projectNumber: 'PR-9' }),
+      entry({ id: 'q2', date: '2025-06-03', endTime: '07:50', projectNumber: 'PR-9', isHelper: true }),
+      entry({ id: 'q3', date: '2025-06-04', endTime: '07:50', projectNumber: 'PR-9', satz: 'obermonteur' }),
+    ];
+    const monat = buildMonthCsv([makeRow(quer)], 2025, 5, true);
+    const z = monat.split('\n').find((l) => l.startsWith('PR-9;'))!.split(';').map((x) => (x.includes(',') ? zahl(x) : x));
+    const [, f, o, h, l, g] = z as number[];
+    expect(f + o + h + l).toBe(g);
+    expect(g).toBe(100);
+  });
+
+  it('bleibt gleich: ganze und halbe Stunden stehen wie bisher', () => {
+    const csv = buildMonthCsv([makeRow([entry(), entry({ id: 'e2', date: '2025-06-03', endTime: '12:00', breakDuration: 0 })])], 2025, 5, true);
+    const kopf = csv.split('\n')[0].split(';');
+    const i = kopf.indexOf('Arbeitszeit(Std)');
+    expect(csv.split('\n')[1].split(';')[i]).toBe('9,00');
+    expect(csv.split('\n')[2].split(';')[i]).toBe('5,00');
   });
 });

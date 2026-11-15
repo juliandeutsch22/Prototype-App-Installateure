@@ -53,6 +53,26 @@ const ANDERS_GELOEST: Record<string, string> = {
   */
   'geloescht wird kein Schein, in keinem Zustand':
     'Seit 04.11.2026 (E42) lässt sich ein Entwurf löschen; dass ein unterschriebener Schein nie gelöscht wird, prüft in regeln.test.ts „geloescht wird kein unterschriebener Schein — ein Entwurf seit 04.11.2026 schon“, dazu scheinEntwurfLoeschen.test.ts.',
+  /*
+    BEWUSST GEÄNDERTE REGELN DER DURCHSICHT VOM 15.11.2026 (Welle 2). G11:
+    eine Rechnungsnummer entsteht nur mit ihrer Rechnung oder Stornorechnung
+    — direkt gezogen, wurde sie nie ein Beleg und riss eine Lücke in den
+    lückenlosen Kreis. G10: der Kreis zählt im laufenden Jahr in Wien; ein
+    anderes Jahr nimmt die Schnittstelle nicht mehr an. M7: eine Retoure
+    bucht den Bestand erst mit der Annahme im Lager.
+  */
+  'Buchhaltung darf den Zaehler anlegen und hochzaehlen':
+    'Seit G11 zieht niemand eine Rechnungsnummer direkt; regeln.test.ts „die Buchhaltung zieht keine Rechnungsnummer mehr direkt“, der Kreis (1001, monoton, je Betrieb) über das Ausstellen in rechnungInEinemZug.test.ts und modulGeld.test.ts.',
+  'der Zaehler darf NICHT zurueckgesetzt werden':
+    'Zusammengefasst in regeln.test.ts „der Zaehler darf NICHT zurueckgesetzt und nicht geloescht werden“ — an die Tabelle kommt niemand heran; weiterzählen lässt sich seit G11 nur über das Ausstellen.',
+  'der Zaehler darf nicht geloescht werden':
+    'Zusammengefasst in regeln.test.ts „der Zaehler darf NICHT zurueckgesetzt und nicht geloescht werden“ (Löschversuch ohne Wirkung).',
+  'eine fremde Firma kommt an den Zaehler nicht heran':
+    'regeln.test.ts „eine fremde Firma sieht keinen fremden Zaehler“; dass jeder Betrieb seinen eigenen Kreis hat, prüft durchstich4.test.ts „führt für jeden Betrieb einen eigenen Nummernkreis“ über das Ausstellen.',
+  'der Monteur schreibt eine Retoure zurück':
+    'Seit M7 meldet der Monteur die Retoure, gutgeschrieben wird mit der Annahme im Lager: regeln.test.ts „der Monteur meldet eine Retoure — gutgeschrieben wird mit der Annahme im Lager (M7)“.',
+  'der Rechnungskreis laeuft ueber den Jahreswechsel weiter':
+    'Seit G11 zieht niemand eine Rechnungsnummer direkt und seit G10 gibt es nur das laufende Jahr — einen Jahreswechsel kann die Schnittstelle nicht mehr herbeiführen. Dass der Rechnungskreis ein eigener ist und nur über das Ausstellen weiterzählt: regeln.test.ts „der Rechnungskreis ist ein eigener — und nur über das Ausstellen erreichbar (G11)“.',
 };
 
 describe('Das Prüfnetz ist vollständig umgezogen', () => {

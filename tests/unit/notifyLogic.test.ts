@@ -8,6 +8,8 @@ import {
   istEilRelevant,
   istMeldepflichtigeAnforderung,
   istUebergangAufAbholbereit,
+  istBestellungStorniert,
+  textBestellungStorniert,
   textAbholbereit,
   textEilAngefordert,
   textNeueAnforderung,
@@ -19,6 +21,7 @@ import {
   empfaengerKrankmeldung,
   textAntrag,
   textEntscheidung,
+  textKuerzung,
   textKrankmeldung,
   type Belegschaftsmitglied,
 } from '@shared/notifyLogic';
@@ -280,6 +283,50 @@ describe('Eine Postgres-Zeile wird zur Anforderung', () => {
 });
 
 /*
+  STORNO AN DEN BESTELLER (M11). Gegenprobe: ohne die beiden Spalten in
+  `orderAusZeile` bliebe `storniertAm` leer und es käme nie eine Meldung —
+  der erste Test wird rot.
+*/
+describe('Storno einer Bestellung', () => {
+  const zeile = {
+    company_id: 'perl', material_name: 'Kugelhahn 1/2"', quantity: '2.000',
+    project_number: 'B-2026-0001', user_id: 'u1', status: 'In Bearbeitung',
+    transaction_type: 'order', is_urgent: false,
+  };
+  const storniert = {
+    ...zeile, bestellung_storniert_am: '2026-11-16T09:00:00+00:00',
+    bestellung_storno_grund: 'Großhändler kann nicht liefern',
+  };
+
+  it('meldet den neuen Storno — mit Grund in der Meldung', () => {
+    const vorher = orderAusZeile(zeile);
+    const nachher = orderAusZeile(storniert)!;
+    expect(istBestellungStorniert(vorher, nachher)).toBe(true);
+    expect(textBestellungStorniert(nachher, 'a1')).toEqual({
+      title: 'Bestellung storniert',
+      body: '2× Kugelhahn 1/2" (B-2026-0001) — Großhändler kann nicht liefern · wird neu beschafft',
+      link: '/material/anfordern',
+      tag: 'material-storno-a1',
+    });
+  });
+
+  it('derselbe Storno noch einmal gespeichert meldet nichts', () => {
+    expect(istBestellungStorniert(orderAusZeile(storniert), orderAusZeile(storniert))).toBe(false);
+  });
+
+  it('ohne Storno, ohne Besteller oder bei einer Retoure: nichts', () => {
+    expect(istBestellungStorniert(orderAusZeile(zeile), orderAusZeile(zeile))).toBe(false);
+    expect(istBestellungStorniert(undefined, orderAusZeile({ ...storniert, user_id: null }))).toBe(false);
+    expect(istBestellungStorniert(undefined, orderAusZeile({ ...storniert, transaction_type: 'return' }))).toBe(false);
+  });
+
+  it('ohne Grund bleibt die Meldung lesbar', () => {
+    const o = orderAusZeile({ ...storniert, bestellung_storno_grund: null, project_number: null })!;
+    expect(textBestellungStorniert(o, 'a1').body).toBe('2× Kugelhahn 1/2" · wird neu beschafft');
+  });
+});
+
+/*
   ABWESENHEITEN. Wer bekommt was — und was steht auf dem Sperrbildschirm.
   Ein Krankenstand ist ein Gesundheitsdatum: er geht nur ans Büro, und die
   Meldung sagt nicht mehr als Name und Zeitraum.
@@ -326,6 +373,32 @@ describe('Abwesenheiten', () => {
     expect(textEntscheidung(u, 'v2')).toMatchObject({ title: 'Urlaub genehmigt', tag: 'antrag-v2' });
     expect(textEntscheidung({ ...u, status: 'Abgelehnt' }, 'v2').title).toBe('Urlaub abgelehnt');
     expect(textEntscheidung({ ...u, status: 'Storniert' }, 'v2').title).toBe('Urlaub zurückgenommen');
+  });
+
+  it('die Entscheidung springt genau auf den Antrag — genehmigt, abgelehnt, zurückgenommen, auch beim ZA (Z9)', () => {
+    const u = abwesenheitAusZeile({
+      company_id: 'perl', user_id: 'mo', user_name: 'Max', von: '2026-12-21', bis: '2026-12-24', art: 'Urlaub', status: 'Genehmigt',
+    })!;
+    for (const status of ['Genehmigt', 'Abgelehnt', 'Storniert']) {
+      expect(textEntscheidung({ ...u, status }, 'v2').link, status).toBe('/vacations?antrag=v2');
+    }
+    expect(textEntscheidung({ ...u, art: 'Zeitausgleich' }, 'v 3').link).toBe('/vacations?antrag=v%203');
+    // Bleibt gleich: der neue Antrag an die Entscheidenden führt weiter auf die Seite mit den offenen Anträgen.
+    expect(textAntrag(u, 'v2').link).toBe('/vacations');
+  });
+
+  it('eine Kürzung nennt, was bleibt, und den Grund — und führt genau zu diesem Antrag (Z1)', () => {
+    const u = abwesenheitAusZeile({
+      company_id: 'perl', user_id: 'mo', user_name: 'Max', von: '2027-09-06', bis: '2027-09-07', art: 'Urlaub', status: 'Genehmigt',
+    })!;
+    expect(textKuerzung(u, 'v7', {
+      nachher: [{ von: '2027-09-06', bis: '2027-09-07' }, { von: '2027-09-09', bis: '2027-09-17' }], grund: 'Baustelle Huber',
+    })).toEqual({
+      title: 'Urlaub gekürzt', body: 'Bleibt: 06.09.–07.09. und 09.09.–17.09. — Baustelle Huber',
+      link: '/vacations?antrag=v7', tag: 'antrag-v7',
+    });
+    // Ohne Verlauf (ältere Zeile): der Zeitraum des Antrags.
+    expect(textKuerzung({ ...u, art: 'Zeitausgleich' }, 'v8').body).toBe('Bleibt: 06.09.–07.09.');
   });
 
   it('die Krankmeldung verrät nicht mehr als Name und Zeitraum', () => {

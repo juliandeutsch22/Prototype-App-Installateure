@@ -126,7 +126,15 @@ vi.mock('@/lib/db/materialOrders', () => ({
   createReturn: (...a: unknown[]) => retoure(...a),
   updateOrderStatus: (...a: unknown[]) => statusSetzen(...a),
   anforderungEiligSetzen: (...a: unknown[]) => eiligSetzen(...a),
+  anforderungMengeAendern: (...a: unknown[]) => mengeAendern(...a),
+  anforderungZurueckziehen: (...a: unknown[]) => zurueckziehen(...a),
+  retoureRahmen: (...a: unknown[]) => rahmen(...a),
 }));
+/** M7: was für die Baustelle höchstens zurück kann — ohne Vorgabe nichts. */
+const rahmen = vi.fn<(...a: unknown[]) => Promise<unknown>>(async () => null);
+/** M5: der Besteller ändert oder zieht zurück, solange „Offen“. */
+const mengeAendern = vi.fn<(...a: unknown[]) => Promise<boolean>>(async () => true);
+const zurueckziehen = vi.fn<(...a: unknown[]) => Promise<boolean>>(async () => true);
 
 /*
   DIE BAUSTELLE WANDERT MIT (B3, E83): Einsätze des Tages und der laufende
@@ -287,6 +295,36 @@ describe('Material anfordern — der Warenkorb', () => {
     });
   });
 
+  /*
+    M8 (16.11.2026): die freie Zeile trägt eine Einheit („Rohr ×30“: Meter
+    oder Stangen?), und eine gescheiterte Position sagt ihren Grund.
+  */
+  it('M8: die freie Zeile nimmt eine Einheit mit', async () => {
+    zeige();
+    await userEvent.selectOptions(await baustelleFeld(), '2026-042');
+    const knopf = screen.getByRole('button', { name: 'In die Liste' });
+    await userEvent.type(screen.getByLabelText('Bezeichnung'), 'Rohr 22');
+    await userEvent.clear(screen.getByLabelText('Menge'));
+    await userEvent.type(screen.getByLabelText('Menge'), '30');
+    await userEvent.selectOptions(screen.getByLabelText('Einheit'), 'm');
+    await userEvent.click(knopf);
+    expect(screen.getByText(/×30 m/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
+    expect(anlegen.mock.calls[0][1]).toMatchObject({ materialName: 'Rohr 22', quantity: 30, einheit: 'm' });
+  });
+
+  it('M8: eine gescheiterte Position nennt ihren Grund — und bleibt im Korb', async () => {
+    anlegen.mockRejectedValueOnce(new Error('In „Stk“ zählen ganze Stück — bitte eine ganze Zahl eintragen.'));
+    zeige();
+    await userEvent.selectOptions(await baustelleFeld(), '2026-042');
+    const knopf = screen.getByRole('button', { name: 'In die Liste' });
+    await userEvent.type(screen.getByLabelText('Bezeichnung'), 'Eckventil');
+    await userEvent.click(knopf);
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    expect(await screen.findByText(/Eckventil: In „Stk“ zählen ganze Stück/)).toBeInTheDocument();
+  });
+
   it('lässt die Namensspalte bei „Nicht im Katalog?“ schrumpfen (P4-02)', async () => {
     /*
       Prüflauf 25.09.2026, P4-02: `grid-cols-[1fr_5rem]` — `1fr` heißt
@@ -299,8 +337,9 @@ describe('Material anfordern — der Warenkorb', () => {
     // Die Zeile steht mit dem Katalog, und der kommt seit dem 18.10.2026 als Antwort des Servers.
     const raster = (await screen.findByLabelText('Bezeichnung')).closest('.grid') as HTMLElement;
     // Seit E74 steht der Petrol-Kreis in jeder Breite in derselben Reihe — die Namensspalte schrumpft weiter.
-    expect(raster.className).toContain('grid-cols-[minmax(0,1fr)_5rem_auto]');
-    expect(raster.className).toContain('sm:grid-cols-[minmax(0,1fr)_6rem_auto]');
+    // Seit M8 mit der Einheit zwischen Menge und Kreis — die Namensspalte schrumpft weiter.
+    expect(raster.className).toContain('grid-cols-[minmax(0,1fr)_4.5rem_5.5rem_auto]');
+    expect(raster.className).toContain('sm:grid-cols-[minmax(0,1fr)_6rem_7rem_auto]');
     expect(raster.className).not.toMatch(/grid-cols-\[1fr/);
   });
 
@@ -586,6 +625,72 @@ describe('Material anfordern — Retoure', () => {
   });
 });
 
+/*
+  M7 (16.11.2026): HÖCHSTMENGE UND ANNAHME. Vorher schrieb die Retoure
+  „neu“ sofort und unbegrenzt gut, und niemand erfuhr, dass die Ware schon
+  verrechnet war.
+*/
+describe('Retoure — Höchstmenge und Annahme (M7)', () => {
+  it('sagt, wie viel höchstens zurück kann und dass schon verrechnet ist — mehr erfasst es nicht', async () => {
+    rahmen.mockResolvedValue({ ausgegeben: 4, zurueck: 1, hoechstens: 3, verrechnet: true });
+    // Aus der Rüstliste: mit Baustelle vorbelegt.
+    zeige('/material?retoure=1&baustelle=2026-042');
+    const fenster = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
+    await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Kupfer');
+    await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
+    expect(await within(fenster).findByText(/ausgegeben: 4, schon zurück: 1 — höchstens 3/)).toBeInTheDocument();
+    expect(within(fenster).getByText(/schon verrechnet/)).toBeInTheDocument();
+    const menge = within(fenster).getByRole('textbox', { name: /Menge/ });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '5');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    expect(await within(fenster).findByText(/höchstens 3 zurückkommen/)).toBeInTheDocument();
+    expect(retoure).not.toHaveBeenCalled();
+    rahmen.mockResolvedValue(null);
+  });
+
+  it('„neu“ ins Lager: gemeldet, gutgeschrieben wird bei der Annahme', async () => {
+    zeige();
+    const fenster = await retoureOeffnen();
+    await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Kupfer');
+    await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    expect(await screen.findByText(/Retoure gemeldet — gutgeschrieben wird, sobald das Lager sie annimmt/)).toBeInTheDocument();
+  });
+});
+
+/*
+  V11 (16.11.2026): „Zurückgeben“ an der abgeholten Anforderung, vorbelegt;
+  die Suche bietet frei getippte Ware an.
+*/
+describe('Zurückgeben (V11)', () => {
+  it('aus „Erledigt“: Artikel, Baustelle und Menge vorbelegt', async () => {
+    eigene = [{ id: 'e1', companyId: 'perl', materialId: 'm1', materialName: 'Kupferrohr 15mm', quantity: 4, status: 'Erledigt',
+      transactionType: 'order', userId: 'u1', projectNumber: '2026-042', processed: true } as WithId<MaterialOrder>];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm zurückgeben' }));
+    const fenster = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
+    expect(within(fenster).getByRole('textbox', { name: /Menge/ })).toHaveValue('4');
+    await userEvent.selectOptions(within(fenster).getByRole('combobox', { name: /Zustand/ }), 'gebraucht');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await waitFor(() => expect(retoure).toHaveBeenCalledTimes(1));
+    expect(retoure.mock.calls[0][1]).toMatchObject({ materialId: 'm1', quantity: 4, projectNumber: '2026-042' });
+  });
+
+  it('frei getippt: ohne Katalog zurückgeben — mit Kommamenge', async () => {
+    zeige();
+    const fenster = await retoureOeffnen();
+    await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Restrohr alt');
+    await userEvent.click(await within(fenster).findByRole('button', { name: '„Restrohr alt“ ohne Katalog zurückgeben' }));
+    const menge = within(fenster).getByRole('textbox', { name: /Menge/ });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '1,5');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await waitFor(() => expect(retoure).toHaveBeenCalledTimes(1));
+    expect(retoure.mock.calls[0][1]).toMatchObject({ materialId: null, materialName: 'Restrohr alt', quantity: 1.5 });
+  });
+});
+
 describe('Material anfordern — gescheiterte Ladevorgänge', () => {
   it('zeigt den Katalog trotzdem, wenn nur die Baustellen fehlen', async () => {
     // Ein stumm gescheitertes Nebenabo sieht aus wie „nichts da". Der Monteur
@@ -824,6 +929,68 @@ describe('Abgeholt — aus dem Lager oder vom Händler (C7, E89)', () => {
   });
 });
 
+/*
+  M5/F5 (16.11.2026): TEILMENGEN, ÄNDERN, ZURÜCKZIEHEN. Vorher bot die
+  Ansicht nur „Abgeholt“ (ganz) und „Eilig“ — ein Tippfehler (30 statt 3)
+  ließ sich nicht korrigieren.
+*/
+describe('Ändern, Zurückziehen, Teil abgeholt (M5)', () => {
+  const eigen = (rest: Partial<MaterialOrder>) =>
+    ({ id: 'o1', companyId: 'perl', materialName: 'Kupferrohr 15mm', quantity: 30, status: 'Offen',
+      transactionType: 'order', userId: 'u1', projectNumber: '2026-042', ...rest }) as WithId<MaterialOrder>;
+  const fenster = async () => {
+    await userEvent.click(await screen.findByRole('button', { name: /^Kupferrohr 15mm ×/ }));
+    return within(await screen.findByRole('dialog', { name: 'Anforderung Kupferrohr 15mm' }));
+  };
+
+  it('die Menge ändern, solange „Offen“', async () => {
+    mengeAendern.mockClear();
+    eigene = [eigen({})];
+    zeige();
+    const f = await fenster();
+    await userEvent.click(f.getByRole('button', { name: 'Menge ändern …' }));
+    const feld = f.getByLabelText('Neue Menge');
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '3');
+    await userEvent.click(f.getByRole('button', { name: 'Menge speichern' }));
+    await waitFor(() => expect(mengeAendern).toHaveBeenCalledWith('o1', 3));
+  });
+
+  it('zurückziehen — hat das Lager sie inzwischen in Arbeit, sagt das Fenster es', async () => {
+    zurueckziehen.mockResolvedValueOnce(false);
+    eigene = [eigen({})];
+    zeige();
+    const f = await fenster();
+    await userEvent.click(f.getByRole('button', { name: 'Zurückziehen …' }));
+    await userEvent.click(f.getByRole('button', { name: 'Zurückziehen' }));
+    expect(await f.findByText(/inzwischen in Arbeit/)).toBeInTheDocument();
+    expect(zurueckziehen).toHaveBeenCalledWith('o1');
+  });
+
+  it('Gleichbleiben: in Arbeit beim Lager — weder Ändern noch Zurückziehen', async () => {
+    eigene = [eigen({ status: 'In Bearbeitung', beschaffung: 'einkauf' })];
+    zeige();
+    const f = await fenster();
+    expect(f.queryByRole('button', { name: 'Menge ändern …' })).toBeNull();
+    expect(f.queryByRole('button', { name: 'Zurückziehen …' })).toBeNull();
+  });
+
+  it('„Abgeholt“ mit weniger: nur der Teil wird gebucht', async () => {
+    statusSetzen.mockReset();
+    statusSetzen.mockResolvedValue({ art: 'geaendert' });
+    eigene = [eigen({ quantity: 10, status: 'Abholbereit', beschaffung: 'lager' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Abgeholt' }));
+    const d = within(screen.getByRole('dialog', { name: 'Material abgeholt?' }));
+    const feld = d.getByLabelText('Abgeholt');
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '6');
+    expect(d.getByText(/Der Rest — 4 — bleibt/)).toBeInTheDocument();
+    await userEvent.click(d.getByRole('button', { name: 'Abgeholt' }));
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o1', 'Erledigt', { von: 'Abholbereit', menge: 6 }));
+  });
+});
+
 describe('Material anfordern — die eigene Verfolgung', () => {
   it('bietet „Abgeholt“ bei JEDER eigenen offenen Anforderung an', async () => {
     /**
@@ -861,6 +1028,28 @@ describe('Material anfordern — die eigene Verfolgung', () => {
     expect(screen.getByText('beim Großhändler bestellt')).toBeInTheDocument();
     // Geliefert: kein Hinweis mehr — es liegt im Lager.
     expect(screen.getAllByText(/bestellt/)).toHaveLength(2);
+  });
+
+  it('sagt ihm, wenn das Lager die Bestellung storniert hat — mit Grund (M11)', async () => {
+    /*
+      Vorher stand nach dem Storno wieder „wird bestellt“, und er wartete auf
+      Ware, die nicht kam. Gegenprobe: ohne den Storno-Satz in
+      `beschaffungStand` rot. Wird neu bestellt, gilt wieder „bestellt“ —
+      der alte Storno bleibt an der Zeile, sagt dann aber nichts mehr.
+    */
+    eigene = [
+      { id: 'o1', companyId: 'perl', materialName: 'Kugelhahn', quantity: 2, status: 'In Bearbeitung',
+        transactionType: 'order', userId: 'u1', beschaffung: 'einkauf',
+        bestellungStorniertAm: 5, bestellungStornoGrund: 'Großhändler kann nicht liefern' } as WithId<MaterialOrder>,
+      { id: 'o2', companyId: 'perl', materialName: 'Dichtung 1/2"', quantity: 5, status: 'In Bearbeitung',
+        transactionType: 'order', userId: 'u1', beschaffung: 'einkauf', bestelltAm: 9,
+        bestellungStorniertAm: 5, bestellungStornoGrund: 'falscher Artikel' } as WithId<MaterialOrder>,
+    ];
+    zeige();
+    expect(await screen.findByText('Bestellung storniert (Großhändler kann nicht liefern) — wird neu bestellt'))
+      .toBeInTheDocument();
+    expect(screen.getByText('beim Großhändler bestellt')).toBeInTheDocument();
+    expect(screen.queryByText(/falscher Artikel/)).not.toBeInTheDocument();
   });
 
   it('bucht die Abholung erst nach der Bestätigung', async () => {

@@ -60,6 +60,7 @@ export function abziehbar<T extends Invoice>(alle: T[], projectNumber: string): 
       !schonAbgezogen.has(i.id) &&
       (i.linkedEntries?.length ?? 0) === 0 &&
       (i.linkedOrders?.length ?? 0) === 0 &&
+      (i.linkedRuestPositionen?.length ?? 0) === 0 &&
       (i.linkedWorkSheets?.length ?? 0) === 0,
   );
 }
@@ -269,7 +270,7 @@ export function schlussNachStorno<T extends Kopf>(
  */
 export function stornoText(
   inv: Pick<Invoice, 'invoiceNumber' | 'art' | 'vorrechnungen'>
-    & Partial<Pick<Invoice, 'linkedEntries' | 'linkedWorkSheets' | 'linkedWartungen'>>,
+    & Partial<Pick<Invoice, 'linkedEntries' | 'linkedWorkSheets' | 'linkedWartungen' | 'linkedOrders' | 'linkedRuestPositionen'>>,
 ): string {
   if (inv.art === 'anzahlung') {
     return `${inv.invoiceNumber} wird storniert. Eine Anzahlung verrechnet keine Stunden und kein Material — freigegeben wird deshalb nichts.`;
@@ -283,7 +284,8 @@ export function stornoText(
     Zeiteinträge und Scheine“ frei werden. Kennt die Zeile ihre Verknüpfungen
     nicht (ein Kopf aus der Liste der offenen), bleibt der allgemeine Satz.
   */
-  if (inv.linkedEntries === undefined && inv.linkedWorkSheets === undefined && inv.linkedWartungen === undefined) {
+  if (inv.linkedEntries === undefined && inv.linkedWorkSheets === undefined && inv.linkedWartungen === undefined
+    && inv.linkedOrders === undefined && inv.linkedRuestPositionen === undefined) {
     return `${inv.invoiceNumber} wird storniert; was sie verrechnet hat, wird wieder freigegeben.${abzug}`;
   }
   /*
@@ -295,6 +297,8 @@ export function stornoText(
     (inv.linkedEntries?.length ?? 0) > 0 ? 'Zeiteinträge' : null,
     (inv.linkedWorkSheets?.length ?? 0) > 0 ? 'Scheine' : null,
     (inv.linkedWartungen?.length ?? 0) > 0 ? 'Wartungen' : null,
+    // M2: das ausgegebene Material, das sie gesehen hat, kommt wieder in den Vorschlag.
+    (inv.linkedOrders?.length ?? 0) + (inv.linkedRuestPositionen?.length ?? 0) > 0 ? 'Materialausgaben' : null,
   ].filter((t): t is string => t !== null);
   if (teile.length === 0) {
     return `${inv.invoiceNumber} wird storniert. Sie verknüpft keine Zeiteinträge und keine Scheine — freigegeben wird deshalb nichts.${abzug}`;
@@ -319,13 +323,14 @@ export function stornoText(
  */
 export function teilrechnungenText(
   rechnungen: Array<Pick<Invoice, 'art' | 'paymentStatus' | 'projectNumber' | 'invoiceNumber' | 'invoiceDate'
-    | 'leistungBis' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets'>>,
+    | 'leistungBis' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets' | 'linkedRuestPositionen'>>,
   projectNumber: string,
 ): string | null {
   const pn = norm(projectNumber);
   const teile = rechnungen
     .filter((r) => r.art === 'teil' && r.paymentStatus !== 'Storniert' && norm(r.projectNumber) === pn
-      && ((r.linkedEntries?.length ?? 0) + (r.linkedOrders?.length ?? 0) + (r.linkedWorkSheets?.length ?? 0)) > 0)
+      && ((r.linkedEntries?.length ?? 0) + (r.linkedOrders?.length ?? 0) + (r.linkedRuestPositionen?.length ?? 0)
+        + (r.linkedWorkSheets?.length ?? 0)) > 0)
     .sort((a, b) => (a.invoiceDate ?? '').localeCompare(b.invoiceDate ?? '') || a.invoiceNumber.localeCompare(b.invoiceNumber));
   if (teile.length === 0) return null;
   const genannt = teile.map((r) =>

@@ -195,6 +195,12 @@ export interface Company {
    */
   dezemberHalbtage?: boolean;
   /**
+   * Monatsabschluss der Zeiten (Durchsicht 15.11.2026, Z6, E1). An: ein
+   * abgeschlossener Monat ist gesperrt, Änderungen nur über einen
+   * Korrekturantrag. Ab Werk aus — dann wie bisher.
+   */
+  zeitMonatsabschluss?: boolean;
+  /**
    * Die Nachtzeit, 'HH:MM' (Testbericht 30.09.2026, M35). Vorgabe 22:00–06:00;
    * nur die Stunden darin tragen den Nachtzuschlag. Siehe `lib/lohnregeln.ts`.
    */
@@ -240,6 +246,8 @@ export interface Company {
   kjbgVerteilungKv?: boolean;
   /** Die Projektleitung ist im Einsatzplan einteilbar und sieht „Mein Einsatzplan“ (M38). Ab Werk aus. */
   projektleitungImEinsatzplan?: boolean;
+  /** Geschäftsführung und Administrator sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“ (V12, E2). Ab Werk aus. */
+  leitungImEinsatzplan?: boolean;
   /**
    * Private Gespräche nach so vielen Monaten ohne Nachricht löschen
    * (M10/B09, D3) — 6, 12 oder 24; ohne Angabe nie. Setzt nur die
@@ -455,6 +463,15 @@ export interface AppUser {
   lehrzeitMonate?: number | null;
   /** Frühere Stufen, jede bis zum Tag ihrer Umstufung — schreibt nur die Datenbank (Runde 3, M13). */
   einstufungVerlauf?: FruehereEinstufung[] | null;
+  /**
+   * Arbeitszeit ab einem Tag (Durchsicht 15.11.2026, Z3). Leer heisst: die
+   * Felder oben gelten für jeden Tag — die Rechnung von vorher. Sonst gilt
+   * je Tag der letzte Eintrag bis dahin, vor dem ersten der erste. Schreibt
+   * nur die Datenbank (`arbeitszeit_aendern`); siehe `arbeitszeitAm`.
+   */
+  arbeitszeitVerlauf?: ArbeitszeitAbschnitt[] | null;
+  /** Urlaubsanspruch je Urlaubsjahr (Z3), wie oben — siehe `urlaubsanspruchIm`. */
+  urlaubsanspruchVerlauf?: UrlaubsanspruchAbschnitt[] | null;
   /** Nur beim Lehrling: zählen seine Stunden ins Projekt-Budget? Ab Werk ja (03.10.2026). */
   stundenInsBudget?: boolean;
   /** Freigabe „Kunden pflegen“ — wirkt für Verwaltung und Buchhaltung (siehe `darfKundenPflegen`). */
@@ -466,6 +483,27 @@ export interface AppUser {
   /** Nur Geschäftsführung: führt ein Zeitkonto (siehe `fuehrtZeitkonto`). */
   fuehrtZeitkonto?: boolean;
   createdAt?: number;
+}
+
+/** Ein Eintrag im Verlauf der Arbeitszeit: gilt ab `ab` bis zum nächsten Eintrag. */
+export interface ArbeitszeitAbschnitt {
+  /** 'YYYY-MM-DD' */
+  ab: string;
+  wochenstunden: number | null;
+  /** 0 = Sonntag … 6 = Samstag */
+  arbeitstage: number[];
+  tagessoll: Record<string, number> | null;
+  /** Wann und von wem eingetragen — Zeitstempel als Text, wie ihn die Datenbank in den Verlauf schreibt. */
+  am?: string | null;
+  von?: string | null;
+}
+
+/** Ein Eintrag im Verlauf des Urlaubsanspruchs: gilt ab dem Urlaubsjahr `jahr` bis zum nächsten. */
+export interface UrlaubsanspruchAbschnitt {
+  jahr: number;
+  tage: number;
+  am?: string | null;
+  von?: string | null;
 }
 
 /** Im Client gehaltenes Profil des angemeldeten Nutzers. */
@@ -528,8 +566,10 @@ export interface UserPrefs {
   notifyZeiterfassung?: boolean;
   /** Push bei neuen Nachrichten (M10/B09) — Vorgabe an. */
   notifyNachrichten?: boolean;
-  /** Push, wenn sich der eigene Einsatzplan für heute oder morgen ändert (E85). */
+  /** Push, wenn sich der eigene Einsatzplan für heute oder morgen ändert (E85) — seit V8 samt Terminen. */
   notifyEinsaetze?: boolean;
+  /** Push bei einem Notfall im Auftragseingang — für die Führung (V8). Vorgabe an. */
+  notifyNotfall?: boolean;
   /**
    * Die ersten 80 Zeichen einer Nachricht im Sperrbildschirm (M10/B09) —
    * Vorgabe AUS: der Sperrbildschirm ist öffentlich, und den Text hat
@@ -619,6 +659,12 @@ export interface Quote {
   versendetAm?: number | null;
   angenommenAm?: number | null;
   abgelehntAm?: number | null;
+  /**
+   * Die Annahme wurde zurückgenommen (A1, F7): wann und warum — setzt nur
+   * `angebot_annahme_zuruecknehmen`. Wer es tat, steht im Änderungsjournal.
+   */
+  annahmeZurueckgenommenAm?: number | null;
+  annahmeZurueckgenommenGrund?: string | null;
   positions: {
     label: string;
     qty: number;
@@ -655,8 +701,16 @@ export interface Quote {
    */
   kalkulierteStunden: number;
   notes?: string;
-  /** Bei Annahme: die Baustelle, die daraus entstanden ist. */
+  /**
+   * Bei Annahme: die Baustelle, die daraus entstanden ist. Vor der Annahme
+   * die Baustelle, zu der das Angebot als Nachtrag gehört (A3).
+   */
   projectNumber?: string;
+  /**
+   * Als Nachtrag an eine bestehende Baustelle angenommen (A3): deren Budget
+   * wuchs um die kalkulierten Stunden. Setzt nur die Datenbank.
+   */
+  nachtrag?: boolean;
   /**
    * Dieselbe Baustelle als Kennung — die Datenbank löst sie beim Schreiben
    * aus `projectNumber` auf. Nur lesen: sie überlebt ein späteres Umbenennen
@@ -679,6 +733,15 @@ export interface Quote {
   topId?: string | null;
   liegenschaftBezeichnung?: string | null;
   topBezeichnung?: string | null;
+  /**
+   * Arbeitsangaben aus dem Eingang (A8): wer vor Ort aufmacht, wie eilig,
+   * wann gewünscht. Nicht auf dem Angebot beim Kunden; die Annahme gibt sie
+   * an die Baustelle weiter (der Ansprechpartner vor dem des Kunden).
+   */
+  ansprechpartnerName?: string | null;
+  ansprechpartnerTelefon?: string | null;
+  dringlichkeit?: EingangDringlichkeit | null;
+  wunschtermin?: string | null;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -742,6 +805,13 @@ export interface WorkSheet {
     monteur?: WorkSheetUnterschrift;
     kunde?: WorkSheetUnterschrift;
   };
+  /**
+   * Der stornierte Schein, den dieser ersetzt (Durchsicht 15.11.2026, P4).
+   * Gesetzt nur beim Anlegen; der Ersatz erbt dessen Verrechnung — stand der
+   * stornierte auf einer gültigen Rechnung, kommt der Ersatz nicht noch
+   * einmal auf eine.
+   */
+  ersetzt?: string | null;
   /**
    * SHA-256 über den eingefrorenen Inhalt, serverseitig gerechnet.
    *
@@ -979,6 +1049,10 @@ export interface Project {
   topId?: string | null;
   liegenschaftBezeichnung?: string | null;
   topBezeichnung?: string | null;
+  /** Dringlichkeit aus dem Eingang (A8) — direkt oder über das Angebot; leer = nicht angegeben. */
+  dringlichkeit?: EingangDringlichkeit | null;
+  /** Wunschtermin des Kunden aus dem Eingang (A8), `JJJJ-MM-TT`. */
+  wunschtermin?: string | null;
   createdAt?: number;
 }
 
@@ -1054,8 +1128,10 @@ export interface Material {
   /**
    * Führt der Betrieb den Artikel im Lager (Testbericht 30.09.2026, M30)?
    * Ein Katalogartikel ist es nicht von selbst — nach einem DATANORM-Import
-   * stünden sonst zehntausende Artikel im Bestand. Wer Bestand hat, wird von
-   * der Datenbank geführt; abschalten geht nur bei Bestand null.
+   * stünden sonst zehntausende Artikel im Bestand. Bestand, der bewusst ins
+   * Lager kommt (Wareneingang, Inventur, Umlagerung, Retoure), macht ihn zum
+   * Lagerartikel; Kommissionsware für eine Anforderung nicht (M6) — sie liegt
+   * bei der Anforderung. Abschalten geht nur bei Bestand null.
    */
   lagerartikel?: boolean;
   /** Mindestmenge (M30): darunter gilt der Artikel als knapp. Leer: höchstens 5 frei. */
@@ -1102,6 +1178,11 @@ export interface EinkaufPosten {
   geliefertAm?: number | null;
   /** Erwarteter Liefertermin ('YYYY-MM-DD') — nur an bestellten Posten. */
   liefertermin?: string | null;
+  /** Die Lieferschein-Nr. (M4). */
+  lieferschein?: string | null;
+  /** Zuletzt stornierte Bestellung (M4): wann und warum. */
+  bestellungStorniertAm?: number | null;
+  bestellungStornoGrund?: string | null;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -1190,7 +1271,8 @@ export interface KontoUmstellung {
   userId: string;
   nach: 'mail' | 'benutzername';
   grund?: string | null;
-  durch: string;
+  /** Leer, wenn die Person, die umgestellt hat, gelöscht wurde (K9). */
+  durch: string | null;
   durchName?: string | null;
   am: number;
 }
@@ -1310,6 +1392,28 @@ export interface MaterialOrder {
   geliefertAm?: number | null;
   /** Erwarteter Liefertermin ('YYYY-MM-DD') — nur an bestellten Zeilen, vom Lager gesetzt. */
   liefertermin?: string | null;
+  /**
+   * Kommissionsware (M6): geliefert, ohne in den Bestand zu gehen — der
+   * Artikel wird nicht im Lager geführt. Setzt nur die Datenbank.
+   */
+  kommission?: boolean;
+  /** Die Lieferschein-Nr. der Lieferung von der Einkaufsliste (M4). */
+  lieferschein?: string | null;
+  /**
+   * Die Einheit der Menge (M8): beim Katalogartikel aus dem Artikel (setzt
+   * die Datenbank), bei der freien Zeile vom Besteller. Ältere Zeilen: leer.
+   */
+  einheit?: string | null;
+  /** Zuletzt stornierte Bestellung (M4): wann und warum — danach wieder „zu bestellen“. */
+  bestellungStorniertAm?: number | null;
+  bestellungStornoGrund?: string | null;
+  /**
+   * Retoure (M7): wann das Lager sie angenommen und gutgeschrieben hat. Eine
+   * Retoure mit `processed = false` wartet auf die Annahme.
+   */
+  angenommenAm?: number | null;
+  /** Retoure (M7): was gemeldet war, wenn das Lager weniger angenommen hat. */
+  gemeldeteMenge?: number | null;
   /** Seit wann abholbereit — setzt nur die Datenbank. */
   abholbereitSeit?: number | null;
   /** Wann „Erledigt“ — setzt nur die Datenbank (seit 24.10.2026). */
@@ -1598,6 +1702,24 @@ export type TagesStatus =
  * Monatsbilanz und Auswertung unverändert weiter, und ein genehmigter
  * Urlaubstag taucht nicht als „Zeit fehlt" auf der Startseite auf.
  */
+/** Eine Kürzung eines genehmigten Antrags, wie sie am Antrag steht (`vacations.aenderungen`). */
+export interface UrlaubAenderung {
+  art: 'gekuerzt';
+  /** Zeitpunkt als ISO-Text — so legt ihn die Datenbank in die Liste. */
+  am: string;
+  /** Wer gekürzt hat. */
+  von?: string;
+  grund?: string;
+  vorher?: { von: string; bis: string; tage?: number };
+  /** Die Zeiträume danach — mehr als einer, wenn ein Tag mitten im Urlaub gestrichen wurde. */
+  nachher?: { von: string; bis: string }[];
+  gestrichen?: string[];
+  /** Wie viele Tage aus dem Zeitkonto gingen. */
+  entfernt?: number;
+  /** Bei einem abgeteilten Antrag: die Kennung des ursprünglichen. */
+  aus?: string;
+}
+
 export interface Vacation {
   id: string;
   companyId: string;
@@ -1634,6 +1756,12 @@ export interface Vacation {
    * Schreibt nur die Datenbank (`krankmeldung_speichern`).
    */
   krankTage?: Array<{ tag: string; anteil: number; am?: string }>;
+  /**
+   * Was nach der Genehmigung geändert wurde (Z1): je Kürzung wann, von wem,
+   * warum, Zeitraum vorher und nachher. Schreibt nur die Datenbank
+   * (`urlaub_kuerzen`).
+   */
+  aenderungen?: UrlaubAenderung[];
   /**
    * Begründung bei Ablehnung oder Storno.
    *
@@ -2000,6 +2128,21 @@ export interface Vorrechnung {
   brutto: number;
 }
 
+/**
+ * Eine Zeile des Leistungsnachweises, so wie sie auf dem Beleg steht (G6).
+ * Gespeichert als Text und Minuten, nicht als Verweis auf die Buchung: eine
+ * Buchung kann sich danach ändern, der ausgestellte Beleg nicht.
+ */
+export interface LeistungsnachweisZeile {
+  /** Die Person der Buchung — für die Datenauskunft; gedruckt wird der Name. */
+  uid: string | null;
+  datum: string;
+  mitarbeiter: string;
+  typ: string;
+  taetigkeit: string;
+  minuten: number;
+}
+
 export interface Invoice {
   id: string;
   companyId: string;
@@ -2208,6 +2351,20 @@ export interface Invoice {
    * ihn wieder frei. Ältere Rechnungen tragen das Feld nicht.
    */
   linkedWartungen?: string[];
+  /**
+   * Eingeladene Rüstlistenpositionen, die diese Rechnung als ausgegeben
+   * gesehen hat (M2, 16.11.2026) — über die feste Kennung der Position.
+   * Zusammen mit den Anforderungen und Retouren in `linkedOrders` ist das,
+   * was „verrechnet“ heißt: was eine Rechnung trägt, nicht was vor ihrem
+   * Leistungsende liegt.
+   */
+  linkedRuestPositionen?: string[];
+  /**
+   * Gesetzt von jeder Rechnung dieser Fassung: sie verknüpft das gesehene
+   * Material je Ausgabe. Ältere Rechnungen decken es weiter über ihr
+   * Leistungsende (`app.ausgabe_alt_abgerechnet`).
+   */
+  materialJeAusgabe?: boolean;
   cancellationNote?: string | null;
   cancelledAt?: number | null;
   /**
@@ -2222,6 +2379,11 @@ export interface Invoice {
   /** Firmendaten der Stornorechnung, festgehalten mit ihrer Nummer (seit 24.10.2026). */
   stornoAusstellerStand?: string;
   stornoAm?: number | null;
+  /**
+   * Was bis zum Ausstellen der Stornorechnung bezahlt war (G8, 15.11.2026) —
+   * so nennt es ihr Text, auch wenn danach zurückgezahlt wird. Null davor.
+   */
+  stornoBezahlt?: number | null;
   /** Zugesagtes Skonto in % und bis wann (eingefroren mit der Rechnung). */
   skontoProzent?: number | null;
   skontoBis?: string | null;
@@ -2232,6 +2394,12 @@ export interface Invoice {
    * `skontoBisher` die damalige Rundung wieder.
    */
   skontoZugesagt?: number | null;
+  /**
+   * Der Leistungsnachweis, wie er mit dem Beleg hinausging (Durchsicht
+   * 15.11.2026, G6) — oder null, wenn keiner angehängt war und bei
+   * Rechnungen davor. Nachdruck und Belegarchiv drucken ihn daraus.
+   */
+  leistungsnachweis?: LeistungsnachweisZeile[] | null;
   /** Summe der Skonto-Einträge — abgeleitet wie `bezahltBetrag`, darin enthalten. */
   skontoBetrag?: number;
   /**
@@ -2267,7 +2435,7 @@ export interface Invoice {
  * braucht nicht mehr; ein eigener Typ statt leerer Positionen, damit keine
  * Stelle eine Rechnung über nichts für die ganze hält.
  */
-export type RechnungsKopf = Omit<Invoice, 'positions' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets' | 'linkedWartungen'>;
+export type RechnungsKopf = Omit<Invoice, 'positions' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets' | 'linkedWartungen' | 'linkedRuestPositionen'>;
 
 /**
  * Rabatt auf eine Rechnung.
@@ -2314,8 +2482,20 @@ export interface MahnungInhalt {
   /**
    * Die Verzugszinsen, in Euro (seit 09.11.2026). Ältere Mahnungen tragen sie
    * nur als Zeile des Zahlenblocks — `mahnforderung` liest sie dort.
+   * Seit G3 (15.11.2026) über die ganze Zeit des Verzugs bis zum Mahntag.
    */
   zinsen?: number;
+  /**
+   * Die Mahnkosten der Rechnung bis zum Mahntag (seit 15.11.2026, G3): Kosten
+   * aller Schreiben bis hierher und die Zinsen. Die Verbuchung nimmt genau
+   * diese Zahl (`app.mahnforderung`). Ältere Mahnungen ohne — dort gilt
+   * `kosten + zinsen`.
+   */
+  forderung?: number;
+  /** Kosten der früheren Schreiben, in `forderung` enthalten (G3). */
+  kostenFrueher?: number;
+  /** Was an Mahnkosten beim Mahnen schon bezahlt war (G3) — steht auf dem Schreiben. */
+  mahnkostenBezahlt?: number;
 }
 
 /** Eine erzeugte Mahnung — unveränderlich, an ihrer Rechnung. */
@@ -2354,7 +2534,14 @@ export interface Zahlungseingang {
    * „Mahnkosten“ (seit 09.11.2026): bezahlte Mahnspesen und Verzugszinsen der
    * letzten Mahnung — zählen nicht in den bezahlten Betrag der Rechnung.
    */
-  art: 'Überweisung' | 'Bar' | 'Karte' | 'Sonstiges' | 'Skonto' | 'Mahnkosten';
+  /*
+   * „Umbuchung“ (seit 15.11.2026, V7): ein Guthaben, mit einer anderen
+   * Rechnung desselben Kunden verrechnet — negativ auf der einen, positiv auf
+   * der anderen, verbunden über `umbuchung`. Kein Geld hat sich bewegt.
+   */
+  art: 'Überweisung' | 'Bar' | 'Karte' | 'Sonstiges' | 'Skonto' | 'Mahnkosten' | 'Umbuchung';
+  /** Die gemeinsame Kennung beider Hälften einer Umbuchung (V7). */
+  umbuchung?: string | null;
   /** Freitext: „Skonto gezogen", „Teilzahlung laut Vereinbarung". */
   hinweis?: string;
   /** Wer ihn erfasst hat — eine Zahl ohne Herkunft lässt sich nicht klären. */

@@ -6,12 +6,12 @@
  * Datenbank fragt.
  */
 import { describe, it, expect } from 'vitest';
-import { folgeBericht, naechsterWerktag, tagDanach, tageEinschliesslich, FOLGETAGE_HOECHSTENS } from '@/features/assignments/folgetage';
+import { entferntBericht, folgeBericht, naechsterWerktag, tagDanach, tageEinschliesslich, FOLGETAGE_HOECHSTENS } from '@/features/assignments/folgetage';
 import type { FolgeTag } from '@/lib/db/assignments';
-import { textEinsatzplan, willMeldung } from '@shared/notifyLogic';
+import { textEinsatzplan, textNotfall, willMeldung } from '@shared/notifyLogic';
 
 const tag = (datum: string, ergebnis: FolgeTag['ergebnis'], mehr: Partial<FolgeTag> = {}): FolgeTag => ({
-  datum, ergebnis, eingeteilt: [], abwesend: [], anderswo: [], ...mehr,
+  datum, ergebnis, eingeteilt: [], abwesend: [], anderswo: [], entfernt: [], ...mehr,
 });
 
 describe('Kalendertage', () => {
@@ -105,5 +105,59 @@ describe('Push bei geändertem Einsatzplan', () => {
     expect(willMeldung({}, 'notifyEinsaetze')).toBe(true);
     expect(willMeldung({ notifyEinsaetze: false }, 'notifyEinsaetze')).toBe(false);
     expect(willMeldung(undefined, 'notifyEinsaetze')).toBe(false);
+  });
+});
+
+/*
+  V13 (Durchsicht 15.11.2026): mehrtägig ändern und entfernen. Gegenprobe:
+  vorher gab es weder 'geaendert' noch `entfernt` noch das Entfernen über
+  mehrere Tage.
+*/
+describe('Mehrtägig ändern und entfernen (V13)', () => {
+  it('der Bericht zählt geänderte Tage mit und nennt, wer herausgenommen wurde', () => {
+    const b = folgeBericht([
+      tag('2026-10-06', 'geaendert', { entfernt: ['Bernd'] }),
+      tag('2026-10-07', 'geaendert'),
+      tag('2026-10-08', 'unveraendert'),
+    ]);
+    expect(b.geplant).toBe(2);
+    expect(b.zeilen).toEqual(['Di., 06.10.2026: Bernd herausgenommen']);
+  });
+
+  it('die Meldung nach dem Entfernen nennt Tage und Rüstlisten', () => {
+    expect(entferntBericht([])).toBe(' · an den folgenden Tagen war nichts mehr zu entfernen');
+    expect(entferntBericht([
+      { datum: '2026-10-07', entfernt: 1, ruestliste: null, inArbeit: 0 },
+      { datum: '2026-10-08', entfernt: 2, ruestliste: 'behalten', inArbeit: 0 },
+      { datum: '2026-10-09', entfernt: 2, ruestliste: 'aufgeloest', inArbeit: 0 },
+    ])).toBe(' · dazu an 3 weiteren Tagen; eine Rüstliste aufgelöst; eine Rüstliste bleibt ohne Mannschaft stehen');
+  });
+});
+
+/*
+  V8 (Durchsicht 15.11.2026): Termine in der Planmeldung, und die
+  Notfall-Meldung. Gegenprobe: vorher kannte die Meldung keine Termine, und
+  eine Notfall-Meldung gab es nicht.
+*/
+describe('Meldungen für Termine und Notfälle (V8)', () => {
+  it('Termine stehen im Plan wie Einsätze — Art, Uhrzeit, Ort', () => {
+    const m = textEinsatzplan({
+      uid: 'u1', heute: [], morgen: [{ nr: '2026-014', kunde: 'Huber', von: '07:00' }],
+      termine_heute: [{ art: 'Besichtigung', wo: 'Gruber', von: '14:00' }],
+      termine_morgen: [{ art: 'Lieferung', wo: 'Huber', von: null }],
+    });
+    expect(m.body).toBe('Heute: Besichtigung 14:00 Gruber · Morgen: 07:00 Huber, Lieferung (Aviso) Huber');
+  });
+
+  it('bleibt gleich: ohne Termine (ältere Antwort) wie bisher', () => {
+    expect(textEinsatzplan({ uid: 'u1', heute: [], morgen: [] }).body).toBe('Heute: kein Einsatz · Morgen: kein Einsatz');
+  });
+
+  it('Notfall: Nummer und Ort, nicht der Kunde; eine Kennung je Eingang; abschaltbar', () => {
+    const m = textNotfall({ nummer: 'E-2026-0042', ort: 'Wiener Neustadt', empfaenger: ['g1'] });
+    expect(m).toEqual({ title: 'Notfall im Auftragseingang', body: 'E-2026-0042 · Wiener Neustadt', link: '/eingaenge', tag: 'notfall-E-2026-0042' });
+    expect(textNotfall({ nummer: 'E-1', ort: null, empfaenger: [] }).body).toBe('E-1');
+    expect(willMeldung({ notifyNotfall: false }, 'notifyNotfall')).toBe(false);
+    expect(willMeldung({}, 'notifyNotfall')).toBe(true);
   });
 });

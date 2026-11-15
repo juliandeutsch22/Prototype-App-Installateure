@@ -5,6 +5,7 @@ import BottomSheet from '@/components/BottomSheet';
 import InfoHint from '@/components/InfoHint';
 import Metric, { MetricRow } from '@/components/Metric';
 import { ErrorState, LoadingState } from '@/components/States';
+import { SelectField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { dekodiere } from '@/features/materials/datanorm';
 import { liesCsv, pruefeKunden, VORLAGE, type KundenProbelauf } from './kundenCsv';
@@ -36,7 +37,8 @@ const FELDNAME: Record<string, string> = {
   firma: 'Name (Firma)', name: 'Name', vorname: 'Name (Vorname)', nachname: 'Name (Nachname)',
   ansprechpartner: 'Ansprechpartner', adresse: 'Rechnungsanschrift', strasse: 'Adresse (Straße)',
   hausnummer: 'Adresse (Hausnummer)', plz: 'Adresse (PLZ)', ort: 'Adresse (Ort)', land: 'Adresse (Land)',
-  telefon: 'Telefon', email: 'E-Mail', uid: 'UID-Nummer', notiz: 'Notiz', kundennummer: 'Notiz (Kundennummer)',
+  telefon: 'Telefon', email: 'E-Mail', uid: 'UID-Nummer', notiz: 'Notiz', kundennummer: 'Kundennummer',
+  kundenart: 'Kundenart',
 };
 
 /** Was die Kundenliste aus ihrem ⋯ heraus auslöst. */
@@ -56,6 +58,12 @@ const KundenImport = forwardRef<KundenImportGriff, { onUebernommen: () => void }
   const [fehler, setFehler] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [ergebnis, setErgebnis] = useState<{ angelegt: number; uebersprungen: number } | null>(null);
+  /*
+    DIE KUNDENART FÜR ALLE OHNE ANGABE (A12): eine Sammelzuweisung statt
+    800 einzelner Akten. Leer bleibt sie offen — dann stehen diese Kunden
+    wie bisher unter „Kundenart prüfen“.
+  */
+  const [ohneArt, setOhneArt] = useState<'' | 'privat' | 'unternehmen'>('');
   /** Das Seitenfenster: offen, sobald eine Datei gewählt ist. */
   const [offen, setOffen] = useState(false);
   const feld = useRef<HTMLInputElement>(null);
@@ -109,7 +117,7 @@ const KundenImport = forwardRef<KundenImportGriff, { onUebernommen: () => void }
     setFehler(null);
     setBusy(true);
     try {
-      const r = await kundenEinspielen(neu.map((k) => k.kunde));
+      const r = await kundenEinspielen(neu.map((k) => (k.kunde.kundenart || !ohneArt ? k.kunde : { ...k.kunde, kundenart: ohneArt })));
       setErgebnis(r);
       setProbe(null);
       setDatei(null);
@@ -227,6 +235,21 @@ const KundenImport = forwardRef<KundenImportGriff, { onUebernommen: () => void }
                 </section>
               )}
 
+              {neu.some((k) => !k.kunde.kundenart) && (
+                <section className="flex flex-col gap-2 border-t border-line pt-4">
+                  <SelectField
+                    id="kunden-import-art"
+                    label={`Kundenart für ${neu.filter((k) => !k.kunde.kundenart).length} ohne Angabe`}
+                    value={ohneArt}
+                    onChange={(e) => setOhneArt(e.target.value as typeof ohneArt)}
+                  >
+                    <option value="">offen lassen — später je Kunde prüfen</option>
+                    <option value="privat">Privat (Verbraucher)</option>
+                    <option value="unternehmen">Unternehmen</option>
+                  </SelectField>
+                </section>
+              )}
+
               {neu.length > 0 && (
                 <section className="flex flex-col gap-2 border-t border-line pt-4">
                   <h3 className="flex flex-wrap items-center text-base font-semibold text-ink-deep">
@@ -241,7 +264,9 @@ const KundenImport = forwardRef<KundenImportGriff, { onUebernommen: () => void }
                       <li key={zeile}>
                         <span className="font-normal">{kunde.name}</span>
                         <span className="text-ink-muted">
-                          {[kunde.address, kunde.contactName, kunde.contactPhone, kunde.email]
+                          {[kunde.address, kunde.contactName, kunde.contactPhone, kunde.email,
+                            kunde.kundennummer ? `Nr. ${kunde.kundennummer}` : undefined,
+                            (kunde.kundenart || ohneArt) === 'privat' ? 'privat' : (kunde.kundenart || ohneArt) === 'unternehmen' ? 'Unternehmen' : undefined]
                             .filter(Boolean)
                             .map((x) => ` · ${x}`)
                             .join('')}

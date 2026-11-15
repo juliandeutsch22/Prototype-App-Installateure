@@ -43,7 +43,7 @@ async function ausstellen(extra: Partial<Invoice> = { skontoProzent: 2, skontoBi
     paymentStatus: 'Offen',
     positions: [{ label: 'Leistung', qty: 1, unit: 'Pauschale', unitPrice: 1000, netto: 1000 }],
     ...extra,
-  }, { praefix: 'RE' });
+  }, { praefix: 'RE', datumAusdruecklich: true });
   return lies(id);
 }
 

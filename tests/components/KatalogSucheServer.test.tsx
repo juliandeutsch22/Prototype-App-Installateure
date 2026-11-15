@@ -25,6 +25,8 @@ const sucheKatalog = vi.fn(async (_c: string, begriff: string) => {
   return aufDemServer.filter((m) => m.name.toLowerCase().includes(q));
 });
 const katalogNachIds = vi.fn(async (_c: string, ids: readonly string[]) => aufDemServer.filter((m) => ids.includes(m.id)));
+// V5: die Rüstliste des Scheintags (MaterialErfassen) — hier keine.
+vi.mock('@/lib/db/einsatzMaterial', () => ({ listEinsatzMaterialForDate: async () => [] }));
 vi.mock('@/lib/db/materials', () => ({
   sucheKatalog: (...a: [string, string]) => sucheKatalog(...a),
   katalogNachIds: (...a: [string, readonly string[]]) => katalogNachIds(...a),

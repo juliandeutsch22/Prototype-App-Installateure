@@ -5,6 +5,8 @@ import { postenNeuLaden } from '@/app/offenePosten';
 import {
   subscribeAllOrders,
   subscribeOffeneAnforderungen,
+  subscribeWartendeRetouren,
+  retoureAnnehmen,
   sucheAnforderungen,
   ANFORDERUNG_TREFFER,
   updateOrderStatus,
@@ -21,6 +23,7 @@ import type { WithId } from '@/lib/db/core';
 import {
   listGrosshaendler,
   ausLager,
+  ausLagerTeil,
   aufEinkaufsliste,
   listLagerPosten,
   lieferantVorschlag,
@@ -29,6 +32,9 @@ import {
 import Einkaufsliste from './Einkaufsliste';
 import Bestellvorschlaege from './Bestellvorschlaege';
 import VorschlagGrund from './VorschlagGrund';
+import { TeilmengeFeld } from './Teilmenge';
+import { abholTeil, teilwahl } from './teilmengeWahl';
+import { zahlAlsText } from '@/lib/zahl';
 import { darfEinkaufSehen } from '@/lib/permissions';
 import { istAn } from '@/lib/module';
 import { aufEinkaufsliste as aufDerListe } from './einkauf';
@@ -57,7 +63,7 @@ import { byNewest, dayKey, dayHeading, toMillis } from '@/lib/timestamps';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
-import { abschlussText } from './abschlussText';
+import { abschlussText, herkunftFragen, mengeText } from './abschlussText';
 import { fmtMenge } from '@/lib/belegLayout';
 import { todayStr } from '@/lib/time';
 import Adressfilter from '@/components/Adressfilter';
@@ -65,7 +71,7 @@ import { ANFORDERUNGS_FILTER, bekannt, type AnforderungsFilter } from '@/feature
 import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig, wienerTag } from './anforderungStand';
 import { datumAT } from '@/lib/datum';
 import { lieferterminText } from './einkauf';
-import RetoureFenster from './RetoureFenster';
+import RetoureFenster, { type RetoureVorbelegt } from './RetoureFenster';
 import { useLagerorte } from './useLagerorte';
 import { HAUPTLAGER, weitereOrte } from './lagerorte';
 import { OrtWahl } from './LagerDialoge';
@@ -169,7 +175,7 @@ function gegenbuchungText(g: Gegenbuchung): string {
  * (nichts verbucht) bleibt sie Wort für Wort wie bisher.
  */
 function loeschText(o: MaterialOrder, stand: LoeschStand | { art: 'fehler'; text: string } | null): string {
-  const was = `„${o.materialName}“ ×${o.quantity} wird entfernt.`;
+  const was = `„${o.materialName}“ ×${mengeText(o)} wird entfernt.`;
   if (!stand) return `${was} Was das im Bestand bewirkt, wird geprüft …`;
   if (stand.art === 'fehler') return stand.text;
   if (stand.art === 'abgewiesen') return `Löschen geht hier nicht: ${stand.grund}`;
@@ -179,6 +185,11 @@ function loeschText(o: MaterialOrder, stand: LoeschStand | { art: 'fehler'; text
 }
 
 /** Datum und Uhrzeit eines Zeitstempels — für den Verlauf. */
+/** Eine Retoure, die auf die Annahme im Lager wartet (M7) — noch nicht gutgeschrieben. */
+function wartetAufAnnahme(o: Pick<MaterialOrder, 'transactionType' | 'processed'>): boolean {
+  return o.transactionType === 'return' && o.processed === false;
+}
+
 function zeitpunkt(v: unknown): string {
   const ms = toMillis(v);
   if (!ms) return '';
@@ -210,7 +221,19 @@ function verlaufVon(o: MaterialOrder, haendler: string | undefined): LotPunkt[] 
         : o.userName,
     },
   ];
-  if (o.transactionType === 'return') return punkte;
+  if (o.transactionType === 'return') {
+    // M7: die Annahme im Lager — mit der gemeldeten Menge, wenn weniger ankam.
+    if (o.angenommenAm) {
+      punkte.push({
+        titel: 'Im Lager angenommen',
+        zeit: zeitpunkt(o.angenommenAm),
+        text: o.gemeldeteMenge != null ? `gemeldet ${fmtMenge(o.gemeldeteMenge)}, angenommen ${fmtMenge(o.quantity)}` : undefined,
+      });
+    } else if (o.processed === false) {
+      punkte.push({ titel: 'Wartet auf die Annahme im Lager' });
+    }
+    return punkte;
+  }
   if (o.beschaffung === 'lager') punkte.push({ titel: 'Aus dem Lager zugesagt' });
   if (o.beschaffung === 'einkauf') {
     punkte.push({ titel: 'Auf der Einkaufsliste', text: haendler ?? 'Großhändler noch offen' });
@@ -222,7 +245,17 @@ function verlaufVon(o: MaterialOrder, haendler: string | undefined): LotPunkt[] 
       text: !o.geliefertAm && o.liefertermin ? lieferterminText(o.liefertermin) : undefined,
     });
   }
-  if (o.geliefertAm) punkte.push({ titel: 'Geliefert', zeit: zeitpunkt(o.geliefertAm) });
+  // M4: eine stornierte Bestellung mit Grund — auch wenn danach neu bestellt wurde.
+  if (o.bestellungStorniertAm) {
+    punkte.push({ titel: 'Bestellung storniert', zeit: zeitpunkt(o.bestellungStorniertAm), text: o.bestellungStornoGrund ?? undefined });
+  }
+  if (o.geliefertAm) {
+    punkte.push({
+      titel: o.kommission ? 'Geliefert — Kommission, nicht im Bestand' : 'Geliefert',
+      zeit: zeitpunkt(o.geliefertAm),
+      text: o.lieferschein ? `Lieferschein ${o.lieferschein}` : undefined,
+    });
+  }
   if (o.status === 'In Bearbeitung' && !o.beschaffung) punkte.push({ titel: 'In Bearbeitung' });
   /*
     ABHOLBEREIT TROTZ FEHLBESTAND (Runde 7, R7-M2): jede bewusste
@@ -267,6 +300,8 @@ export default function AdminOrdersView() {
   const vorschlaegeAn = istAn(company?.modules, 'material.bestellvorschlaege') && !einblick;
   /** „Retoure erfassen“ im Reiter Retouren — im Seitenfenster wie bei „Material anfordern“. */
   const [retoureOffen, setRetoureOffen] = useState(false);
+  /** „Zurückgeben …“ an einer abgeholten Anforderung (V11): vorbelegt, der Besteller vorgewählt. */
+  const [retoureVorbelegt, setRetoureVorbelegt] = useState<RetoureVorbelegt | null>(null);
   /*
     WER ZURÜCKGEBRACHT HAT (A4, 24.10.2026): die aktive Belegschaft zur Wahl,
     geholt erst, wenn das Fenster aufgeht. `null` heißt „noch nicht da“.
@@ -384,9 +419,29 @@ export default function AdminOrdersView() {
   const lo = useLagerorte();
   const weitere = useMemo(() => weitereOrte(lo.orte), [lo.orte]);
   const [abholOrt, setAbholOrt] = useState(HAUPTLAGER);
+  /** Wie viel abgeholt wird (M5) — vorbelegt die ganze Menge. */
+  const [abholMenge, setAbholMenge] = useState('');
+  /*
+    WOHER, WENN NICHTS BEREITGESTELLT WAR (M8): schließt das Lager für den
+    Monteur ab, der beim Händler gekauft hat, wurde bisher vom Bestand
+    abgezogen — „Beim Händler mitgenommen“ gab es nur beim Monteur.
+  */
+  const [abholHerkunft, setAbholHerkunft] = useState<'lager' | 'haendler'>('lager');
   useEffect(() => {
-    if (toComplete) setAbholOrt(toComplete.lagerortId ?? HAUPTLAGER);
+    if (toComplete) {
+      setAbholOrt(toComplete.lagerortId ?? HAUPTLAGER);
+      setAbholMenge(zahlAlsText(toComplete.quantity));
+      setAbholHerkunft('lager');
+    }
   }, [toComplete]);
+  /*
+    TEILWEISE AUS DEM LAGER (M5/F5): 6 aus dem Regal, der Rest offen oder auf
+    die Einkaufsliste. `grund`: warum „Aus Lager“ eben abgewiesen hat — die
+    Zahlen der Datenbank.
+  */
+  const [teilAusLager, setTeilAusLager] = useState<{
+    o: WithId<MaterialOrder>; menge: string; rest: 'offen' | 'einkauf'; bei: string; grund: string | null;
+  } | null>(null);
   /** „Abholbereit“ von Hand, aber im Regal fehlt etwas — die Rückfrage mit den Zahlen (R7-M2). */
   const [fehlbestand, setFehlbestand] = useState<{ o: WithId<MaterialOrder>; stand: Regalstand } | null>(null);
   /**
@@ -421,6 +476,19 @@ export default function AdminOrdersView() {
     );
     return unsub;
   }, [user, holgrenze, neuLaden]);
+
+  /*
+    RETOUREN, DIE AUF DIE ANNAHME WARTEN (M7): ohne Altersgrenze, damit keine
+    hinter jüngeren Zeilen aus dem Reiter fällt. Kommen sie nicht, bleibt der
+    Reiter, wie er war — die geladenen Retouren tragen ihren Stand selbst.
+  */
+  const [wartende, setWartende] = useState<WithId<MaterialOrder>[]>([]);
+  useEffect(() => {
+    if (!user) return;
+    return subscribeWartendeRetouren(user.companyId, setWartende, () => setWartende([]));
+  }, [user, neuLaden]);
+  /** Annehmen (M7): Menge, die ankam, und Zustand am Regal. */
+  const [annahme, setAnnahme] = useState<{ o: WithId<MaterialOrder>; menge: string; zustand: 'neu' | 'gebraucht' | 'defekt' } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -527,11 +595,14 @@ export default function AdminOrdersView() {
    */
   const bekannte = useMemo(() => {
     const ids = new Set(arbeitsstand.map((o) => o.id));
-    const alle = [...arbeitsstand, ...orders.filter((o) => !ids.has(o.id))];
+    const geladen = [...arbeitsstand, ...orders.filter((o) => !ids.has(o.id))];
+    for (const o of geladen) ids.add(o.id);
+    // M7: auch die wartenden Retouren außerhalb der Altersgrenze öffnen sich.
+    const alle = [...geladen, ...wartende.filter((o) => !ids.has(o.id))];
     if (!serverTreffer) return alle;
     for (const o of alle) ids.add(o.id);
     return [...alle, ...serverTreffer.filter((o) => !ids.has(o.id))];
-  }, [arbeitsstand, orders, serverTreffer]);
+  }, [arbeitsstand, orders, wartende, serverTreffer]);
 
   /** Die Anforderungen (ohne Retouren) unter den geladenen — für „Erledigt“. */
   const purchases = useMemo(() => orders.filter((o) => o.transactionType !== 'return'), [orders]);
@@ -542,7 +613,16 @@ export default function AdminOrdersView() {
       lagerPosten.filter((p) => !p.bestelltAm && !p.geliefertAm).length,
     [arbeitsstand, lagerPosten],
   );
-  const returns = useMemo(() => orders.filter((o) => o.transactionType === 'return'), [orders]);
+  /*
+    Die wartenden zuerst (M7) — sie sind Arbeit; danach die erfassten, wie
+    bisher nach Datum. Eine wartende, die auch unter den geladenen steht,
+    einmal.
+  */
+  const returns = useMemo(() => {
+    const geladen = orders.filter((o) => o.transactionType === 'return');
+    const wartendIds = new Set(wartende.map((o) => o.id));
+    return [...wartende, ...geladen.filter((o) => !wartendIds.has(o.id))];
+  }, [orders, wartende]);
 
   const projectOptions = useMemo(
     () => [...new Set([...arbeitsstand, ...purchases].map((o) => o.projectNumber).filter(Boolean))].sort() as string[],
@@ -640,11 +720,17 @@ export default function AdminOrdersView() {
     void postenNeuLaden();
   }
 
-  async function setStatus(o: WithId<MaterialOrder>, next: MaterialOrder['status'], trotzFehlbestand = false, ort?: string | null) {
+  async function setStatus(
+    o: WithId<MaterialOrder>, next: MaterialOrder['status'], trotzFehlbestand = false, ort?: string | null, menge?: number,
+    herkunft?: 'haendler',
+  ) {
     if (next === o.status) return;
     setBusyId(o.id);
     try {
-      const r = await updateOrderStatus(o.id, next, { von: o.status, trotzFehlbestand, ...(ort ? { ort } : {}) });
+      const r = await updateOrderStatus(o.id, next, {
+        von: o.status, trotzFehlbestand, ...(ort ? { ort } : {}), ...(menge != null ? { menge } : {}),
+        ...(herkunft ? { herkunft } : {}),
+      });
       if (r.art === 'fehlbestand') {
         // Nichts geändert: erst fragen, mit genau diesen Zahlen (R7-M2).
         setFehlbestand({ o, stand: r });
@@ -657,7 +743,9 @@ export default function AdminOrdersView() {
       // Das Abzeichen im Menü zählt mit — „Offen" ist genau das, was es zählt.
       void postenNeuLaden();
       fehlerWeg(o.id);
-      toast.success(trotzFehlbestand ? `Status: ${next} — trotz Fehlbestand, im Verlauf vermerkt` : `Status: ${next}`);
+      toast.success(trotzFehlbestand
+        ? `Status: ${next} — trotz Fehlbestand, im Verlauf vermerkt`
+        : menge != null ? `${fmtMenge(menge)} abgeholt — der Rest bleibt liegen` : `Status: ${next}`);
     } catch (err) {
       // Ohne diesen Zweig blieb ein fehlgeschlagenes Update unbemerkt: der
       // Status sprang nicht um, der Nutzer sah aber keinerlei Hinweis.
@@ -677,6 +765,46 @@ export default function AdminOrdersView() {
       void postenNeuLaden();
       fehlerWeg(o.id);
       toast.success(`${o.materialName}: aus dem Lager — abholbereit`);
+    } catch (err) {
+      const grund = grundAus(err, 'Das konnte nicht gespeichert werden.');
+      /*
+        NICHT GENUG FREI (M5): statt nur der Meldung gleich der Weg, den sie
+        meint — ein Teil aus dem Regal, der Rest offen oder zum Großhändler.
+      */
+      if (/^Im Lager sind nur /.test(grund)) teilFragen(o, grund);
+      else toast.error(grund);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  function teilFragen(o: WithId<MaterialOrder>, grund: string | null) {
+    setTeilAusLager({
+      o, menge: '', rest: 'einkauf', grund,
+      bei: o.supplierId ?? (grosshaendler.length === 1 ? grosshaendler[0].id : ''),
+    });
+  }
+
+  async function teilAusLagerBuchen() {
+    const f = teilAusLager;
+    if (!f) return;
+    const w = teilwahl(f.menge, f.o.quantity);
+    if (w.art === 'fehler') return;
+    setTeilAusLager(null);
+    if (w.art === 'ganz') {
+      await nimmAusLager(f.o);
+      return;
+    }
+    setBusyId(f.o.id);
+    try {
+      if (!(await ausLagerTeil(f.o.id, f.o.status, w.menge, f.rest, f.rest === 'einkauf' ? f.bei || null : null))) {
+        veraltet();
+        return;
+      }
+      void postenNeuLaden();
+      fehlerWeg(f.o.id);
+      toast.success(`${fmtMenge(w.menge)} ${f.o.materialName} aus dem Lager — abholbereit; der Rest ${
+        f.rest === 'einkauf' ? 'steht auf der Einkaufsliste' : 'bleibt offen'}`);
     } catch (err) {
       toast.error(grundAus(err, 'Das konnte nicht gespeichert werden.'));
     } finally {
@@ -778,11 +906,14 @@ export default function AdminOrdersView() {
     laufenden steht über jeder Gruppe in der Liste, und Retouren sind
     erfasst, nicht zu tun. Beide Zahlen kamen zudem nur aus den geladenen
     Anforderungen.
+
+    SEIT M7 IST EINE RETOURE ARBEIT, solange sie auf die Annahme wartet: der
+    Reiter zählt genau diese, aus einer eigenen Abfrage ohne Altersgrenze.
   */
   const TABS: { key: Tab; label: string; count?: number }[] = [
     { key: 'aktiv', label: 'Laufend' },
     { key: 'einkauf', label: 'Einkauf', count: zuBestellen },
-    { key: 'retouren', label: 'Retouren' },
+    { key: 'retouren', label: 'Retouren', count: wartende.length || undefined },
     { key: 'archiv', label: 'Erledigt' },
   ];
 
@@ -850,6 +981,9 @@ export default function AdminOrdersView() {
             Anforderung mit Verlauf und allen Aktionen; der Knopf daneben ist der übliche nächste
             Schritt. Mit den Kästchen lassen sich mehrere auf einmal weiterschalten. Die Suche findet
             Material, Besteller, Baustelle und Notiz über alle Anforderungen, auch ältere als die geladenen.
+            {' '}Ware für eine Anforderung, deren Artikel das Lager nicht führt, ist Kommissionsware: sie
+            geht beim Eintreffen nicht in den Bestand, sondern liegt für die Anforderung bereit — der
+            Artikel wird dadurch kein Lagerartikel.
           </>
         }
       />
@@ -997,7 +1131,7 @@ export default function AdminOrdersView() {
                     <ul>
                       {g.zeilen.slice(0, zeigen).map((o) => {
                         const s = schrittFuer(o);
-                        const name = `${o.materialName} ×${fmtMenge(o.quantity)}`;
+                        const name = `${o.materialName} ×${mengeText(o)}`;
                         return (
                           <Arbeitszeile
                             key={o.id}
@@ -1018,7 +1152,7 @@ export default function AdminOrdersView() {
                             <span className="zeile-text">
                               <span className="zeile-titel block">
                                 {o.materialName}{' '}
-                                <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
+                                <span className="text-ink-muted">×{mengeText(o)}</span>
                               </span>
                               <span className="zeile-meta block">{meta(o)}</span>
                               {notiz(o)}
@@ -1073,7 +1207,7 @@ export default function AdminOrdersView() {
                           <span className="inline-flex flex-wrap items-center gap-x-2">
                             <span>
                               {o.materialName}{' '}
-                              <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
+                              <span className="text-ink-muted">×{mengeText(o)}</span>
                             </span>
                             {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
                             {beschaffungMarke(o)}
@@ -1086,7 +1220,9 @@ export default function AdminOrdersView() {
                           </>
                         }
                         zustand={
-                          o.transactionType === 'return' ? <Marke>Retoure</Marke> : <StatusBadge status={o.status} />
+                          o.transactionType === 'return'
+                            ? (wartetAufAnnahme(o) ? <Warnung>wartet auf Annahme</Warnung> : <Marke>Retoure</Marke>)
+                            : <StatusBadge status={o.status} />
                         }
                         pfeil
                       />
@@ -1149,7 +1285,7 @@ export default function AdminOrdersView() {
             <dl className="angaben">
               <div className="angabe">
                 <dt>Menge</dt>
-                <dd>{fmtMenge(offen.quantity)}</dd>
+                <dd>{mengeText(offen)}</dd>
               </div>
               <div className="angabe">
                 <dt>{offen.transactionType === 'return' ? 'Zurückgebracht von' : 'Angefordert von'}</dt>
@@ -1168,7 +1304,9 @@ export default function AdminOrdersView() {
               <div className="angabe">
                 <dt>Stand</dt>
                 <dd>
-                  {offen.transactionType === 'return' ? <Marke>Retoure</Marke> : <StatusBadge status={offen.status} />}
+                  {offen.transactionType === 'return'
+                    ? (wartetAufAnnahme(offen) ? <Warnung>wartet auf Annahme</Warnung> : <Marke>Retoure</Marke>)
+                    : <StatusBadge status={offen.status} />}
                   {offen.isUrgent && <> <Warnung stufe="dringend">Eil</Warnung></>}
                 </dd>
               </div>
@@ -1196,6 +1334,35 @@ export default function AdminOrdersView() {
             <LotVerlauf name="Verlauf der Anforderung" punkte={verlaufVon(offen, haendlerName(offen.supplierId))} />
 
             <div className="material-aktionen">
+              {/* V11: von der abgeholten Anforderung zurück — alles vorbelegt, auch frei getippte Ware. */}
+              {offen.transactionType !== 'return' && offen.status === 'Erledigt' && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setOffenId(null);
+                    setRetoureVorbelegt({
+                      materialId: offen.materialId || null,
+                      materialName: offen.materialName,
+                      menge: offen.quantity,
+                      baustelle: offen.projectNumber ?? '',
+                      userId: offen.userId,
+                    });
+                    setRetoureOffen(true);
+                  }}
+                >
+                  Zurückgeben …
+                </Button>
+              )}
+              {wartetAufAnnahme(offen) && (
+                <Button
+                  onClick={() => {
+                    setOffenId(null);
+                    setAnnahme({ o: offen, menge: zahlAlsText(offen.quantity), zustand: (offen.condition as 'neu') ?? 'neu' });
+                  }}
+                >
+                  Annehmen …
+                </Button>
+              )}
               {(() => {
                 const s = schrittFuer(offen);
                 return s ? (
@@ -1210,6 +1377,18 @@ export default function AdminOrdersView() {
                   </Button>
                 ) : null;
               })()}
+              {schrittFuer(offen)?.art === 'auslager' && (
+                <Button
+                  variant="secondary"
+                  disabled={busyId === offen.id}
+                  onClick={() => {
+                    setOffenId(null);
+                    teilFragen(offen, null);
+                  }}
+                >
+                  Teilweise aus Lager …
+                </Button>
+              )}
               {darfNichtAufLager(offen) && (
                 <Button
                   variant="secondary"
@@ -1298,7 +1477,7 @@ export default function AdminOrdersView() {
         confirmTone="primary"
         message={
           einkaufFragen
-            ? `„${einkaufFragen.o.materialName}“ ×${einkaufFragen.o.quantity} ist nicht im Lager und wird beim Großhändler bestellt.${
+            ? `„${einkaufFragen.o.materialName}“ ×${mengeText(einkaufFragen.o)} ist nicht im Lager und wird beim Großhändler bestellt.${
               einkaufFragen.o.beschaffung === 'lager' ? ' Die Zusage aus dem Lager fällt weg.' : ''}`
             : ''
         }
@@ -1342,6 +1521,116 @@ export default function AdminOrdersView() {
         )}
       </ConfirmDialog>
 
+      {/*
+        DIE ANNAHME IM LAGER (M7): erst sie schreibt „neu“ gut — mit der
+        Menge, die wirklich ankam, und dem Zustand, den das Lager am Regal
+        sieht. Kam nichts an, wird die Retoure gelöscht (nichts war gebucht).
+      */}
+      <ConfirmDialog
+        open={!!annahme}
+        title="Retoure annehmen?"
+        confirmLabel="Annehmen"
+        confirmTone="primary"
+        message={annahme
+          ? `${annahme.o.userName ?? 'Gemeldet'}: „${annahme.o.materialName}“ ×${mengeText(annahme.o)}${annahme.o.projectNumber ? ` von ${annahme.o.projectNumber}` : ''}. `
+            + 'Gutgeschrieben wird nur Neues. Kam nichts an, statt dessen die Retoure löschen.'
+          : ''}
+        gesperrt={!annahme || teilwahl(annahme.menge, annahme.o.quantity).art === 'fehler'}
+        onCancel={() => setAnnahme(null)}
+        onConfirm={async () => {
+          const f = annahme;
+          setAnnahme(null);
+          if (!f) return;
+          const w = teilwahl(f.menge, f.o.quantity);
+          if (w.art === 'fehler') return;
+          try {
+            const ok = await retoureAnnehmen(f.o.id, w.art === 'teil' ? w.menge : undefined, f.zustand);
+            if (!ok) {
+              veraltet();
+              return;
+            }
+            setLagerStand((n) => n + 1);
+            toast.success(f.zustand === 'neu' ? 'Retoure angenommen — gutgeschrieben' : 'Retoure angenommen');
+          } catch (err) {
+            toast.error(grundAus(err, 'Die Retoure konnte nicht angenommen werden.'));
+          }
+        }}
+      >
+        {annahme && (
+          <div className="space-y-3">
+            <TeilmengeFeld
+              id="annahme-menge"
+              label="Angekommen"
+              wert={annahme.menge}
+              angefordert={annahme.o.quantity}
+              rest="ist nicht angekommen und wird nicht gutgeschrieben"
+              onChange={(menge) => setAnnahme({ ...annahme, menge })}
+            />
+            <SelectField
+              id="annahme-zustand"
+              label="Zustand"
+              value={annahme.zustand}
+              onChange={(e) => setAnnahme({ ...annahme, zustand: e.target.value as 'neu' | 'gebraucht' | 'defekt' })}
+            >
+              <option value="neu">Neu / originalverpackt — wird gutgeschrieben</option>
+              <option value="gebraucht">Gebraucht — nur erfasst</option>
+              <option value="defekt">Defekt — nur erfasst</option>
+            </SelectField>
+          </div>
+        )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={!!teilAusLager}
+        title="Teilweise aus dem Lager?"
+        confirmLabel="Aus dem Lager"
+        confirmTone="primary"
+        message={
+          teilAusLager
+            ? `„${teilAusLager.o.materialName}“ ×${mengeText(teilAusLager.o)}: was im Regal liegt, wird abholbereit — der Rest bleibt eine eigene Anforderung.`
+            : ''
+        }
+        gesperrt={!teilAusLager || teilAusLager.menge.trim() === '' || teilwahl(teilAusLager.menge, teilAusLager.o.quantity).art === 'fehler'}
+        onCancel={() => setTeilAusLager(null)}
+        onConfirm={teilAusLagerBuchen}
+      >
+        {teilAusLager && (
+          <div className="space-y-3">
+            {teilAusLager.grund && <p className="text-fliess">{teilAusLager.grund}</p>}
+            <TeilmengeFeld
+              id="teil-aus-lager"
+              label="Aus dem Lager"
+              wert={teilAusLager.menge}
+              angefordert={teilAusLager.o.quantity}
+              rest={teilAusLager.rest === 'einkauf' ? 'geht auf die Einkaufsliste' : 'bleibt offen'}
+              onChange={(menge) => setTeilAusLager({ ...teilAusLager, menge })}
+            />
+            <SelectField
+              id="teil-rest"
+              label="Der Rest"
+              value={teilAusLager.rest}
+              onChange={(e) => setTeilAusLager({ ...teilAusLager, rest: e.target.value as 'offen' | 'einkauf' })}
+            >
+              <option value="einkauf">auf die Einkaufsliste</option>
+              <option value="offen">offen lassen</option>
+            </SelectField>
+            {teilAusLager.rest === 'einkauf' && (
+              <SelectField
+                id="teil-bei"
+                label="Großhändler"
+                value={teilAusLager.bei}
+                onChange={(e) => setTeilAusLager({ ...teilAusLager, bei: e.target.value })}
+              >
+                <option value="">— später zuordnen —</option>
+                {grosshaendler.map((g) => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </SelectField>
+            )}
+          </div>
+        )}
+      </ConfirmDialog>
+
       <ConfirmDialog
         open={!!toComplete}
         title="Bestellung abschließen?"
@@ -1349,9 +1638,10 @@ export default function AdminOrdersView() {
         confirmTone="primary"
         message={
           toComplete
-            ? abschlussText(toComplete)
+            ? abschlussText(abholTeil(toComplete, abholMenge), herkunftFragen(toComplete) ? abholHerkunft : undefined)
             : ''
         }
+        gesperrt={!!toComplete && toComplete.transactionType !== 'return' && teilwahl(abholMenge, toComplete.quantity).art === 'fehler'}
         onCancel={() => setToComplete(null)}
         onConfirm={async () => {
           if (toComplete) {
@@ -1365,11 +1655,35 @@ export default function AdminOrdersView() {
             const ort = abholOrt === vorgabe
               ? null
               : abholOrt || lo.orte.find((o) => o.art === 'haupt')?.id || null;
-            await setStatus(toComplete, 'Erledigt', false, ort);
+            const teil = toComplete.transactionType === 'return' ? null : teilwahl(abholMenge, toComplete.quantity);
+            const vomHaendler = herkunftFragen(toComplete) && abholHerkunft === 'haendler';
+            await setStatus(toComplete, 'Erledigt', false, vomHaendler ? null : ort,
+              teil?.art === 'teil' ? teil.menge : undefined, vomHaendler ? 'haendler' : undefined);
           }
           setToComplete(null);
         }}
       >
+        {toComplete && herkunftFragen(toComplete) && (
+          <SelectField
+            id="abschluss-herkunft"
+            label="Woher kam das Material?"
+            value={abholHerkunft}
+            onChange={(e) => setAbholHerkunft(e.target.value as 'lager' | 'haendler')}
+          >
+            <option value="lager">Aus dem Lager genommen — bucht vom Bestand ab</option>
+            <option value="haendler">Beim Händler mitgenommen — der Bestand bleibt</option>
+          </SelectField>
+        )}
+        {toComplete && toComplete.transactionType !== 'return' && !toComplete.processed && (
+          <TeilmengeFeld
+            id="abschluss-menge"
+            label="Abgeholt"
+            wert={abholMenge}
+            angefordert={toComplete.quantity}
+            rest="bleibt als eigene Anforderung im selben Stand liegen"
+            onChange={setAbholMenge}
+          />
+        )}
         {toComplete && toComplete.transactionType !== 'return' && weitere.length > 0 && (
           <OrtWahl id="abholen-ort" label="Woher" alle={lo.orte} wahl={weitere} wert={abholOrt} onChange={setAbholOrt} />
         )}
@@ -1481,7 +1795,11 @@ export default function AdminOrdersView() {
 
       <RetoureFenster
         offen={retoureOffen}
-        onClose={() => setRetoureOffen(false)}
+        onClose={() => {
+          setRetoureOffen(false);
+          setRetoureVorbelegt(null);
+        }}
+        vorbelegt={retoureVorbelegt}
         companyId={user.companyId}
         user={user}
         personen={belegschaft ?? []}

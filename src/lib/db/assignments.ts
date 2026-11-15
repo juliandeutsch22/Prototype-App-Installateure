@@ -5,6 +5,7 @@ import type { Assignment, KalenderAbo, KalenderAboArt } from '@/types';
 import type { WithId } from './core';
 import * as pg from './pg/assignments';
 import type { PaarGrundlage } from './paarFassung';
+import type { RuestlisteWahl } from './ruestlisteFrage';
 
 export type AssignmentInput = Omit<Assignment, 'id' | 'companyId' | 'createdAt'>;
 
@@ -73,8 +74,9 @@ export function saveAssignments(
   return pg.saveAssignments(companyId, date, projectNumber, rows, grundlage);
 }
 
-export function deleteAssignment(id: string): Promise<void> {
-  return pg.deleteAssignment(id);
+/** Einen Einsatz löschen; zur Rüstliste beim Letzten siehe `ruestlisteFrage.ts`. */
+export function deleteAssignment(id: string, wahl?: RuestlisteWahl) {
+  return pg.deleteAssignment(id, wahl);
 }
 
 /** Ein Kalender-Abo der Person — ob es eines gibt, und wann es zuletzt abgeholt wurde. */
@@ -98,6 +100,11 @@ export function baustellenEinsatzlage(companyId: string, von: string, heute: str
   return pg.baustellenEinsatzlage(companyId, von, heute, bis);
 }
 
+/** Aktive Baustellen ohne Einsatz in den nächsten 14 Tagen — siehe `pg.baustellenOhneEinsatz` (P8). */
+export function baustellenOhneEinsatz(heute: string) {
+  return pg.baustellenOhneEinsatz(heute);
+}
+
 /** Nur Person, Tag und Baustelle — siehe `pg.listEinsatztageInRange`. */
 export function listEinsatztageInRange(companyId: string, from: string, to: string, max = 3000) {
   return pg.listEinsatztageInRange(companyId, from, to, max);
@@ -113,9 +120,18 @@ export type { FolgeTag } from './pg/assignments';
 /** Die Einteilung auf die Folgetage übernehmen — siehe `pg.einsatzFolgetage`. */
 export function einsatzFolgetage(
   companyId: string, von: string, bis: string, projectNumber: string,
-  rows: Parameters<typeof pg.einsatzFolgetage>[4], nurWerktage: boolean,
+  rows: Parameters<typeof pg.einsatzFolgetage>[4], nurWerktage: boolean, angleichen = false,
 ) {
-  return pg.einsatzFolgetage(companyId, von, bis, projectNumber, rows, nurWerktage);
+  return pg.einsatzFolgetage(companyId, von, bis, projectNumber, rows, nurWerktage, angleichen);
+}
+
+export type { FolgeEntfernt } from './pg/assignments';
+
+/** Eine Person oder alle an den Folgetagen herausnehmen — siehe `pg.einsatzFolgetageEntfernen` (V13). */
+export function einsatzFolgetageEntfernen(
+  von: string, bis: string, projectNumber: string, userId: string | null, wahl: 'aufloesen' | 'behalten',
+) {
+  return pg.einsatzFolgetageEntfernen(von, bis, projectNumber, userId, wahl);
 }
 
 /** Einen Einsatz verschieben oder kopieren — siehe `pg.einsatzUmplanen`. */
@@ -124,6 +140,6 @@ export function einsatzUmplanen(id: string, datum: string, userId: string, kopie
 }
 
 /** Einen Einsatz entfernen, samt Rüstliste — siehe `pg.einsatzEntfernen`. */
-export function einsatzEntfernen(id: string) {
-  return pg.einsatzEntfernen(id);
+export function einsatzEntfernen(id: string, wahl?: RuestlisteWahl) {
+  return pg.einsatzEntfernen(id, wahl);
 }

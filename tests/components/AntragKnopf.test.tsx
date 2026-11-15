@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import AntragKnopf, { FreistellungKnopf } from '@/features/time/AntragKnopf';
 import { Routes, Route } from 'react-router-dom';
@@ -28,9 +28,11 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 let antrag: (Vacation & { id: string }) | null = null;
 const getVacation = vi.fn(async () => antrag);
 const entscheiden = vi.fn(async () => ({ status: 'Storniert', angelegt: 0, uebersprungen: 0, entfernt: 3 }));
+const kuerzen = vi.fn(async (d: unknown) => { void d; return { entfernt: 1, teile: 2, antraege: ['v1', 'v2'] }; });
 vi.mock('@/lib/db/vacations', () => ({
   getVacation: (...a: unknown[]) => getVacation(...(a as [])),
   entscheiden: (...a: unknown[]) => entscheiden(...(a as [])),
+  kuerzen: (d: unknown) => kuerzen(d),
 }));
 
 function zeige(status: 'Urlaub' | 'Zeitausgleich' = 'Urlaub') {
@@ -160,3 +162,65 @@ describe('Tag aus einem Sonderurlaub', () => {
     expect(screen.getByText('Seite Urlaub')).toBeInTheDocument();
   });
 });
+
+/*
+  Z1 (Durchsicht 15.11.2026): der Knopf am Urlaubstag sprang mit Modul Urlaub
+  auf die Urlaubsseite ohne Bezug — der Antrag einer anderen Person stand dort
+  nicht. Jetzt öffnet er genau diesen Antrag. Ohne Modul lässt sich am Tag
+  auch kürzen, mit diesem Tag als Vorschlag zum Streichen.
+*/
+describe('Der Sprung vom Tag und das Kürzen (Z1)', () => {
+  function zeigeMitSeite(eintrag: { status: 'Urlaub'; vacationId?: string; date?: string }) {
+    return render(
+      <MemoryRouter initialEntries={['/time']}>
+        <ToastProvider>
+          <Routes>
+            <Route path="/time" element={<AntragKnopf eintrag={eintrag} />} />
+            <Route path="/vacations" element={<Adresse />} />
+          </Routes>
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+  }
+  function Adresse() {
+    return <p>Seite Urlaub {useLocation().search}</p>;
+  }
+
+  it('mit Modul Urlaub öffnet der Knopf genau diesen Antrag', async () => {
+    modulAn = true;
+    zeigeMitSeite({ status: 'Urlaub', vacationId: 'v1' });
+    await userEvent.click(screen.getByRole('button', { name: 'Urlaubsantrag' }));
+    expect(screen.getByText('Seite Urlaub ?antrag=v1')).toBeInTheDocument();
+  });
+
+  it('ohne Modul: „Kürzen“ am Tag streicht vorbelegt genau diesen Tag', async () => {
+    const nutzer = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <AntragKnopf eintrag={{ status: 'Urlaub', vacationId: 'v1', date: '2026-10-06' }} />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    await nutzer.click(screen.getByRole('button', { name: 'Kürzen' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Urlaub von Max Monteur kürzen?')).toBeInTheDocument();
+    expect(within(dialog).getByText(/Bleibt: 05\.10\.2026 und 07\.10\.2026/)).toBeInTheDocument();
+    await nutzer.type(within(dialog).getByLabelText(/Grund/), 'Am 6. auf der Baustelle');
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Kürzen' }));
+    expect(kuerzen).toHaveBeenCalledWith({
+      vacationId: 'v1', von: '2026-10-05', bis: '2026-10-07', streichen: ['2026-10-06'], grund: 'Am 6. auf der Baustelle', name: 'Berta Büro',
+    });
+    expect(entscheiden).not.toHaveBeenCalled();
+    expect(await screen.findByText(/Gekürzt — 1 Tag aus dem Zeitkonto entfernt, in 2 Anträge geteilt/)).toBeInTheDocument();
+  });
+
+  it('ein Tag allein wird nicht gekürzt, sondern ganz zurückgenommen', async () => {
+    antrag = { ...antrag!, von: '2026-10-05', bis: '2026-10-05' };
+    render(<MemoryRouter><ToastProvider><AntragKnopf eintrag={{ status: 'Urlaub', vacationId: 'v1' }} /></ToastProvider></MemoryRouter>);
+    await userEvent.click(screen.getByRole('button', { name: 'Kürzen' }));
+    expect(await screen.findByText(/nur einen Tag — er wird nicht gekürzt/)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+

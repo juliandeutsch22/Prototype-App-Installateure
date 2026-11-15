@@ -149,7 +149,7 @@ test('Rechnung: Mahnung erneut laden, Stornorechnung ausstellen und erneut laden
     await istPdfMit(wieder, NR);
 
     // 3. Stornieren — mit Grund.
-    await fenster.getByRole('button', { name: 'Stornieren' }).click();
+    await fenster.getByRole('button', { name: 'Stornieren', exact: true }).click();
     const storno = page.getByRole('dialog').filter({ hasText: 'Rechnung stornieren?' });
     await storno.getByLabel(/Grund/).fill('Falscher Kunde');
     await storno.getByRole('button', { name: 'Stornieren' }).click();

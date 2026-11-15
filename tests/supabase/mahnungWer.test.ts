@@ -39,7 +39,7 @@ async function rechnung(nummer: string): Promise<string> {
 async function mahnen(id: string, nummer: string): Promise<string> {
   clientEinreichen(buch.client);
   return rechnungen.mahnungFesthalten(id, {
-    stufe: 1, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0,
+    datumAusdruecklich: true, stufe: 1, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0,
     inhalt: mahnInhalt(1, '2026-02-01', '2026-02-08', nummer),
   });
 }

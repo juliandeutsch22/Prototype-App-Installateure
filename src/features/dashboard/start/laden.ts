@@ -5,6 +5,7 @@ import { firmenbuchFehlt } from '@/lib/firmenbuch';
 import type {
   AppUser,
   Company,
+  Betriebsurlaub,
   EinkaufPosten,
   EinsatzMaterial,
   Freistellung,
@@ -17,16 +18,16 @@ import type {
   Vacation,
   Wartung,
 } from '@/types';
-import { getUserByUid, listUsers } from '@/lib/db/users';
+import { getUserByUid, listPasswortAnfragen, listUsers } from '@/lib/db/users';
 import { listOwnEntriesSince, listOwnEntriesInRange, buchungstage, stundenDerBaustellen, unverrechneteStunden } from '@/lib/db/timeEntries';
 import { getGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
-import { andereVerteilung, grenzfaelle, istJugendlich, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
+import { grenzArbeitszeit, grenzfaelle, istJugendlich, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
 import {
   listUpcomingAssignments,
   listAssignmentsForDate,
   listAssignmentsForUserInRange,
   listEinsatztageInRange,
-  baustellenEinsatzlage,
+  baustellenOhneEinsatz,
 } from '@/lib/db/assignments';
 import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
@@ -35,9 +36,9 @@ import { materialdeckung } from '@/lib/db/materialdeckung';
 import { deckungJeEinsatz } from '@/features/assignments/materialDeckung';
 import { lagerKnapp, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
-import { listGarantienEndenIn, listUnpaidInvoiceKoepfe, listInvoicesByIds, scheineAufRechnung, type GarantieRechnung } from '@/lib/db/invoices';
+import { listGarantienEndenIn, listUnpaidInvoiceKoepfe, listInvoicesByIds, scheineUnverrechnet, type GarantieRechnung } from '@/lib/db/invoices';
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
-import { listRecentWorkSheetKoepfe, listOwnWorkSheetsSince, zaehleVerworfeneScheine } from '@/lib/db/workSheets';
+import { listOwnWorkSheetsSince, scheineNeu, zaehleVerworfeneScheine } from '@/lib/db/workSheets';
 import { zaehleVerworfeneAngebote } from '@/lib/db/quotes';
 import { listUeberLinkAngenommen, type UeberLinkAngenommen } from '@/lib/db/angebotLinks';
 import { zaehleOffeneEingaenge } from '@/lib/db/auftragseingaenge';
@@ -47,10 +48,11 @@ import { listAbwesendInRange, listOpenVacations, type Abwesenheit } from '@/lib/
 import { listOffeneFreistellungen } from '@/lib/db/freistellungen';
 import { zeitkorrekturenLaden, type Zeitkorrektur } from '@/lib/db/zeitkorrekturen';
 import { listTermineImZeitraum } from '@/lib/db/termine';
-import { listFaelligeWartungen } from '@/lib/db/wartungen';
+import { listFaelligeWartungen, wartungErledigtVorschlaege, type WartungErledigtVorschlag } from '@/lib/db/wartungen';
 import { buchungskonten } from '@/lib/db/konten';
 import { listBasiszinssaetze } from '@/lib/db/basiszins';
 import {
+  arbeitszeitAm,
   localDateStr,
   todayStr,
   offeneWerktage,
@@ -60,31 +62,35 @@ import {
 import { fuehrtZeitkonto, einplanbar } from '@/lib/permissions';
 import { getAustrianHolidayName } from '@shared/feiertage';
 import { baustellenTitel } from '@/lib/baustellenTitel';
-import { besetzung, ganztagsWeg } from '@/features/assignments/besetzung';
+import { besetzung, betriebZuFuer, ganztagsWeg } from '@/features/assignments/besetzung';
+import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
 import { einsatzZeit } from '@/features/assignments/einsatzZeit';
 import { montagDer, wocheAb } from '@/features/assignments/wochenplan';
 import { offeneNachtraege, NACHTRAG_TAGE, type OffenerNachtrag } from '@/features/worksheets/zeitNachtrag';
-import { unverrechneteScheine, unverrechneteStundenZeilen, UNVERRECHNET_BASIS } from '@/features/worksheets/unverrechnet';
+import { unverrechnetZeilen, unverrechneteStundenZeilen } from '@/features/worksheets/unverrechnet';
 import { mahnlauf, type Mahnlauf } from '@/features/invoices/mahnlauf';
 import { basiszinsVerlauf, halbjahresbeginn } from '@/features/invoices/mahnung';
 import { VORLAUF_TAGE } from '@/features/maintenance/wartungsplan';
 import { eigenerResturlaub, eigenerSaldo } from './eigeneKonten';
-import { budgetStand, ohneEinsatzListe, planFenster } from '@/features/projects/baustellenLage';
+import { budgetStand } from '@/features/projects/baustellenLage';
 import { firmaSperrtRechnung } from '@/features/invoices/firmaSperre';
 import {
   type BudgetZeile,
   type KnapperArtikel,
   type MaterialFehltZeile,
   type TagesBaustelle,
+  type FehlenZeile,
   type TeamLuecke,
   type UnverrechneteZeile,
   type OffeneStundenZeile,
   type ZahlungHeute,
   type LehrzeitEndeZeile,
+  type PasswortBitte,
   type AndereEntscheiden,
   andereEntscheiden,
   lehrzeitEnden,
   einzigeLeitungOhneMail,
+  passwortBitten,
   GARANTIE_NACHLAUF_TAGE,
   GARANTIE_VORLAUF_TAGE,
   tageVerschoben,
@@ -185,7 +191,13 @@ export interface StartDaten {
   /** Einsätze der nächsten sieben Tage, deren Material nicht gedeckt ist (M04b). */
   materialFehlt?: MaterialFehltZeile[];
   wartungen?: Wartung[];
+  /** Eingeplante Wartungen, die erledigt aussehen (A9) — nur für die Führung gefüllt. */
+  wartungVorschlaege?: WartungErledigtVorschlag[];
   heuteBetrieb?: TagesBaustelle[];
+  /** Seit dem letzten Ansehen unterschriebene Scheine, neueste zuerst (V9). */
+  neueScheine?: { id: string; customerName: string; erstelltVonName: string }[];
+  /** Einsätze mit ganztags Fehlenden, heute (teilweise) und morgen (V1). */
+  eingeteiltFehlen?: FehlenZeile[];
   abwesendHeute?: Abwesend[];
   auslastung?: number | null;
   hatVerwaltung?: boolean;
@@ -213,6 +225,8 @@ export interface StartDaten {
   // Personen
   lehrzeitEnden?: LehrzeitEndeZeile[];
   einzigeLeitungOhneMail?: boolean;
+  /** Bitten um ein neues Passwort aus der Anmeldemaske (V14) — nur für die Spitze geladen. */
+  passwortBitten?: PasswortBitte[];
   // Termine (Plan 10.4)
   termineHeute?: Termin[];
 }
@@ -279,6 +293,16 @@ export interface OffeneEingaenge {
  */
 export async function eingaenge(k: Kontext): Promise<Partial<StartDaten>> {
   return { offeneEingaenge: await zaehleOffeneEingaenge(k.user.companyId) };
+}
+
+/**
+ * NEU EINGEGANGENE SCHEINE (V9) — für Projektleitung und Verwaltung, die
+ * keine Rechnungen schreiben und den unterschriebenen Schein sonst nur
+ * zufällig fanden. Seit dem letzten Ansehen, ohne die eigenen.
+ */
+export async function neueScheine(): Promise<Partial<StartDaten>> {
+  const liste = await scheineNeu();
+  return { neueScheine: liste.map((s) => ({ id: s.id, customerName: s.customerName, erstelltVonName: s.erstelltVonName })) };
 }
 
 // ──────────────────────────────────────────────────────────── Nachrichten ──
@@ -439,7 +463,7 @@ async function eigeneGrenzfaelle(k: Kontext, profil: AppUser | null): Promise<Gr
     {
       geburtsdatum: geboren,
       schultagMin: profil ? (t) => tagessollStunden(profil, t) * 60 : undefined,
-      andereVerteilung: andereVerteilung(profil, k.company?.kjbgVerteilungKv === true),
+      andereVerteilung: grenzArbeitszeit(profil, k.company?.kjbgVerteilungKv === true).andereVerteilung,
     },
     { stichtag: heute },
   ).filter((f) => f.jugendlich);
@@ -522,10 +546,8 @@ export async function buchhaltung(
     })() : undefined,
     was.scheine ? (async () => {
       out.unverrechnet = await still(async () => {
-        const scheine = await listRecentWorkSheetKoepfe(user.companyId, UNVERRECHNET_BASIS);
-        // Ob verrechnet, sagt die Abdeckung über ALLE Rechnungen (P2-03) — wie unter Rechnungen.
-        const verrechnet = await scheineAufRechnung(user.companyId, scheine.map((s) => s.id));
-        return unverrechneteScheine(scheine, [{ linkedWorkSheets: verrechnet, paymentStatus: 'Offen' }], heute);
+        // Über ALLE unterschriebenen Scheine (P3) — dieselbe Antwort wie unter Rechnungen und in der Scheinliste.
+        return unverrechnetZeilen(await scheineUnverrechnet(), heute);
       }, undefined);
     })() : undefined,
   ]);
@@ -611,7 +633,6 @@ export async function leitung(
     : undefined;
   const montag = montagDer(heute);
   const woche = wocheAb(montag);
-  const { von: vorher, bis } = planFenster(heute);
   /*
     Die fälligen Wartungen hängen an nichts hier: gleich mit losschicken
     (Ladezeit, 19.10.2026). Bis zum selben Stichtag wie die Wartungsliste
@@ -619,6 +640,8 @@ export async function leitung(
     was die Liste „fällig“ nennt, fehlte hier.
   */
   const wartungen = was.wartung ? still(() => listFaelligeWartungen(user.companyId, tageVerschoben(heute, VORLAUF_TAGE)), []) : undefined;
+  // A9: was erledigt aussieht — scheitert es, fehlt nur der Vorschlag.
+  const wartungVorschlaege = was.wartung ? still(() => wartungErledigtVorschlaege(), []) : undefined;
   const projekteZusage = listActiveProjects(user.companyId);
   /*
     Der Budgetstand braucht nur die Baustellen, nicht Belegschaft und
@@ -637,12 +660,14 @@ export async function leitung(
       return mitBudget.length ? budgetStand(mitBudget, await stundenDerBaustellen(mitBudget.map((pr) => pr.projectNumber))) : [];
     }, undefined)
     : undefined;
-  const [projekte, alle, einsaetzeHeute, abwesend, plan] = await Promise.all([
+  // V1: auch morgen — wer dann fehlt, soll die Planung heute schon sehen.
+  const morgen = tageVerschoben(heute, 1);
+  const [projekte, alle, einsaetzeHeute, abwesend, plan, einsaetzeMorgen] = await Promise.all([
     projekteZusage,
     belegschaftVon(k),
     was.einsatzplanung ? listAssignmentsForDate(user.companyId, heute) : Promise.resolve([]),
     was.einsatzplanung
-      ? still(() => listAbwesendInRange(woche[0] < heute ? woche[0] : heute, woche[6] > heute ? woche[6] : heute), [] as Abwesenheit[])
+      ? still(() => listAbwesendInRange(woche[0] < heute ? woche[0] : heute, woche[6] > morgen ? woche[6] : morgen), [] as Abwesenheit[])
       : Promise.resolve([] as Abwesenheit[]),
     was.einsatzplanung
       ? still(async () => {
@@ -652,18 +677,21 @@ export async function leitung(
           19.10.2026). Bis hierher kam jeder Einsatz der 15 Wochen dazwischen
           — mit der Belegschaft mehr, und ab 3.000 still abgeschnitten.
         */
-        const [lage, woche7] = await Promise.all([
-          baustellenEinsatzlage(user.companyId, vorher, heute, bis),
+        /*
+          „Ohne Einsatz“ entscheidet seit P8 die Datenbank über alle aktiven
+          Baustellen (`baustellen_ohne_einsatz`) — dieselbe Antwort wie der
+          Filter der Baustellenliste. Kommt sie nicht, fehlt die Zeile (statt
+          jede Baustelle als „ohne Einsatz“ zu melden).
+        */
+        const [ohne, woche7, zu] = await Promise.all([
+          still(() => baustellenOhneEinsatz(heute), undefined),
           listEinsatztageInRange(user.companyId, woche[0], woche[6]),
+          still(() => listBetriebsurlaubeImZeitraum(user.companyId, woche[0], woche[6]), null),
         ]);
-        return {
-          lage: lage.flatMap((l) => [l.zuletzt, l.naechster]
-            .filter((d): d is string => !!d)
-            .map((date) => ({ projectNumber: l.projectNumber, date }))),
-          woche: woche7,
-        };
-      }, { lage: [], woche: [] })
-      : Promise.resolve({ lage: [], woche: [] }),
+        return { ohne, woche: woche7, zu };
+      }, { ohne: undefined, woche: [], zu: null })
+      : Promise.resolve({ ohne: undefined, woche: [], zu: null }),
+    was.einsatzplanung ? still(() => listAssignmentsForDate(user.companyId, morgen), []) : Promise.resolve([]),
   ]);
   out.projekte = projekte;
   out.hatVerwaltung = alle.some((u) => u.role === 'Verwaltung' && u.active !== false);
@@ -690,18 +718,40 @@ export async function leitung(
       })
       .sort((a, b) => a.customerName.localeCompare(b.customerName, 'de'));
 
+    /*
+      EINGETEILTE FEHLEN (V1): heute, wo jemand fehlt, aber noch jemand da ist
+      (ganz unbesetzt steht schon unter „Unbesetzt“), und morgen jeder Einsatz
+      mit Fehlenden. Dieselbe Rechnung wie „Unbesetzt“ (`besetzung`).
+    */
+    const fehlenAm = (tag: string, rows: typeof einsaetzeHeute, auchUnbesetzt: boolean): FehlenZeile[] => {
+      const je = new Map<string, typeof einsaetzeHeute>();
+      for (const a of rows) je.set(a.projectNumber, [...(je.get(a.projectNumber) ?? []), a]);
+      return [...je.entries()].flatMap(([pn, eingeteilt]) => {
+        const lage = besetzung(eingeteilt, abwesend, tag);
+        if (lage.fehlen.length === 0 || (lage.unbesetzt && !auchUnbesetzt)) return [];
+        const pr = projekte.find((x) => x.projectNumber === pn);
+        return [{
+          datum: tag, projectNumber: pn, customerName: pr ? baustellenTitel(pr) : `Baustelle ${pn}`,
+          namen: lage.da, fehlen: lage.fehlen, unbesetzt: lage.unbesetzt,
+        }];
+      }).sort((a, b) => a.customerName.localeCompare(b.customerName, 'de'));
+    };
+    out.eingeteiltFehlen = [...fehlenAm(heute, einsaetzeHeute, false), ...fehlenAm(morgen, einsaetzeMorgen, true)];
+
     out.abwesendHeute = abwesend
       .filter((a) => a.von <= heute && a.bis >= heute && nameVon.has(a.userId))
       .map((a) => ({ uid: a.userId, name: nameVon.get(a.userId)!, grund: a.grund, bis: a.bis, zeiten: a.zeiten }))
       .sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
-    out.ohneEinsatz = ohneEinsatzListe(projekte, plan.lage, heute);
-    out.auslastung = auslastung(alle, company, plan.woche, abwesend, woche);
+    if (plan.ohne) out.ohneEinsatz = plan.ohne;
+    // Ohne Betriebsurlaube (nicht geladen) keine Zahl: sonst zählte eine Woche zu als verfügbar.
+    out.auslastung = plan.zu ? auslastung(alle, company, plan.woche, abwesend, woche, plan.zu) : null;
   }
 
   if (budget) out.budget = await budget;
 
   if (wartungen) out.wartungen = await wartungen;
+  if (wartungVorschlaege) out.wartungVorschlaege = await wartungVorschlaege;
   if (material) out.materialFehlt = await material;
   return out;
 }
@@ -720,18 +770,27 @@ export function auslastung(
   einsaetze: { userId: string; date: string }[],
   abwesend: Abwesenheit[],
   woche: string[],
+  /**
+   * DER BETRIEBSURLAUB (P9): an seinen Tagen ist nur verfügbar, wer
+   * ausgenommen ist. Vorher zählte er als verfügbare Zeit — in einer Woche
+   * Betriebsurlaub stand „0 %“ statt keiner Zahl.
+   */
+  betriebsurlaube: Pick<Betriebsurlaub, 'von' | 'bis' | 'ausgenommen'>[] = [],
 ): number | null {
   const planbar = leute.filter((u) => einplanbar(u, company));
   let verfuegbar = 0;
   let verplant = 0;
   const belegt = new Set(einsaetze.map((e) => `${e.userId}|${e.date}`));
   for (const u of planbar) {
-    const tage = u.workDays?.length ? u.workDays : [1, 2, 3, 4, 5];
+    // Die Arbeitstage dieser Woche (Z3), nicht unbedingt die von heute.
+    const az = arbeitszeitAm(u, woche[0] ?? todayStr());
+    const tage = az.workDays?.length ? az.workDays : [1, 2, 3, 4, 5];
     for (const tag of woche) {
       const d = new Date(`${tag}T00:00:00`);
       if (!tage.includes(d.getDay())) continue;
       if (getAustrianHolidayName(d)) continue;
       if (ganztagsWeg(abwesend, u.uid, tag)) continue;
+      if (betriebZuFuer(betriebsurlaube, u.uid, tag)) continue;
       verfuegbar += 1;
       if (belegt.has(`${u.uid}|${tag}`)) verplant += 1;
     }
@@ -797,6 +856,9 @@ export async function einstellungen(
     if (personen) {
       out.lehrzeitEnden = lehrzeitEnden(personen, heute);
       out.einzigeLeitungOhneMail = einzigeLeitungOhneMail(personen);
+      // V14: wer sich nicht anmelden kann, wartet — die Bitte steht unter „Heute“.
+      const anfragen = await still(() => listPasswortAnfragen(k.user.companyId), []);
+      out.passwortBitten = passwortBitten(anfragen, personen);
     }
   }
   return out;

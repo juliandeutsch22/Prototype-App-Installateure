@@ -71,6 +71,25 @@ export function subscribeOffeneAnforderungen(
   });
 }
 
+/**
+ * RETOUREN, DIE AUF DIE ANNAHME WARTEN (M7) — ohne Altersgrenze, wie die
+ * offenen Anforderungen: hinter zweihundert jüngeren Zeilen fiele sonst eine
+ * wartende aus dem Reiter „Retouren“ und aus seiner Zahl.
+ */
+export function subscribeWartendeRetouren(
+  companyId: string,
+  cb: (rows: WithId<MaterialOrder>[]) => void,
+  onError: (e: Error) => void,
+) {
+  return abonnieren<MaterialOrder>(ANFORDERUNGEN, companyId, cb, onError, {
+    wo: [
+      { art: 'gleich', feld: 'transactionType', wert: 'return' },
+      { art: 'gleich', feld: 'processed', wert: false },
+    ],
+    sortiere: { feld: 'createdAt', absteigend: true },
+  });
+}
+
 export type NewMaterialOrder = Omit<MaterialOrder, 'id' | 'companyId' | 'createdAt'>;
 
 /** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */
@@ -152,6 +171,12 @@ export interface StatusWie {
   trotzFehlbestand?: boolean;
   /** Beim Abholen (C7, E89): aus dem Lager (abgebucht, wie bisher) oder beim Händler mitgenommen (nicht abgebucht). */
   herkunft?: 'lager' | 'haendler';
+  /**
+   * Beim Abholen (M5): nur diese Menge. Weniger als angefordert spaltet den
+   * abgeholten Teil ab; der Rest bleibt im selben Stand liegen. Ohne sie die
+   * ganze Menge — der Aufruf wie bisher.
+   */
+  menge?: number;
 }
 
 /**
@@ -177,6 +202,7 @@ export async function updateOrderStatus(
       p_status: wie.von ?? null,
       ...(wie.ort ? { p_ort: wie.ort } : {}),
       ...(wie.herkunft ? { p_herkunft: wie.herkunft } : {}),
+      ...(wie.menge != null ? { p_menge: wie.menge } : {}),
     });
     if (error) throw new Error(error.message);
     return Number(data ?? 0) > 0 ? { art: 'geaendert' } : { art: 'veraltet' };
@@ -201,6 +227,87 @@ export async function updateOrderStatus(
     };
   }
   return { art: 'veraltet' };
+}
+
+/**
+ * DER BESTELLER ZIEHT ZURÜCK (M5, 16.11.2026) — solange das Lager nicht
+ * entschieden hat, woher das Material kommt (`anforderung_zurueckziehen`).
+ * `false`: inzwischen hat das Lager sie in Arbeit (oder sie ist weg).
+ */
+export async function anforderungZurueckziehen(orderId: string): Promise<boolean> {
+  const { data, error } = await derClient().rpc('anforderung_zurueckziehen', { p_id: orderId });
+  if (error) throw new Error(error.message);
+  return (data as { ergebnis?: string } | null)?.ergebnis === 'zurueckgezogen';
+}
+
+/**
+ * DIE MENGE ÄNDERN, SOLANGE „OFFEN“ (M5) — die Regel dafür steht seit jeher
+ * in der Datenbank (`app.anforderung_besitzer_offen`); nur auf genau diesem
+ * Stand. `false`: inzwischen in Arbeit. Die Mengenprüfung je Einheit macht
+ * die Datenbank (`app.anforderung_menge_pruefen`).
+ */
+export async function anforderungMengeAendern(orderId: string, menge: number): Promise<boolean> {
+  const { data, error } = await derClient()
+    .from(ANFORDERUNGEN)
+    .update({ quantity: menge })
+    .eq('id', orderId)
+    .eq('status', 'Offen')
+    .eq('processed', false)
+    .is('beschaffung', null)
+    .select('id');
+  if (error) throw new Error(error.message);
+  return (data ?? []).length > 0;
+}
+
+/** Was für eine Baustelle höchstens zurück kann (M7) — siehe `retoure_rahmen`. */
+export interface RetoureRahmen {
+  ausgegeben: number;
+  zurueck: number;
+  hoechstens: number;
+  /** Eine dieser Ausgaben steht schon auf einer gültigen Rechnung. */
+  verrechnet: boolean;
+  /** Die Rechnungen — nur für wer Rechnungen sieht. */
+  rechnungen?: string[];
+}
+
+/**
+ * RETOURE MIT BAUSTELLE (M7, 16.11.2026): wie viel höchstens zurück kann
+ * (ausgegeben minus schon zurück) und ob die Ware schon verrechnet ist.
+ * `null` ohne Baustelle — dann gilt keine Grenze.
+ */
+export async function retoureRahmen(
+  baustelle: string, materialId: string | null, name: string,
+): Promise<RetoureRahmen | null> {
+  const { data, error } = await derClient().rpc('retoure_rahmen', {
+    p_baustelle: baustelle, p_material: materialId, p_name: name,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const d = data as Record<string, unknown>;
+  return {
+    ausgegeben: Number(d.ausgegeben) || 0,
+    zurueck: Number(d.zurueck) || 0,
+    hoechstens: Number(d.hoechstens) || 0,
+    verrechnet: d.verrechnet === true,
+    ...(Array.isArray(d.rechnungen) ? { rechnungen: d.rechnungen.map(String) } : {}),
+  };
+}
+
+/**
+ * DAS LAGER NIMMT EINE RETOURE AN (M7): mit der Menge, die ankam, und dem
+ * Zustand am Regal; erst jetzt wird „neu“ gutgeschrieben. `false`:
+ * inzwischen angenommen oder gelöscht.
+ */
+export async function retoureAnnehmen(
+  orderId: string, menge?: number, zustand?: 'neu' | 'gebraucht' | 'defekt',
+): Promise<boolean> {
+  const { data, error } = await derClient().rpc('retoure_annehmen', {
+    p_id: orderId,
+    ...(menge != null ? { p_menge: menge } : {}),
+    ...(zustand ? { p_zustand: zustand } : {}),
+  });
+  if (error) throw new Error(error.message);
+  return (data as { ergebnis?: string } | null)?.ergebnis === 'angenommen';
 }
 
 /**
@@ -378,6 +485,9 @@ export async function ausgegebenesMaterial(projectNumber: string): Promise<Ausga
   }));
 }
 
+/** Eine Ausgabe mit dem Einkaufspreis, der beim Ausgeben galt (M8) — `null`: nicht festgehalten. */
+export type AusgabeMitPreis = Omit<Ausgabe, 'belegId'> & { einkaufspreis?: number | null };
+
 /**
  * Was das Lager für mehrere Baustellen je ausgegeben hat — über die ganze
  * Laufzeit, ohne Rechnungsgrenze (Befund 09.11.2026). Für die
@@ -387,12 +497,12 @@ export async function ausgegebenesMaterial(projectNumber: string): Promise<Ausga
  */
 export async function ausgegebenesMaterialGesamt(
   projectNumbers: readonly string[],
-): Promise<Map<string, Omit<Ausgabe, 'belegId'>[]>> {
+): Promise<Map<string, AusgabeMitPreis[]>> {
   type Zeile = {
     baustelle: string; art: Ausgabe['art']; datum: string; material_id: string | null;
-    name: string; einheit: string | null; menge: number;
+    name: string; einheit: string | null; menge: number; einkaufspreis?: number | null;
   };
-  const raus = new Map<string, Omit<Ausgabe, 'belegId'>[]>();
+  const raus = new Map<string, AusgabeMitPreis[]>();
   const nummern = [...new Set(projectNumbers.filter((n) => n && n.trim()))];
   if (nummern.length === 0) return raus;
   const { data, error } = await derClient().rpc('ausgegebenes_material_gesamt', { p_baustellen: nummern });
@@ -402,6 +512,8 @@ export async function ausgegebenesMaterialGesamt(
     liste.push({
       art: z.art, datum: z.datum, materialId: z.material_id, name: z.name, einheit: z.einheit,
       menge: Number(z.menge) || 0,
+      // M8: der Einkaufspreis zum Zeitpunkt der Ausgabe — fehlt bei Altdaten und für wer ihn nicht sieht.
+      einkaufspreis: z.einkaufspreis == null ? null : Number(z.einkaufspreis),
     });
     raus.set(z.baustelle, liste);
   }

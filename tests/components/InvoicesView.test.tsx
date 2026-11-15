@@ -90,6 +90,12 @@ let ausstellungWartet: Promise<{ id: string; invoiceNumber: string }> | null = n
 
 const reserve = vi.fn();
 const lege = vi.fn();
+/** Die Nummern desselben Jahres vor dem Exportzeitraum (G8). */
+let nummernVorDemZeitraum: string[] = [];
+/** Stornieren und neu ausstellen in einem Zug (V6): was die Transaktion bekäme. */
+const ersetze = vi.fn<(...a: unknown[]) => Promise<{ id: string; invoiceNumber: string }>>(async () => ({ id: 'neu', invoiceNumber: 'RE-2026-1099' }));
+/** Die Klärung eines unterbrochenen Versuchs (G2); ohne Vorgabe: weiter kein Netz. */
+const klaerung = vi.fn<(kennung: string) => Promise<unknown>>(async () => { throw new RechnungsAntwortUnklar(); });
 const mahnung = vi.fn();
 /** Die gespeicherten Mahnungen einer Rechnung (seit 10.10.2026). */
 const gespeicherteMahnungen = vi.fn<(...a: unknown[]) => Promise<unknown[]>>(async () => []);
@@ -131,7 +137,21 @@ let ohneAbzug: { invoiceNumber: string; fehlend: string }[] = [];
   25.09.2026, P2-03) — die Quelle für „nicht verrechnete Leistung".
 */
 let aufRechnung: string[] = [];
-const scheineAufRechnung = vi.fn(async () => aufRechnung);
+/*
+  „Nicht verrechnet“ kommt seit P3 (Durchsicht 15.11.2026) aus der Datenbank
+  über alle Scheine (`scheine_unverrechnet`). Hier nachgebildet mit ihren
+  Regeln: unterschrieben, nicht auf einer gültigen Rechnung (Abdeckung
+  `aufRechnung` oder eine nicht stornierte Rechnung, die ihn trägt),
+  älteste zuerst.
+*/
+const scheineUnverrechnet = vi.fn(async () => {
+  const gueltig = [...rechnungen, ...offene].filter((r) => r.paymentStatus !== 'Storniert');
+  const verrechnet = new Set([...aufRechnung, ...gueltig.flatMap((r) => r.linkedWorkSheets ?? [])]);
+  return alleScheine
+    .filter((x) => x.status === 'Unterschrieben' && !verrechnet.has(x.id))
+    .sort((a, b) => a.datum.localeCompare(b.datum) || a.id.localeCompare(b.id))
+    .map((x) => ({ id: x.id, projectNumber: x.projectNumber, customerName: x.customerName, datum: x.datum, abrechnung: x.abrechnung }));
+});
 
 /*
   DIE GRENZE IM TEST KLEIN HALTEN.
@@ -166,6 +186,8 @@ vi.mock('@/lib/db/invoices', async () => {
     */
     listUnpaidInvoices: () => listUnpaidInvoices(),
     listInvoicesByIds: (c: string, ids: string[]) => listInvoicesByIds(c, ids),
+    rechnungVersuchKlaeren: (kennung: string) => klaerung(kennung),
+    rechnungErsetzen: (...a: unknown[]) => ersetze(...a),
     /*
       Und der Buchhaltungs-Export holt seinen Zeitraum selbst, statt die
       geladene Liste zu filtern. Der Doppelgänger gibt zurück, was der Test
@@ -173,6 +195,8 @@ vi.mock('@/lib/db/invoices', async () => {
     */
     listInvoicesInRange: (c: string, von: string, bis: string) =>
       listInvoicesInRange(c, von, bis),
+    // Die Nummern des Jahres vor dem Zeitraum (G8).
+    rechnungsnummernVorZeitraum: async () => nummernVorDemZeitraum,
     schlussrechnungenOhneAbzug: async () => ohneAbzug,
     subscribeRecentInvoices: (
       _c: string,
@@ -214,7 +238,7 @@ vi.mock('@/lib/db/invoices', async () => {
       noch verlässlich unter den jüngsten Rechnungen steht.
     */
     listInvoicesForProject: () => listInvoicesForProject(),
-    scheineAufRechnung: () => scheineAufRechnung(),
+    scheineUnverrechnet: () => scheineUnverrechnet(),
     sucheRechnungen: (c: string, b: string) => {
       suche(c, b);
       return sucheWirft ? Promise.reject(new Error('weg')) : Promise.resolve(suchTreffer);
@@ -252,10 +276,13 @@ vi.mock('@/lib/db/zahlungen', () => ({
   createZahlungMitSkonto: (...a: unknown[]) => createZahlungMitSkonto(...(a as [])),
   createZahlungAufgeteilt: (...a: unknown[]) => createZahlungAufgeteilt(...(a as [])),
   deleteZahlung: vi.fn(async () => undefined),
+  guthabenUmbuchen: (...a: unknown[]) => umbuchen(...a),
   // Die Kennzahl „Bezahlt im laufenden Monat“ (G27) liest die Eingänge des Monats.
   listZahlungenImZeitraum: (...a: unknown[]) => zahlungenImMonat(...(a as [])),
 }));
 const zahlungenImMonat = vi.fn<(...a: unknown[]) => Promise<unknown[]>>(async () => []);
+/** Guthaben umbuchen (V7). */
+const umbuchen = vi.fn<(...a: unknown[]) => Promise<string>>(async () => 'u1');
 const createZahlungMitSkonto = vi.fn(async () => undefined);
 const createZahlungAufgeteilt = vi.fn(async () => undefined);
 
@@ -301,10 +328,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
   Baustelle gerade NICHT gewählt ist.
 */
 let alleScheine: (WorkSheet & { id: string })[] = [];
-const listRecentWorkSheets = vi.fn(async () => alleScheine);
-
 vi.mock('@/lib/db/workSheets', () => ({
-  listRecentWorkSheets: () => listRecentWorkSheets(),
   listWorkSheetsForProject: vi.fn(async () => scheine),
 }));
 /*
@@ -479,9 +503,8 @@ beforeEach(() => {
   frisch = {};
   listInvoicesByIds.mockClear();
   listInvoicesInRange.mockClear();
-  listRecentWorkSheets.mockClear();
+  scheineUnverrechnet.mockClear();
   aufRechnung = [];
-  scheineAufRechnung.mockClear();
   zeiten = [ZEIT];
   offeneStd = [];
   stundenAbfrage.mockClear();
@@ -503,6 +526,10 @@ beforeEach(() => {
   reihenfolge.length = 0;
   reserve.mockClear();
   lege.mockClear();
+  nummernVorDemZeitraum = [];
+  klaerung.mockReset().mockImplementation(async () => { throw new RechnungsAntwortUnklar(); });
+  ersetze.mockClear();
+  try { window.localStorage.clear(); } catch { /* ohne Speicher */ }
   pdfAusgabe.mockClear();
   belegFirma.mockClear();
   mahnFirma.mockClear();
@@ -2075,7 +2102,7 @@ describe('Nicht verrechnete Leistung', () => {
       } as unknown as Invoice & { id: string },
     ];
     zeige();
-    await waitFor(() => expect(listRecentWorkSheets).toHaveBeenCalled());
+    await waitFor(() => expect(scheineUnverrechnet).toHaveBeenCalled());
     expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
   });
 
@@ -2091,13 +2118,13 @@ describe('Nicht verrechnete Leistung', () => {
     offene = [];
     aufRechnung = ['s1'];
     zeige();
-    await waitFor(() => expect(scheineAufRechnung).toHaveBeenCalled());
+    await waitFor(() => expect(scheineUnverrechnet).toHaveBeenCalled());
     expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
   });
 
   it('sagt es, wenn die Abdeckung nicht geladen werden konnte, statt falsch zu melden', async () => {
     alleScheine = [schein('s1', '2026-06-01')];
-    scheineAufRechnung.mockRejectedValueOnce(new Error('kein Netz'));
+    scheineUnverrechnet.mockRejectedValueOnce(new Error('kein Netz'));
     zeige();
     expect(await screen.findByText(/schon verrechnet sind, konnte nicht geladen werden/)).toBeInTheDocument();
     expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
@@ -2129,7 +2156,7 @@ describe('Nicht verrechnete Leistung', () => {
   it('führt Entwürfe gar nicht — sie sind noch keine Leistung', async () => {
     alleScheine = [schein('s1', '2026-06-01', { status: 'Entwurf' })];
     zeige();
-    await waitFor(() => expect(listRecentWorkSheets).toHaveBeenCalled());
+    await waitFor(() => expect(scheineUnverrechnet).toHaveBeenCalled());
     expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
   });
 
@@ -2216,7 +2243,7 @@ describe('Ausgegebenes Material ohne Schein', () => {
     expect(screen.getByText(/ausgegeben hat, konnte nicht geladen werden/)).toBeInTheDocument();
   });
 
-  it('Gleichbleiben: bei Pauschale wird gar nicht gefragt, und ohne Ausgaben steht nichts da', async () => {
+  it('Gleichbleiben: bei Pauschale wird nichts vorgeschlagen, und ohne Ausgaben steht nichts da', async () => {
     await bisZurVorschau();
     expect(screen.queryByText('Ausgegeben, nicht auf einem Schein')).toBeNull();
     expect(screen.queryByText(/konnte nicht geladen werden/)).toBeNull();
@@ -2225,8 +2252,94 @@ describe('Ausgegebenes Material ohne Schein', () => {
     PROJEKT.billingMode = 'Pauschal';
     ausgabenListe = [ausgabe(5)];
     await bisZurVorschau();
-    expect(ausgabenAbfrage).not.toHaveBeenCalled();
+    // Seit M2 gefragt — die Pauschale verknüpft es —, aber nicht vorgeschlagen.
+    expect(ausgabenAbfrage).toHaveBeenCalled();
     expect(screen.queryByText('Ausgegeben, nicht auf einem Schein')).toBeNull();
+  });
+
+  /*
+    M2 (16.11.2026): VERRECHNET IST, WAS DIE RECHNUNG TRÄGT. Bis dahin galt
+    alles bis zum Leistungsende als abgerechnet, und die Rechnung hielt
+    nichts fest (`linkedOrders` war immer leer). Jetzt verknüpft sie jede
+    Ausgabe ihrer Vorschau — übernommen oder nicht.
+  */
+  it('M2: die Rechnung verknüpft jede Ausgabe ihrer Vorschau — auch die nicht übernommene', async () => {
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    ausgabenListe = [ausgabe(5), ausgabe(4, { art: 'ruestliste', belegId: 'r1' }), ausgabe(-1, { art: 'retoure', belegId: 'x' })];
+    await bisZurVorschau();
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const inv = lege.mock.calls[0][0] as Invoice;
+    expect([...(inv.linkedOrders ?? [])].sort()).toEqual(['a5', 'x']);
+    expect(inv.linkedRuestPositionen).toEqual(['r1']);
+  });
+
+  it('M2: mit Stichtag bleibt die spätere Ausgabe unverknüpft — sie kommt auf die nächste Rechnung', async () => {
+    zeiten = [];
+    katalog = KATALOG;
+    ausgabenListe = [ausgabe(1, { datum: '2026-08-21' }), ausgabe(2, { belegId: 'spaet', datum: '2026-09-12' })];
+    await bisZurVorschau();
+    fireEvent.change(screen.getByLabelText('Leistung bis'), { target: { value: '2026-08-31' } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Bis 31.08.2026 neu zusammenstellen' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Übernehmen' }));
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect((lege.mock.calls[0][0] as Invoice).linkedOrders).toEqual(['a1']);
+  });
+
+  /*
+    M7: eine Retoure nach der Rechnung, die die Ware schon enthielt. Bisher
+    fiel sie still aus der Vorschau — der Kunde bekam keine Gutschrift.
+  */
+  it('M7: Zurückgegebenes, das schon verrechnet war, steht als Hinweis auf eine Gutschrift da', async () => {
+    katalog = KATALOG;
+    ausgabenListe = [ausgabe(-2, { art: 'retoure', belegId: 'x' })];
+    await bisZurVorschau();
+    expect(screen.getByText(/Zurückgegeben, aber schon verrechnet/)).toBeInTheDocument();
+    expect(screen.getByText(/2 Stk · € 17,00/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    // Mit dem Anlegen verknüpft (M2) — gesagt wird es beim Zusammenstellen.
+    expect((lege.mock.calls[0][0] as Invoice).linkedOrders).toEqual(['x']);
+  });
+
+  it('Gleichbleiben (M7): ohne Retoure über das Offene hinaus kein Gutschrift-Hinweis', async () => {
+    katalog = KATALOG;
+    ausgabenListe = [ausgabe(5), ausgabe(-1, { art: 'retoure', belegId: 'x' })];
+    await bisZurVorschau();
+    expect(screen.queryByText(/Zurückgegeben, aber schon verrechnet/)).toBeNull();
+  });
+
+  it('M2: die Pauschale verknüpft das Ausgegebene, ihre Teilrechnung nicht', async () => {
+    PROJEKT.billingMode = 'Pauschal';
+    authWert.company.rechnungsarten = true;
+    angebote = [{
+      id: 'q1', quoteNumber: 'AN-2026-0003', status: 'Angenommen', quoteDate: '2026-08-01',
+      positions: [{ label: 'Heizkörper tauschen', qty: 1, unit: 'Pauschale', unitPrice: 200, netto: 200 }],
+      discount: null, subtotalNetto: 200, totalNetto: 200, totalVat: 40, totalBrutto: 240,
+    } as unknown as typeof angebote[number]];
+    ausgabenListe = [ausgabe(5), ausgabe(4, { art: 'ruestliste', belegId: 'r1' })];
+    await bisZurVorschau('schluss');
+    expect(screen.queryByText('Ausgegeben, nicht auf einem Schein')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect((lege.mock.calls[0][0] as Invoice).linkedOrders).toEqual(['a5']);
+    expect((lege.mock.calls[0][0] as Invoice).linkedRuestPositionen).toEqual(['r1']);
+  });
+
+  it('M2: die Teilrechnung auf eine Pauschale verknüpft nichts — sie ist ein Teilbetrag', async () => {
+    PROJEKT.billingMode = 'Pauschal';
+    authWert.company.rechnungsarten = true;
+    ausgabenListe = [ausgabe(5), ausgabe(4, { art: 'ruestliste', belegId: 'r1' })];
+    await bisZurVorschau('teil');
+    const preis = screen.getByLabelText('Einzelpreis Position 1');
+    await userEvent.clear(preis);
+    await userEvent.type(preis, '500');
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect((lege.mock.calls[0][0] as Invoice).linkedOrders ?? []).toEqual([]);
+    expect((lege.mock.calls[0][0] as Invoice).linkedRuestPositionen ?? []).toEqual([]);
   });
 });
 
@@ -2358,6 +2471,20 @@ describe('Nicht verrechnete Leistung — gebuchte Stunden', () => {
     await waitFor(() => expect(stundenAbfrage.mock.calls.length).toBeGreaterThan(vorher));
   });
 
+  /*
+    Integration Welle 2: die unverrechneten Scheine kommen seit P3 aus der
+    Datenbank. Nach dem Anlegen einer Rechnung muss die Antwort neu her, sonst
+    steht die gerade verrechnete Baustelle bis zum Neuladen unter „Nicht
+    verrechnete Leistung“. Gegenprobe: mit der Abfrage nur beim Öffnen rot.
+  */
+  it('holt die unverrechneten Scheine nach dem Anlegen einer Rechnung neu', async () => {
+    const bestaetigen = await bisZurVorschau();
+    const vorher = scheineUnverrechnet.mock.calls.length;
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    await waitFor(() => expect(scheineUnverrechnet.mock.calls.length).toBeGreaterThan(vorher));
+  });
+
   it('öffnet über die Adresse „Neue Rechnung“ mit der Baustelle', async () => {
     zeige('/invoices?neu=2026-042');
     const auswahl = await screen.findByRole<HTMLSelectElement>('combobox', { name: /Baustelle/ });
@@ -2379,7 +2506,7 @@ describe('Nicht verrechnete Leistung — gebuchte Stunden', () => {
     } as unknown as Invoice & { id: string }];
     zeige();
     await waitFor(() => expect(h.gefragt).toBe(true));
-    await waitFor(() => expect(listRecentWorkSheets).toHaveBeenCalled());
+    await waitFor(() => expect(scheineUnverrechnet).toHaveBeenCalled());
     expect(screen.queryByRole('button', { name: / RE-2026-0001$/ })).toBeNull();
     await act(async () => h.liefern([ALT]));
     expect(await screen.findByRole('button', { name: / RE-2026-0001$/ })).toBeInTheDocument();
@@ -2391,7 +2518,7 @@ describe('Nicht verrechnete Leistung — gebuchte Stunden', () => {
     try {
       offeneStd = [ALT];
       zeige('/invoices?neu=2026-042');
-      await waitFor(() => expect(listRecentWorkSheets).not.toHaveBeenCalled());
+      await waitFor(() => expect(scheineUnverrechnet).not.toHaveBeenCalled());
       await screen.findAllByRole('heading', { name: /Rechnungen/ });
       expect(stundenAbfrage).not.toHaveBeenCalled();
       expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
@@ -2716,6 +2843,11 @@ describe('Der Buchhaltungs-Export', () => {
  * und die Reklamation kommt erst, wenn sie schon draussen ist.
  */
 describe('Rechnung gegen Schein', () => {
+  /*
+    Seit P3 nimmt der Abgleich die Scheine DER BAUSTELLE (wie die Vorschau
+    sie lädt), nicht die 60 jüngsten des Betriebs — deshalb steht der Schein
+    hier in beiden Listen.
+  */
   const mitZeiten = (minuten: number[]): WorkSheet & { id: string } =>
     ({
       id: 'sa1',
@@ -2734,7 +2866,7 @@ describe('Rechnung gegen Schein', () => {
   it('stellt bestätigte und verrechnete Stunden nebeneinander', async () => {
     // Der Zeiteintrag ergibt 8 h; der Schein bestätigt 7 h — knapp darunter,
     // also kein Befund, aber die Zahl gehört trotzdem vor Augen.
-    alleScheine = [mitZeiten([420])];
+    alleScheine = scheine = [mitZeiten([420])];
     await bisZurVorschau();
 
     expect(screen.getByText(/Ein noch nicht verrechneter Schein bestätigt/)).toBeInTheDocument();
@@ -2748,7 +2880,7 @@ describe('Rechnung gegen Schein', () => {
     wird danach fragen, und besser jetzt als nach dem Versand.
   */
   it('warnt, wenn deutlich mehr verrechnet wird als bestätigt', async () => {
-    alleScheine = [mitZeiten([240])];
+    alleScheine = scheine = [mitZeiten([240])];
     await bisZurVorschau();
 
     expect(
@@ -2769,7 +2901,7 @@ describe('Rechnung gegen Schein', () => {
         positions: [{ label: 'Heizkörper tauschen', qty: 1, unit: 'Pauschale', unitPrice: 200, netto: 200 }],
         discount: null, subtotalNetto: 200, totalNetto: 200, totalVat: 40, totalBrutto: 240,
       }];
-      alleScheine = [mitZeiten([240])];
+      alleScheine = scheine = [mitZeiten([240])];
       await bisZurVorschau();
       expect(screen.getByText(/werden nicht einzeln verrechnet/)).toBeInTheDocument();
       expect(screen.queryByText(/mehr, als der Kunde unterschrieben hat/)).toBeNull();
@@ -2785,7 +2917,7 @@ describe('Rechnung gegen Schein', () => {
     hinaus — und der Abgleich stand bisher in Grau darüber.
   */
   it('warnt, wenn deutlich weniger verrechnet wird als auf offenen Scheinen steht', async () => {
-    alleScheine = [mitZeiten([960])];
+    alleScheine = scheine = [mitZeiten([960])];
     await bisZurVorschau();
 
     expect(
@@ -2799,7 +2931,7 @@ describe('Rechnung gegen Schein', () => {
     sind Manfreds vom 21., und verrechnet werden Max' vom 20.
   */
   it('nennt unterschriebene Stunden, die trotz gleicher Summe fehlen', async () => {
-    alleScheine = [
+    alleScheine = scheine = [
       {
         ...mitZeiten([]),
         datum: '2026-08-21',
@@ -2816,8 +2948,8 @@ describe('Rechnung gegen Schein', () => {
   it('schweigt, wenn der Schein schon auf einer Rechnung steht', async () => {
     // Folgerechnung: die sechzehn Stunden sind verrechnet, der Schein steht
     // auf der ersten Rechnung. Sonst schlüge jede zweite Rechnung Alarm.
-    alleScheine = [mitZeiten([960])];
-    offene = [
+    alleScheine = scheine = [mitZeiten([960])];
+    offene = derBaustelle = [
       {
         id: 'r0', companyId: 'perl', invoiceNumber: 'RE-2026-0001', projectNumber: '2026-042',
         customerName: 'Baumeister Gruber', paymentStatus: 'Offen', linkedWorkSheets: ['sa1'],
@@ -2844,7 +2976,7 @@ describe('Rechnung gegen Schein', () => {
     bestätigt sind 0" stünde sonst bei jeder Baustelle ohne Schein da.
   */
   it('sagt gar nichts, wenn es keinen unterschriebenen Schein gibt', async () => {
-    alleScheine = [];
+    alleScheine = scheine = [];
     await bisZurVorschau();
 
     // Beide Wortformen: bei null Scheinen hiesse es „0 Scheine bestätigen",
@@ -2857,7 +2989,7 @@ describe('Rechnung gegen Schein', () => {
   it('kappt die Rechnung nicht auf die Scheinstunden', async () => {
     // Die Warnung ist ein Hinweis, keine Grenze: geleistete Arbeit zu
     // verschenken wäre der teurere Fehler.
-    alleScheine = [mitZeiten([240])];
+    alleScheine = scheine = [mitZeiten([240])];
     const bestaetigen = await bisZurVorschau();
     expect(bestaetigen).toBeInTheDocument();
     // 8 h stehen weiterhin in der Vorschau, nicht 4 h.
@@ -2897,7 +3029,13 @@ describe('Wenn die offenen Forderungen nicht kommen', () => {
     UND ZIEHT BEIDE KARTEN EIN. Eine Karte, die auf unvollständiger Grundlage
     rechnet, ist schlimmer als keine — sie wird geglaubt.
   */
-  it('meldet keine unverrechnete Leistung auf halber Grundlage', async () => {
+  /*
+    SEIT P3 HÄNGT „NICHT VERRECHNETE LEISTUNG“ NICHT MEHR AN DEN FORDERUNGEN:
+    die Datenbank sagt über alle Rechnungen, welche Scheine offen sind
+    (`scheine_unverrechnet`). Fehlen die offenen Forderungen, ist die Liste
+    trotzdem richtig — sie bleibt stehen; nur der Mahnlauf geht.
+  */
+  it('P3: die unverrechnete Leistung bleibt richtig, auch wenn die Forderungen fehlen', async () => {
     // Ein alter Schein, der bei geglückter Abfrage als unverrechnet gälte.
     alleScheine = [
       {
@@ -2911,7 +3049,7 @@ describe('Wenn die offenen Forderungen nicht kommen', () => {
     zeige();
 
     await screen.findByText(/offenen Forderungen konnten nicht geladen werden/);
-    expect(screen.queryByText(/Nicht verrechnete Leistung/)).not.toBeInTheDocument();
+    expect(await screen.findByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
   });
 
   it('zeigt beide Karten wieder, sobald die Abfrage durchgeht', async () => {
@@ -3034,6 +3172,30 @@ describe('Zahlungen erfassen', () => {
     // Runde 3, G14 Gegenprobe: nach einem Eingang bleibt der Dialog für die nächste Zahlung offen.
     expect(await screen.findByText('Zahlung erfasst')).toBeInTheDocument();
     expect(screen.getByLabelText(/^Betrag/)).toBeInTheDocument();
+  });
+
+  /*
+    A11, V2 (Durchsicht 15.11.2026): nichts stieß das Abschließen an — auch
+    nicht die bezahlte Schlussrechnung. Jetzt trägt die Meldung den Weg.
+  */
+  it('ist die Rechnung damit bezahlt, bietet die Meldung der Geschäftsführung „Baustelle abschließen“ an', async () => {
+    // Abschließen darf die Führung — die Buchhaltung bekommt die Meldung wie bisher (siehe oben).
+    const rolle = authWert.user.role;
+    (authWert.user as { role: string }).role = 'Geschäftsführung';
+    rechnungen = [offeneRechnung()];
+    listZahlungen.mockImplementation(async () => [
+      ...bisherigeZahlungen,
+      ...erfassteZahlungen.map((z, i) => ({ id: `z${i}`, ...z })),
+    ] as never);
+    zeige();
+    await screen.findByText(/RE-2026-0042/);
+    await rechnungOeffnen('RE-2026-0042');
+    await userEvent.click(await screen.findByRole('button', { name: 'Zahlung erfassen' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Zahlung eintragen' }));
+    expect(await screen.findByText('Zahlung erfasst — RE-2026-0042 ist bezahlt')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Baustelle abschließen' })).toBeInTheDocument();
+    listZahlungen.mockImplementation(async () => bisherigeZahlungen);
+    (authWert.user as { role: string }).role = rolle;
   });
 
   it('sagt bei Bar und Karte, dass der Beleg aus der Registrierkasse kommt', async () => {
@@ -4977,7 +5139,7 @@ describe('Die Projektleitung liest nur', () => {
     expect(screen.queryByText('Buchhaltungs-Export')).toBeNull();
     expect(screen.queryByText(/^Mahnlauf/)).toBeNull();
     // Was sie nicht lesen darf, wird gar nicht erst gefragt — und kein Status von hier aus gesetzt.
-    expect(listRecentWorkSheets).not.toHaveBeenCalled();
+    expect(scheineUnverrechnet).not.toHaveBeenCalled();
     expect(updateInvoiceStatus).not.toHaveBeenCalled();
   });
 
@@ -5464,21 +5626,21 @@ describe('Runde 6, Paket 2', () => {
 
     it('die Anzahlung zeigt keinen Abgleich — sie verrechnet keine Stunden (G17)', async () => {
       authWert.company.rechnungsarten = true;
-      alleScheine = [offenerSchein];
+      alleScheine = scheine = [offenerSchein];
       await bisZurVorschau('anzahlung');
       expect(screen.queryByText(/noch nicht verrechneter Schein bestätigt/)).toBeNull();
       expect(screen.queryByText(/Gebucht, aber ohne unterschriebenen Schein/)).toBeNull();
     });
 
     it('Gleichbleiben: bei der Rechnung steht der Abgleich weiter da', async () => {
-      alleScheine = [offenerSchein];
+      alleScheine = scheine = [offenerSchein];
       await bisZurVorschau();
       expect(screen.getByText(/Ein noch nicht verrechneter Schein bestätigt/)).toBeInTheDocument();
     });
 
     it('nennt bei Lehrlingsstunden ohne Schein das Lehrjahr, nicht „Facharbeiter“ (G16)', async () => {
       zeiten = [{ ...ZEIT, id: 'zl', userName: 'Test Lehrling', satz: 'lj2' } as TimeEntry & { id: string }];
-      alleScheine = [{ ...offenerSchein, zeiten: [{ datum: '2026-08-21', mitarbeiter: 'Max', minuten: 60 }] }];
+      alleScheine = scheine = [{ ...offenerSchein, zeiten: [{ datum: '2026-08-21', mitarbeiter: 'Max', minuten: 60 }] }];
       await bisZurVorschau();
       expect(screen.getByText(/20\.08\. · Test Lehrling · Lehrling, 2\. Lehrjahr:/)).toBeInTheDocument();
       expect(screen.queryByText(/Test Lehrling · Facharbeiter/)).toBeNull();
@@ -5798,17 +5960,90 @@ describe('Premium: Ausstellen und PDF sind getrennte Ergebnisse', () => {
     expect(reserve).toHaveBeenCalledOnce();
     expect(screen.queryByText(/Nur die PDF-Ausgabe ist fehlgeschlagen/)).toBeNull();
   });
-  it('unterbrochene Antwort behauptet keinen Rollback und sperrt erneutes Ausstellen', async () => {
+  it('unterbrochene Antwort behauptet keinen Rollback und sperrt erneutes Ausstellen, bis geklärt ist', async () => {
     reservierungWirft = new RechnungsAntwortUnklar();
     const bestaetigen = await bisZurVorschau();
     await userEvent.click(bestaetigen);
     expect(await screen.findByText('Die Erstellung ist noch nicht bestätigt.')).toBeInTheDocument();
     expect(bestaetigen).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Rechnungsliste prüfen' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Jetzt prüfen' })).toBeEnabled();
     await userEvent.click(bestaetigen);
     expect(reserve).toHaveBeenCalledOnce();
     expect(pdfAusgabe).not.toHaveBeenCalled();
     expect(screen.queryByText(/Es ist nichts angelegt und nichts gesperrt/)).toBeNull();
+  });
+});
+
+/*
+  DURCHSICHT 15.11.2026, G2: nach einer unterbrochenen Antwort blieb das
+  Erstellen für jede weitere Vorschau gesperrt, bis die Seite neu geladen
+  wurde — und dabei gingen die Angaben verloren. Jetzt trägt jeder Versuch
+  eine Kennung, und die Ansicht klärt mit ihr von selbst, ob die Rechnung
+  entstanden ist. Gegenprobe: vor der Änderung schickt die Ansicht keine
+  Kennung, klärt nichts, und der Knopf bleibt gesperrt.
+*/
+describe('Unterbrochene Antwort: die Ansicht klärt den Versuch selbst (G2)', () => {
+  it('schickt eine Kennung mit und klärt mit genau dieser', async () => {
+    reservierungWirft = new RechnungsAntwortUnklar();
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(bestaetigen);
+    await screen.findByText('Die Erstellung ist noch nicht bestätigt.');
+    const kennung = reserve.mock.calls[0][1].versuch as string;
+    expect(kennung).toMatch(/^[0-9a-f-]{36}$/);
+    await waitFor(() => expect(klaerung).toHaveBeenCalledWith(kennung));
+  });
+
+  it('nicht entstanden: das Erstellen ist wieder frei, die Angaben stehen noch — ein neuer Versuch mit neuer Kennung', async () => {
+    reservierungWirft = new RechnungsAntwortUnklar();
+    klaerung.mockImplementation(async () => { throw new RechnungsAntwortUnklar(); });
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(bestaetigen);
+    await screen.findByText('Die Erstellung ist noch nicht bestätigt.');
+    const erste = reserve.mock.calls[0][1].versuch as string;
+
+    // Das Netz ist zurück: die Klärung sagt „nicht entstanden“.
+    klaerung.mockImplementation(async () => ({ entstanden: false }));
+    reservierungWirft = null;
+    await userEvent.click(screen.getByRole('button', { name: 'Jetzt prüfen' }));
+    expect(await screen.findByText(/es ist keine Rechnung entstanden/)).toBeInTheDocument();
+    expect(screen.queryByText('Die Erstellung ist noch nicht bestätigt.')).toBeNull();
+
+    const wieder = screen.getByRole('button', { name: /Rechnung erstellen/ });
+    expect(wieder).toBeEnabled();
+    await userEvent.click(wieder);
+    await waitFor(() => expect(reserve).toHaveBeenCalledTimes(2));
+    expect(reserve.mock.calls[1][1].versuch).not.toBe(erste);
+    expect(lege).toHaveBeenCalledOnce();
+  });
+
+  it('entstanden: die Vorschau schließt wie nach dem Ausstellen, das PDF kommt aus dem gespeicherten Beleg', async () => {
+    reservierungWirft = new RechnungsAntwortUnklar();
+    klaerung.mockImplementation(async () => ({
+      entstanden: true, id: 'neu', invoiceNumber: 'RE-2026-1099', invoiceDate: '2026-09-01',
+    }));
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(bestaetigen);
+    expect(await screen.findByText('Rechnung RE-2026-1099 wurde erstellt.')).toBeInTheDocument();
+    expect(screen.getByText(/unterbrochene Erstellung ist geklärt/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'PDF laden' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull());
+    expect(screen.queryByText('Die Erstellung ist noch nicht bestätigt.')).toBeNull();
+    // Kein zweiter Schreibaufruf: entstanden ist entstanden.
+    expect(reserve).toHaveBeenCalledOnce();
+  });
+
+  it('überlebt das Neuladen: der offene Versuch wird danach weiter geklärt, nicht vergessen', async () => {
+    reservierungWirft = new RechnungsAntwortUnklar();
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(bestaetigen);
+    await screen.findByText('Die Erstellung ist noch nicht bestätigt.');
+    const kennung = reserve.mock.calls[0][1].versuch as string;
+    cleanup();
+    klaerung.mockClear();
+
+    zeige();
+    expect(await screen.findByText('Die Erstellung ist noch nicht bestätigt.')).toBeInTheDocument();
+    await waitFor(() => expect(klaerung).toHaveBeenCalledWith(kennung));
   });
 });
 
@@ -5975,5 +6210,208 @@ describe('Konditionen gelten nur für die Rechnung, die gerade entsteht (G1)', (
     expect(abweichung?.textContent).toContain('Skonto 3 % in 10 Tagen (Betrieb keines)');
     expect(abweichung?.textContent).toContain('USt 10 % (Betrieb 20 %)');
     expect(abweichung?.textContent).not.toContain('Helfer');
+  });
+});
+
+/*
+  DURCHSICHT 15.11.2026, G6: der Leistungsnachweis gehört zum Beleg. Beim
+  Ausstellen gehen dieselben Zeilen an die Rechnung, die das PDF druckt —
+  Nachdruck und Belegarchiv drucken sie danach von dort. Gegenprobe: ohne
+  die Änderung trägt die Rechnung keinen Nachweis.
+*/
+describe('Leistungsnachweis wird mit der Rechnung festgehalten (G6)', () => {
+  it('mit Haken: Rechnung und PDF tragen dieselben Zeilen', async () => {
+    const bestaetigen = await bisZurVorschau();
+    expect(screen.getByRole('checkbox', { name: 'Leistungsnachweis anhängen' })).toBeChecked();
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalledOnce());
+    const nachweis = lege.mock.calls[0][0].leistungsnachweis;
+    expect(nachweis).toEqual([
+      { uid: 'u1', datum: '2026-08-20', mitarbeiter: 'Max', typ: 'Fachkraft', taetigkeit: '', minuten: 480 },
+    ]);
+    await waitFor(() => expect(pdfAusgabe).toHaveBeenCalledOnce());
+    expect(pdfAusgabe.mock.calls[0][0].leistungsnachweis).toEqual(nachweis);
+  });
+
+  it('ohne Haken: kein Nachweis an der Rechnung', async () => {
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Leistungsnachweis anhängen' }));
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalledOnce());
+    expect(lege.mock.calls[0][0].leistungsnachweis).toBeNull();
+  });
+});
+
+/*
+  DURCHSICHT 15.11.2026, G8: „Bezahlt im Monat“ zählte eine Zahlung auf eine
+  ältere stornierte Rechnung mit, die nicht in der geladenen Liste steht —
+  die Menge „storniert“ kam nur aus der Liste. Gegenprobe: vor der Änderung
+  steht die Kachel bei € 900,00.
+*/
+describe('Bezahlt im Monat: stornierte Rechnungen außerhalb der Liste (G8)', () => {
+  afterEach(() => {
+    zahlungenImMonat.mockResolvedValue([]);
+    frisch = {};
+  });
+
+  it('holt den Stand der Rechnungen, die die Liste nicht kennt, und zählt Storniertes nicht', async () => {
+    rechnungen = [{ id: 'jung', invoiceNumber: 'RE-2026-1050', paymentStatus: 'Bezahlt', totalBrutto: 600 } as Invoice & { id: string }];
+    frisch = { alt: { id: 'alt', invoiceNumber: 'RE-2026-1001', paymentStatus: 'Storniert', totalBrutto: 300 } as Invoice & { id: string } };
+    zahlungenImMonat.mockResolvedValue([
+      { invoiceId: 'jung', datum: '2026-09-01', betrag: 600, art: 'Überweisung' },
+      { invoiceId: 'alt', datum: '2026-09-01', betrag: 300, art: 'Überweisung' },
+    ]);
+    zeige();
+    const kachel = (await screen.findByText('Bezahlt im Monat', { selector: 'p, span, div, dt' })).parentElement!;
+    await waitFor(() => expect(kachel.textContent).toContain('600,00'));
+    expect(kachel.textContent).not.toContain('900,00');
+    expect(listInvoicesByIds).toHaveBeenCalledWith('perl', ['alt']);
+  });
+});
+
+/*
+  DURCHSICHT 15.11.2026, V6/F4: „Stornieren und neu ausstellen“ in einem Zug.
+  Vorher hieß die häufigste Korrektur: stornieren, Baustelle neu wählen,
+  alles neu zusammenstellen — eigene Zeilen, Rabatt und Texte waren weg.
+  Gegenprobe: vor der Änderung gibt es die Aktion nicht.
+*/
+describe('Stornieren und neu ausstellen (V6/F4)', () => {
+  const ALT = {
+    id: 'alt1', companyId: 'perl', invoiceNumber: 'RE-2026-0040', projectNumber: '2026-042', customerName: 'Familie Huber',
+    address: 'Bergweg 3, 2700 Wiener Neustadt', invoiceDate: '2026-08-20', dueDate: '2026-09-03',
+    leistungVon: '2026-08-18', leistungBis: '2026-08-20',
+    positions: [
+      { label: 'Facharbeiterstunden', qty: 8, unit: 'h', unitPrice: 70, netto: 560 },
+      { label: 'Eigene Zeile: Anfahrt pauschal', qty: 1, unit: 'Pauschale', unitPrice: 40, netto: 40 },
+    ],
+    subtotalNetto: 600, discount: { mode: 'percent', value: 5, label: 'Treuerabatt' }, discountAmount: 30,
+    totalNetto: 570, totalVat: 114, totalBrutto: 684, vatRate: 0.2, paymentStatus: 'Offen',
+    bestellnummer: 'B-4711', linkedEntries: ['z1'], linkedWorkSheets: ['s1'], linkedWartungen: ['w1'],
+    leistungsnachweis: [{ uid: 'u1', datum: '2026-08-20', mitarbeiter: 'Max', typ: 'Fachkraft', taetigkeit: 'Bad', minuten: 480 }],
+  } as unknown as Invoice & { id: string };
+
+  async function vorbereiten(grund = 'Falscher Stundensatz') {
+    rechnungen = [ALT];
+    zeige();
+    await screen.findAllByText(/RE-2026-0040/);
+    await rechnungOeffnen('RE-2026-0040');
+    await userEvent.click(await screen.findByRole('button', { name: 'Stornieren und neu ausstellen …' }));
+    const dialog = await screen.findByRole('dialog', { name: /Stornieren und neu ausstellen/ });
+    if (grund) await userEvent.type(within(dialog).getByLabelText(/Grund/), grund);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Neue Rechnung vorbereiten' }));
+    return dialog;
+  }
+
+  it('belegt die neue Rechnung mit allem aus der alten vor — storniert ist noch nichts', async () => {
+    vi.mocked(cancelInvoice).mockClear();
+    await vorbereiten();
+    expect(await screen.findByText('Ersetzt RE-2026-0040.')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Eigene Zeile: Anfahrt pauschal')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Treuerabatt')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('B-4711')).toBeInTheDocument();
+    expect(cancelInvoice).not.toHaveBeenCalled();
+    expect(ersetze).not.toHaveBeenCalled();
+  });
+
+  it('beim Erstellen: alte stornieren und neue ausstellen in EINEM Aufruf, mit Belegen und Nachweis der alten', async () => {
+    vi.mocked(cancelInvoice).mockClear();
+    await vorbereiten();
+    await screen.findByText('Ersetzt RE-2026-0040.');
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(ersetze).toHaveBeenCalledOnce());
+    const [, alt, neu] = ersetze.mock.calls[0] as [string, { id: string; grund: string }, Record<string, unknown>];
+    expect(alt).toEqual({ id: 'alt1', grund: 'Falscher Stundensatz' });
+    expect((neu.positions as { label: string }[]).map((p) => p.label)).toEqual([
+      'Facharbeiterstunden', 'Eigene Zeile: Anfahrt pauschal',
+    ]);
+    expect(neu).toMatchObject({
+      linkedEntries: ['z1'], linkedWorkSheets: ['s1'], linkedWartungen: ['w1'], bestellnummer: 'B-4711',
+      leistungVon: '2026-08-18', leistungBis: '2026-08-20',
+      discount: { mode: 'percent', value: 5, label: 'Treuerabatt' },
+      leistungsnachweis: ALT.leistungsnachweis,
+    });
+    // Kein getrennter Storno und kein gewöhnliches Ausstellen daneben.
+    expect(cancelInvoice).not.toHaveBeenCalled();
+    expect(reserve).not.toHaveBeenCalled();
+  });
+
+  it('ohne Grund kein Ersatz', async () => {
+    const dialog = await vorbereiten('');
+    expect(await within(dialog).findByText(/Bitte einen Grund angeben/)).toBeInTheDocument();
+    expect(screen.queryByText('Ersetzt RE-2026-0040.')).toBeNull();
+  });
+
+  it('war auf die alte gezahlt: bietet an, das Guthaben gleich auf die neue umzubuchen (V7)', async () => {
+    umbuchen.mockClear();
+    rechnungen = [{ ...ALT, bezahltBetrag: 300 } as Invoice & { id: string }];
+    zeige();
+    await screen.findAllByText(/RE-2026-0040/);
+    await rechnungOeffnen('RE-2026-0040');
+    await userEvent.click(await screen.findByRole('button', { name: 'Stornieren und neu ausstellen …' }));
+    const dialog = await screen.findByRole('dialog', { name: /Stornieren und neu ausstellen/ });
+    await userEvent.type(within(dialog).getByLabelText(/Grund/), 'Preis');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Neue Rechnung vorbereiten' }));
+    await screen.findByText('Ersetzt RE-2026-0040.');
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Auf RE-2026-1099 umbuchen' }));
+    await waitFor(() => expect(umbuchen).toHaveBeenCalledWith('alt1', 'neu', 300));
+  });
+
+  // Bleibt gleich: verworfen, ist die neue Rechnung kein Ersatz mehr — die alte bleibt.
+  it('Verwerfen beendet den Ersatz', async () => {
+    await vorbereiten();
+    await screen.findByText('Ersetzt RE-2026-0040.');
+    await userEvent.click(screen.getByRole('button', { name: 'Verwerfen' }));
+    expect(screen.queryByText('Ersetzt RE-2026-0040.')).toBeNull();
+    expect(ersetze).not.toHaveBeenCalled();
+  });
+});
+
+/*
+  DURCHSICHT 15.11.2026, V7: ein Guthaben mit einer neuen Rechnung
+  verrechnen — die Zusage der Stornorechnung. Vorher ging es nur über
+  Rückzahlung hier und Eingang dort, von Hand. Gegenprobe: vor der Änderung
+  gibt es den Abschnitt nicht.
+*/
+describe('Guthaben umbuchen (V7)', () => {
+  const STORNIERT = {
+    id: 's', invoiceNumber: 'RE-2026-1500', projectNumber: '2026-042', customerName: 'Max',
+    invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Storniert', totalBrutto: 504, bezahltBetrag: 200,
+  } as unknown as Invoice & { id: string };
+  const OFFENE = {
+    id: 'o', invoiceNumber: 'RE-2026-1510', projectNumber: '2026-042', customerName: 'Max',
+    invoiceDate: '2026-09-02', dueDate: '2026-09-16', paymentStatus: 'Offen', totalBrutto: 450, bezahltBetrag: 0,
+  } as unknown as Invoice & { id: string };
+  beforeEach(() => {
+    umbuchen.mockClear();
+    bisherigeZahlungen = [{ id: 'z1', invoiceId: 's', datum: '2026-09-10', betrag: 200, art: 'Überweisung' }];
+  });
+  afterEach(() => {
+    bisherigeZahlungen = [];
+    offene = [];
+  });
+
+  it('bucht das Guthaben auf eine offene Rechnung desselben Kunden um — ein Vorgang', async () => {
+    rechnungen = [STORNIERT, OFFENE];
+    offene = [OFFENE];
+    zeige();
+    await rechnungOeffnen('RE-2026-1500');
+    await userEvent.click(await screen.findByRole('button', { name: 'Guthaben zurückzahlen …' }));
+    await userEvent.selectOptions(await screen.findByLabelText('Auf Rechnung'), 'o');
+    expect(screen.getByLabelText('Betrag')).toHaveValue('200');
+    await userEvent.click(screen.getByRole('button', { name: 'Guthaben umbuchen' }));
+    await waitFor(() => expect(umbuchen).toHaveBeenCalledWith('s', 'o', 200));
+    expect(createZahlung).not.toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ betrag: -200 }));
+  });
+
+  it('ohne offene Rechnung des Kunden: sagt es, statt eine fremde anzubieten', async () => {
+    const fremd = { ...OFFENE, id: 'f', invoiceNumber: 'RE-2026-1511', customerName: 'Anderer Kunde' } as Invoice & { id: string };
+    rechnungen = [STORNIERT, fremd];
+    offene = [fremd];
+    zeige();
+    await rechnungOeffnen('RE-2026-1500');
+    await userEvent.click(await screen.findByRole('button', { name: 'Guthaben zurückzahlen …' }));
+    expect(await screen.findByText(/hat keine offene Rechnung/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Auf Rechnung')).toBeNull();
   });
 });

@@ -1,5 +1,5 @@
 import type { AppUser, TimeEntry } from '@/types';
-import { calcWorkMin, tagesAnteil, tagessollStunden } from '@/lib/time';
+import { arbeitszeitAm, calcWorkMin, hatArbeitszeitVerlauf, tagesAnteil, tagessollStunden, wochenstundenVon } from '@/lib/time';
 import { isAustrianHoliday } from '@shared/feiertage';
 import {
   arbeitMinImFenster, fensterSchnitt, NACHTZEIT_VORGABE, type Nachtzeit, type UeberstundenRegel,
@@ -97,7 +97,7 @@ const ZEHN_STUNDEN = 10 * 60;
 /** Ab der 51. Arbeitsstunde der Woche 100 %. */
 const FUENFZIG_STUNDEN = 50 * 60;
 
-type Person = Pick<AppUser, 'weeklyTargetHours' | 'workDays' | 'tagessoll'> & Partial<Pick<AppUser, 'einstufung'>>;
+type Person = Pick<AppUser, 'weeklyTargetHours' | 'workDays' | 'tagessoll'> & Partial<Pick<AppUser, 'einstufung' | 'arbeitszeitVerlauf'>>;
 
 /** Die vereinbarte Woche in Minuten — mit eigenem Tagessoll dessen Summe über die Arbeitstage. */
 function vereinbarteWocheMin(user: Person, workDays: readonly number[]): number {
@@ -105,7 +105,8 @@ function vereinbarteWocheMin(user: Person, workDays: readonly number[]): number 
     workDays.reduce((summe, wt) => {
       const eigen = user.tagessoll?.[String(wt)];
       if (typeof eigen === 'number' && Number.isFinite(eigen)) return summe + eigen;
-      return summe + (Number(user.weeklyTargetHours ?? 40) || 40) / workDays.length;
+      // 0 Wochenstunden sind 0 (Z11), nicht die Vorgabe 40.
+      return summe + wochenstundenVon(user.weeklyTargetHours) / workDays.length;
     }, 0) * 60,
   );
 }
@@ -137,10 +138,31 @@ export function ueberstundenNachTagesgrenze(
 ): Ueberstunden {
   if (regel.modell !== 'tagesgrenze') return KEINE_UEBERSTUNDEN;
   const kv = regel.kvMetall && !!user.einstufung;
-  const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
   const vollzeitWocheMin = Math.round(regel.vollzeitStunden * 60);
+  /*
+    DIE ARBEITSZEIT JE TAG UND JE WOCHE (Durchsicht 15.11.2026, Z3a). Die
+    Grenze des Tages (Tagessoll, Arbeitstag) gilt mit der Arbeitszeit dieses
+    Tages. Die Mehrarbeit in Teilzeit rechnet das Gesetz je Woche (§ 19d
+    Abs 3 AZG: über der vereinbarten Wochenarbeitszeit bis zur Vollzeit) —
+    sie nimmt die Woche, die an ihrem Montag vereinbart war; wechselt die
+    Arbeitszeit mitten in der Woche, gilt für die ganze Woche die alte
+    Vereinbarung. Die Grenzwerte selbst (zehn Stunden, 50 Stunden, Vollzeit
+    des Betriebs) bleiben, wie sie sind. Ohne Verlauf genau die Rechnung von
+    vorher.
+  */
+  const mitVerlauf = hatArbeitszeitVerlauf(user);
+  const am = (iso: string): Person => (mitVerlauf ? { ...user, ...arbeitszeitAm(user, iso) } : user);
+  const tageVon = (u: Person) => (u.workDays && u.workDays.length ? u.workDays : [1, 2, 3, 4, 5]);
+  const workDays = tageVon(user);
   const mehrarbeitWocheMin = vollzeitWocheMin - vereinbarteWocheMin(user, workDays);
-  const teilzeit = regel.grenze === 'tagessoll' && mehrarbeitWocheMin > 0;
+  const mehrarbeitDerWoche = (montag: string) => {
+    if (!mitVerlauf) return mehrarbeitWocheMin;
+    const u = am(montag);
+    return vollzeitWocheMin - vereinbarteWocheMin(u, tageVon(u));
+  };
+  const wochenImZeitraum = [...new Set([...eintraege, ...vorlauf].map((e) => montagVon(e.date)))];
+  const teilzeit = regel.grenze === 'tagessoll'
+    && (mitVerlauf ? wochenImZeitraum.some((m) => mehrarbeitDerWoche(m) > 0) : mehrarbeitWocheMin > 0);
   const nachtImUeberstundenFenster = fensterSchnitt(nacht, UEBERSTUNDEN_NACHT);
 
   const tageAus = (liste: TimeEntry[], ohne?: Map<string, Tag>) => {
@@ -174,7 +196,7 @@ export function ueberstundenNachTagesgrenze(
   const lage = (iso: string, min: number) => {
     const tag = new Date(`${iso}T00:00:00`);
     const feiertag = isAustrianHoliday(tag);
-    const arbeitstag = workDays.includes(tag.getDay()) && !feiertag;
+    const arbeitstag = (mitVerlauf ? tageVon(am(iso)) : workDays).includes(tag.getDay()) && !feiertag;
     const grenze = !arbeitstag
       ? 0
       : regel.grenze === 'zehn'
@@ -215,7 +237,7 @@ export function ueberstundenNachTagesgrenze(
       const vollTag = regel.vollzeitVerteilung
         ? Math.round((regel.vollzeitVerteilung[String(new Date(`${iso}T00:00:00`).getDay())] ?? 0) * 60 * tagesAnteil(iso, halbeTage))
         : Math.round((vollzeitWocheMin / 5) * tagesAnteil(iso, halbeTage));
-      const wocheRest = Math.max(0, mehrarbeitWocheMin - (verbraucht.get(montag) ?? 0));
+      const wocheRest = Math.max(0, mehrarbeitDerWoche(montag) - (verbraucht.get(montag) ?? 0));
       const mehr = Math.max(0, Math.min(rest, vollTag - l.grenze, wocheRest));
       verbraucht.set(montag, (verbraucht.get(montag) ?? 0) + mehr);
       mehrJeTag.set(iso, mehr);

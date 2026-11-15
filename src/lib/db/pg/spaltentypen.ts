@@ -67,8 +67,10 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   customers: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   datanorm_laeufe: { abgeschlossen_am: 'zeitpunkt', created_at: 'zeitpunkt' },
   einkauf_posten: {
-    bestellt_am: 'zeitpunkt', created_at: 'zeitpunkt', geliefert_am: 'zeitpunkt', updated_at: 'zeitpunkt',
+    bestellt_am: 'zeitpunkt', bestellung_storniert_am: 'zeitpunkt', created_at: 'zeitpunkt', geliefert_am: 'zeitpunkt',
+    updated_at: 'zeitpunkt',
   },
+  einkaufspreis_festgehalten: { festgehalten_am: 'zeitpunkt' },
   einsatz_material: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   fahrzeuge: { angelegt_am: 'zeitpunkt', geaendert_am: 'zeitpunkt' },
   fehlerprotokoll: { created_at: 'zeitpunkt' },
@@ -96,7 +98,8 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   liegenschaften: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   material_einkaufspreise: { updated_at: 'zeitpunkt' },
   material_orders: {
-    abholbereit_seit: 'zeitpunkt', bestellt_am: 'zeitpunkt', created_at: 'zeitpunkt', erledigt_am: 'zeitpunkt',
+    abholbereit_seit: 'zeitpunkt', angenommen_am: 'zeitpunkt', bestellt_am: 'zeitpunkt',
+    bestellung_storniert_am: 'zeitpunkt', created_at: 'zeitpunkt', erledigt_am: 'zeitpunkt',
     geliefert_am: 'zeitpunkt', updated_at: 'zeitpunkt',
   },
   material_prices: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
@@ -116,15 +119,20 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   number_counters: { updated_at: 'zeitpunkt' },
   /* Eine Sicht (M01b): Journal und vorhandene Verläufe zusammen; gelesen wird sie wie eine Tabelle. */
   objekt_verlauf: { am: 'zeitpunkt' },
+  passwort_anfragen: { angefragt_am: 'zeitpunkt', erledigt_am: 'zeitpunkt' },
   platform_admins: { created_at: 'zeitpunkt' },
   project_documents: { created_at: 'zeitpunkt' },
   projects: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   quotes: {
-    abgelehnt_am: 'zeitpunkt', angenommen_am: 'zeitpunkt', created_at: 'zeitpunkt', updated_at: 'zeitpunkt',
+    abgelehnt_am: 'zeitpunkt', angenommen_am: 'zeitpunkt', annahme_zurueckgenommen_am: 'zeitpunkt',
+    created_at: 'zeitpunkt', updated_at: 'zeitpunkt',
     versendet_am: 'zeitpunkt', verworfen_am: 'zeitpunkt',
   },
   rabattsaetze: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  rechnungsversuche_ohne_beleg: { geklaert_am: 'zeitpunkt' },
   rechtstexte: { geaendert_am: 'zeitpunkt', veroeffentlicht_am: 'zeitpunkt' },
+  // M3 (Welle 2): wann über den Verbrauch am Schein entschieden wurde.
+  schein_verbrauch: { entschieden_am: 'zeitpunkt' },
   // E68: die eigene Einrichtung der Startseite.
   startseite_wahl: { geaendert_am: 'zeitpunkt' },
   support_freigaben: { created_at: 'zeitpunkt', gilt_bis: 'zeitpunkt', widerrufen_am: 'zeitpunkt' },
@@ -135,7 +143,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   time_entries: { created_at: 'zeitpunkt', end_time: 'uhrzeit', start_time: 'uhrzeit', updated_at: 'zeitpunkt' },
   uid_pruefungen: { abgefragt_am: 'zeitpunkt', am: 'zeitpunkt' },
   urlaubsanspruch_anpassungen: { created_at: 'zeitpunkt', entfernt_am: 'zeitpunkt', updated_at: 'zeitpunkt' },
-  user_prefs: { einsatz_meldung_ab: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  user_prefs: { einsatz_meldung_ab: 'zeitpunkt', scheine_gesehen_bis: 'zeitpunkt', updated_at: 'zeitpunkt' },
   users: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   vacations: {
     created_at: 'zeitpunkt', entschieden_am: 'zeitpunkt', genehmigt_am: 'zeitpunkt', updated_at: 'zeitpunkt',
@@ -151,10 +159,12 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   zeitbuchung_verlauf: { am: 'zeitpunkt' },
   zeitfeld_definitionen: { angelegt_am: 'zeitpunkt', geaendert_am: 'zeitpunkt' },
   zeitfeld_fassungen: { veroeffentlicht_am: 'zeitpunkt' },
+  zeit_monatsabschluesse: { am: 'zeitpunkt' },
   zeitkorrekturen: { angelegt_am: 'zeitpunkt', entschieden_am: 'zeitpunkt' },
   zeitsitzungen: { aktualisiert_am: 'zeitpunkt', erinnert_am: 'zeitpunkt', weiterlaufen_am: 'zeitpunkt' },
   zeitkonto_anfang: { updated_at: 'zeitpunkt' },
   /* Nur über Funktionen erreichbar (Runde 3, H1); die Zeile steht da, weil die Karte das Schema abbildet. */
   zwei_faktor_codes: { created_at: 'zeitpunkt', ungueltig_am: 'zeitpunkt', verbraucht_am: 'zeitpunkt' },
   zwei_faktor_fehlversuche: { am: 'zeitpunkt' },
+  zwei_faktor_ruecksetzungen: { am: 'zeitpunkt' },
 };

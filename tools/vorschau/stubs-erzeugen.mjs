@@ -98,6 +98,8 @@ const DATEN = {
     listVerworfeneScheine: '[]', listAbgelaufeneScheine: '[]', zaehleVerworfeneScheine: '0',
     // Vorgemerkte Scheine ohne Netz (§46): leer; als NOOP stürzte die Scheinliste ab (09.11.2026).
     wartendeScheine: '[]',
+    // „Neu eingegangen“ (V9): eine Liste; als NOOP stand in der Scheinliste ein Ladefehler.
+    scheineNeu: '[]',
   },
   vacations: {
     listOwnVacations: 'D.urlaube',
@@ -113,6 +115,13 @@ const DATEN = {
   quotes: {
     '*': 'D.angebote', getQuote: 'D.angebote[0]', acceptQuote: "'B-2026-0042'",
     listVerworfeneAngebote: '[]', zaehleVerworfeneAngebote: '0', deleteAbgelaufeneAngebote: '0',
+    /*
+      A6 (Welle 2): die Liste „Offen“ zählt aus der Datenbank. Mit `*` kam die
+      Liste selbst als Zahl zurück — der Leerzustand „Dein erstes Angebot.“
+      erschien nie (Linkprüfung `premium.spec.ts`).
+    */
+    zaehleQuotes: 'D.angebote.length',
+    zaehleOffeneQuotes: "D.angebote.filter((q) => q.status === 'Entwurf' || q.status === 'Versendet').length",
   },
   // Die Ausführungen sind keine Anlagen: mit `*` bekam der Verlauf Anlagen ohne `am` und brach ab (K4, 13.10.2026).
   wartungen: { '*': 'D.wartungen', wartungEinplanen: "'B-2026-0042'", listAusfuehrungen: '[]' },
@@ -123,6 +132,20 @@ const DATEN = {
 
 /** Was sich nicht aus dem Namen ableiten laesst. */
 const FEST = {
+  /*
+    Z6 (Welle 2): zwei reine Rechnungen über den Verlauf der Monatsabschlüsse.
+    Als NOOP lieferten sie ein Versprechen statt einer Map — die
+    Mitarbeiterübersicht stürzte in der Vorschau ab (Linkprüfung).
+  */
+  zeitkonto:
+    'export const abschlussStand = (verlauf: readonly { monat: string; am: string }[]) => {\n' +
+    '  const stand = new Map();\n' +
+    '  for (const e of [...verlauf].sort((a, b) => (a.am < b.am ? 1 : a.am > b.am ? -1 : 0))) if (!stand.has(e.monat)) stand.set(e.monat, e);\n' +
+    '  return stand;\n' +
+    '};\n' +
+    'export const abgeschlosseneMonate = (verlauf: readonly { monat: string; am: string; aktion: string }[], an: boolean) => {\n' +
+    "  return an ? new Set([...abschlussStand(verlauf).values()].filter((e) => e.aktion === 'abgeschlossen').map((e) => e.monat)) : new Set();\n" +
+    '};\n',
   benutzerVorgaben:
     'export const DEFAULT_WEEKLY_HOURS = 38.5;\n' +
     'export const DEFAULT_VACATION_DAYS = 25;\n' +
@@ -148,7 +171,8 @@ const FEST = {
   prefs:
     'const P = {} as never;\nexport const getPrefs = () => A(P);\nexport const subscribePrefs = SUB(P);\n',
   // Formen, die die Heuristik falsch raten wuerde (Prueflauf 25.09.2026, C11).
-  workSheets: 'export const vorbereiten = () => A({ zeiten: [], material: [] });\n',
+  workSheets: 'export const vorbereiten = () => A({ zeiten: [], material: [] });\n' +
+    'export const listWorkSheetsByIds = () => A([]);\n',
   /*
     EIN SCHLÜSSEL JE MODUL: stand `invoices` zweimal da, galt nur der zweite —
     `scheineAufRechnung` fehlte, und Startseite, Scheinliste und Rechnungen
@@ -157,6 +181,8 @@ const FEST = {
   */
   invoices:
     'export const scheineAufRechnung = () => A([]);\n' +
+    // „Nicht verrechnet“ über alle Scheine (P3): eine Liste, kein `undefined`.
+    'export const scheineUnverrechnet = () => A([]);\n' +
     'export const sucheRechnungen = () => A([]);\n' +
     "export const nextInvoiceNumber = () => 'RE-2026-0234';\n" +
     'export const isInvoiceNumberTaken = () => false;\n',

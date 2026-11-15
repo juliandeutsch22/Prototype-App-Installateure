@@ -91,12 +91,24 @@ vi.mock('@/lib/db/materialOrders', () => ({
   anforderungLoeschen: (...a: unknown[]) => loeschen(...a),
   anforderungEiligSetzen: (...a: unknown[]) => eiligSetzen(...a),
   createReturn: (...a: unknown[]) => retoureAnlegen(...a),
+  // M7: wartende Retouren, ihre Annahme und der Rahmen im Formular.
+  subscribeWartendeRetouren: (_c: string, cb: (rows: WithId<MaterialOrder>[]) => void) => {
+    cb(wartendeRetouren);
+    return () => undefined;
+  },
+  retoureAnnehmen: (...a: unknown[]) => annehmen(...a),
+  retoureRahmen: async () => null,
 }));
+let wartendeRetouren: WithId<MaterialOrder>[] = [];
+const annehmen = vi.fn<(...a: unknown[]) => Promise<boolean>>(async () => true);
 
 const retoureAnlegen = vi.fn<(...a: unknown[]) => Promise<string>>(async () => 'r1');
 vi.mock('@/lib/db/materials', async (echt) => ({
   ...(await echt<typeof import('@/lib/db/materials')>()),
   sucheKatalog: async () => [{ id: 'm1', companyId: 'perl', name: 'Kupferrohr 15mm', unit: 'm', stock: 3 }],
+  // V11: der vorbelegte Artikel kommt als ganzer Datensatz nach.
+  katalogNachIds: async (_c: string, ids: readonly string[]) =>
+    ids.includes('m1') ? [{ id: 'm1', companyId: 'perl', name: 'Kupferrohr 15mm', unit: 'm', stock: 3 }] : [],
 }));
 vi.mock('@/lib/db/projects', async (echt) => ({
   ...(await echt<typeof import('@/lib/db/projects')>()),
@@ -106,6 +118,8 @@ vi.mock('@/lib/db/projects', async (echt) => ({
 }));
 
 const ausLager = vi.fn();
+/** M5: ein Teil aus dem Lager, der Rest offen oder zum Großhändler. */
+const ausLagerTeil = vi.fn<(...a: unknown[]) => Promise<boolean>>(async () => true);
 const aufEinkaufsliste = vi.fn();
 let vorschlag: string | null = null;
 let lagerPosten: unknown[] = [];
@@ -120,6 +134,7 @@ const grosshaendler = [
 vi.mock('@/lib/db/einkauf', () => ({
   listGrosshaendler: () => Promise.resolve(grosshaendler),
   ausLager: (...a: unknown[]) => ausLager(...a),
+  ausLagerTeil: (...a: unknown[]) => ausLagerTeil(...a),
   aufEinkaufsliste: (...a: unknown[]) => aufEinkaufsliste(...a),
   lieferantVorschlag: () => Promise.resolve(vorschlag),
   katalogFuer: () => Promise.resolve(new Map()),
@@ -171,6 +186,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 2, 9, 0, 0));
   anforderungen = [];
+  wartendeRetouren = [];
   nurAufDemServer = [];
   sucheAnforderungen.mockClear();
   ladefehler = null;
@@ -868,6 +884,71 @@ describe('Anforderungen — der Arbeitsstand reicht hinter die jüngsten 200', (
   });
 });
 
+/*
+  M5/F5 (16.11.2026): TEILMENGEN. „Aus Lager“ war alles oder nichts, und
+  „Abgeholt“ kannte nur die ganze Menge.
+*/
+describe('Teilmengen (M5)', () => {
+  it('„Aus Lager“ weist mangels Freiem ab: gleich die Frage nach dem Teil — 6 aus dem Lager, 4 zum Großhändler', async () => {
+    ausLager.mockRejectedValueOnce(new Error('Im Lager sind nur 6 Stk frei (6 im Regal, 0 schon zugesagt) — angefordert sind 10.'));
+    ausLagerTeil.mockClear();
+    anforderungen = [anforderung({ id: 'o1', materialId: 'm1', quantity: 10 })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /^Aus Lager: Kupferrohr 15mm/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Teilweise aus dem Lager?' });
+    expect(within(dialog).getByText(/Im Lager sind nur 6 Stk frei/)).toBeInTheDocument();
+    await userEvent.type(within(dialog).getByLabelText('Aus dem Lager'), '6');
+    expect(within(dialog).getByText(/Der Rest — 4 — geht auf die Einkaufsliste/)).toBeInTheDocument();
+    await userEvent.selectOptions(within(dialog).getByLabelText('Großhändler'), 'gh1');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Aus dem Lager' }));
+    await waitFor(() => expect(ausLagerTeil).toHaveBeenCalledWith('o1', 'Offen', 6, 'einkauf', 'gh1'));
+  });
+
+  it('auch ohne Abweisung aus dem Fenster der Anforderung — der Rest bleibt offen, wenn gewählt', async () => {
+    ausLagerTeil.mockClear();
+    anforderungen = [anforderung({ id: 'o1', quantity: 10 })];
+    zeige();
+    await userEvent.click(within(await oeffnen()).getByRole('button', { name: 'Teilweise aus Lager …' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Teilweise aus dem Lager?' });
+    // Mehr als angefordert gibt es nicht — der Knopf bleibt gesperrt.
+    await userEvent.type(within(dialog).getByLabelText('Aus dem Lager'), '11');
+    expect(within(dialog).getByRole('button', { name: 'Aus dem Lager' })).toBeDisabled();
+    await userEvent.clear(within(dialog).getByLabelText('Aus dem Lager'));
+    await userEvent.type(within(dialog).getByLabelText('Aus dem Lager'), '3');
+    await userEvent.selectOptions(within(dialog).getByLabelText('Der Rest'), 'offen');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Aus dem Lager' }));
+    await waitFor(() => expect(ausLagerTeil).toHaveBeenCalledWith('o1', 'Offen', 3, 'offen', null));
+  });
+
+  it('„Abgeholt“ mit weniger: nur dieser Teil wird gebucht', async () => {
+    statusSetzen.mockReset();
+    statusSetzen.mockResolvedValue({ art: 'geaendert' });
+    anforderungen = [anforderung({ id: 'o1', quantity: 10, status: 'Abholbereit', beschaffung: 'lager' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /^Abgeholt: Kupferrohr 15mm/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Bestellung abschließen?' });
+    const feld = within(dialog).getByLabelText('Abgeholt');
+    expect(feld).toHaveValue('10');
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '6');
+    expect(within(dialog).getByText(/×6 wird als erledigt gebucht/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o1', 'Erledigt', expect.objectContaining({ von: 'Abholbereit', menge: 6 })));
+  });
+
+  it('Gleichbleiben: die ganze Menge abgeholt — der Aufruf wie bisher, ohne Menge', async () => {
+    statusSetzen.mockReset();
+    statusSetzen.mockResolvedValue({ art: 'geaendert' });
+    anforderungen = [anforderung({ id: 'o1', quantity: 10, status: 'Abholbereit', beschaffung: 'lager' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /^Abgeholt: Kupferrohr 15mm/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Bestellung abschließen?' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalled());
+    expect(statusSetzen.mock.calls[0][2]).not.toHaveProperty('menge');
+  });
+});
+
 describe('Anforderungen — Lager oder Einkauf', () => {
   it('„Aus Lager“ bucht die Zeile als Lagerware', async () => {
     anforderungen = [anforderung({ id: 'o1', materialId: 'm1' })];
@@ -1347,5 +1428,116 @@ describe('V10 Anforderungen — Filterleere und Laden', () => {
     await userEvent.click(await bereich(/^Einkauf/));
     expect(await screen.findByText(/Die Anforderungen konnten nicht geladen werden/)).toBeInTheDocument();
     expect(screen.queryByText(/Nichts auf der Einkaufsliste/)).toBeNull();
+  });
+});
+
+/*
+  M7 (16.11.2026): EINE RETOURE „NEU“ DES MONTEURS WARTET AUF DIE ANNAHME.
+  Vorher schrieb sie sofort gut, und der Reiter „Retouren“ war nur Bestand.
+*/
+describe('Retoure annehmen (M7)', () => {
+  const wartend = () => anforderung({
+    id: 'r9', transactionType: 'return', condition: 'neu', quantity: 3, processed: false,
+    status: 'Erledigt', materialName: 'Muffe', userName: 'Max Monteur', projectNumber: '2026-042',
+  });
+
+  it('der Reiter zählt die wartenden; das Fenster nimmt an — mit der Menge, die ankam', async () => {
+    annehmen.mockClear();
+    wartendeRetouren = [wartend()];
+    zeige();
+    expect(await bereich(/^Retouren/)).toHaveTextContent('1');
+    await userEvent.click(await bereich(/^Retouren/));
+    expect(await screen.findByText('wartet auf Annahme')).toBeInTheDocument();
+    await userEvent.click(within(await oeffnen(/^Muffe/)).getByRole('button', { name: 'Annehmen …' }));
+    const d = within(await screen.findByRole('dialog', { name: 'Retoure annehmen?' }));
+    await userEvent.clear(d.getByLabelText('Angekommen'));
+    await userEvent.type(d.getByLabelText('Angekommen'), '2');
+    await userEvent.click(d.getByRole('button', { name: 'Annehmen' }));
+    await waitFor(() => expect(annehmen).toHaveBeenCalledWith('r9', 2, 'neu'));
+  });
+
+  it('Gleichbleiben: eine schon gutgeschriebene Retoure hat kein „Annehmen“, und der Reiter keine Zahl', async () => {
+    anforderungen = [{ ...wartend(), processed: true }];
+    zeige();
+    expect(await bereich(/^Retouren/)).not.toHaveTextContent(/\d/);
+    await userEvent.click(await bereich(/^Retouren/));
+    expect(within(await oeffnen(/^Muffe/)).queryByRole('button', { name: 'Annehmen …' })).toBeNull();
+  });
+});
+
+/*
+  V11 (16.11.2026): AUS DER ANFORDERUNG ZURÜCK. Vorher führte von einer
+  abgeholten Anforderung kein Weg zur Retoure — Artikel, Baustelle und Menge
+  mussten neu gesucht werden; frei getippte Ware ging gar nicht.
+*/
+describe('Zurückgeben an der Anforderung (V11)', () => {
+  it('öffnet das Formular vorbelegt — Artikel, Baustelle, Menge und der Besteller', async () => {
+    retoureAnlegen.mockClear();
+    anforderungen = [anforderung({ id: 'e1', status: 'Erledigt', processed: true, quantity: 2.5, materialId: 'm1', userId: 'm7', userName: 'Max Monteur', projectNumber: '2026-042' })];
+    zeige();
+    await userEvent.click(await bereich(/^Erledigt/));
+    await userEvent.click(within(await oeffnen()).getByRole('button', { name: 'Zurückgeben …' }));
+    const fenster = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
+    expect(within(fenster).getByText('Kupferrohr 15mm')).toBeInTheDocument();
+    expect(within(fenster).getByRole('textbox', { name: /Menge/ })).toHaveValue('2,5');
+    const wer = within(fenster).getByRole('combobox', { name: 'Zurückgebracht von' });
+    await waitFor(() => expect(wer).toHaveValue('m7'));
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await waitFor(() => expect(retoureAnlegen).toHaveBeenCalledTimes(1));
+    expect(retoureAnlegen.mock.calls[0][1]).toMatchObject({ materialId: 'm1', quantity: 2.5, projectNumber: '2026-042', userId: 'm7' });
+  });
+
+  it('frei getippte Ware ohne Katalogartikel lässt sich zurückgeben', async () => {
+    retoureAnlegen.mockClear();
+    anforderungen = [anforderung({ id: 'e2', status: 'Erledigt', processed: true, quantity: 3, materialId: undefined, materialName: 'Sonderdichtung', userId: 'm7', userName: 'Max Monteur' })];
+    zeige();
+    await userEvent.click(await bereich(/^Erledigt/));
+    await userEvent.click(within(await oeffnen(/^Sonderdichtung/)).getByRole('button', { name: 'Zurückgeben …' }));
+    const fenster = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
+    expect(within(fenster).getByText(/Nicht im Katalog/)).toBeInTheDocument();
+    const wer = within(fenster).getByRole('combobox', { name: 'Zurückgebracht von' });
+    await waitFor(() => expect(wer).toHaveValue('m7'));
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await waitFor(() => expect(retoureAnlegen).toHaveBeenCalledTimes(1));
+    expect(retoureAnlegen.mock.calls[0][1]).toMatchObject({ materialId: null, materialName: 'Sonderdichtung', quantity: 3 });
+  });
+
+  it('Gleichbleiben: an einer laufenden Anforderung kein „Zurückgeben“', async () => {
+    anforderungen = [anforderung({ id: 'o1' })];
+    zeige();
+    expect(within(await oeffnen()).queryByRole('button', { name: 'Zurückgeben …' })).toBeNull();
+  });
+});
+
+/*
+  M8 (16.11.2026): das Lager wählt beim Abschließen „Beim Händler
+  mitgenommen“ — bisher gab es das nur beim Monteur, und das Lager zog
+  vom Bestand ab, was nie im Regal lag.
+*/
+describe('Herkunft beim Abschließen im Lager (M8)', () => {
+  it('„Offen“: das Lager kann „beim Händler“ wählen — dann geht die Herkunft mit', async () => {
+    statusSetzen.mockReset();
+    statusSetzen.mockResolvedValue({ art: 'geaendert' });
+    anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
+    zeige();
+    await statusWaehlen('Erledigt');
+    const dialog = await screen.findByRole('dialog', { name: 'Bestellung abschließen?' });
+    await userEvent.selectOptions(within(dialog).getByLabelText('Woher kam das Material?'), 'haendler');
+    expect(within(dialog).getByText(/Vom Lagerbestand wird nichts abgezogen/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o1', 'Erledigt', expect.objectContaining({ herkunft: 'haendler' })));
+  });
+
+  it('Gleichbleiben: abholbereit aus dem Lager — keine Frage, keine Herkunft', async () => {
+    statusSetzen.mockReset();
+    statusSetzen.mockResolvedValue({ art: 'geaendert' });
+    anforderungen = [anforderung({ id: 'o1', status: 'Abholbereit', beschaffung: 'lager' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /^Abgeholt: Kupferrohr 15mm/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Bestellung abschließen?' });
+    expect(within(dialog).queryByLabelText('Woher kam das Material?')).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalled());
+    expect(statusSetzen.mock.calls[0][2]).not.toHaveProperty('herkunft');
   });
 });

@@ -52,6 +52,10 @@ export const ZIEL = {
   baustellen: (filter: BaustellenFilter) => `/admin-projects?filter=${filter}`,
   baustelle: (nummer: string) => `/admin-projects?baustelle=${q(nummer)}`,
   wartungenOhneBaustelle: '/wartungen?filter=faellig-ohne-baustelle',
+  /** Die Wartungsliste — „Anstehend“ zeigt auch die eingeplanten (A9). */
+  wartungen: '/wartungen',
+  /** Der Dialog „Erledigt“ einer Wartung, mit dem vorgeschlagenen Tag (A9). */
+  wartungErledigt: (id: string, am: string) => `/wartungen?erledigt=${q(id)}&am=${q(am)}`,
   einstellungen: (reiter: 'saetze' | 'rechnung' | 'konten' | 'firma' | 'papierkorb' | 'nachrichten') => `/settings/${reiter}`,
   /** Die Nachrichten (M10/B09), Posteingang. */
   nachrichten: '/nachrichten',
@@ -79,7 +83,7 @@ export const BAUSTELLEN_FILTER = [
 ] as const;
 export type BaustellenFilter = (typeof BAUSTELLEN_FILTER)[number];
 
-export const SCHEIN_FILTER = ['nicht-verrechnet', 'nicht-verrechnet-alt'] as const;
+export const SCHEIN_FILTER = ['nicht-verrechnet', 'nicht-verrechnet-alt', 'neu-eingegangen'] as const;
 export type ScheinFilter = (typeof SCHEIN_FILTER)[number];
 
 export const RECHNUNGS_SICHTEN = ['mahnung-faellig', 'bezahlt-heute', 'bezahlt-monat'] as const;

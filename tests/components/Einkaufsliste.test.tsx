@@ -28,6 +28,9 @@ const postenZuordnen = vi.fn();
 const suchen = vi.fn();
 const vorschlag = vi.fn();
 const termin = vi.fn();
+/** M4: Lieferung mit Menge und Lieferschein, Storno mit Grund. */
+const teilLieferung = vi.fn<(...a: unknown[]) => Promise<boolean>>(async () => true);
+const stornieren = vi.fn<(...a: unknown[]) => Promise<number>>(async () => 1);
 const nummern = vi.fn<(...a: unknown[]) => Promise<Map<string, string>>>(async () => new Map());
 const vorschlagGrund = vi.fn<(...a: unknown[]) => Promise<unknown>>(async () => null);
 
@@ -36,6 +39,8 @@ vi.mock('@/lib/db/einkauf', () => ({
     Promise.resolve(new Map([['m1', { articleNumber: 'EV-12', unit: 'Stk' }]])),
   alsBestelltMarkieren: (...a: unknown[]) => alsBestellt(...a),
   geliefert: (...a: unknown[]) => geliefert(...a),
+  teillieferung: (...a: unknown[]) => teilLieferung(...a),
+  bestellungStornieren: (...a: unknown[]) => stornieren(...a),
   grosshaendlerZuordnen: (...a: unknown[]) => zuordnen(...a),
   vonEinkaufslisteNehmen: (...a: unknown[]) => vonListe(...a),
   grosshaendlerSpeichern: (...a: unknown[]) => speichern(...a),
@@ -130,7 +135,23 @@ beforeEach(() => {
   postenLoeschen.mockImplementation(async (ids: string[]) => ids.length);
   geliefert.mockImplementation(async (ids: string[]) => ids.length);
   vonListe.mockResolvedValue(true);
+  teilLieferung.mockReset();
+  teilLieferung.mockResolvedValue(true);
+  stornieren.mockReset();
+  stornieren.mockResolvedValue(1);
 });
+
+/** „Geliefert …“ an einer Zeile, dann im Dialog bestätigen (seit M4 mit Menge und Lieferschein). */
+async function liefern(knopf: HTMLElement, menge?: string, schein?: string) {
+  await userEvent.click(knopf);
+  const d = within(await screen.findByRole('dialog', { name: 'Lieferung buchen' }));
+  if (menge !== undefined) {
+    await userEvent.clear(d.getByLabelText('Geliefert'));
+    await userEvent.type(d.getByLabelText('Geliefert'), menge);
+  }
+  if (schein) await userEvent.type(d.getByLabelText('Lieferschein-Nr. (freiwillig)'), schein);
+  await userEvent.click(d.getByRole('button', { name: 'Geliefert' }));
+}
 
 describe('Einkaufsliste — zusammengefasst je Großhändler', () => {
   it('macht aus drei Anforderungen EINE Zeile, mit allen Kommissionen', async () => {
@@ -214,11 +235,14 @@ describe('Einkaufsliste — bestellt und geliefert', () => {
   it('bucht „Geliefert“ je Anforderung — und „Alles geliefert“ für alle', async () => {
     const jetzt = Date.now() as never;
     zeige([anf({ id: 'a', bestelltAm: jetzt }), anf({ id: 'b', bestelltAm: jetzt })]);
-    const knoepfe = await screen.findAllByRole('button', { name: 'Geliefert' });
-    await userEvent.click(knoepfe[0]);
-    await waitFor(() => expect(geliefert).toHaveBeenCalledWith(['a']));
-    await userEvent.click(screen.getByRole('button', { name: 'Alles geliefert' }));
-    await waitFor(() => expect(geliefert).toHaveBeenLastCalledWith(['a', 'b']));
+    const knoepfe = await screen.findAllByRole('button', { name: 'Geliefert …' });
+    await liefern(knoepfe[0]);
+    await waitFor(() => expect(teilLieferung).toHaveBeenCalledWith('a', 2, '', undefined));
+    await userEvent.click(screen.getByRole('button', { name: 'Alles geliefert …' }));
+    const d = within(await screen.findByRole('dialog', { name: 'Alles geliefert?' }));
+    await userEvent.type(d.getByLabelText('Lieferschein-Nr. (freiwillig)'), 'LS-1');
+    await userEvent.click(d.getByRole('button', { name: 'Alles geliefert' }));
+    await waitFor(() => expect(geliefert).toHaveBeenLastCalledWith(['a', 'b'], undefined, 'LS-1'));
   });
 
   it('nimmt eine Zeile samt aller Anforderungen von der Liste', async () => {
@@ -231,9 +255,9 @@ describe('Einkaufsliste — bestellt und geliefert', () => {
   });
 
   it('zeigt einen Serverfehler, statt ihn zu verschlucken', async () => {
-    geliefert.mockRejectedValueOnce(new Error('Keine Berechtigung'));
+    teilLieferung.mockRejectedValueOnce(new Error('Keine Berechtigung'));
     zeige([anf({ id: 'a', bestelltAm: Date.now() as never })]);
-    await userEvent.click(await screen.findByRole('button', { name: 'Geliefert' }));
+    await liefern(await screen.findByRole('button', { name: 'Geliefert …' }));
     expect(await screen.findByText(/Keine Berechtigung/)).toBeInTheDocument();
   });
 });
@@ -285,10 +309,10 @@ describe('Einkaufsliste — kein Erfolg für einen veralteten Stand (R7-M3)', ()
   });
 
   it('„Geliefert“, das schon gebucht war: Hinweis statt „ist da“', async () => {
-    geliefert.mockResolvedValueOnce(0);
+    teilLieferung.mockResolvedValueOnce(false);
     zeige([anf({ id: 'a', bestelltAm: Date.now() as never })]);
-    await userEvent.click(await screen.findByRole('button', { name: 'Geliefert' }));
-    expect(await screen.findByText('Inzwischen von jemand anderem als geliefert gebucht — die Liste zeigt jetzt den neuen Stand.')).toBeInTheDocument();
+    await liefern(await screen.findByRole('button', { name: 'Geliefert …' }));
+    expect(await screen.findByText('Inzwischen von jemand anderem als geliefert gebucht oder storniert')).toBeInTheDocument();
     expect(screen.queryByText(/ist da — abholbereit/)).not.toBeInTheDocument();
   });
 
@@ -392,9 +416,46 @@ describe('Einkaufsliste — eigenes Material des Büros', () => {
   it('bucht einen bestellten Posten als geliefert — „im Lager“, nicht „abholbereit“', async () => {
     zeige([], undefined, [posten({ id: 'p1', bestelltAm: Date.now() as never, notiz: 'Regal 3' })]);
     expect(await screen.findByText(/fürs Lager · Regal 3/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Geliefert' }));
-    await waitFor(() => expect(geliefert).toHaveBeenCalledWith(['p1']));
+    await liefern(screen.getByRole('button', { name: 'Geliefert …' }));
+    await waitFor(() => expect(teilLieferung).toHaveBeenCalledWith('p1', 10, '', undefined));
     expect(await screen.findByText(/ist da — im Lager/)).toBeInTheDocument();
+  });
+});
+
+/*
+  M4 (16.11.2026): „Bestellt“ war nicht rücknehmbar, „Geliefert“ alles oder
+  nichts, und die Lieferschein-Nr. kannte nur der Wareneingang im Lager.
+*/
+describe('Einkaufsliste — Storno und Teillieferung (M4)', () => {
+  it('Teillieferung: 6 von 10 mit Lieferschein-Nr. — der Rest bleibt bestellt', async () => {
+    zeige([anf({ id: 'a', quantity: 10, bestelltAm: Date.now() as never })]);
+    await liefern(await screen.findByRole('button', { name: 'Geliefert …' }), '6', 'LS-4711');
+    await waitFor(() => expect(teilLieferung).toHaveBeenCalledWith('a', 6, 'LS-4711', undefined));
+    expect(await screen.findByText(/geliefert — der Rest bleibt bestellt/)).toBeInTheDocument();
+  });
+
+  it('mehr als bestellt geht hier nicht — der Knopf bleibt gesperrt', async () => {
+    zeige([anf({ id: 'a', quantity: 10, bestelltAm: Date.now() as never })]);
+    await userEvent.click(await screen.findByRole('button', { name: 'Geliefert …' }));
+    const d = within(await screen.findByRole('dialog', { name: 'Lieferung buchen' }));
+    await userEvent.clear(d.getByLabelText('Geliefert'));
+    await userEvent.type(d.getByLabelText('Geliefert'), '12');
+    expect(d.getByRole('button', { name: 'Geliefert' })).toBeDisabled();
+  });
+
+  it('stornieren nur mit Grund — danach wieder unter „Zu bestellen“', async () => {
+    zeige([anf({ id: 'a', bestelltAm: Date.now() as never })]);
+    await userEvent.click(await screen.findByRole('button', { name: 'Stornieren …' }));
+    const d = within(await screen.findByRole('dialog', { name: 'Bestellung stornieren?' }));
+    expect(d.getByRole('button', { name: 'Stornieren' })).toBeDisabled();
+    await userEvent.type(d.getByLabelText('Grund'), 'Großhändler kann nicht liefern');
+    await userEvent.click(d.getByRole('button', { name: 'Stornieren' }));
+    await waitFor(() => expect(stornieren).toHaveBeenCalledWith(['a'], 'Großhändler kann nicht liefern'));
+  });
+
+  it('eine stornierte Zeile sagt unter „Zu bestellen“, warum sie wieder da ist', async () => {
+    zeige([anf({ id: 'a', bestellungStorniertAm: Date.parse('2026-11-16T10:00:00Z'), bestellungStornoGrund: 'nicht lieferbar' })]);
+    expect(await screen.findByText(/storniert 16\.11\.2026: nicht lieferbar/)).toBeInTheDocument();
   });
 });
 

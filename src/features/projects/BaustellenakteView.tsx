@@ -7,7 +7,9 @@ import { EinsaetzeListe, EinsaetzeVorschau, MaterialVorschau, RechnungenVorschau
 import { baustelleMaterialstand, type Materialstand } from '@/lib/db/projects';
 import { listInvoicesForProject } from '@/lib/db/invoices';
 import type { Invoice } from '@/types';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import RowMenu from '@/components/RowMenu';
+import BaustelleAbschliessen from './BaustelleAbschliessen';
 import { useAuth } from '@/app/AuthContext';
 import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
@@ -20,16 +22,18 @@ import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { Wert } from '@/components/Wert';
 import { listQuotesForProject } from '@/lib/db/quotes';
 import { getEingangZu } from '@/lib/db/auftragseingaenge';
-import { pauschalAngebot } from '@/features/invoices/pauschale';
+import { angeboteDerBaustelle, pauschalAngebot } from '@/features/invoices/pauschale';
 import { ABRECHNUNGSARTEN, abrechnungKurz } from '@/lib/abrechnung';
 import { euro } from '@/lib/betrag';
 import { canAccess, zusatzrechte } from '@/app/navigation';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import { liegenschaftZeile } from '@/features/liegenschaften/liegenschaftText';
-import { canInvoice, canWriteWorkSheet, isGF } from '@/lib/permissions';
+import { canEditTime, canInvoice, canWriteWorkSheet, isGF } from '@/lib/permissions';
+import StundennachweisDialog from '@/features/accounting/StundennachweisDialog';
 import { useModul } from '@/lib/useModule';
 import BaustelleNachrichten from '@/features/nachrichten/BaustelleNachrichten';
-import type { Project, AppUser, Quote } from '@/types';
+import { EINGANG_DRINGLICHKEITEN, type Project, type AppUser, type Quote } from '@/types';
+import { DRINGLICHKEIT_TEXT } from '@/features/auftragseingang/eingangText';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
@@ -133,11 +137,27 @@ export default function BaustellenakteView() {
   const [entwurf, setEntwurf] = useState<BaustellenEntwurf | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const [bearbeitet, setBearbeitet] = useState(false);
+  /** Der Stundennachweis für den Kunden (F12) — offen oder nicht. */
+  const [nachweisOffen, setNachweisOffen] = useState(false);
   const [terminStand, setTerminStand] = useState<AktenTerminStand>({ termine: null, fehler: false });
   const [scheinStand, setScheinStand] = useState<AktenScheineStand>({ scheine: null, verrechnet: new Set(), fehler: false });
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
   /** Eine geänderte Nummer wird erst nach Rückfrage gespeichert. */
   const [nummerFragen, setNummerFragen] = useState<{ alt: string; neu: string } | null>(null);
+  /*
+    GEFÜHRT ABSCHLIESSEN (A11, F1, V2) — aus dem „⋯“, als Hauptaktion nach
+    bezahlter Schlussrechnung, und über `?abschliessen=1` aus den Meldungen
+    nach der Zahlung und nach „Wartung erledigt“.
+  */
+  const [abschliessen, setAbschliessen] = useState(false);
+  const [adresse, setAdresse] = useSearchParams();
+  useEffect(() => {
+    if (adresse.get('abschliessen') !== '1') return;
+    setAbschliessen(true);
+    const rest = new URLSearchParams(adresse);
+    rest.delete('abschliessen');
+    setAdresse(rest, { replace: true });
+  }, [adresse, setAdresse]);
 
   const companyId = user?.companyId;
   const darfAendern = user ? isGF(user.role) : false;
@@ -276,13 +296,21 @@ export default function BaustellenakteView() {
       return;
     }
     let weg = false;
+    /*
+      AUCH ÜBER DAS ANGEBOT (A8): entstand die Baustelle aus „Eingang →
+      Angebot → Annahme“, hängt der Eingang am Angebot, nicht an ihr — vorher
+      waren das zwei Sprünge. Gefragt wird das Angebot, das die Baustelle
+      angelegt hat (kein Nachtrag).
+    */
+    const hauptangebot = angebote.find((q) => q.status === 'Angenommen' && !q.nachtrag);
     getEingangZu(companyId, { projectId: baustellenId })
+      .then(async (e) => e ?? (hauptangebot ? getEingangZu(companyId, { quoteId: hauptangebot.id }) : null))
       .then((e) => { if (!weg) setAusEingang(e); })
       .catch(() => { if (!weg) setNebenFehler('Der Eingang zu dieser Baustelle'); });
     return () => {
       weg = true;
     };
-  }, [companyId, baustellenId, eingaengeSichtbar]);
+  }, [companyId, baustellenId, eingaengeSichtbar, angebote]);
 
   /*
     Der Entwurf folgt der geladenen Baustelle — aber NUR, wenn diese sich
@@ -389,6 +417,9 @@ export default function BaustellenakteView() {
         endDate: entwurf.endDate,
         contactName: entwurf.contactName,
         contactPhone: entwurf.contactPhone,
+        // A8: leer heißt „nicht angegeben“ — `null`, damit ein geleertes Feld wirklich leer ist.
+        dringlichkeit: entwurf.dringlichkeit || null,
+        wunschtermin: entwurf.wunschtermin || null,
         assignedEmployees: entwurf.assignedEmployees,
         projectManagers: entwurf.projectManagers,
         /*
@@ -467,15 +498,20 @@ export default function BaustellenakteView() {
         <AktenAngabe wort="Auftragsumfang" breit><span className="whitespace-pre-line">{auftragsumfangZeigen(b.description, ausEingang?.nummer ?? null) || 'nicht hinterlegt'}</span></AktenAngabe>
         {/* Abrechnung, Beginn und Ende stehen seit der Planlinie im Schriftfeld des Aktenkopfs. */}
         <AktenAngabe wort="Stundenbudget">{b.estimatedHours ? `${fmtStunden(b.estimatedHours)} h` : 'nicht festgelegt'}</AktenAngabe>
+        {/* A8: aus dem Eingang — direkt oder über das Angebot. */}
+        {b.dringlichkeit && b.dringlichkeit !== 'normal' && <AktenAngabe wort="Dringlichkeit">{DRINGLICHKEIT_TEXT[b.dringlichkeit]}</AktenAngabe>}
+        {b.wunschtermin && <AktenAngabe wort="Wunschtermin">{fmtDatum(b.wunschtermin)}</AktenAngabe>}
       </AktenAngaben>
       {(b.billingMode === 'Pauschal' || b.billingMode === 'Einheitspreis') &&
-        <PauschalHinweis angebote={angebote} sichtbar={angeboteSichtbar} art={b.billingMode} />}
+        <PauschalHinweis angebote={angebote} sichtbar={angeboteSichtbar} art={b.billingMode} baustelleId={darfAendern ? b.id : undefined} />}
       {user && <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
         <BaustellenUebersicht companyId={user.companyId} projekt={b} kompakt />
       </Suspense>}
       <Leistungszeitraum beginn={b.startDate} ende={b.endDate} heute={todayStr()} />
       <div className="flex flex-wrap items-center gap-x-4">
-        {angebote.map((q) => <Link key={q.id} to={`/quotes/${q.id}`} className="link akten-verweis">Angebot {q.quoteNumber}</Link>)}
+        {angebote.map((q) => <Link key={q.id} to={`/quotes/${q.id}`} className="link akten-verweis">{q.nachtrag ? 'Nachtrag' : 'Angebot'} {q.quoteNumber}{q.status && q.status !== 'Angenommen' ? ` (${q.status})` : ''}</Link>)}
+        {/* A3, F6: ein Nachtrag bleibt beim Auftrag — das Angebot gehört von Anfang an zu dieser Baustelle. */}
+        {angeboteSichtbar && darfAendern && b.status !== 'Abgeschlossen' && <Link to={`/quotes?baustelle=${b.id}`} className="link akten-verweis">Nachtrag anlegen</Link>}
         {ausEingang && <Link to={`/eingaenge/${ausEingang.id}`} className="link akten-verweis">Aus Eingang {ausEingang.nummer}</Link>}
       </div>
       {verlauf.length > 1 && <details className="akten-weitere"><summary className="weiteres-kopf">Verlauf der Baustelle</summary>
@@ -579,6 +615,7 @@ export default function BaustellenakteView() {
       ? scheinStand.scheine.filter((s) => s.status === 'Unterschrieben' && !scheinStand.verrechnet.has(s.id)).length
       : null,
     abgeschlossen: b.status === 'Abgeschlossen',
+    abschlussReif: darfAendern && rechnungLage !== null && rechnungLage !== 'fehler' && abschlussReif(rechnungLage),
   });
   /*
     DIE ECKDATEN ZWEIMAL GEBAUT, EINMAL GEZEIGT (D1, E86). Ab dem Tablet
@@ -618,12 +655,28 @@ export default function BaustellenakteView() {
         stand={eckdaten}
         standWort={b.status}
         title={baustellenTitel(b)}
+        /*
+          SELTENE HANDGRIFFE IM ⋯ (ein Menü für alle):
+          - „Abschließen“ (A11), solange es nicht ohnehin die Hauptaktion ist;
+          - der Stundennachweis für den Kunden (F12) — nur für die, die fremde
+            Zeiten lesen; im Supportzugang sind Zeitbuchungen verschlossen.
+        */
+        mehr={(() => {
+          const eintraege = [
+            ...(darfAendern && b.status !== 'Abgeschlossen' && hauptaktion !== 'abschliessen'
+              ? [{ label: 'Abschließen', onSelect: () => setAbschliessen(true) }] : []),
+            ...(user && canEditTime(user.role) && !einblick
+              ? [{ label: 'Stundennachweis', onSelect: () => setNachweisOffen(true) }] : []),
+          ];
+          return eintraege.length ? <RowMenu about={`Baustelle ${b.projectNumber}`} items={eintraege} /> : undefined;
+        })()}
         kontakt={<><TelefonLink nummer={b.contactPhone} name={b.contactName} /><a className="link-weiter akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a></>}
         action={(hauptaktion || darfAendern) && <div className="akten-aktionen">
           {/* Eine Hauptaktion je Seite; sie folgt dem Stand (E83). „Schein schreiben“ bleibt in der Karte der Scheine. */}
           {hauptaktion === 'planen' && <KnopfLink to="/assignments/tag" state={{ datum: todayStr(), projectNumber: b.projectNumber }}>Einsatz planen</KnopfLink>}
           {hauptaktion === 'rechnung' && <KnopfLink to={`/invoices?neu=${encodeURIComponent(b.projectNumber)}`}>Rechnung stellen</KnopfLink>}
           {hauptaktion === 'schein' && <KnopfLink to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}>Schein schreiben</KnopfLink>}
+          {hauptaktion === 'abschliessen' && <Button onClick={() => setAbschliessen(true)}>Abschließen</Button>}
           {darfAendern && <Button variant={hauptaktion ? 'secondary' : 'primary'} onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
         </div>}
       />
@@ -659,6 +712,22 @@ export default function BaustellenakteView() {
           onVerwerfen={() => setEntwurf(alsEntwurf(b))} angebote={angebote} angeboteSichtbar={angeboteSichtbar} />
       </AktenBearbeiten>}
 
+      {nachweisOffen && (
+        <StundennachweisDialog
+          offen
+          onClose={() => setNachweisOffen(false)}
+          nummern={[b.projectNumber]}
+          bezug={['Baustelle:', `${b.projectNumber}${b.bezeichnung?.trim() ? ` · ${b.bezeichnung.trim()}` : ''}`]}
+          angaben={[['Kunde:', b.customerName ?? ''], ['Anschrift:', b.address ?? '']]}
+          dateiBezug={b.projectNumber}
+        />
+      )}
+      <BaustelleAbschliessen
+        projekt={abschliessen ? b : null}
+        onClose={() => setAbschliessen(false)}
+        onAbgeschlossen={() => setVersuch((v) => v + 1)}
+      />
+
       <ConfirmDialog
         open={!!nummerFragen}
         title="Projektnummer ändern?"
@@ -678,6 +747,18 @@ export default function BaustellenakteView() {
 
     </div>
   );
+}
+
+/**
+ * Bezahlt und nichts mehr offen? Eine Einzel- oder Schlussrechnung, die
+ * bezahlt ist, und keine Rechnung, die noch etwas fordert (A11, V2).
+ */
+function abschlussReif(rechnungen: Invoice[]): boolean {
+  const gueltig = rechnungen.filter((r) => r.paymentStatus !== 'Storniert');
+  const schlussBezahlt = gueltig.some((r) => ((r.art ?? 'einzel') === 'einzel' || r.art === 'schluss')
+    && (r.paymentStatus === 'Bezahlt' || r.paymentStatus === 'Überzahlt'));
+  const offen = gueltig.some((r) => r.paymentStatus === 'Offen' || r.paymentStatus === 'Überfällig' || r.paymentStatus === 'Teilbezahlt');
+  return schlussBezahlt && !offen;
 }
 
 /** Der Wochentag zu einem Tag ('YYYY-MM-DD'), für den Zusatz im Schriftfeld. */
@@ -803,6 +884,8 @@ function StammdatenFormular({
   /** Der Kunde der Baustelle — einzeln geholt, nicht der ganze Kundenstamm (Ladezeit, 19.10.2026). */
   const [kunde, setKunde] = useKunde(companyId, entwurf.customerId);
   const pauschal = entwurf.billingMode === 'Pauschal' || entwurf.billingMode === 'Einheitspreis';
+  // A11: „Abgeschlossen“ steht nur zur Wahl, wenn sie es ist — zum Wiederöffnen.
+  const istAbgeschlossen = entwurf.status === 'Abgeschlossen';
 
   return (
     <>
@@ -871,6 +954,18 @@ function StammdatenFormular({
               id="b-telefon" label="Telefon vor Ort" type="tel" value={entwurf.contactPhone}
               onChange={(e) => setze('contactPhone', e.target.value)}
             />
+            {/* A8: wie eilig und wann gewünscht — aus dem Eingang, hier änderbar. */}
+            <SelectField
+              id="b-dringlich" label="Dringlichkeit" value={entwurf.dringlichkeit}
+              onChange={(e) => setze('dringlichkeit', e.target.value as BaustellenEntwurf['dringlichkeit'])}
+            >
+              <option value="">nicht angegeben</option>
+              {EINGANG_DRINGLICHKEITEN.map((d) => <option key={d} value={d}>{DRINGLICHKEIT_TEXT[d]}</option>)}
+            </SelectField>
+            <InputField
+              id="b-wunsch" label="Wunschtermin" type="date" value={entwurf.wunschtermin}
+              onChange={(e) => setze('wunschtermin', e.target.value)}
+            />
           </FormGrid>
         </Gruppe>
         {!entwurf.customerId && entwurf.customerName && (
@@ -896,7 +991,8 @@ function StammdatenFormular({
             >
               <option>Aktiv</option>
               <option>Pausiert</option>
-              <option>Abgeschlossen</option>
+              {/* A11: abgeschlossen wird geführt (⋯ → Abschließen); hier nur, um wieder zu öffnen. */}
+              {istAbgeschlossen && <option>Abgeschlossen</option>}
             </SelectField>
             {/*
               DIE ABRECHNUNGSART WAR NIRGENDS ÄNDERBAR. Der Handwerksschein liest
@@ -1030,27 +1126,44 @@ function PauschalHinweis({
   angebote,
   sichtbar,
   art,
+  baustelleId,
 }: {
   angebote: Quote[];
   sichtbar: boolean;
   art: 'Pauschal' | 'Einheitspreis';
+  /** Wer Angebote anlegen darf, bekommt den Weg zum Angebot für diese Baustelle (A3). */
+  baustelleId?: string;
 }) {
   const angebot = sichtbar ? pauschalAngebot(angebote) : null;
+  // A3: mit Nachträgen tragen mehrere Angebote die Baustelle — die Rechnung nimmt alle.
+  const mehrere = sichtbar && angeboteDerBaustelle(angebote).length > 1;
   const text =
     art === 'Einheitspreis'
       ? angebot
-        ? `Die Einheitspreise kommen aus dem angenommenen Angebot ${angebot.quoteNumber}. Die Rechnung übernimmt dessen Positionen; die Mengen trägt man nach Aufmaß ein.`
+        ? mehrere
+          ? `Die Einheitspreise kommen aus den angenommenen Angeboten ${angebot.quoteNumber}. Die Rechnung übernimmt deren Positionen; die Mengen trägt man nach Aufmaß ein.`
+          : `Die Einheitspreise kommen aus dem angenommenen Angebot ${angebot.quoteNumber}. Die Rechnung übernimmt dessen Positionen; die Mengen trägt man nach Aufmaß ein.`
         : sichtbar
-          ? 'Einheitspreis ohne angenommenes Angebot: die Preise stehen noch nirgends. Die Rechnung setzt eine leere Zeile an — dort Positionen, Mengen nach Aufmaß und Preise eintragen. Oder ein Angebot anlegen und annehmen.'
+          ? 'Einheitspreis ohne angenommenes Angebot: die Preise stehen noch nirgends. Die Rechnung setzt eine leere Zeile an — dort Positionen, Mengen nach Aufmaß und Preise eintragen. Oder ein Angebot zu dieser Baustelle anlegen und annehmen.'
           : 'Die Einheitspreise legt das angenommene Angebot fest; die Mengen kommen aus dem Aufmaß.'
       : angebot
-        ? `Den Pauschalpreis legt das angenommene Angebot ${angebot.quoteNumber} fest (${euro(angebot.totalNetto)} netto). Die Rechnung übernimmt dessen Positionen.`
+        ? mehrere
+          ? `Den Pauschalpreis legen die angenommenen Angebote ${angebot.quoteNumber} fest (${euro(angebot.totalNetto)} netto zusammen). Die Rechnung übernimmt deren Positionen.`
+          : `Den Pauschalpreis legt das angenommene Angebot ${angebot.quoteNumber} fest (${euro(angebot.totalNetto)} netto). Die Rechnung übernimmt dessen Positionen.`
         : sichtbar
-          ? 'Pauschal ohne angenommenes Angebot: der vereinbarte Preis steht noch nirgends. Die Rechnung setzt eine Zeile „Pauschale gemäß Vereinbarung“ mit 0,00 € an — dort den Betrag eintragen. Oder ein Angebot anlegen und annehmen, dann übernimmt die Rechnung dessen Positionen.'
+          ? 'Pauschal ohne angenommenes Angebot: der vereinbarte Preis steht noch nirgends. Die Rechnung setzt eine Zeile „Pauschale gemäß Vereinbarung“ mit 0,00 € an — dort den Betrag eintragen. Oder ein Angebot zu dieser Baustelle anlegen und annehmen, dann übernimmt die Rechnung dessen Positionen.'
           : 'Den Pauschalpreis legt das angenommene Angebot fest; ohne Angebot trägt ihn das Büro in der Rechnung ein.';
   return (
     <Hinweiszeile stufe={sichtbar && !angebot ? 'warn' : undefined}>
-      <p>{text}</p>
+      <p>
+        {text}
+        {sichtbar && !angebot && baustelleId && (
+          <>
+            {' '}
+            <Link to={`/quotes?baustelle=${baustelleId}`} className="link-hinweis-weiter">Angebot zu dieser Baustelle anlegen</Link>
+          </>
+        )}
+      </p>
     </Hinweiszeile>
   );
 }

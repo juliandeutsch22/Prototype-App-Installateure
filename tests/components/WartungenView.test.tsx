@@ -76,6 +76,8 @@ vi.mock('@/lib/db/wartungen', () => ({
   wartungEingeplant: (...a: unknown[]) => wartungEingeplant(...(a as [])),
   wartungTagBerichtigen: (...a: unknown[]) => wartungTagBerichtigen(...(a as [])),
   listAusfuehrungen: () => listAusfuehrungen(),
+  // A9: der Sprung von der Startseite holt die Wartung einzeln.
+  getWartung: async (_c: string, id: string) => bestand.find((w) => w.id === id) ?? null,
   /* Die Suche des Servers: hier über den Bestand, wie die Datenbank mitten im Wort. */
   searchWartungen: (c: string, b: string) => suchen(c, b),
 }));
@@ -96,6 +98,9 @@ vi.mock('@/lib/db/projects', () => ({
   listRecentProjects: () => listRecentProjects(),
   createProject: (c: string, p: Record<string, unknown>) => createProject(c, p),
   reserveProjectNumber: (c: string, o: unknown) => reserveProjectNumber(c, o),
+  // A11: nach „Erledigt“ die eingeplante Baustelle — offen bietet die Meldung das Abschließen an.
+  listProjectsByNumbers: async (_c: string, nummern: string[]) =>
+    nummern.map((n) => ({ id: `p-${n}`, companyId: 'perl', projectNumber: n, customerName: 'X', status: 'Aktiv' })),
 }));
 
 const kunden: (Customer & { id: string })[] = [
@@ -919,5 +924,71 @@ describe('Wartungen — der erste Bestand', () => {
     expect(screen.queryByText('Deine erste Wartung.')).toBeNull();
     // Mit Bestand stehen Reiter und Suche da.
     expect(screen.getByRole('button', { name: /^Steht an/ })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+/*
+  A9 (Durchsicht 15.11.2026): die Startseite schlägt „erledigt am …?“ vor —
+  der Sprung öffnet den Dialog mit diesem Tag; eingetragen wird erst mit
+  „Eintragen“.
+*/
+describe('Erledigt aus dem Vorschlag der Startseite (A9)', () => {
+  it('öffnet „Erledigt“ mit dem vorgeschlagenen Tag und der eingeplanten Baustelle', async () => {
+    bestand = [wartung('w5', 'Familie Koller', '2026-04-10', { offeneBaustelle: 'PR-2026-0042' })];
+    const nutzer = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/wartungen?erledigt=w5&am=2026-05-20']}>
+        <ToastProvider>
+          <WartungenView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Wartung erledigt eintragen' });
+    expect(within(dialog).getByLabelText('Gewartet am')).toHaveValue('2026-05-20');
+    expect(wartungErledigt).not.toHaveBeenCalled();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Eintragen' }));
+    await waitFor(() => expect(wartungErledigt).toHaveBeenCalledWith('w5', expect.objectContaining({
+      erledigtAm: '2026-05-20', projectNumber: 'PR-2026-0042',
+    })));
+  });
+});
+
+/* A11, V2: nach „Wartung erledigt“ der Weg zum Abschließen der Baustelle. */
+describe('Abschließen nach „Erledigt“ (A11)', () => {
+  it('die Meldung bietet an, die eingeplante Baustelle abzuschließen', async () => {
+    bestand = [wartung('w6', 'Familie Koller', '2026-04-10', { offeneBaustelle: 'PR-2026-0042' })];
+    const nutzer = userEvent.setup();
+    zeichne();
+    const zeile = (await screen.findAllByText(/Familie Koller/))[0].closest('li') as HTMLElement;
+    await nutzer.click(within(zeile).getByRole('button', { name: 'Erledigt' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Eintragen' }));
+    expect(await screen.findByRole('button', { name: 'PR-2026-0042 abschließen' })).toBeInTheDocument();
+  });
+});
+
+/* V3 (Durchsicht 15.11.2026): „Neue Wartung“ aus der Kundenakte — Kunde vorbelegt. */
+describe('Neu für diesen Kunden (V3)', () => {
+  it('öffnet „Neue Wartung“ mit dem Kunden der Akte', async () => {
+    render(
+      <MemoryRouter initialEntries={['/wartungen?neu=fuer&kunde=k1']}>
+        <ToastProvider>
+          <WartungenView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('button', { name: 'Anderen Kunden wählen' })).toBeInTheDocument();
+    expect(screen.getAllByText('Hausverwaltung Nord').length).toBeGreaterThan(0);
+  });
+});
+
+/* V4 (Durchsicht 15.11.2026): „Jetzt im Einsatzplan einteilen“ führte nicht hin — die Meldung trägt den Sprung. */
+describe('Der nächste Schritt nach „Baustelle anlegen“ (V4)', () => {
+  it('die Meldung bietet „Einsatz planen“ an', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findAllByText(/Bäckerei Stein/);
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Baustelle anlegen' }))[0]);
+    await nutzer.click(await screen.findByRole('button', { name: 'Anlegen' }));
+    expect(await screen.findByRole('button', { name: 'Einsatz planen' })).toBeInTheDocument();
   });
 });

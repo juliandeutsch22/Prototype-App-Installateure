@@ -1,4 +1,4 @@
-import type { AppUser, Company, TimeEntry } from '@/types';
+import type { AppUser, ArbeitszeitAbschnitt, Company, TimeEntry } from '@/types';
 import { fuehrtZeitkonto } from './permissions';
 import { budgetArt } from './einstufung';
 /*
@@ -59,10 +59,20 @@ export function dezemberHalbtage(company: Pick<Company, 'dezemberHalbtage'> | nu
 
 /** Arbeitstage zwischen zwei ISO-Daten — mit den Arbeitstagen des Nutzers. */
 export function urlaubsTage(
-  user: Pick<AppUser, 'workDays'>,
+  user: Pick<AppUser, 'workDays'> & Partial<Pick<AppUser, 'arbeitszeitVerlauf' | 'weeklyTargetHours' | 'tagessoll'>>,
   vonIso: string,
   bisIso: string,
 ): string[] {
+  /*
+    Mit Verlauf (Z3) zählt jeder Tag mit den Arbeitstagen, die an ihm gelten
+    — wie `app.urlaubstage_person`, das beim Genehmigen die Tage schreibt.
+  */
+  if (hatArbeitszeitVerlauf(user)) {
+    return urlaubsTageShared([0, 1, 2, 3, 4, 5, 6], vonIso, bisIso).filter((t) => {
+      const tage = arbeitszeitAm(user as MitVerlauf, t).workDays;
+      return (tage && tage.length ? tage : [1, 2, 3, 4, 5]).includes(new Date(`${t}T00:00:00`).getDay());
+    });
+  }
   return urlaubsTageShared(user.workDays, vonIso, bisIso);
 }
 
@@ -223,7 +233,14 @@ export interface UrlaubsPosten {
  */
 export function antragNachUrlaubsjahr(
   antrag: { von: string; bis?: string | null; tage: number },
-  workDays: number[] | undefined,
+  /*
+    Die Arbeitstage — als feste Liste wie bisher, oder als Person: dann zählt
+    jeder Tag mit den Arbeitstagen, die an ihm gelten (Durchsicht 15.11.2026,
+    Z3b). Wer über den Jahreswechsel Urlaub hat und ab Jänner vier statt fünf
+    Tage arbeitet, bekäme sonst dem neuen Jahr Tage zugeteilt, die dort keine
+    Arbeitstage sind.
+  */
+  workDays: number[] | undefined | (Pick<AppUser, 'workDays'> & Partial<Pick<AppUser, 'arbeitszeitVerlauf' | 'weeklyTargetHours' | 'tagessoll'>>),
   halbeTage: boolean,
   beginn: string = JAHRESBEGINN_VORGABE,
 ): UrlaubsPosten[] {
@@ -233,7 +250,10 @@ export function antragNachUrlaubsjahr(
   if (urlaubsJahrVon(bis, beginn) === erstesJahr) return [{ von: antrag.von, tage }];
 
   const spaeter = new Map<number, { von: string; tage: number }>();
-  for (const t of urlaubsTageShared(workDays, antrag.von, bis)) {
+  const tageImAntrag = Array.isArray(workDays) || workDays === undefined
+    ? urlaubsTageShared(workDays, antrag.von, bis)
+    : urlaubsTage(workDays, antrag.von, bis);
+  for (const t of tageImAntrag) {
     const j = urlaubsJahrVon(t, beginn);
     if (j === erstesJahr) continue;
     const bisher = spaeter.get(j);
@@ -318,13 +338,18 @@ interface Jahrgang {
  * @param anpassungen Die geltenden Anpassungen der Person, alle Jahre.
  */
 export function urlaubsStand(
-  user: Pick<AppUser, 'yearlyVacationDays' | 'initialVacationDays' | 'appStartDate'>,
+  user: Pick<AppUser, 'yearlyVacationDays' | 'initialVacationDays' | 'appStartDate'> & Partial<Pick<AppUser, 'urlaubsanspruchVerlauf'>>,
   jahr: number,
   posten: readonly UrlaubsPosten[],
   regel: UebertragRegel = UEBERTRAG_VORGABE,
   anpassungen: readonly AnspruchsAnpassung[] = [],
 ): UrlaubsStand {
-  const jahresanspruch = Number(user.yearlyVacationDays ?? DEFAULT_URLAUBSTAGE) || DEFAULT_URLAUBSTAGE;
+  /*
+    DER ANSPRUCH JE JAHR (Z3): jeder Jahrgang mit dem Anspruch SEINES
+    Urlaubsjahres. Vorher bekam jeder Jahrgang den heutigen Wert — aus 25 → 30
+    wurde rückwirkend auch für das Vorjahr 30, und der Übertrag wuchs mit.
+  */
+  const jahresanspruch = (j: number) => urlaubsanspruchIm(user, j);
   const start = user.appStartDate ?? null;
   const bestand = user.initialVacationDays;
   const beginn = regel.jahresbeginn ?? JAHRESBEGINN_VORGABE;
@@ -356,7 +381,7 @@ export function urlaubsStand(
   */
   if (start === null || startjahr > jahr) {
     const genommen = summe(posten.filter((p) => imJahr(p, jahr, beginn)));
-    const anspruch = jahresanspruch + angepasst;
+    const anspruch = jahresanspruch(jahr) + angepasst;
     return {
       anspruch, genommen, rest: anspruch - genommen,
       ausAnfangsbestand: false, uebertrag: 0, verfallen: 0, angepasst,
@@ -388,9 +413,9 @@ export function urlaubsStand(
       Bestand.
     */
     if (j === startjahr) {
-      jahrgaenge.push({ jahr: j, offen: (bestandAngegeben ? Number(bestand) : jahresanspruch) + angepasstIn(j) });
+      jahrgaenge.push({ jahr: j, offen: (bestandAngegeben ? Number(bestand) : jahresanspruch(j)) + angepasstIn(j) });
     } else {
-      jahrgaenge.push({ jahr: j, offen: jahresanspruch + angepasstIn(j) });
+      jahrgaenge.push({ jahr: j, offen: jahresanspruch(j) + angepasstIn(j) });
     }
 
     if (j === jahr) uebertragInsJahr = summeOffen(jahrgaenge.filter((g) => g.jahr < j));
@@ -664,6 +689,79 @@ export function monatsLetzter(iso: string): string {
   return localDateStr(new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)), 0));
 }
 
+/**
+ * DIE WOCHENSTUNDEN ALS ZAHL (Durchsicht 15.11.2026, Z11). Leer heißt die
+ * Vorgabe 40; eine eingetragene 0 heißt 0 — kein Soll (geringfügig ohne
+ * feste Zeit, ruhendes Dienstverhältnis). Vorher machte `|| 40` aus der 0
+ * vierzig Stunden, entgegen dem Benutzerformular.
+ */
+export function wochenstundenVon(wert: number | null | undefined): number {
+  const n = Number(wert ?? 40);
+  return Number.isFinite(n) ? n : 40;
+}
+
+/** Was die Arbeitszeit eines Tages ausmacht — die drei Felder der Person. */
+export type Arbeitszeit = Pick<AppUser, 'weeklyTargetHours' | 'workDays' | 'tagessoll'>;
+type MitVerlauf = Arbeitszeit & Pick<AppUser, 'arbeitszeitVerlauf'>;
+
+/**
+ * Hat die Arbeitszeit der Person einen Verlauf (Z3)? Ohne ihn gelten die
+ * Felder der Person an jedem Tag, und jede Rechnung nimmt ihren bisherigen
+ * Weg — bis auf die Rundung derselbe, damit sich für niemanden, dessen
+ * Arbeitszeit nie geändert wurde, eine Zahl ändert.
+ */
+export function hatArbeitszeitVerlauf(user: Partial<Pick<AppUser, 'arbeitszeitVerlauf'>> | null | undefined): boolean {
+  return !!user?.arbeitszeitVerlauf && user.arbeitszeitVerlauf.length > 0;
+}
+
+/**
+ * DIE ARBEITSZEIT, DIE AN EINEM TAG GILT (Durchsicht 15.11.2026, Z3).
+ *
+ * Der letzte Eintrag mit `ab` bis zu diesem Tag; vor dem ersten der erste —
+ * er steht für „schon immer“, nicht für „nichts“. Dieselbe Regel wie
+ * `app.arbeitszeit_am` in der Datenbank, die den Saldo rechnet.
+ */
+export function arbeitszeitAm(user: MitVerlauf, iso: string): Arbeitszeit {
+  const verlauf = user.arbeitszeitVerlauf;
+  if (!verlauf || verlauf.length === 0) {
+    return { weeklyTargetHours: user.weeklyTargetHours, workDays: user.workDays, tagessoll: user.tagessoll };
+  }
+  let gilt: ArbeitszeitAbschnitt = verlauf[0];
+  for (const e of verlauf) if (e.ab <= iso) gilt = e;
+  return {
+    weeklyTargetHours: gilt.wochenstunden ?? undefined,
+    workDays: gilt.arbeitstage,
+    tagessoll: gilt.tagessoll && Object.keys(gilt.tagessoll).length > 0 ? gilt.tagessoll : null,
+  };
+}
+
+/**
+ * Die Person mit der Arbeitszeit eines Tages — für Rechnungen, die eine
+ * Woche oder einen Monat als Ganzes nehmen (Überstunden je Woche, die Zeile
+ * „Tagessoll“ eines Monats) und die Felder der Person direkt lesen.
+ */
+export function personAm<T extends MitVerlauf>(user: T, iso: string): T {
+  if (!hatArbeitszeitVerlauf(user)) return user;
+  return { ...user, ...arbeitszeitAm(user, iso) };
+}
+
+/**
+ * DER URLAUBSANSPRUCH EINES URLAUBSJAHRES (Z3): der letzte Eintrag bis zu
+ * diesem Jahr, vor dem ersten der erste. Ohne Verlauf der Wert der Person.
+ */
+export function urlaubsanspruchIm(
+  user: Pick<AppUser, 'yearlyVacationDays' | 'urlaubsanspruchVerlauf'>,
+  jahr: number,
+): number {
+  const verlauf = user.urlaubsanspruchVerlauf;
+  if (verlauf && verlauf.length > 0) {
+    let gilt = verlauf[0];
+    for (const e of verlauf) if (e.jahr <= jahr) gilt = e;
+    return Number(gilt.tage);
+  }
+  return Number(user.yearlyVacationDays ?? DEFAULT_URLAUBSTAGE) || DEFAULT_URLAUBSTAGE;
+}
+
 /** Trägt die Person ein eigenes Tagessoll je Wochentag (M5)? */
 export function hatTagessoll(user: Pick<AppUser, 'tagessoll'> | null | undefined): boolean {
   return !!user?.tagessoll && Object.keys(user.tagessoll).length > 0;
@@ -678,13 +776,15 @@ export function hatTagessoll(user: Pick<AppUser, 'tagessoll'> | null | undefined
  * Aufrufer (`tagesAnteil`) — wie beim gleichmässigen Soll auch.
  */
 export function tagessollStunden(
-  user: Pick<AppUser, 'weeklyTargetHours' | 'workDays' | 'tagessoll'>,
+  user: Pick<AppUser, 'weeklyTargetHours' | 'workDays' | 'tagessoll'> & Partial<Pick<AppUser, 'arbeitszeitVerlauf'>>,
   iso: string,
 ): number {
-  const eigen = user.tagessoll?.[String(new Date(`${iso}T00:00:00`).getDay())];
+  // Mit Verlauf (Z3) die Arbeitszeit dieses Tages, sonst die der Person.
+  const az = hatArbeitszeitVerlauf(user) ? arbeitszeitAm(user, iso) : user;
+  const eigen = az.tagessoll?.[String(new Date(`${iso}T00:00:00`).getDay())];
   if (typeof eigen === 'number' && Number.isFinite(eigen)) return eigen;
-  const weeklyH = Number(user.weeklyTargetHours ?? 40) || 40;
-  const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
+  const weeklyH = wochenstundenVon(az.weeklyTargetHours);
+  const workDays = az.workDays && az.workDays.length ? az.workDays : [1, 2, 3, 4, 5];
   return weeklyH / workDays.length;
 }
 
@@ -696,12 +796,13 @@ export function tagessollStunden(
  * einstellen, nicht einmal die Rundung einer Kommastelle ändert.
  */
 function sollMinuten(
-  user: Pick<AppUser, 'weeklyTargetHours' | 'workDays' | 'tagessoll'>,
+  user: Pick<AppUser, 'weeklyTargetHours' | 'workDays' | 'tagessoll'> & Partial<Pick<AppUser, 'arbeitszeitVerlauf'>>,
   tage: readonly string[],
   halbeTage: boolean,
 ): number {
-  if (!hatTagessoll(user)) {
-    const weeklyH = Number(user.weeklyTargetHours ?? 40) || 40;
+  // Mit Verlauf (Z3) je Tag — jeder Tag mit der Arbeitszeit, die an ihm galt.
+  if (!hatTagessoll(user) && !hatArbeitszeitVerlauf(user)) {
+    const weeklyH = wochenstundenVon(user.weeklyTargetHours);
     const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
     return tageGewicht(tage, halbeTage) * (weeklyH / workDays.length) * 60;
   }
@@ -728,7 +829,7 @@ function ganztagGutschreiben(e: Pick<TimeEntry, 'status' | 'date' | 'startTime' 
  * M1). `arbeit` sind die gearbeiteten Minuten je Tag derselben Person.
  */
 function ganztagMinuten(
-  user: Pick<AppUser, 'weeklyTargetHours' | 'workDays' | 'tagessoll'>,
+  user: Pick<AppUser, 'weeklyTargetHours' | 'workDays' | 'tagessoll'> & Partial<Pick<AppUser, 'arbeitszeitVerlauf'>>,
   e: Pick<TimeEntry, 'status' | 'date' | 'unterrichtMin'>,
   halbeTage: boolean,
   arbeit: Map<string, number>,
@@ -785,14 +886,13 @@ export function calcOverallSaldo(
     sähe bis dahin zu gut aus.
   */
   const heuteIso = todayStr();
-  const arbeit = arbeitJeTag(entries);
-  for (const e of entries) {
-    if (e.date < user.appStartDate || e.date > heuteIso) continue;
-    bookedDates.add(e.date);
-    if (e.status === 'Anwesend') istMin += calcWorkMin(e);
-    else if (ganztagGutschreiben(e, heuteIso)) istMin += ganztagMinuten(user, e, halbeTage, arbeit);
-    else istMin += freigestelltGutschreiben(e, heuteIso);
-  }
+  /*
+    NICHTS NACH DEM AUSTRITT (Durchsicht 15.11.2026, Z2). Das Soll endet am
+    Austritt (`pflichtTage`); Urlaub und Krank danach, die stehen geblieben
+    waren, schrieben trotzdem das Tagessoll gut — +32 Std für vier
+    Urlaubstage in der Zahl für die Endabrechnung.
+  */
+  const ende = user.austritt && user.austritt < heuteIso ? user.austritt : heuteIso;
 
   /**
    * Soll und Lücken aus derselben Quelle wie überall sonst.
@@ -803,6 +903,25 @@ export function calcOverallSaldo(
    * Genau das war passiert.
    */
   const pflicht = pflichtTage(user, new Date(`${user.appStartDate}T00:00:00`), new Date());
+  /*
+    GUTSCHRIFT NUR AN EINEM TAG MIT SOLL (Durchsicht 15.11.2026, Z12). Krank,
+    Urlaub, Schule und Freistellung ersetzen das Soll eines Arbeitstags; an
+    einem freien Tag (Wochenende, Feiertag, freier Wochentag der Teilzeit)
+    gibt es nichts zu ersetzen. `calcMonthStats` rechnete schon so („ein
+    Krank-Tag an einem freien Tag zählt nicht“), der Saldo schrieb das
+    Tagessoll trotzdem gut — Monats- und Gesamtsaldo widersprachen sich.
+  */
+  const sollTage = new Set(pflicht);
+  const arbeit = arbeitJeTag(entries);
+  for (const e of entries) {
+    if (e.date < user.appStartDate || e.date > ende) continue;
+    bookedDates.add(e.date);
+    if (e.status === 'Anwesend') istMin += calcWorkMin(e);
+    else if (!sollTage.has(e.date)) continue;
+    else if (ganztagGutschreiben(e, heuteIso)) istMin += ganztagMinuten(user, e, halbeTage, arbeit);
+    else istMin += freigestelltGutschreiben(e, heuteIso);
+  }
+
   const sollMin = sollMinuten(user, pflicht, halbeTage);
   const daysWithoutEntry = pflicht.filter((d) => !bookedDates.has(d)).length;
 
@@ -812,6 +931,13 @@ export function calcOverallSaldo(
 
 /**
  * Derselbe Saldo, gerechnet aus MONATSBILANZEN statt aus Einzelbuchungen.
+ *
+ * SEIT DER DURCHSICHT VOM 15.11.2026 (L1, L2) RECHNET DIE APP DEN SALDO NICHT
+ * MEHR HIER, sondern in der Datenbank (`zeitkonto_salden`, mit dem Verlauf
+ * der Arbeitszeit). Diese Fassung bleibt als zweite, unabhängige Rechnung für
+ * die Prüfungen der Bilanzsicht `monthly_stats` (die die alte App weiter
+ * liest) — sie kennt den Verlauf der Arbeitszeit NICHT und gilt nur für
+ * Personen ohne Änderung.
  *
  * Das Ergebnis muss auf die Minute mit `calcOverallSaldo` übereinstimmen —
  * es ist dieselbe Zahl, nur aus verdichteten Daten. Genau das prüft
@@ -865,7 +991,7 @@ export function saldoAusBilanzen(
   const initial = Number(user.initialOvertime ?? 0) || 0;
   if (!user.appStartDate) return { saldoH: initial, hasConfig: false, daysWithoutEntry: 0 };
 
-  const weeklyH = Number(user.weeklyTargetHours ?? 40) || 40;
+  const weeklyH = wochenstundenVon(user.weeklyTargetHours);
   const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
   const dailyH = weeklyH / workDays.length;
 
@@ -995,7 +1121,13 @@ export interface MonthStats {
   urlaubsAnspruch: number;
   /** Stammt der Anspruch aus dem mitgebrachten Bestand? Für die Beschriftung. */
   urlaubAusAnfangsbestand: boolean;
+  /** Rest am Monatsende (Z5): was am letzten Tag des Monats noch offen ist. */
   urlaubRest: number;
+  /**
+   * Davon schon verplant (Z5): Urlaubstage nach dem Monat im selben
+   * Urlaubsjahr, die schon genehmigt bzw. gebucht sind.
+   */
+  urlaubVerplant: number;
   /** Anpassungen des Anspruchs in diesem Urlaubsjahr — steckt schon im Rest. */
   urlaubAngepasst: number;
 }
@@ -1020,7 +1152,7 @@ export function calcMonthStats(
   user: Pick<
     AppUser,
     'weeklyTargetHours' | 'yearlyVacationDays' | 'workDays' | 'appStartDate' | 'initialVacationDays' | 'tagessoll'
-  >,
+  > & Partial<Pick<AppUser, 'arbeitszeitVerlauf' | 'urlaubsanspruchVerlauf' | 'austritt'>>,
   monthEntries: TimeEntry[],
   yearEntries: TimeEntry[],
   year: number,
@@ -1028,10 +1160,27 @@ export function calcMonthStats(
   halbeTage: boolean,
   urlaub: UrlaubsQuelle = {},
 ): MonthStats {
-  const weeklyTarget = Number(user.weeklyTargetHours ?? 40) || 40;
-  const yearlyVacation = Number(user.yearlyVacationDays ?? DEFAULT_URLAUBSTAGE) || DEFAULT_URLAUBSTAGE;
+  /*
+    NACH DEM AUSTRITT ZÄHLT NICHTS MEHR (Z2) — weder Ist noch Urlaub noch
+    Krank; das Soll endet dort ohnehin (`pflichtTage`). Stehen gebliebene
+    Tage danach gingen sonst in Lohn-CSV und Resturlaub.
+  */
+  if (user.austritt) {
+    const bis = user.austritt;
+    monthEntries = monthEntries.filter((e) => e.date <= bis);
+    yearEntries = yearEntries.filter((e) => e.date <= bis);
+    if (urlaub.verlauf) urlaub = { ...urlaub, verlauf: urlaub.verlauf.filter((p) => p.von <= bis) };
+  }
+  /*
+    WOCHENSTUNDEN UND TAGESSOLL DES MONATS (Z3), nicht die von heute: die
+    Werte, die am letzten Tag des Monats galten. Gerechnet wird das Soll
+    weiter je Tag (`pflichtTage`, `sollMinuten`); diese Zahlen stehen in der
+    Zeile „Tagessoll“ und in der Lohn-CSV.
+  */
+  const imMonat = arbeitszeitAm(user, localDateStr(new Date(year, month + 1, 0)));
+  const weeklyTarget = wochenstundenVon(imMonat.weeklyTargetHours);
 
-  const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
+  const workDays = imMonat.workDays && imMonat.workDays.length ? imMonat.workDays : [1, 2, 3, 4, 5];
   // Tagessoll über die tatsächlichen Arbeitstage — identisch zu
   // calcOverallSaldo. Der Prototyp teilte hier fest durch 5; bei einer
   // 4-Tage-Woche (32 h) ergab das 6,4 h/Tag statt 8,0 h/Tag, und Mitarbeiter
@@ -1121,7 +1270,7 @@ export function calcMonthStats(
     MIT EIGENEM TAGESSOLL (M5) je Tag: das Soll der Pflichttage minus das der
     Krank- und Urlaubstage darin. Ohne bleibt die bisherige Rechnung.
   */
-  const sollGanzeTage = hatTagessoll(user)
+  const sollGanzeTage = hatTagessoll(user) || hatArbeitszeitVerlauf(user)
     ? Math.round(
         Math.max(
           0,
@@ -1186,7 +1335,22 @@ export function calcMonthStats(
     localDateStr(monatsEnde),
     urlaub.regel?.jahresbeginn ?? JAHRESBEGINN_VORGABE,
   );
-  const stand = urlaubsStand(user, urlaubsjahr, verlauf, urlaub.regel, urlaub.anpassungen);
+  /*
+    DER STAND AM MONATSENDE (Durchsicht 15.11.2026, Z5) — wirklich am
+    Monatsende. Hier gingen alle Urlaubstage des Verlaufs ein, auch die nach
+    dem Monat: im März stand mit zehn genehmigten Tagen im August 15 statt 25,
+    und derselbe Monat trug im April exportiert eine andere Zahl als im
+    Dezember. Was danach im selben Urlaubsjahr schon genehmigt ist, steht
+    eigens als „davon verplant“.
+  */
+  const monatsEndeIso = localDateStr(monatsEnde);
+  const jahresbeginn = urlaub.regel?.jahresbeginn ?? JAHRESBEGINN_VORGABE;
+  const stand = urlaubsStand(user, urlaubsjahr, verlauf.filter((p) => p.von <= monatsEndeIso), urlaub.regel, urlaub.anpassungen);
+  const urlaubVerplant = Math.round(verlauf
+    .filter((p) => p.von > monatsEndeIso && urlaubsJahrVon(p.von, jahresbeginn) === urlaubsjahr)
+    .reduce((s, p) => s + p.tage, 0) * 100) / 100;
+  // Der Jahresanspruch des Urlaubsjahres, in dem der Monat endet (Z3).
+  const yearlyVacation = urlaubsanspruchIm(user, urlaubsjahr);
 
   // Laufend heißt: der letzte Tag des Monats liegt noch vor uns.
   const heute = new Date();
@@ -1217,6 +1381,7 @@ export function calcMonthStats(
     arztbesuchMin: arztbesuchImMonat,
     yearlyUrlaubDays,
     urlaubRest: stand.rest,
+    urlaubVerplant,
     urlaubsAnspruch: stand.anspruch,
     urlaubAusAnfangsbestand: stand.ausAnfangsbestand,
     urlaubAngepasst: stand.angepasst,
@@ -1287,7 +1452,7 @@ export interface CompletenessResult {
  *      `workDays`, nicht über eine feste Fünf-Tage-Annahme.
  */
 export function pflichtTage(
-  user: Pick<AppUser, 'workDays' | 'appStartDate' | 'austritt'>,
+  user: Pick<AppUser, 'workDays' | 'appStartDate' | 'austritt'> & Partial<Pick<AppUser, 'arbeitszeitVerlauf' | 'weeklyTargetHours' | 'tagessoll'>>,
   von: Date,
   bis: Date,
 ): string[] {
@@ -1316,12 +1481,51 @@ export function pflichtTage(
     if (austritt < schluss) schluss.setTime(austritt.getTime());
   }
 
-  return werktageImZeitraum(workDays, start, schluss);
+  /*
+    Regel 4 (Z3): mit Verlauf zählt jeder Abschnitt mit SEINEN Arbeitstagen.
+    Ohne Verlauf der bisherige Weg.
+  */
+  const tage = hatArbeitszeitVerlauf(user)
+    ? pflichtTageImVerlauf(user.arbeitszeitVerlauf!, start, schluss)
+    : werktageImZeitraum(workDays, start, schluss);
+  /*
+    Regel 5 (Z11): ein Tag mit Tagessoll 0 ist kein Pflichttag — keine Lücke,
+    keine Gutschrift. Nur wer überhaupt eine 0 trägt, wird je Tag geprüft;
+    für alle anderen bleibt es beim bisherigen Weg.
+  */
+  return kenntNullSoll(user) ? tage.filter((t) => tagessollStunden(user as MitVerlauf, t) > 0) : tage;
+}
+
+/** Trägt die Person (oder ein Abschnitt ihres Verlaufs) irgendwo ein Soll von 0? */
+function kenntNullSoll(user: Partial<Pick<AppUser, 'weeklyTargetHours' | 'tagessoll' | 'arbeitszeitVerlauf'>>): boolean {
+  const null0 = (w: number | null | undefined, t: Record<string, number> | null | undefined) =>
+    (w === 0 && !(t && Object.keys(t).length > 0)) || (!!t && Object.values(t).some((h) => Number(h) === 0));
+  if (hatArbeitszeitVerlauf(user)) return user.arbeitszeitVerlauf!.some((e) => null0(e.wochenstunden, e.tagessoll));
+  return null0(user.weeklyTargetHours, user.tagessoll);
+}
+
+/** Die Arbeitstage eines Zeitraums, Abschnitt für Abschnitt des Verlaufs. */
+function pflichtTageImVerlauf(verlauf: readonly ArbeitszeitAbschnitt[], start: Date, schluss: Date): string[] {
+  const tage: string[] = [];
+  verlauf.forEach((e, i) => {
+    const ab = i === 0 ? start : new Date(Math.max(start.getTime(), new Date(`${e.ab}T00:00:00`).getTime()));
+    const naechster = verlauf[i + 1];
+    let bis = schluss;
+    if (naechster) {
+      const vorNaechstem = new Date(`${naechster.ab}T00:00:00`);
+      vorNaechstem.setDate(vorNaechstem.getDate() - 1);
+      if (vorNaechstem < bis) bis = vorNaechstem;
+    }
+    if (ab > bis) return;
+    const workDays = e.arbeitstage && e.arbeitstage.length ? e.arbeitstage : [1, 2, 3, 4, 5];
+    tage.push(...werktageImZeitraum(workDays, ab, bis));
+  });
+  return tage;
 }
 
 /** Die Feiertage, die in denselben Zeitraum fallen — nur zur Anzeige. */
 export function feiertageImZeitraum(
-  user: Pick<AppUser, 'workDays' | 'appStartDate' | 'austritt'>,
+  user: Pick<AppUser, 'workDays' | 'appStartDate' | 'austritt'> & Partial<Pick<AppUser, 'arbeitszeitVerlauf' | 'weeklyTargetHours' | 'tagessoll'>>,
   von: Date,
   bis: Date,
 ): number {
@@ -1345,8 +1549,14 @@ export function feiertageImZeitraum(
   }
 
   let n = 0;
+  const mitVerlauf = hatArbeitszeitVerlauf(user);
   for (const tag = new Date(start); tag <= schluss; tag.setDate(tag.getDate() + 1)) {
-    if (workDays.includes(tag.getDay()) && isAustrianHoliday(tag)) n++;
+    // Mit Verlauf (Z3) die Arbeitstage dieses Tages.
+    const tageHier = mitVerlauf
+      ? (arbeitszeitAm(user as MitVerlauf, localDateStr(tag)).workDays ?? [])
+      : workDays;
+    const arbeitstage = tageHier.length ? tageHier : [1, 2, 3, 4, 5];
+    if (arbeitstage.includes(tag.getDay()) && isAustrianHoliday(tag)) n++;
   }
   return n;
 }

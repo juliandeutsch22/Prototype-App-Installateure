@@ -206,7 +206,7 @@ describe(`Eine Woche im Zeitraffer (${MO} bis ${FR})`, () => {
       subtotalNetto: 1000, totalNetto: 1000, totalVat: 200, totalBrutto: 1200, vatRate: 0.2,
       paymentStatus: 'Offen',
       positions: [{ label: 'Anzahlung Badsanierung', qty: 1, unit: 'Pauschale', unitPrice: 1000, netto: 1000 }],
-    } as Parameters<typeof rechnungenDb.rechnungAusstellen>[1], { praefix: 'RE' });
+    } as Parameters<typeof rechnungenDb.rechnungAusstellen>[1], { praefix: 'RE', datumAusdruecklich: true });
     await zahlungenDb.createZahlung(BETRIEB, {
       invoiceId: anzahlung.id, datum: MI, betrag: 1200, art: 'Überweisung', erfasstVonName: 'Buchhaltung',
     });
@@ -229,7 +229,7 @@ describe(`Eine Woche im Zeitraffer (${MO} bis ${FR})`, () => {
       positions: [{ label: 'Badsanierung laut Schein', qty: 1, unit: 'Pauschale', unitPrice: 2000, netto: 2000 }],
       linkedWorkSheets: [schein],
       linkedEntries: (eintraege ?? []).map((z) => z.id as string),
-    } as Parameters<typeof rechnungenDb.rechnungAusstellen>[1], { praefix: 'RE' });
+    } as Parameters<typeof rechnungenDb.rechnungAusstellen>[1], { praefix: 'RE', datumAusdruecklich: true });
 
     // Der Schein ist verrechnet — er taucht in „nicht verrechnet“ nicht mehr auf.
     const { data: deckung } = await admin.from('invoice_coverage').select('*').eq('invoice_id', schluss.id);

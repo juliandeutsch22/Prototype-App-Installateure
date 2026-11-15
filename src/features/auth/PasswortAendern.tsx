@@ -98,7 +98,7 @@ export default function PasswortAendern({
         <>
           <strong>Das Passwort gehört zur Anmeldekennung, nicht zum Betrieb.</strong> Wer es
           ändert, ändert es überall — am Telefon auf der Baustelle ebenso wie am Rechner im Büro.
-          Angemeldete Geräte bleiben angemeldet; erst beim nächsten Anmelden zählt das neue.
+          Andere Geräte, auf denen du angemeldet bist, werden dabei abgemeldet; dort meldest du dich mit dem neuen an.
           <br />
           <br />
           <strong>Das Büro kann es nicht nachsehen.</strong> Es steht nirgends im Klartext.{' '}

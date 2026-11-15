@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { canAccess } from '@/app/navigation';
-import { getQuote, listFassungen, updateQuote } from '@/lib/db/quotes';
+import { annahmeZuruecknehmen, getQuote, listFassungen, updateQuote } from '@/lib/db/quotes';
+import { baustelleVerwendung } from '@/lib/db/projects';
+import { nachtragFolge, ruecknahmeFolge } from '@/features/projects/baustelleVerwendung';
+import { TextareaField } from '@/components/Field';
 import { listCustomersByIds } from '@/lib/db/customers';
 import { belegFirma } from '@/lib/db/aussteller';
 import { isGF } from '@/lib/permissions';
@@ -25,12 +28,15 @@ import { Zustand } from '@/components/Badge';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
 import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
+import { naechsterSchritt } from '@/features/projects/naechsterSchritt';
 import { fassungsHinweis } from './fassungen';
 import { downloadAngebotPdf } from './angebotPdf';
 import { STAND, standWort } from './stand';
 import { verwerfenFrage, VERWORFEN_MELDUNG, WIEDERHERGESTELLT_MELDUNG } from './verwerfen';
+import { datumAufHeute, hatPosition, leerNichtAnnehmen, statusFrage, type StatusFrage } from './statusFrage';
 import Hinweiszeile from '@/components/Hinweiszeile';
-import AbrechnungWahl from './AbrechnungWahl';
+import AnnahmeZiel from './AnnahmeZiel';
+import { zielBereit, zielVorgabe, type AnnahmeZielWert } from './annahmeZiel';
 import PositionenTabelle from './PositionenTabelle';
 import { AnnahmeLinkAbschnitt, AnnahmeLinkDialog } from './AnnahmeLink';
 import { angebotLinkGesehen, angebotLinkWiderrufen, listAngebotLinks, type AngebotLink } from '@/lib/db/angebotLinks';
@@ -41,6 +47,7 @@ import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT, datumAusMs } from '@/lib/datum';
 import { verworfenText } from '@/features/papierkorb/papierkorbText';
 import { euro } from '@/lib/betrag';
+import { DRINGLICHKEIT_TEXT } from '@/features/auftragseingang/eingangText';
 
 /**
  * Ein Angebot auf seiner eigenen Seite.
@@ -75,9 +82,24 @@ export default function AngebotView() {
   const [pdfLaeuft, setPdfLaeuft] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [verwerfenFragen, setVerwerfenFragen] = useState(false);
+  /** Ein Standwechsel, der erst nach der Rückfrage gilt (A5). */
+  const [wechselFrage, setWechselFrage] = useState<{ q: WithId<Quote>; frage: StatusFrage } | null>(null);
+  /** A12: beim Versand das Angebotsdatum auf heute setzen (vorgewählt, wenn es zurückliegt). */
+  const [datumHeute, setDatumHeute] = useState(true);
   const [annehmenFragen, setAnnehmenFragen] = useState(false);
+  /*
+    DIE RÜCKNAHME EINER ANNAHME (A1, F7): Fehlklick oder Rücktritt des
+    Kunden. Der Grund ist Pflicht; was mit der Baustelle geschieht, sagt die
+    Rückfrage vorher — aus derselben Zählung, mit der die Datenbank
+    entscheidet (`baustelle_verwendung`).
+  */
+  const [ruecknahme, setRuecknahme] = useState(false);
+  const [ruecknahmeGrund, setRuecknahmeGrund] = useState('');
+  const [ruecknahmeFolgeText, setRuecknahmeFolgeText] = useState<Teil<string> | null>(null);
   /** Die Abrechnung der Baustelle, die beim Annehmen entsteht (M16). */
   const [abrechnung, setAbrechnung] = useState<Abrechnungsart>('Pauschal');
+  /** Neue Baustelle oder Nachtrag an eine bestehende (A3, F6). */
+  const [ziel, setZiel] = useState<AnnahmeZielWert>({ art: 'neu', baustelleId: '', projekt: null });
   /** Die Fassungen rundherum (M17): woraus dieses Angebot entstand, was daraus wurde. */
   const [vorgaenger, setVorgaenger] = useState<WithId<Quote> | null>(null);
   const [fassungen, setFassungen] = useState<WithId<Quote>[]>([]);
@@ -220,6 +242,61 @@ export default function AngebotView() {
     };
   }, [companyId, kundenId, angebot.zustand, versuch]);
 
+  const ruecknahmeProjekt = ruecknahme && angebot.zustand === 'bereit' ? angebot.daten?.projectId ?? null : null;
+  const ruecknahmeNummer = angebot.zustand === 'bereit' ? angebot.daten?.projectNumber ?? '' : '';
+  const ruecknahmeNachtrag = angebot.zustand === 'bereit' && !!angebot.daten?.nachtrag;
+  const ruecknahmeNachtragStunden = angebot.zustand === 'bereit' ? angebot.daten?.kalkulierteStunden ?? 0 : 0;
+  useEffect(() => {
+    if (!ruecknahme || !id) {
+      setRuecknahmeFolgeText(null);
+      return;
+    }
+    if (!ruecknahmeProjekt) {
+      setRuecknahmeFolgeText({ zustand: 'bereit', daten: 'An diesem Angebot hängt keine Baustelle mehr.' });
+      return;
+    }
+    /*
+      EIN NACHTRAG (A3) wird nur von seiner Baustelle gelöst — sie gehört dem
+      Hauptauftrag und bleibt. Was an ihr hängt, entscheidet hier nichts;
+      sonst stünde „wird gelöscht“ da, wo die Datenbank nur die Stunden
+      des Nachtrags abzieht.
+    */
+    if (ruecknahmeNachtrag) {
+      setRuecknahmeFolgeText({ zustand: 'bereit', daten: nachtragFolge(ruecknahmeNummer, ruecknahmeNachtragStunden) });
+      return;
+    }
+    let weg = false;
+    setRuecknahmeFolgeText(LAEDT);
+    baustelleVerwendung(ruecknahmeProjekt)
+      .then((v) => { if (!weg) setRuecknahmeFolgeText({ zustand: 'bereit', daten: ruecknahmeFolge(v, id, ruecknahmeNummer) }); })
+      .catch(() => { if (!weg) setRuecknahmeFolgeText({ zustand: 'fehler' }); });
+    return () => {
+      weg = true;
+    };
+  }, [ruecknahme, ruecknahmeProjekt, ruecknahmeNummer, ruecknahmeNachtrag, ruecknahmeNachtragStunden, id]);
+
+  async function annahmeZurueck(q: WithId<Quote>) {
+    const r = await annahmeZuruecknehmen(q.id, ruecknahmeGrund.trim());
+    const baustelle = r.baustelle
+      ? r.ergebnis === 'geloescht'
+        ? ` Baustelle ${r.baustelle} gelöscht.`
+        : r.ergebnis === 'abgeschlossen'
+          ? ` Baustelle ${r.baustelle} abgeschlossen.`
+          : r.ergebnis === 'nachtrag_entfernt'
+            ? ` Nachtrag von Baustelle ${r.baustelle} gelöst.`
+            : ''
+      : '';
+    toast.success(
+      `Annahme zurückgenommen — ${q.quoteNumber} ist wieder ${r.status === 'Entwurf' ? 'ein Entwurf' : 'versendet'}.${baustelle}`,
+      r.baustelleId && baustellenSichtbar
+        ? { label: 'Zur Baustelle', onClick: () => navigate(`/admin-projects/${r.baustelleId}`) }
+        : undefined,
+    );
+    setRuecknahme(false);
+    setRuecknahmeGrund('');
+    setVersuch((v) => v + 1);
+  }
+
   async function status(q: WithId<Quote>, neu: Quote['status'], meldung: string) {
     setBusy(true);
     setFehler(null);
@@ -234,12 +311,25 @@ export default function AngebotView() {
     }
   }
 
+  /** Nach der Rückfrage (A5): scheitert es, bleibt der Dialog offen und sagt den Grund der Datenbank. */
+  async function statusNachFrage(q: WithId<Quote>, neu: Quote['status'], meldung: string) {
+    // A12: liegt das Angebotsdatum zurück, im selben Schritt auf heute (samt Bindefrist) — der Entwurf ist noch änderbar.
+    const datum = neu === 'Versendet' && q.status === 'Entwurf' && datumHeute ? datumAufHeute(q, todayStr()) : null;
+    await updateQuote(q.id, { status: neu, ...(datum ?? {}) });
+    toast.success(meldung);
+    setVersuch((v) => v + 1);
+  }
+
   async function annehmen(q: WithId<Quote>) {
     if (!companyId) return;
     setBusy(true);
     setFehler(null);
     try {
-      toast.success(annahmeMeldung(await angebotAnnehmen(companyId, q, praefixeVon(company).baustelle, abrechnung)));
+      const r = await angebotAnnehmen(
+        companyId, q, praefixeVon(company).baustelle, abrechnung, ziel.art === 'nachtrag' ? ziel.baustelleId : null,
+      );
+      // V4: die Meldung trägt den nächsten Schritt.
+      toast.success(annahmeMeldung(r), user ? naechsterSchritt(user.role, company?.modules, r.projectNumber, navigate) : undefined);
       setVersuch((v) => v + 1);
     } catch (err) {
       setFehler(grundAus(err, 'Die Baustelle konnte nicht angelegt werden.'));
@@ -318,6 +408,9 @@ export default function AngebotView() {
   const linkNeuMoeglich = offen && !nachbarn.angenommen;
   const linkMoeglich = linkNeuMoeglich && darfAendern && onlineAnnahme && !einblick;
   const linkListe = links.zustand === 'bereit' ? links.daten : [];
+  /* Hat der Kunde einen Link schon geöffnet oder entschieden? Solange die Links nicht geladen sind: vorsichtshalber ja. */
+  const linkGesehen = links.zustand !== 'bereit'
+    || linkListe.some((l) => l.zuerstGeoeffnetAm || l.angenommenAm || l.abgelehntAm);
   /*
     IM PAPIERKORB (M01d): nur lesen. Der einzige Schritt ist das
     Wiederherstellen — außer, eine andere Fassung ist inzwischen angenommen;
@@ -360,14 +453,14 @@ export default function AngebotView() {
           <Button
             variant="secondary"
             loading={busy}
-            onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
+            onClick={() => { setDatumHeute(true); setWechselFrage({ q, frage: statusFrage(q, 'versenden') }); }}
           >
             Als versendet markieren
           </Button>
         </>
       )}
       {offen && !nachbarn.angenommen && (
-        <Button variant="secondary" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(true); }}>
+        <Button variant="secondary" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setZiel(zielVorgabe(q)); setAnnehmenFragen(true); }}>
           Annehmen → Baustelle
         </Button>
       )}
@@ -376,10 +469,14 @@ export default function AngebotView() {
         selbst an. Nicht im Supporteinblick — der Link ist eine Erklärung des
         Betriebs an seinen Kunden (die Datenbank weist den Support ab).
       */}
-      {linkMoeglich && (
+      {linkMoeglich && hatPosition(q) && (
         <Button variant="secondary" onClick={() => setLinkDialog(true)}>
           Annahme-Link
         </Button>
+      )}
+      {/* A5: ein leeres Angebot geht nicht hinaus — weder als versendet noch über den Link. */}
+      {offen && !hatPosition(q) && (
+        <span className="text-sm text-ink-muted">Noch ohne Position — versenden und verlinken geht erst mit einer.</span>
       )}
       {offen && nachbarn.angenommen && (
         <span className="text-sm text-ink-muted">
@@ -425,6 +522,14 @@ export default function AngebotView() {
     // das steht dann als eigener Punkt davor, sofern sein Tag bekannt ist.
     ...(q.status !== 'Entwurf' && q.status !== 'Versendet' && q.versendetAm
       ? [{ titel: 'Versendet', zeit: datumAusMs(q.versendetAm) }]
+      : []),
+    // A1: die zurückgenommene Annahme bleibt im Verlauf stehen, mit ihrem Grund.
+    ...(q.annahmeZurueckgenommenAm
+      ? [{
+          titel: 'Annahme zurückgenommen',
+          zeit: datumAusMs(q.annahmeZurueckgenommenAm),
+          text: q.annahmeZurueckgenommenGrund ? `Grund: ${q.annahmeZurueckgenommenGrund}` : undefined,
+        }]
       : []),
     q.status === 'Entwurf'
       ? { titel: 'Entwurf', text: <>Noch nicht versendet.{schritte}</>, jetzt: true }
@@ -509,6 +614,16 @@ export default function AngebotView() {
           </Angabe>
         )}
         <Angabe wort="Angebotsdatum">{fmtDatum(q.quoteDate)}</Angabe>
+        {/* A8: Arbeitsangaben aus dem Eingang — nicht auf dem Angebot beim Kunden, die Annahme gibt sie weiter. */}
+        {(q.ansprechpartnerName || q.ansprechpartnerTelefon) && (
+          <Angabe wort="Ansprechpartner vor Ort">
+            {[q.ansprechpartnerName, q.ansprechpartnerTelefon].filter(Boolean).join(' · ')}
+          </Angabe>
+        )}
+        {q.dringlichkeit && q.dringlichkeit !== 'normal' && (
+          <Angabe wort="Dringlichkeit">{DRINGLICHKEIT_TEXT[q.dringlichkeit]}</Angabe>
+        )}
+        {q.wunschtermin && <Angabe wort="Wunschtermin">{fmtDatum(q.wunschtermin)}</Angabe>}
         {ausEingang && (
           <Angabe wort="Herkunft">
             <Link to={`/eingaenge/${ausEingang.id}`} className="link inline-flex min-h-touch items-center">
@@ -516,7 +631,8 @@ export default function AngebotView() {
             </Link>
           </Angabe>
         )}
-        <Angabe wort="Baustelle">
+        {/* A3: vor der Annahme die Baustelle, an die das Angebot als Nachtrag kommt. */}
+        <Angabe wort={q.status === 'Angenommen' ? (q.nachtrag ? 'Baustelle (Nachtrag)' : 'Baustelle') : q.projectNumber ? 'Nachtrag zu Baustelle' : 'Baustelle'}>
           {q.projectNumber ? (
             q.projectId && baustellenSichtbar ? (
               <Link to={`/admin-projects/${q.projectId}`} className="link inline-flex min-h-touch items-center">
@@ -572,7 +688,19 @@ export default function AngebotView() {
       about={`Angebot ${q.quoteNumber}`}
       items={[
         ...(offen
-          ? [{ label: 'Als abgelehnt markieren', onSelect: () => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt') }]
+          ? [{ label: 'Als abgelehnt markieren', onSelect: () => setWechselFrage({ q, frage: statusFrage(q, 'ablehnen') }) }]
+          : []),
+        // A5: der Rückweg, solange der Kunde den Link nicht geöffnet hat (die Datenbank prüft dasselbe).
+        ...(q.status === 'Versendet' && !linkGesehen
+          ? [{ label: 'Zurück in den Entwurf', onSelect: () => setWechselFrage({ q, frage: statusFrage(q, 'zurueckInEntwurf') }) }]
+          : []),
+        // A5: eine im Büro vermerkte Ablehnung lässt sich zurücknehmen — die des Kunden über den Link nicht.
+        ...(q.status === 'Abgelehnt' && !linkListe.some((l) => l.abgelehntAm)
+          ? [{ label: 'Ablehnung zurücknehmen', onSelect: () => setWechselFrage({ q, frage: statusFrage(q, 'ablehnungZurueck') }) }]
+          : []),
+        // A1: der Rückweg aus „Angenommen“ — nicht rot im Menü, die Rückfrage sagt, was geschieht.
+        ...(q.status === 'Angenommen'
+          ? [{ label: 'Annahme zurücknehmen', onSelect: () => { setRuecknahmeGrund(''); setRuecknahme(true); } }]
           : []),
         // Dasselbe ohne Verweis — etwa als Vorlage für einen ähnlichen Auftrag (M17).
         { label: 'Als Kopie anlegen', onSelect: () => navigate(`/quotes?kopie=${q.id}`) },
@@ -693,9 +821,12 @@ export default function AngebotView() {
       <ConfirmDialog
         open={annehmenFragen}
         title="Angebot annehmen?"
-        message={`${q.quoteNumber} wird angenommen, und für ${q.customerName} entsteht eine Baustelle mit der nächsten Baustellennummer.`}
+        message={leerNichtAnnehmen(q) ?? (ziel.art === 'nachtrag'
+          ? `${q.quoteNumber} wird angenommen und kommt als Nachtrag an die gewählte Baustelle.`
+          : `${q.quoteNumber} wird angenommen, und für ${q.customerName} entsteht eine Baustelle mit der nächsten Baustellennummer.`)}
         confirmLabel="Annehmen"
         confirmTone="primary"
+        gesperrt={!hatPosition(q) || !zielBereit(ziel)}
         onCancel={() => setAnnehmenFragen(false)}
         onConfirm={async () => {
           setAnnehmenFragen(false);
@@ -708,7 +839,72 @@ export default function AngebotView() {
             mehr annehmen.
           </p>
         )}
-        <AbrechnungWahl wert={abrechnung} onWert={setAbrechnung} />
+        {companyId && hatPosition(q) && (
+          <AnnahmeZiel companyId={companyId} angebot={q} ziel={ziel} onZiel={setZiel} abrechnung={abrechnung} onAbrechnung={setAbrechnung} />
+        )}
+      </ConfirmDialog>
+
+      {/* A5: kein Standwechsel mit einem Tipp — erst fragen, und sagen, wie es zurückgeht. */}
+      <ConfirmDialog
+        open={!!wechselFrage}
+        title={wechselFrage?.frage.titel ?? ''}
+        message={wechselFrage?.frage.text}
+        confirmLabel={wechselFrage?.frage.label}
+        confirmTone="primary"
+        gesperrt={!!wechselFrage?.frage.gesperrt}
+        onCancel={() => setWechselFrage(null)}
+        onConfirm={async () => {
+          const w = wechselFrage;
+          if (!w) return;
+          await statusNachFrage(w.q, w.frage.neu, w.frage.meldung);
+          setWechselFrage(null);
+        }}
+      >
+        {wechselFrage && !wechselFrage.frage.gesperrt && wechselFrage.frage.neu === 'Versendet' && wechselFrage.q.status === 'Entwurf'
+          && datumAufHeute(wechselFrage.q, todayStr()) && (
+          <label className="flex min-h-touch items-center gap-2 text-sm text-ink">
+            <input type="checkbox" className="checkbox" checked={datumHeute} onChange={(e) => setDatumHeute(e.target.checked)} />
+            Angebotsdatum auf heute setzen (statt {datumAT(wechselFrage.q.quoteDate)}) — die Bindefrist rückt mit
+          </label>
+        )}
+      </ConfirmDialog>
+
+      {/* A1: Annahme zurücknehmen — Grund ist Pflicht, die Folge für die Baustelle steht davor. */}
+      <ConfirmDialog
+        open={ruecknahme}
+        title="Annahme zurücknehmen?"
+        message={`${q.quoteNumber} ist danach wieder ${q.versendetAm ? 'versendet' : 'ein Entwurf'} und lässt sich erneut annehmen oder ablehnen.`}
+        confirmLabel="Annahme zurücknehmen"
+        confirmTone="danger"
+        gesperrt={ruecknahmeGrund.trim().length < 3}
+        onCancel={() => setRuecknahme(false)}
+        onConfirm={() => annahmeZurueck(q)}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-ink" role="status">
+            {ruecknahmeFolgeText === null || ruecknahmeFolgeText.zustand === 'laedt'
+              ? 'Wird nachgesehen, was an der Baustelle hängt …'
+              : ruecknahmeFolgeText.zustand === 'fehler'
+                ? `Was an der Baustelle ${q.projectNumber ?? ''} hängt, ließ sich gerade nicht nachsehen. Hängt nichts daran, wird sie gelöscht, sonst abgeschlossen.`
+                : ruecknahmeFolgeText.daten}
+          </p>
+          {[...(vorgaenger ? [vorgaenger] : []), ...fassungen].some((f) => f.status === 'Ersetzt') && (
+            <p className="text-sm text-ink">
+              Wieder offen sind dann auch{' '}
+              {[...(vorgaenger ? [vorgaenger] : []), ...fassungen].filter((f) => f.status === 'Ersetzt').map((f) => f.quoteNumber).join(', ')}.
+            </p>
+          )}
+          <TextareaField
+            id="annahme-zurueck-grund"
+            label="Grund"
+            pflicht
+            required
+            rows={3}
+            placeholder="z. B. Kunde ist zurückgetreten, falsche Fassung angenommen"
+            value={ruecknahmeGrund}
+            onChange={(e) => setRuecknahmeGrund(e.target.value)}
+          />
+        </div>
       </ConfirmDialog>
 
       {/* Verwerfen statt löschen (M01d): umkehrbar, deshalb nicht rot. */}

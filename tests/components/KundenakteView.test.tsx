@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Customer, Project, Quote, UidPruefung, Wartung } from '@/types';
 
@@ -42,14 +42,16 @@ let angebote: (Quote & { id: string })[] = [];
 let wartungen: (Wartung & { id: string })[] = [];
 
 const listCustomersByIds = vi.fn(async () => kunden);
-const listProjectsForCustomer = vi.fn(async () => zugeordnet);
+const listProjectsForCustomer = vi.fn(async (max?: number) => zugeordnet.slice(0, max ?? zugeordnet.length));
+/** A12: wie viele Baustellen der Kunde wirklich hat, wenn mehr als geladen. */
+let baustellenZahl: number | null = null;
 const listUnlinkedProjectsByName = vi.fn(async () => namensgleich);
 const assignProjectToCustomer = vi.fn(async () => undefined);
 const listQuotesForCustomer = vi.fn(async () => angebote);
 const listWartungenForCustomer = vi.fn(async () => wartungen);
 let rechnungen: unknown[] = [];
 let rechnungenWirft = false;
-const listInvoicesForCustomer = vi.fn<(a0: string, a1: string, a2: string[]) => Promise<unknown[]>>(async () => {
+const listInvoicesForCustomer = vi.fn<(a0: string, a1: string) => Promise<unknown[]>>(async () => {
   if (rechnungenWirft) throw new Error('weg');
   return rechnungen;
 });
@@ -71,7 +73,9 @@ vi.mock('@/lib/db/termine', () => ({
 }));
 vi.mock('@/lib/db/customers', () => ({
   listCustomersByIds: () => listCustomersByIds(),
-  listProjectsForCustomer: () => listProjectsForCustomer(),
+  listProjectsForCustomer: (_b: string, _k: string, max: number) => listProjectsForCustomer(max),
+  // A12: gezählt in der Datenbank — sonst die Zahl der geladenen.
+  zaehleProjekteDesKunden: async () => baustellenZahl ?? zugeordnet.length,
   listUnlinkedProjectsByName: () => listUnlinkedProjectsByName(),
   assignProjectToCustomer: (...a: unknown[]) => assignProjectToCustomer(...(a as [])),
   updateCustomer: (...a: unknown[]) => updateCustomer(...(a as [])),
@@ -82,7 +86,7 @@ vi.mock('@/lib/db/quotes', () => ({
   listQuotesForCustomer: (...a: unknown[]) => listQuotesForCustomer(...(a as [])),
 }));
 vi.mock('@/lib/db/invoices', () => ({
-  listInvoicesForCustomer: (b: string, k: string, p: string[]) => listInvoicesForCustomer(b, k, p),
+  listInvoicesForCustomer: (b: string, k: string) => listInvoicesForCustomer(b, k),
   listMahnungenZurRechnung: async () => [],
 }));
 vi.mock('@/lib/db/wartungen', () => ({
@@ -728,7 +732,8 @@ describe('Die Rechnungen der Akte', () => {
     expect(within(fenster).getByText('Rechnungsdatum')).toBeInTheDocument();
     // V10 (13.11.2026): der Stand steht oben am Beleg und weiter beim Zahlstand — zweimal im Fenster.
     expect(within(fenster).getAllByText('Teilbezahlt').length).toBeGreaterThanOrEqual(1);
-    expect(listInvoicesForCustomer).toHaveBeenCalledWith('perl', 'k1', ['p1']);
+    // A10: ohne Liste der Baustellen — die Datenbank sucht über den Kunden.
+    expect(listInvoicesForCustomer).toHaveBeenCalledWith('perl', 'k1');
   });
 
   it('trennt Nummer und Datum durch ein echtes Leerzeichen (Runde 3, G4)', async () => {
@@ -1124,3 +1129,54 @@ describe('Liegenschaften des Kunden (M02c)', () => {
     expect(listBeteiligungenDesKunden).toHaveBeenCalled();
   });
 });
+
+/*
+  A12 (Durchsicht 15.11.2026): die Baustellen der Kundenakte endeten still bei
+  300, in beliebiger Reihenfolge, und der Titel nannte die Grenze als Zahl.
+*/
+describe('Viele Baustellen eines Kunden (A12)', () => {
+  it('nennt die gezählte Zahl und lädt nach, statt still abzuschneiden', async () => {
+    const vorher = zugeordnet;
+    zugeordnet = Array.from({ length: 150 }, (_, i) => ({ ...vorher[0], id: `px${i}`, projectNumber: `2026-${String(i).padStart(3, '0')}` }));
+    baustellenZahl = 150;
+    try {
+      zeige();
+      await userEvent.click(await screen.findByRole('tab', { name: 'Baustellen' }));
+      expect(await screen.findByRole('heading', { name: 'Baustellen (150)' })).toBeInTheDocument();
+      expect(screen.getByText('100 von 150 geladen.')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Weitere Baustellen laden' }));
+      await waitFor(() => expect(listProjectsForCustomer).toHaveBeenLastCalledWith(200));
+    } finally {
+      zugeordnet = vorher;
+      baustellenZahl = null;
+    }
+  });
+});
+
+/* V3 (Durchsicht 15.11.2026): Neues für diesen Kunden beginnt in seiner Akte. */
+describe('Neu für diesen Kunden (V3)', () => {
+  it('das ⋯ der Akte bietet Eingang, Angebot, Baustelle und Wartung an — mit dem Kunden in der Adresse', async () => {
+    const nutzer = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/customers/k1']}>
+        <ToastProvider>
+          <Routes>
+            <Route path="/customers/:id" element={<KundenakteView />} />
+            <Route path="/quotes" element={<Ziel />} />
+          </Routes>
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    await nutzer.click(await screen.findByRole('button', { name: /^Weitere Aktionen für Kunde/ }));
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(
+      expect.arrayContaining(['Neuer Eingang', 'Neues Angebot', 'Neue Baustelle', 'Neue Wartung']),
+    );
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Neues Angebot' }));
+    expect(await screen.findByText('Angebote ?neu=fuer&kunde=k1')).toBeInTheDocument();
+  });
+});
+
+function Ziel() {
+  const { search } = useLocation();
+  return <p>Angebote {search}</p>;
+}

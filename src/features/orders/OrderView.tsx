@@ -11,7 +11,11 @@ import {
   subscribeOwnOrders,
   updateOrderStatus,
   anforderungEiligSetzen,
+  anforderungMengeAendern,
+  anforderungZurueckziehen,
 } from '@/lib/db/materialOrders';
+import { TeilmengeFeld } from './Teilmenge';
+import { abholTeil, teilwahl } from './teilmengeWahl';
 import { listActiveProjects } from '@/lib/db/projects';
 import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder, Project } from '@/types';
@@ -37,10 +41,12 @@ import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAusMs } from '@/lib/datum';
-import { abschlussText, herkunftFragen } from './abschlussText';
+import { abschlussText, herkunftFragen, mengeText } from './abschlussText';
+import EinheitFeld from '@/components/EinheitFeld';
 import AnforderungFenster from './AnforderungFenster';
 import { zuletztAngefordert, ZULETZT_TAGE } from './zuletztAngefordert';
-import RetoureFenster from './RetoureFenster';
+import { beschaffungStand } from './anforderungStand';
+import RetoureFenster, { type RetoureVorbelegt } from './RetoureFenster';
 import MeinFahrzeug from './MeinFahrzeug';
 import { zahlAlsText, zahlOder } from '@/lib/zahl';
 import { mengeFehler, mengeMitKomma } from '@/lib/einheit';
@@ -69,6 +75,8 @@ interface CartLine {
   note?: string;
   /** Eilzustellung — nur mit gewählter Baustelle möglich. */
   isUrgent?: boolean;
+  /** Die Einheit der freien Zeile (M8); beim Katalogartikel setzt sie die Datenbank. */
+  einheit?: string;
 }
 
 /**
@@ -112,6 +120,8 @@ export default function OrderView() {
     vorbelegt — dort, wo man merkt, dass etwas übrig ist.
   */
   const [retoureOffen, setRetoureOffen] = useState(adresse.get('retoure') === '1');
+  /** „Zurückgeben“ an einer abgeholten Anforderung (V11): alles vorbelegt. */
+  const [retoureVorbelegt, setRetoureVorbelegt] = useState<RetoureVorbelegt | null>(null);
   const retoureBaustelle = adresse.get('baustelle') ?? '';
   /*
     DER KATALOG KOMMT SEITENWEISE VOM SERVER (Mengengerüst, 18.10.2026):
@@ -195,9 +205,16 @@ export default function OrderView() {
   /** Ein Artikel, den der Katalog nicht kennt — frei getippt. */
   const [freiName, setFreiName] = useState('');
   const [freiMenge, setFreiMenge] = useState('1');
+  /*
+    DIE EINHEIT DER FREIEN ZEILE (M8): bei „Rohr ×30“ wusste das Lager nicht,
+    ob Meter oder Stangen. Freiwillig — leer bleibt es wie bisher.
+  */
+  const [freiEinheit, setFreiEinheit] = useState('');
   const [toPickUp, setToPickUp] = useState<WithId<MaterialOrder> | null>(null);
   /** Beim Abholen, solange nichts bereitgestellt ist (C7, E89): aus dem Lager oder vom Händler. */
   const [herkunft, setHerkunft] = useState<'lager' | 'haendler'>('lager');
+  /** Wie viel abgeholt wurde (M5) — leer heißt: alles. */
+  const [abholMenge, setAbholMenge] = useState('');
   /** Die Anforderung im Seitenfenster (C7, E89). */
   const [fenster, setFenster] = useState<WithId<MaterialOrder> | null>(null);
   /** Nachträglich eilig (17 F) — mit Rückfrage, weil andere davon eine Meldung bekommen. */
@@ -360,10 +377,14 @@ export default function OrderView() {
     if (!name || !(menge > 0)) return;
     setCart((prev) => [
       ...prev,
-      { materialId: '', materialName: name, quantity: menge, projectNumber, isUrgent: urgent && !!projectNumber },
+      {
+        materialId: '', materialName: name, quantity: menge, projectNumber, isUrgent: urgent && !!projectNumber,
+        ...(freiEinheit ? { einheit: freiEinheit } : {}),
+      },
     ]);
     setFreiName('');
     setFreiMenge('1');
+    setFreiEinheit('');
   }
 
   /** Die Zeile der Liste für diesen Artikel, die gewählte Baustelle und den Eil-Haken. */
@@ -408,6 +429,13 @@ export default function OrderView() {
     // Promise.all bliebe nach einem Teilfehler unklar, was schon geschrieben ist,
     // und ein zweiter Versuch erzeugte Duplikate.
     const failed: CartLine[] = [];
+    /*
+      DER GRUND JE POSITION (M8): vorher verwarf die Schleife den Fehler und
+      meldete nur die Zahl. Ein alter Korb mit inzwischen gelöschtem Artikel
+      oder geänderter Einheit scheiterte bei jedem Versuch, ohne dass jemand
+      erfuhr, warum.
+    */
+    const gruende: string[] = [];
     // Ohne Empfang bestätigt der Server nichts; die Anforderung liegt dann im
     // lokalen Zwischenspeicher und geht später raus. Das muss der Monteur
     // erfahren, sonst tippt er sie im Keller ein zweites Mal.
@@ -419,6 +447,7 @@ export default function OrderView() {
           materialId: line.materialId || null,
           materialName: line.materialName,
           quantity: line.quantity,
+          ...(line.einheit ? { einheit: line.einheit } : {}),
           // DIE NOTIZ WIRD HIER GENOMMEN, NICHT BEIM HINZUFÜGEN. Das Feld
           // erscheint erst, wenn schon etwas im Korb liegt — eine Notiz, die
           // beim Hinzufügen an die Position gehängt wurde, war also immer
@@ -434,8 +463,9 @@ export default function OrderView() {
           source: 'manual',
         });
         if (stand === 'queued') vorgemerkt = true;
-      } catch {
+      } catch (err) {
         failed.push(line);
+        gruende.push(`${line.materialName}: ${grundAus(err, 'nicht gesendet')}`);
       }
     }
     setCart(failed);
@@ -449,7 +479,8 @@ export default function OrderView() {
       zuMeinenSpringen();
     } else {
       setKorbFehler(
-        `${failed.length} von ${failed.length + (cart.length - failed.length)} Positionen konnten nicht gesendet werden. Sie bleiben im Warenkorb.`,
+        `${failed.length} von ${failed.length + (cart.length - failed.length)} Positionen konnten nicht gesendet werden. Sie bleiben im Warenkorb. `
+          + gruende.join(' · '),
       );
     }
   }
@@ -458,6 +489,7 @@ export default function OrderView() {
   /** „Abgeholt“ — die Rückfrage beginnt immer bei „Aus dem Lager“, wie bisher gebucht wurde. */
   function abholen(o: WithId<MaterialOrder>) {
     setHerkunft('lager');
+    setAbholMenge(zahlAlsText(o.quantity));
     setToPickUp(o);
   }
 
@@ -700,7 +732,7 @@ export default function OrderView() {
               Menge und „Hinzufügen" 90–106 px aus der Karte, wo sie
               abgeschnitten wurden (Prüflauf 25.09.2026, P4-02). */}
           {/* Derselbe Kreis wie beim Artikel aus dem Katalog (E74, V10): in jeder Breite in einer Reihe mit den Feldern. */}
-          <div className="mt-2 grid grid-cols-[minmax(0,1fr)_5rem_auto] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_6rem_auto]">
+          <div className="mt-2 grid grid-cols-[minmax(0,1fr)_4.5rem_5.5rem_auto] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_6rem_7rem_auto]">
             <InputField
               id="frei-name"
               label="Bezeichnung"
@@ -715,6 +747,7 @@ export default function OrderView() {
               value={freiMenge}
               onChange={(e) => setFreiMenge(e.target.value)}
             />
+            <EinheitFeld id="frei-einheit" value={freiEinheit} onChange={setFreiEinheit} leer="–" />
             <InDieListe
               label={freiName.trim() ? `${freiName.trim()} in die Liste` : 'In die Liste'}
               disabled={!freiName.trim() || !(zahlOder(freiMenge, NaN) > 0)}
@@ -805,7 +838,7 @@ export default function OrderView() {
                 title={
                   <span>
                     {line.materialName}{' '}
-                    <span className="text-ink-muted">×{fmtMenge(line.quantity)}</span>
+                    <span className="text-ink-muted">×{fmtMenge(line.quantity)}{line.einheit ? ` ${line.einheit}` : ''}</span>
                   </span>
                 }
                 subtitle={
@@ -886,10 +919,10 @@ export default function OrderView() {
                   key={o.id}
                   title={
                     <span>
-                      {o.materialName} <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
+                      {o.materialName} <span className="text-ink-muted">×{mengeText(o)}</span>
                     </span>
                   }
-                  subtitle={[o.projectNumber, o.note, wasLaeuft(o)].filter(Boolean).join(' · ')}
+                  subtitle={[o.projectNumber, o.note, beschaffungStand(o)].filter(Boolean).join(' · ')}
                   // STAND ZUERST (C7, E89): die ganze Zeile öffnet die Anforderung — dort steht „Eilig“.
                   onOeffnen={() => setFenster(o)}
                   ausgewaehlt={fenster?.id === o.id}
@@ -930,7 +963,7 @@ export default function OrderView() {
                   key={o.id}
                   title={
                     <span>
-                      {o.materialName} <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
+                      {o.materialName} <span className="text-ink-muted">×{mengeText(o)}</span>
                     </span>
                   }
                   subtitle={[
@@ -940,12 +973,32 @@ export default function OrderView() {
                     o.note,
                     // Warum der Lagerbestand gleich blieb (C7, E89).
                     o.abgeholtHerkunft === 'haendler' ? 'beim Händler mitgenommen' : '',
+                    // M7: die Retoure ist gemeldet, gutgeschrieben wird bei der Annahme im Lager.
+                    o.transactionType === 'return' && o.processed === false ? 'wartet auf Annahme im Lager' : '',
                   ].filter(Boolean).join(' · ')}
                 >
                   {o.transactionType === 'return' ? (
                     <Marke>Retoure</Marke>
                   ) : (
                     <StatusBadge status={o.status} />
+                  )}
+                  {/* V11: was übrig ist, geht von hier zurück — Artikel, Baustelle und Menge vorbelegt. */}
+                  {o.transactionType !== 'return' && o.status === 'Erledigt' && (
+                    <Button
+                      variant="ghost"
+                      aria-label={`${o.materialName} zurückgeben`}
+                      onClick={() => {
+                        setRetoureVorbelegt({
+                          materialId: o.materialId || null,
+                          materialName: o.materialName,
+                          menge: o.quantity,
+                          baustelle: o.projectNumber ?? '',
+                        });
+                        setRetoureOffen(true);
+                      }}
+                    >
+                      Zurückgeben
+                    </Button>
                   )}
                 </ListRow>
               ))}
@@ -963,7 +1016,11 @@ export default function OrderView() {
       {/* Die Retoure im Seitenfenster (Linie „Lot“, Regel 8) — dasselbe Formular wie im Lager. */}
       <RetoureFenster
         offen={retoureOffen}
-        onClose={() => setRetoureOffen(false)}
+        onClose={() => {
+          setRetoureOffen(false);
+          setRetoureVorbelegt(null);
+        }}
+        vorbelegt={retoureVorbelegt}
         companyId={user.companyId}
         user={user}
         baustelle={retoureBaustelle}
@@ -980,19 +1037,24 @@ export default function OrderView() {
         confirmTone="primary"
         message={
           toPickUp
-            ? abschlussText(toPickUp, herkunftFragen(toPickUp) ? herkunft : undefined)
+            ? abschlussText(abholTeil(toPickUp, abholMenge), herkunftFragen(toPickUp) ? herkunft : undefined)
             : ''
         }
         onCancel={() => setToPickUp(null)}
+        gesperrt={!!toPickUp && teilwahl(abholMenge, toPickUp.quantity).art === 'fehler'}
         onConfirm={async () => {
           if (toPickUp) {
+            const teil = teilwahl(abholMenge, toPickUp.quantity);
             try {
               const r = await updateOrderStatus(toPickUp.id, 'Erledigt', {
                 von: toPickUp.status,
                 ...(herkunftFragen(toPickUp) ? { herkunft } : {}),
+                ...(teil.art === 'teil' ? { menge: teil.menge } : {}),
               });
               if (r.art === 'geaendert') {
-                toast.success('Abholung bestätigt');
+                toast.success(teil.art === 'teil'
+                  ? `Abholung bestätigt — der Rest bleibt unter „Meine Anforderungen“`
+                  : 'Abholung bestätigt');
               } else {
                 // Schon gebucht oder vom Lager geändert: keine Erfolgsmeldung für nichts (R7-M3).
                 toast.info('Inzwischen schon als abgeholt gebucht oder vom Lager geändert — die Liste zeigt jetzt den neuen Stand.');
@@ -1017,6 +1079,18 @@ export default function OrderView() {
           kein großer dunkler Knopf mit einem Wort. Der Zusatz sagt, was die
           Wahl am Bestand bewirkt; die Buchung selbst bleibt dieselbe.
         */}
+        {toPickUp && (
+          <div className="mt-3">
+            <TeilmengeFeld
+              id="abgeholt-menge"
+              label="Abgeholt"
+              wert={abholMenge}
+              angefordert={toPickUp.quantity}
+              rest="bleibt als eigene Anforderung im selben Stand liegen"
+              onChange={setAbholMenge}
+            />
+          </div>
+        )}
         {toPickUp && herkunftFragen(toPickUp) && (
           <fieldset className="herkunft-wahl wahl-gruppe mt-3">
             <legend className="section-label mb-2">Woher kommt das Material?</legend>
@@ -1046,9 +1120,19 @@ export default function OrderView() {
         <AnforderungFenster
           key={fenster.id}
           o={fenster}
-          wasLaeuft={wasLaeuft(fenster)}
+          wasLaeuft={beschaffungStand(fenster)}
           onEilig={() => { setEilFrage(fenster); setFenster(null); }}
           onAbgeholt={() => { abholen(fenster); setFenster(null); }}
+          onMengeAendern={async (menge) => {
+            const ok = await anforderungMengeAendern(fenster.id, menge);
+            if (ok) toast.success('Menge geändert');
+            return ok;
+          }}
+          onZurueckziehen={async () => {
+            const ok = await anforderungZurueckziehen(fenster.id);
+            if (ok) toast.success('Anforderung zurückgezogen');
+            return ok;
+          }}
           onClose={() => setFenster(null)}
         />
       )}
@@ -1204,12 +1288,3 @@ function InDieListe({ label, disabled, onClick }: { label: string; disabled?: bo
   );
 }
 
-/**
- * WARUM ES DAUERT. Liegt es nicht im Lager, wird es beim Großhändler
- * bestellt — das sagt dem Monteur, dass er nicht vergeblich ins Lager fährt.
- * In der Zeile und im Seitenfenster derselbe Satz.
- */
-function wasLaeuft(o: MaterialOrder): string {
-  if (o.beschaffung !== 'einkauf' || o.geliefertAm) return '';
-  return o.bestelltAm ? 'beim Großhändler bestellt' : 'nicht im Lager — wird bestellt';
-}

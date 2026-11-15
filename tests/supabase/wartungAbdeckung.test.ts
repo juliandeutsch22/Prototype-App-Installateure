@@ -217,8 +217,13 @@ describe('Der nächste Durchgang ist verrechenbar', () => {
     await verrechnen('W-7', [w]);
     await expect(verrechnen('W-7', [w])).rejects.toThrow(/schon auf der Rechnung/);
 
-    // Ein Jahr später erledigt, das Feld „Baustelle“ blieb leer: die Ausführung landet wieder auf W-7.
-    await erledigt(w, '2026-03-03');
+    /*
+      Ein Jahr später wieder auf W-7 erledigt. Seit A13 (Durchsicht 15.11.2026)
+      muss die Baustelle dafür ausdrücklich dastehen: ein leeres Feld heißt
+      „ohne Baustelle“ und erbt nicht mehr die des Vorjahrs (geprüft in
+      `wartungErledigtBezug.test.ts`).
+    */
+    await erledigt(w, '2026-03-03', 'W-7');
     const { data: auf } = await admin.from('wartung_ausfuehrungen').select('am, baustelle').eq('wartung_id', w).order('am');
     expect(auf).toEqual([{ am: '2025-03-03', baustelle: 'W-7' }, { am: '2026-03-03', baustelle: 'W-7' }]);
     const zweite = await verrechnen('W-7', [w]);

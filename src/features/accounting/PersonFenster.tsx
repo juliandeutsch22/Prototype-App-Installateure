@@ -3,13 +3,16 @@ import type { WithId } from '@/lib/db/core';
 import type { AppUser, TimeEntry } from '@/types';
 import type { CompletenessResult, MonthStats } from '@/lib/time';
 import {
+  arbeitszeitAm,
   calcWorkMin,
   fmtDauer,
   fmtMin,
   getAustrianHolidayName,
   hatTagessoll,
+  localDateStr,
   schultagAngaben,
   tagesStatusName,
+  tageWort,
   tageZahl,
   vorzeichenTage,
 } from '@/lib/time';
@@ -64,6 +67,7 @@ export default function PersonFenster({
   gesamtsaldoH,
   zeitfelder,
   deaktiviert = false,
+  urlaubUnbekannt = false,
 }: {
   /**
    * Das Konto ist deaktiviert (ausgeschieden) und steht nur wegen seiner
@@ -71,6 +75,8 @@ export default function PersonFenster({
    * Resturlaub keine Aussage — gezeigt wird, was gebucht ist.
    */
   deaktiviert?: boolean;
+  /** Der genommene Urlaub konnte nicht geladen werden (Z7): der Resturlaub ist dann keine Zahl. */
+  urlaubUnbekannt?: boolean;
   user: AppUser;
   stats: MonthStats;
   completeness: CompletenessResult;
@@ -129,6 +135,8 @@ export default function PersonFenster({
     setMarkiert(tagVonAussen);
     setKalender(false);
   }, [tagVonAussen, u.uid, jahr, monat]);
+  /** Die Arbeitszeit am Monatsende (Z3) — für die Zeile „Tagessoll“. */
+  const imMonat = arbeitszeitAm(u, localDateStr(new Date(jahr, monat + 1, 0)));
   const markierterWert = markiert ? monatsWerte.find((t) => t.tag === markiert) : undefined;
   const behaelter = useRef<HTMLDivElement>(null);
 
@@ -270,11 +278,20 @@ export default function PersonFenster({
           „Resturlaub / 1,96 Tage Resturlaub“ nannte die Beschriftung zweimal.
         */}
         {!deaktiviert && <div className="pf-kennzahl" data-testid="resturlaub">
-          <p className="pf-kennzahl-name">Resturlaub</p>
-          <p className={`pf-kennzahl-wert ${stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'}`}>
-            {tageZahl(stats.urlaubRest)} {Math.abs(stats.urlaubRest) === 1 ? 'Tag' : 'Tage'}
-          </p>
-          {stats.urlaubAngepasst !== 0 && (
+          {/* Z5: der Stand am Monatsende; was danach schon genehmigt ist, eigens. */}
+          <p className="pf-kennzahl-name">Rest am Monatsende</p>
+          {urlaubUnbekannt ? (
+            /* Unbekannt statt null (Z7): ohne den genommenen Urlaub stünde der volle Anspruch da. */
+            <p className="pf-kennzahl-wert text-ink-muted">unbekannt</p>
+          ) : (
+            <p className={`pf-kennzahl-wert ${stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'}`}>
+              {tageZahl(stats.urlaubRest)} {Math.abs(stats.urlaubRest) === 1 ? 'Tag' : 'Tage'}
+            </p>
+          )}
+          {!urlaubUnbekannt && stats.urlaubVerplant > 0 && (
+            <p className="pf-kennzahl-text">davon verplant: {tageWort(stats.urlaubVerplant)}</p>
+          )}
+          {!urlaubUnbekannt && stats.urlaubAngepasst !== 0 && (
             <p className="pf-kennzahl-text">Anspruch angepasst: {vorzeichenTage(stats.urlaubAngepasst)}</p>
           )}
         </div>}
@@ -455,7 +472,8 @@ export default function PersonFenster({
             MIT EIGENEM TAGESSOLL JE WOCHENTAG die einzelnen Tage (Runde 5, G6):
             „Tagessoll 08:00“ war der Durchschnitt, die Akte führte 8,5 / … / 6.
           */}
-          Tagessoll {hatTagessoll(u) ? tagessollText(u.tagessoll!) : fmtDauer(Math.round(stats.dailyTargetH * 60))} ·
+          {/* Mit der Arbeitszeit des Monats (Z3) — wie Wochenstunden und Tagessoll aus `calcMonthStats`. */}
+          Tagessoll {hatTagessoll(imMonat) ? tagessollText(imMonat.tagessoll!) : fmtDauer(Math.round(stats.dailyTargetH * 60))} ·
           Wochenstunden {fmtDauer(Math.round(stats.weeklyTarget * 60))} ·{' '}
           {stats.requiredDays === 1 ? '1 Solltag' : `${tageZahl(stats.requiredDays)} Solltage`}
           {stats.holidaysInMonth > 0 &&

@@ -59,28 +59,34 @@ export interface NavItem {
    * mit „Rechnungen lesen“, oder im Einsatzplan, wenn der Betrieb es
    * einschaltet. Die Grenze zieht die Datenbank.
    */
-  zusatz?: { rolle: Role; wenn: keyof Zusatzrechte };
+  zusatz?: Zusatz | readonly Zusatz[];
 }
+
+/** Eine Rolle und die Freigabe oder Einstellung, unter der sie den Eintrag bekommt. */
+type Zusatz = { rolle: Role; wenn: keyof Zusatzrechte };
 
 /** Was über die Rolle hinaus einen Eintrag öffnet — aus der eigenen Zeile und dem Betrieb. */
 export interface Zusatzrechte {
   rechnungenLesen?: boolean;
   projektleitungImEinsatzplan?: boolean;
+  /** Geschäftsführung und Administrator im Einsatzplan (V12, E2). */
+  leitungImEinsatzplan?: boolean;
 }
 
 export function zusatzrechte(
   user: { rechnungenLesen?: boolean } | null | undefined,
-  company: { projektleitungImEinsatzplan?: boolean } | null | undefined,
+  company: { projektleitungImEinsatzplan?: boolean; leitungImEinsatzplan?: boolean } | null | undefined,
 ): Zusatzrechte {
   return {
     rechnungenLesen: user?.rechnungenLesen === true,
     projektleitungImEinsatzplan: company?.projektleitungImEinsatzplan === true,
+    leitungImEinsatzplan: company?.leitungImEinsatzplan === true,
   };
 }
 
 function eintragFuer(item: NavItem, role: Role, zusatz?: Zusatzrechte): boolean {
   return item.roles.includes(role)
-    || (!!item.zusatz && item.zusatz.rolle === role && !!zusatz?.[item.zusatz.wenn]);
+    || ([] as Zusatz[]).concat(item.zusatz ?? []).some((z) => z.rolle === role && !!zusatz?.[z.wenn]);
 }
 
 /**
@@ -131,7 +137,12 @@ export const NAV: NavItem[] = [
   { path: '/material', label: 'Material anfordern', short: 'Material', icon: 'package', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Material', modul: 'material' },
   // Nur REINE Mitarbeiter — Admin/GF sehen alle Baustellen über die
   // Verwaltungssicht (Legacy:1979 "nicht Admin, der sieht alle in Projekte").
-  { path: '/my-schedule', label: 'Mein Einsatzplan', short: 'Plan', icon: 'calendar', roles: ['Mitarbeiter'], group: 'Aufträge', modul: 'einsatzplanung', zusatz: { rolle: 'Projektleiter', wenn: 'projektleitungImEinsatzplan' } },
+  { path: '/my-schedule', label: 'Mein Einsatzplan', short: 'Plan', icon: 'calendar', roles: ['Mitarbeiter'], group: 'Aufträge', modul: 'einsatzplanung', zusatz: [
+    { rolle: 'Projektleiter', wenn: 'projektleitungImEinsatzplan' },
+    // Im kleinen Betrieb fährt der Chef mit (V12, E2).
+    { rolle: 'Geschäftsführung', wenn: 'leitungImEinsatzplan' },
+    { rolle: 'Administrator', wenn: 'leitungImEinsatzplan' },
+  ] },
   { path: '/my-projects', label: 'Meine Baustellen', short: 'Baustellen', icon: 'building', roles: ['Mitarbeiter'], group: 'Aufträge' },
   // Urlaub sieht JEDE Rolle: auch Buchhaltung und Verwaltung nehmen Urlaub,
   // und beantragen muessen ihn alle. Wer entscheiden darf, sieht in derselben

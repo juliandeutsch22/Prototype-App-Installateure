@@ -165,6 +165,8 @@ vi.mock('@/lib/db/assignments', () => ({
   listAssignmentsForUserInRange: vi.fn(async () => []),
   listAssignmentsInRange: vi.fn(async () => einsaetze),
   listEinsatztageInRange: vi.fn(async () => einsaetze),
+  // „Ohne Einsatz“ entscheidet seit P8 die Datenbank (`baustellen_ohne_einsatz`); hier: keine.
+  baustellenOhneEinsatz: vi.fn(async () => []),
   // Wie `baustellen_einsatzlage`: je Baustelle der letzte Einsatz vor heute und der nächste ab heute.
   baustellenEinsatzlage: vi.fn(async (_c: string, von: string, heute: string, bis: string) => {
     const lage = new Map<string, { projectNumber: string; zuletzt: string | null; naechster: string | null }>();
@@ -214,16 +216,33 @@ const offeneRechnungen: { wert: unknown[] } = { wert: [] };
 vi.mock('@/lib/db/invoices', () => ({
   listUnpaidInvoiceKoepfe: vi.fn(async () => offeneRechnungen.wert),
   listInvoicesByIds: vi.fn(async () => []),
-  scheineAufRechnung: vi.fn(async () => []),
+  scheineUnverrechnet: vi.fn(async () => []),
 }));
 vi.mock('@/lib/db/zahlungen', () => ({ listZahlungenImZeitraum: vi.fn(async () => []) }));
 vi.mock('@/lib/db/workSheets', () => ({
   listRecentWorkSheets: vi.fn(async () => []),
   listRecentWorkSheetKoepfe: vi.fn(async () => []),
   listOwnWorkSheetsSince: vi.fn(async () => []),
+  scheineNeu: vi.fn(async () => []),
+  scheineGesehen: vi.fn(async () => undefined),
 }));
 vi.mock('@/lib/db/wartungen', () => ({ listFaelligeWartungen: vi.fn(async () => []) }));
 vi.mock('@/lib/db/konten', () => ({ buchungskonten: vi.fn(async () => [{ zweck: 'erloes', konto: '4000' }]) }));
+/*
+  Der Saldo kommt aus der Datenbank (Durchsicht 15.11.2026, L1) — hier aus
+  denselben Buchungen gerechnet; scheitert der persönliche Block, scheitert er mit.
+*/
+vi.mock('@/lib/db/zeitkonto', async () => {
+  const { calcOverallSaldo } = await import('@/lib/time');
+  const { getUserByUid } = await import('@/lib/db/users');
+  return {
+    zeitkontoSaldo: vi.fn(async (uid: string) => {
+      if (scheitert.persoenlich) throw new Error('kein Netz');
+      const profil = await getUserByUid('perl', uid);
+      return calcOverallSaldo(profil!, buchungen, true);
+    }),
+  };
+});
 vi.mock('@/lib/db/monatsbilanzen', () => ({
   bilanzMarker: vi.fn(async () => null),
   listBilanzen: vi.fn(async () => []),

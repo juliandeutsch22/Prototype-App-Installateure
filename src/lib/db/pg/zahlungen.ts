@@ -92,6 +92,21 @@ export async function createZahlungAufgeteilt(
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Ein Guthaben mit einer anderen Rechnung desselben Kunden verrechnen
+ * (Durchsicht 15.11.2026, V7) — beide Hälften in EINEM Zug
+ * (`public.guthaben_umbuchen`). Die Datenbank prüft Kunde, Guthaben und
+ * Rest; im Zahlungsstapel steht danach eine Umbuchung, keine zwei
+ * Bankbewegungen.
+ */
+export async function guthabenUmbuchen(vonRechnung: string, aufRechnung: string, betrag: number): Promise<string> {
+  const { data, error } = await derClient().rpc('guthaben_umbuchen', {
+    p_von: vonRechnung, p_auf: aufRechnung, p_betrag: betrag,
+  });
+  if (error) throw new Error(error.message);
+  return String(data);
+}
+
 export function updateZahlung(id: string, daten: Partial<NeueZahlung>): Promise<void> {
   return aendern(ZAHLUNGEN, id, daten);
 }

@@ -103,7 +103,7 @@ export default function EinsatzFenster({
           // Die Einsätze der Woche sind da, sonst stünde das Fenster nicht offen — die Rüstliste lädt je Tag.
           bereit={listenDa}
           onGespeichert={onClose}
-          onLoeschen={(a) => deleteAssignment(a.id)}
+          onLoeschen={(a, wahl) => deleteAssignment(a.id, wahl)}
           /*
             DER GANZE TAG BLEIBT EINEN TIPP ENTFERNT: Termine, alle Einsätze
             des Tages, wer frei ist — und von dort „Tag planen“.

@@ -548,3 +548,32 @@ describe('Bestellnummer und Rücklass im Ausgangsbuch', () => {
     expect(gegen[spalte]).toBe('');
   });
 });
+
+/*
+  DURCHSICHT 15.11.2026, G8: die Lücke an der Grenze zweier Exportzeiträume.
+  September endet mit RE-2026-1049, Oktober beginnt mit RE-2026-1051 — die
+  1050 meldete keiner der beiden Exporte. Gegenprobe: ohne die Nummern vor
+  dem Zeitraum bleibt die Liste leer.
+*/
+describe('Lückenprüfung an der Grenze zum vorigen Zeitraum (G8)', () => {
+  const okt = [{ invoiceNumber: 'RE-2026-1051' }, { invoiceNumber: 'RE-2026-1052' }];
+  const vorher = ['RE-2026-1048', 'RE-2026-1049', 'RE-2026-1047'];
+
+  it('meldet die fehlende Nummer zwischen dem vorigen Zeitraum und diesem', () => {
+    expect(findeLuecken(okt, vorher)).toEqual(['RE-2026-1050']);
+  });
+
+  it('ältere Lücken meldet der Export ihres Zeitraums, nicht jeder spätere', () => {
+    expect(findeLuecken(okt, ['RE-2026-1040', 'RE-2026-1050'])).toEqual([]);
+  });
+
+  it('ein anderes Jahr ist ein anderer Kreis', () => {
+    expect(findeLuecken([{ invoiceNumber: 'RE-2027-1001' }], ['RE-2026-1049'])).toEqual([]);
+  });
+
+  // Bleibt gleich: ohne Nummern davor wie bisher.
+  it('ohne Nummern davor: wie bisher', () => {
+    expect(findeLuecken(okt)).toEqual([]);
+    expect(findeLuecken([{ invoiceNumber: 'RE-2026-1051' }, { invoiceNumber: 'RE-2026-1053' }])).toEqual(['RE-2026-1052']);
+  });
+});

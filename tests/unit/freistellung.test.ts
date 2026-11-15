@@ -185,9 +185,10 @@ describe('Im Zeitkonto', () => {
   });
 
   it('Monatsbilanz und Einzelbuchungen kommen auf denselben Saldo', () => {
+    // Der unbezahlte Tag am 5.6., nicht am 4.6.: Fronleichnam hat kein Soll, also auch keine Gutschrift (Z12).
     const eintraege = juni({
       '2026-06-03': [e('2026-06-03', 'Dienstverhinderung')],
-      '2026-06-04': [e('2026-06-04', 'Unbezahlt')],
+      '2026-06-05': [e('2026-06-05', 'Unbezahlt')],
       '2026-06-10': [e('2026-06-10', 'Anwesend', '07:00', '11:00'), e('2026-06-10', 'Pflegefreistellung', '12:00', '16:00')],
       '2026-06-17': [e('2026-06-17', 'Anwesend', '07:00', '13:00'), e('2026-06-17', 'Dienstverhinderung', '13:30', '15:30')],
     });
@@ -228,8 +229,8 @@ describe('Im Zeitkonto', () => {
     expect(s.saldoMin).toBe(calcMonthStats(anna, voll, voll, 2026, 5, true).saldoMin);
     const zeilen = buildMonthCsv([{ user: anna, monthEntries: eintraege, stats: s }], 2026, 5, true).split('\n');
     const ab = zeilen.indexOf('Mitarbeiter-Zusammenfassung');
-    expect(zeilen[ab + 1].endsWith(';Freigestellt stundenweise(Std);Unbezahlt-Tage;davon Arztbesuch(Std)')).toBe(true);
-    expect(zeilen[ab + 2].endsWith(';5,50;0;1,50')).toBe(true);
+    expect(zeilen[ab + 1].endsWith(';Freigestellt stundenweise(Std);Unbezahlt-Tage;davon Arztbesuch(Std);davon verplant(Tage)')).toBe(true);
+    expect(zeilen[ab + 2].endsWith(';5,50;0;1,50;0')).toBe(true);
     const einzeln = buildUserCsv(anna, eintraege, s, 2026, 5, true);
     expect(einzeln).toContain('Stundenweise freigestellt;5,50 h');
     expect(einzeln).toContain('davon Arztbesuch;1,50 h');

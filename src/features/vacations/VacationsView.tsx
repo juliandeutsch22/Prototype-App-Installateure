@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { istAn } from '@/lib/module';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -8,6 +9,8 @@ import {
   createVacation,
   deleteVacation,
   entscheiden as urlaubEntscheiden,
+  getVacation,
+  listGenehmigtNochNichtVorbei,
 } from '@/lib/db/vacations';
 import { getUserByUid, listUsers } from '@/lib/db/users';
 import { listAnpassungen } from '@/lib/db/urlaubsanspruch';
@@ -54,6 +57,8 @@ import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { Zustand, type Stand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import EingeteiltHinweis from '@/features/assignments/EingeteiltHinweis';
+import { canAccess, zusatzrechte } from '@/app/navigation';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
@@ -67,7 +72,11 @@ import { UrlaubsantragFenster } from './AntragFenster';
 import { grundAus } from '@/lib/fehlerGrund';
 import { useReiterImBild } from '@/components/reiterImBild';
 import UrlaubMonat from './UrlaubMonat';
+import KuerzenDialog from './UrlaubKuerzen';
 import { GENEHMIGT_GRENZE, gleichzeitigMit, zeitspanne } from './urlaubMonat';
+
+/** Wie viele genehmigte Anträge „Genehmigt, noch nicht vorbei“ auf einmal lädt. */
+const GENEHMIGT_JE_SEITE = 100;
 
 /** 'YYYY-MM-DD' -> '15.06.2026'. */
 function fmt(iso: string): string {
@@ -180,6 +189,14 @@ const STAND: Record<Vacation['status'], Stand> = {
 export default function VacationsView() {
   const { user, company } = useAuth();
   const halbeTage = dezemberHalbtage(company);
+  /*
+    V1: IST DIE PERSON IM ZEITRAUM EINGETEILT? Gefragt nur mit Einsatzplanung;
+    den Sprung in den Plan bekommt, wer ihn betreten darf.
+  */
+  const planung = useMemo(() => ({
+    an: istAn(company?.modules, 'einsatzplanung'),
+    darfPlanen: !!user && canAccess(user.role, '/assignments', company?.modules, zusatzrechte(user, company)),
+  }), [user, company]);
   const toast = useToast();
 
   /**
@@ -275,6 +292,18 @@ export default function VacationsView() {
     zurückgezogener Antrag schliesst es von selbst.
   */
   const [offenerAntragId, setOffenerAntragId] = useState<string | null>(null);
+  /*
+    GENEHMIGT, NOCH NICHT VORBEI (Z1, Durchsicht 15.11.2026): die Arbeitsliste
+    der Entscheidenden zum Zurücknehmen und Kürzen. Bisher gab es beides nur
+    am EIGENEN Antrag — in jedem Betrieb mit zwei Entscheidenden ließ sich ein
+    genehmigter Urlaub damit gar nicht mehr zurücknehmen.
+  */
+  const [genehmigt, setGenehmigt] = useState<WithId<Vacation>[] | 'laedt' | 'fehler'>('laedt');
+  const [genehmigtGrenze, setGenehmigtGrenze] = useState(GENEHMIGT_JE_SEITE);
+  /** Ein Antrag, der über die Adresse kam (`?antrag=`) und in keiner Liste steht. */
+  const [geladenerAntrag, setGeladenerAntrag] = useState<WithId<Vacation> | null>(null);
+  /** Welcher Antrag gerade gekürzt wird. */
+  const [zuKuerzen, setZuKuerzen] = useState<WithId<Vacation> | null>(null);
   /** Ablehnen und Zurücknehmen brauchen einen Grund — erfragt im Dialog der App. */
   const [begruenden, setBegruenden] = useState<{
     antrag: WithId<Vacation>;
@@ -388,6 +417,55 @@ export default function VacationsView() {
     void laden_();
   }, [laden_]);
 
+  const [genehmigtVersuch, setGenehmigtVersuch] = useState(0);
+  useEffect(() => {
+    if (!user || !darfEntscheiden) return;
+    let weg = false;
+    listGenehmigtNochNichtVorbei(user.companyId, todayStr(), genehmigtGrenze)
+      .then((l) => { if (!weg) setGenehmigt(l); })
+      .catch(() => { if (!weg) setGenehmigt('fehler'); });
+    return () => { weg = true; };
+  }, [user, darfEntscheiden, genehmigtGrenze, genehmigtVersuch]);
+
+  /*
+    DER SPRUNG VOM TAG (Z1): `?antrag=` öffnet genau diesen Antrag — den
+    eigenen aus „Meine Anträge“, einen fremden für die, die entscheiden.
+    Einmal je Besuch; danach bestimmt die Seite, was offen ist.
+  */
+  const antragAusAdresse = useRef(adresse.get('antrag'));
+  useEffect(() => {
+    const id = antragAusAdresse.current;
+    if (!id || !user || !ersterStand || laden) return;
+    antragAusAdresse.current = null;
+    if (eigene.some((v) => v.id === id)) {
+      setOffenerAntragId(id);
+      return;
+    }
+    if (!darfEntscheiden) {
+      toast.error('Diesen Antrag gibt es nicht mehr, oder er ist nicht deiner.');
+      return;
+    }
+    getVacation(user.companyId, id)
+      .then((a) => {
+        if (!a) {
+          toast.error('Diesen Antrag gibt es nicht mehr.');
+          return;
+        }
+        setGeladenerAntrag(a);
+        setOffenerAntragId(a.id);
+      })
+      .catch((err) => toast.error(grundAus(err, 'Der Antrag konnte nicht geladen werden.')));
+  }, [user, ersterStand, laden, eigene, darfEntscheiden, toast]);
+
+  /** Nach einer Änderung: alle Listen frisch, und ein über die Adresse geöffneter Antrag auch. */
+  async function nachAenderung() {
+    await laden_();
+    setGenehmigtVersuch((n) => n + 1);
+    if (user && geladenerAntrag) {
+      setGeladenerAntrag(await getVacation(user.companyId, geladenerAntrag.id).catch(() => geladenerAntrag));
+    }
+  }
+
   useEffect(() => {
     if (laden || !zuDenOffenen.current || !darfEntscheiden) return;
     zuDenOffenen.current = false;
@@ -437,8 +515,8 @@ export default function VacationsView() {
       eigene
         // Zeitausgleich geht vom Zeitguthaben ab, nicht vom Urlaub.
         .filter((v) => v.status === 'Genehmigt' && !istZa(v))
-        .flatMap((v) => antragNachUrlaubsjahr(v, profil?.workDays, halbeTage, regel.jahresbeginn)),
-    [eigene, profil?.workDays, halbeTage, regel.jahresbeginn],
+        .flatMap((v) => antragNachUrlaubsjahr(v, profil ?? undefined, halbeTage, regel.jahresbeginn)),
+    [eigene, profil, halbeTage, regel.jahresbeginn],
   );
   const stand = useMemo(
     () =>
@@ -556,7 +634,7 @@ export default function VacationsView() {
       );
     }
     const verteilen = (x: { von: string; bis?: string | null; tage: number }) =>
-      antragNachUrlaubsjahr(x, a.profil.workDays, halbeTage, regel.jahresbeginn);
+      antragNachUrlaubsjahr(x, a.profil, halbeTage, regel.jahresbeginn);
     const antragsjahr = urlaubsJahrVon(v.von, regel.jahresbeginn);
     const rest = urlaubsStand(a.profil, antragsjahr, a.genehmigt.flatMap(verteilen), regel, a.anpassungen).rest;
     /* Abgezogen wird, was von diesem Antrag in sein erstes Urlaubsjahr fällt. */
@@ -826,7 +904,7 @@ export default function VacationsView() {
           `Urlaub zurückgenommen — ${data.entfernt} ${data.entfernt === 1 ? 'Tag' : 'Tage'} aus dem Zeitkonto entfernt`,
         );
       }
-      await laden_();
+      await nachAenderung();
       /*
         DAS ABZEICHEN IM MENÜ ZÄHLT MIT. Ohne diese Zeile stünde nach der
         letzten Entscheidung weiter eine Zahl daneben, bis jemand die Seite
@@ -1004,6 +1082,10 @@ export default function VacationsView() {
                     </span>
                     {v.notiz && <span className="mt-1 block">{v.notiz}</span>}
                     {!istZa(v) && restZeile(v)}
+                    {/* V1: ist die Person im Zeitraum eingeteilt? Stundenweiser ZA lässt den Einsatz stehen. */}
+                    {!v.zaVon && user && (
+                      <EingeteiltHinweis companyId={user.companyId} an={planung.an} darfPlanen={planung.darfPlanen} uid={v.userId} von={v.von} bis={v.bis} />
+                    )}
                     {/*
                       DAS ZEITGUTHABEN BEIM ANTRAG — die Zahl, nach der
                       beim Zeitausgleich entschieden wird.
@@ -1063,9 +1145,17 @@ export default function VacationsView() {
     dieselben, mit derselben Rückfrage. Aus dem Fenster heraus schliesst es
     sich zuerst: die Rückfrage gehört allein in den Vordergrund.
   */
-  /** Den eigenen genehmigten Antrag zurücknehmen — nur, wenn sonst niemand darüber entscheidet. */
+  /**
+   * Einen genehmigten Antrag zurücknehmen oder kürzen: wer entscheidet — den
+   * eigenen nur, wenn sonst niemand darüber entscheidet (Vier-Augen).
+   */
   function zuruecknehmbar(v: WithId<Vacation>) {
-    return v.status === 'Genehmigt' && darfEntscheiden && !andereEntscheiden && !v.betriebsurlaubId;
+    return v.status === 'Genehmigt' && darfEntscheiden && !v.betriebsurlaubId
+      && (v.userId !== user?.uid || !andereEntscheiden);
+  }
+  /** Kürzen geht, wo mehr als ein Tag genehmigt ist; den stundenweisen Zeitausgleich nimmt man ganz zurück. */
+  function kuerzbar(v: WithId<Vacation>) {
+    return zuruecknehmbar(v) && !v.zaVon && v.von < v.bis;
   }
 
   function antragsKnoepfe(v: WithId<Vacation>, ausFenster: boolean) {
@@ -1074,7 +1164,7 @@ export default function VacationsView() {
     };
     return (
       <>
-        {v.status === 'Beantragt' && (
+        {v.status === 'Beantragt' && v.userId === user?.uid && (
           <Button
             variant={ausFenster ? 'secondary' : 'ghost'}
             loading={arbeitet === v.id}
@@ -1098,6 +1188,18 @@ export default function VacationsView() {
           09.11.2026) — wie beim Genehmigen; die Datenbank lehnt es sonst ab.
           Wer allein entscheidet, nimmt ihn weiter selbst zurück.
         */}
+        {kuerzbar(v) && (
+          <Button
+            variant={ausFenster ? 'secondary' : 'ghost'}
+            loading={arbeitet === v.id}
+            onClick={() => {
+              davor();
+              setZuKuerzen(v);
+            }}
+          >
+            Kürzen
+          </Button>
+        )}
         {zuruecknehmbar(v) && (
           <Button
             variant={ausFenster ? 'secondary' : 'ghost'}
@@ -1113,9 +1215,63 @@ export default function VacationsView() {
       </>
     );
   }
-  const offenerAntrag = offenerAntragId ? eigene.find((v) => v.id === offenerAntragId) ?? null : null;
+  const offenerAntrag = offenerAntragId
+    ? eigene.find((v) => v.id === offenerAntragId)
+      ?? (Array.isArray(genehmigt) ? genehmigt.find((v) => v.id === offenerAntragId) : undefined)
+      ?? (geladenerAntrag?.id === offenerAntragId ? geladenerAntrag : null)
+    : null;
+  const fremderOffen = !!offenerAntrag && offenerAntrag.userId !== user.uid;
   const fensterKnoepfe =
-    offenerAntrag && (offenerAntrag.status === 'Beantragt' || zuruecknehmbar(offenerAntrag));
+    offenerAntrag && ((offenerAntrag.status === 'Beantragt' && offenerAntrag.userId === user.uid) || zuruecknehmbar(offenerAntrag));
+
+  /** Genehmigt, noch nicht vorbei — die Zeile öffnet den Antrag mit Verlauf und Handgriffen (Z1). */
+  const heute = todayStr();
+  const genehmigtKarte = darfEntscheiden ? (
+    <Card
+      id="genehmigt-offen"
+      title={`Genehmigt, noch nicht vorbei${Array.isArray(genehmigt) ? ` (${genehmigt.length}${genehmigt.length >= genehmigtGrenze ? '+' : ''})` : ''}`}
+      hint="Genehmigter Urlaub und Zeitausgleich, der heute läuft oder noch kommt. Eine Zeile öffnet den Antrag: Kürzen (später weg, früher zurück, einen Tag streichen) oder ganz zurücknehmen, jeweils mit Grund — er steht im Verlauf des Antrags und geht an die Person. Ein gestrichener Tag mitten im Urlaub teilt den Antrag in zwei. Betriebsurlaub steht hier nicht; er wird im Reiter „Betriebsurlaub“ geändert."
+      buendig
+    >
+      {genehmigt === 'laedt' ? (
+        <div className="p-4"><SkeletonList rows={3} /></div>
+      ) : genehmigt === 'fehler' ? (
+        <div className="px-4 py-3">
+          <TeilFehler was="Der genehmigte Urlaub" onRetry={() => setGenehmigtVersuch((n) => n + 1)} />
+        </div>
+      ) : genehmigt.length === 0 ? (
+        <EmptyState>Kein genehmigter Urlaub steht an.</EmptyState>
+      ) : (
+        <>
+          <List>
+            {genehmigt.map((v) => (
+              <ListRow
+                key={v.id}
+                title={<><span>{v.userName}</span><span className="sr-only"> – Antrag öffnen</span></>}
+                onOeffnen={() => setOffenerAntragId(v.id)}
+                ausgewaehlt={offenerAntragId === v.id}
+                subtitle={
+                  <>
+                    <span className="block">{zeitraum(v)} · {umfang(v)}</span>
+                    {(v.aenderungen?.length ?? 0) > 0 && (
+                      <span className="mt-1 block text-xs text-ink-muted">gekürzt</span>
+                    )}
+                  </>
+                }
+              >
+                {v.von <= heute && <Zustand stand="gut">läuft</Zustand>}
+              </ListRow>
+            ))}
+          </List>
+          {genehmigt.length >= genehmigtGrenze && (
+            <button type="button" className="mehr-laden" onClick={() => setGenehmigtGrenze((n) => n + GENEHMIGT_JE_SEITE)}>
+              Weitere laden
+            </button>
+          )}
+        </>
+      )}
+    </Card>
+  ) : null;
 
   const REITER: { key: Reiter; label: string }[] = [
     { key: 'antraege', label: 'Anträge' },
@@ -1175,7 +1331,7 @@ export default function VacationsView() {
         </div>
       )}
 
-      {buero && reiter === 'krank' && <KrankenstaendeReiter companyId={user.companyId} meinName={user.name} />}
+      {buero && reiter === 'krank' && <KrankenstaendeReiter companyId={user.companyId} meinName={user.name} planung={planung} />}
       {buero && reiter === 'betrieb' && <BetriebsurlaubReiter companyId={user.companyId} meinName={user.name} />}
 
       {(!buero || reiter === 'antraege') && (
@@ -1217,6 +1373,7 @@ export default function VacationsView() {
           <UrlaubMonat companyId={user.companyId} ersterTag={offene[0]?.von} className="zeit-liste" />
         </div>
       )}
+      {darfEntscheiden && kartenBereit && offene.length > 0 && genehmigtKarte}
       {/* Dasselbe für den Sonderurlaub: wartet einer, steht die Karte oben. */}
       {buero && kartenBereit && offeneFrei > 0 && (
         <FreistellungenBestaetigen user={user} company={company} />
@@ -1650,6 +1807,7 @@ export default function VacationsView() {
           <UrlaubMonat companyId={user.companyId} ersterTag={offene[0]?.von} className="zeit-liste" />
         </div>
       )}
+      {darfEntscheiden && kartenBereit && offene.length === 0 && genehmigtKarte}
       {buero && kartenBereit && offeneFrei === 0 && (
         <FreistellungenBestaetigen user={user} company={company} />
       )}
@@ -1657,7 +1815,7 @@ export default function VacationsView() {
       <UrlaubsantragFenster
         antrag={offenerAntrag}
         // Die Anmerkung steht im Verlauf beim Antrag, nicht doppelt im Kopf.
-        umfang={offenerAntrag ? umfang(offenerAntrag) : ''}
+        umfang={offenerAntrag ? `${fremderOffen ? `${offenerAntrag.userName} · ` : ''}${umfang(offenerAntrag)}` : ''}
         stand={offenerAntrag && <Zustand stand={STAND[offenerAntrag.status]}>{offenerAntrag.status}</Zustand>}
         onClose={() => setOffenerAntragId(null)}
       >
@@ -1689,6 +1847,18 @@ export default function VacationsView() {
             onChange={(e) => setBegruendung(e.target.value)}
           />
         </ConfirmDialog>
+      )}
+
+      {zuKuerzen && (
+        <KuerzenDialog
+          antrag={zuKuerzen}
+          entscheiderName={user.name}
+          onCancel={() => setZuKuerzen(null)}
+          onFertig={() => {
+            setZuKuerzen(null);
+            void nachAenderung();
+          }}
+        />
       )}
 
       {zurueckzuziehen && (

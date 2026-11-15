@@ -342,29 +342,25 @@ describe('Rechnungszaehler — monoton und nur fuer Abrechnende', () => {
     und ist mit dem Umzug des Moduls in die Datenbank gewandert — sie gilt
     jetzt auch fuer jeden, der die Funktion an der App vorbei aufruft.
   */
-  it('Buchhaltung darf den Zaehler anlegen und hochzaehlen', async () => {
-    const erst = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(erst.data).toBe(1001);
-    const dann = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(dann.data).toBe(1002);
+  /*
+    SEIT G11 (15.11.2026) entsteht eine Rechnungsnummer nur mit ihrer
+    Rechnung oder Stornorechnung. Direkt gezogen, wurde sie nie ein Beleg —
+    eine Lücke im lückenlosen Kreis. Der Kreis selbst (1001, monoton, je
+    Betrieb) ist in `rechnungInEinemZug.test.ts` und `modulGeld.test.ts`
+    über das Ausstellen geprüft.
+  */
+  it('die Buchhaltung zieht keine Rechnungsnummer mehr direkt', async () => {
+    const { error } = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
+    expect(error?.message).toMatch(/nur zusammen mit ihrer Rechnung/);
   });
 
-  it('der Zaehler darf NICHT zurueckgesetzt werden', async () => {
-    // In Firestore war das eine Regel über dem Dokument. Hier ist es eine
-    // Eigenschaft der Bauart: an die Tabelle kommt niemand heran, und die
-    // Funktion kann nur hochzählen. Was nicht erreichbar ist, lässt sich auch
-    // nicht zurücksetzen — das ist die stärkere Zusage.
+  it('der Zaehler darf NICHT zurueckgesetzt und nicht geloescht werden', async () => {
+    // An die Tabelle kommt niemand heran — was nicht erreichbar ist, lässt sich nicht zurücksetzen.
     const direkt = await aBuch.client.from('number_counters')
       .update({ stand: 0 }).eq('company_id', 'firma-a').select();
     expect(direkt.data ?? []).toEqual([]);
-    const weiter = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(weiter.data).toBe(1003);
-  });
-
-  it('der Zaehler darf nicht geloescht werden', async () => {
-    await aBuch.client.from('number_counters').delete().eq('company_id', 'firma-a');
-    const weiter = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(weiter.data).toBe(1004);
+    const geloescht = await aBuch.client.from('number_counters').delete().eq('company_id', 'firma-a').select();
+    expect(geloescht.data ?? []).toEqual([]);
   });
 
   it('ein Monteur kommt an den Zaehler nicht heran', async () => {
@@ -372,12 +368,8 @@ describe('Rechnungszaehler — monoton und nur fuer Abrechnende', () => {
     expect(error).not.toBeNull();
   });
 
-  it('eine fremde Firma kommt an den Zaehler nicht heran', async () => {
-    // Sie bekommt ihren EIGENEN Zähler, nicht den fremden — die Funktion
-    // liest den Betrieb aus dem Token und nicht aus dem Aufruf.
+  it('eine fremde Firma sieht keinen fremden Zaehler', async () => {
     const bBuch = await konto('firma-b', 'Buchhaltung', 'b-buch');
-    const eigener = await bBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(eigener.data).toBe(1001);
     expect((await bBuch.client.from('number_counters').select('*')).data ?? []).toEqual([]);
   });
 });
@@ -937,14 +929,20 @@ describe('Materialstamm — den Bestand bewegen Abholung und Retoure, gepflegt w
     expect(Number(data!.stock)).toBe(95);
   });
 
-  it('der Monteur schreibt eine Retoure zurück', async () => {
+  it('der Monteur meldet eine Retoure — gutgeschrieben wird mit der Annahme im Lager (M7)', async () => {
+    const id = crypto.randomUUID();
     const { error } = await a.client.rpc('retoure_anlegen', {
       p_beleg: {
-        id: crypto.randomUUID(), company_id: 'firma-a', material_id: artikel,
+        id, company_id: 'firma-a', material_id: artikel,
         material_name: 'Kupferrohr 15mm', quantity: 2, condition: 'neu', user_id: a.uid,
       },
     });
     expect(error).toBeNull();
+    const vorher = await admin.from('materials').select('stock').eq('id', artikel).single();
+    expect(Number(vorher.data!.stock)).toBe(95);
+    // Annehmen darf der Monteur nicht, die Verwaltung schon.
+    expect((await a.client.rpc('retoure_annehmen', { p_id: id })).error?.code).toBe('42501');
+    expect((await aVerwaltung.client.rpc('retoure_annehmen', { p_id: id })).error).toBeNull();
     const { data } = await admin.from('materials').select('stock').eq('id', artikel).single();
     expect(Number(data!.stock)).toBe(97);
   });
@@ -1168,41 +1166,63 @@ describe('Rechnungen — geloescht wird gar keine', () => {
 });
 
 describe('Angebotszaehler — steigend, Neubeginn nur zum Jahreswechsel', () => {
+  /*
+    SEIT G10 (15.11.2026) zählt der Kreis im laufenden Jahr in Wien; ein
+    anderes Jahr gibt es nicht mehr über die Schnittstelle. Den Jahreswechsel
+    stellt der Zähler des Vorjahrs nach, den die Prüfung direkt anlegt.
+  */
+  const JAHR_WIEN = Number(new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Vienna' }).format(new Date()).slice(0, 4));
+
   it('die Leitung zaehlt im laufenden Jahr hoch', async () => {
-    const erst = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: 2040 });
-    const dann = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: 2040 });
+    const erst = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    const dann = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
     expect(dann.data).toBe((erst.data as number) + 1);
   });
 
   it('zurueck geht im laufenden Jahr NICHT', async () => {
-    const vorher = (await aLeitung.client.from('quotes').select('id')).data;
-    void vorher;
-    // Zurücksetzen ist hier kein verbotener Vorgang, sondern ein unmöglicher:
-    // an den Zähler kommt niemand, und die Funktion kennt nur eine Richtung.
+    const vorher = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    // An den Zähler kommt niemand, und die Funktion kennt nur eine Richtung.
     const direkt = await aLeitung.client.from('number_counters')
       .update({ stand: 1 }).eq('art', 'quotes').select();
     expect(direkt.data ?? []).toEqual([]);
-    const weiter = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: 2040 });
-    expect(weiter.data).toBe(3);
+    const weiter = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    expect(weiter.data).toBe((vorher.data as number) + 1);
   });
 
+  it('der Zaehler des Vorjahrs zaehlt im neuen Jahr nicht weiter', async () => {
+    await admin.from('number_counters').upsert({ company_id: 'firma-a', art: 'quotes', jahr: JAHR_WIEN - 1, stand: 412 });
+    const neu = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    expect(neu.data).toBeLessThan(412);
+  });
+
+  /*
+    DER JAHRESWECHSEL, NACHGESTELLT (Welle 2): ein Betrieb, dessen Kreis im
+    Vorjahr bei 412 stand und der im laufenden Jahr noch keine Nummer
+    gezogen hat — so steht jeder Betrieb am 1. Jänner da.
+  */
   it('zum Jahreswechsel beginnt er bei genau 1', async () => {
-    const neu = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: 2041 });
+    await betriebAnlegen('firma-jahreswechsel', 'Firma Jahreswechsel');
+    const leitung = await konto('firma-jahreswechsel', 'Projektleiter', 'jw-leitung');
+    await admin.from('number_counters').upsert({ company_id: 'firma-jahreswechsel', art: 'quotes', jahr: JAHR_WIEN - 1, stand: 412 });
+    const neu = await leitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
     expect(neu.data).toBe(1);
   });
 
   it('der Jahreswechsel ist kein Freibrief fuer irgendeine Zahl', async () => {
-    // In Firestore musste die Regel prüfen, dass der Neubeginn genau 1 ist —
-    // der Client schlug die Zahl ja vor. Hier schlägt niemand etwas vor.
-    const zweiter = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: 2041 });
-    expect(zweiter.data).toBe(2);
+    // Niemand schlägt eine Zahl vor: nach der 1 kommt die 2, nicht die 413.
+    const leitung = await konto('firma-jahreswechsel', 'Projektleiter', 'jw-leitung-2');
+    const zweite = await leitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    expect(zweite.data).toBe(2);
   });
 
-  it('der Rechnungskreis laeuft ueber den Jahreswechsel weiter', async () => {
-    // Zwei Kreise, zwei Zähler: das Angebot beginnt neu, die Rechnung nicht.
-    const r1 = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2041 });
-    const r2 = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2041 });
-    expect(r2.data).toBe((r1.data as number) + 1);
+  it('ein Gerät mit falschem Jahr bekommt keine Nummer (G10)', async () => {
+    const { error } = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN + 14 });
+    expect(error?.message).toMatch(/nicht das laufende Jahr/);
+  });
+
+  it('der Rechnungskreis ist ein eigener — und nur über das Ausstellen erreichbar (G11)', async () => {
+    const r = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: JAHR_WIEN });
+    expect(r.error?.message).toMatch(/nur zusammen mit ihrer Rechnung/);
   });
 });
 

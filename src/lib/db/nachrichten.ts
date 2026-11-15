@@ -39,6 +39,7 @@ export {
   hatGespraeche,
   ungeleseneZahl,
   anhangAdressen,
+  ANHANG_ADRESSE_GUELTIG_S,
   abonniereNachrichtenStand,
 } from './pg/nachrichten';
 export type {

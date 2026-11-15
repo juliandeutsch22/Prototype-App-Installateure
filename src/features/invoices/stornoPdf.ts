@@ -150,7 +150,13 @@ export async function buildStornoPdf(o: StornoOptionen): Promise<Blob> {
     ) + 3;
   }
 
-  const bezahlt = zahlstand(inv).bezahlt;
+  /*
+    WAS BEIM AUSSTELLEN BEZAHLT WAR (G8), nicht was heute bezahlt ist: sonst
+    sagte der Nachdruck nach der Rückzahlung „entfällt“ statt „erstatten
+    wir“ — ein anderer Beleg unter derselben Nummer. Stornorechnungen davor
+    tragen den Betrag nicht; für sie gilt der Stand wie bisher.
+  */
+  const bezahlt = inv.stornoBezahlt ?? zahlstand(inv).bezahlt;
   y = absatz(
     bezahlt > 0
       ? `Bereits bezahlte ${euroBetrag(bezahlt)} € erstatten wir Ihnen oder verrechnen sie mit einer neuen Rechnung.`

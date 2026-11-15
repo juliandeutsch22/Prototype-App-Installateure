@@ -114,6 +114,27 @@ export async function ausLager(orderId: string, status?: MaterialOrder['status']
 }
 
 /**
+ * TEILWEISE AUS DEM LAGER (M5, 16.11.2026): `menge` wird abholbereit, der
+ * Rest bleibt offen oder geht auf die Einkaufsliste (beim Großhändler
+ * `supplierId`). Eine Zeile wird dazu geteilt (`anforderung_aus_lager`).
+ * Reicht das Freie nicht, meldet die Datenbank es mit Zahlen. `false`:
+ * inzwischen hat jemand anderes entschieden.
+ */
+export async function ausLagerTeil(
+  orderId: string,
+  status: MaterialOrder['status'],
+  menge: number,
+  rest: 'offen' | 'einkauf',
+  supplierId: string | null,
+): Promise<boolean> {
+  const { data, error } = await derClient().rpc('anforderung_aus_lager', {
+    p_id: orderId, p_status: status, p_menge: menge, p_rest: rest, p_supplier: supplierId,
+  });
+  if (error) throw new Error(error.message);
+  return (data as { ergebnis?: string } | null)?.ergebnis === 'geaendert';
+}
+
+/**
  * Nicht im Lager: auf die Einkaufsliste, beim gewählten Grosshändler —
  * dieselbe Bedingung wie „Aus Lager“.
  *
@@ -174,13 +195,45 @@ export function alsBestelltMarkieren(orderIds: string[]): Promise<string[]> {
  * Als EIN Aufruf (`einkauf_geliefert`): zweimal gedrückt bucht nicht zweimal
  * ein, und Bestand und Status laufen nie auseinander.
  */
-export async function geliefert(orderIds: string[], ortId?: string): Promise<number> {
+export async function geliefert(orderIds: string[], ortId?: string, lieferschein?: string): Promise<number> {
   if (orderIds.length === 0) return 0;
   // Der Zielort (M04a) nur, wenn einer gewählt ist — ins Hauptlager der Aufruf wie bisher.
   const { data, error } = await derClient().rpc('einkauf_geliefert', {
     p_ids: orderIds,
     ...(ortId ? { p_ort: ortId } : {}),
+    ...(lieferschein?.trim() ? { p_lieferschein: lieferschein.trim() } : {}),
   });
+  if (error) throw new Error(error.message);
+  return Number(data ?? 0);
+}
+
+/**
+ * TEILLIEFERUNG (M4, 16.11.2026): `menge` einer bestellten Zeile ist da —
+ * der Teil wird gebucht, der Rest bleibt bestellt (`einkauf_teillieferung`).
+ * Mit der ganzen Menge wie „Geliefert“. `false`: inzwischen schon geliefert
+ * oder nicht mehr bestellt.
+ */
+export async function teillieferung(
+  id: string, menge: number, lieferschein?: string, ortId?: string,
+): Promise<boolean> {
+  const { data, error } = await derClient().rpc('einkauf_teillieferung', {
+    p_id: id,
+    p_menge: menge,
+    ...(lieferschein?.trim() ? { p_lieferschein: lieferschein.trim() } : {}),
+    ...(ortId ? { p_ort: ortId } : {}),
+  });
+  if (error) throw new Error(error.message);
+  return (data as { ergebnis?: string } | null)?.ergebnis === 'geliefert';
+}
+
+/**
+ * BESTELLUNG STORNIEREN (M4): bestellte, noch nicht gelieferte Zeilen mit
+ * Grund zurück auf „zu bestellen“ (`einkauf_stornieren`). Zurück: wie viele
+ * es traf.
+ */
+export async function bestellungStornieren(ids: string[], grund: string): Promise<number> {
+  if (ids.length === 0) return 0;
+  const { data, error } = await derClient().rpc('einkauf_stornieren', { p_ids: ids, p_grund: grund });
   if (error) throw new Error(error.message);
   return Number(data ?? 0);
 }
@@ -274,6 +327,71 @@ export function listLagerPosten(companyId: string): Promise<WithId<EinkaufPosten
     sortiere: { feld: 'createdAt' },
     grenze: POSTEN_GRENZE,
   });
+}
+
+/**
+ * WAS VON DIESEM ARTIKEL NOCH KOMMT (M12): offene Zeilen der Einkaufsliste —
+ * Anforderungen und eigene Posten, noch nicht geliefert. Der Wareneingang im
+ * Lager bietet die bestellten davon an und erledigt sie mit; dazu die in den
+ * letzten Tagen schon als geliefert gebuchten, damit niemand eine Lieferung
+ * ein zweites Mal einbucht.
+ *
+ * Die Grenze ist großzügig: offene Bestellungen eines Artikels sind eine
+ * Handvoll, nicht hundert.
+ */
+const JE_ARTIKEL_GRENZE = 100;
+/** Wie weit „schon geliefert“ zurückreicht — eine Lieferung, die man noch auspackt. */
+export const GELIEFERT_ZURUECK_TAGE = 14;
+
+export async function lieferungenFuerArtikel(
+  companyId: string,
+  materialId: string,
+  jetzt = Date.now(),
+): Promise<{
+  anforderungen: WithId<MaterialOrder>[];
+  posten: WithId<EinkaufPosten>[];
+  geliefert: Array<WithId<MaterialOrder> | WithId<EinkaufPosten>>;
+}> {
+  const seit = new Date(jetzt - GELIEFERT_ZURUECK_TAGE * 86_400_000).toISOString();
+  const [anforderungen, posten, angeliefert, postenGeliefert] = await Promise.all([
+    abfragen<MaterialOrder>(ANFORDERUNGEN, companyId, {
+      wo: [
+        { art: 'gleich', feld: 'materialId', wert: materialId },
+        { art: 'gleich', feld: 'beschaffung', wert: 'einkauf' },
+        { art: 'gleich', feld: 'transactionType', wert: 'order' },
+        { art: 'gleich', feld: 'processed', wert: false },
+        { art: 'leer', feld: 'geliefertAm' },
+      ],
+      sortiere: { feld: 'createdAt' },
+      grenze: JE_ARTIKEL_GRENZE,
+    }),
+    abfragen<EinkaufPosten>(POSTEN, companyId, {
+      wo: [
+        { art: 'gleich', feld: 'materialId', wert: materialId },
+        { art: 'leer', feld: 'geliefertAm' },
+      ],
+      sortiere: { feld: 'createdAt' },
+      grenze: JE_ARTIKEL_GRENZE,
+    }),
+    abfragen<MaterialOrder>(ANFORDERUNGEN, companyId, {
+      wo: [
+        { art: 'gleich', feld: 'materialId', wert: materialId },
+        { art: 'gleich', feld: 'beschaffung', wert: 'einkauf' },
+        { art: 'ab', feld: 'geliefertAm', wert: seit },
+      ],
+      sortiere: { feld: 'geliefertAm', absteigend: true },
+      grenze: JE_ARTIKEL_GRENZE,
+    }),
+    abfragen<EinkaufPosten>(POSTEN, companyId, {
+      wo: [
+        { art: 'gleich', feld: 'materialId', wert: materialId },
+        { art: 'ab', feld: 'geliefertAm', wert: seit },
+      ],
+      sortiere: { feld: 'geliefertAm', absteigend: true },
+      grenze: JE_ARTIKEL_GRENZE,
+    }),
+  ]);
+  return { anforderungen, posten, geliefert: [...angeliefert, ...postenGeliefert] };
 }
 
 export type NeuerLagerPosten = Pick<

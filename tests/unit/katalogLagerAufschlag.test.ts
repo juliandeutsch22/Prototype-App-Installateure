@@ -56,6 +56,14 @@ describe('Katalog und Lager', () => {
     expect(istKnapp(6, { mindestmenge: null }, 5)).toBe(false);
   });
 
+  it('M9: ein ausgelaufener Artikel ist nie knapp — ein nicht ausgelaufener bleibt es', () => {
+    expect(istKnapp(2, { mindestmenge: 10, ausgelaufen: true }, 5)).toBe(false);
+    expect(istKnapp(0, { ausgelaufen: true }, 5)).toBe(false);
+    // Gleichbleiben:
+    expect(istKnapp(2, { mindestmenge: 10, ausgelaufen: false }, 5)).toBe(true);
+    expect(istKnapp(5, { ausgelaufen: false }, 5)).toBe(true);
+  });
+
   it('die Datenbank führt, was Bestand hat, und lässt Bestand nur im Lager zu', () => {
     expect(MIGRATION).toContain('check (lagerartikel or stock = 0)');
     expect(MIGRATION).toMatch(/if new\.stock <> 0 and \(tg_op = 'INSERT' or new\.stock is distinct from old\.stock\) then\s+new\.lagerartikel := true;/);

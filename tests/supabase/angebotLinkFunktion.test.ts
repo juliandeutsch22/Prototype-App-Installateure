@@ -217,3 +217,31 @@ describe('Dieselben Grenzen in der Function und in der Datenbank', () => {
     expect(r.data).toMatchObject({ zustand: 'angenommen', neu: true });
   });
 });
+
+/*
+  A4 (Durchsicht 15.11.2026): nach „Neue Fassung“ blieb der Link der alten
+  offen; der Kunde konnte die überholte Fassung verbindlich unterschreiben.
+*/
+describe('Der Link einer überholten Fassung (A4)', () => {
+  it('antwortet „neuere Fassung“ — ohne Inhalt; Annehmen ändert nichts', async () => {
+    const l = await link();
+    await chefin.client.rpc('angebot_speichern', {
+      p_id: null,
+      p_kopf: {
+        quote_number: `AN-FN-NF-${Date.now()}`, customer_name: 'Familie Funktion', quote_date: '2026-11-07',
+        valid_until: '2099-01-01', vat_rate: 0.2, status: 'Entwurf', vorgaenger_id: l.angebot,
+      },
+      p_positionen: [{ label: 'Montage', qty: 3, unit: 'h', unit_price: 70, netto: 210, ist_arbeitszeit: true }],
+    });
+    const abruf = await rufen({ aktion: 'abruf', schluessel: l.schluessel });
+    expect(abruf.status).toBe(200);
+    const d = JSON.parse(abruf.text);
+    expect(d).toMatchObject({ zustand: 'neuere_fassung', firma: 'Funktion GmbH' });
+    expect(d.schnappschuss).toBeUndefined();
+    const an = await rufen({ aktion: 'annehmen', schluessel: l.schluessel, name: 'Fritz Funktion', bestaetigt: true, unterschrift: BILD });
+    expect(JSON.parse(an.text)).toMatchObject({ zustand: 'neuere_fassung' });
+    expect((await admin.from('quotes').select('status').eq('id', l.angebot).single()).data).toEqual({ status: 'Versendet' });
+    // Die Datenschicht der Seite liest es als eigenen Zustand.
+    expect(await annahmeAnfrage({ aktion: 'abruf', schluessel: l.schluessel })).toMatchObject({ zustand: 'neuere_fassung' });
+  });
+});

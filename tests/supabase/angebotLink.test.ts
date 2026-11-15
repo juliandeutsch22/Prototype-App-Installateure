@@ -678,9 +678,9 @@ describe('Erhaltung: die interne Annahme und der Zähler', () => {
       const s = await plattform.client.rpc('angebot_annehmen', { p_angebot: await angebot(), p_praefix: 'SU', p_abrechnung: 'Pauschal' });
       expect(s.error).toBeNull();
       expect(String(s.data)).toMatch(new RegExp(`^SU-${jahr}-\\d{4}$`));
-      // Rechnungsnummern bleiben ihm verschlossen — der Zähler fragt wie bisher.
+      // Rechnungsnummern bleiben ihm verschlossen — seit G11 zieht sie niemand direkt; den Riegel beim Ausstellen prüft `supportArbeitetMit.test.ts`.
       expect((await plattform.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: Number(jahr) })).error?.message)
-        .toMatch(/Rechnungsnummern vergibt nur der Betrieb selbst/);
+        .toMatch(/Rechnungsnummern entstehen nur zusammen mit ihrer Rechnung/);
     } finally {
       await admin.from('support_zugriffe').delete().eq('company_id', A);
       await admin.from('support_freigaben').delete().eq('company_id', A);

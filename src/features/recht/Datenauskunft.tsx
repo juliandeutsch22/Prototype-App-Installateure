@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import {
-  personAuskunft, personLoeschen, type AuskunftArt, type LoeschBericht,
+  personAuskunftDatei, personLoeschen, type AuskunftArt, type LoeschBericht,
 } from '@/lib/db/auskunft';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -47,29 +47,34 @@ export default function Datenauskunft({
   const [laedt, setLaedt] = useState<'auskunft' | 'probe' | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [probe, setProbe] = useState<LoeschBericht | null>(null);
+  const [teile, setTeile] = useState<{ fertig: number; gesamt: number } | null>(null);
 
   if (!zeigtAuskunft(user?.role, !!einblick)) return null;
 
   async function herunterladen() {
     setLaedt('auskunft');
     setFehler(null);
+    setTeile(null);
     try {
-      const auskunft = await personAuskunft(art, id);
-      const url = URL.createObjectURL(
-        new Blob([JSON.stringify(auskunft, null, 2)], { type: 'application/json' }),
-      );
+      /*
+        IN TEILEN (K4, Durchsicht 15.11.2026): vorher brach die Auskunft über
+        8 MB ab — etwa bei einer Hausverwaltung mit Hunderten unterschriebenen
+        Scheinen — und verwies auf einen Weg, der an derselben Grenze endete.
+      */
+      const { blob, kopf } = await personAuskunftDatei(art, id, (fertig, gesamt) => setTeile({ fertig, gesamt }));
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = auskunftDateiname(auskunft.person, auskunft.erstellt_am);
+      a.download = auskunftDateiname(String(kopf.person ?? ''), String(kopf.erstellt_am ?? ''));
       a.click();
       URL.revokeObjectURL(url);
       toast.success('Datenauskunft heruntergeladen');
     } catch (e) {
-      // Die Meldung der Datenbank ist für Menschen geschrieben — etwa, dass
-      // die Auskunft zu gross ist und welcher Weg dann bleibt.
+      // Die Meldung der Datenbank ist für Menschen geschrieben.
       setFehler(e instanceof Error ? e.message : 'Die Auskunft konnte nicht erstellt werden.');
     } finally {
       setLaedt(null);
+      setTeile(null);
     }
   }
 
@@ -130,6 +135,9 @@ export default function Datenauskunft({
             Löschen …
           </Button>
         </div>
+        {laedt === 'auskunft' && teile && teile.gesamt > 1 && (
+          <p className="text-sm text-ink-muted" role="status">Teil {teile.fertig} von {teile.gesamt} abgeholt</p>
+        )}
         {art === 'mitarbeiter' && aktiv && (
           <Hinweiszeile>
             <p>

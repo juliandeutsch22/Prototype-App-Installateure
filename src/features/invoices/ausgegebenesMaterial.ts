@@ -99,6 +99,13 @@ export function materialAbgleich(
   vorschlaege: MaterialVorschlag[];
   /** Jeder Artikel, von dem spätere Scheine etwas tragen — auch ganz abgezogene. */
   spaeterGetragen: MaterialVorschlag[];
+  /**
+   * ZURÜCK, ABER SCHON VERRECHNET (M7, 16.11.2026): mehr zurückgegeben als
+   * noch offen war — der Kunde hat es bezahlt. `offen` ist hier die Menge
+   * der Gutschrift (positiv): höchstens, was zurückkam. Ein Überhang aus
+   * Scheinen (Material von woanders) zählt nicht dazu.
+   */
+  zurueckVerrechnet: MaterialVorschlag[];
 } {
   const je = new Map<string, MaterialVorschlag>();
   // Beide Wege zum selben Artikel: über die Kennung und über den Namen.
@@ -168,6 +175,9 @@ export function materialAbgleich(
   return {
     vorschlaege: alle.filter((v) => v.offen > 0),
     spaeterGetragen: alle.filter((v) => (v.spaeterAbgezogen ?? 0) > 0),
+    zurueckVerrechnet: alle
+      .filter((v) => v.zurueck > 0 && v.offen < 0)
+      .map((v) => ({ ...v, offen: menge(Math.min(v.zurueck, -v.offen)) })),
   };
 }
 
@@ -179,6 +189,27 @@ export function materialOhneSchein(
   spaeter?: NachDemStichtag,
 ): MaterialVorschlag[] {
   return materialAbgleich(ausgaben, scheine, katalog, spaeter).vorschlaege;
+}
+
+/**
+ * WAS DIE RECHNUNG ALS VERRECHNET FESTHÄLT (M2, 16.11.2026): jede Ausgabe,
+ * die ihre Vorschau gesehen hat — übernommen oder nicht, wie bisher. Bis
+ * dahin galt alles bis zum Leistungsende als abgerechnet; eine Abholung am
+ * Nachmittag desselben Tags oder eine spät abgehakte Rüstliste fiel so still
+ * aus jeder Rechnung. Anforderungen und Retouren über ihre Kennung, eine
+ * eingeladene Rüstlistenposition über ihre feste Kennung (`beleg_id`).
+ */
+export function ausgabenVerknuepfung(ausgaben: ReadonlyArray<Pick<Ausgabe, 'art' | 'belegId'>>): {
+  linkedOrders: string[];
+  linkedRuestPositionen: string[];
+} {
+  const orders = new Set<string>();
+  const ruest = new Set<string>();
+  for (const a of ausgaben) {
+    if (a.art === 'ruestliste') ruest.add(a.belegId);
+    else orders.add(a.belegId);
+  }
+  return { linkedOrders: [...orders], linkedRuestPositionen: [...ruest] };
 }
 
 /** Der Vorschlag als Rechnungsposition — mit Katalogbezug, wenn es ihn gibt. */

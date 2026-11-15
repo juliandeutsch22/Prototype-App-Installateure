@@ -174,7 +174,11 @@ Token greift jede Leseregel.
 ## 5 · Die nächtliche Sicherung einrichten
 
 Der Zeitplan liegt als `pg_cron`-Eintrag in der Datenbank; die Arbeit tut die
-Edge Function `daten-ausleitung`. Ohne Ziel außer Haus schreibt sie in den
+Edge Function `daten-ausleitung`. Seit 16.11.2026 (K3) reiht der Anstoß um
+01:30 UTC jeden Betrieb in eine Warteschlange; die Wache (`ausleitung-wache`,
+minütlich) stößt je Betrieb einen eigenen Aufruf an, höchstens sechs zugleich,
+und meldet einen Fehlschlag bei genau dem Betrieb, bei dem er geschah. Ohne
+Ziel außer Haus schreibt sie in den
 eigenen Speicher — das hilft gegen einen Fehlgriff, **nicht** gegen einen
 Ausfall des Projekts.
 

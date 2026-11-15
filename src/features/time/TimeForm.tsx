@@ -16,13 +16,13 @@ import {
 } from '@/lib/db/timeEntries';
 import { getGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
 import {
-  andereVerteilung, grenzfaelleDerBuchung, grenzText, istJugendlich, umfeldDerBuchung, unterrichtAusEingabe, wegzeitAusEingabe,
+  grenzArbeitszeit, grenzfaelleDerBuchung, grenzText, istJugendlich, umfeldDerBuchung, unterrichtAusEingabe, wegzeitAusEingabe,
   type Grenzfall,
 } from '@/features/accounting/arbeitszeitGrenzen';
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import { berufsschuleEintragen, krankmeldungSpeichern, urlaubEintragen } from '@/lib/db/abwesenheiten';
 import { ergebnisText } from '@/features/vacations/abwesenheitText';
-import { todayStr, getAustrianHolidayName, fmtMin, tageWort, tagessollStunden } from '@/lib/time';
+import { arbeitszeitAm, todayStr, getAustrianHolidayName, fmtMin, tageWort, tagessollStunden } from '@/lib/time';
 import { zeitbild, zeitSatz } from './zeitPlausibilitaet';
 import { nachtMinutenIn, nachtzeitText, nachtzeitVon } from '@/lib/lohnregeln';
 import { bearbeitungsvermerk } from './bearbeitungsvermerk';
@@ -120,6 +120,8 @@ interface Props {
      * Buchung, Runde 4). Die Auswahl bleibt änderbar.
      */
     userId?: string;
+    /** Der Status einer Buchung, die als Entwurf wieder geöffnet wird (Z4) — sonst Anwesend. */
+    status?: TimeEntry['status'];
   } & Partial<Pick<TimeEntry, 'travelTime' | 'comment' | 'helperName' | 'vehiclePlate' | 'isHelper' | 'isEmergency' | 'nachtAbgewaehlt' | 'zeitfelder'>> | null;
   /**
    * Das Stammdatenblatt dessen, dem die Buchung gehört — für die Rückfrage
@@ -213,7 +215,7 @@ export default function TimeForm({
   const [aufteilenOffen, setAufteilenOffen] = useState(false);
 
   const [date, setDate] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
-  const [status, setStatus] = useState<TimeEntry['status']>(entry?.status ?? 'Anwesend');
+  const [status, setStatus] = useState<TimeEntry['status']>(entry?.status ?? vorbelegung?.status ?? 'Anwesend');
   /** Zeitausgleich nur für einige Stunden (mit Von/Bis) statt für den ganzen Tag. */
   const [zaStundenweise, setZaStundenweise] = useState(
     entry?.status === 'Zeitausgleich' && !!entry.startTime && !!entry.endTime,
@@ -712,7 +714,7 @@ export default function TimeForm({
     return grenzfaelleDerBuchung([...andere, neu], date, {
       geburtsdatum: geboren,
       schultagMin: grenzPerson ? (t) => tagessollStunden(grenzPerson, t) * 60 : undefined,
-      andereVerteilung: andereVerteilung(grenzPerson, company?.kjbgVerteilungKv === true),
+      andereVerteilung: grenzArbeitszeit(grenzPerson, company?.kjbgVerteilungKv === true).andereVerteilung,
     }).filter((f) => f.jugendlich);
   }
 
@@ -748,7 +750,9 @@ export default function TimeForm({
         3000,
       ).catch(() => null)
       : null;
-    return zeitraumFrage(art, date, bis, (target ?? besitzerProfil)?.workDays, rows);
+    // Die Arbeitstage, die am ersten Tag gelten (Z3).
+    const fuer = target ?? besitzerProfil;
+    return zeitraumFrage(art, date, bis, fuer ? arbeitszeitAm(fuer, date).workDays : undefined, rows);
   }
 
   /**

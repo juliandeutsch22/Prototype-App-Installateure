@@ -14,6 +14,7 @@ import {
   canInvoice,
   canEditTime,
   isMitarbeiter,
+  einplanbar,
   canWriteWorkSheet,
   darfUrlaubEntscheiden,
   darfEinkaufSehen,
@@ -48,6 +49,7 @@ import {
   einstellungen,
   lager,
   leitung,
+  neueScheine,
   persoenlich,
   startRolle,
   team,
@@ -159,7 +161,8 @@ export default function DashboardView() {
       };
       const r = startRolle(user.role);
       const bloecke: [string, () => Promise<Partial<StartDaten>>][] = [];
-      if (mitZeitkonto || isMitarbeiter(user.role)) {
+      // Wer eingeplant wird, bekommt sein „Heute“ — auch der Chef ohne Zeitkonto, wenn der Betrieb ihn einplant (V12).
+      if (mitZeitkonto || isMitarbeiter(user.role) || einplanbar(user, company)) {
         bloecke.push(['Deine Tage und Einsätze', () => persoenlich(k, {
           material: materialAn,
           scheine: scheineAn && r === 'monteur',
@@ -188,6 +191,13 @@ export default function DashboardView() {
       }
       if (isGF(user.role) && onlineAnnahmeAn) {
         bloecke.push(['Angebote über den Annahme-Link', () => annahmenUeberLink()]);
+      }
+      /*
+        V9: wer keine Rechnungen schreibt, aber Scheine prüft und ablegt
+        (Projektleitung, Verwaltung), erfährt, was neu unterschrieben wurde.
+      */
+      if (scheineAn && !canInvoice(user.role) && (user.role === 'Projektleiter' || user.role === 'Verwaltung')) {
+        bloecke.push(['Neue Scheine', () => neueScheine()]);
       }
       if (eingangAn && darfEingangErfassen(user.role)) {
         bloecke.push(['Auftragseingang', () => eingaenge(k)]);

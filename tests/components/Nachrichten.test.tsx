@@ -71,6 +71,7 @@ vi.mock('@/lib/db/nachrichten', () => ({
   wartendeNachrichten: vi.fn(async () => wartendWert),
   gelesen: () => gelesen(),
   anhangAdressen: vi.fn(async () => new Map()),
+  ANHANG_ADRESSE_GUELTIG_S: 600,
   nachrichtSenden: () => senden(),
   nachrichtMelden: () => melden(),
   meldungErreichtJemanden: () => erreicht(),

@@ -79,7 +79,14 @@ vi.mock('@/lib/db/projects', () => ({
   listProjectsByIds: () => listProjectsByIds(),
   updateProject: (...a: unknown[]) => updateProject(...(a as [])),
   baustelleUmnummern: (id: string, neu: string) => baustelleUmnummern(id, neu),
+  // A11: der geführte Abschluss.
+  baustelleAbschlussLage: async () => ({
+    status: 'Aktiv', kommendeEinsaetze: 0, naechsterEinsatz: null, scheinEntwuerfe: 0, offeneAnforderungen: 0,
+    unverrechneteScheine: 0, unverrechneteMinuten: 0, unverrechnetesMaterial: 0, offeneRechnungen: 0,
+  }),
+  baustelleAbschliessen: async (id: string) => { abgeschlossenAkte(id); return {}; },
 }));
+const abgeschlossenAkte = vi.fn();
 vi.mock('@/lib/db/users', () => ({
   listUsers: async () => {
     if (belegschaftWarten) await belegschaftWarten;
@@ -120,7 +127,7 @@ vi.mock('@/lib/db/baustellenDokumente', async () => {
 });
 
 /** Angebote zur Baustelle — gesucht über ihre Kennung. */
-let angebote: { id: string; quoteNumber: string; status?: string; totalNetto?: number; quoteDate?: string }[] = [];
+let angebote: { id: string; quoteNumber: string; status?: string; totalNetto?: number; quoteDate?: string; nachtrag?: boolean; positions?: unknown[] }[] = [];
 let angeboteScheitern = false;
 const listQuotesForProject = vi.fn<(a0: string, a1: string) => Promise<typeof angebote>>(async () => {
   if (angeboteScheitern) throw new Error('kaputt');
@@ -160,9 +167,12 @@ vi.mock('@/lib/db/quotes', () => ({
 
 /* Der Auftragseingang, aus dem die Baustelle entstand (M02b) — ab Werk keiner. */
 let ausEingang: { id: string; nummer: string } | null = null;
-const getEingangZu = vi.fn<(c: string, z: { projectId: string }) => Promise<typeof ausEingang>>(async () => ausEingang);
+const getEingangZu = vi.fn<(c: string, z: { projectId: string } | { quoteId: string }) => Promise<typeof ausEingang>>(
+  async (_c, z) => ('quoteId' in z ? ausEingangUeberAngebot : ausEingang));
+/** A8: der Eingang hängt am Angebot, aus dem die Baustelle entstand. */
+let ausEingangUeberAngebot: { id: string; nummer: string } | null = null;
 vi.mock('@/lib/db/auftragseingaenge', () => ({
-  getEingangZu: (c: string, z: { projectId: string }) => getEingangZu(c, z),
+  getEingangZu: (c: string, z: { projectId: string } | { quoteId: string }) => getEingangZu(c, z),
 }));
 
 /*
@@ -262,6 +272,7 @@ beforeEach(() => {
   geloescht.length = 0;
   listQuotesForProject.mockClear();
   ausEingang = null;
+  ausEingangUeberAngebot = null;
   firma = undefined;
   getEingangZu.mockClear();
 });
@@ -692,6 +703,19 @@ describe('Das Angebot hinter der Baustelle', () => {
     );
     // Über die Kennung gesucht, nicht über die änderbare Nummer.
     expect(listQuotesForProject).toHaveBeenCalledWith('perl', BAUSTELLE.id);
+  });
+
+  /* A3, F6: Nachträge stehen beim Auftrag — und es gibt den Weg, einen anzulegen. */
+  it('nennt Nachträge und offene Angebote der Baustelle und führt zum Nachtrag', async () => {
+    angebote = [
+      { id: 'q7', quoteNumber: 'AN-2026-0007', status: 'Angenommen', positions: [] },
+      { id: 'q9', quoteNumber: 'AN-2026-0009', status: 'Angenommen', nachtrag: true, positions: [] },
+      { id: 'q11', quoteNumber: 'AN-2026-0011', status: 'Entwurf', positions: [] },
+    ];
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Nachtrag AN-2026-0009' })).toHaveAttribute('href', '/quotes/q9');
+    expect(screen.getByRole('link', { name: 'Angebot AN-2026-0011 (Entwurf)' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Nachtrag anlegen' })).toHaveAttribute('href', `/quotes?baustelle=${BAUSTELLE.id}`);
   });
 
   it('wird für jemanden ohne Zugang zu Angeboten gar nicht erst gesucht', async () => {
@@ -1222,5 +1246,104 @@ describe('Übersicht: Einsätze, Material, Rechnungen (E84)', () => {
     const kommend = await screen.findByRole('region', { name: 'Kommend' });
     await waitFor(() => expect(kommend).toHaveTextContent('05.01.2099 · Berta Klein'));
     expect(screen.getByRole('region', { name: 'Zuletzt' })).toHaveTextContent('05.10.2026 · Anton Meier');
+  });
+});
+
+/*
+  F12: DER STUNDENNACHWEIS FÜR DEN KUNDEN im ⋯ der Akte — für die, die
+  fremde Zeiten lesen (Buchhaltung, Geschäftsführung, Administration).
+*/
+const nachweisSpeichern = vi.fn();
+const nachweisErzeugen = vi.fn((opts: unknown) => { void opts; return { save: nachweisSpeichern }; });
+vi.mock('@/features/accounting/baustellenNachweisPdf', () => ({
+  generateBaustellenNachweisPdf: (opts: unknown) => nachweisErzeugen(opts),
+}));
+const nachweisBuchungen = vi.fn(async (companyId: string, nummern: string[]) => { void companyId; void nummern; return [
+  { id: 't1', companyId: 'perl', date: '2026-11-03', status: 'Anwesend', userId: 'u1', userName: 'Anton Meier', startTime: '07:00', endTime: '15:30', breakDuration: 30, projectNumber: '2026-101' },
+  { id: 't2', companyId: 'perl', date: '2026-11-04', status: 'Krank', userId: 'u1', userName: 'Anton Meier', projectNumber: '' },
+]; });
+vi.mock('@/lib/db/timeEntries', async (original) => ({
+  ...(await original<typeof import('@/lib/db/timeEntries')>()),
+  listEntriesForProjectsInRange: (companyId: string, nummern: string[]) => nachweisBuchungen(companyId, nummern),
+}));
+
+describe('Stundennachweis der Baustelle (F12)', () => {
+  it('steht im ⋯ und erzeugt das Blatt nur mit der Arbeitszeit dieser Baustelle', async () => {
+    firma = { id: 'perl' };
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Baustelle 2026-101/ }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Stundennachweis' }));
+    const dialog = screen.getByRole('dialog', { name: 'Stundennachweis' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'PDF erstellen' }));
+    await waitFor(() => expect(nachweisSpeichern).toHaveBeenCalledTimes(1));
+    expect(nachweisBuchungen.mock.calls[0][1]).toEqual(['2026-101']);
+    const { zeilen, bezug } = nachweisErzeugen.mock.calls[0][0] as { zeilen: { eintrag: { id: string } }[]; bezug: string[] };
+    expect(zeilen.map((z) => z.eintrag.id)).toEqual(['t1']);
+    expect(bezug[1]).toMatch(/^2026-101/);
+  });
+
+  it('bleibt gleich: wer fremde Zeiten nicht liest, hat kein ⋯ dafür', async () => {
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+    zeige();
+    await screen.findByRole('heading', { level: 1 });
+    expect(screen.queryByRole('menuitem', { name: 'Stundennachweis' })).toBeNull();
+    const knopf = screen.queryByRole('button', { name: /Weitere Aktionen für Baustelle/ });
+    if (knopf) {
+      await userEvent.click(knopf);
+      expect(screen.queryByRole('menuitem', { name: 'Stundennachweis' })).toBeNull();
+    }
+  });
+});
+
+/* A8: Eingang → Angebot → Baustelle — Dringlichkeit, Wunschtermin und der Eingang stehen in der Akte. */
+describe('Aus dem Eingang über das Angebot (A8)', () => {
+  it('zeigt Dringlichkeit und Wunschtermin und findet den Eingang über das Angebot', async () => {
+    baustellen = [{ ...BAUSTELLE, dringlichkeit: 'dringend', wunschtermin: '2026-11-20' }];
+    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007', status: 'Angenommen', positions: [] }];
+    ausEingangUeberAngebot = { id: 'e9', nummer: 'EG-2026-0009' };
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Aus Eingang EG-2026-0009' })).toHaveAttribute('href', '/eingaenge/e9');
+    expect(getEingangZu).toHaveBeenCalledWith('perl', { quoteId: 'q7' });
+    expect(screen.getByText('Dringend')).toBeInTheDocument();
+    expect(screen.getByText('20.11.2026')).toBeInTheDocument();
+  });
+});
+
+/*
+  GEFÜHRT ABSCHLIESSEN (Durchsicht 15.11.2026, A11 / F1 / V2): kein
+  Auswahlfeld mehr, das nichts prüft — und ein Anstoß nach der bezahlten
+  Schlussrechnung.
+*/
+describe('Baustelle abschließen (A11)', () => {
+  it('im „⋯“ des Seitenkopfs; der Dialog sagt, dass nichts mehr offen ist', async () => {
+    abgeschlossenAkte.mockClear();
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: /^Weitere Aktionen für Baustelle/ }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Abschließen' }));
+    const dialog = await screen.findByRole('dialog', { name: /abschließen\?$/ });
+    expect(await within(dialog).findByText(/Nichts ist mehr offen/)).toBeInTheDocument();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await waitFor(() => expect(abgeschlossenAkte).toHaveBeenCalledWith(BAUSTELLE.id));
+  });
+
+  it('nach bezahlter Schlussrechnung ist „Abschließen“ die Hauptaktion', async () => {
+    rechnungen = [RECHNUNG('1', { art: 'schluss', paymentStatus: 'Bezahlt', bezahltBetrag: 1200 })];
+    zeige();
+    expect(await screen.findByRole('button', { name: 'Abschließen' })).toBeInTheDocument();
+  });
+
+  it('das Auswahlfeld „Stand“ bietet „Abgeschlossen“ nur zum Wiederöffnen an', async () => {
+    const nutzer = userEvent.setup();
+    const r = zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    const stand = await screen.findByLabelText('Status');
+    expect(within(stand).queryByRole('option', { name: 'Abgeschlossen' })).toBeNull();
+    r.unmount();
+    baustellen = [{ ...BAUSTELLE, status: 'Abgeschlossen' }];
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    expect(within(await screen.findByLabelText('Status')).getByRole('option', { name: 'Abgeschlossen' })).toBeInTheDocument();
   });
 });

@@ -127,6 +127,7 @@ test('die Seite des Annahme-Links ohne Verstoß — mit PDF', async ({ page }) =
     const ids = (data ?? []).map((q) => q.id as string);
     if (ids.length) {
       await admin.from('angebot_links').delete().in('quote_id', ids);
+      await admin.from('quote_lines').delete().in('quote_id', ids);
       await admin.from('quotes').delete().in('id', ids);
     }
   };
@@ -138,6 +139,10 @@ test('die Seite des Annahme-Links ohne Verstoß — mit PDF', async ({ page }) =
       total_vat: 20, total_brutto: 120,
     }).select('id').single();
     expect(error).toBeNull();
+    // Seit A5 (Durchsicht 15.11.2026) bekommt nur ein Angebot mit Position einen Annahme-Link.
+    expect((await admin.from('quote_lines').insert({
+      company_id: BETRIEB, quote_id: q!.id, position: 0, label: 'Montage', qty: 1, unit: 'h', unit_price: 100, netto: 100,
+    })).error).toBeNull();
     const chefin = createClient(String(process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321'),
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
       { auth: { persistSession: false } });

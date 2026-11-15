@@ -12,7 +12,9 @@ import type { ZweiterFaktorStand } from '@/lib/auth/sitzung';
 let stand: ZweiterFaktorStand;
 const ausschalten = vi.fn(async () => undefined);
 const neueCodes = vi.fn(async () => ['AAAA-BBBB']);
+let ohne: Array<{ uid: string; name: string; rolle: string }> = [];
 vi.mock('@/lib/auth/sitzung', () => ({
+  ohneFaktor: vi.fn(async () => ohne),
   zweiterFaktorStand: vi.fn(async () => stand),
   zweitenFaktorAusschalten: ausschalten,
   neueCodes,
@@ -34,6 +36,7 @@ const zeige = (betrieb?: string) =>
 
 beforeEach(() => {
   stand = { ...basis };
+  ohne = [];
   updateCompany.mockClear();
   ausschalten.mockClear();
 });
@@ -75,5 +78,58 @@ describe('Zwei-Faktor unter „Mein Konto“', () => {
     zeige();
     await screen.findByRole('button', { name: 'Einrichten' });
     expect(screen.queryByLabelText(/in diesem Betrieb verpflichtend/)).not.toBeInTheDocument();
+  });
+});
+
+/*
+  K6 (Durchsicht 15.11.2026): die Pflicht wirkt sofort. Wer sie einschaltet,
+  sieht vorher, wen sie trifft. GEGENPROBE (Erwartung): mit der alten Karte
+  schaltet der Haken sofort, ohne Dialog — „fragt vorher“ und „Abbrechen“
+  sind rot; „ohne Betroffene“ ist in beiden Fassungen grün.
+*/
+describe('Wen die Pflicht trifft', () => {
+  const ohneFaktorListe = [
+    { uid: 'b1', name: 'Eva Buch', rolle: 'Buchhaltung' },
+    { uid: 'a1', name: 'Max Admin', rolle: 'Administrator' },
+  ];
+
+  it('fragt vorher und nennt, wer noch keinen zweiten Faktor hat', async () => {
+    const nutzer = userEvent.setup();
+    stand = { ...basis, eingerichtet: true, codesOffen: 10 };
+    ohne = ohneFaktorListe;
+    zeige('perl');
+    await nutzer.click(await screen.findByLabelText(/in diesem Betrieb verpflichtend/));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('Eva Buch · Buchhaltung');
+    expect(dialog).toHaveTextContent('Max Admin · Administrator');
+    expect(updateCompany).not.toHaveBeenCalled();
+    await nutzer.click(screen.getByRole('button', { name: 'Pflicht einschalten' }));
+    expect(updateCompany).toHaveBeenCalledWith('perl', { zweiFaktorPflicht: true });
+  });
+
+  it('Abbrechen lässt die Pflicht aus', async () => {
+    const nutzer = userEvent.setup();
+    stand = { ...basis, eingerichtet: true, codesOffen: 10 };
+    ohne = ohneFaktorListe;
+    zeige('perl');
+    await nutzer.click(await screen.findByLabelText(/in diesem Betrieb verpflichtend/));
+    await nutzer.click(await screen.findByRole('button', { name: 'Abbrechen' }));
+    expect(updateCompany).not.toHaveBeenCalled();
+  });
+
+  it('bleibt gleich ohne Betroffene: der Haken schaltet sofort', async () => {
+    const nutzer = userEvent.setup();
+    stand = { ...basis, eingerichtet: true, codesOffen: 10 };
+    zeige('perl');
+    await nutzer.click(await screen.findByLabelText(/in diesem Betrieb verpflichtend/));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(updateCompany).toHaveBeenCalledWith('perl', { zweiFaktorPflicht: true });
+  });
+
+  it('solange die Pflicht gilt, steht da, wer noch fehlt', async () => {
+    stand = { ...basis, eingerichtet: true, pflicht: true, betriebPflicht: true, codesOffen: 10 };
+    ohne = ohneFaktorListe;
+    zeige('perl');
+    expect(await screen.findByText(/Noch ohne zweiten Faktor: Eva Buch und Max Admin/)).toBeInTheDocument();
   });
 });

@@ -5,6 +5,7 @@ import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
 import { listAbwesendInRange, type Abwesenheit } from '@/lib/db/vacations';
 import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
+import { betriebZuFuer } from './besetzung';
 import { subscribeAssignmentsInRange } from '@/lib/db/assignments';
 import { listTermineImZeitraum } from '@/lib/db/termine';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
@@ -269,10 +270,7 @@ export function useWochenDaten(tage: string[]) {
    * anderen Tag. Die Spalte bleibt trotzdem grau: für den Betrieb ist zu.
    */
   const zuFuer = useCallback(
-    (uid: string, tag: string) =>
-      betriebsurlaube.some(
-        (b) => b.von <= tag && b.bis >= tag && !(b.ausgenommen ?? []).includes(uid),
-      ),
+    (uid: string, tag: string) => betriebZuFuer(betriebsurlaube, uid, tag),
     [betriebsurlaube],
   );
 

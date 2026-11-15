@@ -16,7 +16,9 @@ import { eigeneAbgeholt } from '@/lib/db/materialOrders';
 import { katalogNachIds } from '@/lib/db/materials';
 import { fmtMenge } from '@/lib/belegLayout';
 import { datumAusMs } from '@/lib/datum';
-import { abgeholtVorschlaege, abgeholtZeitraum } from './abgeholtVorschlaege';
+import { abgeholtVorschlaege, abgeholtZeitraum, eingeladenVorschlaege, gleicheBaustelle } from './abgeholtVorschlaege';
+import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
+import type { EinsatzMaterial } from '@/types';
 
 /**
  * Das verbaute Material am Handwerksschein — vom Monteur selbst eingetragen.
@@ -43,7 +45,9 @@ import { abgeholtVorschlaege, abgeholtZeitraum } from './abgeholtVorschlaege';
  *
  * DER BESTAND WIRD DABEI NICHT BEWEGT. Das tut die Materialanforderung mit
  * „Abgeholt", und zwar einmal. Hier ein zweites Mal abzuziehen, hiesse den
- * Lagerstand für jeden geschriebenen Schein zu verfälschen.
+ * Lagerstand für jeden geschriebenen Schein zu verfälschen. Was der Schein
+ * über das Ausgegebene hinaus trägt (aus dem Fahrzeug, ohne Anforderung),
+ * bietet er nach dem Unterschreiben zum Abbuchen an (M3, `VerbrauchAmSchein`).
  */
 
 interface Props {
@@ -127,6 +131,27 @@ export default function MaterialErfassen({ companyId, materials, zeilen, onChang
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId, uid, projectNumber, datum]);
   const vorschlaege = useMemo(() => abgeholtVorschlaege(abgeholt, zeilen), [abgeholt, zeilen]);
+
+  /*
+    FÜR DIESEN EINSATZ EINGELADEN (V5): die abgehakten Positionen der
+    Rüstliste dieses Einsatzes — für jeden, der den Schein schreibt, nicht
+    nur für den, der eingeladen hat. Kommt sie nicht, fehlen nur die
+    Vorschläge.
+  */
+  const [ruestliste, setRuestliste] = useState<Pick<EinsatzMaterial, 'positionen' | 'geladen'> | null>(null);
+  useEffect(() => {
+    setRuestliste(null);
+    if (!companyId || !projectNumber || !datum) return;
+    let weg = false;
+    Promise.resolve()
+      .then(() => listEinsatzMaterialForDate(companyId, datum))
+      .then((tag) => {
+        if (!weg) setRuestliste(tag.find((r) => gleicheBaustelle(r.projectNumber, projectNumber)) ?? null);
+      })
+      .catch(() => { if (!weg) setRuestliste(null); });
+    return () => { weg = true; };
+  }, [companyId, projectNumber, datum]);
+  const eingeladen = useMemo(() => eingeladenVorschlaege(ruestliste, zeilen), [ruestliste, zeilen]);
   const einheitVon = (materialId: string | null) =>
     materialId ? materials.find((m) => m.id === materialId)?.unit ?? einheiten.get(materialId) : undefined;
 
@@ -218,6 +243,31 @@ export default function MaterialErfassen({ companyId, materials, zeilen, onChang
                   <IconButton
                     rund
                     label={`${v.name} auf den Schein`}
+                    onClick={() => hinzufuegen(v.name, einheit, v.materialId ?? undefined, v.menge)}
+                  >
+                    <Icon name="in-liste" size={20} />
+                  </IconButton>
+                </ListRow>
+              );
+            })}
+          </List>
+        </div>
+      )}
+      {eingeladen.length > 0 && (
+        <div>
+          <p className="section-label">Für diesen Einsatz eingeladen</p>
+          <List>
+            {eingeladen.map((v) => {
+              const einheit = v.einheit ?? einheitVon(v.materialId);
+              return (
+                <ListRow
+                  key={v.materialId ?? `frei:${v.name}`}
+                  title={v.name}
+                  subtitle={`${fmtMenge(v.menge)} ${einheit ?? 'Stk'} eingeladen · von ${v.von}`}
+                >
+                  <IconButton
+                    rund
+                    label={`${v.name} aus der Rüstliste auf den Schein`}
                     onClick={() => hinzufuegen(v.name, einheit, v.materialId ?? undefined, v.menge)}
                   >
                     <Icon name="in-liste" size={20} />

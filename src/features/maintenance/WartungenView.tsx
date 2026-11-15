@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Adressfilter from '@/components/Adressfilter';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -12,11 +12,13 @@ import {
   wartungTagBerichtigen,
   type NewWartung,
 } from '@/lib/db/wartungen';
-import { wartungEinplanen } from '@/lib/db/wartungen';
+import { getWartung, wartungEinplanen } from '@/lib/db/wartungen';
+import { neuFuerLaden, neuFuerLesen, ohneNeuFuer } from '@/features/customers/neuFuer';
+import { naechsterSchritt } from '@/features/projects/naechsterSchritt';
 import WartungVerlauf from './WartungVerlauf';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
-import { listRecentProjects } from '@/lib/db/projects';
+import { listProjectsByNumbers, listRecentProjects } from '@/lib/db/projects';
 import { belegNummer, hoechsteLfdImJahr, praefixeVon } from '@/lib/praefixe';
 import { isGF } from '@/lib/permissions';
 import { todayStr } from '@/lib/time';
@@ -194,6 +196,7 @@ export default function WartungenView() {
   const { user, company, einblick } = useAuth();
   const vorsaetze = praefixeVon(company);
   const toast = useToast();
+  const navigate = useNavigate();
   const [wartungen, setWartungen] = useState<WithId<Wartung>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -249,6 +252,46 @@ export default function WartungenView() {
   const [weitereOffen, setWeitereOffen] = useState(false);
 
   const companyId = user?.companyId;
+
+  /*
+    VON DER STARTSEITE (A9): `/wartungen?erledigt=<id>&am=<tag>` öffnet
+    „Erledigt“ dieser Wartung mit dem vorgeschlagenen Tag (Schein oder Ende
+    der Baustelle). Eingetragen wird erst mit „Eintragen“ — der Tag des
+    Scheins muss nicht der Tag der Wartung sein. Die Parameter gehen danach
+    weg, sonst öffnete jedes Neuladen den Dialog wieder.
+  */
+  const erledigtId = adresse.get('erledigt');
+  const erledigtAm = adresse.get('am');
+  useEffect(() => {
+    if (!erledigtId || !companyId) return;
+    let weg = false;
+    void (async () => {
+      try {
+        const w = await getWartung(companyId, erledigtId);
+        if (weg) return;
+        if (!w) toast.error('Diese Wartung gibt es nicht (mehr).');
+        else if (darfAendern) {
+          setErledigung({
+            wartung: w,
+            datum: erledigtAm && /^\d{4}-\d{2}-\d{2}$/.test(erledigtAm) && erledigtAm <= heute ? erledigtAm : heute,
+            intervall: w.intervallMonate,
+            baustelle: w.offeneBaustelle ?? '',
+          });
+        }
+      } catch (e) {
+        if (!weg) toast.error((e as Error).message);
+      }
+      if (weg) return;
+      const rest = new URLSearchParams(adresse);
+      rest.delete('erledigt');
+      rest.delete('am');
+      setAdresse(rest, { replace: true });
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [erledigtId, companyId]);
 
   useEffect(() => {
     if (!companyId) return;
@@ -409,6 +452,31 @@ export default function WartungenView() {
     setFormOffen(true);
   };
 
+  /*
+    AUS DER KUNDEN- ODER LIEGENSCHAFTSAKTE (V3): „Neue Wartung“ mit Kunde,
+    Standort und Liegenschaft vorbelegt — ohne zweite Kundensuche.
+  */
+  const neuFuer = neuFuerLesen(adresse);
+  const neuFuerSchluessel = neuFuer ? JSON.stringify(neuFuer) : null;
+  useEffect(() => {
+    if (!neuFuer || !companyId) return;
+    let weg = false;
+    void (async () => {
+      const v = await neuFuerLaden(companyId, neuFuer);
+      if (weg) return;
+      if (darfAendern) {
+        formOeffnen();
+        setForm((f) => ({ ...f, customerId: v.kunde?.id ?? '', customerName: v.kunde?.name ?? '', address: v.ort }));
+        if (v.liegenschaft) setOrt({ liegenschaftId: v.liegenschaft.id, topId: neuFuer.top ?? '' });
+      }
+      setAdresse(ohneNeuFuer(adresse), { replace: true });
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [neuFuerSchluessel, companyId]);
+
   const formSchliessen = () => {
     setFormOffen(false);
     setBearbeitet(null);
@@ -522,7 +590,9 @@ export default function WartungenView() {
       setNummern((n) => [...n, nummer]);
       setEinplanung(null);
       await neuLaden();
-      toast.success(`Baustelle ${nummer} angelegt. Jetzt im Einsatzplan einteilen.`);
+      // V4: der Satz führt jetzt auch hin.
+      const schritt = user ? naechsterSchritt(user.role, company?.modules, nummer, navigate) : undefined;
+      toast.success(schritt?.label === 'Einsatz planen' ? `Baustelle ${nummer} angelegt — jetzt einteilen.` : `Baustelle ${nummer} angelegt.`, schritt);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -545,9 +615,24 @@ export default function WartungenView() {
         projectNumber: erledigung.baustelle.trim() || undefined,
       });
       const naechster = naechsterTermin(erledigung.datum, erledigung.intervall);
+      const baustelleNr = erledigung.baustelle.trim();
       setErledigung(null);
       await neuLaden();
-      toast.success(`Eingetragen. Nächste Wartung: ${fmtDatum(naechster)}.`);
+      /*
+        DER ANSTOSS ZUM ABSCHLIESSEN (A11, V2): hatte die Wartung eine
+        Baustelle, die noch offen ist, trägt die Meldung den Weg zum
+        geführten Abschluss — vorher wussten Wartung und Baustelle nichts
+        voneinander, und „Aktiv“ wuchs mit jeder Wartung.
+      */
+      const [baustelle] = baustelleNr && companyId && darfAendern
+        ? await listProjectsByNumbers(companyId, [baustelleNr]).catch(() => [])
+        : [];
+      toast.success(
+        `Eingetragen. Nächste Wartung: ${fmtDatum(naechster)}.`,
+        baustelle && baustelle.status !== 'Abgeschlossen'
+          ? { label: `${baustelle.projectNumber} abschließen`, onClick: () => navigate(`/admin-projects/${baustelle.id}?abschliessen=1`) }
+          : undefined,
+      );
     } catch (e) {
       toast.error((e as Error).message);
     } finally {

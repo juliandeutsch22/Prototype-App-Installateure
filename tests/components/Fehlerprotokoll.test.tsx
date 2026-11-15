@@ -13,8 +13,10 @@ import { ToastProvider } from '@/components/Toast';
  */
 
 const gemeldet = vi.fn();
+let ohneMail = false;
 vi.mock('@/lib/fehlerprotokoll', () => ({
   problemMelden: (...a: unknown[]) => gemeldet(...a),
+  meldendeOhneMail: async () => ohneMail,
 }));
 
 const { default: ProblemMelden } = await import('@/components/ProblemMelden');
@@ -30,6 +32,7 @@ function melden() {
 
 beforeEach(() => {
   gemeldet.mockReset();
+  ohneMail = false;
 });
 
 describe('Problem melden', () => {
@@ -42,6 +45,29 @@ describe('Problem melden', () => {
     expect(within(dialog).queryByText(/Geschäftsführung/)).not.toBeInTheDocument();
     expect(within(dialog).queryByRole('checkbox')).not.toBeInTheDocument();
     expect(within(dialog).getByText(/keine Gesundheitsdaten/)).toBeInTheDocument();
+  });
+
+  /*
+    K7 (Durchsicht 15.11.2026): ein Benutzernamen-Konto hat keine Adresse.
+    GEGENPROBE (Erwartung): mit dem alten festen Text ist der erste Fall rot,
+    der zweite grün.
+  */
+  it('ohne E-Mail-Adresse: keine Rückfrage per Mail versprechen, sondern den Weg über den Betrieb nennen', async () => {
+    ohneMail = true;
+    const nutzer = userEvent.setup();
+    melden();
+    await nutzer.click(screen.getByRole('button', { name: 'Problem melden' }));
+    const dialog = screen.getByRole('dialog');
+    expect(await within(dialog).findByText(/hat keine E-Mail-Adresse/)).toBeInTheDocument();
+    expect(dialog).toHaveTextContent('an die Leitung deines Betriebs');
+    expect(dialog).not.toHaveTextContent('deiner E-Mail-Adresse');
+  });
+
+  it('bleibt gleich mit E-Mail-Adresse: Name und Adresse, damit er nachfragen kann', async () => {
+    const nutzer = userEvent.setup();
+    melden();
+    await nutzer.click(screen.getByRole('button', { name: 'Problem melden' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('mit deinem Namen und deiner E-Mail-Adresse, damit er nachfragen kann');
   });
 
   it('schickt den Text, schließt und bedankt sich', async () => {

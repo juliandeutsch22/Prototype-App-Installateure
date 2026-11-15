@@ -123,6 +123,8 @@ describe('Eine Person der Belegschaft', () => {
       nachricht_reaktionen: 0,
       // E68: die eigene Einrichtung der Startseite (Prüfung mit Inhalt: `startseiteWahl.test.ts`).
       startseite: 0,
+      // Paket 8 (Welle 2): Kontoumstellungen, Passwort-Bitten und Rücksetzungen des zweiten Faktors.
+      kontoumstellungen: 0, passwort_anfragen: 0, zwei_faktor_ruecksetzungen: 0,
     });
     expect(b!.aufbewahren).toEqual([
       { was: 'Zeitbuchungen', anzahl: 1, bis: '2106-12-31', grund: expect.stringContaining('§ 132 BAO') },

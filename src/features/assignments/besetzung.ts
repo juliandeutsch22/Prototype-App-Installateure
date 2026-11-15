@@ -1,4 +1,5 @@
 import type { Abwesenheit } from '@/lib/db/vacations';
+import type { Betriebsurlaub } from '@/types';
 
 /**
  * WER VON DEN EINGETEILTEN FEHLT (Testbericht 30.09.2026, M33).
@@ -15,6 +16,16 @@ import type { Abwesenheit } from '@/lib/db/vacations';
  */
 export function ganztagsWeg(abwesenheiten: Abwesenheit[], uid: string, tag: string): Abwesenheit | null {
   return abwesenheiten.find((a) => a.userId === uid && !a.zeiten && a.von <= tag && a.bis >= tag) ?? null;
+}
+
+/**
+ * Hat der Betrieb an diesem Tag für DIESE Person zu? Wer beim Betriebsurlaub
+ * ausgenommen ist (Notdienst, Lager), arbeitet. Neben `ganztagsWeg` die
+ * zweite Hälfte von „ist an dem Tag nicht da“ — EINE Stelle für Wochenplan,
+ * Auslastung und die Prüfungen der Planung (Durchsicht 15.11.2026, P9).
+ */
+export function betriebZuFuer(betriebsurlaube: Pick<Betriebsurlaub, 'von' | 'bis' | 'ausgenommen'>[], uid: string, tag: string): boolean {
+  return betriebsurlaube.some((b) => b.von <= tag && b.bis >= tag && !(b.ausgenommen ?? []).includes(uid));
 }
 
 export interface Besetzung {

@@ -110,13 +110,22 @@ describe('Durchstich 8: zwei Betriebe nebeneinander', () => {
       Buchhaltungs-Export meldete sie zu Recht, ohne dass jemand erklären
       könnte, wo die fehlende Nummer geblieben ist.
     */
+    // Seit G11 entsteht die Nummer nur mit ihrer Rechnung — gezählt wird über das Ausstellen.
+    const heute = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Vienna' }).format(new Date());
+    // Der Kunde trägt den Betrieb im Namen: die Rechnungen bleiben offen und stehen im Fall darunter mit.
+    const ausstellen = async (betrieb: string) => (await rechnungenDb.rechnungAusstellen(betrieb, {
+      projectNumber: 'B-NR', customerName: `Nummernkreis ${betrieb}`, address: 'Hauptplatz 1, 8200 Gleisdorf',
+      invoiceDate: heute, leistungVon: heute, leistungBis: heute, dueDate: heute,
+      subtotalNetto: 100, totalNetto: 100, totalVat: 20, totalBrutto: 120, vatRate: 0.2, paymentStatus: 'Offen',
+      positions: [{ label: 'Leistung', qty: 1, unit: 'Pauschale', unitPrice: 100, netto: 100 }],
+    }, { praefix: 'RE' })).invoiceNumber;
     clientEinreichen(buchA.client);
-    const a1 = await rechnungenDb.reserveInvoiceNumber(PERL, { seedFrom: 0 });
-    const a2 = await rechnungenDb.reserveInvoiceNumber(PERL, { seedFrom: 0 });
+    const a1 = await ausstellen(PERL);
+    const a2 = await ausstellen(PERL);
 
     clientEinreichen(buchB.client);
-    const b1 = await rechnungenDb.reserveInvoiceNumber(GRUBER, { seedFrom: 0 });
-    const b2 = await rechnungenDb.reserveInvoiceNumber(GRUBER, { seedFrom: 0 });
+    const b1 = await ausstellen(GRUBER);
+    const b2 = await ausstellen(GRUBER);
 
     // Beide fangen bei derselben Zahl an — das ist der Punkt, nicht ein Mangel.
     expect(b1).toBe(a1);
@@ -147,11 +156,12 @@ describe('Durchstich 8: zwei Betriebe nebeneinander', () => {
     } as never);
 
     const offenB = await rechnungenDb.listUnpaidInvoices(GRUBER);
-    expect(offenB.map((r) => r.customerName)).toEqual(['Familie Berger']);
+    // Seit G11 stellt der Fall darüber echte, offene Rechnungen aus — je Betrieb mit eigenem Kunden.
+    expect([...new Set(offenB.map((r) => r.customerName))].sort()).toEqual(['Familie Berger', `Nummernkreis ${GRUBER}`]);
 
     clientEinreichen(buchA.client);
     const offenA = await rechnungenDb.listUnpaidInvoices(PERL);
-    expect(offenA.map((r) => r.customerName)).toEqual(['Familie Huber']);
+    expect([...new Set(offenA.map((r) => r.customerName))].sort()).toEqual(['Familie Huber', `Nummernkreis ${PERL}`]);
   }, 180_000);
 
   it('meldet fehlende Buchungen, ohne fremde Buchungen anzurechnen', async () => {

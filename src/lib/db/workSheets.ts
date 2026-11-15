@@ -36,8 +36,9 @@ export function listRecentWorkSheetKoepfe(companyId: string, max = 100) {
   return pg.listRecentWorkSheetKoepfe(companyId, max);
 }
 
+/** Ohne `max` alle seit dem Tag (P6) — siehe `pg.listOwnWorkSheetsSince`. */
 export function listOwnWorkSheetsSince(
-  companyId: string, uid: string, abDatum: string, max = 20,
+  companyId: string, uid: string, abDatum: string, max?: number,
 ): Promise<WithId<WorkSheet>[]> {
   return pg.listOwnWorkSheetsSince(companyId, uid, abDatum, max);
 }
@@ -77,6 +78,28 @@ export function searchWorkSheets(
 /** Unterschriebene und stornierte Scheine eines Zeitraums, ohne Bilder — für das Belegarchiv. */
 export function listBelegScheineInRange(companyId: string, von: string, bis: string): Promise<WithId<WorkSheet>[]> {
   return pg.listBelegScheineInRange(companyId, von, bis);
+}
+
+export type { ScheinVerrechnung, NeuerSchein } from './pg/workSheets';
+
+/** Die seit dem letzten Ansehen unterschriebenen Scheine — siehe `pg.scheineNeu` (V9). */
+export function scheineNeu() {
+  return pg.scheineNeu();
+}
+
+/** Die neuen Scheine als angesehen merken — siehe `pg.scheineGesehen` (V9). */
+export function scheineGesehen() {
+  return pg.scheineGesehen();
+}
+
+/** Ob und wo ein Schein verrechnet ist — vor dem Storno (P4); siehe `pg.scheinVerrechnung`. */
+export function scheinVerrechnung(id: string) {
+  return pg.scheinVerrechnung(id);
+}
+
+/** Bestimmte Scheine wie in der Liste, ohne Bilder — siehe `pg.listWorkSheetsByIds`. */
+export function listWorkSheetsByIds(companyId: string, ids: readonly string[]): Promise<WithId<WorkSheet>[]> {
+  return pg.listWorkSheetsByIds(companyId, ids);
 }
 
 /** Ganze Scheine samt Unterschriftsbildern — siehe `pg.getWorkSheetsVoll`. */
@@ -161,10 +184,30 @@ export function zaehleVerworfeneScheine(companyId: string, bis?: string): Promis
  */
 export function vorbereiten(
   projectNumber: string, datum: string,
-): Promise<{ zeiten: pg.ScheinZeit[] }> {
+): Promise<{ zeiten: pg.ScheinZeit[]; gebuchtAm: number[]; aufSchein: pg.ScheinZeit[] }> {
   return pg.vorbereiten(projectNumber, datum);
 }
 
 export type { ScheinZeit } from './pg/workSheets';
 export type { WithId };
 export type { VorgemerkterSchein };
+
+export type { VerbrauchStand } from './pg/workSheets';
+
+/** Verbrauch am Schein, der nicht über eine Ausgabe kam (M3). */
+export function scheinVerbrauchVorschlag(scheinId: string): Promise<pg.VerbrauchStand | null> {
+  return pg.scheinVerbrauchVorschlag(scheinId);
+}
+
+/** Den Verbrauch buchen — oder bewusst nicht (M3). */
+export function scheinVerbrauchBuchen(
+  scheinId: string,
+  zeilen: Array<{ materialId: string; menge: number; ortId: string | null }>,
+): Promise<boolean> {
+  return pg.scheinVerbrauchBuchen(scheinId, zeilen);
+}
+
+/** Die beim Unterschreiben festgehaltenen Einkaufspreise (M8) — `scheinId|materialId`. */
+export function scheinEinkaufspreise(scheinIds: readonly string[]): Promise<Map<string, number>> {
+  return pg.scheinEinkaufspreise(scheinIds);
+}

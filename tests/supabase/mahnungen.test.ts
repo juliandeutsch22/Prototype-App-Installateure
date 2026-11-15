@@ -69,11 +69,11 @@ describe('Mahnungen einzeln festhalten', () => {
     const id = await rechnung('RE-M-0001', kundeMit);
     clientEinreichen(buch.client);
     const erste = await rechnungen.mahnungFesthalten(id, {
-      stufe: 1, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0,
+      datumAusdruecklich: true, stufe: 1, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0,
       inhalt: mahnInhalt(1, '2026-02-01', '2026-02-08', 'RE-M-0001'),
     });
     const zweite = await rechnungen.mahnungFesthalten(id, {
-      stufe: 2, gemahntAm: '2026-02-15', frist: '2026-02-22', spesen: 10,
+      datumAusdruecklich: true, stufe: 2, gemahntAm: '2026-02-15', frist: '2026-02-22', spesen: 10,
       inhalt: { ...mahnInhalt(2, '2026-02-15', '2026-02-22', 'RE-M-0001'), zeilen: [['Mahnspesen', '10,00 €']], offen: 130 },
     });
     expect(erste).not.toBe(zweite);
@@ -105,7 +105,7 @@ describe('Mahnungen einzeln festhalten', () => {
     expect(error).toBeNull();
     clientEinreichen(buch.client);
     await rechnungen.mahnungFesthalten(id, {
-      stufe: 1, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0, inhalt: mahnInhalt(1, '2026-02-01', '2026-02-08'),
+      datumAusdruecklich: true, stufe: 1, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0, inhalt: mahnInhalt(1, '2026-02-01', '2026-02-08'),
     });
     const { data } = await admin.from('invoices').select('payment_status, mahnstufe').eq('id', id).single();
     expect(data).toEqual({ payment_status: 'Teilbezahlt', mahnstufe: 1 });
@@ -118,7 +118,7 @@ describe('Mahnungen einzeln festhalten', () => {
     expect(weg).toBeNull();
     clientEinreichen(buch.client);
     await expect(rechnungen.mahnungFesthalten(id, {
-      stufe: 1, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0, inhalt: mahnInhalt(1, '2026-02-01', '2026-02-08'),
+      datumAusdruecklich: true, stufe: 1, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0, inhalt: mahnInhalt(1, '2026-02-01', '2026-02-08'),
     })).rejects.toThrow(/Kundenart/);
     const { data: kopf } = await admin.from('invoices').select('mahnstufe').eq('id', id).single();
     expect(kopf!.mahnstufe ?? 0).toBe(0);
@@ -130,7 +130,7 @@ describe('Mahnungen einzeln festhalten', () => {
     const id = await rechnung('RE-M-0004');
     for (const [stufe, inhalt] of [[4, mahnInhalt(1, '2026-02-01', '2026-02-08')], [1, null], [1, []]] as const) {
       const { error } = await buch.client.rpc('mahnung_festhalten', {
-        p_invoice: id, p_stufe: stufe, p_datum: '2026-02-01', p_frist: '2026-02-08', p_spesen: 0, p_inhalt: inhalt,
+        p_invoice: id, p_stufe: stufe, p_datum_ausdruecklich: true, p_datum: '2026-02-01', p_frist: '2026-02-08', p_spesen: 0, p_inhalt: inhalt,
       });
       expect(error?.code, JSON.stringify([stufe, inhalt])).toBe('22023');
     }
@@ -141,7 +141,7 @@ describe('Mahnungen einzeln festhalten', () => {
   it('Gegenprobe: der Monteur mahnt nicht und liest keine Mahnung', async () => {
     const id = await rechnung('RE-M-0005');
     const { error } = await monteur.client.rpc('mahnung_festhalten', {
-      p_invoice: id, p_stufe: 1, p_datum: '2026-02-01', p_frist: '2026-02-08', p_spesen: 0,
+      p_invoice: id, p_stufe: 1, p_datum_ausdruecklich: true, p_datum: '2026-02-01', p_frist: '2026-02-08', p_spesen: 0,
       p_inhalt: mahnInhalt(1, '2026-02-01', '2026-02-08'),
     });
     expect(error?.code).toBe('42501');
@@ -161,7 +161,7 @@ describe('Mahnungen einzeln festhalten', () => {
 
     clientEinreichen(buch.client);
     const mid = await rechnungen.mahnungFesthalten(id, {
-      stufe: 1, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0, inhalt: mahnInhalt(1, '2026-02-01', '2026-02-08'),
+      datumAusdruecklich: true, stufe: 1, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0, inhalt: mahnInhalt(1, '2026-02-01', '2026-02-08'),
     });
     for (const k of [buch, chefin]) {
       const { error: aendern } = await k.client.from('mahnungen').update({ frist: '2026-12-31' }).eq('id', mid);
@@ -178,7 +178,7 @@ describe('Mahnungen einzeln festhalten', () => {
     const { data } = await fremd.client.from('mahnungen').select('id').eq('company_id', BETRIEB);
     expect(data).toEqual([]);
     const { error } = await fremd.client.rpc('mahnung_festhalten', {
-      p_invoice: id, p_stufe: 1, p_datum: '2026-02-01', p_frist: '2026-02-08', p_spesen: 0,
+      p_invoice: id, p_stufe: 1, p_datum_ausdruecklich: true, p_datum: '2026-02-01', p_frist: '2026-02-08', p_spesen: 0,
       p_inhalt: mahnInhalt(1, '2026-02-01', '2026-02-08'),
     });
     expect(error?.code).toBe('42501');
@@ -196,7 +196,7 @@ describe('Mahnungen einzeln festhalten', () => {
 
 describe('Nur, was noch offen ist — jede Stufe einmal (11.10.2026)', () => {
   const mahnen = (id: string, stufe: 1 | 2) => rechnungen.mahnungFesthalten(id, {
-    stufe, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0, inhalt: mahnInhalt(stufe, '2026-02-01', '2026-02-08'),
+    datumAusdruecklich: true, stufe, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 0, inhalt: mahnInhalt(stufe, '2026-02-01', '2026-02-08'),
   });
   async function stand(id: string) {
     const { data } = await admin.from('invoices').select('mahnstufe, payment_status').eq('id', id).single();
@@ -236,7 +236,7 @@ describe('Nur, was noch offen ist — jede Stufe einmal (11.10.2026)', () => {
   it('zwei Geräte zugleich: genau eine Mahnung', async () => {
     const id = await rechnung('RE-M-0104');
     const aufruf = (k: Konto) => k.client.rpc('mahnung_festhalten', {
-      p_invoice: id, p_stufe: 1, p_datum: '2026-02-01', p_frist: '2026-02-08', p_spesen: 0,
+      p_invoice: id, p_stufe: 1, p_datum_ausdruecklich: true, p_datum: '2026-02-01', p_frist: '2026-02-08', p_spesen: 0,
       p_inhalt: mahnInhalt(1, '2026-02-01', '2026-02-08'),
     });
     const antworten = await Promise.all([aufruf(buch), aufruf(chefin)]);

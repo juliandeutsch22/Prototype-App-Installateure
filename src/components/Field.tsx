@@ -119,16 +119,18 @@ export function InputField({ label, id, pflicht, className = '', ...rest }: Inpu
 interface TextareaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string;
   id: string;
+  /** Wie beim Eingabefeld: die Beschriftung sagt „Pflicht“ (etwa der Grund einer Rücknahme). */
+  pflicht?: boolean;
 }
 
 /**
  * Mehrzeiliges Feld mit Beschriftung — für Beschreibungen, die beim Anlegen
  * und in der Akte gleich aussehen sollen (Testbericht 30.09.2026, G5).
  */
-export function TextareaField({ label, id, className = '', rows = 3, ...rest }: TextareaFieldProps) {
+export function TextareaField({ label, id, pflicht, className = '', rows = 3, ...rest }: TextareaFieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Beschriftung label={label} id={id} />
+      <Beschriftung label={label} pflicht={pflicht} id={id} />
       <textarea id={id} rows={rows} className={`${fieldBase} ${className}`} {...rest} />
     </div>
   );

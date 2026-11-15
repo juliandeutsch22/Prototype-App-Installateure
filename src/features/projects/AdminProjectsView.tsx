@@ -10,15 +10,13 @@ import {
   BUDGET_AB_PROZENT,
   budgetStand,
   endeVorbei,
-  ohneEinsatzListe,
   ohneProjektleiter,
-  planFenster,
   type BudgetZeile,
 } from './baustellenLage';
 import Metric, { MetricRow } from '@/components/Metric';
 import { ZIEL } from '@/features/dashboard/start/ziele';
 import { stundenDerBaustellen } from '@/lib/db/timeEntries';
-import { listAssignmentsInRange } from '@/lib/db/assignments';
+import { baustellenOhneEinsatz } from '@/lib/db/assignments';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
@@ -29,7 +27,11 @@ import {
   deleteProject,
   searchProjects,
   reserveProjectNumber,
+  baustelleVerwendung,
 } from '@/lib/db/projects';
+import { aufzaehlen, loeschWeg, type LoeschWeg } from './baustelleVerwendung';
+import BaustelleAbschliessen from './BaustelleAbschliessen';
+import { neuFuerLaden, neuFuerLesen, ohneNeuFuer } from '@/features/customers/neuFuer';
 import { listUsers } from '@/lib/db/users';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { useModul } from '@/lib/useModule';
@@ -198,6 +200,33 @@ export default function AdminProjectsView() {
   */
   const [formOffen, setFormOffen] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
+  /** Geführt abschließen (A11) — aus dem Zeilenmenü und aus dem Löschdialog. */
+  const [zuSchliessen, setZuSchliessen] = useState<WithId<Project> | null>(null);
+  /*
+    WAS IM WEG STEHT, BEVOR GEFRAGT WIRD (A1). Der Dialog sagte „wird
+    entfernt“ und scheiterte danach mit „an ihr hängen schon Buchungen,
+    Scheine, Rechnungen oder Pläne“ — auch bei einer leeren Baustelle, an der
+    nur ihr angenommenes Angebot hing. Jetzt nennt er vorher den wahren Grund
+    und den Weg, aus der Zählung der Datenbank (`baustelle_verwendung`).
+  */
+  const [loeschLage, setLoeschLage] = useState<{ id: string; weg: LoeschWeg } | 'laedt' | 'fehler' | null>(null);
+  useEffect(() => {
+    if (!toDelete) {
+      setLoeschLage(null);
+      return;
+    }
+    let weg = false;
+    setLoeschLage('laedt');
+    baustelleVerwendung(toDelete.id)
+      .then((v) => { if (!weg) setLoeschLage({ id: toDelete.id, weg: loeschWeg(v) }); })
+      .catch(() => { if (!weg) setLoeschLage('fehler'); });
+    return () => {
+      weg = true;
+    };
+  }, [toDelete]);
+  const loeschWegJetzt = loeschLage && typeof loeschLage === 'object' && toDelete && loeschLage.id === toDelete.id
+    ? loeschLage.weg
+    : null;
   /**
    * Ein Tiefenlink auf eine Baustelle setzt Suche UND Filter.
    *
@@ -207,6 +236,34 @@ export default function AdminProjectsView() {
    * die Art von Sackgasse, die wie ein Fehler aussieht.
    */
   const [suchparameter, setSuchparameter] = useSearchParams();
+  /*
+    AUS DER KUNDEN- ODER LIEGENSCHAFTSAKTE (V3): „Neue Baustelle“ mit Kunde,
+    Ort und Liegenschaft vorbelegt — ohne zweite Kundensuche.
+  */
+  const neuFuer = neuFuerLesen(suchparameter);
+  const neuFuerSchluessel = neuFuer ? JSON.stringify(neuFuer) : null;
+  useEffect(() => {
+    if (!neuFuer || !user) return;
+    let weg = false;
+    void (async () => {
+      const v = await neuFuerLaden(user.companyId, neuFuer);
+      if (weg) return;
+      setForm({
+        ...empty,
+        customerId: v.kunde?.id ?? '',
+        customerName: v.kunde?.name ?? '',
+        address: v.ort,
+        liegenschaftId: v.liegenschaft?.id ?? '',
+        topId: v.liegenschaft ? neuFuer.top ?? '' : '',
+      });
+      setFormOffen(true);
+      setSuchparameter(ohneNeuFuer(suchparameter), { replace: true });
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [neuFuerSchluessel, user]);
   // Der Schein-Verweis verschwindet mit seinem Modul.
   const scheineAn = useModul('scheine');
   const liegenschaftenAn = useModul('kunden.liegenschaften');
@@ -579,13 +636,10 @@ export default function AdminProjectsView() {
       return;
     }
     let weg = false;
-    const aktiv = basis.filter((p) => p.status === 'Aktiv');
     void (async () => {
       try {
-        const heute = todayStr();
-        const { von, bis } = planFenster(heute);
-        const plan = await listAssignmentsInRange(user.companyId, von, bis);
-        const nummern = ohneEinsatzListe(aktiv, plan, heute).map((x) => x.projectNumber);
+        // Dieselbe Antwort wie der Zähler der Startseite (P8): über alle aktiven Baustellen, in der Datenbank.
+        const nummern = (await baustellenOhneEinsatz(todayStr())).map((x) => x.projectNumber);
         if (!weg) setLage({ art: adressFilter, nummern: new Set(nummern) });
       } catch {
         if (!weg) setLage({ art: adressFilter, nummern: new Set() });
@@ -594,7 +648,7 @@ export default function AdminProjectsView() {
     return () => {
       weg = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- an den aktiven Nummern, nicht an jeder Live-Meldung
+    // Neu gefragt, wenn sich die aktiven Baustellen ändern — nicht bei jeder Live-Meldung.
   }, [user, adressFilter, aktiveNummern]);
   /*
     Der Budgetfilter liest den Budgetstand, den die Seite für Maßlinie und
@@ -1139,6 +1193,8 @@ export default function AdminProjectsView() {
                                     navigate(`/worksheet?projekt=${encodeURIComponent(p.projectNumber)}`),
                                 }]
                               : []),
+                            // A11: geführt — der Dialog sagt vorher, was noch offen ist.
+                            ...(p.status !== 'Abgeschlossen' ? [{ label: 'Abschließen', onSelect: () => setZuSchliessen(p) }] : []),
                             { label: 'Löschen', onSelect: () => setToDelete(p), danger: true },
                           ]}
                         />
@@ -1186,31 +1242,60 @@ export default function AdminProjectsView() {
         {formular}
       </BottomSheet>
 
+      <BaustelleAbschliessen projekt={zuSchliessen} onClose={() => setZuSchliessen(null)} />
+
       <ConfirmDialog
         open={!!toDelete}
         title="Baustelle löschen?"
-        message={toDelete ? `${baustellenTitel(toDelete)} (${toDelete.projectNumber}) wird entfernt.` : ''}
+        message={
+          !toDelete
+            ? ''
+            : !loeschWegJetzt
+              ? loeschLage === 'fehler'
+                ? `${baustellenTitel(toDelete)} (${toDelete.projectNumber}) wird entfernt — sofern nichts an ihr hängt; was daran hängt, ließ sich gerade nicht nachsehen.`
+                : 'Wird nachgesehen, was an der Baustelle hängt …'
+              : loeschWegJetzt.art === 'frei'
+                ? `${baustellenTitel(toDelete)} (${toDelete.projectNumber}) wird entfernt.${loeschWegJetzt.mitgehend.length ? ` Mit ihr gehen ${aufzaehlen(loeschWegJetzt.mitgehend)}.` : ''}`
+                : loeschWegJetzt.art === 'angebot'
+                  ? `An ${toDelete.projectNumber} hängt das angenommene Angebot ${loeschWegJetzt.angebot.nummer}, sonst nichts. Gelöscht wird sie über das Angebot: „Annahme zurücknehmen“ öffnet es wieder und nimmt die Baustelle mit.`
+                  : `An ${toDelete.projectNumber} ${loeschWegJetzt.grund.length === 1 && /^1 /.test(loeschWegJetzt.grund[0]) ? 'hängt' : 'hängen'} ${aufzaehlen(loeschWegJetzt.grund)} — die bleiben nachvollziehbar. Statt sie zu löschen, schließt man sie ab; dann fällt sie aus den Auswahllisten.`
+        }
+        confirmLabel={!loeschWegJetzt || loeschWegJetzt.art === 'frei' ? 'Löschen' : loeschWegJetzt.art === 'angebot' ? 'Zum Angebot' : toDelete?.status === 'Abgeschlossen' ? 'Zur Baustelle' : 'Abschließen …'}
+        confirmTone={!loeschWegJetzt || loeschWegJetzt.art === 'frei' ? 'danger' : 'primary'}
+        gesperrt={loeschLage === 'laedt'}
         onCancel={() => setToDelete(null)}
         onConfirm={async () => {
           const weg = toDelete;
-          setToDelete(null);
           if (!weg) return;
+          if (loeschWegJetzt?.art === 'angebot') {
+            setToDelete(null);
+            navigate(`/quotes/${loeschWegJetzt.angebot.id}`);
+            return;
+          }
+          if (loeschWegJetzt?.art === 'abschliessen') {
+            setToDelete(null);
+            // A11: der geführte Abschluss statt eines Auswahlfelds in der Akte.
+            if (weg.status === 'Abgeschlossen') navigate(`/admin-projects/${weg.id}`);
+            else setZuSchliessen(weg);
+            return;
+          }
           /*
-            SCHEITERN WIRD GESAGT. Hier stand kein Fang: an einer Baustelle mit
-            Buchungen, Scheinen, Rechnungen oder Plänen verweigert die
-            Datenbank das Löschen — und der Dialog blieb einfach offen, ohne ein
-            Wort. Richtig ist dann das Abschliessen, nicht das Löschen.
+            SCHEITERN WIRD GESAGT — mit dem Grund. Zwischen Nachsehen und
+            Löschen kann jemand anders etwas gebucht haben; dann bleibt der
+            Dialog offen und nennt neu nachgesehen, was jetzt daran hängt.
           */
           try {
             await deleteProject(weg.id);
-            toast.success('Baustelle gelöscht');
           } catch (e) {
-            toast.error(
-              /foreign key|violates|verweis/i.test((e as Error).message)
-                ? `${weg.projectNumber} lässt sich nicht löschen — an ihr hängen schon Buchungen, Scheine, Rechnungen oder Pläne. Setze sie stattdessen auf „Abgeschlossen“.`
-                : `${weg.projectNumber} konnte nicht gelöscht werden.`,
-            );
+            const neu = await baustelleVerwendung(weg.id).then(loeschWeg).catch(() => null);
+            if (neu && neu.art !== 'frei') {
+              setLoeschLage({ id: weg.id, weg: neu });
+              throw new Error(`${weg.projectNumber} lässt sich nicht mehr löschen — inzwischen hängt etwas an ihr.`);
+            }
+            throw new Error(grundAus(e, `${weg.projectNumber} konnte nicht gelöscht werden.`));
           }
+          setToDelete(null);
+          toast.success('Baustelle gelöscht');
         }}
       />
     </div>

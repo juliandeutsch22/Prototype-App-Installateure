@@ -152,6 +152,10 @@ beforeAll(async () => {
     id: LINK_ANGEBOT, company_id: BETRIEB, quote_number: 'AN-R-2', customer_name: 'Familie Huber',
     quote_date: '2026-10-01', valid_until: '2099-11-01', status: 'Versendet', vat_rate: 20,
   })).error).toBeNull();
+  // Seit A5 (Durchsicht 15.11.2026) bekommt nur ein Angebot mit Position einen Link.
+  expect((await admin.from('quote_lines').insert({
+    company_id: BETRIEB, quote_id: LINK_ANGEBOT, position: 0, label: 'Montage', qty: 1, unit: 'h', unit_price: 70, netto: 70,
+  })).error).toBeNull();
   const link = await chef.client.rpc('angebot_link_erzeugen', { p_angebot: LINK_ANGEBOT, p_abrechnung: 'Regie', p_praefix: 'R' });
   expect(link.error).toBeNull();
   linkSchluessel = (link.data as { schluessel: string }).schluessel;

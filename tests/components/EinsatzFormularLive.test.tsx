@@ -7,6 +7,7 @@ import type { AppUser, Assignment, EinsatzMaterial, Material, Project } from '@/
 import type { WithId } from '@/lib/db/core';
 import EinsatzFormular from '@/features/assignments/EinsatzFormular';
 import { PaarGeaendert } from '@/lib/db/paarFassung';
+import { RuestlisteFrage, type RuestlisteErgebnis, type RuestlisteWahl } from '@/lib/db/ruestlisteFrage';
 
 /**
  * DAS OFFENE EINSATZFORMULAR UND DIE LIVE-DATEN (Durchsicht 15.11.2026, P1).
@@ -46,6 +47,8 @@ const MATERIAL = [
 const speichere = vi.fn();
 const ruestSpeichern = vi.fn();
 const loesche = vi.fn();
+/** Wie die Datenbank auf „Einsatz löschen“ antwortet — ab Werk: gelöscht, keine Liste verwaist. */
+let loeschenAntwort: (id: string, wahl: RuestlisteWahl) => Promise<RuestlisteErgebnis | null>;
 /** Was die Datenbank beim nächsten Speichern ablehnt — der Reihe nach. */
 const abweisen: { einsatz: unknown[]; liste: unknown[] } = { einsatz: [], liste: [] };
 
@@ -145,7 +148,7 @@ function Rahmen({ start, anfang, fenster }: { start: string; anfang: Live; fenst
       bereit={live.bereit ?? true}
       // Im Seitenfenster: ohne Karten, mit „Einsatz löschen“ je Person.
       karten={fenster ? undefined : { titel: 'Einsatz planen' }}
-      onLoeschen={fenster ? (a) => { loesche(a.id); return Promise.resolve(); } : undefined}
+      onLoeschen={fenster ? (a, wahl) => loeschenAntwort(a.id, wahl) : undefined}
     />
   );
 }
@@ -193,6 +196,7 @@ beforeEach(() => {
   speichere.mockClear();
   ruestSpeichern.mockClear();
   loesche.mockClear();
+  loeschenAntwort = (id) => { loesche(id); return Promise.resolve(null); };
   abweisen.einsatz = [];
   abweisen.liste = [];
 });
@@ -560,5 +564,102 @@ describe('Einsatzformular — die eigene Meldung in Teilschritten', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+/*
+  DER LETZTE GEHT, DIE RÜSTLISTE BLEIBT NICHT STILL ZURÜCK (P2). Die
+  Datenbank fragt zurück (`SL428`), bevor sie etwas schreibt; das Formular
+  stellt die Frage im Fenster und löscht erst mit der Entscheidung.
+*/
+describe('Einsatzformular im Seitenfenster — der Letzte mit Rüstliste (P2)', () => {
+  it('fragt „Rüstliste auflösen?“, löscht erst mit der Wahl und meldet die Folge', async () => {
+    const gefragt: RuestlisteWahl[] = [];
+    loeschenAntwort = (id, wahl) => {
+      gefragt.push(wahl);
+      if (wahl === 'fragen') return Promise.reject(new RuestlisteFrage('Rüstliste verwaist', 3, 1, 0));
+      loesche(id, wahl);
+      return Promise.resolve({ ruestliste: 'aufgeloest', anforderungen: 1, in_arbeit: 0 });
+    };
+    zeige(ANFANG, HIER, true);
+    await waitFor(() => expect(max()).toBeChecked());
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz von Max Mustermann löschen' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Löschen' }));
+
+    expect(await screen.findByText('Rüstliste auflösen?')).toBeInTheDocument();
+    expect(screen.getByText(/3 Positionen.*eine offene Anforderung über die Fehlmenge wird zurückgezogen/)).toBeInTheDocument();
+    expect(loesche).not.toHaveBeenCalled();
+    // Ohne Wahl geht es nicht weiter — eine Vorauswahl bestätigte mit einem Tipp das Falsche.
+    expect(screen.getByRole('button', { name: 'Löschen' })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('radio', { name: /^Auflösen/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Löschen' }));
+    await waitFor(() => expect(loesche).toHaveBeenCalledWith('a1', 'aufloesen'));
+    expect(gefragt).toEqual(['fragen', 'aufloesen']);
+    expect(await screen.findByText('Einsatz gelöscht · Rüstliste aufgelöst')).toBeInTheDocument();
+  });
+
+  it('bleibt gleich: wer nicht der Letzte ist, wird ohne Frage gelöscht', async () => {
+    zeige({ einsaetze: [einsatz('a1', MAX), einsatz('a2', ERNA)], listen: ANFANG.listen }, HIER, true);
+    await waitFor(() => expect(erna()).toBeChecked());
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz von Erna Beispiel löschen' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Löschen' }));
+    await waitFor(() => expect(loesche).toHaveBeenCalledWith('a2'));
+    expect(screen.queryByText('Rüstliste auflösen?')).toBeNull();
+  });
+});
+
+/*
+  VERSCHIEDENE AUFGABEN UND UHRZEITEN IM SELBEN PAAR (Durchsicht 15.11.2026,
+  P7). Gegenprobe: vorher bekamen beim Speichern alle Aufgabe und Uhrzeit des
+  ersten Eintrags der Live-Liste — Bernds „Silikon 13–16“ war still weg.
+*/
+describe('Einsatzformular — Abweichungen je Person (P7)', () => {
+  const ZWEI: Live = {
+    einsaetze: [
+      einsatz('a1', MAX, HIER, { comment: 'Rohinstallation', zeitVon: '07:00', zeitBis: '12:00' }),
+      einsatz('a2', ERNA, HIER, { comment: 'Silikon', zeitVon: '13:00', zeitBis: '16:00' }),
+    ],
+    listen: [],
+  };
+
+  it('zeigt, wer was hat, und speichert je Person ihren Stand — Neue bekommen die Felder', async () => {
+    zeige(ZWEI);
+    expect(await screen.findByText(/verschiedene Aufgaben oder Uhrzeiten/)).toBeInTheDocument();
+    expect(screen.getByText(/Erna Beispiel: 13:00–16:00 · „Silikon“/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Paul Neu/ }));
+    expect(screen.getByText(/Aufgabe und Uhrzeit unten gelten für neu Eingeteilte/)).toBeInTheDocument();
+    const feld = screen.getByRole('textbox', { name: 'Kommentar / Aufgabe' });
+    await userEvent.clear(feld);
+    await userEvent.type(feld, 'Zuarbeit');
+    await userEvent.click(screen.getByRole('button', { name: /speichern/i }));
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+    const zeilen = speichere.mock.calls[0][3] as { userId: string; comment: string; zeitVon: string | null }[];
+    const je = Object.fromEntries(zeilen.map((z) => [z.userId, [z.comment, z.zeitVon]]));
+    expect(je).toEqual({
+      u1: ['Rohinstallation', '07:00'],
+      u2: ['Silikon', '13:00'],
+      u3: ['Zuarbeit', expect.anything()],
+    });
+  });
+
+  it('angleichen nur auf Wunsch: dann alle dieselbe Aufgabe und Uhrzeit', async () => {
+    zeige(ZWEI);
+    await screen.findByText(/verschiedene Aufgaben oder Uhrzeiten/);
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Allen dieselbe Aufgabe und Uhrzeit geben' }));
+    const feld = screen.getByRole('textbox', { name: 'Kommentar / Aufgabe' });
+    await userEvent.clear(feld);
+    await userEvent.type(feld, 'Bad fertig');
+    await userEvent.click(screen.getByRole('button', { name: /speichern/i }));
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+    const zeilen = speichere.mock.calls[0][3] as { comment: string }[];
+    expect(zeilen.map((z) => z.comment)).toEqual(['Bad fertig', 'Bad fertig']);
+  });
+
+  it('bleibt gleich: ohne Abweichung kein Hinweis, die Felder gelten für alle', async () => {
+    zeige({ einsaetze: [einsatz('a1', MAX), einsatz('a2', ERNA)], listen: [] });
+    await waitFor(() => expect(erna()).toBeChecked());
+    expect(screen.queryByText(/verschiedene Aufgaben oder Uhrzeiten/)).toBeNull();
+    expect(kommentar().value).toBe('Rohinstallation');
   });
 });

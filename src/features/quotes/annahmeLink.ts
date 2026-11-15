@@ -89,6 +89,8 @@ export function linkZustandText(l: AngebotLink): string {
       return 'Gilt nicht mehr — das Angebot ist nicht mehr versendet oder eine andere Fassung ist angenommen';
     case 'geaendert':
       return 'Gilt nicht mehr — das Angebot wurde nach dem Erzeugen geändert';
+    case 'neuere_fassung':
+      return `Gilt nicht mehr — es gibt die neuere Fassung ${l.neuereFassung ?? ''}; der Kunde sieht das unter dem Link`.replace(' ;', ';');
   }
 }
 

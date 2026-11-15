@@ -78,6 +78,22 @@ const angebot = (rest: Record<string, unknown> = {}) => ({
   ...rest,
 });
 
+/*
+  SEIT G11 (15.11.2026) entsteht eine Rechnungsnummer nur mit ihrer Rechnung
+  (`rechnung_ausstellen`); das direkte Ziehen ist zu. Geprüft wird derselbe
+  Kreis deshalb über das Ausstellen — jede Nummer hier ist eine Rechnung.
+*/
+async function ziehen(o: { desired?: number } = {}): Promise<string> {
+  const { invoiceNumber: _nr, ...ohneNummer } = rechnung({
+    invoiceDate: `${JAHR}-04-30`, leistungVon: `${JAHR}-04-30`, leistungBis: `${JAHR}-04-30`, dueDate: `${JAHR}-05-14`,
+  });
+  void _nr;
+  const r = await rechnungen.rechnungAusstellen(BETRIEB, ohneNummer, {
+    praefix: 'RE', desired: o.desired, datumAusdruecklich: true,
+  });
+  return r.invoiceNumber;
+}
+
 describe('Rechnungsnummern', () => {
   afterEach(() => clientEinreichen(buch.client));
 
@@ -87,9 +103,9 @@ describe('Rechnungsnummern', () => {
       aus, und das ist eine Auskunft an jeden Kunden, die niemand geben will.
     */
     await leeren();
-    expect(await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0 }))
+    expect(await ziehen())
       .toBe(`RE-${JAHR}-1001`);
-    expect(await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0 }))
+    expect(await ziehen())
       .toBe(`RE-${JAHR}-1002`);
   });
 
@@ -101,40 +117,40 @@ describe('Rechnungsnummern', () => {
     */
     await leeren();
     await rechnungen.createInvoice(BETRIEB, rechnung({ invoiceNumber: `RE-${JAHR}-0500` }));
-    expect(await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 10 }))
+    expect(await ziehen())
       .toBe(`RE-${JAHR}-0501`);
     // Danach ist der Zähler die Wahrheit.
-    expect(await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 900 }))
+    expect(await ziehen())
       .toBe(`RE-${JAHR}-0502`);
   });
 
   it('eine eigene Nummer nur bei der allerersten Rechnung — danach lückenlos (Launch-Check, K8)', async () => {
     await leeren();
     // Der Umstieg: im bisherigen Programm war die letzte 1499.
-    expect(await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0, desired: 1500 }))
+    expect(await ziehen({ desired: 1500 }))
       .toBe(`RE-${JAHR}-1500`);
     // Danach läuft der Kreis von dort weiter — und springt nicht mehr.
-    await expect(rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0, desired: 2000 }))
+    await expect(ziehen({ desired: 2000 }))
       .rejects.toThrow(/lückenlos — die nächste ist 1501/);
     // Die nächste als Wunsch ist kein Sprung.
-    expect(await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0, desired: 1501 }))
+    expect(await ziehen({ desired: 1501 }))
       .toBe(`RE-${JAHR}-1501`);
-    expect(await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0 }))
+    expect(await ziehen())
       .toBe(`RE-${JAHR}-1502`);
   });
 
   it('kein Sprung, sobald es eine Rechnung gibt — auch in einem neuen Zähler', async () => {
     await leeren();
     await rechnungen.createInvoice(BETRIEB, rechnung({ invoiceNumber: `RE-${JAHR}-1001` }));
-    await expect(rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0, desired: 1500 }))
+    await expect(ziehen({ desired: 1500 }))
       .rejects.toThrow(/lückenlos — die nächste ist 1002/);
   });
 
   it('lehnen eine bereits verbrauchte Nummer ab und nennen die nächste freie', async () => {
     await leeren();
-    await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0 }); // 1001
+    await ziehen(); // 1001
     await expect(
-      rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0, desired: 1001 }),
+      ziehen({ desired: 1001 }),
     ).rejects.toThrow(/1002/);
   });
 
@@ -147,19 +163,19 @@ describe('Rechnungsnummern', () => {
     await leeren();
     const zugleich = await Promise.all(
       Array.from({ length: 8 }, () =>
-        rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0 })),
+        ziehen()),
     );
     expect(new Set(zugleich).size).toBe(8);
   });
 
   it('ein Monteur zieht keine Rechnungsnummer', async () => {
     clientEinreichen(anton.client);
-    await expect(rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0 })).rejects.toThrow();
+    await expect(ziehen()).rejects.toThrow();
   });
 
   it('Angebotsnummern sind ein eigener Kreis und beginnen bei 1', async () => {
     await leeren();
-    await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0 });
+    await ziehen();
     clientEinreichen(chef.client);
     expect(await angebote.reserveQuoteNumber(BETRIEB)).toBe(`AN-${JAHR}-0001`);
     expect(await angebote.reserveQuoteNumber(BETRIEB)).toBe(`AN-${JAHR}-0002`);
@@ -278,7 +294,7 @@ describe('Eine ausgestellte Rechnung ist zu', () => {
 
     /* Gemahnt wird zuerst — das ist die Reihenfolge des Alltags. */
     await rechnungen.mahnungFesthalten(r.id, {
-      stufe: 1, gemahntAm: '2026-05-20', frist: '2026-06-03', spesen: 15,
+      datumAusdruecklich: true, stufe: 1, gemahntAm: '2026-05-20', frist: '2026-06-03', spesen: 15,
       inhalt: mahnInhalt(1, '2026-05-20', '2026-06-03'),
     });
     const [gemahnt] = await rechnungen.listUnpaidInvoices(BETRIEB);
@@ -309,7 +325,7 @@ describe('Eine ausgestellte Rechnung ist zu', () => {
       festgehalten.
     */
     await rechnungen.mahnungFesthalten(r.id, {
-      stufe: 2, gemahntAm: '2026-06-10', frist: '2026-06-20', spesen: 25,
+      datumAusdruecklich: true, stufe: 2, gemahntAm: '2026-06-10', frist: '2026-06-20', spesen: 25,
       inhalt: mahnInhalt(2, '2026-06-10', '2026-06-20'),
     });
     const [zweite] = await rechnungen.listUnpaidInvoices(BETRIEB);

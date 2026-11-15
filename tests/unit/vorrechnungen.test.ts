@@ -62,6 +62,10 @@ describe('Was sich abziehen lässt', () => {
 
     const m = rechnung({ id: 'm', art: 'teil', linkedOrders: ['o1'] });
     expect(abziehbar([m], '2026-001')).toEqual([]);
+
+    // M2: auch eine eingeladene Rüstlistenposition ist ein verbrauchter Beleg.
+    const ruest = rechnung({ id: 'r', art: 'teil', linkedRuestPositionen: ['p1'] });
+    expect(abziehbar([ruest], '2026-001')).toEqual([]);
   });
 
   it('lässt eine fremde Baustelle und eine stornierte Rechnung liegen', () => {
@@ -221,6 +225,13 @@ describe('Schlussrechnung und Storno (Runde 6)', () => {
       .toBe('RE-1509 wird storniert; die verknüpften Zeiteinträge und Scheine werden wieder freigegeben.');
     expect(stornoText(r('1510', 'schluss', { vorrechnungen: [{ invoiceId: '1508' } as never] })))
       .toMatch(/Die abgezogenen Rechnungen lassen sich danach wieder abziehen\.$/);
+  });
+
+  it('M2: eine Rechnung, die nur Material verknüpft, gibt beim Storno die Materialausgaben frei', () => {
+    expect(stornoText(r('1511', 'einzel', { linkedOrders: ['o1'] })))
+      .toBe('RE-1511 wird storniert; die verknüpften Materialausgaben werden wieder freigegeben.');
+    expect(stornoText(r('1512', 'einzel', { linkedEntries: ['z1'], linkedRuestPositionen: ['p1'] })))
+      .toBe('RE-1512 wird storniert; die verknüpften Zeiteinträge und Materialausgaben werden wieder freigegeben.');
   });
 
   /*

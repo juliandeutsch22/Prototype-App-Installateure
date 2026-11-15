@@ -37,6 +37,10 @@ export function passwortZuruecksetzen(email: string): Promise<void> {
   return pg.passwortZuruecksetzen(email);
 }
 
+export function passwortHilfeAnfragen(eingabe: string): Promise<void> {
+  return pg.passwortHilfeAnfragen(eingabe);
+}
+
 export function passwortSetzen(neu: string, aktuell?: string): Promise<void> {
   return pg.passwortSetzen(neu, aktuell);
 }
@@ -95,6 +99,6 @@ export function profilMerken(profil: CurrentUser, firma: Company | null): void {
 */
 export {
   zweiterFaktorBedarf, zweiterFaktorStand, einrichtenBeginnen, einrichtenBestaetigen,
-  neueCodes, codePruefen, codeEinloesen, ausschalten as zweitenFaktorAusschalten,
+  neueCodes, codePruefen, codeEinloesen, ausschalten as zweitenFaktorAusschalten, ohneFaktor,
 } from './pg/zweiFaktor';
-export type { ZweiterFaktorBedarf, ZweiterFaktorStand, NeuerFaktor } from './pg/zweiFaktor';
+export type { ZweiterFaktorBedarf, ZweiterFaktorStand, NeuerFaktor, OhneFaktor } from './pg/zweiFaktor';

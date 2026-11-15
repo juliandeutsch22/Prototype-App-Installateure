@@ -88,6 +88,13 @@ export function scheineAufRechnung(companyId: string, scheinIds: string[]): Prom
   return pg.scheineAufRechnung(companyId, scheinIds);
 }
 
+export type { UnverrechneterSchein } from './pg/invoices';
+
+/** Alle unterschriebenen, unverrechneten Scheine des Betriebs, älteste zuerst — siehe `pg.scheineUnverrechnet`. */
+export function scheineUnverrechnet() {
+  return pg.scheineUnverrechnet();
+}
+
 export const RECHNUNG_TREFFER = pg.RECHNUNG_TREFFER;
 
 export function sucheRechnungen(companyId: string, begriff: string): Promise<WithId<Invoice>[]> {
@@ -99,16 +106,14 @@ export function rechnungenNachNummer(companyId: string, begriff: string, max: nu
   return pg.rechnungenNachNummer(companyId, begriff, max);
 }
 
-export function listInvoicesForCustomer(
-  companyId: string, customerId: string, projektIds: string[],
-): Promise<WithId<Invoice>[]> {
-  return pg.listInvoicesForCustomer(companyId, customerId, projektIds);
+/** Die Rechnungen eines Kunden — über die Datenbank, ohne Grenze an der Zahl seiner Baustellen (A10). */
+export function listInvoicesForCustomer(companyId: string, customerId: string): Promise<WithId<Invoice>[]> {
+  return pg.listInvoicesForCustomer(companyId, customerId);
 }
 
-export function reserveInvoiceNumber(
-  companyId: string, opts: { seedFrom: number; desired?: number; praefix?: string },
-): Promise<string> {
-  return pg.reserveInvoiceNumber(companyId, opts);
+/** Die Nummern desselben Jahres vor einem Zeitraum — für die Lückenprüfung (G8). */
+export function rechnungsnummernVorZeitraum(companyId: string, von: string): Promise<string[]> {
+  return pg.rechnungsnummernVorZeitraum(companyId, von);
 }
 
 export function createInvoice(companyId: string, inv: NewInvoice): Promise<string> {
@@ -122,9 +127,26 @@ export function createInvoice(companyId: string, inv: NewInvoice): Promise<strin
 export function rechnungAusstellen(
   companyId: string,
   inv: Omit<NewInvoice, 'invoiceNumber'>,
-  nummer: { praefix?: string; desired?: number },
-): Promise<{ id: string; invoiceNumber: string }> {
+  nummer: { praefix?: string; desired?: number; datumAusdruecklich?: boolean; versuch?: string },
+): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string; bereits?: boolean }> {
   return pg.rechnungAusstellen(companyId, inv, nummer);
+}
+
+export type { VersuchGeklaert } from './pg/invoices';
+
+/** Die alte Rechnung stornieren und die neue ausstellen — in einem Zug (V6/F4). */
+export function rechnungErsetzen(
+  companyId: string,
+  alt: { id: string; grund: string },
+  inv: Omit<NewInvoice, 'invoiceNumber'>,
+  nummer: { praefix?: string; versuch?: string },
+): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string; bereits?: boolean }> {
+  return pg.rechnungErsetzen(companyId, alt, inv, nummer);
+}
+
+/** Nach einer unterbrochenen Antwort: ist die Rechnung dieses Versuchs entstanden? (G2) */
+export function rechnungVersuchKlaeren(versuch: string): Promise<pg.VersuchGeklaert> {
+  return pg.rechnungVersuchKlaeren(versuch);
 }
 
 export type { SetzbarerStand } from './pg/invoices';

@@ -1,16 +1,10 @@
 import type { AppUser, Company, UrlaubsanspruchAnpassung, Vacation } from '@/types';
-import { listOwnEntriesInRange, listOwnEntriesSince } from '@/lib/db/timeEntries';
-import { bilanzMarker, listBilanzen, monatVon } from '@/lib/db/monatsbilanzen';
 import { listOwnVacations } from '@/lib/db/vacations';
 import { listAnpassungen } from '@/lib/db/urlaubsanspruch';
+import { zeitkontoSaldo } from '@/lib/db/zeitkonto';
 import {
   antragNachUrlaubsjahr,
-  calcOverallSaldo,
   dezemberHalbtage,
-  hatTagessoll,
-  localDateStr,
-  monatsLetzter,
-  saldoAusBilanzen,
   todayStr,
   uebertragsRegel,
   urlaubsJahrVon,
@@ -23,34 +17,21 @@ import {
  * 01.10.2026, Paket B).
  *
  * DIESELBE RECHNUNG WIE IN DER ZEITERFASSUNG UND IM URLAUB, nicht eine
- * zweite: Marker der Monatsbilanzen prüfen, sonst alle Buchungen seit
- * Eintritt; beim Urlaub die genehmigten Anträge je Urlaubsjahr verteilt.
- * Stünde auf der Startseite eine andere Zahl als einen Tipp weiter, wäre
- * keiner der beiden mehr zu trauen.
+ * zweite: der Saldo aus der Datenbank (`zeitkonto_salden`, Durchsicht
+ * 15.11.2026, L1) — eine Zeile statt aller Buchungen seit dem Eintritt; beim
+ * Urlaub die genehmigten Anträge je Urlaubsjahr verteilt. Stünde auf der
+ * Startseite eine andere Zahl als einen Tipp weiter, wäre keiner der beiden
+ * mehr zu trauen.
  */
 export async function eigenerSaldo(
   companyId: string,
   profil: AppUser,
   company: Company | null | undefined,
 ): Promise<SaldoResult | null> {
-  const eintritt = profil.appStartDate;
-  if (!eintritt) return null;
-  const halbeTage = dezemberHalbtage(company);
-  const jetzt = new Date();
-  const monatsErster = localDateStr(new Date(jetzt.getFullYear(), jetzt.getMonth(), 1));
-
-  const marker = await bilanzMarker(companyId, profil.uid).catch(() => null);
-  const brauchbar = !!marker && marker.vollstaendigAb <= monatVon(eintritt) && !hatTagessoll(profil);
-  if (brauchbar) {
-    const [bilanzen, startRows, laufend] = await Promise.all([
-      listBilanzen(companyId, profil.uid, monatVon(eintritt)),
-      listOwnEntriesInRange(companyId, profil.uid, eintritt, monatsLetzter(eintritt)),
-      listOwnEntriesInRange(companyId, profil.uid, monatsErster, monatsLetzter(monatsErster)),
-    ]);
-    return saldoAusBilanzen(profil, bilanzen, laufend, halbeTage, startRows);
-  }
-  const rows = await listOwnEntriesSince(companyId, profil.uid, eintritt);
-  return calcOverallSaldo(profil, rows, halbeTage);
+  void companyId;
+  void company;
+  if (!profil.appStartDate) return null;
+  return zeitkontoSaldo(profil.uid);
 }
 
 /** Resturlaub im laufenden Urlaubsjahr — wie im Reiter Urlaub. */
@@ -78,7 +59,7 @@ export function resturlaubAus(
   const posten = eigene
     // Zeitausgleich geht vom Zeitguthaben ab, nicht vom Urlaub.
     .filter((v) => v.status === 'Genehmigt' && v.art !== 'Zeitausgleich')
-    .flatMap((v) => antragNachUrlaubsjahr(v, profil.workDays, halbeTage, regel.jahresbeginn));
+    .flatMap((v) => antragNachUrlaubsjahr(v, profil, halbeTage, regel.jahresbeginn));
   const stand = urlaubsStand(profil, jahr, posten, regel, anpassungen);
   return { rest: stand.rest, anspruch: stand.anspruch };
 }

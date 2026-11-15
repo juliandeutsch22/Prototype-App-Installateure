@@ -10,3 +10,7 @@ export const rabattsaetze = async () => [];
 export const rabattsatzSetzen = async () => undefined;
 export const uebernehmen = async () => ({ neu: 0, geaendert: 0 });
 export const zeilenSchicken = async () => undefined;
+export const BLOCK = 500;
+export const UEBERNAHME_BLOCK = 100;
+export const laufVerwerfen = async () => undefined;
+export const preisspruenge = async () => [];

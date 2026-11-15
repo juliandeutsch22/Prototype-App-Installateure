@@ -136,3 +136,29 @@ describe('Urlaubsantrag: Krankenstand im Urlaub (§ 5 UrlG, 09.11.2026)', () => 
     expect(verlauf().map(([t]) => t)).not.toContain('Krankenstand im Urlaub');
   });
 });
+
+/*
+  Z1: EINE KÜRZUNG STEHT IM VERLAUF — wann, von wem, warum, was vorher galt
+  und welcher Tag gestrichen wurde. Eine spätere Rücknahme steht danach.
+*/
+describe('Urlaubsantrag: Kürzungen im Verlauf (Z1)', () => {
+  const kuerzung = {
+    art: 'gekuerzt' as const, am: '2026-10-10T08:00:00+00:00', von: 'Berta Büro', grund: 'Baustelle Huber',
+    vorher: { von: '2026-11-02', bis: '2026-11-13' }, nachher: [{ von: '2026-11-02', bis: '2026-11-04' }, { von: '2026-11-06', bis: '2026-11-11' }],
+    gestrichen: ['2026-11-05'], entfernt: 3,
+  };
+
+  it('genehmigt, dann gekürzt — die Kürzung mit Grund, vorher und gestrichenem Tag', () => {
+    urlaubZeigen(urlaub({ status: 'Genehmigt', genehmigtAm: tag('2026-10-03'), entschiedenAm: tag('2026-10-03'), bis: '2026-11-04', aenderungen: [kuerzung] }));
+    expect(verlauf().map(([t]) => t)).toEqual(['Beantragt', 'Genehmigt', 'Gekürzt', 'Urlaub']);
+    expect(verlauf()[2][1]).toBe('10.10.2026');
+    expect(screen.getByText(/von Berta Büro — „Baustelle Huber“ · vorher 02\.11\.2026 – 13\.11\.2026 · gestrichen 05\.11\.2026 · geteilt in/)).toBeInTheDocument();
+  });
+
+  it('gekürzt, dann zurückgenommen — die Rücknahme steht zuletzt', () => {
+    urlaubZeigen(urlaub({
+      status: 'Storniert', genehmigtAm: tag('2026-10-03'), entschiedenAm: tag('2026-10-11'), aenderungen: [kuerzung],
+    }));
+    expect(verlauf().map(([t]) => t)).toEqual(['Beantragt', 'Genehmigt', 'Gekürzt', 'Storniert']);
+  });
+});

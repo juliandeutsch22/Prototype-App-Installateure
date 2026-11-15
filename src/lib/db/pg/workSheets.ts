@@ -61,7 +61,7 @@ export const LISTENSPALTEN = [
   'id', 'company_id', 'project_number', 'project_id', 'customer_id', 'customer_name', 'address',
   'datum', 'status', 'abrechnung', 'notizen', 'erstellt_von_uid', 'erstellt_von_name',
   'inhalt_hash', 'unterschrieben_am', 'storno_grund', 'storniert_von_name', 'verworfen_von_name',
-  'created_at', 'updated_at', 'aussteller_stand', 'verworfen_am',
+  'created_at', 'updated_at', 'aussteller_stand', 'verworfen_am', 'ersetzt',
 ] as const;
 const LISTENKOPF = [
   ...LISTENSPALTEN,
@@ -212,15 +212,21 @@ export function listRecentWorkSheetKoepfe(companyId: string, max = 100) {
  * Die EIGENEN Scheine ab einem Tag — für die offenen Zeit-Nachtragungen.
  *
  * Eng gefasst, und zwar aus Gewicht: ein unterschriebener Schein trägt zwei
- * Unterschriftsbilder als PNG, nachgemessen rund 70 KB je Stück. Sie alle zu
- * holen, um die eigenen herauszufiltern, wären auf dem Telefon eines
- * Monteurs schnell mehrere Megabyte für eine Handvoll Zeilen.
+ * Unterschriftsbilder als PNG, nachgemessen rund 70 KB je Stück. Geholt wird
+ * deshalb nur der Kopf (`LISTENKOPF`, ohne Bilder) und nur ab dem Tag.
+ *
+ * OHNE FESTE ZAHL (Durchsicht 15.11.2026, P6). Bis dahin endete die Abfrage
+ * bei 20 Scheinen, absteigend nach Datum: ein Kundendiensttechniker mit vier
+ * Scheinen am Tag hatte sie nach fünf Arbeitstagen beisammen, und ein Schein
+ * von vor sechs Tagen ohne Buchung stand in keiner Erinnerung mehr — die
+ * Stunde blieb unverrechnet. Die Menge begrenzt jetzt allein das Fenster
+ * der Aufrufer (`NACHTRAG_TAGE`); gelesen wird seitenweise wie überall.
  */
 export async function listOwnWorkSheetsSince(
   companyId: string,
   uid: string,
   abDatum: string,
-  max = 20,
+  max?: number,
 ) {
   const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
     spalten: LISTENKOPF,
@@ -229,7 +235,7 @@ export async function listOwnWorkSheetsSince(
       { art: 'ab', feld: 'datum', wert: abDatum },
     ],
     sortiere: { feld: 'datum', absteigend: true },
-    grenze: max,
+    ...(max !== undefined ? { grenze: max } : {}),
   });
   return zusammensetzen(koepfe, companyId);
 }
@@ -376,6 +382,20 @@ export async function listBelegScheineInRange(companyId: string, von: string, bi
 }
 
 /**
+ * Bestimmte Scheine wie in der Liste — ohne Unterschriftsbilder (P3: die
+ * unverrechneten über alle, deren Kennungen `scheine_unverrechnet` liefert).
+ * Lange Kennungslisten stückelt `abfragen` selbst.
+ */
+export async function listWorkSheetsByIds(companyId: string, ids: readonly string[]): Promise<WithId<WorkSheet>[]> {
+  if (ids.length === 0) return [];
+  const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
+    spalten: LISTENKOPF,
+    wo: [{ art: 'in', feld: 'id', werte: ids }],
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/**
  * Ganze Scheine samt Unterschriftsbildern, mehrere auf einmal — für das
  * Belegarchiv. Die Aufrufer geben kleine Blöcke (rund 25 Scheine): zwei
  * Bilder je Schein sind rund 140 KB, und mehr auf einmal hielte der Browser
@@ -506,6 +526,53 @@ async function speichern(
 export function createWorkSheet(companyId: string, s: NewWorkSheet): Promise<string> {
   void companyId;
   return speichern(crypto.randomUUID(), s);
+}
+
+/** Ein neu unterschriebener Schein, wie `scheine_neu` ihn gibt (V9). */
+export interface NeuerSchein {
+  id: string;
+  projectNumber: string;
+  customerName: string;
+  datum: string;
+  unterschriebenAm: string;
+  erstelltVonName: string;
+}
+
+/**
+ * Die seit dem letzten Ansehen unterschriebenen Scheine des Betriebs, ohne
+ * die eigenen — neueste zuerst (V9, `scheine_neu`). Beim ersten Mal die der
+ * letzten sieben Tage.
+ */
+export async function scheineNeu(): Promise<NeuerSchein[]> {
+  const { data, error } = await derClient().rpc('scheine_neu');
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as { id: string; project_number: string; customer_name: string; datum: string; unterschrieben_am: string; erstellt_von_name: string }[])
+    .map((z) => ({
+      id: z.id, projectNumber: z.project_number, customerName: z.customer_name, datum: z.datum,
+      unterschriebenAm: z.unterschrieben_am, erstelltVonName: z.erstellt_von_name,
+    }));
+}
+
+/** „Gesehen“: die neuen Scheine gelten bis jetzt als angesehen (V9, `scheine_gesehen`). */
+export async function scheineGesehen(): Promise<void> {
+  const { error } = await derClient().rpc('scheine_gesehen');
+  if (error) throw new Error(error.message);
+}
+
+/** Wie ein Schein verrechnet ist — für den Storno (P4, `schein_verrechnung`). */
+export interface ScheinVerrechnung {
+  verrechnet: boolean;
+  /** `rechnung`: steht auf einer gültigen Rechnung (auch über einen Vorgänger); `abgerechnet`: Pauschale oder abgerechneter Zeitraum. */
+  grund: 'rechnung' | 'abgerechnet' | null;
+  /** Nur wer Rechnungen lesen darf, bekommt die Nummern; sonst `null`. */
+  rechnungen: { nummer: string; zahlung: string }[] | null;
+}
+
+export async function scheinVerrechnung(id: string): Promise<ScheinVerrechnung> {
+  const { data, error } = await derClient().rpc('schein_verrechnung', { p_id: id });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as Partial<ScheinVerrechnung>;
+  return { verrechnet: !!d.verrechnet, grund: d.grund ?? null, rechnungen: d.rechnungen ?? null };
 }
 
 /** Ändern — nur im Entwurf. Danach lehnt der Trigger ab. */
@@ -734,11 +801,95 @@ export interface ScheinZeit {
  */
 export async function vorbereiten(
   projectNumber: string, datum: string,
-): Promise<{ zeiten: ScheinZeit[] }> {
+): Promise<{ zeiten: ScheinZeit[]; gebuchtAm: number[]; aufSchein: ScheinZeit[] }> {
   const { data, error } = await derClient().rpc('schein_vorbereiten', {
     p_baustelle: projectNumber,
     p_datum: datum,
   });
   if (error) throw new Error(error.message);
-  return data as { zeiten: ScheinZeit[] };
+  /*
+    SEIT P5 (Durchsicht 15.11.2026): `zeiten` nur, was noch auf keinem
+    unterschriebenen Schein steht; `aufSchein` das übrige; `gebuchtAm` je
+    Zeile von `zeiten`, wann die Buchung zuletzt geändert wurde. Fehlen die
+    beiden (älterer Stand der Datenbank), gilt: nichts schon auf einem Schein.
+  */
+  const d = data as { zeiten: ScheinZeit[]; gebucht_am?: number[]; auf_schein?: ScheinZeit[] };
+  return { zeiten: d.zeiten ?? [], gebuchtAm: d.gebucht_am ?? [], aufSchein: d.auf_schein ?? [] };
+}
+
+/** Was der Schein über das Ausgegebene hinaus trägt (M3) — siehe `schein_verbrauch_vorschlag`. */
+export interface VerbrauchStand {
+  entschieden: boolean;
+  /** Nach der Entscheidung: was abgebucht wurde. */
+  gebucht: Array<{ materialId: string; name: string; einheit: string; ort: string; menge: number }>;
+  /** Vor der Entscheidung: je Lagerartikel, was nicht über eine Ausgabe kam. */
+  zeilen: Array<{ materialId: string; name: string; einheit: string; aufSchein: number; vorschlag: number }>;
+  /** Die Fahrzeuge, aus denen gebucht werden darf. */
+  orte: Array<{ id: string; name: string }>;
+}
+
+/**
+ * VERBRAUCH AM SCHEIN (M3/F10, 16.11.2026): was der unterschriebene Schein
+ * trägt, ohne dass es für die Baustelle ausgegeben wurde — zum Abbuchen aus
+ * Hauptlager oder Fahrzeug. `null`: nicht unterschrieben, oder der Aufrufer
+ * bucht diesen Schein nicht (nur Ersteller, Lager, Führung).
+ */
+export async function scheinVerbrauchVorschlag(scheinId: string): Promise<VerbrauchStand | null> {
+  const { data, error } = await derClient().rpc('schein_verbrauch_vorschlag', { p_schein: scheinId });
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const d = data as Record<string, unknown>;
+  const liste = (x: unknown) => (Array.isArray(x) ? (x as Array<Record<string, unknown>>) : []);
+  return {
+    entschieden: d.entschieden === true,
+    gebucht: liste(d.gebucht).map((z) => ({
+      materialId: String(z.material_id), name: String(z.name), einheit: String(z.einheit ?? 'Stk'),
+      ort: String(z.ort ?? ''), menge: Number(z.menge) || 0,
+    })),
+    zeilen: liste(d.zeilen).map((z) => ({
+      materialId: String(z.material_id), name: String(z.name), einheit: String(z.einheit ?? 'Stk'),
+      aufSchein: Number(z.auf_schein) || 0, vorschlag: Number(z.vorschlag) || 0,
+    })),
+    orte: liste(d.orte).map((o) => ({ id: String(o.id), name: String(o.name) })),
+  };
+}
+
+/**
+ * Den Verbrauch buchen — oder bewusst nicht (leere Liste). Einmal je Schein;
+ * `false`: inzwischen hat jemand anderes entschieden.
+ */
+export async function scheinVerbrauchBuchen(
+  scheinId: string,
+  zeilen: Array<{ materialId: string; menge: number; ortId: string | null }>,
+): Promise<boolean> {
+  const { data, error } = await derClient().rpc('schein_verbrauch_buchen', {
+    p_schein: scheinId,
+    p_zeilen: zeilen.map((z) => ({ material_id: z.materialId, menge: z.menge, ort_id: z.ortId })),
+  });
+  if (error) throw new Error(error.message);
+  return (data as { ergebnis?: string } | null)?.ergebnis === 'gebucht';
+}
+
+/**
+ * DIE EINKAUFSPREISE BEIM UNTERSCHREIBEN (M8): je Schein und Artikel der
+ * festgehaltene Preis (gewichtet über die Zeilen). Schlüssel
+ * `scheinId|materialId`. Nur für wer Einkaufspreise sieht — sonst leer, und
+ * die Nachkalkulation rechnet wie bisher mit dem Stamm.
+ */
+export async function scheinEinkaufspreise(scheinIds: readonly string[]): Promise<Map<string, number>> {
+  const raus = new Map<string, number>();
+  const ids = [...new Set(scheinIds.filter(Boolean))];
+  if (ids.length === 0) return raus;
+  const { data, error } = await derClient().rpc('schein_einkaufspreise', { p_scheine: ids });
+  if (error) throw new Error(error.message);
+  const summe = new Map<string, { menge: number; betrag: number }>();
+  for (const z of (data ?? []) as Array<{ work_sheet_id: string; material_id: string; menge: number; einkaufspreis: number }>) {
+    const k = `${z.work_sheet_id}|${z.material_id}`;
+    const s = summe.get(k) ?? { menge: 0, betrag: 0 };
+    s.menge += Number(z.menge) || 0;
+    s.betrag += (Number(z.menge) || 0) * (Number(z.einkaufspreis) || 0);
+    summe.set(k, s);
+  }
+  for (const [k, s] of summe) if (s.menge > 0) raus.set(k, s.betrag / s.menge);
+  return raus;
 }

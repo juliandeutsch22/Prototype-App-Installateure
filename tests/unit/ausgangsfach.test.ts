@@ -3,6 +3,8 @@ import {
   schreiben,
   nachsenden,
   beiVormerkungFehlgeschlagen,
+  beiVormerkungGesichert,
+  zurueckholen,
   VERSUCHE_GRENZE,
   type Lager,
   type Sender,
@@ -289,5 +291,59 @@ describe('Vormerkungen und ihr Konto', () => {
     await schreiben(vonKonto('z1', 'max'), l, senderMit(), imFunkloch);
     const s = senderMit({ art: 'ok' });
     expect(await schreiben(vonKonto('z2', 'erna'), l, s, online)).toBe('confirmed');
+  });
+});
+
+/*
+  Z4 (Durchsicht 15.11.2026): eine vorgemerkte Buchung, die nicht ankommt,
+  war ohne Tag und Grund verloren — auch nach fünf Minuten Serverstörung.
+*/
+describe('Störung und Verlust (Z4)', () => {
+  it('eine Störung des Dienstes wird nie aufgegeben — auch nach zwanzig Läufen nicht', async () => {
+    const l = lagerImKopf();
+    await schreiben(auftrag('z1'), l, senderMit(), imFunkloch);
+    for (let i = 0; i < 20; i += 1) {
+      const b = await nachsenden(l, senderMit({ art: 'stoerung', grund: '503' }));
+      expect(b.offen).toBe(1);
+    }
+    expect(l.inhalt()[0].versuche).toBe(0);
+    expect(gemeldet).toEqual([]);
+    expect((await nachsenden(l, senderMit({ art: 'ok' }))).gesendet).toBe(1);
+  });
+
+  it('online: eine Störung merkt vor, statt zu werfen', async () => {
+    const l = lagerImKopf();
+    expect(await schreiben(auftrag(), l, senderMit({ art: 'stoerung', grund: '502' }), online)).toBe('queued');
+    expect(l.inhalt()).toHaveLength(1);
+  });
+
+  it('eine aufgegebene Buchung kommt mit ihren Daten zur Sicherung — Anlegen und Ändern derselben Zeile zusammen', async () => {
+    const gesichert: (readonly Sendung[])[] = [];
+    beiVormerkungGesichert((v) => { gesichert.push(v); return true; });
+    try {
+      const l = lagerImKopf();
+      await schreiben({ ...auftrag('z1'), daten: { date: '2026-09-11', start_time: '07:00' } }, l, senderMit(), imFunkloch);
+      await schreiben({ ...auftrag('z1', 'aendern'), daten: { end_time: '12:00' } }, l, senderMit(), imFunkloch);
+      await nachsenden(l, senderMit({ art: 'abgelehnt', grund: 'Überschneidet sich' }));
+      expect(gesichert).toHaveLength(1);
+      expect(gesichert[0].map((v) => [v.art, v.daten])).toEqual([
+        ['anlegen', { date: '2026-09-11', start_time: '07:00' }],
+        ['aendern', { end_time: '12:00' }],
+      ]);
+      expect(gemeldet).toEqual([{ zeile: 'z1', grund: 'Überschneidet sich' }]);
+    } finally {
+      beiVormerkungGesichert(null);
+    }
+  });
+
+  it('zurückholen: eine wartende Vormerkung verlässt das Fach — samt ihren Nachfolgern derselben Zeile', async () => {
+    const l = lagerImKopf();
+    await schreiben(auftrag('z1'), l, senderMit(), imFunkloch);
+    await schreiben(auftrag('z1', 'aendern'), l, senderMit(), imFunkloch);
+    await schreiben(auftrag('z2'), l, senderMit(), imFunkloch);
+    const geholt = await zurueckholen(l, 'time_entries', 'z1');
+    expect(geholt.map((v) => v.art)).toEqual(['anlegen', 'aendern']);
+    expect(l.inhalt().map((v) => v.zeile)).toEqual(['z2']);
+    expect(await zurueckholen(l, 'time_entries', 'z1')).toEqual([]);
   });
 });

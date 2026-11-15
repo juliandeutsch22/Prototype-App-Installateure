@@ -14,6 +14,7 @@ import {
   abmelden as abmeldenNaht,
   sitzungAnderswoBeendet,
   passwortZuruecksetzen,
+  passwortHilfeAnfragen,
   istPlattformAdmin,
   profilSchnell,
   profilVomServer,
@@ -24,6 +25,7 @@ import {
   type ZweiterFaktorBedarf,
   type Angemeldet,
 } from '@/lib/auth/sitzung';
+import { ZWEI_FAKTOR_ROLLEN } from '@/lib/auth/kern';
 import { benutzerSpurenLoeschen } from '@/lib/speicher';
 import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 import { getCompany } from '@/lib/db/company';
@@ -120,6 +122,8 @@ interface AuthState {
   /** Ohne Angabe nur dieses Gerät; `ueberall` beendet die Anmeldung auf jedem Gerät sofort. */
   signOut: (ueberall?: boolean) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  /** Benutzernamen-Konto: die Bitte um ein neues Passwort an die Leitung (V14). */
+  passwortHilfe: (benutzername: string) => Promise<void>;
   /** Lädt die Mandanten-Stammdaten neu — nach dem Speichern in den Einstellungen. */
   reloadCompany: () => Promise<void>;
   /**
@@ -552,7 +556,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [angemeldet]);
 
+  /*
+    DIE ZWEI-FAKTOR-PFLICHT MITTEN IN DER SITZUNG (K6, Durchsicht 15.11.2026).
+    Schaltet die Geschäftsführung sie ein, gilt sie in der Datenbank sofort —
+    der Bedarf wurde hier aber nur bei einem Anmeldeereignis gefragt. Bis das
+    Token erneuert wurde (bis zu einer Stunde), arbeitete die Buchhalterin in
+    einer leeren App, in der jedes Speichern abgewiesen wurde, ohne ein Wort
+    warum. Jetzt fragt die App nach — für die drei Rollen der Pflicht, solange
+    die Sitzung keinen zweiten Faktor trägt: beim Zurückkommen in den
+    Vordergrund und jede Minute, solange sie sichtbar ist. Wer ihn schon hat,
+    kostet das kein Netz (`zweiterFaktorBedarf` entscheidet das aus der
+    Sitzung). Fehlt er jetzt, steht sofort die Einrichtung da; danach geht es
+    wie nach einer Anmeldung weiter.
+  */
+  const pflichtRolle = !!user && ZWEI_FAKTOR_ROLLEN.includes(user.role);
+  useEffect(() => {
+    if (!pflichtRolle) return undefined;
+    let vorbei = false;
+    let zuletzt = 0;
+    const nachsehen = (immer: boolean) => {
+      if (document.visibilityState !== 'visible') return;
+      if (!immer && Date.now() - zuletzt < 30_000) return;
+      zuletzt = Date.now();
+      void zweiterFaktorBedarf()
+        .then((bedarf) => {
+          if (vorbei || bedarf === 'keiner') return;
+          geladenFuer.current = null;
+          setUser(null);
+          setCompany(null);
+          setZweiterFaktor(bedarf);
+        })
+        .catch(() => undefined);
+    };
+    const beiRueckkehr = () => nachsehen(false);
+    const takt = window.setInterval(() => nachsehen(true), 60_000);
+    document.addEventListener('visibilitychange', beiRueckkehr);
+    window.addEventListener('focus', beiRueckkehr);
+    return () => {
+      vorbei = true;
+      window.clearInterval(takt);
+      document.removeEventListener('visibilitychange', beiRueckkehr);
+      window.removeEventListener('focus', beiRueckkehr);
+    };
+  }, [pflichtRolle]);
+
   const resetPassword = useCallback((email: string) => passwortZuruecksetzen(email), []);
+  const passwortHilfe = useCallback((benutzername: string) => passwortHilfeAnfragen(benutzername), []);
 
   // Die Stammdaten liegen bewusst nicht auf einem Live-Abo: sie ändern sich
   // selten, und ein Abo auf `companies` hinge an jeder Sitzung. Nach dem
@@ -643,6 +692,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signOut,
         resetPassword,
+        passwortHilfe,
         reloadCompany,
         plattformAdmin,
         plattformEmail: plattformAdmin ? plattformKonto?.email ?? '' : '',

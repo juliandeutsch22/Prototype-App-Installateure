@@ -49,8 +49,8 @@ export function invoiceSeqOf(number: string): number | null {
 /**
  * `RE-2026-1001` — der Vorsatz kommt vom BETRIEB, nicht aus dieser Datei.
  *
- * Er stand hier fest verdrahtet, und ein zweites Mal in
- * `db/pg/invoices.ts:reserveInvoiceNumber`. Zwei Quellen für dieselbe
+ * Er stand hier fest verdrahtet, und ein zweites Mal beim Ziehen der
+ * Nummer (heute `rechnung_ausstellen`). Zwei Quellen für dieselbe
  * Wahrheit: liefen sie auseinander, zeigte der Vorschlag eine andere Nummer
  * an, als die Rechnung danach trug.
  *
@@ -74,7 +74,8 @@ export function formatInvoiceNumber(
  * entstünden Lücken in der fortlaufenden Nummerierung, die steuerlich
  * begründet werden müssten.
  *
- * Verbindlich wird die Nummer erst durch `reserveInvoiceNumber`. Dieser
+ * Verbindlich wird die Nummer erst beim Ausstellen (`rechnung_ausstellen`,
+ * seit G11 der einzige Weg zu einer Rechnungsnummer). Dieser
  * Vorschlag darf und wird veralten, sobald jemand anderes gleichzeitig
  * abrechnet.
  */

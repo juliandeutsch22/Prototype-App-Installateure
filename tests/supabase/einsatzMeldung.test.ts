@@ -217,6 +217,8 @@ describe('push_einsatz', () => {
       uid: monteur.uid,
       heute: [{ nr: BAU, kunde: 'Familie Huber', von: '07:30' }],
       morgen: [],
+      // V8 (Welle 2): Termine stehen mit in der Meldung — hier keine.
+      termine_heute: [], termine_morgen: [],
     });
   });
 

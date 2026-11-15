@@ -208,8 +208,15 @@ describe('Interne Hilfsfunktionen', () => {
       'app.ansprueche_setzen(uuid, jsonb, text[])',
       'app.konto_sperren(uuid, boolean)',
       'app.sitzungen_beenden(uuid)',
+      // K2: die Push-Anmeldungen eines Kontos — nur über Sperren und Sitzungsende.
+      'app.push_anmeldungen_entfernen(uuid)',
+      // K10: offene Passwort-Bitten beim Sperren schließen — nur über `app.konto_sperren`.
+      'app.passwort_anfragen_schliessen(uuid)',
       'app.ausleitung_anstossen()',
       'app.ausleitung_nachsehen()',
+      // K3: Warteschlange des Nachtlaufs — nur pg_cron stößt sie an.
+      'app.ausleitung_weiter()',
+      'app.ausleitung_gleichzeitig()',
       'app.push_anstossen(jsonb)',
       'app.anstoss_kopfzeilen(text)',
       // Personen nur aus dem eigenen Betrieb (C2): sonst eine Auskunft, wer wo arbeitet.
@@ -276,6 +283,12 @@ describe('Interne Hilfsfunktionen', () => {
       'app.angebot_link_kundensicht(public.angebot_links, public.quotes)',
       'app.angebot_link_antwort(public.angebot_links, text)',
       'app.angebot_link_anfrage_zaehlen(uuid)',
+      // A4: welche Fassung einen Link überholt hat.
+      'app.angebot_link_neuere_fassung(public.angebot_links)',
+      // A5: Versand nur mit Position, Rückwege mit Regeln.
+      'app.angebot_hat_position(uuid)',
+      'app.angebot_versand_pruefen()',
+      'app.angebot_links_nur_mit_positionen()',
       'app.angebot_fassungen_sperren(uuid)',
       'app.journal_kunde_ueber_link(text, jsonb, jsonb, text[], text, text)',
       // Der Auftragseingang (M02b): Kern des Registers, Kunde, Sperre, Nummer und Auslöser.
@@ -319,6 +332,18 @@ describe('Interne Hilfsfunktionen', () => {
       'app.deckung_frei_vor(text, uuid, date, timestamp with time zone, uuid, date)',
       'app.bestellmenge(numeric, numeric, text)',
       'app.bestellvorschlag_stand(text, uuid[])',
+      // A1: was an einer Baustelle hängt — die öffentliche Fassung prüft die Rolle, diese nicht.
+      'app.baustelle_verwendung(uuid)',
+      'app.baustelle_haengt_etwas(jsonb)',
+      // A11: die Zählung vor dem Abschließen — die öffentlichen Fassungen prüfen die Rolle.
+      'app.baustelle_abschluss_zaehlen(public.projects)',
+      // A12: die Besichtigung eines abgelehnten oder gelöschten Eingangs.
+      'app.eingang_besichtigung_entfernen(public.auftragseingaenge)',
+      'app.eingang_termin_mitnehmen()',
+      // A13: ein neuer Wartungstag ohne neue Baustelle hat keine Baustelle.
+      'app.wartung_bezug_mit_tag()',
+      // A14: angenommen wird nur mit Position.
+      'app.angebot_annahme_pruefen()',
       // Was nur die Function mit dem Dienstschlüssel ruft.
       'public.angebot_link_abruf(text)',
       'public.angebot_link_annehmen(text, text, text, boolean)',
@@ -345,6 +370,43 @@ describe('Interne Hilfsfunktionen', () => {
       );
       expect({ f, darf: r.darf }).toEqual({ f, darf: true });
     }
+  });
+
+  it('jede Funktion in einer CHECK-Regel darf ausführen, wer in die Tabelle schreibt', async () => {
+    /*
+      INTEGRATION WELLE 2 (15.11.2026). Eine CHECK-Regel ruft ihre Funktion
+      mit den Rechten dessen, der schreibt. Fehlt `authenticated` das Recht,
+      scheitert JEDES Schreiben an der Tabelle — nicht nur an der geprüften
+      Spalte. So geschehen mit `app.arbeitszeit_verlauf_gueltig` auf `users`:
+      Profil, Benutzerakte und Anlegen brachen mit „permission denied“ ab.
+      Gegenprobe: mit `revoke … from authenticated` in der Migration rot.
+    */
+    const ohne = await zeilen<{ regel: string; funktion: string }>(`
+      select distinct c.conrelid::regclass::text || '.' || c.conname as regel,
+             p.oid::regprocedure::text as funktion
+        from pg_constraint c
+        join pg_depend d on d.classid = 'pg_constraint'::regclass and d.objid = c.oid
+                        and d.refclassid = 'pg_proc'::regclass
+        join pg_proc p on p.oid = d.refobjid
+        join pg_namespace n on n.oid = p.pronamespace
+       where c.contype = 'c'
+         and c.connamespace = 'public'::regnamespace
+         and n.nspname not in ('pg_catalog', 'information_schema')
+         and not has_function_privilege('authenticated', p.oid, 'execute')
+       order by 1, 2
+    `);
+    expect(ohne).toEqual([]);
+  });
+
+  it('die Prüfung findet überhaupt Funktionen in CHECK-Regeln — sonst prüft sie nichts', async () => {
+    const [r] = await zeilen<{ n: number }>(`
+      select count(*)::int as n
+        from pg_constraint c
+        join pg_depend d on d.classid = 'pg_constraint'::regclass and d.objid = c.oid
+                        and d.refclassid = 'pg_proc'::regclass
+       where c.contype = 'c' and c.connamespace = 'public'::regnamespace
+    `);
+    expect(r.n).toBeGreaterThan(0);
   });
 });
 

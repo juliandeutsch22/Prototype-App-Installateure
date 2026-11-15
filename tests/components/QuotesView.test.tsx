@@ -35,6 +35,8 @@ const createProject = vi.fn<(a0: string, a1: unknown) => Promise<string>>(async 
 const updateQuote = vi.fn<(a0: string, a1: unknown) => Promise<void>>(async () => undefined);
 const angebote: (Quote & { id: string })[] = [];
 
+/** A6: ältere offene Angebote — die jüngsten hundert kennen sie nicht, „Offen“ über die Datenbank schon. */
+const aeltereOffene: (Quote & { id: string })[] = [];
 /** Ältere Angebote, die nur die Suche auf dem Server kennt (17 I) — nicht in der geladenen Liste. */
 const nurAufDemServer: (Quote & { id: string })[] = [];
 /** Wie der Server: dieselben Felder, über alle Angebote. */
@@ -51,6 +53,16 @@ vi.mock('@/lib/db/quotes', async () => ({
   ANGEBOT_TREFFER: 100,
   sucheAngebote: (c: string, b: string) => sucheAngebote(c, b),
   listRecentQuotes: vi.fn(async () => angebote),
+  // A6: „Offen“ fragt wie der Server nach dem Zustand, älteste Bindefrist zuerst — und zählt dasselbe.
+  listOffeneQuotes: vi.fn(async (_c: string, max: number) => [...angebote, ...aeltereOffene]
+    .filter((q) => q.status === 'Entwurf' || q.status === 'Versendet')
+    .sort((x, y) => x.validUntil.localeCompare(y.validUntil))
+    .slice(0, max)),
+  zaehleOffeneQuotes: vi.fn(async () => [...angebote, ...aeltereOffene]
+    .filter((q) => q.status === 'Entwurf' || q.status === 'Versendet').length),
+  zaehleQuotes: vi.fn(async () => angebote.length + aeltereOffene.length),
+  listFassungsNachbarn: vi.fn(async (_c: string, ids: string[], vorgaenger: string[]) =>
+    angebote.filter((q) => vorgaenger.includes(q.id) || (q.vorgaengerId && ids.includes(q.vorgaengerId)))),
   createQuote: (c: string, q: unknown) => createQuote(c, q),
   updateQuote: (id: string, d: unknown) => updateQuote(id, d),
   deleteQuote: vi.fn(async () => undefined),
@@ -89,7 +101,16 @@ vi.mock('@/lib/db/projects', () => ({
   listProjectsByNumbers: vi.fn(async (_c: string, nummern: string[]) =>
     bestehende.filter((b) => nummern.includes(b.projectNumber))),
   reserveProjectNumber: (c: string, o: unknown) => reserveProjectNumber(c, o),
+  // A3: die Baustellen des Nachtrags — über die Suche, ohne Begriff die laufenden des Kunden.
+  listProjectsByIds: vi.fn(async (_c: string, ids: string[]) => laufendeDesKunden.filter((p) => ids.includes(p.id))),
+  listLaufendeDesKunden: vi.fn(async () => laufendeDesKunden),
+  searchProjects: vi.fn(async () => laufendeDesKunden),
 }));
+/** Laufende Baustellen des Kunden (A3) — für den Nachtrag. */
+const laufendeDesKunden = [{
+  id: 'p9', companyId: 'perl', projectNumber: 'PR-2026-0009', customerId: 'k1', customerName: 'Gemeinde Neudorf',
+  address: 'Schulgasse 2', status: 'Aktiv' as const, liegenschaftId: null, topId: null,
+}];
 
 const authWert = {
   user: {
@@ -171,7 +192,8 @@ function versendetesAngebot() {
     quoteDate: '2026-09-01',
     validUntil: '2026-10-01',
     status: 'Versendet',
-    positions: [],
+    // Mit Position: ein leeres Angebot wird nicht angenommen (A14).
+    positions: [{ label: 'Sanierung', qty: 1, unit: 'Pauschale', unitPrice: 1300, netto: 1300 }],
     subtotalNetto: 1300,
     totalNetto: 1300,
     totalVat: 260,
@@ -349,7 +371,8 @@ describe('Angebot kalkulieren', () => {
       quoteDate: '2026-09-01',
       validUntil: '2026-10-01',
       status: 'Versendet',
-      positions: [],
+      // Mit Position: ein leeres Angebot wird nicht angenommen (A14).
+      positions: [{ label: 'Sanierung', qty: 1, unit: 'Pauschale', unitPrice: 1300, netto: 1300 }],
       subtotalNetto: 1300,
       totalNetto: 1300,
       totalVat: 260,
@@ -363,8 +386,9 @@ describe('Angebot kalkulieren', () => {
 
     await annehmenBestaetigt(nutzer);
 
-    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen', {
-      p_angebot: 'q1', p_praefix: 'B', p_abrechnung: 'Pauschal',
+    // Seit A3 mit Ziel: ohne Baustelle des Angebots ausdrücklich eine neue (`p_baustelle: null`).
+    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen_mit_ziel', {
+      p_angebot: 'q1', p_praefix: 'B', p_abrechnung: 'Pauschal', p_baustelle: null,
     });
     expect(createProject).not.toHaveBeenCalled();
     expect(updateQuote).not.toHaveBeenCalled();
@@ -465,7 +489,7 @@ describe('Angebot kalkulieren', () => {
     await annehmenBestaetigt(nutzer);
 
     await screen.findByText('Baustelle B-2026-0012 angelegt');
-    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen', { p_angebot: 'q1', p_praefix: 'B', p_abrechnung: 'Pauschal' });
+    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen_mit_ziel', { p_angebot: 'q1', p_praefix: 'B', p_abrechnung: 'Pauschal', p_baustelle: null });
     expect(createProject).not.toHaveBeenCalled();
   });
 
@@ -554,9 +578,10 @@ describe('Die Liste führt zum Angebot', () => {
     // Seit Paket 2 (03.10.2026) im „⋯“-Menü, mit sprechendem Namen.
     await nutzer.click(screen.getByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
     await nutzer.click(screen.getByRole('menuitem', { name: 'Als abgelehnt markieren' }));
-    expect(
-      await screen.findByText(/^Der Status konnte nicht gespeichert werden\. Keine Verbindung zum Server/),
-    ).toBeInTheDocument();
+    // Seit A5 nach der Rückfrage; scheitert es, bleibt sie offen und sagt den Grund.
+    const dialog = await screen.findByRole('dialog', { name: 'Als abgelehnt markieren?' });
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Als abgelehnt markieren' }));
+    expect(await within(dialog).findByText(/Keine Verbindung zum Server/)).toBeInTheDocument();
   });
 
   // Analyse 03.10.2026, Paket 2 — höchstens zwei Knöpfe, der Rest im Menü.
@@ -826,7 +851,7 @@ describe('Abrechnungsart beim Annehmen (M16)', () => {
     expect(within(dialog).getByText(/Mengen kommen aus dem Aufmaß/)).toBeInTheDocument();
     await nutzer.click(within(dialog).getByRole('button', { name: 'Annehmen' }));
     await waitFor(() => expect(annahmeRpc).toHaveBeenCalled());
-    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen', expect.objectContaining({ p_abrechnung: 'Einheitspreis' }));
+    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen_mit_ziel', expect.objectContaining({ p_abrechnung: 'Einheitspreis' }));
   });
 
   it('Gegenprobe: ohne Wahl bleibt es Pauschal, wie bisher', async () => {
@@ -836,7 +861,7 @@ describe('Abrechnungsart beim Annehmen (M16)', () => {
     await screen.findByRole('button', { name: 'Annehmen → Baustelle' });
     await annehmenBestaetigt(nutzer);
     await waitFor(() => expect(annahmeRpc).toHaveBeenCalled());
-    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen', expect.objectContaining({ p_abrechnung: 'Pauschal' }));
+    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen_mit_ziel', expect.objectContaining({ p_abrechnung: 'Pauschal' }));
   });
 });
 
@@ -1264,8 +1289,9 @@ describe('Hilfe zu dieser Seite (Runde 5, G8)', () => {
 */
 describe('Angebote — leer', () => {
   it('nicht geladen: der Fehler steht oben — nicht „Noch kein Angebot erstellt.“', async () => {
-    const { listRecentQuotes } = await import('@/lib/db/quotes');
-    vi.mocked(listRecentQuotes).mockRejectedValueOnce(new Error('Die Angebote konnten nicht geladen werden.'));
+    // Seit A6 lädt „Offen“ (die Vorgabe) über die Abfrage nach dem Zustand.
+    const { listOffeneQuotes } = await import('@/lib/db/quotes');
+    vi.mocked(listOffeneQuotes).mockRejectedValueOnce(new Error('Die Angebote konnten nicht geladen werden.'));
     zeichne();
     expect(await screen.findByRole('alert')).toHaveTextContent('Die Angebote konnten nicht geladen werden.');
     expect(screen.queryByText(/Noch kein Angebot/)).toBeNull();
@@ -1420,5 +1446,170 @@ describe('Angebotszeile am Handy (E72)', () => {
     } finally {
       window.matchMedia = vorher;
     }
+  });
+});
+
+/*
+  NACHTRAG AN EINE BESTEHENDE BAUSTELLE (Durchsicht 15.11.2026, A3 / F6).
+  Vorher legte jedes Annehmen eine neue Baustelle an — auch der Nachtrag zu
+  einer laufenden, und auch der Weg, zu dem die Baustellenakte selbst riet.
+*/
+/*
+  EIN LEERES ANGEBOT WIRD NICHT ANGENOMMEN (Durchsicht 15.11.2026, A14). Die
+  Datenbank weist es ab; die Rückfrage sagt es vorher und lässt nicht
+  bestätigen. Gegenprobe: vorher stand dort „… wird angenommen“, und
+  „Annehmen“ rief die Datenbank.
+*/
+describe('Leeres Angebot annehmen (A14)', () => {
+  it('die Rückfrage nennt den Grund, und „Annehmen“ ist gesperrt', async () => {
+    versendetesAngebot();
+    angebote[angebote.length - 1].positions = [];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await nutzer.click(screen.getByRole('button', { name: 'Annehmen → Baustelle' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/hat noch keine Position — ein leeres Angebot wird nicht angenommen/)).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Annehmen' })).toBeDisabled();
+    expect(within(dialog).queryByRole('radio', { name: 'Neue Baustelle' })).toBeNull();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Annehmen' }));
+    expect(annahmeRpc).not.toHaveBeenCalledWith('angebot_annehmen_mit_ziel', expect.anything());
+  });
+
+  it('bleibt gleich: mit Position fragt sie wie bisher', async () => {
+    versendetesAngebot();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await nutzer.click(screen.getByRole('button', { name: 'Annehmen → Baustelle' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/AN-2026-0007 wird angenommen/)).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Annehmen' })).toBeEnabled();
+  });
+});
+
+describe('Nachtrag an eine Baustelle (A3)', () => {
+  it('beim Annehmen „an Baustelle …“ wählen — die Datenbank bekommt die Baustelle mit', async () => {
+    versendetesAngebot();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await nutzer.click(screen.getByRole('button', { name: 'Annehmen → Baustelle' }));
+    const dialog = await screen.findByRole('dialog');
+    // Bleibt gleich: vorgewählt ist eine neue Baustelle samt Abrechnung.
+    expect(within(dialog).getByRole('radio', { name: 'Neue Baustelle' })).toBeChecked();
+    expect(within(dialog).getByLabelText('Abrechnung der Baustelle')).toBeInTheDocument();
+
+    await nutzer.click(within(dialog).getByRole('radio', { name: 'An eine bestehende Baustelle (Nachtrag)' }));
+    expect(within(dialog).queryByLabelText('Abrechnung der Baustelle')).toBeNull();
+    expect(within(dialog).getByRole('button', { name: 'Annehmen' })).toBeDisabled();
+    await nutzer.click(await within(dialog).findByText('Gemeinde Neudorf (PR-2026-0009)'));
+    expect(within(dialog).getByText(/Stundenbudget der Baustelle wächst um 20 h/)).toBeInTheDocument();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Annehmen' }));
+
+    await waitFor(() => expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen_mit_ziel', {
+      p_angebot: 'q1', p_praefix: 'B', p_abrechnung: 'Pauschal', p_baustelle: 'p9',
+    }));
+    expect(await screen.findByText('AN-2026-0007 als Nachtrag an Baustelle B-2026-0012 angehängt')).toBeInTheDocument();
+  });
+
+  it('aus der Baustellenakte: das neue Angebot gehört von Anfang an zur Baustelle', async () => {
+    const nutzer = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/quotes?baustelle=p9']}>
+        <ToastProvider>
+          <QuotesView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText(/Nachtrag zu PR-2026-0009/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Ort der Leistung')).toHaveValue('Schulgasse 2');
+    await nutzer.type(screen.getAllByLabelText('Bezeichnung')[0], 'Zusätzlicher Heizkörper');
+    await nutzer.type(screen.getAllByLabelText('Menge')[0], '1');
+    await nutzer.type(screen.getAllByLabelText('Einzelpreis netto')[0], '480');
+    await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+    await waitFor(() => expect(createQuote).toHaveBeenCalled());
+    expect(createQuote.mock.calls[createQuote.mock.calls.length - 1]?.[1]).toMatchObject({ projectNumber: 'PR-2026-0009', customerId: 'k1' });
+  });
+});
+
+/*
+  „OFFEN“ AUS DER DATENBANK (Durchsicht 15.11.2026, A6). Vorher filterte
+  „Offen“ nur die hundert zuletzt angelegten; ein altes versendetes Angebot
+  mit abgelaufener Bindefrist fiel still heraus.
+*/
+describe('Offene Angebote über alle (A6)', () => {
+  it('ein altes versendetes Angebot außerhalb der jüngsten steht unter „Bindefrist abgelaufen“ — mit der Zahl aus derselben Abfrage', async () => {
+    aeltereOffene.push({
+      id: 'jaenner', companyId: 'perl', quoteNumber: 'AN-2026-0020', customerName: 'Familie Jänner',
+      quoteDate: '2026-01-10', validUntil: '2026-02-10', status: 'Versendet', positions: [],
+      subtotalNetto: 0, totalNetto: 0, totalVat: 0, totalBrutto: 0, vatRate: 0.2, kalkulierteStunden: 0,
+    });
+    try {
+      const { listRecentQuotes, listOffeneQuotes } = await import('@/lib/db/quotes');
+      vi.mocked(listRecentQuotes).mockClear();
+      zeichne();
+      expect(await screen.findByText('Familie Jänner')).toBeInTheDocument();
+      expect(screen.getByText('Bindefrist abgelaufen')).toBeInTheDocument();
+      expect(screen.getByText(/1 offenes Angebot/)).toBeInTheDocument();
+      expect(listOffeneQuotes).toHaveBeenCalled();
+      expect(listRecentQuotes).not.toHaveBeenCalled();
+    } finally {
+      aeltereOffene.length = 0;
+    }
+  });
+});
+
+/* A8: Arbeitsangaben aus dem Eingang — im Formular sichtbar, änderbar und gespeichert. */
+describe('Ansprechpartner, Dringlichkeit und Wunschtermin (A8)', () => {
+  it('ein Entwurf aus dem Eingang zeigt sie beim Bearbeiten und speichert sie mit', async () => {
+    angebote.push({
+      id: 'e8', companyId: 'perl', quoteNumber: 'AN-2026-0088', customerId: 'k1', customerName: 'Gemeinde Neudorf',
+      quoteDate: '2026-11-01', validUntil: '2099-12-01', status: 'Entwurf',
+      positions: [{ label: 'Montage', qty: 1, unit: 'h', unitPrice: 70, netto: 70, istArbeitszeit: true }],
+      subtotalNetto: 70, totalNetto: 70, totalVat: 14, totalBrutto: 84, vatRate: 0.2, kalkulierteStunden: 1,
+      ansprechpartnerName: 'Frau Huber', ansprechpartnerTelefon: '0664 555', dringlichkeit: 'dringend', wunschtermin: '2026-11-20',
+    });
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Angebot AN-2026-0088 bearbeiten' }));
+    expect(screen.getByLabelText('Ansprechpartner vor Ort')).toHaveValue('Frau Huber');
+    expect(screen.getByLabelText('Dringlichkeit')).toHaveValue('dringend');
+    await nutzer.clear(screen.getByLabelText('Telefon vor Ort'));
+    await nutzer.type(screen.getByLabelText('Telefon vor Ort'), '0664 777');
+    await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await waitFor(() => expect(updateQuote).toHaveBeenCalled());
+    expect(updateQuote.mock.calls[updateQuote.mock.calls.length - 1][1]).toMatchObject({
+      ansprechpartnerName: 'Frau Huber', ansprechpartnerTelefon: '0664 777', dringlichkeit: 'dringend', wunschtermin: '2026-11-20',
+    });
+  });
+});
+
+/* V3 (Durchsicht 15.11.2026): aus der Kundenakte ein neues Angebot — ohne zweite Kundensuche. */
+describe('Neu für diesen Kunden (V3)', () => {
+  it('öffnet das Formular mit Kunde und Ort vorbelegt', async () => {
+    render(
+      <MemoryRouter initialEntries={[`/quotes?neu=fuer&kunde=${kunden[0].id}`]}>
+        <ToastProvider>
+          <QuotesView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('button', { name: 'Anderen Kunden wählen' })).toBeInTheDocument();
+    expect(screen.getByText(kunden[0].name)).toBeInTheDocument();
+    expect(screen.getByLabelText('Ort der Leistung')).toHaveValue(kunden[0].address ?? '');
+  });
+});
+
+/* V4 (Durchsicht 15.11.2026): nach der Annahme kein nächster Schritt — jetzt trägt die Meldung ihn. */
+describe('Der nächste Schritt nach der Annahme (V4)', () => {
+  it('die Meldung „Baustelle … angelegt“ bietet „Einsatz planen“ an', async () => {
+    versendetesAngebot();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await annehmenBestaetigt(nutzer);
+    expect(await screen.findByText('Baustelle B-2026-0012 angelegt')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Einsatz planen' })).toBeInTheDocument();
   });
 });

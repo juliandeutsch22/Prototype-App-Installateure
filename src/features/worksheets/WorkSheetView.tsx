@@ -142,6 +142,12 @@ export default function WorkSheetView() {
   const datumAusUrl = suchparameter.get('datum') ?? todayStr();
   /** Die Kennung eines bestehenden Entwurfs — dann wird geändert statt angelegt. */
   const entwurfId = suchparameter.get('entwurf');
+  /**
+   * „Ersatzschein anlegen“ nach einem Storno (Durchsicht 15.11.2026, P4):
+   * der stornierte Schein, den dieser ersetzt. Nur für einen NEUEN Schein —
+   * ein Entwurf trägt seinen Verweis schon (oder keinen).
+   */
+  const ersetztId = entwurfId ? null : suchparameter.get('ersetzt');
 
   const [projekt, setProjekt] = useState<WithId<Project> | undefined>();
   const [projectNumber, setProjectNumber] = useState(projektAusUrl);
@@ -212,7 +218,19 @@ export default function WorkSheetView() {
     sähe. Der Zustand lebt nur im Formular — im Schein steht am Ende einfach
     eine Liste von Zeilen, und woher sie kam, ist für den Kunden ohne Belang.
   */
-  const [selbstErfasst, setSelbstErfasst] = useState<Set<number>>(new Set());
+  const [, setSelbstErfasst] = useState<Set<number>>(new Set());
+  /*
+    GEBUCHT, ABER NICHT AUF DIESEM SCHEIN (Durchsicht 15.11.2026, P5) — mit
+    Grund. `schon`: steht bereits auf einem unterschriebenen Schein dieses
+    Tages; die Datenbank schlägt sie nicht noch einmal vor, sonst
+    unterschriebe der Kunde dieselben Stunden zweimal. `weg`: hier bewusst
+    weggenommen (etwa die Stunden eines anderen Auftrags). Beides steht
+    sichtbar da und lässt sich mit einem Tipp doch übernehmen — Beleg und
+    Buchung laufen damit nicht still auseinander.
+  */
+  const [nichtHier, setNichtHier] = useState<{ zeile: WorkSheetZeit; grund: 'schon' | 'weg' }[]>([]);
+  /** Dieselbe Liste der weggenommenen als Ref — die Vorausfüllung filtert danach, ohne an ihr zu hängen. */
+  const weggenommenRef = useRef<WorkSheetZeit[]>([]);
   /*
     Dieselbe Menge als Ref. Der Vorausfüll-Effekt braucht sie beim Eintreffen
     der Antwort, darf aber nicht an ihr HÄNGEN — sonst liefe er bei jeder
@@ -260,7 +278,7 @@ export default function WorkSheetView() {
    * Entwurfszeile stehen, der keine gebuchte entspricht — als selbst
    * erfasst, also mit Kreuz, falls sie doch überholt ist.
    */
-  const entwurfAbgleich = useRef<{ schluessel: string; zeilen: WorkSheetZeit[] } | null>(null);
+  const entwurfAbgleich = useRef<{ schluessel: string; zeilen: WorkSheetZeit[]; stand?: number } | null>(null);
   /**
    * Zu welchem Schein — Baustelle UND Tag — das eingetragene Material gehört.
    *
@@ -381,6 +399,37 @@ export default function WorkSheetView() {
     setZeiten((z) => (z.some((r) => r.datum !== datum) ? z.map((r) => ({ ...r, datum })) : z));
   }, [projectNumber, datum]);
 
+  /*
+    DER ERSATZSCHEIN (P4): Material und Notizen des stornierten Scheins als
+    Vorlage — korrigiert wird meist eine Menge, nicht alles neu. Die Zeiten
+    kommen wie bei jedem Schein aus der Zeiterfassung. Der Verweis geht beim
+    Anlegen mit; der Ersatz erbt so die Verrechnung des stornierten und kommt
+    nicht noch einmal auf eine Rechnung. Ist der Schein nicht (mehr)
+    storniert, gibt es keinen Verweis — das steht dann da.
+  */
+  const [ersatzFuer, setErsatzFuer] = useState<WithId<WorkSheet> | null>(null);
+  const [ersatzFehler, setErsatzFehler] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ersetztId) return;
+    let weg = false;
+    getWorkSheet(ersetztId)
+      .then((alt) => {
+        if (weg) return;
+        if (!alt || alt.status !== 'Storniert') {
+          setErsatzFehler('Der Schein, der ersetzt werden sollte, ist nicht storniert — dieser Schein entsteht ohne Bezug zu ihm.');
+          return;
+        }
+        setErsatzFuer(alt);
+        materialGehoertZu.current = `${alt.projectNumber}|${alt.datum}`;
+        setMaterial((jetzt) => (jetzt.length > 0 ? jetzt : alt.material.map((m) => ({ ...m, id: neueKennung() }))));
+        setNotizen((jetzt) => jetzt || alt.notizen || '');
+      })
+      .catch(() => {
+        if (!weg) setErsatzFehler('Der stornierte Schein ließ sich nicht laden — dieser Schein entsteht ohne Bezug zu ihm.');
+      });
+    return () => { weg = true; };
+  }, [ersetztId]);
+
   /**
    * Einen bestehenden Entwurf ins Formular holen.
    *
@@ -454,6 +503,8 @@ export default function WorkSheetView() {
         entwurfAbgleich.current = {
           schluessel: `${schein.projectNumber}|${schein.datum}`,
           zeilen: schein.zeiten,
+          // Wann der Entwurf zuletzt gespeichert wurde: gebuchte Zeilen von davor, die fehlen, sind bewusst weg (P5).
+          stand: (schein as { updatedAt?: number }).updatedAt,
         };
         setProjectNumber(schein.projectNumber);
         setDatum(schein.datum);
@@ -553,6 +604,7 @@ export default function WorkSheetView() {
   useEffect(() => {
     if (!user || !projectNumber) {
       setZeiten([]);
+      setNichtHier([]);
       setVorfuellFehler(null);
       return;
     }
@@ -586,10 +638,30 @@ export default function WorkSheetView() {
         */
         const abgleich = entwurfAbgleich.current;
         entwurfAbgleich.current = null;
-        const ausEntwurf =
-          abgleich && abgleich.schluessel === `${projectNumber}|${datum}`
-            ? abgleich.zeilen.filter((z) => !data.zeiten.some((g) => gleicheZeile(g, z)))
-            : [];
+        const passend = !!abgleich && abgleich.schluessel === `${projectNumber}|${datum}`;
+        const ausEntwurf = passend
+          ? abgleich!.zeilen.filter((z) => !data.zeiten.some((g) => gleicheZeile(g, z)))
+          : [];
+        /*
+          WEGGENOMMEN BLEIBT WEGGENOMMEN (P5). Im Formular: was hier
+          weggenommen wurde. Beim Wiederöffnen eines Entwurfs: eine gebuchte
+          Zeile, die im Entwurf fehlt, obwohl sie schon vor seinem letzten
+          Speichern gebucht war. Was danach gebucht wurde, kommt dazu — wie
+          bisher (wer den Entwurf am Vormittag anlegt und erst danach bucht).
+        */
+        const ausDemEntwurfWeg = passend && abgleich!.stand
+          ? data.zeiten.filter((g, i) =>
+            (data.gebuchtAm?.[i] ?? Infinity) <= abgleich!.stand! && !abgleich!.zeilen.some((z) => gleicheZeile(g, z)))
+          : [];
+        weggenommenRef.current = [
+          ...(passend ? [] : weggenommenRef.current.filter((w) => data.zeiten.some((g) => gleicheZeile(g, w)))),
+          ...ausDemEntwurfWeg,
+        ];
+        const gebucht = data.zeiten.filter((g) => !weggenommenRef.current.some((w) => gleicheZeile(g, w)));
+        setNichtHier([
+          ...(data.aufSchein ?? []).map((zeile) => ({ zeile, grund: 'schon' as const })),
+          ...weggenommenRef.current.map((zeile) => ({ zeile, grund: 'weg' as const })),
+        ]);
         /*
           DIE VOR ORT GETIPPTEN ZEILEN ÜBERLEBEN DIE VORAUSFÜLLUNG.
 
@@ -608,10 +680,10 @@ export default function WorkSheetView() {
             ...bisher.filter((_, i) => selbstErfasstRef.current.has(i)),
           ];
           selbstErfasstRef.current = new Set(
-            eigene.map((_, i) => data.zeiten.length + i),
+            eigene.map((_, i) => gebucht.length + i),
           );
           setSelbstErfasst(selbstErfasstRef.current);
-          return [...data.zeiten, ...eigene];
+          return [...gebucht, ...eigene];
         });
       })
       .catch(() => {
@@ -860,6 +932,12 @@ export default function WorkSheetView() {
 
   /** Eine vor Ort erfasste Zeile wieder wegnehmen. */
   function zeileWegnehmen(index: number) {
+    // Eine gebuchte Zeile bleibt sichtbar unter „Nicht auf diesem Schein“ (P5) — eine selbst getippte ist einfach weg.
+    if (!selbstErfasstRef.current.has(index) && zeiten[index]) {
+      const weg = zeiten[index];
+      weggenommenRef.current = [...weggenommenRef.current, weg];
+      setNichtHier((n) => [...n, { zeile: weg, grund: 'weg' }]);
+    }
     setZeiten((z) => z.filter((_, i) => i !== index));
     /*
       Die Merkliste rutscht mit: alles hinter der entfernten Zeile verschiebt
@@ -874,6 +952,18 @@ export default function WorkSheetView() {
     }
     selbstErfasstRef.current = nachgezogen;
     setSelbstErfasst(nachgezogen);
+  }
+
+  /** Eine Zeile aus „Nicht auf diesem Schein“ doch übernehmen — sie steht dann wie gebucht vorne. */
+  function dochUebernehmen(eintrag: { zeile: WorkSheetZeit; grund: 'schon' | 'weg' }) {
+    weggenommenRef.current = weggenommenRef.current.filter((w) => w !== eintrag.zeile);
+    setNichtHier((n) => n.filter((x) => x !== eintrag));
+    setZeiten((z) => {
+      const gebuchtAnzahl = z.length - selbstErfasstRef.current.size;
+      selbstErfasstRef.current = new Set([...selbstErfasstRef.current].map((i) => i + 1));
+      setSelbstErfasst(selbstErfasstRef.current);
+      return [...z.slice(0, gebuchtAnzahl), eintrag.zeile, ...z.slice(gebuchtAnzahl)];
+    });
   }
 
   async function unterschreibenUndEinfrieren() {
@@ -983,6 +1073,8 @@ export default function WorkSheetView() {
       */
       fotos: fuerDenSchein(fotos),
       notizen,
+      // Nur beim Anlegen wirksam; danach steht der Verweis fest (P4).
+      ...(ersatzFuer ? { ersetzt: ersatzFuer.id } : {}),
     };
     /*
       Läuft die Anlage gerade, wird auf sie gewartet und danach geändert —
@@ -1226,6 +1318,19 @@ export default function WorkSheetView() {
           Schritte nicht, und eine Leiste mit drei toten Zielen wäre schlimmer
           als keine.
         */}
+        {(ersatzFuer || ersatzFehler) && (
+          <Hinweiszeile stufe={ersatzFehler ? 'warn' : undefined}>
+            <p>
+              {ersatzFehler ?? (
+                <>
+                  <strong>Ersatz für den stornierten Schein vom {datumAT(ersatzFuer!.datum)}.</strong> Material und
+                  Notizen sind übernommen, die Zeiten kommen aus der Zeiterfassung; der Kunde unterschreibt neu. Stand
+                  der stornierte Schein auf einer Rechnung, gilt dieser als verrechnet.
+                </>
+              )}
+            </p>
+          </Hinweiszeile>
+        )}
         {projectNumber && !eineSeite && (
           <div ref={leisteRef}>
             <Schrittleiste schritt={schritt} onWahl={springe} />
@@ -1368,8 +1473,10 @@ export default function WorkSheetView() {
                     Für diesen Tag gibt es bereits {bestehende.length}{' '}
                     {bestehende.length === 1 ? 'Schein' : 'Scheine'}.{' '}
                     <InfoHint about="ein zweiter Schein am selben Tag">
-                      Ein zweiter ist möglich, etwa für einen getrennt beauftragten Zusatz — doppelt
-                      bestätigen sollte man dieselben Stunden aber nicht.
+                      Ein zweiter ist möglich, etwa für einen getrennt beauftragten Zusatz. Stunden, die schon
+                      auf einem unterschriebenen Schein dieses Tages stehen, werden nicht noch einmal
+                      vorgeschlagen; sie stehen unter „Gebucht, nicht auf diesem Schein“ und lassen sich dort
+                      bewusst übernehmen.
                     </InfoHint>
                   </p>
                 </Hinweiszeile>
@@ -1422,20 +1529,46 @@ export default function WorkSheetView() {
                       wert={fmtMin(z.minuten)}
                     >
                       {/*
-                        WEGNEHMEN NUR, WAS HIER EINGETRAGEN WURDE. Zeilen aus
-                        der Zeiterfassung stehen für gebuchte Zeit; sie hier zu
-                        entfernen änderte den Beleg, nicht die Buchung — und die
-                        beiden liefen auseinander, ohne dass es jemand sähe.
+                        WEGNEHMEN — bis P5 nur, was hier eingetragen wurde;
+                        jetzt auch gebuchte Zeilen: eine Buchung kann zu
+                        einem anderen Auftrag gehören. Sie bleibt dann unten
+                        unter „Nicht auf diesem Schein“ sichtbar — Beleg und
+                        Buchung laufen nicht still auseinander.
                       */}
-                      {selbstErfasst.has(i) && (
-                        <ZeileEntfernen
-                          name={z.mitarbeiter}
-                          onWeg={() => zeileWegnehmen(i)}
-                        />
-                      )}
+                      <ZeileEntfernen
+                        name={z.mitarbeiter}
+                        onWeg={() => zeileWegnehmen(i)}
+                      />
                     </ListRow>
                   ))}
                 </List>
+              )}
+
+              {nichtHier.length > 0 && (
+                <section className="mt-4" aria-label="Nicht auf diesem Schein">
+                  <h3 className="planung-abschnitt">Gebucht, nicht auf diesem Schein</h3>
+                  <List>
+                    {nichtHier.map((n, i) => (
+                      <ListRow
+                        key={`${n.zeile.mitarbeiter}-${n.zeile.von ?? ''}-${i}`}
+                        title={n.zeile.mitarbeiter}
+                        subtitle={
+                          <>
+                            {n.zeile.von && n.zeile.bis ? `${n.zeile.von}–${n.zeile.bis}` : '—'} ·{' '}
+                            {n.grund === 'schon'
+                              ? 'steht schon auf einem unterschriebenen Schein dieses Tages'
+                              : 'hier weggenommen'}
+                          </>
+                        }
+                        wert={fmtMin(n.zeile.minuten)}
+                      >
+                        <Button variant="secondary" onClick={() => dochUebernehmen(n)}>
+                          Übernehmen
+                        </Button>
+                      </ListRow>
+                    ))}
+                  </List>
+                </section>
               )}
 
               {/*

@@ -38,6 +38,8 @@ import {
   garantieEndet,
   garantienBald,
   unbesetzteEinsaetze,
+  eingeteilteFehlen,
+  neueScheineAbschnitt,
   unterMindestmenge,
   urlaubsantraege,
   freistellungsantraege,
@@ -46,11 +48,13 @@ import {
   korrekturantraege,
   korrekturThema,
   wartungenOhneBaustelle,
+  wartungenEingeplant,
   zahlungenHeute,
   jugendschutzEigen,
   ungeleseneNachrichten,
   nachrichtenZeile,
   meldungenZeile,
+  seitText,
 } from './regeln';
 import { anzahl, themenAbschnitte, type Thema } from './themen';
 import { ZIEL } from './ziele';
@@ -263,6 +267,8 @@ function verwaltung(d: StartDaten, u: Umfeld): Startseite {
     eigeneTage(d, u),
     // Der Auftragseingang (M02b) vor dem Lager: die Verwaltung nimmt das Telefon ab.
     erlaubt(offeneEingaenge(d.offeneEingaenge), u),
+    // V9: der unterschriebene Schein kommt im Büro an.
+    erlaubt(neueScheineAbschnitt(d.neueScheine), u),
     erlaubt(offeneAnforderungen(orders, u.heute), u),
     erlaubt(bestelltUeberfaellig(orders, u.heute), u),
     erlaubt(abholbereitAlt(orders, u.jetzt), u),
@@ -435,11 +441,17 @@ function projektleitung(d: StartDaten, u: Umfeld): Startseite {
     // Der Auftragseingang (M02b): was die Projektleitung zur Baustelle oder zum Angebot macht.
     erlaubt(offeneEingaenge(d.offeneEingaenge), u),
     erlaubt(unbesetzteEinsaetze(u.heute, d.heuteBetrieb ?? []), u),
+    // V1: wer heute (teilweise) oder morgen fehlt.
+    erlaubt(eingeteilteFehlen(u.heute, d.eingeteiltFehlen ?? []), u),
+    // V9: der unterschriebene Schein kommt im Büro an.
+    erlaubt(neueScheineAbschnitt(d.neueScheine), u),
     // M04b: Einsätze der nächsten sieben Tage, deren Material niemand deckt.
     erlaubt(materialFehlt(d.materialFehlt ?? [], titelVon(d)), u),
     erlaubt(budgetNahe(d.budget ?? []), u),
     erlaubt(ohneEinsatz(d.ohneEinsatz ?? [], titelVon(d)), u),
     erlaubt(wartungenOhneBaustelle(d.wartungen ?? [], u.heute), u),
+    // A9: eingeplante Wartungen bleiben stehen, bis jemand „Erledigt“ einträgt.
+    erlaubt(wartungenEingeplant(d.wartungen ?? [], d.wartungVorschlaege ?? [], u.heute), u),
     erlaubt(eilanforderungen(d.orders ?? []), u),
     // Über den Annahme-Link angenommen (M02a): bis jemand aus der Führung das Angebot öffnet.
     erlaubt(ueberLinkAngenommen(d.ueberLinkAngenommen ?? []), u),
@@ -618,6 +630,17 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: tageWort(tageZwischen(wUeber[0].w.faelligAm, h)), ton: 'fehl' },
     }));
   }
+  // A9: eingeplante Wartungen, die erledigt aussehen — ein Handgriff, sonst entsteht der nächste Termin nie.
+  const vorschlaege = d.wartungVorschlaege ?? [];
+  if (vorschlaege.length) {
+    const v = vorschlaege[0];
+    themen.push(wenn(vorschlaege.length === 1 ? ZIEL.wartungErledigt(v.wartungId, v.am) : ZIEL.wartungen, {
+      key: 'wartung-erledigt', wann: 'heute',
+      titel: vorschlaege.length === 1 ? `Wartung ${v.anlage} erledigt?` : `${anzahl(vorschlaege.length, 'Wartung', 'Wartungen')} erledigt?`,
+      detail: v.grund === 'schein' ? `${v.kunde}, Schein vom ${tagKurz(v.am)}` : `${v.kunde}, Baustelle abgeschlossen`,
+      status: { text: 'eintragen', ton: 'warn' },
+    }));
+  }
   // Am längsten überzogen zuerst — sie nennt die Zeile vorne.
   const ende = (d.projekte ?? [])
     .filter((p) => p.status === 'Aktiv' && p.endDate && p.endDate < h)
@@ -650,6 +673,17 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       titel: `${anzahl(unbesetzt.length, 'Einsatz', 'Einsätze')} unbesetzt`,
       detail: `${unbesetzt[0].customerName} · ${unbesetzt[0].fehlen.map((f) => (f.grund ? `${f.name} ${f.grund.toLowerCase()}` : f.name)).join(', ')}`,
       status: { text: 'heute', ton: 'warn' },
+    }));
+  }
+  // V1: Eingeteilte fehlen — heute teilweise, morgen überhaupt.
+  const fehlen = d.eingeteiltFehlen ?? [];
+  if (fehlen.length) {
+    const erste = fehlen[0];
+    themen.push(wenn(ZIEL.tag(erste.datum), {
+      key: 'fehlen', wann: fehlen.some((f) => f.datum === h) ? 'heute' : 'woche',
+      titel: `${anzahl(fehlen.length, 'Einsatz', 'Einsätze')}: Eingeteilte fehlen`,
+      detail: `${erste.customerName} · ${erste.datum === h ? 'heute' : 'morgen'} · ${erste.fehlen.map((f) => f.name).join(', ')}`,
+      status: { text: erste.datum === h ? 'heute' : 'morgen', ton: fehlen.some((f) => f.unbesetzt) ? 'warn' : 'leise' },
     }));
   }
   const eil = orders.filter((o) => o.transactionType !== 'return' && o.isUrgent && (o.status === 'Offen' || o.status === 'In Bearbeitung'));
@@ -831,6 +865,25 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
         ? 'Einstufung ändern, sobald die Prüfung abgelegt ist'
         : lehrzeit.map((z) => `${z.name} ${tagKurz(z.ende)}`).join(', '),
       status: { text: 'ändern', ton: vorbei ? 'warn' : 'leise' },
+    }));
+  }
+  /*
+    PASSWORT VERGESSEN, MIT BENUTZERNAME (V14): jemand kann sich nicht
+    anmelden und wartet. Unter „Heute“ und gelb — erledigt ist es mit einem
+    neuen Startpasswort in der Akte (oder dort verworfen).
+  */
+  const bitten = d.passwortBitten ?? [];
+  if (bitten.length) {
+    const erste = bitten[0];
+    themen.push(wenn(bitten.length === 1 ? ZIEL.benutzer(erste.uid) : ZIEL.benutzerverwaltung, {
+      key: 'passwort-anfragen', wann: 'heute',
+      titel: bitten.length === 1
+        ? `${erste.name} bittet um ein neues Passwort`
+        : `${bitten.length} bitten um ein neues Passwort`,
+      detail: bitten.length === 1
+        ? `${seitText(erste.seit, h)} · in der Akte ein Startpasswort vergeben`
+        : aufzaehlen(bitten.map((b) => b.name)),
+      status: { text: 'vergeben', ton: 'warn' },
     }));
   }
   if (d.einzigeLeitungOhneMail) {

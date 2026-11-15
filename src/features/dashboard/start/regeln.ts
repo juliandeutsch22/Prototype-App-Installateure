@@ -23,6 +23,7 @@ export { ohneEinsatzListe, OHNE_EINSATZ_TAGE } from '@/features/projects/baustel
 export { istAbholbereitAlt, istLieferungUeberfaellig };
 import { ZIEL } from './ziele';
 import type { UeberLinkAngenommen } from '@/lib/db/angebotLinks';
+import type { WartungErledigtVorschlag } from '@/lib/db/wartungen';
 import type { OffeneEingaenge } from './laden';
 
 /**
@@ -696,6 +697,31 @@ export function unbesetzteEinsaetze(heute: string, tag: TagesBaustelle[]): Absch
   return abschnitt('unbesetzt', 'Unbesetzte Einsätze', zeilen, ZIEL.tag(heute, 'unbesetzt'));
 }
 
+/** Ein Einsatz, bei dem Eingeteilte ganztags fehlen — heute oder morgen (V1). */
+export interface FehlenZeile extends TagesBaustelle {
+  datum: string;
+}
+
+/**
+ * „EINGETEILTE FEHLEN“ (Durchsicht 15.11.2026, V1). „Unbesetzt“ meldete nur
+ * heute und nur, wenn ALLE weg waren. Fällt der Facharbeiter aus und der
+ * Lehrling bleibt allein, oder betrifft es morgen, stand nichts da — die
+ * planende Rolle erfuhr es erst beim Öffnen der Woche. Hier: heute, wo
+ * jemand fehlt (das ganz Unbesetzte von heute steht schon oben), und morgen
+ * jeder Einsatz mit Fehlenden. Den Grund nur, wo er sichtbar ist
+ * (Datenschutz: die Projektleitung sieht „abwesend“).
+ */
+export function eingeteilteFehlen(heute: string, liste: FehlenZeile[]): Abschnitt | null {
+  const zeilen: Zeile[] = liste.map((b) => ({
+    key: `fehlen-${b.datum}-${b.projectNumber}`,
+    titel: `${b.customerName} · ${b.projectNumber}`,
+    detail: `${b.fehlen.map((f) => (f.grund ? `${f.name} ${f.grund.toLowerCase()}` : `${f.name} abwesend`)).join(', ')}${b.unbesetzt ? ' — niemand da' : ''}`,
+    status: { text: b.datum === heute ? 'heute' : 'morgen', ton: b.unbesetzt ? 'warn' : 'leise' },
+    to: ZIEL.tag(b.datum, b.unbesetzt ? 'unbesetzt' : undefined),
+  }));
+  return abschnitt('fehlen', 'Eingeteilte fehlen', zeilen, ZIEL.tag(liste[0]?.datum ?? heute));
+}
+
 /**
  * EINSATZ MIT FEHLENDEM MATERIAL in den nächsten sieben Tagen (M04b, E13) —
  * dieselbe Rechnung wie Woche, Tag und Formular (`materialDeckung.ts`).
@@ -736,6 +762,48 @@ export function ohneEinsatz(
       to: ZIEL.baustelle(x.projectNumber),
     }));
   return abschnitt('ohne-einsatz', 'Ohne Einsatz in den nächsten 14 Tagen', zeilen, ZIEL.baustellen('ohne-einsatz'));
+}
+
+/**
+ * EINGEPLANTE WARTUNGEN, BIS SIE ERLEDIGT SIND (Durchsicht 15.11.2026, A9).
+ *
+ * Mit „Baustelle anlegen“ verschwand eine Wartung von der Startseite — die
+ * Zeile darunter zeigt nur Wartungen OHNE Baustelle. Danach stieß nichts mehr
+ * „Erledigt“ an, und der Termin fürs nächste Jahr entstand nie.
+ *
+ * Jetzt bleibt sie stehen: mit Vorschlag (unterschriebener Schein oder
+ * abgeschlossene Baustelle) als Sprung in den Dialog „Erledigt“, den Tag
+ * vorbelegt; ohne Vorschlag, solange sie fällig ist, mit dem Weg zur
+ * Baustelle. Vorschläge zuerst — dort ist ein Handgriff fällig.
+ */
+export function wartungenEingeplant(
+  wartungen: Wartung[],
+  vorschlaege: WartungErledigtVorschlag[],
+  heute: string,
+): Abschnitt | null {
+  const mitVorschlag = new Set(vorschlaege.map((v) => v.wartungId));
+  const vorschlagZeilen: Zeile[] = vorschlaege.map((v) => ({
+    key: `wartung-erledigt-${v.wartungId}`,
+    titel: `${v.anlage} ${v.kunde}`.trim(),
+    detail: v.grund === 'schein'
+      ? `Schein vom ${datumAT(v.am)} auf ${v.baustelle} unterschrieben`
+      : `Baustelle ${v.baustelle} abgeschlossen`,
+    status: { text: `erledigt am ${tagKurz(v.am)}?`, ton: 'warn' as const },
+    to: ZIEL.wartungErledigt(v.wartungId, v.am),
+  }));
+  const offen: Zeile[] = wartungen
+    .filter((w) => w.aktiv && w.offeneBaustelle && !mitVorschlag.has(w.id))
+    .map((w) => ({ w, b: beurteile(w, heute) }))
+    .filter(({ b }) => b.stand === 'überfällig' || b.stand === 'fällig')
+    .sort((a, b) => a.w.faelligAm.localeCompare(b.w.faelligAm))
+    .map(({ w, b }) => ({
+      key: `wartung-eingeplant-${w.id}`,
+      titel: `${w.anlage} ${w.customerName}`.trim(),
+      detail: `eingeplant auf ${w.offeneBaustelle}, fällig ${datumAT(w.faelligAm)}`,
+      status: b.stand === 'überfällig' ? { text: 'überfällig', ton: 'fehl' as const } : { text: 'eingeplant', ton: 'leise' as const },
+      to: ZIEL.baustelle(w.offeneBaustelle!),
+    }));
+  return abschnitt('wartung-eingeplant', 'Eingeplante Wartungen', [...vorschlagZeilen, ...offen], ZIEL.wartungen);
 }
 
 /** Fällige Wartungen ohne offene Baustelle — überfällige zuerst. */
@@ -842,6 +910,37 @@ export function lehrzeitEnden(personen: AppUser[], heute: string): LehrzeitEndeZ
  * Geschäftsführung, aktiv. Zwei Leitungskonten ohne E-Mail helfen einander
  * und lösen die Zeile nicht aus.
  */
+/** Eine offene Bitte um ein neues Passwort, mit Namen (V14). */
+export interface PasswortBitte {
+  uid: string;
+  name: string;
+  /** Millisekunden. */
+  seit: number;
+}
+
+/**
+ * DIE OFFENEN BITTEN UM EIN NEUES PASSWORT, MIT NAMEN (V14, Durchsicht
+ * 15.11.2026). Wer nicht mehr in der Belegschaft steht (oder inzwischen
+ * deaktiviert ist), fällt heraus — für ihn vergibt niemand ein Passwort.
+ */
+export function passwortBitten(
+  anfragen: { userId: string; angefragtAm: number }[], personen: AppUser[],
+): PasswortBitte[] {
+  const wer = new Map(personen.filter((p) => p.active !== false).map((p) => [p.uid, p.name]));
+  return anfragen
+    .filter((a) => wer.has(a.userId))
+    .map((a) => ({ uid: a.userId, name: wer.get(a.userId)!, seit: a.angefragtAm }))
+    .sort((a, b) => a.seit - b.seit);
+}
+
+/** „seit 10:12“ von heute, sonst „seit 14.11.“ — in Wiener Zeit. */
+export function seitText(ms: number, heute: string): string {
+  const tag = new Date(ms).toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' });
+  return tag === heute
+    ? `seit ${new Date(ms).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Vienna' })}`
+    : `seit ${tagKurzMs(ms)}`;
+}
+
 export function einzigeLeitungOhneMail(personen: AppUser[]): boolean {
   const leitung = personen.filter(
     (p) => p.active !== false && (p.role === 'Administrator' || p.role === 'Geschäftsführung'),
@@ -922,6 +1021,23 @@ export function eingaengeZeile(z: OffeneEingaenge): Zeile | null {
         : { text: 'ansehen', ton: 'leise' },
     to: ZIEL.eingaenge,
   };
+}
+
+/**
+ * NEU EINGEGANGENE SCHEINE ALS EINE ZEILE (V9) — leise: ein Schein ist
+ * Information, keine Frist. Sie führt in die Scheinliste unter „neu
+ * eingegangen“; dort angesehen, verschwindet sie.
+ */
+export function neueScheineAbschnitt(liste: { customerName: string; erstelltVonName: string }[] | undefined): Abschnitt | null {
+  if (!liste || liste.length === 0) return null;
+  const erster = liste[0];
+  return abschnitt('scheine-neu', 'Neu eingegangen', [{
+    key: 'scheine-neu',
+    titel: `${liste.length} ${liste.length === 1 ? 'Schein' : 'Scheine'} neu unterschrieben`,
+    detail: `zuletzt ${erster.customerName}${erster.erstelltVonName ? ` · von ${erster.erstelltVonName}` : ''}`,
+    status: { text: 'ansehen', ton: 'leise' },
+    to: ZIEL.scheine('neu-eingegangen'),
+  }], ZIEL.scheine('neu-eingegangen'));
 }
 
 /** Für Verwaltung, Buchhaltung und Projektleitung: ein Abschnitt mit dieser einen Zeile. */

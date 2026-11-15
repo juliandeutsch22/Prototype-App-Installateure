@@ -107,3 +107,23 @@ export function letzterTimerEntwurf(s: Zeitsitzung, segment: number): TimerEntwu
   return timerEntwuerfeLesen(s.company_id, s.user_id).filter((d) => d.basis.id === s.id && d.segment === segment && d.art === 'buchen').pop();
 }
 export function timerEntwurfVerwerfen(d: TimerEntwurf): void { timerEntwurfEntfernen(d); }
+
+/**
+ * Wer gerade einen Arbeitstag laufen hat — für „Heute im Dienst“ (F11).
+ *
+ * Lesen darf das Büro die Sitzungen seit 20261108500000_zeitsitzungen.sql
+ * (`zeitsitzungen_lesen`: eigene oder Buchhaltung, Geschäftsführung,
+ * Administration); bisher nutzte keine Ansicht das. Je Person läuft höchstens
+ * eine Sitzung (`zeitsitzung_eine_laufende`), die Liste ist also nie länger
+ * als die Belegschaft.
+ */
+export async function laufendeZeitsitzungen(companyId: string): Promise<Zeitsitzung[]> {
+  const { data, error } = await derClient()
+    .from('zeitsitzungen')
+    .select('id, company_id, user_id, stand, revision, segmente, aktualisiert_am, erinnert_am, abgeschlossen')
+    .eq('company_id', companyId)
+    .in('stand', ['laeuft', 'pause'])
+    .order('aktualisiert_am');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Zeitsitzung[];
+}

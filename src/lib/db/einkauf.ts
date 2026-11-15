@@ -8,11 +8,14 @@ export {
   listGrosshaendler,
   grosshaendlerSpeichern,
   ausLager,
+  ausLagerTeil,
   aufEinkaufsliste,
   vonEinkaufslisteNehmen,
   grosshaendlerZuordnen,
   alsBestelltMarkieren,
   geliefert,
+  teillieferung,
+  bestellungStornieren,
   katalogFuer,
   lieferantVorschlag,
   lieferantVorschlagGrund,
@@ -23,6 +26,8 @@ export {
   lagerPostenBestellt,
   lieferterminSetzen,
   artikelSuchen,
+  lieferungenFuerArtikel,
+  GELIEFERT_ZURUECK_TAGE,
 } from './pg/einkauf';
 export type { Grosshaendler, GrosshaendlerDaten, NeuerLagerPosten, VorschlagGrund } from './pg/einkauf';
 /** Die Nummern der Großhändler für die Bestellung (M03a) — siehe `pg/lieferantenartikel.ts`. */

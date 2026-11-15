@@ -70,6 +70,17 @@ export async function angemeldet(client?: SupabaseClient): Promise<boolean> {
   return !!data.session;
 }
 
+/**
+ * Meldet sich die angemeldete Person mit einem Benutzernamen an (K7,
+ * Durchsicht 15.11.2026)? Dann hat ihr Konto keine Adresse, an die der
+ * Support zurückschreiben könnte — „Problem melden“ sagt das, statt eine
+ * Rückfrage per E-Mail zu versprechen. Aus der gespeicherten Sitzung, ohne Netz.
+ */
+export async function ohneMailadresse(client?: SupabaseClient): Promise<boolean> {
+  const { data } = await derClient(client).auth.getSession();
+  return istBenutzerkonto(data.session?.user?.email ?? '');
+}
+
 /** Was die Plattform sieht: Technik aus allen Betrieben ohne Person, Meldungen mit Absender. */
 export interface PlattformFehler {
   id: string;
@@ -109,8 +120,11 @@ export async function plattformFehler(tage = 14, client?: SupabaseClient): Promi
 /*
   Die Kunstadresse eines Benutzerkontos ist keine Adresse, an die der Support
   schreiben könnte — dann bleibt der Name, und nachgefragt wird im Betrieb.
+  Das steht seit K7 (Durchsicht 15.11.2026) auch DA: vorher sah der Support
+  nur einen Namen und nicht, dass es keinen anderen Weg gibt.
 */
-function absender(name: string | null, email: string | null): string | undefined {
+export function absender(name: string | null, email: string | null): string | undefined {
   if (!name) return undefined;
-  return email && !istBenutzerkonto(email) ? `${name} · ${email}` : name;
+  if (email && istBenutzerkonto(email)) return `${name} · ohne E-Mail, Rückfrage über den Betrieb`;
+  return email ? `${name} · ${email}` : name;
 }

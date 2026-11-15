@@ -236,6 +236,42 @@ export async function listEntriesForProjects(
   });
 }
 
+/**
+ * Die Buchungen auf diesen Baustellen in einem Zeitraum — für den
+ * Stundennachweis der Baustelle oder des Kunden (F12).
+ *
+ * IN TEILEN ZU 50 NUMMERN: ein Kunde kann Hunderte Baustellen haben, und
+ * jede Nummer steht in drei Schreibweisen in der Abfrage. Als eine Liste
+ * würde die Adresse zu lang (dieselbe Grenze wie A10, ab etwa 220 Kennungen).
+ */
+export async function listEntriesForProjectsInRange(
+  companyId: string,
+  projectNumbers: string[],
+  von: string,
+  bis: string,
+): Promise<WithId<TimeEntry>[]> {
+  const nummern = [...new Set(projectNumbers.map((n) => (n ?? '').trim()).filter(Boolean))];
+  const ergebnis: WithId<TimeEntry>[] = [];
+  for (let i = 0; i < nummern.length; i += 50) {
+    const formen = new Set<string>();
+    for (const roh of nummern.slice(i, i + 50)) {
+      const blank = roh.replace(/^PR-/i, '');
+      formen.add(roh);
+      formen.add(blank);
+      formen.add(`PR-${blank}`);
+    }
+    ergebnis.push(...(await abfragen<TimeEntry>(ZEITEN, companyId, {
+      wo: [
+        { art: 'in', feld: 'projectNumber', werte: [...formen] },
+        { art: 'ab', feld: 'date', wert: von },
+        { art: 'bis', feld: 'date', wert: bis },
+      ],
+      sortiere: { feld: 'date' },
+    })));
+  }
+  return ergebnis;
+}
+
 /** Was eine Person auf einer Baustelle gearbeitet hat — eine Art, eine Summe. */
 export interface BaustellenStunden {
   /** Die Nummer ohne „PR-“, wie `normProjectNumber`. */

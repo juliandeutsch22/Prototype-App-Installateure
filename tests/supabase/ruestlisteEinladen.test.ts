@@ -112,13 +112,16 @@ describe('Rüstliste: Abbuchung beim Einladen', () => {
   });
 
   it('was übrig bleibt, kommt über die Retoure zurück', async () => {
-    const { error } = await monteur.client.rpc('retoure_anlegen', {
+    const { data: id, error } = await monteur.client.rpc('retoure_anlegen', {
       p_beleg: {
         company_id: BETRIEB, material_id: rohr, material_name: 'Kupferrohr 15', quantity: 3,
         project_number: 'PR-7', condition: 'neu', user_id: monteur.uid, user_name: 'Max',
       },
     });
     expect(error).toBeNull();
+    // Seit M7: gemeldet, gutgeschrieben mit der Annahme im Lager.
+    expect(await bestand()).toBe(12);
+    expect((await chefin.client.rpc('retoure_annehmen', { p_id: id })).error).toBeNull();
     expect(await bestand()).toBe(15);
     // Eine echte Rückgabe bleibt „Retoure“ (Runde 3, G15).
     const { data } = await admin.from('lagerbewegungen').select('art, menge')

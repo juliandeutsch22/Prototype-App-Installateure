@@ -1,6 +1,7 @@
 import { calcWorkMin, istGanztagsGutschrift, wienVersatzMin, type Zeitangaben } from '@shared/arbeitszeit';
 import { nachtMinutenIn, type Nachtzeit } from '@/lib/lohnregeln';
 import { leseZahl } from '@/lib/zahl';
+import type { ArbeitszeitAbschnitt } from '@/types';
 
 /**
  * Die gesetzlichen Grenzen der Arbeitszeit — geprüft an dem, was gebucht ist
@@ -149,13 +150,16 @@ export interface GrenzPerson {
   geburtsdatum?: string | null;
   /** Das Tagessoll in Minuten — so zählt ein Berufsschultag ohne Unterrichtszeit. */
   schultagMin?: (tag: string) => number;
-  /** Wochenarbeitszeit anders verteilt: am Tag bis 9 Std. (siehe `andereVerteilung`). */
-  andereVerteilung?: boolean;
+  /**
+   * Wochenarbeitszeit anders verteilt: am Tag bis 9 Std. (siehe `andereVerteilung`).
+   * Mit einem Verlauf der Arbeitszeit je Tag gefragt (Z3a) — siehe `grenzArbeitszeit`.
+   */
+  andereVerteilung?: boolean | ((tag: string) => boolean);
   /**
    * Arbeitstage je Woche (Standard 5) — so viele neutrale Tage machen beim
-   * Durchschnitt eine ganze Woche aus.
+   * Durchschnitt eine ganze Woche aus. Mit Verlauf je Woche (Montag) gefragt.
    */
-  arbeitstageJeWoche?: number;
+  arbeitstageJeWoche?: number | ((montag: string) => number);
 }
 
 const TAG = 24 * 60;
@@ -266,7 +270,8 @@ export function grenzfaelle(
     const jung = jugendlich(tag);
     const grenze = !jung
       ? GRENZEN.erwachsen.tag
-      : person.andereVerteilung ? GRENZEN.jugendlich.tagVerteilt : GRENZEN.jugendlich.tag;
+      : (typeof person.andereVerteilung === 'function' ? person.andereVerteilung(tag) : person.andereVerteilung)
+        ? GRENZEN.jugendlich.tagVerteilt : GRENZEN.jugendlich.tag;
     const schule = jung ? schuleJeTag.get(tag) : undefined;
     if (schule) {
       // Ohne Arbeit im Betrieb ist ein langer Schultag kein Verstoss.
@@ -405,7 +410,10 @@ export function grenzfaelle(
   for (const e of eintraege) {
     if (istGanztagsGutschrift(e) && !minutenJeTag.has(e.date)) neutral.add(e.date);
   }
-  const tageJeWoche = person.arbeitstageJeWoche && person.arbeitstageJeWoche > 0 ? person.arbeitstageJeWoche : 5;
+  const tageJeWoche = (montagDerWoche: string) => {
+    const n = typeof person.arbeitstageJeWoche === 'function' ? person.arbeitstageJeWoche(montagDerWoche) : person.arbeitstageJeWoche;
+    return n && n > 0 ? n : 5;
+  };
   const { durchschnitt } = GRENZEN.erwachsen;
   const durchschnittWochen = durchrechnungsWochen(durchrechnungWochen);
   for (const montag of wochen) {
@@ -417,7 +425,7 @@ export function grenzfaelle(
       const tage = Array.from({ length: 7 }, (_, i) => isoVon(m + i));
       summe += tage.reduce((s, t) => s + (minutenJeTag.get(t) ?? 0), 0);
       // Mehr neutrale Tage als Arbeitstage (Krankenstand auch am Wochenende) sind eine ganze Woche.
-      wochenZahl += 1 - Math.min(1, tage.filter((t) => neutral.has(t)).length / tageJeWoche);
+      wochenZahl += 1 - Math.min(1, tage.filter((t) => neutral.has(t)).length / tageJeWoche(tage[0]));
     }
     if (wochenZahl <= 0) continue;
     const schnitt = Math.round(summe / wochenZahl);
@@ -653,4 +661,47 @@ function stundenAusEingabe(
   if (!Number.isFinite(min)) return { min: null, fehler: `„${t}“ ist keine Stundenzahl — etwa ${beispiel}.` };
   if (min < 1 || min > hoechstens) return { min: null, fehler: zuViel };
   return { min, fehler: null };
+}
+
+/** Was `grenzArbeitszeit` von der Person braucht. */
+type GrenzArbeitszeitPerson = {
+  tagessoll?: Record<string, number> | null;
+  workDays?: number[] | null;
+  weeklyTargetHours?: number;
+  arbeitszeitVerlauf?: ArbeitszeitAbschnitt[] | null;
+};
+
+/**
+ * DIE ARBEITSZEIT, MIT DER DIE GRENZPRÜFUNG RECHNET (Durchsicht 15.11.2026,
+ * Z3a). Die Grenzwerte des Gesetzes bleiben, wie sie sind; eingespeist wird
+ * nur, welche Arbeitszeit galt.
+ *
+ * WARUM JE WOCHE UND NICHT JE TAG. Beide Angaben sind Wochenbegriffe: die
+ * andere Verteilung der Wochenarbeitszeit (§ 11 Abs 2 und 3 KJBG) verteilt
+ * eine Woche, und die neutralen Tage im Durchschnitt (§ 9 Abs 4 AZG) machen
+ * eine Woche aus. Wechselt die Arbeitszeit mitten in einer Woche, gilt für
+ * die ganze Woche, was an ihrem Montag galt — die Verteilung, die für diese
+ * Woche vereinbart war. Das Tagessoll des Schultags (`schultagMin`) ist ein
+ * Tagesbegriff und kommt aus `tagessollStunden`, schon je Tag.
+ *
+ * Ohne Verlauf genau die Werte von vorher (feste Zahl bzw. Wahrheitswert).
+ */
+export function grenzArbeitszeit(
+  person: GrenzArbeitszeitPerson | null | undefined,
+  kvErlaubt = false,
+): Required<Pick<GrenzPerson, 'andereVerteilung'>> & Pick<GrenzPerson, 'arbeitstageJeWoche'> {
+  const verlauf = person?.arbeitszeitVerlauf;
+  if (!person || !verlauf || verlauf.length === 0) {
+    return { andereVerteilung: andereVerteilung(person, kvErlaubt), arbeitstageJeWoche: person?.workDays?.length || undefined };
+  }
+  const amMontag = (tag: string) => {
+    const montag = montagVon(tag);
+    let gilt = verlauf[0];
+    for (const e of verlauf) if (e.ab <= montag) gilt = e;
+    return { tagessoll: gilt.tagessoll, workDays: gilt.arbeitstage };
+  };
+  return {
+    andereVerteilung: (tag) => andereVerteilung(amMontag(tag), kvErlaubt),
+    arbeitstageJeWoche: (montag) => amMontag(montag).workDays?.length || 5,
+  };
 }

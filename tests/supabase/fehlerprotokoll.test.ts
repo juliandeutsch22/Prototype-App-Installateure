@@ -154,7 +154,9 @@ describe('Die Plattform', () => {
     await fehlerEintragen({ art: 'meldung', beschreibung: 'Vom Benutzerkonto' }, ohneMail.client);
     const { data: ich } = await admin.from('users').select('name').eq('id', ohneMail.uid).single();
     const m = (await plattformFehler(14, plattform.client)).find((f) => f.beschreibung === 'Vom Benutzerkonto');
-    expect(m!.wer).toBe(ich!.name);
+    // Seit K7 (Durchsicht 15.11.2026) steht dabei, dass die Rückfrage über den Betrieb geht.
+    expect(m!.wer).toBe(`${ich!.name} · ohne E-Mail, Rückfrage über den Betrieb`);
+    expect(m!.wer).not.toContain('.invalid');
   });
 
   /*

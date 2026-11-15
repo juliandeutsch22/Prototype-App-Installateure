@@ -8,6 +8,7 @@ export {
   angemeldet,
   fehlerEintragen,
   fehlerVorAnmeldungEintragen,
+  ohneMailadresse,
   plattformFehler,
 } from './pg/fehlerprotokoll';
 export type { NeuerFehlerEintrag, PlattformFehler } from './pg/fehlerprotokoll';

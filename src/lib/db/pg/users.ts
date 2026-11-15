@@ -232,3 +232,54 @@ export async function listKontoUmstellungen(uid: string, max = 20): Promise<Kont
     return { ...k, id: String(k.id) };
   });
 }
+
+/**
+ * Hat diese Person einen zweiten Faktor? Nur für die Spitze des eigenen
+ * Betriebs (`zweiter_faktor_von`) — die Akte zeigt das Zurücksetzen nur,
+ * wo es etwas tut.
+ */
+export async function zweiterFaktorVon(uid: string): Promise<boolean> {
+  const { data, error } = await derClient().rpc('zweiter_faktor_von', { p_uid: uid });
+  if (error) throw new Error(error.message);
+  return data === true;
+}
+
+/**
+ * Den zweiten Faktor eines Kollegen zurücksetzen (K7, Durchsicht
+ * 15.11.2026) — mit Grund, der im Protokoll steht. Was erlaubt ist,
+ * entscheidet die Datenbank (`zweiter_faktor_zuruecksetzen`).
+ */
+export async function zweitenFaktorZuruecksetzen(uid: string, grund: string): Promise<void> {
+  const { error } = await derClient().rpc('zweiter_faktor_zuruecksetzen', { p_uid: uid, p_grund: grund });
+  if (error) throw new Error(error.message);
+}
+
+/** Eine offene Bitte um ein neues Passwort aus der Anmeldemaske (V14). */
+export interface PasswortAnfrage {
+  id: string;
+  userId: string;
+  /** Millisekunden. */
+  angefragtAm: number;
+}
+
+/**
+ * Die offenen Bitten um ein neues Passwort (V14, Durchsicht 15.11.2026) —
+ * lesen darf sie nur die Spitze (Richtlinie `passwort_anfragen_lesen`);
+ * erledigt werden sie durch ein neues Startpasswort oder durch Verwerfen.
+ */
+export async function listPasswortAnfragen(companyId: string, uid?: string): Promise<PasswortAnfrage[]> {
+  let q = derClient().from('passwort_anfragen').select('id, user_id, angefragt_am')
+    .eq('company_id', companyId).is('erledigt_am', null);
+  if (uid) q = q.eq('user_id', uid);
+  const { data, error } = await q.order('angefragt_am', { ascending: true }).limit(200);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((z) => ({
+    id: String(z.id), userId: String(z.user_id), angefragtAm: Date.parse(String(z.angefragt_am)),
+  }));
+}
+
+/** Eine Bitte verwerfen, die nichts verlangt — etwa, weil das Passwort wieder eingefallen ist. */
+export async function passwortAnfrageVerwerfen(id: string): Promise<void> {
+  const { error } = await derClient().rpc('passwort_anfrage_verwerfen', { p_id: id });
+  if (error) throw new Error(error.message);
+}

@@ -35,4 +35,9 @@ describe('Bericht exportieren', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Projektauswertung (CSV)' }));
     expect(csv).toHaveBeenCalledWith('2026-11-01', '2026-11-30');
   });
+
+  it('sagt, wofür der Nachweis ist — und wo der für Kunden steht (Z8, F12)', () => {
+    zeigen();
+    expect(screen.getByText(/Für die Lohnverrechnung.*Für einen Kunden: „Stundennachweis“ im ⋯ der Baustellen- oder Kundenakte/)).toBeInTheDocument();
+  });
 });

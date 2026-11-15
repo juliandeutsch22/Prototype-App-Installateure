@@ -25,9 +25,19 @@
  * Das neue Passwort ist wieder ein STARTPASSWORT: beim nächsten Anmelden
  * fragt die App nach einem eigenen.
  *
- * ANGEMELDETE GERÄTE BLEIBEN ANGEMELDET. Das ist beim vergessenen Passwort
- * richtig; bei einem verlorenen Telefon ist das Mittel „Konto deaktivieren",
- * das die offenen Sitzungen sofort beendet (`app.konto_sperren`).
+ * ANGEMELDETE GERÄTE WERDEN ABGEMELDET. Das tut der Anmeldedienst selbst,
+ * sobald ein Passwort neu gesetzt wird (gemessen am 15.11.2026, Supabase Auth
+ * v2.197: die Sitzungen des Kontos enden, `app.sitzung_lebt` sagt danach
+ * „nein“). Bis dahin stand hier das Gegenteil.
+ *
+ * DIE MELDUNGEN GEHEN MIT (K2, Durchsicht 15.11.2026): die Push-Anmeldungen
+ * des Kontos gehen, BEVOR das Passwort gesetzt wird — das Abmelden beendet
+ * nur die Sitzung, die Meldungen kamen sonst weiter. Wer sich mit dem neuen
+ * Passwort anmeldet, meldet das Gerät selbst wieder an; ein verlorenes
+ * Telefon zeigt ab jetzt nichts mehr am Sperrbildschirm. Die
+ * Reihenfolge, weil ein Fehlschlag dann nichts halb lässt: scheitert das
+ * Abräumen, bleibt auch das alte Passwort, und das Büro versucht es noch
+ * einmal.
  */
 import {
   alleDienstSchluessel, dienstKopfzeilen, SCHLUESSEL_FEHLT,
@@ -135,6 +145,15 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     );
   }
 
+  const geraete = await fetch(`${URL_BASIS}/rest/v1/rpc/push_geraete_vergessen`, {
+    method: 'POST', headers: alsDienst, body: JSON.stringify({ p_uid: uid }),
+  });
+  if (!geraete.ok) {
+    await geraete.body?.cancel();
+    return fehler('Die Geräte für Meldungen ließen sich nicht abmelden — das Passwort ist unverändert. Bitte erneut versuchen.', 500);
+  }
+  await geraete.body?.cancel();
+
   const setzen = await fetch(`${URL_BASIS}/auth/v1/admin/users/${uid}`, {
     method: 'PUT',
     headers: alsDienst,
@@ -148,5 +167,16 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     const f = await setzen.json().catch(() => ({}));
     return fehler(String(f?.msg ?? f?.message ?? 'Das Passwort ließ sich nicht setzen.'), 500);
   }
+  await setzen.body?.cancel();
+
+  /*
+    DIE BITTE AUS DER ANMELDEMASKE IST ERLEDIGT (V14, Durchsicht 15.11.2026).
+    Scheitert dieser Vermerk, ist das Passwort trotzdem gesetzt — die Bitte
+    bliebe dann auf der Startseite stehen, und die Leitung verwirft sie von
+    Hand. Kein Grund, dem Büro einen Fehler zu melden, der keiner ist.
+  */
+  await fetch(`${URL_BASIS}/rest/v1/rpc/passwort_anfragen_erledigt`, {
+    method: 'POST', headers: alsDienst, body: JSON.stringify({ p_uid: uid, p_von: aufrufer }),
+  }).then((r) => r.body?.cancel()).catch(() => undefined);
   return antwort({ ok: true });
 }));

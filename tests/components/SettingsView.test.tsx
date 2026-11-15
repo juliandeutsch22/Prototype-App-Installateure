@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { Company } from '@/types';
@@ -310,7 +310,7 @@ describe('Wochenplan für alle', () => {
     // Seit 30.09.2026 schreibt die Karte auch den Schalter für die Projektleitung (M38), seit
     // 02.10.2026 den fürs Kalender-Abo — beide unverändert aus.
     expect(updateCompany.mock.calls[0]).toEqual(['perl', {
-      wochenplanFuerAlle: true, projektleitungImEinsatzplan: false, kalenderAboErlaubt: false,
+      wochenplanFuerAlle: true, projektleitungImEinsatzplan: false, leitungImEinsatzplan: false, kalenderAboErlaubt: false,
     }]);
     expect(reloadCompany).toHaveBeenCalled();
   });
@@ -323,7 +323,24 @@ describe('Wochenplan für alle', () => {
     await nutzer.click(schalter);
     await nutzer.click(within(schalter.closest('section')!).getByRole('button', { name: 'Speichern' }));
     expect(updateCompany.mock.calls[0]).toEqual(['perl', {
-      wochenplanFuerAlle: false, projektleitungImEinsatzplan: true, kalenderAboErlaubt: false,
+      wochenplanFuerAlle: false, projektleitungImEinsatzplan: true, leitungImEinsatzplan: false, kalenderAboErlaubt: false,
+    }]);
+  });
+
+  /*
+    V12 (Durchsicht 15.11.2026, E2): Geschäftsführung und Administrator
+    einplanbar — ab Werk aus, wie die Projektleitung. Gegenprobe: vorher gab
+    es den Schalter nicht.
+  */
+  it('V12: Geschäftsführung und Administrator im Einsatzplan — ab Werk aus, einschaltbar', async () => {
+    const nutzer = userEvent.setup();
+    zeige('personal');
+    const schalter = feld('Geschäftsführung und Administrator sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“');
+    expect(schalter.checked).toBe(false);
+    await nutzer.click(schalter);
+    await nutzer.click(within(schalter.closest('section')!).getByRole('button', { name: 'Speichern' }));
+    expect(updateCompany.mock.calls[0]).toEqual(['perl', {
+      wochenplanFuerAlle: false, projektleitungImEinsatzplan: false, leitungImEinsatzplan: true, kalenderAboErlaubt: false,
     }]);
   });
 
@@ -335,7 +352,7 @@ describe('Wochenplan für alle', () => {
     await nutzer.click(schalter);
     await nutzer.click(within(schalter.closest('section')!).getByRole('button', { name: 'Speichern' }));
     expect(updateCompany.mock.calls[0]).toEqual(['perl', {
-      wochenplanFuerAlle: false, projektleitungImEinsatzplan: false, kalenderAboErlaubt: true,
+      wochenplanFuerAlle: false, projektleitungImEinsatzplan: false, leitungImEinsatzplan: false, kalenderAboErlaubt: true,
     }]);
   });
 
@@ -593,5 +610,49 @@ describe('Sätze je Einstufung unter „Weitere Angaben“ (Linie „Lot“)', (
     zeige('saetze');
     await waitFor(() => expect(feld('Obermonteur (€/h)').value).toBe('85'));
     expect(aufklapper('Obermonteur (€/h)').open).toBe(true);
+  });
+});
+
+/*
+  P10 (Durchsicht 15.11.2026, Verdacht aus P1, hier nachgestellt): speichert
+  eine Karte, lädt die Seite den Betrieb neu (`reloadCompany` setzt immer ein
+  neues Objekt). Die übrigen Karten übernahmen den Betrieb per Effekt an
+  `company` — und warfen dabei ungespeicherte Eingaben weg. Hier: der
+  neue Betrieb hat für die anderen Karten denselben Inhalt, nur eine neue
+  Identität. Gegenprobe: mit dem Effekt an `company` stehen Haken und
+  Nachtzeit wieder auf dem gespeicherten Stand.
+*/
+describe('P10: speichert eine Karte, bleiben Eingaben der anderen stehen', () => {
+  it('Wochenplan-Haken, Nachtzeit und Sonderurlaub überleben das Speichern des Dezembers', async () => {
+    reloadCompany.mockImplementation(async () => { firma = { ...firma, dezemberHalbtage: false }; });
+    const nutzer = userEvent.setup();
+    const { rerender } = zeige('personal');
+    await nutzer.click(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)'));
+    const nacht = feld('Nachtzeit von');
+    fireEvent.change(nacht, { target: { value: '21:00' } });
+    const arzt = feld('Für Arztbesuche eine Bestätigung verlangen');
+    const arztVorher = arzt.checked;
+    await nutzer.click(arzt);
+
+    const dezember = feld('24. und 31. Dezember als halbe Tage rechnen (Normalarbeitszeit bis 12 Uhr)');
+    await nutzer.click(dezember);
+    await nutzer.click(within(dezember.closest('section')!).getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(reloadCompany).toHaveBeenCalled());
+    rerender(<ToastProvider><SettingsView teil="personal" /></ToastProvider>);
+
+    expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)').checked).toBe(true);
+    expect(feld('Nachtzeit von').value).toBe('21:00');
+    expect(feld('Für Arztbesuche eine Bestätigung verlangen').checked).toBe(!arztVorher);
+    // Bleibt gleich: die gespeicherte Karte zeigt den gespeicherten Stand.
+    expect(feld('24. und 31. Dezember als halbe Tage rechnen (Normalarbeitszeit bis 12 Uhr)').checked).toBe(false);
+    reloadCompany.mockReset();
+  });
+
+  it('bleibt gleich: ändert sich der Betrieb selbst (anderswo gespeichert), übernimmt die Karte den neuen Stand', async () => {
+    const { rerender } = zeige('personal');
+    expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)').checked).toBe(false);
+    firma = { ...firma, wochenplanFuerAlle: true };
+    rerender(<ToastProvider><SettingsView teil="personal" /></ToastProvider>);
+    await waitFor(() => expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)').checked).toBe(true));
   });
 });

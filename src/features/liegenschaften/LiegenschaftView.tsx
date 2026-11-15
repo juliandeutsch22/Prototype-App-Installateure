@@ -29,6 +29,7 @@ import Button from '@/components/Button';
 import BottomSheet from '@/components/BottomSheet';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import RowMenu, { type RowMenuItem } from '@/components/RowMenu';
+import { neuFuerMenue } from '@/features/customers/neuFuer';
 import AktenBereiche, { AktenAngaben, AktenAngabe } from '@/components/AktenBereiche';
 import { List, ListRow } from '@/components/ListRow';
 import { SelectField } from '@/components/Field';
@@ -380,9 +381,11 @@ export default function LiegenschaftView() {
     </Card>
   );
 
-  const menue: RowMenuItem[] = pflegen
-    ? [{ label: 'Liegenschaft löschen', danger: true, onSelect: () => setFrage({ art: 'liegenschaft' }) }]
-    : [];
+  const menue: RowMenuItem[] = [
+    // V3: Eingang, Angebot, Baustelle, Wartung für diese Liegenschaft — Ort und Zuordnung vorbelegt.
+    ...(einblick ? [] : neuFuerMenue(user.role, company?.modules, { liegenschaft: l.id }, navigate)),
+    ...(pflegen ? [{ label: 'Liegenschaft löschen', danger: true, onSelect: () => setFrage({ art: 'liegenschaft' }) }] : []),
+  ];
 
   const offenerBeteiligter = fenster?.art === 'beteiligter' ? fenster.beteiligter : undefined;
   const offenesTop = fenster?.art === 'top' ? fenster.top : undefined;

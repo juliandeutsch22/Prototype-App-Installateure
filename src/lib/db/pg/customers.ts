@@ -71,11 +71,24 @@ export async function kundenNachNamen(companyId: string, namen: readonly string[
   return [...new Map(treffer.flat().map((k) => [k.id, k])).values()];
 }
 
-export function listProjectsForCustomer(companyId: string, customerId: string, max = 300) {
+/**
+ * Die Baustellen EINES Kunden, die jüngste Nummer zuerst — seitenweise (A12).
+ *
+ * Vorher ohne Reihenfolge und mit stiller Grenze von 300: bei mehr fehlten
+ * beliebige, und der Titel sagte „Baustellen (300)“. Jetzt geordnet, und
+ * `zaehleProjekteDesKunden` sagt, wie viele es wirklich sind.
+ */
+export function listProjectsForCustomer(companyId: string, customerId: string, max = 100) {
   return abfragen<Project>(BAUSTELLEN, companyId, {
     wo: [{ art: 'gleich', feld: 'customerId', wert: customerId }],
+    sortiere: { feld: 'projectNumber', absteigend: true },
     grenze: max,
   });
+}
+
+/** Wie viele Baustellen ein Kunde hat — dieselbe Bedingung wie die Liste (A12). */
+export function zaehleProjekteDesKunden(companyId: string, customerId: string): Promise<number> {
+  return zaehlen(BAUSTELLEN, companyId, { wo: [{ art: 'gleich', feld: 'customerId', wert: customerId }] });
 }
 
 /**

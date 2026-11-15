@@ -138,6 +138,9 @@ export const VERLAUF_FELDER: Record<Objektart, Feld[]> = {
     // M02c: Liegenschaft und Top — die Bezeichnungen; die Kennungen sind ausgenommen.
     ['liegenschaft_bezeichnung', 'Liegenschaft', text],
     ['top_bezeichnung', 'Top', text],
+    // A8: aus dem Eingang, direkt oder über das Angebot.
+    ['dringlichkeit', 'Dringlichkeit', dringlichkeit],
+    ['wunschtermin', 'Wunschtermin', datum],
   ],
   angebot: [
     ['quote_number', 'Angebotsnummer', text],
@@ -153,6 +156,15 @@ export const VERLAUF_FELDER: Record<Objektart, Feld[]> = {
     // M02c: Liegenschaft und Top — die Bezeichnungen; die Kennungen sind ausgenommen.
     ['liegenschaft_bezeichnung', 'Liegenschaft', text],
     ['top_bezeichnung', 'Top', text],
+    // A8: Arbeitsangaben aus dem Eingang.
+    ['ansprechpartner_name', 'Ansprechpartner vor Ort', text],
+    ['ansprechpartner_telefon', 'Telefon vor Ort', text],
+    ['dringlichkeit', 'Dringlichkeit', dringlichkeit],
+    ['wunschtermin', 'Wunschtermin', datum],
+    // A3: als Nachtrag an eine bestehende Baustelle angenommen.
+    ['nachtrag', 'Nachtrag zur Baustelle', janein],
+    // A1: warum die Annahme zurückgenommen wurde.
+    ['annahme_zurueckgenommen_grund', 'Grund der Rücknahme', text],
   ],
   rechnung: [
     ['invoice_number', 'Rechnungsnummer', text],
@@ -371,6 +383,9 @@ function quellenEintrag(z: ObjektVerlaufZeile): { titel: string; zeilen: string[
       zeilen.push(`Anmeldung jetzt mit ${a.nach === 'benutzername' ? 'Benutzername' : 'E-Mail-Adresse'}`);
       if (!leer(a.grund)) zeilen.push(`Grund: ${String(a.grund)}`);
       return { titel: 'Konto umgestellt', zeilen };
+    case 'zweiter_faktor_zurueckgesetzt':
+      if (!leer(a.grund)) zeilen.push(`Grund: ${String(a.grund)}`);
+      return { titel: 'Zweiter Faktor zurückgesetzt', zeilen };
     case 'urlaubsanspruch_angepasst':
     case 'urlaubsanspruch_entfernt': {
       const tage = Number(a.tage);

@@ -114,3 +114,13 @@ describe('Den Stand lesen', () => {
     expect(() => standLesen(null)).toThrow(/unvollständig/);
   });
 });
+
+/* A4: die Edge Function lässt nur Zustände durch, für die die Seite einen Text hat. */
+describe('Zustände für die Seite des Kunden (shared/angebotLink.ts)', () => {
+  it('kennt offen, entschieden und neuere Fassung — sonst nichts', async () => {
+    const { istKundenZustand, KUNDEN_ZUSTAENDE } = await import('@shared/angebotLink');
+    expect([...KUNDEN_ZUSTAENDE]).toEqual(['offen', 'angenommen', 'abgelehnt', 'neuere_fassung']);
+    for (const z of KUNDEN_ZUSTAENDE) expect(istKundenZustand(z)).toBe(true);
+    for (const z of ['widerrufen', 'gegenstandslos', 'geaendert', 'abgelaufen', '', null, 3]) expect(istKundenZustand(z)).toBe(false);
+  });
+});

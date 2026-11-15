@@ -1,4 +1,13 @@
 import type { MaterialOrder } from '@/types';
+import { fmtMenge } from '@/lib/belegLayout';
+
+/**
+ * Die Menge einer Anforderung, wie sie überall steht (M8): mit Komma statt
+ * Punkt und mit Einheit, wenn es eine gibt — „×2,5 m“, nicht „×2.5“.
+ */
+export function mengeText(o: Pick<MaterialOrder, 'quantity'> & { einheit?: string | null }): string {
+  return `${fmtMenge(o.quantity)}${o.einheit ? ` ${o.einheit}` : ''}`;
+}
 
 /**
  * Was „Abschliessen" mit einer Anforderung tatsächlich tut — in einem Satz.
@@ -11,10 +20,10 @@ import type { MaterialOrder } from '@/types';
  * nicht mehr verfolgt wird (Prüflauf 24.09.2026, F15/L5).
  */
 export function abschlussText(
-  o: Pick<MaterialOrder, 'materialName' | 'quantity' | 'beschaffung' | 'geliefertAm'>,
+  o: Pick<MaterialOrder, 'materialName' | 'quantity' | 'beschaffung' | 'geliefertAm' | 'einheit'>,
   herkunft?: 'lager' | 'haendler',
 ): string {
-  const was = `„${o.materialName}“ ×${o.quantity}`;
+  const was = `„${o.materialName}“ ×${mengeText(o)}`;
   if (herkunft === 'haendler') {
     return `${was} wird als erledigt gebucht. Vom Lagerbestand wird nichts abgezogen — die Ware kam nicht aus dem Lager.`;
   }

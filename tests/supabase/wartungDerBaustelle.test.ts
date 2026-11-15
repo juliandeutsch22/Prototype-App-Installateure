@@ -85,9 +85,17 @@ describe('M9 — die Wartung zur Baustelle', () => {
     clientEinreichen(chef.client);
     await wartungen.wartungErledigt(id, { erledigtAm: '2025-10-20', intervallMonate: 12, projectNumber: nr });
     expect(await durchgaenge()).toEqual([1]);
-    // Ein Jahr später ohne Baustelle erledigt: die Ausführung bleibt auf dieser.
+    /*
+      Ein Jahr später ohne Baustelle erledigt: das ist KEIN zweiter Durchgang
+      hier (A13). Vorher erbte die Ausführung die Baustelle des Vorjahrs, und
+      eine zweite Wartungsrechnung auf der alten Baustelle ging durch.
+    */
     clientEinreichen(chef.client);
     await wartungen.wartungErledigt(id, { erledigtAm: '2026-10-19', intervallMonate: 12 });
+    expect(await durchgaenge()).toEqual([1]);
+    // Ausdrücklich wieder auf dieser Baustelle erledigt: zwei Durchgänge (die Baustelle, auf der jedes Jahr gewartet wird).
+    clientEinreichen(chef.client);
+    await wartungen.wartungErledigt(id, { erledigtAm: '2026-10-26', intervallMonate: 12, projectNumber: nr });
     expect(await durchgaenge()).toEqual([2]);
   });
 

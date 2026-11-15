@@ -46,6 +46,11 @@ export interface EinkaufsZeile {
    * sie ist für den Monteur („Für den Einsatz am …“).
    */
   anmerkungen: string[];
+  /**
+   * Stornierte Bestellungen dieser Zeile (M4) — „storniert TT.MM.JJJJ: Grund“.
+   * Nur für die Liste, nicht für PDF und E-Mail: der Grund ist fürs Büro.
+   */
+  stornos?: string[];
 }
 
 /** Bestellt und noch nicht da — eine Anforderung oder ein eigener Posten. */
@@ -143,6 +148,12 @@ export function einkaufsliste(
     }
     return z;
   };
+  const stornoMerken = (z: EinkaufsZeile, x: { bestellungStorniertAm?: number | null; bestellungStornoGrund?: string | null }) => {
+    if (!x.bestellungStorniertAm) return;
+    const text = `storniert ${datumAT(new Date(x.bestellungStorniertAm).toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' }))}${
+      x.bestellungStornoGrund ? `: ${x.bestellungStornoGrund}` : ''}`;
+    z.stornos = [...new Set([...(z.stornos ?? []), text])];
+  };
   const dazu = (z: EinkaufsZeile, menge: number, kommission?: string) => {
     z.menge = Math.round((z.menge + (Number(menge) || 0)) * 1000) / 1000;
     if (kommission && !z.kommissionen.includes(kommission)) z.kommissionen.push(kommission);
@@ -167,6 +178,7 @@ export function einkaufsliste(
     const z = zeile(g, o);
     dazu(z, o.quantity, o.projectNumber);
     z.anforderungen.push(o.id);
+    stornoMerken(z, o);
   }
 
   for (const p of posten) {
@@ -190,6 +202,7 @@ export function einkaufsliste(
     const z = zeile(g, p, p.einheit);
     dazu(z, p.menge, LAGER_KOMMISSION);
     z.posten.push(p.id);
+    stornoMerken(z, p);
     const anmerkung = p.notiz?.trim();
     if (anmerkung && !z.anmerkungen.includes(anmerkung)) z.anmerkungen.push(anmerkung);
   }
@@ -291,4 +304,87 @@ export function nichtAlleGetroffen(
 ): string | undefined {
   if (getroffen >= gewollt) return undefined;
   return getroffen === 0 ? `${keiner} — die Liste zeigt jetzt den neuen Stand.` : manche(gewollt - getroffen);
+}
+
+// ---------------------------------------------------------------------------
+// Wareneingang im Lager erledigt die Bestellungen mit (M12)
+// ---------------------------------------------------------------------------
+
+/** Eine offene Bestellung des Artikels, wie der Wareneingang sie anbietet. */
+export interface EingangsBestellung {
+  id: string;
+  art: 'anforderung' | 'lager';
+  menge: number;
+  einheit?: string;
+  /** Der Monteur — beim eigenen Posten leer. */
+  wer?: string;
+  /** Baustelle der Anforderung; beim eigenen Posten „Lager“. */
+  kommission?: string;
+  supplierId?: string | null;
+  bestelltAm?: number | null;
+}
+
+/**
+ * Was der Wareneingang anbietet: nur, was BESTELLT ist — was noch auf der
+ * Liste steht, kann nicht ankommen. In dieser Reihenfolge erledigt die
+ * Datenbank sie auch (`lager_eingang`, `p_bestellungen`): zuerst die
+ * Anforderungen, denn dort wartet jemand, dann die eigenen Posten; jeweils
+ * die zuerst bestellte zuerst.
+ */
+export function eingangsBestellungen(
+  anforderungen: readonly WithId<MaterialOrder>[],
+  posten: readonly WithId<EinkaufPosten>[],
+): EingangsBestellung[] {
+  const frueher = (a: EingangsBestellung, b: EingangsBestellung) =>
+    (a.bestelltAm ?? 0) - (b.bestelltAm ?? 0) || a.id.localeCompare(b.id);
+  const a = anforderungen
+    .filter((o) => o.bestelltAm && !o.geliefertAm && !o.processed && o.transactionType !== 'return')
+    .map((o): EingangsBestellung => ({
+      id: o.id, art: 'anforderung', menge: Number(o.quantity) || 0, einheit: o.einheit ?? undefined,
+      wer: o.userName || undefined, kommission: o.projectNumber || undefined,
+      supplierId: o.supplierId ?? null, bestelltAm: o.bestelltAm,
+    }))
+    .sort(frueher);
+  const p = posten
+    .filter((x) => x.bestelltAm && !x.geliefertAm)
+    .map((x): EingangsBestellung => ({
+      id: x.id, art: 'lager', menge: Number(x.menge) || 0, einheit: x.einheit ?? undefined,
+      kommission: LAGER_KOMMISSION, supplierId: x.supplierId ?? null, bestelltAm: x.bestelltAm,
+    }))
+    .sort(frueher);
+  return [...a, ...p];
+}
+
+/** Wie sich eine eingehende Menge auf die gewählten Bestellungen verteilt. */
+export interface EingangsVerteilung {
+  /** Ganz geliefert. */
+  ganz: EingangsBestellung[];
+  /** Teilweise geliefert — die letzte, für die es nicht mehr reichte. */
+  teil?: { bestellung: EingangsBestellung; menge: number };
+  /** Gewählt, aber nichts mehr übrig: bleiben bestellt. */
+  offen: EingangsBestellung[];
+  /** Was über die Bestellungen hinaus kam — geht frei in den Bestand. */
+  frei: number;
+}
+
+/**
+ * Dieselbe Rechnung wie in `lager_eingang`: der Reihe nach, jede ganz, bis
+ * die Menge nicht mehr reicht; die nächste wird zur Teillieferung, der Rest
+ * frei. Hier nur, damit der Dialog vorher sagt, was geschieht.
+ */
+export function eingangVerteilen(menge: number, gewaehlt: readonly EingangsBestellung[]): EingangsVerteilung {
+  const v: EingangsVerteilung = { ganz: [], offen: [], frei: 0 };
+  let rest = Number.isFinite(menge) && menge > 0 ? menge : 0;
+  for (const b of gewaehlt) {
+    if (rest <= 0) { v.offen.push(b); continue; }
+    if (rest >= b.menge) {
+      v.ganz.push(b);
+      rest = Math.round((rest - b.menge) * 1000) / 1000;
+    } else {
+      v.teil = { bestellung: b, menge: rest };
+      rest = 0;
+    }
+  }
+  v.frei = rest;
+  return v;
 }

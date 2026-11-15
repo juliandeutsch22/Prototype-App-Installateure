@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcOverallSaldo, saldoAusBilanzen, localDateStr } from '@/lib/time';
+import { calcOverallSaldo, isAustrianHoliday, saldoAusBilanzen, localDateStr } from '@/lib/time';
 import {
   bilanzAusEintraegen,
   monatVon,
@@ -67,6 +67,13 @@ function baueFall(saat: number) {
     if (w < 0.15) continue; // Lücke
     const datum = localDateStr(d);
     const status = w < 0.2 ? 'Krank' : w < 0.28 ? 'Urlaub' : w < 0.32 ? 'Berufsschule' : 'Anwesend';
+    /*
+      Abwesenheiten nur an Tagen mit Soll — so schreiben sie Krankmeldung,
+      Urlaub und Berufsschule. An einem Feiertag schreibt der Saldo seit Z12
+      nichts mehr gut; die Bilanz kennt den Tag eines Krankenstands nicht und
+      zählt ihn mit, die beiden Wege wichen dort ab.
+    */
+    if (status !== 'Anwesend' && isAustrianHoliday(d)) continue;
     const nacht = status === 'Anwesend' && r() < 0.08;
     eintraege.push({
       id: `e-${datum}`,

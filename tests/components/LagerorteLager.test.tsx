@@ -53,7 +53,11 @@ vi.mock('@/lib/db/materials', () => ({
   nummernTreffer: async () => new Map(),
 }));
 const inventur = vi.fn<(...a: unknown[]) => Promise<number>>(async () => 0);
-vi.mock('@/lib/db/einkauf', () => ({ listGrosshaendler: vi.fn(async () => []) }));
+vi.mock('@/lib/db/einkauf', () => ({
+  listGrosshaendler: vi.fn(async () => []),
+  lieferungenFuerArtikel: vi.fn(async () => ({ anforderungen: [], posten: [], geliefert: [] })),
+  GELIEFERT_ZURUECK_TAGE: 14,
+}));
 vi.mock('@/lib/db/materialOrders', () => ({
   subscribeAllOrders: (_c: string, _m: number, cb: (rows: unknown[]) => void) => {
     cb([]);
@@ -279,7 +283,9 @@ describe('Modul aus: nur das Hauptlager', () => {
     expect(await screen.findByText('20 m frei')).toBeInTheDocument();
     expect(screen.queryByLabelText('Ort')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Weitere Aktionen für Lager' }));
-    expect(within(screen.getByRole('menu')).getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Inventur …']);
+    // „Kommissionsware aus dem Lager nehmen …“ (M6) hängt nicht an den Lagerorten.
+    expect(within(screen.getByRole('menu')).getAllByRole('menuitem').map((m) => m.textContent))
+      .toEqual(['Inventur …', 'Kommissionsware aus dem Lager nehmen …']);
     await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getByRole('button', { name: 'Kupferrohr 15mm' }));
     const fenster = await screen.findByRole('dialog', { name: 'Artikel' });

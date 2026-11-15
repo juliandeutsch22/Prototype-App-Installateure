@@ -8,7 +8,7 @@ import {
 } from '@/lib/time';
 import { freigestelltMin } from '@shared/arbeitszeit';
 import { istArztbesuchTag } from '@shared/freistellung';
-import { BRAND_RGB, fmtDate, hours, type ExportZeitfelder } from './export';
+import { BRAND_RGB, fmtDate, hours, stundenSpalte, type ExportZeitfelder } from './export';
 import { angabenText } from '@/lib/zeitfelder';
 import { FLAECHE, GRAU, TINTE } from '@/lib/belegLayout';
 import { zuschlagszeit, hatZuschlaege } from './zuschlaege';
@@ -47,7 +47,11 @@ function zuschlagKuerzel(e: TimeEntry, nacht: Nachtzeit): string {
 /**
  * Stundennachweis als PDF (Legacy:8244-8382). Anders als das CSV enthält der
  * Nachweis bewusst KEIN Soll und keinen Saldo — er belegt die geleisteten
- * Stunden eines Zeitraums und geht so auch an Kunden oder die Lohnverrechnung.
+ * Stunden eines Zeitraums für die Lohnverrechnung und die Ablage.
+ *
+ * NICHT FÜR KUNDEN (Z8, F12): er zeigt jede Buchung der Person, mit
+ * Krankenstand, Arztbesuch und den Baustellen anderer Kunden. Für den Kunden
+ * gibt es den Stundennachweis der Baustelle (`baustellenNachweisPdf.ts`).
  */
 export function generateHoursPdf(opts: {
   company: Company;
@@ -108,7 +112,9 @@ export function generateHoursPdf(opts: {
 
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
   let totalMin = 0;
-  const body = sorted.map((e) => {
+  // Die Spalte „Dauer“ geht auf die Gesamtstunden darunter auf (Z8).
+  const dauer = stundenSpalte(sorted.map((e) => calcWorkMin(e)));
+  const body = sorted.map((e, i) => {
     const wm = calcWorkMin(e);
     totalMin += wm;
     return [
@@ -119,7 +125,7 @@ export function generateHoursPdf(opts: {
       e.projectNumber || '–',
       e.customerName || '–',
       e.startTime && e.endTime ? `${e.startTime}–${e.endTime}` : '–',
-      wm > 0 ? `${hours(wm)} h` : '–',
+      wm > 0 ? `${dauer[i]} h` : '–',
       // Kurz, weil die Spalte schmal ist; die Legende steht im Summenblock.
       zuschlagKuerzel(e, nachtzeitVon(company)),
       [e.comment || '', ...(zeitfelder ? angabenText(zeitfelder.definitionen, zeitfelder.werte.get(e.id)) : [])]
@@ -215,6 +221,7 @@ export function generateHoursPdf(opts: {
     ÜBERSTUNDEN NUR BEIM MODELL „TAGESGRENZE“ (Paket 2c) — und nur, wenn es
     welche gibt, wie bei den Zuschlägen. Stunden, kein Geld.
   */
+  // Je Tag und Woche mit der Arbeitszeit, die damals galt (Z3a).
   const ue = ueberstundenNachTagesgrenze(user, sorted, ueberstundenRegelVon(company), halbeTage, vorlauf, nacht);
   if (ue.fuenfzigMin > 0 || ue.hundertMin > 0 || (ue.mehrarbeitTeilzeitMin ?? 0) > 0) {
     // Nachtstunden, die Überstunden sind, tragen nach dem KV keine Nachtzulage — der Nachweis sagt, wie viele.

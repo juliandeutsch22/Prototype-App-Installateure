@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { materialdeckung, type DeckungsDaten } from '@/lib/db/materialdeckung';
-import { einsatzFolgetage, saveAssignments } from '@/lib/db/assignments';
-import { FOLGETAGE_HOECHSTENS, folgeBericht, tagDanach, tageEinschliesslich } from './folgetage';
+import { einsatzFolgetage, einsatzFolgetageEntfernen, saveAssignments } from '@/lib/db/assignments';
+import { FOLGETAGE_HOECHSTENS, entferntBericht, folgeBericht, folgetageGueltig, tagDanach, tageEinschliesslich, type FolgetageStand } from './folgetage';
+import FolgetageWahl from './FolgetageWahl';
 import { saveEinsatzMaterial } from '@/lib/db/einsatzMaterial';
 import { PaarGeaendert, type EinteilungsZeile, type ListenZeile, type PaarGrundlage } from '@/lib/db/paarFassung';
+import { entferntText, RuestlisteFrage, type RuestlisteErgebnis, type RuestlisteWahl as Wahl } from '@/lib/db/ruestlisteFrage';
+import RuestlisteWahl from './RuestlisteWahl';
 import type { Abwesenheit } from '@/lib/db/vacations';
 import { getAustrianHolidayName, isWeekend } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
@@ -222,7 +225,7 @@ export default function EinsatzFormular({
    * Im Seitenfenster: die gespeicherten Einsätze dieser Baustelle einzeln
    * löschen. Erst nach der Rückfrage im Fenster; ein Fehlschlag wirft.
    */
-  onLoeschen?: (a: WithId<Assignment>) => Promise<void>;
+  onLoeschen?: (a: WithId<Assignment>, wahl: Wahl) => Promise<RuestlisteErgebnis | null>;
   /**
    * Im Seitenfenster: ein Nebenknopf in der Fußleiste neben dem Speichern
    * (Runde 4: „Ganzen Tag ansehen“).
@@ -249,6 +252,12 @@ export default function EinsatzFormular({
   /** Optional die Uhrzeit des Einsatzes (M34). Leer: der ganze Tag. */
   const [zeitVon, setZeitVon] = useState('');
   const [zeitBis, setZeitBis] = useState('');
+  /**
+   * Haben die Eingeteilten verschiedene Aufgaben oder Uhrzeiten, bleiben sie
+   * beim Speichern — außer der Planer will ausdrücklich allen dieselbe geben
+   * (Durchsicht 15.11.2026, P7).
+   */
+  const [angleichen, setAngleichen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   /*
@@ -289,6 +298,11 @@ export default function EinsatzFormular({
   /** Welcher Einsatz gerade gelöscht werden soll — die Rückfrage steht im Fenster. */
   const [loeschFrage, setLoeschFrage] = useState<WithId<Assignment> | null>(null);
   const [loeschtGerade, setLoeschtGerade] = useState(false);
+  /** Beim Letzten des Paares: was mit der Rüstliste geschieht (P2) — gehört zur offenen Rückfrage. */
+  const [ruestFrage, setRuestFrage] = useState<{ frage: RuestlisteFrage; wahl: 'aufloesen' | 'behalten' | null } | null>(null);
+  /** Beim Löschen: auch an den folgenden Tagen (V13). Gehört zur offenen Rückfrage. */
+  const [loeschFolge, setLoeschFolge] = useState<FolgetageStand>({ an: false, bis: '' });
+  useEffect(() => { setRuestFrage(null); setLoeschFolge({ an: false, bis: '' }); }, [loeschFrage]);
 
   /** Mit welcher Person das Fenster geöffnet wurde — sie kommt zur übernommenen Planung dazu. */
   const startPick = useMemo(() => {
@@ -306,6 +320,30 @@ export default function EinsatzFormular({
     () => (projectNumber ? tagesListen.find((l) => l.projectNumber === projectNumber) : undefined),
     [tagesListen, projectNumber],
   );
+  /*
+    VERSCHIEDENE AUFGABEN ODER UHRZEITEN IM SELBEN PAAR (P7). Seit den
+    Folgetagen (E85) und dem Umplanen (E88) kommen Zeilen mit eigener Uhrzeit
+    und Aufgabe in ein Paar — Anton 07:00–12:00 „Rohinstallation“, Bernd
+    13:00–16:00 „Silikon“. Das Formular kannte nur eine Aufgabe und Uhrzeit
+    für alle und glich beim Speichern still an — welche, hing an der
+    Reihenfolge der Live-Liste. Jetzt steht da, wer was hat; gespeichert wird
+    je Person ihr Stand, und die Felder gelten für neu Eingeteilte. Angeglichen
+    wird nur auf Wunsch.
+  */
+  const abweichungen = useMemo(() => {
+    const uhr = (t?: string | null) => (t ?? '').slice(0, 5);
+    const schluessel = (a: WithId<Assignment>) => JSON.stringify([a.comment ?? '', uhr(a.zeitVon), uhr(a.zeitBis)]);
+    if (new Set(existingForProject.map(schluessel)).size <= 1) return [];
+    return existingForProject.map((a) => ({
+      userId: a.userId,
+      name: a.userName ?? 'Mitarbeiter',
+      text: [
+        a.zeitVon || a.zeitBis ? `${uhr(a.zeitVon) || '…'}–${uhr(a.zeitBis) || '…'}` : 'ganzer Tag',
+        a.comment?.trim() ? `„${a.comment.trim()}“` : 'ohne Aufgabe',
+      ].join(' · '),
+    }));
+  }, [existingForProject]);
+  const jePerson = abweichungen.length > 0 && !angleichen;
   const paar = `${date}|${projectNumber}|${startPick?.uid ?? ''}`;
   const liveEinteilung = einteilungsSchluessel(existingForProject);
   const liveListe = listenSchluessel(listeHier?.positionen);
@@ -354,6 +392,7 @@ export default function EinsatzFormular({
     setComment(existingForProject[0]?.comment ?? '');
     setZeitVon(existingForProject[0]?.zeitVon ?? '');
     setZeitBis(existingForProject[0]?.zeitBis ?? '');
+    setAngleichen(false);
     setBearbeitet((b) => ({ ...b, einteilung: false }));
   }, [existingForProject, startPick]);
 
@@ -650,6 +689,18 @@ export default function EinsatzFormular({
     );
   }
 
+  /**
+   * Aufgabe und Uhrzeit, die eine Person beim Speichern bekommt (P7): bei
+   * verschiedenen Ständen ihr eigener, wer neu dazukommt die Felder — sonst,
+   * und beim Angleichen, die Felder für alle.
+   */
+  function eigenerStand(uid: string): { comment: string; zeitVon: string | null; zeitBis: string | null } {
+    const eigen = jePerson ? existingForProject.find((a) => a.userId === uid) : undefined;
+    return eigen
+      ? { comment: eigen.comment ?? '', zeitVon: eigen.zeitVon || null, zeitBis: eigen.zeitBis || null }
+      : { comment, zeitVon: zeitVon || null, zeitBis: zeitBis || null };
+  }
+
   async function save() {
     if (!user || !projectNumber || !bereit || inzwischenGeaendert) return;
     if (selectedCount === 0) {
@@ -688,9 +739,7 @@ export default function EinsatzFormular({
           // Haken kostet bare Münze. Bei Helfer und Lehrling entscheidet die
           // Einstufung, nicht der Haken (`stufeImEinsatz`).
           asHelper: alsHelferEingestuft(u) || (!istLehrling(u) && !!picks[u.uid]?.asHelper),
-          comment,
-          zeitVon: zeitVon || null,
-          zeitBis: zeitBis || null,
+          ...eigenerStand(u.uid),
           createdBy: user.uid,
         }))
         .concat(
@@ -700,9 +749,7 @@ export default function EinsatzFormular({
             userId: a.userId,
             userName: a.userName ?? '',
             asHelper: !!a.asHelper,
-            comment,
-            zeitVon: zeitVon || null,
-            zeitBis: zeitBis || null,
+            ...eigenerStand(a.userId),
             createdBy: user.uid,
           })),
         );
@@ -779,6 +826,13 @@ export default function EinsatzFormular({
             ...(listeMit ? { liste: listenGrundlage } : {}),
           }
         : undefined;
+      /*
+        WAR DAS PAAR SCHON GEPLANT, IST „AUCH AN DEN FOLGENDEN TAGEN“ EIN
+        ÄNDERN (V13): die Folgetage werden angeglichen — wer hier nicht mehr
+        steht, geht auch dort. Beim Anlegen wird nur ergänzt; ein anderes Team
+        an einem Folgetag bliebe sonst nicht stehen.
+      */
+      const angleichen = existingForProject.length > 0;
       await saveAssignments(user.companyId, date, projectNumber, rows, grundlage);
       /*
         DAS EIGENE SPEICHERN IST KEINE FREMDE ÄNDERUNG (P1): was gleich live
@@ -836,11 +890,12 @@ export default function EinsatzFormular({
             ? `Einsatz und Rüstliste gespeichert, ${angefordertJetzt === 1 ? 'eine Anforderung' : `${angefordertJetzt} Anforderungen`} angelegt`
             : 'Einsatz und Rüstliste gespeichert',
           rows,
+          angleichen,
         );
         return;
       }
 
-      await abschliessen('Einsatz gespeichert', rows);
+      await abschliessen('Einsatz gespeichert', rows, angleichen);
     } catch (err) {
       // Abgewiesen, weil das Paar inzwischen anders aussieht: nichts ist geschrieben, der Hinweis fragt.
       if (err instanceof PaarGeaendert) abgewiesen(gespeichertesPaar, err);
@@ -855,7 +910,7 @@ export default function EinsatzFormular({
    * Ging an einem Tag etwas anders, bleibt das Formular mit dem Bericht
    * stehen — schlösse es, wüsste niemand, dass Anton am Dienstag fehlt.
    */
-  async function abschliessen(meldung: string, rows: Parameters<typeof saveAssignments>[3]) {
+  async function abschliessen(meldung: string, rows: Parameters<typeof saveAssignments>[3], angleichen = false) {
     if (!user) return;
     if (!mehrereTage || !bisTag || bisTag <= date) {
       toast.success(meldung);
@@ -864,7 +919,7 @@ export default function EinsatzFormular({
     }
     let bericht: ReturnType<typeof folgeBericht>;
     try {
-      bericht = folgeBericht(await einsatzFolgetage(user.companyId, tagDanach(date), bisTag, projectNumber, rows, nurWerktage));
+      bericht = folgeBericht(await einsatzFolgetage(user.companyId, tagDanach(date), bisTag, projectNumber, rows, nurWerktage, angleichen));
     } catch (err) {
       // Der erste Tag steht — das muss dastehen, sonst plante man ihn ein zweites Mal.
       setError(`${meldung}. Die weiteren Tage sind nicht gespeichert: ${grundAus(err, 'unbekannter Fehler')} Bitte noch einmal speichern.`);
@@ -1111,7 +1166,27 @@ export default function EinsatzFormular({
         )}
       </div>
 
+      {abweichungen.length > 0 && (
+        <div className="mt-4 space-y-2" role="group" aria-label="Verschiedene Aufgaben und Uhrzeiten">
+          <Hinweiszeile>
+            <p>
+              <strong>Die Eingeteilten haben verschiedene Aufgaben oder Uhrzeiten.</strong>{' '}
+              {angleichen
+                ? 'Beim Speichern bekommen alle die Aufgabe und Uhrzeit unten.'
+                : 'Sie bleiben beim Speichern erhalten; Aufgabe und Uhrzeit unten gelten für neu Eingeteilte.'}
+            </p>
+          </Hinweiszeile>
+          <ul className="text-sm text-ink">
+            {abweichungen.map((a) => (
+              <li key={a.userId}>{a.name}: {a.text}</li>
+            ))}
+          </ul>
+          <CheckboxField id="aangleichen" label="Allen dieselbe Aufgabe und Uhrzeit geben" checked={angleichen}
+            onChange={(e) => { einteilungGetippt(); setAngleichen(e.target.checked); }} />
+        </div>
+      )}
       <div className="mt-4">
+        {/* Die Beschriftung bleibt dieselbe; wofür das Feld bei verschiedenen Ständen gilt, sagt der Hinweis darüber. */}
         <InputField id="acomment" label="Kommentar / Aufgabe" value={comment}
           onChange={(e) => { einteilungGetippt(); setComment(e.target.value); }} />
       </div>
@@ -1157,6 +1232,13 @@ export default function EinsatzFormular({
         <div className="mt-4 space-y-3">
           <CheckboxField id="amehrere" label="Auch an den folgenden Tagen" checked={mehrereTage}
             onChange={(e) => { setMehrereTage(e.target.checked); setFolgeZeilen(null); }} />
+          {mehrereTage && existingForProject.length > 0 && (
+            // V13: am geplanten Paar ist das ein Ändern der Folgetage, kein Ergänzen.
+            <p className="text-sm text-ink-muted">
+              Die folgenden Tage werden angeglichen: wer hier nicht mehr eingeteilt ist, wird dort herausgenommen;
+              Aufgabe und Uhrzeit kommen von hier.
+            </p>
+          )}
           {mehrereTage && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end">
               <InputField id="abis" label="bis einschließlich" type="date" value={bisTag} min={tagDanach(date)}
@@ -1421,15 +1503,40 @@ export default function EinsatzFormular({
                     <strong>Einsatz löschen?</strong> Der Einsatz von {loeschFrage.userName} am{' '}
                     {fmtDay(loeschFrage.date)} wird entfernt.
                   </p>
+                  {ruestFrage && (
+                    <RuestlisteWahl
+                      name="formular-ruestliste"
+                      frage={ruestFrage.frage}
+                      wahl={ruestFrage.wahl}
+                      onWahl={(w) => setRuestFrage((f) => (f ? { ...f, wahl: w } : f))}
+                    />
+                  )}
+                  {!einblick && (
+                    <FolgetageWahl id="formular-folge" tag={loeschFrage.date} stand={loeschFolge} onStand={setLoeschFolge} />
+                  )}
                   <div className="flex flex-wrap gap-2">
                     <Button
                       variant="danger"
                       loading={loeschtGerade}
+                      disabled={(!!ruestFrage && !ruestFrage.wahl) || !folgetageGueltig(loeschFrage.date, loeschFolge)}
                       onClick={async () => {
                         const weg = loeschFrage;
                         setLoeschtGerade(true);
+                        let ergebnis: RuestlisteErgebnis | null;
                         try {
-                          await onLoeschen(weg);
+                          ergebnis = await onLoeschen(weg, ruestFrage?.wahl ?? 'fragen');
+                        } catch (e) {
+                          setLoeschtGerade(false);
+                          // Der Letzte, und eine Rüstliste hängt daran: die Frage bleibt im Fenster stehen.
+                          if (e instanceof RuestlisteFrage) {
+                            setRuestFrage({ frage: e, wahl: null });
+                            return;
+                          }
+                          toast.error(`Der Einsatz von ${weg.userName} konnte nicht gelöscht werden.`);
+                          setLoeschFrage(null);
+                          return;
+                        }
+                        try {
                           /*
                             DAS EIGENE LÖSCHEN IST KEINE FREMDE ÄNDERUNG (P1):
                             die Person geht aus der Auswahl, der Rest wird
@@ -1451,9 +1558,23 @@ export default function EinsatzFormular({
                               });
                             }
                           }
-                          toast.success('Einsatz gelöscht');
-                        } catch {
-                          toast.error(`Der Einsatz von ${weg.userName} konnte nicht gelöscht werden.`);
+                          /*
+                            AUCH AN DEN FOLGENDEN TAGEN (V13): dieselbe Person,
+                            dieselbe Baustelle — leer gewordene Tage behalten
+                            ihre Rüstliste nach derselben Wahl wie heute.
+                          */
+                          let folge = '';
+                          if (loeschFolge.an) {
+                            try {
+                              folge = entferntBericht(await einsatzFolgetageEntfernen(
+                                tagDanach(weg.date), loeschFolge.bis, weg.projectNumber, weg.userId,
+                                ruestFrage?.wahl === 'aufloesen' ? 'aufloesen' : 'behalten',
+                              ));
+                            } catch (e) {
+                              folge = ` · an den folgenden Tagen nicht entfernt: ${grundAus(e, 'unbekannter Fehler')}`;
+                            }
+                          }
+                          toast.success(`Einsatz gelöscht${entferntText(ergebnis)}${folge}`);
                         } finally {
                           setLoeschtGerade(false);
                           setLoeschFrage(null);

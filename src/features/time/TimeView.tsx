@@ -1,7 +1,7 @@
 import Zeitkorrekturen, { KorrekturAnfordern } from './Zeitkorrekturen';
 import ZeitsitzungPanel from './ZeitsitzungPanel';
 import ArbeitstagKarte from './ArbeitstagKarte';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ComponentProps } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { keepPreviousData } from '@tanstack/react-query';
 import { schluessel, useZwischengespeichert } from '@/lib/zwischenspeicher';
@@ -9,8 +9,6 @@ import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon } from '@/lib/lohnregeln';
 import {
   subscribeOwnEntriesInRange,
-  listOwnEntriesSince,
-  listOwnEntriesInRange,
   deleteTimeEntry,
 } from '@/lib/db/timeEntries';
 import { getUserByUid } from '@/lib/db/users';
@@ -22,20 +20,18 @@ import {
   fmtDauer,
   schultagAngaben,
   calcOverallSaldo,
-  hatTagessoll,
   dezemberHalbtage,
-  saldoAusBilanzen,
   getISOWeek,
   localDateStr,
-  monatsLetzter,
   offeneWerktage,
+  type SaldoResult,
   todayStr,
   tageWort,
   tagesStatusName,
 } from '@/lib/time';
 import { tageMitEchterDoppelung } from '@/lib/tagesbuchungen';
 import { canEditTime, fuehrtZeitkonto } from '@/lib/permissions';
-import { bilanzMarker, listBilanzen, monatVon, type Monatsbilanz } from '@/lib/db/monatsbilanzen';
+import { abgeschlosseneMonate, listMonatsabschluesse, zeitkontoSaldo } from '@/lib/db/zeitkonto';
 import { listVerlaufZeitraum } from '@/lib/db/zeitbuchungVerlauf';
 import Aenderungsprotokoll from './Aenderungsprotokoll';
 import type { WithId } from '@/lib/db/core';
@@ -71,6 +67,8 @@ import { offeneAngaben } from '@/lib/zeitfelder';
 import { useFeldsatz, useFeldwerte } from './useZeitfelder';
 import ZeitfeldAngaben from './ZeitfeldAngaben';
 import { LoeschenKnopf } from '@/components/Symbolknoepfe';
+import NochNichtGesendet from './NochNichtGesendet';
+import { entwurfAlsEintrag, zeitEntwurfEntfernen, type ZeitEntwurf } from '@/lib/zeitEntwuerfe';
 
 /** Wie viele Monate die Liste zunaechst zurueckreicht. */
 const MONATE_JE_SEITE = 3;
@@ -91,15 +89,8 @@ function wochenende(heute: Date): string {
 /** Schlüssel des Abschnitts „Kommende Wochen" beim Auf- und Zuklappen — keine KW. */
 const KOMMEND = 'kommend';
 
-/** Woraus der Saldo seit Eintritt rechnet (siehe `saldoAbfrage`). */
-interface SaldoGrundlage {
-  bilanzen: Monatsbilanz[] | null;
-  eintrittsEintraege: WithId<TimeEntry>[];
-  saldoEintraege: WithId<TimeEntry>[];
-}
 // Feste leere Werte: ein neues `[]` je Zeichnen rechnete Saldo und Hinweise jedes Mal neu.
 const KEINE_SCHEINE: WithId<WorkSheet>[] = [];
-const KEINE_EINTRAEGE: WithId<TimeEntry>[] = [];
 
 /**
  * Zeiterfassung — der vertikale Schnitt: Mitarbeiter erfasst -> Datenbank ->
@@ -147,19 +138,23 @@ export default function TimeView() {
   const vonStart = (useLocation().state ?? null) as { projectNumber?: string } | null;
   const zeigeFehlende = adresse.get('filter') === 'fehlend';
   /** Was aus einem offenen Nachtrag ins Formular übernommen wurde. */
-  const [vorbelegung, setVorbelegung] = useState<{
+  const [vorbelegung, setVorbelegung] = useState<(NonNullable<ComponentProps<typeof TimeForm>['vorbelegung']> & {
     date: string;
     projectNumber: string;
-    startTime?: string;
-    endTime?: string;
-    breakDuration?: number;
-  } | null>(() => {
+  }) | null>(() => {
     const tag = adresse.get('datum');
     return tag && /^\d{4}-\d{2}-\d{2}$/.test(tag) && tag <= todayStr() ? { date: tag, projectNumber: '' } : null;
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<WithId<TimeEntry> | null>(null);
+  /*
+    DER GEÖFFNETE ENTWURF (Z4): eine Buchung, die der Server abgelehnt hat
+    oder die aus dem Ausgangsfach zurückgeholt wurde. Ist sie gebucht, ist
+    der Entwurf erledigt; abgebrochen bleibt er liegen.
+  */
+  const [offenerEntwurf, setOffenerEntwurf] = useState<ZeitEntwurf | null>(null);
+  const [gespeichert, setGespeichert] = useState(0);
   /*
     AM HANDY KOMMT DAS FORMULAR ALS BLATT VON UNTEN (C6, E90). Vorher war die
     Seite über 2.000 px lang, davon 900 px Formular vor den eigenen
@@ -261,48 +256,6 @@ export default function TimeView() {
   }, [user, monate]);
 
   /**
-   * Der Saldo — aus MONATSBILANZEN, wenn sie nachweislich vollständig sind.
-   *
-   * Er läuft seit dem ersten Arbeitstag und braucht deshalb als einzige Zahl
-   * im Programm wirklich jede Buchung. Nach zehn Dienstjahren sind das rund
-   * 2.200 Dokumente bei jedem Aufruf. Die Bilanzen verdichten das auf eine
-   * Zeile je Monat: 120 statt 2.200.
-   *
-   * DER RÜCKFALL IST DIE EIGENTLICHE ARBEIT. Eine fehlende Bilanz ist von
-   * einem Monat ohne Buchungen nicht zu unterscheiden. Wer sie ungeprüft
-   * summiert, bekommt bei lückenhaftem Bestand einen zu niedrigen Saldo —
-   * ohne Fehlermeldung, ohne Hinweis, und die Zahl steht auf dem Lohnzettel.
-   *
-   * Deshalb wird nur gerechnet, wenn der Marker bestätigt, dass die Bilanzen
-   * ab dem Eintrittsmonat lückenlos vorliegen. Sonst: der alte, direkte Weg.
-   * Langsamer und richtig — in dieser Reihenfolge zu bewerten.
-   *
-   * Der LAUFENDE Monat kommt in beiden Fällen aus den echten Einträgen. Er
-   * ändert sich noch, und der Trigger braucht einen Augenblick; ein Monteur,
-   * der gerade gebucht hat und seinen Saldo unverändert sähe, würde zu Recht
-   * an der App zweifeln.
-   */
-
-  /**
-   * Der laufende Monat — aus den Einträgen, die ohnehin schon da sind.
-   *
-   * AUS DEM BETRIEB GEMELDET: „das Erfassen einer Zeitbuchung hat lange
-   * gedauert." Eine der Ursachen stand hier: nach jeder Buchung holte die
-   * Ansicht den laufenden Monat ein ZWEITES Mal vom Server, obwohl das
-   * Live-Abo oben ihn längst geliefert hatte — das Fenster reicht drei Monate
-   * zurück, der laufende Monat liegt also immer darin.
-   *
-   * Nebenbei stimmt der Saldo damit besser: die zweite Abfrage hatte keine
-   * obere Grenze und zählte auch Buchungen in der ZUKUNFT mit, für die noch
-   * gar kein Soll besteht. Der Saldo sah dadurch zu gut aus.
-   */
-  const laufendeEintraege = useMemo(() => {
-    const jetzt = new Date();
-    const monatsErster = localDateStr(new Date(jetzt.getFullYear(), jetzt.getMonth(), 1));
-    return entries.filter((e) => e.date >= monatsErster);
-  }, [entries]);
-
-  /**
    * Woran der Saldo TATSÄCHLICH hängt.
    *
    * `entries` ist bei jeder Meldung der Live-Verbindung ein neues Array —
@@ -348,51 +301,48 @@ export default function TimeView() {
   // Auch ein Fehler ist „fertig“: dann gibt es eben keinen Hinweis (siehe oben).
   const scheineGeladen = !scheineAbfrage.isPending || scheineAbfrage.isError;
 
-  const eigenesSollSchluessel = hatTagessoll(profile);
   const eintritt = profile?.appStartDate ?? null;
   /*
+    DER SALDO AUS DER DATENBANK (Durchsicht 15.11.2026, L1) — eine Zeile, auch
+    mit eigenem Tagessoll je Wochentag. Vorher holte dieser Weg alle Buchungen
+    seit dem Eintritt; die Bilanzen sagten nicht, auf welchen Wochentag Krank-
+    und Urlaubstage fielen. Gerechnet mit der Arbeitszeit, die an jedem Tag
+    galt (Z3).
+
     Der INHALT der Einträge im Schlüssel, nicht das Array: nach dem Buchen
-    oder Löschen muss der Saldo neu gerechnet werden, nach einem bloßen
-    Schnappschuss ohne Änderung nicht. Bis die neue Grundlage da ist, bleibt
-    die alte stehen (`keepPreviousData`) — wie bisher, ohne Platzhalter
-    zwischen zwei Buchungen. Erst mit den Einträgen: vorher rechnete er
-    einmal umsonst aus der leeren Liste.
+    oder Löschen muss der Saldo neu geholt werden, nach einem bloßen
+    Schnappschuss ohne Änderung nicht. Bis die neue Zahl da ist, bleibt die
+    alte stehen (`keepPreviousData`) — wie bisher, ohne Platzhalter
+    zwischen zwei Buchungen. Erst mit den Einträgen: vorher holte er einmal
+    umsonst.
   */
-  const saldoAbfrage = useZwischengespeichert<SaldoGrundlage>({
+  const saldoAbfrage = useZwischengespeichert<SaldoResult>({
     queryKey: user && eintritt
-      ? schluessel('saldoGrundlage', user, eintritt, eigenesSollSchluessel, eintraegeSchluessel)
-      : ['saldoGrundlage'],
+      ? schluessel('zeitkontoSaldo', user, eintritt, eintraegeSchluessel)
+      : ['zeitkontoSaldo'],
     enabled: !!user && !!eintritt && !loading,
     placeholderData: keepPreviousData,
-    queryFn: async () => {
-      const marker = await bilanzMarker(user!.companyId, user!.uid).catch(() => null);
-      // Der Marker muss den Eintrittsmonat MITABDECKEN. Deckt er erst einen
-      // späteren ab, fehlt der Anfang — und damit wäre der Saldo zu niedrig.
-      // Mit eigenem Tagessoll je Wochentag (M5) reichen die Bilanzen nicht: sie zählen
-      // Krank- und Urlaubstage, sagen aber nicht, auf welchen Wochentag sie fielen.
-      const brauchbar = !!marker && marker.vollstaendigAb <= monatVon(eintritt!) && !eigenesSollSchluessel;
-
-      if (brauchbar) {
-        /*
-          Der Eintrittsmonat kommt aus den Einzelbuchungen AB dem Eintritt:
-          seine Bilanz zählt auch Tage davor mit (Prüflauf 25.09.2026,
-          P1-15). Ein Monat Einträge — nicht der ganze Bestand.
-        */
-        const [rows, startRows] = await Promise.all([
-          listBilanzen(user!.companyId, user!.uid, monatVon(eintritt!)),
-          listOwnEntriesInRange(user!.companyId, user!.uid, eintritt!, monatsLetzter(eintritt!)),
-        ]);
-        return { bilanzen: rows, eintrittsEintraege: startRows, saldoEintraege: [] };
-      }
-      const rows = await listOwnEntriesSince(user!.companyId, user!.uid, eintritt!);
-      return { bilanzen: null, eintrittsEintraege: [], saldoEintraege: rows };
-    },
+    queryFn: () => zeitkontoSaldo(user!.uid),
   });
-  const bilanzen = saldoAbfrage.data?.bilanzen ?? null;
-  const saldoEintraege = saldoAbfrage.data?.saldoEintraege ?? KEINE_EINTRAEGE;
-  /** Der Eintrittsmonat ab dem Eintritt — siehe `saldoAusBilanzen` (P1-15). */
-  const eintrittsEintraege = saldoAbfrage.data?.eintrittsEintraege ?? KEINE_EINTRAEGE;
   const saldoGeladen = saldoAbfrage.data !== undefined || saldoAbfrage.isError;
+
+  /*
+    ABGESCHLOSSENE MONATE (Durchsicht 15.11.2026, Z6, E1): dort ist eine
+    Zeile nicht mehr zu bearbeiten oder zu löschen — die Datenbank lehnt es
+    ab, die Zeile sagt es vorher und bietet den Korrekturantrag an. Nur, wenn
+    der Betrieb den Monatsabschluss führt; scheitert das Laden, bleibt es
+    beim Zustand ohne Sperre — die Datenbank sperrt trotzdem.
+  */
+  const abschlussAn = company?.zeitMonatsabschluss === true;
+  const abschlussAbfrage = useZwischengespeichert({
+    queryKey: user ? schluessel('monatsabschluesse', user) : ['monatsabschluesse'],
+    enabled: !!user && abschlussAn,
+    queryFn: () => listMonatsabschluesse(user!.companyId),
+  });
+  const abgeschlossen = useMemo(
+    () => abgeschlosseneMonate(abschlussAbfrage.data ?? [], abschlussAn),
+    [abschlussAbfrage.data, abschlussAn],
+  );
 
   /*
     Auch die Grundlage des Saldos darf nicht stumm ausbleiben (siehe beim
@@ -408,10 +358,10 @@ export default function TimeView() {
 
   const saldo = useMemo(() => {
     if (!profile) return null;
-    return bilanzen
-      ? saldoAusBilanzen(profile, bilanzen, laufendeEintraege, halbeTage, eintrittsEintraege)
-      : calcOverallSaldo(profile, saldoEintraege, halbeTage);
-  }, [profile, bilanzen, laufendeEintraege, saldoEintraege, eintrittsEintraege, halbeTage]);
+    // Ohne Saldo-Start rechnet die Datenbank nichts — die App sagt dasselbe wie bisher.
+    if (!profile.appStartDate) return calcOverallSaldo(profile, [], halbeTage);
+    return saldoAbfrage.data ?? null;
+  }, [profile, saldoAbfrage.data, halbeTage]);
 
   /**
    * Belegte Tage aus dem geladenen Fenster — die SOFORTIGE Antwort auf die
@@ -613,6 +563,41 @@ export default function TimeView() {
     setBlatt(false);
     setEditing(null);
     setVorbelegung(null);
+    setOffenerEntwurf(null);
+  };
+  /** Gespeichert: ein geöffneter Entwurf ist damit gebucht (oder neu vorgemerkt) und geht. */
+  const nachSpeichern = () => {
+    if (offenerEntwurf) zeitEntwurfEntfernen(offenerEntwurf);
+    setOffenerEntwurf(null);
+    setGespeichert((n) => n + 1);
+  };
+  /** Einen Entwurf im Formular öffnen — eine Änderung an der Buchung selbst, sonst als neue Buchung. */
+  const entwurfOeffnen = (e: ZeitEntwurf) => {
+    const b = entwurfAlsEintrag(e);
+    setOffenerEntwurf(e);
+    const vorhanden = e.art === 'aendern' ? entries.find((x) => x.id === e.kennung) : undefined;
+    if (vorhanden) {
+      setVorbelegung(null);
+      bearbeiten({ ...vorhanden, ...b });
+      return;
+    }
+    setEditing(null);
+    setVorbelegung({
+      date: b.date ?? todayStr(),
+      projectNumber: b.projectNumber ?? '',
+      startTime: b.startTime,
+      endTime: b.endTime,
+      breakDuration: b.breakDuration,
+      travelTime: b.travelTime,
+      comment: b.comment,
+      helperName: b.helperName,
+      vehiclePlate: b.vehiclePlate,
+      isHelper: b.isHelper,
+      isEmergency: b.isEmergency,
+      nachtAbgewaehlt: b.nachtAbgewaehlt,
+      status: b.status,
+    });
+    document.getElementById('zeit-formular')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   };
 
   /** Eine Buchung als Zeile — in den Wochen wie unter „Kommende Wochen". */
@@ -643,7 +628,9 @@ export default function TimeView() {
       Berufsschule, kein vom Büro gebuchter Zeitausgleich und keine vom Büro
       gesperrte Zeit — dieselben Bedingungen wie die Knöpfe unten.
     */
+    const imAbschluss = abgeschlossen.has(e.date.slice(0, 7));
     const bearbeitbar =
+      !imAbschluss &&
       !e.isBilled &&
       !e.krankmeldungId &&
       !e.freistellungId &&
@@ -715,7 +702,10 @@ export default function TimeView() {
       >
         {/* Verrechnete Einträge sind Grundlage einer
             verschickten Rechnung und bleiben gesperrt. */}
-        {e.isBilled ? (
+        {imAbschluss ? (
+          // Der Monat ist abgeschlossen (Z6): ändern nur noch über den Korrekturantrag darunter.
+          <Zustand stand="erledigt">Monat abgeschlossen</Zustand>
+        ) : e.isBilled ? (
           /* Verrechnet ist abgeschlossen: das Zeichen „erledigt“ mit dem Wort (Planlinie B3). */
           <Zustand stand="erledigt">verrechnet</Zustand>
         ) : e.krankmeldungId ? (
@@ -1071,7 +1061,7 @@ export default function TimeView() {
             das Formular auf dem alten Stand stehen, und der Klick auf
             „Zeit nachtragen" täte sichtbar nichts.
           */
-          key={editing?.id ?? (vorbelegung ? `nachtrag-${vorbelegung.date}-${vorbelegung.projectNumber}` : 'new')}
+          key={editing?.id ?? (vorbelegung ? `nachtrag-${vorbelegung.date}-${vorbelegung.projectNumber}-${offenerEntwurf?.kennung ?? ''}` : 'new')}
           entry={editing ?? undefined}
           lastEntry={lastEntry}
           vorbelegung={editing ? null : vorbelegung}
@@ -1082,12 +1072,13 @@ export default function TimeView() {
             // Die Vorbelegung ist verbraucht. Bliebe sie stehen, käme sie
             // beim nächsten Eintrag unbemerkt wieder hoch.
             setVorbelegung(null);
+            nachSpeichern();
           }}
           onCancel={
             editing
-              ? () => setEditing(null)
+              ? () => { setEditing(null); setOffenerEntwurf(null); }
               : vorbelegung
-                ? () => setVorbelegung(null)
+                ? () => { setVorbelegung(null); setOffenerEntwurf(null); }
                 : undefined
           }
         />
@@ -1118,13 +1109,13 @@ export default function TimeView() {
                 das Formular auf dem alten Stand stehen, und der Klick auf
                 „Zeit nachtragen" täte sichtbar nichts.
               */
-              key={editing?.id ?? (vorbelegung ? `nachtrag-${vorbelegung.date}-${vorbelegung.projectNumber}` : 'new')}
+              key={editing?.id ?? (vorbelegung ? `nachtrag-${vorbelegung.date}-${vorbelegung.projectNumber}-${offenerEntwurf?.kennung ?? ''}` : 'new')}
               entry={editing ?? undefined}
               lastEntry={lastEntry}
               vorbelegung={editing ? null : vorbelegung}
               // Tagessoll und Verteilung für die Rückfrage zum Jugendschutz (Runde 3, M2).
               besitzerProfil={profile}
-              onSaved={formularSchliessen}
+              onSaved={() => { nachSpeichern(); formularSchliessen(); }}
               onCancel={formularSchliessen}
             />
           )}
@@ -1132,6 +1123,8 @@ export default function TimeView() {
       )}
 
       <Card title="Meine Einträge" id="meine-eintraege" className="zeit-liste" buendig>
+        {/* Was dieses Gerät noch nicht beim Server hat — auch ohne Netz, auch wenn die Liste nicht lädt (Z4). */}
+        <NochNichtGesendet companyId={user.companyId} uid={user.uid} stand={gespeichert} onOeffnen={entwurfOeffnen} />
         {loading ? (
           <div className="p-4">
             <SkeletonList rows={5} />

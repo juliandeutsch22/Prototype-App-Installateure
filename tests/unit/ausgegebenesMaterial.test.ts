@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { alsPosition, materialAbgleich, materialOhneSchein, type Ausgabe } from '@/features/invoices/ausgegebenesMaterial';
+import { alsPosition, ausgabenVerknuepfung, materialAbgleich, materialOhneSchein, type Ausgabe } from '@/features/invoices/ausgegebenesMaterial';
 import type { Material } from '@/types';
 
 /**
@@ -153,5 +153,51 @@ describe('Spätere Scheine bei Stichtag (M4)', () => {
       ausgegeben: 6, zurueck: 0, aufScheinen: 0, offen: 6, preis: 0,
     }]);
     expect(materialAbgleich([ruest('Pressfitting', 6)], [], KATALOG).spaeterGetragen).toEqual([]);
+  });
+});
+
+/*
+  M2 (16.11.2026): die Rechnung hält fest, welche Ausgaben sie gesehen hat —
+  Anforderungen und Retouren als Anforderung, Rüstlistenpositionen über ihre
+  feste Kennung. Doppelte Zeilen derselben Ausgabe zählen einmal.
+*/
+describe('ausgabenVerknuepfung (M2)', () => {
+  it('teilt nach Belegart und nennt jede Ausgabe einmal', () => {
+    const a = (art: Ausgabe['art'], belegId: string): Ausgabe =>
+      ({ art, belegId, datum: '2026-11-10', materialId: null, name: 'Rohr', einheit: 'm', menge: 1 });
+    expect(ausgabenVerknuepfung([a('anforderung', 'o1'), a('retoure', 'o2'), a('ruestliste', 'p1'), a('anforderung', 'o1')]))
+      .toEqual({ linkedOrders: ['o1', 'o2'], linkedRuestPositionen: ['p1'] });
+  });
+
+  it('ohne Ausgaben verknüpft sie nichts', () => {
+    expect(ausgabenVerknuepfung([])).toEqual({ linkedOrders: [], linkedRuestPositionen: [] });
+  });
+});
+
+/*
+  M7 (16.11.2026): eine Retoure nach der Rechnung, die die Ware enthielt —
+  bisher fiel sie still aus der Vorschau (nur Offenes über null).
+*/
+describe('zurück, aber schon verrechnet (M7)', () => {
+  const a = (menge: number, art: Ausgabe['art'] = 'anforderung'): Ausgabe =>
+    ({ art, belegId: `${art}${menge}`, datum: '2026-11-12', materialId: 'k1', name: 'Muffe', einheit: 'Stk', menge });
+  const katalog = [{ id: 'k1', name: 'Muffe', unit: 'Stk', verkaufspreis: 2 } as unknown as Material];
+
+  it('die Retoure ohne Gegenstück wird als Gutschrift angeboten — höchstens was zurückkam', () => {
+    const r = materialAbgleich([a(-3, 'retoure')], [], katalog);
+    expect(r.vorschlaege).toEqual([]);
+    expect(r.zurueckVerrechnet.map((v) => [v.name, v.offen])).toEqual([['Muffe', 3]]);
+    expect(r.zurueckVerrechnet[0].preis).toBe(2);
+  });
+
+  it('Gleichbleiben: wird die Retoure durch neu Ausgegebenes aufgewogen, gibt es keine Gutschrift', () => {
+    const r = materialAbgleich([a(5), a(-3, 'retoure')], [], katalog);
+    expect(r.zurueckVerrechnet).toEqual([]);
+    expect(r.vorschlaege.map((v) => v.offen)).toEqual([2]);
+  });
+
+  it('ein Überhang aus Scheinen (Material von woanders) ist keine Gutschrift', () => {
+    const r = materialAbgleich([a(2)], [{ material: [{ name: 'Muffe', menge: 5, materialId: 'k1' }] }], katalog);
+    expect(r.zurueckVerrechnet).toEqual([]);
   });
 });

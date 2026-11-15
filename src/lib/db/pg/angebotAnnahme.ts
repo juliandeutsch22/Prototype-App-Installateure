@@ -37,6 +37,11 @@ export type AnnahmeAntwort =
       /** Bei Annahme und Ablehnung: diese Anfrage hat entschieden (nicht eine frühere). */
       neu?: boolean;
     }
+  /**
+   * A4: das Büro hat nach diesem Link eine neuere Fassung erstellt — der Link
+   * gilt nicht mehr. Nur Firma und Nummer, nicht der überholte Inhalt.
+   */
+  | { zustand: 'neuere_fassung'; firma: string; angebot: string }
   | { zustand: 'ungueltig' }
   | { zustand: 'zu_viele'; grund: string }
   | { zustand: 'fehler'; grund: string };
@@ -123,6 +128,9 @@ export async function annahmeAnfrage(anfrage: AnnahmeAnfrage): Promise<AnnahmeAn
   }
   if (!r.ok || !d) throw new Error(String(d?.grund ?? 'Der Dienst ist gerade nicht erreichbar.'));
   const zustand = d.zustand;
+  if (zustand === 'neuere_fassung') {
+    return { zustand, firma: String(d.firma ?? ''), angebot: String(d.angebot ?? '') };
+  }
   if (zustand !== 'offen' && zustand !== 'angenommen' && zustand !== 'abgelehnt') return { zustand: 'ungueltig' };
   return {
     zustand,

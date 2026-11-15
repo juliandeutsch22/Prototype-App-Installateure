@@ -44,6 +44,20 @@ const aendere = vi.fn();
 const loesche = vi.fn();
 /** Womit die Datenbank das Löschen abweist — `null` heisst: sie nimmt es an. */
 let loeschFehler: string | null = null;
+/** Was an der Baustelle hängt (`baustelle_verwendung`, A1) — je Aufruf das nächste, das letzte bleibt. */
+const LEER = {
+  zeitbuchungen: 0, einsaetze: 0, scheine: 0, rechnungen: 0, anforderungen: 0, ruestlisten: 0,
+  dokumente: 0, termine: 0, nachrichten: 0, angebote: [] as { id: string; nummer: string; status: string }[],
+};
+let verwendungen: (typeof LEER)[] = [LEER];
+/** Was vor dem Abschließen offen ist (A11). */
+const OFFEN_NICHTS = {
+  status: 'Aktiv', kommendeEinsaetze: 0, naechsterEinsatz: null as string | null, scheinEntwuerfe: 0, offeneAnforderungen: 0,
+  unverrechneteScheine: 0 as number | null, unverrechneteMinuten: 0 as number | null, unverrechnetesMaterial: 0 as number | null,
+  offeneRechnungen: 0 as number | null,
+};
+let abschlussLage = OFFEN_NICHTS;
+const abgeschlossen = vi.fn();
 
 /*
   DIE LISTE KOMMT DRAUSSEN SPÄTER ALS DAS FORMULAR. Der Ersatz lieferte sie
@@ -98,6 +112,10 @@ vi.mock('@/lib/db/projects', () => ({
     loesche(id);
     return loeschFehler ? Promise.reject(new Error(loeschFehler)) : Promise.resolve();
   },
+  baustelleVerwendung: () => Promise.resolve(verwendungen.length > 1 ? verwendungen.shift()! : verwendungen[0]),
+  // A11: der geführte Abschluss.
+  baustelleAbschlussLage: () => Promise.resolve(abschlussLage),
+  baustelleAbschliessen: (id: string) => { abgeschlossen(id); return Promise.resolve(abschlussLage); },
   listActiveProjects: () =>
     laufendFehler
       ? Promise.reject(new Error('kein Netz'))
@@ -107,6 +125,10 @@ vi.mock('@/lib/db/projects', () => ({
     return serverFehler ? Promise.reject(new Error('kein Netz')) : Promise.resolve(serverBaustellen);
   },
 }));
+
+/* „Ohne Einsatz“ aus der Datenbank (P8, `baustellen_ohne_einsatz`) — dieselbe Antwort wie der Zähler der Startseite. */
+const ohneEinsatz = vi.fn<(heute: string) => Promise<{ projectNumber: string; zuletzt?: string }[]>>(async () => []);
+vi.mock('@/lib/db/assignments', () => ({ baustellenOhneEinsatz: (heute: string) => ohneEinsatz(heute) }));
 
 vi.mock('@/lib/db/users', () => ({
   listUsers: vi.fn(async () => {
@@ -164,6 +186,9 @@ async function formOeffnen() {
 
 beforeEach(() => {
   loeschFehler = null;
+  verwendungen = [LEER];
+  abschlussLage = OFFEN_NICHTS;
+  abgeschlossen.mockClear();
   spaet = false;
   anlegeFehler = null;
   reserviere.mockReset();
@@ -516,13 +541,7 @@ describe('Baustellen — löschen', () => {
     await waitFor(() => expect(loesche).toHaveBeenCalledWith('p1'));
   });
 
-  it('sagt, warum eine Baustelle mit Buchungen nicht gelöscht wird', async () => {
-    /*
-      Vorher blieb der Dialog einfach offen, ohne ein Wort — die Datenbank
-      hatte das Löschen verweigert, weil Zeiten, Scheine, Rechnungen oder
-      Pläne an der Baustelle hängen.
-    */
-    loeschFehler = 'update or delete on table "projects" violates foreign key constraint';
+  async function loeschenOeffnen() {
     baustellen = [
       {
         id: 'p1', companyId: 'perl', projectNumber: '2026-042',
@@ -535,9 +554,86 @@ describe('Baustellen — löschen', () => {
       within(zeile).getByRole('button', { name: /Weitere Aktionen für Baustelle 2026-042/ }),
     );
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Löschen' }));
-    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: /löschen/i }));
-    expect(await screen.findByText(/lässt sich nicht löschen.*Abgeschlossen/)).toBeInTheDocument();
-    expect(screen.queryByRole('dialog')).toBeNull();
+    return screen.findByRole('dialog');
+  }
+
+  /*
+    DER WAHRE GRUND UND DER WEG (Durchsicht 15.11.2026, A1). Vorher hieß es
+    bei jeder Ablehnung „an ihr hängen schon Buchungen, Scheine, Rechnungen
+    oder Pläne“ — auch bei einer leeren Baustelle, an der nur ihr
+    angenommenes Angebot hing (Fremdschlüssel `quotes.project_id`).
+  */
+  it('nennt das angenommene Angebot als Grund und führt zur Rücknahme dorthin', async () => {
+    verwendungen = [{ ...LEER, angebote: [{ id: 'q7', nummer: 'AN-2026-0007', status: 'Angenommen' }] }];
+    const dialog = await loeschenOeffnen();
+    expect(await within(dialog).findByText(/hängt das angenommene Angebot AN-2026-0007, sonst nichts/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Annahme zurücknehmen/)).toBeInTheDocument();
+    expect(within(dialog).queryByText(/Buchungen, Scheine, Rechnungen oder Pläne/)).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: 'Löschen' })).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Zum Angebot' }));
+    expect(loesche).not.toHaveBeenCalled();
+  });
+
+  it('nennt, was wirklich daran hängt, und schickt zum Abschließen statt zu löschen', async () => {
+    verwendungen = [{ ...LEER, zeitbuchungen: 3, scheine: 1 }];
+    const dialog = await loeschenOeffnen();
+    expect(await within(dialog).findByText(/hängen 3 Zeitbuchungen und 1 Handwerksschein/)).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Löschen' })).toBeNull();
+    // Seit A11 führt der Weg in den geführten Abschluss (eine offene Baustelle).
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen …' }));
+    expect(await screen.findByRole('dialog', { name: 'Baustelle 2026-042 abschließen?' })).toBeInTheDocument();
+    expect(loesche).not.toHaveBeenCalled();
+  });
+
+  /*
+    GEFÜHRT ABSCHLIESSEN (Durchsicht 15.11.2026, A11 / F1). „Abgeschlossen“
+    war nur ein Auswahlfeld in der Akte, das nichts prüfte.
+  */
+  it('Abschließen aus dem Zeilenmenü: zeigt, was offen ist, und fragt „Trotzdem abschließen“', async () => {
+    abschlussLage = { ...OFFEN_NICHTS, scheinEntwuerfe: 1, unverrechneteMinuten: 90 };
+    baustellen = [{ id: 'p1', companyId: 'perl', projectNumber: '2026-042', customerName: 'Familie Huber', status: 'Aktiv' } as Project & { id: string }];
+    zeige();
+    const zeile = (await screen.findByText(/2026-042/)).closest('li') as HTMLElement;
+    await userEvent.click(within(zeile).getByRole('button', { name: /Weitere Aktionen für Baustelle 2026-042/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Abschließen' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Baustelle 2026-042 abschließen?' });
+    expect(await within(dialog).findByText('Ein Handwerksschein ist noch Entwurf')).toBeInTheDocument();
+    expect(within(dialog).getByText(/1,5 h Arbeitszeit sind nicht verrechnet/)).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: 'Rechnung stellen' })).toHaveAttribute('href', '/invoices?neu=2026-042');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Trotzdem abschließen' }));
+    await waitFor(() => expect(abgeschlossen).toHaveBeenCalledWith('p1'));
+  });
+
+  it('kommende Einsätze halten das Abschließen auf — mit dem Weg in den Plan', async () => {
+    abschlussLage = { ...OFFEN_NICHTS, kommendeEinsaetze: 2, naechsterEinsatz: '2026-09-03' };
+    baustellen = [{ id: 'p1', companyId: 'perl', projectNumber: '2026-042', customerName: 'Familie Huber', status: 'Aktiv' } as Project & { id: string }];
+    zeige();
+    const zeile = (await screen.findByText(/2026-042/)).closest('li') as HTMLElement;
+    await userEvent.click(within(zeile).getByRole('button', { name: /Weitere Aktionen für Baustelle 2026-042/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Abschließen' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Baustelle 2026-042 abschließen?' });
+    expect(await within(dialog).findByText(/2 Einsätze ab 03\.09\.2026 geplant/)).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: 'Im Einsatzplan öffnen' })).toHaveAttribute('href', '/assignments/tag?datum=2026-09-03');
+    expect(within(dialog).getByRole('button', { name: 'Abschließen' })).toBeDisabled();
+  });
+
+  it('bleibt gleich: ohne Spuren wird gelöscht — und es steht da, was mitgeht', async () => {
+    verwendungen = [{ ...LEER, termine: 2 }];
+    const dialog = await loeschenOeffnen();
+    expect(await within(dialog).findByText(/wird entfernt\. Mit ihr gehen 2 Termine\./)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Löschen' }));
+    await waitFor(() => expect(loesche).toHaveBeenCalledWith('p1'));
+    expect(await screen.findByText('Baustelle gelöscht')).toBeInTheDocument();
+  });
+
+  it('kommt zwischen Nachsehen und Löschen eine Buchung dazu, bleibt der Dialog offen und sagt es', async () => {
+    loeschFehler = 'update or delete on table "projects" violates foreign key constraint';
+    verwendungen = [LEER, { ...LEER, zeitbuchungen: 1 }];
+    const dialog = await loeschenOeffnen();
+    await within(dialog).findByText(/wird entfernt\./);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Löschen' }));
+    expect(await within(dialog).findByText(/lässt sich nicht mehr löschen — inzwischen hängt etwas an ihr/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/hängt 1 Zeitbuchung/)).toBeInTheDocument();
   });
 });
 
@@ -1378,5 +1474,34 @@ describe('Filter von der Startseite — über alle laufenden Baustellen', () => 
     zeige('/admin-projects?filter=ende-ueberschritten');
     expect(await screen.findByText('Die Liste aller laufenden Baustellen konnte nicht geladen werden.')).toBeInTheDocument();
     await waitFor(() => expect(hrefs()).toEqual(['/admin-projects/p-alt2']));
+  });
+});
+
+/*
+  P8 (Durchsicht 15.11.2026): der Filter „ohne Einsatz“ nimmt die Antwort der
+  Datenbank — wie der Zähler der Startseite. Gegenprobe: vorher rechnete er
+  über alle Einsätze mit Grenze 3.000 und zeigte ab dort fast jede aktive
+  Baustelle.
+*/
+describe('Filter „ohne Einsatz“ (P8)', () => {
+  it('zeigt genau die Baustellen, die die Datenbank nennt', async () => {
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: '2026-001', customerName: 'Familie Huber', status: 'Aktiv' } as Project & { id: string },
+      { id: 'p2', companyId: 'perl', projectNumber: '2026-002', customerName: 'Firma Gruber', status: 'Aktiv' } as Project & { id: string },
+    ];
+    ohneEinsatz.mockResolvedValue([{ projectNumber: '2026-002' }]);
+    zeige('/admin-projects?filter=ohne-einsatz');
+    await waitFor(() => expect(zeilen().map((a) => a.getAttribute('href'))).toEqual(['/admin-projects/p2']));
+    expect(ohneEinsatz).toHaveBeenCalledWith('2026-09-01');
+    ohneEinsatz.mockResolvedValue([]);
+  });
+});
+
+/* V3 (Durchsicht 15.11.2026): „Neue Baustelle“ aus der Kundenakte — Kunde vorbelegt. */
+describe('Neu für diesen Kunden (V3)', () => {
+  it('öffnet „Neue Baustelle“ mit dem Kunden der Akte', async () => {
+    zeige('/admin-projects?neu=fuer&kunde=k1');
+    expect(await screen.findByRole('button', { name: 'Anderen Kunden wählen' })).toBeInTheDocument();
+    expect(screen.getAllByText('Familie Huber').length).toBeGreaterThan(0);
   });
 });

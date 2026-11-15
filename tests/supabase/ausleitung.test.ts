@@ -40,6 +40,16 @@ async function rufen(token: string) {
   return { status: antwort.status, daten: await antwort.json() };
 }
 
+/** Der Weg des Nachtlaufs: mit dem Dienstschlüssel, den Betrieb im Rumpf. */
+async function dienstRuf(rumpf: Record<string, unknown>) {
+  const antwort = await fetch(FUNKTION, {
+    method: 'POST',
+    headers: { apikey: ANON, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(rumpf),
+  });
+  return { status: antwort.status, daten: await antwort.json() };
+}
+
 /** Den geschriebenen Stand wieder herunterladen — als Text. */
 async function standLesen(pfad: string): Promise<string> {
   const { data, error } = await admin.storage.from(EIMER).download(pfad);
@@ -213,11 +223,11 @@ describe('Wer die Ausleitung auslösen darf', () => {
         Authorization: `Bearer  ${SERVICE}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ quelle: 'test' }),
+      body: JSON.stringify({ quelle: 'test', betrieb: BETRIEB }),
     });
     expect(antwort.status).toBe(200);
-    // Der Dienstweg, nicht der Knopf: er zählt Mandanten statt einen Betrieb.
-    expect(await antwort.json()).toHaveProperty('mandanten');
+    // Der Dienstweg, nicht der Knopf: er nimmt den Betrieb aus dem Anstoß.
+    expect((await antwort.json()).companyId).toBe(BETRIEB);
   }, 120_000);
 
   it('ohne Anmeldung niemand', async () => {
@@ -236,12 +246,31 @@ describe('Wer die Ausleitung auslösen darf', () => {
     expect(daten.pfad.startsWith(ausleitungsPraefix(FREMD))).toBe(true);
   }, 180_000);
 
-  it('der Dienstschlüssel nimmt ALLE Betriebe', async () => {
-    const { status, daten } = await rufen(SERVICE);
+  /*
+    K3 (Durchsicht 15.11.2026): DER NACHTLAUF NIMMT GENAU DEN BETRIEB, DEN DER
+    ANSTOSS NENNT. Vorher nahm der Dienstweg alle in einer Schleife — mit
+    einer Wanduhr für alle; die hinteren wurden nie gesichert. GEGENPROBE
+    (Erwartung): mit der alten Schleife sind „genau den genannten“ und „ohne
+    Betrieb“ rot (sie antwortet mit `mandanten`, nie mit 400).
+  */
+  it('der Dienstschlüssel nimmt genau den Betrieb, den der Anstoß nennt', async () => {
+    const { status, daten } = await dienstRuf({ quelle: 'nachtlauf', betrieb: FREMD });
     expect(status).toBe(200);
-    expect(daten.mandanten).toBeGreaterThanOrEqual(2);
-    expect(daten.gescheitert).toEqual([]);
+    expect(daten.companyId).toBe(FREMD);
+    expect(daten.pfad.startsWith(ausleitungsPraefix(FREMD))).toBe(true);
+    expect(daten).not.toHaveProperty('mandanten');
   }, 300_000);
+
+  it('ohne Betrieb im Anstoß: nichts — und die Antwort sagt warum', async () => {
+    const { status, daten } = await dienstRuf({ quelle: 'nachtlauf' });
+    expect(status).toBe(400);
+    expect(daten.error).toMatch(/je Betrieb/);
+  }, 60_000);
+
+  it('einen unbekannten Betrieb gibt es nicht', async () => {
+    const { status } = await dienstRuf({ quelle: 'nachtlauf', betrieb: 'gibt-es-nicht-k3' });
+    expect(status).toBe(404);
+  }, 60_000);
 });
 
 describe('Die Überwachung sagt die Wahrheit', () => {

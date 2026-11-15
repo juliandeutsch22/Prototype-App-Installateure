@@ -12,7 +12,7 @@ import {
   pflegeStand,
   type FreistellungArt,
 } from '@shared/freistellung';
-import { fmtDauer, todayStr, urlaubsTage } from '@/lib/time';
+import { arbeitszeitAm, fmtDauer, todayStr, urlaubsTage } from '@/lib/time';
 import Button from '@/components/Button';
 import InfoHint from '@/components/InfoHint';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
@@ -77,7 +77,8 @@ export default function FreistellungFormular({
   const begruendungNoetig = teilung && !gewaehlt?.todesfall;
 
   const pflege = profil
-    ? pflegeStand(eigene, profil.weeklyTargetHours, profil.eintritt ?? profil.appStartDate, von)
+    // Eine Woche mit der Arbeitszeit des Tages (Z3).
+    ? pflegeStand(eigene, arbeitszeitAm(profil, von || todayStr()).weeklyTargetHours, profil.eintritt ?? profil.appStartDate, von)
     : null;
 
   /*

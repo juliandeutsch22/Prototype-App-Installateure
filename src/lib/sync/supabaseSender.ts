@@ -48,6 +48,45 @@ function istEndgueltig(code: string | undefined): boolean {
   );
 }
 
+/**
+ * DIE ANTWORT EINES GESTÖRTEN DIENSTES (Z4, Durchsicht 15.11.2026).
+ *
+ * Der Server hat geantwortet — aber nur, dass er gerade nicht kann: keine
+ * Verbindung zur Datenbank oder Schemacache lädt (`PGRST000`–`003`),
+ * Verbindungsabbruch (`08…`), Überlast (`53…`), Herunterfahren oder
+ * Zeitüberschreitung der Abfrage (`57…`), Konflikt gleichzeitiger
+ * Schreibvorgänge (`40001`, `40P01`), nur lesbar während eines Wechsels
+ * (`25006`) — oder ganz ohne Code ein Fehler des Vorbaus (5xx, 408, 429).
+ * Nichts davon sagt etwas über die Buchung selbst. Bis Z4 stand das unter
+ * „unklar“ und wurde nach fünf Läufen verworfen: fünf Minuten Störung, und
+ * jede in dieser Zeit vorgemerkte Buchung war weg.
+ */
+function istStoerung(code: string | undefined, status: number | undefined): boolean {
+  if (!code) return status !== undefined && (status >= 500 || status === 408 || status === 429);
+  return (
+    /^PGRST00\d$/.test(code) ||
+    code.startsWith('08') ||
+    code.startsWith('53') ||
+    code.startsWith('57') ||
+    code === '40001' ||
+    code === '40P01' ||
+    code === '25006'
+  );
+}
+
+/**
+ * EINE EINDEUTIGE ANTWORT DER DATENBANK (Z4): eine Regel hat abgelehnt —
+ * `P0001` (Ausnahme ohne eigenen Code), `P0002` (gibt es nicht), `55000`
+ * (der Zustand lässt es nicht zu, z. B. „freie Zeitfelder ausgeschaltet“),
+ * Klasse `42` (Rechte, Schema). Ein zweiter Versuch ändert daran nichts; als
+ * „unklar“ meldete die Maske online „ohne Verbindung gespeichert“, und der
+ * Vorgang blockierte fünf Läufe lang alles dahinter.
+ */
+function istRegel(code: string | undefined): boolean {
+  if (!code) return false;
+  return code === 'P0001' || code === 'P0002' || code === '55000' || code.startsWith('42');
+}
+
 /** Netzfehler erkennen: `netzfehler.ts` — auch die Maske des Scheins fragt dort. */
 
 /** Ein Fehler der Datenbank (Tabelle oder Funktion) in einen der vier Fälle. */
@@ -65,8 +104,11 @@ function einordnen(
     zählen, später wieder.
   */
   if (status === 401) return { art: 'kein-netz' };
-  if (istEndgueltig(error.code)) {
+  if (istEndgueltig(error.code) || istRegel(error.code)) {
     return { art: 'abgelehnt', grund: error.message || `Abgelehnt (${error.code})` };
+  }
+  if (istStoerung(error.code, status)) {
+    return { art: 'stoerung', grund: error.message || `Störung (${error.code || status})` };
   }
   return { art: 'unklar', grund: error.message || `Fehler (${error.code})` };
 }

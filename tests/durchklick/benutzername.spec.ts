@@ -81,23 +81,35 @@ test('Benutzername: anlegen, erstes Anmelden, eigenes Passwort, vergessen, neues
   await expect(morgen.locator('nav').first()).toBeVisible({ timeout: 20_000 });
   await expect(morgen.getByRole('heading', { name: 'Willkommen' })).toHaveCount(0);
 
-  // 4. „Passwort vergessen?" verspricht ihr keinen Link.
+  // 4. „Passwort vergessen?" verspricht ihr keinen Link — die Bitte geht an die Leitung (V14).
   const vergessen = await (await browser.newContext()).newPage();
   await vergessen.goto('/');
   await vergessen.getByRole('button', { name: 'Passwort vergessen?' }).click();
   await vergessen.getByLabel('E-Mail').fill(name);
   await vergessen.getByRole('button', { name: 'Link anfordern' }).click();
   await expect(vergessen.getByText(/keinen Link per E-Mail/)).toBeVisible();
+  await expect(vergessen.getByText(/an die Leitung deines Betriebs gegangen/)).toBeVisible();
 
-  // 5. Die Chefin vergibt in der Akte ein neues Startpasswort.
-  const { data } = await admin.from('users').select('id').eq('email', kunstadresse(name)).single();
-  await buero.goto(`/user-mgmt/${data!.id}`);
+  // 5. Die Chefin sieht die Bitte auf der Startseite, folgt ihr in die Akte und vergibt ein neues Startpasswort.
+  const { data } = await admin.from('users').select('id, name').eq('email', kunstadresse(name)).single();
+  await buero.goto('/');
+  const bitte = buero.getByRole('link', { name: new RegExp(`${data!.name} bittet um ein neues Passwort`) });
+  // Höchstens drei Themen je Abschnitt; was darüber liegt, klappt „und N weitere“ auf.
+  await expect(buero.getByRole('heading', { name: /Zu erledigen/ })).toBeVisible({ timeout: 20_000 });
+  for (const mehr of await buero.getByRole('button', { name: /weitere/ }).all()) {
+    if (!(await bitte.isVisible())) await mehr.click();
+  }
+  await bitte.click();
+  await expect(buero).toHaveURL(new RegExp(`/user-mgmt/${data!.id}`));
   await buero.getByRole('tab', { name: 'Zugang und Rechte' }).click();
+  await expect(buero.getByText(/bittet um ein neues Passwort/)).toBeVisible();
   await expect(buero.getByRole('button', { name: /Passwort-Mail/ })).toHaveCount(0);
   await buero.getByRole('button', { name: 'Neues Startpasswort vergeben' }).click();
   await buero.getByRole('button', { name: 'Vergeben', exact: true }).click();
   const start2 = await startpasswortLesen(buero);
   await keineFehlermeldung(buero);
+  // Mit dem Startpasswort ist die Bitte erledigt (GEGENPROBE: ohne den Vermerk in `passwort-vergeben` bliebe sie stehen).
+  await expect(buero.getByText(/bittet um ein neues Passwort/)).toHaveCount(0);
 
   // 6. Das eigene gilt nicht mehr; mit dem neuen fragt die App wieder.
   const danach = await (await browser.newContext()).newPage();

@@ -81,3 +81,15 @@ export function searchWartungen(
 }
 
 export const wartungEinplanen = pg.wartungEinplanen;
+
+export type { WartungErledigtVorschlag } from './pg/wartungen';
+
+/** Eine Wartung nach Kennung (A9) — siehe `pg.getWartung`. */
+export function getWartung(companyId: string, id: string): Promise<WithId<Wartung> | null> {
+  return pg.getWartung(companyId, id);
+}
+
+/** Eingeplante Wartungen, die erledigt aussehen (A9) — siehe `pg.wartungErledigtVorschlaege`. */
+export function wartungErledigtVorschlaege(): Promise<pg.WartungErledigtVorschlag[]> {
+  return pg.wartungErledigtVorschlaege();
+}

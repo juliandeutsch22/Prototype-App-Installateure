@@ -1,7 +1,7 @@
 import type { Invoice, InvoiceRates, Mahnung, MahnungInhalt } from '@/types';
 import { mahnbar, offenerRest, ruecklassFaelligAm } from './zahlstand';
 import { zahlOder } from '@/lib/zahl';
-import { aufStellen, cent } from '@/lib/betrag';
+import { aufStellen, cent, euroBetrag } from '@/lib/betrag';
 
 /** TT.MM.JJJJ — hier ohne die Datumsbibliothek, die Datei bleibt ohne Oberflächen-Importe. */
 const datumKurzAT = (iso?: string | null) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '—');
@@ -226,8 +226,9 @@ export function spesenSumme(spesen: number[] | undefined): number {
 export function mahnspesenBefund(
   saetze: Pick<InvoiceRates, 'mahnspesen' | 'mahnspesenVerbraucher' | 'pauschale458'>,
 ): { firmaZuViel: number | null; privatHoch: number | null } {
-  const firma = saetze.pauschale458 ? 0 : spesenSumme(saetze.mahnspesen);
-  const privat = spesenSumme(saetze.mahnspesenVerbraucher ?? saetze.mahnspesen);
+  // Dieselbe Rechnung wie die Schreiben (G3); die Pauschale steht für sich.
+  const firma = saetze.pauschale458 ? 0 : hoechsteMahnkosten(saetze, true);
+  const privat = hoechsteMahnkosten(saetze, false);
   return {
     firmaZuViel: firma > PAUSCHALE_458 ? firma : null,
     privatHoch: privat > PAUSCHALE_458 ? privat : null,
@@ -258,10 +259,76 @@ export function mahnkosten(
   unternehmer: boolean,
 ): { spesen: number; pauschale: number } {
   if (unternehmer && saetze?.pauschale458) {
-    return { spesen: 0, pauschale: stufe >= 2 ? PAUSCHALE_458 : 0 };
+    /*
+      EINMAL JE RECHNUNG (G3): die Pauschale steht auf der Mahnung (Stufe 2).
+      Die letzte Mahnung forderte sie bisher ein zweites Mal — seit die
+      Schreiben frühere Kosten mitführen, stünde sie sonst doppelt da.
+    */
+    return { spesen: 0, pauschale: stufe === 2 ? PAUSCHALE_458 : 0 };
   }
   const liste = unternehmer ? saetze?.mahnspesen : (saetze?.mahnspesenVerbraucher ?? saetze?.mahnspesen);
   return { spesen: spesenFuer(stufe, liste), pauschale: 0 };
+}
+
+/**
+ * Was eine Rechnung höchstens an Mahnkosten fordert, wenn sie alle drei
+ * Stufen durchläuft — dieselbe Rechnung wie die Schreiben (G3). Die
+ * Einstellung prüft daran ihre Grenze.
+ */
+export function hoechsteMahnkosten(saetze: MahnkostenSaetze | undefined, unternehmer: boolean): number {
+  return cent(MAHNSTUFEN.reduce((s, stufe) => {
+    const k = mahnkosten(stufe, saetze, unternehmer);
+    return s + k.spesen + k.pauschale;
+  }, 0));
+}
+
+/**
+ * DIE MAHNFORDERUNG — EIN MODELL für Einstellung, Schreiben und Verbuchung
+ * (Durchsicht 15.11.2026, G3).
+ *
+ * WAS VORHER WAR: drei Modelle. Die Einstellung zählte die Spesen aller
+ * Stufen zusammen („je Rechnung“), das Schreiben forderte nur die seiner
+ * Stufe, und die Verbuchung ließ „letzte Mahnung minus alle bisherigen
+ * Mahnkosten-Eingänge“ zu. Zahlte der Kunde nach einer Teilzahlung genau den
+ * Betrag aus Mahnung 3, wurde ein Teil davon Guthaben — und die Spesen der
+ * Stufen 1 und 2 forderte niemand mehr.
+ *
+ * JETZT: Jedes Schreiben fordert die Mahnkosten der Rechnung bis zu seinem
+ * Tag — die Kosten aller bisherigen Stufen, wie ihre Schreiben sie nannten,
+ * dazu die eigenen und die Verzugszinsen bis zum Mahntag — und zieht ab, was
+ * davon schon bezahlt ist. Diese `forderung` steht im Inhalt der Mahnung;
+ * die Verbuchung (`app.mahnforderung`, `letzteMahnforderung`) nimmt genau
+ * sie. Was der Brief verlangt, lässt sich also immer ganz verbuchen.
+ */
+export interface Mahnforderung {
+  /** Kosten dieser Stufe — Spesen oder Pauschale. */
+  kosten: number;
+  /** Kosten der früheren Schreiben, wie sie dort standen. */
+  kostenFrueher: number;
+  /** Verzugszinsen bis zum Mahntag, über die ganze Zeit des Verzugs. */
+  zinsen: number;
+  /** Alles zusammen — was die Rechnung an Mahnkosten bis heute schuldet. */
+  forderung: number;
+  /** Was davon schon eingegangen ist (Eingänge der Art „Mahnkosten“). */
+  bezahlt: number;
+  /** Was das Schreiben noch fordert. */
+  offen: number;
+}
+
+export function mahnforderungRechnen(o: {
+  kosten: number;
+  /** Die früheren Mahnungen dieser Rechnung — ihre Kosten zählen mit. */
+  frueher: Pick<Mahnung, 'spesen' | 'inhalt'>[];
+  zinsen: number;
+  bezahlt: number;
+}): Mahnforderung {
+  const kostenFrueher = cent(o.frueher.reduce((s, m) => s + (m.inhalt?.kosten ?? m.spesen ?? 0), 0));
+  const forderung = cent(kostenFrueher + o.kosten + o.zinsen);
+  const bezahlt = cent(Math.max(o.bezahlt, 0));
+  return {
+    kosten: cent(o.kosten), kostenFrueher, zinsen: cent(o.zinsen), forderung, bezahlt,
+    offen: cent(Math.max(forderung - bezahlt, 0)),
+  };
 }
 
 /** Vorschlag für die neue Frist: eine Woche. Änderbar in der Oberfläche. */
@@ -343,8 +410,12 @@ export type Verzugszinsen =
       grundlage: '§ 1000 ABGB' | '§ 456 UGB';
       /** Gesetzt, wenn erst ab diesem Tag gerechnet wird (siehe unten). */
       ab?: string;
-      /** Nur wenn der Verzug über mehrere Halbjahre mit verschiedenen Sätzen reicht (G30). */
-      abschnitte?: { von: string; bis: string; satz: number; tage: number }[];
+      /**
+       * Nur wenn der Verzug über mehrere Halbjahre mit verschiedenen Sätzen
+       * reicht (G30) — oder wenn zwischendurch gezahlt wurde (G3): dann trägt
+       * jeder Abschnitt seinen Betrag (`rest`).
+       */
+      abschnitte?: { von: string; bis: string; satz: number; tage: number; rest?: number }[];
     };
 
 /**
@@ -384,49 +455,98 @@ export function verzugszinsen(o: {
   basiszinssaetze?: Basiszinssatz[] | null;
   /** Die zentral gepflegten Sätze; sie gewinnen je Halbjahr. */
   zentral?: Basiszinssatz[] | null;
+  /**
+   * Die Eingänge auf die Rechnung (ohne Mahnkosten), mit Tag (G3). Mit ihnen
+   * rechnet jeder Tag des Verzugs auf den Betrag, der an ihm offen war —
+   * vorher rechnete jede Mahnung den heutigen Rest über die ganze Zeit, auch
+   * über die Tage, für die nach einer Teilzahlung schon Zinsen bezahlt
+   * waren. Ohne sie: der heutige Rest, wie bisher.
+   */
+  zahlungen?: { datum: string; betrag: number }[];
 }): Verzugszinsen {
   if (o.stufe < 2 || !(o.rest >= 0.01) || !o.faellig) return { art: 'keine' };
   const von = Date.parse(`${o.faellig}T00:00:00Z`);
   const bis = Date.parse(`${o.bis}T00:00:00Z`);
   if (Number.isNaN(von) || Number.isNaN(bis)) return { art: 'keine' };
-  const tage = Math.round((bis - von) / 86_400_000);
-  if (tage <= 0) return { art: 'keine' };
+  if (Math.round((bis - von) / 86_400_000) <= 0) return { art: 'keine' };
 
-  if (!o.unternehmer) {
-    return mitBetrag(o.rest, ZINS_VERBRAUCHER, tage, '§ 1000 ABGB');
-  }
-
-  const saetze = new Map(basiszinsVerlauf(o, o.zentral).map((b) => [b.ab, b.satz]));
-  /*
-    Die Halbjahre des Verzugs, vom letzten rückwärts: jeder Tag nach dem
-    Zahlungsziel bis zum Mahntag. Beim ersten ohne Satz ist Schluss.
-  */
   const erster = tagNach(o.faellig);
-  const abschnitte: { von: string; bis: string; satz: number; tage: number }[] = [];
-  let ende = o.bis;
-  while (ende >= erster) {
-    const hj = halbjahresbeginn(ende);
-    const basis = saetze.get(hj);
-    if (basis === undefined) break;
-    const beginn = hj > erster ? hj : erster;
-    abschnitte.unshift({
-      von: beginn,
-      bis: ende,
-      satz: aufStellen(basis + ZINS_AUFSCHLAG_UNTERNEHMER, 2),
-      tage: tageZwischen(beginn, ende) + 1,
-    });
-    ende = tagVor(hj);
+  /*
+    WAS AN EINEM TAG OFFEN WAR: der heutige Rest und alles, was erst danach
+    einging. Ein Eingang zählt ab seinem Tag — an ihm selbst läuft für den
+    bezahlten Teil kein Zins mehr.
+  */
+  const zahlungen = (o.zahlungen ?? []).filter((z) => Number.isFinite(z.betrag) && z.betrag !== 0);
+  const offenAm = (tag: string) =>
+    cent(Math.max(o.rest + zahlungen.filter((z) => z.datum > tag).reduce((s, z) => s + z.betrag, 0), 0));
+
+  /*
+    DER SATZ JE TAG. Verbraucher: 4 %. Unternehmer: Basiszinssatz des
+    Halbjahres + 9,2 — vom Mahntag rückwärts nur, solange jedes Halbjahr
+    einen Satz hat; davor wird nicht gerechnet (`ab`), fehlt er schon für das
+    Halbjahr des Mahntags, gar nicht (`fehlt`).
+  */
+  let beginn = erster;
+  let satzFuer: (tag: string) => number = () => ZINS_VERBRAUCHER;
+  const grenzen = new Set<string>();
+  if (o.unternehmer) {
+    const saetze = new Map(basiszinsVerlauf(o, o.zentral).map((b) => [b.ab, b.satz]));
+    let hj = halbjahresbeginn(o.bis);
+    if (!saetze.has(hj)) return { art: 'fehlt' };
+    while (hj > erster) {
+      grenzen.add(hj);
+      const davor = halbjahresbeginn(tagVor(hj));
+      if (!saetze.has(davor)) {
+        beginn = hj;
+        break;
+      }
+      hj = davor;
+    }
+    satzFuer = (tag) => aufStellen(saetze.get(halbjahresbeginn(tag))! + ZINS_AUFSCHLAG_UNTERNEHMER, 2);
   }
-  if (abschnitte.length === 0) return { art: 'fehlt' };
+  for (const z of zahlungen) grenzen.add(z.datum);
+  const anfaenge = [beginn, ...[...grenzen].filter((t) => t > beginn && t <= o.bis)]
+    .filter((t, i, a) => a.indexOf(t) === i)
+    .sort();
+
+  const abschnitte = anfaenge.map((a, i) => {
+    const ende = i + 1 < anfaenge.length ? tagVor(anfaenge[i + 1]) : o.bis;
+    return { von: a, bis: ende, satz: satzFuer(a), tage: tageZwischen(a, ende) + 1, rest: offenAm(a) };
+  });
 
   const gezaehlt = abschnitte.reduce((n, a) => n + a.tage, 0);
-  const betrag = cent(abschnitte.reduce((s, a) => s + o.rest * (a.satz / 100) * (a.tage / 365), 0));
+  const betrag = cent(abschnitte.reduce((s, a) => s + a.rest * (a.satz / 100) * (a.tage / 365), 0));
   if (betrag <= 0) return { art: 'keine' };
-  const satz = abschnitte[abschnitte.length - 1].satz;
-  const ergebnis: Verzugszinsen = { art: 'berechnet', satz, tage: gezaehlt, betrag, grundlage: '§ 456 UGB' };
-  if (abschnitte[0].von > erster) ergebnis.ab = abschnitte[0].von;
-  if (new Set(abschnitte.map((a) => a.satz)).size > 1) ergebnis.abschnitte = abschnitte;
+  const ergebnis: Verzugszinsen = {
+    art: 'berechnet',
+    satz: abschnitte[abschnitte.length - 1].satz,
+    tage: gezaehlt,
+    betrag,
+    grundlage: o.unternehmer ? '§ 456 UGB' : '§ 1000 ABGB',
+  };
+  if (beginn > erster) ergebnis.ab = beginn;
+  const restWechselt = new Set(abschnitte.map((a) => a.rest)).size > 1;
+  if (restWechselt) {
+    ergebnis.abschnitte = zusammenlegen(abschnitte);
+  } else if (new Set(abschnitte.map((a) => a.satz)).size > 1) {
+    // Wie bisher (G30): je Halbjahr ein Abschnitt, ohne Betrag — er ist überall derselbe.
+    ergebnis.abschnitte = abschnitte.map((a) => ({ von: a.von, bis: a.bis, satz: a.satz, tage: a.tage }));
+  }
   return ergebnis;
+}
+
+/** Nebeneinanderliegende Abschnitte mit gleichem Satz und Betrag sind einer. */
+function zusammenlegen<T extends { von: string; bis: string; satz: number; tage: number; rest: number }>(liste: T[]): T[] {
+  const raus: T[] = [];
+  for (const a of liste) {
+    const vor = raus[raus.length - 1];
+    if (vor && vor.satz === a.satz && vor.rest === a.rest) {
+      raus[raus.length - 1] = { ...vor, bis: a.bis, tage: vor.tage + a.tage };
+    } else {
+      raus.push({ ...a });
+    }
+  }
+  return raus;
 }
 
 /**
@@ -439,7 +559,9 @@ export function zinssatzText(
 ): string {
   const pz = (n: number) => `${n.toLocaleString('de-AT', { maximumFractionDigits: 2 })} %`;
   if (!z.abschnitte) return `${pz(z.satz)} p. a.`;
-  return `${z.abschnitte.map((a) => `${pz(a.satz)} vom ${datum(a.von)} bis ${datum(a.bis)}`).join(', ')} p. a.`;
+  // Seit G3 mit dem Betrag je Abschnitt, wenn zwischendurch gezahlt wurde.
+  const auf = (rest?: number) => (rest !== undefined ? ` auf ${euroBetrag(rest)} €` : '');
+  return `${z.abschnitte.map((a) => `${pz(a.satz)}${auf(a.rest)} vom ${datum(a.von)} bis ${datum(a.bis)}`).join(', ')} p. a.`;
 }
 
 function tagNach(iso: string): string {
@@ -452,13 +574,6 @@ function tageZwischen(von: string, bis: string): number {
   return Math.round((Date.parse(`${bis}T00:00:00Z`) - Date.parse(`${von}T00:00:00Z`)) / 86_400_000);
 }
 
-function mitBetrag(
-  rest: number, satz: number, tage: number, grundlage: '§ 1000 ABGB' | '§ 456 UGB',
-): Verzugszinsen {
-  const betrag = cent(rest * (satz / 100) * (tage / 365));
-  if (betrag <= 0) return { art: 'keine' };
-  return { art: 'berechnet', satz, tage, betrag, grundlage };
-}
 
 /**
  * Was eine Mahnung an Mahnspesen und Verzugszinsen gefordert hat — das
@@ -469,7 +584,9 @@ function mitBetrag(
  * („Verzugszinsen …“ / „3,16 €“), so, wie `mahnungInhalt` sie schrieb: gelesen
  * werden Ziffern und Komma, der Tausenderpunkt fällt weg.
  */
-export function mahnforderungAus(inhalt: Pick<MahnungInhalt, 'kosten' | 'zinsen' | 'zeilen'>): number {
+export function mahnforderungAus(inhalt: Pick<MahnungInhalt, 'kosten' | 'zinsen' | 'zeilen' | 'forderung'>): number {
+  // Seit G3 steht die ganze Forderung im Inhalt — sie gilt, wie gedruckt.
+  if (typeof inhalt.forderung === 'number' && Number.isFinite(inhalt.forderung)) return cent(inhalt.forderung);
   const zinsen = inhalt.zinsen ?? (inhalt.zeilen ?? [])
     .filter(([bezeichnung, wert]) => bezeichnung.startsWith('Verzugszinsen') && /[0-9]/.test(wert))
     .reduce((s, [, wert]) => s + zahlOder(wert.replace(/[^0-9,]/g, ''), 0), 0);

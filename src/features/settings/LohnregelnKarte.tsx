@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
+import { useInhaltUebernehmen } from '@/lib/useInhaltUebernehmen';
 import { updateCompany } from '@/lib/db/company';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -66,22 +67,31 @@ export default function LohnregelnKarte() {
     setTimeout(() => document.getElementById(fokus)?.focus(), 0);
   }
 
-  useEffect(() => {
-    setNachtVon(company?.nachtVon ?? '22:00');
-    setNachtBis(company?.nachtBis ?? '06:00');
-    const regel = ueberstundenRegelVon(company);
-    setModell(regel.modell);
-    setGrenze(regel.grenze);
-    setHundert(regel.hundertSonnFeiertag);
-    setKvMetall(regel.kvMetall);
-    setVollzeit(String(regel.vollzeitStunden).replace('.', ','));
-    setVerteilt(regel.vollzeitVerteilung !== null);
-    setTage(Object.fromEntries(WOCHENTAGE.map(([tag]) => [
-      tag, regel.vollzeitVerteilung?.[tag] ? String(regel.vollzeitVerteilung[tag]).replace('.', ',') : '',
-    ])));
-    setDurchrechnung(String(durchrechnungsWochen(company?.durchrechnungWochen)));
-    setKjbgKv(company?.kjbgVerteilungKv === true);
-  }, [company]);
+  // Nur, wenn sich DIESE Werte im Betrieb geändert haben (P10) — speichert eine andere Karte, bleibt das Getippte.
+  useInhaltUebernehmen(
+    {
+      nachtVon: company?.nachtVon ?? '22:00',
+      nachtBis: company?.nachtBis ?? '06:00',
+      regel: ueberstundenRegelVon(company),
+      durchrechnung: durchrechnungsWochen(company?.durchrechnungWochen),
+      kjbgKv: company?.kjbgVerteilungKv === true,
+    },
+    ({ nachtVon: von, nachtBis: bis, regel, durchrechnung: wochen, kjbgKv: kv }) => {
+      setNachtVon(von);
+      setNachtBis(bis);
+      setModell(regel.modell);
+      setGrenze(regel.grenze);
+      setHundert(regel.hundertSonnFeiertag);
+      setKvMetall(regel.kvMetall);
+      setVollzeit(String(regel.vollzeitStunden).replace('.', ','));
+      setVerteilt(regel.vollzeitVerteilung !== null);
+      setTage(Object.fromEntries(WOCHENTAGE.map(([tag]) => [
+        tag, regel.vollzeitVerteilung?.[tag] ? String(regel.vollzeitVerteilung[tag]).replace('.', ',') : '',
+      ])));
+      setDurchrechnung(String(wochen));
+      setKjbgKv(kv);
+    },
+  );
 
   const vollzeitSichtbar = modell === 'tagesgrenze' && grenze === 'tagessoll';
 

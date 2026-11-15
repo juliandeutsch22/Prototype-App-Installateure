@@ -1,7 +1,7 @@
 import { istAn } from '@/lib/module';
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon } from '@/lib/lohnregeln';
 import {
@@ -22,18 +22,25 @@ import {
   mahnungFesthalten,
   listMahnungenZurRechnung,
   sucheRechnungen,
-  scheineAufRechnung,
+  scheineUnverrechnet,
+  type UnverrechneterSchein,
   RECHNUNG_TREFFER,
   listInvoicesByIds,
+  rechnungVersuchKlaeren,
+  rechnungsnummernVorZeitraum,
+  rechnungErsetzen,
 } from '@/lib/db/invoices';
+import { offenenVersuchLesen, offenenVersuchMerken, offenenVersuchVergessen, type OffenerVersuch } from './offenerVersuch';
+import { leistungsnachweisZeilen } from './leistungsnachweis';
 import {
   listZahlungen, listZahlungenImZeitraum, createZahlung, createZahlungAufgeteilt, createZahlungMitSkonto, deleteZahlung,
+  guthabenUmbuchen,
 } from '@/lib/db/zahlungen';
 import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm, zahlstand } from './zahlstand';
 import { haftruecklassBisVorschlag, RUECKLASS_NAME, ruecklassArtFuer, ruecklassBetrag } from './ruecklass';
 import { skontoZumAusgleich, zugesagterSkonto } from './skonto';
 import { betriebsKonditionen, konditionenAbweichungen, zahlungsbedingungen } from './konditionen';
-import { listActiveProjects } from '@/lib/db/projects';
+import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { kundenNachNamen, updateCustomer } from '@/lib/db/customers';
 import { useKundenFuer } from '@/features/customers/useKundenFuer';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
@@ -41,11 +48,11 @@ import { buildBmdCsv, bmdCsvFilename, buildBmdZahlungenCsv, bmdZahlungenFilename
 import { buchungskonten, type Buchungskonto } from '@/lib/db/konten';
 import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects, unverrechneteStunden, type OffeneStunden } from '@/lib/db/timeEntries';
-import { listWorkSheetsForProject, listRecentWorkSheets } from '@/lib/db/workSheets';
+import { listWorkSheetsForProject } from '@/lib/db/workSheets';
 import { katalogNachIds, katalogNachNamen } from '@/lib/db/materials';
 import { belegFirma } from '@/lib/db/aussteller';
 import { leistungszeitraum, verrechneteScheine } from './materialPositionen';
-import { alsPosition, materialAbgleich, type Ausgabe, type MaterialVorschlag } from './ausgegebenesMaterial';
+import { alsPosition, ausgabenVerknuepfung, materialAbgleich, type Ausgabe, type MaterialVorschlag } from './ausgegebenesMaterial';
 import {
   nachgetrageneScheine, offeneEntwuerfe, schonOhneScheinVerrechnet,
   type NachgetragenerSchein, type OffenerEntwurf, type SchonOhneSchein,
@@ -59,18 +66,20 @@ import {
   FRIST_TAGE,
   verzugszinsen,
   zinssatzText,
+  mahnforderungRechnen,
+  mahnkosten,
   type Mahnstufe,
 } from './mahnung';
 import { postenNeuLaden } from '@/app/offenePosten';
 import { mahnlauf } from './mahnlauf';
 import {
-  unverrechneteScheine,
+  unverrechnetZeilen,
+  mitErsatz,
   unverrechneteStundenZeilen,
   inAbgerechnetemZeitraum,
   nichtVerrechnetJeBaustelle,
   auffaellige,
   AUFFAELLIG_AB_TAGEN,
-  UNVERRECHNET_BASIS,
 } from '@/features/worksheets/unverrechnet';
 import { geltenderSatz, pruefeReverseCharge } from './reverseCharge';
 import { istUnternehmerKunde, uidFehler, uidNormalisieren } from '@/lib/uid';
@@ -97,7 +106,7 @@ import { listBasiszinssaetze, type ZentralerBasiszinssatz } from '@/lib/db/basis
 import { discountLabel, istPreiszeile, positionsRabattText, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtDauer, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { Invoice, Mahnung, Project, RechnungsArt, WorkSheet, Zahlungseingang } from '@/types';
+import type { Invoice, LeistungsnachweisZeile, Mahnung, Project, RechnungsArt, TimeEntry, WorkSheet, Zahlungseingang } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -128,7 +137,7 @@ import { letzteMahnforderung, mahnkostenVorschlag } from './mahnung';
 import PageHeader from '@/components/PageHeader';
 import { Masslinie } from '@/components/Planlinie';
 import { praefixeVon } from '@/lib/praefixe';
-import { darfKundenPflegen, isTopLevel } from '@/lib/permissions';
+import { darfKundenPflegen, isGF, isTopLevel } from '@/lib/permissions';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import Hinweiszeile from '@/components/Hinweiszeile';
@@ -177,6 +186,7 @@ function aufzaehlung(teile: string[]): string {
 
 export default function InvoicesView() {
   const { user, company, einblick } = useAuth();
+  const navigate = useNavigate();
   /*
     DIE PROJEKTLEITUNG LIEST NUR (Freigabe „Rechnungen seiner Baustellen
     lesen“, M38; Runde 3, Selbst prüfen). Sie kommt nur mit der Freigabe
@@ -226,20 +236,21 @@ export default function InvoicesView() {
   /** Die letzte Anzahlung entstand ohne angenommenes Angebot — Betrag von Hand. */
   const [anzahlungOhneAngebot, setAnzahlungOhneAngebot] = useState(false);
   /*
-    Die unterschriebenen Scheine des Betriebs — für die Frage, welche Leistung
-    noch auf keiner Rechnung steht. Einmal geladen, nicht abonniert: die
-    Antwort ändert sich im Takt von Tagen, nicht von Sekunden, und ein
-    zweiter laufender Zuhörer kostete auf einer Baustelle Verbindung für
-    nichts.
+    DIE UNVERRECHNETEN SCHEINE DES BETRIEBS (P3) — nur der Kopf, über alle,
+    älteste zuerst. Einmal geladen, nicht abonniert: die Antwort ändert sich
+    im Takt von Tagen, nicht von Sekunden. `null`: noch nicht da.
   */
-  const [scheineAllerBaustellen, setScheineAllerBaustellen] = useState<WithId<WorkSheet>[]>([]);
-  /*
-    Welche dieser Scheine auf einer gültigen Rechnung stehen — aus der
-    Abdeckung ALLER Rechnungen, nicht aus den geladenen (Prüflauf 25.09.2026,
-    P2-03). `null`: noch nicht bekannt oder nicht geladen.
-  */
-  const [scheineVerrechnet, setScheineVerrechnet] = useState<string[] | null>(null);
+  const [unverrechnetDB, setUnverrechnetDB] = useState<UnverrechneterSchein[] | null>(null);
   const [abdeckungFehler, setAbdeckungFehler] = useState(false);
+  /*
+    DIE SCHEINE DER BAUSTELLE IN DER VORSCHAU, für den Abgleich der Stunden
+    (`scheinAbgleich`) — samt der Frage, welche davon noch offen sind. Vorher
+    nahm der Abgleich die 60 jüngsten Scheine des Betriebs; ein älterer
+    offener Schein der Baustelle fehlte darin (P3).
+  */
+  const [vorschauScheine, setVorschauScheine] = useState<{
+    projectNumber: string; scheine: WithId<WorkSheet>[]; offen: Set<string>;
+  } | null>(null);
   /*
     UNVERRECHNETE STUNDEN DER REGIEBAUSTELLEN (23.10.2026) — die zweite
     Hälfte von „nicht verrechnet“: gebuchte Zeit ohne Schein fiel bisher
@@ -327,6 +338,8 @@ export default function InvoicesView() {
     leere Datei, die wie ein Erfolg aussah.
   */
   const [exportZeilen, setExportZeilen] = useState<WithId<Invoice>[] | null>(null);
+  /** Die Nummern des Jahres vor dem Zeitraum — für die Lückenprüfung an seiner Grenze (G8). */
+  const [exportVorher, setExportVorher] = useState<string[]>([]);
   /**
    * Zahlungen des Zeitraums samt ihren Rechnungen — für den eigenen
    * Zahlungsstapel (Testbericht 30.09.2026, H7 vorgebaut). `null`: nicht
@@ -355,10 +368,29 @@ export default function InvoicesView() {
   const [exportFehler, setExportFehler] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const ausstellungLaeuft = useRef(false);
-  const [erstellungUnklar, setErstellungUnklar] = useState(false);
-  const [pdfNachholen, setPdfNachholen] = useState<{ nummer: string; erneut: () => Promise<void> } | null>(null);
+  /*
+    DER VERSUCH, DESSEN ANTWORT NICHT ANKAM (G2). Solange er nicht geklärt
+    ist, entsteht aus dieser Ansicht keine Rechnung — die Klärung läuft von
+    selbst (sofort, bei wiederkehrendem Netz, alle 15 Sekunden) und überlebt
+    das Neuladen (`offenerVersuch.ts`).
+  */
+  const [offenerVersuch, setOffenerVersuch] = useState<OffenerVersuch | null>(null);
+  const erstellungUnklar = offenerVersuch !== null;
+  const [klaerungLaeuft, setKlaerungLaeuft] = useState(false);
+  const klaerungAktiv = useRef(false);
+  const [pdfNachholen, setPdfNachholen] = useState<{ nummer: string; erneut: () => Promise<void>; geklaert?: boolean } | null>(null);
   const [pdfLaedt, setPdfLaedt] = useState(false);
   const [toCancel, setToCancel] = useState<WithId<Invoice> | null>(null);
+  /*
+    STORNIEREN UND NEU AUSSTELLEN (V6/F4). `ersetzenFrage` ist die Rückfrage
+    nach dem Grund; `ersatz` die Rechnung, die die neue ersetzt — bis zum
+    Ausstellen ist nichts storniert, `rechnung_ersetzen` tut beides in einem
+    Zug. `ersatzNachweis` ist ihr festgehaltener Leistungsnachweis (G6).
+  */
+  const [ersetzenFrage, setErsetzenFrage] = useState<WithId<Invoice> | null>(null);
+  const [ersetzenGrund, setErsetzenGrund] = useState('');
+  const [ersatz, setErsatz] = useState<{ alt: WithId<Invoice>; grund: string } | null>(null);
+  const [ersatzNachweis, setErsatzNachweis] = useState<LeistungsnachweisZeile[] | null>(null);
   /** Welcher Storno gerade aufgehoben werden soll — erst nach der Rückfrage. */
   const [aufheben, setAufheben] = useState<WithId<Invoice> | null>(null);
   /** Zu welchem Storno die Stornorechnung erst ausgestellt werden soll — nach der Rückfrage. */
@@ -455,6 +487,14 @@ export default function InvoicesView() {
    */
   const [zRichtung, setZRichtung] = useState<'eingang' | 'rueckzahlung'>('eingang');
   const [zLoeschen, setZLoeschen] = useState<string | null>(null);
+  /** Guthaben umbuchen (V7): die Zielrechnung und der Betrag. */
+  const [umbuchungZiel, setUmbuchungZiel] = useState('');
+  const [umbuchungBetrag, setUmbuchungBetrag] = useState('');
+  const [umbuchungLaeuft, setUmbuchungLaeuft] = useState(false);
+  /** Nach „Stornieren und neu ausstellen“: das Guthaben der alten gleich auf die neue umbuchen (V6 + V7). */
+  const [umbuchungAngebot, setUmbuchungAngebot] = useState<{
+    vonId: string; vonNummer: string; aufId: string; aufNummer: string; betrag: number;
+  } | null>(null);
   const [zFehler, setZFehler] = useState<string | null>(null);
   /*
     MEHR ALS OFFEN — ERST NACH RÜCKFRAGE (Testbericht Runde 6, G26). 3.700 €
@@ -543,6 +583,8 @@ export default function InvoicesView() {
   */
   const [vorschlaege, setVorschlaege] = useState<MaterialVorschlag[]>([]);
   const [uebernommen, setUebernommen] = useState<string[]>([]);
+  /** Zurückgegeben, aber schon verrechnet (M7) — der Kunde braucht eine Gutschrift. */
+  const [gutschriften, setGutschriften] = useState<MaterialVorschlag[]>([]);
   /*
     DER VEREINBARTE PREIS DER WARTUNG (Testbericht Runde 6, M9) — Vorschläge
     wie beim Material, übernommen auf Klick. `ohneBelege`: die Vorschau steht,
@@ -576,6 +618,14 @@ export default function InvoicesView() {
    */
   /** Welche Rechnung gerade gemahnt wird — samt vorgeschlagener Frist. */
   const [mahnFuer, setMahnFuer] = useState<WithId<Invoice> | null>(null);
+  /*
+    DIE GRUNDLAGE DES MAHNDIALOGS (G3): die Eingänge und die früheren
+    Mahnungen der Rechnung — mit ihnen rechnet der Dialog dieselben Zinsen und
+    Mahnkosten wie das Schreiben.
+  */
+  const [mahnGrundlage, setMahnGrundlage] = useState<{
+    fuer: string; zahlungen: Zahlungseingang[]; frueher: Mahnung[];
+  } | null>(null);
   const [mahnFrist, setMahnFrist] = useState('');
   const [reverseCharge, setReverseCharge] = useState(false);
   const [kundenUid, setKundenUid] = useState('');
@@ -634,13 +684,22 @@ export default function InvoicesView() {
   const konditionenZuruecksetzen = () => setRates(betriebSaetze);
   /** Eine andere Baustelle ist eine andere Rechnung; die erste Wahl gehört noch zu dieser. */
   const baustelleWaehlen = (nr: string) => {
-    if (projectNumber && nr !== projectNumber) konditionenZuruecksetzen();
+    if (projectNumber && nr !== projectNumber) {
+      konditionenZuruecksetzen();
+      ersatzBeenden();
+    }
     setProjectNumber(nr);
   };
   /** Verwerfen beendet die Rechnung, die gerade entsteht — angelegt ist bis dahin nichts. */
   const vorschauVerwerfen = () => {
     setPreview(null);
     konditionenZuruecksetzen();
+    ersatzBeenden();
+  };
+  /** Die neue Rechnung ersetzt keine mehr — die alte bleibt, wie sie ist (V6). */
+  const ersatzBeenden = () => {
+    setErsatz(null);
+    setErsatzNachweis(null);
   };
   /** Schliessen verwirft eine offene Vorschau — wie „Verwerfen“; angelegt ist bis dahin nichts. */
   const erstellenSchliessen = () => {
@@ -831,41 +890,44 @@ export default function InvoicesView() {
       .finally(() => {
         if (!weg) setOffeneGeladen(true);
       });
-    // Ohne Zugriff auf die Abdeckung stünde jeder Schein als unverrechnet da.
-    if (!nurLesen) listRecentWorkSheets(user.companyId, UNVERRECHNET_BASIS)
-      .then(async (rows) => {
+    return () => {
+      weg = true;
+    };
+  }, [user, nurLesen, offeneAnwenden]);
+
+  /*
+    DIE UNVERRECHNETEN SCHEINE ÜBER ALLE (P3, `scheine_unverrechnet`).
+    Vorher die 60 jüngsten, dazu die Abdeckung — ein älterer Schein fiel
+    heraus, bevor er „über 4 Wochen“ alt werden konnte. Kommt die Antwort
+    nicht, bleibt die Karte weg und eine Zeile sagt warum: eine leere Liste
+    hieße „alles verrechnet“. Ohne Zugriff auf die Verrechnung (nur lesen)
+    wird nicht gefragt.
+
+    NEU GEHOLT WIE DIE STUNDEN (`stundenStand`): nach jeder angelegten oder
+    stornierten Rechnung. Vorher kam die Antwort nur beim Öffnen der Seite —
+    die gerade verrechnete Baustelle stand weiter unter „Nicht verrechnete
+    Leistung“, bis jemand neu lud (Integration Welle 2, Browserweg
+    `rechnungStellen`). Bis die neue Antwort da ist, bleibt die alte stehen.
+  */
+  useEffect(() => {
+    if (!user || nurLesen) return;
+    let weg = false;
+    scheineUnverrechnet()
+      .then((rows) => {
         if (weg) return;
-        setScheineAllerBaustellen(rows);
-        /*
-          OB EIN SCHEIN VERRECHNET IST, SAGT DIE ABDECKUNG — über alle
-          Rechnungen (P2-03). Vorher wurde das aus den fünfzig jüngsten und
-          den offenen Rechnungen geschlossen; ein Schein auf einer älteren,
-          längst bezahlten stand dann als „nicht verrechnet" da. Kommt die
-          Antwort nicht, bleibt die Karte weg und eine Zeile sagt warum.
-        */
-        try {
-          const verrechnet = await scheineAufRechnung(user.companyId, rows.map((r) => r.id));
-          if (!weg) {
-            setScheineVerrechnet(verrechnet);
-            setAbdeckungFehler(false);
-          }
-        } catch {
-          if (!weg) setAbdeckungFehler(true);
-        }
-        if (!weg) setScheineFertig(true);
+        setUnverrechnetDB(rows);
+        setAbdeckungFehler(false);
       })
-      /*
-        Still: die Liste ist eine ZUSATZangabe. Fiele die ganze
-        Rechnungsansicht aus, weil sie nicht kommt, wäre das Verhältnis
-        zwischen Nutzen und Schaden verkehrt herum.
-      */
       .catch(() => {
+        if (!weg) setAbdeckungFehler(true);
+      })
+      .finally(() => {
         if (!weg) setScheineFertig(true);
       });
     return () => {
       weg = true;
     };
-  }, [user, nurLesen, offeneAnwenden]);
+  }, [user, nurLesen, stundenStand]);
 
   useEffect(() => {
     if (!user || nurLesen) return;
@@ -1056,13 +1118,25 @@ export default function InvoicesView() {
     if (!user || nurLesen) return;
     let weg = false;
     listZahlungenImZeitraum(user.companyId, monatsErster, todayStr())
-      .then((z) => {
+      .then(async (z) => {
+        /*
+          Zahlungen auf eine stornierte Rechnung sind Guthaben des Kunden, keine
+          beglichene Forderung (Launch-Check, M13) — sie zählen hier nicht.
+          DER STAND JEDER RECHNUNG, auf die etwas einging (Durchsicht
+          15.11.2026, G8) — nicht nur der geladenen: eine ältere stornierte
+          Rechnung außerhalb der Liste zählte sonst als bezahlt. Nachgeholt
+          wird nur, was die Liste nicht kennt; dieselbe Grundlage wie die
+          Sicht „Im laufenden Monat bezahlt“.
+        */
+        const bekannt = new Map(invoices.map((i) => [i.id, i.paymentStatus]));
+        const fehlen = [...new Set(z.map((x) => x.invoiceId).filter((id) => !bekannt.has(id)))];
+        const nachgeholt = fehlen.length ? await listInvoicesByIds(user.companyId, fehlen) : [];
         if (weg) return;
-        // Zahlungen auf eine stornierte Rechnung sind Guthaben des Kunden, keine
-        // beglichene Forderung (Launch-Check, M13) — sie zählen hier nicht.
-        const storniert = new Set(invoices.filter((i) => i.paymentStatus === 'Storniert').map((i) => i.id));
+        for (const i of nachgeholt) bekannt.set(i.id, i.paymentStatus);
+        const storniert = new Set([...bekannt].filter(([, stand]) => stand === 'Storniert').map(([id]) => id));
         const summe = z
-          .filter((x) => x.art !== 'Skonto' && !storniert.has(x.invoiceId))
+          // Eine Umbuchung (V7) ist kein Geld, das kam — sie verschiebt ein Guthaben.
+          .filter((x) => x.art !== 'Skonto' && x.art !== 'Umbuchung' && !storniert.has(x.invoiceId))
           .reduce((s, x) => s + (Number(x.betrag) || 0), 0);
         setBezahltImMonat(cent(summe));
         setBezahltGeladen(true);
@@ -1139,6 +1213,8 @@ export default function InvoicesView() {
     setZMahnforderung(0);
     setZMahnTeil(null);
     const { rest, guthaben } = zahlstand(inv);
+    setUmbuchungZiel('');
+    setUmbuchungBetrag('');
     /*
       EIN GUTHABEN WILL ZURÜCK (M21). Steht eines offen, ist die Rückzahlung
       vorgewählt und der Betrag eingesetzt — das war der Fall aus dem Bericht:
@@ -1305,7 +1381,8 @@ export default function InvoicesView() {
     } else {
       await createZahlung(zahlungFuer.companyId, zahlung);
     }
-    setZahlungen(await listZahlungen(zahlungFuer.companyId, zahlungFuer.id));
+    const neueZahlungen = await listZahlungen(zahlungFuer.companyId, zahlungFuer.id);
+    setZahlungen(neueZahlungen);
     setZBetrag('');
     setZHinweis('');
     setZSkonto(false);
@@ -1323,6 +1400,25 @@ export default function InvoicesView() {
       setZahlungFuer(null);
       toast.success(`Rückzahlung über ${euro(eingetragen)} gebucht`);
       return;
+    }
+    /*
+      DER ANSTOSS ZUM ABSCHLIESSEN (A11, V2): ist mit dieser Zahlung die
+      Schluss- oder Einzelrechnung bezahlt und die Baustelle noch offen,
+      trägt die Meldung den Weg dorthin — der geführte Abschluss zeigt, was
+      noch offen ist. Nur für die, die abschließen dürfen.
+    */
+    const bezahltJetzt = cent(neueZahlungen.filter((z) => z.art !== 'Mahnkosten').reduce((s, z) => s + z.betrag, 0));
+    const schluss = (zahlungFuer.art ?? 'einzel') === 'einzel' || zahlungFuer.art === 'schluss';
+    if (schluss && zahlungFuer.projectNumber && isGF(user.role)
+      && zahlstand({ ...zahlungFuer, bezahltBetrag: bezahltJetzt }).rest <= 0) {
+      const [baustelle] = await listProjectsByNumbers(zahlungFuer.companyId, [zahlungFuer.projectNumber]).catch(() => []);
+      if (baustelle && baustelle.status !== 'Abgeschlossen') {
+        toast.success(`Zahlung erfasst — ${zahlungFuer.invoiceNumber} ist bezahlt`, {
+          label: 'Baustelle abschließen',
+          onClick: () => navigate(`/admin-projects/${baustelle.id}?abschliessen=1`),
+        });
+        return;
+      }
     }
     toast.success('Zahlung erfasst');
   };
@@ -1481,6 +1577,8 @@ export default function InvoicesView() {
    */
   async function buildPreview(bis?: string) {
     if (!user || !projectNumber) return;
+    // Neu zusammengestellt ist eine neue Rechnung, kein Ersatz (V6).
+    ersatzBeenden();
     setBusy(true);
     setError(null);
     setHinweis(null);
@@ -1489,6 +1587,7 @@ export default function InvoicesView() {
     setStichtag(null);
     setBelegDaten([]);
     setVorschlaege([]);
+    setGutschriften([]);
     setUebernommen([]);
     setWartungVorschlaege([]);
     setOhneBelege(null);
@@ -1593,16 +1692,16 @@ export default function InvoicesView() {
         }),
         listInvoicesForProject(user.companyId, projectNumber).catch(() => null),
         /*
-          Was das Lager ausgegeben hat — nur bei Regie; Pauschale und
-          Einheitspreis rechnen nach dem Angebot ab. Kommt es nicht, entsteht
+          Was das Lager ausgegeben hat. Vorgeschlagen wird es nur bei Regie;
+          Pauschale und Einheitspreis rechnen nach dem Angebot ab — ihre
+          Schlussrechnung verknüpft es aber (M2), sonst stünde es nach einem
+          Wechsel auf Regie noch einmal im Vorschlag. Kommt es nicht, entsteht
           die Rechnung trotzdem; eine Zeile sagt, was dabei gilt.
         */
-        nachAngebot
-          ? Promise.resolve([] as Ausgabe[])
-          : ausgegebenesMaterial(projectNumber).catch(() => {
-            setAusgabenFehler(true);
-            return [] as Ausgabe[];
-          }),
+        ausgegebenesMaterial(projectNumber).catch(() => {
+          setAusgabenFehler(true);
+          return [] as Ausgabe[];
+        }),
         /*
           Die Wartungen dieser Baustelle — für ihren vereinbarten Preis (M9).
           Kommen sie nicht, entsteht die Rechnung trotzdem; die Zeile oben
@@ -1686,7 +1785,8 @@ export default function InvoicesView() {
         sie nicht. Ohne diese Regel kämen sie auf die nächste Rechnung und
         zögen deren Leistungszeitraum in einen schon abgerechneten zurück.
       */
-      const bereitsVerrechnet = new Set([
+      // Dazu die Ersatzscheine verrechneter Scheine (P4): sie erben die Verrechnung.
+      const bereitsVerrechnet = mitErsatz(scheine, [
         ...verrechneteScheine(derBaustelle),
         ...inAbgerechnetemZeitraum(scheine, derBaustelle),
       ]);
@@ -1733,6 +1833,12 @@ export default function InvoicesView() {
           hergeben (Testbericht Runde 6, M8) — siehe `leistungNachAngebot`.
         */
         vorschau.leistung = leistungNachAngebot(vorschau.leistung, baustelle, todayStr());
+        /*
+          M2: die Pauschale enthält das ausgegebene Material — die Rechnung
+          über sie verknüpft es, wie ihre Stunden und Scheine. Die
+          Teilrechnung ist ein Teilbetrag und verbraucht nichts.
+        */
+        if (art !== 'teil') Object.assign(vorschau, ausgabenVerknuepfung(ausgabenAlle));
         await vorschauUebernehmen(vorschau);
         setWartungVorschlaege(ausWartung);
         return;
@@ -1741,17 +1847,22 @@ export default function InvoicesView() {
         AUSGEGEBENES MATERIAL GEGEN DIE SCHEINE. Abgezogen wird, was auf den
         Scheinen dieser Rechnung steht — und auf Entwürfen, die noch
         unterschrieben werden: ihr Material kommt mit dem Schein. Die Tage
-        der Ausgaben gehören in den Leistungszeitraum, denn mit dem
-        Leistungsende dieser Rechnung gelten sie als abgerechnet
-        (`ausgegebenes_material`).
+        der Ausgaben gehören in den Leistungszeitraum, denn diese Rechnung
+        rechnet sie ab (verknüpft je Ausgabe, M2).
       */
       const ausgaben = bis ? ausgabenAlle.filter((a) => a.datum <= bis) : ausgabenAlle;
+      /*
+        VERRECHNET IST, WAS DIESE RECHNUNG SIEHT (M2): jede Ausgabe bis zum
+        Stichtag, übernommen oder nicht. Was danach ausgegeben wird — auch am
+        selben Tag, auch eine spät abgehakte Rüstliste —, bleibt offen.
+      */
+      Object.assign(assembled, ausgabenVerknuepfung(ausgaben));
       /*
         MIT STICHTAG ZÄHLEN AUCH DIE SPÄTEREN SCHEINE (Testbericht Runde 6,
         M4): was sie über das danach Ausgegebene hinaus tragen, kommt mit
         ihnen auf die nächste Rechnung und wird hier nicht vorgeschlagen.
       */
-      const { vorschlaege: vorschlag, spaeterGetragen: spaeterAbgezogen } = materialAbgleich(
+      const { vorschlaege: vorschlag, spaeterGetragen: spaeterAbgezogen, zurueckVerrechnet } = materialAbgleich(
         ausgaben,
         scheine.filter((s) =>
           ((s.status === 'Unterschrieben' && !bereitsVerrechnet.has(s.id)) || s.status === 'Entwurf')
@@ -1790,7 +1901,13 @@ export default function InvoicesView() {
       );
       setWartungVorschlaege(ausWartung);
       setVorschlaege(vorschlag);
+      setGutschriften(zurueckVerrechnet);
       setSpaeterGetragen(spaeterAbgezogen);
+      setVorschauScheine({
+        projectNumber,
+        scheine,
+        offen: new Set(scheine.filter((s) => s.status === 'Unterschrieben' && !bereitsVerrechnet.has(s.id)).map((s) => s.id)),
+      });
       const scheineDerRechnung = scheine.filter((s) => assembled.linkedWorkSheets.includes(s.id));
       const nachgetrageneHier = nachgetrageneScheine(scheineDerRechnung, derBaustelle);
       setNachgetragen(nachgetrageneHier);
@@ -1906,6 +2023,198 @@ export default function InvoicesView() {
     setInvoiceNumber(vorschlag);
   }
 
+  /** Die Vorschau schließen und alles für die nächste Rechnung zurücksetzen. */
+  function nachDemAusstellen() {
+    setPreview(null);
+    setProjectNumber('');
+    // Die nächste Rechnung beginnt mit den Sätzen des Betriebs (G1).
+    konditionenZuruecksetzen();
+    setDiscount({ mode: 'percent', value: '', label: '' });
+    setReverseCharge(false);
+    setKundenUid('');
+    setUidInKunden(false);
+    setBestellnummer('');
+    setRuecklassAn(false);
+    setRuecklassProzent(null);
+    setRuecklassBis('');
+    setArtWahl('einzel');
+    setAbzugsfaehig([]);
+    setGewaehlteAbzuege([]);
+    ersatzBeenden();
+    setStundenStand((n) => n + 1);
+  }
+
+  /**
+   * „Stornieren und neu ausstellen“ vorbereiten (V6/F4): die neue Rechnung
+   * mit allem aus der alten vorbelegen — Positionen samt eigener Zeilen und
+   * Texte, Rabatt, Art und Abzüge, Zeitraum, Konditionen, Empfänger-UID,
+   * Bestellnummer, Rücklass, die verrechneten Belege und den Leistungs-
+   * nachweis. Storniert wird erst beim Ausstellen, zusammen mit der neuen
+   * (`rechnung_ersetzen`); bis dahin gilt die alte unverändert.
+   */
+  async function ersetzenVorbereiten(alt: WithId<Invoice>, grund: string) {
+    if (!user) return;
+    setError(null);
+    setHinweis(null);
+    erstellenOeffnen();
+    setProjectNumber(alt.projectNumber);
+    setArtWahl(alt.art ?? 'einzel');
+    const tage = (von: string, bis?: string | null) =>
+      bis ? Math.max(Math.round((Date.parse(`${bis}T00:00:00Z`) - Date.parse(`${von}T00:00:00Z`)) / 86_400_000), 0) : 0;
+    setRates({
+      ...betriebSaetze,
+      vatRate: alt.reverseCharge ? betriebSaetze.vatRate : (alt.vatRate ?? betriebSaetze.vatRate),
+      dueDays: tage(alt.invoiceDate, alt.dueDate),
+      skontoProzent: alt.skontoProzent ?? 0,
+      skontoTage: alt.skontoProzent ? tage(alt.invoiceDate, alt.skontoBis) : 0,
+    });
+    setReverseCharge(!!alt.reverseCharge);
+    setSteuerbefreiung(alt.steuerbefreiung ?? company?.steuerbefreiungVorgabe ?? '');
+    setDiscount(alt.discount
+      ? { mode: alt.discount.mode, value: zahlAlsText(alt.discount.value), label: alt.discount.label ?? '' }
+      : { mode: 'percent', value: '', label: '' });
+    setKundenUid(alt.customerVatId ?? '');
+    setUidInKunden(false);
+    setBestellnummer(alt.bestellnummer ?? '');
+    setRuecklassAn(!!alt.ruecklassArt);
+    setRuecklassProzent(alt.ruecklassProzent ?? null);
+    setRuecklassBis(alt.ruecklassBis ?? '');
+    setLeistungVon(alt.leistungVon ?? '');
+    setLeistungBis(alt.leistungBis ?? '');
+    setAppendDetail(!!alt.leistungsnachweis?.length || (alt.linkedEntries?.length ?? 0) > 0);
+    const satzDerAlten = geltenderSatz(!!alt.reverseCharge, alt.vatRate ?? betriebSaetze.vatRate);
+    const zeitraum = alt.leistungVon && alt.leistungBis ? { von: alt.leistungVon, bis: alt.leistungBis } : null;
+    /*
+      DIE ZEITBUCHUNGEN FÜR DEN LEISTUNGSNACHWEIS — nur wenn die alte keinen
+      festgehaltenen trägt (vor G6). Mit festgehaltenem gilt der, wie er
+      hinausging.
+    */
+    let eintraege: WithId<TimeEntry>[] = [];
+    if (!alt.leistungsnachweis && (alt.linkedEntries?.length ?? 0) > 0) {
+      try {
+        const ids = new Set(alt.linkedEntries);
+        eintraege = (await listEntriesForProjects(user.companyId, [alt.projectNumber])).filter((e) => ids.has(e.id));
+      } catch {
+        eintraege = [];
+      }
+    }
+    setErsatzNachweis(alt.leistungsnachweis ?? null);
+    setPreview(recalc({
+      positions: alt.positions ?? [],
+      subtotalNetto: alt.subtotalNetto ?? alt.totalNetto,
+      discount: alt.discount ?? null,
+      discountAmount: alt.discountAmount ?? 0,
+      totalNetto: alt.gesamtNetto ?? alt.totalNetto,
+      totalVat: alt.gesamtVat ?? alt.totalVat,
+      totalBrutto: alt.gesamtBrutto ?? alt.totalBrutto,
+      linkedEntries: alt.linkedEntries ?? [],
+      linkedOrders: alt.linkedOrders ?? [],
+      linkedWorkSheets: alt.linkedWorkSheets ?? [],
+      leistung: zeitraum,
+      materialOhnePreis: [],
+      entries: eintraege,
+    }, alt.positions ?? [], satzDerAlten, alt.discount ?? null));
+    setErsatz({ alt, grund });
+    /*
+      DIE ABZÜGE DER ALTEN — die Anzahlungen, die sie abzog, sind nach ihrem
+      Storno wieder abziehbar. Bis dahin gilt sie hier schon als storniert,
+      sonst stünden ihre Abzüge als „schon abgezogen“ da.
+    */
+    try {
+      const derBaustelle = await listInvoicesForProject(user.companyId, alt.projectNumber);
+      const ohneAlte = derBaustelle.map((r) => (r.id === alt.id ? { ...r, paymentStatus: 'Storniert' as const } : r));
+      setAbzugsfaehig(abziehbar(ohneAlte, alt.projectNumber));
+      setGewaehlteAbzuege((alt.vorrechnungen ?? []).map((v) => v.invoiceId));
+      setAbzugFehler(false);
+    } catch {
+      setAbzugsfaehig([]);
+      setAbzugFehler(true);
+    }
+    const vorschlag = nextInvoiceNumber(invoices, vorsaetze.rechnung);
+    setSuggestedNumber(vorschlag);
+    setInvoiceNumber(vorschlag);
+  }
+
+  /*
+    NACH DEM NEULADEN: ein Versuch, dessen Antwort nicht ankam, ist nicht
+    vergessen (G2). Die Klärung unten übernimmt ihn.
+  */
+  useEffect(() => {
+    if (!user) return;
+    const gemerkt = offenenVersuchLesen(user.companyId, user.uid);
+    if (gemerkt) setOffenerVersuch(gemerkt);
+  }, [user?.companyId, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps -- nur beim Wechsel des Kontos
+
+  /**
+   * Klären, ob die Rechnung des offenen Versuchs entstanden ist (G2).
+   *
+   * Die Antwort der Datenbank ist endgültig (`rechnung_versuch_klaeren`):
+   * „entstanden“ schließt die Vorschau wie ein gelungenes Ausstellen und
+   * bietet das PDF aus dem gespeicherten Beleg an; „nicht entstanden“ gibt
+   * das Erstellen wieder frei, die Angaben stehen noch da. Ohne Netz bleibt
+   * es offen — ohne Meldung, der nächste Anlauf kommt von selbst.
+   */
+  async function versuchKlaeren(v: OffenerVersuch, vonHand = false) {
+    if (!user || klaerungAktiv.current) return;
+    klaerungAktiv.current = true;
+    setKlaerungLaeuft(true);
+    try {
+      const ergebnis = await rechnungVersuchKlaeren(v.kennung);
+      offenenVersuchVergessen(user.companyId, user.uid);
+      setOffenerVersuch(null);
+      if (ergebnis.entstanden) {
+        /*
+          Die Vorschau dieses Versuchs schließt wie nach dem Ausstellen. Steht
+          inzwischen eine andere Baustelle in der Vorschau, bleibt sie — ihre
+          Angaben gehören nicht zu dieser Rechnung.
+        */
+        if (projectNumber === v.baustelle) nachDemAusstellen();
+        else setStundenStand((n) => n + 1);
+        offeneNeuLaden();
+        toast.success(`Rechnung ${ergebnis.invoiceNumber} ist entstanden`);
+        const firma = company;
+        setPdfNachholen({
+          nummer: ergebnis.invoiceNumber,
+          geklaert: true,
+          erneut: async () => {
+            const [inv] = await listInvoicesByIds(user.companyId, [ergebnis.id]);
+            if (!inv || !firma) throw new Error('Die Rechnung ist nicht lesbar.');
+            await rechnungPdfLaden(firma, inv);
+          },
+        });
+      } else {
+        setHinweis('Die unterbrochene Erstellung ist geklärt: es ist keine Rechnung entstanden. Du kannst sie jetzt erstellen.');
+      }
+    } catch (e) {
+      // Weiter unklar: ohne Meldung, außer jemand hat ausdrücklich gefragt.
+      if (!(e instanceof RechnungsAntwortUnklar)) setError(grundAus(e, 'Die Erstellung ließ sich nicht klären.'));
+      else if (vonHand) toast.error('Noch keine Verbindung — die Klärung läuft weiter, sobald das Netz zurück ist.');
+    } finally {
+      klaerungAktiv.current = false;
+      setKlaerungLaeuft(false);
+    }
+  }
+
+  /*
+    SELBSTTÄTIG: gleich, bei wiederkehrendem Netz und alle 15 Sekunden. Über
+    die Referenz die jeweils neueste Fassung — sonst klärte der Takt mit dem
+    Stand der Vorschau von vor einer Minute.
+  */
+  const klaerenNeueste = useRef(versuchKlaeren);
+  klaerenNeueste.current = versuchKlaeren;
+  useEffect(() => {
+    if (!offenerVersuch) return;
+    const v = offenerVersuch;
+    const anstossen = () => { void klaerenNeueste.current(v); };
+    anstossen();
+    window.addEventListener('online', anstossen);
+    const takt = window.setInterval(anstossen, 15_000);
+    return () => {
+      window.removeEventListener('online', anstossen);
+      window.clearInterval(takt);
+    };
+  }, [offenerVersuch?.kennung]); // eslint-disable-line react-hooks/exhaustive-deps -- die Kennung trägt den Versuch
+
   async function confirmInvoice() {
     if (erstellungUnklar || ausstellungLaeuft.current || !user || !company || !preview || !summen || !invoiceNumber || numberTaken || leer) return;
     // Eine UID in falscher Form kommt nicht auf den Beleg (M10); die
@@ -1962,6 +2271,7 @@ export default function InvoicesView() {
     setBusy(true);
     setError(null);
     setHinweis(null);
+    let versuchDiesesAusstellens: OffenerVersuch | null = null;
     try {
       const project = projects.find((p) => p.projectNumber === projectNumber);
       const invoiceDate = todayStr();
@@ -2016,7 +2326,22 @@ export default function InvoicesView() {
       const baustellenOrt = project?.address?.trim();
       const leistungsort =
         baustellenOrt && baustellenOrt !== anschrift.trim() ? baustellenOrt : undefined;
-      const { invoiceNumber: reserved } = await rechnungAusstellen(user.companyId, {
+      /*
+        JEDER VERSUCH TRÄGT EINE KENNUNG (G2). Bricht die Antwort ab, klärt
+        die Ansicht mit ihr, ob die Rechnung entstanden ist — statt das
+        Erstellen bis zum Neuladen zu sperren.
+      */
+      versuchDiesesAusstellens = { kennung: crypto.randomUUID(), baustelle: projectNumber };
+      /*
+        DER LEISTUNGSNACHWEIS GEHÖRT ZUM BELEG (G6). Gerechnet einmal, hier:
+        dieselben Zeilen kommen auf das PDF und an die Rechnung — Nachdruck
+        und Belegarchiv drucken sie danach von dort, auch wenn sich eine
+        Buchung später ändert. Ohne Haken oder ohne Buchungen: keiner.
+      */
+      // Beim Ersatz der festgehaltene Nachweis der alten Rechnung (V6), sonst aus den Buchungen.
+      const nachweis = appendDetail ? (ersatz && ersatzNachweis ? ersatzNachweis : leistungsnachweisZeilen(preview)) : [];
+      const leistungsnachweis = nachweis.length > 0 ? nachweis : null;
+      const neueRechnung = {
         projectNumber,
         customerName: project?.customerName ?? '–',
         address: anschrift,
@@ -2075,15 +2400,29 @@ export default function InvoicesView() {
         leistungBis,
         linkedEntries: preview.linkedEntries,
         linkedOrders: preview.linkedOrders,
+        linkedRuestPositionen: preview.linkedRuestPositionen,
         // Die Scheine, deren Material eingeflossen ist. Sie sind damit
         // verbraucht — bis diese Rechnung storniert wird.
         linkedWorkSheets: preview.linkedWorkSheets,
-        // Die Wartungen, deren Zeile noch in der Vorschau steht (M01e).
-        linkedWartungen: wartungenDerPositionen(preview.positions),
-      }, {
-        praefix: vorsaetze.rechnung,
-        desired: vonHand ? typedSeq : undefined,
-      });
+        // Die Wartungen, deren Zeile noch in der Vorschau steht (M01e) — beim Ersatz die der alten (V6).
+        linkedWartungen: ersatz ? (ersatz.alt.linkedWartungen ?? []) : wartungenDerPositionen(preview.positions),
+        leistungsnachweis,
+      } satisfies Parameters<typeof rechnungAusstellen>[1];
+      /*
+        STORNIEREN UND NEU AUSSTELLEN IN EINEM ZUG (V6): scheitert das
+        Ausstellen, bleibt auch der Storno aus — die alte gilt weiter.
+      */
+      const { id: neueId, invoiceNumber: reserved } = ersatz
+        ? await rechnungErsetzen(user.companyId, { id: ersatz.alt.id, grund: ersatz.grund }, neueRechnung, {
+            praefix: vorsaetze.rechnung,
+            versuch: versuchDiesesAusstellens.kennung,
+          })
+        : await rechnungAusstellen(user.companyId, neueRechnung, {
+            praefix: vorsaetze.rechnung,
+            desired: vonHand ? typedSeq : undefined,
+            versuch: versuchDiesesAusstellens.kennung,
+          });
+      const ersetzt = ersatz?.alt;
 
       // Ab jetzt steht die Rechnung. PDF-Ausgabe ist ein unabhängiger Folgeschritt.
       const pdfErzeugen = async () => {
@@ -2108,6 +2447,7 @@ export default function InvoicesView() {
             leistung: leistungVon && leistungBis ? { von: leistungVon, bis: leistungBis } : null,
           },
           appendDetail,
+          leistungsnachweis,
           vatRate: satz,
           reverseCharge,
           // `assembled` trägt die volle Leistung; den Rest rechnet das PDF
@@ -2131,23 +2471,22 @@ export default function InvoicesView() {
       try { await pdfErzeugen(); }
       catch { setPdfNachholen({ nummer: reserved, erneut: pdfErzeugen }); }
 
-      setPreview(null);
-      setProjectNumber('');
-      // Die nächste Rechnung beginnt mit den Sätzen des Betriebs (G1).
-      konditionenZuruecksetzen();
-      setDiscount({ mode: 'percent', value: '', label: '' });
-      setReverseCharge(false);
-      setKundenUid('');
-      setUidInKunden(false);
-      setBestellnummer('');
-      setRuecklassAn(false);
-      setRuecklassProzent(null);
-      setRuecklassBis('');
-      setArtWahl('einzel');
-      setAbzugsfaehig([]);
-      setGewaehlteAbzuege([]);
-      toast.success(`Rechnung ${reserved} erstellt`);
-      setStundenStand((n) => n + 1);
+      nachDemAusstellen();
+      toast.success(ersetzt
+        ? `Rechnung ${reserved} erstellt — ${ersetzt.invoiceNumber} ist storniert`
+        : `Rechnung ${reserved} erstellt`);
+      /*
+        WAR AUF DIE ALTE SCHON GEZAHLT, ist das jetzt ein Guthaben — die
+        Stornorechnung sagt „verrechnen“. Angeboten wird, es gleich auf die
+        neue umzubuchen (V7); entschieden wird bewusst.
+      */
+      const schonBezahlt = ersetzt ? cent(ersetzt.bezahltBetrag ?? 0) : 0;
+      if (ersetzt && schonBezahlt > 0) {
+        setUmbuchungAngebot({
+          vonId: ersetzt.id, vonNummer: ersetzt.invoiceNumber, aufId: neueId, aufNummer: reserved,
+          betrag: cent(Math.min(schonBezahlt, summen.totalBrutto)),
+        });
+      }
       /*
         DIE KORRIGIERTE UID IN DEN KUNDEN (Testbericht 30.09.2026, M10) — nur
         auf Wunsch und erst, wenn die Rechnung steht. Schlägt es fehl, ist die
@@ -2165,7 +2504,10 @@ export default function InvoicesView() {
         }
       }
     } catch (e) {
-      if (e instanceof RechnungsAntwortUnklar) setErstellungUnklar(true);
+      if (e instanceof RechnungsAntwortUnklar && versuchDiesesAusstellens) {
+        offenenVersuchMerken(user.companyId, user.uid, versuchDiesesAusstellens);
+        setOffenerVersuch(versuchDiesesAusstellens);
+      }
       /*
         Die Datenbank sagt genau, woran es lag — welche Nummer belegt ist
         und welche frei wäre, oder dass ein Beleg inzwischen verrechnet ist.
@@ -2184,6 +2526,23 @@ export default function InvoicesView() {
     }
   }
 
+  /* Die Grundlage des Mahndialogs, sobald er für eine Rechnung aufgeht (G3). */
+  const mahnFuerId = mahnFuer?.id;
+  useEffect(() => {
+    if (!user || !mahnFuerId) {
+      setMahnGrundlage(null);
+      return;
+    }
+    let weg = false;
+    Promise.all([listZahlungen(user.companyId, mahnFuerId), listMahnungenZurRechnung(user.companyId, mahnFuerId)])
+      .then(([zahlungenDerRechnung, frueher]) => {
+        if (!weg) setMahnGrundlage({ fuer: mahnFuerId, zahlungen: zahlungenDerRechnung, frueher });
+      })
+      // Ohne Grundlage zeigt der Dialog die Zinsen wie bisher; das Schreiben lädt selbst und bricht sonst ab.
+      .catch(() => { if (!weg) setMahnGrundlage(null); });
+    return () => { weg = true; };
+  }, [user?.companyId, mahnFuerId]); // eslint-disable-line react-hooks/exhaustive-deps -- die Kennung trägt die Rechnung
+
   /** Der Kunde einer Rechnung im Stamm — über die Baustelle, sonst über den Namen. */
   function kundeDerRechnung(inv: Invoice) {
     return kundeZu(projects.find((p) => p.projectNumber === inv.projectNumber)?.customerId, inv.customerName);
@@ -2198,8 +2557,13 @@ export default function InvoicesView() {
     return istUnternehmerKunde(kundeDerRechnung(inv), inv.customerVatId);
   }
 
-  function zinsenFuer(inv: Invoice, stufe: Mahnstufe, datum: string) {
+  function zinsenFuer(inv: Invoice, stufe: Mahnstufe, datum: string, zahlungen?: Zahlungseingang[]) {
     return verzugszinsen({
+      /*
+        JEDER TAG AUF DEN BETRAG, DER AN IHM OFFEN WAR (G3): mit den Eingängen
+        auf die Rechnung (ohne Mahnkosten — sie begleichen die Mahnung).
+      */
+      zahlungen: zahlungen?.filter((z) => z.art !== 'Mahnkosten').map((z) => ({ datum: z.datum, betrag: z.betrag })),
       stufe,
       // Ohne einen Rücklass, der noch nicht fällig ist (seit 05.10.2026).
       rest: mahnbar(inv, datum).rest,
@@ -2250,7 +2614,16 @@ export default function InvoicesView() {
         Teilzahlung steht so auch der richtige Rest auf dem Beleg. Ohne Netz
         entsteht kein Beleg mehr, den danach niemand festhalten kann.
       */
-      const [inv] = await listInvoicesByIds(user.companyId, [gezeigt.id]);
+      /*
+        Dazu die Eingänge und die früheren Mahnungen (G3): das Schreiben
+        fordert die Mahnkosten der ganzen Rechnung und nennt, was davon
+        schon bezahlt ist — gerechnet wie die Verbuchung.
+      */
+      const [[inv], zahlungenDerRechnung, frueher] = await Promise.all([
+        listInvoicesByIds(user.companyId, [gezeigt.id]),
+        listZahlungen(user.companyId, gezeigt.id),
+        listMahnungenZurRechnung(user.companyId, gezeigt.id),
+      ]);
       const pruefung = inv ? darfMahnen(inv, heute) : { moeglich: false, grund: 'Die Rechnung ist nicht mehr da.' };
       if (!inv || !pruefung.moeglich || naechsteStufe(inv) !== stufe) {
         const grund = pruefung.moeglich ? `Sie ist schon mit Stufe ${inv!.mahnstufe} gemahnt.` : pruefung.grund;
@@ -2280,8 +2653,10 @@ export default function InvoicesView() {
         frist,
         adresse: kunde?.address?.trim() || inv.address,
         kundenUid: inv.customerVatId,
-        zinsen: zinsenFuer(inv, stufe, heute),
+        zinsen: zinsenFuer(inv, stufe, heute, zahlungenDerRechnung),
         unternehmer,
+        frueher,
+        mahnkostenBezahlt: cent(zahlungenDerRechnung.filter((z) => z.art === 'Mahnkosten').reduce((s, z) => s + z.betrag, 0)),
       });
       const blob = await mahnungPdfAusInhalt(company, inhalt);
       /*
@@ -2368,13 +2743,21 @@ export default function InvoicesView() {
   }
 
   async function stornorechnungDrucken(inv: WithId<Invoice>) {
-    if (!company) return;
+    if (!company || !user) return;
     const nummer = inv.stornoNummer ?? (await stornorechnungAusstellen(inv, vorsaetze.rechnung));
+    /*
+      BEIM ERSTEN DRUCK DER FRISCHE STAND (G8): Tag und bezahlter Betrag, wie
+      die Datenbank sie eben festgehalten hat — so ist der erste Druck
+      derselbe Beleg wie jeder Nachdruck.
+    */
+    const beleg = inv.stornoNummer
+      ? inv
+      : ((await listInvoicesByIds(user.companyId, [inv.id]))[0] ?? inv);
     const { buildStornoPdf, stornoDateiname } = await import('./stornoPdf');
     // Beim ersten Druck wird sie eben ausgestellt — mit den heutigen Daten,
     // die die Datenbank gerade festgehalten hat. Danach gilt ihr Stand.
     const firma = inv.stornoNummer ? await belegFirma(company, inv.stornoAusstellerStand) : company;
-    const blob = await buildStornoPdf({ company: firma, invoice: inv, nummer });
+    const blob = await buildStornoPdf({ company: firma, invoice: beleg, nummer });
     const { shareOrDownloadPdf } = await import('@/features/worksheets/worksheetPdf');
     await shareOrDownloadPdf(blob, stornoDateiname(nummer));
     if (!inv.stornoNummer) toast.success(`Stornorechnung ${nummer} ausgestellt`);
@@ -2422,7 +2805,9 @@ export default function InvoicesView() {
     const von = sicht === 'bezahlt-heute' ? heute : `${heute.slice(0, 7)}-01`;
     void (async () => {
       try {
-        const zahlungen = (await listZahlungenImZeitraum(user.companyId, von, heute)).filter((z) => z.art !== 'Skonto');
+        // Skonto und Umbuchung (V7) sind kein Geld, das kam.
+        const zahlungen = (await listZahlungenImZeitraum(user.companyId, von, heute))
+          .filter((z) => z.art !== 'Skonto' && z.art !== 'Umbuchung');
         const ids = [...new Set(zahlungen.map((z) => z.invoiceId))];
         const zeilen = ids.length ? await listInvoicesByIds(user.companyId, ids) : [];
         if (!weg) {
@@ -2459,27 +2844,8 @@ export default function InvoicesView() {
    * man später sieht, sondern Geld, das nie eingefordert wird.
    */
   const offeneLeistung = useMemo(
-    /*
-      HIER BRAUCHT ES BEIDE LISTEN, und das ist kein Versehen: gesucht sind
-      Scheine, die auf KEINER Rechnung stehen. Eine bezahlte Rechnung ist
-      genauso ein Beleg dafür, dass verrechnet wurde, wie eine offene — sie
-      steht nur nicht in `offeneRechnungen`. Die Arbeitsliste deckt die
-      jüngeren ab, die offenen die älteren; zusammen ist das die belastbare
-      Auskunft, die es vorher nicht gab.
-    */
-    () =>
-      unverrechneteScheine(
-        scheineAllerBaustellen,
-        [
-          ...invoices,
-          ...offeneRechnungen,
-          // Die Abdeckung ALLER gültigen Rechnungen (P2-03) — als eine
-          // Rechnung gelesen, die genau diese Scheine trägt.
-          { linkedWorkSheets: scheineVerrechnet ?? [], paymentStatus: 'Offen' },
-        ],
-        todayStr(),
-      ),
-    [scheineAllerBaustellen, invoices, offeneRechnungen, scheineVerrechnet],
+    () => unverrechnetZeilen(unverrechnetDB ?? [], todayStr()),
+    [unverrechnetDB],
   );
 
   /*
@@ -2502,14 +2868,13 @@ export default function InvoicesView() {
     steht einmal da, mit allem, was offen ist (`nichtVerrechnetJeBaustelle`).
   */
   const nichtVerrechnet = useMemo(() => {
-    const scheine = !forderungenFehler && !abdeckungFehler && scheineVerrechnet !== null
-      ? offeneLeistung
-      : [];
+    // Die Liste kommt seit P3 fertig aus der Datenbank; offene Forderungen braucht sie nicht mehr.
+    const scheine = !abdeckungFehler && unverrechnetDB !== null ? offeneLeistung : [];
     const stunden = istAn(company?.modules, 'zeiterfassung') && offeneStunden
       ? unverrechneteStundenZeilen(offeneStunden, todayStr())
       : [];
     return nichtVerrechnetJeBaustelle(scheine, stunden);
-  }, [forderungenFehler, abdeckungFehler, scheineVerrechnet, offeneLeistung, offeneStunden, company?.modules]);
+  }, [abdeckungFehler, unverrechnetDB, offeneLeistung, offeneStunden, company?.modules]);
 
   /**
    * Stellt dieser Betrieb überhaupt Anzahlungen und Teilrechnungen?
@@ -2688,8 +3053,8 @@ export default function InvoicesView() {
         ? scheinAbgleich(
             projectNumber,
             preview.entries,
-            scheineAllerBaustellen,
-            new Set(offeneLeistung.map((o) => o.schein.id)),
+            vorschauScheine?.projectNumber === projectNumber ? vorschauScheine.scheine : [],
+            vorschauScheine?.projectNumber === projectNumber ? vorschauScheine.offen : new Set<string>(),
             // Mit Stichtag zählt jede Zeitzeile nach ihrem Tag; Späteres kommt auf die nächste.
             stichtag ?? undefined,
           )
@@ -2697,7 +3062,7 @@ export default function InvoicesView() {
             verrechnetMin: 0, bestaetigtMin: 0, scheine: 0, mehrMin: 0, auffaellig: false,
             wenigerMin: 0, zuWenig: false, fehlend: [], ohneSchein: [],
           },
-    [preview, art, projectNumber, scheineAllerBaustellen, offeneLeistung, stichtag],
+    [preview, art, projectNumber, vorschauScheine, stichtag],
   );
 
   /*
@@ -2732,9 +3097,10 @@ export default function InvoicesView() {
         ÜBER ALLE ZEITRÄUME, nicht nur über den gewählten: die Anzahlung liegt
         typischerweise Monate vor der Schlussrechnung.
       */
-      const [zeilen, fehlAbzug] = await Promise.all([
+      const [zeilen, fehlAbzug, vorher] = await Promise.all([
         listInvoicesInRange(user.companyId, exportVon, exportBis),
         schlussrechnungenOhneAbzug(),
+        rechnungsnummernVorZeitraum(user.companyId, exportVon),
       ]);
       /*
         DIE KUNDEN DIESER RECHNUNGEN, bevor das Ausgangsbuch steht: die UID
@@ -2748,6 +3114,7 @@ export default function InvoicesView() {
       if (anfrage !== exportAnfrage.current) return;
       setKunden((alt) => [...new Map([...alt, ...kundenDerZeilen].map((k) => [k.id, k])).values()]);
       setExportVorArten(vorArten);
+      setExportVorher(vorher);
       setExportZeilen(zeilen);
       setOhneAbzug(fehlAbzug);
       /*
@@ -3026,6 +3393,18 @@ export default function InvoicesView() {
               ergibt sich aus Zahlungsziel und Eingängen; die Datenbank lässt
               nichts anderes mehr zu. Die Korrektur ist der Storno.
             */
+            /*
+              DIE HÄUFIGSTE KORREKTUR IN EINEM ZUG (V6/F4): falscher Preis,
+              falsche Anschrift. Die neue Rechnung kommt mit allem aus dieser
+              vorbelegt; storniert wird erst, wenn sie ausgestellt wird.
+            */
+            {
+              label: 'Stornieren und neu ausstellen …',
+              onSelect: ausDemFenster(() => {
+                setErsetzenFrage(inv);
+                setErsetzenGrund('');
+              }),
+            },
             {
               label: 'Stornieren',
               danger: true,
@@ -3447,24 +3826,62 @@ export default function InvoicesView() {
         Nach dem Anlegen bleibt es offen: die Schlussrechnung folgt der
         Anzahlung oft gleich.
       */}
-      {erstellungUnklar && <Hinweiszeile stufe="warn" role="status">
+      {offenerVersuch && <Hinweiszeile stufe="warn" role="status">
         <p><b>Die Erstellung ist noch nicht bestätigt.</b></p>
-        <p>Die Antwort auf die Erstellung ist nicht eindeutig. Deine Angaben bleiben erhalten. Die Erstellung aus dieser Vorschau bleibt gesperrt, damit nicht versehentlich eine zweite Rechnung entsteht.</p>
-        <Button variant="secondary" onClick={() => {
-          filterSetzen('alle'); offeneNeuLaden();
-          document.getElementById('rechnungsliste')?.scrollIntoView({ block: 'start' });
-        }}>Rechnungsliste prüfen</Button>
+        <p>
+          Die Antwort auf die Erstellung{offenerVersuch.baustelle ? ` für Baustelle ${offenerVersuch.baustelle}` : ''} ist
+          nicht angekommen. Senklot klärt von selbst, ob die Rechnung entstanden ist, sobald die Verbindung
+          steht. Deine Angaben bleiben erhalten; erstellt wird erst danach, damit keine zweite Rechnung entsteht.
+        </p>
+        <Button variant="secondary" loading={klaerungLaeuft} onClick={() => { void versuchKlaeren(offenerVersuch, true); }}>
+          Jetzt prüfen
+        </Button>
       </Hinweiszeile>}
-      {pdfNachholen && <Hinweiszeile stufe="warn" role="status">
+      {pdfNachholen && <Hinweiszeile stufe={pdfNachholen.geklaert ? undefined : 'warn'} role="status">
         <p><b>Rechnung {pdfNachholen.nummer} wurde erstellt.</b></p>
-        <p>Die Rechnung ist gespeichert. Nur die PDF-Ausgabe ist fehlgeschlagen. Es wird keine neue Rechnung benötigt.</p>
-        <Button variant="secondary" loading={pdfLaedt} onClick={async () => {
-          if (pdfLaedt) return;
-          setPdfLaedt(true);
-          try { await pdfNachholen.erneut(); setPdfNachholen(null); toast.success('PDF erneut erzeugt'); }
-          catch { toast.error('Die PDF-Ausgabe ist weiterhin nicht möglich. Die Rechnung bleibt gespeichert.'); }
-          finally { setPdfLaedt(false); }
-        }}>PDF erneut laden</Button>
+        <p>{pdfNachholen.geklaert
+          ? 'Die unterbrochene Erstellung ist geklärt: die Rechnung ist gespeichert. Es wird keine neue Rechnung benötigt.'
+          : 'Die Rechnung ist gespeichert. Nur die PDF-Ausgabe ist fehlgeschlagen. Es wird keine neue Rechnung benötigt.'}</p>
+        {(() => {
+          const laden = async () => {
+            if (pdfLaedt) return;
+            setPdfLaedt(true);
+            try { await pdfNachholen.erneut(); setPdfNachholen(null); toast.success(pdfNachholen.geklaert ? 'PDF erzeugt' : 'PDF erneut erzeugt'); }
+            catch { toast.error('Die PDF-Ausgabe ist weiterhin nicht möglich. Die Rechnung bleibt gespeichert.'); }
+            finally { setPdfLaedt(false); }
+          };
+          // Nach der Klärung (G2) gab es noch kein PDF — „erneut“ wäre falsch.
+          return pdfNachholen.geklaert
+            ? <Button variant="secondary" loading={pdfLaedt} onClick={laden}>PDF laden</Button>
+            : <Button variant="secondary" loading={pdfLaedt} onClick={laden}>PDF erneut laden</Button>;
+        })()}
+      </Hinweiszeile>}
+
+      {umbuchungAngebot && <Hinweiszeile role="status">
+        <p><b>Auf {umbuchungAngebot.vonNummer} sind {euro(umbuchungAngebot.betrag)} schon bezahlt.</b></p>
+        <p>
+          Nach dem Storno ist das ein Guthaben des Kunden. Umgebucht auf {umbuchungAngebot.aufNummer} gilt es dort als
+          bezahlt — im Zahlungsstapel steht eine Umbuchung, keine Bankbewegung.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" loading={umbuchungLaeuft} onClick={async () => {
+            if (umbuchungLaeuft) return;
+            const a = umbuchungAngebot;
+            setUmbuchungLaeuft(true);
+            try {
+              await guthabenUmbuchen(a.vonId, a.aufId, a.betrag);
+              setUmbuchungAngebot(null);
+              toast.success(`Guthaben auf ${a.aufNummer} umgebucht`);
+              offeneNeuLaden();
+              void postenNeuLaden();
+            } catch (e) {
+              toast.error(grundAus(e, 'Das Guthaben konnte nicht umgebucht werden.'));
+            } finally {
+              setUmbuchungLaeuft(false);
+            }
+          }}>Auf {umbuchungAngebot.aufNummer} umbuchen</Button>
+          <Button variant="ghost" onClick={() => setUmbuchungAngebot(null)}>Später</Button>
+        </div>
       </Hinweiszeile>}
 
       {!nurLesen && erstellen && (
@@ -3477,15 +3894,33 @@ export default function InvoicesView() {
         action={<IconButton label="Schließen" onClick={erstellenSchliessen}><Icon name="schliessen" size={22} /></IconButton>}
       >
         <div className="formular space-y-4">
+          {ersatz && (
+            <Hinweiszeile>
+              <p><b>Ersetzt {ersatz.alt.invoiceNumber}.</b></p>
+              <p>
+                Beim Erstellen wird {ersatz.alt.invoiceNumber} storniert (Grund: {ersatz.grund}) und diese Rechnung im
+                selben Zug ausgestellt. Geht dabei etwas schief, bleibt {ersatz.alt.invoiceNumber} unverändert. Die
+                Stornorechnung dazu stellst du danach an {ersatz.alt.invoiceNumber} aus, wenn sie schon beim Kunden war.
+              </p>
+            </Hinweiszeile>
+          )}
           <BaustellenSelect
             id="invproj"
             companyId={user.companyId}
             value={projectNumber}
             onChange={(nr, p) => {
-              baustelleWaehlen(nr);
-              setPreview(null);
-              setError(null);
-              setHinweis(null);
+              /*
+                DIE AUSWAHL MELDET DIE BAUSTELLE ZURÜCK, sobald ihre Stammdaten
+                da sind. Beim Ersatz (V6) ist das die vorbelegte Baustelle —
+                kein Wechsel, die vorbelegte Vorschau bleibt.
+              */
+              const rueckmeldung = !!ersatz && nr === ersatz.alt.projectNumber;
+              if (!rueckmeldung) {
+                baustelleWaehlen(nr);
+                setPreview(null);
+                setError(null);
+                setHinweis(null);
+              }
               // Abgerechnet wird typischerweise NACH dem Abschluss der
               // Baustelle. Sie muss deshalb auch dann auffindbar sein, wenn
               // sie nicht mehr laeuft — und ihre Stammdaten mit ihr.
@@ -3656,8 +4091,9 @@ export default function InvoicesView() {
             'bis“ zugleich der Stichtag: wer ihn früher setzt, kann bis dahin neu zusammenstellen — ' +
             'spätere Stunden und Scheine bleiben für die nächste Rechnung offen. Darunter steht, was ' +
             'das Lager für die Baustelle ausgegeben hat und auf keinem Schein steht; „Übernehmen“ ' +
-            'setzt es zum Katalogpreis ein. Mit dem Leistungsende dieser Rechnung gilt das ' +
-            'Ausgegebene als abgerechnet, übernommen oder nicht. Ohne Leistungszeitraum entsteht ' +
+            'setzt es zum Katalogpreis ein. Was diese Vorschau zeigt, gilt mit dem Anlegen als ' +
+            'abgerechnet, übernommen oder nicht; was danach ausgegeben wird — auch am selben Tag ' +
+            'oder als spät abgehakte Rüstliste —, kommt auf die nächste Rechnung. Ohne Leistungszeitraum entsteht ' +
             'keine Rechnung (außer der Anzahlung); bei Pauschale und Einheitspreis ist er aus den ' +
             'Belegen vorbelegt, sonst aus Beginn und Ende der Baustelle (höchstens bis heute). Ist ' +
             'die Baustelle aus einer Wartung mit Preis entstanden, steht die Wartung „laut ' +
@@ -4255,9 +4691,9 @@ export default function InvoicesView() {
             für die Baustelle ausgegeben hat — abgeholt, eingeladen, minus
             Retouren und minus dem, was die Scheine schon tragen. Nur ein
             Vorschlag: übernommen wird auf Klick, zum Katalogpreis, und die
-            Zeile bleibt änderbar. Mit dem Leistungsende dieser Rechnung gilt
-            das Ausgegebene als abgerechnet — übernommen oder nicht; so kommt
-            nichts zweimal (siehe `ausgegebenes_material`).
+            Zeile bleibt änderbar. Was die Vorschau zeigt, verknüpft die
+            Rechnung (M2) — übernommen oder nicht; so kommt nichts zweimal,
+            und später Ausgegebenes fällt nicht heraus.
           */}
           {/*
             ENTWÜRFE, DEREN MATERIAL ABGEZOGEN IST (24.10.2026). Es kommt mit
@@ -4283,9 +4719,9 @@ export default function InvoicesView() {
             <div className="mt-4">
               <Hinweiszeile stufe="warn">
                 <p>
-                  Was das Lager für diese Baustelle ausgegeben hat, konnte nicht geladen werden. Mit
-                  dem Leistungsende dieser Rechnung gilt es trotzdem als abgerechnet — bitte erst neu
-                  zusammenstellen.
+                  Was das Lager für diese Baustelle ausgegeben hat, konnte nicht geladen werden. Diese
+                  Rechnung verknüpft deshalb kein Material — es bleibt offen und steht im Vorschlag der
+                  nächsten. Wer es auf dieser haben will, stellt neu zusammen.
                 </p>
               </Hinweiszeile>
             </div>
@@ -4339,6 +4775,40 @@ export default function InvoicesView() {
                     </ListRow>
                   );
                 })}
+              </List>
+            </div>
+          )}
+
+          {/*
+            ZURÜCK, ABER SCHON VERRECHNET (M7, 16.11.2026): eine Retoure nach
+            der Rechnung, die die Ware enthielt. Bisher fiel sie aus der
+            Vorschau (nur Offenes über null) — der Kunde bekam keine Gutschrift,
+            und niemand erfuhr davon. Eine Position mit Minusmenge kennt die
+            Rechnung nicht (Menge und Preis sind nie negativ); die Gutschrift
+            stellt das Büro aus. Mit dem Anlegen verknüpft diese Rechnung die
+            Retoure (M2) — gesagt wird es hier, beim Zusammenstellen.
+          */}
+          {gutschriften.length > 0 && (
+            <div className="mt-4 border-t border-line pt-4">
+              <Hinweiszeile stufe="warn">
+                <p>
+                  Zurückgegeben, aber schon verrechnet: der Kunde hat diese Ware bezahlt und bekommt eine Gutschrift
+                  — oder sie wird mit ihm auf dieser Rechnung vereinbart (etwa als Nachlass). Nach dem Anlegen steht
+                  der Hinweis nicht mehr da.
+                </p>
+              </Hinweiszeile>
+              <List>
+                {gutschriften.map((v) => (
+                  <ListRow
+                    key={v.schluessel}
+                    title={v.name}
+                    subtitle={[
+                      `zurück ${fmtMenge(v.zurueck)} ${v.einheit}`,
+                      v.preis > 0 ? `${euro(v.preis)} je ${v.einheit}` : 'kein Preis im Katalog',
+                    ].join(' · ')}
+                    wert={`${fmtMenge(v.offen)} ${v.einheit}${v.preis > 0 ? ` · ${euro(v.offen * v.preis)}` : ''}`}
+                  />
+                ))}
               </List>
             </div>
           )}
@@ -5105,7 +5575,7 @@ export default function InvoicesView() {
         </div>
         {exportFehler && <div className="mt-3"><ErrorState message={exportFehler} /></div>}
         {exportZeilen !== null && (() => {
-          const e = buildInvoiceCsv(exportZeilen, kunden, exportVon, exportBis);
+          const e = buildInvoiceCsv(exportZeilen, kunden, exportVon, exportBis, exportVorher);
           return (
             <>
               <p className="mt-3 text-sm text-ink">
@@ -5378,6 +5848,29 @@ export default function InvoicesView() {
         )}
       </ConfirmDialog>
 
+      <ConfirmDialog
+        open={!!ersetzenFrage}
+        title="Stornieren und neu ausstellen?"
+        message={ersetzenFrage
+          ? `Die neue Rechnung kommt mit allem aus ${ersetzenFrage.invoiceNumber} vorbelegt — Positionen, Rabatt, Zeitraum und Konditionen lassen sich davor ändern. ${ersetzenFrage.invoiceNumber} wird erst storniert, wenn die neue ausgestellt wird.`
+          : ''}
+        confirmLabel="Neue Rechnung vorbereiten"
+        onCancel={() => setErsetzenFrage(null)}
+        onConfirm={async () => {
+          if (!ersetzenFrage) return;
+          // Ohne Grund kein Storno (H4) — auch nicht in einem Zug.
+          if (!ersetzenGrund.trim()) {
+            throw new Error('Bitte einen Grund angeben — er steht in der Liste, im Ausgangsbuch und im Buchungsstapel.');
+          }
+          const alt = ersetzenFrage;
+          setErsetzenFrage(null);
+          await ersetzenVorbereiten(alt, ersetzenGrund.trim());
+        }}
+      >
+        <InputField id="ersetzengrund" label="Grund des Stornos (erscheint in der Liste)" required pflicht value={ersetzenGrund}
+          onChange={(e) => setErsetzenGrund(e.target.value)} placeholder="z. B. Falscher Stundensatz" />
+      </ConfirmDialog>
+
       {/*
         ZAHLUNGSEINGÄNGE — ERFASSEN UND NACHSEHEN IN EINEM FENSTER.
 
@@ -5585,6 +6078,88 @@ export default function InvoicesView() {
         )}
         {zFehler && <p className="mt-3 text-sm text-danger">{zFehler}</p>}
 
+        {/*
+          GUTHABEN MIT EINER NEUEN RECHNUNG VERRECHNEN (V7) — die Zusage der
+          Stornorechnung. Ein Vorgang statt Rückzahlung hier und Eingang dort;
+          im Zahlungsstapel eine Umbuchung, keine zwei Bankzeilen.
+        */}
+        {zahlungsStand && zahlungen && zahlstand(zahlungsStand).guthaben > 0 && (() => {
+          const guthaben = zahlstand(zahlungsStand).guthaben;
+          const kunde = zahlungsStand.customerName.trim().toLowerCase();
+          const ziele = [...new Map([...offeneRechnungen, ...invoices].map((r) => [r.id, r])).values()]
+            .filter((r) => r.id !== zahlungsStand.id && r.paymentStatus !== 'Storniert'
+              && r.customerName.trim().toLowerCase() === kunde && zahlstand(r).rest > 0)
+            .sort((a, b) => b.invoiceNumber.localeCompare(a.invoiceNumber));
+          return (
+            <div className="mt-4">
+              <p className="section-label">Mit einer offenen Rechnung verrechnen</p>
+              {ziele.length === 0 ? (
+                <p className="text-sm text-ink-muted">
+                  {zahlungsStand.customerName} hat keine offene Rechnung. Das Guthaben von {euro(guthaben)} lässt sich
+                  zurückzahlen oder später mit der nächsten Rechnung verrechnen.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <SelectField
+                    id="umbuchung-ziel"
+                    label="Auf Rechnung"
+                    value={umbuchungZiel}
+                    onChange={(e) => {
+                      setUmbuchungZiel(e.target.value);
+                      const ziel = ziele.find((r) => r.id === e.target.value);
+                      setUmbuchungBetrag(ziel ? zahlAlsText(Math.min(guthaben, zahlstand(ziel).rest)) : '');
+                    }}
+                  >
+                    <option value="">Rechnung wählen …</option>
+                    {ziele.map((r) => (
+                      <option key={r.id} value={r.id}>{`${r.invoiceNumber} · offen ${euro(zahlstand(r).rest)}`}</option>
+                    ))}
+                  </SelectField>
+                  <InputField
+                    id="umbuchung-betrag"
+                    label="Betrag"
+                    inputMode="decimal"
+                    value={umbuchungBetrag}
+                    onChange={(e) => setUmbuchungBetrag(e.target.value)}
+                  />
+                  <Button
+                    variant="secondary"
+                    loading={umbuchungLaeuft}
+                    disabled={!umbuchungZiel || !(zahlOder(umbuchungBetrag, 0) > 0)}
+                    onClick={async () => {
+                      if (umbuchungLaeuft) return;
+                      const ziel = ziele.find((r) => r.id === umbuchungZiel);
+                      if (!ziel) return;
+                      setUmbuchungLaeuft(true);
+                      setZFehler(null);
+                      try {
+                        await guthabenUmbuchen(zahlungsStand.id, ziel.id, cent(zahlOder(umbuchungBetrag, 0)));
+                      } catch (e) {
+                        setZFehler(grundAus(e, 'Das Guthaben konnte nicht umgebucht werden.'));
+                        setUmbuchungLaeuft(false);
+                        return;
+                      }
+                      setUmbuchungLaeuft(false);
+                      setUmbuchungZiel('');
+                      setUmbuchungBetrag('');
+                      toast.success(`Guthaben auf ${ziel.invoiceNumber} umgebucht`);
+                      offeneNeuLaden();
+                      void postenNeuLaden();
+                      try {
+                        setZahlungen(await listZahlungen(zahlungsStand.companyId, zahlungsStand.id));
+                      } catch {
+                        setZFehler('Umgebucht — die Liste konnte aber nicht neu geladen werden.');
+                      }
+                    }}
+                  >
+                    Guthaben umbuchen
+                  </Button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         <div className="mt-4">
           <p className="section-label">Bisher eingegangen</p>
           {zahlungen === null ? (
@@ -5600,6 +6175,7 @@ export default function InvoicesView() {
                   subtitle={
                     <span>
                       {datumAT(z.datum)} · {z.art === 'Mahnkosten' ? 'Mahnspesen und Zinsen' : z.art}
+                      {z.art === 'Umbuchung' ? ' (Löschen nimmt beide Seiten zurück)' : ''}
                       {z.hinweis ? ` · ${z.hinweis}` : ''}
                       {z.erfasstVonName ? ` · erfasst von ${z.erfasstVonName}` : ''}
                     </span>
@@ -5708,14 +6284,38 @@ export default function InvoicesView() {
           onChange={(e) => setMahnFrist(e.target.value)}
         />
         {mahnFuer && naechsteStufe(mahnFuer) && (() => {
-          const z = zinsenFuer(mahnFuer, naechsteStufe(mahnFuer)!, todayStr());
+          const grundlage = mahnGrundlage?.fuer === mahnFuer.id ? mahnGrundlage : null;
+          const stufe = naechsteStufe(mahnFuer)!;
+          const z = zinsenFuer(mahnFuer, stufe, todayStr(), grundlage?.zahlungen);
+          /*
+            DIE MAHNKOSTEN WIE AUF DEM SCHREIBEN (G3): frühere Schreiben, diese
+            Stufe, Zinsen — und was davon schon bezahlt ist.
+          */
+          const k = mahnkosten(stufe, company?.rates, istUnternehmer(mahnFuer));
+          const mk = grundlage ? mahnforderungRechnen({
+            kosten: k.spesen + k.pauschale,
+            frueher: grundlage.frueher,
+            zinsen: z.art === 'berechnet' ? z.betrag : 0,
+            bezahlt: grundlage.zahlungen.filter((x) => x.art === 'Mahnkosten').reduce((s, x) => s + x.betrag, 0),
+          }) : null;
+          const kostenZeile = mk && (mk.kostenFrueher > 0 || mk.bezahlt > 0) && (
+            <p className="mt-3 text-sm text-ink-muted">
+              Mahnkosten bis heute {euro(mk.forderung)}
+              {mk.kostenFrueher > 0 ? `, davon ${euro(mk.kostenFrueher)} aus früheren Schreiben` : ''}
+              {mk.bezahlt > 0 ? `; bezahlt sind ${euro(mk.bezahlt)}` : ''} — das Schreiben fordert
+              noch {euro(mk.offen)}.
+            </p>
+          );
           if (z.art === 'berechnet') {
             return (
-              <p className="mt-3 text-sm text-ink-muted">
-                Verzugszinsen {euro(z.betrag)} ({zinssatzText(z, datumAT)}, {z.tage} Tage
-                {z.ab ? ` ab ${datumAT(z.ab)}` : ''}, {z.grundlage}) stehen auf dem
-                Beleg.{z.ab ? ' Für die Zeit davor ist kein Basiszinssatz eingetragen.' : ''}
-              </p>
+              <>
+                <p className="mt-3 text-sm text-ink-muted">
+                  Verzugszinsen {euro(z.betrag)} ({zinssatzText(z, datumAT)}, {z.tage} Tage
+                  {z.ab ? ` ab ${datumAT(z.ab)}` : ''}, {z.grundlage}) stehen auf dem
+                  Beleg.{z.ab ? ' Für die Zeit davor ist kein Basiszinssatz eingetragen.' : ''}
+                </p>
+                {kostenZeile}
+              </>
             );
           }
           if (z.art === 'fehlt') {
@@ -5728,7 +6328,7 @@ export default function InvoicesView() {
               </p>
             );
           }
-          return null;
+          return kostenZeile || null;
         })()}
       </ConfirmDialog>
     </div>

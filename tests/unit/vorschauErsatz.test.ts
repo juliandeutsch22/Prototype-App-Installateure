@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, readdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -16,12 +16,23 @@ import { join } from 'node:path';
  * nicht, darum hier.
  */
 
+/*
+  AUCH MEHRZEILIGE `export { … } from …` MIT `as` (Integration Welle 2): die
+  Suche las nur einzeilige Blöcke. `ohneFaktor` stand in einem mehrzeiligen
+  Block von `auth/sitzung.ts` und fehlte im Ersatz — die Vorschau brach ab.
+*/
 function exporte(pfad: string): string[] {
   const text = readFileSync(pfad, 'utf8');
-  return [...text.matchAll(/^export (?:async )?(?:function|const|class) ([A-Za-z0-9_]+)|^export \{ ([A-Za-z0-9_, ]+) \}/gm)]
-    .flatMap((m) => (m[1] ? [m[1]] : m[2].split(',').map((t) => t.trim())))
-    .sort();
+  const einzeln = [...text.matchAll(/^export (?:async )?(?:function|const|class) ([A-Za-z0-9_]+)/gm)].map((m) => m[1]);
+  const bloecke = [...text.matchAll(/^export \{([^}]+)\}/gm)]
+    .flatMap((m) => m[1].split(','))
+    .map((t) => t.trim().split(/\s+as\s+/).pop()!.trim())
+    .filter((t) => /^[A-Za-z0-9_]+$/.test(t));
+  return [...einzeln, ...bloecke].sort();
 }
+
+/* Die handgeschriebenen Module unter `fest/` ersetzen das erzeugte ganz — sie brauchen jeden Export. */
+const FEST = readdirSync('tools/vorschau/fest/pg').map((d) => [`src/lib/db/pg/${d}`, `tools/vorschau/fest/pg/${d}`] as const);
 
 describe('Ersatzmodule der Vorschau', () => {
   for (const [vorbild, ersatz] of [
@@ -35,6 +46,7 @@ describe('Ersatzmodule der Vorschau', () => {
       ersetzt die Vorschau ganz.
     */
     ['src/lib/push.ts', 'tools/vorschau/leer.ts'],
+    ...FEST,
   ]) {
     it(`${ersatz} trägt jeden Export von ${vorbild}`, () => {
       const fehlt = exporte(vorbild).filter((x) => !exporte(ersatz).includes(x));
@@ -93,6 +105,22 @@ describe('Erzeugte Ersatzmodule der Vorschau', () => {
     expect(modul('timeEntries')).toContain('export const arbeitszeitVorlauf = () => A([]);');
     expect(modul('pg/customers')).toContain('export const kundenNachNamen = () => A(D.kunden);');
     expect(modul('pg/timeEntries')).toContain('export const arbeitszeitVorlauf = () => A([]);');
+  });
+
+  /*
+    Integration Welle 2: die Mitarbeiterübersicht stürzte in der Vorschau ab
+    (`abschlussStand(...).get is not a function`), und „Dein erstes Angebot.“
+    erschien nie, weil die Zählung der Angebote die Liste lieferte.
+  */
+  it('Zeitkonto: die reinen Rechnungen sind echt, nicht NOOP (Z6)', () => {
+    expect(modul('zeitkonto')).toContain('export const abschlussStand = (verlauf');
+    expect(modul('zeitkonto')).toContain('export const abgeschlosseneMonate = (verlauf');
+    expect(modul('zeitkonto')).not.toContain('export const abschlussStand = NOOP;');
+  });
+
+  it('Angebote: die Zählungen der Liste „Offen“ sind Zahlen (A6)', () => {
+    expect(modul('quotes')).toContain('export const zaehleQuotes = () => A(D.angebote.length);');
+    expect(modul('quotes')).toContain("export const zaehleOffeneQuotes = () => A(D.angebote.filter(");
   });
 
   it('beide FEST-Einträge für Rechnungen gelten', () => {

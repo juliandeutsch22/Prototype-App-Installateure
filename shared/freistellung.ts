@@ -263,9 +263,14 @@ export function arbeitsjahr(eintritt: string | null | undefined, datum: string):
   return { von, bis: plusTage(`${beginn + 1}-${mmdd}`, -1) };
 }
 
-/** Eine Woche Pflegefreistellung in Minuten: die Wochenstunden der Person. */
+/**
+ * Eine Woche Pflegefreistellung in Minuten: die Wochenstunden der Person.
+ * Leer heißt 40; eine eingetragene 0 bleibt 0 (Z11, wie `wochenstundenVon`
+ * und `app.tagessoll_stunden`).
+ */
 export function pflegeWocheMin(wochenstunden: number | null | undefined): number {
-  return (Number(wochenstunden ?? 40) || 40) * 60;
+  const n = Number(wochenstunden ?? 40);
+  return (Number.isFinite(n) ? n : 40) * 60;
 }
 
 export interface PflegeStand {

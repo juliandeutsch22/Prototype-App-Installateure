@@ -37,6 +37,11 @@ vi.mock('@/lib/db/materials', () => ({
   katalogNachIds: async (_c: string, ids: readonly string[]) => [FERN].filter((m) => ids.includes(m.id)),
 }));
 
+/** V5: die Rüstlisten des Scheintags — ohne Vorgabe keine. */
+let ruestlisten: unknown[] = [];
+const tagLaden = vi.fn(async (...a: unknown[]) => { void a; return ruestlisten; });
+vi.mock('@/lib/db/einsatzMaterial', () => ({ listEinsatzMaterialForDate: (...a: unknown[]) => tagLaden(...a) }));
+
 const { default: MaterialErfassen } = await import('@/features/worksheets/MaterialErfassen');
 
 function Schein({ start = [], projectNumber = '2026-042' }: { start?: MaterialZeile[]; projectNumber?: string }) {
@@ -55,6 +60,7 @@ const block = async () =>
 
 beforeEach(() => {
   antwort = [];
+  ruestlisten = [];
   fehler = false;
   eigeneAbgeholt.mockClear();
 });
@@ -128,5 +134,43 @@ describe('Ein Tipp legt hinein, auch am Schein (C1, E89)', () => {
     expect(knopf).toHaveClass('symbol-rund');
     await userEvent.click(knopf);
     expect(onChange).toHaveBeenCalledWith([{ id: 'z1', name: 'Kupferrohr 15mm', menge: 3, einheit: 'm', materialId: 'm1' }]);
+  });
+});
+
+/*
+  V5 (16.11.2026): FÜR DIESEN EINSATZ EINGELADEN. Was geplant und eingeladen
+  wurde, musste am Schein noch einmal gesucht werden — auch vom Kollegen im
+  Team, der nicht selbst eingeladen hat.
+*/
+describe('Für diesen Einsatz eingeladen (V5)', () => {
+  const liste = (projectNumber: string) => ({
+    id: 'k1', companyId: 'perl', date: '2026-11-13', projectNumber, uids: ['u1', 'u2'],
+    positionen: [
+      { id: 'p1', materialId: 'm7', name: 'Pressfitting 22', menge: 8, einheit: 'Stk' },
+      { id: 'p2', name: 'Hanf', menge: 1, einheit: 'Rolle' },
+      { id: 'p3', materialId: 'm1', name: 'Kupferrohr 15mm', menge: 12, einheit: 'm' },
+    ],
+    // Nur, was abgehakt ist — eingeladen von einem Kollegen.
+    geladen: { p1: { von: 'Tom', am: 1 }, p2: { von: 'Tom', am: 1 } },
+  });
+
+  it('schlägt die abgehakten Positionen des Einsatzes vor — ein Tipp übernimmt Menge und Einheit', async () => {
+    ruestlisten = [liste('PR-2026-042')];
+    render(<Schein />);
+    const b = within((await screen.findByText('Für diesen Einsatz eingeladen')).parentElement as HTMLElement);
+    expect(b.getByText('8 Stk eingeladen · von Tom')).toBeInTheDocument();
+    expect(b.queryByText('Kupferrohr 15mm')).toBeNull();
+    expect(tagLaden).toHaveBeenCalledWith('perl', '2026-11-13');
+    await userEvent.click(b.getByRole('button', { name: 'Pressfitting 22 aus der Rüstliste auf den Schein' }));
+    expect(zeilen()).toBe('8×Pressfitting 22 Stk');
+    // Steht es auf dem Schein, fällt der Vorschlag weg.
+    expect(screen.queryByRole('button', { name: 'Pressfitting 22 aus der Rüstliste auf den Schein' })).toBeNull();
+  });
+
+  it('Gleichbleiben: ohne Rüstliste dieser Baustelle kein Abschnitt', async () => {
+    ruestlisten = [liste('2026-999')];
+    render(<Schein />);
+    await waitFor(() => expect(tagLaden).toHaveBeenCalled());
+    expect(screen.queryByText('Für diesen Einsatz eingeladen')).toBeNull();
   });
 });

@@ -99,10 +99,21 @@ const textSuche = vi.fn(async () => serverTreffer);
 /** Was auf dem Gerät noch auf Verbindung wartet (E49) — im Normalfall nichts. */
 const wartendeScheine = vi.fn<() => Promise<VorgemerkterSchein[]>>(async () => []);
 
+/** Ob der Schein vor dem Storno schon verrechnet ist (P4) — ab Werk nicht. */
+type Lage = { verrechnet: boolean; grund: string | null; rechnungen: { nummer: string; zahlung: string }[] | null };
+const verrechnungLage = vi.fn<(id: string) => Promise<Lage>>(async () => ({ verrechnet: false, grund: null, rechnungen: null }));
+
 /** Ein einzelner Schein nach Kennung — für `?markiert=` aus der Baustellenakte. */
 const einzeln = vi.fn<(id: string) => Promise<(WorkSheet & { id: string }) | undefined>>(async () => undefined);
+/** „Neu eingegangen“ (V9): die Köpfe, wie `scheine_neu` sie gibt — und das Merken danach. */
+const neuGeholt = vi.fn<() => Promise<{ id: string }[]>>(async () => []);
+const gesehen = vi.fn(async () => undefined);
 vi.mock('@/lib/db/workSheets', () => ({
+  scheineNeu: () => neuGeholt(),
+  scheineGesehen: () => gesehen(),
   listRecentWorkSheets: vi.fn(async () => geladen),
+  listWorkSheetsByIds: vi.fn(async (_c: string, ids: readonly string[]) =>
+    [...geladen, ...nurInDerDatenbank].filter((x) => ids.includes(x.id))),
   listSignedWorkSheetsInRange: (...a: unknown[]) => tiefeAbfrage(...(a as [])),
   listWorkSheetsInRange: (...a: unknown[]) => zeitraumSuche(...(a as [])),
   listWorkSheetsForProject: (...a: unknown[]) => baustellenSuche(...(a as [])),
@@ -113,7 +124,13 @@ vi.mock('@/lib/db/workSheets', () => ({
   restoreWorkSheetDraft: (...a: unknown[]) => zurueckholen(...(a as [])),
   getWorkSheet: (id: string) => einzeln(id),
   wartendeScheine: () => wartendeScheine(),
+  scheinVerrechnung: (id: string) => verrechnungLage(id),
+  scheinVerbrauchVorschlag: (...a: unknown[]) => verbrauchVorschlag(...a),
+  scheinVerbrauchBuchen: (...a: unknown[]) => verbrauchBuchen(...a),
 }));
+/** M3: was der Schein über das Ausgegebene hinaus trägt — ohne Vorgabe nichts. */
+const verbrauchVorschlag = vi.fn<(...a: unknown[]) => Promise<unknown>>(async () => null);
+const verbrauchBuchen = vi.fn<(...a: unknown[]) => Promise<boolean>>(async () => true);
 /*
   Die Adressen der Bilder kommen aus Firebase Storage. Geprüft wird hier
   nicht das Laden, sondern was die Ansicht damit tut — und was sie sagt, wenn
@@ -141,9 +158,22 @@ vi.mock('@/lib/db/timeEntries', () => ({
   schreiben (Gruppe „Nicht verrechnet“ in der offenen Ansicht).
 */
 let aufRechnung: string[] = [];
+/** Ältere Scheine, die die Liste nicht geladen hat — nur die Datenbank kennt sie (P3). */
+let nurInDerDatenbank: (WorkSheet & { id: string })[] = [];
 const verrechnungGeholt = vi.fn(async () => aufRechnung);
+/*
+  Seit P3 fragt die Liste `scheine_unverrechnet` (über alle Scheine) — hier
+  aus dem geladenen Bestand und `aufRechnung` nachgebildet, älteste zuerst,
+  wie die Datenbank antwortet; die Zeilen dazu holt `listWorkSheetsByIds`.
+*/
 vi.mock('@/lib/db/invoices', () => ({
-  scheineAufRechnung: (...a: unknown[]) => verrechnungGeholt(...(a as [])),
+  scheineUnverrechnet: async () => {
+    const verrechnet = await verrechnungGeholt();
+    return [...geladen, ...nurInDerDatenbank]
+      .filter((x) => x.status === 'Unterschrieben' && !verrechnet.includes(x.id))
+      .sort((a, b) => a.datum.localeCompare(b.datum) || a.id.localeCompare(b.id))
+      .map((x) => ({ id: x.id, projectNumber: x.projectNumber, customerName: x.customerName, datum: x.datum, abrechnung: x.abrechnung }));
+  },
 }));
 
 /** Die Firmendaten der Ausstellung (seit 24.10.2026): mit Stand die von damals. */
@@ -217,6 +247,7 @@ beforeEach(() => {
   wartendeScheine.mockReset().mockResolvedValue([]);
   authWert.user.role = 'Mitarbeiter';
   aufRechnung = [];
+  nurInDerDatenbank = [];
   verrechnungGeholt.mockClear();
   stornieren.mockClear();
   geladen = scheine;
@@ -1299,6 +1330,22 @@ describe('Ansicht und Seitenfenster', () => {
   });
 
   /*
+    P3 (Durchsicht 15.11.2026): „Nicht verrechnet“ über ALLE Scheine. Vorher
+    nur unter den geladenen (60 jüngsten) — ein älterer Schein stand nirgends.
+    Gegenprobe: mit der alten Suche unter `geladen` fehlt „Familie Vergessen“
+    und die Zahl ist 1.
+  */
+  it('P3: der ältere Schein, den die Liste nicht geladen hat, steht unter „Nicht verrechnet“ — vorne', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [scheine[0], unterschrieben('n1', '2026-09-20', 'Familie Neu')];
+    nurInDerDatenbank = [unterschrieben('v1', '2026-05-04', 'Familie Vergessen')];
+    zeichne();
+    expect(await screen.findByRole('heading', { name: /Nicht verrechnet/ })).toHaveTextContent('2 Nicht verrechnet');
+    const alt = screen.getByText('Familie Vergessen');
+    expect(alt.compareDocumentPosition(screen.getByText('Familie Neu')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  /*
     PLANLINIE B1: das Schriftfeld nennt Entwürfe und Unverrechnetes mit
     Zahl — es ersetzt keinen Satz, sondern trägt, was die Gruppen schon
     zählen. Die Zahl der alten Scheine kommt aus derselben Liste.
@@ -1375,6 +1422,47 @@ describe('Ansicht und Seitenfenster', () => {
     await nutzer.type(within(fenster).getByLabelText(/Grund/), 'Falscher Tag');
     await nutzer.click(bestaetigen);
     await waitFor(() => expect(stornieren).toHaveBeenCalledWith('u1', 'Falscher Tag', 'Max Mustermann'));
+  });
+
+  /*
+    P4 (Durchsicht 15.11.2026): steht der Schein auf einer Rechnung, sagt es
+    der Storno — mit Nummer für die, die Rechnungen lesen; sonst nur, dass.
+    Danach führt „Ersatzschein anlegen“ zum neuen Schein mit Verweis.
+    Gegenprobe: vorher stand im Dialog nichts davon.
+  */
+  it('P4: der Storno nennt die Rechnung, auf der der Schein steht', async () => {
+    authWert.user.role = 'Geschäftsführung';
+    verrechnungLage.mockResolvedValueOnce({ verrechnet: true, grund: 'rechnung', rechnungen: [{ nummer: 'RE-2026-0042', zahlung: 'Offen' }] });
+    const nutzer = userEvent.setup();
+    zeichne('/worksheets?ansicht=alle');
+    const fenster = await oeffne(/Familie Berger/);
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Stornieren' }));
+    expect(await within(fenster).findByText(/Dieser Schein ist schon verrechnet/)).toBeInTheDocument();
+    expect(within(fenster).getByText(/auf der Rechnung RE-2026-0042 \(Offen\)/)).toBeInTheDocument();
+    expect(verrechnungLage).toHaveBeenCalledWith('u1');
+    await nutzer.type(within(fenster).getByLabelText(/Grund/), 'Falsche Menge');
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Storno bestätigen' }));
+    expect(await screen.findByRole('button', { name: 'Ersatzschein anlegen' })).toBeInTheDocument();
+  });
+
+  it('P4: die Projektleitung ohne Freigabe erfährt, DASS verrechnet ist — ohne Nummer', async () => {
+    authWert.user.role = 'Projektleiter';
+    verrechnungLage.mockResolvedValueOnce({ verrechnet: true, grund: 'rechnung', rechnungen: null });
+    const nutzer = userEvent.setup();
+    zeichne();
+    const fenster = await oeffne(/Familie Berger/);
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Stornieren' }));
+    expect(await within(fenster).findByText(/steht auf einer gültigen Rechnung/)).toBeInTheDocument();
+  });
+
+  it('P4, bleibt gleich: ein nicht verrechneter Schein bekommt keinen Hinweis', async () => {
+    authWert.user.role = 'Geschäftsführung';
+    const nutzer = userEvent.setup();
+    zeichne('/worksheets?ansicht=alle');
+    const fenster = await oeffne(/Familie Berger/);
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Stornieren' }));
+    await waitFor(() => expect(within(fenster).queryByText(/Verrechnung wird geprüft/)).toBeNull());
+    expect(within(fenster).queryByText(/schon verrechnet/)).toBeNull();
   });
 
   /*
@@ -1468,5 +1556,127 @@ describe('Noch nicht gesendet (E49)', () => {
 
     await waitFor(() => expect(screen.queryByText(/Noch nicht gesendet/)).not.toBeInTheDocument());
     expect(vi.mocked(listRecentWorkSheets).mock.calls.length).toBeGreaterThan(vorher);
+  });
+});
+
+/*
+  NEU EINGEGANGEN (Durchsicht 15.11.2026, V9): die Startseite führt
+  Projektleitung und Verwaltung mit `?filter=neu-eingegangen` hierher. Die
+  Liste zeigt genau die Scheine aus `scheine_neu` — auch ältere, die nicht
+  unter den geladenen stehen —, neueste zuerst, und merkt sie erst danach als
+  gesehen. Gegenprobe: ohne den Filter kannte die Liste „neu eingegangen“
+  nicht; die Adresse fiel auf die offene Ansicht zurück.
+*/
+describe('Neu eingegangen (V9)', () => {
+  const neu = (id: string, kunde: string): WorkSheet & { id: string } =>
+    ({ ...scheine[1], id, customerName: kunde, erstelltVonName: 'Anna Lehrling', erstelltVonUid: 'm2' }) as WorkSheet & { id: string };
+
+  beforeEach(() => {
+    authWert.user.role = 'Projektleiter';
+    neuGeholt.mockReset().mockResolvedValue([]);
+    gesehen.mockClear();
+  });
+
+  it('zeigt genau die neuen Scheine in der Reihenfolge der Datenbank und merkt sie danach als gesehen', async () => {
+    nurInDerDatenbank = [neu('n1', 'Familie Neuhold'), neu('n2', 'Familie Frisch')];
+    neuGeholt.mockResolvedValue([{ id: 'n2' }, { id: 'n1' }]);
+    zeichne('/worksheets?filter=neu-eingegangen');
+
+    expect(await screen.findByText('neu eingegangen')).toBeInTheDocument();
+    const frisch = await screen.findByRole('button', { name: /Familie Frisch/ });
+    const neuhold = screen.getByRole('button', { name: /Familie Neuhold/ });
+    expect(frisch.compareDocumentPosition(neuhold) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Der eigene Entwurf und der geladene, nicht neue Schein stehen nicht darin.
+    expect(screen.queryByText(/Familie Huber/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Familie Berger/)).not.toBeInTheDocument();
+    // Keine Reiter: der Filter aus der Adresse gilt allein.
+    expect(screen.queryByRole('button', { name: 'Offen' })).not.toBeInTheDocument();
+    await waitFor(() => expect(gesehen).toHaveBeenCalledTimes(1));
+  });
+
+  it('nichts Neues: sagt das — und merkt trotzdem', async () => {
+    zeichne('/worksheets?filter=neu-eingegangen');
+    expect(await screen.findByText('Seit dem letzten Ansehen ist kein Schein neu eingegangen.')).toBeInTheDocument();
+    await waitFor(() => expect(gesehen).toHaveBeenCalledTimes(1));
+  });
+
+  it('nicht gekommen ist nicht „nichts Neues“ — und nichts wird als gesehen gemerkt', async () => {
+    neuGeholt.mockRejectedValue(new Error('Netz weg'));
+    zeichne('/worksheets?filter=neu-eingegangen');
+    expect(await screen.findByText('Die neu eingegangenen Scheine konnten nicht geladen werden. Bitte die Seite neu laden.'))
+      .toBeInTheDocument();
+    expect(screen.queryByText(/kein Schein neu eingegangen/)).not.toBeInTheDocument();
+    expect(gesehen).not.toHaveBeenCalled();
+  });
+
+  it('bleibt gleich: ohne den Filter fragt die Liste nicht nach Neuem und merkt nichts', async () => {
+    zeichne();
+    await screen.findByText(/Familie Huber/);
+    expect(neuGeholt).not.toHaveBeenCalled();
+    expect(gesehen).not.toHaveBeenCalled();
+  });
+});
+
+/*
+  M3/F10 (16.11.2026): VERBRAUCH AM SCHEIN BUCHT DAS LAGER. Nach dem
+  Unterschreiben öffnet sich das Fenster des Scheins; dort steht, was er über
+  das Ausgegebene hinaus trägt, mit der Wahl, woher es kam.
+*/
+describe('Verbrauch am Schein (M3)', () => {
+  const VORSCHLAG = {
+    entschieden: false,
+    gebucht: [],
+    zeilen: [{ materialId: 'k1', name: 'Pressfitting 15', einheit: 'Stk', aufSchein: 6, vorschlag: 2 }],
+    orte: [{ id: 'bus', name: 'W-123 (Max)' }],
+  };
+
+  it('bietet die Differenz an — der Monteur bucht aus seinem Fahrzeug, vorgewählt', async () => {
+    verbrauchVorschlag.mockResolvedValue(VORSCHLAG);
+    verbrauchBuchen.mockClear();
+    geladen = [scheine[1]];
+    zeichne();
+    await alle();
+    const fenster = await oeffne(/Familie Berger/);
+    expect(await within(fenster).findByText(/auf dem Schein 6 Stk · nicht ausgegeben 2 Stk/)).toBeInTheDocument();
+    expect(within(fenster).getByRole('combobox', { name: 'Woher kam Pressfitting 15?' })).toHaveValue('bus');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Abbuchen' }));
+    await waitFor(() => expect(verbrauchBuchen).toHaveBeenCalledWith(scheine[1].id, [{ materialId: 'k1', menge: 2, ortId: 'bus' }]));
+    verbrauchVorschlag.mockResolvedValue(null);
+  });
+
+  it('„Nichts abbuchen“ entscheidet ohne Buchung; „nicht abbuchen“ je Zeile lässt die Zeile weg', async () => {
+    verbrauchVorschlag.mockResolvedValue(VORSCHLAG);
+    verbrauchBuchen.mockClear();
+    geladen = [scheine[1]];
+    zeichne();
+    await alle();
+    const fenster = await oeffne(/Familie Berger/);
+    await within(fenster).findByText(/nicht ausgegeben 2 Stk/);
+    await userEvent.selectOptions(within(fenster).getByRole('combobox', { name: 'Woher kam Pressfitting 15?' }), 'nicht');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Abbuchen' }));
+    await waitFor(() => expect(verbrauchBuchen).toHaveBeenCalledWith(scheine[1].id, []));
+    verbrauchVorschlag.mockResolvedValue(null);
+  });
+
+  it('nach der Entscheidung steht, was abgebucht wurde', async () => {
+    verbrauchVorschlag.mockResolvedValue({ ...VORSCHLAG, entschieden: true, zeilen: [], gebucht: [{ materialId: 'k1', name: 'Pressfitting 15', einheit: 'Stk', ort: 'Hauptlager', menge: 2 }] });
+    geladen = [scheine[1]];
+    zeichne();
+    await alle();
+    const fenster = await oeffne(/Familie Berger/);
+    expect(await within(fenster).findByText('Vom Lager abgebucht')).toBeInTheDocument();
+    expect(within(fenster).queryByRole('button', { name: 'Abbuchen' })).toBeNull();
+    verbrauchVorschlag.mockResolvedValue(null);
+  });
+
+  it('Gleichbleiben: nichts über das Ausgegebene hinaus — kein Abschnitt, kein Knopf', async () => {
+    verbrauchVorschlag.mockResolvedValue({ ...VORSCHLAG, zeilen: [] });
+    geladen = [scheine[1]];
+    zeichne();
+    await alle();
+    const fenster = await oeffne(/Familie Berger/);
+    await waitFor(() => expect(verbrauchVorschlag).toHaveBeenCalled());
+    expect(within(fenster).queryByText(/Nicht über eine Anforderung gekommen/)).toBeNull();
+    verbrauchVorschlag.mockResolvedValue(null);
   });
 });

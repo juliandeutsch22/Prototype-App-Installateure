@@ -80,6 +80,58 @@ export function listApprovedVacationsInRange(
   });
 }
 
+/**
+ * Genehmigter Urlaub und Zeitausgleich, der noch nicht vorbei ist — die
+ * Arbeitsliste „Genehmigt, noch nicht vorbei“ der Entscheidenden (Z1).
+ * Ohne Betriebsurlaub: der wird nicht für eine Person geändert. Früheste
+ * zuerst, seitenweise über `max`.
+ */
+export function listGenehmigtNochNichtVorbei(companyId: string, heute: string, max = 100) {
+  return abfragen<Vacation>(URLAUB, companyId, {
+    wo: [
+      { art: 'gleich', feld: 'status', wert: 'Genehmigt' },
+      { art: 'ab', feld: 'bis', wert: heute },
+      { art: 'leer', feld: 'betriebsurlaubId' },
+    ],
+    sortiere: { feld: 'von' },
+    grenze: max,
+  });
+}
+
+/** Was eine Kürzung zurückmeldet. */
+export interface UrlaubsKuerzung {
+  entfernt: number;
+  /** Wie viele Anträge danach bestehen (mehr als einer: geteilt). */
+  teile: number;
+  antraege: string[];
+}
+
+/**
+ * Einen genehmigten Urlaub kürzen (Z1) — früher zurück, später weg, einzelne
+ * Tage streichen. Entschieden und geprüft wird in der Datenbank
+ * (`urlaub_kuerzen`): sie ändert fremde Zeiteinträge, und das darf der
+ * Aufrufer nicht selbst.
+ */
+export async function kuerzen(daten: {
+  vacationId: string;
+  von: string;
+  bis: string;
+  streichen: string[];
+  grund: string;
+  name?: string;
+}): Promise<UrlaubsKuerzung> {
+  const { data, error } = await derClient().rpc('urlaub_kuerzen', {
+    p_antrag: daten.vacationId,
+    p_von: daten.von,
+    p_bis: daten.bis,
+    p_streichen: daten.streichen,
+    p_grund: daten.grund,
+    p_name: daten.name ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return data as UrlaubsKuerzung;
+}
+
 export type NewVacation = Omit<Vacation, 'id' | 'companyId' | 'createdAt'>;
 
 export function createVacation(companyId: string, v: NewVacation) {

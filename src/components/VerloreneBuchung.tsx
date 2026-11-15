@@ -3,6 +3,7 @@ import { beiVormerkungFehlgeschlagen } from '@/lib/sync/ausgangsfach';
 import { useToast } from '@/components/Toast';
 import { FOTO_TABELLE, SCHEIN_TABELLE } from '@/features/worksheets/vorgemerkt';
 import { NACHRICHT_TABELLE } from '@/lib/db/nachrichten';
+import { datumAT } from '@/lib/datum';
 
 /**
  * Sagt Bescheid, wenn eine vorgemerkte Buchung doch nicht durchgekommen ist.
@@ -39,8 +40,25 @@ export default function VerloreneBuchung() {
       wurde — das steht im Grund des Servers, und ohne ihn wüsste niemand,
       welcher Stand jetzt gilt.
     */
-    const melden = ({ tabelle, grund: roh }: { tabelle: string; grund: string }) => {
+    const melden = ({ tabelle, grund: roh, vorgaenge, gesichert }: {
+      tabelle: string; grund: string; vorgaenge?: readonly { daten: Record<string, unknown> }[]; gesichert?: boolean;
+    }) => {
       const grund = /[.!?]$/.test(roh.trim()) ? roh.trim() : `${roh.trim()}.`;
+      /*
+        DIE ZEITBUCHUNG MIT TAG UND GRUND (Z4): bisher nur „eine vorgemerkte
+        Buchung“ — welcher Tag, warum, stand nirgends, und die Eingabe war
+        weg. Jetzt liegt sie als Entwurf unter „Meine Einträge“.
+      */
+      if (tabelle === 'time_entries') {
+        const tag = vorgaenge?.map((v) => v.daten.date).find((d): d is string => typeof d === 'string');
+        toast.wichtig(
+          `Eine vorgemerkte Zeitbuchung${tag ? ` vom ${datumAT(tag)}` : ''} wurde nicht angenommen: ${grund} ` +
+            (gesichert
+              ? 'Sie liegt als Entwurf unter Zeiterfassung, „Meine Einträge“ — dort öffnen, korrigieren und neu buchen.'
+              : 'Bitte in der Übersicht nachsehen und neu erfassen.'),
+        );
+        return;
+      }
       toast.wichtig(
         tabelle === SCHEIN_TABELLE
           ? `Ein vorgemerkter Handwerksschein konnte nicht gesendet werden: ${grund} Bitte unter Handwerksscheine nachsehen.`

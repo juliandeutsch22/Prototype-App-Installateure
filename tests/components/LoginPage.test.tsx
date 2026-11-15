@@ -23,6 +23,7 @@ import { AnmeldeFehler } from '@/lib/auth/kern';
 
 const anmelden = vi.fn<(...args: unknown[]) => Promise<undefined>>(async () => undefined);
 const zuruecksetzen = vi.fn<(a0: string) => Promise<undefined>>(async () => undefined);
+const hilfe = vi.fn<(a0: string) => Promise<undefined>>(async () => undefined);
 let authFehler: string | null = null;
 let angemeldet: CurrentUser | null = null;
 
@@ -32,6 +33,7 @@ vi.mock('@/app/AuthContext', () => ({
     user: angemeldet,
     error: authFehler,
     resetPassword: zuruecksetzen,
+    passwortHilfe: hilfe,
   }),
 }));
 /*
@@ -51,7 +53,7 @@ vi.mock('@/features/dashboard/DashboardView', () => {
   return { default: () => null };
 });
 
-const { default: LoginPage, RUECKSETZ_HINWEIS } = await import('@/features/auth/LoginPage');
+const { default: LoginPage, RUECKSETZ_HINWEIS, BITTE_AN_LEITUNG } = await import('@/features/auth/LoginPage');
 
 function zeige() {
   return render(
@@ -73,6 +75,7 @@ async function anmeldeversuch() {
 beforeEach(() => {
   anmelden.mockClear();
   zuruecksetzen.mockClear();
+  hilfe.mockReset().mockResolvedValue(undefined);
   authFehler = null;
   angemeldet = null;
 });
@@ -260,6 +263,35 @@ describe('Anmelden mit Benutzername', () => {
 
     expect(await screen.findByText(/keinen Link per E-Mail/)).toBeInTheDocument();
     expect(zuruecksetzen).not.toHaveBeenCalled();
+  });
+
+  /*
+    V14 (Durchsicht 15.11.2026): die Bitte landet bei der Leitung, ohne zu
+    verraten, ob es den Namen gibt. GEGENPROBE (Erwartung): mit der alten
+    Maske (nur der Hinweis) sind die ersten beiden Fälle rot.
+  */
+  it('schickt die Bitte an die Leitung und sagt, wohin sie ging — gleich, ob es den Namen gibt', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(screen.getByRole('button', { name: 'Passwort vergessen?' }));
+    await nutzer.type(screen.getByLabelText(/E-Mail/), 'manfred.huber');
+    await nutzer.click(screen.getByRole('button', { name: 'Link anfordern' }));
+
+    expect(await screen.findByText(BITTE_AN_LEITUNG)).toBeInTheDocument();
+    expect(hilfe).toHaveBeenCalledWith('manfred.huber');
+    expect(BITTE_AN_LEITUNG).toMatch(/gibt es diesen Benutzernamen/);
+  });
+
+  it('kommt die Bitte nicht an (kein Netz), steht das da — ohne etwas über das Konto zu sagen', async () => {
+    hilfe.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(screen.getByRole('button', { name: 'Passwort vergessen?' }));
+    await nutzer.type(screen.getByLabelText(/E-Mail/), 'manfred.huber');
+    await nutzer.click(screen.getByRole('button', { name: 'Link anfordern' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Die Bitte ließ sich nicht senden');
+    expect(screen.queryByText(BITTE_AN_LEITUNG)).toBeNull();
   });
 
   it('schickt für eine Adresse den Link wie bisher', async () => {

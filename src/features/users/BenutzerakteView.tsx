@@ -6,7 +6,7 @@ import { getUserByUid, updateUserProfile } from '@/lib/db/users';
 import { generatePassword, resendPasswordReset } from '@/lib/auth/provisionUser';
 import { passwortVergeben } from '@/lib/auth/sitzung';
 import { istBenutzerkonto, kontoAnzeige } from '@shared/benutzername';
-import { canManageAdmins, fuehrtZeitkonto } from '@/lib/permissions';
+import { canManageAdmins, fuehrtZeitkonto, isTopLevel } from '@/lib/permissions';
 import { ROLES, type AppUser, type Role } from '@/types';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
@@ -29,10 +29,9 @@ import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import {
   alsEntwurf, alsProfil, austrittFehler, entwurfFehler, gleich, jugendschutzHinweise, mitKundenFreigabe, mitLagerFreigaben,
   mitRechnungsFreigabe, mitZeitkontoWahl,
-  tagessollNachTagen, urlaubsfeldName, WEEKDAYS,
+  urlaubsfeldName, WEEKDAYS, zahlOderNull, zahlOderVorgabe,
   type BenutzerEntwurf,
 } from './benutzerEntwurf';
-import TagessollFelder from './TagessollFelder';
 import EinstufungFelder from './EinstufungFelder';
 import GeburtsdatumKarte from './GeburtsdatumKarte';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -43,6 +42,11 @@ import Datenauskunft from '@/features/recht/Datenauskunft';
 import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
 import ZahlFeld from '@/components/ZahlFeld';
 import KontoUmstellen from './KontoUmstellen';
+import ZweiterFaktorZuruecksetzen from './ZweiterFaktorZuruecksetzen';
+import PasswortBitte from './PasswortBitte';
+import ArbeitszeitVerlaufKarte from './ArbeitszeitVerlaufKarte';
+import AustrittFolgen from './AustrittFolgen';
+import { leseZahl } from '@/lib/zahl';
 import UrlaubsanspruchKarte from './UrlaubsanspruchKarte';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
@@ -80,6 +84,8 @@ export default function BenutzerakteView() {
   const { uid } = useParams<{ uid: string }>();
   const { user, einblick, company } = useAuth();
   const direktAn = useModul('nachrichten.direktnachrichten');
+  // Ohne Modul Urlaub entscheidet das Büro Anträge unter „Sonderurlaub“.
+  const urlaubsweg = useModul('urlaub') ? '/vacations' : '/sonderurlaub';
   const toast = useToast();
 
   const [person, setPerson] = useState<Teil<AppUser | null>>(LAEDT);
@@ -90,6 +96,10 @@ export default function BenutzerakteView() {
   const [umschalten, setUmschalten] = useState(false);
   /** Der letzte Arbeitstag, den das Deaktivieren mitschreibt (E87); leer heisst: nicht bekannt. */
   const [austrittWahl, setAustrittWahl] = useState('');
+  /* Der Wiedereintritt beginnt neu (Z2): neuer Tag, neue Startwerte. */
+  const [wiederTag, setWiederTag] = useState('');
+  const [wiederSaldo, setWiederSaldo] = useState('0');
+  const [wiederUrlaub, setWiederUrlaub] = useState('');
   const [neuesPasswortFragen, setNeuesPasswortFragen] = useState(false);
   const [vergibt, setVergibt] = useState(false);
   /** Nur für diesen Augenblick sichtbar — nirgends gespeichert. */
@@ -166,7 +176,16 @@ export default function BenutzerakteView() {
     setSpeichert(true);
     setSpeicherFehler(null);
     try {
-      await updateUserProfile(uid, alsProfil(entwurf));
+      /*
+        ARBEITSZEIT UND URLAUBSANSPRUCH GEHEN NICHT MIT (Durchsicht 15.11.2026,
+        Z3): sie ändern sich nur ab einem Tag, über „Arbeitszeit ändern“. Mit
+        der Akte geschrieben, wären sie für jeden Tag seit dem Saldo-Start neu
+        gerechnet worden — die Datenbank machte daraus nun „ab heute“, aber
+        ohne dass es jemand gewählt hätte.
+      */
+      const { weeklyTargetHours, yearlyVacationDays, workDays, tagessoll, ...ohneArbeitszeit } = alsProfil(entwurf);
+      void weeklyTargetHours; void yearlyVacationDays; void workDays; void tagessoll;
+      await updateUserProfile(uid, ohneArbeitszeit);
       setBearbeitet(false);
       toast.success(`${entwurf.name} aktualisiert`);
       setVersuch((v) => v + 1);
@@ -191,16 +210,7 @@ export default function BenutzerakteView() {
     }
   }
 
-  function tagUmschalten(d: number) {
-    if (!entwurf) return;
-    setEntwurf({
-      ...entwurf,
-      workDays: entwurf.workDays.includes(d)
-        ? entwurf.workDays.filter((x) => x !== d)
-        : [...entwurf.workDays, d].sort(),
-      tagessoll: tagessollNachTagen(entwurf, d),
-    });
-  }
+
 
   if (person.zustand === 'laedt') {
     return (
@@ -228,6 +238,17 @@ export default function BenutzerakteView() {
   const p = person.daten;
   // Wie die Datenbank (`users_austritt_nach_eintritt`): nicht vor Eintritt oder Saldo-Start.
   const austrittUngueltig = p ? austrittFehler(austrittWahl, p.eintritt, p.appStartDate) : null;
+  /*
+    WIEDEREINTRITT (Durchsicht 15.11.2026, Z2): wer schon ausgetreten ist,
+    beginnt neu. Vorher entfernte „Aktivieren“ nur den Austritt — die Lücke
+    zählte dann als Soll (Austritt 30.6., Rückkehr 1.10.: rund 65 Tage Minus)
+    samt vollem Urlaubsanspruch der Lücke.
+  */
+  const wiedereintritt = !!p && p.active === false && !!p.austritt && p.austritt < todayStr();
+  const wiederFehler = !wiedereintritt || !p?.austritt ? null
+    : !wiederTag || wiederTag <= p.austritt ? `Der Wiedereintritt liegt nach dem Austritt am ${datumAT(p.austritt)}.`
+      : leseZahl(wiederSaldo, { negativ: true }).fehler ? `Start-Saldo: ${leseZahl(wiederSaldo, { negativ: true }).fehler}`
+        : leseZahl(wiederUrlaub, { negativ: true }).fehler ? `Urlaub: ${leseZahl(wiederUrlaub, { negativ: true }).fehler}` : null;
   if (!p || !user) {
     return (
       <div className="space-y-6">
@@ -309,6 +330,9 @@ export default function BenutzerakteView() {
             variant={p.active === false ? 'secondary' : 'ghost'}
             onClick={() => {
               setAustrittWahl(p.austritt ?? todayStr());
+              setWiederTag(todayStr());
+              setWiederSaldo('0');
+              setWiederUrlaub('');
               setUmschalten(true);
             }}
           >
@@ -316,6 +340,10 @@ export default function BenutzerakteView() {
           </Button>
         )}
       </div>
+      {/* V14: eine Bitte aus der Anmeldemaske — nur die Spitze vergibt Passwörter, im Einblick nicht. */}
+      {isTopLevel(user.role) && !einblick && companyId && (
+        <PasswortBitte companyId={companyId} uid={p.uid} name={p.name} stand={vergeben} />
+      )}
       {vergeben && (
         <div className="mt-4">
           <Hinweiszeile stufe="warn" role="alert">
@@ -344,6 +372,14 @@ export default function BenutzerakteView() {
           setVersuch((v) => v + 1);
         }}
       />
+      {/* K7: nur die Spitze des Betriebs, nicht im Einblick des Supports (der setzt über den Notzugang zurück). */}
+      {isTopLevel(user.role) && !einblick && (
+        <ZweiterFaktorZuruecksetzen
+          person={p}
+          eigenesKonto={eigenesKonto}
+          onZurueckgesetzt={() => setVersuch((v) => v + 1)}
+        />
+      )}
       {/*
         DEAKTIVIEREN IST NICHT LÖSCHEN. Hier stand „Gelöscht wird ein Benutzer
         nie“ — und dieselbe Seite bietet unter „Datenschutz“ die Löschung nach
@@ -416,11 +452,19 @@ export default function BenutzerakteView() {
             <Card title="Startwerte des Zeitkontos" hint="Das sind Einstellungen und Startwerte. Aktuelle Salden stehen in der Mitarbeiterübersicht.">
               <StammdatenLesen p={p} teil="startwerte" />
             </Card>
+            {p.austritt && canAccess(user.role, '/accounting', company?.modules) && (
+              <Card title="Nach dem Austritt" id="akte-austritt">
+                <AustrittFolgen uid={p.uid} tag={p.austritt} beenden urlaubsweg={urlaubsweg} />
+              </Card>
+            )}
           </div> },
         { id: 'arbeitszeit', titel: 'Arbeitszeit und Urlaub', sprungziele: ['akte-zeitkonto', 'akte-urlaub'], inhalt:
           <div className="akten-spalte"><Card title="Zeitkonto-Einstellungen" id="akte-zeitkonto"
             hint="Hier stehen die Einstellungen und Startwerte des Zeitkontos. Die aktuellen Salden und Buchungen stehen in der Mitarbeiterübersicht.">
-            <StammdatenLesen p={p} teil="arbeitszeit" /></Card>{anspruch}</div> },
+            <StammdatenLesen p={p} teil="arbeitszeit" /></Card>
+            <ArbeitszeitVerlaufKarte person={p} jahresbeginn={uebertragsRegel(company).jahresbeginn ?? '01-01'}
+              darfAendern={darfAendern} onGeaendert={() => setVersuch((v) => v + 1)} geburtsdatum={geburtsdatumDerPerson} />
+            {anspruch}</div> },
         ...((zugang || auskunft) ? [{ id: 'zugang', titel: zugang ? 'Zugang und Rechte' : 'Datenschutz', sprungziele: ['akte-zugang', 'akte-datenschutz'], inhalt:
           <div className="akten-spalte">{zugang}{auskunft}</div> }] : []),
       ]} />
@@ -431,7 +475,6 @@ export default function BenutzerakteView() {
           setEntwurf={setEntwurf}
           rollen={ROLES.filter((r) => r !== 'Administrator' || canManageAdmins(user.role))}
           eigenesKonto={eigenesKonto}
-          onTag={tagUmschalten}
           geaendert={geaendert}
           speichert={speichert}
           fehler={speicherFehler}
@@ -463,7 +506,7 @@ export default function BenutzerakteView() {
         open={neuesPasswortFragen}
         title="Neues Startpasswort vergeben?"
         confirmLabel="Vergeben"
-        message={`Das bisherige Passwort von ${p.name} gilt danach nicht mehr. Bereits angemeldete Geräte bleiben angemeldet — wer ein verlorenes Telefon sperren will, deaktiviert das Konto.`}
+        message={`Das bisherige Passwort von ${p.name} gilt danach nicht mehr. Jedes Gerät, auf dem ${p.name} angemeldet ist, wird abgemeldet und zeigt keine Meldungen mehr — angemeldet wird mit dem neuen Startpasswort.`}
         onCancel={() => setNeuesPasswortFragen(false)}
         onConfirm={() => {
           setNeuesPasswortFragen(false);
@@ -478,10 +521,12 @@ export default function BenutzerakteView() {
         confirmTone={p.active === false ? 'primary' : 'danger'}
         message={
           p.active === false
-            ? `${p.name} kann sich danach wieder anmelden.${p.austritt ? ` Das Austrittsdatum (${datumAT(p.austritt)}) wird dabei entfernt — ab dann rechnet das Zeitkonto wieder weiter.` : ''}`
-            : `${p.name} kann sich danach nicht mehr anmelden. Alle bisherigen Zeiteinträge bleiben erhalten.`
+            ? wiedereintritt
+              ? `${p.name} ist am ${datumAT(p.austritt!)} ausgetreten. Der Wiedereintritt beginnt neu: neues Eintritts- und Saldo-Startdatum mit eigenen Startwerten — die Zeit dazwischen zählt nicht als Soll, das alte Zeitkonto bleibt abgeschlossen.`
+              : `${p.name} kann sich danach wieder anmelden.${p.austritt ? ` Das Austrittsdatum (${datumAT(p.austritt)}) liegt noch vor uns und wird entfernt — das Zeitkonto rechnet ohne Unterbrechung weiter.` : ''}`
+            : `${p.name} kann sich danach nicht mehr anmelden und bekommt auf keinem Gerät mehr Meldungen. Alle bisherigen Zeiteinträge bleiben erhalten.`
         }
-        gesperrt={p.active !== false && !!austrittUngueltig}
+        gesperrt={p.active !== false ? !!austrittUngueltig : !!wiederFehler}
         onCancel={() => setUmschalten(false)}
         onConfirm={async () => {
           const naechster = p.active === false;
@@ -491,7 +536,16 @@ export default function BenutzerakteView() {
             Aktivieren fällt er weg — sonst endete das Zeitkonto weiter am
             alten Tag.
           */
-          await updateUserProfile(p.uid, naechster ? { active: true, austritt: null } : { active: false, austritt: austrittWahl || null });
+          await updateUserProfile(
+            p.uid,
+            !naechster ? { active: false, austritt: austrittWahl || null }
+              // Neu beginnen: Eintritt und Saldo-Start am Tag der Rückkehr, Startwerte wie bei einer Anlage.
+              : wiedereintritt ? {
+                active: true, austritt: null, eintritt: wiederTag, appStartDate: wiederTag,
+                initialOvertime: zahlOderVorgabe(wiederSaldo, 0), initialVacationDays: zahlOderNull(wiederUrlaub),
+              }
+                : { active: true, austritt: null },
+          );
           setUmschalten(false);
           setVersuch((v) => v + 1);
           toast.success(naechster ? 'Benutzer aktiviert' : 'Benutzer deaktiviert');
@@ -511,6 +565,24 @@ export default function BenutzerakteView() {
             {austrittUngueltig
               ? <p id="b-austritt-deaktivieren-hinweis" role="alert" className="mt-1 text-sm text-danger">{austrittUngueltig}</p>
               : <p id="b-austritt-deaktivieren-hinweis" className="mt-1 text-xs text-ink-muted">Bis zu diesem Tag rechnen Soll und Saldo. Leer lassen, wenn er noch nicht feststeht.</p>}
+            {/* Austritt in einem Zug (Z2): was danach noch offen ist, bevor deaktiviert wird. */}
+            {austrittWahl && !austrittUngueltig && (
+              <div className="mt-3"><AustrittFolgen uid={p.uid} tag={austrittWahl} urlaubsweg={urlaubsweg} /></div>
+            )}
+          </div>
+        )}
+        {wiedereintritt && (
+          <div className="mt-3 flex flex-col gap-3">
+            <InputField
+              id="b-wiedereintritt" label="Wiedereintritt (erster Arbeitstag)" type="date" pflicht
+              value={wiederTag} onChange={(e) => setWiederTag(e.target.value)}
+            />
+            <ZahlFeld id="b-wieder-saldo" label="Start-Saldo (Stunden)" value={wiederSaldo} onChange={setWiederSaldo} />
+            <InputField
+              id="b-wieder-urlaub" label="Urlaub im ersten Jahr" inputMode="decimal" placeholder="leer = voller Anspruch"
+              value={wiederUrlaub} onChange={(e) => setWiederUrlaub(e.target.value)}
+            />
+            {wiederFehler && wiederTag && <p role="alert" className="text-sm text-danger">{wiederFehler}</p>}
           </div>
         )}
       </ConfirmDialog>
@@ -610,7 +682,6 @@ interface FormularProps {
   setEntwurf: (e: BenutzerEntwurf) => void;
   rollen: readonly Role[];
   eigenesKonto: boolean;
-  onTag: (d: number) => void;
   geaendert: boolean;
   speichert: boolean;
   fehler: string | null;
@@ -622,7 +693,7 @@ interface FormularProps {
 
 /** Dieselben Stammdaten, bearbeitbar. */
 function StammdatenFormular({
-  entwurf, setEntwurf, rollen, eigenesKonto, onTag,
+  entwurf, setEntwurf, rollen, eigenesKonto,
   geaendert, speichert, fehler, onSpeichern, onVerwerfen, gespeichert, eintritt,
 }: FormularProps) {
   const setze = <F extends keyof BenutzerEntwurf>(feld: F, wert: BenutzerEntwurf[F]) =>
@@ -770,18 +841,6 @@ function StammdatenFormular({
           </div>
         )}
         <FormGrid>
-          <ZahlFeld
-            id="b-stunden" label="Wochenstunden"
-            value={entwurf.weeklyTargetHours}
-            // Mit eigenem Tagessoll sind die Wochenstunden dessen Summe (M5).
-            disabled={Object.keys(entwurf.tagessoll).length > 0}
-            onChange={(t) => setze('weeklyTargetHours', t)}
-          />
-          <ZahlFeld
-            id="b-urlaub" label="Urlaubstage pro Jahr"
-            value={entwurf.yearlyVacationDays}
-            onChange={(t) => setze('yearlyVacationDays', t)}
-          />
           <InputField
             id="b-eintritt" label="Eintrittsdatum (im Betrieb seit)" type="date"
             value={entwurf.eintritt}
@@ -846,24 +905,14 @@ function StammdatenFormular({
           </InfoHint>
         </div>
 
-        <fieldset>
-          <legend className="mb-1 text-sm font-normal text-ink">Arbeitstage</legend>
-          <div className="flex flex-wrap gap-x-4">
-            {WEEKDAYS.map((d) => (
-              <CheckboxField
-                key={d.value}
-                id={`b-tag-${d.value}`}
-                label={d.label}
-                checked={entwurf.workDays.includes(d.value)}
-                onChange={() => onTag(d.value)}
-              />
-            ))}
-          </div>
-          <p className="mt-1 text-sm text-ink-muted">
-            Bestimmt das Tagessoll: Wochenstunden geteilt durch Arbeitstage.
-          </p>
-          <TagessollFelder form={entwurf} setForm={setEntwurf} />
-        </fieldset>
+        {/*
+          Wochenstunden, Arbeitstage, Tagessoll und Urlaubstage ändern sich ab
+          einem Tag (Z3) — nicht hier, sondern im Bereich „Arbeitszeit und Urlaub“.
+        */}
+        <p className="text-sm text-ink-muted">
+          Wochenstunden, Arbeitstage, Tagessoll und Urlaubstage pro Jahr ändern sich ab einem Tag:
+          im Bereich „Arbeitszeit und Urlaub“ über „Arbeitszeit ändern“ bzw. „Urlaubsanspruch ändern“.
+        </p>
       </div>
 
       {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}

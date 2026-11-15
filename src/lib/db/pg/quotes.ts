@@ -14,7 +14,7 @@ import type { Quote, InvoiceDiscount, Abrechnungsart } from '@/types';
 import { abfragen, derClient, loeschen, zaehlen, type Bedingung, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 import { oderUeberSpalten } from './suche';
-import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
+import { PRAEFIX_VORGABE } from '@/lib/praefixe';
 
 const ANGEBOTE = 'quotes';
 const POSITIONEN = 'quote_lines';
@@ -94,6 +94,55 @@ export async function listRecentQuotes(companyId: string, max = 100) {
     grenze: max,
   });
   return zusammensetzen(koepfe, companyId);
+}
+
+/**
+ * OFFEN HEISST ENTWURF ODER VERSENDET — gefragt bei der Datenbank, nicht im
+ * Geladenen (Durchsicht 15.11.2026, A6). „Offen“ filterte vorher nur die
+ * hundert zuletzt angelegten: ein versendetes Angebot vom Jänner, auf das der
+ * Kunde nie antwortete, stand nach hundert jüngeren weder unter „Bindefrist
+ * abgelaufen“ noch sonst irgendwo.
+ *
+ * Die älteste Bindefrist zuerst: was am längsten wartet, steht oben — und
+ * nachgeladen wird von dort weiter.
+ */
+const OFFEN: Bedingung = { art: 'in', feld: 'status', werte: ['Entwurf', 'Versendet'] };
+
+export async function listOffeneQuotes(companyId: string, max = 100) {
+  const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
+    wo: [OFFEN],
+    sortiere: { feld: 'validUntil' },
+    grenze: max,
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/**
+ * Die Fassungen rund um geladene Angebote — ihre Vorgänger und ihre neuen
+ * Fassungen (eine Stufe, wie `fassungsHinweis` sie liest). „Offen“ lädt nur
+ * Offenes; ob daneben schon eine Fassung angenommen ist (G15), sagt erst
+ * diese Abfrage.
+ */
+export async function listFassungsNachbarn(companyId: string, ids: string[], vorgaengerIds: string[]) {
+  const [vorher, nachher] = await Promise.all([
+    vorgaengerIds.length
+      ? abfragen<KopfZeile>(ANGEBOTE, companyId, { wo: [{ art: 'in', feld: 'id', werte: [...new Set(vorgaengerIds)] }, NICHT_VERWORFEN] })
+      : Promise.resolve([]),
+    ids.length
+      ? abfragen<KopfZeile>(ANGEBOTE, companyId, { wo: [{ art: 'in', feld: 'vorgaengerId', werte: [...new Set(ids)] }, NICHT_VERWORFEN] })
+      : Promise.resolve([]),
+  ]);
+  return zusammensetzen([...new Map([...vorher, ...nachher].map((k) => [k.id, k])).values()], companyId);
+}
+
+/** Wie viele offen sind — dieselbe Bedingung wie die Liste, damit Zahl und Liste nie auseinanderlaufen. */
+export function zaehleOffeneQuotes(companyId: string): Promise<number> {
+  return zaehlen(ANGEBOTE, companyId, { wo: [OFFEN] });
+}
+
+/** Wie viele es überhaupt gibt (ohne Papierkorb) — für „noch keines“ gegenüber „keines offen“. */
+export function zaehleQuotes(companyId: string): Promise<number> {
+  return zaehlen(ANGEBOTE, companyId, { wo: [NICHT_VERWORFEN] });
 }
 
 /** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */
@@ -239,8 +288,14 @@ export async function listQuotesForProjects(companyId: string, projectIds: reado
 
 export type NewQuote = Omit<Quote, 'id' | 'companyId' | 'createdAt' | 'projectId'>;
 
+/**
+ * Was beim Ändern mitgeschickt wird. Die Baustelle eines Nachtrags (A3)
+ * lässt sich ausdrücklich lösen (`null`); weggelassen bleibt sie.
+ */
+export type AngebotAenderung = Partial<Omit<NewQuote, 'projectNumber'>> & { projectNumber?: string | null };
+
 /** Der Aufruf der Datenbankfunktion — eine Stelle für Anlegen und Ändern. */
-async function speichern(id: string | null, daten: Partial<NewQuote>): Promise<string> {
+async function speichern(id: string | null, daten: AngebotAenderung): Promise<string> {
   const { positions, discount, ...kopf } = daten;
   const zeile: Record<string, unknown> = objektAlsZeile(ANGEBOTE, kopf);
   /*
@@ -269,7 +324,7 @@ export function createQuote(companyId: string, q: NewQuote): Promise<string> {
   return speichern(null, q);
 }
 
-export async function updateQuote(id: string, data: Partial<NewQuote>): Promise<void> {
+export async function updateQuote(id: string, data: AngebotAenderung): Promise<void> {
   await speichern(id, data);
 }
 
@@ -353,21 +408,59 @@ export async function deleteAbgelaufeneAngebote(companyId: string, bis: string):
  */
 export async function reserveQuoteNumber(companyId: string, praefix?: string): Promise<string> {
   void companyId;
-  const jahr = new Date().getFullYear();
-  const { data, error } = await derClient().rpc('naechste_nummer', {
+  // Das Jahr vom Server, die Nummer aus der Datenbank (G10) — nicht von der Uhr des Geräts.
+  const { data, error } = await derClient().rpc('naechste_belegnummer', {
     p_art: 'quotes',
-    p_jahr: jahr,
+    p_praefix: praefix ?? PRAEFIX_VORGABE.angebot,
   });
   if (error) throw new Error(error.message);
-  return belegNummer(praefix ?? PRAEFIX_VORGABE.angebot, jahr, Number(data));
+  return String(data);
 }
 
-/** Die gesperrte Angebotszeile liefert den aktuellen Auftrag und sein Budget. */
-export async function acceptQuote(id: string, praefix: string, abrechnung: Abrechnungsart): Promise<string> {
-  const { data, error } = await derClient().rpc('angebot_annehmen', {
-    p_angebot: id, p_praefix: praefix, p_abrechnung: abrechnung,
+/**
+ * Die gesperrte Angebotszeile liefert den aktuellen Auftrag und sein Budget.
+ *
+ * MIT ZIEL (A3, F6): `baustelleId` hängt das Angebot als Nachtrag an diese
+ * Baustelle (ihr Budget wächst), `null` legt ausdrücklich eine neue an —
+ * auch wenn das Angebot vorher einer zugeordnet war.
+ */
+export async function acceptQuote(
+  id: string, praefix: string, abrechnung: Abrechnungsart, baustelleId: string | null = null,
+): Promise<string> {
+  const { data, error } = await derClient().rpc('angebot_annehmen_mit_ziel', {
+    p_angebot: id, p_praefix: praefix, p_abrechnung: abrechnung, p_baustelle: baustelleId,
   });
   if (error) throw new Error(error.message);
   if (typeof data !== 'string' || !data) throw new Error('Die Baustelle konnte nicht angelegt werden.');
   return data;
+}
+
+/** Was die Rücknahme einer Annahme mit Angebot und Baustelle getan hat (A1, F7). */
+export interface AnnahmeRuecknahme {
+  /** Wieder „Versendet“ (war schon versendet) oder „Entwurf“. */
+  status: 'Versendet' | 'Entwurf';
+  /** Die Baustelle der Annahme — gelöscht, abgeschlossen, (schon vorher) abgeschlossen, oder ein Nachtrag wurde von ihr gelöst (A3). */
+  baustelle: string | null;
+  baustelleId: string | null;
+  ergebnis: 'geloescht' | 'abgeschlossen' | 'war_abgeschlossen' | 'nachtrag_entfernt' | 'keine';
+  /** Fassungen, die die Annahme ersetzt hatte und die jetzt wieder offen sind. */
+  wiederOffen: string[];
+}
+
+/**
+ * Eine Annahme zurücknehmen — Fehlklick oder Rücktritt des Kunden
+ * (`angebot_annahme_zuruecknehmen`). Die Datenbank entscheidet, ob die
+ * Baustelle gelöscht (nichts hängt daran) oder abgeschlossen wird.
+ */
+export async function annahmeZuruecknehmen(id: string, grund: string): Promise<AnnahmeRuecknahme> {
+  const { data, error } = await derClient().rpc('angebot_annahme_zuruecknehmen', { p_angebot: id, p_grund: grund });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as Record<string, unknown>;
+  return {
+    status: d.status === 'Entwurf' ? 'Entwurf' : 'Versendet',
+    baustelle: typeof d.baustelle === 'string' ? d.baustelle : null,
+    baustelleId: typeof d.baustelle_id === 'string' ? d.baustelle_id : null,
+    ergebnis: (['geloescht', 'abgeschlossen', 'war_abgeschlossen', 'nachtrag_entfernt'] as const).find((e) => e === d.ergebnis) ?? 'keine',
+    wiederOffen: Array.isArray(d.wieder_offen) ? d.wieder_offen.map(String) : [],
+  };
 }

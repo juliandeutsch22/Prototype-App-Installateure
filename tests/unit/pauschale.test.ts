@@ -63,12 +63,38 @@ describe('pauschalVorschau', () => {
 });
 
 describe('Welches Angebot, und ist es schon verrechnet?', () => {
-  it('nimmt das jüngste angenommene', () => {
-    const alt = angebot({ id: 'a', quoteDate: '2026-08-01' });
-    const neu = angebot({ id: 'b', quoteDate: '2026-09-01' });
+  it('bleibt gleich: ein angenommenes Angebot ist genau dieses — abgelehnte zählen nicht', () => {
+    const an = angebot({ id: 'b', quoteDate: '2026-09-01' });
     const abgelehnt = angebot({ id: 'c', quoteDate: '2026-09-10', status: 'Abgelehnt' });
-    expect(pauschalAngebot([alt, abgelehnt, neu])?.id).toBe('b');
+    expect(pauschalAngebot([abgelehnt, an])).toBe(an);
     expect(pauschalAngebot([abgelehnt])).toBeNull();
+  });
+
+  /*
+    MIT NACHTRAG (Durchsicht 15.11.2026, A3). Vorher nahm die Rechnung „das
+    jüngste angenommene“ — der Nachtrag hätte den Hauptauftrag verdrängt.
+  */
+  it('mit Nachtrag: Hauptauftrag und Nachtrag zusammen, jeder mit seiner Nummer und seinem Rabatt', () => {
+    const haupt = angebot({ id: 'a', quoteNumber: 'AN-2026-0003', angenommenAm: 1 });
+    const nachtrag = angebot({
+      id: 'n', quoteNumber: 'AN-2026-0009', nachtrag: true, angenommenAm: 2,
+      positions: [{ label: 'Zweiter Heizkörper', qty: 1, unit: 'Stk', unitPrice: 200, netto: 200 }],
+      discount: { mode: 'percent', value: 10 }, discountAmount: 20,
+      subtotalNetto: 200, totalNetto: 180, totalVat: 36, totalBrutto: 216,
+    });
+    const g = pauschalAngebot([nachtrag, haupt])!;
+    expect(g.quoteNumber).toBe('AN-2026-0003 + AN-2026-0009');
+    expect(g.positions.map((p) => [p.art ?? 'position', p.label, p.netto])).toEqual([
+      ['text', 'Angebot AN-2026-0003', 0],
+      ['position', 'Heizkörper', 200],
+      ['position', 'Montage', 75],
+      ['text', 'Nachtrag AN-2026-0009', 0],
+      ['position', 'Zweiter Heizkörper', 200],
+      ['position', 'Rabatt laut AN-2026-0009', -20],
+    ]);
+    expect(g.totalNetto).toBe(455);
+    // Die Rechnung rechnet daraus dieselbe Summe wie die beiden Angebote zusammen.
+    expect(pauschalVorschau('schluss', BELEGE, g, 0.2).totalNetto).toBe(455);
   });
 
   it('eine Einzel- oder Schlussrechnung verrechnet die Pauschale — Storno, Anzahlung, Teil nicht', () => {

@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, within, waitFor } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
+import { RuestlisteFrage } from '@/lib/db/ruestlisteFrage';
 import type { AppUser, Assignment, Project, Termin, Vacation } from '@/types';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -107,8 +108,8 @@ vi.mock('@/lib/db/einsatzMaterial', () => ({
 }));
 const speichere = vi.fn();
 const loesche = vi.fn();
-const umplane = vi.fn<(...a: unknown[]) => Promise<{ id: string; anderswo: boolean }>>(async () => ({ id: 'kopie', anderswo: false }));
-const entferne = vi.fn<(...a: unknown[]) => Promise<void>>(async () => undefined);
+const umplane = vi.fn<(...a: unknown[]) => Promise<{ id: string; anderswo: boolean; ruestliste?: string | null }>>(async () => ({ id: 'kopie', anderswo: false }));
+const entferne = vi.fn<(...a: unknown[]) => Promise<unknown>>(async () => null);
 /** Welche Zeiträume geladen wurden — Woche oder Monat. */
 const geladen: [string, string][] = [];
 /**
@@ -251,6 +252,7 @@ beforeEach(() => {
   umplane.mockClear();
   umplane.mockImplementation(async () => ({ id: 'kopie', anderswo: false }));
   entferne.mockClear();
+  entferne.mockImplementation(async () => null);
   authWert.einblick = false;
   termineGeladen.mockClear();
   terminGeloescht.mockClear();
@@ -1824,7 +1826,8 @@ describe('Einsatzplanung — Umplanen (E88)', () => {
     expect(umplane).toHaveBeenCalledWith('a1', '2026-09-03', 'u1', true);
     expect(await screen.findByText(/Familie Huber kopiert: Donnerstag 03\.09\./)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Rückgängig' }));
-    await waitFor(() => expect(entferne).toHaveBeenCalledWith('kopie'));
+    // Die Kopie brachte keine Rüstliste mit — eine Liste am Zieltag bleibt, wie sie war (P2).
+    await waitFor(() => expect(entferne).toHaveBeenCalledWith('kopie', 'behalten'));
   });
 
   it('verschieben: Tag und Person wählen — „Rückgängig“ setzt ihn zurück, wo er war', async () => {
@@ -1877,7 +1880,39 @@ describe('Einsatzplanung — Umplanen (E88)', () => {
     expect(d.getByText(/Familie Huber · Max Mustermann · Mittwoch 02\.09\./)).toBeInTheDocument();
     expect(entferne).not.toHaveBeenCalled();
     await userEvent.click(d.getByRole('button', { name: 'Entfernen' }));
-    await waitFor(() => expect(entferne).toHaveBeenCalledWith('a1'));
+    await waitFor(() => expect(entferne).toHaveBeenCalledWith('a1', 'fragen'));
+  });
+
+  it('P2: beim Letzten mit Rüstliste fragt der Dialog „Rüstliste auflösen?“ und entfernt erst mit der Wahl', async () => {
+    einsaetze = [EINSATZ_MAX];
+    entferne.mockImplementation(async (_id: unknown, wahl: unknown) => {
+      if (wahl === 'fragen') throw new RuestlisteFrage('verwaist', 2, 0, 1);
+      return { ruestliste: 'behalten', in_arbeit: 1 };
+    });
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(leiste().getByRole('button', { name: 'Entfernen …' }));
+    const d = within(screen.getByRole('dialog', { name: 'Einsatz entfernen?' }));
+    await userEvent.click(d.getByRole('button', { name: 'Entfernen' }));
+    expect(await d.findByText('Rüstliste auflösen?')).toBeInTheDocument();
+    expect(d.getByText(/Eine Anforderung hat das Lager schon in Arbeit/)).toBeInTheDocument();
+    expect(d.getByRole('button', { name: 'Entfernen' })).toBeDisabled();
+    await userEvent.click(d.getByRole('radio', { name: /^Behalten/ }));
+    await userEvent.click(d.getByRole('button', { name: 'Entfernen' }));
+    await waitFor(() => expect(entferne).toHaveBeenLastCalledWith('a1', 'behalten'));
+    expect(await screen.findByText(/entfernt: Max Mustermann, Mittwoch 02\.09\. · die Rüstliste bleibt/)).toBeInTheDocument();
+  });
+
+  it('P2: zog die Rüstliste beim Verschieben mit, sagt es die Meldung', async () => {
+    einsaetze = [EINSATZ_MAX];
+    umplane.mockImplementation(async () => ({ id: 'a1', anderswo: false, ruestliste: 'mitgezogen' }));
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(leiste().getByRole('button', { name: 'Verschieben …' }));
+    const f = within(screen.getByRole('dialog', { name: 'Einsatz verschieben' }));
+    fireEvent.change(f.getByLabelText('Tag'), { target: { value: '2026-09-04' } });
+    await userEvent.click(f.getByRole('button', { name: 'Verschieben' }));
+    expect(await screen.findByText(/verschoben: Freitag 04\.09\. · die Rüstliste zog mit/)).toBeInTheDocument();
   });
 
   it('die Zellen einplanbarer Personen nehmen Abgelegtes an; der Einsatz lässt sich ziehen', async () => {

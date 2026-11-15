@@ -1,14 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  neueCodes, zweitenFaktorAusschalten, zweiterFaktorStand, type ZweiterFaktorStand,
+  neueCodes, ohneFaktor, zweitenFaktorAusschalten, zweiterFaktorStand, type OhneFaktor, type ZweiterFaktorStand,
 } from '@/lib/auth/sitzung';
 import { updateCompany } from '@/lib/db/company';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { CheckboxField } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import ZweiFaktorEinrichten, { WiederherstellungsCodes } from '@/features/auth/ZweiFaktorEinrichten';
+
+/** „Anna Berger, Max Huber und Eva Lang“ — in der Reihenfolge der Datenbank. */
+function namenListe(personen: OhneFaktor[]): string {
+  const namen = personen.map((p) => p.name);
+  return namen.length > 1 ? `${namen.slice(0, -1).join(', ')} und ${namen[namen.length - 1]}` : namen[0] ?? '';
+}
 
 const datum = (iso: string) =>
   new Date(iso).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -38,18 +45,30 @@ export default function ZweiFaktorKarte({
   const [codes, setCodes] = useState<string[] | null>(null);
   const [laeuft, setLaeuft] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
+  /*
+    WEN DIE PFLICHT TRIFFT (K6, Durchsicht 15.11.2026). Sie wirkt sofort —
+    wer zur Leitung oder Buchhaltung gehört und keinen Faktor hat, sieht ab
+    dem Speichern nichts mehr, bis er ihn einrichtet. Deshalb steht vor dem
+    Einschalten, wen das betrifft, und solange die Pflicht gilt, wer noch
+    fehlt. `null`: noch nicht geladen oder nicht abrufbar — dann fragt der
+    Dialog trotzdem, statt still einzuschalten.
+  */
+  const [ohne, setOhne] = useState<OhneFaktor[] | null>(null);
+  const [pflichtFragen, setPflichtFragen] = useState(false);
 
-  async function laden() {
+  const laden = useCallback(async () => {
     try {
-      setStand(await zweiterFaktorStand());
+      const s = await zweiterFaktorStand();
+      setStand(s);
+      if (betrieb && !s.plattform) setOhne(await ohneFaktor().catch(() => null));
       setLadeFehler(null);
     } catch (e) {
       setLadeFehler(e instanceof Error ? e.message : 'Der Stand ließ sich nicht laden.');
     }
-  }
+  }, [betrieb]);
   useEffect(() => {
     void laden();
-  }, []);
+  }, [laden]);
 
   async function tun(was: () => Promise<void>) {
     setLaeuft(true);
@@ -62,6 +81,15 @@ export default function ZweiFaktorKarte({
     } finally {
       setLaeuft(false);
     }
+  }
+
+  async function pflichtSetzen(an: boolean) {
+    if (!betrieb) return;
+    await tun(async () => {
+      await updateCompany(betrieb, { zweiFaktorPflicht: an });
+      await onBetriebGeaendert?.();
+      toast.success(an ? 'Pflicht eingeschaltet' : 'Pflicht ausgeschaltet');
+    });
   }
 
   if (ladeFehler) {
@@ -141,11 +169,11 @@ export default function ZweiFaktorKarte({
             disabled={laeuft || (!stand.eingerichtet && !stand.betriebPflicht)}
             onChange={(e) => {
               const an = e.target.checked;
-              void tun(async () => {
-                await updateCompany(betrieb, { zweiFaktorPflicht: an });
-                await onBetriebGeaendert?.();
-                toast.success(an ? 'Pflicht eingeschaltet' : 'Pflicht ausgeschaltet');
-              });
+              if (an && (ohne === null || ohne.length > 0)) {
+                setPflichtFragen(true);
+                return;
+              }
+              void pflichtSetzen(an);
             }}
           />
           {!stand.eingerichtet && !stand.betriebPflicht && (
@@ -153,10 +181,39 @@ export default function ZweiFaktorKarte({
           )}
           {stand.betriebPflicht && (
             <p className="text-sm text-ink-muted">
-              Wer zur Leitung oder Buchhaltung gehört und noch keinen zweiten Faktor hat, richtet ihn bei der nächsten Anmeldung ein.
+              {ohne && ohne.length > 0
+                ? `Noch ohne zweiten Faktor: ${namenListe(ohne)}. Die App führt sie beim nächsten Öffnen zur Einrichtung; bis dahin sehen sie keine Daten.`
+                : ohne
+                  ? 'Alle in Leitung und Buchhaltung haben einen zweiten Faktor.'
+                  : 'Wer zur Leitung oder Buchhaltung gehört und noch keinen zweiten Faktor hat, wird sofort zur Einrichtung geführt.'}
             </p>
           )}
         </div>
+      )}
+
+      {betrieb && (
+        <ConfirmDialog
+          open={pflichtFragen}
+          title="Pflicht jetzt einschalten?"
+          confirmLabel="Pflicht einschalten"
+          confirmTone="primary"
+          message={
+            ohne === null
+              ? 'Ob alle in Leitung und Buchhaltung einen zweiten Faktor haben, ließ sich nicht abrufen. Wer keinen hat, sieht ab sofort keine Daten mehr, bis er ihn eingerichtet hat — die App führt ihn dorthin.'
+              : 'Diese Personen haben noch keinen zweiten Faktor. Ab sofort sehen sie keine Daten mehr, bis sie ihn eingerichtet haben — die App führt sie innerhalb einer Minute dorthin. Am besten vorher Bescheid geben.'
+          }
+          onCancel={() => setPflichtFragen(false)}
+          onConfirm={async () => {
+            setPflichtFragen(false);
+            await pflichtSetzen(true);
+          }}
+        >
+          {ohne && ohne.length > 0 && (
+            <ul className="space-y-1 text-sm text-ink">
+              {ohne.map((p) => <li key={p.uid}>{p.name} · {p.rolle}</li>)}
+            </ul>
+          )}
+        </ConfirmDialog>
       )}
 
       {fehler && (

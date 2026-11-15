@@ -109,7 +109,8 @@ describe('die Monats-CSV', () => {
     const werte = z.split(';');
     expect(werte[spalten.indexOf('Soll(Std)')]).not.toBe('');
     expect(werte[spalten.indexOf('Saldo(Std)')]).not.toBe('');
-    expect(werte[spalten.indexOf('Resturlaub')]).toBe('');
+    expect(werte[spalten.indexOf('Rest am Monatsende')]).toBe('');
+    expect(werte[spalten.indexOf('davon verplant(Tage)')]).toBe('');
     expect(werte[spalten.indexOf('Konto')]).toBe('Austritt 13.06.2025');
   });
 
@@ -132,6 +133,6 @@ describe('die Monats-CSV', () => {
     const csv = buildUserCsv(u, [eintrag], calcMonthStats(u, [eintrag], [eintrag], 2025, 5, true), 2025, 5, true, {}, [], undefined, true);
     expect(csv).toContain('Zeiterfassung: Max Mustermann (ausgetreten am 13.06.2025)');
     expect(csv).toMatch(/Soll;\d/);
-    expect(csv).toMatch(/Resturlaub;—/);
+    expect(csv).toMatch(/Rest am Monatsende;—/);
   });
 });

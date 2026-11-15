@@ -59,3 +59,11 @@ export class AnmeldeFehler extends Error {
     this.art = art;
   }
 }
+
+/**
+ * Wer unter die Zwei-Faktor-Pflicht eines Betriebs fällt — dieselben Rollen
+ * wie `app.zwei_faktor_rolle` in der Datenbank. Hier und nicht in
+ * `pg/zweiFaktor.ts`, weil auch `AuthContext` sie braucht (K6) und dieser
+ * Kern ohne Netz und ohne Anbieter auskommt.
+ */
+export const ZWEI_FAKTOR_ROLLEN = ['Administrator', 'Geschäftsführung', 'Buchhaltung'];

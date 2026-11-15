@@ -8,6 +8,7 @@
  * gilt ein Übergang, wann ist ein Gerät wirklich tot), stehen deshalb hier
  * und sind einzeln prüfbar.
  */
+import { terminArtName } from './kalenderIcs';
 
 /** Rollen, die von jeder neuen Materialanforderung erfahren. */
 export const EMPFAENGER_NEUE_ANFORDERUNG = ['Verwaltung', 'Geschäftsführung', 'Administrator'];
@@ -22,6 +23,9 @@ export interface OrderDoc {
   status?: string;
   transactionType?: string;
   isUrgent?: boolean;
+  /** Wann das Lager die Bestellung beim Händler zuletzt storniert hat (M4/M11). */
+  storniertAm?: string;
+  stornoGrund?: string;
 }
 
 export type MeldungsArt =
@@ -32,7 +36,8 @@ export type MeldungsArt =
   | 'notifyAngebot'
   | 'notifyZeiterfassung'
   | 'notifyNachrichten'
-  | 'notifyEinsaetze';
+  | 'notifyEinsaetze'
+  | 'notifyNotfall';
 
 /**
  * Eine Postgres-Zeile als `OrderDoc`.
@@ -58,6 +63,8 @@ export function orderAusZeile(zeile: Record<string, unknown> | undefined): Order
     status: zeile.status as string | undefined,
     transactionType: zeile.transaction_type as string | undefined,
     isUrgent: zeile.is_urgent === true,
+    storniertAm: (zeile.bestellung_storniert_am as string | null | undefined) ?? undefined,
+    stornoGrund: (zeile.bestellung_storno_grund as string | null | undefined) ?? undefined,
   };
 }
 
@@ -151,6 +158,20 @@ export function istUebergangAufEil(before?: OrderDoc, after?: OrderDoc): boolean
   return istEilRelevant(after) && istMeldepflichtigeAnforderung(after);
 }
 
+/**
+ * Das Lager hat die Bestellung beim Händler storniert (M11).
+ *
+ * Nur der neue Zeitpunkt zählt: dieselbe Zeile, die später aus anderem
+ * Grund gespeichert wird, trägt den alten Storno weiter und darf nicht noch
+ * einmal melden. Eine Retoure wird nie bestellt; ohne Besteller gibt es
+ * niemanden, der wartet.
+ */
+export function istBestellungStorniert(before?: OrderDoc, after?: OrderDoc): boolean {
+  if (!after?.userId || !after.storniertAm) return false;
+  if (after.transactionType === 'return') return false;
+  return before?.storniertAm !== after.storniertAm;
+}
+
 function menge(order: OrderDoc): string {
   return `${order.quantity ?? 1}× ${order.materialName ?? 'Material'}`;
 }
@@ -187,6 +208,23 @@ export function textAbholbereit(order: OrderDoc, id: string): Meldung {
     body: `${menge(order)} liegt bereit${order.projectNumber ? ` (${order.projectNumber})` : ''}`,
     link: '/material/anfordern',
     tag: `material-bereit-${id}`,
+  };
+}
+
+/**
+ * Die Ware kommt nicht wie bestellt. Der Grund steht in der Meldung, weil
+ * der Monteur danach plant (anderer Händler, später, Ersatzartikel) — ohne
+ * ihn müsste er im Lager nachfragen. Dieselbe Seite wie beim Abholbereit:
+ * dort sieht er den Stand seiner Anforderung.
+ */
+export function textBestellungStorniert(order: OrderDoc, id: string): Meldung {
+  const grund = order.stornoGrund?.trim();
+  return {
+    title: 'Bestellung storniert',
+    body: `${menge(order)}${order.projectNumber ? ` (${order.projectNumber})` : ''}${
+      grund ? ` — ${grund}` : ''} · wird neu beschafft`,
+    link: '/material/anfordern',
+    tag: `material-storno-${id}`,
   };
 }
 
@@ -369,8 +407,32 @@ export function textEntscheidung(a: AbwesenheitDoc, id: string): Meldung {
   return {
     title: `${was} ${wie}`,
     body: umfangKurz(a),
-    link: '/vacations',
+    // Genau dieser Antrag (Z9): die Urlaubsseite öffnet ihn mit Verlauf und Grund — vorher nur die Seite.
+    link: `/vacations?antrag=${encodeURIComponent(id)}`,
     // Dieselbe Kennung wie der Antrag: die Entscheidung ersetzt ihn.
+    tag: `antrag-${id}`,
+  };
+}
+
+/**
+ * Ein genehmigter Urlaub wurde gekürzt (Z1): was bleibt und warum. Ein Tag
+ * mitten im Urlaub teilt ihn — dann stehen alle Teile da. Der Sprung führt
+ * genau zu diesem Antrag.
+ */
+export function textKuerzung(
+  a: AbwesenheitDoc,
+  id: string,
+  aenderung?: { nachher?: { von?: string; bis?: string }[]; grund?: string } | null,
+): Meldung {
+  const was = istZa(a) ? 'Zeitausgleich' : 'Urlaub';
+  const teile = (aenderung?.nachher?.length ? aenderung.nachher : [{ von: a.von, bis: a.bis }])
+    .map((t) => zeitraumKurz({ von: t.von, bis: t.bis }))
+    .filter(Boolean);
+  const grund = aenderung?.grund?.trim();
+  return {
+    title: `${was} gekürzt`,
+    body: `Bleibt: ${teile.join(' und ')}${grund ? ` — ${grund}` : ''}`,
+    link: `/vacations?antrag=${encodeURIComponent(id)}`,
     tag: `antrag-${id}`,
   };
 }
@@ -578,10 +640,20 @@ export interface EinsatzImPlan {
   von?: string | null;
 }
 
+/** Ein Termin im Plan der Person (V8): Art, Ort oder Baustelle, Uhrzeit. */
+export interface TerminImPlan {
+  art: string;
+  wo: string;
+  von?: string | null;
+}
+
 export interface EinsatzEreignis {
   uid: string;
   heute: EinsatzImPlan[];
   morgen: EinsatzImPlan[];
+  /** Seit V8 (15.11.2026): die Termine, an denen die Person teilnimmt. Ältere Antworten tragen sie nicht. */
+  termine_heute?: TerminImPlan[];
+  termine_morgen?: TerminImPlan[];
 }
 
 /**
@@ -589,16 +661,44 @@ export interface EinsatzEreignis {
  * morgen JETZT aussieht — nicht, was sich geändert hat. Eine Liste der
  * Änderungen wäre nach dem dritten Umplanen falsch; der Stand stimmt immer.
  * Eine Kennung je Person: die neue Meldung ersetzt die vorige.
+ *
+ * SEIT V8 MIT DEN TERMINEN: ein Termin ist für den Monteur ein Planeintrag
+ * wie ein Einsatz („Besichtigung 08:00 Huber“). Ein Tag ohne beides heißt
+ * „kein Einsatz“ wie bisher.
  */
 export function textEinsatzplan(e: EinsatzEreignis): Meldung {
-  const tag = (einsaetze: EinsatzImPlan[]) =>
-    einsaetze.length === 0
-      ? 'kein Einsatz'
-      : einsaetze.map((x) => `${x.von ? `${x.von} ` : ''}${x.kunde || x.nr}`).join(', ');
+  const tag = (einsaetze: EinsatzImPlan[], termine: TerminImPlan[] = []) => {
+    const teile = [
+      ...einsaetze.map((x) => `${x.von ? `${x.von} ` : ''}${x.kunde || x.nr}`),
+      ...termine.map((t) => [terminArtName(t.art), t.von, t.wo].filter(Boolean).join(' ')),
+    ];
+    return teile.length === 0 ? 'kein Einsatz' : teile.join(', ');
+  };
   return {
     title: 'Dein Einsatzplan hat sich geändert',
-    body: `Heute: ${tag(e.heute)} · Morgen: ${tag(e.morgen)}`,
+    body: `Heute: ${tag(e.heute, e.termine_heute)} · Morgen: ${tag(e.morgen, e.termine_morgen)}`,
     link: '/my-schedule',
     tag: `einsatzplan-${e.uid}`,
+  };
+}
+
+/** Was `push_notfall` für die Meldung eines Notfalls herausgibt (V8). */
+export interface NotfallEreignis {
+  nummer: string;
+  ort: string | null;
+  empfaenger: string[];
+}
+
+/**
+ * NOTFALL IM AUFTRAGSEINGANG (V8): an die Führung, sofort. Im Sperrbildschirm
+ * Nummer und Ort — nicht Name und Anliegen des Kunden; die stehen in der App.
+ * Eine Kennung je Eingang: ein zweiter Anstoß ersetzt die Meldung.
+ */
+export function textNotfall(e: NotfallEreignis): Meldung {
+  return {
+    title: 'Notfall im Auftragseingang',
+    body: e.ort ? `${e.nummer} · ${e.ort}` : e.nummer,
+    link: '/eingaenge',
+    tag: `notfall-${e.nummer}`,
   };
 }

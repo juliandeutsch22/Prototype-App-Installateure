@@ -27,6 +27,7 @@ export default function Nachladen({
   einheit,
   sucheImBrowser = true,
   sucheSatz,
+  gesamt,
 }: {
   /** Wie viele Datensätze gerade da sind. */
   geladen: number;
@@ -47,6 +48,12 @@ export default function Nachladen({
    * Mal nicht mehr geglaubt.
    */
   sucheSatz?: string;
+  /**
+   * Wie viele es insgesamt sind, wenn die Datenbank das gezählt hat (A6).
+   * Dann steht „100 von 143“ statt „von möglicherweise mehr“, und der Knopf
+   * verschwindet, sobald alle da sind.
+   */
+  gesamt?: number;
 }) {
   /*
     NUR WENN DIE GRENZE WIRKLICH GREIFT. Steht die Liste bei 43 von 500, ist
@@ -54,6 +61,7 @@ export default function Nachladen({
     ab, gerade den, der einmal im Jahr wichtig wäre.
   */
   if (geladen < grenze) return null;
+  if (gesamt !== undefined && geladen >= gesamt) return null;
 
   return (
     <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-3">
@@ -61,7 +69,7 @@ export default function Nachladen({
         Weitere {einheit} laden
       </Button>
       <span className="text-sm text-ink-muted">
-        {geladen} von möglicherweise mehr geladen.
+        {gesamt !== undefined ? `${geladen} von ${gesamt} geladen.` : `${geladen} von möglicherweise mehr geladen.`}
         {sucheImBrowser ? ` ${sucheSatz ?? 'Die Suche geht nur über diese.'}` : ''}
       </span>
     </div>

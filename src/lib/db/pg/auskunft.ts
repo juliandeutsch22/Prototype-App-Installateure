@@ -4,7 +4,7 @@
  * Die Datenbank stellt sie zusammen (`public.person_auskunft`): sie sieht
  * alle Tabellen, auch die, die die Geschäftsführung in der App nie einzeln
  * öffnet, und entscheidet, was einer ANDEREN Person gehört und deshalb
- * draussen bleibt. Hier wird sie nur abgeholt und als Datei gespeichert.
+ * draussen bleibt. Abgeholt wird sie seit K4 in Teilen (`auszugTeile.ts`).
  */
 import { derClient } from './kern';
 
@@ -50,10 +50,4 @@ export async function personLoeschen(
   });
   if (error) throw new Error(error.message);
   return data as LoeschBericht;
-}
-
-export async function personAuskunft(art: AuskunftArt, id: string): Promise<Auskunft> {
-  const { data, error } = await derClient().rpc('person_auskunft', { p_art: art, p_id: id });
-  if (error) throw new Error(error.message);
-  return data as Auskunft;
 }

@@ -10,6 +10,8 @@ import { Zustand, type Stand } from '@/components/Badge';
 import { useToast } from '@/components/Toast';
 import { ABRECHNUNGSARTEN, abrechnungHinweis, abrechnungText } from '@/lib/abrechnung';
 import { angebotLinkErzeugen, type AngebotLink, type AngebotLinkZustand } from '@/lib/db/angebotLinks';
+import { updateQuote } from '@/lib/db/quotes';
+import { datumAufHeute } from './statusFrage';
 import { praefixFehler } from '@/lib/praefixe';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
@@ -36,6 +38,7 @@ const STAND_JE_ZUSTAND: Record<AngebotLinkZustand, Stand> = {
   gegenstandslos: 'storniert',
   // Jemand hat das versendete Angebot an der App vorbei geändert — ansehen.
   geaendert: 'achtung',
+  neuere_fassung: 'storniert',
 };
 
 const ZUSTAND_WORT: Record<AngebotLinkZustand, string> = {
@@ -46,6 +49,7 @@ const ZUSTAND_WORT: Record<AngebotLinkZustand, string> = {
   abgelaufen: 'Abgelaufen',
   gegenstandslos: 'Gilt nicht mehr',
   geaendert: 'Gilt nicht mehr',
+  neuere_fassung: 'Gilt nicht mehr',
 };
 
 export function AnnahmeLinkDialog({
@@ -61,7 +65,7 @@ export function AnnahmeLinkDialog({
   open: boolean;
   /** `erzeugt`: ein Link ist entstanden — die Seite lädt danach neu. */
   onClose: (erzeugt: boolean) => void;
-  angebot: { id: string; quoteNumber: string; status: string; validUntil: string };
+  angebot: { id: string; quoteNumber: string; status: string; validUntil: string; projectNumber?: string; quoteDate?: string };
   firma: string;
   kundenEmail?: string;
   /** Der Vorsatz des Betriebs für Baustellen — vorbelegt, änderbar. */
@@ -74,7 +78,16 @@ export function AnnahmeLinkDialog({
   const toast = useToast();
   const [abrechnung, setAbrechnung] = useState<Abrechnungsart | ''>('');
   const [praefix, setPraefix] = useState(vorsatz);
-  const [gueltigBis, setGueltigBis] = useState(() => vorgabeGueltigBis(angebot.validUntil, heute));
+  /*
+    A12: ein Entwurf, der mit dem Link hinausgeht, trug das Datum seines
+    Anlegens. Liegt es zurück, wird es vorher auf heute gesetzt (wie beim
+    „Als versendet markieren“) — der Kunde sieht es so im Schnappschuss.
+  */
+  const neuesDatum = angebot.status === 'Entwurf' && angebot.quoteDate
+    ? datumAufHeute({ quoteDate: angebot.quoteDate, validUntil: angebot.validUntil }, heute)
+    : null;
+  const [datumHeute, setDatumHeute] = useState(true);
+  const [gueltigBis, setGueltigBis] = useState(() => vorgabeGueltigBis(neuesDatum?.validUntil ?? angebot.validUntil, heute));
   const [laeuft, setLaeuft] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [link, setLink] = useState<{ adresse: string; gueltigBis: string } | null>(null);
@@ -97,6 +110,7 @@ export function AnnahmeLinkDialog({
     setLaeuft(true);
     setFehler(null);
     try {
+      if (neuesDatum && datumHeute) await updateQuote(angebot.id, neuesDatum);
       const neu = await angebotLinkErzeugen(angebot.id, { abrechnung, praefix, gueltigBis });
       setLink({ adresse: annahmeAdresse(window.location.origin, neu.schluessel), gueltigBis: neu.gueltigBis });
     } catch (e) {
@@ -163,6 +177,26 @@ export function AnnahmeLinkDialog({
           {angebot.status === 'Entwurf' && (
             <Hinweiszeile>
               <p>Der Entwurf gilt damit als versendet und lässt sich nicht mehr bearbeiten.</p>
+            </Hinweiszeile>
+          )}
+          {neuesDatum && angebot.quoteDate && (
+            <label className="flex min-h-touch items-center gap-2 text-sm text-ink">
+              <input type="checkbox" className="checkbox" checked={datumHeute} onChange={(e) => setDatumHeute(e.target.checked)} />
+              Angebotsdatum auf heute setzen (statt {datumAT(angebot.quoteDate)}) — die Bindefrist rückt mit
+            </label>
+          )}
+          {/*
+            A3: ein Nachtrag kommt auch über den Link an seine Baustelle. Abrechnung
+            und Vorsatz greifen dann nur, falls es die Baustelle bis dahin nicht
+            mehr gibt — das sagt der Dialog, statt die Felder still wirkungslos
+            stehen zu lassen.
+          */}
+          {angebot.projectNumber && (
+            <Hinweiszeile>
+              <p>
+                Nachtrag zu Baustelle {angebot.projectNumber}: nimmt der Kunde an, kommt das Angebot dorthin, und ihr
+                Stundenbudget wächst. Abrechnung und Vorsatz gelten nur, falls es die Baustelle dann nicht mehr gibt.
+              </p>
             </Hinweiszeile>
           )}
           {ersetztOffenenLink && (

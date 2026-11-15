@@ -147,7 +147,7 @@ describe('Was auf dem Beleg steht, ist eingefroren', () => {
     const id = await anlegen();
     await rechnungen.updateInvoiceStatus(id, 'Überfällig');
     await rechnungen.mahnungFesthalten(id, {
-      stufe: 1, gemahntAm: '2026-05-20', frist: '2026-05-27', spesen: 10, inhalt: mahnInhalt(1, '2026-05-20', '2026-05-27'),
+      datumAusdruecklich: true, stufe: 1, gemahntAm: '2026-05-20', frist: '2026-05-27', spesen: 10, inhalt: mahnInhalt(1, '2026-05-20', '2026-05-27'),
     });
     const { data } = await admin.from('invoices')
       .select('payment_status, mahnstufe').eq('id', id).single();

@@ -153,37 +153,28 @@ export async function wartungErledigt(
   args: { erledigtAm: string; intervallMonate: number; projectNumber?: string },
 ): Promise<void> {
   /*
-    `async`, obwohl der Rumpf nur weiterreicht: ein unbrauchbares Intervall
+    `async`, damit auch das synchrone Werfen ankommt: ein unbrauchbares Intervall
     lässt `naechsterTermin` werfen, und zwar SYNCHRON. Ohne `async` käme der
     Fehler nicht als abgelehntes Versprechen zurück, sondern flöge an jedem
     `.catch()` vorbei — ein Aufrufer, der nicht `await` benutzt, sähe einen
     Absturz statt einer Meldung.
   */
+  const faellig = naechsterTermin(args.erledigtAm, args.intervallMonate);
   /*
-    Über `aendern` und nicht über `updateWartung`: `offeneBaustelle` wird hier
-    auf `null` gesetzt, und der Typ der Wartung kennt für dieses Feld nur
-    „ein Text" oder „nicht da". Ein Cast, um das zu verstecken, hiesse den
-    Typprüfer zu belügen; der Weg an der getippten Fassade vorbei sagt
-    stattdessen genau, was passiert.
+    Über die Datenbankfunktion und nicht als Änderung der Zeile (A13): ein
+    leeres Baustellenfeld heißt „ohne Baustelle“. Als Zeilenänderung fiel
+    das Feld weg, die Spalte behielt die Baustelle der vorigen Wartung, und
+    die neue Ausführung stand auf ihr. Die Funktion leert im selben Schritt
+    die eingeplante Baustelle — sie ist mit dem Eintrag gewesen.
   */
-  return aendern(WARTUNGEN, id, {
-    zuletztAm: args.erledigtAm,
-    faelligAm: naechsterTermin(args.erledigtAm, args.intervallMonate),
-    intervallMonate: args.intervallMonate,
-    letzteBaustelle: args.projectNumber,
-    /*
-      Die eingeplante Baustelle ist mit dem Eintrag GEWESEN — sie wandert nach
-      `letzteBaustelle` und wird hier geleert, im selben Schreibvorgang.
-      Bliebe sie stehen, zeigte die Liste die Wartung bis zum nächsten Termin
-      als „eingeplant", obwohl der Einsatz vorbei ist; beim nächsten Mal führe
-      der Monteur auf eine abgeschlossene Baustelle.
-
-      `null` statt Leerstring: in Firestore stand dort '', weil die Sammlung
-      kein Löschen eines Felds kannte. Eine Spalte kann leer sein — dieselbe
-      Aussage ohne Behelf.
-    */
-    offeneBaustelle: null,
+  const { error } = await derClient().rpc('wartung_erledigt_eintragen', {
+    p_wartung: id,
+    p_am: args.erledigtAm,
+    p_faellig: faellig,
+    p_intervall: args.intervallMonate,
+    p_baustelle: args.projectNumber?.trim() || null,
   });
+  if (error) throw new Error(error.message);
 }
 
 /**
@@ -234,4 +225,41 @@ export async function wartungEinplanen(id: string, nummer: string | null, praefi
   });
   if (error) throw new Error(error.message);
   return String(data);
+}
+
+/** Eine Wartung — für den Sprung „Erledigt“ von der Startseite (A9). `null`, wenn es sie nicht (mehr) gibt. */
+export async function getWartung(companyId: string, id: string): Promise<WithId<Wartung> | null> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
+  const zeilen = await abfragen<Wartung>(WARTUNGEN, companyId, { wo: [{ art: 'gleich', feld: 'id', wert: id }], grenze: 1 });
+  return zeilen[0] ?? null;
+}
+
+/**
+ * Eingeplante Wartungen, die erledigt aussehen (A9): ein unterschriebener
+ * Schein auf ihrer Baustelle oder eine abgeschlossene Baustelle — mit dem
+ * Tag als Vorschlag. Nur für die Führung; für alle anderen leer.
+ */
+export interface WartungErledigtVorschlag {
+  wartungId: string;
+  anlage: string;
+  kunde: string;
+  baustelle: string;
+  baustelleId: string;
+  /** `JJJJ-MM-TT` */
+  am: string;
+  grund: 'schein' | 'abgeschlossen';
+}
+
+export async function wartungErledigtVorschlaege(): Promise<WartungErledigtVorschlag[]> {
+  const { data, error } = await derClient().rpc('wartung_erledigt_vorschlaege');
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Record<string, unknown>[]).map((z) => ({
+    wartungId: String(z.wartung),
+    anlage: String(z.anlage ?? ''),
+    kunde: String(z.kunde ?? ''),
+    baustelle: String(z.baustelle ?? ''),
+    baustelleId: String(z.baustelle_id ?? ''),
+    am: String(z.am ?? ''),
+    grund: z.grund === 'schein' ? 'schein' : 'abgeschlossen',
+  }));
 }

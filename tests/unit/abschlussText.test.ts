@@ -7,7 +7,7 @@
  * die Lieferung verschwindet aus der Einkaufsliste.
  */
 import { describe, it, expect } from 'vitest';
-import { abschlussText } from '@/features/orders/abschlussText';
+import { abschlussText, mengeText } from '@/features/orders/abschlussText';
 
 const basis = { materialName: 'Eckventil', quantity: 5 };
 
@@ -29,5 +29,20 @@ describe('abschlussText', () => {
     expect(t).toMatch(/noch nicht als geliefert gebucht/);
     expect(t).toMatch(/verschwindet aus der Einkaufsliste, der Lagerbestand bleibt gleich/);
     expect(t).not.toMatch(/abgezogen/);
+  });
+});
+
+/*
+  M8 (16.11.2026): Mengen in den Rückfragen mit Komma und Einheit — vorher
+  „×2.5“ roh eingesetzt und ohne Einheit („Rohr ×30“: Meter oder Stangen?).
+*/
+describe('Menge mit Komma und Einheit (M8)', () => {
+  it('schreibt die Menge wie überall, mit Einheit, wenn es eine gibt', () => {
+    expect(mengeText({ quantity: 2.5, einheit: 'm' })).toBe('2,5 m');
+    expect(abschlussText({ materialName: 'Rohr', quantity: 2.5, einheit: 'm' })).toMatch(/^„Rohr“ ×2,5 m wird/);
+  });
+
+  it('Gleichbleiben: ohne Einheit nur die Zahl', () => {
+    expect(mengeText({ quantity: 3 })).toBe('3');
   });
 });

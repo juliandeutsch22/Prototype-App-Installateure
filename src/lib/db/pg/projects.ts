@@ -5,7 +5,7 @@
  * benannt.
  */
 import type { Project } from '@/types';
-import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
+import { PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { BAUSTELLEN_AUSWAHL_GRENZE } from '@/lib/listengrenzen';
 import { abfragen, abonnieren, anlegen, aendern, derClient, loeschen, type WithId } from './kern';
 import { oderUeberSpalten } from './suche';
@@ -105,15 +105,19 @@ export async function reserveProjectNumber(
   opts: { seedFrom: number; praefix?: string },
 ): Promise<string> {
   void companyId;
-  const jahr = new Date().getFullYear();
-  const { data, error } = await derClient().rpc('naechste_nummer', {
+  /*
+    DAS JAHR VOM SERVER (Durchsicht 15.11.2026, G10): die Datenbank baut die
+    ganze Nummer. Vorher kam das Jahr von der Uhr des Geräts — eine falsche
+    ergab „B-2020-0001“. `seedFrom` liest die Datenbank längst selbst
+    (`app.hoechste_lfd`); es bleibt nur im Aufruf.
+  */
+  void opts.seedFrom;
+  const { data, error } = await derClient().rpc('naechste_belegnummer', {
     p_art: 'projects',
-    p_jahr: jahr,
-    p_seed: Math.max(opts.seedFrom, 0),
-    p_wunsch: null,
+    p_praefix: opts.praefix ?? PRAEFIX_VORGABE.baustelle,
   });
   if (error) throw new Error(error.message);
-  return belegNummer(opts.praefix ?? PRAEFIX_VORGABE.baustelle, jahr, Number(data));
+  return String(data);
 }
 
 export type NewProject = Omit<Project, 'id' | 'companyId' | 'createdAt'>;
@@ -248,4 +252,109 @@ export async function baustelleMaterialstand(companyId: string, projectNumber: s
     scheineMitMaterial: Number(z.scheine_mit_material) || 0,
     positionen: Number(z.positionen) || 0,
   };
+}
+
+/**
+ * Was an einer Baustelle hängt (`baustelle_verwendung`) — dieselbe Zählung,
+ * mit der die Rücknahme einer Annahme zwischen Löschen und Abschließen
+ * entscheidet (A1). Der Löschdialog nennt damit den wahren Grund und den Weg.
+ */
+export interface BaustellenVerwendung {
+  zeitbuchungen: number;
+  einsaetze: number;
+  scheine: number;
+  rechnungen: number;
+  anforderungen: number;
+  ruestlisten: number;
+  dokumente: number;
+  /** Gehen beim Löschen mit (`on delete cascade`). */
+  termine: number;
+  /** Nachrichten im Thread der Baustelle — gehen beim Löschen mit. */
+  nachrichten: number;
+  angebote: { id: string; nummer: string; status: string }[];
+}
+
+export async function baustelleVerwendung(id: string): Promise<BaustellenVerwendung> {
+  const { data, error } = await derClient().rpc('baustelle_verwendung', { p_projekt: id });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as Record<string, unknown>;
+  const n = (k: string) => Number(d[k]) || 0;
+  return {
+    zeitbuchungen: n('zeitbuchungen'),
+    einsaetze: n('einsaetze'),
+    scheine: n('scheine'),
+    rechnungen: n('rechnungen'),
+    anforderungen: n('anforderungen'),
+    ruestlisten: n('ruestlisten'),
+    dokumente: n('dokumente'),
+    termine: n('termine'),
+    nachrichten: n('nachrichten'),
+    angebote: (Array.isArray(d.angebote) ? d.angebote : []).map((a: Record<string, unknown>) => ({
+      id: String(a.id), nummer: String(a.nummer ?? ''), status: String(a.status ?? ''),
+    })),
+  };
+}
+
+/**
+ * Die laufenden Baustellen EINES Kunden, die jüngsten zuerst — für die
+ * Suche nach einer Baustelle (A3: Nachtrag), bevor jemand tippt. Mit Grenze:
+ * mehr findet die Suche.
+ */
+export function listLaufendeDesKunden(companyId: string, customerId: string, max: number) {
+  return abfragen<Project>(BAUSTELLEN, companyId, {
+    wo: [
+      { art: 'gleich', feld: 'customerId', wert: customerId },
+      { art: 'in', feld: 'status', werte: ['Aktiv', 'Pausiert'] },
+    ],
+    sortiere: { feld: 'createdAt', absteigend: true },
+    grenze: max,
+  });
+}
+
+/**
+ * Was vor dem Abschließen einer Baustelle offen ist (A11, F1) — je Art
+ * gezählt in der Datenbank (`baustelle_abschluss_lage`). Rechnungsangaben
+ * sind `null`, wenn die Rolle die Rechnungen dieser Baustelle nicht liest:
+ * „nicht einsehbar“ ist nicht „nichts offen“.
+ */
+export interface AbschlussLage {
+  status: Project['status'];
+  kommendeEinsaetze: number;
+  /** `JJJJ-MM-TT` */
+  naechsterEinsatz: string | null;
+  scheinEntwuerfe: number;
+  offeneAnforderungen: number;
+  unverrechneteScheine: number | null;
+  unverrechneteMinuten: number | null;
+  unverrechnetesMaterial: number | null;
+  offeneRechnungen: number | null;
+}
+
+function lageLesen(d: Record<string, unknown>): AbschlussLage {
+  const n = (k: string) => Number(d[k]) || 0;
+  const vielleicht = (k: string) => (d[k] === null || d[k] === undefined ? null : Number(d[k]) || 0);
+  return {
+    status: d.status as Project['status'],
+    kommendeEinsaetze: n('kommende_einsaetze'),
+    naechsterEinsatz: typeof d.naechster_einsatz === 'string' ? d.naechster_einsatz : null,
+    scheinEntwuerfe: n('schein_entwuerfe'),
+    offeneAnforderungen: n('offene_anforderungen'),
+    unverrechneteScheine: vielleicht('unverrechnete_scheine'),
+    unverrechneteMinuten: vielleicht('unverrechnete_minuten'),
+    unverrechnetesMaterial: vielleicht('unverrechnetes_material'),
+    offeneRechnungen: vielleicht('offene_rechnungen'),
+  };
+}
+
+export async function baustelleAbschlussLage(id: string): Promise<AbschlussLage> {
+  const { data, error } = await derClient().rpc('baustelle_abschluss_lage', { p_projekt: id });
+  if (error) throw new Error(error.message);
+  return lageLesen((data ?? {}) as Record<string, unknown>);
+}
+
+/** Abschließen — kommende Einsätze halten es auf (die Datenbank sagt, welche). */
+export async function baustelleAbschliessen(id: string): Promise<AbschlussLage> {
+  const { data, error } = await derClient().rpc('baustelle_abschliessen', { p_projekt: id });
+  if (error) throw new Error(error.message);
+  return lageLesen((data ?? {}) as Record<string, unknown>);
 }

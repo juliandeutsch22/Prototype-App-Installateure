@@ -530,11 +530,14 @@ describe('Erhaltung: jeder bestehende Weg ohne Ort bucht wie bisher ins Hauptlag
 
   it('Retoure „neu“ und Abholen einer Anforderung', async () => {
     const m = await artikel(10);
+    // Seit M7: ohne Baustelle (für sie war nichts ausgegeben) — und gutgeschrieben erst mit der Annahme im Lager.
     const ret = await max.client.rpc('retoure_anlegen', { p_beleg: {
       id: crypto.randomUUID(), company_id: BETRIEB, material_id: m, material_name: 'Rohr', quantity: 3,
-      condition: 'neu', user_id: max.uid, user_name: 'Max', project_number: 'PR-ERH',
+      condition: 'neu', user_id: max.uid, user_name: 'Max', project_number: '',
     } });
     expect(ret.error).toBeNull();
+    expect(await haupt(m)).toBe(10);
+    expect((await lager.client.rpc('retoure_annehmen', { p_id: ret.data })).error).toBeNull();
     expect(await haupt(m)).toBe(13);
     expect((await admin.from('material_orders').select('lagerort_id').eq('id', ret.data).single()).data).toEqual({ lagerort_id: null });
     const id = crypto.randomUUID();
@@ -659,14 +662,19 @@ describe('Die bestehenden Wege mit Ort', () => {
     const { data } = await buch.client.rpc('ausgegebenes_material', { p_baustelle: 'PR-FZ' });
     const zeilen = (data ?? []) as { art: string; beleg_id: string; menge: number }[];
     // p1 wurde zurückgenommen, p2 ist eingeladen — aus dem Fahrzeug.
-    expect(zeilen.map((z) => [z.art, z.beleg_id, Number(z.menge)])).toEqual([['ruestliste', 'p2', 8]]);
+    // Seit M2 ist `beleg_id` die feste Kennung der Position (`beleg_id` der Tabelle), unter der die Rechnung sie verknüpft.
+    const { data: kopf } = await admin.from('einsatz_material').select('id').eq('company_id', BETRIEB).eq('project_number', 'PR-FZ').single();
+    const { data: p2 } = await admin.from('einsatz_material_positionen').select('beleg_id')
+      .eq('einsatz_material_id', (kopf as { id: string }).id).eq('id', 'p2').single();
+    expect(zeilen.map((z) => [z.art, z.beleg_id, Number(z.menge)])).toEqual([['ruestliste', (p2 as { beleg_id: string }).beleg_id, 8]]);
   });
 
   it('Retoure ins Fahrzeug: der Fahrer in sein eigenes, das Lager in jedes; „gebraucht“ bucht nichts', async () => {
     const m = await artikel(0, 'Stk');
     const beleg = (k: Konto, ort: string, zustand = 'neu') => ({
       id: crypto.randomUUID(), company_id: BETRIEB, material_id: m, material_name: 'Rohr', quantity: 2,
-      condition: zustand, user_id: k.uid, user_name: 'X', project_number: 'PR-RET', lagerort_id: ort,
+      // Ohne Baustelle: für sie ist nichts ausgegeben, und die Höchstmenge (M7) ließe nichts zurück.
+      condition: zustand, user_id: k.uid, user_name: 'X', project_number: '', lagerort_id: ort,
     });
     const eigen = await max.client.rpc('retoure_anlegen', { p_beleg: beleg(max, BUS) });
     expect(eigen.error).toBeNull();
@@ -862,10 +870,13 @@ describe('Modul aus: nur das Hauptlager (V3)', () => {
 
       // Dieselben Wege ohne Ort: wie bisher, im Hauptlager.
       expect(Number((await max.client.rpc('laden_umschalten', { p_datum: heute, p_baustelle: 'PR-V3', p_position: 'p1', p_an: true, p_von: 'Max' })).data)).toBe(2);
-      expect((await max.client.rpc('retoure_anlegen', { p_beleg: retoure() })).error).toBeNull();
+      const ohneOrt = retoure();
+      expect((await max.client.rpc('retoure_anlegen', { p_beleg: ohneOrt })).error).toBeNull();
+      // Seit M7 (Durchsicht 15.11.2026) bucht die Retoure erst mit der Annahme im Lager.
+      expect((await lager.client.rpc('retoure_annehmen', { p_id: ohneOrt.id })).error).toBeNull();
       expect(Number((await max.client.rpc('anforderung_abschliessen', { p_order: abholen, p_status: 'Abholbereit' })).data)).toBe(1);
       expect(Number((await lager.client.rpc('einkauf_geliefert', { p_ids: [einkauf] })).data)).toBe(1);
-      // 15 − 2 (Haken) + 1 (Retoure) − 3 (Abholen) + 4 (geliefert); das Fahrzeug unberührt.
+      // 15 − 2 (Haken) + 1 (Retoure, angenommen) − 3 (Abholen) + 4 (geliefert); das Fahrzeug unberührt.
       expect([await haupt(m), await amOrt(BUS, m)]).toEqual([15, 5]);
       expect((await admin.from('material_orders').select('lagerort_id').in('id', [abholen, einkauf])).data)
         .toEqual([{ lagerort_id: null }, { lagerort_id: null }]);

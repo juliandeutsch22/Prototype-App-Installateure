@@ -1,4 +1,4 @@
-src/lib/db/assignments.ts#deleteAssignment: (id: string) => Promise<void>
+src/lib/db/assignments.ts#deleteAssignment: (id: string, wahl?: RuestlisteWahl) => Promise<import("src/lib/db/ruestlisteFrage").RuestlisteErgebnis | null>
 src/lib/db/assignments.ts#listAssignmentsForDate: (companyId: string, date: string) => Promise<WithId<Assignment>[]>
 src/lib/db/assignments.ts#listAssignmentsForUserInRange: (companyId: string, uid: string, from: string, to: string) => Promise<WithId<Assignment>[]>
 src/lib/db/assignments.ts#listUpcomingAssignments: (companyId: string, uid: string, from: string, max?: number) => Promise<WithId<Assignment>[]>
@@ -8,7 +8,6 @@ src/lib/db/assignments.ts#subscribeAssignmentsInRange: (companyId: string, from:
 src/lib/db/benutzerVorgaben.ts#DEFAULT_VACATION_DAYS: 25
 src/lib/db/benutzerVorgaben.ts#DEFAULT_WEEKLY_HOURS: 40
 src/lib/db/benutzerVorgaben.ts#DEFAULT_WORK_DAYS: number[]
-src/lib/db/company.ts#auszug: () => Promise<pg.BetriebsAuszug>
 src/lib/db/company.ts#getCompany: (companyId: string) => Promise<Company | null>
 src/lib/db/company.ts#updateCompany: (companyId: string, data: Partial<Omit<Company, "id">>) => Promise<void>
 src/lib/db/customers.ts#assignProjectToCustomer: (projectId: string, customerId: string, customerName: string) => Promise<void>
@@ -37,7 +36,6 @@ src/lib/db/invoices.ts#listUnpaidInvoices: (companyId: string) => Promise<WithId
 src/lib/db/invoices.ts#mahnungFesthalten: (id: string, daten: { stufe: number; gemahntAm: string; frist: string; spesen: number; inhalt: MahnungInhalt; }) => Promise<string>
 src/lib/db/invoices.ts#nextInvoiceNumber: (existing: (Pick<Invoice, "invoiceNumber"> & Partial<Pick<Invoice, "stornoNummer">>)[], praefix?: string) => string
 src/lib/db/invoices.ts#reactivateInvoice: (inv: WithId<Invoice>) => Promise<void>
-src/lib/db/invoices.ts#reserveInvoiceNumber: (companyId: string, opts: { seedFrom: number; desired?: number; praefix?: string; }) => Promise<string>
 src/lib/db/invoices.ts#schlussrechnungenOhneAbzug: () => Promise<SchlussOhneAbzug[]>
 src/lib/db/invoices.ts#subscribeRecentInvoices: (companyId: string, max: number, cb: (rows: WithId<Invoice>[]) => void, onError: (e: Error) => void, geaendert?: () => void) => () => void
 src/lib/db/invoices.ts#updateInvoiceStatus: (id: string, paymentStatus: pg.SetzbarerStand) => Promise<void>
@@ -95,7 +93,7 @@ src/lib/db/quotes.ts#listQuotesForCustomer: (companyId: string, customerId: stri
 src/lib/db/quotes.ts#listRecentQuotes: (companyId: string, max?: number) => Promise<WithId<Quote>[]>
 src/lib/db/quotes.ts#reserveQuoteNumber: (companyId: string, praefix?: string) => Promise<string>
 src/lib/db/quotes.ts#sucheAngebote: (companyId: string, begriff: string, max?: number) => Promise<WithId<Quote>[]>
-src/lib/db/quotes.ts#updateQuote: (id: string, data: Partial<NewQuote>) => Promise<void>
+src/lib/db/quotes.ts#updateQuote: (id: string, data: pg.AngebotAenderung) => Promise<void>
 src/lib/db/scheinFotos.ts#fotoAdresse: (pfad: string) => Promise<string>
 src/lib/db/scheinFotos.ts#fotoEntfernen: (pfad: string) => Promise<void>
 src/lib/db/scheinFotos.ts#fotoHochladen: (companyId: string, scheinId: string, daten: Blob, geraetZeit: number) => Promise<WorkSheetFoto>
@@ -149,7 +147,7 @@ src/lib/db/workSheets.ts#restoreWorkSheetDraft: (id: string) => Promise<void>
 src/lib/db/workSheets.ts#searchWorkSheets: (companyId: string, begriff: string, max?: number) => Promise<WithId<WorkSheet>[]>
 src/lib/db/workSheets.ts#signWorkSheet: (id: string, monteur: WorkSheetUnterschrift, kunde: WorkSheetUnterschrift) => Promise<void>
 src/lib/db/workSheets.ts#updateWorkSheetDraft: (id: string, data: Partial<NewWorkSheet>) => Promise<void>
-src/lib/db/workSheets.ts#vorbereiten: (projectNumber: string, datum: string) => Promise<{ zeiten: pg.ScheinZeit[]; }>
+src/lib/db/workSheets.ts#vorbereiten: (projectNumber: string, datum: string) => Promise<{ zeiten: pg.ScheinZeit[]; gebuchtAm: number[]; aufSchein: pg.ScheinZeit[]; }>
 src/lib/db/zahlungen.ts#createZahlung: (companyId: string, z: pg.NeueZahlung) => Promise<string>
 src/lib/db/zahlungen.ts#deleteZahlung: (id: string) => Promise<void>
 src/lib/db/zahlungen.ts#listZahlungen: (companyId: string, invoiceId: string, max?: number) => Promise<pg.WithId<import("src/types/index").Zahlungseingang>[]>

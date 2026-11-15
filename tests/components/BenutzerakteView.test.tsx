@@ -52,7 +52,15 @@ vi.mock('@/lib/db/users', () => ({
   },
   updateUserProfile: (...a: unknown[]) => profilAendern(...a),
   listKontoUmstellungen: async () => protokoll,
+  zweiterFaktorVon: async () => hatFaktor,
+  zweitenFaktorZuruecksetzen: (uid: string, grund: string) => zuruecksetzen(uid, grund),
+  listPasswortAnfragen: async (_c: string, uid?: string) => bitten.filter((b) => !uid || b.userId === uid),
+  passwortAnfrageVerwerfen: (id: string) => verwerfen(id),
 }));
+let bitten: Array<{ id: string; userId: string; angefragtAm: number }> = [];
+const verwerfen = vi.fn<(id: string) => Promise<void>>(async () => undefined);
+let hatFaktor = false;
+const zuruecksetzen = vi.fn<(uid: string, grund: string) => Promise<void>>(async () => undefined);
 
 vi.mock('@/lib/auth/provisionUser', () => ({
   resendPasswordReset: (...a: unknown[]) => passwortMail(...(a as [])),
@@ -78,6 +86,23 @@ vi.mock('@/lib/db/urlaubsanspruch', () => ({
   anpassungEntfernen: (id: string, grund: string) => entfernen(id, grund),
 }));
 
+/* Arbeitszeit und Anspruch ab einem Tag (Durchsicht 15.11.2026, Z3). */
+const azAendern = vi.fn<(d: Record<string, unknown>) => Promise<void>>(async () => undefined);
+const uaAendern = vi.fn<(uid: string, jahr: number, tage: number) => Promise<void>>(async () => undefined);
+vi.mock('@/lib/db/zeitkonto', () => ({
+  arbeitszeitAendern: (d: Record<string, unknown>) => azAendern(d),
+  arbeitszeitAenderungEntfernen: vi.fn(async () => undefined),
+  urlaubsanspruchAendern: (uid: string, jahr: number, tage: number) => uaAendern(uid, jahr, tage),
+  urlaubsanspruchAenderungEntfernen: vi.fn(async () => undefined),
+  austrittFolgen: (uid: string, tag: string) => folgenLaden(uid, tag),
+  zeitsitzungBeendenFuer: (uid: string) => sitzungBeenden(uid),
+}));
+/* Was nach dem Austritt noch offen ist (Z2) — ab Werk nichts. */
+const KEINE_FOLGEN = { buchungen: [], urlaub: [], krank: [], freistellungen: [], korrekturen: 0, einsaetze: { anzahl: 0, von: null, bis: null }, sitzung: null };
+let folgen: Record<string, unknown> = KEINE_FOLGEN;
+const folgenLaden = vi.fn(async (uid: string, tag: string) => { void uid; void tag; return folgen; });
+const sitzungBeenden = vi.fn(async (uid: string) => { void uid; });
+
 let angemeldet = {
   uid: 'gf1', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' as AppUser['role'],
 };
@@ -95,6 +120,12 @@ function zeige(uid = 'u2') {
       </ToastProvider>
     </MemoryRouter>,
   );
+}
+
+/** Die Karte „Arbeitszeit und Anspruch ab einem Tag“ öffnen, Formular „Arbeitszeit ändern“. */
+async function arbeitszeitAendern() {
+  await userEvent.click(await screen.findByRole('tab', { name: 'Arbeitszeit und Urlaub' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Arbeitszeit ändern' }));
 }
 
 async function bearbeite() {
@@ -124,11 +155,20 @@ beforeEach(() => {
   ladefehler = false;
   angemeldet = { uid: 'gf1', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' };
   profilAendern.mockClear();
+  azAendern.mockClear();
+  uaAendern.mockClear();
+  folgen = KEINE_FOLGEN;
+  folgenLaden.mockClear();
+  sitzungBeenden.mockClear();
   passwortMail.mockClear();
   vergeben.mockReset().mockResolvedValue(undefined);
   anpassungen = [];
   anpassen.mockClear();
   entfernen.mockClear();
+  hatFaktor = false;
+  zuruecksetzen.mockReset().mockResolvedValue(undefined);
+  bitten = [];
+  verwerfen.mockReset().mockResolvedValue(undefined);
 });
 
 describe('Die Stammdaten in der Akte', () => {
@@ -148,8 +188,6 @@ describe('Die Stammdaten in der Akte', () => {
 
     expect(await screen.findByRole('textbox', { name: /^Name/ })).toHaveValue('Erna Beispiel');
     expect(screen.getByRole('combobox', { name: /Rolle/ })).toHaveValue('Buchhaltung');
-    expect(screen.getByRole('textbox', { name: /Wochenstunden/ })).toHaveValue('20');
-    expect(screen.getByRole('textbox', { name: /Urlaubstage/ })).toHaveValue('30');
   });
 
   it('zeigt die Zeitkonto-Felder, ohne dass jemand sie aufklappen muss', async () => {
@@ -240,14 +278,14 @@ describe('Die Stammdaten in der Akte', () => {
       stehen.
     */
     zeige();
-    await bearbeite();
+    await arbeitszeitAendern();
     const feld = await screen.findByRole('textbox', { name: /Wochenstunden/ });
     await userEvent.clear(feld);
     await userEvent.type(feld, '0');
-    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Arbeitszeit speichern' }));
 
-    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
-    expect(profilAendern.mock.calls[0][1]).toMatchObject({ weeklyTargetHours: 0 });
+    await waitFor(() => expect(azAendern).toHaveBeenCalled());
+    expect(azAendern.mock.calls[0][0]).toMatchObject({ wochenstunden: 0 });
   });
 
   it('macht aus einem leeren Resturlaub `null` und nicht 0', async () => {
@@ -271,9 +309,11 @@ describe('Die Stammdaten in der Akte', () => {
     zeige();
     await bearbeite();
     expect(await screen.findByRole('textbox', { name: /Urlaub im ersten Jahr|Resturlaub beim Umstieg/ })).toHaveValue('5,96');
-    expect(screen.getByRole('textbox', { name: /Wochenstunden/ })).toHaveValue('38,5');
     // Unverändert heißt unverändert: das Komma allein macht die Akte nicht „geändert“.
     expect(screen.queryByRole('button', { name: 'Speichern' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Schließen' }));
+    await arbeitszeitAendern();
+    expect(await screen.findByRole('textbox', { name: /Wochenstunden/ })).toHaveValue('38,5');
   });
 
   // Testbericht 30.09.2026, G9 — das leere Feld sagt, was es bedeutet.
@@ -907,57 +947,55 @@ describe('Jugendschutz in der Akte (Runde 3, M2)', () => {
     ohne Hinweis gespeichert.“ Jetzt fragt die Akte nach — und speichert auf
     Wunsch trotzdem.
   */
+  /* Das Wochensoll ändert sich seit Z3 in der Karte „ab einem Tag“ — die Rückfrage ging mit. */
   async function wochenstunden(wert: string) {
+    await arbeitszeitAendern();
     const feld = await screen.findByRole('textbox', { name: /Wochenstunden/ });
     await userEvent.clear(feld);
     await userEvent.type(feld, wert);
-    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Arbeitszeit speichern' }));
   }
 
   it('unter 18 und 42 Wochenstunden: Rückfrage, gespeichert erst nach „Trotzdem speichern“', async () => {
     geburtsdatum = '2010-03-15';
     zeige();
-    await bearbeite();
     expect(await screen.findByText(/Unter 18 — es gelten die Grenzen des KJBG/)).toBeInTheDocument();
     await wochenstunden('42');
 
     const dialog = await screen.findByRole('dialog', { name: /ist unter 18/ });
     expect(dialog).toHaveTextContent('Erna Beispiel ist unter 18');
     expect(dialog).toHaveTextContent('Wochensoll 42 Std. — für Jugendliche höchstens 40 Std. in der Woche');
-    expect(profilAendern).not.toHaveBeenCalled();
+    expect(azAendern).not.toHaveBeenCalled();
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Trotzdem speichern' }));
-    await waitFor(() => expect(profilAendern).toHaveBeenCalledTimes(1));
-    expect(profilAendern.mock.calls[0][1]).toMatchObject({ weeklyTargetHours: 42 });
+    await waitFor(() => expect(azAendern).toHaveBeenCalledTimes(1));
+    expect(azAendern.mock.calls[0][0]).toMatchObject({ wochenstunden: 42 });
   });
 
   it('„Abbrechen“ speichert nicht', async () => {
     geburtsdatum = '2010-03-15';
     zeige();
-    await bearbeite();
     expect(await screen.findByText(/Unter 18/)).toBeInTheDocument();
     await wochenstunden('42');
     await userEvent.click(within(await screen.findByRole('dialog', { name: /ist unter 18/ })).getByRole('button', { name: 'Abbrechen' }));
     expect(screen.queryByRole('dialog', { name: /ist unter 18/ })).not.toBeInTheDocument();
-    expect(profilAendern).not.toHaveBeenCalled();
+    expect(azAendern).not.toHaveBeenCalled();
   });
 
   it('Gegenprobe: ab 18 keine Rückfrage', async () => {
     geburtsdatum = '1990-01-01';
     zeige();
-    await bearbeite();
     expect(await screen.findByText('01.01.1990')).toBeInTheDocument();
     await wochenstunden('42');
-    await waitFor(() => expect(profilAendern).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(azAendern).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole('dialog', { name: /ist unter 18/ })).not.toBeInTheDocument();
   });
 
   it('Gegenprobe: ohne Geburtsdatum keine Rückfrage', async () => {
     zeige();
-    await bearbeite();
-    expect(screen.getByRole('button', { name: 'Geburtsdatum bearbeiten', hidden: true })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Geburtsdatum bearbeiten', hidden: true })).toBeInTheDocument();
     await wochenstunden('42');
-    await waitFor(() => expect(profilAendern).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(azAendern).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole('dialog', { name: /ist unter 18/ })).not.toBeInTheDocument();
   });
 
@@ -1040,7 +1078,9 @@ describe('Aktenlinie 03 · Benutzer', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Bearbeiten' }));
     expect(await screen.findByRole('dialog', { name: 'Benutzer bearbeiten' })).toBeInTheDocument();
     expect(screen.getByLabelText(/^Name/)).toHaveValue('Erna Beispiel');
-    expect(screen.getByLabelText(/Wochenstunden/)).toHaveValue('40');
+    // Wochenstunden ändern sich ab einem Tag, nicht im Formular der Akte (Z3).
+    expect(screen.queryByLabelText(/Wochenstunden/)).toBeNull();
+    expect(screen.getByText(/ändern sich ab einem Tag/)).toBeInTheDocument();
   });
   it('gibt der Geschäftsführung durch den Umbau keine Bearbeitung eines Administrators frei', async () => {
     gefunden = person({ uid: 'a1', name: 'Admin', role: 'Administrator' });
@@ -1072,11 +1112,221 @@ it('Aktenlinie 03 · schützt den eigenen Geburtsdatumsentwurf und verwendet den
   expect(await screen.findByText('15.03.2010')).toBeInTheDocument();
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(profilAendern).not.toHaveBeenCalled();
-  await bearbeite();
+  await arbeitszeitAendern();
   const wochenstunden = screen.getByRole('textbox', { name: /Wochenstunden/ });
   await userEvent.clear(wochenstunden);
   await userEvent.type(wochenstunden, '42');
-  await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Arbeitszeit speichern' }));
   expect(screen.getByRole('dialog', { name: /ist unter 18/ })).toBeInTheDocument();
-  expect(profilAendern).not.toHaveBeenCalled();
+  expect(azAendern).not.toHaveBeenCalled();
+});
+
+describe('Arbeitszeit und Anspruch ab einem Tag (Durchsicht 15.11.2026, Z3)', () => {
+  it('belegt das Formular mit den bestehenden Werten vor und speichert sie mit „gilt ab“', async () => {
+    gefunden = person({ uid: 'u2', name: 'Erna Beispiel', weeklyTargetHours: 20, workDays: [1, 2, 3], yearlyVacationDays: 30 });
+    zeige();
+    await arbeitszeitAendern();
+    expect(await screen.findByRole('textbox', { name: /Wochenstunden/ })).toHaveValue('20');
+    const ab = screen.getByLabelText(/Gilt ab/);
+    await userEvent.clear(ab);
+    await userEvent.type(ab, '2026-12-01');
+    const feld = screen.getByRole('textbox', { name: /Wochenstunden/ });
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '15');
+    await userEvent.click(screen.getByRole('button', { name: 'Arbeitszeit speichern' }));
+    await waitFor(() => expect(azAendern).toHaveBeenCalledTimes(1));
+    expect(azAendern.mock.calls[0][0]).toMatchObject({ userId: 'u2', ab: '2026-12-01', wochenstunden: 15, arbeitstage: [1, 2, 3] });
+  });
+
+  it('der Urlaubsanspruch gilt ab einem Urlaubsjahr — vorbelegt mit dem bisherigen', async () => {
+    gefunden = person({ uid: 'u2', name: 'Erna Beispiel', yearlyVacationDays: 25 });
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Arbeitszeit und Urlaub' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Urlaubsanspruch ändern' }));
+    const tage = screen.getByRole('textbox', { name: /Urlaubstage pro Jahr/ });
+    expect(tage).toHaveValue('25');
+    await userEvent.clear(tage);
+    await userEvent.type(tage, '30');
+    await userEvent.click(screen.getByRole('button', { name: 'Anspruch speichern' }));
+    await waitFor(() => expect(uaAendern).toHaveBeenCalledTimes(1));
+    // Vorgabe: das nächste Urlaubsjahr — das laufende bleibt, wie es ist.
+    expect(uaAendern.mock.calls[0]).toEqual(['u2', new Date().getFullYear() + 1, 30]);
+  });
+
+  it('das Speichern der Akte schickt keine Arbeitszeit mit — sie würde sonst rückwirkend gelten', async () => {
+    zeige();
+    await bearbeite();
+    await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'x');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
+    const gesendet = profilAendern.mock.calls[0][1] as Record<string, unknown>;
+    for (const feld of ['weeklyTargetHours', 'workDays', 'tagessoll', 'yearlyVacationDays']) expect(gesendet).not.toHaveProperty(feld);
+  });
+
+  it('zeigt den Verlauf: was wann gilt, und was noch kommt', async () => {
+    gefunden = person({
+      uid: 'u2', name: 'Erna Beispiel', weeklyTargetHours: 40, workDays: [1, 2, 3, 4, 5],
+      arbeitszeitVerlauf: [
+        { ab: '2025-01-01', wochenstunden: 40, arbeitstage: [1, 2, 3, 4, 5], tagessoll: null },
+        { ab: '2099-12-01', wochenstunden: 30, arbeitstage: [1, 2, 3, 4], tagessoll: null },
+      ],
+    });
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Arbeitszeit und Urlaub' }));
+    expect(screen.getByText('30 Std · Mo, Di, Mi, Do')).toBeInTheDocument();
+    expect(screen.getByText(/ab 01\.12\.2099 · kommt noch/)).toBeInTheDocument();
+    expect(screen.getByText(/von Anfang an · bis 30\.11\.2099/)).toBeInTheDocument();
+  });
+});
+
+/*
+  K7 (Durchsicht 15.11.2026): eine zweite Leitung setzt den zweiten Faktor
+  eines Kollegen zurück — mit Grund. GEGENPROBE (Erwartung): ohne
+  `ZweiterFaktorZuruecksetzen` in der Akte gibt es den Knopf nicht — die
+  ersten beiden Fälle sind rot; „ohne Faktor“, „eigenes Konto“ und
+  „Verwaltung“ sind in beiden Fassungen grün.
+*/
+describe('Den zweiten Faktor zurücksetzen', () => {
+  it('mit Grund — erst dann geht es an die Datenbank', async () => {
+    hatFaktor = true;
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Zweiten Faktor zurücksetzen …' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Zurücksetzen' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Bitte einen Grund angeben');
+    expect(zuruecksetzen).not.toHaveBeenCalled();
+    await userEvent.type(screen.getByLabelText(/Grund/), 'Telefon verloren');
+    await userEvent.click(screen.getByRole('button', { name: 'Zurücksetzen' }));
+    await waitFor(() => expect(zuruecksetzen).toHaveBeenCalledWith('u2', 'Telefon verloren'));
+  });
+
+  it('zeigt die Absage der Datenbank, wie sie kommt', async () => {
+    hatFaktor = true;
+    zuruecksetzen.mockRejectedValue(new Error('Den zweiten Faktor eines Administrators setzt nur ein Administrator zurück'));
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Zweiten Faktor zurücksetzen …' }));
+    await userEvent.type(screen.getByLabelText(/Grund/), 'x');
+    await userEvent.click(screen.getByRole('button', { name: 'Zurücksetzen' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('nur ein Administrator');
+  });
+
+  it('ohne Faktor kein Knopf', async () => {
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await screen.findByRole('button', { name: 'Passwort-Mail senden' });
+    expect(screen.queryByRole('button', { name: 'Zweiten Faktor zurücksetzen …' })).not.toBeInTheDocument();
+  });
+
+  it('nicht beim eigenen Konto', async () => {
+    hatFaktor = true;
+    gefunden = person({ uid: 'gf1', name: 'Chefin', email: 'chefin@perl.at', role: 'Geschäftsführung' });
+    zeige('gf1');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await screen.findByText(/Das eigene Konto lässt sich nicht sperren/);
+    expect(screen.queryByRole('button', { name: 'Zweiten Faktor zurücksetzen …' })).not.toBeInTheDocument();
+  });
+
+  it('nicht für die Verwaltung — nur die Spitze setzt zurück', async () => {
+    hatFaktor = true;
+    angemeldet = { uid: 'v1', companyId: 'perl', name: 'Vera', role: 'Verwaltung' };
+    zeige();
+    await screen.findAllByText('Erna Beispiel');
+    expect(screen.queryByRole('button', { name: 'Zweiten Faktor zurücksetzen …' })).not.toBeInTheDocument();
+  });
+});
+
+/*
+  V14 (Durchsicht 15.11.2026): die Bitte um ein neues Passwort aus der
+  Anmeldemaske steht in der Akte. GEGENPROBE (Erwartung): ohne
+  `PasswortBitte` sind die ersten beiden Fälle rot; „keine Bitte“ grün.
+*/
+describe('Die Bitte um ein neues Passwort', () => {
+  it('steht im Zugang — mit dem Weg, sie zu erledigen', async () => {
+    bitten = [{ id: 'b1', userId: 'u2', angefragtAm: Date.now() }];
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    expect(await screen.findByText('Erna Beispiel bittet um ein neues Passwort')).toBeInTheDocument();
+  });
+
+  it('lässt sich verwerfen', async () => {
+    bitten = [{ id: 'b1', userId: 'u2', angefragtAm: Date.now() }];
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Bitte verwerfen' }));
+    await waitFor(() => expect(verwerfen).toHaveBeenCalledWith('b1'));
+    await waitFor(() => expect(screen.queryByText(/bittet um ein neues Passwort/)).toBeNull());
+  });
+
+  it('ohne Bitte steht nichts da', async () => {
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await screen.findByRole('button', { name: 'Passwort-Mail senden' });
+    expect(screen.queryByText(/bittet um ein neues Passwort/)).toBeNull();
+  });
+});
+
+describe('Austritt in einem Zug und Wiedereintritt (Durchsicht 15.11.2026, Z2)', () => {
+  const offen = {
+    ...KEINE_FOLGEN,
+    buchungen: [{ status: 'Urlaub', anzahl: 4, von: '2026-06-16', bis: '2026-06-19' }],
+    urlaub: [{ id: 'v1', art: 'Urlaub', status: 'Beantragt', von: '2026-08-03', bis: '2026-08-07' }],
+    einsaetze: { anzahl: 2, von: '2026-06-15', bis: '2026-06-16' },
+    sitzung: { id: 's1', stand: 'laeuft', seit: '2026-06-12T05:00:00.000Z' },
+  };
+
+  it('beim Deaktivieren steht, was nach dem letzten Arbeitstag noch offen ist', async () => {
+    folgen = offen;
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Konto deaktivieren' }));
+    const dialog = await screen.findByRole('dialog', {});
+    expect(await within(dialog).findByText('4 × Urlaub gebucht')).toBeInTheDocument();
+    expect(within(dialog).getByText(/zählt nicht mehr im Saldo/)).toBeInTheDocument();
+    expect(within(dialog).getByText('Urlaub beantragt, nicht entschieden')).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: 'Umplanen' })).toHaveAttribute('href', '/assignments?datum=2026-06-15');
+    expect(within(dialog).getByText('Zeitsitzung läuft noch')).toBeInTheDocument();
+    // Vor dem Speichern gehört die Sitzung noch der Person.
+    expect(within(dialog).queryByRole('button', { name: 'Sitzung beenden' })).toBeNull();
+    expect(folgenLaden).toHaveBeenCalledWith('u2', todayStr());
+  });
+
+  it('nach dem Austritt nennt die Akte es weiter — und das Büro beendet die Sitzung', async () => {
+    folgen = offen;
+    gefunden = person({ uid: 'u3', name: 'Ausgeschieden', active: false, appStartDate: '2025-01-01', austritt: '2026-06-12' });
+    zeige('u3');
+    await userEvent.click(await screen.findByRole('button', { name: 'Sitzung beenden' }));
+    await waitFor(() => expect(sitzungBeenden).toHaveBeenCalledWith('u3'));
+  });
+
+  it('Wiedereintritt nach dem Austritt beginnt neu: Eintritt, Saldo-Start und Startwerte am Tag der Rückkehr', async () => {
+    gefunden = person({ uid: 'u3', name: 'Ausgeschieden', active: false, appStartDate: '2025-01-01', austritt: '2026-06-30' });
+    zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Konto aktivieren' }));
+    const dialog = await screen.findByRole('dialog', {});
+    expect(dialog).toHaveTextContent(/beginnt neu/);
+    const tag = within(dialog).getByLabelText(/Wiedereintritt/);
+    await userEvent.clear(tag);
+    await userEvent.type(tag, '2026-06-30');
+    expect(within(dialog).getByRole('button', { name: 'Aktivieren' })).toBeDisabled();
+    await userEvent.clear(tag);
+    await userEvent.type(tag, '2026-10-01');
+    await userEvent.type(within(dialog).getByLabelText(/Urlaub im ersten Jahr/), '6,25');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Aktivieren' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalledWith('u3', {
+      active: true, austritt: null, eintritt: '2026-10-01', appStartDate: '2026-10-01', initialOvertime: 0, initialVacationDays: 6.25,
+    }));
+  });
+
+  it('bleibt gleich: ein Austritt, der noch vor uns liegt, wird beim Aktivieren nur entfernt', async () => {
+    gefunden = person({ uid: 'u3', name: 'Kündigungsfrist', active: false, appStartDate: '2025-01-01', austritt: '2099-12-31' });
+    zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Konto aktivieren' }));
+    const dialog = await screen.findByRole('dialog', {});
+    expect(within(dialog).queryByLabelText(/Wiedereintritt/)).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Aktivieren' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalledWith('u3', { active: true, austritt: null }));
+  });
 });

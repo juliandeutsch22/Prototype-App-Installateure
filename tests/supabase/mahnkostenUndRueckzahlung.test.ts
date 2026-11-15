@@ -38,7 +38,7 @@ async function rechnung(): Promise<string> {
 async function mahnen(id: string, inhalt: Record<string, unknown> = {}) {
   clientEinreichen(buch.client);
   await rechnungen.mahnungFesthalten(id, {
-    stufe: 1, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 10,
+    datumAusdruecklich: true, stufe: 1, gemahntAm: '2026-02-01', frist: '2026-02-08', spesen: 10,
     inhalt: {
       ...mahnInhalt(1, '2026-02-01', '2026-02-08'),
       zeilen: [['Rechnungsbetrag', '1.200,00 €'], ['Mahnspesen', '10,00 €'], ['Verzugszinsen 4 % p. a., 24 Tage', '3,16 €']],

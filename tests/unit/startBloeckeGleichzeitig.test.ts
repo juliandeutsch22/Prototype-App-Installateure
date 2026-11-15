@@ -40,7 +40,8 @@ vi.mock('@/lib/db/invoices', () => ({
   listUnpaidInvoices: vi.fn(spaeter('ganzeRechnungen')),
   listInvoicesByIds: vi.fn(spaeter('rechnungenDerZahlungen')),
   listGarantienEndenIn: vi.fn(async () => []),
-  scheineAufRechnung: vi.fn(async () => []),
+  // „Nicht verrechnet“ über alle Scheine (P3): die eine Abfrage, die früher Liste plus Abdeckung war.
+  scheineUnverrechnet: vi.fn(spaeter('scheine')),
 }));
 vi.mock('@/lib/db/zahlungen', () => ({
   listZahlungenImZeitraum: vi.fn(async () => [{ id: 'z1', invoiceId: 'r1', betrag: 100, art: 'Überweisung', datum: '2026-10-10' }]),
@@ -48,7 +49,6 @@ vi.mock('@/lib/db/zahlungen', () => ({
 vi.mock('@/lib/db/workSheets', () => ({
   listOwnWorkSheetsSince: vi.fn(async () => []),
   listRecentWorkSheets: vi.fn(spaeter('ganzeScheine')),
-  listRecentWorkSheetKoepfe: vi.fn(spaeter('scheine')),
 }));
 vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(spaeter('projekte')),

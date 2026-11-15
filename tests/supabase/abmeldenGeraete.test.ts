@@ -23,6 +23,7 @@ const { supabaseClient } = await import('@/lib/supabase');
 const BETRIEB = 'abmelden-r6';
 const PASSWORT = 'abmelden-geraete-2026';
 let email: string;
+let uid: string;
 
 async function anderesGeraet(): Promise<SupabaseClient> {
   const c = createClient(API, ANON, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -41,6 +42,7 @@ beforeAll(async () => {
   email = `abmelden-${crypto.randomUUID().slice(0, 8)}@abmelden.test`;
   const { data, error } = await admin.auth.admin.createUser({ email, password: PASSWORT, email_confirm: true });
   if (error) throw error;
+  uid = data.user!.id;
   await admin.from('users').upsert({
     id: data.user!.id, company_id: BETRIEB, name: 'Abmelden', email, role: 'Geschäftsführung', active: true,
   });
@@ -69,6 +71,37 @@ describe('Abmelden', () => {
     await sitzung.anmelden(email, PASSWORT);
     await sitzung.abmelden(true);
     expect(await liest(telefon)).toBe(0);
+  });
+});
+
+/*
+  K2 (Durchsicht 15.11.2026): „Auf allen Geräten“ nimmt auch die
+  Push-Anmeldungen weg — sonst zeigte das verlorene Telefon weiter
+  Meldungen. GEGENPROBE (Erwartung): mit dem `abmelden()` ohne
+  `push_geraete_abmelden` ist der erste Fall rot, der zweite grün.
+*/
+describe('Abmelden und die Geräte für Meldungen', () => {
+  async function geraete(): Promise<string[]> {
+    const { data } = await admin.from('user_prefs').select('push_tokens').eq('user_id', uid).maybeSingle();
+    return (data?.push_tokens as string[] | undefined) ?? [];
+  }
+  async function geraeteSetzen() {
+    const r = await admin.from('user_prefs').upsert({ user_id: uid, company_id: BETRIEB, push_tokens: ['telefon', 'rechner'] });
+    if (r.error) throw new Error(r.error.message);
+  }
+
+  it('auf allen Geräten: keine Push-Anmeldung bleibt stehen', async () => {
+    await geraeteSetzen();
+    await sitzung.anmelden(email, PASSWORT);
+    await sitzung.abmelden(true);
+    expect(await geraete()).toEqual([]);
+  });
+
+  it('bleibt gleich: nur dieses Gerät lässt die Anmeldungen der anderen stehen', async () => {
+    await geraeteSetzen();
+    await sitzung.anmelden(email, PASSWORT);
+    await sitzung.abmelden();
+    expect(await geraete()).toEqual(['telefon', 'rechner']);
   });
 });
 

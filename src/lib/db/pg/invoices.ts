@@ -13,13 +13,12 @@
  * die sich auch nicht mehr wegräumen lässt.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt, Project, RechnungsKopf, WorkSheet } from '@/types';
-import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, type WithId } from './kern';
-import { objektAlsZeile } from './felder';
+import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt, RechnungsKopf, WorkSheet } from '@/types';
+import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, SEITE, type WithId } from './kern';
+import { objektAlsZeile, zeileAlsObjekt } from './felder';
 import { oderUeberSpalten } from './suche';
-import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
+import { PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
-import { inAbgerechnetemZeitraum, inVerrechneterPauschale } from '@/features/worksheets/unverrechnet';
 
 const RECHNUNGEN = 'invoices';
 const POSITIONEN = 'invoice_lines';
@@ -31,6 +30,7 @@ type Position = NonNullable<Invoice['positions']>[number];
 type KopfZeile = Omit<
   Invoice,
   'positions' | 'discount' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets' | 'linkedWartungen'
+  | 'linkedRuestPositionen'
 > & {
   discountMode?: InvoiceDiscount['mode'];
   discountValue?: number;
@@ -51,6 +51,8 @@ const ABDECKUNGSARTEN = [
   ['work_sheet', 'linkedWorkSheets'],
   // Seit M01e: die Wartung über ihre Kennung (Muster in `20261106300000_wartung_abdeckung.sql`).
   ['wartung', 'linkedWartungen'],
+  // Seit M2: die eingeladene Rüstlistenposition (`20261116060000_material_verrechnet_je_ausgabe.sql`).
+  ['ruest_position', 'linkedRuestPositionen'],
 ] as const;
 
 interface Abdeckungszeile {
@@ -358,6 +360,42 @@ export async function listInvoicesInRange(companyId: string, von: string, bis: s
 }
 
 /**
+ * Die Rechnungs- und Stornonummern desselben Jahres VOR einem Zeitraum —
+ * für die Lückenprüfung an der Grenze zweier Exporte (Durchsicht 15.11.2026,
+ * G8). Nur die Nummern und was es braucht, um eine Stornorechnung ihrem Tag
+ * zuzuordnen; das Jahr hat so viele Rechnungen, wie es hat.
+ */
+export async function rechnungsnummernVorZeitraum(companyId: string, von: string): Promise<string[]> {
+  const jahrBeginn = `${von.slice(0, 4)}-01-01`;
+  if (von <= jahrBeginn) return [];
+  const vortag = tagVerschoben(von, -1);
+  const [rechnungen, stornos] = await Promise.all([
+    abfragen<{ invoiceNumber: string }>(RECHNUNGEN, companyId, {
+      wo: [
+        { art: 'ab', feld: 'invoiceDate', wert: jahrBeginn },
+        { art: 'bis', feld: 'invoiceDate', wert: vortag },
+      ],
+      spalten: 'id,invoice_number',
+    }),
+    abfragen<Pick<Invoice, 'stornoNummer' | 'stornoAm' | 'cancelledAt'>>(RECHNUNGEN, companyId, {
+      wo: [
+        { art: 'ab', feld: 'stornoAm', wert: tagVerschoben(jahrBeginn, -1) },
+        { art: 'bis', feld: 'stornoAm', wert: tagVerschoben(von, 1) },
+      ],
+      spalten: 'id,storno_nummer,storno_am,cancelled_at',
+    }),
+  ]);
+  // Der Tag der Stornorechnung zählt in Wien (`stornoBelegTag`), die Spalte steht in UTC.
+  const tagIn = (ms: number) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Vienna' }).format(new Date(ms));
+  return [
+    ...rechnungen.map((r) => r.invoiceNumber),
+    ...stornos
+      .filter((r) => r.stornoNummer && r.stornoAm != null && tagIn(r.stornoAm) >= jahrBeginn && tagIn(r.stornoAm) < von)
+      .map((r) => r.stornoNummer!),
+  ];
+}
+
+/**
  * Bestimmte Rechnungen, nach Kennung — für den Zahlungsstapel (Testbericht
  * 30.09.2026, H7 vorgebaut): eine Zahlung im Zeitraum gehört oft zu einer
  * Rechnung aus einem früheren.
@@ -438,119 +476,64 @@ export async function listInvoicesForProjects(
 
 /**
  * Welche dieser Handwerksscheine VERRECHNET sind: auf einer GÜLTIGEN Rechnung
- * stehen — über ALLE Rechnungen, nicht nur die geladenen — oder in einer
- * schon verrechneten Pauschale stecken.
+ * stehen — über ALLE Rechnungen, nicht nur die geladenen —, in einer schon
+ * verrechneten Pauschale stecken (Befund 09.11.2026) oder, ohne Material, an
+ * einem Tag liegen, den eine gültige Rechnung schon abgerechnet hat (A1,
+ * 12.11.2026).
  *
- * Gebraucht für „nicht verrechnete Leistung" (Prüflauf 25.09.2026, P2-03).
- * Die Ansicht fragte bisher die fünfzig jüngsten Rechnungen und die offenen
- * Forderungen; ein Schein auf einer älteren, längst BEZAHLTEN Rechnung stand
- * damit als unverrechnet da — eine falsche Anschuldigung, der jemand
- * nachgeht. Gefragt wird deshalb die Abdeckung selbst, und ein Storno zählt
- * nicht: er gibt seine Scheine frei.
+ * Gebraucht für „nicht verrechnete Leistung" (Prüflauf 25.09.2026, P2-03)
+ * und die Rechnung einer Baustelle. Ein Storno zählt nicht: er gibt seine
+ * Scheine frei.
  *
- * DIE PAUSCHALE (Befund 09.11.2026): ein Schein einer Pauschal- oder
- * Einheitspreisbaustelle, der erst nach ihrer Einzel- oder Schlussrechnung
- * unterschrieben wird, steht auf keiner Rechnung und kann auf keine mehr
- * kommen — er ist darin enthalten (`inVerrechneterPauschale`). Die Frage
- * steht HIER, nicht in jeder Ansicht: Startseite, Rechnungen, Scheinliste
- * und Baustellenakte fragen alle diese Funktion und bekommen so dieselbe
- * Antwort.
+ * DIE REGELN STEHEN IN DER DATENBANK (Durchsicht 15.11.2026, P3):
+ * `scheine_verrechnet` fragt denselben Kern wie `scheine_unverrechnet`, aus
+ * dem Startseite, Rechnungen und Scheinliste ihre Liste über ALLE Scheine
+ * holen. Vorher standen sie hier in vier Abfragen — und die Listen sahen nur
+ * die 60 jüngsten Scheine. Eine Quelle, damit Baustellenakte und Liste nie
+ * verschiedene Antworten geben.
  */
 export async function scheineAufRechnung(
   companyId: string,
   scheinIds: string[],
 ): Promise<string[]> {
+  void companyId;
   const ids = [...new Set(scheinIds.filter(Boolean))];
   if (ids.length === 0) return [];
-  const abdeckung = await abfragen<Abdeckungszeile>(ABDECKUNG, companyId, {
-    wo: [
-      { art: 'gleich', feld: 'art', wert: 'work_sheet' },
-      { art: 'in', feld: 'zielId', werte: ids },
-    ],
-  });
-  const rechnungsIds = [...new Set(abdeckung.map((a) => a.invoiceId))];
-  const koepfe = rechnungsIds.length === 0 ? [] : await abfragen<Pick<Invoice, 'paymentStatus'>>(RECHNUNGEN, companyId, {
-    wo: [{ art: 'in', feld: 'id', werte: rechnungsIds }],
-  });
-  const gueltig = new Set(koepfe.filter((k) => k.paymentStatus !== 'Storniert').map((k) => k.id));
-  const verrechnet = new Set(abdeckung.filter((a) => gueltig.has(a.invoiceId)).map((a) => a.zielId));
-  const offen = ids.filter((id) => !verrechnet.has(id));
-  if (offen.length === 0) return [...verrechnet];
-  const scheine = (await abfragen<Pick<WorkSheet, 'status' | 'projectNumber' | 'datum'>>('work_sheets', companyId, {
-    wo: [{ art: 'in', feld: 'id', werte: offen }],
-  })).filter((s) => s.status === 'Unterschrieben' && s.projectNumber);
-  if (scheine.length === 0) return [...verrechnet];
-  /*
-    DIE RECHNUNGEN DIESER BAUSTELLEN EINMAL — beide Regeln unten fragen
-    dieselben. Sie wachsen mit der Baustelle, nicht mit dem Betrieb.
-  */
-  const rechnungen = await abfragen<Pick<Invoice, 'projectNumber' | 'paymentStatus' | 'art' | 'leistungVon'
-    | 'leistungBis' | 'invoiceDate'>>(RECHNUNGEN, companyId, {
-    wo: [{ art: 'in', feld: 'projectNumber', werte: formenAller(scheine.map((s) => s.projectNumber)) }],
-  });
-  if (rechnungen.length === 0) return [...verrechnet];
-  const [inPauschale, imZeitraum] = await Promise.all([
-    inPauschaleEnthalten(companyId, scheine, rechnungen),
-    imAbgerechnetenZeitraum(companyId, scheine, rechnungen),
-  ]);
-  for (const id of [...inPauschale, ...imZeitraum]) verrechnet.add(id);
-  return [...verrechnet];
+  const { data, error } = await derClient().rpc('scheine_verrechnet', { p_ids: ids });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as (string | { scheine_verrechnet: string })[])
+    .map((z) => (typeof z === 'string' ? z : z.scheine_verrechnet));
 }
 
-type OffenerSchein = WithId<Pick<WorkSheet, 'status' | 'projectNumber' | 'datum'>>;
-type BaustellenRechnung = WithId<Pick<Invoice, 'projectNumber' | 'paymentStatus' | 'art' | 'leistungVon'
-  | 'leistungBis' | 'invoiceDate'>>;
-
-/** Die Scheine, die in einer verrechneten Pauschale stecken — siehe oben. */
-async function inPauschaleEnthalten(
-  companyId: string,
-  scheine: OffenerSchein[],
-  rechnungen: BaustellenRechnung[],
-): Promise<string[]> {
-  const baustellen = (await abfragen<Pick<Project, 'projectNumber' | 'billingMode'>>('projects', companyId, {
-    wo: [{ art: 'in', feld: 'projectNumber', werte: formenAller(scheine.map((s) => s.projectNumber)) }],
-  })).filter((b) => b.billingMode === 'Pauschal' || b.billingMode === 'Einheitspreis');
-  if (baustellen.length === 0) return [];
-  return inVerrechneterPauschale(scheine, baustellen, rechnungen);
+/** Ein unterschriebener Schein, der auf keiner Rechnung steht — nur der Kopf. */
+export interface UnverrechneterSchein {
+  id: string;
+  projectNumber: string;
+  customerName: string;
+  datum: string;
+  abrechnung: WorkSheet['abrechnung'];
 }
 
 /**
- * Die Scheine ohne Material, deren Tag eine gültige Rechnung schon
- * abgerechnet hat (A1, 12.11.2026) — siehe `inAbgerechnetemZeitraum`. Bis
- * dahin verknüpfte eine Rechnung nur Scheine mit Material; die schon
- * ausgestellten werden nicht umgeschrieben, die Antwort kommt aus dieser
- * Regel. Gebraucht werden das Material der Scheine und ob eine Rechnung
- * Belege verbraucht hat (ihre Abdeckung).
+ * ALLE UNVERRECHNETEN SCHEINE DES BETRIEBS, älteste zuerst (P3,
+ * `scheine_unverrechnet`). Zähler, Liste und Vier-Wochen-Schwelle kommen
+ * überall aus dieser einen Antwort. Seitenweise, weil auch die Antwort einer
+ * Funktion bei 1.000 Zeilen endet — eine Obergrenze wäre genau die Lücke,
+ * die P3 schließt.
  */
-async function imAbgerechnetenZeitraum(
-  companyId: string,
-  scheine: OffenerSchein[],
-  rechnungen: BaustellenRechnung[],
-): Promise<string[]> {
-  const kandidaten = rechnungen.filter((r) => r.paymentStatus !== 'Storniert' && (r.art ?? 'einzel') !== 'anzahlung');
-  if (kandidaten.length === 0) return [];
-  const [material, belege] = await Promise.all([
-    abfragen<{ workSheetId: string; name: string; menge: number }>('work_sheet_material', companyId, {
-      wo: [{ art: 'in', feld: 'workSheetId', werte: scheine.map((s) => s.id) }],
-    }),
-    abfragen<Abdeckungszeile>(ABDECKUNG, companyId, {
-      wo: [
-        { art: 'in', feld: 'invoiceId', werte: kandidaten.map((r) => r.id) },
-        { art: 'in', feld: 'art', werte: ['time_entry', 'material_order', 'work_sheet'] },
-      ],
-    }),
-  ]);
-  const mitBelegen = new Set(belege.map((b) => b.invoiceId));
-  const materialJe = new Map<string, WorkSheet['material']>();
-  for (const z of material) {
-    const liste = materialJe.get(z.workSheetId) ?? [];
-    liste.push(z as WorkSheet['material'][number]);
-    materialJe.set(z.workSheetId, liste);
+export async function scheineUnverrechnet(seite = SEITE): Promise<UnverrechneterSchein[]> {
+  type Zeile = { id: string; project_number: string; customer_name: string; datum: string; abrechnung: WorkSheet['abrechnung'] };
+  const alle: Zeile[] = [];
+  for (let ab = 0; ; ab += seite) {
+    const { data, error } = await derClient().rpc('scheine_unverrechnet').range(ab, ab + seite - 1);
+    if (error) throw new Error(error.message);
+    const teil = (data ?? []) as Zeile[];
+    alle.push(...teil);
+    if (teil.length < seite) break;
   }
-  return inAbgerechnetemZeitraum(
-    scheine.map((s) => ({ ...s, material: materialJe.get(s.id) ?? [] })),
-    kandidaten.map((r) => ({ ...r, linkedEntries: mitBelegen.has(r.id) ? [r.id] : [] })),
-  );
+  return alle.map((z) => ({
+    id: z.id, projectNumber: z.project_number, customerName: z.customer_name, datum: z.datum, abrechnung: z.abrechnung,
+  }));
 }
 
 /** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */
@@ -630,55 +613,22 @@ const KENNUNG = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export async function listInvoicesForCustomer(
   companyId: string,
   customerId: string,
-  projektIds: string[],
 ): Promise<WithId<Invoice>[]> {
-  // Die Kennungen stehen in einer `or`-Zeichenkette — nur, was wirklich eine
-  // Kennung ist, kommt hinein.
-  const ids = projektIds.filter((id) => KENNUNG.test(id));
-  if (!KENNUNG.test(customerId)) return [];
-  const teile = [`customer_id.eq.${customerId}`];
-  if (ids.length > 0) teile.push(`project_id.in.(${ids.join(',')})`);
-  const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
-    oder: teile.join(','),
-    sortiere: { feld: 'invoiceDate', absteigend: true },
-    grenze: RECHNUNGEN_JE_KUNDE,
-  });
-  return zusammensetzen(koepfe, companyId);
-}
-
-/**
- * Reserviert eine Rechnungsnummer verbindlich.
- *
- * Die Transaktion, die in der Firestore-Fassung von Hand geschrieben war,
- * ist jetzt die Datenbankfunktion `naechste_nummer`: sie sperrt die
- * Zählerzeile, und zwei gleichzeitige Abrechnungen können sich damit nicht
- * dieselbe Nummer holen. Bei fortlaufender Nummerierung ist das kein
- * Schönheitsfehler, sondern ein Fall für den Steuerberater.
- *
- * `seedFrom` ist die höchste Nummer aus den vorhandenen Rechnungen. Sie zählt
- * nur beim allerersten Aufruf, wenn es den Zähler noch nicht gibt: ohne sie
- * würde ein Betrieb mit Altbestand wieder bei 1001 anfangen.
- */
-export async function reserveInvoiceNumber(
-  companyId: string,
-  opts: { seedFrom: number; desired?: number; praefix?: string },
-): Promise<string> {
-  void companyId;
-  const jahr = new Date().getFullYear();
-  const { data, error } = await derClient().rpc('naechste_nummer', {
-    p_art: 'invoices',
-    p_jahr: jahr,
-    p_seed: Math.max(opts.seedFrom, 0),
-    p_wunsch: opts.desired ?? null,
-  });
-  if (error) throw new Error(error.message);
   /*
-    DER VORSATZ KOMMT VOM AUFRUFER. Hier stand `RE-` fest, ein zweites Mal
-    neben `invoiceNumbers.ts`. Diese Stelle ist die verbindliche: was hier
-    gebaut wird, steht danach auf dem Beleg und lässt sich nicht mehr ändern
-    (`app.rechnung_eingefroren`).
+    IN DER DATENBANK, NICHT ÜBER EINE LISTE IN DER ADRESSE (A10). Vorher
+    standen die Kennungen aller Baustellen des Kunden in einer
+    `or`-Zeichenkette; ab gut 220 Baustellen lehnte das Gateway die Adresse
+    ab, und die Akte zeigte dauerhaft „konnte nicht geladen werden“.
+    `rechnungen_des_kunden` läuft mit den Rechten des Aufrufers — derselbe
+    Zeilenschutz wie bisher.
   */
-  return belegNummer(opts.praefix ?? PRAEFIX_VORGABE.rechnung, jahr, Number(data));
+  if (!KENNUNG.test(customerId)) return [];
+  const { data, error } = await derClient().rpc('rechnungen_des_kunden', { p_kunde: customerId, p_grenze: RECHNUNGEN_JE_KUNDE });
+  if (error) throw new Error(error.message);
+  const koepfe = ((data ?? []) as Record<string, unknown>[])
+    .filter((z) => z.company_id === companyId)
+    .map((z) => zeileAlsObjekt<KopfZeile>(RECHNUNGEN, z));
+  return zusammensetzen(koepfe, companyId);
 }
 
 export type NewInvoice = Omit<Invoice, 'id' | 'companyId' | 'createdAt'>;
@@ -713,17 +663,24 @@ function leerAlsNull(wert: string | undefined): string | null | undefined {
  */
 function anlegeDaten(inv: Omit<NewInvoice, 'invoiceNumber'> & { invoiceNumber?: string }) {
   const {
-    positions, discount, linkedEntries, linkedOrders, linkedWorkSheets, linkedWartungen, ...roh
+    positions, discount, linkedEntries, linkedOrders, linkedWorkSheets, linkedWartungen, linkedRuestPositionen, ...roh
   } = inv;
   const kopf = {
     ...roh,
+    /*
+      M2: jede Rechnung dieser Fassung hält ihr Material je Ausgabe fest —
+      auch eine ohne Material, denn sie deckt dann keines über ihr
+      Leistungsende. Hier und nicht in der Maske, damit kein Weg zum
+      Anlegen es vergisst.
+    */
+    materialJeAusgabe: true,
     leistungVon: leerAlsNull(roh.leistungVon),
     leistungBis: leerAlsNull(roh.leistungBis),
   };
 
   const belege: Record<string, string[]> = {};
   for (const [art, feld] of ABDECKUNGSARTEN) {
-    const liste = { linkedEntries, linkedOrders, linkedWorkSheets, linkedWartungen }[feld];
+    const liste = { linkedEntries, linkedOrders, linkedWorkSheets, linkedWartungen, linkedRuestPositionen }[feld];
     if (liste && liste.length > 0) belege[art] = liste;
   }
 
@@ -766,19 +723,41 @@ export async function createInvoice(companyId: string, inv: NewInvoice): Promise
  *
  * `desired` ist die eigene Nummer beim Umstieg — die Datenbank nimmt sie nur
  * bei der allerersten Rechnung an (K8).
+ *
+ * DATUM UND JAHR BESTIMMT DIE DATENBANK (Durchsicht 15.11.2026, G5). Das
+ * Jahr der Nummer folgt dem Rechnungsdatum, und das muss der heutige Tag in
+ * Wien sein; ein Gerät mit falscher Uhr bekommt eine Absage statt einer
+ * „RE-2020-…“. `datumAusdruecklich` lässt ein anderes Datum zu — nur für
+ * Übernahmen und Prüfungen, die Oberfläche setzt es nie.
  */
 export async function rechnungAusstellen(
   companyId: string,
   inv: Omit<NewInvoice, 'invoiceNumber'>,
-  nummer: { praefix?: string; desired?: number },
-): Promise<{ id: string; invoiceNumber: string }> {
+  nummer: { praefix?: string; desired?: number; datumAusdruecklich?: boolean; versuch?: string },
+): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string; bereits?: boolean }> {
   void companyId;
-  const { data, error } = await derClient().rpc('rechnung_ausstellen', {
+  return ausstellenAufruf('rechnung_ausstellen', {
     ...anlegeDaten(inv),
     p_praefix: nummer.praefix ?? PRAEFIX_VORGABE.rechnung,
-    p_jahr: new Date().getFullYear(),
     p_wunsch: nummer.desired ?? null,
-  }).then((antwort) => antwort, () => { throw new RechnungsAntwortUnklar(); });
+    ...(nummer.datumAusdruecklich ? { p_datum_ausdruecklich: true } : {}),
+    // Die Kennung dieses Versuchs (G2) — damit lässt sich eine unterbrochene Antwort klären.
+    ...(nummer.versuch ? { p_versuch: nummer.versuch } : {}),
+  });
+}
+
+/**
+ * Der Aufruf, der eine Rechnung entstehen lässt — mit der Unterscheidung
+ * zwischen bestätigter Ablehnung und unklarer Antwort. EINE Stelle für das
+ * Ausstellen und das Ersetzen (V6): zwei Fassungen liefen beim nächsten
+ * Fehlerbild auseinander.
+ */
+async function ausstellenAufruf(
+  funktion: 'rechnung_ausstellen' | 'rechnung_ersetzen',
+  args: Record<string, unknown>,
+): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string; bereits?: boolean }> {
+  const { data, error } = await derClient().rpc(funktion, args)
+    .then((antwort) => antwort, () => { throw new RechnungsAntwortUnklar(); });
   if (error) {
     // SQL-Ablehnung bzw. abgewiesene Authentifizierung vor dem RPC-Aufruf.
     if (/^[0-9A-Z]{5}$/.test(error.code ?? '') || error.code === 'PGRST301' || error.code === 'PGRST302') {
@@ -790,8 +769,69 @@ export async function rechnungAusstellen(
       || typeof data.invoice_number !== 'string' || !data.invoice_number.trim()) {
     throw new RechnungsAntwortUnklar();
   }
-  const r = data as { id: string; invoice_number: string };
-  return { id: String(r.id), invoiceNumber: String(r.invoice_number) };
+  const r = data as { id: string; invoice_number: string; invoice_date?: string; bereits?: boolean };
+  return {
+    id: String(r.id),
+    invoiceNumber: String(r.invoice_number),
+    ...(typeof r.invoice_date === 'string' ? { invoiceDate: r.invoice_date } : {}),
+    ...(r.bereits === true ? { bereits: true } : {}),
+  };
+}
+
+/**
+ * Eine Rechnung durch eine neue ersetzen: die alte stornieren und die neue
+ * ausstellen — in EINER Transaktion (Durchsicht 15.11.2026, V6/F4,
+ * `public.rechnung_ersetzen`). Scheitert das Ausstellen, ist auch der Storno
+ * nicht geschehen. Unklare Antworten wie beim Ausstellen; die Kennung des
+ * Versuchs klärt sie (G2).
+ */
+export async function rechnungErsetzen(
+  companyId: string,
+  alt: { id: string; grund: string },
+  inv: Omit<NewInvoice, 'invoiceNumber'>,
+  nummer: { praefix?: string; versuch?: string },
+): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string; bereits?: boolean }> {
+  void companyId;
+  return ausstellenAufruf('rechnung_ersetzen', {
+    p_alt: alt.id,
+    p_grund: alt.grund,
+    ...anlegeDaten(inv),
+    p_praefix: nummer.praefix ?? PRAEFIX_VORGABE.rechnung,
+    ...(nummer.versuch ? { p_versuch: nummer.versuch } : {}),
+  });
+}
+
+/** Was die Klärung eines Erstellungsversuchs ergibt (G2). */
+export type VersuchGeklaert =
+  | { entstanden: true; id: string; invoiceNumber: string; invoiceDate: string }
+  | { entstanden: false };
+
+/**
+ * Nach einer unterbrochenen Antwort klären, ob die Rechnung dieses Versuchs
+ * entstanden ist (Durchsicht 15.11.2026, G2).
+ *
+ * DIE ANTWORT IST ENDGÜLTIG. Lautet sie „nicht entstanden“, hält die
+ * Datenbank den Versuch fest und weist ihn ab, falls der ursprüngliche
+ * Aufruf doch noch ankommt. Läuft er gerade noch, wartet die Klärung auf
+ * ihn. Ohne Netz bleibt es unklar — dann wirft sie wie das Ausstellen
+ * `RechnungsAntwortUnklar`, und die Ansicht versucht es später wieder.
+ */
+export async function rechnungVersuchKlaeren(versuch: string): Promise<VersuchGeklaert> {
+  const { data, error } = await derClient().rpc('rechnung_versuch_klaeren', { p_versuch: versuch })
+    .then((antwort) => antwort, () => { throw new RechnungsAntwortUnklar(); });
+  if (error) {
+    if (/^[0-9A-Z]{5}$/.test(error.code ?? '') || error.code === 'PGRST301' || error.code === 'PGRST302') {
+      throw new Error(error.message);
+    }
+    throw new RechnungsAntwortUnklar();
+  }
+  const r = data as { entstanden?: unknown; id?: unknown; invoice_number?: unknown; invoice_date?: unknown } | null;
+  if (r?.entstanden === false) return { entstanden: false };
+  if (r?.entstanden === true && typeof r.id === 'string' && typeof r.invoice_number === 'string') {
+    return { entstanden: true, id: r.id, invoiceNumber: r.invoice_number, invoiceDate: String(r.invoice_date ?? '') };
+  }
+  // Eine Antwort, die nichts sagt, ist keine Klärung.
+  throw new RechnungsAntwortUnklar();
 }
 
 /**
@@ -913,7 +953,11 @@ export async function schlussrechnungenOhneAbzug(): Promise<SchlussOhneAbzug[]> 
  */
 export async function mahnungFesthalten(
   id: string,
-  daten: { stufe: number; gemahntAm: string; frist: string; spesen: number; inhalt: MahnungInhalt },
+  daten: {
+    stufe: number; gemahntAm: string; frist: string; spesen: number; inhalt: MahnungInhalt;
+    /** Ein anderer Mahntag als heute — nur für Übernahmen und Prüfungen (G5). */
+    datumAusdruecklich?: boolean;
+  },
 ): Promise<string> {
   const { data, error } = await derClient().rpc('mahnung_festhalten', {
     p_invoice: id,
@@ -922,6 +966,7 @@ export async function mahnungFesthalten(
     p_frist: daten.frist,
     p_spesen: daten.spesen,
     p_inhalt: daten.inhalt,
+    ...(daten.datumAusdruecklich ? { p_datum_ausdruecklich: true } : {}),
   });
   if (error) throw new Error(error.message);
   return data as string;

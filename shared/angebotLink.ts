@@ -16,6 +16,19 @@
 /** 32 Zufallsbytes in Base64 ohne „+/=“ — genau das vergibt `angebot_link_erzeugen`. */
 export const SCHLUESSEL_FORM = /^[A-Za-z0-9_-]{43}$/;
 
+/**
+ * Was die Seite des Kunden kennt (A4): offen, entschieden — oder überholt,
+ * weil das Büro inzwischen eine neuere Fassung erstellt hat. Jeder andere
+ * Zustand aus der Datenbank geht wie ein ungültiger Link hinaus; so zeigt die
+ * Seite nie einen Zustand, für den sie keinen Text hat.
+ */
+export const KUNDEN_ZUSTAENDE = ['offen', 'angenommen', 'abgelehnt', 'neuere_fassung'] as const;
+export type KundenZustand = (typeof KUNDEN_ZUSTAENDE)[number];
+
+export function istKundenZustand(z: unknown): z is KundenZustand {
+  return typeof z === 'string' && (KUNDEN_ZUSTAENDE as readonly string[]).includes(z);
+}
+
 /** Name des Kunden bei Annahme und Ablehnung, ohne Leerzeichen am Rand. */
 export const NAME_MIN = 2;
 export const NAME_MAX = 120;

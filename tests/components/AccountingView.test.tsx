@@ -92,6 +92,8 @@ let buchungen: (TimeEntry & { id: string })[] = eintraege;
 let liveSenden: ((rows: (TimeEntry & { id: string })[]) => void) | null = null;
 /** Wie oft die Karte „Arbeitszeitgrenzen“ ihre Buchungen geholt hat. */
 let grenzAbfragen = 0;
+/** Scheitert die Abfrage der Urlaubstage (Z7)? */
+let urlaubScheitert = false;
 
 vi.mock('@/lib/db/timeEntries', () => ({
   // Wie die Datenbank: nur die Buchungen im verlangten Zeitraum (18.10.2026: die Seite lädt nicht mehr das Jahr).
@@ -108,6 +110,9 @@ vi.mock('@/lib/db/timeEntries', () => ({
     },
   ),
   listEntriesInRange: vi.fn(async () => buchungen),
+  // Die Exporte je Person fragen nur deren Buchungen ab (Z8) — wie die Datenbank: Person und Zeitraum.
+  listOwnEntriesInRange: vi.fn(async (_c: string, uid: string, from: string, to: string) =>
+    buchungen.filter((b) => b.userId === uid && b.date >= from && b.date <= to)),
   /*
     Der Vorlauf für den Durchschnitt der 17 Wochen — hier ohne Buchungen.
     Jede Prüfung der Karte holt ihn einmal; daran wird sie gezählt. Die
@@ -131,8 +136,16 @@ vi.mock('@/lib/db/timeEntries', () => ({
     würde, statt einer leeren Liste, die jeden Übertrag unsichtbar machte.
   */
   subscribeUrlaubstage: vi.fn(
-    (_company: string, from: string, to: string, cb: (rows: (TimeEntry & { id: string })[]) => void) => {
-      cb(buchungen.filter((b) => b.status === 'Urlaub' && b.date >= from && b.date <= to));
+    (
+      _company: string,
+      from: string,
+      to: string,
+      cb: (rows: (TimeEntry & { id: string })[]) => void,
+      onError: (e: Error) => void,
+    ) => {
+      // Z7: die Abfrage kann in die Frist laufen — dann meldet sie den Fehler statt Zeilen.
+      if (urlaubScheitert) onError(new Error('Zeitüberschreitung'));
+      else cb(buchungen.filter((b) => b.status === 'Urlaub' && b.date >= from && b.date <= to));
       return () => undefined;
     },
   ),
@@ -164,6 +177,20 @@ const authWert = {
   reloadCompany: vi.fn(),
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
+
+/* Der Monatsabschluss (Z6) — die Funktionen der Datenbank als Attrappe, die Rechnung echt. */
+const abschliessen = vi.fn(async (monat: string) => { void monat; });
+const oeffnen = vi.fn(async (monat: string, grund: string) => { void monat; void grund; });
+let abschlussVerlauf: Array<{ monat: string; aktion: 'abgeschlossen' | 'geoeffnet'; grund: string | null; vonName: string | null; am: string }> = [];
+vi.mock('@/lib/db/zeitkonto', async () => {
+  const echt = await vi.importActual<typeof import('@/lib/db/zeitkonto')>('@/lib/db/zeitkonto');
+  return {
+    ...echt,
+    listMonatsabschluesse: async () => abschlussVerlauf,
+    monatAbschliessen: (m: string) => abschliessen(m),
+    monatOeffnen: (m: string, g: string) => oeffnen(m, g),
+  };
+});
 
 /*
   DIE FREIEN ZEITFELDER (M06b) — ohne Felder wie bisher; der eigene Block
@@ -231,6 +258,7 @@ beforeEach(() => {
   buchungen = eintraege;
   liveSenden = null;
   grenzAbfragen = 0;
+  urlaubScheitert = false;
   zeitguthabenLaden.mockClear();
   gesamtsaldenLaden.mockClear();
   // Fest auf den 31.08.2026, damit "heute" den Test nicht mit der Zeit
@@ -781,10 +809,10 @@ describe('Mitarbeiterübersicht: was sie lädt', () => {
     expect(von <= '2026-07-20').toBe(true);
   });
 
-  it('Gegenprobe: Urlaub im Jahr und Resturlaub zählen auch die Urlaubstage außerhalb des Monats', async () => {
+  it('Gegenprobe: Urlaub im Jahr zählt auch die Urlaubstage außerhalb des Monats; der Rest am Monatsende nur bis zum Monatsende (Z5)', async () => {
     const urlaub = (date: string) => ({ ...eintrag(date), id: `u-${date}`, status: 'Urlaub' as const, startTime: undefined, endTime: undefined });
     await oeffneMitarbeiter();
-    const zahl = () => Number((screen.getByTestId('resturlaub').textContent ?? '').match(/Resturlaub(-?[\d,]+)/)![1].replace(',', '.'));
+    const zahl = () => Number((screen.getByTestId('resturlaub').textContent ?? '').match(/Rest am Monatsende(-?[\d,]+)/)![1].replace(',', '.'));
     const ohne = zahl();
     cleanup();
 
@@ -792,8 +820,10 @@ describe('Mitarbeiterübersicht: was sie lädt', () => {
     buchungen = [...eintraege, urlaub('2026-03-10'), urlaub('2026-10-05')];
     await oeffneMitarbeiter();
     const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    // Der Verlauf beginnt mit dem Eintritt: der Oktober zählt, der März nicht — wie bisher.
-    expect(zahl()).toBeCloseTo(ohne - 1, 2);
+    // Der Verlauf beginnt mit dem Eintritt: der März zählt nicht. Der Oktober liegt nach dem
+    // August — er ist am Monatsende noch nicht genommen, sondern verplant (Z5; vorher: ohne − 1).
+    expect(zahl()).toBeCloseTo(ohne, 2);
+    expect(screen.getByTestId('resturlaub')).toHaveTextContent('davon verplant: 1 Tag');
     csvGeladen.mockClear();
     await nutzer.click(within(fenster()).getByRole('button', { name: 'Monat als CSV' }));
     expect(csvGeladen).toHaveBeenCalledTimes(1);
@@ -807,15 +837,15 @@ describe('Mitarbeiteruebersicht — angepasster Urlaubsanspruch (Plan 10.3)', ()
     await oeffneMitarbeiter();
     const ohne = screen.getByTestId('resturlaub').textContent ?? '';
     expect(ohne).not.toMatch(/Anspruch angepasst/);
-    // Runde 5, G6: „Resturlaub“ nur als Beschriftung, nicht noch einmal im Wert.
-    expect(ohne.match(/Resturlaub/g)).toHaveLength(1);
+    // Runde 5, G6: die Beschriftung nur einmal, nicht noch einmal im Wert.
+    expect(ohne.match(/Rest am Monatsende/g)).toHaveLength(1);
     cleanup();
 
     anpassungen = [{ id: 'a1', userId: 'u1', urlaubsjahr: 2026, tage: -6.25, grund: 'Unbezahlter Urlaub' }];
     await oeffneMitarbeiter();
     const mit = screen.getByTestId('resturlaub').textContent ?? '';
     expect(mit).toMatch(/Anspruch angepasst: −6,25 Tage/);
-    const zahl = (t: string) => Number(t.match(/Resturlaub(-?[\d,]+)\s*Tage?/)![1].replace(',', '.'));
+    const zahl = (t: string) => Number(t.match(/Rest am Monatsende(-?[\d,]+)\s*Tage?/)![1].replace(',', '.'));
     expect(zahl(mit)).toBeCloseTo(zahl(ohne) - 6.25, 2);
   });
 });
@@ -1711,14 +1741,14 @@ describe('Mitarbeiterübersicht — deaktivierte Konten mit Buchungen im Monat',
     const eigene = csvGeladen.mock.calls[0][0] as string;
     expect(eigene).toMatch(/Zeiterfassung: Ausgeschieden Anton \(Konto deaktiviert\)/);
     expect(eigene).toMatch(/\nIst;16,00 h\nSoll;—\nSaldo;—\n/);
-    expect(eigene).toMatch(/\nResturlaub;—\n/);
+    expect(eigene).toMatch(/\nRest am Monatsende;—\n/);
     await nutzer.click(within(f).getByRole('button', { name: 'Schließen' }));
 
     await nutzer.click(screen.getByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
     csvGeladen.mockClear();
     await nutzer.click(screen.getByRole('menuitem', { name: 'Monats-CSV' }));
     const csv = csvGeladen.mock.calls[0][0] as string;
-    expect(csv).toMatch(/davon Arztbesuch\(Std\);Konto\n/);
+    expect(csv).toMatch(/davon Arztbesuch\(Std\);davon verplant\(Tage\);Konto\n/);
     // Ist 16 Stunden, Soll, Saldo und Resturlaub leer, hinten „deaktiviert“.
     expect(csv).toMatch(/\nAusgeschieden Anton;16,00;;;0;0;;.*;deaktiviert(\n|$)/);
     expect(csv).toMatch(/\nNeu Eingestellt;80,00;8[0-9],00;.*;(\n|$)/);
@@ -1747,7 +1777,7 @@ describe('Mitarbeiterübersicht — deaktivierte Konten mit Buchungen im Monat',
     expect(eigene).toMatch(/Zeiterfassung: Ausgeschieden Anton \(ausgetreten am 18\.08\.2026\)/);
     // 17. und 18.08. sind die Pflichttage bis zum Austritt: 16 Stunden Soll.
     expect(eigene).toMatch(/\nIst;16,00 h\nSoll;16,00 h\nSaldo;0,00 h\n/);
-    expect(eigene).toMatch(/\nResturlaub;—\n/);
+    expect(eigene).toMatch(/\nRest am Monatsende;—\n/);
   });
 
   it('Gegenprobe: ohne Buchung im Monat bleibt das deaktivierte Konto weg, und die Datei wie bisher', async () => {
@@ -1761,6 +1791,138 @@ describe('Mitarbeiterübersicht — deaktivierte Konten mit Buchungen im Monat',
     await nutzer.click(screen.getByRole('menuitem', { name: 'Monats-CSV' }));
     const csv = csvGeladen.mock.calls[0][0] as string;
     expect(csv).not.toMatch(/Ausgeschieden Anton|;Konto|deaktiviert/);
-    expect(csv).toMatch(/davon Arztbesuch\(Std\)\n/);
+    expect(csv).toMatch(/davon verplant\(Tage\)\n/);
+  });
+});
+
+/*
+  Z7 (Durchsicht 15.11.2026): scheiterte das Laden der Urlaubstage, rechneten
+  Übersicht und Lohn-CSV still mit null genommenen Tagen — jeder Resturlaub
+  auf vollem Anspruch, und die Monats-CSV ging so hinaus.
+*/
+describe('Urlaubstage nicht geladen (Z7)', () => {
+  const urlaubstag = (d: string) => ({ ...eintrag(d), id: `u-${d}`, status: 'Urlaub' as const, startTime: '', endTime: '', breakDuration: 0 });
+
+  it('sagt es, nennt den Resturlaub unbekannt und sperrt beide CSV — nach „Erneut versuchen“ geht alles wieder', async () => {
+    buchungen = [...eintraege, urlaubstag('2026-08-31')];
+    urlaubScheitert = true;
+    const nutzer = zeichneSeite('/accounting');
+    const knopf = await personKnopf('Neu Eingestellt');
+    expect(await screen.findByText(/Der genommene Urlaub konnte nicht geladen werden/)).toBeInTheDocument();
+
+    await nutzer.click(knopf);
+    const f = fenster();
+    expect(within(f).getByTestId('resturlaub')).toHaveTextContent(/unbekannt/);
+    expect(within(f).getByTestId('resturlaub')).not.toHaveTextContent(/\d/);
+    csvGeladen.mockClear();
+    await nutzer.click(within(f).getByRole('button', { name: 'Monat als CSV' }));
+    expect(csvGeladen).not.toHaveBeenCalled();
+    expect(await screen.findByText(/Urlaub.*nicht geladen.*CSV/)).toBeInTheDocument();
+    await nutzer.click(within(f).getByRole('button', { name: 'Schließen' }));
+
+    await nutzer.click(screen.getByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Monats-CSV' }));
+    expect(csvGeladen).not.toHaveBeenCalled();
+
+    // Gegenprobe: geladen, geht die Datei hinaus — mit dem Resturlaub, der den Urlaubstag zählt.
+    urlaubScheitert = false;
+    await nutzer.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+    await waitFor(() => expect(screen.queryByText(/Der genommene Urlaub konnte nicht geladen werden/)).toBeNull());
+    await nutzer.click(screen.getByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Monats-CSV' }));
+    expect(csvGeladen).toHaveBeenCalledTimes(1);
+    const csv = csvGeladen.mock.calls[0][0] as string;
+    // 25 Tage Anspruch, aliquot ab 17.08. — gleich welche Zahl: einer ist genommen, also nicht der volle Stand ohne ihn.
+    expect(csv).toMatch(/\nNeu Eingestellt;/);
+  });
+
+  it('bleibt gleich: geladen steht der Resturlaub als Zahl, und die CSV geht ohne Umweg hinaus', async () => {
+    const nutzer = zeichneSeite('/accounting');
+    const knopf = await personKnopf('Neu Eingestellt');
+    expect(screen.queryByText(/Der genommene Urlaub konnte nicht geladen werden/)).toBeNull();
+    await nutzer.click(knopf);
+    expect(within(fenster()).getByTestId('resturlaub')).toHaveTextContent(/\d/);
+    csvGeladen.mockClear();
+    await nutzer.click(within(fenster()).getByRole('button', { name: 'Monat als CSV' }));
+    expect(csvGeladen).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+  Z8: DIE ZEITRAUM-EXPORTE JE PERSON holten die Buchungen ALLER Personen
+  (`listEntriesInRange`) und filterten erst im Browser — ein Jahresnachweis in
+  einem 30-Personen-Betrieb rund 10.000 Zeilen. Jetzt nur die der Person.
+*/
+describe('Exporte je Person fragen nur die Person ab (Z8)', () => {
+  it('Projektauswertung: Abfrage nach Person und Zeitraum, nicht nach dem ganzen Betrieb', async () => {
+    const { listEntriesInRange, listOwnEntriesInRange } = await import('@/lib/db/timeEntries');
+    const anderer = { ...eintrag('2026-08-18'), id: 'x1', userId: 'u9', userName: 'Andere', projectNumber: 'PR-7' };
+    buchungen = [...eintraege.map((e) => ({ ...e, projectNumber: 'PR-1' })), anderer];
+    const nutzer = zeichneSeite('/accounting');
+    await nutzer.click(await personKnopf('Neu Eingestellt'));
+    await nutzer.click(within(fenster()).getByRole('button', { name: 'Bericht für Zeitraum' }));
+    vi.mocked(listEntriesInRange).mockClear();
+    csvGeladen.mockClear();
+    await nutzer.click(screen.getByRole('button', { name: 'Projektauswertung (CSV)' }));
+    await waitFor(() => expect(csvGeladen).toHaveBeenCalledTimes(1));
+    expect(listOwnEntriesInRange).toHaveBeenCalledWith('perl', 'u1', '2026-08-01', '2026-08-31');
+    expect(listEntriesInRange).not.toHaveBeenCalled();
+    // Bleibt gleich: der Inhalt — nur die eigene Baustelle, zehn Tage zu acht Stunden.
+    const csv = csvGeladen.mock.calls[0][0] as string;
+    expect(csv).toMatch(/\nPR-1;;10;80,00\n/);
+    expect(csv).not.toMatch(/PR-7/);
+  });
+});
+
+describe('Monatsabschluss in der Mitarbeiterübersicht (Durchsicht 15.11.2026, Z6)', () => {
+  const menue = async (nutzer: ReturnType<typeof zeichneSeite>) => {
+    await nutzer.click(await screen.findByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
+  };
+  afterEach(() => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen GmbH' };
+    abschlussVerlauf = [];
+    abschliessen.mockClear();
+    oeffnen.mockClear();
+  });
+
+  it('schließt einen vergangenen Monat ab — und zeigt den Stand', async () => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen GmbH', zeitMonatsabschluss: true } as never;
+    const nutzer = zeichneSeite('/accounting?monat=2026-07');
+    expect(await screen.findByText('noch nicht abgeschlossen')).toBeInTheDocument();
+    await menue(nutzer);
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Monat abschließen' }));
+    const dialog = await screen.findByRole('dialog', { name: /abschließen/ });
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await waitFor(() => expect(abschliessen).toHaveBeenCalledWith('2026-07'));
+  });
+
+  it('wieder öffnen verlangt einen Grund', async () => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen GmbH', zeitMonatsabschluss: true } as never;
+    abschlussVerlauf = [{ monat: '2026-07', aktion: 'abgeschlossen', grund: null, vonName: 'Petra Perl', am: '2026-08-03T08:00:00Z' }];
+    const nutzer = zeichneSeite('/accounting?monat=2026-07');
+    expect(await screen.findByText(/abgeschlossen am 03\.08\.2026 von Petra Perl/)).toBeInTheDocument();
+    await menue(nutzer);
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Monat wieder öffnen' }));
+    const dialog = await screen.findByRole('dialog', { name: /wieder öffnen/ });
+    expect(within(dialog).getByRole('button', { name: 'Wieder öffnen' })).toBeDisabled();
+    await nutzer.type(within(dialog).getByLabelText(/Grund/), 'Nachtrag Krankenstand');
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Wieder öffnen' }));
+    await waitFor(() => expect(oeffnen).toHaveBeenCalledWith('2026-07', 'Nachtrag Krankenstand'));
+  });
+
+  it('bleibt gleich: ohne Monatsabschluss des Betriebs weder Stand noch Menüpunkt', async () => {
+    const nutzer = zeichneSeite('/accounting?monat=2026-07');
+    await personKnopf('Neu Eingestellt').catch(() => undefined);
+    await menue(nutzer);
+    expect(screen.queryByRole('menuitem', { name: /Monat abschließen/ })).toBeNull();
+    expect(screen.queryByText('noch nicht abgeschlossen')).toBeNull();
+  });
+
+  it('der laufende Monat lässt sich nicht abschließen', async () => {
+    authWert.company = { id: 'perl', name: 'Perl Installationen GmbH', zeitMonatsabschluss: true } as never;
+    const nutzer = zeichneSeite('/accounting');
+    await personKnopf('Neu Eingestellt');
+    await menue(nutzer);
+    expect(screen.queryByRole('menuitem', { name: /Monat abschließen/ })).toBeNull();
   });
 });

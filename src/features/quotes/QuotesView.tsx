@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import OhneUmbruch from '@/components/OhneUmbruch';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { naechsterSchritt } from '@/features/projects/naechsterSchritt';
 import { useAuth } from '@/app/AuthContext';
 import {
   listRecentQuotes,
+  listOffeneQuotes,
+  zaehleOffeneQuotes,
+  zaehleQuotes,
+  listFassungsNachbarn,
   getQuote,
   sucheAngebote,
   ANGEBOT_TREFFER,
@@ -17,7 +22,8 @@ import { calcTotals, cent, positionNetto, rabattAnteil, titelSummen, type Invoic
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { todayStr, localDateStr, fmtStunden } from '@/lib/time';
 import { isGF } from '@/lib/permissions';
-import type { Abrechnungsart, InvoiceDiscount, Quote } from '@/types';
+import { EINGANG_DRINGLICHKEITEN, type Abrechnungsart, type EingangDringlichkeit, type InvoiceDiscount, type Quote } from '@/types';
+import { DRINGLICHKEIT_TEXT } from '@/features/auftragseingang/eingangText';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
 import KundenAuswahl from '@/components/KundenAuswahl';
@@ -28,13 +34,14 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke, Zustand } from '@/components/Badge';
 import { STAND } from './stand';
 import { verwerfenFrage, VERWORFEN_MELDUNG } from './verwerfen';
+import { datumAufHeute, hatPosition, leerNichtAnnehmen, statusFrage, type StatusFrage } from './statusFrage';
 import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import RowMenu from '@/components/RowMenu';
 import PageHeader from '@/components/PageHeader';
 import { praefixeVon } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, TextareaField } from '@/components/Field';
+import { InputField, SelectField, TextareaField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
@@ -45,11 +52,15 @@ import { leseZahl, preisAlsText, zahlAlsText, zahlOder } from '@/lib/zahl';
 import ZahlFeld from '@/components/ZahlFeld';
 import AdresseFeld from '@/components/AdresseFeld';
 import { useModul } from '@/lib/useModule';
+import BaustellenSuche from '@/components/BaustellenSuche';
+import { listProjectsByIds } from '@/lib/db/projects';
+import { neuFuerLaden, neuFuerLesen, ohneNeuFuer } from '@/features/customers/neuFuer';
 import { AB_TABLET } from '@/lib/breiten';
 import { getEingangZu } from '@/lib/db/auftragseingaenge';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import { zuordnungAenderung } from '@/features/liegenschaften/liegenschaftText';
-import AbrechnungWahl from './AbrechnungWahl';
+import AnnahmeZiel from './AnnahmeZiel';
+import { zielBereit, zielVorgabe, type AnnahmeZielWert } from './annahmeZiel';
 import KatalogSuche from './KatalogSuche';
 import Abschnitt from '@/components/Abschnitt';
 import BottomSheet from '@/components/BottomSheet';
@@ -162,6 +173,25 @@ function zeilenFehler(zeilen: ZeilenEingabe[]): string | null {
   return null;
 }
 
+/** Die Arbeitsangaben vor Ort (A8) im Formular. */
+interface VorOrt {
+  name: string;
+  telefon: string;
+  dringlichkeit: '' | EingangDringlichkeit;
+  wunschtermin: string;
+}
+const LEER_VOR_ORT: VorOrt = { name: '', telefon: '', dringlichkeit: '', wunschtermin: '' };
+
+/** Leer heißt „nicht angegeben“ — in der Datenbank `null`, keine leere Zeichenkette. */
+function vorOrtFelder(v: VorOrt): Pick<Quote, 'ansprechpartnerName' | 'ansprechpartnerTelefon' | 'dringlichkeit' | 'wunschtermin'> {
+  return {
+    ansprechpartnerName: v.name.trim() || null,
+    ansprechpartnerTelefon: v.telefon.trim() || null,
+    dringlichkeit: v.dringlichkeit || null,
+    wunschtermin: v.wunschtermin || null,
+  };
+}
+
 /** Die Bindefrist eines neuen Angebots: heute plus dreissig Tage. */
 function standardGueltigkeit(): string {
   const d = new Date();
@@ -233,6 +263,7 @@ export default function QuotesView() {
   const { user, company } = useAuth();
   const vorsaetze = praefixeVon(company);
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [angebote, setAngebote] = useState<WithId<Quote>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -247,6 +278,10 @@ export default function QuotesView() {
   const handy = useHandy();
   /** Welcher Entwurf in den Papierkorb soll — erst nach der Rückfrage (M01d). */
   const [verwerfenFragen, setVerwerfenFragen] = useState<WithId<Quote> | null>(null);
+  /** Ein Standwechsel, der erst nach der Rückfrage gilt (A5). */
+  const [wechselFrage, setWechselFrage] = useState<{ q: WithId<Quote>; frage: StatusFrage } | null>(null);
+  /** A12: beim Versand das Angebotsdatum auf heute setzen (vorgewählt, wenn es zurückliegt). */
+  const [datumHeute, setDatumHeute] = useState(true);
   /*
     DER EINGANG DES ENTWURFS (Befund 09.11.2026): die Rückfrage nennt ihn,
     denn er bleibt „übernommen“ und muss danach wieder geöffnet werden. Nur
@@ -270,6 +305,8 @@ export default function QuotesView() {
   const [annehmenFragen, setAnnehmenFragen] = useState<WithId<Quote> | null>(null);
   /** Die Abrechnung der Baustelle, die beim Annehmen entsteht (M16). */
   const [abrechnung, setAbrechnung] = useState<Abrechnungsart>('Pauschal');
+  /** Neue Baustelle oder Nachtrag an eine bestehende (A3, F6). */
+  const [ziel, setZiel] = useState<AnnahmeZielWert>({ art: 'neu', baustelleId: '', projekt: null });
 
   // Formular
   const [customerId, setCustomerId] = useState('');
@@ -277,10 +314,25 @@ export default function QuotesView() {
   const [kunde, setKunde] = useKunde(user?.companyId, customerId);
   const [address, setAddress] = useState('');
   const [validUntil, setValidUntil] = useState(standardGueltigkeit);
+  /** A12: das Angebotsdatum — vorher immer der Tag des Anlegens und nicht änderbar. */
+  const [quoteDate, setQuoteDate] = useState(todayStr);
   const [notes, setNotes] = useState('');
   /** Liegenschaft und Top (M02c) — nur mit der Unterfähigkeit; die Annahme gibt sie an die Baustelle weiter. */
   const liegenschaftenAn = useModul('kunden.liegenschaften');
   const [ort, setOrt] = useState({ liegenschaftId: '', topId: '' });
+  /*
+    NACHTRAG ZU EINER BAUSTELLE (A3, F6): das Angebot gehört schon vor der
+    Annahme zu ihr — die Akte zeigt es, und die Annahme (auch über den Link)
+    hängt es dort an, statt eine zweite Baustelle für denselben Auftrag
+    anzulegen.
+  */
+  const [nachtragZu, setNachtragZu] = useState<{ id: string; nummer: string } | null>(null);
+  /*
+    ARBEITSANGABEN AUS DEM EINGANG (A8): wer vor Ort aufmacht, wie eilig,
+    wann gewünscht. Sie stehen nicht auf dem Angebot beim Kunden; die Annahme
+    gibt sie an die Baustelle weiter.
+  */
+  const [vorOrt, setVorOrt] = useState<VorOrt>(LEER_VOR_ORT);
   const [zeilen, setZeilen] = useState<ZeilenEingabe[]>([{ ...LEERE_ZEILE }]);
   /** Ist die Suche im Katalog offen (M18)? */
   const [katalogOffen, setKatalogOffen] = useState(false);
@@ -347,19 +399,45 @@ export default function QuotesView() {
   const vatRate = bearbeitet?.vatRate ?? company?.rates?.vatRate ?? INVOICE_DEFAULTS.vatRate;
   const darfAendern = user ? isGF(user.role) : false;
 
+  /*
+    „OFFEN“ FRAGT DIE DATENBANK NACH DEM ZUSTAND (A6), seitenweise ab der
+    ältesten Bindefrist; Zahl und Liste aus derselben Bedingung. Vorher
+    filterte „Offen“ nur die hundert jüngsten — ältere, längst abgelaufene
+    versendete Angebote fielen still heraus. „Erledigt“ und „Alle“ bleiben
+    die jüngsten zuerst.
+  */
+  const [zahlen, setZahlen] = useState<{ offen: number; alle: number } | null>(null);
+  /** Fassungen neben den geladenen offenen — ob eine schon angenommen ist (G15). */
+  const [nachbarn, setNachbarn] = useState<WithId<Quote>[]>([]);
   const laden = useMemo(
     () => async () => {
       if (!user) return;
       setLoading(true);
       try {
-        setAngebote(await listRecentQuotes(user.companyId, grenze));
+        if (ansicht === 'offen') {
+          const [liste, offen, alle] = await Promise.all([
+            listOffeneQuotes(user.companyId, grenze),
+            zaehleOffeneQuotes(user.companyId),
+            zaehleQuotes(user.companyId),
+          ]);
+          setAngebote(liste);
+          setZahlen({ offen, alle });
+          // Scheitert das, fehlt nur der Hinweis „Fassung … angenommen“ — die Datenbank nähme ohnehin nicht an.
+          setNachbarn(await listFassungsNachbarn(
+            user.companyId, liste.map((q) => q.id), liste.flatMap((q) => (q.vorgaengerId ? [q.vorgaengerId] : [])),
+          ).catch(() => []));
+        } else {
+          setAngebote(await listRecentQuotes(user.companyId, grenze));
+          setZahlen(null);
+          setNachbarn([]);
+        }
       } catch (e) {
         setError((e as Error).message);
       } finally {
         setLoading(false);
       }
     },
-    [user, grenze],
+    [user, grenze, ansicht],
   );
 
   useEffect(() => {
@@ -469,8 +547,11 @@ export default function QuotesView() {
 
   function formularLeeren() {
     setCustomerId('');
+    setQuoteDate(todayStr());
     setAddress('');
     setOrt({ liegenschaftId: '', topId: '' });
+    setNachtragZu(null);
+    setVorOrt(LEER_VOR_ORT);
     setNotes('');
     setZeilen([{ ...LEERE_ZEILE }]);
     setKatalogOffen(false);
@@ -485,6 +566,10 @@ export default function QuotesView() {
     setCustomerId(q.customerId ?? '');
     setAddress(q.address ?? '');
     setNotes(q.notes ?? '');
+    setVorOrt({
+      name: q.ansprechpartnerName ?? '', telefon: q.ansprechpartnerTelefon ?? '',
+      dringlichkeit: q.dringlichkeit ?? '', wunschtermin: q.wunschtermin ?? '',
+    });
     // Auch eine neue Fassung und eine Kopie stehen in derselben Liegenschaft (M02c).
     setOrt({ liegenschaftId: q.liegenschaftId ?? '', topId: q.topId ?? '' });
     /*
@@ -521,6 +606,8 @@ export default function QuotesView() {
   /** Einen Entwurf ins Formular holen. */
   function bearbeiten(q: WithId<Quote>) {
     formularAus(q);
+    setQuoteDate(q.quoteDate || todayStr());
+    setNachtragZu(q.projectId && q.projectNumber ? { id: q.projectId, nummer: q.projectNumber } : null);
     setValidUntil(q.validUntil);
     setFassungVon(null);
     setRabattVorlage(null);
@@ -535,6 +622,11 @@ export default function QuotesView() {
    */
   function alsVorlage(q: WithId<Quote>, fassung: boolean) {
     formularAus(q);
+    setQuoteDate(todayStr());
+    // Eine neue Fassung eines Nachtrags bleibt ein Nachtrag; eine Kopie ist ein eigenes Angebot.
+    setNachtragZu(fassung && q.status !== 'Angenommen' && q.projectId && q.projectNumber
+      ? { id: q.projectId, nummer: q.projectNumber }
+      : null);
     const d = new Date();
     d.setDate(d.getDate() + 30);
     setValidUntil(localDateStr(d));
@@ -599,6 +691,77 @@ export default function QuotesView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zuBearbeiten, zuFassen, zuKopieren, loading, angebote]);
 
+  /*
+    AUS DER KUNDEN- ODER LIEGENSCHAFTSAKTE (V3): `?neu=fuer&kunde=…` öffnet
+    ein neues Angebot mit Kunde, Ort und Liegenschaft vorbelegt — ohne zweite
+    Kundensuche.
+  */
+  const neuFuer = neuFuerLesen(suchParameter);
+  const neuFuerSchluessel = neuFuer ? JSON.stringify(neuFuer) : null;
+  useEffect(() => {
+    if (!neuFuer || !user) return;
+    let weg = false;
+    void (async () => {
+      const v = await neuFuerLaden(user.companyId, neuFuer);
+      if (weg) return;
+      if (darfAendern) {
+        formularLeeren();
+        if (v.kunde) {
+          setCustomerId(v.kunde.id);
+          setKunde(v.kunde);
+        }
+        setAddress(v.ort);
+        if (v.liegenschaft) setOrt({ liegenschaftId: v.liegenschaft.id, topId: neuFuer.top ?? '' });
+        setValidUntil(standardGueltigkeit());
+        setFormOffen(true);
+      }
+      setSuchParameter(ohneNeuFuer(suchParameter), { replace: true });
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [neuFuerSchluessel, user]);
+
+  /*
+    AUS DER BAUSTELLENAKTE (A3, F6): `/quotes?baustelle=<id>` öffnet ein
+    neues Angebot als Nachtrag dazu — Kunde, Ort und Liegenschaft der
+    Baustelle vorbelegt. Der Parameter geht danach weg, sonst öffnete jedes
+    Neuladen das Formular wieder.
+  */
+  const fuerBaustelle = suchParameter.get('baustelle');
+  useEffect(() => {
+    if (!fuerBaustelle || !user) return;
+    let weg = false;
+    void (async () => {
+      try {
+        const [p] = await listProjectsByIds(user.companyId, [fuerBaustelle]);
+        if (weg) return;
+        if (!p) {
+          setError('Diese Baustelle gibt es nicht (mehr) — der Nachtrag lässt sich nicht vorbelegen.');
+        } else if (darfAendern) {
+          formularLeeren();
+          setCustomerId(p.customerId ?? '');
+          setAddress(p.address ?? '');
+          setOrt({ liegenschaftId: p.liegenschaftId ?? '', topId: p.topId ?? '' });
+          setNachtragZu({ id: p.id, nummer: p.projectNumber });
+          setValidUntil(standardGueltigkeit());
+          setFormOffen(true);
+        }
+      } catch (e) {
+        if (!weg) setError(grundAus(e, 'Die Baustelle konnte nicht geladen werden.'));
+      }
+      if (weg) return;
+      const rest = new URLSearchParams(suchParameter);
+      rest.delete('baustelle');
+      setSuchParameter(rest, { replace: true });
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fuerBaustelle, user]);
+
   async function aenderungenSpeichern() {
     if (!bearbeitet || !kunde || !preiszeilen) return;
     const falsch = zeilenFehler(zeilen);
@@ -613,6 +776,7 @@ export default function QuotesView() {
         customerId: kunde.id,
         customerName: kunde.name,
         address,
+        quoteDate,
         validUntil,
         positions: positionen,
         discount: rabatt,
@@ -620,6 +784,9 @@ export default function QuotesView() {
         vatRate,
         kalkulierteStunden,
         notes,
+        ...vorOrtFelder(vorOrt),
+        // A3: die Baustelle des Nachtrags — `null` löst eine Zuordnung, die es gab.
+        ...(nachtragZu || bearbeitet.projectNumber ? { projectNumber: nachtragZu?.nummer ?? null } : {}),
         // M02c: nur was sich an Liegenschaft und Top geändert hat.
         ...(liegenschaftenAn ? zuordnungAenderung(ort, bearbeitet) : {}),
       });
@@ -651,7 +818,7 @@ export default function QuotesView() {
         customerId: kunde.id,
         customerName: kunde.name,
         address,
-        quoteDate: todayStr(),
+        quoteDate,
         validUntil,
         status: 'Entwurf',
         positions: positionen,
@@ -664,6 +831,8 @@ export default function QuotesView() {
         kalkulierteStunden,
         notes,
         ...(fassungVon ? { vorgaengerId: fassungVon.id } : {}),
+        ...vorOrtFelder(vorOrt),
+        ...(nachtragZu ? { projectNumber: nachtragZu.nummer } : {}),
         // M02c: nur mit der Unterfähigkeit — ohne sie entsteht das Angebot wie bisher.
         ...(liegenschaftenAn ? zuordnungAenderung(ort, null) : {}),
       });
@@ -699,13 +868,26 @@ export default function QuotesView() {
     }
   }
 
+  /** Nach der Rückfrage (A5): scheitert es, bleibt der Dialog offen und sagt den Grund der Datenbank. */
+  async function statusNachFrage(q: WithId<Quote>, neu: Quote['status'], meldung: string) {
+    // A12: liegt das Angebotsdatum zurück, im selben Schritt auf heute (samt Bindefrist) — der Entwurf ist noch änderbar.
+    const datum = neu === 'Versendet' && q.status === 'Entwurf' && datumHeute ? datumAufHeute(q, todayStr()) : null;
+    await updateQuote(q.id, { status: neu, ...(datum ?? {}) });
+    toast.success(meldung);
+    await laden();
+  }
+
   /** Annehmen — der Ablauf steht in `angebotAnnehmen`, für Liste und Angebotsseite. */
   async function annehmen(q: WithId<Quote>) {
     if (!user) return;
     setBusy(true);
     setError(null);
     try {
-      toast.success(annahmeMeldung(await angebotAnnehmen(user.companyId, q, vorsaetze.baustelle, abrechnung)));
+      const r = await angebotAnnehmen(
+        user.companyId, q, vorsaetze.baustelle, abrechnung, ziel.art === 'nachtrag' ? ziel.baustelleId : null,
+      );
+      // V4: die Meldung trägt den nächsten Schritt.
+      toast.success(annahmeMeldung(r), naechsterSchritt(user.role, company?.modules, r.projectNumber, navigate));
       await laden();
     } catch (err) {
       setError(grundAus(err, 'Die Baustelle konnte nicht angelegt werden.'));
@@ -779,15 +961,15 @@ export default function QuotesView() {
   const leer =
     begriff
       ? `Gesucht wurde „${suchbegriff}“ in Nummer, Kunde, Ort und Baustelle.`
-      : angebote.length === 0
+      : (zahlen ? zahlen.alle : angebote.length) === 0
         ? 'Noch kein Angebot erstellt.'
         : ansicht === 'offen'
           ? 'Kein offenes Angebot.'
           : 'Noch kein Angebot angenommen oder abgelehnt.';
 
   const zeile = (q: WithId<Quote>) => {
-    const schonAngenommen = fassungsHinweis(q, angebote).angenommen;
-    const annehmen = () => { setAbrechnung('Pauschal'); setAnnehmenFragen(q); };
+    const schonAngenommen = fassungsHinweis(q, [...angebote, ...nachbarn]).angenommen;
+    const annehmen = () => { setAbrechnung('Pauschal'); setZiel(zielVorgabe(q)); setAnnehmenFragen(q); };
     /*
       AM HANDY EIN KNOPF UND „⋯“ (E72, 09.11.2026): mit zwei Knöpfen brach
       die Zeile auf 390 px in drei Reihen und wurde 280 px hoch. Dort bleibt
@@ -857,9 +1039,9 @@ export default function QuotesView() {
             ...(annehmenInsMenue ? [{ label: 'Annehmen → Baustelle', onSelect: annehmen }] : []),
             ...(fassungInsMenue ? [{ label: 'Neue Fassung', onSelect: () => void alsVorlage(q, true) }] : []),
             ...(q.status === 'Entwurf'
-              ? [{ label: 'Als versendet markieren', onSelect: () => void status(q, 'Versendet', 'Als versendet markiert') }]
+              ? [{ label: 'Als versendet markieren', onSelect: () => { setDatumHeute(true); setWechselFrage({ q, frage: statusFrage(q, 'versenden') }); } }]
               : []),
-            { label: 'Als abgelehnt markieren', onSelect: () => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt') },
+            { label: 'Als abgelehnt markieren', onSelect: () => setWechselFrage({ q, frage: statusFrage(q, 'ablehnen') }) },
             // Verwerfen nur im Entwurf: alles Versendete bleibt
             // nachvollziehbar, auch ein abgelehntes Angebot. Nicht rot —
             // es landet im Papierkorb und lässt sich zurückholen (M01d).
@@ -873,13 +1055,17 @@ export default function QuotesView() {
     );
   };
 
-  const erstesAngebot = !loading && angebote.length === 0 && !begriff && !error && !formOffen;
+  // In „Offen“ heißt eine leere Liste nicht „noch keines“ — das sagt die Zahl aller (A6).
+  const erstesAngebot = !loading && angebote.length === 0 && (!zahlen || zahlen.alle === 0) && !begriff && !error && !formOffen;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Angebote"
-        subtitle="Kalkulieren, versenden, in einen Auftrag überführen"
+        // A6: die Zahl der offenen aus derselben Abfrage wie die Liste „Offen“.
+        subtitle={zahlen
+          ? `${zahlen.offen} ${zahlen.offen === 1 ? 'offenes Angebot' : 'offene Angebote'} · kalkulieren, versenden, in einen Auftrag überführen`
+          : 'Kalkulieren, versenden, in einen Auftrag überführen'}
         // Eine Hilfe je Seite (Testbericht Runde 5, G8) — der Wortlaut aus dem Handbuch.
         hilfe={
           <>
@@ -929,7 +1115,8 @@ export default function QuotesView() {
               <Hinweiszeile>
                 <p>
                   {fassungVon.quoteNumber} bleibt, wie es beim Kunden liegt. Diese Fassung bekommt eine eigene
-                  Nummer und verweist darauf.
+                  Nummer und verweist darauf. Ein offener Annahme-Link von {fassungVon.quoteNumber} gilt danach nicht
+                  mehr — der Kunde liest dort „Es gibt eine neuere Fassung“.
                 </p>
               </Hinweiszeile>
             )}
@@ -976,9 +1163,17 @@ export default function QuotesView() {
               einem Entwurf, dessen Frist schon von der Vorgabe abweicht.
             */}
             <WeitereAngaben
-              titel={`Weitere Angaben · gültig bis ${datumAT(validUntil)}`}
-              offen={!!bearbeitet && bearbeitet.validUntil !== standardGueltigkeit()}
+              titel={`Weitere Angaben · ${quoteDate !== todayStr() ? `vom ${datumAT(quoteDate)} · ` : ''}gültig bis ${datumAT(validUntil)}${nachtragZu ? ` · Nachtrag zu ${nachtragZu.nummer}` : ''}`}
+              offen={(!!bearbeitet && bearbeitet.validUntil !== standardGueltigkeit()) || !!nachtragZu}
             >
+              {/* A12: das Datum auf dem Angebot — beim Versand bietet die Rückfrage an, es auf heute zu setzen. */}
+              <InputField
+                id="anqdatum"
+                label="Angebotsdatum"
+                type="date"
+                value={quoteDate}
+                onChange={(e) => setQuoteDate(e.target.value || todayStr())}
+              />
               <InputField
                 id="anqgueltig"
                 label="Gültig bis"
@@ -986,6 +1181,35 @@ export default function QuotesView() {
                 value={validUntil}
                 onChange={(e) => setValidUntil(e.target.value)}
               />
+              {/* A8: Arbeitsangaben — die Annahme gibt sie an die Baustelle weiter. */}
+              <div className="grid grid-cols-1 gap-x-3 gap-y-4 md:grid-cols-2">
+                <InputField id="anqvorort" label="Ansprechpartner vor Ort" value={vorOrt.name}
+                  onChange={(e) => setVorOrt((v) => ({ ...v, name: e.target.value }))} />
+                <InputField id="anqvorortfon" label="Telefon vor Ort" type="tel" value={vorOrt.telefon}
+                  onChange={(e) => setVorOrt((v) => ({ ...v, telefon: e.target.value }))} />
+                <SelectField id="anqdringlich" label="Dringlichkeit" value={vorOrt.dringlichkeit}
+                  onChange={(e) => setVorOrt((v) => ({ ...v, dringlichkeit: e.target.value as VorOrt['dringlichkeit'] }))}>
+                  <option value="">nicht angegeben</option>
+                  {EINGANG_DRINGLICHKEITEN.map((d) => <option key={d} value={d}>{DRINGLICHKEIT_TEXT[d]}</option>)}
+                </SelectField>
+                <InputField id="anqwunsch" label="Wunschtermin" type="date" value={vorOrt.wunschtermin}
+                  onChange={(e) => setVorOrt((v) => ({ ...v, wunschtermin: e.target.value }))} />
+              </div>
+              {/* A3: optional — beim Annehmen lässt sich das Ziel noch ändern. */}
+              <BaustellenSuche
+                companyId={user.companyId}
+                id="anqnachtrag"
+                label="Nachtrag zu Baustelle (optional)"
+                value={nachtragZu?.id ?? ''}
+                kundeId={customerId || undefined}
+                hinweisAbgeschlossen="abgeschlossen — wird mit dem Nachtrag wieder aktiv"
+                onChange={(id, p) => setNachtragZu(id && p ? { id, nummer: p.projectNumber } : null)}
+              />
+              {nachtragZu && (
+                <Button type="button" variant="ghost" groesse="klein" onClick={() => setNachtragZu(null)}>
+                  Kein Nachtrag — beim Annehmen eine neue Baustelle
+                </Button>
+              )}
             </WeitereAngaben>
           </div>
 
@@ -1339,6 +1563,7 @@ export default function QuotesView() {
               einheit="Angebote"
               onMehr={() => setGrenze((n) => n + ANGEBOTE_JE_SEITE)}
               sucheImBrowser={false}
+              gesamt={ansicht === 'offen' && zahlen ? zahlen.offen : undefined}
             />
           </div>
         )}
@@ -1354,11 +1579,14 @@ export default function QuotesView() {
         title="Angebot annehmen?"
         message={
           annehmenFragen
-            ? `${annehmenFragen.quoteNumber} wird angenommen, und für ${annehmenFragen.customerName} entsteht eine Baustelle mit der nächsten Baustellennummer.`
+            ? leerNichtAnnehmen(annehmenFragen) ?? (ziel.art === 'nachtrag'
+              ? `${annehmenFragen.quoteNumber} wird angenommen und kommt als Nachtrag an die gewählte Baustelle.`
+              : `${annehmenFragen.quoteNumber} wird angenommen, und für ${annehmenFragen.customerName} entsteht eine Baustelle mit der nächsten Baustellennummer.`)
             : ''
         }
         confirmLabel="Annehmen"
         confirmTone="primary"
+        gesperrt={(annehmenFragen ? !hatPosition(annehmenFragen) : false) || !zielBereit(ziel)}
         onCancel={() => setAnnehmenFragen(null)}
         onConfirm={async () => {
           const q = annehmenFragen;
@@ -1366,13 +1594,40 @@ export default function QuotesView() {
           if (q) await annehmen(q);
         }}
       >
-        {annehmenFragen && fassungsHinweis(annehmenFragen, angebote).ersetzt.length > 0 && (
+        {annehmenFragen && fassungsHinweis(annehmenFragen, [...angebote, ...nachbarn]).ersetzt.length > 0 && (
           <p className="text-sm text-ink">
-            Damit gilt {fassungsHinweis(annehmenFragen, angebote).ersetzt.map((x) => x.quoteNumber).join(', ')} als
+            Damit gilt {fassungsHinweis(annehmenFragen, [...angebote, ...nachbarn]).ersetzt.map((x) => x.quoteNumber).join(', ')} als
             ersetzt und lässt sich nicht mehr annehmen.
           </p>
         )}
-        <AbrechnungWahl wert={abrechnung} onWert={setAbrechnung} />
+        {annehmenFragen && hatPosition(annehmenFragen) && (
+          <AnnahmeZiel companyId={user.companyId} angebot={annehmenFragen} ziel={ziel} onZiel={setZiel} abrechnung={abrechnung} onAbrechnung={setAbrechnung} />
+        )}
+      </ConfirmDialog>
+
+      {/* A5: kein Standwechsel mit einem Tipp — erst fragen, und sagen, wie es zurückgeht. */}
+      <ConfirmDialog
+        open={!!wechselFrage}
+        title={wechselFrage?.frage.titel ?? ''}
+        message={wechselFrage?.frage.text}
+        confirmLabel={wechselFrage?.frage.label}
+        confirmTone="primary"
+        gesperrt={!!wechselFrage?.frage.gesperrt}
+        onCancel={() => setWechselFrage(null)}
+        onConfirm={async () => {
+          const w = wechselFrage;
+          if (!w) return;
+          await statusNachFrage(w.q, w.frage.neu, w.frage.meldung);
+          setWechselFrage(null);
+        }}
+      >
+        {wechselFrage && !wechselFrage.frage.gesperrt && wechselFrage.frage.neu === 'Versendet' && wechselFrage.q.status === 'Entwurf'
+          && datumAufHeute(wechselFrage.q, todayStr()) && (
+          <label className="flex min-h-touch items-center gap-2 text-sm text-ink">
+            <input type="checkbox" className="checkbox" checked={datumHeute} onChange={(e) => setDatumHeute(e.target.checked)} />
+            Angebotsdatum auf heute setzen (statt {datumAT(wechselFrage.q.quoteDate)}) — die Bindefrist rückt mit
+          </label>
+        )}
       </ConfirmDialog>
 
       {/*

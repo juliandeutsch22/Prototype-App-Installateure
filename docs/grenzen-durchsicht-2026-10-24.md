@@ -261,7 +261,11 @@ Nachtlauf darf nicht wegzuklicken sein.
   die vor der Rechnung zurückgesetzt wurde, gilt beim Löschen ebenfalls als
   abgerechnet, sobald eine Rechnung ihren Abholtag abdeckt — die Rechnung
   hält nicht je Zeile fest, was der Vorschlag enthielt; im Zweifel bleibt
-  der Bestand, die Inventur korrigiert.
+  der Bestand, die Inventur korrigiert. **Seit Welle 2 (M2, 15.11.2026)
+  geändert:** eine neue Rechnung hält je Ausgabe fest, was ihr Vorschlag
+  enthielt; abgerechnet ist, was sie trägt. Die Regel über den Abholtag gilt
+  nur noch für Rechnungen von davor, und auch dort nur für Ausgaben, die es
+  beim Anlegen schon gab (Altdaten).
 - **Die Fehlmenge einer schon eingeladenen Rüstliste und Buchungen an einem
   stillgelegten Ort löschen sich nicht.** Grund fachlich: ohne die
   Anforderung zählte die eingeladene Position wieder ganz (Lager und
@@ -497,3 +501,216 @@ bleibt deshalb stehen — mit Grund:
 - **Bis zum Neuladen löscht die alte App Einsätze ohne Sperre** (P1). Grund
   Gerät: Telefone laden die neue Fassung erst beim nächsten Öffnen; bis dahin
   löscht die alte direkt in der Tabelle.
+
+## Durchsicht vom 15.11.2026, Welle 2 (Pakete 3–8) — begründete Grenzen
+
+Gesammelt aus den Berichten der Pakete 3 bis 8 (Stand §98–§104). Grenzen, die
+durch eine spätere Nacharbeit derselben Welle entfallen sind, stehen nicht
+hier, sondern am Ende unter „Mit Welle 2 entfallen“.
+
+### Paket 3: Planung und Scheine
+
+- **Eine beim Umplanen zusammengeführte Rüstliste lässt sich beim
+  Zurückplanen nicht wieder trennen** (P2). Grund fachlich: nach dem
+  Zusammenführen ist die Herkunft der Positionen nicht mehr eindeutig;
+  eine geratene Aufteilung wiese Material der falschen Mannschaft zu.
+- **Beim Kopieren eines Einsatzes geht keine Rüstliste mit** (P2). Grund
+  fachlich (E85): Material wird einmal geladen und verbaut; eine kopierte
+  Liste stünde doppelt angefordert.
+- **Die Projektleitung ohne Leserecht auf Rechnungen erfährt beim Storno nur,
+  dass der Schein verrechnet ist, nicht auf welcher Rechnung** (P4). Grund
+  Datenschutz und Rechte: Rechnungen liest sie nur mit der Freigabe „Darf die
+  Rechnungen seiner Baustellen lesen“ (M38).
+- **„Zeit nachtragen“ reicht 14 Tage zurück** (P6). Grund fachlich: weiter
+  zurück ändert die Zeiterfassung über den Korrekturantrag, der eine
+  Entscheidung braucht.
+- **Das Gesamtplan-Abo der Leitung zeigt abwesende Personen weiter** (P9).
+  Grund fachlich: die Planung muss sehen, wer eingeteilt ist, auch wenn die
+  Person fehlt — nur so fällt der Konflikt auf. Das eigene Abo lässt ganztags
+  abwesende Tage weg.
+- **Die Push-Meldung zu einem Notfall nennt nur Nummer und Ort** (V8). Grund
+  Datenschutz: die Meldung steht auf dem Sperrbildschirm; Kunde und
+  Beschreibung stehen erst in der App.
+- **Folgetage ändern oder entfernen steht nicht im Einblick des Supports**
+  (V13). Grund Datenschutz: dafür braucht es die Abwesenheiten der
+  Belegschaft, die nur der Betrieb liest (wie E85, E88).
+- **Im Einblick des Supports wird „Neu eingegangen“ nicht als gesehen
+  gemerkt** (V9). Grund Sicherheit: der Support schreibt nicht in den Betrieb
+  (Trigger `support_schreibt_nicht`); die Zeile bleibt für den Betrieb, wie
+  sie war.
+
+### Paket 4a: Zeitkonto ab einem Tag und Monatsabschluss
+
+- **Der Monatsabschluss sperrt Saldo-Start, Startwerte, Urlaubsanspruch und
+  die Einstellung zum 24. und 31. Dezember nicht** (Z6). Grund fachlich: der
+  Urlaubsanspruch gilt je Urlaubsjahr (etwa die sechste Urlaubswoche), die
+  übrigen sind bewusste Berichtigungen des Büros. Ohne Modul
+  Korrekturanträge bleibt dem Monteur nur das Wiederöffnen durch das Büro;
+  das sagt die Einstellungskarte.
+- **Die Austrittsübersicht erledigt nichts im Dialog, sie verweist** (Z2).
+  Anträge, genehmigter Urlaub, Einsätze und Korrekturen nach dem
+  Austrittstag werden über einen Link an ihrer Stelle erledigt (Urlaub
+  kürzen oder zurücknehmen, Einsatzplanung). Grund fachlich: jede dieser
+  Änderungen hat dort ihre Prüfungen, Rückfragen und Meldungen; ein zweiter
+  Weg im Dialog müsste sie alle doppelt führen.
+- **Am Verlauf von Arbeitszeit und Urlaubsanspruch steht kein Grund** (Z3).
+  Grund Datenschutz: der Verlauf liegt an der Zeile `users`, die die
+  Kollegen im Büro mitlesen; ein Freitext könnte dort Persönliches tragen.
+  Wer wann geändert hat, steht dabei.
+- **Gespeicherte Urlaubsanträge über einen Jahreswechsel werden nicht neu
+  gerechnet** (Z3b). Grund Altdaten: die festgehaltene Tageszahl eines
+  Antrags bleibt die Summe; neu verteilt wird nur die Zuordnung zu den
+  Urlaubsjahren, mit den Arbeitstagen der jeweiligen Tage.
+
+### Paket 4b: Urlaub, Offline, Exporte
+
+- **Der Entwurf einer Buchung für eine andere Person** (das Büro bucht ohne
+  Netz für jemanden) öffnet nicht in der eigenen Zeiterfassung (Z4). Er
+  steht mit Person und Grund da und wird in der Mitarbeiterübersicht neu
+  erfasst. Grund fachlich: die Buchung gehört dorthin, wo für andere gebucht
+  wird.
+- **Entwürfe liegen im Speicher des Geräts** (Z4), wie beim Timer. Grund
+  liegt beim Gerät: ohne Netz gibt es keinen anderen Ort. Lässt sich nichts
+  ablegen (privates Fenster), sagt die Meldung das, und „Nicht senden“ lässt
+  die Buchung im Ausgangsfach.
+- **Nicht gekürzt werden Betriebsurlaub, Urlaub zu einem Sonderurlaub und
+  stundenweiser Zeitausgleich** (Z1). Grund fachlich: sie ändern sich über
+  ihren eigenen Weg (Betriebsurlaub, Sonderurlaub) bzw. werden ganz
+  zurückgenommen.
+- **Die Vorschau beim Kürzen rechnet in Kalendertagen** (Z1); einen Teil
+  ohne Arbeitstag lässt erst die Datenbank fallen. Grund fachlich: welche
+  Tage zählen, entscheidet die Datenbank mit Arbeitszeit, Feiertagen und
+  Verlauf; die Vorschau rechnet das nicht ein zweites Mal.
+
+### Paket 5: Auftragskette
+
+- **Kommende Einsätze halten den Abschluss einer Baustelle auf** (A11); alles
+  andere Offene darf mit „Trotzdem abschließen“ bleiben. Grund fachlich: was
+  mit Rüstliste und Reservierung eines geplanten Einsatzes geschieht, wird in
+  der Einsatzplanung entschieden (P2), nicht beim Abschließen.
+- **„Wartung erledigt?“ ist ein Vorschlag und bucht nichts von selbst** (A9).
+  Grund fachlich: ein unterschriebener Schein ist nicht dasselbe wie eine
+  erledigte Wartung; das bestätigt der Betrieb.
+- **Eine über den Link erklärte Annahme nimmt nur das Büro zurück, nicht der
+  Kunde selbst** (A1). Grund rechtlich: die Annahme ist eine Erklärung des
+  Kunden; ihr Widerruf ist ein Vorgang zwischen Kunde und Betrieb, den die
+  Geschäftsführung mit Grund festhält.
+- **Schon versendete leere Angebote bleiben „Versendet“** (A5, A14). Grund
+  Altdaten: ihr Stand wird nicht umgeschrieben. Es entsteht kein neuer Link,
+  ein alter gilt als ungültig, und annehmen lassen sie sich auf keinem Weg.
+- **Der Rücklauf einer Sicherung prüft die Positionen eines angenommenen
+  Angebots nicht** (A14). Grund Altdaten: der Rücklauf stellt den gesicherten
+  Stand wieder her, wie er war; er fügt nur ein und ändert keinen Stand.
+
+### Paket 6: Geld
+
+- **Bestehende Schlussrechnungen mit Rest 0 bleiben „Offen“**, bis ihr
+  Zahlstand neu gerechnet wird (G4). Grund Altdaten: ein Nachrechnen aller
+  Rechnungen änderte Produktionszeilen; neue stehen gleich nach dem
+  Ausstellen als „Bezahlt“.
+- **Ältere Rechnungen haben keinen gespeicherten Leistungsnachweis; ihr
+  Nachdruck bleibt ohne** (G6). Grund Altdaten: was damals angehängt war,
+  ist nirgends festgehalten.
+- **Ältere Stornorechnungen haben keinen festgehaltenen bezahlten Betrag**;
+  ihr Text folgt wie bisher dem heutigen Stand (G8). Grund Altdaten.
+- **Mahnungen ohne festgehaltene Forderung werden wie bisher verbucht** (G3).
+  Grund Altdaten: ihre Summe wurde beim Festhalten nicht gespeichert.
+- **Die Oberfläche bietet kein abweichendes Rechnungsdatum an** (G5). Grund
+  rechtlich: das Ausstellungsdatum ist der Tag der Ausstellung. Übernahmen
+  und Prüfungen setzen ein Datum ausdrücklich in der Datenbank.
+- **Ob die Kanzlei die Umbuchungszeile Debitoren an Debitoren übernimmt oder
+  den offenen Posten selbst ausgleicht** (V7). Grund: liegt bei der Kanzlei.
+- **Ein noch nicht neu geladenes Gerät schreibt Umbuchungen im
+  Zahlungsstapel als Bankzeilen** (V7). Grund liegt beim Gerät: die alte App
+  kennt die Art „Umbuchung“ nicht; nach dem Neuladen schreibt sie die
+  Umbuchungszeile.
+- **Angebots- und Baustellennummern lassen sich weiter ohne Beleg ziehen**
+  (G11). Grund fachlich: sie sind Vorschläge, überschreibbar und müssen nicht
+  lückenlos sein; lückenlos ist nur der Rechnungskreis, und der entsteht
+  jetzt nur mit dem Beleg.
+
+### Paket 7: Material
+
+- **Rechnungen von vor M2 decken weiter über ihr Leistungsende**, aber nur
+  Ausgaben, die es beim Anlegen schon gab; ohne bekannten Ausgabezeitpunkt
+  zählt nur das Datum (M2). Grund Altdaten: welche Ausgabe ihre Vorschau
+  enthielt, haben sie nicht festgehalten; nichts Verrechnetes wird wieder
+  offen. Folge: Ausgaben, die nach einer solchen Rechnung entstanden, stehen
+  jetzt im Vorschlag — sie standen nie auf einer Rechnung.
+- **Bestehende Kommissionsartikel bleiben Lagerartikel**, bis das Lager sie
+  mit „Kommissionsware aus dem Lager nehmen …“ herausnimmt (M6). Grund
+  Altdaten: ob ein Artikel geführt werden soll, entscheidet der Betrieb, nicht
+  eine Rechnung über alte Lieferungen.
+- **Eine Gutschrift an den Kunden ist in der App ein Hinweis** (M7);
+  Rechnungspositionen kennen keine negative Menge und keinen negativen Preis.
+  Grund fachlich und rechtlich: eine ausgestellte Rechnung wird über Storno
+  und neue Rechnung berichtigt — seit V6 in einem Zug mit „Stornieren und neu
+  ausstellen“.
+- **Die Höchstmenge einer Retoure kennt nur das in der App Ausgegebene** (M7);
+  Ware von woanders wird ohne Baustelle erfasst, die Meldung sagt das. Grund
+  fachlich: anderswo bezogene Ware ist nicht belegt.
+- **Verbrauch am Schein nur für Lagerartikel mit Katalogbezug, einmal je
+  Schein; Fahrzeuge nur mit eingeschaltetem Modul Lagerorte** (M3). Grund
+  fachlich bzw. Einstellung je Betrieb: ohne Katalogartikel gibt es keinen
+  Bestand; eine Korrektur nach dem Buchen geht über die Inventur.
+- **Menge ändern und Zurückziehen einer Anforderung brauchen Netz** (M5).
+  Grund liegt beim Gerät bzw. Netz: beide hängen am aktuellen Stand der
+  Anforderung, den ein zweites Gerät inzwischen geändert haben kann. Anfordern
+  ohne Netz (Ausgangsfach) geht unverändert.
+- **Belege vor M8 haben keinen festgehaltenen Einkaufspreis**; die
+  Nachkalkulation rechnet dort mit dem Stammpreis (M8). Grund Altdaten.
+- **Die alte App bucht im Wareneingang nur den Bestand** und erledigt keine
+  Bestellung (M12). Grund liegt beim Gerät: bis zum Neuladen kennt sie die
+  Auswahl der Bestellungen nicht.
+
+### Paket 8: Konto und Daten
+
+- **Die nächtliche Ausleitung läuft höchstens für 6 Betriebe gleichzeitig**,
+  je Minute nachgefüllt (rund 360 Betriebe je Stunde bei 10 s je Betrieb)
+  (K3). Grund Sicherheit und Betrieb der Datenbank: jede Arbeitskopie
+  belastet sie. Skaliert über `app.ausleitung_gleichzeitig()`.
+- **Bis zu einer Minute, bis Betroffene einer neu eingeschalteten
+  Zwei-Faktor-Pflicht zur Einrichtung kommen** (K6). Grund fachlich: die
+  Pflicht wirkt in der Datenbank sofort, ohne Faktor wird nichts gelesen oder
+  gespeichert; die App fragt nur nach, statt auf jedem Gerät ein dauerhaftes
+  Live-Abo der Betriebszeile zu halten.
+- ~~Nach einem neuen Startpasswort bleiben die Sitzungen bestehen~~ —
+  **entfallen (Integration Welle 2, 15.11.2026)**: gemessen beendet der
+  Anmeldedienst beim Setzen eines Passworts alle Sitzungen des Kontos
+  (beim eigenen Wechsel alle außer der laufenden). Die Annahme stand in
+  Akte, „Passwort ändern“, Handbuch und Function; berichtigt.
+- **Die alte App nutzt bis zum Neuladen `betrieb_auszug` mit der 8-MB-Grenze
+  und meldet ohne Push-Abmeldung global ab** (K4, K2). Grund liegt beim
+  Gerät: Telefone laden die neue Fassung erst beim nächsten Öffnen.
+- **Hat die gelöschte Person das Konto eines anderen umgestellt, bleibt die
+  Zeile ohne ihre Kennung und ihren Namen stehen** (K9). Grund fachlich: die
+  Umstellung gehört zum Verlauf des anderen Kontos; die Angaben zur
+  gelöschten Person fallen weg.
+
+### Nicht als Grenze geführt
+
+- **L5** (Zeilen der Mitarbeiterübersicht aus der Datenbank) ist nicht
+  gebaut, aber keine Grenze: der Punkt steht offen im Plan und ist an
+  Paket 9a übergeben.
+
+### Mit Welle 2 entfallen
+
+- **„Nicht verrechnet“ sah nur die 60 jüngsten Scheine** — die Scheinliste
+  sagte dazu „Unter den jüngsten Scheinen ist keiner unverrechnet.“, Startseite
+  und Rechnungen nannten die Grenze nicht (Analyse 3, M2). Entfallen mit P3:
+  eine Datenbankfunktion über alle unterschriebenen Scheine. Stand nie in
+  dieser Übersicht.
+- **Entfernen des letzten Eingeteilten bzw. Löschen eines Einsatzes ließ die
+  Rüstliste ohne Mannschaft (`uids` leer) am alten Tag zurück** (Analyse 3, H2:
+  `deleteAssignment` ganz ohne Rüstliste). Entfallen mit P2: Rüstliste zieht
+  mit, beim Letzten die Frage „auflösen oder behalten“.
+- **Überstunden und Teilzeit-Mehrarbeit mit der Arbeitszeit am Monatsende,
+  Arbeitszeitgrenzen mit den heutigen Arbeitstagen** (Bericht 4a) — entfallen
+  mit Z3a.
+- **Urlaub über den Jahreswechsel mit den heutigen Arbeitstagen verteilt**
+  (Bericht 4a) — entfallen mit Z3b; es bleibt nur die Altdaten-Grenze oben.
+- **Unterbrochene Rechnungsantwort sperrt bis zum Neuladen**
+  (`docs/ui-umbau/premium-2026-10-28.md`, „Bewusste Grenzen“ Nr. 2) —
+  entfallen mit G2, dort als ausgetragen vermerkt.
+- **Kein Browserweg für die Auftragskette** (Bericht 5) — entfallen mit
+  `auftragskette.spec.ts`.

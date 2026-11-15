@@ -33,12 +33,15 @@ import {
   textAngebotLink,
   textAntrag,
   textEntscheidung,
+  textKuerzung,
   textFreistellungAntrag,
   textFreistellungEntscheidung,
   textKrankmeldung,
   textNachricht,
   textEinsatzplan,
+  textNotfall,
   type EinsatzEreignis,
+  type NotfallEreignis,
   type NachrichtEreignis,
   type Belegschaftsmitglied,
   EMPFAENGER_NEUE_ANFORDERUNG,
@@ -47,8 +50,10 @@ import {
   istUebergangAufEil,
   istMeldepflichtigeAnforderung,
   istUebergangAufAbholbereit,
+  istBestellungStorniert,
   orderAusZeile,
   textAbholbereit,
+  textBestellungStorniert,
   textEilAbholbereit,
   textEilAngefordert,
   textNeueAnforderung,
@@ -94,14 +99,22 @@ const antwort = (inhalt: unknown, status = 200) =>
     status, headers: { 'Content-Type': 'application/json' },
   });
 
-/** Alle Gerätetokens der genannten Kennungen, sofern sie diese Meldung wollen. */
+/**
+ * Alle Gerätetokens der genannten Kennungen, sofern sie diese Meldung wollen.
+ *
+ * NUR AKTIVE KONTEN (K2, Durchsicht 15.11.2026). Gelesen wird über
+ * `push_vorgaben`, nicht direkt aus `user_prefs`: die Funktion lässt nur
+ * Konten durch, die aktiv sind und deren Betrieb nicht ruht. Vorher bekam ein
+ * deaktivierter Projektleiter, der noch an der Baustelle stand, die
+ * Eilmeldungen weiter — und ebenso der Besteller „abholbereit“. Hier und nur
+ * hier gefiltert, weil jede Meldungsart diesen Weg nimmt: eine neue Quelle
+ * von Empfängern kann das nicht mehr vergessen.
+ */
 async function tokensFuer(uids: string[], art: MeldungsArt): Promise<string[]> {
   if (uids.length === 0) return [];
-  const liste = uids.map((u) => `"${u}"`).join(',');
-  const r = await fetch(
-    `${URL_BASIS}/rest/v1/user_prefs?select=*&user_id=in.(${liste})`,
-    { headers: alsDienst },
-  );
+  const r = await fetch(`${URL_BASIS}/rest/v1/rpc/push_vorgaben`, {
+    method: 'POST', headers: alsDienst, body: JSON.stringify({ p_uids: [...new Set(uids)] }),
+  });
   if (!r.ok) return [];
   const zeilen = (await r.json()) as Array<Record<string, unknown>>;
   const tokens: string[] = [];
@@ -119,6 +132,7 @@ async function tokensFuer(uids: string[], art: MeldungsArt): Promise<string[]> {
       notifyZeiterfassung: zeile.notify_zeiterfassung,
       notifyNachrichten: zeile.notify_nachrichten,
       notifyEinsaetze: zeile.notify_einsaetze,
+      notifyNotfall: zeile.notify_notfall,
     };
     if (!willMeldung(vorgaben, art)) continue;
     for (const t of (zeile.push_tokens as string[] | null) ?? []) tokens.push(t);
@@ -154,11 +168,11 @@ interface Ereignis {
   vorher?: Record<string, unknown>;
   nachher?: Record<string, unknown>;
   zeile?: Record<string, unknown>;
-  /** Wer es ausgelöst hat — bisher nur beim nachträglichen „eilig“. */
+  /** Wer es ausgelöst hat — beim nachträglichen „eilig“ und beim Notfall (V8). */
   von?: string | null;
 }
 
-/** Materialanforderungen: neu, abholbereit, Eilzustellung. */
+/** Materialanforderungen: neu, abholbereit, Eilzustellung, storniert. */
 async function auftraegeAnforderung(ereignis: Ereignis): Promise<Auftrag[] | null> {
   const vorher = orderAusZeile(ereignis.vorher);
   const nachher = orderAusZeile(ereignis.nachher);
@@ -248,6 +262,18 @@ async function auftraegeAnforderung(ereignis: Ereignis): Promise<Auftrag[] | nul
       });
     }
   }
+
+  /*
+    STORNIERT (M11): nur der Besteller — er wartet auf die Ware. Dieselbe
+    Einstellung wie „abholbereit“: beides ist der Stand SEINER Anforderung.
+  */
+  if (ereignis.art === 'storno' && istBestellungStorniert(vorher, nachher)) {
+    auftraege.push({
+      art: 'notifyOrderReady',
+      uids: nachher.userId ? [nachher.userId] : [],
+      meldung: textBestellungStorniert(nachher, kennung),
+    });
+  }
   return auftraege;
 }
 
@@ -264,6 +290,14 @@ async function auftraegeAbwesenheit(ereignis: Ereignis): Promise<Auftrag[] | nul
   if (ereignis.art === 'entschieden') {
     return a.userId
       ? [{ art: 'notifyAbwesenheit', uids: [a.userId], meldung: textEntscheidung(a, kennung) }]
+      : [];
+  }
+  if (ereignis.art === 'gekuerzt') {
+    // Der letzte Eintrag im Verlauf des Antrags ist die Kürzung, die das Ereignis auslöste (Z1).
+    const verlauf = ereignis.zeile?.aenderungen;
+    const letzte = Array.isArray(verlauf) ? verlauf[verlauf.length - 1] : null;
+    return a.userId
+      ? [{ art: 'notifyAbwesenheit', uids: [a.userId], meldung: textKuerzung(a, kennung, letzte) }]
       : [];
   }
   if (ereignis.art === 'freistellung-entschieden') {
@@ -371,6 +405,23 @@ async function auftraegeEinsatz(ereignis: Ereignis): Promise<Auftrag[] | null> {
   return [{ art: 'notifyEinsaetze' as const, uids: [uid], meldung: textEinsatzplan(e) }];
 }
 
+/**
+ * Notfall im Auftragseingang (V8): an die aktive Führung des Betriebs, nicht
+ * an den, der ihn erfasst hat. Empfänger, Nummer und Ort kommen von
+ * `push_notfall` — der Anstoß trägt nur die Kennung.
+ */
+async function auftraegeNotfall(ereignis: Ereignis): Promise<Auftrag[] | null> {
+  const eingang = String(ereignis.zeile?.id ?? '');
+  if (ereignis.art !== 'notfall' || !eingang) return null;
+  const r = await fetch(`${URL_BASIS}/rest/v1/rpc/push_notfall`, {
+    method: 'POST', headers: alsDienst,
+    body: JSON.stringify({ p_eingang: eingang, ...(ereignis.von ? { p_von: ereignis.von } : {}) }),
+  });
+  const e = r.ok ? (await r.json().catch(() => null)) as NotfallEreignis | null : null;
+  if (!e || e.empfaenger.length === 0) return [];
+  return [{ art: 'notifyNotfall' as const, uids: e.empfaenger, meldung: textNotfall(e) }];
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return antwort({ error: 'Nur POST.' }, 405);
 
@@ -400,7 +451,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
         ? await auftraegeNachricht(ereignis)
         : ereignis.quelle === 'einsatz'
           ? await auftraegeEinsatz(ereignis)
-          : await auftraegeAnforderung(ereignis);
+          : ereignis.quelle === 'eingang'
+            ? await auftraegeNotfall(ereignis)
+            : await auftraegeAnforderung(ereignis);
   if (!auftraege) return antwort({ gesendet: 0, grund: 'kein Ereignis, das etwas meldet' });
 
   /*

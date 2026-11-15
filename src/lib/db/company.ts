@@ -21,17 +21,15 @@ export function updateCompany(
 }
 
 /**
- * Der ganze Bestand eines Betriebs in einer Antwort (DSGVO Art. 15/20).
+ * Der ganze Bestand eines Betriebs als Datei (DSGVO Art. 15/20).
  *
  * Eine Abfrage mit erhöhten Rechten, und die Sammlungsliste kommt aus dem
  * Katalog der Datenbank statt aus einer Datei, die jemand pflegen muss — eine
- * vergessene Tabelle wäre sonst eine unvollständige Auskunft.
+ * vergessene Tabelle wäre sonst eine unvollständige Auskunft. Seit K4
+ * (Durchsicht 15.11.2026) in Teilen abgeholt, ohne Obergrenze.
  */
-export function auszug(): Promise<pg.BetriebsAuszug> {
-  return pg.auszug();
-}
-
-export type { BetriebsAuszug } from './pg/company';
+export { betriebAuszugDatei } from './pg/auszugTeile';
+export type { AuszugDatei, Fortschritt } from './pg/auszugTeile';
 
 export type { NaechsteNummern } from './pg/company';
 

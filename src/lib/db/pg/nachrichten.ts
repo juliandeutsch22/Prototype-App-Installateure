@@ -452,6 +452,9 @@ export async function hatGespraeche(uid: string, client?: SupabaseClient): Promi
   return (count ?? 0) > 0;
 }
 
+/** Wie lange die Adresse eines Anhangs gilt — die Ansicht erneuert sie vorher (`useAnhangAdressen`). */
+export const ANHANG_ADRESSE_GUELTIG_S = 600;
+
 /**
  * Eine kurzlebige Adresse je Anhang — die Speicherregel gibt sie nur, wer
  * das Gespräch lesen darf (bzw. der Führung für eine gemeldete Datei).
@@ -465,7 +468,7 @@ export async function anhangAdressen(
   const jeEimer = new Map<string, string[]>();
   for (const a of anhaenge) jeEimer.set(a.eimer, [...(jeEimer.get(a.eimer) ?? []), a.pfad]);
   for (const [eimer, pfade] of jeEimer) {
-    const { data, error } = await c.storage.from(eimer).createSignedUrls(pfade, 600);
+    const { data, error } = await c.storage.from(eimer).createSignedUrls(pfade, ANHANG_ADRESSE_GUELTIG_S);
     if (error) throw fehler(error);
     for (const d of data ?? []) if (d.signedUrl && d.path) raus.set(`${eimer}/${d.path}`, d.signedUrl);
   }

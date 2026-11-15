@@ -13,6 +13,7 @@ import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import type { TimeEntry, Vacation } from '@/types';
 import type { WithId } from '@/lib/db/core';
+import KuerzenDialog from '@/features/vacations/UrlaubKuerzen';
 
 /**
  * Statt „Bearbeiten" und „Löschen" bei einem Tag aus einem genehmigten Antrag.
@@ -44,14 +45,23 @@ export function FreistellungKnopf() {
   );
 }
 
-export default function AntragKnopf({ eintrag }: { eintrag: Pick<TimeEntry, 'status' | 'vacationId'> }) {
+export default function AntragKnopf({ eintrag }: { eintrag: Pick<TimeEntry, 'status' | 'vacationId'> & { date?: string } }) {
   const navigate = useNavigate();
   const urlaubAn = useModul('urlaub');
   const { user, company } = useAuth();
   const wort = eintrag.status === 'Zeitausgleich' ? 'ZA-Antrag' : 'Urlaubsantrag';
   if (urlaubAn) {
+    /*
+      GENAU DIESER ANTRAG (Z1, Durchsicht 15.11.2026): der Sprung führte auf
+      die Urlaubsseite ohne Bezug — den Antrag einer anderen Person gab es
+      dort gar nicht. Jetzt öffnet die Seite ihn, mit Verlauf und, für die,
+      die entscheiden, „Kürzen“ und „Zurücknehmen“.
+    */
     return (
-      <Button variant="ghost" onClick={() => navigate('/vacations')}>
+      <Button
+        variant="ghost"
+        onClick={() => navigate(eintrag.vacationId ? `/vacations?antrag=${encodeURIComponent(eintrag.vacationId)}` : '/vacations')}
+      >
         {wort}
       </Button>
     );
@@ -64,6 +74,7 @@ export default function AntragKnopf({ eintrag }: { eintrag: Pick<TimeEntry, 'sta
       antragId={eintrag.vacationId}
       entscheiderName={user.name}
       za={eintrag.status === 'Zeitausgleich'}
+      tag={eintrag.date}
     />
   );
 }
@@ -73,16 +84,26 @@ function Zuruecknehmen({
   antragId,
   entscheiderName,
   za,
+  tag,
 }: {
   companyId: string;
   antragId: string;
   entscheiderName: string;
   za: boolean;
+  /** Der Tag, an dem der Knopf steht — beim Kürzen als zu streichender Tag vorbelegt. */
+  tag?: string;
 }) {
   const toast = useToast();
   const [laedt, setLaedt] = useState(false);
   const [antrag, setAntrag] = useState<WithId<Vacation> | null>(null);
   const [grund, setGrund] = useState('');
+  /*
+    KÜRZEN AM TAG (Z1). Ohne das Modul Urlaub gibt es keine Liste
+    „Genehmigt, noch nicht vorbei“ — gekürzt wird deshalb hier, mit diesem
+    Tag als Vorschlag zum Streichen. „Zurücknehmen“ bleibt, wie es war.
+  */
+  const [zuKuerzen, setZuKuerzen] = useState<WithId<Vacation> | null>(null);
+  const [laedtKuerzen, setLaedtKuerzen] = useState(false);
 
   /*
     DER ANTRAG WIRD ERST BEIM TIPPEN GELADEN. Eine Liste trägt Dutzende
@@ -91,8 +112,8 @@ function Zuruecknehmen({
     der Tag zum Betriebsurlaub gehört, der nicht für eine Person
     zurückgenommen wird.
   */
-  async function oeffnen() {
-    setLaedt(true);
+  async function oeffnen(wozu: 'zuruecknehmen' | 'kuerzen' = 'zuruecknehmen') {
+    (wozu === 'kuerzen' ? setLaedtKuerzen : setLaedt)(true);
     try {
       const a = await getVacation(companyId, antragId);
       if (!a) {
@@ -103,12 +124,22 @@ function Zuruecknehmen({
         toast.info('Dieser Tag gehört zum Betriebsurlaub — er wird nicht für eine Person zurückgenommen.');
         return;
       }
+      if (wozu === 'kuerzen') {
+        // Ein Tag allein und der stundenweise Zeitausgleich werden ganz zurückgenommen.
+        if (a.von >= a.bis || a.zaVon) {
+          toast.info('Dieser Antrag umfasst nur einen Tag — er wird nicht gekürzt, sondern ganz zurückgenommen.');
+          return;
+        }
+        setZuKuerzen(a);
+        return;
+      }
       setGrund('');
       setAntrag(a);
     } catch (err) {
       toast.error(grundAus(err, 'Der Antrag konnte nicht geladen werden.'));
     } finally {
       setLaedt(false);
+      setLaedtKuerzen(false);
     }
   }
 
@@ -132,6 +163,18 @@ function Zuruecknehmen({
       <Button variant="ghost" loading={laedt} onClick={() => void oeffnen()}>
         Zurücknehmen
       </Button>
+      <Button variant="ghost" loading={laedtKuerzen} onClick={() => void oeffnen('kuerzen')}>
+        Kürzen
+      </Button>
+      {zuKuerzen && (
+        <KuerzenDialog
+          antrag={zuKuerzen}
+          tag={tag}
+          entscheiderName={entscheiderName}
+          onCancel={() => setZuKuerzen(null)}
+          onFertig={() => setZuKuerzen(null)}
+        />
+      )}
       {antrag && (
         <ConfirmDialog
           open

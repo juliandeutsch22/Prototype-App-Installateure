@@ -9,6 +9,7 @@ import { stufeImEinsatz } from './stufeImEinsatz';
 import type { Brett, TagStand } from './planTypen';
 import type { FensterStart } from './EinsatzFenster';
 import { feiertagAm, lieferungOhneAnnahme, ruhetag } from './wochenTermine';
+import type { Abwesenheit } from '@/lib/db/vacations';
 import type { MaterialLage } from './materialDeckung';
 import { BearbeitenKnopf, NeuKnopf } from '@/components/Symbolknoepfe';
 
@@ -45,12 +46,15 @@ export default function TagFenster({
   materialFuer,
   materialTag,
   abwesenheitUnklar = false,
+  abwesenheiten = [],
 }: {
   datum: string;
   stand: TagStand | undefined;
   /** Alle Termine dieses Tages. */
   termine: Termin[];
-  einsaetze: { date: string; projectNumber: string }[];
+  einsaetze: { date: string; projectNumber: string; userId?: string }[];
+  /** Wer ganztags fehlt, nimmt keine Lieferung an (P9). */
+  abwesenheiten?: Abwesenheit[];
   projects: Project[];
   users: AppUser[];
   staff: AppUser[];
@@ -106,7 +110,7 @@ export default function TagFenster({
                   key={t.id}
                   title={terminKopf(t)}
                   subtitle={[bezugText(t), teilnehmer.length ? `Teilnehmer: ${teilnehmer.join(', ')}` : null].filter(Boolean).join(' · ')}
-                  zustand={lieferungOhneAnnahme(t, einsaetze) ? <Warnung>niemand dort</Warnung> : undefined}
+                  zustand={lieferungOhneAnnahme(t, einsaetze, abwesenheiten) ? <Warnung>niemand dort</Warnung> : undefined}
                   onOeffnen={() => onTermin(t)}
                 />
               );

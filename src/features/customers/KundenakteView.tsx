@@ -6,6 +6,7 @@ import { canAccess } from '@/app/navigation';
 import {
   listCustomersByIds,
   listProjectsForCustomer,
+  zaehleProjekteDesKunden,
   listUnlinkedProjectsByName,
   assignProjectToCustomer,
   updateCustomer,
@@ -17,17 +18,21 @@ import { listWartungenForCustomer } from '@/lib/db/wartungen';
 import { listEingaengeDesKunden } from '@/lib/db/auftragseingaenge';
 import { kundeText, zustandVon, wannText } from '@/features/auftragseingang/eingangText';
 import { useModul } from '@/lib/useModule';
-import { canInvoice, darfKundenPflegen, darfTermineSchreiben, isGF } from '@/lib/permissions';
+import { canEditTime, canInvoice, darfKundenPflegen, darfTermineSchreiben, isGF } from '@/lib/permissions';
+import RowMenu from '@/components/RowMenu';
+import StundennachweisDialog from '@/features/accounting/StundennachweisDialog';
 import TermineKarte from '@/features/termine/TermineKarte';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { todayStr } from '@/lib/time';
 import type { Auftragseingang, Customer, Invoice, Project, Quote, Wartung } from '@/types';
 import type { WithId } from '@/lib/db/core';
+import Nachladen from '@/components/Nachladen';
 import Card from '@/components/Card';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import AktenBereiche, { AktenAngaben, AktenAngabe, AktenVerweis } from '@/components/AktenBereiche';
 import AktenBearbeiten from '@/components/AktenBearbeiten';
 import AktenKopf from '@/components/AktenKopf';
+import { neuFuerMenue } from './neuFuer';
 import AktenTerminVorschau, { type AktenTerminStand } from '@/components/AktenTerminVorschau';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { InputField, FormGrid, CheckboxField } from '@/components/Field';
@@ -92,6 +97,8 @@ const EINGAENGE_HOECHSTENS = 20;
 
 /** So viele Angebote zeigt die Akte — die jüngsten; ältere findet die Suche der Angebotsliste. */
 const ANGEBOTE_HOECHSTENS = 100;
+/** Baustellen je Seite (A12) — wer mehr hat, lädt nach; die Zahl im Titel ist die gezählte. */
+const BAUSTELLEN_JE_SEITE = 100;
 
 const LAEDT = { zustand: 'laedt' } as const;
 
@@ -107,6 +114,8 @@ export default function KundenakteView() {
 
   const [kunde, setKunde] = useState<Teil<WithId<Customer> | null>>(LAEDT);
   const [baustellen, setBaustellen] = useState<Teil<WithId<Project>[]>>(LAEDT);
+  const [baustellenGrenze, setBaustellenGrenze] = useState(BAUSTELLEN_JE_SEITE);
+  const [baustellenZahl, setBaustellenZahl] = useState<number | null>(null);
   const [namensgleich, setNamensgleich] = useState<WithId<Project>[]>([]);
   const [angebote, setAngebote] = useState<Teil<WithId<Quote>[]>>(LAEDT);
   const [rechnungen, setRechnungen] = useState<Teil<WithId<Invoice>[]>>(LAEDT);
@@ -125,6 +134,8 @@ export default function KundenakteView() {
   const [entwurf, setEntwurf] = useState<NewCustomer | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const [bearbeitet, setBearbeitet] = useState(false);
+  /** Der Stundennachweis über alle Baustellen des Kunden (F12). */
+  const [nachweisOffen, setNachweisOffen] = useState(false);
   const [terminStand, setTerminStand] = useState<AktenTerminStand>({ termine: null, fehler: false });
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
   /** Runde 6, M6: was an PLZ oder E-Mail nicht stimmt — die Rückfrage „Trotzdem speichern“. */
@@ -255,12 +266,15 @@ export default function KundenakteView() {
     let weg = false;
     void (async () => {
       try {
-        const [zugeordnet, offen] = await Promise.all([
-          listProjectsForCustomer(companyId, id),
+        const [zugeordnet, offen, zahl] = await Promise.all([
+          listProjectsForCustomer(companyId, id, baustellenGrenze),
           listUnlinkedProjectsByName(companyId, kundeName),
+          // Scheitert nur das Zählen, steht die Zahl der geladenen.
+          zaehleProjekteDesKunden(companyId, id).catch(() => null),
         ]);
         if (weg) return;
         setBaustellen({ zustand: 'bereit', daten: zugeordnet });
+        setBaustellenZahl(zahl);
         setNamensgleich(offen);
       } catch {
         if (!weg) setBaustellen({ zustand: 'fehler' });
@@ -269,7 +283,7 @@ export default function KundenakteView() {
     return () => {
       weg = true;
     };
-  }, [companyId, id, kundeName, versuch]);
+  }, [companyId, id, kundeName, versuch, baustellenGrenze]);
 
   /*
     DIE ANGEBOTE HINGEN AM NAMEN UND MUSSTEN AN DER KENNUNG HÄNGEN.
@@ -298,24 +312,24 @@ export default function KundenakteView() {
   }, [companyId, id, angeboteAn, darfAngebote, versuch]);
 
   /*
-    DIE RECHNUNGEN DES KUNDEN — über seine Baustellen. Eine Rechnung trägt den
-    Kundennamen als Text, und ihr Kunde ergibt sich aus der Baustelle; siehe
-    `listInvoicesForCustomer`. Geladen wird deshalb erst, wenn die
-    Baustellen da sind.
+    DIE RECHNUNGEN DES KUNDEN — über die Kundenkennung und seine Baustellen,
+    gesucht in der Datenbank (A10, `rechnungen_des_kunden`). Vorher gingen die
+    Kennungen aller Baustellen als Liste in die Adresse; ab gut 220
+    Baustellen lehnte das Gateway ab, und die Karte zeigte dauerhaft „konnte
+    nicht geladen werden“. Sie wartet deshalb auch nicht mehr auf die
+    Baustellen.
   */
-  const baustellenIds =
-    baustellen.zustand === 'bereit' ? baustellen.daten.map((b) => b.id).sort().join('|') : null;
   useEffect(() => {
-    if (!companyId || !id || !rechnungenAn || !darfRechnungen || baustellenIds === null) return;
+    if (!companyId || !id || !rechnungenAn || !darfRechnungen) return;
     let weg = false;
     setRechnungen(LAEDT);
-    listInvoicesForCustomer(companyId, id, baustellenIds ? baustellenIds.split('|') : [])
+    listInvoicesForCustomer(companyId, id)
       .then((r) => !weg && setRechnungen({ zustand: 'bereit', daten: r }))
       .catch(() => !weg && setRechnungen({ zustand: 'fehler' }));
     return () => {
       weg = true;
     };
-  }, [companyId, id, rechnungenAn, darfRechnungen, baustellenIds, versuch]);
+  }, [companyId, id, rechnungenAn, darfRechnungen, versuch]);
 
   useEffect(() => {
     if (!companyId || !id || !wartungAn) return;
@@ -379,7 +393,7 @@ export default function KundenakteView() {
     {companyId && verlaufSichtbar(user.role, 'kunde', !!einblick) && <ObjektVerlauf companyId={companyId} objektart="kunde" objektId={k.id} />}
   </Card>;
   const baustellenKarte = (
-    <Card id="k-baustellen" title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellen.daten.length})` : ''}`}>
+    <Card id="k-baustellen" title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellenZahl ?? baustellen.daten.length})` : ''}`}>
       {baustellen.zustand === 'laedt' ? (
         <SkeletonList rows={2} />
       ) : baustellen.zustand === 'fehler' ? (
@@ -387,7 +401,18 @@ export default function KundenakteView() {
       ) : baustellen.daten.length === 0 ? (
         <EmptyState>Noch keine Baustelle zugeordnet.</EmptyState>
       ) : (
-        <BaustellenZeilen daten={baustellen.daten.slice().sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))} sichtbar={baustellenSichtbar} />
+        <>
+          <BaustellenZeilen daten={baustellen.daten.slice().sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))} sichtbar={baustellenSichtbar} />
+          {/* A12: vorher endete die Liste still bei 300 — jetzt sagt sie es und lädt nach. */}
+          <Nachladen
+            geladen={baustellen.daten.length}
+            grenze={baustellenGrenze}
+            gesamt={baustellenZahl ?? undefined}
+            einheit="Baustellen"
+            onMehr={() => setBaustellenGrenze((g) => g + BAUSTELLEN_JE_SEITE)}
+            sucheImBrowser={false}
+          />
+        </>
       )}
 
       {/*
@@ -492,9 +517,10 @@ export default function KundenakteView() {
   ) : null;
   const rechnungKarte = rechnungenAn && darfRechnungen ? (
     <Card title="Rechnungen" id="k-rechnungen">
-      {rechnungen.zustand === 'laedt' || baustellen.zustand === 'laedt' ? (
+      {/* Seit A10 hängen die Rechnungen nicht mehr an den geladenen Baustellen. */}
+      {rechnungen.zustand === 'laedt' ? (
         <SkeletonList rows={1} />
-      ) : rechnungen.zustand === 'fehler' || baustellen.zustand === 'fehler' ? (
+      ) : rechnungen.zustand === 'fehler' ? (
         <TeilFehler was="die Rechnungen" onRetry={() => setVersuch((v) => v + 1)} />
       ) : rechnungen.daten.length === 0 ? (
         <EmptyState>Noch keine Rechnung.</EmptyState>
@@ -645,6 +671,8 @@ export default function KundenakteView() {
     </div>
   ) : null;
 
+  const neuFuer = user ? neuFuerMenue(user.role, company?.modules, { kunde: k.id }, navigate) : [];
+
   return (
     <div className="akten-seite">
       {warnung}
@@ -654,7 +682,31 @@ export default function KundenakteView() {
         meta={<span className="akten-identitaet">
           <Zustand stand={k.active === false ? 'storniert' : 'gut'}>{k.active === false ? 'inaktiv' : 'aktiv'}</Zustand></span>}
         kontakt={<><TelefonLink nummer={k.contactPhone} name={k.contactName} /><MailLink adresse={k.email} /><a className="link-weiter akten-verweis" href="#kunde-kontext">Kontakt</a></>}
-        action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>} />
+        action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
+        /*
+          EIN ⋯ FÜR SELTENES: „Neu für diesen Kunden“ (V3) — Neues beginnt hier,
+          nicht in der Liste mit einer zweiten Kundensuche —, dazu der
+          Stundennachweis über die Baustellen des Kunden (F12), erst wenn sie
+          geladen sind und nur für die, die fremde Zeiten lesen.
+        */
+        mehr={(() => {
+          const eintraege = [
+            ...(!einblick ? neuFuer : []),
+            ...(user && canEditTime(user.role) && !einblick && baustellen.zustand === 'bereit' && baustellen.daten.length > 0
+              ? [{ label: 'Stundennachweis', onSelect: () => setNachweisOffen(true) }] : []),
+          ];
+          return eintraege.length ? <RowMenu about={`Kunde ${k.name}`} items={eintraege} /> : undefined;
+        })()} />
+      {nachweisOffen && baustellen.zustand === 'bereit' && (
+        <StundennachweisDialog
+          offen
+          onClose={() => setNachweisOffen(false)}
+          nummern={baustellen.daten.map((p) => p.projectNumber)}
+          bezug={['Kunde:', k.name]}
+          angaben={[['Anschrift:', k.address ?? '']]}
+          dateiBezug={k.name}
+        />
+      )}
       <AktenBereiche kennung="kunde" kontext={<>
         <Card title="Kontakt"><AktenAngaben>
           <AktenAngabe wort="Ansprechpartner">{k.contactName}</AktenAngabe>

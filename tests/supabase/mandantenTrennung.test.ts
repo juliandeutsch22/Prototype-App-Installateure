@@ -62,6 +62,8 @@ const LAGEN: [string, object][] = [
 const PROJEKT = uid(9681);
 const ZUSATZ: Record<string, (betrieb: string) => Record<string, unknown>> = {
   buchungskonten: () => ({ zweck: 'bank' }),
+  // Z5 (Welle 2): ein Monatsabschluss gilt für den Monatsersten.
+  zeit_monatsabschluesse: () => ({ monat: '2026-10-01' }),
   fehlerprotokoll: () => ({ art: 'fehler', nachricht: 'Prüfung' }),
   freistellungen: () => ({ art: 'unbezahlt' }),
   project_documents: (b) => ({ project_id: PROJEKT, pfad: `baustellen/${b}/${PROJEKT}/x.pdf` }),
@@ -107,7 +109,9 @@ const FUER_ALLE = ['assignments', 'aussteller_staende', 'baustelle_alte_nummern'
     M06b: die Definitionen und Fassungen der freien Zeitfelder — jede Rolle
     bucht, also braucht jede die Maske. Die Werte selbst stehen bei den Zeiten.
   */
-  'zeitfeld_definitionen', 'zeitfeld_fassungen'];
+  'zeitfeld_definitionen', 'zeitfeld_fassungen',
+  // Z5 (Welle 2): ob ein Monat abgeschlossen ist, braucht jeder, der bucht.
+  'zeit_monatsabschluesse'];
 /** Lohn, Zeiten, Abwesenheiten anderer und Rechnungen: Buchhaltung und Spitze. */
 const LOHN_UND_RECHNUNG = ['arbeitszeit_begruendungen', 'freistellungen', 'geburtsdaten', 'invoice_coverage', 'invoice_lines',
   'invoices', 'krankmeldungen', 'mahnungen', 'time_entries', 'urlaubsanspruch_anpassungen', 'vacations', 'zahlungseingaenge',
@@ -122,7 +126,9 @@ const BUERO = ['auftragseingaenge', 'customers', 'lagerbewegungen', 'material_or
   // M04a: die Schreibbefehle wie das Bewegungsprotokoll; die eigenen sieht jeder (`befehl_stand`).
   'befehle_vorgaenge',
   // M02c: Liegenschaften, Tops und Beteiligte lesen wie Kunden — das Büro und die Leitung.
-  'liegenschaft_beteiligte', 'liegenschaft_tops', 'liegenschaften'];
+  'liegenschaft_beteiligte', 'liegenschaft_tops', 'liegenschaften',
+  // M3 (Welle 2): der Verbrauch am Schein — wer Scheine prüft und verrechnet.
+  'schein_verbrauch'];
 /** Einkaufspreise, Preislisten, Kostensätze, Katalogdateien, Kontoumstellungen, Systemläufe: nur die Spitze. */
 const SPITZE = ['betrieb_kostensaetze', 'datanorm_laeufe', 'datanorm_zeilen', 'konto_umstellungen', 'material_einkaufspreise',
   'material_prices', 'rabattsaetze', 'system_laeufe',
@@ -133,7 +139,11 @@ const SPITZE = ['betrieb_kostensaetze', 'datanorm_laeufe', 'datanorm_zeilen', 'k
     übrigen Rollen an bestehenden Objekten lesen, prüft
     `aenderungsjournal.test.ts`.
   */
-  'aenderungsjournal'];
+  'aenderungsjournal',
+  // M5 (Welle 2): der festgehaltene Einkaufspreis — wie `material_einkaufspreise`.
+  'einkaufspreis_festgehalten',
+  // V14/K7 (Welle 2): Passwort-Bitten und Rücksetzungen des zweiten Faktors erledigt die Spitze.
+  'passwort_anfragen', 'zwei_faktor_ruecksetzungen'];
 
 /*
   Wer den Einkauf führt (Verwaltung und Führung) — die Einkaufsliste und,
@@ -439,11 +449,21 @@ const OHNE_EIGENE_PRUEFUNG: Record<string, string> = {
   'public.fehler_vor_anmeldung_eintragen(p_art text, p_nachricht text, p_stapel text, p_pfad text, p_fassung text, p_geraet text)':
     'nimmt Absturzmeldungen der Anmeldemaske an, also vor jeder Anmeldung; schreibt nur in die eigene Tabelle, '
     + 'gibt nichts zurück und ist gedrosselt (dieselbe Meldung frühestens nach zehn Minuten, höchstens 100 je Stunde)',
+  'public.passwort_hilfe_anfragen(p_anmeldung text)':
+    'nimmt aus der Anmeldemaske die Bitte um ein neues Passwort an (V14), also vor jeder Anmeldung; antwortet '
+    + 'immer gleich, schreibt nur eine offene Bitte je aktivem Benutzernamen-Konto in die eigene Tabelle und ist '
+    + 'gedrosselt (frühestens zehn Minuten nach dem Erledigen wieder, höchstens 200 je Stunde)',
   'public.rechtstexte_aktuell()':
     'liefert Impressum, Datenschutzerklärung und Betreiberangaben in der geltenden Fassung — öffentliche Texte, '
     + 'die jeder lesen muss (§ 5 ECG, Art. 13 DSGVO); nie einen Entwurf, nichts aus einem Betrieb',
 };
-const PRUEFT = /auth\.uid\(\)|app\.(betrieb|lesebetrieb|supportbetrieb|darf\w*|hat_rolle|ist_\w+|betriebsmitglied|angemeldet|plattform\w*|support\w*)\(|request\.jwt/;
+/*
+  Welle 2 (15.11.2026): `verrechnung_betrieb` (Scheine, P3), `arbeitszeit_person`
+  und `zeitkonto_lesbar` (Zeitkonto, Z3/L1) sowie `public.naechste_nummer`
+  (Belegnummer, G10) prüfen den Aufrufer selbst und brechen ohne Recht ab bzw.
+  liefern nur die eigene Person — wer sie ruft, prüft damit.
+*/
+const PRUEFT = /auth\.uid\(\)|app\.(betrieb|lesebetrieb|supportbetrieb|darf\w*|hat_rolle|ist_\w+|betriebsmitglied|angemeldet|plattform\w*|support\w*|verrechnung_betrieb|arbeitszeit_person|zeitkonto_lesbar)\(|public\.naechste_nummer\(|request\.jwt/;
 
 /*
   OHNE ANMELDUNG AUFRUFBAR — nur, was dafür einen Grund hat. Auslöser-
@@ -454,6 +474,7 @@ const PRUEFT = /auth\.uid\(\)|app\.(betrieb|lesebetrieb|supportbetrieb|darf\w*|h
 const OEFFENTLICH: Record<string, string> = {
   'public.fehler_vor_anmeldung_eintragen': 'die Anmeldemaske meldet ihre Abstürze, bevor jemand angemeldet ist',
   'public.rechtstexte_aktuell': 'Impressum und Datenschutzerklärung muss lesen können, wer (noch) kein Konto hat',
+  'public.passwort_hilfe_anfragen': 'wer das Passwort vergessen hat, ist nicht angemeldet — die Bitte geht an die Leitung (V14)',
 };
 /*
   Die Helfer der Zeilenschutz-Regeln. Regeln für `public` werten sie auch für

@@ -1,4 +1,5 @@
 import TimerEinstellungen from './TimerEinstellungen';
+import MonatsabschlussEinstellung from './MonatsabschlussEinstellung';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { updateCompany, naechsteNummern, rechnungsvorgabenSpeichern, type NaechsteNummern } from '@/lib/db/company';
@@ -15,6 +16,7 @@ import Card from '@/components/Card';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import LohnregelnKarte from './LohnregelnKarte';
+import { useInhaltUebernehmen } from '@/lib/useInhaltUebernehmen';
 import KatalogEinstellungenKarte from './KatalogEinstellungenKarte';
 import SonderurlaubKarte from './SonderurlaubKarte';
 import BasiszinsVerlauf from './BasiszinsVerlauf';
@@ -134,6 +136,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   const [wochenplanFuerAlle, setWochenplanFuerAlle] = useState(false);
   /** Die Projektleitung im Einsatzplan (M38) — ab Werk aus. */
   const [plImPlan, setPlImPlan] = useState(false);
+  /** Geschäftsführung und Administrator im Einsatzplan (V12, E2). */
+  const [leitungImPlan, setLeitungImPlan] = useState(false);
   const [kalenderAbo, setKalenderAbo] = useState(false);
   const [wochenplanSpeichert, setWochenplanSpeichert] = useState(false);
   const [dezemberHalbtage, setDezemberHalbtage] = useState(true);
@@ -160,29 +164,57 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   */
   const [naechste, setNaechste] = useState<NaechsteNummern | null>(null);
 
-  useEffect(() => {
-    if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
-    setSteuerbefreiungVorgabe(company?.steuerbefreiungVorgabe ?? '');
-    setGenehmiger(company?.vacationApprovers ?? []);
-    // Der Betrieb kommt womöglich erst nach dem ersten Zeichnen an; ohne
-    // diese Zeile stünden hier die Vorgaben statt der gespeicherten Vorsätze.
-    setVorsaetze(praefixeVon(company));
-    setRechnungsarten(company?.rechnungsarten ?? false);
-    setWochenplanFuerAlle(company?.wochenplanFuerAlle ?? false);
-    setPlImPlan(company?.projektleitungImEinsatzplan === true);
-    setKalenderAbo(company?.kalenderAboErlaubt === true);
-    setDezemberHalbtage(company?.dezemberHalbtage !== false);
-    const beginn = company?.urlaubJahresbeginn ?? '01-01';
-    setBeginnMonat(beginn.slice(0, 2));
-    setBeginnTag(beginn.slice(3, 5));
-    setUebertrag(company?.urlaubUebertrag ?? 'verjaehrung');
-    setEintrittAliquot(company?.urlaubEintrittAliquot === 'zwoelftel' ? 'zwoelftel' : 'taggenau');
-    if (company?.urlaubStichtag) {
-      const [m, d] = company.urlaubStichtag.split('-');
-      setStichtagMonat(m);
-      setStichtagTag(d);
-    }
-  }, [company]);
+  /*
+    JE KARTE NUR IHRE WERTE ÜBERNEHMEN (P10): nach dem Speichern einer Karte
+    lädt die Seite den Betrieb neu — ein neues Objekt. Am Inhalt verglichen
+    bleiben ungespeicherte Eingaben der anderen Karten stehen.
+  */
+  useInhaltUebernehmen(
+    { rates: company?.rates ?? null, steuer: company?.steuerbefreiungVorgabe ?? '' },
+    ({ rates: r, steuer }) => {
+      if (r) setRates({ ...INVOICE_DEFAULTS, ...r });
+      setSteuerbefreiungVorgabe(steuer);
+    },
+  );
+  useInhaltUebernehmen(company?.vacationApprovers ?? [], setGenehmiger);
+  // Der Betrieb kommt womöglich erst nach dem ersten Zeichnen an; ohne diese
+  // Übernahme stünden hier die Vorgaben statt der gespeicherten Vorsätze.
+  useInhaltUebernehmen(praefixeVon(company), setVorsaetze);
+  useInhaltUebernehmen(company?.rechnungsarten ?? false, setRechnungsarten);
+  useInhaltUebernehmen(
+    {
+      alle: company?.wochenplanFuerAlle ?? false,
+      pl: company?.projektleitungImEinsatzplan === true,
+      leitung: company?.leitungImEinsatzplan === true,
+      abo: company?.kalenderAboErlaubt === true,
+    },
+    (w) => {
+      setWochenplanFuerAlle(w.alle);
+      setPlImPlan(w.pl);
+      setLeitungImPlan(w.leitung);
+      setKalenderAbo(w.abo);
+    },
+  );
+  useInhaltUebernehmen(company?.dezemberHalbtage !== false, setDezemberHalbtage);
+  useInhaltUebernehmen(
+    {
+      beginn: company?.urlaubJahresbeginn ?? '01-01',
+      uebertrag: company?.urlaubUebertrag ?? 'verjaehrung',
+      aliquot: company?.urlaubEintrittAliquot === 'zwoelftel' ? 'zwoelftel' as const : 'taggenau' as const,
+      stichtag: company?.urlaubStichtag ?? null,
+    },
+    (w) => {
+      setBeginnMonat(w.beginn.slice(0, 2));
+      setBeginnTag(w.beginn.slice(3, 5));
+      setUebertrag(w.uebertrag);
+      setEintrittAliquot(w.aliquot);
+      if (w.stichtag) {
+        const [m, d] = w.stichtag.split('-');
+        setStichtagMonat(m);
+        setStichtagTag(d);
+      }
+    },
+  );
 
   useEffect(() => {
     if (!user || !darfGenehmigerSetzen) return;
@@ -302,7 +334,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     setError(null);
     try {
       await updateCompany(user.companyId, {
-        wochenplanFuerAlle, projektleitungImEinsatzplan: plImPlan, kalenderAboErlaubt: kalenderAbo,
+        wochenplanFuerAlle, projektleitungImEinsatzplan: plImPlan, leitungImEinsatzplan: leitungImPlan,
+        kalenderAboErlaubt: kalenderAbo,
       });
       await reloadCompany();
       toast.success('Einstellungen zum Einsatzplan gespeichert');
@@ -1268,7 +1301,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             „Team-Woche“: wer an welchem Tag auf welcher Baustelle ist. Zu ändern gibt es dort
             nichts. Wer Urlaub hat, steht als „abwesend“ da — ohne Grund und ohne Antragsstand.
             Projektleiter lassen sich zusätzlich wie Monteure einteilen; sie sehen dann
-            „Mein Einsatzplan“. Mit dem Kalender-Abo holt sich jede Person unter „Mein
+            „Mein Einsatzplan“. Dasselbe für Geschäftsführung und Administrator — im kleinen
+            Betrieb fährt der Chef mit. Mit dem Kalender-Abo holt sich jede Person unter „Mein
             Einsatzplan“ einen geheimen Link für Google, Apple oder Outlook; dort stehen dann
             Kundenname, Adresse und Ansprechpartner der Einsätze — beim Kalenderdienst der
             Person. Ausschalten beendet alle Abos sofort.
@@ -1289,6 +1323,12 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           label="Projektleiter sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“"
           checked={plImPlan}
           onChange={(e) => setPlImPlan(e.target.checked)}
+        />
+        <CheckboxField
+          id="leitungImEinsatzplan"
+          label="Geschäftsführung und Administrator sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“"
+          checked={leitungImPlan}
+          onChange={(e) => setLeitungImPlan(e.target.checked)}
         />
         <CheckboxField
           id="kalenderAboErlaubt"
@@ -1344,6 +1384,9 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
       )}
 
       {teil === 'personal' && <><TimerEinstellungen /><LohnregelnKarte /></>}
+
+      {/* Monatsabschluss der Zeiten (Z6, E1) — nur, wer die Einstellungen des Betriebs ändert. */}
+      {teil === 'personal' && darfGenehmigerSetzen && <MonatsabschlussEinstellung />}
 
       {teil === 'personal' && darfGenehmigerSetzen && <SonderurlaubKarte />}
 

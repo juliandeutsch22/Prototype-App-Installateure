@@ -8,6 +8,7 @@ import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { abgeschnittenerText } from '@/lib/auswahlAbgeschnitten';
 import { baustelleInAuswahl } from '@/lib/baustellenTitel';
+import BaustellenSuche from './BaustellenSuche';
 
 /**
  * Auswahl einer Baustelle — überall dort, wo eine gebraucht wird.
@@ -327,14 +328,29 @@ export default function BaustellenSelect({
         auf eine andere. Deshalb steht es hier, auch wenn es heute nie
         erscheint.
       */}
+      {/*
+        ÜBER DIE GRENZE HINAUS SUCHEN (A11, Durchsicht 15.11.2026). Vorher
+        stand hier nur der Hinweis, die Baustelle unter „Baustellen“ zu
+        suchen — bei Betrieben, die jede Reparatur als Baustelle führen, der
+        Alltag. Jetzt sucht die Datenbank über alle; die gefundene steht danach
+        auch in der Liste.
+      */}
       {angeschnitten && (
-        <div className="mt-2">
-          <Hinweiszeile stufe="warn">
-            <p>
-              Es werden nur die ersten {projekte.length} laufenden Baustellen angeboten. Fehlt
-              eine, ist sie unter „Baustellen“ zu finden — von dort führt ein Weg direkt hierher.
-            </p>
-          </Hinweiszeile>
+        <div className="mt-2 space-y-1">
+          <p className="text-sm text-ink-muted">
+            Die Liste zeigt die ersten {projekte.length} laufenden Baustellen — jede andere findet die Suche.
+          </p>
+          <BaustellenSuche
+            companyId={companyId}
+            id={`${id}-suche`}
+            label="Andere Baustelle suchen"
+            value=""
+            onChange={(_, p) => {
+              if (!p) return;
+              setProjekte((alt) => (alt.some((x) => x.id === p.id) ? alt : [p, ...alt]));
+              onChange(p.projectNumber, p);
+            }}
+          />
         </div>
       )}
     </div>

@@ -6,6 +6,7 @@ export const anmelden = async () => {};
 export const abmelden = async () => {};
 export const sitzungAnderswoBeendet = async () => false;
 export const passwortZuruecksetzen = async () => {};
+export const passwortHilfeAnfragen = async () => {};
 export const passwortSetzen = async () => {};
 export const startpasswortOffen = async () => false;
 export const passwortVergeben = async () => {};
@@ -31,5 +32,6 @@ export const neueCodes = async () => Array.from({ length: 10 }, (_, i) => `DEMO-
 export const codePruefen = async () => {};
 export const codeEinloesen = async () => {};
 export const zweitenFaktorAusschalten = async () => {};
-export type { NeuerFaktor, ZweiterFaktorStand } from '../../src/lib/auth/pg/zweiFaktor';
+export const ohneFaktor = async () => [];
+export type { NeuerFaktor, ZweiterFaktorStand, OhneFaktor } from '../../src/lib/auth/pg/zweiFaktor';
 export const kontoAnlage = async () => ({ uid: 'neu', startpasswortNoetig: false });

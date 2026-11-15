@@ -17,7 +17,7 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => auth }));
 const holen = vi.fn();
 const loeschen = vi.fn();
 vi.mock('@/lib/db/auskunft', () => ({
-  personAuskunft: (...a: unknown[]) => holen(...a),
+  personAuskunftDatei: (...a: unknown[]) => holen(...a),
   personLoeschen: (...a: unknown[]) => loeschen(...a),
 }));
 
@@ -59,7 +59,7 @@ describe('Wer die Auskunft holt', () => {
 
 describe('Der Knopf', () => {
   it('holt die Auskunft dieser Person und speichert sie als Datei', async () => {
-    holen.mockResolvedValue({ person: 'Familie Huber', erstellt_am: '2026-09-29T10:00:00Z', daten: {} });
+    holen.mockResolvedValue({ blob: new Blob(['{}']), kopf: { person: 'Familie Huber', erstellt_am: '2026-09-29T10:00:00Z' } });
     const url = vi.fn(() => 'blob:auskunft');
     const frei = vi.fn();
     Object.assign(URL, { createObjectURL: url, revokeObjectURL: frei });
@@ -69,7 +69,7 @@ describe('Der Knopf', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Auskunft herunterladen' }));
 
     await waitFor(() => expect(klick).toHaveBeenCalled());
-    expect(holen).toHaveBeenCalledWith('kunde', 'k-1');
+    expect(holen).toHaveBeenCalledWith('kunde', 'k-1', expect.any(Function));
     const a = klick.mock.instances[0] as unknown as HTMLAnchorElement;
     expect(a.download).toBe('datenauskunft-Familie-Huber-2026-09-29.json');
     expect(frei).toHaveBeenCalledWith('blob:auskunft');
@@ -77,10 +77,10 @@ describe('Der Knopf', () => {
   });
 
   it('zeigt die Absage der Datenbank, wie sie ist', async () => {
-    holen.mockRejectedValue(new Error('Die Auskunft ist mit 9 MB zu groß für den Abruf in der App.'));
+    holen.mockRejectedValue(new Error('Dieser Teil liegt nicht mehr bereit. Bitte den Download neu beginnen.'));
     zeichne();
     fireEvent.click(screen.getByRole('button', { name: 'Auskunft herunterladen' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('9 MB zu groß');
+    expect(await screen.findByRole('alert')).toHaveTextContent('nicht mehr bereit');
   });
 });
 

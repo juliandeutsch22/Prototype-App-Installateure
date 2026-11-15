@@ -13,10 +13,15 @@ import {
   tageOhneBuchung,
   ueberfaelligNichtMahnbar,
   wartungenOhneBaustelle,
+  wartungenEingeplant,
   lehrzeitEnden,
   einzigeLeitungOhneMail,
+  passwortBitten,
+  seitText,
   garantienBald,
   type GarantieZeile,
+  eingeteilteFehlen,
+  neueScheineAbschnitt,
 } from '@/features/dashboard/start/regeln';
 import { auslastung } from '@/features/dashboard/start/laden';
 import { budgetStand } from '@/features/projects/baustellenLage';
@@ -421,6 +426,27 @@ describe('Projektleitung', () => {
     expect(a.zeilen[1].status).toEqual({ text: 'diese Woche', ton: 'warn' });
   });
 
+  /*
+    A9 (Durchsicht 15.11.2026): eine eingeplante Wartung verschwand von der
+    Startseite und wartete auf einen Handgriff, an den nichts erinnerte.
+  */
+  it('eingeplante Wartungen: erst die mit Vorschlag (Sprung in „Erledigt“), dann die fälligen mit Weg zur Baustelle', () => {
+    const w = (teil: Partial<Wartung> & { id: string }) =>
+      ({ companyId: 'b', customerId: 'k', customerName: 'Koller', anlage: 'Therme', intervallMonate: 12, faelligAm: HEUTE, aktiv: true, ...teil }) as Wartung;
+    const a = wartungenEingeplant([
+      w({ id: 'geplant', faelligAm: '2026-09-20', offeneBaustelle: 'PR-9' }),
+      w({ id: 'erledigt', faelligAm: '2026-09-10', offeneBaustelle: 'PR-8' }),
+      w({ id: 'spaeter', faelligAm: '2027-05-01', offeneBaustelle: 'PR-7' }),
+      w({ id: 'ohne', faelligAm: '2026-09-20' }),
+    ], [{ wartungId: 'erledigt', anlage: 'Therme', kunde: 'Koller', baustelle: 'PR-8', baustelleId: 'p8', am: '2026-09-25', grund: 'schein' }], HEUTE)!;
+    expect(a.zeilen.map((z) => z.key)).toEqual(['wartung-erledigt-erledigt', 'wartung-eingeplant-geplant']);
+    expect(a.zeilen[0]).toMatchObject({
+      detail: 'Schein vom 25.09.2026 auf PR-8 unterschrieben', status: { ton: 'warn' }, to: '/wartungen?erledigt=erledigt&am=2026-09-25',
+    });
+    expect(a.zeilen[1]).toMatchObject({ status: { text: 'überfällig', ton: 'fehl' }, to: ZIEL.baustelle('PR-9') });
+    expect(wartungenEingeplant([w({ id: 'ohne' })], [], HEUTE)).toBeNull();
+  });
+
   it('Auslastung: verplante durch verfügbare Personentage, ohne Feiertag und Abwesenheit', () => {
     const woche = ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01'];
     const leute = [
@@ -437,6 +463,38 @@ describe('Projektleitung', () => {
       { userId: 'c', date: '2026-10-28' },
     ], [{ userId: 'b', von: '2026-10-30', bis: '2026-10-30', grund: 'Krank', zeiten: null }], woche);
     expect(wert).toBe(Math.round((2 / 7) * 100));
+  });
+
+  it('V1: „Eingeteilte fehlen“ — heute leise, morgen unbesetzt als Warnung, Grund nur wo sichtbar', () => {
+    const a = eingeteilteFehlen('2026-10-13', [
+      { datum: '2026-10-13', projectNumber: 'B-1', customerName: 'Huber', namen: ['Max'], fehlen: [{ name: 'Lisa', grund: null }], unbesetzt: false },
+      { datum: '2026-10-14', projectNumber: 'B-3', customerName: 'Gruber', namen: [], fehlen: [{ name: 'Max', grund: 'Urlaub' }], unbesetzt: true },
+    ])!;
+    expect(a.zeilen.map((z) => [z.detail, z.status])).toEqual([
+      ['Lisa abwesend', { text: 'heute', ton: 'leise' }],
+      ['Max urlaub — niemand da', { text: 'morgen', ton: 'warn' }],
+    ]);
+    expect(eingeteilteFehlen('2026-10-13', [])).toBeNull();
+  });
+
+  /*
+    P9 (Durchsicht 15.11.2026): der Betriebsurlaub ist keine verfügbare Zeit.
+    Gegenprobe: vorher zählte die Woche Betriebsurlaub als verfügbar und
+    zeigte „0 %“ statt keiner Zahl.
+  */
+  it('P9: der Betriebsurlaub zählt nicht als verfügbar — außer für Ausgenommene', () => {
+    const woche = ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
+    const leute = [
+      { uid: 'a', role: 'Mitarbeiter' as const, active: true },
+      { uid: 'b', role: 'Mitarbeiter' as const, active: true },
+    ];
+    const zu = [{ von: '2026-11-09', bis: '2026-11-15', ausgenommen: [] as string[] }];
+    expect(auslastung(leute, null, [], [], woche, zu)).toBeNull();
+    // b arbeitet im Betriebsurlaub (Notdienst) und ist an zwei Tagen eingeteilt: 2 von 5.
+    expect(auslastung(leute, null, [{ userId: 'b', date: '2026-11-09' }, { userId: 'b', date: '2026-11-10' }], [], woche,
+      [{ ...zu[0], ausgenommen: ['b'] }])).toBe(40);
+    // Bleibt gleich: ohne Betriebsurlaub wie bisher.
+    expect(auslastung(leute, null, [{ userId: 'b', date: '2026-11-09' }], [], woche)).toBe(10);
   });
 });
 
@@ -623,6 +681,38 @@ describe('Personen: Lehrzeit und Leitung ohne E-Mail', () => {
     expect(zeilen(s)[0]).toMatchObject({ titel: '2 Lehrzeiten enden', detail: 'Anna 10.10., Ben 20.10.', to: '/user-mgmt' });
   });
 
+  /*
+    V14 (Durchsicht 15.11.2026): eine Bitte um ein neues Passwort aus der
+    Anmeldemaske steht unter „Heute“ und führt in die Akte. GEGENPROBE
+    (Erwartung): ohne das Thema sind diese drei Fälle rot.
+  */
+  it('eine Bitte um ein neues Passwort steht unter Heute und führt in die Akte', () => {
+    const s = startseite({ passwortBitten: [{ uid: 'm1', name: 'Max Huber', seit: Date.parse(`${HEUTE}T09:12:00+02:00`) }] }, umfeld());
+    expect(s.abschnitte[0].titel).toBe('Heute');
+    expect(zeilen(s)[0]).toMatchObject({
+      titel: 'Max Huber bittet um ein neues Passwort',
+      detail: 'seit 09:12 · in der Akte ein Startpasswort vergeben',
+      to: '/user-mgmt/m1',
+    });
+    const zwei = startseite({ passwortBitten: [
+      { uid: 'm1', name: 'Max', seit: 1 }, { uid: 'm2', name: 'Eva', seit: 2 },
+    ] }, umfeld());
+    expect(zeilen(zwei)[0]).toMatchObject({ titel: '2 bitten um ein neues Passwort', to: '/user-mgmt' });
+  });
+
+  it('Bitten nur für aktive Personen der Belegschaft, älteste zuerst', () => {
+    const b = passwortBitten(
+      [{ userId: 'm2', angefragtAm: 20 }, { userId: 'weg', angefragtAm: 5 }, { userId: 'm1', angefragtAm: 10 }, { userId: 'fremd', angefragtAm: 1 }],
+      [person({ uid: 'm1', name: 'Max' }), person({ uid: 'm2', name: 'Eva' }), person({ uid: 'weg', name: 'Alt', active: false })],
+    );
+    expect(b).toEqual([{ uid: 'm1', name: 'Max', seit: 10 }, { uid: 'm2', name: 'Eva', seit: 20 }]);
+  });
+
+  it('„seit“ nennt heute die Uhrzeit, sonst den Tag', () => {
+    expect(seitText(Date.parse(`${HEUTE}T14:05:00+02:00`), HEUTE)).toBe('seit 14:05');
+    expect(seitText(Date.parse('2026-01-03T14:05:00+01:00'), HEUTE)).toBe('seit 03.01.');
+  });
+
   it('die Leitung ohne E-Mail steht unter Diese Woche — und nur, wo die Benutzerverwaltung offen ist', () => {
     const s = startseite({ einzigeLeitungOhneMail: true }, umfeld());
     expect(zeilen(s)[0]).toMatchObject({ titel: 'Nur ein Leitungskonto, ohne E-Mail', to: '/user-mgmt' });
@@ -635,6 +725,7 @@ describe('Die Ziele der Startseite', () => {
     ZIEL.zeitFehlend, ZIEL.zeitTag(HEUTE), ZIEL.meineAbholbereit, ZIEL.lagerKnapp, ZIEL.rechnungenUeberfaellig,
     ZIEL.rechnung('RE-1'), ZIEL.schein('s1'), ZIEL.luecken('2026-09'), ZIEL.urlaubsantraege, ZIEL.tag(HEUTE, 'unbesetzt'),
     ZIEL.woche, ZIEL.baustelle('PR-1'), ZIEL.wartungenOhneBaustelle, ZIEL.einsatzplan,
+    ZIEL.wartungen, ZIEL.wartungErledigt('w1', HEUTE),
     ...ANFORDERUNGS_FILTER.map(ZIEL.anforderungen), ...BAUSTELLEN_FILTER.map(ZIEL.baustellen),
     ...SCHEIN_FILTER.map(ZIEL.scheine), ...RECHNUNGS_SICHTEN.map(ZIEL.rechnungenSicht),
     ZIEL.einstellungen('saetze'), ZIEL.einstellungen('konten'), ZIEL.einstellungen('firma'),
@@ -925,5 +1016,44 @@ describe('Startseite — Material fehlt (M04b)', () => {
   it('Gegenprobe: ohne fehlendes Material steht nichts da', () => {
     expect(startseite({ materialFehlt: [], projekte }, umfeld('projektleitung')).abschnitte.find((x) => x.titel === 'Material fehlt')).toBeUndefined();
     expect(startseite({ projekte }, umfeld('leitung')).abschnitte.flatMap((a) => a.zeilen).some((z) => z.key === 'material-fehlt')).toBe(false);
+  });
+});
+
+/*
+  NEU EINGEGANGEN (Durchsicht 15.11.2026, V9): Projektleitung und Verwaltung
+  erfahren, was seit ihrem letzten Ansehen unterschrieben wurde. Gegenprobe:
+  vorher gab es den Abschnitt nicht — ein unterschriebener Schein meldete sich
+  nur bei denen, die Rechnungen schreiben.
+*/
+describe('Neu eingegangene Scheine (V9)', () => {
+  const umfeld = (rolle: Umfeld['rolle']): Umfeld => ({ rolle, heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false });
+  const neu = [
+    { id: 'n2', customerName: 'Familie Frisch', erstelltVonName: 'Anna' },
+    { id: 'n1', customerName: 'Familie Neuhold', erstelltVonName: 'Max' },
+  ];
+
+  it('eine leise Zeile mit Anzahl und dem jüngsten — in die Scheinliste unter „neu eingegangen“', () => {
+    const a = neueScheineAbschnitt(neu)!;
+    expect(a.titel).toBe('Neu eingegangen');
+    expect(a.zeilen).toEqual([expect.objectContaining({
+      key: 'scheine-neu', titel: '2 Scheine neu unterschrieben', detail: 'zuletzt Familie Frisch · von Anna',
+      status: { text: 'ansehen', ton: 'leise' }, to: ZIEL.scheine('neu-eingegangen'),
+    })]);
+    expect(neueScheineAbschnitt([neu[1]])!.zeilen[0].titel).toBe('1 Schein neu unterschrieben');
+  });
+
+  it('steht bei Projektleitung und Verwaltung auf der Startseite', () => {
+    for (const rolle of ['projektleitung', 'verwaltung'] as const) {
+      const s = startseite({ neueScheine: neu }, umfeld(rolle));
+      expect(s.abschnitte.some((x) => x.titel === 'Neu eingegangen'), rolle).toBe(true);
+    }
+  });
+
+  it('bleibt gleich: nichts Neues oder nicht geladen — kein Abschnitt', () => {
+    expect(neueScheineAbschnitt([])).toBeNull();
+    expect(neueScheineAbschnitt(undefined)).toBeNull();
+    for (const rolle of ['projektleitung', 'verwaltung'] as const) {
+      expect(startseite({}, umfeld(rolle)).abschnitte.some((x) => x.titel === 'Neu eingegangen')).toBe(false);
+    }
   });
 });

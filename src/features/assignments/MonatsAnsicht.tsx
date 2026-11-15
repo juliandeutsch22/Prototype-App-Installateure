@@ -211,11 +211,11 @@ export default function MonatsAnsicht({
     for (const t of termine) {
       const e = m.get(t.datum) ?? { termine: 0, achtung: false };
       e.termine += 1;
-      if (lieferungOhneAnnahme(t, einsaetze)) e.achtung = true;
+      if (lieferungOhneAnnahme(t, einsaetze, urlaube)) e.achtung = true;
       m.set(t.datum, e);
     }
     return m;
-  }, [termine, einsaetze]);
+  }, [termine, einsaetze, urlaube]);
 
   /* ── Balken je Person ── */
   const personenBalken = useMemo(() => {
