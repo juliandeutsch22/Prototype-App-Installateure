@@ -156,6 +156,11 @@ export interface ArtikelVerwendung {
  * DIESELBE STELLE WIE DIE SPERRE (`app.artikel_verwendung`): die Rückfrage
  * verspricht damit nichts, was das Löschen danach nicht hält. Die Sätze
  * kommen fertig aus der Datenbank, damit sie an beiden Stellen gleich lauten.
+ *
+ * Ein lesender Aufruf (`stable`, `LESENDE_FUNKTIONEN`): auf einer toten
+ * Verbindung endet er nach der Stillstandsfrist als Netzfehler, statt die
+ * Rückfrage ewig auf „wird geprüft“ stehen zu lassen. Die Rückfrage bietet
+ * dann Löschen an — die Sperre in der Datenbank prüft ohnehin selbst.
  */
 export async function artikelVerwendung(materialId: string): Promise<ArtikelVerwendung> {
   const { data, error } = await derClient().rpc('artikel_verwendung', { p_material: materialId });

@@ -84,6 +84,7 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'angebot_links_stand',
   'arbeitszeit_vorlauf',
   'artikel_vergleich',
+  'artikel_verwendung',
   'arztbesuch_vorschlag',
   'ausgegebenes_material',
   'ausgegebenes_material_gesamt',

@@ -5,6 +5,7 @@ import { ToastProvider } from '@/components/Toast';
 import type { Material, Role } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import MaterialCatalog from '@/features/orders/MaterialCatalog';
+import { Stillstand } from '@/lib/netzFrist';
 
 /**
  * Der Einkaufspreis im Materialkatalog.
@@ -667,13 +668,19 @@ describe('Löschen oder auslaufen lassen (M1)', () => {
   it('ließ sich nichts prüfen: Löschen bleibt möglich, die Datenbank prüft selbst', async () => {
     const loeschen = vi.mocked((await import('@/lib/db/materials')).deleteMaterial);
     loeschen.mockClear();
-    verwendung.mockRejectedValue(new Error('Failed to fetch'));
+    /*
+      Wie die Frage auf einer toten Verbindung endet: `artikel_verwendung`
+      steht in `LESENDE_FUNKTIONEN`, die Stillstandsfrist bricht sie als
+      Netzfehler ab. Die Rückfrage bleibt nicht auf „wird geprüft“ stehen.
+    */
+    verwendung.mockRejectedValue(new Stillstand(15));
     materialien = rohr();
     const nutzer = userEvent.setup();
     zeige();
     await loeschenAntippen(nutzer);
     const frage = await screen.findByRole('dialog', { name: 'Material löschen?' });
-    expect(await within(frage).findByText(/ließ sich nicht prüfen/)).toBeInTheDocument();
+    expect(await within(frage).findByText(/ließ sich nicht prüfen: .*Keine Verbindung zum Server/)).toBeInTheDocument();
+    expect(within(frage).getByRole('button', { name: 'Löschen' })).toBeEnabled();
     await nutzer.click(within(frage).getByRole('button', { name: 'Löschen' }));
     await waitFor(() => expect(loeschen).toHaveBeenCalledWith('m1'));
   });
