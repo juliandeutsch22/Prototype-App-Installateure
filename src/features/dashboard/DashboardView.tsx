@@ -284,9 +284,9 @@ export default function DashboardView() {
           scheinVerweis={scheinVerweis}
           planVerweis={planVerweis}
           titel="Dein Einsatz heute"
-          zeitImKopf={monteurMitEinsatz}
           zeitAn={zeitAn}
-          timerAn={timerAn}
+          // Mit Start/Stopp trägt am Handy die Karte „Arbeitstag“ den Weg zur Zeit — nur wenn sie auch dasteht (E68).
+          timerAn={timerAn && !ausgeblendet(wahl, BEREICH_ARBEITSTAG)}
           // Im Einblick des Supports kein Thread: er schriebe sonst im Namen des Betriebs (wie in der Akte).
           wege={{ material: darf('/material'), nachricht: !einblick && darf('/nachrichten') }}
         />
@@ -317,7 +317,13 @@ export default function DashboardView() {
         <PageHeader
           ort={<>Start · KW {kopf.kw}</>}
           title={rolle === 'monteur' ? `Dein Tag${vorname ? `, ${vorname}` : ''}` : 'Heute im Überblick'}
-          action={zeitAn && rolle === 'monteur' && eigene.length > 0 ? (
+          /*
+            DIE SCHWEBENDE AKTION ENTFÄLLT, WO DAS BLATT SIE TRÄGT (U3,
+            Durchsicht 15.11.2026): steht „Dein Einsatz heute“ da, trägt jeder
+            Einsatz seinen Zeitknopf — „Zeit erfassen“ schwebte zusätzlich
+            darüber. Nur wer das Blatt ausgeblendet hat, behält sie hier.
+          */
+          action={zeitAn && rolle === 'monteur' && eigene.length > 0 && !monteurMitEinsatz ? (
             <Link
               to="/time"
               state={{ projectNumber: eigene[0].projectNumber, asHelper: eigene[0].asHelper }}
