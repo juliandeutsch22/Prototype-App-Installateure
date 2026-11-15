@@ -83,6 +83,7 @@ comment on column public.users.urlaubsanspruch_verlauf is
 create or replace function app.arbeitszeit_verlauf_gueltig(p jsonb) returns boolean
   language sql
   immutable
+  security definer
   set search_path = ''
 as $$
   select jsonb_typeof(p) = 'array'
@@ -106,6 +107,7 @@ $$;
 create or replace function app.urlaubsanspruch_verlauf_gueltig(p jsonb) returns boolean
   language sql
   immutable
+  security definer
   set search_path = ''
 as $$
   select jsonb_typeof(p) = 'array'
@@ -120,8 +122,18 @@ as $$
            or (n > 1 and (v ->> 'jahr')::integer <= (p -> (n::integer - 2) ->> 'jahr')::integer))
 $$;
 
-revoke all on function app.arbeitszeit_verlauf_gueltig(jsonb) from public, anon, authenticated;
-revoke all on function app.urlaubsanspruch_verlauf_gueltig(jsonb) from public, anon, authenticated;
+/*
+  AUSFÜHRBAR FÜR ANGEMELDETE. Die Funktionen stehen in einer CHECK-Regel auf
+  `users`; Postgres ruft sie mit den Rechten dessen, der schreibt. Ohne
+  `grant` scheiterte jedes Schreiben eines angemeldeten Kontos an `users`
+  (Profil, Benutzerakte, Anlegen) mit „permission denied“ — nicht nur an den
+  Verläufen. Wie `app.vollzeit_verteilung_gueltig`: sie lesen nichts, sie
+  prüfen nur ihr Argument.
+*/
+revoke all on function app.arbeitszeit_verlauf_gueltig(jsonb) from public, anon;
+revoke all on function app.urlaubsanspruch_verlauf_gueltig(jsonb) from public, anon;
+grant execute on function app.arbeitszeit_verlauf_gueltig(jsonb) to authenticated, service_role;
+grant execute on function app.urlaubsanspruch_verlauf_gueltig(jsonb) to authenticated, service_role;
 
 alter table public.users drop constraint if exists users_arbeitszeit_verlauf_form;
 alter table public.users add constraint users_arbeitszeit_verlauf_form

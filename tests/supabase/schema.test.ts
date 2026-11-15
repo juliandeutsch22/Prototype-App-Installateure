@@ -371,6 +371,43 @@ describe('Interne Hilfsfunktionen', () => {
       expect({ f, darf: r.darf }).toEqual({ f, darf: true });
     }
   });
+
+  it('jede Funktion in einer CHECK-Regel darf ausführen, wer in die Tabelle schreibt', async () => {
+    /*
+      INTEGRATION WELLE 2 (15.11.2026). Eine CHECK-Regel ruft ihre Funktion
+      mit den Rechten dessen, der schreibt. Fehlt `authenticated` das Recht,
+      scheitert JEDES Schreiben an der Tabelle — nicht nur an der geprüften
+      Spalte. So geschehen mit `app.arbeitszeit_verlauf_gueltig` auf `users`:
+      Profil, Benutzerakte und Anlegen brachen mit „permission denied“ ab.
+      Gegenprobe: mit `revoke … from authenticated` in der Migration rot.
+    */
+    const ohne = await zeilen<{ regel: string; funktion: string }>(`
+      select distinct c.conrelid::regclass::text || '.' || c.conname as regel,
+             p.oid::regprocedure::text as funktion
+        from pg_constraint c
+        join pg_depend d on d.classid = 'pg_constraint'::regclass and d.objid = c.oid
+                        and d.refclassid = 'pg_proc'::regclass
+        join pg_proc p on p.oid = d.refobjid
+        join pg_namespace n on n.oid = p.pronamespace
+       where c.contype = 'c'
+         and c.connamespace = 'public'::regnamespace
+         and n.nspname not in ('pg_catalog', 'information_schema')
+         and not has_function_privilege('authenticated', p.oid, 'execute')
+       order by 1, 2
+    `);
+    expect(ohne).toEqual([]);
+  });
+
+  it('die Prüfung findet überhaupt Funktionen in CHECK-Regeln — sonst prüft sie nichts', async () => {
+    const [r] = await zeilen<{ n: number }>(`
+      select count(*)::int as n
+        from pg_constraint c
+        join pg_depend d on d.classid = 'pg_constraint'::regclass and d.objid = c.oid
+                        and d.refclassid = 'pg_proc'::regclass
+       where c.contype = 'c' and c.connamespace = 'public'::regnamespace
+    `);
+    expect(r.n).toBeGreaterThan(0);
+  });
 });
 
 describe('Indizes', () => {
