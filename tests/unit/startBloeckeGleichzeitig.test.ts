@@ -40,8 +40,8 @@ vi.mock('@/lib/db/invoices', () => ({
   listUnpaidInvoices: vi.fn(spaeter('ganzeRechnungen')),
   listInvoicesByIds: vi.fn(spaeter('rechnungenDerZahlungen')),
   listGarantienEndenIn: vi.fn(async () => []),
-  // „Nicht verrechnet“ über alle Scheine (P3): die eine Abfrage, die früher Liste plus Abdeckung war.
-  scheineUnverrechnet: vi.fn(spaeter('scheine')),
+  // „Nicht verrechnet“ über alle Scheine (P3): seit L22 nur Zahl und Alte, gezählt in der Datenbank.
+  scheineUnverrechnetStand: vi.fn(spaeter('scheine')),
 }));
 vi.mock('@/lib/db/zahlungen', () => ({
   listZahlungenImZeitraum: vi.fn(async () => [{ id: 'z1', invoiceId: 'r1', betrag: 100, art: 'Überweisung', datum: '2026-10-10' }]),
@@ -97,17 +97,17 @@ describe('Startseite: Blöcke fragen gleichzeitig', () => {
     await vi.waitFor(() => expect(gefragt).toEqual(expect.arrayContaining(['unbezahlt', 'scheine', 'rechnungenDerZahlungen'])));
     offen.unbezahlt([]);
     offen.rechnungenDerZahlungen([{ id: 'r1', invoiceNumber: 'RE-1', paymentStatus: 'Bezahlt' }]);
-    offen.scheine([{ id: 's1', status: 'Unterschrieben', datum: '2026-09-01', customerName: 'Huber', projectNumber: 'B-1' }]);
+    offen.scheine({ anzahl: 1, alt: 1, aeltester: '2026-09-01' });
     const d = await lauf;
     expect(d.bezahltImMonat).toEqual({ summe: 100, anzahl: 1 });
     expect(d.zahlungenHeute?.[0].rechnung).toEqual(expect.objectContaining({ invoiceNumber: 'RE-1' }));
-    expect(d.unverrechnet).toEqual([{ schein: expect.objectContaining({ id: 's1' }), tage: 39 }]);
+    expect(d.unverrechnet).toEqual({ anzahl: 1, alt: 1 });
   });
 
   it('Buchhaltung: für „nicht verrechnet“ nur die Köpfe der Scheine — ohne Stunden, Material und Fotos', async () => {
     const lauf = buchhaltung(k, { rechnungen: false, scheine: true });
     await vi.waitFor(() => expect(gefragt).toContain('scheine'));
-    offen.scheine([]);
+    offen.scheine({ anzahl: 0, alt: 0, aeltester: null });
     await lauf;
     expect(gefragt).not.toContain('ganzeScheine');
   });

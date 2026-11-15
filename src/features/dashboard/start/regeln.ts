@@ -1,4 +1,4 @@
-import type { AppUser, EinkaufPosten, Freistellung, Invoice, MaterialOrder, Project, RechnungsKopf, Vacation, Wartung, WorkSheet } from '@/types';
+import type { AppUser, EinkaufPosten, Freistellung, Invoice, MaterialOrder, Project, RechnungsKopf, Vacation, Wartung } from '@/types';
 import { ART_NAME } from '@shared/freistellung';
 import { lehrzeitEnde } from '@/lib/einstufung';
 import { canEditTime, darfUrlaubEntscheiden, isTopLevel } from '@/lib/permissions';
@@ -385,10 +385,17 @@ export function garantieEndet(garantien: GarantieZeile[], heute: string): Abschn
   return abschnitt('garantie', 'Bankgarantie endet', zeilen, ZIEL.rechnungen);
 }
 
-export interface UnverrechneteZeile {
-  // Nur der Kopf: die Startseite zeigt Kunde, Baustelle und Tag (Ladezeit, 19.10.2026).
-  schein: Pick<WorkSheet, 'customerName' | 'projectNumber' | 'datum'> & { id: string };
-  tage: number;
+/*
+  NUR DIE ZAHL (L22, Messung gegen den gewachsenen Bestand): die Zeile nennt,
+  wie viele Scheine offen sind und wie viele davon über vier Wochen. Bis
+  dahin kam dafür jeder unverrechnete Schein in den Browser — bei 9.888
+  Scheinen 20 Anfragen nacheinander und gut 8 s, bevor die Startseite stand.
+  Die Datenbank zählt jetzt selbst (`scheine_unverrechnet_stand`).
+*/
+export interface UnverrechneteScheine {
+  anzahl: number;
+  /** Davon älter als `AUFFAELLIG_AB_TAGEN` (vier Wochen). */
+  alt: number;
 }
 
 /**
@@ -401,12 +408,11 @@ export interface UnverrechneteZeile {
  * den Achtung-Punkt; sonst steht sie ruhig. Die einzelnen Scheine zeigt die
  * Liste dahinter, älteste zuerst.
  */
-export function scheineZeile(alle: UnverrechneteZeile[], altAb: number): Zeile | null {
-  if (alle.length === 0) return null;
-  const alt = alle.filter((z) => z.tage >= altAb).length;
+export function scheineZeile({ anzahl, alt }: UnverrechneteScheine): Zeile | null {
+  if (anzahl === 0) return null;
   return {
     key: 'scheine',
-    titel: `${alle.length} ${alle.length === 1 ? 'Schein' : 'Scheine'} nicht verrechnet`,
+    titel: `${anzahl} ${anzahl === 1 ? 'Schein' : 'Scheine'} nicht verrechnet`,
     detail: alt ? `davon ${alt} über 4 Wochen` : 'alle jünger als 4 Wochen',
     status: { text: 'verrechnen', ton: alt ? 'warn' : 'leise' },
     to: ZIEL.scheine('nicht-verrechnet'),

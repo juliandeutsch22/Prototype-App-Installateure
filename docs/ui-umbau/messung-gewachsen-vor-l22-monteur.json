@@ -1,0 +1,3150 @@
+{
+ "quelle": "gewachsen",
+ "ohneHintergrund": false,
+ "wiederkehr": false,
+ "ausgeliefert": "http2-gepackt",
+ "netz": {
+  "offline": false,
+  "latency": 150,
+  "downloadThroughput": 209715.2,
+  "uploadThroughput": 96000
+ },
+ "cpu": 4,
+ "laeufe": 3,
+ "ergebnisse": [
+  {
+   "name": "Start",
+   "pfad": "/",
+   "fcp": 1856,
+   "inhalt": 3302,
+   "bereit": 4305,
+   "bedienbar": 4411,
+   "anfragen": 184,
+   "bytes": 395831,
+   "dbAnfragen": 22,
+   "dbBytes": 17058,
+   "groessteListe": {
+    "tabelle": "vacations",
+    "zeilen": 134
+   },
+   "ueberGrenze": [
+    {
+     "tabelle": "vacations",
+     "zeilen": 134,
+     "anfragen": 1,
+     "groesste": 134
+    }
+   ],
+   "tabellen": [
+    {
+     "tabelle": "vacations",
+     "zeilen": 134,
+     "anfragen": 1,
+     "groesste": 134
+    },
+    {
+     "tabelle": "assignments",
+     "zeilen": 8,
+     "anfragen": 2,
+     "groesste": 8
+    },
+    {
+     "tabelle": "users",
+     "zeilen": 2,
+     "anfragen": 2,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/offene_posten",
+     "zeilen": 2,
+     "anfragen": 2,
+     "groesste": 1
+    },
+    {
+     "tabelle": "material_orders",
+     "zeilen": 2,
+     "anfragen": 1,
+     "groesste": 2
+    },
+    {
+     "tabelle": "companies",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/rechtstexte_aktuell",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/nachrichten_ungelesen",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/zeitkonto_salden",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "support_freigaben",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitsitzungen",
+     "zeilen": 0,
+     "anfragen": 2,
+     "groesste": 0
+    },
+    {
+     "tabelle": "startseite_wahl",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "time_entries",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "termine",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitkonto_anfang",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "work_sheets",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "urlaubsanspruch_anpassungen",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "geburtsdaten",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    }
+   ],
+   "laeufe": [
+    {
+     "fcp": 1856,
+     "inhalt": 3291,
+     "bereit": 4446,
+     "bedienbar": 4446,
+     "anfragen": 184,
+     "bytes": 395846,
+     "dbAnfragen": 22,
+     "dbBytes": 17051,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 798
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1110
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 159
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3377
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 224
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 73
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "startseite_wahl",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 127
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 519
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 185
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=20&offset=0&order=date.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 194
+      },
+      {
+       "tabelle": "rpc/nachrichten_ungelesen",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 70
+      },
+      {
+       "tabelle": "termine",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 165
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 179
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 8,
+       "bytes": 934
+      },
+      {
+       "tabelle": "work_sheets",
+       "merkmale": "limit=500&offset=0&order=datum.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 769
+      },
+      {
+       "tabelle": "material_orders",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 2,
+       "bytes": 928
+      },
+      {
+       "tabelle": "rpc/zeitkonto_salden",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 202
+      },
+      {
+       "tabelle": "vacations",
+       "merkmale": "limit=500&offset=0&order=von.desc,id.asc",
+       "zeilen": 134,
+       "bytes": 6399
+      },
+      {
+       "tabelle": "urlaubsanspruch_anpassungen",
+       "merkmale": "limit=500&offset=0&order=urlaubsjahr.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 242
+      },
+      {
+       "tabelle": "geburtsdaten",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 159
+      }
+     ]
+    },
+    {
+     "fcp": 1840,
+     "inhalt": 3302,
+     "bereit": 4305,
+     "bedienbar": 4411,
+     "anfragen": 184,
+     "bytes": 395831,
+     "dbAnfragen": 22,
+     "dbBytes": 17059,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 797
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1112
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3376
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 224
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 75
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "startseite_wahl",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 127
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 519
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 186
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=20&offset=0&order=date.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 192
+      },
+      {
+       "tabelle": "rpc/nachrichten_ungelesen",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 70
+      },
+      {
+       "tabelle": "termine",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 165
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 176
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 8,
+       "bytes": 927
+      },
+      {
+       "tabelle": "work_sheets",
+       "merkmale": "limit=500&offset=0&order=datum.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 605
+      },
+      {
+       "tabelle": "material_orders",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 2,
+       "bytes": 935
+      },
+      {
+       "tabelle": "rpc/zeitkonto_salden",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 202
+      },
+      {
+       "tabelle": "vacations",
+       "merkmale": "limit=500&offset=0&order=von.desc,id.asc",
+       "zeilen": 134,
+       "bytes": 6399
+      },
+      {
+       "tabelle": "urlaubsanspruch_anpassungen",
+       "merkmale": "limit=500&offset=0&order=urlaubsjahr.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 243
+      },
+      {
+       "tabelle": "geburtsdaten",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 333
+      }
+     ]
+    },
+    {
+     "fcp": 1904,
+     "inhalt": 3336,
+     "bereit": 4261,
+     "bedienbar": 4306,
+     "anfragen": 184,
+     "bytes": 395830,
+     "dbAnfragen": 22,
+     "dbBytes": 17058,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 797
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1109
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 153
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3377
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 224
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 73
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "startseite_wahl",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 130
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 519
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 182
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=20&offset=0&order=date.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 188
+      },
+      {
+       "tabelle": "rpc/nachrichten_ungelesen",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 70
+      },
+      {
+       "tabelle": "termine",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 168
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 179
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 8,
+       "bytes": 941
+      },
+      {
+       "tabelle": "work_sheets",
+       "merkmale": "limit=500&offset=0&order=datum.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 782
+      },
+      {
+       "tabelle": "material_orders",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 2,
+       "bytes": 958
+      },
+      {
+       "tabelle": "rpc/zeitkonto_salden",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 202
+      },
+      {
+       "tabelle": "vacations",
+       "merkmale": "limit=500&offset=0&order=von.desc,id.asc",
+       "zeilen": 134,
+       "bytes": 6398
+      },
+      {
+       "tabelle": "urlaubsanspruch_anpassungen",
+       "merkmale": "limit=500&offset=0&order=urlaubsjahr.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 214
+      },
+      {
+       "tabelle": "geburtsdaten",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 155
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Zeiterfassung",
+   "pfad": "/time",
+   "fcp": 1928,
+   "inhalt": 3294,
+   "bereit": 3557,
+   "bedienbar": 4862,
+   "anfragen": 182,
+   "bytes": 370740,
+   "dbAnfragen": 20,
+   "dbBytes": 15009,
+   "groessteListe": {
+    "tabelle": "time_entries",
+    "zeilen": 148
+   },
+   "ueberGrenze": [
+    {
+     "tabelle": "time_entries",
+     "zeilen": 148,
+     "anfragen": 2,
+     "groesste": 74
+    }
+   ],
+   "tabellen": [
+    {
+     "tabelle": "time_entries",
+     "zeilen": 148,
+     "anfragen": 2,
+     "groesste": 74
+    },
+    {
+     "tabelle": "users",
+     "zeilen": 2,
+     "anfragen": 2,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/offene_posten",
+     "zeilen": 2,
+     "anfragen": 2,
+     "groesste": 1
+    },
+    {
+     "tabelle": "companies",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/rechtstexte_aktuell",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/zeitkonto_salden",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "support_freigaben",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitsitzungen",
+     "zeilen": 0,
+     "anfragen": 2,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitkorrekturen",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "work_sheets",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitfeld_fassungen",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitfeld_definitionen",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "geburtsdaten",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitbuchung_feldwerte",
+     "zeilen": 0,
+     "anfragen": 2,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitkonto_anfang",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    }
+   ],
+   "laeufe": [
+    {
+     "fcp": 1928,
+     "inhalt": 3397,
+     "bereit": 3599,
+     "bedienbar": 4904,
+     "anfragen": 182,
+     "bytes": 370740,
+     "dbAnfragen": 20,
+     "dbBytes": 15012,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 798
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1110
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3374
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 122
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 224
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 76
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "zeitkorrekturen",
+       "merkmale": "limit=500&offset=0&order=angelegt_am.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 150
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 522
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 74,
+       "bytes": 4579
+      },
+      {
+       "tabelle": "work_sheets",
+       "merkmale": "limit=500&offset=0&order=datum.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 607
+      },
+      {
+       "tabelle": "zeitfeld_fassungen",
+       "merkmale": "limit=1&offset=0&order=nummer.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 151
+      },
+      {
+       "tabelle": "zeitfeld_definitionen",
+       "merkmale": "limit=500&offset=0&order=reihenfolge.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 348
+      },
+      {
+       "tabelle": "geburtsdaten",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 155
+      },
+      {
+       "tabelle": "zeitbuchung_feldwerte",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 206
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 179
+      },
+      {
+       "tabelle": "zeitbuchung_feldwerte",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 95
+      },
+      {
+       "tabelle": "rpc/zeitkonto_salden",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 182
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 74,
+       "bytes": 1859
+      }
+     ]
+    },
+    {
+     "fcp": 1880,
+     "inhalt": 3256,
+     "bereit": 3463,
+     "bedienbar": 4774,
+     "anfragen": 182,
+     "bytes": 370670,
+     "dbAnfragen": 20,
+     "dbBytes": 14942,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 797
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1106
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 159
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3376
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 221
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 73
+      },
+      {
+       "tabelle": "zeitkorrekturen",
+       "merkmale": "limit=500&offset=0&order=angelegt_am.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 150
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 519
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 74,
+       "bytes": 4577
+      },
+      {
+       "tabelle": "work_sheets",
+       "merkmale": "limit=500&offset=0&order=datum.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 605
+      },
+      {
+       "tabelle": "zeitfeld_fassungen",
+       "merkmale": "limit=1&offset=0&order=nummer.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 150
+      },
+      {
+       "tabelle": "zeitfeld_definitionen",
+       "merkmale": "limit=500&offset=0&order=reihenfolge.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 153
+      },
+      {
+       "tabelle": "geburtsdaten",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 154
+      },
+      {
+       "tabelle": "zeitbuchung_feldwerte",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 202
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 370
+      },
+      {
+       "tabelle": "zeitbuchung_feldwerte",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 76
+      },
+      {
+       "tabelle": "rpc/zeitkonto_salden",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 182
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 74,
+       "bytes": 1832
+      }
+     ]
+    },
+    {
+     "fcp": 1992,
+     "inhalt": 3294,
+     "bereit": 3557,
+     "bedienbar": 4862,
+     "anfragen": 182,
+     "bytes": 370760,
+     "dbAnfragen": 20,
+     "dbBytes": 15009,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 797
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1112
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3374
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 225
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 75
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "zeitkorrekturen",
+       "merkmale": "limit=500&offset=0&order=angelegt_am.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 150
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 519
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 74,
+       "bytes": 4579
+      },
+      {
+       "tabelle": "work_sheets",
+       "merkmale": "limit=500&offset=0&order=datum.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 607
+      },
+      {
+       "tabelle": "zeitfeld_fassungen",
+       "merkmale": "limit=1&offset=0&order=nummer.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 151
+      },
+      {
+       "tabelle": "zeitfeld_definitionen",
+       "merkmale": "limit=500&offset=0&order=reihenfolge.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "geburtsdaten",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 155
+      },
+      {
+       "tabelle": "zeitbuchung_feldwerte",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 400
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 202
+      },
+      {
+       "tabelle": "zeitbuchung_feldwerte",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 76
+      },
+      {
+       "tabelle": "rpc/zeitkonto_salden",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 179
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 74,
+       "bytes": 1858
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Material anfordern",
+   "pfad": "/material",
+   "fcp": 1880,
+   "inhalt": 3356,
+   "bereit": 3668,
+   "bedienbar": 4959,
+   "anfragen": 183,
+   "bytes": 377592,
+   "dbAnfragen": 23,
+   "dbBytes": 47778,
+   "groessteListe": {
+    "tabelle": "projects",
+    "zeilen": 241
+   },
+   "ueberGrenze": [
+    {
+     "tabelle": "projects",
+     "zeilen": 241,
+     "anfragen": 3,
+     "groesste": 120
+    },
+    {
+     "tabelle": "material_orders",
+     "zeilen": 200,
+     "anfragen": 2,
+     "groesste": 100
+    }
+   ],
+   "tabellen": [
+    {
+     "tabelle": "projects",
+     "zeilen": 241,
+     "anfragen": 3,
+     "groesste": 120
+    },
+    {
+     "tabelle": "material_orders",
+     "zeilen": 200,
+     "anfragen": 2,
+     "groesste": 100
+    },
+    {
+     "tabelle": "rpc/lager_frei",
+     "zeilen": 40,
+     "anfragen": 2,
+     "groesste": 20
+    },
+    {
+     "tabelle": "rpc/offene_posten",
+     "zeilen": 2,
+     "anfragen": 2,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/katalog_suchen",
+     "zeilen": 2,
+     "anfragen": 2,
+     "groesste": 1
+    },
+    {
+     "tabelle": "users",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "companies",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/rechtstexte_aktuell",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "time_entries",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "support_freigaben",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitsitzungen",
+     "zeilen": 0,
+     "anfragen": 2,
+     "groesste": 0
+    },
+    {
+     "tabelle": "lagerorte",
+     "zeilen": 0,
+     "anfragen": 2,
+     "groesste": 0
+    },
+    {
+     "tabelle": "fahrzeuge",
+     "zeilen": 0,
+     "anfragen": 2,
+     "groesste": 0
+    },
+    {
+     "tabelle": "assignments",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    }
+   ],
+   "laeufe": [
+    {
+     "fcp": 1880,
+     "inhalt": 3255,
+     "bereit": 3668,
+     "bedienbar": 4959,
+     "anfragen": 183,
+     "bytes": 377592,
+     "dbAnfragen": 23,
+     "dbBytes": 47772,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 797
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1109
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3376
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 224
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 75
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 120,
+       "bytes": 12185
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 120,
+       "bytes": 12096
+      },
+      {
+       "tabelle": "material_orders",
+       "merkmale": "limit=100&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 100,
+       "bytes": 9925
+      },
+      {
+       "tabelle": "lagerorte",
+       "merkmale": "limit=500&offset=0&order=bezeichnung.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 73
+      },
+      {
+       "tabelle": "fahrzeuge",
+       "merkmale": "limit=500&offset=0&order=kennzeichen.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 146
+      },
+      {
+       "tabelle": "lagerorte",
+       "merkmale": "limit=500&offset=0&order=bezeichnung.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 145
+      },
+      {
+       "tabelle": "fahrzeuge",
+       "merkmale": "limit=500&offset=0&order=kennzeichen.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 73
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 195
+      },
+      {
+       "tabelle": "rpc/katalog_suchen",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1105
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=1&offset=0&order=date.desc,id.asc",
+       "zeilen": 1,
+       "bytes": 295
+      },
+      {
+       "tabelle": "rpc/lager_frei",
+       "merkmale": "",
+       "zeilen": 20,
+       "bytes": 606
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 1,
+       "bytes": 657
+      },
+      {
+       "tabelle": "rpc/katalog_suchen",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1304
+      },
+      {
+       "tabelle": "rpc/lager_frei",
+       "merkmale": "",
+       "zeilen": 20,
+       "bytes": 597
+      },
+      {
+       "tabelle": "material_orders",
+       "merkmale": "limit=100&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 100,
+       "bytes": 2395
+      }
+     ]
+    },
+    {
+     "fcp": 2008,
+     "inhalt": 3356,
+     "bereit": 3840,
+     "bedienbar": 5130,
+     "anfragen": 183,
+     "bytes": 377577,
+     "dbAnfragen": 23,
+     "dbBytes": 47780,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 797
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1106
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3379
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 224
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 73
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 120,
+       "bytes": 12182
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 120,
+       "bytes": 12093
+      },
+      {
+       "tabelle": "material_orders",
+       "merkmale": "limit=100&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 100,
+       "bytes": 9921
+      },
+      {
+       "tabelle": "lagerorte",
+       "merkmale": "limit=500&offset=0&order=bezeichnung.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 73
+      },
+      {
+       "tabelle": "fahrzeuge",
+       "merkmale": "limit=500&offset=0&order=kennzeichen.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 75
+      },
+      {
+       "tabelle": "lagerorte",
+       "merkmale": "limit=500&offset=0&order=bezeichnung.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 149
+      },
+      {
+       "tabelle": "fahrzeuge",
+       "merkmale": "limit=500&offset=0&order=kennzeichen.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 149
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 196
+      },
+      {
+       "tabelle": "rpc/katalog_suchen",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1107
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=1&offset=0&order=date.desc,id.asc",
+       "zeilen": 1,
+       "bytes": 299
+      },
+      {
+       "tabelle": "rpc/lager_frei",
+       "merkmale": "",
+       "zeilen": 20,
+       "bytes": 604
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 1,
+       "bytes": 661
+      },
+      {
+       "tabelle": "rpc/katalog_suchen",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1301
+      },
+      {
+       "tabelle": "rpc/lager_frei",
+       "merkmale": "",
+       "zeilen": 20,
+       "bytes": 601
+      },
+      {
+       "tabelle": "material_orders",
+       "merkmale": "limit=100&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 100,
+       "bytes": 2395
+      }
+     ]
+    },
+    {
+     "fcp": 1868,
+     "inhalt": 3433,
+     "bereit": 3667,
+     "bedienbar": 4928,
+     "anfragen": 183,
+     "bytes": 377598,
+     "dbAnfragen": 23,
+     "dbBytes": 47778,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 797
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1106
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3376
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 225
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 76
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 120,
+       "bytes": 12097
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 120,
+       "bytes": 12188
+      },
+      {
+       "tabelle": "material_orders",
+       "merkmale": "limit=100&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 100,
+       "bytes": 9925
+      },
+      {
+       "tabelle": "lagerorte",
+       "merkmale": "limit=500&offset=0&order=bezeichnung.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 145
+      },
+      {
+       "tabelle": "fahrzeuge",
+       "merkmale": "limit=500&offset=0&order=kennzeichen.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 146
+      },
+      {
+       "tabelle": "lagerorte",
+       "merkmale": "limit=500&offset=0&order=bezeichnung.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 76
+      },
+      {
+       "tabelle": "fahrzeuge",
+       "merkmale": "limit=500&offset=0&order=kennzeichen.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 77
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 192
+      },
+      {
+       "tabelle": "rpc/katalog_suchen",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1104
+      },
+      {
+       "tabelle": "time_entries",
+       "merkmale": "limit=1&offset=0&order=date.desc,id.asc",
+       "zeilen": 1,
+       "bytes": 297
+      },
+      {
+       "tabelle": "rpc/lager_frei",
+       "merkmale": "",
+       "zeilen": 20,
+       "bytes": 604
+      },
+      {
+       "tabelle": "projects",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 1,
+       "bytes": 660
+      },
+      {
+       "tabelle": "rpc/katalog_suchen",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1300
+      },
+      {
+       "tabelle": "rpc/lager_frei",
+       "merkmale": "",
+       "zeilen": 20,
+       "bytes": 598
+      },
+      {
+       "tabelle": "material_orders",
+       "merkmale": "limit=100&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 100,
+       "bytes": 2395
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Mein Einsatzplan",
+   "pfad": "/my-schedule",
+   "fcp": 1936,
+   "inhalt": 3247,
+   "bereit": 3420,
+   "bedienbar": 4064,
+   "anfragen": 179,
+   "bytes": 387691,
+   "dbAnfragen": 16,
+   "dbBytes": 10310,
+   "groessteListe": {
+    "tabelle": "vacations",
+    "zeilen": 60
+   },
+   "ueberGrenze": [
+    {
+     "tabelle": "vacations",
+     "zeilen": 60,
+     "anfragen": 1,
+     "groesste": 60
+    }
+   ],
+   "tabellen": [
+    {
+     "tabelle": "vacations",
+     "zeilen": 60,
+     "anfragen": 1,
+     "groesste": 60
+    },
+    {
+     "tabelle": "rpc/offene_posten",
+     "zeilen": 3,
+     "anfragen": 3,
+     "groesste": 1
+    },
+    {
+     "tabelle": "users",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "companies",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/rechtstexte_aktuell",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "support_freigaben",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitsitzungen",
+     "zeilen": 0,
+     "anfragen": 2,
+     "groesste": 0
+    },
+    {
+     "tabelle": "assignments",
+     "zeilen": 0,
+     "anfragen": 2,
+     "groesste": 0
+    },
+    {
+     "tabelle": "einsatz_material",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "termine",
+     "zeilen": 0,
+     "anfragen": 2,
+     "groesste": 0
+    },
+    {
+     "tabelle": "kalender_abos",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    }
+   ],
+   "laeufe": [
+    {
+     "fcp": 1936,
+     "inhalt": 3247,
+     "bereit": 3250,
+     "bedienbar": 3797,
+     "anfragen": 179,
+     "bytes": 387691,
+     "dbAnfragen": 16,
+     "dbBytes": 10322,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 570
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1341
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3374
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 224
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 75
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 192
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=200&offset=0&order=date.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 191
+      },
+      {
+       "tabelle": "vacations",
+       "merkmale": "limit=60&offset=0&order=von.desc,id.asc",
+       "zeilen": 60,
+       "bytes": 3196
+      },
+      {
+       "tabelle": "einsatz_material",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 151
+      },
+      {
+       "tabelle": "termine",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 168
+      },
+      {
+       "tabelle": "termine",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 168
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "kalender_abos",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 157
+      }
+     ]
+    },
+    {
+     "fcp": 2212,
+     "inhalt": 3601,
+     "bereit": 3726,
+     "bedienbar": 4365,
+     "anfragen": 179,
+     "bytes": 387355,
+     "dbAnfragen": 16,
+     "dbBytes": 10310,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 566
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1340
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3380
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 224
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 73
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 116
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 192
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=200&offset=0&order=date.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 191
+      },
+      {
+       "tabelle": "vacations",
+       "merkmale": "limit=60&offset=0&order=von.desc,id.asc",
+       "zeilen": 60,
+       "bytes": 3196
+      },
+      {
+       "tabelle": "einsatz_material",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 151
+      },
+      {
+       "tabelle": "termine",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 165
+      },
+      {
+       "tabelle": "termine",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 165
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "kalender_abos",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 155
+      }
+     ]
+    },
+    {
+     "fcp": 1924,
+     "inhalt": 2707,
+     "bereit": 3420,
+     "bedienbar": 4064,
+     "anfragen": 179,
+     "bytes": 453468,
+     "dbAnfragen": 16,
+     "dbBytes": 10309,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 797
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1113
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3376
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 224
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 73
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 195
+      },
+      {
+       "tabelle": "assignments",
+       "merkmale": "limit=200&offset=0&order=date.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 188
+      },
+      {
+       "tabelle": "vacations",
+       "merkmale": "limit=60&offset=0&order=von.desc,id.asc",
+       "zeilen": 60,
+       "bytes": 3196
+      },
+      {
+       "tabelle": "einsatz_material",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 151
+      },
+      {
+       "tabelle": "termine",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 165
+      },
+      {
+       "tabelle": "termine",
+       "merkmale": "limit=500&offset=0&order=datum.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 165
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 116
+      },
+      {
+       "tabelle": "kalender_abos",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 155
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Handwerksscheine",
+   "pfad": "/worksheets",
+   "fcp": 1980,
+   "inhalt": 3322,
+   "bereit": 4140,
+   "bedienbar": 4464,
+   "anfragen": 174,
+   "bytes": 375979,
+   "dbAnfragen": 12,
+   "dbBytes": 24841,
+   "groessteListe": {
+    "tabelle": "work_sheets",
+    "zeilen": 50
+   },
+   "ueberGrenze": [],
+   "tabellen": [
+    {
+     "tabelle": "work_sheets",
+     "zeilen": 50,
+     "anfragen": 1,
+     "groesste": 50
+    },
+    {
+     "tabelle": "work_sheet_hours",
+     "zeilen": 50,
+     "anfragen": 1,
+     "groesste": 50
+    },
+    {
+     "tabelle": "work_sheet_material",
+     "zeilen": 50,
+     "anfragen": 1,
+     "groesste": 50
+    },
+    {
+     "tabelle": "rpc/offene_posten",
+     "zeilen": 2,
+     "anfragen": 2,
+     "groesste": 1
+    },
+    {
+     "tabelle": "users",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "companies",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/rechtstexte_aktuell",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "support_freigaben",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitsitzungen",
+     "zeilen": 0,
+     "anfragen": 2,
+     "groesste": 0
+    },
+    {
+     "tabelle": "work_sheet_photos",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    }
+   ],
+   "laeufe": [
+    {
+     "fcp": 1980,
+     "inhalt": 3322,
+     "bereit": 4111,
+     "bedienbar": 4083,
+     "anfragen": 174,
+     "bytes": 375979,
+     "dbAnfragen": 12,
+     "dbBytes": 24822,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 566
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1340
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 159
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3374
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 224
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 73
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "work_sheets",
+       "merkmale": "limit=50&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 50,
+       "bytes": 8598
+      },
+      {
+       "tabelle": "work_sheet_hours",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 50,
+       "bytes": 4449
+      },
+      {
+       "tabelle": "work_sheet_material",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 50,
+       "bytes": 4082
+      },
+      {
+       "tabelle": "work_sheet_photos",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 1718
+      }
+     ]
+    },
+    {
+     "fcp": 1960,
+     "inhalt": 2898,
+     "bereit": 4140,
+     "bedienbar": 4464,
+     "anfragen": 174,
+     "bytes": 375998,
+     "dbAnfragen": 12,
+     "dbBytes": 24841,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 797
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1109
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3374
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 224
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 75
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "work_sheets",
+       "merkmale": "limit=50&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 50,
+       "bytes": 8602
+      },
+      {
+       "tabelle": "work_sheet_hours",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 50,
+       "bytes": 4545
+      },
+      {
+       "tabelle": "work_sheet_material",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 50,
+       "bytes": 3987
+      },
+      {
+       "tabelle": "work_sheet_photos",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 1734
+      }
+     ]
+    },
+    {
+     "fcp": 2068,
+     "inhalt": 3760,
+     "bereit": 4782,
+     "bedienbar": 4749,
+     "anfragen": 174,
+     "bytes": 375978,
+     "dbAnfragen": 12,
+     "dbBytes": 24844,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 566
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1340
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3377
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 225
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 76
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 116
+      },
+      {
+       "tabelle": "work_sheets",
+       "merkmale": "limit=50&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 50,
+       "bytes": 8602
+      },
+      {
+       "tabelle": "work_sheet_hours",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 50,
+       "bytes": 4449
+      },
+      {
+       "tabelle": "work_sheet_material",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 50,
+       "bytes": 4083
+      },
+      {
+       "tabelle": "work_sheet_photos",
+       "merkmale": "limit=500&offset=0&order=position.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 1734
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Urlaub",
+   "pfad": "/vacations",
+   "fcp": 1912,
+   "inhalt": 3315,
+   "bereit": 3898,
+   "bedienbar": 4656,
+   "anfragen": 176,
+   "bytes": 343871,
+   "dbAnfragen": 15,
+   "dbBytes": 13795,
+   "groessteListe": {
+    "tabelle": "vacations",
+    "zeilen": 134
+   },
+   "ueberGrenze": [
+    {
+     "tabelle": "vacations",
+     "zeilen": 134,
+     "anfragen": 1,
+     "groesste": 134
+    }
+   ],
+   "tabellen": [
+    {
+     "tabelle": "vacations",
+     "zeilen": 134,
+     "anfragen": 1,
+     "groesste": 134
+    },
+    {
+     "tabelle": "users",
+     "zeilen": 2,
+     "anfragen": 2,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/offene_posten",
+     "zeilen": 2,
+     "anfragen": 2,
+     "groesste": 1
+    },
+    {
+     "tabelle": "companies",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/rechtstexte_aktuell",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "support_freigaben",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitsitzungen",
+     "zeilen": 0,
+     "anfragen": 2,
+     "groesste": 0
+    },
+    {
+     "tabelle": "urlaubsanspruch_anpassungen",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "freistellungen",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitkonto_anfang",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "krankmeldungen",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "betriebsurlaube",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    }
+   ],
+   "laeufe": [
+    {
+     "fcp": 1912,
+     "inhalt": 3129,
+     "bereit": 3751,
+     "bedienbar": 4656,
+     "anfragen": 176,
+     "bytes": 343909,
+     "dbAnfragen": 15,
+     "dbBytes": 13810,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 798
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1113
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3378
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 116
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 225
+      },
+      {
+       "tabelle": "vacations",
+       "merkmale": "limit=500&offset=0&order=von.desc,id.asc",
+       "zeilen": 134,
+       "bytes": 6398
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 521
+      },
+      {
+       "tabelle": "urlaubsanspruch_anpassungen",
+       "merkmale": "limit=500&offset=0&order=urlaubsjahr.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 211
+      },
+      {
+       "tabelle": "freistellungen",
+       "merkmale": "limit=200&offset=0&order=von.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 181
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 75
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 180
+      },
+      {
+       "tabelle": "krankmeldungen",
+       "merkmale": "limit=30&offset=0&order=von.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 181
+      },
+      {
+       "tabelle": "betriebsurlaube",
+       "merkmale": "limit=50&offset=0&order=von.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 158
+      }
+     ]
+    },
+    {
+     "fcp": 1884,
+     "inhalt": 3323,
+     "bereit": 3898,
+     "bedienbar": 4423,
+     "anfragen": 176,
+     "bytes": 343871,
+     "dbAnfragen": 15,
+     "dbBytes": 13795,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 797
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1113
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3376
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 224
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 75
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "vacations",
+       "merkmale": "limit=500&offset=0&order=von.desc,id.asc",
+       "zeilen": 134,
+       "bytes": 6398
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 521
+      },
+      {
+       "tabelle": "urlaubsanspruch_anpassungen",
+       "merkmale": "limit=500&offset=0&order=urlaubsjahr.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 208
+      },
+      {
+       "tabelle": "freistellungen",
+       "merkmale": "limit=200&offset=0&order=von.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 177
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 176
+      },
+      {
+       "tabelle": "krankmeldungen",
+       "merkmale": "limit=30&offset=0&order=von.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 180
+      },
+      {
+       "tabelle": "betriebsurlaube",
+       "merkmale": "limit=50&offset=0&order=von.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      }
+     ]
+    },
+    {
+     "fcp": 2040,
+     "inhalt": 3315,
+     "bereit": 3978,
+     "bedienbar": 5042,
+     "anfragen": 176,
+     "bytes": 343864,
+     "dbAnfragen": 15,
+     "dbBytes": 13788,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 566
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1340
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3376
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 122
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 221
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 76
+      },
+      {
+       "tabelle": "vacations",
+       "merkmale": "limit=500&offset=0&order=von.desc,id.asc",
+       "zeilen": 134,
+       "bytes": 6395
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 519
+      },
+      {
+       "tabelle": "urlaubsanspruch_anpassungen",
+       "merkmale": "limit=500&offset=0&order=urlaubsjahr.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 208
+      },
+      {
+       "tabelle": "freistellungen",
+       "merkmale": "limit=200&offset=0&order=von.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 177
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 179
+      },
+      {
+       "tabelle": "krankmeldungen",
+       "merkmale": "limit=30&offset=0&order=von.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 177
+      },
+      {
+       "tabelle": "betriebsurlaube",
+       "merkmale": "limit=50&offset=0&order=von.asc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Nachrichten",
+   "pfad": "/nachrichten",
+   "fcp": 1872,
+   "inhalt": 2968,
+   "bereit": 3062,
+   "bedienbar": 4210,
+   "anfragen": 172,
+   "bytes": 313242,
+   "dbAnfragen": 12,
+   "dbBytes": 8609,
+   "groessteListe": {
+    "tabelle": "rpc/kollegen",
+    "zeilen": 50
+   },
+   "ueberGrenze": [],
+   "tabellen": [
+    {
+     "tabelle": "rpc/kollegen",
+     "zeilen": 50,
+     "anfragen": 1,
+     "groesste": 50
+    },
+    {
+     "tabelle": "users",
+     "zeilen": 2,
+     "anfragen": 2,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/offene_posten",
+     "zeilen": 2,
+     "anfragen": 2,
+     "groesste": 1
+    },
+    {
+     "tabelle": "companies",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "rpc/rechtstexte_aktuell",
+     "zeilen": 1,
+     "anfragen": 1,
+     "groesste": 1
+    },
+    {
+     "tabelle": "support_freigaben",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitsitzungen",
+     "zeilen": 0,
+     "anfragen": 2,
+     "groesste": 0
+    },
+    {
+     "tabelle": "rpc/nachrichten_postfach",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    },
+    {
+     "tabelle": "zeitkonto_anfang",
+     "zeilen": 0,
+     "anfragen": 1,
+     "groesste": 0
+    }
+   ],
+   "laeufe": [
+    {
+     "fcp": 1872,
+     "inhalt": 2968,
+     "bereit": 3057,
+     "bedienbar": 4120,
+     "anfragen": 172,
+     "bytes": 313217,
+     "dbAnfragen": 12,
+     "dbBytes": 8586,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 566
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1340
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3374
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 122
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 224
+      },
+      {
+       "tabelle": "rpc/nachrichten_postfach",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 71
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 1,
+       "bytes": 582
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 77
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 176
+      },
+      {
+       "tabelle": "rpc/kollegen",
+       "merkmale": "",
+       "zeilen": 50,
+       "bytes": 1778
+      }
+     ]
+    },
+    {
+     "fcp": 1852,
+     "inhalt": 2935,
+     "bereit": 3062,
+     "bedienbar": 4278,
+     "anfragen": 172,
+     "bytes": 313242,
+     "dbAnfragen": 12,
+     "dbBytes": 8611,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 566
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1363
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 156
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3377
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 119
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 227
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "rpc/nachrichten_postfach",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 71
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 1,
+       "bytes": 582
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 73
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 176
+      },
+      {
+       "tabelle": "rpc/kollegen",
+       "merkmale": "",
+       "zeilen": 50,
+       "bytes": 1781
+      }
+     ]
+    },
+    {
+     "fcp": 1924,
+     "inhalt": 3073,
+     "bereit": 3095,
+     "bedienbar": 4210,
+     "anfragen": 172,
+     "bytes": 313286,
+     "dbAnfragen": 12,
+     "dbBytes": 8609,
+     "db": [
+      {
+       "tabelle": "users",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 797
+      },
+      {
+       "tabelle": "companies",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 1109
+      },
+      {
+       "tabelle": "support_freigaben",
+       "merkmale": "limit=10&offset=0&order=created_at.desc,id.asc",
+       "zeilen": 0,
+       "bytes": 159
+      },
+      {
+       "tabelle": "rpc/rechtstexte_aktuell",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 3374
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 225
+      },
+      {
+       "tabelle": "rpc/offene_posten",
+       "merkmale": "",
+       "zeilen": 1,
+       "bytes": 120
+      },
+      {
+       "tabelle": "rpc/nachrichten_postfach",
+       "merkmale": "",
+       "zeilen": 0,
+       "bytes": 71
+      },
+      {
+       "tabelle": "users",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 1,
+       "bytes": 582
+      },
+      {
+       "tabelle": "zeitsitzungen",
+       "merkmale": "limit=500&order=id.asc",
+       "zeilen": 0,
+       "bytes": 75
+      },
+      {
+       "tabelle": "zeitkonto_anfang",
+       "merkmale": "limit=500&offset=0&order=id.asc",
+       "zeilen": 0,
+       "bytes": 176
+      },
+      {
+       "tabelle": "rpc/kollegen",
+       "merkmale": "",
+       "zeilen": 50,
+       "bytes": 1801
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

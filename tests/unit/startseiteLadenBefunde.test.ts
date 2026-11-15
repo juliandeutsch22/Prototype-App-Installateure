@@ -40,13 +40,15 @@ const zeitkorrekturenLaden = vi.fn<(c: string, offen: boolean) => Promise<{ id: 
 vi.mock('@/lib/db/zeitkorrekturen', () => ({
   zeitkorrekturenLaden: (c: string, offen: boolean) => zeitkorrekturenLaden(c, offen),
 }));
-// „Nicht verrechnet“ über alle Scheine (P3) — eine Abfrage statt Liste plus Abdeckung.
-const scheineUnverrechnet = vi.fn(async () => [] as never[]);
+// „Nicht verrechnet“ über alle Scheine (P3) — seit L22 nur die Zahl aus der Datenbank.
+const scheineUnverrechnetStand = vi.fn<(bis: string) => Promise<{ anzahl: number; alt: number; aeltester: string | null }>>(
+  async () => ({ anzahl: 0, alt: 0, aeltester: null }),
+);
 vi.mock('@/lib/db/invoices', () => ({
   listUnpaidInvoiceKoepfe: vi.fn(async () => []),
   listInvoicesByIds: vi.fn(async () => []),
   listGarantienEndenIn: vi.fn(async () => []),
-  scheineUnverrechnet: () => scheineUnverrechnet(),
+  scheineUnverrechnetStand: (bis: string) => scheineUnverrechnetStand(bis),
 }));
 vi.mock('@/lib/db/zahlungen', () => ({ listZahlungenImZeitraum: vi.fn(async () => []) }));
 vi.mock('@/lib/db/workSheets', () => ({
@@ -73,7 +75,7 @@ beforeEach(() => {
   belegschaft = [];
   belegschaftFehlt = false;
   unverrechneteStunden.mockClear();
-  scheineUnverrechnet.mockClear();
+  scheineUnverrechnetStand.mockClear();
   zeitkorrekturenLaden.mockClear();
   listFaelligeWartungen.mockClear();
 });
@@ -136,8 +138,20 @@ describe('4 — unverrechnete Stunden nur mit der Zeiterfassung', () => {
     const d = await buchhaltung(kontext({ modules: { zeiterfassung: false } }), { rechnungen: true, scheine: true });
     expect(unverrechneteStunden).not.toHaveBeenCalled();
     expect(d.offeneStunden).toBeUndefined();
-    expect(scheineUnverrechnet).toHaveBeenCalledTimes(1);
-    expect(d.unverrechnet).toEqual([]);
+    expect(scheineUnverrechnetStand).toHaveBeenCalledTimes(1);
+    expect(d.unverrechnet).toEqual({ anzahl: 0, alt: 0 });
+  });
+
+  /*
+    L22: die Startseite holt nicht mehr jeden unverrechneten Schein, sondern
+    Zahl und Alte aus der Datenbank. Der Stichtag „über 4 Wochen“ kommt aus
+    dem Tag der Seite — Gegenprobe: ohne ihn zählte die Datenbank nichts als alt.
+  */
+  it('L22: „nicht verrechnet“ als Zahl aus der Datenbank, mit dem Stichtag vor vier Wochen', async () => {
+    scheineUnverrechnetStand.mockResolvedValueOnce({ anzahl: 7, alt: 3, aeltester: '2026-08-01' });
+    const d = await buchhaltung(kontext({ heute: '2026-11-09' }), { rechnungen: false, scheine: true });
+    expect(scheineUnverrechnetStand).toHaveBeenCalledWith('2026-10-12');
+    expect(d.unverrechnet).toEqual({ anzahl: 7, alt: 3 });
   });
 
   it('Gleichbleiben: mit der Zeiterfassung (ab Werk an) wie bisher', async () => {

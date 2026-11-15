@@ -40,6 +40,20 @@ function tageZwischen(vonIso: string, bisIso: string): number {
 export const AUFFAELLIG_AB_TAGEN = 28;
 
 /**
+ * Der jüngste Tag, der heute schon auffällig ist — `heute` minus
+ * `AUFFAELLIG_AB_TAGEN`. Ein Schein von diesem Tag oder früher ist genau dann
+ * auffällig, wenn `unverrechnetZeilen` ihm mindestens so viele Tage gibt.
+ *
+ * Für die Datenbank (L22): sie zählt die alten Scheine selbst
+ * (`scheine_unverrechnet_stand`), und der Tag kommt aus dem Browser, damit
+ * Zahl und Liste nie an verschiedenen Tagen gemessen werden.
+ */
+export function auffaelligBis(heute: string): string {
+  const t = Date.parse(`${heute}T00:00:00Z`);
+  return new Date(t - AUFFAELLIG_AB_TAGEN * 86_400_000).toISOString().slice(0, 10);
+}
+
+/**
  * Die unverrechneten Scheine als Zeilen mit ihrem Alter, ÄLTESTE ZUERST —
  * das ist die Aussage. Eine Leistung von vorgestern ist normal, eine von vor
  * drei Monaten ist ein Befund.
@@ -164,15 +178,26 @@ export interface OffeneBaustelle<S, H> {
   /** Die Baustellennummer, wie sie am ältesten Beleg steht. */
   projectNumber: string;
   kunde: string;
+  /** Die Scheine — oder, aus der Datenbank zusammengefasst, je Gruppe der älteste als Vertreter. */
   scheine: S[];
+  /** Wie viele Scheine offen sind (L22): die Summe von `anzahl`, ein Schein ohne zählt als einer. */
+  anzahlScheine: number;
   /** Ältester Tag unter den Scheinen. */
   aeltesterSchein: string | null;
   stunden: H | null;
   tage: number;
 }
 
+/*
+  JE EINTRAG EIN SCHEIN ODER EINE SCHON ZUSAMMENGEFASSTE BAUSTELLE (L22). Die
+  Rechnungen holen seit der Messung gegen den gewachsenen Bestand nicht mehr
+  jeden Schein, sondern je Baustelle den ältesten mit der Zahl (`anzahl`,
+  `scheine_unverrechnet_baustellen`). Zusammengeführt wird hier trotzdem
+  weiter: mit den Stunden, und falls die Schreibweise der Nummer im Browser
+  noch zwei Gruppen der Datenbank zu einer macht.
+*/
 export function nichtVerrechnetJeBaustelle<
-  S extends Pick<WorkSheet, 'projectNumber' | 'customerName' | 'datum'>,
+  S extends Pick<WorkSheet, 'projectNumber' | 'customerName' | 'datum'> & { anzahl?: number },
   H extends { projectNumber: string; kunde: string; aeltester: string },
 >(
   scheine: Array<{ schein: S; tage: number }>,
@@ -183,7 +208,7 @@ export function nichtVerrechnetJeBaustelle<
     const k = baustelleNorm(nummer);
     let b = nach.get(k);
     if (!b) {
-      b = { projectNumber: nummer, kunde, scheine: [], aeltesterSchein: null, stunden: null, tage: 0 };
+      b = { projectNumber: nummer, kunde, scheine: [], anzahlScheine: 0, aeltesterSchein: null, stunden: null, tage: 0 };
       nach.set(k, b);
     }
     if (!b.kunde && kunde) b.kunde = kunde;
@@ -192,6 +217,7 @@ export function nichtVerrechnetJeBaustelle<
   for (const z of scheine) {
     const b = holen(z.schein.projectNumber, z.schein.customerName ?? '');
     b.scheine.push(z.schein);
+    b.anzahlScheine += z.schein.anzahl ?? 1;
     if (!b.aeltesterSchein || z.schein.datum < b.aeltesterSchein) b.aeltesterSchein = z.schein.datum;
     b.tage = Math.max(b.tage, z.tage);
   }

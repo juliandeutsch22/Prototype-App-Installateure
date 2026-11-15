@@ -152,6 +152,8 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'schein_verrechnung',
   'scheine_neu',
   'scheine_unverrechnet',
+  'scheine_unverrechnet_baustellen',
+  'scheine_unverrechnet_stand',
   'scheine_verrechnet',
   'schlussrechnungen_ohne_abzug',
   'suche_auftragseingaenge',

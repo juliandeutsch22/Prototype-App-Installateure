@@ -162,6 +162,8 @@ describe('Buchhaltung', () => {
   });
   const schein = (id: string, tage: number) =>
     ({ schein: { id, projectNumber: 'PR-1', customerName: 'Kunde', datum: '2026-08-01' } as WorkSheet & { id: string }, tage });
+  // Seit L22 zählt die Datenbank (`scheine_unverrechnet_stand`); die Startseite bekommt nur Zahl und Alte (ab 28 Tagen).
+  const offen = (...zeilen: { tage: number }[]) => ({ anzahl: zeilen.length, alt: zeilen.filter((z) => z.tage >= 28).length });
 
   /*
     RESTPUNKT AUS RUNDE 5, M2: sperren die Firmendaten jede Rechnung, sieht
@@ -194,7 +196,7 @@ describe('Buchhaltung', () => {
         rechnung({ id: 'RE-2', totalBrutto: 300, dueDate: '2026-10-20' }),
         rechnung({ id: 'RE-3', totalBrutto: 150, dueDate: '2026-09-15' }),
       ],
-      unverrechnet: [schein('s1', 40), schein('s2', 3)],
+      unverrechnet: offen(schein('s1', 40), schein('s2', 3)),
       bezahltImMonat: { summe: 1234.5, anzahl: 4 },
     }, umfeld());
 
@@ -229,7 +231,7 @@ describe('Buchhaltung', () => {
     „€ 0,00“ eine leere Arbeitsliste ist oder ein Rücklass, der noch zählt.
   */
   it('markiert leere Arbeitszahlen als leer — Bezahlt im Monat nie (E22)', () => {
-    const s = startseite({ unbezahlt: [], unverrechnet: [], bezahltImMonat: { summe: 0, anzahl: 0 } }, umfeld());
+    const s = startseite({ unbezahlt: [], unverrechnet: offen(), bezahltImMonat: { summe: 0, anzahl: 0 } }, umfeld());
     const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
     expect(nach.get('offen')?.leer).toBe(true);
     expect(nach.get('ueberfaellig')?.leer).toBe(true);
@@ -240,7 +242,7 @@ describe('Buchhaltung', () => {
   it('Gegenprobe: was offen oder überfällig ist, bleibt stehen (E22)', () => {
     const s = startseite({
       unbezahlt: [rechnung({ id: 'RE-1', totalBrutto: 200, dueDate: '2026-10-14' })],
-      unverrechnet: [schein('s1', 3)],
+      unverrechnet: offen(schein('s1', 3)),
     }, umfeld());
     const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
     expect(nach.get('offen')?.leer).toBe(false);
@@ -264,13 +266,13 @@ describe('Buchhaltung', () => {
     Achtung-Punkt.
   */
   it('Stand ohne „Nicht verrechnet“ — die Scheine stehen unter Zu erledigen (E22)', () => {
-    const s = startseite({ unverrechnet: [schein('s1', 40)] }, umfeld());
+    const s = startseite({ unverrechnet: offen(schein('s1', 40)) }, umfeld());
     expect(s.kennzahlen.some((k) => k.key === 'unverrechnet')).toBe(false);
     expect(s.abschnitte.find((a) => a.key === 'verrechnen')?.zeilen[0]).toMatchObject({ key: 'scheine', titel: '1 Schein nicht verrechnet' });
   });
 
   it('Buchhaltung: auch ein frischer Schein steht da — ruhig, ohne Achtung-Punkt (E22)', () => {
-    const s = startseite({ unverrechnet: [schein('s1', 3), schein('s2', 10)] }, umfeld());
+    const s = startseite({ unverrechnet: offen(schein('s1', 3), schein('s2', 10)) }, umfeld());
     expect(s.abschnitte.find((a) => a.key === 'verrechnen')?.zeilen).toEqual([expect.objectContaining({
       key: 'scheine', titel: '2 Scheine nicht verrechnet', detail: 'alle jünger als 4 Wochen',
       status: { text: 'verrechnen', ton: 'leise' }, to: ZIEL.scheine('nicht-verrechnet'),
@@ -282,13 +284,13 @@ describe('Buchhaltung', () => {
     const thema = (d: Parameters<typeof startseite>[0]) =>
       leitung(d).abschnitte.flatMap((a) => [...a.zeilen, ...(a.weiter && 'aufklappen' in a.weiter ? a.weiter.aufklappen : [])])
         .find((z) => z.key === 'scheine');
-    expect(thema({ unverrechnet: [schein('s1', 3)] })).toMatchObject({ detail: 'alle jünger als 4 Wochen', status: { ton: 'leise' } });
-    expect(thema({ unverrechnet: [schein('s1', 3), schein('s2', 40)] })).toMatchObject({ detail: 'davon 1 über 4 Wochen', status: { ton: 'warn' } });
-    expect(leitung({ unverrechnet: [schein('s1', 3)] }).kennzahlen.some((k) => k.key === 'unverrechnet')).toBe(false);
+    expect(thema({ unverrechnet: offen(schein('s1', 3)) })).toMatchObject({ detail: 'alle jünger als 4 Wochen', status: { ton: 'leise' } });
+    expect(thema({ unverrechnet: offen(schein('s1', 3), schein('s2', 40)) })).toMatchObject({ detail: 'davon 1 über 4 Wochen', status: { ton: 'warn' } });
+    expect(leitung({ unverrechnet: offen(schein('s1', 3)) }).kennzahlen.some((k) => k.key === 'unverrechnet')).toBe(false);
   });
 
   it('Gegenprobe: ohne nicht verrechnete Scheine und Stunden kein Abschnitt (E22)', () => {
-    expect(startseite({ unverrechnet: [], offeneStunden: [] }, umfeld()).abschnitte.some((a) => a.key === 'verrechnen')).toBe(false);
+    expect(startseite({ unverrechnet: offen(), offeneStunden: [] }, umfeld()).abschnitte.some((a) => a.key === 'verrechnen')).toBe(false);
   });
 
   // Rücklass (05.10.2026): der nicht fällige Teil einer überfälligen Rechnung bleibt offen.
@@ -908,7 +910,7 @@ describe('Unverrechnete Stunden auf der Startseite', () => {
 
   it('Gegenprobe: ohne Recht auf Rechnungen keine Stundenzeile — die Scheine bleiben', () => {
     const s = startseite(
-      { offeneStunden: [stunden('2026-042', 60)], unverrechnet: [{ schein: { id: 's1', projectNumber: 'PR-1', customerName: 'Kunde', datum: '2026-10-10' }, tage: 3 }] },
+      { offeneStunden: [stunden('2026-042', 60)], unverrechnet: { anzahl: 1, alt: 0 } },
       buch({ darf: (z) => !z.startsWith('/invoices') }),
     );
     const zeilen = s.abschnitte.find((x) => x.key === 'verrechnen')!.zeilen;

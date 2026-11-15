@@ -171,7 +171,7 @@ describe('5 — nicht verrechnet lässt sich bei der Leitung ausblenden', () => 
   it('„scheine“ und „stunden“ stehen im Katalog der Leitung und gehen in „ausgeblendet“', () => {
     expect(THEMEN.leitung.map((t) => t.key)).toEqual(expect.arrayContaining(['scheine', 'stunden']));
     const d: StartDaten = {
-      unverrechnet: [{ schein: { id: 's1', customerName: 'Huber', projectNumber: 'B-1', datum: '2026-11-01' }, tage: 8 }],
+      unverrechnet: { anzahl: 1, alt: 0 },
       offeneStunden: [{ stunden: { projectNumber: 'B-2', kunde: 'Maier', minuten: 120, aeltester: '2026-11-02' }, tage: 7 }],
     };
     const s = startseite(d, umfeld('leitung', { aus: new Set(['scheine', 'stunden']) }));

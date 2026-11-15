@@ -22,8 +22,8 @@ import {
   mahnungFesthalten,
   listMahnungenZurRechnung,
   sucheRechnungen,
-  scheineUnverrechnet,
-  type UnverrechneterSchein,
+  scheineUnverrechnetJeBaustelle,
+  type UnverrechneteBaustelle,
   RECHNUNG_TREFFER,
   listInvoicesByIds,
   rechnungVersuchKlaeren,
@@ -239,11 +239,12 @@ export default function InvoicesView() {
   /** Die letzte Anzahlung entstand ohne angenommenes Angebot — Betrag von Hand. */
   const [anzahlungOhneAngebot, setAnzahlungOhneAngebot] = useState(false);
   /*
-    DIE UNVERRECHNETEN SCHEINE DES BETRIEBS (P3) — nur der Kopf, über alle,
-    älteste zuerst. Einmal geladen, nicht abonniert: die Antwort ändert sich
-    im Takt von Tagen, nicht von Sekunden. `null`: noch nicht da.
+    DIE UNVERRECHNETEN SCHEINE DES BETRIEBS (P3) — über alle, je Baustelle
+    der älteste mit der Zahl (L22): die Karte zeigt eine Zeile je Baustelle,
+    mehr braucht sie nicht. Einmal geladen, nicht abonniert: die Antwort
+    ändert sich im Takt von Tagen, nicht von Sekunden. `null`: noch nicht da.
   */
-  const [unverrechnetDB, setUnverrechnetDB] = useState<UnverrechneterSchein[] | null>(null);
+  const [unverrechnetDB, setUnverrechnetDB] = useState<UnverrechneteBaustelle[] | null>(null);
   const [abdeckungFehler, setAbdeckungFehler] = useState(false);
   /*
     DIE SCHEINE DER BAUSTELLE IN DER VORSCHAU, für den Abgleich der Stunden
@@ -930,11 +931,13 @@ export default function InvoicesView() {
   }, [user, nurLesen, offeneAnwenden]);
 
   /*
-    DIE UNVERRECHNETEN SCHEINE ÜBER ALLE (P3, `scheine_unverrechnet`).
-    Vorher die 60 jüngsten, dazu die Abdeckung — ein älterer Schein fiel
-    heraus, bevor er „über 4 Wochen“ alt werden konnte. Kommt die Antwort
-    nicht, bleibt die Karte weg und eine Zeile sagt warum: eine leere Liste
-    hieße „alles verrechnet“. Ohne Zugriff auf die Verrechnung (nur lesen)
+    DIE UNVERRECHNETEN SCHEINE ÜBER ALLE (P3), je Baustelle zusammengefasst
+    (L22, `scheine_unverrechnet_baustellen`): bis zur Messung gegen den
+    gewachsenen Bestand kam jeder Schein einzeln, in 20 Seiten nacheinander —
+    gut 8 s, bevor die Seite stand. Vorher die 60 jüngsten, dazu die
+    Abdeckung — ein älterer Schein fiel heraus, bevor er „über 4 Wochen“ alt
+    werden konnte. Kommt die Antwort nicht, bleibt die Karte weg und eine
+    Zeile sagt warum: eine leere Liste hieße „alles verrechnet“. Ohne Zugriff auf die Verrechnung (nur lesen)
     wird nicht gefragt.
 
     NEU GEHOLT WIE DIE STUNDEN (`stundenStand`): nach jeder angelegten oder
@@ -946,7 +949,7 @@ export default function InvoicesView() {
   useEffect(() => {
     if (!user || nurLesen) return;
     let weg = false;
-    scheineUnverrechnet()
+    scheineUnverrechnetJeBaustelle()
       .then((rows) => {
         if (weg) return;
         setUnverrechnetDB(rows);
@@ -3762,11 +3765,12 @@ export default function InvoicesView() {
             zeile={(baustelle) => {
               const nummer = baustelle.projectNumber;
               const scheine = baustelle.scheine;
-              const scheinText = scheine.length === 0
+              // Gezählt aus der Datenbank (L22): je Gruppe steht nur der älteste Schein hier.
+              const scheinText = baustelle.anzahlScheine === 0
                 ? null
-                : scheine.length === 1
+                : baustelle.anzahlScheine === 1
                   ? `Schein vom ${datumAT(scheine[0].datum)}`
-                  : `${scheine.length} Scheine seit ${datumAT(baustelle.aeltesterSchein ?? scheine[0].datum)}`;
+                  : `${baustelle.anzahlScheine} Scheine seit ${datumAT(baustelle.aeltesterSchein ?? scheine[0].datum)}`;
               const stundenText = baustelle.stunden
                 ? `${fmtDauer(baustelle.stunden.minuten)} gebucht seit ${datumAT(baustelle.stunden.aeltester)}`
                 : null;

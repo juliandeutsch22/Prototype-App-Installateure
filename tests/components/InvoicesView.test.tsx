@@ -252,7 +252,12 @@ vi.mock('@/lib/db/invoices', async () => {
       noch verlässlich unter den jüngsten Rechnungen steht.
     */
     listInvoicesForProject: () => listInvoicesForProject(),
-    scheineUnverrechnet: () => scheineUnverrechnet(),
+    /*
+      Seit L22 holt die Ansicht je Baustelle eine Zeile (`scheine_unverrechnet_baustellen`).
+      Die nachgebildeten einzelnen Scheine sind Gruppen zu je einem (ohne `anzahl` = 1) —
+      die Ansicht führt sie je Baustelle zusammen wie zwei Schreibweisen derselben Nummer.
+    */
+    scheineUnverrechnetJeBaustelle: () => scheineUnverrechnet(),
     sucheRechnungen: (c: string, b: string) => {
       suche(c, b);
       return sucheWirft ? Promise.reject(new Error('weg')) : Promise.resolve(suchTreffer);
@@ -2241,6 +2246,21 @@ describe('Nicht verrechnete Leistung', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Baustelle wählen' }));
     const auswahl = await screen.findByRole<HTMLSelectElement>('combobox', { name: /Baustelle/ });
     expect(auswahl.value).toBe('2026-042');
+  });
+
+  /*
+    L22 (Messung gegen den gewachsenen Bestand): die Datenbank fasst je
+    Baustelle zusammen — der älteste Schein vertritt sie, `anzahl` zählt.
+    Gegenprobe: zählt die Zeile die mitgelieferten Scheine statt `anzahl`,
+    steht „Schein vom 01.06.2026“ da.
+  */
+  it('L22: zählt die Scheine einer Baustelle aus der Datenbank, nicht die mitgelieferten Vertreter', async () => {
+    scheineUnverrechnet.mockImplementationOnce(async () => [
+      { id: 's1', projectNumber: '2026-042', customerName: 'Baumeister Gruber', datum: '2026-06-01', abrechnung: 'Regie', anzahl: 3 },
+    ] as never);
+    zeige();
+    expect(await screen.findByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
+    expect(screen.getByText(/3 Scheine seit 01\.06\.2026/)).toBeInTheDocument();
   });
 });
 

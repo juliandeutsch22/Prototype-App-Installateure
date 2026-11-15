@@ -886,11 +886,15 @@ Ende unter „Mit Welle 3 entfallen“.
 
 ### Nicht als Grenze geführt
 
-- **Messung gegen den Stapel mit gewachsenem Bestand** (L11): vorbereitet
-  (`testbestand.mjs` mit `TESTBESTAND_GEWACHSEN=1`, `messung.mjs --monteur`),
-  der Lauf steht bei der Integration aus. Zeilen und Dauer je Abfrage prüft die
-  CI nicht, weil die Attrappen der Vorschau nicht nach Person und Zeitraum
-  filtern; die CI prüft Datenaufrufe und Elemente je Seite. Offen im Plan.
+- **Messung gegen den Stapel mit gewachsenem Bestand** (L11, L22):
+  **erledigt** bei der Integration der Welle 3 (15.11.2026). Gemessen als
+  Geschäftsführung und Monteur (`docs/ui-umbau/messung-gewachsen.md`); der
+  einzige Befund — Startseite und Rechnungen nach rund 12 s, weil die Liste
+  „nicht verrechnet“ in 20 Seiten nacheinander kam — ist behoben (4,8 und
+  4,3 s). Zeilen und Dauer je Abfrage prüft die CI weiter nicht, weil die
+  Attrappen der Vorschau nicht nach Person und Zeitraum filtern; die CI prüft
+  Datenaufrufe und Elemente je Seite, die Messung gegen den Stapel bleibt ein
+  Lauf von Hand.
 - **Kein eigener Browserweg für „Mahnung per Mail“** (F16): Komponenten- und
   Datenbankprüfung decken den Weg ab. Eine Lücke im Nachweis, keine Grenze.
 

@@ -57,9 +57,9 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import Adressfilter from '@/components/Adressfilter';
-import { scheineUnverrechnet } from '@/lib/db/invoices';
+import { scheineAufRechnung, scheineUnverrechnetSeite, scheineUnverrechnetStand } from '@/lib/db/invoices';
 import { SCHEIN_FILTER, bekannt } from '@/features/dashboard/start/ziele';
-import { AUFFAELLIG_AB_TAGEN, unverrechnetZeilen } from './unverrechnet';
+import { AUFFAELLIG_AB_TAGEN, auffaelligBis, unverrechnetZeilen } from './unverrechnet';
 import { SCHEIN_STAND } from './scheinStand';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { PdfKnopf } from '@/components/Symbolknoepfe';
@@ -90,8 +90,8 @@ interface ScheinlisteStand {
   scheine: WithId<WorkSheet>[];
   buchungen: Buchungszeile[];
   buchungenStand: { fuer: string; ok: boolean };
-  /** Die unverrechneten Scheine über alle (P3), älteste zuerst. */
-  unverrechnet: WithId<WorkSheet>[];
+  /** Die unverrechneten Scheine über alle (P3), älteste zuerst — so weit geholt (L22). */
+  unverrechnet: UnverrechnetGeladen;
 }
 
 /**
@@ -167,15 +167,59 @@ function StornoVerrechnung({ lage }: { lage: ScheinVerrechnung | 'fehler' | null
   );
 }
 
-function Gruppe<T>({ eintraege, zeile }: { eintraege: T[]; zeile: (e: T) => ReactNode }) {
+/*
+  `weitere`: was die Datenbank noch hat, aber nicht geholt ist (L22, die
+  unverrechneten Scheine). „und N weitere anzeigen“ zählt es mit und holt
+  die nächsten, sobald alles Geholte schon zu sehen ist.
+*/
+function Gruppe<T>({ eintraege, zeile, weitere }: {
+  eintraege: T[];
+  zeile: (e: T) => ReactNode;
+  weitere?: { anzahl: number; laedt: boolean; onMehr: () => void };
+}) {
   const [alle, setAlle] = useState(false);
   const gezeigt = alle ? eintraege : eintraege.slice(0, GRUPPE_MAX);
+  const ungezeigt = eintraege.length - gezeigt.length;
   return (
     <>
       <List>{gezeigt.map(zeile)}</List>
-      <MehrAnzeigen anzahl={eintraege.length - gezeigt.length} onClick={() => setAlle(true)} />
+      <MehrAnzeigen
+        anzahl={ungezeigt + (weitere?.anzahl ?? 0)}
+        laedt={weitere?.laedt}
+        onClick={() => {
+          setAlle(true);
+          if (ungezeigt === 0) weitere?.onMehr();
+        }}
+      />
     </>
   );
+}
+
+/** Wie viele unverrechnete Scheine die Liste zuerst holt: so viele, wie die Gruppe zeigt (L22). */
+const UNVERRECHNET_ERSTE = GRUPPE_MAX;
+
+/** Die geholten unverrechneten Scheine, älteste zuerst, mit dem Stand über alle (L22). */
+interface UnverrechnetGeladen {
+  stand: { anzahl: number; alt: number };
+  scheine: WithId<WorkSheet>[];
+  /** Wie viele Köpfe schon geholt sind — dort setzt die nächste Seite an. */
+  geholt: number;
+}
+
+/**
+ * Eine Seite unverrechneter Scheine, ganz (Stunden, Unterschrift), in der
+ * Reihenfolge der Datenbank: älteste zuerst. `geholt` zählt die Köpfe, nicht
+ * die ganzen Scheine — fehlt einer (eben storniert), verschiebt sich die
+ * nächste Seite nicht.
+ */
+async function unverrechnetHolen(companyId: string, ab: number, anzahl: number) {
+  const koepfe = await scheineUnverrechnetSeite(ab, anzahl);
+  const voll = await listWorkSheetsByIds(companyId, koepfe.map((k) => k.id));
+  const nachId = new Map(voll.map((v) => [v.id, v]));
+  return {
+    scheine: koepfe.map((k) => nachId.get(k.id)).filter((v): v is WithId<WorkSheet> => !!v),
+    geholt: koepfe.length,
+  };
 }
 
 export default function WorkSheetsListView() {
@@ -519,6 +563,13 @@ export default function WorkSheetsListView() {
     auch Kundenname und Notiz (siehe `scheinSuche.ts`).
   */
   const [treffer, setTreffer] = useState<WithId<WorkSheet>[] | null>(null);
+  /*
+    WELCHE TREFFER UNVERRECHNET SIND — unter dem Filter „nicht verrechnet“
+    aus der Adresse (L22). Die Liste dahinter holt nur, was sie zeigt; ob ein
+    gefundener Schein offen ist, fragt deshalb die Datenbank zu genau den
+    Treffern (`scheine_verrechnet`, derselbe Kern).
+  */
+  const [trefferUnverrechnet, setTrefferUnverrechnet] = useState<Set<string> | null>(null);
   const [trefferZu, setTrefferZu] = useState('');
   const [sucheLaeuft, setSucheLaeuft] = useState(false);
   const absicht = useMemo(() => deuteSuche(suche), [suche]);
@@ -533,6 +584,13 @@ export default function WorkSheetsListView() {
           : absicht.art === 'zeitraum'
             ? await listWorkSheetsInRange(user.companyId, absicht.von, absicht.bis, PRUEF_GRENZE)
             : await searchWorkSheets(user.companyId, absicht.text, PRUEF_GRENZE);
+      let offen: Set<string> | null = null;
+      if (nurUnverrechnet) {
+        const unterschrieben = gefunden.filter((s) => s.status === 'Unterschrieben');
+        const verrechnet = new Set(await scheineAufRechnung(user.companyId, unterschrieben.map((s) => s.id)));
+        offen = new Set(unterschrieben.filter((s) => !verrechnet.has(s.id)).map((s) => s.id));
+      }
+      setTrefferUnverrechnet(offen);
       setTreffer(gefunden);
       setTrefferZu(suche.trim());
     } catch (e) {
@@ -553,17 +611,32 @@ export default function WorkSheetsListView() {
   const trefferGelten = treffer !== null && trefferZu === suche.trim() && trefferZu !== '';
 
   /*
-    DIE UNVERRECHNETEN SCHEINE ÜBER ALLE (Durchsicht 15.11.2026, P3) — aus
-    `scheine_unverrechnet`, derselben Antwort wie auf der Startseite und unter
-    Rechnungen, älteste zuerst. Vorher wurde unter den geladenen gesucht (die
-    60 jüngsten): ein älterer Schein fiel heraus, bevor er „über 4 Wochen“
-    alt werden konnte. Neu gefragt wird, wenn sich die Liste ändert (Storno,
-    Unterschrift, Nachladen). `null`: noch unbekannt; `'fehler'`: nicht
-    gekommen — dann steht das da, nicht „keiner unverrechnet“.
+    DIE UNVERRECHNETEN SCHEINE ÜBER ALLE (Durchsicht 15.11.2026, P3) — nach
+    denselben Regeln wie auf der Startseite und unter Rechnungen, älteste
+    zuerst. Vorher wurde unter den geladenen gesucht (die 60 jüngsten): ein
+    älterer Schein fiel heraus, bevor er „über 4 Wochen“ alt werden konnte.
+
+    ZAHL UND SEITE STATT ALLER SCHEINE (L22, Messung gegen den gewachsenen
+    Bestand). Bis dahin kamen alle unverrechneten Kennungen in 20 Seiten
+    nacheinander und danach jeder dieser Scheine ganz — bei 9.888 Scheinen
+    511 Anfragen und 51 s, bis die Liste der Leitung stand. Jetzt zählt die
+    Datenbank (`scheine_unverrechnet_stand`: alle, davon über vier Wochen),
+    und geholt werden nur die ältesten, die die Gruppe zeigt; „weitere
+    anzeigen“ holt die nächsten. Weil die Liste älteste zuerst steht, sind
+    die über vier Wochen immer ihr Anfang — der Filter „…-alt“ blättert in
+    derselben Liste.
+
+    Neu gefragt wird, wenn sich die Liste ändert (Storno, Unterschrift,
+    Nachladen) — so weit, wie schon geholt war. `null`: noch unbekannt;
+    `'fehler'`: nicht gekommen — dann steht das da, nicht „keiner
+    unverrechnet“.
   */
-  const [unverrechnetDB, setUnverrechnetDB] = useState<WithId<WorkSheet>[] | 'fehler' | null>(
+  const [unverrechnetDB, setUnverrechnetDB] = useState<UnverrechnetGeladen | 'fehler' | null>(
     () => anfang?.unverrechnet ?? null,
   );
+  const geholtBisher = useRef(0);
+  geholtBisher.current = unverrechnetDB && unverrechnetDB !== 'fehler' ? unverrechnetDB.geholt : 0;
+  const [unverrechnetLaedt, setUnverrechnetLaedt] = useState(false);
   const scheinSchluessel = useMemo(() => scheine.map((x) => `${x.id}:${x.status}`).join('|'), [scheine]);
   useEffect(() => {
     if (!user || !mitVerrechnung) {
@@ -571,26 +644,45 @@ export default function WorkSheetsListView() {
       return;
     }
     let weg = false;
-    scheineUnverrechnet()
-      .then(async (koepfe) => {
-        const voll = await listWorkSheetsByIds(user.companyId, koepfe.map((k) => k.id));
-        const nachId = new Map(voll.map((v) => [v.id, v]));
-        // Die Reihenfolge der Datenbank: älteste zuerst.
-        const geordnet = koepfe.map((k) => nachId.get(k.id)).filter((v): v is WithId<WorkSheet> => !!v);
-        if (!weg) {
-          setUnverrechnetDB(geordnet);
-          merken({ unverrechnet: geordnet });
-        }
+    Promise.all([
+      scheineUnverrechnetStand(auffaelligBis(todayStr())),
+      unverrechnetHolen(user.companyId, 0, Math.max(UNVERRECHNET_ERSTE, geholtBisher.current)),
+    ])
+      .then(([stand, seite]) => {
+        if (weg) return;
+        const neu = { stand: { anzahl: stand.anzahl, alt: stand.alt }, scheine: seite.scheine, geholt: seite.geholt };
+        setUnverrechnetDB(neu);
+        merken({ unverrechnet: neu });
       })
       .catch(() => { if (!weg) setUnverrechnetDB('fehler'); });
     return () => {
       weg = true;
     };
   }, [user, mitVerrechnung, scheinSchluessel, merken]);
+  /** Die nächsten unverrechneten Scheine — erst, wenn jemand sie sehen will. */
+  async function unverrechnetWeiter() {
+    if (!user || !unverrechnetDB || unverrechnetDB === 'fehler') return;
+    const bisher = unverrechnetDB;
+    setUnverrechnetLaedt(true);
+    try {
+      const seite = await unverrechnetHolen(user.companyId, bisher.geholt, SCHEINE_JE_SEITE);
+      const schon = new Set(bisher.scheine.map((x) => x.id));
+      setUnverrechnetDB({
+        ...bisher,
+        scheine: [...bisher.scheine, ...seite.scheine.filter((x) => !schon.has(x.id))],
+        geholt: bisher.geholt + seite.geholt,
+      });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setUnverrechnetLaedt(false);
+    }
+  }
   const unverrechnetFehler = unverrechnetDB === 'fehler';
+  const unverrechnetGeladen = unverrechnetDB && unverrechnetDB !== 'fehler' ? unverrechnetDB : null;
   const unverrechnetZeilenAlle = useMemo(
-    () => (Array.isArray(unverrechnetDB) ? unverrechnetZeilen(unverrechnetDB, todayStr()) : null),
-    [unverrechnetDB],
+    () => (unverrechnetGeladen ? unverrechnetZeilen(unverrechnetGeladen.scheine, todayStr()) : null),
+    [unverrechnetGeladen],
   );
   /*
     Die unverrechneten Scheine, ÄLTESTE ZUERST — dieselbe Reihenfolge wie auf
@@ -606,13 +698,20 @@ export default function WorkSheetsListView() {
   /*
     FÜR DAS SCHRIFTFELD (Planlinie B1): dieselbe Zählung wie die Gruppe
     „Nicht verrechnet“, nur ohne den Filter aus der Adresse — das Feld sagt,
-    wie die Liste steht, nicht, was gerade gefiltert ist.
+    wie die Liste steht, nicht, was gerade gefiltert ist. Gezählt hat die
+    Datenbank über alle (L22), nicht die geholte Seite.
   */
-  const unverrechnetStand = useMemo(() => {
-    if (!mitVerrechnung || !unverrechnetZeilenAlle) return null;
-    const zeilen = unverrechnetZeilenAlle;
-    return { anzahl: zeilen.length, alt: zeilen.filter((z) => z.tage >= AUFFAELLIG_AB_TAGEN).length };
-  }, [mitVerrechnung, unverrechnetZeilenAlle]);
+  const unverrechnetStand = mitVerrechnung && unverrechnetGeladen ? unverrechnetGeladen.stand : null;
+  /** Wie viele die Gruppe (oder der Filter aus der Adresse) insgesamt hat — und wie viele davon noch nicht geholt sind. */
+  const unverrechnetGesamt = unverrechnetStand
+    ? (nurUnverrechnet === 'nicht-verrechnet-alt' ? unverrechnetStand.alt : unverrechnetStand.anzahl)
+    : null;
+  const unverrechnetRest = unverrechnetGesamt !== null && unverrechnetGeladen
+    ? Math.max(0, unverrechnetGesamt - unverrechnetGeladen.geholt)
+    : 0;
+  const unverrechnetMehr = unverrechnetRest > 0
+    ? { anzahl: unverrechnetRest, laedt: unverrechnetLaedt, onMehr: () => void unverrechnetWeiter() }
+    : undefined;
   /*
     NEU EINGEGANGEN (Durchsicht 15.11.2026, V9): was seit dem letzten Ansehen
     unterschrieben wurde, neueste zuerst. Gezeigt heißt gesehen: danach setzt
@@ -649,6 +748,15 @@ export default function WorkSheetsListView() {
     () => (filterListe ? new Set(filterListe.map((s) => s.id)) : null),
     [filterListe],
   );
+  /*
+    Für die Treffer vom Server gilt, was die Datenbank zu ihnen sagt — die
+    geholte Seite kennt die älteren nicht. „…-alt“: nur die über vier Wochen.
+  */
+  const trefferErlaubt = useMemo(() => {
+    if (!nurUnverrechnet || !trefferUnverrechnet || !treffer) return null;
+    const bis = nurUnverrechnet === 'nicht-verrechnet-alt' ? auffaelligBis(todayStr()) : null;
+    return new Set(treffer.filter((s) => trefferUnverrechnet.has(s.id) && (!bis || s.datum <= bis)).map((s) => s.id));
+  }, [nurUnverrechnet, trefferUnverrechnet, treffer]);
 
   const sichtbar = useMemo(() => {
     const q = suche.trim().toLowerCase();
@@ -658,8 +766,9 @@ export default function WorkSheetsListView() {
       : unverrechnet && filterListe
         ? filterListe
         : scheine;
+    const erlaubt = trefferGelten && trefferErlaubt ? trefferErlaubt : unverrechnet;
     return grundmenge.filter((s) => {
-      if (unverrechnet && !unverrechnet.has(s.id)) return false;
+      if (erlaubt && !erlaubt.has(s.id)) return false;
       if (s.status === 'Verworfen' && !zeigeVerworfene) return false;
       // Das Serverergebnis ist bereits die Antwort auf den Begriff; noch
       // einmal danach zu filtern würde einen Treffer wegwerfen, dessen
@@ -669,7 +778,13 @@ export default function WorkSheetsListView() {
         v?.toLowerCase().includes(q),
       );
     });
-  }, [scheine, treffer, trefferGelten, suche, zeigeVerworfene, unverrechnet, filterListe]);
+  }, [scheine, treffer, trefferGelten, trefferErlaubt, suche, zeigeVerworfene, unverrechnet, filterListe]);
+  /*
+    Der Filter „nicht verrechnet“ ohne Suchbegriff zeigt die Liste der
+    Datenbank selbst: Zahl über alle und „weitere anzeigen“ holt nach (L22).
+    Mit Suchbegriff gilt, was gefunden wurde.
+  */
+  const filterGanz = !!nurUnverrechnet && !suche.trim() && !trefferGelten;
 
   /*
     DIE OFFENE ANSICHT — nur ohne Suchbegriff und ohne Filter aus der Adresse.
@@ -1174,7 +1289,7 @@ export default function WorkSheetsListView() {
           offeneAnsicht
             ? undefined
             : unverrechnet
-              ? `Nicht verrechnet (${sichtbar.length})`
+              ? `Nicht verrechnet (${filterGanz && unverrechnetGesamt !== null ? unverrechnetGesamt : sichtbar.length})`
               : `Scheine (${scheine.length - verworfene})`
         }
         buendig
@@ -1298,7 +1413,7 @@ export default function WorkSheetsListView() {
                 )}
               </Abschnitt>
               {verrechnungSehen && (
-                <Abschnitt titel="Nicht verrechnet" anzahl={unverrechnetAlle ? unverrechnetAlle.length : undefined}>
+                <Abschnitt titel="Nicht verrechnet" anzahl={unverrechnetStand ? unverrechnetStand.anzahl : undefined}>
                   {unverrechnetFehler ? (
                     <p className="leer">Ob Scheine verrechnet sind, konnte nicht geladen werden. Bitte die Seite neu laden.</p>
                   ) : !unverrechnetAlle ? (
@@ -1306,7 +1421,7 @@ export default function WorkSheetsListView() {
                       <SkeletonList rows={2} />
                     </div>
                   ) : unverrechnetAlle.length > 0 ? (
-                    <Gruppe key="unverrechnet" eintraege={unverrechnetAlle} zeile={scheinZeile} />
+                    <Gruppe key="unverrechnet" eintraege={unverrechnetAlle} zeile={scheinZeile} weitere={unverrechnetMehr} />
                   ) : (
                     <p className="leer">Kein unterschriebener Schein ist unverrechnet.</p>
                   )}
@@ -1339,7 +1454,12 @@ export default function WorkSheetsListView() {
           </EmptyState>
         ) : (
           // Der Schlüssel setzt „und N weitere“ zurück, sobald sich die Menge ändert.
-          <Gruppe key={`${ansicht}|${trefferZu}|${suche.trim()}|${adressFilter ?? ''}`} eintraege={sichtbar} zeile={scheinZeile} />
+          <Gruppe
+            key={`${ansicht}|${trefferZu}|${suche.trim()}|${adressFilter ?? ''}`}
+            eintraege={sichtbar}
+            zeile={scheinZeile}
+            weitere={filterGanz ? unverrechnetMehr : undefined}
+          />
         )}
         {!loading && (
           <div className="px-4 pb-3 empty:hidden">

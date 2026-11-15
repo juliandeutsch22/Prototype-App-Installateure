@@ -337,7 +337,7 @@ function lagerKennzahlen(d: StartDaten, u: Umfeld): Kennzahl[] {
  */
 function nichtVerrechnet(d: StartDaten, u: Umfeld): Abschnitt | null {
   const zeilen = [
-    d.unverrechnet ? scheineZeile(d.unverrechnet, AUFFAELLIG_AB_TAGEN) : null,
+    d.unverrechnet ? scheineZeile(d.unverrechnet) : null,
     d.offeneStunden ? stundenZeile(d.offeneStunden, AUFFAELLIG_AB_TAGEN) : null,
   ].filter((z): z is Zeile => !!z && (!z.to || u.darf(z.to)));
   return abschnitt('verrechnen', 'Nicht verrechnet', zeilen, ZIEL.scheine('nicht-verrechnet'));
@@ -775,7 +775,7 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
     ruhig. Die Zahl stand bis dahin zusätzlich im Stand; sie ist Arbeit.
   */
   for (const z of [
-    d.unverrechnet ? scheineZeile(d.unverrechnet, AUFFAELLIG_AB_TAGEN) : null,
+    d.unverrechnet ? scheineZeile(d.unverrechnet) : null,
     d.offeneStunden ? stundenZeile(d.offeneStunden, AUFFAELLIG_AB_TAGEN) : null,
   ]) {
     if (z?.to) themen.push(wenn(z.to, { key: z.key, wann: 'woche', titel: z.titel, detail: z.detail, status: z.status }));

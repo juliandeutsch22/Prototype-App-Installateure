@@ -14,7 +14,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt, RechnungsKopf, WorkSheet } from '@/types';
-import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, SEITE, type WithId } from './kern';
+import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
 import { KOPF_SPALTEN } from './rechnungSpalten';
 import { PRAEFIX_VORGABE } from '@/lib/praefixe';
@@ -528,26 +528,62 @@ export interface UnverrechneterSchein {
   abrechnung: WorkSheet['abrechnung'];
 }
 
+type UnverrechnetZeile = { id: string; project_number: string; customer_name: string; datum: string; abrechnung: WorkSheet['abrechnung'] };
+
+const alsUnverrechnet = (z: UnverrechnetZeile): UnverrechneterSchein => ({
+  id: z.id, projectNumber: z.project_number, customerName: z.customer_name, datum: z.datum, abrechnung: z.abrechnung,
+});
+
+/*
+  „NICHT VERRECHNET“ SO KNAPP, WIE DIE ANSICHT ES BRAUCHT (L22, Messung gegen
+  den gewachsenen Bestand). Bis hierher holte jede Ansicht ALLE unverrechneten
+  Scheine — in Seiten zu 500, eine nach der anderen, und jede Seite rechnete
+  den Kern neu. Bei 9.888 Scheinen waren das 20 Anfragen und gut 8 s, bevor
+  Startseite und Rechnungen standen. Jetzt fragt jede Ansicht, was sie zeigt:
+  die Startseite die Zahl, Rechnungen je Baustelle eine Zeile, die
+  Scheinliste eine Seite. Die Regeln stehen weiter in EINEM Kern
+  (`app.scheine_verrechnet_kern`).
+*/
+
+/** Zahl der unverrechneten Scheine, davon bis `altBis` (einschließlich), und der älteste Tag. */
+export interface UnverrechnetStand {
+  anzahl: number;
+  alt: number;
+  aeltester: string | null;
+}
+
+/** Der Stand über ALLE unterschriebenen Scheine (`scheine_unverrechnet_stand`) — eine Zeile. */
+export async function scheineUnverrechnetStand(altBis: string): Promise<UnverrechnetStand> {
+  const { data, error } = await derClient().rpc('scheine_unverrechnet_stand', { p_alt_bis: altBis });
+  if (error) throw new Error(error.message);
+  const z = ((data ?? []) as { anzahl: number; alt: number; aeltester: string | null }[])[0];
+  return { anzahl: Number(z?.anzahl ?? 0), alt: Number(z?.alt ?? 0), aeltester: z?.aeltester ?? null };
+}
+
+/** Eine Baustelle mit unverrechneten Scheinen: ihr ältester Schein vertritt sie, dazu ihre Zahl. */
+export interface UnverrechneteBaustelle extends UnverrechneterSchein {
+  anzahl: number;
+}
+
 /**
- * ALLE UNVERRECHNETEN SCHEINE DES BETRIEBS, älteste zuerst (P3,
- * `scheine_unverrechnet`). Zähler, Liste und Vier-Wochen-Schwelle kommen
- * überall aus dieser einen Antwort. Seitenweise, weil auch die Antwort einer
- * Funktion bei 1.000 Zeilen endet — eine Obergrenze wäre genau die Lücke,
- * die P3 schließt.
+ * Je Baustelle eine Zeile (`scheine_unverrechnet_baustellen`) — in EINER
+ * Antwort, auch über 1.000 Baustellen: die Datenbank gibt sie als einen Wert.
  */
-export async function scheineUnverrechnet(seite = SEITE): Promise<UnverrechneterSchein[]> {
-  type Zeile = { id: string; project_number: string; customer_name: string; datum: string; abrechnung: WorkSheet['abrechnung'] };
-  const alle: Zeile[] = [];
-  for (let ab = 0; ; ab += seite) {
-    const { data, error } = await derClient().rpc('scheine_unverrechnet').range(ab, ab + seite - 1);
-    if (error) throw new Error(error.message);
-    const teil = (data ?? []) as Zeile[];
-    alle.push(...teil);
-    if (teil.length < seite) break;
-  }
-  return alle.map((z) => ({
-    id: z.id, projectNumber: z.project_number, customerName: z.customer_name, datum: z.datum, abrechnung: z.abrechnung,
-  }));
+export async function scheineUnverrechnetJeBaustelle(): Promise<UnverrechneteBaustelle[]> {
+  const { data, error } = await derClient().rpc('scheine_unverrechnet_baustellen');
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as (UnverrechnetZeile & { anzahl: number })[])
+    .map((z) => ({ ...alsUnverrechnet(z), anzahl: Number(z.anzahl) || 0 }));
+}
+
+/**
+ * Eine Seite der unverrechneten Scheine, älteste zuerst (`scheine_unverrechnet`)
+ * — für die Scheinliste, die blättert, statt alles zu holen.
+ */
+export async function scheineUnverrechnetSeite(ab: number, anzahl: number): Promise<UnverrechneterSchein[]> {
+  const { data, error } = await derClient().rpc('scheine_unverrechnet').range(ab, ab + anzahl - 1);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as UnverrechnetZeile[]).map(alsUnverrechnet);
 }
 
 /** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */
