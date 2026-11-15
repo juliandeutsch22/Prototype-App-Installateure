@@ -42,6 +42,7 @@ import { taktHalten } from '@/lib/takt';
 import { zeilenflussHalten, zeilenflussRuhe } from '@/lib/zeilenfluss';
 import { unterlinieHalten } from '@/lib/unterlinie';
 import { platzhalterHalten } from '@/lib/platzhalter';
+import { aufklappenHalten } from '@/lib/aufklappen';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { offeneVormerkungen } from '@/lib/db/pg/ohneEmpfang';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
@@ -181,6 +182,12 @@ export default function Layout({ children }: { children: ReactNode }) {
   useEffect(() => {
     const main = inhalt.current;
     return main ? platzhalterHalten(main) : undefined;
+  }, []);
+
+  // Aufklappen: die Höhe gleitet, der Pfeil dreht (B10, `lib/aufklappen.ts`) — für jedes `<details>` und jeden Abschnitt.
+  useEffect(() => {
+    const main = inhalt.current;
+    return main ? aufklappenHalten(main) : undefined;
   }, []);
 
   /*

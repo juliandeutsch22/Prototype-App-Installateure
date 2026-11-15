@@ -528,3 +528,83 @@ test.describe('B9 Schwebende Hauptaktion', () => {
     await expect(page.locator('.daumen')).not.toHaveAttribute('data-eingezogen');
   });
 });
+
+test.describe('B10 Aufklappen', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  /** Die erste Woche in „Meine Einträge“ zu- oder aufklappen und je Bild messen. */
+  async function umschalten(page: Page) {
+    const knopf = page.locator('.abschnitt button[aria-expanded]').first();
+    await expect(knopf).toBeVisible();
+    await knopf.evaluate((k) => k.scrollIntoView({ block: 'start' }));
+    await page.evaluate(() => {
+      const k = document.querySelector('.abschnitt button[aria-expanded]')!;
+      const blatt = k.closest('.karte')!;
+      const abschnitte = [...blatt.querySelectorAll('.abschnitt')];
+      const nachbar = abschnitte[1] as HTMLElement;
+      const w = window as unknown as { klapp: Array<{ geist: boolean; y: number }>; klappFertig: boolean };
+      w.klapp = []; w.klappFertig = false;
+      const t0 = performance.now();
+      // Die sichtbare Lage der nächsten Woche (mit transform, auch eines umgebenden Blocks) gegen ihre Endlage.
+      const lagen: number[] = [];
+      const bild = () => {
+        lagen.push(nachbar.getBoundingClientRect().top);
+        w.klapp.push({ geist: !!blatt.querySelector('[data-geist]'), y: 0 });
+        if (performance.now() - t0 < 350) requestAnimationFrame(bild);
+        else {
+          const ende = lagen[lagen.length - 1];
+          lagen.forEach((l, i) => { w.klapp[i].y = Math.round(l - ende); });
+          w.klappFertig = true;
+        }
+      };
+      requestAnimationFrame(bild);
+    });
+    await knopf.click();
+    await page.waitForFunction(() => (window as unknown as { klappFertig: boolean }).klappFertig);
+    return page.evaluate(() => (window as unknown as { klapp: Array<{ geist: boolean; y: number }> }).klapp);
+  }
+
+  test('zuklappen: der Inhalt klappt als Abbild zusammen, die Woche darunter gleitet hinauf; aufklappen umgekehrt', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    const zu = await umschalten(page);
+    expect(zu.some((b) => b.geist)).toBe(true);
+    expect(Math.max(...zu.map((b) => b.y))).toBeGreaterThan(40);
+    expect(zu[zu.length - 1]).toEqual({ geist: false, y: 0 });
+    const auf = await umschalten(page);
+    expect(Math.min(...auf.map((b) => b.y))).toBeLessThan(-40);
+    expect(auf[auf.length - 1].y).toBe(0);
+  });
+
+  test('mit reduzierter Bewegung klappt es ohne Weg', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    // Vor dem Tipp die alte Lage, danach sofort die neue — kein Bild dazwischen, kein Abbild.
+    for (const bilder of [await umschalten(page), await umschalten(page)]) {
+      expect(bilder.every((b) => !b.geist)).toBe(true);
+      expect(new Set(bilder.map((b) => b.y)).size).toBeLessThanOrEqual(2);
+    }
+  });
+});
+
+test.describe('B10 Aufklappen — <details>', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  test('der Inhalt blendet von oben ein; das Schließen hinterlässt kein Abbild', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    const kopf = page.locator('details > summary').filter({ hasText: 'Änderungsprotokoll' });
+    await expect(kopf).toBeVisible();
+    await kopf.evaluate((k) => k.scrollIntoView({ block: 'center' }));
+    await kopf.click();
+    const deck = await page.evaluate(() => new Promise<number>((fertig) => requestAnimationFrame(() => requestAnimationFrame(() => {
+      const d = [...document.querySelectorAll('details')].find((x) => x.open)!;
+      fertig(Number(getComputedStyle([...d.children].find((k) => k.tagName !== 'SUMMARY')!).opacity));
+    }))));
+    expect(deck).toBeLessThan(1);
+    await kopf.click();
+    await page.waitForTimeout(400);
+    expect(await page.locator('[data-geist]').count()).toBe(0);
+  });
+});
