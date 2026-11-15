@@ -71,7 +71,7 @@ import { ANFORDERUNGS_FILTER, bekannt, type AnforderungsFilter } from '@/feature
 import { istAbholbereitAlt, istLieferungHeute, istLieferungUeberfaellig, wienerTag } from './anforderungStand';
 import { datumAT } from '@/lib/datum';
 import { lieferterminText } from './einkauf';
-import RetoureFenster from './RetoureFenster';
+import RetoureFenster, { type RetoureVorbelegt } from './RetoureFenster';
 import { useLagerorte } from './useLagerorte';
 import { HAUPTLAGER, weitereOrte } from './lagerorte';
 import { OrtWahl } from './LagerDialoge';
@@ -300,6 +300,8 @@ export default function AdminOrdersView() {
   const vorschlaegeAn = istAn(company?.modules, 'material.bestellvorschlaege') && !einblick;
   /** „Retoure erfassen“ im Reiter Retouren — im Seitenfenster wie bei „Material anfordern“. */
   const [retoureOffen, setRetoureOffen] = useState(false);
+  /** „Zurückgeben …“ an einer abgeholten Anforderung (V11): vorbelegt, der Besteller vorgewählt. */
+  const [retoureVorbelegt, setRetoureVorbelegt] = useState<RetoureVorbelegt | null>(null);
   /*
     WER ZURÜCKGEBRACHT HAT (A4, 24.10.2026): die aktive Belegschaft zur Wahl,
     geholt erst, wenn das Fenster aufgeht. `null` heißt „noch nicht da“.
@@ -1323,6 +1325,25 @@ export default function AdminOrdersView() {
             <LotVerlauf name="Verlauf der Anforderung" punkte={verlaufVon(offen, haendlerName(offen.supplierId))} />
 
             <div className="material-aktionen">
+              {/* V11: von der abgeholten Anforderung zurück — alles vorbelegt, auch frei getippte Ware. */}
+              {offen.transactionType !== 'return' && offen.status === 'Erledigt' && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setOffenId(null);
+                    setRetoureVorbelegt({
+                      materialId: offen.materialId || null,
+                      materialName: offen.materialName,
+                      menge: offen.quantity,
+                      baustelle: offen.projectNumber ?? '',
+                      userId: offen.userId,
+                    });
+                    setRetoureOffen(true);
+                  }}
+                >
+                  Zurückgeben …
+                </Button>
+              )}
               {wartetAufAnnahme(offen) && (
                 <Button
                   onClick={() => {
@@ -1752,7 +1773,11 @@ export default function AdminOrdersView() {
 
       <RetoureFenster
         offen={retoureOffen}
-        onClose={() => setRetoureOffen(false)}
+        onClose={() => {
+          setRetoureOffen(false);
+          setRetoureVorbelegt(null);
+        }}
+        vorbelegt={retoureVorbelegt}
         companyId={user.companyId}
         user={user}
         personen={belegschaft ?? []}

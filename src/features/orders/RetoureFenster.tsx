@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { sucheKatalog } from '@/lib/db/materials';
+import { katalogNachIds, sucheKatalog } from '@/lib/db/materials';
 import { gefundenUeberText, type MitNummer } from '@/lib/katalogTreffer';
 import { createReturn, createReturnInOrt, retoureRahmen, type RetoureRahmen } from '@/lib/db/materialOrders';
 import Hinweiszeile from '@/components/Hinweiszeile';
@@ -21,7 +21,7 @@ import { InputField, SelectField } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
-import { zahlOder } from '@/lib/zahl';
+import { zahlAlsText, zahlOder } from '@/lib/zahl';
 import { mengeFehler } from '@/lib/einheit';
 
 type Zustand = 'neu' | 'gebraucht' | 'defekt';
@@ -41,7 +41,23 @@ type Zustand = 'neu' | 'gebraucht' | 'defekt';
  * sofort und unbegrenzt. Mit Baustelle geht höchstens zurück, was für sie
  * ausgegeben wurde; das Formular sagt es vorher und auch, wenn die Ware
  * schon verrechnet ist (dann braucht der Kunde eine Gutschrift).
+ *
+ * AUS DER ANFORDERUNG (V11, 16.11.2026): „Zurückgeben“ an einer abgeholten
+ * Anforderung öffnet dieses Formular mit Artikel, Baustelle, Menge und —
+ * im Lager — der Person vorbelegt. Frei getippte Ware (ohne Katalogartikel)
+ * lässt sich jetzt ebenso zurückgeben; sie wird erfasst und mindert den
+ * Rechnungsvorschlag, gutgeschrieben wird ohne Katalogartikel nichts.
  */
+export interface RetoureVorbelegt {
+  materialId: string | null;
+  materialName: string;
+  einheit?: string | null;
+  menge: number;
+  baustelle: string;
+  /** Wer zurückbringt — im Lager vorgewählt (der Besteller). */
+  userId?: string;
+}
+
 export default function RetoureFenster({
   offen,
   onClose,
@@ -50,6 +66,7 @@ export default function RetoureFenster({
   baustelle = '',
   personen,
   personenFehler = null,
+  vorbelegt = null,
 }: {
   offen: boolean;
   onClose: () => void;
@@ -64,10 +81,14 @@ export default function RetoureFenster({
   personen?: { uid: string; name: string }[];
   /** Kam die Belegschaft nicht, steht es im Fenster — erfasst wird dann nicht. */
   personenFehler?: string | null;
+  /** Aus einer Anforderung (V11): alles vorbelegt. */
+  vorbelegt?: RetoureVorbelegt | null;
 }) {
   const toast = useToast();
   /** Das gewählte Material — der Datensatz selbst; die Suche liefert ihn vom Server. */
   const [gewaehlt, setGewaehlt] = useState<WithId<Material> | null>(null);
+  /** Frei getippt (V11): kein Katalogartikel — erfasst, nicht gutgeschrieben. */
+  const istFrei = !!gewaehlt && !gewaehlt.id;
   const [suche, setSuche] = useState('');
   const [menge, setMenge] = useState('1');
   const [zustand, setZustand] = useState<Zustand>('neu');
@@ -113,7 +134,7 @@ export default function RetoureFenster({
   */
   const [rahmen, setRahmen] = useState<RetoureRahmen | null>(null);
   const rahmenName = gewaehlt?.name ?? '';
-  const rahmenId = gewaehlt?.id ?? null;
+  const rahmenId = gewaehlt?.id || null;
   useEffect(() => {
     setRahmen(null);
     if (!offen || !projekt.trim() || !rahmenName.trim()) return;
@@ -136,12 +157,34 @@ export default function RetoureFenster({
   */
   const lagerErfasst = !!angemeldet && canProcessOrders(angemeldet.role);
   const insEigene = !lagerErfasst && zielorte.some((o) => o.id === ziel);
-  const wartet = zustand === 'neu' && !!gewaehlt && !lagerErfasst && !insEigene;
+  const wartet = zustand === 'neu' && !!gewaehlt && !istFrei && !lagerErfasst && !insEigene;
 
   // Wer das Fenster mit einer anderen Baustelle öffnet, will sie vorbelegt sehen.
   useEffect(() => {
-    if (offen) setProjekt(baustelle);
-  }, [offen, baustelle]);
+    if (offen) setProjekt(vorbelegt ? vorbelegt.baustelle : baustelle);
+  }, [offen, baustelle, vorbelegt]);
+  // Aus einer Anforderung (V11): Artikel, Menge und Person dazu.
+  useEffect(() => {
+    if (!offen || !vorbelegt) return;
+    setGewaehlt({
+      id: vorbelegt.materialId ?? '', companyId, name: vorbelegt.materialName, unit: vorbelegt.einheit ?? '',
+    } as WithId<Material>);
+    setMenge(zahlAlsText(vorbelegt.menge));
+    setSuche('');
+    if (vorbelegt.userId) setVon(vorbelegt.userId);
+    // Der ganze Datensatz — für Einheit (Mengenprüfung), Kategorie und Nummer.
+    if (!vorbelegt.materialId) return;
+    let weg = false;
+    Promise.resolve()
+      .then(() => katalogNachIds(companyId, [vorbelegt.materialId!]))
+      .then((liste) => {
+        const m = liste[0];
+        if (!weg && m) setGewaehlt((g) => (g && g.id === m.id ? m : g));
+      })
+      .catch(() => undefined);
+    return () => { weg = true; };
+  }, [offen, vorbelegt, companyId]);
+
 
   /**
    * DIE ARTIKELAUSWAHL IST EINE SUCHE, KEIN AUSWAHLFELD.
@@ -184,7 +227,10 @@ export default function RetoureFenster({
     // würde den Lagerbestand VERRINGERN. Zentral gelesen (M15).
     const qty = zahlOder(menge, NaN, { negativ: true });
     // Je Einheit (M27): Rohr in Metern mit Komma, Stück ganz.
-    const falsch = mengeFehler(qty, gewaehlt.unit);
+    // Ohne Katalogartikel kennt niemand die Einheit — dann nur: größer als null.
+    const falsch = istFrei
+      ? (!(qty > 0) ? 'Die Menge muss größer als null sein.' : null)
+      : mengeFehler(qty, gewaehlt.unit);
     if (falsch) {
       setFehler(falsch);
       return;
@@ -197,7 +243,7 @@ export default function RetoureFenster({
     setFehler(null);
     try {
       const beleg = {
-        materialId: gewaehlt.id,
+        materialId: gewaehlt.id || null,
         materialName: gewaehlt.name,
         quantity: qty,
         condition: zustand,
@@ -220,7 +266,7 @@ export default function RetoureFenster({
       toast.success(
         wartet
           ? 'Retoure gemeldet — gutgeschrieben wird, sobald das Lager sie annimmt'
-          : zustand === 'neu'
+          : zustand === 'neu' && !istFrei
             ? zielorte.some((o) => o.id === ziel)
               ? `Retoure erfasst — gutgeschrieben: ${ortNameVon(lo.orte, ziel)}`
               : 'Retoure erfasst — Material wurde dem Lager gutgeschrieben'
@@ -253,7 +299,9 @@ export default function RetoureFenster({
               <span className="section-label block">Material</span>
               <span className="font-semibold text-ink">{gewaehlt.name}</span>
               <span className="block text-sm text-ink-muted">
-                {[gewaehlt.category, gewaehlt.articleNumber].filter(Boolean).join(' · ')}
+                {istFrei
+                  ? 'Nicht im Katalog — wird erfasst, aber keinem Bestand gutgeschrieben.'
+                  : [gewaehlt.category, gewaehlt.articleNumber].filter(Boolean).join(' · ')}
               </span>
             </div>
             <Button
@@ -280,7 +328,18 @@ export default function RetoureFenster({
               <div className="mt-2">
                 {treffer.length === 0 ? (
                   <p className="text-sm text-ink-muted">Kein Material passt zur Suche.</p>
-                ) : (
+                ) : null}
+                {/* V11: frei getippte Ware — wie bei der Anforderung „Nicht im Katalog“. */}
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setGewaehlt({ id: '', companyId, name: suche.trim(), unit: '' } as WithId<Material>);
+                    setSuche('');
+                  }}
+                >
+                  {`„${suche.trim()}“ ohne Katalog zurückgeben`}
+                </Button>
+                {treffer.length === 0 ? null : (
                   <List>
                     {treffer.map((m) => (
                       <ListRow

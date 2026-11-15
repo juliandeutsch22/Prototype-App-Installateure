@@ -44,7 +44,7 @@ import { datumAusMs } from '@/lib/datum';
 import { abschlussText, herkunftFragen } from './abschlussText';
 import AnforderungFenster from './AnforderungFenster';
 import { zuletztAngefordert, ZULETZT_TAGE } from './zuletztAngefordert';
-import RetoureFenster from './RetoureFenster';
+import RetoureFenster, { type RetoureVorbelegt } from './RetoureFenster';
 import MeinFahrzeug from './MeinFahrzeug';
 import { zahlAlsText, zahlOder } from '@/lib/zahl';
 import { mengeFehler, mengeMitKomma } from '@/lib/einheit';
@@ -116,6 +116,8 @@ export default function OrderView() {
     vorbelegt — dort, wo man merkt, dass etwas übrig ist.
   */
   const [retoureOffen, setRetoureOffen] = useState(adresse.get('retoure') === '1');
+  /** „Zurückgeben“ an einer abgeholten Anforderung (V11): alles vorbelegt. */
+  const [retoureVorbelegt, setRetoureVorbelegt] = useState<RetoureVorbelegt | null>(null);
   const retoureBaustelle = adresse.get('baustelle') ?? '';
   /*
     DER KATALOG KOMMT SEITENWEISE VOM SERVER (Mengengerüst, 18.10.2026):
@@ -956,6 +958,24 @@ export default function OrderView() {
                   ) : (
                     <StatusBadge status={o.status} />
                   )}
+                  {/* V11: was übrig ist, geht von hier zurück — Artikel, Baustelle und Menge vorbelegt. */}
+                  {o.transactionType !== 'return' && o.status === 'Erledigt' && (
+                    <Button
+                      variant="ghost"
+                      aria-label={`${o.materialName} zurückgeben`}
+                      onClick={() => {
+                        setRetoureVorbelegt({
+                          materialId: o.materialId || null,
+                          materialName: o.materialName,
+                          menge: o.quantity,
+                          baustelle: o.projectNumber ?? '',
+                        });
+                        setRetoureOffen(true);
+                      }}
+                    >
+                      Zurückgeben
+                    </Button>
+                  )}
                 </ListRow>
               ))}
             </List>
@@ -972,7 +992,11 @@ export default function OrderView() {
       {/* Die Retoure im Seitenfenster (Linie „Lot“, Regel 8) — dasselbe Formular wie im Lager. */}
       <RetoureFenster
         offen={retoureOffen}
-        onClose={() => setRetoureOffen(false)}
+        onClose={() => {
+          setRetoureOffen(false);
+          setRetoureVorbelegt(null);
+        }}
+        vorbelegt={retoureVorbelegt}
         companyId={user.companyId}
         user={user}
         baustelle={retoureBaustelle}

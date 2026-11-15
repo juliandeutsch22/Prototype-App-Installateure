@@ -628,6 +628,38 @@ describe('Retoure — Höchstmenge und Annahme (M7)', () => {
   });
 });
 
+/*
+  V11 (16.11.2026): „Zurückgeben“ an der abgeholten Anforderung, vorbelegt;
+  die Suche bietet frei getippte Ware an.
+*/
+describe('Zurückgeben (V11)', () => {
+  it('aus „Erledigt“: Artikel, Baustelle und Menge vorbelegt', async () => {
+    eigene = [{ id: 'e1', companyId: 'perl', materialId: 'm1', materialName: 'Kupferrohr 15mm', quantity: 4, status: 'Erledigt',
+      transactionType: 'order', userId: 'u1', projectNumber: '2026-042', processed: true } as WithId<MaterialOrder>];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm zurückgeben' }));
+    const fenster = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
+    expect(within(fenster).getByRole('textbox', { name: /Menge/ })).toHaveValue('4');
+    await userEvent.selectOptions(within(fenster).getByRole('combobox', { name: /Zustand/ }), 'gebraucht');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await waitFor(() => expect(retoure).toHaveBeenCalledTimes(1));
+    expect(retoure.mock.calls[0][1]).toMatchObject({ materialId: 'm1', quantity: 4, projectNumber: '2026-042' });
+  });
+
+  it('frei getippt: ohne Katalog zurückgeben — mit Kommamenge', async () => {
+    zeige();
+    const fenster = await retoureOeffnen();
+    await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Restrohr alt');
+    await userEvent.click(await within(fenster).findByRole('button', { name: '„Restrohr alt“ ohne Katalog zurückgeben' }));
+    const menge = within(fenster).getByRole('textbox', { name: /Menge/ });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '1,5');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await waitFor(() => expect(retoure).toHaveBeenCalledTimes(1));
+    expect(retoure.mock.calls[0][1]).toMatchObject({ materialId: null, materialName: 'Restrohr alt', quantity: 1.5 });
+  });
+});
+
 describe('Material anfordern — gescheiterte Ladevorgänge', () => {
   it('zeigt den Katalog trotzdem, wenn nur die Baustellen fehlen', async () => {
     // Ein stumm gescheitertes Nebenabo sieht aus wie „nichts da". Der Monteur
