@@ -6076,3 +6076,32 @@ describe('Konditionen gelten nur für die Rechnung, die gerade entsteht (G1)', (
     expect(abweichung?.textContent).not.toContain('Helfer');
   });
 });
+
+/*
+  DURCHSICHT 15.11.2026, G6: der Leistungsnachweis gehört zum Beleg. Beim
+  Ausstellen gehen dieselben Zeilen an die Rechnung, die das PDF druckt —
+  Nachdruck und Belegarchiv drucken sie danach von dort. Gegenprobe: ohne
+  die Änderung trägt die Rechnung keinen Nachweis.
+*/
+describe('Leistungsnachweis wird mit der Rechnung festgehalten (G6)', () => {
+  it('mit Haken: Rechnung und PDF tragen dieselben Zeilen', async () => {
+    const bestaetigen = await bisZurVorschau();
+    expect(screen.getByRole('checkbox', { name: 'Leistungsnachweis anhängen' })).toBeChecked();
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalledOnce());
+    const nachweis = lege.mock.calls[0][0].leistungsnachweis;
+    expect(nachweis).toEqual([
+      { uid: 'u1', datum: '2026-08-20', mitarbeiter: 'Max', typ: 'Fachkraft', taetigkeit: '', minuten: 480 },
+    ]);
+    await waitFor(() => expect(pdfAusgabe).toHaveBeenCalledOnce());
+    expect(pdfAusgabe.mock.calls[0][0].leistungsnachweis).toEqual(nachweis);
+  });
+
+  it('ohne Haken: kein Nachweis an der Rechnung', async () => {
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Leistungsnachweis anhängen' }));
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalledOnce());
+    expect(lege.mock.calls[0][0].leistungsnachweis).toBeNull();
+  });
+});

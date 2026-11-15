@@ -2035,6 +2035,21 @@ export interface Vorrechnung {
   brutto: number;
 }
 
+/**
+ * Eine Zeile des Leistungsnachweises, so wie sie auf dem Beleg steht (G6).
+ * Gespeichert als Text und Minuten, nicht als Verweis auf die Buchung: eine
+ * Buchung kann sich danach ändern, der ausgestellte Beleg nicht.
+ */
+export interface LeistungsnachweisZeile {
+  /** Die Person der Buchung — für die Datenauskunft; gedruckt wird der Name. */
+  uid: string | null;
+  datum: string;
+  mitarbeiter: string;
+  typ: string;
+  taetigkeit: string;
+  minuten: number;
+}
+
 export interface Invoice {
   id: string;
   companyId: string;
@@ -2267,6 +2282,12 @@ export interface Invoice {
    * `skontoBisher` die damalige Rundung wieder.
    */
   skontoZugesagt?: number | null;
+  /**
+   * Der Leistungsnachweis, wie er mit dem Beleg hinausging (Durchsicht
+   * 15.11.2026, G6) — oder null, wenn keiner angehängt war und bei
+   * Rechnungen davor. Nachdruck und Belegarchiv drucken ihn daraus.
+   */
+  leistungsnachweis?: LeistungsnachweisZeile[] | null;
   /** Summe der Skonto-Einträge — abgeleitet wie `bezahltBetrag`, darin enthalten. */
   skontoBetrag?: number;
   /**

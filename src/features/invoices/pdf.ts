@@ -36,27 +36,13 @@ function fmtDatum(iso: string): string {
     year: 'numeric',
   });
 }
-import type { Company, Project, RechnungsArt, TimeEntry, Vorrechnung } from '@/types';
+import type { Company, LeistungsnachweisZeile, Project, RechnungsArt, Vorrechnung } from '@/types';
+import { leistungsnachweisZeilen } from './leistungsnachweis';
 import { INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { mitAbzug } from './vorrechnungen';
-import { calcWorkMin } from '@/lib/time';
-import { istLehrlingssatz, satzklasse } from '@/lib/einstufung';
 import { zugesagterSkonto } from './skonto';
 import { cent, euroBetrag } from '@/lib/betrag';
 import { ibanAnzeige } from '@shared/iban';
-
-/**
- * Die Spalte „Typ“ im Leistungsnachweis — seit dem 30.09.2026 aus dem Satz
- * der Buchung (Testbericht 4.1). Das Lehrjahr steht an der Rechnungszeile;
- * hier genügt „Lehrling“.
- */
-function typAufDemNachweis(e: Pick<TimeEntry, 'satz' | 'isHelper'>): string {
-  const k = satzklasse(e);
-  if (k === 'helfer') return 'Helfer';
-  if (k === 'obermonteur') return 'Obermonteur';
-  if (istLehrlingssatz(k)) return 'Lehrling';
-  return 'Fachkraft';
-}
 
 /** Minuten als Dezimalstunden mit Komma ("7,50"). */
 const fmtHours = (min: number) => (min / 60).toFixed(2).replace('.', ',');
@@ -96,6 +82,13 @@ export function generateInvoicePdf(opts: {
   dueDate: string;
   assembled: AssembledInvoice;
   appendDetail?: boolean;
+  /**
+   * Der festgehaltene Leistungsnachweis (G6). Gesetzt beim Nachdruck — dann
+   * steht er so da, wie er hinausging, auch wenn sich Buchungen seither
+   * geändert haben. Fehlt er, rechnet das PDF ihn aus `assembled.entries`,
+   * sofern `appendDetail` gesetzt ist.
+   */
+  leistungsnachweis?: LeistungsnachweisZeile[] | null;
   vatRate?: number;
   /** Bauleistung mit Übergang der Steuerschuld (§ 19 Abs 1a UStG). */
   reverseCharge?: boolean;
@@ -318,8 +311,9 @@ export function generateInvoicePdf(opts: {
   y = platzFuer(doc, y + 10, 5);
   doc.text('Vielen Dank für Ihren Auftrag.', RAND, y);
 
-  // Optionaler Leistungsnachweis (eigene Seite)
-  if (opts.appendDetail && assembled.entries.length) {
+  // Optionaler Leistungsnachweis (eigene Seite) — festgehalten oder aus den Buchungen (G6).
+  const nachweis = opts.leistungsnachweis ?? (opts.appendDetail ? leistungsnachweisZeilen(assembled) : []);
+  if (nachweis.length) {
     doc.addPage();
     titel(doc, 'Leistungsnachweis', 25);
     doc.setFontSize(9).setTextColor(...GRAU);
@@ -331,24 +325,14 @@ export function generateInvoicePdf(opts: {
       31,
     );
     doc.setTextColor(...TINTE);
-    const detail = [...assembled.entries].sort((a, b) => a.date.localeCompare(b.date));
-    const totalMin = detail.reduce((s, e) => s + calcWorkMin(e), 0);
+    const totalMin = nachweis.reduce((s, z) => s + z.minuten, 0);
     autoTable(doc, {
       ...TABELLENSTIL,
       startY: 38,
       // Ohne die Stundenspalte ist ein Leistungsnachweis als Beleg wertlos —
       // der Kunde kann die Rechnungssumme sonst nicht nachvollziehen.
       head: [['Datum', 'Mitarbeiter', 'Typ', 'Tätigkeit / Notiz', 'Std.']],
-      body: detail.map((e) => [
-        fmtDate(e.date),
-        e.userName ?? '',
-        typAufDemNachweis(e),
-        // Ganz, nicht auf 60 Zeichen gekappt: die Tabelle bricht jetzt um,
-        // und ein abgeschnittener Satz belegt nichts.
-        // Die Notiz der Buchung, sonst die Tätigkeit aus dem Schein (G17).
-        e.comment?.trim() || assembled.taetigkeiten?.[e.id] || '',
-        fmtHours(calcWorkMin(e)),
-      ]),
+      body: nachweis.map((z) => [fmtDate(z.datum), z.mitarbeiter, z.typ, z.taetigkeit, fmtHours(z.minuten)]),
       foot: [['', '', '', 'Summe', fmtHours(totalMin)]],
       columnStyles: {
         0: { cellWidth: 22 },

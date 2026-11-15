@@ -29,6 +29,7 @@ import {
   rechnungVersuchKlaeren,
 } from '@/lib/db/invoices';
 import { offenenVersuchLesen, offenenVersuchMerken, offenenVersuchVergessen, type OffenerVersuch } from './offenerVersuch';
+import { leistungsnachweisZeilen } from './leistungsnachweis';
 import {
   listZahlungen, listZahlungenImZeitraum, createZahlung, createZahlungAufgeteilt, createZahlungMitSkonto, deleteZahlung,
 } from '@/lib/db/zahlungen';
@@ -2131,6 +2132,14 @@ export default function InvoicesView() {
         Erstellen bis zum Neuladen zu sperren.
       */
       versuchDiesesAusstellens = { kennung: crypto.randomUUID(), baustelle: projectNumber };
+      /*
+        DER LEISTUNGSNACHWEIS GEHÖRT ZUM BELEG (G6). Gerechnet einmal, hier:
+        dieselben Zeilen kommen auf das PDF und an die Rechnung — Nachdruck
+        und Belegarchiv drucken sie danach von dort, auch wenn sich eine
+        Buchung später ändert. Ohne Haken oder ohne Buchungen: keiner.
+      */
+      const nachweis = appendDetail ? leistungsnachweisZeilen(preview) : [];
+      const leistungsnachweis = nachweis.length > 0 ? nachweis : null;
       const { invoiceNumber: reserved } = await rechnungAusstellen(user.companyId, {
         projectNumber,
         customerName: project?.customerName ?? '–',
@@ -2195,6 +2204,7 @@ export default function InvoicesView() {
         linkedWorkSheets: preview.linkedWorkSheets,
         // Die Wartungen, deren Zeile noch in der Vorschau steht (M01e).
         linkedWartungen: wartungenDerPositionen(preview.positions),
+        leistungsnachweis,
       }, {
         praefix: vorsaetze.rechnung,
         desired: vonHand ? typedSeq : undefined,
@@ -2224,6 +2234,7 @@ export default function InvoicesView() {
             leistung: leistungVon && leistungBis ? { von: leistungVon, bis: leistungBis } : null,
           },
           appendDetail,
+          leistungsnachweis,
           vatRate: satz,
           reverseCharge,
           // `assembled` trägt die volle Leistung; den Rest rechnet das PDF

@@ -55,7 +55,14 @@ export function druckAngaben(company: Company, inv: Invoice): DruckAngaben {
       materialOhnePreis: [],
       entries: [],
     },
+    /*
+      DER LEISTUNGSNACHWEIS, WIE ER HINAUSGING (G6) — festgehalten beim
+      Ausstellen. Rechnungen davor tragen keinen; für sie bleibt der
+      Nachdruck ohne, wie bisher (aus den heutigen Buchungen nachgebaut wäre
+      er ein anderer Beleg als der, den der Kunde bekam).
+    */
     appendDetail: false,
+    leistungsnachweis: inv.leistungsnachweis ?? null,
     vatRate: inv.vatRate,
     /*
       AUS DEM DOKUMENT, nicht aus dem Formular: der zweite Druck muss
