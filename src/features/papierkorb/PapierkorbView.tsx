@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import { useAuth } from '@/app/AuthContext';
 import { isTopLevel } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
@@ -82,6 +83,8 @@ export default function PapierkorbView() {
   const [fehler, setFehler] = useState<string | null>(null);
   const [ladeFehler, setLadeFehler] = useState(false);
   const [versuch, setVersuch] = useState(0);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(() => setVersuch((v) => v + 1));
   const [grenzeAngebote, setGrenzeAngebote] = useState(JE_SEITE);
   const [grenzeScheine, setGrenzeScheine] = useState(JE_SEITE);
   const [laufend, setLaufend] = useState<string | null>(null);

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import NeuFormular from '@/components/NeuFormular';
 import Button from '@/components/Button';
 import { useAmHandy } from '@/lib/breiten';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import { useAuth } from '@/app/AuthContext';
 import { getUserByUid } from '@/lib/db/users';
 import { listEigeneFreistellungen } from '@/lib/db/freistellungen';
@@ -59,6 +60,8 @@ export default function SonderurlaubView() {
   useEffect(() => {
     void laden();
   }, [laden]);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(laden);
 
   /* U2: am Handy öffnet „Antrag stellen“ das Formular als Blatt von unten; die Seite zeigt zuerst die eigenen Anträge. */
   const amHandy = useAmHandy();

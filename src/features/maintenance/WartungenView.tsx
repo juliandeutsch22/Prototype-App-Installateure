@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import Fensteraktionen from '@/components/Fensteraktionen';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { schluessel as speicherSchluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import Adressfilter from '@/components/Adressfilter';
@@ -364,6 +365,8 @@ export default function WartungenView() {
     setWartungen(w);
     if (grenze === WARTUNGEN_JE_SEITE) merken({ wartungen: w });
   };
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(neuLaden);
 
   /*
     GESUCHT WIRD SERVERSEITIG — und zwar NEBEN der geladenen Liste, nicht

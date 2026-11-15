@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import NeuFormular from '@/components/NeuFormular';
+import { useAktualisierungsRunde } from '@/lib/aktualisieren';
 import type { AppUser, Betriebsurlaub } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { listUsers } from '@/lib/db/users';
@@ -46,6 +47,8 @@ export default function BetriebsurlaubReiter({ companyId, meinName, neuOffen = f
   const [laden, setLaden] = useState(true);
   const [fehler, setFehler] = useState<string | null>(null);
   const [stand, setStand] = useState(0);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — die Runde lädt sie neu.
+  const runde = useAktualisierungsRunde();
 
   const [bezeichnung, setBezeichnung] = useState('Betriebsurlaub');
   const [von, setVon] = useState(todayStr());
@@ -100,7 +103,7 @@ export default function BetriebsurlaubReiter({ companyId, meinName, neuOffen = f
     return () => {
       weg = true;
     };
-  }, [companyId, ab, stand]);
+  }, [companyId, ab, stand, runde]);
 
   function pruefen(e: FormEvent) {
     e.preventDefault();

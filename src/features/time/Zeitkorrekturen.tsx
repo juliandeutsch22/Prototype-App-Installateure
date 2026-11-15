@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import { getUserByUid } from '@/lib/db/users';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -84,6 +85,8 @@ export default function Zeitkorrekturen() {
       if (nr === ladeNummer.current) setFehler(grundAus(e, 'Die Korrekturanträge konnten nicht geladen werden.'));
     }
   }, [firma, auchErledigte, an]);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(laden);
   useEffect(() => {
     void laden(); window.addEventListener('senklot:zeitkorrektur', laden);
     // Ein langsamer alter Filter darf die inzwischen gewählte Ansicht nicht ersetzen.

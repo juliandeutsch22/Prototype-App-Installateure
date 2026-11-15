@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useAktualisierungsRunde } from '@/lib/aktualisieren';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -92,6 +93,8 @@ export default function MyScheduleView() {
     Besuch steht der Plan sofort da; frisch geholt wird im Hintergrund. Der
     Monat nur für den laufenden — blättert man, lädt er wie bisher.
   */
+  // Ziehen zum Aktualisieren (F15): dieser Plan lädt selbst — die Runde lädt ihn neu.
+  const runde = useAktualisierungsRunde();
   const { anfang, merken } = useGemerkt<EinsatzplanStand>(user ? schluessel('meinEinsatzplan', user, materialAn) : null);
   const heuteMonat = todayStr().slice(0, 7);
   const monatGemerkt = anfang?.monat?.fuer === heuteMonat ? anfang.monat : undefined;
@@ -180,7 +183,7 @@ export default function MyScheduleView() {
     return () => {
       weg = true;
     };
-  }, [user, prefix, cursor.year, cursor.month, heuteMonat, merken]);
+  }, [user, prefix, cursor.year, cursor.month, heuteMonat, merken, runde]);
 
   /**
    * Die anstehenden Einsätze ab heute — die Frage „wo muss ich als Nächstes
@@ -199,7 +202,7 @@ export default function MyScheduleView() {
       .then((u) => { setUrlaube(u); merken({ urlaube: u }); })
       .catch(() => setUrlaube([]))
       .finally(() => setUrlaubeGeladen(true));
-  }, [user, merken]);
+  }, [user, merken, runde]);
 
   /*
     WER AN DEM TAG GANZTAGS WEG IST, HAT DORT KEINEN „NÄCHSTEN EINSATZ“

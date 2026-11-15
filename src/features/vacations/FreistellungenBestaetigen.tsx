@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import type { AppUser, Company, Freistellung } from '@/types';
 import {
   arztbesuchVorschlag,
@@ -100,6 +101,8 @@ export default function FreistellungenBestaetigen({
   const [verlauf, setVerlauf] = useState<Freistellung[]>(() => anfang?.verlauf ?? []);
   const [leute, setLeute] = useState<AppUser[]>(() => anfang?.leute ?? []);
   const [versuch, setVersuch] = useState(0);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(() => setVersuch((v) => v + 1));
   const [geprueft, setGeprueft] = useState<Record<string, boolean>>({});
   const [kuerzung, setKuerzung] = useState<Record<string, Kuerzungszeile[]>>({});
   const [arbeitet, setArbeitet] = useState<string | null>(null);

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import NeuFormular from '@/components/NeuFormular';
 import { useAmHandy } from '@/lib/breiten';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import { Link, useSearchParams } from 'react-router-dom';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { useAuth } from '@/app/AuthContext';
@@ -144,6 +145,8 @@ export default function UserMgmtView() {
     if (!user) return;
     setUsers(await listUsers(user.companyId));
   }
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(reload);
 
   useEffect(() => {
     if (!user) return;

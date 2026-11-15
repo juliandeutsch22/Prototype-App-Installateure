@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import { istAn } from '@/lib/module';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
@@ -420,6 +421,11 @@ export default function VacationsView() {
   }, [laden_]);
 
   const [genehmigtVersuch, setGenehmigtVersuch] = useState(0);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(() => {
+    setGenehmigtVersuch((v) => v + 1);
+    return laden_();
+  });
   useEffect(() => {
     if (!user || !darfEntscheiden) return;
     let weg = false;

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import type { AppUser, UrlaubsanspruchAnpassung } from '@/types';
 import { anpassungEntfernen, anspruchAnpassen, listAnpassungen } from '@/lib/db/urlaubsanspruch';
 import { localDateStr, todayStr, urlaubsJahrVon, vorzeichenTage } from '@/lib/time';
@@ -37,6 +38,8 @@ export default function UrlaubsanspruchKarte({
   const laufendesJahr = urlaubsJahrVon(todayStr(), jahresbeginn);
   const [liste, setListe] = useState<UrlaubsanspruchAnpassung[] | 'laedt' | 'fehler'>('laedt');
   const [versuch, setVersuch] = useState(0);
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(() => setVersuch((v) => v + 1));
   const [offen, setOffen] = useState(false);
   const [jahr, setJahr] = useState(String(laufendesJahr));
   const [tage, setTage] = useState('');
