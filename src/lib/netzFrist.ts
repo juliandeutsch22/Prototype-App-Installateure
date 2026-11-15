@@ -124,6 +124,7 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'nachrichten_verlauf',
   'naechste_kundennummer',
   'naechste_nummern',
+  'naechste_nummern_vorschau',
   'offene_lieferantenartikel',
   'offene_posten',
   'person_auskunft',

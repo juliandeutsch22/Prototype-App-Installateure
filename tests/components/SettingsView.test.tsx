@@ -31,12 +31,19 @@ const updateCompany = vi.fn<(a0: string, a1: Record<string, unknown>) => Promise
 );
 /** Was der Zähler als Nächstes vergäbe (Launch-Check, K6). */
 const naechsteNummern = vi.fn(async () => ({ rechnung: 1002, angebot: 4, baustelle: 5 }));
+/*
+  DAS JAHR DES SERVERS (G12) — absichtlich ein anderes als das des Geräts:
+  nur so zeigt die Prüfung, woher die Vorschau ihr Jahr nimmt.
+*/
+const SERVERJAHR = new Date().getFullYear() + 5;
+const naechsteNummernImJahr = vi.fn(async () => ({ jahr: SERVERJAHR, rechnung: 1002, angebot: 4, baustelle: 5 }));
 const rechnungsvorgabenSpeichern = vi.fn<(a0: Record<string, unknown>) => Promise<void>>(
   async () => undefined,
 );
 vi.mock('@/lib/db/company', () => ({
   updateCompany: (id: string, daten: Record<string, unknown>) => updateCompany(id, daten),
   naechsteNummern: () => naechsteNummern(),
+  naechsteNummernImJahr: () => naechsteNummernImJahr(),
   rechnungsvorgabenSpeichern: (v: Record<string, unknown>) => rechnungsvorgabenSpeichern(v),
 }));
 vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => []) }));
@@ -448,14 +455,24 @@ describe('Drei Unterseiten statt einer (Prüflauf 24.09.2026, D10)', () => {
   it('zeigt die NÄCHSTE Nummer jedes Kreises, nicht ein festes Beispiel (Launch-Check, K6)', async () => {
     // Vorher stand hier PR-2026-0001, während PR-2026-0003 schon existierte.
     zeige('nummern');
-    const jahr = new Date().getFullYear();
-    expect(await screen.findByText(`Nächste: RE-${jahr}-1002`)).toBeInTheDocument();
-    expect(screen.getByText(`Nächste: AN-${jahr}-0004`)).toBeInTheDocument();
-    expect(screen.getByText(`Nächste: B-${jahr}-0005`)).toBeInTheDocument();
+    expect(await screen.findByText(`Nächste: RE-${SERVERJAHR}-1002`)).toBeInTheDocument();
+    expect(screen.getByText(`Nächste: AN-${SERVERJAHR}-0004`)).toBeInTheDocument();
+    expect(screen.getByText(`Nächste: B-${SERVERJAHR}-0005`)).toBeInTheDocument();
+  });
+
+  it('nimmt das Jahr des Servers, nicht das des Geräts (Durchsicht 15.11.2026, G12)', async () => {
+    // Vorher: `naechsteNummern(new Date().getFullYear())` und die Vorschau im Gerätejahr.
+    zeige('nummern');
+    await screen.findByText(`Nächste: RE-${SERVERJAHR}-1002`);
+    const geraet = new Date().getFullYear();
+    expect(screen.queryByText(`Nächste: RE-${geraet}-1002`)).toBeNull();
+    expect(naechsteNummern).not.toHaveBeenCalled();
+    // Auch das Beispiel für „kein Vorsatz“ zählt im Jahr des Servers.
+    expect(screen.getByText(`${SERVERJAHR}-1001`)).toBeInTheDocument();
   });
 
   it('sagt ausdrücklich „z. B.“, wenn die nächste Nummer nicht geladen werden kann', async () => {
-    naechsteNummern.mockRejectedValueOnce(new Error('offline'));
+    naechsteNummernImJahr.mockRejectedValueOnce(new Error('offline'));
     zeige('nummern');
     const jahr = new Date().getFullYear();
     expect(await screen.findByText(`z. B. RE-${jahr}-1001`)).toBeInTheDocument();

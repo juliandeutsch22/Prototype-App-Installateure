@@ -64,6 +64,31 @@ export async function naechsteNummern(jahr: number): Promise<NaechsteNummern> {
   };
 }
 
+/** Die nächsten Nummern und das Jahr, in dem der Server sie vergäbe. */
+export interface NaechsteNummernImJahr extends NaechsteNummern {
+  jahr: number;
+}
+
+/**
+ * DAS JAHR KOMMT MIT (Durchsicht 15.11.2026, G12). Seit G5/G10 vergibt der
+ * Server im laufenden Jahr in Wien; die Vorschau mit dem Jahr des Geräts zu
+ * bauen, zeigte bei falscher Uhr oder zu Silvester eine Nummer aus einem
+ * Kreis, den es nicht gibt. Die Datenbank sagt deshalb beides: Zahl und Jahr.
+ */
+export async function naechsteNummernImJahr(): Promise<NaechsteNummernImJahr> {
+  const { data, error } = await derClient().rpc('naechste_nummern_vorschau');
+  if (error) throw new Error(error.message);
+  const zeilen = (data ?? []) as { art: string; naechste: number; jahr: number }[];
+  if (zeilen.length === 0) throw new Error('Die nächsten Nummern kamen nicht.');
+  const je = new Map(zeilen.map((z) => [z.art, Number(z.naechste)]));
+  return {
+    jahr: Number(zeilen[0].jahr),
+    rechnung: je.get('invoices') ?? 1001,
+    angebot: je.get('quotes') ?? 1,
+    baustelle: je.get('projects') ?? 1,
+  };
+}
+
 /** Die Schlüssel in `rates`, die die Buchhaltung pflegt (Testbericht H10). */
 export type Rechnungsvorgaben = Partial<
   Pick<

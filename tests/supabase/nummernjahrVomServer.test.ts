@@ -12,6 +12,7 @@ import { admin, betriebAnlegen, konto, type Konto } from './helfer';
 import { reserveQuoteNumber } from '@/lib/db/pg/quotes';
 import { reserveProjectNumber } from '@/lib/db/pg/projects';
 import { clientEinreichen } from '@/lib/db/pg/kern';
+import { naechsteNummernImJahr } from '@/lib/db/pg/company';
 
 const BETRIEB = 'jahr-g10';
 let chefin: Konto;
@@ -44,5 +45,28 @@ describe('Nummernjahr vom Server (G10)', () => {
     const a = await chefin.client.rpc('naechste_nummer', { p_art: 'projects', p_jahr: JAHR });
     const b = await chefin.client.rpc('naechste_nummer', { p_art: 'projects', p_jahr: JAHR });
     expect(b.data).toBe((a.data as number) + 1);
+  });
+
+  /*
+    G12: die Vorschau der Einstellungen. Vorher fragte sie mit dem Jahr des
+    Geräts und baute die Nummer damit; ohne
+    `20261117030000_naechste_nummern_serverjahr.sql` gibt es die Funktion nicht.
+  */
+  it('die Vorschau der nächsten Nummern kommt mit dem Jahr vom Server und verbraucht nichts', async () => {
+    const vorher = await naechsteNummernImJahr();
+    expect(vorher.jahr).toBe(JAHR);
+    const wieBisher = await chefin.client.rpc('naechste_nummern', { p_jahr: JAHR });
+    const je = new Map((wieBisher.data as { art: string; naechste: number }[]).map((z) => [z.art, z.naechste]));
+    expect(vorher).toEqual({ jahr: JAHR, rechnung: je.get('invoices'), angebot: je.get('quotes'), baustelle: je.get('projects') });
+    // Bleibt gleich: die Vorschau zieht keine Nummer.
+    expect(await naechsteNummernImJahr()).toEqual(vorher);
+  });
+
+  it('die Vorschau gibt es nur angemeldet', async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const { API, ANON } = await import('./helfer');
+    const anonym = createClient(API, ANON, { auth: { persistSession: false } });
+    const { error } = await anonym.rpc('naechste_nummern_vorschau');
+    expect(error).not.toBeNull();
   });
 });
