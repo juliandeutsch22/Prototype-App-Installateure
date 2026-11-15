@@ -38,7 +38,7 @@ gebrochene Zusage. **mittel** = Ablauf lückenhaft oder irreführend.
 | # | Punkt | Lösung |
 |---|---|---|
 | S1 ✔ **erledigt (15.11.2026, Stand §95)** | **Speicherleiste der Firmendaten ist weiter zerlegt** (Rahmenstücke, Linie durch „Speichern“). Ursache: seit #455 liegt die Kontur jedes Blatts als Ebene 11 über dem Inhalt; die frei klebende Leiste liegt auf Ebene 10. Rollt ein Blatt unter der Leiste durch, wird seine Kontur über die Leiste gezeichnet. Mein „Fix“ in #456 (innere Linie statt Umriss) war eine Fehldiagnose. Betroffen: Firmendaten am Handy und Tablet, Sprungleiste der Angebotsakte am Tablet. | Die Kontur bleibt im Blatt eingeschlossen (eigener Stapel je Blatt), sodass sie nur den Inhalt *dieses* Blatts überdeckt. Vorher prüfen, dass Menüs in Blättern weiter über Nachbarblättern liegen. Neue Prüfung, die die *Schichtung* misst (welches Element liegt an einem Punkt der Leiste oben), nicht nur das Bild — der Bildvergleich aus #456 konnte diesen Fehler nicht finden. Die Erklärung im Handbuch („Safari zeichnet nicht mit“) wird berichtigt. |
-| S2 ✔ | **Der Taktgeber setzt Blätter gelegentlich eine Zelle zu hoch** (gefunden bei S1). Startseite am Handy: in einem von sechs Ladevorgängen bekommt das zweite Blatt −15 px statt 9 px Abstand und stößt an das erste; auf weiteren Seiten (Sätze, Benutzerakte, Scheine) wechselt der Abstand zwischen Blättern von Lauf zu Lauf. Gemessen in der Vorschau, nach 3 s unverändert — es wird also nicht nachgezogen. | Ursache im Taktgeber (`src/lib/takt.ts`) nachstellen (Reihenfolge von Messung, Schriften und nachgeladenen Daten); der Abstand muss nach jedem Laden derselbe sein. Prüfung: mehrfach laden und Abstände vergleichen. |
+| S2 ✔ **erledigt (15.11.2026, Stand §96)** | **Der Taktgeber setzt Blätter gelegentlich eine Zelle zu hoch** (gefunden bei S1). Startseite am Handy: in einem von sechs Ladevorgängen bekommt das zweite Blatt −15 px statt 9 px Abstand und stößt an das erste; auf weiteren Seiten (Sätze, Benutzerakte, Scheine) wechselt der Abstand zwischen Blättern von Lauf zu Lauf. Gemessen in der Vorschau, nach 3 s unverändert — es wird also nicht nachgezogen. | Ursache im Taktgeber (`src/lib/takt.ts`) nachstellen (Reihenfolge von Messung, Schriften und nachgeladenen Daten); der Abstand muss nach jedem Laden derselbe sein. Prüfung: mehrfach laden und Abstände vergleichen. |
 
 ---
 
@@ -256,7 +256,7 @@ aus Abschnitt 1 oder 2.
 
 ## 7. Vorgeschlagene Reihenfolge (je Thema ein PR)
 
-1. **S1** — Speicherleiste (erledigt 15.11.2026), danach **S2** — Taktgeber.
+1. **S1** — Speicherleiste, **S2** — Taktgeber (beide erledigt 15.11.2026).
 2. **Stille Fehler und gebrochene Zusagen** — klein, hoher Nutzen:
    A2, A7, G1, G7, K1, K5, M1 (Dialog und Sperre), P1.
 3. **Planung:** P2–P9, V1, V13.

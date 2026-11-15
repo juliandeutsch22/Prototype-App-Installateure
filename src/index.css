@@ -781,14 +781,29 @@ textarea {
   to { transform: scaleX(1); opacity: 0; }
 }
 
-/* Bewegung reduzieren, wenn vom System gewünscht */
+/*
+  Bewegung reduzieren, wenn vom System gewünscht.
+
+  ÜBERGÄNGE AUF 0s, NICHT 0,01 ms (S2, 15.11.2026). Jedes Element hat von
+  Haus aus `transition-property: all` mit 0s Dauer — also keinen Übergang.
+  Mit 0,01 ms bekam jede Änderung jeder Eigenschaft einen echten, winzigen
+  Übergang, auch der Abstand, den der Taktgeber (`lib/takt.ts`) an ein Blatt
+  schreibt. Chromium startet einen Übergang erst im nächsten Bild; misst der
+  Taktgeber genau dann nach, liest er noch den alten Abstand und rechnet mit
+  einem falschen Grundwert. Folge: Blätter stießen gelegentlich aneinander
+  (Startseite am Handy, in einem von sechs Ladevorgängen) oder bekamen eine
+  Zelle zu viel Abstand. Mit 0s entsteht kein Übergang, wo keiner gewollt
+  ist, und gewollte sind sofort am Ziel. Niemand wartet auf `transitionend`.
+  Animationen bleiben bei 0,01 ms: sie laufen nur auf ihren eigenen
+  Eigenschaften.
+*/
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: 0s !important;
     scroll-behavior: auto !important;
   }
 }
