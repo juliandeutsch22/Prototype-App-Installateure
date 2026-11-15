@@ -52,7 +52,7 @@ gebrochene Zusage. **mittel** = Ablauf lückenhaft oder irreführend.
 | Z3 ✔ | hoch | **Wochenstunden, Arbeitstage, Tagessoll und Urlaubstage haben kein „gültig ab“.** Jede Änderung rechnet rückwirkend ab Saldostart (40→30 Std: +936 Std; 25→30 Urlaubstage: 40 statt 35 Tage). Die Rechnung bewertet Abwesenheiten bewusst „mit der aktuellen Konfiguration“. | Arbeitszeit und Urlaubsanspruch als Verlauf mit „gültig ab“ (wie die Einstufung es schon hat). Die Monatsbilanzen speichern das Soll des Monats mit. Bestehende Daten: ein Eintrag „gültig ab Saldostart“ mit den heutigen Werten — nichts wird umgeschrieben. Löst zugleich L1/L2. |
 | Z4 ○ | mittel | **Eine ohne Netz vorgemerkte Zeitbuchung, die nicht ankommt, ist weg** — ohne Tag und Grund; auch gültige Buchungen nach etwa fünf Minuten Serverstörung. Vorgemerktes steht nicht in „Meine Einträge“. | Wie beim Timer schon gebaut: abgelehnte Buchung bleibt als Entwurf mit Tag und Grund zum Wiederöffnen; wartende Buchungen stehen in der Liste als „wartet auf Verbindung“. Wiederholen ohne feste Obergrenze, solange der Server nur nicht antwortet. |
 | Z5 ○ | mittel | **„Resturlaub“ in Übersicht und Monats-CSV ist kein Monatsende-Stand** — er zieht künftigen Urlaub mit ab und hängt vom Exporttag ab. | Zwei klar benannte Zahlen: „Rest am Monatsende“ und „davon schon verplant“. |
-| Z6 ○ | mittel | **Kein Monatsabschluss.** Der Monteur ändert und löscht eigene Buchungen beliebig alter Monate, auch nach dem Lohnexport. | Monatsabschluss je Monat (abschließen, mit Grund wieder öffnen); danach nur noch Korrekturantrag — den gibt es schon. Einstellung je Betrieb (Entscheidung E1). |
+| Z6 ○ | mittel | **Kein Monatsabschluss.** Der Monteur ändert und löscht eigene Buchungen beliebig alter Monate, auch nach dem Lohnexport. | Monatsabschluss je Monat (abschließen, mit Grund wieder öffnen); danach nur noch Korrekturantrag — den gibt es schon. Einstellung je Betrieb (entschieden, E1). |
 | Z7 ○ | mittel | **Scheitert das Laden der Urlaubstage, rechnen Übersicht und CSV still mit null Tagen.** | Teilfehler anzeigen („Urlaub nicht geladen“), Zahl als unbekannt statt null, Export gesperrt bis geladen. |
 | Z8 ○ | niedrig | Monats-CSV: Summe der Detailspalte weicht vom Ist ab (153,40 gegen 153,33). Stundennachweis „auch für Kunden“ zeigt Krank und andere Kunden. Personen-Exporte laden alle Personen. Ganztägiger Zeitausgleich wird mit 0 Tagen genehmigt. | Eine Rundungsregel für Minuten in allen Ausgaben; Stundennachweis je Baustelle/Kunde ohne Abwesenheiten (F12); Exporte je Person abfragen; Zeitausgleich in Tagen prüfen. |
 
@@ -162,12 +162,12 @@ Aus dem Rundgang. Die Linie V10 selbst trägt; die Brüche liegen in der Bedienu
 | U2 ✔ | **Neu anlegen ist mal ein Blatt von unten (Zeit), mal ein Formular offen auf der Seite** (Urlaub: „Antrag stellen“ steht vor „Meine Anträge“; die Liste rutscht nach unten). | Am Handy öffnet „Neu …“ immer ein Blatt von unten; die Seite zeigt zuerst den Bestand. |
 | U3 ✔ | **Dieselbe Aktion doppelt auf einem Bildschirm:** Start zeigt „Zeit erfassen“ schwebend und im Blatt „Dein Einsatz heute“; dort stehen Aktionen einmal als Dreierleiste (Anfordern · Nachricht · Schein), einmal als Verweise und gestapelte Knöpfe. | Je Einsatz eine Aktionszeile in einer Form; die schwebende Aktion entfällt, wo das Blatt sie schon trägt. |
 | U4 ✔ | **Fenster mit vielen gleichrangigen Knöpfen:** Rechnung (fünf Knöpfe in drei Zeilen), Schein-Entwurf (PDF · Verwerfen · Weiterbearbeiten, alle gleich, „Löschen“ darunter). | Im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯-Menü; Unumkehrbares immer im Menü. |
-| U5 ✔ | **Warnung, Gefahr und Aktion liegen farblich fast aufeinander:** Aktion `#a85439`, Gefahr `#a5483b`, Warnung `#8f5d20`. Warntext ohne Zeichen („Kein Ansprechpartner hinterlegt.“, „Zwischenstand — …“) liest sich wie ein Verweis. | Warn- und Fehlertext nie ohne Zeichen (Regel der Linie, hier nicht eingehalten); Gefahr deutlich vom Terrakotta absetzen (Entscheidung E4). |
-| U6 ✔ | **Ein/Aus als Kästchen mit dem Wort „ein“/„aus“** (Module, Meldungen). | Schalter als eigener Baustein für alles, was sofort wirkt; Kästchen bleibt für Auswahl in Formularen (Entscheidung E3). |
+| U5 ✔ | **Warnung, Gefahr und Aktion liegen farblich fast aufeinander:** Aktion `#a85439`, Gefahr `#a5483b`, Warnung `#8f5d20`. Warntext ohne Zeichen („Kein Ansprechpartner hinterlegt.“, „Zwischenstand — …“) liest sich wie ein Verweis. | Warn- und Fehlertext nie ohne Zeichen (Regel der Linie, hier nicht eingehalten); Gefahr deutlich vom Terrakotta absetzen (entschieden, E4). |
+| U6 ✔ | **Ein/Aus als Kästchen mit dem Wort „ein“/„aus“** (Module, Meldungen). | Schalter als eigener Baustein für alles, was sofort wirkt; Kästchen bleibt für Auswahl in Formularen (entschieden, E3). |
 | U7 ✔ | **Zeilen der Zeiterfassung am Handy sind hoch** (drei bis vier Zeilen je Buchung, Papierkorb an jeder Zeile). | Kompakte Zeile (Zeitraum · Baustelle · Dauer); Löschen im Fenster oder per Wischen (F15). |
 | U8 ✔ | **Anforderungen (Büro) am Handy:** Kästchen links und Knopf rechts quetschen den Text auf eine schmale Spalte. | Text über die volle Breite, Aktionen darunter. |
 | U9 ✔ | **Lange Warntexte offen auf der Seite** (Zeiterfassung: „An 10 Tagen steht dieselbe Buchung zweimal …“ mit allen Tagen). | Ein Satz plus „Anzeigen“ — Regel „eine Hilfe pro Seite“. |
-| U10 ✔ | **Datums- und Zeitfelder zeigen das Format des Geräts** (auf einem englisch eingestellten Gerät 11/15/2026 und 07:00 AM) — dieselbe Ursache wie beim Logo-Knopf. | Am Handy ist das Rad des Geräts die beste Eingabe; deutsche Geräte zeigen es richtig. Entscheidung E5: so lassen oder eigenes Feld. |
+| U10 ✔ | **Datums- und Zeitfelder zeigen das Format des Geräts** (auf einem englisch eingestellten Gerät 11/15/2026 und 07:00 AM) — dieselbe Ursache wie beim Logo-Knopf. | Am Handy ist das Rad des Geräts die beste Eingabe; deutsche Geräte zeigen es richtig. Entschieden (E5): so lassen. |
 | U11 ✔ | Baustellenliste: Zustand und Budget stehen je nach Länge mal nebeneinander, mal untereinander. | Feste Anordnung. |
 | U12 ✔ | Zeiterfassung am Schreibtisch: „Meine Einträge“ ist schmal, Namen brechen in drei Zeilen. | Liste breiter, Formular schmaler. |
 | U13 | Mitarbeiterübersicht am Handy: je Person ein hohes Blatt. | Kompakte Zeile, Einzelheiten im Fenster (wie am Schreibtisch). |
@@ -272,13 +272,16 @@ Jeder Schritt wie gewohnt: Prüfung mit Gegenprobe, Handbuch, Stand, CI grün,
 Auslieferung geprüft. Punkte mit ○ werden zuerst nachgestellt; bestätigt sich
 einer nicht, steht das im PR.
 
-## 8. Entscheidungen, die ich von dir brauche
+## 8. Entscheidungen (getroffen am 15.11.2026)
 
-| # | Frage | Meine Empfehlung |
+Der Auftraggeber hat alle sechs Fragen so entschieden, wie empfohlen. Das ist
+die Entscheidung über das *Wie*, noch nicht das Startsignal (Grundsatz 5).
+
+| # | Frage | Entschieden |
 |---|---|---|
-| E1 | Monatsabschluss der Zeiten (Z6): bauen, und als Einstellung je Betrieb? | Ja, als Einstellung; aus = wie heute. |
+| E1 | Monatsabschluss der Zeiten (Z6): bauen, und als Einstellung je Betrieb? | Ja, als Einstellung je Betrieb; aus = wie heute. |
 | E2 | Chef einplanbar (V12)? | Ja, als Einstellung je Betrieb. |
-| E3 | Schalter statt Kästchen für Ein/Aus (U6)? Die Linie kennt bisher nur das Häkchen. | Ja — für alles, was sofort wirkt. |
-| E4 | Gefahr farblich vom Terrakotta absetzen (U5)? | Ja; Vorschlag mit Kontrastmessung auf der Musterseite. |
+| E3 | Schalter statt Kästchen für Ein/Aus (U6)? Die Linie kannte bisher nur das Häkchen. | Ja — Schalter für alles, was sofort wirkt; das Kästchen bleibt für die Auswahl in Formularen. |
+| E4 | Gefahr farblich vom Terrakotta absetzen (U5)? | Ja; Vorschlag mit Kontrastmessung auf der Musterseite, vor dem Einbau zum Ansehen. |
 | E5 | Datums- und Zeitfelder (U10): Rad des Geräts behalten? | Behalten — am Handy die beste Eingabe; nur der Text daneben immer deutsch. |
-| E6 | Reihenfolge aus Abschnitt 7 — oder andere Schwerpunkte? | Wie vorgeschlagen. |
+| E6 | Reihenfolge aus Abschnitt 7 — oder andere Schwerpunkte? | Wie in Abschnitt 7 vorgeschlagen. |
