@@ -207,7 +207,7 @@ export function Zaehler({
     <span
       className={`inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-pill px-1.5 py-0.5 text-xs font-semibold leading-none ${ton}`}
     >
-      {/* Eine neue Zahl rollt herein (B6) — nach oben, wenn es mehr wird; vorher blendete sie nur ein (`.lot-zahl-neu`). */}
+      {/* Eine neue Zahl rollt herein (B6) — nach oben, wenn es mehr wird; vorher blendete sie nur ein. */}
       <span aria-hidden="true"><RollZahl wert={anzahl > 99 ? '99+' : anzahl} /></span>
       {/* Ein Komma davor, eigens: sonst las der Vorleser „Anforderungen1 offene …“ (G32). */}
       <span className="sr-only">, </span>

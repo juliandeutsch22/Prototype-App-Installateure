@@ -393,7 +393,9 @@ describe('Durchsicht 09.11.2026', () => {
 
   it('bei reduzierter Bewegung entfallen auch diese Rückmeldungen', () => {
     const reduziert = FEIN.slice(FEIN.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
-    expect(reduziert).toContain(':is(.zeile-ganz, .arbeitszeile-inhalt, .mehr-laden, .start-weiter, .mehr-punkt, .checkbox, .lot-zahl-neu) { animation: none !important; transition: none !important; }');
+    expect(reduziert).toContain(':is(.zeile-ganz, .arbeitszeile-inhalt, .mehr-laden, .start-weiter, .mehr-punkt, .checkbox) { animation: none !important; transition: none !important; }');
+    // Die neue Zahl rollt seit B6 (`RollZahl`, Web Animations — bei reduzierter Bewegung gar nicht); die Klasse zum Einblenden gibt es nicht mehr.
+    expect(FEIN).not.toContain('lot-zahl-neu');
   });
 });
 
