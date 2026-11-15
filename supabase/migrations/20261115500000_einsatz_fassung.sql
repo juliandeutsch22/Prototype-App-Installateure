@@ -37,6 +37,40 @@
 -- Funktionen gebaut ist nur die Prüfung.
 
 -- ---------------------------------------------------------------------------
+-- 0. Die Sperre je Paar
+-- ---------------------------------------------------------------------------
+
+/*
+  EINE SPERRE JE PAAR AUS TAG UND BAUSTELLE, gehalten bis zum Ende des
+  Aufrufs. Jeder Weg, der Einteilung oder Rüstliste eines Paares ändert,
+  nimmt sie, BEVOR er liest: dann laufen Speichern, Umplanen, Folgetage und
+  Löschen desselben Paares nacheinander, und die Prüfung der Fassung sieht,
+  was der vorige geschrieben hat.
+
+  FESTE REIHENFOLGE: wer mehrere Paare braucht (Umplanen: alt und neu,
+  Folgetage: jeder Tag), sperrt nach Tag aufsteigend, dann nach Baustelle.
+  Alle Wege tun das — so wartet nie einer auf den anderen im Kreis.
+
+  Die Sperre sagt nichts über Daten und gibt nichts heraus; sie steht
+  deshalb auch den Funktionen offen, die mit den Rechten des Aufrufers
+  laufen (`einsatz_loeschen`).
+*/
+create or replace function app.einsatz_paar_sperren(p_betrieb text, p_datum date, p_baustelle text)
+  returns void
+  language plpgsql
+  security definer
+  set search_path = ''
+as $$
+begin
+  perform pg_advisory_xact_lock(
+    hashtextextended('einsatz_paar:' || p_betrieb || ':' || p_datum::text || ':' || p_baustelle, 0));
+end;
+$$;
+
+revoke all on function app.einsatz_paar_sperren(text, date, text) from public, anon;
+grant execute on function app.einsatz_paar_sperren(text, date, text) to authenticated;
+
+-- ---------------------------------------------------------------------------
 -- 1. Die Prüfung
 -- ---------------------------------------------------------------------------
 
@@ -74,8 +108,7 @@ begin
     raise exception 'Nicht angemeldet' using errcode = '42501';
   end if;
 
-  perform pg_advisory_xact_lock(
-    hashtextextended('einsatz_paar:' || betrieb || ':' || p_datum::text || ':' || p_baustelle, 0));
+  perform app.einsatz_paar_sperren(betrieb, p_datum, p_baustelle);
 
   if p_grundlage is null then
     return;
@@ -311,3 +344,344 @@ $$;
 
 revoke all on function public.ruestliste_speichern(date, text, jsonb, uuid[], text, jsonb) from public, anon;
 grant execute on function public.ruestliste_speichern(date, text, jsonb, uuid[], text, jsonb) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 4. Die anderen Wege, die ein Paar ändern, nehmen dieselbe Sperre
+-- ---------------------------------------------------------------------------
+--
+-- Ermittelt über alle Funktionen, die in `assignments`,
+-- `einsatz_material` oder `einsatz_material_positionen` schreiben (Stand
+-- dieser Migration):
+--   einsatz_speichern, ruestliste_speichern  — oben, über die Prüfung
+--   einsatz_umplanen, einsatz_entfernen     — hier, alt und neu
+--   einsatz_folgetage                       — hier, jeder Tag
+--   einsatz_loeschen (neu)                  — für „Einsatz löschen“ der App
+-- Ohne Sperre, mit Grund:
+--   laden_umschalten, app.ruestliste_mannschaft — schreiben nur `geladen`
+--     bzw. `uids` am Kopf. Beides gehört nicht zur Fassung; zwei Schreiber
+--     desselben Kopfes ordnet ohnehin die Zeilensperre.
+--   person_loeschen, baustelle_umnummern — Massenvorgänge über alle Paare
+--     einer Person bzw. Baustelle (bei einer langen Baustelle Hunderte Tage).
+--     Je Paar eine Sperre zu halten, kann die gemeinsame Sperrtabelle der
+--     Datenbank füllen und damit fremde Vorgänge scheitern lassen.
+
+-- Unverändert aus 20261113200000_einsatz_umplanen.sql, bis auf die Sperre.
+create or replace function public.einsatz_umplanen(
+  p_id uuid,
+  p_datum date,
+  p_user uuid,
+  p_kopieren boolean default false
+) returns table (id uuid, anderswo boolean)
+  language plpgsql
+  security definer
+  set search_path = ''
+as $$
+declare
+  betrieb text := app.darf_umplanen();
+  a public.assignments;
+  b public.assignments;
+  name text;
+  urlaub text;
+  grund text;
+  tag_text text := to_char(p_datum, 'DD.MM.YYYY');
+begin
+  if p_id is null or p_datum is null or p_user is null then
+    raise exception 'Einsatz, Tag und Person fehlen' using errcode = '22023';
+  end if;
+  select * into a from public.assignments x where x.id = p_id and x.company_id = betrieb;
+  if not found then
+    raise exception 'Diesen Einsatz gibt es nicht mehr — der Plan wird neu geladen' using errcode = 'P0002';
+  end if;
+  /*
+    BEIDE PAARE SPERREN (P1), das frühere Tag zuerst — wie überall. Erst
+    dann die Zeile: stand sie inzwischen woanders, hat jemand anderes sie
+    bewegt, und dieses Umplanen beruht auf einem überholten Plan.
+  */
+  perform app.einsatz_paar_sperren(betrieb, least(a.date, p_datum), a.project_number);
+  perform app.einsatz_paar_sperren(betrieb, greatest(a.date, p_datum), a.project_number);
+  select * into b from public.assignments x where x.id = p_id and x.company_id = betrieb for update;
+  if not found then
+    raise exception 'Diesen Einsatz gibt es nicht mehr — der Plan wird neu geladen' using errcode = 'P0002';
+  end if;
+  if b.date <> a.date or b.project_number <> a.project_number then
+    raise exception 'Dieser Einsatz wurde inzwischen verschoben — der Plan wird neu geladen' using errcode = '40001';
+  end if;
+  a := b;
+  if not p_kopieren and a.date = p_datum and a.user_id = p_user then
+    id := a.id;
+    anderswo := false;
+    return next;
+    return;
+  end if;
+
+  select u.name into name from public.users u
+   where u.id = p_user and u.company_id = betrieb and u.active;
+  if name is null then
+    raise exception 'Diese Person ist im Betrieb nicht aktiv' using errcode = '22023';
+  end if;
+
+  if app.ist_feiertag(p_datum) then
+    raise exception 'Am % ist Feiertag. Wer da arbeitet, wird über „Einsatz planen“ eingeteilt', tag_text using errcode = '23514';
+  end if;
+  select bu.bezeichnung into urlaub from public.betriebsurlaube bu
+   where bu.company_id = betrieb and p_datum between bu.von and bu.bis limit 1;
+  if urlaub is not null then
+    raise exception 'Am % ist Betriebsurlaub (%)', tag_text, urlaub using errcode = '23514';
+  end if;
+  -- Den Grund nennt der Wochenplan der Führung (Urlaub, ZA, Ausgetreten …) — er steht in der Meldung.
+  select coalesce(w.grund, 'abwesend') into grund from public.wochenplan_abwesend(p_datum, p_datum) w
+   where w.user_id = p_user and w.zeiten is null limit 1;
+  if grund = 'Ausgetreten' then
+    raise exception '% ist am % nicht mehr im Betrieb (ausgetreten)', name, tag_text using errcode = '23514';
+  elsif grund is not null then
+    raise exception '% ist am % abwesend (%)', name, tag_text, grund using errcode = '23514';
+  end if;
+  if exists (select 1 from public.assignments x
+              where x.company_id = betrieb and x.date = p_datum and x.project_number = a.project_number
+                and x.user_id = p_user and (p_kopieren or x.id <> a.id)) then
+    raise exception '% ist am % schon auf dieser Baustelle', name, tag_text using errcode = '23505';
+  end if;
+
+  anderswo := exists (select 1 from public.assignments x
+                       where x.company_id = betrieb and x.date = p_datum and x.project_number <> a.project_number
+                         and x.user_id = p_user);
+
+  if p_kopieren then
+    insert into public.assignments (
+      company_id, date, project_number, project_id, user_id, user_name, as_helper, comment, created_by, zeit_von, zeit_bis
+    ) values (
+      betrieb, p_datum, a.project_number, a.project_id, p_user, name, a.as_helper, a.comment,
+      (select auth.uid())::text, a.zeit_von, a.zeit_bis
+    ) returning assignments.id into id;
+  else
+    update public.assignments x
+       set date = p_datum, user_id = p_user, user_name = name
+     where x.id = a.id;
+    id := a.id;
+    perform app.ruestliste_mannschaft(betrieb, a.date, a.project_number);
+  end if;
+  perform app.ruestliste_mannschaft(betrieb, p_datum, a.project_number);
+  return next;
+end;
+$$;
+
+revoke all on function public.einsatz_umplanen(uuid, date, uuid, boolean) from public, anon;
+grant execute on function public.einsatz_umplanen(uuid, date, uuid, boolean) to authenticated;
+
+-- Unverändert aus 20261113200000_einsatz_umplanen.sql, bis auf die Sperre.
+create or replace function public.einsatz_entfernen(p_id uuid) returns void
+  language plpgsql
+  security definer
+  set search_path = ''
+as $$
+declare
+  betrieb text := app.darf_umplanen();
+  vorher public.assignments;
+  a public.assignments;
+begin
+  select * into vorher from public.assignments x where x.id = p_id and x.company_id = betrieb;
+  if not found then
+    raise exception 'Diesen Einsatz gibt es nicht mehr — der Plan wird neu geladen' using errcode = 'P0002';
+  end if;
+  -- Erst das Paar (P1), dann die Zeile — und nur, wenn sie noch dort steht.
+  perform app.einsatz_paar_sperren(betrieb, vorher.date, vorher.project_number);
+  delete from public.assignments x
+   where x.id = p_id and x.company_id = betrieb and x.date = vorher.date and x.project_number = vorher.project_number
+  returning * into a;
+  if not found then
+    raise exception 'Diesen Einsatz gibt es nicht mehr — der Plan wird neu geladen' using errcode = 'P0002';
+  end if;
+  perform app.ruestliste_mannschaft(betrieb, a.date, a.project_number);
+end;
+$$;
+
+revoke all on function public.einsatz_entfernen(uuid) from public, anon;
+grant execute on function public.einsatz_entfernen(uuid) to authenticated;
+
+/*
+  „EINSATZ LÖSCHEN“ AUS DER APP (Seitenfenster, Tag planen). Bisher löschte
+  die App die Zeile direkt in der Tabelle. Ein Trigger, der dabei die
+  Paarsperre nimmt, ist nicht sauber zu haben: Postgres sperrt die Zeile,
+  BEVOR ein Zeilen-Trigger läuft. Hielte gleichzeitig ein Speichern die
+  Paarsperre und wartete auf diese Zeile, warteten beide aufeinander — die
+  Datenbank bräche einen der beiden ab. Deshalb ein eigener Weg mit der
+  richtigen Reihenfolge: erst das Paar, dann die Zeile.
+
+  MIT DEN RECHTEN DES AUFRUFERS (security invoker), genau wie das direkte
+  Löschen bisher: ob gelöscht werden darf, entscheidet weiter der
+  Zeilenschutz (`assignments_schreiben`: Führung, auch im Einblick des
+  Supports). `einsatz_entfernen` ist dafür kein Ersatz — es lässt den
+  Einblick nicht zu und schreibt die Rüstliste mit.
+
+  Wie bisher: gibt es die Zeile nicht oder darf man sie nicht löschen, ist
+  das ein Fehler, kein stilles Nichts. Wurde sie zwischen Lesen und Sperren
+  verschoben, wird am neuen Paar noch einmal versucht.
+*/
+create or replace function public.einsatz_loeschen(p_id uuid) returns void
+  language plpgsql
+  set search_path = ''
+as $$
+declare
+  a record;
+  versuch integer := 0;
+  weg integer;
+begin
+  if not app.angemeldet() then
+    raise exception 'Nicht angemeldet' using errcode = '42501';
+  end if;
+  loop
+    select x.company_id, x.date, x.project_number into a from public.assignments x where x.id = p_id;
+    exit when not found;
+    perform app.einsatz_paar_sperren(a.company_id, a.date, a.project_number);
+    delete from public.assignments x
+     where x.id = p_id and x.date = a.date and x.project_number = a.project_number;
+    get diagnostics weg = row_count;
+    if weg > 0 then
+      return;
+    end if;
+    versuch := versuch + 1;
+    exit when versuch >= 3;
+  end loop;
+  raise exception 'Kein Datensatz in assignments geändert — es gibt ihn nicht, oder er gehört nicht zu diesem Betrieb.'
+    using errcode = 'P0002';
+end;
+$$;
+
+revoke all on function public.einsatz_loeschen(uuid) from public, anon;
+grant execute on function public.einsatz_loeschen(uuid) to authenticated;
+
+-- Unverändert aus 20261112120000_einsatz_folgetage.sql, bis auf die Sperre je Tag
+-- (höchstens 62 — die Grenze der Funktion selbst).
+create or replace function public.einsatz_folgetage(
+  p_von date,
+  p_bis date,
+  p_baustelle text,
+  p_zeilen jsonb,
+  p_nur_werktage boolean default true
+) returns table (
+  datum date,
+  ergebnis text,
+  eingeteilt text[],
+  abwesend text[],
+  anderswo text[]
+)
+  language plpgsql
+  security definer
+  set search_path = ''
+as $$
+declare
+  betrieb text := app.arbeitsbetrieb();
+  tag date;
+  urlaub text;
+  zeile jsonb;
+  uid uuid;
+  name text;
+  neu integer;
+  vorher integer;
+  rein text[];
+  weg text[];
+  dort text[];
+begin
+  if betrieb is null or not coalesce(app.ist_fuehrung(), false) then
+    raise exception 'Einsätze plant die Führung' using errcode = '42501';
+  end if;
+  -- Im Einblick des Supports liefert die Abwesenheit nichts (sie liest nur
+  -- für Mitglieder des Betriebs). Ohne sie würde hier still jemand im
+  -- Urlaub eingeteilt — also nicht.
+  if betrieb is distinct from app.betrieb() then
+    raise exception 'Über mehrere Tage plant im Einblick nur der Betrieb selbst' using errcode = '42501';
+  end if;
+  if p_von is null or p_bis is null or p_bis < p_von or p_bis - p_von > 61 then
+    raise exception 'Der Zeitraum geht über höchstens 62 Tage' using errcode = '22023';
+  end if;
+  if coalesce(btrim(p_baustelle), '') = '' or jsonb_typeof(p_zeilen) <> 'array' or jsonb_array_length(p_zeilen) = 0 then
+    raise exception 'Baustelle und Mannschaft fehlen' using errcode = '22023';
+  end if;
+
+  -- Jeden Tag des Zeitraums sperren (P1), aufsteigend wie überall — bevor gelesen wird.
+  for tag in select d::date from generate_series(p_von, p_bis, interval '1 day') d order by 1 loop
+    perform app.einsatz_paar_sperren(betrieb, tag, p_baustelle);
+  end loop;
+
+  for tag in select d::date from generate_series(p_von, p_bis, interval '1 day') d loop
+    datum := tag;
+    eingeteilt := '{}';
+    abwesend := '{}';
+    anderswo := '{}';
+
+    if p_nur_werktage and extract(isodow from tag) in (6, 7) then
+      ergebnis := 'wochenende';
+      return next;
+      continue;
+    end if;
+    if app.ist_feiertag(tag) then
+      ergebnis := 'feiertag';
+      return next;
+      continue;
+    end if;
+    select b.bezeichnung into urlaub from public.betriebsurlaube b
+     where b.company_id = betrieb and tag between b.von and b.bis limit 1;
+    if urlaub is not null then
+      ergebnis := 'betriebsurlaub';
+      abwesend := array[urlaub];
+      urlaub := null;
+      return next;
+      continue;
+    end if;
+
+    select count(*) into vorher from public.assignments a
+     where a.company_id = betrieb and a.date = tag and a.project_number = p_baustelle;
+    neu := 0;
+    rein := '{}';
+    weg := '{}';
+    dort := '{}';
+    for zeile in select * from jsonb_array_elements(p_zeilen) loop
+      uid := (zeile ->> 'user_id')::uuid;
+      name := coalesce(nullif(btrim(zeile ->> 'user_name'), ''), 'Mitarbeiter');
+      if exists (select 1 from public.wochenplan_abwesend(tag, tag) w where w.user_id = uid and w.zeiten is null) then
+        weg := weg || name;
+        continue;
+      end if;
+      if exists (select 1 from public.assignments a
+                  where a.company_id = betrieb and a.date = tag and a.project_number <> p_baustelle and a.user_id = uid) then
+        dort := dort || name;
+      end if;
+      if exists (select 1 from public.assignments a
+                  where a.company_id = betrieb and a.date = tag and a.project_number = p_baustelle and a.user_id = uid) then
+        continue;
+      end if;
+      insert into public.assignments (
+        company_id, date, project_number, user_id, user_name, as_helper, comment, created_by, zeit_von, zeit_bis
+      ) values (
+        betrieb, tag, p_baustelle, uid, zeile ->> 'user_name',
+        coalesce((zeile ->> 'as_helper')::boolean, false),
+        zeile ->> 'comment', zeile ->> 'created_by',
+        nullif(zeile ->> 'zeit_von', '')::time, nullif(zeile ->> 'zeit_bis', '')::time
+      );
+      neu := neu + 1;
+      rein := rein || name;
+    end loop;
+
+    if neu > 0 then
+      update public.einsatz_material m
+         set uids = (select coalesce(array_agg(distinct a.user_id), '{}'::uuid[]) from public.assignments a
+                      where a.company_id = betrieb and a.date = tag and a.project_number = p_baustelle)
+       where m.company_id = betrieb and m.date = tag and m.project_number = p_baustelle;
+    end if;
+
+    eingeteilt := rein;
+    abwesend := weg;
+    anderswo := dort;
+    ergebnis := case
+      when neu > 0 and vorher > 0 then 'ergaenzt'
+      when neu > 0 then 'geplant'
+      when array_length(weg, 1) = jsonb_array_length(p_zeilen) then 'alle_abwesend'
+      else 'unveraendert'
+    end;
+    return next;
+  end loop;
+end;
+$$;
+
+revoke all on function public.einsatz_folgetage(date, date, text, jsonb, boolean) from public, anon;
+grant execute on function public.einsatz_folgetage(date, date, text, jsonb, boolean) to authenticated;

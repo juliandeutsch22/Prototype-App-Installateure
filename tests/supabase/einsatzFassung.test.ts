@@ -205,3 +205,111 @@ describe('Rüstliste', () => {
     expect(await einteilung()).toEqual([{ user_id: anton.uid, comment: 'Vorwand setzen' }]);
   });
 });
+
+/*
+  DIE ANDEREN WEGE NEHMEN DIESELBE SPERRE JE PAAR. Umplanen, Löschen,
+  Folgetage und Speichern desselben Paares laufen nacheinander: entweder
+  sieht die Prüfung des Speicherns, was vorher geschah, oder der andere Weg
+  findet seine Zeile nicht mehr. Still überschrieben wird nichts.
+*/
+describe('Umplanen, Löschen, Folgetage und Speichern auf dasselbe Paar', () => {
+  const MORGEN = '2027-12-10';
+  const fehlercode = (r: PromiseSettledResult<unknown>) =>
+    r.status === 'rejected' ? (r.reason as { code?: string }).code : undefined;
+
+  async function antonsZeile(): Promise<string> {
+    await als(planer, () => einsaetze.saveAssignments(BETRIEB, TAG, BAU, [zeile(anton)]));
+    const { data } = await admin.from('assignments').select('id')
+      .eq('company_id', BETRIEB).eq('date', TAG).eq('user_id', anton.uid).single();
+    return (data as { id: string }).id;
+  }
+
+  /** Speichern auf der Grundlage „Anton ist eingeteilt“ — Anton und Berta. */
+  const speichern = (k: Konto): Promise<void> => Promise.resolve(k.client.rpc('einsatz_speichern', {
+    p_datum: TAG, p_baustelle: BAU, p_grundlage: { einteilung: [stand(anton)] },
+    p_zeilen: [
+      { user_id: anton.uid, user_name: 'Anton', as_helper: false, comment: 'Vorwand setzen', zeit_von: '07:30', created_by: k.uid },
+      { user_id: berta.uid, user_name: 'Berta', as_helper: false, comment: 'Vorwand setzen', zeit_von: '07:30', created_by: k.uid },
+    ],
+  }).then(({ error }) => { if (error) throw error; }));
+
+  it('Umplanen weg vom Paar und Speichern gleichzeitig: genau eins gilt, das andere wird abgewiesen', async () => {
+    const id = await antonsZeile();
+    const [gespeichert, umgeplant] = await Promise.allSettled([
+      speichern(planer),
+      chefin.client.rpc('einsatz_umplanen', { p_id: id, p_datum: MORGEN, p_user: anton.uid, p_kopieren: false })
+        .then(({ error }) => { if (error) throw error; }),
+    ]);
+    const hier = await einteilung();
+    if (gespeichert.status === 'fulfilled') {
+      // Gespeichert zuerst: die alte Zeile gibt es nicht mehr, Umplanen findet sie nicht.
+      expect(fehlercode(umgeplant)).toBe('P0002');
+      expect(hier.map((z) => z.user_id).sort()).toEqual([anton.uid, berta.uid].sort());
+    } else {
+      // Umgeplant zuerst: die Prüfung sieht, dass Anton fehlt — nichts wird überschrieben.
+      expect(fehlercode(gespeichert)).toBe('SL409');
+      expect(umgeplant.status).toBe('fulfilled');
+      expect(hier).toEqual([]);
+    }
+  });
+
+  it('nach dem Umplanen sieht das Speichern auf altem Stand die Änderung', async () => {
+    const id = await antonsZeile();
+    const { error } = await chefin.client.rpc('einsatz_umplanen', { p_id: id, p_datum: MORGEN, p_user: anton.uid, p_kopieren: false });
+    expect(error).toBeNull();
+    const fehler = await speichern(planer).catch((e: unknown) => e);
+    expect((fehler as { code?: string }).code).toBe('SL409');
+    expect(await einteilung()).toEqual([]);
+  });
+
+  it('Löschen aus der App und Speichern gleichzeitig: genau eins gilt', async () => {
+    const id = await antonsZeile();
+    const [gespeichert, geloescht] = await Promise.allSettled([
+      speichern(planer),
+      als(chefin, () => einsaetze.deleteAssignment(id)),
+    ]);
+    expect([gespeichert.status, geloescht.status].filter((s) => s === 'fulfilled')).toHaveLength(1);
+    if (gespeichert.status === 'rejected') {
+      expect(fehlercode(gespeichert)).toBe('SL409');
+      expect(await einteilung()).toEqual([]);
+    } else {
+      expect((await einteilung()).map((z) => z.user_id).sort()).toEqual([anton.uid, berta.uid].sort());
+    }
+  });
+
+  it('Löschen aus der App: Rechte und Meldung wie beim direkten Löschen in der Tabelle', async () => {
+    const id = await antonsZeile();
+    // Ein Monteur sieht die Zeile, darf sie aber nicht löschen.
+    await expect(als(anton, () => einsaetze.deleteAssignment(id))).rejects.toThrow(/Kein Datensatz in assignments geändert/);
+    await expect(als(planer, () => einsaetze.deleteAssignment('00000000-0000-0000-0000-000000000000')))
+      .rejects.toThrow(/Kein Datensatz in assignments geändert/);
+    await als(planer, () => einsaetze.deleteAssignment(id));
+    expect(await einteilung()).toEqual([]);
+  });
+
+  it('Folgetage und Speichern desselben Tages gleichzeitig: nacheinander, keine stille Überschreibung', async () => {
+    await als(planer, () => einsaetze.saveAssignments(BETRIEB, MORGEN, BAU, [zeile(anton, { date: MORGEN })]));
+    const zeilen = [{ user_id: berta.uid, user_name: 'Berta', as_helper: false, comment: 'Vorwand setzen', created_by: planer.uid }];
+    const [folge, gespeichert] = await Promise.allSettled([
+      chefin.client.rpc('einsatz_folgetage', { p_von: MORGEN, p_bis: MORGEN, p_baustelle: BAU, p_zeilen: zeilen, p_nur_werktage: true })
+        .then(({ error }) => { if (error) throw error; }),
+      planer.client.rpc('einsatz_speichern', {
+        p_datum: MORGEN, p_baustelle: BAU, p_grundlage: { einteilung: [stand(anton)] },
+        p_zeilen: [{ user_id: anton.uid, user_name: 'Anton', as_helper: false, comment: 'Fertig', zeit_von: '07:30', created_by: planer.uid }],
+      }).then(({ error }) => { if (error) throw error; }),
+    ]);
+    expect(folge.status).toBe('fulfilled');
+    const { data } = await admin.from('assignments').select('user_id, comment')
+      .eq('company_id', BETRIEB).eq('date', MORGEN).eq('project_number', BAU);
+    const da = (data ?? []) as { user_id: string; comment: string }[];
+    // So oder so stehen beide: Berta aus den Folgetagen geht nie still verloren.
+    expect(da.map((z) => z.user_id).sort()).toEqual([anton.uid, berta.uid].sort());
+    if (gespeichert.status === 'rejected') {
+      // Folgetage zuerst: das Speichern sieht Berta und schreibt nicht.
+      expect(fehlercode(gespeichert)).toBe('SL409');
+    } else {
+      // Speichern zuerst, dann ergänzen die Folgetage.
+      expect(da.find((z) => z.user_id === anton.uid)?.comment).toBe('Fertig');
+    }
+  });
+});
