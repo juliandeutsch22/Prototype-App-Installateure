@@ -228,8 +228,8 @@ describe('Im Zeitkonto', () => {
     expect(s.saldoMin).toBe(calcMonthStats(anna, voll, voll, 2026, 5, true).saldoMin);
     const zeilen = buildMonthCsv([{ user: anna, monthEntries: eintraege, stats: s }], 2026, 5, true).split('\n');
     const ab = zeilen.indexOf('Mitarbeiter-Zusammenfassung');
-    expect(zeilen[ab + 1].endsWith(';Freigestellt stundenweise(Std);Unbezahlt-Tage;davon Arztbesuch(Std)')).toBe(true);
-    expect(zeilen[ab + 2].endsWith(';5,50;0;1,50')).toBe(true);
+    expect(zeilen[ab + 1].endsWith(';Freigestellt stundenweise(Std);Unbezahlt-Tage;davon Arztbesuch(Std);davon verplant(Tage)')).toBe(true);
+    expect(zeilen[ab + 2].endsWith(';5,50;0;1,50;0')).toBe(true);
     const einzeln = buildUserCsv(anna, eintraege, s, 2026, 5, true);
     expect(einzeln).toContain('Stundenweise freigestellt;5,50 h');
     expect(einzeln).toContain('davon Arztbesuch;1,50 h');

@@ -12,6 +12,7 @@ import {
   localDateStr,
   schultagAngaben,
   tagesStatusName,
+  tageWort,
   tageZahl,
   vorzeichenTage,
 } from '@/lib/time';
@@ -277,7 +278,8 @@ export default function PersonFenster({
           „Resturlaub / 1,96 Tage Resturlaub“ nannte die Beschriftung zweimal.
         */}
         {!deaktiviert && <div className="pf-kennzahl" data-testid="resturlaub">
-          <p className="pf-kennzahl-name">Resturlaub</p>
+          {/* Z5: der Stand am Monatsende; was danach schon genehmigt ist, eigens. */}
+          <p className="pf-kennzahl-name">Rest am Monatsende</p>
           {urlaubUnbekannt ? (
             /* Unbekannt statt null (Z7): ohne den genommenen Urlaub stünde der volle Anspruch da. */
             <p className="pf-kennzahl-wert text-ink-muted">unbekannt</p>
@@ -285,6 +287,9 @@ export default function PersonFenster({
             <p className={`pf-kennzahl-wert ${stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'}`}>
               {tageZahl(stats.urlaubRest)} {Math.abs(stats.urlaubRest) === 1 ? 'Tag' : 'Tage'}
             </p>
+          )}
+          {!urlaubUnbekannt && stats.urlaubVerplant > 0 && (
+            <p className="pf-kennzahl-text">davon verplant: {tageWort(stats.urlaubVerplant)}</p>
           )}
           {!urlaubUnbekannt && stats.urlaubAngepasst !== 0 && (
             <p className="pf-kennzahl-text">Anspruch angepasst: {vorzeichenTage(stats.urlaubAngepasst)}</p>

@@ -1089,7 +1089,13 @@ export interface MonthStats {
   urlaubsAnspruch: number;
   /** Stammt der Anspruch aus dem mitgebrachten Bestand? Für die Beschriftung. */
   urlaubAusAnfangsbestand: boolean;
+  /** Rest am Monatsende (Z5): was am letzten Tag des Monats noch offen ist. */
   urlaubRest: number;
+  /**
+   * Davon schon verplant (Z5): Urlaubstage nach dem Monat im selben
+   * Urlaubsjahr, die schon genehmigt bzw. gebucht sind.
+   */
+  urlaubVerplant: number;
   /** Anpassungen des Anspruchs in diesem Urlaubsjahr — steckt schon im Rest. */
   urlaubAngepasst: number;
 }
@@ -1297,7 +1303,20 @@ export function calcMonthStats(
     localDateStr(monatsEnde),
     urlaub.regel?.jahresbeginn ?? JAHRESBEGINN_VORGABE,
   );
-  const stand = urlaubsStand(user, urlaubsjahr, verlauf, urlaub.regel, urlaub.anpassungen);
+  /*
+    DER STAND AM MONATSENDE (Durchsicht 15.11.2026, Z5) — wirklich am
+    Monatsende. Hier gingen alle Urlaubstage des Verlaufs ein, auch die nach
+    dem Monat: im März stand mit zehn genehmigten Tagen im August 15 statt 25,
+    und derselbe Monat trug im April exportiert eine andere Zahl als im
+    Dezember. Was danach im selben Urlaubsjahr schon genehmigt ist, steht
+    eigens als „davon verplant“.
+  */
+  const monatsEndeIso = localDateStr(monatsEnde);
+  const jahresbeginn = urlaub.regel?.jahresbeginn ?? JAHRESBEGINN_VORGABE;
+  const stand = urlaubsStand(user, urlaubsjahr, verlauf.filter((p) => p.von <= monatsEndeIso), urlaub.regel, urlaub.anpassungen);
+  const urlaubVerplant = Math.round(verlauf
+    .filter((p) => p.von > monatsEndeIso && urlaubsJahrVon(p.von, jahresbeginn) === urlaubsjahr)
+    .reduce((s, p) => s + p.tage, 0) * 100) / 100;
   // Der Jahresanspruch des Urlaubsjahres, in dem der Monat endet (Z3).
   const yearlyVacation = urlaubsanspruchIm(user, urlaubsjahr);
 
@@ -1330,6 +1349,7 @@ export function calcMonthStats(
     arztbesuchMin: arztbesuchImMonat,
     yearlyUrlaubDays,
     urlaubRest: stand.rest,
+    urlaubVerplant,
     urlaubsAnspruch: stand.anspruch,
     urlaubAusAnfangsbestand: stand.ausAnfangsbestand,
     urlaubAngepasst: stand.angepasst,

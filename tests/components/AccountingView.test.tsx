@@ -795,10 +795,10 @@ describe('Mitarbeiterübersicht: was sie lädt', () => {
     expect(von <= '2026-07-20').toBe(true);
   });
 
-  it('Gegenprobe: Urlaub im Jahr und Resturlaub zählen auch die Urlaubstage außerhalb des Monats', async () => {
+  it('Gegenprobe: Urlaub im Jahr zählt auch die Urlaubstage außerhalb des Monats; der Rest am Monatsende nur bis zum Monatsende (Z5)', async () => {
     const urlaub = (date: string) => ({ ...eintrag(date), id: `u-${date}`, status: 'Urlaub' as const, startTime: undefined, endTime: undefined });
     await oeffneMitarbeiter();
-    const zahl = () => Number((screen.getByTestId('resturlaub').textContent ?? '').match(/Resturlaub(-?[\d,]+)/)![1].replace(',', '.'));
+    const zahl = () => Number((screen.getByTestId('resturlaub').textContent ?? '').match(/Rest am Monatsende(-?[\d,]+)/)![1].replace(',', '.'));
     const ohne = zahl();
     cleanup();
 
@@ -806,8 +806,10 @@ describe('Mitarbeiterübersicht: was sie lädt', () => {
     buchungen = [...eintraege, urlaub('2026-03-10'), urlaub('2026-10-05')];
     await oeffneMitarbeiter();
     const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    // Der Verlauf beginnt mit dem Eintritt: der Oktober zählt, der März nicht — wie bisher.
-    expect(zahl()).toBeCloseTo(ohne - 1, 2);
+    // Der Verlauf beginnt mit dem Eintritt: der März zählt nicht. Der Oktober liegt nach dem
+    // August — er ist am Monatsende noch nicht genommen, sondern verplant (Z5; vorher: ohne − 1).
+    expect(zahl()).toBeCloseTo(ohne, 2);
+    expect(screen.getByTestId('resturlaub')).toHaveTextContent('davon verplant: 1 Tag');
     csvGeladen.mockClear();
     await nutzer.click(within(fenster()).getByRole('button', { name: 'Monat als CSV' }));
     expect(csvGeladen).toHaveBeenCalledTimes(1);
@@ -821,15 +823,15 @@ describe('Mitarbeiteruebersicht — angepasster Urlaubsanspruch (Plan 10.3)', ()
     await oeffneMitarbeiter();
     const ohne = screen.getByTestId('resturlaub').textContent ?? '';
     expect(ohne).not.toMatch(/Anspruch angepasst/);
-    // Runde 5, G6: „Resturlaub“ nur als Beschriftung, nicht noch einmal im Wert.
-    expect(ohne.match(/Resturlaub/g)).toHaveLength(1);
+    // Runde 5, G6: die Beschriftung nur einmal, nicht noch einmal im Wert.
+    expect(ohne.match(/Rest am Monatsende/g)).toHaveLength(1);
     cleanup();
 
     anpassungen = [{ id: 'a1', userId: 'u1', urlaubsjahr: 2026, tage: -6.25, grund: 'Unbezahlter Urlaub' }];
     await oeffneMitarbeiter();
     const mit = screen.getByTestId('resturlaub').textContent ?? '';
     expect(mit).toMatch(/Anspruch angepasst: −6,25 Tage/);
-    const zahl = (t: string) => Number(t.match(/Resturlaub(-?[\d,]+)\s*Tage?/)![1].replace(',', '.'));
+    const zahl = (t: string) => Number(t.match(/Rest am Monatsende(-?[\d,]+)\s*Tage?/)![1].replace(',', '.'));
     expect(zahl(mit)).toBeCloseTo(zahl(ohne) - 6.25, 2);
   });
 });
@@ -1725,14 +1727,14 @@ describe('Mitarbeiterübersicht — deaktivierte Konten mit Buchungen im Monat',
     const eigene = csvGeladen.mock.calls[0][0] as string;
     expect(eigene).toMatch(/Zeiterfassung: Ausgeschieden Anton \(Konto deaktiviert\)/);
     expect(eigene).toMatch(/\nIst;16,00 h\nSoll;—\nSaldo;—\n/);
-    expect(eigene).toMatch(/\nResturlaub;—\n/);
+    expect(eigene).toMatch(/\nRest am Monatsende;—\n/);
     await nutzer.click(within(f).getByRole('button', { name: 'Schließen' }));
 
     await nutzer.click(screen.getByRole('button', { name: /Weitere Aktionen für Mitarbeiterübersicht/ }));
     csvGeladen.mockClear();
     await nutzer.click(screen.getByRole('menuitem', { name: 'Monats-CSV' }));
     const csv = csvGeladen.mock.calls[0][0] as string;
-    expect(csv).toMatch(/davon Arztbesuch\(Std\);Konto\n/);
+    expect(csv).toMatch(/davon Arztbesuch\(Std\);davon verplant\(Tage\);Konto\n/);
     // Ist 16 Stunden, Soll, Saldo und Resturlaub leer, hinten „deaktiviert“.
     expect(csv).toMatch(/\nAusgeschieden Anton;16,00;;;0;0;;.*;deaktiviert(\n|$)/);
     expect(csv).toMatch(/\nNeu Eingestellt;80,00;8[0-9],00;.*;(\n|$)/);
@@ -1761,7 +1763,7 @@ describe('Mitarbeiterübersicht — deaktivierte Konten mit Buchungen im Monat',
     expect(eigene).toMatch(/Zeiterfassung: Ausgeschieden Anton \(ausgetreten am 18\.08\.2026\)/);
     // 17. und 18.08. sind die Pflichttage bis zum Austritt: 16 Stunden Soll.
     expect(eigene).toMatch(/\nIst;16,00 h\nSoll;16,00 h\nSaldo;0,00 h\n/);
-    expect(eigene).toMatch(/\nResturlaub;—\n/);
+    expect(eigene).toMatch(/\nRest am Monatsende;—\n/);
   });
 
   it('Gegenprobe: ohne Buchung im Monat bleibt das deaktivierte Konto weg, und die Datei wie bisher', async () => {
@@ -1775,7 +1777,7 @@ describe('Mitarbeiterübersicht — deaktivierte Konten mit Buchungen im Monat',
     await nutzer.click(screen.getByRole('menuitem', { name: 'Monats-CSV' }));
     const csv = csvGeladen.mock.calls[0][0] as string;
     expect(csv).not.toMatch(/Ausgeschieden Anton|;Konto|deaktiviert/);
-    expect(csv).toMatch(/davon Arztbesuch\(Std\)\n/);
+    expect(csv).toMatch(/davon verplant\(Tage\)\n/);
   });
 });
 

@@ -284,7 +284,9 @@ export function buildMonthCsv(
   lines.push('', 'Mitarbeiter-Zusammenfassung');
   lines.push(
     row([
-      'Name', 'Ist(Std)', 'Soll(Std)', 'Saldo(Std)', 'Krank-Tage', 'Urlaub-Tage', 'Resturlaub',
+      // „Resturlaub“ hieß hier, was nach ALLEN Urlaubstagen des Jahres bleibt — auch
+      // künftigen (Z5). An derselben Stelle steht jetzt der Stand am Monatsende.
+      'Name', 'Ist(Std)', 'Soll(Std)', 'Saldo(Std)', 'Krank-Tage', 'Urlaub-Tage', 'Rest am Monatsende',
       'Nacht(Std)', 'Notdienst(Std)', 'davon beides(Std)',
       // Hinten angehängt, nicht zwischen die Tage: eine Lohnverrechnung,
       // die die Spalten nach ihrer Stelle liest, bekäme sonst verschobene
@@ -313,6 +315,8 @@ export function buildMonthCsv(
       // Seit 02.11.2026 (E35), ganz hinten: angerechnete Arztbesuche. Sie
       // stecken schon in „Freigestellt stundenweise“ — „davon“, nicht dazu.
       'davon Arztbesuch(Std)',
+      // Seit 16.11.2026 (Z5), hinten angehängt: was nach dem Monat im selben Urlaubsjahr schon verplant ist.
+      'davon verplant(Tage)',
       // Seit 09.11.2026, ganz hinten und nur, wenn jemand Ausgeschiedener im
       // Monat steht: eine Datei nur mit Aktiven bleibt Spalte für Spalte gleich.
       ...(mitDeaktivierten ? ['Konto'] : []),
@@ -355,6 +359,7 @@ export function buildMonthCsv(
         ...(mitTagesgrenze(lohn) && ue ? [hours(ue.nachtAlsUeberstundeMin ?? 0)] : []),
         ...(mitTagesgrenze(lohn) && ue ? [hours(ue.mehrarbeitTeilzeitMin ?? 0)] : []),
         hours(stats.arztbesuchMin),
+        deaktiviert ? '' : tage(stats.urlaubVerplant),
         ...(mitDeaktivierten ? [kontoText(user, deaktiviert)] : []),
       ]),
     );
@@ -496,7 +501,9 @@ export function buildUserCsv(
   lines.push(row(['Krank', `${stats.krankDays} Tage`]));
   lines.push(row(['Urlaub (Monat)', `${tage(stats.urlaubDays)} Tage`]));
   lines.push(row([`Urlaub ${year} gesamt`, `${tage(stats.yearlyUrlaubDays)} Tage`]));
-  lines.push(row(['Resturlaub', deaktiviert ? '—' : `${tage(stats.urlaubRest)} Tage`]));
+  // Z5: der Stand am Monatsende und, eigens, was danach schon verplant ist.
+  lines.push(row(['Rest am Monatsende', deaktiviert ? '—' : `${tage(stats.urlaubRest)} Tage`]));
+  lines.push(row(['davon verplant', deaktiviert ? '—' : `${tage(stats.urlaubVerplant)} Tage`]));
   lines.push(row(['Zeitausgleich', `${hours(stats.zaMin)} h`]));
   if (stats.berufsschuleDays > 0) {
     lines.push(row(['Berufsschule', `${stats.berufsschuleDays} Tage (${hours(stats.berufsschuleMin)} h)`]));

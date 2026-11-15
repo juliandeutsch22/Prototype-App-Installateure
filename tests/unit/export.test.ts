@@ -141,7 +141,8 @@ describe('Mitarbeiter-CSV', () => {
     expect(csv).toContain('Monat: Juni 2025');
     expect(csv).toContain('Wochensoll: 40 h');
     expect(csv).toContain('Ist;9,00 h');
-    expect(csv).toContain('Resturlaub;25 Tage');
+    expect(csv).toContain('Rest am Monatsende;25 Tage');
+    expect(csv).toContain('davon verplant;0 Tage');
   });
 });
 
