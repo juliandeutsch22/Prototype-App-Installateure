@@ -26,3 +26,16 @@ describe('akteHauptaktion', () => {
     expect(akteHauptaktion({ ...alles, darfSchein: false })).toBeNull();
   });
 });
+
+/* A11, V2: nach bezahlter Schlussrechnung ist das Abschließen der nächste Schritt. */
+describe('Abschließen als Hauptaktion (A11)', () => {
+  const basis = { darfPlanen: true, darfRechnen: true, darfSchein: true, hatEinsatz: true, offeneScheine: 0, abgeschlossen: false };
+  it('nach bezahlter Schlussrechnung — vor „Schein schreiben“', () => {
+    expect(akteHauptaktion({ ...basis, abschlussReif: true })).toBe('abschliessen');
+  });
+  it('bleibt gleich: offene Scheine gehen vor, abgeschlossen nicht, ohne Angabe wie bisher', () => {
+    expect(akteHauptaktion({ ...basis, abschlussReif: true, offeneScheine: 2 })).toBe('rechnung');
+    expect(akteHauptaktion({ ...basis, abschlussReif: true, abgeschlossen: true })).toBe('schein');
+    expect(akteHauptaktion(basis)).toBe('schein');
+  });
+});

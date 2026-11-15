@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Adressfilter from '@/components/Adressfilter';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -16,7 +16,7 @@ import { getWartung, wartungEinplanen } from '@/lib/db/wartungen';
 import WartungVerlauf from './WartungVerlauf';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
-import { listRecentProjects } from '@/lib/db/projects';
+import { listProjectsByNumbers, listRecentProjects } from '@/lib/db/projects';
 import { belegNummer, hoechsteLfdImJahr, praefixeVon } from '@/lib/praefixe';
 import { isGF } from '@/lib/permissions';
 import { todayStr } from '@/lib/time';
@@ -194,6 +194,7 @@ export default function WartungenView() {
   const { user, company, einblick } = useAuth();
   const vorsaetze = praefixeVon(company);
   const toast = useToast();
+  const navigate = useNavigate();
   const [wartungen, setWartungen] = useState<WithId<Wartung>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -585,9 +586,24 @@ export default function WartungenView() {
         projectNumber: erledigung.baustelle.trim() || undefined,
       });
       const naechster = naechsterTermin(erledigung.datum, erledigung.intervall);
+      const baustelleNr = erledigung.baustelle.trim();
       setErledigung(null);
       await neuLaden();
-      toast.success(`Eingetragen. Nächste Wartung: ${fmtDatum(naechster)}.`);
+      /*
+        DER ANSTOSS ZUM ABSCHLIESSEN (A11, V2): hatte die Wartung eine
+        Baustelle, die noch offen ist, trägt die Meldung den Weg zum
+        geführten Abschluss — vorher wussten Wartung und Baustelle nichts
+        voneinander, und „Aktiv“ wuchs mit jeder Wartung.
+      */
+      const [baustelle] = baustelleNr && companyId && darfAendern
+        ? await listProjectsByNumbers(companyId, [baustelleNr]).catch(() => [])
+        : [];
+      toast.success(
+        `Eingetragen. Nächste Wartung: ${fmtDatum(naechster)}.`,
+        baustelle && baustelle.status !== 'Abgeschlossen'
+          ? { label: `${baustelle.projectNumber} abschließen`, onClick: () => navigate(`/admin-projects/${baustelle.id}?abschliessen=1`) }
+          : undefined,
+      );
     } catch (e) {
       toast.error((e as Error).message);
     } finally {

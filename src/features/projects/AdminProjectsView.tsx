@@ -30,6 +30,7 @@ import {
   baustelleVerwendung,
 } from '@/lib/db/projects';
 import { aufzaehlen, loeschWeg, type LoeschWeg } from './baustelleVerwendung';
+import BaustelleAbschliessen from './BaustelleAbschliessen';
 import { listUsers } from '@/lib/db/users';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { useModul } from '@/lib/useModule';
@@ -198,6 +199,8 @@ export default function AdminProjectsView() {
   */
   const [formOffen, setFormOffen] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
+  /** Geführt abschließen (A11) — aus dem Zeilenmenü und aus dem Löschdialog. */
+  const [zuSchliessen, setZuSchliessen] = useState<WithId<Project> | null>(null);
   /*
     WAS IM WEG STEHT, BEVOR GEFRAGT WIRD (A1). Der Dialog sagte „wird
     entfernt“ und scheiterte danach mit „an ihr hängen schon Buchungen,
@@ -1161,6 +1164,8 @@ export default function AdminProjectsView() {
                                     navigate(`/worksheet?projekt=${encodeURIComponent(p.projectNumber)}`),
                                 }]
                               : []),
+                            // A11: geführt — der Dialog sagt vorher, was noch offen ist.
+                            ...(p.status !== 'Abgeschlossen' ? [{ label: 'Abschließen', onSelect: () => setZuSchliessen(p) }] : []),
                             { label: 'Löschen', onSelect: () => setToDelete(p), danger: true },
                           ]}
                         />
@@ -1208,6 +1213,8 @@ export default function AdminProjectsView() {
         {formular}
       </BottomSheet>
 
+      <BaustelleAbschliessen projekt={zuSchliessen} onClose={() => setZuSchliessen(null)} />
+
       <ConfirmDialog
         open={!!toDelete}
         title={loeschWegJetzt && loeschWegJetzt.art !== 'frei' ? 'Baustelle lässt sich nicht löschen' : 'Baustelle löschen?'}
@@ -1224,7 +1231,7 @@ export default function AdminProjectsView() {
                   ? `An ${toDelete.projectNumber} hängt das angenommene Angebot ${loeschWegJetzt.angebot.nummer}, sonst nichts. Gelöscht wird sie über das Angebot: „Annahme zurücknehmen“ öffnet es wieder und nimmt die Baustelle mit.`
                   : `An ${toDelete.projectNumber} ${loeschWegJetzt.grund.length === 1 && /^1 /.test(loeschWegJetzt.grund[0]) ? 'hängt' : 'hängen'} ${aufzaehlen(loeschWegJetzt.grund)} — die bleiben nachvollziehbar. Statt sie zu löschen, schließt man sie ab; dann fällt sie aus den Auswahllisten.`
         }
-        confirmLabel={!loeschWegJetzt || loeschWegJetzt.art === 'frei' ? 'Löschen' : loeschWegJetzt.art === 'angebot' ? 'Zum Angebot' : 'Zur Baustelle'}
+        confirmLabel={!loeschWegJetzt || loeschWegJetzt.art === 'frei' ? 'Löschen' : loeschWegJetzt.art === 'angebot' ? 'Zum Angebot' : toDelete?.status === 'Abgeschlossen' ? 'Zur Baustelle' : 'Abschließen …'}
         confirmTone={!loeschWegJetzt || loeschWegJetzt.art === 'frei' ? 'danger' : 'primary'}
         gesperrt={loeschLage === 'laedt'}
         onCancel={() => setToDelete(null)}
@@ -1238,7 +1245,9 @@ export default function AdminProjectsView() {
           }
           if (loeschWegJetzt?.art === 'abschliessen') {
             setToDelete(null);
-            navigate(`/admin-projects/${weg.id}`);
+            // A11: der geführte Abschluss statt eines Auswahlfelds in der Akte.
+            if (weg.status === 'Abgeschlossen') navigate(`/admin-projects/${weg.id}`);
+            else setZuSchliessen(weg);
             return;
           }
           /*

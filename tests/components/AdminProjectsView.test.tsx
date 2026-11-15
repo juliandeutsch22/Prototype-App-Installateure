@@ -50,6 +50,14 @@ const LEER = {
   dokumente: 0, termine: 0, nachrichten: 0, angebote: [] as { id: string; nummer: string; status: string }[],
 };
 let verwendungen: (typeof LEER)[] = [LEER];
+/** Was vor dem Abschließen offen ist (A11). */
+const OFFEN_NICHTS = {
+  status: 'Aktiv', kommendeEinsaetze: 0, naechsterEinsatz: null as string | null, scheinEntwuerfe: 0, offeneAnforderungen: 0,
+  unverrechneteScheine: 0 as number | null, unverrechneteMinuten: 0 as number | null, unverrechnetesMaterial: 0 as number | null,
+  offeneRechnungen: 0 as number | null,
+};
+let abschlussLage = OFFEN_NICHTS;
+const abgeschlossen = vi.fn();
 
 /*
   DIE LISTE KOMMT DRAUSSEN SPÄTER ALS DAS FORMULAR. Der Ersatz lieferte sie
@@ -105,6 +113,9 @@ vi.mock('@/lib/db/projects', () => ({
     return loeschFehler ? Promise.reject(new Error(loeschFehler)) : Promise.resolve();
   },
   baustelleVerwendung: () => Promise.resolve(verwendungen.length > 1 ? verwendungen.shift()! : verwendungen[0]),
+  // A11: der geführte Abschluss.
+  baustelleAbschlussLage: () => Promise.resolve(abschlussLage),
+  baustelleAbschliessen: (id: string) => { abgeschlossen(id); return Promise.resolve(abschlussLage); },
   listActiveProjects: () =>
     laufendFehler
       ? Promise.reject(new Error('kein Netz'))
@@ -176,6 +187,8 @@ async function formOeffnen() {
 beforeEach(() => {
   loeschFehler = null;
   verwendungen = [LEER];
+  abschlussLage = OFFEN_NICHTS;
+  abgeschlossen.mockClear();
   spaet = false;
   anlegeFehler = null;
   reserviere.mockReset();
@@ -566,8 +579,42 @@ describe('Baustellen — löschen', () => {
     const dialog = await loeschenOeffnen();
     expect(await within(dialog).findByText(/hängen 3 Zeitbuchungen und 1 Handwerksschein/)).toBeInTheDocument();
     expect(within(dialog).getByRole('heading', { name: 'Baustelle lässt sich nicht löschen' })).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Zur Baustelle' }));
+    // Seit A11 führt der Weg in den geführten Abschluss (eine offene Baustelle).
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen …' }));
+    expect(await screen.findByRole('dialog', { name: 'Baustelle 2026-042 abschließen?' })).toBeInTheDocument();
     expect(loesche).not.toHaveBeenCalled();
+  });
+
+  /*
+    GEFÜHRT ABSCHLIESSEN (Durchsicht 15.11.2026, A11 / F1). „Abgeschlossen“
+    war nur ein Auswahlfeld in der Akte, das nichts prüfte.
+  */
+  it('Abschließen aus dem Zeilenmenü: zeigt, was offen ist, und fragt „Trotzdem abschließen“', async () => {
+    abschlussLage = { ...OFFEN_NICHTS, scheinEntwuerfe: 1, unverrechneteMinuten: 90 };
+    baustellen = [{ id: 'p1', companyId: 'perl', projectNumber: '2026-042', customerName: 'Familie Huber', status: 'Aktiv' } as Project & { id: string }];
+    zeige();
+    const zeile = (await screen.findByText(/2026-042/)).closest('li') as HTMLElement;
+    await userEvent.click(within(zeile).getByRole('button', { name: /Weitere Aktionen für Baustelle 2026-042/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Abschließen' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Baustelle 2026-042 abschließen?' });
+    expect(await within(dialog).findByText('Ein Handwerksschein ist noch Entwurf')).toBeInTheDocument();
+    expect(within(dialog).getByText(/1,5 h Arbeitszeit sind nicht verrechnet/)).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: 'Rechnung stellen' })).toHaveAttribute('href', '/invoices?neu=2026-042');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Trotzdem abschließen' }));
+    await waitFor(() => expect(abgeschlossen).toHaveBeenCalledWith('p1'));
+  });
+
+  it('kommende Einsätze halten das Abschließen auf — mit dem Weg in den Plan', async () => {
+    abschlussLage = { ...OFFEN_NICHTS, kommendeEinsaetze: 2, naechsterEinsatz: '2026-09-03' };
+    baustellen = [{ id: 'p1', companyId: 'perl', projectNumber: '2026-042', customerName: 'Familie Huber', status: 'Aktiv' } as Project & { id: string }];
+    zeige();
+    const zeile = (await screen.findByText(/2026-042/)).closest('li') as HTMLElement;
+    await userEvent.click(within(zeile).getByRole('button', { name: /Weitere Aktionen für Baustelle 2026-042/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Abschließen' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Baustelle 2026-042 abschließen?' });
+    expect(await within(dialog).findByText(/2 Einsätze ab 03\.09\.2026 geplant/)).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: 'Im Einsatzplan öffnen' })).toHaveAttribute('href', '/assignments/tag?datum=2026-09-03');
+    expect(within(dialog).getByRole('button', { name: 'Abschließen' })).toBeDisabled();
   });
 
   it('bleibt gleich: ohne Spuren wird gelöscht — und es steht da, was mitgeht', async () => {

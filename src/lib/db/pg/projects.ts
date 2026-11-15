@@ -310,3 +310,51 @@ export function listLaufendeDesKunden(companyId: string, customerId: string, max
     grenze: max,
   });
 }
+
+/**
+ * Was vor dem Abschließen einer Baustelle offen ist (A11, F1) — je Art
+ * gezählt in der Datenbank (`baustelle_abschluss_lage`). Rechnungsangaben
+ * sind `null`, wenn die Rolle die Rechnungen dieser Baustelle nicht liest:
+ * „nicht einsehbar“ ist nicht „nichts offen“.
+ */
+export interface AbschlussLage {
+  status: Project['status'];
+  kommendeEinsaetze: number;
+  /** `JJJJ-MM-TT` */
+  naechsterEinsatz: string | null;
+  scheinEntwuerfe: number;
+  offeneAnforderungen: number;
+  unverrechneteScheine: number | null;
+  unverrechneteMinuten: number | null;
+  unverrechnetesMaterial: number | null;
+  offeneRechnungen: number | null;
+}
+
+function lageLesen(d: Record<string, unknown>): AbschlussLage {
+  const n = (k: string) => Number(d[k]) || 0;
+  const vielleicht = (k: string) => (d[k] === null || d[k] === undefined ? null : Number(d[k]) || 0);
+  return {
+    status: d.status as Project['status'],
+    kommendeEinsaetze: n('kommende_einsaetze'),
+    naechsterEinsatz: typeof d.naechster_einsatz === 'string' ? d.naechster_einsatz : null,
+    scheinEntwuerfe: n('schein_entwuerfe'),
+    offeneAnforderungen: n('offene_anforderungen'),
+    unverrechneteScheine: vielleicht('unverrechnete_scheine'),
+    unverrechneteMinuten: vielleicht('unverrechnete_minuten'),
+    unverrechnetesMaterial: vielleicht('unverrechnetes_material'),
+    offeneRechnungen: vielleicht('offene_rechnungen'),
+  };
+}
+
+export async function baustelleAbschlussLage(id: string): Promise<AbschlussLage> {
+  const { data, error } = await derClient().rpc('baustelle_abschluss_lage', { p_projekt: id });
+  if (error) throw new Error(error.message);
+  return lageLesen((data ?? {}) as Record<string, unknown>);
+}
+
+/** Abschließen — kommende Einsätze halten es auf (die Datenbank sagt, welche). */
+export async function baustelleAbschliessen(id: string): Promise<AbschlussLage> {
+  const { data, error } = await derClient().rpc('baustelle_abschliessen', { p_projekt: id });
+  if (error) throw new Error(error.message);
+  return lageLesen((data ?? {}) as Record<string, unknown>);
+}

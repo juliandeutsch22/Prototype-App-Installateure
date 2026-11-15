@@ -79,7 +79,14 @@ vi.mock('@/lib/db/projects', () => ({
   listProjectsByIds: () => listProjectsByIds(),
   updateProject: (...a: unknown[]) => updateProject(...(a as [])),
   baustelleUmnummern: (id: string, neu: string) => baustelleUmnummern(id, neu),
+  // A11: der geführte Abschluss.
+  baustelleAbschlussLage: async () => ({
+    status: 'Aktiv', kommendeEinsaetze: 0, naechsterEinsatz: null, scheinEntwuerfe: 0, offeneAnforderungen: 0,
+    unverrechneteScheine: 0, unverrechneteMinuten: 0, unverrechnetesMaterial: 0, offeneRechnungen: 0,
+  }),
+  baustelleAbschliessen: async (id: string) => { abgeschlossenAkte(id); return {}; },
 }));
+const abgeschlossenAkte = vi.fn();
 vi.mock('@/lib/db/users', () => ({
   listUsers: async () => {
     if (belegschaftWarten) await belegschaftWarten;
@@ -1300,5 +1307,43 @@ describe('Aus dem Eingang über das Angebot (A8)', () => {
     expect(getEingangZu).toHaveBeenCalledWith('perl', { quoteId: 'q7' });
     expect(screen.getByText('Dringend')).toBeInTheDocument();
     expect(screen.getByText('20.11.2026')).toBeInTheDocument();
+  });
+});
+
+/*
+  GEFÜHRT ABSCHLIESSEN (Durchsicht 15.11.2026, A11 / F1 / V2): kein
+  Auswahlfeld mehr, das nichts prüft — und ein Anstoß nach der bezahlten
+  Schlussrechnung.
+*/
+describe('Baustelle abschließen (A11)', () => {
+  it('im „⋯“ des Seitenkopfs; der Dialog sagt, dass nichts mehr offen ist', async () => {
+    abgeschlossenAkte.mockClear();
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: /^Weitere Aktionen für Baustelle/ }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Abschließen' }));
+    const dialog = await screen.findByRole('dialog', { name: /abschließen\?$/ });
+    expect(await within(dialog).findByText(/Nichts ist mehr offen/)).toBeInTheDocument();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await waitFor(() => expect(abgeschlossenAkte).toHaveBeenCalledWith(BAUSTELLE.id));
+  });
+
+  it('nach bezahlter Schlussrechnung ist „Abschließen“ die Hauptaktion', async () => {
+    rechnungen = [RECHNUNG('1', { art: 'schluss', paymentStatus: 'Bezahlt', bezahltBetrag: 1200 })];
+    zeige();
+    expect(await screen.findByRole('button', { name: 'Abschließen' })).toBeInTheDocument();
+  });
+
+  it('das Auswahlfeld „Stand“ bietet „Abgeschlossen“ nur zum Wiederöffnen an', async () => {
+    const nutzer = userEvent.setup();
+    const r = zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    const stand = await screen.findByLabelText('Status');
+    expect(within(stand).queryByRole('option', { name: 'Abgeschlossen' })).toBeNull();
+    r.unmount();
+    baustellen = [{ ...BAUSTELLE, status: 'Abgeschlossen' }];
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    expect(within(await screen.findByLabelText('Status')).getByRole('option', { name: 'Abgeschlossen' })).toBeInTheDocument();
   });
 });

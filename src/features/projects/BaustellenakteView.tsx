@@ -7,7 +7,9 @@ import { EinsaetzeListe, EinsaetzeVorschau, MaterialVorschau, RechnungenVorschau
 import { baustelleMaterialstand, type Materialstand } from '@/lib/db/projects';
 import { listInvoicesForProject } from '@/lib/db/invoices';
 import type { Invoice } from '@/types';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import RowMenu from '@/components/RowMenu';
+import BaustelleAbschliessen from './BaustelleAbschliessen';
 import { useAuth } from '@/app/AuthContext';
 import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
@@ -27,7 +29,6 @@ import { canAccess, zusatzrechte } from '@/app/navigation';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import { liegenschaftZeile } from '@/features/liegenschaften/liegenschaftText';
 import { canEditTime, canInvoice, canWriteWorkSheet, isGF } from '@/lib/permissions';
-import RowMenu from '@/components/RowMenu';
 import StundennachweisDialog from '@/features/accounting/StundennachweisDialog';
 import { useModul } from '@/lib/useModule';
 import BaustelleNachrichten from '@/features/nachrichten/BaustelleNachrichten';
@@ -143,6 +144,20 @@ export default function BaustellenakteView() {
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
   /** Eine geänderte Nummer wird erst nach Rückfrage gespeichert. */
   const [nummerFragen, setNummerFragen] = useState<{ alt: string; neu: string } | null>(null);
+  /*
+    GEFÜHRT ABSCHLIESSEN (A11, F1, V2) — aus dem „⋯“, als Hauptaktion nach
+    bezahlter Schlussrechnung, und über `?abschliessen=1` aus den Meldungen
+    nach der Zahlung und nach „Wartung erledigt“.
+  */
+  const [abschliessen, setAbschliessen] = useState(false);
+  const [adresse, setAdresse] = useSearchParams();
+  useEffect(() => {
+    if (adresse.get('abschliessen') !== '1') return;
+    setAbschliessen(true);
+    const rest = new URLSearchParams(adresse);
+    rest.delete('abschliessen');
+    setAdresse(rest, { replace: true });
+  }, [adresse, setAdresse]);
 
   const companyId = user?.companyId;
   const darfAendern = user ? isGF(user.role) : false;
@@ -600,6 +615,7 @@ export default function BaustellenakteView() {
       ? scheinStand.scheine.filter((s) => s.status === 'Unterschrieben' && !scheinStand.verrechnet.has(s.id)).length
       : null,
     abgeschlossen: b.status === 'Abgeschlossen',
+    abschlussReif: darfAendern && rechnungLage !== null && rechnungLage !== 'fehler' && abschlussReif(rechnungLage),
   });
   /*
     DIE ECKDATEN ZWEIMAL GEBAUT, EINMAL GEZEIGT (D1, E86). Ab dem Tablet
@@ -639,20 +655,28 @@ export default function BaustellenakteView() {
         stand={eckdaten}
         standWort={b.status}
         title={baustellenTitel(b)}
-        kontakt={<><TelefonLink nummer={b.contactPhone} name={b.contactName} /><a className="link-weiter akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a></>}
         /*
-          DER STUNDENNACHWEIS FÜR DEN KUNDEN (F12) im ⋯: selten gebraucht, und
-          nur von denen, die fremde Zeiten lesen — im Supportzugang sind
-          Zeitbuchungen verschlossen.
+          SELTENE HANDGRIFFE IM ⋯ (ein Menü für alle):
+          - „Abschließen“ (A11), solange es nicht ohnehin die Hauptaktion ist;
+          - der Stundennachweis für den Kunden (F12) — nur für die, die fremde
+            Zeiten lesen; im Supportzugang sind Zeitbuchungen verschlossen.
         */
-        mehr={user && canEditTime(user.role) && !einblick ? (
-          <RowMenu about={`Baustelle ${b.projectNumber}`} items={[{ label: 'Stundennachweis', onSelect: () => setNachweisOffen(true) }]} />
-        ) : undefined}
+        mehr={(() => {
+          const eintraege = [
+            ...(darfAendern && b.status !== 'Abgeschlossen' && hauptaktion !== 'abschliessen'
+              ? [{ label: 'Abschließen', onSelect: () => setAbschliessen(true) }] : []),
+            ...(user && canEditTime(user.role) && !einblick
+              ? [{ label: 'Stundennachweis', onSelect: () => setNachweisOffen(true) }] : []),
+          ];
+          return eintraege.length ? <RowMenu about={`Baustelle ${b.projectNumber}`} items={eintraege} /> : undefined;
+        })()}
+        kontakt={<><TelefonLink nummer={b.contactPhone} name={b.contactName} /><a className="link-weiter akten-verweis" href="#baustelle-kontext">Adresse und Kontakt</a></>}
         action={(hauptaktion || darfAendern) && <div className="akten-aktionen">
           {/* Eine Hauptaktion je Seite; sie folgt dem Stand (E83). „Schein schreiben“ bleibt in der Karte der Scheine. */}
           {hauptaktion === 'planen' && <KnopfLink to="/assignments/tag" state={{ datum: todayStr(), projectNumber: b.projectNumber }}>Einsatz planen</KnopfLink>}
           {hauptaktion === 'rechnung' && <KnopfLink to={`/invoices?neu=${encodeURIComponent(b.projectNumber)}`}>Rechnung stellen</KnopfLink>}
           {hauptaktion === 'schein' && <KnopfLink to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}>Schein schreiben</KnopfLink>}
+          {hauptaktion === 'abschliessen' && <Button onClick={() => setAbschliessen(true)}>Abschließen</Button>}
           {darfAendern && <Button variant={hauptaktion ? 'secondary' : 'primary'} onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
         </div>}
       />
@@ -698,6 +722,11 @@ export default function BaustellenakteView() {
           dateiBezug={b.projectNumber}
         />
       )}
+      <BaustelleAbschliessen
+        projekt={abschliessen ? b : null}
+        onClose={() => setAbschliessen(false)}
+        onAbgeschlossen={() => setVersuch((v) => v + 1)}
+      />
 
       <ConfirmDialog
         open={!!nummerFragen}
@@ -718,6 +747,18 @@ export default function BaustellenakteView() {
 
     </div>
   );
+}
+
+/**
+ * Bezahlt und nichts mehr offen? Eine Einzel- oder Schlussrechnung, die
+ * bezahlt ist, und keine Rechnung, die noch etwas fordert (A11, V2).
+ */
+function abschlussReif(rechnungen: Invoice[]): boolean {
+  const gueltig = rechnungen.filter((r) => r.paymentStatus !== 'Storniert');
+  const schlussBezahlt = gueltig.some((r) => ((r.art ?? 'einzel') === 'einzel' || r.art === 'schluss')
+    && (r.paymentStatus === 'Bezahlt' || r.paymentStatus === 'Überzahlt'));
+  const offen = gueltig.some((r) => r.paymentStatus === 'Offen' || r.paymentStatus === 'Überfällig' || r.paymentStatus === 'Teilbezahlt');
+  return schlussBezahlt && !offen;
 }
 
 /** Der Wochentag zu einem Tag ('YYYY-MM-DD'), für den Zusatz im Schriftfeld. */
@@ -843,6 +884,8 @@ function StammdatenFormular({
   /** Der Kunde der Baustelle — einzeln geholt, nicht der ganze Kundenstamm (Ladezeit, 19.10.2026). */
   const [kunde, setKunde] = useKunde(companyId, entwurf.customerId);
   const pauschal = entwurf.billingMode === 'Pauschal' || entwurf.billingMode === 'Einheitspreis';
+  // A11: „Abgeschlossen“ steht nur zur Wahl, wenn sie es ist — zum Wiederöffnen.
+  const istAbgeschlossen = entwurf.status === 'Abgeschlossen';
 
   return (
     <>
@@ -948,7 +991,8 @@ function StammdatenFormular({
             >
               <option>Aktiv</option>
               <option>Pausiert</option>
-              <option>Abgeschlossen</option>
+              {/* A11: abgeschlossen wird geführt (⋯ → Abschließen); hier nur, um wieder zu öffnen. */}
+              {istAbgeschlossen && <option>Abgeschlossen</option>}
             </SelectField>
             {/*
               DIE ABRECHNUNGSART WAR NIRGENDS ÄNDERBAR. Der Handwerksschein liest

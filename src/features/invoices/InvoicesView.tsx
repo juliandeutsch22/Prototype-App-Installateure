@@ -1,7 +1,7 @@
 import { istAn } from '@/lib/module';
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon } from '@/lib/lohnregeln';
 import {
@@ -40,7 +40,7 @@ import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm, zahlsta
 import { haftruecklassBisVorschlag, RUECKLASS_NAME, ruecklassArtFuer, ruecklassBetrag } from './ruecklass';
 import { skontoZumAusgleich, zugesagterSkonto } from './skonto';
 import { betriebsKonditionen, konditionenAbweichungen, zahlungsbedingungen } from './konditionen';
-import { listActiveProjects } from '@/lib/db/projects';
+import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { kundenNachNamen, updateCustomer } from '@/lib/db/customers';
 import { useKundenFuer } from '@/features/customers/useKundenFuer';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
@@ -137,7 +137,7 @@ import { letzteMahnforderung, mahnkostenVorschlag } from './mahnung';
 import PageHeader from '@/components/PageHeader';
 import { Masslinie } from '@/components/Planlinie';
 import { praefixeVon } from '@/lib/praefixe';
-import { darfKundenPflegen, isTopLevel } from '@/lib/permissions';
+import { darfKundenPflegen, isGF, isTopLevel } from '@/lib/permissions';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import Hinweiszeile from '@/components/Hinweiszeile';
@@ -186,6 +186,7 @@ function aufzaehlung(teile: string[]): string {
 
 export default function InvoicesView() {
   const { user, company, einblick } = useAuth();
+  const navigate = useNavigate();
   /*
     DIE PROJEKTLEITUNG LIEST NUR (Freigabe „Rechnungen seiner Baustellen
     lesen“, M38; Runde 3, Selbst prüfen). Sie kommt nur mit der Freigabe
@@ -1366,7 +1367,8 @@ export default function InvoicesView() {
     } else {
       await createZahlung(zahlungFuer.companyId, zahlung);
     }
-    setZahlungen(await listZahlungen(zahlungFuer.companyId, zahlungFuer.id));
+    const neueZahlungen = await listZahlungen(zahlungFuer.companyId, zahlungFuer.id);
+    setZahlungen(neueZahlungen);
     setZBetrag('');
     setZHinweis('');
     setZSkonto(false);
@@ -1384,6 +1386,25 @@ export default function InvoicesView() {
       setZahlungFuer(null);
       toast.success(`Rückzahlung über ${euro(eingetragen)} gebucht`);
       return;
+    }
+    /*
+      DER ANSTOSS ZUM ABSCHLIESSEN (A11, V2): ist mit dieser Zahlung die
+      Schluss- oder Einzelrechnung bezahlt und die Baustelle noch offen,
+      trägt die Meldung den Weg dorthin — der geführte Abschluss zeigt, was
+      noch offen ist. Nur für die, die abschließen dürfen.
+    */
+    const bezahltJetzt = cent(neueZahlungen.filter((z) => z.art !== 'Mahnkosten').reduce((s, z) => s + z.betrag, 0));
+    const schluss = (zahlungFuer.art ?? 'einzel') === 'einzel' || zahlungFuer.art === 'schluss';
+    if (schluss && zahlungFuer.projectNumber && isGF(user.role)
+      && zahlstand({ ...zahlungFuer, bezahltBetrag: bezahltJetzt }).rest <= 0) {
+      const [baustelle] = await listProjectsByNumbers(zahlungFuer.companyId, [zahlungFuer.projectNumber]).catch(() => []);
+      if (baustelle && baustelle.status !== 'Abgeschlossen') {
+        toast.success(`Zahlung erfasst — ${zahlungFuer.invoiceNumber} ist bezahlt`, {
+          label: 'Baustelle abschließen',
+          onClick: () => navigate(`/admin-projects/${baustelle.id}?abschliessen=1`),
+        });
+        return;
+      }
     }
     toast.success('Zahlung erfasst');
   };

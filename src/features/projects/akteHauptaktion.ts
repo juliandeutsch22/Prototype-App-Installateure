@@ -10,7 +10,7 @@
  * was die Rolle darf; was nicht geladen ist, zählt nicht als „keiner“ — eine
  * Akte, deren Einsätze nicht kamen, ruft nicht „Einsatz planen“.
  */
-export type AkteHauptaktion = 'planen' | 'rechnung' | 'schein' | null;
+export type AkteHauptaktion = 'planen' | 'rechnung' | 'schein' | 'abschliessen' | null;
 
 export function akteHauptaktion(q: {
   /** Planung an und die Rolle darf in die Einsatzplanung. */
@@ -25,8 +25,15 @@ export function akteHauptaktion(q: {
   offeneScheine: number | null;
   /** Abgeschlossen wird nicht mehr geplant. */
   abgeschlossen: boolean;
+  /**
+   * Die Schlussrechnung (oder Einzelrechnung) ist bezahlt und keine andere
+   * offen — der nächste Schritt ist das Abschließen (A11, V2). Fehlt die
+   * Angabe, bleibt alles wie bisher.
+   */
+  abschlussReif?: boolean;
 }): AkteHauptaktion {
   if (q.darfPlanen && !q.abgeschlossen && q.hatEinsatz === false) return 'planen';
   if (q.darfRechnen && (q.offeneScheine ?? 0) > 0) return 'rechnung';
+  if (q.abschlussReif && !q.abgeschlossen) return 'abschliessen';
   return q.darfSchein ? 'schein' : null;
 }

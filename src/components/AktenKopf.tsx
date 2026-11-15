@@ -17,7 +17,7 @@ export default function AktenKopf({ title, zurueck, zurueckText, meta, action, k
   stand?: ReactNode;
   /** Der Stand als Wort („Aktiv“) neben dem Stempel, am Handy (E86). */
   standWort?: ReactNode;
-  /** Seltene Handgriffe der Akte im ⋯ des Seitenkopfs (z. B. „Stundennachweis“, F12). */
+  /** Seltene Handgriffe der Akte im „⋯“ des Seitenkopfs (F12: Stundennachweis, A11: Abschließen, V3: Neu für diesen Kunden). */
   mehr?: ReactNode;
 }) {
   /*

@@ -119,3 +119,15 @@ export function baustelleVerwendung(id: string): Promise<pg.BaustellenVerwendung
 export function listLaufendeDesKunden(companyId: string, customerId: string, max: number): Promise<WithId<Project>[]> {
   return pg.listLaufendeDesKunden(companyId, customerId, max);
 }
+
+export type { AbschlussLage } from './pg/projects';
+
+/** Was vor dem Abschließen offen ist (A11) — siehe `pg.baustelleAbschlussLage`. */
+export function baustelleAbschlussLage(id: string): Promise<pg.AbschlussLage> {
+  return pg.baustelleAbschlussLage(id);
+}
+
+/** Eine Baustelle abschließen (A11) — siehe `pg.baustelleAbschliessen`. */
+export function baustelleAbschliessen(id: string): Promise<pg.AbschlussLage> {
+  return pg.baustelleAbschliessen(id);
+}

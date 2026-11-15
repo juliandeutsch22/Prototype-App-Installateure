@@ -335,6 +335,8 @@ describe('Interne Hilfsfunktionen', () => {
       // A1: was an einer Baustelle hängt — die öffentliche Fassung prüft die Rolle, diese nicht.
       'app.baustelle_verwendung(uuid)',
       'app.baustelle_haengt_etwas(jsonb)',
+      // A11: die Zählung vor dem Abschließen — die öffentlichen Fassungen prüfen die Rolle.
+      'app.baustelle_abschluss_zaehlen(public.projects)',
       // Was nur die Function mit dem Dienstschlüssel ruft.
       'public.angebot_link_abruf(text)',
       'public.angebot_link_annehmen(text, text, text, boolean)',

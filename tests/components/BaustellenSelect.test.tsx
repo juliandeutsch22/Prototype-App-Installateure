@@ -36,7 +36,13 @@ vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: () => listActiveProjects(),
   listRecentProjects: () => listRecentProjects(),
   listProjectsByNumbers: () => listProjectsByNumbers(),
+  // A11: die Suche über die Grenze hinaus.
+  searchProjects: (_c: string, b: string) => Promise.resolve(gesucht.filter((p) => p.projectNumber.includes(b))),
+  listProjectsByIds: () => Promise.resolve([]),
+  listLaufendeDesKunden: () => Promise.resolve([]),
 }));
+/** Was die Suche des Servers kennt, die Liste aber nicht (A11). */
+let gesucht: (Project & { id: string })[] = [];
 
 const { default: BaustellenSelect } = await import('@/components/BaustellenSelect');
 
@@ -239,7 +245,22 @@ describe('Baustellenauswahl — wenn die Grenze greift', () => {
     listActiveProjects.mockResolvedValue(viele(500));
     render(<BaustellenSelect companyId="perl" value="" onChange={vi.fn()} />);
 
-    expect(await screen.findByText(/nur die ersten 500 laufenden Baustellen/)).toBeInTheDocument();
+    expect(await screen.findByText(/zeigt die ersten 500 laufenden Baustellen — jede andere findet die Suche/)).toBeInTheDocument();
+  });
+
+  /*
+    A11 (Durchsicht 15.11.2026): über die Grenze hinaus half nur der Umweg
+    über „Baustellen“. Jetzt sucht die Datenbank über alle.
+  */
+  it('findet über die Suche eine Baustelle jenseits der Grenze und wählt sie', async () => {
+    listActiveProjects.mockResolvedValue(viele(500));
+    gesucht = [{ id: 'weit', companyId: 'perl', projectNumber: '2026-777', customerName: 'Kunde Weit', status: 'Aktiv' } as Project & { id: string }];
+    const gewaehlt = vi.fn();
+    render(<BaustellenSelect companyId="perl" value="" onChange={gewaehlt} />);
+    await userEvent.type(await screen.findByLabelText('Andere Baustelle suchen'), '777');
+    await userEvent.click(await screen.findByText('Kunde Weit (2026-777)'));
+    expect(gewaehlt).toHaveBeenCalledWith('2026-777', expect.objectContaining({ id: 'weit' }));
+    gesucht = [];
   });
 
   it('schweigt bei einem gewöhnlichen Betrieb', async () => {
@@ -250,7 +271,8 @@ describe('Baustellenauswahl — wenn die Grenze greift', () => {
     render(<BaustellenSelect companyId="perl" value="" onChange={vi.fn()} />);
 
     await screen.findByText(/Kunde 0/);
-    expect(screen.queryByText(/nur die ersten/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/die ersten \d+ laufenden/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Andere Baustelle suchen')).toBeNull();
   });
 
   it('verwechselt den Ausweichweg nicht mit der Grenze', async () => {
@@ -265,7 +287,7 @@ describe('Baustellenauswahl — wenn die Grenze greift', () => {
     render(<BaustellenSelect companyId="perl" value="" onChange={vi.fn()} />);
 
     expect(await screen.findByText(/Keine laufende Baustelle/)).toBeInTheDocument();
-    expect(screen.queryByText(/nur die ersten/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/die ersten \d+ laufenden/)).not.toBeInTheDocument();
   });
 });
 

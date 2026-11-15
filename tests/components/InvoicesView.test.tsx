@@ -3160,6 +3160,30 @@ describe('Zahlungen erfassen', () => {
     expect(screen.getByLabelText(/^Betrag/)).toBeInTheDocument();
   });
 
+  /*
+    A11, V2 (Durchsicht 15.11.2026): nichts stieß das Abschließen an — auch
+    nicht die bezahlte Schlussrechnung. Jetzt trägt die Meldung den Weg.
+  */
+  it('ist die Rechnung damit bezahlt, bietet die Meldung der Geschäftsführung „Baustelle abschließen“ an', async () => {
+    // Abschließen darf die Führung — die Buchhaltung bekommt die Meldung wie bisher (siehe oben).
+    const rolle = authWert.user.role;
+    (authWert.user as { role: string }).role = 'Geschäftsführung';
+    rechnungen = [offeneRechnung()];
+    listZahlungen.mockImplementation(async () => [
+      ...bisherigeZahlungen,
+      ...erfassteZahlungen.map((z, i) => ({ id: `z${i}`, ...z })),
+    ] as never);
+    zeige();
+    await screen.findByText(/RE-2026-0042/);
+    await rechnungOeffnen('RE-2026-0042');
+    await userEvent.click(await screen.findByRole('button', { name: 'Zahlung erfassen' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Zahlung eintragen' }));
+    expect(await screen.findByText('Zahlung erfasst — RE-2026-0042 ist bezahlt')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Baustelle abschließen' })).toBeInTheDocument();
+    listZahlungen.mockImplementation(async () => bisherigeZahlungen);
+    (authWert.user as { role: string }).role = rolle;
+  });
+
   it('sagt bei Bar und Karte, dass der Beleg aus der Registrierkasse kommt', async () => {
     rechnungen = [offeneRechnung()];
     zeige();

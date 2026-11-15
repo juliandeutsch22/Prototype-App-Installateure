@@ -88,6 +88,7 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'arztbesuch_vorschlag',
   'ausgegebenes_material',
   'ausgegebenes_material_gesamt',
+  'baustelle_abschluss_lage',
   'baustelle_materialstand',
   'baustelle_verwendung',
   'baustellen_einsatzlage',

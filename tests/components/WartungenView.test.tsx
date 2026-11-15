@@ -98,6 +98,9 @@ vi.mock('@/lib/db/projects', () => ({
   listRecentProjects: () => listRecentProjects(),
   createProject: (c: string, p: Record<string, unknown>) => createProject(c, p),
   reserveProjectNumber: (c: string, o: unknown) => reserveProjectNumber(c, o),
+  // A11: nach „Erledigt“ die eingeplante Baustelle — offen bietet die Meldung das Abschließen an.
+  listProjectsByNumbers: async (_c: string, nummern: string[]) =>
+    nummern.map((n) => ({ id: `p-${n}`, companyId: 'perl', projectNumber: n, customerName: 'X', status: 'Aktiv' })),
 }));
 
 const kunden: (Customer & { id: string })[] = [
@@ -947,5 +950,18 @@ describe('Erledigt aus dem Vorschlag der Startseite (A9)', () => {
     await waitFor(() => expect(wartungErledigt).toHaveBeenCalledWith('w5', expect.objectContaining({
       erledigtAm: '2026-05-20', projectNumber: 'PR-2026-0042',
     })));
+  });
+});
+
+/* A11, V2: nach „Wartung erledigt“ der Weg zum Abschließen der Baustelle. */
+describe('Abschließen nach „Erledigt“ (A11)', () => {
+  it('die Meldung bietet an, die eingeplante Baustelle abzuschließen', async () => {
+    bestand = [wartung('w6', 'Familie Koller', '2026-04-10', { offeneBaustelle: 'PR-2026-0042' })];
+    const nutzer = userEvent.setup();
+    zeichne();
+    const zeile = (await screen.findAllByText(/Familie Koller/))[0].closest('li') as HTMLElement;
+    await nutzer.click(within(zeile).getByRole('button', { name: 'Erledigt' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Eintragen' }));
+    expect(await screen.findByRole('button', { name: 'PR-2026-0042 abschließen' })).toBeInTheDocument();
   });
 });
