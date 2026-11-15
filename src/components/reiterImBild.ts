@@ -77,7 +77,8 @@ function randMerken(el: HTMLElement | null): void {
   else el.removeAttribute('data-mehr-links');
   const l = el.getBoundingClientRect();
   if (!l.width) return;
-  const reiter = Array.from(el.children) as HTMLElement[];
+  // Ohne den Strich, der beim Wechsel kurz über der Leiste fährt (B5, `lib/unterlinie.ts`).
+  const reiter = (Array.from(el.children) as HTMLElement[]).filter((k) => !k.hasAttribute('data-unterlinie'));
   const angeschnittenRechts = rechts ? reiter.find((r) => r.getBoundingClientRect().right > l.right + 1) : undefined;
   const angeschnittenLinks = links ? [...reiter].reverse().find((r) => r.getBoundingClientRect().left < l.left - 1) : undefined;
   const anteil = (px: number) => `${Math.min(100, Math.max(0, Math.round((px / l.width) * 100)))}%`;

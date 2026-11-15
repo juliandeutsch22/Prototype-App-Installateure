@@ -40,6 +40,7 @@ import Ladebalken from '@/components/Ladebalken';
 import { datenSparen, imLeerlauf, vorladen } from '@/lib/ansichten';
 import { taktHalten } from '@/lib/takt';
 import { zeilenflussHalten, zeilenflussRuhe } from '@/lib/zeilenfluss';
+import { unterlinieHalten } from '@/lib/unterlinie';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { offeneVormerkungen } from '@/lib/db/pg/ohneEmpfang';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
@@ -167,6 +168,12 @@ export default function Layout({ children }: { children: ReactNode }) {
   useEffect(() => {
     const main = inhalt.current;
     return main ? zeilenflussHalten(main) : undefined;
+  }, []);
+
+  // Die Unterlinie gleitet zum gewählten Reiter (B5, `lib/unterlinie.ts`) — für jede Leiste der App.
+  useEffect(() => {
+    const main = inhalt.current;
+    return main ? unterlinieHalten(main) : undefined;
   }, []);
 
   /*

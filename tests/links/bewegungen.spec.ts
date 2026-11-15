@@ -267,3 +267,42 @@ test.describe('B3 Zeile kommt dazu', () => {
     }
   });
 });
+
+test.describe('B5 Unterlinie gleitet', () => {
+  for (const fall of [
+    { route: '/settings/firma', role: 'link' as const, name: 'Personal', breite: 390 },
+    { route: '/customers/k1', role: 'tab' as const, name: 'Stammdaten', breite: 390 },
+    { route: '/invoices', role: 'button' as const, name: 'Erledigt', breite: 1440 },
+  ]) for (const reduziert of [false, true]) test(`${fall.route} → ${fall.name}${reduziert ? ' — reduziert: sofort' : ''}`, async ({ page }) => {
+    await page.setViewportSize({ width: fall.breite, height: 900 });
+    await page.emulateMedia({ reducedMotion: reduziert ? 'reduce' : 'no-preference' });
+    await page.goto(pfad(fall.route));
+    const wahl = page.getByRole(fall.role, { name: fall.name, exact: true });
+    await expect(wahl).toBeVisible();
+    await page.evaluate(() => {
+      const w = window as unknown as { striche: number[]; strichFertig: boolean };
+      w.striche = []; w.strichFertig = false;
+      const t0 = performance.now();
+      const bild = () => {
+        const s = document.querySelector<HTMLElement>('[data-unterlinie]');
+        const t = s ? getComputedStyle(s).transform : null;
+        w.striche.push(s ? (t === 'none' ? 0 : new DOMMatrixReadOnly(t!).m41) : NaN);
+        if (performance.now() - t0 < 700) requestAnimationFrame(bild); else w.strichFertig = true;
+      };
+      requestAnimationFrame(bild);
+    });
+    await wahl.click();
+    await page.waitForFunction(() => (window as unknown as { strichFertig: boolean }).strichFertig);
+    const striche = await page.evaluate(() => (window as unknown as { striche: number[] }).striche);
+    const da = striche.filter((x) => !Number.isNaN(x));
+    if (reduziert) expect(da).toEqual([]);
+    else {
+      expect(Math.max(...da.map(Math.abs))).toBeGreaterThan(8);
+      expect(da[da.length - 1]).toBe(0);
+    }
+    // Am Ende: kein Strich mehr, die Kante gehört wieder dem Reiter — wie vorher.
+    expect(Number.isNaN(striche[striche.length - 1])).toBe(true);
+    const kante = await wahl.evaluate((el) => getComputedStyle(el).borderBottomColor);
+    expect(kante).not.toBe('rgba(0, 0, 0, 0)');
+  });
+});

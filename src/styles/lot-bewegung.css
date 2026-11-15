@@ -43,6 +43,15 @@
       animation-name: fenster-hinaus;
     }
   }
+
+  /*
+    B5 — DIE UNTERLINIE GLEITET (`lib/unterlinie.ts`). Die Leiste ist
+    Bezugsrahmen für den Strich, der für die Dauer der Bewegung über ihr
+    liegt; rollt sie seitlich, rollt er mit. Alter und neuer Reiter zeigen
+    so lange keine eigene Kante — es gibt genau einen Strich, und der fährt.
+  */
+  .reiterleiste, .segment, .akten-bereiche, [role="tablist"] { position: relative; }
+  [data-unterlinie-weg] { border-bottom-color: transparent !important; transition: none !important; }
 }
 
 @keyframes blatt-herein { from { transform: translateY(100%); } }
