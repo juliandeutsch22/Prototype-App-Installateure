@@ -23,6 +23,9 @@ export interface OrderDoc {
   status?: string;
   transactionType?: string;
   isUrgent?: boolean;
+  /** Wann das Lager die Bestellung beim Händler zuletzt storniert hat (M4/M11). */
+  storniertAm?: string;
+  stornoGrund?: string;
 }
 
 export type MeldungsArt =
@@ -60,6 +63,8 @@ export function orderAusZeile(zeile: Record<string, unknown> | undefined): Order
     status: zeile.status as string | undefined,
     transactionType: zeile.transaction_type as string | undefined,
     isUrgent: zeile.is_urgent === true,
+    storniertAm: (zeile.bestellung_storniert_am as string | null | undefined) ?? undefined,
+    stornoGrund: (zeile.bestellung_storno_grund as string | null | undefined) ?? undefined,
   };
 }
 
@@ -153,6 +158,20 @@ export function istUebergangAufEil(before?: OrderDoc, after?: OrderDoc): boolean
   return istEilRelevant(after) && istMeldepflichtigeAnforderung(after);
 }
 
+/**
+ * Das Lager hat die Bestellung beim Händler storniert (M11).
+ *
+ * Nur der neue Zeitpunkt zählt: dieselbe Zeile, die später aus anderem
+ * Grund gespeichert wird, trägt den alten Storno weiter und darf nicht noch
+ * einmal melden. Eine Retoure wird nie bestellt; ohne Besteller gibt es
+ * niemanden, der wartet.
+ */
+export function istBestellungStorniert(before?: OrderDoc, after?: OrderDoc): boolean {
+  if (!after?.userId || !after.storniertAm) return false;
+  if (after.transactionType === 'return') return false;
+  return before?.storniertAm !== after.storniertAm;
+}
+
 function menge(order: OrderDoc): string {
   return `${order.quantity ?? 1}× ${order.materialName ?? 'Material'}`;
 }
@@ -189,6 +208,23 @@ export function textAbholbereit(order: OrderDoc, id: string): Meldung {
     body: `${menge(order)} liegt bereit${order.projectNumber ? ` (${order.projectNumber})` : ''}`,
     link: '/material/anfordern',
     tag: `material-bereit-${id}`,
+  };
+}
+
+/**
+ * Die Ware kommt nicht wie bestellt. Der Grund steht in der Meldung, weil
+ * der Monteur danach plant (anderer Händler, später, Ersatzartikel) — ohne
+ * ihn müsste er im Lager nachfragen. Dieselbe Seite wie beim Abholbereit:
+ * dort sieht er den Stand seiner Anforderung.
+ */
+export function textBestellungStorniert(order: OrderDoc, id: string): Meldung {
+  const grund = order.stornoGrund?.trim();
+  return {
+    title: 'Bestellung storniert',
+    body: `${menge(order)}${order.projectNumber ? ` (${order.projectNumber})` : ''}${
+      grund ? ` — ${grund}` : ''} · wird neu beschafft`,
+    link: '/material/anfordern',
+    tag: `material-storno-${id}`,
   };
 }
 

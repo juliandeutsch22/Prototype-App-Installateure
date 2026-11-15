@@ -8,6 +8,8 @@ import {
   istEilRelevant,
   istMeldepflichtigeAnforderung,
   istUebergangAufAbholbereit,
+  istBestellungStorniert,
+  textBestellungStorniert,
   textAbholbereit,
   textEilAngefordert,
   textNeueAnforderung,
@@ -277,6 +279,50 @@ describe('Eine Postgres-Zeile wird zur Anforderung', () => {
     // `!!undefined` wäre auch falsch-sicher; hier steht ausdrücklich `false`,
     // damit ein Vergleich auf `=== false` nicht danebenliegt.
     expect(orderAusZeile({ company_id: 'perl' })!.isUrgent).toBe(false);
+  });
+});
+
+/*
+  STORNO AN DEN BESTELLER (M11). Gegenprobe: ohne die beiden Spalten in
+  `orderAusZeile` bliebe `storniertAm` leer und es käme nie eine Meldung —
+  der erste Test wird rot.
+*/
+describe('Storno einer Bestellung', () => {
+  const zeile = {
+    company_id: 'perl', material_name: 'Kugelhahn 1/2"', quantity: '2.000',
+    project_number: 'B-2026-0001', user_id: 'u1', status: 'In Bearbeitung',
+    transaction_type: 'order', is_urgent: false,
+  };
+  const storniert = {
+    ...zeile, bestellung_storniert_am: '2026-11-16T09:00:00+00:00',
+    bestellung_storno_grund: 'Großhändler kann nicht liefern',
+  };
+
+  it('meldet den neuen Storno — mit Grund in der Meldung', () => {
+    const vorher = orderAusZeile(zeile);
+    const nachher = orderAusZeile(storniert)!;
+    expect(istBestellungStorniert(vorher, nachher)).toBe(true);
+    expect(textBestellungStorniert(nachher, 'a1')).toEqual({
+      title: 'Bestellung storniert',
+      body: '2× Kugelhahn 1/2" (B-2026-0001) — Großhändler kann nicht liefern · wird neu beschafft',
+      link: '/material/anfordern',
+      tag: 'material-storno-a1',
+    });
+  });
+
+  it('derselbe Storno noch einmal gespeichert meldet nichts', () => {
+    expect(istBestellungStorniert(orderAusZeile(storniert), orderAusZeile(storniert))).toBe(false);
+  });
+
+  it('ohne Storno, ohne Besteller oder bei einer Retoure: nichts', () => {
+    expect(istBestellungStorniert(orderAusZeile(zeile), orderAusZeile(zeile))).toBe(false);
+    expect(istBestellungStorniert(undefined, orderAusZeile({ ...storniert, user_id: null }))).toBe(false);
+    expect(istBestellungStorniert(undefined, orderAusZeile({ ...storniert, transaction_type: 'return' }))).toBe(false);
+  });
+
+  it('ohne Grund bleibt die Meldung lesbar', () => {
+    const o = orderAusZeile({ ...storniert, bestellung_storno_grund: null, project_number: null })!;
+    expect(textBestellungStorniert(o, 'a1').body).toBe('2× Kugelhahn 1/2" · wird neu beschafft');
   });
 });
 

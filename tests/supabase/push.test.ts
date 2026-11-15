@@ -536,3 +536,61 @@ describe('Deaktivierte bekommen keine Meldung', () => {
     expect(daten.geplant).toEqual([{ art: 'notifyOrderReady', empfaenger: 1, geraete: 0 }]);
   }, 120_000);
 });
+
+/*
+  STORNO AN DEN BESTELLER (M11, 16.11.2026): storniert das Lager die
+  Bestellung beim Händler, erfährt es der Monteur mit Grund — vorher kam
+  nichts, und er wartete auf Ware, die nicht kam. Gegenprobe: ohne den Block
+  „storno“ im Trigger (20261116060900) und in der Function plant niemand
+  etwas (rot); dass ein erneutes Speichern mit demselben Storno still bleibt,
+  prüft ein eigener Test.
+*/
+describe('Storno einer Bestellung', () => {
+  const STORNO = '2026-11-16T09:00:00+00:00';
+
+  it('erfährt der Besteller — nur er', async () => {
+    const { daten } = await anstossen({
+      art: 'storno',
+      vorher: anforderung({ status: 'In Bearbeitung' }),
+      nachher: anforderung({
+        status: 'In Bearbeitung', bestellung_storniert_am: STORNO,
+        bestellung_storno_grund: 'Großhändler kann nicht liefern',
+      }),
+    });
+    expect(daten.geplant).toEqual([{ art: 'notifyOrderReady', empfaenger: 1, geraete: 1 }]);
+  }, 120_000);
+
+  it('derselbe Storno noch einmal gespeichert: nichts', async () => {
+    const zeile = { status: 'In Bearbeitung', bestellung_storniert_am: STORNO, bestellung_storno_grund: 'x' };
+    const { daten } = await anstossen({
+      art: 'storno', vorher: anforderung(zeile), nachher: anforderung(zeile),
+    });
+    expect(daten.geplant).toEqual([]);
+  }, 120_000);
+
+  it('der Trigger stösst an, wenn das Lager über die App storniert', async () => {
+    const zeile = anforderung({
+      status: 'In Bearbeitung', beschaffung: 'einkauf', bestellt_am: new Date().toISOString(),
+    });
+    expect((await admin.from('material_orders').insert(zeile)).error).toBeNull();
+    await new Promise((r) => setTimeout(r, 3000));
+    const vorher = (await db.query('select count(*)::int as n from net._http_response')).rows[0].n;
+
+    const { data, error } = await verwaltung.client.rpc('einkauf_stornieren', {
+      p_ids: [zeile.id], p_grund: 'Großhändler kann nicht liefern',
+    });
+    expect(error).toBeNull();
+    expect(data).toBe(1);
+
+    let nachher = vorher;
+    for (let i = 0; i < 30 && nachher === vorher; i += 1) {
+      await new Promise((r) => setTimeout(r, 500));
+      nachher = (await db.query('select count(*)::int as n from net._http_response')).rows[0].n;
+    }
+    expect(nachher).toBe(vorher + 1);
+    const letzte = await db.query('select content from net._http_response order by created desc limit 1');
+    expect(JSON.parse(letzte.rows[0].content).geplant).toEqual([
+      { art: 'notifyOrderReady', empfaenger: 1, geraete: 1 },
+    ]);
+  }, 180_000);
+});

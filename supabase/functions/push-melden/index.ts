@@ -50,8 +50,10 @@ import {
   istUebergangAufEil,
   istMeldepflichtigeAnforderung,
   istUebergangAufAbholbereit,
+  istBestellungStorniert,
   orderAusZeile,
   textAbholbereit,
+  textBestellungStorniert,
   textEilAbholbereit,
   textEilAngefordert,
   textNeueAnforderung,
@@ -170,7 +172,7 @@ interface Ereignis {
   von?: string | null;
 }
 
-/** Materialanforderungen: neu, abholbereit, Eilzustellung. */
+/** Materialanforderungen: neu, abholbereit, Eilzustellung, storniert. */
 async function auftraegeAnforderung(ereignis: Ereignis): Promise<Auftrag[] | null> {
   const vorher = orderAusZeile(ereignis.vorher);
   const nachher = orderAusZeile(ereignis.nachher);
@@ -259,6 +261,18 @@ async function auftraegeAnforderung(ereignis: Ereignis): Promise<Auftrag[] | nul
         meldung: textEilAbholbereit(nachher, kennung),
       });
     }
+  }
+
+  /*
+    STORNIERT (M11): nur der Besteller — er wartet auf die Ware. Dieselbe
+    Einstellung wie „abholbereit“: beides ist der Stand SEINER Anforderung.
+  */
+  if (ereignis.art === 'storno' && istBestellungStorniert(vorher, nachher)) {
+    auftraege.push({
+      art: 'notifyOrderReady',
+      uids: nachher.userId ? [nachher.userId] : [],
+      meldung: textBestellungStorniert(nachher, kennung),
+    });
   }
   return auftraege;
 }

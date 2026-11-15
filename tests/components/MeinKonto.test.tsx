@@ -54,6 +54,13 @@ describe('Mein Konto', () => {
     expect(passwort).toBeGreaterThan(auswahl);
   });
 
+  it('sagt beim Abholbereit, dass auch ein Storno der Bestellung kommt (M11)', async () => {
+    // Keine eigene Einstellung: der Monteur soll wissen, woran er sie abschaltet.
+    render(<NotificationSettings />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Was bedeutet Abholbereit?' }));
+    expect(await screen.findByText(/Bestellung beim Großhändler storniert/)).toBeInTheDocument();
+  });
+
   it('öffnet das Passwort-Formular erst auf Knopfdruck', async () => {
     const nutzer = userEvent.setup();
     render(<NotificationSettings />);

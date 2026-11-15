@@ -1030,6 +1030,28 @@ describe('Material anfordern — die eigene Verfolgung', () => {
     expect(screen.getAllByText(/bestellt/)).toHaveLength(2);
   });
 
+  it('sagt ihm, wenn das Lager die Bestellung storniert hat — mit Grund (M11)', async () => {
+    /*
+      Vorher stand nach dem Storno wieder „wird bestellt“, und er wartete auf
+      Ware, die nicht kam. Gegenprobe: ohne den Storno-Satz in
+      `beschaffungStand` rot. Wird neu bestellt, gilt wieder „bestellt“ —
+      der alte Storno bleibt an der Zeile, sagt dann aber nichts mehr.
+    */
+    eigene = [
+      { id: 'o1', companyId: 'perl', materialName: 'Kugelhahn', quantity: 2, status: 'In Bearbeitung',
+        transactionType: 'order', userId: 'u1', beschaffung: 'einkauf',
+        bestellungStorniertAm: 5, bestellungStornoGrund: 'Großhändler kann nicht liefern' } as WithId<MaterialOrder>,
+      { id: 'o2', companyId: 'perl', materialName: 'Dichtung 1/2"', quantity: 5, status: 'In Bearbeitung',
+        transactionType: 'order', userId: 'u1', beschaffung: 'einkauf', bestelltAm: 9,
+        bestellungStorniertAm: 5, bestellungStornoGrund: 'falscher Artikel' } as WithId<MaterialOrder>,
+    ];
+    zeige();
+    expect(await screen.findByText('Bestellung storniert (Großhändler kann nicht liefern) — wird neu bestellt'))
+      .toBeInTheDocument();
+    expect(screen.getByText('beim Großhändler bestellt')).toBeInTheDocument();
+    expect(screen.queryByText(/falscher Artikel/)).not.toBeInTheDocument();
+  });
+
   it('bucht die Abholung erst nach der Bestätigung', async () => {
     eigene = [
       { id: 'o2', companyId: 'perl', materialName: 'Dichtung 1/2"', quantity: 5,

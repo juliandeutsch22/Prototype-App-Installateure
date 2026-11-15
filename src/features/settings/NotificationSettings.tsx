@@ -326,12 +326,19 @@ export default function NotificationSettings() {
             />
           )}
           {zeigeAbholbereit && (
-            <CheckboxField
-              id="n-order-ready"
-              label="Mein angefordertes Material ist abholbereit"
-              checked={orderReady}
-              onChange={(e) => void speichern({ notifyOrderReady: e.target.checked })}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <CheckboxField
+                id="n-order-ready"
+                label="Mein angefordertes Material ist abholbereit"
+                checked={orderReady}
+                onChange={(e) => void speichern({ notifyOrderReady: e.target.checked })}
+              />
+              {/* M11: der Storno ist derselbe Stand SEINER Anforderung — keine eigene Einstellung. */}
+              <InfoHint about="Abholbereit">
+                Auch wenn das Lager die Bestellung beim Großhändler storniert — mit Grund. Es wird dann
+                neu beschafft.
+              </InfoHint>
+            </div>
           )}
           {zeigeEil && (
             <div className="flex flex-wrap items-center gap-2">

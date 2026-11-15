@@ -45,6 +45,7 @@ import { abschlussText, herkunftFragen, mengeText } from './abschlussText';
 import EinheitFeld from '@/components/EinheitFeld';
 import AnforderungFenster from './AnforderungFenster';
 import { zuletztAngefordert, ZULETZT_TAGE } from './zuletztAngefordert';
+import { beschaffungStand } from './anforderungStand';
 import RetoureFenster, { type RetoureVorbelegt } from './RetoureFenster';
 import MeinFahrzeug from './MeinFahrzeug';
 import { zahlAlsText, zahlOder } from '@/lib/zahl';
@@ -921,7 +922,7 @@ export default function OrderView() {
                       {o.materialName} <span className="text-ink-muted">×{mengeText(o)}</span>
                     </span>
                   }
-                  subtitle={[o.projectNumber, o.note, wasLaeuft(o)].filter(Boolean).join(' · ')}
+                  subtitle={[o.projectNumber, o.note, beschaffungStand(o)].filter(Boolean).join(' · ')}
                   // STAND ZUERST (C7, E89): die ganze Zeile öffnet die Anforderung — dort steht „Eilig“.
                   onOeffnen={() => setFenster(o)}
                   ausgewaehlt={fenster?.id === o.id}
@@ -1119,7 +1120,7 @@ export default function OrderView() {
         <AnforderungFenster
           key={fenster.id}
           o={fenster}
-          wasLaeuft={wasLaeuft(fenster)}
+          wasLaeuft={beschaffungStand(fenster)}
           onEilig={() => { setEilFrage(fenster); setFenster(null); }}
           onAbgeholt={() => { abholen(fenster); setFenster(null); }}
           onMengeAendern={async (menge) => {
@@ -1287,12 +1288,3 @@ function InDieListe({ label, disabled, onClick }: { label: string; disabled?: bo
   );
 }
 
-/**
- * WARUM ES DAUERT. Liegt es nicht im Lager, wird es beim Großhändler
- * bestellt — das sagt dem Monteur, dass er nicht vergeblich ins Lager fährt.
- * In der Zeile und im Seitenfenster derselbe Satz.
- */
-function wasLaeuft(o: MaterialOrder): string {
-  if (o.beschaffung !== 'einkauf' || o.geliefertAm) return '';
-  return o.bestelltAm ? 'beim Großhändler bestellt' : 'nicht im Lager — wird bestellt';
-}
