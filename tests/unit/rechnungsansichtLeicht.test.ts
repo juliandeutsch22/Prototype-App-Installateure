@@ -5,9 +5,9 @@ import { readFileSync } from 'node:fs';
   DIE RECHNUNGSANSICHT BLEIBT UNTER DER GRENZE DES LEISTUNGSWÄCHTERS (L11,
   Nacharbeit 15.11.2026): 134,4 von 135 KB, mit den nachgeladenen Fenstern
   129,3 KB (Bauprotokoll). Mail und Bankgarantie kommen erst beim ersten
-  Öffnen. Die E-Rechnung bleibt fest: nachgeladen hinge ihr Baustein an dem
-  der Ansicht (gemeinsames `ebinterface.ts`), und der Wächter erkennte die
-  Ansicht nicht mehr als eigene — er sähe sie gar nicht (gemessen).
+  Öffnen. Die E-Rechnung bleibt fest: nachgeladen bände ihr Baustein den der
+  Ansicht ein (gemeinsames `ebinterface.ts`) und holte beim Öffnen 131,2 KB —
+  gespart wäre nichts (gemessen; der Wächter misst beide seit der Nacharbeit).
   Gegenprobe: mit festem Import sind die ersten beiden Erwartungen rot.
 */
 const q = readFileSync('src/features/invoices/InvoicesView.tsx', 'utf8');

@@ -306,6 +306,12 @@ export interface Baustein {
   einstieg: boolean;
   /** Die Quelldatei, für die der Baustein steht (bei Ansichten der Pfad unter `src/`). */
   modul: string | null;
+  /**
+   * Alle Quelldateien, deren Code in diesem Baustein liegt (Pfad unter der
+   * Wurzel). Damit findet der Wächter eine Ansicht auch dann, wenn ihr
+   * Baustein keine Fassade mehr ist (`modul` leer) — siehe `leistungMessen`.
+   */
+  module?: string[];
   /** Stylesheets, die mit diesem Baustein geladen werden. */
   css: string[];
 }
@@ -347,6 +353,8 @@ export interface LeistungsMessung {
   groessterBaustein: { datei: string; kb: number };
   importierenEinstieg: number;
   ansichten: AnsichtMessung[];
+  /** Ansichten, die gemessen werden müssen, aber in keinem Baustein zu finden sind — macht den Bau rot. */
+  fehlend: string[];
 }
 
 const kb = (n: number) => Math.round((n / 1024) * 10) / 10;
@@ -360,7 +368,15 @@ const gepackt = (inhalt: string | Uint8Array) => gzipSync(inhalt, { level: 9 }).
  * (`ansicht()` in `App.tsx`, die Anmeldung, Push). Gezählt wird, was er
  * FEST einbindet — sein eigenes Nachladen (PDF) kommt erst auf einen Knopf.
  */
-export function leistungMessen(bausteine: Baustein[], stile: Record<string, string | Uint8Array>): LeistungsMessung {
+export function leistungMessen(
+  bausteine: Baustein[],
+  stile: Record<string, string | Uint8Array>,
+  /**
+   * Was als Ansicht gemessen werden MUSS: die nachgeladenen Komponenten aus
+   * `App.tsx` und, was diese wieder als Komponente nachladen (Quellpfade).
+   */
+  pflicht: string[] = [],
+): LeistungsMessung {
   const nachName = new Map(bausteine.map((b) => [b.datei, b]));
   const groesse = new Map<string, number>();
   const groesseVon = (datei: string) => {
@@ -419,6 +435,33 @@ export function leistungMessen(bausteine: Baustein[], stile: Record<string, stri
     ansichten.push({ modul: nachName.get(datei)?.modul ?? datei, datei, kb: kb(summe(dazu)), dateien: dazu.length });
     vormerken(alle, true);
   }
+
+  /*
+    JEDE PFLICHT-ANSICHT WIRD GEMESSEN (Nacharbeit 10b, 15.11.2026). Bis
+    hierher erkannte der Wächter eine Ansicht nur an der Fassade ihres
+    Bausteins (`modul`). Importiert ein nachgeladenes Fenster aus dem Baustein
+    seiner Ansicht (gemeinsamer Code, der dort liegt), ist dieser keine
+    Fassade mehr — und die Ansicht fiel still aus der Messung (gemessen an
+    der Rechnungsansicht). Jetzt wird jede Pflicht-Ansicht über den Baustein
+    gesucht, in dem ihr Code liegt; liegt sie in keinem, ist der Bau rot.
+  */
+  const fehlend: string[] = [];
+  for (const m of pflicht) {
+    if (ansichten.some((a) => a.modul === m)) continue;
+    const b = bausteine.find((x) => x.modul === m) ?? bausteine.find((x) => x.module?.includes(m));
+    if (!b) {
+      fehlend.push(m);
+      continue;
+    }
+    const schon = ansichten.find((a) => a.datei === b.datei);
+    if (schon) {
+      // Derselbe Baustein, bisher unter seinem Dateinamen geführt: er steht für diese Ansicht.
+      if (schon.modul === b.datei) schon.modul = m;
+      continue;
+    }
+    const dazu = huelle([b.datei]).filter((d) => !start.has(d));
+    ansichten.push({ modul: m, datei: b.datei, kb: kb(summe(dazu)), dateien: dazu.length });
+  }
   ansichten.sort((a, b) => b.kb - a.kb);
 
   const js = bausteine.map((b) => ({ datei: b.datei, kb: kb(groesseVon(b.datei)) }));
@@ -430,6 +473,7 @@ export function leistungMessen(bausteine: Baustein[], stile: Record<string, stri
     groessterBaustein: js.sort((a, b) => b.kb - a.kb)[0] ?? { datei: '', kb: 0 },
     importierenEinstieg: einstieg ? bausteine.filter((b) => b.statisch.includes(einstieg.datei)).length : 0,
     ansichten,
+    fehlend,
   };
 }
 
@@ -449,6 +493,7 @@ export function leistungPruefen(m: LeistungsMessung, budget: Leistungsbudget, ba
     .map((b) => ({ datei: b.datei, kb: kb(gepackt(b.inhalt)) }))
     .sort((a, b) => b.kb - a.kb);
   if (eigene[0]) ueber(`Größter Baustein (${name(eigene[0].datei)})`, eigene[0].kb, budget.groessterBausteinKB, 'KB');
+  for (const f of m.fehlend ?? []) fehler.push(`Ansicht ${f} fehlt in der Messung (in keinem Baustein gefunden)`);
   for (const a of m.ansichten) {
     ueber(`Ansicht ${a.modul} holt dazu`, a.kb, budget.jeAnsichtKB, 'KB');
     ueber(`Ansicht ${a.modul} holt dazu`, a.dateien, budget.jeAnsichtDateien, 'Dateien');
@@ -498,10 +543,29 @@ function leistungswaechter(): Plugin {
           dynamisch: teil.dynamicImports,
           einstieg: teil.isEntry,
           modul: teil.facadeModuleId?.startsWith(wurzel) ? teil.facadeModuleId.slice(wurzel.length) : null,
+          module: Object.keys(teil.modules ?? {}).filter((id) => id.startsWith(wurzel)).map((id) => id.slice(wurzel.length)),
           css: Array.from(teil.viteMetadata?.importedCss ?? []),
         });
       }
-      const m = leistungMessen(bausteine, stile);
+      /*
+        DIE PFLICHT-ANSICHTEN aus dem Modulgraphen: was `App.tsx` nachlädt,
+        und darin wieder jede nachgeladene Komponente (`.tsx`) — dieselbe
+        Regel wie oben, aber unabhängig davon, wie Rollup die Bausteine schnitt.
+      */
+      const pflicht: string[] = [];
+      // Ohne Modulgraph (die Bauprüfung mit nachgestelltem Kontext) bleibt es bei der Fassade.
+      if (typeof this.getModuleInfo === 'function') {
+        const gesehen = new Set<string>();
+        const offen = [...(this.getModuleInfo(APP)?.dynamicallyImportedIds ?? [])];
+        while (offen.length) {
+          const id = offen.shift()!;
+          if (gesehen.has(id) || !id.startsWith(wurzel) || !id.endsWith('.tsx')) continue;
+          gesehen.add(id);
+          pflicht.push(id.slice(wurzel.length));
+          offen.push(...(this.getModuleInfo(id)?.dynamicallyImportedIds ?? []));
+        }
+      }
+      const m = leistungMessen(bausteine, stile, pflicht);
       const fehler = leistungPruefen(m, budget, bausteine);
       // `LEISTUNG_ALLES=1 npx vite build` zeigt die ganze Messung — für das Vorher/Nachher einer Änderung.
       if (process.env.LEISTUNG_ALLES) melden(JSON.stringify(m, null, 1));

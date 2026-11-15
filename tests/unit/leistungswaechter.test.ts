@@ -25,6 +25,7 @@ interface Baustein {
   dynamisch: string[];
   einstieg: boolean;
   modul: string | null;
+  module?: string[];
   css: string[];
 }
 interface Leistungsbudget {
@@ -42,11 +43,12 @@ interface Messung {
   vorErstemBildKB: number;
   importierenEinstieg: number;
   ansichten: { modul: string; datei: string; kb: number; dateien: number }[];
+  fehlend: string[];
 }
 const configPfad = '../../vite.config.ts';
 const vite = (await import(/* @vite-ignore */ configPfad)) as {
   default: { plugins: Plugin[] };
-  leistungMessen: (b: Baustein[], stile: Record<string, string>) => Messung;
+  leistungMessen: (b: Baustein[], stile: Record<string, string>, pflicht?: string[]) => Messung;
   leistungPruefen: (m: Messung, budget: Leistungsbudget, b: Baustein[]) => string[];
 };
 const { leistungMessen, leistungPruefen } = vite;
@@ -182,5 +184,67 @@ describe('Leistungswächter: hängt am Bau', () => {
       expect(typeof budget[k], k).toBe('number');
     }
     expect(Array.isArray(budget.aufAbruf)).toBe(true);
+  });
+});
+
+/*
+  DER BLINDE FLECK (Nacharbeit 10b, 15.11.2026). Importiert ein nachgeladenes
+  Fenster aus dem Baustein seiner Ansicht, ist dieser keine Fassade mehr
+  (`modul` leer) — der Wächter erkannte die Ansicht nicht und ließ sie still
+  aus (so geschehen mit der Rechnungsansicht und der E-Rechnung). Jetzt misst
+  er jede Pflicht-Ansicht über den Baustein, in dem ihr Code liegt, und wird
+  rot, wenn er sie nirgends findet.
+  Gegenprobe: mit dem alten Wächter fehlt die Ansicht in der Messung, und
+  ein Bau ohne sie bleibt grün.
+*/
+describe('Leistungswächter: jede Ansicht wird gemessen', () => {
+  const RECHNUNG = 'src/features/invoices/InvoicesView.tsx';
+  const FENSTER = 'src/features/invoices/EbInterfaceDialog.tsx';
+  const ohneFassade: Baustein[] = [
+    b('index.js', 20_000, { einstieg: true, statisch: ['kern.js'], dynamisch: ['rechnung.js'], modul: 'src/main.tsx' }),
+    b('kern.js', 10_000),
+    b('rechnung.js', 1_000, { statisch: ['kern.js'], dynamisch: ['verwaltung.js'], modul: 'src/features/invoices/RechnungenSeite.tsx' }),
+    // Die Ansicht: keine Fassade mehr, weil das Fenster aus ihr importiert.
+    b('verwaltung.js', 8_000, { statisch: ['liste.js'], dynamisch: ['fenster.js'], modul: null, module: [RECHNUNG, 'src/features/invoices/ebinterface.ts'] }),
+    b('fenster.js', 2_000, { statisch: ['verwaltung.js'], modul: FENSTER }),
+    b('liste.js', 2_000),
+  ];
+
+  it('heute: ohne Pflichtliste fällt die Ansicht still heraus (der Fleck, nachgestellt)', () => {
+    expect(leistungMessen(ohneFassade, {}).ansichten.map((a) => a.modul)).not.toContain(RECHNUNG);
+  });
+
+  it('mit Pflichtliste wird sie über ihren Code gefunden und mit allem gemessen, was sie fest einbindet', () => {
+    const m = leistungMessen(ohneFassade, {}, ['src/features/invoices/RechnungenSeite.tsx', RECHNUNG, FENSTER]);
+    const rechnung = m.ansichten.find((a) => a.modul === RECHNUNG)!;
+    expect(rechnung.datei).toBe('verwaltung.js');
+    expect(rechnung.dateien).toBe(2);
+    expect(m.fehlend).toEqual([]);
+  });
+
+  it('findet er eine Pflicht-Ansicht in keinem Baustein, ist der Bau rot', () => {
+    const m = leistungMessen(ohneFassade, {}, ['src/features/fehlt/FehltView.tsx']);
+    expect(m.fehlend).toEqual(['src/features/fehlt/FehltView.tsx']);
+    expect(leistungPruefen(m, grosszuegig, ohneFassade)).toEqual([
+      'Ansicht src/features/fehlt/FehltView.tsx fehlt in der Messung (in keinem Baustein gefunden)',
+    ]);
+  });
+
+  it('am Bau: die Pflichtliste kommt aus dem Modulgraphen von App.tsx; eine Ansicht ohne Baustein macht den Bau rot', () => {
+    const plugin = vite.default.plugins.find((p) => p && (p as Plugin).name === 'leistungswaechter') as Plugin;
+    const wurzel = join(__dirname, '../..') + '/';
+    const bundle = {
+      'assets/index.js': { type: 'chunk', fileName: 'assets/index.js', code: zufall(2_000, 1), imports: [], dynamicImports: [], isEntry: true, facadeModuleId: null, modules: {} },
+    };
+    const graph: Record<string, string[]> = {
+      [`${wurzel}src/app/App.tsx`]: [`${wurzel}src/features/fehlt/FehltView.tsx`, `${wurzel}src/lib/push.ts`],
+    };
+    (plugin.configResolved as (c: unknown) => void)({ logger: { info: () => undefined } });
+    const kontext = {
+      error: (t: string) => { throw new Error(t); },
+      getModuleInfo: (id: string) => ({ dynamicallyImportedIds: graph[id] ?? [] }),
+    };
+    const bauen = () => ((plugin.generateBundle as { handler: (this: unknown, o: unknown, b: unknown) => void }).handler).call(kontext, {}, bundle);
+    expect(bauen).toThrow(/Ansicht src\/features\/fehlt\/FehltView\.tsx fehlt in der Messung/);
   });
 });

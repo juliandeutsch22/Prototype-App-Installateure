@@ -119,9 +119,8 @@ import RechnungDetail, { type MahnungZeile, type RechnungAktion } from './Rechnu
 import { mitBeleg } from './mitBeleg';
 /*
   Die E-Rechnung bleibt fest eingebunden: sie teilt sich `ebinterface.ts` mit
-  dieser Ansicht. Nachgeladen hinge sie an deren Baustein, und der
-  Leistungswächter verlöre die Ansicht aus dem Blick (er erkennt sie dann
-  nicht mehr als eigene Ansicht — gemessen).
+  dieser Ansicht. Nachgeladen bände ihr Baustein den der Ansicht ein und
+  holte beim Öffnen 131,2 KB — gespart wäre nichts (gemessen).
 */
 import EbInterfaceDialog from './EbInterfaceDialog';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
