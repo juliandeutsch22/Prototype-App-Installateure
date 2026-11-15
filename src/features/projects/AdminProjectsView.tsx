@@ -31,6 +31,7 @@ import {
 } from '@/lib/db/projects';
 import { aufzaehlen, loeschWeg, type LoeschWeg } from './baustelleVerwendung';
 import BaustelleAbschliessen from './BaustelleAbschliessen';
+import { neuFuerLaden, neuFuerLesen, ohneNeuFuer } from '@/features/customers/neuFuer';
 import { listUsers } from '@/lib/db/users';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { useModul } from '@/lib/useModule';
@@ -235,6 +236,34 @@ export default function AdminProjectsView() {
    * die Art von Sackgasse, die wie ein Fehler aussieht.
    */
   const [suchparameter, setSuchparameter] = useSearchParams();
+  /*
+    AUS DER KUNDEN- ODER LIEGENSCHAFTSAKTE (V3): „Neue Baustelle“ mit Kunde,
+    Ort und Liegenschaft vorbelegt — ohne zweite Kundensuche.
+  */
+  const neuFuer = neuFuerLesen(suchparameter);
+  const neuFuerSchluessel = neuFuer ? JSON.stringify(neuFuer) : null;
+  useEffect(() => {
+    if (!neuFuer || !user) return;
+    let weg = false;
+    void (async () => {
+      const v = await neuFuerLaden(user.companyId, neuFuer);
+      if (weg) return;
+      setForm({
+        ...empty,
+        customerId: v.kunde?.id ?? '',
+        customerName: v.kunde?.name ?? '',
+        address: v.ort,
+        liegenschaftId: v.liegenschaft?.id ?? '',
+        topId: v.liegenschaft ? neuFuer.top ?? '' : '',
+      });
+      setFormOffen(true);
+      setSuchparameter(ohneNeuFuer(suchparameter), { replace: true });
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [neuFuerSchluessel, user]);
   // Der Schein-Verweis verschwindet mit seinem Modul.
   const scheineAn = useModul('scheine');
   const liegenschaftenAn = useModul('kunden.liegenschaften');

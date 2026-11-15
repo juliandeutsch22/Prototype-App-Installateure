@@ -32,6 +32,7 @@ import Aktionsleiste from '@/components/Aktionsleiste';
 import AktenBereiche, { AktenAngaben, AktenAngabe, AktenVerweis } from '@/components/AktenBereiche';
 import AktenBearbeiten from '@/components/AktenBearbeiten';
 import AktenKopf from '@/components/AktenKopf';
+import { neuFuerMenue } from './neuFuer';
 import AktenTerminVorschau, { type AktenTerminStand } from '@/components/AktenTerminVorschau';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { InputField, FormGrid, CheckboxField } from '@/components/Field';
@@ -670,6 +671,8 @@ export default function KundenakteView() {
     </div>
   ) : null;
 
+  const neuFuer = user ? neuFuerMenue(user.role, company?.modules, { kunde: k.id }, navigate) : [];
+
   return (
     <div className="akten-seite">
       {warnung}
@@ -680,10 +683,20 @@ export default function KundenakteView() {
           <Zustand stand={k.active === false ? 'storniert' : 'gut'}>{k.active === false ? 'inaktiv' : 'aktiv'}</Zustand></span>}
         kontakt={<><TelefonLink nummer={k.contactPhone} name={k.contactName} /><MailLink adresse={k.email} /><a className="link-weiter akten-verweis" href="#kunde-kontext">Kontakt</a></>}
         action={darfAendern && <Button onClick={() => setBearbeitet(true)}>Bearbeiten</Button>}
-        /* Der Stundennachweis über die Baustellen des Kunden (F12) — erst, wenn sie geladen sind. */
-        mehr={user && canEditTime(user.role) && !einblick && baustellen.zustand === 'bereit' && baustellen.daten.length > 0 ? (
-          <RowMenu about={k.name} items={[{ label: 'Stundennachweis', onSelect: () => setNachweisOffen(true) }]} />
-        ) : undefined} />
+        /*
+          EIN ⋯ FÜR SELTENES: „Neu für diesen Kunden“ (V3) — Neues beginnt hier,
+          nicht in der Liste mit einer zweiten Kundensuche —, dazu der
+          Stundennachweis über die Baustellen des Kunden (F12), erst wenn sie
+          geladen sind und nur für die, die fremde Zeiten lesen.
+        */
+        mehr={(() => {
+          const eintraege = [
+            ...(!einblick ? neuFuer : []),
+            ...(user && canEditTime(user.role) && !einblick && baustellen.zustand === 'bereit' && baustellen.daten.length > 0
+              ? [{ label: 'Stundennachweis', onSelect: () => setNachweisOffen(true) }] : []),
+          ];
+          return eintraege.length ? <RowMenu about={`Kunde ${k.name}`} items={eintraege} /> : undefined;
+        })()} />
       {nachweisOffen && baustellen.zustand === 'bereit' && (
         <StundennachweisDialog
           offen

@@ -76,6 +76,7 @@ export default function EingangFormular({
   eingang,
   jetzt = Date.now(),
   mitLiegenschaft = false,
+  vorbelegt,
   onGespeichert,
   onAbbrechen,
 }: {
@@ -85,13 +86,23 @@ export default function EingangFormular({
   jetzt?: number;
   /** Liegenschaft und Top anbieten (M02c) — wenn die Unterfähigkeit an ist; das weiß die Seite. */
   mitLiegenschaft?: boolean;
+  /**
+   * Aus der Kunden- oder Liegenschaftsakte (V3): Kunde, Ort und Liegenschaft
+   * stehen schon da. Nur beim Erfassen; beim Ändern gilt der Eingang.
+   */
+  vorbelegt?: { kunde: WithId<Customer> | null; liegenschaftId?: string; topId?: string; ort: string };
   onGespeichert: (id: string) => void;
   onAbbrechen: () => void;
 }) {
   const toast = useToast();
-  const [f, setF] = useState<EingangFormularStand>(() => anfang(eingang, jetzt));
-  const [kunde, setKunde] = useState<WithId<Customer> | null>(null);
-  const [ortWahl, setOrtWahl] = useState({ liegenschaftId: eingang?.liegenschaftId ?? '', topId: eingang?.topId ?? '' });
+  const [f, setF] = useState<EingangFormularStand>(() => {
+    const a = anfang(eingang, jetzt);
+    return !eingang && vorbelegt ? { ...a, customerId: vorbelegt.kunde?.id ?? '', ort: vorbelegt.ort } : a;
+  });
+  const [kunde, setKunde] = useState<WithId<Customer> | null>(() => (!eingang && vorbelegt?.kunde) || null);
+  const [ortWahl, setOrtWahl] = useState(() => (!eingang && vorbelegt?.liegenschaftId
+    ? { liegenschaftId: vorbelegt.liegenschaftId, topId: vorbelegt.topId ?? '' }
+    : { liegenschaftId: eingang?.liegenschaftId ?? '', topId: eingang?.topId ?? '' }));
   const [fehler, setFehler] = useState<string | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const setze = <K extends keyof EingangFormularStand>(k: K, w: EingangFormularStand[K]) => setF((alt) => ({ ...alt, [k]: w }));
@@ -105,7 +116,8 @@ export default function EingangFormular({
     Liegenschaft im Feld steht, ist kein Vorschlag eines Kunden und bleibt.
     Dieselbe Regel wie im Angebot und in der Baustellenakte (G3, G5).
   */
-  const [vorschlag, setVorschlag] = useState('');
+  // V3: der vorbelegte Ort ist der Vorschlag des Kunden, solange er dessen Anschrift ist.
+  const [vorschlag, setVorschlag] = useState(() => (!eingang && vorbelegt?.kunde?.address === vorbelegt?.ort ? vorbelegt?.ort ?? '' : ''));
   /*
     Beim Ändern steht der Vorschlag des gespeicherten Kunden schon im Ort,
     aber die Auswahl meldet ihren Kunden erst beim Wechsel. Ohne seine

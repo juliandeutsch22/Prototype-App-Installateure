@@ -1496,3 +1496,12 @@ describe('Filter „ohne Einsatz“ (P8)', () => {
     ohneEinsatz.mockResolvedValue([]);
   });
 });
+
+/* V3 (Durchsicht 15.11.2026): „Neue Baustelle“ aus der Kundenakte — Kunde vorbelegt. */
+describe('Neu für diesen Kunden (V3)', () => {
+  it('öffnet „Neue Baustelle“ mit dem Kunden der Akte', async () => {
+    zeige('/admin-projects?neu=fuer&kunde=k1');
+    expect(await screen.findByRole('button', { name: 'Anderen Kunden wählen' })).toBeInTheDocument();
+    expect(screen.getAllByText('Familie Huber').length).toBeGreaterThan(0);
+  });
+});

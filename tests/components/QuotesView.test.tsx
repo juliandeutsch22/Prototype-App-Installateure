@@ -1548,3 +1548,19 @@ describe('Ansprechpartner, Dringlichkeit und Wunschtermin (A8)', () => {
     });
   });
 });
+
+/* V3 (Durchsicht 15.11.2026): aus der Kundenakte ein neues Angebot — ohne zweite Kundensuche. */
+describe('Neu für diesen Kunden (V3)', () => {
+  it('öffnet das Formular mit Kunde und Ort vorbelegt', async () => {
+    render(
+      <MemoryRouter initialEntries={[`/quotes?neu=fuer&kunde=${kunden[0].id}`]}>
+        <ToastProvider>
+          <QuotesView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('button', { name: 'Anderen Kunden wählen' })).toBeInTheDocument();
+    expect(screen.getByText(kunden[0].name)).toBeInTheDocument();
+    expect(screen.getByLabelText('Ort der Leistung')).toHaveValue(kunden[0].address ?? '');
+  });
+});

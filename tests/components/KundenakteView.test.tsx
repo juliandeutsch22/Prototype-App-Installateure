@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Customer, Project, Quote, UidPruefung, Wartung } from '@/types';
 
@@ -1152,3 +1152,31 @@ describe('Viele Baustellen eines Kunden (A12)', () => {
     }
   });
 });
+
+/* V3 (Durchsicht 15.11.2026): Neues für diesen Kunden beginnt in seiner Akte. */
+describe('Neu für diesen Kunden (V3)', () => {
+  it('das ⋯ der Akte bietet Eingang, Angebot, Baustelle und Wartung an — mit dem Kunden in der Adresse', async () => {
+    const nutzer = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/customers/k1']}>
+        <ToastProvider>
+          <Routes>
+            <Route path="/customers/:id" element={<KundenakteView />} />
+            <Route path="/quotes" element={<Ziel />} />
+          </Routes>
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    await nutzer.click(await screen.findByRole('button', { name: /^Weitere Aktionen für Kunde/ }));
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(
+      expect.arrayContaining(['Neuer Eingang', 'Neues Angebot', 'Neue Baustelle', 'Neue Wartung']),
+    );
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Neues Angebot' }));
+    expect(await screen.findByText('Angebote ?neu=fuer&kunde=k1')).toBeInTheDocument();
+  });
+});
+
+function Ziel() {
+  const { search } = useLocation();
+  return <p>Angebote {search}</p>;
+}

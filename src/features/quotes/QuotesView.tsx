@@ -53,6 +53,7 @@ import AdresseFeld from '@/components/AdresseFeld';
 import { useModul } from '@/lib/useModule';
 import BaustellenSuche from '@/components/BaustellenSuche';
 import { listProjectsByIds } from '@/lib/db/projects';
+import { neuFuerLaden, neuFuerLesen, ohneNeuFuer } from '@/features/customers/neuFuer';
 import { AB_TABLET } from '@/lib/breiten';
 import { getEingangZu } from '@/lib/db/auftragseingaenge';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
@@ -687,6 +688,38 @@ export default function QuotesView() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zuBearbeiten, zuFassen, zuKopieren, loading, angebote]);
+
+  /*
+    AUS DER KUNDEN- ODER LIEGENSCHAFTSAKTE (V3): `?neu=fuer&kunde=…` öffnet
+    ein neues Angebot mit Kunde, Ort und Liegenschaft vorbelegt — ohne zweite
+    Kundensuche.
+  */
+  const neuFuer = neuFuerLesen(suchParameter);
+  const neuFuerSchluessel = neuFuer ? JSON.stringify(neuFuer) : null;
+  useEffect(() => {
+    if (!neuFuer || !user) return;
+    let weg = false;
+    void (async () => {
+      const v = await neuFuerLaden(user.companyId, neuFuer);
+      if (weg) return;
+      if (darfAendern) {
+        formularLeeren();
+        if (v.kunde) {
+          setCustomerId(v.kunde.id);
+          setKunde(v.kunde);
+        }
+        setAddress(v.ort);
+        if (v.liegenschaft) setOrt({ liegenschaftId: v.liegenschaft.id, topId: neuFuer.top ?? '' });
+        setValidUntil(standardGueltigkeit());
+        setFormOffen(true);
+      }
+      setSuchParameter(ohneNeuFuer(suchParameter), { replace: true });
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [neuFuerSchluessel, user]);
 
   /*
     AUS DER BAUSTELLENAKTE (A3, F6): `/quotes?baustelle=<id>` öffnet ein

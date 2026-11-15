@@ -294,3 +294,25 @@ describe('Der Ort folgt dem Kunden (A7)', () => {
     expect(ort()).toHaveValue('Hauptstraße 12, 1010 Wien');
   });
 });
+
+/* V3 (Durchsicht 15.11.2026): aus der Kundenakte — Kunde und Ort stehen schon da. */
+describe('Vorbelegt aus der Akte (V3)', () => {
+  it('Kunde und Ort sind gesetzt; der Eingang geht mit ihnen hinaus', async () => {
+    const nutzer = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <EingangFormular companyId="perl" jetzt={JETZT} onGespeichert={gespeichert} onAbbrechen={vi.fn()}
+            vorbelegt={{ kunde: HUBER as never, ort: HUBER.address }} />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('button', { name: 'Anderen Kunden wählen' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Ort des Einsatzes')).toHaveValue('Hauptplatz 1, 8010 Graz');
+    await nutzer.selectOptions(screen.getByLabelText(/Quelle/), 'telefon');
+    await nutzer.type(screen.getByLabelText('Anliegen'), 'Therme tropft');
+    await nutzer.click(screen.getByRole('button', { name: /speichern|erfassen|anlegen/i }));
+    await waitFor(() => expect(eingangAnlegen).toHaveBeenCalled());
+    expect(eingangAnlegen.mock.calls[0][1]).toMatchObject({ customerId: 'k1', ort: 'Hauptplatz 1, 8010 Graz' });
+  });
+});

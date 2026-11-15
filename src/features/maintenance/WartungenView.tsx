@@ -13,6 +13,7 @@ import {
   type NewWartung,
 } from '@/lib/db/wartungen';
 import { getWartung, wartungEinplanen } from '@/lib/db/wartungen';
+import { neuFuerLaden, neuFuerLesen, ohneNeuFuer } from '@/features/customers/neuFuer';
 import WartungVerlauf from './WartungVerlauf';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
@@ -449,6 +450,31 @@ export default function WartungenView() {
     setBerichtigen(false);
     setFormOffen(true);
   };
+
+  /*
+    AUS DER KUNDEN- ODER LIEGENSCHAFTSAKTE (V3): „Neue Wartung“ mit Kunde,
+    Standort und Liegenschaft vorbelegt — ohne zweite Kundensuche.
+  */
+  const neuFuer = neuFuerLesen(adresse);
+  const neuFuerSchluessel = neuFuer ? JSON.stringify(neuFuer) : null;
+  useEffect(() => {
+    if (!neuFuer || !companyId) return;
+    let weg = false;
+    void (async () => {
+      const v = await neuFuerLaden(companyId, neuFuer);
+      if (weg) return;
+      if (darfAendern) {
+        formOeffnen();
+        setForm((f) => ({ ...f, customerId: v.kunde?.id ?? '', customerName: v.kunde?.name ?? '', address: v.ort }));
+        if (v.liegenschaft) setOrt({ liegenschaftId: v.liegenschaft.id, topId: neuFuer.top ?? '' });
+      }
+      setAdresse(ohneNeuFuer(adresse), { replace: true });
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [neuFuerSchluessel, companyId]);
 
   const formSchliessen = () => {
     setFormOffen(false);

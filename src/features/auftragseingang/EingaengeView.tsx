@@ -4,7 +4,8 @@ import { useAuth } from '@/app/AuthContext';
 import { listEingaenge, zaehleOffeneEingaenge, type EingangZeiger } from '@/lib/db/auftragseingaenge';
 import { darfEingangErfassen } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
-import type { Auftragseingang, EingangStand } from '@/types';
+import type { Auftragseingang, Customer, EingangStand } from '@/types';
+import type { WithId } from '@/lib/db/core';
 import PageHeader from '@/components/PageHeader';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -15,6 +16,7 @@ import { Listenleiste, MehrAnzeigen, Segmente } from '@/components/LotBausteine'
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import { bekannt } from '@/features/dashboard/start/ziele';
 import EingangFormular from './EingangFormular';
+import { neuFuerLaden, neuFuerLesen, ohneNeuFuer } from '@/features/customers/neuFuer';
 import { QUELLE_TEXT, STAENDE, STAND_TEXT, kundeText, wannText, zustandVon } from './eingangText';
 
 /**
@@ -51,6 +53,34 @@ export default function EingaengeView() {
   const liegenschaftenAn = useModul('kunden.liegenschaften');
 
   const companyId = user?.companyId;
+
+  /*
+    AUS DER KUNDEN- ODER LIEGENSCHAFTSAKTE (V3): „Neuer Eingang“ mit Kunde,
+    Ort und Liegenschaft vorbelegt — ohne zweite Kundensuche.
+  */
+  const [vorbelegt, setVorbelegt] = useState<{ kunde: WithId<Customer> | null; liegenschaftId?: string; topId?: string; ort: string } | null>(null);
+  const neuFuer = neuFuerLesen(parameter);
+  const neuFuerSchluessel = neuFuer ? JSON.stringify(neuFuer) : null;
+  useEffect(() => {
+    if (!neuFuer || !companyId || !user) return;
+    let weg = false;
+    void (async () => {
+      const v = await neuFuerLaden(companyId, neuFuer);
+      if (weg) return;
+      if (darfEingangErfassen(user.role)) {
+        setVorbelegt({
+          kunde: v.kunde, ort: v.ort,
+          ...(v.liegenschaft ? { liegenschaftId: v.liegenschaft.id, topId: neuFuer.top ?? '' } : {}),
+        });
+        setNeu(true);
+      }
+      setParameter(ohneNeuFuer(parameter), { replace: true });
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [neuFuerSchluessel, companyId]);
 
   // Getippt wird sofort, gesucht nach einer kurzen Pause — und die Suche steht in der Adresse.
   useEffect(() => {
@@ -192,16 +222,18 @@ export default function EingaengeView() {
         )}
       </Card>
 
-      <BottomSheet open={neu} onClose={() => setNeu(false)} label="Neuer Eingang" auchBreit titel="Neuer Eingang">
+      <BottomSheet open={neu} onClose={() => { setNeu(false); setVorbelegt(null); }} label="Neuer Eingang" auchBreit titel="Neuer Eingang">
         {neu && (
           <EingangFormular
             companyId={companyId}
             mitLiegenschaft={liegenschaftenAn}
+            vorbelegt={vorbelegt ?? undefined}
             onGespeichert={(id) => {
               setNeu(false);
+              setVorbelegt(null);
               navigate(`/eingaenge/${id}`);
             }}
-            onAbbrechen={() => setNeu(false)}
+            onAbbrechen={() => { setNeu(false); setVorbelegt(null); }}
           />
         )}
       </BottomSheet>

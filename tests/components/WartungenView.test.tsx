@@ -965,3 +965,18 @@ describe('Abschließen nach „Erledigt“ (A11)', () => {
     expect(await screen.findByRole('button', { name: 'PR-2026-0042 abschließen' })).toBeInTheDocument();
   });
 });
+
+/* V3 (Durchsicht 15.11.2026): „Neue Wartung“ aus der Kundenakte — Kunde vorbelegt. */
+describe('Neu für diesen Kunden (V3)', () => {
+  it('öffnet „Neue Wartung“ mit dem Kunden der Akte', async () => {
+    render(
+      <MemoryRouter initialEntries={['/wartungen?neu=fuer&kunde=k1']}>
+        <ToastProvider>
+          <WartungenView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('button', { name: 'Anderen Kunden wählen' })).toBeInTheDocument();
+    expect(screen.getAllByText('Hausverwaltung Nord').length).toBeGreaterThan(0);
+  });
+});
