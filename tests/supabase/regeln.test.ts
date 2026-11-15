@@ -1160,38 +1160,42 @@ describe('Rechnungen — geloescht wird gar keine', () => {
 });
 
 describe('Angebotszaehler — steigend, Neubeginn nur zum Jahreswechsel', () => {
+  /*
+    SEIT G10 (15.11.2026) zählt der Kreis im laufenden Jahr in Wien; ein
+    anderes Jahr gibt es nicht mehr über die Schnittstelle. Den Jahreswechsel
+    stellt der Zähler des Vorjahrs nach, den die Prüfung direkt anlegt.
+  */
+  const JAHR_WIEN = Number(new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Vienna' }).format(new Date()).slice(0, 4));
+
   it('die Leitung zaehlt im laufenden Jahr hoch', async () => {
-    const erst = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: 2040 });
-    const dann = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: 2040 });
+    const erst = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    const dann = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
     expect(dann.data).toBe((erst.data as number) + 1);
   });
 
   it('zurueck geht im laufenden Jahr NICHT', async () => {
-    const vorher = (await aLeitung.client.from('quotes').select('id')).data;
-    void vorher;
-    // Zurücksetzen ist hier kein verbotener Vorgang, sondern ein unmöglicher:
-    // an den Zähler kommt niemand, und die Funktion kennt nur eine Richtung.
+    const vorher = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    // An den Zähler kommt niemand, und die Funktion kennt nur eine Richtung.
     const direkt = await aLeitung.client.from('number_counters')
       .update({ stand: 1 }).eq('art', 'quotes').select();
     expect(direkt.data ?? []).toEqual([]);
-    const weiter = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: 2040 });
-    expect(weiter.data).toBe(3);
+    const weiter = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    expect(weiter.data).toBe((vorher.data as number) + 1);
   });
 
-  it('zum Jahreswechsel beginnt er bei genau 1', async () => {
-    const neu = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: 2041 });
-    expect(neu.data).toBe(1);
+  it('der Zaehler des Vorjahrs zaehlt im neuen Jahr nicht weiter', async () => {
+    await admin.from('number_counters').upsert({ company_id: 'firma-a', art: 'quotes', jahr: JAHR_WIEN - 1, stand: 412 });
+    const neu = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    expect(neu.data).toBeLessThan(412);
   });
 
-  it('der Jahreswechsel ist kein Freibrief fuer irgendeine Zahl', async () => {
-    // In Firestore musste die Regel prüfen, dass der Neubeginn genau 1 ist —
-    // der Client schlug die Zahl ja vor. Hier schlägt niemand etwas vor.
-    const zweiter = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: 2041 });
-    expect(zweiter.data).toBe(2);
+  it('ein Gerät mit falschem Jahr bekommt keine Nummer (G10)', async () => {
+    const { error } = await aLeitung.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN + 14 });
+    expect(error?.message).toMatch(/nicht das laufende Jahr/);
   });
 
   it('der Rechnungskreis ist ein eigener — und nur über das Ausstellen erreichbar (G11)', async () => {
-    const r = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2041 });
+    const r = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: JAHR_WIEN });
     expect(r.error?.message).toMatch(/nur zusammen mit ihrer Rechnung/);
   });
 });

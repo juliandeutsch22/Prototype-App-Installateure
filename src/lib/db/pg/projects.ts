@@ -5,7 +5,7 @@
  * benannt.
  */
 import type { Project } from '@/types';
-import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
+import { PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { BAUSTELLEN_AUSWAHL_GRENZE } from '@/lib/listengrenzen';
 import { abfragen, abonnieren, anlegen, aendern, derClient, loeschen, type WithId } from './kern';
 import { oderUeberSpalten } from './suche';
@@ -105,15 +105,19 @@ export async function reserveProjectNumber(
   opts: { seedFrom: number; praefix?: string },
 ): Promise<string> {
   void companyId;
-  const jahr = new Date().getFullYear();
-  const { data, error } = await derClient().rpc('naechste_nummer', {
+  /*
+    DAS JAHR VOM SERVER (Durchsicht 15.11.2026, G10): die Datenbank baut die
+    ganze Nummer. Vorher kam das Jahr von der Uhr des Geräts — eine falsche
+    ergab „B-2020-0001“. `seedFrom` liest die Datenbank längst selbst
+    (`app.hoechste_lfd`); es bleibt nur im Aufruf.
+  */
+  void opts.seedFrom;
+  const { data, error } = await derClient().rpc('naechste_belegnummer', {
     p_art: 'projects',
-    p_jahr: jahr,
-    p_seed: Math.max(opts.seedFrom, 0),
-    p_wunsch: null,
+    p_praefix: opts.praefix ?? PRAEFIX_VORGABE.baustelle,
   });
   if (error) throw new Error(error.message);
-  return belegNummer(opts.praefix ?? PRAEFIX_VORGABE.baustelle, jahr, Number(data));
+  return String(data);
 }
 
 export type NewProject = Omit<Project, 'id' | 'companyId' | 'createdAt'>;

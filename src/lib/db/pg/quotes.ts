@@ -14,7 +14,7 @@ import type { Quote, InvoiceDiscount, Abrechnungsart } from '@/types';
 import { abfragen, derClient, loeschen, zaehlen, type Bedingung, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 import { oderUeberSpalten } from './suche';
-import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
+import { PRAEFIX_VORGABE } from '@/lib/praefixe';
 
 const ANGEBOTE = 'quotes';
 const POSITIONEN = 'quote_lines';
@@ -353,13 +353,13 @@ export async function deleteAbgelaufeneAngebote(companyId: string, bis: string):
  */
 export async function reserveQuoteNumber(companyId: string, praefix?: string): Promise<string> {
   void companyId;
-  const jahr = new Date().getFullYear();
-  const { data, error } = await derClient().rpc('naechste_nummer', {
+  // Das Jahr vom Server, die Nummer aus der Datenbank (G10) — nicht von der Uhr des Geräts.
+  const { data, error } = await derClient().rpc('naechste_belegnummer', {
     p_art: 'quotes',
-    p_jahr: jahr,
+    p_praefix: praefix ?? PRAEFIX_VORGABE.angebot,
   });
   if (error) throw new Error(error.message);
-  return belegNummer(praefix ?? PRAEFIX_VORGABE.angebot, jahr, Number(data));
+  return String(data);
 }
 
 /** Die gesperrte Angebotszeile liefert den aktuellen Auftrag und sein Budget. */
