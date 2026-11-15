@@ -17,6 +17,7 @@
  * Zeitraum über dreißig Jahre braucht Sekunden.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { randomUUID } from 'node:crypto';
 import { Client } from 'pg';
 
 const VERBINDUNG =
@@ -80,7 +81,7 @@ describe('app.urlaubstage: dieselben Tage wie je Tag gefragt', () => {
       const erwartet = await jeTag(tage, '2000-01-01', '2040-12-31');
       expect(await neu(tage, '2000-01-01', '2040-12-31')).toEqual(erwartet);
       expect(erwartet.length).toBeGreaterThan(tage.length === 1 ? 1500 : 3000);
-    });
+    }, 120_000);
   }
 
   const raender: Array<[string, string, string]> = [
@@ -151,5 +152,70 @@ describe('Gegenprobe: die Feiertage kommen als Menge', () => {
     } finally {
       await db.query('rollback');
     }
+  });
+});
+
+/*
+  NACHARBEIT (Befund 3): auch die Einsatzplanung liest die Feiertage aus
+  `app.feiertage` — `einsatz_folgetage` einmal je Zeitraum statt je Tag,
+  `einsatz_umplanen` für den einen Tag aus derselben Quelle
+  (`20261117015100_einsatz_feiertage_als_menge.sql`).
+*/
+describe('Einsatzplanung: Feiertage als Menge', () => {
+  it('die Menge enthält genau die Tage, an denen app.ist_feiertag gilt (2010–2035)', async () => {
+    const { rows } = await db.query(`
+      select count(*) filter (where x.je_tag <> x.in_menge) as abweichend, count(*) filter (where x.je_tag) as feiertage
+        from (select app.ist_feiertag(d::date) as je_tag,
+                     d::date in (select f.tag from app.feiertage('2010-01-01', '2035-12-31') f) as in_menge
+                from generate_series(date '2010-01-01', date '2035-12-31', interval '1 day') d) x`);
+    expect(Number(rows[0].abweichend)).toBe(0);
+    // 13 je Jahr, weniger die Jahre, in denen zwei zusammenfallen (2008: Christi Himmelfahrt am 1. Mai).
+    expect(Number(rows[0].feiertage)).toBeGreaterThan(26 * 13 - 5);
+  }, 120_000);
+
+  it('einsatz_folgetage meldet „feiertag“ genau an den Feiertagen, die kein Wochenende sind (Ostern 2027)', async () => {
+    const betrieb = `fm-${randomUUID().slice(0, 8)}`;
+    const chef = randomUUID();
+    const monteur = randomUUID();
+    await db.query('begin');
+    try {
+      await db.query('set local session_replication_role = replica');
+      await db.query(`insert into public.companies (id, name) values ($1, 'F')`, [betrieb]);
+      for (const [id, rolle] of [[chef, 'Geschäftsführung'], [monteur, 'Mitarbeiter']]) {
+        await db.query(`insert into auth.users (id, instance_id, aud, role, email)
+                        values ($1, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', $2)`, [id, `${id}@fm.test`]);
+        await db.query(`insert into public.users (id, company_id, name, email, role) values ($1, $2, $3, $4, $5)`,
+          [id, betrieb, rolle, `${id}@fm.test`, rolle]);
+      }
+      await db.query('set local session_replication_role = origin');
+      await db.query(`select set_config('request.jwt.claims', $1, true)`, [
+        JSON.stringify({ sub: chef, role: 'authenticated', app_metadata: { company_id: betrieb } }),
+      ]);
+      await db.query('set local role authenticated');
+      const { rows } = await db.query(`
+        select to_char(datum, 'YYYY-MM-DD') as tag from public.einsatz_folgetage('2027-03-20', '2027-05-20', 'B-1', $1, true, false)
+         where ergebnis = 'feiertag' order by 1`,
+      [JSON.stringify([{ user_id: monteur, user_name: 'Monteur' }])]);
+      await db.query('reset role');
+      const erwartet = (await db.query(`
+        select to_char(d, 'YYYY-MM-DD') as tag from generate_series(date '2027-03-20', date '2027-05-20', interval '1 day') d
+         where extract(isodow from d) < 6 and app.ist_feiertag(d::date) order by 1`)).rows;
+      expect(rows).toEqual(erwartet);
+      // Ostermontag und Christi Himmelfahrt; der 1. Mai fällt 2027 auf einen Samstag.
+      expect(rows.map((r) => r.tag)).toEqual(['2027-03-29', '2027-05-06', '2027-05-17']);
+    } finally {
+      await db.query('rollback');
+    }
+  });
+
+  it('keine der beiden Einsatzfunktionen fragt mehr app.ist_feiertag', async () => {
+    const { rows } = await db.query(
+      `select pg_get_functiondef('public.einsatz_folgetage(date, date, text, jsonb, boolean, boolean)'::regprocedure) as a,
+              pg_get_functiondef('public.einsatz_umplanen(uuid, date, uuid, boolean)'::regprocedure) as b`,
+    );
+    expect(rows[0].a).not.toContain('app.ist_feiertag');
+    expect(rows[0].a).toContain('app.feiertage(p_von, p_bis)');
+    expect(rows[0].b).not.toContain('app.ist_feiertag');
+    expect(rows[0].b).toContain('app.feiertage(p_datum, p_datum)');
   });
 });
