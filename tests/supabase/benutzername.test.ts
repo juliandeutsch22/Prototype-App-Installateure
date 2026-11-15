@@ -130,6 +130,29 @@ describe('Ein neues Startpasswort vergeben', () => {
     expect(data.user?.user_metadata?.startpasswort).toBe(true);
   }, 120_000);
 
+  /*
+    K2 (Durchsicht 15.11.2026): die Geräte des Kontos zeigen danach keine
+    Meldungen mehr — die angemeldeten Sitzungen bleiben aber (beim
+    vergessenen Passwort richtig). GEGENPROBE (Erwartung): ohne den Aufruf von
+    `push_geraete_vergessen` in der Function ist der erste Teil rot.
+  */
+  it('nimmt die Push-Anmeldungen weg, lässt die Anmeldung auf den Geräten aber stehen', async () => {
+    const { uid, name } = await benutzerkonto(BETRIEB);
+    const geraet = createClient(API, ANON, { auth: { persistSession: false } });
+    const an = await geraet.auth.signInWithPassword({ email: anmeldeAdresse(name), password: 'Anfang-2026!' });
+    expect(an.error).toBeNull();
+    await admin.from('user_prefs').upsert({ user_id: uid, company_id: BETRIEB, push_tokens: ['telefon-verloren'] });
+
+    const { status } = await rufe(VERGEBEN, chefin.token, { uid, passwort: 'Neu-Start-2026' });
+    expect(status).toBe(200);
+    const { data } = await admin.from('user_prefs').select('push_tokens').eq('user_id', uid).single();
+    expect(data!.push_tokens).toEqual([]);
+    // Bleibt gleich: das angemeldete Gerät liest weiter (Sitzung nicht beendet).
+    const { data: ich, error } = await geraet.from('users').select('id').eq('id', uid);
+    expect(error).toBeNull();
+    expect(ich).toHaveLength(1);
+  }, 120_000);
+
   it('NICHT für ein Konto mit E-Mail-Adresse — dort setzt der Mensch sein Passwort selbst', async () => {
     /*
       DIE TRAGENDE GRENZE DIESER FUNCTION. Ohne sie könnte die

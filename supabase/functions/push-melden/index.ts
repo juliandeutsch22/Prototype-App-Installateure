@@ -97,14 +97,22 @@ const antwort = (inhalt: unknown, status = 200) =>
     status, headers: { 'Content-Type': 'application/json' },
   });
 
-/** Alle Gerätetokens der genannten Kennungen, sofern sie diese Meldung wollen. */
+/**
+ * Alle Gerätetokens der genannten Kennungen, sofern sie diese Meldung wollen.
+ *
+ * NUR AKTIVE KONTEN (K2, Durchsicht 15.11.2026). Gelesen wird über
+ * `push_vorgaben`, nicht direkt aus `user_prefs`: die Funktion lässt nur
+ * Konten durch, die aktiv sind und deren Betrieb nicht ruht. Vorher bekam ein
+ * deaktivierter Projektleiter, der noch an der Baustelle stand, die
+ * Eilmeldungen weiter — und ebenso der Besteller „abholbereit“. Hier und nur
+ * hier gefiltert, weil jede Meldungsart diesen Weg nimmt: eine neue Quelle
+ * von Empfängern kann das nicht mehr vergessen.
+ */
 async function tokensFuer(uids: string[], art: MeldungsArt): Promise<string[]> {
   if (uids.length === 0) return [];
-  const liste = uids.map((u) => `"${u}"`).join(',');
-  const r = await fetch(
-    `${URL_BASIS}/rest/v1/user_prefs?select=*&user_id=in.(${liste})`,
-    { headers: alsDienst },
-  );
+  const r = await fetch(`${URL_BASIS}/rest/v1/rpc/push_vorgaben`, {
+    method: 'POST', headers: alsDienst, body: JSON.stringify({ p_uids: [...new Set(uids)] }),
+  });
   if (!r.ok) return [];
   const zeilen = (await r.json()) as Array<Record<string, unknown>>;
   const tokens: string[] = [];

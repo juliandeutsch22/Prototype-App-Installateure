@@ -105,8 +105,19 @@ export function anmeldeAblehnung(error: unknown): AnmeldeAblehnung {
  * Konto“ — für das verlorene Telefon. Beendet wird die Sitzung in beiden
  * Fällen beim Anmeldedienst, und die Datenbank nimmt ihr Token ab dann nicht
  * mehr an (`app.sitzung_lebt`).
+ *
+ * ÜBERALL HEISST AUCH: KEINE MELDUNGEN MEHR (K2, Durchsicht 15.11.2026). Der
+ * Anmeldedienst kennt die Push-Anmeldungen nicht; ohne diesen Schritt zeigte
+ * das verlorene Telefon weiter Nachrichten am Sperrbildschirm. Er läuft
+ * VOR dem Abmelden, solange die eigene Sitzung noch gilt — danach nähme die
+ * Datenbank nichts mehr an. Scheitert er, wird nicht abgemeldet: lieber ein
+ * „bitte erneut versuchen“ als eine Abmeldung, die das Wichtigste auslässt.
  */
 export async function abmelden(ueberall = false): Promise<void> {
+  if (ueberall) {
+    const { error: geraete } = await supabaseClient().rpc('push_geraete_abmelden');
+    if (geraete) throw new Error(geraete.message);
+  }
   const { error } = await supabaseClient().auth.signOut({ scope: ueberall ? 'global' : 'local' });
   if (error) throw new Error(error.message);
 }

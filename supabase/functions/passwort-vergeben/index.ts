@@ -28,6 +28,14 @@
  * ANGEMELDETE GERÄTE BLEIBEN ANGEMELDET. Das ist beim vergessenen Passwort
  * richtig; bei einem verlorenen Telefon ist das Mittel „Konto deaktivieren",
  * das die offenen Sitzungen sofort beendet (`app.konto_sperren`).
+ *
+ * DIE MELDUNGEN ABER NICHT (K2, Durchsicht 15.11.2026): die Push-Anmeldungen
+ * des Kontos gehen, BEVOR das Passwort gesetzt wird. Geräte, auf denen die
+ * App weiter benutzt wird, melden sich beim nächsten Start selbst wieder an;
+ * ein verlorenes Telefon zeigt ab jetzt nichts mehr am Sperrbildschirm. Die
+ * Reihenfolge, weil ein Fehlschlag dann nichts halb lässt: scheitert das
+ * Abräumen, bleibt auch das alte Passwort, und das Büro versucht es noch
+ * einmal.
  */
 import {
   alleDienstSchluessel, dienstKopfzeilen, SCHLUESSEL_FEHLT,
@@ -134,6 +142,15 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
       409,
     );
   }
+
+  const geraete = await fetch(`${URL_BASIS}/rest/v1/rpc/push_geraete_vergessen`, {
+    method: 'POST', headers: alsDienst, body: JSON.stringify({ p_uid: uid }),
+  });
+  if (!geraete.ok) {
+    await geraete.body?.cancel();
+    return fehler('Die Geräte für Meldungen ließen sich nicht abmelden — das Passwort ist unverändert. Bitte erneut versuchen.', 500);
+  }
+  await geraete.body?.cancel();
 
   const setzen = await fetch(`${URL_BASIS}/auth/v1/admin/users/${uid}`, {
     method: 'PUT',

@@ -463,7 +463,7 @@ export default function BenutzerakteView() {
         open={neuesPasswortFragen}
         title="Neues Startpasswort vergeben?"
         confirmLabel="Vergeben"
-        message={`Das bisherige Passwort von ${p.name} gilt danach nicht mehr. Bereits angemeldete Geräte bleiben angemeldet — wer ein verlorenes Telefon sperren will, deaktiviert das Konto.`}
+        message={`Das bisherige Passwort von ${p.name} gilt danach nicht mehr. Bereits angemeldete Geräte bleiben angemeldet, zeigen aber keine Meldungen mehr, bis die App dort wieder geöffnet wird — wer ein verlorenes Telefon sperren will, deaktiviert das Konto.`}
         onCancel={() => setNeuesPasswortFragen(false)}
         onConfirm={() => {
           setNeuesPasswortFragen(false);
@@ -479,7 +479,7 @@ export default function BenutzerakteView() {
         message={
           p.active === false
             ? `${p.name} kann sich danach wieder anmelden.${p.austritt ? ` Das Austrittsdatum (${datumAT(p.austritt)}) wird dabei entfernt — ab dann rechnet das Zeitkonto wieder weiter.` : ''}`
-            : `${p.name} kann sich danach nicht mehr anmelden. Alle bisherigen Zeiteinträge bleiben erhalten.`
+            : `${p.name} kann sich danach nicht mehr anmelden und bekommt auf keinem Gerät mehr Meldungen. Alle bisherigen Zeiteinträge bleiben erhalten.`
         }
         gesperrt={p.active !== false && !!austrittUngueltig}
         onCancel={() => setUmschalten(false)}

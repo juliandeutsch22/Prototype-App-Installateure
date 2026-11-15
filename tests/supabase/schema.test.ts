@@ -208,6 +208,8 @@ describe('Interne Hilfsfunktionen', () => {
       'app.ansprueche_setzen(uuid, jsonb, text[])',
       'app.konto_sperren(uuid, boolean)',
       'app.sitzungen_beenden(uuid)',
+      // K2: die Push-Anmeldungen eines Kontos — nur über Sperren und Sitzungsende.
+      'app.push_anmeldungen_entfernen(uuid)',
       'app.ausleitung_anstossen()',
       'app.ausleitung_nachsehen()',
       'app.push_anstossen(jsonb)',

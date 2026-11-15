@@ -484,3 +484,55 @@ describe('Abwesenheiten melden', () => {
     }
   }, 180_000);
 });
+
+/*
+  K2 (Durchsicht 15.11.2026): WER DEAKTIVIERT IST, BEKOMMT NICHTS — auch als
+  Projektleitung einer Baustelle und als Besteller. Die Anmeldungen werden
+  beim Deaktivieren inzwischen abgeräumt; hier stehen sie absichtlich wieder
+  drin, so wie bei einem Konto, das vor dieser Änderung deaktiviert wurde.
+
+  GEGENPROBE (Erwartung): mit dem alten `tokensFuer` (direkt aus
+  `user_prefs`) zählt der Versand je ein Gerät — beide Fälle rot.
+*/
+describe('Deaktivierte bekommen keine Meldung', () => {
+  // Je Lauf eine eigene Nummer: die Nummer ist je Betrieb eindeutig, und der Prüfstapel wird nicht geleert.
+  const BAUSTELLE_WEG = `B-2026-${crypto.randomUUID().slice(0, 6)}`;
+
+  async function deaktiviertMitGeraet(k: Konto) {
+    await admin.from('users').update({ active: false }).eq('id', k.uid);
+    const { error } = await admin.from('user_prefs').upsert({
+      user_id: k.uid, company_id: BETRIEB, push_tokens: [`geraet-${k.uid}`],
+      notify_new_order: true, notify_order_ready: true, notify_urgent_delivery: true,
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  it('eine deaktivierte Projektleitung bekommt keine Eilmeldung', async () => {
+    const plWeg = await konto(BETRIEB, 'Projektleiter', 'push-pl-weg');
+    const { error } = await admin.from('projects').insert({
+      id: crypto.randomUUID(), company_id: BETRIEB, project_number: BAUSTELLE_WEG,
+      customer_name: 'Familie Weg', status: 'Aktiv', project_managers: [plWeg.uid],
+    });
+    if (error) throw new Error(error.message);
+    await deaktiviertMitGeraet(plWeg);
+
+    const { daten } = await anstossen({
+      art: 'neu', nachher: anforderung({ is_urgent: true, project_number: BAUSTELLE_WEG }),
+    });
+    expect(daten.geplant).toEqual([
+      { art: 'notifyNewOrder', empfaenger: 1, geraete: 1 },
+      { art: 'notifyUrgentDelivery', empfaenger: 1, geraete: 0 },
+    ]);
+  }, 120_000);
+
+  it('ein deaktivierter Besteller bekommt kein „abholbereit“', async () => {
+    const weg = await konto(BETRIEB, 'Mitarbeiter', 'push-besteller-weg');
+    await deaktiviertMitGeraet(weg);
+    const { daten } = await anstossen({
+      art: 'geaendert',
+      vorher: anforderung({ status: 'In Bearbeitung', user_id: weg.uid }),
+      nachher: anforderung({ status: 'Abholbereit', user_id: weg.uid }),
+    });
+    expect(daten.geplant).toEqual([{ art: 'notifyOrderReady', empfaenger: 1, geraete: 0 }]);
+  }, 120_000);
+});

@@ -475,7 +475,7 @@ export default function NotificationSettings() {
       {!einblick && (
         <Card
           title="Auf allen Geräten"
-          hint="„Abmelden“ im Menü meldet nur dieses Gerät ab. Hier endet die Anmeldung auf jedem Gerät sofort, auch hier — etwa wenn ein Telefon verloren ging. Danach meldest du dich neu an."
+          hint="„Abmelden“ im Menü meldet nur dieses Gerät ab. Hier endet die Anmeldung auf jedem Gerät sofort, auch hier, und kein Gerät zeigt mehr Meldungen — etwa wenn ein Telefon verloren ging. Danach meldest du dich neu an; auf deinen Geräten kommen die Meldungen mit der nächsten Anmeldung zurück."
         >
           <Button variant="secondary" loading={ueberallBusy} onClick={() => void ueberallAbmelden()}>
             Auf allen Geräten abmelden
