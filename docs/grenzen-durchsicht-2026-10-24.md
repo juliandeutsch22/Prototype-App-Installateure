@@ -674,10 +674,11 @@ hier, sondern am Ende unter „Mit Welle 2 entfallen“.
   Pflicht wirkt in der Datenbank sofort, ohne Faktor wird nichts gelesen oder
   gespeichert; die App fragt nur nach, statt auf jedem Gerät ein dauerhaftes
   Live-Abo der Betriebszeile zu halten.
-- **Nach einem neuen Startpasswort bleiben die Sitzungen bestehen**; ein noch
-  angemeldetes Gerät meldet sich beim nächsten Öffnen wieder für Push an
-  (K2). Grund fachlich: der Anlass ist ein vergessenes Passwort, nicht ein
-  verlorenes Gerät; für ein verlorenes Telefon gilt „Konto deaktivieren“.
+- ~~Nach einem neuen Startpasswort bleiben die Sitzungen bestehen~~ —
+  **entfallen (Integration Welle 2, 15.11.2026)**: gemessen beendet der
+  Anmeldedienst beim Setzen eines Passworts alle Sitzungen des Kontos
+  (beim eigenen Wechsel alle außer der laufenden). Die Annahme stand in
+  Akte, „Passwort ändern“, Handbuch und Function; berichtigt.
 - **Die alte App nutzt bis zum Neuladen `betrieb_auszug` mit der 8-MB-Grenze
   und meldet ohne Push-Abmeldung global ab** (K4, K2). Grund liegt beim
   Gerät: Telefone laden die neue Fassung erst beim nächsten Öffnen.

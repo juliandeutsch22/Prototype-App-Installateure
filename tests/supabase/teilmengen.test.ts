@@ -35,7 +35,9 @@ const zeilen = async () =>
   ((await admin.from('material_orders')
     .select('quantity, status, beschaffung, processed, erfasst_von, supplier_id')
     .eq('company_id', A).order('quantity')).data ?? [])
-    .map((z) => `${Number(z.quantity)} ${z.status} ${z.beschaffung ?? '-'}${z.processed ? ' verbucht' : ''}`);
+    .map((z) => `${Number(z.quantity)} ${z.status} ${z.beschaffung ?? '-'}${z.processed ? ' verbucht' : ''}`)
+    // Gleiche Mengen haben keine feste Reihenfolge aus der Datenbank — sortiert wird hier.
+    .sort();
 
 const bestand = async () => Number((await admin.from('materials').select('stock').eq('id', fitting).single()).data?.stock);
 

@@ -2471,6 +2471,20 @@ describe('Nicht verrechnete Leistung — gebuchte Stunden', () => {
     await waitFor(() => expect(stundenAbfrage.mock.calls.length).toBeGreaterThan(vorher));
   });
 
+  /*
+    Integration Welle 2: die unverrechneten Scheine kommen seit P3 aus der
+    Datenbank. Nach dem Anlegen einer Rechnung muss die Antwort neu her, sonst
+    steht die gerade verrechnete Baustelle bis zum Neuladen unter „Nicht
+    verrechnete Leistung“. Gegenprobe: mit der Abfrage nur beim Öffnen rot.
+  */
+  it('holt die unverrechneten Scheine nach dem Anlegen einer Rechnung neu', async () => {
+    const bestaetigen = await bisZurVorschau();
+    const vorher = scheineUnverrechnet.mock.calls.length;
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    await waitFor(() => expect(scheineUnverrechnet.mock.calls.length).toBeGreaterThan(vorher));
+  });
+
   it('öffnet über die Adresse „Neue Rechnung“ mit der Baustelle', async () => {
     zeige('/invoices?neu=2026-042');
     const auswahl = await screen.findByRole<HTMLSelectElement>('combobox', { name: /Baustelle/ });

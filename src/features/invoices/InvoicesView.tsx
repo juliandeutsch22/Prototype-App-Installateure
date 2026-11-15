@@ -890,15 +890,29 @@ export default function InvoicesView() {
       .finally(() => {
         if (!weg) setOffeneGeladen(true);
       });
-    /*
-      DIE UNVERRECHNETEN SCHEINE ÜBER ALLE (P3, `scheine_unverrechnet`).
-      Vorher die 60 jüngsten, dazu die Abdeckung — ein älterer Schein fiel
-      heraus, bevor er „über 4 Wochen“ alt werden konnte. Kommt die Antwort
-      nicht, bleibt die Karte weg und eine Zeile sagt warum: eine leere Liste
-      hieße „alles verrechnet“. Ohne Zugriff auf die Verrechnung (nur lesen)
-      wird nicht gefragt.
-    */
-    if (!nurLesen) scheineUnverrechnet()
+    return () => {
+      weg = true;
+    };
+  }, [user, nurLesen, offeneAnwenden]);
+
+  /*
+    DIE UNVERRECHNETEN SCHEINE ÜBER ALLE (P3, `scheine_unverrechnet`).
+    Vorher die 60 jüngsten, dazu die Abdeckung — ein älterer Schein fiel
+    heraus, bevor er „über 4 Wochen“ alt werden konnte. Kommt die Antwort
+    nicht, bleibt die Karte weg und eine Zeile sagt warum: eine leere Liste
+    hieße „alles verrechnet“. Ohne Zugriff auf die Verrechnung (nur lesen)
+    wird nicht gefragt.
+
+    NEU GEHOLT WIE DIE STUNDEN (`stundenStand`): nach jeder angelegten oder
+    stornierten Rechnung. Vorher kam die Antwort nur beim Öffnen der Seite —
+    die gerade verrechnete Baustelle stand weiter unter „Nicht verrechnete
+    Leistung“, bis jemand neu lud (Integration Welle 2, Browserweg
+    `rechnungStellen`). Bis die neue Antwort da ist, bleibt die alte stehen.
+  */
+  useEffect(() => {
+    if (!user || nurLesen) return;
+    let weg = false;
+    scheineUnverrechnet()
       .then((rows) => {
         if (weg) return;
         setUnverrechnetDB(rows);
@@ -913,7 +927,7 @@ export default function InvoicesView() {
     return () => {
       weg = true;
     };
-  }, [user, nurLesen, offeneAnwenden]);
+  }, [user, nurLesen, stundenStand]);
 
   useEffect(() => {
     if (!user || nurLesen) return;
