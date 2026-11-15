@@ -95,3 +95,41 @@ describe('U12 · Zeiterfassung am Schreibtisch: Liste breiter, Formular schmaler
     expect(wert(regel(css, '.zeit-raster-buchen > .zeit-liste'), 'flex-basis')).toBe('20rem');
   });
 });
+
+describe('U13 · Mitarbeiterübersicht am Handy: kompakte Zeile, Einzelheiten im Fenster', () => {
+  function kompakt(css: string): boolean {
+    const handy = medien(css, 'max-width: 759px');
+    if (handy < 0) return false;
+    const zeile = regel(css, '.ue-vergleich-zeile:not(.ue-summe)', handy);
+    const saldo = regel(css, '.ue-vergleich-zeile:not(.ue-summe) > .ue-gesamtsaldo', handy);
+    const weg = regel(css, '.ue-vergleich-zeile:not(.ue-summe) > .ue-buchungen, .ue-vergleich-zeile:not(.ue-summe) > .ue-zahl-stark:not(.ue-gesamtsaldo)', handy);
+    return wert(zeile, 'grid-template-columns') === 'minmax(0, 1fr) auto'
+      && wert(saldo, 'grid-column') === '2'
+      && wert(weg, 'display') === 'none';
+  }
+
+  it('im Vergleich je Person eine Zeile: Name und Stand links, der Gesamtsaldo rechts', () => {
+    expect(kompakt(lies('src/styles/lot-uebersicht.css'))).toBe(true);
+  });
+
+  it('Gegenprobe: das alte hohe Blatt (zwei Spalten, alle Zahlen) fiele auf', () => {
+    expect(kompakt(`.ue-vergleich-zeile { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem 1rem; }`)).toBe(false);
+  });
+
+  it('bleibt gleich: „Alle Tage vergleichen“ und die Woche behalten am Handy Streifen und Zahlen', () => {
+    const css = lies('src/styles/lot-uebersicht.css');
+    const handy = medien(css, 'max-width: 759px');
+    const danach = css.slice(handy);
+    expect(danach).not.toMatch(/\.ue-zeile[^{]*>\s*\.streifen[^{]*\{[^}]*display:\s*none/);
+    expect(danach).not.toMatch(/\.mw-zeile[^{]*\{[^}]*display:\s*none/);
+    expect(danach).not.toMatch(/\.ue-kopfzeile\s*\{[^}]*display:\s*none/);
+  });
+
+  it('die Zeile öffnet das Fenster der Person — dort stehen Saldo Monat, Gebucht und Soll', () => {
+    const liste = lies('src/features/accounting/UebersichtListe.tsx');
+    expect(liste).toContain('onClick={() => onOeffnen(z.user.uid, null)}');
+    const fenster = lies('src/features/accounting/PersonFenster.tsx');
+    expect(fenster).toContain("'Saldo im Monat'");
+    expect(fenster).toContain('{fmtMin(stats.istMin)} von {fmtMin(stats.sollMin)} Soll');
+  });
+});

@@ -151,7 +151,7 @@ Das **Kästchen** bleibt für die Auswahl in einem Formular, das erst mit „Spe
 
 ## Listen in fester Ordnung · Durchsicht 15.11.2026 (U11–U13)
 
-In der Baustellenliste stehen die Zustände untereinander links und das Budget immer rechts — nicht mal neben-, mal untereinander (U11, `.baustellen-gruppe`). Nur dort: Lager und Rechnungen tragen in ihren gestapelten Zeilen eine Maßlinie, die neben einem Zustand keinen Platz hat. In der Zeiterfassung am Schreibtisch ist die Liste breiter als das Formular (U12).
+In der Baustellenliste stehen die Zustände untereinander links und das Budget immer rechts — nicht mal neben-, mal untereinander (U11, `.baustellen-gruppe`). Nur dort: Lager und Rechnungen tragen in ihren gestapelten Zeilen eine Maßlinie, die neben einem Zustand keinen Platz hat. In der Zeiterfassung am Schreibtisch ist die Liste breiter als das Formular (U12). Die Mitarbeiterübersicht zeigt im Vergleich am Handy je Person eine kompakte Zeile mit Name, Stand und Gesamtsaldo; Saldo Monat, Gebucht und Soll stehen im Fenster der Person, wie am Schreibtisch. „Alle Tage vergleichen“ und die Woche behalten Streifen und Tagesfelder — die sind dort der Inhalt (U13).
 
 ## Einsatzplanung · E88 bleibt fachlich maßgeblich
 
