@@ -16,6 +16,7 @@ import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import BottomSheet from '@/components/BottomSheet';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import EingeteiltHinweis from '@/features/assignments/EingeteiltHinweis';
 import { Marke } from '@/components/Badge';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
@@ -431,7 +432,12 @@ function KrankmeldungInhalt({
  * Der Büro-Reiter: Krankmeldungen erfassen (etwa nach einem Anruf) und die
  * laufenden und jüngeren im Blick.
  */
-export function KrankenstaendeReiter({ companyId, meinName }: { companyId: string; meinName: string }) {
+export function KrankenstaendeReiter({ companyId, meinName, planung }: {
+  companyId: string;
+  meinName: string;
+  /** V1: ob die Einsatzplanung an ist und ob der Sprung in den Plan angeboten wird. */
+  planung?: { an: boolean; darfPlanen: boolean };
+}) {
   const toast = useToast();
   const [leute, setLeute] = useState<AppUser[]>([]);
   const [meldungen, setMeldungen] = useState<WithId<Krankmeldung>[]>([]);
@@ -443,6 +449,8 @@ export function KrankenstaendeReiter({ companyId, meinName }: { companyId: strin
   const [von, setVon] = useState(todayStr());
   const [bis, setBis] = useState(todayStr());
   const [notiz, setNotiz] = useState('');
+  /** Die zuletzt erfasste Krankmeldung — für „an N Tagen eingeteilt“ (V1). */
+  const [erfasst, setErfasst] = useState<{ uid: string; name: string; von: string; bis: string } | null>(null);
   const [sendet, setSendet] = useState(false);
   const [angebot, setAngebot] = useState<UrlaubAngebot | null>(null);
 
@@ -497,6 +505,7 @@ export function KrankenstaendeReiter({ companyId, meinName }: { companyId: strin
       const r = await krankmeldungSpeichern({ userId: wer, von, bis, notiz: notiz.trim(), melderName: meinName });
       toast.success(`Krankmeldung erfasst — ${ergebnisText(r)}`);
       setAngebot(urlaubAngebot(r, { von, bis, notiz: notiz.trim() }, leute.find((u) => u.uid === wer)?.name ?? null));
+      setErfasst({ uid: wer, name: leute.find((u) => u.uid === wer)?.name ?? 'Die Person', von, bis });
       setNotiz('');
       setStand((n) => n + 1);
     } catch (err) {
@@ -563,6 +572,19 @@ export function KrankenstaendeReiter({ companyId, meinName }: { companyId: strin
           <div className="fuss-aktionen">
             <Button type="submit" loading={sendet}>Krankmeldung erfassen</Button>
           </div>
+          {/*
+            V1: STEHT DIE PERSON IM PLAN? Gleich nach dem Erfassen, mit dem
+            Sprung zum Umplanen — sonst erfuhr es der Planer erst beim
+            Öffnen der Woche. Der Grund steht hier nicht: wer den Plan sieht,
+            erfährt nur „abwesend“.
+          */}
+          {erfasst && planung && (
+            <EingeteiltHinweis
+              companyId={companyId} an={planung.an} darfPlanen={planung.darfPlanen}
+              uid={erfasst.uid} von={erfasst.von} bis={erfasst.bis}
+              vorne={`${erfasst.name}, ${zeitraumText(erfasst.von, erfasst.bis)}: `}
+            />
+          )}
         </form>
       </Card>
 

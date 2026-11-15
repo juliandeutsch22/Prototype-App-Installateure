@@ -16,6 +16,7 @@ import { describe, it, expect, vi } from 'vitest';
 const gefragt: { lage?: unknown[]; tage?: unknown[] } = {};
 vi.mock('@/lib/db/assignments', () => ({
   listAssignmentsForDate: vi.fn(async () => []),
+  listAssignmentsForUserInRange: vi.fn(async () => []),
   listEinsatztageInRange: vi.fn(async (...a: unknown[]) => {
     gefragt.tage = a;
     return [{ userId: 'm1', date: '2026-10-13', projectNumber: 'B-1' }];
@@ -82,5 +83,36 @@ describe('P9: ohne geladenen Betriebsurlaub keine Auslastung', () => {
     vi.mocked(listBetriebsurlaubeImZeitraum).mockRejectedValueOnce(new Error('kein Netz'));
     const d = await leitung(k, { einsatzplanung: true, wartung: false, budget: false });
     expect(d.auslastung).toBeNull();
+  });
+});
+
+/*
+  V1 (Durchsicht 15.11.2026): „Eingeteilte fehlen“ auch morgen und bei
+  Teilausfall. Gegenprobe: vorher kam nur „unbesetzt“, nur heute, nur wenn
+  alle fehlten.
+*/
+describe('V1: Eingeteilte fehlen — heute teilweise, morgen überhaupt', () => {
+  it('nennt den Teilausfall heute und den Ausfall morgen; ganz unbesetzt heute bleibt bei „Unbesetzt“', async () => {
+    const { listAssignmentsForDate } = await import('@/lib/db/assignments');
+    const { listAbwesendInRange } = await import('@/lib/db/vacations');
+    vi.mocked(listAssignmentsForDate).mockImplementation(async (_c: string, tag: string) => (tag === '2026-10-13'
+      ? [
+        { id: 'a1', userId: 'm1', userName: 'Max', date: tag, projectNumber: 'B-1' },
+        { id: 'a2', userId: 'm2', userName: 'Lisa', date: tag, projectNumber: 'B-1' },
+        { id: 'a3', userId: 'm3', userName: 'Otto', date: tag, projectNumber: 'B-2' },
+      ]
+      : [{ id: 'a4', userId: 'm1', userName: 'Max', date: tag, projectNumber: 'B-3' }]) as never);
+    vi.mocked(listAbwesendInRange).mockResolvedValue([
+      { userId: 'm2', von: '2026-10-13', bis: '2026-10-13', grund: null, zeiten: null },
+      { userId: 'm3', von: '2026-10-13', bis: '2026-10-13', grund: null, zeiten: null },
+      { userId: 'm1', von: '2026-10-14', bis: '2026-10-14', grund: 'Urlaub', zeiten: null },
+    ] as never);
+    const d = await leitung(k, { einsatzplanung: true, wartung: false, budget: false });
+    expect(d.eingeteiltFehlen?.map((f) => [f.datum, f.projectNumber, f.fehlen.map((x) => x.name), f.unbesetzt])).toEqual([
+      ['2026-10-13', 'B-1', ['Lisa'], false],
+      ['2026-10-14', 'B-3', ['Max'], true],
+    ]);
+    // Bleibt gleich: B-2 (heute ganz unbesetzt) steht weiter unter „Unbesetzt“.
+    expect(d.heuteBetrieb?.find((b) => b.projectNumber === 'B-2')?.unbesetzt).toBe(true);
   });
 });

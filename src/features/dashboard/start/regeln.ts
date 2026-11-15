@@ -696,6 +696,31 @@ export function unbesetzteEinsaetze(heute: string, tag: TagesBaustelle[]): Absch
   return abschnitt('unbesetzt', 'Unbesetzte Einsätze', zeilen, ZIEL.tag(heute, 'unbesetzt'));
 }
 
+/** Ein Einsatz, bei dem Eingeteilte ganztags fehlen — heute oder morgen (V1). */
+export interface FehlenZeile extends TagesBaustelle {
+  datum: string;
+}
+
+/**
+ * „EINGETEILTE FEHLEN“ (Durchsicht 15.11.2026, V1). „Unbesetzt“ meldete nur
+ * heute und nur, wenn ALLE weg waren. Fällt der Facharbeiter aus und der
+ * Lehrling bleibt allein, oder betrifft es morgen, stand nichts da — die
+ * planende Rolle erfuhr es erst beim Öffnen der Woche. Hier: heute, wo
+ * jemand fehlt (das ganz Unbesetzte von heute steht schon oben), und morgen
+ * jeder Einsatz mit Fehlenden. Den Grund nur, wo er sichtbar ist
+ * (Datenschutz: die Projektleitung sieht „abwesend“).
+ */
+export function eingeteilteFehlen(heute: string, liste: FehlenZeile[]): Abschnitt | null {
+  const zeilen: Zeile[] = liste.map((b) => ({
+    key: `fehlen-${b.datum}-${b.projectNumber}`,
+    titel: `${b.customerName} · ${b.projectNumber}`,
+    detail: `${b.fehlen.map((f) => (f.grund ? `${f.name} ${f.grund.toLowerCase()}` : `${f.name} abwesend`)).join(', ')}${b.unbesetzt ? ' — niemand da' : ''}`,
+    status: { text: b.datum === heute ? 'heute' : 'morgen', ton: b.unbesetzt ? 'warn' : 'leise' },
+    to: ZIEL.tag(b.datum, b.unbesetzt ? 'unbesetzt' : undefined),
+  }));
+  return abschnitt('fehlen', 'Eingeteilte fehlen', zeilen, ZIEL.tag(liste[0]?.datum ?? heute));
+}
+
 /**
  * EINSATZ MIT FEHLENDEM MATERIAL in den nächsten sieben Tagen (M04b, E13) —
  * dieselbe Rechnung wie Woche, Tag und Formular (`materialDeckung.ts`).

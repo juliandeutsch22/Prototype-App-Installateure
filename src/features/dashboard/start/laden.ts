@@ -78,6 +78,7 @@ import {
   type KnapperArtikel,
   type MaterialFehltZeile,
   type TagesBaustelle,
+  type FehlenZeile,
   type TeamLuecke,
   type UnverrechneteZeile,
   type OffeneStundenZeile,
@@ -188,6 +189,8 @@ export interface StartDaten {
   materialFehlt?: MaterialFehltZeile[];
   wartungen?: Wartung[];
   heuteBetrieb?: TagesBaustelle[];
+  /** Einsätze mit ganztags Fehlenden, heute (teilweise) und morgen (V1). */
+  eingeteiltFehlen?: FehlenZeile[];
   abwesendHeute?: Abwesend[];
   auslastung?: number | null;
   hatVerwaltung?: boolean;
@@ -636,12 +639,14 @@ export async function leitung(
       return mitBudget.length ? budgetStand(mitBudget, await stundenDerBaustellen(mitBudget.map((pr) => pr.projectNumber))) : [];
     }, undefined)
     : undefined;
-  const [projekte, alle, einsaetzeHeute, abwesend, plan] = await Promise.all([
+  // V1: auch morgen — wer dann fehlt, soll die Planung heute schon sehen.
+  const morgen = tageVerschoben(heute, 1);
+  const [projekte, alle, einsaetzeHeute, abwesend, plan, einsaetzeMorgen] = await Promise.all([
     projekteZusage,
     belegschaftVon(k),
     was.einsatzplanung ? listAssignmentsForDate(user.companyId, heute) : Promise.resolve([]),
     was.einsatzplanung
-      ? still(() => listAbwesendInRange(woche[0] < heute ? woche[0] : heute, woche[6] > heute ? woche[6] : heute), [] as Abwesenheit[])
+      ? still(() => listAbwesendInRange(woche[0] < heute ? woche[0] : heute, woche[6] > morgen ? woche[6] : morgen), [] as Abwesenheit[])
       : Promise.resolve([] as Abwesenheit[]),
     was.einsatzplanung
       ? still(async () => {
@@ -665,6 +670,7 @@ export async function leitung(
         return { ohne, woche: woche7, zu };
       }, { ohne: undefined, woche: [], zu: null })
       : Promise.resolve({ ohne: undefined, woche: [], zu: null }),
+    was.einsatzplanung ? still(() => listAssignmentsForDate(user.companyId, morgen), []) : Promise.resolve([]),
   ]);
   out.projekte = projekte;
   out.hatVerwaltung = alle.some((u) => u.role === 'Verwaltung' && u.active !== false);
@@ -690,6 +696,26 @@ export async function leitung(
         };
       })
       .sort((a, b) => a.customerName.localeCompare(b.customerName, 'de'));
+
+    /*
+      EINGETEILTE FEHLEN (V1): heute, wo jemand fehlt, aber noch jemand da ist
+      (ganz unbesetzt steht schon unter „Unbesetzt“), und morgen jeder Einsatz
+      mit Fehlenden. Dieselbe Rechnung wie „Unbesetzt“ (`besetzung`).
+    */
+    const fehlenAm = (tag: string, rows: typeof einsaetzeHeute, auchUnbesetzt: boolean): FehlenZeile[] => {
+      const je = new Map<string, typeof einsaetzeHeute>();
+      for (const a of rows) je.set(a.projectNumber, [...(je.get(a.projectNumber) ?? []), a]);
+      return [...je.entries()].flatMap(([pn, eingeteilt]) => {
+        const lage = besetzung(eingeteilt, abwesend, tag);
+        if (lage.fehlen.length === 0 || (lage.unbesetzt && !auchUnbesetzt)) return [];
+        const pr = projekte.find((x) => x.projectNumber === pn);
+        return [{
+          datum: tag, projectNumber: pn, customerName: pr ? baustellenTitel(pr) : `Baustelle ${pn}`,
+          namen: lage.da, fehlen: lage.fehlen, unbesetzt: lage.unbesetzt,
+        }];
+      }).sort((a, b) => a.customerName.localeCompare(b.customerName, 'de'));
+    };
+    out.eingeteiltFehlen = [...fehlenAm(heute, einsaetzeHeute, false), ...fehlenAm(morgen, einsaetzeMorgen, true)];
 
     out.abwesendHeute = abwesend
       .filter((a) => a.von <= heute && a.bis >= heute && nameVon.has(a.userId))

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { istAn } from '@/lib/module';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -54,6 +55,8 @@ import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { Zustand, type Stand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import EingeteiltHinweis from '@/features/assignments/EingeteiltHinweis';
+import { canAccess, zusatzrechte } from '@/app/navigation';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
@@ -180,6 +183,14 @@ const STAND: Record<Vacation['status'], Stand> = {
 export default function VacationsView() {
   const { user, company } = useAuth();
   const halbeTage = dezemberHalbtage(company);
+  /*
+    V1: IST DIE PERSON IM ZEITRAUM EINGETEILT? Gefragt nur mit Einsatzplanung;
+    den Sprung in den Plan bekommt, wer ihn betreten darf.
+  */
+  const planung = useMemo(() => ({
+    an: istAn(company?.modules, 'einsatzplanung'),
+    darfPlanen: !!user && canAccess(user.role, '/assignments', company?.modules, zusatzrechte(user, company)),
+  }), [user, company]);
   const toast = useToast();
 
   /**
@@ -1004,6 +1015,10 @@ export default function VacationsView() {
                     </span>
                     {v.notiz && <span className="mt-1 block">{v.notiz}</span>}
                     {!istZa(v) && restZeile(v)}
+                    {/* V1: ist die Person im Zeitraum eingeteilt? Stundenweiser ZA lässt den Einsatz stehen. */}
+                    {!v.zaVon && user && (
+                      <EingeteiltHinweis companyId={user.companyId} an={planung.an} darfPlanen={planung.darfPlanen} uid={v.userId} von={v.von} bis={v.bis} />
+                    )}
                     {/*
                       DAS ZEITGUTHABEN BEIM ANTRAG — die Zahl, nach der
                       beim Zeitausgleich entschieden wird.
@@ -1175,7 +1190,7 @@ export default function VacationsView() {
         </div>
       )}
 
-      {buero && reiter === 'krank' && <KrankenstaendeReiter companyId={user.companyId} meinName={user.name} />}
+      {buero && reiter === 'krank' && <KrankenstaendeReiter companyId={user.companyId} meinName={user.name} planung={planung} />}
       {buero && reiter === 'betrieb' && <BetriebsurlaubReiter companyId={user.companyId} meinName={user.name} />}
 
       {(!buero || reiter === 'antraege') && (

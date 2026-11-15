@@ -17,6 +17,7 @@ import {
   einzigeLeitungOhneMail,
   garantienBald,
   type GarantieZeile,
+  eingeteilteFehlen,
 } from '@/features/dashboard/start/regeln';
 import { auslastung } from '@/features/dashboard/start/laden';
 import { budgetStand } from '@/features/projects/baustellenLage';
@@ -437,6 +438,18 @@ describe('Projektleitung', () => {
       { userId: 'c', date: '2026-10-28' },
     ], [{ userId: 'b', von: '2026-10-30', bis: '2026-10-30', grund: 'Krank', zeiten: null }], woche);
     expect(wert).toBe(Math.round((2 / 7) * 100));
+  });
+
+  it('V1: „Eingeteilte fehlen“ — heute leise, morgen unbesetzt als Warnung, Grund nur wo sichtbar', () => {
+    const a = eingeteilteFehlen('2026-10-13', [
+      { datum: '2026-10-13', projectNumber: 'B-1', customerName: 'Huber', namen: ['Max'], fehlen: [{ name: 'Lisa', grund: null }], unbesetzt: false },
+      { datum: '2026-10-14', projectNumber: 'B-3', customerName: 'Gruber', namen: [], fehlen: [{ name: 'Max', grund: 'Urlaub' }], unbesetzt: true },
+    ])!;
+    expect(a.zeilen.map((z) => [z.detail, z.status])).toEqual([
+      ['Lisa abwesend', { text: 'heute', ton: 'leise' }],
+      ['Max urlaub — niemand da', { text: 'morgen', ton: 'warn' }],
+    ]);
+    expect(eingeteilteFehlen('2026-10-13', [])).toBeNull();
   });
 
   /*

@@ -38,6 +38,7 @@ import {
   garantieEndet,
   garantienBald,
   unbesetzteEinsaetze,
+  eingeteilteFehlen,
   unterMindestmenge,
   urlaubsantraege,
   freistellungsantraege,
@@ -435,6 +436,8 @@ function projektleitung(d: StartDaten, u: Umfeld): Startseite {
     // Der Auftragseingang (M02b): was die Projektleitung zur Baustelle oder zum Angebot macht.
     erlaubt(offeneEingaenge(d.offeneEingaenge), u),
     erlaubt(unbesetzteEinsaetze(u.heute, d.heuteBetrieb ?? []), u),
+    // V1: wer heute (teilweise) oder morgen fehlt.
+    erlaubt(eingeteilteFehlen(u.heute, d.eingeteiltFehlen ?? []), u),
     // M04b: Einsätze der nächsten sieben Tage, deren Material niemand deckt.
     erlaubt(materialFehlt(d.materialFehlt ?? [], titelVon(d)), u),
     erlaubt(budgetNahe(d.budget ?? []), u),
@@ -650,6 +653,17 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       titel: `${anzahl(unbesetzt.length, 'Einsatz', 'Einsätze')} unbesetzt`,
       detail: `${unbesetzt[0].customerName} · ${unbesetzt[0].fehlen.map((f) => (f.grund ? `${f.name} ${f.grund.toLowerCase()}` : f.name)).join(', ')}`,
       status: { text: 'heute', ton: 'warn' },
+    }));
+  }
+  // V1: Eingeteilte fehlen — heute teilweise, morgen überhaupt.
+  const fehlen = d.eingeteiltFehlen ?? [];
+  if (fehlen.length) {
+    const erste = fehlen[0];
+    themen.push(wenn(ZIEL.tag(erste.datum), {
+      key: 'fehlen', wann: fehlen.some((f) => f.datum === h) ? 'heute' : 'woche',
+      titel: `${anzahl(fehlen.length, 'Einsatz', 'Einsätze')}: Eingeteilte fehlen`,
+      detail: `${erste.customerName} · ${erste.datum === h ? 'heute' : 'morgen'} · ${erste.fehlen.map((f) => f.name).join(', ')}`,
+      status: { text: erste.datum === h ? 'heute' : 'morgen', ton: fehlen.some((f) => f.unbesetzt) ? 'warn' : 'leise' },
     }));
   }
   const eil = orders.filter((o) => o.transactionType !== 'return' && o.isUrgent && (o.status === 'Offen' || o.status === 'In Bearbeitung'));
