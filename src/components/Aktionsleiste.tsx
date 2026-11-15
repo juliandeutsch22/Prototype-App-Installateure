@@ -19,6 +19,7 @@ export default function Aktionsleiste({
   rechts,
   linksSymbol = false,
   erstNachDemRollen = false,
+  ruht = false,
 }: {
   summe?: { name: ReactNode; wert: ReactNode };
   links?: ReactNode;
@@ -40,6 +41,15 @@ export default function Aktionsleiste({
    * ersten Änderung sofort im Blick sein.
    */
   erstNachDemRollen?: boolean;
+  /**
+   * NICHTS MEHR OFFEN, DAS SPEICHERN IST BESTÄTIGT (B4, 15.11.2026). Der
+   * Haken zeichnet sich im Knopf („Gespeichert“), dann zieht sich die
+   * klebende Leiste nach unten zurück und gibt den Inhalt frei. Nur wo sie
+   * klebt (Handy und Tablet); am Schreibtisch steht sie still unter dem
+   * Formular und bleibt. Ändert jemand wieder etwas, kommt sie sofort.
+   * Setzen erst nach der Antwort des Servers — nie als Vermutung.
+   */
+  ruht?: boolean;
 }) {
   const leiste = useRef<HTMLDivElement>(null);
   const [frei, setFrei] = useState(erstNachDemRollen);
@@ -77,7 +87,7 @@ export default function Aktionsleiste({
   }, [erstNachDemRollen]);
 
   return (
-    <div ref={leiste} className={frei ? 'aktionsleiste aktionsleiste-frei' : 'aktionsleiste'}>
+    <div ref={leiste} className={frei ? 'aktionsleiste aktionsleiste-frei' : 'aktionsleiste'} data-ruht={ruht ? '' : undefined}>
       {summe && (
         <p className="aktionsleiste-summe">
           <span>{summe.name}</span>

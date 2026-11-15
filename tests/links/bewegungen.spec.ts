@@ -354,3 +354,78 @@ test.describe('B7 Arbeitstag Start/Pause/Stopp', () => {
     expect(tag.every((b) => b.stand === 'laeuft' && b.deck === 1 && b.knopf === 'none')).toBe(true);
   });
 });
+
+test.describe('B4 Speichern bestätigt', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  async function aendernUndSpeichern(page: Page) {
+    await page.goto(pfad('/settings/firma'));
+    const feld = page.getByLabel('Bank', { exact: true });
+    await expect(feld).toBeVisible();
+    await feld.fill('Prüfbank Wien');
+    const leiste = page.locator('.aktionsleiste').last();
+    await expect(leiste).not.toHaveAttribute('data-ruht');
+    await page.evaluate(() => {
+      const w = window as unknown as { haken: number[]; hakenFertig: boolean };
+      w.haken = []; w.hakenFertig = false;
+      let t0 = -1;
+      const bild = () => {
+        const p = document.querySelector('.lot-knopf[data-zustand=gespeichert] svg path');
+        if (p && t0 < 0) t0 = performance.now();
+        if (p) w.haken.push(parseFloat(getComputedStyle(p).strokeDashoffset) || 0);
+        if (t0 < 0 || performance.now() - t0 < 200) requestAnimationFrame(bild); else w.hakenFertig = true;
+      };
+      requestAnimationFrame(bild);
+    });
+    await page.getByRole('button', { name: 'Speichern', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Gespeichert' })).toBeVisible();
+    await page.waitForFunction(() => (window as unknown as { hakenFertig: boolean }).hakenFertig);
+    return { leiste, feld, haken: await page.evaluate(() => (window as unknown as { haken: number[] }).haken) };
+  }
+
+  test('der Haken zeichnet sich, dann zieht sich die Leiste zurück; eine Änderung holt sie sofort', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    const { leiste, feld, haken } = await aendernUndSpeichern(page);
+    expect(haken[0]).toBeGreaterThan(5);
+    expect(haken[haken.length - 1]).toBe(0);
+    await expect(leiste).toHaveAttribute('data-ruht', '');
+    // Erst bleibt sie lesbar stehen …
+    expect(await leiste.evaluate((el) => getComputedStyle(el).visibility)).toBe('visible');
+    // … dann ist sie weg und nimmt keinen Tipp mehr an.
+    await expect.poll(() => leiste.evaluate((el) => getComputedStyle(el).visibility), { timeout: 3000 }).toBe('hidden');
+    expect(await leiste.evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m42)).toBeGreaterThan(20);
+    await feld.fill('Prüfbank Graz');
+    await expect(leiste).not.toHaveAttribute('data-ruht');
+    expect(await leiste.evaluate((el) => getComputedStyle(el).visibility)).toBe('visible');
+    await expect(page.getByRole('button', { name: 'Speichern', exact: true })).toBeVisible();
+  });
+
+  test('mit reduzierter Bewegung: Haken sofort, nach der Lesezeit ist die Leiste ohne Weg verschwunden', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const { leiste, haken } = await aendernUndSpeichern(page);
+    expect(Math.max(...haken)).toBe(0);
+    const lagen = await leiste.evaluate((el) => new Promise<string[]>((fertig) => {
+      const werte: string[] = [];
+      const t0 = performance.now();
+      const bild = () => {
+        const t = getComputedStyle(el).transform;
+        werte.push(`${getComputedStyle(el).opacity} ${t === 'none' ? 0 : Math.round(new DOMMatrixReadOnly(t).m42)}`);
+        if (performance.now() - t0 < 1700) requestAnimationFrame(bild); else fertig(werte);
+      };
+      requestAnimationFrame(bild);
+    }));
+    // Nur zwei Bilder: stehend, dann weg — kein Zwischenstand.
+    expect([...new Set(lagen)].length).toBe(2);
+    expect(lagen[0]).toBe('1 0');
+    expect(lagen[lagen.length - 1]).toMatch(/^0 [1-9]\d+$/);
+    await expect.poll(() => leiste.evaluate((el) => getComputedStyle(el).visibility)).toBe('hidden');
+  });
+
+  test('gleich geblieben: am Schreibtisch bleibt die Leiste stehen', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const { leiste } = await aendernUndSpeichern(page);
+    await page.waitForTimeout(1600);
+    expect(await leiste.evaluate((el) => [getComputedStyle(el).visibility, getComputedStyle(el).transform, getComputedStyle(el).opacity])).toEqual(['visible', 'none', '1']);
+  });
+});

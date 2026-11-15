@@ -62,10 +62,34 @@
   .rollzahl { position: relative; display: inline-block; clip-path: inset(0 -100vw); }
   .rollzahl-neu { display: inline-block; }
   .rollzahl-alt { position: absolute; inset: 0; white-space: nowrap; pointer-events: none; }
+
+  /*
+    B4 — GESPEICHERT. Der Haken im Knopf zeichnet sich (Strichlänge des
+    Hakens `m5 12.5 4.5 4.5L19 7`: rund 20 Einheiten), statt zu erscheinen.
+    Danach zieht sich die klebende Speicherleiste zurück (`Aktionsleiste`
+    mit `ruht`), nur wo sie klebt — unter 1.200 px. Sie wartet so lange, bis
+    der Haken zu lesen war; unsichtbar nimmt sie keinen Tipp mehr an
+    (`visibility` nach dem Weg). Kommt eine Änderung, ist sie ohne Warten da.
+    Bei „Bewegung reduzieren“ bleibt das Warten (es ist Lesezeit, keine
+    Bewegung — und die Vorlesehilfe sagt „Gespeichert“ noch an, bevor die
+    Leiste verborgen ist); dann ist sie ohne Weg verschwunden.
+  */
+  .lot-knopf[data-zustand=gespeichert] svg path { stroke-dasharray: 21; animation: haken-zeichnen var(--motion-bestaetigt) var(--ease-response) both; }
+  @media (max-width: 1199px) {
+    .aktionsleiste { transition: transform var(--motion-overlay) var(--ease-response), opacity var(--motion-overlay) var(--ease-response); }
+    .aktionsleiste[data-ruht] {
+      transform: translateY(calc(100% + 1rem));
+      opacity: 0;
+      visibility: hidden;
+      transition: transform var(--motion-overlay) var(--ease-response) 1.2s, opacity var(--motion-overlay) var(--ease-response) 1.2s, visibility 0s linear calc(1.2s + var(--motion-overlay));
+    }
+  }
 }
+
 
 @keyframes blatt-herein { from { transform: translateY(100%); } }
 @keyframes blatt-hinaus { to { transform: translateY(100%); } }
 /* Um die eigene Breite und den Abstand zum Rand (`right: 0.5rem`): ganz aus dem Bild. */
 @keyframes fenster-herein { from { transform: translateX(calc(100% + 0.5rem)); } }
+@keyframes haken-zeichnen { from { stroke-dashoffset: 21; } to { stroke-dashoffset: 0; } }
 @keyframes fenster-hinaus { to { transform: translateX(calc(100% + 0.5rem)); } }

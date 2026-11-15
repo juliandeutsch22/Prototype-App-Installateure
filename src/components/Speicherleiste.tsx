@@ -57,6 +57,8 @@ export default function Speicherleiste({
   const fertig = gespeichert && !geaendert && !speichert;
   return (
     <Aktionsleiste
+      // B4 (Paket 10b): nach dem bestätigten Speichern zieht sich die Leiste zurück — in jedem Formular.
+      ruht={fertig}
       summe={{
         name: <span role="status" className="lot-speicherstand">{speichert ? 'Änderungen werden gespeichert …' : stand ?? (fertig ? 'Gespeichert' : 'Nicht gespeicherte Änderungen')}</span>,
         wert: null,
