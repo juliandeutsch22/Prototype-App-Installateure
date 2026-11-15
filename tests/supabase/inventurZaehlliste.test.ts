@@ -299,6 +299,15 @@ describe('Personenbezug (F14)', () => {
     expect(data.als_bearbeiter.inventur_gezaehlt).toBeGreaterThanOrEqual(1);
   });
 
+  it('angemeldete Konten dürfen die Tabellen nur lesen — auch kein Leeren (truncate fragt den Zeilenschutz nicht)', async () => {
+    const { rows } = await db.query<{ t: string; r: string }>(
+      `select table_name as t, string_agg(privilege_type, ',' order by privilege_type) as r
+         from information_schema.role_table_grants
+        where table_schema = 'public' and grantee = 'authenticated' and table_name in ('inventuren', 'inventur_zeilen')
+        group by 1 order by 1`);
+    expect(rows).toEqual([{ t: 'inventur_zeilen', r: 'SELECT' }, { t: 'inventuren', r: 'SELECT' }]);
+  });
+
   it('Schreiben nur über die Funktionen: die Tabellen haben keine Schreibregel', async () => {
     const { rows } = await db.query<{ n: string }>(
       `select count(*)::text as n from pg_policies where schemaname = 'public' and tablename in ('inventuren', 'inventur_zeilen') and cmd <> 'SELECT'`);

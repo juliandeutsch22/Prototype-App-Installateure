@@ -466,6 +466,21 @@ const OHNE_EIGENE_PRUEFUNG: Record<string, string> = {
   'public.rechtstexte_aktuell()':
     'liefert Impressum, Datenschutzerklärung und Betreiberangaben in der geltenden Fassung — öffentliche Texte, '
     + 'die jeder lesen muss (§ 5 ECG, Art. 13 DSGVO); nie einen Entwurf, nichts aus einem Betrieb',
+  // G12: liest nur über `naechste_nummern`, die Anmeldung und Betrieb des Aufrufers prüft (`app.angemeldet`, `app.arbeitsbetrieb`).
+  'public.naechste_nummern_vorschau()':
+    'gibt die Zeilen von `public.naechste_nummern(jahr)` mit dem Jahr in Wien zurück; dort steht die Prüfung '
+    + '(angemeldet und einem Betrieb zugeordnet, sonst keine Zeile)',
+  // F9: Betriebsmitglied und Kundenrecht prüft `app.kunden_zusammenfuehren_pruefen`, bevor gelesen wird.
+  'public.kunden_zusammenfuehren_vorschau(p_bleibt uuid, p_geht uuid)':
+    'ruft zuerst `app.kunden_zusammenfuehren_pruefen` (beide Kunden im Betrieb des Aufrufers, `app.betriebsmitglied`, '
+    + '`app.darf_kunden_pflegen`) und erst danach die Lage',
+  // F14: Betrieb und Rolle prüft `app.inventur_recht` (`app.betriebsmitglied`, Verwaltung oder Führung) als ersten Schritt.
+  'public.inventur_artikel_hinzufuegen(p_inventur uuid, p_material uuid)':
+    'prüft über `app.inventur_recht` (Betriebsmitglied der Zählliste, Verwaltung oder Führung), bevor etwas geschieht',
+  'public.inventur_verwerfen(p_inventur uuid)':
+    'prüft über `app.inventur_recht` (Betriebsmitglied der Zählliste, Verwaltung oder Führung), bevor etwas geschieht',
+  'public.inventur_vorschau(p_inventur uuid)':
+    'prüft über `app.inventur_recht` (Betriebsmitglied der Zählliste, Verwaltung oder Führung), bevor gelesen wird',
 };
 /*
   Welle 2 (15.11.2026): `verrechnung_betrieb` (Scheine, P3), `arbeitszeit_person`

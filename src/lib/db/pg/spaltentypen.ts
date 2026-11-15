@@ -83,6 +83,9 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
     bestaetigt_am: 'zeitpunkt', created_at: 'zeitpunkt', entschieden_am: 'zeitpunkt', nachweis_geprueft_am: 'zeitpunkt',
     updated_at: 'zeitpunkt', zeit_bis: 'uhrzeit', zeit_von: 'uhrzeit',
   },
+  // F14: die App liest beide über `inventur_laden`/`inventur_listen` und rechnet dort selbst um.
+  inventuren: { angelegt_am: 'zeitpunkt', gebucht_am: 'zeitpunkt', stichtag: 'zeitpunkt' },
+  inventur_zeilen: { gezaehlt_am: 'zeitpunkt' },
   lagerbestaende: { geaendert_am: 'zeitpunkt' },
   lagerbewegungen: { created_at: 'zeitpunkt' },
   lagerorte: { angelegt_am: 'zeitpunkt' },
