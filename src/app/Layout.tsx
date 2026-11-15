@@ -41,6 +41,7 @@ import { datenSparen, imLeerlauf, vorladen } from '@/lib/ansichten';
 import { taktHalten } from '@/lib/takt';
 import { zeilenflussHalten, zeilenflussRuhe } from '@/lib/zeilenfluss';
 import { unterlinieHalten } from '@/lib/unterlinie';
+import { platzhalterHalten } from '@/lib/platzhalter';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { offeneVormerkungen } from '@/lib/db/pg/ohneEmpfang';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
@@ -174,6 +175,12 @@ export default function Layout({ children }: { children: ReactNode }) {
   useEffect(() => {
     const main = inhalt.current;
     return main ? unterlinieHalten(main) : undefined;
+  }, []);
+
+  // Platzhalter gehen in Inhalt über, ohne Sprung (B8, `lib/platzhalter.ts`) — für jede Liste.
+  useEffect(() => {
+    const main = inhalt.current;
+    return main ? platzhalterHalten(main) : undefined;
   }, []);
 
   /*

@@ -429,3 +429,50 @@ test.describe('B4 Speichern bestätigt', () => {
     expect(await leiste.evaluate((el) => [getComputedStyle(el).visibility, getComputedStyle(el).transform, getComputedStyle(el).opacity])).toEqual(['visible', 'none', '1']);
   });
 });
+
+test.describe('B8 Platzhalter gehen in Inhalt über', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  /** Eine Liste lädt neu: erst der Platzhalter an ihrer Stelle, nach `ms` wieder die Liste — wie React tauscht. */
+  const laden = (page: Page, ms: number) => page.evaluate(async (ms) => {
+    const ul = [...document.querySelectorAll('ul')].find((u) => u.querySelectorAll(':scope > li.zeile').length >= 4)!;
+    const eltern = ul.parentElement!;
+    const platz = document.createElement('div');
+    platz.className = 'lade-liste';
+    platz.setAttribute('role', 'status');
+    platz.innerHTML = '<div class="divide-y divide-line">' + '<div class="flex items-center justify-between gap-4 py-3"><div class="min-w-0 flex-1 space-y-2"><div class="skeleton h-4" style="width:60%"></div><div class="skeleton h-3" style="width:40%"></div></div><div class="skeleton h-6 w-16 shrink-0"></div></div>'.repeat(3) + '</div>';
+    eltern.replaceChild(platz, ul);
+    await new Promise((r) => setTimeout(r, ms));
+    eltern.replaceChild(ul, platz);
+    const bilder: Array<{ geist: number | null; inhalt: number }> = [];
+    const t0 = performance.now();
+    await new Promise<void>((fertig) => {
+      const bild = () => {
+        const g = eltern.querySelector<HTMLElement>('.platzhalter-geist');
+        bilder.push({ geist: g ? Number(getComputedStyle(g).opacity) : null, inhalt: Number(getComputedStyle(ul).opacity) });
+        if (performance.now() - t0 < 300) requestAnimationFrame(bild); else fertig();
+      };
+      requestAnimationFrame(bild);
+    });
+    return bilder;
+  }, ms);
+
+  test('der gesehene Platzhalter blendet aus, während der Inhalt einblendet', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    const bilder = await laden(page, 400);
+    expect(bilder[0].geist).toBeGreaterThan(0.3);
+    expect(bilder[0].inhalt).toBeLessThan(0.7);
+    expect(bilder[bilder.length - 1]).toEqual({ geist: null, inhalt: 1 });
+  });
+
+  test('gleich geblieben: ein schnelles Laden (Platzhalter nie zu sehen) und reduzierte Bewegung zeigen den Inhalt sofort', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    expect((await laden(page, 50)).every((b) => b.geist === null && b.inhalt === 1)).toBe(true);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    expect((await laden(page, 400)).every((b) => b.geist === null && b.inhalt === 1)).toBe(true);
+  });
+});

@@ -74,6 +74,9 @@
     Bewegung — und die Vorlesehilfe sagt „Gespeichert“ noch an, bevor die
     Leiste verborgen ist); dann ist sie ohne Weg verschwunden.
   */
+  /* B8 — das Abbild des Platzhalters steht still: kein zweites Warten, kein Puls. */
+  .platzhalter-geist .skeleton { animation: none; }
+
   .lot-knopf[data-zustand=gespeichert] svg path { stroke-dasharray: 21; animation: haken-zeichnen var(--motion-bestaetigt) var(--ease-response) both; }
   @media (max-width: 1199px) {
     .aktionsleiste { transition: transform var(--motion-overlay) var(--ease-response), opacity var(--motion-overlay) var(--ease-response); }
