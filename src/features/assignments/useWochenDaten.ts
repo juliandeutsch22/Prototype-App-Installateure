@@ -143,6 +143,8 @@ export function useWochenDaten(tage: string[]) {
       (rows) => {
         setEinsaetze(rows);
         setEinsaetzeFuer(fuer);
+        // Ein früherer Ladefehler gilt nicht mehr, sobald die Liste wieder da ist (Z10).
+        setError(null);
       },
       (e) => {
         setError(e.message);

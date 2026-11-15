@@ -56,7 +56,11 @@ export default function RechnungenLesen() {
     return subscribeRecentInvoices(
       betrieb,
       200,
-      (r) => setZeilen(r),
+      (r) => {
+        setZeilen(r);
+        // Ein früherer Ladefehler gilt nicht mehr, sobald die Liste wieder da ist (Z10).
+        setFehler(null);
+      },
       () => setFehler('Die Rechnungen konnten nicht geladen werden.'),
     );
   }, [betrieb]);

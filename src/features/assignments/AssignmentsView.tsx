@@ -241,6 +241,8 @@ export default function AssignmentsView() {
         if (!aktiv) return;
         setMonthAssignments(rows);
         setEinsaetzeFuer(fuer);
+        // Ein früherer Ladefehler gilt nicht mehr, sobald die Liste wieder da ist (Z10).
+        setError(null);
       },
       // Ein Fehler gibt das Speichern NICHT frei: welche Einsätze es gibt, ist dann unbekannt.
       (e) => {

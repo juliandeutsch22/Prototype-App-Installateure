@@ -164,7 +164,13 @@ export default function AccountingView() {
   /** Für welche Baustellennummern `gesamtFach` gilt; `null` = noch für keine. */
   const [fachFuer, setFachFuer] = useState<string | null>(() => anfang?.fach?.fuer ?? null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [belegschaftFehler, setError] = useState<string | null>(null);
+  /*
+    DER FEHLER DER BUCHUNGEN FÜR SICH (Z10): kommt die Live-Liste wieder,
+    nimmt sie ihn zurück — ohne einen Fehler der Belegschaft mitzunehmen.
+  */
+  const [eintraegeFehler, setEintraegeFehler] = useState<string | null>(null);
+  const error = belegschaftFehler ?? eintraegeFehler;
   /** Ein Nebenladevorgang ist ausgefallen — die Auswertung steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
@@ -362,10 +368,11 @@ export default function AccountingView() {
       ladenBis,
       (rows) => {
         setEntries(rows);
+        setEintraegeFehler(null);
         setLoading(false);
       },
       (e) => {
-        setError(e.message);
+        setEintraegeFehler(e.message);
         setLoading(false);
       },
     );

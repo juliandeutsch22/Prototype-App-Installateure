@@ -39,6 +39,9 @@ export const NACHFASSEN_MS = 1200;
  */
 export const BUENDELN_MS = 50;
 
+/** Abstände, in denen eine Live-Liste ein gescheitertes Laden wiederholt (Z10). */
+export const WIEDERHOLEN_MS = [2000, 5000, 15000, 30000, 60000];
+
 /**
  * Der Client, mit dem diese Schicht arbeitet.
  *
@@ -880,11 +883,52 @@ export function abonnieren<T>(
       puffer.length = 0;
       bereit = true;
       bestandGilt = true;
+      gelungen();
       melden();
     } catch (e) {
       bereit = true;
       onError(e as Error);
+      nachFehler = true;
+      erneutVersuchen();
     }
+  };
+
+  /*
+    OHNE NETZ BLEIBT DER LETZTE STAND STEHEN (Z10, 17.11.2026).
+
+    Nachgestellt: die Liste stand, das Nachfassen nach dem Aufbau des Kanals
+    fiel ins Funkloch — und kam als Ladefehler bei der Ansicht an, die ihre
+    Liste daraufhin durch „Das hat nicht geklappt — Failed to fetch“
+    ersetzte. Kam das Netz zurück und hatte sich nichts geändert, gab es kein
+    neues Bild, und der Fehler blieb stehen.
+
+    Jetzt, für alle Live-Listen: ein gescheiterter ABGLEICH meldet nichts —
+    der Bestand gilt weiter; dass die Verbindung fehlt, sagt `liveVerbindung`.
+    Gescheitertes wird mit wachsendem Abstand wiederholt, auch wenn der Kanal
+    nie abriss (nur die Abfragen kamen nicht durch). Gelingt es nach einem
+    Fehler, gibt es ein Bild, auch ohne Änderung — damit eine Ansicht, die
+    einen Ladefehler zeigte, ihn zurücknehmen kann.
+  */
+  let wiederholung: ReturnType<typeof setTimeout> | undefined;
+  let fehlversuche = 0;
+  /** Ein Fehler steht (gemeldet oder still) — der nächste Erfolg zeichnet in jedem Fall. */
+  let nachFehler = false;
+  const erneutVersuchen = () => {
+    if (abgemeldet || wiederholung) return;
+    const ms = WIEDERHOLEN_MS[Math.min(fehlversuche, WIEDERHOLEN_MS.length - 1)];
+    fehlversuche += 1;
+    wiederholung = setTimeout(() => {
+      wiederholung = undefined;
+      if (!abgemeldet) void abgleichen();
+    }, ms);
+  };
+  const gelungen = () => {
+    fehlversuche = 0;
+    if (wiederholung) clearTimeout(wiederholung);
+    wiederholung = undefined;
+    const warFehler = nachFehler;
+    nachFehler = false;
+    return warFehler;
   };
 
   /**
@@ -949,11 +993,13 @@ export function abonnieren<T>(
       for (const n of puffer) anwendenAenderung(n);
       puffer.length = 0;
       bereit = true;
-      // Nichts geändert: kein neues Bild — die Seiten zeichneten sonst umsonst.
-      if (geaendert) melden();
-    } catch (e) {
+      // Nichts geändert: kein neues Bild — die Seiten zeichneten sonst umsonst. Außer nach einem Fehler (Z10).
+      if (gelungen() || geaendert) melden();
+    } catch {
+      // Der Bestand gilt weiter (Z10): nichts melden, später noch einmal.
       bereit = true;
-      onError(e as Error);
+      nachFehler = true;
+      erneutVersuchen();
     }
   };
 
@@ -1094,6 +1140,7 @@ export function abonnieren<T>(
     abgemeldet = true;
     if (nachfassen) clearTimeout(nachfassen);
     if (meldenGeplant) clearTimeout(meldenGeplant);
+    if (wiederholung) clearTimeout(wiederholung);
     stoppKanal();
   };
 }

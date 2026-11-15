@@ -467,6 +467,8 @@ export default function AdminOrdersView() {
       holgrenze,
       (rows) => {
         setOrders(rows);
+        // Ein früherer Ladefehler gilt nicht mehr, sobald die Liste wieder da ist (Z10).
+        setError(null);
         setLoading(false);
       },
       (e) => {
