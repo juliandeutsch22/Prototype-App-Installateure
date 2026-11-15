@@ -96,17 +96,6 @@ export function beobachteUrlaubstage(
   return pg.beobachteUrlaubstage(companyId, von, bis, cb, onError);
 }
 
-/** Dieselben Urlaubstage als Live-Liste — siehe `pg.subscribeUrlaubstage`. */
-export function subscribeUrlaubstage(
-  companyId: string,
-  from: string,
-  to: string,
-  cb: (rows: WithId<TimeEntry>[]) => void,
-  onError: (e: Error) => void,
-): () => void {
-  return pg.subscribeUrlaubstage(companyId, from, to, cb, onError);
-}
-
 export function listEntriesForProjects(
   companyId: string, projectNumbers: string[],
 ): Promise<WithId<TimeEntry>[]> {

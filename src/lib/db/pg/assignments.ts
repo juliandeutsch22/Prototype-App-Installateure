@@ -6,7 +6,6 @@
  * der Rüstliste; hier ist es EIN Aufruf, der in einer Transaktion läuft.
  */
 import type { Assignment, KalenderAbo, KalenderAboArt } from '@/types';
-import { monatsEnde } from '@shared/feiertage';
 import { plusTage } from '@shared/freistellung';
 import { abfragen, abonnieren, derClient, kanalHalten, SEITE, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
@@ -78,30 +77,6 @@ export function listAssignmentsInRange(companyId: string, from: string, to: stri
     sortiere: { feld: 'date' },
     grenze: max,
   });
-}
-
-/**
- * Alle Einsätze eines Monats, live.
- *
- * Der Kalender braucht den ganzen Monat auf einmal, sonst könnte er die
- * belegten Tage nicht markieren.
- *
- * DAS ENDE WIRD GERECHNET, NICHT AUF 31 GESETZT. Firestore verglich den
- * Zeitraum als ZEICHENKETTE, und '2026-09-31' lag dort einfach hinter dem
- * letzten echten Tag — harmlos. Postgres liest denselben Wert als DATUM und
- * bricht ab: `date/time field value out of range`. Die Einsatzplanung war
- * nach dem Umschalten genau deshalb nicht benutzbar.
- */
-export function subscribeAssignmentsForMonth(
-  companyId: string,
-  year: number,
-  month: number,
-  cb: (rows: WithId<Assignment>[]) => void,
-  onError: (e: Error) => void,
-): () => void {
-  const from = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-  const to = monatsEnde(year, month + 1);
-  return subscribeAssignmentsInRange(companyId, from, to, cb, onError);
 }
 
 /**

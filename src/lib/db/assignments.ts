@@ -43,16 +43,6 @@ export function listAssignmentsInRange(
   return pg.listAssignmentsInRange(companyId, from, to, max);
 }
 
-export function subscribeAssignmentsForMonth(
-  companyId: string,
-  year: number,
-  month: number,
-  cb: (rows: WithId<Assignment>[]) => void,
-  onError: (e: Error) => void,
-): () => void {
-  return pg.subscribeAssignmentsForMonth(companyId, year, month, cb, onError);
-}
-
 export function subscribeAssignmentsInRange(
   companyId: string,
   from: string,

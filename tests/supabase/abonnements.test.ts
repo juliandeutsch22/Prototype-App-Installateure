@@ -133,7 +133,6 @@ async function bleibtDraussen<T>(
   }
 }
 
-const MONAT = { jahr: 2026, monat: 4 }; // Mai — `month` ist nullbasiert
 const IM_MONAT = '2026-05-04';
 const AUSSERHALB = '2026-08-03';
 
@@ -267,19 +266,6 @@ describe('Jede Änderung, die dazugehört, kommt an', () => {
     expect(ergebnis.ok).toBe(true);
   }, 30_000);
 
-  it('die Einteilung eines Monats', async () => {
-    clientEinreichen(chef.client);
-    const ergebnis = await meldetDurch<WithId<unknown>[]>(
-      (melde, fehler) => einsaetze.subscribeAssignmentsForMonth(
-        BETRIEB, MONAT.jahr, MONAT.monat, melde, fehler),
-      async () => { await einsaetze.saveAssignments(BETRIEB, IM_MONAT, 'B-700', [{
-        date: IM_MONAT, projectNumber: 'B-700', userId: anton.uid, userName: 'Anton',
-      }]); },
-      (rows) => rows.some((r) => (r as { projectNumber?: string }).projectNumber === 'B-700'),
-    );
-    expect(ergebnis.ok).toBe(true);
-  }, 30_000);
-
   it('die Einteilung eines Zeitraums', async () => {
     clientEinreichen(chef.client);
     const ergebnis = await meldetDurch<WithId<unknown>[]>(
@@ -303,24 +289,6 @@ describe('Jede Änderung, die dazugehört, kommt an', () => {
     );
     expect(ergebnis.ok).toBe(true);
   }, 30_000);
-
-  it('die jüngsten Rechnungen', async () => {
-    const buch = await konto(BETRIEB, 'Buchhaltung', 'buch2');
-    clientEinreichen(buch.client);
-    const jahr = new Date().getFullYear();
-    const ergebnis = await meldetDurch<WithId<unknown>[]>(
-      (melde, fehler) => rechnungen.subscribeRecentInvoices(BETRIEB, 50, melde, fehler),
-      async () => { await rechnungen.createInvoice(BETRIEB, {
-        invoiceNumber: `RE-${jahr}-7777`, projectNumber: 'B-700', customerName: 'Huber',
-        address: 'Hauptplatz 1, 8200 Gleisdorf',
-        invoiceDate: '2026-05-31', leistungVon: '2026-05-31', leistungBis: '2026-05-31', dueDate: '2026-06-14',
-        totalNetto: 100, totalVat: 20, totalBrutto: 120, paymentStatus: 'Offen',
-        positions: [{ label: 'Arbeit', qty: 1, unit: 'h', unitPrice: 100, netto: 100 }],
-      }); },
-      (rows) => rows.some((r) => (r as { invoiceNumber?: string }).invoiceNumber === `RE-${jahr}-7777`),
-    );
-    expect(ergebnis.ok).toBe(true);
-  }, 60_000);
 
   it('die jüngsten Rechnungen als Köpfe (L6)', async () => {
     const buch = await konto(BETRIEB, 'Buchhaltung', 'buch-koepfe');
@@ -370,36 +338,6 @@ describe('Jede Änderung, die dazugehört, kommt an', () => {
 });
 
 describe('Was nicht dazugehört, kommt nicht an', () => {
-  it('die Urlaubstage: ein Urlaubstag kommt an, eine Anwesenheit nicht', async () => {
-    /*
-      Die Mitarbeiterübersicht holt seit 18.10.2026 nur noch die Urlaubstage
-      über den Monat hinaus (`subscribeUrlaubstage`) — gefiltert wird im Kanal
-      nur nach dem Betrieb, der Status prüft der Client an der eingehenden
-      Zeile. Eine Anwesenheit im selben Zeitraum darf nicht hineinrutschen.
-    */
-    const buch = await konto(BETRIEB, 'Buchhaltung', 'buch-urlaub');
-    clientEinreichen(buch.client);
-    const e = await bleibtDraussen<WithId<unknown>[]>(
-      (melde, fehler) => zeiten.subscribeUrlaubstage(BETRIEB, '2026-07-01', '2026-07-31', melde, fehler),
-      {
-        ausloesen: async () => { await admin.from('time_entries').insert(buchung(
-          { ...berta, betrieb: BETRIEB } as Konto, '2026-07-13', { travel_time: 97 })); },
-        erkennen: (rows) => rows.some((r) => (r as { travelTime?: number }).travelTime === 97),
-      },
-      {
-        ausloesen: async () => {
-          const { error } = await admin.from('time_entries').insert(buchung(
-            { ...berta, betrieb: BETRIEB } as Konto, '2026-07-14',
-            { status: 'Urlaub', start_time: null, end_time: null, break_duration: 0 }));
-          if (error) throw new Error(error.message);
-        },
-        erkennen: (rows) => rows.some((r) => (r as { date?: string; status?: string }).date === '2026-07-14'
-          && (r as { status?: string }).status === 'Urlaub'),
-      },
-    );
-    expect(e).toEqual({ falschDa: false, richtigDa: true });
-  }, 40_000);
-
   it('die Urlaubstage je Person (L5): ein Urlaubstag kommt an, eine Anwesenheit nicht', async () => {
     const buch = await konto(BETRIEB, 'Buchhaltung', 'buch-urlaub-je');
     clientEinreichen(buch.client);

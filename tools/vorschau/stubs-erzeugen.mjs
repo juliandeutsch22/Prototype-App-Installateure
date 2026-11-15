@@ -33,7 +33,7 @@ const DATEN = {
   users: { listUsers: 'D.benutzer', getUserByUid: 'D.benutzer[0]' },
   // Buchungstage je Person (Start, „Die Mannschaft“): eine Liste; als NOOP stand „Nicht geladen“ (14.11.2026).
   // Die eigenen Buchungen sind im gewachsenen Bestand weiter die der Beispiele (L11): die Attrappe kennt die Person nicht.
-  timeEntries: { '*': 'D.zeiten', listOwnEntriesSince: 'D.zeitenEigene', listOwnEntriesInRange: 'D.zeitenEigene', subscribeOwnEntriesInRange: 'D.zeitenEigene', arbeitszeitVorlauf: '[]', listUrlaubstage: '[]', subscribeUrlaubstage: '[]', beobachteUrlaubstage: '[]', stundenDerBaustellen: '[]', buchungstage: '[]' },
+  timeEntries: { '*': 'D.zeiten', listOwnEntriesSince: 'D.zeitenEigene', listOwnEntriesInRange: 'D.zeitenEigene', subscribeOwnEntriesInRange: 'D.zeitenEigene', arbeitszeitVorlauf: '[]', listUrlaubstage: '[]', beobachteUrlaubstage: '[]', stundenDerBaustellen: '[]', buchungstage: '[]' },
   // Auftragseingang: eine Seite und die Zählung — als NOOP stand dort nur ein Ladefehler (14.11.2026).
   auftragseingaenge: { listEingaenge: '{ zeilen: [], weiter: null }', zaehleOffeneEingaenge: '{ offen: 0, dringend: 0, notfall: 0 }' },
   projects: { '*': 'D.baustellen' },

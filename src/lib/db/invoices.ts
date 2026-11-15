@@ -47,16 +47,6 @@ export function subscribeRecentInvoiceKoepfe(
   return pg.subscribeRecentInvoiceKoepfe(companyId, max, cb, onError, undefined, geaendert);
 }
 
-export function subscribeRecentInvoices(
-  companyId: string,
-  max: number,
-  cb: (rows: WithId<Invoice>[]) => void,
-  onError: (e: Error) => void,
-  geaendert?: () => void,
-): () => void {
-  return pg.subscribeRecentInvoices(companyId, max, cb, onError, undefined, geaendert);
-}
-
 export function listInvoicesInRange(
   companyId: string, von: string, bis: string,
 ): Promise<WithId<Invoice>[]> {

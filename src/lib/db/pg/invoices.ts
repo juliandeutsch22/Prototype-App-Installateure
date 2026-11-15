@@ -183,47 +183,21 @@ export async function listUnpaidInvoiceKoepfe(companyId: string): Promise<WithId
 }
 
 /**
- * Die jüngsten Rechnungen, live — mit ausdrücklicher Obergrenze.
+ * Die jüngsten Rechnungen, live, mit ausdrücklicher Obergrenze — nur die
+ * KÖPFE (L6), für die Liste der Rechnungsverwaltung und die Leseliste der
+ * Projektleitung. Positionen, Abdeckung und Leistungsnachweis holt erst, wer
+ * eine Rechnung öffnet (`listInvoicesByIds`). Bis 17.11.2026 kamen sie für
+ * jede Rechnung der Liste mit, bei jedem Besuch und jeder Live-Meldung
+ * (`subscribeRecentInvoices`, entfernt: nichts nutzte es mehr).
  *
- * EIGENES ABONNEMENT STATT `abonnieren`: eine Rechnung besteht aus drei
- * Tabellen, der allgemeine Weg meldet aber einzelne Zeilen einer einzigen.
- * Beobachtet wird deshalb der KOPF, und bei jeder Meldung wird die Liste neu
- * zusammengesetzt.
- *
- * Das trägt, weil Positionen und Abdeckung sich nach dem Anlegen nicht mehr
- * ändern — die Richtlinien lassen an `invoice_lines` weder ein Ändern noch
- * ein Löschen zu. Jede Bewegung an einer Rechnung berührt also ihren Kopf.
+ * EIGENES ABONNEMENT STATT `abonnieren`: beobachtet wird der Kopf, und bei
+ * jeder Meldung wird die Liste neu geholt.
  *
  * `geaendert` meldet, dass sich an IRGENDEINER Rechnung des Betriebs etwas
  * getan hat — auch an einer, die zu alt für diese Liste ist — und nach
  * einem Wiederaufbau, weil in der Pause etwas geschehen sein kann. Nicht
  * beim ersten Aufbau: da lädt die Ansicht ohnehin. Damit hält die Ansicht
  * ihre offenen Forderungen aktuell (seit 11.10.2026).
- */
-export function subscribeRecentInvoices(
-  companyId: string,
-  max: number,
-  cb: (rows: WithId<Invoice>[]) => void,
-  onError: (e: Error) => void,
-  client?: SupabaseClient,
-  geaendert?: () => void,
-): () => void {
-  return jungeRechnungenHalten(
-    companyId,
-    async (c) => zusammensetzen(await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
-      sortiere: { feld: 'createdAt', absteigend: true },
-      grenze: max,
-    }, c), companyId, c),
-    cb, onError, client, geaendert,
-  );
-}
-
-/**
- * Dieselben jüngsten Rechnungen, nur die KÖPFE (L6) — für die Liste der
- * Rechnungsverwaltung und die Leseliste der Projektleitung. Positionen,
- * Abdeckung und Leistungsnachweis holt erst, wer eine Rechnung öffnet
- * (`listInvoicesByIds`). Vorher kamen sie für jede Rechnung der Liste mit,
- * bei jedem Besuch und jeder Live-Meldung.
  */
 export function subscribeRecentInvoiceKoepfe(
   companyId: string,
