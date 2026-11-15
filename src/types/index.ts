@@ -530,8 +530,10 @@ export interface UserPrefs {
   notifyZeiterfassung?: boolean;
   /** Push bei neuen Nachrichten (M10/B09) — Vorgabe an. */
   notifyNachrichten?: boolean;
-  /** Push, wenn sich der eigene Einsatzplan für heute oder morgen ändert (E85). */
+  /** Push, wenn sich der eigene Einsatzplan für heute oder morgen ändert (E85) — seit V8 samt Terminen. */
   notifyEinsaetze?: boolean;
+  /** Push bei einem Notfall im Auftragseingang — für die Führung (V8). Vorgabe an. */
+  notifyNotfall?: boolean;
   /**
    * Die ersten 80 Zeichen einer Nachricht im Sperrbildschirm (M10/B09) —
    * Vorgabe AUS: der Sperrbildschirm ist öffentlich, und den Text hat

@@ -38,7 +38,9 @@ import {
   textKrankmeldung,
   textNachricht,
   textEinsatzplan,
+  textNotfall,
   type EinsatzEreignis,
+  type NotfallEreignis,
   type NachrichtEreignis,
   type Belegschaftsmitglied,
   EMPFAENGER_NEUE_ANFORDERUNG,
@@ -119,6 +121,7 @@ async function tokensFuer(uids: string[], art: MeldungsArt): Promise<string[]> {
       notifyZeiterfassung: zeile.notify_zeiterfassung,
       notifyNachrichten: zeile.notify_nachrichten,
       notifyEinsaetze: zeile.notify_einsaetze,
+      notifyNotfall: zeile.notify_notfall,
     };
     if (!willMeldung(vorgaben, art)) continue;
     for (const t of (zeile.push_tokens as string[] | null) ?? []) tokens.push(t);
@@ -154,7 +157,7 @@ interface Ereignis {
   vorher?: Record<string, unknown>;
   nachher?: Record<string, unknown>;
   zeile?: Record<string, unknown>;
-  /** Wer es ausgelöst hat — bisher nur beim nachträglichen „eilig“. */
+  /** Wer es ausgelöst hat — beim nachträglichen „eilig“ und beim Notfall (V8). */
   von?: string | null;
 }
 
@@ -371,6 +374,23 @@ async function auftraegeEinsatz(ereignis: Ereignis): Promise<Auftrag[] | null> {
   return [{ art: 'notifyEinsaetze' as const, uids: [uid], meldung: textEinsatzplan(e) }];
 }
 
+/**
+ * Notfall im Auftragseingang (V8): an die aktive Führung des Betriebs, nicht
+ * an den, der ihn erfasst hat. Empfänger, Nummer und Ort kommen von
+ * `push_notfall` — der Anstoß trägt nur die Kennung.
+ */
+async function auftraegeNotfall(ereignis: Ereignis): Promise<Auftrag[] | null> {
+  const eingang = String(ereignis.zeile?.id ?? '');
+  if (ereignis.art !== 'notfall' || !eingang) return null;
+  const r = await fetch(`${URL_BASIS}/rest/v1/rpc/push_notfall`, {
+    method: 'POST', headers: alsDienst,
+    body: JSON.stringify({ p_eingang: eingang, ...(ereignis.von ? { p_von: ereignis.von } : {}) }),
+  });
+  const e = r.ok ? (await r.json().catch(() => null)) as NotfallEreignis | null : null;
+  if (!e || e.empfaenger.length === 0) return [];
+  return [{ art: 'notifyNotfall' as const, uids: e.empfaenger, meldung: textNotfall(e) }];
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return antwort({ error: 'Nur POST.' }, 405);
 
@@ -400,7 +420,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
         ? await auftraegeNachricht(ereignis)
         : ereignis.quelle === 'einsatz'
           ? await auftraegeEinsatz(ereignis)
-          : await auftraegeAnforderung(ereignis);
+          : ereignis.quelle === 'eingang'
+            ? await auftraegeNotfall(ereignis)
+            : await auftraegeAnforderung(ereignis);
   if (!auftraege) return antwort({ gesendet: 0, grund: 'kein Ereignis, das etwas meldet' });
 
   /*

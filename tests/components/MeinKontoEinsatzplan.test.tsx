@@ -74,21 +74,53 @@ describe('Mein Konto — Einsatzplan', () => {
     expect(screen.queryByRole('checkbox', { name: SCHALTER })).toBeNull();
   });
 
-  it('Gegenprobe: wer nicht eingeplant wird (Geschäftsführung), sieht ihn nicht', async () => {
+  /*
+    SEIT V8 (Durchsicht 15.11.2026) gehören Termine zum Plan: Teilnehmer kann
+    jede Rolle sein, und die Meldung kommt mit derselben Vorgabe. Der
+    Schalter steht deshalb für jeden da, solange die Einsatzplanung an ist —
+    vorher nur für Eingeplante (dann hätte die Geschäftsführung Meldungen zu
+    ihren Terminen bekommen, ohne sie abschalten zu können).
+  */
+  it('V8: auch wer nicht eingeplant wird (Geschäftsführung), sieht ihn — wegen der Termine', async () => {
     auth.user = { ...auth.user, role: 'Geschäftsführung' };
     render(<NotificationSettings />);
-    await screen.findByRole('checkbox', { name: /Zeiterfassung/ });
-    expect(screen.queryByRole('checkbox', { name: SCHALTER })).toBeNull();
+    expect(await screen.findByRole('checkbox', { name: SCHALTER })).toBeChecked();
   });
 
-  it('die Projektleitung nur, wenn der Betrieb sie im Einsatzplan führt', async () => {
+  it('V8: die Projektleitung ebenso, unabhängig vom Einsatzplan', async () => {
     auth.user = { ...auth.user, role: 'Projektleiter' };
-    const { unmount } = render(<NotificationSettings />);
-    await screen.findByRole('checkbox', { name: /Zeiterfassung/ });
-    expect(screen.queryByRole('checkbox', { name: SCHALTER })).toBeNull();
-    unmount();
-    auth.company = { id: 'perl', modules: {}, projektleitungImEinsatzplan: true };
     render(<NotificationSettings />);
     expect(await screen.findByRole('checkbox', { name: SCHALTER })).toBeChecked();
+  });
+});
+
+/*
+  V8: NOTFALL IM AUFTRAGSEINGANG — der Schalter für die Führung, ab Werk an,
+  gespeichert wie die übrigen. Gegenprobe: vorher gab es ihn nicht.
+*/
+describe('Mein Konto — Notfall im Auftragseingang (V8)', () => {
+  const NOTFALL = 'Notfall im Auftragseingang';
+
+  it('die Führung sieht ihn (ab Werk an) und schaltet ihn ab', async () => {
+    auth.user = { ...auth.user, role: 'Geschäftsführung' };
+    render(<NotificationSettings />);
+    const schalter = await screen.findByRole('checkbox', { name: NOTFALL });
+    expect(schalter).toBeChecked();
+    await userEvent.click(schalter);
+    await waitFor(() => expect(savePrefs).toHaveBeenCalled());
+    expect(gespeichert).toMatchObject({ notifyNotfall: false });
+  });
+
+  it('bleibt gleich: der Monteur bekommt keinen; ohne Auftragseingang auch die Führung nicht', async () => {
+    auth.user = { ...auth.user, role: 'Mitarbeiter' };
+    const { unmount } = render(<NotificationSettings />);
+    await screen.findByRole('checkbox', { name: /Zeiterfassung/ });
+    expect(screen.queryByRole('checkbox', { name: NOTFALL })).toBeNull();
+    unmount();
+    auth.user = { ...auth.user, role: 'Geschäftsführung' };
+    auth.company = { id: 'perl', modules: { 'baustellen.auftragseingang': false } };
+    render(<NotificationSettings />);
+    await screen.findByRole('checkbox', { name: /Zeiterfassung/ });
+    expect(screen.queryByRole('checkbox', { name: NOTFALL })).toBeNull();
   });
 });

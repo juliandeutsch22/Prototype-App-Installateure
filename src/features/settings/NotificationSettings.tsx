@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { getPrefs, savePrefs, PREFS_DEFAULTS } from '@/lib/db/prefs';
 import { getPushState, enablePush, disablePush, pushProbe, type PushState, type ProbeErgebnis } from '@/lib/push';
-import { canProcessOrders, einplanbar, isGF, isMitarbeiter, isTopLevel } from '@/lib/permissions';
+import { canProcessOrders, isGF, isMitarbeiter, isTopLevel } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
@@ -65,7 +65,7 @@ const PROBE_TEXT: Record<'gesendet' | 'neu-angemeldet' | 'nicht-angemeldet', str
  * Telefon wechselt, verliert sonst unbemerkt seine Meldungen.
  */
 export default function NotificationSettings() {
-  const { user, company, einblick, reloadCompany, signOut } = useAuth();
+  const { user, einblick, reloadCompany, signOut } = useAuth();
   const toast = useToast();
   const [newOrder, setNewOrder] = useState(PREFS_DEFAULTS.notifyNewOrder ?? true);
   const [orderReady, setOrderReady] = useState(PREFS_DEFAULTS.notifyOrderReady ?? true);
@@ -76,6 +76,7 @@ export default function NotificationSettings() {
   const [nachrichten, setNachrichten] = useState(PREFS_DEFAULTS.notifyNachrichten ?? true);
   const [vorschau, setVorschau] = useState(PREFS_DEFAULTS.nachrichtVorschau ?? false);
   const [einsaetze, setEinsaetze] = useState(PREFS_DEFAULTS.notifyEinsaetze ?? true);
+  const [notfall, setNotfall] = useState(PREFS_DEFAULTS.notifyNotfall ?? true);
   const [push, setPush] = useState<PushState>('aus');
   const [busy, setBusy] = useState(false);
   const [probeBusy, setProbeBusy] = useState(false);
@@ -101,9 +102,16 @@ export default function NotificationSettings() {
   const zeigeAngebot = user ? isGF(user.role) && onlineAnnahme : false;
   // Nachrichten (M10/B09): jeder, solange das Modul an ist.
   const zeigeNachrichten = useModul('nachrichten');
-  // Einsatzplan (E85): nur, wer selbst eingeplant wird — die Planer ändern ihn ja selbst.
+  /*
+    Einsatzplan (E85): wer selbst eingeplant wird — seit V8 auch, wer an
+    Terminen teilnimmt: Termine gehören zum Plan, und Teilnehmer kann jede
+    Rolle sein.
+  */
   const einsatzplanung = useModul('einsatzplanung');
-  const zeigeEinsaetze = user ? einsatzplanung && einplanbar(user, company) : false;
+  const zeigeEinsaetze = user ? einsatzplanung : false;
+  // Notfall im Auftragseingang (V8): an die Führung, solange der Auftragseingang an ist.
+  const eingangAn = useModul('baustellen.auftragseingang');
+  const zeigeNotfall = user ? isGF(user.role) && eingangAn : false;
 
   useEffect(() => {
     if (!user) return;
@@ -119,6 +127,7 @@ export default function NotificationSettings() {
         setNachrichten(p.notifyNachrichten ?? true);
         setVorschau(p.nachrichtVorschau ?? false);
         setEinsaetze(p.notifyEinsaetze ?? true);
+        setNotfall(p.notifyNotfall ?? true);
       })
       // Stumm gescheitert saehen die Schalter aus wie „steht auf Standard",
       // und wer sie danach umlegt, ueberschreibt seine eigene Einstellung mit
@@ -141,6 +150,7 @@ export default function NotificationSettings() {
     notifyNachrichten: boolean;
     nachrichtVorschau: boolean;
     notifyEinsaetze: boolean;
+    notifyNotfall: boolean;
   }>) {
     if (!user) return;
     const next = {
@@ -153,6 +163,7 @@ export default function NotificationSettings() {
       notifyNachrichten: nachrichten,
       nachrichtVorschau: vorschau,
       notifyEinsaetze: einsaetze,
+      notifyNotfall: notfall,
       ...aenderung,
     };
     setNewOrder(next.notifyNewOrder);
@@ -164,6 +175,7 @@ export default function NotificationSettings() {
     setNachrichten(next.notifyNachrichten);
     setVorschau(next.nachrichtVorschau);
     setEinsaetze(next.notifyEinsaetze);
+    setNotfall(next.notifyNotfall);
     try {
       await savePrefs(user.companyId, user.uid, next);
     } catch (err) {
@@ -361,9 +373,24 @@ export default function NotificationSettings() {
                 onChange={(e) => void speichern({ notifyEinsaetze: e.target.checked })}
               />
               <InfoHint about="Einsatzplan">
-                Plant das Büro dich für heute oder morgen um, kommt eine Meldung mit deinem Plan, wie
-                er jetzt ist. Mehrere Änderungen kurz hintereinander kommen als eine Meldung;
-                Änderungen für spätere Tage stehen im Plan und melden sich nicht.
+                Plant das Büro dich für heute oder morgen um, oder ändert sich ein Termin, an dem du
+                teilnimmst, kommt eine Meldung mit deinem Plan, wie er jetzt ist. Mehrere Änderungen
+                kurz hintereinander kommen als eine Meldung; Änderungen für spätere Tage stehen im
+                Plan und melden sich nicht.
+              </InfoHint>
+            </div>
+          )}
+          {zeigeNotfall && (
+            <div className="flex flex-wrap items-center gap-2">
+              <CheckboxField
+                id="n-notfall"
+                label="Notfall im Auftragseingang"
+                checked={notfall}
+                onChange={(e) => void speichern({ notifyNotfall: e.target.checked })}
+              />
+              <InfoHint about="Notfälle">
+                Wird ein Eingang als Notfall erfasst, kommt sofort eine Meldung mit Nummer und Ort —
+                nicht an den, der ihn erfasst hat.
               </InfoHint>
             </div>
           )}
