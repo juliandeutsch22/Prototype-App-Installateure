@@ -1,5 +1,5 @@
 import type { AppUser, TimeEntry } from '@/types';
-import { calcWorkMin, tagesAnteil, tagessollStunden } from '@/lib/time';
+import { calcWorkMin, tagesAnteil, tagessollStunden, wochenstundenVon } from '@/lib/time';
 import { isAustrianHoliday } from '@shared/feiertage';
 import {
   arbeitMinImFenster, fensterSchnitt, NACHTZEIT_VORGABE, type Nachtzeit, type UeberstundenRegel,
@@ -105,7 +105,8 @@ function vereinbarteWocheMin(user: Person, workDays: readonly number[]): number 
     workDays.reduce((summe, wt) => {
       const eigen = user.tagessoll?.[String(wt)];
       if (typeof eigen === 'number' && Number.isFinite(eigen)) return summe + eigen;
-      return summe + (Number(user.weeklyTargetHours ?? 40) || 40) / workDays.length;
+      // 0 Wochenstunden sind 0 (Z11), nicht die Vorgabe 40.
+      return summe + wochenstundenVon(user.weeklyTargetHours) / workDays.length;
     }, 0) * 60,
   );
 }

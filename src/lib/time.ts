@@ -679,6 +679,17 @@ export function monatsLetzter(iso: string): string {
   return localDateStr(new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)), 0));
 }
 
+/**
+ * DIE WOCHENSTUNDEN ALS ZAHL (Durchsicht 15.11.2026, Z11). Leer heißt die
+ * Vorgabe 40; eine eingetragene 0 heißt 0 — kein Soll (geringfügig ohne
+ * feste Zeit, ruhendes Dienstverhältnis). Vorher machte `|| 40` aus der 0
+ * vierzig Stunden, entgegen dem Benutzerformular.
+ */
+export function wochenstundenVon(wert: number | null | undefined): number {
+  const n = Number(wert ?? 40);
+  return Number.isFinite(n) ? n : 40;
+}
+
 /** Was die Arbeitszeit eines Tages ausmacht — die drei Felder der Person. */
 export type Arbeitszeit = Pick<AppUser, 'weeklyTargetHours' | 'workDays' | 'tagessoll'>;
 type MitVerlauf = Arbeitszeit & Pick<AppUser, 'arbeitszeitVerlauf'>;
@@ -762,7 +773,7 @@ export function tagessollStunden(
   const az = hatArbeitszeitVerlauf(user) ? arbeitszeitAm(user, iso) : user;
   const eigen = az.tagessoll?.[String(new Date(`${iso}T00:00:00`).getDay())];
   if (typeof eigen === 'number' && Number.isFinite(eigen)) return eigen;
-  const weeklyH = Number(az.weeklyTargetHours ?? 40) || 40;
+  const weeklyH = wochenstundenVon(az.weeklyTargetHours);
   const workDays = az.workDays && az.workDays.length ? az.workDays : [1, 2, 3, 4, 5];
   return weeklyH / workDays.length;
 }
@@ -781,7 +792,7 @@ function sollMinuten(
 ): number {
   // Mit Verlauf (Z3) je Tag — jeder Tag mit der Arbeitszeit, die an ihm galt.
   if (!hatTagessoll(user) && !hatArbeitszeitVerlauf(user)) {
-    const weeklyH = Number(user.weeklyTargetHours ?? 40) || 40;
+    const weeklyH = wochenstundenVon(user.weeklyTargetHours);
     const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
     return tageGewicht(tage, halbeTage) * (weeklyH / workDays.length) * 60;
   }
@@ -970,7 +981,7 @@ export function saldoAusBilanzen(
   const initial = Number(user.initialOvertime ?? 0) || 0;
   if (!user.appStartDate) return { saldoH: initial, hasConfig: false, daysWithoutEntry: 0 };
 
-  const weeklyH = Number(user.weeklyTargetHours ?? 40) || 40;
+  const weeklyH = wochenstundenVon(user.weeklyTargetHours);
   const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
   const dailyH = weeklyH / workDays.length;
 
@@ -1157,7 +1168,7 @@ export function calcMonthStats(
     Zeile „Tagessoll“ und in der Lohn-CSV.
   */
   const imMonat = arbeitszeitAm(user, localDateStr(new Date(year, month + 1, 0)));
-  const weeklyTarget = Number(imMonat.weeklyTargetHours ?? 40) || 40;
+  const weeklyTarget = wochenstundenVon(imMonat.weeklyTargetHours);
 
   const workDays = imMonat.workDays && imMonat.workDays.length ? imMonat.workDays : [1, 2, 3, 4, 5];
   // Tagessoll über die tatsächlichen Arbeitstage — identisch zu
@@ -1431,7 +1442,7 @@ export interface CompletenessResult {
  *      `workDays`, nicht über eine feste Fünf-Tage-Annahme.
  */
 export function pflichtTage(
-  user: Pick<AppUser, 'workDays' | 'appStartDate' | 'austritt'> & Partial<Pick<AppUser, 'arbeitszeitVerlauf'>>,
+  user: Pick<AppUser, 'workDays' | 'appStartDate' | 'austritt'> & Partial<Pick<AppUser, 'arbeitszeitVerlauf' | 'weeklyTargetHours' | 'tagessoll'>>,
   von: Date,
   bis: Date,
 ): string[] {
@@ -1464,8 +1475,23 @@ export function pflichtTage(
     Regel 4 (Z3): mit Verlauf zählt jeder Abschnitt mit SEINEN Arbeitstagen.
     Ohne Verlauf der bisherige Weg.
   */
-  if (hatArbeitszeitVerlauf(user)) return pflichtTageImVerlauf(user.arbeitszeitVerlauf!, start, schluss);
-  return werktageImZeitraum(workDays, start, schluss);
+  const tage = hatArbeitszeitVerlauf(user)
+    ? pflichtTageImVerlauf(user.arbeitszeitVerlauf!, start, schluss)
+    : werktageImZeitraum(workDays, start, schluss);
+  /*
+    Regel 5 (Z11): ein Tag mit Tagessoll 0 ist kein Pflichttag — keine Lücke,
+    keine Gutschrift. Nur wer überhaupt eine 0 trägt, wird je Tag geprüft;
+    für alle anderen bleibt es beim bisherigen Weg.
+  */
+  return kenntNullSoll(user) ? tage.filter((t) => tagessollStunden(user as MitVerlauf, t) > 0) : tage;
+}
+
+/** Trägt die Person (oder ein Abschnitt ihres Verlaufs) irgendwo ein Soll von 0? */
+function kenntNullSoll(user: Partial<Pick<AppUser, 'weeklyTargetHours' | 'tagessoll' | 'arbeitszeitVerlauf'>>): boolean {
+  const null0 = (w: number | null | undefined, t: Record<string, number> | null | undefined) =>
+    (w === 0 && !(t && Object.keys(t).length > 0)) || (!!t && Object.values(t).some((h) => Number(h) === 0));
+  if (hatArbeitszeitVerlauf(user)) return user.arbeitszeitVerlauf!.some((e) => null0(e.wochenstunden, e.tagessoll));
+  return null0(user.weeklyTargetHours, user.tagessoll);
 }
 
 /** Die Arbeitstage eines Zeitraums, Abschnitt für Abschnitt des Verlaufs. */

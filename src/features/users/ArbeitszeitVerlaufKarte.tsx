@@ -3,7 +3,7 @@ import type { AppUser } from '@/types';
 import {
   arbeitszeitAendern, arbeitszeitAenderungEntfernen, urlaubsanspruchAendern, urlaubsanspruchAenderungEntfernen,
 } from '@/lib/db/zeitkonto';
-import { arbeitszeitAm, localDateStr, todayStr, urlaubsanspruchIm, urlaubsJahrVon, type Arbeitszeit } from '@/lib/time';
+import { arbeitszeitAm, localDateStr, todayStr, wochenstundenVon, urlaubsanspruchIm, urlaubsJahrVon, type Arbeitszeit } from '@/lib/time';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -25,7 +25,7 @@ import {
 function arbeitszeitText(az: Arbeitszeit): string {
   const tage = az.workDays && az.workDays.length ? az.workDays : [1, 2, 3, 4, 5];
   const teile = [
-    `${String(Number(az.weeklyTargetHours ?? 40) || 40).replace('.', ',')} Std`,
+    `${String(wochenstundenVon(az.weeklyTargetHours)).replace('.', ',')} Std`,
     WEEKDAYS.filter((d) => tage.includes(d.value)).map((d) => d.label).join(', '),
   ];
   if (az.tagessoll && Object.keys(az.tagessoll).length > 0) {

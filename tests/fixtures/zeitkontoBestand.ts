@@ -82,6 +82,9 @@ export function zeitkontoBestand(heute: string, saat = 20261116, praefix = 'zk-b
     { betrieb: 0, halbeTage: true, name: 'Ausgetreten', role: 'Mitarbeiter', active: false, weeklyTargetHours: 40,
       workDays: [1, 2, 3, 4, 5], appStartDate: `${jahr - 2}-04-01`, initialOvertime: 2, yearlyVacationDays: 25,
       austritt: plus(heute, -130) },
+    // Geringfügig ohne feste Zeit: 0 Wochenstunden heißen kein Soll (Z11).
+    { betrieb: 1, halbeTage: false, name: 'Geringfügig', role: 'Mitarbeiter', active: true, weeklyTargetHours: 0,
+      workDays: [1, 2, 3, 4, 5], appStartDate: `${jahr - 1}-09-01`, initialOvertime: 0, yearlyVacationDays: 25 },
     { betrieb: 1, halbeTage: false, name: 'Chef mit Konto', role: 'Geschäftsführung', active: true, weeklyTargetHours: 45,
       workDays: [1, 2, 3, 4, 5, 6], appStartDate: `${jahr - 2}-10-01`, initialOvertime: -20, fuehrtZeitkonto: true },
   ];
