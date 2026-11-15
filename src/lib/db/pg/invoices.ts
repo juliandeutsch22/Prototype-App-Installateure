@@ -720,14 +720,16 @@ export async function createInvoice(companyId: string, inv: NewInvoice): Promise
 export async function rechnungAusstellen(
   companyId: string,
   inv: Omit<NewInvoice, 'invoiceNumber'>,
-  nummer: { praefix?: string; desired?: number; datumAusdruecklich?: boolean },
-): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string }> {
+  nummer: { praefix?: string; desired?: number; datumAusdruecklich?: boolean; versuch?: string },
+): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string; bereits?: boolean }> {
   void companyId;
   const { data, error } = await derClient().rpc('rechnung_ausstellen', {
     ...anlegeDaten(inv),
     p_praefix: nummer.praefix ?? PRAEFIX_VORGABE.rechnung,
     p_wunsch: nummer.desired ?? null,
     ...(nummer.datumAusdruecklich ? { p_datum_ausdruecklich: true } : {}),
+    // Die Kennung dieses Versuchs (G2) — damit lässt sich eine unterbrochene Antwort klären.
+    ...(nummer.versuch ? { p_versuch: nummer.versuch } : {}),
   }).then((antwort) => antwort, () => { throw new RechnungsAntwortUnklar(); });
   if (error) {
     // SQL-Ablehnung bzw. abgewiesene Authentifizierung vor dem RPC-Aufruf.
@@ -740,12 +742,46 @@ export async function rechnungAusstellen(
       || typeof data.invoice_number !== 'string' || !data.invoice_number.trim()) {
     throw new RechnungsAntwortUnklar();
   }
-  const r = data as { id: string; invoice_number: string; invoice_date?: string };
+  const r = data as { id: string; invoice_number: string; invoice_date?: string; bereits?: boolean };
   return {
     id: String(r.id),
     invoiceNumber: String(r.invoice_number),
     ...(typeof r.invoice_date === 'string' ? { invoiceDate: r.invoice_date } : {}),
+    ...(r.bereits === true ? { bereits: true } : {}),
   };
+}
+
+/** Was die Klärung eines Erstellungsversuchs ergibt (G2). */
+export type VersuchGeklaert =
+  | { entstanden: true; id: string; invoiceNumber: string; invoiceDate: string }
+  | { entstanden: false };
+
+/**
+ * Nach einer unterbrochenen Antwort klären, ob die Rechnung dieses Versuchs
+ * entstanden ist (Durchsicht 15.11.2026, G2).
+ *
+ * DIE ANTWORT IST ENDGÜLTIG. Lautet sie „nicht entstanden“, hält die
+ * Datenbank den Versuch fest und weist ihn ab, falls der ursprüngliche
+ * Aufruf doch noch ankommt. Läuft er gerade noch, wartet die Klärung auf
+ * ihn. Ohne Netz bleibt es unklar — dann wirft sie wie das Ausstellen
+ * `RechnungsAntwortUnklar`, und die Ansicht versucht es später wieder.
+ */
+export async function rechnungVersuchKlaeren(versuch: string): Promise<VersuchGeklaert> {
+  const { data, error } = await derClient().rpc('rechnung_versuch_klaeren', { p_versuch: versuch })
+    .then((antwort) => antwort, () => { throw new RechnungsAntwortUnklar(); });
+  if (error) {
+    if (/^[0-9A-Z]{5}$/.test(error.code ?? '') || error.code === 'PGRST301' || error.code === 'PGRST302') {
+      throw new Error(error.message);
+    }
+    throw new RechnungsAntwortUnklar();
+  }
+  const r = data as { entstanden?: unknown; id?: unknown; invoice_number?: unknown; invoice_date?: unknown } | null;
+  if (r?.entstanden === false) return { entstanden: false };
+  if (r?.entstanden === true && typeof r.id === 'string' && typeof r.invoice_number === 'string') {
+    return { entstanden: true, id: r.id, invoiceNumber: r.invoice_number, invoiceDate: String(r.invoice_date ?? '') };
+  }
+  // Eine Antwort, die nichts sagt, ist keine Klärung.
+  throw new RechnungsAntwortUnklar();
 }
 
 /**

@@ -129,9 +129,16 @@ export function createInvoice(companyId: string, inv: NewInvoice): Promise<strin
 export function rechnungAusstellen(
   companyId: string,
   inv: Omit<NewInvoice, 'invoiceNumber'>,
-  nummer: { praefix?: string; desired?: number; datumAusdruecklich?: boolean },
-): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string }> {
+  nummer: { praefix?: string; desired?: number; datumAusdruecklich?: boolean; versuch?: string },
+): Promise<{ id: string; invoiceNumber: string; invoiceDate?: string; bereits?: boolean }> {
   return pg.rechnungAusstellen(companyId, inv, nummer);
+}
+
+export type { VersuchGeklaert } from './pg/invoices';
+
+/** Nach einer unterbrochenen Antwort: ist die Rechnung dieses Versuchs entstanden? (G2) */
+export function rechnungVersuchKlaeren(versuch: string): Promise<pg.VersuchGeklaert> {
+  return pg.rechnungVersuchKlaeren(versuch);
 }
 
 export type { SetzbarerStand } from './pg/invoices';

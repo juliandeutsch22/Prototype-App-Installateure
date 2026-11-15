@@ -26,7 +26,9 @@ import {
   type UnverrechneterSchein,
   RECHNUNG_TREFFER,
   listInvoicesByIds,
+  rechnungVersuchKlaeren,
 } from '@/lib/db/invoices';
+import { offenenVersuchLesen, offenenVersuchMerken, offenenVersuchVergessen, type OffenerVersuch } from './offenerVersuch';
 import {
   listZahlungen, listZahlungenImZeitraum, createZahlung, createZahlungAufgeteilt, createZahlungMitSkonto, deleteZahlung,
 } from '@/lib/db/zahlungen';
@@ -357,8 +359,17 @@ export default function InvoicesView() {
   const [exportFehler, setExportFehler] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const ausstellungLaeuft = useRef(false);
-  const [erstellungUnklar, setErstellungUnklar] = useState(false);
-  const [pdfNachholen, setPdfNachholen] = useState<{ nummer: string; erneut: () => Promise<void> } | null>(null);
+  /*
+    DER VERSUCH, DESSEN ANTWORT NICHT ANKAM (G2). Solange er nicht geklärt
+    ist, entsteht aus dieser Ansicht keine Rechnung — die Klärung läuft von
+    selbst (sofort, bei wiederkehrendem Netz, alle 15 Sekunden) und überlebt
+    das Neuladen (`offenerVersuch.ts`).
+  */
+  const [offenerVersuch, setOffenerVersuch] = useState<OffenerVersuch | null>(null);
+  const erstellungUnklar = offenerVersuch !== null;
+  const [klaerungLaeuft, setKlaerungLaeuft] = useState(false);
+  const klaerungAktiv = useRef(false);
+  const [pdfNachholen, setPdfNachholen] = useState<{ nummer: string; erneut: () => Promise<void>; geklaert?: boolean } | null>(null);
   const [pdfLaedt, setPdfLaedt] = useState(false);
   const [toCancel, setToCancel] = useState<WithId<Invoice> | null>(null);
   /** Welcher Storno gerade aufgehoben werden soll — erst nach der Rückfrage. */
@@ -1903,6 +1914,106 @@ export default function InvoicesView() {
     setInvoiceNumber(vorschlag);
   }
 
+  /** Die Vorschau schließen und alles für die nächste Rechnung zurücksetzen. */
+  function nachDemAusstellen() {
+    setPreview(null);
+    setProjectNumber('');
+    // Die nächste Rechnung beginnt mit den Sätzen des Betriebs (G1).
+    konditionenZuruecksetzen();
+    setDiscount({ mode: 'percent', value: '', label: '' });
+    setReverseCharge(false);
+    setKundenUid('');
+    setUidInKunden(false);
+    setBestellnummer('');
+    setRuecklassAn(false);
+    setRuecklassProzent(null);
+    setRuecklassBis('');
+    setArtWahl('einzel');
+    setAbzugsfaehig([]);
+    setGewaehlteAbzuege([]);
+    setStundenStand((n) => n + 1);
+  }
+
+  /*
+    NACH DEM NEULADEN: ein Versuch, dessen Antwort nicht ankam, ist nicht
+    vergessen (G2). Die Klärung unten übernimmt ihn.
+  */
+  useEffect(() => {
+    if (!user) return;
+    const gemerkt = offenenVersuchLesen(user.companyId, user.uid);
+    if (gemerkt) setOffenerVersuch(gemerkt);
+  }, [user?.companyId, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps -- nur beim Wechsel des Kontos
+
+  /**
+   * Klären, ob die Rechnung des offenen Versuchs entstanden ist (G2).
+   *
+   * Die Antwort der Datenbank ist endgültig (`rechnung_versuch_klaeren`):
+   * „entstanden“ schließt die Vorschau wie ein gelungenes Ausstellen und
+   * bietet das PDF aus dem gespeicherten Beleg an; „nicht entstanden“ gibt
+   * das Erstellen wieder frei, die Angaben stehen noch da. Ohne Netz bleibt
+   * es offen — ohne Meldung, der nächste Anlauf kommt von selbst.
+   */
+  async function versuchKlaeren(v: OffenerVersuch, vonHand = false) {
+    if (!user || klaerungAktiv.current) return;
+    klaerungAktiv.current = true;
+    setKlaerungLaeuft(true);
+    try {
+      const ergebnis = await rechnungVersuchKlaeren(v.kennung);
+      offenenVersuchVergessen(user.companyId, user.uid);
+      setOffenerVersuch(null);
+      if (ergebnis.entstanden) {
+        /*
+          Die Vorschau dieses Versuchs schließt wie nach dem Ausstellen. Steht
+          inzwischen eine andere Baustelle in der Vorschau, bleibt sie — ihre
+          Angaben gehören nicht zu dieser Rechnung.
+        */
+        if (projectNumber === v.baustelle) nachDemAusstellen();
+        else setStundenStand((n) => n + 1);
+        offeneNeuLaden();
+        toast.success(`Rechnung ${ergebnis.invoiceNumber} ist entstanden`);
+        const firma = company;
+        setPdfNachholen({
+          nummer: ergebnis.invoiceNumber,
+          geklaert: true,
+          erneut: async () => {
+            const [inv] = await listInvoicesByIds(user.companyId, [ergebnis.id]);
+            if (!inv || !firma) throw new Error('Die Rechnung ist nicht lesbar.');
+            await rechnungPdfLaden(firma, inv);
+          },
+        });
+      } else {
+        setHinweis('Die unterbrochene Erstellung ist geklärt: es ist keine Rechnung entstanden. Du kannst sie jetzt erstellen.');
+      }
+    } catch (e) {
+      // Weiter unklar: ohne Meldung, außer jemand hat ausdrücklich gefragt.
+      if (!(e instanceof RechnungsAntwortUnklar)) setError(grundAus(e, 'Die Erstellung ließ sich nicht klären.'));
+      else if (vonHand) toast.error('Noch keine Verbindung — die Klärung läuft weiter, sobald das Netz zurück ist.');
+    } finally {
+      klaerungAktiv.current = false;
+      setKlaerungLaeuft(false);
+    }
+  }
+
+  /*
+    SELBSTTÄTIG: gleich, bei wiederkehrendem Netz und alle 15 Sekunden. Über
+    die Referenz die jeweils neueste Fassung — sonst klärte der Takt mit dem
+    Stand der Vorschau von vor einer Minute.
+  */
+  const klaerenNeueste = useRef(versuchKlaeren);
+  klaerenNeueste.current = versuchKlaeren;
+  useEffect(() => {
+    if (!offenerVersuch) return;
+    const v = offenerVersuch;
+    const anstossen = () => { void klaerenNeueste.current(v); };
+    anstossen();
+    window.addEventListener('online', anstossen);
+    const takt = window.setInterval(anstossen, 15_000);
+    return () => {
+      window.removeEventListener('online', anstossen);
+      window.clearInterval(takt);
+    };
+  }, [offenerVersuch?.kennung]); // eslint-disable-line react-hooks/exhaustive-deps -- die Kennung trägt den Versuch
+
   async function confirmInvoice() {
     if (erstellungUnklar || ausstellungLaeuft.current || !user || !company || !preview || !summen || !invoiceNumber || numberTaken || leer) return;
     // Eine UID in falscher Form kommt nicht auf den Beleg (M10); die
@@ -1959,6 +2070,7 @@ export default function InvoicesView() {
     setBusy(true);
     setError(null);
     setHinweis(null);
+    let versuchDiesesAusstellens: OffenerVersuch | null = null;
     try {
       const project = projects.find((p) => p.projectNumber === projectNumber);
       const invoiceDate = todayStr();
@@ -2013,6 +2125,12 @@ export default function InvoicesView() {
       const baustellenOrt = project?.address?.trim();
       const leistungsort =
         baustellenOrt && baustellenOrt !== anschrift.trim() ? baustellenOrt : undefined;
+      /*
+        JEDER VERSUCH TRÄGT EINE KENNUNG (G2). Bricht die Antwort ab, klärt
+        die Ansicht mit ihr, ob die Rechnung entstanden ist — statt das
+        Erstellen bis zum Neuladen zu sperren.
+      */
+      versuchDiesesAusstellens = { kennung: crypto.randomUUID(), baustelle: projectNumber };
       const { invoiceNumber: reserved } = await rechnungAusstellen(user.companyId, {
         projectNumber,
         customerName: project?.customerName ?? '–',
@@ -2080,6 +2198,7 @@ export default function InvoicesView() {
       }, {
         praefix: vorsaetze.rechnung,
         desired: vonHand ? typedSeq : undefined,
+        versuch: versuchDiesesAusstellens.kennung,
       });
 
       // Ab jetzt steht die Rechnung. PDF-Ausgabe ist ein unabhängiger Folgeschritt.
@@ -2128,23 +2247,8 @@ export default function InvoicesView() {
       try { await pdfErzeugen(); }
       catch { setPdfNachholen({ nummer: reserved, erneut: pdfErzeugen }); }
 
-      setPreview(null);
-      setProjectNumber('');
-      // Die nächste Rechnung beginnt mit den Sätzen des Betriebs (G1).
-      konditionenZuruecksetzen();
-      setDiscount({ mode: 'percent', value: '', label: '' });
-      setReverseCharge(false);
-      setKundenUid('');
-      setUidInKunden(false);
-      setBestellnummer('');
-      setRuecklassAn(false);
-      setRuecklassProzent(null);
-      setRuecklassBis('');
-      setArtWahl('einzel');
-      setAbzugsfaehig([]);
-      setGewaehlteAbzuege([]);
+      nachDemAusstellen();
       toast.success(`Rechnung ${reserved} erstellt`);
-      setStundenStand((n) => n + 1);
       /*
         DIE KORRIGIERTE UID IN DEN KUNDEN (Testbericht 30.09.2026, M10) — nur
         auf Wunsch und erst, wenn die Rechnung steht. Schlägt es fehl, ist die
@@ -2162,7 +2266,10 @@ export default function InvoicesView() {
         }
       }
     } catch (e) {
-      if (e instanceof RechnungsAntwortUnklar) setErstellungUnklar(true);
+      if (e instanceof RechnungsAntwortUnklar && versuchDiesesAusstellens) {
+        offenenVersuchMerken(user.companyId, user.uid, versuchDiesesAusstellens);
+        setOffenerVersuch(versuchDiesesAusstellens);
+      }
       /*
         Die Datenbank sagt genau, woran es lag — welche Nummer belegt ist
         und welche frei wäre, oder dass ein Beleg inzwischen verrechnet ist.
@@ -3424,24 +3531,29 @@ export default function InvoicesView() {
         Nach dem Anlegen bleibt es offen: die Schlussrechnung folgt der
         Anzahlung oft gleich.
       */}
-      {erstellungUnklar && <Hinweiszeile stufe="warn" role="status">
+      {offenerVersuch && <Hinweiszeile stufe="warn" role="status">
         <p><b>Die Erstellung ist noch nicht bestätigt.</b></p>
-        <p>Die Antwort auf die Erstellung ist nicht eindeutig. Deine Angaben bleiben erhalten. Die Erstellung aus dieser Vorschau bleibt gesperrt, damit nicht versehentlich eine zweite Rechnung entsteht.</p>
-        <Button variant="secondary" onClick={() => {
-          filterSetzen('alle'); offeneNeuLaden();
-          document.getElementById('rechnungsliste')?.scrollIntoView({ block: 'start' });
-        }}>Rechnungsliste prüfen</Button>
+        <p>
+          Die Antwort auf die Erstellung{offenerVersuch.baustelle ? ` für Baustelle ${offenerVersuch.baustelle}` : ''} ist
+          nicht angekommen. Senklot klärt von selbst, ob die Rechnung entstanden ist, sobald die Verbindung
+          steht. Deine Angaben bleiben erhalten; erstellt wird erst danach, damit keine zweite Rechnung entsteht.
+        </p>
+        <Button variant="secondary" loading={klaerungLaeuft} onClick={() => { void versuchKlaeren(offenerVersuch, true); }}>
+          Jetzt prüfen
+        </Button>
       </Hinweiszeile>}
-      {pdfNachholen && <Hinweiszeile stufe="warn" role="status">
+      {pdfNachholen && <Hinweiszeile stufe={pdfNachholen.geklaert ? undefined : 'warn'} role="status">
         <p><b>Rechnung {pdfNachholen.nummer} wurde erstellt.</b></p>
-        <p>Die Rechnung ist gespeichert. Nur die PDF-Ausgabe ist fehlgeschlagen. Es wird keine neue Rechnung benötigt.</p>
+        <p>{pdfNachholen.geklaert
+          ? 'Die unterbrochene Erstellung ist geklärt: die Rechnung ist gespeichert. Es wird keine neue Rechnung benötigt.'
+          : 'Die Rechnung ist gespeichert. Nur die PDF-Ausgabe ist fehlgeschlagen. Es wird keine neue Rechnung benötigt.'}</p>
         <Button variant="secondary" loading={pdfLaedt} onClick={async () => {
           if (pdfLaedt) return;
           setPdfLaedt(true);
           try { await pdfNachholen.erneut(); setPdfNachholen(null); toast.success('PDF erneut erzeugt'); }
           catch { toast.error('Die PDF-Ausgabe ist weiterhin nicht möglich. Die Rechnung bleibt gespeichert.'); }
           finally { setPdfLaedt(false); }
-        }}>PDF erneut laden</Button>
+        }}>{pdfNachholen.geklaert ? 'PDF laden' : 'PDF erneut laden'}</Button>
       </Hinweiszeile>}
 
       {!nurLesen && erstellen && (

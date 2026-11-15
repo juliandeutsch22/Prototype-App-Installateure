@@ -45,3 +45,24 @@ it('Datum und Jahr bestimmt die Datenbank: kein Gerätejahr im Aufruf, ein ander
   await rechnungAusstellen('firma', inv, { datumAusdruecklich: true });
   expect(rpc.mock.calls[1][1]).toMatchObject({ p_datum_ausdruecklich: true });
 });
+it('Klärung eines Versuchs: Antwort der Datenbank, Netzabbruch bleibt unklar (G2)', async () => {
+  const { rechnungVersuchKlaeren } = await import('@/lib/db/pg/invoices');
+  rpc.mockResolvedValueOnce({ data: { entstanden: true, id: 'r1', invoice_number: 'RE-2026-1001', invoice_date: '2026-11-15' }, error: null });
+  await expect(rechnungVersuchKlaeren('v1')).resolves.toEqual({
+    entstanden: true, id: 'r1', invoiceNumber: 'RE-2026-1001', invoiceDate: '2026-11-15',
+  });
+  expect(rpc).toHaveBeenLastCalledWith('rechnung_versuch_klaeren', { p_versuch: 'v1' });
+  rpc.mockResolvedValueOnce({ data: { entstanden: false }, error: null });
+  await expect(rechnungVersuchKlaeren('v2')).resolves.toEqual({ entstanden: false });
+  rpc.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+  await expect(rechnungVersuchKlaeren('v3')).rejects.toBeInstanceOf(RechnungsAntwortUnklar);
+  rpc.mockResolvedValueOnce({ data: null, error: null });
+  await expect(rechnungVersuchKlaeren('v4')).rejects.toBeInstanceOf(RechnungsAntwortUnklar);
+  rpc.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'Klären darf, wer Rechnungen ausstellt.' } });
+  await expect(rechnungVersuchKlaeren('v5')).rejects.toThrow('Klären darf');
+});
+it('Ausstellen schickt die Kennung des Versuchs mit und meldet eine schon angelegte Rechnung (G2)', async () => {
+  rpc.mockResolvedValueOnce({ data: { id: 'r1', invoice_number: 'RE-2026-1001', invoice_date: '2026-11-15', bereits: true }, error: null });
+  await expect(rechnungAusstellen('firma', inv, { versuch: 'v1' })).resolves.toMatchObject({ id: 'r1', bereits: true });
+  expect(rpc.mock.calls[0][1]).toMatchObject({ p_versuch: 'v1' });
+});

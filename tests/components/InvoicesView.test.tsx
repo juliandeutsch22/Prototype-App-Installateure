@@ -90,6 +90,8 @@ let ausstellungWartet: Promise<{ id: string; invoiceNumber: string }> | null = n
 
 const reserve = vi.fn();
 const lege = vi.fn();
+/** Die Klärung eines unterbrochenen Versuchs (G2); ohne Vorgabe: weiter kein Netz. */
+const klaerung = vi.fn<(kennung: string) => Promise<unknown>>(async () => { throw new RechnungsAntwortUnklar(); });
 const mahnung = vi.fn();
 /** Die gespeicherten Mahnungen einer Rechnung (seit 10.10.2026). */
 const gespeicherteMahnungen = vi.fn<(...a: unknown[]) => Promise<unknown[]>>(async () => []);
@@ -180,6 +182,7 @@ vi.mock('@/lib/db/invoices', async () => {
     */
     listUnpaidInvoices: () => listUnpaidInvoices(),
     listInvoicesByIds: (c: string, ids: string[]) => listInvoicesByIds(c, ids),
+    rechnungVersuchKlaeren: (kennung: string) => klaerung(kennung),
     /*
       Und der Buchhaltungs-Export holt seinen Zeitraum selbst, statt die
       geladene Liste zu filtern. Der Doppelgänger gibt zurück, was der Test
@@ -513,6 +516,8 @@ beforeEach(() => {
   reihenfolge.length = 0;
   reserve.mockClear();
   lege.mockClear();
+  klaerung.mockReset().mockImplementation(async () => { throw new RechnungsAntwortUnklar(); });
+  try { window.localStorage.clear(); } catch { /* ohne Speicher */ }
   pdfAusgabe.mockClear();
   belegFirma.mockClear();
   mahnFirma.mockClear();
@@ -5819,17 +5824,90 @@ describe('Premium: Ausstellen und PDF sind getrennte Ergebnisse', () => {
     expect(reserve).toHaveBeenCalledOnce();
     expect(screen.queryByText(/Nur die PDF-Ausgabe ist fehlgeschlagen/)).toBeNull();
   });
-  it('unterbrochene Antwort behauptet keinen Rollback und sperrt erneutes Ausstellen', async () => {
+  it('unterbrochene Antwort behauptet keinen Rollback und sperrt erneutes Ausstellen, bis geklärt ist', async () => {
     reservierungWirft = new RechnungsAntwortUnklar();
     const bestaetigen = await bisZurVorschau();
     await userEvent.click(bestaetigen);
     expect(await screen.findByText('Die Erstellung ist noch nicht bestätigt.')).toBeInTheDocument();
     expect(bestaetigen).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Rechnungsliste prüfen' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Jetzt prüfen' })).toBeEnabled();
     await userEvent.click(bestaetigen);
     expect(reserve).toHaveBeenCalledOnce();
     expect(pdfAusgabe).not.toHaveBeenCalled();
     expect(screen.queryByText(/Es ist nichts angelegt und nichts gesperrt/)).toBeNull();
+  });
+});
+
+/*
+  DURCHSICHT 15.11.2026, G2: nach einer unterbrochenen Antwort blieb das
+  Erstellen für jede weitere Vorschau gesperrt, bis die Seite neu geladen
+  wurde — und dabei gingen die Angaben verloren. Jetzt trägt jeder Versuch
+  eine Kennung, und die Ansicht klärt mit ihr von selbst, ob die Rechnung
+  entstanden ist. Gegenprobe: vor der Änderung schickt die Ansicht keine
+  Kennung, klärt nichts, und der Knopf bleibt gesperrt.
+*/
+describe('Unterbrochene Antwort: die Ansicht klärt den Versuch selbst (G2)', () => {
+  it('schickt eine Kennung mit und klärt mit genau dieser', async () => {
+    reservierungWirft = new RechnungsAntwortUnklar();
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(bestaetigen);
+    await screen.findByText('Die Erstellung ist noch nicht bestätigt.');
+    const kennung = reserve.mock.calls[0][1].versuch as string;
+    expect(kennung).toMatch(/^[0-9a-f-]{36}$/);
+    await waitFor(() => expect(klaerung).toHaveBeenCalledWith(kennung));
+  });
+
+  it('nicht entstanden: das Erstellen ist wieder frei, die Angaben stehen noch — ein neuer Versuch mit neuer Kennung', async () => {
+    reservierungWirft = new RechnungsAntwortUnklar();
+    klaerung.mockImplementation(async () => { throw new RechnungsAntwortUnklar(); });
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(bestaetigen);
+    await screen.findByText('Die Erstellung ist noch nicht bestätigt.');
+    const erste = reserve.mock.calls[0][1].versuch as string;
+
+    // Das Netz ist zurück: die Klärung sagt „nicht entstanden“.
+    klaerung.mockImplementation(async () => ({ entstanden: false }));
+    reservierungWirft = null;
+    await userEvent.click(screen.getByRole('button', { name: 'Jetzt prüfen' }));
+    expect(await screen.findByText(/es ist keine Rechnung entstanden/)).toBeInTheDocument();
+    expect(screen.queryByText('Die Erstellung ist noch nicht bestätigt.')).toBeNull();
+
+    const wieder = screen.getByRole('button', { name: /Rechnung erstellen/ });
+    expect(wieder).toBeEnabled();
+    await userEvent.click(wieder);
+    await waitFor(() => expect(reserve).toHaveBeenCalledTimes(2));
+    expect(reserve.mock.calls[1][1].versuch).not.toBe(erste);
+    expect(lege).toHaveBeenCalledOnce();
+  });
+
+  it('entstanden: die Vorschau schließt wie nach dem Ausstellen, das PDF kommt aus dem gespeicherten Beleg', async () => {
+    reservierungWirft = new RechnungsAntwortUnklar();
+    klaerung.mockImplementation(async () => ({
+      entstanden: true, id: 'neu', invoiceNumber: 'RE-2026-1099', invoiceDate: '2026-09-01',
+    }));
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(bestaetigen);
+    expect(await screen.findByText('Rechnung RE-2026-1099 wurde erstellt.')).toBeInTheDocument();
+    expect(screen.getByText(/unterbrochene Erstellung ist geklärt/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'PDF laden' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull());
+    expect(screen.queryByText('Die Erstellung ist noch nicht bestätigt.')).toBeNull();
+    // Kein zweiter Schreibaufruf: entstanden ist entstanden.
+    expect(reserve).toHaveBeenCalledOnce();
+  });
+
+  it('überlebt das Neuladen: der offene Versuch wird danach weiter geklärt, nicht vergessen', async () => {
+    reservierungWirft = new RechnungsAntwortUnklar();
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(bestaetigen);
+    await screen.findByText('Die Erstellung ist noch nicht bestätigt.');
+    const kennung = reserve.mock.calls[0][1].versuch as string;
+    cleanup();
+    klaerung.mockClear();
+
+    zeige();
+    expect(await screen.findByText('Die Erstellung ist noch nicht bestätigt.')).toBeInTheDocument();
+    await waitFor(() => expect(klaerung).toHaveBeenCalledWith(kennung));
   });
 });
 
