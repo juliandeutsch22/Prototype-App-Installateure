@@ -6,7 +6,8 @@ import type { Material } from '@/types';
  * Ein Katalogartikel ist nicht von selbst ein Lagerartikel: nach einem
  * DATANORM-Import stünden sonst zehntausende Artikel mit Bestand null in der
  * Lagerliste. Geführt wird, was „im Lager führen“ trägt — die Datenbank setzt
- * das von selbst, sobald ein Artikel Bestand bekommt.
+ * das, sobald bewusst Bestand ins Lager kommt; Kommissionsware für eine
+ * Anforderung macht keinen Lagerartikel (M6).
  *
  * Ein Datensatz ohne Angabe (ältere Zwischenstände, Vorschau) gilt als
  * geführt: so stand er vorher im Lager, und so bleibt er dort.

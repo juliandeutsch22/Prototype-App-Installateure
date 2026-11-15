@@ -850,6 +850,9 @@ export default function AdminOrdersView() {
             Anforderung mit Verlauf und allen Aktionen; der Knopf daneben ist der übliche nächste
             Schritt. Mit den Kästchen lassen sich mehrere auf einmal weiterschalten. Die Suche findet
             Material, Besteller, Baustelle und Notiz über alle Anforderungen, auch ältere als die geladenen.
+            {' '}Ware für eine Anforderung, deren Artikel das Lager nicht führt, ist Kommissionsware: sie
+            geht beim Eintreffen nicht in den Bestand, sondern liegt für die Anforderung bereit — der
+            Artikel wird dadurch kein Lagerartikel.
           </>
         }
       />

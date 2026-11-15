@@ -78,6 +78,11 @@ export function deleteMaterial(id: string): Promise<void> {
 export type { ArtikelVerwendung } from './pg/materials';
 
 /** Was einem Löschen im Weg stünde, in Worten der Datenbank (M1). */
+/** Kommissionsware, die schon im Lager steht (M6) — siehe `pg.kommissionsartikelImLager`. */
+export function kommissionsartikelImLager(ids?: readonly string[]): Promise<Array<{ id: string; name: string }>> {
+  return pg.kommissionsartikelImLager(ids);
+}
+
 export function artikelVerwendung(materialId: string): Promise<pg.ArtikelVerwendung> {
   return pg.artikelVerwendung(materialId);
 }

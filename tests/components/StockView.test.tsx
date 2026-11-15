@@ -79,7 +79,12 @@ vi.mock('@/lib/db/materials', () => ({
   // M03a: die Suche über Nummern der Großhändler — der Server nennt die Artikel.
   NUMMER_AB: 3,
   nummernTreffer: (begriff: string) => nummernSuche(begriff),
+  kommissionsartikelImLager: (ids?: readonly string[]) => kommissionAufruf(ids),
 }));
+/** M6: die Kommissionsware, die schon im Lager steht — wie die Datenbank sie nennt. */
+const kommissionAufruf = vi.fn<(ids?: readonly string[]) => Promise<Array<{ id: string; name: string }>>>(
+  async (ids) => (ids ? ids.map((id) => ({ id, name: 'Sonderfitting' })) : [{ id: 'k9', name: 'Sonderfitting' }]),
+);
 const nummernSuche = vi.fn<(begriff: string) => Promise<Map<string, unknown>>>(async () => new Map());
 // Ohne eigene Vorgabe rechnet die Ansicht selbst — wie wenn die Zahlen ausbleiben.
 const lagerStand = vi.fn<(ids?: readonly string[]) => Promise<Map<string, unknown>>>(async () => { throw new Error('nicht geladen'); });
@@ -779,7 +784,7 @@ describe('Wer den Katalog einspielen darf', () => {
     zeige();
     expect(await screen.findByRole('button', { name: 'Katalog' })).toBeInTheDocument();
     // M04a (bewusst nachgezogen): die Lagerorte pflegt, wer das Lager führt — auch die Verwaltung.
-    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …']);
+    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Kommissionsware aus dem Lager nehmen …']);
   });
 
   it('zeigt ihn der Geschäftsführung und öffnet ihn', async () => {
@@ -790,7 +795,7 @@ describe('Wer den Katalog einspielen darf', () => {
       auch „Offene Lieferantenartikel“ — für dieselben Rollen wie das
       Einspielen (eigene Prüfungen unten, „Offene Lieferantenartikel“).
     */
-    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Katalog einspielen', 'Offene Lieferantenartikel']);
+    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Katalog einspielen', 'Offene Lieferantenartikel', 'Kommissionsware aus dem Lager nehmen …']);
     await userEvent.click(screen.getByRole('menuitem', { name: 'Katalog einspielen' }));
     expect(await screen.findByText('Katalog einspielen (Inhalt)')).toBeInTheDocument();
     expect(screen.getByTestId('adresse')).toHaveTextContent('/lager?reiter=import');
@@ -1004,7 +1009,7 @@ describe('Offene Lieferantenartikel', () => {
     zeige('/lager?reiter=zuordnen');
     expect(await screen.findByRole('button', { name: 'Bestand' })).toHaveAttribute('aria-pressed', 'true');
     // „Lagerorte …“ (M04a) hängt an seiner eigenen Unterfähigkeit, nicht an dieser.
-    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Katalog einspielen']);
+    expect(await seitenMenue()).toEqual(['Inventur …', 'Lagerorte …', 'Katalog einspielen', 'Kommissionsware aus dem Lager nehmen …']);
   });
 });
 
@@ -1071,5 +1076,34 @@ describe('V10 Lager — Fehler ist nicht leer', () => {
     materialien = [material({ id: 'k1', name: 'Kugelhahn', stock: 0, lagerartikel: false })];
     zeige();
     expect(await screen.findByText(/Noch kein Artikel im Lager geführt/)).toBeInTheDocument();
+  });
+});
+
+/*
+  M6 (16.11.2026): KOMMISSIONSWARE, DIE SCHON IM LAGER STEHT. Bis dahin
+  machte jede Lieferung für eine Anforderung den Artikel für immer zum
+  Lagerartikel. Die Rückfrage zeigt, was die Datenbank nennt, und nimmt nur
+  diese Artikel aus dem Lager.
+*/
+describe('Kommissionsware aus dem Lager nehmen (M6)', () => {
+  it('zeigt die Artikel und nimmt genau diese heraus', async () => {
+    kommissionAufruf.mockClear();
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für Lager' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Kommissionsware aus dem Lager nehmen …' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Kommissionsware aus dem Lager nehmen?' });
+    expect(within(dialog).getByText('Sonderfitting')).toBeInTheDocument();
+    expect(kommissionAufruf).toHaveBeenCalledWith(undefined);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Aus dem Lager nehmen' }));
+    await waitFor(() => expect(kommissionAufruf).toHaveBeenLastCalledWith(['k9']));
+  });
+
+  it('Gleichbleiben: ohne solche Artikel kein Fenster, nur eine Meldung', async () => {
+    kommissionAufruf.mockResolvedValueOnce([]);
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für Lager' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Kommissionsware aus dem Lager nehmen …' }));
+    expect(await screen.findByText('Kein Artikel kam nur als Kommissionsware ins Lager.')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Kommissionsware aus dem Lager nehmen?' })).toBeNull();
   });
 });

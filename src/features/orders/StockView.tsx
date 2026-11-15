@@ -13,8 +13,11 @@ import {
   lagerFrei,
   nummernTreffer,
   NUMMER_AB,
+  kommissionsartikelImLager,
   type LagerStand,
 } from '@/lib/db/materials';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { grundAus } from '@/lib/fehlerGrund';
 import { fmtMenge } from '@/lib/belegLayout';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import { subscribeAllOrders } from '@/lib/db/materialOrders';
@@ -435,6 +438,22 @@ export default function StockView() {
   /** Umlagern (M04a) — der Artikel; Quelle ist der gewählte Ort. */
   const [umlagern, setUmlagern] = useState<WithId<Material> | null>(null);
   const [orteOffen, setOrteOffen] = useState(false);
+  /*
+    KOMMISSIONSWARE IM LAGER (M6). Bis 16.11.2026 machte jede Lieferung für
+    eine Anforderung den Artikel für immer zum Lagerartikel; er stand danach
+    mit Bestand null unter „knapp“. Die Datenbank nennt genau die, die nie
+    anders ins Lager kamen — die Rückfrage zeigt sie, bevor etwas geschieht.
+  */
+  const [kommission, setKommission] = useState<Array<{ id: string; name: string }> | null>(null);
+  async function kommissionPruefen() {
+    try {
+      const liste = await kommissionsartikelImLager();
+      if (liste.length === 0) toast.success('Kein Artikel kam nur als Kommissionsware ins Lager.');
+      else setKommission(liste);
+    } catch (e) {
+      toast.error(grundAus(e, 'Die Artikel konnten nicht geprüft werden.'));
+    }
+  }
   /**
    * Was der Artikel im Fenster oder im Dialog an den weiteren Orten hat
    * (Kennung des Ortes → Menge). Inventur und Umlagern öffnen erst mit dieser
@@ -591,6 +610,10 @@ export default function StockView() {
               ...(darfEinspielen ? [{ label: 'Katalog einspielen', onSelect: () => setTab('import') }] : []),
               ...(darfEinspielen && zuordnenAn
                 ? [{ label: 'Offene Lieferantenartikel', onSelect: () => setTab('zuordnen') }]
+                : []),
+              // M6: Altdaten — wer das Lager führt, räumt Kommissionsware aus der Lagerliste.
+              ...(canProcessOrders(user.role)
+                ? [{ label: 'Kommissionsware aus dem Lager nehmen …', onSelect: () => void kommissionPruefen() }]
                 : []),
             ]}
           />
@@ -1069,6 +1092,32 @@ export default function StockView() {
           onGeaendert={lo.neuLaden}
         />
       )}
+      <ConfirmDialog
+        open={kommission !== null}
+        title="Kommissionsware aus dem Lager nehmen?"
+        confirmLabel={kommission && kommission.length === 1 ? 'Aus dem Lager nehmen' : `${kommission?.length ?? 0} aus dem Lager nehmen`}
+        confirmTone="primary"
+        message={
+          'Diese Artikel kamen nur als Lieferung für eine Anforderung ins Lager, haben keinen Bestand und '
+          + 'keine Mindestmenge. Danach stehen sie nur noch im Katalog — nicht mehr im Bestand und nicht mehr '
+          + 'unter „knapp“. „Im Lager führen“ im Katalog nimmt einen wieder auf.'
+        }
+        onCancel={() => setKommission(null)}
+        onConfirm={async () => {
+          const liste = kommission ?? [];
+          try {
+            const raus = await kommissionsartikelImLager(liste.map((m) => m.id));
+            setKommission(null);
+            toast.success(raus.length === 1 ? '1 Artikel aus dem Lager genommen' : `${raus.length} Artikel aus dem Lager genommen`);
+          } catch (e) {
+            toast.error(grundAus(e, 'Die Artikel konnten nicht aus dem Lager genommen werden.'));
+          }
+        }}
+      >
+        <List>
+          {(kommission ?? []).map((m) => <ListRow key={m.id} title={m.name} />)}
+        </List>
+      </ConfirmDialog>
     </div>
   );
 }

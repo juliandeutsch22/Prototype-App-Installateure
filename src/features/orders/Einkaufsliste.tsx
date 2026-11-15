@@ -61,7 +61,8 @@ import { BearbeitenKnopf, NeuKnopf } from '@/components/Symbolknoepfe';
  * Oben je Grosshändler, was zu bestellen ist — zusammengefasst, mit PDF,
  * E-Mail an den Vertreter und „Als bestellt markieren". Darunter, was
  * bestellt ist und noch nicht da; „Geliefert" bucht die Ware ins Lager und
- * macht die Anforderung abholbereit. Ganz unten die Grosshändler selbst:
+ * macht die Anforderung abholbereit — Kommissionsware (ein Artikel, den das
+ * Lager nicht führt) geht dabei nicht in den Bestand (M6). Ganz unten die Grosshändler selbst:
  * ohne Bestelladresse keine E-Mail.
  *
  * Ganz oben setzt das Büro eigenes Material auf die Liste — etwa um das

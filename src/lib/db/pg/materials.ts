@@ -174,6 +174,22 @@ export async function artikelVerwendung(materialId: string): Promise<ArtikelVerw
 }
 
 /**
+ * KOMMISSIONSWARE, DIE SCHON IM LAGER STEHT (M6, 16.11.2026). Bis dahin
+ * machte jede Lieferung für eine Anforderung den Artikel für immer zum
+ * Lagerartikel. Die Datenbank nennt genau die, die nie anders als so ins
+ * Lager kamen (ohne Bestand, ohne Mindest- und Sollmenge); mit `ids` nimmt
+ * sie diese aus dem Lager — was inzwischen Bestand bekam, bleibt.
+ */
+export async function kommissionsartikelImLager(ids?: readonly string[]): Promise<Array<{ id: string; name: string }>> {
+  const { data, error } = await derClient().rpc(
+    'kommissionsartikel_im_lager',
+    ids ? { p_ausfuehren: true, p_ids: [...ids] } : { p_ausfuehren: false },
+  );
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Array<{ id: string; name: string }>).map((z) => ({ id: String(z.id), name: String(z.name) }));
+}
+
+/**
  * Auslaufen lassen (`aus = true`) oder wieder aufnehmen (M1).
  *
  * Über eine Datenbankfunktion, nicht über `updateMaterial`: nur sie setzt

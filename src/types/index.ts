@@ -1101,8 +1101,10 @@ export interface Material {
   /**
    * Führt der Betrieb den Artikel im Lager (Testbericht 30.09.2026, M30)?
    * Ein Katalogartikel ist es nicht von selbst — nach einem DATANORM-Import
-   * stünden sonst zehntausende Artikel im Bestand. Wer Bestand hat, wird von
-   * der Datenbank geführt; abschalten geht nur bei Bestand null.
+   * stünden sonst zehntausende Artikel im Bestand. Bestand, der bewusst ins
+   * Lager kommt (Wareneingang, Inventur, Umlagerung, Retoure), macht ihn zum
+   * Lagerartikel; Kommissionsware für eine Anforderung nicht (M6) — sie liegt
+   * bei der Anforderung. Abschalten geht nur bei Bestand null.
    */
   lagerartikel?: boolean;
   /** Mindestmenge (M30): darunter gilt der Artikel als knapp. Leer: höchstens 5 frei. */
