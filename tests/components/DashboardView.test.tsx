@@ -223,6 +223,8 @@ vi.mock('@/lib/db/workSheets', () => ({
   listRecentWorkSheets: vi.fn(async () => []),
   listRecentWorkSheetKoepfe: vi.fn(async () => []),
   listOwnWorkSheetsSince: vi.fn(async () => []),
+  scheineNeu: vi.fn(async () => []),
+  scheineGesehen: vi.fn(async () => undefined),
 }));
 vi.mock('@/lib/db/wartungen', () => ({ listFaelligeWartungen: vi.fn(async () => []) }));
 vi.mock('@/lib/db/konten', () => ({ buchungskonten: vi.fn(async () => [{ zweck: 'erloes', konto: '4000' }]) }));

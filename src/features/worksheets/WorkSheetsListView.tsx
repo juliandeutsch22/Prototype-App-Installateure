@@ -7,6 +7,8 @@ import {
   listWorkSheetsByIds,
   scheinVerrechnung,
   type ScheinVerrechnung,
+  scheineNeu,
+  scheineGesehen,
   listSignedWorkSheetsInRange,
   listWorkSheetsInRange,
   searchWorkSheets,
@@ -187,7 +189,10 @@ export default function WorkSheetsListView() {
     wie unter Rechnungen und auf der Startseite, über dieselben jüngsten
     Scheine. „…-alt“: nur die über vier Wochen.
   */
-  const nurUnverrechnet = bekannt(SCHEIN_FILTER, suchparameter.get('filter'));
+  const adressFilter = bekannt(SCHEIN_FILTER, suchparameter.get('filter'));
+  const nurUnverrechnet = adressFilter === 'neu-eingegangen' ? null : adressFilter;
+  /** V9: die seit dem letzten Ansehen unterschriebenen Scheine — von der Startseite. */
+  const nurNeu = adressFilter === 'neu-eingegangen';
   /*
     DIE ANSICHT STEHT IN DER ADRESSE (Protokoll 7.5), damit „Zurück“ und ein
     Lesezeichen sie wiederherstellen. Kommt jemand mit `markiert` (nach dem
@@ -607,19 +612,50 @@ export default function WorkSheetsListView() {
     const zeilen = unverrechnetZeilenAlle;
     return { anzahl: zeilen.length, alt: zeilen.filter((z) => z.tage >= AUFFAELLIG_AB_TAGEN).length };
   }, [mitVerrechnung, unverrechnetZeilenAlle]);
+  /*
+    NEU EINGEGANGEN (Durchsicht 15.11.2026, V9): was seit dem letzten Ansehen
+    unterschrieben wurde, neueste zuerst. Gezeigt heißt gesehen: danach setzt
+    `scheine_gesehen` den Merker — die Zeile auf der Startseite verschwindet.
+    `'fehler'`: nicht gekommen; dann steht das da, nicht „nichts Neues“.
+  */
+  const [neuDB, setNeuDB] = useState<WithId<WorkSheet>[] | 'fehler' | null>(null);
+  // Am Betrieb, nicht am Benutzerobjekt: ein zweites Laden nach dem Merken fände nichts mehr.
+  const neuBetrieb = user?.companyId;
+  useEffect(() => {
+    if (!neuBetrieb || !nurNeu) {
+      setNeuDB(null);
+      return;
+    }
+    let weg = false;
+    scheineNeu()
+      .then(async (koepfe) => {
+        const voll = await listWorkSheetsByIds(neuBetrieb, koepfe.map((k) => k.id));
+        const nachId = new Map(voll.map((v) => [v.id, v]));
+        if (weg) return;
+        setNeuDB(koepfe.map((k) => nachId.get(k.id)).filter((v): v is WithId<WorkSheet> => !!v));
+        // Erst gezeigt, dann gesehen — scheitert das Merken, kommt die Zeile eben noch einmal.
+        void scheineGesehen().catch(() => undefined);
+      })
+      .catch(() => { if (!weg) setNeuDB('fehler'); });
+    return () => { weg = true; };
+  }, [neuBetrieb, nurNeu]);
+  const neuListe = Array.isArray(neuDB) ? neuDB : null;
+  const filterFehler = (nurUnverrechnet && unverrechnetFehler) || (nurNeu && neuDB === 'fehler');
+  /** Die Liste des Filters aus der Adresse, in ihrer Reihenfolge — oder `null`. */
+  const filterListe = nurUnverrechnet ? unverrechnetAlle : nurNeu ? neuListe : null;
   /** Nur für den Filter aus der Adresse: welche Scheine er durchlässt. */
   const unverrechnet = useMemo(
-    () => (nurUnverrechnet && unverrechnetAlle ? new Set(unverrechnetAlle.map((s) => s.id)) : null),
-    [nurUnverrechnet, unverrechnetAlle],
+    () => (filterListe ? new Set(filterListe.map((s) => s.id)) : null),
+    [filterListe],
   );
 
   const sichtbar = useMemo(() => {
     const q = suche.trim().toLowerCase();
-    // Unter dem Filter „nicht verrechnet“ älteste zuerst, sonst wie geladen (jüngste zuerst).
+    // Unter dem Filter „nicht verrechnet“ älteste zuerst, „neu eingegangen“ neueste zuerst, sonst wie geladen.
     const grundmenge = trefferGelten
       ? (treffer as WithId<WorkSheet>[])
-      : unverrechnet && unverrechnetAlle
-        ? unverrechnetAlle
+      : unverrechnet && filterListe
+        ? filterListe
         : scheine;
     return grundmenge.filter((s) => {
       if (unverrechnet && !unverrechnet.has(s.id)) return false;
@@ -632,7 +668,7 @@ export default function WorkSheetsListView() {
         v?.toLowerCase().includes(q),
       );
     });
-  }, [scheine, treffer, trefferGelten, suche, zeigeVerworfene, unverrechnet, unverrechnetAlle]);
+  }, [scheine, treffer, trefferGelten, suche, zeigeVerworfene, unverrechnet, filterListe]);
 
   /*
     DIE OFFENE ANSICHT — nur ohne Suchbegriff und ohne Filter aus der Adresse.
@@ -641,7 +677,7 @@ export default function WorkSheetsListView() {
     er unterschrieben ist. Solange gesucht wird, stehen die Segmente deshalb
     nicht da — sie würden eine Eingrenzung versprechen, die nicht gilt.
   */
-  const offeneAnsicht = ansicht === 'offen' && !suche.trim() && !nurUnverrechnet;
+  const offeneAnsicht = ansicht === 'offen' && !suche.trim() && !nurUnverrechnet && !nurNeu;
   const entwuerfe = useMemo(() => scheine.filter((s) => s.status === 'Entwurf'), [scheine]);
   const verworfenListe = useMemo(() => scheine.filter((s) => s.status === 'Verworfen'), [scheine]);
 
@@ -823,7 +859,7 @@ export default function WorkSheetsListView() {
     zu prüfen (die Prüfung „Stunden ohne Buchung“ geht über Scheine); Leiste
     und Prüfkarte kommen mit dem ersten Schein.
   */
-  const ersterSchein = !loading && !error && scheine.length === 0 && !suchend && !nurUnverrechnet;
+  const ersterSchein = !loading && !error && scheine.length === 0 && !suchend && !nurUnverrechnet && !nurNeu;
 
   return (
     <div className="space-y-4 lg:space-y-5">
@@ -1094,9 +1130,11 @@ export default function WorkSheetsListView() {
       {!listeZeigen ? (
         <SkeletonList rows={6} />
       ) : (<>
-      {nurUnverrechnet && (
+      {adressFilter && (
         <Adressfilter
-          text={nurUnverrechnet === 'nicht-verrechnet-alt' ? 'nicht verrechnet, älter als 4 Wochen' : 'unterschrieben, nicht verrechnet'}
+          text={adressFilter === 'nicht-verrechnet-alt'
+            ? 'nicht verrechnet, älter als 4 Wochen'
+            : adressFilter === 'neu-eingegangen' ? 'neu eingegangen' : 'unterschrieben, nicht verrechnet'}
           parameter={['filter']}
         />
       )}
@@ -1148,7 +1186,7 @@ export default function WorkSheetsListView() {
         */}
         {!ersterSchein && (
           <Listenleiste
-            reiter={!suchend && !nurUnverrechnet ? (
+            reiter={!suchend && !adressFilter ? (
               <Segmente name="Ansicht" werte={ANSICHTEN} wert={ansicht} onChange={ansichtSetzen} />
             ) : undefined}
             suche={{ id: 'scheine-suche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Baustelle oder Monat', name: 'Scheine durchsuchen' }}
@@ -1225,13 +1263,17 @@ export default function WorkSheetsListView() {
           </div>
         )}
 
-        {loading || (nurUnverrechnet && !unverrechnet && !unverrechnetFehler) ? (
+        {loading || (adressFilter && !unverrechnet && !filterFehler) ? (
           <div className="px-4 py-4">
             <SkeletonList rows={4} />
           </div>
-        ) : nurUnverrechnet && unverrechnetFehler ? (
-          // Nicht gekommen ist nicht „alles verrechnet“ — und nicht „alle Scheine“.
-          <p className="leer">Ob Scheine verrechnet sind, konnte nicht geladen werden. Bitte die Seite neu laden.</p>
+        ) : filterFehler ? (
+          // Nicht gekommen ist nicht „alles verrechnet“ (oder „nichts Neues“) — und nicht „alle Scheine“.
+          <p className="leer">
+            {nurNeu
+              ? 'Die neu eingegangenen Scheine konnten nicht geladen werden. Bitte die Seite neu laden.'
+              : 'Ob Scheine verrechnet sind, konnte nicht geladen werden. Bitte die Seite neu laden.'}
+          </p>
         ) : offeneAnsicht ? (
           scheine.length === 0 ? (
             /* Nicht geladen ist nicht „noch keiner“: der Fehler oben sagt, was los ist. */
@@ -1284,7 +1326,9 @@ export default function WorkSheetsListView() {
             titel={!unverrechnet && scheine.length > 0 && suchend ? 'Keine passenden Scheine.' : undefined}
             action={!unverrechnet && scheine.length > 0 && suchend ? <Button variant="secondary" onClick={() => setSuche('')}>Suche zurücksetzen</Button> : undefined}
           >
-            {unverrechnet
+            {unverrechnet && nurNeu
+              ? 'Seit dem letzten Ansehen ist kein Schein neu eingegangen.'
+              : unverrechnet
               ? 'Kein unterschriebener Schein ist unverrechnet.'
               : scheine.length === 0
               ? 'Noch kein Handwerksschein erstellt.'
@@ -1294,7 +1338,7 @@ export default function WorkSheetsListView() {
           </EmptyState>
         ) : (
           // Der Schlüssel setzt „und N weitere“ zurück, sobald sich die Menge ändert.
-          <Gruppe key={`${ansicht}|${trefferZu}|${suche.trim()}|${nurUnverrechnet ?? ''}`} eintraege={sichtbar} zeile={scheinZeile} />
+          <Gruppe key={`${ansicht}|${trefferZu}|${suche.trim()}|${adressFilter ?? ''}`} eintraege={sichtbar} zeile={scheinZeile} />
         )}
         {!loading && (
           <div className="px-4 pb-3 empty:hidden">

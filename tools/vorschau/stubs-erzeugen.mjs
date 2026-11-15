@@ -98,6 +98,8 @@ const DATEN = {
     listVerworfeneScheine: '[]', listAbgelaufeneScheine: '[]', zaehleVerworfeneScheine: '0',
     // Vorgemerkte Scheine ohne Netz (§46): leer; als NOOP stürzte die Scheinliste ab (09.11.2026).
     wartendeScheine: '[]',
+    // „Neu eingegangen“ (V9): eine Liste; als NOOP stand in der Scheinliste ein Ladefehler.
+    scheineNeu: '[]',
   },
   vacations: {
     listOwnVacations: 'D.urlaube',

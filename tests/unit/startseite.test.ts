@@ -18,6 +18,7 @@ import {
   garantienBald,
   type GarantieZeile,
   eingeteilteFehlen,
+  neueScheineAbschnitt,
 } from '@/features/dashboard/start/regeln';
 import { auslastung } from '@/features/dashboard/start/laden';
 import { budgetStand } from '@/features/projects/baustellenLage';
@@ -958,5 +959,44 @@ describe('Startseite — Material fehlt (M04b)', () => {
   it('Gegenprobe: ohne fehlendes Material steht nichts da', () => {
     expect(startseite({ materialFehlt: [], projekte }, umfeld('projektleitung')).abschnitte.find((x) => x.titel === 'Material fehlt')).toBeUndefined();
     expect(startseite({ projekte }, umfeld('leitung')).abschnitte.flatMap((a) => a.zeilen).some((z) => z.key === 'material-fehlt')).toBe(false);
+  });
+});
+
+/*
+  NEU EINGEGANGEN (Durchsicht 15.11.2026, V9): Projektleitung und Verwaltung
+  erfahren, was seit ihrem letzten Ansehen unterschrieben wurde. Gegenprobe:
+  vorher gab es den Abschnitt nicht — ein unterschriebener Schein meldete sich
+  nur bei denen, die Rechnungen schreiben.
+*/
+describe('Neu eingegangene Scheine (V9)', () => {
+  const umfeld = (rolle: Umfeld['rolle']): Umfeld => ({ rolle, heute: HEUTE, jetzt: JETZT, darf: () => true, urlaubEntscheiden: false });
+  const neu = [
+    { id: 'n2', customerName: 'Familie Frisch', erstelltVonName: 'Anna' },
+    { id: 'n1', customerName: 'Familie Neuhold', erstelltVonName: 'Max' },
+  ];
+
+  it('eine leise Zeile mit Anzahl und dem jüngsten — in die Scheinliste unter „neu eingegangen“', () => {
+    const a = neueScheineAbschnitt(neu)!;
+    expect(a.titel).toBe('Neu eingegangen');
+    expect(a.zeilen).toEqual([expect.objectContaining({
+      key: 'scheine-neu', titel: '2 Scheine neu unterschrieben', detail: 'zuletzt Familie Frisch · von Anna',
+      status: { text: 'ansehen', ton: 'leise' }, to: ZIEL.scheine('neu-eingegangen'),
+    })]);
+    expect(neueScheineAbschnitt([neu[1]])!.zeilen[0].titel).toBe('1 Schein neu unterschrieben');
+  });
+
+  it('steht bei Projektleitung und Verwaltung auf der Startseite', () => {
+    for (const rolle of ['projektleitung', 'verwaltung'] as const) {
+      const s = startseite({ neueScheine: neu }, umfeld(rolle));
+      expect(s.abschnitte.some((x) => x.titel === 'Neu eingegangen'), rolle).toBe(true);
+    }
+  });
+
+  it('bleibt gleich: nichts Neues oder nicht geladen — kein Abschnitt', () => {
+    expect(neueScheineAbschnitt([])).toBeNull();
+    expect(neueScheineAbschnitt(undefined)).toBeNull();
+    for (const rolle of ['projektleitung', 'verwaltung'] as const) {
+      expect(startseite({}, umfeld(rolle)).abschnitte.some((x) => x.titel === 'Neu eingegangen')).toBe(false);
+    }
   });
 });

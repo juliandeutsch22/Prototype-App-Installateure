@@ -949,6 +949,23 @@ export function eingaengeZeile(z: OffeneEingaenge): Zeile | null {
   };
 }
 
+/**
+ * NEU EINGEGANGENE SCHEINE ALS EINE ZEILE (V9) — leise: ein Schein ist
+ * Information, keine Frist. Sie führt in die Scheinliste unter „neu
+ * eingegangen“; dort angesehen, verschwindet sie.
+ */
+export function neueScheineAbschnitt(liste: { customerName: string; erstelltVonName: string }[] | undefined): Abschnitt | null {
+  if (!liste || liste.length === 0) return null;
+  const erster = liste[0];
+  return abschnitt('scheine-neu', 'Neu eingegangen', [{
+    key: 'scheine-neu',
+    titel: `${liste.length} ${liste.length === 1 ? 'Schein' : 'Scheine'} neu unterschrieben`,
+    detail: `zuletzt ${erster.customerName}${erster.erstelltVonName ? ` · von ${erster.erstelltVonName}` : ''}`,
+    status: { text: 'ansehen', ton: 'leise' },
+    to: ZIEL.scheine('neu-eingegangen'),
+  }], ZIEL.scheine('neu-eingegangen'));
+}
+
 /** Für Verwaltung, Buchhaltung und Projektleitung: ein Abschnitt mit dieser einen Zeile. */
 export function offeneEingaenge(z: OffeneEingaenge | undefined): Abschnitt | null {
   const zeile = z ? eingaengeZeile(z) : null;

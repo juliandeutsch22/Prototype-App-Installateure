@@ -528,6 +528,37 @@ export function createWorkSheet(companyId: string, s: NewWorkSheet): Promise<str
   return speichern(crypto.randomUUID(), s);
 }
 
+/** Ein neu unterschriebener Schein, wie `scheine_neu` ihn gibt (V9). */
+export interface NeuerSchein {
+  id: string;
+  projectNumber: string;
+  customerName: string;
+  datum: string;
+  unterschriebenAm: string;
+  erstelltVonName: string;
+}
+
+/**
+ * Die seit dem letzten Ansehen unterschriebenen Scheine des Betriebs, ohne
+ * die eigenen — neueste zuerst (V9, `scheine_neu`). Beim ersten Mal die der
+ * letzten sieben Tage.
+ */
+export async function scheineNeu(): Promise<NeuerSchein[]> {
+  const { data, error } = await derClient().rpc('scheine_neu');
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as { id: string; project_number: string; customer_name: string; datum: string; unterschrieben_am: string; erstellt_von_name: string }[])
+    .map((z) => ({
+      id: z.id, projectNumber: z.project_number, customerName: z.customer_name, datum: z.datum,
+      unterschriebenAm: z.unterschrieben_am, erstelltVonName: z.erstellt_von_name,
+    }));
+}
+
+/** „Gesehen“: die neuen Scheine gelten bis jetzt als angesehen (V9, `scheine_gesehen`). */
+export async function scheineGesehen(): Promise<void> {
+  const { error } = await derClient().rpc('scheine_gesehen');
+  if (error) throw new Error(error.message);
+}
+
 /** Wie ein Schein verrechnet ist — für den Storno (P4, `schein_verrechnung`). */
 export interface ScheinVerrechnung {
   verrechnet: boolean;

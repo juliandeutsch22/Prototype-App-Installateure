@@ -105,7 +105,12 @@ const verrechnungLage = vi.fn<(id: string) => Promise<Lage>>(async () => ({ verr
 
 /** Ein einzelner Schein nach Kennung — für `?markiert=` aus der Baustellenakte. */
 const einzeln = vi.fn<(id: string) => Promise<(WorkSheet & { id: string }) | undefined>>(async () => undefined);
+/** „Neu eingegangen“ (V9): die Köpfe, wie `scheine_neu` sie gibt — und das Merken danach. */
+const neuGeholt = vi.fn<() => Promise<{ id: string }[]>>(async () => []);
+const gesehen = vi.fn(async () => undefined);
 vi.mock('@/lib/db/workSheets', () => ({
+  scheineNeu: () => neuGeholt(),
+  scheineGesehen: () => gesehen(),
   listRecentWorkSheets: vi.fn(async () => geladen),
   listWorkSheetsByIds: vi.fn(async (_c: string, ids: readonly string[]) =>
     [...geladen, ...nurInDerDatenbank].filter((x) => ids.includes(x.id))),
@@ -1546,5 +1551,63 @@ describe('Noch nicht gesendet (E49)', () => {
 
     await waitFor(() => expect(screen.queryByText(/Noch nicht gesendet/)).not.toBeInTheDocument());
     expect(vi.mocked(listRecentWorkSheets).mock.calls.length).toBeGreaterThan(vorher);
+  });
+});
+
+/*
+  NEU EINGEGANGEN (Durchsicht 15.11.2026, V9): die Startseite führt
+  Projektleitung und Verwaltung mit `?filter=neu-eingegangen` hierher. Die
+  Liste zeigt genau die Scheine aus `scheine_neu` — auch ältere, die nicht
+  unter den geladenen stehen —, neueste zuerst, und merkt sie erst danach als
+  gesehen. Gegenprobe: ohne den Filter kannte die Liste „neu eingegangen“
+  nicht; die Adresse fiel auf die offene Ansicht zurück.
+*/
+describe('Neu eingegangen (V9)', () => {
+  const neu = (id: string, kunde: string): WorkSheet & { id: string } =>
+    ({ ...scheine[1], id, customerName: kunde, erstelltVonName: 'Anna Lehrling', erstelltVonUid: 'm2' }) as WorkSheet & { id: string };
+
+  beforeEach(() => {
+    authWert.user.role = 'Projektleiter';
+    neuGeholt.mockReset().mockResolvedValue([]);
+    gesehen.mockClear();
+  });
+
+  it('zeigt genau die neuen Scheine in der Reihenfolge der Datenbank und merkt sie danach als gesehen', async () => {
+    nurInDerDatenbank = [neu('n1', 'Familie Neuhold'), neu('n2', 'Familie Frisch')];
+    neuGeholt.mockResolvedValue([{ id: 'n2' }, { id: 'n1' }]);
+    zeichne('/worksheets?filter=neu-eingegangen');
+
+    expect(await screen.findByText('neu eingegangen')).toBeInTheDocument();
+    const frisch = await screen.findByRole('button', { name: /Familie Frisch/ });
+    const neuhold = screen.getByRole('button', { name: /Familie Neuhold/ });
+    expect(frisch.compareDocumentPosition(neuhold) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Der eigene Entwurf und der geladene, nicht neue Schein stehen nicht darin.
+    expect(screen.queryByText(/Familie Huber/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Familie Berger/)).not.toBeInTheDocument();
+    // Keine Reiter: der Filter aus der Adresse gilt allein.
+    expect(screen.queryByRole('button', { name: 'Offen' })).not.toBeInTheDocument();
+    await waitFor(() => expect(gesehen).toHaveBeenCalledTimes(1));
+  });
+
+  it('nichts Neues: sagt das — und merkt trotzdem', async () => {
+    zeichne('/worksheets?filter=neu-eingegangen');
+    expect(await screen.findByText('Seit dem letzten Ansehen ist kein Schein neu eingegangen.')).toBeInTheDocument();
+    await waitFor(() => expect(gesehen).toHaveBeenCalledTimes(1));
+  });
+
+  it('nicht gekommen ist nicht „nichts Neues“ — und nichts wird als gesehen gemerkt', async () => {
+    neuGeholt.mockRejectedValue(new Error('Netz weg'));
+    zeichne('/worksheets?filter=neu-eingegangen');
+    expect(await screen.findByText('Die neu eingegangenen Scheine konnten nicht geladen werden. Bitte die Seite neu laden.'))
+      .toBeInTheDocument();
+    expect(screen.queryByText(/kein Schein neu eingegangen/)).not.toBeInTheDocument();
+    expect(gesehen).not.toHaveBeenCalled();
+  });
+
+  it('bleibt gleich: ohne den Filter fragt die Liste nicht nach Neuem und merkt nichts', async () => {
+    zeichne();
+    await screen.findByText(/Familie Huber/);
+    expect(neuGeholt).not.toHaveBeenCalled();
+    expect(gesehen).not.toHaveBeenCalled();
   });
 });

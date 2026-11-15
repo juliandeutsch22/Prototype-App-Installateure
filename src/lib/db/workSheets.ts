@@ -80,7 +80,17 @@ export function listBelegScheineInRange(companyId: string, von: string, bis: str
   return pg.listBelegScheineInRange(companyId, von, bis);
 }
 
-export type { ScheinVerrechnung } from './pg/workSheets';
+export type { ScheinVerrechnung, NeuerSchein } from './pg/workSheets';
+
+/** Die seit dem letzten Ansehen unterschriebenen Scheine — siehe `pg.scheineNeu` (V9). */
+export function scheineNeu() {
+  return pg.scheineNeu();
+}
+
+/** Die neuen Scheine als angesehen merken — siehe `pg.scheineGesehen` (V9). */
+export function scheineGesehen() {
+  return pg.scheineGesehen();
+}
 
 /** Ob und wo ein Schein verrechnet ist — vor dem Storno (P4); siehe `pg.scheinVerrechnung`. */
 export function scheinVerrechnung(id: string) {

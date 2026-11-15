@@ -39,6 +39,7 @@ import {
   garantienBald,
   unbesetzteEinsaetze,
   eingeteilteFehlen,
+  neueScheineAbschnitt,
   unterMindestmenge,
   urlaubsantraege,
   freistellungsantraege,
@@ -264,6 +265,8 @@ function verwaltung(d: StartDaten, u: Umfeld): Startseite {
     eigeneTage(d, u),
     // Der Auftragseingang (M02b) vor dem Lager: die Verwaltung nimmt das Telefon ab.
     erlaubt(offeneEingaenge(d.offeneEingaenge), u),
+    // V9: der unterschriebene Schein kommt im Büro an.
+    erlaubt(neueScheineAbschnitt(d.neueScheine), u),
     erlaubt(offeneAnforderungen(orders, u.heute), u),
     erlaubt(bestelltUeberfaellig(orders, u.heute), u),
     erlaubt(abholbereitAlt(orders, u.jetzt), u),
@@ -438,6 +441,8 @@ function projektleitung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(unbesetzteEinsaetze(u.heute, d.heuteBetrieb ?? []), u),
     // V1: wer heute (teilweise) oder morgen fehlt.
     erlaubt(eingeteilteFehlen(u.heute, d.eingeteiltFehlen ?? []), u),
+    // V9: der unterschriebene Schein kommt im Büro an.
+    erlaubt(neueScheineAbschnitt(d.neueScheine), u),
     // M04b: Einsätze der nächsten sieben Tage, deren Material niemand deckt.
     erlaubt(materialFehlt(d.materialFehlt ?? [], titelVon(d)), u),
     erlaubt(budgetNahe(d.budget ?? []), u),

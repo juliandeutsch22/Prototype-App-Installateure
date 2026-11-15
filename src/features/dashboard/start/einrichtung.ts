@@ -109,6 +109,7 @@ export const THEMEN: Record<StartRolle, { key: string; name: string }[]> = {
   verwaltung: [
     { key: 'tage', name: 'Deine Tage ohne Buchung' },
     { key: 'eingaenge', name: 'Auftragseingang' },
+    { key: 'scheine-neu', name: 'Neu eingegangene Scheine' },
     { key: 'anf-offen', name: 'Offene Anforderungen' },
     { key: 'anf-bestellt', name: 'Bestellt und überfällig' },
     { key: 'anf-alt', name: 'Seit über 3 Tagen abholbereit' },
@@ -139,6 +140,7 @@ export const THEMEN: Record<StartRolle, { key: string; name: string }[]> = {
     { key: 'eingaenge', name: 'Auftragseingang' },
     { key: 'unbesetzt', name: 'Unbesetzte Einsätze' },
     { key: 'fehlen', name: 'Eingeteilte fehlen (heute und morgen)' },
+    { key: 'scheine-neu', name: 'Neu eingegangene Scheine' },
     { key: 'material', name: 'Material fehlt' },
     { key: 'budget', name: 'Baustellen über oder nahe Budget' },
     { key: 'ohne-einsatz', name: 'Ohne Einsatz in den nächsten 14 Tagen' },

@@ -38,7 +38,7 @@ import { lagerKnapp, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { listGarantienEndenIn, listUnpaidInvoiceKoepfe, listInvoicesByIds, scheineUnverrechnet, type GarantieRechnung } from '@/lib/db/invoices';
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
-import { listOwnWorkSheetsSince, zaehleVerworfeneScheine } from '@/lib/db/workSheets';
+import { listOwnWorkSheetsSince, scheineNeu, zaehleVerworfeneScheine } from '@/lib/db/workSheets';
 import { zaehleVerworfeneAngebote } from '@/lib/db/quotes';
 import { listUeberLinkAngenommen, type UeberLinkAngenommen } from '@/lib/db/angebotLinks';
 import { zaehleOffeneEingaenge } from '@/lib/db/auftragseingaenge';
@@ -189,6 +189,8 @@ export interface StartDaten {
   materialFehlt?: MaterialFehltZeile[];
   wartungen?: Wartung[];
   heuteBetrieb?: TagesBaustelle[];
+  /** Seit dem letzten Ansehen unterschriebene Scheine, neueste zuerst (V9). */
+  neueScheine?: { id: string; customerName: string; erstelltVonName: string }[];
   /** Einsätze mit ganztags Fehlenden, heute (teilweise) und morgen (V1). */
   eingeteiltFehlen?: FehlenZeile[];
   abwesendHeute?: Abwesend[];
@@ -284,6 +286,16 @@ export interface OffeneEingaenge {
  */
 export async function eingaenge(k: Kontext): Promise<Partial<StartDaten>> {
   return { offeneEingaenge: await zaehleOffeneEingaenge(k.user.companyId) };
+}
+
+/**
+ * NEU EINGEGANGENE SCHEINE (V9) — für Projektleitung und Verwaltung, die
+ * keine Rechnungen schreiben und den unterschriebenen Schein sonst nur
+ * zufällig fanden. Seit dem letzten Ansehen, ohne die eigenen.
+ */
+export async function neueScheine(): Promise<Partial<StartDaten>> {
+  const liste = await scheineNeu();
+  return { neueScheine: liste.map((s) => ({ id: s.id, customerName: s.customerName, erstelltVonName: s.erstelltVonName })) };
 }
 
 // ──────────────────────────────────────────────────────────── Nachrichten ──

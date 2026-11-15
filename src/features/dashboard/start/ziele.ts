@@ -79,7 +79,7 @@ export const BAUSTELLEN_FILTER = [
 ] as const;
 export type BaustellenFilter = (typeof BAUSTELLEN_FILTER)[number];
 
-export const SCHEIN_FILTER = ['nicht-verrechnet', 'nicht-verrechnet-alt'] as const;
+export const SCHEIN_FILTER = ['nicht-verrechnet', 'nicht-verrechnet-alt', 'neu-eingegangen'] as const;
 export type ScheinFilter = (typeof SCHEIN_FILTER)[number];
 
 export const RECHNUNGS_SICHTEN = ['mahnung-faellig', 'bezahlt-heute', 'bezahlt-monat'] as const;
