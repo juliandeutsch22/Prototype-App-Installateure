@@ -109,7 +109,20 @@ const reihenfolge: string[] = [];
 */
 let offene: (Invoice & { id: string })[] = [];
 let imZeitraum: (Invoice & { id: string })[] = [];
-const listUnpaidInvoices = vi.fn(async () => offene);
+/*
+  DIE LISTEN TRAGEN NUR KÖPFE (L6): Positionen, Abdeckung und
+  Leistungsnachweis kommen erst beim Öffnen über `listInvoicesByIds`. Der
+  Doppelgänger nimmt sie deshalb heraus — sonst prüfte jede Prüfung des
+  Fensters den alten Weg.
+*/
+function alsKopf<T extends Invoice & { id: string }>(r: T) {
+  const kopf = { ...r } as Record<string, unknown>;
+  for (const feld of ['positions', 'linkedEntries', 'linkedOrders', 'linkedWorkSheets', 'linkedWartungen', 'linkedRuestPositionen', 'leistungsnachweis']) {
+    delete kopf[feld];
+  }
+  return kopf as unknown as T;
+}
+const listUnpaidInvoices = vi.fn(async () => offene.map(alsKopf));
 /*
   DER FRISCHE STAND VOR DEM MAHNEN (seit 11.10.2026). Ohne eigenen Eintrag in
   `frisch` derselbe wie auf der Seite — eine Prüfung legt dort fest, was sich
@@ -185,7 +198,7 @@ vi.mock('@/lib/db/invoices', async () => {
       lief vorher über die Arbeitsliste und sah damit ausgerechnet die
       ältesten Forderungen nicht.
     */
-    listUnpaidInvoices: () => listUnpaidInvoices(),
+    listUnpaidInvoiceKoepfe: () => listUnpaidInvoices(),
     listInvoicesByIds: (c: string, ids: string[]) => listInvoicesByIds(c, ids),
     rechnungVersuchKlaeren: (kennung: string) => klaerung(kennung),
     rechnungErsetzen: (...a: unknown[]) => ersetze(...a),
@@ -199,21 +212,21 @@ vi.mock('@/lib/db/invoices', async () => {
     // Die Nummern des Jahres vor dem Zeitraum (G8).
     rechnungsnummernVorZeitraum: async () => nummernVorDemZeitraum,
     schlussrechnungenOhneAbzug: async () => ohneAbzug,
-    subscribeRecentInvoices: (
+    subscribeRecentInvoiceKoepfe: (
       _c: string,
       _g: number,
       cb: (rows: (Invoice & { id: string })[]) => void,
       _fehler?: (e: Error) => void,
       geaendert?: () => void,
     ) => {
-      liveMeldung = cb;
+      liveMeldung = (rows) => cb(rows.map(alsKopf));
       liveGeaendert = geaendert;
       // V10: die Liste selbst kommt nicht (Prüfung „ohne Grundlage keine Zahl“).
       if (listeWirft) {
         _fehler?.(new Error('Die Rechnungen konnten nicht geladen werden.'));
         return () => undefined;
       }
-      cb(rechnungen);
+      cb(rechnungen.map(alsKopf));
       return () => undefined;
     },
     /*
@@ -6471,5 +6484,68 @@ describe('Guthaben umbuchen (V7)', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Guthaben zurückzahlen …' }));
     expect(await screen.findByText(/hat keine offene Rechnung/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Auf Rechnung')).toBeNull();
+  });
+});
+
+/*
+  L6 (Durchsicht 15.11.2026): die Liste trägt nur Köpfe. Positionen,
+  Abdeckung und Leistungsnachweis kommen beim Öffnen einer Rechnung — vorher
+  kamen sie für jede Rechnung der Liste und jede offene mit.
+*/
+describe('Rechnungen: der Beleg kommt beim Öffnen', () => {
+  const MIT_POSITIONEN = {
+    id: 'b1', companyId: 'perl', invoiceNumber: 'RE-2026-0444', projectNumber: 'PR-2026-0001', customerName: 'Familie Berger',
+    invoiceDate: '2026-09-01', dueDate: '2099-01-01',
+    positions: [{ label: 'Facharbeit Heizraum', qty: 8, unit: 'h', unitPrice: 65, netto: 520 }],
+    linkedEntries: ['z1'],
+    totalNetto: 520, totalVat: 104, totalBrutto: 624, vatRate: 20, paymentStatus: 'Offen',
+  } as unknown as Invoice & { id: string };
+
+  it('holt die Rechnung beim Öffnen; bis dahin „Leistungen werden geladen“ und keine Handlung', async () => {
+    rechnungen = [MIT_POSITIONEN];
+    let freigeben: () => void = () => undefined;
+    listInvoicesByIds.mockImplementationOnce((_c: string, ids: string[]) =>
+      new Promise((fertig) => { freigeben = () => fertig(ids.map(() => MIT_POSITIONEN)); }));
+    zeige();
+    const fenster = await rechnungOeffnen('RE-2026-0444');
+    expect(listInvoicesByIds).toHaveBeenCalledWith('perl', ['b1']);
+    expect(within(fenster).getByText('Leistungen werden geladen …')).toBeInTheDocument();
+    expect(within(fenster).queryByText('Facharbeit Heizraum')).toBeNull();
+    expect(within(fenster).queryByRole('button', { name: 'PDF laden' })).toBeNull();
+    await act(async () => freigeben());
+    expect(await within(fenster).findByText('Facharbeit Heizraum')).toBeInTheDocument();
+    expect(within(fenster).getByRole('button', { name: 'PDF laden' })).toBeInTheDocument();
+  });
+
+  it('das PDF entsteht aus der ganzen Rechnung — Gegenprobe: in der Liste stehen keine Positionen', async () => {
+    rechnungen = [MIT_POSITIONEN];
+    zeige();
+    await rechnungOeffnen('RE-2026-0444');
+    await userEvent.click(await screen.findByRole('button', { name: 'PDF laden' }));
+    await waitFor(() => expect(pdfAusgabe).toHaveBeenCalled());
+    expect(pdfAusgabe.mock.calls[0][0].assembled.positions).toEqual(MIT_POSITIONEN.positions);
+    expect(alsKopf(MIT_POSITIONEN).positions).toBeUndefined();
+  });
+
+  it('der Kopf bleibt der von jetzt: eine Zahlung während das Fenster offen ist, zeigt den neuen Stand samt Leistungen', async () => {
+    rechnungen = [MIT_POSITIONEN];
+    zeige();
+    const fenster = await rechnungOeffnen('RE-2026-0444');
+    await within(fenster).findByText('Facharbeit Heizraum');
+    act(() => liveMeldung?.([{ ...MIT_POSITIONEN, paymentStatus: 'Bezahlt', bezahltBetrag: 624 } as typeof MIT_POSITIONEN]));
+    // Die Handlung folgt dem neuen Stand — „Weitere Zahlung“ statt „Zahlung erfassen“.
+    expect(await within(fenster).findByRole('button', { name: 'Weitere Zahlung erfassen …' })).toBeInTheDocument();
+    expect(within(fenster).getByText('Facharbeit Heizraum')).toBeInTheDocument();
+  });
+
+  it('kommt die Rechnung nicht, steht das da — mit „Erneut versuchen“, und dann geht es', async () => {
+    rechnungen = [MIT_POSITIONEN];
+    listInvoicesByIds.mockRejectedValueOnce(new Error('offline'));
+    zeige();
+    const fenster = await rechnungOeffnen('RE-2026-0444');
+    expect(await within(fenster).findByText(/Die Leistungen konnten nicht geladen werden/)).toBeInTheDocument();
+    expect(within(fenster).queryByRole('button', { name: 'PDF laden' })).toBeNull();
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Erneut versuchen' }));
+    expect(await within(fenster).findByText('Facharbeit Heizraum')).toBeInTheDocument();
   });
 });

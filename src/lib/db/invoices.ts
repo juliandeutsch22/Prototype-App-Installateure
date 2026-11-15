@@ -36,6 +36,17 @@ export function listUnpaidInvoiceKoepfe(companyId: string): Promise<WithId<Rechn
   return pg.listUnpaidInvoiceKoepfe(companyId);
 }
 
+/** Die jüngsten Rechnungen, live, nur die Köpfe — siehe `pg.subscribeRecentInvoiceKoepfe` (L6). */
+export function subscribeRecentInvoiceKoepfe(
+  companyId: string,
+  max: number,
+  cb: (rows: WithId<RechnungsKopf>[]) => void,
+  onError: (e: Error) => void,
+  geaendert?: () => void,
+): () => void {
+  return pg.subscribeRecentInvoiceKoepfe(companyId, max, cb, onError, undefined, geaendert);
+}
+
 export function subscribeRecentInvoices(
   companyId: string,
   max: number,

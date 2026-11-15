@@ -2443,7 +2443,12 @@ export interface Invoice {
  * braucht nicht mehr; ein eigener Typ statt leerer Positionen, damit keine
  * Stelle eine Rechnung über nichts für die ganze hält.
  */
-export type RechnungsKopf = Omit<Invoice, 'positions' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets' | 'linkedWartungen' | 'linkedRuestPositionen'>;
+export type RechnungsKopf = Omit<
+  Invoice,
+  'positions' | 'linkedEntries' | 'linkedOrders' | 'linkedWorkSheets' | 'linkedWartungen' | 'linkedRuestPositionen'
+  // Der festgehaltene Leistungsnachweis gehört zum Beleg wie die Positionen (L6): je Rechnung bis zu hunderte Zeilen.
+  | 'leistungsnachweis'
+>;
 
 /**
  * Rabatt auf eine Rechnung.

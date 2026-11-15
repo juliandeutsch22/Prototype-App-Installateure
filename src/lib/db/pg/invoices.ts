@@ -17,6 +17,7 @@ import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt, RechnungsKopf, W
 import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, SEITE, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
 import { oderUeberSpalten } from './suche';
+import { KOPF_SPALTEN } from './rechnungSpalten';
 import { PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
 
@@ -54,6 +55,7 @@ const ABDECKUNGSARTEN = [
   // Seit M2: die eingeladene Rüstlistenposition (`20261116060000_material_verrechnet_je_ausgabe.sql`).
   ['ruest_position', 'linkedRuestPositionen'],
 ] as const;
+
 
 interface Abdeckungszeile {
   invoiceId: string;
@@ -165,6 +167,7 @@ function unbezahlteKoepfe(companyId: string) {
       denen schon einmal jemand nachgefragt hat.
     */
     wo: [{ art: 'in', feld: 'paymentStatus', werte: ['Offen', 'Überfällig', 'Teilbezahlt'] }],
+    spalten: KOPF_SPALTEN,
   });
 }
 
@@ -205,6 +208,50 @@ export function subscribeRecentInvoices(
   client?: SupabaseClient,
   geaendert?: () => void,
 ): () => void {
+  return jungeRechnungenHalten(
+    companyId,
+    async (c) => zusammensetzen(await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+      sortiere: { feld: 'createdAt', absteigend: true },
+      grenze: max,
+    }, c), companyId, c),
+    cb, onError, client, geaendert,
+  );
+}
+
+/**
+ * Dieselben jüngsten Rechnungen, nur die KÖPFE (L6) — für die Liste der
+ * Rechnungsverwaltung und die Leseliste der Projektleitung. Positionen,
+ * Abdeckung und Leistungsnachweis holt erst, wer eine Rechnung öffnet
+ * (`listInvoicesByIds`). Vorher kamen sie für jede Rechnung der Liste mit,
+ * bei jedem Besuch und jeder Live-Meldung.
+ */
+export function subscribeRecentInvoiceKoepfe(
+  companyId: string,
+  max: number,
+  cb: (rows: WithId<RechnungsKopf>[]) => void,
+  onError: (e: Error) => void,
+  client?: SupabaseClient,
+  geaendert?: () => void,
+): () => void {
+  return jungeRechnungenHalten(
+    companyId,
+    async (c) => (await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+      sortiere: { feld: 'createdAt', absteigend: true },
+      grenze: max,
+      spalten: KOPF_SPALTEN,
+    }, c)).map(kopfAlsRechnung),
+    cb, onError, client, geaendert,
+  );
+}
+
+function jungeRechnungenHalten<R>(
+  companyId: string,
+  laden: (c: SupabaseClient) => Promise<R[]>,
+  cb: (rows: R[]) => void,
+  onError: (e: Error) => void,
+  client?: SupabaseClient,
+  geaendert?: () => void,
+): () => void {
   const c = derClient(client);
   let gestoppt = false;
   let schonBereit = false;
@@ -212,13 +259,7 @@ export function subscribeRecentInvoices(
   let nochmal = false;
   let nachfassen: ReturnType<typeof setTimeout> | undefined;
 
-  const holen = async (): Promise<WithId<Invoice>[]> => {
-    const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
-      sortiere: { feld: 'createdAt', absteigend: true },
-      grenze: max,
-    }, c);
-    return zusammensetzen(koepfe, companyId, c);
-  };
+  const holen = (): Promise<R[]> => laden(c);
 
   // Meldungen werden zusammengefasst, nicht gestapelt: liefen zwei
   // Nachladungen nebeneinander, könnte die ältere als letzte zurückkommen

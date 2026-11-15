@@ -5,9 +5,9 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon } from '@/lib/lohnregeln';
 import {
-  subscribeRecentInvoices,
+  subscribeRecentInvoiceKoepfe,
   listInvoicesInRange,
-  listUnpaidInvoices,
+  listUnpaidInvoiceKoepfe,
   nextInvoiceNumber,
   isInvoiceNumberTaken,
   invoiceSeqOf,
@@ -106,7 +106,7 @@ import { listBasiszinssaetze, type ZentralerBasiszinssatz } from '@/lib/db/basis
 import { discountLabel, istPreiszeile, positionsRabattText, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtDauer, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { Invoice, LeistungsnachweisZeile, Mahnung, Project, RechnungsArt, TimeEntry, WorkSheet, Zahlungseingang } from '@/types';
+import type { Invoice, LeistungsnachweisZeile, Mahnung, Project, RechnungsArt, RechnungsKopf, TimeEntry, WorkSheet, Zahlungseingang } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -116,6 +116,7 @@ import WachsendesTextfeld from '@/components/WachsendesTextfeld';
 import StatusBadge from '@/components/StatusBadge';
 import { Marke, Warnung } from '@/components/Badge';
 import RechnungDetail, { type MahnungZeile, type RechnungAktion } from './RechnungDetail';
+import { mitBeleg } from './mitBeleg';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 import { mahnungPdfBlob, mahnungPdfLaden, rechnungPdfBlob, rechnungPdfLaden } from './belegeLaden';
@@ -203,7 +204,7 @@ export default function InvoicesView() {
   // Die Vorsätze des Betriebs — `RE-` stand hier bisher fest im Code.
   const vorsaetze = praefixeVon(company);
   const toast = useToast();
-  const [invoices, setInvoices] = useState<WithId<Invoice>[]>([]);
+  const [invoices, setInvoices] = useState<WithId<RechnungsKopf>[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -271,7 +272,7 @@ export default function InvoicesView() {
     ältesten fallen als erste heraus. Eine Mahnliste, die die älteste
     Forderung übersieht, ist schlimmer als keine.
   */
-  const [offeneRechnungen, setOffeneRechnungen] = useState<WithId<Invoice>[]>([]);
+  const [offeneRechnungen, setOffeneRechnungen] = useState<WithId<RechnungsKopf>[]>([]);
   /** Kamen die offenen Forderungen nicht? Dann darf keine Karte so tun, als wüsste sie Bescheid. */
   const [forderungenFehler, setForderungenFehler] = useState(false);
   /*
@@ -307,7 +308,7 @@ export default function InvoicesView() {
     `mahnen` die Rechnung ohnehin frisch.
   */
   const offeneAbruf = useRef({ gestartet: 0, angewandt: 0, laeuft: false, nochmal: false });
-  const offeneAnwenden = useCallback((nr: number, rows: WithId<Invoice>[]) => {
+  const offeneAnwenden = useCallback((nr: number, rows: WithId<RechnungsKopf>[]) => {
     if (nr <= offeneAbruf.current.angewandt) return;
     offeneAbruf.current.angewandt = nr;
     setOffeneRechnungen(rows);
@@ -326,7 +327,7 @@ export default function InvoicesView() {
         a.nochmal = false;
         const nr = ++a.gestartet;
         try {
-          offeneAnwenden(nr, await listUnpaidInvoices(user.companyId));
+          offeneAnwenden(nr, await listUnpaidInvoiceKoepfe(user.companyId));
         } catch {
           // Bleibt der letzte Stand (siehe oben).
         }
@@ -659,8 +660,35 @@ export default function InvoicesView() {
    * würde.
    */
   const [suggestedNumber, setSuggestedNumber] = useState('');
-  /** Die Rechnung, deren Detailansicht offen ist (M19). */
-  const [detailFuer, setDetailFuer] = useState<WithId<Invoice> | null>(null);
+  /**
+   * Die Rechnung, deren Detailansicht offen ist (M19) — aus der Liste nur
+   * ihr Kopf (L6).
+   */
+  const [detailFuer, setDetailFuer] = useState<WithId<RechnungsKopf> | null>(null);
+  /**
+   * DER BELEG DER OFFENEN RECHNUNG (L6, Durchsicht 15.11.2026): Positionen,
+   * Abdeckung und festgehaltener Leistungsnachweis, geholt beim Öffnen.
+   * Vorher kamen sie für jede Rechnung der Liste und jede offene mit — bei
+   * 300 offenen Rechnungen 2,4 MB in vierzehn Anfragen, bei jedem Besuch
+   * und jeder Live-Meldung. Sie ändern sich nach dem Ausstellen nicht
+   * (`invoice_lines` und `invoice_coverage` lassen kein Ändern zu); der Kopf
+   * kommt weiter aus der Liste, mit dem Stand von jetzt.
+   */
+  const [beleg, setBeleg] = useState<{ fuer: string; inv: WithId<Invoice> | null; fehler: boolean } | null>(null);
+  const [belegVersuch, setBelegVersuch] = useState(0);
+  const belegId = detailFuer?.id ?? null;
+  useEffect(() => {
+    if (!user || !belegId) {
+      setBeleg(null);
+      return;
+    }
+    let weg = false;
+    setBeleg(null);
+    listInvoicesByIds(user.companyId, [belegId])
+      .then(([inv]) => { if (!weg) setBeleg({ fuer: belegId, inv: inv ?? null, fehler: !inv }); })
+      .catch(() => { if (!weg) setBeleg({ fuer: belegId, inv: null, fehler: true }); });
+    return () => { weg = true; };
+  }, [user, belegId, belegVersuch]);
   /** Die gespeicherten Mahnungen der offenen Rechnung — für „erneut laden“. */
   const [detailMahnungen, setDetailMahnungen] = useState<{ fuer: string; liste: WithId<Mahnung>[] } | null>(null);
   /**
@@ -808,7 +836,7 @@ export default function InvoicesView() {
       angeboten, statt einen Stapel ohne Konten zu versprechen.
     */
     buchungskonten(user.companyId).then(setKonten).catch(() => setNebenFehler('Der Kontenrahmen'));
-    const unsub = subscribeRecentInvoices(
+    const unsub = subscribeRecentInvoiceKoepfe(
       user.companyId,
       grenze,
       (rows) => {
@@ -886,7 +914,7 @@ export default function InvoicesView() {
       „Zusatzangabe". Für die SCHEINE stimmt das; für die Forderungen nicht.
     */
     const nr = ++offeneAbruf.current.gestartet;
-    listUnpaidInvoices(user.companyId)
+    listUnpaidInvoiceKoepfe(user.companyId)
       .then((rows) => {
         if (!weg) offeneAnwenden(nr, rows);
       })
@@ -5946,15 +5974,29 @@ export default function InvoicesView() {
         Handlungen da. Gesucht wird in allem, was die Seite gerade kennt.
       */}
       {(() => {
-        const inv = detailFuer
+        const kopf = detailFuer
           ? [...invoices, ...(serverTreffer ?? []), ...(zahlSicht?.zeilen ?? []), ...offeneRechnungen]
             .find((i) => i.id === detailFuer.id) ?? detailFuer
+          : null;
+        /*
+          Der Kopf von jetzt über dem Beleg vom Öffnen: Positionen, Abdeckung
+          und Nachweis aus `beleg`, alles andere (Zahlstand, Mahnstufe, Storno)
+          aus der Liste. Erst mit dem Beleg gibt es Handlungen — PDF, E-Rechnung,
+          Stornorechnung und Ersatz brauchen ihn, und keine darf mit einer
+          Rechnung über nichts arbeiten.
+        */
+        const geladen = kopf && beleg?.fuer === kopf.id ? beleg : null;
+        const inv: WithId<Invoice> | null = kopf
+          ? geladen?.inv ? mitBeleg(kopf, geladen.inv) : (kopf as WithId<Invoice>)
           : null;
         return (
           <RechnungDetail
             inv={inv}
+            belegLaedt={!!kopf && !geladen}
+            belegFehler={!!geladen?.fehler}
+            onBelegErneut={() => setBelegVersuch((n) => n + 1)}
             onClose={() => setDetailFuer(null)}
-            aktionen={inv ? rechnungAktionen(inv) : []}
+            aktionen={inv && geladen?.inv ? rechnungAktionen(inv) : []}
             mahnungen={inv && detailMahnungen?.fuer === inv.id
               ? detailMahnungen.liste.map((m): MahnungZeile => ({
                   id: m.id, titel: TEXTE[m.stufe as Mahnstufe]?.titel ?? 'Mahnung', datum: m.datum, frist: m.frist,
