@@ -8,7 +8,7 @@
 import type { Assignment, KalenderAbo, KalenderAboArt } from '@/types';
 import { monatsEnde } from '@shared/feiertage';
 import { plusTage } from '@shared/freistellung';
-import { abfragen, abonnieren, derClient, SEITE, type WithId } from './kern';
+import { abfragen, abonnieren, derClient, kanalHalten, SEITE, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
 import { paarGeaendertAus, type PaarGrundlage } from '../paarFassung';
 import { ruestlisteFrageAus, type RuestlisteErgebnis, type RuestlisteUmzug, type RuestlisteWahl } from '../ruestlisteFrage';
@@ -124,6 +124,59 @@ export function subscribeAssignmentsInRange(
       { art: 'bis', feld: 'date', wert: to },
     ],
   });
+}
+
+/**
+ * WIE VIELE BAUSTELLEN JE TAG GEPLANT SIND, live — die Markierungen im
+ * Monatskalender der Tagesplanung (L9, `einsatz_tage`).
+ *
+ * Bis 17.11.2026 kam dafür der ganze Monat aller Einsätze in den Browser
+ * (bei 50 Personen 1.050 Zeilen, 405 KB), nur um je Tag die Baustellen zu
+ * zählen. Jetzt zählt die Datenbank: eine Zeile je Tag. Ändert sich im
+ * Betrieb ein Einsatz, wird neu gezählt — gebündelt auf höchstens einmal je
+ * Sekunde, ein Speichern mit mehreren Personen ist eine Meldung je Zeile.
+ */
+export function beobachteEinsatzTage(
+  companyId: string,
+  von: string,
+  bis: string,
+  cb: (tage: Map<string, number>) => void,
+  onError: (e: Error) => void,
+): () => void {
+  let weg = false;
+  let lauf = 0;
+  let geplant: ReturnType<typeof setTimeout> | undefined;
+  const zaehlen = async () => {
+    const meiner = ++lauf;
+    const { data, error } = await derClient().rpc('einsatz_tage', { p_von: von, p_bis: bis });
+    // Eine ältere Antwort darf eine neuere nicht überschreiben.
+    if (weg || meiner !== lauf) return;
+    if (error) {
+      onError(new Error(error.message));
+      return;
+    }
+    cb(new Map(((data ?? []) as Array<{ datum: string; baustellen: number }>).map((z) => [z.datum, Number(z.baustellen)])));
+  };
+  const bald = () => {
+    if (geplant) return;
+    geplant = setTimeout(() => {
+      geplant = undefined;
+      void zaehlen();
+    }, 1000);
+  };
+  void zaehlen();
+  const stopp = kanalHalten({
+    tabelle: EINSAETZE,
+    filter: `company_id=eq.${companyId}`,
+    beiAenderung: bald,
+    beiBereit: bald,
+    client: derClient(),
+  });
+  return () => {
+    weg = true;
+    if (geplant) clearTimeout(geplant);
+    stopp();
+  };
 }
 
 export type AssignmentInput = Omit<Assignment, 'id' | 'companyId' | 'createdAt'>;

@@ -78,11 +78,13 @@ vi.mock('@/lib/db/abwesenheiten', () => ({
   listBetriebsurlaubeImZeitraum: vi.fn(async () => betriebsurlaube),
 }));
 /*
-  DAS ABO LIEFERT JE MONAT, wie die Datenbank. Zurückgehalten (`abo.halten`)
-  kommt die Antwort erst mit `liefern()` — so lässt sich die Zeit prüfen, in
-  der ein Monat noch lädt (Befund 09.11.2026).
+  DAS ABO LIEFERT JE WOCHE (seit L9 die Woche des gewählten Tages), wie die
+  Datenbank. Zurückgehalten (`abo.halten`) kommt die Antwort erst mit
+  `liefern()` — so lässt sich die Zeit prüfen, in der die Woche noch lädt
+  (Befund 09.11.2026). `abo.bereiche` hält fest, welche Zeiträume geholt
+  wurden.
 */
-const abo: { halten: boolean; offen: { monat: string; liefern: () => void }[] } = { halten: false, offen: [] };
+const abo: { halten: boolean; offen: { woche: string; liefern: () => void }[]; bereiche: string[] } = { halten: false, offen: [], bereiche: [] };
 /**
  * Jedes Abo, das je aufgemacht wurde — für eine spätere Live-Meldung (P1).
  * Abgelöste rufen ins Leere: die Ansicht verwirft Meldungen eines alten Abos selbst.
@@ -92,18 +94,29 @@ function liveMelden() {
   for (const f of live.einsaetze) f();
   for (const f of live.listen) f();
 }
+/** Die Zählung je Tag, wie `einsatz_tage` sie liefert: Baustellen, nicht Personen. */
+const zaehlungen: string[] = [];
 vi.mock('@/lib/db/assignments', () => ({
-  subscribeAssignmentsForMonth: (
+  subscribeAssignmentsInRange: (
     _c: string,
-    j: number,
-    m: number,
+    von: string,
+    bis: string,
     cb: (rows: (Assignment & { id: string })[]) => void,
   ) => {
-    const monat = `${j}-${String(m + 1).padStart(2, '0')}`;
-    const liefern = () => cb(einsaetze.filter((a) => a.date.startsWith(monat)));
+    abo.bereiche.push(`${von}…${bis}`);
+    const liefern = () => cb(einsaetze.filter((a) => a.date >= von && a.date <= bis));
     live.einsaetze.push(liefern);
-    if (abo.halten) abo.offen.push({ monat, liefern });
+    if (abo.halten) abo.offen.push({ woche: von, liefern });
     else liefern();
+    return () => undefined;
+  },
+  beobachteEinsatzTage: (_c: string, von: string, bis: string, cb: (tage: Map<string, number>) => void) => {
+    zaehlungen.push(`${von}…${bis}`);
+    const tage = new Map<string, Set<string>>();
+    for (const a of einsaetze.filter((x) => x.date >= von && x.date <= bis)) {
+      tage.set(a.date, (tage.get(a.date) ?? new Set()).add(a.projectNumber));
+    }
+    cb(new Map([...tage].map(([d, b]) => [d, b.size])));
     return () => undefined;
   },
   saveAssignments: (...a: unknown[]) => {
@@ -237,6 +250,8 @@ beforeEach(() => {
   einsaetze = [];
   abo.halten = false;
   abo.offen = [];
+  abo.bereiche = [];
+  zaehlungen.length = 0;
   listenAbo.halten = false;
   listenAbo.offen = [];
   live.einsaetze = [];
@@ -1460,7 +1475,7 @@ describe('Tag planen — Blättern im Monat löscht nichts', () => {
     expect(await screen.findByText(/Einsatz planen — Mo\., 30\.11\.2026/)).toBeInTheDocument();
   });
 
-  it('speichert nicht, solange die Einsätze des Monats noch nicht da sind — auch nicht beim Einstieg', async () => {
+  it('speichert nicht, solange die Einsätze der Woche noch nicht da sind — auch nicht beim Einstieg', async () => {
     abo.halten = true;
     zeige({ datum: '2026-09-20', projectNumber: '2026-042' });
     await screen.findByText(/Einsatz planen — So\., 20\.09\.2026/);
@@ -1469,13 +1484,13 @@ describe('Tag planen — Blättern im Monat löscht nichts', () => {
     expect(speichernKnopf()).toBeDisabled();
     expect(screen.getByText(/Die Planung dieses Tages wird noch geladen/)).toBeInTheDocument();
 
-    await act(async () => abo.offen.find((o) => o.monat === '2026-09')!.liefern());
+    await act(async () => abo.offen.find((o) => o.woche === '2026-09-14')!.liefern());
     await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked());
     expect(speichernKnopf()).toBeEnabled();
     expect(screen.queryByText(/Die Planung dieses Tages wird noch geladen/)).toBeNull();
   });
 
-  it('… und nach dem Blättern, bis der neue Monat geliefert hat', async () => {
+  it('… und nach dem Blättern, bis die neue Woche geliefert hat', async () => {
     zeige({ datum: '2026-09-20', projectNumber: '2026-042' });
     await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked());
     abo.halten = true;
@@ -1485,7 +1500,7 @@ describe('Tag planen — Blättern im Monat löscht nichts', () => {
     // Die Tagesliste behauptet kein „Keine Einsätze“, solange sie nichts weiß.
     expect(screen.queryByText('Keine Einsätze an diesem Tag.')).toBeNull();
 
-    await act(async () => abo.offen.find((o) => o.monat === '2026-10')!.liefern());
+    await act(async () => abo.offen.find((o) => o.woche === '2026-10-19')!.liefern());
     await waitFor(() => expect(speichernKnopf()).toBeEnabled());
     expect(screen.getByText('Keine Einsätze an diesem Tag.')).toBeInTheDocument();
   });
@@ -1718,5 +1733,44 @@ describe('Einsatzplanung — im Einblick des Supports', () => {
     expect(await screen.findByRole('button', { name: /kopieren$/ })).toBeInTheDocument();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     expect(screen.getByRole('checkbox', { name: 'Auch an den folgenden Tagen' })).toBeInTheDocument();
+  });
+});
+
+/*
+  L9 (Durchsicht 15.11.2026): die Tagesplanung lud für einen Tag den ganzen
+  Monat aller Personen. Jetzt die Woche des Tages, und die Markierungen im
+  Kalender als Zählung je Tag aus der Datenbank (`einsatz_tage`).
+*/
+describe('Tag planen — lädt die Woche, zählt den Monat', () => {
+  const einsatz = (id: string, date: string, wer: AppUser, projectNumber = '2026-042') =>
+    ({ id, companyId: 'perl', date, projectNumber, userId: wer.uid, userName: wer.name }) as Assignment & { id: string };
+
+  beforeEach(() => {
+    einsaetze = [
+      einsatz('a1', '2026-09-16', MONTEUR),
+      einsatz('a2', '2026-09-16', KOLLEGE),
+      einsatz('a3', '2026-09-16', KOLLEGE, '2026-043'),
+      einsatz('a4', '2026-09-03', MONTEUR),
+    ];
+  });
+
+  it('holt die Einsätze der Woche des Tages, nicht des Monats — Gegenprobe: ein Tag in derselben Woche holt nichts nach', async () => {
+    zeige({ datum: '2026-09-16' });
+    await screen.findByText(/Einsatz planen — Mi\., 16\.09\.2026/);
+    expect(abo.bereiche).toEqual(['2026-09-14…2026-09-20']);
+    await userEvent.click(screen.getByRole('button', { name: /^Freitag, 18\. September/ }));
+    await screen.findByText(/Einsatz planen — Fr\., 18\.09\.2026/);
+    expect(abo.bereiche).toEqual(['2026-09-14…2026-09-20']);
+    await userEvent.click(screen.getByRole('button', { name: /^Donnerstag, 3\. September/ }));
+    await screen.findByText(/Einsatz planen — Do\., 03\.09\.2026/);
+    expect(abo.bereiche).toEqual(['2026-09-14…2026-09-20', '2026-08-31…2026-09-06']);
+  });
+
+  it('die Markierungen kommen als Zählung der Baustellen je Tag, für den ganzen Monat', async () => {
+    zeige({ datum: '2026-09-16' });
+    expect(await screen.findByRole('button', { name: /^Mittwoch, 16\. September, 2 Baustellen geplant$/ })).toBeInTheDocument();
+    // Auch außerhalb der geladenen Woche.
+    expect(screen.getByRole('button', { name: /^Donnerstag, 3\. September, 1 Baustelle geplant$/ })).toBeInTheDocument();
+    expect(zaehlungen).toEqual(['2026-09-01…2026-09-30']);
   });
 });

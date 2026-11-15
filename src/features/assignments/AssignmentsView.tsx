@@ -8,7 +8,8 @@ import { listUsers } from '@/lib/db/users';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { listAbwesendInRange, type Abwesenheit } from '@/lib/db/vacations';
 import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
-import { subscribeAssignmentsForMonth, deleteAssignment, einsatzFolgetage, einsatzFolgetageEntfernen } from '@/lib/db/assignments';
+import { beobachteEinsatzTage, subscribeAssignmentsInRange, deleteAssignment, einsatzFolgetage, einsatzFolgetageEntfernen } from '@/lib/db/assignments';
+import { montagDer, wocheAb } from './wochenplan';
 import FolgetageWahl from './FolgetageWahl';
 import { entferntText, RuestlisteFrage } from '@/lib/db/ruestlisteFrage';
 import RuestlisteWahl from './RuestlisteWahl';
@@ -127,13 +128,12 @@ export default function AssignmentsView() {
     bestehende Einteilung. Aus der Zeichenkette gelesen, nicht über
     toISOString — das rechnet in UTC.
   */
-  const monatsSchluessel = date.slice(0, 7);
   const cursor = { year: Number(date.slice(0, 4)), month: Number(date.slice(5, 7)) - 1 };
   const [projectNumber, setProjectNumber] = useState(uebergabe?.projectNumber ?? '');
-  const [monthAssignments, setMonthAssignments] = useState<WithId<Assignment>[]>([]);
+  const [wochenEinsaetze, setWochenEinsaetze] = useState<WithId<Assignment>[]>([]);
   /**
-   * Für welchen Monat das Abonnement zuletzt geliefert hat (wie
-   * `useWochenDaten`). Erst wenn er der Monat des gewählten Tages ist, kennt
+   * Für welche Woche (ihr Montag) das Abonnement zuletzt geliefert hat (wie
+   * `useWochenDaten`). Erst wenn es die Woche des gewählten Tages ist, kennt
    * das Formular die vorhandene Einteilung — vorher wird nicht gespeichert.
    */
   const [einsaetzeFuer, setEinsaetzeFuer] = useState<string | null>(null);
@@ -224,23 +224,28 @@ export default function AssignmentsView() {
   }, [user, cursor.year, cursor.month]);
 
   /**
-   * Der ganze Monat, live. Live ist hier kein Luxus: nach dem Speichern
-   * musste die alte Fassung von Hand nachladen, und plante jemand anderes
-   * parallel, sah man es nicht.
+   * DIE WOCHE DES GEWÄHLTEN TAGES, live (L9, Durchsicht 15.11.2026). Live ist
+   * hier kein Luxus: nach dem Speichern musste die alte Fassung von Hand
+   * nachladen, und plante jemand anderes parallel, sah man es nicht.
+   *
+   * Bis 17.11.2026 kam der ganze Monat aller Personen (bei 50 Personen 1.050
+   * Zeilen, 405 KB), gebraucht wird der Tag. Die Woche statt nur des Tages:
+   * wer in derselben Woche einen Tag weiter klickt, wartet nicht.
    */
+  const wochenMontag = montagDer(date);
   useEffect(() => {
     if (!user) return;
-    const fuer = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}`;
-    // Eine späte Meldung des abgelösten Monats darf nicht als der neue gelten.
+    const sonntag = wocheAb(wochenMontag)[6];
+    // Eine späte Meldung der abgelösten Woche darf nicht als die neue gelten.
     let aktiv = true;
-    const beenden = subscribeAssignmentsForMonth(
+    const beenden = subscribeAssignmentsInRange(
       user.companyId,
-      cursor.year,
-      cursor.month,
+      wochenMontag,
+      sonntag,
       (rows) => {
         if (!aktiv) return;
-        setMonthAssignments(rows);
-        setEinsaetzeFuer(fuer);
+        setWochenEinsaetze(rows);
+        setEinsaetzeFuer(wochenMontag);
         // Ein früherer Ladefehler gilt nicht mehr, sobald die Liste wieder da ist (Z10).
         setError(null);
       },
@@ -253,24 +258,33 @@ export default function AssignmentsView() {
       aktiv = false;
       beenden();
     };
-  }, [user, cursor.year, cursor.month]);
-  const einsaetzeDa = einsaetzeFuer === monatsSchluessel;
+  }, [user, wochenMontag]);
+  const einsaetzeDa = einsaetzeFuer === wochenMontag;
 
   const dayAssignments = useMemo(
-    () => monthAssignments.filter((a) => a.date === date),
-    [monthAssignments, date],
+    () => wochenEinsaetze.filter((a) => a.date === date),
+    [wochenEinsaetze, date],
   );
 
-  /** Belegte Tage: gezählt wird die Zahl der BAUSTELLEN, nicht der Personen. */
-  const marks = useMemo(() => {
-    const byDay = new Map<string, Set<string>>();
-    for (const a of monthAssignments) {
-      const set = byDay.get(a.date) ?? new Set<string>();
-      set.add(a.projectNumber);
-      byDay.set(a.date, set);
-    }
-    return new Map([...byDay].map(([d, set]) => [d, set.size]));
-  }, [monthAssignments]);
+  /**
+   * Belegte Tage des Monats: gezählt wird die Zahl der BAUSTELLEN, nicht der
+   * Personen — von der Datenbank (`einsatz_tage`), live. Fällt die Zählung
+   * aus, fehlen nur die Markierungen; der Tag steht.
+   */
+  const [marks, setMarks] = useState<Map<string, number>>(new Map());
+  useEffect(() => {
+    if (!user) return;
+    const prefix = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}`;
+    const letzter = new Date(cursor.year, cursor.month + 1, 0).getDate();
+    setMarks(new Map());
+    return beobachteEinsatzTage(
+      user.companyId,
+      `${prefix}-01`,
+      `${prefix}-${String(letzter).padStart(2, '0')}`,
+      setMarks,
+      () => setNebenFehler('Die Markierungen im Kalender'),
+    );
+  }, [user, cursor.year, cursor.month]);
 
   // Nur Außendienst wird eingeplant — Buchhaltung und Verwaltung fahren nicht raus.
   const staff = useMemo(
