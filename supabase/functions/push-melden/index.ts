@@ -33,6 +33,7 @@ import {
   textAngebotLink,
   textAntrag,
   textEntscheidung,
+  textKuerzung,
   textFreistellungAntrag,
   textFreistellungEntscheidung,
   textKrankmeldung,
@@ -267,6 +268,14 @@ async function auftraegeAbwesenheit(ereignis: Ereignis): Promise<Auftrag[] | nul
   if (ereignis.art === 'entschieden') {
     return a.userId
       ? [{ art: 'notifyAbwesenheit', uids: [a.userId], meldung: textEntscheidung(a, kennung) }]
+      : [];
+  }
+  if (ereignis.art === 'gekuerzt') {
+    // Der letzte Eintrag im Verlauf des Antrags ist die Kürzung, die das Ereignis auslöste (Z1).
+    const verlauf = ereignis.zeile?.aenderungen;
+    const letzte = Array.isArray(verlauf) ? verlauf[verlauf.length - 1] : null;
+    return a.userId
+      ? [{ art: 'notifyAbwesenheit', uids: [a.userId], meldung: textKuerzung(a, kennung, letzte) }]
       : [];
   }
   if (ereignis.art === 'freistellung-entschieden') {

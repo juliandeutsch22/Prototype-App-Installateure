@@ -102,14 +102,31 @@ export function UrlaubsantragFenster({
           jetzt: true,
         });
       } else {
+        /*
+          GEKÜRZT (Z1): jede Kürzung nach der Genehmigung als eigener Punkt —
+          wann, von wem, warum, und was vorher galt. Eine Rücknahme danach
+          steht wie bisher zuletzt.
+        */
+        const kuerzungen: LotPunkt[] = (v.aenderungen ?? []).map((x) => ({
+          titel: 'Gekürzt',
+          zeit: am(Date.parse(x.am)),
+          text: [
+            vonUndGrund(x.von, x.grund),
+            x.vorher ? `vorher ${zeitraumText(x.vorher.von, x.vorher.bis)}` : '',
+            x.gestrichen?.length ? `gestrichen ${x.gestrichen.map(datumAT).join(', ')}` : '',
+            (x.nachher?.length ?? 0) > 1 ? `geteilt in ${x.nachher!.map((t) => zeitraumText(t.von, t.bis)).join(' und ')}` : '',
+          ].filter(Boolean).join(' · ') || undefined,
+        }));
         if (v.status === 'Storniert' && v.genehmigtAm) {
           punkte.push({ titel: 'Genehmigt', zeit: am(v.genehmigtAm), text: vonUndGrund(v.genehmigtVonName) });
         }
+        if (v.status === 'Storniert') punkte.push(...kuerzungen);
         punkte.push({
           titel: v.status,
           zeit: am(v.entschiedenAm),
           text: vonUndGrund(v.entschiedenVonName, v.grund),
         });
+        if (v.status !== 'Storniert') punkte.push(...kuerzungen);
       }
     }
     /*

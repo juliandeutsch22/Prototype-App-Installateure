@@ -46,6 +46,20 @@ export function listApprovedVacationsInRange(
   return pg.listApprovedVacationsInRange(companyId, vonIso, bisIso, max);
 }
 
+/** Genehmigt, noch nicht vorbei — siehe `pg.listGenehmigtNochNichtVorbei` (Z1). */
+export function listGenehmigtNochNichtVorbei(
+  companyId: string, heute: string, max = 100,
+): Promise<WithId<Vacation>[]> {
+  return pg.listGenehmigtNochNichtVorbei(companyId, heute, max);
+}
+
+/** Einen genehmigten Urlaub kürzen — siehe `pg.kuerzen` (Z1). */
+export function kuerzen(daten: Parameters<typeof pg.kuerzen>[0]): Promise<pg.UrlaubsKuerzung> {
+  return pg.kuerzen(daten);
+}
+
+export type { UrlaubsKuerzung } from './pg/vacations';
+
 /** Wer in diesem Zeitraum abwesend ist — ohne Grund; für den Wochenplan. */
 export function listAbwesendInRange(vonIso: string, bisIso: string): Promise<pg.Abwesenheit[]> {
   return pg.listAbwesendInRange(vonIso, bisIso);

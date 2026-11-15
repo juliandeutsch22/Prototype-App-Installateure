@@ -1609,6 +1609,24 @@ export type TagesStatus =
  * Monatsbilanz und Auswertung unverändert weiter, und ein genehmigter
  * Urlaubstag taucht nicht als „Zeit fehlt" auf der Startseite auf.
  */
+/** Eine Kürzung eines genehmigten Antrags, wie sie am Antrag steht (`vacations.aenderungen`). */
+export interface UrlaubAenderung {
+  art: 'gekuerzt';
+  /** Zeitpunkt als ISO-Text — so legt ihn die Datenbank in die Liste. */
+  am: string;
+  /** Wer gekürzt hat. */
+  von?: string;
+  grund?: string;
+  vorher?: { von: string; bis: string; tage?: number };
+  /** Die Zeiträume danach — mehr als einer, wenn ein Tag mitten im Urlaub gestrichen wurde. */
+  nachher?: { von: string; bis: string }[];
+  gestrichen?: string[];
+  /** Wie viele Tage aus dem Zeitkonto gingen. */
+  entfernt?: number;
+  /** Bei einem abgeteilten Antrag: die Kennung des ursprünglichen. */
+  aus?: string;
+}
+
 export interface Vacation {
   id: string;
   companyId: string;
@@ -1645,6 +1663,12 @@ export interface Vacation {
    * Schreibt nur die Datenbank (`krankmeldung_speichern`).
    */
   krankTage?: Array<{ tag: string; anteil: number; am?: string }>;
+  /**
+   * Was nach der Genehmigung geändert wurde (Z1): je Kürzung wann, von wem,
+   * warum, Zeitraum vorher und nachher. Schreibt nur die Datenbank
+   * (`urlaub_kuerzen`).
+   */
+  aenderungen?: UrlaubAenderung[];
   /**
    * Begründung bei Ablehnung oder Storno.
    *

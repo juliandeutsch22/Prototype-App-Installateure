@@ -377,6 +377,29 @@ export function textEntscheidung(a: AbwesenheitDoc, id: string): Meldung {
   };
 }
 
+/**
+ * Ein genehmigter Urlaub wurde gekürzt (Z1): was bleibt und warum. Ein Tag
+ * mitten im Urlaub teilt ihn — dann stehen alle Teile da. Der Sprung führt
+ * genau zu diesem Antrag.
+ */
+export function textKuerzung(
+  a: AbwesenheitDoc,
+  id: string,
+  aenderung?: { nachher?: { von?: string; bis?: string }[]; grund?: string } | null,
+): Meldung {
+  const was = istZa(a) ? 'Zeitausgleich' : 'Urlaub';
+  const teile = (aenderung?.nachher?.length ? aenderung.nachher : [{ von: a.von, bis: a.bis }])
+    .map((t) => zeitraumKurz({ von: t.von, bis: t.bis }))
+    .filter(Boolean);
+  const grund = aenderung?.grund?.trim();
+  return {
+    title: `${was} gekürzt`,
+    body: `Bleibt: ${teile.join(' und ')}${grund ? ` — ${grund}` : ''}`,
+    link: `/vacations?antrag=${encodeURIComponent(id)}`,
+    tag: `antrag-${id}`,
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /* Sonderurlaub (Plan 10.3)                                            */
 /* ------------------------------------------------------------------ */

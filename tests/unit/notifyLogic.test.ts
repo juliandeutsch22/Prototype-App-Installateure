@@ -19,6 +19,7 @@ import {
   empfaengerKrankmeldung,
   textAntrag,
   textEntscheidung,
+  textKuerzung,
   textKrankmeldung,
   type Belegschaftsmitglied,
 } from '@shared/notifyLogic';
@@ -326,6 +327,20 @@ describe('Abwesenheiten', () => {
     expect(textEntscheidung(u, 'v2')).toMatchObject({ title: 'Urlaub genehmigt', tag: 'antrag-v2' });
     expect(textEntscheidung({ ...u, status: 'Abgelehnt' }, 'v2').title).toBe('Urlaub abgelehnt');
     expect(textEntscheidung({ ...u, status: 'Storniert' }, 'v2').title).toBe('Urlaub zurückgenommen');
+  });
+
+  it('eine Kürzung nennt, was bleibt, und den Grund — und führt genau zu diesem Antrag (Z1)', () => {
+    const u = abwesenheitAusZeile({
+      company_id: 'perl', user_id: 'mo', user_name: 'Max', von: '2027-09-06', bis: '2027-09-07', art: 'Urlaub', status: 'Genehmigt',
+    })!;
+    expect(textKuerzung(u, 'v7', {
+      nachher: [{ von: '2027-09-06', bis: '2027-09-07' }, { von: '2027-09-09', bis: '2027-09-17' }], grund: 'Baustelle Huber',
+    })).toEqual({
+      title: 'Urlaub gekürzt', body: 'Bleibt: 06.09.–07.09. und 09.09.–17.09. — Baustelle Huber',
+      link: '/vacations?antrag=v7', tag: 'antrag-v7',
+    });
+    // Ohne Verlauf (ältere Zeile): der Zeitraum des Antrags.
+    expect(textKuerzung({ ...u, art: 'Zeitausgleich' }, 'v8').body).toBe('Bleibt: 06.09.–07.09.');
   });
 
   it('die Krankmeldung verrät nicht mehr als Name und Zeitraum', () => {

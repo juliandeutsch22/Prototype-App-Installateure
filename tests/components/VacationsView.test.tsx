@@ -53,6 +53,11 @@ const callUrlaubEntscheiden = vi.fn<(a0: {
       entscheiderName?: string;
     }) => Promise<{ status: string; angelegt: number; uebersprungen: number; entfernt: number }>>(async () => ({ status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 }));
 
+/** Kürzen (Z1) — die Datenbank meldet, was entfernt wurde. */
+const urlaubKuerzen = vi.fn<(d: { vacationId: string; von: string; bis: string; streichen: string[]; grund: string; name?: string }) => Promise<{ entfernt: number; teile: number; antraege: string[] }>>(
+  async () => ({ entfernt: 2, teile: 1, antraege: ['v-mo'] }),
+);
+
 /** Genehmigter Urlaub im Zeitraum — wie die Datenbank: überlappend, einschliesslich der Ränder (17 H). */
 const listApprovedVacationsInRange = vi.fn<(c: string, von: string, bis: string, max?: number) => Promise<Vacation[]>>(async (_c, von, bis) =>
   antraege.filter((v) => v.status === 'Genehmigt' && v.bis >= von && v.von <= bis));
@@ -75,7 +80,14 @@ vi.mock('@/lib/db/vacations', () => ({
   */
   entscheiden: (a: unknown) =>
     callUrlaubEntscheiden(...([a] as Parameters<typeof callUrlaubEntscheiden>)),
+  // Z1: Genehmigt, noch nicht vorbei — wie die Datenbank: ohne Betriebsurlaub, früheste zuerst.
+  listGenehmigtNochNichtVorbei: vi.fn(async (_c: string, heute: string) =>
+    antraege.filter((v) => v.status === 'Genehmigt' && v.bis >= heute && !v.betriebsurlaubId)
+      .sort((a, b) => a.von.localeCompare(b.von))),
+  getVacation: vi.fn(async (_c: string, id: string) => antraege.find((v) => v.id === id) ?? null),
+  kuerzen: (d: unknown) => urlaubKuerzen(d as Parameters<typeof urlaubKuerzen>[0]),
 }));
+
 /** Die Belegschaft — je Test umgestellt, für die Frage „entscheidet jemand anderer?". */
 let belegschaft: AppUser[] = [monteur];
 /** Das eigene Profil — je Test umstellbar (G13: die Administration führt kein Zeitkonto). */
@@ -173,9 +185,9 @@ vi.mock('@/app/AuthContext', () => ({
 
 const { default: VacationsView } = await import('@/features/vacations/VacationsView');
 
-function zeichne() {
+function zeichne(start = '/vacations') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[start]}>
       <ToastProvider>
         <VacationsView />
       </ToastProvider>
@@ -1957,3 +1969,85 @@ describe('Antrag mit Verlauf (Linie „Lot“)', () => {
     expect(within(fenster).queryByRole('button', { name: 'Zurückziehen' })).toBeNull();
   });
 });
+
+/*
+  Z1 (Durchsicht 15.11.2026): ein genehmigter Urlaub einer ANDEREN Person
+  ließ sich mit eingeschaltetem Modul Urlaub nirgends zurücknehmen — in jedem
+  Betrieb mit zwei Entscheidenden auch der eigene nicht. Jetzt gibt es die
+  Liste „Genehmigt, noch nicht vorbei“ mit Kürzen und Zurücknehmen, und der
+  Sprung vom Tag (`?antrag=`) öffnet genau diesen Antrag.
+*/
+describe('Genehmigt, noch nicht vorbei (Z1)', () => {
+  const chefin: AppUser = { ...monteur, id: 'chef', uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung' };
+  const buero: AppUser = { ...monteur, id: 'buch', uid: 'buch', name: 'Herr Bauer', role: 'Buchhaltung' };
+  const urlaubDesMonteurs = {
+    id: 'v-mo', companyId: 'perl', userId: 'm1', userName: 'Max Mustermann', art: 'Urlaub' as const,
+    von: '2026-11-02', bis: '2026-11-06', tage: 5, status: 'Genehmigt' as const, entschiedenVonName: 'Julian Deutsch',
+  };
+
+  beforeEach(() => {
+    rolle = { ...rolle, uid: 'buch', name: 'Herr Bauer', role: 'Buchhaltung', docId: 'buch' };
+    belegschaft = [monteur, chefin, buero];
+    eigenesProfil = buero;
+    urlaubKuerzen.mockClear();
+    antraege.push(urlaubDesMonteurs);
+  });
+
+  it('die Buchhaltung nimmt den genehmigten Urlaub des Monteurs zurück — mit Grund', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: /Max Mustermann – Antrag öffnen/ }));
+    const fenster = await screen.findByRole('dialog', { name: 'Urlaubsantrag' });
+    expect(within(fenster).getByText(/Max Mustermann · /)).toBeInTheDocument();
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Zurücknehmen' }));
+    const dialog = await screen.findByRole('dialog', { name: /Urlaub von Max Mustermann zurücknehmen/ });
+    await nutzer.type(within(dialog).getByLabelText(/Grund/), 'Auftrag vorgezogen');
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Zurücknehmen' }));
+    await waitFor(() => expect(callUrlaubEntscheiden).toHaveBeenCalledWith(
+      expect.objectContaining({ vacationId: 'v-mo', entscheidung: 'Storniert', grund: 'Auftrag vorgezogen' }),
+    ));
+  });
+
+  it('kürzt: früher zurück, mit Grund — und sagt vorher, was bleibt', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: /Max Mustermann – Antrag öffnen/ }));
+    await nutzer.click(within(await screen.findByRole('dialog', { name: 'Urlaubsantrag' })).getByRole('button', { name: 'Kürzen' }));
+    const dialog = await screen.findByRole('dialog', { name: /Urlaub von Max Mustermann kürzen/ });
+    fireEvent.change(within(dialog).getByLabelText('Ende (einschließlich)'), { target: { value: '2026-11-04' } });
+    expect(within(dialog).getByText('Bleibt: 02.11.2026 – 04.11.2026.')).toBeInTheDocument();
+    fireEvent.change(within(dialog).getByLabelText('Einen Tag streichen (freiwillig)'), { target: { value: '2026-11-03' } });
+    expect(within(dialog).getByText(/Bleibt: 02\.11\.2026 und 04\.11\.2026 — der Antrag wird in zwei Teile geteilt/)).toBeInTheDocument();
+    await nutzer.type(within(dialog).getByLabelText(/Grund/), 'Kommt früher zurück');
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Kürzen' }));
+    await waitFor(() => expect(urlaubKuerzen).toHaveBeenCalledWith({
+      vacationId: 'v-mo', von: '2026-11-02', bis: '2026-11-04', streichen: ['2026-11-03'], grund: 'Kommt früher zurück', name: 'Herr Bauer',
+    }));
+  });
+
+  it('der Sprung vom Tag (?antrag=) öffnet genau diesen Antrag', async () => {
+    zeichne('/vacations?antrag=v-mo');
+    const fenster = await screen.findByRole('dialog', { name: 'Urlaubsantrag' });
+    expect(within(fenster).getByText(/Max Mustermann · 5 Urlaubstage/)).toBeInTheDocument();
+    expect(within(fenster).getByRole('button', { name: 'Kürzen' })).toBeInTheDocument();
+  });
+
+  it('den eigenen genehmigten Urlaub ändert jemand anderer: kein Knopf, wo zwei entscheiden', async () => {
+    const nutzer = userEvent.setup();
+    antraege.push({ ...urlaubDesMonteurs, id: 'v-buch', userId: 'buch', userName: 'Herr Bauer', von: '2026-12-01', bis: '2026-12-03' });
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: /Herr Bauer – Antrag öffnen/ }));
+    const fenster = await screen.findByRole('dialog', { name: 'Urlaubsantrag' });
+    expect(within(fenster).queryByRole('button', { name: 'Kürzen' })).toBeNull();
+    expect(within(fenster).queryByRole('button', { name: 'Zurücknehmen' })).toBeNull();
+  });
+
+  it('bleibt gleich: wer nicht entscheidet, sieht die Liste nicht; ein fremder Antrag über die Adresse öffnet nicht', async () => {
+    rolle = { ...rolle, uid: 'm2', name: 'Moritz', role: 'Mitarbeiter', docId: 'm2' };
+    zeichne('/vacations?antrag=v-mo');
+    expect(await screen.findByText(/Diesen Antrag gibt es nicht mehr, oder er ist nicht deiner/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Genehmigt, noch nicht vorbei/)).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Urlaubsantrag' })).toBeNull();
+  });
+});
+
