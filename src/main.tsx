@@ -12,6 +12,7 @@ import { schluesselUmziehen, firestoreResteEntfernen } from './lib/speicher';
 import { darstellungAnwenden } from './lib/darstellung';
 import { startansichtVorladen } from './lib/ansichten';
 import { sitzungVermutlich } from './lib/supabase';
+import { hauptstilBereit } from './lib/hauptstil';
 // V10 (13.11.2026): DM Sans für die Bedienung, Source Serif 4 für größere Titel,
 // IBM Plex Mono für alles Gemessene — alle drei self-gehostet (kein Google-CDN,
 // keine IP-Übermittlung, DSGVO; die CSP lässt keine fremden Schriften zu).
@@ -41,7 +42,8 @@ fehlerBeobachten();
 // Wer angemeldet ist, bekommt den Baustein seiner Seite schon, während die Anmeldung geprüft wird.
 if (sitzungVermutlich()) startansichtVorladen(window.location.pathname);
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+// Erst mit dem Stylesheet zeichnen — es sperrt das erste Bild nicht mehr (L10, siehe lib/hauptstil.ts).
+void hauptstilBereit().then(() => ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <ToastProvider>
@@ -55,4 +57,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       </ToastProvider>
     </BrowserRouter>
   </React.StrictMode>,
-);
+));

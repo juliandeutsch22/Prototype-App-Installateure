@@ -1,5 +1,15 @@
 <!doctype html>
-<html lang="de">
+<!--
+  DIE PAPIERFARBE SOFORT (L10, 17.11.2026). Bis hierher war die Seite weiß,
+  bis das Stylesheet da war — beim Kaltstart auf langsamem 4G gut eine
+  Sekunde. Als Attribut: die Inhaltsregel erlaubt Stil im
+  Attribut (style-src-attr), ein Stil-Element bräuchte einen Hash. Damit die Farbe
+  auch zu sehen ist, sperrt das Stylesheet das erste Bild nicht mehr
+  (`startStil` in vite.config.ts, `hauptstilBereit` in src/main.tsx).
+  Gilt hell; wer „Dunkel“ gewählt hat, bekommt den dunklen Grund mit dem
+  ersten JavaScript (`darstellungAnwenden`) — wie bisher nach dem Weiß.
+-->
+<html lang="de" style="background-color:#f4f0e8">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />

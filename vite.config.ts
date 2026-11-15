@@ -179,6 +179,54 @@ function vorschauSicherheit(): Plugin {
   };
 }
 
+/* ------------------------------------------------------------ Start-Stil --- */
+
+/** Die Schriften, die die erste Seite sicher braucht: DM Sans normal und mittel. */
+const VORAB_SCHRIFTEN = /(^|\/)dm-sans-latin-(400|500)-normal-[\w-]+\.woff2$/;
+
+/**
+ * Den Kopf von `index.html` für das erste Bild umschreiben (L10). Getrennt
+ * von Vite, damit es sich ohne Bau prüfen lässt.
+ *
+ * DAS STYLESHEET SPERRT DAS ERSTE BILD NICHT MEHR. Solange ein Stylesheet im
+ * Kopf aussteht, zeichnet der Browser gar nichts — auch nicht die Papierfarbe
+ * am `<html>` (gemessen: erstes Bild 1,15 s, gleich ob mit oder ohne Farbe).
+ * Jetzt lädt es als `media="print"` (sperrt nichts) und mit hoher Priorität
+ * vorab (`preload`); `src/main.tsx` schaltet es ein und zeichnet die App
+ * erst, wenn es geladen ist — ohne ungestylten Zwischenstand.
+ *
+ * DIE SCHRIFTEN VORAB. Ohne Hinweis entdeckt der Browser sie erst, wenn Text
+ * sie braucht: nach dem ersten Inhalt, und dann tauschen sie sichtbar.
+ */
+export function startStilEinsetzen(html: string, schriften: string[]): string {
+  let raus = html.replace(
+    /<link rel="stylesheet"( crossorigin)? href="(\/assets\/[^"]+\.css)">/g,
+    (_g, co: string | undefined, href: string) =>
+      `<link rel="preload" as="style"${co ?? ''} href="${href}">` +
+      `<link rel="stylesheet"${co ?? ''} href="${href}" media="print" data-hauptstil>`,
+  );
+  const vorab = schriften
+    .filter((d) => VORAB_SCHRIFTEN.test(d))
+    .sort()
+    .map((d) => `<link rel="preload" as="font" type="font/woff2" crossorigin href="/${d.replace(/^\//, '')}">`)
+    .join('');
+  if (vorab) raus = raus.replace('</title>', `</title>${vorab}`);
+  return raus;
+}
+
+function startStil(): Plugin {
+  return {
+    name: 'start-stil',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html, ctx) {
+        return startStilEinsetzen(html, Object.keys(ctx.bundle ?? {}));
+      },
+    },
+  };
+}
+
 /* ------------------------------------------------------ Leistungswächter --- */
 
 /** Ein Baustein des Baus, so weit der Wächter ihn braucht. */
@@ -408,7 +456,7 @@ function leistungswaechter(): Plugin {
 const KENNUNG = fassungsKennung();
 
 export default defineConfig({
-  plugins: [react(), fassungsDatei(KENNUNG), datenbankVorverbinden(), vorschauSicherheit(), leistungswaechter()],
+  plugins: [react(), fassungsDatei(KENNUNG), datenbankVorverbinden(), vorschauSicherheit(), startStil(), leistungswaechter()],
   define: {
     __FASSUNG__: JSON.stringify(KENNUNG),
   },

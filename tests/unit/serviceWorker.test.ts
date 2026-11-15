@@ -708,6 +708,38 @@ describe('Service Worker — eine Hülle, die starten kann', () => {
     expect(u.geholt).toEqual([]);
   });
 
+  /*
+    L10 (17.11.2026): der Kopf nennt das Stylesheet zweimal (vorab geladen und
+    als Stylesheet für alle Medien) und die Schriften als Vorab-Links. Jeder
+    Start-Baustein wird beim Wechsel einmal geholt, und die Schriften gehören
+    zu dem, womit die Hülle startet — sie bleiben beim Übernehmen liegen.
+  */
+  it('L10: Stylesheet und Schriften im Kopf — einmal geholt, beim Übernehmen behalten', async () => {
+    const kopf = (n: string) =>
+      `<!doctype html><link rel="preload" as="font" type="font/woff2" crossorigin href="/assets/dm-sans-latin-400-normal-x.woff2">` +
+      `<link rel="preload" as="style" crossorigin href="/assets/index-${n}.css"><link rel="stylesheet" crossorigin href="/assets/index-${n}.css" media="print" data-hauptstil>` +
+      `<script type="module" crossorigin src="/assets/index-${n}.js"></script>`;
+    const netzKopf = (fassung: string) => (url: string) => (url.endsWith('/index.html')
+      ? new Response(kopf(fassung), { status: 200, headers: { 'content-type': 'text/html' } })
+      : new Response('baustein', { status: 200, headers: { 'content-type': url.endsWith('.css') ? 'text/css' : 'text/javascript' } }));
+    u.antwort = netzKopf('a1');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    for (const pfad of ['/assets/index-a1.js', '/assets/index-a1.css', '/assets/dm-sans-latin-400-normal-x.woff2']) {
+      await anfrage(u, `https://app.test${pfad}`);
+    }
+    await vi.waitFor(() => expect(u.speicher.get('perl-teile')?.eintraege.size).toBe(3));
+    u.antwort = netzKopf('b2');
+    u.geholt.length = 0;
+    await anfrage(u, 'https://app.test/', 'navigate');
+    await vi.waitFor(() => expect(u.gesagt).toContain('neueFassung'));
+    expect(u.geholt.filter((g) => g.endsWith('/assets/index-b2.css'))).toHaveLength(1);
+
+    await u.nachricht('fassungUebernehmen');
+    expect([...u.speicher.get('perl-teile')!.eintraege.keys()].sort()).toEqual([
+      '/assets/dm-sans-latin-400-normal-x.woff2', '/assets/index-b2.css', '/assets/index-b2.js',
+    ]);
+  });
+
   it('ohne erkannten Wechsel löscht das Übernehmen nichts', async () => {
     // Was nicht nachweislich alt ist, bleibt — schlimmstenfalls eine Fassung länger.
     u.antwort = netz('b2');
