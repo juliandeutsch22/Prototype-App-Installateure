@@ -15,6 +15,9 @@ import { test, expect, type Page, type CDPSession } from '@playwright/test';
 
 const pfad = (route: string, rolle = 'Administrator') => `./?pfad=${encodeURIComponent(route)}&rolle=${rolle}`;
 
+/** Die Beobachter der Bewegungen laden nach dem ersten Bild nach (`Layout`): erst danach wirken sie. */
+const beobachterBereit = (page: Page) => expect(page.locator('[data-bewegungen]')).toHaveCount(1);
+
 /**
  * Je Bild einen Wert aufzeichnen — ab dem Bild, in dem das Element (wieder)
  * da ist, `ms` lang; verschwindet es, endet die Spur mit „—“.
@@ -121,6 +124,7 @@ test.describe('B1 Seitenfenster ab dem Tablet', () => {
 
 /** Eine Liste mit mindestens vier Zeilen auf der Seite: ihre Zeilen in DOM-Reihenfolge. */
 async function listeMitZeilen(page: Page) {
+  await beobachterBereit(page);
   await page.waitForFunction(() => [...document.querySelectorAll('ul')].some((u) => u.querySelectorAll(':scope > li.zeile').length >= 4));
   // Die Ruhe nach dem Seitenwechsel abwarten (`zeilenflussRuhe`).
   await page.waitForTimeout(700);
@@ -279,6 +283,7 @@ test.describe('B5 Unterlinie gleitet', () => {
     await page.goto(pfad(fall.route));
     const wahl = page.getByRole(fall.role, { name: fall.name, exact: true });
     await expect(wahl).toBeVisible();
+    await beobachterBereit(page);
     await page.evaluate(() => {
       const w = window as unknown as { striche: number[]; strichFertig: boolean };
       w.striche = []; w.strichFertig = false;
@@ -638,6 +643,7 @@ test.describe('B11 Fehler am Feld', () => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(pfad('/settings/firma'));
     await expect(page.locator('#fd-iban, input[id^="fd-"]').first()).toBeVisible();
+    await beobachterBereit(page);
     const r = await abweisen(page, false);
     expect(Math.max(...r.lagen.map(Math.abs))).toBeGreaterThan(0.5);
     expect(r.lagen[r.lagen.length - 1]).toBe(0);
@@ -658,6 +664,7 @@ test.describe('B11 Fehler am Feld', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(pfad('/settings/firma'));
     await expect(page.locator('#fd-iban, input[id^="fd-"]').first()).toBeVisible();
+    await beobachterBereit(page);
     const reduziert = await abweisen(page, false);
     expect(reduziert.lagen.every((x) => x === 0)).toBe(true);
     expect(reduziert.fokus).toBe(true);
@@ -668,7 +675,7 @@ test.describe('B11 Fehler am Feld', () => {
 test.describe('B12 Seitenwechsel Liste → Akte', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  /** Ab jetzt je Bild die waagrechte Lage der Seite aufzeichnen (bis 700 ms nach dem Start: die Akte lädt erst ihren Baustein). */
+  /** Ab jetzt je Bild die waagrechte Lage der Seite aufzeichnen (1,2 s: die Akte lädt erst ihren Baustein, unter Last auch länger). */
   const aufnehmen = (page: Page) => page.evaluate(() => {
     const w = window as unknown as { seite: number[]; seiteFertig: boolean };
     w.seite = []; w.seiteFertig = false;
@@ -676,7 +683,7 @@ test.describe('B12 Seitenwechsel Liste → Akte', () => {
     const bild = () => {
       const t = getComputedStyle(document.querySelector('.inhalt')!).transform;
       w.seite.push(t === 'none' ? 0 : new DOMMatrixReadOnly(t).m41);
-      if (performance.now() - t0 < 700) requestAnimationFrame(bild); else w.seiteFertig = true;
+      if (performance.now() - t0 < 1200) requestAnimationFrame(bild); else w.seiteFertig = true;
     };
     requestAnimationFrame(bild);
   });

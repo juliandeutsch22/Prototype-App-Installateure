@@ -39,11 +39,7 @@ import { SeilLot } from './NaviLot';
 import Ladebalken from '@/components/Ladebalken';
 import { datenSparen, imLeerlauf, vorladen } from '@/lib/ansichten';
 import { taktHalten } from '@/lib/takt';
-import { zeilenflussHalten, zeilenflussRuhe } from '@/lib/zeilenfluss';
-import { unterlinieHalten } from '@/lib/unterlinie';
-import { platzhalterHalten } from '@/lib/platzhalter';
-import { aufklappenHalten } from '@/lib/aufklappen';
-import { feldfehlerHalten } from '@/lib/feldfehler';
+import { seitenwechselRuhe } from '@/lib/seitenRuhe';
 import { seitenRichtung } from '@/lib/seitenrichtung';
 import { DAUER, EASE } from '@/lib/bewegung';
 import ZiehenZumAktualisieren from '@/components/ZiehenZumAktualisieren';
@@ -170,36 +166,30 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, []);
 
   /*
-    ZEILEN GEHEN UND KOMMEN SICHTBAR (B2, B3): für jede Liste der App an
-    einer Stelle, wie der Takt (`lib/zeilenfluss.ts`).
+    BEWEGUNGEN, DIE ERKLÄREN (B2, B3, B5, B8, B10, B11): je ein Beobachter
+    über der Inhaltsspalte, für jede Seite an einer Stelle, wie der Takt
+    (`lib/bewegungenHalten.ts`). Nach dem ersten Bild nachgeladen — vorher
+    braucht sie niemand, und vor dem ersten Bild zählt jedes KB (L11).
   */
   useEffect(() => {
     const main = inhalt.current;
-    return main ? zeilenflussHalten(main) : undefined;
-  }, []);
-
-  // Die Unterlinie gleitet zum gewählten Reiter (B5, `lib/unterlinie.ts`) — für jede Leiste der App.
-  useEffect(() => {
-    const main = inhalt.current;
-    return main ? unterlinieHalten(main) : undefined;
-  }, []);
-
-  // Platzhalter gehen in Inhalt über, ohne Sprung (B8, `lib/platzhalter.ts`) — für jede Liste.
-  useEffect(() => {
-    const main = inhalt.current;
-    return main ? platzhalterHalten(main) : undefined;
-  }, []);
-
-  // Aufklappen: die Höhe gleitet, der Pfeil dreht (B10, `lib/aufklappen.ts`) — für jedes `<details>` und jeden Abschnitt.
-  useEffect(() => {
-    const main = inhalt.current;
-    return main ? aufklappenHalten(main) : undefined;
-  }, []);
-
-  // Fehler am Feld: kurzer Ruck, der Fokus springt hin (B11, `lib/feldfehler.ts`) — für jedes Formular.
-  useEffect(() => {
-    const main = inhalt.current;
-    return main ? feldfehlerHalten(main) : undefined;
+    if (!main) return undefined;
+    let abmelden: (() => void) | null = null;
+    let vorbei = false;
+    void import('@/lib/bewegungenHalten')
+      .then((m) => {
+        if (vorbei) return;
+        abmelden = m.bewegungenHalten(main);
+        // Für Prüfungen: ab hier wirken die Beobachter.
+        main.setAttribute('data-bewegungen', '');
+      })
+      // Ohne Netz bleibt die App, wie sie war — nur ohne diese Bewegungen.
+      .catch(() => undefined);
+    return () => {
+      vorbei = true;
+      abmelden?.();
+      main.removeAttribute('data-bewegungen');
+    };
   }, []);
 
   /*
@@ -343,7 +333,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     const von = vorigerPfad.current;
     vorigerPfad.current = ort.pathname;
     // Die neue Seite baut ihre Listen auf — das ist kein „diese Zeile ging“.
-    zeilenflussRuhe();
+    seitenwechselRuhe();
     const el = seite.current;
     if (!el || typeof el.animate !== 'function') return;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;

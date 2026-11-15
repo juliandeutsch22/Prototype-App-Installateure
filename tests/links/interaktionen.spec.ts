@@ -67,6 +67,8 @@ test('Wegwischen: die Abdunkelung nimmt bis zum Abbau ausschließlich ab', async
   await page.goto('./?pfad=%2F&rolle=Administrator');
   await page.locator('.unten button').filter({ hasText: 'Mehr' }).click();
   const dialog = page.getByRole('dialog', { name: 'Weitere Bereiche', exact: true });
+  // Seit B1 (15.11.2026) fährt das Blatt 220 ms von unten herein: gegriffen wird, wo es dann steht.
+  await expect.poll(() => page.locator('.blatt').evaluate((b) => b.getAnimations().length)).toBe(0);
   const griff = (await page.locator('.blatt-griff').boundingBox())!;
   await page.mouse.move(griff.x + griff.width / 2, griff.y + 8); await page.mouse.down();
   await page.mouse.move(griff.x + griff.width / 2, griff.y + 188, { steps: 12 });
@@ -157,6 +159,8 @@ test('Echter Touch am Griff schließt trotz nativer Pointer-Capture zuverlässig
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('./?pfad=%2F&rolle=Administrator');
   await page.locator('.unten button').filter({ hasText: 'Mehr' }).click();
+  // Seit B1 (15.11.2026) fährt das Blatt 220 ms von unten herein: gegriffen wird, wo es dann steht.
+  await expect.poll(() => page.locator('.blatt').evaluate((b) => b.getAnimations().length)).toBe(0);
   const griff = (await page.locator('.blatt-griff').boundingBox())!;
   const cdp = await page.context().newCDPSession(page);
   await finger(page, cdp, griff.x + griff.width / 2, griff.y + 10, 0, 180);

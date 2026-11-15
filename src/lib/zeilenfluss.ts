@@ -1,4 +1,5 @@
 import { DAUER, EASE, kannBewegen, lagen, nachfolger, nachruecken } from './bewegung';
+import { inSeitenRuhe, seitenwechselRuhe } from './seitenRuhe';
 
 /**
  * ZEILEN GEHEN UND KOMMEN SICHTBAR (Plan 15.11.2026, B2 und B3).
@@ -59,11 +60,8 @@ function grenzeVon(el: Element): Element | null {
   return el.closest('.karte, [role="dialog"], .blatt-inhalt, .fenster-inhalt, .inhalt');
 }
 
-let ruheBis = 0;
-/** Nach einem Seitenwechsel eine Weile nichts bewegen: dort baut sich die ganze Seite auf. */
-export function zeilenflussRuhe(ms = 600): void {
-  ruheBis = performance.now() + ms;
-}
+/** Nach einem Seitenwechsel eine Weile nichts bewegen: dort baut sich die ganze Seite auf (`seitenRuhe.ts`). */
+export const zeilenflussRuhe = seitenwechselRuhe;
 
 /** Das Abbild einer gegangenen Zeile: stumm, nicht bedienbar, ohne Kennungen (keine doppelten `id`). */
 function abbild(zeile: HTMLElement): HTMLElement {
@@ -179,7 +177,7 @@ export function zeilenflussHalten(wurzel: HTMLElement): () => void {
       }
     }
     if (!je.size) return;
-    const bewegen = performance.now() >= ruheBis && !document.hidden;
+    const bewegen = !inSeitenRuhe() && !document.hidden;
     for (const [l, { gegangen, neu }] of je) {
       for (const g of gegangen) fokusRetten(g.zeile, l, g.danach, g.davor, zuletzt);
       if (!bewegen || gegangen.length + neu.length > HOECHSTENS || !kannBewegen(l)) continue;

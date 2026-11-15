@@ -46,6 +46,8 @@ test('Premium: mobiles Blatt bleibt bei schnellen Folgen und Ziehen bedienbar', 
     await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0); await expect(mehr).toBeFocused();
   }
   await mehr.click();
+  // Seit B1 (15.11.2026) fährt das Blatt 220 ms von unten herein: gegriffen wird, wo es dann steht.
+  await expect.poll(() => page.locator('.blatt').evaluate((b) => b.getAnimations().length)).toBe(0);
   const griff = await page.locator('.blatt-griff').boundingBox(); expect(griff).not.toBeNull();
   await page.mouse.move(griff!.x + griff!.width / 2, griff!.y + 10); await page.mouse.down();
   await page.mouse.move(griff!.x + griff!.width / 2, griff!.y + 140, { steps: 8 }); await page.mouse.up();
