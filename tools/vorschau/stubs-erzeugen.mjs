@@ -33,7 +33,7 @@ const DATEN = {
   users: { listUsers: 'D.benutzer', getUserByUid: 'D.benutzer[0]' },
   // Buchungstage je Person (Start, „Die Mannschaft“): eine Liste; als NOOP stand „Nicht geladen“ (14.11.2026).
   // Die eigenen Buchungen sind im gewachsenen Bestand weiter die der Beispiele (L11): die Attrappe kennt die Person nicht.
-  timeEntries: { '*': 'D.zeiten', listOwnEntriesSince: 'D.zeitenEigene', listOwnEntriesInRange: 'D.zeitenEigene', subscribeOwnEntriesInRange: 'D.zeitenEigene', arbeitszeitVorlauf: '[]', listUrlaubstage: '[]', subscribeUrlaubstage: '[]', stundenDerBaustellen: '[]', buchungstage: '[]' },
+  timeEntries: { '*': 'D.zeiten', listOwnEntriesSince: 'D.zeitenEigene', listOwnEntriesInRange: 'D.zeitenEigene', subscribeOwnEntriesInRange: 'D.zeitenEigene', arbeitszeitVorlauf: '[]', listUrlaubstage: '[]', subscribeUrlaubstage: '[]', beobachteUrlaubstage: '[]', stundenDerBaustellen: '[]', buchungstage: '[]' },
   // Auftragseingang: eine Seite und die Zählung — als NOOP stand dort nur ein Ladefehler (14.11.2026).
   auftragseingaenge: { listEingaenge: '{ zeilen: [], weiter: null }', zaehleOffeneEingaenge: '{ offen: 0, dringend: 0, notfall: 0 }' },
   projects: { '*': 'D.baustellen' },
@@ -113,7 +113,8 @@ const DATEN = {
   // Runde 4: Termine im Wochenplan, Monat und Tag planen.
   termine: { listTermineImZeitraum: 'D.termine', listTermineDerBaustelle: 'D.termine', listTermineDesKunden: 'D.termine' },
   // Die Einsätze einer Baustelle sind geteilt (V10, 13.11.2026): als NOOP stürzte die Baustellenakte ab.
-  assignments: { '*': 'D.einsaetze', einsaetzeDerBaustelle: '{ kommend: [], vorher: [] }' },
+  // L9: die Markierungen im Kalender kommen als Zählung je Tag (Map), nicht als Liste.
+  assignments: { '*': 'D.einsaetze', einsaetzeDerBaustelle: '{ kommend: [], vorher: [] }', beobachteEinsatzTage: 'new Map<string, number>()' },
   einsatzMaterial: { '*': 'D.ruestlisten', getEinsatzMaterial: 'D.ruestlisten[0]' },
   quotes: {
     '*': 'D.angebote', getQuote: 'D.angebote[0]', acceptQuote: "'B-2026-0042'",
@@ -302,7 +303,8 @@ for (const unter of ORDNER) {
   for (const x of new Set([...namen, ...weiter])) {
     if (schon.has(x)) continue;
     const wert = daten[x] ?? daten['*'] ?? '[]';
-    if (x.startsWith('subscribe')) rumpf += `export const ${x} = SUB(${wert});\n`;
+    // Auch `beobachte…` (L5, L9) ist ein Abo: es gibt eine Aufräumfunktion zurück, kein Versprechen.
+    if (x.startsWith('subscribe') || x.startsWith('beobachte')) rumpf += `export const ${x} = SUB(${wert});\n`;
     // Was in DATEN ausdrücklich steht, gilt auch ohne passenden Namensanfang (etwa `stundenDerBaustellen`).
     else if (Object.hasOwn(daten, x) || /^(list|get|find|search|lade|auszug|eintraege|bilanz)/.test(x))
       rumpf += `export const ${x} = () => A(${wert});\n`;

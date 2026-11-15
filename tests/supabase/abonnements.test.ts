@@ -322,6 +322,40 @@ describe('Jede Änderung, die dazugehört, kommt an', () => {
     expect(ergebnis.ok).toBe(true);
   }, 60_000);
 
+  it('die jüngsten Rechnungen als Köpfe (L6)', async () => {
+    const buch = await konto(BETRIEB, 'Buchhaltung', 'buch-koepfe');
+    clientEinreichen(buch.client);
+    const jahr = new Date().getFullYear();
+    const ergebnis = await meldetDurch<WithId<unknown>[]>(
+      (melde, fehler) => rechnungen.subscribeRecentInvoiceKoepfe(BETRIEB, 50, melde, fehler),
+      async () => { await rechnungen.createInvoice(BETRIEB, {
+        invoiceNumber: `RE-${jahr}-7778`, projectNumber: 'B-700', customerName: 'Huber',
+        address: 'Hauptplatz 1, 8200 Gleisdorf',
+        invoiceDate: '2026-05-31', leistungVon: '2026-05-31', leistungBis: '2026-05-31', dueDate: '2026-06-14',
+        totalNetto: 100, totalVat: 20, totalBrutto: 120, paymentStatus: 'Offen',
+        positions: [{ label: 'Arbeit', qty: 1, unit: 'h', unitPrice: 100, netto: 100 }],
+      }); },
+      // Der Kopf kommt — ohne Positionen und ohne Leistungsnachweis.
+      (rows) => rows.some((r) => {
+        const k = r as { invoiceNumber?: string; positions?: unknown; leistungsnachweis?: unknown };
+        return k.invoiceNumber === `RE-${jahr}-7778` && k.positions === undefined && k.leistungsnachweis === undefined;
+      }),
+    );
+    expect(ergebnis.ok).toBe(true);
+  }, 60_000);
+
+  it('die Zählung der Baustellen je Tag (L9)', async () => {
+    clientEinreichen(chef.client);
+    const ergebnis = await meldetDurch<Map<string, number>>(
+      (melde, fehler) => einsaetze.beobachteEinsatzTage(BETRIEB, '2026-09-01', '2026-09-30', melde, fehler),
+      async () => { await einsaetze.saveAssignments(BETRIEB, '2026-09-15', 'B-705', [{
+        date: '2026-09-15', projectNumber: 'B-705', userId: anton.uid, userName: 'Anton',
+      }]); },
+      (tage) => tage.get('2026-09-15') === 1,
+    );
+    expect(ergebnis.ok).toBe(true);
+  }, 30_000);
+
   it('die eigenen Einstellungen', async () => {
     clientEinreichen(berta.client);
     const ergebnis = await meldetDurch<unknown>(
@@ -361,6 +395,29 @@ describe('Was nicht dazugehört, kommt nicht an', () => {
         },
         erkennen: (rows) => rows.some((r) => (r as { date?: string; status?: string }).date === '2026-07-14'
           && (r as { status?: string }).status === 'Urlaub'),
+      },
+    );
+    expect(e).toEqual({ falschDa: false, richtigDa: true });
+  }, 40_000);
+
+  it('die Urlaubstage je Person (L5): ein Urlaubstag kommt an, eine Anwesenheit nicht', async () => {
+    const buch = await konto(BETRIEB, 'Buchhaltung', 'buch-urlaub-je');
+    clientEinreichen(buch.client);
+    const e = await bleibtDraussen<Array<{ date: string; userId: string }>>(
+      (melde, fehler) => zeiten.beobachteUrlaubstage(BETRIEB, '2026-08-01', '2026-08-31', melde, fehler),
+      {
+        ausloesen: async () => { await admin.from('time_entries').insert(buchung(
+          { ...berta, betrieb: BETRIEB } as Konto, '2026-08-11')); },
+        erkennen: (tage) => tage.some((t) => t.date === '2026-08-11'),
+      },
+      {
+        ausloesen: async () => {
+          const { error } = await admin.from('time_entries').insert(buchung(
+            { ...berta, betrieb: BETRIEB } as Konto, '2026-08-12',
+            { status: 'Urlaub', start_time: null, end_time: null, break_duration: 0 }));
+          if (error) throw new Error(error.message);
+        },
+        erkennen: (tage) => tage.some((t) => t.date === '2026-08-12' && t.userId === berta.uid),
       },
     );
     expect(e).toEqual({ falschDa: false, richtigDa: true });
@@ -619,7 +676,8 @@ describe('Der Wächter über dieses Prüfnetz', () => {
     const PG = resolve(process.cwd(), 'src/lib/db/pg');
     const namen: string[] = [];
     for (const d of readdirSync(PG).filter((f) => f.endsWith('.ts'))) {
-      const muster = /export function (subscribe\w+)/g;
+      // Auch `beobachte…` (L5, L9): ein Abo unter anderem Namen ist trotzdem eines.
+      const muster = /export function ((?:subscribe|beobachte)\w+)/g;
       let t: RegExpExecArray | null;
       const text = readFileSync(resolve(PG, d), 'utf8');
       while ((t = muster.exec(text))) namen.push(t[1]);

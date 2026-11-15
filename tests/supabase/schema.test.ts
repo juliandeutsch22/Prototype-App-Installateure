@@ -423,6 +423,15 @@ describe('Interne Hilfsfunktionen', () => {
       'app.inventur_recht(text)',
       'app.inventur_soll(boolean, uuid, uuid, timestamp with time zone)',
       'app.inventur_lage(uuid)',
+      // L13: der Zwischenspeicher des Zeitkontos — Füllen, Lesen und Auslöser nur über `zeitkonto_salden` und pg_cron.
+      'app.zeitkonto_rechenstand()',
+      'app.zeitkonto_sperre(text)',
+      'app.zeitkonto_stand_buchung()',
+      'app.zeitkonto_stand_leeren()',
+      'app.zeitkonto_stand_person()',
+      'app.zeitkonto_stand_betrieb()',
+      'app.zeitkonto_zwischenstand_fuellen(text)',
+      'app.zeitkonto_monate_gemerkt(uuid[])',
       // Was nur die Function mit dem Dienstschlüssel ruft.
       'public.angebot_link_abruf(text)',
       'public.angebot_link_annehmen(text, text, text, boolean)',
