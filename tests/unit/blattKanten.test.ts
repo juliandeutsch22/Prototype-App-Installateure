@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 /*
   KANTEN, ABSCHLÜSSE UND DAS PLUS (E76, 10.11.2026). Gemeldet mit vier
@@ -165,5 +165,65 @@ describe('Kein Wort über den Rand (E76)', () => {
 
   it('die Baustellennummer im Termin bricht nicht um', () => {
     expect(q('src/features/termine/TerminListe.tsx')).toContain('{t.ortName} · <span className="nr">{t.projectNumber}</span>');
+  });
+});
+
+/*
+  DIE KONTUR LIEGT ZWISCHEN BLATT UND SEITE (S1, 15.11.2026). Auf Ebene 11
+  zog sie beim Rollen ihre Linien durch die freie Speicherleiste der
+  Firmendaten und die Sprungleiste der Angebotsakte (gemessen in
+  `blattKontur.spec.ts`). Hier steht die Ordnung, und dass keine neue
+  klebende Leiste unbemerkt darunter rutscht.
+*/
+describe('Die Kontur der Blätter liegt zwischen Blatt und Seite (S1)', () => {
+  const BLATT = q('src/styles/lot-blatt.css');
+  const ebene = (name: string) => Number(BLATT.match(new RegExp(`${name}: (\\d+);`))?.[1]);
+  const STILE = ['src/index.css', ...readdirSync('src/styles').filter((f) => f.endsWith('.css')).map((f) => `src/styles/${f}`)];
+
+  /** Jede Regel mit `position: sticky|fixed` und eigener Ebene: Datei, Selektor, Ebene. */
+  function schwebende(): { datei: string; selektor: string; z: number }[] {
+    const aus: { datei: string; selektor: string; z: number }[] = [];
+    for (const datei of STILE) {
+      const css = q(datei).replace(/\/\*[\s\S]*?\*\//g, '');
+      for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        if (!/position:\s*(sticky|fixed)/.test(m[2])) continue;
+        const z = m[2].match(/z-index:\s*(-?\d+)/);
+        if (z) aus.push({ datei, selektor: m[1].trim().replace(/\s+/g, ' '), z: Number(z[1]) });
+      }
+    }
+    return aus;
+  }
+
+  it('im Blatt höchstens 3, die Kontur auf 4 — beide über die Variablen', () => {
+    expect(ebene('--ebene-im-blatt')).toBe(3);
+    expect(ebene('--ebene-blattkontur')).toBe(4);
+    expect(BLATT).toContain('z-index: var(--ebene-blattkontur); pointer-events: none;');
+    // Die Speicherleiste im Blatt liegt darunter (sonst deckte sie die Linie zu, E76).
+    expect(BLATT).toMatch(/\.aktionsleiste:not\(:is\(\.fenster, \.fenster-breit, \.blatt, \[role='dialog'\]\) \.aktionsleiste\) \{\s*z-index: var\(--ebene-im-blatt\);\s*\}/);
+  });
+
+  it('was frei auf der Seite klebt, liegt über der Kontur: Sprungleiste, Speicherleiste, Warenkorb', () => {
+    const z = (selektor: string) => schwebende().find((s) => s.selektor === selektor)?.z ?? NaN;
+    // Gegenprobe: mit der Kontur auf 11 sind Sprungleiste (5) und Leiste (10) rot.
+    for (const s of ['.sprungleiste', '.aktionsleiste', '.korb', '.rt-aktionen', '.timer-leiste-breit', '.daumen']) {
+      expect(z(s), s).toBeGreaterThan(ebene('--ebene-blattkontur'));
+    }
+  });
+
+  it('jede klebende oder feste Regel bis zur Ebene der Kontur gehört in ein Blatt oder Fenster', () => {
+    /*
+      Eine neue Leiste frei auf der Seite mit kleiner Ebene läge wieder unter
+      den Konturen der Blätter, die darunter rollen. Wer hier ergänzen will,
+      prüft vorher, dass das Element nur in einem Blatt oder Fenster steht.
+    */
+    const IM_BLATT = [
+      '.mo-kopfzeile-28, .mo-kopfzeile-29, .mo-kopfzeile-30, .mo-kopfzeile-31', // Kopf im Monatskalender (Blatt)
+      '.planung-gruppe', // Gruppenkopf in der Planungstabelle (Blatt)
+      '.planung-fuss', // Fuß der Formulare in Fenster und Blatt von unten
+      '.ue-kopfzeile', '.mw-kopfzeile', // Köpfe der Listen der Mitarbeiterübersicht (Blatt)
+      '.pf-fuss', // Fuß im Personenfenster
+    ];
+    const niedrig = schwebende().filter((s) => s.z <= ebene('--ebene-blattkontur')).map((s) => s.selektor);
+    expect([...new Set(niedrig)].sort()).toEqual([...IM_BLATT].sort());
   });
 });
