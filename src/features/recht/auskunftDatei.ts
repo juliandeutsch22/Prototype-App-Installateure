@@ -25,6 +25,8 @@ export const SOFORT_GELOESCHT: Record<string, string> = {
   zwei_faktor_ruecksetzungen: 'Protokoll zum Zurücksetzen des zweiten Faktors',
   // V14: ihre Bitten um ein neues Passwort — und bei dem, der sie erledigte, sein Name daran.
   passwort_anfragen: 'Bitten um ein neues Passwort',
+  // K9 (N5): die Umstellungen des Kontos zwischen E-Mail und Benutzername — und bei dem, der umstellte, sein Name daran.
+  kontoumstellungen: 'Umstellungen der Anmeldung (E-Mail / Benutzername)',
   startseite: 'Eingerichtete Startseite',
   fehlerprotokoll: 'Einträge im Fehlerprotokoll',
   einsaetze: 'Einsätze',

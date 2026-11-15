@@ -1201,7 +1201,8 @@ export interface KontoUmstellung {
   userId: string;
   nach: 'mail' | 'benutzername';
   grund?: string | null;
-  durch: string;
+  /** Leer, wenn die Person, die umgestellt hat, gelöscht wurde (K9). */
+  durch: string | null;
   durchName?: string | null;
   am: number;
 }
