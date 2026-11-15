@@ -144,6 +144,7 @@ export default function BottomSheet({ open, onClose, label, auchBreit = false, t
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
+        data-gezogen={phase === 'schliesst' && dy > 0 ? '' : undefined}
         className={`${auchBreit ? (breit ? 'fenster-breit' : 'fenster') : 'blatt'} pb-[max(1rem,env(safe-area-inset-bottom))] focus-visible:outline-none`}
         style={{
           transform: `translateY(${dy}px)`,

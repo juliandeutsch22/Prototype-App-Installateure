@@ -1,0 +1,52 @@
+/*
+  BEWEGUNG, DIE ERKLÄRT (Plan 15.11.2026, Abschnitt 4, B1–B12).
+
+  Jede Regel hier bewegt nur `transform` und Deckkraft (warum: `lib/bewegung.ts`,
+  Regel 1). Bei „Bewegung reduzieren“ greift die Grundregel in `index.css`:
+  Animationen laufen 0,01 ms, Übergänge 0 s — jeder Zustand steht sofort am Ziel.
+*/
+@layer components {
+  /*
+    B1 — DAS BLATT KOMMT VON UNTEN. Bis hierher blendete es nur ein; woher es
+    kam und wohin es zurückgeht, sah man nicht. Jetzt fährt es aus dem unteren
+    Rand herein und beim Schließen dorthin zurück. Ab dem Tablet ist dasselbe
+    Fenster ein Seitenfenster rechts — es kommt von rechts.
+
+    `backwards` statt `both` beim Hereinfahren: danach gilt wieder der
+    Versatz, den der Finger setzt (`useBlattGeste`). Wurde das Blatt
+    weggezogen (`data-gezogen`), fährt es aus der Lage des Fingers weiter
+    hinaus (Übergang am Element) statt noch einmal von oben zu starten.
+
+    Einzelne Selektoren statt `:is(.blatt, …)`: Tailwind legt zu Klassen der
+    Ebene `components` eine `!`-Fassung mit `!important` an und übernimmt
+    dabei die übrigen Glieder der Liste — die Regel ab dem Tablet kam gegen
+    diese Abschrift nicht mehr an.
+  */
+  .lot-overlay > .blatt[data-lot-inhalt],
+  .lot-overlay > .fenster[data-lot-inhalt],
+  .lot-overlay > .fenster-breit[data-lot-inhalt] {
+    animation: blatt-herein var(--motion-overlay) var(--ease-response) backwards;
+  }
+  .lot-overlay[data-phase=schliesst] > .blatt[data-lot-inhalt],
+  .lot-overlay[data-phase=schliesst] > .fenster[data-lot-inhalt],
+  .lot-overlay[data-phase=schliesst] > .fenster-breit[data-lot-inhalt] {
+    animation: blatt-hinaus var(--motion-exit) var(--ease-response) forwards;
+  }
+  .lot-overlay[data-phase=schliesst] > [data-lot-inhalt][data-gezogen] { animation: none; }
+  @media (min-width: 760px) {
+    .lot-overlay > .fenster[data-lot-inhalt],
+    .lot-overlay > .fenster-breit[data-lot-inhalt] {
+      animation-name: fenster-herein;
+    }
+    .lot-overlay[data-phase=schliesst] > .fenster[data-lot-inhalt],
+    .lot-overlay[data-phase=schliesst] > .fenster-breit[data-lot-inhalt] {
+      animation-name: fenster-hinaus;
+    }
+  }
+}
+
+@keyframes blatt-herein { from { transform: translateY(100%); } }
+@keyframes blatt-hinaus { to { transform: translateY(100%); } }
+/* Um die eigene Breite und den Abstand zum Rand (`right: 0.5rem`): ganz aus dem Bild. */
+@keyframes fenster-herein { from { transform: translateX(calc(100% + 0.5rem)); } }
+@keyframes fenster-hinaus { to { transform: translateX(calc(100% + 0.5rem)); } }

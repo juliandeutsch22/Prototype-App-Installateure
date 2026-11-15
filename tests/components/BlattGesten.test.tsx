@@ -124,3 +124,22 @@ it('ein neuer Eltern-Callback während des Ziehens setzt die Bewegung nicht zur�
   expect(alt).not.toHaveBeenCalled(); expect(neu).toHaveBeenCalledOnce();
   expect(versatz()).toBe('translateY(0px)');
 });
+
+/*
+  B1 (Plan 15.11.2026): von unten herein, nach unten hinaus. Ein weggezogenes
+  Blatt trägt beim Schließen `data-gezogen` — dann fährt es aus der Lage des
+  Fingers weiter (Übergang) statt die Schließbewegung von vorn zu beginnen.
+  Gegenprobe: ohne die Markierung sprang es im Browser zurück
+  (`tests/links/bewegungen.spec.ts`, „weggezogen …“).
+*/
+it('B1: weggezogen trägt das Blatt beim Schließen die Markierung, mit Escape nicht', () => {
+  const { unmount } = render(<Beispiel />);
+  const ziel = screen.getByText('Freier Inhalt');
+  touch('touchstart', ziel, 100, 100); touch('touchmove', ziel, 100, 260); touch('touchend', ziel, 100, 260);
+  expect(screen.getByRole('dialog')).toHaveAttribute('data-gezogen');
+  unmount();
+  render(<Beispiel />);
+  fireEvent.keyDown(window, { key: 'Escape' });
+  expect(screen.getByRole('dialog').parentElement).toHaveAttribute('data-phase', 'schliesst');
+  expect(screen.getByRole('dialog')).not.toHaveAttribute('data-gezogen');
+});

@@ -17,6 +17,7 @@
 @import './styles/lot-blatt.css';
 @import './styles/lot-nachrichten.css';
 @import './styles/lot-timer.css';
+@import './styles/lot-bewegung.css';
 
 @tailwind base;
 @tailwind components;
