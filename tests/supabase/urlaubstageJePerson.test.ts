@@ -56,6 +56,13 @@ beforeAll(async () => {
     select gen_random_uuid(), $1, u, d::date, case when extract(dow from d) = 3 then 'Krank' else 'Urlaub' end
       from unnest(array[$2::uuid, $3::uuid]) u, generate_series(date '2019-07-01', date '2026-08-31', interval '9 days') d`,
   [BETRIEB, MONTEUR, KOLLEGE]);
+  // Wie im Betrieb: die meisten Buchungen sind Arbeit, nicht Urlaub (sonst wäre der Teilindex kein Vorteil).
+  await db.query(`
+    insert into public.time_entries (id, company_id, user_id, date, status, start_time, end_time)
+    select gen_random_uuid(), $1, u, d::date, 'Anwesend', '07:00', '15:30'
+      from unnest(array[$2::uuid, $3::uuid]) u, generate_series(date '2019-07-01', date '2026-08-31', interval '1 day') d,
+           generate_series(1, 3) wiederholt`,
+  [BETRIEB, MONTEUR, KOLLEGE]);
   // Ein doppelter Urlaubstag: die Übersicht zählte ihn bisher zweimal — so bleibt es.
   await db.query(`insert into public.time_entries (id, company_id, user_id, date, status) values ($1, $2, $3, '2020-01-06', 'Urlaub')`,
     [randomUUID(), BETRIEB, MONTEUR]);
