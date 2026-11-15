@@ -7,6 +7,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, TimeEntry, Role, WorkSheet } from '@/types';
 import TimeView from '@/features/time/TimeView';
+import { calcOverallSaldo } from '@/lib/time';
 
 /**
  * Der meistbenutzte Bildschirm der App — und bis jetzt ohne eigenen Test.
@@ -51,19 +52,19 @@ const eintrag = (over: Partial<TimeEntry> & { id: string }): TimeEntry & { id: s
 
 let eintraege: (TimeEntry & { id: string })[] = [];
 let profilFehlerWerfen = false;
-let marker: { vollstaendigAb: string } | null = null;
 let rolle: Role = 'Mitarbeiter';
 
 const abo = vi.fn();
 const listeSeit = vi.fn();
 const listeBereich = vi.fn();
-const listeBilanzen = vi.fn();
+/** Die alten Wege zum Saldo (Bilanzen, alle Buchungen seit Eintritt) — seit L1 nie mehr. */
+const rohdaten = vi.fn();
 
 /** Der Rueckruf des Live-Abos — damit ein Test einen zweiten Schnappschuss
  *  schicken kann, so wie Firestore es nach der Serverbestaetigung tut. */
 /** Hält das Fenster der letzten Monate zurück (das Live-Abo meldet sich nicht). */
 let fensterHalten = false;
-/** Hält die Buchungen seit Eintritt zurück, bis der Test sie freigibt. */
+/** Hält den Saldo aus der Datenbank zurück, bis der Test ihn freigibt (aus diesen Buchungen gerechnet). */
 let seitHalten: Promise<(TimeEntry & { id: string })[]> | null = null;
 let schnappschussSenden: ((rows: (TimeEntry & { id: string })[]) => void) | null = null;
 
@@ -81,10 +82,9 @@ vi.mock('@/lib/db/timeEntries', () => ({
     return () => undefined;
   },
   listOwnEntriesSince: (_company: string, _uid: string, ab: string) => {
-    listeSeit(ab);
-    return seitHalten ?? Promise.resolve(eintraege);
+    rohdaten('seit', ab);
+    return Promise.resolve(eintraege);
   },
-  // Der Eintrittsmonat für den Saldo aus Bilanzen (Prüflauf 25.09.2026, P1-15).
   listOwnEntriesInRange: (_company: string, _uid: string, von: string, bis: string) => {
     listeBereich(von, bis);
     return Promise.resolve(eintraege.filter((e) => e.date >= von && e.date <= bis));
@@ -110,11 +110,20 @@ vi.mock('@/lib/db/users', () => ({
 
 vi.mock('@/lib/db/monatsbilanzen', () => ({
   monatVon: (d: string) => d.slice(0, 7),
-  bilanzMarker: vi.fn(async () => marker),
-  listBilanzen: vi.fn(async (_c: string, _u: string, ab: string) => {
-    listeBilanzen(ab);
-    return [];
-  }),
+  bilanzMarker: vi.fn(async () => { rohdaten('marker'); return null; }),
+  listBilanzen: vi.fn(async () => { rohdaten('bilanzen'); return []; }),
+}));
+
+/*
+  DER SALDO AUS DER DATENBANK (Durchsicht 15.11.2026, L1): eine Zeile. Die
+  Attrappe rechnet ihn wie die Datenbank aus den Buchungen — dass beide
+  gleich rechnen, prüft `tests/supabase/zeitkontoSaldo.test.ts`.
+*/
+vi.mock('@/lib/db/zeitkonto', () => ({
+  zeitkontoSaldo: (uid: string) => {
+    listeSeit(uid);
+    return (seitHalten ?? Promise.resolve(eintraege)).then((rows) => calcOverallSaldo({ ...MONTEUR, role: rolle }, rows, true));
+  },
 }));
 
 /*
@@ -238,7 +247,6 @@ beforeEach(() => {
   eintraege = [];
   geburtsdatum = null;
   profilFehlerWerfen = false;
-  marker = null;
   rolle = 'Mitarbeiter';
   authWert.user.role = 'Mitarbeiter';
   schnappschussSenden = null;
@@ -247,7 +255,7 @@ beforeEach(() => {
   abo.mockClear();
   listeSeit.mockClear();
   listeBereich.mockClear();
-  listeBilanzen.mockClear();
+  rohdaten.mockClear();
 });
 
 afterEach(() => {
@@ -316,7 +324,7 @@ describe('Zeiterfassung — Abwesenheit schraffiert (Planlinie B11)', () => {
 describe('Zeiterfassung — der Saldo erst mit seinen Buchungen', () => {
   const kachel = () => screen.getAllByText('Saldo').find((e) => e.classList.contains('lage-name'))!.parentElement!;
 
-  it('steht als Platzhalter da, bis die Buchungen seit Eintritt geladen sind', async () => {
+  it('steht als Platzhalter da, bis der Saldo aus der Datenbank da ist', async () => {
     let freigeben: (r: (TimeEntry & { id: string })[]) => void = () => undefined;
     seitHalten = new Promise((ok) => { freigeben = ok; });
     eintraege = [eintrag({ id: 'e1' })];
@@ -426,41 +434,26 @@ describe('Zeiterfassung — der Saldo erst mit seinen Buchungen', () => {
 });
 
 describe('Zeiterfassung — welcher Weg zum Saldo', () => {
-  it('nimmt die Bilanzen, wenn der Marker den Eintrittsmonat abdeckt', async () => {
-    marker = { vollstaendigAb: '2026-05' }; // vor dem Eintritt im Juni
+  it('holt eine Zeile aus der Datenbank — keine Bilanzen, keine Buchungen seit Eintritt (L1)', async () => {
     eintraege = [eintrag({ id: 'e1' })];
     zeige();
 
-    await waitFor(() => expect(listeBilanzen).toHaveBeenCalled());
-    expect(listeBilanzen).toHaveBeenCalledWith('2026-06');
-    // Der Eintrittsmonat kommt aus den Einzelbuchungen ab dem Eintritt —
-    // seine Bilanz zählt auch Tage davor (Prüflauf 25.09.2026, P1-15).
-    expect(listeBereich).toHaveBeenCalledWith('2026-06-01', '2026-06-30');
+    await waitFor(() => expect(listeSeit).toHaveBeenCalledWith('u1'));
+    expect(rohdaten).not.toHaveBeenCalled();
   });
 
-  it('fällt auf die Rohdaten zurück, wenn der Marker den Anfang NICHT abdeckt', async () => {
-    /**
-     * Der Rückfall ist die eigentliche Arbeit an dieser Stelle. Eine fehlende
-     * Bilanz ist von einem Monat ohne Buchungen nicht zu unterscheiden — wer
-     * sie ungeprüft summiert, bekommt bei lückenhaftem Bestand einen zu
-     * NIEDRIGEN Saldo, ohne Fehlermeldung. Deckt der Marker erst den Juli ab,
-     * fehlten Juni und alles davor.
-     */
-    marker = { vollstaendigAb: '2026-07' }; // NACH dem Eintritt im Juni
+  it('auch mit eigenem Tagessoll je Wochentag — vorher alle Buchungen seit dem Eintritt', async () => {
+    const { getUserByUid } = await import('@/lib/db/users');
+    vi.mocked(getUserByUid).mockResolvedValue({ ...MONTEUR, tagessoll: { 1: 8.5, 2: 8.5, 3: 8.5, 4: 8.5, 5: 4.5 } } as never);
     eintraege = [eintrag({ id: 'e1' })];
     zeige();
 
-    await waitFor(() => expect(listeSeit).toHaveBeenCalledWith('2026-06-01'));
-    expect(listeBilanzen).not.toHaveBeenCalled();
-  });
-
-  it('fällt auch zurück, wenn es gar keinen Marker gibt', async () => {
-    marker = null;
-    eintraege = [eintrag({ id: 'e1' })];
-    zeige();
-
-    await waitFor(() => expect(listeSeit).toHaveBeenCalledWith('2026-06-01'));
-    expect(listeBilanzen).not.toHaveBeenCalled();
+    await waitFor(() => expect(listeSeit).toHaveBeenCalledWith('u1'));
+    expect(rohdaten).not.toHaveBeenCalled();
+    vi.mocked(getUserByUid).mockImplementation(async () => {
+      if (profilFehlerWerfen) throw new Error('kein Netz');
+      return { ...MONTEUR, role: rolle } as never;
+    });
   });
 
   it('zeigt der Geschäftsführung gar keine Saldo-Kachel', async () => {
@@ -554,7 +547,6 @@ describe('Zeiterfassung — ältere Einträge', () => {
  */
 describe('Zeiterfassung — was eine Buchung an Abfragen kostet', () => {
   it('rechnet den Saldo NICHT neu, wenn sich inhaltlich nichts geaendert hat', async () => {
-    marker = null;
     eintraege = [eintrag({ id: 'e1' })];
     zeige();
     await waitFor(() => expect(listeSeit).toHaveBeenCalled());
@@ -571,7 +563,6 @@ describe('Zeiterfassung — was eine Buchung an Abfragen kostet', () => {
 
   it('rechnet den Saldo SEHR WOHL neu, wenn eine Buchung dazukommt', async () => {
     // Sonst prueft der Test daneben nur, dass ueberhaupt nichts mehr passiert.
-    marker = null;
     eintraege = [eintrag({ id: 'e1' })];
     zeige();
     await waitFor(() => expect(listeSeit).toHaveBeenCalled());
@@ -590,12 +581,12 @@ describe('Zeiterfassung — was eine Buchung an Abfragen kostet', () => {
      * Wird er trotzdem geholt, ist das eine Netzrunde je Buchung, auf die der
      * Monteur wartet.
      */
-    marker = { vollstaendigAb: '2026-05' }; // Bilanzen sind brauchbar
     eintraege = [eintrag({ id: 'e1' })];
     zeige();
 
-    await waitFor(() => expect(listeBilanzen).toHaveBeenCalled());
-    expect(listeSeit).not.toHaveBeenCalled();
+    await waitFor(() => expect(listeSeit).toHaveBeenCalled());
+    expect(listeBereich).not.toHaveBeenCalled();
+    expect(rohdaten).not.toHaveBeenCalled();
   });
 });
 

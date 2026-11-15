@@ -228,6 +228,21 @@ vi.mock('@/lib/db/workSheets', () => ({
 }));
 vi.mock('@/lib/db/wartungen', () => ({ listFaelligeWartungen: vi.fn(async () => []) }));
 vi.mock('@/lib/db/konten', () => ({ buchungskonten: vi.fn(async () => [{ zweck: 'erloes', konto: '4000' }]) }));
+/*
+  Der Saldo kommt aus der Datenbank (Durchsicht 15.11.2026, L1) — hier aus
+  denselben Buchungen gerechnet; scheitert der persönliche Block, scheitert er mit.
+*/
+vi.mock('@/lib/db/zeitkonto', async () => {
+  const { calcOverallSaldo } = await import('@/lib/time');
+  const { getUserByUid } = await import('@/lib/db/users');
+  return {
+    zeitkontoSaldo: vi.fn(async (uid: string) => {
+      if (scheitert.persoenlich) throw new Error('kein Netz');
+      const profil = await getUserByUid('perl', uid);
+      return calcOverallSaldo(profil!, buchungen, true);
+    }),
+  };
+});
 vi.mock('@/lib/db/monatsbilanzen', () => ({
   bilanzMarker: vi.fn(async () => null),
   listBilanzen: vi.fn(async () => []),

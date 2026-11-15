@@ -4,7 +4,7 @@ import autoTable from 'jspdf-autotable';
 import type { AppUser, Company, TimeEntry } from '@/types';
 import {
   calcWorkMin, dezemberHalbtage, istGanztagsGutschrift, tageGewicht, tagesAnteil, tagessollStunden, tageZahl,
-  zeitausgleichMin,
+  personAm, zeitausgleichMin,
 } from '@/lib/time';
 import { freigestelltMin } from '@shared/arbeitszeit';
 import { istArztbesuchTag } from '@shared/freistellung';
@@ -221,7 +221,8 @@ export function generateHoursPdf(opts: {
     ÜBERSTUNDEN NUR BEIM MODELL „TAGESGRENZE“ (Paket 2c) — und nur, wenn es
     welche gibt, wie bei den Zuschlägen. Stunden, kein Geld.
   */
-  const ue = ueberstundenNachTagesgrenze(user, sorted, ueberstundenRegelVon(company), halbeTage, vorlauf, nacht);
+  // Mit der Arbeitszeit am Ende des Zeitraums (Z3), nicht der von heute.
+  const ue = ueberstundenNachTagesgrenze(personAm(user, to), sorted, ueberstundenRegelVon(company), halbeTage, vorlauf, nacht);
   if (ue.fuenfzigMin > 0 || ue.hundertMin > 0 || (ue.mehrarbeitTeilzeitMin ?? 0) > 0) {
     // Nachtstunden, die Überstunden sind, tragen nach dem KV keine Nachtzulage — der Nachweis sagt, wie viele.
     const nachtAlsUe = ue.nachtAlsUeberstundeMin ? ` · davon Nacht als Überstunde: ${hours(ue.nachtAlsUeberstundeMin)} h` : '';

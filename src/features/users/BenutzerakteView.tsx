@@ -29,10 +29,9 @@ import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import {
   alsEntwurf, alsProfil, austrittFehler, entwurfFehler, gleich, jugendschutzHinweise, mitKundenFreigabe, mitLagerFreigaben,
   mitRechnungsFreigabe, mitZeitkontoWahl,
-  tagessollNachTagen, urlaubsfeldName, WEEKDAYS,
+  urlaubsfeldName, WEEKDAYS,
   type BenutzerEntwurf,
 } from './benutzerEntwurf';
-import TagessollFelder from './TagessollFelder';
 import EinstufungFelder from './EinstufungFelder';
 import GeburtsdatumKarte from './GeburtsdatumKarte';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -45,6 +44,7 @@ import ZahlFeld from '@/components/ZahlFeld';
 import KontoUmstellen from './KontoUmstellen';
 import ZweiterFaktorZuruecksetzen from './ZweiterFaktorZuruecksetzen';
 import PasswortBitte from './PasswortBitte';
+import ArbeitszeitVerlaufKarte from './ArbeitszeitVerlaufKarte';
 import UrlaubsanspruchKarte from './UrlaubsanspruchKarte';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
@@ -168,7 +168,16 @@ export default function BenutzerakteView() {
     setSpeichert(true);
     setSpeicherFehler(null);
     try {
-      await updateUserProfile(uid, alsProfil(entwurf));
+      /*
+        ARBEITSZEIT UND URLAUBSANSPRUCH GEHEN NICHT MIT (Durchsicht 15.11.2026,
+        Z3): sie ändern sich nur ab einem Tag, über „Arbeitszeit ändern“. Mit
+        der Akte geschrieben, wären sie für jeden Tag seit dem Saldo-Start neu
+        gerechnet worden — die Datenbank machte daraus nun „ab heute“, aber
+        ohne dass es jemand gewählt hätte.
+      */
+      const { weeklyTargetHours, yearlyVacationDays, workDays, tagessoll, ...ohneArbeitszeit } = alsProfil(entwurf);
+      void weeklyTargetHours; void yearlyVacationDays; void workDays; void tagessoll;
+      await updateUserProfile(uid, ohneArbeitszeit);
       setBearbeitet(false);
       toast.success(`${entwurf.name} aktualisiert`);
       setVersuch((v) => v + 1);
@@ -193,16 +202,7 @@ export default function BenutzerakteView() {
     }
   }
 
-  function tagUmschalten(d: number) {
-    if (!entwurf) return;
-    setEntwurf({
-      ...entwurf,
-      workDays: entwurf.workDays.includes(d)
-        ? entwurf.workDays.filter((x) => x !== d)
-        : [...entwurf.workDays, d].sort(),
-      tagessoll: tagessollNachTagen(entwurf, d),
-    });
-  }
+
 
   if (person.zustand === 'laedt') {
     return (
@@ -434,7 +434,10 @@ export default function BenutzerakteView() {
         { id: 'arbeitszeit', titel: 'Arbeitszeit und Urlaub', sprungziele: ['akte-zeitkonto', 'akte-urlaub'], inhalt:
           <div className="akten-spalte"><Card title="Zeitkonto-Einstellungen" id="akte-zeitkonto"
             hint="Hier stehen die Einstellungen und Startwerte des Zeitkontos. Die aktuellen Salden und Buchungen stehen in der Mitarbeiterübersicht.">
-            <StammdatenLesen p={p} teil="arbeitszeit" /></Card>{anspruch}</div> },
+            <StammdatenLesen p={p} teil="arbeitszeit" /></Card>
+            <ArbeitszeitVerlaufKarte person={p} jahresbeginn={uebertragsRegel(company).jahresbeginn ?? '01-01'}
+              darfAendern={darfAendern} onGeaendert={() => setVersuch((v) => v + 1)} geburtsdatum={geburtsdatumDerPerson} />
+            {anspruch}</div> },
         ...((zugang || auskunft) ? [{ id: 'zugang', titel: zugang ? 'Zugang und Rechte' : 'Datenschutz', sprungziele: ['akte-zugang', 'akte-datenschutz'], inhalt:
           <div className="akten-spalte">{zugang}{auskunft}</div> }] : []),
       ]} />
@@ -445,7 +448,6 @@ export default function BenutzerakteView() {
           setEntwurf={setEntwurf}
           rollen={ROLES.filter((r) => r !== 'Administrator' || canManageAdmins(user.role))}
           eigenesKonto={eigenesKonto}
-          onTag={tagUmschalten}
           geaendert={geaendert}
           speichert={speichert}
           fehler={speicherFehler}
@@ -624,7 +626,6 @@ interface FormularProps {
   setEntwurf: (e: BenutzerEntwurf) => void;
   rollen: readonly Role[];
   eigenesKonto: boolean;
-  onTag: (d: number) => void;
   geaendert: boolean;
   speichert: boolean;
   fehler: string | null;
@@ -636,7 +637,7 @@ interface FormularProps {
 
 /** Dieselben Stammdaten, bearbeitbar. */
 function StammdatenFormular({
-  entwurf, setEntwurf, rollen, eigenesKonto, onTag,
+  entwurf, setEntwurf, rollen, eigenesKonto,
   geaendert, speichert, fehler, onSpeichern, onVerwerfen, gespeichert, eintritt,
 }: FormularProps) {
   const setze = <F extends keyof BenutzerEntwurf>(feld: F, wert: BenutzerEntwurf[F]) =>
@@ -784,18 +785,6 @@ function StammdatenFormular({
           </div>
         )}
         <FormGrid>
-          <ZahlFeld
-            id="b-stunden" label="Wochenstunden"
-            value={entwurf.weeklyTargetHours}
-            // Mit eigenem Tagessoll sind die Wochenstunden dessen Summe (M5).
-            disabled={Object.keys(entwurf.tagessoll).length > 0}
-            onChange={(t) => setze('weeklyTargetHours', t)}
-          />
-          <ZahlFeld
-            id="b-urlaub" label="Urlaubstage pro Jahr"
-            value={entwurf.yearlyVacationDays}
-            onChange={(t) => setze('yearlyVacationDays', t)}
-          />
           <InputField
             id="b-eintritt" label="Eintrittsdatum (im Betrieb seit)" type="date"
             value={entwurf.eintritt}
@@ -860,24 +849,14 @@ function StammdatenFormular({
           </InfoHint>
         </div>
 
-        <fieldset>
-          <legend className="mb-1 text-sm font-normal text-ink">Arbeitstage</legend>
-          <div className="flex flex-wrap gap-x-4">
-            {WEEKDAYS.map((d) => (
-              <CheckboxField
-                key={d.value}
-                id={`b-tag-${d.value}`}
-                label={d.label}
-                checked={entwurf.workDays.includes(d.value)}
-                onChange={() => onTag(d.value)}
-              />
-            ))}
-          </div>
-          <p className="mt-1 text-sm text-ink-muted">
-            Bestimmt das Tagessoll: Wochenstunden geteilt durch Arbeitstage.
-          </p>
-          <TagessollFelder form={entwurf} setForm={setEntwurf} />
-        </fieldset>
+        {/*
+          Wochenstunden, Arbeitstage, Tagessoll und Urlaubstage ändern sich ab
+          einem Tag (Z3) — nicht hier, sondern im Bereich „Arbeitszeit und Urlaub“.
+        */}
+        <p className="text-sm text-ink-muted">
+          Wochenstunden, Arbeitstage, Tagessoll und Urlaubstage pro Jahr ändern sich ab einem Tag:
+          im Bereich „Arbeitszeit und Urlaub“ über „Arbeitszeit ändern“ bzw. „Urlaubsanspruch ändern“.
+        </p>
       </div>
 
       {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}

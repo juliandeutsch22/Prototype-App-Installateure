@@ -26,7 +26,7 @@ import {
 import { kuerzungsVorschlag } from '@shared/urlaubAliquot';
 import { darfUnbezahltEntscheiden, darfUrlaubEntscheiden } from '@/lib/permissions';
 import { DEFAULT_VACATION_DAYS as DEFAULT_URLAUBSTAGE } from '@/lib/db/benutzerVorgaben';
-import { fmtDauer, fmtMin, todayStr, uebertragsRegel, urlaubsTage, tageZahl } from '@/lib/time';
+import { arbeitszeitAm, fmtDauer, fmtMin, todayStr, uebertragsRegel, urlaubsanspruchIm, urlaubsJahrVon, urlaubsTage, tageZahl } from '@/lib/time';
 import { leseZahl } from '@/lib/zahl';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -202,7 +202,10 @@ export default function FreistellungenBestaetigen({
   /** Der Vorschlag zur Kürzung — einmal je Antrag gerechnet, danach änderbar. */
   function vorschlag(f: Freistellung): Kuerzungszeile[] {
     const p = person(f.userId);
-    const jahresanspruch = Number(p?.yearlyVacationDays ?? DEFAULT_URLAUBSTAGE) || DEFAULT_URLAUBSTAGE;
+    // Der Anspruch des Urlaubsjahres, in dem die Freistellung beginnt (Z3), nicht der von heute.
+    const jahresanspruch = p
+      ? urlaubsanspruchIm(p, urlaubsJahrVon(f.von, regel.jahresbeginn ?? '01-01'))
+      : DEFAULT_URLAUBSTAGE;
     return kuerzungsVorschlag(jahresanspruch, f.von, f.bis, regel.jahresbeginn ?? '01-01').map((t) => ({
       urlaubsjahr: t.urlaubsjahr,
       kalendertage: t.kalendertage,
@@ -437,7 +440,8 @@ export default function FreistellungenBestaetigen({
     const tageVon = (x: FreistellungFuerRegeln) => (p ? urlaubsTage(p, x.von, x.bis).length : 0);
     const hinweise = warnungen(alsRegel(f), andere, anlaesse, tageVon);
     if (f.art === 'pflegefreistellung' && p && !f.zusatzwoche) {
-      const stand = pflegeStand(andere, p.weeklyTargetHours, p.eintritt ?? p.appStartDate, f.von);
+      // Eine Woche mit der Arbeitszeit des Tages (Z3).
+      const stand = pflegeStand(andere, arbeitszeitAm(p, f.von).weeklyTargetHours, p.eintritt ?? p.appStartDate, f.von);
       hinweise.push(`Pflegefreistellung in diesem Arbeitsjahr noch offen: ${fmtDauer(stand.ersteWocheRestMin)}.`);
     }
     const teilungOhneTod = f.art === 'dienstverhinderung' && istTeilung(alsRegel(f), andere) && !anlassVon(f.anlass, anlaesse)?.todesfall;

@@ -22,7 +22,7 @@ import {
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import { berufsschuleEintragen, krankmeldungSpeichern, urlaubEintragen } from '@/lib/db/abwesenheiten';
 import { ergebnisText } from '@/features/vacations/abwesenheitText';
-import { todayStr, getAustrianHolidayName, fmtMin, tageWort, tagessollStunden } from '@/lib/time';
+import { arbeitszeitAm, todayStr, getAustrianHolidayName, fmtMin, tageWort, tagessollStunden } from '@/lib/time';
 import { zeitbild, zeitSatz } from './zeitPlausibilitaet';
 import { nachtMinutenIn, nachtzeitText, nachtzeitVon } from '@/lib/lohnregeln';
 import { bearbeitungsvermerk } from './bearbeitungsvermerk';
@@ -750,7 +750,9 @@ export default function TimeForm({
         3000,
       ).catch(() => null)
       : null;
-    return zeitraumFrage(art, date, bis, (target ?? besitzerProfil)?.workDays, rows);
+    // Die Arbeitstage, die am ersten Tag gelten (Z3).
+    const fuer = target ?? besitzerProfil;
+    return zeitraumFrage(art, date, bis, fuer ? arbeitszeitAm(fuer, date).workDays : undefined, rows);
   }
 
   /**

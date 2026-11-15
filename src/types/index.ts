@@ -457,6 +457,15 @@ export interface AppUser {
   lehrzeitMonate?: number | null;
   /** Frühere Stufen, jede bis zum Tag ihrer Umstufung — schreibt nur die Datenbank (Runde 3, M13). */
   einstufungVerlauf?: FruehereEinstufung[] | null;
+  /**
+   * Arbeitszeit ab einem Tag (Durchsicht 15.11.2026, Z3). Leer heisst: die
+   * Felder oben gelten für jeden Tag — die Rechnung von vorher. Sonst gilt
+   * je Tag der letzte Eintrag bis dahin, vor dem ersten der erste. Schreibt
+   * nur die Datenbank (`arbeitszeit_aendern`); siehe `arbeitszeitAm`.
+   */
+  arbeitszeitVerlauf?: ArbeitszeitAbschnitt[] | null;
+  /** Urlaubsanspruch je Urlaubsjahr (Z3), wie oben — siehe `urlaubsanspruchIm`. */
+  urlaubsanspruchVerlauf?: UrlaubsanspruchAbschnitt[] | null;
   /** Nur beim Lehrling: zählen seine Stunden ins Projekt-Budget? Ab Werk ja (03.10.2026). */
   stundenInsBudget?: boolean;
   /** Freigabe „Kunden pflegen“ — wirkt für Verwaltung und Buchhaltung (siehe `darfKundenPflegen`). */
@@ -468,6 +477,27 @@ export interface AppUser {
   /** Nur Geschäftsführung: führt ein Zeitkonto (siehe `fuehrtZeitkonto`). */
   fuehrtZeitkonto?: boolean;
   createdAt?: number;
+}
+
+/** Ein Eintrag im Verlauf der Arbeitszeit: gilt ab `ab` bis zum nächsten Eintrag. */
+export interface ArbeitszeitAbschnitt {
+  /** 'YYYY-MM-DD' */
+  ab: string;
+  wochenstunden: number | null;
+  /** 0 = Sonntag … 6 = Samstag */
+  arbeitstage: number[];
+  tagessoll: Record<string, number> | null;
+  /** Wann und von wem eingetragen — Zeitstempel als Text, wie ihn die Datenbank in den Verlauf schreibt. */
+  am?: string | null;
+  von?: string | null;
+}
+
+/** Ein Eintrag im Verlauf des Urlaubsanspruchs: gilt ab dem Urlaubsjahr `jahr` bis zum nächsten. */
+export interface UrlaubsanspruchAbschnitt {
+  jahr: number;
+  tage: number;
+  am?: string | null;
+  von?: string | null;
 }
 
 /** Im Client gehaltenes Profil des angemeldeten Nutzers. */

@@ -1,43 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { bilanzAusEintraegen, monatVon } from '@shared/monatsbilanz';
-import { localDateStr, saldoAusBilanzen } from '@/lib/time';
+import { calcOverallSaldo, localDateStr } from '@/lib/time';
 import type { AppUser, TimeEntry } from '@/types';
 
 /**
  * Der Gesamtsaldo aller Konten für die Mitarbeiterübersicht (19.10.2026).
  *
  * Die eine Eigenschaft, auf die es ankommt: je Person DIESELBE Zahl wie im
- * Fenster der Person (`zeitguthabenLaden`) — nur gebündelt geholt. Geprüft
- * gegen eine Datenbank im Speicher mit schiefen Fällen: Eintritt mitten im
- * Monat samt Buchungen davor, Teilzeit mit vier Tagen, ein eigenes Tagessoll
- * je Wochentag, ein Konto ohne Eintrittsdatum.
+ * Fenster der Person (`zeitguthabenLaden`). Seit der Durchsicht vom
+ * 15.11.2026 (L2) rechnet beides die Datenbank (`zeitkonto_salden`) — hier
+ * steht für sie die App-Rechnung über eine Datenbank im Speicher; dass beide
+ * auf die Minute gleich rechnen, prüft `tests/supabase/zeitkontoSaldo.test.ts`.
+ * Geprüft wird hier, dass die Übersicht EINE Anfrage für alle stellt, auch
+ * für das eigene Tagessoll je Wochentag (vorher alle Buchungen seit Eintritt).
  */
 
 type Eintrag = TimeEntry & { id: string };
 let alle: Eintrag[] = [];
 
-const bilanzenVon = (uid: string) => {
-  const eigene = alle.filter((e) => e.userId === uid);
-  return [...new Set(eigene.map((e) => monatVon(e.date)))].sort().map((m) => ({ ...bilanzAusEintraegen(m, eigene), userId: uid }));
-};
-
-const listBilanzen = vi.fn(async (_c: string, uid: string, ab: string) => bilanzenVon(uid).filter((b) => b.monat >= ab));
-const listBilanzenAlle = vi.fn(async (_c: string, ab: string) =>
-  [...new Set(alle.map((e) => e.userId))].flatMap((uid) => bilanzenVon(uid)).filter((b) => b.monat >= ab));
-vi.mock('@/lib/db/monatsbilanzen', () => ({
-  monatVon: (d: string) => d.slice(0, 7),
-  bilanzMarker: async () => ({ vollstaendigAb: '0000-01' }),
-  listBilanzen: (...a: [string, string, string]) => listBilanzen(...a),
-  listBilanzenAlle: (...a: [string, string]) => listBilanzenAlle(...a),
+const saldoAusSpeicher = (p: AppUser) => calcOverallSaldo(p, alle.filter((e) => e.userId === p.uid), true);
+const zeitkontoSalden = vi.fn(async () => new Map(personen.filter((p) => p.appStartDate).map((p) => [p.uid, saldoAusSpeicher(p)])));
+const zeitkontoSaldo = vi.fn(async (uid: string) => saldoAusSpeicher(personen.find((p) => p.uid === uid)!));
+vi.mock('@/lib/db/zeitkonto', () => ({
+  zeitkontoSalden: () => zeitkontoSalden(),
+  zeitkontoSaldo: (uid: string) => zeitkontoSaldo(uid),
 }));
-
-const listOwnEntriesSince = vi.fn(async (_c: string, uid: string, ab: string) => alle.filter((e) => e.userId === uid && e.date >= ab));
-const listEntriesInRange = vi.fn(async (_c: string, von: string, bis: string) => alle.filter((e) => e.date >= von && e.date <= bis));
+const listEntriesInRange = vi.fn();
+const listOwnEntriesSince = vi.fn();
 vi.mock('@/lib/db/timeEntries', () => ({
-  listOwnEntriesSince: (...a: [string, string, string]) => listOwnEntriesSince(...a),
-  listOwnEntriesInRange: async (_c: string, uid: string, von: string, bis: string) =>
-    alle.filter((e) => e.userId === uid && e.date >= von && e.date <= bis),
-  listEntriesInRange: (...a: [string, string, string]) => listEntriesInRange(...a),
+  listOwnEntriesSince: (...a: unknown[]) => listOwnEntriesSince(...a),
+  listOwnEntriesInRange: vi.fn(),
+  listEntriesInRange: (...a: unknown[]) => listEntriesInRange(...a),
 }));
 
 const { gesamtsaldenLaden, zeitguthabenLaden } = await import('@/features/vacations/zeitguthaben');
@@ -119,28 +111,16 @@ describe('Gesamtsaldo aller Konten', () => {
     expect(salden.has('ohneEintritt')).toBe(false);
   });
 
-  it('holt gebündelt: eine Abfrage für die Bilanzen, eine für den laufenden Monat, eine je Eintrittsmonat', async () => {
+  it('holt alle in EINER Anfrage — auch das eigene Tagessoll, ohne Buchungen (L2)', async () => {
     await gesamtsaldenLaden('perl', personen, true);
-    expect(listBilanzenAlle).toHaveBeenCalledTimes(1);
-    expect(listBilanzen).not.toHaveBeenCalled();
-    // laufender Monat + zwei verschiedene Eintrittsmonate (voll, teil)
-    expect(listEntriesInRange).toHaveBeenCalledTimes(1 + new Set([personen[0], personen[1]].map((p) => p.appStartDate!.slice(0, 7))).size);
-    // Nur das eigene Tagessoll geht einzeln über alle Buchungen.
-    expect(listOwnEntriesSince).toHaveBeenCalledTimes(1);
-    expect(listOwnEntriesSince.mock.calls[0][1]).toBe('kurzerFreitag');
+    expect(zeitkontoSalden).toHaveBeenCalledTimes(1);
+    expect(zeitkontoSaldo).not.toHaveBeenCalled();
+    expect(listEntriesInRange).not.toHaveBeenCalled();
+    expect(listOwnEntriesSince).not.toHaveBeenCalled();
   });
 
-  it('Gegenprobe: ohne den Eintrittsmonat aus den Einzelbuchungen stimmte die Teilzeit nicht', async () => {
-    const teil = personen[1];
-    const salden = await gesamtsaldenLaden('perl', personen, true);
-    const jetzt = new Date();
-    const monatsErster = localDateStr(new Date(jetzt.getFullYear(), jetzt.getMonth(), 1));
-    const ohneEintrittsmonat = saldoAusBilanzen(
-      teil,
-      bilanzenVon('teil').filter((b) => b.monat >= teil.appStartDate!.slice(0, 7)),
-      alle.filter((e) => e.userId === 'teil' && e.date >= monatsErster),
-      true,
-    ).saldoH;
-    expect(salden.get('teil')).not.toBe(ohneEintrittsmonat);
+  it('ohne ein Konto mit Eintritt keine Anfrage', async () => {
+    await gesamtsaldenLaden('perl', [personen[3]], true);
+    expect(zeitkontoSalden).not.toHaveBeenCalled();
   });
 });

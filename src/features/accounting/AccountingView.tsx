@@ -545,7 +545,7 @@ export default function AccountingView() {
   const [gesamt, setGesamt] = useState<Map<string, number> | 'laedt' | 'fehler'>('laedt');
   const gesamtGeholt = useRef(false);
   const personenStand = mitSaldo
-    .map((u) => [u.uid, u.appStartDate, u.austritt, u.weeklyTargetHours, u.initialOvertime, u.workDays?.join(','), JSON.stringify(u.tagessoll ?? null)].join(':'))
+    .map((u) => [u.uid, u.appStartDate, u.austritt, u.weeklyTargetHours, u.initialOvertime, u.workDays?.join(','), JSON.stringify(u.tagessoll ?? null), JSON.stringify(u.arbeitszeitVerlauf ?? null)].join(':'))
     .join('|');
   useEffect(() => {
     if (!user || imSupport || !bereit) return;

@@ -9,8 +9,6 @@ import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon } from '@/lib/lohnregeln';
 import {
   subscribeOwnEntriesInRange,
-  listOwnEntriesSince,
-  listOwnEntriesInRange,
   deleteTimeEntry,
 } from '@/lib/db/timeEntries';
 import { getUserByUid } from '@/lib/db/users';
@@ -22,20 +20,18 @@ import {
   fmtDauer,
   schultagAngaben,
   calcOverallSaldo,
-  hatTagessoll,
   dezemberHalbtage,
-  saldoAusBilanzen,
   getISOWeek,
   localDateStr,
-  monatsLetzter,
   offeneWerktage,
+  type SaldoResult,
   todayStr,
   tageWort,
   tagesStatusName,
 } from '@/lib/time';
 import { tageMitEchterDoppelung } from '@/lib/tagesbuchungen';
 import { canEditTime, fuehrtZeitkonto } from '@/lib/permissions';
-import { bilanzMarker, listBilanzen, monatVon, type Monatsbilanz } from '@/lib/db/monatsbilanzen';
+import { zeitkontoSaldo } from '@/lib/db/zeitkonto';
 import { listVerlaufZeitraum } from '@/lib/db/zeitbuchungVerlauf';
 import Aenderungsprotokoll from './Aenderungsprotokoll';
 import type { WithId } from '@/lib/db/core';
@@ -93,15 +89,8 @@ function wochenende(heute: Date): string {
 /** Schlüssel des Abschnitts „Kommende Wochen" beim Auf- und Zuklappen — keine KW. */
 const KOMMEND = 'kommend';
 
-/** Woraus der Saldo seit Eintritt rechnet (siehe `saldoAbfrage`). */
-interface SaldoGrundlage {
-  bilanzen: Monatsbilanz[] | null;
-  eintrittsEintraege: WithId<TimeEntry>[];
-  saldoEintraege: WithId<TimeEntry>[];
-}
 // Feste leere Werte: ein neues `[]` je Zeichnen rechnete Saldo und Hinweise jedes Mal neu.
 const KEINE_SCHEINE: WithId<WorkSheet>[] = [];
-const KEINE_EINTRAEGE: WithId<TimeEntry>[] = [];
 
 /**
  * Zeiterfassung — der vertikale Schnitt: Mitarbeiter erfasst -> Datenbank ->
@@ -267,48 +256,6 @@ export default function TimeView() {
   }, [user, monate]);
 
   /**
-   * Der Saldo — aus MONATSBILANZEN, wenn sie nachweislich vollständig sind.
-   *
-   * Er läuft seit dem ersten Arbeitstag und braucht deshalb als einzige Zahl
-   * im Programm wirklich jede Buchung. Nach zehn Dienstjahren sind das rund
-   * 2.200 Dokumente bei jedem Aufruf. Die Bilanzen verdichten das auf eine
-   * Zeile je Monat: 120 statt 2.200.
-   *
-   * DER RÜCKFALL IST DIE EIGENTLICHE ARBEIT. Eine fehlende Bilanz ist von
-   * einem Monat ohne Buchungen nicht zu unterscheiden. Wer sie ungeprüft
-   * summiert, bekommt bei lückenhaftem Bestand einen zu niedrigen Saldo —
-   * ohne Fehlermeldung, ohne Hinweis, und die Zahl steht auf dem Lohnzettel.
-   *
-   * Deshalb wird nur gerechnet, wenn der Marker bestätigt, dass die Bilanzen
-   * ab dem Eintrittsmonat lückenlos vorliegen. Sonst: der alte, direkte Weg.
-   * Langsamer und richtig — in dieser Reihenfolge zu bewerten.
-   *
-   * Der LAUFENDE Monat kommt in beiden Fällen aus den echten Einträgen. Er
-   * ändert sich noch, und der Trigger braucht einen Augenblick; ein Monteur,
-   * der gerade gebucht hat und seinen Saldo unverändert sähe, würde zu Recht
-   * an der App zweifeln.
-   */
-
-  /**
-   * Der laufende Monat — aus den Einträgen, die ohnehin schon da sind.
-   *
-   * AUS DEM BETRIEB GEMELDET: „das Erfassen einer Zeitbuchung hat lange
-   * gedauert." Eine der Ursachen stand hier: nach jeder Buchung holte die
-   * Ansicht den laufenden Monat ein ZWEITES Mal vom Server, obwohl das
-   * Live-Abo oben ihn längst geliefert hatte — das Fenster reicht drei Monate
-   * zurück, der laufende Monat liegt also immer darin.
-   *
-   * Nebenbei stimmt der Saldo damit besser: die zweite Abfrage hatte keine
-   * obere Grenze und zählte auch Buchungen in der ZUKUNFT mit, für die noch
-   * gar kein Soll besteht. Der Saldo sah dadurch zu gut aus.
-   */
-  const laufendeEintraege = useMemo(() => {
-    const jetzt = new Date();
-    const monatsErster = localDateStr(new Date(jetzt.getFullYear(), jetzt.getMonth(), 1));
-    return entries.filter((e) => e.date >= monatsErster);
-  }, [entries]);
-
-  /**
    * Woran der Saldo TATSÄCHLICH hängt.
    *
    * `entries` ist bei jeder Meldung der Live-Verbindung ein neues Array —
@@ -354,50 +301,29 @@ export default function TimeView() {
   // Auch ein Fehler ist „fertig“: dann gibt es eben keinen Hinweis (siehe oben).
   const scheineGeladen = !scheineAbfrage.isPending || scheineAbfrage.isError;
 
-  const eigenesSollSchluessel = hatTagessoll(profile);
   const eintritt = profile?.appStartDate ?? null;
   /*
+    DER SALDO AUS DER DATENBANK (Durchsicht 15.11.2026, L1) — eine Zeile, auch
+    mit eigenem Tagessoll je Wochentag. Vorher holte dieser Weg alle Buchungen
+    seit dem Eintritt; die Bilanzen sagten nicht, auf welchen Wochentag Krank-
+    und Urlaubstage fielen. Gerechnet mit der Arbeitszeit, die an jedem Tag
+    galt (Z3).
+
     Der INHALT der Einträge im Schlüssel, nicht das Array: nach dem Buchen
-    oder Löschen muss der Saldo neu gerechnet werden, nach einem bloßen
-    Schnappschuss ohne Änderung nicht. Bis die neue Grundlage da ist, bleibt
-    die alte stehen (`keepPreviousData`) — wie bisher, ohne Platzhalter
-    zwischen zwei Buchungen. Erst mit den Einträgen: vorher rechnete er
-    einmal umsonst aus der leeren Liste.
+    oder Löschen muss der Saldo neu geholt werden, nach einem bloßen
+    Schnappschuss ohne Änderung nicht. Bis die neue Zahl da ist, bleibt die
+    alte stehen (`keepPreviousData`) — wie bisher, ohne Platzhalter
+    zwischen zwei Buchungen. Erst mit den Einträgen: vorher holte er einmal
+    umsonst.
   */
-  const saldoAbfrage = useZwischengespeichert<SaldoGrundlage>({
+  const saldoAbfrage = useZwischengespeichert<SaldoResult>({
     queryKey: user && eintritt
-      ? schluessel('saldoGrundlage', user, eintritt, eigenesSollSchluessel, eintraegeSchluessel)
-      : ['saldoGrundlage'],
+      ? schluessel('zeitkontoSaldo', user, eintritt, eintraegeSchluessel)
+      : ['zeitkontoSaldo'],
     enabled: !!user && !!eintritt && !loading,
     placeholderData: keepPreviousData,
-    queryFn: async () => {
-      const marker = await bilanzMarker(user!.companyId, user!.uid).catch(() => null);
-      // Der Marker muss den Eintrittsmonat MITABDECKEN. Deckt er erst einen
-      // späteren ab, fehlt der Anfang — und damit wäre der Saldo zu niedrig.
-      // Mit eigenem Tagessoll je Wochentag (M5) reichen die Bilanzen nicht: sie zählen
-      // Krank- und Urlaubstage, sagen aber nicht, auf welchen Wochentag sie fielen.
-      const brauchbar = !!marker && marker.vollstaendigAb <= monatVon(eintritt!) && !eigenesSollSchluessel;
-
-      if (brauchbar) {
-        /*
-          Der Eintrittsmonat kommt aus den Einzelbuchungen AB dem Eintritt:
-          seine Bilanz zählt auch Tage davor mit (Prüflauf 25.09.2026,
-          P1-15). Ein Monat Einträge — nicht der ganze Bestand.
-        */
-        const [rows, startRows] = await Promise.all([
-          listBilanzen(user!.companyId, user!.uid, monatVon(eintritt!)),
-          listOwnEntriesInRange(user!.companyId, user!.uid, eintritt!, monatsLetzter(eintritt!)),
-        ]);
-        return { bilanzen: rows, eintrittsEintraege: startRows, saldoEintraege: [] };
-      }
-      const rows = await listOwnEntriesSince(user!.companyId, user!.uid, eintritt!);
-      return { bilanzen: null, eintrittsEintraege: [], saldoEintraege: rows };
-    },
+    queryFn: () => zeitkontoSaldo(user!.uid),
   });
-  const bilanzen = saldoAbfrage.data?.bilanzen ?? null;
-  const saldoEintraege = saldoAbfrage.data?.saldoEintraege ?? KEINE_EINTRAEGE;
-  /** Der Eintrittsmonat ab dem Eintritt — siehe `saldoAusBilanzen` (P1-15). */
-  const eintrittsEintraege = saldoAbfrage.data?.eintrittsEintraege ?? KEINE_EINTRAEGE;
   const saldoGeladen = saldoAbfrage.data !== undefined || saldoAbfrage.isError;
 
   /*
@@ -414,10 +340,10 @@ export default function TimeView() {
 
   const saldo = useMemo(() => {
     if (!profile) return null;
-    return bilanzen
-      ? saldoAusBilanzen(profile, bilanzen, laufendeEintraege, halbeTage, eintrittsEintraege)
-      : calcOverallSaldo(profile, saldoEintraege, halbeTage);
-  }, [profile, bilanzen, laufendeEintraege, saldoEintraege, eintrittsEintraege, halbeTage]);
+    // Ohne Saldo-Start rechnet die Datenbank nichts — die App sagt dasselbe wie bisher.
+    if (!profile.appStartDate) return calcOverallSaldo(profile, [], halbeTage);
+    return saldoAbfrage.data ?? null;
+  }, [profile, saldoAbfrage.data, halbeTage]);
 
   /**
    * Belegte Tage aus dem geladenen Fenster — die SOFORTIGE Antwort auf die

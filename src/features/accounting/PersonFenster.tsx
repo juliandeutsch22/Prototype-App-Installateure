@@ -3,11 +3,13 @@ import type { WithId } from '@/lib/db/core';
 import type { AppUser, TimeEntry } from '@/types';
 import type { CompletenessResult, MonthStats } from '@/lib/time';
 import {
+  arbeitszeitAm,
   calcWorkMin,
   fmtDauer,
   fmtMin,
   getAustrianHolidayName,
   hatTagessoll,
+  localDateStr,
   schultagAngaben,
   tagesStatusName,
   tageZahl,
@@ -132,6 +134,8 @@ export default function PersonFenster({
     setMarkiert(tagVonAussen);
     setKalender(false);
   }, [tagVonAussen, u.uid, jahr, monat]);
+  /** Die Arbeitszeit am Monatsende (Z3) — für die Zeile „Tagessoll“. */
+  const imMonat = arbeitszeitAm(u, localDateStr(new Date(jahr, monat + 1, 0)));
   const markierterWert = markiert ? monatsWerte.find((t) => t.tag === markiert) : undefined;
   const behaelter = useRef<HTMLDivElement>(null);
 
@@ -463,7 +467,8 @@ export default function PersonFenster({
             MIT EIGENEM TAGESSOLL JE WOCHENTAG die einzelnen Tage (Runde 5, G6):
             „Tagessoll 08:00“ war der Durchschnitt, die Akte führte 8,5 / … / 6.
           */}
-          Tagessoll {hatTagessoll(u) ? tagessollText(u.tagessoll!) : fmtDauer(Math.round(stats.dailyTargetH * 60))} ·
+          {/* Mit der Arbeitszeit des Monats (Z3) — wie Wochenstunden und Tagessoll aus `calcMonthStats`. */}
+          Tagessoll {hatTagessoll(imMonat) ? tagessollText(imMonat.tagessoll!) : fmtDauer(Math.round(stats.dailyTargetH * 60))} ·
           Wochenstunden {fmtDauer(Math.round(stats.weeklyTarget * 60))} ·{' '}
           {stats.requiredDays === 1 ? '1 Solltag' : `${tageZahl(stats.requiredDays)} Solltage`}
           {stats.holidaysInMonth > 0 &&

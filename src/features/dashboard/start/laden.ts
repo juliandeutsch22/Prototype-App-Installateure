@@ -52,6 +52,7 @@ import { listFaelligeWartungen } from '@/lib/db/wartungen';
 import { buchungskonten } from '@/lib/db/konten';
 import { listBasiszinssaetze } from '@/lib/db/basiszins';
 import {
+  arbeitszeitAm,
   localDateStr,
   todayStr,
   offeneWerktage,
@@ -776,7 +777,9 @@ export function auslastung(
   let verplant = 0;
   const belegt = new Set(einsaetze.map((e) => `${e.userId}|${e.date}`));
   for (const u of planbar) {
-    const tage = u.workDays?.length ? u.workDays : [1, 2, 3, 4, 5];
+    // Die Arbeitstage dieser Woche (Z3), nicht unbedingt die von heute.
+    const az = arbeitszeitAm(u, woche[0] ?? todayStr());
+    const tage = az.workDays?.length ? az.workDays : [1, 2, 3, 4, 5];
     for (const tag of woche) {
       const d = new Date(`${tag}T00:00:00`);
       if (!tage.includes(d.getDay())) continue;

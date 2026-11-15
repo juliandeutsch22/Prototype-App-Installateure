@@ -1,7 +1,7 @@
 import { exportSpalten, spaltenKopf, spaltenWert, type ZeitfeldAnzeige, type ZeitfeldWert } from '@/lib/zeitfelder';
 import type { AppUser, TimeEntry } from '@/types';
 import { PETROL } from '@/lib/belegLayout';
-import { calcWorkMin, calcMonthStats, groupProjectHours, type MonthStats } from '@/lib/time';
+import { calcWorkMin, calcMonthStats, groupProjectHours, localDateStr, personAm, type MonthStats } from '@/lib/time';
 import { zuschlagszeit, kennzeichen } from './zuschlaege';
 import { ueberstundenNachTagesgrenze } from './ueberstunden';
 import { nachtArbeitMin, type Nachtzeit, type UeberstundenRegel } from '@/lib/lohnregeln';
@@ -326,7 +326,8 @@ export function buildMonthCsv(
     // Stunden doppelt — und sähe es der Datei nicht an.
     const z = zuschlagszeit(monthEntries, halbeTage, lohn.nacht);
     const ue = lohn.ueberstunden
-      ? ueberstundenNachTagesgrenze(user, monthEntries, lohn.ueberstunden, halbeTage, vorlauf, lohn.nacht)
+      // Mit der Arbeitszeit des Monats (Z3), wie die Zeile „Wochensoll“ — nicht der von heute.
+      ? ueberstundenNachTagesgrenze(personAm(user, monatsletzter), monthEntries, lohn.ueberstunden, halbeTage, vorlauf, lohn.nacht)
       : null;
     lines.push(
       row([
@@ -519,7 +520,8 @@ export function buildUserCsv(
   lines.push(row(['davon beides', `${hours(z.beidesMin)} h`]));
   lines.push(row(['24./31.12. ab 12 Uhr', `${hours(z.dezemberMin)} h`]));
   if (lohn.ueberstunden && mitTagesgrenze(lohn)) {
-    const ue = ueberstundenNachTagesgrenze(user, monthEntries, lohn.ueberstunden, halbeTage, vorlauf, lohn.nacht);
+    // Mit der Arbeitszeit des Monats (Z3), nicht der von heute.
+    const ue = ueberstundenNachTagesgrenze(personAm(user, localDateStr(new Date(year, month + 1, 0))), monthEntries, lohn.ueberstunden, halbeTage, vorlauf, lohn.nacht);
     lines.push(row(['Überstunden 50 %', `${hours(ue.fuenfzigMin)} h`]));
     lines.push(row(['Überstunden 100 %', `${hours(ue.hundertMin)} h`]));
     if (ue.nachtAlsUeberstundeMin !== undefined) {

@@ -86,6 +86,16 @@ vi.mock('@/lib/db/urlaubsanspruch', () => ({
   anpassungEntfernen: (id: string, grund: string) => entfernen(id, grund),
 }));
 
+/* Arbeitszeit und Anspruch ab einem Tag (Durchsicht 15.11.2026, Z3). */
+const azAendern = vi.fn<(d: Record<string, unknown>) => Promise<void>>(async () => undefined);
+const uaAendern = vi.fn<(uid: string, jahr: number, tage: number) => Promise<void>>(async () => undefined);
+vi.mock('@/lib/db/zeitkonto', () => ({
+  arbeitszeitAendern: (d: Record<string, unknown>) => azAendern(d),
+  arbeitszeitAenderungEntfernen: vi.fn(async () => undefined),
+  urlaubsanspruchAendern: (uid: string, jahr: number, tage: number) => uaAendern(uid, jahr, tage),
+  urlaubsanspruchAenderungEntfernen: vi.fn(async () => undefined),
+}));
+
 let angemeldet = {
   uid: 'gf1', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' as AppUser['role'],
 };
@@ -103,6 +113,12 @@ function zeige(uid = 'u2') {
       </ToastProvider>
     </MemoryRouter>,
   );
+}
+
+/** Die Karte „Arbeitszeit und Anspruch ab einem Tag“ öffnen, Formular „Arbeitszeit ändern“. */
+async function arbeitszeitAendern() {
+  await userEvent.click(await screen.findByRole('tab', { name: 'Arbeitszeit und Urlaub' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Arbeitszeit ändern' }));
 }
 
 async function bearbeite() {
@@ -132,6 +148,8 @@ beforeEach(() => {
   ladefehler = false;
   angemeldet = { uid: 'gf1', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' };
   profilAendern.mockClear();
+  azAendern.mockClear();
+  uaAendern.mockClear();
   passwortMail.mockClear();
   vergeben.mockReset().mockResolvedValue(undefined);
   anpassungen = [];
@@ -160,8 +178,6 @@ describe('Die Stammdaten in der Akte', () => {
 
     expect(await screen.findByRole('textbox', { name: /^Name/ })).toHaveValue('Erna Beispiel');
     expect(screen.getByRole('combobox', { name: /Rolle/ })).toHaveValue('Buchhaltung');
-    expect(screen.getByRole('textbox', { name: /Wochenstunden/ })).toHaveValue('20');
-    expect(screen.getByRole('textbox', { name: /Urlaubstage/ })).toHaveValue('30');
   });
 
   it('zeigt die Zeitkonto-Felder, ohne dass jemand sie aufklappen muss', async () => {
@@ -252,14 +268,14 @@ describe('Die Stammdaten in der Akte', () => {
       stehen.
     */
     zeige();
-    await bearbeite();
+    await arbeitszeitAendern();
     const feld = await screen.findByRole('textbox', { name: /Wochenstunden/ });
     await userEvent.clear(feld);
     await userEvent.type(feld, '0');
-    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Arbeitszeit speichern' }));
 
-    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
-    expect(profilAendern.mock.calls[0][1]).toMatchObject({ weeklyTargetHours: 0 });
+    await waitFor(() => expect(azAendern).toHaveBeenCalled());
+    expect(azAendern.mock.calls[0][0]).toMatchObject({ wochenstunden: 0 });
   });
 
   it('macht aus einem leeren Resturlaub `null` und nicht 0', async () => {
@@ -283,9 +299,11 @@ describe('Die Stammdaten in der Akte', () => {
     zeige();
     await bearbeite();
     expect(await screen.findByRole('textbox', { name: /Urlaub im ersten Jahr|Resturlaub beim Umstieg/ })).toHaveValue('5,96');
-    expect(screen.getByRole('textbox', { name: /Wochenstunden/ })).toHaveValue('38,5');
     // Unverändert heißt unverändert: das Komma allein macht die Akte nicht „geändert“.
     expect(screen.queryByRole('button', { name: 'Speichern' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Schließen' }));
+    await arbeitszeitAendern();
+    expect(await screen.findByRole('textbox', { name: /Wochenstunden/ })).toHaveValue('38,5');
   });
 
   // Testbericht 30.09.2026, G9 — das leere Feld sagt, was es bedeutet.
@@ -919,57 +937,55 @@ describe('Jugendschutz in der Akte (Runde 3, M2)', () => {
     ohne Hinweis gespeichert.“ Jetzt fragt die Akte nach — und speichert auf
     Wunsch trotzdem.
   */
+  /* Das Wochensoll ändert sich seit Z3 in der Karte „ab einem Tag“ — die Rückfrage ging mit. */
   async function wochenstunden(wert: string) {
+    await arbeitszeitAendern();
     const feld = await screen.findByRole('textbox', { name: /Wochenstunden/ });
     await userEvent.clear(feld);
     await userEvent.type(feld, wert);
-    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Arbeitszeit speichern' }));
   }
 
   it('unter 18 und 42 Wochenstunden: Rückfrage, gespeichert erst nach „Trotzdem speichern“', async () => {
     geburtsdatum = '2010-03-15';
     zeige();
-    await bearbeite();
     expect(await screen.findByText(/Unter 18 — es gelten die Grenzen des KJBG/)).toBeInTheDocument();
     await wochenstunden('42');
 
     const dialog = await screen.findByRole('dialog', { name: /ist unter 18/ });
     expect(dialog).toHaveTextContent('Erna Beispiel ist unter 18');
     expect(dialog).toHaveTextContent('Wochensoll 42 Std. — für Jugendliche höchstens 40 Std. in der Woche');
-    expect(profilAendern).not.toHaveBeenCalled();
+    expect(azAendern).not.toHaveBeenCalled();
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Trotzdem speichern' }));
-    await waitFor(() => expect(profilAendern).toHaveBeenCalledTimes(1));
-    expect(profilAendern.mock.calls[0][1]).toMatchObject({ weeklyTargetHours: 42 });
+    await waitFor(() => expect(azAendern).toHaveBeenCalledTimes(1));
+    expect(azAendern.mock.calls[0][0]).toMatchObject({ wochenstunden: 42 });
   });
 
   it('„Abbrechen“ speichert nicht', async () => {
     geburtsdatum = '2010-03-15';
     zeige();
-    await bearbeite();
     expect(await screen.findByText(/Unter 18/)).toBeInTheDocument();
     await wochenstunden('42');
     await userEvent.click(within(await screen.findByRole('dialog', { name: /ist unter 18/ })).getByRole('button', { name: 'Abbrechen' }));
     expect(screen.queryByRole('dialog', { name: /ist unter 18/ })).not.toBeInTheDocument();
-    expect(profilAendern).not.toHaveBeenCalled();
+    expect(azAendern).not.toHaveBeenCalled();
   });
 
   it('Gegenprobe: ab 18 keine Rückfrage', async () => {
     geburtsdatum = '1990-01-01';
     zeige();
-    await bearbeite();
     expect(await screen.findByText('01.01.1990')).toBeInTheDocument();
     await wochenstunden('42');
-    await waitFor(() => expect(profilAendern).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(azAendern).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole('dialog', { name: /ist unter 18/ })).not.toBeInTheDocument();
   });
 
   it('Gegenprobe: ohne Geburtsdatum keine Rückfrage', async () => {
     zeige();
-    await bearbeite();
-    expect(screen.getByRole('button', { name: 'Geburtsdatum bearbeiten', hidden: true })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Geburtsdatum bearbeiten', hidden: true })).toBeInTheDocument();
     await wochenstunden('42');
-    await waitFor(() => expect(profilAendern).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(azAendern).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole('dialog', { name: /ist unter 18/ })).not.toBeInTheDocument();
   });
 
@@ -1052,7 +1068,9 @@ describe('Aktenlinie 03 · Benutzer', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Bearbeiten' }));
     expect(await screen.findByRole('dialog', { name: 'Benutzer bearbeiten' })).toBeInTheDocument();
     expect(screen.getByLabelText(/^Name/)).toHaveValue('Erna Beispiel');
-    expect(screen.getByLabelText(/Wochenstunden/)).toHaveValue('40');
+    // Wochenstunden ändern sich ab einem Tag, nicht im Formular der Akte (Z3).
+    expect(screen.queryByLabelText(/Wochenstunden/)).toBeNull();
+    expect(screen.getByText(/ändern sich ab einem Tag/)).toBeInTheDocument();
   });
   it('gibt der Geschäftsführung durch den Umbau keine Bearbeitung eines Administrators frei', async () => {
     gefunden = person({ uid: 'a1', name: 'Admin', role: 'Administrator' });
@@ -1084,13 +1102,71 @@ it('Aktenlinie 03 · schützt den eigenen Geburtsdatumsentwurf und verwendet den
   expect(await screen.findByText('15.03.2010')).toBeInTheDocument();
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(profilAendern).not.toHaveBeenCalled();
-  await bearbeite();
+  await arbeitszeitAendern();
   const wochenstunden = screen.getByRole('textbox', { name: /Wochenstunden/ });
   await userEvent.clear(wochenstunden);
   await userEvent.type(wochenstunden, '42');
-  await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Arbeitszeit speichern' }));
   expect(screen.getByRole('dialog', { name: /ist unter 18/ })).toBeInTheDocument();
-  expect(profilAendern).not.toHaveBeenCalled();
+  expect(azAendern).not.toHaveBeenCalled();
+});
+
+describe('Arbeitszeit und Anspruch ab einem Tag (Durchsicht 15.11.2026, Z3)', () => {
+  it('belegt das Formular mit den bestehenden Werten vor und speichert sie mit „gilt ab“', async () => {
+    gefunden = person({ uid: 'u2', name: 'Erna Beispiel', weeklyTargetHours: 20, workDays: [1, 2, 3], yearlyVacationDays: 30 });
+    zeige();
+    await arbeitszeitAendern();
+    expect(await screen.findByRole('textbox', { name: /Wochenstunden/ })).toHaveValue('20');
+    const ab = screen.getByLabelText(/Gilt ab/);
+    await userEvent.clear(ab);
+    await userEvent.type(ab, '2026-12-01');
+    const feld = screen.getByRole('textbox', { name: /Wochenstunden/ });
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '15');
+    await userEvent.click(screen.getByRole('button', { name: 'Arbeitszeit speichern' }));
+    await waitFor(() => expect(azAendern).toHaveBeenCalledTimes(1));
+    expect(azAendern.mock.calls[0][0]).toMatchObject({ userId: 'u2', ab: '2026-12-01', wochenstunden: 15, arbeitstage: [1, 2, 3] });
+  });
+
+  it('der Urlaubsanspruch gilt ab einem Urlaubsjahr — vorbelegt mit dem bisherigen', async () => {
+    gefunden = person({ uid: 'u2', name: 'Erna Beispiel', yearlyVacationDays: 25 });
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Arbeitszeit und Urlaub' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Urlaubsanspruch ändern' }));
+    const tage = screen.getByRole('textbox', { name: /Urlaubstage pro Jahr/ });
+    expect(tage).toHaveValue('25');
+    await userEvent.clear(tage);
+    await userEvent.type(tage, '30');
+    await userEvent.click(screen.getByRole('button', { name: 'Anspruch speichern' }));
+    await waitFor(() => expect(uaAendern).toHaveBeenCalledTimes(1));
+    // Vorgabe: das nächste Urlaubsjahr — das laufende bleibt, wie es ist.
+    expect(uaAendern.mock.calls[0]).toEqual(['u2', new Date().getFullYear() + 1, 30]);
+  });
+
+  it('das Speichern der Akte schickt keine Arbeitszeit mit — sie würde sonst rückwirkend gelten', async () => {
+    zeige();
+    await bearbeite();
+    await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'x');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
+    const gesendet = profilAendern.mock.calls[0][1] as Record<string, unknown>;
+    for (const feld of ['weeklyTargetHours', 'workDays', 'tagessoll', 'yearlyVacationDays']) expect(gesendet).not.toHaveProperty(feld);
+  });
+
+  it('zeigt den Verlauf: was wann gilt, und was noch kommt', async () => {
+    gefunden = person({
+      uid: 'u2', name: 'Erna Beispiel', weeklyTargetHours: 40, workDays: [1, 2, 3, 4, 5],
+      arbeitszeitVerlauf: [
+        { ab: '2025-01-01', wochenstunden: 40, arbeitstage: [1, 2, 3, 4, 5], tagessoll: null },
+        { ab: '2099-12-01', wochenstunden: 30, arbeitstage: [1, 2, 3, 4], tagessoll: null },
+      ],
+    });
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Arbeitszeit und Urlaub' }));
+    expect(screen.getByText('30 Std · Mo, Di, Mi, Do')).toBeInTheDocument();
+    expect(screen.getByText(/ab 01\.12\.2099 · kommt noch/)).toBeInTheDocument();
+    expect(screen.getByText(/von Anfang an · bis 30\.11\.2099/)).toBeInTheDocument();
+  });
 });
 
 /*
