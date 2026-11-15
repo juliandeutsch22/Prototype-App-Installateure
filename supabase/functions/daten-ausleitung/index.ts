@@ -8,7 +8,8 @@
  *
  * ZWEI WEGE IN DIESELBE FUNCTION, weil es zwei Fragen sind:
  *
- *   Der Nachtlauf   ruft mit dem Dienstschlüssel und nimmt ALLE Betriebe.
+ *   Der Nachtlauf   ruft mit dem Dienstschlüssel, je Betrieb einmal — den
+ *                   Betrieb nennt der Anstoß (K3, Durchsicht 15.11.2026).
  *   Der Knopf       ruft mit dem Token eines Menschen und nimmt nur DESSEN
  *                   Betrieb — Geschäftsführung oder Administration.
  *
@@ -675,62 +676,64 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   const heute = new Date();
 
   /*
-    DER NACHTLAUF: mit dem Dienstschlüssel, über alle Betriebe.
+    DER NACHTLAUF: mit dem Dienstschlüssel, für GENAU EINEN Betrieb (K3,
+    Durchsicht 15.11.2026).
+
+    Bis dahin nahm dieser Weg alle Betriebe in einer Schleife — mit einer
+    Wanduhr für alle zusammen. Mit wachsender Zahl der Betriebe wurden die
+    hinteren nie gesichert, und die Wache meldete bei jedem „Keine Antwort“.
+    Jetzt reiht die Datenbank die Betriebe ein und stößt jeden einzeln an
+    (`app.ausleitung_weiter`); jeder Aufruf hat seine eigene Wanduhr, und
+    eine Antwort, die ausbleibt, gehört zu genau einem Betrieb.
 
     Verglichen wird der ganze Schlüssel, nicht eine Eigenschaft daraus — wer
     ihn hat, ist die Maschine, und etwas anderes soll hier auch nicht
     durchkommen.
   */
   if (rufDerMaschine(kopf, apikeyKopf, SCHLUESSEL)) {
-    const firmen = await fetch(`${URL_BASIS}/rest/v1/companies?select=id`, {
-      headers: alsDienst,
-    });
-    if (!firmen.ok) return fehler('Die Betriebe sind nicht lesbar.', 500);
+    const eingabe = (await req.json().catch(() => null)) as { betrieb?: unknown } | null;
+    const betrieb = typeof eingabe?.betrieb === 'string' ? eingabe.betrieb.trim() : '';
+    if (!betrieb) {
+      return fehler('Der Nachtlauf stößt je Betrieb an — welcher Betrieb, steht nicht in der Anfrage.', 400);
+    }
+    const firma = await fetch(
+      `${URL_BASIS}/rest/v1/companies?select=id&id=eq.${encodeURIComponent(betrieb)}`,
+      { headers: alsDienst },
+    );
+    if (!firma.ok) return fehler('Die Betriebe sind nicht lesbar.', 500);
+    if (((await firma.json()) as unknown[]).length === 0) return fehler('Diesen Betrieb gibt es nicht.', 404);
 
     /*
       EIN DEAKTIVIERTER BETRIEB RUHT (Nachtest 01.10.2026, Paket D): kein
       neuer Stand, kein Aufräumen — der letzte Stand bleibt, wie er ist.
+      Eingereiht wird er gar nicht erst; ruht er seit dem Einreihen, steht
+      hier dasselbe noch einmal.
     */
     const ruhendAntwort = await fetch(
-      `${URL_BASIS}/rest/v1/betrieb_zustand?select=betrieb_kennung&deaktiviert_am=not.is.null`,
+      `${URL_BASIS}/rest/v1/betrieb_zustand?select=betrieb_kennung&deaktiviert_am=not.is.null&betrieb_kennung=eq.${encodeURIComponent(betrieb)}`,
       { headers: alsDienst },
     );
-    const ruhend = new Set(
-      ruhendAntwort.ok
-        ? ((await ruhendAntwort.json()) as Array<{ betrieb_kennung: string }>).map((z) => z.betrieb_kennung)
-        : [],
-    );
-
-    const bilanzen: Bilanz[] = [];
-    const gescheitert: Array<{ companyId: string; meldung: string }> = [];
-    for (const { id } of (await firmen.json()) as Array<{ id: string }>) {
-      if (ruhend.has(id)) continue;
-      try {
-        bilanzen.push(await betriebAusleiten(id, tabellen, schluessel, heute));
-      } catch (e) {
-        /*
-          WEITERMACHEN: ein Betrieb, der scheitert, darf die übrigen nicht
-          mitreissen. Der Fehlschlag steht in der Überwachung, und der
-          jüngste Stand dieses Betriebs bleibt beim Aufräumen ausdrücklich
-          verschont.
-        */
-        const meldung = e instanceof Error ? e.message : 'Unbekannter Fehler';
-        await festhalten(id, false, meldung, null);
-        gescheitert.push({ companyId: id, meldung });
-      }
+    if (!ruhendAntwort.ok) return fehler('Der Zustand des Betriebs ist nicht lesbar.', 500);
+    if (((await ruhendAntwort.json()) as unknown[]).length > 0) {
+      return antwort({ companyId: betrieb, ruht: true });
     }
-    return antwort({
-      mandanten: bilanzen.length,
-      ruhend: ruhend.size,
-      zeilen: bilanzen.reduce((s, b) => s + b.zeilen, 0),
-      bytes: bilanzen.reduce((s, b) => s + b.bytes, 0),
-      gescheitert,
-      dateien: bilanzen.reduce((s, b) => s + b.dateien, 0),
-      dateienOffen: bilanzen.reduce((s, b) => s + b.dateienOffen, 0),
-      // ALLE oder keiner: ein Lauf, bei dem die Hälfte der Betriebe nach
-      // draussen kam, ist kein „ausser Haus".
-      zielExtern: bilanzen.length > 0 && bilanzen.every((b) => b.ausserHaus),
-    });
+
+    try {
+      const bilanz = await betriebAusleiten(betrieb, tabellen, schluessel, heute);
+      return antwort({ ...bilanz, zielExtern: bilanz.ausserHaus });
+    } catch (e) {
+      /*
+        DER FEHLSCHLAG STEHT IN DER ÜBERWACHUNG, MIT SEINEM GRUND — und die
+        Antwort ist trotzdem 200. Das ist dieselbe Abmachung wie vorher in
+        der Schleife: bei einer 200 hat die Function selbst festgehalten,
+        wie es ausging, und die Wache überschreibt das nicht mit einem
+        allgemeinen „antwortete mit 500“. Der jüngste Stand dieses Betriebs
+        bleibt beim Aufräumen ausdrücklich verschont.
+      */
+      const meldung = e instanceof Error ? e.message : 'Unbekannter Fehler';
+      await festhalten(betrieb, false, meldung, null);
+      return antwort({ companyId: betrieb, erfolg: false, meldung });
+    }
   }
 
   /*

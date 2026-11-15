@@ -212,6 +212,9 @@ describe('Interne Hilfsfunktionen', () => {
       'app.push_anmeldungen_entfernen(uuid)',
       'app.ausleitung_anstossen()',
       'app.ausleitung_nachsehen()',
+      // K3: Warteschlange des Nachtlaufs — nur pg_cron stößt sie an.
+      'app.ausleitung_weiter()',
+      'app.ausleitung_gleichzeitig()',
       'app.push_anstossen(jsonb)',
       'app.anstoss_kopfzeilen(text)',
       // Personen nur aus dem eigenen Betrieb (C2): sonst eine Auskunft, wer wo arbeitet.
