@@ -87,6 +87,39 @@ describe('Zeilenschutz', () => {
     expect(mitRecht.map((r) => `${r.table_name}:${r.privilege_type}`)).toEqual([]);
   });
 
+  /*
+    MAINTAIN (ab Postgres 17): erlaubt LOCK TABLE — eine Sperre hält die
+    Tabelle für alle Betriebe an, ohne dass der Zeilenschutz gefragt wird.
+    `information_schema` führt das Recht nicht; gefragt wird deshalb
+    `has_table_privilege` je Tabelle und Sicht. Unter 17 gibt es das Recht
+    nicht, und die Prüfung hat nichts zu prüfen.
+  */
+  const MIT_MAINTAIN = `
+      select c.relname as table_name from pg_class c join pg_namespace n on n.oid = c.relnamespace
+       where n.nspname = 'public' and c.relkind in ('r', 'v', 'm', 'p', 'f')
+         and has_table_privilege('authenticated', c.oid, 'MAINTAIN')
+       order by 1`;
+  const kenntMaintain = async () =>
+    Number((await zeilen<{ v: string }>(`select current_setting('server_version_num') as v`))[0].v) >= 170000;
+
+  it('gibt angemeldeten Konten auf KEINER Tabelle MAINTAIN (LOCK TABLE ohne Zeilenschutz)', async () => {
+    if (!(await kenntMaintain())) return;
+    expect((await zeilen<{ table_name: string }>(MIT_MAINTAIN)).map((r) => r.table_name)).toEqual([]);
+  });
+
+  it('Gegenprobe MAINTAIN: eine neue Tabelle bekommt es nicht — und ein von Hand vergebenes fiele auf', async () => {
+    if (!(await kenntMaintain())) return;
+    await db.query('begin');
+    try {
+      await db.query('create table public.probe_ohne_maintain (id uuid primary key)');
+      expect((await zeilen<{ table_name: string }>(MIT_MAINTAIN)).map((r) => r.table_name)).not.toContain('probe_ohne_maintain');
+      await db.query('grant maintain on public.probe_ohne_maintain to authenticated');
+      expect((await zeilen<{ table_name: string }>(MIT_MAINTAIN)).map((r) => r.table_name)).toContain('probe_ohne_maintain');
+    } finally {
+      await db.query('rollback');
+    }
+  });
+
   it('Gegenprobe: eine neue Tabelle bekommt die drei Rechte nicht mehr — und eine von Hand vergebene fiele auf', async () => {
     await db.query('begin');
     try {

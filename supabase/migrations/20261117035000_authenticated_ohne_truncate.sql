@@ -1,5 +1,5 @@
 /*
-  ANGEMELDETE KONTEN OHNE TRUNCATE, TRIGGER UND REFERENCES
+  ANGEMELDETE KONTEN OHNE TRUNCATE, TRIGGER, REFERENCES UND MAINTAIN
   (Durchsicht 15.11.2026, Befund aus F14).
 
   NACHGESTELLT. Supabase vergibt im Schema `public` jeder neuen Tabelle an
@@ -36,3 +36,25 @@
 revoke truncate, trigger, references on all tables in schema public from authenticated;
 
 alter default privileges in schema public revoke truncate, trigger, references on tables from authenticated;
+
+/*
+  MAINTAIN EBENSO (ab Postgres 17). Das Recht gibt es erst seit Version 17,
+  und Supabase vergibt es mit „alle Rechte“ gleich mit. Es erlaubt VACUUM,
+  ANALYZE, REINDEX, CLUSTER, REFRESH MATERIALIZED VIEW und LOCK TABLE —
+  LOCK TABLE … IN ACCESS EXCLUSIVE MODE hält eine Tabelle für ALLE Betriebe
+  an, ohne dass der Zeilenschutz gefragt wird. Gebraucht wird es als
+  `authenticated` nirgends (dieselbe Prüfung wie oben).
+
+  ÜBER `execute` UND NUR AB VERSION 17: `supabase/config.toml` steht auf 17,
+  und die Produktion folgt dieser Angabe. Läge eine Datenbank doch darunter,
+  scheiterte das Schlüsselwort sonst schon beim Lesen der Migration — so
+  bleibt sie dort ohne Wirkung, und es gibt dort auch nichts zu entziehen.
+*/
+do $migration$
+begin
+  if current_setting('server_version_num')::integer >= 170000 then
+    execute 'revoke maintain on all tables in schema public from authenticated';
+    execute 'alter default privileges in schema public revoke maintain on tables from authenticated';
+  end if;
+end;
+$migration$;
