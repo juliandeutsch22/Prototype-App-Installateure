@@ -714,3 +714,205 @@ hier, sondern am Ende unter „Mit Welle 2 entfallen“.
   entfallen mit G2, dort als ausgetragen vermerkt.
 - **Kein Browserweg für die Auftragskette** (Bericht 5) — entfallen mit
   `auftragskette.spec.ts`.
+
+## Durchsicht vom 15.11.2026, Welle 3 (Pakete 9 und 11) — begründete Grenzen
+
+Gesammelt aus den Berichten der Pakete 9a, 9b, 11a und 11b (Stand §106–§109).
+Grenzen, die eine spätere Nacharbeit derselben Welle aufgehoben hat, stehen am
+Ende unter „Mit Welle 3 entfallen“.
+
+### Paket 9a: Ladezeiten in der Datenbank
+
+- **Die Monatswerte der Mitarbeiterübersicht rechnet weiter die App aus den
+  Buchungen des Monats ± Woche** (L5): Streifen, Monatswerte, Vollständigkeit,
+  AZG/KJBG, Tagesnachweis, Korrektur und Lohn-CSV. Grund fachlich
+  (Lohnrelevanz): in der Datenbank hieße das, diese Regeln ein zweites Mal in
+  SQL zu führen; zwei Rechenwege für Zahlen auf dem Lohnzettel laufen
+  auseinander. Diese Buchungen wachsen mit Personen × Tagen, nicht mit den
+  Jahren; was mit den Jahren wuchs (Urlaubsbuchungen, Gesamtsaldo), kommt jetzt
+  aus der Datenbank.
+- **Die Monatsstände des Zeitkontos werden nur für aktive Konten gefüllt**
+  (L13). Grund Datenschutz: nach der Löschung einer Person darf nichts neu
+  entstehen. Ausgeschiedene rechnen wie bisher bei jeder Abfrage; ihre schon
+  gespeicherten Stände bleiben gültig.
+- **Bei einem häufigen Suchbegriff kostet die genaue Trefferzahl so viel, wie
+  es Treffer gibt** (L3; 17.000 Treffer bei 120.000 Artikeln: 48 ms). Grund
+  fachlich: „und N weitere“ nennt eine genaue Zahl; eine geschätzte stünde dort
+  falsch.
+- **Die acht Suchfunktionen `public.suche_<tabelle>` laufen mit den Rechten des
+  Aufrufers, nicht als `security definer`** (Befund 1) — eine bewusste Ausnahme
+  von der Regel für neue Datenbankfunktionen. Grund Sicherheit: die Leseregeln
+  von Kunden, Baustellen, Wartungen, Scheinen, Anforderungen, Eingängen,
+  Rechnungen und Angeboten sind zu verschieden, um sie in einer Funktion mit
+  erweiterten Rechten sicher nachzubauen; eine nachgebaute Fassung könnte
+  auseinanderlaufen und Zeilen herausgeben. So gilt die Leseregel der Tabelle
+  unverändert. Mit erweiterten Rechten läuft nur `app.suche_treffer`, und die
+  liefert nichts als Kennungen aus dem eigenen Betrieb.
+- **Beim Einspielen der Suchindizes warten Schreibende kurz** (gemessen unter
+  1,5 s bei 120.000 bzw. 119.000 Zeilen). Grund liegt bei jemand anderem
+  (Werkzeug der Plattform): `supabase db push` spielt jede Migration in einer
+  Transaktion ein, und darin geht `create index concurrently` nicht. Begründet
+  im Kommentar jeder Migration.
+
+### Paket 9b: Ladezeiten in der Oberfläche
+
+- **Im Chat wird kein Original in voller Auflösung aufbewahrt** (L4); Bilder
+  gehen auf die längste Kante 1600 verkleinert hinaus. Grund fachlich: 1600
+  genügt schon am Schein als Nachweis (Riss in der Wand, Typenschild); wer eine
+  Datei unverändert weitergeben muss, schickt sie als PDF, und PDF bleibt, wie
+  es ist.
+- **Ältere Chatbilder haben kein Vorschaubild** (L4) und zeigen das Bild
+  selbst. Grund Altdaten: es wird nichts nachträglich erzeugt oder
+  umgeschrieben.
+- **Die Rechnungen in der Kundenakte werden nicht gemerkt, sie laden immer
+  frisch** (L8). Grund fachlich: Geldstände zeigt die App nie aus einem älteren
+  Stand (Regel aus Stand 16.3).
+- **Eine Änderung an Hülle oder Datenkern benennt weiter 176 von 230
+  Bausteinen um (772 KB)** (L7); eine Änderung an einer Ansicht nur noch 2.
+  Grund Sicherheit (Betriebssicherheit: verlässliche Startreihenfolge): fast
+  jede Ansicht bindet Hülle und Datenkern ein. Ein feinerer Schnitt erzeugt
+  Kreise zwischen Bausteinen, und mit Kreisen ist nicht mehr gesichert, in
+  welcher Reihenfolge die Teile beim Start ausgewertet werden — die App
+  könnte auf einzelnen Geräten mit halb geladenen Teilen starten oder gar
+  nicht. Ein unzuverlässiger Start nach jeder Auslieferung wiegt schwerer als
+  das Nachladen nach einer der seltenen Änderungen an Hülle oder Datenkern.
+- **Der Fassungswechsel am echten Telefon ist nicht geprüft** (L7, L10:
+  iPhone, App auf dem Startbildschirm, „Jetzt laden“, danach ohne Netz
+  starten). Grund liegt beim Gerät: die Unit-Prüfungen des Service Workers
+  decken den Weg ab; am Gerät prüft ihn der Betrieb einmal nach der
+  Auslieferung (Handbuch, „Nach einer neuen Fassung weniger laden“).
+- **Der gewachsene Messbestand für den Stapel (`TESTBESTAND_GEWACHSEN`) bucht
+  an Feiertagen wie an Arbeitstagen** (L11), wie der Grundbestand. Grund
+  fachlich: er misst Ladezeiten, nicht Salden; die Saldo-Rechnung prüfen
+  `zeitkontoZwischenstand`, `zeitkontoSaldo` und `arbeitszeitVerlauf` mit
+  eigenem Bestand.
+
+### Paket 11a: Kunden zusammenführen, Inventur, Nummern
+
+- **Kunden zusammenführen ist nicht rückgängig zu machen** (F9). Grund
+  fachlich: die Dublette wird gelöscht; eine Rücknahme müsste Baustellen,
+  Belege und Verlauf wieder aufteilen, und welche Zeile zu wem gehörte, ist
+  danach nicht mehr eindeutig. Vorschau und Handbuch sagen das vorher.
+- **Die Personenkonten bei der Kanzlei legt die Kanzlei zusammen** (F9). Grund
+  liegt bei jemand anderem (Kanzlei): unterscheiden sich die Kundennummern,
+  nennt die Vorschau die Nummer im Export.
+- **Ältere Belege ohne Kundenverknüpfung wandern nur, wenn kein dritter Kunde
+  den Namen der Dublette trägt** (F9). Grund fachlich: bei mehrdeutigem Namen
+  wiese die Zuordnung Belege womöglich dem falschen Kunden zu.
+- **Zeitbuchungen behalten ihren Kundennamen als Text** (F9), wie beim
+  Umbenennen. Grund rechtlich: sie sind Arbeitszeitaufzeichnung und werden
+  nicht nachträglich umgeschrieben.
+- **Der Support kann nicht zusammenführen** (F9). Grund Sicherheit: das
+  Zusammenführen löscht endgültig einen Kunden; das tun nur Mitglieder des
+  Betriebs.
+- **Termine der Dublette für heute und morgen lösen beim Zusammenführen die
+  Änderungsmeldung an die Teilnehmer aus** (F9). Grund fachlich: Ort und Name
+  des Termins ändern sich tatsächlich; die Teilnehmer erfahren es so wie bei
+  jeder anderen Änderung.
+- **Die Inventur bewertet den Bestand nicht** (F14). Grund liegt bei jemand
+  anderem (Steuerberatung) und Datenschutz bzw. Rechte: die Bewertung gehört in
+  die Bilanz, und Einkaufspreise sieht nur die Spitze.
+- **Zählen und buchen nur Verwaltung und Leitung, nicht der Fahrer** (F14).
+  Grund fachlich: die Kontrolle macht nicht, wer für den Bestand
+  verantwortlich ist; dieselben Rollen wie die Einzelinventur.
+- **Der Stichtag einer Zählliste liegt frühestens am 30.09.2026 und höchstens
+  60 Tage voraus** (F14). Grund Altdaten: das Soll wird aus dem
+  Bewegungsprotokoll zurückgerechnet, und das beginnt dort.
+- **Über den Rücklauf einer Sicherung hinweg stimmt das Soll einer Zählliste
+  nicht** (F14): Bestandsänderungen mit dem Dienstschlüssel schreiben keine
+  Bewegung. Grund Altdaten und Sicherheit: der Rücklauf stellt den gesicherten
+  Stand wieder her, wie er war (bestehendes Verhalten); das Protokoll schreibt
+  nur, was über die Funktionen des Betriebs geschieht.
+- **Ohne Verbindung zeigen Nummernvorschau und Vorschlag der Baustellennummer
+  ein Beispiel mit dem Jahr des Geräts** (G12 und Befund), als Beispiel
+  gekennzeichnet. Grund liegt beim Gerät: ohne Verbindung kennt die App das
+  Jahr des Servers nicht; verbindlich vergibt der Server beim Speichern.
+- **Eine von Hand in der Dashboard-Maske angelegte Tabelle bekommt die
+  Vorgaberechte von Supabase** (Tabellenrechte), auch TRUNCATE und MAINTAIN für
+  `authenticated`. Grund liegt bei jemand anderem (Plattform): sie entsteht als
+  `supabase_admin`, für den die geänderte Vorgabe nicht gilt. Der Wächter in
+  `schema.test.ts` findet eine solche Tabelle, wie beim `anon`-Wächter.
+
+### Paket 11b: Kontoauszug und Belege per Mail
+
+- **Der Mailversand braucht die Secrets `SMTP_*`** (F16). Grund liegt bei
+  jemand anderem (Betreiber): die Zugangsdaten des Mailservers gehören nicht
+  ins Repository. Bis sie gesetzt sind, bietet das Fenster „PDF laden“ und
+  „Mail-Programm öffnen“ an.
+- **Die SMTP-Zugangsdaten der Anmeldemails sind nicht nutzbar, und die Ports
+  25 und 587 sind gesperrt** (F16). Grund liegt bei jemand anderem (Supabase):
+  die Einstellung Authentication → SMTP erreicht keine Edge Function, und
+  gehostete Edge Functions dürfen auf diese Ports nicht verbinden. Deshalb
+  eigene Secrets und Port 465 mit TLS als Vorgabe.
+- **Rückläufer, die der Mailserver schon angenommen hatte, gehen an das
+  Postfach von `SMTP_ABSENDER` und erscheinen nicht im Verlauf** (F16). Grund
+  liegt bei jemand anderem (Betreiber) und fachlich: SPF und DKIM verlangen
+  die Domain der Plattform als Absender; das Postfach liegt beim Betreiber.
+- **Text und PDF einer Mail werden nicht gespeichert** (F16), nur Zeitpunkt,
+  Person, Empfänger, Betreff, Name, Größe und Prüfsumme des Anhangs. Grund
+  Datenschutz und fachlich: das PDF entsteht aus dem Beleg jederzeit gleich,
+  die Prüfsumme belegt den Stand.
+- **Ohne Antwortadresse des Betriebs geht keine Mail hinaus** (F16). Grund
+  Datenschutz: Antworten der Kunden landeten sonst beim Betreiber.
+- **Grenzen gegen Mailflut** (F16): je Person 30 Mails in der Stunde, je
+  Betrieb 100 in der Stunde und 400 am Tag, je Beleg 5 in der Stunde; eine
+  Rechnung und ihre Mahnungen teilen sich die Grenze je Beleg. Grund
+  Sicherheit: Schutz des Kunden und des Absenderrufs der Plattform vor
+  Mailflut.
+- **Der Support sendet keine Belege** (F16). Grund Sicherheit: der Support
+  schreibt nicht in den Betrieb, und eine Mail an einen Kunden ist eine
+  Handlung des Betriebs.
+- **Dieselbe Bewegung aus verschiedenen Formaten (camt gegen CSV) erkennt die
+  Prüfsumme nicht immer** (F13). Grund fachlich: die Formate tragen
+  unterschiedliche Angaben. Abgefangen über „gleiche Rechnung, gleicher Tag,
+  gleicher Betrag“ („Schon erfasst“).
+- **Fremdwährung wird nicht abgeglichen** (F13). Grund fachlich: Rechnungen
+  werden in Euro gestellt.
+- **Vorgemerkte Umsätze und Rückbuchungen werden gezählt und genannt, aber
+  nicht übernommen** (F13). Grund fachlich: ein vorgemerkter Umsatz ist bei
+  der Bank noch nicht gebucht, eine Rückbuchung hebt eine Buchung der Bank auf;
+  beides ist kein Zahlungseingang zu einer Rechnung.
+- **Abbuchungen ohne Rechnungsbezug werden nur gezählt, nicht verbucht**
+  (F13, „Nicht Rechnungen betreffend“). Grund fachlich und liegt bei jemand
+  anderem (Steuerberatung): Senklot führt keine Eingangsrechnungen und keine
+  Buchhaltung.
+- **Per Mail geht nur die jüngste Mahnung einer Rechnung** (F16). Grund
+  fachlich: eine ältere Stufe nach einer neueren nähme die Mahnung zurück.
+- **Keine Mahnung per Mail nach Bezahlung oder Storno** (F16). Grund
+  fachlich: die Forderung besteht nicht mehr.
+- **Das Senden einer Mahnung setzt die Mahnstufe nicht** (F16). Grund
+  fachlich: die Stufe setzt der bestehende Ablauf beim Erzeugen der Mahnung;
+  ein zweiter Weg zählte sie doppelt.
+
+### Nicht als Grenze geführt
+
+- **Messung gegen den Stapel mit gewachsenem Bestand** (L11): vorbereitet
+  (`testbestand.mjs` mit `TESTBESTAND_GEWACHSEN=1`, `messung.mjs --monteur`),
+  der Lauf steht bei der Integration aus. Zeilen und Dauer je Abfrage prüft die
+  CI nicht, weil die Attrappen der Vorschau nicht nach Person und Zeitraum
+  filtern; die CI prüft Datenaufrufe und Elemente je Seite. Offen im Plan.
+- **Kein eigener Browserweg für „Mahnung per Mail“** (F16): Komponenten- und
+  Datenbankprüfung decken den Weg ab. Eine Lücke im Nachweis, keine Grenze.
+
+### Mit Welle 3 entfallen
+
+- **„Dunkel“ sieht bis zum ersten Skript helles Papier** (Bericht 9b, L10) —
+  entfallen mit der Nacharbeit: ein eingebettetes Skript mit Hash setzt den
+  dunklen Grund ab dem ersten Bild, die Inhaltsregel bleibt ohne
+  `'unsafe-inline'`.
+- **Die Suche der Baustellenliste steht nicht in der Adresse** (Bericht 9b) —
+  entfallen: `?suche=` wie bei Kunden, Angeboten und Wartungen.
+- **Abbuchungen werden im Kontoauszug nicht abgeglichen** und **Mahnung per
+  Mail gibt es nicht** (Bericht 11b, als Lücken benannt) — entfallen mit den
+  Rückzahlungen im Kontoauszug und „Mahnung per Mail“.
+- **`authenticated` behält MAINTAIN** (Bericht 11a, offen wegen der
+  Postgres-Version) — entfallen: entzogen ab Postgres 17 in einem Block, der
+  unter Version 17 nichts tut.
+- **Nach einem großen DATANORM-Import bleibt die Suche langsam, bis autovacuum
+  aufräumt** (Bericht 9a, zur Entscheidung) — entfallen: die Übernahme räumt
+  die Warteliste am Ende selbst auf.
+- **Einsatzplanung prüft Feiertage je Tag; die Monatsliste des Zeitkontos
+  nutzt den Zwischenspeicher nicht** (Bericht 9a, als begrenzt benannt) —
+  entfallen mit den Befunden 3 und 4.
+- **L5 offen** (Welle 2, „Nicht als Grenze geführt“) — gebaut; es bleibt die
+  fachliche Grenze der Monatsrechnung oben.

@@ -57,7 +57,7 @@ gebrochene Zusage. **mittel** = Ablauf lückenhaft oder irreführend.
 | Z7 ○ **erledigt (Welle 2, 15.11.)** | mittel | **Scheitert das Laden der Urlaubstage, rechnen Übersicht und CSV still mit null Tagen.** | Teilfehler anzeigen („Urlaub nicht geladen“), Zahl als unbekannt statt null, Export gesperrt bis geladen. |
 | Z8 ○ **erledigt (Welle 2, 15.11.)** | niedrig | Monats-CSV: Summe der Detailspalte weicht vom Ist ab (153,40 gegen 153,33). Stundennachweis „auch für Kunden“ zeigt Krank und andere Kunden. Personen-Exporte laden alle Personen. Ganztägiger Zeitausgleich wird mit 0 Tagen genehmigt. | Eine Rundungsregel für Minuten in allen Ausgaben; Stundennachweis je Baustelle/Kunde ohne Abwesenheiten (F12); Exporte je Person abfragen; Zeitausgleich in Tagen prüfen. |
 | Z9 **erledigt (Welle 2, 15.11.)** | niedrig | Die Push-Meldung zu einer Entscheidung über Urlaub oder Zeitausgleich (genehmigt, abgelehnt, zurückgenommen) führte nur auf die Urlaubsseite; die Person musste ihren Antrag suchen (gefunden bei Z1). | Die Meldung springt mit `?antrag=` auf genau diesen Antrag, wie schon „gekürzt“. |
-| Z10 Verdacht, an Paket 9b übergeben | — | „Meine Einträge“ zeigte in einem Prüflauf ohne Netz „Das hat nicht geklappt — Failed to fetch“ und erholte sich nicht (gefunden bei Z4). Weder auf `main` noch auf dem Stand von Paket 4b nachgestellt. | Zuerst nachstellen (Live-Abo `abonnieren`, `TimeView`); nur bei Bestätigung: bei Netzfehlern den letzten Stand stehen lassen, den Fehler beim nächsten Erfolg zurücksetzen — für alle Live-Listen gleich. |
+| Z10 Verdacht, bestätigt, **erledigt (Welle 3, 15.11.)** | mittel | „Meine Einträge“ zeigte in einem Prüflauf ohne Netz „Das hat nicht geklappt — Failed to fetch“ und erholte sich nicht (gefunden bei Z4). Weder auf `main` noch auf dem Stand von Paket 4b nachgestellt. | Zuerst nachstellen (Live-Abo `abonnieren`, `TimeView`); nur bei Bestätigung: bei Netzfehlern den letzten Stand stehen lassen, den Fehler beim nächsten Erfolg zurücksetzen — für alle Live-Listen gleich. |
 | Z11 **erledigt (Welle 2, 15.11.)** | mittel | **0 Wochenstunden zählten als 40** (`Number(x) \|\| 40` in der App, `nullif(x, 0)` in der Datenbank) — entgegen dem Benutzerformular; rund 170 Minusstunden im Monat (gefunden bei Z3). | 0 heißt kein Soll, in App und Datenbank gleich; leer bleibt die Vorgabe 40. |
 | Z12 **erledigt (Welle 2, 15.11.)** | mittel | **Krank/Urlaub an einem freien Tag:** der Gesamtsaldo schrieb das Tagessoll gut, die Monatsauswertung nicht — beide Zahlen widersprachen sich (gefunden bei Z3). | Gutschrift für ganztägige und stundenweise Abwesenheiten nur an Tagen mit Soll, in App und Datenbank; der Tag zählt weiter als gebucht. Salden können dort sinken, wo solche Tage gebucht sind. |
 
@@ -110,7 +110,8 @@ gebrochene Zusage. **mittel** = Ablauf lückenhaft oder irreführend.
 | G9 Verdacht, bestätigt, **erledigt (Welle 2, 15.11.)** | mittel | Zwei gleichzeitige Zahlungseingänge (oder Eingang plus Storno) könnten den Zahlstand überschreiben. | Zuerst nachstellen; falls bestätigt: Rechnung in der Funktion sperren. |
 | G10 **erledigt (Welle 2, 15.11.)** | mittel | Angebots- und Baustellennummern nahmen das Jahr von der Geräteuhr (gefunden bei G5). | Jahr vom Server; ein abweichendes Jahr gibt keine Nummer, sondern einen Hinweis auf die Uhr. |
 | G11 **erledigt (Welle 2, 15.11.)** | mittel | `naechste_nummer` gab jeder Buchhaltung eine Rechnungsnummer ohne Rechnung — eine Lücke im lückenlosen Kreis (Ursache hinter N4, gefunden bei G5). | Rechnungsnummern nur noch in der Transaktion des Belegs, der sie verbraucht (Rechnung, Stornorechnung). |
-| G12 offen, an Paket 11a übergeben | niedrig | Die Einstellungen zeigen die „nächsten Nummern“ mit dem Jahr der Geräteuhr (`SettingsView`, gefunden bei G10). | Serverjahr verwenden (`naechste_belegnummer`); nur Anzeige. |
+| G12 **erledigt (Welle 3, 15.11.)** | niedrig | Die Einstellungen zeigen die „nächsten Nummern“ mit dem Jahr der Geräteuhr (`SettingsView`, gefunden bei G10). | Serverjahr verwenden (`naechste_belegnummer`); nur Anzeige. |
+| G13 **erledigt (Welle 3, 15.11.)** | niedrig | Baustellenformular und „Baustelle anlegen“ aus einer Wartung schlugen die Baustellennummer mit dem Jahr der Geräteuhr vor (gefunden bei G12); vergeben wird vom Server. | Jahr und Zähler vom Server (`useBaustellenVorschlag`); ohne Verbindung als Beispiel mit Gerätejahr gekennzeichnet. |
 
 ### M — Material
 
@@ -143,6 +144,16 @@ gebrochene Zusage. **mittel** = Ablauf lückenhaft oder irreführend.
 | K8 **erledigt (Welle 2, 15.11.)** | mittel | Die nächtliche Ausleitung brach an einer Zeile über 1 MB ab (Seitennummern mit Lücken); der Nachtlauf des Betriebs scheiterte jede Nacht (gefunden bei K4). | Seiten lückenlos nummerieren, wie bei K4. |
 | K9 **erledigt (Welle 2, 15.11.)** | niedrig | `konto_umstellungen` wurde bei der Löschung einer Person weder gelöscht noch genannt (N5 der Analyse). | Umstellungen des Kontos werden gelöscht und im Bericht gezählt; am Konto eines anderen bleibt die Zeile ohne Kennung und Namen. |
 | K10 **erledigt (Welle 2, 15.11.)** | niedrig | Offene Passwort-Bitten (V14) blieben beim Deaktivieren des Kontos oder Betriebs offen und tauchten nach einem Aktivieren wieder auf (gefunden bei V14). | Sperren schließt offene Bitten mit dem Vermerk „deaktiviert“. |
+| K11 **erledigt (Welle 3, 15.11.)** | mittel | Angemeldete Konten hatten auf 48 Tabellen und Sichten TRUNCATE, TRIGGER, REFERENCES und (Postgres 17) MAINTAIN aus der Vorgabe von Supabase — TRUNCATE und LOCK TABLE fragen den Zeilenschutz nicht; eine gesperrte Tabelle hält alle Betriebe an (gefunden bei F14). | Rechte entzogen, ebenso in der Vorgabe für neue Tabellen; MAINTAIN nur ab Postgres 17; Wächter in `schema.test.ts` mit Gegenprobe. |
+| K12 **erledigt (Welle 3, 15.11.)** | niedrig | Die Löschung einer Person nannte das Bewegungsprotokoll des Lagers (`lagerbewegungen.erfasst_von_name`) nicht unter „aufbewahren“ (gefunden bei F14). | Eintrag mit Frist und Grund (§ 132 BAO), wie bei den Materialanforderungen. |
+
+### T — Technik und Prüfwerkzeuge (Befunde aus Welle 3)
+
+| # | Schwere | Punkt | Nachhaltige Lösung |
+|---|---|---|---|
+| T1 **erledigt (Welle 3, 15.11.)** | hoch auf älteren iPhones | `src/lib/wortfugen.ts` nutzte ein Lookbehind im regulären Ausdruck, obwohl auf Safari 14 gebaut wird — auf iPhones vor Safari 16.4 ein Syntaxfehler (gefunden bei F13). | Fang-Gruppe statt Lookbehind; Wächter `keinLookbehind.test.ts` über alle regulären Ausdrücke in `src/`. |
+| T2 **erledigt (Welle 3, 15.11.)** | mittel | `scripts/ui-umbau/testbestand.mjs` startete schon beim bloßen Einbinden seinen ganzen Lauf und schrieb Testdaten in die lokale Datenbank (gefunden bei L11). | Anlegen nur bei eigenem Aufruf; Einbinden geprüft folgenlos. `--neu` entfernt den Betrieb `ui-testbestand` und legt ihn vollständig neu an. |
+| T3 **erledigt (Welle 3, 15.11.)** | mittel | Seit Welle 2 blieben Zeiterfassung und Mitarbeiterübersicht in der Vorschau weiß: Attrappen der Datenschicht fehlten; die Attrappe für `beobachte…` gab ein Versprechen statt einer Aufräumfunktion zurück (gefunden bei L11 und 9a). | Fehlende Attrappen ergänzt; `vorschauErsatz.test.ts` prüft jedes Ersatzmodul unter `fest/` auf jeden Export. |
 
 ---
 
@@ -162,7 +173,7 @@ fehlender nächster Schritt oder eine doppelte Eingabe.
 | V7 **erledigt (Welle 2, 15.11.)** | **Guthaben** lässt sich nicht mit einer neuen Rechnung verrechnen, obwohl die Stornorechnung es zusagt. | Guthaben umbuchen als ein Vorgang; im Export als Umbuchung. |
 | V8 **erledigt (Welle 2, 15.11.)** | **Termine und Notfall-Eingänge ohne Meldung** — für Einsätze gibt es Push, für Termine und Notfälle nicht. | Push an Teilnehmer bzw. Leitung, gesammelt wie beim Einsatz. |
 | V9 **erledigt (Welle 2, 15.11.)** | **Schein kommt im Büro an**, aber niemand ohne Rechnungsrecht erfährt es. | Zeile „neu eingegangen“ auf der Startseite. |
-| V10 | **Zurück aus einer Akte** (Kunden, Angebote, Wartungen, Benutzer): Liste lädt neu, Suchtext ist weg. Bei Baustellen bleibt beides stehen. | Dasselbe Muster wie bei den Baustellen (L8). |
+| V10 **erledigt (Welle 3, 15.11.)**, mit L8 | **Zurück aus einer Akte** (Kunden, Angebote, Wartungen, Benutzer): Liste lädt neu, Suchtext ist weg. Bei Baustellen bleibt beides stehen. | Dasselbe Muster wie bei den Baustellen (L8). |
 | V11 **erledigt (Welle 2, 15.11.)** | **Anforderung → Rückgabe:** aus einer erledigten Anforderung führt kein Weg zur Retoure; frei getippte Ware lässt sich gar nicht zurückgeben. | „Zurückgeben“ an der Anforderung, alles vorbelegt. |
 | V12 **erledigt (Welle 2, 15.11.)** | **Geschäftsführung und Administrator sind nicht einplanbar** — im kleinen Betrieb fährt der Chef mit. | Einstellung je Betrieb, wie es sie für die Projektleitung schon gibt. |
 | V13 **erledigt (Welle 2, 15.11.)** | **Mehrtägiger Einsatz** ist nur Tag für Tag änderbar. | „Auch an den folgenden Tagen ändern/entfernen“. |
@@ -173,6 +184,7 @@ fehlender nächster Schritt oder eine doppelte Eingabe.
 ## 3. Oberfläche: Uneinheitlichkeiten und was „selbsterklärend“ im Weg steht
 
 Aus dem Rundgang. Die Linie V10 selbst trägt; die Brüche liegen in der Bedienung.
+**Stand 15.11. nach Welle 3: offen, nächstes Paket (Paket 10).**
 
 | # | Punkt (Beobachtung) | Vorschlag |
 |---|---|---|
@@ -198,6 +210,7 @@ Vorhanden: Stufen für Druck (100 ms), Zustand (160 ms), Fenster (220/140 ms),
 „Bewegung reduzieren“ wird befolgt; Fenster und Menüs blenden ein, das Lot der
 Navigation fährt. Was fehlt, ist Bewegung, die **erklärt, was gerade passiert
 ist**. Alles nur mit `transform` und Deckkraft, nichts verschiebt Layout.
+**Stand 15.11. nach Welle 3: offen, nächstes Paket (Paket 10).**
 
 | # | Wo | Bewegung | Wofür |
 |---|---|---|---|
@@ -229,19 +242,26 @@ Menge, die in den Browser wandert.
 |---|---|---|---|---|
 | L1 ✔ **erledigt (Welle 2, 15.11.)** | groß | **Wer ein Tagessoll je Wochentag hat („kurzer Freitag“), bekommt den Saldo aus allen Buchungen seit Eintritt** — auf Start, Zeiterfassung und Urlaub. Nach fünf Jahren rund 6.000 Zeilen in 13 Anfragen je Besuch. | Monatsbilanzen speichern die Tage je Zustand und das Soll des Monats (zusammen mit Z3). | keiner; Bilanzen werden einmal nachgerechnet |
 | L2 ○ **erledigt (Welle 2, 15.11.)** | groß | Gesamtsaldo der Mitarbeiterübersicht holt je Eintrittsmonat die Buchungen des ganzen Betriebs und alle Bilanzen aller Jahre — nach jeder Buchung erneut. | Gesamtsaldo aus der Datenbank (eine Funktion über die Bilanzen). | keiner |
-| L3 ○ | groß bei großem Katalog | **Die Katalogsuche kann ihren Suchindex nicht nutzen** (gemessen bei 120.000 Artikeln: 162 ms + 159 ms Zählen; mit passendem Index 2,6 ms). | Index je durchsuchter Spalte — reine Migration. | etwas mehr Speicher |
-| L4 ✔ | groß im Chat | **Chatbilder gehen unverkleinert hoch (bis 25 MB) und werden bei jeder neuen Nachricht neu geladen**, weil die Adressen neu erzeugt werden. | Adressen merken, bis sie ablaufen; Bilder beim Senden verkleinern, Vorschaubild in der Liste, Original auf Tipp. | Original lädt erst auf Tipp |
-| L5 ○ offen (Welle 2: nicht gebaut, braucht den Umbau der Arbeitszeitgrenzen-Prüfung; an Paket 9a übergeben) | mittel–groß | Mitarbeiterübersicht: 1,9 s bei 25 Personen, 3,5 s bei 75. Die bisherige Begründung „bis etwa 30 Mitarbeiter“ widerspricht dem Grundsatz „für jeden Betrieb“. | Zeilen der Übersicht aus der Datenbank (baut auf L1/L2 auf). | eigener Umbau |
-| L6 ○ | mittel | Rechnungen laden alle offenen samt Positionen; „Nicht verrechnet“ läuft über bis zu sieben Abfragen nacheinander mit allen Spalten. Ergänzung aus Paket 6: `invoices.leistungsnachweis` (seit G6) kommt in Listen mit `select *` mit. „Nicht verrechnet“ fragt seit P3 eine Datenbankfunktion. | Liste ohne Positionen, Positionen beim Öffnen; eine Abfrage mit den nötigen Spalten. | keiner |
-| L7 ○ | mittel | Jede Änderung benennt 172 von 218 Bausteinen um — nach jeder Auslieferung lädt jedes Telefon bis zu 0,9 MB neu. | Dünner Einstieg, gemeinsamer Code in wenigen Bausteinen nach Änderungshäufigkeit. | einmalige Umstellung der Auslieferung, sorgfältig zu prüfen |
-| L8 ○ | mittel (gefühlt) | Kunden, Angebote, Wartungen, Benutzer und ihre Akten beginnen bei jedem Besuch leer; der Suchtext geht bei „Zurück“ verloren. | Gemerkter Stand und Suche in der Adresse — das Muster der Baustellen. | keiner |
-| L9 ○ | klein–mittel | Die Tagesplanung lädt den ganzen Monat aller Personen. | Für den Tag den Tag und die Woche laden; Markierungen als Zählung je Tag. | keiner |
-| L10 ○ | klein, bei jedem Kaltstart sichtbar | Weiß bis zum ersten Bild; Schriften ohne Vorabruf. | Papierfarbe sofort, Schriften vorab laden. | Inhaltsregel (CSP) braucht einen Eintrag |
-| L11 | vorbeugend | Die Ladezeit-Messung deckt den Monteur nicht ab und kennt weder verschiedene Eintrittsmonate noch ein Tagessoll — L1 und L2 wurden deshalb nie gemessen. | **Leistungswächter in der CI** (Budget für Einstieg, Bausteine, Zeilen und Anfragen je Seite) und ein **Testbestand wie ein gewachsener Betrieb** (50 Personen, zehn Jahre). | längere CI |
-| L12 | gefühlt | Akte erst beim Loslassen laden. | Baustein und Kopf der Akte schon beim Berühren der Zeile holen. | keiner |
-| L13 offen, an Paket 9a übergeben | groß bei vielen Jahren | `zeitkonto_salden` rechnet bei jeder Abfrage über alle Buchungen seit dem Saldo-Start: gemessen 56 Personen / 47.867 Buchungen ≈ 850 ms, hochgerechnet 50 Personen × 10 Jahre 2–4 s (gefunden bei Z3/L2). | Abgeschlossene Monate als festen Stand zwischenspeichern, der nur bei Änderungen in diesem Monat neu entsteht. | Stand muss bei jeder rückwirkenden Änderung zuverlässig neu entstehen |
-| L14 offen, an Paket 9a übergeben | mittel | `app.ist_feiertag` kostet 0,7 ms je Aufruf; `app.urlaubstage` wird bei langen Zeiträumen entsprechend langsam (gefunden bei Z3). | `app.urlaubstage` auf die Feiertagsmenge je Jahr (`app.feiertage`) umstellen, wie `zeitkonto_salden` es schon tut. | keiner |
-| L15 offen, mit L11 (Paket 9b) | vorbeugend | Einzelne Komponentenprüfungen liegen unter paralleler Last nahe ihrer Frist von 5 s und fielen in mehreren Paketen gelegentlich aus (`BaustellenakteView` „G5 Kundenwechsel“, `QuotesView` „zählt nur echte Arbeitszeit“, `zip`, `appZeichen`, `infoHintUmbruch`); einzeln und mit `--maxWorkers=1` grün. | Mit dem Leistungswächter (L11): Ursache je Prüfung messen, nicht pauschal die Frist erhöhen. | keiner |
+| L3 ○ **erledigt (Welle 3, 15.11.)** | groß bei großem Katalog | **Die Katalogsuche kann ihren Suchindex nicht nutzen** (gemessen bei 120.000 Artikeln: 162 ms + 159 ms Zählen; mit passendem Index 2,6 ms). | Index je durchsuchter Spalte — reine Migration. | etwas mehr Speicher |
+| L4 ✔ **erledigt (Welle 3, 15.11.)**; abweichend vom Vorschlag ohne Original in voller Auflösung (begründete Grenze, fachlich) | groß im Chat | **Chatbilder gehen unverkleinert hoch (bis 25 MB) und werden bei jeder neuen Nachricht neu geladen**, weil die Adressen neu erzeugt werden. | Adressen merken, bis sie ablaufen; Bilder beim Senden verkleinern, Vorschaubild in der Liste, Original auf Tipp. | Original lädt erst auf Tipp |
+| L5 ○ **erledigt (Welle 3, 15.11.)**, mit begründeter Grenze (Monatsrechnung bleibt in der App) | mittel–groß | Mitarbeiterübersicht: 1,9 s bei 25 Personen, 3,5 s bei 75. Die bisherige Begründung „bis etwa 30 Mitarbeiter“ widerspricht dem Grundsatz „für jeden Betrieb“. | Zeilen der Übersicht aus der Datenbank (baut auf L1/L2 auf). | eigener Umbau |
+| L6 ○ **erledigt (Welle 3, 15.11.)** | mittel | Rechnungen laden alle offenen samt Positionen; „Nicht verrechnet“ läuft über bis zu sieben Abfragen nacheinander mit allen Spalten. Ergänzung aus Paket 6: `invoices.leistungsnachweis` (seit G6) kommt in Listen mit `select *` mit. „Nicht verrechnet“ fragt seit P3 eine Datenbankfunktion. | Liste ohne Positionen, Positionen beim Öffnen; eine Abfrage mit den nötigen Spalten. | keiner |
+| L7 ○ **erledigt (Welle 3, 15.11.)**, mit begründeter Grenze (Hülle und Datenkern) | mittel | Jede Änderung benennt 172 von 218 Bausteinen um — nach jeder Auslieferung lädt jedes Telefon bis zu 0,9 MB neu. | Dünner Einstieg, gemeinsamer Code in wenigen Bausteinen nach Änderungshäufigkeit. | einmalige Umstellung der Auslieferung, sorgfältig zu prüfen |
+| L8 ○ **erledigt (Welle 3, 15.11.)** | mittel (gefühlt) | Kunden, Angebote, Wartungen, Benutzer und ihre Akten beginnen bei jedem Besuch leer; der Suchtext geht bei „Zurück“ verloren. | Gemerkter Stand und Suche in der Adresse — das Muster der Baustellen. | keiner |
+| L9 ○ **erledigt (Welle 3, 15.11.)** | klein–mittel | Die Tagesplanung lädt den ganzen Monat aller Personen. | Für den Tag den Tag und die Woche laden; Markierungen als Zählung je Tag. | keiner |
+| L10 ○ **erledigt (Welle 3, 15.11.)** | klein, bei jedem Kaltstart sichtbar | Weiß bis zum ersten Bild; Schriften ohne Vorabruf. | Papierfarbe sofort, Schriften vorab laden. | Inhaltsregel (CSP) braucht einen Eintrag |
+| L11 **erledigt (Welle 3, 15.11.)**; Messung gegen den Stapel offen (L22) | vorbeugend | Die Ladezeit-Messung deckt den Monteur nicht ab und kennt weder verschiedene Eintrittsmonate noch ein Tagessoll — L1 und L2 wurden deshalb nie gemessen. | **Leistungswächter in der CI** (Budget für Einstieg, Bausteine, Zeilen und Anfragen je Seite) und ein **Testbestand wie ein gewachsener Betrieb** (50 Personen, zehn Jahre). | längere CI |
+| L12 **erledigt (Welle 3, 15.11.)** | gefühlt | Akte erst beim Loslassen laden. | Baustein und Kopf der Akte schon beim Berühren der Zeile holen. | keiner |
+| L13 **erledigt (Welle 3, 15.11.)** | groß bei vielen Jahren | `zeitkonto_salden` rechnet bei jeder Abfrage über alle Buchungen seit dem Saldo-Start: gemessen 56 Personen / 47.867 Buchungen ≈ 850 ms, hochgerechnet 50 Personen × 10 Jahre 2–4 s (gefunden bei Z3/L2). | Abgeschlossene Monate als festen Stand zwischenspeichern, der nur bei Änderungen in diesem Monat neu entsteht. | Stand muss bei jeder rückwirkenden Änderung zuverlässig neu entstehen |
+| L14 **erledigt (Welle 3, 15.11.)** | mittel | `app.ist_feiertag` kostet 0,7 ms je Aufruf; `app.urlaubstage` wird bei langen Zeiträumen entsprechend langsam (gefunden bei Z3). | `app.urlaubstage` auf die Feiertagsmenge je Jahr (`app.feiertage`) umstellen, wie `zeitkonto_salden` es schon tut. | keiner |
+| L15 offen, in Welle 3 nicht bearbeitet; mit Paket 10 (der Leistungswächter aus L11 steht jetzt) | vorbeugend | Einzelne Komponentenprüfungen liegen unter paralleler Last nahe ihrer Frist von 5 s und fielen in mehreren Paketen gelegentlich aus (`BaustellenakteView` „G5 Kundenwechsel“, `QuotesView` „zählt nur echte Arbeitszeit“, `zip`, `appZeichen`, `infoHintUmbruch`); einzeln und mit `--maxWorkers=1` grün. | Mit dem Leistungswächter (L11): Ursache je Prüfung messen, nicht pauschal die Frist erhöhen. | keiner |
+| L16 **erledigt (Welle 3, 15.11.)** | groß bei vielen Einträgen | Keine der Suchen über PostgREST nutzte mit Zeilenschutz ihren Index (Kunden, Baustellen, Wartungen, Scheine, Anforderungen, Eingänge, Rechnungen, Angebote), weil `ilike` nicht „leakproof“ ist (gefunden bei L3). | Kennungen über den Index (`app.suche_treffer`), Zeilen über Funktionen mit den Rechten des Aufrufers; 22 Indizes; 29–378 ms → 3–6 ms. | keiner |
+| L17 **erledigt (Welle 3, 15.11.)** | mittel nach großem Import | Nach einem großen DATANORM-Import blieb die Katalogsuche langsam, bis autovacuum die Warteliste der Indizes aufräumte (gefunden bei L3). | `fastupdate` bleibt (aus: Import sechsmal langsamer); die Übernahme räumt die Warteliste am Ende des letzten Blocks auf. | 74 ms je Import |
+| L18 **erledigt (Welle 3, 15.11.)** | klein | `einsatz_folgetage` und `einsatz_umplanen` fragten `app.ist_feiertag` je Tag (gefunden bei L14). | Feiertage als Menge aus `app.feiertage`; 62 Tage 40 → 3 ms. | keiner |
+| L19 **erledigt (Welle 3, 15.11.)** | groß bei vielen Jahren | Die Monatsliste `zeitkonto_monate` nutzte die Zwischenstände aus L13 nicht (gefunden bei L13). | Gespeicherte Monate bis zur ersten Lücke; zehn Jahre 1,5–2,7 s → 40 ms. | keiner |
+| L20 **erledigt (Welle 3, 15.11.)** | klein | Drei Abos blieben nach L6, L9 und L5 in der Datenschicht, ohne dass eine Ansicht sie nutzte. | Entfernt; Prüfungen auf die neuen Wege umgestellt. | keiner |
+| L21 **erledigt (Welle 3, 15.11.)** | groß nach jeder Auslieferung | Die Bauzeit stand im gemeinsamen Code; damit benannte jeder Bau, auch ohne geänderte Zeile, 182 Bausteine um — jedes Telefon lud rund 0,9 MB neu (gefunden bei L7). | Die Fassung setzt der Einstieg zur Laufzeit. | keiner |
+| L22 offen, bei der Integration | vorbeugend | Messung gegen den Stapel mit gewachsenem Bestand (Zeilen und Dauer je Abfrage, Monteur und Geschäftsführung); die CI prüft in der Vorschau Datenaufrufe und Elemente je Seite, nicht Zeilen und Dauer (aus L11). | Vorbereitet: `TESTBESTAND_GEWACHSEN=1 node scripts/ui-umbau/testbestand.mjs --neu`, dann `messung.mjs --quelle=gewachsen` mit und ohne `--monteur`. | keiner |
 
 Gemessen und **kein Befund**: der Rastertakt (2–17 ms), Listen (20 Zeilen je
 Gruppe, Virtualisierung unnötig), Zeilenschutz, Nachrichten-Postfach.
@@ -263,14 +283,14 @@ aus Abschnitt 1 oder 2.
 | F6 **erledigt (Welle 2, 15.11.)** | **Nachtrag: Angebot an bestehende Baustelle** | Nachträge bleiben beim Auftrag | A3 |
 | F7 **erledigt (Welle 2, 15.11.)** | **Annahme zurücknehmen** | einziger Zustand ohne Ausweg der Kette | A1 |
 | F8 **erledigt (Welle 2, 15.11.)** | **Betroffene Einsätze bei Abwesenheit** | Umplanen in dem Moment, in dem es entsteht | V1 |
-| F9 | **Kunden zusammenführen** | Dubletten mit Belegen sind heute unlösbar | A12 |
+| F9 **erledigt (Welle 3, 15.11.)** | **Kunden zusammenführen** | Dubletten mit Belegen sind heute unlösbar | A12 |
 | F10 **erledigt (Welle 2, 15.11.)** | **Verbrauch am Schein bucht das Lager** | Fahrzeuglager und Bestand werden erst verlässlich | M3 |
 | F11 **erledigt (Welle 2, 15.11.)** | **„Wer ist heute im Dienst“** — laufende Arbeitstage fürs Büro | Daten und Leserecht sind da, die Ansicht fehlt | — |
 | F12 **erledigt (Welle 2, 15.11.)** | **Stundennachweis je Baustelle/Kunde** | der Nachweis, den Regiekunden verlangen | Z8 |
-| F13 | **Kontoauszug abgleichen** (Datei der Bank einlesen, Zahlungen als Vorschlag) | spart das Eintippen je Rechnung; der Verwendungszweck steht schon auf jedem Beleg | — |
-| F14 | **Inventur als Zählliste** je Lager/Fahrzeug | Inventur ist heute nur Artikel für Artikel möglich | — |
-| F15 | **Bedienung wie am iPhone:** Wischen an der Zeile (löschen, erledigen), Ziehen zum Aktualisieren, „Rückgängig“ in der Meldung nach jedem Löschen/Verschieben, Aktionen in „Suchen oder springen“ („Neue Rechnung“, „Zeit erfassen“) | weniger Tipps, vertraute Gesten | U7 |
-| F16 | **Rechnung und Angebot per Mail aus der App** (steht schon auf der Roadmap, 11.2.1; der Mailversand ist seit 05.11. eingerichtet) | der letzte Schritt verlässt heute die App | — |
+| F13 **erledigt (Welle 3, 15.11.)**, mit Rückzahlungen | **Kontoauszug abgleichen** (Datei der Bank einlesen, Zahlungen als Vorschlag) | spart das Eintippen je Rechnung; der Verwendungszweck steht schon auf jedem Beleg | — |
+| F14 **erledigt (Welle 3, 15.11.)** | **Inventur als Zählliste** je Lager/Fahrzeug | Inventur ist heute nur Artikel für Artikel möglich | — |
+| F15 offen, nächstes Paket (10) | **Bedienung wie am iPhone:** Wischen an der Zeile (löschen, erledigen), Ziehen zum Aktualisieren, „Rückgängig“ in der Meldung nach jedem Löschen/Verschieben, Aktionen in „Suchen oder springen“ („Neue Rechnung“, „Zeit erfassen“) | weniger Tipps, vertraute Gesten | U7 |
+| F16 **erledigt (Welle 3, 15.11.)**, mit Mahnung | **Rechnung und Angebot per Mail aus der App** (steht schon auf der Roadmap, 11.2.1; der Mailversand ist seit 05.11. eingerichtet) | der letzte Schritt verlässt heute die App | — |
 
 ---
 
@@ -285,9 +305,9 @@ aus Abschnitt 1 oder 2.
 6. **Geld:** G2–G9, V6, V7 — erledigt (Welle 2, 15.11.), dazu G10, G11; G12 an Paket 11.
 7. **Material:** M2–M8, V5, V11, F5 — erledigt (Welle 2, 15.11.), dazu M9–M12, F10.
 8. **Konto und Daten:** K2–K7 — erledigt (Welle 2, 15.11.), dazu V14, K8–K10.
-9. **Ladezeiten:** L3, L4, L6, L8 zuerst (klein, spürbar), dann L5, L7, L9, L10; L11 begleitend ab Schritt 4. Aus Welle 2 dazu: L13, L14 (Paket 9a), Z10 und L15 (Paket 9b).
-10. **Oberfläche:** U1–U4 als ein Regelwerk mit Musterseite, danach U5–U13 und die Bewegungen B1–B12.
-11. **Weitere Funktionen** F9–F16 nach deiner Reihung; G12 mit Paket 11a.
+9. **Ladezeiten:** L3–L14 und Z10 — erledigt (Welle 3, 15.11.; Paket 9a Datenbank, Paket 9b Oberfläche), dazu V10 mit L8, L16–L21, T2, T3; offen L22 (Messung gegen den Stapel, bei der Integration) und L15 (mit Paket 10).
+10. **Oberfläche — nächstes Paket (Paket 10), offen:** U1–U4 als ein Regelwerk mit Musterseite, danach U5–U13 und die Bewegungen B1–B12, mit den Entscheidungen E3–E5 und F15; dazu L15.
+11. **Weitere Funktionen:** F9, F14 und G12 (Paket 11a), F13 und F16 (Paket 11b) — erledigt (Welle 3, 15.11.), dazu G13, K11, K12, T1, Rückzahlungen im Kontoauszug und Mahnung per Mail. F15 gehört zu Paket 10.
 
 Jeder Schritt wie gewohnt: Prüfung mit Gegenprobe, Handbuch, Stand, CI grün,
 Auslieferung geprüft. Punkte mit ○ werden zuerst nachgestellt; bestätigt sich
