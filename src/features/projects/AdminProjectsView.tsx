@@ -1114,7 +1114,7 @@ export default function AdminProjectsView() {
           gruppen.map(({ status, zeilen }) => {
             const zeigen = gezeigt[status] ?? JE_GRUPPE;
             return (
-              <section key={status} aria-label={status}>
+              <section key={status} aria-label={status} className="baustellen-gruppe">
                 <Abschnitt titel={status} anzahl={zeilen.length} />
                 <List>
                   {zeilen.slice(0, zeigen).map((p) => {

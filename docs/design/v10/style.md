@@ -149,6 +149,10 @@ Das **Kästchen** bleibt für die Auswahl in einem Formular, das erst mit „Spe
 
 **Datums- und Zeitfelder (U10, E5).** Das Rad des Geräts bleibt. Wo das Gerät das Feld nicht deutsch zeichnet („11/15/2026“, „07:00 AM“), steht darunter der Wert deutsch: TT.MM.JJJJ, HH:MM, in Plex Mono und leise (`InputField`, `zeitfeldDeutsch`). Gefragt wird nach dem Format der Gerätesprache, nicht nach ihrem Kürzel: ein britisches Gerät zeichnet die Uhrzeit wie wir, das Datum nicht — dort steht nur unter dem Datum eine Zeile. Jedes Datums- und Zeitfeld läuft über `InputField` (Wächter in `tests/unit/zeitfeldDeutsch.test.ts`).
 
+## Listen in fester Ordnung · Durchsicht 15.11.2026 (U11–U13)
+
+In der Baustellenliste stehen die Zustände untereinander links und das Budget immer rechts — nicht mal neben-, mal untereinander (U11, `.baustellen-gruppe`). Nur dort: Lager und Rechnungen tragen in ihren gestapelten Zeilen eine Maßlinie, die neben einem Zustand keinen Platz hat.
+
 ## Einsatzplanung · E88 bleibt fachlich maßgeblich
 
 Woche/Monat/Tag, Personen-/Baustellensicht, freie Kapazitäten, Termine, Materialzustände, Abwesenheiten und „Noch einzuplanen“ bleiben erhalten. Desktop zeigt die komplette Woche und die Ablage. Tablet zeigt ausreichend breite Tage und hält die restliche Woche horizontal erreichbar. Mobil zeigt die siebentägige Auswahl und eine Tagesliste statt eines verkleinerten Wochenrasters.
