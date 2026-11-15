@@ -832,11 +832,23 @@ test.describe('F15 Wischen an der Zeile', () => {
     await finger(page, cdp, box.x + 200, box.y + 30, 0, -120);
     expect(await page.evaluate(() => scrollY)).toBeGreaterThan(vorher + 40);
     expect(await zeile.evaluate((z) => z.style.getPropertyValue('--wisch-x') || '0px')).toBe('0px');
+    // Den Schwung des Rollens auslaufen lassen: Rollen schließt eine offene Zeile (wie am iPhone).
+    await page.evaluate(() => new Promise<void>((fertig) => {
+      let vorher = scrollY, ruhig = 0;
+      const bild = () => {
+        ruhig = Math.abs(scrollY - vorher) < 0.1 ? ruhig + 1 : 0;
+        vorher = scrollY;
+        if (ruhig >= 6) fertig(); else requestAnimationFrame(bild);
+      };
+      requestAnimationFrame(bild);
+    }));
     const box2 = (await zeile.boundingBox())!;
     await finger(page, cdp, box2.x + 300, box2.y + 30, -160, 4);
     await expect(zeile.locator('.wisch-aktionen')).not.toHaveAttribute('inert', '');
     await expect(loeschen).toBeInViewport();
-    await loeschen.click();
+    // Ein Tipp an die Stelle, wo der Knopf steht — ohne dass Playwright erst hinrollt (das schlösse die Zeile).
+    const knopf = (await loeschen.boundingBox())!;
+    await page.touchscreen.tap(knopf.x + knopf.width / 2, knopf.y + knopf.height / 2);
     await expect(page.getByRole('dialog', { name: 'Eintrag löschen?' })).toBeVisible();
   });
 
