@@ -64,6 +64,8 @@ export interface Anhang {
   name: string;
   bytes: number;
   inhaltsart: string;
+  /** Das kleine Vorschaubild eines Bilds (L4) — im selben Eimer; `null` bei Dateien und älteren Bildern. */
+  vorschau: string | null;
 }
 
 /**
@@ -127,7 +129,15 @@ export interface Meldung {
 }
 
 /** Eine Datei, die mit einer Nachricht hinausgeht — vor dem Senden auf dem Gerät. */
-export interface NeueDatei { id: string; name: string; inhalt: Blob }
+export interface NeueDatei {
+  id: string;
+  name: string;
+  inhalt: Blob;
+  /** Ein Bild ist fürs Senden verkleinert (L4) — ein zweiter Versuch verkleinert nicht noch einmal. */
+  vorbereitet?: boolean;
+  /** Das kleine Vorschaubild, das der Verlauf statt des Bilds zeigt (L4). */
+  vorschau?: { id: string; inhalt: Blob };
+}
 
 export interface Senden {
   /** Die Kennung vom Gerät. */
@@ -224,6 +234,7 @@ function alsNachricht(z: Record<string, unknown>): Nachricht {
     anhaenge: ((z.anhaenge as Record<string, unknown>[] | null) ?? []).map((a) => ({
       id: String(a.id), eimer: String(a.eimer), pfad: String(a.pfad), name: String(a.name),
       bytes: Number(a.bytes ?? 0), inhaltsart: String(a.inhaltsart ?? ''),
+      vorschau: typeof a.vorschau === 'string' && a.vorschau ? a.vorschau : null,
     })),
     uebernommen: z.uebernommen === true,
     gemeldet: z.gemeldet === true,
@@ -292,7 +303,7 @@ function sendeParameter(s: Senden): Record<string, unknown> {
     p_id: s.id,
     p_kanal: s.kanal,
     p_text: s.text,
-    p_anhaenge: (s.dateien ?? []).map((d) => ({ id: d.id, name: d.name })),
+    p_anhaenge: (s.dateien ?? []).map((d) => (d.vorschau ? { id: d.id, name: d.name, vorschau: d.vorschau.id } : { id: d.id, name: d.name })),
     p_erwaehnt: s.erwaehnt ?? [],
     p_geraet_zeit: new Date().toISOString(),
     p_aus: s.aus ?? null,
@@ -308,6 +319,7 @@ function sendeParameter(s: Senden): Record<string, unknown> {
  */
 export async function nachrichtSenden(s: Senden, client?: SupabaseClient): Promise<WriteOutcome> {
   let stand: WriteOutcome = 'confirmed';
+  const dateien: NeueDatei[] = [];
   for (const d of s.dateien ?? []) {
     const r = await vorgangOhneEmpfang({
       tabelle: NACHRICHT_TABELLE,
@@ -323,12 +335,40 @@ export async function nachrichtSenden(s: Senden, client?: SupabaseClient): Promi
       },
     }, client);
     if (r === 'queued') stand = 'queued';
+    /*
+      DAS VORSCHAUBILD HÄLT DIE NACHRICHT NICHT AUF (L4): scheitert sein
+      Hochladen, geht sie ohne — der Verlauf zeigt dann das Bild selbst.
+      Vorgemerkt (ohne Netz) geht es vor dem Senden hinaus wie jede Datei.
+    */
+    let vorschau = d.vorschau;
+    if (vorschau) {
+      try {
+        const rv = await vorgangOhneEmpfang({
+          tabelle: NACHRICHT_TABELLE,
+          art: 'hochladen',
+          zeile: s.id,
+          daten: {
+            eimer: eimerFuer(s.privat),
+            pfad: dateiPfad(s.companyId, s.kanal, s.id, vorschau.id),
+            inhalt: await vorschau.inhalt.arrayBuffer(),
+            inhaltsart: vorschau.inhalt.type || 'image/jpeg',
+            kanal: s.kanal,
+            name: d.name,
+            vorschauVon: d.id,
+          },
+        }, client);
+        if (rv === 'queued') stand = 'queued';
+      } catch {
+        vorschau = undefined;
+      }
+    }
+    dateien.push({ ...d, vorschau });
   }
   const r = await vorgangOhneEmpfang({
     tabelle: NACHRICHT_TABELLE,
     art: 'aufruf',
     zeile: s.id,
-    daten: { funktion: 'nachricht_senden', parameter: sendeParameter(s) },
+    daten: { funktion: 'nachricht_senden', parameter: sendeParameter({ ...s, dateien }) },
   }, client);
   return r === 'queued' || stand === 'queued' ? 'queued' : 'confirmed';
 }
@@ -349,8 +389,9 @@ export function vorgemerkteNachrichten(vormerkungen: readonly Vormerkung[], kana
   for (const v of [...vormerkungen].sort((a, b) => a.folge - b.folge)) {
     if (v.tabelle !== NACHRICHT_TABELLE) continue;
     if (v.art === 'hochladen') {
-      const d = v.daten as { pfad?: string; inhalt?: ArrayBuffer; inhaltsart?: string; kanal?: string; name?: string };
-      if (d.kanal !== kanal || !d.inhalt || !d.pfad) continue;
+      const d = v.daten as { pfad?: string; inhalt?: ArrayBuffer; inhaltsart?: string; kanal?: string; name?: string; vorschauVon?: string };
+      // Ein Vorschaubild ist kein eigener Anhang (L4) — das Bild selbst steht schon da.
+      if (d.kanal !== kanal || !d.inhalt || !d.pfad || d.vorschauVon) continue;
       const id = d.pfad.split('/').pop() ?? '';
       dateien.set(v.zeile, [...(dateien.get(v.zeile) ?? []), { id, name: d.name ?? 'Anhang', inhalt: new Blob([d.inhalt], { type: d.inhaltsart }) }]);
       continue;

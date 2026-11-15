@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { bildVorbereiten } from './bildVorbereiten';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -122,14 +123,23 @@ export default function NachrichtAktionen({
     if (n.anhaenge.length > 0) toast.info('Wird in die Baustelle übernommen …');
     try {
       const ziel = await kanalBaustelle(projekt);
-      const adressen = await anhangAdressen(n.anhaenge);
+      const adressen = await anhangAdressen(n.anhaenge.flatMap((a) => (a.vorschau ? [a, { eimer: a.eimer, pfad: a.vorschau }] : [a])));
       const dateien: NeueDatei[] = [];
       for (const a of n.anhaenge) {
         const url = adressen.get(`${a.eimer}/${a.pfad}`);
         if (!url) throw new Error(`„${a.name}“ lässt sich gerade nicht laden.`);
         const r = await fetch(url);
         if (!r.ok) throw new Error(`„${a.name}“ lässt sich gerade nicht laden.`);
-        dateien.push({ id: crypto.randomUUID(), name: a.name, inhalt: await r.blob() });
+        const d: NeueDatei = { id: crypto.randomUUID(), name: a.name, inhalt: await r.blob() };
+        if (!a.vorschau) {
+          // Ein Bild von vor L4 kommt noch in voller Größe: jetzt verkleinern wie beim Senden.
+          dateien.push(await bildVorbereiten(d));
+          continue;
+        }
+        // Schon verkleinert; das Vorschaubild geht mit, wenn es sich holen lässt — sonst ohne (L4).
+        const vu = adressen.get(`${a.eimer}/${a.vorschau}`);
+        const rv = vu ? await fetch(vu).catch(() => null) : null;
+        dateien.push({ ...d, vorbereitet: true, vorschau: rv?.ok ? { id: crypto.randomUUID(), inhalt: await rv.blob() } : undefined });
       }
       const stand = await nachrichtSenden({
         id: crypto.randomUUID(), kanal: ziel, privat: false, companyId, text: n.text ?? '', dateien, aus: n.id,

@@ -22,6 +22,8 @@ import NachrichtAktionen, { type Auftrag } from './NachrichtAktionen';
 import { NachrichtLeiste, ReaktionsKaestchen } from './NachrichtLeiste';
 import NachrichtWahl from './NachrichtWahl';
 import { useAnhangAdressen } from './useAnhangAdressen';
+import { bildVorbereiten } from './bildVorbereiten';
+import AnhangBild from './AnhangBild';
 import PersonWahl from './PersonWahl';
 import { useLangDruck } from './langDruck';
 import { alsKasten, leistenPlatz, type Kasten } from './leistenPlatz';
@@ -244,8 +246,10 @@ export default function Gespraech({
     };
   }, [kanal, laden, wartendeLaden]);
 
-  // Die Anhänge über kurzlebige Adressen — neu signiert mit jedem Laden und vor Ablauf (K7).
-  const alleAnhaenge = useMemo(() => (nachrichten ?? []).flatMap((n) => n.anhaenge), [nachrichten]);
+  // Die Anhänge über kurzlebige Adressen — gemerkt je Datei und vor Ablauf erneuert (K7, L4); Vorschaubilder dazu.
+  const alleAnhaenge = useMemo(() => (nachrichten ?? []).flatMap((n) => n.anhaenge.flatMap((a) => (
+    a.vorschau ? [a, { eimer: a.eimer, pfad: a.vorschau }] : [a]
+  ))), [nachrichten]);
   const adressen = useAnhangAdressen(alleAnhaenge);
 
   // Vorschau der Bilder, die noch auf dem Gerät liegen (vor dem Senden und im Ausgangsfach).
@@ -526,9 +530,15 @@ export default function Gespraech({
     }
   }
 
-  async function hinaus(u: Unterwegs) {
-    setUnterwegs((alt) => [...alt.filter((x) => x.id !== u.id), { ...u, stand: 'laeuft', grund: undefined }]);
+  async function hinaus(gewaehlt: Unterwegs) {
+    setUnterwegs((alt) => [...alt.filter((x) => x.id !== gewaehlt.id), { ...gewaehlt, stand: 'laeuft', grund: undefined }]);
     try {
+      /*
+        BILDER VERKLEINERT UND MIT VORSCHAUBILD (L4). Einmal: ein zweiter
+        Versuch nach einem Fehler nimmt die schon vorbereiteten Dateien.
+      */
+      const u = { ...gewaehlt, dateien: await Promise.all(gewaehlt.dateien.map((d) => bildVorbereiten(d))) };
+      setUnterwegs((alt) => alt.map((x) => (x.id === u.id ? { ...x, dateien: u.dateien } : x)));
       const stand = await nachrichtSenden({
         id: u.id, kanal, privat, companyId, text: u.text, dateien: u.dateien, erwaehnt: u.erwaehnt,
       });
@@ -541,7 +551,7 @@ export default function Gespraech({
         await laden(true);
       }
     } catch (e) {
-      setUnterwegs((alt) => alt.map((x) => (x.id === u.id
+      setUnterwegs((alt) => alt.map((x) => (x.id === gewaehlt.id
         ? { ...x, stand: 'fehler', grund: grundAus(e, 'Der Server hat sie nicht angenommen.') } : x)));
     }
   }
@@ -603,9 +613,13 @@ export default function Gespraech({
       {n.anhaenge.map((a) => {
         const url = adressen.get(`${a.eimer}/${a.pfad}`);
         if (istBild(a.inhaltsart) && url) {
+          // Im Verlauf das Vorschaubild, auf Tipp das Bild (L4); ältere Bilder ohne Vorschau zeigen sich selbst.
+          const klein = (a.vorschau && adressen.get(`${a.eimer}/${a.vorschau}`)) || (a.vorschau ? null : url);
           return (
             <a key={a.id} href={url} target="_blank" rel="noreferrer" aria-label={`${a.name} öffnen`}>
-              <img src={url} alt={a.name} className="nachricht-bild" loading="lazy" onLoad={bildGeladen} />
+              {klein
+                ? <AnhangBild src={klein} alt={a.name} onLoad={bildGeladen} />
+                : <span className="nachricht-bild" aria-hidden="true" />}
             </a>
           );
         }
