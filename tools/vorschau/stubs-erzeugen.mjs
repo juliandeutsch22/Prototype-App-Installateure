@@ -71,6 +71,8 @@ const DATEN = {
   materials: { '*': 'D.materialien', nummernTreffer: 'new Map()', listLagerbewegungen: '[]', katalogNachIds: 'D.materialien', katalogNachNamen: 'D.materialien' },
   // Kennzeichen-Vorschläge der Fahrzeuge: eine Liste; als NOOP brach /settings/fahrzeuge ab (13.11.2026).
   lagerorte: { kennzeichenAusBuchungen: '[]' },
+  // Die Zähllisten der Inventur (F14): eine leere Liste — der Reiter „Inventur“ zeigt dann „Keine offene Zählliste“.
+  inventur: { inventurListen: '[]' },
   // Korrekturanträge (M06): eine Liste; als NOOP blieb die Zeiterfassung mit einer Fehlerseite stehen (09.11.2026).
   zeitkorrekturen: { zeitkorrekturenLaden: '[]' },
   // Der Stand des Baustellen-Threads (E64) ist ein Objekt; als NOOP stürzte die Baustellenakte ab (09.11.2026).

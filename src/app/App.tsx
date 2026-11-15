@@ -62,6 +62,7 @@ const TimeView = ansicht('/time', () => import('@/features/time/TimeView'));
 const OrderView = ansicht('/material', () => import('@/features/orders/OrderView'));
 const AdminOrdersView = ansicht('/anforderungen', () => import('@/features/orders/AdminOrdersView'));
 const StockView = ansicht('/lager', () => import('@/features/orders/StockView'));
+const ZaehllisteView = ansicht('/lager', () => import('@/features/orders/ZaehllisteView'));
 const AdminProjectsView = ansicht('/admin-projects', () => import('@/features/projects/AdminProjectsView'));
 const BaustellenakteView = ansicht('/admin-projects', () => import('@/features/projects/BaustellenakteView'));
 const CustomersView = ansicht('/customers', () => import('@/features/customers/CustomersView'));
@@ -398,6 +399,8 @@ function AppRoutes() {
         element={<RequireNav path="/anforderungen"><AdminOrdersView /></RequireNav>}
       />
       <Route path="/lager" element={<RequireNav path="/lager"><StockView /></RequireNav>} />
+      {/* F14: eine Zählliste — wer das Lager sieht, sieht auch sie (`path="/lager"`). */}
+      <Route path="/lager/inventur/:id" element={<RequireNav path="/lager"><ZaehllisteView /></RequireNav>} />
       {/*
         Die Unterreiter-Adressen bleiben als Weiterleitung bestehen: sie
         stehen in Lesezeichen und in den Meldungen, die schon verschickt

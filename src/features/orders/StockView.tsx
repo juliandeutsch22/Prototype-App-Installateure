@@ -41,6 +41,7 @@ import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/S
 import MaterialCatalog from './MaterialCatalog';
 import { Bewegungsverlauf, InventurDialog, OrtWahl, UmlagernDialog, WareneingangDialog } from './LagerDialoge';
 import LagerorteFenster from './LagerorteFenster';
+import Zaehllisten from './Zaehllisten';
 import { useLagerorte } from './useLagerorte';
 import { HAUPTLAGER, ortNameVon, ortReihenfolge, weitereOrte } from './lagerorte';
 
@@ -51,7 +52,7 @@ import { HAUPTLAGER, ortNameVon, ortReihenfolge, weitereOrte } from './lagerorte
 const KatalogImport = lazy(() => import('@/features/materials/KatalogImport'));
 const OffeneLieferantenartikel = lazy(() => import('@/features/materials/OffeneLieferantenartikel'));
 
-type Tab = 'bestand' | 'katalog' | 'import' | 'zuordnen';
+type Tab = 'bestand' | 'katalog' | 'inventur' | 'import' | 'zuordnen';
 /** Der Filter des Bestands — „knapp“ schliesst „fehlt“ ein, wie auf der Startseite. */
 type Filter = 'alle' | 'knapp' | 'fehlt';
 
@@ -102,7 +103,7 @@ export default function StockView() {
     Großhändler“.
   */
   const zuordnenAn = useModul('material.katalogversionen');
-  const tab: Tab = gewuenscht === 'katalog'
+  const tab: Tab = gewuenscht === 'katalog' || gewuenscht === 'inventur'
     || (gewuenscht === 'import' && darfEinspielenFuer(user))
     || (gewuenscht === 'zuordnen' && darfEinspielenFuer(user) && zuordnenAn)
     ? gewuenscht
@@ -635,6 +636,8 @@ export default function StockView() {
               werte={[
                 { wert: 'bestand' as Tab, text: 'Bestand' },
                 { wert: 'katalog' as Tab, text: 'Katalog' },
+                // F14: Zähllisten je Ort — die Inventur des ganzen Lagers oder Fahrzeugs.
+                { wert: 'inventur' as Tab, text: 'Inventur' },
                 /*
                   DAS EINSPIELEN STEHT ALS REITER DA, SOLANGE ES OFFEN IST (Runde 6,
                   G28): erreicht wird es über das „⋯“, und ohne eigenen Reiter war
@@ -662,6 +665,12 @@ export default function StockView() {
         <Suspense fallback={<SkeletonList rows={3} />}>
           <OffeneLieferantenartikel />
         </Suspense>
+      ) : tab === 'inventur' ? (
+        <Zaehllisten
+          orte={lo.orte}
+          mitOrten={lo.mitWeiteren}
+          warengruppen={[...new Set(materials.map((m) => m.warengruppe?.trim()).filter((w): w is string => !!w))].sort((a, b) => a.localeCompare(b, 'de'))}
+        />
       ) : tab === 'katalog' ? (
         <MaterialCatalog
           zuBearbeiten={zuBearbeiten}

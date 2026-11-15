@@ -136,7 +136,9 @@ const BUERO = ['auftragseingaenge', 'customers', 'lagerbewegungen', 'material_or
   // M02c: Liegenschaften, Tops und Beteiligte lesen wie Kunden — das Büro und die Leitung.
   'liegenschaft_beteiligte', 'liegenschaft_tops', 'liegenschaften',
   // M3 (Welle 2): der Verbrauch am Schein — wer Scheine prüft und verrechnet.
-  'schein_verbrauch'];
+  'schein_verbrauch',
+  // F14: die Zähllisten der Inventur lesen wie das Bewegungsprotokoll.
+  'inventur_zeilen', 'inventuren'];
 /** Einkaufspreise, Preislisten, Kostensätze, Katalogdateien, Kontoumstellungen, Systemläufe: nur die Spitze. */
 const SPITZE = ['betrieb_kostensaetze', 'datanorm_laeufe', 'datanorm_zeilen', 'konto_umstellungen', 'material_einkaufspreise',
   'material_prices', 'rabattsaetze', 'system_laeufe',

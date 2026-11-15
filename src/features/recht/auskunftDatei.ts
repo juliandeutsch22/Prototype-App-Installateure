@@ -44,6 +44,8 @@ export const SOFORT_GELOESCHT: Record<string, string> = {
   nachrichten_teilnehmer: 'Teilnahmen an Gesprächen',
   // E77: Reaktionen gehen mit der Person — auf eigene wie auf fremde Nachrichten.
   nachricht_reaktionen: 'Reaktionen auf Nachrichten',
+  // F14: Name und Kennung an Zählungen in offenen Zähllisten; gebuchte Inventurprotokolle bleiben aufbewahrt.
+  offene_zaehllisten: 'Zählungen in offenen Zähllisten der Inventur',
   geburtsdatum: 'Geburtsdatum',
   wartungen: 'Wartungen',
   kontaktdaten: 'Kontaktdaten (Ansprechpartner, Telefon, E-Mail, Notizen)',

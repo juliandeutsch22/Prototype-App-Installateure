@@ -349,6 +349,10 @@ describe('Interne Hilfsfunktionen', () => {
       'app.kundenbezug_unbekannt()',
       'app.kunden_zusammenfuehren_lage(uuid, uuid)',
       'app.kunden_zusammenfuehren_pruefen(uuid, uuid)',
+      // F14: Recht, Soll zu einem Zeitpunkt und Lage einer Zählliste — nur die Inventurfunktionen rufen sie.
+      'app.inventur_recht(text)',
+      'app.inventur_soll(boolean, uuid, uuid, timestamp with time zone)',
+      'app.inventur_lage(uuid)',
       // Was nur die Function mit dem Dienstschlüssel ruft.
       'public.angebot_link_abruf(text)',
       'public.angebot_link_annehmen(text, text, text, boolean)',
