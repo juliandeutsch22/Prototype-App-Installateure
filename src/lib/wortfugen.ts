@@ -55,7 +55,10 @@ export function wortfugen(text: string): string {
   return text
     .replace(/[\p{L}]+/gu, fugenImWort)
     // Nur Hausnummern („12–14“, „3a - 5“): eine Nummer wie „B-2026-0001“ bleibt unberührt.
-    .replace(/(?<![\p{L}\d-])(\d{1,4}[a-z]?)(\s*)([–-])(\s*)(\d{1,4}[a-z]?)(?![\p{L}\d-])/gu,
-      (_, von: string, l1: string, strich: string, l2: string, bis: string) =>
-        `${von}${l1 ? GESCHUETZTES_LEERZEICHEN : WORTVERBINDER}${strich}${l2 ? GESCHUETZTES_LEERZEICHEN : WORTVERBINDER}${bis}`);
+    // OHNE LOOKBEHIND: das Zeichen davor gehört zum Treffer und kommt unverändert zurück. Ein
+    // Lookbehind im Ausdruck ist auf iPhones vor Safari 16.4 ein Syntaxfehler — die App baut für
+    // safari14 (`vite.config.ts`), und dieser Baustein steht in jedem Seitenkopf.
+    .replace(/(^|[^\p{L}\d-])(\d{1,4}[a-z]?)(\s*)([–-])(\s*)(\d{1,4}[a-z]?)(?![\p{L}\d-])/gu,
+      (_, vor: string, von: string, l1: string, strich: string, l2: string, bis: string) =>
+        `${vor}${von}${l1 ? GESCHUETZTES_LEERZEICHEN : WORTVERBINDER}${strich}${l2 ? GESCHUETZTES_LEERZEICHEN : WORTVERBINDER}${bis}`);
 }
