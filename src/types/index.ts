@@ -743,6 +743,13 @@ export interface WorkSheet {
     kunde?: WorkSheetUnterschrift;
   };
   /**
+   * Der stornierte Schein, den dieser ersetzt (Durchsicht 15.11.2026, P4).
+   * Gesetzt nur beim Anlegen; der Ersatz erbt dessen Verrechnung — stand der
+   * stornierte auf einer gültigen Rechnung, kommt der Ersatz nicht noch
+   * einmal auf eine.
+   */
+  ersetzt?: string | null;
+  /**
    * SHA-256 über den eingefrorenen Inhalt, serverseitig gerechnet.
    *
    * Der eigentliche Manipulationsschutz. Ein qualifizierter Zeitstempel nach

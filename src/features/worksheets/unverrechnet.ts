@@ -62,6 +62,32 @@ export function unverrechnetZeilen<S extends { datum: string; id: string }>(
     .sort((a, b) => b.tage - a.tage || a.schein.id.localeCompare(b.schein.id));
 }
 
+/**
+ * DER ERSATZ ERBT DIE VERRECHNUNG (Durchsicht 15.11.2026, P4): ein Schein,
+ * der einen verrechneten stornierten Schein ersetzt (`ersetzt`), gilt
+ * selbst als verrechnet — über jede Stufe. Dieselbe Regel wie in der
+ * Datenbank (`app.scheine_verrechnet_kern`); hier für die Vorschau einer
+ * Rechnung, die die Scheine der Baustelle schon geladen hat. Ohne sie käme
+ * das Material des Ersatzscheins ein zweites Mal auf eine Rechnung.
+ */
+export function mitErsatz(
+  scheine: ReadonlyArray<Pick<WorkSheet, 'ersetzt'> & { id: string }>,
+  verrechnet: Iterable<string>,
+): Set<string> {
+  const raus = new Set(verrechnet);
+  let gewachsen = true;
+  while (gewachsen) {
+    gewachsen = false;
+    for (const s of scheine) {
+      if (s.ersetzt && raus.has(s.ersetzt) && !raus.has(s.id)) {
+        raus.add(s.id);
+        gewachsen = true;
+      }
+    }
+  }
+  return raus;
+}
+
 /** Die Nummer einer Baustelle ohne „PR-“ und Schreibung — wie `norm` der Rechnung. */
 function baustelleNorm(n?: string): string {
   return (n ?? '').trim().toLowerCase().replace(/^pr-/, '');

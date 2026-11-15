@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import KnopfLink from '@/components/KnopfLink';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   listRecentWorkSheets,
   listWorkSheetsByIds,
+  scheinVerrechnung,
+  type ScheinVerrechnung,
   listSignedWorkSheetsInRange,
   listWorkSheetsInRange,
   searchWorkSheets,
@@ -127,6 +129,41 @@ const ANSICHTEN: readonly { wert: Ansicht; text: string }[] = [
  * dessen, was noch kommt. Die Scheine sind schon geladen; „und N weitere“
  * zeigt sie nur, es holt nichts nach (das tut „Weitere Scheine laden“).
  */
+/** Wohin „Ersatzschein anlegen“ führt: ein neuer Schein mit Baustelle, Tag und Verweis (P4). */
+function ersatzAdresse(s: Pick<WorkSheet, 'projectNumber' | 'datum'> & { id: string }): string {
+  const p = new URLSearchParams({ projekt: s.projectNumber, datum: s.datum, ersetzt: s.id });
+  return `/worksheet?${p.toString()}`;
+}
+
+/**
+ * Was der Storno-Dialog über die Verrechnung sagt (P4). Ein Hinweis, keine
+ * Sperre: der Storno korrigiert den Beleg; die Rechnung ist ein eigener Beleg
+ * mit eigenem Storno.
+ */
+function StornoVerrechnung({ lage }: { lage: ScheinVerrechnung | 'fehler' | null }) {
+  if (lage === null) return <p className="text-sm text-ink-muted">Verrechnung wird geprüft …</p>;
+  if (lage === 'fehler') {
+    return (
+      <Hinweiszeile stufe="warn">
+        <p>Ob dieser Schein schon verrechnet ist, ließ sich nicht prüfen. Vor dem Storno bitte in der Buchhaltung nachfragen.</p>
+      </Hinweiszeile>
+    );
+  }
+  if (!lage.verrechnet) return null;
+  const welche = lage.rechnungen && lage.rechnungen.length > 0
+    ? `auf ${lage.rechnungen.length === 1 ? 'der Rechnung' : 'den Rechnungen'} ${lage.rechnungen.map((r) => `${r.nummer} (${r.zahlung})`).join(', ')}`
+    : lage.grund === 'rechnung' ? 'auf einer gültigen Rechnung' : 'in einer schon ausgestellten Rechnung der Baustelle';
+  return (
+    <Hinweiszeile stufe="warn">
+      <p>
+        <strong>Dieser Schein ist schon verrechnet</strong> — er steht {welche}. Der Storno ändert die Rechnung nicht.
+        Ein Ersatzschein übernimmt die Verrechnung und kommt nicht noch einmal auf eine Rechnung. Ändern sich Stunden
+        oder Material, die Rechnung stornieren und neu ausstellen — dann wird der Ersatzschein mit verrechnet.
+      </p>
+    </Hinweiszeile>
+  );
+}
+
 function Gruppe<T>({ eintraege, zeile }: { eintraege: T[]; zeile: (e: T) => ReactNode }) {
   const [alle, setAlle] = useState(false);
   const gezeigt = alle ? eintraege : eintraege.slice(0, GRUPPE_MAX);
@@ -141,6 +178,7 @@ function Gruppe<T>({ eintraege, zeile }: { eintraege: T[]; zeile: (e: T) => Reac
 export default function WorkSheetsListView() {
   const { user, company } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   const [suchparameter, setSuchparameter] = useSearchParams();
   const markiert = suchparameter.get('markiert');
   /*
@@ -210,6 +248,23 @@ export default function WorkSheetsListView() {
   /** Der Schein im Seitenfenster — seine Kennung, gesucht in allem, was geladen ist. */
   const [offen, setOffen] = useState<string | null>(markiert);
   const [stornoFuer, setStornoFuer] = useState<WithId<WorkSheet> | null>(null);
+  /*
+    STEHT DER SCHEIN AUF EINER RECHNUNG? (Durchsicht 15.11.2026, P4) — vor
+    dem Storno gefragt. Ohne die Frage stornierte die Projektleitung einen
+    verrechneten Schein, schrieb einen neuen, und dessen Material kam auf die
+    nächste Rechnung ein zweites Mal. `null`: wird geholt; `'fehler'`: nicht
+    gekommen — dann sagt es der Dialog, statt Entwarnung zu geben.
+  */
+  const [stornoLage, setStornoLage] = useState<ScheinVerrechnung | 'fehler' | null>(null);
+  useEffect(() => {
+    setStornoLage(null);
+    if (!stornoFuer) return;
+    let weg = false;
+    scheinVerrechnung(stornoFuer.id)
+      .then((l) => { if (!weg) setStornoLage(l); })
+      .catch(() => { if (!weg) setStornoLage('fehler'); });
+    return () => { weg = true; };
+  }, [stornoFuer]);
   const [stornoGrund, setStornoGrund] = useState('');
   const [verwerfenFuer, setVerwerfenFuer] = useState<WithId<WorkSheet> | null>(null);
   const [loeschenFuer, setLoeschenFuer] = useState<WithId<WorkSheet> | null>(null);
@@ -713,6 +768,9 @@ export default function WorkSheetsListView() {
                 {s.verworfenVonName ? ` von ${s.verworfenVonName}` : ''} — nicht
                 weiterbearbeitet, nicht gelöscht.
               </span>
+            )}
+            {s.ersetzt && (
+              <span className="mt-1 block text-xs text-ink-muted">Ersatz für einen stornierten Schein</span>
             )}
             {s.stornoGrund && (
               <span className="mt-1 block text-xs text-danger">
@@ -1283,8 +1341,9 @@ export default function WorkSheetsListView() {
                   </h3>
                   <p className="text-sm text-ink-muted">
                     Der Schein bleibt erhalten und sichtbar, wird aber als storniert gekennzeichnet.
-                    Für eine Korrektur ist danach ein neuer Schein zu erstellen.
+                    Für eine Korrektur danach „Ersatzschein anlegen“ — er übernimmt Baustelle, Tag und Material.
                   </p>
+                  <StornoVerrechnung lage={stornoLage} />
                   <InputField
                     id="stornogrund"
                     label="Grund (Pflicht)"
@@ -1310,7 +1369,11 @@ export default function WorkSheetsListView() {
                         setBusy(true);
                         try {
                           await cancelWorkSheet(stornoFuer.id, stornoGrund.trim(), user.name);
-                          toast.success('Schein storniert');
+                          const weg = stornoFuer;
+                          toast.success('Schein storniert', {
+                            label: 'Ersatzschein anlegen',
+                            onClick: () => navigate(ersatzAdresse(weg)),
+                          });
                           setStornoFuer(null);
                           setStornoGrund('');
                           await laden();
@@ -1361,6 +1424,17 @@ export default function WorkSheetsListView() {
                     <Button variant="ghost" onClick={() => setStornoFuer(offenerSchein)}>
                       Stornieren
                     </Button>
+                  )}
+                  {/*
+                    DER ERSATZ ZUM STORNO (P4): mit Verweis auf den
+                    stornierten Schein. Er erbt dessen Verrechnung — stand der
+                    auf einer Rechnung, kommt der Ersatz nicht noch einmal auf
+                    eine. Gibt es schon einen, weist die Datenbank ab und sagt es.
+                  */}
+                  {darfSchreiben && offenerSchein.status === 'Storniert' && (
+                    <KnopfLink to={ersatzAdresse(offenerSchein)} variant="secondary">
+                      Ersatzschein anlegen
+                    </KnopfLink>
                   )}
                 </div>
                 {/*

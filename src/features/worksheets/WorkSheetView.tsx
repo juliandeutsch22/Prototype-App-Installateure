@@ -142,6 +142,12 @@ export default function WorkSheetView() {
   const datumAusUrl = suchparameter.get('datum') ?? todayStr();
   /** Die Kennung eines bestehenden Entwurfs — dann wird geändert statt angelegt. */
   const entwurfId = suchparameter.get('entwurf');
+  /**
+   * „Ersatzschein anlegen“ nach einem Storno (Durchsicht 15.11.2026, P4):
+   * der stornierte Schein, den dieser ersetzt. Nur für einen NEUEN Schein —
+   * ein Entwurf trägt seinen Verweis schon (oder keinen).
+   */
+  const ersetztId = entwurfId ? null : suchparameter.get('ersetzt');
 
   const [projekt, setProjekt] = useState<WithId<Project> | undefined>();
   const [projectNumber, setProjectNumber] = useState(projektAusUrl);
@@ -380,6 +386,37 @@ export default function WorkSheetView() {
     */
     setZeiten((z) => (z.some((r) => r.datum !== datum) ? z.map((r) => ({ ...r, datum })) : z));
   }, [projectNumber, datum]);
+
+  /*
+    DER ERSATZSCHEIN (P4): Material und Notizen des stornierten Scheins als
+    Vorlage — korrigiert wird meist eine Menge, nicht alles neu. Die Zeiten
+    kommen wie bei jedem Schein aus der Zeiterfassung. Der Verweis geht beim
+    Anlegen mit; der Ersatz erbt so die Verrechnung des stornierten und kommt
+    nicht noch einmal auf eine Rechnung. Ist der Schein nicht (mehr)
+    storniert, gibt es keinen Verweis — das steht dann da.
+  */
+  const [ersatzFuer, setErsatzFuer] = useState<WithId<WorkSheet> | null>(null);
+  const [ersatzFehler, setErsatzFehler] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ersetztId) return;
+    let weg = false;
+    getWorkSheet(ersetztId)
+      .then((alt) => {
+        if (weg) return;
+        if (!alt || alt.status !== 'Storniert') {
+          setErsatzFehler('Der Schein, der ersetzt werden sollte, ist nicht storniert — dieser Schein entsteht ohne Bezug zu ihm.');
+          return;
+        }
+        setErsatzFuer(alt);
+        materialGehoertZu.current = `${alt.projectNumber}|${alt.datum}`;
+        setMaterial((jetzt) => (jetzt.length > 0 ? jetzt : alt.material.map((m) => ({ ...m, id: neueKennung() }))));
+        setNotizen((jetzt) => jetzt || alt.notizen || '');
+      })
+      .catch(() => {
+        if (!weg) setErsatzFehler('Der stornierte Schein ließ sich nicht laden — dieser Schein entsteht ohne Bezug zu ihm.');
+      });
+    return () => { weg = true; };
+  }, [ersetztId]);
 
   /**
    * Einen bestehenden Entwurf ins Formular holen.
@@ -983,6 +1020,8 @@ export default function WorkSheetView() {
       */
       fotos: fuerDenSchein(fotos),
       notizen,
+      // Nur beim Anlegen wirksam; danach steht der Verweis fest (P4).
+      ...(ersatzFuer ? { ersetzt: ersatzFuer.id } : {}),
     };
     /*
       Läuft die Anlage gerade, wird auf sie gewartet und danach geändert —
@@ -1226,6 +1265,19 @@ export default function WorkSheetView() {
           Schritte nicht, und eine Leiste mit drei toten Zielen wäre schlimmer
           als keine.
         */}
+        {(ersatzFuer || ersatzFehler) && (
+          <Hinweiszeile stufe={ersatzFehler ? 'warn' : undefined}>
+            <p>
+              {ersatzFehler ?? (
+                <>
+                  <strong>Ersatz für den stornierten Schein vom {datumAT(ersatzFuer!.datum)}.</strong> Material und
+                  Notizen sind übernommen, die Zeiten kommen aus der Zeiterfassung; der Kunde unterschreibt neu. Stand
+                  der stornierte Schein auf einer Rechnung, gilt dieser als verrechnet.
+                </>
+              )}
+            </p>
+          </Hinweiszeile>
+        )}
         {projectNumber && !eineSeite && (
           <div ref={leisteRef}>
             <Schrittleiste schritt={schritt} onWahl={springe} />

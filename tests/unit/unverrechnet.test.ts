@@ -3,6 +3,7 @@ import {
   inAbgerechnetemZeitraum,
   nichtVerrechnetJeBaustelle,
   unverrechnetZeilen,
+  mitErsatz,
   unverrechneteStundenZeilen,
   auffaellige,
   AUFFAELLIG_AB_TAGEN,
@@ -165,5 +166,23 @@ describe('Nicht verrechnet je Baustelle (A2)', () => {
     expect(zeilen.map((z) => [z.projectNumber, z.kunde, z.tage])).toEqual([['2026-009', 'Gruber', 69], ['2026-001', 'Huber', 7]]);
     expect(zeilen[0].scheine).toEqual([]);
     expect(zeilen[1].stunden).toBeNull();
+  });
+});
+
+/*
+  DER ERSATZ ERBT DIE VERRECHNUNG (P4). Gegenprobe: ohne `mitErsatz` stand
+  der Ersatzschein eines verrechneten Scheins als offen da, und sein Material
+  kam auf die nächste Rechnung ein zweites Mal.
+*/
+describe('Ersatzschein (P4)', () => {
+  it('erbt die Verrechnung über jede Stufe', () => {
+    const scheine = [{ id: 'alt', ersetzt: null }, { id: 'e1', ersetzt: 'alt' }, { id: 'e2', ersetzt: 'e1' }];
+    expect([...mitErsatz(scheine, ['alt'])].sort()).toEqual(['alt', 'e1', 'e2']);
+  });
+
+  it('bleibt gleich: ohne verrechneten Vorgänger bleibt der Ersatz offen, fremde Scheine ebenso', () => {
+    const scheine = [{ id: 'e1', ersetzt: 'alt' }, { id: 'x', ersetzt: null }];
+    expect([...mitErsatz(scheine, [])]).toEqual([]);
+    expect([...mitErsatz(scheine, ['y'])]).toEqual(['y']);
   });
 });

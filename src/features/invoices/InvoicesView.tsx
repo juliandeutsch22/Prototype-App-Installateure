@@ -66,6 +66,7 @@ import { postenNeuLaden } from '@/app/offenePosten';
 import { mahnlauf } from './mahnlauf';
 import {
   unverrechnetZeilen,
+  mitErsatz,
   unverrechneteStundenZeilen,
   inAbgerechnetemZeitraum,
   nichtVerrechnetJeBaustelle,
@@ -1676,7 +1677,8 @@ export default function InvoicesView() {
         sie nicht. Ohne diese Regel kämen sie auf die nächste Rechnung und
         zögen deren Leistungszeitraum in einen schon abgerechneten zurück.
       */
-      const bereitsVerrechnet = new Set([
+      // Dazu die Ersatzscheine verrechneter Scheine (P4): sie erben die Verrechnung.
+      const bereitsVerrechnet = mitErsatz(scheine, [
         ...verrechneteScheine(derBaustelle),
         ...inAbgerechnetemZeitraum(scheine, derBaustelle),
       ]);

@@ -99,6 +99,10 @@ const textSuche = vi.fn(async () => serverTreffer);
 /** Was auf dem Gerät noch auf Verbindung wartet (E49) — im Normalfall nichts. */
 const wartendeScheine = vi.fn<() => Promise<VorgemerkterSchein[]>>(async () => []);
 
+/** Ob der Schein vor dem Storno schon verrechnet ist (P4) — ab Werk nicht. */
+type Lage = { verrechnet: boolean; grund: string | null; rechnungen: { nummer: string; zahlung: string }[] | null };
+const verrechnungLage = vi.fn<(id: string) => Promise<Lage>>(async () => ({ verrechnet: false, grund: null, rechnungen: null }));
+
 /** Ein einzelner Schein nach Kennung — für `?markiert=` aus der Baustellenakte. */
 const einzeln = vi.fn<(id: string) => Promise<(WorkSheet & { id: string }) | undefined>>(async () => undefined);
 vi.mock('@/lib/db/workSheets', () => ({
@@ -115,6 +119,7 @@ vi.mock('@/lib/db/workSheets', () => ({
   restoreWorkSheetDraft: (...a: unknown[]) => zurueckholen(...(a as [])),
   getWorkSheet: (id: string) => einzeln(id),
   wartendeScheine: () => wartendeScheine(),
+  scheinVerrechnung: (id: string) => verrechnungLage(id),
 }));
 /*
   Die Adressen der Bilder kommen aus Firebase Storage. Geprüft wird hier
@@ -1407,6 +1412,47 @@ describe('Ansicht und Seitenfenster', () => {
     await nutzer.type(within(fenster).getByLabelText(/Grund/), 'Falscher Tag');
     await nutzer.click(bestaetigen);
     await waitFor(() => expect(stornieren).toHaveBeenCalledWith('u1', 'Falscher Tag', 'Max Mustermann'));
+  });
+
+  /*
+    P4 (Durchsicht 15.11.2026): steht der Schein auf einer Rechnung, sagt es
+    der Storno — mit Nummer für die, die Rechnungen lesen; sonst nur, dass.
+    Danach führt „Ersatzschein anlegen“ zum neuen Schein mit Verweis.
+    Gegenprobe: vorher stand im Dialog nichts davon.
+  */
+  it('P4: der Storno nennt die Rechnung, auf der der Schein steht', async () => {
+    authWert.user.role = 'Geschäftsführung';
+    verrechnungLage.mockResolvedValueOnce({ verrechnet: true, grund: 'rechnung', rechnungen: [{ nummer: 'RE-2026-0042', zahlung: 'Offen' }] });
+    const nutzer = userEvent.setup();
+    zeichne('/worksheets?ansicht=alle');
+    const fenster = await oeffne(/Familie Berger/);
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Stornieren' }));
+    expect(await within(fenster).findByText(/Dieser Schein ist schon verrechnet/)).toBeInTheDocument();
+    expect(within(fenster).getByText(/auf der Rechnung RE-2026-0042 \(Offen\)/)).toBeInTheDocument();
+    expect(verrechnungLage).toHaveBeenCalledWith('u1');
+    await nutzer.type(within(fenster).getByLabelText(/Grund/), 'Falsche Menge');
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Storno bestätigen' }));
+    expect(await screen.findByRole('button', { name: 'Ersatzschein anlegen' })).toBeInTheDocument();
+  });
+
+  it('P4: die Projektleitung ohne Freigabe erfährt, DASS verrechnet ist — ohne Nummer', async () => {
+    authWert.user.role = 'Projektleiter';
+    verrechnungLage.mockResolvedValueOnce({ verrechnet: true, grund: 'rechnung', rechnungen: null });
+    const nutzer = userEvent.setup();
+    zeichne();
+    const fenster = await oeffne(/Familie Berger/);
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Stornieren' }));
+    expect(await within(fenster).findByText(/steht auf einer gültigen Rechnung/)).toBeInTheDocument();
+  });
+
+  it('P4, bleibt gleich: ein nicht verrechneter Schein bekommt keinen Hinweis', async () => {
+    authWert.user.role = 'Geschäftsführung';
+    const nutzer = userEvent.setup();
+    zeichne('/worksheets?ansicht=alle');
+    const fenster = await oeffne(/Familie Berger/);
+    await nutzer.click(within(fenster).getByRole('button', { name: 'Stornieren' }));
+    await waitFor(() => expect(within(fenster).queryByText(/Verrechnung wird geprüft/)).toBeNull());
+    expect(within(fenster).queryByText(/schon verrechnet/)).toBeNull();
   });
 
   /*

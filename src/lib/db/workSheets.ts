@@ -79,6 +79,13 @@ export function listBelegScheineInRange(companyId: string, von: string, bis: str
   return pg.listBelegScheineInRange(companyId, von, bis);
 }
 
+export type { ScheinVerrechnung } from './pg/workSheets';
+
+/** Ob und wo ein Schein verrechnet ist — vor dem Storno (P4); siehe `pg.scheinVerrechnung`. */
+export function scheinVerrechnung(id: string) {
+  return pg.scheinVerrechnung(id);
+}
+
 /** Bestimmte Scheine wie in der Liste, ohne Bilder — siehe `pg.listWorkSheetsByIds`. */
 export function listWorkSheetsByIds(companyId: string, ids: readonly string[]): Promise<WithId<WorkSheet>[]> {
   return pg.listWorkSheetsByIds(companyId, ids);

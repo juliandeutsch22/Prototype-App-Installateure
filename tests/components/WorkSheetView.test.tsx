@@ -2304,3 +2304,44 @@ describe('Schein am Handy (D8, E90)', () => {
     expect(entwurf.closest('.aktionsleiste')).toBeNull();
   });
 });
+
+/*
+  ERSATZSCHEIN NACH DEM STORNO (Durchsicht 15.11.2026, P4). Aus „Ersatzschein
+  anlegen“: Material und Notizen des stornierten Scheins als Vorlage, und der
+  Verweis geht beim Anlegen mit — damit erbt der Ersatz die Verrechnung.
+  Gegenprobe: vorher kannte das Formular `ersetzt` nicht; der neue Schein
+  entstand ohne Bezug und kam erneut auf die Rechnung.
+*/
+describe('Ersatzschein (P4)', () => {
+  const storniert = {
+    id: 'alt', companyId: 'perl', projectNumber: 'B-001', customerName: 'Familie Huber', datum: heute,
+    status: 'Storniert', abrechnung: 'Regie', zeiten: [], erstelltVonUid: 'u1', erstelltVonName: 'Max',
+    material: [{ name: 'Therme', menge: 2, einheit: 'Stk' }], notizen: 'Therme getauscht',
+  } as WorkSheet & { id: string };
+
+  it('übernimmt Material und Notizen und legt mit Verweis an', async () => {
+    entwurf = storniert;
+    const nutzer = userEvent.setup();
+    zeichne('/worksheet?projekt=B-001&ersetzt=alt');
+    expect(await screen.findByText(/Ersatz für den stornierten Schein vom/)).toBeInTheDocument();
+    expect(await screen.findByText(/Verbautes Material \(1\)/)).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+    await waitFor(() => expect(createWorkSheet).toHaveBeenCalled());
+    expect(createWorkSheet.mock.calls[0][1]).toMatchObject({
+      ersetzt: 'alt', notizen: 'Therme getauscht', material: [{ name: 'Therme', menge: 2, einheit: 'Stk' }],
+    });
+  });
+
+  it('Gegenprobe: ein nicht stornierter Schein wird nicht ersetzt — es steht da, der Verweis fehlt', async () => {
+    entwurf = { ...storniert, status: 'Unterschrieben' };
+    const nutzer = userEvent.setup();
+    zeichne('/worksheet?projekt=B-001&ersetzt=alt');
+    expect(await screen.findByText(/ist nicht storniert — dieser Schein entsteht ohne Bezug/)).toBeInTheDocument();
+    await screen.findByText(/Verbautes Material \(0\)/);
+    await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Dichtungen');
+    await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+    await waitFor(() => expect(createWorkSheet).toHaveBeenCalled());
+    expect(createWorkSheet.mock.calls[0][1]).not.toHaveProperty('ersetzt');
+  });
+});

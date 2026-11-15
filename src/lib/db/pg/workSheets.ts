@@ -61,7 +61,7 @@ export const LISTENSPALTEN = [
   'id', 'company_id', 'project_number', 'project_id', 'customer_id', 'customer_name', 'address',
   'datum', 'status', 'abrechnung', 'notizen', 'erstellt_von_uid', 'erstellt_von_name',
   'inhalt_hash', 'unterschrieben_am', 'storno_grund', 'storniert_von_name', 'verworfen_von_name',
-  'created_at', 'updated_at', 'aussteller_stand', 'verworfen_am',
+  'created_at', 'updated_at', 'aussteller_stand', 'verworfen_am', 'ersetzt',
 ] as const;
 const LISTENKOPF = [
   ...LISTENSPALTEN,
@@ -520,6 +520,22 @@ async function speichern(
 export function createWorkSheet(companyId: string, s: NewWorkSheet): Promise<string> {
   void companyId;
   return speichern(crypto.randomUUID(), s);
+}
+
+/** Wie ein Schein verrechnet ist — für den Storno (P4, `schein_verrechnung`). */
+export interface ScheinVerrechnung {
+  verrechnet: boolean;
+  /** `rechnung`: steht auf einer gültigen Rechnung (auch über einen Vorgänger); `abgerechnet`: Pauschale oder abgerechneter Zeitraum. */
+  grund: 'rechnung' | 'abgerechnet' | null;
+  /** Nur wer Rechnungen lesen darf, bekommt die Nummern; sonst `null`. */
+  rechnungen: { nummer: string; zahlung: string }[] | null;
+}
+
+export async function scheinVerrechnung(id: string): Promise<ScheinVerrechnung> {
+  const { data, error } = await derClient().rpc('schein_verrechnung', { p_id: id });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as Partial<ScheinVerrechnung>;
+  return { verrechnet: !!d.verrechnet, grund: d.grund ?? null, rechnungen: d.rechnungen ?? null };
 }
 
 /** Ändern — nur im Entwurf. Danach lehnt der Trigger ab. */
