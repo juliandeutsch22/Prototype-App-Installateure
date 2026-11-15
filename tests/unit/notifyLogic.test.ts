@@ -329,6 +329,18 @@ describe('Abwesenheiten', () => {
     expect(textEntscheidung({ ...u, status: 'Storniert' }, 'v2').title).toBe('Urlaub zurückgenommen');
   });
 
+  it('die Entscheidung springt genau auf den Antrag — genehmigt, abgelehnt, zurückgenommen, auch beim ZA (Z9)', () => {
+    const u = abwesenheitAusZeile({
+      company_id: 'perl', user_id: 'mo', user_name: 'Max', von: '2026-12-21', bis: '2026-12-24', art: 'Urlaub', status: 'Genehmigt',
+    })!;
+    for (const status of ['Genehmigt', 'Abgelehnt', 'Storniert']) {
+      expect(textEntscheidung({ ...u, status }, 'v2').link, status).toBe('/vacations?antrag=v2');
+    }
+    expect(textEntscheidung({ ...u, art: 'Zeitausgleich' }, 'v 3').link).toBe('/vacations?antrag=v%203');
+    // Bleibt gleich: der neue Antrag an die Entscheidenden führt weiter auf die Seite mit den offenen Anträgen.
+    expect(textAntrag(u, 'v2').link).toBe('/vacations');
+  });
+
   it('eine Kürzung nennt, was bleibt, und den Grund — und führt genau zu diesem Antrag (Z1)', () => {
     const u = abwesenheitAusZeile({
       company_id: 'perl', user_id: 'mo', user_name: 'Max', von: '2027-09-06', bis: '2027-09-07', art: 'Urlaub', status: 'Genehmigt',

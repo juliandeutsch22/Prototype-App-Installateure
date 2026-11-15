@@ -371,7 +371,8 @@ export function textEntscheidung(a: AbwesenheitDoc, id: string): Meldung {
   return {
     title: `${was} ${wie}`,
     body: umfangKurz(a),
-    link: '/vacations',
+    // Genau dieser Antrag (Z9): die Urlaubsseite öffnet ihn mit Verlauf und Grund — vorher nur die Seite.
+    link: `/vacations?antrag=${encodeURIComponent(id)}`,
     // Dieselbe Kennung wie der Antrag: die Entscheidung ersetzt ihn.
     tag: `antrag-${id}`,
   };
