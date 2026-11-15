@@ -63,7 +63,9 @@ export function createQuote(companyId: string, q: NewQuote): Promise<string> {
   return pg.createQuote(companyId, q);
 }
 
-export function updateQuote(id: string, data: Partial<NewQuote>): Promise<void> {
+export type { AngebotAenderung } from './pg/quotes';
+
+export function updateQuote(id: string, data: pg.AngebotAenderung): Promise<void> {
   return pg.updateQuote(id, data);
 }
 

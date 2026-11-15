@@ -701,8 +701,16 @@ export interface Quote {
    */
   kalkulierteStunden: number;
   notes?: string;
-  /** Bei Annahme: die Baustelle, die daraus entstanden ist. */
+  /**
+   * Bei Annahme: die Baustelle, die daraus entstanden ist. Vor der Annahme
+   * die Baustelle, zu der das Angebot als Nachtrag gehört (A3).
+   */
   projectNumber?: string;
+  /**
+   * Als Nachtrag an eine bestehende Baustelle angenommen (A3): deren Budget
+   * wuchs um die kalkulierten Stunden. Setzt nur die Datenbank.
+   */
+  nachtrag?: boolean;
   /**
    * Dieselbe Baustelle als Kennung — die Datenbank löst sie beim Schreiben
    * aus `projectNumber` auf. Nur lesen: sie überlebt ein späteres Umbenennen

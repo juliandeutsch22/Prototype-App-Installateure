@@ -294,3 +294,19 @@ export async function baustelleVerwendung(id: string): Promise<BaustellenVerwend
     })),
   };
 }
+
+/**
+ * Die laufenden Baustellen EINES Kunden, die jüngsten zuerst — für die
+ * Suche nach einer Baustelle (A3: Nachtrag), bevor jemand tippt. Mit Grenze:
+ * mehr findet die Suche.
+ */
+export function listLaufendeDesKunden(companyId: string, customerId: string, max: number) {
+  return abfragen<Project>(BAUSTELLEN, companyId, {
+    wo: [
+      { art: 'gleich', feld: 'customerId', wert: customerId },
+      { art: 'in', feld: 'status', werte: ['Aktiv', 'Pausiert'] },
+    ],
+    sortiere: { feld: 'createdAt', absteigend: true },
+    grenze: max,
+  });
+}

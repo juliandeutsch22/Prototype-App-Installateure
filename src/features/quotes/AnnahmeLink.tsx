@@ -61,7 +61,7 @@ export function AnnahmeLinkDialog({
   open: boolean;
   /** `erzeugt`: ein Link ist entstanden — die Seite lädt danach neu. */
   onClose: (erzeugt: boolean) => void;
-  angebot: { id: string; quoteNumber: string; status: string; validUntil: string };
+  angebot: { id: string; quoteNumber: string; status: string; validUntil: string; projectNumber?: string };
   firma: string;
   kundenEmail?: string;
   /** Der Vorsatz des Betriebs für Baustellen — vorbelegt, änderbar. */
@@ -163,6 +163,20 @@ export function AnnahmeLinkDialog({
           {angebot.status === 'Entwurf' && (
             <Hinweiszeile>
               <p>Der Entwurf gilt damit als versendet und lässt sich nicht mehr bearbeiten.</p>
+            </Hinweiszeile>
+          )}
+          {/*
+            A3: ein Nachtrag kommt auch über den Link an seine Baustelle. Abrechnung
+            und Vorsatz greifen dann nur, falls es die Baustelle bis dahin nicht
+            mehr gibt — das sagt der Dialog, statt die Felder still wirkungslos
+            stehen zu lassen.
+          */}
+          {angebot.projectNumber && (
+            <Hinweiszeile>
+              <p>
+                Nachtrag zu Baustelle {angebot.projectNumber}: nimmt der Kunde an, kommt das Angebot dorthin, und ihr
+                Stundenbudget wächst. Abrechnung und Vorsatz gelten nur, falls es die Baustelle dann nicht mehr gibt.
+              </p>
             </Hinweiszeile>
           )}
           {ersetztOffenenLink && (

@@ -20,7 +20,7 @@ import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { Wert } from '@/components/Wert';
 import { listQuotesForProject } from '@/lib/db/quotes';
 import { getEingangZu } from '@/lib/db/auftragseingaenge';
-import { pauschalAngebot } from '@/features/invoices/pauschale';
+import { angeboteDerBaustelle, pauschalAngebot } from '@/features/invoices/pauschale';
 import { ABRECHNUNGSARTEN, abrechnungKurz } from '@/lib/abrechnung';
 import { euro } from '@/lib/betrag';
 import { canAccess, zusatzrechte } from '@/app/navigation';
@@ -473,13 +473,15 @@ export default function BaustellenakteView() {
         <AktenAngabe wort="Stundenbudget">{b.estimatedHours ? `${fmtStunden(b.estimatedHours)} h` : 'nicht festgelegt'}</AktenAngabe>
       </AktenAngaben>
       {(b.billingMode === 'Pauschal' || b.billingMode === 'Einheitspreis') &&
-        <PauschalHinweis angebote={angebote} sichtbar={angeboteSichtbar} art={b.billingMode} />}
+        <PauschalHinweis angebote={angebote} sichtbar={angeboteSichtbar} art={b.billingMode} baustelleId={darfAendern ? b.id : undefined} />}
       {user && <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
         <BaustellenUebersicht companyId={user.companyId} projekt={b} kompakt />
       </Suspense>}
       <Leistungszeitraum beginn={b.startDate} ende={b.endDate} heute={todayStr()} />
       <div className="flex flex-wrap items-center gap-x-4">
-        {angebote.map((q) => <Link key={q.id} to={`/quotes/${q.id}`} className="link akten-verweis">Angebot {q.quoteNumber}</Link>)}
+        {angebote.map((q) => <Link key={q.id} to={`/quotes/${q.id}`} className="link akten-verweis">{q.nachtrag ? 'Nachtrag' : 'Angebot'} {q.quoteNumber}{q.status && q.status !== 'Angenommen' ? ` (${q.status})` : ''}</Link>)}
+        {/* A3, F6: ein Nachtrag bleibt beim Auftrag — das Angebot gehört von Anfang an zu dieser Baustelle. */}
+        {angeboteSichtbar && darfAendern && b.status !== 'Abgeschlossen' && <Link to={`/quotes?baustelle=${b.id}`} className="link akten-verweis">Nachtrag anlegen</Link>}
         {ausEingang && <Link to={`/eingaenge/${ausEingang.id}`} className="link akten-verweis">Aus Eingang {ausEingang.nummer}</Link>}
       </div>
       {verlauf.length > 1 && <details className="akten-weitere"><summary className="weiteres-kopf">Verlauf der Baustelle</summary>
@@ -1053,27 +1055,44 @@ function PauschalHinweis({
   angebote,
   sichtbar,
   art,
+  baustelleId,
 }: {
   angebote: Quote[];
   sichtbar: boolean;
   art: 'Pauschal' | 'Einheitspreis';
+  /** Wer Angebote anlegen darf, bekommt den Weg zum Angebot für diese Baustelle (A3). */
+  baustelleId?: string;
 }) {
   const angebot = sichtbar ? pauschalAngebot(angebote) : null;
+  // A3: mit Nachträgen tragen mehrere Angebote die Baustelle — die Rechnung nimmt alle.
+  const mehrere = sichtbar && angeboteDerBaustelle(angebote).length > 1;
   const text =
     art === 'Einheitspreis'
       ? angebot
-        ? `Die Einheitspreise kommen aus dem angenommenen Angebot ${angebot.quoteNumber}. Die Rechnung übernimmt dessen Positionen; die Mengen trägt man nach Aufmaß ein.`
+        ? mehrere
+          ? `Die Einheitspreise kommen aus den angenommenen Angeboten ${angebot.quoteNumber}. Die Rechnung übernimmt deren Positionen; die Mengen trägt man nach Aufmaß ein.`
+          : `Die Einheitspreise kommen aus dem angenommenen Angebot ${angebot.quoteNumber}. Die Rechnung übernimmt dessen Positionen; die Mengen trägt man nach Aufmaß ein.`
         : sichtbar
-          ? 'Einheitspreis ohne angenommenes Angebot: die Preise stehen noch nirgends. Die Rechnung setzt eine leere Zeile an — dort Positionen, Mengen nach Aufmaß und Preise eintragen. Oder ein Angebot anlegen und annehmen.'
+          ? 'Einheitspreis ohne angenommenes Angebot: die Preise stehen noch nirgends. Die Rechnung setzt eine leere Zeile an — dort Positionen, Mengen nach Aufmaß und Preise eintragen. Oder ein Angebot zu dieser Baustelle anlegen und annehmen.'
           : 'Die Einheitspreise legt das angenommene Angebot fest; die Mengen kommen aus dem Aufmaß.'
       : angebot
-        ? `Den Pauschalpreis legt das angenommene Angebot ${angebot.quoteNumber} fest (${euro(angebot.totalNetto)} netto). Die Rechnung übernimmt dessen Positionen.`
+        ? mehrere
+          ? `Den Pauschalpreis legen die angenommenen Angebote ${angebot.quoteNumber} fest (${euro(angebot.totalNetto)} netto zusammen). Die Rechnung übernimmt deren Positionen.`
+          : `Den Pauschalpreis legt das angenommene Angebot ${angebot.quoteNumber} fest (${euro(angebot.totalNetto)} netto). Die Rechnung übernimmt dessen Positionen.`
         : sichtbar
-          ? 'Pauschal ohne angenommenes Angebot: der vereinbarte Preis steht noch nirgends. Die Rechnung setzt eine Zeile „Pauschale gemäß Vereinbarung“ mit 0,00 € an — dort den Betrag eintragen. Oder ein Angebot anlegen und annehmen, dann übernimmt die Rechnung dessen Positionen.'
+          ? 'Pauschal ohne angenommenes Angebot: der vereinbarte Preis steht noch nirgends. Die Rechnung setzt eine Zeile „Pauschale gemäß Vereinbarung“ mit 0,00 € an — dort den Betrag eintragen. Oder ein Angebot zu dieser Baustelle anlegen und annehmen, dann übernimmt die Rechnung dessen Positionen.'
           : 'Den Pauschalpreis legt das angenommene Angebot fest; ohne Angebot trägt ihn das Büro in der Rechnung ein.';
   return (
     <Hinweiszeile stufe={sichtbar && !angebot ? 'warn' : undefined}>
-      <p>{text}</p>
+      <p>
+        {text}
+        {sichtbar && !angebot && baustelleId && (
+          <>
+            {' '}
+            <Link to={`/quotes?baustelle=${baustelleId}`} className="link-hinweis-weiter">Angebot zu dieser Baustelle anlegen</Link>
+          </>
+        )}
+      </p>
     </Hinweiszeile>
   );
 }

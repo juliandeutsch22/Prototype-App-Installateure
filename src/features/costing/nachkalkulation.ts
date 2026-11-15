@@ -254,6 +254,8 @@ export function rechneBaustelle(
     for (const p of quote.positions ?? []) {
       // Titel und Textzeilen sind kein Material (M18).
       if ((p.art ?? 'position') !== 'position') continue;
+      // Der Rabatt eines Nachtrags steht als Zeile mit negativem Betrag da (A3) — kein Material.
+      if (p.netto < 0) continue;
       if (p.istArbeitszeit ?? false) continue;
       if (istStundenEinheit(p.unit)) continue;
       const ek = (p.materialId ? ekNachId.get(p.materialId) : undefined) ?? ekNachName.get(normName(p.label));

@@ -10,6 +10,7 @@ import type { Invoice, Material, Project, Quote, WorkSheet } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { rechneBaustelle, type Nachkalkulation } from './nachkalkulation';
 import { materialkosten, KEINE_MATERIALKOSTEN } from './materialkosten';
+import { pauschalAngebot } from '@/features/invoices/pauschale';
 
 /** Eine gerechnete Baustelle, mit der Kennung für den Weg in ihre Akte. */
 export type NachkalkulationZeile = Nachkalkulation & { projektId?: string };
@@ -20,7 +21,8 @@ export type NachkalkulationZeile = Nachkalkulation & { projektId?: string };
  * es vorher das erste in der Liste — und nur ein angenommenes ist ein Erlös.
  */
 export function angebotDerBaustelle(angebote: readonly WithId<Quote>[]): WithId<Quote> | undefined {
-  return angebote.find((q) => q.status === 'Angenommen') ?? angebote[0];
+  // A3: mit Nachträgen zählen alle angenommenen zusammen — dieselbe Summe wie in der Rechnung.
+  return pauschalAngebot([...angebote]) ?? angebote[0];
 }
 
 /** Nach Baustelle sortiert, über die Nummer ohne „PR-“ wie in `rechneBaustelle`. */

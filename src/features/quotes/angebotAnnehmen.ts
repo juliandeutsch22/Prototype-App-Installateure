@@ -31,12 +31,24 @@ export async function angebotAnnehmen(
    * die Vorgabe.
    */
   abrechnung: Abrechnungsart = 'Pauschal',
-): Promise<{ projectNumber: string }> {
+  /**
+   * Als Nachtrag an diese Baustelle (A3, F6) — oder `null`: eine neue.
+   * Vorher legte jedes Annehmen eine neue Baustelle an, auch für den
+   * Nachtrag zu einer laufenden.
+   */
+  nachtragZu: string | null = null,
+): Promise<{ projectNumber: string; nachtrag: boolean; quoteNumber: string }> {
   void companyId;
-  return { projectNumber: await acceptQuote(q.id, vorsatzBaustelle, abrechnung) };
+  return {
+    projectNumber: await acceptQuote(q.id, vorsatzBaustelle, abrechnung, nachtragZu),
+    nachtrag: !!nachtragZu,
+    quoteNumber: q.quoteNumber,
+  };
 }
 
 /** Die Meldung nach dem Annehmen — gleich, wo angenommen wurde. */
-export function annahmeMeldung(r: { projectNumber: string }): string {
-  return `Baustelle ${r.projectNumber} angelegt`;
+export function annahmeMeldung(r: { projectNumber: string; nachtrag?: boolean; quoteNumber?: string }): string {
+  return r.nachtrag
+    ? `${r.quoteNumber ?? 'Angebot'} als Nachtrag an Baustelle ${r.projectNumber} angehängt`
+    : `Baustelle ${r.projectNumber} angelegt`;
 }

@@ -33,7 +33,8 @@ import { downloadAngebotPdf } from './angebotPdf';
 import { STAND, standWort } from './stand';
 import { verwerfenFrage, VERWORFEN_MELDUNG, WIEDERHERGESTELLT_MELDUNG } from './verwerfen';
 import Hinweiszeile from '@/components/Hinweiszeile';
-import AbrechnungWahl from './AbrechnungWahl';
+import AnnahmeZiel from './AnnahmeZiel';
+import { zielBereit, zielVorgabe, type AnnahmeZielWert } from './annahmeZiel';
 import PositionenTabelle from './PositionenTabelle';
 import { AnnahmeLinkAbschnitt, AnnahmeLinkDialog } from './AnnahmeLink';
 import { angebotLinkGesehen, angebotLinkWiderrufen, listAngebotLinks, type AngebotLink } from '@/lib/db/angebotLinks';
@@ -90,6 +91,8 @@ export default function AngebotView() {
   const [ruecknahmeFolgeText, setRuecknahmeFolgeText] = useState<Teil<string> | null>(null);
   /** Die Abrechnung der Baustelle, die beim Annehmen entsteht (M16). */
   const [abrechnung, setAbrechnung] = useState<Abrechnungsart>('Pauschal');
+  /** Neue Baustelle oder Nachtrag an eine bestehende (A3, F6). */
+  const [ziel, setZiel] = useState<AnnahmeZielWert>({ art: 'neu', baustelleId: '', projekt: null });
   /** Die Fassungen rundherum (M17): woraus dieses Angebot entstand, was daraus wurde. */
   const [vorgaenger, setVorgaenger] = useState<WithId<Quote> | null>(null);
   const [fassungen, setFassungen] = useState<WithId<Quote>[]>([]);
@@ -292,7 +295,9 @@ export default function AngebotView() {
     setBusy(true);
     setFehler(null);
     try {
-      toast.success(annahmeMeldung(await angebotAnnehmen(companyId, q, praefixeVon(company).baustelle, abrechnung)));
+      toast.success(annahmeMeldung(await angebotAnnehmen(
+        companyId, q, praefixeVon(company).baustelle, abrechnung, ziel.art === 'nachtrag' ? ziel.baustelleId : null,
+      )));
       setVersuch((v) => v + 1);
     } catch (err) {
       setFehler(grundAus(err, 'Die Baustelle konnte nicht angelegt werden.'));
@@ -420,7 +425,7 @@ export default function AngebotView() {
         </>
       )}
       {offen && !nachbarn.angenommen && (
-        <Button variant="secondary" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(true); }}>
+        <Button variant="secondary" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setZiel(zielVorgabe(q)); setAnnehmenFragen(true); }}>
           Annehmen → Baustelle
         </Button>
       )}
@@ -577,7 +582,8 @@ export default function AngebotView() {
             </Link>
           </Angabe>
         )}
-        <Angabe wort="Baustelle">
+        {/* A3: vor der Annahme die Baustelle, an die das Angebot als Nachtrag kommt. */}
+        <Angabe wort={q.status === 'Angenommen' ? (q.nachtrag ? 'Baustelle (Nachtrag)' : 'Baustelle') : q.projectNumber ? 'Nachtrag zu Baustelle' : 'Baustelle'}>
           {q.projectNumber ? (
             q.projectId && baustellenSichtbar ? (
               <Link to={`/admin-projects/${q.projectId}`} className="link inline-flex min-h-touch items-center">
@@ -758,9 +764,12 @@ export default function AngebotView() {
       <ConfirmDialog
         open={annehmenFragen}
         title="Angebot annehmen?"
-        message={`${q.quoteNumber} wird angenommen, und für ${q.customerName} entsteht eine Baustelle mit der nächsten Baustellennummer.`}
+        message={ziel.art === 'nachtrag'
+          ? `${q.quoteNumber} wird angenommen und kommt als Nachtrag an die gewählte Baustelle.`
+          : `${q.quoteNumber} wird angenommen, und für ${q.customerName} entsteht eine Baustelle mit der nächsten Baustellennummer.`}
         confirmLabel="Annehmen"
         confirmTone="primary"
+        gesperrt={!zielBereit(ziel)}
         onCancel={() => setAnnehmenFragen(false)}
         onConfirm={async () => {
           setAnnehmenFragen(false);
@@ -773,7 +782,9 @@ export default function AngebotView() {
             mehr annehmen.
           </p>
         )}
-        <AbrechnungWahl wert={abrechnung} onWert={setAbrechnung} />
+        {companyId && (
+          <AnnahmeZiel companyId={companyId} angebot={q} ziel={ziel} onZiel={setZiel} abrechnung={abrechnung} onAbrechnung={setAbrechnung} />
+        )}
       </ConfirmDialog>
 
       {/* A1: Annahme zurücknehmen — Grund ist Pflicht, die Folge für die Baustelle steht davor. */}

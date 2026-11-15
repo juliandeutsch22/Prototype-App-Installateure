@@ -239,8 +239,14 @@ export async function listQuotesForProjects(companyId: string, projectIds: reado
 
 export type NewQuote = Omit<Quote, 'id' | 'companyId' | 'createdAt' | 'projectId'>;
 
+/**
+ * Was beim Ändern mitgeschickt wird. Die Baustelle eines Nachtrags (A3)
+ * lässt sich ausdrücklich lösen (`null`); weggelassen bleibt sie.
+ */
+export type AngebotAenderung = Partial<Omit<NewQuote, 'projectNumber'>> & { projectNumber?: string | null };
+
 /** Der Aufruf der Datenbankfunktion — eine Stelle für Anlegen und Ändern. */
-async function speichern(id: string | null, daten: Partial<NewQuote>): Promise<string> {
+async function speichern(id: string | null, daten: AngebotAenderung): Promise<string> {
   const { positions, discount, ...kopf } = daten;
   const zeile: Record<string, unknown> = objektAlsZeile(ANGEBOTE, kopf);
   /*
@@ -269,7 +275,7 @@ export function createQuote(companyId: string, q: NewQuote): Promise<string> {
   return speichern(null, q);
 }
 
-export async function updateQuote(id: string, data: Partial<NewQuote>): Promise<void> {
+export async function updateQuote(id: string, data: AngebotAenderung): Promise<void> {
   await speichern(id, data);
 }
 
@@ -362,10 +368,18 @@ export async function reserveQuoteNumber(companyId: string, praefix?: string): P
   return String(data);
 }
 
-/** Die gesperrte Angebotszeile liefert den aktuellen Auftrag und sein Budget. */
-export async function acceptQuote(id: string, praefix: string, abrechnung: Abrechnungsart): Promise<string> {
-  const { data, error } = await derClient().rpc('angebot_annehmen', {
-    p_angebot: id, p_praefix: praefix, p_abrechnung: abrechnung,
+/**
+ * Die gesperrte Angebotszeile liefert den aktuellen Auftrag und sein Budget.
+ *
+ * MIT ZIEL (A3, F6): `baustelleId` hängt das Angebot als Nachtrag an diese
+ * Baustelle (ihr Budget wächst), `null` legt ausdrücklich eine neue an —
+ * auch wenn das Angebot vorher einer zugeordnet war.
+ */
+export async function acceptQuote(
+  id: string, praefix: string, abrechnung: Abrechnungsart, baustelleId: string | null = null,
+): Promise<string> {
+  const { data, error } = await derClient().rpc('angebot_annehmen_mit_ziel', {
+    p_angebot: id, p_praefix: praefix, p_abrechnung: abrechnung, p_baustelle: baustelleId,
   });
   if (error) throw new Error(error.message);
   if (typeof data !== 'string' || !data) throw new Error('Die Baustelle konnte nicht angelegt werden.');

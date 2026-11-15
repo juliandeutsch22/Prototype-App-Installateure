@@ -42,13 +42,60 @@ function mitArt(
   };
 }
 
-/** Das Angebot, das diese Baustelle trägt — das jüngste angenommene. */
+/**
+ * Die angenommenen Angebote einer Baustelle: der Hauptauftrag zuerst, dann
+ * die Nachträge in der Reihenfolge ihrer Annahme (A3, F6).
+ */
+export function angeboteDerBaustelle<T extends Quote>(angebote: T[]): T[] {
+  return angebote
+    .filter((q) => q.status === 'Angenommen')
+    .sort((a, b) =>
+      Number(!!a.nachtrag) - Number(!!b.nachtrag)
+      || (a.angenommenAm ?? 0) - (b.angenommenAm ?? 0)
+      || (a.quoteDate ?? '').localeCompare(b.quoteDate ?? ''));
+}
+
+/**
+ * Das Angebot, das diese Baustelle trägt.
+ *
+ * MIT NACHTRÄGEN (A3, F6) ist es die Summe aller angenommenen: vorher nahm
+ * die Rechnung nur das jüngste — mit einem Nachtrag hätte sie den
+ * Hauptauftrag vergessen. Zusammengesetzt steht vor den Positionen jedes
+ * Angebots eine Textzeile mit seiner Nummer (eine Textzeile, kein Titel:
+ * ein Titel summierte nur bis zum ersten Titel des Angebots selbst), und
+ * sein eigener Rabatt wird zu einer Zeile mit seinem Betrag — ein Rabatt
+ * über alles gäbe es so nicht. Mit einem einzigen Angebot bleibt es dieses
+ * Angebot, unverändert.
+ */
 export function pauschalAngebot<T extends Quote>(angebote: T[]): T | null {
-  return (
-    angebote
-      .filter((q) => q.status === 'Angenommen')
-      .sort((a, b) => (b.quoteDate ?? '').localeCompare(a.quoteDate ?? ''))[0] ?? null
-  );
+  const alle = angeboteDerBaustelle(angebote);
+  if (alle.length <= 1) return alle[0] ?? null;
+  const positions: Quote['positions'] = alle.flatMap((q) => [
+    { art: 'text' as const, label: `${q.nachtrag ? 'Nachtrag' : 'Angebot'} ${q.quoteNumber}`, qty: 0, unit: '', unitPrice: 0, netto: 0 },
+    ...q.positions,
+    ...(q.discount && q.discountAmount
+      ? [{
+          label: `${q.discount.label?.trim() || 'Rabatt'} laut ${q.quoteNumber}`,
+          qty: 1,
+          unit: '',
+          unitPrice: -q.discountAmount,
+          netto: -q.discountAmount,
+        }]
+      : []),
+  ]);
+  const summe = (f: (q: T) => number) => Math.round(alle.reduce((n, q) => n + f(q), 0) * 100) / 100;
+  return {
+    ...alle[0],
+    quoteNumber: alle.map((q) => q.quoteNumber).join(' + '),
+    positions,
+    discount: null,
+    discountAmount: 0,
+    subtotalNetto: summe((q) => q.totalNetto),
+    totalNetto: summe((q) => q.totalNetto),
+    totalVat: summe((q) => q.totalVat),
+    totalBrutto: summe((q) => q.totalBrutto),
+    kalkulierteStunden: summe((q) => q.kalkulierteStunden),
+  };
 }
 
 /**

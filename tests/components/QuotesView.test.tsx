@@ -89,7 +89,16 @@ vi.mock('@/lib/db/projects', () => ({
   listProjectsByNumbers: vi.fn(async (_c: string, nummern: string[]) =>
     bestehende.filter((b) => nummern.includes(b.projectNumber))),
   reserveProjectNumber: (c: string, o: unknown) => reserveProjectNumber(c, o),
+  // A3: die Baustellen des Nachtrags — über die Suche, ohne Begriff die laufenden des Kunden.
+  listProjectsByIds: vi.fn(async (_c: string, ids: string[]) => laufendeDesKunden.filter((p) => ids.includes(p.id))),
+  listLaufendeDesKunden: vi.fn(async () => laufendeDesKunden),
+  searchProjects: vi.fn(async () => laufendeDesKunden),
 }));
+/** Laufende Baustellen des Kunden (A3) — für den Nachtrag. */
+const laufendeDesKunden = [{
+  id: 'p9', companyId: 'perl', projectNumber: 'PR-2026-0009', customerId: 'k1', customerName: 'Gemeinde Neudorf',
+  address: 'Schulgasse 2', status: 'Aktiv' as const, liegenschaftId: null, topId: null,
+}];
 
 const authWert = {
   user: {
@@ -363,8 +372,9 @@ describe('Angebot kalkulieren', () => {
 
     await annehmenBestaetigt(nutzer);
 
-    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen', {
-      p_angebot: 'q1', p_praefix: 'B', p_abrechnung: 'Pauschal',
+    // Seit A3 mit Ziel: ohne Baustelle des Angebots ausdrücklich eine neue (`p_baustelle: null`).
+    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen_mit_ziel', {
+      p_angebot: 'q1', p_praefix: 'B', p_abrechnung: 'Pauschal', p_baustelle: null,
     });
     expect(createProject).not.toHaveBeenCalled();
     expect(updateQuote).not.toHaveBeenCalled();
@@ -465,7 +475,7 @@ describe('Angebot kalkulieren', () => {
     await annehmenBestaetigt(nutzer);
 
     await screen.findByText('Baustelle B-2026-0012 angelegt');
-    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen', { p_angebot: 'q1', p_praefix: 'B', p_abrechnung: 'Pauschal' });
+    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen_mit_ziel', { p_angebot: 'q1', p_praefix: 'B', p_abrechnung: 'Pauschal', p_baustelle: null });
     expect(createProject).not.toHaveBeenCalled();
   });
 
@@ -826,7 +836,7 @@ describe('Abrechnungsart beim Annehmen (M16)', () => {
     expect(within(dialog).getByText(/Mengen kommen aus dem Aufmaß/)).toBeInTheDocument();
     await nutzer.click(within(dialog).getByRole('button', { name: 'Annehmen' }));
     await waitFor(() => expect(annahmeRpc).toHaveBeenCalled());
-    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen', expect.objectContaining({ p_abrechnung: 'Einheitspreis' }));
+    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen_mit_ziel', expect.objectContaining({ p_abrechnung: 'Einheitspreis' }));
   });
 
   it('Gegenprobe: ohne Wahl bleibt es Pauschal, wie bisher', async () => {
@@ -836,7 +846,7 @@ describe('Abrechnungsart beim Annehmen (M16)', () => {
     await screen.findByRole('button', { name: 'Annehmen → Baustelle' });
     await annehmenBestaetigt(nutzer);
     await waitFor(() => expect(annahmeRpc).toHaveBeenCalled());
-    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen', expect.objectContaining({ p_abrechnung: 'Pauschal' }));
+    expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen_mit_ziel', expect.objectContaining({ p_abrechnung: 'Pauschal' }));
   });
 });
 
@@ -1420,5 +1430,55 @@ describe('Angebotszeile am Handy (E72)', () => {
     } finally {
       window.matchMedia = vorher;
     }
+  });
+});
+
+/*
+  NACHTRAG AN EINE BESTEHENDE BAUSTELLE (Durchsicht 15.11.2026, A3 / F6).
+  Vorher legte jedes Annehmen eine neue Baustelle an — auch der Nachtrag zu
+  einer laufenden, und auch der Weg, zu dem die Baustellenakte selbst riet.
+*/
+describe('Nachtrag an eine Baustelle (A3)', () => {
+  it('beim Annehmen „an Baustelle …“ wählen — die Datenbank bekommt die Baustelle mit', async () => {
+    versendetesAngebot();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await nutzer.click(screen.getByRole('button', { name: 'Annehmen → Baustelle' }));
+    const dialog = await screen.findByRole('dialog');
+    // Bleibt gleich: vorgewählt ist eine neue Baustelle samt Abrechnung.
+    expect(within(dialog).getByRole('radio', { name: 'Neue Baustelle' })).toBeChecked();
+    expect(within(dialog).getByLabelText('Abrechnung der Baustelle')).toBeInTheDocument();
+
+    await nutzer.click(within(dialog).getByRole('radio', { name: 'An eine bestehende Baustelle (Nachtrag)' }));
+    expect(within(dialog).queryByLabelText('Abrechnung der Baustelle')).toBeNull();
+    expect(within(dialog).getByRole('button', { name: 'Annehmen' })).toBeDisabled();
+    await nutzer.click(await within(dialog).findByText('Gemeinde Neudorf (PR-2026-0009)'));
+    expect(within(dialog).getByText(/Stundenbudget der Baustelle wächst um 20 h/)).toBeInTheDocument();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Annehmen' }));
+
+    await waitFor(() => expect(annahmeRpc).toHaveBeenCalledWith('angebot_annehmen_mit_ziel', {
+      p_angebot: 'q1', p_praefix: 'B', p_abrechnung: 'Pauschal', p_baustelle: 'p9',
+    }));
+    expect(await screen.findByText('AN-2026-0007 als Nachtrag an Baustelle B-2026-0012 angehängt')).toBeInTheDocument();
+  });
+
+  it('aus der Baustellenakte: das neue Angebot gehört von Anfang an zur Baustelle', async () => {
+    const nutzer = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/quotes?baustelle=p9']}>
+        <ToastProvider>
+          <QuotesView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText(/Nachtrag zu PR-2026-0009/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Ort der Leistung')).toHaveValue('Schulgasse 2');
+    await nutzer.type(screen.getAllByLabelText('Bezeichnung')[0], 'Zusätzlicher Heizkörper');
+    await nutzer.type(screen.getAllByLabelText('Menge')[0], '1');
+    await nutzer.type(screen.getAllByLabelText('Einzelpreis netto')[0], '480');
+    await nutzer.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+    await waitFor(() => expect(createQuote).toHaveBeenCalled());
+    expect(createQuote.mock.calls[createQuote.mock.calls.length - 1]?.[1]).toMatchObject({ projectNumber: 'PR-2026-0009', customerId: 'k1' });
   });
 });

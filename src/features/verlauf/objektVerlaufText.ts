@@ -153,6 +153,8 @@ export const VERLAUF_FELDER: Record<Objektart, Feld[]> = {
     // M02c: Liegenschaft und Top — die Bezeichnungen; die Kennungen sind ausgenommen.
     ['liegenschaft_bezeichnung', 'Liegenschaft', text],
     ['top_bezeichnung', 'Top', text],
+    // A3: als Nachtrag an eine bestehende Baustelle angenommen.
+    ['nachtrag', 'Nachtrag zur Baustelle', janein],
     // A1: warum die Annahme zurückgenommen wurde.
     ['annahme_zurueckgenommen_grund', 'Grund der Rücknahme', text],
   ],

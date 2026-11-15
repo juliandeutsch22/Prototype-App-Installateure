@@ -114,3 +114,8 @@ export type { BaustellenVerwendung } from './pg/projects';
 export function baustelleVerwendung(id: string): Promise<pg.BaustellenVerwendung> {
   return pg.baustelleVerwendung(id);
 }
+
+/** Die laufenden Baustellen eines Kunden (A3) — siehe `pg.listLaufendeDesKunden`. */
+export function listLaufendeDesKunden(companyId: string, customerId: string, max: number): Promise<WithId<Project>[]> {
+  return pg.listLaufendeDesKunden(companyId, customerId, max);
+}

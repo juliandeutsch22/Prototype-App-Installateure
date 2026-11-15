@@ -45,11 +45,14 @@ import { leseZahl, preisAlsText, zahlAlsText, zahlOder } from '@/lib/zahl';
 import ZahlFeld from '@/components/ZahlFeld';
 import AdresseFeld from '@/components/AdresseFeld';
 import { useModul } from '@/lib/useModule';
+import BaustellenSuche from '@/components/BaustellenSuche';
+import { listProjectsByIds } from '@/lib/db/projects';
 import { AB_TABLET } from '@/lib/breiten';
 import { getEingangZu } from '@/lib/db/auftragseingaenge';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import { zuordnungAenderung } from '@/features/liegenschaften/liegenschaftText';
-import AbrechnungWahl from './AbrechnungWahl';
+import AnnahmeZiel from './AnnahmeZiel';
+import { zielBereit, zielVorgabe, type AnnahmeZielWert } from './annahmeZiel';
 import KatalogSuche from './KatalogSuche';
 import Abschnitt from '@/components/Abschnitt';
 import BottomSheet from '@/components/BottomSheet';
@@ -270,6 +273,8 @@ export default function QuotesView() {
   const [annehmenFragen, setAnnehmenFragen] = useState<WithId<Quote> | null>(null);
   /** Die Abrechnung der Baustelle, die beim Annehmen entsteht (M16). */
   const [abrechnung, setAbrechnung] = useState<Abrechnungsart>('Pauschal');
+  /** Neue Baustelle oder Nachtrag an eine bestehende (A3, F6). */
+  const [ziel, setZiel] = useState<AnnahmeZielWert>({ art: 'neu', baustelleId: '', projekt: null });
 
   // Formular
   const [customerId, setCustomerId] = useState('');
@@ -281,6 +286,13 @@ export default function QuotesView() {
   /** Liegenschaft und Top (M02c) — nur mit der Unterfähigkeit; die Annahme gibt sie an die Baustelle weiter. */
   const liegenschaftenAn = useModul('kunden.liegenschaften');
   const [ort, setOrt] = useState({ liegenschaftId: '', topId: '' });
+  /*
+    NACHTRAG ZU EINER BAUSTELLE (A3, F6): das Angebot gehört schon vor der
+    Annahme zu ihr — die Akte zeigt es, und die Annahme (auch über den Link)
+    hängt es dort an, statt eine zweite Baustelle für denselben Auftrag
+    anzulegen.
+  */
+  const [nachtragZu, setNachtragZu] = useState<{ id: string; nummer: string } | null>(null);
   const [zeilen, setZeilen] = useState<ZeilenEingabe[]>([{ ...LEERE_ZEILE }]);
   /** Ist die Suche im Katalog offen (M18)? */
   const [katalogOffen, setKatalogOffen] = useState(false);
@@ -471,6 +483,7 @@ export default function QuotesView() {
     setCustomerId('');
     setAddress('');
     setOrt({ liegenschaftId: '', topId: '' });
+    setNachtragZu(null);
     setNotes('');
     setZeilen([{ ...LEERE_ZEILE }]);
     setKatalogOffen(false);
@@ -521,6 +534,7 @@ export default function QuotesView() {
   /** Einen Entwurf ins Formular holen. */
   function bearbeiten(q: WithId<Quote>) {
     formularAus(q);
+    setNachtragZu(q.projectId && q.projectNumber ? { id: q.projectId, nummer: q.projectNumber } : null);
     setValidUntil(q.validUntil);
     setFassungVon(null);
     setRabattVorlage(null);
@@ -535,6 +549,10 @@ export default function QuotesView() {
    */
   function alsVorlage(q: WithId<Quote>, fassung: boolean) {
     formularAus(q);
+    // Eine neue Fassung eines Nachtrags bleibt ein Nachtrag; eine Kopie ist ein eigenes Angebot.
+    setNachtragZu(fassung && q.status !== 'Angenommen' && q.projectId && q.projectNumber
+      ? { id: q.projectId, nummer: q.projectNumber }
+      : null);
     const d = new Date();
     d.setDate(d.getDate() + 30);
     setValidUntil(localDateStr(d));
@@ -599,6 +617,45 @@ export default function QuotesView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zuBearbeiten, zuFassen, zuKopieren, loading, angebote]);
 
+  /*
+    AUS DER BAUSTELLENAKTE (A3, F6): `/quotes?baustelle=<id>` öffnet ein
+    neues Angebot als Nachtrag dazu — Kunde, Ort und Liegenschaft der
+    Baustelle vorbelegt. Der Parameter geht danach weg, sonst öffnete jedes
+    Neuladen das Formular wieder.
+  */
+  const fuerBaustelle = suchParameter.get('baustelle');
+  useEffect(() => {
+    if (!fuerBaustelle || !user) return;
+    let weg = false;
+    void (async () => {
+      try {
+        const [p] = await listProjectsByIds(user.companyId, [fuerBaustelle]);
+        if (weg) return;
+        if (!p) {
+          setError('Diese Baustelle gibt es nicht (mehr) — der Nachtrag lässt sich nicht vorbelegen.');
+        } else if (darfAendern) {
+          formularLeeren();
+          setCustomerId(p.customerId ?? '');
+          setAddress(p.address ?? '');
+          setOrt({ liegenschaftId: p.liegenschaftId ?? '', topId: p.topId ?? '' });
+          setNachtragZu({ id: p.id, nummer: p.projectNumber });
+          setValidUntil(standardGueltigkeit());
+          setFormOffen(true);
+        }
+      } catch (e) {
+        if (!weg) setError(grundAus(e, 'Die Baustelle konnte nicht geladen werden.'));
+      }
+      if (weg) return;
+      const rest = new URLSearchParams(suchParameter);
+      rest.delete('baustelle');
+      setSuchParameter(rest, { replace: true });
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fuerBaustelle, user]);
+
   async function aenderungenSpeichern() {
     if (!bearbeitet || !kunde || !preiszeilen) return;
     const falsch = zeilenFehler(zeilen);
@@ -620,6 +677,8 @@ export default function QuotesView() {
         vatRate,
         kalkulierteStunden,
         notes,
+        // A3: die Baustelle des Nachtrags — `null` löst eine Zuordnung, die es gab.
+        ...(nachtragZu || bearbeitet.projectNumber ? { projectNumber: nachtragZu?.nummer ?? null } : {}),
         // M02c: nur was sich an Liegenschaft und Top geändert hat.
         ...(liegenschaftenAn ? zuordnungAenderung(ort, bearbeitet) : {}),
       });
@@ -664,6 +723,7 @@ export default function QuotesView() {
         kalkulierteStunden,
         notes,
         ...(fassungVon ? { vorgaengerId: fassungVon.id } : {}),
+        ...(nachtragZu ? { projectNumber: nachtragZu.nummer } : {}),
         // M02c: nur mit der Unterfähigkeit — ohne sie entsteht das Angebot wie bisher.
         ...(liegenschaftenAn ? zuordnungAenderung(ort, null) : {}),
       });
@@ -705,7 +765,9 @@ export default function QuotesView() {
     setBusy(true);
     setError(null);
     try {
-      toast.success(annahmeMeldung(await angebotAnnehmen(user.companyId, q, vorsaetze.baustelle, abrechnung)));
+      toast.success(annahmeMeldung(await angebotAnnehmen(
+        user.companyId, q, vorsaetze.baustelle, abrechnung, ziel.art === 'nachtrag' ? ziel.baustelleId : null,
+      )));
       await laden();
     } catch (err) {
       setError(grundAus(err, 'Die Baustelle konnte nicht angelegt werden.'));
@@ -787,7 +849,7 @@ export default function QuotesView() {
 
   const zeile = (q: WithId<Quote>) => {
     const schonAngenommen = fassungsHinweis(q, angebote).angenommen;
-    const annehmen = () => { setAbrechnung('Pauschal'); setAnnehmenFragen(q); };
+    const annehmen = () => { setAbrechnung('Pauschal'); setZiel(zielVorgabe(q)); setAnnehmenFragen(q); };
     /*
       AM HANDY EIN KNOPF UND „⋯“ (E72, 09.11.2026): mit zwei Knöpfen brach
       die Zeile auf 390 px in drei Reihen und wurde 280 px hoch. Dort bleibt
@@ -976,8 +1038,8 @@ export default function QuotesView() {
               einem Entwurf, dessen Frist schon von der Vorgabe abweicht.
             */}
             <WeitereAngaben
-              titel={`Weitere Angaben · gültig bis ${datumAT(validUntil)}`}
-              offen={!!bearbeitet && bearbeitet.validUntil !== standardGueltigkeit()}
+              titel={`Weitere Angaben · gültig bis ${datumAT(validUntil)}${nachtragZu ? ` · Nachtrag zu ${nachtragZu.nummer}` : ''}`}
+              offen={(!!bearbeitet && bearbeitet.validUntil !== standardGueltigkeit()) || !!nachtragZu}
             >
               <InputField
                 id="anqgueltig"
@@ -986,6 +1048,21 @@ export default function QuotesView() {
                 value={validUntil}
                 onChange={(e) => setValidUntil(e.target.value)}
               />
+              {/* A3: optional — beim Annehmen lässt sich das Ziel noch ändern. */}
+              <BaustellenSuche
+                companyId={user.companyId}
+                id="anqnachtrag"
+                label="Nachtrag zu Baustelle (optional)"
+                value={nachtragZu?.id ?? ''}
+                kundeId={customerId || undefined}
+                hinweisAbgeschlossen="abgeschlossen — wird mit dem Nachtrag wieder aktiv"
+                onChange={(id, p) => setNachtragZu(id && p ? { id, nummer: p.projectNumber } : null)}
+              />
+              {nachtragZu && (
+                <Button type="button" variant="ghost" groesse="klein" onClick={() => setNachtragZu(null)}>
+                  Kein Nachtrag — beim Annehmen eine neue Baustelle
+                </Button>
+              )}
             </WeitereAngaben>
           </div>
 
@@ -1354,11 +1431,14 @@ export default function QuotesView() {
         title="Angebot annehmen?"
         message={
           annehmenFragen
-            ? `${annehmenFragen.quoteNumber} wird angenommen, und für ${annehmenFragen.customerName} entsteht eine Baustelle mit der nächsten Baustellennummer.`
+            ? ziel.art === 'nachtrag'
+              ? `${annehmenFragen.quoteNumber} wird angenommen und kommt als Nachtrag an die gewählte Baustelle.`
+              : `${annehmenFragen.quoteNumber} wird angenommen, und für ${annehmenFragen.customerName} entsteht eine Baustelle mit der nächsten Baustellennummer.`
             : ''
         }
         confirmLabel="Annehmen"
         confirmTone="primary"
+        gesperrt={!zielBereit(ziel)}
         onCancel={() => setAnnehmenFragen(null)}
         onConfirm={async () => {
           const q = annehmenFragen;
@@ -1372,7 +1452,9 @@ export default function QuotesView() {
             ersetzt und lässt sich nicht mehr annehmen.
           </p>
         )}
-        <AbrechnungWahl wert={abrechnung} onWert={setAbrechnung} />
+        {annehmenFragen && (
+          <AnnahmeZiel companyId={user.companyId} angebot={annehmenFragen} ziel={ziel} onZiel={setZiel} abrechnung={abrechnung} onAbrechnung={setAbrechnung} />
+        )}
       </ConfirmDialog>
 
       {/*

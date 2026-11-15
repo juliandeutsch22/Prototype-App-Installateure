@@ -120,7 +120,7 @@ vi.mock('@/lib/db/baustellenDokumente', async () => {
 });
 
 /** Angebote zur Baustelle — gesucht über ihre Kennung. */
-let angebote: { id: string; quoteNumber: string; status?: string; totalNetto?: number; quoteDate?: string }[] = [];
+let angebote: { id: string; quoteNumber: string; status?: string; totalNetto?: number; quoteDate?: string; nachtrag?: boolean; positions?: unknown[] }[] = [];
 let angeboteScheitern = false;
 const listQuotesForProject = vi.fn<(a0: string, a1: string) => Promise<typeof angebote>>(async () => {
   if (angeboteScheitern) throw new Error('kaputt');
@@ -692,6 +692,19 @@ describe('Das Angebot hinter der Baustelle', () => {
     );
     // Über die Kennung gesucht, nicht über die änderbare Nummer.
     expect(listQuotesForProject).toHaveBeenCalledWith('perl', BAUSTELLE.id);
+  });
+
+  /* A3, F6: Nachträge stehen beim Auftrag — und es gibt den Weg, einen anzulegen. */
+  it('nennt Nachträge und offene Angebote der Baustelle und führt zum Nachtrag', async () => {
+    angebote = [
+      { id: 'q7', quoteNumber: 'AN-2026-0007', status: 'Angenommen', positions: [] },
+      { id: 'q9', quoteNumber: 'AN-2026-0009', status: 'Angenommen', nachtrag: true, positions: [] },
+      { id: 'q11', quoteNumber: 'AN-2026-0011', status: 'Entwurf', positions: [] },
+    ];
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Nachtrag AN-2026-0009' })).toHaveAttribute('href', '/quotes/q9');
+    expect(screen.getByRole('link', { name: 'Angebot AN-2026-0011 (Entwurf)' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Nachtrag anlegen' })).toHaveAttribute('href', `/quotes?baustelle=${BAUSTELLE.id}`);
   });
 
   it('wird für jemanden ohne Zugang zu Angeboten gar nicht erst gesucht', async () => {
