@@ -106,10 +106,9 @@ export function rechnungenNachNummer(companyId: string, begriff: string, max: nu
   return pg.rechnungenNachNummer(companyId, begriff, max);
 }
 
-export function listInvoicesForCustomer(
-  companyId: string, customerId: string, projektIds: string[],
-): Promise<WithId<Invoice>[]> {
-  return pg.listInvoicesForCustomer(companyId, customerId, projektIds);
+/** Die Rechnungen eines Kunden — über die Datenbank, ohne Grenze an der Zahl seiner Baustellen (A10). */
+export function listInvoicesForCustomer(companyId: string, customerId: string): Promise<WithId<Invoice>[]> {
+  return pg.listInvoicesForCustomer(companyId, customerId);
 }
 
 /** Die Nummern desselben Jahres vor einem Zeitraum — für die Lückenprüfung (G8). */

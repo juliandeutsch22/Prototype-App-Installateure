@@ -15,7 +15,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt, RechnungsKopf, WorkSheet } from '@/types';
 import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, SEITE, type WithId } from './kern';
-import { objektAlsZeile } from './felder';
+import { objektAlsZeile, zeileAlsObjekt } from './felder';
 import { oderUeberSpalten } from './suche';
 import { PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
@@ -613,19 +613,21 @@ const KENNUNG = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export async function listInvoicesForCustomer(
   companyId: string,
   customerId: string,
-  projektIds: string[],
 ): Promise<WithId<Invoice>[]> {
-  // Die Kennungen stehen in einer `or`-Zeichenkette — nur, was wirklich eine
-  // Kennung ist, kommt hinein.
-  const ids = projektIds.filter((id) => KENNUNG.test(id));
+  /*
+    IN DER DATENBANK, NICHT ÜBER EINE LISTE IN DER ADRESSE (A10). Vorher
+    standen die Kennungen aller Baustellen des Kunden in einer
+    `or`-Zeichenkette; ab gut 220 Baustellen lehnte das Gateway die Adresse
+    ab, und die Akte zeigte dauerhaft „konnte nicht geladen werden“.
+    `rechnungen_des_kunden` läuft mit den Rechten des Aufrufers — derselbe
+    Zeilenschutz wie bisher.
+  */
   if (!KENNUNG.test(customerId)) return [];
-  const teile = [`customer_id.eq.${customerId}`];
-  if (ids.length > 0) teile.push(`project_id.in.(${ids.join(',')})`);
-  const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
-    oder: teile.join(','),
-    sortiere: { feld: 'invoiceDate', absteigend: true },
-    grenze: RECHNUNGEN_JE_KUNDE,
-  });
+  const { data, error } = await derClient().rpc('rechnungen_des_kunden', { p_kunde: customerId, p_grenze: RECHNUNGEN_JE_KUNDE });
+  if (error) throw new Error(error.message);
+  const koepfe = ((data ?? []) as Record<string, unknown>[])
+    .filter((z) => z.company_id === companyId)
+    .map((z) => zeileAlsObjekt<KopfZeile>(RECHNUNGEN, z));
   return zusammensetzen(koepfe, companyId);
 }
 

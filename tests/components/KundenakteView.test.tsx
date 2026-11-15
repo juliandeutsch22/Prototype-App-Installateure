@@ -49,7 +49,7 @@ const listQuotesForCustomer = vi.fn(async () => angebote);
 const listWartungenForCustomer = vi.fn(async () => wartungen);
 let rechnungen: unknown[] = [];
 let rechnungenWirft = false;
-const listInvoicesForCustomer = vi.fn<(a0: string, a1: string, a2: string[]) => Promise<unknown[]>>(async () => {
+const listInvoicesForCustomer = vi.fn<(a0: string, a1: string) => Promise<unknown[]>>(async () => {
   if (rechnungenWirft) throw new Error('weg');
   return rechnungen;
 });
@@ -82,7 +82,7 @@ vi.mock('@/lib/db/quotes', () => ({
   listQuotesForCustomer: (...a: unknown[]) => listQuotesForCustomer(...(a as [])),
 }));
 vi.mock('@/lib/db/invoices', () => ({
-  listInvoicesForCustomer: (b: string, k: string, p: string[]) => listInvoicesForCustomer(b, k, p),
+  listInvoicesForCustomer: (b: string, k: string) => listInvoicesForCustomer(b, k),
   listMahnungenZurRechnung: async () => [],
 }));
 vi.mock('@/lib/db/wartungen', () => ({
@@ -728,7 +728,8 @@ describe('Die Rechnungen der Akte', () => {
     expect(within(fenster).getByText('Rechnungsdatum')).toBeInTheDocument();
     // V10 (13.11.2026): der Stand steht oben am Beleg und weiter beim Zahlstand — zweimal im Fenster.
     expect(within(fenster).getAllByText('Teilbezahlt').length).toBeGreaterThanOrEqual(1);
-    expect(listInvoicesForCustomer).toHaveBeenCalledWith('perl', 'k1', ['p1']);
+    // A10: ohne Liste der Baustellen — die Datenbank sucht über den Kunden.
+    expect(listInvoicesForCustomer).toHaveBeenCalledWith('perl', 'k1');
   });
 
   it('trennt Nummer und Datum durch ein echtes Leerzeichen (Runde 3, G4)', async () => {

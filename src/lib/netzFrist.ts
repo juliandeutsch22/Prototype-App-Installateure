@@ -129,6 +129,7 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'plattform_leitungskonten',
   'preisspruenge',
   'preisverlauf',
+  'rechnungen_des_kunden',
   'rechtstexte_aktuell',
   'retoure_rahmen',
   'ruest_angefordert',

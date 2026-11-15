@@ -302,24 +302,24 @@ export default function KundenakteView() {
   }, [companyId, id, angeboteAn, darfAngebote, versuch]);
 
   /*
-    DIE RECHNUNGEN DES KUNDEN — über seine Baustellen. Eine Rechnung trägt den
-    Kundennamen als Text, und ihr Kunde ergibt sich aus der Baustelle; siehe
-    `listInvoicesForCustomer`. Geladen wird deshalb erst, wenn die
-    Baustellen da sind.
+    DIE RECHNUNGEN DES KUNDEN — über die Kundenkennung und seine Baustellen,
+    gesucht in der Datenbank (A10, `rechnungen_des_kunden`). Vorher gingen die
+    Kennungen aller Baustellen als Liste in die Adresse; ab gut 220
+    Baustellen lehnte das Gateway ab, und die Karte zeigte dauerhaft „konnte
+    nicht geladen werden“. Sie wartet deshalb auch nicht mehr auf die
+    Baustellen.
   */
-  const baustellenIds =
-    baustellen.zustand === 'bereit' ? baustellen.daten.map((b) => b.id).sort().join('|') : null;
   useEffect(() => {
-    if (!companyId || !id || !rechnungenAn || !darfRechnungen || baustellenIds === null) return;
+    if (!companyId || !id || !rechnungenAn || !darfRechnungen) return;
     let weg = false;
     setRechnungen(LAEDT);
-    listInvoicesForCustomer(companyId, id, baustellenIds ? baustellenIds.split('|') : [])
+    listInvoicesForCustomer(companyId, id)
       .then((r) => !weg && setRechnungen({ zustand: 'bereit', daten: r }))
       .catch(() => !weg && setRechnungen({ zustand: 'fehler' }));
     return () => {
       weg = true;
     };
-  }, [companyId, id, rechnungenAn, darfRechnungen, baustellenIds, versuch]);
+  }, [companyId, id, rechnungenAn, darfRechnungen, versuch]);
 
   useEffect(() => {
     if (!companyId || !id || !wartungAn) return;

@@ -74,7 +74,7 @@ describe('Rechnungen suchen', () => {
 
 describe('Die Rechnungen eines Kunden', () => {
   it('über seine Baustellen — auch unter einem alten Namen', async () => {
-    const r = await listInvoicesForCustomer(BETRIEB, huber, [baustelleHuber]);
+    const r = await listInvoicesForCustomer(BETRIEB, huber);
     expect(r.map((x) => x.invoiceNumber).sort()).toEqual(['RE-2025-1001', 'RE-2025-1002']);
   });
 
@@ -82,14 +82,42 @@ describe('Die Rechnungen eines Kunden', () => {
     await rechnung(BETRIEB, 'RE-2025-1004', {
       project_number: '2025-008', customer_name: 'Familie Huber', customer_id: huber,
     });
-    const r = await listInvoicesForCustomer(BETRIEB, huber, [baustelleHuber]);
+    const r = await listInvoicesForCustomer(BETRIEB, huber);
     expect(r.map((x) => x.invoiceNumber)).toContain('RE-2025-1004');
     expect(r.map((x) => x.invoiceNumber)).not.toContain('RE-2025-1003');
   });
 
-  it('ohne Baustellen und mit einer ungültigen Kennung findet sie nichts Falsches', async () => {
-    expect((await listInvoicesForCustomer(BETRIEB, huber, [])).map((x) => x.invoiceNumber))
-      .toEqual(['RE-2025-1004']);
-    expect(await listInvoicesForCustomer(BETRIEB, 'kein-uuid,or(1.eq.1)', [baustelleMaier])).toEqual([]);
+  /*
+    BEWUSST ANGEPASST (A10, Durchsicht 15.11.2026): hier stand „ohne
+    Baustellen findet sie nur die über die Kennung“ — die Liste der
+    Baustellen gab der Aufrufer mit. Jetzt sucht die Datenbank die Baustellen
+    selbst; geschützt bleibt, dass nichts Fremdes dazukommt.
+  */
+  it('mit einer ungültigen Kennung findet sie nichts Falsches — und keine Rechnung eines anderen Kunden', async () => {
+    expect(await listInvoicesForCustomer(BETRIEB, 'kein-uuid,or(1.eq.1)')).toEqual([]);
+    expect((await listInvoicesForCustomer(BETRIEB, huber)).map((x) => x.invoiceNumber)).not.toContain('RE-2025-1003');
+    const maier = (await admin.from('invoices').select('project_id').eq('company_id', BETRIEB).eq('invoice_number', 'RE-2025-1003').single()).data;
+    expect(maier).toEqual({ project_id: baustelleMaier });
+  });
+
+  /*
+    A10 (Durchsicht 15.11.2026): ab gut 220 Baustellen eines Kunden lud die
+    Akte keine Rechnungen mehr — die Kennungen gingen als Liste in die Adresse.
+  */
+  it('auch bei 230 Baustellen des Kunden: die Rechnung auf der letzten wird gefunden', async () => {
+    const { data: k } = await admin.from('customers').insert({ company_id: BETRIEB, name: 'Hausverwaltung Viele' }).select('id').single();
+    const viele = (k as { id: string }).id;
+    const zeilen = Array.from({ length: 230 }, (_, i) => ({
+      company_id: BETRIEB, project_number: `HV-${String(i).padStart(4, '0')}`, customer_name: 'Hausverwaltung Viele',
+      customer_id: viele, status: 'Abgeschlossen',
+    }));
+    const { error } = await admin.from('projects').insert(zeilen);
+    expect(error).toBeNull();
+    await rechnung(BETRIEB, 'RE-2025-2229', { project_number: 'HV-0229', customer_name: 'Hausverwaltung Viele' });
+    const r = await listInvoicesForCustomer(BETRIEB, viele);
+    expect(r.map((x) => x.invoiceNumber)).toEqual(['RE-2025-2229']);
+    // Die Baustelle der Huber-Rechnungen gehört nicht dazu.
+    expect(r.every((x) => x.projectNumber !== '2025-007')).toBe(true);
+    expect(baustelleHuber).toBeTruthy();
   });
 });
