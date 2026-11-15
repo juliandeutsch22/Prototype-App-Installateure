@@ -44,6 +44,12 @@ const aendere = vi.fn();
 const loesche = vi.fn();
 /** Womit die Datenbank das Löschen abweist — `null` heisst: sie nimmt es an. */
 let loeschFehler: string | null = null;
+/** Was an der Baustelle hängt (`baustelle_verwendung`, A1) — je Aufruf das nächste, das letzte bleibt. */
+const LEER = {
+  zeitbuchungen: 0, einsaetze: 0, scheine: 0, rechnungen: 0, anforderungen: 0, ruestlisten: 0,
+  dokumente: 0, termine: 0, nachrichten: 0, angebote: [] as { id: string; nummer: string; status: string }[],
+};
+let verwendungen: (typeof LEER)[] = [LEER];
 
 /*
   DIE LISTE KOMMT DRAUSSEN SPÄTER ALS DAS FORMULAR. Der Ersatz lieferte sie
@@ -98,6 +104,7 @@ vi.mock('@/lib/db/projects', () => ({
     loesche(id);
     return loeschFehler ? Promise.reject(new Error(loeschFehler)) : Promise.resolve();
   },
+  baustelleVerwendung: () => Promise.resolve(verwendungen.length > 1 ? verwendungen.shift()! : verwendungen[0]),
   listActiveProjects: () =>
     laufendFehler
       ? Promise.reject(new Error('kein Netz'))
@@ -168,6 +175,7 @@ async function formOeffnen() {
 
 beforeEach(() => {
   loeschFehler = null;
+  verwendungen = [LEER];
   spaet = false;
   anlegeFehler = null;
   reserviere.mockReset();
@@ -520,13 +528,7 @@ describe('Baustellen — löschen', () => {
     await waitFor(() => expect(loesche).toHaveBeenCalledWith('p1'));
   });
 
-  it('sagt, warum eine Baustelle mit Buchungen nicht gelöscht wird', async () => {
-    /*
-      Vorher blieb der Dialog einfach offen, ohne ein Wort — die Datenbank
-      hatte das Löschen verweigert, weil Zeiten, Scheine, Rechnungen oder
-      Pläne an der Baustelle hängen.
-    */
-    loeschFehler = 'update or delete on table "projects" violates foreign key constraint';
+  async function loeschenOeffnen() {
     baustellen = [
       {
         id: 'p1', companyId: 'perl', projectNumber: '2026-042',
@@ -539,9 +541,52 @@ describe('Baustellen — löschen', () => {
       within(zeile).getByRole('button', { name: /Weitere Aktionen für Baustelle 2026-042/ }),
     );
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Löschen' }));
-    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: /löschen/i }));
-    expect(await screen.findByText(/lässt sich nicht löschen.*Abgeschlossen/)).toBeInTheDocument();
-    expect(screen.queryByRole('dialog')).toBeNull();
+    return screen.findByRole('dialog');
+  }
+
+  /*
+    DER WAHRE GRUND UND DER WEG (Durchsicht 15.11.2026, A1). Vorher hieß es
+    bei jeder Ablehnung „an ihr hängen schon Buchungen, Scheine, Rechnungen
+    oder Pläne“ — auch bei einer leeren Baustelle, an der nur ihr
+    angenommenes Angebot hing (Fremdschlüssel `quotes.project_id`).
+  */
+  it('nennt das angenommene Angebot als Grund und führt zur Rücknahme dorthin', async () => {
+    verwendungen = [{ ...LEER, angebote: [{ id: 'q7', nummer: 'AN-2026-0007', status: 'Angenommen' }] }];
+    const dialog = await loeschenOeffnen();
+    expect(await within(dialog).findByText(/hängt das angenommene Angebot AN-2026-0007, sonst nichts/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Annahme zurücknehmen/)).toBeInTheDocument();
+    expect(within(dialog).queryByText(/Buchungen, Scheine, Rechnungen oder Pläne/)).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: 'Löschen' })).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Zum Angebot' }));
+    expect(loesche).not.toHaveBeenCalled();
+  });
+
+  it('nennt, was wirklich daran hängt, und schickt zum Abschließen statt zu löschen', async () => {
+    verwendungen = [{ ...LEER, zeitbuchungen: 3, scheine: 1 }];
+    const dialog = await loeschenOeffnen();
+    expect(await within(dialog).findByText(/hängen 3 Zeitbuchungen und 1 Handwerksschein/)).toBeInTheDocument();
+    expect(within(dialog).getByRole('heading', { name: 'Baustelle lässt sich nicht löschen' })).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Zur Baustelle' }));
+    expect(loesche).not.toHaveBeenCalled();
+  });
+
+  it('bleibt gleich: ohne Spuren wird gelöscht — und es steht da, was mitgeht', async () => {
+    verwendungen = [{ ...LEER, termine: 2 }];
+    const dialog = await loeschenOeffnen();
+    expect(await within(dialog).findByText(/wird entfernt\. Mit ihr gehen 2 Termine\./)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Löschen' }));
+    await waitFor(() => expect(loesche).toHaveBeenCalledWith('p1'));
+    expect(await screen.findByText('Baustelle gelöscht')).toBeInTheDocument();
+  });
+
+  it('kommt zwischen Nachsehen und Löschen eine Buchung dazu, bleibt der Dialog offen und sagt es', async () => {
+    loeschFehler = 'update or delete on table "projects" violates foreign key constraint';
+    verwendungen = [LEER, { ...LEER, zeitbuchungen: 1 }];
+    const dialog = await loeschenOeffnen();
+    await within(dialog).findByText(/wird entfernt\./);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Löschen' }));
+    expect(await within(dialog).findByText(/lässt sich nicht mehr löschen — inzwischen hängt etwas an ihr/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/hängt 1 Zeitbuchung/)).toBeInTheDocument();
   });
 });
 

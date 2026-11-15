@@ -96,3 +96,10 @@ export function reserveQuoteNumber(companyId: string, praefix?: string): Promise
 export type { WithId };
 
 export const acceptQuote = pg.acceptQuote;
+
+export type { AnnahmeRuecknahme } from './pg/quotes';
+
+/** Eine Annahme zurücknehmen (A1, F7) — siehe `pg.annahmeZuruecknehmen`. */
+export function annahmeZuruecknehmen(id: string, grund: string): Promise<pg.AnnahmeRuecknahme> {
+  return pg.annahmeZuruecknehmen(id, grund);
+}

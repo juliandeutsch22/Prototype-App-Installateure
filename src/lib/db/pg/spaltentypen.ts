@@ -121,7 +121,8 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   project_documents: { created_at: 'zeitpunkt' },
   projects: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   quotes: {
-    abgelehnt_am: 'zeitpunkt', angenommen_am: 'zeitpunkt', created_at: 'zeitpunkt', updated_at: 'zeitpunkt',
+    abgelehnt_am: 'zeitpunkt', angenommen_am: 'zeitpunkt', annahme_zurueckgenommen_am: 'zeitpunkt',
+    created_at: 'zeitpunkt', updated_at: 'zeitpunkt',
     versendet_am: 'zeitpunkt', verworfen_am: 'zeitpunkt',
   },
   rabattsaetze: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },

@@ -27,7 +27,9 @@ import {
   deleteProject,
   searchProjects,
   reserveProjectNumber,
+  baustelleVerwendung,
 } from '@/lib/db/projects';
+import { aufzaehlen, loeschWeg, type LoeschWeg } from './baustelleVerwendung';
 import { listUsers } from '@/lib/db/users';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { useModul } from '@/lib/useModule';
@@ -196,6 +198,31 @@ export default function AdminProjectsView() {
   */
   const [formOffen, setFormOffen] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
+  /*
+    WAS IM WEG STEHT, BEVOR GEFRAGT WIRD (A1). Der Dialog sagte „wird
+    entfernt“ und scheiterte danach mit „an ihr hängen schon Buchungen,
+    Scheine, Rechnungen oder Pläne“ — auch bei einer leeren Baustelle, an der
+    nur ihr angenommenes Angebot hing. Jetzt nennt er vorher den wahren Grund
+    und den Weg, aus der Zählung der Datenbank (`baustelle_verwendung`).
+  */
+  const [loeschLage, setLoeschLage] = useState<{ id: string; weg: LoeschWeg } | 'laedt' | 'fehler' | null>(null);
+  useEffect(() => {
+    if (!toDelete) {
+      setLoeschLage(null);
+      return;
+    }
+    let weg = false;
+    setLoeschLage('laedt');
+    baustelleVerwendung(toDelete.id)
+      .then((v) => { if (!weg) setLoeschLage({ id: toDelete.id, weg: loeschWeg(v) }); })
+      .catch(() => { if (!weg) setLoeschLage('fehler'); });
+    return () => {
+      weg = true;
+    };
+  }, [toDelete]);
+  const loeschWegJetzt = loeschLage && typeof loeschLage === 'object' && toDelete && loeschLage.id === toDelete.id
+    ? loeschLage.weg
+    : null;
   /**
    * Ein Tiefenlink auf eine Baustelle setzt Suche UND Filter.
    *
@@ -1183,29 +1210,54 @@ export default function AdminProjectsView() {
 
       <ConfirmDialog
         open={!!toDelete}
-        title="Baustelle löschen?"
-        message={toDelete ? `${baustellenTitel(toDelete)} (${toDelete.projectNumber}) wird entfernt.` : ''}
+        title={loeschWegJetzt && loeschWegJetzt.art !== 'frei' ? 'Baustelle lässt sich nicht löschen' : 'Baustelle löschen?'}
+        message={
+          !toDelete
+            ? ''
+            : !loeschWegJetzt
+              ? loeschLage === 'fehler'
+                ? `${baustellenTitel(toDelete)} (${toDelete.projectNumber}) wird entfernt — sofern nichts an ihr hängt; was daran hängt, ließ sich gerade nicht nachsehen.`
+                : 'Wird nachgesehen, was an der Baustelle hängt …'
+              : loeschWegJetzt.art === 'frei'
+                ? `${baustellenTitel(toDelete)} (${toDelete.projectNumber}) wird entfernt.${loeschWegJetzt.mitgehend.length ? ` Mit ihr gehen ${aufzaehlen(loeschWegJetzt.mitgehend)}.` : ''}`
+                : loeschWegJetzt.art === 'angebot'
+                  ? `An ${toDelete.projectNumber} hängt das angenommene Angebot ${loeschWegJetzt.angebot.nummer}, sonst nichts. Gelöscht wird sie über das Angebot: „Annahme zurücknehmen“ öffnet es wieder und nimmt die Baustelle mit.`
+                  : `An ${toDelete.projectNumber} ${loeschWegJetzt.grund.length === 1 && /^1 /.test(loeschWegJetzt.grund[0]) ? 'hängt' : 'hängen'} ${aufzaehlen(loeschWegJetzt.grund)} — die bleiben nachvollziehbar. Statt sie zu löschen, schließt man sie ab; dann fällt sie aus den Auswahllisten.`
+        }
+        confirmLabel={!loeschWegJetzt || loeschWegJetzt.art === 'frei' ? 'Löschen' : loeschWegJetzt.art === 'angebot' ? 'Zum Angebot' : 'Zur Baustelle'}
+        confirmTone={!loeschWegJetzt || loeschWegJetzt.art === 'frei' ? 'danger' : 'primary'}
+        gesperrt={loeschLage === 'laedt'}
         onCancel={() => setToDelete(null)}
         onConfirm={async () => {
           const weg = toDelete;
-          setToDelete(null);
           if (!weg) return;
+          if (loeschWegJetzt?.art === 'angebot') {
+            setToDelete(null);
+            navigate(`/quotes/${loeschWegJetzt.angebot.id}`);
+            return;
+          }
+          if (loeschWegJetzt?.art === 'abschliessen') {
+            setToDelete(null);
+            navigate(`/admin-projects/${weg.id}`);
+            return;
+          }
           /*
-            SCHEITERN WIRD GESAGT. Hier stand kein Fang: an einer Baustelle mit
-            Buchungen, Scheinen, Rechnungen oder Plänen verweigert die
-            Datenbank das Löschen — und der Dialog blieb einfach offen, ohne ein
-            Wort. Richtig ist dann das Abschliessen, nicht das Löschen.
+            SCHEITERN WIRD GESAGT — mit dem Grund. Zwischen Nachsehen und
+            Löschen kann jemand anders etwas gebucht haben; dann bleibt der
+            Dialog offen und nennt neu nachgesehen, was jetzt daran hängt.
           */
           try {
             await deleteProject(weg.id);
-            toast.success('Baustelle gelöscht');
           } catch (e) {
-            toast.error(
-              /foreign key|violates|verweis/i.test((e as Error).message)
-                ? `${weg.projectNumber} lässt sich nicht löschen — an ihr hängen schon Buchungen, Scheine, Rechnungen oder Pläne. Setze sie stattdessen auf „Abgeschlossen“.`
-                : `${weg.projectNumber} konnte nicht gelöscht werden.`,
-            );
+            const neu = await baustelleVerwendung(weg.id).then(loeschWeg).catch(() => null);
+            if (neu && neu.art !== 'frei') {
+              setLoeschLage({ id: weg.id, weg: neu });
+              throw new Error(`${weg.projectNumber} lässt sich nicht mehr löschen — inzwischen hängt etwas an ihr.`);
+            }
+            throw new Error(grundAus(e, `${weg.projectNumber} konnte nicht gelöscht werden.`));
           }
+          setToDelete(null);
+          toast.success('Baustelle gelöscht');
         }}
       />
     </div>

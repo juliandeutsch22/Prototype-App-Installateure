@@ -326,6 +326,9 @@ describe('Interne Hilfsfunktionen', () => {
       'app.deckung_frei_vor(text, uuid, date, timestamp with time zone, uuid, date)',
       'app.bestellmenge(numeric, numeric, text)',
       'app.bestellvorschlag_stand(text, uuid[])',
+      // A1: was an einer Baustelle hängt — die öffentliche Fassung prüft die Rolle, diese nicht.
+      'app.baustelle_verwendung(uuid)',
+      'app.baustelle_haengt_etwas(jsonb)',
       // Was nur die Function mit dem Dienstschlüssel ruft.
       'public.angebot_link_abruf(text)',
       'public.angebot_link_annehmen(text, text, text, boolean)',

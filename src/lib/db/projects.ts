@@ -107,3 +107,10 @@ export type { Materialstand } from './pg/projects';
 export function baustelleMaterialstand(companyId: string, projectNumber: string) {
   return pg.baustelleMaterialstand(companyId, projectNumber);
 }
+
+export type { BaustellenVerwendung } from './pg/projects';
+
+/** Was an einer Baustelle hängt (A1) — siehe `pg.baustelleVerwendung`. */
+export function baustelleVerwendung(id: string): Promise<pg.BaustellenVerwendung> {
+  return pg.baustelleVerwendung(id);
+}

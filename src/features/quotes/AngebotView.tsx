@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { canAccess } from '@/app/navigation';
-import { getQuote, listFassungen, updateQuote } from '@/lib/db/quotes';
+import { annahmeZuruecknehmen, getQuote, listFassungen, updateQuote } from '@/lib/db/quotes';
+import { baustelleVerwendung } from '@/lib/db/projects';
+import { ruecknahmeFolge } from '@/features/projects/baustelleVerwendung';
+import { TextareaField } from '@/components/Field';
 import { listCustomersByIds } from '@/lib/db/customers';
 import { belegFirma } from '@/lib/db/aussteller';
 import { isGF } from '@/lib/permissions';
@@ -76,6 +79,15 @@ export default function AngebotView() {
   const [fehler, setFehler] = useState<string | null>(null);
   const [verwerfenFragen, setVerwerfenFragen] = useState(false);
   const [annehmenFragen, setAnnehmenFragen] = useState(false);
+  /*
+    DIE RÜCKNAHME EINER ANNAHME (A1, F7): Fehlklick oder Rücktritt des
+    Kunden. Der Grund ist Pflicht; was mit der Baustelle geschieht, sagt die
+    Rückfrage vorher — aus derselben Zählung, mit der die Datenbank
+    entscheidet (`baustelle_verwendung`).
+  */
+  const [ruecknahme, setRuecknahme] = useState(false);
+  const [ruecknahmeGrund, setRuecknahmeGrund] = useState('');
+  const [ruecknahmeFolgeText, setRuecknahmeFolgeText] = useState<Teil<string> | null>(null);
   /** Die Abrechnung der Baustelle, die beim Annehmen entsteht (M16). */
   const [abrechnung, setAbrechnung] = useState<Abrechnungsart>('Pauschal');
   /** Die Fassungen rundherum (M17): woraus dieses Angebot entstand, was daraus wurde. */
@@ -219,6 +231,47 @@ export default function AngebotView() {
       weg = true;
     };
   }, [companyId, kundenId, angebot.zustand, versuch]);
+
+  const ruecknahmeProjekt = ruecknahme && angebot.zustand === 'bereit' ? angebot.daten?.projectId ?? null : null;
+  const ruecknahmeNummer = angebot.zustand === 'bereit' ? angebot.daten?.projectNumber ?? '' : '';
+  useEffect(() => {
+    if (!ruecknahme || !id) {
+      setRuecknahmeFolgeText(null);
+      return;
+    }
+    if (!ruecknahmeProjekt) {
+      setRuecknahmeFolgeText({ zustand: 'bereit', daten: 'An diesem Angebot hängt keine Baustelle mehr.' });
+      return;
+    }
+    let weg = false;
+    setRuecknahmeFolgeText(LAEDT);
+    baustelleVerwendung(ruecknahmeProjekt)
+      .then((v) => { if (!weg) setRuecknahmeFolgeText({ zustand: 'bereit', daten: ruecknahmeFolge(v, id, ruecknahmeNummer) }); })
+      .catch(() => { if (!weg) setRuecknahmeFolgeText({ zustand: 'fehler' }); });
+    return () => {
+      weg = true;
+    };
+  }, [ruecknahme, ruecknahmeProjekt, ruecknahmeNummer, id]);
+
+  async function annahmeZurueck(q: WithId<Quote>) {
+    const r = await annahmeZuruecknehmen(q.id, ruecknahmeGrund.trim());
+    const baustelle = r.baustelle
+      ? r.ergebnis === 'geloescht'
+        ? ` Baustelle ${r.baustelle} gelöscht.`
+        : r.ergebnis === 'abgeschlossen'
+          ? ` Baustelle ${r.baustelle} abgeschlossen.`
+          : ''
+      : '';
+    toast.success(
+      `Annahme zurückgenommen — ${q.quoteNumber} ist wieder ${r.status === 'Entwurf' ? 'ein Entwurf' : 'versendet'}.${baustelle}`,
+      r.baustelleId && baustellenSichtbar
+        ? { label: 'Zur Baustelle', onClick: () => navigate(`/admin-projects/${r.baustelleId}`) }
+        : undefined,
+    );
+    setRuecknahme(false);
+    setRuecknahmeGrund('');
+    setVersuch((v) => v + 1);
+  }
 
   async function status(q: WithId<Quote>, neu: Quote['status'], meldung: string) {
     setBusy(true);
@@ -426,6 +479,14 @@ export default function AngebotView() {
     ...(q.status !== 'Entwurf' && q.status !== 'Versendet' && q.versendetAm
       ? [{ titel: 'Versendet', zeit: datumAusMs(q.versendetAm) }]
       : []),
+    // A1: die zurückgenommene Annahme bleibt im Verlauf stehen, mit ihrem Grund.
+    ...(q.annahmeZurueckgenommenAm
+      ? [{
+          titel: 'Annahme zurückgenommen',
+          zeit: datumAusMs(q.annahmeZurueckgenommenAm),
+          text: q.annahmeZurueckgenommenGrund ? `Grund: ${q.annahmeZurueckgenommenGrund}` : undefined,
+        }]
+      : []),
     q.status === 'Entwurf'
       ? { titel: 'Entwurf', text: <>Noch nicht versendet.{schritte}</>, jetzt: true }
       : q.status === 'Versendet'
@@ -574,6 +635,10 @@ export default function AngebotView() {
         ...(offen
           ? [{ label: 'Als abgelehnt markieren', onSelect: () => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt') }]
           : []),
+        // A1: der Rückweg aus „Angenommen“ — nicht rot im Menü, die Rückfrage sagt, was geschieht.
+        ...(q.status === 'Angenommen'
+          ? [{ label: 'Annahme zurücknehmen', onSelect: () => { setRuecknahmeGrund(''); setRuecknahme(true); } }]
+          : []),
         // Dasselbe ohne Verweis — etwa als Vorlage für einen ähnlichen Auftrag (M17).
         { label: 'Als Kopie anlegen', onSelect: () => navigate(`/quotes?kopie=${q.id}`) },
         // Nicht rot: es landet im Papierkorb und lässt sich zurückholen (M01d).
@@ -709,6 +774,44 @@ export default function AngebotView() {
           </p>
         )}
         <AbrechnungWahl wert={abrechnung} onWert={setAbrechnung} />
+      </ConfirmDialog>
+
+      {/* A1: Annahme zurücknehmen — Grund ist Pflicht, die Folge für die Baustelle steht davor. */}
+      <ConfirmDialog
+        open={ruecknahme}
+        title="Annahme zurücknehmen?"
+        message={`${q.quoteNumber} ist danach wieder ${q.versendetAm ? 'versendet' : 'ein Entwurf'} und lässt sich erneut annehmen oder ablehnen.`}
+        confirmLabel="Annahme zurücknehmen"
+        confirmTone="danger"
+        gesperrt={ruecknahmeGrund.trim().length < 3}
+        onCancel={() => setRuecknahme(false)}
+        onConfirm={() => annahmeZurueck(q)}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-ink" role="status">
+            {ruecknahmeFolgeText === null || ruecknahmeFolgeText.zustand === 'laedt'
+              ? 'Wird nachgesehen, was an der Baustelle hängt …'
+              : ruecknahmeFolgeText.zustand === 'fehler'
+                ? `Was an der Baustelle ${q.projectNumber ?? ''} hängt, ließ sich gerade nicht nachsehen. Hängt nichts daran, wird sie gelöscht, sonst abgeschlossen.`
+                : ruecknahmeFolgeText.daten}
+          </p>
+          {[...(vorgaenger ? [vorgaenger] : []), ...fassungen].some((f) => f.status === 'Ersetzt') && (
+            <p className="text-sm text-ink">
+              Wieder offen sind dann auch{' '}
+              {[...(vorgaenger ? [vorgaenger] : []), ...fassungen].filter((f) => f.status === 'Ersetzt').map((f) => f.quoteNumber).join(', ')}.
+            </p>
+          )}
+          <TextareaField
+            id="annahme-zurueck-grund"
+            label="Grund"
+            pflicht
+            required
+            rows={3}
+            placeholder="z. B. Kunde ist zurückgetreten, falsche Fassung angenommen"
+            value={ruecknahmeGrund}
+            onChange={(e) => setRuecknahmeGrund(e.target.value)}
+          />
+        </div>
       </ConfirmDialog>
 
       {/* Verwerfen statt löschen (M01d): umkehrbar, deshalb nicht rot. */}

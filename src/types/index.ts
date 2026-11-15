@@ -659,6 +659,12 @@ export interface Quote {
   versendetAm?: number | null;
   angenommenAm?: number | null;
   abgelehntAm?: number | null;
+  /**
+   * Die Annahme wurde zurückgenommen (A1, F7): wann und warum — setzt nur
+   * `angebot_annahme_zuruecknehmen`. Wer es tat, steht im Änderungsjournal.
+   */
+  annahmeZurueckgenommenAm?: number | null;
+  annahmeZurueckgenommenGrund?: string | null;
   positions: {
     label: string;
     qty: number;

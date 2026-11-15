@@ -253,3 +253,44 @@ export async function baustelleMaterialstand(companyId: string, projectNumber: s
     positionen: Number(z.positionen) || 0,
   };
 }
+
+/**
+ * Was an einer Baustelle hängt (`baustelle_verwendung`) — dieselbe Zählung,
+ * mit der die Rücknahme einer Annahme zwischen Löschen und Abschließen
+ * entscheidet (A1). Der Löschdialog nennt damit den wahren Grund und den Weg.
+ */
+export interface BaustellenVerwendung {
+  zeitbuchungen: number;
+  einsaetze: number;
+  scheine: number;
+  rechnungen: number;
+  anforderungen: number;
+  ruestlisten: number;
+  dokumente: number;
+  /** Gehen beim Löschen mit (`on delete cascade`). */
+  termine: number;
+  /** Nachrichten im Thread der Baustelle — gehen beim Löschen mit. */
+  nachrichten: number;
+  angebote: { id: string; nummer: string; status: string }[];
+}
+
+export async function baustelleVerwendung(id: string): Promise<BaustellenVerwendung> {
+  const { data, error } = await derClient().rpc('baustelle_verwendung', { p_projekt: id });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as Record<string, unknown>;
+  const n = (k: string) => Number(d[k]) || 0;
+  return {
+    zeitbuchungen: n('zeitbuchungen'),
+    einsaetze: n('einsaetze'),
+    scheine: n('scheine'),
+    rechnungen: n('rechnungen'),
+    anforderungen: n('anforderungen'),
+    ruestlisten: n('ruestlisten'),
+    dokumente: n('dokumente'),
+    termine: n('termine'),
+    nachrichten: n('nachrichten'),
+    angebote: (Array.isArray(d.angebote) ? d.angebote : []).map((a: Record<string, unknown>) => ({
+      id: String(a.id), nummer: String(a.nummer ?? ''), status: String(a.status ?? ''),
+    })),
+  };
+}

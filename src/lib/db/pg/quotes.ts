@@ -371,3 +371,33 @@ export async function acceptQuote(id: string, praefix: string, abrechnung: Abrec
   if (typeof data !== 'string' || !data) throw new Error('Die Baustelle konnte nicht angelegt werden.');
   return data;
 }
+
+/** Was die Rücknahme einer Annahme mit Angebot und Baustelle getan hat (A1, F7). */
+export interface AnnahmeRuecknahme {
+  /** Wieder „Versendet“ (war schon versendet) oder „Entwurf“. */
+  status: 'Versendet' | 'Entwurf';
+  /** Die Baustelle der Annahme — gelöscht, abgeschlossen oder (schon vorher) abgeschlossen. */
+  baustelle: string | null;
+  baustelleId: string | null;
+  ergebnis: 'geloescht' | 'abgeschlossen' | 'war_abgeschlossen' | 'keine';
+  /** Fassungen, die die Annahme ersetzt hatte und die jetzt wieder offen sind. */
+  wiederOffen: string[];
+}
+
+/**
+ * Eine Annahme zurücknehmen — Fehlklick oder Rücktritt des Kunden
+ * (`angebot_annahme_zuruecknehmen`). Die Datenbank entscheidet, ob die
+ * Baustelle gelöscht (nichts hängt daran) oder abgeschlossen wird.
+ */
+export async function annahmeZuruecknehmen(id: string, grund: string): Promise<AnnahmeRuecknahme> {
+  const { data, error } = await derClient().rpc('angebot_annahme_zuruecknehmen', { p_angebot: id, p_grund: grund });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as Record<string, unknown>;
+  return {
+    status: d.status === 'Entwurf' ? 'Entwurf' : 'Versendet',
+    baustelle: typeof d.baustelle === 'string' ? d.baustelle : null,
+    baustelleId: typeof d.baustelle_id === 'string' ? d.baustelle_id : null,
+    ergebnis: (['geloescht', 'abgeschlossen', 'war_abgeschlossen'] as const).find((e) => e === d.ergebnis) ?? 'keine',
+    wiederOffen: Array.isArray(d.wieder_offen) ? d.wieder_offen.map(String) : [],
+  };
+}

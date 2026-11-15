@@ -60,6 +60,19 @@ vi.mock('@/lib/db/quotes', () => ({
   listFassungen: vi.fn(async () => fassungen),
   updateQuote: (id: string, d: unknown) => updateQuote(id, d),
   deleteQuote: (id: string) => deleteQuote(id),
+  annahmeZuruecknehmen: (id: string, g: string) => zuruecknehmen(id, g),
+}));
+/* Die Rücknahme einer Annahme (A1): was die Datenbank tut und was an der Baustelle hängt. */
+const zuruecknehmen = vi.fn<(id: string, g: string) => Promise<Record<string, unknown>>>(async () => ({
+  status: 'Versendet', baustelle: 'PR-2026-0007', baustelleId: null, ergebnis: 'geloescht', wiederOffen: [],
+}));
+const LEER = {
+  zeitbuchungen: 0, einsaetze: 0, scheine: 0, rechnungen: 0, anforderungen: 0, ruestlisten: 0,
+  dokumente: 0, termine: 0, nachrichten: 0, angebote: [] as { id: string; nummer: string; status: string }[],
+};
+let verwendung = LEER;
+vi.mock('@/lib/db/projects', () => ({
+  baustelleVerwendung: vi.fn(async () => verwendung),
 }));
 vi.mock('@/lib/db/customers', () => ({
   listCustomersByIds: vi.fn(async () => {
@@ -153,6 +166,8 @@ function zeige(id = ANGEBOT.id) {
 
 beforeEach(() => {
   angebot = { ...ANGEBOT };
+  verwendung = LEER;
+  zuruecknehmen.mockClear();
   fassungen = [];
   kundeScheitert = false;
   rolle.wert = 'Geschäftsführung';
@@ -574,11 +589,12 @@ describe('Die Akte auf der Linie „Lot“', () => {
     ]);
     unmount();
 
-    // Gegenprobe: angenommen bleibt nur die Kopie.
+    // Gegenprobe: angenommen bleiben die Kopie und (seit A1) die Rücknahme der Annahme.
     angebot = { ...ANGEBOT, status: 'Angenommen', projectNumber: 'B-2026-0007' };
     zeige();
     await nutzer.click(await screen.findByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
-    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Als Kopie anlegen']);
+    // Seit A1 (Durchsicht 15.11.2026) mit dem Rückweg aus der Annahme.
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Annahme zurücknehmen', 'Als Kopie anlegen']);
   });
 
   it('führt mit der Sprungleiste zu den Abschnitten der Akte', async () => {
@@ -607,5 +623,60 @@ describe('Liegenschaft am Angebot (M02c)', () => {
     zeige();
     expect(await screen.findByText('Ort der Leistung')).toBeInTheDocument();
     expect(screen.queryByText(/WHA Schulgasse 2/)).toBeNull();
+  });
+});
+
+/*
+  ANNAHME ZURÜCKNEHMEN (Durchsicht 15.11.2026, A1 / F7). Ein angenommenes
+  Angebot hatte keinen Rückweg — das „⋯“ bot nur „Als Kopie anlegen“.
+*/
+describe('Annahme zurücknehmen (A1)', () => {
+  const ANGENOMMEN = {
+    ...ANGEBOT, status: 'Angenommen' as const, projectNumber: 'PR-2026-0007', projectId: 'p7',
+    versendetAm: Date.parse('2026-09-02T08:00:00Z'), angenommenAm: Date.parse('2026-09-05T08:00:00Z'),
+  };
+
+  it('fragt mit Pflichtgrund, sagt die Folge für die Baustelle und nimmt dann zurück', async () => {
+    angebot = { ...ANGENOMMEN };
+    verwendung = { ...LEER, angebote: [{ id: ANGEBOT.id, nummer: 'AN-2026-0007', status: 'Angenommen' }] };
+    const nutzer = userEvent.setup();
+    zeige();
+    await mehrMenue(nutzer, 'Annahme zurücknehmen');
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/ist danach wieder versendet/)).toBeInTheDocument();
+    expect(await within(dialog).findByText('Die Baustelle PR-2026-0007 wird gelöscht — an ihr hängt sonst nichts.')).toBeInTheDocument();
+    const knopf = within(dialog).getByRole('button', { name: 'Annahme zurücknehmen' });
+    expect(knopf).toBeDisabled();
+    await nutzer.type(within(dialog).getByLabelText(/Grund/), 'Kunde ist zurückgetreten');
+    await nutzer.click(knopf);
+    await waitFor(() => expect(zuruecknehmen).toHaveBeenCalledWith(ANGEBOT.id, 'Kunde ist zurückgetreten'));
+    expect(await screen.findByText(/Annahme zurückgenommen — AN-2026-0007 ist wieder versendet\. Baustelle PR-2026-0007 gelöscht\./)).toBeInTheDocument();
+  });
+
+  it('hängt etwas an der Baustelle, sagt die Rückfrage: abgeschlossen, nicht gelöscht', async () => {
+    angebot = { ...ANGENOMMEN };
+    verwendung = { ...LEER, zeitbuchungen: 2, einsaetze: 1, angebote: [{ id: ANGEBOT.id, nummer: 'AN-2026-0007', status: 'Angenommen' }] };
+    const nutzer = userEvent.setup();
+    zeige();
+    await mehrMenue(nutzer, 'Annahme zurücknehmen');
+    expect(await screen.findByText(/wird abgeschlossen, nicht gelöscht: an ihr hängen 2 Zeitbuchungen und 1 Einsatz/)).toBeInTheDocument();
+  });
+
+  it('der Verlauf nennt die Rücknahme mit ihrem Grund', async () => {
+    angebot = {
+      ...ANGEBOT, status: 'Versendet', versendetAm: Date.parse('2026-09-02T08:00:00Z'),
+      annahmeZurueckgenommenAm: Date.parse('2026-09-06T08:00:00Z'), annahmeZurueckgenommenGrund: 'Falsche Fassung angenommen',
+    };
+    zeige();
+    expect(await screen.findByText('Annahme zurückgenommen')).toBeInTheDocument();
+    expect(screen.getByText('Grund: Falsche Fassung angenommen')).toBeInTheDocument();
+  });
+
+  it('bleibt gleich: ein versendetes Angebot bietet keine Rücknahme an', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
+    expect(screen.queryByRole('menuitem', { name: 'Annahme zurücknehmen' })).toBeNull();
+    expect(screen.getByRole('menuitem', { name: 'Als abgelehnt markieren' })).toBeInTheDocument();
   });
 });
