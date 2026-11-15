@@ -31,7 +31,8 @@ import {
 } from '@/lib/db/zahlungen';
 import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm, zahlstand } from './zahlstand';
 import { haftruecklassBisVorschlag, RUECKLASS_NAME, ruecklassArtFuer, ruecklassBetrag } from './ruecklass';
-import { skontoBedingung, skontoZumAusgleich, zugesagterSkonto } from './skonto';
+import { skontoZumAusgleich, zugesagterSkonto } from './skonto';
+import { betriebsKonditionen, konditionenAbweichungen, zahlungsbedingungen } from './konditionen';
 import { listActiveProjects } from '@/lib/db/projects';
 import { kundenNachNamen, updateCustomer } from '@/lib/db/customers';
 import { useKundenFuer } from '@/features/customers/useKundenFuer';
@@ -140,7 +141,7 @@ import { useAdressSuche } from '@/lib/useAdressSuche';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
-import { euro } from '@/lib/betrag';
+import { cent, euro } from '@/lib/betrag';
 import { fmtMenge } from '@/lib/belegLayout';
 import { ibanFehler } from '@shared/iban';
 import { stornoBelegTag } from './stornoBelegTag';
@@ -619,10 +620,32 @@ export default function InvoicesView() {
     setErstellen(true);
     setErstellenSprung((n) => n + 1);
   };
+  // Startwert sind die Sätze des Betriebs aus den Einstellungen; für den
+  // Einzelfall lassen sie sich hier noch abweichend setzen.
+  const [rates, setRates] = useState({ ...INVOICE_DEFAULTS });
+  /*
+    NUR FÜR DIESE RECHNUNG HEISST: DANACH WIEDER DIE DES BETRIEBS (Durchsicht
+    15.11.2026, G1). Vorher blieben angepasste Sätze bis zum Neuladen stehen
+    und galten still für jede weitere Rechnung. Die Rechnung, die gerade
+    entsteht, endet mit dem Ausstellen, dem Verwerfen der Vorschau, dem
+    Schließen des Formulars oder dem Wechsel zu einer anderen Baustelle.
+  */
+  const betriebSaetze = useMemo(() => betriebsKonditionen(company?.rates), [company]);
+  const konditionenZuruecksetzen = () => setRates(betriebSaetze);
+  /** Eine andere Baustelle ist eine andere Rechnung; die erste Wahl gehört noch zu dieser. */
+  const baustelleWaehlen = (nr: string) => {
+    if (projectNumber && nr !== projectNumber) konditionenZuruecksetzen();
+    setProjectNumber(nr);
+  };
+  /** Verwerfen beendet die Rechnung, die gerade entsteht — angelegt ist bis dahin nichts. */
+  const vorschauVerwerfen = () => {
+    setPreview(null);
+    konditionenZuruecksetzen();
+  };
   /** Schliessen verwirft eine offene Vorschau — wie „Verwerfen“; angelegt ist bis dahin nichts. */
   const erstellenSchliessen = () => {
     setErstellen(false);
-    setPreview(null);
+    vorschauVerwerfen();
     setError(null);
     setHinweis(null);
   };
@@ -648,9 +671,6 @@ export default function InvoicesView() {
     value: string;
     label: string;
   }>({ mode: 'percent', value: '', label: '' });
-  // Startwert sind die Sätze des Betriebs aus den Einstellungen; für den
-  // Einzelfall lassen sie sich hier noch abweichend setzen.
-  const [rates, setRates] = useState({ ...INVOICE_DEFAULTS });
   /**
    * Wie weit die Liste zurueckreicht.
    *
@@ -702,7 +722,7 @@ export default function InvoicesView() {
   });
 
   useEffect(() => {
-    if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
+    if (company?.rates) setRates(betriebsKonditionen(company.rates));
     setSteuerbefreiung(company?.steuerbefreiungVorgabe ?? '');
   }, [company]);
 
@@ -873,7 +893,7 @@ export default function InvoicesView() {
   useEffect(() => {
     const neu = suchparameter.get('neu');
     if (!neu || nurLesen) return;
-    setProjectNumber(neu);
+    baustelleWaehlen(neu);
     setPreview(null);
     erstellenOeffnen();
     setSuchparameter((alt) => {
@@ -1044,7 +1064,7 @@ export default function InvoicesView() {
         const summe = z
           .filter((x) => x.art !== 'Skonto' && !storniert.has(x.invoiceId))
           .reduce((s, x) => s + (Number(x.betrag) || 0), 0);
-        setBezahltImMonat(Math.round(summe * 100) / 100);
+        setBezahltImMonat(cent(summe));
         setBezahltGeladen(true);
       })
       .catch(() => {
@@ -1095,8 +1115,7 @@ export default function InvoicesView() {
       */
       bezahlt += stand.bezahlt - stand.guthaben;
     }
-    const runde = (n: number) => Math.round(n * 100) / 100;
-    return { offen: runde(offen), ueberfaellig: runde(ueberfaellig), bezahlt: runde(bezahlt) };
+    return { offen: cent(offen), ueberfaellig: cent(ueberfaellig), bezahlt: cent(bezahlt) };
   }, [invoices, offeneRechnungen]);
 
   /**
@@ -1137,7 +1156,7 @@ export default function InvoicesView() {
         offen, ist er der Betrag.
       */
       const ruecklass = offenerRuecklass(inv);
-      const vorschlag = ruecklass > 0 && rest > ruecklass ? Math.round((rest - ruecklass) * 100) / 100 : rest;
+      const vorschlag = ruecklass > 0 && rest > ruecklass ? cent(rest - ruecklass) : rest;
       setZBetrag(vorschlag > 0 ? String(vorschlag) : '');
     }
     try {
@@ -1171,19 +1190,17 @@ export default function InvoicesView() {
       ? {
           ...zahlungFuer,
           // Mahnkosten begleichen die Mahnung, nicht die Rechnung (09.11.2026).
-          bezahltBetrag: Math.round(
-            zahlungen.filter((z) => z.art !== 'Mahnkosten').reduce((s, z) => s + z.betrag, 0) * 100,
-          ) / 100,
+          bezahltBetrag: cent(zahlungen.filter((z) => z.art !== 'Mahnkosten').reduce((s, z) => s + z.betrag, 0)),
         }
       : zahlungFuer
     : null;
   const mahnkostenBezahlt = zahlungen
-    ? Math.round(zahlungen.filter((z) => z.art === 'Mahnkosten').reduce((s, z) => s + z.betrag, 0) * 100) / 100
+    ? cent(zahlungen.filter((z) => z.art === 'Mahnkosten').reduce((s, z) => s + z.betrag, 0))
     : zahlungFuer?.mahnkostenBetrag ?? 0;
   // Eine stornierte Rechnung fordert nichts mehr, auch keine Mahnkosten (`app.mahnkosten_passt`).
   const mahnkostenOffen = zahlungFuer?.paymentStatus === 'Storniert'
     ? 0
-    : Math.max(Math.round((zMahnforderung - mahnkostenBezahlt) * 100) / 100, 0);
+    : Math.max(cent(zMahnforderung - mahnkostenBezahlt), 0);
   const zMahnFeld = !!zahlungFuer && zRichtung === 'eingang' && (mahnkostenOffen > 0 || mahnkostenBezahlt > 0);
   const zMahnVorschlag = zahlungsStand
     ? mahnkostenVorschlag(zahlOder(zBetrag, NaN, { negativ: true }), zahlstand(zahlungsStand).rest, mahnkostenOffen)
@@ -1202,7 +1219,7 @@ export default function InvoicesView() {
       {
         ...zahlungsStand,
         skontoBetrag: zahlungen
-          ? Math.round(zahlungen.filter((z) => z.art === 'Skonto').reduce((s, z) => s + z.betrag, 0) * 100) / 100
+          ? cent(zahlungen.filter((z) => z.art === 'Skonto').reduce((s, z) => s + z.betrag, 0))
           : zahlungsStand.skontoBetrag,
       },
       zDatum,
@@ -1236,7 +1253,7 @@ export default function InvoicesView() {
         setZFehler(m.fehler ?? 'Der Anteil für Mahnspesen und Zinsen ist keine Zahl.');
         return;
       }
-      mahnTeil = Math.round(m.wert * 100) / 100;
+      mahnTeil = cent(m.wert);
       const zuViel = eingetragen > 0
         ? mahnTeil < 0 || mahnTeil > Math.min(eingetragen, mahnkostenOffen)
         : mahnTeil > 0 || mahnTeil < Math.max(eingetragen, -mahnkostenBezahlt);
@@ -1247,13 +1264,13 @@ export default function InvoicesView() {
         return;
       }
     }
-    const aufRechnung = Math.round((eingetragen - mahnTeil) * 100) / 100;
+    const aufRechnung = cent(eingetragen - mahnTeil);
     /*
       ZURÜCK GEHT HÖCHSTENS DAS GUTHABEN (M21). Danach ist es erledigt; mehr
       zurückzuzahlen hiesse, eine neue Forderung des Kunden zu erfinden. Wer
       eine Rücklastschrift buchen will, trägt sie als Eingang mit Minus ein.
     */
-    if (rueck && Math.round(eingetragen * 100) > Math.round(zGuthaben * 100)) {
+    if (rueck && cent(eingetragen) > cent(zGuthaben)) {
       setZFehler(`Zurückzuzahlen sind höchstens ${euro(zGuthaben)} — das Guthaben des Kunden.`);
       return;
     }
@@ -1263,7 +1280,7 @@ export default function InvoicesView() {
       Zahlung Guthaben, und das weiß, wer sie einträgt.
     */
     const offen = zahlungsStand ? zahlstand(zahlungsStand).rest : 0;
-    const mehr = Math.round((aufRechnung - offen) * 100) / 100;
+    const mehr = cent(aufRechnung - offen);
     if (!rueck && offen > 0 && mehr > 0 && zUeberschuss?.betrag !== zBetrag) {
       setZUeberschuss({ betrag: zBetrag, mehr });
       return;
@@ -1273,7 +1290,7 @@ export default function InvoicesView() {
     const zahlung = {
       invoiceId: zahlungFuer.id,
       datum: zDatum,
-      betrag: Math.round(betrag * 100) / 100,
+      betrag: cent(betrag),
       art: zArt,
       hinweis: zHinweis.trim() || undefined,
       erfasstVon: user.uid,
@@ -1948,17 +1965,20 @@ export default function InvoicesView() {
     try {
       const project = projects.find((p) => p.projectNumber === projectNumber);
       const invoiceDate = todayStr();
-      const due = new Date();
-      due.setDate(due.getDate() + rates.dueDays);
-      const dueDate = localDateStr(due);
-      // Mit Rücklass gilt der Skonto auf den Zahlbetrag (seit 10.10.2026, `zugesagterSkonto`).
-      const skonto = skontoBedingung({
-        prozent: rates.skontoProzent,
-        tage: rates.skontoTage,
+      /*
+        DIESELBE RECHNUNG WIE DIE ZEILE „ZAHLUNG“ DER VORSCHAU (G1): was dort
+        stand, kommt so auf den Beleg. Mit Rücklass gilt der Skonto auf den
+        Zahlbetrag (seit 10.10.2026, `zugesagterSkonto`).
+      */
+      const bedingungen = zahlungsbedingungen({
+        konditionen: rates,
         rechnungsdatum: invoiceDate,
-        zahlungsziel: dueDate,
         art,
+        forderungBrutto: summen.totalBrutto,
+        ruecklassBetrag: ruecklass?.betrag ?? null,
       });
+      const dueDate = bedingungen.zahlungsziel;
+      const skonto = bedingungen.skonto;
 
       /**
        * Nummer JETZT verbindlich ziehen, nicht schon beim Aufbau der Vorschau.
@@ -2113,6 +2133,8 @@ export default function InvoicesView() {
 
       setPreview(null);
       setProjectNumber('');
+      // Die nächste Rechnung beginnt mit den Sätzen des Betriebs (G1).
+      konditionenZuruecksetzen();
       setDiscount({ mode: 'percent', value: '', label: '' });
       setReverseCharge(false);
       setKundenUid('');
@@ -2563,6 +2585,26 @@ export default function InvoicesView() {
       bis: ruecklassBis,
     };
   }, [ruecklassAn, ruecklassArt, summen, ruecklassProzent, ruecklassBis]);
+
+  /*
+    WAS NACH DEM AUSSTELLEN EINGEFROREN IST, STEHT VORHER DA (G1): Zahlungsziel,
+    Skonto, Rücklass und Zahlbetrag unter den Summen — aus derselben Rechnung,
+    mit der `confirmInvoice` sie schreibt. Zahlungsziel und Skonto standen
+    bisher nur im zugeklappten Abschnitt „Konditionen“, als Eingabe.
+  */
+  const zahlungsAngaben = useMemo(
+    () => (summen
+      ? zahlungsbedingungen({
+          konditionen: rates,
+          rechnungsdatum: todayStr(),
+          art,
+          forderungBrutto: summen.totalBrutto,
+          ruecklassBetrag: ruecklass?.betrag ?? null,
+        })
+      : null),
+    [summen, rates, art, ruecklass],
+  );
+  const konditionenAbweichend = useMemo(() => konditionenAbweichungen(rates, betriebSaetze), [rates, betriebSaetze]);
 
   /*
     OHNE POSITIONEN ODER ÜBER NULL EURO GIBT ES KEINE RECHNUNG (Prüflauf
@@ -3291,7 +3333,7 @@ export default function InvoicesView() {
                   <Button
                     variant="secondary"
                     onClick={() => {
-                      setProjectNumber(nummer);
+                      baustelleWaehlen(nummer);
                       setPreview(null);
                       erstellenOeffnen();
                     }}
@@ -3440,7 +3482,7 @@ export default function InvoicesView() {
             companyId={user.companyId}
             value={projectNumber}
             onChange={(nr, p) => {
-              setProjectNumber(nr);
+              baustelleWaehlen(nr);
               setPreview(null);
               setError(null);
               setHinweis(null);
@@ -3515,8 +3557,11 @@ export default function InvoicesView() {
             <p className="text-sm text-ink-muted">
               Nur für diese Rechnung{' '}
               <InfoHint about="die Konditionen dieser Rechnung">
-                Die Änderung gilt nur für diese Rechnung und wirkt erst beim erneuten
-                Zusammenstellen. Die dauerhaften Sätze des Betriebs stehen in den Einstellungen.
+                Die Änderung gilt nur für diese Rechnung. Stundensätze und Zuschläge wirken beim
+                (erneuten) Zusammenstellen; Zahlungsziel, Skonto und Umsatzsteuer stehen gleich unter
+                den Summen der Vorschau, samt Hinweis, wo sie vom Betrieb abweichen. Nach dem
+                Ausstellen, beim Verwerfen, Schließen oder Wechsel der Baustelle gelten wieder die
+                Sätze des Betriebs aus den Einstellungen.
               </InfoHint>
             </p>
             <FormGrid>
@@ -4101,6 +4146,61 @@ export default function InvoicesView() {
             </table>
           </div>
 
+          {/*
+            DIE ZAHLUNG, WIE SIE AUF DEN BELEG KOMMT (Durchsicht 15.11.2026, G1).
+            Fest unter den Summen, nicht zugeklappt: nach dem Ausstellen ist
+            all das eingefroren. Eine Abweichung vom Betrieb steht als Text mit
+            Zeichen da — keine Farbfläche (V10).
+          */}
+          {zahlungsAngaben && (
+            <section className="rechnung-abschnitt mt-4" aria-label="Zahlung">
+              <span className="section-label">Zahlung</span>
+              <dl className="divide-y divide-line text-sm">
+                <div className="rechnung-detail-zeile">
+                  <dt className="shrink-0 text-ink-muted">Zahlungsziel</dt>
+                  <dd className="text-right text-ink">
+                    {`${rates.dueDays} ${rates.dueDays === 1 ? 'Tag' : 'Tage'}, bis ${datumAT(zahlungsAngaben.zahlungsziel)}`}
+                  </dd>
+                </div>
+                <div className="rechnung-detail-zeile">
+                  <dt className="shrink-0 text-ink-muted">Skonto</dt>
+                  <dd className="text-right text-ink">
+                    {zahlungsAngaben.skonto
+                      ? `${zahlungsAngaben.skonto.skontoProzent.toLocaleString('de-AT', { maximumFractionDigits: 2 })} % bei Zahlung bis ${datumAT(zahlungsAngaben.skonto.skontoBis)}: ${euro(zahlungsAngaben.skonto.betrag)}`
+                      : zahlungsAngaben.skontoNichtFuerArt
+                        ? 'keines — Skonto gibt es nur auf Rechnung und Schlussrechnung'
+                        : 'keines'}
+                  </dd>
+                </div>
+                {ruecklassArt && (
+                  <div className="rechnung-detail-zeile">
+                    <dt className="shrink-0 text-ink-muted">Rücklass</dt>
+                    <dd className="text-right text-ink">
+                      {ruecklass
+                        ? `${RUECKLASS_NAME[ruecklass.art]} ${ruecklass.prozent.toLocaleString('de-AT', { maximumFractionDigits: 2 })} %: ${euro(ruecklass.betrag)}, ${ruecklass.bis ? `fällig am ${datumAT(ruecklass.bis)}` : 'Fälligkeit fehlt'}`
+                        : 'keiner'}
+                    </dd>
+                  </div>
+                )}
+                <div className="rechnung-detail-zeile">
+                  <dt className="shrink-0 text-ink-muted">Zahlbetrag</dt>
+                  <dd className="rechnung-detail-betrag">
+                    <span>{euro(zahlungsAngaben.zahlbetrag)}</span>
+                    {zahlungsAngaben.zahlbetragMitSkonto != null && (
+                      <span className="rechnung-detail-zusatz">mit Skonto {euro(zahlungsAngaben.zahlbetragMitSkonto)}</span>
+                    )}
+                  </dd>
+                </div>
+              </dl>
+              {konditionenAbweichend.length > 0 && (
+                <p className="text-sm text-ink">
+                  <Warnung>Abweichend vom Betrieb</Warnung>{' '}
+                  {konditionenAbweichend.join(' · ')}
+                </p>
+              )}
+            </section>
+          )}
+
           <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => neuePos()}>
               Position hinzufügen
@@ -4557,11 +4657,7 @@ export default function InvoicesView() {
                       />
                     </FormGrid>
                   )}
-                  {ruecklass && summen && (
-                    <p className="text-sm text-ink-muted">
-                      Einbehalten: {euro(ruecklass.betrag)}. Zu zahlen jetzt: {euro(summen.totalBrutto - ruecklass.betrag)}.
-                    </p>
-                  )}
+                  {/* Betrag und Zahlbetrag stehen seit G1 (15.11.2026) unter den Summen, in „Zahlung“. */}
                 </div>
               )}
             </div>
@@ -4732,7 +4828,7 @@ export default function InvoicesView() {
             )}
             {/* Die Fusszeile des Formulars (`fuss-aktionen`): verwerfen links, anlegen rechts. */}
             <div className="fuss-aktionen">
-              <Button variant="ghost" onClick={() => setPreview(null)}>
+              <Button variant="ghost" onClick={vorschauVerwerfen}>
                 Verwerfen
               </Button>
               <Button

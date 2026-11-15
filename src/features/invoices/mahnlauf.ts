@@ -1,4 +1,5 @@
 import type { RechnungsKopf } from '@/types';
+import { cent as runde } from '@/lib/betrag';
 import { darfMahnen, mahnkosten, naechsteStufe, type Mahnstufe, type MahnkostenSaetze } from './mahnung';
 import { mahnbar, offenerRest } from './zahlstand';
 
@@ -142,5 +143,3 @@ export function mahnlauf<R extends RechnungsKopf>(
     summeSpesen: runde(zeilen.reduce((s, z) => s + z.spesen, 0)),
   };
 }
-
-const runde = (n: number) => Math.round(n * 100) / 100;

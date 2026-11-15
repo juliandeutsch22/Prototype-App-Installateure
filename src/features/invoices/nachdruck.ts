@@ -1,5 +1,6 @@
 import type { Company, Invoice } from '@/types';
 import type { generateInvoicePdf } from './pdf';
+import { skontoBisher } from './rundungBisher';
 
 export type DruckAngaben = Parameters<typeof generateInvoicePdf>[0];
 
@@ -74,8 +75,14 @@ export function druckAngaben(company: Company, inv: Invoice): DruckAngaben {
       : null,
     art: inv.art,
     vorrechnungen: inv.vorrechnungen,
+    /*
+      DER SKONTOBETRAG VOM BELEG, nicht neu gerechnet (G7, 15.11.2026). Seit
+      der einen Geldrundung ergäbe die neue Rechnung an der Halbcent-Grenze
+      einen Cent mehr Skonto als das Original. Rechnungen ab jetzt tragen
+      den Betrag (`skonto_zugesagt`); für ältere gilt die damalige Rundung.
+    */
     skonto: inv.skontoProzent && inv.skontoBis
-      ? { skontoProzent: inv.skontoProzent, skontoBis: inv.skontoBis }
+      ? { skontoProzent: inv.skontoProzent, skontoBis: inv.skontoBis, betrag: inv.skontoZugesagt ?? skontoBisher(inv) }
       : null,
   };
 }

@@ -2,6 +2,7 @@ import { stornoBelegTag } from './stornoBelegTag';
 import type { Customer, Invoice } from '@/types';
 import { zahlstand } from './zahlstand';
 import { csvZelle as cell } from '@/lib/csvZelle';
+import { cent } from '@/lib/betrag';
 
 /**
  * Rechnungsausgangsbuch für den Steuerberater.
@@ -336,8 +337,8 @@ export function buildInvoiceCsv(
   return {
     csv: zeilen.join('\n'),
     anzahl: imZeitraum.length,
-    summeNetto: Math.round(summeNetto * 100) / 100,
-    summeBrutto: Math.round(summeBrutto * 100) / 100,
+    summeNetto: cent(summeNetto),
+    summeBrutto: cent(summeBrutto),
     /*
       DIE STORNORECHNUNGEN DES ZEITRAUMS zählen zum Kreis (B7): ihre Nummer
       kommt aus ihm. Ohne sie stünde jede als Lücke da.

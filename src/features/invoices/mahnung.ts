@@ -1,6 +1,7 @@
 import type { Invoice, InvoiceRates, Mahnung, MahnungInhalt } from '@/types';
 import { mahnbar, offenerRest, ruecklassFaelligAm } from './zahlstand';
 import { zahlOder } from '@/lib/zahl';
+import { aufStellen, cent } from '@/lib/betrag';
 
 /** TT.MM.JJJJ — hier ohne die Datumsbibliothek, die Datei bleibt ohne Oberflächen-Importe. */
 const datumKurzAT = (iso?: string | null) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '—');
@@ -213,7 +214,7 @@ export const PAUSCHALE_458 = 40;
  * höchstens, wenn sie alle drei durchläuft (Testbericht 30.09.2026, M22).
  */
 export function spesenSumme(spesen: number[] | undefined): number {
-  return Math.round((spesen ?? []).reduce((s, w) => s + (typeof w === 'number' && w > 0 ? w : 0), 0) * 100) / 100;
+  return cent((spesen ?? []).reduce((s, w) => s + (typeof w === 'number' && w > 0 ? w : 0), 0));
 }
 
 /**
@@ -411,7 +412,7 @@ export function verzugszinsen(o: {
     abschnitte.unshift({
       von: beginn,
       bis: ende,
-      satz: Math.round((basis + ZINS_AUFSCHLAG_UNTERNEHMER) * 100) / 100,
+      satz: aufStellen(basis + ZINS_AUFSCHLAG_UNTERNEHMER, 2),
       tage: tageZwischen(beginn, ende) + 1,
     });
     ende = tagVor(hj);
@@ -419,9 +420,7 @@ export function verzugszinsen(o: {
   if (abschnitte.length === 0) return { art: 'fehlt' };
 
   const gezaehlt = abschnitte.reduce((n, a) => n + a.tage, 0);
-  const betrag = Math.round(
-    abschnitte.reduce((s, a) => s + o.rest * (a.satz / 100) * (a.tage / 365), 0) * 100,
-  ) / 100;
+  const betrag = cent(abschnitte.reduce((s, a) => s + o.rest * (a.satz / 100) * (a.tage / 365), 0));
   if (betrag <= 0) return { art: 'keine' };
   const satz = abschnitte[abschnitte.length - 1].satz;
   const ergebnis: Verzugszinsen = { art: 'berechnet', satz, tage: gezaehlt, betrag, grundlage: '§ 456 UGB' };
@@ -456,12 +455,10 @@ function tageZwischen(von: string, bis: string): number {
 function mitBetrag(
   rest: number, satz: number, tage: number, grundlage: '§ 1000 ABGB' | '§ 456 UGB',
 ): Verzugszinsen {
-  const betrag = Math.round(rest * (satz / 100) * (tage / 365) * 100) / 100;
+  const betrag = cent(rest * (satz / 100) * (tage / 365));
   if (betrag <= 0) return { art: 'keine' };
   return { art: 'berechnet', satz, tage, betrag, grundlage };
 }
-
-const cent = (n: number) => Math.round(n * 100) / 100;
 
 /**
  * Was eine Mahnung an Mahnspesen und Verzugszinsen gefordert hat — das

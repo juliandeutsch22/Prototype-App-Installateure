@@ -1,7 +1,8 @@
 import type { Company, Customer, Invoice, RechnungsArt, Vorrechnung } from '@/types';
 import { cent, discountLabel, istPreiszeile, rabattAnteil } from './totals';
 import { mitAbzug } from './vorrechnungen';
-import { zugesagterSkonto } from './skonto';
+import { centBisher, skontoBisher } from './rundungBisher';
+import { aufStellen } from '@/lib/betrag';
 import { RC_HINWEIS } from './reverseCharge';
 import { stornoBelegTag } from './stornoBelegTag';
 import { ibanNormal } from '@shared/iban';
@@ -172,7 +173,7 @@ interface Steuer {
 
 function steuerDerRechnung(inv: Invoice): Steuer {
   if (inv.reverseCharge) return { code: 'AE', prozent: 0, kommentar: RC_HINWEIS };
-  const prozent = Math.round((inv.vatRate ?? 0.2) * 10000) / 100;
+  const prozent = aufStellen((inv.vatRate ?? 0.2) * 100, 2);
   if (prozent === 0) return { code: 'E', prozent: 0, kommentar: inv.steuerbefreiung?.trim() || undefined };
   // Der Normalsatz (20 %, in Jungholz und Mittelberg 19 %) ist „S“, die ermäßigten „AA“.
   return { code: prozent >= 19 ? 'S' : 'AA', prozent };
@@ -258,8 +259,13 @@ function belegRechnen(o: EbiOptionen): Beleg {
     const netto = cent(Number(p.netto) || 0);
     const basis = cent(menge * preis);
     const prozent = rabattAnteil(p.rabattProzent);
-    // Ohne Rabatt muss Menge × Preis den Betrag ergeben — der Empfänger rechnet nach.
-    if (!prozent && Math.abs(basis - netto) > 0.005) {
+    /*
+      Ohne Rabatt muss Menge × Preis den Betrag ergeben — der Empfänger
+      rechnet nach. EINE ZEILE VON VOR DER UMSTELLUNG (G7, 15.11.2026) ergab
+      ihn an der Halbcent-Grenze einen Cent tiefer (4,25 × 72,30 = 307,27);
+      sie steht so auf dem Beleg und bleibt richtig.
+    */
+    if (!prozent && Math.abs(basis - netto) > 0.005 && Math.abs(centBisher(menge * preis) - netto) > 0.005) {
       abweichungen.push(`Position ${i + 1} („${text || 'ohne Bezeichnung'}“): Menge × Einzelpreis ergibt ${basis.toFixed(2)}, die Zeile ${netto.toFixed(2)}.`);
     }
     aktuell.zeilen.push({
@@ -346,7 +352,8 @@ function belegRechnen(o: EbiOptionen): Beleg {
         bis: inv.skontoBis,
         prozent: inv.skontoProzent,
         basis: zahlbetrag,
-        betrag: zugesagterSkonto({ totalBrutto: forderung, ruecklassBetrag: ruecklass?.betrag ?? 0, skontoProzent: inv.skontoProzent }),
+        // Wie auf dem PDF: vom Beleg, bei älteren Rechnungen mit der damaligen Rundung (G7).
+        betrag: inv.skontoZugesagt ?? skontoBisher({ totalBrutto: forderung, ruecklassBetrag: ruecklass?.betrag ?? 0, skontoProzent: inv.skontoProzent }),
       }
     : null;
 

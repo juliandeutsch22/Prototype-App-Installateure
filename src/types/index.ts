@@ -2225,6 +2225,13 @@ export interface Invoice {
   /** Zugesagtes Skonto in % und bis wann (eingefroren mit der Rechnung). */
   skontoProzent?: number | null;
   skontoBis?: string | null;
+  /**
+   * Der zugesagte Skonto in Euro, wie er auf dem Beleg steht (seit
+   * 15.11.2026, G7) — gesetzt nur von der Datenbank beim Anlegen, danach
+   * eingefroren. Leer ohne Skonto und bei älteren Rechnungen; für sie gibt
+   * `skontoBisher` die damalige Rundung wieder.
+   */
+  skontoZugesagt?: number | null;
   /** Summe der Skonto-Einträge — abgeleitet wie `bezahltBetrag`, darin enthalten. */
   skontoBetrag?: number;
   /**

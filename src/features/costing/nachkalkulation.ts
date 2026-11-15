@@ -1,4 +1,5 @@
 import type { Invoice, Material, Quote, TimeEntry } from '@/types';
+import { aufStellen, cent } from '@/lib/betrag';
 import { normName } from '@/features/invoices/materialPositionen';
 import { calcWorkMin, normProjectNumber } from '@/lib/time';
 import { KEINE_MATERIALKOSTEN, type Materialkosten } from './materialkosten';
@@ -146,7 +147,8 @@ export function rechneBaustelle(
     minJe.set(k, (minJe.get(k) ?? 0) + min);
   }
 
-  const stunden = (min: number) => Math.round((min / 60) * 100) / 100;
+  // Stunden auf zwei Stellen — nach derselben Regel wie Geld (G7); Minuten durch 60 treffen nie einen halben Hundertstel.
+  const stunden = (min: number) => aufStellen(min / 60, 2);
   let fachMin = 0;
   let helferMin = 0;
   let lehrlingMin = 0;
@@ -166,11 +168,10 @@ export function rechneBaustelle(
     }
     kostenSumme += posten;
   }
-  const cent = (n: number) => Math.round(n * 100) / 100;
   const fachStunden = stunden(fachMin);
   const helferStunden = stunden(helferMin);
   const lehrlingStunden = stunden(lehrlingMin);
-  const personalkosten = Math.round(kostenSumme * 100) / 100;
+  const personalkosten = cent(kostenSumme);
 
   const eigene = invoices.filter(
     (i) => normProjectNumber(i.projectNumber) === pn && i.paymentStatus !== 'Storniert',
@@ -199,7 +200,7 @@ export function rechneBaustelle(
   let erloes = 0;
   let erloesQuelle: Nachkalkulation['erloesQuelle'] = 'unbekannt';
   if (eigene.length > 0) {
-    erloes = Math.round(eigene.reduce((s, i) => s + (i.totalNetto ?? 0), 0) * 100) / 100;
+    erloes = cent(eigene.reduce((s, i) => s + (i.totalNetto ?? 0), 0));
     erloesQuelle = 'Rechnungen';
   } else if (quote && quote.status === 'Angenommen') {
     erloes = quote.totalNetto;
@@ -246,10 +247,9 @@ export function rechneBaustelle(
       else angebotKosten += (p.qty ?? 0) * ek;
     }
   }
-  const materialSumme = Math.round((material.kosten + angebotKosten) * 100) / 100;
+  const materialSumme = cent(material.kosten + angebotKosten);
 
-  const deckungsbeitrag =
-    Math.round((erloes - personalkosten - materialSumme) * 100) / 100;
+  const deckungsbeitrag = cent(erloes - personalkosten - materialSumme);
 
   const ausDemAngebot = angebotKosten > 0 || ausAngebot.length > 0;
   return {

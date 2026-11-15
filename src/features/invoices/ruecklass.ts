@@ -1,4 +1,5 @@
 import type { Invoice, RechnungsArt } from '@/types';
+import { cent } from '@/lib/betrag';
 
 /**
  * Haft- und Deckungsrücklass (Stand-Datei 11.1, Punkt 5).
@@ -34,7 +35,8 @@ export function ruecklassArtFuer(art: RechnungsArt): RuecklassArt | null {
  * fordert.
  */
 export function ruecklassBetrag(o: { grundlageBrutto: number; prozent: number; forderungBrutto: number }): number {
-  const roh = Math.round(o.grundlageBrutto * o.prozent) / 100;
+  // Dieselbe Rundung wie dort (G7): 7,5 % auf 8,20 € sind 0,615 → 0,62, nicht 0,61.
+  const roh = cent((o.grundlageBrutto * o.prozent) / 100);
   return Math.min(roh, o.forderungBrutto);
 }
 

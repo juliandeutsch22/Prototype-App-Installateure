@@ -14,7 +14,7 @@ import { ibanAnzeige } from '@shared/iban';
 import { TEXTE, mahnkosten, type Mahnstufe, type Verzugszinsen } from './mahnung';
 import { mahnbar, ruecklassFaelligAm, zahlstand } from './zahlstand';
 import type { Company, Invoice, MahnungInhalt } from '@/types';
-import { euroBetrag } from '@/lib/betrag';
+import { cent, euroBetrag } from '@/lib/betrag';
 
 /**
  * Die Mahnung als Beleg.
@@ -115,7 +115,7 @@ export function mahnungInhalt(o: MahnungOptionen): MahnungInhalt {
     Kunden nicht auf — er hat ihn ja zu Recht einbehalten.
   */
   const gefordert = mahnbar(o.invoice, o.datum).rest;
-  const nichtFaellig = Math.round((stand.rest - gefordert) * 100) / 100;
+  const nichtFaellig = cent(stand.rest - gefordert);
   if (nichtFaellig > 0) {
     zeilen.push([
       `${o.invoice.ruecklassArt === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass'}, fällig am ${fmtDatum(ruecklassFaelligAm(o.invoice))}`,
@@ -164,10 +164,10 @@ export function mahnungInhalt(o: MahnungOptionen): MahnungInhalt {
     },
     rechnung: { nummer: o.invoice.invoiceNumber, baustelle: o.invoice.projectNumber },
     zeilen,
-    offen: Math.round((gefordert + spesen + pauschale + (zinsen?.betrag ?? 0)) * 100) / 100,
-    kosten: Math.round((spesen + pauschale) * 100) / 100,
+    offen: cent(gefordert + spesen + pauschale + (zinsen?.betrag ?? 0)),
+    kosten: cent(spesen + pauschale),
     // Als Zahl festgehalten (09.11.2026): bis dahin begrenzt ein Eingang „Mahnkosten“ (`mahnforderung`).
-    zinsen: Math.round((zinsen?.betrag ?? 0) * 100) / 100,
+    zinsen: cent(zinsen?.betrag ?? 0),
   };
 }
 
