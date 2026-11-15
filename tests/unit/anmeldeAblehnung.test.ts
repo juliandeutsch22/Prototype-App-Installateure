@@ -18,9 +18,21 @@ import { createClient } from '@supabase/supabase-js';
 
 let antwort: () => Promise<Response> = async () => new Response('{}', { status: 200 });
 
+/*
+  OHNE ECHTZEIT, wie in `ausgangsfachFrist.test.ts`: der Client sucht beim
+  Anlegen ein WebSocket; Node 20 der CI hat keines eingebaut, dort scheiterte
+  schon `createClient`. Geprüft wird nur der Weg über `fetch`.
+*/
+class KeinWebSocket {
+  constructor() {
+    throw new Error('Echtzeit wird in diesem Test nicht verbunden.');
+  }
+}
+
 const echterClient = createClient('http://anmeldung.test', 'anon-schluessel', {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   global: { fetch: () => antwort() },
+  realtime: { transport: KeinWebSocket as never },
 });
 
 vi.mock('@/lib/supabase', () => ({
