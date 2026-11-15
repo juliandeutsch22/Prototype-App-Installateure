@@ -28,9 +28,15 @@ describe('Sonderurlaub in den Einstellungen', () => {
     const nutzer = userEvent.setup();
     zeige();
     expect(screen.getByRole('textbox', { name: /Eheschließung/ })).toHaveValue('3');
-    expect(screen.getByRole('textbox', { name: /Kürzung vorschlagen ab/ })).toHaveValue('14');
+    const schwelle = screen.getByRole('textbox', { name: /Kürzung vorschlagen ab/ });
+    expect(schwelle).toHaveValue('14');
+    // Seit U1 (15.11.2026) die Speicherleiste: ohne Änderung gibt es nichts zu speichern.
+    expect(screen.queryByRole('button', { name: 'Speichern' })).toBeNull();
+    // Nur die Schwelle geändert — die Tage bleiben ab Werk und werden nicht als Abweichung gespeichert.
+    await nutzer.clear(schwelle);
+    await nutzer.type(schwelle, '15');
     await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
-    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', { freistellungAnlaesse: null, kuerzungAbTagen: 14, arztbesuchNachweis: true }));
+    await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', { freistellungAnlaesse: null, kuerzungAbTagen: 15, arztbesuchNachweis: true }));
   });
 
   it('eine geänderte Tageszahl wird als Abweichung gespeichert', async () => {
