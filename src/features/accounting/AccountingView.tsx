@@ -42,6 +42,7 @@ import RowMenu from '@/components/RowMenu';
 import BottomSheet from '@/components/BottomSheet';
 import { Segmente } from '@/components/LotBausteine';
 import ExportDialog from './ExportDialog';
+import ImDienst from './ImDienst';
 import ProjectSummary from './ProjectSummary';
 import { fachMinutenJeBaustelle } from '@/features/projects/baustellenLage';
 import ArbeitszeitGrenzenKarte from './ArbeitszeitGrenzenKarte';
@@ -130,6 +131,7 @@ interface UebersichtStand {
 export default function AccountingView() {
   const { user, company, einblick } = useAuth();
   const zeitAn = useModul('zeiterfassung');
+  const timerAn = useModul('zeiterfassung.timer');
   /*
     IM SUPPORTZUGANG SIND ZEITBUCHUNGEN VERSCHLOSSEN (Art. 9 DSGVO, in jeder
     Stufe). Gerechnet ergäbe das „11 Tage fehlen, −88:00“ für jeden — ein
@@ -1072,6 +1074,11 @@ export default function AccountingView() {
       {nebenFehler && <TeilFehler was={nebenFehler} />}
       {urlaubFehlerFuer === urlaubSchluessel && (
         <TeilFehler was="Der genommene Urlaub" onRetry={() => setUrlaubVersuch((n) => n + 1)} />
+      )}
+
+      {/* Wer gerade einen Arbeitstag laufen hat (F11) — nicht im Supportzugang, dort sind Zeiten verschlossen. */}
+      {!imSupport && (
+        <ImDienst companyId={user.companyId} personen={users} timerAn={timerAn} onPerson={(uid) => setPerson({ uid, tag: null })} />
       )}
 
       <div className="ue-bedienung">
