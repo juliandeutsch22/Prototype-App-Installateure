@@ -21,7 +21,7 @@ import type {
 import { getUserByUid, listPasswortAnfragen, listUsers } from '@/lib/db/users';
 import { listOwnEntriesSince, listOwnEntriesInRange, buchungstage, stundenDerBaustellen, unverrechneteStunden } from '@/lib/db/timeEntries';
 import { getGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
-import { andereVerteilung, grenzfaelle, istJugendlich, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
+import { grenzArbeitszeit, grenzfaelle, istJugendlich, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
 import {
   listUpcomingAssignments,
   listAssignmentsForDate,
@@ -461,7 +461,7 @@ async function eigeneGrenzfaelle(k: Kontext, profil: AppUser | null): Promise<Gr
     {
       geburtsdatum: geboren,
       schultagMin: profil ? (t) => tagessollStunden(profil, t) * 60 : undefined,
-      andereVerteilung: andereVerteilung(profil, k.company?.kjbgVerteilungKv === true),
+      andereVerteilung: grenzArbeitszeit(profil, k.company?.kjbgVerteilungKv === true).andereVerteilung,
     },
     { stichtag: heute },
   ).filter((f) => f.jugendlich);

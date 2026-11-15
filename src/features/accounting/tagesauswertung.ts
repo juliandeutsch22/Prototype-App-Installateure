@@ -8,6 +8,8 @@ import {
   pflichtTage,
   tagesAnteil,
   tagesStatusName,
+  arbeitszeitAm,
+  hatArbeitszeitVerlauf,
   tagessollStunden,
 } from '@/lib/time';
 import { freigestelltMin, schultagGutschriftMin } from '@shared/arbeitszeit';
@@ -143,7 +145,7 @@ export function tagesauswertung({
   heute,
   grenzen = [],
 }: {
-  user: Pick<AppUser, 'workDays' | 'appStartDate' | 'weeklyTargetHours' | 'tagessoll'>;
+  user: Pick<AppUser, 'workDays' | 'appStartDate' | 'weeklyTargetHours' | 'tagessoll'> & Partial<Pick<AppUser, 'arbeitszeitVerlauf' | 'austritt'>>;
   eintraege: readonly TimeEntry[];
   tage: readonly string[];
   fehlend: Iterable<string>;
@@ -173,7 +175,10 @@ export function tagesauswertung({
   return tage.map((tag) => {
     const datum = new Date(`${tag}T00:00:00`);
     const feiertag = getAustrianHolidayName(datum);
-    const frei = !workDays.includes(datum.getDay()) || !!feiertag || (!!user.appStartDate && tag < user.appStartDate);
+    // Mit Verlauf (Z3a) die Arbeitstage dieses Tages.
+    const tageHier = hatArbeitszeitVerlauf(user) ? (arbeitszeitAm(user, tag).workDays ?? []) : workDays;
+    const arbeitstage = tageHier.length ? tageHier : [1, 2, 3, 4, 5];
+    const frei = !arbeitstage.includes(datum.getDay()) || !!feiertag || (!!user.appStartDate && tag < user.appStartDate);
     const amTag = [...(jeTag.get(tag) ?? [])].sort((a, b) => (a.startTime ?? '').localeCompare(b.startTime ?? ''));
     const istMin = amTag.reduce((s, e) => s + calcWorkMin(e), 0);
     const abwesend = amTag.find((e) => e.status !== 'Anwesend');

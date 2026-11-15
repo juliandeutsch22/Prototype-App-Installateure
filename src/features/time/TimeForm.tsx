@@ -16,7 +16,7 @@ import {
 } from '@/lib/db/timeEntries';
 import { getGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
 import {
-  andereVerteilung, grenzfaelleDerBuchung, grenzText, istJugendlich, umfeldDerBuchung, unterrichtAusEingabe, wegzeitAusEingabe,
+  grenzArbeitszeit, grenzfaelleDerBuchung, grenzText, istJugendlich, umfeldDerBuchung, unterrichtAusEingabe, wegzeitAusEingabe,
   type Grenzfall,
 } from '@/features/accounting/arbeitszeitGrenzen';
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
@@ -714,7 +714,7 @@ export default function TimeForm({
     return grenzfaelleDerBuchung([...andere, neu], date, {
       geburtsdatum: geboren,
       schultagMin: grenzPerson ? (t) => tagessollStunden(grenzPerson, t) * 60 : undefined,
-      andereVerteilung: andereVerteilung(grenzPerson, company?.kjbgVerteilungKv === true),
+      andereVerteilung: grenzArbeitszeit(grenzPerson, company?.kjbgVerteilungKv === true).andereVerteilung,
     }).filter((f) => f.jugendlich);
   }
 

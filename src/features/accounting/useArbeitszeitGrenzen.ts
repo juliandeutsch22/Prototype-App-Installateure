@@ -4,7 +4,7 @@ import { listBegruendungen, listGeburtsdaten, type Begruendung } from '@/lib/db/
 import { tagessollStunden, todayStr } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, TimeEntry } from '@/types';
-import { andereVerteilung, durchrechnungsWochen, fallSchluessel, grenzfaelle, montagVon, type GrenzEintrag, type Grenzfall } from './arbeitszeitGrenzen';
+import { grenzArbeitszeit, durchrechnungsWochen, fallSchluessel, grenzfaelle, montagVon, type GrenzEintrag, type Grenzfall } from './arbeitszeitGrenzen';
 
 /** So viele Personen prüft die Karte, bevor sie den Browser zeichnen lässt. */
 const HAEPPCHEN = 10;
@@ -159,8 +159,8 @@ export function useArbeitszeitGrenzen({
             {
               geburtsdatum: geburtsdaten.get(person.uid) ?? null,
               schultagMin: (tag) => tagessollStunden(person, tag) * 60,
-              andereVerteilung: andereVerteilung(person, kjbgVerteilungKv),
-              arbeitstageJeWoche: person.workDays?.length || undefined,
+              // Mit Verlauf je Woche die Arbeitszeit, die damals galt (Z3a).
+              ...grenzArbeitszeit(person, kjbgVerteilungKv),
             },
             { stichtag: heute, durchrechnungWochen: wochen },
           )) faelle.push({ person, fall });
