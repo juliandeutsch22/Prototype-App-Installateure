@@ -78,7 +78,8 @@ test('Dublette mit Baustelle und Rechnung aus der Akte zusammenführen', async (
   await keineFehlermeldung(page);
 
   // Die Akte trägt Baustelle und E-Mail; die Dublette ist weg; die Rechnung behält ihren Namen.
-  await expect(page.getByText('office@zf.test').first()).toBeVisible({ timeout: 20_000 });
+  // Im Kontakt der Akte — der erste Textfund wäre ein verstecktes Feld des geschlossenen Fensters.
+  await expect(page.getByRole('link', { name: /office@zf\.test/ })).toBeVisible({ timeout: 20_000 });
   expect((await admin.from('customers').select('id').eq('id', doppelt)).data).toEqual([]);
   const { data: rechnung } = await admin.from('invoices').select('customer_id, customer_name').eq('id', re!.id).single();
   expect(rechnung).toEqual({ customer_id: richtig, customer_name: DOPPELT });
