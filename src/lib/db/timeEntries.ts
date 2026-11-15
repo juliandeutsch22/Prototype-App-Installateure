@@ -16,6 +16,7 @@ import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import type { WithId } from './core';
 import type { WriteOutcome } from '@/lib/sync/ausgangsfach';
 import * as pg from './pg/timeEntries';
+import { mitWartenden, wartendeZeitbuchungen } from './wartendeZeiten';
 
 export type NewTimeEntry = Omit<TimeEntry, 'id' | 'companyId' | 'createdAt'>;
 
@@ -145,10 +146,21 @@ export function zeitEinfuegen(entry: Omit<TimeEntry, 'id' | 'companyId'>, aender
   return pg.zeitEinfuegen(entry, aenderungVon);
 }
 
-export function eintraegeUmDenTag(
+export async function eintraegeUmDenTag(
   companyId: string, uid: string, date: string, exceptId?: string,
 ): Promise<WithId<TimeEntry>[]> {
-  return pg.eintraegeUmDenTag(companyId, uid, date, exceptId);
+  const wartend = await wartendeZeitbuchungen(companyId);
+  let server: WithId<TimeEntry>[];
+  try {
+    server = await pg.eintraegeUmDenTag(companyId, uid, date, exceptId);
+  } catch (e) {
+    // Ohne Netz zählt, was auf dem Gerät wartet; sonst bleibt der Fehler, wie er war.
+    if (wartend.length === 0) throw e;
+    server = [];
+  }
+  if (wartend.length === 0) return server;
+  const tag = (n: number) => new Date(Date.parse(`${date}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+  return mitWartenden(server, wartend, uid, (d) => d >= tag(-1) && d <= tag(1), exceptId);
 }
 
 export function eintraegeAmTag(
@@ -199,11 +211,15 @@ const DUPLIKAT_FRIST_MS = 3000;
  * ausdrücklich: offline gilt der Rückfall sofort, die Buchung wird
  * vorgemerkt, und das Formular hat vorher gegen die geladenen Tage geprüft.
  */
-function tagesbuchungenFuerPruefung(
+async function tagesbuchungenFuerPruefung(
   companyId: string, uid: string, date: string, exceptId?: string,
 ): Promise<WithId<TimeEntry>[]> {
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.resolve([]);
-  return mitFristOder(eintraegeAmTag(companyId, uid, date, exceptId), async () => [], DUPLIKAT_FRIST_MS);
+  // Was auf diesem Gerät wartet, zählt mit — auch ohne Netz (Z4).
+  const wartend = await wartendeZeitbuchungen(companyId);
+  const server = typeof navigator !== 'undefined' && navigator.onLine === false
+    ? []
+    : await mitFristOder(eintraegeAmTag(companyId, uid, date, exceptId), async () => [], DUPLIKAT_FRIST_MS);
+  return wartend.length === 0 ? server : mitWartenden(server, wartend, uid, (d) => d === date, exceptId);
 }
 
 /**

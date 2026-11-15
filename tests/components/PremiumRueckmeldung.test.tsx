@@ -8,7 +8,13 @@ const katalog = vi.hoisted(() => vi.fn());
 type Fehlschlag = { zeile: string; tabelle: string; grund: string };
 const vormerkung = vi.hoisted(() => ({ melden: null as null | ((f: Fehlschlag) => void) }));
 vi.mock('@/lib/db/materials', () => ({ sucheKatalog: (...a: unknown[]) => katalog(...a) }));
-vi.mock('@/lib/sync/ausgangsfach', () => ({ beiVormerkungFehlgeschlagen: (f: null | ((f: Fehlschlag) => void)) => { vormerkung.melden = f; } }));
+vi.mock('@/lib/sync/ausgangsfach', () => ({
+  beiVormerkungFehlgeschlagen: (f: null | ((f: Fehlschlag) => void)) => { vormerkung.melden = f; },
+  beiVormerkungGesichert: () => undefined,
+  zurueckholen: async () => [],
+  nachsenden: async () => ({ gesendet: 0, abgelehnt: 0, offen: 0 }),
+  FACH_GELEERT: 'senklot:ausgangsfach',
+}));
 afterEach(() => { vi.useRealTimers(); katalog.mockReset(); });
 
 function Melder() {
@@ -22,9 +28,20 @@ describe('Rückmeldungen', () => {
     render(<ToastProvider><VerloreneBuchung /></ToastProvider>);
     act(() => vormerkung.melden?.({ zeile: 'z1', tabelle: 'time_entries', grund: 'abgelehnt' }));
     act(() => vi.advanceTimersByTime(60_000));
-    expect(screen.getByRole('alert')).toHaveTextContent('Eine vorgemerkte Buchung konnte nicht gesendet werden.');
+    // Seit Z4 mit Grund (und, wo bekannt, Tag und Entwurf — siehe unten).
+    expect(screen.getByRole('alert')).toHaveTextContent('Eine vorgemerkte Zeitbuchung wurde nicht angenommen: abgelehnt.');
     fireEvent.click(screen.getByRole('button', { name: 'Gelesen' }));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+  it('eine abgelehnte Zeitbuchung nennt Tag und Grund und wo der Entwurf liegt (Z4)', () => {
+    render(<ToastProvider><VerloreneBuchung /></ToastProvider>);
+    act(() => vormerkung.melden?.({
+      zeile: 'z1', tabelle: 'time_entries', grund: 'Überschneidet sich mit 07:00–12:00',
+      vorgaenge: [{ daten: { date: '2026-11-12', start_time: '11:00' } }], gesichert: true,
+    } as Fehlschlag));
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Eine vorgemerkte Zeitbuchung vom 12.11.2026 wurde nicht angenommen: Überschneidet sich mit 07:00–12:00. Sie liegt als Entwurf unter Zeiterfassung, „Meine Einträge“',
+    );
   });
   it('ein vorgemerkter Schein sagt, warum er nicht ankam (E49)', () => {
     render(<ToastProvider><VerloreneBuchung /></ToastProvider>);

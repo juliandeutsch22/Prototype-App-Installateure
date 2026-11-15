@@ -41,7 +41,8 @@ import {
 } from '@/lib/sync/ausgangsfach';
 import { lagerImBrowser, lagerVerfuegbar } from '@/lib/sync/lagerIndexedDB';
 import { supabaseSender } from '@/lib/sync/supabaseSender';
-import { nachsenden, FACH_GELEERT } from '@/lib/sync/ausgangsfach';
+import { nachsenden, FACH_GELEERT, beiVormerkungGesichert, zurueckholen } from '@/lib/sync/ausgangsfach';
+import { zeitEntwurfAus, zeitEntwurfMerken } from '@/lib/zeitEntwuerfe';
 import { derClient } from './kern';
 import { objektAlsZeile } from './felder';
 
@@ -62,6 +63,40 @@ function lager(): Lager | null {
   if (!lagerVerfuegbar()) return null;
   gemerktesLager = lagerImBrowser();
   return gemerktesLager;
+}
+
+/*
+  EINE AUFGEGEBENE ZEITBUCHUNG WIRD ZUM ENTWURF (Z4). Hier angemeldet, in der
+  Datenschicht, nicht in einer Ansicht: die Sicherung muss auch greifen, wenn
+  gerade keine Seite mit Zeiten offen ist.
+*/
+beiVormerkungGesichert((vorgaenge, grund) => {
+  if (vorgaenge[0]?.tabelle !== 'time_entries') return false;
+  const e = zeitEntwurfAus(vorgaenge, grund, 'abgelehnt');
+  return !!e && zeitEntwurfMerken(e);
+});
+
+/**
+ * Eine wartende Zeitbuchung aus dem Fach holen — sie wird zum Entwurf (Z4).
+ * `false`: es war nichts mehr da (inzwischen angekommen) oder kein Fach.
+ */
+export async function zeitbuchungZurueckholen(zeile: string): Promise<boolean> {
+  const fach = lager();
+  if (!fach) return false;
+  const geholt = await zurueckholen(fach, 'time_entries', zeile);
+  const e = zeitEntwurfAus(geholt, 'Nicht gesendet — vom Gerät zurückgeholt', 'zurueckgeholt');
+  if (!e) return false;
+  if (!zeitEntwurfMerken(e)) {
+    // Ohne Ablage auf dem Gerät kein Zurückholen: dann wartet sie weiter im Fach, statt zu verschwinden.
+    for (const v of geholt) {
+      const { folge, ...rest } = v;
+      void folge;
+      await fach.ablegen(rest);
+    }
+    throw new Error('Auf diesem Gerät lässt sich kein Entwurf ablegen — die Buchung wartet weiter.');
+  }
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(FACH_GELEERT));
+  return true;
 }
 
 /** Nur für Prüfungen: ein eigenes Lager unterschieben. */

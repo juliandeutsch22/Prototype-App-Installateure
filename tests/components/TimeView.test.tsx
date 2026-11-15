@@ -1,7 +1,7 @@
 import { zwischenspeicherLeeren } from '@/lib/zwischenspeicher';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useEffect } from 'react';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -1370,5 +1370,37 @@ describe('Zeiterfassung am Handy (C6, E90)', () => {
     expect(await screen.findByTestId('zeitformular')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Neuer Eintrag' })).toBeNull();
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+
+/*
+  Z4 (Durchsicht 15.11.2026): eine abgelehnte vorgemerkte Buchung war weg.
+  Jetzt liegt sie als Entwurf oben in „Meine Einträge“ — mit Tag und Grund —
+  und die Zeile öffnet sie im Formular.
+*/
+describe('Abgelehnte Buchung als Entwurf (Z4)', () => {
+  const entwurf = {
+    kennung: 'z9', uid: 'u1', companyId: 'perl', art: 'anlegen', quelle: 'abgelehnt', angelegtAm: 1,
+    grund: 'Überschneidet sich mit 07:00–12:00',
+    daten: { company_id: 'perl', user_id: 'u1', date: '2026-09-02', status: 'Anwesend', start_time: '11:00', end_time: '16:00', break_duration: 0, project_number: 'PR-2' },
+  };
+  afterEach(() => localStorage.clear());
+
+  it('steht mit Tag und Grund da und öffnet sich im Formular', async () => {
+    localStorage.setItem('senklot.zeitentwurf.u1.z9', JSON.stringify(entwurf));
+    zeige();
+    expect(await screen.findByText('Nicht angenommen: Überschneidet sich mit 07:00–12:00')).toBeInTheDocument();
+    expect(screen.getByText('Noch nicht beim Server')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /02\.09\.2026 · 11:00–16:00 – Entwurf öffnen/ }));
+    const formular = await screen.findByTestId('zeitformular');
+    expect(formular).toHaveTextContent('"date":"2026-09-02"');
+    expect(formular).toHaveTextContent('"startTime":"11:00"');
+    expect(formular).toHaveTextContent('"projectNumber":"PR-2"');
+  });
+
+  it('bleibt gleich: ohne Wartendes und ohne Entwurf steht der Abschnitt nicht da', async () => {
+    zeige();
+    await screen.findAllByTestId('zeitformular');
+    expect(screen.queryByText('Noch nicht beim Server')).toBeNull();
   });
 });

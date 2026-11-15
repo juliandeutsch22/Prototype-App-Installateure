@@ -71,10 +71,11 @@ describe('Der Sender ordnet die Antworten ein', () => {
     }
   });
 
-  it('hält Fehler, die sich von selbst geben, für unklar — nicht für endgültig', async () => {
+  it('hält Fehler, die sich von selbst geben, nicht für endgültig', async () => {
     // Verbindung zur Datenbank weg, Schemacache lädt noch, Anmeldung abgelaufen.
+    // Seit Z4 heißen die ersten drei Arten „Störung“ (ohne Obergrenze wiederholt).
     for (const code of ['PGRST000', 'PGRST002', 'PGRST301', '57014', '53300']) {
-      expect(await einordnen({ code, message: 'x' }), code).toBe('unklar');
+      expect(await einordnen({ code, message: 'x' }), code).not.toBe('abgelehnt');
     }
   });
 
@@ -88,7 +89,7 @@ describe('Der Sender ordnet die Antworten ein', () => {
     // So reicht supabase-js einen gescheiterten `fetch` von Safari durch: ohne Code, Status 0.
     expect(await einordnen({ code: '', message: 'TypeError: Load failed' })).toBe('kein-netz');
     // Was gleich bleiben muss: ein Fehler MIT Code ist kein Netzfehler, auch wenn der Text so klingt.
-    expect(await einordnen({ code: 'PGRST000', message: 'Load failed' })).toBe('unklar');
+    expect(await einordnen({ code: 'PGRST000', message: 'Load failed' })).not.toBe('kein-netz');
   });
 
   it('ohne jede Antwort (Stand 0) ist nichts angekommen — wie auch immer der Browser es nennt', async () => {
@@ -98,8 +99,8 @@ describe('Der Sender ordnet die Antworten ein', () => {
     expect(await einordnen({ message: 'TypeError: The Internet connection appears to be offline.' })).toBe('kein-netz');
     expect(await einordnen({ message: 'TypeError: Could not connect to the server.' })).toBe('kein-netz');
     // Was gleich bleiben muss: mit einer Antwort entscheidet weiter der Code.
-    expect(await mitStand({ code: 'PGRST000', message: 'x' }, 503)).toBe('unklar');
-    expect(await mitStand({ code: '', message: 'x' }, 500)).toBe('unklar');
+    expect(await mitStand({ code: 'PGRST000', message: 'x' }, 503)).not.toBe('kein-netz');
+    expect(await mitStand({ code: '', message: 'x' }, 500)).not.toBe('kein-netz');
   });
 });
 
@@ -161,4 +162,40 @@ it('lässt beim Kontowechsel während des Wartens die fremde Vormerkung liegen',
   const c = { auth: { getSession: async () => ({ data: { session: { user: { id: 'kollegin' } } } }) },
     from: () => { throw new Error('Darf nicht gesendet werden'); } } as unknown as SupabaseClient;
   expect(await supabaseSender(c)({ ...sendung, uid: 'besitzer' })).toEqual({ art: 'kein-netz' });
+});
+
+/*
+  Z4 (Durchsicht 15.11.2026): jede Antwort mit einem Code außerhalb der
+  Liste galt als „unklar“ und wurde nach fünf Läufen verworfen — auch eine
+  Störung des Dienstes (5xx, PGRST0xx, Verbindungsabbruch zur Datenbank).
+  Nach etwa fünf Minuten Störung war so jede in dieser Zeit vorgemerkte,
+  einwandfreie Buchung weg. Umgekehrt galt eine eindeutige Antwort der
+  Datenbank (P0001, 55000 aus einem Trigger) als „unklar“: online meldete
+  die Maske „ohne Verbindung gespeichert“, und der Vorgang blockierte fünf
+  Läufe lang alles dahinter.
+*/
+describe('Störung oder Antwort (Z4)', () => {
+  const mitStand = async (error: { code?: string; message?: string }, status: number) =>
+    (await supabaseSender(clientMitAntwort({ error, status }))(sendung)).art;
+
+  it('der Dienst antwortet nicht: Störung — wird ohne Obergrenze wiederholt', async () => {
+    for (const code of ['PGRST000', 'PGRST001', 'PGRST002', 'PGRST003', '08006', '53300', '57P01', '57P03', '57014', '40001', '40P01', '25006']) {
+      expect(await mitStand({ code, message: 'x' }, 503), code).toBe('stoerung');
+    }
+    for (const status of [500, 502, 503, 504, 408, 429]) {
+      expect(await mitStand({ code: '', message: '<html>Bad Gateway</html>' }, status), String(status)).toBe('stoerung');
+    }
+  });
+
+  it('eine eindeutige Antwort der Datenbank ist eine Ablehnung — mit ihrem Grund', async () => {
+    for (const code of ['P0001', 'P0002', '55000', '42883']) {
+      expect(await mitStand({ code, message: 'Freie Zeitfelder sind ausgeschaltet' }, 400), code).toBe('abgelehnt');
+    }
+  });
+
+  it('bleibt gleich: was niemand kennt, bleibt „unklar“ (mit Grenze); fehlendes Netz bleibt fehlendes Netz', async () => {
+    expect(await mitStand({ code: 'XX000', message: 'interner Fehler' }, 500)).toBe('unklar');
+    expect(await mitStand({ code: '', message: 'TypeError: Failed to fetch' }, 0)).toBe('kein-netz');
+    expect(await mitStand({ code: '42501', message: 'rls' }, 403)).toBe('abgelehnt');
+  });
 });

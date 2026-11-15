@@ -75,7 +75,8 @@ describe('Aufrufe', () => {
     expect(await art({ error: { code: '', message: 'TypeError: Load failed' }, status: 0 })).toBe('kein-netz');
     expect(await art({ error: { code: '42501', message: 'x' }, status: 401 })).toBe('kein-netz');
     expect(await art({ error: { code: '42501', message: 'Ein Schein im Zustand Unterschrieben …' }, status: 403 })).toBe('abgelehnt');
-    expect(await art({ error: { code: 'PGRST000', message: 'x' }, status: 503 })).toBe('unklar');
+    // Seit Z4 eine Störung: ohne Obergrenze wiederholt, nie verworfen.
+    expect(await art({ error: { code: 'PGRST000', message: 'x' }, status: 503 })).toBe('stoerung');
   });
 
   it('dieselbe Unterschrift ein zweites Mal: angekommen, nicht abgelehnt', async () => {

@@ -120,6 +120,8 @@ interface Props {
      * Buchung, Runde 4). Die Auswahl bleibt änderbar.
      */
     userId?: string;
+    /** Der Status einer Buchung, die als Entwurf wieder geöffnet wird (Z4) — sonst Anwesend. */
+    status?: TimeEntry['status'];
   } & Partial<Pick<TimeEntry, 'travelTime' | 'comment' | 'helperName' | 'vehiclePlate' | 'isHelper' | 'isEmergency' | 'nachtAbgewaehlt' | 'zeitfelder'>> | null;
   /**
    * Das Stammdatenblatt dessen, dem die Buchung gehört — für die Rückfrage
@@ -213,7 +215,7 @@ export default function TimeForm({
   const [aufteilenOffen, setAufteilenOffen] = useState(false);
 
   const [date, setDate] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
-  const [status, setStatus] = useState<TimeEntry['status']>(entry?.status ?? 'Anwesend');
+  const [status, setStatus] = useState<TimeEntry['status']>(entry?.status ?? vorbelegung?.status ?? 'Anwesend');
   /** Zeitausgleich nur für einige Stunden (mit Von/Bis) statt für den ganzen Tag. */
   const [zaStundenweise, setZaStundenweise] = useState(
     entry?.status === 'Zeitausgleich' && !!entry.startTime && !!entry.endTime,

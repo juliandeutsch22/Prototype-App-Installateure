@@ -1,7 +1,7 @@
 import Zeitkorrekturen, { KorrekturAnfordern } from './Zeitkorrekturen';
 import ZeitsitzungPanel from './ZeitsitzungPanel';
 import ArbeitstagKarte from './ArbeitstagKarte';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ComponentProps } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { keepPreviousData } from '@tanstack/react-query';
 import { schluessel, useZwischengespeichert } from '@/lib/zwischenspeicher';
@@ -71,6 +71,8 @@ import { offeneAngaben } from '@/lib/zeitfelder';
 import { useFeldsatz, useFeldwerte } from './useZeitfelder';
 import ZeitfeldAngaben from './ZeitfeldAngaben';
 import { LoeschenKnopf } from '@/components/Symbolknoepfe';
+import NochNichtGesendet from './NochNichtGesendet';
+import { entwurfAlsEintrag, zeitEntwurfEntfernen, type ZeitEntwurf } from '@/lib/zeitEntwuerfe';
 
 /** Wie viele Monate die Liste zunaechst zurueckreicht. */
 const MONATE_JE_SEITE = 3;
@@ -147,19 +149,23 @@ export default function TimeView() {
   const vonStart = (useLocation().state ?? null) as { projectNumber?: string } | null;
   const zeigeFehlende = adresse.get('filter') === 'fehlend';
   /** Was aus einem offenen Nachtrag ins Formular übernommen wurde. */
-  const [vorbelegung, setVorbelegung] = useState<{
+  const [vorbelegung, setVorbelegung] = useState<(NonNullable<ComponentProps<typeof TimeForm>['vorbelegung']> & {
     date: string;
     projectNumber: string;
-    startTime?: string;
-    endTime?: string;
-    breakDuration?: number;
-  } | null>(() => {
+  }) | null>(() => {
     const tag = adresse.get('datum');
     return tag && /^\d{4}-\d{2}-\d{2}$/.test(tag) && tag <= todayStr() ? { date: tag, projectNumber: '' } : null;
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<WithId<TimeEntry> | null>(null);
+  /*
+    DER GEÖFFNETE ENTWURF (Z4): eine Buchung, die der Server abgelehnt hat
+    oder die aus dem Ausgangsfach zurückgeholt wurde. Ist sie gebucht, ist
+    der Entwurf erledigt; abgebrochen bleibt er liegen.
+  */
+  const [offenerEntwurf, setOffenerEntwurf] = useState<ZeitEntwurf | null>(null);
+  const [gespeichert, setGespeichert] = useState(0);
   /*
     AM HANDY KOMMT DAS FORMULAR ALS BLATT VON UNTEN (C6, E90). Vorher war die
     Seite über 2.000 px lang, davon 900 px Formular vor den eigenen
@@ -613,6 +619,41 @@ export default function TimeView() {
     setBlatt(false);
     setEditing(null);
     setVorbelegung(null);
+    setOffenerEntwurf(null);
+  };
+  /** Gespeichert: ein geöffneter Entwurf ist damit gebucht (oder neu vorgemerkt) und geht. */
+  const nachSpeichern = () => {
+    if (offenerEntwurf) zeitEntwurfEntfernen(offenerEntwurf);
+    setOffenerEntwurf(null);
+    setGespeichert((n) => n + 1);
+  };
+  /** Einen Entwurf im Formular öffnen — eine Änderung an der Buchung selbst, sonst als neue Buchung. */
+  const entwurfOeffnen = (e: ZeitEntwurf) => {
+    const b = entwurfAlsEintrag(e);
+    setOffenerEntwurf(e);
+    const vorhanden = e.art === 'aendern' ? entries.find((x) => x.id === e.kennung) : undefined;
+    if (vorhanden) {
+      setVorbelegung(null);
+      bearbeiten({ ...vorhanden, ...b });
+      return;
+    }
+    setEditing(null);
+    setVorbelegung({
+      date: b.date ?? todayStr(),
+      projectNumber: b.projectNumber ?? '',
+      startTime: b.startTime,
+      endTime: b.endTime,
+      breakDuration: b.breakDuration,
+      travelTime: b.travelTime,
+      comment: b.comment,
+      helperName: b.helperName,
+      vehiclePlate: b.vehiclePlate,
+      isHelper: b.isHelper,
+      isEmergency: b.isEmergency,
+      nachtAbgewaehlt: b.nachtAbgewaehlt,
+      status: b.status,
+    });
+    document.getElementById('zeit-formular')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   };
 
   /** Eine Buchung als Zeile — in den Wochen wie unter „Kommende Wochen". */
@@ -1071,7 +1112,7 @@ export default function TimeView() {
             das Formular auf dem alten Stand stehen, und der Klick auf
             „Zeit nachtragen" täte sichtbar nichts.
           */
-          key={editing?.id ?? (vorbelegung ? `nachtrag-${vorbelegung.date}-${vorbelegung.projectNumber}` : 'new')}
+          key={editing?.id ?? (vorbelegung ? `nachtrag-${vorbelegung.date}-${vorbelegung.projectNumber}-${offenerEntwurf?.kennung ?? ''}` : 'new')}
           entry={editing ?? undefined}
           lastEntry={lastEntry}
           vorbelegung={editing ? null : vorbelegung}
@@ -1082,12 +1123,13 @@ export default function TimeView() {
             // Die Vorbelegung ist verbraucht. Bliebe sie stehen, käme sie
             // beim nächsten Eintrag unbemerkt wieder hoch.
             setVorbelegung(null);
+            nachSpeichern();
           }}
           onCancel={
             editing
-              ? () => setEditing(null)
+              ? () => { setEditing(null); setOffenerEntwurf(null); }
               : vorbelegung
-                ? () => setVorbelegung(null)
+                ? () => { setVorbelegung(null); setOffenerEntwurf(null); }
                 : undefined
           }
         />
@@ -1118,13 +1160,13 @@ export default function TimeView() {
                 das Formular auf dem alten Stand stehen, und der Klick auf
                 „Zeit nachtragen" täte sichtbar nichts.
               */
-              key={editing?.id ?? (vorbelegung ? `nachtrag-${vorbelegung.date}-${vorbelegung.projectNumber}` : 'new')}
+              key={editing?.id ?? (vorbelegung ? `nachtrag-${vorbelegung.date}-${vorbelegung.projectNumber}-${offenerEntwurf?.kennung ?? ''}` : 'new')}
               entry={editing ?? undefined}
               lastEntry={lastEntry}
               vorbelegung={editing ? null : vorbelegung}
               // Tagessoll und Verteilung für die Rückfrage zum Jugendschutz (Runde 3, M2).
               besitzerProfil={profile}
-              onSaved={formularSchliessen}
+              onSaved={() => { nachSpeichern(); formularSchliessen(); }}
               onCancel={formularSchliessen}
             />
           )}
@@ -1132,6 +1174,8 @@ export default function TimeView() {
       )}
 
       <Card title="Meine Einträge" id="meine-eintraege" className="zeit-liste" buendig>
+        {/* Was dieses Gerät noch nicht beim Server hat — auch ohne Netz, auch wenn die Liste nicht lädt (Z4). */}
+        <NochNichtGesendet companyId={user.companyId} uid={user.uid} stand={gespeichert} onOeffnen={entwurfOeffnen} />
         {loading ? (
           <div className="p-4">
             <SkeletonList rows={5} />

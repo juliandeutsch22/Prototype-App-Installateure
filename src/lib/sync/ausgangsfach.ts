@@ -91,6 +91,13 @@ export type Sendeergebnis =
   /** Nichts ist angekommen. Kein Grund, irgendetwas aufzugeben. */
   | { art: 'kein-netz' }
   /**
+   * Der Dienst antwortet nicht (Störung, Wartung, Überlast, Verbindung zur
+   * Datenbank weg). Wie fehlendes Netz: liegen lassen, nicht zählen, ohne
+   * Obergrenze wieder versuchen (Z4) — eine Störung macht keine einwandfreie
+   * Buchung falsch.
+   */
+  | { art: 'stoerung'; grund: string }
+  /**
    * Der Server hat geantwortet, aber unbrauchbar (Serverfehler,
    * Zeitüberschreitung). Ob der Vorgang angekommen ist, weiss niemand — und
    * genau deshalb ist Eigenschaft 1 die Bedingung für einen zweiten Versuch.
@@ -127,13 +134,25 @@ export interface Lager {
 /**
  * Wie oft ein unklarer Ausgang wiederholt wird, bevor er als Ablehnung gilt.
  *
+ * Seit Z4 nur noch für Antworten, die niemand einordnen kann: fehlendes Netz
+ * und eine Störung des Dienstes (`stoerung`) zählen nicht und werden ohne
+ * Obergrenze wiederholt; was aufgegeben wird, sichert `beiVormerkungGesichert`.
+ *
  * Ohne Obergrenze bliebe eine vergiftete Zeile für immer vorn in der
  * Warteschlange liegen und hielte alles dahinter auf — der Monteur sähe nie
  * wieder eine seiner Buchungen ankommen und erführe auch nicht, warum.
  */
 export const VERSUCHE_GRENZE = 5;
 
-export type Melder = (fehler: { zeile: string; tabelle: string; grund: string }) => void;
+export type Melder = (fehler: {
+  zeile: string;
+  tabelle: string;
+  grund: string;
+  /** Was aufgegeben wurde — in der Reihenfolge des Fachs (Z4). */
+  vorgaenge?: readonly Sendung[];
+  /** Liegt das Aufgegebene als Entwurf bereit (`beiVormerkungGesichert`)? */
+  gesichert?: boolean;
+}) => void;
 
 let melder: Melder | null = null;
 
@@ -142,9 +161,33 @@ export function beiVormerkungFehlgeschlagen(cb: Melder | null): void {
   melder = cb;
 }
 
-function melden(zeile: string, tabelle: string, grund: string): void {
+/**
+ * WAS AUFGEGEBEN WIRD, GEHT NICHT VERLOREN (Z4, Durchsicht 15.11.2026).
+ *
+ * Bisher räumte das Fach einen abgelehnten Vorgang weg, und die Meldung sagte
+ * nur, DASS etwas fehlt — ohne Tag, ohne Grund, die Eingabe war weg. Die
+ * Sicherung bekommt vor dem Wegräumen die Vorgänge selbst und legt sie als
+ * Entwurf ab (für Zeitbuchungen `lib/zeitEntwuerfe.ts`, angemeldet von der
+ * Datenschicht). Sie sagt zurück, ob das gelang — die Meldung richtet sich
+ * danach.
+ */
+export type Sicherung = (vorgaenge: readonly Sendung[], grund: string) => boolean;
+let sicherung: Sicherung | null = null;
+
+/** Einmal beim Start setzen. `null` meldet ab. */
+export function beiVormerkungGesichert(cb: Sicherung | null): void {
+  sicherung = cb;
+}
+
+function melden(zeile: string, tabelle: string, grund: string, vorgaenge: readonly Sendung[] = []): void {
+  let gesichert = false;
   try {
-    melder?.({ zeile, tabelle, grund });
+    gesichert = vorgaenge.length > 0 && !!sicherung?.(vorgaenge, grund);
+  } catch {
+    // Eine Sicherung, die selbst scheitert, darf die Meldung nicht verhindern.
+  }
+  try {
+    melder?.({ zeile, tabelle, grund, vorgaenge, gesichert });
   } catch {
     // Ein Fehler in der Meldung darf den Nachsendelauf nicht mitreissen.
   }
@@ -241,7 +284,7 @@ function begrenzt(lauf: Promise<WriteOutcome>, v: Sendung): Promise<WriteOutcome
     const timer = setTimeout(() => { wartet = false; resolve('queued'); }, 4000);
     lauf.then(resolve, (e: unknown) => {
       if (wartet) reject(e);
-      else melden(v.zeile, v.tabelle, e instanceof Error ? e.message : String(e));
+      else melden(v.zeile, v.tabelle, e instanceof Error ? e.message : String(e), [v]);
     }).finally(() => clearTimeout(timer));
   });
 }
@@ -300,7 +343,8 @@ export async function nachsenden(
         continue;
       }
 
-      if (ergebnis.art === 'kein-netz') break;
+      // Fehlendes Netz und eine Störung des Dienstes zählen nicht und geben nichts auf (Z4).
+      if (ergebnis.art === 'kein-netz' || ergebnis.art === 'stoerung') break;
 
       if (ergebnis.art === 'unklar') {
         const versucht = { ...v, versuche: v.versuche + 1 };
@@ -335,13 +379,33 @@ async function aufgeben(
   grund: string,
   verworfen: Set<number>,
 ): Promise<number> {
-  const betroffen = (await lager.alle()).filter(
-    (x) => x.zeile === v.zeile && x.tabelle === v.tabelle && x.folge >= v.folge,
-  );
+  const betroffen = (await lager.alle())
+    .filter((x) => x.zeile === v.zeile && x.tabelle === v.tabelle && x.folge >= v.folge)
+    .sort((a, b) => a.folge - b.folge);
   for (const x of betroffen) {
     await lager.entfernen(x.folge);
     verworfen.add(x.folge);
   }
-  melden(v.zeile, v.tabelle, grund);
+  melden(v.zeile, v.tabelle, grund, betroffen);
   return betroffen.length;
+}
+
+/**
+ * Eine wartende Vormerkung aus dem Fach holen — samt allem, was auf
+ * derselben Zeile dahinter wartet (Z4).
+ *
+ * Der Ausweg zum Wiederholen ohne Obergrenze: hängt eine Buchung in einer
+ * langen Störung und hält alles dahinter auf, nimmt der Monteur sie heraus
+ * (sie wird zum Entwurf) — statt dass das Fach sie still verwirft. Unter
+ * der Sperre: läuft gerade ein Senden, wartet das Zurückholen, und war die
+ * Buchung inzwischen angekommen, kommt nichts zurück.
+ */
+export function zurueckholen(lager: Lager, tabelle: string, zeile: string): Promise<Vormerkung[]> {
+  return mitSperre(lager, async () => {
+    const betroffen = (await lager.alle())
+      .filter((x) => x.zeile === zeile && x.tabelle === tabelle)
+      .sort((a, b) => a.folge - b.folge);
+    for (const x of betroffen) await lager.entfernen(x.folge);
+    return betroffen;
+  });
 }
