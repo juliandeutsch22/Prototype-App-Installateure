@@ -11,6 +11,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { EinsatzMaterial, RuestPosition } from '@/types';
 import { abfragen, derClient, kanalHalten, NACHFASSEN_MS, type WithId } from './kern';
+import { paarGeaendertAus, type ListenZeile } from '../paarFassung';
 
 const KOPF = 'einsatz_material';
 const POSITIONEN = 'einsatz_material_positionen';
@@ -221,6 +222,12 @@ export async function saveEinsatzMaterial(
   uids: string[],
   updatedBy: string,
   client?: SupabaseClient,
+  /**
+   * Auf welcher Liste die Eingabe beruht (P1): weicht die gespeicherte ab,
+   * wird nichts geschrieben und `PaarGeaendert` geworfen. Ohne Angabe wird
+   * nicht geprüft — wie bisher.
+   */
+  grundlage?: ListenZeile[],
 ): Promise<void> {
   /*
     Der Betrieb steht im Anmeldekontext, die Datenbankfunktion holt ihn sich
@@ -255,8 +262,9 @@ export async function saveEinsatzMaterial(
     })),
     p_uids: uids,
     p_von: updatedBy,
+    ...(grundlage ? { p_grundlage: { liste: grundlage } } : {}),
   });
-  if (error) throw new Error(error.message);
+  if (error) throw paarGeaendertAus(error) ?? new Error(error.message);
 }
 
 /**

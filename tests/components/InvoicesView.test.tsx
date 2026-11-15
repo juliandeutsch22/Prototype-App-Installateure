@@ -4458,7 +4458,10 @@ describe('Rücklass beim Anlegen', () => {
     // Systemzeit 01.09.2026 — drei Jahre Gewährleistung.
     expect(screen.getByLabelText('Fällig am')).toHaveValue('2029-09-01');
     await userEvent.type(screen.getByLabelText('Rücklass (%)'), '5');
-    expect(screen.getByText(/Einbehalten: .*Zu zahlen jetzt:/)).toBeInTheDocument();
+    // Einbehalten und Zahlbetrag stehen seit G1 (15.11.2026) unter den Summen, in „Zahlung“.
+    const zahlung = screen.getByRole('region', { name: 'Zahlung' });
+    expect(within(zahlung).getByText('Rücklass').nextElementSibling?.textContent).toMatch(/^Haftrücklass 5 %: €/);
+    expect(within(zahlung).getByText('Zahlbetrag')).toBeInTheDocument();
     await userEvent.click(knopf);
     await waitFor(() => expect(lege).toHaveBeenCalled());
     const r = lege.mock.calls[0][0] as { totalBrutto: number; ruecklassBetrag: number };
@@ -5823,4 +5826,154 @@ it('Rechnung: während ausstehender Bestätigung sind Eingaben und Verwerfen ges
   fertig?.({ id: 'neu', invoiceNumber: reservierteNummer });
   await waitFor(() => expect(screen.queryByRole('button', { name: 'Rechnung erstellen & PDF' })).toBeNull());
   expect(pdfAusgabe).toHaveBeenCalledOnce();
+});
+
+/*
+  DURCHSICHT 15.11.2026, G1: „Konditionen für diese Rechnung anpassen“
+  versprach „nur für diese Rechnung“ — und hielt Stundensatz, Zahlungsziel,
+  Skonto und USt-Satz still für jede weitere Rechnung bis zum Neuladen fest.
+  Der Beleg ist danach eingefroren; eine falsche Kondition geht nur noch über
+  Storno weg. Gegenprobe: vor der Änderung trägt die zweite Rechnung 58 €/h,
+  30 Tage, 3 % Skonto und 10 % USt der ersten, und die Felder stehen nach
+  Schließen, Verwerfen und Baustellenwechsel weiter auf den Werten davor.
+*/
+describe('Konditionen gelten nur für die Rechnung, die gerade entsteht (G1)', () => {
+  const firma = authWert.company as unknown as { rates?: Record<string, unknown> };
+  beforeEach(() => {
+    firma.rates = { fach: 68, helper: 45, nightSurcharge: 0.5, emergencySurcharge: 1, vatRate: 0.2, dueDays: 14 };
+  });
+  afterEach(() => {
+    firma.rates = undefined;
+  });
+
+  const feld = (label: string) => screen.getByLabelText(label) as HTMLInputElement | HTMLSelectElement;
+  function konditionen() {
+    return {
+      fach: feld('Facharbeiter €/h').value,
+      ziel: feld('Zahlungsziel (Tage)').value,
+      skonto: feld('Skonto %').value,
+      frist: feld('Skontofrist (Tage)').value,
+      ust: feld('USt-Satz').value,
+    };
+  }
+  async function abweichendSetzen() {
+    fireEvent.change(feld('Facharbeiter €/h'), { target: { value: '58' } });
+    fireEvent.change(feld('Zahlungsziel (Tage)'), { target: { value: '30' } });
+    fireEvent.change(feld('Skonto %'), { target: { value: '3' } });
+    fireEvent.change(feld('Skontofrist (Tage)'), { target: { value: '10' } });
+    await userEvent.selectOptions(feld('USt-Satz'), '0.1');
+  }
+  async function baustelle(nr: string) {
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), nr);
+  }
+  async function zusammenstellen() {
+    await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
+    return screen.findByRole('button', { name: /Rechnung erstellen/ });
+  }
+  const BETRIEB = { fach: '68', ziel: '14', skonto: '', frist: '', ust: '0.2' };
+
+  it('die nächste Rechnung beginnt wieder mit den Sätzen des Betriebs', async () => {
+    zeige();
+    await neueRechnung();
+    await baustelle('2026-042');
+    expect(konditionen()).toEqual(BETRIEB);
+    await abweichendSetzen();
+    await userEvent.click(await zusammenstellen());
+    await waitFor(() => expect(lege).toHaveBeenCalledTimes(1));
+    // Bleibt gleich: für DIESE Rechnung gelten die angepassten Konditionen.
+    const erste = lege.mock.calls[0][0] as Invoice;
+    expect(erste).toMatchObject({ dueDate: '2026-10-01', vatRate: 0.1, skontoProzent: 3, skontoBis: '2026-09-11' });
+    expect(erste.positions?.some((p) => p.unitPrice === 58)).toBe(true);
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull());
+
+    expect(konditionen()).toEqual(BETRIEB);
+    await baustelle('2026-042');
+    await userEvent.click(await zusammenstellen());
+    await waitFor(() => expect(lege).toHaveBeenCalledTimes(2));
+    const zweite = lege.mock.calls[1][0] as Invoice;
+    expect(zweite).toMatchObject({ dueDate: '2026-09-15', vatRate: 0.2, skontoProzent: null, skontoBis: null });
+    expect(zweite.positions?.some((p) => p.unitPrice === 68)).toBe(true);
+    expect(zweite.positions?.some((p) => p.unitPrice === 58)).toBe(false);
+  });
+
+  it('Schließen des Formulars verwirft die angepassten Konditionen', async () => {
+    zeige();
+    await neueRechnung();
+    await baustelle('2026-042');
+    await abweichendSetzen();
+    await userEvent.click(screen.getByRole('button', { name: 'Schließen' }));
+    await neueRechnung();
+    expect(konditionen()).toEqual(BETRIEB);
+  });
+
+  it('Verwerfen der Vorschau verwirft sie ebenso', async () => {
+    zeige();
+    await neueRechnung();
+    await baustelle('2026-042');
+    await abweichendSetzen();
+    await zusammenstellen();
+    await userEvent.click(screen.getByRole('button', { name: 'Verwerfen' }));
+    expect(konditionen()).toEqual(BETRIEB);
+  });
+
+  it('eine andere Baustelle ist eine andere Rechnung — die erste Wahl behält, was vorher eingetragen war', async () => {
+    const projekte = await import('@/lib/db/projects');
+    const ZWEITE = { ...PROJEKT, id: 'p2', projectNumber: '2026-043', customerName: 'Baumeister Gruber' };
+    vi.mocked(projekte.listActiveProjects).mockImplementation(async () => [PROJEKT, ZWEITE]);
+    try {
+      zeige();
+      await neueRechnung();
+      // Erst die Konditionen, dann die Baustelle: das ist noch dieselbe Rechnung.
+      await screen.findByRole('option', { name: /2026-043/ });
+      await abweichendSetzen();
+      await baustelle('2026-042');
+      expect(konditionen()).toEqual({ fach: '58', ziel: '30', skonto: '3', frist: '10', ust: '0.1' });
+      await baustelle('2026-043');
+      expect(konditionen()).toEqual(BETRIEB);
+    } finally {
+      vi.mocked(projekte.listActiveProjects).mockImplementation(async () => [PROJEKT]);
+    }
+  });
+
+  it('die Vorschau nennt Zahlungsziel, Skonto, Rücklass und Zahlbetrag unter den Summen', async () => {
+    firma.rates = { ...firma.rates, skontoProzent: 2, skontoTage: 7 };
+    await bisZurVorschau();
+    const zahlung = screen.getByRole('region', { name: 'Zahlung' });
+    // 8 h × 68 € = 544,00 netto, 108,80 USt, 652,80 brutto; 2 % Skonto = 13,06 €.
+    expect(within(zahlung).getByText('Zahlungsziel').nextElementSibling?.textContent).toBe('14 Tage, bis 15.09.2026');
+    expect(within(zahlung).getByText('Skonto').nextElementSibling?.textContent).toMatch(/^2 % bei Zahlung bis 08\.09\.2026: €\s13,06$/);
+    expect(within(zahlung).getByText('Rücklass').nextElementSibling?.textContent).toBe('keiner');
+    const zahlbetrag = within(zahlung).getByText('Zahlbetrag').nextElementSibling?.textContent ?? '';
+    expect(zahlbetrag).toMatch(/^€\s652,80/);
+    expect(zahlbetrag).toMatch(/mit Skonto €\s639,74$/);
+    // Gegenprobe zur Markierung: mit den Sätzen des Betriebs weicht nichts ab.
+    expect(within(zahlung).queryByText(/Abweichend vom Betrieb/)).toBeNull();
+
+    // Der Rücklass mindert den Zahlbetrag; der Skonto gilt auf den Zahlbetrag.
+    await userEvent.click(screen.getByLabelText('Haftrücklass einbehalten'));
+    await userEvent.type(screen.getByLabelText('Rücklass (%)'), '5');
+    expect(within(zahlung).getByText('Rücklass').nextElementSibling?.textContent)
+      .toMatch(/^Haftrücklass 5 %: €\s32,64, fällig am 01\.09\.2029$/);
+    expect(within(zahlung).getByText('Zahlbetrag').nextElementSibling?.textContent)
+      .toMatch(/^€\s620,16.*mit Skonto €\s607,76$/);
+  });
+
+  it('weichen die Konditionen vom Betrieb ab, steht es dort — als Text', async () => {
+    zeige();
+    await neueRechnung();
+    await baustelle('2026-042');
+    await abweichendSetzen();
+    await zusammenstellen();
+    const zahlung = screen.getByRole('region', { name: 'Zahlung' });
+    expect(within(zahlung).getByText('Zahlungsziel').nextElementSibling?.textContent).toBe('30 Tage, bis 01.10.2026');
+    // 8 h × 58 € = 464,00 netto, 10 % USt 46,40, brutto 510,40; 3 % Skonto = 15,31 €.
+    expect(within(zahlung).getByText('Skonto').nextElementSibling?.textContent).toMatch(/^3 % bei Zahlung bis 11\.09\.2026: €\s15,31$/);
+    expect(within(zahlung).getByText('Zahlbetrag').nextElementSibling?.textContent).toMatch(/^€\s510,40.*mit Skonto €\s495,09$/);
+    const abweichung = within(zahlung).getByText(/Abweichend vom Betrieb/).closest('p');
+    expect(abweichung?.textContent).toMatch(/Facharbeiter €\s58,00\/h \(Betrieb €\s68,00\/h\)/);
+    expect(abweichung?.textContent).toContain('Zahlungsziel 30 Tage (Betrieb 14 Tage)');
+    expect(abweichung?.textContent).toContain('Skonto 3 % in 10 Tagen (Betrieb keines)');
+    expect(abweichung?.textContent).toContain('USt 10 % (Betrieb 20 %)');
+    expect(abweichung?.textContent).not.toContain('Helfer');
+  });
 });

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type React from 'react';
 import type { CurrentUser } from '@/types';
+import { AnmeldeFehler } from '@/lib/auth/kern';
 
 /**
  * DER KREISEL AUF DEM ANMELDEKNOPF.
@@ -154,6 +155,52 @@ describe('Der Anmeldeknopf', () => {
 
     expect(await screen.findByText(/Benutzername und Passwort prüfen/)).toBeInTheDocument();
     expect(knopf()).not.toBeDisabled();
+  });
+});
+
+/*
+  K5 (Durchsicht 15.11.2026): VORHER HIESS JEDE ABLEHNUNG „PASSWORT PRÜFEN“
+  — auch ohne Netz und nach zu vielen Versuchen. Die Einordnung kommt aus
+  der Anmeldeschicht (`tests/unit/anmeldeAblehnung.test.ts`); hier, was die
+  Maske daraus macht.
+  Gegenprobe: mit dem alten `catch` steht in allen drei Fällen „Passwort
+  prüfen“ — rot.
+*/
+describe('Die Maske nennt den Grund, soweit er nichts verrät', () => {
+  it('ohne Netz: keine Verbindung — nicht „Passwort prüfen“', async () => {
+    anmelden.mockRejectedValue(new AnmeldeFehler('netz', 'Failed to fetch'));
+    zeige();
+    await anmeldeversuch();
+    const meldung = await screen.findByRole('alert');
+    expect(meldung).toHaveTextContent('Keine Verbindung zum Anmeldedienst');
+    expect(meldung).not.toHaveTextContent('Passwort prüfen');
+    expect(knopf()).not.toBeDisabled();
+  });
+
+  it('zu viele Versuche: warten — nicht „Passwort prüfen“', async () => {
+    anmelden.mockRejectedValue(new AnmeldeFehler('zuViele', 'Request rate limit reached'));
+    zeige();
+    await anmeldeversuch();
+    const meldung = await screen.findByRole('alert');
+    expect(meldung).toHaveTextContent('Zu viele Anmeldeversuche');
+    expect(meldung).not.toHaveTextContent('Passwort prüfen');
+  });
+
+  it('Störung des Anmeldedienstes: später noch einmal', async () => {
+    anmelden.mockRejectedValue(new AnmeldeFehler('dienst', 'Database error querying schema'));
+    zeige();
+    await anmeldeversuch();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Der Anmeldedienst ist gerade gestört');
+  });
+
+  it('Zugangsdaten (auch ein gesperrtes Konto): ein Satz für alle — nennt die Möglichkeit „deaktiviert“, nie „gibt es nicht“', async () => {
+    anmelden.mockRejectedValue(new AnmeldeFehler('zugangsdaten', 'User is banned'));
+    zeige();
+    await anmeldeversuch();
+    const meldung = await screen.findByRole('alert');
+    expect(meldung).toHaveTextContent('Anmeldung fehlgeschlagen. E-Mail bzw. Benutzername und Passwort prüfen.');
+    expect(meldung).toHaveTextContent('vielleicht deaktiviert');
+    expect(meldung.textContent).not.toMatch(/gibt es nicht|existiert|unbekannt|ist deaktiviert/i);
   });
 });
 

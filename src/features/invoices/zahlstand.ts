@@ -1,4 +1,5 @@
 import type { Invoice } from '@/types';
+import { cent as runde } from '@/lib/betrag';
 
 /**
  * Was von einer Rechnung noch aussteht — und was zurückgeht.
@@ -26,8 +27,6 @@ export interface Zahlstand {
 }
 
 type Rechnung = Pick<Invoice, 'totalBrutto' | 'bezahltBetrag' | 'paymentStatus'>;
-
-const runde = (n: number) => Math.round(n * 100) / 100;
 
 export function zahlstand(inv: Rechnung): Zahlstand {
   const bezahlt = runde(inv.bezahltBetrag ?? 0);

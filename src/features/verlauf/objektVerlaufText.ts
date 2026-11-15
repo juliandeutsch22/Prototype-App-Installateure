@@ -176,6 +176,7 @@ export const VERLAUF_FELDER: Record<Objektart, Feld[]> = {
     ['steuerbefreiung', 'Steuerbefreiung', text],
     ['skonto_prozent', 'Skonto', prozent],
     ['skonto_bis', 'Skonto bis', datum],
+    ['skonto_zugesagt', 'Skonto zugesagt', geld],
     ['ruecklass_art', 'Rücklass', ruecklassArt],
     ['ruecklass_prozent', 'Rücklass in Prozent', prozent],
     ['ruecklass_betrag', 'Rücklassbetrag', geld],

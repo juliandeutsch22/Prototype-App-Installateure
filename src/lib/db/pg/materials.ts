@@ -141,6 +141,50 @@ export function deleteMaterial(id: string) {
   return loeschen(MATERIAL, id);
 }
 
+/** Was an einem Artikel hängt — für die Rückfrage vor dem Löschen (M1). */
+export interface ArtikelVerwendung {
+  /** Die Gründe in Worten, wie die Datenbank sie beim Löschen nennt; leer heißt: löschbar. */
+  imWeg: string[];
+  ausgelaufen: boolean;
+  /** Vom Betrieb selbst auslaufen gelassen (nicht vom Katalog des Großhändlers). */
+  vonHand: boolean;
+}
+
+/**
+ * Fragt die Datenbank, was einem Löschen im Weg stünde (M1, 15.11.2026).
+ *
+ * DIESELBE STELLE WIE DIE SPERRE (`app.artikel_verwendung`): die Rückfrage
+ * verspricht damit nichts, was das Löschen danach nicht hält. Die Sätze
+ * kommen fertig aus der Datenbank, damit sie an beiden Stellen gleich lauten.
+ *
+ * Ein lesender Aufruf (`stable`, `LESENDE_FUNKTIONEN`): auf einer toten
+ * Verbindung endet er nach der Stillstandsfrist als Netzfehler, statt die
+ * Rückfrage ewig auf „wird geprüft“ stehen zu lassen. Die Rückfrage bietet
+ * dann Löschen an — die Sperre in der Datenbank prüft ohnehin selbst.
+ */
+export async function artikelVerwendung(materialId: string): Promise<ArtikelVerwendung> {
+  const { data, error } = await derClient().rpc('artikel_verwendung', { p_material: materialId });
+  if (error) throw new Error(error.message);
+  const d = (data ?? {}) as { im_weg?: unknown; ausgelaufen?: unknown; von_hand?: unknown };
+  return {
+    imWeg: Array.isArray(d.im_weg) ? d.im_weg.map(String) : [],
+    ausgelaufen: d.ausgelaufen === true,
+    vonHand: d.von_hand === true,
+  };
+}
+
+/**
+ * Auslaufen lassen (`aus = true`) oder wieder aufnehmen (M1).
+ *
+ * Über eine Datenbankfunktion, nicht über `updateMaterial`: nur sie setzt
+ * den Merker „von Hand“, an dem der Import des Großhändlers erkennt, dass er
+ * den Artikel nicht zurückholen darf.
+ */
+export async function artikelAuslaufen(materialId: string, aus: boolean): Promise<void> {
+  const { error } = await derClient().rpc('artikel_auslaufen', { p_material: materialId, p_aus: aus });
+  if (error) throw new Error(error.message);
+}
+
 /**
  * Lageranpassung. `delta < 0` ist ein Abgang, `delta > 0` eine Rückbuchung.
  *

@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { eingangAendern, eingangAnlegen, type EingangEingabe } from '@/lib/db/auftragseingaenge';
 import { EINGANG_DRINGLICHKEITEN, EINGANG_QUELLEN, type Auftragseingang, type Customer } from '@/types';
 import type { WithId } from '@/lib/db/core';
+import { listCustomersByIds } from '@/lib/db/customers';
 import KundenAuswahl from '@/components/KundenAuswahl';
 import Button from '@/components/Button';
 import { InputField, SelectField, TextareaField, FormGrid } from '@/components/Field';
@@ -94,6 +95,37 @@ export default function EingangFormular({
   const [fehler, setFehler] = useState<string | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const setze = <K extends keyof EingangFormularStand>(k: K, w: EingangFormularStand[K]) => setF((alt) => ({ ...alt, [k]: w }));
+  /*
+    DER ORT FOLGT DEM KUNDEN, SOLANGE NIEMAND IHN ANGEFASST HAT (Durchsicht
+    15.11.2026, A7). `vorschlag` ist die Anschrift, die zuletzt ein Kunde in
+    den Ort gelegt hat. Steht genau sie noch da, ersetzt der nächste Kunde
+    sie. Bisher blieb sie stehen, sobald der Ort nicht leer war: am Telefon
+    Kunde A gewählt, auf B korrigiert — und die Anschrift von A ging als
+    Adresse in Baustelle oder Angebot von B. Was von Hand oder aus der
+    Liegenschaft im Feld steht, ist kein Vorschlag eines Kunden und bleibt.
+    Dieselbe Regel wie im Angebot und in der Baustellenakte (G3, G5).
+  */
+  const [vorschlag, setVorschlag] = useState('');
+  /*
+    Beim Ändern steht der Vorschlag des gespeicherten Kunden schon im Ort,
+    aber die Auswahl meldet ihren Kunden erst beim Wechsel. Ohne seine
+    Anschrift hielte der Ort beim Korrigieren des Kunden wieder die alte.
+    `v || …`: hat jemand inzwischen schon gewechselt, gilt dessen Vorschlag.
+  */
+  const gespeicherterKunde = eingang?.customerId;
+  useEffect(() => {
+    if (!gespeicherterKunde) return;
+    let weg = false;
+    listCustomersByIds(companyId, [gespeicherterKunde])
+      .then((rows) => {
+        const anschrift = rows.find((k) => k.id === gespeicherterKunde)?.address ?? '';
+        if (!weg && anschrift) setVorschlag((v) => v || anschrift);
+      })
+      .catch(() => undefined);
+    return () => {
+      weg = true;
+    };
+  }, [companyId, gespeicherterKunde]);
 
   async function speichern(e: FormEvent) {
     e.preventDefault();
@@ -170,7 +202,15 @@ export default function EingangFormular({
           name="Kunde"
           werte={[{ wert: 'vorhanden', text: 'Vorhandener Kunde' }, { wert: 'neu', text: 'Neuer Kunde' }]}
           wert={f.kundeArt}
-          onChange={(w) => setze('kundeArt', w)}
+          onChange={(w) =>
+            setF((alt) => {
+              // Der Vorschlag des gewählten Kunden passt nicht zum neuen: weg damit (leer heißt
+              // beim Speichern dessen Anschrift) — und zurück, wenn wieder der vorhandene gilt.
+              const istVorschlag = !!vorschlag && alt.ort === vorschlag;
+              const ort = w === 'neu' && istVorschlag ? '' : w === 'vorhanden' && !alt.ort.trim() ? vorschlag : alt.ort;
+              return { ...alt, kundeArt: w, ort };
+            })
+          }
         />
         {f.kundeArt === 'vorhanden' ? (
           <KundenAuswahl
@@ -181,8 +221,10 @@ export default function EingangFormular({
             value={f.customerId}
             nurAktive
             onChange={(id, k) => {
+              const anschrift = k?.address ?? '';
               setKunde(k);
-              setF((alt) => ({ ...alt, customerId: id, ort: alt.ort.trim() ? alt.ort : k?.address ?? '' }));
+              setF((alt) => ({ ...alt, customerId: id, ort: !alt.ort.trim() || alt.ort === vorschlag ? anschrift : alt.ort }));
+              setVorschlag(anschrift);
             }}
           />
         ) : (

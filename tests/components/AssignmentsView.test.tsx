@@ -83,6 +83,15 @@ vi.mock('@/lib/db/abwesenheiten', () => ({
   der ein Monat noch lädt (Befund 09.11.2026).
 */
 const abo: { halten: boolean; offen: { monat: string; liefern: () => void }[] } = { halten: false, offen: [] };
+/**
+ * Jedes Abo, das je aufgemacht wurde — für eine spätere Live-Meldung (P1).
+ * Abgelöste rufen ins Leere: die Ansicht verwirft Meldungen eines alten Abos selbst.
+ */
+const live: { einsaetze: (() => void)[]; listen: (() => void)[] } = { einsaetze: [], listen: [] };
+function liveMelden() {
+  for (const f of live.einsaetze) f();
+  for (const f of live.listen) f();
+}
 vi.mock('@/lib/db/assignments', () => ({
   subscribeAssignmentsForMonth: (
     _c: string,
@@ -92,6 +101,7 @@ vi.mock('@/lib/db/assignments', () => ({
   ) => {
     const monat = `${j}-${String(m + 1).padStart(2, '0')}`;
     const liefern = () => cb(einsaetze.filter((a) => a.date.startsWith(monat)));
+    live.einsaetze.push(liefern);
     if (abo.halten) abo.offen.push({ monat, liefern });
     else liefern();
     return () => undefined;
@@ -187,6 +197,7 @@ vi.mock('@/lib/db/einsatzMaterial', () => ({
     cb: (r: (EinsatzMaterial & { id: string })[]) => void,
   ) => {
     const liefern = () => cb(ruestlisten.filter((l) => l.date === tag));
+    live.listen.push(liefern);
     if (listenAbo.halten) listenAbo.offen.push({ tag, liefern });
     else liefern();
     return () => undefined;
@@ -223,6 +234,8 @@ beforeEach(() => {
   abo.offen = [];
   listenAbo.halten = false;
   listenAbo.offen = [];
+  live.einsaetze = [];
+  live.listen = [];
   personen = [MONTEUR, KOLLEGE];
   urlaube = [];
   betriebsurlaube = [];
@@ -1446,6 +1459,63 @@ describe('Tag planen — die Rüstliste gehört zum gewählten Tag', () => {
     await act(async () => listenAbo.offen.find((o) => o.tag === '2026-09-02')!.liefern());
     await waitFor(() => expect(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' })).toBeEnabled());
     expect(screen.queryByText('Eckventil 1/2')).toBeNull();
+  });
+});
+
+/*
+  FREMDE ÄNDERUNGEN IM BETRIEB (Durchsicht 15.11.2026, P1) — durch die ganze
+  Kette: Live-Abo des Monats, Filter auf den Tag, Abo der Rüstlisten. Jede
+  Meldung bringt neue Listen; das Formular darf davon nur übernehmen, was
+  genau sein Paar aus Tag und Baustelle betrifft. Im Einzelnen geprüft in
+  EinsatzFormularLive.test.tsx.
+*/
+describe('Tag planen — fremde Änderungen im Betrieb (P1)', () => {
+  const LISTE = {
+    id: 'perl_2026-09-01_2026-042', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', uids: ['u1'],
+    positionen: [{ id: 'p1', materialId: 'm1', name: 'Eckventil 1/2', menge: 4 }],
+  } as EinsatzMaterial & { id: string };
+  const kommentar = () => screen.getByRole('textbox', { name: 'Kommentar / Aufgabe' }) as HTMLInputElement;
+
+  async function eingeben() {
+    einsaetze = [{ id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann', comment: 'Rohinstallation' } as Assignment & { id: string }];
+    ruestlisten = [LISTE];
+    zeige({ datum: HEUTE, projectNumber: '2026-042' });
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked());
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Erna Beispiel/ }));
+    await userEvent.clear(kommentar());
+    await userEvent.type(kommentar(), 'Vorwand setzen');
+    const menge = await screen.findByRole('textbox', { name: 'Menge' });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '6');
+  }
+
+  it('eine Meldung zu einer anderen Baustelle und ein Abhaken lassen die Eingabe stehen', async () => {
+    await eingeben();
+    einsaetze = [
+      ...einsaetze,
+      { id: 'b1', companyId: 'perl', date: HEUTE, projectNumber: '2026-099', userId: 'u2', userName: 'Erna Beispiel' } as Assignment & { id: string },
+    ];
+    ruestlisten = [{ ...LISTE, geladen: { p1: { von: 'Max Mustermann', am: Date.UTC(2026, 8, 1, 4, 12) } } }];
+    await act(async () => liveMelden());
+
+    expect(screen.getByRole('checkbox', { name: /^Erna Beispiel/ })).toBeChecked();
+    expect(kommentar().value).toBe('Vorwand setzen');
+    expect(screen.getByRole('textbox', { name: 'Menge' })).toHaveValue('6');
+    expect(screen.queryByText(/Inzwischen geändert/)).toBeNull();
+  });
+
+  it('eine Meldung zu DIESER Baustelle: die Eingabe bleibt, ein Hinweis fragt, Speichern wartet', async () => {
+    await eingeben();
+    einsaetze = [{ ...einsaetze[0], id: 'a2', comment: 'Silikon' }];
+    await act(async () => liveMelden());
+
+    expect(kommentar().value).toBe('Vorwand setzen');
+    expect(screen.getByText(/Inzwischen geändert — übernehmen\?/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Übernehmen' }));
+    expect(kommentar().value).toBe('Silikon');
+    // Übernommen wird nur der geänderte Teil: die Rüstliste war nicht betroffen.
+    expect(screen.getByRole('textbox', { name: 'Menge' })).toHaveValue('6');
   });
 });
 

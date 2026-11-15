@@ -42,7 +42,7 @@ import { mitAbzug } from './vorrechnungen';
 import { calcWorkMin } from '@/lib/time';
 import { istLehrlingssatz, satzklasse } from '@/lib/einstufung';
 import { zugesagterSkonto } from './skonto';
-import { euroBetrag } from '@/lib/betrag';
+import { cent, euroBetrag } from '@/lib/betrag';
 import { ibanAnzeige } from '@shared/iban';
 
 /**
@@ -122,8 +122,13 @@ export function generateInvoicePdf(opts: {
    * Zahlen damit nicht auseinanderlaufen lassen.
    */
   vorrechnungen?: Vorrechnung[];
-  /** Das zugesagte Skonto, wie es an der Rechnung steht — oder nichts. */
-  skonto?: { skontoProzent: number; skontoBis: string } | null;
+  /**
+   * Das zugesagte Skonto, wie es an der Rechnung steht — oder nichts.
+   * `betrag` ist der Skonto in Euro, wie er festgehalten ist (G7): beim
+   * Nachdruck kommt er vom Beleg, nicht aus einer neuen Rechnung. Fehlt er,
+   * wird er aus Satz und Zahlbetrag gerechnet — so beim ersten Druck.
+   */
+  skonto?: { skontoProzent: number; skontoBis: string; betrag?: number } | null;
 }) {
   const { company, project, invoiceNumber, invoiceDate, dueDate, assembled } = opts;
   const vatRate = opts.vatRate ?? INVOICE_DEFAULTS.vatRate;
@@ -253,7 +258,7 @@ export function generateInvoicePdf(opts: {
     steht, was einbehalten wird, bis wann, und was jetzt zu zahlen ist.
   */
   const rueck = opts.ruecklass ?? null;
-  const zahlbetrag = rueck ? Math.round((forderung - rueck.betrag) * 100) / 100 : forderung;
+  const zahlbetrag = rueck ? cent(forderung - rueck.betrag) : forderung;
   if (rueck) {
     const name = rueck.art === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass';
     const absatz = doc.splitTextToSize(
@@ -277,7 +282,8 @@ export function generateInvoicePdf(opts: {
         ? ` Bei Zahlung bis ${fmtDatum(opts.skonto.skontoBis)} abzüglich ` +
           `${opts.skonto.skontoProzent.toLocaleString('de-AT', { maximumFractionDigits: 2 })} % Skonto: ` +
           // Auf den Zahlbetrag: der Rücklass wird später ausgezahlt, ohne Skonto (seit 10.10.2026).
-          `${euroBetrag(zahlbetrag - zugesagterSkonto({ totalBrutto: forderung, ruecklassBetrag: rueck?.betrag ?? 0, skontoProzent: opts.skonto.skontoProzent }))} €.`
+          `${euroBetrag(cent(zahlbetrag - (opts.skonto.betrag
+            ?? zugesagterSkonto({ totalBrutto: forderung, ruecklassBetrag: rueck?.betrag ?? 0, skontoProzent: opts.skonto.skontoProzent }))))} €.`
         : ''),
     breite,
   ) as string[];

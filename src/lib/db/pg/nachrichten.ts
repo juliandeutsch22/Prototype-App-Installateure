@@ -393,6 +393,12 @@ export const rundeBenennen = (kanal: string, name: string, client?: SupabaseClie
   aufruf<void>('nachrichten_umbenennen', { p_kanal: kanal, p_name: name.trim() || null }, client);
 export const nachrichtMelden = (id: string, grund: string, client?: SupabaseClient) =>
   aufruf<string>('nachricht_melden', { p_nachricht: id, p_grund: grund.trim() || null }, client);
+/**
+ * Sieht außer dem Absender und mir jemand die Meldung? Nur ja oder nein —
+ * der Meldedialog sagt es vor dem Absenden, wenn niemand da ist (K1).
+ */
+export const meldungErreichtJemanden = (id: string, client?: SupabaseClient) =>
+  aufruf<boolean>('nachricht_meldung_erreicht_jemanden', { p_nachricht: id }, client).then((ja) => ja === true);
 
 function alsMeldung(z: Record<string, unknown>): Meldung {
   return {

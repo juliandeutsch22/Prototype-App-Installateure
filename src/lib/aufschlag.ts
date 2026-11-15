@@ -11,6 +11,7 @@
  * Dieselbe Rechnung steht in der Datenbank (`app.aufschlag_fuer`,
  * `verkaufspreise_vorschlagen`).
  */
+import { cent } from './betrag';
 export interface Materialaufschlag {
   /** Prozent auf den Einkaufspreis, für alle Warengruppen ohne eigenen Satz. */
   standard?: number | null;
@@ -35,5 +36,6 @@ export function verkaufspreisVorschlag(
   if (einkaufspreis == null || !Number.isFinite(einkaufspreis) || einkaufspreis <= 0) return null;
   const p = aufschlagFuer(a, warengruppe);
   if (p == null) return null;
-  return Math.round(einkaufspreis * (1 + p / 100) * 100) / 100;
+  // Wie `round(…, 2)` in der Datenbank (G7): 10,02 € + 25 % sind 12,525 → 12,53.
+  return cent(einkaufspreis * (1 + p / 100));
 }

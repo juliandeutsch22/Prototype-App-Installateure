@@ -1040,8 +1040,17 @@ export interface Material {
    * Handwerksschein oder einer Rechnung stand. Verschwände er, fehlte er
    * rückwirkend in jeder Auswertung. Er bleibt also im Katalog, wird dort
    * gekennzeichnet und für NEUE Erfassungen nicht mehr angeboten.
+   *
+   * Seit dem 15.11.2026 (M1) setzt ihn auch der Betrieb selbst — statt einen
+   * Artikel mit Spuren zu löschen („auslaufen lassen“).
    */
   ausgelaufen?: boolean;
+  /**
+   * Der Betrieb hat ihn selbst auslaufen lassen. Dann holt ihn der Katalog
+   * eines Großhändlers nicht zurück, nur „Wieder aufnehmen“ — die Datenbank
+   * setzt den Merker, die Ansicht liest ihn nur.
+   */
+  ausgelaufenVonHand?: boolean;
   /**
    * Führt der Betrieb den Artikel im Lager (Testbericht 30.09.2026, M30)?
    * Ein Katalogartikel ist es nicht von selbst — nach einem DATANORM-Import
@@ -2216,6 +2225,13 @@ export interface Invoice {
   /** Zugesagtes Skonto in % und bis wann (eingefroren mit der Rechnung). */
   skontoProzent?: number | null;
   skontoBis?: string | null;
+  /**
+   * Der zugesagte Skonto in Euro, wie er auf dem Beleg steht (seit
+   * 15.11.2026, G7) — gesetzt nur von der Datenbank beim Anlegen, danach
+   * eingefroren. Leer ohne Skonto und bei älteren Rechnungen; für sie gibt
+   * `skontoBisher` die damalige Rundung wieder.
+   */
+  skontoZugesagt?: number | null;
   /** Summe der Skonto-Einträge — abgeleitet wie `bezahltBetrag`, darin enthalten. */
   skontoBetrag?: number;
   /**

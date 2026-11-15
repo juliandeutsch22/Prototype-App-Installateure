@@ -455,3 +455,45 @@ bleibt deshalb stehen — mit Grund:
   ein Blatt bei 390 px links 16, rechts 38 px vom Rand; gleiche Ränder wiegen
   schwerer als die Linie. Oberkanten und Höhen hält der Takt weiter, ab dem
   Tablet auch die rechten Kanten.
+
+## Durchsicht vom 15.11.2026, Paket 2 — begründete Grenzen
+
+- **Die Anmeldung nennt ein gesperrtes Konto nicht** (K5). Grund Sicherheit:
+  Supabase Auth meldet die Sperre (`user_banned`) schon vor der Prüfung des
+  Passworts — gemessen am lokalen Anmeldedienst. Nennte die Maske sie, verriete
+  sie jedem, dass es das Konto gibt. Sie sagt deshalb dasselbe wie bei falschen
+  Zugangsdaten, mit dem Hinweis, dass der Zugang deaktiviert sein kann. Dass der
+  Anmeldedienst die Sperre über seine Schnittstelle selbst verrät, liegt bei ihm
+  (liegt bei jemand anderem).
+- **Die nächtliche Sicherung enthält auch Meldungen über die Leitung** (K1).
+  Grund Betrieb: Für einen Wiederanlauf muss sie vollständig sein; sie liegt nur
+  bei der Plattform (Dienstschlüssel), kein Konto eines Betriebs liest sie.
+- **Datenauskunft über eine meldende Person, erstellt von der gemeldeten
+  Leitung, enthält deren Meldung nicht** (K1). Grund Datenschutz: Die Zusage,
+  dass die gemeldete Person nichts erfährt, wiegt beim Erstellen der Auskunft
+  durch genau diese Person schwerer; jede andere Leitung erhält die Auskunft
+  vollständig. Ist der Gemeldete die einzige Leitung, warnt der Meldedialog
+  vorher.
+- **Der Dienstschlüssel umgeht die Löschsperre mit Grund am Artikel** (M1).
+  Grund Betrieb: Das Löschen eines ganzen Betriebs und das tabellenweise
+  Aufräumen laufen mit dem Dienstschlüssel und müssen durchgehen. Das
+  Bewegungsprotokoll, Anforderungen und Rüstlisten hält trotzdem der
+  Fremdschlüssel fest.
+- **Keine Datenbanksperre für neue Anforderungen ausgelaufener Artikel** (M1).
+  Grund fachlich: Ohne Netz vorgemerkte Anforderungen (Ausgangsfach) und
+  „Fehlmenge anfordern“ aus früher geplanten Rüstlisten würden mitten im Ablauf
+  scheitern. Die Regel steht in der Auswahl, wie bei Artikeln, die der Katalog
+  auslaufen lässt.
+- **Ein noch nicht neu geladenes Telefon druckt im Übergang den alten
+  Skontobetrag** (G7). Grund Gerät: Bis die App neu geladen ist, rechnet sie
+  mit der alten Rundung; die Datenbank hält den neuen Betrag fest. Höchstens
+  1 Cent im Zahlungssatz an der Halbcent-Grenze.
+- **Massenvorgänge nehmen die Sperre je Paar Tag/Baustelle nicht** (P1:
+  Person löschen, Baustelle umnummern). Grund Betrieb: bei langen Baustellen
+  wären es Hunderte Sperren in einem Vorgang; sie können die gemeinsame
+  Sperrtabelle der Datenbank füllen und fremde Vorgänge scheitern lassen.
+  Ein Speichern, das genau während eines solchen Vorgangs läuft, kann ihn
+  übergehen; die Fassungsprüfung erkennt alles, was vorher geschrieben war.
+- **Bis zum Neuladen löscht die alte App Einsätze ohne Sperre** (P1). Grund
+  Gerät: Telefone laden die neue Fassung erst beim nächsten Öffnen; bis dahin
+  löscht die alte direkt in der Tabelle.

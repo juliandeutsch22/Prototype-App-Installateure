@@ -1,4 +1,5 @@
 import { istAn } from '@/lib/module';
+import { cent } from '@/lib/betrag';
 import { ibanFehler } from '@shared/iban';
 import { firmenbuchFehlt } from '@/lib/firmenbuch';
 import type {
@@ -498,7 +499,7 @@ export async function buchhaltung(
       // Zahlungen auf eine stornierte Rechnung sind Guthaben, keine beglichene Forderung (M13).
       const zaehlt = zahlungen.filter((z) => z.art !== 'Skonto' && nachId.get(z.invoiceId)?.paymentStatus !== 'Storniert');
       out.bezahltImMonat = {
-        summe: Math.round(zaehlt.reduce((s, z) => s + (Number(z.betrag) || 0), 0) * 100) / 100,
+        summe: cent(zaehlt.reduce((s, z) => s + (Number(z.betrag) || 0), 0)),
         anzahl: new Set(zaehlt.map((z) => z.invoiceId)).size,
       };
       out.zahlungenHeute = zahlungen

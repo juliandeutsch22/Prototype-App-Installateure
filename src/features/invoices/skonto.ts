@@ -1,4 +1,5 @@
 import type { Invoice, RechnungsArt } from '@/types';
+import { cent as runde } from '@/lib/betrag';
 import { offenerRuecklass, zahlstand } from './zahlstand';
 
 /**
@@ -10,9 +11,11 @@ import { offenerRuecklass, zahlstand } from './zahlstand';
  * richtig. Die Datenbank prüft dieselben Grenzen (`app.skonto_passt`,
  * Migration `20260929160000_skonto.sql`); hier stehen sie, damit die Maske
  * nur anbietet, was dort durchgeht.
+ *
+ * GERUNDET WIE DORT (seit 15.11.2026, G7): vorher rundete die App 2 % auf
+ * 106,75 € zu 2,13 €, die Datenbank zu 2,14 € — zahlte der Kunde 104,61 €,
+ * bot der Dialog den Ausgleich nicht an.
  */
-
-const runde = (n: number) => Math.round(n * 100) / 100;
 
 /** `n` Tage auf einen ISO-Tag, in UTC gerechnet — ohne Sommerzeitfallen. */
 function tagePlus(isoTag: string, n: number): string {

@@ -1,4 +1,5 @@
 import type { InvoiceDiscount } from '@/types';
+import { cent } from '@/lib/betrag';
 
 /**
  * Was eine Zeile auf dem Beleg ist (Testbericht 30.09.2026, M18).
@@ -59,10 +60,12 @@ export interface InvoiceTotals {
   totalBrutto: number;
 }
 
-/** Auf Cent runden. Ohne das schleppt jede Multiplikation Nachkommastellen mit. */
-export function cent(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100;
-}
+/**
+ * Auf Cent runden. Ohne das schleppt jede Multiplikation Nachkommastellen mit.
+ * Die Funktion selbst steht in `@/lib/betrag` — eine Rundung für alles Geld
+ * (G7); hier weitergereicht, weil die Rechenteile sie seit jeher von hier holen.
+ */
+export { cent };
 
 /** Nettobetrag einer Position — mit ihrem eigenen Rabatt, falls sie einen hat. */
 export function positionNetto(qty: number, unitPrice: number, rabattProzent?: number | null): number {

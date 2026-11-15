@@ -32,7 +32,13 @@ async function bestand(id: string): Promise<number> {
 
 describe('Materialstamm', () => {
   it('legt an, ändert, löscht', async () => {
-    const id = await material.createMaterial('lager-a', { name: 'Rohr 22mm', stock: 10 });
+    /*
+      OHNE BESTAND (Durchsicht 15.11.2026, M1): bis hierher wurde ein Artikel
+      mit 10 im Regal gelöscht — samt Bestand und Bewegungsprotokoll, und
+      dieser Test erwartete genau das. Ein Artikel mit Spuren läuft jetzt aus
+      (`artikelAuslaufen.test.ts`); gelöscht wird nur ein unbenutzter.
+    */
+    const id = await material.createMaterial('lager-a', { name: 'Rohr 22mm', stock: 0 });
     await material.updateMaterial(id, { unit: 'm', category: 'Rohre' });
     const [m] = await material.listMaterials('lager-a');
     expect(m).toMatchObject({ name: 'Rohr 22mm', unit: 'm', category: 'Rohre' });

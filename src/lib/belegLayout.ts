@@ -3,7 +3,7 @@ import type autoTableFn from 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
 import type { Company } from '@/types';
 import { firmenZeilen, logoZeichnen } from './pdfBriefkopf';
-import { euroBetrag } from '@/lib/betrag';
+import { cent, euroBetrag } from '@/lib/betrag';
 import { ibanAnzeige } from '@shared/iban';
 import { firmenbuchZeile } from './firmenbuch';
 
@@ -258,7 +258,7 @@ export function belegZeilen(positionen: BelegPosition[]): BelegZelle[][] {
     if (titel && titel.positionen > 0) {
       zeilen.push([
         { content: `Summe ${titel.name}`, colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } },
-        { content: euroBetrag(Math.round(titel.summe * 100) / 100), styles: { halign: 'right', fontStyle: 'bold' } },
+        { content: euroBetrag(cent(titel.summe)), styles: { halign: 'right', fontStyle: 'bold' } },
       ]);
     }
     titel = null;

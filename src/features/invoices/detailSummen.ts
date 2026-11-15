@@ -1,5 +1,5 @@
 import type { Invoice } from '@/types';
-import { euro } from '@/lib/betrag';
+import { cent, euro } from '@/lib/betrag';
 
 export interface SummenZeile {
   wort: string;
@@ -37,11 +37,10 @@ export function detailSummen(inv: Pick<Invoice, 'totalNetto' | 'totalVat' | 'tot
       { wort: 'Brutto', betrag: inv.totalBrutto, betont: true },
     ];
   }
-  const summe = (f: 'netto' | 'vat' | 'brutto') =>
-    Math.round(abzuege.reduce((s, v) => s + v[f], 0) * 100) / 100;
-  const gesamtNetto = inv.gesamtNetto ?? Math.round((inv.totalNetto + summe('netto')) * 100) / 100;
-  const gesamtVat = inv.gesamtVat ?? Math.round((inv.totalVat + summe('vat')) * 100) / 100;
-  const gesamtBrutto = inv.gesamtBrutto ?? Math.round((inv.totalBrutto + summe('brutto')) * 100) / 100;
+  const summe = (f: 'netto' | 'vat' | 'brutto') => cent(abzuege.reduce((s, v) => s + v[f], 0));
+  const gesamtNetto = inv.gesamtNetto ?? cent(inv.totalNetto + summe('netto'));
+  const gesamtVat = inv.gesamtVat ?? cent(inv.totalVat + summe('vat'));
+  const gesamtBrutto = inv.gesamtBrutto ?? cent(inv.totalBrutto + summe('brutto'));
   return [
     { wort: 'Gesamtleistung netto', betrag: gesamtNetto },
     { wort: 'Umsatzsteuer', betrag: gesamtVat },

@@ -1,4 +1,5 @@
 import type { Material, WorkSheet } from '@/types';
+import { cent } from '@/lib/betrag';
 import { artikelZuordnung, normName } from '@/features/invoices/materialPositionen';
 import type { Ausgabe } from '@/features/invoices/ausgegebenesMaterial';
 
@@ -142,7 +143,7 @@ export function materialkosten(
   }
 
   return {
-    kosten: Math.round(kosten * 100) / 100,
+    kosten: cent(kosten),
     // Nach Namen sortiert: die Liste steht in der Ansicht und soll bei jedem
     // Aufruf gleich aussehen, sonst liest sie sich wie eine Änderung.
     ohnePreis: ohnePreis.sort((a, b) => a.localeCompare(b, 'de')),

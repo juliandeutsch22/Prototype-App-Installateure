@@ -4,6 +4,7 @@
 import type { Assignment, KalenderAbo, KalenderAboArt } from '@/types';
 import type { WithId } from './core';
 import * as pg from './pg/assignments';
+import type { PaarGrundlage } from './paarFassung';
 
 export type AssignmentInput = Omit<Assignment, 'id' | 'companyId' | 'createdAt'>;
 
@@ -66,8 +67,10 @@ export function saveAssignments(
   date: string,
   projectNumber: string,
   rows: AssignmentInput[],
+  /** Worauf die Eingabe beruht (P1, `paarFassung.ts`); ohne Angabe keine Prüfung. */
+  grundlage?: PaarGrundlage,
 ): Promise<void> {
-  return pg.saveAssignments(companyId, date, projectNumber, rows);
+  return pg.saveAssignments(companyId, date, projectNumber, rows, grundlage);
 }
 
 export function deleteAssignment(id: string): Promise<void> {

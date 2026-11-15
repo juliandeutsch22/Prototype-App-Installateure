@@ -21,9 +21,12 @@ vi.mock('@/lib/db/auftragseingaenge', () => ({
   eingangAendern: (id: string, d: Record<string, unknown>) => eingangAendern(id, d),
 }));
 const HUBER = { id: 'k1', companyId: 'perl', name: 'Familie Huber', address: 'Hauptplatz 1, 8010 Graz', active: true };
+const MAIER = { id: 'k2', companyId: 'perl', name: 'Firma Maier', address: 'Lendkai 5, 8020 Graz', active: true };
+const KUNDEN = [HUBER, MAIER];
 vi.mock('@/lib/db/customers', () => ({
-  searchCustomers: vi.fn(async () => [HUBER]),
-  listCustomersByIds: vi.fn(async () => [HUBER]),
+  searchCustomers: vi.fn(async (_c: string, begriff: string) =>
+    KUNDEN.filter((k) => k.name.toLowerCase().includes(begriff.toLowerCase()))),
+  listCustomersByIds: vi.fn(async (_c: string, ids: string[]) => KUNDEN.filter((k) => ids.includes(k.id))),
 }));
 
 const LIEGENSCHAFT = { id: 'l1', companyId: 'perl', bezeichnung: 'WHA Hauptstraße 12', anschrift: 'Hauptstraße 12, 1010 Wien', aktiv: true };
@@ -178,5 +181,116 @@ describe('Eingegangen am (E72)', () => {
     zeige();
     expect(screen.getByText(/07\.11\.2026, 09:14/)).toBeInTheDocument();
     expect(screen.queryByText(/2026-11-07/)).toBeNull();
+  });
+});
+
+/*
+  DER ORT FOLGT DEM KUNDEN (Durchsicht 15.11.2026, A7). Am Telefon wird
+  Kunde A gewählt und dann auf B korrigiert — oder auf „Neuer Kunde“
+  umgeschaltet. Bisher blieb die Anschrift von A im Ort stehen und ging als
+  Adresse in Baustelle oder Angebot von B. Jetzt ersetzt der nächste Kunde
+  den unveränderten Vorschlag des vorigen; was von Hand oder aus der
+  Liegenschaft im Feld steht, bleibt.
+
+  Gegenprobe: mit der alten Zeile (`ort: alt.ort.trim() ? alt.ort : …`)
+  sind die drei Fälle „folgt“ rot, die Fälle „bleibt“ grün.
+*/
+describe('Der Ort folgt dem Kunden (A7)', () => {
+  async function waehle(nutzer: ReturnType<typeof userEvent.setup>, suche: string, name: RegExp) {
+    const anders = screen.queryByRole('button', { name: 'Anderen Kunden wählen' });
+    if (anders) await nutzer.click(anders);
+    await nutzer.type(screen.getByRole('searchbox', { name: /^Kunde/ }), suche);
+    await nutzer.click(await screen.findByRole('button', { name }));
+  }
+  const ort = () => screen.getByLabelText('Ort des Einsatzes');
+
+  it('folgt: Kunde A, dann B — der Ort ist die Anschrift von B, und so wird gespeichert', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.selectOptions(screen.getByLabelText(/Quelle/), 'telefon');
+    await waehle(nutzer, 'Hub', /Familie Huber/);
+    expect(ort()).toHaveValue('Hauptplatz 1, 8010 Graz');
+    await waehle(nutzer, 'Mai', /Firma Maier/);
+    expect(ort()).toHaveValue('Lendkai 5, 8020 Graz');
+    await nutzer.type(screen.getByLabelText('Anliegen'), 'Heizung kalt');
+    await nutzer.click(screen.getByRole('button', { name: 'Eingang erfassen' }));
+    await waitFor(() => expect(eingangAnlegen).toHaveBeenCalledTimes(1));
+    expect(eingangAnlegen.mock.calls[0][1]).toMatchObject({ customerId: 'k2', ort: 'Lendkai 5, 8020 Graz' });
+  });
+
+  it('folgt: Kunde A, dann „Neuer Kunde“ — der Ort ist die Anschrift des neuen', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.selectOptions(screen.getByLabelText(/Quelle/), 'telefon');
+    await waehle(nutzer, 'Hub', /Familie Huber/);
+    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    expect(ort()).toHaveValue('');
+    // Zurück zum vorhandenen: dessen Vorschlag steht wieder da.
+    await nutzer.click(screen.getByRole('button', { name: 'Vorhandener Kunde' }));
+    expect(ort()).toHaveValue('Hauptplatz 1, 8010 Graz');
+    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    expect(ort()).toHaveValue('');
+    await nutzer.type(screen.getByLabelText(/^Name/), 'Familie Neu');
+    await nutzer.type(screen.getByLabelText('Straße'), 'Neugasse 3');
+    await nutzer.type(screen.getByLabelText('PLZ'), '1010');
+    await nutzer.type(screen.getByLabelText('Ort'), 'Wien');
+    await nutzer.type(screen.getByLabelText('Anliegen'), 'Tropft');
+    await nutzer.click(screen.getByRole('button', { name: 'Eingang erfassen' }));
+    await waitFor(() => expect(eingangAnlegen).toHaveBeenCalledTimes(1));
+    expect(eingangAnlegen.mock.calls[0][1]).toMatchObject({ customerId: null, ort: 'Neugasse 3, 1010 Wien' });
+  });
+
+  it('folgt auch beim Ändern: der gespeicherte Vorschlag des alten Kunden weicht dem neuen', async () => {
+    const nutzer = userEvent.setup();
+    const E: Auftragseingang = {
+      id: 'e1', companyId: 'perl', nummer: 'EG-2026-0003', stand: 'offen', quelle: 'email', customerId: 'k1',
+      kundeName: 'Familie Huber', anliegen: 'Tropft', dringlichkeit: 'normal', eingegangenAm: JETZT, ort: 'Hauptplatz 1, 8010 Graz',
+    };
+    zeige(E);
+    expect(await screen.findByText('Familie Huber')).toBeInTheDocument();
+    await waehle(nutzer, 'Mai', /Firma Maier/);
+    await waitFor(() => expect(ort()).toHaveValue('Lendkai 5, 8020 Graz'));
+  });
+
+  it('bleibt: ein von Hand eingetragener Ort übersteht den Kundenwechsel', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.selectOptions(screen.getByLabelText(/Quelle/), 'telefon');
+    await waehle(nutzer, 'Hub', /Familie Huber/);
+    await nutzer.clear(ort());
+    await nutzer.type(ort(), 'Ferienhaus, 8970 Schladming');
+    await waehle(nutzer, 'Mai', /Firma Maier/);
+    expect(ort()).toHaveValue('Ferienhaus, 8970 Schladming');
+    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    expect(ort()).toHaveValue('Ferienhaus, 8970 Schladming');
+  });
+
+  it('bleibt beim Ändern: ein gespeicherter Ort, der nicht die Kundenanschrift ist, bleibt', async () => {
+    const nutzer = userEvent.setup();
+    const E: Auftragseingang = {
+      id: 'e1', companyId: 'perl', nummer: 'EG-2026-0003', stand: 'offen', quelle: 'email', customerId: 'k1',
+      kundeName: 'Familie Huber', anliegen: 'Tropft', dringlichkeit: 'normal', eingegangenAm: JETZT, ort: 'Ferienhaus, 8970 Schladming',
+    };
+    zeige(E);
+    expect(await screen.findByText('Familie Huber')).toBeInTheDocument();
+    await waehle(nutzer, 'Mai', /Firma Maier/);
+    expect(ort()).toHaveValue('Ferienhaus, 8970 Schladming');
+  });
+
+  it('bleibt: die Anschrift der Liegenschaft übersteht die Wahl des Kunden', async () => {
+    const nutzer = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <EingangFormular companyId="perl" jetzt={JETZT} mitLiegenschaft onGespeichert={gespeichert} onAbbrechen={vi.fn()} />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    await nutzer.type(screen.getByRole('searchbox', { name: 'Liegenschaft (freiwillig)' }), 'Haupt');
+    await nutzer.click(await screen.findByRole('button', { name: 'WHA Hauptstraße 12' }));
+    await waehle(nutzer, 'Hub', /Familie Huber/);
+    expect(ort()).toHaveValue('Hauptstraße 12, 1010 Wien');
+    await waehle(nutzer, 'Mai', /Firma Maier/);
+    expect(ort()).toHaveValue('Hauptstraße 12, 1010 Wien');
   });
 });

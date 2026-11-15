@@ -8,8 +8,9 @@
 import type { Assignment, KalenderAbo, KalenderAboArt } from '@/types';
 import { monatsEnde } from '@shared/feiertage';
 import { plusTage } from '@shared/freistellung';
-import { abfragen, abonnieren, derClient, loeschen, SEITE, type WithId } from './kern';
+import { abfragen, abonnieren, derClient, SEITE, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
+import { paarGeaendertAus, type PaarGrundlage } from '../paarFassung';
 
 const EINSAETZE = 'assignments';
 
@@ -146,6 +147,12 @@ export async function saveAssignments(
   date: string,
   projectNumber: string,
   rows: AssignmentInput[],
+  /**
+   * Worauf die Eingabe beruht (P1). Weicht das Paar in der Datenbank davon
+   * ab, wird nichts geschrieben und `PaarGeaendert` geworfen. Ohne Angabe
+   * wird nicht geprüft — wie bisher.
+   */
+  grundlage?: PaarGrundlage,
 ): Promise<void> {
   /*
     Der Betrieb steht im Anmeldekontext, die Datenbankfunktion holt ihn sich
@@ -171,8 +178,9 @@ export async function saveAssignments(
     p_datum: date,
     p_baustelle: projectNumber,
     p_zeilen: zeilen,
+    ...(grundlage ? { p_grundlage: grundlage } : {}),
   });
-  if (error) throw new Error(error.message);
+  if (error) throw paarGeaendertAus(error) ?? new Error(error.message);
 }
 
 /**
@@ -184,8 +192,16 @@ export async function saveAssignments(
  * die Baustelle auf seiner Startseite nicht. Beim nächsten Speichern der
  * Einteilung steht `uids` ohnehin wieder richtig.
  */
-export function deleteAssignment(id: string): Promise<void> {
-  return loeschen(EINSAETZE, id);
+export async function deleteAssignment(id: string): Promise<void> {
+  /*
+    ÜBER `einsatz_loeschen`, NICHT DIREKT IN DER TABELLE (P1): die Funktion
+    sperrt erst das Paar aus Tag und Baustelle, dann die Zeile — wie jedes
+    Speichern, Umplanen und die Folgetage. So läuft ein Löschen nie mitten
+    in ein Speichern desselben Paares hinein, und die Prüfung der Fassung
+    sieht es. Rechte und Fehlermeldung bleiben die des direkten Löschens.
+  */
+  const { error } = await derClient().rpc('einsatz_loeschen', { p_id: id });
+  if (error) throw new Error(error.message);
 }
 
 /*

@@ -21,10 +21,10 @@
  *    abgewiesenen Zugriff ergab. Für den globalen Administrator ist das der
  *    ruhigere Weg.
  */
-import { isAuthSessionMissingError } from '@supabase/supabase-js';
+import { AuthUnknownError, isAuthRetryableFetchError, isAuthSessionMissingError } from '@supabase/supabase-js';
 import type { Company, CurrentUser, Role } from '@/types';
 import { supabaseClient, merkenSetzen, pruefClient } from '@/lib/supabase';
-import { InactiveUserError, type Angemeldet } from '../kern';
+import { AnmeldeFehler, InactiveUserError, type AnmeldeAblehnung, type Angemeldet } from '../kern';
 import { anmeldeAdresse, istBenutzerkonto, KEIN_MAILKONTO } from '@shared/benutzername';
 import { ruecksprungAdresse } from '@shared/plattform';
 
@@ -73,7 +73,26 @@ export async function anmelden(
   const { error } = await supabaseClient().auth.signInWithPassword({
     email: anmeldeAdresse(email), password: passwort,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new AnmeldeFehler(anmeldeAblehnung(error), error.message);
+}
+
+/**
+ * Die Antwort des Anmeldedienstes, eingeordnet — siehe `AnmeldeAblehnung`.
+ *
+ * NUR WAS SICHER NICHT AM KONTO HÄNGT, BEKOMMT EINEN EIGENEN SATZ. Jede
+ * andere Ablehnung des Dienstes (4xx: falsches Passwort, unbekannte Adresse,
+ * gesperrtes Konto, unbestätigte Adresse …) bleibt `zugangsdaten` — auch
+ * eine, die erst eine künftige Fassung des Dienstes kennt.
+ */
+export function anmeldeAblehnung(error: unknown): AnmeldeAblehnung {
+  // Kein Netz und Stillstand (`netzFrist`) mit Status 0, Serverfehler (5xx) mit Status: auth-js meldet beides so.
+  if (isAuthRetryableFetchError(error)) return error.status ? 'dienst' : 'netz';
+  const { status, code } = (error ?? {}) as { status?: number; code?: string };
+  if (status === 429 || code === 'over_request_rate_limit') return 'zuViele';
+  if (typeof status === 'number' && status >= 500) return 'dienst';
+  // Eine Antwort, die gar nicht vom Dienst stammt (etwa die Anmeldeseite eines Gäste-WLANs).
+  if (error instanceof AuthUnknownError) return 'dienst';
+  return 'zugangsdaten';
 }
 
 /**

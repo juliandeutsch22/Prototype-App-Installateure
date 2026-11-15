@@ -1,5 +1,6 @@
 import type { Material, InvoiceDiscount, InvoiceRates, TimeEntry, WorkSheet } from '@/types';
 import { calcWorkMin } from '@/lib/time';
+import { aufStellen } from '@/lib/betrag';
 import { NACHTZEIT_VORGABE, nachtArbeitMin, type Nachtzeit } from '@/lib/lohnregeln';
 import { calcTotals, cent, positionNetto, zeilenNetto, type InvoicePosition } from './totals';
 import { leistungszeitraum, materialPositionen } from './materialPositionen';
@@ -275,7 +276,8 @@ export function assembleInvoice(
   });
 
   for (const b of ordered) {
-    const hours = Math.round((b.minutes / 60) * 100) / 100;
+    // Nach derselben Regel wie Geld (G7); Minuten durch 60 treffen nie einen halben Hundertstel.
+    const hours = aufStellen(b.minutes / 60, 2);
     if (hours <= 0) continue;
     const baseRate = verrechnungssatz(b.satz, rates);
     /*

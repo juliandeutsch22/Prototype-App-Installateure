@@ -10,7 +10,10 @@ import {
   createMaterial,
   updateMaterial,
   deleteMaterial,
+  artikelVerwendung,
+  artikelAuslaufen,
   LOW_STOCK_THRESHOLD,
+  type ArtikelVerwendung,
 } from '@/lib/db/materials';
 import { gefundenUeberText, type MitNummer } from '@/lib/katalogTreffer';
 import { einkaufspreise } from '@/lib/db/kosten';
@@ -186,6 +189,17 @@ export default function MaterialCatalog({
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState(suche ?? '');
   const [toDelete, setToDelete] = useState<WithId<Material> | null>(null);
+  /*
+    WAS AM ARTIKEL HÄNGT, BEVOR JEMAND BESTÄTIGT (M1, 15.11.2026). Die
+    Rückfrage versprach „Bereits erfasste Bestellungen bleiben erhalten“ —
+    und dann nahm das Löschen Bestand und Bewegungsprotokoll still mit oder
+    scheiterte am Fremdschlüssel mit einem Satz ohne Auskunft. Gefragt wird
+    dieselbe Stelle, die das Löschen sperrt (`artikel_verwendung`); `fuer`
+    hält die Antwort an ihrem Artikel fest, damit eine späte Antwort nicht in
+    die Rückfrage zum nächsten gerät.
+  */
+  const [pruefung, setPruefung] = useState<{ fuer: string; stand: ArtikelVerwendung | null; fehler: string | null } | null>(null);
+  const [aufnehmen, setAufnehmen] = useState(false);
   /** Der Suchbegriff, wie er an den Server geht — kurz nach dem letzten Tastendruck. */
   const [begriff, setBegriff] = useState((suche ?? '').trim());
   /*
@@ -234,6 +248,42 @@ export default function MaterialCatalog({
     () => lagerartikel.filter((m) => imLager(m) && istKnapp(m.stock ?? 0, m, LOW_STOCK_THRESHOLD)).length,
     [lagerartikel],
   );
+
+  useEffect(() => {
+    if (!toDelete) return;
+    const fuer = toDelete.id;
+    let weg = false;
+    setPruefung({ fuer, stand: null, fehler: null });
+    artikelVerwendung(fuer).then(
+      (stand) => { if (!weg) setPruefung({ fuer, stand, fehler: null }); },
+      (e: unknown) => {
+        if (!weg) setPruefung({ fuer, stand: null, fehler: grundAus(e, 'Die Prüfung kam nicht zurück.') });
+      },
+    );
+    return () => { weg = true; };
+  }, [toDelete]);
+
+  function rueckfrageSchliessen() {
+    setToDelete(null);
+    setPruefung(null);
+  }
+
+  /** Ein ausgelaufener Artikel wird wieder angeboten (M1). */
+  async function wiederAufnehmen() {
+    const m = offenesMaterial;
+    if (!m) return;
+    setAufnehmen(true);
+    setError(null);
+    try {
+      await artikelAuslaufen(m.id, false);
+      setOffenesMaterial({ ...m, ausgelaufen: false, ausgelaufenVonHand: false });
+      toast.success(`„${m.name}“ wird wieder angeboten`);
+    } catch (err) {
+      setError(grundAus(err, 'Der Artikel konnte nicht wieder aufgenommen werden.'));
+    } finally {
+      setAufnehmen(false);
+    }
+  }
 
   /**
    * Von aussen zum Bearbeiten hereingereicht.
@@ -525,6 +575,25 @@ export default function MaterialCatalog({
         titel={editId ? 'Material bearbeiten' : 'Neues Material'}
       >
           <form onSubmit={submit} className="formular space-y-4">
+            {/*
+              AUSGELAUFEN STEHT OBEN (M1): es erklärt, warum der Artikel in
+              keiner Auswahl mehr auftaucht — und hier ist der einzige Weg
+              zurück. Wer ihn auslaufen liess, sagt der Merker der Datenbank:
+              der Betrieb oder der Katalog des Großhändlers.
+            */}
+            {editId && offenesMaterial?.ausgelaufen && (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-ink-muted">
+                  {offenesMaterial.ausgelaufenVonHand
+                    ? 'Vom Betrieb auslaufen gelassen.'
+                    : 'Ausgelaufen — der Großhändler führt ihn nicht mehr.'}{' '}
+                  Er wird nicht mehr angeboten; anfordern lässt er sich nur, solange etwas im Lager liegt.
+                </p>
+                <Button type="button" variant="ghost" loading={aufnehmen} onClick={wiederAufnehmen}>
+                  Wieder aufnehmen
+                </Button>
+              </div>
+            )}
             <FormGrid cols={1}>
               <InputField id="mname" label="Bezeichnung" value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })} required pflicht />
@@ -716,25 +785,126 @@ export default function MaterialCatalog({
           )}
       </BottomSheet>
 
-      <ConfirmDialog
-        open={!!toDelete}
-        title="Material löschen?"
-        message={
-          toDelete
-            ? `„${toDelete.name}“ wird aus dem Katalog entfernt. Bereits erfasste Bestellungen bleiben erhalten.`
-            : ''
-        }
-        onCancel={() => setToDelete(null)}
-        onConfirm={async () => {
-          if (toDelete) {
-            if (editId === toDelete.id) reset();
-            await deleteMaterial(toDelete.id);
-            toast.success('Material gelöscht');
-          }
-          setToDelete(null);
+      <Rueckfrage
+        artikel={toDelete}
+        pruefung={toDelete && pruefung?.fuer === toDelete.id ? pruefung : null}
+        onCancel={rueckfrageSchliessen}
+        onLoeschen={async (m) => {
+          if (editId === m.id) reset();
+          await deleteMaterial(m.id);
+          toast.success('Material gelöscht');
+          rueckfrageSchliessen();
+        }}
+        onAuslaufen={async (m) => {
+          await artikelAuslaufen(m.id, true);
+          toast.success(`„${m.name}“ läuft aus`);
+          rueckfrageSchliessen();
         }}
       />
     </div>
+  );
+}
+
+/**
+ * Die Rückfrage zu „Material löschen …“ (M1, 15.11.2026) — vier Fassungen
+ * aus einer Antwort der Datenbank:
+ *
+ * - noch keine Antwort: „Löschen“ gesperrt, sonst ginge der Tipp an der
+ *   Auskunft vorbei;
+ * - nichts hängt daran: Löschen wie bisher;
+ * - etwas hängt daran: was, und „Auslaufen lassen“ statt „Löschen“ — die
+ *   Datenbank wiese das Löschen ohnehin ab;
+ * - schon ausgelaufen und etwas hängt daran: nur die Auskunft.
+ *
+ * Kam keine Antwort (kein Netz), bleibt Löschen möglich: die Sperre sitzt in
+ * der Datenbank und nennt dann selbst den Grund.
+ */
+function Rueckfrage({
+  artikel,
+  pruefung,
+  onCancel,
+  onLoeschen,
+  onAuslaufen,
+}: {
+  artikel: WithId<Material> | null;
+  pruefung: { stand: ArtikelVerwendung | null; fehler: string | null } | null;
+  onCancel: () => void;
+  onLoeschen: (m: WithId<Material>) => Promise<void>;
+  onAuslaufen: (m: WithId<Material>) => Promise<void>;
+}) {
+  const name = artikel ? `„${artikel.name}“` : '';
+  const imWeg = pruefung?.stand?.imWeg ?? [];
+  const belegt = imWeg.length > 0;
+  const schonAus = belegt && !!pruefung?.stand?.ausgelaufen;
+  const laedt = !!artikel && !pruefung?.stand && !pruefung?.fehler;
+
+  const liste = (
+    <ul className="list-disc space-y-1 pl-5 text-sm text-ink">
+      {imWeg.map((grund) => <li key={grund}>{grund}</li>)}
+    </ul>
+  );
+
+  /*
+    JEDE FASSUNG IST DASSELBE FENSTER: alle drei Zweige geben als oberstes
+    Element einen `ConfirmDialog` zurück, React tauscht also nur seine
+    Angaben. Kommt die Antwort, während die Rückfrage schon offen ist, bleibt
+    der Fokus im Fenster, und nichts springt auf und zu.
+  */
+  if (artikel && schonAus) {
+    return (
+      <ConfirmDialog
+        open
+        nurSchliessen
+        title="Löschen geht nicht"
+        message={`${name} ist schon ausgelaufen. Endgültig löschen geht erst, wenn nichts mehr daran hängt:`}
+        onConfirm={onCancel}
+        onCancel={onCancel}
+      >
+        {liste}
+      </ConfirmDialog>
+    );
+  }
+
+  if (artikel && belegt) {
+    return (
+      <ConfirmDialog
+        open
+        title="Auslaufen lassen statt löschen?"
+        message={`${name} lässt sich nicht löschen — daran hängen:`}
+        confirmLabel="Auslaufen lassen"
+        confirmTone="primary"
+        onConfirm={() => onAuslaufen(artikel)}
+        onCancel={onCancel}
+      >
+        {liste}
+        <p className="mt-3 text-sm text-ink-muted">
+          Ausgelaufen wird er am Schein, in Rüstlisten, Angeboten, auf der Einkaufsliste und in den
+          Bestellvorschlägen nicht mehr angeboten; anfordern lässt er sich nur, solange etwas im Lager liegt.
+          Wo er schon steht, bleibt er lesbar. Zurück holt ihn „Wieder aufnehmen“ im Artikel.
+        </p>
+      </ConfirmDialog>
+    );
+  }
+
+  return (
+    <ConfirmDialog
+      open={!!artikel}
+      title="Material löschen?"
+      gesperrt={laedt}
+      message={
+        !artikel
+          ? ''
+          : laedt
+            ? `Es wird geprüft, was an ${name} hängt …`
+            : pruefung?.fehler
+              ? `${name} wird aus dem Katalog entfernt. Was daran hängt, ließ sich nicht prüfen: ${pruefung.fehler} Hängt etwas daran, lehnt die Datenbank das Löschen mit dem Grund ab.`
+              : `${name} wird endgültig aus dem Katalog entfernt. Daran hängt nichts — kein Bestand, keine Buchung, keine Anforderung, keine Rüstliste, kein Schein.`
+      }
+      onCancel={onCancel}
+      onConfirm={async () => {
+        if (artikel) await onLoeschen(artikel);
+      }}
+    />
   );
 }
 

@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { materialdeckung, type DeckungsDaten } from '@/lib/db/materialdeckung';
 import { einsatzFolgetage, saveAssignments } from '@/lib/db/assignments';
 import { FOLGETAGE_HOECHSTENS, folgeBericht, tagDanach, tageEinschliesslich } from './folgetage';
 import { saveEinsatzMaterial } from '@/lib/db/einsatzMaterial';
+import { PaarGeaendert, type EinteilungsZeile, type ListenZeile, type PaarGrundlage } from '@/lib/db/paarFassung';
 import type { Abwesenheit } from '@/lib/db/vacations';
 import { getAustrianHolidayName, isWeekend } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
@@ -39,6 +40,100 @@ import { alsHelferEingestuft, istLehrling, stufeImEinsatz } from './stufeImEinsa
 interface Pick {
   on: boolean;
   asHelper: boolean;
+}
+
+/*
+  WORAN DAS FORMULAR EINE FREMDE ÄNDERUNG ERKENNT (Durchsicht 15.11.2026,
+  P1). Die Live-Daten kommen bei JEDER Meldung des Betriebs als neue Listen
+  herein — auch wenn ein Monteur auf einer anderen Baustelle abhakt. Die
+  Identität der Listen sagt deshalb nichts; verglichen wird der Inhalt des
+  Paares aus Tag und Baustelle. Ohne Kennungen: Speichern ist „alles weg,
+  alles neu“, dieselbe Einteilung kommt mit neuen Kennungen zurück. Die
+  Uhrzeit nur bis zur Minute, wie das Formular sie schreibt.
+*/
+interface Einteilungszeile {
+  userId: string;
+  asHelper?: boolean | null;
+  comment?: string | null;
+  zeitVon?: string | null;
+  zeitBis?: string | null;
+}
+
+function einteilungsSchluessel(zeilen: Einteilungszeile[]): string {
+  const uhr = (t?: string | null) => (t ?? '').slice(0, 5);
+  return zeilen
+    .map((a) => JSON.stringify([a.userId, !!a.asHelper, a.comment ?? '', uhr(a.zeitVon), uhr(a.zeitBis)]))
+    .sort()
+    .join('\n');
+}
+
+/**
+ * Was an der Rüstliste Eingabe ist. `angefordert` gehört nicht dazu: das
+ * rechnet die Datenbank aus den verknüpften Anforderungen, getippt wird es
+ * nie (siehe `anforderungsSchluessel`).
+ */
+function listenSchluessel(positionen: RuestPosition[] = []): string {
+  return positionen.map((p) => JSON.stringify([p.id, p.materialId ?? '', p.name, p.menge, p.einheit ?? ''])).join('\n');
+}
+
+function anforderungsSchluessel(positionen: RuestPosition[] = []): string {
+  return positionen.map((p) => `${p.id}:${p.angefordert ?? 0}`).join('|');
+}
+
+/**
+ * Wie das Formular zu den Live-Daten seines Paares steht.
+ *
+ * ZWEI STÄNDE, NICHT EINER: `grundlage` ist, worauf die Eingabe im Formular
+ * beruht — übernommen oder selbst gespeichert. `gesehen` ist, was zuletzt
+ * live dastand. Eine fremde Änderung ist eine NEUE Meldung, die nicht zur
+ * Grundlage passt. Nach dem eigenen Speichern steht live noch eine Weile
+ * der alte Stand; wer nur „live ≠ Grundlage“ prüfte, hielte das für fremd —
+ * oder holte den alten Stand zurück ins Formular.
+ */
+interface Abgleich {
+  /** Tag, Baustelle und die vorgewählte Person: ändert sich eins, gilt die neue Planung. */
+  paar: string;
+  /** Übernommen, als die Planung des Tages schon geladen war? Vorher ist es noch das Öffnen. */
+  bereit: boolean;
+  grundlage: Teile<string>;
+  gesehen: Teile<string> & { anforderungen: string };
+  /** Fremd geändert, während hier getippt war — bis übernommen oder behalten. */
+  fremd: Teile<boolean>;
+  /**
+   * Selbst gespeichert, die Live-Meldung aber noch nicht ganz da: der
+   * geschriebene Stand. Kommt die Meldung in Teilschritten, ist ein
+   * Zwischenstand die eigene Meldung und nichts Fremdes.
+   */
+  erwartet: Teile<string | null>;
+  /**
+   * Von der Datenbank abgewiesen (`PaarGeaendert`): ihr Stand in diesem
+   * Moment, bis die Live-Meldung ihn bringt. Darauf speichert „Meine Eingabe
+   * behalten“; „Übernehmen“ braucht die Zeilen und wartet auf die Meldung.
+   */
+  abgelehnt: Teile<string | null>;
+}
+type Teile<T> = { einteilung: T; liste: T };
+
+const KEINE: Teile<null> = { einteilung: null, liste: null };
+
+/**
+ * Wie lange eine eigene Meldung höchstens in Teilschritten kommen darf. Was
+ * danach noch vom Gespeicherten abweicht, ist nicht mehr die eigene Meldung:
+ * dann fragt das Formular. Großzügig, weil ein schwaches Netz dauert — zu
+ * lang kostet nichts, denn überschrieben wird ohnehin nur, was die Datenbank
+ * als unverändert bestätigt.
+ */
+const EIGENE_MELDUNG_MS = 10_000;
+
+/** Der Schlüssel als Stand, wie ihn die Datenbank prüft (`paarFassung.ts`). */
+function standAus<T>(schluessel: string): T[] {
+  return schluessel ? schluessel.split('\n').map((z) => JSON.parse(z) as T) : [];
+}
+
+/** Der Stand, den die Datenbank bei einer Ablehnung meldet, als Schlüssel — wie die Live-Daten ihn hätten. */
+function schluesselAus(teil: keyof Teile<unknown>, stand: unknown[]): string {
+  const zeilen = stand.map((z) => JSON.stringify(z));
+  return (teil === 'einteilung' ? zeilen.sort() : zeilen).join('\n');
 }
 
 const MATERIAL_HINWEIS = (
@@ -202,6 +297,46 @@ export default function EinsatzFormular({
     return p ? { uid: p.uid, pick: { on: true, asHelper: alsHelferEingestuft(p) } } : null;
   }, [startPerson, staff]);
 
+  /** Die gespeicherten Einsätze und die Rüstliste genau dieses Paares, wie sie live dastehen. */
+  const existingForProject = useMemo(
+    () => (projectNumber ? tagesEinsaetze.filter((a) => a.projectNumber === projectNumber) : []),
+    [tagesEinsaetze, projectNumber],
+  );
+  const listeHier = useMemo(
+    () => (projectNumber ? tagesListen.find((l) => l.projectNumber === projectNumber) : undefined),
+    [tagesListen, projectNumber],
+  );
+  const paar = `${date}|${projectNumber}|${startPick?.uid ?? ''}`;
+  const liveEinteilung = einteilungsSchluessel(existingForProject);
+  const liveListe = listenSchluessel(listeHier?.positionen);
+  const liveAnforderungen = anforderungsSchluessel(listeHier?.positionen);
+
+  // Für das Ende eines Speicherns: steht noch das Paar da, für das gespeichert wurde?
+  const paarJetzt = useRef(paar);
+  useEffect(() => {
+    paarJetzt.current = paar;
+  }, [paar]);
+  /** Die Wartezeiten auf eigene Meldungen (`eigenesSpeichern`) — beim Schließen weg damit. */
+  const zeitgeber = useRef(new Set<ReturnType<typeof setTimeout>>());
+  useEffect(() => {
+    const offen = zeitgeber.current;
+    return () => {
+      for (const t of offen) clearTimeout(t);
+      offen.clear();
+    };
+  }, []);
+
+  /** Wie das Formular zu den Live-Daten steht; `null` nur vor dem ersten Übernehmen. */
+  const [abgleich, setAbgleich] = useState<Abgleich | null>(null);
+  /**
+   * Hat der Planer seit dem letzten Übernehmen etwas getippt — getrennt nach
+   * Einteilung und Rüstliste? Wer nur die Aufgabe ändert, verliert nichts,
+   * wenn die Rüstliste still nachzieht, und umgekehrt.
+   */
+  const [bearbeitet, setBearbeitet] = useState({ einteilung: false, liste: false });
+  const einteilungGetippt = () => setBearbeitet((b) => (b.einteilung ? b : { ...b, einteilung: true }));
+  const listeGetippt = () => setBearbeitet((b) => (b.liste ? b : { ...b, liste: true }));
+
   /**
    * Vorhandene Planung ins Formular übernehmen, sobald Datum UND Baustelle
    * stehen. Ohne das startete das Formular leer und das Speichern hätte die
@@ -211,24 +346,16 @@ export default function EinsatzFormular({
    * Kommt das Fenster aus der freien Zelle einer Person, steht sie zusätzlich
    * angehakt da: genau dafür wurde die Zelle angetippt.
    */
-  useEffect(() => {
-    const dazu = startPick ? { [startPick.uid]: startPick.pick } : {};
+  const einteilungUebernehmen = useCallback(() => {
+    const next: Record<string, Pick> = startPick ? { [startPick.uid]: startPick.pick } : {};
+    for (const a of existingForProject) next[a.userId] = { on: true, asHelper: !!a.asHelper };
     setHerausgenommen(new Set());
-    if (!projectNumber) {
-      setPicks(dazu);
-      setComment('');
-      setZeitVon('');
-      setZeitBis('');
-      return;
-    }
-    const existing = tagesEinsaetze.filter((a) => a.projectNumber === projectNumber);
-    const next: Record<string, Pick> = { ...dazu };
-    for (const a of existing) next[a.userId] = { on: true, asHelper: !!a.asHelper };
     setPicks(next);
-    setComment(existing[0]?.comment ?? '');
-    setZeitVon(existing[0]?.zeitVon ?? '');
-    setZeitBis(existing[0]?.zeitBis ?? '');
-  }, [projectNumber, tagesEinsaetze, startPick]);
+    setComment(existingForProject[0]?.comment ?? '');
+    setZeitVon(existingForProject[0]?.zeitVon ?? '');
+    setZeitBis(existingForProject[0]?.zeitBis ?? '');
+    setBearbeitet((b) => ({ ...b, einteilung: false }));
+  }, [existingForProject, startPick]);
 
   /**
    * Dieselbe Vorsicht wie bei der Mannschaft: eine vorhandene Rüstliste kommt
@@ -236,16 +363,108 @@ export default function EinsatzFormular({
    * Speichern die geplante Liste gelöscht — und der Monteur führe am
    * nächsten Morgen ohne Material los.
    */
-  useEffect(() => {
-    if (!projectNumber) {
-      setRuestliste([]);
-      return;
-    }
-    const treffer = tagesListen.find((l) => l.projectNumber === projectNumber);
-    setRuestliste(treffer?.positionen ?? []);
+  const listeUebernehmen = useCallback(() => {
+    setRuestliste(listeHier?.positionen ?? []);
     // Gespeichert ist gespeichert: was vorgemerkt war, ist jetzt angelegt (oder verworfen).
     setVorgemerkt(new Map());
-  }, [projectNumber, tagesListen]);
+    setBearbeitet((b) => ({ ...b, liste: false }));
+  }, [listeHier]);
+
+  /**
+   * ÜBERNOMMEN WIRD BEIM ÖFFNEN UND BEIM WECHSEL VON TAG ODER BAUSTELLE — und
+   * danach nur eine neue Meldung zu DIESEM Paar, und nur in den Teil, an dem
+   * noch nichts getippt ist (Durchsicht 15.11.2026, P1). Vorher setzte jede
+   * Meldung des Betriebs Mannschaft, Aufgabe, Uhrzeit und Rüstliste zurück:
+   * der Planer stellte morgens die Rüstliste zusammen, ein Monteur hakte auf
+   * seiner Baustelle ab, und alles Ungespeicherte war still weg. Ist im
+   * betroffenen Teil schon getippt, bleibt die Eingabe stehen und das
+   * Formular fragt (`inzwischenGeaendert`).
+   */
+  useEffect(() => {
+    const a = abgleich;
+    const live = { einteilung: liveEinteilung, liste: liveListe, anforderungen: liveAnforderungen };
+    if (!a || a.paar !== paar) {
+      einteilungUebernehmen();
+      listeUebernehmen();
+      setAbgleich({
+        paar,
+        bereit,
+        grundlage: { einteilung: liveEinteilung, liste: liveListe },
+        gesehen: live,
+        fremd: { einteilung: false, liste: false },
+        erwartet: KEINE,
+        abgelehnt: KEINE,
+      });
+      return;
+    }
+    const neuEinteilung = liveEinteilung !== a.gesehen.einteilung;
+    const neuListe = liveListe !== a.gesehen.liste;
+    const neuAngefordert = liveAnforderungen !== a.gesehen.anforderungen;
+    if (!neuEinteilung && !neuListe && !neuAngefordert && bereit === a.bereit) return;
+
+    const grundlage = { ...a.grundlage };
+    const fremd = { ...a.fremd };
+    const erwartet = { ...a.erwartet };
+    // Was live kommt, ist mindestens so neu wie das, was die Datenbank beim Abweisen sagte.
+    const abgelehnt = {
+      einteilung: neuEinteilung ? null : a.abgelehnt.einteilung,
+      liste: neuListe ? null : a.abgelehnt.liste,
+    };
+    // Bis die Planung des Tages geladen ist, gilt jede Antwort als Teil des Öffnens.
+    if (neuEinteilung) {
+      if (liveEinteilung === grundlage.einteilung) {
+        // Zurück auf der Grundlage — etwa die Meldung des eigenen Speicherns.
+        fremd.einteilung = false;
+        erwartet.einteilung = null;
+      } else if (erwartet.einteilung !== null) {
+        // Ein Zwischenstand der eigenen Meldung — das Ganze kommt gleich.
+      } else if (!a.bereit || !bearbeitet.einteilung) {
+        einteilungUebernehmen();
+        grundlage.einteilung = liveEinteilung;
+        fremd.einteilung = false;
+      } else {
+        fremd.einteilung = true;
+      }
+    }
+    let listeGeholt = false;
+    if (neuListe) {
+      if (liveListe === grundlage.liste) {
+        fremd.liste = false;
+        erwartet.liste = null;
+      } else if (erwartet.liste !== null) {
+        // Zwischenstand der eigenen Meldung.
+      } else if (!a.bereit || !bearbeitet.liste) {
+        listeUebernehmen();
+        listeGeholt = true;
+        grundlage.liste = liveListe;
+        fremd.liste = false;
+      } else {
+        fremd.liste = true;
+      }
+    }
+    /*
+      NUR `angefordert` NACHZIEHEN, wenn die Liste selbst nicht übernommen
+      wurde: eine Anforderung zur Position ist dazugekommen, etwa aus dem
+      eigenen Speichern. Ohne sie böte das Formular dieselbe Fehlmenge noch
+      einmal zum Anfordern an. Getipptes bleibt dabei unberührt.
+    */
+    if (neuAngefordert && !listeGeholt) {
+      const angefordert = new Map((listeHier?.positionen ?? []).map((p) => [p.id, p.angefordert]));
+      setRuestliste((alt) =>
+        alt.map((p) => {
+          const n = { ...p };
+          const menge = angefordert.get(p.id);
+          if (menge) n.angefordert = menge;
+          else delete n.angefordert;
+          return n;
+        }),
+      );
+    }
+    setAbgleich({ paar, bereit, grundlage, gesehen: live, fremd, erwartet, abgelehnt });
+  }, [
+    abgleich, paar, bereit, bearbeitet, listeHier, einteilungUebernehmen, listeUebernehmen,
+    liveEinteilung, liveListe, liveAnforderungen,
+  ]);
 
   /*
     WAS FÜR DIESE RÜSTLISTE FREI IST (Testbericht 30.09.2026, M32; seit
@@ -299,7 +518,23 @@ export default function EinsatzFormular({
   /** Hat der Betrieb am gewählten Tag zu? */
   const betriebsurlaubHeute = betriebsurlaube.find((b) => b.von <= date && b.bis >= date);
 
-  const existingForProject = tagesEinsaetze.filter((a) => a.projectNumber === projectNumber);
+  /*
+    INZWISCHEN GEÄNDERT (P1): an diesem Paar hat jemand anderes gespeichert,
+    während hier getippt wurde. Speichern ersetzt die Einteilung und die
+    Rüstliste des Paares ganz — es überschriebe die fremde Änderung, ohne
+    dass der Planer sie je gesehen hat. Deshalb bleibt der Knopf zu, bis er
+    entschieden hat. Während das eigene Speichern oder Löschen läuft, ist die
+    Meldung, die hereinkommt, die eigene; danach gilt sie als Grundlage.
+  */
+  const fremdeEinteilung = abgleich?.paar === paar && abgleich.fremd.einteilung;
+  const fremdeListe = abgleich?.paar === paar && abgleich.fremd.liste;
+  const inzwischenGeaendert = (fremdeEinteilung || fremdeListe) && !saving && !loeschtGerade;
+  /*
+    Die Datenbank hat abgewiesen, die Live-Meldung mit dem neuen Stand ist
+    aber noch unterwegs: „Übernehmen“ hätte nichts zu übernehmen.
+  */
+  const neuerStandUnterwegs = (fremdeEinteilung && abgleich?.abgelehnt.einteilung != null)
+    || (fremdeListe && abgleich?.abgelehnt.liste != null);
   /*
     EINGETEILT, ABER NICHT (MEHR) EINPLANBAR (10.10.2026): deaktiviert, oder
     Projektleitung bei ausgeschaltetem Schalter. Die Auswahl unten kennt nur
@@ -334,8 +569,89 @@ export default function EinsatzFormular({
     ? termineDesTages.filter((t) => t.datum === date && t.projectNumber === projectNumber).map(terminKopf)
     : [];
 
+  /**
+   * Nach dem eigenen Speichern: das Geschriebene wird Grundlage, und der Teil
+   * gilt wieder als unbearbeitet — das Formular zeigt ja genau den
+   * gespeicherten Stand. Nur, wenn noch dasselbe Paar dasteht; wurde während
+   * des Speicherns umgeschaltet, hat das Formular die neue Planung schon.
+   */
+  function eigenesSpeichern(fuer: string, welcher: keyof Teile<unknown>, geschrieben: string) {
+    if (paarJetzt.current !== fuer) return;
+    setAbgleich((a) =>
+      a && a.paar === fuer
+        ? {
+            ...a,
+            grundlage: { ...a.grundlage, [welcher]: geschrieben },
+            fremd: { ...a.fremd, [welcher]: false },
+            abgelehnt: { ...a.abgelehnt, [welcher]: null },
+            // Schon live angekommen (während des Speicherns)? Dann wird nichts mehr erwartet.
+            erwartet: { ...a.erwartet, [welcher]: a.gesehen[welcher] === geschrieben ? null : geschrieben },
+          }
+        : a,
+    );
+    setBearbeitet((b) => ({ ...b, [welcher]: false }));
+    /*
+      Kommt die eigene Meldung nicht vollständig, war etwas anderes dazwischen.
+      Dann fragt das Formular, statt den Unterschied weiter für eigen zu halten.
+    */
+    const t = setTimeout(() => {
+      zeitgeber.current.delete(t);
+      setAbgleich((a) =>
+        a && a.paar === fuer && a.erwartet[welcher] === geschrieben
+          ? {
+              ...a,
+              erwartet: { ...a.erwartet, [welcher]: null },
+              fremd: { ...a.fremd, [welcher]: a.fremd[welcher] || a.gesehen[welcher] !== a.grundlage[welcher] },
+            }
+          : a,
+      );
+    }, EIGENE_MELDUNG_MS);
+    zeitgeber.current.add(t);
+  }
+
+  /**
+   * Die Datenbank hat abgewiesen: das Paar sieht inzwischen anders aus (P1).
+   * Der Teil gilt als getippt — es ist ja die Eingabe, die gespeichert werden
+   * sollte — und das Formular fragt wie bei einer fremden Live-Meldung.
+   */
+  function abgewiesen(fuer: string, e: PaarGeaendert) {
+    if (paarJetzt.current !== fuer) return;
+    const welcher = e.teil;
+    setBearbeitet((b) => ({ ...b, [welcher]: true }));
+    setAbgleich((a) =>
+      a && a.paar === fuer
+        ? {
+            ...a,
+            fremd: { ...a.fremd, [welcher]: true },
+            erwartet: { ...a.erwartet, [welcher]: null },
+            abgelehnt: { ...a.abgelehnt, [welcher]: e.stand ? schluesselAus(welcher, e.stand) : null },
+          }
+        : a,
+    );
+  }
+
+  /**
+   * Der fremde Stand ist gesehen — übernommen oder bewusst nicht. Er wird
+   * Grundlage; erst die nächste fremde Meldung fragt wieder.
+   */
+  function fremdGesehen() {
+    setAbgleich((a) =>
+      a
+        ? {
+            ...a,
+            grundlage: {
+              einteilung: a.fremd.einteilung ? (a.abgelehnt.einteilung ?? liveEinteilung) : a.grundlage.einteilung,
+              liste: a.fremd.liste ? (a.abgelehnt.liste ?? liveListe) : a.grundlage.liste,
+            },
+            fremd: { einteilung: false, liste: false },
+            abgelehnt: KEINE,
+          }
+        : a,
+    );
+  }
+
   async function save() {
-    if (!user || !projectNumber || !bereit) return;
+    if (!user || !projectNumber || !bereit || inzwischenGeaendert) return;
     if (selectedCount === 0) {
       setError(
         existingForProject.length > 0
@@ -359,6 +675,7 @@ export default function EinsatzFormular({
     }
     setSaving(true);
     setError(null);
+    const gespeichertesPaar = paar;
     try {
       const rows = staff
         .filter((u) => picks[u.uid]?.on)
@@ -389,8 +706,6 @@ export default function EinsatzFormular({
             createdBy: user.uid,
           })),
         );
-      await saveAssignments(user.companyId, date, projectNumber, rows);
-
       /*
         DIE RUESTLISTE GEHT IM SELBEN ZUG MIT.
 
@@ -450,7 +765,30 @@ export default function EinsatzFormular({
             : p;
         });
       const hatGespeicherteListe = tagesListen.some((l) => l.projectNumber === projectNumber);
-      if (materialAn && (positionen.length > 0 || hatGespeicherteListe)) {
+      const listeMit = materialAn && (positionen.length > 0 || hatGespeicherteListe);
+      /*
+        WORAUF DIE EINGABE BERUHT (P1), für die Prüfung in der Datenbank:
+        Einteilung und — wenn sie mitgeht — Rüstliste. Weicht eins davon ab,
+        schreibt `einsatz_speichern` gar nichts; die Rüstliste prüft beim
+        eigenen Speichern noch einmal, denn dazwischen kann jemand speichern.
+      */
+      const listenGrundlage = abgleich?.paar === paar ? standAus<ListenZeile>(abgleich.grundlage.liste) : undefined;
+      const grundlage: PaarGrundlage | undefined = abgleich?.paar === paar
+        ? {
+            einteilung: standAus<EinteilungsZeile>(abgleich.grundlage.einteilung),
+            ...(listeMit ? { liste: listenGrundlage } : {}),
+          }
+        : undefined;
+      await saveAssignments(user.companyId, date, projectNumber, rows, grundlage);
+      /*
+        DAS EIGENE SPEICHERN IST KEINE FREMDE ÄNDERUNG (P1): was gleich live
+        zurückkommt, ist genau das hier Geschriebene. Es wird zur Grundlage,
+        bevor die Meldung da ist — sonst hielte das Formular die eigene
+        Einteilung für eine fremde, sobald danach weitergetippt wird.
+      */
+      eigenesSpeichern(gespeichertesPaar, 'einteilung', einteilungsSchluessel(rows));
+
+      if (listeMit) {
         try {
           await saveEinsatzMaterial(
             user.companyId,
@@ -459,19 +797,39 @@ export default function EinsatzFormular({
             positionen,
             rows.map((r) => r.userId),
             user.uid,
+            listenGrundlage,
           );
-        } catch {
+        } catch (err) {
           /*
             Der Einsatz steht bereits — das muss dastehen. „Speichern
             fehlgeschlagen" liesse den Planer glauben, auch die Einteilung
             sei weg, und er teilte sie ein zweites Mal ein.
           */
+          if (err instanceof PaarGeaendert) {
+            abgewiesen(gespeichertesPaar, err);
+            setError('Der Einsatz ist gespeichert, die Rüstliste nicht: sie wurde inzwischen anderswo geändert.');
+            return;
+          }
           setError(
             'Der Einsatz ist gespeichert, die Rüstliste nicht. Bitte noch einmal speichern.',
           );
           return;
         }
         setVorgemerkt(new Map());
+        /*
+          DAS GESPEICHERTE STEHT DA, wie vorher nach der Live-Meldung: Zeilen
+          mit Menge 0 sind nicht gespeichert und fallen weg. Die Meldung selbst
+          bringt dann nur noch `angefordert` der neuen Anforderungen.
+        */
+        setRuestliste(
+          positionen.map((p) => {
+            const ohne = { ...p };
+            delete ohne.anfordern;
+            return ohne;
+          }),
+        );
+        // Leer gespeichert heißt gelöscht (`saveEinsatzMaterial`) — live steht dann keine Liste, also ''.
+        eigenesSpeichern(gespeichertesPaar, 'liste', listenSchluessel(positionen));
         const angefordertJetzt = positionen.filter((p) => p.anfordern).length;
         await abschliessen(
           angefordertJetzt > 0
@@ -484,7 +842,9 @@ export default function EinsatzFormular({
 
       await abschliessen('Einsatz gespeichert', rows);
     } catch (err) {
-      setError(grundAus(err, 'Der Einsatz konnte nicht gespeichert werden.'));
+      // Abgewiesen, weil das Paar inzwischen anders aussieht: nichts ist geschrieben, der Hinweis fragt.
+      if (err instanceof PaarGeaendert) abgewiesen(gespeichertesPaar, err);
+      else setError(grundAus(err, 'Der Einsatz konnte nicht gespeichert werden.'));
     } finally {
       setSaving(false);
     }
@@ -658,7 +1018,10 @@ export default function EinsatzFormular({
                 key={a.userId}
                 type="button"
                 className="link-hinweis min-h-touch"
-                onClick={() => setHerausgenommen((alt) => new Set(alt).add(a.userId))}
+                onClick={() => {
+                  einteilungGetippt();
+                  setHerausgenommen((alt) => new Set(alt).add(a.userId));
+                }}
               >
                 {a.userName || 'Mitarbeiter'} aus dem Einsatz nehmen
               </button>
@@ -708,7 +1071,8 @@ export default function EinsatzFormular({
               };
             })}
             selected={staff.filter((u) => picks[u.uid]?.on).map((u) => u.uid)}
-            onChange={(next) =>
+            onChange={(next) => {
+              einteilungGetippt();
               setPicks(() => {
                 const out: Record<string, Pick> = {};
                 // Neu Gewählte bekommen den Haken aus der Einstufung.
@@ -721,8 +1085,8 @@ export default function EinsatzFormular({
                   };
                 }
                 return out;
-              })
-            }
+              });
+            }}
             emptyHint="Keine aktiven Mitarbeiter vorhanden."
             renderExtra={(uid) => {
               // Helfer und Lehrling: die Einstufung steht fest, ein Haken
@@ -736,9 +1100,10 @@ export default function EinsatzFormular({
                   id={`helper-${uid}`}
                   label="als Helfer"
                   checked={!!picks[uid]?.asHelper}
-                  onChange={(e) =>
-                    setPicks((c) => ({ ...c, [uid]: { on: true, asHelper: e.target.checked } }))
-                  }
+                  onChange={(e) => {
+                    einteilungGetippt();
+                    setPicks((c) => ({ ...c, [uid]: { on: true, asHelper: e.target.checked } }));
+                  }}
                 />
               );
             }}
@@ -748,7 +1113,7 @@ export default function EinsatzFormular({
 
       <div className="mt-4">
         <InputField id="acomment" label="Kommentar / Aufgabe" value={comment}
-          onChange={(e) => setComment(e.target.value)} />
+          onChange={(e) => { einteilungGetippt(); setComment(e.target.value); }} />
       </div>
       {/*
         M34: optional — ohne Uhrzeit gilt der ganze Tag. Volle Breite wie
@@ -757,9 +1122,9 @@ export default function EinsatzFormular({
       */}
       <div className="mt-4 grid grid-cols-2 gap-4">
         <InputField id="azeitvon" label="Beginn (optional)" type="time" value={zeitVon}
-          onChange={(e) => setZeitVon(e.target.value)} />
+          onChange={(e) => { einteilungGetippt(); setZeitVon(e.target.value); }} />
         <InputField id="azeitbis" label="Ende (optional)" type="time" value={zeitBis}
-          onChange={(e) => setZeitBis(e.target.value)} />
+          onChange={(e) => { einteilungGetippt(); setZeitBis(e.target.value); }} />
       </div>
       {/*
         DIE UHRZEIT WIEDER WEGNEHMEN (gemeldet am 03.10.2026). Das
@@ -769,7 +1134,7 @@ export default function EinsatzFormular({
         speichern“, wie jede andere Änderung hier.
       */}
       {(zeitVon || zeitBis) && (
-        <Button type="button" variant="ghost" className="mt-1" onClick={() => { setZeitVon(''); setZeitBis(''); }}>
+        <Button type="button" variant="ghost" className="mt-1" onClick={() => { einteilungGetippt(); setZeitVon(''); setZeitBis(''); }}>
           Uhrzeit entfernen
         </Button>
       )}
@@ -833,15 +1198,19 @@ export default function EinsatzFormular({
           companyId={user?.companyId}
           materials={materials}
           positionen={ruestliste}
-          onChange={setRuestliste}
-          onVormerken={(id, menge) =>
+          onChange={(neu) => {
+            listeGetippt();
+            setRuestliste(neu);
+          }}
+          onVormerken={(id, menge) => {
+            listeGetippt();
             setVorgemerkt((alt) => {
               const neu = new Map(alt);
               if (menge != null) neu.set(id, menge);
               else neu.delete(id);
               return neu;
-            })
-          }
+            });
+          }}
           vorgemerkt={vorgemerkt}
           onOffen={setOffeneRuestzeile}
           datum={date}
@@ -865,6 +1234,52 @@ export default function EinsatzFormular({
   */
   const speicherHinweise = (
     <>
+      {/*
+        DIREKT AM SPEICHERN, nicht oben im Formular: hier entscheidet sich, ob
+        überschrieben wird, und im Seitenfenster steht die Fußleiste immer im
+        Blick. Ruhig gehalten — eine Zeile mit Symbol, keine Fläche. Der Knopf
+        ist bis zur Entscheidung gesperrt; hier steht, warum.
+      */}
+      {inzwischenGeaendert && (
+        <div className="mb-3" role="status">
+          <Hinweiszeile>
+            <div className="space-y-2">
+              <p>
+                <strong>Inzwischen geändert — übernehmen?</strong>{' '}
+                {fremdeEinteilung && fremdeListe
+                  ? 'Einteilung und Rüstliste dieser Baustelle wurden'
+                  : fremdeEinteilung
+                    ? 'Die Einteilung dieser Baustelle wurde'
+                    : 'Die Rüstliste dieser Baustelle wurde'}{' '}
+                für diesen Tag anderswo geändert, während hier bearbeitet wurde. Wer die eigene
+                Eingabe behält, überschreibt die Änderung beim Speichern.
+                {neuerStandUnterwegs && ' Die Eingabe ist noch nicht gespeichert; der neue Stand wird geladen.'}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  disabled={neuerStandUnterwegs}
+                  onClick={() => {
+                    // Nur der fremd geänderte Teil; was sonst getippt ist, bleibt.
+                    if (fremdeEinteilung) einteilungUebernehmen();
+                    if (fremdeListe) listeUebernehmen();
+                    fremdGesehen();
+                  }}
+                >
+                  Übernehmen
+                </Button>
+                <Button
+                  variant="ghost"
+                  // Der fremde Stand ist gesehen; Speichern ersetzt ihn jetzt mit Wissen.
+                  onClick={fremdGesehen}
+                >
+                  Meine Eingabe behalten
+                </Button>
+              </div>
+            </div>
+          </Hinweiszeile>
+        </div>
+      )}
       {error && <div className="mb-3"><ErrorState message={error} /></div>}
       {folgeZeilen && (
         <div className="mb-3" role="status">
@@ -906,7 +1321,7 @@ export default function EinsatzFormular({
     <Button
       onClick={save}
       loading={saving}
-      disabled={!projectNumber || !bereit || (materialAn && !!offeneRuestzeile)}
+      disabled={!projectNumber || !bereit || inzwischenGeaendert || (materialAn && !!offeneRuestzeile)}
     >
       {materialAn && projectNumber ? 'Einsatz und Rüstliste speichern' : 'Einsatz speichern'}
     </Button>
@@ -1015,6 +1430,27 @@ export default function EinsatzFormular({
                         setLoeschtGerade(true);
                         try {
                           await onLoeschen(weg);
+                          /*
+                            DAS EIGENE LÖSCHEN IST KEINE FREMDE ÄNDERUNG (P1):
+                            die Person geht aus der Auswahl, der Rest wird
+                            Grundlage — was sonst getippt ist, bleibt stehen.
+                          */
+                          const rest = existingForProject.filter((a) => a.id !== weg.id);
+                          const fuer = paar;
+                          if (paarJetzt.current === fuer) {
+                            setAbgleich((a) =>
+                              a && a.paar === fuer
+                                ? { ...a, grundlage: { ...a.grundlage, einteilung: einteilungsSchluessel(rest) } }
+                                : a,
+                            );
+                            if (!rest.some((a) => a.userId === weg.userId)) {
+                              setPicks((alt) => {
+                                const ohne = { ...alt };
+                                delete ohne[weg.userId];
+                                return ohne;
+                              });
+                            }
+                          }
                           toast.success('Einsatz gelöscht');
                         } catch {
                           toast.error(`Der Einsatz von ${weg.userName} konnte nicht gelöscht werden.`);
