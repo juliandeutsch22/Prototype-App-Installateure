@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { useAmHandy } from '@/lib/breiten';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type RefObject } from 'react';
+import { AB_TABLET } from '@/lib/breiten';
 
 /**
  * WISCHEN AN DER ZEILE (Plan 15.11.2026, F15) — wie am iPhone.
@@ -31,9 +31,26 @@ export interface WischAktion {
 
 const ABSICHT = 8;
 
+/*
+  AM HANDY? NUR, WO GEWISCHT WERDEN KANN. Jede Zeile einer Liste ruft diesen
+  Hook; eine eigene Medienabfrage mit Hörer je Zeile wären bei 300 Buchungen
+  300 Hörer. Zeilen ohne Aktion hören deshalb gar nicht zu.
+*/
+const nichts = () => () => undefined;
+const nie = () => false;
+function hoeren(neu: () => void) {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => undefined;
+  const q = window.matchMedia(AB_TABLET);
+  if (q.addEventListener) q.addEventListener('change', neu); else q.addListener?.(neu);
+  return () => { if (q.removeEventListener) q.removeEventListener('change', neu); else q.removeListener?.(neu); };
+}
+function handyJetzt(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && !window.matchMedia(AB_TABLET).matches;
+}
+
 // eslint-disable-next-line react-refresh/only-export-components
 export function useWischen(zeile: RefObject<HTMLElement>, aktiv: boolean) {
-  const amHandy = useAmHandy();
+  const amHandy = useSyncExternalStore(aktiv ? hoeren : nichts, aktiv ? handyJetzt : nie, nie);
   const an = aktiv && amHandy;
   const [offen, setOffen] = useState(false);
   const offenRef = useRef(false);
