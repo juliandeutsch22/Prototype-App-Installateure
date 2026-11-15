@@ -485,6 +485,9 @@ export async function ausgegebenesMaterial(projectNumber: string): Promise<Ausga
   }));
 }
 
+/** Eine Ausgabe mit dem Einkaufspreis, der beim Ausgeben galt (M8) — `null`: nicht festgehalten. */
+export type AusgabeMitPreis = Omit<Ausgabe, 'belegId'> & { einkaufspreis?: number | null };
+
 /**
  * Was das Lager für mehrere Baustellen je ausgegeben hat — über die ganze
  * Laufzeit, ohne Rechnungsgrenze (Befund 09.11.2026). Für die
@@ -494,12 +497,12 @@ export async function ausgegebenesMaterial(projectNumber: string): Promise<Ausga
  */
 export async function ausgegebenesMaterialGesamt(
   projectNumbers: readonly string[],
-): Promise<Map<string, Omit<Ausgabe, 'belegId'>[]>> {
+): Promise<Map<string, AusgabeMitPreis[]>> {
   type Zeile = {
     baustelle: string; art: Ausgabe['art']; datum: string; material_id: string | null;
-    name: string; einheit: string | null; menge: number;
+    name: string; einheit: string | null; menge: number; einkaufspreis?: number | null;
   };
-  const raus = new Map<string, Omit<Ausgabe, 'belegId'>[]>();
+  const raus = new Map<string, AusgabeMitPreis[]>();
   const nummern = [...new Set(projectNumbers.filter((n) => n && n.trim()))];
   if (nummern.length === 0) return raus;
   const { data, error } = await derClient().rpc('ausgegebenes_material_gesamt', { p_baustellen: nummern });
@@ -509,6 +512,8 @@ export async function ausgegebenesMaterialGesamt(
     liste.push({
       art: z.art, datum: z.datum, materialId: z.material_id, name: z.name, einheit: z.einheit,
       menge: Number(z.menge) || 0,
+      // M8: der Einkaufspreis zum Zeitpunkt der Ausgabe — fehlt bei Altdaten und für wer ihn nicht sieht.
+      einkaufspreis: z.einkaufspreis == null ? null : Number(z.einkaufspreis),
     });
     raus.set(z.baustelle, liste);
   }

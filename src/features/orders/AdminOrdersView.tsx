@@ -63,7 +63,7 @@ import { byNewest, dayKey, dayHeading, toMillis } from '@/lib/timestamps';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
-import { abschlussText } from './abschlussText';
+import { abschlussText, herkunftFragen, mengeText } from './abschlussText';
 import { fmtMenge } from '@/lib/belegLayout';
 import { todayStr } from '@/lib/time';
 import Adressfilter from '@/components/Adressfilter';
@@ -175,7 +175,7 @@ function gegenbuchungText(g: Gegenbuchung): string {
  * (nichts verbucht) bleibt sie Wort für Wort wie bisher.
  */
 function loeschText(o: MaterialOrder, stand: LoeschStand | { art: 'fehler'; text: string } | null): string {
-  const was = `„${o.materialName}“ ×${o.quantity} wird entfernt.`;
+  const was = `„${o.materialName}“ ×${mengeText(o)} wird entfernt.`;
   if (!stand) return `${was} Was das im Bestand bewirkt, wird geprüft …`;
   if (stand.art === 'fehler') return stand.text;
   if (stand.art === 'abgewiesen') return `Löschen geht hier nicht: ${stand.grund}`;
@@ -421,10 +421,17 @@ export default function AdminOrdersView() {
   const [abholOrt, setAbholOrt] = useState(HAUPTLAGER);
   /** Wie viel abgeholt wird (M5) — vorbelegt die ganze Menge. */
   const [abholMenge, setAbholMenge] = useState('');
+  /*
+    WOHER, WENN NICHTS BEREITGESTELLT WAR (M8): schließt das Lager für den
+    Monteur ab, der beim Händler gekauft hat, wurde bisher vom Bestand
+    abgezogen — „Beim Händler mitgenommen“ gab es nur beim Monteur.
+  */
+  const [abholHerkunft, setAbholHerkunft] = useState<'lager' | 'haendler'>('lager');
   useEffect(() => {
     if (toComplete) {
       setAbholOrt(toComplete.lagerortId ?? HAUPTLAGER);
       setAbholMenge(zahlAlsText(toComplete.quantity));
+      setAbholHerkunft('lager');
     }
   }, [toComplete]);
   /*
@@ -715,12 +722,14 @@ export default function AdminOrdersView() {
 
   async function setStatus(
     o: WithId<MaterialOrder>, next: MaterialOrder['status'], trotzFehlbestand = false, ort?: string | null, menge?: number,
+    herkunft?: 'haendler',
   ) {
     if (next === o.status) return;
     setBusyId(o.id);
     try {
       const r = await updateOrderStatus(o.id, next, {
         von: o.status, trotzFehlbestand, ...(ort ? { ort } : {}), ...(menge != null ? { menge } : {}),
+        ...(herkunft ? { herkunft } : {}),
       });
       if (r.art === 'fehlbestand') {
         // Nichts geändert: erst fragen, mit genau diesen Zahlen (R7-M2).
@@ -1122,7 +1131,7 @@ export default function AdminOrdersView() {
                     <ul>
                       {g.zeilen.slice(0, zeigen).map((o) => {
                         const s = schrittFuer(o);
-                        const name = `${o.materialName} ×${fmtMenge(o.quantity)}`;
+                        const name = `${o.materialName} ×${mengeText(o)}`;
                         return (
                           <Arbeitszeile
                             key={o.id}
@@ -1143,7 +1152,7 @@ export default function AdminOrdersView() {
                             <span className="zeile-text">
                               <span className="zeile-titel block">
                                 {o.materialName}{' '}
-                                <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
+                                <span className="text-ink-muted">×{mengeText(o)}</span>
                               </span>
                               <span className="zeile-meta block">{meta(o)}</span>
                               {notiz(o)}
@@ -1198,7 +1207,7 @@ export default function AdminOrdersView() {
                           <span className="inline-flex flex-wrap items-center gap-x-2">
                             <span>
                               {o.materialName}{' '}
-                              <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
+                              <span className="text-ink-muted">×{mengeText(o)}</span>
                             </span>
                             {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
                             {beschaffungMarke(o)}
@@ -1276,7 +1285,7 @@ export default function AdminOrdersView() {
             <dl className="angaben">
               <div className="angabe">
                 <dt>Menge</dt>
-                <dd>{fmtMenge(offen.quantity)}</dd>
+                <dd>{mengeText(offen)}</dd>
               </div>
               <div className="angabe">
                 <dt>{offen.transactionType === 'return' ? 'Zurückgebracht von' : 'Angefordert von'}</dt>
@@ -1468,7 +1477,7 @@ export default function AdminOrdersView() {
         confirmTone="primary"
         message={
           einkaufFragen
-            ? `„${einkaufFragen.o.materialName}“ ×${einkaufFragen.o.quantity} ist nicht im Lager und wird beim Großhändler bestellt.${
+            ? `„${einkaufFragen.o.materialName}“ ×${mengeText(einkaufFragen.o)} ist nicht im Lager und wird beim Großhändler bestellt.${
               einkaufFragen.o.beschaffung === 'lager' ? ' Die Zusage aus dem Lager fällt weg.' : ''}`
             : ''
         }
@@ -1523,7 +1532,7 @@ export default function AdminOrdersView() {
         confirmLabel="Annehmen"
         confirmTone="primary"
         message={annahme
-          ? `${annahme.o.userName ?? 'Gemeldet'}: „${annahme.o.materialName}“ ×${fmtMenge(annahme.o.quantity)}${annahme.o.projectNumber ? ` von ${annahme.o.projectNumber}` : ''}. `
+          ? `${annahme.o.userName ?? 'Gemeldet'}: „${annahme.o.materialName}“ ×${mengeText(annahme.o)}${annahme.o.projectNumber ? ` von ${annahme.o.projectNumber}` : ''}. `
             + 'Gutgeschrieben wird nur Neues. Kam nichts an, statt dessen die Retoure löschen.'
           : ''}
         gesperrt={!annahme || teilwahl(annahme.menge, annahme.o.quantity).art === 'fehler'}
@@ -1578,7 +1587,7 @@ export default function AdminOrdersView() {
         confirmTone="primary"
         message={
           teilAusLager
-            ? `„${teilAusLager.o.materialName}“ ×${fmtMenge(teilAusLager.o.quantity)}: was im Regal liegt, wird abholbereit — der Rest bleibt eine eigene Anforderung.`
+            ? `„${teilAusLager.o.materialName}“ ×${mengeText(teilAusLager.o)}: was im Regal liegt, wird abholbereit — der Rest bleibt eine eigene Anforderung.`
             : ''
         }
         gesperrt={!teilAusLager || teilAusLager.menge.trim() === '' || teilwahl(teilAusLager.menge, teilAusLager.o.quantity).art === 'fehler'}
@@ -1629,7 +1638,7 @@ export default function AdminOrdersView() {
         confirmTone="primary"
         message={
           toComplete
-            ? abschlussText(abholTeil(toComplete, abholMenge))
+            ? abschlussText(abholTeil(toComplete, abholMenge), herkunftFragen(toComplete) ? abholHerkunft : undefined)
             : ''
         }
         gesperrt={!!toComplete && toComplete.transactionType !== 'return' && teilwahl(abholMenge, toComplete.quantity).art === 'fehler'}
@@ -1647,11 +1656,24 @@ export default function AdminOrdersView() {
               ? null
               : abholOrt || lo.orte.find((o) => o.art === 'haupt')?.id || null;
             const teil = toComplete.transactionType === 'return' ? null : teilwahl(abholMenge, toComplete.quantity);
-            await setStatus(toComplete, 'Erledigt', false, ort, teil?.art === 'teil' ? teil.menge : undefined);
+            const vomHaendler = herkunftFragen(toComplete) && abholHerkunft === 'haendler';
+            await setStatus(toComplete, 'Erledigt', false, vomHaendler ? null : ort,
+              teil?.art === 'teil' ? teil.menge : undefined, vomHaendler ? 'haendler' : undefined);
           }
           setToComplete(null);
         }}
       >
+        {toComplete && herkunftFragen(toComplete) && (
+          <SelectField
+            id="abschluss-herkunft"
+            label="Woher kam das Material?"
+            value={abholHerkunft}
+            onChange={(e) => setAbholHerkunft(e.target.value as 'lager' | 'haendler')}
+          >
+            <option value="lager">Aus dem Lager genommen — bucht vom Bestand ab</option>
+            <option value="haendler">Beim Händler mitgenommen — der Bestand bleibt</option>
+          </SelectField>
+        )}
         {toComplete && toComplete.transactionType !== 'return' && !toComplete.processed && (
           <TeilmengeFeld
             id="abschluss-menge"

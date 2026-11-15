@@ -206,3 +206,8 @@ export function scheinVerbrauchBuchen(
 ): Promise<boolean> {
   return pg.scheinVerbrauchBuchen(scheinId, zeilen);
 }
+
+/** Die beim Unterschreiben festgehaltenen Einkaufspreise (M8) — `scheinId|materialId`. */
+export function scheinEinkaufspreise(scheinIds: readonly string[]): Promise<Map<string, number>> {
+  return pg.scheinEinkaufspreise(scheinIds);
+}

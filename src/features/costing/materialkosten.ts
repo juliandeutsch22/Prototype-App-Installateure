@@ -29,6 +29,15 @@ import type { Ausgabe } from '@/features/invoices/ausgegebenesMaterial';
  * Wer beide verwechselt, bekommt für jedes Material einen Deckungsbeitrag von
  * null und hält ihn für ein Ergebnis; dieselbe Falle wie beim Stundensatz.
  *
+ * DER PREIS ZUM ZEITPUNKT DER AUSGABE (M8, 16.11.2026): vorher galt der
+ * heutige Einkaufspreis, und ein neuer DATANORM-Stand änderte rückwirkend die
+ * Kosten abgeschlossener Baustellen. Jetzt trägt jede Ausgabe (abgeholt,
+ * eingeladen, zurück) und jede unterschriebene Scheinzeile den Preis, den die
+ * Datenbank in diesem Augenblick festgehalten hat. Je Artikel zählt die
+ * Quelle mit der größeren Menge — Lager oder Scheine — mit ihren Preisen;
+ * wo keiner festgehalten ist (Belege vor dieser Fassung), wie bisher der aus
+ * dem Stamm.
+ *
  * WAS PASSIERT, WENN EIN PREIS FEHLT: nichts wird geschätzt. Der Artikel wird
  * beim Namen genannt und fliesst nicht in die Kosten ein. Ein angenommener
  * Preis wäre eine erfundene Zahl in einer Rechnung, auf der jemand
@@ -59,8 +68,12 @@ export const KEINE_MATERIALKOSTEN: Materialkosten = {
   ausLager: 0,
 };
 
-/** Eine Ausgabe des Lagers, wie die Nachkalkulation sie braucht (Retoure negativ). */
-export type LagerAusgabe = Pick<Ausgabe, 'materialId' | 'name' | 'menge'>;
+/**
+ * Eine Ausgabe des Lagers, wie die Nachkalkulation sie braucht (Retoure
+ * negativ) — mit dem Einkaufspreis, der beim Ausgeben galt (M8), wenn er
+ * festgehalten ist.
+ */
+export type LagerAusgabe = Pick<Ausgabe, 'materialId' | 'name' | 'menge'> & { einkaufspreis?: number | null };
 
 const menge3 = (x: number) => Math.round(x * 1000) / 1000;
 
@@ -77,6 +90,8 @@ export function materialkosten(
   scheine: Array<WorkSheet & { id: string }>,
   katalog: Material[],
   ausgaben: readonly LagerAusgabe[] = [],
+  /** Die beim Unterschreiben festgehaltenen Preise — `scheinId|materialId` (M8). */
+  scheinPreise: ReadonlyMap<string, number> = new Map(),
 ): Materialkosten {
   const preise = new Map<string, number>();
   for (const m of katalog) {
@@ -96,7 +111,16 @@ export function materialkosten(
       ? (typeof ausKatalog.einkaufspreis === 'number' && ausKatalog.einkaufspreis > 0 ? ausKatalog.einkaufspreis : undefined)
       : preise.get(normName(name));
   };
-  const mengen = new Map<string, { name: string; aufScheinen: number; ausLager: number; preis: number | undefined }>();
+  /*
+    Je Artikel die Menge und die Kosten beider Quellen. `…Luecke`: eine Zeile
+    ohne festgehaltenen Preis und ohne Preis im Stamm — dann ist die Quelle
+    nicht bewertbar und der Artikel wird genannt.
+  */
+  type Eintrag = {
+    name: string; aufScheinen: number; ausLager: number; preis: number | undefined;
+    scheinKosten: number; scheinLuecke: boolean; lagerKosten: number; lagerLuecke: boolean;
+  };
+  const mengen = new Map<string, Eintrag>();
   // Scheinzeilen und Ausgaben über DIESELBE Zuordnung: Kennung, sonst Name.
   const zuordnen = artikelZuordnung();
   const eintrag = (name: string, materialId?: string | null) => {
@@ -104,7 +128,10 @@ export function materialkosten(
     const vorhanden = mengen.get(schluessel);
     // Der Preis kommt wie bisher aus der ersten Zeile des Artikels.
     if (vorhanden) return vorhanden;
-    const neu = { name: name.trim(), aufScheinen: 0, ausLager: 0, preis: preisVon(name, materialId) };
+    const neu: Eintrag = {
+      name: name.trim(), aufScheinen: 0, ausLager: 0, preis: preisVon(name, materialId),
+      scheinKosten: 0, scheinLuecke: false, lagerKosten: 0, lagerLuecke: false,
+    };
     mengen.set(schluessel, neu);
     return neu;
   };
@@ -118,12 +145,19 @@ export function materialkosten(
       if (!zeile.name?.trim() || !(zeile.menge > 0)) continue;
       const e = eintrag(zeile.name, zeile.materialId);
       e.aufScheinen = menge3(e.aufScheinen + zeile.menge);
+      const fest = zeile.materialId ? scheinPreise.get(`${schein.id}|${zeile.materialId}`) : undefined;
+      const preis = fest ?? e.preis;
+      if (preis === undefined) e.scheinLuecke = true;
+      else e.scheinKosten += zeile.menge * preis;
     }
   }
   for (const a of ausgaben) {
     if (!a.name?.trim() || !a.menge) continue;
     const e = eintrag(a.name, a.materialId);
     e.ausLager = menge3(e.ausLager + a.menge);
+    const preis = typeof a.einkaufspreis === 'number' && a.einkaufspreis > 0 ? a.einkaufspreis : e.preis;
+    if (preis === undefined) e.lagerLuecke = true;
+    else e.lagerKosten += a.menge * preis;
   }
 
   let kosten = 0;
@@ -134,12 +168,13 @@ export function materialkosten(
     const lager = Math.max(0, e.ausLager);
     const menge = Math.max(e.aufScheinen, lager);
     if (!(menge > 0)) continue;
-    if (lager > e.aufScheinen) ausLager++;
-    if (e.preis === undefined) {
+    const ausDemLager = lager > e.aufScheinen;
+    if (ausDemLager) ausLager++;
+    if (ausDemLager ? e.lagerLuecke : e.scheinLuecke) {
       ohnePreis.push(e.name);
       continue;
     }
-    kosten += menge * e.preis;
+    kosten += ausDemLager ? e.lagerKosten : e.scheinKosten;
   }
 
   return {

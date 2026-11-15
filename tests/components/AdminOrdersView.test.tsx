@@ -1508,3 +1508,36 @@ describe('Zurückgeben an der Anforderung (V11)', () => {
     expect(within(await oeffnen()).queryByRole('button', { name: 'Zurückgeben …' })).toBeNull();
   });
 });
+
+/*
+  M8 (16.11.2026): das Lager wählt beim Abschließen „Beim Händler
+  mitgenommen“ — bisher gab es das nur beim Monteur, und das Lager zog
+  vom Bestand ab, was nie im Regal lag.
+*/
+describe('Herkunft beim Abschließen im Lager (M8)', () => {
+  it('„Offen“: das Lager kann „beim Händler“ wählen — dann geht die Herkunft mit', async () => {
+    statusSetzen.mockReset();
+    statusSetzen.mockResolvedValue({ art: 'geaendert' });
+    anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
+    zeige();
+    await statusWaehlen('Erledigt');
+    const dialog = await screen.findByRole('dialog', { name: 'Bestellung abschließen?' });
+    await userEvent.selectOptions(within(dialog).getByLabelText('Woher kam das Material?'), 'haendler');
+    expect(within(dialog).getByText(/Vom Lagerbestand wird nichts abgezogen/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o1', 'Erledigt', expect.objectContaining({ herkunft: 'haendler' })));
+  });
+
+  it('Gleichbleiben: abholbereit aus dem Lager — keine Frage, keine Herkunft', async () => {
+    statusSetzen.mockReset();
+    statusSetzen.mockResolvedValue({ art: 'geaendert' });
+    anforderungen = [anforderung({ id: 'o1', status: 'Abholbereit', beschaffung: 'lager' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /^Abgeholt: Kupferrohr 15mm/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Bestellung abschließen?' });
+    expect(within(dialog).queryByLabelText('Woher kam das Material?')).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalled());
+    expect(statusSetzen.mock.calls[0][2]).not.toHaveProperty('herkunft');
+  });
+});

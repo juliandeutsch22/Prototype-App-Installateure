@@ -295,6 +295,36 @@ describe('Material anfordern — der Warenkorb', () => {
     });
   });
 
+  /*
+    M8 (16.11.2026): die freie Zeile trägt eine Einheit („Rohr ×30“: Meter
+    oder Stangen?), und eine gescheiterte Position sagt ihren Grund.
+  */
+  it('M8: die freie Zeile nimmt eine Einheit mit', async () => {
+    zeige();
+    await userEvent.selectOptions(await baustelleFeld(), '2026-042');
+    const knopf = screen.getByRole('button', { name: 'In die Liste' });
+    await userEvent.type(screen.getByLabelText('Bezeichnung'), 'Rohr 22');
+    await userEvent.clear(screen.getByLabelText('Menge'));
+    await userEvent.type(screen.getByLabelText('Menge'), '30');
+    await userEvent.selectOptions(screen.getByLabelText('Einheit'), 'm');
+    await userEvent.click(knopf);
+    expect(screen.getByText(/×30 m/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
+    expect(anlegen.mock.calls[0][1]).toMatchObject({ materialName: 'Rohr 22', quantity: 30, einheit: 'm' });
+  });
+
+  it('M8: eine gescheiterte Position nennt ihren Grund — und bleibt im Korb', async () => {
+    anlegen.mockRejectedValueOnce(new Error('In „Stk“ zählen ganze Stück — bitte eine ganze Zahl eintragen.'));
+    zeige();
+    await userEvent.selectOptions(await baustelleFeld(), '2026-042');
+    const knopf = screen.getByRole('button', { name: 'In die Liste' });
+    await userEvent.type(screen.getByLabelText('Bezeichnung'), 'Eckventil');
+    await userEvent.click(knopf);
+    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    expect(await screen.findByText(/Eckventil: In „Stk“ zählen ganze Stück/)).toBeInTheDocument();
+  });
+
   it('lässt die Namensspalte bei „Nicht im Katalog?“ schrumpfen (P4-02)', async () => {
     /*
       Prüflauf 25.09.2026, P4-02: `grid-cols-[1fr_5rem]` — `1fr` heißt
@@ -307,8 +337,9 @@ describe('Material anfordern — der Warenkorb', () => {
     // Die Zeile steht mit dem Katalog, und der kommt seit dem 18.10.2026 als Antwort des Servers.
     const raster = (await screen.findByLabelText('Bezeichnung')).closest('.grid') as HTMLElement;
     // Seit E74 steht der Petrol-Kreis in jeder Breite in derselben Reihe — die Namensspalte schrumpft weiter.
-    expect(raster.className).toContain('grid-cols-[minmax(0,1fr)_5rem_auto]');
-    expect(raster.className).toContain('sm:grid-cols-[minmax(0,1fr)_6rem_auto]');
+    // Seit M8 mit der Einheit zwischen Menge und Kreis — die Namensspalte schrumpft weiter.
+    expect(raster.className).toContain('grid-cols-[minmax(0,1fr)_4.5rem_5.5rem_auto]');
+    expect(raster.className).toContain('sm:grid-cols-[minmax(0,1fr)_6rem_7rem_auto]');
     expect(raster.className).not.toMatch(/grid-cols-\[1fr/);
   });
 

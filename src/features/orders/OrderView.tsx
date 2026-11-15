@@ -41,7 +41,8 @@ import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAusMs } from '@/lib/datum';
-import { abschlussText, herkunftFragen } from './abschlussText';
+import { abschlussText, herkunftFragen, mengeText } from './abschlussText';
+import EinheitFeld from '@/components/EinheitFeld';
 import AnforderungFenster from './AnforderungFenster';
 import { zuletztAngefordert, ZULETZT_TAGE } from './zuletztAngefordert';
 import RetoureFenster, { type RetoureVorbelegt } from './RetoureFenster';
@@ -73,6 +74,8 @@ interface CartLine {
   note?: string;
   /** Eilzustellung — nur mit gewählter Baustelle möglich. */
   isUrgent?: boolean;
+  /** Die Einheit der freien Zeile (M8); beim Katalogartikel setzt sie die Datenbank. */
+  einheit?: string;
 }
 
 /**
@@ -201,6 +204,11 @@ export default function OrderView() {
   /** Ein Artikel, den der Katalog nicht kennt — frei getippt. */
   const [freiName, setFreiName] = useState('');
   const [freiMenge, setFreiMenge] = useState('1');
+  /*
+    DIE EINHEIT DER FREIEN ZEILE (M8): bei „Rohr ×30“ wusste das Lager nicht,
+    ob Meter oder Stangen. Freiwillig — leer bleibt es wie bisher.
+  */
+  const [freiEinheit, setFreiEinheit] = useState('');
   const [toPickUp, setToPickUp] = useState<WithId<MaterialOrder> | null>(null);
   /** Beim Abholen, solange nichts bereitgestellt ist (C7, E89): aus dem Lager oder vom Händler. */
   const [herkunft, setHerkunft] = useState<'lager' | 'haendler'>('lager');
@@ -368,10 +376,14 @@ export default function OrderView() {
     if (!name || !(menge > 0)) return;
     setCart((prev) => [
       ...prev,
-      { materialId: '', materialName: name, quantity: menge, projectNumber, isUrgent: urgent && !!projectNumber },
+      {
+        materialId: '', materialName: name, quantity: menge, projectNumber, isUrgent: urgent && !!projectNumber,
+        ...(freiEinheit ? { einheit: freiEinheit } : {}),
+      },
     ]);
     setFreiName('');
     setFreiMenge('1');
+    setFreiEinheit('');
   }
 
   /** Die Zeile der Liste für diesen Artikel, die gewählte Baustelle und den Eil-Haken. */
@@ -416,6 +428,13 @@ export default function OrderView() {
     // Promise.all bliebe nach einem Teilfehler unklar, was schon geschrieben ist,
     // und ein zweiter Versuch erzeugte Duplikate.
     const failed: CartLine[] = [];
+    /*
+      DER GRUND JE POSITION (M8): vorher verwarf die Schleife den Fehler und
+      meldete nur die Zahl. Ein alter Korb mit inzwischen gelöschtem Artikel
+      oder geänderter Einheit scheiterte bei jedem Versuch, ohne dass jemand
+      erfuhr, warum.
+    */
+    const gruende: string[] = [];
     // Ohne Empfang bestätigt der Server nichts; die Anforderung liegt dann im
     // lokalen Zwischenspeicher und geht später raus. Das muss der Monteur
     // erfahren, sonst tippt er sie im Keller ein zweites Mal.
@@ -427,6 +446,7 @@ export default function OrderView() {
           materialId: line.materialId || null,
           materialName: line.materialName,
           quantity: line.quantity,
+          ...(line.einheit ? { einheit: line.einheit } : {}),
           // DIE NOTIZ WIRD HIER GENOMMEN, NICHT BEIM HINZUFÜGEN. Das Feld
           // erscheint erst, wenn schon etwas im Korb liegt — eine Notiz, die
           // beim Hinzufügen an die Position gehängt wurde, war also immer
@@ -442,8 +462,9 @@ export default function OrderView() {
           source: 'manual',
         });
         if (stand === 'queued') vorgemerkt = true;
-      } catch {
+      } catch (err) {
         failed.push(line);
+        gruende.push(`${line.materialName}: ${grundAus(err, 'nicht gesendet')}`);
       }
     }
     setCart(failed);
@@ -457,7 +478,8 @@ export default function OrderView() {
       zuMeinenSpringen();
     } else {
       setKorbFehler(
-        `${failed.length} von ${failed.length + (cart.length - failed.length)} Positionen konnten nicht gesendet werden. Sie bleiben im Warenkorb.`,
+        `${failed.length} von ${failed.length + (cart.length - failed.length)} Positionen konnten nicht gesendet werden. Sie bleiben im Warenkorb. `
+          + gruende.join(' · '),
       );
     }
   }
@@ -709,7 +731,7 @@ export default function OrderView() {
               Menge und „Hinzufügen" 90–106 px aus der Karte, wo sie
               abgeschnitten wurden (Prüflauf 25.09.2026, P4-02). */}
           {/* Derselbe Kreis wie beim Artikel aus dem Katalog (E74, V10): in jeder Breite in einer Reihe mit den Feldern. */}
-          <div className="mt-2 grid grid-cols-[minmax(0,1fr)_5rem_auto] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_6rem_auto]">
+          <div className="mt-2 grid grid-cols-[minmax(0,1fr)_4.5rem_5.5rem_auto] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_6rem_7rem_auto]">
             <InputField
               id="frei-name"
               label="Bezeichnung"
@@ -724,6 +746,7 @@ export default function OrderView() {
               value={freiMenge}
               onChange={(e) => setFreiMenge(e.target.value)}
             />
+            <EinheitFeld id="frei-einheit" value={freiEinheit} onChange={setFreiEinheit} leer="–" />
             <InDieListe
               label={freiName.trim() ? `${freiName.trim()} in die Liste` : 'In die Liste'}
               disabled={!freiName.trim() || !(zahlOder(freiMenge, NaN) > 0)}
@@ -814,7 +837,7 @@ export default function OrderView() {
                 title={
                   <span>
                     {line.materialName}{' '}
-                    <span className="text-ink-muted">×{fmtMenge(line.quantity)}</span>
+                    <span className="text-ink-muted">×{fmtMenge(line.quantity)}{line.einheit ? ` ${line.einheit}` : ''}</span>
                   </span>
                 }
                 subtitle={
@@ -895,7 +918,7 @@ export default function OrderView() {
                   key={o.id}
                   title={
                     <span>
-                      {o.materialName} <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
+                      {o.materialName} <span className="text-ink-muted">×{mengeText(o)}</span>
                     </span>
                   }
                   subtitle={[o.projectNumber, o.note, wasLaeuft(o)].filter(Boolean).join(' · ')}
@@ -939,7 +962,7 @@ export default function OrderView() {
                   key={o.id}
                   title={
                     <span>
-                      {o.materialName} <span className="text-ink-muted">×{fmtMenge(o.quantity)}</span>
+                      {o.materialName} <span className="text-ink-muted">×{mengeText(o)}</span>
                     </span>
                   }
                   subtitle={[

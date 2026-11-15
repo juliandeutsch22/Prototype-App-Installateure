@@ -318,3 +318,39 @@ describe('Ausgegebenes Material (Lager)', () => {
     expect(rechneBaustelle('2026-001', 'Huber', [], RECHNUNG, undefined, KOSTEN, materialkosten(scheine, [artikel('Eckventil', 3.5)])).materialQuelle).toBe('Scheine');
   });
 });
+
+/*
+  M8 (16.11.2026): DER EINKAUFSPREIS ZUM ZEITPUNKT DER AUSGABE. Vorher galt
+  der heutige Preis aus dem Stamm — ein neuer DATANORM-Stand änderte
+  rückwirkend die Kosten abgeschlossener Baustellen.
+*/
+describe('Einkaufspreis zum Zeitpunkt der Ausgabe (M8)', () => {
+  const heute = { ...artikel('Kupferrohr 15', 9), id: 'k1' } as Material & { id: string };
+
+  it('die Lagerausgabe rechnet mit dem festgehaltenen Preis, nicht mit dem heutigen', () => {
+    const r = materialkosten([], [heute], [
+      { materialId: 'k1', name: 'Kupferrohr 15', menge: 10, einkaufspreis: 3 },
+      { materialId: 'k1', name: 'Kupferrohr 15', menge: -2, einkaufspreis: 3 },
+    ]);
+    expect(r.kosten).toBe(24);
+  });
+
+  it('die Scheinzeile ebenso — über Schein und Artikel', () => {
+    const s = schein('S1', [{ name: 'Kupferrohr 15', menge: 4, materialId: 'k1' }]);
+    const r = materialkosten([s], [heute], [], new Map([['S1|k1', 2.5]]));
+    expect(r.kosten).toBe(10);
+  });
+
+  it('Gleichbleiben: ohne festgehaltenen Preis (Altdaten) der aus dem Stamm, wie bisher', () => {
+    const r = materialkosten([], [heute], [{ materialId: 'k1', name: 'Kupferrohr 15', menge: 10 }]);
+    expect(r.kosten).toBe(90);
+  });
+
+  it('gemischt: festgehalten, wo vorhanden, sonst der Stamm', () => {
+    const r = materialkosten([], [heute], [
+      { materialId: 'k1', name: 'Kupferrohr 15', menge: 5, einkaufspreis: 3 },
+      { materialId: 'k1', name: 'Kupferrohr 15', menge: 5 },
+    ]);
+    expect(r.kosten).toBe(60);
+  });
+});

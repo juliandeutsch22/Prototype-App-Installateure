@@ -1,7 +1,7 @@
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { listInvoicesForProjects } from '@/lib/db/invoices';
 import { listQuotesForProjects } from '@/lib/db/quotes';
-import { listWorkSheetsForProjects } from '@/lib/db/workSheets';
+import { listWorkSheetsForProjects, scheinEinkaufspreise } from '@/lib/db/workSheets';
 import { katalogNachIds, katalogNachNamen } from '@/lib/db/materials';
 import { ausgegebenesMaterialGesamt } from '@/lib/db/materialOrders';
 import { einkaufspreise, type Kostensaetze } from '@/lib/db/kosten';
@@ -115,7 +115,16 @@ export async function rechneBaustellen(
     ]),
   ]);
   const artikel = [...new Map([...nachName, ...nachId].map((m) => [m.id, m])).values()];
-  const preise = await einkaufspreise(companyId, artikel.map((m) => m.id));
+  /*
+    DIE PREISE BEIM UNTERSCHREIBEN (M8) — kommen sie nicht, gilt wie bisher
+    der Preis aus dem Stamm; eine Lücke wird daraus nicht.
+  */
+  const [preise, scheinPreise] = await Promise.all([
+    einkaufspreise(companyId, artikel.map((m) => m.id)),
+    Promise.resolve()
+      .then(() => (scheine ? scheinEinkaufspreise(scheine.map((s) => s.id)) : new Map<string, number>()))
+      .catch(() => new Map<string, number>()),
+  ]);
   const katalog: Material[] = artikel.map((m) => ({ ...m, einkaufspreis: preise.get(m.id) }));
 
   return projekte
@@ -123,7 +132,7 @@ export async function rechneBaustellen(
       const nr = normProjectNumber(p.projectNumber);
       const material = scheineJe && ausgaben
         // Die Datenbank führt die Ausgaben unter der Nummer ohne „PR-“ in Kleinschrift.
-        ? materialkosten(scheineJe.get(nr) ?? [], katalog, ausgaben.get(nr.toLowerCase()) ?? [])
+        ? materialkosten(scheineJe.get(nr) ?? [], katalog, ausgaben.get(nr.toLowerCase()) ?? [], scheinPreise)
         : KEINE_MATERIALKOSTEN;
       return {
         ...rechneBaustelle(

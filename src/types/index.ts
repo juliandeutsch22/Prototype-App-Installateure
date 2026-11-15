@@ -1372,6 +1372,11 @@ export interface MaterialOrder {
   kommission?: boolean;
   /** Die Lieferschein-Nr. der Lieferung von der Einkaufsliste (M4). */
   lieferschein?: string | null;
+  /**
+   * Die Einheit der Menge (M8): beim Katalogartikel aus dem Artikel (setzt
+   * die Datenbank), bei der freien Zeile vom Besteller. Ältere Zeilen: leer.
+   */
+  einheit?: string | null;
   /** Zuletzt stornierte Bestellung (M4): wann und warum — danach wieder „zu bestellen“. */
   bestellungStorniertAm?: number | null;
   bestellungStornoGrund?: string | null;

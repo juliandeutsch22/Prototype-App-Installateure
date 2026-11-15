@@ -869,3 +869,27 @@ export async function scheinVerbrauchBuchen(
   if (error) throw new Error(error.message);
   return (data as { ergebnis?: string } | null)?.ergebnis === 'gebucht';
 }
+
+/**
+ * DIE EINKAUFSPREISE BEIM UNTERSCHREIBEN (M8): je Schein und Artikel der
+ * festgehaltene Preis (gewichtet über die Zeilen). Schlüssel
+ * `scheinId|materialId`. Nur für wer Einkaufspreise sieht — sonst leer, und
+ * die Nachkalkulation rechnet wie bisher mit dem Stamm.
+ */
+export async function scheinEinkaufspreise(scheinIds: readonly string[]): Promise<Map<string, number>> {
+  const raus = new Map<string, number>();
+  const ids = [...new Set(scheinIds.filter(Boolean))];
+  if (ids.length === 0) return raus;
+  const { data, error } = await derClient().rpc('schein_einkaufspreise', { p_scheine: ids });
+  if (error) throw new Error(error.message);
+  const summe = new Map<string, { menge: number; betrag: number }>();
+  for (const z of (data ?? []) as Array<{ work_sheet_id: string; material_id: string; menge: number; einkaufspreis: number }>) {
+    const k = `${z.work_sheet_id}|${z.material_id}`;
+    const s = summe.get(k) ?? { menge: 0, betrag: 0 };
+    s.menge += Number(z.menge) || 0;
+    s.betrag += (Number(z.menge) || 0) * (Number(z.einkaufspreis) || 0);
+    summe.set(k, s);
+  }
+  for (const [k, s] of summe) if (s.menge > 0) raus.set(k, s.betrag / s.menge);
+  return raus;
+}

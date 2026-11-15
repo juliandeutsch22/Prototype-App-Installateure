@@ -8,9 +8,9 @@ import BottomSheet from '@/components/BottomSheet';
 import Button from '@/components/Button';
 import StatusBadge from '@/components/StatusBadge';
 import { Warnung } from '@/components/Badge';
-import { fmtMenge } from '@/lib/belegLayout';
 import { eiligMoeglich } from './eilig';
 import { anforderungAenderbar } from './anforderungStand';
+import { mengeText } from './abschlussText';
 import { grundAus } from '@/lib/fehlerGrund';
 
 /**
@@ -65,7 +65,7 @@ export default function AnforderungFenster({
     }
   }
   const angaben: [string, string][] = [
-    ['Menge', fmtMenge(o.quantity)],
+    ['Menge', mengeText(o)],
     ['Baustelle', o.projectNumber || 'ohne Baustelle'],
     ...(o.note ? [['Notiz', o.note] as [string, string]] : []),
     ...(wasLaeuft ? [['Beschaffung', wasLaeuft] as [string, string]] : []),
