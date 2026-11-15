@@ -11,6 +11,7 @@
  * welche Seite sie zeigen muss.
  */
 import { supabaseClient } from '@/lib/supabase';
+import { ZWEI_FAKTOR_ROLLEN } from '../kern';
 
 /** Was nach dem Passwort noch fehlt. */
 export type ZweiterFaktorBedarf = 'keiner' | 'pruefen' | 'einrichten';
@@ -28,8 +29,7 @@ export interface ZweiterFaktorStand {
   codeZuletztVerwendet: string | null;
 }
 
-/** Dieselben Rollen wie `app.zwei_faktor_rolle` in der Datenbank. */
-export const ZWEI_FAKTOR_ROLLEN = ['Administrator', 'Geschäftsführung', 'Buchhaltung'];
+export { ZWEI_FAKTOR_ROLLEN } from '../kern';
 
 function fehlerText(e: { message: string } | null | undefined, sonst: string): string {
   return e?.message || sonst;
@@ -170,4 +170,24 @@ export async function ausschalten(): Promise<void> {
   const { error: e3 } = await c.rpc('zwei_faktor_codes_verwerfen');
   if (e3) throw new Error(e3.message);
   await c.auth.refreshSession().catch(() => undefined);
+}
+
+/** Wer zur Pflicht gehört und noch keinen zweiten Faktor hat (K6). */
+export interface OhneFaktor {
+  uid: string;
+  name: string;
+  rolle: string;
+}
+
+/**
+ * WEN DIE PFLICHT TRIFFT (K6, Durchsicht 15.11.2026). Sie wirkt sofort: wer
+ * zu Leitung oder Buchhaltung gehört und keinen Faktor hat, sieht ab dem
+ * Speichern nichts mehr. Die Geschäftsführung soll das vorher wissen — und
+ * solange die Pflicht gilt, wer noch fehlt. Nur für die Spitze des Betriebs.
+ */
+export async function ohneFaktor(): Promise<OhneFaktor[]> {
+  const { data, error } = await supabaseClient().rpc('zwei_faktor_ohne_faktor');
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Array<{ uid: string; name: string; rolle: string }>)
+    .map((z) => ({ uid: z.uid, name: z.name, rolle: z.rolle }));
 }

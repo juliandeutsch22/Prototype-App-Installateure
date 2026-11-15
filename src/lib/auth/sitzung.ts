@@ -95,6 +95,6 @@ export function profilMerken(profil: CurrentUser, firma: Company | null): void {
 */
 export {
   zweiterFaktorBedarf, zweiterFaktorStand, einrichtenBeginnen, einrichtenBestaetigen,
-  neueCodes, codePruefen, codeEinloesen, ausschalten as zweitenFaktorAusschalten,
+  neueCodes, codePruefen, codeEinloesen, ausschalten as zweitenFaktorAusschalten, ohneFaktor,
 } from './pg/zweiFaktor';
-export type { ZweiterFaktorBedarf, ZweiterFaktorStand, NeuerFaktor } from './pg/zweiFaktor';
+export type { ZweiterFaktorBedarf, ZweiterFaktorStand, NeuerFaktor, OhneFaktor } from './pg/zweiFaktor';
