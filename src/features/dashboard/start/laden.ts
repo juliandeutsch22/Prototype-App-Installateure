@@ -5,6 +5,7 @@ import { firmenbuchFehlt } from '@/lib/firmenbuch';
 import type {
   AppUser,
   Company,
+  Betriebsurlaub,
   EinkaufPosten,
   EinsatzMaterial,
   Freistellung,
@@ -60,7 +61,8 @@ import {
 import { fuehrtZeitkonto, einplanbar } from '@/lib/permissions';
 import { getAustrianHolidayName } from '@shared/feiertage';
 import { baustellenTitel } from '@/lib/baustellenTitel';
-import { besetzung, ganztagsWeg } from '@/features/assignments/besetzung';
+import { besetzung, betriebZuFuer, ganztagsWeg } from '@/features/assignments/besetzung';
+import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
 import { einsatzZeit } from '@/features/assignments/einsatzZeit';
 import { montagDer, wocheAb } from '@/features/assignments/wochenplan';
 import { offeneNachtraege, NACHTRAG_TAGE, type OffenerNachtrag } from '@/features/worksheets/zeitNachtrag';
@@ -655,13 +657,14 @@ export async function leitung(
           Filter der Baustellenliste. Kommt sie nicht, fehlt die Zeile (statt
           jede Baustelle als „ohne Einsatz“ zu melden).
         */
-        const [ohne, woche7] = await Promise.all([
+        const [ohne, woche7, zu] = await Promise.all([
           still(() => baustellenOhneEinsatz(heute), undefined),
           listEinsatztageInRange(user.companyId, woche[0], woche[6]),
+          still(() => listBetriebsurlaubeImZeitraum(user.companyId, woche[0], woche[6]), null),
         ]);
-        return { ohne, woche: woche7 };
-      }, { ohne: undefined, woche: [] })
-      : Promise.resolve({ ohne: undefined, woche: [] }),
+        return { ohne, woche: woche7, zu };
+      }, { ohne: undefined, woche: [], zu: null })
+      : Promise.resolve({ ohne: undefined, woche: [], zu: null }),
   ]);
   out.projekte = projekte;
   out.hatVerwaltung = alle.some((u) => u.role === 'Verwaltung' && u.active !== false);
@@ -694,7 +697,8 @@ export async function leitung(
       .sort((a, b) => a.name.localeCompare(b.name, 'de'));
 
     if (plan.ohne) out.ohneEinsatz = plan.ohne;
-    out.auslastung = auslastung(alle, company, plan.woche, abwesend, woche);
+    // Ohne Betriebsurlaube (nicht geladen) keine Zahl: sonst zählte eine Woche zu als verfügbar.
+    out.auslastung = plan.zu ? auslastung(alle, company, plan.woche, abwesend, woche, plan.zu) : null;
   }
 
   if (budget) out.budget = await budget;
@@ -718,6 +722,12 @@ export function auslastung(
   einsaetze: { userId: string; date: string }[],
   abwesend: Abwesenheit[],
   woche: string[],
+  /**
+   * DER BETRIEBSURLAUB (P9): an seinen Tagen ist nur verfügbar, wer
+   * ausgenommen ist. Vorher zählte er als verfügbare Zeit — in einer Woche
+   * Betriebsurlaub stand „0 %“ statt keiner Zahl.
+   */
+  betriebsurlaube: Pick<Betriebsurlaub, 'von' | 'bis' | 'ausgenommen'>[] = [],
 ): number | null {
   const planbar = leute.filter((u) => einplanbar(u, company));
   let verfuegbar = 0;
@@ -730,6 +740,7 @@ export function auslastung(
       if (!tage.includes(d.getDay())) continue;
       if (getAustrianHolidayName(d)) continue;
       if (ganztagsWeg(abwesend, u.uid, tag)) continue;
+      if (betriebZuFuer(betriebsurlaube, u.uid, tag)) continue;
       verfuegbar += 1;
       if (belegt.has(`${u.uid}|${tag}`)) verplant += 1;
     }

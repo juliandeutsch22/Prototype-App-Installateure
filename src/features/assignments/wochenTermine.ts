@@ -1,6 +1,8 @@
 import type { Termin } from '@/types';
 import { getAustrianHolidayName, isWeekend } from '@/lib/time';
 import { terminZeit } from '@/features/termine/terminText';
+import type { Abwesenheit } from '@/lib/db/vacations';
+import { ganztagsWeg } from './besetzung';
 
 /*
   WAS DIE EINSATZPLANUNG (Runde 4) ÜBER TERMINE UND TAGE WISSEN MUSS —
@@ -23,9 +25,19 @@ type EinsatzOrt = { date: string; projectNumber: string };
  * Formular öffnet. Ein Termin ohne Baustelle (Besichtigung beim Kunden) hat
  * keine Annahme zu besetzen.
  */
-export function lieferungOhneAnnahme(t: Termin, einsaetze: EinsatzOrt[]): boolean {
+export function lieferungOhneAnnahme(
+  t: Termin,
+  einsaetze: (EinsatzOrt & { userId?: string })[],
+  /**
+   * DIE ABWESENHEITEN (P9): wer ganztags weg ist, nimmt nichts an. War der
+   * einzige Eingeteilte krank, galt die Lieferung bisher als angenommen.
+   * Ohne Angabe (oder ohne Person am Einsatz) zählt jeder Einsatz wie bisher.
+   */
+  abwesenheiten: Abwesenheit[] = [],
+): boolean {
   if (t.art !== 'Lieferung' || !t.projectNumber) return false;
-  return !einsaetze.some((a) => a.date === t.datum && a.projectNumber === t.projectNumber);
+  return !einsaetze.some((a) => a.date === t.datum && a.projectNumber === t.projectNumber
+    && !(a.userId && ganztagsWeg(abwesenheiten, a.userId, t.datum)));
 }
 
 /** „14:00–15:00“, „ab 08:00“ — oder „ganzer Tag“, wenn keine Uhrzeit steht. */

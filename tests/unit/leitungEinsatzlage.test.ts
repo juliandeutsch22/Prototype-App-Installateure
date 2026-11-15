@@ -38,6 +38,8 @@ vi.mock('@/lib/db/users', () => ({
   getUserByUid: vi.fn(async () => null),
   listUsers: vi.fn(async () => [{ uid: 'm1', name: 'Max', role: 'Mitarbeiter', active: true, workDays: [1, 2, 3, 4, 5] }]),
 }));
+// Der Betriebsurlaub der Woche (P9) — hier keiner.
+vi.mock('@/lib/db/abwesenheiten', () => ({ listBetriebsurlaubeImZeitraum: vi.fn(async () => []) }));
 vi.mock('@/lib/db/vacations', () => ({ listAbwesendInRange: vi.fn(async () => []), listOpenVacations: vi.fn(async () => []) }));
 
 const { leitung } = await import('@/features/dashboard/start/laden');
@@ -71,5 +73,14 @@ describe('P8: kommt die Antwort nicht, fehlt die Zeile', () => {
     vi.mocked(baustellenOhneEinsatz).mockRejectedValueOnce(new Error('kein Netz'));
     const d = await leitung(k, { einsatzplanung: true, wartung: false, budget: false });
     expect(d.ohneEinsatz).toBeUndefined();
+  });
+});
+
+describe('P9: ohne geladenen Betriebsurlaub keine Auslastung', () => {
+  it('statt die Woche womöglich als verfügbar zu zählen', async () => {
+    const { listBetriebsurlaubeImZeitraum } = await import('@/lib/db/abwesenheiten');
+    vi.mocked(listBetriebsurlaubeImZeitraum).mockRejectedValueOnce(new Error('kein Netz'));
+    const d = await leitung(k, { einsatzplanung: true, wartung: false, budget: false });
+    expect(d.auslastung).toBeNull();
   });
 });

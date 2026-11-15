@@ -141,8 +141,8 @@ export function einsatzTeil(
   };
 }
 
-function terminTeil(t: Termin, einsaetze: Assignment[], bezug: (t: Termin) => string): TerminTeil {
-  return { termin: t, titel: terminKopf(t), unter: bezug(t), ohneAnnahme: lieferungOhneAnnahme(t, einsaetze) };
+function terminTeil(t: Termin, einsaetze: Assignment[], bezug: (t: Termin) => string, urlaube: Abwesenheit[] = []): TerminTeil {
+  return { termin: t, titel: terminKopf(t), unter: bezug(t), ohneAnnahme: lieferungOhneAnnahme(t, einsaetze, urlaube) };
 }
 
 /** Die Baustellen eines Tages in der Reihenfolge ihrer ersten Zeile — ohne Doppel. */
@@ -182,7 +182,7 @@ export function vorschauInhalt(
     const ganztags = eigene.some((v) => !v.zeiten);
     if (!ganztags && daten.zuFuer(ziel.uid)) abwesenheiten.push({ titel: 'Betriebsurlaub', unter: daten.zu ?? '' });
     const einsaetze = nummern.map((n) => einsatzTeil(tag, n, daten, projekt(n), nameVon, ziel.uid));
-    const termine = termineDesTages.filter((t) => t.teilnehmer.includes(ziel.uid)).map((t) => terminTeil(t, daten.einsaetze, bezug));
+    const termine = termineDesTages.filter((t) => t.teilnehmer.includes(ziel.uid)).map((t) => terminTeil(t, daten.einsaetze, bezug, daten.urlaube));
     const weg = ganztags || (!eigene.length && daten.zuFuer(ziel.uid));
     const frei =
       einsaetze.length > 0 || weg
@@ -201,7 +201,7 @@ export function vorschauInhalt(
     const termine =
       einsaetze.length > 0
         ? []
-        : termineDesTages.filter((t) => t.projectNumber === ziel.nummer).map((t) => terminTeil(t, daten.einsaetze, bezug));
+        : termineDesTages.filter((t) => t.projectNumber === ziel.nummer).map((t) => terminTeil(t, daten.einsaetze, bezug, daten.urlaube));
     const frei = einsaetze.length > 0 || termine.length > 0 ? null : 'Kein Einsatz an diesem Tag.';
     // Im Kopf die Kurzform: der volle Name steht gleich darunter im Abschnitt.
     return { ...leer, titel: kurzname(ziel.name) || ziel.name, einsaetze, termine, frei };
@@ -211,7 +211,7 @@ export function vorschauInhalt(
   const einsaetze = nummernAm(daten.einsaetze, tag)
     .map((n) => einsatzTeil(tag, n, daten, projekt(n), nameVon))
     .sort((a, b) => a.titel.localeCompare(b.titel, 'de'));
-  const termine = termineDesTages.map((t) => terminTeil(t, daten.einsaetze, bezug));
+  const termine = termineDesTages.map((t) => terminTeil(t, daten.einsaetze, bezug, daten.urlaube));
   const namen = new Map(personen.map((p) => [p.uid, p.name]));
   const abwesend = daten.urlaube
     .filter((v) => namen.has(v.userId) && v.von <= tag && v.bis >= tag)

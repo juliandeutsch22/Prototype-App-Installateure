@@ -32,6 +32,20 @@ describe('Lieferung ohne Annahme', () => {
     expect(lieferungOhneAnnahme(lieferung(), [{ date: '2026-10-07', projectNumber: 'B-1' }])).toBe(false);
   });
 
+  /*
+    P9 (Durchsicht 15.11.2026): wer ganztags fehlt, nimmt nichts an.
+    Gegenprobe: vorher galt die Lieferung als angenommen, obwohl der einzige
+    Eingeteilte krank war.
+  */
+  it('P9: ist der einzige Eingeteilte ganztags abwesend, steht niemand zur Annahme da', () => {
+    const krank = [{ userId: 'u1', von: '2026-10-07', bis: '2026-10-07', grund: 'Krank', zeiten: null }];
+    const einsatz = [{ date: '2026-10-07', projectNumber: 'B-1', userId: 'u1' }];
+    expect(lieferungOhneAnnahme(lieferung(), einsatz, krank)).toBe(true);
+    // Stundenweise weg ist da; ein zweiter Eingeteilter ebenso.
+    expect(lieferungOhneAnnahme(lieferung(), einsatz, [{ ...krank[0], zeiten: '13:00–17:00' }])).toBe(false);
+    expect(lieferungOhneAnnahme(lieferung(), [...einsatz, { date: '2026-10-07', projectNumber: 'B-1', userId: 'u2' }], krank)).toBe(false);
+  });
+
   it('nur Lieferungen, und nur mit Baustelle', () => {
     expect(lieferungOhneAnnahme(lieferung({ art: 'Abnahme' }), [])).toBe(false);
     expect(lieferungOhneAnnahme(lieferung({ projectNumber: null, customerId: 'k' }), [])).toBe(false);

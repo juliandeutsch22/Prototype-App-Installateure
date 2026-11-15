@@ -711,6 +711,7 @@ export default function Einsatzplanung() {
           stand={d.proTag.get(fenster.datum)}
           termine={termineDes(fenster.datum)}
           einsaetze={d.einsaetze}
+          abwesenheiten={d.urlaube}
           projects={d.projects}
           users={d.users}
           staff={d.staff}

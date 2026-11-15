@@ -438,6 +438,26 @@ describe('Projektleitung', () => {
     ], [{ userId: 'b', von: '2026-10-30', bis: '2026-10-30', grund: 'Krank', zeiten: null }], woche);
     expect(wert).toBe(Math.round((2 / 7) * 100));
   });
+
+  /*
+    P9 (Durchsicht 15.11.2026): der Betriebsurlaub ist keine verfügbare Zeit.
+    Gegenprobe: vorher zählte die Woche Betriebsurlaub als verfügbar und
+    zeigte „0 %“ statt keiner Zahl.
+  */
+  it('P9: der Betriebsurlaub zählt nicht als verfügbar — außer für Ausgenommene', () => {
+    const woche = ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
+    const leute = [
+      { uid: 'a', role: 'Mitarbeiter' as const, active: true },
+      { uid: 'b', role: 'Mitarbeiter' as const, active: true },
+    ];
+    const zu = [{ von: '2026-11-09', bis: '2026-11-15', ausgenommen: [] as string[] }];
+    expect(auslastung(leute, null, [], [], woche, zu)).toBeNull();
+    // b arbeitet im Betriebsurlaub (Notdienst) und ist an zwei Tagen eingeteilt: 2 von 5.
+    expect(auslastung(leute, null, [{ userId: 'b', date: '2026-11-09' }, { userId: 'b', date: '2026-11-10' }], [], woche,
+      [{ ...zu[0], ausgenommen: ['b'] }])).toBe(40);
+    // Bleibt gleich: ohne Betriebsurlaub wie bisher.
+    expect(auslastung(leute, null, [{ userId: 'b', date: '2026-11-09' }], [], woche)).toBe(10);
+  });
 });
 
 describe('Geschäftsführung und Administrator', () => {
