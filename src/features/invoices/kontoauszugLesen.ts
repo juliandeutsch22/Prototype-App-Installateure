@@ -399,11 +399,12 @@ function mt940Text(roh: string): Pick<BankBuchung, 'name' | 'iban' | 'zweck'> {
  */
 function ibanImText(s: string): string | undefined {
   const t = s.toUpperCase();
-  for (const m of t.matchAll(/(?<![A-Z0-9])([A-Z]{2})\d{2}/g)) {
+  // Ohne Lookbehind (ältere iPhones, `vite.config.ts`): das Zeichen davor gehört zum Treffer.
+  for (const m of t.matchAll(/(?:^|[^A-Z0-9])([A-Z]{2})\d{2}/g)) {
     const laenge = IBAN_LAENGEN[m[1]];
     if (!laenge) continue;
     let iban = '';
-    for (let i = m.index; i < t.length && iban.length < laenge; i++) {
+    for (let i = m.index + m[0].length - 4; i < t.length && iban.length < laenge; i++) {
       const z = t[i];
       if (/[A-Z0-9]/.test(z)) iban += z;
       else if (z !== ' ' || t[i + 1] === ' ') break;

@@ -124,18 +124,19 @@ function gruppen(nummer: string): string[] {
  * und laufende Nummer, 0 = gar nicht. Zwischen den Gruppen darf stehen, was
  * Banken und Kunden daraus machen: Leerzeichen, Bindestrich, Schrägstrich,
  * Punkt oder nichts. Davor kein Buchstabe oder Ziffer, danach keine Ziffer —
- * „RE-2026-10012“ ist nicht „RE-2026-1001“.
+ * „RE-2026-10012“ ist nicht „RE-2026-1001“. Ohne Lookbehind: die App läuft
+ * auch auf älteren iPhones (`vite.config.ts`, safari14).
  */
 export function nummerImText(nummer: string, text: string): 0 | 1 | 2 {
   const g = gruppen(nummer);
   if (g.length === 0) return 0;
   const t = text.toUpperCase();
-  const ganz = new RegExp(`(?<![A-Z0-9])${g.map(regexSicher).join(TRENNER)}(?![0-9])`);
+  const ganz = new RegExp(`(?:^|[^A-Z0-9])${g.map(regexSicher).join(TRENNER)}(?![0-9])`);
   if (ganz.test(t)) return 2;
   // Ohne Vorsatz: nur, wenn mindestens Jahr und Nummer bleiben.
   const ziffern = g.slice(g.findIndex((x) => /^\d/.test(x)));
   if (ziffern.length >= 2 && ziffern.length < g.length) {
-    const kurz = new RegExp(`(?<![A-Z0-9])${ziffern.map(regexSicher).join(TRENNER)}(?![0-9])`);
+    const kurz = new RegExp(`(?:^|[^A-Z0-9])${ziffern.map(regexSicher).join(TRENNER)}(?![0-9])`);
     if (kurz.test(t)) return 1;
   }
   return 0;
@@ -150,7 +151,7 @@ export function nummerImText(nummer: string, text: string): 0 | 1 | 2 {
 export function nummernImText(text: string, praefix: string): string[] {
   const t = text.toUpperCase();
   const funde = new Set<string>();
-  for (const m of t.matchAll(/(?<![0-9])(20\d{2})[\s\-_/.]*(\d{3,6})(?![0-9])/g)) {
+  for (const m of t.matchAll(/(?:^|[^0-9])(20\d{2})[\s\-_/.]*(\d{3,6})(?![0-9])/g)) {
     funde.add(praefix ? `${praefix}-${m[1]}-${m[2]}` : `${m[1]}-${m[2]}`);
     funde.add(`${m[1]}-${m[2]}`);
   }
