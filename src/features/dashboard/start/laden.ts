@@ -48,7 +48,7 @@ import { listAbwesendInRange, listOpenVacations, type Abwesenheit } from '@/lib/
 import { listOffeneFreistellungen } from '@/lib/db/freistellungen';
 import { zeitkorrekturenLaden, type Zeitkorrektur } from '@/lib/db/zeitkorrekturen';
 import { listTermineImZeitraum } from '@/lib/db/termine';
-import { listFaelligeWartungen } from '@/lib/db/wartungen';
+import { listFaelligeWartungen, wartungErledigtVorschlaege, type WartungErledigtVorschlag } from '@/lib/db/wartungen';
 import { buchungskonten } from '@/lib/db/konten';
 import { listBasiszinssaetze } from '@/lib/db/basiszins';
 import {
@@ -191,6 +191,8 @@ export interface StartDaten {
   /** Einsätze der nächsten sieben Tage, deren Material nicht gedeckt ist (M04b). */
   materialFehlt?: MaterialFehltZeile[];
   wartungen?: Wartung[];
+  /** Eingeplante Wartungen, die erledigt aussehen (A9) — nur für die Führung gefüllt. */
+  wartungVorschlaege?: WartungErledigtVorschlag[];
   heuteBetrieb?: TagesBaustelle[];
   /** Seit dem letzten Ansehen unterschriebene Scheine, neueste zuerst (V9). */
   neueScheine?: { id: string; customerName: string; erstelltVonName: string }[];
@@ -638,6 +640,8 @@ export async function leitung(
     was die Liste „fällig“ nennt, fehlte hier.
   */
   const wartungen = was.wartung ? still(() => listFaelligeWartungen(user.companyId, tageVerschoben(heute, VORLAUF_TAGE)), []) : undefined;
+  // A9: was erledigt aussieht — scheitert es, fehlt nur der Vorschlag.
+  const wartungVorschlaege = was.wartung ? still(() => wartungErledigtVorschlaege(), []) : undefined;
   const projekteZusage = listActiveProjects(user.companyId);
   /*
     Der Budgetstand braucht nur die Baustellen, nicht Belegschaft und
@@ -747,6 +751,7 @@ export async function leitung(
   if (budget) out.budget = await budget;
 
   if (wartungen) out.wartungen = await wartungen;
+  if (wartungVorschlaege) out.wartungVorschlaege = await wartungVorschlaege;
   if (material) out.materialFehlt = await material;
   return out;
 }

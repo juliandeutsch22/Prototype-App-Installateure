@@ -12,7 +12,7 @@ import {
   wartungTagBerichtigen,
   type NewWartung,
 } from '@/lib/db/wartungen';
-import { wartungEinplanen } from '@/lib/db/wartungen';
+import { getWartung, wartungEinplanen } from '@/lib/db/wartungen';
 import WartungVerlauf from './WartungVerlauf';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
@@ -249,6 +249,46 @@ export default function WartungenView() {
   const [weitereOffen, setWeitereOffen] = useState(false);
 
   const companyId = user?.companyId;
+
+  /*
+    VON DER STARTSEITE (A9): `/wartungen?erledigt=<id>&am=<tag>` öffnet
+    „Erledigt“ dieser Wartung mit dem vorgeschlagenen Tag (Schein oder Ende
+    der Baustelle). Eingetragen wird erst mit „Eintragen“ — der Tag des
+    Scheins muss nicht der Tag der Wartung sein. Die Parameter gehen danach
+    weg, sonst öffnete jedes Neuladen den Dialog wieder.
+  */
+  const erledigtId = adresse.get('erledigt');
+  const erledigtAm = adresse.get('am');
+  useEffect(() => {
+    if (!erledigtId || !companyId) return;
+    let weg = false;
+    void (async () => {
+      try {
+        const w = await getWartung(companyId, erledigtId);
+        if (weg) return;
+        if (!w) toast.error('Diese Wartung gibt es nicht (mehr).');
+        else if (darfAendern) {
+          setErledigung({
+            wartung: w,
+            datum: erledigtAm && /^\d{4}-\d{2}-\d{2}$/.test(erledigtAm) && erledigtAm <= heute ? erledigtAm : heute,
+            intervall: w.intervallMonate,
+            baustelle: w.offeneBaustelle ?? '',
+          });
+        }
+      } catch (e) {
+        if (!weg) toast.error((e as Error).message);
+      }
+      if (weg) return;
+      const rest = new URLSearchParams(adresse);
+      rest.delete('erledigt');
+      rest.delete('am');
+      setAdresse(rest, { replace: true });
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [erledigtId, companyId]);
 
   useEffect(() => {
     if (!companyId) return;

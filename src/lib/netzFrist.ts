@@ -139,6 +139,7 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'support_bereiche',
   'unverrechnete_stunden',
   'verarbeiter_aenderungen',
+  'wartung_erledigt_vorschlaege',
   'wochenplan_abwesend',
 ]);
 

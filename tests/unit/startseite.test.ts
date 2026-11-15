@@ -13,6 +13,7 @@ import {
   tageOhneBuchung,
   ueberfaelligNichtMahnbar,
   wartungenOhneBaustelle,
+  wartungenEingeplant,
   lehrzeitEnden,
   einzigeLeitungOhneMail,
   passwortBitten,
@@ -425,6 +426,27 @@ describe('Projektleitung', () => {
     expect(a.zeilen[1].status).toEqual({ text: 'diese Woche', ton: 'warn' });
   });
 
+  /*
+    A9 (Durchsicht 15.11.2026): eine eingeplante Wartung verschwand von der
+    Startseite und wartete auf einen Handgriff, an den nichts erinnerte.
+  */
+  it('eingeplante Wartungen: erst die mit Vorschlag (Sprung in „Erledigt“), dann die fälligen mit Weg zur Baustelle', () => {
+    const w = (teil: Partial<Wartung> & { id: string }) =>
+      ({ companyId: 'b', customerId: 'k', customerName: 'Koller', anlage: 'Therme', intervallMonate: 12, faelligAm: HEUTE, aktiv: true, ...teil }) as Wartung;
+    const a = wartungenEingeplant([
+      w({ id: 'geplant', faelligAm: '2026-09-20', offeneBaustelle: 'PR-9' }),
+      w({ id: 'erledigt', faelligAm: '2026-09-10', offeneBaustelle: 'PR-8' }),
+      w({ id: 'spaeter', faelligAm: '2027-05-01', offeneBaustelle: 'PR-7' }),
+      w({ id: 'ohne', faelligAm: '2026-09-20' }),
+    ], [{ wartungId: 'erledigt', anlage: 'Therme', kunde: 'Koller', baustelle: 'PR-8', baustelleId: 'p8', am: '2026-09-25', grund: 'schein' }], HEUTE)!;
+    expect(a.zeilen.map((z) => z.key)).toEqual(['wartung-erledigt-erledigt', 'wartung-eingeplant-geplant']);
+    expect(a.zeilen[0]).toMatchObject({
+      detail: 'Schein vom 25.09.2026 auf PR-8 unterschrieben', status: { ton: 'warn' }, to: '/wartungen?erledigt=erledigt&am=2026-09-25',
+    });
+    expect(a.zeilen[1]).toMatchObject({ status: { text: 'überfällig', ton: 'fehl' }, to: ZIEL.baustelle('PR-9') });
+    expect(wartungenEingeplant([w({ id: 'ohne' })], [], HEUTE)).toBeNull();
+  });
+
   it('Auslastung: verplante durch verfügbare Personentage, ohne Feiertag und Abwesenheit', () => {
     const woche = ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31', '2026-11-01'];
     const leute = [
@@ -703,6 +725,7 @@ describe('Die Ziele der Startseite', () => {
     ZIEL.zeitFehlend, ZIEL.zeitTag(HEUTE), ZIEL.meineAbholbereit, ZIEL.lagerKnapp, ZIEL.rechnungenUeberfaellig,
     ZIEL.rechnung('RE-1'), ZIEL.schein('s1'), ZIEL.luecken('2026-09'), ZIEL.urlaubsantraege, ZIEL.tag(HEUTE, 'unbesetzt'),
     ZIEL.woche, ZIEL.baustelle('PR-1'), ZIEL.wartungenOhneBaustelle, ZIEL.einsatzplan,
+    ZIEL.wartungen, ZIEL.wartungErledigt('w1', HEUTE),
     ...ANFORDERUNGS_FILTER.map(ZIEL.anforderungen), ...BAUSTELLEN_FILTER.map(ZIEL.baustellen),
     ...SCHEIN_FILTER.map(ZIEL.scheine), ...RECHNUNGS_SICHTEN.map(ZIEL.rechnungenSicht),
     ZIEL.einstellungen('saetze'), ZIEL.einstellungen('konten'), ZIEL.einstellungen('firma'),

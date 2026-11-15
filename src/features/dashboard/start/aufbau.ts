@@ -48,6 +48,7 @@ import {
   korrekturantraege,
   korrekturThema,
   wartungenOhneBaustelle,
+  wartungenEingeplant,
   zahlungenHeute,
   jugendschutzEigen,
   ungeleseneNachrichten,
@@ -449,6 +450,8 @@ function projektleitung(d: StartDaten, u: Umfeld): Startseite {
     erlaubt(budgetNahe(d.budget ?? []), u),
     erlaubt(ohneEinsatz(d.ohneEinsatz ?? [], titelVon(d)), u),
     erlaubt(wartungenOhneBaustelle(d.wartungen ?? [], u.heute), u),
+    // A9: eingeplante Wartungen bleiben stehen, bis jemand „Erledigt“ einträgt.
+    erlaubt(wartungenEingeplant(d.wartungen ?? [], d.wartungVorschlaege ?? [], u.heute), u),
     erlaubt(eilanforderungen(d.orders ?? []), u),
     // Über den Annahme-Link angenommen (M02a): bis jemand aus der Führung das Angebot öffnet.
     erlaubt(ueberLinkAngenommen(d.ueberLinkAngenommen ?? []), u),
@@ -625,6 +628,17 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       titel: `${anzahl(wUeber.length, 'Wartung', 'Wartungen')} ohne Baustelle`,
       detail: `${wUeber[0].w.customerName}, fällig ${tagKurz(wUeber[0].w.faelligAm)}`,
       status: { text: tageWort(tageZwischen(wUeber[0].w.faelligAm, h)), ton: 'fehl' },
+    }));
+  }
+  // A9: eingeplante Wartungen, die erledigt aussehen — ein Handgriff, sonst entsteht der nächste Termin nie.
+  const vorschlaege = d.wartungVorschlaege ?? [];
+  if (vorschlaege.length) {
+    const v = vorschlaege[0];
+    themen.push(wenn(vorschlaege.length === 1 ? ZIEL.wartungErledigt(v.wartungId, v.am) : ZIEL.wartungen, {
+      key: 'wartung-erledigt', wann: 'heute',
+      titel: vorschlaege.length === 1 ? `Wartung ${v.anlage} erledigt?` : `${anzahl(vorschlaege.length, 'Wartung', 'Wartungen')} erledigt?`,
+      detail: v.grund === 'schein' ? `${v.kunde}, Schein vom ${tagKurz(v.am)}` : `${v.kunde}, Baustelle abgeschlossen`,
+      status: { text: 'eintragen', ton: 'warn' },
     }));
   }
   // Am längsten überzogen zuerst — sie nennt die Zeile vorne.

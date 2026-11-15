@@ -23,6 +23,7 @@ export { ohneEinsatzListe, OHNE_EINSATZ_TAGE } from '@/features/projects/baustel
 export { istAbholbereitAlt, istLieferungUeberfaellig };
 import { ZIEL } from './ziele';
 import type { UeberLinkAngenommen } from '@/lib/db/angebotLinks';
+import type { WartungErledigtVorschlag } from '@/lib/db/wartungen';
 import type { OffeneEingaenge } from './laden';
 
 /**
@@ -761,6 +762,48 @@ export function ohneEinsatz(
       to: ZIEL.baustelle(x.projectNumber),
     }));
   return abschnitt('ohne-einsatz', 'Ohne Einsatz in den nächsten 14 Tagen', zeilen, ZIEL.baustellen('ohne-einsatz'));
+}
+
+/**
+ * EINGEPLANTE WARTUNGEN, BIS SIE ERLEDIGT SIND (Durchsicht 15.11.2026, A9).
+ *
+ * Mit „Baustelle anlegen“ verschwand eine Wartung von der Startseite — die
+ * Zeile darunter zeigt nur Wartungen OHNE Baustelle. Danach stieß nichts mehr
+ * „Erledigt“ an, und der Termin fürs nächste Jahr entstand nie.
+ *
+ * Jetzt bleibt sie stehen: mit Vorschlag (unterschriebener Schein oder
+ * abgeschlossene Baustelle) als Sprung in den Dialog „Erledigt“, den Tag
+ * vorbelegt; ohne Vorschlag, solange sie fällig ist, mit dem Weg zur
+ * Baustelle. Vorschläge zuerst — dort ist ein Handgriff fällig.
+ */
+export function wartungenEingeplant(
+  wartungen: Wartung[],
+  vorschlaege: WartungErledigtVorschlag[],
+  heute: string,
+): Abschnitt | null {
+  const mitVorschlag = new Set(vorschlaege.map((v) => v.wartungId));
+  const vorschlagZeilen: Zeile[] = vorschlaege.map((v) => ({
+    key: `wartung-erledigt-${v.wartungId}`,
+    titel: `${v.anlage} ${v.kunde}`.trim(),
+    detail: v.grund === 'schein'
+      ? `Schein vom ${datumAT(v.am)} auf ${v.baustelle} unterschrieben`
+      : `Baustelle ${v.baustelle} abgeschlossen`,
+    status: { text: `erledigt am ${tagKurz(v.am)}?`, ton: 'warn' as const },
+    to: ZIEL.wartungErledigt(v.wartungId, v.am),
+  }));
+  const offen: Zeile[] = wartungen
+    .filter((w) => w.aktiv && w.offeneBaustelle && !mitVorschlag.has(w.id))
+    .map((w) => ({ w, b: beurteile(w, heute) }))
+    .filter(({ b }) => b.stand === 'überfällig' || b.stand === 'fällig')
+    .sort((a, b) => a.w.faelligAm.localeCompare(b.w.faelligAm))
+    .map(({ w, b }) => ({
+      key: `wartung-eingeplant-${w.id}`,
+      titel: `${w.anlage} ${w.customerName}`.trim(),
+      detail: `eingeplant auf ${w.offeneBaustelle}, fällig ${datumAT(w.faelligAm)}`,
+      status: b.stand === 'überfällig' ? { text: 'überfällig', ton: 'fehl' as const } : { text: 'eingeplant', ton: 'leise' as const },
+      to: ZIEL.baustelle(w.offeneBaustelle!),
+    }));
+  return abschnitt('wartung-eingeplant', 'Eingeplante Wartungen', [...vorschlagZeilen, ...offen], ZIEL.wartungen);
 }
 
 /** Fällige Wartungen ohne offene Baustelle — überfällige zuerst. */

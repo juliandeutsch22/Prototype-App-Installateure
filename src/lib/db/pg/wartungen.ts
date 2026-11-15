@@ -235,3 +235,40 @@ export async function wartungEinplanen(id: string, nummer: string | null, praefi
   if (error) throw new Error(error.message);
   return String(data);
 }
+
+/** Eine Wartung — für den Sprung „Erledigt“ von der Startseite (A9). `null`, wenn es sie nicht (mehr) gibt. */
+export async function getWartung(companyId: string, id: string): Promise<WithId<Wartung> | null> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
+  const zeilen = await abfragen<Wartung>(WARTUNGEN, companyId, { wo: [{ art: 'gleich', feld: 'id', wert: id }], grenze: 1 });
+  return zeilen[0] ?? null;
+}
+
+/**
+ * Eingeplante Wartungen, die erledigt aussehen (A9): ein unterschriebener
+ * Schein auf ihrer Baustelle oder eine abgeschlossene Baustelle — mit dem
+ * Tag als Vorschlag. Nur für die Führung; für alle anderen leer.
+ */
+export interface WartungErledigtVorschlag {
+  wartungId: string;
+  anlage: string;
+  kunde: string;
+  baustelle: string;
+  baustelleId: string;
+  /** `JJJJ-MM-TT` */
+  am: string;
+  grund: 'schein' | 'abgeschlossen';
+}
+
+export async function wartungErledigtVorschlaege(): Promise<WartungErledigtVorschlag[]> {
+  const { data, error } = await derClient().rpc('wartung_erledigt_vorschlaege');
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Record<string, unknown>[]).map((z) => ({
+    wartungId: String(z.wartung),
+    anlage: String(z.anlage ?? ''),
+    kunde: String(z.kunde ?? ''),
+    baustelle: String(z.baustelle ?? ''),
+    baustelleId: String(z.baustelle_id ?? ''),
+    am: String(z.am ?? ''),
+    grund: z.grund === 'schein' ? 'schein' : 'abgeschlossen',
+  }));
+}

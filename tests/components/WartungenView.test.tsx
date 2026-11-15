@@ -76,6 +76,8 @@ vi.mock('@/lib/db/wartungen', () => ({
   wartungEingeplant: (...a: unknown[]) => wartungEingeplant(...(a as [])),
   wartungTagBerichtigen: (...a: unknown[]) => wartungTagBerichtigen(...(a as [])),
   listAusfuehrungen: () => listAusfuehrungen(),
+  // A9: der Sprung von der Startseite holt die Wartung einzeln.
+  getWartung: async (_c: string, id: string) => bestand.find((w) => w.id === id) ?? null,
   /* Die Suche des Servers: hier über den Bestand, wie die Datenbank mitten im Wort. */
   searchWartungen: (c: string, b: string) => suchen(c, b),
 }));
@@ -919,5 +921,31 @@ describe('Wartungen — der erste Bestand', () => {
     expect(screen.queryByText('Deine erste Wartung.')).toBeNull();
     // Mit Bestand stehen Reiter und Suche da.
     expect(screen.getByRole('button', { name: /^Steht an/ })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+/*
+  A9 (Durchsicht 15.11.2026): die Startseite schlägt „erledigt am …?“ vor —
+  der Sprung öffnet den Dialog mit diesem Tag; eingetragen wird erst mit
+  „Eintragen“.
+*/
+describe('Erledigt aus dem Vorschlag der Startseite (A9)', () => {
+  it('öffnet „Erledigt“ mit dem vorgeschlagenen Tag und der eingeplanten Baustelle', async () => {
+    bestand = [wartung('w5', 'Familie Koller', '2026-04-10', { offeneBaustelle: 'PR-2026-0042' })];
+    const nutzer = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/wartungen?erledigt=w5&am=2026-05-20']}>
+        <ToastProvider>
+          <WartungenView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Wartung erledigt eintragen' });
+    expect(within(dialog).getByLabelText('Gewartet am')).toHaveValue('2026-05-20');
+    expect(wartungErledigt).not.toHaveBeenCalled();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Eintragen' }));
+    await waitFor(() => expect(wartungErledigt).toHaveBeenCalledWith('w5', expect.objectContaining({
+      erledigtAm: '2026-05-20', projectNumber: 'PR-2026-0042',
+    })));
   });
 });
