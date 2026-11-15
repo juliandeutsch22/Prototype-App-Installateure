@@ -114,7 +114,7 @@ gebrochene Zusage. **mittel** = Ablauf lückenhaft oder irreführend.
 | M5 ○ | mittel | Keine Teilausgabe, Mengenänderung oder Storno einer Anforderung — „Aus Lager“ ist alles oder nichts. | Teilmengen überall (F5); der Besteller kann zurückziehen und ändern, solange „Offen“ (die Datenbankregel gibt es schon). |
 | M6 ○ | mittel | Kommissionsware wird nach der Lieferung dauerhaft Lagerartikel und steht mit Bestand 0 als „knapp“ im Lager und auf der Startseite. | Lagerführung ist eine Eigenschaft des Artikels, nicht die Folge einer Lieferung. |
 | M7 ○ | mittel | Eine Retoure „neu“ des Monteurs schreibt sofort und unbegrenzt gut; nach der Rechnung kein Hinweis auf eine Gutschrift. | Annahme im Lager bestätigt die Gutschrift; Höchstmenge aus dem Ausgegebenen; Hinweis, wenn schon verrechnet. |
-| M9 | Entscheidung | Ausgelaufene Lagerartikel mit Mindestmenge erscheinen weiter als „knapp“ (gefunden bei M1). Fachlich offen: soll ein ausgelaufener Artikel noch nachbestellt werden? | Vorschlag: „knapp“ nur für nicht ausgelaufene Artikel; braucht die Entscheidung des Auftraggebers. |
+| M9 | mittel (E8) | Ausgelaufene Lagerartikel mit Mindestmenge erscheinen weiter als „knapp“ (gefunden bei M1). Fachlich offen: soll ein ausgelaufener Artikel noch nachbestellt werden? | „knapp“ nur für nicht ausgelaufene Artikel (entschieden, E8). |
 | M8 ○ | niedrig | Freie Zeile mit Kommamenge blockiert „Abgeholt“; Lager kann „Beim Händler“ nicht wählen; Mengen ohne Einheit; Warenkorb-Fehler ohne Grund; Nachkalkulation mit heutigem Einkaufspreis. | Je Punkt gezielte Korrektur; Einkaufspreis zum Zeitpunkt der Ausgabe festhalten. |
 
 ### K — Konto, Sicherheit, Daten
@@ -288,3 +288,6 @@ die Entscheidung über das *Wie*, noch nicht das Startsignal (Grundsatz 5).
 | E4 | Gefahr farblich vom Terrakotta absetzen (U5)? | Ja; Vorschlag mit Kontrastmessung auf der Musterseite, vor dem Einbau zum Ansehen. |
 | E5 | Datums- und Zeitfelder (U10): Rad des Geräts behalten? | Behalten — am Handy die beste Eingabe; nur der Text daneben immer deutsch. |
 | E6 | Reihenfolge aus Abschnitt 7 — oder andere Schwerpunkte? | Wie in Abschnitt 7 vorgeschlagen. |
+| E7 | Hinweis im Meldedialog auf Betriebsrat oder Arbeiterkammer, wenn außer dem Gemeldeten niemand die Meldung sieht (K1)? | So lassen (15.11.2026). |
+| E8 | Ausgelaufene Lagerartikel weiter als „knapp“ (M9)? | Nein — ausgelaufen heißt: nicht mehr nachbestellen (15.11.2026). |
+| E9 | Ganzer Plan umsetzen, auch F9–F16, in der vorgeschlagenen Reihenfolge? | Ja (15.11.2026). |
