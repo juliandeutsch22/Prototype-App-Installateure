@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Customer, Project } from '@/types';
 import type { BaustellenStunden } from '@/lib/db/timeEntries';
@@ -1503,5 +1503,54 @@ describe('Neu für diesen Kunden (V3)', () => {
     zeige('/admin-projects?neu=fuer&kunde=k1');
     expect(await screen.findByRole('button', { name: 'Anderen Kunden wählen' })).toBeInTheDocument();
     expect(screen.getAllByText('Familie Huber').length).toBeGreaterThan(0);
+  });
+});
+
+/*
+  NACHARBEIT L8 (17.11.2026): die Suche der Baustellen steht in der Adresse
+  wie bei Kunden, Angeboten und Wartungen; der Rückweg aus der Akte nimmt sie
+  mit. GEGENPROBE (Erwartung): vorher sind die ersten beiden Fälle rot.
+*/
+describe('Baustellen: Suche in der Adresse', () => {
+  function MitAdresse({ adresse }: { adresse: string }) {
+    return (
+      <MemoryRouter initialEntries={[adresse]}>
+        <ToastProvider>
+          <AdminProjectsView />
+          <AdresseZeigen />
+        </ToastProvider>
+      </MemoryRouter>
+    );
+  }
+  function AdresseZeigen() {
+    const ort = useLocation();
+    return <output data-testid="adresse">{ort.search}</output>;
+  }
+  beforeEach(() => {
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: 'B-2026-0001', customerName: 'Familie Huber', status: 'Aktiv' } as Project & { id: string },
+    ];
+  });
+
+  it('getippt steht sie in der Adresse', async () => {
+    render(<MitAdresse adresse="/admin-projects" />);
+    await userEvent.type(await screen.findByLabelText('Suche'), 'Hub');
+    expect(screen.getByTestId('adresse').textContent).toBe('?suche=Hub');
+  });
+
+  it('aus der Adresse steht sie im Feld', async () => {
+    render(<MitAdresse adresse="/admin-projects?suche=Huber" />);
+    expect(await screen.findByLabelText('Suche')).toHaveValue('Huber');
+  });
+
+  it('bleibt gleich: ein Tiefenlink sucht und zeigt „Alle“ — weitertippen behält „Alle“', async () => {
+    render(<MitAdresse adresse="/admin-projects?baustelle=B-2026-0001" />);
+    const feld = await screen.findByLabelText('Suche');
+    expect(feld).toHaveValue('B-2026-0001');
+    await userEvent.type(feld, '1');
+    const p = new URLSearchParams(screen.getByTestId('adresse').textContent!);
+    expect(p.get('stand')).toBe('alle');
+    expect(p.get('suche')).toBe('B-2026-00011');
+    expect(p.has('baustelle')).toBe(false);
   });
 });

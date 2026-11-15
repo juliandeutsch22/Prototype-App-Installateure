@@ -287,7 +287,27 @@ export default function AdminProjectsView() {
     neu.set('stand', wert);
     setSuchparameter(neu, { replace: true });
   };
-  const [suche, setSuche] = useState(gesuchteBaustelle);
+  /*
+    DIE SUCHE STEHT IN DER ADRESSE (`?suche=`, wie bei Kunden, Angeboten und
+    Wartungen): wer aus einer Akte zurückkommt, findet sie wieder — der
+    Rückweg im Seitenkopf nimmt die Abfrage mit (`lib/listenAdresse.ts`).
+    Ein Tiefenlink (`?baustelle=`) gilt als erste Suche; wer weitertippt,
+    behält die Ansicht, die der Tiefenlink gesetzt hat.
+  */
+  const [suche, setSucheFeld] = useState(() => gesuchteBaustelle || (suchparameter.get('suche') ?? ''));
+  const setSuche = (q: string) => {
+    setSucheFeld(q);
+    setSuchparameter((alt) => {
+      const neu = new URLSearchParams(alt);
+      if (neu.has('baustelle')) {
+        if (!neu.has('stand')) neu.set('stand', filter);
+        neu.delete('baustelle');
+      }
+      if (q.trim()) neu.set('suche', q);
+      else neu.delete('suche');
+      return neu;
+    }, { replace: true });
+  };
   /** Wie viele Zeilen je Statusgruppe gezeigt sind; ohne Eintrag `JE_GRUPPE`. */
   const [gezeigt, setGezeigt] = useState<Record<string, number>>({});
   /*
