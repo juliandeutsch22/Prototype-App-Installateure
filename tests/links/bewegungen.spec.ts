@@ -608,3 +608,59 @@ test.describe('B10 Aufklappen — <details>', () => {
     expect(await page.locator('[data-geist]').count()).toBe(0);
   });
 });
+
+test.describe('B11 Fehler am Feld', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  /** Wie ein abgewiesenes Speichern: der Fokus steht auf dem Knopf, dann wird das Feld als fehlerhaft markiert. */
+  const abweisen = (page: Page, fokusImFeld: boolean) => page.evaluate(async (fokusImFeld) => {
+    const feld = document.querySelector<HTMLInputElement>('#fd-iban, input[id^="fd-"]')!;
+    const knopf = [...document.querySelectorAll<HTMLButtonElement>('button')].find((b) => /Speichern/.test(b.textContent ?? ''))!;
+    (fokusImFeld ? feld : knopf).focus();
+    feld.scrollIntoView({ block: 'end' });
+    window.scrollBy(0, -600);
+    feld.setAttribute('aria-invalid', 'true');
+    const lagen: number[] = [];
+    const t0 = performance.now();
+    await new Promise<void>((fertig) => {
+      const bild = () => {
+        const t = getComputedStyle(feld).transform;
+        lagen.push(t === 'none' ? 0 : new DOMMatrixReadOnly(t).m41);
+        if (performance.now() - t0 < 300) requestAnimationFrame(bild); else fertig();
+      };
+      requestAnimationFrame(bild);
+    });
+    const r = feld.getBoundingClientRect();
+    return { lagen, fokus: document.activeElement === feld, imBild: r.top >= 0 && r.bottom <= innerHeight };
+  }, fokusImFeld);
+
+  test('nach „Speichern“: das Feld ruckt kurz, der Fokus springt hin und es steht im Bild', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/settings/firma'));
+    await expect(page.locator('#fd-iban, input[id^="fd-"]').first()).toBeVisible();
+    const r = await abweisen(page, false);
+    expect(Math.max(...r.lagen.map(Math.abs))).toBeGreaterThan(0.5);
+    expect(r.lagen[r.lagen.length - 1]).toBe(0);
+    expect(r.fokus).toBe(true);
+    expect(r.imBild).toBe(true);
+  });
+
+  test('gleich geblieben: beim Tippen im Feld weder Ruck noch Sprung', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/settings/firma'));
+    await expect(page.locator('#fd-iban, input[id^="fd-"]').first()).toBeVisible();
+    const tippen = await abweisen(page, true);
+    expect(tippen.lagen.every((x) => x === 0)).toBe(true);
+    expect(tippen.fokus).toBe(true);
+  });
+
+  test('mit reduzierter Bewegung ohne Ruck, aber der Fokus springt hin', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(pfad('/settings/firma'));
+    await expect(page.locator('#fd-iban, input[id^="fd-"]').first()).toBeVisible();
+    const reduziert = await abweisen(page, false);
+    expect(reduziert.lagen.every((x) => x === 0)).toBe(true);
+    expect(reduziert.fokus).toBe(true);
+  });
+
+});

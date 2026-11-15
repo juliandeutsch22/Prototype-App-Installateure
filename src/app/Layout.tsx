@@ -43,6 +43,7 @@ import { zeilenflussHalten, zeilenflussRuhe } from '@/lib/zeilenfluss';
 import { unterlinieHalten } from '@/lib/unterlinie';
 import { platzhalterHalten } from '@/lib/platzhalter';
 import { aufklappenHalten } from '@/lib/aufklappen';
+import { feldfehlerHalten } from '@/lib/feldfehler';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { offeneVormerkungen } from '@/lib/db/pg/ohneEmpfang';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
@@ -188,6 +189,12 @@ export default function Layout({ children }: { children: ReactNode }) {
   useEffect(() => {
     const main = inhalt.current;
     return main ? aufklappenHalten(main) : undefined;
+  }, []);
+
+  // Fehler am Feld: kurzer Ruck, der Fokus springt hin (B11, `lib/feldfehler.ts`) — für jedes Formular.
+  useEffect(() => {
+    const main = inhalt.current;
+    return main ? feldfehlerHalten(main) : undefined;
   }, []);
 
   /*
