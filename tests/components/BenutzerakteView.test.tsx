@@ -94,7 +94,14 @@ vi.mock('@/lib/db/zeitkonto', () => ({
   arbeitszeitAenderungEntfernen: vi.fn(async () => undefined),
   urlaubsanspruchAendern: (uid: string, jahr: number, tage: number) => uaAendern(uid, jahr, tage),
   urlaubsanspruchAenderungEntfernen: vi.fn(async () => undefined),
+  austrittFolgen: (uid: string, tag: string) => folgenLaden(uid, tag),
+  zeitsitzungBeendenFuer: (uid: string) => sitzungBeenden(uid),
 }));
+/* Was nach dem Austritt noch offen ist (Z2) — ab Werk nichts. */
+const KEINE_FOLGEN = { buchungen: [], urlaub: [], krank: [], freistellungen: [], korrekturen: 0, einsaetze: { anzahl: 0, von: null, bis: null }, sitzung: null };
+let folgen: Record<string, unknown> = KEINE_FOLGEN;
+const folgenLaden = vi.fn(async (uid: string, tag: string) => { void uid; void tag; return folgen; });
+const sitzungBeenden = vi.fn(async (uid: string) => { void uid; });
 
 let angemeldet = {
   uid: 'gf1', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' as AppUser['role'],
@@ -150,6 +157,9 @@ beforeEach(() => {
   profilAendern.mockClear();
   azAendern.mockClear();
   uaAendern.mockClear();
+  folgen = KEINE_FOLGEN;
+  folgenLaden.mockClear();
+  sitzungBeenden.mockClear();
   passwortMail.mockClear();
   vergeben.mockReset().mockResolvedValue(undefined);
   anpassungen = [];
@@ -1253,5 +1263,70 @@ describe('Die Bitte um ein neues Passwort', () => {
     await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
     await screen.findByRole('button', { name: 'Passwort-Mail senden' });
     expect(screen.queryByText(/bittet um ein neues Passwort/)).toBeNull();
+  });
+});
+
+describe('Austritt in einem Zug und Wiedereintritt (Durchsicht 15.11.2026, Z2)', () => {
+  const offen = {
+    ...KEINE_FOLGEN,
+    buchungen: [{ status: 'Urlaub', anzahl: 4, von: '2026-06-16', bis: '2026-06-19' }],
+    urlaub: [{ id: 'v1', art: 'Urlaub', status: 'Beantragt', von: '2026-08-03', bis: '2026-08-07' }],
+    einsaetze: { anzahl: 2, von: '2026-06-15', bis: '2026-06-16' },
+    sitzung: { id: 's1', stand: 'laeuft', seit: '2026-06-12T05:00:00.000Z' },
+  };
+
+  it('beim Deaktivieren steht, was nach dem letzten Arbeitstag noch offen ist', async () => {
+    folgen = offen;
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Konto deaktivieren' }));
+    const dialog = await screen.findByRole('dialog', {});
+    expect(await within(dialog).findByText('4 × Urlaub gebucht')).toBeInTheDocument();
+    expect(within(dialog).getByText(/zählt nicht mehr im Saldo/)).toBeInTheDocument();
+    expect(within(dialog).getByText('Urlaub beantragt, nicht entschieden')).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: 'Umplanen' })).toHaveAttribute('href', '/assignments?datum=2026-06-15');
+    expect(within(dialog).getByText('Zeitsitzung läuft noch')).toBeInTheDocument();
+    // Vor dem Speichern gehört die Sitzung noch der Person.
+    expect(within(dialog).queryByRole('button', { name: 'Sitzung beenden' })).toBeNull();
+    expect(folgenLaden).toHaveBeenCalledWith('u2', todayStr());
+  });
+
+  it('nach dem Austritt nennt die Akte es weiter — und das Büro beendet die Sitzung', async () => {
+    folgen = offen;
+    gefunden = person({ uid: 'u3', name: 'Ausgeschieden', active: false, appStartDate: '2025-01-01', austritt: '2026-06-12' });
+    zeige('u3');
+    await userEvent.click(await screen.findByRole('button', { name: 'Sitzung beenden' }));
+    await waitFor(() => expect(sitzungBeenden).toHaveBeenCalledWith('u3'));
+  });
+
+  it('Wiedereintritt nach dem Austritt beginnt neu: Eintritt, Saldo-Start und Startwerte am Tag der Rückkehr', async () => {
+    gefunden = person({ uid: 'u3', name: 'Ausgeschieden', active: false, appStartDate: '2025-01-01', austritt: '2026-06-30' });
+    zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Konto aktivieren' }));
+    const dialog = await screen.findByRole('dialog', {});
+    expect(dialog).toHaveTextContent(/beginnt neu/);
+    const tag = within(dialog).getByLabelText(/Wiedereintritt/);
+    await userEvent.clear(tag);
+    await userEvent.type(tag, '2026-06-30');
+    expect(within(dialog).getByRole('button', { name: 'Aktivieren' })).toBeDisabled();
+    await userEvent.clear(tag);
+    await userEvent.type(tag, '2026-10-01');
+    await userEvent.type(within(dialog).getByLabelText(/Urlaub im ersten Jahr/), '6,25');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Aktivieren' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalledWith('u3', {
+      active: true, austritt: null, eintritt: '2026-10-01', appStartDate: '2026-10-01', initialOvertime: 0, initialVacationDays: 6.25,
+    }));
+  });
+
+  it('bleibt gleich: ein Austritt, der noch vor uns liegt, wird beim Aktivieren nur entfernt', async () => {
+    gefunden = person({ uid: 'u3', name: 'Kündigungsfrist', active: false, appStartDate: '2025-01-01', austritt: '2099-12-31' });
+    zeige('u3');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Konto aktivieren' }));
+    const dialog = await screen.findByRole('dialog', {});
+    expect(within(dialog).queryByLabelText(/Wiedereintritt/)).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Aktivieren' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalledWith('u3', { active: true, austritt: null }));
   });
 });

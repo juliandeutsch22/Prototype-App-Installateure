@@ -865,9 +865,16 @@ export function calcOverallSaldo(
     sähe bis dahin zu gut aus.
   */
   const heuteIso = todayStr();
+  /*
+    NICHTS NACH DEM AUSTRITT (Durchsicht 15.11.2026, Z2). Das Soll endet am
+    Austritt (`pflichtTage`); Urlaub und Krank danach, die stehen geblieben
+    waren, schrieben trotzdem das Tagessoll gut — +32 Std für vier
+    Urlaubstage in der Zahl für die Endabrechnung.
+  */
+  const ende = user.austritt && user.austritt < heuteIso ? user.austritt : heuteIso;
   const arbeit = arbeitJeTag(entries);
   for (const e of entries) {
-    if (e.date < user.appStartDate || e.date > heuteIso) continue;
+    if (e.date < user.appStartDate || e.date > ende) continue;
     bookedDates.add(e.date);
     if (e.status === 'Anwesend') istMin += calcWorkMin(e);
     else if (ganztagGutschreiben(e, heuteIso)) istMin += ganztagMinuten(user, e, halbeTage, arbeit);
@@ -1115,6 +1122,17 @@ export function calcMonthStats(
   halbeTage: boolean,
   urlaub: UrlaubsQuelle = {},
 ): MonthStats {
+  /*
+    NACH DEM AUSTRITT ZÄHLT NICHTS MEHR (Z2) — weder Ist noch Urlaub noch
+    Krank; das Soll endet dort ohnehin (`pflichtTage`). Stehen gebliebene
+    Tage danach gingen sonst in Lohn-CSV und Resturlaub.
+  */
+  if (user.austritt) {
+    const bis = user.austritt;
+    monthEntries = monthEntries.filter((e) => e.date <= bis);
+    yearEntries = yearEntries.filter((e) => e.date <= bis);
+    if (urlaub.verlauf) urlaub = { ...urlaub, verlauf: urlaub.verlauf.filter((p) => p.von <= bis) };
+  }
   /*
     WOCHENSTUNDEN UND TAGESSOLL DES MONATS (Z3), nicht die von heute: die
     Werte, die am letzten Tag des Monats galten. Gerechnet wird das Soll

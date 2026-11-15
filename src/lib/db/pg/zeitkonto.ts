@@ -101,3 +101,26 @@ export async function urlaubsanspruchAenderungEntfernen(userId: string, jahr: nu
   const { error } = await derClient().rpc('urlaubsanspruch_aenderung_entfernen', { p_user: userId, p_jahr: jahr });
   if (error) throw new Error(error.message);
 }
+
+/** Was nach einem Tag noch an der Person hängt (Z2) — siehe `austritt_folgen`. */
+export interface AustrittFolgen {
+  buchungen: Array<{ status: string; anzahl: number; von: string; bis: string }>;
+  urlaub: Array<{ id: string; art: string; status: string; von: string; bis: string }>;
+  krank: Array<{ id: string; von: string; bis: string }>;
+  freistellungen: Array<{ id: string; art: string; status: string; von: string; bis: string }>;
+  korrekturen: number;
+  einsaetze: { anzahl: number; von: string | null; bis: string | null };
+  sitzung: { id: string; stand: string; seit: string | null } | null;
+}
+
+export async function austrittFolgen(userId: string, tag: string): Promise<AustrittFolgen> {
+  const { data, error } = await derClient().rpc('austritt_folgen', { p_user: userId, p_tag: tag });
+  if (error) throw new Error(error.message);
+  return data as AustrittFolgen;
+}
+
+/** Die laufende Zeitsitzung einer ausgetretenen Person beenden (Büro). */
+export async function zeitsitzungBeendenFuer(userId: string): Promise<void> {
+  const { error } = await derClient().rpc('zeitsitzung_beenden_fuer', { p_user: userId });
+  if (error) throw new Error(error.message);
+}

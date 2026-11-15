@@ -78,6 +78,10 @@ export function zeitkontoBestand(heute: string, saat = 20261116, praefix = 'zk-b
       workDays: [1, 2, 3, 4, 5], appStartDate: `${jahr - 3}-01-01`, initialOvertime: 0, fuehrtZeitkonto: false },
     { betrieb: 0, halbeTage: true, name: 'Ohne Saldo-Start', role: 'Mitarbeiter', active: true, weeklyTargetHours: 40,
       workDays: [1, 2, 3, 4, 5], appStartDate: null, initialOvertime: 6.75 },
+    // Ausgetreten vor gut vier Monaten; Urlaub und Krank danach sind stehen geblieben (Z2).
+    { betrieb: 0, halbeTage: true, name: 'Ausgetreten', role: 'Mitarbeiter', active: false, weeklyTargetHours: 40,
+      workDays: [1, 2, 3, 4, 5], appStartDate: `${jahr - 2}-04-01`, initialOvertime: 2, yearlyVacationDays: 25,
+      austritt: plus(heute, -130) },
     { betrieb: 1, halbeTage: false, name: 'Chef mit Konto', role: 'Geschäftsführung', active: true, weeklyTargetHours: 45,
       workDays: [1, 2, 3, 4, 5, 6], appStartDate: `${jahr - 2}-10-01`, initialOvertime: -20, fuehrtZeitkonto: true },
   ];
@@ -124,9 +128,12 @@ export function zeitkontoBestand(heute: string, saat = 20261116, praefix = 'zk-b
     for (let d = plus(start, -6); d <= bis; d = plus(d, 1)) {
       const wt = new Date(`${d}T00:00:00`).getDay();
       const arbeitstag = tage.includes(wt) && !isAustrianHoliday(new Date(`${d}T00:00:00`));
-      if (krank.has(d)) { buche(p, d, 'Krank'); continue; }
+      // Nach einem Austritt bleiben nur Urlaub und Krank stehen — gebucht wird danach nichts.
+      const danach = !!p.austritt && d > p.austritt;
+      if (krank.has(d) || (danach && d <= plus(p.austritt!, 3))) { buche(p, d, 'Krank'); continue; }
       if (urlaub.has(d) && arbeitstag) { buche(p, d, 'Urlaub'); continue; }
-      if (d > heute) continue;
+      if (danach && arbeitstag && d <= plus(p.austritt!, 12)) { buche(p, d, 'Urlaub'); continue; }
+      if (d > heute || danach) continue;
       if (!arbeitstag) {
         // Ab und zu Arbeit am freien Tag, manchmal über Mitternacht.
         if (r() < 0.03) buche(p, d, 'Anwesend', { startTime: '22:00', endTime: '06:00', breakDuration: 0 });

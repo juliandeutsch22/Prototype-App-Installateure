@@ -29,7 +29,7 @@ import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import {
   alsEntwurf, alsProfil, austrittFehler, entwurfFehler, gleich, jugendschutzHinweise, mitKundenFreigabe, mitLagerFreigaben,
   mitRechnungsFreigabe, mitZeitkontoWahl,
-  urlaubsfeldName, WEEKDAYS,
+  urlaubsfeldName, WEEKDAYS, zahlOderNull, zahlOderVorgabe,
   type BenutzerEntwurf,
 } from './benutzerEntwurf';
 import EinstufungFelder from './EinstufungFelder';
@@ -45,6 +45,8 @@ import KontoUmstellen from './KontoUmstellen';
 import ZweiterFaktorZuruecksetzen from './ZweiterFaktorZuruecksetzen';
 import PasswortBitte from './PasswortBitte';
 import ArbeitszeitVerlaufKarte from './ArbeitszeitVerlaufKarte';
+import AustrittFolgen from './AustrittFolgen';
+import { leseZahl } from '@/lib/zahl';
 import UrlaubsanspruchKarte from './UrlaubsanspruchKarte';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
@@ -82,6 +84,8 @@ export default function BenutzerakteView() {
   const { uid } = useParams<{ uid: string }>();
   const { user, einblick, company } = useAuth();
   const direktAn = useModul('nachrichten.direktnachrichten');
+  // Ohne Modul Urlaub entscheidet das Büro Anträge unter „Sonderurlaub“.
+  const urlaubsweg = useModul('urlaub') ? '/vacations' : '/sonderurlaub';
   const toast = useToast();
 
   const [person, setPerson] = useState<Teil<AppUser | null>>(LAEDT);
@@ -92,6 +96,10 @@ export default function BenutzerakteView() {
   const [umschalten, setUmschalten] = useState(false);
   /** Der letzte Arbeitstag, den das Deaktivieren mitschreibt (E87); leer heisst: nicht bekannt. */
   const [austrittWahl, setAustrittWahl] = useState('');
+  /* Der Wiedereintritt beginnt neu (Z2): neuer Tag, neue Startwerte. */
+  const [wiederTag, setWiederTag] = useState('');
+  const [wiederSaldo, setWiederSaldo] = useState('0');
+  const [wiederUrlaub, setWiederUrlaub] = useState('');
   const [neuesPasswortFragen, setNeuesPasswortFragen] = useState(false);
   const [vergibt, setVergibt] = useState(false);
   /** Nur für diesen Augenblick sichtbar — nirgends gespeichert. */
@@ -230,6 +238,17 @@ export default function BenutzerakteView() {
   const p = person.daten;
   // Wie die Datenbank (`users_austritt_nach_eintritt`): nicht vor Eintritt oder Saldo-Start.
   const austrittUngueltig = p ? austrittFehler(austrittWahl, p.eintritt, p.appStartDate) : null;
+  /*
+    WIEDEREINTRITT (Durchsicht 15.11.2026, Z2): wer schon ausgetreten ist,
+    beginnt neu. Vorher entfernte „Aktivieren“ nur den Austritt — die Lücke
+    zählte dann als Soll (Austritt 30.6., Rückkehr 1.10.: rund 65 Tage Minus)
+    samt vollem Urlaubsanspruch der Lücke.
+  */
+  const wiedereintritt = !!p && p.active === false && !!p.austritt && p.austritt < todayStr();
+  const wiederFehler = !wiedereintritt || !p?.austritt ? null
+    : !wiederTag || wiederTag <= p.austritt ? `Der Wiedereintritt liegt nach dem Austritt am ${datumAT(p.austritt)}.`
+      : leseZahl(wiederSaldo, { negativ: true }).fehler ? `Start-Saldo: ${leseZahl(wiederSaldo, { negativ: true }).fehler}`
+        : leseZahl(wiederUrlaub, { negativ: true }).fehler ? `Urlaub: ${leseZahl(wiederUrlaub, { negativ: true }).fehler}` : null;
   if (!p || !user) {
     return (
       <div className="space-y-6">
@@ -311,6 +330,9 @@ export default function BenutzerakteView() {
             variant={p.active === false ? 'secondary' : 'ghost'}
             onClick={() => {
               setAustrittWahl(p.austritt ?? todayStr());
+              setWiederTag(todayStr());
+              setWiederSaldo('0');
+              setWiederUrlaub('');
               setUmschalten(true);
             }}
           >
@@ -430,6 +452,11 @@ export default function BenutzerakteView() {
             <Card title="Startwerte des Zeitkontos" hint="Das sind Einstellungen und Startwerte. Aktuelle Salden stehen in der Mitarbeiterübersicht.">
               <StammdatenLesen p={p} teil="startwerte" />
             </Card>
+            {p.austritt && canAccess(user.role, '/accounting', company?.modules) && (
+              <Card title="Nach dem Austritt" id="akte-austritt">
+                <AustrittFolgen uid={p.uid} tag={p.austritt} beenden urlaubsweg={urlaubsweg} />
+              </Card>
+            )}
           </div> },
         { id: 'arbeitszeit', titel: 'Arbeitszeit und Urlaub', sprungziele: ['akte-zeitkonto', 'akte-urlaub'], inhalt:
           <div className="akten-spalte"><Card title="Zeitkonto-Einstellungen" id="akte-zeitkonto"
@@ -494,10 +521,12 @@ export default function BenutzerakteView() {
         confirmTone={p.active === false ? 'primary' : 'danger'}
         message={
           p.active === false
-            ? `${p.name} kann sich danach wieder anmelden.${p.austritt ? ` Das Austrittsdatum (${datumAT(p.austritt)}) wird dabei entfernt — ab dann rechnet das Zeitkonto wieder weiter.` : ''}`
+            ? wiedereintritt
+              ? `${p.name} ist am ${datumAT(p.austritt!)} ausgetreten. Der Wiedereintritt beginnt neu: neues Eintritts- und Saldo-Startdatum mit eigenen Startwerten — die Zeit dazwischen zählt nicht als Soll, das alte Zeitkonto bleibt abgeschlossen.`
+              : `${p.name} kann sich danach wieder anmelden.${p.austritt ? ` Das Austrittsdatum (${datumAT(p.austritt)}) liegt noch vor uns und wird entfernt — das Zeitkonto rechnet ohne Unterbrechung weiter.` : ''}`
             : `${p.name} kann sich danach nicht mehr anmelden und bekommt auf keinem Gerät mehr Meldungen. Alle bisherigen Zeiteinträge bleiben erhalten.`
         }
-        gesperrt={p.active !== false && !!austrittUngueltig}
+        gesperrt={p.active !== false ? !!austrittUngueltig : !!wiederFehler}
         onCancel={() => setUmschalten(false)}
         onConfirm={async () => {
           const naechster = p.active === false;
@@ -507,7 +536,16 @@ export default function BenutzerakteView() {
             Aktivieren fällt er weg — sonst endete das Zeitkonto weiter am
             alten Tag.
           */
-          await updateUserProfile(p.uid, naechster ? { active: true, austritt: null } : { active: false, austritt: austrittWahl || null });
+          await updateUserProfile(
+            p.uid,
+            !naechster ? { active: false, austritt: austrittWahl || null }
+              // Neu beginnen: Eintritt und Saldo-Start am Tag der Rückkehr, Startwerte wie bei einer Anlage.
+              : wiedereintritt ? {
+                active: true, austritt: null, eintritt: wiederTag, appStartDate: wiederTag,
+                initialOvertime: zahlOderVorgabe(wiederSaldo, 0), initialVacationDays: zahlOderNull(wiederUrlaub),
+              }
+                : { active: true, austritt: null },
+          );
           setUmschalten(false);
           setVersuch((v) => v + 1);
           toast.success(naechster ? 'Benutzer aktiviert' : 'Benutzer deaktiviert');
@@ -527,6 +565,24 @@ export default function BenutzerakteView() {
             {austrittUngueltig
               ? <p id="b-austritt-deaktivieren-hinweis" role="alert" className="mt-1 text-sm text-danger">{austrittUngueltig}</p>
               : <p id="b-austritt-deaktivieren-hinweis" className="mt-1 text-xs text-ink-muted">Bis zu diesem Tag rechnen Soll und Saldo. Leer lassen, wenn er noch nicht feststeht.</p>}
+            {/* Austritt in einem Zug (Z2): was danach noch offen ist, bevor deaktiviert wird. */}
+            {austrittWahl && !austrittUngueltig && (
+              <div className="mt-3"><AustrittFolgen uid={p.uid} tag={austrittWahl} urlaubsweg={urlaubsweg} /></div>
+            )}
+          </div>
+        )}
+        {wiedereintritt && (
+          <div className="mt-3 flex flex-col gap-3">
+            <InputField
+              id="b-wiedereintritt" label="Wiedereintritt (erster Arbeitstag)" type="date" pflicht
+              value={wiederTag} onChange={(e) => setWiederTag(e.target.value)}
+            />
+            <ZahlFeld id="b-wieder-saldo" label="Start-Saldo (Stunden)" value={wiederSaldo} onChange={setWiederSaldo} />
+            <InputField
+              id="b-wieder-urlaub" label="Urlaub im ersten Jahr" inputMode="decimal" placeholder="leer = voller Anspruch"
+              value={wiederUrlaub} onChange={(e) => setWiederUrlaub(e.target.value)}
+            />
+            {wiederFehler && wiederTag && <p role="alert" className="text-sm text-danger">{wiederFehler}</p>}
           </div>
         )}
       </ConfirmDialog>

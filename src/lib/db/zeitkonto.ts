@@ -5,5 +5,6 @@ export {
   zeitkontoSalden, zeitkontoSaldo, zeitkontoMonate,
   arbeitszeitAendern, arbeitszeitAenderungEntfernen,
   urlaubsanspruchAendern, urlaubsanspruchAenderungEntfernen,
+  austrittFolgen, zeitsitzungBeendenFuer,
 } from './pg/zeitkonto';
-export type { ZeitkontoMonat } from './pg/zeitkonto';
+export type { ZeitkontoMonat, AustrittFolgen } from './pg/zeitkonto';

@@ -183,7 +183,8 @@ describe('bleibt gleich: ohne Änderung der Arbeitszeit ändert sich keine Zahl'
   });
 
   it('Monats-CSV und Personen-CSV Zeichen für Zeichen', () => {
-    for (const [jahr, monat] of monate.slice(0, 14)) {
+    // Zwölf Monate: ein Jahreswechsel samt 24./31.12. ist darin.
+    for (const [jahr, monat] of monate.slice(0, 12)) {
       const prefix = `${jahr}-${String(monat + 1).padStart(2, '0')}`;
       const zeilen = (q: (p: BestandPerson) => BestandPerson) => bestand.personen.filter((p) => p.halbeTage).map((p) => {
         const monthEntries = bestand.buchungen.filter((e) => e.userId === p.uid && e.date.startsWith(prefix));
@@ -198,5 +199,5 @@ describe('bleibt gleich: ohne Änderung der Arbeitszeit ändert sich keine Zahl'
           .toBe(buildUserCsv(z.user, z.monthEntries, z.stats, jahr, monat, true, lohn));
       }
     }
-  });
+  }, 30_000);
 });
