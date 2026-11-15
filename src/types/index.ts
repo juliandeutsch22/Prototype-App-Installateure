@@ -240,6 +240,8 @@ export interface Company {
   kjbgVerteilungKv?: boolean;
   /** Die Projektleitung ist im Einsatzplan einteilbar und sieht „Mein Einsatzplan“ (M38). Ab Werk aus. */
   projektleitungImEinsatzplan?: boolean;
+  /** Geschäftsführung und Administrator sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“ (V12, E2). Ab Werk aus. */
+  leitungImEinsatzplan?: boolean;
   /**
    * Private Gespräche nach so vielen Monaten ohne Nachricht löschen
    * (M10/B09, D3) — 6, 12 oder 24; ohne Angabe nie. Setzt nur die

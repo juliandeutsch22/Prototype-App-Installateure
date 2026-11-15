@@ -14,6 +14,7 @@ import {
   canInvoice,
   canEditTime,
   isMitarbeiter,
+  einplanbar,
   canWriteWorkSheet,
   darfUrlaubEntscheiden,
   darfEinkaufSehen,
@@ -159,7 +160,8 @@ export default function DashboardView() {
       };
       const r = startRolle(user.role);
       const bloecke: [string, () => Promise<Partial<StartDaten>>][] = [];
-      if (mitZeitkonto || isMitarbeiter(user.role)) {
+      // Wer eingeplant wird, bekommt sein „Heute“ — auch der Chef ohne Zeitkonto, wenn der Betrieb ihn einplant (V12).
+      if (mitZeitkonto || isMitarbeiter(user.role) || einplanbar(user, company)) {
         bloecke.push(['Deine Tage und Einsätze', () => persoenlich(k, {
           material: materialAn,
           scheine: scheineAn && r === 'monteur',

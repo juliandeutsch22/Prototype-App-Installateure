@@ -310,7 +310,7 @@ describe('Wochenplan für alle', () => {
     // Seit 30.09.2026 schreibt die Karte auch den Schalter für die Projektleitung (M38), seit
     // 02.10.2026 den fürs Kalender-Abo — beide unverändert aus.
     expect(updateCompany.mock.calls[0]).toEqual(['perl', {
-      wochenplanFuerAlle: true, projektleitungImEinsatzplan: false, kalenderAboErlaubt: false,
+      wochenplanFuerAlle: true, projektleitungImEinsatzplan: false, leitungImEinsatzplan: false, kalenderAboErlaubt: false,
     }]);
     expect(reloadCompany).toHaveBeenCalled();
   });
@@ -323,7 +323,24 @@ describe('Wochenplan für alle', () => {
     await nutzer.click(schalter);
     await nutzer.click(within(schalter.closest('section')!).getByRole('button', { name: 'Speichern' }));
     expect(updateCompany.mock.calls[0]).toEqual(['perl', {
-      wochenplanFuerAlle: false, projektleitungImEinsatzplan: true, kalenderAboErlaubt: false,
+      wochenplanFuerAlle: false, projektleitungImEinsatzplan: true, leitungImEinsatzplan: false, kalenderAboErlaubt: false,
+    }]);
+  });
+
+  /*
+    V12 (Durchsicht 15.11.2026, E2): Geschäftsführung und Administrator
+    einplanbar — ab Werk aus, wie die Projektleitung. Gegenprobe: vorher gab
+    es den Schalter nicht.
+  */
+  it('V12: Geschäftsführung und Administrator im Einsatzplan — ab Werk aus, einschaltbar', async () => {
+    const nutzer = userEvent.setup();
+    zeige('personal');
+    const schalter = feld('Geschäftsführung und Administrator sind im Einsatzplan einteilbar und sehen „Mein Einsatzplan“');
+    expect(schalter.checked).toBe(false);
+    await nutzer.click(schalter);
+    await nutzer.click(within(schalter.closest('section')!).getByRole('button', { name: 'Speichern' }));
+    expect(updateCompany.mock.calls[0]).toEqual(['perl', {
+      wochenplanFuerAlle: false, projektleitungImEinsatzplan: false, leitungImEinsatzplan: true, kalenderAboErlaubt: false,
     }]);
   });
 
@@ -335,7 +352,7 @@ describe('Wochenplan für alle', () => {
     await nutzer.click(schalter);
     await nutzer.click(within(schalter.closest('section')!).getByRole('button', { name: 'Speichern' }));
     expect(updateCompany.mock.calls[0]).toEqual(['perl', {
-      wochenplanFuerAlle: false, projektleitungImEinsatzplan: false, kalenderAboErlaubt: true,
+      wochenplanFuerAlle: false, projektleitungImEinsatzplan: false, leitungImEinsatzplan: false, kalenderAboErlaubt: true,
     }]);
   });
 

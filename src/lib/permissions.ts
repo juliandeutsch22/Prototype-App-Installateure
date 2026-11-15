@@ -225,14 +225,18 @@ export const darfEinkaufSehen = (p: { role: Role; einkaufSehen?: boolean; katalo
   || (p.role === 'Verwaltung' && (p.einkaufSehen === true || p.katalogEinspielen === true));
 
 /**
- * Wer im Einsatzplan eingeteilt wird: der Außendienst — und die
- * Projektleitung, wenn der Betrieb es einschaltet (Testbericht 30.09.2026,
- * M38; ab Werk aus). Buchhaltung und Verwaltung fahren nicht raus.
+ * Wer im Einsatzplan eingeteilt wird: der Außendienst — die Projektleitung,
+ * wenn der Betrieb es einschaltet (Testbericht 30.09.2026, M38) — und
+ * Geschäftsführung und Administrator, wenn der Betrieb es einschaltet
+ * (Durchsicht 15.11.2026, V12, Entscheidung E2: im kleinen Betrieb fährt der
+ * Chef mit). Beides ab Werk aus. Buchhaltung und Verwaltung fahren nicht
+ * raus.
  */
 export const einplanbar = (
   u: { role: Role; active?: boolean },
-  company: { projektleitungImEinsatzplan?: boolean } | null | undefined,
+  company: { projektleitungImEinsatzplan?: boolean; leitungImEinsatzplan?: boolean } | null | undefined,
 ) =>
   u.active !== false
   && (u.role === 'Mitarbeiter'
-    || (u.role === 'Projektleiter' && company?.projektleitungImEinsatzplan === true));
+    || (u.role === 'Projektleiter' && company?.projektleitungImEinsatzplan === true)
+    || ((u.role === 'Geschäftsführung' || u.role === 'Administrator') && company?.leitungImEinsatzplan === true));

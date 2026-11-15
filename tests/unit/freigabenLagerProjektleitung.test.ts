@@ -30,8 +30,9 @@ describe('M38 — Rechnungen lesen', () => {
 
   it('die Zusatzrechte kommen aus der eigenen Zeile und dem Betrieb', () => {
     expect(zusatzrechte({ rechnungenLesen: true }, { projektleitungImEinsatzplan: true }))
-      .toEqual({ rechnungenLesen: true, projektleitungImEinsatzplan: true });
-    expect(zusatzrechte(null, null)).toEqual({ rechnungenLesen: false, projektleitungImEinsatzplan: false });
+      .toEqual({ rechnungenLesen: true, projektleitungImEinsatzplan: true, leitungImEinsatzplan: false });
+    expect(zusatzrechte(null, null)).toEqual({ rechnungenLesen: false, projektleitungImEinsatzplan: false, leitungImEinsatzplan: false });
+    expect(zusatzrechte(null, { leitungImEinsatzplan: true }).leitungImEinsatzplan).toBe(true);
   });
 });
 
@@ -48,6 +49,28 @@ describe('M38 — Projektleitung im Einsatzplan', () => {
     expect(einplanbar({ role: 'Mitarbeiter', active: true }, null)).toBe(true);
     expect(einplanbar({ role: 'Mitarbeiter', active: false }, null)).toBe(false);
     expect(einplanbar({ role: 'Verwaltung', active: true }, { projektleitungImEinsatzplan: true })).toBe(false);
+  });
+});
+
+/*
+  V12 (Durchsicht 15.11.2026, E2): Geschäftsführung und Administrator
+  einplanbar, wenn der Betrieb es einschaltet. Gegenprobe: vorher nie.
+*/
+describe('V12 — Geschäftsführung und Administrator im Einsatzplan', () => {
+  it('einteilbar und „Mein Einsatzplan“ nur mit Schalter', () => {
+    for (const rolle of ['Geschäftsführung', 'Administrator'] as const) {
+      expect(einplanbar({ role: rolle, active: true }, null)).toBe(false);
+      expect(einplanbar({ role: rolle, active: true }, { leitungImEinsatzplan: true })).toBe(true);
+      expect(einplanbar({ role: rolle, active: false }, { leitungImEinsatzplan: true })).toBe(false);
+      expect(pfade(rolle)).not.toContain('/my-schedule');
+      expect(pfade(rolle, { leitungImEinsatzplan: true })).toContain('/my-schedule');
+    }
+  });
+
+  it('bleibt gleich: der Schalter öffnet weder der Projektleitung noch dem Büro etwas', () => {
+    expect(einplanbar({ role: 'Projektleiter', active: true }, { leitungImEinsatzplan: true })).toBe(false);
+    expect(einplanbar({ role: 'Buchhaltung', active: true }, { leitungImEinsatzplan: true })).toBe(false);
+    expect(pfade('Projektleiter', { leitungImEinsatzplan: true })).not.toContain('/my-schedule');
   });
 });
 
