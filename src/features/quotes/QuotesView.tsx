@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import OhneUmbruch from '@/components/OhneUmbruch';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { schluessel as speicherSchluessel, useGemerkt } from '@/lib/zwischenspeicher';
@@ -481,6 +482,8 @@ export default function QuotesView() {
     },
     [user, grenze, ansicht, merken],
   );
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(laden);
 
   useEffect(() => {
     void laden();

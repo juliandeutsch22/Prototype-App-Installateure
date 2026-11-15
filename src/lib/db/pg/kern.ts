@@ -8,6 +8,7 @@
  * lichkeit, die Datenbank ist die Zusage.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { AKTUALISIEREN } from '@/lib/aktualisieren';
 import { supabaseClient } from '@/lib/supabase';
 import type { WithId } from '../core';
 import { zeileAlsObjekt, objektAlsZeile } from './felder';
@@ -783,6 +784,8 @@ export function kanalHalten(a: KanalAuftrag): () => void {
   if (horcht) {
     document.addEventListener('visibilitychange', wiederDa);
     window.addEventListener('online', wiederDa);
+    // „Jetzt aktualisieren“ (F15, Ziehen von oben): wie zurück aus dem Hintergrund.
+    window.addEventListener(AKTUALISIEREN, wiederDa);
   }
 
   anmelden();
@@ -793,6 +796,7 @@ export function kanalHalten(a: KanalAuftrag): () => void {
     if (horcht) {
       document.removeEventListener('visibilitychange', wiederDa);
       window.removeEventListener('online', wiederDa);
+      window.removeEventListener(AKTUALISIEREN, wiederDa);
     }
     vergissVerbindung(schluessel);
     if (kanal) void a.client.removeChannel(kanal);

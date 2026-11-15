@@ -155,3 +155,20 @@
   .wisch-knopf { display: flex; align-items: center; justify-content: center; min-width: 5.5rem; padding: 0 1rem; border: 0; border-left: 1px solid var(--border); background: var(--surface-2); color: var(--ink-deep); font-size: 0.9375rem; font-weight: var(--gewicht-titel); cursor: pointer; }
   .wisch-knopf-gefahr { color: var(--danger); }
 }
+
+/*
+  F15 — ZIEHEN ZUM AKTUALISIEREN (`ZiehenZumAktualisieren.tsx`): ein schwebender
+  Kreis (Schatten der Insel) folgt dem Finger von oben; über der Schwelle wird
+  er voll, beim Aktualisieren dreht er sich kurz. Keine Klickfläche.
+*/
+@layer components {
+  .ziehen-aktualisieren {
+    position: fixed; left: 50%; top: 0.5rem; margin-top: env(safe-area-inset-top, 0px); z-index: 60;
+    display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 999px;
+    background: var(--surface); color: var(--text-muted); border: 1px solid var(--border); box-shadow: var(--shadow-insel);
+    pointer-events: none; opacity: 0.6;
+  }
+  .ziehen-aktualisieren[data-bereit] { opacity: 1; color: var(--accent-deep); }
+  .ziehen-aktualisieren[data-laeuft] svg { animation: ziehen-drehen 700ms var(--ease-response) both; }
+}
+@keyframes ziehen-drehen { to { transform: rotate(360deg); } }

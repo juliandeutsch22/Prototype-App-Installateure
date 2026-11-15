@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Fensteraktionen from '@/components/Fensteraktionen';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import KnopfLink from '@/components/KnopfLink';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
@@ -356,6 +357,8 @@ export default function WorkSheetsListView() {
     },
     [user, grenze, grenzeAnfang, merken],
   );
+  // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
+  useBeiAktualisieren(laden);
 
   useEffect(() => {
     // Ein gemerkter Stand bleibt beim Aufbau stehen; mit größerer Grenze lädt die Liste sichtbar.

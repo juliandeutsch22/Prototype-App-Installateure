@@ -46,6 +46,9 @@ import { aufklappenHalten } from '@/lib/aufklappen';
 import { feldfehlerHalten } from '@/lib/feldfehler';
 import { seitenRichtung } from '@/lib/seitenrichtung';
 import { DAUER, EASE } from '@/lib/bewegung';
+import ZiehenZumAktualisieren from '@/components/ZiehenZumAktualisieren';
+import { beiAktualisieren } from '@/lib/aktualisieren';
+import { abfrageSpeicher } from '@/lib/zwischenspeicher';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { offeneVormerkungen } from '@/lib/db/pg/ohneEmpfang';
 import { rolleAnzeige } from '@/lib/rolleAnzeige';
@@ -279,6 +282,19 @@ export default function Layout({ children }: { children: ReactNode }) {
     Betrieb, und der Aufruf käme leer zurück. Ein Umlauf, dessen Antwort
     schon feststeht, ist einer zu viel.
   */
+  /*
+    „JETZT AKTUALISIEREN“ (F15, Ziehen von oben): die Zähler der Navigation
+    und was der Abfragespeicher gerade zeigt; die Live-Listen hören selbst
+    darauf (`kanalHalten`).
+  */
+  useEffect(() => {
+    if (!angemeldet) return;
+    return beiAktualisieren(() => {
+      void postenNeuLaden();
+      void abfrageSpeicher.invalidateQueries();
+    });
+  }, [angemeldet]);
+
   useEffect(() => {
     if (!angemeldet) return;
     void postenNeuLaden();
@@ -570,6 +586,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       <Seitenposition />
       {/* Nur sichtbar, wenn ein Seitenwechsel länger auf seinen Baustein wartet. */}
       <Ladebalken />
+      {/* Ziehen zum Aktualisieren, als App vom Home-Bildschirm (F15). */}
+      <ZiehenZumAktualisieren />
       {/* Eine neue Fehlermeldung ausserhalb des Bildes wird hereingeholt (G10). */}
       <FehlerInsBlickfeld />
       {/* Die eine Live-Verbindung der Nachrichten: Zahl im Menü und „es gibt Neues“ (M10/B09). */}

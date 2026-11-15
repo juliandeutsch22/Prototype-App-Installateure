@@ -457,3 +457,23 @@ describe('N1 — derselbe Kanalname wird nicht wiederverwendet', () => {
     stopp();
   });
 });
+
+/*
+  F15 (15.11.2026): „jetzt aktualisieren“ (Ziehen von oben) baut den Kanal neu
+  auf und gleicht ab — wie die Rückkehr aus dem Hintergrund. Gegenprobe: ohne
+  den Hörer bleibt es bei einem Abonnement. Nach dem Abmelden nichts mehr.
+*/
+describe('F15 — jetzt aktualisieren', () => {
+  it('baut den Kanal neu auf; abgemeldet nicht mehr', async () => {
+    const { client, abonnements } = clientWieSupabase();
+    const stopp = abonnieren('materials', 'perl', () => {}, () => {}, {}, client);
+    expect(abonnements()).toBe(1);
+    window.dispatchEvent(new Event('senklot:aktualisieren'));
+    await vi.advanceTimersByTimeAsync(10);
+    expect(abonnements()).toBe(2);
+    stopp();
+    window.dispatchEvent(new Event('senklot:aktualisieren'));
+    await vi.advanceTimersByTimeAsync(10);
+    expect(abonnements()).toBe(2);
+  });
+});

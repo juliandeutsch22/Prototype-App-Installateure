@@ -851,3 +851,62 @@ test.describe('F15 Wischen an der Zeile', () => {
     await expect(page.locator('[data-wischbar], .wisch-aktionen')).toHaveCount(0);
   });
 });
+
+test.describe('F15 Ziehen zum Aktualisieren', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+
+  async function ziehen(page: Page, dy: number, mitte?: (p: Page) => Promise<void>) {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 200, y: 200 }] });
+    for (let i = 1; i <= 12; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 200, y: 200 + dy * i / 12 }] });
+      await page.waitForTimeout(16);
+    }
+    await mitte?.(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  }
+  const alsApp = (page: Page) => page.addInitScript(() => {
+    const echt = window.matchMedia.bind(window);
+    window.matchMedia = (q: string) => (q.includes('display-mode: standalone') ? { ...echt(q), matches: true, media: q } as MediaQueryList : echt(q));
+  });
+  const zaehlen = (page: Page) => page.evaluate(() => {
+    const w = window as unknown as { aktualisiert: number };
+    w.aktualisiert = 0;
+    window.addEventListener('senklot:aktualisieren', () => { w.aktualisiert += 1; });
+  });
+
+  test('als App: von oben gezogen kommt das Zeichen mit, losgelassen holen die Listen nach', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Touch-Schnittstelle von Chromium.');
+    await alsApp(page);
+    await page.goto(pfad('/time', 'Mitarbeiter'));
+    await expect(page.locator('#meine-eintraege li.zeile').first()).toBeVisible();
+    await zaehlen(page);
+    await ziehen(page, 200, async (p) => {
+      await expect(p.getByRole('status', { name: 'Loslassen zum Aktualisieren' })).toBeVisible();
+    });
+    expect(await page.evaluate(() => (window as unknown as { aktualisiert: number }).aktualisiert)).toBe(1);
+    await expect(page.getByRole('status', { name: 'Wird aktualisiert' })).toBeVisible();
+    await expect(page.locator('.ziehen-aktualisieren')).toHaveCount(0);
+  });
+
+  test('ein kurzer Zug oder ein Zug mitten in der Seite holt nichts', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Touch-Schnittstelle von Chromium.');
+    await alsApp(page);
+    await page.goto(pfad('/time', 'Mitarbeiter'));
+    await expect(page.locator('#meine-eintraege li.zeile').first()).toBeVisible();
+    await zaehlen(page);
+    await ziehen(page, 60);
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await ziehen(page, 200);
+    expect(await page.evaluate(() => (window as unknown as { aktualisiert: number }).aktualisiert)).toBe(0);
+  });
+
+  test('gleich geblieben: im Browser (eigenes Neuladen) keine zweite Geste', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Touch-Schnittstelle von Chromium.');
+    await page.goto(pfad('/time', 'Mitarbeiter'));
+    await expect(page.locator('#meine-eintraege li.zeile').first()).toBeVisible();
+    await zaehlen(page);
+    await ziehen(page, 200);
+    expect(await page.evaluate(() => (window as unknown as { aktualisiert: number }).aktualisiert)).toBe(0);
+  });
+});
