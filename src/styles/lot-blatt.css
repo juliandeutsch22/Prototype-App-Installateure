@@ -26,12 +26,28 @@
   Kante, also genau auf der nächsten Rasterlinie: ein Blatt von 24 Zellen
   reicht von einer Linie zur 24. Linie danach, nicht einen Pixel davor.
 
-  KEINE EIGENE STAPELEBENE. Die Zeichnung liegt auf Ebene 1 der Seite: über
-  gewöhnlichem Inhalt, unter Menüs, Dialogen und Rückfragen, die in einem
-  Blatt aufgehen. Mit eigener Ebene je Blatt lag eine Rückfrage aus dem
-  Formular der Zeiterfassung unter dem Blatt daneben und ließ sich nicht
-  antippen (`runde4.spec.ts`). Die festen Bänder der Planung liegen höher;
-  dort zeichnet die Namensspalte die linke Linie selbst (`lot-planung.css`).
+  KEINE EIGENE STAPELEBENE. Mit eigener Ebene je Blatt lag eine Rückfrage
+  aus dem Formular der Zeiterfassung unter dem Blatt daneben und ließ sich
+  nicht antippen (`runde4.spec.ts`). Die Kontur liegt deshalb im Stapel der
+  Seite, und ihre Ebene ist eine Grenze zwischen zwei Gruppen
+  (`--ebene-blattkontur`, 15.11.2026):
+
+  - DARUNTER, was zum Blatt gehört: Zeilen (1–2), klebende Köpfe und die
+    Speicherleiste im Blatt (höchstens `--ebene-im-blatt`). Die Kontur
+    liegt darüber und wird von keiner Fläche zugedeckt.
+  - DARÜBER, was frei auf der Seite schwebt: Sprungleiste (5),
+    Speicherleiste und Warenkorb außerhalb eines Blatts (10), Daumen,
+    Kopf, Navigation, Menüs, Dialoge. Rollt ein Blatt darunter durch, bleibt
+    seine Kontur darunter.
+
+  Bis 15.11.2026 lag die Kontur auf 11, über allem bis auf Kopf und Menüs.
+  Dann zog sie beim Rollen ihre Linien durch die freie Speicherleiste der
+  Firmendaten (Rahmenstücke, eine Linie durch „Speichern“) und durch die
+  Sprungleiste der Angebotsakte. `blattKontur.spec.ts` prüft beide Gruppen.
+
+  Die festen Bänder der Planung (Namensspalte 10, Kopf 20, Ecke 30) liegen
+  absichtlich über der Kontur und zeichnen die linke Linie selbst
+  (`lot-planung.css`, E33).
 */
 @layer components {
   /*
@@ -43,6 +59,8 @@
     weil das Raster keine Rechnung im Stil zulässt.
   */
   :root { --blatt-rand: 24px; --blatt-rand-innen: 23px; --blatt-rand-minus: -24px; --blatt-rand-minus-innen: -23px; --blatt-rand-pfeil: 52px; --blatt-rand-einzug: 28px; }
+  /* Die Ebenen um die Kontur (siehe oben): höchstens 3 im Blatt, die Kontur auf 4, Freies ab 5. */
+  :root { --ebene-im-blatt: 3; --ebene-blattkontur: 4; }
   @media (max-width: 759px) {
     :root { --blatt-rand: 16px; --blatt-rand-innen: 15px; --blatt-rand-minus: -16px; --blatt-rand-minus-innen: -15px; --blatt-rand-pfeil: 44px; --blatt-rand-einzug: 20px; }
   }
@@ -66,7 +84,8 @@
       eigener Ebene gezeichnet (Zeilen, Schriftfeld, klebende Leiste) — ihre
       Fläche deckte die Kontur zu. Die Ebene (`::before`) hat keine Höhe,
       folgt dem Radius, nimmt keinen Tipp an und liegt über der klebenden
-      Leiste im Blatt (Ebene 10, E76).
+      Leiste im Blatt (E76) — aber unter allem, was frei auf der Seite
+      schwebt (Kopfkommentar, 15.11.2026).
     */
     margin-inline: 0; padding: 0; border: 0; border-radius: var(--radius-lg);
     background: var(--surface);
@@ -75,8 +94,16 @@
   .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte)::before,
   .inhalt :is(.ue-liste, .ue-liste-woche, .ue-vergleich, .lot-einrichtung)::before,
   .inhalt .monatskalender:not(:is(.karte, .fenster, .fenster-breit, .blatt, [role='dialog']) .monatskalender)::before {
-    content: ''; position: absolute; inset: 0; z-index: 11; pointer-events: none;
+    content: ''; position: absolute; inset: 0; z-index: var(--ebene-blattkontur); pointer-events: none;
     border: 1px solid var(--border); border-radius: inherit;
+  }
+  /*
+    DIE SPEICHERLEISTE IM BLATT liegt unter der Kontur ihres Blatts (sonst
+    deckte ihre Fläche die Linie links und rechts zu, E76). Im Fenster und
+    frei auf der Seite bleibt sie auf 10.
+  */
+  .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) .aktionsleiste:not(:is(.fenster, .fenster-breit, .blatt, [role='dialog']) .aktionsleiste) {
+    z-index: var(--ebene-im-blatt);
   }
 
   /*
@@ -118,13 +145,11 @@
     Rand. Ab dem Schreibtisch steht der Fuß ohne Linie (index.css).
   */
   /*
-    UND LÄSST DIE LINIE LINKS FREI (E76, 10.11.2026): klebend liegt die
-    Leiste auf Ebene 10, über der Zeichnung des Blatts (Ebene 1). Von Kante
-    zu Kante deckte sie die linke Linie um ihre Höhe zu („links keine
-    Border“). Sie beginnt deshalb einen Pixel innen; die Knöpfe bleiben auf
-    der 24-px-Flucht. Seit V10 (14.11.2026) ist die Kontur ein Umriss, der
-    nach dem Inhalt gezeichnet wird: die Leiste reicht von Kante zu Kante und
-    deckt die Linie trotzdem nicht zu.
+    UND LÄSST DIE LINIE STEHEN (E76, 10.11.2026): von Kante zu Kante deckte
+    die klebende Leiste die linke Linie um ihre Höhe zu („links keine
+    Border“). Seit V10 liegt die Kontur als eigene Ebene über der Leiste
+    ihres Blatts (oben): die Leiste reicht von Kante zu Kante, die Linie
+    bleibt sichtbar.
   */
   @media (max-width: 1199px) {
     .inhalt .karte:not(.karte .karte):not(:is(.fenster, .fenster-breit, .blatt, [role='dialog'], .akten-kontext, .beleg-kontext) .karte) > .karte-koerper .aktionsleiste { margin: 1.5rem var(--blatt-rand-minus) -24px; padding: 12px var(--blatt-rand); }
@@ -139,12 +164,14 @@
       margin: 1.5rem 0 0; padding: 12px var(--blatt-rand); border-top: 0;
       /*
         V10 (14.11.2026): ein Blatt mit Kontur und Radius wie die darüber —
-        vorher gezeichnete eckige Linien der Linie „Lot“.
-        KONTUR ALS INNERE LINIE, NICHT ALS UMRISS (14.11.2026, iPhone): Safari
-        zeichnete den Umriss der klebenden Leiste beim Rollen nicht mit —
-        Rahmenstücke blieben stehen, eine Linie lief durch „Speichern“. Die
-        innere Linie gehört zum Hintergrund der Leiste, wandert mit ihr,
-        folgt dem Radius und hat wie der Umriss keine Höhe.
+        vorher gezeichnete eckige Linien der Linie „Lot“. Die Kontur ist
+        eine innere Linie: sie gehört zum Hintergrund der Leiste, folgt dem
+        Radius und hat keine Höhe.
+        BERICHTIGT 15.11.2026: Die Rahmenstücke und die Linie durch
+        „Speichern“ (iPhone, 14.11.2026) kamen nicht davon, dass Safari einen
+        Umriss nicht nachzeichnete, wie hier stand, sondern von den Konturen
+        der Blätter, die unter der Leiste durchrollten und auf einer höheren
+        Ebene lagen (Kopfkommentar). Die Leiste liegt jetzt darüber.
       */
       border-radius: var(--radius-lg); outline: 0; box-shadow: inset 0 0 0 1px var(--border);
     }

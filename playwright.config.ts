@@ -54,7 +54,8 @@ const ORT = 'http://127.0.0.1:5173';
   am Handy (G22) und der Nachweis zum Sonderurlaub (G26).
 */
 // Die Plattformabläufe und die Nachrichten (M10/B09) laufen ebenfalls auf Telefon und Tablet.
-const MONTEUR_WEGE = /(startseiteEinrichten|arbeitstag|handyPaket7|m06Zeit|zeitBuchen|materialAnfordern|scheinUnterschreiben|monteurSeiten|fokusRahmen|aktionsleisteTelefon|sonderurlaubNachweis|akten|plattform|nachrichten)\.spec\.ts$/;
+// Ebenso die Kontur unter freien Leisten (S1, 15.11.2026): gemeldet am iPhone, also auch in WebKit geprüft.
+const MONTEUR_WEGE = /(startseiteEinrichten|arbeitstag|handyPaket7|m06Zeit|zeitBuchen|materialAnfordern|scheinUnterschreiben|monteurSeiten|fokusRahmen|aktionsleisteTelefon|sonderurlaubNachweis|akten|plattform|nachrichten|blattKontur)\.spec\.ts$/;
 const CHROMIUM_START = process.env.CHROMIUM_PFAD ? { executablePath: process.env.CHROMIUM_PFAD } : {};
 
 const STAPEL = {

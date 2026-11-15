@@ -116,7 +116,9 @@ Datenbankfunktionen nur verträglich erweitern (`docs/DEPLOYMENT.md`).
   *keine* Nummern dieser Liste) und der Stand in `plan.md` (Spalte oder
   Vermerk „erledigt mit #…“).
 
-## 4. Paket 1 — S1: Speicherleiste (zuerst)
+## 4. Paket 1 — S1: Speicherleiste (zuerst) — erledigt
+
+Danach S2 (Taktgeber, `plan.md`) als eigener PR, vor Paket 2.
 
 **Was man sieht.** `/settings/firma` am Handy (390 px) und Tablet (834 px):
 Beim Rollen laufen Rahmenstücke der Blätter „Rechnungsangaben“ und „Farben“
@@ -137,6 +139,12 @@ eigenen Blatt* liegen (Kommentar dort, E76). Der Fehler ist, dass sie auch
 Safari zeichne den Umriss nicht nach. Das war nicht die Ursache. Prüfen, ob
 diese Änderung für sich sinnvoll bleibt oder zurückgenommen wird; die
 Begründung im Kommentar, im Handbuch und in `stand` §92 berichtigen.
+
+**Erledigt am 15.11.2026 (Stand §95)** — anders als hier empfohlen: der
+eigene Stapel je Blatt war schon einmal probiert und verworfen
+(Kopfkommentar in `lot-blatt.css`, `runde4.spec.ts`). Gelöst über eine
+Ordnung der Ebenen (Kontur 4, im Blatt höchstens 3). Der ursprüngliche
+Vorschlag bleibt zur Nachvollziehbarkeit stehen:
 
 **Lösung, empfohlen.** Jedes Blatt bildet seinen eigenen Stapel
 (`isolation: isolate` an denselben Selektoren, die das `::before` tragen).
