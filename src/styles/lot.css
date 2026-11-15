@@ -334,6 +334,15 @@
   .schalter-allein { min-height: 0; padding: 0; flex: none; }
 
   /* ── Musterseite ─────────────────────────────────────────────────────── */
+  /* E4-Vorschlag: beide Sätze nebeneinander, unabhängig von der gewählten Darstellung. */
+  .muster-gefahr { display: grid; gap: 1.5rem; }
+  .muster-gefahr-paar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; margin-bottom: 0.75rem; }
+  @media (min-width: 760px) { .muster-gefahr-paar { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .muster-gefahr-probe { display: grid; gap: 0.5rem; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-lg); font-size: 0.875rem; }
+  .muster-gefahr-titel { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  .muster-gefahr-reihe { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .muster-gefahr-zeile { display: flex; align-items: center; gap: 0.375rem; }
+  .muster-gefahr-knopf { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 1rem; border-radius: var(--radius); }
   .muster-farbe { display: flex; align-items: center; gap: 0.75rem; min-height: 2.75rem; font-size: 0.875rem; }
   .muster-feld { width: 2rem; height: 2rem; flex: none; border-radius: var(--radius-sm); border: 1px solid var(--border); }
 }

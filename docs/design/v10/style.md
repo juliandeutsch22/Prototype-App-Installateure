@@ -141,6 +141,10 @@ Ein **Schalter** (`Schalter`) für alles, was sofort wirkt: Module, Meldungen, e
 
 Das **Kästchen** bleibt für die Auswahl in einem Formular, das erst mit „Speichern“ gilt, und für das Abhaken einer Liste (Rüstliste). „ein“/„aus“ als Wort neben einem Kästchen gibt es nicht. Wächter: `tests/unit/schalterRegel.test.ts`.
 
+## Warnung, lange Hinweise und Datumsfelder · Durchsicht 15.11.2026 (U5, U9, U10)
+
+**Warn- und Fehlertext nie ohne Zeichen (U5).** Jeder Text in Warn- oder Fehlerfarbe trägt das Dreieck davor — als Regel an einer Stelle in `src/index.css` (`:is(.text-warning, .text-danger)` samt den eigenen Meldungsklassen), nicht an jeder Fundstelle. Wer ein eigenes Zeichen mitbringt (`svg` im Element), behält seins. Ausgenommen sind Knöpfe und Verweise, Abzüge in Summentabellen (ein Betrag mit Minus) und das Sternchen der Pflichtfelder. Wächter: `tests/unit/warnzeichen.test.ts`. Ein Vorschlag, die Gefahr vom Terrakotta abzusetzen (E4), steht nur zum Ansehen auf der Musterseite; eingebaut wird er erst nach der Freigabe.
+
 ## Einsatzplanung · E88 bleibt fachlich maßgeblich
 
 Woche/Monat/Tag, Personen-/Baustellensicht, freie Kapazitäten, Termine, Materialzustände, Abwesenheiten und „Noch einzuplanen“ bleiben erhalten. Desktop zeigt die komplette Woche und die Ablage. Tablet zeigt ausreichend breite Tage und hält die restliche Woche horizontal erreichbar. Mobil zeigt die siebentägige Auswahl und eine Tagesliste statt eines verkleinerten Wochenrasters.

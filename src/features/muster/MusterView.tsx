@@ -29,6 +29,7 @@ import MusterZeitfelder from './MusterZeitfelder';
 import MusterV10 from './MusterV10';
 import MusterBedienung from './MusterBedienung';
 import MusterSchalter from './MusterSchalter';
+import MusterGefahr from './MusterGefahr';
 
 /**
  * DIE MUSTERSEITE (Protokoll Abschnitt 4.2, seit 13.11.2026 die Referenz der
@@ -249,6 +250,8 @@ export default function MusterView() {
       <MusterBedienung />
       {/* U6, E3: Schalter für Sofortiges, Kästchen für die Auswahl im Formular. */}
       <MusterSchalter />
+      {/* E4: nur ein Vorschlag zum Ansehen — die Gefahrfarbe ist nicht umgestellt. */}
+      <MusterGefahr />
 
       {/* M06b: die freien Zeitfelder in Maske und Liste. */}
       <MusterZeitfelder />
