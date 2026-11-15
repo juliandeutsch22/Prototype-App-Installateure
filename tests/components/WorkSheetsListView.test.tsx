@@ -125,7 +125,12 @@ vi.mock('@/lib/db/workSheets', () => ({
   getWorkSheet: (id: string) => einzeln(id),
   wartendeScheine: () => wartendeScheine(),
   scheinVerrechnung: (id: string) => verrechnungLage(id),
+  scheinVerbrauchVorschlag: (...a: unknown[]) => verbrauchVorschlag(...a),
+  scheinVerbrauchBuchen: (...a: unknown[]) => verbrauchBuchen(...a),
 }));
+/** M3: was der Schein über das Ausgegebene hinaus trägt — ohne Vorgabe nichts. */
+const verbrauchVorschlag = vi.fn<(...a: unknown[]) => Promise<unknown>>(async () => null);
+const verbrauchBuchen = vi.fn<(...a: unknown[]) => Promise<boolean>>(async () => true);
 /*
   Die Adressen der Bilder kommen aus Firebase Storage. Geprüft wird hier
   nicht das Laden, sondern was die Ansicht damit tut — und was sie sagt, wenn
@@ -1609,5 +1614,69 @@ describe('Neu eingegangen (V9)', () => {
     await screen.findByText(/Familie Huber/);
     expect(neuGeholt).not.toHaveBeenCalled();
     expect(gesehen).not.toHaveBeenCalled();
+  });
+});
+
+/*
+  M3/F10 (16.11.2026): VERBRAUCH AM SCHEIN BUCHT DAS LAGER. Nach dem
+  Unterschreiben öffnet sich das Fenster des Scheins; dort steht, was er über
+  das Ausgegebene hinaus trägt, mit der Wahl, woher es kam.
+*/
+describe('Verbrauch am Schein (M3)', () => {
+  const VORSCHLAG = {
+    entschieden: false,
+    gebucht: [],
+    zeilen: [{ materialId: 'k1', name: 'Pressfitting 15', einheit: 'Stk', aufSchein: 6, vorschlag: 2 }],
+    orte: [{ id: 'bus', name: 'W-123 (Max)' }],
+  };
+
+  it('bietet die Differenz an — der Monteur bucht aus seinem Fahrzeug, vorgewählt', async () => {
+    verbrauchVorschlag.mockResolvedValue(VORSCHLAG);
+    verbrauchBuchen.mockClear();
+    geladen = [scheine[1]];
+    zeichne();
+    await alle();
+    const fenster = await oeffne(/Familie Berger/);
+    expect(await within(fenster).findByText(/auf dem Schein 6 Stk · nicht ausgegeben 2 Stk/)).toBeInTheDocument();
+    expect(within(fenster).getByRole('combobox', { name: 'Woher kam Pressfitting 15?' })).toHaveValue('bus');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Abbuchen' }));
+    await waitFor(() => expect(verbrauchBuchen).toHaveBeenCalledWith(scheine[1].id, [{ materialId: 'k1', menge: 2, ortId: 'bus' }]));
+    verbrauchVorschlag.mockResolvedValue(null);
+  });
+
+  it('„Nichts abbuchen“ entscheidet ohne Buchung; „nicht abbuchen“ je Zeile lässt die Zeile weg', async () => {
+    verbrauchVorschlag.mockResolvedValue(VORSCHLAG);
+    verbrauchBuchen.mockClear();
+    geladen = [scheine[1]];
+    zeichne();
+    await alle();
+    const fenster = await oeffne(/Familie Berger/);
+    await within(fenster).findByText(/nicht ausgegeben 2 Stk/);
+    await userEvent.selectOptions(within(fenster).getByRole('combobox', { name: 'Woher kam Pressfitting 15?' }), 'nicht');
+    await userEvent.click(within(fenster).getByRole('button', { name: 'Abbuchen' }));
+    await waitFor(() => expect(verbrauchBuchen).toHaveBeenCalledWith(scheine[1].id, []));
+    verbrauchVorschlag.mockResolvedValue(null);
+  });
+
+  it('nach der Entscheidung steht, was abgebucht wurde', async () => {
+    verbrauchVorschlag.mockResolvedValue({ ...VORSCHLAG, entschieden: true, zeilen: [], gebucht: [{ materialId: 'k1', name: 'Pressfitting 15', einheit: 'Stk', ort: 'Hauptlager', menge: 2 }] });
+    geladen = [scheine[1]];
+    zeichne();
+    await alle();
+    const fenster = await oeffne(/Familie Berger/);
+    expect(await within(fenster).findByText('Vom Lager abgebucht')).toBeInTheDocument();
+    expect(within(fenster).queryByRole('button', { name: 'Abbuchen' })).toBeNull();
+    verbrauchVorschlag.mockResolvedValue(null);
+  });
+
+  it('Gleichbleiben: nichts über das Ausgegebene hinaus — kein Abschnitt, kein Knopf', async () => {
+    verbrauchVorschlag.mockResolvedValue({ ...VORSCHLAG, zeilen: [] });
+    geladen = [scheine[1]];
+    zeichne();
+    await alle();
+    const fenster = await oeffne(/Familie Berger/);
+    await waitFor(() => expect(verbrauchVorschlag).toHaveBeenCalled());
+    expect(within(fenster).queryByText(/Nicht über eine Anforderung gekommen/)).toBeNull();
+    verbrauchVorschlag.mockResolvedValue(null);
   });
 });

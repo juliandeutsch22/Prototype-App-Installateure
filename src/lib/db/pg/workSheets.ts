@@ -816,3 +816,56 @@ export async function vorbereiten(
   const d = data as { zeiten: ScheinZeit[]; gebucht_am?: number[]; auf_schein?: ScheinZeit[] };
   return { zeiten: d.zeiten ?? [], gebuchtAm: d.gebucht_am ?? [], aufSchein: d.auf_schein ?? [] };
 }
+
+/** Was der Schein über das Ausgegebene hinaus trägt (M3) — siehe `schein_verbrauch_vorschlag`. */
+export interface VerbrauchStand {
+  entschieden: boolean;
+  /** Nach der Entscheidung: was abgebucht wurde. */
+  gebucht: Array<{ materialId: string; name: string; einheit: string; ort: string; menge: number }>;
+  /** Vor der Entscheidung: je Lagerartikel, was nicht über eine Ausgabe kam. */
+  zeilen: Array<{ materialId: string; name: string; einheit: string; aufSchein: number; vorschlag: number }>;
+  /** Die Fahrzeuge, aus denen gebucht werden darf. */
+  orte: Array<{ id: string; name: string }>;
+}
+
+/**
+ * VERBRAUCH AM SCHEIN (M3/F10, 16.11.2026): was der unterschriebene Schein
+ * trägt, ohne dass es für die Baustelle ausgegeben wurde — zum Abbuchen aus
+ * Hauptlager oder Fahrzeug. `null`: nicht unterschrieben, oder der Aufrufer
+ * bucht diesen Schein nicht (nur Ersteller, Lager, Führung).
+ */
+export async function scheinVerbrauchVorschlag(scheinId: string): Promise<VerbrauchStand | null> {
+  const { data, error } = await derClient().rpc('schein_verbrauch_vorschlag', { p_schein: scheinId });
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const d = data as Record<string, unknown>;
+  const liste = (x: unknown) => (Array.isArray(x) ? (x as Array<Record<string, unknown>>) : []);
+  return {
+    entschieden: d.entschieden === true,
+    gebucht: liste(d.gebucht).map((z) => ({
+      materialId: String(z.material_id), name: String(z.name), einheit: String(z.einheit ?? 'Stk'),
+      ort: String(z.ort ?? ''), menge: Number(z.menge) || 0,
+    })),
+    zeilen: liste(d.zeilen).map((z) => ({
+      materialId: String(z.material_id), name: String(z.name), einheit: String(z.einheit ?? 'Stk'),
+      aufSchein: Number(z.auf_schein) || 0, vorschlag: Number(z.vorschlag) || 0,
+    })),
+    orte: liste(d.orte).map((o) => ({ id: String(o.id), name: String(o.name) })),
+  };
+}
+
+/**
+ * Den Verbrauch buchen — oder bewusst nicht (leere Liste). Einmal je Schein;
+ * `false`: inzwischen hat jemand anderes entschieden.
+ */
+export async function scheinVerbrauchBuchen(
+  scheinId: string,
+  zeilen: Array<{ materialId: string; menge: number; ortId: string | null }>,
+): Promise<boolean> {
+  const { data, error } = await derClient().rpc('schein_verbrauch_buchen', {
+    p_schein: scheinId,
+    p_zeilen: zeilen.map((z) => ({ material_id: z.materialId, menge: z.menge, ort_id: z.ortId })),
+  });
+  if (error) throw new Error(error.message);
+  return (data as { ergebnis?: string } | null)?.ergebnis === 'gebucht';
+}

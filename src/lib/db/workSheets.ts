@@ -191,3 +191,18 @@ export function vorbereiten(
 export type { ScheinZeit } from './pg/workSheets';
 export type { WithId };
 export type { VorgemerkterSchein };
+
+export type { VerbrauchStand } from './pg/workSheets';
+
+/** Verbrauch am Schein, der nicht über eine Ausgabe kam (M3). */
+export function scheinVerbrauchVorschlag(scheinId: string): Promise<pg.VerbrauchStand | null> {
+  return pg.scheinVerbrauchVorschlag(scheinId);
+}
+
+/** Den Verbrauch buchen — oder bewusst nicht (M3). */
+export function scheinVerbrauchBuchen(
+  scheinId: string,
+  zeilen: Array<{ materialId: string; menge: number; ortId: string | null }>,
+): Promise<boolean> {
+  return pg.scheinVerbrauchBuchen(scheinId, zeilen);
+}

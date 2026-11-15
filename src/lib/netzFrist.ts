@@ -132,6 +132,7 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'retoure_rahmen',
   'ruest_angefordert',
   'schein_loeschbar',
+  'schein_verbrauch_vorschlag',
   'schlussrechnungen_ohne_abzug',
   'support_bereiche',
   'unverrechnete_stunden',

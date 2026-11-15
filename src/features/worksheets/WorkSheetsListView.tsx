@@ -43,6 +43,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Warnung, Zustand } from '@/components/Badge';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import VerbrauchAmSchein from './VerbrauchAmSchein';
 import BottomSheet from '@/components/BottomSheet';
 import Abschnitt from '@/components/Abschnitt';
 import { Listenleiste, MehrAnzeigen, Segmente } from '@/components/LotBausteine';
@@ -1434,6 +1435,10 @@ export default function WorkSheetsListView() {
                 </div>
               ) : (
                 <>
+                {/* M3/F10: was der Schein über das Ausgegebene hinaus trägt, vom Lager abbuchen. */}
+                {offenerSchein.status === 'Unterschrieben' && (
+                  <VerbrauchAmSchein key={offenerSchein.id} scheinId={offenerSchein.id} />
+                )}
                 <div className="fuss-aktionen">
                   <Button variant="secondary" loading={busy} onClick={() => pdfAusgeben(offenerSchein)}>
                     PDF

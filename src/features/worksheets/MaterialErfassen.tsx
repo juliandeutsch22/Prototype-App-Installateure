@@ -43,7 +43,9 @@ import { abgeholtVorschlaege, abgeholtZeitraum } from './abgeholtVorschlaege';
  *
  * DER BESTAND WIRD DABEI NICHT BEWEGT. Das tut die Materialanforderung mit
  * „Abgeholt", und zwar einmal. Hier ein zweites Mal abzuziehen, hiesse den
- * Lagerstand für jeden geschriebenen Schein zu verfälschen.
+ * Lagerstand für jeden geschriebenen Schein zu verfälschen. Was der Schein
+ * über das Ausgegebene hinaus trägt (aus dem Fahrzeug, ohne Anforderung),
+ * bietet er nach dem Unterschreiben zum Abbuchen an (M3, `VerbrauchAmSchein`).
  */
 
 interface Props {
