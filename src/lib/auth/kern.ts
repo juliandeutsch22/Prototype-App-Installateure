@@ -31,3 +31,31 @@ export class InactiveUserError extends Error {
     this.name = 'InactiveUserError';
   }
 }
+
+/**
+ * Warum der Anmeldedienst die Anmeldung abgelehnt hat — so weit, wie die
+ * Anmeldemaske es sagen darf (K5, Durchsicht 15.11.2026).
+ *
+ *   - `zugangsdaten`: alles, was am Konto hängt. Dazu gehört auch das
+ *     gesperrte Konto (deaktiviert, oder der ganze Betrieb deaktiviert): der
+ *     Anmeldedienst meldet die Sperre VOR der Prüfung des Passworts
+ *     (gemessen am 15.11.2026, Supabase Auth v2.197.0: falsches Passwort an
+ *     ein gesperrtes Konto ergibt `user_banned`). Die Maske dürfte daraus
+ *     nicht „deaktiviert“ machen, ohne jedem, der eine Adresse ausprobiert,
+ *     zu verraten, dass es das Konto gibt.
+ *   - `netz`: der Dienst war nicht erreichbar — ob die Daten stimmen, ist
+ *     nicht geprüft.
+ *   - `zuViele`: die Drosselung des Dienstes; sie gilt je Anschluss, nicht
+ *     je Konto, und verrät nichts über ein Konto.
+ *   - `dienst`: eine Störung des Dienstes selbst.
+ */
+export type AnmeldeAblehnung = 'zugangsdaten' | 'netz' | 'zuViele' | 'dienst';
+
+export class AnmeldeFehler extends Error {
+  readonly art: AnmeldeAblehnung;
+  constructor(art: AnmeldeAblehnung, meldung: string) {
+    super(meldung);
+    this.name = 'AnmeldeFehler';
+    this.art = art;
+  }
+}

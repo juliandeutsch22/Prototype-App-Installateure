@@ -8,6 +8,7 @@ import RechtLinks from '@/components/RechtLinks';
 import Button from '@/components/Button';
 import { anmeldeAdresse, istBenutzerkonto, KEIN_MAILKONTO } from '@shared/benutzername';
 import Hinweiszeile from '@/components/Hinweiszeile';
+import { ablehnungsText } from './anmeldeAblehnung';
 
 /**
  * Anmeldung. Die Produktmarke über dem Formular auf hellem Papier (V10) —
@@ -111,8 +112,8 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password, remember);
-    } catch {
-      setError('Anmeldung fehlgeschlagen. E-Mail bzw. Benutzername und Passwort prüfen.');
+    } catch (e) {
+      setError(ablehnungsText(e));
       setSubmitting(false);
     }
   }
