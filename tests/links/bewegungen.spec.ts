@@ -199,3 +199,71 @@ test.describe('B2 Zeile verschwindet', () => {
     expect(geister).toBe(0);
   });
 });
+
+test.describe('B3 Zeile kommt dazu', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  /** Eine neue Zeile an zweiter Stelle — so, wie React sie einfügt. */
+  const einfuegen = (page: Page, art: 'neu' | 'umstellen' | 'leere-liste') => page.evaluate(async (art) => {
+    const ul = [...document.querySelectorAll('ul')].find((u) => u.querySelectorAll(':scope > li.zeile').length >= 4)!;
+    const zeilen = [...ul.querySelectorAll<HTMLElement>(':scope > li.zeile')];
+    const nachbar = zeilen[1];
+    let neu: HTMLElement;
+    if (art === 'umstellen') {
+      neu = zeilen[3];
+      ul.insertBefore(neu, nachbar);
+    } else if (art === 'leere-liste') {
+      const leer = document.createElement('ul');
+      ul.after(leer);
+      neu = zeilen[0].cloneNode(true) as HTMLElement;
+      leer.append(neu, zeilen[1].cloneNode(true));
+    } else {
+      neu = zeilen[0].cloneNode(true) as HTMLElement;
+      ul.insertBefore(neu, nachbar);
+    }
+    const auswahl = getComputedStyle(document.documentElement).getPropertyValue('--auswahl').trim();
+    const probe = document.createElement('i'); probe.style.color = auswahl; document.body.append(probe);
+    const auswahlRgb = getComputedStyle(probe).color; probe.remove();
+    const bilder: Array<{ deck: number; grund: string; y: number }> = [];
+    const t0 = performance.now();
+    await new Promise<void>((fertig) => {
+      const bild = () => {
+        const t = getComputedStyle(nachbar).transform;
+        bilder.push({ deck: Number(getComputedStyle(neu).opacity), grund: getComputedStyle(neu).backgroundColor, y: t === 'none' ? 0 : new DOMMatrixReadOnly(t).m42 });
+        if (performance.now() - t0 < 300) requestAnimationFrame(bild); else fertig();
+      };
+      requestAnimationFrame(bild);
+    });
+    return { bilder, auswahlRgb };
+  }, art);
+
+  test('blendet ein, trägt kurz die Auswahlfläche, Nachbarn rücken von oben nach', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    const { bilder, auswahlRgb } = await einfuegen(page, 'neu');
+    expect(bilder[0].deck).toBeLessThan(1);
+    expect(bilder[0].grund).toBe(auswahlRgb);
+    expect(bilder[0].y).toBeLessThan(-10);
+    expect(bilder[bilder.length - 1].y).toBe(0);
+    expect(bilder[bilder.length - 1].deck).toBe(1);
+  });
+
+  test('mit reduzierter Bewegung steht sie sofort da, ohne Markierung', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    const { bilder, auswahlRgb } = await einfuegen(page, 'neu');
+    expect(bilder.every((b) => b.deck === 1 && b.y === 0 && b.grund !== auswahlRgb)).toBe(true);
+  });
+
+  test('gleich geblieben: umgestellte Zeilen und das erste Füllen einer Liste werden nicht markiert', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/time'));
+    await listeMitZeilen(page);
+    for (const art of ['umstellen', 'leere-liste'] as const) {
+      const { bilder, auswahlRgb } = await einfuegen(page, art);
+      expect(bilder.every((b) => b.deck === 1 && b.grund !== auswahlRgb), art).toBe(true);
+    }
+  });
+});

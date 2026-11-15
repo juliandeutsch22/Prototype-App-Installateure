@@ -81,3 +81,43 @@ describe('Zeilenfluss', () => {
     expect(document.activeElement).toBe(document.body);
   });
 });
+
+describe('B3 neue Zeile', () => {
+  it('ohne Web Animations: die Zeile steht sofort da, kein Abbild, keine Markierung', async () => {
+    const ul = liste(3);
+    const stop = zeilenflussHalten(document.body);
+    const neu = document.createElement('li');
+    neu.className = 'zeile';
+    ul.insertBefore(neu, ul.children[1]);
+    await mikro();
+    expect(neu.getAttribute('style')).toBeNull();
+    expect(ul.querySelectorAll('[data-geist]')).toHaveLength(0);
+    stop();
+  });
+
+  it('mit Web Animations: nur die neue Zeile blendet ein, die umgestellte nicht', async () => {
+    const aufrufe: Array<{ el: Element; bilder: Keyframe[] }> = [];
+    Object.defineProperty(HTMLElement.prototype, 'animate', {
+      configurable: true,
+      value(this: HTMLElement, bilder: Keyframe[]) { aufrufe.push({ el: this, bilder }); return { onfinish: null, oncancel: null } as unknown as Animation; },
+    });
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    try {
+      const ul = liste(4);
+      const stop = zeilenflussHalten(document.body);
+      await new Promise((r) => setTimeout(r, 650)); // Ruhe nach dem Start
+      const neu = document.createElement('li');
+      neu.className = 'zeile';
+      ul.insertBefore(neu, ul.children[1]);
+      await mikro();
+      expect(aufrufe.some((a) => a.el === neu && a.bilder[0].opacity === 0)).toBe(true);
+      aufrufe.length = 0;
+      ul.insertBefore(ul.children[4], ul.children[0]); // umstellen
+      await mikro();
+      expect(aufrufe.some((a) => a.bilder[0].opacity === 0)).toBe(false);
+      stop();
+    } finally {
+      Reflect.deleteProperty(HTMLElement.prototype, 'animate');
+    }
+  });
+});

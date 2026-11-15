@@ -28,6 +28,9 @@ import { DAUER, EASE, kannBewegen, lagen, nachfolger, nachruecken } from './bewe
  * Zelle um Zelle mit (gemessen in der Vorschau). Dazu bräuchte jede Seite
  * den Zwischenzustand.
  *
+ * UND EINE NEUE ZEILE (B3) blendet ein und trägt kurz die Auswahlfläche;
+ * die Zeilen darunter rücken ebenso von ihrer alten Stelle nach.
+ *
  * NUR WO ES ETWAS ERKLÄRT: höchstens drei Zeilen auf einmal (ein Filter,
  * der zwanzig Zeilen tauscht, ist kein „diese Zeile ging“), nicht in der
  * ersten Zeit nach einem Seitenwechsel und nie bei „Bewegung reduzieren“.
@@ -41,7 +44,7 @@ import { DAUER, EASE, kannBewegen, lagen, nachfolger, nachruecken } from './bewe
 /** Was eine Zeile ist: die Arbeitszeilen der Listen und die Beiträge eines Gesprächs. `data-zeile` für Sonderfälle. */
 export const ZEILE_SELEKTOR = 'li.zeile, li.nachricht, .arbeitszeile, [data-zeile]';
 
-/** Höchstens so viele Zeilen je Liste und Bild — mehr ist ein Austausch, keine einzelne Änderung. */
+/** Höchstens so viele Zeilen je Liste und Bild (gegangen und gekommen) — mehr ist ein Austausch, keine einzelne Änderung. */
 const HOECHSTENS = 3;
 
 /** Wo der Fokus hingeht: der erste bedienbare Halt einer Zeile. */
@@ -97,6 +100,36 @@ function zusammenklappen(liste: HTMLElement, zeile: HTMLElement, danach: Node | 
   a.oncancel = weg;
 }
 
+/**
+ * B3: eine neue Zeile blendet ein und trägt kurz die Auswahlfläche — das
+ * Neue ist auffindbar (neue Buchung, neue Anforderung, Rückgängig). Die
+ * Zeilen darunter rücken von ihrer alten Stelle nach. Beiträge eines
+ * Gesprächs blenden nur ein: die Blase ist ihre eigene Markierung.
+ */
+function einblenden(liste: HTMLElement, zeile: HTMLElement): void {
+  const mit = nachfolger(zeile, grenzeVon(liste));
+  // Die alten Lagen der Nachbarn: einen Augenblick ohne die neue Zeile messen (vor dem Zeichnen, unsichtbar).
+  const anzeige = zeile.style.getPropertyValue('display');
+  const vorrang = zeile.style.getPropertyPriority('display');
+  zeile.style.setProperty('display', 'none', 'important');
+  const vorher = lagen(mit);
+  if (anzeige) zeile.style.setProperty('display', anzeige, vorrang);
+  else zeile.style.removeProperty('display');
+  nachruecken(vorher, DAUER.zustand);
+  zeile.animate(
+    [{ opacity: 0, transform: 'translateY(-0.375rem)' }, { opacity: 1, transform: 'none' }],
+    { duration: DAUER.zustand, easing: EASE },
+  );
+  if (zeile.matches('li.nachricht')) return;
+  const auswahl = getComputedStyle(document.documentElement).getPropertyValue('--auswahl').trim();
+  if (!auswahl) return;
+  // Kurz halten, dann in den eigenen Grund der Zeile zurück — keine Geometrie, nur Farbe.
+  zeile.animate(
+    [{ backgroundColor: auswahl }, { backgroundColor: auswahl, offset: 0.45 }, { backgroundColor: getComputedStyle(zeile).backgroundColor }],
+    { duration: 1400, easing: 'ease-out' },
+  );
+}
+
 /** Den Fokus aus einer gegangenen Zeile auf die nächste (oder vorige) setzen. */
 function fokusRetten(zeile: HTMLElement, liste: HTMLElement, danach: Node | null, davor: Node | null, zuletzt: Element | null): void {
   if (!zuletzt || !zeile.contains(zuletzt)) return;
@@ -124,24 +157,36 @@ export function zeilenflussHalten(wurzel: HTMLElement): () => void {
   zeilenflussRuhe();
 
   const beobachter = new MutationObserver((eintraege) => {
-    // Je Liste sammeln: was ging, und wo es stand.
-    const je = new Map<HTMLElement, Array<{ zeile: HTMLElement; danach: Node | null; davor: Node | null }>>();
+    // Je Liste sammeln: was ging (und wo es stand), was kam.
+    const je = new Map<HTMLElement, { gegangen: Array<{ zeile: HTMLElement; danach: Node | null; davor: Node | null }>; neu: HTMLElement[] }>();
+    const liste = (l: HTMLElement) => {
+      if (!je.has(l)) je.set(l, { gegangen: [], neu: [] });
+      return je.get(l)!;
+    };
+    const herausgenommen = new Set<Node>();
+    for (const e of eintraege) for (const n of e.removedNodes) herausgenommen.add(n);
     for (const e of eintraege) {
       if (e.type !== 'childList' || !(e.target instanceof HTMLElement) || !e.target.isConnected) continue;
       for (const n of e.removedNodes) {
         // Noch (oder wieder) eingehängt: React hat die Zeile nur umgestellt.
         if (!istZeile(n) || n.isConnected) continue;
-        const liste = e.target;
-        if (!je.has(liste)) je.set(liste, []);
-        je.get(liste)!.push({ zeile: n, danach: e.nextSibling, davor: e.previousSibling });
+        liste(e.target).gegangen.push({ zeile: n, danach: e.nextSibling, davor: e.previousSibling });
+      }
+      for (const n of e.addedNodes) {
+        // Umgestellt (vorher herausgenommen) ist nicht neu.
+        if (!istZeile(n) || !n.isConnected || herausgenommen.has(n) || n.parentNode !== e.target) continue;
+        liste(e.target).neu.push(n);
       }
     }
     if (!je.size) return;
     const bewegen = performance.now() >= ruheBis && !document.hidden;
-    for (const [liste, gegangen] of je) {
-      for (const g of gegangen) fokusRetten(g.zeile, liste, g.danach, g.davor, zuletzt);
-      if (!bewegen || gegangen.length > HOECHSTENS || !kannBewegen(liste)) continue;
-      for (const g of gegangen) zusammenklappen(liste, g.zeile, g.danach);
+    for (const [l, { gegangen, neu }] of je) {
+      for (const g of gegangen) fokusRetten(g.zeile, l, g.danach, g.davor, zuletzt);
+      if (!bewegen || gegangen.length + neu.length > HOECHSTENS || !kannBewegen(l)) continue;
+      for (const g of gegangen) zusammenklappen(l, g.zeile, g.danach);
+      // Neu ist eine Zeile nur in einer Liste, die schon Zeilen hatte — das erste Füllen ist Laden (B8).
+      const schonDa = [...l.children].some((k) => istZeile(k) && !neu.includes(k as HTMLElement));
+      if (schonDa) for (const n of neu) einblenden(l, n);
     }
   });
   beobachter.observe(wurzel, { childList: true, subtree: true });
