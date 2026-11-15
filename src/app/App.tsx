@@ -86,6 +86,7 @@ const AssignmentsView = ansicht('/assignments', () => import('@/features/assignm
 const MyScheduleView = ansicht('/my-schedule', () => import('@/features/assignments/MyScheduleView'));
 const WochenplanView = ansicht(['/assignments', '/my-schedule'], () => import('@/features/assignments/WochenplanView'));
 const RechnungenSeite = ansicht('/invoices', () => import('@/features/invoices/RechnungenSeite'));
+const KontoauszugView = ansicht('/invoices', () => import('@/features/invoices/KontoauszugView'));
 const AccountingView = ansicht('/accounting', () => import('@/features/accounting/AccountingView'));
 const UserMgmtView = ansicht('/user-mgmt', () => import('@/features/users/UserMgmtView'));
 const BenutzerakteView = ansicht('/user-mgmt', () => import('@/features/users/BenutzerakteView'));
@@ -616,6 +617,21 @@ function AppRoutes() {
 
       {/* Buchhaltung */}
       <Route path="/invoices" element={<RequireNav path="/invoices"><RechnungenSeite /></RequireNav>} />
+      {/*
+        DER KONTOAUSZUG (F13) unter derselben Prüfung wie die Rechnungen —
+        dazu nur, wer Zahlungen erfasst: die Projektleitung liest Rechnungen,
+        verbucht aber nichts (die Datenbank weist sie ebenso ab).
+      */}
+      <Route
+        path="/invoices/kontoauszug"
+        element={
+          <RequireNav path="/invoices">
+            <RequireRole roles={['Buchhaltung', 'Geschäftsführung', 'Administrator']}>
+              <KontoauszugView />
+            </RequireRole>
+          </RequireNav>
+        }
+      />
       <Route
         path="/accounting"
         element={<RequireNav path="/accounting"><AccountingView /></RequireNav>}

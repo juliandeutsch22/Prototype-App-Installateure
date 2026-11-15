@@ -48,6 +48,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
     eine Frage statt einer Auskunft.
   */
   ausleitung_dateien: { gesichert_am: 'zeitpunkt' },
+  bank_buchungen: { verbucht_am: 'zeitpunkt' },
   /*
     Die App liest diese Tabelle nicht selbst — `baustelle_aufloesen` schlägt
     dort nach (offene Punkte C8). Sie steht hier aus demselben Grund wie

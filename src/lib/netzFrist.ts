@@ -101,6 +101,7 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'buchungstage_je_person',
   'fehlerprotokoll_plattform',
   'katalog_nummern_suche',
+  'kontoauszug_schon_verbucht',
   'kennzeichen_aus_buchungen',
   'kollegen',
   'lager_frei',

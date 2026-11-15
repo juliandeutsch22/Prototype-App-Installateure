@@ -80,6 +80,8 @@ const ZUSATZ: Record<string, (betrieb: string) => Record<string, unknown>> = {
   zeitbuchung_feldwerte: () => ({ typ: 'text', wert: '"Prüfung"' }),
   // M10/B09: eine Runde braucht weder Baustelle noch Paar (Prüfregel über die Art).
   nachrichten_kanaele: () => ({ art: 'runde' }),
+  // F13: die Kennung einer Bankbewegung ist eine Prüfsumme (64 Hex), je Betrieb eindeutig.
+  bank_buchungen: () => ({ kennung: Array.from(crypto.getRandomValues(new Uint8Array(32)), (x) => x.toString(16).padStart(2, '0')).join('') }),
 };
 
 /*
@@ -117,7 +119,9 @@ const LOHN_UND_RECHNUNG = ['arbeitszeit_begruendungen', 'freistellungen', 'gebur
   'invoices', 'krankmeldungen', 'mahnungen', 'time_entries', 'urlaubsanspruch_anpassungen', 'vacations', 'zahlungseingaenge',
   'zeitbuchung_verlauf', 'zeitkonto_anfang',
   // M06b: die Werte der freien Zeitfelder — wer die Buchung liest.
-  'zeitbuchung_feldwerte', 'zeitsitzungen', 'zeitkorrekturen'];
+  'zeitbuchung_feldwerte', 'zeitsitzungen', 'zeitkorrekturen',
+  // F13: verbuchte Bankbewegungen lesen wie die Zahlungseingänge.
+  'bank_buchungen'];
 /**
  * Kunden, Lager, Anforderungen, Pläne, UID-Prüfungen und der Auftragseingang
  * (M02b: wer Kunden liest, liest Eingänge): das Büro und die Leitung.
