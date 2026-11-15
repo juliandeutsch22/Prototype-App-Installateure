@@ -342,29 +342,25 @@ describe('Rechnungszaehler — monoton und nur fuer Abrechnende', () => {
     und ist mit dem Umzug des Moduls in die Datenbank gewandert — sie gilt
     jetzt auch fuer jeden, der die Funktion an der App vorbei aufruft.
   */
-  it('Buchhaltung darf den Zaehler anlegen und hochzaehlen', async () => {
-    const erst = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(erst.data).toBe(1001);
-    const dann = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(dann.data).toBe(1002);
+  /*
+    SEIT G11 (15.11.2026) entsteht eine Rechnungsnummer nur mit ihrer
+    Rechnung oder Stornorechnung. Direkt gezogen, wurde sie nie ein Beleg —
+    eine Lücke im lückenlosen Kreis. Der Kreis selbst (1001, monoton, je
+    Betrieb) ist in `rechnungInEinemZug.test.ts` und `modulGeld.test.ts`
+    über das Ausstellen geprüft.
+  */
+  it('die Buchhaltung zieht keine Rechnungsnummer mehr direkt', async () => {
+    const { error } = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
+    expect(error?.message).toMatch(/nur zusammen mit ihrer Rechnung/);
   });
 
-  it('der Zaehler darf NICHT zurueckgesetzt werden', async () => {
-    // In Firestore war das eine Regel über dem Dokument. Hier ist es eine
-    // Eigenschaft der Bauart: an die Tabelle kommt niemand heran, und die
-    // Funktion kann nur hochzählen. Was nicht erreichbar ist, lässt sich auch
-    // nicht zurücksetzen — das ist die stärkere Zusage.
+  it('der Zaehler darf NICHT zurueckgesetzt und nicht geloescht werden', async () => {
+    // An die Tabelle kommt niemand heran — was nicht erreichbar ist, lässt sich nicht zurücksetzen.
     const direkt = await aBuch.client.from('number_counters')
       .update({ stand: 0 }).eq('company_id', 'firma-a').select();
     expect(direkt.data ?? []).toEqual([]);
-    const weiter = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(weiter.data).toBe(1003);
-  });
-
-  it('der Zaehler darf nicht geloescht werden', async () => {
-    await aBuch.client.from('number_counters').delete().eq('company_id', 'firma-a');
-    const weiter = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(weiter.data).toBe(1004);
+    const geloescht = await aBuch.client.from('number_counters').delete().eq('company_id', 'firma-a').select();
+    expect(geloescht.data ?? []).toEqual([]);
   });
 
   it('ein Monteur kommt an den Zaehler nicht heran', async () => {
@@ -372,12 +368,8 @@ describe('Rechnungszaehler — monoton und nur fuer Abrechnende', () => {
     expect(error).not.toBeNull();
   });
 
-  it('eine fremde Firma kommt an den Zaehler nicht heran', async () => {
-    // Sie bekommt ihren EIGENEN Zähler, nicht den fremden — die Funktion
-    // liest den Betrieb aus dem Token und nicht aus dem Aufruf.
+  it('eine fremde Firma sieht keinen fremden Zaehler', async () => {
     const bBuch = await konto('firma-b', 'Buchhaltung', 'b-buch');
-    const eigener = await bBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(eigener.data).toBe(1001);
     expect((await bBuch.client.from('number_counters').select('*')).data ?? []).toEqual([]);
   });
 });
@@ -1198,11 +1190,9 @@ describe('Angebotszaehler — steigend, Neubeginn nur zum Jahreswechsel', () => 
     expect(zweiter.data).toBe(2);
   });
 
-  it('der Rechnungskreis laeuft ueber den Jahreswechsel weiter', async () => {
-    // Zwei Kreise, zwei Zähler: das Angebot beginnt neu, die Rechnung nicht.
-    const r1 = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2041 });
-    const r2 = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2041 });
-    expect(r2.data).toBe((r1.data as number) + 1);
+  it('der Rechnungskreis ist ein eigener — und nur über das Ausstellen erreichbar (G11)', async () => {
+    const r = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2041 });
+    expect(r.error?.message).toMatch(/nur zusammen mit ihrer Rechnung/);
   });
 });
 

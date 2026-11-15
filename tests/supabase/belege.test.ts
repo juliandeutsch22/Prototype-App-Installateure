@@ -280,27 +280,34 @@ describe('Die Rechnung', () => {
 });
 
 describe('Die Nummernvergabe', () => {
+  /*
+    SEIT G11 (15.11.2026) zieht niemand mehr eine Rechnungsnummer direkt —
+    sie entsteht mit ihrer Rechnung. Der Zähler je Betrieb und Jahr ist
+    derselbe für alle Kreise; geprüft hier am Angebotskreis.
+  */
+  const JAHR_WIEN = Number(new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Vienna' }).format(new Date()).slice(0, 4));
+
   it('zählt je Betrieb und je Jahr getrennt hoch', async () => {
-    const a = await buch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2026 });
-    const b = await buch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2026 });
+    const a = await buch.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    const b = await buch.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
     expect(b.data).toBe((a.data as number) + 1);
 
-    /*
-      Neues Jahr, neuer Anfang — Rechnungsnummern tragen das Jahr. Und zwar
-      bei 1001 und nicht bei 1: „RE-2027-0001" sieht nach der ersten Rechnung
-      des Betriebs aus, und das ist eine Auskunft an jeden Kunden, die
-      niemand geben will.
-    */
-    const neuesJahr = await buch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2027 });
-    expect(neuesJahr.data).toBe(1001);
+    // Ein anderes Jahr ist ein anderer Zähler: der des Vorjahrs ändert diesen nicht.
+    await admin.from('number_counters').upsert({ company_id: 'belege', art: 'quotes', jahr: JAHR_WIEN - 1, stand: 57 });
+    const c = await buch.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    expect(c.data).toBe((b.data as number) + 1);
 
-    // Anderer Betrieb, eigener Zähler.
-    const andere = await fremd.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2026 });
-    expect(andere.data).toBe(1001);
+    // Anderer Betrieb, eigener Zähler: er zählt diesen nicht weiter.
+    const andere = await fremd.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    expect(andere.error).toBeNull();
+    const d = await buch.client.rpc('naechste_nummer', { p_art: 'quotes', p_jahr: JAHR_WIEN });
+    expect(d.data).toBe((c.data as number) + 1);
   });
 
-  it('gibt einem Mitarbeiter keine Rechnungsnummer', async () => {
-    const versuch = await monteur.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2026 });
+  it('gibt niemandem eine Rechnungsnummer ohne Rechnung (G11)', async () => {
+    const buchhaltung = await buch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: JAHR_WIEN });
+    expect(buchhaltung.error?.message).toMatch(/nur zusammen mit ihrer Rechnung/);
+    const versuch = await monteur.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: JAHR_WIEN });
     expect(versuch.error).not.toBeNull();
   });
 

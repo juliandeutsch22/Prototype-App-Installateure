@@ -17,7 +17,7 @@ import { saveAssignments } from '@/lib/db/pg/assignments';
 import { ladenUmschalten, saveEinsatzMaterial } from '@/lib/db/pg/einsatzMaterial';
 import { reserveQuoteNumber } from '@/lib/db/pg/quotes';
 import { reserveProjectNumber } from '@/lib/db/pg/projects';
-import { reserveInvoiceNumber } from '@/lib/db/pg/invoices';
+import { rechnungAusstellen } from '@/lib/db/pg/invoices';
 import { naechsteNummern } from '@/lib/db/pg/company';
 import { kundenEinspielen, kundenVorhanden, type NewCustomer } from '@/lib/db/pg/customers';
 import * as dn from '@/lib/db/pg/datanorm';
@@ -176,14 +176,21 @@ describe('Mit „mitarbeiten" geht, was über den Server läuft', () => {
   });
 
   it('eine Rechnungsnummer NICHT — und der Zähler bleibt stehen', async () => {
+    // Seit G11 entsteht eine Rechnungsnummer nur mit ihrer Rechnung — geprüft über das Ausstellen.
+    const heute = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Vienna' }).format(new Date());
+    const ausstellen = () => rechnungAusstellen(BETRIEB, {
+      projectNumber: 'B-SUP', customerName: 'Familie Huber', address: 'Hauptplatz 1, 8200 Gleisdorf',
+      invoiceDate: heute, leistungVon: heute, leistungBis: heute, dueDate: heute,
+      subtotalNetto: 100, totalNetto: 100, totalVat: 20, totalBrutto: 120, vatRate: 0.2, paymentStatus: 'Offen',
+      positions: [{ label: 'Leistung', qty: 1, unit: 'Pauschale', unitPrice: 100, netto: 100 }],
+    }, { praefix: 'RE' });
     const vorher = await zaehler('invoices');
-    await expect(reserveInvoiceNumber(BETRIEB, { seedFrom: 0 }))
-      .rejects.toThrow(/Rechnungsnummern vergibt nur der Betrieb selbst/);
+    await expect(ausstellen()).rejects.toThrow(/Rechnungsnummern vergibt nur der Betrieb selbst/);
     expect(await zaehler('invoices')).toBe(vorher);
 
     // Die Gegenprobe: der Betrieb selbst zieht sie.
     clientEinreichen(chef.client);
-    await reserveInvoiceNumber(BETRIEB, { seedFrom: 0 });
+    await ausstellen();
     expect(await zaehler('invoices')).toBe(1001);
     clientEinreichen(plattform.client);
   });

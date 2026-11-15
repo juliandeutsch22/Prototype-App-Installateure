@@ -110,13 +110,21 @@ describe('Durchstich 8: zwei Betriebe nebeneinander', () => {
       Buchhaltungs-Export meldete sie zu Recht, ohne dass jemand erklären
       könnte, wo die fehlende Nummer geblieben ist.
     */
+    // Seit G11 entsteht die Nummer nur mit ihrer Rechnung — gezählt wird über das Ausstellen.
+    const heute = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Vienna' }).format(new Date());
+    const ausstellen = async (betrieb: string) => (await rechnungenDb.rechnungAusstellen(betrieb, {
+      projectNumber: 'B-NR', customerName: 'Familie Huber', address: 'Hauptplatz 1, 8200 Gleisdorf',
+      invoiceDate: heute, leistungVon: heute, leistungBis: heute, dueDate: heute,
+      subtotalNetto: 100, totalNetto: 100, totalVat: 20, totalBrutto: 120, vatRate: 0.2, paymentStatus: 'Offen',
+      positions: [{ label: 'Leistung', qty: 1, unit: 'Pauschale', unitPrice: 100, netto: 100 }],
+    }, { praefix: 'RE' })).invoiceNumber;
     clientEinreichen(buchA.client);
-    const a1 = await rechnungenDb.reserveInvoiceNumber(PERL, { seedFrom: 0 });
-    const a2 = await rechnungenDb.reserveInvoiceNumber(PERL, { seedFrom: 0 });
+    const a1 = await ausstellen(PERL);
+    const a2 = await ausstellen(PERL);
 
     clientEinreichen(buchB.client);
-    const b1 = await rechnungenDb.reserveInvoiceNumber(GRUBER, { seedFrom: 0 });
-    const b2 = await rechnungenDb.reserveInvoiceNumber(GRUBER, { seedFrom: 0 });
+    const b1 = await ausstellen(GRUBER);
+    const b2 = await ausstellen(GRUBER);
 
     // Beide fangen bei derselben Zahl an — das ist der Punkt, nicht ein Mangel.
     expect(b1).toBe(a1);

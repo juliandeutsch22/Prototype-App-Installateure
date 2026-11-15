@@ -17,7 +17,7 @@ import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt, RechnungsKopf, W
 import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, SEITE, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 import { oderUeberSpalten } from './suche';
-import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
+import { PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
 
 const RECHNUNGEN = 'invoices';
@@ -624,41 +624,6 @@ export async function listInvoicesForCustomer(
     grenze: RECHNUNGEN_JE_KUNDE,
   });
   return zusammensetzen(koepfe, companyId);
-}
-
-/**
- * Reserviert eine Rechnungsnummer verbindlich.
- *
- * Die Transaktion, die in der Firestore-Fassung von Hand geschrieben war,
- * ist jetzt die Datenbankfunktion `naechste_nummer`: sie sperrt die
- * Zählerzeile, und zwei gleichzeitige Abrechnungen können sich damit nicht
- * dieselbe Nummer holen. Bei fortlaufender Nummerierung ist das kein
- * Schönheitsfehler, sondern ein Fall für den Steuerberater.
- *
- * `seedFrom` ist die höchste Nummer aus den vorhandenen Rechnungen. Sie zählt
- * nur beim allerersten Aufruf, wenn es den Zähler noch nicht gibt: ohne sie
- * würde ein Betrieb mit Altbestand wieder bei 1001 anfangen.
- */
-export async function reserveInvoiceNumber(
-  companyId: string,
-  opts: { seedFrom: number; desired?: number; praefix?: string },
-): Promise<string> {
-  void companyId;
-  const jahr = new Date().getFullYear();
-  const { data, error } = await derClient().rpc('naechste_nummer', {
-    p_art: 'invoices',
-    p_jahr: jahr,
-    p_seed: Math.max(opts.seedFrom, 0),
-    p_wunsch: opts.desired ?? null,
-  });
-  if (error) throw new Error(error.message);
-  /*
-    DER VORSATZ KOMMT VOM AUFRUFER. Hier stand `RE-` fest, ein zweites Mal
-    neben `invoiceNumbers.ts`. Diese Stelle ist die verbindliche: was hier
-    gebaut wird, steht danach auf dem Beleg und lässt sich nicht mehr ändern
-    (`app.rechnung_eingefroren`).
-  */
-  return belegNummer(opts.praefix ?? PRAEFIX_VORGABE.rechnung, jahr, Number(data));
 }
 
 export type NewInvoice = Omit<Invoice, 'id' | 'companyId' | 'createdAt'>;

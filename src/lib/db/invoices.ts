@@ -117,12 +117,6 @@ export function rechnungsnummernVorZeitraum(companyId: string, von: string): Pro
   return pg.rechnungsnummernVorZeitraum(companyId, von);
 }
 
-export function reserveInvoiceNumber(
-  companyId: string, opts: { seedFrom: number; desired?: number; praefix?: string },
-): Promise<string> {
-  return pg.reserveInvoiceNumber(companyId, opts);
-}
-
 export function createInvoice(companyId: string, inv: NewInvoice): Promise<string> {
   return pg.createInvoice(companyId, inv);
 }
