@@ -171,7 +171,7 @@ describe('Leistungswächter: hängt am Bau', () => {
     const zeilen: string[] = [];
     (plugin!.configResolved as (c: unknown) => void)({ logger: { info: (t: string) => zeilen.push(t) } });
     const kontext = { error: (t: string) => { throw new Error(t); } };
-    const bauen = () => (plugin!.generateBundle as (this: unknown, o: unknown, b: unknown) => void).call(kontext, {}, bundle);
+    const bauen = () => ((plugin!.generateBundle as { handler: (this: unknown, o: unknown, b: unknown) => void }).handler).call(kontext, {}, bundle);
     expect(bauen).toThrow(/Leistungsbudget überschritten[\s\S]*JavaScript-Bausteine/);
     expect(zeilen[0]).toMatch(/^Leistung: vor dem ersten Bild/);
   });

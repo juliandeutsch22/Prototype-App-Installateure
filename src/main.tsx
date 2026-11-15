@@ -13,6 +13,7 @@ import { darstellungAnwenden } from './lib/darstellung';
 import { startansichtVorladen } from './lib/ansichten';
 import { sitzungVermutlich } from './lib/supabase';
 import { hauptstilBereit } from './lib/hauptstil';
+import { fassungSetzen } from './lib/fassung';
 // V10 (13.11.2026): DM Sans für die Bedienung, Source Serif 4 für größere Titel,
 // IBM Plex Mono für alles Gemessene — alle drei self-gehostet (kein Google-CDN,
 // keine IP-Übermittlung, DSGVO; die CSP lässt keine fremden Schriften zu).
@@ -23,6 +24,10 @@ import '@fontsource/source-serif-4/latin-400.css';
 import '@fontsource/ibm-plex-mono/latin-400.css';
 import '@fontsource/ibm-plex-mono/latin-500.css';
 import './index.css';
+
+// Die Fassung kommt aus dem Bau und steht nur hier (siehe lib/fassung.ts, L7) — vor allem anderen.
+declare const __FASSUNG__: string | undefined;
+fassungSetzen(typeof __FASSUNG__ === 'string' ? __FASSUNG__ : undefined);
 
 // Die Schlüssel im Browser heissen nach dem Produkt, nicht nach dem
 // Pilotbetrieb; Reste der Firestore-Zeit gehen (Testbericht 30.09.2026, M9).

@@ -214,6 +214,38 @@ export function startStilEinsetzen(html: string, schriften: string[]): string {
   return raus;
 }
 
+/**
+ * Welche Bausteine, mit denen die App startet, NICHT in `index.html` stehen.
+ *
+ * WARUM DAS DER BAU PRÜFT (L7). Der Service Worker erkennt eine Hülle, die
+ * ohne Netz starten kann, allein an `index.html`: er hält vor, was dort als
+ * `src`/`href` unter `/assets/` steht (`huellenBausteine` in public/sw.js),
+ * und bietet eine neue Fassung erst an, wenn das alles liegt. Fehlte dort ein
+ * fest eingebundener Baustein des Einstiegs, startete die neue Fassung ohne
+ * Netz nicht — weiß, bis jemand neu lädt. Mit dem Schnitt in mehrere
+ * Start-Bausteine (`gemeinsam`, `react`, `supabase`) wird das an jedem Bau
+ * nachgerechnet.
+ */
+export function startBausteineFehlen(
+  html: string,
+  bausteine: Array<{ datei: string; statisch: string[]; einstieg: boolean }>,
+): string[] {
+  const nachName = new Map(bausteine.map((b) => [b.datei, b]));
+  const einstieg = bausteine.find((b) => b.einstieg);
+  const genannt = new Set(Array.from(html.matchAll(/(?:src|href)="\/(assets\/[^"]+)"/g), (m) => m[1]));
+  const fehlen: string[] = [];
+  const gesehen = new Set<string>();
+  const offen = einstieg ? [einstieg.datei] : [];
+  while (offen.length) {
+    const d = offen.pop()!;
+    if (gesehen.has(d)) continue;
+    gesehen.add(d);
+    if (!genannt.has(d)) fehlen.push(d);
+    offen.push(...(nachName.get(d)?.statisch ?? []));
+  }
+  return fehlen.sort();
+}
+
 function startStil(): Plugin {
   return {
     name: 'start-stil',
@@ -221,7 +253,14 @@ function startStil(): Plugin {
     transformIndexHtml: {
       order: 'post',
       handler(html, ctx) {
-        return startStilEinsetzen(html, Object.keys(ctx.bundle ?? {}));
+        const raus = startStilEinsetzen(html, Object.keys(ctx.bundle ?? {}));
+        const bausteine = Object.values(ctx.bundle ?? {}).flatMap((t) =>
+          t.type === 'chunk' ? [{ datei: t.fileName, statisch: t.imports, einstieg: t.isEntry }] : []);
+        const fehlen = startBausteineFehlen(raus, bausteine);
+        if (fehlen.length) {
+          throw new Error(`index.html nennt nicht alle Start-Bausteine (der Service Worker hielte sie nicht vor): ${fehlen.join(', ')}`);
+        }
+        return raus;
       },
     },
   };
@@ -411,7 +450,8 @@ function leistungswaechter(): Plugin {
       // `this.info` blendet Vite aus; die Zeile soll im Bauprotokoll stehen.
       melden = (text) => config.logger.info(text);
     },
-    generateBundle(_optionen, bundle) {
+    // Nach Vites eigener Nacharbeit (Ladehilfe, Liste der Abhängigkeiten): gemessen wird, was ausgeliefert wird.
+    generateBundle: { order: 'post', handler(_optionen, bundle) {
       const budget = JSON.parse(
         readFileSync(path.resolve(__dirname, 'leistungsbudget.json'), 'utf8'),
       ) as Leistungsbudget;
@@ -449,8 +489,83 @@ function leistungswaechter(): Plugin {
       if (fehler.length) {
         this.error(`Leistungsbudget überschritten (leistungsbudget.json):\n  - ${fehler.join('\n  - ')}`);
       }
-    },
+    } },
   };
+}
+
+/* ------------------------------------------------------ Bausteinschnitt --- */
+
+type ModulInfo = { importedIds: readonly string[] } | null;
+type SchnittMeta = { getModuleInfo: (id: string) => ModulInfo };
+
+const EINSTIEG = path.resolve(__dirname, 'src/main.tsx');
+const APP = path.resolve(__dirname, 'src/app/App.tsx');
+
+/** Was vom Einstieg aus fest erreichbar ist — je Bau einmal gerechnet. */
+let erreichbarFuer: SchnittMeta['getModuleInfo'] | null = null;
+let erreichbar = new Set<string>();
+function vomEinsteigErreichbar(id: string, meta?: SchnittMeta): boolean {
+  if (!meta?.getModuleInfo) return false;
+  if (erreichbarFuer !== meta.getModuleInfo) {
+    erreichbarFuer = meta.getModuleInfo;
+    erreichbar = new Set<string>();
+    const offen = [EINSTIEG];
+    while (offen.length) {
+      const m = offen.pop()!;
+      if (erreichbar.has(m)) continue;
+      erreichbar.add(m);
+      offen.push(...(meta.getModuleInfo(m)?.importedIds ?? []));
+    }
+  }
+  return erreichbar.has(id);
+}
+
+/**
+ * WIE DER BAU IN BAUSTEINE GESCHNITTEN WIRD (L7, 17.11.2026).
+ *
+ * WARUM. Jeder Baustein trägt einen Fingerabdruck im Namen, und wer einen
+ * anderen fest einbindet, trägt dessen Namen in sich — ändert sich der eine,
+ * bekommt auch der andere einen neuen Namen. Bis hierher lag aller
+ * gemeinsame Code im Einstieg, und im Einstieg stand zugleich, unter welchem
+ * Namen jede Ansicht nachgeladen wird. Gemessen: jede noch so kleine
+ * Änderung — an einer Ansicht, an der Navigation, am Datenkern — benannte
+ * 182 von 230 Bausteinen um, 966 KB gepackt, die jedes Telefon danach neu
+ * holte.
+ *
+ * JETZT:
+ *   - der Einstieg ist nur noch `main.tsx` und `App.tsx` (die Tabelle der
+ *     Ansichten). Ihn bindet niemand ein; ändert sich eine Ansicht, ändern
+ *     sich ihr Baustein und der Einstieg, sonst nichts;
+ *   - was der Start fest braucht, liegt in `gemeinsam` (Hülle, Bausteine,
+ *     Datenkern, Rechenregeln) — eine Datei, weil diese Teile einander
+ *     gegenseitig einbinden: getrennt entstünden Kreise zwischen Bausteinen,
+ *     und deren Reihenfolge beim Start ist nicht verlässlich;
+ *   - Bibliotheken, die sich nur mit einem Update ändern, eigen: Supabase,
+ *     Firebase und `react` (React, Router, TanStack, die Ladehilfen von Vite
+ *     und Rollup — sie binden einander ein; getrennt entstünden Kreise);
+ *   - alles Übrige teilt Rollup nach den Ansichten, die es brauchen — eine
+ *     Änderung an den Daten der Rechnungen trifft die Bausteine der
+ *     Rechnungen, nicht die App.
+ *
+ * Die Stile bleiben beim Einstieg (eine Datei, wie bisher); ihre Reihenfolge
+ * ändert sich damit nicht.
+ */
+export function bausteinSchnitt(id: string, meta?: SchnittMeta): string | undefined {
+  if (/\.css($|\?)/.test(id)) return undefined;
+  if (id.includes('node_modules')) {
+    if (id.includes('/firebase/') || id.includes('/@firebase/')) return 'firebase';
+    // Seit dem Umzug der größte Brocken beim Start — und fast nie geändert.
+    if (id.includes('/@supabase/')) return 'supabase';
+    if (id.includes('/react-dom/') || id.includes('/react-router')) return 'react';
+    // Was der Start sonst an Bibliotheken braucht (React selbst, TanStack): zu React — getrennt bänden sie einander im Kreis ein.
+    return vomEinsteigErreichbar(id, meta) ? 'react' : undefined;
+  }
+  // Rollups Hilfen für CommonJS-Pakete und Vites Ladehilfe: so beständig wie die Bibliotheken.
+  if (id.startsWith('\0') || id.includes('vite/preload-helper') || id.includes('vite/modulepreload-polyfill')) {
+    return vomEinsteigErreichbar(id, meta) || id.includes('vite/') ? 'react' : undefined;
+  }
+  if (id === EINSTIEG || id === APP) return undefined;
+  return vomEinsteigErreichbar(id, meta) ? 'gemeinsam' : undefined;
 }
 
 const KENNUNG = fassungsKennung();
@@ -497,13 +612,7 @@ export default defineConfig({
          * Getrennt sind es dann nur noch die paar Kilobyte, die sich
          * wirklich geändert haben.
          */
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return;
-          if (id.includes('/firebase/') || id.includes('/@firebase/')) return 'firebase';
-          // Seit dem Umzug der größte Brocken beim Start — und fast nie geändert.
-          if (id.includes('/@supabase/')) return 'supabase';
-          if (id.includes('/react-dom/') || id.includes('/react-router')) return 'react';
-        },
+        manualChunks: bausteinSchnitt,
       },
     },
   },
