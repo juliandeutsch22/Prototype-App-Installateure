@@ -750,9 +750,12 @@ describe('Einen Entwurf bearbeiten', () => {
     entwurf(false);
     zeichne();
     await userEvent.click(await screen.findByRole('button', { name: /^Angebot \S+ bearbeiten$/ }));
-    expect(screen.getByText(/aus der Einheit abgeleitet — bitte prüfen/)).toBeInTheDocument();
+    // U9: der Satz sagt, was zu tun ist; warum und die bisherige Zahl stehen auf „Anzeigen“.
+    const satz = screen.getByText(/Welche Positionen als Arbeitszeit zählen, bitte prüfen/);
+    await userEvent.click(within(satz.closest('.hinweiszeile') as HTMLElement).getByRole('button', { name: 'Anzeigen' }));
+    expect(screen.getByText(/die\s+Haken sind aus der Einheit abgeleitet/)).toBeVisible();
     // Abgeleitet zählt auch die Anfahrt — genau deshalb der Hinweis.
-    expect(screen.getByText('17 h')).toBeInTheDocument();
+    expect(screen.getByText('17 h')).toBeVisible();
   });
 
   it('bietet Bearbeiten nur beim Entwurf an', async () => {

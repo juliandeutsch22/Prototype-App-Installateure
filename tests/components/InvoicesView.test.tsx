@@ -949,7 +949,13 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
     katalog = [];
     await bisZurVorschau();
     // Der Hinweis nennt den Artikel — die Zeile selbst steht seit G2 in einem Textfeld.
-    expect((await screen.findByText(/Ohne Preis im Katalog/)).textContent).toContain('Eckventil 1/2 Zoll');
+    // Seit U9 sagt der Satz, wie viele; welche, steht auf „Anzeigen“.
+    const satz = await screen.findByText(/Ohne Preis im Katalog/);
+    expect(satz).toHaveTextContent('1 Position');
+    const zeile = satz.closest('.hinweiszeile') as HTMLElement;
+    expect(within(zeile).getByText(/Eckventil 1\/2 Zoll/)).not.toBeVisible();
+    await userEvent.click(within(zeile).getByRole('button', { name: 'Anzeigen' }));
+    expect(within(zeile).getByText(/Eckventil 1\/2 Zoll/)).toBeVisible();
   });
 
   it('nimmt einen Schein NICHT, dessen Material schon auf einer Rechnung steht', async () => {
@@ -2449,7 +2455,11 @@ describe('Hinweise zum Material der Scheine', () => {
       positions: [{ label: 'Eckventil 1/2 Zoll', qty: 2, unit: 'Stk', unitPrice: 8.5, netto: 17 }],
     } as unknown as Invoice & { id: string }];
     await bisZurVorschau();
-    expect(screen.getByText(/Der Schein vom 22\.08\.2026 liegt im Zeitraum, den RE-2026-0005 schon abgerechnet hat, und RE-2026-0005 trägt bereits Eckventil 1\/2 Zoll/)).toBeInTheDocument();
+    // U9: der Satz steht da, was die Rechnung schon trägt, kommt auf „Anzeigen“.
+    const satz = screen.getByText(/Der Schein vom 22\.08\.2026 liegt im Zeitraum, den RE-2026-0005 schon abgerechnet hat\./);
+    const zeile = satz.closest('.hinweiszeile') as HTMLElement;
+    await userEvent.click(within(zeile).getByRole('button', { name: 'Anzeigen' }));
+    expect(within(zeile).getByText(/RE-2026-0005 trägt bereits Eckventil 1\/2 Zoll/)).toBeVisible();
   });
 
   it('sagt es, wenn ein Entwurf Material trägt, das vom Ausgegebenen abgezogen ist', async () => {
@@ -2457,7 +2467,10 @@ describe('Hinweise zum Material der Scheine', () => {
     katalog = KATALOG;
     ausgabenListe = [{ art: 'anforderung', belegId: 'a1', datum: '2026-08-21', materialId: 'k1', name: 'Eckventil 1/2 Zoll', einheit: 'Stk', menge: 6 }];
     await bisZurVorschau();
-    expect(screen.getByText(/Der Schein vom 23\.08\.2026 ist noch Entwurf\. Sein Material \(Eckventil 1\/2 Zoll\) ist vom Ausgegebenen/)).toBeInTheDocument();
+    // U9: der Satz steht da, was das für das Material heißt, kommt auf „Anzeigen“.
+    const zeile = screen.getByText(/Der Schein vom 23\.08\.2026 ist noch Entwurf\./).closest('.hinweiszeile') as HTMLElement;
+    await userEvent.click(within(zeile).getByRole('button', { name: 'Anzeigen' }));
+    expect(within(zeile).getByText(/Sein Material \(Eckventil 1\/2 Zoll\) ist vom Ausgegebenen/)).toBeVisible();
     // 6 ausgegeben − 2 auf dem Schein − 3 auf dem Entwurf = 1.
     expect(screen.getByText(/ausgegeben 6 Stk · auf Scheinen 5/)).toBeInTheDocument();
   });
@@ -5766,7 +5779,10 @@ describe('Runde 6, Paket 2', () => {
         positions: [{ label: 'Eckventil 1/2 Zoll', qty: 6, unit: 'Stk', unitPrice: 8.5, netto: 51, materialId: 'k1' }],
       })];
       await bisZurVorschau();
-      expect(screen.getByText(/Der Schein vom 22\.08\.2026 bringt Eckventil 1\/2 Zoll 2 Stk — RE-2026-0005 trägt davon schon 6 Stk ohne Schein/)).toBeInTheDocument();
+      // U9: der Satz nennt Schein und Rechnung, die Mengen kommen auf „Anzeigen“.
+      const zeile = screen.getByText(/Material vom Schein vom 22\.08\.2026 steht womöglich schon auf RE-2026-0005\./).closest('.hinweiszeile') as HTMLElement;
+      await userEvent.click(within(zeile).getByRole('button', { name: 'Anzeigen' }));
+      expect(within(zeile).getByText(/Er bringt Eckventil 1\/2 Zoll 2 Stk — RE-2026-0005 trägt davon schon 6 Stk ohne Schein/)).toBeVisible();
       // Der Schein liegt nach ihrem Zeitraum — der Hinweis von T-21 greift dort nicht.
       expect(screen.queryByText(/schon abgerechnet hat/)).toBeNull();
     });
@@ -5780,6 +5796,7 @@ describe('Runde 6, Paket 2', () => {
       })];
       await bisZurVorschau();
       expect(screen.queryByText(/ohne Schein \(aus dem Lager/)).toBeNull();
+      expect(screen.queryByText(/steht womöglich schon auf/)).toBeNull();
     });
   });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { ToastProvider } from '@/components/Toast';
 import type { Company } from '@/types';
 
@@ -100,7 +100,11 @@ describe('Nachtzeit kürzer als 22 bis 6 Uhr (18.10.2026)', () => {
     expect(hinweis()).toBeNull();
     fireEvent.change(screen.getByLabelText('Nachtzeit von'), { target: { value: '23:00' } });
     fireEvent.change(screen.getByLabelText('Nachtzeit bis'), { target: { value: '05:00' } });
-    expect(hinweis()?.closest('.hinweiszeile')).toHaveTextContent(/abweichen nur zugunsten der Arbeitnehmer \(§ 3 Abs 1 ArbVG\)/);
+    const zeile = hinweis()?.closest('.hinweiszeile') as HTMLElement;
+    // U9: die Rechtsgrundlage steht auf „Anzeigen“, nicht offen über dem Formular.
+    expect(within(zeile).getByText(/abweichen nur zugunsten der Arbeitnehmer \(§ 3 Abs 1 ArbVG\)/)).not.toBeVisible();
+    fireEvent.click(within(zeile).getByRole('button', { name: 'Anzeigen' }));
+    expect(within(zeile).getByText(/abweichen nur zugunsten der Arbeitnehmer \(§ 3 Abs 1 ArbVG\)/)).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
     await waitFor(() => expect(updateCompany).toHaveBeenCalledWith('perl', expect.objectContaining({ nachtVon: '23:00', nachtBis: '05:00' })));
   });

@@ -90,12 +90,11 @@ export default function BasiszinsZentral() {
             </ul>
           )}
           {!liste.some((b) => b.ab === laufendes) && (
-            <Hinweiszeile stufe="warn">
-              <p>
-                Für das laufende Halbjahr (ab {datumAT(laufendes)}) ist zentral kein Satz hinterlegt. Es
-                gilt, was ein Betrieb selbst eingetragen hat; sonst tragen seine Mahnungen an
-                Unternehmer keine Zinsen.
-              </p>
+            <Hinweiszeile stufe="warn" einzelheiten={<p>
+              Es gilt, was ein Betrieb selbst eingetragen hat; sonst tragen seine Mahnungen an
+              Unternehmer keine Zinsen.
+            </p>}>
+              <p>Für das laufende Halbjahr (ab {datumAT(laufendes)}) ist zentral kein Satz hinterlegt.</p>
             </Hinweiszeile>
           )}
           <div className="formular flex flex-col gap-4">

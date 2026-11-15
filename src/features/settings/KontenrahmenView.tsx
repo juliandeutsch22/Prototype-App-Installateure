@@ -303,12 +303,11 @@ export default function KontenrahmenView() {
             gespeichert wurde der Vorschlag bisher ohne jeden Hinweis darauf.
           */}
           {vorschlagDrin && (
-            <Hinweiszeile stufe="warn">
-              <p>
-                <b>Vorschlag – mit der Kanzlei abstimmen.</b> Die Nummern stammen aus dem
-                österreichischen Einheitskontenrahmen; ob sie zum Kontenplan deiner Kanzlei passen,
-                weiß nur sie. Vor dem ersten Buchungsstapel bitte abgleichen.
-              </p>
+            <Hinweiszeile stufe="warn" einzelheiten={<p>
+              Die Nummern stammen aus dem österreichischen Einheitskontenrahmen; ob sie zum Kontenplan
+              deiner Kanzlei passen, weiß nur sie. Vor dem ersten Buchungsstapel bitte abgleichen.
+            </p>}>
+              <p><b>Vorschlag – mit der Kanzlei abstimmen.</b></p>
             </Hinweiszeile>
           )}
           <div className="flex flex-wrap items-end gap-x-2">

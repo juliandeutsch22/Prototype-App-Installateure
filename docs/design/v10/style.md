@@ -145,6 +145,8 @@ Das **Kästchen** bleibt für die Auswahl in einem Formular, das erst mit „Spe
 
 **Warn- und Fehlertext nie ohne Zeichen (U5).** Jeder Text in Warn- oder Fehlerfarbe trägt das Dreieck davor — als Regel an einer Stelle in `src/index.css` (`:is(.text-warning, .text-danger)` samt den eigenen Meldungsklassen), nicht an jeder Fundstelle. Wer ein eigenes Zeichen mitbringt (`svg` im Element), behält seins. Ausgenommen sind Knöpfe und Verweise, Abzüge in Summentabellen (ein Betrag mit Minus) und das Sternchen der Pflichtfelder. Wächter: `tests/unit/warnzeichen.test.ts`. Ein Vorschlag, die Gefahr vom Terrakotta abzusetzen (E4), steht nur zum Ansehen auf der Musterseite; eingebaut wird er erst nach der Freigabe.
 
+**Lange Warntexte: ein Satz plus „Anzeigen“ (U9).** Auf einer Seite steht von einer Warnung der eine Satz, der sagt, was los ist; was ihn erklärt oder aufzählt, steht in `Hinweiszeile.einzelheiten` und kommt auf „Anzeigen“. In einem Fenster und an einer Warnung mit Knopf bleibt der Text offen — dort ist er die Grundlage der Entscheidung, wie in einer Rückfrage. Wo die Zahlen der Warnung die Auskunft selbst sind, sagt `offenWeil`, warum. Wächter: `tests/unit/warntextKurz.test.ts` (über 160 Zeichen gilt als lang).
+
 ## Einsatzplanung · E88 bleibt fachlich maßgeblich
 
 Woche/Monat/Tag, Personen-/Baustellensicht, freie Kapazitäten, Termine, Materialzustände, Abwesenheiten und „Noch einzuplanen“ bleiben erhalten. Desktop zeigt die komplette Woche und die Ablage. Tablet zeigt ausreichend breite Tage und hält die restliche Woche horizontal erreichbar. Mobil zeigt die siebentägige Auswahl und eine Tagesliste statt eines verkleinerten Wochenrasters.

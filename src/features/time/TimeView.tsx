@@ -1029,17 +1029,22 @@ export default function TimeView() {
       )}
 
       {doppelteTage.size > 0 && (
-        <Hinweiszeile stufe="fehl" role="alert">
+        /*
+          EIN SATZ PLUS „ANZEIGEN“ (U9, Durchsicht 15.11.2026): vorher stand
+          die Warnung mit allen betroffenen Tagen offen über der Liste.
+        */
+        <Hinweiszeile stufe="fehl" role="alert" einzelheiten={<p>
+          Der Saldo zählt beide. Betroffen:{' '}
+          {[...doppelteTage].sort().map(datumAT).join(', ')} — bitte unten in der Liste den
+          überflüssigen Eintrag löschen. Mehrere Baustellen an einem Tag sind dagegen in Ordnung
+          und stehen hier nicht.
+        </p>}>
           <p>
             <strong>
               {doppelteTage.size === 1
                 ? 'An einem Tag steht dieselbe Buchung zweimal.'
                 : `An ${doppelteTage.size} Tagen steht dieselbe Buchung zweimal.`}
-            </strong>{' '}
-            Der Saldo zählt beide. Betroffen:{' '}
-            {[...doppelteTage].sort().map(datumAT).join(', ')} — bitte unten in der Liste den
-            überflüssigen Eintrag löschen. Mehrere Baustellen an einem Tag sind
-            dagegen in Ordnung und stehen hier nicht.
+            </strong>
           </p>
         </Hinweiszeile>
       )}

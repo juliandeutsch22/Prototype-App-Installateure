@@ -3705,11 +3705,12 @@ export default function InvoicesView() {
       */}
       {basisBereit && (<>
       {!nurLesen && forderungenFehler && (
-        <Hinweiszeile stufe="warn" role="status">
+        <Hinweiszeile stufe="warn" role="status" einzelheiten={<p>
+          Mahnlauf und „nicht verrechnete Leistung“ sind deshalb unvollständig — was hier fehlt,
+          heißt nicht, dass es nichts zu tun gibt.
+        </p>}>
           <p>
-            <strong>Die offenen Forderungen konnten nicht geladen werden.</strong> Mahnlauf und
-            „nicht verrechnete Leistung“ sind deshalb unvollständig — was hier fehlt, heißt
-            nicht, dass es nichts zu tun gibt.{' '}
+            <strong>Die offenen Forderungen konnten nicht geladen werden.</strong>{' '}
             {/* Dieselbe Nachladung, die nach jeder Änderung an einer Rechnung läuft — gelingt sie, verschwindet die Zeile. */}
             <button type="button" onClick={offeneNeuLaden} className="link-hinweis min-h-touch">
               Erneut laden
@@ -3719,10 +3720,9 @@ export default function InvoicesView() {
       )}
 
       {!forderungenFehler && abdeckungFehler && (
-        <Hinweiszeile stufe="warn" role="status">
+        <Hinweiszeile stufe="warn" role="status" einzelheiten={<p>„Nicht verrechnete Leistung“ wird deshalb nicht angezeigt. Bitte die Seite neu laden.</p>}>
           <p>
-            <strong>Welche Handwerksscheine schon verrechnet sind, konnte nicht geladen werden.</strong>{' '}
-            „Nicht verrechnete Leistung“ wird deshalb nicht angezeigt. Bitte die Seite neu laden.
+            <strong>Welche Handwerksscheine schon verrechnet sind, konnte nicht geladen werden.</strong>
           </p>
         </Hinweiszeile>
       )}
@@ -4229,12 +4229,11 @@ export default function InvoicesView() {
           */}
           {zeitraumFehlt && (
             <div className="mb-3">
-              <Hinweiszeile stufe="warn">
-                <p>
-                  Ohne Leistungszeitraum wird die Rechnung nicht erstellt: § 11 UStG verlangt Tag oder
-                  Zeitraum der Leistung, sonst wackelt beim Kunden der Vorsteuerabzug. Für einen einzelnen
-                  Tag beide Felder gleich setzen.
-                </p>
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                § 11 UStG verlangt Tag oder Zeitraum der Leistung, sonst wackelt beim Kunden der
+                Vorsteuerabzug. Für einen einzelnen Tag beide Felder gleich setzen.
+              </p>}>
+                <p>Ohne Leistungszeitraum wird die Rechnung nicht erstellt.</p>
               </Hinweiszeile>
             </div>
           )}
@@ -4254,12 +4253,11 @@ export default function InvoicesView() {
           */}
           {zeitraumVerdreht && (
             <div className="mb-3">
-              <Hinweiszeile stufe="warn">
-                <p>
-                  „Leistung bis“ liegt vor „Leistung von“ — so stünde der Zeitraum verdreht auf der
-                  Rechnung, und zurückzunehmen wäre das nur noch mit einem Storno. Erst berichtigen, dann
-                  erstellen.
-                </p>
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                So stünde der Zeitraum verdreht auf der Rechnung, und zurückzunehmen wäre das nur noch
+                mit einem Storno.
+              </p>}>
+                <p>„Leistung bis“ liegt vor „Leistung von“ — erst berichtigen, dann erstellen.</p>
               </Hinweiszeile>
             </div>
           )}
@@ -4311,6 +4309,7 @@ export default function InvoicesView() {
           {pauschalAus === null && (abgleich.scheine > 0 || abgleich.ohneSchein.length > 0) && (
             <div className="mb-3">
               <Hinweiszeile
+                offenWeil="Abgleich Scheine gegen Buchungen vor dem Erstellen: die Zahlen je Person und Tag sind die Auskunft selbst (U9)"
                 stufe={
                   abgleich.auffaellig || abgleich.zuWenig || abgleich.fehlend.length > 0 ||
                   abgleich.ohneSchein.length > 0
@@ -4433,12 +4432,11 @@ export default function InvoicesView() {
           */}
           {nachgetragen.map((n) => (
             <div key={n.scheinId} className="mb-3">
-              <Hinweiszeile stufe="warn">
-                <p>
-                  Der Schein vom {datumAT(n.datum)} liegt im Zeitraum, den {n.rechnung} schon abgerechnet
-                  hat, und {n.rechnung} trägt bereits {n.artikel.join(', ')}. Bitte prüfen, ob es hier ein
-                  zweites Mal hingehört — sonst die Zeile anpassen oder entfernen.
-                </p>
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                {n.rechnung} trägt bereits {n.artikel.join(', ')}. Bitte prüfen, ob es hier ein zweites Mal
+                hingehört — sonst die Zeile anpassen oder entfernen.
+              </p>}>
+                <p>Der Schein vom {datumAT(n.datum)} liegt im Zeitraum, den {n.rechnung} schon abgerechnet hat.</p>
               </Hinweiszeile>
             </div>
           ))}
@@ -4450,26 +4448,24 @@ export default function InvoicesView() {
           */}
           {schonOhneSchein.map((n) => (
             <div key={`${n.scheinId}|${n.rechnung}`} className="mb-3">
-              <Hinweiszeile stufe="warn">
-                <p>
-                  Der Schein vom {datumAT(n.datum)} bringt{' '}
-                  {n.artikel.map((a) => `${a.name} ${fmtMenge(a.aufSchein)} ${a.einheit}`.trim()).join(', ')} —{' '}
-                  {n.rechnung} trägt davon schon{' '}
-                  {n.artikel.map((a) => `${fmtMenge(a.aufRechnung)} ${a.einheit}`.trim()).join(', ')} ohne Schein
-                  (aus dem Lager übernommen oder von Hand eingesetzt). Bitte prüfen, ob es hier ein zweites Mal
-                  hingehört — sonst die Zeile anpassen oder entfernen.
-                </p>
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                Er bringt {n.artikel.map((a) => `${a.name} ${fmtMenge(a.aufSchein)} ${a.einheit}`.trim()).join(', ')} —{' '}
+                {n.rechnung} trägt davon schon{' '}
+                {n.artikel.map((a) => `${fmtMenge(a.aufRechnung)} ${a.einheit}`.trim()).join(', ')} ohne Schein
+                (aus dem Lager übernommen oder von Hand eingesetzt). Bitte prüfen, ob es hier ein zweites Mal
+                hingehört — sonst die Zeile anpassen oder entfernen.
+              </p>}>
+                <p>Material vom Schein vom {datumAT(n.datum)} steht womöglich schon auf {n.rechnung}.</p>
               </Hinweiszeile>
             </div>
           ))}
           {preview.materialOhnePreis.length > 0 && (
             <div className="mb-3">
-              <Hinweiszeile stufe="warn">
-                <p>
-                  Ohne Preis im Katalog und deshalb mit 0,00 € eingesetzt:{' '}
-                  {preview.materialOhnePreis.join(', ')}. Preis hier eintragen oder die Zeile
-                  entfernen — im Lager gepflegt, kommt er beim nächsten Mal von selbst.
-                </p>
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                {preview.materialOhnePreis.join(', ')}. Preis hier eintragen oder die Zeile entfernen —
+                im Lager gepflegt, kommt er beim nächsten Mal von selbst.
+              </p>}>
+                <p>Ohne Preis im Katalog und deshalb mit 0,00 € eingesetzt: {preview.materialOhnePreis.length === 1 ? '1 Position' : `${preview.materialOhnePreis.length} Positionen`}.</p>
               </Hinweiszeile>
             </div>
           )}
@@ -4796,27 +4792,27 @@ export default function InvoicesView() {
           */}
           {entwuerfe.length > 0 && (
             <div className="mt-4">
-              <Hinweiszeile stufe="warn">
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                {entwuerfe.length === 1 ? 'Sein' : 'Ihr'} Material
+                ({[...new Set(entwuerfe.flatMap((e) => e.artikel))].join(', ')}) ist vom Ausgegebenen
+                abgezogen, weil es mit dem Schein kommt. Vor der Rechnung unterschreiben oder verwerfen —
+                wird ein Entwurf danach verworfen, fehlt sein Material.
+              </p>}>
                 <p>
                   {entwuerfe.length === 1
                     ? `Der Schein vom ${datumAT(entwuerfe[0].datum)} ist noch Entwurf.`
-                    : `${entwuerfe.length} Scheine dieser Baustelle sind noch Entwurf (${entwuerfe.map((e) => datumAT(e.datum)).join(', ')}).`}{' '}
-                  {entwuerfe.length === 1 ? 'Sein' : 'Ihr'} Material
-                  ({[...new Set(entwuerfe.flatMap((e) => e.artikel))].join(', ')}) ist vom Ausgegebenen
-                  abgezogen, weil es mit dem Schein kommt. Vor der Rechnung unterschreiben oder verwerfen —
-                  wird ein Entwurf danach verworfen, fehlt sein Material.
+                    : `${entwuerfe.length} Scheine dieser Baustelle sind noch Entwurf (${entwuerfe.map((e) => datumAT(e.datum)).join(', ')}).`}
                 </p>
               </Hinweiszeile>
             </div>
           )}
           {ausgabenFehler && (
             <div className="mt-4">
-              <Hinweiszeile stufe="warn">
-                <p>
-                  Was das Lager für diese Baustelle ausgegeben hat, konnte nicht geladen werden. Diese
-                  Rechnung verknüpft deshalb kein Material — es bleibt offen und steht im Vorschlag der
-                  nächsten. Wer es auf dieser haben will, stellt neu zusammen.
-                </p>
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                Diese Rechnung verknüpft deshalb kein Material — es bleibt offen und steht im Vorschlag
+                der nächsten. Wer es auf dieser haben will, stellt neu zusammen.
+              </p>}>
+                <p>Was das Lager für diese Baustelle ausgegeben hat, konnte nicht geladen werden.</p>
               </Hinweiszeile>
             </div>
           )}
@@ -4884,12 +4880,12 @@ export default function InvoicesView() {
           */}
           {gutschriften.length > 0 && (
             <div className="mt-4 border-t border-line pt-4">
-              <Hinweiszeile stufe="warn">
-                <p>
-                  Zurückgegeben, aber schon verrechnet: der Kunde hat diese Ware bezahlt und bekommt eine Gutschrift
-                  — oder sie wird mit ihm auf dieser Rechnung vereinbart (etwa als Nachlass). Nach dem Anlegen steht
-                  der Hinweis nicht mehr da.
-                </p>
+              <Hinweiszeile stufe="warn" einzelheiten={<p>
+                Der Kunde hat diese Ware bezahlt und bekommt eine Gutschrift — oder sie wird mit ihm auf
+                dieser Rechnung vereinbart (etwa als Nachlass). Nach dem Anlegen steht der Hinweis nicht
+                mehr da.
+              </p>}>
+                <p>Zurückgegeben, aber schon verrechnet.</p>
               </Hinweiszeile>
               <List>
                 {gutschriften.map((v) => (
@@ -5697,12 +5693,13 @@ export default function InvoicesView() {
               */}
               {ohneAbzug.length > 0 && (
                 <div className="mt-3">
-                  <Hinweiszeile stufe="warn">
+                  <Hinweiszeile stufe="warn" einzelheiten={<p>
+                    Die Umsatzsteuer der Anzahlung steht damit zweimal auf den Belegen. Berichtigt wird
+                    über Storno und eine neue Schlussrechnung — am besten vor der Übergabe an die Kanzlei.
+                  </p>}>
                     <p>
                       <strong>Schlussrechnung ohne Abzug der Anzahlung:</strong>{' '}
                       {ohneAbzug.map((o) => `${o.invoiceNumber} (nicht abgezogen: ${o.fehlend})`).join('; ')}.
-                      Die Umsatzsteuer der Anzahlung steht damit zweimal auf den Belegen. Berichtigt wird
-                      über Storno und eine neue Schlussrechnung — am besten vor der Übergabe an die Kanzlei.
                     </p>
                   </Hinweiszeile>
                 </div>
@@ -5720,12 +5717,12 @@ export default function InvoicesView() {
               )}
               {e.ohneStornorechnung.length > 0 && (
                 <div className="mt-3">
-                  <Hinweiszeile stufe="warn">
+                  <Hinweiszeile stufe="warn" einzelheiten={<p>
+                    Die Gegenbuchung steht am Tag des Stornos. Wird die Stornorechnung später ausgestellt,
+                    trägt sie das Datum ihrer Ausstellung — bitte vor der Übergabe an die Kanzlei ausstellen.
+                  </p>}>
                     <p>
-                      <strong>Storno ohne Stornorechnung:</strong> {e.ohneStornorechnung.join(', ')}. Die
-                      Gegenbuchung steht am Tag des Stornos. Wird die Stornorechnung später ausgestellt,
-                      trägt sie das Datum ihrer Ausstellung — bitte vor der Übergabe an die Kanzlei
-                      ausstellen.
+                      <strong>Storno ohne Stornorechnung:</strong> {e.ohneStornorechnung.join(', ')}.
                     </p>
                   </Hinweiszeile>
                 </div>

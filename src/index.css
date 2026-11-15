@@ -1225,6 +1225,9 @@ textarea {
     -webkit-mask: var(--zeichen-warnung) center / contain no-repeat;
     mask: var(--zeichen-warnung) center / contain no-repeat;
   }
+  /* U9: „Anzeigen“ unter dem einen Satz, 44 px Tastfläche; die Einzelheiten darunter im selben Ton. */
+  .hinweiszeile-anzeigen { display: inline-flex; align-items: center; min-height: 2.75rem; }
+  .hinweiszeile-einzelheiten { margin-bottom: 0.25rem; }
   .hinweiszeile a { text-decoration: underline; text-underline-offset: 3px; font-weight: var(--gewicht-titel); color: var(--ink-deep); }
   .aktionsleiste { position: sticky; bottom: var(--reiter-hoehe, 0px); z-index: 10; background: var(--surface); border-top: 1px solid var(--border); padding: 0.625rem 1rem 0.75rem; margin: 0 -1rem; }
   @media (min-width: 760px) { .aktionsleiste { margin: 0 -1.5rem; padding-inline: 1.5rem; } }

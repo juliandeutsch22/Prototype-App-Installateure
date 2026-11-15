@@ -1476,12 +1476,12 @@ export default function QuotesView() {
             </div>
 
             {stundenVorher !== null && (
-              <Hinweiszeile stufe="warn" role="status">
-                <p>
-                  Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit
-                  zählen. Die Haken sind aus der Einheit abgeleitet — bitte prüfen. Bisher
-                  kalkuliert: <strong className="font-semibold">{fmtStunden(stundenVorher)} h</strong>.
-                </p>
+              <Hinweiszeile stufe="warn" role="status" einzelheiten={<p>
+                Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit zählen; die
+                Haken sind aus der Einheit abgeleitet. Bisher kalkuliert:{' '}
+                <strong className="font-semibold">{fmtStunden(stundenVorher)} h</strong>.
+              </p>}>
+                <p>Welche Positionen als Arbeitszeit zählen, bitte prüfen.</p>
               </Hinweiszeile>
             )}
 

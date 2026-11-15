@@ -158,7 +158,7 @@ function StornoVerrechnung({ lage }: { lage: ScheinVerrechnung | 'fehler' | null
     ? `auf ${lage.rechnungen.length === 1 ? 'der Rechnung' : 'den Rechnungen'} ${lage.rechnungen.map((r) => `${r.nummer} (${r.zahlung})`).join(', ')}`
     : lage.grund === 'rechnung' ? 'auf einer gültigen Rechnung' : 'in einer schon ausgestellten Rechnung der Baustelle';
   return (
-    <Hinweiszeile stufe="warn">
+    <Hinweiszeile stufe="warn" offenWeil="Im Fenster vor dem Storno: was der Storno an der Rechnung nicht ändert, muss vor der Bestätigung dastehen (U9)">
       <p>
         <strong>Dieser Schein ist schon verrechnet</strong> — er steht {welche}. Der Storno ändert die Rechnung nicht.
         Ein Ersatzschein übernimmt die Verrechnung und kommt nicht noch einmal auf eine Rechnung. Ändern sich Stunden
@@ -1112,12 +1112,11 @@ export default function WorkSheetsListView() {
             </div>
           ) : pruefungFehler ? (
             <div className="px-4 pb-3 pt-3">
-              <Hinweiszeile stufe="warn" role="status">
-                <p>
-                  <strong>Die Zeitbuchungen dieses Zeitraums konnten nicht geladen werden.</strong>{' '}
-                  Geprüft wird deshalb nicht — sonst stünde jeder Schein als „ohne Buchung“ da. Bitte
-                  die Seite neu laden.
-                </p>
+              <Hinweiszeile stufe="warn" role="status" einzelheiten={<p>
+                Geprüft wird deshalb nicht — sonst stünde jeder Schein als „ohne Buchung“ da. Bitte die
+                Seite neu laden.
+              </p>}>
+                <p><strong>Die Zeitbuchungen dieses Zeitraums konnten nicht geladen werden.</strong></p>
               </Hinweiszeile>
             </div>
           ) : (<>

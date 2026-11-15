@@ -310,11 +310,13 @@ export default function LohnregelnKarte() {
       */}
       {kvMetall && !decktKvNacht(nachtzeitVon({ nachtVon, nachtBis })) && (
         <div className="mt-3">
-          <Hinweiszeile stufe="warn">
-            <b>Kürzer als 22 bis 6 Uhr.</b> Gilt der Kollektivvertrag Metallgewerbe, steht die
-            Nachtarbeitszulage für jede Stunde zwischen 22 und 6 Uhr zu (Abschnitt XIV Punkt 5); eine
-            kürzere Nachtzeit darf der Betrieb nicht vereinbaren, abweichen nur zugunsten der
-            Arbeitnehmer (§ 3 Abs 1 ArbVG).
+          {/* U9: der Satz sagt, was los ist; die Rechtsgrundlage kommt auf „Anzeigen“. */}
+          <Hinweiszeile stufe="warn" einzelheiten={<p>
+            Gilt der Kollektivvertrag Metallgewerbe, steht die Nachtarbeitszulage für jede Stunde
+            zwischen 22 und 6 Uhr zu (Abschnitt XIV Punkt 5); eine kürzere Nachtzeit darf der Betrieb
+            nicht vereinbaren, abweichen nur zugunsten der Arbeitnehmer (§ 3 Abs 1 ArbVG).
+          </p>}>
+            <p><b>Kürzer als 22 bis 6 Uhr.</b></p>
           </Hinweiszeile>
         </div>
       )}

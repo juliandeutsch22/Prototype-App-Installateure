@@ -30,6 +30,7 @@ import MusterV10 from './MusterV10';
 import MusterBedienung from './MusterBedienung';
 import MusterSchalter from './MusterSchalter';
 import MusterGefahr from './MusterGefahr';
+import MusterHinweise from './MusterHinweise';
 
 /**
  * DIE MUSTERSEITE (Protokoll Abschnitt 4.2, seit 13.11.2026 die Referenz der
@@ -252,6 +253,8 @@ export default function MusterView() {
       <MusterSchalter />
       {/* E4: nur ein Vorschlag zum Ansehen — die Gefahrfarbe ist nicht umgestellt. */}
       <MusterGefahr />
+      {/* U5/U9: Warnung mit Zeichen, ein Satz plus „Anzeigen“. */}
+      <MusterHinweise />
 
       {/* M06b: die freien Zeitfelder in Maske und Liste. */}
       <MusterZeitfelder />
