@@ -608,3 +608,58 @@ describe('Einsatzformular im Seitenfenster — der Letzte mit Rüstliste (P2)', 
     expect(screen.queryByText('Rüstliste auflösen?')).toBeNull();
   });
 });
+
+/*
+  VERSCHIEDENE AUFGABEN UND UHRZEITEN IM SELBEN PAAR (Durchsicht 15.11.2026,
+  P7). Gegenprobe: vorher bekamen beim Speichern alle Aufgabe und Uhrzeit des
+  ersten Eintrags der Live-Liste — Bernds „Silikon 13–16“ war still weg.
+*/
+describe('Einsatzformular — Abweichungen je Person (P7)', () => {
+  const ZWEI: Live = {
+    einsaetze: [
+      einsatz('a1', MAX, HIER, { comment: 'Rohinstallation', zeitVon: '07:00', zeitBis: '12:00' }),
+      einsatz('a2', ERNA, HIER, { comment: 'Silikon', zeitVon: '13:00', zeitBis: '16:00' }),
+    ],
+    listen: [],
+  };
+
+  it('zeigt, wer was hat, und speichert je Person ihren Stand — Neue bekommen die Felder', async () => {
+    zeige(ZWEI);
+    expect(await screen.findByText(/verschiedene Aufgaben oder Uhrzeiten/)).toBeInTheDocument();
+    expect(screen.getByText(/Erna Beispiel: 13:00–16:00 · „Silikon“/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Paul Neu/ }));
+    expect(screen.getByText(/Aufgabe und Uhrzeit unten gelten für neu Eingeteilte/)).toBeInTheDocument();
+    const feld = screen.getByRole('textbox', { name: 'Kommentar / Aufgabe' });
+    await userEvent.clear(feld);
+    await userEvent.type(feld, 'Zuarbeit');
+    await userEvent.click(screen.getByRole('button', { name: /speichern/i }));
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+    const zeilen = speichere.mock.calls[0][3] as { userId: string; comment: string; zeitVon: string | null }[];
+    const je = Object.fromEntries(zeilen.map((z) => [z.userId, [z.comment, z.zeitVon]]));
+    expect(je).toEqual({
+      u1: ['Rohinstallation', '07:00'],
+      u2: ['Silikon', '13:00'],
+      u3: ['Zuarbeit', expect.anything()],
+    });
+  });
+
+  it('angleichen nur auf Wunsch: dann alle dieselbe Aufgabe und Uhrzeit', async () => {
+    zeige(ZWEI);
+    await screen.findByText(/verschiedene Aufgaben oder Uhrzeiten/);
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Allen dieselbe Aufgabe und Uhrzeit geben' }));
+    const feld = screen.getByRole('textbox', { name: 'Kommentar / Aufgabe' });
+    await userEvent.clear(feld);
+    await userEvent.type(feld, 'Bad fertig');
+    await userEvent.click(screen.getByRole('button', { name: /speichern/i }));
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+    const zeilen = speichere.mock.calls[0][3] as { comment: string }[];
+    expect(zeilen.map((z) => z.comment)).toEqual(['Bad fertig', 'Bad fertig']);
+  });
+
+  it('bleibt gleich: ohne Abweichung kein Hinweis, die Felder gelten für alle', async () => {
+    zeige({ einsaetze: [einsatz('a1', MAX), einsatz('a2', ERNA)], listen: [] });
+    await waitFor(() => expect(erna()).toBeChecked());
+    expect(screen.queryByText(/verschiedene Aufgaben oder Uhrzeiten/)).toBeNull();
+    expect(kommentar().value).toBe('Rohinstallation');
+  });
+});

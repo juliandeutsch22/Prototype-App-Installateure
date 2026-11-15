@@ -251,6 +251,12 @@ export default function EinsatzFormular({
   /** Optional die Uhrzeit des Einsatzes (M34). Leer: der ganze Tag. */
   const [zeitVon, setZeitVon] = useState('');
   const [zeitBis, setZeitBis] = useState('');
+  /**
+   * Haben die Eingeteilten verschiedene Aufgaben oder Uhrzeiten, bleiben sie
+   * beim Speichern — außer der Planer will ausdrücklich allen dieselbe geben
+   * (Durchsicht 15.11.2026, P7).
+   */
+  const [angleichen, setAngleichen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   /*
@@ -311,6 +317,30 @@ export default function EinsatzFormular({
     () => (projectNumber ? tagesListen.find((l) => l.projectNumber === projectNumber) : undefined),
     [tagesListen, projectNumber],
   );
+  /*
+    VERSCHIEDENE AUFGABEN ODER UHRZEITEN IM SELBEN PAAR (P7). Seit den
+    Folgetagen (E85) und dem Umplanen (E88) kommen Zeilen mit eigener Uhrzeit
+    und Aufgabe in ein Paar — Anton 07:00–12:00 „Rohinstallation“, Bernd
+    13:00–16:00 „Silikon“. Das Formular kannte nur eine Aufgabe und Uhrzeit
+    für alle und glich beim Speichern still an — welche, hing an der
+    Reihenfolge der Live-Liste. Jetzt steht da, wer was hat; gespeichert wird
+    je Person ihr Stand, und die Felder gelten für neu Eingeteilte. Angeglichen
+    wird nur auf Wunsch.
+  */
+  const abweichungen = useMemo(() => {
+    const uhr = (t?: string | null) => (t ?? '').slice(0, 5);
+    const schluessel = (a: WithId<Assignment>) => JSON.stringify([a.comment ?? '', uhr(a.zeitVon), uhr(a.zeitBis)]);
+    if (new Set(existingForProject.map(schluessel)).size <= 1) return [];
+    return existingForProject.map((a) => ({
+      userId: a.userId,
+      name: a.userName ?? 'Mitarbeiter',
+      text: [
+        a.zeitVon || a.zeitBis ? `${uhr(a.zeitVon) || '…'}–${uhr(a.zeitBis) || '…'}` : 'ganzer Tag',
+        a.comment?.trim() ? `„${a.comment.trim()}“` : 'ohne Aufgabe',
+      ].join(' · '),
+    }));
+  }, [existingForProject]);
+  const jePerson = abweichungen.length > 0 && !angleichen;
   const paar = `${date}|${projectNumber}|${startPick?.uid ?? ''}`;
   const liveEinteilung = einteilungsSchluessel(existingForProject);
   const liveListe = listenSchluessel(listeHier?.positionen);
@@ -359,6 +389,7 @@ export default function EinsatzFormular({
     setComment(existingForProject[0]?.comment ?? '');
     setZeitVon(existingForProject[0]?.zeitVon ?? '');
     setZeitBis(existingForProject[0]?.zeitBis ?? '');
+    setAngleichen(false);
     setBearbeitet((b) => ({ ...b, einteilung: false }));
   }, [existingForProject, startPick]);
 
@@ -655,6 +686,18 @@ export default function EinsatzFormular({
     );
   }
 
+  /**
+   * Aufgabe und Uhrzeit, die eine Person beim Speichern bekommt (P7): bei
+   * verschiedenen Ständen ihr eigener, wer neu dazukommt die Felder — sonst,
+   * und beim Angleichen, die Felder für alle.
+   */
+  function eigenerStand(uid: string): { comment: string; zeitVon: string | null; zeitBis: string | null } {
+    const eigen = jePerson ? existingForProject.find((a) => a.userId === uid) : undefined;
+    return eigen
+      ? { comment: eigen.comment ?? '', zeitVon: eigen.zeitVon || null, zeitBis: eigen.zeitBis || null }
+      : { comment, zeitVon: zeitVon || null, zeitBis: zeitBis || null };
+  }
+
   async function save() {
     if (!user || !projectNumber || !bereit || inzwischenGeaendert) return;
     if (selectedCount === 0) {
@@ -693,9 +736,7 @@ export default function EinsatzFormular({
           // Haken kostet bare Münze. Bei Helfer und Lehrling entscheidet die
           // Einstufung, nicht der Haken (`stufeImEinsatz`).
           asHelper: alsHelferEingestuft(u) || (!istLehrling(u) && !!picks[u.uid]?.asHelper),
-          comment,
-          zeitVon: zeitVon || null,
-          zeitBis: zeitBis || null,
+          ...eigenerStand(u.uid),
           createdBy: user.uid,
         }))
         .concat(
@@ -705,9 +746,7 @@ export default function EinsatzFormular({
             userId: a.userId,
             userName: a.userName ?? '',
             asHelper: !!a.asHelper,
-            comment,
-            zeitVon: zeitVon || null,
-            zeitBis: zeitBis || null,
+            ...eigenerStand(a.userId),
             createdBy: user.uid,
           })),
         );
@@ -1116,7 +1155,27 @@ export default function EinsatzFormular({
         )}
       </div>
 
+      {abweichungen.length > 0 && (
+        <div className="mt-4 space-y-2" role="group" aria-label="Verschiedene Aufgaben und Uhrzeiten">
+          <Hinweiszeile>
+            <p>
+              <strong>Die Eingeteilten haben verschiedene Aufgaben oder Uhrzeiten.</strong>{' '}
+              {angleichen
+                ? 'Beim Speichern bekommen alle die Aufgabe und Uhrzeit unten.'
+                : 'Sie bleiben beim Speichern erhalten; Aufgabe und Uhrzeit unten gelten für neu Eingeteilte.'}
+            </p>
+          </Hinweiszeile>
+          <ul className="text-sm text-ink">
+            {abweichungen.map((a) => (
+              <li key={a.userId}>{a.name}: {a.text}</li>
+            ))}
+          </ul>
+          <CheckboxField id="aangleichen" label="Allen dieselbe Aufgabe und Uhrzeit geben" checked={angleichen}
+            onChange={(e) => { einteilungGetippt(); setAngleichen(e.target.checked); }} />
+        </div>
+      )}
       <div className="mt-4">
+        {/* Die Beschriftung bleibt dieselbe; wofür das Feld bei verschiedenen Ständen gilt, sagt der Hinweis darüber. */}
         <InputField id="acomment" label="Kommentar / Aufgabe" value={comment}
           onChange={(e) => { einteilungGetippt(); setComment(e.target.value); }} />
       </div>
