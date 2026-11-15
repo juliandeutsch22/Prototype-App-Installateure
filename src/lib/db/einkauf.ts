@@ -8,6 +8,7 @@ export {
   listGrosshaendler,
   grosshaendlerSpeichern,
   ausLager,
+  ausLagerTeil,
   aufEinkaufsliste,
   vonEinkaufslisteNehmen,
   grosshaendlerZuordnen,

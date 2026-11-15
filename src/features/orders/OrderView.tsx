@@ -11,7 +11,11 @@ import {
   subscribeOwnOrders,
   updateOrderStatus,
   anforderungEiligSetzen,
+  anforderungMengeAendern,
+  anforderungZurueckziehen,
 } from '@/lib/db/materialOrders';
+import { TeilmengeFeld } from './Teilmenge';
+import { abholTeil, teilwahl } from './teilmengeWahl';
 import { listActiveProjects } from '@/lib/db/projects';
 import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder, Project } from '@/types';
@@ -198,6 +202,8 @@ export default function OrderView() {
   const [toPickUp, setToPickUp] = useState<WithId<MaterialOrder> | null>(null);
   /** Beim Abholen, solange nichts bereitgestellt ist (C7, E89): aus dem Lager oder vom Händler. */
   const [herkunft, setHerkunft] = useState<'lager' | 'haendler'>('lager');
+  /** Wie viel abgeholt wurde (M5) — leer heißt: alles. */
+  const [abholMenge, setAbholMenge] = useState('');
   /** Die Anforderung im Seitenfenster (C7, E89). */
   const [fenster, setFenster] = useState<WithId<MaterialOrder> | null>(null);
   /** Nachträglich eilig (17 F) — mit Rückfrage, weil andere davon eine Meldung bekommen. */
@@ -458,6 +464,7 @@ export default function OrderView() {
   /** „Abgeholt“ — die Rückfrage beginnt immer bei „Aus dem Lager“, wie bisher gebucht wurde. */
   function abholen(o: WithId<MaterialOrder>) {
     setHerkunft('lager');
+    setAbholMenge(zahlAlsText(o.quantity));
     setToPickUp(o);
   }
 
@@ -980,19 +987,24 @@ export default function OrderView() {
         confirmTone="primary"
         message={
           toPickUp
-            ? abschlussText(toPickUp, herkunftFragen(toPickUp) ? herkunft : undefined)
+            ? abschlussText(abholTeil(toPickUp, abholMenge), herkunftFragen(toPickUp) ? herkunft : undefined)
             : ''
         }
         onCancel={() => setToPickUp(null)}
+        gesperrt={!!toPickUp && teilwahl(abholMenge, toPickUp.quantity).art === 'fehler'}
         onConfirm={async () => {
           if (toPickUp) {
+            const teil = teilwahl(abholMenge, toPickUp.quantity);
             try {
               const r = await updateOrderStatus(toPickUp.id, 'Erledigt', {
                 von: toPickUp.status,
                 ...(herkunftFragen(toPickUp) ? { herkunft } : {}),
+                ...(teil.art === 'teil' ? { menge: teil.menge } : {}),
               });
               if (r.art === 'geaendert') {
-                toast.success('Abholung bestätigt');
+                toast.success(teil.art === 'teil'
+                  ? `Abholung bestätigt — der Rest bleibt unter „Meine Anforderungen“`
+                  : 'Abholung bestätigt');
               } else {
                 // Schon gebucht oder vom Lager geändert: keine Erfolgsmeldung für nichts (R7-M3).
                 toast.info('Inzwischen schon als abgeholt gebucht oder vom Lager geändert — die Liste zeigt jetzt den neuen Stand.');
@@ -1017,6 +1029,18 @@ export default function OrderView() {
           kein großer dunkler Knopf mit einem Wort. Der Zusatz sagt, was die
           Wahl am Bestand bewirkt; die Buchung selbst bleibt dieselbe.
         */}
+        {toPickUp && (
+          <div className="mt-3">
+            <TeilmengeFeld
+              id="abgeholt-menge"
+              label="Abgeholt"
+              wert={abholMenge}
+              angefordert={toPickUp.quantity}
+              rest="bleibt als eigene Anforderung im selben Stand liegen"
+              onChange={setAbholMenge}
+            />
+          </div>
+        )}
         {toPickUp && herkunftFragen(toPickUp) && (
           <fieldset className="herkunft-wahl wahl-gruppe mt-3">
             <legend className="section-label mb-2">Woher kommt das Material?</legend>
@@ -1049,6 +1073,16 @@ export default function OrderView() {
           wasLaeuft={wasLaeuft(fenster)}
           onEilig={() => { setEilFrage(fenster); setFenster(null); }}
           onAbgeholt={() => { abholen(fenster); setFenster(null); }}
+          onMengeAendern={async (menge) => {
+            const ok = await anforderungMengeAendern(fenster.id, menge);
+            if (ok) toast.success('Menge geändert');
+            return ok;
+          }}
+          onZurueckziehen={async () => {
+            const ok = await anforderungZurueckziehen(fenster.id);
+            if (ok) toast.success('Anforderung zurückgezogen');
+            return ok;
+          }}
           onClose={() => setFenster(null)}
         />
       )}

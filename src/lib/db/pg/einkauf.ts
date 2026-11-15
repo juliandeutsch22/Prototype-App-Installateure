@@ -114,6 +114,27 @@ export async function ausLager(orderId: string, status?: MaterialOrder['status']
 }
 
 /**
+ * TEILWEISE AUS DEM LAGER (M5, 16.11.2026): `menge` wird abholbereit, der
+ * Rest bleibt offen oder geht auf die Einkaufsliste (beim Großhändler
+ * `supplierId`). Eine Zeile wird dazu geteilt (`anforderung_aus_lager`).
+ * Reicht das Freie nicht, meldet die Datenbank es mit Zahlen. `false`:
+ * inzwischen hat jemand anderes entschieden.
+ */
+export async function ausLagerTeil(
+  orderId: string,
+  status: MaterialOrder['status'],
+  menge: number,
+  rest: 'offen' | 'einkauf',
+  supplierId: string | null,
+): Promise<boolean> {
+  const { data, error } = await derClient().rpc('anforderung_aus_lager', {
+    p_id: orderId, p_status: status, p_menge: menge, p_rest: rest, p_supplier: supplierId,
+  });
+  if (error) throw new Error(error.message);
+  return (data as { ergebnis?: string } | null)?.ergebnis === 'geaendert';
+}
+
+/**
  * Nicht im Lager: auf die Einkaufsliste, beim gewählten Grosshändler —
  * dieselbe Bedingung wie „Aus Lager“.
  *

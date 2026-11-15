@@ -152,6 +152,12 @@ export interface StatusWie {
   trotzFehlbestand?: boolean;
   /** Beim Abholen (C7, E89): aus dem Lager (abgebucht, wie bisher) oder beim Händler mitgenommen (nicht abgebucht). */
   herkunft?: 'lager' | 'haendler';
+  /**
+   * Beim Abholen (M5): nur diese Menge. Weniger als angefordert spaltet den
+   * abgeholten Teil ab; der Rest bleibt im selben Stand liegen. Ohne sie die
+   * ganze Menge — der Aufruf wie bisher.
+   */
+  menge?: number;
 }
 
 /**
@@ -177,6 +183,7 @@ export async function updateOrderStatus(
       p_status: wie.von ?? null,
       ...(wie.ort ? { p_ort: wie.ort } : {}),
       ...(wie.herkunft ? { p_herkunft: wie.herkunft } : {}),
+      ...(wie.menge != null ? { p_menge: wie.menge } : {}),
     });
     if (error) throw new Error(error.message);
     return Number(data ?? 0) > 0 ? { art: 'geaendert' } : { art: 'veraltet' };
@@ -201,6 +208,36 @@ export async function updateOrderStatus(
     };
   }
   return { art: 'veraltet' };
+}
+
+/**
+ * DER BESTELLER ZIEHT ZURÜCK (M5, 16.11.2026) — solange das Lager nicht
+ * entschieden hat, woher das Material kommt (`anforderung_zurueckziehen`).
+ * `false`: inzwischen hat das Lager sie in Arbeit (oder sie ist weg).
+ */
+export async function anforderungZurueckziehen(orderId: string): Promise<boolean> {
+  const { data, error } = await derClient().rpc('anforderung_zurueckziehen', { p_id: orderId });
+  if (error) throw new Error(error.message);
+  return (data as { ergebnis?: string } | null)?.ergebnis === 'zurueckgezogen';
+}
+
+/**
+ * DIE MENGE ÄNDERN, SOLANGE „OFFEN“ (M5) — die Regel dafür steht seit jeher
+ * in der Datenbank (`app.anforderung_besitzer_offen`); nur auf genau diesem
+ * Stand. `false`: inzwischen in Arbeit. Die Mengenprüfung je Einheit macht
+ * die Datenbank (`app.anforderung_menge_pruefen`).
+ */
+export async function anforderungMengeAendern(orderId: string, menge: number): Promise<boolean> {
+  const { data, error } = await derClient()
+    .from(ANFORDERUNGEN)
+    .update({ quantity: menge })
+    .eq('id', orderId)
+    .eq('status', 'Offen')
+    .eq('processed', false)
+    .is('beschaffung', null)
+    .select('id');
+  if (error) throw new Error(error.message);
+  return (data ?? []).length > 0;
 }
 
 /**

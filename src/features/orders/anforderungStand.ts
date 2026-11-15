@@ -45,3 +45,14 @@ export function istAbholbereitAlt(o: Pick<MaterialOrder, 'status' | 'abholbereit
   );
   return tage > ABHOLBEREIT_ALT_TAGE;
 }
+
+/**
+ * Ändern und Zurückziehen geht, solange das Lager nicht entschieden hat,
+ * woher das Material kommt — dieselbe Grenze wie in der Datenbank
+ * (`app.anforderung_besitzer_offen`, `anforderung_zurueckziehen`).
+ */
+export function anforderungAenderbar(
+  o: Pick<MaterialOrder, 'status' | 'processed' | 'beschaffung' | 'transactionType'>,
+): boolean {
+  return o.transactionType !== 'return' && o.status === 'Offen' && !o.processed && !o.beschaffung;
+}

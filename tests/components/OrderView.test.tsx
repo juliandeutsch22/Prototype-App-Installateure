@@ -126,7 +126,12 @@ vi.mock('@/lib/db/materialOrders', () => ({
   createReturn: (...a: unknown[]) => retoure(...a),
   updateOrderStatus: (...a: unknown[]) => statusSetzen(...a),
   anforderungEiligSetzen: (...a: unknown[]) => eiligSetzen(...a),
+  anforderungMengeAendern: (...a: unknown[]) => mengeAendern(...a),
+  anforderungZurueckziehen: (...a: unknown[]) => zurueckziehen(...a),
 }));
+/** M5: der Besteller ändert oder zieht zurück, solange „Offen“. */
+const mengeAendern = vi.fn<(...a: unknown[]) => Promise<boolean>>(async () => true);
+const zurueckziehen = vi.fn<(...a: unknown[]) => Promise<boolean>>(async () => true);
 
 /*
   DIE BAUSTELLE WANDERT MIT (B3, E83): Einsätze des Tages und der laufende
@@ -821,6 +826,68 @@ describe('Abgeholt — aus dem Lager oder vom Händler (C7, E89)', () => {
     eigene = [eigen({ status: 'Erledigt', processed: true, abgeholtHerkunft: 'haendler' })];
     zeige();
     expect(await screen.findByText(/beim Händler mitgenommen/)).toBeInTheDocument();
+  });
+});
+
+/*
+  M5/F5 (16.11.2026): TEILMENGEN, ÄNDERN, ZURÜCKZIEHEN. Vorher bot die
+  Ansicht nur „Abgeholt“ (ganz) und „Eilig“ — ein Tippfehler (30 statt 3)
+  ließ sich nicht korrigieren.
+*/
+describe('Ändern, Zurückziehen, Teil abgeholt (M5)', () => {
+  const eigen = (rest: Partial<MaterialOrder>) =>
+    ({ id: 'o1', companyId: 'perl', materialName: 'Kupferrohr 15mm', quantity: 30, status: 'Offen',
+      transactionType: 'order', userId: 'u1', projectNumber: '2026-042', ...rest }) as WithId<MaterialOrder>;
+  const fenster = async () => {
+    await userEvent.click(await screen.findByRole('button', { name: /^Kupferrohr 15mm ×/ }));
+    return within(await screen.findByRole('dialog', { name: 'Anforderung Kupferrohr 15mm' }));
+  };
+
+  it('die Menge ändern, solange „Offen“', async () => {
+    mengeAendern.mockClear();
+    eigene = [eigen({})];
+    zeige();
+    const f = await fenster();
+    await userEvent.click(f.getByRole('button', { name: 'Menge ändern …' }));
+    const feld = f.getByLabelText('Neue Menge');
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '3');
+    await userEvent.click(f.getByRole('button', { name: 'Menge speichern' }));
+    await waitFor(() => expect(mengeAendern).toHaveBeenCalledWith('o1', 3));
+  });
+
+  it('zurückziehen — hat das Lager sie inzwischen in Arbeit, sagt das Fenster es', async () => {
+    zurueckziehen.mockResolvedValueOnce(false);
+    eigene = [eigen({})];
+    zeige();
+    const f = await fenster();
+    await userEvent.click(f.getByRole('button', { name: 'Zurückziehen …' }));
+    await userEvent.click(f.getByRole('button', { name: 'Zurückziehen' }));
+    expect(await f.findByText(/inzwischen in Arbeit/)).toBeInTheDocument();
+    expect(zurueckziehen).toHaveBeenCalledWith('o1');
+  });
+
+  it('Gleichbleiben: in Arbeit beim Lager — weder Ändern noch Zurückziehen', async () => {
+    eigene = [eigen({ status: 'In Bearbeitung', beschaffung: 'einkauf' })];
+    zeige();
+    const f = await fenster();
+    expect(f.queryByRole('button', { name: 'Menge ändern …' })).toBeNull();
+    expect(f.queryByRole('button', { name: 'Zurückziehen …' })).toBeNull();
+  });
+
+  it('„Abgeholt“ mit weniger: nur der Teil wird gebucht', async () => {
+    statusSetzen.mockReset();
+    statusSetzen.mockResolvedValue({ art: 'geaendert' });
+    eigene = [eigen({ quantity: 10, status: 'Abholbereit', beschaffung: 'lager' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Abgeholt' }));
+    const d = within(screen.getByRole('dialog', { name: 'Material abgeholt?' }));
+    const feld = d.getByLabelText('Abgeholt');
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '6');
+    expect(d.getByText(/Der Rest — 4 — bleibt/)).toBeInTheDocument();
+    await userEvent.click(d.getByRole('button', { name: 'Abgeholt' }));
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o1', 'Erledigt', { von: 'Abholbereit', menge: 6 }));
   });
 });
 

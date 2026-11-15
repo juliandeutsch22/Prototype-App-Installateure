@@ -21,6 +21,7 @@ import type { WithId } from '@/lib/db/core';
 import {
   listGrosshaendler,
   ausLager,
+  ausLagerTeil,
   aufEinkaufsliste,
   listLagerPosten,
   lieferantVorschlag,
@@ -29,6 +30,9 @@ import {
 import Einkaufsliste from './Einkaufsliste';
 import Bestellvorschlaege from './Bestellvorschlaege';
 import VorschlagGrund from './VorschlagGrund';
+import { TeilmengeFeld } from './Teilmenge';
+import { abholTeil, teilwahl } from './teilmengeWahl';
+import { zahlAlsText } from '@/lib/zahl';
 import { darfEinkaufSehen } from '@/lib/permissions';
 import { istAn } from '@/lib/module';
 import { aufEinkaufsliste as aufDerListe } from './einkauf';
@@ -384,9 +388,22 @@ export default function AdminOrdersView() {
   const lo = useLagerorte();
   const weitere = useMemo(() => weitereOrte(lo.orte), [lo.orte]);
   const [abholOrt, setAbholOrt] = useState(HAUPTLAGER);
+  /** Wie viel abgeholt wird (M5) — vorbelegt die ganze Menge. */
+  const [abholMenge, setAbholMenge] = useState('');
   useEffect(() => {
-    if (toComplete) setAbholOrt(toComplete.lagerortId ?? HAUPTLAGER);
+    if (toComplete) {
+      setAbholOrt(toComplete.lagerortId ?? HAUPTLAGER);
+      setAbholMenge(zahlAlsText(toComplete.quantity));
+    }
   }, [toComplete]);
+  /*
+    TEILWEISE AUS DEM LAGER (M5/F5): 6 aus dem Regal, der Rest offen oder auf
+    die Einkaufsliste. `grund`: warum „Aus Lager“ eben abgewiesen hat — die
+    Zahlen der Datenbank.
+  */
+  const [teilAusLager, setTeilAusLager] = useState<{
+    o: WithId<MaterialOrder>; menge: string; rest: 'offen' | 'einkauf'; bei: string; grund: string | null;
+  } | null>(null);
   /** „Abholbereit“ von Hand, aber im Regal fehlt etwas — die Rückfrage mit den Zahlen (R7-M2). */
   const [fehlbestand, setFehlbestand] = useState<{ o: WithId<MaterialOrder>; stand: Regalstand } | null>(null);
   /**
@@ -640,11 +657,15 @@ export default function AdminOrdersView() {
     void postenNeuLaden();
   }
 
-  async function setStatus(o: WithId<MaterialOrder>, next: MaterialOrder['status'], trotzFehlbestand = false, ort?: string | null) {
+  async function setStatus(
+    o: WithId<MaterialOrder>, next: MaterialOrder['status'], trotzFehlbestand = false, ort?: string | null, menge?: number,
+  ) {
     if (next === o.status) return;
     setBusyId(o.id);
     try {
-      const r = await updateOrderStatus(o.id, next, { von: o.status, trotzFehlbestand, ...(ort ? { ort } : {}) });
+      const r = await updateOrderStatus(o.id, next, {
+        von: o.status, trotzFehlbestand, ...(ort ? { ort } : {}), ...(menge != null ? { menge } : {}),
+      });
       if (r.art === 'fehlbestand') {
         // Nichts geändert: erst fragen, mit genau diesen Zahlen (R7-M2).
         setFehlbestand({ o, stand: r });
@@ -657,7 +678,9 @@ export default function AdminOrdersView() {
       // Das Abzeichen im Menü zählt mit — „Offen" ist genau das, was es zählt.
       void postenNeuLaden();
       fehlerWeg(o.id);
-      toast.success(trotzFehlbestand ? `Status: ${next} — trotz Fehlbestand, im Verlauf vermerkt` : `Status: ${next}`);
+      toast.success(trotzFehlbestand
+        ? `Status: ${next} — trotz Fehlbestand, im Verlauf vermerkt`
+        : menge != null ? `${fmtMenge(menge)} abgeholt — der Rest bleibt liegen` : `Status: ${next}`);
     } catch (err) {
       // Ohne diesen Zweig blieb ein fehlgeschlagenes Update unbemerkt: der
       // Status sprang nicht um, der Nutzer sah aber keinerlei Hinweis.
@@ -677,6 +700,46 @@ export default function AdminOrdersView() {
       void postenNeuLaden();
       fehlerWeg(o.id);
       toast.success(`${o.materialName}: aus dem Lager — abholbereit`);
+    } catch (err) {
+      const grund = grundAus(err, 'Das konnte nicht gespeichert werden.');
+      /*
+        NICHT GENUG FREI (M5): statt nur der Meldung gleich der Weg, den sie
+        meint — ein Teil aus dem Regal, der Rest offen oder zum Großhändler.
+      */
+      if (/^Im Lager sind nur /.test(grund)) teilFragen(o, grund);
+      else toast.error(grund);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  function teilFragen(o: WithId<MaterialOrder>, grund: string | null) {
+    setTeilAusLager({
+      o, menge: '', rest: 'einkauf', grund,
+      bei: o.supplierId ?? (grosshaendler.length === 1 ? grosshaendler[0].id : ''),
+    });
+  }
+
+  async function teilAusLagerBuchen() {
+    const f = teilAusLager;
+    if (!f) return;
+    const w = teilwahl(f.menge, f.o.quantity);
+    if (w.art === 'fehler') return;
+    setTeilAusLager(null);
+    if (w.art === 'ganz') {
+      await nimmAusLager(f.o);
+      return;
+    }
+    setBusyId(f.o.id);
+    try {
+      if (!(await ausLagerTeil(f.o.id, f.o.status, w.menge, f.rest, f.rest === 'einkauf' ? f.bei || null : null))) {
+        veraltet();
+        return;
+      }
+      void postenNeuLaden();
+      fehlerWeg(f.o.id);
+      toast.success(`${fmtMenge(w.menge)} ${f.o.materialName} aus dem Lager — abholbereit; der Rest ${
+        f.rest === 'einkauf' ? 'steht auf der Einkaufsliste' : 'bleibt offen'}`);
     } catch (err) {
       toast.error(grundAus(err, 'Das konnte nicht gespeichert werden.'));
     } finally {
@@ -1213,6 +1276,18 @@ export default function AdminOrdersView() {
                   </Button>
                 ) : null;
               })()}
+              {schrittFuer(offen)?.art === 'auslager' && (
+                <Button
+                  variant="secondary"
+                  disabled={busyId === offen.id}
+                  onClick={() => {
+                    setOffenId(null);
+                    teilFragen(offen, null);
+                  }}
+                >
+                  Teilweise aus Lager …
+                </Button>
+              )}
               {darfNichtAufLager(offen) && (
                 <Button
                   variant="secondary"
@@ -1346,15 +1421,67 @@ export default function AdminOrdersView() {
       </ConfirmDialog>
 
       <ConfirmDialog
+        open={!!teilAusLager}
+        title="Teilweise aus dem Lager?"
+        confirmLabel="Aus dem Lager"
+        confirmTone="primary"
+        message={
+          teilAusLager
+            ? `„${teilAusLager.o.materialName}“ ×${fmtMenge(teilAusLager.o.quantity)}: was im Regal liegt, wird abholbereit — der Rest bleibt eine eigene Anforderung.`
+            : ''
+        }
+        gesperrt={!teilAusLager || teilAusLager.menge.trim() === '' || teilwahl(teilAusLager.menge, teilAusLager.o.quantity).art === 'fehler'}
+        onCancel={() => setTeilAusLager(null)}
+        onConfirm={teilAusLagerBuchen}
+      >
+        {teilAusLager && (
+          <div className="space-y-3">
+            {teilAusLager.grund && <p className="text-fliess">{teilAusLager.grund}</p>}
+            <TeilmengeFeld
+              id="teil-aus-lager"
+              label="Aus dem Lager"
+              wert={teilAusLager.menge}
+              angefordert={teilAusLager.o.quantity}
+              rest={teilAusLager.rest === 'einkauf' ? 'geht auf die Einkaufsliste' : 'bleibt offen'}
+              onChange={(menge) => setTeilAusLager({ ...teilAusLager, menge })}
+            />
+            <SelectField
+              id="teil-rest"
+              label="Der Rest"
+              value={teilAusLager.rest}
+              onChange={(e) => setTeilAusLager({ ...teilAusLager, rest: e.target.value as 'offen' | 'einkauf' })}
+            >
+              <option value="einkauf">auf die Einkaufsliste</option>
+              <option value="offen">offen lassen</option>
+            </SelectField>
+            {teilAusLager.rest === 'einkauf' && (
+              <SelectField
+                id="teil-bei"
+                label="Großhändler"
+                value={teilAusLager.bei}
+                onChange={(e) => setTeilAusLager({ ...teilAusLager, bei: e.target.value })}
+              >
+                <option value="">— später zuordnen —</option>
+                {grosshaendler.map((g) => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </SelectField>
+            )}
+          </div>
+        )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
         open={!!toComplete}
         title="Bestellung abschließen?"
         confirmLabel="Abschließen"
         confirmTone="primary"
         message={
           toComplete
-            ? abschlussText(toComplete)
+            ? abschlussText(abholTeil(toComplete, abholMenge))
             : ''
         }
+        gesperrt={!!toComplete && toComplete.transactionType !== 'return' && teilwahl(abholMenge, toComplete.quantity).art === 'fehler'}
         onCancel={() => setToComplete(null)}
         onConfirm={async () => {
           if (toComplete) {
@@ -1368,11 +1495,22 @@ export default function AdminOrdersView() {
             const ort = abholOrt === vorgabe
               ? null
               : abholOrt || lo.orte.find((o) => o.art === 'haupt')?.id || null;
-            await setStatus(toComplete, 'Erledigt', false, ort);
+            const teil = toComplete.transactionType === 'return' ? null : teilwahl(abholMenge, toComplete.quantity);
+            await setStatus(toComplete, 'Erledigt', false, ort, teil?.art === 'teil' ? teil.menge : undefined);
           }
           setToComplete(null);
         }}
       >
+        {toComplete && toComplete.transactionType !== 'return' && !toComplete.processed && (
+          <TeilmengeFeld
+            id="abschluss-menge"
+            label="Abgeholt"
+            wert={abholMenge}
+            angefordert={toComplete.quantity}
+            rest="bleibt als eigene Anforderung im selben Stand liegen"
+            onChange={setAbholMenge}
+          />
+        )}
         {toComplete && toComplete.transactionType !== 'return' && weitere.length > 0 && (
           <OrtWahl id="abholen-ort" label="Woher" alle={lo.orte} wahl={weitere} wert={abholOrt} onChange={setAbholOrt} />
         )}

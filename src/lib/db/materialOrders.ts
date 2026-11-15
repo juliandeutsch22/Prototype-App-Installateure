@@ -93,6 +93,16 @@ export function anforderungEiligSetzen(orderId: string, eilig: boolean): Promise
   return pg.anforderungEiligSetzen(orderId, eilig);
 }
 
+/** Der Besteller zieht zurück, solange „Offen“ (M5). */
+export function anforderungZurueckziehen(orderId: string): Promise<boolean> {
+  return pg.anforderungZurueckziehen(orderId);
+}
+
+/** Der Besteller ändert die Menge, solange „Offen“ (M5). */
+export function anforderungMengeAendern(orderId: string, menge: number): Promise<boolean> {
+  return pg.anforderungMengeAendern(orderId, menge);
+}
+
 /** Retoure — `kennung` einmal je geöffnetem Formular, damit eine Wiederholung nicht doppelt bucht. */
 export function createReturn(
   companyId: string,

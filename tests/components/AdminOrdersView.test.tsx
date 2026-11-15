@@ -106,6 +106,8 @@ vi.mock('@/lib/db/projects', async (echt) => ({
 }));
 
 const ausLager = vi.fn();
+/** M5: ein Teil aus dem Lager, der Rest offen oder zum Großhändler. */
+const ausLagerTeil = vi.fn<(...a: unknown[]) => Promise<boolean>>(async () => true);
 const aufEinkaufsliste = vi.fn();
 let vorschlag: string | null = null;
 let lagerPosten: unknown[] = [];
@@ -120,6 +122,7 @@ const grosshaendler = [
 vi.mock('@/lib/db/einkauf', () => ({
   listGrosshaendler: () => Promise.resolve(grosshaendler),
   ausLager: (...a: unknown[]) => ausLager(...a),
+  ausLagerTeil: (...a: unknown[]) => ausLagerTeil(...a),
   aufEinkaufsliste: (...a: unknown[]) => aufEinkaufsliste(...a),
   lieferantVorschlag: () => Promise.resolve(vorschlag),
   katalogFuer: () => Promise.resolve(new Map()),
@@ -865,6 +868,71 @@ describe('Anforderungen — der Arbeitsstand reicht hinter die jüngsten 200', (
     expect(await screen.findByText('Erledigt 0')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Weitere Anforderungen laden/ })).toBeInTheDocument();
     expect(screen.queryByText('Altes Eckventil')).not.toBeInTheDocument();
+  });
+});
+
+/*
+  M5/F5 (16.11.2026): TEILMENGEN. „Aus Lager“ war alles oder nichts, und
+  „Abgeholt“ kannte nur die ganze Menge.
+*/
+describe('Teilmengen (M5)', () => {
+  it('„Aus Lager“ weist mangels Freiem ab: gleich die Frage nach dem Teil — 6 aus dem Lager, 4 zum Großhändler', async () => {
+    ausLager.mockRejectedValueOnce(new Error('Im Lager sind nur 6 Stk frei (6 im Regal, 0 schon zugesagt) — angefordert sind 10.'));
+    ausLagerTeil.mockClear();
+    anforderungen = [anforderung({ id: 'o1', materialId: 'm1', quantity: 10 })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /^Aus Lager: Kupferrohr 15mm/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Teilweise aus dem Lager?' });
+    expect(within(dialog).getByText(/Im Lager sind nur 6 Stk frei/)).toBeInTheDocument();
+    await userEvent.type(within(dialog).getByLabelText('Aus dem Lager'), '6');
+    expect(within(dialog).getByText(/Der Rest — 4 — geht auf die Einkaufsliste/)).toBeInTheDocument();
+    await userEvent.selectOptions(within(dialog).getByLabelText('Großhändler'), 'gh1');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Aus dem Lager' }));
+    await waitFor(() => expect(ausLagerTeil).toHaveBeenCalledWith('o1', 'Offen', 6, 'einkauf', 'gh1'));
+  });
+
+  it('auch ohne Abweisung aus dem Fenster der Anforderung — der Rest bleibt offen, wenn gewählt', async () => {
+    ausLagerTeil.mockClear();
+    anforderungen = [anforderung({ id: 'o1', quantity: 10 })];
+    zeige();
+    await userEvent.click(within(await oeffnen()).getByRole('button', { name: 'Teilweise aus Lager …' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Teilweise aus dem Lager?' });
+    // Mehr als angefordert gibt es nicht — der Knopf bleibt gesperrt.
+    await userEvent.type(within(dialog).getByLabelText('Aus dem Lager'), '11');
+    expect(within(dialog).getByRole('button', { name: 'Aus dem Lager' })).toBeDisabled();
+    await userEvent.clear(within(dialog).getByLabelText('Aus dem Lager'));
+    await userEvent.type(within(dialog).getByLabelText('Aus dem Lager'), '3');
+    await userEvent.selectOptions(within(dialog).getByLabelText('Der Rest'), 'offen');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Aus dem Lager' }));
+    await waitFor(() => expect(ausLagerTeil).toHaveBeenCalledWith('o1', 'Offen', 3, 'offen', null));
+  });
+
+  it('„Abgeholt“ mit weniger: nur dieser Teil wird gebucht', async () => {
+    statusSetzen.mockReset();
+    statusSetzen.mockResolvedValue({ art: 'geaendert' });
+    anforderungen = [anforderung({ id: 'o1', quantity: 10, status: 'Abholbereit', beschaffung: 'lager' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /^Abgeholt: Kupferrohr 15mm/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Bestellung abschließen?' });
+    const feld = within(dialog).getByLabelText('Abgeholt');
+    expect(feld).toHaveValue('10');
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '6');
+    expect(within(dialog).getByText(/×6 wird als erledigt gebucht/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o1', 'Erledigt', expect.objectContaining({ von: 'Abholbereit', menge: 6 })));
+  });
+
+  it('Gleichbleiben: die ganze Menge abgeholt — der Aufruf wie bisher, ohne Menge', async () => {
+    statusSetzen.mockReset();
+    statusSetzen.mockResolvedValue({ art: 'geaendert' });
+    anforderungen = [anforderung({ id: 'o1', quantity: 10, status: 'Abholbereit', beschaffung: 'lager' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /^Abgeholt: Kupferrohr 15mm/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Bestellung abschließen?' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await waitFor(() => expect(statusSetzen).toHaveBeenCalled());
+    expect(statusSetzen.mock.calls[0][2]).not.toHaveProperty('menge');
   });
 });
 
