@@ -165,5 +165,16 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     const f = await setzen.json().catch(() => ({}));
     return fehler(String(f?.msg ?? f?.message ?? 'Das Passwort ließ sich nicht setzen.'), 500);
   }
+  await setzen.body?.cancel();
+
+  /*
+    DIE BITTE AUS DER ANMELDEMASKE IST ERLEDIGT (V14, Durchsicht 15.11.2026).
+    Scheitert dieser Vermerk, ist das Passwort trotzdem gesetzt — die Bitte
+    bliebe dann auf der Startseite stehen, und die Leitung verwirft sie von
+    Hand. Kein Grund, dem Büro einen Fehler zu melden, der keiner ist.
+  */
+  await fetch(`${URL_BASIS}/rest/v1/rpc/passwort_anfragen_erledigt`, {
+    method: 'POST', headers: alsDienst, body: JSON.stringify({ p_uid: uid, p_von: aufrufer }),
+  }).then((r) => r.body?.cancel()).catch(() => undefined);
   return antwort({ ok: true });
 }));

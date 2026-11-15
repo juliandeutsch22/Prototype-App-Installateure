@@ -53,6 +53,7 @@ import {
   ungeleseneNachrichten,
   nachrichtenZeile,
   meldungenZeile,
+  seitText,
 } from './regeln';
 import { anzahl, themenAbschnitte, type Thema } from './themen';
 import { ZIEL } from './ziele';
@@ -850,6 +851,25 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
         ? 'Einstufung ändern, sobald die Prüfung abgelegt ist'
         : lehrzeit.map((z) => `${z.name} ${tagKurz(z.ende)}`).join(', '),
       status: { text: 'ändern', ton: vorbei ? 'warn' : 'leise' },
+    }));
+  }
+  /*
+    PASSWORT VERGESSEN, MIT BENUTZERNAME (V14): jemand kann sich nicht
+    anmelden und wartet. Unter „Heute“ und gelb — erledigt ist es mit einem
+    neuen Startpasswort in der Akte (oder dort verworfen).
+  */
+  const bitten = d.passwortBitten ?? [];
+  if (bitten.length) {
+    const erste = bitten[0];
+    themen.push(wenn(bitten.length === 1 ? ZIEL.benutzer(erste.uid) : ZIEL.benutzerverwaltung, {
+      key: 'passwort-anfragen', wann: 'heute',
+      titel: bitten.length === 1
+        ? `${erste.name} bittet um ein neues Passwort`
+        : `${bitten.length} bitten um ein neues Passwort`,
+      detail: bitten.length === 1
+        ? `${seitText(erste.seit, h)} · in der Akte ein Startpasswort vergeben`
+        : aufzaehlen(bitten.map((b) => b.name)),
+      status: { text: 'vergeben', ton: 'warn' },
     }));
   }
   if (d.einzigeLeitungOhneMail) {

@@ -188,6 +188,7 @@ export const THEMEN: Record<StartRolle, { key: string; name: string }[]> = {
     { key: 'konten', name: 'Kontenrahmen' },
     { key: 'lehrzeit', name: 'Lehrzeit endet' },
     { key: 'leitung-mail', name: 'Nur ein Leitungskonto ohne E-Mail' },
+    { key: 'passwort-anfragen', name: 'Bitten um ein neues Passwort' },
     { key: 'firmenbuch-haken', name: '„Im Firmenbuch eingetragen“' },
     { key: 'papierkorb', name: 'Papierkorb über der Frist' },
     { key: 'jugendschutz', name: 'Grenzen für Jugendliche' },

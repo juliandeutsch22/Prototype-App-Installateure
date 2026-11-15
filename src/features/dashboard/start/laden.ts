@@ -18,7 +18,7 @@ import type {
   Vacation,
   Wartung,
 } from '@/types';
-import { getUserByUid, listUsers } from '@/lib/db/users';
+import { getUserByUid, listPasswortAnfragen, listUsers } from '@/lib/db/users';
 import { listOwnEntriesSince, listOwnEntriesInRange, buchungstage, stundenDerBaustellen, unverrechneteStunden } from '@/lib/db/timeEntries';
 import { getGeburtsdatum } from '@/lib/db/arbeitszeitGrenzen';
 import { andereVerteilung, grenzfaelle, istJugendlich, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
@@ -84,10 +84,12 @@ import {
   type OffeneStundenZeile,
   type ZahlungHeute,
   type LehrzeitEndeZeile,
+  type PasswortBitte,
   type AndereEntscheiden,
   andereEntscheiden,
   lehrzeitEnden,
   einzigeLeitungOhneMail,
+  passwortBitten,
   GARANTIE_NACHLAUF_TAGE,
   GARANTIE_VORLAUF_TAGE,
   tageVerschoben,
@@ -220,6 +222,8 @@ export interface StartDaten {
   // Personen
   lehrzeitEnden?: LehrzeitEndeZeile[];
   einzigeLeitungOhneMail?: boolean;
+  /** Bitten um ein neues Passwort aus der Anmeldemaske (V14) — nur für die Spitze geladen. */
+  passwortBitten?: PasswortBitte[];
   // Termine (Plan 10.4)
   termineHeute?: Termin[];
 }
@@ -844,6 +848,9 @@ export async function einstellungen(
     if (personen) {
       out.lehrzeitEnden = lehrzeitEnden(personen, heute);
       out.einzigeLeitungOhneMail = einzigeLeitungOhneMail(personen);
+      // V14: wer sich nicht anmelden kann, wartet — die Bitte steht unter „Heute“.
+      const anfragen = await still(() => listPasswortAnfragen(k.user.companyId), []);
+      out.passwortBitten = passwortBitten(anfragen, personen);
     }
   }
   return out;

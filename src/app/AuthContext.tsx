@@ -14,6 +14,7 @@ import {
   abmelden as abmeldenNaht,
   sitzungAnderswoBeendet,
   passwortZuruecksetzen,
+  passwortHilfeAnfragen,
   istPlattformAdmin,
   profilSchnell,
   profilVomServer,
@@ -121,6 +122,8 @@ interface AuthState {
   /** Ohne Angabe nur dieses Gerät; `ueberall` beendet die Anmeldung auf jedem Gerät sofort. */
   signOut: (ueberall?: boolean) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  /** Benutzernamen-Konto: die Bitte um ein neues Passwort an die Leitung (V14). */
+  passwortHilfe: (benutzername: string) => Promise<void>;
   /** Lädt die Mandanten-Stammdaten neu — nach dem Speichern in den Einstellungen. */
   reloadCompany: () => Promise<void>;
   /**
@@ -598,6 +601,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [pflichtRolle]);
 
   const resetPassword = useCallback((email: string) => passwortZuruecksetzen(email), []);
+  const passwortHilfe = useCallback((benutzername: string) => passwortHilfeAnfragen(benutzername), []);
 
   // Die Stammdaten liegen bewusst nicht auf einem Live-Abo: sie ändern sich
   // selten, und ein Abo auf `companies` hinge an jeder Sitzung. Nach dem
@@ -688,6 +692,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signOut,
         resetPassword,
+        passwortHilfe,
         reloadCompany,
         plattformAdmin,
         plattformEmail: plattformAdmin ? plattformKonto?.email ?? '' : '',

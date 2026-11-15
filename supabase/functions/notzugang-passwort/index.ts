@@ -150,5 +150,8 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     return fehler(`Das Passwort wurde gesetzt, der Protokolleintrag aber abgewiesen: ${fest.grund}`, 500);
   }
 
+  // V14: eine offene Bitte aus der Anmeldemaske ist damit erledigt (wie in `passwort-vergeben`).
+  await rpc('passwort_anfragen_erledigt', { p_uid: uid, p_von: null }).catch(() => undefined);
+
   return antwort({ startpasswort });
 }));

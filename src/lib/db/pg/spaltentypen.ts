@@ -116,6 +116,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   number_counters: { updated_at: 'zeitpunkt' },
   /* Eine Sicht (M01b): Journal und vorhandene Verläufe zusammen; gelesen wird sie wie eine Tabelle. */
   objekt_verlauf: { am: 'zeitpunkt' },
+  passwort_anfragen: { angefragt_am: 'zeitpunkt', erledigt_am: 'zeitpunkt' },
   platform_admins: { created_at: 'zeitpunkt' },
   project_documents: { created_at: 'zeitpunkt' },
   projects: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },

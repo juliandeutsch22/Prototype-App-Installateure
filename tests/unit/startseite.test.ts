@@ -15,6 +15,8 @@ import {
   wartungenOhneBaustelle,
   lehrzeitEnden,
   einzigeLeitungOhneMail,
+  passwortBitten,
+  seitText,
   garantienBald,
   type GarantieZeile,
   eingeteilteFehlen,
@@ -655,6 +657,38 @@ describe('Personen: Lehrzeit und Leitung ohne E-Mail', () => {
       { uid: 'u1', name: 'Anna', ende: '2026-10-10' }, { uid: 'u2', name: 'Ben', ende: '2026-10-20' },
     ] }, umfeld());
     expect(zeilen(s)[0]).toMatchObject({ titel: '2 Lehrzeiten enden', detail: 'Anna 10.10., Ben 20.10.', to: '/user-mgmt' });
+  });
+
+  /*
+    V14 (Durchsicht 15.11.2026): eine Bitte um ein neues Passwort aus der
+    Anmeldemaske steht unter „Heute“ und führt in die Akte. GEGENPROBE
+    (Erwartung): ohne das Thema sind diese drei Fälle rot.
+  */
+  it('eine Bitte um ein neues Passwort steht unter Heute und führt in die Akte', () => {
+    const s = startseite({ passwortBitten: [{ uid: 'm1', name: 'Max Huber', seit: Date.parse(`${HEUTE}T09:12:00+02:00`) }] }, umfeld());
+    expect(s.abschnitte[0].titel).toBe('Heute');
+    expect(zeilen(s)[0]).toMatchObject({
+      titel: 'Max Huber bittet um ein neues Passwort',
+      detail: 'seit 09:12 · in der Akte ein Startpasswort vergeben',
+      to: '/user-mgmt/m1',
+    });
+    const zwei = startseite({ passwortBitten: [
+      { uid: 'm1', name: 'Max', seit: 1 }, { uid: 'm2', name: 'Eva', seit: 2 },
+    ] }, umfeld());
+    expect(zeilen(zwei)[0]).toMatchObject({ titel: '2 bitten um ein neues Passwort', to: '/user-mgmt' });
+  });
+
+  it('Bitten nur für aktive Personen der Belegschaft, älteste zuerst', () => {
+    const b = passwortBitten(
+      [{ userId: 'm2', angefragtAm: 20 }, { userId: 'weg', angefragtAm: 5 }, { userId: 'm1', angefragtAm: 10 }, { userId: 'fremd', angefragtAm: 1 }],
+      [person({ uid: 'm1', name: 'Max' }), person({ uid: 'm2', name: 'Eva' }), person({ uid: 'weg', name: 'Alt', active: false })],
+    );
+    expect(b).toEqual([{ uid: 'm1', name: 'Max', seit: 10 }, { uid: 'm2', name: 'Eva', seit: 20 }]);
+  });
+
+  it('„seit“ nennt heute die Uhrzeit, sonst den Tag', () => {
+    expect(seitText(Date.parse(`${HEUTE}T14:05:00+02:00`), HEUTE)).toBe('seit 14:05');
+    expect(seitText(Date.parse('2026-01-03T14:05:00+01:00'), HEUTE)).toBe('seit 03.01.');
   });
 
   it('die Leitung ohne E-Mail steht unter Diese Woche — und nur, wo die Benutzerverwaltung offen ist', () => {

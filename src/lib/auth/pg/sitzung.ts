@@ -150,6 +150,17 @@ export async function sitzungAnderswoBeendet(): Promise<boolean> {
   return true;
 }
 
+/**
+ * „Passwort vergessen“ mit Benutzername: eine Bitte an die Leitung des
+ * Betriebs (V14, Durchsicht 15.11.2026). Ohne Anmeldung; die Datenbank
+ * antwortet immer gleich (`passwort_hilfe_anfragen`) — ob es den Namen gibt,
+ * erfährt hier niemand. Scheitert nur der Weg (kein Netz), kommt ein Fehler.
+ */
+export async function passwortHilfeAnfragen(eingabe: string): Promise<void> {
+  const { error } = await supabaseClient().rpc('passwort_hilfe_anfragen', { p_anmeldung: anmeldeAdresse(eingabe) });
+  if (error) throw new Error(error.message);
+}
+
 export async function passwortZuruecksetzen(email: string): Promise<void> {
   /*
     HIER UND NICHT ERST IN DER ANSICHT. Der Anmeldedienst nimmt die Anfrage

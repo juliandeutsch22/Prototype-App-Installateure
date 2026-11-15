@@ -439,6 +439,10 @@ const OHNE_EIGENE_PRUEFUNG: Record<string, string> = {
   'public.fehler_vor_anmeldung_eintragen(p_art text, p_nachricht text, p_stapel text, p_pfad text, p_fassung text, p_geraet text)':
     'nimmt Absturzmeldungen der Anmeldemaske an, also vor jeder Anmeldung; schreibt nur in die eigene Tabelle, '
     + 'gibt nichts zurück und ist gedrosselt (dieselbe Meldung frühestens nach zehn Minuten, höchstens 100 je Stunde)',
+  'public.passwort_hilfe_anfragen(p_anmeldung text)':
+    'nimmt aus der Anmeldemaske die Bitte um ein neues Passwort an (V14), also vor jeder Anmeldung; antwortet '
+    + 'immer gleich, schreibt nur eine offene Bitte je aktivem Benutzernamen-Konto in die eigene Tabelle und ist '
+    + 'gedrosselt (frühestens zehn Minuten nach dem Erledigen wieder, höchstens 200 je Stunde)',
   'public.rechtstexte_aktuell()':
     'liefert Impressum, Datenschutzerklärung und Betreiberangaben in der geltenden Fassung — öffentliche Texte, '
     + 'die jeder lesen muss (§ 5 ECG, Art. 13 DSGVO); nie einen Entwurf, nichts aus einem Betrieb',
@@ -454,6 +458,7 @@ const PRUEFT = /auth\.uid\(\)|app\.(betrieb|lesebetrieb|supportbetrieb|darf\w*|h
 const OEFFENTLICH: Record<string, string> = {
   'public.fehler_vor_anmeldung_eintragen': 'die Anmeldemaske meldet ihre Abstürze, bevor jemand angemeldet ist',
   'public.rechtstexte_aktuell': 'Impressum und Datenschutzerklärung muss lesen können, wer (noch) kein Konto hat',
+  'public.passwort_hilfe_anfragen': 'wer das Passwort vergessen hat, ist nicht angemeldet — die Bitte geht an die Leitung (V14)',
 };
 /*
   Die Helfer der Zeilenschutz-Regeln. Regeln für `public` werten sie auch für

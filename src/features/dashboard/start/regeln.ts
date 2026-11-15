@@ -867,6 +867,37 @@ export function lehrzeitEnden(personen: AppUser[], heute: string): LehrzeitEndeZ
  * Geschäftsführung, aktiv. Zwei Leitungskonten ohne E-Mail helfen einander
  * und lösen die Zeile nicht aus.
  */
+/** Eine offene Bitte um ein neues Passwort, mit Namen (V14). */
+export interface PasswortBitte {
+  uid: string;
+  name: string;
+  /** Millisekunden. */
+  seit: number;
+}
+
+/**
+ * DIE OFFENEN BITTEN UM EIN NEUES PASSWORT, MIT NAMEN (V14, Durchsicht
+ * 15.11.2026). Wer nicht mehr in der Belegschaft steht (oder inzwischen
+ * deaktiviert ist), fällt heraus — für ihn vergibt niemand ein Passwort.
+ */
+export function passwortBitten(
+  anfragen: { userId: string; angefragtAm: number }[], personen: AppUser[],
+): PasswortBitte[] {
+  const wer = new Map(personen.filter((p) => p.active !== false).map((p) => [p.uid, p.name]));
+  return anfragen
+    .filter((a) => wer.has(a.userId))
+    .map((a) => ({ uid: a.userId, name: wer.get(a.userId)!, seit: a.angefragtAm }))
+    .sort((a, b) => a.seit - b.seit);
+}
+
+/** „seit 10:12“ von heute, sonst „seit 14.11.“ — in Wiener Zeit. */
+export function seitText(ms: number, heute: string): string {
+  const tag = new Date(ms).toLocaleDateString('sv-SE', { timeZone: 'Europe/Vienna' });
+  return tag === heute
+    ? `seit ${new Date(ms).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Vienna' })}`
+    : `seit ${tagKurzMs(ms)}`;
+}
+
 export function einzigeLeitungOhneMail(personen: AppUser[]): boolean {
   const leitung = personen.filter(
     (p) => p.active !== false && (p.role === 'Administrator' || p.role === 'Geschäftsführung'),

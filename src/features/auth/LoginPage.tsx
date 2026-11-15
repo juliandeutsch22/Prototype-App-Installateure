@@ -29,8 +29,18 @@ import { ablehnungsText } from './anmeldeAblehnung';
 export const RUECKSETZ_HINWEIS =
   'Wenn zu dieser Adresse ein Konto besteht, ist eine E-Mail zum Zurücksetzen unterwegs. Kommt in einigen Minuten nichts (auch im Spam-Ordner nachsehen), kann das Büro ein neues Startpasswort vergeben.';
 
+/**
+ * Nach „Passwort vergessen“ mit Benutzername (V14, Durchsicht 15.11.2026) —
+ * gleich, ob es den Namen gibt. Der erste Satz sagt, warum kein Link kommt;
+ * der zweite, wohin die Bitte gegangen ist und was jetzt geschieht.
+ */
+export const BITTE_AN_LEITUNG =
+  'Für eine Anmeldung mit Benutzername gibt es keinen Link per E-Mail. Deine Bitte um ein neues Passwort ist '
+  + 'an die Leitung deines Betriebs gegangen: gibt es diesen Benutzernamen, sieht die Geschäftsführung oder '
+  + 'Administration sie auf ihrer Startseite und gibt dir ein neues Startpasswort.';
+
 export default function LoginPage() {
-  const { signIn, user, error: authError, resetPassword } = useAuth();
+  const { signIn, user, error: authError, resetPassword, passwortHilfe } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
@@ -86,8 +96,22 @@ export default function LoginPage() {
         daraus, ob es den Namen gibt.
       */
       if (istBenutzerkonto(anmeldeAdresse(email))) {
-        setNotice(KEIN_MAILKONTO);
-        setSubmitting(false);
+        /*
+          DIE BITTE GEHT AN DIE LEITUNG (V14). Vorher stand hier nur, dass das
+          Büro ein neues Passwort vergibt — erfahren hat das Büro davon nur
+          durch einen Anruf. Die Antwort ist dieselbe, ob es den Namen gibt
+          oder nicht; nur ein Weg, der gar nicht ankam (kein Netz), wird
+          gesagt — er verrät nichts über das Konto.
+        */
+        try {
+          await passwortHilfe(email);
+          setNotice(BITTE_AN_LEITUNG);
+          setResetMode(false);
+        } catch {
+          setError(`Die Bitte ließ sich nicht senden — bitte die Verbindung prüfen und erneut versuchen. ${KEIN_MAILKONTO}`);
+        } finally {
+          setSubmitting(false);
+        }
         return;
       }
       try {
@@ -161,7 +185,7 @@ export default function LoginPage() {
             <p className="mb-4 text-sm text-ink-muted">
               {resetMode
                 ? 'E-Mail-Adresse eingeben — du bekommst einen Link zugeschickt. '
-                  + 'Wer sich mit Benutzernamen anmeldet, bekommt ein neues Passwort vom Büro.'
+                  + 'Mit Benutzername geht eine Bitte an die Leitung deines Betriebs; sie gibt dir ein neues Passwort.'
                 : 'Mit den Zugangsdaten deines Betriebs anmelden.'}
             </p>
 

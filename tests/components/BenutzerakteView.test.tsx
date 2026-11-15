@@ -54,7 +54,11 @@ vi.mock('@/lib/db/users', () => ({
   listKontoUmstellungen: async () => protokoll,
   zweiterFaktorVon: async () => hatFaktor,
   zweitenFaktorZuruecksetzen: (uid: string, grund: string) => zuruecksetzen(uid, grund),
+  listPasswortAnfragen: async (_c: string, uid?: string) => bitten.filter((b) => !uid || b.userId === uid),
+  passwortAnfrageVerwerfen: (id: string) => verwerfen(id),
 }));
+let bitten: Array<{ id: string; userId: string; angefragtAm: number }> = [];
+const verwerfen = vi.fn<(id: string) => Promise<void>>(async () => undefined);
 let hatFaktor = false;
 const zuruecksetzen = vi.fn<(uid: string, grund: string) => Promise<void>>(async () => undefined);
 
@@ -135,6 +139,8 @@ beforeEach(() => {
   entfernen.mockClear();
   hatFaktor = false;
   zuruecksetzen.mockReset().mockResolvedValue(undefined);
+  bitten = [];
+  verwerfen.mockReset().mockResolvedValue(undefined);
 });
 
 describe('Die Stammdaten in der Akte', () => {
@@ -1141,5 +1147,35 @@ describe('Den zweiten Faktor zurücksetzen', () => {
     zeige();
     await screen.findAllByText('Erna Beispiel');
     expect(screen.queryByRole('button', { name: 'Zweiten Faktor zurücksetzen …' })).not.toBeInTheDocument();
+  });
+});
+
+/*
+  V14 (Durchsicht 15.11.2026): die Bitte um ein neues Passwort aus der
+  Anmeldemaske steht in der Akte. GEGENPROBE (Erwartung): ohne
+  `PasswortBitte` sind die ersten beiden Fälle rot; „keine Bitte“ grün.
+*/
+describe('Die Bitte um ein neues Passwort', () => {
+  it('steht im Zugang — mit dem Weg, sie zu erledigen', async () => {
+    bitten = [{ id: 'b1', userId: 'u2', angefragtAm: Date.now() }];
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    expect(await screen.findByText('Erna Beispiel bittet um ein neues Passwort')).toBeInTheDocument();
+  });
+
+  it('lässt sich verwerfen', async () => {
+    bitten = [{ id: 'b1', userId: 'u2', angefragtAm: Date.now() }];
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Bitte verwerfen' }));
+    await waitFor(() => expect(verwerfen).toHaveBeenCalledWith('b1'));
+    await waitFor(() => expect(screen.queryByText(/bittet um ein neues Passwort/)).toBeNull());
+  });
+
+  it('ohne Bitte steht nichts da', async () => {
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Zugang und Rechte' }));
+    await screen.findByRole('button', { name: 'Passwort-Mail senden' });
+    expect(screen.queryByText(/bittet um ein neues Passwort/)).toBeNull();
   });
 });

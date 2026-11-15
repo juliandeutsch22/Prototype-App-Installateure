@@ -6,6 +6,7 @@ export const anmelden = async () => {};
 export const abmelden = async () => {};
 export const sitzungAnderswoBeendet = async () => false;
 export const passwortZuruecksetzen = async () => {};
+export const passwortHilfeAnfragen = async () => {};
 export const passwortSetzen = async () => {};
 export const startpasswortOffen = async () => false;
 export const passwortVergeben = async () => {};

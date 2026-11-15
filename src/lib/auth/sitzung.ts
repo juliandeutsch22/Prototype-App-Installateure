@@ -37,6 +37,10 @@ export function passwortZuruecksetzen(email: string): Promise<void> {
   return pg.passwortZuruecksetzen(email);
 }
 
+export function passwortHilfeAnfragen(eingabe: string): Promise<void> {
+  return pg.passwortHilfeAnfragen(eingabe);
+}
+
 export function passwortSetzen(neu: string, aktuell?: string): Promise<void> {
   return pg.passwortSetzen(neu, aktuell);
 }

@@ -44,6 +44,7 @@ import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
 import ZahlFeld from '@/components/ZahlFeld';
 import KontoUmstellen from './KontoUmstellen';
 import ZweiterFaktorZuruecksetzen from './ZweiterFaktorZuruecksetzen';
+import PasswortBitte from './PasswortBitte';
 import UrlaubsanspruchKarte from './UrlaubsanspruchKarte';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
@@ -317,6 +318,10 @@ export default function BenutzerakteView() {
           </Button>
         )}
       </div>
+      {/* V14: eine Bitte aus der Anmeldemaske — nur die Spitze vergibt Passwörter, im Einblick nicht. */}
+      {isTopLevel(user.role) && !einblick && companyId && (
+        <PasswortBitte companyId={companyId} uid={p.uid} name={p.name} stand={vergeben} />
+      )}
       {vergeben && (
         <div className="mt-4">
           <Hinweiszeile stufe="warn" role="alert">
