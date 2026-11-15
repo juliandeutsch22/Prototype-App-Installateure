@@ -29,7 +29,7 @@ import {
   alleDienstSchluessel, dienstKopfzeilen,
 } from '../_shared/dienstSchluessel.ts';
 import {
-  ANFRAGE_MAX_BYTES, SCHLUESSEL_FORM, ablehnungFehler, annahmeFehler,
+  ANFRAGE_MAX_BYTES, SCHLUESSEL_FORM, ablehnungFehler, annahmeFehler, istKundenZustand,
 } from '../_shared/angebotLink.ts';
 import { mitCors } from '../_eigen/cors.ts';
 
@@ -148,5 +148,7 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   if (daten.zustand === 'zu_viele') {
     return antwort({ zustand: 'zu_viele', grund: 'Dieser Link wurde in der letzten Stunde zu oft aufgerufen. Bitte später erneut versuchen.' }, 429);
   }
+  // Nur, wofür die Seite einen Text hat (A4: dazu „neuere Fassung“) — alles andere wie ungültig.
+  if (!istKundenZustand(daten.zustand)) return UNGUELTIG();
   return antwort(daten, 200);
 }));

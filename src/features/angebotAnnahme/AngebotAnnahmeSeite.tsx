@@ -43,6 +43,7 @@ import type { Company } from '@/types';
 type Seite =
   | { zustand: 'laedt' }
   | { zustand: 'ungueltig' }
+  | { zustand: 'neuere_fassung'; firma: string; angebot: string }
   | { zustand: 'zu_viele'; grund: string }
   | { zustand: 'fehler'; grund: string }
   | MitStand;
@@ -106,6 +107,22 @@ export default function AngebotAnnahmeSeite() {
               <>
                 <PageHeader ort="Angebot" title="Angebot" />
                 <LoadingState label="Das Angebot wird geladen …" />
+              </>
+            ) : seite.zustand === 'neuere_fassung' ? (
+              /*
+                A4: das Büro hat nach diesem Link eine neuere Fassung erstellt.
+                Den überholten Inhalt zeigt die Seite nicht mehr — wer ihn sieht,
+                nimmt ihn für gültig. Sie sagt, warum, und wohin.
+              */
+              <>
+                <PageHeader ort={seite.firma || 'Angebot'} title="Es gibt eine neuere Fassung" stempel={seite.angebot || undefined} />
+                <Card className="recht-blatt">
+                  <p className="pt-6 text-base text-ink">
+                    Zu diesem Angebot{seite.angebot ? ` (${seite.angebot})` : ''} hat {seite.firma || 'der Betrieb'} inzwischen
+                    eine neuere Fassung erstellt. Dieser Link gilt deshalb nicht mehr. Bitte verwenden Sie den Link aus der
+                    jüngsten Nachricht des Betriebs oder wenden Sie sich direkt an ihn.
+                  </p>
+                </Card>
               </>
             ) : seite.zustand === 'ungueltig' ? (
               <>

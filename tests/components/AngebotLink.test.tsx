@@ -322,3 +322,26 @@ describe('Der Abschnitt „Annahme per Link“', () => {
     expect(screen.getByText('Positionen (1)')).toBeInTheDocument();
   });
 });
+
+/*
+  A4 (Durchsicht 15.11.2026): eine neuere Fassung überholt den Link. Das
+  Büro sieht, welche; das Widerrufen bleibt der eigene Handgriff für einen
+  offenen Link.
+*/
+describe('Überholt durch eine neuere Fassung (A4)', () => {
+  it('nennt die neuere Fassung — und bietet kein Widerrufen mehr an', async () => {
+    links = [{ ...LINK, zustand: 'neuere_fassung', neuereFassung: 'AN-2026-0009' }];
+    zeige();
+    expect(await screen.findByText(/Gilt nicht mehr — es gibt die neuere Fassung AN-2026-0009/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Widerrufen' })).toBeNull();
+  });
+
+  it('bleibt gleich: ein offener Link lässt sich von Hand widerrufen', async () => {
+    links = [{ ...LINK }];
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Widerrufen' }));
+    await nutzer.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Widerrufen' }));
+    await waitFor(() => expect(angebotLinkWiderrufen).toHaveBeenCalledWith('l1'));
+  });
+});

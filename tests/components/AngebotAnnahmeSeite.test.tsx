@@ -152,6 +152,20 @@ describe('Die Seite des Annahme-Links', () => {
     expect(anfrage).not.toHaveBeenCalled();
   });
 
+  /*
+    A4 (Durchsicht 15.11.2026): der Link einer überholten Fassung. Vorher
+    stand dort das alte Angebot zum Unterschreiben — jetzt sagt die Seite,
+    dass es eine neuere gibt, ohne den überholten Inhalt und ohne Formular.
+  */
+  it('überholte Fassung: „Es gibt eine neuere Fassung“, ohne Inhalt und ohne Annehmen', async () => {
+    anfrage.mockResolvedValueOnce({ zustand: 'neuere_fassung', firma: 'Perl Installationen', angebot: 'AN-2026-0008' });
+    zeige();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Es gibt eine neuere Fassung' })).toBeInTheDocument();
+    expect(screen.getByText(/Zu diesem Angebot \(AN-2026-0008\) hat Perl Installationen inzwischen eine neuere Fassung erstellt/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /annehmen/i })).toBeNull();
+    expect(screen.queryByText('Link nicht gültig')).toBeNull();
+  });
+
   it('dieselbe Meldung, wenn der Server den Link nicht kennt', async () => {
     anfrage.mockResolvedValueOnce({ zustand: 'ungueltig' });
     zeige();

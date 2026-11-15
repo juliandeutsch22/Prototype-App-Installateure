@@ -991,7 +991,8 @@ export default function QuotesView() {
               <Hinweiszeile>
                 <p>
                   {fassungVon.quoteNumber} bleibt, wie es beim Kunden liegt. Diese Fassung bekommt eine eigene
-                  Nummer und verweist darauf.
+                  Nummer und verweist darauf. Ein offener Annahme-Link von {fassungVon.quoteNumber} gilt danach nicht
+                  mehr — der Kunde liest dort „Es gibt eine neuere Fassung“.
                 </p>
               </Hinweiszeile>
             )}

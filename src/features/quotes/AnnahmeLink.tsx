@@ -36,6 +36,7 @@ const STAND_JE_ZUSTAND: Record<AngebotLinkZustand, Stand> = {
   gegenstandslos: 'storniert',
   // Jemand hat das versendete Angebot an der App vorbei geändert — ansehen.
   geaendert: 'achtung',
+  neuere_fassung: 'storniert',
 };
 
 const ZUSTAND_WORT: Record<AngebotLinkZustand, string> = {
@@ -46,6 +47,7 @@ const ZUSTAND_WORT: Record<AngebotLinkZustand, string> = {
   abgelaufen: 'Abgelaufen',
   gegenstandslos: 'Gilt nicht mehr',
   geaendert: 'Gilt nicht mehr',
+  neuere_fassung: 'Gilt nicht mehr',
 };
 
 export function AnnahmeLinkDialog({

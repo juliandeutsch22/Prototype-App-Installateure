@@ -283,6 +283,8 @@ describe('Interne Hilfsfunktionen', () => {
       'app.angebot_link_kundensicht(public.angebot_links, public.quotes)',
       'app.angebot_link_antwort(public.angebot_links, text)',
       'app.angebot_link_anfrage_zaehlen(uuid)',
+      // A4: welche Fassung einen Link überholt hat.
+      'app.angebot_link_neuere_fassung(public.angebot_links)',
       'app.angebot_fassungen_sperren(uuid)',
       'app.journal_kunde_ueber_link(text, jsonb, jsonb, text[], text, text)',
       // Der Auftragseingang (M02b): Kern des Registers, Kunde, Sperre, Nummer und Auslöser.

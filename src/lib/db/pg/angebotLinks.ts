@@ -19,10 +19,11 @@ import { zeileAlsObjekt } from './felder';
  * - `abgelaufen` — nach dem letzten Gültigkeitstag,
  * - `gegenstandslos` — das Angebot ist nicht mehr versendet (intern
  *   angenommen, abgelehnt, ersetzt) oder eine andere Fassung angenommen,
- * - `geaendert` — das Angebot wurde nach dem Erzeugen geändert.
+ * - `geaendert` — das Angebot wurde nach dem Erzeugen geändert,
+ * - `neuere_fassung` — nach dem Link entstand eine weitere Fassung (A4).
  */
 export type AngebotLinkZustand =
-  | 'offen' | 'angenommen' | 'abgelehnt' | 'widerrufen' | 'abgelaufen' | 'gegenstandslos' | 'geaendert';
+  | 'offen' | 'angenommen' | 'abgelehnt' | 'widerrufen' | 'abgelaufen' | 'gegenstandslos' | 'geaendert' | 'neuere_fassung';
 
 export interface AngebotLink {
   id: string;
@@ -53,6 +54,8 @@ export interface AngebotLink {
   /** Wann jemand aus der Führung das angenommene Angebot geöffnet hat — bis dahin steht es auf der Startseite. */
   gesehenAm?: number;
   zustand: AngebotLinkZustand;
+  /** Die Fassung, die nach dem Link entstand und ihn überholt (A4) — sonst leer. */
+  neuereFassung?: string | null;
 }
 
 /** Was beim Erzeugen zurückkommt — der Schlüssel im Klartext, das einzige Mal. */
