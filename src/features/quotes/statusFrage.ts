@@ -24,6 +24,17 @@ export function hatPosition(q: Pick<Quote, 'positions'>): boolean {
 }
 
 /**
+ * EIN LEERES ANGEBOT WIRD NICHT ANGENOMMEN (A14). Die Datenbank weist es an
+ * jedem Weg ab; die Rückfrage sagt es vorher, statt eine Fehlermeldung zu
+ * zeigen. Für Liste und Angebotsseite.
+ */
+export function leerNichtAnnehmen(q: Pick<Quote, 'quoteNumber' | 'positions'>): string | null {
+  return hatPosition(q)
+    ? null
+    : `${q.quoteNumber} hat noch keine Position — ein leeres Angebot wird nicht angenommen. Erst unter „Bearbeiten“ Positionen eintragen.`;
+}
+
+/**
  * DAS ANGEBOTSDATUM BEIM VERSAND (A12). Es war der Tag des Anlegens und nicht
  * änderbar: ein Entwurf vom 01.10., versendet am 20.10., trug auf dem PDF den
  * 01.10. — und seine 30 Tage Bindefrist waren beim Versand zu zwei Dritteln

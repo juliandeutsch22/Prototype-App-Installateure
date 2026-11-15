@@ -342,6 +342,8 @@ describe('Interne Hilfsfunktionen', () => {
       'app.eingang_termin_mitnehmen()',
       // A13: ein neuer Wartungstag ohne neue Baustelle hat keine Baustelle.
       'app.wartung_bezug_mit_tag()',
+      // A14: angenommen wird nur mit Position.
+      'app.angebot_annahme_pruefen()',
       // Was nur die Function mit dem Dienstschlüssel ruft.
       'public.angebot_link_abruf(text)',
       'public.angebot_link_annehmen(text, text, text, boolean)',

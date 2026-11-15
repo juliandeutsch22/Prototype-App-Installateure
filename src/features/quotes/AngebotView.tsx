@@ -33,7 +33,7 @@ import { fassungsHinweis } from './fassungen';
 import { downloadAngebotPdf } from './angebotPdf';
 import { STAND, standWort } from './stand';
 import { verwerfenFrage, VERWORFEN_MELDUNG, WIEDERHERGESTELLT_MELDUNG } from './verwerfen';
-import { datumAufHeute, hatPosition, statusFrage, type StatusFrage } from './statusFrage';
+import { datumAufHeute, hatPosition, leerNichtAnnehmen, statusFrage, type StatusFrage } from './statusFrage';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import AnnahmeZiel from './AnnahmeZiel';
 import { zielBereit, zielVorgabe, type AnnahmeZielWert } from './annahmeZiel';
@@ -807,12 +807,12 @@ export default function AngebotView() {
       <ConfirmDialog
         open={annehmenFragen}
         title="Angebot annehmen?"
-        message={ziel.art === 'nachtrag'
+        message={leerNichtAnnehmen(q) ?? (ziel.art === 'nachtrag'
           ? `${q.quoteNumber} wird angenommen und kommt als Nachtrag an die gewählte Baustelle.`
-          : `${q.quoteNumber} wird angenommen, und für ${q.customerName} entsteht eine Baustelle mit der nächsten Baustellennummer.`}
+          : `${q.quoteNumber} wird angenommen, und für ${q.customerName} entsteht eine Baustelle mit der nächsten Baustellennummer.`)}
         confirmLabel="Annehmen"
         confirmTone="primary"
-        gesperrt={!zielBereit(ziel)}
+        gesperrt={!hatPosition(q) || !zielBereit(ziel)}
         onCancel={() => setAnnehmenFragen(false)}
         onConfirm={async () => {
           setAnnehmenFragen(false);
@@ -825,7 +825,7 @@ export default function AngebotView() {
             mehr annehmen.
           </p>
         )}
-        {companyId && (
+        {companyId && hatPosition(q) && (
           <AnnahmeZiel companyId={companyId} angebot={q} ziel={ziel} onZiel={setZiel} abrechnung={abrechnung} onAbrechnung={setAbrechnung} />
         )}
       </ConfirmDialog>

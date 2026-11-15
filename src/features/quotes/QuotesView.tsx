@@ -34,7 +34,7 @@ import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke, Zustand } from '@/components/Badge';
 import { STAND } from './stand';
 import { verwerfenFrage, VERWORFEN_MELDUNG } from './verwerfen';
-import { datumAufHeute, statusFrage, type StatusFrage } from './statusFrage';
+import { datumAufHeute, hatPosition, leerNichtAnnehmen, statusFrage, type StatusFrage } from './statusFrage';
 import Icon from '@/components/Icon';
 import IconButton from '@/components/IconButton';
 import RowMenu from '@/components/RowMenu';
@@ -1579,14 +1579,14 @@ export default function QuotesView() {
         title="Angebot annehmen?"
         message={
           annehmenFragen
-            ? ziel.art === 'nachtrag'
+            ? leerNichtAnnehmen(annehmenFragen) ?? (ziel.art === 'nachtrag'
               ? `${annehmenFragen.quoteNumber} wird angenommen und kommt als Nachtrag an die gewählte Baustelle.`
-              : `${annehmenFragen.quoteNumber} wird angenommen, und für ${annehmenFragen.customerName} entsteht eine Baustelle mit der nächsten Baustellennummer.`
+              : `${annehmenFragen.quoteNumber} wird angenommen, und für ${annehmenFragen.customerName} entsteht eine Baustelle mit der nächsten Baustellennummer.`)
             : ''
         }
         confirmLabel="Annehmen"
         confirmTone="primary"
-        gesperrt={!zielBereit(ziel)}
+        gesperrt={(annehmenFragen ? !hatPosition(annehmenFragen) : false) || !zielBereit(ziel)}
         onCancel={() => setAnnehmenFragen(null)}
         onConfirm={async () => {
           const q = annehmenFragen;
@@ -1600,7 +1600,7 @@ export default function QuotesView() {
             ersetzt und lässt sich nicht mehr annehmen.
           </p>
         )}
-        {annehmenFragen && (
+        {annehmenFragen && hatPosition(annehmenFragen) && (
           <AnnahmeZiel companyId={user.companyId} angebot={annehmenFragen} ziel={ziel} onZiel={setZiel} abrechnung={abrechnung} onAbrechnung={setAbrechnung} />
         )}
       </ConfirmDialog>

@@ -24,9 +24,13 @@ beforeAll(async () => {
 afterAll(async () => { clientEinreichen(null); await db?.end(); });
 
 async function angebot() {
-  return (await db.query(`insert into quotes(company_id,quote_number,customer_id,customer_name,address,quote_date,valid_until,status,vat_rate,kalkulierte_stunden,notes)
+  const id = (await db.query(`insert into quotes(company_id,quote_number,customer_id,customer_name,address,quote_date,valid_until,status,vat_rate,kalkulierte_stunden,notes)
     values($1,$2,$3,'Kunde','Anlagenadresse','2026-10-13','2026-11-13','Versendet',0.2,12,'Therme erneuern') returning id`,
   [B, crypto.randomUUID(), kunde])).rows[0].id as string;
+  // Mit einer Position: ein leeres Angebot wird nicht angenommen (A14).
+  await db.query(`insert into quote_lines(company_id,quote_id,position,label,qty,unit,unit_price,netto)
+    values($1,$2,1,'Therme',1,'Stk',1000,1000)`, [B, id]);
+  return id;
 }
 async function wartung() {
   return (await db.query(`insert into wartungen(company_id,customer_id,customer_name,anlage,address,intervall_monate,faellig_am)

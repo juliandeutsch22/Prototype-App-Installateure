@@ -44,6 +44,10 @@ describe('Eingang → Angebot → Baustelle', () => {
     const q = (r as { quote_id: string }).quote_id;
     expect((await admin.from('quotes').select('ansprechpartner_name, ansprechpartner_telefon, dringlichkeit, wunschtermin').eq('id', q).single()).data)
       .toEqual({ ansprechpartner_name: 'Frau Huber', ansprechpartner_telefon: '0664 555', dringlichkeit: 'dringend', wunschtermin: '2026-11-20' });
+    // Der Eingang legt einen leeren Entwurf an; angenommen wird erst mit Position (A14).
+    expect((await chefin.client.rpc('angebot_speichern', {
+      p_id: q, p_kopf: {}, p_positionen: [{ label: 'Montage', qty: 1, unit: 'h', unit_price: 70, netto: 70, ist_arbeitszeit: true }],
+    })).error).toBeNull();
     const { data: nummer } = await chefin.client.rpc('angebot_annehmen', { p_angebot: q, p_praefix: 'AG', p_abrechnung: 'Regie' });
     expect(await baustelle(String(nummer))).toMatchObject({
       contact_name: 'Frau Huber', contact_phone: '0664 555', dringlichkeit: 'dringend', wunschtermin: '2026-11-20',

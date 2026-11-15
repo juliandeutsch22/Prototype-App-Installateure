@@ -59,7 +59,8 @@ describe('Durchstich 3: vom Angebot bis zur Nachkalkulation', () => {
       quoteDate: '2026-06-01',
       validUntil: '2026-07-01',
       status: 'Versendet',
-      positions: [],
+      // Mit einer Position: ein leeres Angebot wird nicht angenommen (A14).
+      positions: [{ label: 'Badsanierung', qty: 1, unit: 'Pauschale', unitPrice: 3000, netto: 3000 }],
       subtotalNetto: 3000,
       totalNetto: 3000,
       totalVat: 600,

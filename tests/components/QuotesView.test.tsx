@@ -192,7 +192,8 @@ function versendetesAngebot() {
     quoteDate: '2026-09-01',
     validUntil: '2026-10-01',
     status: 'Versendet',
-    positions: [],
+    // Mit Position: ein leeres Angebot wird nicht angenommen (A14).
+    positions: [{ label: 'Sanierung', qty: 1, unit: 'Pauschale', unitPrice: 1300, netto: 1300 }],
     subtotalNetto: 1300,
     totalNetto: 1300,
     totalVat: 260,
@@ -370,7 +371,8 @@ describe('Angebot kalkulieren', () => {
       quoteDate: '2026-09-01',
       validUntil: '2026-10-01',
       status: 'Versendet',
-      positions: [],
+      // Mit Position: ein leeres Angebot wird nicht angenommen (A14).
+      positions: [{ label: 'Sanierung', qty: 1, unit: 'Pauschale', unitPrice: 1300, netto: 1300 }],
       subtotalNetto: 1300,
       totalNetto: 1300,
       totalVat: 260,
@@ -1452,6 +1454,40 @@ describe('Angebotszeile am Handy (E72)', () => {
   Vorher legte jedes Annehmen eine neue Baustelle an — auch der Nachtrag zu
   einer laufenden, und auch der Weg, zu dem die Baustellenakte selbst riet.
 */
+/*
+  EIN LEERES ANGEBOT WIRD NICHT ANGENOMMEN (Durchsicht 15.11.2026, A14). Die
+  Datenbank weist es ab; die Rückfrage sagt es vorher und lässt nicht
+  bestätigen. Gegenprobe: vorher stand dort „… wird angenommen“, und
+  „Annehmen“ rief die Datenbank.
+*/
+describe('Leeres Angebot annehmen (A14)', () => {
+  it('die Rückfrage nennt den Grund, und „Annehmen“ ist gesperrt', async () => {
+    versendetesAngebot();
+    angebote[angebote.length - 1].positions = [];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await nutzer.click(screen.getByRole('button', { name: 'Annehmen → Baustelle' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/hat noch keine Position — ein leeres Angebot wird nicht angenommen/)).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Annehmen' })).toBeDisabled();
+    expect(within(dialog).queryByRole('radio', { name: 'Neue Baustelle' })).toBeNull();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Annehmen' }));
+    expect(annahmeRpc).not.toHaveBeenCalledWith('angebot_annehmen_mit_ziel', expect.anything());
+  });
+
+  it('bleibt gleich: mit Position fragt sie wie bisher', async () => {
+    versendetesAngebot();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await nutzer.click(screen.getByRole('button', { name: 'Annehmen → Baustelle' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/AN-2026-0007 wird angenommen/)).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Annehmen' })).toBeEnabled();
+  });
+});
+
 describe('Nachtrag an eine Baustelle (A3)', () => {
   it('beim Annehmen „an Baustelle …“ wählen — die Datenbank bekommt die Baustelle mit', async () => {
     versendetesAngebot();
