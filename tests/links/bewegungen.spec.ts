@@ -476,3 +476,55 @@ test.describe('B8 Platzhalter gehen in Inhalt über', () => {
     expect((await laden(page, 400)).every((b) => b.geist === null && b.inhalt === 1)).toBe(true);
   });
 });
+
+test.describe('B9 Schwebende Hauptaktion', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  const rollen = (page: Page, y: number) => page.evaluate((y) => new Promise<void>((fertig) => {
+    window.scrollTo(0, y);
+    requestAnimationFrame(() => requestAnimationFrame(() => fertig()));
+  }), y);
+  /** Was liegt links und rechts im Knopf oben? Der Knopf selbst — oder etwas darunter. */
+  const treffer = (page: Page) => page.evaluate(() => {
+    const k = document.querySelector<HTMLElement>('.daumen > :not(.daumen-symbol)')!;
+    const r = k.getBoundingClientRect();
+    const an = (x: number) => k.contains(document.elementFromPoint(x, r.top + r.height / 2));
+    return { links: an(r.left + 8), rechts: an(r.right - 24) };
+  });
+
+  test('zieht sich beim Rollen nach unten zum Symbol zusammen und geht beim Hochrollen wieder auf', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto(pfad('/invoices'));
+    const daumen = page.locator('.daumen');
+    await expect(daumen.getByRole('button', { name: 'Neue Rechnung' })).toBeVisible();
+    await page.evaluate(() => { document.querySelector<HTMLElement>('main')!.style.minHeight = '3000px'; });
+    await rollen(page, 600);
+    await expect(daumen).toHaveAttribute('data-eingezogen', '');
+    await page.waitForTimeout(300);
+    expect(await treffer(page)).toEqual({ links: false, rechts: true });
+    // Derselbe Knopf mit demselben Namen — im Kreis bedienbar.
+    await expect(daumen.getByRole('button', { name: 'Neue Rechnung' })).toHaveCount(1);
+    await rollen(page, 300);
+    await expect(daumen).not.toHaveAttribute('data-eingezogen');
+    await page.waitForTimeout(300);
+    expect(await treffer(page)).toEqual({ links: true, rechts: true });
+  });
+
+  test('mit reduzierter Bewegung wechselt der Ausschnitt sofort', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(pfad('/invoices'));
+    await expect(page.locator('.daumen').getByRole('button', { name: 'Neue Rechnung' })).toBeVisible();
+    await page.evaluate(() => { document.querySelector<HTMLElement>('main')!.style.minHeight = '3000px'; });
+    await rollen(page, 600);
+    expect(await treffer(page)).toEqual({ links: false, rechts: true });
+  });
+
+  test('gleich geblieben: am Tablet steht die Aktion im Kopf und zieht sich nie zusammen', async ({ page }) => {
+    await page.setViewportSize({ width: 834, height: 1112 });
+    await page.goto(pfad('/invoices'));
+    await expect(page.getByRole('button', { name: 'Neue Rechnung' })).toBeVisible();
+    await page.evaluate(() => { document.querySelector<HTMLElement>('main')!.style.minHeight = '3000px'; });
+    await rollen(page, 600);
+    await expect(page.locator('.daumen')).not.toHaveAttribute('data-eingezogen');
+  });
+});

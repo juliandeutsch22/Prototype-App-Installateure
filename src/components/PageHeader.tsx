@@ -7,6 +7,8 @@ import { gruppeVon } from '@/app/navigation';
 import { wortfugen } from '@/lib/wortfugen';
 import { mitListenAdresse } from '@/lib/listenAdresse';
 import { useKopfTitel } from './KopfTitel';
+import { aktionSymbol, useEinziehen } from './useEinziehen';
+import Icon from './Icon';
 
 /*
   DIE SKIZZE JE BEREICH (Planlinie, Seitenplan). Zentral nach der Adresse der
@@ -138,6 +140,10 @@ export default function PageHeader({
   const anmelden = useContext(UnterreiterAnmeldung);
   // Vor dem Zeichnen: sonst stünde die Leiste einen Augenblick doppelt.
   useLayoutEffect(() => anmelden?.(), [anmelden]);
+  // Am Handy zieht sich die schwebende Hauptaktion beim Rollen zum Symbol zusammen (B9).
+  const daumen = useRef<HTMLDivElement>(null);
+  const symbol = aktionSymbol(action);
+  useEinziehen(daumen, !!symbol);
   return (
     <div className="plankopf">
       <div className="seitenkopf">
@@ -165,7 +171,12 @@ export default function PageHeader({
             <SeitenHilfeKnopf seite={title} einleitung={hilfe} beschreibung={beschreibung} />
             {mehr}
             {nebenAktion}
-            {action && <div className="daumen">{action}</div>}
+            {action && (
+              <div ref={daumen} className="daumen">
+                {action}
+                {symbol && <span className="daumen-symbol" aria-hidden="true"><Icon name={symbol} size={22} /></span>}
+              </div>
+            )}
           </div>
         </div>
         {subtitle && <div className={beschreibung ? 'seitenkopf-meta seitenkopf-meta-beschreibung' : 'seitenkopf-meta'}>{subtitle}</div>}

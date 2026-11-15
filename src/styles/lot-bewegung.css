@@ -74,6 +74,36 @@
     Bewegung — und die Vorlesehilfe sagt „Gespeichert“ noch an, bevor die
     Leiste verborgen ist); dann ist sie ohne Weg verschwunden.
   */
+  /*
+    B9 — DIE SCHWEBENDE HAUPTAKTION ZIEHT SICH ZUSAMMEN (`useEinziehen`).
+    Nur am Handy und nur, wo sie schwebt: steht ein Timer oder ein Korb
+    über der Navigation, rückt sie in den Seitenkopf (`lot.css`, D2) — dort
+    bleibt sie unberührt. Sichtbar bleibt dann ein 48-px-Kreis rechts mit
+    dem Symbol; die Schaltfläche und ihr Name bleiben dieselben, getippt
+    wird nur noch im Kreis (`clip-path` schneidet auch die Trefferfläche).
+    Der Ausschnitt reicht im Ruhezustand über den Knopf hinaus, damit der
+    Schatten der Insel nicht abgeschnitten wird; eingezogen trägt der
+    Kreis seinen Schatten als `drop-shadow` am Halter.
+  */
+  .daumen-symbol { display: none; }
+  @media (max-width: 759px) {
+    .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen-symbol {
+      display: grid; place-items: center; position: absolute; right: 1rem; bottom: 0.5rem; width: 3rem; height: 3rem;
+      color: var(--brand-fg); pointer-events: none; opacity: 0; transform: scale(0.6);
+      transition: opacity var(--motion-state) var(--ease-response), transform var(--motion-state) var(--ease-response);
+    }
+    .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen > :not(.daumen-symbol) {
+      clip-path: inset(-1.5rem round 2rem);
+      transition: clip-path var(--motion-state) var(--ease-response), color var(--motion-press) var(--ease-response);
+    }
+    .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen[data-eingezogen] > :not(.daumen-symbol) {
+      clip-path: inset(0 0 0 calc(100% - 3rem) round 1.5rem);
+      color: transparent;
+    }
+    .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen[data-eingezogen] .daumen-symbol { opacity: 1; transform: none; }
+    .huelle:not(:has(.timer-leiste-telefon .timer-leiste, .korb)) .daumen[data-eingezogen] { filter: drop-shadow(0 4px 6px #25231f2e); }
+  }
+
   /* B8 — das Abbild des Platzhalters steht still: kein zweites Warten, kein Puls. */
   .platzhalter-geist .skeleton { animation: none; }
 

@@ -25,12 +25,12 @@ describe('B1 Blatt von unten', () => {
   it('ein weggezogenes Blatt läuft ohne Schließanimation weiter', () => {
     expect(css).toContain('.lot-overlay[data-phase=schliesst] > [data-lot-inhalt][data-gezogen] { animation: none; }');
   });
-  it('keine Bewegung dieser Datei ändert Layout: nur transform, Deckkraft und Strich (Haken)', () => {
+  it('keine Bewegung dieser Datei ändert Layout: nur transform, Deckkraft, Strich (Haken), Ausschnitt und Farbe', () => {
     const bilder = [...css.matchAll(/@keyframes [\w-]+ \{([^@]*?)\}\s*(?=@keyframes|\/\*|$)/g)].map((m) => m[1]);
     expect(bilder.length).toBeGreaterThan(4);
     for (const b of bilder) for (const e of b.matchAll(/([a-z-]+)\s*:/g)) expect(['transform', 'opacity', 'stroke-dashoffset']).toContain(e[1]);
     for (const m of css.matchAll(/transition\s*:\s*([^;]+);/g)) {
-      for (const teil of m[1].split(',')) expect(['transform', 'opacity', 'visibility', 'none']).toContain(teil.trim().split(/\s+/)[0]);
+      for (const teil of m[1].split(',')) expect(['transform', 'opacity', 'visibility', 'none', 'clip-path', 'color']).toContain(teil.trim().split(/\s+/)[0]);
     }
   });
 });
