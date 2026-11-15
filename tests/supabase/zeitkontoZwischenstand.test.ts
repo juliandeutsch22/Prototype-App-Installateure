@@ -77,6 +77,31 @@ async function gleichWieApp(): Promise<void> {
   }
 }
 
+/*
+  DIE MONATSBILANZEN (Befund 4): `zeitkonto_monate` nimmt dieselben
+  Zwischenstände. Verglichen Zeile für Zeile mit der Rechnung ohne Speicher,
+  gerundet wie die Funktion — über den ganzen Zeitraum und über ein Jahr
+  mitten darin (dort beginnt der Speicher nicht beim Saldo-Start).
+*/
+async function monateGleich(): Promise<void> {
+  for (const b of bestand.betriebe) {
+    for (const [von, bis] of [['2000-01-01', '2099-12-31'], [vorMonaten(18, 1), vorMonaten(6, 1)]]) {
+      const mit = await alsBuero(b.id, async () => (await db.query(
+        `select user_id, monat, soll_min::text, ist_min::text, gutschrift_min::text, saldo_min::text, pflichttage::text, ohne_buchung
+           from public.zeitkonto_monate($1, $2) order by 1, 2`, [von, bis])).rows);
+      const ohne = (await db.query(
+        `select r.user_id, to_char(r.monat, 'YYYY-MM') as monat, round(r.soll_min, 2)::text as soll_min, round(r.ist_min, 2)::text as ist_min,
+                round(r.gutschrift_min, 2)::text as gutschrift_min, round(r.ist_min + r.gutschrift_min - r.soll_min, 2)::text as saldo_min,
+                r.pflichttage::text as pflichttage, r.ohne_buchung
+           from app.zeitkonto_rechnung(array(select u.id from public.users u where u.company_id = $1),
+                                       date_trunc('month', $2::date)::date, (date_trunc('month', $3::date) + interval '1 month - 1 day')::date) r
+          order by 1, 2`, [b.id, von, bis])).rows;
+      expect(mit).toEqual(ohne);
+      expect(mit.length).toBeGreaterThan(5);
+    }
+  }
+}
+
 const gespeichert = async (uid: string, monat?: string) => Number((await db.query(
   `select count(*) from app.zeitkonto_monatsstand where user_id = $1 and ($2::date is null or monat = date_trunc('month', $2::date))`,
   [uid, monat ?? null],
@@ -155,6 +180,7 @@ describe('Saldo mit Zwischenständen = Saldo der App', () => {
     const ausgetreten = bestand.personen.find((p) => p.name === 'Ausgetreten')!;
     expect(await gespeichert(ausgetreten.uid)).toBe(0);
     await gleichWieApp();
+    await monateGleich();
   });
 
   it('Gegenprobe: gelesen wird, was gespeichert ist — ein verfälschter Monat verfälscht den Saldo', async () => {
@@ -163,7 +189,13 @@ describe('Saldo mit Zwischenständen = Saldo der App', () => {
     await db.query(`update app.zeitkonto_monatsstand set soll_min = soll_min + 600 where user_id = $1 and monat = date_trunc('month', $2::date)`,
       [p.uid, vorMonaten(5)]);
     const falsch = (await salden(p.companyId)).get(p.uid)!.saldo;
+    // Auch die Monatsbilanz liest den gespeicherten Stand (Befund 4).
+    const monatFalsch = await alsBuero(p.companyId, async () => Number((await db.query(
+      `select soll_min from public.zeitkonto_monate($1, $1, $2)`, [vorMonaten(5), p.uid])).rows[0].soll_min));
     await db.query('rollback to savepoint falsch');
+    const monatRichtig = await alsBuero(p.companyId, async () => Number((await db.query(
+      `select soll_min from public.zeitkonto_monate($1, $1, $2)`, [vorMonaten(5), p.uid])).rows[0].soll_min));
+    expect(monatFalsch - monatRichtig).toBe(600);
     expect(falsch).toBeCloseTo((await salden(p.companyId)).get(p.uid)!.saldo - 10, 2);
   });
 
@@ -224,10 +256,13 @@ describe('Jede Änderung einer Eingabe nimmt ihren Monat heraus — der Saldo bl
     await gleichWieApp();
   });
 
-  it('nach erneutem Füllen wieder gespeichert, und weiter gleich', async () => {
+  it('nach erneutem Füllen wieder gespeichert, und weiter gleich — Saldo und Monatsbilanzen', async () => {
+    expect(await gespeichert(bestand.personen[0].uid, vorMonaten(7))).toBe(0);
+    await monateGleich();
     await fuellen();
     expect(await gespeichert(bestand.personen[0].uid, vorMonaten(7))).toBe(1);
     await gleichWieApp();
+    await monateGleich();
   });
 
   it('Arbeitszeit rückwirkend geändert (Verlauf ab einem vergangenen Monat) — alle Monate der Person', async () => {
@@ -266,6 +301,7 @@ describe('Jede Änderung einer Eingabe nimmt ihren Monat heraus — der Saldo bl
     await gleichWieApp();
     await fuellen();
     await gleichWieApp();
+    await monateGleich();
   });
 });
 
@@ -405,6 +441,18 @@ describe('Großer Bestand: gespeichert und gerechnet ergeben dieselben Monate', 
            where (soll_min, ist_min, gutschrift_min, pflichttage, ohne_buchung) <> (0, 0, 0, 0, 0) order by 1, 2`, [ids])).rows;
         expect(mit.length).toBeGreaterThan(2000);
         expect(mit).toEqual(ohne.filter((z) => [z.soll_min, z.ist_min, z.gutschrift_min, z.pflichttage, z.ohne_buchung].some((w) => Number(w) !== 0)));
+        // Ein Zeitraum mitten im Bestand: dieselben Zeilen wie die Rechnung, auch die ohne Wert (Befund 4).
+        const vonBis = [vorMonaten(40, 1), vorMonaten(10, 1)];
+        const teil = (await db.query(`
+          select * from app.zeitkonto_monate_gemerkt($1, date_trunc('month', $2::date)::date,
+                                                     (date_trunc('month', $3::date) + interval '1 month - 1 day')::date) order by 1, 2`,
+        [ids, ...vonBis])).rows;
+        const teilOhne = (await db.query(`
+          select * from app.zeitkonto_rechnung($1, date_trunc('month', $2::date)::date,
+                                               (date_trunc('month', $3::date) + interval '1 month - 1 day')::date) order by 1, 2`,
+        [ids, ...vonBis])).rows;
+        expect(teil).toEqual(teilOhne);
+        expect(teil.length).toBeGreaterThan(400);
       };
       await vergleiche();
       await fuellen([B]);

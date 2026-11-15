@@ -431,7 +431,7 @@ describe('Interne Hilfsfunktionen', () => {
       'app.zeitkonto_stand_person()',
       'app.zeitkonto_stand_betrieb()',
       'app.zeitkonto_zwischenstand_fuellen(text)',
-      'app.zeitkonto_monate_gemerkt(uuid[])',
+      'app.zeitkonto_monate_gemerkt(uuid[], date, date)',
       // Was nur die Function mit dem Dienstschlüssel ruft.
       'public.angebot_link_abruf(text)',
       'public.angebot_link_annehmen(text, text, text, boolean)',
