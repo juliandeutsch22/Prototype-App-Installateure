@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import NeuFormular from '@/components/NeuFormular';
 import type { AppUser, Betriebsurlaub } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { listUsers } from '@/lib/db/users';
@@ -33,7 +34,13 @@ import { LoeschenKnopf } from '@/components/Symbolknoepfe';
  * arbeitet — Notdienst, Lager —, wird beim Anlegen ausgenommen. Er bekommt
  * keinen Urlaub gebucht und gilt in der Planung als verfügbar.
  */
-export default function BetriebsurlaubReiter({ companyId, meinName }: { companyId: string; meinName: string }) {
+export default function BetriebsurlaubReiter({ companyId, meinName, neuOffen = false, onNeuOffen }: {
+  companyId: string;
+  meinName: string;
+  /** Am Handy steht „Betriebsurlaub anlegen“ als Blatt (U2); die Seite öffnet es aus dem Seitenkopf. */
+  neuOffen?: boolean;
+  onNeuOffen?: (offen: boolean) => void;
+}) {
   const toast = useToast();
   const [liste, setListe] = useState<WithId<Betriebsurlaub>[]>([]);
   const [laden, setLaden] = useState(true);
@@ -119,6 +126,7 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
       );
       setAusgenommen([]);
       setStand((n) => n + 1);
+      onNeuOffen?.(false);
     } catch (err) {
       setFehler(grundAus(err, 'Der Betriebsurlaub konnte nicht angelegt werden.'));
     }
@@ -144,9 +152,12 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
       {fehler && <ErrorState message={fehler} />}
       {/* Anlegen links, die Betriebsurlaube daneben, wo beide Platz haben (lot-zeit.css). */}
       <div className="zeit-raster">
-      <Card
+      {/* U2: am Handy ein Blatt von unten, die Seite zeigt zuerst die Betriebsurlaube. */}
+      <NeuFormular
         className="zeit-formularkarte"
-        title="Betriebsurlaub anlegen"
+        titel="Betriebsurlaub anlegen"
+        offen={neuOffen}
+        onSchliessen={() => onNeuOffen?.(false)}
         hint={
           <>
             Der Zeitraum steht im Wochenplan als „Betriebsurlaub“, und wer im Zeitraum einen
@@ -255,7 +266,7 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
             <Button type="submit">Betriebsurlaub anlegen</Button>
           </div>
         </form>
-      </Card>
+      </NeuFormular>
 
       <Card title="Betriebsurlaube" className="zeit-liste">
         {laden ? (

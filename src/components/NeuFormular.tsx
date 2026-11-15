@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import BottomSheet from './BottomSheet';
 import Card from './Card';
+import InfoHint from './InfoHint';
 import { useAmHandy } from '@/lib/breiten';
 
 /**
@@ -35,6 +36,8 @@ export default function NeuFormular({ titel, offen, onSchliessen, children, clas
   if (amHandy) {
     return (
       <BottomSheet open={offen} onClose={onSchliessen} label={titel} titel={titel} auchBreit>
+        {/* Die Erklärung der Karte geht im Blatt nicht verloren: als „i“ am Anfang (im Fenster bleibt es am Platz). */}
+        {hint && <p className="mb-2 text-sm text-ink-muted">Erklärung <InfoHint about={titel}>{hint}</InfoHint></p>}
         {children}
       </BottomSheet>
     );

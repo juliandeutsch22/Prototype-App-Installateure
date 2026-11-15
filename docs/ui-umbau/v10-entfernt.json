@@ -288,5 +288,29 @@
     "text": "Neue Fassung",
     "ziel": "/quotes?neueFassung={…}",
     "grund": "U1/U4: derselbe Weg (M17), aus der schrittListe — als Verweis oder Eintrag im ⋯ mit demselben Ziel."
+  },
+  {
+    "datei": "src/features/users/UserMgmtView.tsx",
+    "art": "blatt",
+    "text": "Neuen Benutzer anlegen",
+    "grund": "U2 (Durchsicht 15.11.2026): dasselbe Blatt über NeuFormular — am Handy ein Blatt von unten, ab dem Tablet wie bisher eine Karte über der Liste."
+  },
+  {
+    "datei": "src/features/vacations/SonderurlaubView.tsx",
+    "art": "blatt",
+    "text": "Antrag stellen",
+    "grund": "U2: dasselbe Blatt über NeuFormular — am Handy ein Blatt von unten (Hauptaktion „Antrag stellen“), ab dem Tablet wie bisher neben den Anträgen."
+  },
+  {
+    "datei": "src/features/vacations/VacationsView.tsx",
+    "art": "blatt",
+    "text": "Krank melden|Antrag stellen",
+    "grund": "U2: dasselbe Blatt über NeuFormular — am Handy ein Blatt von unten (Hauptaktion „Antrag stellen“), ab dem Tablet wie bisher neben „Meine Anträge“."
+  },
+  {
+    "datei": "src/features/vacations/BetriebsurlaubReiter.tsx",
+    "art": "blatt",
+    "text": "Betriebsurlaub anlegen",
+    "grund": "U2 (Durchsicht 15.11.2026): dasselbe Blatt über NeuFormular — am Handy ein Blatt von unten (Hauptaktion „Betriebsurlaub anlegen“ im Seitenkopf), ab dem Tablet wie bisher neben der Liste."
   }
 ]

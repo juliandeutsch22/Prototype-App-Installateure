@@ -224,3 +224,72 @@ describe('U4 · im Fenster eine Hauptaktion, höchstens eine zweite, der Rest im
   });
 });
 
+/* ── U2: „Neu …“ am Handy als Blatt ─────────────────────────────────────── */
+
+/** Ein Blatt, das etwas Neues anlegt — am Titel erkannt. */
+const NEU_TITEL = /(anlegen|Antrag stellen|Krank melden|^Neue[rns]? |Neue[rns]? Eintrag)/;
+
+/**
+ * Begründete Ausnahmen (CLAUDE.md, Grundsatz 6): die Rechnung entsteht als
+ * Arbeitsbereich aus mehreren Blättern mit Positionen, Vorschau und
+ * Rückfragen — in einem Blatt von unten stünden Karten in einer Karte und
+ * Fenster im Fenster (fachlich: Rechnungsstellung mit Vorschau). Die Seite
+ * zeigt zuerst den Bestand; „Neue Rechnung“ öffnet den Bereich erst auf
+ * Wunsch.
+ */
+const NEU_AUSNAHMEN: Record<string, string> = {
+  'src/features/invoices/InvoicesView.tsx': 'Rechnung als Arbeitsbereich mit Vorschau (fachlich)',
+  // Ebenso das Angebot: Positionen, Katalogsuche, Titel- und Textzeilen und Summen, mit eigener Adresse (`?bearbeiten=`, `?neueFassung=`).
+  'src/features/quotes/QuotesView.tsx': 'Angebot als Arbeitsbereich mit Positionen und Katalog (fachlich)',
+};
+
+function titelTexte(e: Element): string[] {
+  const t = attribut(e, 'title');
+  if (!t || t === true) return [];
+  const texte: string[] = [];
+  const gehen = (n: ts.Node) => {
+    if (ts.isStringLiteralLike(n)) texte.push(n.text);
+    if (ts.isTemplateExpression(n)) texte.push(n.head.text);
+    ts.forEachChild(n, gehen);
+  };
+  gehen(t);
+  return texte;
+}
+
+/** Ist die Stelle nur ab dem Tablet zu sehen (`!amHandy && …`) oder schon ein Fenster? */
+function amHandyImBlatt(e: Element): boolean {
+  for (let n: ts.Node | undefined = e.parent; n; n = n.parent) {
+    if (istElement(n) && (FENSTER_BAUSTEINE.has(tagName(n)) || tagName(n) === 'ConfirmDialog')) return true;
+    if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken && /^!\s*amHandy$/.test(n.left.getText())) return true;
+  }
+  return false;
+}
+
+export function neuAufDerSeite(datei: string, text?: string): string[] {
+  if (NEU_AUSNAHMEN[datei]) return [];
+  return elemente(datei, text).filter((e) => tagName(e) === 'Card')
+    .filter((e) => titelTexte(e).some((t) => NEU_TITEL.test(t)))
+    .filter((e) => !amHandyImBlatt(e))
+    .map((e) => `${ort(e)}: ${titelTexte(e).join(' | ')}`);
+}
+
+describe('U2 · „Neu …“ öffnet am Handy ein Blatt von unten', () => {
+  it('kein Neu-Formular als Blatt offen auf der Seite (außer begründet)', () => {
+    expect(tsxDateien().flatMap((d) => neuAufDerSeite(d))).toEqual([]);
+  }, 60_000);
+
+  it('die Ausnahme gibt es noch', () => {
+    for (const d of Object.keys(NEU_AUSNAHMEN)) {
+      expect(elemente(d).some((e) => tagName(e) === 'Card' && titelTexte(e).some((t) => NEU_TITEL.test(t)))).toBe(true);
+    }
+  });
+
+  it('Gegenprobe: der alte Urlaubsantrag und „Neuen Benutzer anlegen“ fielen auf, die Zeiterfassung nicht', () => {
+    const urlaub = `export const X = () => <div><Card className="f" title={art === 'Krank' ? 'Krank melden' : 'Antrag stellen'}><form /></Card><Card title="Meine Anträge" /></div>;`;
+    expect(neuAufDerSeite('alt.tsx', urlaub)).toHaveLength(1);
+    const benutzer = `export const X = () => <div>{formOffen && (<Card title="Neuen Benutzer anlegen"><form /></Card>)}</div>;`;
+    expect(neuAufDerSeite('alt.tsx', benutzer)).toHaveLength(1);
+    const zeit = `export const X = () => <div>{!amHandy && (<Card title={editing ? 'Eintrag bearbeiten' : 'Neuen Eintrag erfassen'} />)}</div>;`;
+    expect(neuAufDerSeite('neu.tsx', zeit)).toEqual([]);
+  });
+});

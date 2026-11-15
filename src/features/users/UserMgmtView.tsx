@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import NeuFormular from '@/components/NeuFormular';
+import { useAmHandy } from '@/lib/breiten';
 import { Link, useSearchParams } from 'react-router-dom';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { useAuth } from '@/app/AuthContext';
@@ -71,6 +73,8 @@ export default function UserMgmtView() {
     wird er dauernd. Dasselbe Muster wie in `WartungenView`.
   */
   const [formOffen, setFormOffen] = useState(false);
+  // U2: am Handy steht das Anlegeformular im Blatt, nicht über der Liste.
+  const amHandy = useAmHandy();
   const [showDetails, setShowDetails] = useState(false);
   /*
     TRITT DIE PERSON EIN, ODER IST SIE SCHON DA?
@@ -298,6 +302,14 @@ export default function UserMgmtView() {
 
   if (!user) return null;
 
+  /** Formular zu, Entwurf weg — derselbe Weg für „Abbrechen“ und das Schließen des Blatts. */
+  function formSchliessen() {
+    setFormOffen(false);
+    setForm(leererEntwurf());
+    setAnmeldung('email');
+    setBenutzername('');
+  }
+
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
@@ -382,8 +394,14 @@ export default function UserMgmtView() {
       */}
       {error && <ErrorState message={error} />}
 
-      {formOffen && (
-      <Card title="Neuen Benutzer anlegen">
+      {/*
+        „BENUTZER ANLEGEN“ AM HANDY ALS BLATT VON UNTEN (U2, Durchsicht
+        15.11.2026): vorher klappte das Formular über der Liste auf, und die
+        Belegschaft rutschte eine Bildschirmhöhe nach unten. Ab dem Tablet
+        steht es wie bisher als Blatt über der Liste.
+      */}
+      {(formOffen || amHandy) && (
+      <NeuFormular titel="Neuen Benutzer anlegen" offen={formOffen} onSchliessen={formSchliessen}>
         {/* Formular der Linie: einspaltig geführt, höchstens 560 px (Regel 9). */}
         <form onSubmit={submit} className="formular space-y-4">
           <FormGrid>
@@ -715,12 +733,7 @@ export default function UserMgmtView() {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => {
-                setFormOffen(false);
-                setForm(leererEntwurf());
-                setAnmeldung('email');
-                setBenutzername('');
-              }}
+              onClick={formSchliessen}
               className="w-full md:w-auto"
             >
               Abbrechen
@@ -730,7 +743,7 @@ export default function UserMgmtView() {
             </Button>
           </div>
         </form>
-      </Card>
+      </NeuFormular>
       )}
 
       {/* Die Zahl erst mit der Liste — vorher stand „Benutzer (0)“ (Analyse 10.10.2026). */}
