@@ -3791,13 +3791,19 @@ export default function InvoicesView() {
         <p>{pdfNachholen.geklaert
           ? 'Die unterbrochene Erstellung ist geklärt: die Rechnung ist gespeichert. Es wird keine neue Rechnung benötigt.'
           : 'Die Rechnung ist gespeichert. Nur die PDF-Ausgabe ist fehlgeschlagen. Es wird keine neue Rechnung benötigt.'}</p>
-        <Button variant="secondary" loading={pdfLaedt} onClick={async () => {
-          if (pdfLaedt) return;
-          setPdfLaedt(true);
-          try { await pdfNachholen.erneut(); setPdfNachholen(null); toast.success('PDF erneut erzeugt'); }
-          catch { toast.error('Die PDF-Ausgabe ist weiterhin nicht möglich. Die Rechnung bleibt gespeichert.'); }
-          finally { setPdfLaedt(false); }
-        }}>{pdfNachholen.geklaert ? 'PDF laden' : 'PDF erneut laden'}</Button>
+        {(() => {
+          const laden = async () => {
+            if (pdfLaedt) return;
+            setPdfLaedt(true);
+            try { await pdfNachholen.erneut(); setPdfNachholen(null); toast.success(pdfNachholen.geklaert ? 'PDF erzeugt' : 'PDF erneut erzeugt'); }
+            catch { toast.error('Die PDF-Ausgabe ist weiterhin nicht möglich. Die Rechnung bleibt gespeichert.'); }
+            finally { setPdfLaedt(false); }
+          };
+          // Nach der Klärung (G2) gab es noch kein PDF — „erneut“ wäre falsch.
+          return pdfNachholen.geklaert
+            ? <Button variant="secondary" loading={pdfLaedt} onClick={laden}>PDF laden</Button>
+            : <Button variant="secondary" loading={pdfLaedt} onClick={laden}>PDF erneut laden</Button>;
+        })()}
       </Hinweiszeile>}
 
       {umbuchungAngebot && <Hinweiszeile role="status">
