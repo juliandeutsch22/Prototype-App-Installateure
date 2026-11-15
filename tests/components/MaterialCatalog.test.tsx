@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { handlung } from './handlung';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
@@ -120,7 +121,7 @@ function zeige() {
   Bearbeiten. Geprüft wird weiter dasselbe Formular.
 */
 async function neuesMaterial(nutzer: ReturnType<typeof userEvent.setup> = userEvent.setup()) {
-  await nutzer.click(await screen.findByRole('button', { name: 'Neues Material' }));
+  await nutzer.click(await waitFor(() => handlung({ name: 'Neues Material' })));
 }
 
 async function ersterArtikel(nutzer: ReturnType<typeof userEvent.setup>) {
@@ -166,7 +167,7 @@ describe('Der Einkaufspreis', () => {
     await neuesMaterial(nutzer);
     await nutzer.type(await screen.findByLabelText(/Bezeichnung/), 'Eckventil');
     await nutzer.type(screen.getByLabelText(/Einkaufspreis/), '3.5');
-    await nutzer.click(screen.getByRole('button', { name: 'Material anlegen' }));
+    await nutzer.click(handlung({ name: 'Material anlegen' }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalled());
     expect(anlegen.mock.calls[0][1]).toMatchObject({ name: 'Eckventil', einkaufspreis: 3.5 });
@@ -178,7 +179,7 @@ describe('Der Einkaufspreis', () => {
 
     await neuesMaterial(nutzer);
     await nutzer.type(await screen.findByLabelText(/Bezeichnung/), 'Eckventil');
-    await nutzer.click(screen.getByRole('button', { name: 'Material anlegen' }));
+    await nutzer.click(handlung({ name: 'Material anlegen' }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalled());
     const daten = anlegen.mock.calls[0][1] as Record<string, unknown>;
@@ -199,7 +200,7 @@ describe('Der Einkaufspreis', () => {
 
     await ersterArtikel(nutzer);
     await nutzer.type(screen.getByLabelText(/Kategorie/), 'Sanitär');
-    await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await nutzer.click(handlung({ name: 'Änderungen speichern' }));
 
     await waitFor(() => expect(aendern).toHaveBeenCalled());
     const daten = aendern.mock.calls[0][1] as Record<string, unknown>;
@@ -222,7 +223,7 @@ describe('Der Einkaufspreis beim Bearbeiten durch die Geschäftsführung (B1)', 
     zeige();
     await ersterArtikel(nutzer);
     await waitFor(() => expect((screen.getByLabelText(/Einkaufspreis/) as HTMLInputElement).value).toBe('3,50'));
-    await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await nutzer.click(handlung({ name: 'Änderungen speichern' }));
     await waitFor(() => expect(aendern).toHaveBeenCalled());
     expect(aendern.mock.calls[0][1]).toMatchObject({ einkaufspreis: 3.5 });
   });
@@ -235,7 +236,7 @@ describe('Der Einkaufspreis beim Bearbeiten durch die Geschäftsführung (B1)', 
     zeige();
     await ersterArtikel(nutzer);
     expect(screen.getByLabelText(/Einkaufspreis/)).toBeDisabled();
-    await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await nutzer.click(handlung({ name: 'Änderungen speichern' }));
     await waitFor(() => expect(aendern).toHaveBeenCalled());
     expect(Object.keys(aendern.mock.calls[0][1] as Record<string, unknown>)).not.toContain('einkaufspreis');
   });
@@ -248,7 +249,7 @@ describe('Der Einkaufspreis beim Bearbeiten durch die Geschäftsführung (B1)', 
     zeige();
     await ersterArtikel(nutzer);
     expect(await screen.findByText(/konnte nicht geladen werden/)).toBeInTheDocument();
-    await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await nutzer.click(handlung({ name: 'Änderungen speichern' }));
     await waitFor(() => expect(aendern).toHaveBeenCalled());
     expect(Object.keys(aendern.mock.calls[0][1] as Record<string, unknown>)).not.toContain('einkaufspreis');
   });
@@ -268,7 +269,7 @@ describe('Der Bestand beim Bearbeiten', () => {
 
     await ersterArtikel(nutzer);
     await nutzer.type(screen.getByLabelText(/Kategorie/), 'Sanitär');
-    await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await nutzer.click(handlung({ name: 'Änderungen speichern' }));
 
     await waitFor(() => expect(aendern).toHaveBeenCalled());
     const daten = aendern.mock.calls[0][1] as Record<string, unknown>;
@@ -295,7 +296,7 @@ describe('Der Bestand beim Bearbeiten', () => {
     zeige();
     await neuesMaterial(nutzer);
     await nutzer.type(await screen.findByLabelText(/Bezeichnung/), 'Neu');
-    await nutzer.click(screen.getByRole('button', { name: 'Material anlegen' }));
+    await nutzer.click(handlung({ name: 'Material anlegen' }));
     await waitFor(() => expect(anlegen).toHaveBeenCalled());
     expect(anlegen.mock.calls[0][1]).toMatchObject({ name: 'Neu', stock: 0 });
   });
@@ -330,7 +331,7 @@ describe('Materialkatalog — seitenweise vom Server (19.10.2026)', () => {
     await screen.findByText('Artikel 00');
     expect(screen.queryByText('Artikel 20')).not.toBeInTheDocument();
     expect(katalogSeite).toHaveBeenLastCalledWith('perl', '', 20);
-    await nutzer.click(screen.getByRole('button', { name: 'und 5 weitere anzeigen' }));
+    await nutzer.click(handlung({ name: 'und 5 weitere anzeigen' }));
     expect(await screen.findByText('Artikel 24')).toBeInTheDocument();
     expect(katalogSeite).toHaveBeenLastCalledWith('perl', '', 40);
   });
@@ -433,7 +434,7 @@ describe('Materialkatalog — seitenweise vom Server (19.10.2026)', () => {
         <MaterialCatalog zuBearbeiten={fern} />
       </ToastProvider>,
     );
-    await nutzer.click(await screen.findByRole('button', { name: 'Material löschen …' }));
+    await nutzer.click(await waitFor(() => handlung({ name: 'Material löschen …' })));
     expect(await screen.findByText(/Zylinder fern/)).toBeInTheDocument();
   });
 });
@@ -472,7 +473,7 @@ describe('Im Lager führen', () => {
     await nutzer.click(screen.getByLabelText('Im Lager führen'));
     expect(screen.queryByLabelText(/Anfangsbestand/)).toBeNull();
     expect(screen.queryByLabelText(/Mindestmenge/)).toBeNull();
-    await nutzer.click(screen.getByRole('button', { name: 'Material anlegen' }));
+    await nutzer.click(handlung({ name: 'Material anlegen' }));
     await waitFor(() => expect(anlegen).toHaveBeenCalled());
     expect(anlegen.mock.calls[0][1]).toMatchObject({ name: 'Kugelhahn', stock: 0, lagerartikel: false, mindestmenge: null });
   });
@@ -486,7 +487,7 @@ describe('Im Lager führen', () => {
     await nutzer.type(screen.getByLabelText(/Anfangsbestand/), '40');
     await nutzer.type(screen.getByLabelText(/Mindestmenge/), '10');
     await nutzer.type(screen.getByLabelText(/Warengruppe/), '1201');
-    await nutzer.click(screen.getByRole('button', { name: 'Material anlegen' }));
+    await nutzer.click(handlung({ name: 'Material anlegen' }));
     await waitFor(() => expect(anlegen).toHaveBeenCalled());
     expect(anlegen.mock.calls[0][1]).toMatchObject({
       stock: 40, lagerartikel: true, mindestmenge: 10, warengruppe: '1201',
@@ -524,7 +525,7 @@ describe('Verkaufspreis aus Einkauf plus Aufschlag (M31)', () => {
     await ersterArtikel(nutzer);
     expect(await screen.findByText(/Vorschlag: € 14,00 \(Einkauf \+ 40 %\)/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Verkaufspreis/)).toHaveValue('');
-    await nutzer.click(screen.getByRole('button', { name: 'Übernehmen' }));
+    await nutzer.click(handlung({ name: 'Übernehmen' }));
     expect(screen.getByLabelText(/Verkaufspreis/)).toHaveValue('14,00');
   });
 
@@ -544,13 +545,13 @@ describe('Das Formular im Seitenfenster (Linie „Lot“, Regel 8)', () => {
   it('steht erst nach „Neues Material“ da — und schliesst nach dem Anlegen', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    await screen.findByRole('button', { name: 'Neues Material' });
+    await waitFor(() => handlung({ name: 'Neues Material' }));
     // Gegenprobe: ohne Klick kein Formular auf der Seite.
     expect(screen.queryByLabelText(/Bezeichnung/)).toBeNull();
     await neuesMaterial(nutzer);
     const fenster = screen.getByRole('dialog', { name: 'Neues Material' });
     await nutzer.type(within(fenster).getByLabelText(/Bezeichnung/), 'Muffe');
-    await nutzer.click(within(fenster).getByRole('button', { name: 'Material anlegen' }));
+    await nutzer.click(handlung({ name: 'Material anlegen' }, fenster));
     await waitFor(() => expect(anlegen).toHaveBeenCalled());
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Neues Material' })).toBeNull());
   });
@@ -562,12 +563,12 @@ describe('Das Formular im Seitenfenster (Linie „Lot“, Regel 8)', () => {
     const nutzer = userEvent.setup();
     zeige();
     await ersterArtikel(nutzer);
-    await nutzer.click(within(screen.getByRole('dialog', { name: 'Material bearbeiten' })).getByRole('button', { name: /Material löschen/ }));
+    await nutzer.click(handlung({ name: /Material löschen/ }, screen.getByRole('dialog', { name: 'Material bearbeiten' })));
     const frage = await screen.findByRole('dialog', { name: 'Material löschen?' });
     expect(loeschen).not.toHaveBeenCalled();
     // Bleibt gleich (M1): hängt nichts daran, ist es dieselbe Rückfrage mit „Löschen“ wie bisher.
-    await waitFor(() => expect(within(frage).getByRole('button', { name: 'Löschen' })).toBeEnabled());
-    await nutzer.click(within(frage).getByRole('button', { name: 'Löschen' }));
+    await waitFor(() => expect(handlung({ name: 'Löschen' }, frage)).toBeEnabled());
+    await nutzer.click(handlung({ name: 'Löschen' }, frage));
     await waitFor(() => expect(loeschen).toHaveBeenCalledWith('m1'));
   });
 });
@@ -586,7 +587,7 @@ describe('Löschen oder auslaufen lassen (M1)', () => {
 
   async function loeschenAntippen(nutzer: ReturnType<typeof userEvent.setup>) {
     await ersterArtikel(nutzer);
-    await nutzer.click(within(screen.getByRole('dialog', { name: 'Material bearbeiten' })).getByRole('button', { name: /Material löschen/ }));
+    await nutzer.click(handlung({ name: /Material löschen/ }, screen.getByRole('dialog', { name: 'Material bearbeiten' })));
   }
 
   it('nennt, was im Weg steht, und bietet „Auslaufen lassen“ statt „Löschen“', async () => {
@@ -611,7 +612,7 @@ describe('Löschen oder auslaufen lassen (M1)', () => {
     expect(within(frage).queryByText(/Bereits erfasste Bestellungen bleiben erhalten/)).toBeNull();
     expect(within(frage).queryByRole('button', { name: 'Löschen' })).toBeNull();
 
-    await nutzer.click(within(frage).getByRole('button', { name: 'Auslaufen lassen' }));
+    await nutzer.click(handlung({ name: 'Auslaufen lassen' }, frage));
     await waitFor(() => expect(auslaufen).toHaveBeenCalledWith('m1', true));
     expect(loeschen).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Auslaufen lassen statt löschen?' })).toBeNull());
@@ -627,7 +628,7 @@ describe('Löschen oder auslaufen lassen (M1)', () => {
     const frage = await screen.findByRole('dialog', { name: 'Material löschen?' });
     expect(await within(frage).findByText(/Daran hängt nichts/)).toBeInTheDocument();
     expect(verwendung).toHaveBeenCalledWith('m1');
-    await nutzer.click(within(frage).getByRole('button', { name: 'Löschen' }));
+    await nutzer.click(handlung({ name: 'Löschen' }, frage));
     await waitFor(() => expect(loeschen).toHaveBeenCalledWith('m1'));
     expect(auslaufen).not.toHaveBeenCalled();
   });
@@ -646,7 +647,7 @@ describe('Löschen oder auslaufen lassen (M1)', () => {
     expect(within(frage).getByText(/ist schon ausgelaufen/)).toBeInTheDocument();
     expect(within(frage).queryByRole('button', { name: 'Löschen' })).toBeNull();
     expect(within(frage).queryByRole('button', { name: 'Auslaufen lassen' })).toBeNull();
-    await nutzer.click(within(frage).getByRole('button', { name: 'Schließen' }));
+    await nutzer.click(handlung({ name: 'Schließen' }, frage));
     expect(loeschen).not.toHaveBeenCalled();
     expect(auslaufen).not.toHaveBeenCalled();
   });
@@ -659,10 +660,10 @@ describe('Löschen oder auslaufen lassen (M1)', () => {
     zeige();
     await loeschenAntippen(nutzer);
     const frage = await screen.findByRole('dialog', { name: 'Material löschen?' });
-    expect(within(frage).getByRole('button', { name: 'Löschen' })).toBeDisabled();
+    expect(handlung({ name: 'Löschen' }, frage)).toBeDisabled();
     expect(within(frage).getByText(/wird geprüft/)).toBeInTheDocument();
     antworten({ imWeg: [], ausgelaufen: false, vonHand: false });
-    await waitFor(() => expect(within(frage).getByRole('button', { name: 'Löschen' })).toBeEnabled());
+    await waitFor(() => expect(handlung({ name: 'Löschen' }, frage)).toBeEnabled());
   });
 
   it('ließ sich nichts prüfen: Löschen bleibt möglich, die Datenbank prüft selbst', async () => {
@@ -680,8 +681,8 @@ describe('Löschen oder auslaufen lassen (M1)', () => {
     await loeschenAntippen(nutzer);
     const frage = await screen.findByRole('dialog', { name: 'Material löschen?' });
     expect(await within(frage).findByText(/ließ sich nicht prüfen: .*Keine Verbindung zum Server/)).toBeInTheDocument();
-    expect(within(frage).getByRole('button', { name: 'Löschen' })).toBeEnabled();
-    await nutzer.click(within(frage).getByRole('button', { name: 'Löschen' }));
+    expect(handlung({ name: 'Löschen' }, frage)).toBeEnabled();
+    await nutzer.click(handlung({ name: 'Löschen' }, frage));
     await waitFor(() => expect(loeschen).toHaveBeenCalledWith('m1'));
   });
 
@@ -692,7 +693,7 @@ describe('Löschen oder auslaufen lassen (M1)', () => {
     await ersterArtikel(nutzer);
     const fenster = screen.getByRole('dialog', { name: 'Material bearbeiten' });
     expect(within(fenster).getByText(/Vom Betrieb auslaufen gelassen/)).toBeInTheDocument();
-    await nutzer.click(within(fenster).getByRole('button', { name: 'Wieder aufnehmen' }));
+    await nutzer.click(handlung({ name: 'Wieder aufnehmen' }, fenster));
     await waitFor(() => expect(auslaufen).toHaveBeenCalledWith('m1', false));
     // Danach steht der Hinweis nicht mehr da — der Artikel wird wieder angeboten.
     await waitFor(() => expect(within(fenster).queryByRole('button', { name: 'Wieder aufnehmen' })).toBeNull());
@@ -828,7 +829,7 @@ describe('Seltenes unter „Weitere Angaben“ (E72)', () => {
     await nutzer.type(await screen.findByLabelText(/Bezeichnung/), 'Fitting');
     await nutzer.click(screen.getByText('Weitere Angaben'));
     await nutzer.type(screen.getByLabelText(/Warengruppe/), '1201');
-    await nutzer.click(screen.getByRole('button', { name: 'Material anlegen' }));
+    await nutzer.click(handlung({ name: 'Material anlegen' }));
     await waitFor(() => expect(anlegen).toHaveBeenCalled());
     expect(anlegen.mock.calls[0][1]).toMatchObject({ name: 'Fitting', warengruppe: '1201' });
   });
@@ -847,13 +848,13 @@ describe('V10 Katalog — Fehler ist nicht leer', () => {
     expect(await screen.findByText(/Keine Verbindung\./)).toBeInTheDocument();
     expect(screen.queryByText('Noch kein Material im Katalog')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Erstes Material anlegen' })).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
+    await userEvent.click(handlung({ name: /Erneut versuchen/ }));
     expect(await screen.findByText('Kupferrohr 15mm')).toBeInTheDocument();
   });
 
   it('gleich geblieben: ein leerer Katalog bietet das erste Material an', async () => {
     zeige();
     expect(await screen.findByText('Noch kein Material im Katalog')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Erstes Material anlegen' })).toBeInTheDocument();
+    expect(handlung({ name: 'Erstes Material anlegen' })).toBeInTheDocument();
   });
 });

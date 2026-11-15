@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { handlung } from './handlung';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -216,7 +217,7 @@ async function anstehendeZeilen() {
     Auswahl steht; „Steht an“ ist die Vorgabe.
   */
   const wahl = screen.getByRole('group', { name: 'Wartungen zeigen' });
-  expect(within(wahl).getByRole('button', { name: /^Steht an( \d+)?$/ })).toHaveAttribute('aria-pressed', 'true');
+  expect(handlung({ name: /^Steht an( \d+)?$/ }, wahl)).toHaveAttribute('aria-pressed', 'true');
   const karte = wahl.closest('section');
   if (!karte) throw new Error('Liste „Steht an“ nicht gefunden');
   return within(karte as HTMLElement);
@@ -233,7 +234,7 @@ async function geladen() {
 
 /** Zur Ansicht „Alle“ wechseln — der ganze Bestand. */
 async function alleZeigen(nutzer: ReturnType<typeof userEvent.setup>) {
-  await nutzer.click(screen.getByRole('button', { name: 'Alle' }));
+  await nutzer.click(handlung({ name: 'Alle' }));
 }
 
 describe('Wartungen', () => {
@@ -267,7 +268,7 @@ describe('Wartungen', () => {
     const an = await anstehendeZeilen();
 
     const zeile = an.getByText(/Bäckerei Stein/).closest('li');
-    await nutzer.click(within(zeile as HTMLElement).getByRole('button', { name: 'Erledigt' }));
+    await nutzer.click(handlung({ name: 'Erledigt' }, zeile as HTMLElement));
 
     /*
       Der Dialog nennt den künftigen Termin, BEVOR jemand bestätigt. Wer eine
@@ -276,7 +277,7 @@ describe('Wartungen', () => {
     */
     expect(screen.getByText(/Nächster Termin: 01\.06\.2027/)).toBeTruthy();
 
-    await nutzer.click(screen.getByRole('button', { name: 'Eintragen' }));
+    await nutzer.click(handlung({ name: 'Eintragen' }));
 
     expect(wartungErledigt).toHaveBeenCalledWith('w1', {
       erledigtAm: HEUTE,
@@ -290,13 +291,13 @@ describe('Wartungen', () => {
     zeichne();
     const an = await anstehendeZeilen();
     const zeile = an.getByText(/Bäckerei Stein/).closest('li');
-    await nutzer.click(within(zeile as HTMLElement).getByRole('button', { name: 'Erledigt' }));
+    await nutzer.click(handlung({ name: 'Erledigt' }, zeile as HTMLElement));
     const tag = screen.getByLabelText('Gewartet am');
     expect(tag).toHaveAttribute('max', HEUTE);
     await nutzer.clear(tag);
     await nutzer.type(tag, '2026-06-02');
     expect(screen.getByText(/Der Tag liegt in der Zukunft/)).toBeTruthy();
-    await nutzer.click(screen.getByRole('button', { name: 'Eintragen' }));
+    await nutzer.click(handlung({ name: 'Eintragen' }));
     expect(wartungErledigt).not.toHaveBeenCalled();
   });
 
@@ -306,13 +307,13 @@ describe('Wartungen', () => {
     const an = await anstehendeZeilen();
 
     const zeile = an.getByText(/Bäckerei Stein/).closest('li');
-    await nutzer.click(within(zeile as HTMLElement).getByRole('button', { name: 'Erledigt' }));
+    await nutzer.click(handlung({ name: 'Erledigt' }, zeile as HTMLElement));
 
     await nutzer.selectOptions(screen.getByLabelText('Intervall ab jetzt'), '24');
     // Zwei Jahre, nicht eines — und die Vorschau sagt es vor dem Bestätigen.
     expect(screen.getByText(/Nächster Termin: 01\.06\.2028/)).toBeTruthy();
 
-    await nutzer.click(screen.getByRole('button', { name: 'Eintragen' }));
+    await nutzer.click(handlung({ name: 'Eintragen' }));
     expect(wartungErledigt).toHaveBeenCalledWith(
       'w1',
       expect.objectContaining({ intervallMonate: 24 }),
@@ -326,8 +327,8 @@ describe('Wartungen', () => {
     expect(listWartungen).toHaveBeenCalledTimes(1);
 
     const zeile = an.getByText(/Bäckerei Stein/).closest('li');
-    await nutzer.click(within(zeile as HTMLElement).getByRole('button', { name: 'Erledigt' }));
-    await nutzer.click(screen.getByRole('button', { name: 'Eintragen' }));
+    await nutzer.click(handlung({ name: 'Erledigt' }, zeile as HTMLElement));
+    await nutzer.click(handlung({ name: 'Eintragen' }));
 
     expect(listWartungen).toHaveBeenCalledTimes(2);
   });
@@ -369,7 +370,7 @@ describe('Wartungen', () => {
     await nutzer.click(screen.getAllByRole('button', { name: 'Neue Wartung' })[0]);
     await kundeWaehlen(nutzer, 'Hausverwaltung Nord');
     await nutzer.type(screen.getByLabelText('Anlage'), 'Therme im Stiegenhaus');
-    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    await nutzer.click(handlung({ name: 'Speichern' }));
 
     expect(createWartung).not.toHaveBeenCalled();
     expect(await screen.findByText(/Ohne Termin wüsste niemand/)).toBeTruthy();
@@ -415,7 +416,7 @@ describe('Wartungen', () => {
     await nutzer.type(screen.getByLabelText('Seriennummer'), '21184500');
     await nutzer.type(screen.getByLabelText('Baujahr'), '2018');
     await nutzer.type(screen.getByLabelText(/Preis je Wartung/), '149');
-    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    await nutzer.click(handlung({ name: 'Speichern' }));
 
     await waitFor(() => expect(createWartung).toHaveBeenCalled());
     expect((createWartung.mock.calls[0] as unknown[])[1]).toMatchObject({
@@ -438,7 +439,7 @@ describe('Wartungen', () => {
     await nutzer.type(screen.getByLabelText('Zuletzt gewartet'), '2026-12-01');
     expect(screen.getByLabelText('Zuletzt gewartet')).toHaveAttribute('max', HEUTE);
     expect(screen.getByText(/Der Tag liegt in der Zukunft/)).toBeTruthy();
-    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    await nutzer.click(handlung({ name: 'Speichern' }));
     expect(createWartung).not.toHaveBeenCalled();
   });
 
@@ -451,13 +452,13 @@ describe('Wartungen', () => {
     await nutzer.type(screen.getByLabelText('Anlage'), 'Therme');
     await nutzer.type(screen.getByLabelText('Zuletzt gewartet'), '2026-03-15');
     await nutzer.type(screen.getByLabelText('Baujahr'), '2030');
-    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    await nutzer.click(handlung({ name: 'Speichern' }));
     expect(createWartung).not.toHaveBeenCalled();
     expect(screen.getAllByText(/Das Baujahr liegt in der Zukunft — höchstens 2026/).length).toBeGreaterThan(0);
 
     await nutzer.clear(screen.getByLabelText('Baujahr'));
     await nutzer.type(screen.getByLabelText('Baujahr'), '2026');
-    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    await nutzer.click(handlung({ name: 'Speichern' }));
     await waitFor(() => expect(createWartung).toHaveBeenCalled());
   });
 });
@@ -523,7 +524,7 @@ describe('Baustelle aus einer Wartung', () => {
     const feld = await screen.findByLabelText(/Projektnummer/);
     expect(feld).toHaveValue('B-2026-0015');
 
-    await nutzer.click(screen.getByRole('button', { name: 'Anlegen' }));
+    await nutzer.click(handlung({ name: 'Anlegen' }));
 
     await vi.waitFor(() => expect(wartungEinplanen).toHaveBeenCalledWith('w1', null, 'B', '2026-04-10'));
     expect(createProject).not.toHaveBeenCalled();
@@ -541,7 +542,7 @@ describe('Baustelle aus einer Wartung', () => {
     const feld = await screen.findByLabelText(/Projektnummer/);
     await nutzer.clear(feld);
     await nutzer.type(feld, 'HV-Nord-7');
-    await nutzer.click(screen.getByRole('button', { name: 'Anlegen' }));
+    await nutzer.click(handlung({ name: 'Anlegen' }));
 
     await vi.waitFor(() => expect(wartungEinplanen).toHaveBeenCalledWith('w1', 'HV-Nord-7', 'B', '2026-04-10'));
     expect(reserveProjectNumber).not.toHaveBeenCalled();
@@ -565,7 +566,7 @@ describe('Baustelle aus einer Wartung', () => {
     const feld = await screen.findByLabelText(/Projektnummer/);
     await nutzer.clear(feld);
     await nutzer.type(feld, '2026-014');
-    await nutzer.click(screen.getByRole('button', { name: 'Anlegen' }));
+    await nutzer.click(handlung({ name: 'Anlegen' }));
 
     expect(await screen.findByText(/schon vergeben/)).toBeInTheDocument();
     expect(createProject).not.toHaveBeenCalled();
@@ -605,9 +606,9 @@ describe('Baustelle aus einer Wartung', () => {
     await screen.findAllByText(/Familie Huber/);
     expect(screen.queryByRole('button', { name: 'Baustelle anlegen' })).not.toBeInTheDocument();
     // Auch nicht im Seitenfenster der Anlage, wo alle Schritte stehen.
-    await nutzer.click(screen.getByRole('button', { name: /^Familie Huber/ }));
+    await nutzer.click(handlung({ name: /^Familie Huber/ }));
     const fenster = await screen.findByRole('dialog', { name: 'Wartung' });
-    expect(within(fenster).getByRole('button', { name: 'Erledigt' })).toBeInTheDocument();
+    expect(handlung({ name: 'Erledigt' }, fenster)).toBeInTheDocument();
     expect(within(fenster).queryByRole('button', { name: 'Baustelle anlegen' })).toBeNull();
   });
 });
@@ -644,7 +645,7 @@ describe('Wartungen auf der Linie „Lot“', () => {
   it('nimmt die Ansicht aus der Adresse — als Lesezeichen', async () => {
     zeichneMit('/wartungen?ansicht=alle');
     expect(await screen.findByText(/Familie Huber/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
+    expect(handlung({ name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('gruppiert nach Dringlichkeit: überfällig vor fällig', async () => {
@@ -661,7 +662,7 @@ describe('Wartungen auf der Linie „Lot“', () => {
     zeichne();
     await screen.findByText('Kunde 00');
     expect(screen.getAllByRole('button', { name: 'Erledigt' })).toHaveLength(20);
-    await nutzer.click(screen.getByRole('button', { name: 'und 5 weitere anzeigen' }));
+    await nutzer.click(handlung({ name: 'und 5 weitere anzeigen' }));
     expect(screen.getAllByRole('button', { name: 'Erledigt' })).toHaveLength(25);
   });
 
@@ -671,7 +672,7 @@ describe('Wartungen auf der Linie „Lot“', () => {
     fireEvent.change(screen.getByLabelText('Suche'), { target: { value: 'Nord' } });
     expect(await screen.findByText('Die Wartungssuche konnte nicht geladen werden.')).toBeInTheDocument();
     expect(screen.queryByText(/Kein Treffer/)).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
+    await userEvent.click(handlung({ name: /Erneut versuchen/ }));
     expect(await screen.findByText(/Hausverwaltung Nord/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Suche'), { target: { value: '' } });
     expect(await screen.findAllByText(/Bäckerei Stein/)).not.toHaveLength(0);
@@ -695,7 +696,7 @@ describe('Wartungen auf der Linie „Lot“', () => {
       }),
     ];
     zeichne();
-    await nutzer.click(await screen.findByRole('button', { name: /Bäckerei Stein/ }));
+    await nutzer.click(await waitFor(() => handlung({ name: /Bäckerei Stein/ })));
     const fenster = await screen.findByRole('dialog', { name: 'Wartung' });
     expect(within(fenster).getByText('Vaillant ecoTEC')).toBeInTheDocument();
     expect(within(fenster).getByText('€ 149,00 netto')).toBeInTheDocument();
@@ -707,10 +708,10 @@ describe('Wartungen auf der Linie „Lot“', () => {
     expect(within(punkte[0]).getByText('10.04.2025')).toBeInTheDocument();
 
     // Gegenprobe zur Herbst-Wartung: die überfällige ohne Baustelle bietet das Anlegen an.
-    expect(within(fenster).getByRole('button', { name: 'Baustelle anlegen' })).toBeInTheDocument();
+    expect(handlung({ name: 'Baustelle anlegen' }, fenster)).toBeInTheDocument();
     // „Bearbeiten“ steht unter „Steht an“ hier, nicht in der Zeile.
     expect(screen.getAllByRole('button', { name: 'Bearbeiten' })).toHaveLength(1);
-    await nutzer.click(within(fenster).getByRole('button', { name: 'Bearbeiten' }));
+    await nutzer.click(handlung({ name: 'Bearbeiten' }, fenster));
     expect(await screen.findByRole('dialog', { name: 'Wartung ändern' })).toBeInTheDocument();
     expect(screen.getByLabelText('Anlage')).toHaveValue('Therme Vaillant ecoTEC');
   });
@@ -723,7 +724,7 @@ describe('Wartungen auf der Linie „Lot“', () => {
       { id: 'a1', companyId: 'perl', wartungId: 'w1', am: '2024-04-02', baustelle: 'B-2024-0012' },
     ]);
     zeichne();
-    await nutzer.click(await screen.findByRole('button', { name: /Bäckerei Stein/ }));
+    await nutzer.click(await waitFor(() => handlung({ name: /Bäckerei Stein/ })));
     const fenster = await screen.findByRole('dialog', { name: 'Wartung' });
     const lot = await within(fenster).findByRole('list', { name: 'Wartungen dieser Anlage' });
     const punkte = within(lot).getAllByRole('listitem');
@@ -737,7 +738,7 @@ describe('Wartungen auf der Linie „Lot“', () => {
     const nutzer = userEvent.setup();
     listAusfuehrungen.mockRejectedValueOnce(new Error('offline'));
     zeichne();
-    await nutzer.click(await screen.findByRole('button', { name: /Bäckerei Stein/ }));
+    await nutzer.click(await waitFor(() => handlung({ name: /Bäckerei Stein/ })));
     const fenster = await screen.findByRole('dialog', { name: 'Wartung' });
     const lot = await within(fenster).findByRole('list', { name: 'Wartungen dieser Anlage' });
     expect(within(lot).getAllByRole('listitem').map((p) => p.querySelector('.lot-titel')?.textContent))
@@ -748,7 +749,7 @@ describe('Wartungen auf der Linie „Lot“', () => {
       { id: 'a1', companyId: 'perl', wartungId: 'w1', am: '2024-04-02' },
       { id: 'a2', companyId: 'perl', wartungId: 'w1', am: '2025-04-10' },
     ]);
-    await nutzer.click(within(fenster).getByRole('button', { name: /erneut/i }));
+    await nutzer.click(handlung({ name: /erneut/i }, fenster));
     await waitFor(() => expect(within(fenster).queryByText(/Die Liste der früheren Ausführungen konnte nicht geladen werden/)).toBeNull());
     expect(within(fenster).getAllByText('Gewartet')).toHaveLength(1);
   });
@@ -758,21 +759,21 @@ describe('Wartungen auf der Linie „Lot“', () => {
     zeichne();
     const an = await anstehendeZeilen();
     const zeile = () => screen.getByText(/Bäckerei Stein/).closest('li') as HTMLElement;
-    expect(within(zeile()).getByRole('button', { name: 'Baustelle anlegen' })).toBeInTheDocument();
+    expect(handlung({ name: 'Baustelle anlegen' }, zeile())).toBeInTheDocument();
     expect(an.queryByRole('button', { name: /^Wartung .* bearbeiten$/ })).toBeNull();
 
     await alleZeigen(nutzer);
-    expect(within(zeile()).getByRole('button', { name: /^Wartung .* bearbeiten$/ })).toBeInTheDocument();
+    expect(handlung({ name: /^Wartung .* bearbeiten$/ }, zeile())).toBeInTheDocument();
     expect(within(zeile()).queryByRole('button', { name: 'Baustelle anlegen' })).toBeNull();
     // Ohne Seitenfenster direkt ins Formular — wie vor dem Umbau aus der Karte „Alle Vereinbarungen“.
-    await nutzer.click(within(zeile()).getByRole('button', { name: /^Wartung .* bearbeiten$/ }));
+    await nutzer.click(handlung({ name: /^Wartung .* bearbeiten$/ }, zeile()));
     expect(await screen.findByRole('dialog', { name: 'Wartung ändern' })).toBeInTheDocument();
   });
 
   it('Gegenprobe: eine ruhende Vereinbarung hat keinen „jetzt“-Punkt', async () => {
     const nutzer = userEvent.setup();
     zeichneMit('/wartungen?ansicht=alle');
-    await nutzer.click(await screen.findByRole('button', { name: /^Gasthaus Alt/ }));
+    await nutzer.click(await waitFor(() => handlung({ name: /^Gasthaus Alt/ })));
     const lot = within(await screen.findByRole('dialog', { name: 'Wartung' })).getByRole('list', { name: 'Wartungen dieser Anlage' });
     expect(within(lot).getByText('Ruht')).toBeInTheDocument();
     expect(lot.querySelector('[aria-current]')).toBeNull();
@@ -782,7 +783,7 @@ describe('Wartungen auf der Linie „Lot“', () => {
     rolle = 'Verwaltung';
     const nutzer = userEvent.setup();
     zeichne();
-    await nutzer.click(await screen.findByRole('button', { name: /Bäckerei Stein/ }));
+    await nutzer.click(await waitFor(() => handlung({ name: /Bäckerei Stein/ })));
     const fenster = await screen.findByRole('dialog', { name: 'Wartung' });
     expect(within(fenster).getByRole('list', { name: 'Wartungen dieser Anlage' })).toBeInTheDocument();
     expect(within(fenster).queryByRole('button', { name: /Bearbeiten|Erledigt|Baustelle anlegen/ })).toBeNull();
@@ -804,14 +805,14 @@ describe('Eine Wartung mit Anlagendaten bearbeiten', () => {
       }),
     ];
     zeichne();
-    await nutzer.click(await screen.findByRole('button', { name: /Bäckerei Stein/ }));
-    await nutzer.click(within(await screen.findByRole('dialog', { name: 'Wartung' })).getByRole('button', { name: 'Bearbeiten' }));
+    await nutzer.click(await waitFor(() => handlung({ name: /Bäckerei Stein/ })));
+    await nutzer.click(handlung({ name: 'Bearbeiten' }, await screen.findByRole('dialog', { name: 'Wartung' })));
 
     expect(screen.getByLabelText('Hersteller')).toHaveValue('Vaillant');
     expect(screen.getByLabelText('Seriennummer')).toHaveValue('21184500');
     await nutzer.clear(screen.getByLabelText('Hinweis'));
     await nutzer.type(screen.getByLabelText('Hinweis'), 'Schlüssel beim Nachbarn');
-    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    await nutzer.click(handlung({ name: 'Speichern' }));
 
     await waitFor(() => expect(updateWartung).toHaveBeenCalled());
     expect((updateWartung.mock.calls[0] as unknown[])[1]).toMatchObject({
@@ -830,8 +831,8 @@ describe('Eine Wartung mit Anlagendaten bearbeiten', () => {
 describe('Den Tag der letzten Wartung berichtigen', () => {
   async function bearbeiten(nutzer: ReturnType<typeof userEvent.setup>) {
     zeichne();
-    await nutzer.click(await screen.findByRole('button', { name: /Bäckerei Stein/ }));
-    await nutzer.click(within(await screen.findByRole('dialog', { name: 'Wartung' })).getByRole('button', { name: 'Bearbeiten' }));
+    await nutzer.click(await waitFor(() => handlung({ name: /Bäckerei Stein/ })));
+    await nutzer.click(handlung({ name: 'Bearbeiten' }, await screen.findByRole('dialog', { name: 'Wartung' })));
   }
   const haken = () => screen.queryByRole('checkbox', { name: 'Der 10.04.2025 war falsch — berichtigen' });
 
@@ -842,7 +843,7 @@ describe('Den Tag der letzten Wartung berichtigen', () => {
     fireEvent.change(screen.getByLabelText('Zuletzt gewartet'), { target: { value: '2025-04-01' } });
     expect(haken()).not.toBeNull();
     await nutzer.click(haken()!);
-    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    await nutzer.click(handlung({ name: 'Speichern' }));
 
     await waitFor(() => expect(updateWartung).toHaveBeenCalledTimes(1));
     expect(wartungTagBerichtigen).toHaveBeenCalledWith('w1', '2025-04-01');
@@ -853,7 +854,7 @@ describe('Den Tag der letzten Wartung berichtigen', () => {
     const nutzer = userEvent.setup();
     await bearbeiten(nutzer);
     fireEvent.change(screen.getByLabelText('Zuletzt gewartet'), { target: { value: '2026-04-01' } });
-    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    await nutzer.click(handlung({ name: 'Speichern' }));
 
     await waitFor(() => expect(updateWartung).toHaveBeenCalledTimes(1));
     expect((updateWartung.mock.calls[0] as unknown[])[1]).toMatchObject({ zuletztAm: '2026-04-01' });
@@ -868,7 +869,7 @@ describe('Den Tag der letzten Wartung berichtigen', () => {
     await nutzer.click(haken()!);
     fireEvent.change(screen.getByLabelText('Zuletzt gewartet'), { target: { value: '2025-04-10' } });
     expect(haken()).toBeNull();
-    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    await nutzer.click(handlung({ name: 'Speichern' }));
     await waitFor(() => expect(updateWartung).toHaveBeenCalledTimes(1));
     expect(wartungTagBerichtigen).not.toHaveBeenCalled();
   });
@@ -878,7 +879,7 @@ describe('Den Tag der letzten Wartung berichtigen', () => {
 describe('Hilfe zu dieser Seite (Runde 5, G8)', () => {
   it('erklärt „Steht an“ und die Handgriffe', async () => {
     zeichne();
-    await userEvent.click(await screen.findByRole('button', { name: 'Hilfe zu dieser Seite' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Hilfe zu dieser Seite' })));
     expect(await screen.findByText(/„Erledigt“ rückt den nächsten Termin nach/)).toBeInTheDocument();
   });
 });
@@ -893,8 +894,8 @@ describe('Die Zahl am Reiter „Steht an“', () => {
   it('zählt Überfälliges und bald Fälliges, nicht das Spätere und nicht das Ruhende', async () => {
     zeichne();
     await geladen();
-    expect(screen.getByRole('button', { name: 'Steht an 2' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Alle' }).textContent).toBe('Alle');
+    expect(handlung({ name: 'Steht an 2' })).toHaveAttribute('aria-pressed', 'true');
+    expect(handlung({ name: 'Alle' }).textContent).toBe('Alle');
   });
 
   it('die Suche ändert sie nicht — sie sagt, was ansteht, nicht was passt', async () => {
@@ -902,7 +903,7 @@ describe('Die Zahl am Reiter „Steht an“', () => {
     zeichne();
     await geladen();
     await nutzer.type(screen.getByRole('searchbox', { name: 'Suche' }), 'Stein');
-    expect(screen.getByRole('button', { name: 'Steht an 2' })).toBeInTheDocument();
+    expect(handlung({ name: 'Steht an 2' })).toBeInTheDocument();
   });
 
   it('Gegenprobe: steht die Liste an ihrer Grenze (200), bleibt der Reiter ohne Zahl', async () => {
@@ -911,7 +912,7 @@ describe('Die Zahl am Reiter „Steht an“', () => {
     );
     zeichne();
     await geladen();
-    const reiter = screen.getByRole('button', { name: 'Steht an' });
+    const reiter = handlung({ name: 'Steht an' });
     expect(reiter.querySelector('.segment-anzahl')).toBeNull();
   });
 });
@@ -933,7 +934,7 @@ describe('Wartungen — der erste Bestand', () => {
     expect(screen.queryByRole('button', { name: /^Steht an/ })).toBeNull();
     const leer = satz.parentElement!;
     expect(leer.querySelector('svg[data-motiv]')).toHaveAttribute('data-motiv', 'wartung');
-    const knopf = within(leer).getByRole('button', { name: 'Neue Wartung' });
+    const knopf = handlung({ name: 'Neue Wartung' }, leer);
     // Am Handy steht „Neue Wartung“ schon im Daumenbereich des Seitenkopfs.
     expect(knopf.parentElement).toHaveClass('lot-naechster-schritt-breit');
     await nutzer.click(knopf);
@@ -958,7 +959,7 @@ describe('Wartungen — der erste Bestand', () => {
     expect(screen.queryByText('Noch keine Wartung erfasst.')).toBeNull();
     expect(screen.queryByText('Deine erste Wartung.')).toBeNull();
     // Mit Bestand stehen Reiter und Suche da.
-    expect(screen.getByRole('button', { name: /^Steht an/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(handlung({ name: /^Steht an/ })).toHaveAttribute('aria-pressed', 'true');
   });
 });
 
@@ -981,7 +982,7 @@ describe('Erledigt aus dem Vorschlag der Startseite (A9)', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Wartung erledigt eintragen' });
     expect(within(dialog).getByLabelText('Gewartet am')).toHaveValue('2026-05-20');
     expect(wartungErledigt).not.toHaveBeenCalled();
-    await nutzer.click(within(dialog).getByRole('button', { name: 'Eintragen' }));
+    await nutzer.click(handlung({ name: 'Eintragen' }, dialog));
     await waitFor(() => expect(wartungErledigt).toHaveBeenCalledWith('w5', expect.objectContaining({
       erledigtAm: '2026-05-20', projectNumber: 'PR-2026-0042',
     })));
@@ -995,9 +996,9 @@ describe('Abschließen nach „Erledigt“ (A11)', () => {
     const nutzer = userEvent.setup();
     zeichne();
     const zeile = (await screen.findAllByText(/Familie Koller/))[0].closest('li') as HTMLElement;
-    await nutzer.click(within(zeile).getByRole('button', { name: 'Erledigt' }));
-    await nutzer.click(screen.getByRole('button', { name: 'Eintragen' }));
-    expect(await screen.findByRole('button', { name: 'PR-2026-0042 abschließen' })).toBeInTheDocument();
+    await nutzer.click(handlung({ name: 'Erledigt' }, zeile));
+    await nutzer.click(handlung({ name: 'Eintragen' }));
+    expect(await waitFor(() => handlung({ name: 'PR-2026-0042 abschließen' }))).toBeInTheDocument();
   });
 });
 
@@ -1011,7 +1012,7 @@ describe('Neu für diesen Kunden (V3)', () => {
         </ToastProvider>
       </MemoryRouter>,
     );
-    expect(await screen.findByRole('button', { name: 'Anderen Kunden wählen' })).toBeInTheDocument();
+    expect(await waitFor(() => handlung({ name: 'Anderen Kunden wählen' }))).toBeInTheDocument();
     expect(screen.getAllByText('Hausverwaltung Nord').length).toBeGreaterThan(0);
   });
 });
@@ -1023,7 +1024,7 @@ describe('Der nächste Schritt nach „Baustelle anlegen“ (V4)', () => {
     zeichne();
     await screen.findAllByText(/Bäckerei Stein/);
     await nutzer.click((await screen.findAllByRole('button', { name: 'Baustelle anlegen' }))[0]);
-    await nutzer.click(await screen.findByRole('button', { name: 'Anlegen' }));
-    expect(await screen.findByRole('button', { name: 'Einsatz planen' })).toBeInTheDocument();
+    await nutzer.click(await waitFor(() => handlung({ name: 'Anlegen' })));
+    expect(await waitFor(() => handlung({ name: 'Einsatz planen' }))).toBeInTheDocument();
   });
 });

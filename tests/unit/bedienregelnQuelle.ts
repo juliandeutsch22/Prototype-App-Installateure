@@ -110,6 +110,14 @@ export function zaehle(n: ts.Node | undefined): Zaehlung {
     return NULL;
   }
   if (ts.isJsxFragment(n)) return n.children.reduce((s, k) => plus(s, zaehle(k)), NULL);
+  // `liste.map((a) => <Button …/>)`: so viele Knöpfe, wie die Liste hat — mehr als zwei, sobald es mehrere sein können.
+  if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'map') {
+    const f = n.arguments[0];
+    if (f && (ts.isArrowFunction(f) || ts.isFunctionExpression(f))) {
+      const einer = ts.isBlock(f.body) ? NULL : zaehle(f.body);
+      if (einer.knoepfe > 0) return { knoepfe: 3, primaer: einer.primaer * 3, gefahr: einer.gefahr };
+    }
+  }
   if (ts.isJsxElement(n) || ts.isJsxSelfClosingElement(n)) {
     if (KNOPF.has(tagName(n))) return knopf(n);
     return NULL;

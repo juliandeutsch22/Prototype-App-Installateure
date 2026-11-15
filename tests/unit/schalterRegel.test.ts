@@ -29,7 +29,7 @@ describe('U6 · Schalter statt Kästchen für alles, was sofort wirkt', () => {
   it('kein Kästchen speichert beim Tippen (außer begründet)', () => {
     const funde = tsxDateien().filter((d) => !AUSNAHMEN[d]).flatMap((d) => sofortKaestchen(d));
     expect(funde).toEqual([]);
-  });
+  }, 60_000);
 
   it('jede Ausnahme gibt es noch und nennt ihren Grund', () => {
     for (const [datei, grund] of Object.entries(AUSNAHMEN)) {
@@ -41,7 +41,7 @@ describe('U6 · Schalter statt Kästchen für alles, was sofort wirkt', () => {
   it('kein Kästchen mit „ein“/„aus“ daneben', () => {
     const funde = tsxDateien().filter((d) => /['"]ein['"]\s*:\s*['"]aus['"]|['"]aus['"]\s*:\s*['"]ein['"]/.test(readFileSync(d, 'utf8')));
     expect(funde).toEqual([]);
-  });
+  }, 60_000);
 
   it('der Schalter ist zugänglich: role="switch", aria-checked, ein echter Knopf (Leertaste, Enter)', () => {
     const quelle = readFileSync('src/components/Schalter.tsx', 'utf8');

@@ -165,5 +165,128 @@
     "art": "knopf",
     "text": "Erinnerung speichern",
     "grund": "U1: derselbe Knopf in der Speicherleiste der Karte (speichernText), sichtbar ab der ersten Änderung."
+  },
+  {
+    "datei": "src/features/accounting/PersonFenster.tsx",
+    "art": "knopf",
+    "text": "Bericht für Zeitraum",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag."
+  },
+  {
+    "datei": "src/features/assignments/MonatsVorschau.tsx",
+    "art": "knopf",
+    "text": "Termin anlegen",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag."
+  },
+  {
+    "datei": "src/features/dashboard/start/StartseiteAnpassen.tsx",
+    "art": "knopf",
+    "text": "Vorgabe wiederherstellen",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag."
+  },
+  {
+    "datei": "src/features/liegenschaften/LiegenschaftView.tsx",
+    "art": "knopf",
+    "text": "Top löschen",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag „Top löschen …“; Unumkehrbares steht immer im ⋯, die Rückfrage folgt."
+  },
+  {
+    "datei": "src/features/nachrichten/NachrichtenEinstellungen.tsx",
+    "art": "knopf",
+    "text": "Meldung löschen",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag „Meldung löschen …“; Unumkehrbares steht immer im ⋯, die Rückfrage folgt."
+  },
+  {
+    "datei": "src/features/orders/AdminOrdersView.tsx",
+    "art": "knopf",
+    "text": "Auf „{…} “ setzen",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag — die freie Statuswahl (D11) bleibt vollständig."
+  },
+  {
+    "datei": "src/features/orders/AdminOrdersView.tsx",
+    "art": "knopf",
+    "text": "Nicht auf Lager – auf die Einkaufsliste",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag."
+  },
+  {
+    "datei": "src/features/orders/AdminOrdersView.tsx",
+    "art": "knopf",
+    "text": "Nicht mehr eilig|Als eilig markieren",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag (Text je nach Stand)."
+  },
+  {
+    "datei": "src/features/orders/AdminOrdersView.tsx",
+    "art": "knopf",
+    "text": "Retoure löschen …|Anforderung löschen …",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag; Unumkehrbares steht immer im ⋯, die Rückfrage folgt."
+  },
+  {
+    "datei": "src/features/orders/AnforderungFenster.tsx",
+    "art": "knopf",
+    "text": "Als eilig markieren",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag."
+  },
+  {
+    "datei": "src/features/orders/MaterialCatalog.tsx",
+    "art": "knopf",
+    "text": "Material löschen …",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag; Unumkehrbares steht immer im ⋯, die Rückfrage folgt."
+  },
+  {
+    "datei": "src/features/orders/StockView.tsx",
+    "art": "knopf",
+    "text": "Im Katalog bearbeiten",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag."
+  },
+  {
+    "datei": "src/features/orders/StockView.tsx",
+    "art": "knopf",
+    "text": "Umlagern",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag."
+  },
+  {
+    "datei": "src/features/quotes/AnnahmeLink.tsx",
+    "art": "verweis",
+    "text": "Per Mail-Programm senden",
+    "ziel": "{…}",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag und öffnet das Mailprogramm wie zuvor der Verweis (mailto)."
+  },
+  {
+    "datei": "src/features/termine/TerminFenster.tsx",
+    "art": "knopf",
+    "text": "{…} am {…} löschen",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag „Termin löschen …“ mit Termin und Tag im Namen des ⋯; die Rückfrage folgt."
+  },
+  {
+    "datei": "src/features/worksheets/WorkSheetsListView.tsx",
+    "art": "knopf",
+    "text": "Stornieren",
+    "grund": "U4 (Durchsicht 15.11.2026): im Fenster eine gefüllte Hauptaktion, höchstens eine zweite, der Rest im ⋯ (Fensteraktionen). Dieser Handgriff steht dort als Menüeintrag „Stornieren …“; Unumkehrbares steht immer im ⋯, der Storno mit Pflichtgrund folgt wie bisher."
+  },
+  {
+    "datei": "src/features/quotes/AngebotView.tsx",
+    "art": "knopf",
+    "text": "Als versendet markieren",
+    "grund": "U1/U4 (Durchsicht 15.11.2026): die Schritte am Verlauf stehen als Daten (schrittListe) — die zwei häufigsten als Knopf, der Rest im ⋯ am selben Punkt. Beschriftung und Bedingung unverändert."
+  },
+  {
+    "datei": "src/features/quotes/AngebotView.tsx",
+    "art": "knopf",
+    "text": "Annahme-Link",
+    "grund": "U1/U4: Schritt am Verlauf, als Knopf oder im ⋯ je nach Stand (schrittListe); Bedingung unverändert (M02a)."
+  },
+  {
+    "datei": "src/features/quotes/AngebotView.tsx",
+    "art": "verweis",
+    "text": "Bearbeiten",
+    "ziel": "/quotes?bearbeiten={…}",
+    "grund": "U1/U4: derselbe Verweis, jetzt aus der schrittListe gezeichnet (KnopfLink mit demselben Ziel)."
+  },
+  {
+    "datei": "src/features/quotes/AngebotView.tsx",
+    "art": "verweis",
+    "text": "Neue Fassung",
+    "ziel": "/quotes?neueFassung={…}",
+    "grund": "U1/U4: derselbe Weg (M17), aus der schrittListe — als Verweis oder Eintrag im ⋯ mit demselben Ziel."
   }
 ]

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
 import { imLager, istKnapp } from './lagerartikel';
 import { useSearchParams } from 'react-router-dom';
 import RowMenu from '@/components/RowMenu';
@@ -961,24 +962,24 @@ export default function StockView() {
               </div>
             )}
 
-            <div className="material-aktionen">
-              <Button onClick={() => setEingang(artikel)}>Wareneingang</Button>
-              <Button variant="secondary" onClick={() => void mitOrten(artikel, setInventur)}>Inventur</Button>
-              {lo.mitWeiteren && (
-                <Button variant="secondary" onClick={() => void mitOrten(artikel, setUmlagern, true)}>Umlagern</Button>
-              )}
-              <Button
-                variant="secondary"
-                onClick={() => {
+            {/* U4: „Wareneingang“ gefüllt, „Inventur“ daneben, das Seltene im ⋯. */}
+            <Fensteraktionen
+              about={`Artikel ${artikel.name}`}
+              haupt={<Button onClick={() => setEingang(artikel)}>Wareneingang</Button>}
+              zweit={<Button variant="secondary" onClick={() => void mitOrten(artikel, setInventur)}>Inventur</Button>}
+              weitere={[
+                ...(lo.mitWeiteren ? [{ label: 'Umlagern', onSelect: () => void mitOrten(artikel, setUmlagern, true) }] : []),
+                {
+                  label: 'Im Katalog bearbeiten',
                   // Bearbeitet wird im Katalog — eine zweite Stelle mit denselben Regeln gibt es nicht.
-                  setArtikelId(null);
-                  setZuBearbeiten(artikel);
-                  setTab('katalog');
-                }}
-              >
-                Im Katalog bearbeiten
-              </Button>
-            </div>
+                  onSelect: () => {
+                    setArtikelId(null);
+                    setZuBearbeiten(artikel);
+                    setTab('katalog');
+                  },
+                },
+              ]}
+            />
 
             <div>
               <h3 className="section-label mb-3">Bewegungen</h3>

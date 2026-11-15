@@ -304,6 +304,8 @@
   .fuss-aktionen { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
   /* Fensteraktionen (U4): das ⋯ mit dem Seltenen und Unumkehrbaren ganz links, die Knöpfe rechts. */
   .fensteraktionen-mehr { display: inline-flex; margin-right: auto; }
+  /* In einem Fuß, der schon Linie und Abstand trägt (Person im Monat, Tag im Monat), keine zweite Linie. */
+  :is(.pf-fuss, .vorschau-fuss) > .fensteraktionen { flex: 1; border-top: 0; padding-top: 0; }
 
   /* ── Schalter (U6, E3) ─────────────────────────────────────────────────── */
   /*

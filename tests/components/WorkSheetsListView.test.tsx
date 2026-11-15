@@ -1,4 +1,5 @@
 import type { VorgemerkterSchein } from '@/features/worksheets/vorgemerkt';
+import { handlung } from './handlung';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { zwischenspeicherFuer } from '@/lib/liveSpeicher';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
@@ -245,10 +246,10 @@ function zeichne(adresse = '/worksheets') {
   denselben Knöpfen — was die Tests darunter schützen, bleibt dasselbe.
 */
 async function alle() {
-  await userEvent.click(await screen.findByRole('button', { name: 'Alle' }));
+  await userEvent.click(await waitFor(() => handlung({ name: 'Alle' })));
 }
 async function oeffne(kunde: RegExp) {
-  await userEvent.click(await screen.findByRole('button', { name: kunde }));
+  await userEvent.click(await waitFor(() => handlung({ name: kunde })));
   return screen.findByRole('dialog', { name: 'Handwerksschein' });
 }
 
@@ -381,7 +382,7 @@ describe('Der Entwurf eines Kollegen', () => {
     zeichne();
     expect(await screen.findByRole('link', { name: /Weiterbearbeiten/ })).toHaveAttribute('href', '/worksheet?entwurf=e2');
     const fenster = await oeffne(/Familie Huber/);
-    expect(within(fenster).getByRole('button', { name: 'Verwerfen' })).toBeInTheDocument();
+    expect(handlung({ name: 'Verwerfen' }, fenster)).toBeInTheDocument();
   });
 
   it('und den verworfenen eines Kollegen holt der Monteur nicht zurück', async () => {
@@ -401,7 +402,7 @@ describe('Einen Entwurf aufgeben', () => {
       das nicht ab — der Kunde und der Tag muessen dastehen.
     */
     zeichne();
-    await userEvent.click(within(await oeffne(/Familie Huber/)).getByRole('button', { name: 'Verwerfen' }));
+    await userEvent.click(handlung({ name: 'Verwerfen' }, await oeffne(/Familie Huber/)));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('Entwurf verwerfen');
     expect(dialog).toHaveTextContent('Familie Huber, 04.09.2026');
@@ -410,16 +411,16 @@ describe('Einen Entwurf aufgeben', () => {
 
   it('verwirft erst nach der Bestaetigung, und mit dem Namen', async () => {
     zeichne();
-    await userEvent.click(within(await oeffne(/Familie Huber/)).getByRole('button', { name: 'Verwerfen' }));
+    await userEvent.click(handlung({ name: 'Verwerfen' }, await oeffne(/Familie Huber/)));
     const dialog = await screen.findByRole('dialog');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Verwerfen' }));
+    await userEvent.click(handlung({ name: 'Verwerfen' }, dialog));
     await waitFor(() => expect(verwerfen).toHaveBeenCalledWith('e1', 'Max Mustermann'));
   });
 
   it('bricht ab, ohne etwas zu tun', async () => {
     zeichne();
-    await userEvent.click(within(await oeffne(/Familie Huber/)).getByRole('button', { name: 'Verwerfen' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Abbrechen' }));
+    await userEvent.click(handlung({ name: 'Verwerfen' }, await oeffne(/Familie Huber/)));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Abbrechen' })));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(verwerfen).not.toHaveBeenCalled();
   });
@@ -439,7 +440,7 @@ describe('Einen Entwurf aufgeben', () => {
     zeichne();
     await screen.findByText('Entwurf');
     const fenster = await oeffne(/Familie Huber/);
-    expect(within(fenster).getByRole('button', { name: 'PDF' })).toBeInTheDocument();
+    expect(handlung({ name: 'PDF' }, fenster)).toBeInTheDocument();
     expect(within(fenster).queryByRole('button', { name: 'Verwerfen' })).not.toBeInTheDocument();
   });
 });
@@ -462,13 +463,13 @@ describe('Einen Entwurf löschen', () => {
   it('fragt rot zurück, nennt Umfang und Fotos — und löscht erst nach der Bestätigung, mit den Pfaden', async () => {
     geladen = [mitFoto];
     zeichne();
-    await userEvent.click(within(await oeffne(/Familie Huber/)).getByRole('button', { name: 'Löschen' }));
+    await userEvent.click(handlung({ name: 'Löschen' }, await oeffne(/Familie Huber/)));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('Entwurf löschen');
     expect(dialog).toHaveTextContent(/Familie Huber, 04\.09\.2026 · 02:00 Std · 1 Materialposten · 1 Foto\./);
     expect(dialog).toHaveTextContent('endgültig gelöscht und lässt sich nicht zurückholen');
     expect(loeschen).not.toHaveBeenCalled();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Endgültig löschen' }));
+    await userEvent.click(handlung({ name: 'Endgültig löschen' }, dialog));
     await waitFor(() => expect(loeschen).toHaveBeenCalledWith('perl', 'e1', ['scheine/perl/e1/a.jpg']));
   });
 
@@ -476,19 +477,19 @@ describe('Einen Entwurf löschen', () => {
     geladen = [verworfener];
     zeichne();
     await userEvent.click(await screen.findByRole('checkbox'));
-    await userEvent.click(within(await oeffne(/Familie Gruber/)).getByRole('button', { name: 'Löschen' }));
+    await userEvent.click(handlung({ name: 'Löschen' }, await oeffne(/Familie Gruber/)));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('Verworfenen Entwurf löschen');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Endgültig löschen' }));
+    await userEvent.click(handlung({ name: 'Endgültig löschen' }, dialog));
     await waitFor(() => expect(loeschen).toHaveBeenCalledWith('perl', 'v1', []));
   });
 
   it('sagt, wenn die Datenbank nein sagt — und meldet nichts als gelöscht', async () => {
     loeschen.mockRejectedValueOnce(new Error('Der Schein ließ sich nicht löschen — er ist kein Entwurf mehr, oder das Löschen steht dir nicht zu.'));
     zeichne();
-    await userEvent.click(within(await oeffne(/Familie Huber/)).getByRole('button', { name: 'Löschen' }));
+    await userEvent.click(handlung({ name: 'Löschen' }, await oeffne(/Familie Huber/)));
     const dialog = await screen.findByRole('dialog');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Endgültig löschen' }));
+    await userEvent.click(handlung({ name: 'Endgültig löschen' }, dialog));
     expect(await within(dialog).findByText(/ließ sich nicht löschen/)).toBeInTheDocument();
     expect(screen.queryByText('Entwurf gelöscht')).not.toBeInTheDocument();
   });
@@ -559,7 +560,7 @@ describe('PDF aus der Liste (Scheinlisten ohne Unterschriftsbilder, 10.10.2026)'
       await alle();
       const fenster = await oeffne(/Familie Berger/);
       expect(within(fenster).getByText('Unterschrieben von Berger')).toBeInTheDocument();
-      await userEvent.click(within(fenster).getByRole('button', { name: 'PDF' }));
+      await userEvent.click(handlung({ name: 'PDF' }, fenster));
       await waitFor(() => expect(buildWorkSheetPdf).toHaveBeenCalled());
       expect(einzeln).toHaveBeenCalledWith('u1');
       expect(vi.mocked(buildWorkSheetPdf).mock.calls[0][0].unterschriften?.kunde?.bild).toBe('data:image/png;base64,AAA');
@@ -576,7 +577,7 @@ describe('PDF aus der Liste (Scheinlisten ohne Unterschriftsbilder, 10.10.2026)'
     zeichne();
     await alle();
     const fenster = await oeffne(/Familie Berger/);
-    await userEvent.click(within(fenster).getByRole('button', { name: 'PDF' }));
+    await userEvent.click(handlung({ name: 'PDF' }, fenster));
     await waitFor(() => expect(buildWorkSheetPdf).toHaveBeenCalled());
     expect(vi.mocked(buildWorkSheetPdf).mock.calls[0][1].addressLine).toBe('Hauptplatz 1 · 2700 Wiener Neustadt');
   });
@@ -589,7 +590,7 @@ describe('PDF aus der Liste (Scheinlisten ohne Unterschriftsbilder, 10.10.2026)'
     zeichne();
     await alle();
     const fenster = await oeffne(/Familie Berger/);
-    await userEvent.click(within(fenster).getByRole('button', { name: 'PDF' }));
+    await userEvent.click(handlung({ name: 'PDF' }, fenster));
     await waitFor(() => expect(buildWorkSheetPdf).toHaveBeenCalled());
     expect(einzeln).not.toHaveBeenCalledWith('u1');
   });
@@ -641,7 +642,7 @@ describe('Der verworfene Entwurf in der Liste', () => {
     geladen = [verworfener];
     zeichne();
     await userEvent.click(await screen.findByRole('checkbox'));
-    await userEvent.click(await screen.findByRole('button', { name: 'Wieder aufnehmen' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Wieder aufnehmen' })));
     await waitFor(() => expect(zurueckholen).toHaveBeenCalledWith('v1'));
   });
 
@@ -681,7 +682,7 @@ describe('Fotos am Schein', () => {
     await screen.findByText(/Familie Berger/);
     expect(fotoAdresse).not.toHaveBeenCalled();
 
-    await nutzer.click(screen.getByRole('button', { name: /Familie Berger/ }));
+    await nutzer.click(handlung({ name: /Familie Berger/ }));
     await waitFor(() => expect(fotoAdresse).toHaveBeenCalledWith('scheine/perl/u1/aaa.jpg'));
   });
 
@@ -695,7 +696,7 @@ describe('Fotos am Schein', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await alle();
-    await nutzer.click(await screen.findByRole('button', { name: /Familie Berger/ }));
+    await nutzer.click(await waitFor(() => handlung({ name: /Familie Berger/ })));
     expect(await screen.findByText(/^aaaaaaaaaaaa…/)).toBeInTheDocument();
   });
 
@@ -710,7 +711,7 @@ describe('Fotos am Schein', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await alle();
-    await nutzer.click(await screen.findByRole('button', { name: /Familie Berger/ }));
+    await nutzer.click(await waitFor(() => handlung({ name: /Familie Berger/ })));
     expect(await screen.findByText(/nicht mehr vollständig belegbar/)).toBeInTheDocument();
   });
 
@@ -841,7 +842,7 @@ describe('Stunden ohne Buchung', () => {
     // „Weiter zurück prüfen“: die Liste bleibt, während die tiefere Prüfung lädt.
     tiefGeladen = [offenerSchein({ id: 'alt', datum: vorTagen(80) })];
     zeitenGeholt.mockImplementationOnce(() => new Promise(() => undefined));
-    await userEvent.click(screen.getByRole('button', { name: '90 Tage' }));
+    await userEvent.click(handlung({ name: '90 Tage' }));
     await waitFor(() => expect(zeitenGeholt).toHaveBeenCalledTimes(2));
     expect(screen.getByText('Stunden ohne Buchung')).toBeInTheDocument();
     expect(screen.getByLabelText('Scheine durchsuchen')).toBeInTheDocument();
@@ -876,7 +877,7 @@ describe('Stunden ohne Buchung', () => {
     geladen = Array.from({ length: 50 }, (_, i) => offenerSchein({ id: `s${i}`, status: 'Entwurf' }));
     zeichne();
     await alle();
-    const knopf = await screen.findByRole('button', { name: 'Weitere Scheine laden' });
+    const knopf = await waitFor(() => handlung({ name: 'Weitere Scheine laden' }));
     const { listRecentWorkSheets } = await import('@/lib/db/workSheets');
     vi.mocked(listRecentWorkSheets).mockImplementationOnce(() => new Promise(() => undefined) as never);
     expect(screen.getAllByText(/Familie Wagner/).length).toBeGreaterThan(0);
@@ -1006,7 +1007,7 @@ describe('Stunden ohne Buchung', () => {
 
     await screen.findByText(/Familie Berger/);
     expect(await screen.findByText('Stunden ohne Buchung (0)')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '1 Jahr' })).toBeInTheDocument();
+    expect(handlung({ name: '1 Jahr' })).toBeInTheDocument();
   });
 
   /*
@@ -1022,7 +1023,7 @@ describe('Stunden ohne Buchung', () => {
     zeichne();
 
     await screen.findByText('Stunden ohne Buchung (0)');
-    await nutzer.click(screen.getByRole('button', { name: '1 Jahr' }));
+    await nutzer.click(handlung({ name: '1 Jahr' }));
 
     expect(await screen.findByText('Stunden ohne Buchung (1)')).toBeInTheDocument();
     // Mandant, Von, Bis, Obergrenze — in dieser Reihenfolge. Die Grenze
@@ -1046,7 +1047,7 @@ describe('Stunden ohne Buchung', () => {
     // Gegenprobe zur Einzahl: mehrere Scheine, Mehrzahl mit Zahl.
     expect(await screen.findByText(`Geprüft über die ${scheine.length} geladenen Scheine dieser Liste.`)).toBeInTheDocument();
     expect(scheine.length).toBeGreaterThan(1);
-    await nutzer.click(screen.getByRole('button', { name: '30 Tage' }));
+    await nutzer.click(handlung({ name: '30 Tage' }));
     expect(await screen.findByText(/über die letzten 30 Tage/)).toBeInTheDocument();
   });
 
@@ -1064,7 +1065,7 @@ describe('Stunden ohne Buchung', () => {
     zeichne();
 
     await screen.findByText('Stunden ohne Buchung (0)');
-    await nutzer.click(screen.getByRole('button', { name: '90 Tage' }));
+    await nutzer.click(handlung({ name: '90 Tage' }));
     expect(await screen.findByText(/Grenze von 150 Scheinen ist erreicht/)).toBeInTheDocument();
   });
 
@@ -1083,7 +1084,7 @@ describe('Stunden ohne Buchung', () => {
     await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'zzz');
     expect(screen.getByText(/Gesucht wurde „.+“ in Kunde, Baustelle und Monat\./)).toBeInTheDocument();
 
-    await nutzer.click(screen.getByRole('button', { name: /Familie Wagner/ }));
+    await nutzer.click(handlung({ name: /Familie Wagner/ }));
     const fenster = await screen.findByRole('dialog', { name: 'Handwerksschein' });
     expect(within(fenster).getByText(/Franz Huber · 07:00–15:30 · 08:00 Std/)).toBeInTheDocument();
   });
@@ -1101,8 +1102,8 @@ describe('Stunden ohne Buchung', () => {
     zeichne();
 
     await screen.findByText('Stunden ohne Buchung (0)');
-    await nutzer.click(screen.getByRole('button', { name: '1 Jahr' }));
-    await nutzer.click(await screen.findByRole('button', { name: /Familie Alt/ }));
+    await nutzer.click(handlung({ name: '1 Jahr' }));
+    await nutzer.click(await waitFor(() => handlung({ name: /Familie Alt/ })));
     const fenster = await screen.findByRole('dialog', { name: 'Handwerksschein' });
     expect(within(fenster).getByRole('heading', { name: 'Familie Alt' })).toBeInTheDocument();
   });
@@ -1146,7 +1147,7 @@ describe('Scheine suchen', () => {
     await screen.findByText(/Familie Huber/);
 
     await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'B-042');
-    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+    await nutzer.click(handlung({ name: 'Auf dem Server suchen' }));
 
     expect(await screen.findByText(/Familie Steiner/)).toBeInTheDocument();
     expect(baustellenSuche.mock.calls[0]).toEqual(['perl', 'B-042', 150]);
@@ -1160,7 +1161,7 @@ describe('Scheine suchen', () => {
     await screen.findByText(/Familie Huber/);
 
     await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), '03.2026');
-    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+    await nutzer.click(handlung({ name: 'Auf dem Server suchen' }));
 
     await screen.findByText(/Familie Steiner/);
     expect(zeitraumSuche.mock.calls[0]).toEqual(['perl', '2026-03-01', '2026-03-31', 150]);
@@ -1180,7 +1181,7 @@ describe('Scheine suchen', () => {
 
     await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'Steiner');
     expect(screen.queryByText(/nur im geladenen Bestand/)).not.toBeInTheDocument();
-    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+    await nutzer.click(handlung({ name: 'Auf dem Server suchen' }));
 
     expect(await screen.findByText(/Familie Steiner/)).toBeInTheDocument();
     expect(textSuche.mock.calls[0]).toEqual(['perl', 'Steiner', 150]);
@@ -1201,7 +1202,7 @@ describe('Scheine suchen', () => {
 
     const feld = screen.getByLabelText('Scheine durchsuchen');
     await nutzer.type(feld, 'B-042');
-    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+    await nutzer.click(handlung({ name: 'Auf dem Server suchen' }));
     await screen.findByText(/Familie Steiner/);
 
     await nutzer.type(feld, '9');
@@ -1216,7 +1217,7 @@ describe('Scheine suchen', () => {
     await screen.findByText(/Familie Huber/);
 
     await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'B-042');
-    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+    await nutzer.click(handlung({ name: 'Auf dem Server suchen' }));
 
     expect(await screen.findByText(/Grenze von 150 ist erreicht/)).toBeInTheDocument();
   });
@@ -1232,7 +1233,7 @@ describe('Scheine suchen', () => {
     await screen.findByText(/Familie Huber/);
 
     await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'B-042');
-    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+    await nutzer.click(handlung({ name: 'Auf dem Server suchen' }));
 
     expect(await screen.findByText(/Netz weg/)).toBeInTheDocument();
   });
@@ -1244,10 +1245,10 @@ describe('Scheine suchen', () => {
     await screen.findByText(/Familie Huber/);
 
     await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'B-042');
-    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+    await nutzer.click(handlung({ name: 'Auf dem Server suchen' }));
     await screen.findByText(/Familie Steiner/);
 
-    await nutzer.click(screen.getByRole('button', { name: 'Zurück zur Liste' }));
+    await nutzer.click(handlung({ name: 'Zurück zur Liste' }));
     expect(screen.queryByText(/Familie Steiner/)).not.toBeInTheDocument();
   });
 });
@@ -1267,7 +1268,7 @@ describe('Ansicht und Seitenfenster', () => {
     zeichne();
     expect(await screen.findByText(/Familie Huber/)).toBeInTheDocument();
     expect(screen.queryByText(/Familie Berger/)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Offen' })).toHaveAttribute('aria-pressed', 'true');
+    expect(handlung({ name: 'Offen' })).toHaveAttribute('aria-pressed', 'true');
 
     await alle();
     expect(await screen.findByText(/Familie Berger/)).toBeInTheDocument();
@@ -1277,7 +1278,7 @@ describe('Ansicht und Seitenfenster', () => {
   it('liest die Ansicht aus der Adresse', async () => {
     zeichne('/worksheets?ansicht=alle');
     expect(await screen.findByText(/Familie Berger/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
+    expect(handlung({ name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('öffnet den markierten Schein im Fenster und steht dafür in „Alle“', async () => {
@@ -1285,7 +1286,7 @@ describe('Ansicht und Seitenfenster', () => {
     zeichne('/worksheets?markiert=u1');
     const fenster = await screen.findByRole('dialog', { name: 'Handwerksschein' });
     expect(within(fenster).getByRole('heading', { name: 'Familie Berger' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
+    expect(handlung({ name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   /*
@@ -1458,15 +1459,15 @@ describe('Ansicht und Seitenfenster', () => {
     zeichne();
     await screen.findByText('Kunde 20');
     expect(screen.queryByText('Kunde 21')).not.toBeInTheDocument();
-    await nutzer.click(screen.getByRole('button', { name: 'und 3 weitere anzeigen' }));
+    await nutzer.click(handlung({ name: 'und 3 weitere anzeigen' }));
     expect(screen.getByText('Kunde 23')).toBeInTheDocument();
   });
 
   it('hat im Fenster alle Aktionen eines Entwurfs', async () => {
     zeichne();
     const fenster = await oeffne(/Familie Huber/);
-    expect(within(fenster).getByRole('button', { name: 'PDF' })).toBeInTheDocument();
-    expect(within(fenster).getByRole('button', { name: 'Verwerfen' })).toBeInTheDocument();
+    expect(handlung({ name: 'PDF' }, fenster)).toBeInTheDocument();
+    expect(handlung({ name: 'Verwerfen' }, fenster)).toBeInTheDocument();
     expect(within(fenster).getByRole('link', { name: 'Weiterbearbeiten' })).toHaveAttribute(
       'href',
       '/worksheet?entwurf=e1',
@@ -1478,8 +1479,8 @@ describe('Ansicht und Seitenfenster', () => {
     const nutzer = userEvent.setup();
     zeichne('/worksheets?ansicht=alle');
     const fenster = await oeffne(/Familie Berger/);
-    await nutzer.click(within(fenster).getByRole('button', { name: 'Stornieren' }));
-    const bestaetigen = within(fenster).getByRole('button', { name: 'Storno bestätigen' });
+    await nutzer.click(handlung({ name: 'Stornieren' }, fenster));
+    const bestaetigen = handlung({ name: 'Storno bestätigen' }, fenster);
     expect(bestaetigen).toBeDisabled();
     await nutzer.type(within(fenster).getByLabelText(/Grund/), 'Falscher Tag');
     await nutzer.click(bestaetigen);
@@ -1498,13 +1499,13 @@ describe('Ansicht und Seitenfenster', () => {
     const nutzer = userEvent.setup();
     zeichne('/worksheets?ansicht=alle');
     const fenster = await oeffne(/Familie Berger/);
-    await nutzer.click(within(fenster).getByRole('button', { name: 'Stornieren' }));
+    await nutzer.click(handlung({ name: 'Stornieren' }, fenster));
     expect(await within(fenster).findByText(/Dieser Schein ist schon verrechnet/)).toBeInTheDocument();
     expect(within(fenster).getByText(/auf der Rechnung RE-2026-0042 \(Offen\)/)).toBeInTheDocument();
     expect(verrechnungLage).toHaveBeenCalledWith('u1');
     await nutzer.type(within(fenster).getByLabelText(/Grund/), 'Falsche Menge');
-    await nutzer.click(within(fenster).getByRole('button', { name: 'Storno bestätigen' }));
-    expect(await screen.findByRole('button', { name: 'Ersatzschein anlegen' })).toBeInTheDocument();
+    await nutzer.click(handlung({ name: 'Storno bestätigen' }, fenster));
+    expect(await waitFor(() => handlung({ name: 'Ersatzschein anlegen' }))).toBeInTheDocument();
   });
 
   it('P4: die Projektleitung ohne Freigabe erfährt, DASS verrechnet ist — ohne Nummer', async () => {
@@ -1513,7 +1514,7 @@ describe('Ansicht und Seitenfenster', () => {
     const nutzer = userEvent.setup();
     zeichne();
     const fenster = await oeffne(/Familie Berger/);
-    await nutzer.click(within(fenster).getByRole('button', { name: 'Stornieren' }));
+    await nutzer.click(handlung({ name: 'Stornieren' }, fenster));
     expect(await within(fenster).findByText(/steht auf einer gültigen Rechnung/)).toBeInTheDocument();
   });
 
@@ -1522,7 +1523,7 @@ describe('Ansicht und Seitenfenster', () => {
     const nutzer = userEvent.setup();
     zeichne('/worksheets?ansicht=alle');
     const fenster = await oeffne(/Familie Berger/);
-    await nutzer.click(within(fenster).getByRole('button', { name: 'Stornieren' }));
+    await nutzer.click(handlung({ name: 'Stornieren' }, fenster));
     await waitFor(() => expect(within(fenster).queryByText(/Verrechnung wird geprüft/)).toBeNull());
     expect(within(fenster).queryByText(/schon verrechnet/)).toBeNull();
   });
@@ -1536,10 +1537,10 @@ describe('Ansicht und Seitenfenster', () => {
     authWert.user.role = 'Projektleiter';
     const nutzer = userEvent.setup();
     zeichne();
-    expect(await screen.findByRole('button', { name: 'Alle' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await waitFor(() => handlung({ name: 'Alle' }))).toHaveAttribute('aria-pressed', 'true');
     const fenster = await oeffne(/Familie Berger/);
-    await nutzer.click(within(fenster).getByRole('button', { name: 'Stornieren' }));
-    expect(within(fenster).getByRole('button', { name: 'Storno bestätigen' })).toBeInTheDocument();
+    await nutzer.click(handlung({ name: 'Stornieren' }, fenster));
+    expect(handlung({ name: 'Storno bestätigen' }, fenster)).toBeInTheDocument();
     // Die Entwürfe stehen in „Alle“ mit dabei.
     expect(screen.getByText(/Familie Huber/)).toBeInTheDocument();
     // Ohne Rechnungsrecht fragt die Liste auch hier nicht nach der Verrechnung.
@@ -1554,20 +1555,20 @@ describe('Ansicht und Seitenfenster', () => {
   ] as [Role, string][])('Gegenprobe: %s beginnt weiter bei „Offen“ (%s)', async (rolle) => {
     authWert.user.role = rolle;
     zeichne();
-    expect(await screen.findByRole('button', { name: 'Offen' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await waitFor(() => handlung({ name: 'Offen' }))).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('Gegenprobe: eine Ansicht in der Adresse gilt auch für die Projektleitung', async () => {
     authWert.user.role = 'Projektleiter';
     zeichne('/worksheets?ansicht=offen');
-    expect(await screen.findByRole('button', { name: 'Offen' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await waitFor(() => handlung({ name: 'Offen' }))).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByText(/Familie Berger/)).not.toBeInTheDocument();
   });
 
   it('bietet den Storno dem Monteur nicht an', async () => {
     zeichne('/worksheets?ansicht=alle');
     const fenster = await oeffne(/Familie Berger/);
-    expect(within(fenster).getByRole('button', { name: 'PDF' })).toBeInTheDocument();
+    expect(handlung({ name: 'PDF' }, fenster)).toBeInTheDocument();
     expect(within(fenster).queryByRole('button', { name: 'Stornieren' })).not.toBeInTheDocument();
   });
 });
@@ -1645,8 +1646,8 @@ describe('Neu eingegangen (V9)', () => {
     zeichne('/worksheets?filter=neu-eingegangen');
 
     expect(await screen.findByText('neu eingegangen')).toBeInTheDocument();
-    const frisch = await screen.findByRole('button', { name: /Familie Frisch/ });
-    const neuhold = screen.getByRole('button', { name: /Familie Neuhold/ });
+    const frisch = await waitFor(() => handlung({ name: /Familie Frisch/ }));
+    const neuhold = handlung({ name: /Familie Neuhold/ });
     expect(frisch.compareDocumentPosition(neuhold) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // Der eigene Entwurf und der geladene, nicht neue Schein stehen nicht darin.
     expect(screen.queryByText(/Familie Huber/)).not.toBeInTheDocument();
@@ -1701,7 +1702,7 @@ describe('Verbrauch am Schein (M3)', () => {
     const fenster = await oeffne(/Familie Berger/);
     expect(await within(fenster).findByText(/auf dem Schein 6 Stk · nicht ausgegeben 2 Stk/)).toBeInTheDocument();
     expect(within(fenster).getByRole('combobox', { name: 'Woher kam Pressfitting 15?' })).toHaveValue('bus');
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Abbuchen' }));
+    await userEvent.click(handlung({ name: 'Abbuchen' }, fenster));
     await waitFor(() => expect(verbrauchBuchen).toHaveBeenCalledWith(scheine[1].id, [{ materialId: 'k1', menge: 2, ortId: 'bus' }]));
     verbrauchVorschlag.mockResolvedValue(null);
   });
@@ -1715,7 +1716,7 @@ describe('Verbrauch am Schein (M3)', () => {
     const fenster = await oeffne(/Familie Berger/);
     await within(fenster).findByText(/nicht ausgegeben 2 Stk/);
     await userEvent.selectOptions(within(fenster).getByRole('combobox', { name: 'Woher kam Pressfitting 15?' }), 'nicht');
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Abbuchen' }));
+    await userEvent.click(handlung({ name: 'Abbuchen' }, fenster));
     await waitFor(() => expect(verbrauchBuchen).toHaveBeenCalledWith(scheine[1].id, []));
     verbrauchVorschlag.mockResolvedValue(null);
   });

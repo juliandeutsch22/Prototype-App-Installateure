@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { postenNeuLaden } from '@/app/offenePosten';
@@ -1335,84 +1336,49 @@ export default function AdminOrdersView() {
 
             <LotVerlauf name="Verlauf der Anforderung" punkte={verlaufVon(offen, haendlerName(offen.supplierId))} />
 
-            <div className="material-aktionen">
-              {/* V11: von der abgeholten Anforderung zurück — alles vorbelegt, auch frei getippte Ware. */}
-              {offen.transactionType !== 'return' && offen.status === 'Erledigt' && (
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setOffenId(null);
-                    setRetoureVorbelegt({
-                      materialId: offen.materialId || null,
-                      materialName: offen.materialName,
-                      menge: offen.quantity,
-                      baustelle: offen.projectNumber ?? '',
-                      userId: offen.userId,
-                    });
-                    setRetoureOffen(true);
-                  }}
-                >
-                  Zurückgeben …
-                </Button>
-              )}
-              {wartetAufAnnahme(offen) && (
-                <Button
-                  onClick={() => {
-                    setOffenId(null);
-                    setAnnahme({ o: offen, menge: zahlAlsText(offen.quantity), zustand: (offen.condition as 'neu') ?? 'neu' });
-                  }}
-                >
-                  Annehmen …
-                </Button>
-              )}
-              {(() => {
-                const s = schrittFuer(offen);
-                return s ? (
-                  <Button
-                    loading={busyId === offen.id}
-                    onClick={() => {
-                      setOffenId(null);
-                      schrittEinzeln(offen);
-                    }}
-                  >
-                    {s.text}
-                  </Button>
-                ) : null;
-              })()}
-              {schrittFuer(offen)?.art === 'auslager' && (
-                <Button
-                  variant="secondary"
-                  disabled={busyId === offen.id}
-                  onClick={() => {
-                    setOffenId(null);
-                    teilFragen(offen, null);
-                  }}
-                >
-                  Teilweise aus Lager …
-                </Button>
-              )}
-              {darfNichtAufLager(offen) && (
-                <Button
-                  variant="secondary"
-                  disabled={busyId === offen.id}
-                  onClick={() => {
-                    setOffenId(null);
-                    void fragEinkauf(offen);
-                  }}
-                >
-                  Nicht auf Lager – auf die Einkaufsliste
-                </Button>
-              )}
-              {/*
-                NACHTRÄGLICH EILIG (17 F) — oder zurück, wenn es sich erledigt
-                hat. Eilig gesetzt, bekommt die Projektleitung der Baustelle
-                eine Meldung (`push-melden`, Ereignis „eil“).
-              */}
-              {eiligMoeglich(offen) && (
-                <Button
-                  variant="secondary"
-                  disabled={busyId === offen.id}
-                  onClick={() => {
+            {/*
+              DIE KNÖPFE DES FENSTERS (U4, Durchsicht 15.11.2026): der nächste
+              Schritt gefüllt, höchstens ein zweiter daneben, alles Weitere im
+              ⋯ — auch die freie Statuswahl (D11: eine versehentlich
+              abgeschlossene Anforderung lässt sich so zurückholen) und das
+              Löschen als Unumkehrbares. Vorher standen bis zu fünf Knöpfe,
+              eine Reihe Statusknöpfe und „Löschen“ untereinander.
+            */}
+            {(() => {
+              const s = schrittFuer(offen);
+              const schritt = s ? (
+                <Button loading={busyId === offen.id} onClick={() => { setOffenId(null); schrittEinzeln(offen); }}>{s.text}</Button>
+              ) : null;
+              const annehmen = wartetAufAnnahme(offen) ? (
+                <Button onClick={() => {
+                  setOffenId(null);
+                  setAnnahme({ o: offen, menge: zahlAlsText(offen.quantity), zustand: (offen.condition as 'neu') ?? 'neu' });
+                }}>Annehmen …</Button>
+              ) : null;
+              const zurueckgeben = offen.transactionType !== 'return' && offen.status === 'Erledigt' ? () => {
+                setOffenId(null);
+                setRetoureVorbelegt({
+                  materialId: offen.materialId || null,
+                  materialName: offen.materialName,
+                  menge: offen.quantity,
+                  baustelle: offen.projectNumber ?? '',
+                  userId: offen.userId,
+                });
+                setRetoureOffen(true);
+              } : null;
+              const teilweise = s?.art === 'auslager' && busyId !== offen.id ? () => { setOffenId(null); teilFragen(offen, null); } : null;
+              const haupt = annehmen ?? schritt;
+              // Die zweite Stelle: der häufigere Nebenweg, sonst bleibt sie leer.
+              const zweit = teilweise
+                ? <Button variant="secondary" onClick={teilweise}>Teilweise aus Lager …</Button>
+                : zurueckgeben && !haupt ? <Button variant="secondary" onClick={zurueckgeben}>Zurückgeben …</Button> : null;
+              const weitere = [
+                ...(annehmen && schritt && s ? [{ label: s.text, onSelect: () => { setOffenId(null); schrittEinzeln(offen); } }] : []),
+                ...(zurueckgeben && haupt ? [{ label: 'Zurückgeben …', onSelect: zurueckgeben }] : []),
+                ...(darfNichtAufLager(offen) && busyId !== offen.id ? [{ label: 'Nicht auf Lager – auf die Einkaufsliste', onSelect: () => { setOffenId(null); void fragEinkauf(offen); } }] : []),
+                ...(eiligMoeglich(offen) && busyId !== offen.id ? [{
+                  label: offen.isUrgent ? 'Nicht mehr eilig' : 'Als eilig markieren',
+                  onSelect: () => {
                     const o = offen;
                     setOffenId(null);
                     void (async () => {
@@ -1423,51 +1389,27 @@ export default function AdminOrdersView() {
                         toast.error(grundAus(err, 'Das ließ sich nicht ändern.'));
                       }
                     })();
-                  }}
-                >
-                  {offen.isUrgent ? 'Nicht mehr eilig' : 'Als eilig markieren'}
-                </Button>
-              )}
-            </div>
-
-            {/*
-              DIE FREIE STATUSWAHL BLEIBT (Prüflauf 24.09.2026, D11): eine
-              versehentlich abgeschlossene Anforderung lässt sich so
-              zurückholen — „Auf „Offen“ setzen“ ist das „Zurück auf Offen“.
-            */}
-            {offen.transactionType !== 'return' && busyId !== offen.id && (
-              <div>
-                <p className="section-label mb-2">Status von Hand setzen</p>
-                <div className="material-status">
-                  {ORDER_STATUS_FLOW.filter((st) => st !== offen.status).map((st) => (
-                    <Button
-                      key={st}
-                      variant="secondary"
-                      onClick={() => {
-                        setOffenId(null);
-                        if (st === 'Erledigt') setToComplete(offen);
-                        else void setStatus(offen, st);
-                      }}
-                    >
-                      {`Auf „${st}“ setzen`}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="material-gefahr">
-              <Button
-                variant="danger"
-                onClick={() => {
-                  setOffenId(null);
-                  setToDelete(offen);
-                }}
-              >
-                {/* Derselbe Name wie die Rückfrage danach (E72, 09.11.2026): vorher „Anforderung löschen …“ und dann „Eintrag löschen?“. */}
-                {offen.transactionType === 'return' ? 'Retoure löschen …' : 'Anforderung löschen …'}
-              </Button>
-            </div>
+                  },
+                }] : []),
+                ...(offen.transactionType !== 'return' && busyId !== offen.id
+                  ? ORDER_STATUS_FLOW.filter((st) => st !== offen.status).map((st) => ({
+                    label: `Auf „${st}“ setzen`,
+                    onSelect: () => {
+                      setOffenId(null);
+                      if (st === 'Erledigt') setToComplete(offen);
+                      else void setStatus(offen, st);
+                    },
+                  }))
+                  : []),
+                {
+                  // Derselbe Name wie die Rückfrage danach (E72, 09.11.2026).
+                  label: offen.transactionType === 'return' ? 'Retoure löschen …' : 'Anforderung löschen …',
+                  danger: true,
+                  onSelect: () => { setOffenId(null); setToDelete(offen); },
+                },
+              ];
+              return <Fensteraktionen about={`Anforderung ${offen.materialName}`} haupt={haupt} zweit={zweit} weitere={weitere} />;
+            })()}
           </div>
         )}
       </BottomSheet>

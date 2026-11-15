@@ -467,52 +467,52 @@ export default function AngebotView() {
     (Entwurf der Linie: die Akte trägt den Knopf im Verlauf). Was seltener
     ist — ablehnen, kopieren, löschen — liegt im „⋯“ des Seitenkopfs.
   */
+  /*
+    HÖCHSTENS ZWEI SCHRITTE ALS KNOPF, DER REST IM ⋯ (U1/U4, Durchsicht
+    15.11.2026). Am Verlauf standen bis zu sechs gleichrangige Knöpfe
+    untereinander; welcher der nächste ist, sagte keiner. Jetzt die zwei
+    häufigsten des Stands (Entwurf: Bearbeiten, Als versendet markieren;
+    versendet: Annehmen → Baustelle, Annahme-Link), alles Weitere im ⋯ am
+    selben Punkt. Die Bedingungen je Schritt sind dieselben wie vorher.
+  */
+  const schrittListe: { label: string; onSelect: () => void; laeuft?: boolean; to?: string }[] = darfAendern && q.status !== 'Angenommen' ? [
+    // Nur der Entwurf: was beim Kunden liegt, ändert sich nicht mehr.
+    ...(q.status === 'Entwurf' ? [
+      { label: 'Bearbeiten', to: `/quotes?bearbeiten=${q.id}`, onSelect: () => navigate(`/quotes?bearbeiten=${q.id}`) },
+      { label: 'Als versendet markieren', laeuft: busy, onSelect: () => { setDatumHeute(true); setWechselFrage({ q, frage: statusFrage(q, 'versenden') }); } },
+    ] : []),
+    ...(offen && !nachbarn.angenommen ? [
+      { label: 'Annehmen → Baustelle', laeuft: busy, onSelect: () => { setAbrechnung('Pauschal'); setZiel(zielVorgabe(q)); setAnnehmenFragen(true); } },
+    ] : []),
+    /*
+      DER ANNAHME-LINK (M02a) neben dem internen Annehmen: der Kunde nimmt
+      selbst an. Nicht im Supporteinblick — der Link ist eine Erklärung des
+      Betriebs an seinen Kunden (die Datenbank weist den Support ab).
+    */
+    ...(linkMoeglich && hatPosition(q) ? [{ label: 'Annahme-Link', onSelect: () => setLinkDialog(true) }] : []),
+    /*
+      PER MAIL (F16): das PDF gleich an den Kunden — ein Entwurf ist danach
+      versendet. Nicht im Supporteinblick (die Datenbank weist ihn ab).
+      Erst, wenn die Anschrift des Kunden da ist (vorher gesperrt).
+    */
+    ...(offen && hatPosition(q) && !einblick && kunde.zustand === 'bereit'
+      ? [{ label: 'Per Mail senden', onSelect: () => { setMailDatumHeute(true); setMail({}); } }] : []),
+    /*
+      ÜBERARBEITEN, OHNE ZU ÄNDERN (M17). Was beim Kunden liegt, bleibt;
+      die neue Fassung ist ein eigener Entwurf mit eigener Nummer.
+    */
+    ...(q.status === 'Versendet' || q.status === 'Abgelehnt'
+      ? [{ label: 'Neue Fassung', to: `/quotes?neueFassung=${q.id}`, onSelect: () => navigate(`/quotes?neueFassung=${q.id}`) }] : []),
+  ] : [];
+  const sichtbar = schrittListe.slice(0, 2);
+  const imMenue = schrittListe.slice(2);
   const schritte = darfAendern && q.status !== 'Angenommen' ? (
-    <span className="mt-2 flex flex-wrap gap-2">
-      {q.status === 'Entwurf' && (
-        <>
-          {/* Nur der Entwurf: was beim Kunden liegt, ändert sich nicht mehr. */}
-          {/* Ein Schritt wie seine Nachbarn, kein Text daneben (E72, R1). */}
-          <KnopfLink to={`/quotes?bearbeiten=${q.id}`} variant="secondary">
-            Bearbeiten
-          </KnopfLink>
-          <Button
-            variant="secondary"
-            loading={busy}
-            onClick={() => { setDatumHeute(true); setWechselFrage({ q, frage: statusFrage(q, 'versenden') }); }}
-          >
-            Als versendet markieren
-          </Button>
-        </>
-      )}
-      {offen && !nachbarn.angenommen && (
-        <Button variant="secondary" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setZiel(zielVorgabe(q)); setAnnehmenFragen(true); }}>
-          Annehmen → Baustelle
-        </Button>
-      )}
-      {/*
-        DER ANNAHME-LINK (M02a) neben dem internen Annehmen: der Kunde nimmt
-        selbst an. Nicht im Supporteinblick — der Link ist eine Erklärung des
-        Betriebs an seinen Kunden (die Datenbank weist den Support ab).
-      */}
-      {linkMoeglich && hatPosition(q) && (
-        <Button variant="secondary" onClick={() => setLinkDialog(true)}>
-          Annahme-Link
-        </Button>
-      )}
-      {/*
-        PER MAIL (F16): das PDF gleich an den Kunden — ein Entwurf ist danach
-        versendet. Nicht im Supporteinblick (die Datenbank weist ihn ab).
-      */}
-      {offen && hatPosition(q) && !einblick && (
-        <Button
-          variant="secondary"
-          disabled={kunde.zustand !== 'bereit'}
-          onClick={() => { setMailDatumHeute(true); setMail({}); }}
-        >
-          Per Mail senden
-        </Button>
-      )}
+    <span className="mt-2 flex flex-wrap items-center gap-2">
+      {/* Ein Weg auf eine andere Seite bleibt ein Verweis (KnopfLink), ein Schritt hier ein Knopf. */}
+      {sichtbar.map((sch) => sch.to
+        ? <KnopfLink key={sch.label} to={sch.to} variant="secondary">{sch.label}</KnopfLink>
+        : <Button key={sch.label} variant="secondary" loading={sch.laeuft} onClick={sch.onSelect}>{sch.label}</Button>)}
+      {imMenue.length > 0 && <RowMenu about={`die nächsten Schritte am Angebot ${q.quoteNumber}`} items={imMenue.map(({ label, onSelect }) => ({ label, onSelect }))} />}
       {/* A5: ein leeres Angebot geht nicht hinaus — weder als versendet noch über den Link. */}
       {offen && !hatPosition(q) && (
         <span className="text-sm text-ink-muted">Noch ohne Position — versenden und verlinken geht erst mit einer.</span>
@@ -521,15 +521,6 @@ export default function AngebotView() {
         <span className="text-sm text-ink-muted">
           Die Fassung {nachbarn.angenommen.quoteNumber} ist schon angenommen — diese wird nicht mehr angenommen.
         </span>
-      )}
-      {/*
-        ÜBERARBEITEN, OHNE ZU ÄNDERN (M17). Was beim Kunden liegt, bleibt;
-        die neue Fassung ist ein eigener Entwurf mit eigener Nummer.
-      */}
-      {(q.status === 'Versendet' || q.status === 'Abgelehnt') && (
-        <KnopfLink to={`/quotes?neueFassung=${q.id}`} variant="secondary">
-          Neue Fassung
-        </KnopfLink>
       )}
     </span>
   ) : null;

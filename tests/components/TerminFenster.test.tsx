@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Termin } from '@/types';
+import { handlung, handlungDa } from './handlung';
 
 /**
  * „Termin ändern“ im Seitenfenster der Einsatzplanung (Runde 4, Auftrag
@@ -49,7 +50,9 @@ describe('TerminFenster', () => {
     const f = within(screen.getByRole('dialog', { name: 'Termin ändern' }));
     expect(f.getByRole('combobox', { name: 'Art' })).toHaveValue('Lieferung');
     expect(f.getByRole('button', { name: 'Änderung speichern' })).toBeInTheDocument();
-    expect(f.getByRole('button', { name: /löschen$/ })).toBeInTheDocument();
+    // Unumkehrbares im ⋯ (U4), nicht als roter Knopf neben „Änderung speichern“.
+    expect(f.queryByRole('button', { name: /löschen$/ })).toBeNull();
+    expect(handlung({ name: 'Termin löschen' }, screen.getByRole('dialog', { name: 'Termin ändern' }))).toBeInTheDocument();
   });
 
   it('wer nur sehen darf: dasselbe Fenster schreibgeschützt — die Angaben als Text, kein Speichern, kein Löschen', () => {
@@ -64,6 +67,7 @@ describe('TerminFenster', () => {
     expect(f.queryByRole('combobox')).toBeNull();
     expect(f.queryByRole('textbox')).toBeNull();
     expect(f.queryByRole('button', { name: /speichern|löschen/i })).toBeNull();
+    expect(handlungDa({ name: /löschen/ }, screen.getByRole('dialog', { name: 'Termin' }))).toBe(false);
   });
 
   it('„Termin anlegen“ mit dem Tag vorbelegt', () => {
@@ -71,6 +75,6 @@ describe('TerminFenster', () => {
     zeige(null);
     const f = within(screen.getByRole('dialog', { name: 'Termin anlegen' }));
     expect(f.getByLabelText(/^Tag/)).toHaveValue('2026-10-07');
-    expect(f.queryByRole('button', { name: /löschen/ })).toBeNull();
+    expect(handlungDa({ name: /löschen/ }, screen.getByRole('dialog', { name: 'Termin anlegen' }))).toBe(false);
   });
 });

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { handlung, handlungDa } from './handlung';
 import { MemoryRouter } from 'react-router-dom';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -183,7 +184,7 @@ async function baustelleFeld() {
  * sichtbare Zeile „Material zurückgeben“ statt über das „⋯“ des Seitenkopfs.
  */
 async function retoureOeffnen() {
-  await userEvent.click(await screen.findByRole('button', { name: /^Material zurückgeben/ }));
+  await userEvent.click(await waitFor(() => handlung({ name: /^Material zurückgeben/ })));
   return screen.findByRole('dialog', { name: 'Material zurückgeben' });
 }
 
@@ -255,8 +256,8 @@ describe('Material anfordern — der Warenkorb', () => {
       await baustelleFeld(),
       '2026-042',
     );
-    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm in die Liste/ })));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
     expect(anlegen.mock.calls[0][0]).toBe('perl');
@@ -278,13 +279,13 @@ describe('Material anfordern — der Warenkorb', () => {
       await baustelleFeld(),
       '2026-042',
     );
-    const knopf = screen.getByRole('button', { name: 'In die Liste' });
+    const knopf = handlung({ name: 'In die Liste' });
     expect(knopf).toBeDisabled();
     await userEvent.type(screen.getByLabelText('Bezeichnung'), 'Eckventil ½″');
     await userEvent.clear(screen.getByLabelText('Menge'));
     await userEvent.type(screen.getByLabelText('Menge'), '2');
     await userEvent.click(knopf);
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
     expect(anlegen.mock.calls[0][1]).toMatchObject({
@@ -302,14 +303,14 @@ describe('Material anfordern — der Warenkorb', () => {
   it('M8: die freie Zeile nimmt eine Einheit mit', async () => {
     zeige();
     await userEvent.selectOptions(await baustelleFeld(), '2026-042');
-    const knopf = screen.getByRole('button', { name: 'In die Liste' });
+    const knopf = handlung({ name: 'In die Liste' });
     await userEvent.type(screen.getByLabelText('Bezeichnung'), 'Rohr 22');
     await userEvent.clear(screen.getByLabelText('Menge'));
     await userEvent.type(screen.getByLabelText('Menge'), '30');
     await userEvent.selectOptions(screen.getByLabelText('Einheit'), 'm');
     await userEvent.click(knopf);
     expect(screen.getByText(/×30 m/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
     expect(anlegen.mock.calls[0][1]).toMatchObject({ materialName: 'Rohr 22', quantity: 30, einheit: 'm' });
   });
@@ -318,10 +319,10 @@ describe('Material anfordern — der Warenkorb', () => {
     anlegen.mockRejectedValueOnce(new Error('In „Stk“ zählen ganze Stück — bitte eine ganze Zahl eintragen.'));
     zeige();
     await userEvent.selectOptions(await baustelleFeld(), '2026-042');
-    const knopf = screen.getByRole('button', { name: 'In die Liste' });
+    const knopf = handlung({ name: 'In die Liste' });
     await userEvent.type(screen.getByLabelText('Bezeichnung'), 'Eckventil');
     await userEvent.click(knopf);
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
     expect(await screen.findByText(/Eckventil: In „Stk“ zählen ganze Stück/)).toBeInTheDocument();
   });
 
@@ -351,13 +352,13 @@ describe('Material anfordern — der Warenkorb', () => {
       an, und das Feld war nach dem Absenden leer.
     */
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
-    await userEvent.click(screen.getByRole('button', { name: /Dichtung .* in die Liste/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm in die Liste/ })));
+    await userEvent.click(handlung({ name: /Dichtung .* in die Liste/ }));
     await userEvent.type(
       screen.getByRole('textbox', { name: /Notiz für die Projektleitung/ }),
       'Bitte bis Donnerstag',
     );
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(2));
     expect(anlegen.mock.calls.map((c) => (c[1] as { note: string }).note)).toEqual([
@@ -373,11 +374,11 @@ describe('Material anfordern — der Warenkorb', () => {
      * der Liste da und nimmt jede Zahl.
      */
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Kupferrohr 15mm in die Liste' })));
     const menge = screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ });
     await userEvent.clear(menge);
     await userEvent.type(menge, '30');
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
     expect(anlegen.mock.calls[0][1].quantity).toBe(30);
@@ -385,21 +386,21 @@ describe('Material anfordern — der Warenkorb', () => {
   it('nach dem Abschicken steht wieder der Kreis — keine stehengebliebene 30', async () => {
     // Eine stehengebliebene 30 waere die teurere Ueberraschung.
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Kupferrohr 15mm in die Liste' })));
     const menge = screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ });
     await userEvent.clear(menge);
     await userEvent.type(menge, '30');
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis'));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
+    await waitFor(() => expect(handlung({ name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis'));
     expect(screen.queryByRole('textbox', { name: /für Kupferrohr 15mm in der Liste/ })).toBeNull();
   });
   it('eine unbrauchbare Menge ändert die Liste nicht', async () => {
     // Ein leeres oder krummes Feld darf nicht als 0 oder NaN durchgehen.
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Kupferrohr 15mm in die Liste' })));
     const menge = screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ });
     await userEvent.clear(menge);
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
     expect(anlegen.mock.calls[0][1].quantity).toBe(1);
   });
@@ -407,10 +408,10 @@ describe('Material anfordern — der Warenkorb', () => {
     // Sonst stünden drei Zeilen „Kupferrohr ×1" in der Anforderung, und die
     // Projektleitung müsste sie im Kopf addieren.
     zeige();
-    const knopf = await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ });
+    const knopf = await waitFor(() => handlung({ name: /Kupferrohr 15mm in die Liste/ }));
     await userEvent.click(knopf);
-    await userEvent.click(screen.getByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await userEvent.click(handlung({ name: /Kupferrohr 15mm in die Liste/ }));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
     expect(anlegen.mock.calls[0][1].quantity).toBe(2);
@@ -442,8 +443,8 @@ describe('Material anfordern — der Warenkorb', () => {
       expect(screen.getByRole('checkbox', { name: /Eilzustellung/ })).toBeDisabled(),
     );
 
-    await userEvent.click(await screen.findByRole('button', { name: /Dichtung .* in die Liste/ }));
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Dichtung .* in die Liste/ })));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
     expect(anlegen.mock.calls[0][1].projectNumber).toBe('');
@@ -492,15 +493,15 @@ describe('Material anfordern — wenn das Absenden teilweise scheitert', () => {
       .mockRejectedValueOnce(new Error('kein Netz'));
 
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
-    await userEvent.click(await screen.findByRole('button', { name: /Dichtung .* in die Liste/ }));
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm in die Liste/ })));
+    await userEvent.click(await waitFor(() => handlung({ name: /Dichtung .* in die Liste/ })));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(screen.getByText(/konnten nicht gesendet werden/)).toBeInTheDocument());
 
     // Genau eine Zeile blieb übrig — die gescheiterte.
     expect(await screen.findByRole('heading', { name: 'Anforderung (1) — noch nicht abgeschickt' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Dichtung .* entfernen/ })).toBeInTheDocument();
+    expect(handlung({ name: /Dichtung .* entfernen/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Kupferrohr 15mm entfernen/ })).not.toBeInTheDocument();
   });
 
@@ -513,8 +514,8 @@ describe('Material anfordern — wenn das Absenden teilweise scheitert', () => {
     anlegen.mockResolvedValue('queued');
 
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm in die Liste/ })));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
 
     expect(await screen.findByText(/wird automatisch gesendet/)).toBeInTheDocument();
   });
@@ -525,9 +526,9 @@ describe('Material anfordern — wenn das Absenden teilweise scheitert', () => {
     const rollen = vi.fn();
     Element.prototype.scrollIntoView = rollen;
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm in die Liste/ })));
     expect(rollen).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
 
     await waitFor(() => expect(rollen).toHaveBeenCalled());
     expect(rollen.mock.contexts[0]).toBe(screen.getByRole('region', { name: 'Meine Anforderungen' }));
@@ -550,13 +551,13 @@ describe('Material anfordern — der Warenkorb auf einem geteilten Tablet', () =
     zeige();
 
     // Ein leerer Korb zeigt keine Karte (Analyse 03.10.2026, Paket 1) — und der fremde Korb kommt nicht herein.
-    await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ });
+    await waitFor(() => handlung({ name: /Kupferrohr 15mm in die Liste/ }));
     expect(screen.queryByRole('heading', { name: /^Anforderung \(/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Fremd/)).not.toBeInTheDocument();
 
     // Und die Gegenprobe beim Schreiben: der eigene Korb landet unter dem
     // eigenen Schlüssel, nicht unter einem, den sich alle teilen.
-    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm in die Liste/ })));
     await waitFor(() =>
       expect(localStorage.getItem('senklot.warenkorb:perl:u1')).toContain('Kupferrohr'),
     );
@@ -590,11 +591,11 @@ describe('Material anfordern — Retoure', () => {
     zeige();
     const fenster = await retoureOeffnen();
     await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Kupfer');
-    await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm zurückgeben/ }, fenster)));
     const menge = within(fenster).getByRole('textbox', { name: /Menge/ });
     await userEvent.clear(menge);
     await userEvent.type(menge, '-3');
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
 
     // Der Fehler steht im Fenster, in dem er entstand.
     expect(await within(fenster).findByText(/größer als null/)).toBeInTheDocument();
@@ -605,12 +606,12 @@ describe('Material anfordern — Retoure', () => {
     zeige();
     const fenster = await retoureOeffnen();
     await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'KR15');
-    await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm zurückgeben/ }, fenster)));
     await userEvent.selectOptions(within(fenster).getByRole('combobox', { name: /Zustand/ }), 'defekt');
     const menge = within(fenster).getByRole('textbox', { name: /Menge/ });
     await userEvent.clear(menge);
     await userEvent.type(menge, '4');
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
 
     await waitFor(() => expect(retoure).toHaveBeenCalledTimes(1));
     // Erfasst: das Fenster schliesst.
@@ -637,13 +638,13 @@ describe('Retoure — Höchstmenge und Annahme (M7)', () => {
     zeige('/material?retoure=1&baustelle=2026-042');
     const fenster = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
     await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Kupfer');
-    await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm zurückgeben/ }, fenster)));
     expect(await within(fenster).findByText(/ausgegeben: 4, schon zurück: 1 — höchstens 3/)).toBeInTheDocument();
     expect(within(fenster).getByText(/schon verrechnet/)).toBeInTheDocument();
     const menge = within(fenster).getByRole('textbox', { name: /Menge/ });
     await userEvent.clear(menge);
     await userEvent.type(menge, '5');
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
     expect(await within(fenster).findByText(/höchstens 3 zurückkommen/)).toBeInTheDocument();
     expect(retoure).not.toHaveBeenCalled();
     rahmen.mockResolvedValue(null);
@@ -653,8 +654,8 @@ describe('Retoure — Höchstmenge und Annahme (M7)', () => {
     zeige();
     const fenster = await retoureOeffnen();
     await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Kupfer');
-    await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm zurückgeben/ }, fenster)));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
     expect(await screen.findByText(/Retoure gemeldet — gutgeschrieben wird, sobald das Lager sie annimmt/)).toBeInTheDocument();
   });
 });
@@ -668,11 +669,11 @@ describe('Zurückgeben (V11)', () => {
     eigene = [{ id: 'e1', companyId: 'perl', materialId: 'm1', materialName: 'Kupferrohr 15mm', quantity: 4, status: 'Erledigt',
       transactionType: 'order', userId: 'u1', projectNumber: '2026-042', processed: true } as WithId<MaterialOrder>];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm zurückgeben' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Kupferrohr 15mm zurückgeben' })));
     const fenster = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
     expect(within(fenster).getByRole('textbox', { name: /Menge/ })).toHaveValue('4');
     await userEvent.selectOptions(within(fenster).getByRole('combobox', { name: /Zustand/ }), 'gebraucht');
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
     await waitFor(() => expect(retoure).toHaveBeenCalledTimes(1));
     expect(retoure.mock.calls[0][1]).toMatchObject({ materialId: 'm1', quantity: 4, projectNumber: '2026-042' });
   });
@@ -681,11 +682,11 @@ describe('Zurückgeben (V11)', () => {
     zeige();
     const fenster = await retoureOeffnen();
     await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Restrohr alt');
-    await userEvent.click(await within(fenster).findByRole('button', { name: '„Restrohr alt“ ohne Katalog zurückgeben' }));
+    await userEvent.click(await waitFor(() => handlung({ name: '„Restrohr alt“ ohne Katalog zurückgeben' }, fenster)));
     const menge = within(fenster).getByRole('textbox', { name: /Menge/ });
     await userEvent.clear(menge);
     await userEvent.type(menge, '1,5');
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
     await waitFor(() => expect(retoure).toHaveBeenCalledTimes(1));
     expect(retoure.mock.calls[0][1]).toMatchObject({ materialId: null, materialName: 'Restrohr alt', quantity: 1.5 });
   });
@@ -754,10 +755,10 @@ describe('Material anfordern — der Katalog vom Server', () => {
     expect(screen.queryByText('Artikel 0020')).not.toBeInTheDocument();
     expect(katalogAbfragen[0]).toEqual({ begriff: '', anzahl: 20 });
 
-    await userEvent.click(screen.getByRole('button', { name: 'und 25 weitere anzeigen' }));
+    await userEvent.click(handlung({ name: 'und 25 weitere anzeigen' }));
     expect(await screen.findByText('Artikel 0039')).toBeInTheDocument();
     expect(katalogAbfragen[katalogAbfragen.length - 1]).toEqual({ begriff: '', anzahl: 40 });
-    expect(screen.getByRole('button', { name: 'und 5 weitere anzeigen' })).toBeInTheDocument();
+    expect(handlung({ name: 'und 5 weitere anzeigen' })).toBeInTheDocument();
   });
 
   /*
@@ -797,8 +798,8 @@ describe('Material anfordern — der Katalog vom Server', () => {
     expect(screen.queryByText('Zinkwanne')).not.toBeInTheDocument();
     const fenster = await retoureOeffnen();
     await userEvent.type(within(fenster).getByRole('searchbox', { name: 'Material' }), 'Zink');
-    await userEvent.click(await within(fenster).findByRole('button', { name: /Zinkwanne zurückgeben/ }));
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Zinkwanne zurückgeben/ }, fenster)));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
     await waitFor(() => expect(retoure).toHaveBeenCalled());
     expect(retoure.mock.calls[0][1]).toMatchObject({ materialId: 'a500', materialName: 'Zinkwanne', quantity: 1 });
   });
@@ -808,11 +809,11 @@ describe('Material anfordern — der Katalog vom Server', () => {
     await screen.findByText('Kupferrohr 15mm');
     const fenster = await retoureOeffnen();
     await userEvent.type(within(fenster).getByRole('searchbox', { name: 'Material' }), 'Kupfer');
-    await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm zurückgeben/ }, fenster)));
     const menge = within(fenster).getByLabelText('Menge');
     await userEvent.clear(menge);
     await userEvent.type(menge, '-3');
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
     const meldung = (await within(fenster).findByRole('alert')).textContent;
     await act(async () => katalogGeaendert());
     await waitFor(() => expect(katalogAbfragen.length).toBeGreaterThan(1));
@@ -831,7 +832,7 @@ describe('Nachträglich eilig (17 F)', () => {
     Stelle.
   */
   const oeffnen = async (name: string) =>
-    userEvent.click(await screen.findByRole('button', { name: new RegExp(`^${name} ×`) }));
+    userEvent.click(await waitFor(() => handlung({ name: new RegExp(`^${name} ×`) })));
 
   it('bietet „Als eilig markieren“ nur, wo es geht — offen oder in Arbeit, mit Baustelle, noch nicht eilig', async () => {
     eigene = [
@@ -848,8 +849,8 @@ describe('Nachträglich eilig (17 F)', () => {
     const kann: Record<string, boolean> = {};
     for (const name of ['Kupferrohr 15mm', 'Dichtung', 'Hanf', 'Fitting', 'Rohrschelle']) {
       await oeffnen(name);
-      const f = within(screen.getByRole('dialog', { name: `Anforderung ${name}` }));
-      kann[name] = !!f.queryByRole('button', { name: 'Als eilig markieren' });
+      // Seit U4 im ⋯ des Fensters.
+      kann[name] = handlungDa({ name: 'Als eilig markieren' }, screen.getByRole('dialog', { name: `Anforderung ${name}` }));
       await userEvent.keyboard('{Escape}');
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     }
@@ -861,11 +862,11 @@ describe('Nachträglich eilig (17 F)', () => {
     eigene = [eigen({})];
     zeige();
     await oeffnen('Kupferrohr 15mm');
-    await userEvent.click(screen.getByRole('button', { name: 'Als eilig markieren' }));
+    await userEvent.click(handlung({ name: 'Als eilig markieren' }));
     const dialog = await screen.findByRole('dialog', { name: 'Als eilig markieren?' });
     expect(within(dialog).getByText(/Projektleitung der Baustelle wird verständigt/)).toBeInTheDocument();
     expect(eiligSetzen).not.toHaveBeenCalled();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Eilig' }));
+    await userEvent.click(handlung({ name: 'Eilig' }, dialog));
     await waitFor(() => expect(eiligSetzen).toHaveBeenCalledWith('o1', true));
   });
 
@@ -874,7 +875,7 @@ describe('Nachträglich eilig (17 F)', () => {
     eigene = [eigen({ projectNumber: '2026-099' })];
     zeige();
     await oeffnen('Kupferrohr 15mm');
-    await userEvent.click(screen.getByRole('button', { name: 'Als eilig markieren' }));
+    await userEvent.click(handlung({ name: 'Als eilig markieren' }));
     expect(within(await screen.findByRole('dialog', { name: 'Als eilig markieren?' })).getByText(/keine Projektleitung zugeteilt/)).toBeInTheDocument();
   });
 });
@@ -895,7 +896,7 @@ describe('Abgeholt — aus dem Lager oder vom Händler (C7, E89)', () => {
   it('bei „Offen“: die Rückfrage fragt nach der Herkunft — „vom Händler“ bucht nichts ab und geht so weiter', async () => {
     eigene = [eigen({})];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Abgeholt' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Abgeholt' })));
     const d = within(screen.getByRole('dialog', { name: 'Material abgeholt?' }));
     expect(d.getByRole('radio', { name: 'Aus dem Lager genommen' })).toBeChecked();
     expect(d.getByText(/vom Lagerbestand abgezogen/)).toBeInTheDocument();
@@ -939,16 +940,18 @@ describe('Ändern, Zurückziehen, Teil abgeholt (M5)', () => {
     ({ id: 'o1', companyId: 'perl', materialName: 'Kupferrohr 15mm', quantity: 30, status: 'Offen',
       transactionType: 'order', userId: 'u1', projectNumber: '2026-042', ...rest }) as WithId<MaterialOrder>;
   const fenster = async () => {
-    await userEvent.click(await screen.findByRole('button', { name: /^Kupferrohr 15mm ×/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /^Kupferrohr 15mm ×/ })));
     return within(await screen.findByRole('dialog', { name: 'Anforderung Kupferrohr 15mm' }));
   };
+  /** Das Fenster selbst — für Handlungen, die seit U4 im ⋯ stehen. */
+  const fensterElement = () => screen.getByRole('dialog', { name: 'Anforderung Kupferrohr 15mm' });
 
   it('die Menge ändern, solange „Offen“', async () => {
     mengeAendern.mockClear();
     eigene = [eigen({})];
     zeige();
     const f = await fenster();
-    await userEvent.click(f.getByRole('button', { name: 'Menge ändern …' }));
+    await userEvent.click(handlung({ name: 'Menge ändern …' }, fensterElement()));
     const feld = f.getByLabelText('Neue Menge');
     await userEvent.clear(feld);
     await userEvent.type(feld, '3');
@@ -961,7 +964,7 @@ describe('Ändern, Zurückziehen, Teil abgeholt (M5)', () => {
     eigene = [eigen({})];
     zeige();
     const f = await fenster();
-    await userEvent.click(f.getByRole('button', { name: 'Zurückziehen …' }));
+    await userEvent.click(handlung({ name: 'Zurückziehen …' }, fensterElement()));
     await userEvent.click(f.getByRole('button', { name: 'Zurückziehen' }));
     expect(await f.findByText(/inzwischen in Arbeit/)).toBeInTheDocument();
     expect(zurueckziehen).toHaveBeenCalledWith('o1');
@@ -972,7 +975,8 @@ describe('Ändern, Zurückziehen, Teil abgeholt (M5)', () => {
     zeige();
     const f = await fenster();
     expect(f.queryByRole('button', { name: 'Menge ändern …' })).toBeNull();
-    expect(f.queryByRole('button', { name: 'Zurückziehen …' })).toBeNull();
+    expect(handlungDa({ name: 'Menge ändern …' }, fensterElement())).toBe(false);
+    expect(handlungDa({ name: 'Zurückziehen …' }, fensterElement())).toBe(false);
   });
 
   it('„Abgeholt“ mit weniger: nur der Teil wird gebucht', async () => {
@@ -980,7 +984,7 @@ describe('Ändern, Zurückziehen, Teil abgeholt (M5)', () => {
     statusSetzen.mockResolvedValue({ art: 'geaendert' });
     eigene = [eigen({ quantity: 10, status: 'Abholbereit', beschaffung: 'lager' })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Abgeholt' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Abgeholt' })));
     const d = within(screen.getByRole('dialog', { name: 'Material abgeholt?' }));
     const feld = d.getByLabelText('Abgeholt');
     await userEvent.clear(feld);
@@ -1058,7 +1062,7 @@ describe('Material anfordern — die eigene Verfolgung', () => {
         status: 'Abholbereit', transactionType: 'order', userId: 'u1' } as WithId<MaterialOrder>,
     ];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Abgeholt' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Abgeholt' })));
 
     expect(await screen.findByText(/vom Lagerbestand abgezogen/)).toBeInTheDocument();
     expect(statusSetzen).not.toHaveBeenCalled();
@@ -1069,7 +1073,7 @@ describe('Material anfordern — die eigene Verfolgung', () => {
      * abgeholt?". Wer das liest, tippt nicht darauf.
      */
     const dialog = screen.getByRole('dialog');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Abgeholt' }));
+    await userEvent.click(handlung({ name: 'Abgeholt' }, dialog));
     await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o2', 'Erledigt', { von: 'Abholbereit' }));
   });
 
@@ -1081,8 +1085,8 @@ describe('Material anfordern — die eigene Verfolgung', () => {
         status: 'Abholbereit', transactionType: 'order', userId: 'u1' } as WithId<MaterialOrder>,
     ];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Abgeholt' }));
-    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Abgeholt' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Abgeholt' })));
+    await userEvent.click(handlung({ name: 'Abgeholt' }, screen.getByRole('dialog')));
     expect(await screen.findByText(/Inzwischen schon als abgeholt gebucht/)).toBeInTheDocument();
     expect(screen.queryByText('Abholung bestätigt')).not.toBeInTheDocument();
   });
@@ -1106,18 +1110,18 @@ describe('Mengen je Einheit', () => {
     zeige();
     const fenster = await retoureOeffnen();
     await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Dichtung');
-    await userEvent.click(await within(fenster).findByRole('button', { name: /Dichtung 1\/2" zurückgeben/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Dichtung 1\/2" zurückgeben/ }, fenster)));
     const menge = within(fenster).getByRole('textbox', { name: /Menge/ });
     await userEvent.clear(menge);
     await userEvent.type(menge, '2,5');
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
     expect(await within(fenster).findByText(/ganze Stück/)).toBeInTheDocument();
     expect(retoure).not.toHaveBeenCalled();
   });
 
   it('Rohr in Metern nimmt „2,5“ in die Anforderung', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Kupferrohr 15mm in die Liste' })));
     const feld = screen.getByRole('textbox', { name: /Menge m für Kupferrohr 15mm in der Liste/ });
     await userEvent.clear(feld);
     await userEvent.type(feld, '2,5');
@@ -1125,7 +1129,7 @@ describe('Mengen je Einheit', () => {
   });
   it('Gegenprobe: bei Stück bleibt „1,5“ draußen — die Liste behält 1', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Dichtung 1/2" in die Liste' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Dichtung 1/2" in die Liste' })));
     const feld = screen.getByRole('textbox', { name: /Menge Stk für Dichtung 1\/2" in der Liste/ });
     await userEvent.clear(feld);
     await userEvent.type(feld, '1,5');
@@ -1155,25 +1159,25 @@ describe('Freie Menge', () => {
 describe('Warenkorb-Beschriftung', () => {
   it('„In die Liste“ sammelt nur, erst „Anforderung abschicken“ sendet', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm in die Liste/ })));
     expect(screen.getByRole('heading', { name: /noch nicht abgeschickt/ })).toBeInTheDocument();
     expect(screen.getByText(/Erst mit „Anforderung abschicken“ geht sie an die Verwaltung/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ })).toBeInTheDocument();
+    expect(handlung({ name: /^Anforderung \(\d+\) abschicken$/ })).toBeInTheDocument();
   });
 
   // Analyse 03.10.2026, Paket 2 — der Knopf klebt am Telefon über der Reiterleiste;
   // seit dem Umbau (Linie „Lot“, E5) als Warenkorb-Leiste im Daumenbereich.
   it('steht in der Warenkorb-Leiste und nennt Zahl und Baustelle', async () => {
     zeige();
-    await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ });
+    await waitFor(() => handlung({ name: /Kupferrohr 15mm in die Liste/ }));
     // Leerer Korb: keine Leiste.
     expect(screen.queryByRole('region', { name: 'Warenkorb' })).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
+    await userEvent.click(handlung({ name: /Kupferrohr 15mm in die Liste/ }));
     const leiste = screen.getByRole('region', { name: 'Warenkorb' });
     expect(leiste).toHaveClass('korb');
     expect(within(leiste).getByText('1 Artikel ohne Baustelle')).toBeInTheDocument();
-    expect(within(leiste).getByRole('button', { name: 'Anforderung (1) abschicken' })).toBeInTheDocument();
-    expect(within(leiste).getByRole('button', { name: 'Liste leeren' })).toBeInTheDocument();
+    expect(handlung({ name: 'Anforderung (1) abschicken' }, leiste)).toBeInTheDocument();
+    expect(handlung({ name: 'Liste leeren' }, leiste)).toBeInTheDocument();
     // „noch nicht abgeschickt“ ist ein Zustand der Linie, mit dem Zeichen für „offen“ (E47).
     expect(within(leiste).getByText('noch nicht abgeschickt')).toHaveClass('stand', 'stand-offen');
   });
@@ -1181,19 +1185,19 @@ describe('Warenkorb-Beschriftung', () => {
   it('nennt den Kunden der Baustelle — und „2 Baustellen“, wenn gemischt', async () => {
     zeige();
     await userEvent.selectOptions(await baustelleFeld(), '2026-042');
-    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm in die Liste/ })));
     const leiste = screen.getByRole('region', { name: 'Warenkorb' });
     expect(within(leiste).getByText('1 Artikel für Familie Huber')).toBeInTheDocument();
     await userEvent.selectOptions(await baustelleFeld(), '2026-099');
-    await userEvent.click(screen.getByRole('button', { name: /Dichtung .* in die Liste/ }));
+    await userEvent.click(handlung({ name: /Dichtung .* in die Liste/ }));
     expect(within(leiste).getByText('2 Artikel für 2 Baustellen')).toBeInTheDocument();
   });
 
   it('meldet einen Teilfehler an der Leiste, an der abgeschickt wurde', async () => {
     anlegen.mockRejectedValueOnce(new Error('kein Netz'));
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm in die Liste/ })));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
     const leiste = screen.getByRole('region', { name: 'Warenkorb' });
     expect(await within(leiste).findByRole('alert')).toHaveTextContent(/konnten nicht gesendet werden/);
   });
@@ -1207,19 +1211,19 @@ describe('Warenkorb-Beschriftung', () => {
 describe('Was schon in der Liste liegt', () => {
   it('ein Tipp auf den Kreis legt eines hinein; dann steht die Menge an derselben Stelle, einzeilig — „Liste leeren“ bringt den Kreis zurück', async () => {
     zeige();
-    const knopf = await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' });
+    const knopf = await waitFor(() => handlung({ name: 'Kupferrohr 15mm in die Liste' }));
     // Der Kreis (E74, V10 als Linienkreis): kein Wort im Knopf, der Name als Hinweis.
     expect(knopf).toHaveClass('korb-kreis');
     expect(knopf).toHaveTextContent(/^$/);
     expect(knopf).toHaveAttribute('title', 'Kupferrohr 15mm in die Liste');
     await userEvent.click(knopf);
     expect(screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ })).toHaveValue('1');
-    await userEvent.click(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste (eines mehr)' }));
+    await userEvent.click(handlung({ name: 'Kupferrohr 15mm in die Liste (eines mehr)' }));
     expect(screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ })).toHaveValue('2');
     // Keine zweite Zeile „… in der Liste“ darunter: die Menge steht im Feld.
     expect(screen.queryByText(/ in der Liste$/)).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: 'Liste leeren' }));
-    expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis');
+    await userEvent.click(handlung({ name: 'Liste leeren' }));
+    expect(handlung({ name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis');
   });
   it('steht nach einem Neustart wieder da', async () => {
     localStorage.setItem(
@@ -1236,19 +1240,19 @@ describe('Was schon in der Liste liegt', () => {
 
   it('ist nach dem Abschicken weg', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
-    await userEvent.click(screen.getByRole('button', { name: /^Anforderung \(\d+\) abschicken$/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Kupferrohr 15mm in die Liste' })));
+    await userEvent.click(handlung({ name: /^Anforderung \(\d+\) abschicken$/ }));
     await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis'));
+    await waitFor(() => expect(handlung({ name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis'));
   });
   it('Gegenprobe: ein anderer Artikel und ein freier Eintrag zählen beim Kupferrohr nicht mit', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Dichtung 1/2" in die Liste' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Dichtung 1/2" in die Liste' })));
     await userEvent.type(screen.getByLabelText('Bezeichnung'), 'Eckventil');
-    await userEvent.click(screen.getByRole('button', { name: 'Eckventil in die Liste' }));
+    await userEvent.click(handlung({ name: 'Eckventil in die Liste' }));
     expect(screen.getByRole('textbox', { name: /für Dichtung 1\/2" in der Liste/ })).toHaveValue('1');
     // Beim Kupferrohr steht weiter nur der Kreis.
-    expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis');
+    expect(handlung({ name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis');
     expect(screen.queryByRole('textbox', { name: /für Kupferrohr 15mm in der Liste/ })).toBeNull();
   });
 });
@@ -1301,7 +1305,7 @@ describe('Meine Anforderungen auf derselben Seite', () => {
 describe('Material anfordern — Rückgabe sichtbar', () => {
   it('„Material zurückgeben“ steht als Zeile auf der Seite, das „⋯“ entfällt', async () => {
     zeige();
-    expect(await screen.findByRole('button', { name: /^Material zurückgeben/ })).toBeInTheDocument();
+    expect(await waitFor(() => handlung({ name: /^Material zurückgeben/ }))).toBeInTheDocument();
     expect(screen.getByText(/Übrig von der Baustelle\? Zurück ans Lager/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Weitere Aktionen für Material' })).toBeNull();
   });
@@ -1312,15 +1316,15 @@ describe('Material anfordern — Rückgabe sichtbar', () => {
     const feld = within(fenster).getByRole('combobox', { name: /Von welcher Baustelle/ });
     await waitFor(() => expect(feld).toHaveValue('2026-042'));
     await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Kupfer');
-    await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm zurückgeben/ }, fenster)));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
     await waitFor(() => expect(retoure).toHaveBeenCalledTimes(1));
     expect(retoure.mock.calls[0][1]).toMatchObject({ projectNumber: '2026-042', condition: 'neu', userId: 'u1' });
   });
 
   it('Gleichbleiben: ohne Adresse bleibt das Fenster zu', async () => {
     zeige();
-    await screen.findByRole('button', { name: /^Material zurückgeben/ });
+    await waitFor(() => handlung({ name: /^Material zurückgeben/ }));
     expect(screen.queryByRole('dialog', { name: 'Material zurückgeben' })).toBeNull();
   });
 });
@@ -1340,9 +1344,9 @@ describe('Material anfordern — Knöpfe und Fluchten der Linie (E72)', () => {
   */
   it('Minus, Menge und Plus sind eine gerahmte Einheit — erst, wenn der Artikel in der Liste liegt (C1, E89)', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
-    const minus = screen.getByRole('button', { name: 'Kupferrohr 15mm aus der Liste nehmen' });
-    const plus = screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste (eines mehr)' });
+    await userEvent.click(await waitFor(() => handlung({ name: 'Kupferrohr 15mm in die Liste' })));
+    const minus = handlung({ name: 'Kupferrohr 15mm aus der Liste nehmen' });
+    const plus = handlung({ name: 'Kupferrohr 15mm in die Liste (eines mehr)' });
     const feld = screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ });
     const gruppe = feld.closest('.mengen-wahl') as HTMLElement;
     expect(gruppe).not.toBeNull();
@@ -1354,11 +1358,11 @@ describe('Material anfordern — Knöpfe und Fluchten der Linie (E72)', () => {
     expect(feld).toHaveClass('mengen-feld');
     // Bei eins nimmt Minus den Artikel heraus — der Kreis steht wieder da.
     await userEvent.click(minus);
-    expect(screen.getByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis');
+    expect(handlung({ name: 'Kupferrohr 15mm in die Liste' })).toHaveClass('korb-kreis');
   });
   it('eine ungültige Menge färbt den ganzen Rahmen, die Liste bleibt', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Kupferrohr 15mm in die Liste' })));
     const feld = screen.getByRole('textbox', { name: /Menge .* für Kupferrohr 15mm in der Liste/ });
     await userEvent.clear(feld);
     await userEvent.type(feld, 'abc');
@@ -1381,18 +1385,18 @@ describe('Material anfordern — Knöpfe und Fluchten der Linie (E72)', () => {
     eigene = [{ id: 'o1', companyId: 'perl', materialName: 'Kupferrohr 15mm', quantity: 2,
       status: 'Offen', transactionType: 'order', userId: 'u1' } as WithId<MaterialOrder>];
     zeige();
-    const knopf = await screen.findByRole('button', { name: 'Abgeholt' });
+    const knopf = await waitFor(() => handlung({ name: 'Abgeholt' }));
     expect(knopf).toHaveClass('border-line-strong');
     expect(knopf).not.toHaveClass('bg-brand');
   });
 
   it('der Warenkorb zeigt kurz „Leeren“; die Vorlesehilfe hört weiter „Liste leeren“', async () => {
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm in die Liste/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm in die Liste/ })));
     const leiste = screen.getByRole('region', { name: 'Warenkorb' });
-    expect(within(leiste).getByRole('button', { name: 'Liste leeren' })).toHaveTextContent(/^Leeren$/);
+    expect(handlung({ name: 'Liste leeren' }, leiste)).toHaveTextContent(/^Leeren$/);
     // Gleich geblieben: das Abschicken heißt, wie es hieß.
-    expect(within(leiste).getByRole('button', { name: 'Anforderung (1) abschicken' })).toHaveTextContent('Anforderung (1) abschicken');
+    expect(handlung({ name: 'Anforderung (1) abschicken' }, leiste)).toHaveTextContent('Anforderung (1) abschicken');
   });
 });
 
@@ -1492,7 +1496,7 @@ describe('Zuletzt angefordert (C5, E89)', () => {
     expect(b.queryByText('Dichtung 1/2"')).toBeNull();
     await userEvent.click(b.getByRole('button', { name: 'Hanf 100 g in die Liste' }));
     expect(b.getByRole('textbox', { name: /für Hanf 100 g in der Liste/ })).toHaveValue('1');
-    expect(screen.getByRole('button', { name: /^Anforderung \(1\) abschicken$/ })).toBeInTheDocument();
+    expect(handlung({ name: /^Anforderung \(1\) abschicken$/ })).toBeInTheDocument();
   });
 
   it('ohne Baustelle: die letzten vier Wochen — Älteres und Retouren nicht', async () => {
@@ -1547,8 +1551,8 @@ describe('V10 Material — Zustände und Auswahl', () => {
     // Der freie Eintrag braucht keinen Katalog und bleibt.
     expect(screen.getByRole('textbox', { name: 'Bezeichnung' })).toBeInTheDocument();
     abosFehler = {};
-    await userEvent.click(screen.getByRole('button', { name: /Erneut versuchen/ }));
-    expect(await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' })).toBeInTheDocument();
+    await userEvent.click(handlung({ name: /Erneut versuchen/ }));
+    expect(await waitFor(() => handlung({ name: 'Kupferrohr 15mm in die Liste' }))).toBeInTheDocument();
     expect(screen.queryByText(/Der Katalog konnte nicht geladen werden/)).toBeNull();
   });
 
@@ -1584,7 +1588,7 @@ describe('V10 Material — Zustände und Auswahl', () => {
 
   it('der Kreis ist eine Linie, kein gefüllter Kreis; liegt der Artikel in der Liste, steht die Menge in der ausgewählten Zeile', async () => {
     zeige();
-    const knopf = await screen.findByRole('button', { name: 'Kupferrohr 15mm in die Liste' });
+    const knopf = await waitFor(() => handlung({ name: 'Kupferrohr 15mm in die Liste' }));
     expect(knopf).toHaveClass('korb-kreis');
     expect(knopf).not.toHaveClass('symbol-rund');
     expect(knopf.closest('.korb-menge')).not.toHaveClass('korb-menge-drin');
@@ -1598,7 +1602,7 @@ describe('V10 Material — Zustände und Auswahl', () => {
   it('die Herkunft ist eine Auswahl mit Häkchen-Baustein; der Name bleibt die Herkunft, der Zusatz beschreibt', async () => {
     eigene = [eigen({})];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: 'Abgeholt' }));
+    await userEvent.click(await waitFor(() => handlung({ name: 'Abgeholt' })));
     const d = within(screen.getByRole('dialog', { name: 'Material abgeholt?' }));
     const lager = d.getByRole('radio', { name: 'Aus dem Lager genommen' });
     const haendler = d.getByRole('radio', { name: 'Beim Händler mitgenommen' });

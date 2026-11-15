@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
 import KnopfLink from '@/components/KnopfLink';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
@@ -1559,76 +1560,55 @@ export default function WorkSheetsListView() {
                 {offenerSchein.status === 'Unterschrieben' && (
                   <VerbrauchAmSchein key={offenerSchein.id} scheinId={offenerSchein.id} />
                 )}
-                <div className="fuss-aktionen">
-                  <Button variant="secondary" loading={busy} onClick={() => pdfAusgeben(offenerSchein)}>
-                    PDF
-                  </Button>
-                  {darfDiesen(offenerSchein) && offenerSchein.status === 'Entwurf' && (
-                    <>
-                      {/*
-                        Verwerfen darf, wer auch weiterbearbeiten darf — dieselbe
-                        Grenze wie in der Datenbank (`app.schein_schreibt`): die
-                        Führung jeden Entwurf, der Monteur seinen eigenen.
-                        Das Fenster geht dabei zu: die Rückfrage steht für sich,
-                        nicht über einem zweiten Dialog.
-                      */}
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          setVerwerfenFuer(offenerSchein);
-                          setOffen(null);
-                        }}
-                      >
-                        Verwerfen
-                      </Button>
-                      {weiterbearbeitenLink(offenerSchein)}
-                    </>
-                  )}
-                  {darfDiesen(offenerSchein) && offenerSchein.status === 'Verworfen' && (
-                    <Button variant="secondary" loading={busy} onClick={() => void wiederAufnehmen(offenerSchein)}>
-                      Wieder aufnehmen
-                    </Button>
-                  )}
-                  {darfStornieren && offenerSchein.status === 'Unterschrieben' && (
-                    <Button variant="ghost" onClick={() => setStornoFuer(offenerSchein)}>
-                      Stornieren
-                    </Button>
-                  )}
-                  {/*
-                    DER ERSATZ ZUM STORNO (P4): mit Verweis auf den
-                    stornierten Schein. Er erbt dessen Verrechnung — stand der
-                    auf einer Rechnung, kommt der Ersatz nicht noch einmal auf
-                    eine. Gibt es schon einen, weist die Datenbank ab und sagt es.
-                  */}
-                  {darfSchreiben && offenerSchein.status === 'Storniert' && (
-                    <KnopfLink to={ersatzAdresse(offenerSchein)} variant="secondary">
-                      Ersatzschein anlegen
-                    </KnopfLink>
-                  )}
-                </div>
                 {/*
+                  DIE KNÖPFE DES SCHEINS (U4, Durchsicht 15.11.2026): eine
+                  gefüllte Hauptaktion je Stand, höchstens eine zweite, das
+                  Übrige im ⋯. Vorher standen „PDF · Verwerfen ·
+                  Weiterbearbeiten“ gleich laut nebeneinander und „Löschen“
+                  darunter. Unumkehrbares — Löschen, Stornieren — steht im ⋯,
+                  die Rückfrage danach bleibt.
+
+                  Verwerfen darf, wer auch weiterbearbeiten darf — dieselbe
+                  Grenze wie in der Datenbank (`app.schein_schreibt`): die
+                  Führung jeden Entwurf, der Monteur seinen eigenen. Das
+                  Fenster geht dabei zu: die Rückfrage steht für sich.
+
                   LÖSCHEN NUR VOR DER UNTERSCHRIFT (Auftrag 04.11.2026): ein
-                  Entwurf und ein verworfener Entwurf sind keine Belege. Wer
-                  darf, ist dieselbe Grenze wie beim Verwerfen; die Datenbank
-                  hält sie (`work_sheets_loeschen`). Ein unterschriebener Schein
-                  wird storniert, nie gelöscht. In einer eigenen Zeile unter
-                  einer Linie: das Endgültige steht nicht neben
-                  „Weiterbearbeiten“.
+                  Entwurf und ein verworfener Entwurf sind keine Belege; die
+                  Datenbank hält die Grenze (`work_sheets_loeschen`). Ein
+                  unterschriebener Schein wird storniert, nie gelöscht.
+
+                  DER ERSATZ ZUM STORNO (P4): mit Verweis auf den
+                  stornierten Schein; er erbt dessen Verrechnung.
                 */}
-                {darfDiesen(offenerSchein) && (offenerSchein.status === 'Entwurf' || offenerSchein.status === 'Verworfen') && (
-                  <div className="schein-loeschen">
-                    {/* Unumkehrbar: `danger` in normaler Größe wie jeder Knopf im Fenster (E72, R4). */}
-                    <Button
-                      variant="danger"
-                      onClick={() => {
-                        setLoeschenFuer(offenerSchein);
-                        setOffen(null);
-                      }}
-                    >
-                      Löschen
-                    </Button>
-                  </div>
-                )}
+                {(() => {
+                  const s = offenerSchein;
+                  const eigen = darfDiesen(s);
+                  const pdfKnopf = <Button variant="secondary" loading={busy} onClick={() => pdfAusgeben(s)}>PDF</Button>;
+                  const loeschen = eigen && (s.status === 'Entwurf' || s.status === 'Verworfen')
+                    ? [{ label: 'Löschen', danger: true, onSelect: () => { setLoeschenFuer(s); setOffen(null); } }] : [];
+                  if (eigen && s.status === 'Entwurf') {
+                    return <Fensteraktionen about={`Schein ${s.projectNumber}`}
+                      haupt={<KnopfLink to={`/worksheet?entwurf=${s.id}`}>Weiterbearbeiten</KnopfLink>}
+                      zweit={pdfKnopf}
+                      weitere={[{ label: 'Verwerfen', onSelect: () => { setVerwerfenFuer(s); setOffen(null); } }, ...loeschen]} />;
+                  }
+                  if (eigen && s.status === 'Verworfen') {
+                    return <Fensteraktionen about={`Schein ${s.projectNumber}`}
+                      haupt={<Button loading={busy} onClick={() => void wiederAufnehmen(s)}>Wieder aufnehmen</Button>}
+                      zweit={pdfKnopf}
+                      weitere={loeschen} />;
+                  }
+                  if (darfSchreiben && s.status === 'Storniert') {
+                    return <Fensteraktionen about={`Schein ${s.projectNumber}`}
+                      haupt={<KnopfLink to={ersatzAdresse(s)}>Ersatzschein anlegen</KnopfLink>}
+                      zweit={pdfKnopf} />;
+                  }
+                  return <Fensteraktionen about={`Schein ${s.projectNumber}`}
+                    zweit={pdfKnopf}
+                    weitere={darfStornieren && s.status === 'Unterschrieben'
+                      ? [{ label: 'Stornieren', danger: true, onSelect: () => setStornoFuer(s) }] : []} />;
+                })()}
                 </>
               )
             }

@@ -1,4 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
 import { Link } from 'react-router-dom';
 import type { Termin } from '@/types';
 import Button from '@/components/Button';
@@ -325,17 +326,13 @@ export default function MonatsVorschau({
           (lot-monat.css). Die Zweitknöpfe sind gerahmt; als Geisterknopf
           las sich „Termin anlegen“ wie ein verirrter Text.
         */}
-        {onTerminNeu && darfTermine && (
-          <Button variant="secondary" onClick={terminNeu}>
-            Termin anlegen
-          </Button>
-        )}
-        {onZurWoche && (
-          <Button variant="secondary" onClick={zurWoche}>
-            Zur Woche
-          </Button>
-        )}
-        {haupt && <Button onClick={() => einsatz(haupt.start)}>{haupt.text}</Button>}
+        {/* U4: höchstens zwei Knöpfe, „Termin anlegen“ im ⋯. */}
+        <Fensteraktionen
+          about="Tag im Monat"
+          haupt={haupt ? <Button onClick={() => einsatz(haupt.start)}>{haupt.text}</Button> : null}
+          zweit={onZurWoche ? <Button variant="secondary" onClick={zurWoche}>Zur Woche</Button> : null}
+          weitere={onTerminNeu && darfTermine ? [{ label: 'Termin anlegen', onSelect: terminNeu }] : []}
+        />
       </div>
       )}
     </div>

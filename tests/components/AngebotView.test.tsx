@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Customer, Quote } from '@/types';
+import { handlung, handlungDa } from './handlung';
 
 /**
  * Die Angebotsseite.
@@ -200,7 +201,8 @@ describe('Angebot per Mail (F16)', () => {
     pdfBlob.mockClear();
     belegPerMail.mockClear();
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: 'Per Mail senden' }));
+    // Höchstens zwei Schritte als Knopf, die übrigen im ⋯ am selben Punkt (U4).
+    await nutzer.click(await waitFor(() => handlung({ name: 'Per Mail senden' })));
     const fenster = await screen.findByRole('dialog', { name: 'Angebot per Mail' });
     expect(within(fenster).getByRole('checkbox', { name: /Angebotsdatum auf heute setzen \(statt 01\.09\.2026\)/ })).toBeChecked();
     // Beim Kunden steht keine Adresse — sie wird eingetragen.
@@ -218,11 +220,11 @@ describe('Angebot per Mail (F16)', () => {
     angebot = { ...ANGEBOT, status: 'Entwurf', positions: [] };
     const { unmount } = zeige();
     expect(await screen.findByText(/Noch ohne Position/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Per Mail senden' })).toBeNull();
+    expect(handlungDa({ name: 'Per Mail senden' })).toBe(false);
     unmount();
     angebot = { ...ANGEBOT, status: 'Versendet' };
     zeige();
-    expect(await screen.findByRole('button', { name: 'Per Mail senden' })).toBeInTheDocument();
+    expect(await waitFor(() => handlung({ name: 'Per Mail senden' }))).toBeInTheDocument();
   });
 });
 
@@ -524,9 +526,14 @@ describe('Fassungen eines Angebots (M17)', () => {
   it('bietet beim versendeten Angebot „Neue Fassung“ und „Als Kopie anlegen“ an', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    expect(await screen.findByRole('link', { name: 'Neue Fassung' })).toHaveAttribute(
-      'href', `/quotes?neueFassung=${ANGEBOT.id}`,
-    );
+    // „Neue Fassung“ steht beim versendeten Angebot nach Annehmen und Annahme-Link im ⋯ der Schritte (U4).
+    await nutzer.click(await waitFor(() => handlung({ name: 'Neue Fassung' })));
+    expect(await screen.findByText(`Angebotsliste?neueFassung=${ANGEBOT.id}`)).toBeInTheDocument();
+  });
+
+  it('… und „Als Kopie anlegen“ im ⋯ des Seitenkopfs', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
     // Die Kopie steht seit der Linie „Lot“ im „⋯“ und führt an dieselbe Adresse.
     await mehrMenue(nutzer, 'Als Kopie anlegen');
     expect(await screen.findByText(`Angebotsliste?kopie=${ANGEBOT.id}`)).toBeInTheDocument();
@@ -536,7 +543,7 @@ describe('Fassungen eines Angebots (M17)', () => {
     angebot = { ...ANGEBOT, status: 'Entwurf' };
     zeige();
     expect(await screen.findByRole('link', { name: 'Bearbeiten' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Neue Fassung' })).toBeNull();
+    expect(handlungDa({ name: 'Neue Fassung' })).toBe(false);
   });
 
   it('verweist auf den Vorgänger und auf spätere Fassungen', async () => {

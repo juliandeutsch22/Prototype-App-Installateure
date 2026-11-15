@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
 import { imLager, istKnapp } from './lagerartikel';
 import { aufschlagFuer, verkaufspreisVorschlag } from '@/lib/aufschlag';
 import { useAuth } from '@/app/AuthContext';
@@ -745,30 +746,24 @@ export default function MaterialCatalog({
             </WeitereAngaben>
             <Pflichthinweis />
             {error && <ErrorState message={error} />}
-            <div className="fuss-aktionen">
-              {editId && (
-                <Button
-                  type="button"
-                  variant="danger"
-                  onClick={() => {
-                    const m = offenesMaterial;
-                    // Die Rückfrage steht allein, nicht hinter dem Fenster.
-                    if (m) {
-                      reset();
-                      setToDelete(m);
-                    }
-                  }}
-                >
-                  Material löschen …
-                </Button>
-              )}
-              <Button type="button" variant="ghost" onClick={reset}>
-                Abbrechen
-              </Button>
-              <Button type="submit" loading={saving}>
-                {editId ? 'Änderungen speichern' : 'Material anlegen'}
-              </Button>
-            </div>
+            {/* U4: Unumkehrbares („Material löschen …“) im ⋯, nicht neben „Speichern“. */}
+            <Fensteraktionen
+              about="Material"
+              haupt={<Button type="submit" loading={saving}>{editId ? 'Änderungen speichern' : 'Material anlegen'}</Button>}
+              zweit={<Button type="button" variant="ghost" onClick={reset}>Abbrechen</Button>}
+              weitere={editId ? [{
+                label: 'Material löschen …',
+                danger: true,
+                onSelect: () => {
+                  const m = offenesMaterial;
+                  // Die Rückfrage steht allein, nicht hinter dem Fenster.
+                  if (m) {
+                    reset();
+                    setToDelete(m);
+                  }
+                },
+              }] : []}
+            />
           </form>
           {editId && darfKosten && vergleichAn && (
             <div className="mt-6 border-t border-line pt-4">

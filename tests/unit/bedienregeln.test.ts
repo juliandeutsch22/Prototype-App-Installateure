@@ -14,7 +14,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import ts from 'typescript';
-import { attribut, baum, elemente, ergebnisse, hatKlasse, ort, tagName, tsxDateien } from './bedienregelnQuelle';
+import { attribut, baum, elemente, ergebnisse, hatKlasse, ort, reihe, tagName, tsxDateien } from './bedienregelnQuelle';
 
 type Element = ts.JsxElement | ts.JsxSelfClosingElement;
 const istElement = (n: ts.Node): n is Element => ts.isJsxElement(n) || ts.isJsxSelfClosingElement(n);
@@ -41,7 +41,7 @@ function gruppenAlsHauptaktion(datei: string, text?: string): string[] {
 describe('U1 · Muster 1 und 2: eine kompakte Hauptaktion', () => {
   it('kein Seitenkopf bekommt eine Gruppe oder ein Fragment als Hauptaktion', () => {
     expect(tsxDateien().flatMap((d) => gruppenAlsHauptaktion(d))).toEqual([]);
-  });
+  }, 60_000);
 
   it('die Gruppe `.akten-aktionen`, die Knöpfe am Handy zu Balken streckte, gibt es nicht mehr', () => {
     const funde = tsxDateien().flatMap((d) => elemente(d).filter((e) => hatKlasse(e, 'akten-aktionen')).map(ort));
@@ -49,7 +49,7 @@ describe('U1 · Muster 1 und 2: eine kompakte Hauptaktion', () => {
     for (const css of ['src/styles/lot-akten.css', 'src/index.css', 'src/styles/lot.css']) {
       expect(readFileSync(css, 'utf8')).not.toMatch(/\.akten-aktionen\b/);
     }
-  });
+  }, 60_000);
 
   it('Gegenprobe: die alte Gruppe der Baustellenakte fiele auf', () => {
     const alt = `export const X = () => <AktenKopf title="B" zurueck="/" zurueckText="z" action={darf && <div className="akten-aktionen"><Button>Einsatz planen</Button><Button variant="secondary">Bearbeiten</Button></div>} />;`;
@@ -145,3 +145,82 @@ describe('U1 · Muster 3: Formular und Einstellung speichern über die Speicherl
     for (const d of dateien) expect((baum(d) as unknown as { parseDiagnostics?: unknown[] }).parseDiagnostics ?? []).toEqual([]);
   });
 });
+
+/* ── U4: Knöpfe eines Fensters ──────────────────────────────────────────── */
+
+/** Bausteine, deren Inhalt ein Fenster ist. */
+const FENSTER_BAUSTEINE = new Set(['BottomSheet', 'AktenBearbeiten', 'NeuFormular']);
+
+/** Die Musterseite zeigt die Knopfgestalten absichtlich nebeneinander. */
+const NICHT_GEPRUEFT = ['src/features/muster/'];
+
+function imFenster(e: ts.Node): boolean {
+  for (let n: ts.Node | undefined = e.parent; n; n = n.parent) {
+    if (istElement(n) && FENSTER_BAUSTEINE.has(tagName(n))) return true;
+  }
+  return false;
+}
+
+/** Eine Werkzeugreihe (nach oben, nach unten, entfernen) aus kleinen Knöpfen ist kein Fensterfuß. */
+function werkzeuge(e: Element): boolean {
+  if (!ts.isJsxElement(e)) return false;
+  const knoepfe = e.children.filter((k): k is Element => istElement(k) && (tagName(k) === 'Button' || tagName(k) === 'KnopfLink'));
+  return knoepfe.length > 0 && knoepfe.every((k) => { const g = attribut(k, 'groesse'); return !!g && g !== true && /klein/.test(g.getText()); });
+}
+
+/** Eine Rückfrage: genau zwei Knöpfe, einer davon „Abbrechen“ oder „Zurück“ — ihr Bestätigen ist der Schritt selbst. */
+function rueckfrage(e: Element): boolean {
+  if (reihe(e).knoepfe !== 2) return false;
+  let abbrechen = false;
+  const gehen = (n: ts.Node) => {
+    if (ts.isJsxElement(n) && tagName(n) === 'Button' && /^\s*(Abbrechen|Zurück)\s*$/.test(n.children.map((k) => k.getText()).join(''))) abbrechen = true;
+    ts.forEachChild(n, gehen);
+  };
+  gehen(e);
+  return abbrechen;
+}
+
+export function knopfreihenVerstoesse(datei: string, text?: string): string[] {
+  if (NICHT_GEPRUEFT.some((p) => datei.startsWith(p))) return [];
+  return elemente(datei, text).flatMap((e) => {
+    const fuss = hatKlasse(e, 'fuss-aktionen');
+    if (!fuss && !imFenster(e)) return [];
+    if (werkzeuge(e)) return [];
+    const z = reihe(e);
+    const gruende = [
+      ...(z.knoepfe > 2 ? [`${z.knoepfe} Knöpfe`] : []),
+      ...(z.primaer > 1 ? [`${z.primaer} Hauptaktionen`] : []),
+      ...(z.gefahr > 0 && !rueckfrage(e) ? ['Unumkehrbares als Knopf'] : []),
+    ];
+    return gruende.length ? [`${ort(e)}: ${gruende.join(', ')}`] : [];
+  });
+}
+
+describe('U4 · im Fenster eine Hauptaktion, höchstens eine zweite, der Rest im ⋯', () => {
+  it('keine Knopfreihe eines Fensters mit mehr als zwei Knöpfen, zwei Hauptaktionen oder einem Gefahrknopf', () => {
+    expect(tsxDateien().flatMap((d) => knopfreihenVerstoesse(d))).toEqual([]);
+  }, 60_000);
+
+  it('Gegenprobe: der alte Schein-Entwurf und die alte Rechnung fielen auf', () => {
+    const schein = `export const X = () => <BottomSheet open label="s" onClose={z}><div className="fuss-aktionen">
+      <Button variant="secondary">PDF</Button><Button variant="ghost">Verwerfen</Button><KnopfLink to="/w" variant="secondary">Weiterbearbeiten</KnopfLink>
+    </div><div className="schein-loeschen"><Button variant="danger">Löschen</Button></div></BottomSheet>;`;
+    expect(knopfreihenVerstoesse('alt.tsx', schein)).toHaveLength(2);
+    const rechnung = `export const X = () => <BottomSheet open label="r" onClose={z}><div className="rechnung-detail-aktionen">
+      {aktionen.map((a) => <Button key={a.label} variant={a.haupt ? 'primary' : 'secondary'} onClick={a.onSelect}>{a.label}</Button>)}
+    </div></BottomSheet>;`;
+    expect(knopfreihenVerstoesse('alt.tsx', rechnung)).toHaveLength(1);
+  });
+
+  it('bleibt erlaubt: die Rückfrage mit „Abbrechen“ und Bestätigen, die Werkzeugreihe, die Fensteraktionen', () => {
+    const rueck = `export const X = () => <BottomSheet open label="v" onClose={z}><div className="fuss-aktionen">
+      <Button variant="ghost">Abbrechen</Button><Button type="submit" variant="danger">Begründet verwerfen</Button></div></BottomSheet>;`;
+    expect(knopfreihenVerstoesse('neu.tsx', rueck)).toEqual([]);
+    const werkzeug = `export const X = () => <BottomSheet open label="v" onClose={z}><div className="rt">
+      <Button variant="ghost" groesse="klein">Nach oben</Button><Button variant="ghost" groesse="klein">Nach unten</Button><Button variant="ghost" groesse="klein">Entfernen</Button></div></BottomSheet>;`;
+    expect(knopfreihenVerstoesse('neu.tsx', werkzeug)).toEqual([]);
+    const neu = `export const X = () => <BottomSheet open label="v" onClose={z}><Fensteraktionen about="x" haupt={<Button>A</Button>} zweit={<Button variant="secondary">B</Button>} weitere={[{ label: 'Löschen', onSelect: l, danger: true }]} /></BottomSheet>;`;
+    expect(knopfreihenVerstoesse('neu.tsx', neu)).toEqual([]);
+  });
+});
+

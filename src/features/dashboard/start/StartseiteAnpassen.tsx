@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Fensteraktionen from '@/components/Fensteraktionen';
 import BottomSheet from '@/components/BottomSheet';
 import Button from '@/components/Button';
 import { CheckboxField } from '@/components/Field';
@@ -168,11 +169,13 @@ function Inhalt({ onClose, rolle, waehlbar, arbeitstagMoeglich, wahl, themen }: 
         ))}
       </fieldset>
 
-      <div className="fuss-aktionen">
-        <Button type="button" variant="ghost" disabled={speichert} onClick={() => void speichern({})}>Vorgabe wiederherstellen</Button>
-        <Button type="button" variant="ghost" onClick={onClose}>Abbrechen</Button>
-        <Button type="submit" loading={speichert}>Speichern</Button>
-      </div>
+      {/* U4: Speichern gefüllt, Abbrechen daneben, das Seltene („Vorgabe wiederherstellen“) im ⋯. */}
+      <Fensteraktionen
+        about="Startseite anpassen"
+        haupt={<Button type="submit" loading={speichert}>Speichern</Button>}
+        zweit={<Button type="button" variant="ghost" onClick={onClose}>Abbrechen</Button>}
+        weitere={speichert ? [] : [{ label: 'Vorgabe wiederherstellen', onSelect: () => void speichern({}) }]}
+      />
     </form>
   );
 }

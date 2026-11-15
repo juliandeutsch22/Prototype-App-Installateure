@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { handlung, handlungDa } from './handlung';
 import { MemoryRouter } from 'react-router-dom';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -221,32 +222,32 @@ afterEach(() => {
  */
 async function oeffnen(name: RegExp | string = /^Kupferrohr 15mm/) {
   const muster = typeof name === 'string' ? new RegExp(`^${name}`) : name;
-  await userEvent.click(await screen.findByRole('button', { name: muster }));
+  await userEvent.click(await waitFor(() => handlung({ name: muster })));
   return screen.findByRole('dialog', { name: 'Anforderung' });
 }
 
 /** Den Status von Hand setzen — im Seitenfenster, wie vorher im „⋯“ (D11). */
 async function statusWaehlen(status: string) {
   const fenster = await oeffnen();
-  await userEvent.click(within(fenster).getByRole('button', { name: `Auf „${status}“ setzen` }));
+  await userEvent.click(handlung({ name: `Auf „${status}“ setzen` }, fenster));
 }
 
 /** Ein Bereich der Seite — seit dem Umbau Segmente statt Reiter. */
-const bereich = (name: RegExp | string) => screen.findByRole('button', { name });
+const bereich = (name: RegExp | string) => waitFor(() => handlung({ name }));
 
 describe('Nachträglich eilig (17 F)', () => {
   it('im Seitenfenster: „Als eilig markieren“ — und bei einer eiligen „Nicht mehr eilig“', async () => {
     anforderungen = [anforderung({ id: 'o1', projectNumber: '2026-042' })];
     zeige();
     let fenster = await oeffnen();
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Als eilig markieren' }));
+    await userEvent.click(handlung({ name: 'Als eilig markieren' }, fenster));
     await waitFor(() => expect(eiligSetzen).toHaveBeenCalledWith('o1', true));
 
     anforderungen = [anforderung({ id: 'o2', projectNumber: '2026-042', isUrgent: true, materialName: 'Dichtung' })];
     eiligSetzen.mockClear();
     zeige();
     fenster = await oeffnen('Dichtung');
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Nicht mehr eilig' }));
+    await userEvent.click(handlung({ name: 'Nicht mehr eilig' }, fenster));
     await waitFor(() => expect(eiligSetzen).toHaveBeenCalledWith('o2', false));
   });
 
@@ -269,7 +270,7 @@ describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
     expect(statusSetzen).not.toHaveBeenCalled();
 
     const dialog = screen.getByRole('dialog');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await userEvent.click(handlung({ name: 'Abschließen' }, dialog));
     // Mit dem Stand, den die Ansicht gesehen hat (R7-M3).
     await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith(
       'o1', 'Erledigt', { von: 'Abholbereit', trotzFehlbestand: false }));
@@ -281,7 +282,7 @@ describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
 
     await statusWaehlen('Erledigt');
     const dialog = await screen.findByRole('dialog');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
+    await userEvent.click(handlung({ name: 'Abbrechen' }, dialog));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(statusSetzen).not.toHaveBeenCalled();
@@ -338,7 +339,7 @@ describe('Anforderungen — „Abholbereit“ von Hand nur mit freiem Bestand (R
     expect(statusSetzen).toHaveBeenCalledTimes(1);
     expect(screen.queryByText('Status: Abholbereit')).not.toBeInTheDocument();
 
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Trotzdem abholbereit' }));
+    await userEvent.click(handlung({ name: 'Trotzdem abholbereit' }, dialog));
     await waitFor(() => expect(statusSetzen).toHaveBeenLastCalledWith(
       'o1', 'Abholbereit', { von: 'Offen', trotzFehlbestand: true }));
     expect(await screen.findByText(/trotz Fehlbestand, im Verlauf vermerkt/)).toBeInTheDocument();
@@ -350,7 +351,7 @@ describe('Anforderungen — „Abholbereit“ von Hand nur mit freiem Bestand (R
     zeige();
     await statusWaehlen('Abholbereit');
     const dialog = await screen.findByRole('dialog', { name: 'Trotz Fehlbestand abholbereit?' });
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
+    await userEvent.click(handlung({ name: 'Abbrechen' }, dialog));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(statusSetzen).toHaveBeenCalledTimes(1);
     expect(statusSetzen.mock.calls[0][2]).toEqual({ von: 'Offen', trotzFehlbestand: false });
@@ -392,7 +393,7 @@ describe('Anforderungen — kein Erfolg für einen veralteten Stand (R7-M3)', ()
     ausLager.mockResolvedValueOnce(false);
     anforderungen = [anforderung({ id: 'o1' })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /^Aus Lager: Kupferrohr 15mm/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /^Aus Lager: Kupferrohr 15mm/ })));
     expect(await screen.findByText(/Inzwischen von jemand anderem geändert/)).toBeInTheDocument();
     expect(screen.queryByText(/aus dem Lager — abholbereit/)).not.toBeInTheDocument();
   });
@@ -402,7 +403,7 @@ describe('Anforderungen — kein Erfolg für einen veralteten Stand (R7-M3)', ()
     anforderungen = [anforderung({ id: 'o1', status: 'Abholbereit' })];
     zeige();
     await statusWaehlen('Erledigt');
-    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Abschließen' }));
+    await userEvent.click(handlung({ name: 'Abschließen' }, await screen.findByRole('dialog')));
     expect(await screen.findByText(/Inzwischen von jemand anderem geändert/)).toBeInTheDocument();
     expect(screen.queryByText('Status: Erledigt')).not.toBeInTheDocument();
   });
@@ -410,7 +411,7 @@ describe('Anforderungen — kein Erfolg für einen veralteten Stand (R7-M3)', ()
   it('gleich geblieben: was traf, meldet weiter Erfolg', async () => {
     anforderungen = [anforderung({ id: 'o1' })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /^Aus Lager: Kupferrohr 15mm/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /^Aus Lager: Kupferrohr 15mm/ })));
     expect(await screen.findByText('Kupferrohr 15mm: aus dem Lager — abholbereit')).toBeInTheDocument();
     expect(abos).toBe(1);
   });
@@ -469,8 +470,8 @@ describe('Anforderungen — eine Listenleiste (Runde 6, G6)', () => {
     ];
     zeige();
     expect(await bereich('Laufend')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Retouren' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Erledigt' })).toBeInTheDocument();
+    expect(handlung({ name: 'Retouren' })).toBeInTheDocument();
+    expect(handlung({ name: 'Erledigt' })).toBeInTheDocument();
   });
 
   it('gleich geblieben: „Einkauf“ zählt weiter, was zu bestellen ist; dort keine Suche und keine Baustelle', async () => {
@@ -514,7 +515,7 @@ describe('Anforderungen — „Erledigt“ mit dem Zustand an fester Stelle', ()
         </ToastProvider>
       </MemoryRouter>,
     );
-    const knopf = await screen.findByRole('button', { name: /^Kugelhahn/ });
+    const knopf = await waitFor(() => handlung({ name: /^Kugelhahn/ }));
     expect(within(knopf).getByText('aus Lager')).toBeInTheDocument();
     expect(within(knopf).getByText('Eil')).toBeInTheDocument();
     for (const zeile of document.querySelectorAll('li.zeile')) {
@@ -595,7 +596,7 @@ describe('Anforderungen — die Reihenfolge der Arbeit', () => {
     const fenster = await oeffnen();
     expect(within(fenster).queryByRole('button', { name: /setzen$/ })).toBeNull();
     // E72: eine Retoure heißt beim Löschen auch Retoure — im Knopf und in der Rückfrage.
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure löschen …' }));
+    await userEvent.click(handlung({ name: 'Retoure löschen …' }, fenster));
     expect(await screen.findByRole('dialog', { name: 'Retoure löschen?' })).toBeInTheDocument();
   });
 });
@@ -706,13 +707,13 @@ describe('Anforderungen — löschen', () => {
     zeige();
 
     const fenster = await oeffnen();
-    await userEvent.click(within(fenster).getByRole('button', { name: /Anforderung löschen/ }));
+    await userEvent.click(handlung({ name: /Anforderung löschen/ }, fenster));
     expect(loeschen).not.toHaveBeenCalled();
 
     const dialog = await screen.findByRole('dialog', { name: 'Anforderung löschen?' });
     // Gleich geblieben: ohne Gegenbuchung derselbe Satz wie bisher.
     expect(await within(dialog).findByText('„Kupferrohr 15mm“ ×2 wird entfernt.')).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Löschen' }));
+    await userEvent.click(handlung({ name: 'Löschen' }, dialog));
     await waitFor(() => expect(loeschen).toHaveBeenCalledWith('o1', []));
     expect(await screen.findByText('Anforderung gelöscht')).toBeInTheDocument();
   });
@@ -728,11 +729,11 @@ describe('Anforderungen — löschen', () => {
     anforderungen = [anforderung({ id: 'o1', status: 'Erledigt', processed: true })];
     zeige();
     await userEvent.click(await bereich(/^Erledigt/));
-    await userEvent.click(within(await oeffnen()).getByRole('button', { name: /Anforderung löschen/ }));
+    await userEvent.click(handlung({ name: /Anforderung löschen/ }, await oeffnen()));
     const dialog = await screen.findByRole('dialog', { name: 'Anforderung löschen?' });
     expect(await within(dialog).findByText(/Der Bestand wird um \+2 m Kupferrohr 15mm \(Hauptlager\) korrigiert/)).toBeInTheDocument();
     expect(loeschenPruefen).toHaveBeenCalledWith('o1');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Löschen' }));
+    await userEvent.click(handlung({ name: 'Löschen' }, dialog));
     // Mit genau dem geprüften Stand.
     await waitFor(() => expect(loeschen).toHaveBeenCalledWith('o1', erwartet));
     expect(await screen.findByText('Anforderung gelöscht — der Bestand ist zurückgebucht')).toBeInTheDocument();
@@ -743,10 +744,10 @@ describe('Anforderungen — löschen', () => {
     anforderungen = [anforderung({ id: 'o1', status: 'Erledigt', processed: true })];
     zeige();
     await userEvent.click(await bereich(/^Erledigt/));
-    await userEvent.click(within(await oeffnen()).getByRole('button', { name: /Anforderung löschen/ }));
+    await userEvent.click(handlung({ name: /Anforderung löschen/ }, await oeffnen()));
     const dialog = await screen.findByRole('dialog', { name: 'Anforderung löschen?' });
     expect(await within(dialog).findByText(/Löschen geht hier nicht: Schon abgerechnet/)).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: 'Löschen' })).toBeDisabled();
+    expect(handlung({ name: 'Löschen' }, dialog)).toBeDisabled();
     expect(loeschen).not.toHaveBeenCalled();
   });
 });
@@ -820,7 +821,7 @@ describe('Anforderungen — wie weit die Abfrage reicht', () => {
     // Seit 12.10.2026 (17 I) sucht die Suche über alle — der frühere Satz „nur in diesen gesucht“ wäre falsch.
     expect(screen.getByText(/200 von möglicherweise mehr geladen\.$/)).toBeInTheDocument();
     expect(screen.queryByText(/nur in diesen gesucht/)).toBeNull();
-    await nutzer.click(screen.getByRole('button', { name: /Weitere Anforderungen laden/ }));
+    await nutzer.click(handlung({ name: /Weitere Anforderungen laden/ }));
     expect(letzteHolgrenze).toBe(400);
   });
 });
@@ -879,7 +880,7 @@ describe('Anforderungen — der Arbeitsstand reicht hinter die jüngsten 200', (
     zeige();
     await userEvent.click(await bereich(/^Erledigt/));
     expect(await screen.findByText('Erledigt 0')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Weitere Anforderungen laden/ })).toBeInTheDocument();
+    expect(handlung({ name: /Weitere Anforderungen laden/ })).toBeInTheDocument();
     expect(screen.queryByText('Altes Eckventil')).not.toBeInTheDocument();
   });
 });
@@ -894,13 +895,13 @@ describe('Teilmengen (M5)', () => {
     ausLagerTeil.mockClear();
     anforderungen = [anforderung({ id: 'o1', materialId: 'm1', quantity: 10 })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /^Aus Lager: Kupferrohr 15mm/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /^Aus Lager: Kupferrohr 15mm/ })));
     const dialog = await screen.findByRole('dialog', { name: 'Teilweise aus dem Lager?' });
     expect(within(dialog).getByText(/Im Lager sind nur 6 Stk frei/)).toBeInTheDocument();
     await userEvent.type(within(dialog).getByLabelText('Aus dem Lager'), '6');
     expect(within(dialog).getByText(/Der Rest — 4 — geht auf die Einkaufsliste/)).toBeInTheDocument();
     await userEvent.selectOptions(within(dialog).getByLabelText('Großhändler'), 'gh1');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Aus dem Lager' }));
+    await userEvent.click(handlung({ name: 'Aus dem Lager' }, dialog));
     await waitFor(() => expect(ausLagerTeil).toHaveBeenCalledWith('o1', 'Offen', 6, 'einkauf', 'gh1'));
   });
 
@@ -908,15 +909,15 @@ describe('Teilmengen (M5)', () => {
     ausLagerTeil.mockClear();
     anforderungen = [anforderung({ id: 'o1', quantity: 10 })];
     zeige();
-    await userEvent.click(within(await oeffnen()).getByRole('button', { name: 'Teilweise aus Lager …' }));
+    await userEvent.click(handlung({ name: 'Teilweise aus Lager …' }, await oeffnen()));
     const dialog = await screen.findByRole('dialog', { name: 'Teilweise aus dem Lager?' });
     // Mehr als angefordert gibt es nicht — der Knopf bleibt gesperrt.
     await userEvent.type(within(dialog).getByLabelText('Aus dem Lager'), '11');
-    expect(within(dialog).getByRole('button', { name: 'Aus dem Lager' })).toBeDisabled();
+    expect(handlung({ name: 'Aus dem Lager' }, dialog)).toBeDisabled();
     await userEvent.clear(within(dialog).getByLabelText('Aus dem Lager'));
     await userEvent.type(within(dialog).getByLabelText('Aus dem Lager'), '3');
     await userEvent.selectOptions(within(dialog).getByLabelText('Der Rest'), 'offen');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Aus dem Lager' }));
+    await userEvent.click(handlung({ name: 'Aus dem Lager' }, dialog));
     await waitFor(() => expect(ausLagerTeil).toHaveBeenCalledWith('o1', 'Offen', 3, 'offen', null));
   });
 
@@ -925,14 +926,14 @@ describe('Teilmengen (M5)', () => {
     statusSetzen.mockResolvedValue({ art: 'geaendert' });
     anforderungen = [anforderung({ id: 'o1', quantity: 10, status: 'Abholbereit', beschaffung: 'lager' })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /^Abgeholt: Kupferrohr 15mm/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /^Abgeholt: Kupferrohr 15mm/ })));
     const dialog = await screen.findByRole('dialog', { name: 'Bestellung abschließen?' });
     const feld = within(dialog).getByLabelText('Abgeholt');
     expect(feld).toHaveValue('10');
     await userEvent.clear(feld);
     await userEvent.type(feld, '6');
     expect(within(dialog).getByText(/×6 wird als erledigt gebucht/)).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await userEvent.click(handlung({ name: 'Abschließen' }, dialog));
     await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o1', 'Erledigt', expect.objectContaining({ von: 'Abholbereit', menge: 6 })));
   });
 
@@ -941,9 +942,9 @@ describe('Teilmengen (M5)', () => {
     statusSetzen.mockResolvedValue({ art: 'geaendert' });
     anforderungen = [anforderung({ id: 'o1', quantity: 10, status: 'Abholbereit', beschaffung: 'lager' })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /^Abgeholt: Kupferrohr 15mm/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /^Abgeholt: Kupferrohr 15mm/ })));
     const dialog = await screen.findByRole('dialog', { name: 'Bestellung abschließen?' });
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await userEvent.click(handlung({ name: 'Abschließen' }, dialog));
     await waitFor(() => expect(statusSetzen).toHaveBeenCalled());
     expect(statusSetzen.mock.calls[0][2]).not.toHaveProperty('menge');
   });
@@ -954,7 +955,7 @@ describe('Anforderungen — Lager oder Einkauf', () => {
     anforderungen = [anforderung({ id: 'o1', materialId: 'm1' })];
     zeige();
     // Der Knopf in der Zeile nennt für die Vorlesehilfe auch die Anforderung.
-    await userEvent.click(await screen.findByRole('button', { name: /^Aus Lager: Kupferrohr 15mm/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /^Aus Lager: Kupferrohr 15mm/ })));
     await waitFor(() => expect(ausLager).toHaveBeenCalledWith('o1', 'Offen'));
     expect(aufEinkaufsliste).not.toHaveBeenCalled();
   });
@@ -964,22 +965,22 @@ describe('Anforderungen — Lager oder Einkauf', () => {
     anforderungen = [anforderung({ id: 'o1', materialId: 'm1' })];
     zeige();
     // Seit dem Umbau im Seitenfenster der Anforderung.
-    await userEvent.click(within(await oeffnen()).getByRole('button', { name: 'Nicht auf Lager – auf die Einkaufsliste' }));
+    await userEvent.click(handlung({ name: 'Nicht auf Lager – auf die Einkaufsliste' }, await oeffnen()));
 
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByLabelText('Großhändler')).toHaveValue('gh2');
     await userEvent.selectOptions(within(dialog).getByLabelText('Großhändler'), 'gh1');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Auf die Liste' }));
+    await userEvent.click(handlung({ name: 'Auf die Liste' }, dialog));
     await waitFor(() => expect(aufEinkaufsliste).toHaveBeenCalledWith('o1', 'gh1', 'Offen'));
   });
 
   it('lässt den Großhändler offen, wenn „später zuordnen“ gewählt ist', async () => {
     anforderungen = [anforderung({ id: 'o1' })];
     zeige();
-    await userEvent.click(within(await oeffnen()).getByRole('button', { name: 'Nicht auf Lager – auf die Einkaufsliste' }));
+    await userEvent.click(handlung({ name: 'Nicht auf Lager – auf die Einkaufsliste' }, await oeffnen()));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByLabelText('Großhändler')).toHaveValue('');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Auf die Liste' }));
+    await userEvent.click(handlung({ name: 'Auf die Liste' }, dialog));
     await waitFor(() => expect(aufEinkaufsliste).toHaveBeenCalledWith('o1', null, 'Offen'));
   });
 
@@ -1003,10 +1004,10 @@ describe('Anforderungen — Lager oder Einkauf', () => {
   it('„Nicht auf Lager“ auch nach „Aus Lager“ — mit dem erwarteten Stand „lager“', async () => {
     anforderungen = [anforderung({ id: 'o1', status: 'Abholbereit', beschaffung: 'lager', processed: false })];
     zeige();
-    await userEvent.click(within(await oeffnen()).getByRole('button', { name: 'Nicht auf Lager – auf die Einkaufsliste' }));
+    await userEvent.click(handlung({ name: 'Nicht auf Lager – auf die Einkaufsliste' }, await oeffnen()));
     const dialog = await screen.findByRole('dialog', { name: 'Auf die Einkaufsliste?' });
     expect(within(dialog).getByText(/Die Zusage aus dem Lager fällt weg/)).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Auf die Liste' }));
+    await userEvent.click(handlung({ name: 'Auf die Liste' }, dialog));
     await waitFor(() => expect(aufEinkaufsliste).toHaveBeenCalledWith('o1', null, 'Abholbereit', 'lager'));
   });
 
@@ -1014,7 +1015,7 @@ describe('Anforderungen — Lager oder Einkauf', () => {
     anforderungen = [anforderung({ id: 'o1', status: 'Abholbereit', beschaffung: 'lager', processed: true })];
     zeige();
     const fenster = await oeffnen();
-    expect(within(fenster).queryByRole('button', { name: 'Nicht auf Lager – auf die Einkaufsliste' })).not.toBeInTheDocument();
+    expect(handlungDa({ name: 'Nicht auf Lager – auf die Einkaufsliste' }, fenster)).toBe(false);
   });
 
   it('zählt im Reiter „Einkauf“, was noch zu bestellen ist', async () => {
@@ -1053,19 +1054,21 @@ describe('Anforderungen — eine ruhige Zeile (Prüflauf 24.09.2026, D11; Linie 
   it('trägt genau einen Knopf für den nächsten Schritt und legt alles andere ins Seitenfenster', async () => {
     anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
     zeige();
-    const zeile = (await screen.findByRole('button', { name: /^Aus Lager: Kupferrohr/ })).closest('li')!;
+    const zeile = (await waitFor(() => handlung({ name: /^Aus Lager: Kupferrohr/ }))).closest('li')!;
     // In der Zeile: das Kästchen, der Inhalt, EIN Schritt — kein „⋯“, kein Löschen.
     expect(within(zeile).getAllByRole('button').map((b) => b.getAttribute('aria-label') ?? 'Inhalt'))
       .toEqual(['Inhalt', 'Aus Lager: Kupferrohr 15mm ×2']);
     expect(within(zeile).queryByRole('button', { name: /Weitere Aktionen/ })).toBeNull();
 
     const fenster = await oeffnen();
-    const knoepfe = within(fenster).getAllByRole('button').map((b) => b.textContent);
+    // U4: im Fenster der nächste Schritt als Knopf, das Übrige im ⋯ — Status von Hand und Löschen dort.
+    await userEvent.click(handlung({ name: /^Weitere Aktionen für Anforderung/ }, fenster));
+    const eintraege = screen.getAllByRole('menuitem').map((b) => b.textContent);
     // Der aktuelle Status steht nicht zur Wahl, alle anderen schon; Löschen zuletzt.
-    expect(knoepfe).not.toContain('Auf „Offen“ setzen');
-    expect(knoepfe).toContain('Auf „Erledigt“ setzen');
-    expect(knoepfe).toContain('Nicht auf Lager – auf die Einkaufsliste');
-    expect(knoepfe[knoepfe.length - 1]).toBe('Anforderung löschen …');
+    expect(eintraege).not.toContain('Auf „Offen“ setzen');
+    expect(eintraege).toContain('Auf „Erledigt“ setzen');
+    expect(eintraege).toContain('Nicht auf Lager – auf die Einkaufsliste');
+    expect(eintraege[eintraege.length - 1]).toBe('Anforderung löschen …');
   });
 
   /*
@@ -1134,7 +1137,7 @@ describe('Anforderungen — mehrere auf einmal', () => {
     await userEvent.click(screen.getByRole('checkbox', { name: /Rohr A .* auswählen/ }));
     await userEvent.click(screen.getByRole('checkbox', { name: /Rohr C .* auswählen/ }));
     expect(screen.getByText('2 ausgewählt')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Alle: nächster Schritt' }));
+    await userEvent.click(handlung({ name: 'Alle: nächster Schritt' }));
 
     await waitFor(() => expect(ausLager).toHaveBeenCalledTimes(2));
     expect(ausLager.mock.calls.map((c) => c[0])).toEqual(['a', 'c']);
@@ -1152,7 +1155,7 @@ describe('Anforderungen — mehrere auf einmal', () => {
     zeige();
     await userEvent.click(await screen.findByRole('checkbox', { name: /Rohr A .* auswählen/ }));
     await userEvent.click(screen.getByRole('checkbox', { name: /Rohr B .* auswählen/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Alle: nächster Schritt' }));
+    await userEvent.click(handlung({ name: 'Alle: nächster Schritt' }));
 
     const fehler = await screen.findByText('Nur 3 Stk frei.', { selector: '[role="alert"]' });
     expect(fehler.closest('li')).toHaveTextContent('Rohr B');
@@ -1169,14 +1172,14 @@ describe('Anforderungen — mehrere auf einmal', () => {
     zeige();
     await userEvent.click(await screen.findByRole('checkbox', { name: /Rohr A .* auswählen/ }));
     await userEvent.click(screen.getByRole('checkbox', { name: /Rohr B .* auswählen/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Alle: nächster Schritt' }));
+    await userEvent.click(handlung({ name: 'Alle: nächster Schritt' }));
 
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText(/„Rohr A“ ×2 wird als erledigt gebucht und vom Lagerbestand abgezogen/)).toBeInTheDocument();
     expect(statusSetzen).not.toHaveBeenCalled();
     expect(ausLager).not.toHaveBeenCalled();
 
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Weiterschalten' }));
+    await userEvent.click(handlung({ name: 'Weiterschalten' }, dialog));
     await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('a', 'Erledigt', { von: 'Abholbereit' }));
     expect(ausLager).toHaveBeenCalledWith('b', 'Offen');
   });
@@ -1190,7 +1193,7 @@ describe('Anforderungen — mehrere auf einmal', () => {
     zeige();
     await userEvent.click(await screen.findByRole('checkbox', { name: /Rohr A .* auswählen/ }));
     await userEvent.click(screen.getByRole('checkbox', { name: /Rohr B .* auswählen/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Alle: nächster Schritt' }));
+    await userEvent.click(handlung({ name: 'Alle: nächster Schritt' }));
     expect(await screen.findByText('1 Anforderung einen Schritt weiter — 1 hatte inzwischen jemand anderes geändert.')).toBeInTheDocument();
   });
 
@@ -1198,8 +1201,8 @@ describe('Anforderungen — mehrere auf einmal', () => {
     anforderungen = [anforderung({ id: 'a', materialName: 'Rohr A', status: 'Abholbereit' })];
     zeige();
     await userEvent.click(await screen.findByRole('checkbox', { name: /Rohr A .* auswählen/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Alle: nächster Schritt' }));
-    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Abbrechen' }));
+    await userEvent.click(handlung({ name: 'Alle: nächster Schritt' }));
+    await userEvent.click(handlung({ name: 'Abbrechen' }, await screen.findByRole('dialog')));
     expect(statusSetzen).not.toHaveBeenCalled();
   });
 
@@ -1253,10 +1256,10 @@ describe('Anforderungen — Retoure erfassen im Lager', () => {
   async function retoureBisPerson() {
     zeige();
     await userEvent.click(await bereich(/^Retouren/));
-    await userEvent.click(screen.getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }));
     const fenster = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
     await userEvent.type(within(fenster).getByRole('searchbox', { name: /^Material/ }), 'Kupfer');
-    await userEvent.click(await within(fenster).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm zurückgeben/ }, fenster)));
     await userEvent.selectOptions(within(fenster).getByRole('combobox', { name: /Zustand/ }), 'gebraucht');
     return fenster;
   }
@@ -1269,7 +1272,7 @@ describe('Anforderungen — Retoure erfassen im Lager', () => {
     // Wer ausgeschieden ist, steht nicht zur Wahl.
     expect(within(wer).queryByRole('option', { name: 'Ausgeschieden' })).toBeNull();
     await userEvent.selectOptions(wer, 'm7');
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
     await waitFor(() => expect(retoureAnlegen).toHaveBeenCalledTimes(1));
     expect(retoureAnlegen.mock.calls[0]).toEqual(['perl', expect.objectContaining({
       materialId: 'm1', quantity: 1, condition: 'gebraucht', userId: 'm7', userName: 'Max Monteur',
@@ -1290,20 +1293,20 @@ describe('Anforderungen — Retoure erfassen im Lager', () => {
     const wer = within(fenster).getByRole('combobox', { name: 'Zurückgebracht von' });
     await waitFor(() => expect(within(wer).getByRole('option', { name: 'Max Monteur' })).toBeInTheDocument());
     await userEvent.selectOptions(wer, 'm7');
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
     expect(await within(fenster).findByText(/Netzwerkfehler/)).toBeInTheDocument();
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
     await waitFor(() => expect(retoureAnlegen).toHaveBeenCalledTimes(2));
     const [erst, zweit] = retoureAnlegen.mock.calls.map((c) => c[2]);
     expect(zweit).toBe(erst);
 
     // Die nächste Retoure ist ein neuer Beleg.
-    await userEvent.click(screen.getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }));
     const neu = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
     await userEvent.type(within(neu).getByRole('searchbox', { name: /^Material/ }), 'Kupfer');
-    await userEvent.click(await within(neu).findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /Kupferrohr 15mm zurückgeben/ }, neu)));
     await userEvent.selectOptions(within(neu).getByRole('combobox', { name: 'Zurückgebracht von' }), 'm7');
-    await userEvent.click(within(neu).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, neu));
     await waitFor(() => expect(retoureAnlegen).toHaveBeenCalledTimes(3));
     expect(retoureAnlegen.mock.calls[2][2]).not.toBe(erst);
   });
@@ -1312,10 +1315,10 @@ describe('Anforderungen — Retoure erfassen im Lager', () => {
     retoureAnlegen.mockClear();
     const fenster = await retoureBisPerson();
     await within(fenster).findByRole('option', { name: 'Max Monteur' });
-    expect(within(fenster).getByRole('button', { name: 'Retoure erfassen' })).toBeDisabled();
+    expect(handlung({ name: 'Retoure erfassen' }, fenster)).toBeDisabled();
     // Bringt das Lager selbst zurück, wählt es sich.
     await userEvent.selectOptions(within(fenster).getByRole('combobox', { name: 'Zurückgebracht von' }), 'pl');
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
     await waitFor(() => expect(retoureAnlegen).toHaveBeenCalledTimes(1));
     expect(retoureAnlegen.mock.calls[0][1]).toMatchObject({ userId: 'pl', userName: 'Planer' });
   });
@@ -1326,7 +1329,7 @@ describe('Anforderungen — Retoure erfassen im Lager', () => {
     belegschaft.catch(() => undefined);
     const fenster = await retoureBisPerson();
     expect(await within(fenster).findByText(/Belegschaft konnte nicht geladen werden/)).toBeInTheDocument();
-    expect(within(fenster).getByRole('button', { name: 'Retoure erfassen' })).toBeDisabled();
+    expect(handlung({ name: 'Retoure erfassen' }, fenster)).toBeDisabled();
   });
 
   it('nennt an der Retoure, wer zurückgebracht und wer erfasst hat', async () => {
@@ -1377,18 +1380,21 @@ describe('Anforderungen — nichts verschiebt sich, eine Knopfgestalt (E72)', ()
     expect(liste.compareDocumentPosition(leiste) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(leiste.parentElement).toHaveClass('anf-seite');
     // Gleich geblieben: die Sammelaktion selbst.
-    expect(within(leiste).getByRole('button', { name: 'Alle: nächster Schritt' })).toHaveClass('sammel-knopf');
-    expect(within(leiste).getByRole('button', { name: 'Auswahl aufheben' })).toHaveClass('sammel-text');
+    expect(handlung({ name: 'Alle: nächster Schritt' }, leiste)).toHaveClass('sammel-knopf');
+    expect(handlung({ name: 'Auswahl aufheben' }, leiste)).toHaveClass('sammel-text');
   });
 
   // Die Spalte selbst prüft planlinieStil.test.ts (E72); hier, dass die Knöpfe in ihr stehen.
-  it('gleich geblieben: „Status von Hand setzen“ steht in seiner Gruppe, die übrigen Aktionen in ihrer', async () => {
+  it('U4: im Fenster höchstens zwei Knöpfe, die Statuswahl und das Übrige im ⋯ — nichts geht verloren', async () => {
     anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
     zeige();
     const fenster = await oeffnen();
-    const status = within(fenster).getByRole('button', { name: 'Auf „Erledigt“ setzen' });
-    expect(status.parentElement).toHaveClass('material-status');
-    expect(within(fenster).getByRole('button', { name: 'Nicht auf Lager – auf die Einkaufsliste' }).parentElement).toHaveClass('material-aktionen');
+    const fuss = fenster.querySelector('.fensteraktionen') as HTMLElement;
+    const knoepfe = within(fuss).getAllByRole('button').filter((b) => !b.getAttribute('aria-haspopup'));
+    expect(knoepfe.length).toBeLessThanOrEqual(2);
+    expect(knoepfe.filter((b) => b.className.includes('bg-brand'))).toHaveLength(1);
+    expect(handlung({ name: 'Auf „Erledigt“ setzen' }, fenster)).toHaveAttribute('role', 'menuitem');
+    expect(handlung({ name: 'Nicht auf Lager – auf die Einkaufsliste' }, fenster)).toHaveAttribute('role', 'menuitem');
   });
 });
 
@@ -1407,7 +1413,7 @@ describe('V10 Anforderungen — Filterleere und Laden', () => {
     await userEvent.click(await bereich(/^Erledigt/));
     expect(await screen.findByText('Für 2026-042 steht hier nichts.')).toBeInTheDocument();
     expect(screen.queryByText('Noch nichts erledigt.')).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: 'Alle Baustellen' }));
+    await userEvent.click(handlung({ name: 'Alle Baustellen' }));
     expect(await screen.findByText('Noch nichts erledigt.')).toBeInTheDocument();
   });
 
@@ -1448,7 +1454,7 @@ describe('Retoure annehmen (M7)', () => {
     expect(await bereich(/^Retouren/)).toHaveTextContent('1');
     await userEvent.click(await bereich(/^Retouren/));
     expect(await screen.findByText('wartet auf Annahme')).toBeInTheDocument();
-    await userEvent.click(within(await oeffnen(/^Muffe/)).getByRole('button', { name: 'Annehmen …' }));
+    await userEvent.click(handlung({ name: 'Annehmen …' }, await oeffnen(/^Muffe/)));
     const d = within(await screen.findByRole('dialog', { name: 'Retoure annehmen?' }));
     await userEvent.clear(d.getByLabelText('Angekommen'));
     await userEvent.type(d.getByLabelText('Angekommen'), '2');
@@ -1476,13 +1482,13 @@ describe('Zurückgeben an der Anforderung (V11)', () => {
     anforderungen = [anforderung({ id: 'e1', status: 'Erledigt', processed: true, quantity: 2.5, materialId: 'm1', userId: 'm7', userName: 'Max Monteur', projectNumber: '2026-042' })];
     zeige();
     await userEvent.click(await bereich(/^Erledigt/));
-    await userEvent.click(within(await oeffnen()).getByRole('button', { name: 'Zurückgeben …' }));
+    await userEvent.click(handlung({ name: 'Zurückgeben …' }, await oeffnen()));
     const fenster = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
     expect(within(fenster).getByText('Kupferrohr 15mm')).toBeInTheDocument();
     expect(within(fenster).getByRole('textbox', { name: /Menge/ })).toHaveValue('2,5');
     const wer = within(fenster).getByRole('combobox', { name: 'Zurückgebracht von' });
     await waitFor(() => expect(wer).toHaveValue('m7'));
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
     await waitFor(() => expect(retoureAnlegen).toHaveBeenCalledTimes(1));
     expect(retoureAnlegen.mock.calls[0][1]).toMatchObject({ materialId: 'm1', quantity: 2.5, projectNumber: '2026-042', userId: 'm7' });
   });
@@ -1492,12 +1498,12 @@ describe('Zurückgeben an der Anforderung (V11)', () => {
     anforderungen = [anforderung({ id: 'e2', status: 'Erledigt', processed: true, quantity: 3, materialId: undefined, materialName: 'Sonderdichtung', userId: 'm7', userName: 'Max Monteur' })];
     zeige();
     await userEvent.click(await bereich(/^Erledigt/));
-    await userEvent.click(within(await oeffnen(/^Sonderdichtung/)).getByRole('button', { name: 'Zurückgeben …' }));
+    await userEvent.click(handlung({ name: 'Zurückgeben …' }, await oeffnen(/^Sonderdichtung/)));
     const fenster = await screen.findByRole('dialog', { name: 'Material zurückgeben' });
     expect(within(fenster).getByText(/Nicht im Katalog/)).toBeInTheDocument();
     const wer = within(fenster).getByRole('combobox', { name: 'Zurückgebracht von' });
     await waitFor(() => expect(wer).toHaveValue('m7'));
-    await userEvent.click(within(fenster).getByRole('button', { name: 'Retoure erfassen' }));
+    await userEvent.click(handlung({ name: 'Retoure erfassen' }, fenster));
     await waitFor(() => expect(retoureAnlegen).toHaveBeenCalledTimes(1));
     expect(retoureAnlegen.mock.calls[0][1]).toMatchObject({ materialId: null, materialName: 'Sonderdichtung', quantity: 3 });
   });
@@ -1524,7 +1530,7 @@ describe('Herkunft beim Abschließen im Lager (M8)', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Bestellung abschließen?' });
     await userEvent.selectOptions(within(dialog).getByLabelText('Woher kam das Material?'), 'haendler');
     expect(within(dialog).getByText(/Vom Lagerbestand wird nichts abgezogen/)).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await userEvent.click(handlung({ name: 'Abschließen' }, dialog));
     await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o1', 'Erledigt', expect.objectContaining({ herkunft: 'haendler' })));
   });
 
@@ -1533,10 +1539,10 @@ describe('Herkunft beim Abschließen im Lager (M8)', () => {
     statusSetzen.mockResolvedValue({ art: 'geaendert' });
     anforderungen = [anforderung({ id: 'o1', status: 'Abholbereit', beschaffung: 'lager' })];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /^Abgeholt: Kupferrohr 15mm/ }));
+    await userEvent.click(await waitFor(() => handlung({ name: /^Abgeholt: Kupferrohr 15mm/ })));
     const dialog = await screen.findByRole('dialog', { name: 'Bestellung abschließen?' });
     expect(within(dialog).queryByLabelText('Woher kam das Material?')).toBeNull();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Abschließen' }));
+    await userEvent.click(handlung({ name: 'Abschließen' }, dialog));
     await waitFor(() => expect(statusSetzen).toHaveBeenCalled());
     expect(statusSetzen.mock.calls[0][2]).not.toHaveProperty('herkunft');
   });

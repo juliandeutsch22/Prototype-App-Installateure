@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { handlung } from './handlung';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -438,7 +439,7 @@ describe('Lager — Wareneingang', () => {
   */
   /** Der Wareneingang aus dem Seitenfenster des Artikels (Linie „Lot“, E3). */
   async function eingangOeffnen() {
-    await userEvent.click(within(await artikelOeffnen()).getByRole('button', { name: 'Wareneingang' }));
+    await userEvent.click(handlung({ name: 'Wareneingang' }, await artikelOeffnen()));
     return screen.findByRole('dialog', { name: /^Wareneingang: / });
   }
 
@@ -451,7 +452,7 @@ describe('Lager — Wareneingang', () => {
     const auswahl = await within(dialog).findByRole('combobox', { name: /^Lieferant/ });
     if (lieferant) await userEvent.selectOptions(auswahl, lieferant);
     await userEvent.type(within(dialog).getByLabelText(/^Lieferschein/), 'LS-4711');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await userEvent.click(handlung({ name: 'Einbuchen' }, dialog));
     return dialog;
   }
 
@@ -478,7 +479,7 @@ describe('Lager — Wareneingang', () => {
     zeige();
     const dialog = await eingangMit('12');
     expect(await within(dialog).findByText(/Netzwerkfehler/)).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await userEvent.click(handlung({ name: 'Einbuchen' }, dialog));
     await waitFor(() => expect(bestandAendern).toHaveBeenCalledTimes(2));
     const [erst, zweit] = bestandAendern.mock.calls.map((c) => (c[0] as { vorgang: string }).vorgang);
     expect(erst).toMatch(/^[0-9a-f-]{36}$/);
@@ -497,7 +498,7 @@ describe('Lager — Wareneingang', () => {
     await userEvent.type(within(wahl).getByRole('searchbox', { name: 'Artikel suchen' }), 'press');
     // Gegenprobe: die Suche lässt nur den passenden stehen.
     expect(within(wahl).queryByRole('button', { name: /Kupferrohr/ })).toBeNull();
-    await userEvent.click(within(wahl).getByRole('button', { name: /Pressfitting/ }));
+    await userEvent.click(handlung({ name: /Pressfitting/ }, wahl));
     expect(await screen.findByRole('dialog', { name: 'Wareneingang: Pressfitting' })).toBeInTheDocument();
   });
 
@@ -521,7 +522,7 @@ describe('Lager — Wareneingang', () => {
     await userEvent.type(feld, '2');
     await userEvent.selectOptions(await within(dialog).findByRole('combobox', { name: /^Lieferant/ }), 'Anderer Lieferant …');
     await userEvent.type(within(dialog).getByLabelText(/Name des Lieferanten/), 'Baumarkt Mödling');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await userEvent.click(handlung({ name: 'Einbuchen' }, dialog));
     await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
       materialId: 'm1', menge: 2, lieferant: 'Baumarkt Mödling', lieferschein: undefined, bezug: undefined,
       vorgang: expect.stringMatching(/^[0-9a-f-]{36}$/),
@@ -596,7 +597,7 @@ describe('Lager — Wareneingang', () => {
     await userEvent.type(feld, '25');
     expect(within(dialog).getByText('1 Bestellung ist damit geliefert; eine teilweise (15 von 20), der Rest bleibt bestellt.'))
       .toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await userEvent.click(handlung({ name: 'Einbuchen' }, dialog));
     await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
       materialId: 'm1', menge: 25, lieferant: 'Frauenthal', lieferschein: undefined, bezug: undefined,
       vorgang: expect.stringMatching(/^[0-9a-f-]{36}$/), bestellungen: ['a1', 'p1'],
@@ -611,7 +612,7 @@ describe('Lager — Wareneingang', () => {
     await userEvent.click(await within(dialog).findByRole('checkbox', { name: /Max Mustermann/ }));
     await userEvent.click(within(dialog).getByRole('checkbox', { name: /fürs Lager/ }));
     expect(within(dialog).getByText(/Keine Bestellung gewählt/)).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await userEvent.click(handlung({ name: 'Einbuchen' }, dialog));
     await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith({
       materialId: 'm1', menge: 1, lieferant: 'Frauenthal', lieferschein: undefined, bezug: undefined,
       vorgang: expect.stringMatching(/^[0-9a-f-]{36}$/),
@@ -634,7 +635,7 @@ describe('Lager — Wareneingang', () => {
   it('bucht nichts, wenn der Dialog abgebrochen wird', async () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     zeige();
-    await userEvent.click(within(await eingangOeffnen()).getByRole('button', { name: 'Abbrechen' }));
+    await userEvent.click(handlung({ name: 'Abbrechen' }, await eingangOeffnen()));
     expect(bestandAendern).not.toHaveBeenCalled();
     expect(screen.queryByRole('dialog', { name: /^Wareneingang: / })).not.toBeInTheDocument();
     // Das Seitenfenster des Artikels kommt danach wieder.
@@ -658,13 +659,13 @@ describe('Lager — Inventur und Bewegungen', () => {
     inventurBuchen.mockResolvedValueOnce(18);
     zeige();
     // Seit dem Umbau im Seitenfenster des Artikels (vorher im Zeilenmenü, U12).
-    await userEvent.click(within(await artikelOeffnen()).getByRole('button', { name: 'Inventur' }));
+    await userEvent.click(handlung({ name: 'Inventur' }, await artikelOeffnen()));
     const dialog = await screen.findByRole('dialog', { name: /^Inventur: / });
     const feld = within(dialog).getByLabelText(/^Gezählter Bestand/);
     await userEvent.clear(feld);
     await userEvent.type(feld, '18');
     await userEvent.type(within(dialog).getByLabelText(/^Grund/), 'Inventur 30.09.');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Bestand buchen' }));
+    await userEvent.click(handlung({ name: 'Bestand buchen' }, dialog));
     await waitFor(() => expect(inventurBuchen).toHaveBeenCalledWith('m1', 18, 'Inventur 30.09.'));
   });
 
@@ -675,9 +676,9 @@ describe('Lager — Inventur und Bewegungen', () => {
     // Aus dem „⋯“ des Seitenkopfs: erst den Artikel wählen.
     await userEvent.click(await screen.findByRole('button', { name: 'Weitere Aktionen für Lager' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Inventur …' }));
-    await userEvent.click(within(await screen.findByRole('dialog', { name: 'Artikel wählen' })).getByRole('button', { name: /Kupferrohr/ }));
+    await userEvent.click(handlung({ name: /Kupferrohr/ }, await screen.findByRole('dialog', { name: 'Artikel wählen' })));
     const dialog = await screen.findByRole('dialog', { name: /^Inventur: / });
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Bestand buchen' }));
+    await userEvent.click(handlung({ name: 'Bestand buchen' }, dialog));
     expect(await within(dialog).findByText(/Ohne Grund keine Korrektur/)).toBeInTheDocument();
     expect(inventurBuchen).not.toHaveBeenCalled();
   });
@@ -712,7 +713,7 @@ describe('Lager — Inventur und Bewegungen', () => {
     expect(within(lot).getAllByRole('listitem')[0]).toHaveTextContent(/^Inventur/);
     // „Schließen“ schliesst das Fenster (Runde 3, G20: Lesen ohne „Abbrechen“).
     expect(within(dialog).queryByRole('button', { name: 'Abbrechen' })).toBeNull();
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Schließen' }));
+    await userEvent.click(handlung({ name: 'Schließen' }, dialog));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });
@@ -1177,7 +1178,7 @@ describe('Kommissionsware aus dem Lager nehmen (M6)', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Kommissionsware aus dem Lager nehmen?' });
     expect(within(dialog).getByText('Sonderfitting')).toBeInTheDocument();
     expect(kommissionAufruf).toHaveBeenCalledWith(undefined);
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Aus dem Lager nehmen' }));
+    await userEvent.click(handlung({ name: 'Aus dem Lager nehmen' }, dialog));
     await waitFor(() => expect(kommissionAufruf).toHaveBeenLastCalledWith(['k9']));
   });
 
@@ -1202,7 +1203,7 @@ describe('Lager — Reiter „Inventur“ (F14)', () => {
 
   it('der Reiter ist von „Bestand“ aus erreichbar', async () => {
     zeige();
-    await userEvent.click(within(await screen.findByRole('group', { name: 'Bereich' })).getByRole('button', { name: /Inventur/ }));
+    await userEvent.click(handlung({ name: /Inventur/ }, await screen.findByRole('group', { name: 'Bereich' })));
     expect(screen.getByTestId('adresse').textContent).toBe('/lager?reiter=inventur');
   });
 

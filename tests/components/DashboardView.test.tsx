@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { handlung } from './handlung';
 import { act, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -1332,19 +1333,19 @@ describe('Startseite — selbst eingerichtet', () => {
     const klick = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     zeichne();
     await screen.findByRole('link', { name: /^Saldo/ });
-    await klick.click(screen.getByRole('button', { name: 'Weitere Aktionen für Startseite' }));
+    await klick.click(handlung({ name: 'Weitere Aktionen für Startseite' }));
     await klick.click(await screen.findByRole('menuitem', { name: 'Startseite anpassen …' }));
     const bogen = await screen.findByRole('dialog', { name: 'Startseite anpassen' });
     // Angeboten wird nur, was der Monteur sehen darf.
     expect(within(bogen).queryByLabelText('Offene Rechnungen')).not.toBeInTheDocument();
     await klick.click(within(bogen).getByLabelText('Saldo'));
     await klick.click(within(bogen).getByLabelText('Material abholbereit'));
-    await klick.click(within(bogen).getByRole('button', { name: 'Speichern' }));
+    await klick.click(handlung({ name: 'Speichern' }, bogen));
     await waitFor(() => expect(wahlGespeichert).toHaveBeenCalledWith({ kennzahlen: ['urlaub'], aus: ['abholbereit'] }));
 
-    await klick.click(screen.getByRole('button', { name: 'Weitere Aktionen für Startseite' }));
+    await klick.click(handlung({ name: 'Weitere Aktionen für Startseite' }));
     await klick.click(await screen.findByRole('menuitem', { name: 'Startseite anpassen …' }));
-    await klick.click(within(await screen.findByRole('dialog', { name: 'Startseite anpassen' })).getByRole('button', { name: 'Vorgabe wiederherstellen' }));
+    await klick.click(handlung({ name: 'Vorgabe wiederherstellen' }, await screen.findByRole('dialog', { name: 'Startseite anpassen' })));
     await waitFor(() => expect(wahlGespeichert).toHaveBeenLastCalledWith({}));
   });
 
@@ -1352,9 +1353,9 @@ describe('Startseite — selbst eingerichtet', () => {
     const klick = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     zeichne();
     await screen.findByRole('link', { name: /^Saldo/ });
-    await klick.click(screen.getByRole('button', { name: 'Weitere Aktionen für Startseite' }));
+    await klick.click(handlung({ name: 'Weitere Aktionen für Startseite' }));
     await klick.click(await screen.findByRole('menuitem', { name: 'Startseite anpassen …' }));
-    await klick.click(within(await screen.findByRole('dialog', { name: 'Startseite anpassen' })).getByRole('button', { name: 'Speichern' }));
+    await klick.click(handlung({ name: 'Speichern' }, await screen.findByRole('dialog', { name: 'Startseite anpassen' })));
     await waitFor(() => expect(wahlGespeichert).toHaveBeenCalledWith({}));
   });
 
@@ -1363,15 +1364,15 @@ describe('Startseite — selbst eingerichtet', () => {
     const klick = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     zeichne();
     await waitFor(() => expect(document.querySelector('[data-geladen="ja"]')).not.toBeNull());
-    await klick.click(screen.getByRole('button', { name: 'Weitere Aktionen für Startseite' }));
+    await klick.click(handlung({ name: 'Weitere Aktionen für Startseite' }));
     await klick.click(await screen.findByRole('menuitem', { name: 'Startseite anpassen …' }));
     const bogen = await screen.findByRole('dialog', { name: 'Startseite anpassen' });
     // Vorgabe der Leitung: Offen, Überfällig, Aktive Baustellen — eine vierte geht noch.
     await klick.click(within(bogen).getByLabelText('Bezahlt im Monat'));
     expect(within(bogen).getByLabelText('Auslastung der Woche')).toBeDisabled();
     // Die Folge: „Bezahlt im Monat“ nach vorn.
-    await klick.click(within(bogen).getByRole('button', { name: 'Bezahlt im Monat nach vorn' }));
-    await klick.click(within(bogen).getByRole('button', { name: 'Speichern' }));
+    await klick.click(handlung({ name: 'Bezahlt im Monat nach vorn' }, bogen));
+    await klick.click(handlung({ name: 'Speichern' }, bogen));
     await waitFor(() => expect(wahlGespeichert).toHaveBeenCalledWith({ kennzahlen: ['offen', 'ueberfaellig', 'bezahlt', 'baustellen'] }));
   });
 });
