@@ -140,6 +140,20 @@ export async function vorladen(pfade: readonly string[]): Promise<void> {
  * `/customers/…` gehört zu `/customers`); mehrere dort gleichzeitig.
  */
 export function startansichtVorladen(pfad: string): void {
+  ansichtHolen(pfad);
+}
+
+/**
+ * Den Baustein einer Akte holen, sobald die Zeile berührt wird (L12) — bevor
+ * der Finger loslässt. Wie beim Start: die Ansicht zum längsten passenden
+ * Menüpfad. Was schon liegt oder unterwegs ist, kommt aus demselben
+ * Versprechen; ein zweites Berühren kostet nichts.
+ */
+export function ansichtVorbereiten(pfad: string): void {
+  ansichtHolen(pfad);
+}
+
+function ansichtHolen(pfad: string): void {
   const menuepfad = [...LADER.keys()]
     .filter((p) => p === pfad || (p !== '/' && pfad.startsWith(`${p}/`)))
     .sort((a, b) => b.length - a.length)[0];

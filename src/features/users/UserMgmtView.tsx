@@ -33,6 +33,7 @@ import { datumAT } from '@/lib/datum';
 import { zahlAlsText } from '@/lib/zahl';
 import { benutzernameFehler, kontoAnzeige, kunstadresse, mailAdresseFehler } from '@shared/benutzername';
 import ZahlFeld from '@/components/ZahlFeld';
+import { akteVorbereiten } from '@/lib/akteVorbereiten';
 
 
 /** Benutzerverwaltung (GF/Admin): anlegen, Stammdaten und Rollen pflegen. */
@@ -795,6 +796,8 @@ export default function UserMgmtView() {
                       <ListRow
                         key={u.uid}
                         to={`/user-mgmt/${u.uid}`}
+                        // Berührt: Baustein und Person vorab — aus dieser Zeile, ohne Anfrage (L12).
+                        vorbereiten={user ? () => akteVorbereiten(`/user-mgmt/${u.uid}`, { schluessel: schluessel('benutzerakte', user, u.uid), daten: { person: u } }) : undefined}
                         pfeil
                         title={
                           <span className="flex flex-wrap items-center gap-2">

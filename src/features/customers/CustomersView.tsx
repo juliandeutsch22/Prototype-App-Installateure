@@ -41,6 +41,7 @@ import { uidSperrt } from '@/lib/uid';
 import { grundAus } from '@/lib/fehlerGrund';
 import { angabenZuPruefen, mailFehler, plzFehler } from '@/lib/adresse';
 import { gleichnamigeKunden, rueckfrageText, schluessel } from './gleichnamig';
+import { akteVorbereiten } from '@/lib/akteVorbereiten';
 
 const LEER: NewCustomer = {
   name: '',
@@ -628,6 +629,8 @@ export default function CustomersView() {
                       bis zum Umbau ein eigener Verweis „Akte“ rechts.
                     */
                     to={`/customers/${k.id}`}
+                    // Berührt: Baustein und Kopf der Akte vorab — der Kopf aus dieser Zeile, ohne Anfrage (L12).
+                    vorbereiten={user ? () => akteVorbereiten(`/customers/${k.id}`, { schluessel: speicherSchluessel('kundenakte', user, k.id), daten: { kunde: k } }) : undefined}
                     /*
                       ZEILEN GLEICH GEBAUT (Design-Entwurf, Punkt 3): Name fett,
                       Kundennummer grau daneben, eine Detailzeile, was zu prüfen

@@ -64,6 +64,7 @@ import { stammdatenFehler, stundenbudgetAus } from './baustellenEntwurf';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import LiegenschaftVorschlaege from '@/features/liegenschaften/LiegenschaftVorschlaege';
 import type { Customer, Liegenschaft } from '@/types';
+import { akteVorbereiten } from '@/lib/akteVorbereiten';
 
 const empty = {
   projectNumber: '',
@@ -1103,6 +1104,8 @@ export default function AdminProjectsView() {
                           lässt sich verlinken und kommt zurück, wohin man war.
                         */
                         to={`/admin-projects/${p.id}`}
+                        // Berührt: Baustein und Kopf der Akte vorab — der Kopf aus dieser Zeile, ohne Anfrage (L12).
+                        vorbereiten={user ? () => akteVorbereiten(`/admin-projects/${p.id}`, { schluessel: schluessel('baustellenakte', user, p.id), daten: { baustelle: p } }) : undefined}
                         /*
                           ZEILEN GLEICH GEBAUT (Design-Entwurf, Punkt 3): Name fett,
                           Nummer grau daneben, eine Detailzeile, rechts Zustand und

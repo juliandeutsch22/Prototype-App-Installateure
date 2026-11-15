@@ -18,6 +18,7 @@ export function ListRow({
   onOeffnen,
   gestapelt = false,
   ausgewaehlt = false,
+  vorbereiten,
   children,
 }: {
   title: ReactNode;
@@ -61,6 +62,11 @@ export function ListRow({
    * Seitenfenster sichtbar, wozu es gehört.
    */
   ausgewaehlt?: boolean;
+  /**
+   * Beim Berühren der Zeile (Finger oder Maus gedrückt, Tastatur auf dem
+   * Ziel): die Akte vorbereiten, bevor losgelassen wird (L12).
+   */
+  vorbereiten?: () => void;
   children?: ReactNode; // rechte Seite (Aktionen)
 }) {
   const ganz = !!to || !!onOeffnen;
@@ -72,7 +78,7 @@ export function ListRow({
     title
   );
   const titelInhalt = to ? (
-    <Link to={to} className="zeile-ziel">{titelText}</Link>
+    <Link to={to} className="zeile-ziel" onPointerDown={vorbereiten} onFocus={vorbereiten}>{titelText}</Link>
   ) : onOeffnen ? (
     <button type="button" onClick={onOeffnen} className="zeile-ziel text-left">{titelText}</button>
   ) : (

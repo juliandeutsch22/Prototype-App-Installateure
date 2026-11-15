@@ -68,6 +68,7 @@ import BottomSheet from '@/components/BottomSheet';
 import Nachladen from '@/components/Nachladen';
 import { Listenleiste, MehrAnzeigen, Segmente, WeitereAngaben } from '@/components/LotBausteine';
 import { BearbeitenKnopf } from '@/components/Symbolknoepfe';
+import { akteVorbereiten } from '@/lib/akteVorbereiten';
 
 /**
  * Zahl aus einem Eingabefeld — über die zentrale Lesung (M15). „7.500,50“
@@ -1022,6 +1023,8 @@ export default function QuotesView() {
       key={q.id}
       // DIE GANZE ZEILE führt zur Angebotsseite — Positionen, Anmerkungen, PDF.
       to={`/quotes/${q.id}`}
+      // Berührt: Baustein und Angebot vorab — aus dieser Zeile, ohne Anfrage (L12).
+      vorbereiten={user ? () => akteVorbereiten(`/quotes/${q.id}`, { schluessel: speicherSchluessel('angebotsakte', user, q.id), daten: { angebot: q } }) : undefined}
       title={<OhneUmbruch text={q.customerName} />}
       nummer={q.quoteNumber}
       wert={`${euro(q.totalBrutto)} brutto`}

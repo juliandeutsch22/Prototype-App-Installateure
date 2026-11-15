@@ -179,3 +179,20 @@ describe('Der Rückweg aus der Akte', () => {
     expect(screen.getByRole('link', { name: /Zur Benutzerliste/ })).toHaveAttribute('href', '/user-mgmt?suche=Gru');
   });
 });
+
+/*
+  L12: in der Kundenliste legt das Berühren einer Zeile den Kopf der Akte
+  bereit — aus der Zeile, ohne Anfrage.
+*/
+describe('Kundenliste: Akte beim Berühren vorbereiten (L12)', () => {
+  it('legt den Kunden in den gemerkten Stand seiner Akte', async () => {
+    const { abfrageSpeicher, schluessel } = await import('@/lib/zwischenspeicher');
+    zeichne('/customers');
+    const link = await screen.findByRole('link', { name: /Familie Huber/ });
+    const vorher = listCustomersByIds.mock.calls.length;
+    const { fireEvent } = await import('@testing-library/react');
+    fireEvent.pointerDown(link);
+    expect(abfrageSpeicher.getQueryData(schluessel('kundenakte', { uid: 'chef', companyId: 'perl' }, 'k2'))).toEqual({ kunde: kunden[1] });
+    expect(listCustomersByIds.mock.calls.length).toBe(vorher);
+  });
+});
