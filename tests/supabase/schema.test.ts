@@ -66,6 +66,43 @@ describe('Zeilenschutz', () => {
     expect(mitRecht.map((r) => `${r.table_name}:${r.privilege_type}`)).toEqual([]);
   });
 
+  /*
+    DASSELBE FÜR ANGEMELDETE KONTEN, beschränkt auf die drei Rechte, über die
+    der Zeilenschutz nicht entscheidet (`20261117035000_authenticated_ohne_truncate.sql`).
+    TRUNCATE leert eine Tabelle für ALLE Betriebe, ohne eine einzige Regel
+    zu fragen; TRIGGER hängt eigenen Code an fremde Zeilen; REFERENCES
+    verrät über einen Fremdschlüssel, welche Kennungen es gibt. Über
+    PostgREST ist keines erreichbar — es geht, wie bei `anon`, um die
+    Reichweite eines künftigen Fehlers. Lesen und Schreiben entscheidet der
+    Zeilenschutz; das prüft hier niemand.
+  */
+  const OHNE_ZEILENSCHUTZ = `
+      select table_name, privilege_type from information_schema.role_table_grants
+       where table_schema = 'public' and grantee = 'authenticated'
+         and privilege_type in ('TRUNCATE', 'TRIGGER', 'REFERENCES')
+       order by 1, 2`;
+
+  it('gibt angemeldeten Konten auf KEINER Tabelle TRUNCATE, TRIGGER oder REFERENCES', async () => {
+    const mitRecht = await zeilen<{ table_name: string; privilege_type: string }>(OHNE_ZEILENSCHUTZ);
+    expect(mitRecht.map((r) => `${r.table_name}:${r.privilege_type}`)).toEqual([]);
+  });
+
+  it('Gegenprobe: eine neue Tabelle bekommt die drei Rechte nicht mehr — und eine von Hand vergebene fiele auf', async () => {
+    await db.query('begin');
+    try {
+      // Die Vorgabe: was als `postgres` neu entsteht, trägt sie nicht (mehr).
+      await db.query('create table public.probe_ohne_truncate (id uuid primary key)');
+      const neu = await zeilen<{ table_name: string }>(OHNE_ZEILENSCHUTZ);
+      expect(neu.filter((r) => r.table_name === 'probe_ohne_truncate')).toEqual([]);
+      // Der Wächter selbst: wer sie von Hand wieder vergibt, wird gefunden.
+      await db.query('grant truncate on public.probe_ohne_truncate to authenticated');
+      const vergeben = await zeilen<{ table_name: string; privilege_type: string }>(OHNE_ZEILENSCHUTZ);
+      expect(vergeben.map((r) => `${r.table_name}:${r.privilege_type}`)).toContain('probe_ohne_truncate:TRUNCATE');
+    } finally {
+      await db.query('rollback');
+    }
+  });
+
   it('prüft in JEDER Richtlinie auf einer Betriebstabelle auch wirklich den Betrieb', async () => {
     // Eingeschalteter Zeilenschutz ohne Betriebsprüfung wäre eine Tür mit
     // Schloss und ohne Riegel: die Richtlinie greift, erlaubt aber allen alles.
