@@ -62,6 +62,13 @@ async function kopfzeilenVon(
   try {
     await tresorSetzen(urlName, 'http://beispiel.test/ziel');
     await tresorSetzen(schluesselName, schluessel);
+    /*
+      Seit K3 (Durchsicht 15.11.2026) stößt die Ausleitung je Betrieb an —
+      ohne einen Betrieb geht keine Anfrage hinaus. Die Prüfung legt ihren
+      eigenen an (mit der Transaktion verworfen), statt davon abzuhängen, ob
+      gerade eine andere Prüfung einen in der Datenbank hat.
+    */
+    await db.query(`insert into public.companies (id, name) values ('anstoss-kopfzeilen', 'Anstoß') on conflict (id) do nothing`);
     await db.query(aufruf);
     const { rows } = await db.query(
       'select headers from net.http_request_queue order by id desc limit 1',
