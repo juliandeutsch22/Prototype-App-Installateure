@@ -41,11 +41,15 @@ Antwort je Baustelle als eine Zeile, weil sie ein einzelner Wert ist.
 | übrige Seiten der Geschäftsführung | 3,6–5,2 s | – | 3,3–4,6 s |
 | Seiten des Monteurs | 3,1–4,3 s | – | 3,0–4,2 s |
 
-„Bestand neu erzeugt“: die Prüfungen gegen die Datenbank leeren vor jedem
-Lauf die ganze lokale Datenbank (`tests/supabase/aufraeumen.ts`), auch den
-Testbestand; er wurde danach mit demselben Skript (fester Zufallswert, fester
-Stichtag) Zeile für Zeile gleich neu angelegt — frisch eingefügt und
-analysiert, deshalb schneller als der gealterte. Die Rohwerte der ersten
+„Bestand neu erzeugt“: die Prüfungen gegen die Datenbank leerten damals vor
+jedem Lauf die ganze lokale Datenbank (`tests/supabase/aufraeumen.ts`), auch
+den Testbestand; er wurde danach mit demselben Skript (fester Zufallswert,
+fester Stichtag) Zeile für Zeile gleich neu angelegt — frisch eingefügt und
+analysiert, deshalb schneller als der gealterte. Seit der Nacharbeit zur
+Durchsicht (Welle 4) bleibt der Betrieb `ui-testbestand` samt Konten beim
+Aufräumen stehen (gelöscht wird als Eigentümer der Datenbank, lokal
+`supabase_admin`, ohne Auslöser und Prüfung der Fremdschlüssel: 0,4 s statt
+78 s neben dem Bestand); ohne diesen Zugang leert es wie bisher und sagt es. Die Rohwerte der ersten
 Messung stehen in `messung-gewachsen-vor-l22.json` und
 `messung-gewachsen-vor-l22-monteur.json`.
 
