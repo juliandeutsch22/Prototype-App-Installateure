@@ -357,8 +357,23 @@ export default function WorkSheetsListView() {
     },
     [user, grenze, grenzeAnfang, merken],
   );
+  /*
+    NACH EINER ÄNDERUNG (Aktion, angekommener Schein, Ziehen zum
+    Aktualisieren) ist auch „nicht verrechnet“ neu zu fragen — eine Runde
+    weiter. Das erste Laden und „Weitere Scheine laden“ zählen nicht: die
+    Abfrage über alle hängt nicht an den jüngsten Scheinen. Vorher hing sie an
+    deren Kennungen und lief beim Öffnen zweimal (Durchsicht 15.11.2026).
+  */
+  const [verrechnungRunde, setVerrechnungRunde] = useState(0);
+  const neuLaden = useMemo(
+    () => (stehenLassen = false) => {
+      setVerrechnungRunde((r) => r + 1);
+      return laden(stehenLassen);
+    },
+    [laden],
+  );
   // Ziehen zum Aktualisieren (F15): diese Liste lädt selbst — sie holt dann nach.
-  useBeiAktualisieren(laden);
+  useBeiAktualisieren(neuLaden);
 
   useEffect(() => {
     // Ein gemerkter Stand bleibt beim Aufbau stehen; mit größerer Grenze lädt die Liste sichtbar.
@@ -386,7 +401,7 @@ export default function WorkSheetsListView() {
           const angekommen = wartendRef.current.some((v) => !neu.some((n) => n.id === v.id));
           wartendRef.current = neu;
           setWartend(neu);
-          if (angekommen) void laden(true);
+          if (angekommen) void neuLaden(true);
         })
         .catch(() => undefined);
     };
@@ -396,7 +411,7 @@ export default function WorkSheetsListView() {
       weg = true;
       window.removeEventListener(FACH_GELEERT, nachsehen);
     };
-  }, [laden]);
+  }, [neuLaden]);
 
   /*
     DIE KOLLEGENZEILE, AN DIE NIEMAND ERINNERT WIRD — nur fürs Büro.
@@ -630,8 +645,9 @@ export default function WorkSheetsListView() {
     die über vier Wochen immer ihr Anfang — der Filter „…-alt“ blättert in
     derselben Liste.
 
-    Neu gefragt wird, wenn sich die Liste ändert (Storno, Unterschrift,
-    Nachladen) — so weit, wie schon geholt war. `null`: noch unbekannt;
+    Gefragt wird beim Öffnen einmal und nach jeder Änderung wieder
+    (`verrechnungRunde`: Storno, angekommener Schein, Ziehen zum
+    Aktualisieren) — so weit, wie schon geholt war. `null`: noch unbekannt;
     `'fehler'`: nicht gekommen — dann steht das da, nicht „keiner
     unverrechnet“.
   */
@@ -641,7 +657,6 @@ export default function WorkSheetsListView() {
   const geholtBisher = useRef(0);
   geholtBisher.current = unverrechnetDB && unverrechnetDB !== 'fehler' ? unverrechnetDB.geholt : 0;
   const [unverrechnetLaedt, setUnverrechnetLaedt] = useState(false);
-  const scheinSchluessel = useMemo(() => scheine.map((x) => `${x.id}:${x.status}`).join('|'), [scheine]);
   useEffect(() => {
     if (!user || !mitVerrechnung) {
       setUnverrechnetDB(null);
@@ -662,7 +677,7 @@ export default function WorkSheetsListView() {
     return () => {
       weg = true;
     };
-  }, [user, mitVerrechnung, scheinSchluessel, merken]);
+  }, [user, mitVerrechnung, verrechnungRunde, merken]);
   /** Die nächsten unverrechneten Scheine — erst, wenn jemand sie sehen will. */
   async function unverrechnetWeiter() {
     if (!user || !unverrechnetDB || unverrechnetDB === 'fehler') return;
@@ -872,7 +887,7 @@ export default function WorkSheetsListView() {
     try {
       await restoreWorkSheetDraft(s.id);
       toast.success('Entwurf wieder aufgenommen');
-      await laden();
+      await neuLaden();
     } catch (err) {
       setError(grundAus(err, 'Der Entwurf ließ sich nicht zurückholen.'));
     } finally {
@@ -1494,7 +1509,7 @@ export default function WorkSheetsListView() {
         {offenerSchein && (
           <ScheinEinzelheiten
             schein={offenerSchein}
-            onNeuLaden={() => void laden()}
+            onNeuLaden={() => void neuLaden()}
             aktionen={
               stornoFuer?.id === offenerSchein.id ? (
                 /*
@@ -1544,7 +1559,7 @@ export default function WorkSheetsListView() {
                           });
                           setStornoFuer(null);
                           setStornoGrund('');
-                          await laden();
+                          await neuLaden();
                         } catch (err) {
                           setError(grundAus(err, 'Der Storno ist fehlgeschlagen.'));
                         } finally {
@@ -1653,12 +1668,12 @@ export default function WorkSheetsListView() {
           toast.success('Entwurf verworfen', {
             label: 'Rückgängig',
             onClick: () => void restoreWorkSheetDraft(id).then(
-              () => { toast.success('Schein wiederhergestellt — wieder ein Entwurf'); void laden(); },
+              () => { toast.success('Schein wiederhergestellt — wieder ein Entwurf'); void neuLaden(); },
               (e) => toast.error(grundAus(e, 'Rückgängig ging nicht.')),
             ),
           });
           setVerwerfenFuer(null);
-          await laden();
+          await neuLaden();
         }}
       />
 
@@ -1686,7 +1701,7 @@ export default function WorkSheetsListView() {
           await deleteWorkSheetDraft(user.companyId, loeschenFuer.id, (loeschenFuer.fotos ?? []).map((f) => f.pfad));
           toast.success('Entwurf gelöscht');
           setLoeschenFuer(null);
-          await laden();
+          await neuLaden();
         }}
       />
     </div>

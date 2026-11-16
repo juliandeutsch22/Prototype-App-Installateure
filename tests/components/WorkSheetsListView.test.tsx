@@ -10,6 +10,7 @@ import type { Role, WorkSheet } from '@/types';
 import { todayStr } from '@/lib/time';
 import { buildWorkSheetPdf } from '@/features/worksheets/worksheetPdf';
 import { zurueckhalten } from './zurueckhalten';
+import { aktualisierenAusloesen } from '@/lib/aktualisieren';
 
 /**
  * Der Weg zurück in einen Entwurf.
@@ -177,12 +178,13 @@ const alleUnverrechnet = async () => {
     .map((x) => ({ id: x.id, projectNumber: x.projectNumber, customerName: x.customerName, datum: x.datum, abrechnung: x.abrechnung }));
 };
 const seiteGeholt = vi.fn(async (ab: number, anzahl: number) => (await alleUnverrechnet()).slice(ab, ab + anzahl));
+const standGeholt = vi.fn(async (altBis: string) => {
+  const alle = await alleUnverrechnet();
+  return { anzahl: alle.length, alt: alle.filter((x) => x.datum <= altBis).length, aeltester: alle[0]?.datum ?? null };
+});
 vi.mock('@/lib/db/invoices', () => ({
   scheineUnverrechnetSeite: (ab: number, anzahl: number) => seiteGeholt(ab, anzahl),
-  scheineUnverrechnetStand: async (altBis: string) => {
-    const alle = await alleUnverrechnet();
-    return { anzahl: alle.length, alt: alle.filter((x) => x.datum <= altBis).length, aeltester: alle[0]?.datum ?? null };
-  },
+  scheineUnverrechnetStand: (altBis: string) => standGeholt(altBis),
   scheineAufRechnung: async (_c: string, ids: string[]) => (await verrechnungGeholt()).filter((id) => ids.includes(id)),
 }));
 
@@ -1391,15 +1393,76 @@ describe('Ansicht und Seitenfenster', () => {
     expect(await screen.findByRole('heading', { name: /Nicht verrechnet/ })).toHaveTextContent('25 Nicht verrechnet');
     expect(await screen.findByText('Familie K19')).toBeInTheDocument();
     expect(screen.queryByText('Familie K20')).not.toBeInTheDocument();
-    // Die erste Seite — auch wenn die Liste nach dem Laden der jüngsten noch einmal fragt.
-    expect(seiteGeholt.mock.calls.length).toBeGreaterThan(0);
-    expect(seiteGeholt.mock.calls.every(([ab, n]) => ab === 0 && n === 20)).toBe(true);
+    // Die erste Seite, einmal.
+    expect(seiteGeholt.mock.calls).toEqual([[0, 20]]);
 
     seiteGeholt.mockClear();
     await nutzer.click(screen.getByRole('button', { name: 'und 5 weitere anzeigen' }));
     expect(await screen.findByText('Familie K24')).toBeInTheDocument();
     expect(seiteGeholt.mock.calls).toEqual([[20, 50]]);
     expect(screen.queryByRole('button', { name: /weitere anzeigen/ })).not.toBeInTheDocument();
+  });
+
+  /*
+    EINMAL BEIM ÖFFNEN (Durchsicht 15.11.2026): die Abfrage hing an den
+    Kennungen der jüngsten Scheine und lief noch einmal, sobald die geladen
+    waren — Zahl und erste Seite zweimal. Gegenprobe: mit dem Stand davor je
+    zwei Aufrufe (rot).
+  */
+  it('fragt „nicht verrechnet“ beim Öffnen genau einmal — Zahl und erste Seite', async () => {
+    authWert.user.role = 'Buchhaltung';
+    seiteGeholt.mockClear();
+    standGeholt.mockClear();
+    geladen = [scheine[0], unterschrieben('n1', '2026-09-20', 'Familie Neu')];
+    zeichne();
+    expect(await screen.findByRole('heading', { name: /Nicht verrechnet/ })).toHaveTextContent('1 Nicht verrechnet');
+    expect(await screen.findByText('Familie Huber')).toBeInTheDocument();
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(standGeholt).toHaveBeenCalledTimes(1);
+    expect(seiteGeholt.mock.calls).toEqual([[0, 20]]);
+  });
+
+  it('bleibt gleich: nach dem Storno fragt sie neu, so weit wie schon geholt', async () => {
+    authWert.user.role = 'Geschäftsführung';
+    geladen = [scheine[0], ...fuenfundzwanzig()];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await waitFor(() => handlung({ name: 'und 5 weitere anzeigen' })));
+    expect(await screen.findByText('Familie K24')).toBeInTheDocument();
+    seiteGeholt.mockClear();
+    standGeholt.mockClear();
+
+    // Storniert wird K03; der Schein ist danach in der Datenbank storniert.
+    stornieren.mockImplementationOnce(async () => {
+      geladen = geladen.map((x) => (x.id === 'k03' ? ({ ...x, status: 'Storniert' } as typeof x) : x));
+    });
+    const fenster = await oeffne(/Familie K03/);
+    await nutzer.click(handlung({ name: 'Stornieren' }, fenster));
+    await nutzer.type(within(fenster).getByLabelText(/Grund/), 'Falscher Tag');
+    await nutzer.click(handlung({ name: 'Storno bestätigen' }, fenster));
+    await waitFor(() => expect(standGeholt).toHaveBeenCalledTimes(1));
+    expect(seiteGeholt.mock.calls).toEqual([[0, 25]]);
+    expect(await screen.findByRole('heading', { name: /Nicht verrechnet/ })).toHaveTextContent('24 Nicht verrechnet');
+  });
+
+  /*
+    „Ziehen zum Aktualisieren“ fragt auch „nicht verrechnet“ neu — etwa nach
+    einer Rechnung, die jemand anderes geschrieben hat. Vorher nur, wenn sich
+    dabei die jüngsten Scheine änderten. Gegenprobe: mit dem Stand davor bleibt
+    die Zahl bei 2 (rot).
+  */
+  it('Ziehen zum Aktualisieren fragt neu — der eben verrechnete Schein fällt heraus', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [scheine[0], unterschrieben('n1', '2026-09-20', 'Familie Neu'), unterschrieben('n2', '2026-09-21', 'Familie Zwei')];
+    zeichne();
+    expect(await screen.findByRole('heading', { name: /Nicht verrechnet/ })).toHaveTextContent('2 Nicht verrechnet');
+    standGeholt.mockClear();
+
+    aufRechnung = ['n1'];
+    await act(async () => { aktualisierenAusloesen(); await Promise.resolve(); });
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Nicht verrechnet/ })).toHaveTextContent('1 Nicht verrechnet'));
+    expect(standGeholt).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Familie Neu')).not.toBeInTheDocument();
   });
 
   it('L22, bleibt gleich: unter dem Filter aus der Adresse dieselbe Zahl, und ein Treffer vom Server zählt, auch wenn er noch nicht geholt ist', async () => {
