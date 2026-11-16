@@ -1,11 +1,17 @@
 {
+  // Nur Typprüfung für `vite.config.ts`, keine Ausgabe (Durchsicht 15.11.2026):
+  // mit `composite` legte `tsc -b` daneben eine `vite.config.js` ab, und Vite
+  // nimmt die `.js` vor der `.ts` — ein späteres `npx vite build` lief dann mit
+  // einem veralteten Stand. Deshalb ist diese Datei kein Verweis mehr in
+  // `tsconfig.json` (ein Verweis darf die Ausgabe nicht abschalten), sondern
+  // wird im Bau eigens geprüft: `tsc -b tsconfig.json tsconfig.node.json`.
   "compilerOptions": {
-    "composite": true,
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
-    "strict": true
+    "strict": true,
+    "noEmit": true
   },
   "include": ["vite.config.ts"]
 }

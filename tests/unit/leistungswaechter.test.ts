@@ -16,7 +16,7 @@ import type { Plugin } from 'vite';
  */
 
 // Über einen Pfad in einer Variablen, wie in `sicherheitsKopfzeilen.test.ts`:
-// mit Endung, weil `tsc -b` daneben ein `.js` ablegt, das sonst vorginge.
+// mit Endung, damit eine liegengebliebene `vite.config.js` (bis 15.11.2026 legte `tsc -b` sie ab) nicht vorgeht.
 // Die Formen stehen hier noch einmal: `vite.config.ts` gehört nicht zum Typprogramm der Tests.
 interface Baustein {
   datei: string;
