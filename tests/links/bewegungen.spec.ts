@@ -284,18 +284,31 @@ test.describe('B5 Unterlinie gleitet', () => {
     const wahl = page.getByRole(fall.role, { name: fall.name, exact: true });
     await expect(wahl).toBeVisible();
     await beobachterBereit(page);
-    await page.evaluate(() => {
+    /*
+      AUFGEZEICHNET WIRD BIS 700 MS NACH DEM WECHSEL, nicht ab dem Start der
+      Aufnahme: der Unterreiter einer Einstellungsseite kommt erst mit ihrem
+      Baustein, und der lädt beim ersten Mal (Entwicklungsserver, kalt) über
+      eine halbe Sekunde. Der Wechsel ist der Zustand, auf den es ankommt —
+      Strich (160 ms) und Aufräumen (200 ms) liegen sicher in den 700 ms danach.
+    */
+    await page.evaluate((name) => {
       const w = window as unknown as { striche: number[]; strichFertig: boolean };
       w.striche = []; w.strichFertig = false;
       const t0 = performance.now();
+      let gewechselt = 0;
+      const aktiv = () => [...document.querySelectorAll('[aria-current="page"], [aria-selected="true"], .segment-an')]
+        .some((el) => el.textContent?.trim() === name);
       const bild = () => {
         const s = document.querySelector<HTMLElement>('[data-unterlinie]');
         const t = s ? getComputedStyle(s).transform : null;
         w.striche.push(s ? (t === 'none' ? 0 : new DOMMatrixReadOnly(t!).m41) : NaN);
-        if (performance.now() - t0 < 700) requestAnimationFrame(bild); else w.strichFertig = true;
+        const jetzt = performance.now();
+        if (!gewechselt && aktiv()) gewechselt = jetzt;
+        if ((gewechselt && jetzt - gewechselt >= 700) || jetzt - t0 > 5000) w.strichFertig = true;
+        else requestAnimationFrame(bild);
       };
       requestAnimationFrame(bild);
-    });
+    }, fall.name);
     await wahl.click();
     await page.waitForFunction(() => (window as unknown as { strichFertig: boolean }).strichFertig);
     const striche = await page.evaluate(() => (window as unknown as { striche: number[] }).striche);
@@ -639,11 +652,21 @@ test.describe('B11 Fehler am Feld', () => {
     return { lagen, fokus: document.activeElement === feld, imBild: r.top >= 0 && r.bottom <= innerHeight };
   }, fokusImFeld);
 
+  /*
+    „Speichern“ steht seit U1 in der Speicherleiste, und die erscheint erst,
+    wenn etwas geändert ist — abgewiesen werden kann ja auch nur dann.
+  */
+  const etwasAendern = async (page: Page) => {
+    await page.locator('#fd-bank').fill('Raiffeisenbank Probe');
+    await expect(page.locator('.aktionsleiste').getByRole('button', { name: 'Speichern' })).toBeVisible();
+  };
+
   test('nach „Speichern“: das Feld ruckt kurz, der Fokus springt hin und es steht im Bild', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto(pfad('/settings/firma'));
     await expect(page.locator('#fd-iban, input[id^="fd-"]').first()).toBeVisible();
     await beobachterBereit(page);
+    await etwasAendern(page);
     const r = await abweisen(page, false);
     expect(Math.max(...r.lagen.map(Math.abs))).toBeGreaterThan(0.5);
     expect(r.lagen[r.lagen.length - 1]).toBe(0);
@@ -665,6 +688,7 @@ test.describe('B11 Fehler am Feld', () => {
     await page.goto(pfad('/settings/firma'));
     await expect(page.locator('#fd-iban, input[id^="fd-"]').first()).toBeVisible();
     await beobachterBereit(page);
+    await etwasAendern(page);
     const reduziert = await abweisen(page, false);
     expect(reduziert.lagen.every((x) => x === 0)).toBe(true);
     expect(reduziert.fokus).toBe(true);
