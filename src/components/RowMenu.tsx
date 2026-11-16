@@ -80,6 +80,14 @@ export default function RowMenu({ about, items }: RowMenuProps) {
     const schliessen = () => setOffen(false);
     const beiTaste = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
+      /*
+        NUR DAS MENÜ, NICHT DAS FENSTER DARUNTER (U4): seit Fenster ihre
+        selteneren Handlungen im ⋯ tragen, liegt das Menü über einem Fenster,
+        das selbst auf Escape hört (`BottomSheet`, die Monatsvorschau) — ein
+        Druck schloss beide. Gehört wird deshalb in der Einfangphase am
+        `window`, vor allen anderen, und die Taste geht nicht weiter.
+      */
+      e.stopPropagation();
       setOffen(false);
       // Fokus zurück auf den Auslöser — sonst steht die Tastatur nach dem
       // Schließen am Seitenanfang.
@@ -89,13 +97,13 @@ export default function RowMenu({ about, items }: RowMenuProps) {
       const z = e.target as Node;
       if (!menu.current?.contains(z) && !knopf.current?.contains(z)) setOffen(false);
     };
-    window.addEventListener('keydown', beiTaste);
+    window.addEventListener('keydown', beiTaste, true);
     document.addEventListener('mousedown', beiKlick);
     // Beim Drehen des Geräts ändert sich die Breite und damit die berechnete
     // Position; neu zu rechnen lohnt für den seltenen Fall nicht.
     window.addEventListener('resize', schliessen);
     return () => {
-      window.removeEventListener('keydown', beiTaste);
+      window.removeEventListener('keydown', beiTaste, true);
       document.removeEventListener('mousedown', beiKlick);
       window.removeEventListener('resize', schliessen);
     };
