@@ -200,7 +200,7 @@ Aus dem Rundgang. Die Linie V10 selbst trägt; die Brüche liegen in der Bedienu
 | U10 ✔ | **Datums- und Zeitfelder zeigen das Format des Geräts** (auf einem englisch eingestellten Gerät 11/15/2026 und 07:00 AM) — dieselbe Ursache wie beim Logo-Knopf. | Am Handy ist das Rad des Geräts die beste Eingabe; deutsche Geräte zeigen es richtig. Entschieden (E5): so lassen. |
 | U11 ✔ | Baustellenliste: Zustand und Budget stehen je nach Länge mal nebeneinander, mal untereinander. | Feste Anordnung. |
 | U12 ✔ | Zeiterfassung am Schreibtisch: „Meine Einträge“ ist schmal, Namen brechen in drei Zeilen. | Liste breiter, Formular schmaler. |
-| U13 | Mitarbeiterübersicht am Handy: je Person ein hohes Blatt. | Kompakte Zeile, Einzelheiten im Fenster (wie am Schreibtisch). |
+| U13 ✔ | Mitarbeiterübersicht am Handy: je Person ein hohes Blatt. | Kompakte Zeile, Einzelheiten im Fenster (wie am Schreibtisch). |
 
 ---
 
@@ -214,18 +214,18 @@ ist**. Alles nur mit `transform` und Deckkraft, nichts verschiebt Layout.
 
 | # | Wo | Bewegung | Wofür |
 |---|---|---|---|
-| B1 | Blatt von unten | fährt von unten herein (statt nur einzublenden), folgt dem Finger beim Schließen | Herkunft und Rückweg sind sichtbar |
-| B2 | Zeile verschwindet (ausblenden, löschen, erledigen, in den Korb) | klappt in der Höhe zusammen, Nachbarn rücken nach | man sieht, *welche* Zeile ging |
-| B3 | Zeile kommt dazu (neue Buchung, neue Nachricht, neue Anforderung) | blendet mit kurzer Markierung ein | das Neue ist auffindbar |
-| B4 | Speichern bestätigt | Haken zeichnet sich im Knopf, Leiste zieht sich zurück | „ist gespeichert“ ohne Meldung lesen zu müssen |
-| B5 | Reiter und Segmente | die Unterlinie gleitet zum gewählten Reiter | Zusammenhang der Ansichten |
-| B6 | Zähler und Kennzahlen (Korb, Abzeichen, Saldo) | Ziffer wechselt mit kurzem Rollen | die Zahl hat sich geändert |
-| B7 | Arbeitstag Start/Pause/Stopp | Karte wechselt die Fläche weich, der Knopf wird zum nächsten | Zustand des Tages |
-| B8 | Listen laden nach | Platzhalter gehen in Inhalt über, ohne Sprung | Ruhe beim Laden |
-| B9 | Schwebende Hauptaktion | zieht sich beim Rollen nach unten zum Symbol zusammen, beim Hochrollen wieder auf | gibt Inhalt frei (siehe U3) |
-| B10 | Aufklappen (Weitere Angaben, Gruppen) | Höhe gleitet, Pfeil dreht | Ort des Inhalts |
-| B11 | Fehler am Feld | Feld bekommt die Markierung mit einem kurzen Ruck, Fokus springt hin | wo es klemmt |
-| B12 | Seitenwechsel Liste → Akte | Akte schiebt sich von rechts herein, zurück nach rechts hinaus | Tiefe der Navigation, wie am iPhone gewohnt |
+| B1 ✔ | Blatt von unten | fährt von unten herein (statt nur einzublenden), folgt dem Finger beim Schließen | Herkunft und Rückweg sind sichtbar |
+| B2 ✔ | Zeile verschwindet (ausblenden, löschen, erledigen, in den Korb) | klappt in der Höhe zusammen, Nachbarn rücken nach | man sieht, *welche* Zeile ging |
+| B3 ✔ | Zeile kommt dazu (neue Buchung, neue Nachricht, neue Anforderung) | blendet mit kurzer Markierung ein | das Neue ist auffindbar |
+| B4 ✔ | Speichern bestätigt | Haken zeichnet sich im Knopf, Leiste zieht sich zurück | „ist gespeichert“ ohne Meldung lesen zu müssen |
+| B5 ✔ | Reiter und Segmente | die Unterlinie gleitet zum gewählten Reiter | Zusammenhang der Ansichten |
+| B6 ✔ | Zähler und Kennzahlen (Korb, Abzeichen, Saldo) | Ziffer wechselt mit kurzem Rollen | die Zahl hat sich geändert |
+| B7 ✔ | Arbeitstag Start/Pause/Stopp | Karte wechselt die Fläche weich, der Knopf wird zum nächsten | Zustand des Tages |
+| B8 ✔ | Listen laden nach | Platzhalter gehen in Inhalt über, ohne Sprung | Ruhe beim Laden |
+| B9 ✔ | Schwebende Hauptaktion | zieht sich beim Rollen nach unten zum Symbol zusammen, beim Hochrollen wieder auf | gibt Inhalt frei (siehe U3) |
+| B10 ✔ | Aufklappen (Weitere Angaben, Gruppen) | Höhe gleitet, Pfeil dreht | Ort des Inhalts |
+| B11 ✔ | Fehler am Feld | Feld bekommt die Markierung mit einem kurzen Ruck, Fokus springt hin | wo es klemmt |
+| B12 ✔ | Seitenwechsel Liste → Akte | Akte schiebt sich von rechts herein, zurück nach rechts hinaus | Tiefe der Navigation, wie am iPhone gewohnt |
 
 Haptik: am iPhone im Browser nicht verfügbar; auf Android möglich, aber
 uneinheitlich — nicht empfohlen.
@@ -254,7 +254,7 @@ Menge, die in den Browser wandert.
 | L12 **erledigt (Welle 3, 15.11.)** | gefühlt | Akte erst beim Loslassen laden. | Baustein und Kopf der Akte schon beim Berühren der Zeile holen. | keiner |
 | L13 **erledigt (Welle 3, 15.11.)** | groß bei vielen Jahren | `zeitkonto_salden` rechnet bei jeder Abfrage über alle Buchungen seit dem Saldo-Start: gemessen 56 Personen / 47.867 Buchungen ≈ 850 ms, hochgerechnet 50 Personen × 10 Jahre 2–4 s (gefunden bei Z3/L2). | Abgeschlossene Monate als festen Stand zwischenspeichern, der nur bei Änderungen in diesem Monat neu entsteht. | Stand muss bei jeder rückwirkenden Änderung zuverlässig neu entstehen |
 | L14 **erledigt (Welle 3, 15.11.)** | mittel | `app.ist_feiertag` kostet 0,7 ms je Aufruf; `app.urlaubstage` wird bei langen Zeiträumen entsprechend langsam (gefunden bei Z3). | `app.urlaubstage` auf die Feiertagsmenge je Jahr (`app.feiertage`) umstellen, wie `zeitkonto_salden` es schon tut. | keiner |
-| L15 offen, in Welle 3 nicht bearbeitet; mit Paket 10 (der Leistungswächter aus L11 steht jetzt) | vorbeugend | Einzelne Komponentenprüfungen liegen unter paralleler Last nahe ihrer Frist von 5 s und fielen in mehreren Paketen gelegentlich aus (`BaustellenakteView` „G5 Kundenwechsel“, `QuotesView` „zählt nur echte Arbeitszeit“, `zip`, `appZeichen`, `infoHintUmbruch`); einzeln und mit `--maxWorkers=1` grün. | Mit dem Leistungswächter (L11): Ursache je Prüfung messen, nicht pauschal die Frist erhöhen. | keiner |
+| L15 offen (in Paket 10 nicht bearbeitet; der Leistungswächter aus L11 steht) | vorbeugend | Einzelne Komponentenprüfungen liegen unter paralleler Last nahe ihrer Frist von 5 s und fielen in mehreren Paketen gelegentlich aus (`BaustellenakteView` „G5 Kundenwechsel“, `QuotesView` „zählt nur echte Arbeitszeit“, `zip`, `appZeichen`, `infoHintUmbruch`); einzeln und mit `--maxWorkers=1` grün. | Mit dem Leistungswächter (L11): Ursache je Prüfung messen, nicht pauschal die Frist erhöhen. | keiner |
 | L16 **erledigt (Welle 3, 15.11.)** | groß bei vielen Einträgen | Keine der Suchen über PostgREST nutzte mit Zeilenschutz ihren Index (Kunden, Baustellen, Wartungen, Scheine, Anforderungen, Eingänge, Rechnungen, Angebote), weil `ilike` nicht „leakproof“ ist (gefunden bei L3). | Kennungen über den Index (`app.suche_treffer`), Zeilen über Funktionen mit den Rechten des Aufrufers; 22 Indizes; 29–378 ms → 3–6 ms. | keiner |
 | L17 **erledigt (Welle 3, 15.11.)** | mittel nach großem Import | Nach einem großen DATANORM-Import blieb die Katalogsuche langsam, bis autovacuum die Warteliste der Indizes aufräumte (gefunden bei L3). | `fastupdate` bleibt (aus: Import sechsmal langsamer); die Übernahme räumt die Warteliste am Ende des letzten Blocks auf. | 74 ms je Import |
 | L18 **erledigt (Welle 3, 15.11.)** | klein | `einsatz_folgetage` und `einsatz_umplanen` fragten `app.ist_feiertag` je Tag (gefunden bei L14). | Feiertage als Menge aus `app.feiertage`; 62 Tage 40 → 3 ms. | keiner |
@@ -289,7 +289,7 @@ aus Abschnitt 1 oder 2.
 | F12 **erledigt (Welle 2, 15.11.)** | **Stundennachweis je Baustelle/Kunde** | der Nachweis, den Regiekunden verlangen | Z8 |
 | F13 **erledigt (Welle 3, 15.11.)**, mit Rückzahlungen | **Kontoauszug abgleichen** (Datei der Bank einlesen, Zahlungen als Vorschlag) | spart das Eintippen je Rechnung; der Verwendungszweck steht schon auf jedem Beleg | — |
 | F14 **erledigt (Welle 3, 15.11.)** | **Inventur als Zählliste** je Lager/Fahrzeug | Inventur ist heute nur Artikel für Artikel möglich | — |
-| F15 offen, nächstes Paket (10) | **Bedienung wie am iPhone:** Wischen an der Zeile (löschen, erledigen), Ziehen zum Aktualisieren, „Rückgängig“ in der Meldung nach jedem Löschen/Verschieben, Aktionen in „Suchen oder springen“ („Neue Rechnung“, „Zeit erfassen“) | weniger Tipps, vertraute Gesten | U7 |
+| F15 ✔ | **Bedienung wie am iPhone:** Wischen an der Zeile (löschen, erledigen), Ziehen zum Aktualisieren, „Rückgängig“ in der Meldung nach jedem Löschen/Verschieben, Aktionen in „Suchen oder springen“ („Neue Rechnung“, „Zeit erfassen“) | weniger Tipps, vertraute Gesten | U7 |
 | F16 **erledigt (Welle 3, 15.11.)**, mit Mahnung | **Rechnung und Angebot per Mail aus der App** (steht schon auf der Roadmap, 11.2.1; der Mailversand ist seit 05.11. eingerichtet) | der letzte Schritt verlässt heute die App | — |
 
 ---

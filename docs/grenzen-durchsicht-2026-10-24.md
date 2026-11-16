@@ -921,6 +921,44 @@ Ende unter „Mit Welle 3 entfallen“.
 - **L5 offen** (Welle 2, „Nicht als Grenze geführt“) — gebaut; es bleibt die
   fachliche Grenze der Monatsrechnung oben.
 
+## Durchsicht vom 15.11.2026, Paket 10 (Oberfläche und Bewegung) — begründete Grenzen
+
+- **Gefahrfarbe (U5, E4)** (liegt beim Auftraggeber): Warn- und Fehlertext
+  tragen jetzt immer ein Zeichen. Die eigene, deutlich vom Terrakotta
+  abgesetzte Gefahrfarbe steht als gemessener Vorschlag auf `/_muster`
+  (hell `#9e1c3a`, dunkel `#f28aa0`) und wird erst nach Zustimmung eingebaut.
+- **Datums- und Zeitfelder (U10, E5)** (Gerät): das Rad und die Form des
+  Felds zeichnet der Browser in der Sprache des Geräts; sie lässt sich nicht
+  ändern. Auf einem nicht deutsch eingestellten Gerät steht der Wert deshalb
+  zusätzlich deutsch unter dem Feld.
+- **„Rückgängig“ nicht überall (F15)**: gebaut, wo der alte Stand genau
+  zurückkommt (Angebot und Schein-Entwurf verwerfen, Warenkorb leeren,
+  Geburtsdatum, Urlaubsanpassung, Arbeitszeit- und Anspruchsänderung,
+  Rechtstext-Entwurf). Ohne „Rückgängig“, mit Rückfrage vorher:
+  - rechtlich: Storno einer Rechnung (der Storno ist ein Beleg),
+    Datenauskunft und Löschen einer Person (Art. 17 DSGVO);
+  - fachlich: Kunde, Baustelle, Material, Zeitbuchung, Einsatz, Termin,
+    Zahlung, Wartung, Liegenschaft, Eingang löschen — neu angelegt bekämen
+    sie eine neue Kennung, an der alten hängen Verweise, Verlauf und
+    Nummernkreis, und Meldungen gingen erneut hinaus; entschiedene Anträge
+    sind der Person schon gemeldet; eine verworfene Zählliste hielte neu
+    angelegt den heutigen Bestand fest; ein verworfener DATANORM-Lauf wird
+    neu eingelesen;
+  - Datenschutz: hochgeladene Nachweise und Pläne werden als Datei gelöscht;
+  - „endgültig löschen“ im Papierkorb: endgültig ist der Zweck.
+- **Ziehen zum Aktualisieren nur als installierte App** (fachlich): im Browser
+  hat das Ziehen von oben schon eine Bedeutung (die ganze Seite neu laden);
+  zwei Gesten auf einer Bewegung wären unberechenbar. Akten und Formulare
+  holen beim Ziehen nicht nach — ein Neuholen mitten im Bearbeiten
+  überschriebe Eingaben (P1/P10).
+- **Wischen an der Zeile nur am Handy und nur mit dem Finger** (Gerät): mit
+  Maus und Stift gibt es die Geste nicht; dieselbe Aktion steht an jeder
+  Zeile auch anders erreichbar.
+- **Bewegungen** (Gerät, Barrierefreiheit): mit „Bewegung reduzieren“ (Gerät
+  oder Mein Konto → Darstellung und Bewegung) ohne Weg, nur der Zustand.
+  Ohne Netz nach dem ersten Bild bleibt die App ohne die Bewegungen der
+  Listen (sie laden nach dem ersten Bild nach, L11).
+
 ## Nacharbeit zur Durchsicht vom 15.11.2026 (Welle 4) — Grenzen und offene Punkte
 
 Aus den vier Befunden der Nacharbeit (Stand §111).
