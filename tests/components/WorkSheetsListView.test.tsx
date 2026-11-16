@@ -424,8 +424,9 @@ describe('Einen Entwurf aufgeben', () => {
   */
   it('holt den verworfenen Entwurf mit „Rückgängig“ zurück', async () => {
     zeichne();
-    await userEvent.click(within(await oeffne(/Familie Huber/)).getByRole('button', { name: 'Verwerfen' }));
-    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Verwerfen' }));
+    // „Verwerfen“ steht seit U4 im ⋯ des Fensters; `handlung` findet es dort.
+    await userEvent.click(handlung({ name: 'Verwerfen' }, await oeffne(/Familie Huber/)));
+    await userEvent.click(handlung({ name: 'Verwerfen' }, await screen.findByRole('dialog')));
     await userEvent.click(await screen.findByRole('button', { name: 'Rückgängig' }));
     await waitFor(() => expect(zurueckholen).toHaveBeenCalledWith('e1'));
     expect(await screen.findByText('Schein wiederhergestellt — wieder ein Entwurf')).toBeInTheDocument();

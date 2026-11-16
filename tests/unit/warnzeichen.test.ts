@@ -46,6 +46,7 @@ const EIGENE_KLASSEN: Record<string, string> = {
   '.kal-info-achtung': 'Zeile in der Kalenderzelle: das Zeichen trägt der Tag (Planlinie)',
   '.leiste-knopf[data-ton="gefahr"]': 'ein Knopf, keine Meldung',
   '.einsatz-knopf[data-ton="gefahr"]': 'ein Knopf, keine Meldung',
+  '.wisch-knopf-gefahr': 'ein Knopf (Wischaktion „Löschen“ an der Zeile, F15), keine Meldung',
   '.masslinie-achtung .masslinie-soll': 'Teil der Maßlinie, die Überschreitung zeichnet die Linie selbst',
   '.masslinie-plus': 'Zahl an der Maßlinie, die Überschreitung zeichnet die Linie selbst',
   '.hinweislinie': 'trägt ihr eigenes Zeichen (Strich mit Pfeil, Planlinie)',
