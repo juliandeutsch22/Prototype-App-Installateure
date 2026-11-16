@@ -733,12 +733,14 @@ test.describe('B12 Seitenwechsel Liste → Akte', () => {
 
   /** Ab jetzt je Bild die waagrechte Lage der Seite aufzeichnen (1,2 s: die Akte lädt erst ihren Baustein, unter Last auch länger). */
   const aufnehmen = (page: Page) => page.evaluate(() => {
-    const w = window as unknown as { seite: number[]; seiteFertig: boolean };
-    w.seite = []; w.seiteFertig = false;
+    const w = window as unknown as { seite: number[]; seiteFertig: boolean; ueber: number };
+    w.seite = []; w.seiteFertig = false; w.ueber = 0;
     const t0 = performance.now();
     const bild = () => {
       const t = getComputedStyle(document.querySelector('.inhalt')!).transform;
       w.seite.push(t === 'none' ? 0 : new DOMMatrixReadOnly(t).m41);
+      // Auch während des Gleitens ragt die Seite nicht seitlich über den Bildschirm.
+      w.ueber = Math.max(w.ueber, document.documentElement.scrollWidth - innerWidth);
       if (performance.now() - t0 < 1200) requestAnimationFrame(bild); else w.seiteFertig = true;
     };
     requestAnimationFrame(bild);
@@ -758,6 +760,7 @@ test.describe('B12 Seitenwechsel Liste → Akte', () => {
     await zeile.click();
     const hinein = await lesen(page);
     expect(Math.max(...hinein)).toBeGreaterThan(10);
+    expect(await page.evaluate(() => (window as unknown as { ueber: number }).ueber)).toBe(0);
     expect(hinein[hinein.length - 1]).toBe(0);
     // Die Vorschau führt die Adresse im Speicher: zurück über den Weg der Akte.
     const zurueckWeg = page.locator('.seitenkopf-zurueck');

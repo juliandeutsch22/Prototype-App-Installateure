@@ -110,6 +110,13 @@
     Bezugsrahmen für Festes darin; die schwebende Hauptaktion stünde am
     Seitenende. Sie wartet, bis die Seite steht, und blendet dann ein.
   */
+  /*
+    Die gleitende Seite steht bis zu 3 rem rechts über dem Rand: die Seite
+    war in dieser Zeit breiter als der Bildschirm (am Telefon 438 statt
+    390 px) und liess sich in Safari seitlich verschieben. `clip` schneidet
+    nur ab — kein eigener Rollbereich, Klebendes klebt weiter.
+  */
+  .hauptflaeche:has(.inhalt[data-seitenwechsel]) { overflow-x: clip; }
   @media (max-width: 759px) {
     .inhalt[data-seitenwechsel] .daumen > * { opacity: 0 !important; transition: none !important; }
     .inhalt .daumen > :not(.daumen-symbol) { transition: opacity var(--motion-state) var(--ease-response); }
