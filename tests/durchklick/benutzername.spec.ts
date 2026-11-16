@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './grund';
+import { type Page } from '@playwright/test';
 import { admin, CHEFIN } from './aufbau';
 import { anmelden, keineFehlermeldung } from './helfer';
 import { kunstadresse } from '../../shared/benutzername';

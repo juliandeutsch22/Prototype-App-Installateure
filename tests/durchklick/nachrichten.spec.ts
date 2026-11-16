@@ -1,6 +1,7 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from './grund';
+import { type Page } from '@playwright/test';
 import { admin, BAUSTELLE, BETRIEB, BUERO, CHEFIN, MONTEUR } from './aufbau';
-import { anmelden, keineFehlermeldung, menue } from './helfer';
+import { anmelden, keineFehlermeldung, menue, seitenAktion } from './helfer';
 
 /**
  * NACHRICHTEN, VON ANFANG BIS ENDE (M10/B09, E64) — in Chromium, auf dem
@@ -81,7 +82,8 @@ test('privat: Monteur schreibt dem Büro, das Büro antwortet — die Geschäfts
   await chefin.goto(`/user-mgmt/${await uid(MONTEUR.email)}`);
   await expect(chefin.getByRole('heading', { name: MONTEUR.name })).toBeVisible({ timeout: 15_000 });
   await expect(chefin.getByText(geheim)).toHaveCount(0);
-  await expect(chefin.getByRole('button', { name: 'Nachricht schreiben' })).toBeVisible();
+  // Schreiben darf sie: ab dem Tablet als Knopf, am Handy im ⋯ der Akte (U1).
+  await expect(await seitenAktion(chefin, 'Nachricht schreiben')).toBeVisible();
 });
 
 test('Baustelle: das Büro schreibt mit Bild in den Thread, der Monteur im Team liest es', async ({ browser }) => {

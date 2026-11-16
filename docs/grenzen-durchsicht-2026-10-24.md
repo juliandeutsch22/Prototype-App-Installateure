@@ -997,3 +997,7 @@ Aus den vier Befunden der Nacharbeit (Stand §111).
 - **Eine schon liegende `vite.config.js`** (Altbestand): sie entsteht nicht
   mehr, wird aber nicht automatisch gelöscht — einmal
   `rm -f vite.config.js vite.config.d.ts`.
+- **WebKit nur in der CI** (Gerät/Umgebung): die Entwicklungsumgebung hat
+  nur Chromium. Die Handy-Ansicht prüft dort `telefon-chromium` (dieselben
+  Wege bei 390 px mit Finger); Eigenheiten von Safari selbst sieht erst die
+  CI mit `webkit-telefon`.

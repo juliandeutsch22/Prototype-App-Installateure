@@ -78,7 +78,8 @@ test('Eine Zeile zeigt den Fokus nur mit der Tastatur, 2 px außen, nicht über 
   try {
     await anmelden(page, MONTEUR.email);
     await page.goto('/time');
-    const zeile = page.locator('.zeile-ganz').filter({ hasText: 'Fokusprobe' });
+    // Am Handy steht die Notiz nicht in der kompakten Zeile (U7), der Tag schon — an ihm erkannt.
+    const zeile = page.locator('.zeile-ganz').filter({ hasText: /03\.11\./ });
     const ziel = zeile.locator('.zeile-ziel');
     /*
       Nach einem Tipp: so kommt der Fokus auf die Zeile zurück, wenn ein

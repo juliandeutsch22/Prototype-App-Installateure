@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './grund';
 import { admin, BAUSTELLE, BETRIEB, CHEFIN, MONTEUR, PASSWORT } from './aufbau';
 import { anmelden, keineFehlermeldung } from './helfer';
 

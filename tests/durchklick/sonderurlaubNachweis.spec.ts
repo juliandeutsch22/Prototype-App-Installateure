@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './grund';
 import { admin, BETRIEB, BUERO, MONTEUR } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { amHandy, anmelden, keineFehlermeldung } from './helfer';
 
 /**
  * DER NACHWEIS ZUM SONDERURLAUB, VON ANFANG BIS ENDE (Testbericht Runde 3,
@@ -46,6 +46,8 @@ test('Sonderurlaub mit Nachweis: anhängen, beim Bestätigen ansehen, nach „ge
   const monteur = await (await browser.newContext()).newPage();
   await anmelden(monteur, MONTEUR.email);
   await monteur.goto('/vacations');
+  // U2: am Handy zeigt die Seite zuerst die Anträge; „Antrag stellen“ öffnet das Formular als Blatt.
+  if (amHandy(monteur)) await monteur.getByRole('button', { name: 'Antrag stellen' }).click();
   await monteur.getByLabel('Art').selectOption('dienstverhinderung');
   await monteur.getByLabel(/^Anlass/).selectOption('hochzeit');
   await monteur.getByLabel('Tag des Ereignisses').fill('2026-12-16');

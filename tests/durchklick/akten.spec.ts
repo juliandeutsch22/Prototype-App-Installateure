@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { admin, BAUSTELLE, BETRIEB, CHEFIN, MONTEUR } from './aufbau';
-import { anmelden, keineFehlermeldung } from './helfer';
+import { anmelden, keineFehlermeldung, seitenAktion } from './helfer';
 
 // Die Naht zur Datenbank: lesen, bewusst bearbeiten, Abbrechen ohne Verlust,
 // speichern und nach einem erneuten Öffnen denselben Stand lesen.
@@ -26,7 +26,7 @@ test('Die drei Akten behalten ihre Schreibwege und geschützten Entwürfe', asyn
     */
     await expect(page.getByRole('tab')).toHaveText(['Übersicht', 'Scheine', 'Termine', 'Pläne'], { timeout: 30_000 });
     await expect(page.getByLabel(/Projektnummer/)).toHaveCount(0);
-    await page.getByRole('button', { name: 'Bearbeiten', exact: true }).click();
+    await (await seitenAktion(page, 'Bearbeiten')).click();
     const bFenster = page.getByRole('dialog', { name: 'Baustelle bearbeiten' });
     const beschreibung = bFenster.getByLabel('Beschreibung / Auftragsumfang');
     await beschreibung.fill('Aktenprüfung · Auftrag bleibt vollständig');
@@ -46,7 +46,7 @@ test('Die drei Akten behalten ihre Schreibwege und geschützten Entwürfe', asyn
 
     await page.goto(`/customers/${kunde!.id}`);
     await expect(page.getByRole('tab')).toHaveText(['Übersicht', 'Baustellen', 'Belege', 'Termine und Wartungen', 'Stammdaten']);
-    await page.getByRole('button', { name: 'Bearbeiten', exact: true }).click();
+    await (await seitenAktion(page, 'Bearbeiten')).click();
     const kFenster = page.getByRole('dialog', { name: 'Kunde bearbeiten' });
     const kundenname = kFenster.getByLabel('Name', { exact: false }).first();
     const gespeicherterName = await kundenname.inputValue();
@@ -65,7 +65,7 @@ test('Die drei Akten behalten ihre Schreibwege und geschützten Entwürfe', asyn
 
     await page.goto(`/user-mgmt/${person!.id}`);
     await expect(page.getByRole('tab')).toHaveText(['Profil', 'Arbeitszeit und Urlaub', 'Zugang und Rechte']);
-    await page.getByRole('button', { name: 'Bearbeiten', exact: true }).click();
+    await (await seitenAktion(page, 'Bearbeiten')).click();
     const pFenster = page.getByRole('dialog', { name: 'Benutzer bearbeiten' });
     await pFenster.getByLabel('Name', { exact: false }).first().fill('Max Monteur · Aktenprüfung');
     await pFenster.getByRole('button', { name: 'Speichern', exact: true }).click();

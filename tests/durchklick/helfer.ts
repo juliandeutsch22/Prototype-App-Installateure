@@ -109,3 +109,35 @@ export async function imMenue(page: Page, im: Locator, eintrag: string | RegExp)
   await expect(menue).toBeVisible();
   return menue.getByRole('menuitem', typeof eintrag === 'string' ? { name: eintrag, exact: true } : { name: eintrag });
 }
+
+/**
+ * AM HANDY? Nach der Breite, wie die App selbst: Handy bis 759 px
+ * (CLAUDE.md, „Breiten“). Entschieden wird nach der Regel, nicht danach,
+ * was gerade zu sehen ist: so prüft der Weg mit, dass am Handy wirklich die
+ * Handy-Bedienung steht — und ein Knopf, der zu spät kommt, wird nicht mit
+ * „steht im ⋯“ verwechselt.
+ */
+export function amHandy(page: Page): boolean {
+  return (page.viewportSize()?.width ?? 1280) < 760;
+}
+
+/**
+ * EINE AKTION DES SEITENKOPFS (U1, Durchsicht 15.11.2026): ab dem Tablet ein
+ * Knopf. Am Handy trägt eine Akte höchstens ihre eine Hauptaktion als Knopf
+ * (die Kundenakte etwa „Bearbeiten“), alles Weitere steht im ⋯ (die
+ * Baustellenakte trägt dort auch „Bearbeiten“). Gibt den Knopf bzw. den
+ * Eintrag des geöffneten Menüs zurück; der Klick darauf löst die Handlung aus.
+ * Gewartet wird auf das ⋯: es steht im selben Seitenkopf wie die Hauptaktion
+ * und erscheint mit ihr — danach ist sicher, ob es den Knopf gibt.
+ */
+export async function seitenAktion(page: Page, name: string): Promise<Locator> {
+  const knopf = page.locator('main').getByRole('button', { name, exact: true });
+  if (!amHandy(page)) return knopf;
+  const mehr = page.locator('main').getByRole('button', { name: /^Weitere Aktionen für / }).first();
+  await expect(mehr).toBeVisible({ timeout: 20_000 });
+  if (await knopf.locator('visible=true').count()) return knopf.locator('visible=true').first();
+  await mehr.click();
+  const menue = page.getByRole('menu');
+  await expect(menue).toBeVisible();
+  return menue.getByRole('menuitem', { name, exact: true });
+}

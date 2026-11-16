@@ -41,7 +41,7 @@ test('Standardfelder: ausschalten, bestehende Werte ändern ohne Verlust, wieder
     travel_time: 25, comment: 'Bestehende Tätigkeit', project_number: BAUSTELLE.nummer, customer_name: BAUSTELLE.kunde });
   await context.clearCookies(); await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
   await anmelden(page, MONTEUR.email); await page.goto('/time');
-  await page.getByRole('button', { name: /05.11.2026.*bearbeiten/ }).click();
+  await page.getByRole('button', { name: /05\.11\..*bearbeiten/ }).click();
   await expect(page.locator('#comment')).toHaveCount(0);
   await expect(page.locator('#travelTime')).toHaveCount(0);
   await page.locator('#endTime').fill('10:00');
