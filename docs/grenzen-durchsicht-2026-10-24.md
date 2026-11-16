@@ -938,10 +938,14 @@ Aus den vier Befunden der Nacharbeit (Stand §111).
     wie von der Startseite verlangt, dazu Baustellen der Auswahl und die Zahl
     am Reiter „Einkauf“; der ganze Arbeitsstand kommt nur noch für die
     Einkaufsliste, die jede offene Bestellung je Großhändler zusammenfasst.
-  - *Baustellen*: die jüngsten 300 und alle laufenden (zusammen 720) für
-    Liste, Schriftfeld und die Filter der Startseite. Nächster Schritt:
-    Zählungen (aktiv, Ende überschritten) aus der Datenbank, die laufenden nur
-    unter einem Filter der Startseite, die Liste je Statusgruppe seitenweise.
+  - *Baustellen* — **erledigt** (Nacharbeit, Teil 2): `baustellen_liste` gibt
+    je Statusgruppe Zahl und gezeigte Seite über alle Baustellen (Auswahl,
+    Filter der Startseite aus der Adresse, „Nur meine“, Suche), dazu das
+    Schriftfeld; `baustellen_budget_lage` den Budgetstand über alle aktiven.
+    Es bleibt die Belegschaft (gewachsener Bestand: 51 Konten) für Namen und
+    Auswahl im Formular — **Grenze (fachlich):** sie wächst mit dem einen
+    Betrieb, nicht mit dem Bestand, und Senklot ist für Betriebe bis etwa 30
+    Mitarbeiter gedacht (Auftraggeber, 20.10.2026).
   - *Offene Rechnungen der Startseite* (198 Köpfe): Mahnlauf, „überfällig,
     nicht mahnbar“, Rücklass und die Summen werten jede offene Forderung nach
     den Regeln in `features/invoices` aus (`mahnlauf`, `zahlstand`) — dieselben,

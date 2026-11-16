@@ -36,7 +36,10 @@ const HUBER = { id: 'k1', companyId: 'perl', name: 'Familie Huber', address: 'Ho
 
 const lege = vi.fn();
 vi.mock('@/lib/db/projects', () => ({
-  subscribeRecentProjects: (_c: string, _g: number, cb: (rows: unknown[]) => void) => { cb([]); return () => undefined; },
+  // Seit 15.11.2026 aus der Datenbank (`baustellen_liste`): hier eine leere Liste.
+  baustellenListe: vi.fn(async () => ({ gruppen: [], aktiv: 0, ende: 0, gesamt: 0, neuesteNummern: [] })),
+  baustellenBudgetLage: vi.fn(async () => ({ ueber: 0, nah: 0, nummern: [] })),
+  baustellenBeobachten: () => () => undefined,
   createProject: (c: string, data: unknown) => { lege(c, data); return Promise.resolve('neu'); },
   reserveProjectNumber: vi.fn(async () => null),
   updateProject: vi.fn(async () => undefined),

@@ -104,6 +104,13 @@ Startseite verlangt; der ganze Arbeitsstand nur noch für die Einkaufsliste.
 Gemessen (eigener Stapel, ein Lauf): grösste Antwort 160 → 8 Zeilen, bereit
 3,8 → 3,6 s.
 
+**Nacharbeit, Teil 2 — Baustellen** (`20261118033000_baustellen_liste.sql`):
+je Statusgruppe Zahl und die gezeigten 20 aus der Datenbank über alle
+Baustellen, Schriftfeld und Budgetstand ebenso; ohne Filter fehlen ältere
+laufende Baustellen nicht mehr hinter den jüngsten 300. Gemessen (ein Lauf):
+projects 720 → keine Antwort über 50 Zeilen außer der Belegschaft (51 Konten,
+siehe Grenzen), 421 → 380 KB, bereit 4,3 → 4,4 s.
+
 <!-- messung-monteur:anfang (erzeugt von scripts/ui-umbau/messung.mjs) -->
 Gemessen am 15.11.2026 · 3 Läufe je Seite, Median · Handy 390 × 844, langsames 4G (150 ms, 1,6 Mbit/s), CPU ×4, erster Besuch ohne Zwischenspeicher · ausgeliefert wie draussen (HTTP/2, gepackt, `auslieferung.mjs`) · angemeldet als Monteur (`monteur2`) des Testbetriebs `ui-testbestand`.
 

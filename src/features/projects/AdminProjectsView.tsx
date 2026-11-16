@@ -11,8 +11,6 @@ import { BAUSTELLEN_FILTER, bekannt as bekannterWert, type BaustellenFilter } fr
 import {
   BUDGET_AB_PROZENT,
   budgetStand,
-  endeVorbei,
-  ohneProjektleiter,
   type BudgetZeile,
 } from './baustellenLage';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -21,10 +19,13 @@ import { stundenDerBaustellen } from '@/lib/db/timeEntries';
 import { baustellenOhneEinsatz } from '@/lib/db/assignments';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
+import { useBeiAktualisieren } from '@/lib/aktualisieren';
 import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
 import {
-  listActiveProjects,
-  subscribeRecentProjects,
+  baustellenListe,
+  baustellenBudgetLage,
+  baustellenBeobachten,
+  type BaustellenListe,
   createProject,
   deleteProject,
   searchProjects,
@@ -38,12 +39,10 @@ import { listUsers } from '@/lib/db/users';
 import { schluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { useModul } from '@/lib/useModule';
 import type { WithId } from '@/lib/db/core';
-import { byNewest } from '@/lib/timestamps';
 import type { Abrechnungsart, Project, AppUser } from '@/types';
 import Card from '@/components/Card';
 import KundenAuswahl from '@/components/KundenAuswahl';
 import { useKunde } from '@/features/customers/useKundenFuer';
-import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
 import { Zustand } from '@/components/Badge';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
@@ -99,7 +98,6 @@ const empty = {
  * Baustellen wachsen langsamer als Zeiteintraege, aber sie wachsen: bei
  * zweihundert Auftraegen im Jahr sind es nach zehn Jahren zweitausend.
  */
-const BAUSTELLEN_JE_SEITE = 300;
 
 /** Höchstens so viele Zeilen je Gruppe, dann „und N weitere“ (Linie „Lot“, Regel 4). */
 const JE_GRUPPE = 20;
@@ -146,24 +144,18 @@ export default function AdminProjectsView() {
   const { user, company } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
-  const [projects, setProjects] = useState<WithId<Project>[]>([]);
   /*
-    WIE WEIT DIE LISTE REICHT — und dass sie es sagt.
-
-    Sie holte fest die jüngsten 300 und schwieg dazu. Ab der 301. Baustelle
-    fielen die ÄLTESTEN heraus, ohne dass irgendwo etwas stand: die Baustelle
-    von vor drei Jahren war in der Verwaltung schlicht nicht mehr auffindbar,
-    und nichts unterschied das von „gibt es nicht".
-
-    Genau diese Fehlerform hat „Sichtbare Grenzen" überall herausgenommen —
-    hier wurde sie übersehen, weil die Ansicht ein LIVE-ABO verwendet und
-    damit nicht ins Muster der einmal ladenden Listen passte.
-
-    Buchen war davon nie betroffen: die Baustellenauswahl hängt an
-    `listActiveProjects` und kennt keine Grenze. Betroffen war die
-    Verwaltung — dort, wo jemand gezielt nachschlägt.
+    DIE LISTE AUS DER DATENBANK (Durchsicht 15.11.2026, Budget B3): je
+    Statusgruppe die Zahl und so viele Zeilen, wie gezeigt werden — über ALLE
+    Baustellen, gefiltert, gesucht und gezählt nach denselben Regeln wie bis
+    dahin hier. Vorher kamen die jüngsten 300 und alle laufenden (gewachsener
+    Bestand: 720 Zeilen). `null`: noch unterwegs.
   */
-  const [grenze, setGrenze] = useState(BAUSTELLEN_JE_SEITE);
+  const [liste, setListe] = useState<BaustellenListe | null>(null);
+  /** Eine Runde weiter, wenn sich an den Baustellen etwas geändert hat: die Liste fragt neu. */
+  const [listenRunde, setListenRunde] = useState(0);
+  // Ziehen zum Aktualisieren (F15): die Liste lädt selbst — sie fragt dann neu.
+  useBeiAktualisieren(() => setListenRunde((n) => n + 1));
   /*
     DIE BELEGSCHAFT, gemerkt für den zweiten Besuch (Stufe 3). Die Baustellen
     kommen dann als Live-Liste sofort; ohne Namen stand kurz „Keine
@@ -175,7 +167,6 @@ export default function AdminProjectsView() {
   );
   const [users, setUsers] = useState<AppUser[]>(() => belegschaftGemerkt?.users ?? []);
   const [belegschaftDa, setBelegschaftDa] = useState(() => belegschaftGemerkt?.users !== undefined);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   /*
     DER LADEFEHLER DER LISTE GEHÖRT AN DIE LISTE (wie bei den Kunden). Er
@@ -331,16 +322,6 @@ export default function AdminProjectsView() {
   const adressFilter = bekannterWert(BAUSTELLEN_FILTER, suchparameter.get('filter'));
   const [lage, setLage] = useState<{ art: BaustellenFilter; nummern: Set<string> } | null>(null);
   const [nurMeine, setNurMeine] = useState(false);
-  /*
-    DIE LAUFENDEN BAUSTELLEN OHNE ALTERSGRENZE — wie der Arbeitsstand der
-    Anforderungen. Die Liste oben sind die zuletzt angelegten 300; die
-    Startseite zählt „Ende überschritten“, „ohne Projektleiter“ und das
-    Budget aber über alle laufenden (`listActiveProjects`). Eine ältere
-    aktive Baustelle fehlte dann im Filter, auf den die Startseite führt,
-    und im Schriftfeld. `null`: noch unterwegs.
-  */
-  const [laufende, setLaufende] = useState<WithId<Project>[] | 'fehler' | null>(null);
-
   /**
    * Auf eine Baustelle gehören Monteure, nicht Büro und nicht Leitung.
    * Vorher stand hier die ungefilterte Nutzerliste — Administrator,
@@ -393,39 +374,13 @@ export default function AdminProjectsView() {
       })
       .catch(() => setNebenFehler('Die Belegschaft'))
       .finally(() => setBelegschaftDa(true));
-    const unsub = subscribeRecentProjects(
-      user.companyId,
-      grenze,
-      (rows) => {
-        setProjects(rows);
-        setListenFehler(null);
-        setLoading(false);
-      },
-      (e) => {
-        setListenFehler(e.message);
-        setLoading(false);
-      },
-    );
-    return unsub;
-    // Die Grenze gehört in die Abhängigkeiten: ein Abo trägt sie in sich,
-    // eine neue Grenze heisst also ein neues Abo.
+    try {
+      return baustellenBeobachten(user.companyId, () => setListenRunde((n) => n + 1));
+    } catch {
+      // Ohne Meldeweg steht die Liste trotzdem; sie fragt nach eigenen Änderungen neu.
+      return undefined;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- belegschaftMerken hängt nur am Benutzer
-  }, [user, grenze]);
-
-  useEffect(() => {
-    if (!user) return;
-    let weg = false;
-    void (async () => {
-      try {
-        const rows = await listActiveProjects(user.companyId);
-        if (!weg) setLaufende(rows);
-      } catch {
-        if (!weg) setLaufende('fehler');
-      }
-    })();
-    return () => {
-      weg = true;
-    };
   }, [user]);
 
   /*
@@ -512,7 +467,7 @@ export default function AdminProjectsView() {
    */
   const vorsaetze = praefixeVon(company);
   // Das Jahr vom Server, wie die Vergabe (Befund aus G12); ohne Verbindung das des Geräts.
-  const projektNummern = useMemo(() => projects.map((p) => p.projectNumber), [projects]);
+  const projektNummern = useMemo(() => liste?.neuesteNummern ?? [], [liste]);
   const { vorschlag: nummernVorschlag, vomServer: vorschlagVomServer } =
     useBaustellenVorschlag(projektNummern, vorsaetze.baustelle);
 
@@ -549,22 +504,6 @@ export default function AdminProjectsView() {
     );
   }, [nummernVorschlag]);
 
-  // Neueste zuerst; ohne Sortierung ist die Reihenfolge der Datenbank beliebig.
-  const sorted = useMemo(
-    () => [...projects].sort((a, b) => byNewest(a, b)),
-    [projects],
-  );
-  /*
-    Worüber Schriftfeld und Startseiten-Filter rechnen: die Live-Liste und
-    dazu die laufenden, die nicht in ihr stehen. Die Live-Liste zuerst — sie
-    ist für dieselbe Baustelle der jüngere Stand. Kommen die laufenden nicht,
-    bleibt es bei der Live-Liste wie bisher, und ein Hinweis sagt es.
-  */
-  const basis = useMemo(() => {
-    if (!Array.isArray(laufende)) return sorted;
-    const bekannt = new Set(projects.map((p) => p.id));
-    return [...sorted, ...laufende.filter((p) => !bekannt.has(p.id)).sort((a, b) => byNewest(a, b))];
-  }, [sorted, projects, laufende]);
   /**
    * Was der Suchbegriff meint. Eine Baustellennummer geht auf den Server und
    * findet damit auch, was ausserhalb der geladenen Liste liegt; alles andere
@@ -621,36 +560,23 @@ export default function AdminProjectsView() {
     };
   }, [user, suche]);
 
-  /** Die Nummern der aktiven Baustellen — woran die Auswertung hängt, nicht jede Live-Meldung. */
-  const aktiveNummern = useMemo(
-    () => basis.filter((p) => p.status === 'Aktiv').map((p) => p.projectNumber).sort().join('|'),
-    [basis],
-  );
   /*
-    DER BUDGETSTAND JE BAUSTELLE (Planlinie, E30): dieselbe Rechnung wie die
-    Startseite (`budgetStand` aus den Summen von `stundenDerBaustellen`) —
-    für die Maßlinie in der Zeile und das Schriftfeld. Bis sie da ist, steht
-    in der Zeile das Budget wie bisher; scheitert sie, bleibt es dabei, und
-    die Budgetfelder im Schriftfeld fehlen statt einer geratenen Null.
+    DER BUDGETSTAND ÜBER ALLE AKTIVEN (Schriftfeld, Filter „Budget“) aus der
+    Datenbank (`baustellen_budget_lage`, dieselbe Rechnung wie `budgetStand`
+    — geprüft gegen sie): wie viele über 100 % und ab 90 %, und die Nummern
+    ab 90 %. Scheitert er (etwa ohne Rechte der Leitung), fehlen die
+    Budgetfelder statt einer geratenen Null.
   */
-  const [budgetJe, setBudgetJe] = useState<Map<string, BudgetZeile> | null | 'fehler'>(null);
+  const [budgetLageDB, setBudgetLageDB] = useState<{ ueber: number; nah: number; nummern: string[] } | null | 'fehler'>(null);
+  // Neu gefragt, wenn der Kanal eine Änderung meldet — nicht erst nach der Liste: der Filter „Budget“ wartet auf die Nummern.
   useEffect(() => {
     if (!user) return;
     let weg = false;
-    const mitBudget = basis.filter((p) => p.status === 'Aktiv' && (p.estimatedHours ?? 0) > 0);
-    void (async () => {
-      try {
-        const stunden = mitBudget.length ? await stundenDerBaustellen(mitBudget.map((p) => p.projectNumber)) : [];
-        if (!weg) setBudgetJe(new Map(budgetStand(mitBudget, stunden).map((b) => [b.projectNumber, b])));
-      } catch {
-        if (!weg) setBudgetJe('fehler');
-      }
-    })();
-    return () => {
-      weg = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- an den aktiven Nummern, nicht an jeder Live-Meldung
-  }, [user, aktiveNummern]);
+    baustellenBudgetLage(BUDGET_AB_PROZENT)
+      .then((b) => { if (!weg) setBudgetLageDB(b); })
+      .catch(() => { if (!weg) setBudgetLageDB('fehler'); });
+    return () => { weg = true; };
+  }, [user, listenRunde]);
   useEffect(() => {
     if (!user || adressFilter !== 'ohne-einsatz') {
       setLage(null);
@@ -669,103 +595,115 @@ export default function AdminProjectsView() {
     return () => {
       weg = true;
     };
-    // Neu gefragt, wenn sich die aktiven Baustellen ändern — nicht bei jeder Live-Meldung.
-  }, [user, adressFilter, aktiveNummern]);
+  }, [user, adressFilter, listenRunde]);
+  // Die Nummern für die Filter „Budget“ und „ohne Einsatz“ nennen ihre eigenen Funktionen; bis sie da sind, wartet die Liste.
+  const filterNummern = adressFilter === 'budget'
+    ? (budgetLageDB === null ? null : budgetLageDB === 'fehler' ? [] : budgetLageDB.nummern)
+    : adressFilter === 'ohne-einsatz'
+      ? (lage?.art === 'ohne-einsatz' ? [...lage.nummern] : null)
+      : undefined;
+  const lageFehlt = filterNummern === null;
+  const nummernSchluessel = filterNummern ? [...filterNummern].sort().join('|') : '';
+
   /*
-    Der Budgetfilter liest den Budgetstand, den die Seite für Maßlinie und
-    Schriftfeld ohnehin lädt — eine zweite Abfrage derselben Stunden wäre
-    doppelt. Bis er da ist, wartet der Filter; scheitert er, bleibt die Liste
-    leer wie zuvor bei einem Fehler.
+    DIE GEZEIGTE SEITE. Getippt wird kurz abgewartet; eine Antwort zu einem
+    älteren Stand wird verworfen. Neu gefragt bei jeder Runde (Kanal, eigene
+    Änderung).
   */
-  const budgetLage = useMemo(() => {
-    if (adressFilter !== 'budget' || budgetJe === null) return null;
-    const nummern = budgetJe === 'fehler'
-      ? []
-      : [...budgetJe.values()].filter((b) => b.pct >= BUDGET_AB_PROZENT).map((b) => b.projectNumber);
-    return { art: 'budget' as BaustellenFilter, nummern: new Set(nummern) };
-  }, [adressFilter, budgetJe]);
-  const filterLage = adressFilter === 'budget' ? budgetLage : lage;
-  // Mit einem Filter der Startseite wartet die Liste auf die laufenden Baustellen — sonst spränge sie.
-  const lageFehlt = ((adressFilter === 'budget' || adressFilter === 'ohne-einsatz') && filterLage?.art !== adressFilter)
-    || (!!adressFilter && laufende === null);
+  const begriff = suche.trim();
+  const gezeigtSchluessel = JSON.stringify(gezeigt);
+  useEffect(() => {
+    if (!user || lageFehlt) return;
+    let weg = false;
+    const t = setTimeout(() => {
+      const zahl = JSON.parse(gezeigtSchluessel) as Record<string, number>;
+      baustellenListe({
+        heute: todayStr(),
+        status: filter as 'offen' | 'archiv' | 'alle',
+        filter: adressFilter ?? null,
+        nummern: nummernSchluessel ? nummernSchluessel.split('|') : adressFilter === 'budget' || adressFilter === 'ohne-einsatz' ? [] : null,
+        meine: nurMeine,
+        begriff,
+        anzahl: Object.fromEntries([...STATUS_REIHE, 'Ohne Status'].map((st) => [st, zahl[st] ?? JE_GRUPPE])),
+      })
+        .then((l) => {
+          if (weg) return;
+          setListe(l);
+          setListenFehler(null);
+        })
+        .catch((e: Error) => { if (!weg) setListenFehler(e.message); });
+    }, begriff ? 200 : 0);
+    return () => {
+      weg = true;
+      clearTimeout(t);
+    };
+  }, [user, filter, adressFilter, nummernSchluessel, lageFehlt, nurMeine, begriff, gezeigtSchluessel, listenRunde]);
+  const loading = liste === null && !listenFehler;
 
-  const budgetListe = budgetJe instanceof Map ? [...budgetJe.values()] : [];
-  const ueberBudget = budgetListe.filter((b) => b.pct > 100).length;
-  const nahBudget = budgetListe.filter((b) => b.pct >= BUDGET_AB_PROZENT && b.pct <= 100).length;
-  const aktivZahl = basis.filter((p) => p.status === 'Aktiv').length;
-  const endeZahl = basis.filter((p) => endeVorbei(p, todayStr())).length;
+  /*
+    DER BUDGETSTAND DER GEZEIGTEN ZEILEN (Maßlinie, Zustand „über Budget“):
+    dieselbe Rechnung wie die Startseite (`budgetStand` aus den Summen von
+    `stundenDerBaustellen`), nur für die Baustellen, die dastehen.
+  */
+  const gezeigteMitBudget = useMemo(
+    () => (liste?.gruppen ?? []).flatMap((g) => g.zeilen).filter((p) => p.status === 'Aktiv' && (p.estimatedHours ?? 0) > 0),
+    [liste],
+  );
+  const gezeigteNummern = gezeigteMitBudget.map((p) => p.projectNumber).sort().join('|');
+  const [budgetJe, setBudgetJe] = useState<Map<string, BudgetZeile> | null | 'fehler'>(null);
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    void (async () => {
+      try {
+        const stunden = gezeigteMitBudget.length ? await stundenDerBaustellen(gezeigteMitBudget.map((p) => p.projectNumber)) : [];
+        if (!weg) setBudgetJe(new Map(budgetStand(gezeigteMitBudget, stunden).map((b) => [b.projectNumber, b])));
+      } catch {
+        if (!weg) setBudgetJe('fehler');
+      }
+    })();
+    return () => {
+      weg = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- an den gezeigten Nummern, nicht an jeder Antwort
+  }, [user, gezeigteNummern, listenRunde]);
 
-  const visible = useMemo(() => {
-    const heute = todayStr();
-    const nachAdresse = !adressFilter
-      ? sorted
-      : basis.filter((p) => {
-        switch (adressFilter) {
-          case 'aktiv':
-            return p.status === 'Aktiv';
-          case 'ohne-leitung':
-            return ohneProjektleiter(p);
-          case 'ende-ueberschritten':
-            return endeVorbei(p, heute);
-          default:
-            return filterLage?.art === adressFilter && filterLage.nummern.has(p.projectNumber);
-        }
-      });
-    const meine = nurMeine && user
-      ? nachAdresse.filter((p) =>
-          (p.projectManagers ?? []).includes(user.uid) || (p.assignedEmployees ?? []).includes(user.uid))
-      : nachAdresse;
-    const nachStatus =
-      filter === 'alle'
-        ? meine
-        : filter === 'archiv'
-          ? meine.filter((p) => p.status === 'Abgeschlossen')
-          : meine.filter((p) => p.status !== 'Abgeschlossen');
-    // Suche ueber Kunde, Nummer und Adresse: bei sechzig Baustellen ist die
-    // Liste sonst nur noch scrollbar, nicht mehr benutzbar.
-    const q = suche.trim().toLowerCase();
-    if (!q) return nachStatus;
-    const oertlich = nachStatus.filter((p) =>
-      [p.customerName, p.bezeichnung, p.projectNumber, p.address].some((v) => v?.toLowerCase().includes(q)),
-    );
-
-    /*
-      DER SERVERTREFFER GEHT AM STATUSFILTER VORBEI.
-
-      Wer eine Nummer eintippt, meint genau diese Baustelle. Sie wegen „Aktiv
-      & pausiert" zu verschweigen waere wieder das leere Ergebnis, das wie ein
-      Befund aussieht — und abgeschlossen ist die gesuchte alte Baustelle
-      fast immer.
-    */
-    const bekannt = new Set(oertlich.map((p) => p.id));
-    return [...oertlich, ...serverTreffer.filter((p) => !bekannt.has(p.id))];
-  }, [sorted, basis, filter, suche, serverTreffer, nurMeine, user, adressFilter, filterLage]);
-
-  /** Wie viele Treffer NUR vom Server kamen — das ist die Aussage, nicht die Summe. */
-  const nurVomServer = useMemo(() => {
-    const geladen = new Set((adressFilter ? basis : sorted).map((p) => p.id));
-    return serverTreffer.filter((p) => !geladen.has(p.id)).length;
-  }, [serverTreffer, sorted, basis, adressFilter]);
+  const ueberBudget = budgetLageDB && budgetLageDB !== 'fehler' ? budgetLageDB.ueber : 0;
+  const nahBudget = budgetLageDB && budgetLageDB !== 'fehler' ? budgetLageDB.nah : 0;
+  const aktivZahl = liste?.aktiv ?? 0;
+  const endeZahl = liste?.ende ?? 0;
+  const gesamtZahl = liste?.gesamt ?? 0;
 
   /*
     NACH STATUS GRUPPIERT (Linie „Lot“, Regel 4): „Aktiv“ vor „Pausiert“ vor
-    „Abgeschlossen“, innerhalb der Gruppe die neueste zuerst wie bisher. Der
-    Status steht damit einmal über der Gruppe statt in jeder Zeile.
+    „Abgeschlossen“, innerhalb der Gruppe die neueste zuerst — so kommt es
+    aus der Datenbank. DER SERVERTREFFER GEHT AM STATUSFILTER VORBEI: wer eine
+    Nummer eintippt, meint genau diese Baustelle; abgeschlossen ist die
+    gesuchte alte Baustelle fast immer. Er steht in seiner Gruppe dazu.
   */
-  const gruppen = useMemo(() => {
-    const nachStatus = new Map<string, WithId<Project>[]>();
-    for (const p of visible) {
-      const s = p.status || 'Ohne Status';
-      nachStatus.set(s, [...(nachStatus.get(s) ?? []), p]);
+  const { gruppen, nurVomServer } = useMemo(() => {
+    const basisGruppen = (liste?.gruppen ?? []).map((g) => ({ status: g.status, anzahl: g.anzahl, zeilen: [...g.zeilen] }));
+    if (!begriff) return { gruppen: basisGruppen, nurVomServer: 0 };
+    const bekannt = new Set(basisGruppen.flatMap((g) => g.zeilen.map((p) => p.id)));
+    const dazu = serverTreffer.filter((p) => !bekannt.has(p.id));
+    for (const p of dazu) {
+      const st = p.status || 'Ohne Status';
+      let g = basisGruppen.find((x) => x.status === st);
+      if (!g) {
+        g = { status: st, anzahl: 0, zeilen: [] };
+        basisGruppen.push(g);
+      }
+      g.zeilen.push(p);
+      g.anzahl += 1;
     }
-    const rang = (s: string) => {
-      const i = STATUS_REIHE.indexOf(s);
+    const rang = (st: string) => {
+      const i = STATUS_REIHE.indexOf(st);
       return i === -1 ? STATUS_REIHE.length : i;
     };
-    return [...nachStatus.entries()]
-      .sort(([a], [b]) => rang(a) - rang(b) || a.localeCompare(b, 'de'))
-      .map(([status, zeilen]) => ({ status, zeilen }));
-  }, [visible]);
+    basisGruppen.sort((x, y) => rang(x.status) - rang(y.status) || x.status.localeCompare(y.status, 'de'));
+    return { gruppen: basisGruppen, nurVomServer: dazu.length };
+  }, [liste, begriff, serverTreffer]);
+  const sichtbar = gruppen.reduce((n, g) => n + g.zeilen.length, 0);
 
   if (!user) return null;
 
@@ -962,7 +900,7 @@ export default function AdminProjectsView() {
     </form>
   );
 
-  const ersteBaustelle = !loading && !lageFehlt && belegschaftDa && projects.length === 0 && !suche && !error && !listenFehler && !formOffen;
+  const ersteBaustelle = !loading && !lageFehlt && belegschaftDa && gesamtZahl === 0 && !suche && !error && !listenFehler && !formOffen;
 
   return (
     <div className="space-y-3 lg:space-y-5">
@@ -1004,8 +942,6 @@ export default function AdminProjectsView() {
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
-      {/* Ohne die laufenden rechnen Schriftfeld und Filter nur über die geladene Liste — gesagt, nicht verschwiegen. */}
-      {laufende === 'fehler' && <TeilFehler was="Die Liste aller laufenden Baustellen" />}
 
       {adressFilter && (
         <Adressfilter
@@ -1053,7 +989,7 @@ export default function AdminProjectsView() {
               dasteht (U11); dass auch die Bezeichnung gefunden wird, sagt die
               Hilfe der Seite.
             */
-            suche={projects.length > 0 ? { id: 'psuche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Nummer oder Adresse' } : undefined}
+            suche={gesamtZahl > 0 ? { id: 'psuche', wert: suche, onChange: setSuche, platzhalter: 'Kunde, Nummer oder Adresse' } : undefined}
             /* NUR MEINE BAUSTELLEN (Testbericht 30.09.2026, M38): für die
                Projektleitung die, in deren Leitung oder Team sie steht. */
             zusatz={istProjektleitung ? (
@@ -1077,8 +1013,8 @@ export default function AdminProjectsView() {
         {nurVomServer > 0 && (
           <p className="px-4 pb-3 text-xs text-ink">
             {nurVomServer === 1
-              ? 'Eine Baustelle außerhalb der geladenen Liste gefunden.'
-              : `${nurVomServer} Baustellen außerhalb der geladenen Liste gefunden.`}
+              ? 'Eine Baustelle außerhalb dieser Auswahl gefunden.'
+              : `${nurVomServer} Baustellen außerhalb dieser Auswahl gefunden.`}
           </p>
         )}
 
@@ -1086,12 +1022,12 @@ export default function AdminProjectsView() {
           <div className="border-t border-line p-4">
             <SkeletonList rows={4} />
           </div>
-        ) : visible.length === 0 && listenFehler && projects.length === 0 && !suche ? (
+        ) : sichtbar === 0 && listenFehler && !suche ? (
           /* Nicht geladen ist nicht „noch keine“. */
           <div className="border-t border-line p-4">
             <ErrorState message={listenFehler} />
           </div>
-        ) : visible.length === 0 ? (
+        ) : sichtbar === 0 ? (
           <div className={ersteBaustelle ? undefined : 'border-t border-line'}>
             <EmptyState
               zeichnung={ersteBaustelle ? 'bau' : suche ? 'suche' : undefined}
@@ -1109,17 +1045,17 @@ export default function AdminProjectsView() {
                 ? 'Auftrag, Einsätze, Pläne und Belege einer Baustelle stehen hier an einem Ort.'
                 : suche
                   ? `Gesucht wurde „${suche.trim()}“ in Kunde, Nummer und Adresse.`
-                  : projects.length === 0
+                  : gesamtZahl === 0
                     ? 'Noch keine Baustellen angelegt.'
                     : 'Keine Baustelle in dieser Auswahl.'}
             </EmptyState>
           </div>
         ) : (
-          gruppen.map(({ status, zeilen }) => {
+          gruppen.map(({ status, anzahl, zeilen }) => {
             const zeigen = gezeigt[status] ?? JE_GRUPPE;
             return (
               <section key={status} aria-label={status} className="baustellen-gruppe">
-                <Abschnitt titel={status} anzahl={zeilen.length} />
+                <Abschnitt titel={status} anzahl={anzahl} />
                 <List>
                   {zeilen.slice(0, zeigen).map((p) => {
                     const team = namen(p.assignedEmployees ?? []);
@@ -1236,32 +1172,14 @@ export default function AdminProjectsView() {
                   })}
                 </List>
                 <MehrAnzeigen
-                  anzahl={Math.max(0, zeilen.length - zeigen)}
-                  onClick={() => setGezeigt((g) => ({ ...g, [status]: zeilen.length }))}
+                  anzahl={Math.max(0, anzahl - Math.min(zeigen, zeilen.length))}
+                  // Die nächsten aus der Datenbank, wie in den anderen Listen — nicht die ganze Gruppe auf einmal.
+                  onClick={() => setGezeigt((g) => ({ ...g, [status]: zeigen + JE_GRUPPE }))}
                 />
               </section>
             );
           })
         )}
-        {/*
-          Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende gescrollt
-          hat und nichts gefunden hat, braucht die Auskunft.
-
-          KEIN SUCHSATZ MEHR. Er sagte „Nach Kunde und Adresse wird nur in
-          diesen gesucht" — richtig unter Firestore, seit dem Abbau falsch:
-          die Datenbank sucht über Nummer, Kunde und Adresse im ganzen
-          Bestand. Die Grenze gilt nur noch für das, was OHNE Suchbegriff
-          angezeigt wird.
-        */}
-        <div className="px-4 pb-3 empty:hidden">
-          <Nachladen
-            geladen={projects.length}
-            grenze={grenze}
-            onMehr={() => setGrenze((g) => g + BAUSTELLEN_JE_SEITE)}
-            einheit="Baustellen"
-            sucheImBrowser={false}
-          />
-        </div>
       </Card>
 
       {/* Anlegen im Seitenfenster (Linie „Lot“, Regel 8); am Handy ein Blatt von unten. */}

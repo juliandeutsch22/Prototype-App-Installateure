@@ -131,3 +131,20 @@ export function baustelleAbschlussLage(id: string): Promise<pg.AbschlussLage> {
 export function baustelleAbschliessen(id: string): Promise<pg.AbschlussLage> {
   return pg.baustelleAbschliessen(id);
 }
+
+export type { BaustellenListe } from './pg/projects';
+
+/** Die Baustellenliste: je Gruppe Zahl und gezeigte Seite — siehe `pg.baustellenListe`. */
+export function baustellenListe(f: Parameters<typeof pg.baustellenListe>[0]): Promise<pg.BaustellenListe> {
+  return pg.baustellenListe(f);
+}
+
+/** Budgetstand über alle aktiven Baustellen — siehe `pg.baustellenBudgetLage`. */
+export function baustellenBudgetLage(abProzent: number): Promise<{ ueber: number; nah: number; nummern: string[] }> {
+  return pg.baustellenBudgetLage(abProzent);
+}
+
+/** Meldet Änderungen an den Baustellen — siehe `pg.baustellenBeobachten`. */
+export function baustellenBeobachten(companyId: string, beiAenderung: () => void): () => void {
+  return pg.baustellenBeobachten(companyId, beiAenderung);
+}

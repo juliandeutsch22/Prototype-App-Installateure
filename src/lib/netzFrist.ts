@@ -95,6 +95,8 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'baustelle_materialstand',
   'baustelle_verwendung',
   'baustellen_einsatzlage',
+  'baustellen_budget_lage',
+  'baustellen_liste',
   'baustellen_ohne_einsatz',
   'baustellen_stunden',
   'befehl_stand',

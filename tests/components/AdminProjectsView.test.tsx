@@ -71,7 +71,6 @@ let anlegeFehler: string | null = null;
 const reserviere = vi.fn<(a0: string, a1: unknown) => Promise<string | null>>(async () => null);
 
 /* Mit welcher Grenze zuletzt abonniert wurde — der Nachladeknopf hebt sie an. */
-let letzteGrenze = 0;
 
 /*
   DIE LAUFENDEN BAUSTELLEN OHNE ALTERSGRENZE (`listActiveProjects`). Ohne
@@ -82,22 +81,71 @@ let letzteGrenze = 0;
 let laufendeExtra: (Project & { id: string })[] = [];
 let laufendFehler = false;
 
+type ListenFrage = { heute: string; status: 'offen' | 'archiv' | 'alle'; filter?: string | null; nummern?: readonly string[] | null; meine?: boolean; begriff?: string; anzahl: Record<string, number> };
+/** Was die Ansicht `baustellen_liste` gefragt hat. */
+const listenFragen: ListenFrage[] = [];
+let baustellenGeaendert: () => void = () => undefined;
+/** Die Stunden der Budgetlage (in der Datenbank) — getrennt von denen der gezeigten Zeilen. */
+const stundenLagerung = (n: string[]) => stundenDerBaustellenRoh(n);
+const alleBaustellen = () => {
+  const ids = new Set(baustellen.map((p) => p.id));
+  return [...baustellen, ...laufendeExtra.filter((p) => !ids.has(p.id))];
+};
+function listeNachgebildet(f: ListenFrage) {
+  const alle = alleBaustellen();
+  const ich = authWert.user?.uid;
+  const q = (f.begriff ?? '').trim().toLowerCase();
+  const treffer = alle.filter((p) => {
+    const passt = f.filter === 'aktiv' ? p.status === 'Aktiv'
+      : f.filter === 'ohne-leitung' ? p.status === 'Aktiv' && !(p.projectManagers?.length)
+        : f.filter === 'ende-ueberschritten' ? p.status === 'Aktiv' && !!p.endDate && p.endDate < f.heute
+          : f.filter === 'budget' || f.filter === 'ohne-einsatz' ? (f.nummern ?? []).includes(p.projectNumber)
+            : true;
+    const meine = !f.meine || (p.projectManagers ?? []).includes(ich ?? '') || (p.assignedEmployees ?? []).includes(ich ?? '');
+    const stand = f.status === 'archiv' ? p.status === 'Abgeschlossen' : f.status === 'offen' ? p.status !== 'Abgeschlossen' : true;
+    const such = !q || [p.customerName, p.bezeichnung, p.projectNumber, p.address].some((v) => v?.toLowerCase().includes(q));
+    return passt && meine && stand && such;
+  });
+  const reihe = ['Aktiv', 'Pausiert', 'Abgeschlossen'];
+  const rang = (st: string) => (reihe.indexOf(st) === -1 ? 3 : reihe.indexOf(st));
+  const status = [...new Set(treffer.map((p) => p.status || 'Ohne Status'))]
+    .sort((a, b) => rang(a) - rang(b) || a.localeCompare(b, 'de'));
+  const ms = (v: unknown) => (typeof v === 'number' ? v : v ? Date.parse(String(v)) : 0);
+  return {
+    gruppen: status.map((st) => {
+      const zeilen = treffer.filter((p) => (p.status || 'Ohne Status') === st).sort((a, b) => ms(b.createdAt) - ms(a.createdAt));
+      return { status: st, anzahl: zeilen.length, zeilen: zeilen.slice(0, f.anzahl[st] ?? 20) };
+    }),
+    aktiv: alle.filter((p) => p.status === 'Aktiv').length,
+    ende: alle.filter((p) => p.status === 'Aktiv' && !!p.endDate && p.endDate < f.heute).length,
+    gesamt: alle.length,
+    neuesteNummern: [...alle].sort((a, b) => ms(b.createdAt) - ms(a.createdAt)).slice(0, 300).map((p) => p.projectNumber),
+  };
+}
+
 vi.mock('@/lib/db/projects', () => ({
-  subscribeRecentProjects: (
-    _c: string,
-    g: number,
-    cb: (rows: (Project & { id: string })[]) => void,
-    fehler?: (e: Error) => void,
-  ) => {
-    letzteGrenze = g;
-    // Das Abo scheitert, bevor es eine Zeile liefert — der Fall „nicht geladen“.
-    if (abofehler) {
-      fehler?.(new Error(abofehler));
-      return () => undefined;
-    }
-    if (spaet) liefern = () => cb(baustellen);
-    else cb(baustellen);
+  /*
+    Die Liste seit 15.11.2026 aus der Datenbank (`baustellen_liste`; gleiche
+    Regeln prüft `tests/supabase/baustellenListe.test.ts`) — hier aus
+    `baustellen` und `laufendeExtra` nachgebildet.
+  */
+  baustellenListe: (f: ListenFrage) => {
+    listenFragen.push(f);
+    if (abofehler) return Promise.reject(new Error(abofehler));
+    if (spaet) return new Promise((ok) => { liefern = () => ok(listeNachgebildet(f)); });
+    return Promise.resolve(listeNachgebildet(f));
+  },
+  baustellenBeobachten: (_c: string, melde: () => void) => {
+    baustellenGeaendert = melde;
     return () => undefined;
+  },
+  baustellenBudgetLage: async (ab: number) => {
+    if (laufendFehler) throw new Error('kein Netz');
+    const { budgetStand } = await import('@/features/projects/baustellenLage');
+    const aktive = alleBaustellen().filter((p) => p.status === 'Aktiv' && (p.estimatedHours ?? 0) > 0);
+    // In der Datenbank rechnet `baustellen_budget_lage` aus `baustellen_stunden`; hier dieselbe Regel der App.
+    const b = aktive.length ? budgetStand(aktive, await stundenLagerung(aktive.map((p) => p.projectNumber))) : [];
+    return { ueber: b.filter((x) => x.pct > 100).length, nah: b.filter((x) => x.pct >= ab && x.pct <= 100).length, nummern: b.filter((x) => x.pct >= ab).map((x) => x.projectNumber) };
   },
   createProject: (c: string, data: unknown) => {
     lege(c, data);
@@ -116,10 +164,6 @@ vi.mock('@/lib/db/projects', () => ({
   // A11: der geführte Abschluss.
   baustelleAbschlussLage: () => Promise.resolve(abschlussLage),
   baustelleAbschliessen: (id: string) => { abgeschlossen(id); return Promise.resolve(abschlussLage); },
-  listActiveProjects: () =>
-    laufendFehler
-      ? Promise.reject(new Error('kein Netz'))
-      : Promise.resolve([...baustellen, ...laufendeExtra].filter((p) => p.status === 'Aktiv' || p.status === 'Pausiert')),
   searchProjects: (c: string, begriff: string) => {
     gefragtMit(c, begriff);
     return serverFehler ? Promise.reject(new Error('kein Netz')) : Promise.resolve(serverBaustellen);
@@ -160,6 +204,8 @@ const stundenDerBaustellen = vi.fn<(n?: string[]) => Promise<BaustellenStunden[]
 vi.mock('@/lib/db/timeEntries', () => ({
   stundenDerBaustellen: (n: string[]) => stundenDerBaustellen(n),
 }));
+/** Dieselben Stunden für die nachgebildete Budgetlage — gezählt für sich, nicht als Abfrage der Ansicht. */
+const stundenDerBaustellenRoh = vi.fn((n: string[]) => stundenDerBaustellen.getMockImplementation()!(n));
 
 const authWert = {
   user: { uid: 'gf', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' as const },
@@ -691,34 +737,32 @@ describe('Wie weit die Baustellenliste reicht', () => {
     expect(screen.queryByRole('button', { name: /Weitere Baustellen laden/ })).not.toBeInTheDocument();
   });
 
-  it('sagt es, sobald die Grenze erreicht ist — OHNE den alten Suchsatz', async () => {
-    /*
-      DER SATZ IST AM 19.09. GEFALLEN. Er lautete „Nach Kunde und Adresse wird
-      nur in diesen gesucht; eine Baustellennummer geht auf den Server" und
-      war unter Firestore genau richtig: dort ging wirklich nur die Nummer an
-      den Server.
-
-      Jetzt geht jede Eingabe hin und sucht über Nummer, Kunde und Adresse im
-      ganzen Bestand. Die Grenze gilt nur noch für das, was OHNE Suchbegriff
-      angezeigt wird — der Knopf bleibt deshalb stehen, der Satz nicht.
-    */
-    baustellen = viele(300);
-    zeige();
-    await screen.findByText('B-0000');
-    expect(screen.getByRole('button', { name: /Weitere Baustellen laden/ })).toBeInTheDocument();
-    expect(screen.queryByText(/nur in diesen gesucht/)).toBeNull();
-    expect(screen.queryByText(/Baustellennummer geht auf den Server/)).toBeNull();
-  });
-
-  it('holt beim Nachladen tatsächlich mehr', async () => {
+  /*
+    NUR DIE GEZEIGTE SEITE (Durchsicht 15.11.2026, Budget B3): je Gruppe 20
+    und die Zahl über alle aus der Datenbank; „und N weitere anzeigen“ fragt
+    die nächsten 20. „Weitere Baustellen laden“ (die Grenze der jüngsten 300)
+    gibt es nicht mehr. Gegenprobe: mit dem Stand davor wird die Datenbank
+    nie nach einer Seite gefragt (rot).
+  */
+  it('fragt 20 je Gruppe, zählt alle und holt mit „weitere“ die nächsten', async () => {
     baustellen = viele(300);
     const nutzer = userEvent.setup();
     zeige();
     await screen.findByText('B-0000');
-    expect(letzteGrenze).toBe(300);
+    expect(listenFragen[listenFragen.length - 1].anzahl.Aktiv).toBe(20);
+    expect(screen.getByRole('heading', { name: /Aktiv/ })).toHaveTextContent('300');
+    expect(screen.queryByRole('button', { name: /Weitere Baustellen laden/ })).not.toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'und 280 weitere anzeigen' }));
+    await waitFor(() => expect(listenFragen[listenFragen.length - 1].anzahl.Aktiv).toBe(40));
+  });
 
-    await nutzer.click(screen.getByRole('button', { name: /Weitere Baustellen laden/ }));
-    expect(letzteGrenze).toBe(600);
+  it('eine Änderung im Kanal fragt die Liste neu', async () => {
+    baustellen = viele(2);
+    zeige();
+    await screen.findByText('B-0000');
+    baustellen = [...baustellen, { id: 'neu', companyId: 'perl', projectNumber: 'B-9999', customerName: 'Neu', status: 'Aktiv', createdAt: Date.now() } as unknown as Project & { id: string }];
+    await act(async () => baustellenGeaendert());
+    expect(await screen.findByText('B-9999')).toBeInTheDocument();
   });
 });
 
@@ -796,7 +840,7 @@ describe('Baustellen — Suche über die Liste hinaus', () => {
 
     expect(await screen.findByText(/Hausverwaltung Berger/)).toBeInTheDocument();
     expect(
-      screen.getByText(/Eine Baustelle außerhalb der geladenen Liste gefunden/),
+      screen.getByText(/Eine Baustelle außerhalb dieser Auswahl gefunden/),
     ).toBeInTheDocument();
   });
 
@@ -1173,8 +1217,9 @@ describe('Filter „über oder nahe Budget“ (Runde 5, M1)', () => {
     await screen.findByText('PR-2026-193');
     await waitFor(() => expect(zeilen()).toHaveLength(1));
     expect(screen.queryByText('PR-2026-194')).toBeNull();
-    expect(stundenDerBaustellen).toHaveBeenCalledTimes(1);
-    expect(stundenDerBaustellen.mock.calls[0]).toEqual([['PR-2026-193', 'PR-2026-194']]);
+    // Die Lage über alle mit Budget rechnet die Datenbank; die Zeilen fragen nur ihre eigenen Stunden.
+    expect(stundenDerBaustellenRoh.mock.calls).toContainEqual([['PR-2026-193', 'PR-2026-194']]);
+    await waitFor(() => expect(stundenDerBaustellen.mock.calls).toContainEqual([['PR-2026-193']]));
   });
 });
 
@@ -1474,18 +1519,17 @@ describe('Filter von der Startseite — über alle laufenden Baustellen', () => 
     expect(screen.getByRole('link', { name: /Aktiv 2/ })).toHaveAttribute('href', '/admin-projects?filter=aktiv');
   });
 
-  it('Gleichbleiben: ohne Filter bleibt die Liste die geladene — mit „Mehr laden“ wie bisher', async () => {
+  // Seit 15.11.2026 rechnet die Liste über alle: ohne Filter fehlt die ältere aktive nicht mehr hinter den jüngsten 300.
+  it('ohne Filter steht auch die ältere aktive Baustelle da — die neueste zuerst', async () => {
     zeige();
-    await waitFor(() => expect(hrefs()).toEqual(['/admin-projects/p-neu']));
+    await waitFor(() => expect(hrefs()).toEqual(['/admin-projects/p-neu', '/admin-projects/p-alt']));
   });
 
-  it('kommen die laufenden nicht, sagt es die Seite — und filtert über die geladene Liste wie bisher', async () => {
-    laufendFehler = true;
-    baustellen = [neu, { ...alt, id: 'p-alt2', projectNumber: '2026-200', createdAt: Date.parse('2026-05-01T08:00:00Z') } as Project & { id: string }];
-    zeige('/admin-projects?filter=ende-ueberschritten');
-    expect(await screen.findByText('Die Liste aller laufenden Baustellen konnte nicht geladen werden.')).toBeInTheDocument();
-    await waitFor(() => expect(hrefs()).toEqual(['/admin-projects/p-alt2']));
-  });
+  /*
+    Bis 15.11.2026 auch „kommen die laufenden nicht, sagt es die Seite“: die
+    laufenden kamen eigens. Jetzt kommt alles in einer Antwort der Datenbank;
+    scheitert sie, steht der Ladefehler an der Liste (oben).
+  */
 });
 
 /*
