@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { forderungsStand } from '@shared/forderungen';
 import type { Invoice, Project, Wartung } from '@/types';
 import { tageWort, tageWortDativ } from '@/lib/time';
 import { endeUeberschritten, unterMindestmenge, wartungenOhneBaustelle } from '@/features/dashboard/start/regeln';
@@ -91,7 +92,7 @@ describe('Handlungsbedarf der Leitung (G6)', () => {
     invoiceDate: '2026-08-01', dueDate: '2026-08-15', mahnstufe: 0 } as Invoice & { id: string };
 
   it('heißt der dringliche Abschnitt „Dringend“ — nicht wie die Kennzahl „Überfällig“', () => {
-    const s = startseite({ projekte: [ende], unbezahlt: [rechnung] }, umfeld);
+    const s = startseite({ projekte: [ende], forderungen: forderungsStand([rechnung], HEUTE, undefined, 3) }, umfeld);
     const titel = s.abschnitte.map((a) => a.titel);
     expect(titel[0]).toBe('Dringend');
     const kennzahlen = s.kennzahlen.map((k) => k.label);

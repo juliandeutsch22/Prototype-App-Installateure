@@ -214,6 +214,18 @@ vi.mock('@/lib/db/materials', () => ({
   lagerListe: vi.fn(async () => ({ zeilen: [], treffer: 0, imLager: 0, knapp: 0, knappBestand: 0, fehlt: 0, reserviert: 0, warengruppen: [] })),
   lagerFrei: vi.fn(async () => new Map()),
 }));
+/*
+  Seit 15.11.2026 (B3) wertet die Edge Function `startseite-forderungen` die
+  offenen Forderungen aus — hier mit derselben Regel (`forderungsStand`) aus
+  den Köpfen, die `listUnpaidInvoiceKoepfe` der Nachbildung liefert.
+*/
+vi.mock('@/lib/db/forderungen', () => ({
+  startseiteForderungen: async (heute: string) => {
+    const { listUnpaidInvoiceKoepfe } = await import('@/lib/db/invoices');
+    const { forderungsStand } = await import('@shared/forderungen');
+    return forderungsStand(await listUnpaidInvoiceKoepfe('perl'), heute, undefined, 3);
+  },
+}));
 /** Die offenen Forderungen, wie `listUnpaidInvoiceKoepfe` sie liefert. */
 const offeneRechnungen: { wert: unknown[] } = { wert: [] };
 vi.mock('@/lib/db/invoices', () => ({

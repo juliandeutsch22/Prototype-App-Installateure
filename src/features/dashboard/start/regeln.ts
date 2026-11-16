@@ -1,4 +1,4 @@
-import type { AppUser, EinkaufPosten, Freistellung, Invoice, MaterialOrder, Project, RechnungsKopf, Vacation } from '@/types';
+import type { AppUser, EinkaufPosten, Freistellung, Invoice, MaterialOrder, Project, Vacation } from '@/types';
 import { ART_NAME } from '@shared/freistellung';
 import { lehrzeitEnde } from '@/lib/einstufung';
 import { canEditTime, darfUrlaubEntscheiden, isTopLevel } from '@/lib/permissions';
@@ -6,8 +6,8 @@ import type { Zeitkorrektur } from '@/lib/db/zeitkorrekturen';
 import { istBenutzerkonto } from '@shared/benutzername';
 import type { OffenerNachtrag } from '@/features/worksheets/zeitNachtrag';
 import { grenzText, type Grenzfall } from '@/features/accounting/arbeitszeitGrenzen';
-import type { Mahnlauf } from '@/features/invoices/mahnlauf';
-import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm } from '@/features/invoices/zahlstand';
+import { ruecklaesseBald, RUECKLASS_VORLAUF_TAGE, type ForderungsStand } from '@shared/forderungen';
+import { mahnbar, offenerRuecklass, ruecklassFaelligAm } from '@/features/invoices/zahlstand';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { euro } from '@/lib/betrag';
 import { datumAT } from '@/lib/datum';
@@ -282,60 +282,42 @@ export function lieferungenHeute(
 
 // ──────────────────────────────────────────────────────────── Buchhaltung ──
 
-export function mahnungenFaellig(lauf: Mahnlauf): Abschnitt | null {
-  const zeilen: Zeile[] = lauf.zeilen.map((z) => ({
+export function mahnungenFaellig(mahnungen: ForderungsStand['mahnungen']): Abschnitt | null {
+  const zeilen: Zeile[] = mahnungen.zeilen.map((z) => ({
     key: `mahn-${z.rechnung.id}`,
     titel: z.rechnung.customerName,
     detail: `${z.rechnung.invoiceNumber} · ${z.stufe}. Mahnung`,
     status: { text: tageWort(z.tageUeberfaellig), ton: 'fehl' },
     to: ZIEL.rechnung(z.rechnung.invoiceNumber),
   }));
-  return abschnitt('mahnung', 'Mahnungen fällig', zeilen, ZIEL.rechnungenSicht('mahnung-faellig'));
+  return abschnittMitZahl('mahnung', 'Mahnungen fällig', zeilen, mahnungen.anzahl, ZIEL.rechnungenSicht('mahnung-faellig'));
 }
 
-/** Überfällig, aber (noch) nicht zu mahnen — sonst stünde dieselbe Rechnung zweimal da. */
+/**
+ * Überfällig, aber (noch) nicht zu mahnen — sonst stünde dieselbe Rechnung
+ * zweimal da. Ausgewählt und geordnet nach den Regeln in
+ * `shared/forderungen.ts` (`forderungsStand`); hier nur die Zeilen.
+ */
 export function ueberfaelligNichtMahnbar(
-  rechnungen: (RechnungsKopf & { id: string })[],
-  lauf: Mahnlauf,
+  ueber: ForderungsStand['ueberfaelligNichtMahnbar'],
   heute: string,
 ): Abschnitt | null {
-  const imLauf = new Set(lauf.zeilen.map((z) => z.rechnung.id));
-  const ausgereizt = new Set(lauf.ausgereizt.map((r) => r.id));
-  const zeilen: Zeile[] = rechnungen
-    .filter((r) => istUeberfaellig(r, heute) && !imLauf.has(r.id))
-    .sort((a, b) => (mahnbar(a, heute).faellig ?? '').localeCompare(mahnbar(b, heute).faellig ?? ''))
-    .map((r) => {
-      // Was zu mahnen ist und ab wann — ein Rücklass erst ab seiner Fälligkeit.
-      const m = mahnbar(r, heute);
-      return {
-        key: `ueber-${r.id}`,
-        titel: r.customerName,
-        detail: ausgereizt.has(r.id)
-          ? `${r.invoiceNumber} · 3. Mahnung heraus — Inkasso prüfen`
-          : `${r.invoiceNumber} · ${euro(m.rest)}`,
-        status: { text: m.faellig ? tageWort(tageZwischen(m.faellig, heute)) : 'überfällig', ton: 'fehl' as const },
-        to: ZIEL.rechnung(r.invoiceNumber),
-      };
-    });
-  return abschnitt('ueberfaellig', 'Überfällig, noch nicht mahnbar', zeilen, ZIEL.rechnungenUeberfaellig);
+  const zeilen: Zeile[] = ueber.zeilen.map(({ rechnung: r, ausgereizt }) => {
+    const m = mahnbar(r, heute);
+    return {
+      key: `ueber-${r.id}`,
+      titel: r.customerName,
+      detail: ausgereizt
+        ? `${r.invoiceNumber} · 3. Mahnung heraus — Inkasso prüfen`
+        : `${r.invoiceNumber} · ${euro(m.rest)}`,
+      status: { text: m.faellig ? tageWort(tageZwischen(m.faellig, heute)) : 'überfällig', ton: 'fehl' as const },
+      to: ZIEL.rechnung(r.invoiceNumber),
+    };
+  });
+  return abschnittMitZahl('ueberfaellig', 'Überfällig, noch nicht mahnbar', zeilen, ueber.anzahl, ZIEL.rechnungenUeberfaellig);
 }
 
-/** Wie viele Tage vor der Fälligkeit ein Rücklass auf der Startseite steht. */
-export const RUECKLASS_VORLAUF_TAGE = 30;
-
-/** Die Rücklässe, die in den nächsten 30 Tagen fällig werden — offen, nicht schon überfällig. */
-export function ruecklaesseBald(rechnungen: (RechnungsKopf & { id: string })[], heute: string): (RechnungsKopf & { id: string })[] {
-  const bis = new Date(`${heute}T00:00:00Z`);
-  bis.setUTCDate(bis.getUTCDate() + RUECKLASS_VORLAUF_TAGE);
-  const grenze = bis.toISOString().slice(0, 10);
-  return rechnungen
-    // Fällig ist er am vereinbarten Tag — oder früher, wenn eine Bankgarantie ihn ablöst.
-    .filter((r) => {
-      const am = ruecklassFaelligAm(r);
-      return r.paymentStatus !== 'Storniert' && offenerRuecklass(r) > 0 && !!am && am >= heute && am <= grenze;
-    })
-    .sort((a, b) => (ruecklassFaelligAm(a) ?? '').localeCompare(ruecklassFaelligAm(b) ?? ''));
-}
+export { RUECKLASS_VORLAUF_TAGE, ruecklaesseBald };
 
 /**
  * DER RÜCKLASS, BEVOR ER FÄLLIG WIRD (seit 05.10.2026). Ohne Erinnerung
@@ -343,15 +325,15 @@ export function ruecklaesseBald(rechnungen: (RechnungsKopf & { id: string })[], 
  * liegen. Ab der Fälligkeit steht er unter „überfällig“ und im Mahnlauf —
  * hier nur davor, damit dieselbe Rechnung nicht zweimal dasteht.
  */
-export function ruecklassWirdFaellig(rechnungen: (RechnungsKopf & { id: string })[], heute: string): Abschnitt | null {
-  const zeilen: Zeile[] = ruecklaesseBald(rechnungen, heute).map((r) => ({
+export function ruecklassWirdFaellig(bald: ForderungsStand['ruecklassBald']): Abschnitt | null {
+  const zeilen: Zeile[] = bald.zeilen.map((r) => ({
     key: `ruecklass-${r.id}`,
     titel: r.customerName,
     detail: `${r.invoiceNumber} · ${r.ruecklassArt === 'deckung' ? 'Deckungsrücklass' : 'Haftrücklass'} ${euro(offenerRuecklass(r))}`,
     status: { text: `fällig ${tagKurz(ruecklassFaelligAm(r)!)}`, ton: 'warn' },
     to: ZIEL.rechnung(r.invoiceNumber),
   }));
-  return abschnitt('ruecklass', 'Rücklass wird fällig', zeilen, ZIEL.rechnungen);
+  return abschnittMitZahl('ruecklass', 'Rücklass wird fällig', zeilen, bald.anzahl, ZIEL.rechnungen);
 }
 
 /** So viele Tage vor dem Ende einer Bankgarantie erinnert die Startseite. */

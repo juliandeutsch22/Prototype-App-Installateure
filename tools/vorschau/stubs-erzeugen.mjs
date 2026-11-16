@@ -201,7 +201,32 @@ const FEST = {
     '};\n' +
     'export const lagerBeobachten = () => () => {};\n',
   materialOrders:
-    "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n",
+    "export const ORDER_STATUS_FLOW = ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'] as const;\n" +
+    /*
+      „Laufend“ seit 15.11.2026 aus der Datenbank (`anforderungen_laufend`):
+      je Gruppe Zahl und erste Zeilen, dazu ein Kanal, der Änderungen meldet
+      (eine Aufräumfunktion, kein Versprechen).
+    */
+    'export const anforderungenLaufend = (f: { anzahl: Record<string, number> }) => {\n' +
+    "  const offen = (D.bestellungen as Array<{ status: string; projectNumber?: string; transactionType?: string }>).filter((o) => o.transactionType !== 'return' && ['Offen', 'In Bearbeitung', 'Abholbereit'].includes(o.status));\n" +
+    "  return A({ gruppen: ['Offen', 'In Bearbeitung', 'Abholbereit'].map((status) => { const z = offen.filter((o) => o.status === status); return { status, anzahl: z.length, zeilen: z.slice(0, f.anzahl[status] ?? 20) }; }),\n" +
+    '    projekte: [...new Set(offen.map((o) => o.projectNumber).filter(Boolean))], zuBestellen: 0 });\n' +
+    '};\n' +
+    'export const anforderungenBeobachten = () => () => {};\n',
+  projects:
+    /* Die Baustellenliste seit 15.11.2026 aus der Datenbank (`baustellen_liste`): je Gruppe Zahl und erste Zeilen. */
+    'export const baustellenListe = (f: { anzahl: Record<string, number> }) => {\n' +
+    '  const alle = D.baustellen as Array<{ status?: string; projectNumber: string }>;\n' +
+    "  const status = [...new Set(alle.map((p) => p.status || 'Ohne Status'))];\n" +
+    "  return A({ gruppen: status.map((st) => { const z = alle.filter((p) => (p.status || 'Ohne Status') === st); return { status: st, anzahl: z.length, zeilen: z.slice(0, f.anzahl[st] ?? 20) }; }),\n" +
+    "    aktiv: alle.filter((p) => p.status === 'Aktiv').length, ende: 0, gesamt: alle.length, neuesteNummern: alle.map((p) => p.projectNumber) });\n" +
+    '};\n' +
+    'export const baustellenBudgetLage = () => A({ ueber: 0, nah: 0, nummern: [] });\n' +
+    'export const baustellenBeobachten = () => () => {};\n',
+  /* Die offenen Forderungen der Startseite (Edge Function seit 15.11.2026): dieselbe Regel über die Beispielrechnungen. */
+  forderungen:
+    "import { forderungsStand } from '@shared/forderungen';\n" +
+    "export const startseiteForderungen = (heute: string) => A(forderungsStand((D.rechnungen as never[]).filter((r: { paymentStatus?: string }) => ['Offen', 'Überfällig', 'Teilbezahlt'].includes(r.paymentStatus ?? '')), heute, undefined, 3));\n",
   quelle: 'export const nutztPostgres = () => false;\n',
   monatsbilanzen: "export const monatVon = (d: string) => d.slice(0, 7);\n",
   zeitfelder: 'export const gemerkterFeldsatz = () => null;\n',

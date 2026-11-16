@@ -11,7 +11,6 @@ import type {
   Freistellung,
   MaterialOrder,
   Project,
-  RechnungsKopf,
   RuestPosition,
   Role,
   Termin,
@@ -36,7 +35,7 @@ import { deckungJeEinsatz } from '@/features/assignments/materialDeckung';
 import { lagerListe, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
 import { JE_ABSCHNITT } from './abschnitte';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
-import { listGarantienEndenIn, listUnpaidInvoiceKoepfe, listInvoicesByIds, scheineUnverrechnetStand, type GarantieRechnung } from '@/lib/db/invoices';
+import { listGarantienEndenIn, listInvoicesByIds, scheineUnverrechnetStand, type GarantieRechnung } from '@/lib/db/invoices';
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
 import { listOwnWorkSheetsSince, scheineNeu, zaehleVerworfeneScheine } from '@/lib/db/workSheets';
 import { zaehleVerworfeneAngebote } from '@/lib/db/quotes';
@@ -68,7 +67,8 @@ import { einsatzZeit } from '@/features/assignments/einsatzZeit';
 import { montagDer, wocheAb } from '@/features/assignments/wochenplan';
 import { offeneNachtraege, NACHTRAG_TAGE, type OffenerNachtrag } from '@/features/worksheets/zeitNachtrag';
 import { auffaelligBis, unverrechneteStundenZeilen } from '@/features/worksheets/unverrechnet';
-import { mahnlauf, type Mahnlauf } from '@/features/invoices/mahnlauf';
+import type { ForderungsStand } from '@shared/forderungen';
+import { startseiteForderungen } from '@/lib/db/forderungen';
 import { basiszinsVerlauf, halbjahresbeginn } from '@/features/invoices/mahnung';
 import { VORLAUF_TAGE } from '@/features/maintenance/wartungsplan';
 import { eigenerResturlaub, eigenerSaldo } from './eigeneKonten';
@@ -161,11 +161,14 @@ export interface StartDaten {
   lagerPosten?: EinkaufPosten[];
   knapp?: KnappStand;
   // Buchhaltung
-  /** Nur die Köpfe: Hinweise und Mahnlauf lesen keine Positionen (Nachweis mit dreifachem Bestand, 19.10.2026). */
-  unbezahlt?: (RechnungsKopf & { id: string })[];
+  /**
+   * Die offenen Forderungen als Zahlen und die ersten je Abschnitt
+   * (Durchsicht 15.11.2026, Budget B3) — ausgewertet von der Edge Function
+   * `startseite-forderungen` mit den Regeln in `shared/forderungen.ts`.
+   */
+  forderungen?: ForderungsStand;
   /** Bankgarantien, die bald enden oder gerade geendet haben (seit 10.10.2026). */
   garantien?: (GarantieRechnung & { id: string })[];
-  lauf?: Mahnlauf;
   /** Zahl der unverrechneten Scheine über alle, davon über vier Wochen (L22: gezählt in der Datenbank). */
   unverrechnet?: UnverrechneteScheine;
   /** Regiebaustellen mit unverrechneten Stunden, älteste zuerst (seit 23.10.2026). */
@@ -527,8 +530,9 @@ export async function buchhaltung(
   await Promise.all([
     was.rechnungen ? (async () => {
       const monatsErster = `${heute.slice(0, 7)}-01`;
-      const [unbezahlt, [zahlungen, rechnungen], garantien] = await Promise.all([
-        listUnpaidInvoiceKoepfe(user.companyId),
+      const [forderungen, [zahlungen, rechnungen], garantien] = await Promise.all([
+        // Zahlen und die ersten je Abschnitt statt aller offenen Köpfe (B3) — dieselben Regeln, auf dem Server.
+        startseiteForderungen(heute),
         // Die Rechnungen hinter den Zahlungen — für Namen, Nummer und den Stand —, sobald die Zahlungen da sind.
         still(() => listZahlungenImZeitraum(user.companyId, monatsErster, heute), []).then(async (zahlungen) => {
           const ids = [...new Set(zahlungen.map((z) => z.invoiceId))];
@@ -537,9 +541,8 @@ export async function buchhaltung(
         // Still: fehlt die Erinnerung, bleibt der Rest der Startseite.
         still(() => listGarantienEndenIn(user.companyId, tageVerschoben(heute, -GARANTIE_NACHLAUF_TAGE), tageVerschoben(heute, GARANTIE_VORLAUF_TAGE)), []),
       ]);
-      out.unbezahlt = unbezahlt;
+      out.forderungen = forderungen;
       out.garantien = garantien;
-      out.lauf = mahnlauf(unbezahlt, heute, company?.rates);
       const nachId = new Map(rechnungen.map((r) => [r.id, r]));
       // Zahlungen auf eine stornierte Rechnung sind Guthaben, keine beglichene Forderung (M13).
       const zaehlt = zahlungen.filter((z) => z.art !== 'Skonto' && nachId.get(z.invoiceId)?.paymentStatus !== 'Storniert');

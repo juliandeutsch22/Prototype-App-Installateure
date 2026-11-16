@@ -34,7 +34,6 @@ import {
   tagKurz,
   ueberfaelligNichtMahnbar,
   ruecklassWirdFaellig,
-  ruecklaesseBald,
   garantieEndet,
   garantienBald,
   unbesetzteEinsaetze,
@@ -59,7 +58,7 @@ import {
 import { anzahl, themenAbschnitte, type Thema } from './themen';
 import { ZIEL } from './ziele';
 import { AUFFAELLIG_AB_TAGEN } from '@/features/worksheets/unverrechnet';
-import { istUeberfaellig, mahnbar, offenerRest, offenerRuecklass, ruecklassFaelligAm } from '@/features/invoices/zahlstand';
+import { ruecklassFaelligAm } from '@/features/invoices/zahlstand';
 import { euro } from '@/lib/betrag';
 import { fmtMin, getISOWeek, tageWort, tageWortDativ } from '@/lib/time';
 import { baustellenTitel } from '@/lib/baustellenTitel';
@@ -347,9 +346,9 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
     // Zuerst: solange die Firmendaten jede Rechnung sperren, geht hier nichts.
     erlaubt(rechnungGesperrt(d.firmaSperrt), u),
     eigeneTage(d, u),
-    d.lauf ? erlaubt(mahnungenFaellig(d.lauf), u) : null,
-    d.lauf && d.unbezahlt ? erlaubt(ueberfaelligNichtMahnbar(d.unbezahlt, d.lauf, u.heute), u) : null,
-    d.unbezahlt ? erlaubt(ruecklassWirdFaellig(d.unbezahlt, u.heute), u) : null,
+    d.forderungen ? erlaubt(mahnungenFaellig(d.forderungen.mahnungen), u) : null,
+    d.forderungen ? erlaubt(ueberfaelligNichtMahnbar(d.forderungen.ueberfaelligNichtMahnbar, u.heute), u) : null,
+    d.forderungen ? erlaubt(ruecklassWirdFaellig(d.forderungen.ruecklassBald), u) : null,
     d.garantien ? erlaubt(garantieEndet(d.garantien, u.heute), u) : null,
     nichtVerrechnet(d, u),
     /*
@@ -389,30 +388,25 @@ function buchhaltung(d: StartDaten, u: Umfeld): Startseite {
 /** Offen, Überfällig, Nicht verrechnet — und für die Buchhaltung „Bezahlt im Monat“. */
 function geldKennzahlen(d: StartDaten, u: Umfeld, mitBezahlt: boolean): Kennzahl[] {
   const out: Kennzahl[] = [];
-  if (d.unbezahlt && u.darf(ZIEL.rechnungen)) {
-    const ueber = d.unbezahlt.filter((i) => istUeberfaellig(i, u.heute));
-    const offen = d.unbezahlt.filter((i) => !istUeberfaellig(i, u.heute));
-    const summe = (l: typeof ueber) => l.reduce((s, i) => s + offenerRest(i), 0);
-    // Überfällig ist nur, was zu mahnen ist; ein noch nicht fälliger Rücklass
-    // bleibt offen — dieselbe Rechnung zählt dann in beiden Kacheln.
-    const faellig = ueber.reduce((s, i) => s + mahnbar(i, u.heute).rest, 0);
-    const mitRuecklass = ueber.filter((i) => offenerRest(i) - mahnbar(i, u.heute).rest > 0.005).length;
+  if (d.forderungen && u.darf(ZIEL.rechnungen)) {
+    // Gezählt mit den Regeln in `shared/forderungen.ts` (Edge Function `startseite-forderungen`).
+    const k = d.forderungen.kennzahlen;
     out.push({
       key: 'offen',
       label: 'Offen',
-      wert: euro(summe(offen) + summe(ueber) - faellig),
-      zusatz: anzahl(offen.length + mitRuecklass, 'Rechnung', 'Rechnungen'),
+      wert: euro(k.offenSumme),
+      zusatz: anzahl(k.offenAnzahl, 'Rechnung', 'Rechnungen'),
       to: ZIEL.rechnungen,
-      leer: offen.length + mitRuecklass === 0,
+      leer: k.offenAnzahl === 0,
     });
     out.push({
       key: 'ueberfaellig',
       label: 'Überfällig',
-      wert: euro(faellig),
-      zusatz: ueber.length ? anzahl(ueber.length, 'Rechnung', 'Rechnungen') : 'keine Rechnung',
+      wert: euro(k.faelligSumme),
+      zusatz: k.ueberAnzahl ? anzahl(k.ueberAnzahl, 'Rechnung', 'Rechnungen') : 'keine Rechnung',
       to: ZIEL.rechnungenUeberfaellig,
-      ton: ueber.length ? 'danger' : undefined,
-      leer: ueber.length === 0,
+      ton: k.ueberAnzahl ? 'danger' : undefined,
+      leer: k.ueberAnzahl === 0,
     });
   }
   if (mitBezahlt && d.bezahltImMonat && u.darf(ZIEL.rechnungen)) {
@@ -567,31 +561,27 @@ function leitung(d: StartDaten, u: Umfeld): Startseite {
       status: { text: 'nachtragen', ton: 'warn' },
     }));
   }
-  if (d.unbezahlt) {
-    const ueber = d.unbezahlt.filter((i) => istUeberfaellig(i, h));
-    if (ueber.length) {
+  if (d.forderungen) {
+    const k = d.forderungen.kennzahlen;
+    if (k.ueberAnzahl && k.aeltesteFaellig) {
       // Ab der Fälligkeit dessen, was zu mahnen ist — bei einem Rücklass seine.
-      const ab = (i: (typeof ueber)[number]) => mahnbar(i, h).faellig ?? i.dueDate;
-      const aeltester = [...ueber].sort((a, b) => ab(a).localeCompare(ab(b)))[0];
-      const mahnungen = d.lauf?.zeilen.length ?? 0;
+      const mahnungen = d.forderungen.mahnungen.anzahl;
       themen.push(wenn(ZIEL.rechnungenUeberfaellig, {
         key: 'rechnungen', wann: 'ueberfaellig',
-        titel: `${anzahl(ueber.length, 'Rechnung', 'Rechnungen')} überfällig`,
-        detail: [euro(ueber.reduce((s, i) => s + mahnbar(i, h).rest, 0)), mahnungen ? anzahl(mahnungen, 'Mahnung fällig', 'Mahnungen fällig') : '']
+        titel: `${anzahl(k.ueberAnzahl, 'Rechnung', 'Rechnungen')} überfällig`,
+        detail: [euro(k.faelligSumme), mahnungen ? anzahl(mahnungen, 'Mahnung fällig', 'Mahnungen fällig') : '']
           .filter(Boolean).join(' · '),
-        status: { text: tageWort(tageZwischen(ab(aeltester), h)), ton: 'fehl' },
+        status: { text: tageWort(tageZwischen(k.aeltesteFaellig, h)), ton: 'fehl' },
       }));
     }
-  }
-  if (d.unbezahlt) {
     // Rücklässe, die in den nächsten 30 Tagen fällig werden (seit 05.10.2026).
-    const bald = ruecklaesseBald(d.unbezahlt, h);
-    if (bald.length) {
+    const bald = d.forderungen.ruecklassBald;
+    if (bald.anzahl && bald.zeilen[0]) {
       themen.push(wenn(ZIEL.rechnungen, {
         key: 'ruecklass', wann: 'woche',
-        titel: `${anzahl(bald.length, 'Rücklass wird', 'Rücklässe werden')} fällig`,
-        detail: euro(bald.reduce((s, i) => s + offenerRuecklass(i), 0)),
-        status: { text: `ab ${tagKurz(ruecklassFaelligAm(bald[0])!)}`, ton: 'warn' },
+        titel: `${anzahl(bald.anzahl, 'Rücklass wird', 'Rücklässe werden')} fällig`,
+        detail: euro(bald.summe),
+        status: { text: `ab ${tagKurz(ruecklassFaelligAm(bald.zeilen[0])!)}`, ton: 'warn' },
       }));
     }
   }

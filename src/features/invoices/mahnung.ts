@@ -1,36 +1,23 @@
 import type { Invoice, InvoiceRates, Mahnung, MahnungInhalt } from '@/types';
-import { mahnbar, offenerRest, ruecklassFaelligAm } from './zahlstand';
+/*
+  Stufen, „darf gemahnt werden“, Fristen und Mahnkosten stehen seit der
+  Durchsicht vom 15.11.2026 in `shared/forderungen.ts` (eine Fassung für App
+  und Edge Function der Startseite); hier weitergereicht.
+*/
+import {
+  MAHNSTUFEN, naechsteStufe, darfMahnen, laufendeFrist, spesenFuer, PAUSCHALE_458, mahnkosten, FRIST_TAGE,
+  type Mahnstufe, type MahnPruefung, type MahnkostenSaetze,
+} from '@shared/forderungen';
+
+export {
+  MAHNSTUFEN, naechsteStufe, darfMahnen, laufendeFrist, spesenFuer, PAUSCHALE_458, mahnkosten, FRIST_TAGE,
+  type Mahnstufe, type MahnPruefung, type MahnkostenSaetze,
+};
 import { zahlOder } from '@/lib/zahl';
 import { aufStellen, cent, euroBetrag } from '@/lib/betrag';
 
 /** TT.MM.JJJJ — hier ohne die Datumsbibliothek, die Datei bleibt ohne Oberflächen-Importe. */
-const datumKurzAT = (iso?: string | null) => (iso ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '—');
 
-/**
- * Mahnwesen — was mit einer Rechnung geschieht, die nicht bezahlt wird.
- *
- * WAS ES VORHER GAB: den Status „Überfällig". Er wurde beim Öffnen der
- * Ansicht automatisch gesetzt und dann angezeigt. Mehr nicht — kein
- * Mahndatum, keine Stufe, kein Schreiben an den Kunden. Der Betrieb sah, dass
- * Geld aussteht, und musste das Mahnen selbst im Kopf führen.
- *
- * DREI STUFEN, weil im Handwerk drei üblich sind und weil sie verschiedene
- * Dinge sagen:
- *
- *   1  ZAHLUNGSERINNERUNG — geht davon aus, dass es übersehen wurde. Das ist
- *      in den meisten Fällen die Wahrheit, und ein scharfer Ton bei der
- *      ersten Nachfrage kostet Kunden, die einfach nur im Urlaub waren.
- *   2  MAHNUNG — benennt den Verzug.
- *   3  LETZTE MAHNUNG — kündigt an, dass es aus der Hand gegeben wird.
- *
- * VERZUGSZINSEN stehen seit 29.09.2026 ab der zweiten Stufe auf dem Beleg
- * (offene Punkte B7) — siehe {@link verzugszinsen}. Die Mahnspesen legt der
- * Betrieb selbst fest; sie stehen in den Einstellungen und sind je Stufe eine
- * schlichte Zahl.
- */
-
-export const MAHNSTUFEN = [1, 2, 3] as const;
-export type Mahnstufe = (typeof MAHNSTUFEN)[number];
 
 export interface StufenText {
   /** Die Überschrift auf dem Beleg. */
@@ -66,148 +53,13 @@ export const TEXTE: Record<Mahnstufe, StufenText> = {
   },
 };
 
-/**
- * Welche Stufe kommt als Nächstes?
- *
- * `null` heisst: es geht nicht weiter. Nach der dritten ist Schluss — was
- * dann folgt, entscheidet nicht diese App, sondern ein Mensch mit einem
- * Anwalt oder einem Inkassobüro. Eine vierte Mahnung wäre ein Schreiben, das
- * seine eigene Ankündigung widerruft.
- */
-export function naechsteStufe(inv: Pick<Invoice, 'mahnstufe'>): Mahnstufe | null {
-  const jetzt = inv.mahnstufe ?? 0;
-  return jetzt >= 3 ? null : ((jetzt + 1) as Mahnstufe);
-}
 
-export interface MahnPruefung {
-  /** Darf gemahnt werden? */
-  moeglich: boolean;
-  /** Warum nicht — für die Oberfläche. */
-  grund?: string;
-}
 
-/**
- * Darf diese Rechnung gemahnt werden?
- *
- * DIE FÄLLIGKEIT ENTSCHEIDET, nicht der Status. „Überfällig" wird beim Öffnen
- * der Liste gesetzt; wer die Liste heute noch nicht geöffnet hat, hätte sonst
- * eine fällige Rechnung, die sich nicht mahnen lässt. Der Status ist eine
- * Anzeige, das Datum ist die Tatsache.
- */
-export function darfMahnen(
-  inv: Pick<
-    Invoice,
-    'paymentStatus' | 'dueDate' | 'mahnstufe' | 'gemahntAm' | 'mahnfrist'
-    | 'totalBrutto' | 'bezahltBetrag' | 'ruecklassBetrag' | 'ruecklassBis' | 'ruecklassGarantieAm'
-  >,
-  heute: string,
-): MahnPruefung {
-  if (inv.paymentStatus === 'Storniert') {
-    return { moeglich: false, grund: 'Die Rechnung ist storniert.' };
-  }
-  /*
-    BEIDE MÜSSEN „OFFEN" SAGEN — der Status UND die Zahl.
 
-    „Teilbezahlt" ist mahnbar, der Kunde schuldet ja noch etwas; das ist der
-    Grund für Stufe 10.1, denn vorher wurde eine Rechnung über 1.000 €, auf
-    die 400 gekommen sind, über den vollen Betrag gemahnt.
 
-    WARUM NICHT ALLEIN DIE ZAHL, obwohl sie die genauere wäre: Rechnungen aus
-    der Zeit vor den Zahlungseingängen tragen „Bezahlt" und einen bezahlten
-    Betrag von null — den Betrag hat damals niemand erfasst, weil es das Feld
-    nicht gab. Wer hier nur rechnet, mahnt beim ersten Lauf den gesamten
-    Altbestand. Die Migration trägt den Betrag zwar nach (siehe
-    `20260919120000_zahlungseingaenge.sql`), aber eine Regel, die nur mit
-    geglückter Migration richtig ist, ist keine Regel, sondern eine Annahme.
-  */
-  if (inv.paymentStatus === 'Bezahlt' || inv.paymentStatus === 'Überzahlt') {
-    return { moeglich: false, grund: 'Die Rechnung ist bezahlt.' };
-  }
-  if (offenerRest(inv) <= 0) {
-    return { moeglich: false, grund: 'Die Rechnung ist bezahlt.' };
-  }
-  // Offen ist nur noch ein Rücklass, der nicht fällig ist (seit 05.10.2026).
-  const m = mahnbar(inv, heute);
-  if (m.rest <= 0) {
-    return { moeglich: false, grund: `Offen ist nur der Rücklass, fällig am ${datumKurzAT(ruecklassFaelligAm(inv))}.` };
-  }
-  if (!m.faellig || m.faellig >= heute) {
-    return { moeglich: false, grund: 'Das Zahlungsziel ist noch nicht abgelaufen.' };
-  }
-  if (naechsteStufe(inv) === null) {
-    return {
-      moeglich: false,
-      grund: 'Die dritte Mahnung ist verschickt. Was jetzt folgt, entscheidet der Betrieb.',
-    };
-  }
-  const laeuft = laufendeFrist(inv);
-  if (laeuft && laeuft >= heute) {
-    return {
-      moeglich: false,
-      grund: `Die Frist aus der letzten Mahnung läuft noch bis ${laeuft}.`,
-    };
-  }
-  return { moeglich: true };
-}
 
-/**
- * Bis wann die Frist aus der LETZTEN Mahnung läuft — oder `null`, wenn keine
- * läuft.
- *
- * DER FEHLER, DEN DAS BEHEBT. Geprüft wurde bisher nur das ursprüngliche
- * Zahlungsziel. Wer gestern eine Zahlungserinnerung mit einer Woche Frist
- * verschickt hat, bekam die Rechnung heute wieder im Mahnlauf angeboten — für
- * Stufe 2, sechs Tage vor Ablauf der Frist, die er selbst gesetzt hat. Das sah
- * nach Arbeit aus und war eine Aufforderung, dem Kunden die zugesagte Frist
- * wieder zu nehmen.
- *
- * Aufgefallen ist es erst durch das Abzeichen im Menü: eine Zahl, die jede
- * überfällige Rechnung jeden Tag mitzählt, leuchtet dauerhaft — und eine
- * Meldung, die immer an ist, ist keine.
- *
- * DER RÜCKFALL, wenn `mahnfrist` fehlt: das Mahndatum plus {@link FRIST_TAGE},
- * also die Frist, die der Beleg vorschlägt. Fehlt auch das, ist die Rechnung
- * fällig — die andere Wahl wäre „nie wieder fällig", und das versteckte eine
- * offene Forderung für immer.
- *
- * Dieselbe Regel steht in `app.mahnung_faellig` (Migration
- * `20260916140000_offene_posten.sql`), weil das Abzeichen zählen muss, was
- * diese Liste zeigt.
- */
-export function laufendeFrist(
-  inv: Pick<Invoice, 'mahnstufe' | 'gemahntAm' | 'mahnfrist'>,
-): string | null {
-  if (!inv.mahnstufe) return null;
-  if (inv.mahnfrist) return inv.mahnfrist;
-  if (!inv.gemahntAm) return null;
-  return tagePlus(inv.gemahntAm, FRIST_TAGE);
-}
 
-/** `n` Tage auf einen ISO-Tag, in UTC gerechnet — ohne Sommerzeitfallen. */
-function tagePlus(isoTag: string, n: number): string | null {
-  const t = Date.parse(`${isoTag}T00:00:00Z`);
-  if (Number.isNaN(t)) return null;
-  return new Date(t + n * 86_400_000).toISOString().slice(0, 10);
-}
 
-/**
- * Die Mahnspesen einer Stufe.
- *
- * Der Betrieb legt sie fest; ohne Festlegung sind sie null. KEINE VORGABE mit
- * einer erfundenen Zahl: was ein Betrieb verrechnen darf, hängt am Aufwand
- * und am Vertrag, und ein voreingestellter Betrag sähe aus wie eine Auskunft
- * darüber.
- */
-export function spesenFuer(stufe: Mahnstufe, spesen: number[] | undefined): number {
-  const wert = spesen?.[stufe - 1];
-  return typeof wert === 'number' && wert > 0 ? wert : 0;
-}
-
-/** Die Einstellungen, aus denen die Mahnkosten einer Rechnung kommen. */
-export type MahnkostenSaetze = Pick<InvoiceRates, 'mahnspesen' | 'mahnspesenVerbraucher' | 'pauschale458'>;
-
-/** Pauschale für Betreibungskosten zwischen Unternehmern (§ 458 UGB). */
-export const PAUSCHALE_458 = 40;
 
 /**
  * Die Summe der Mahnspesen über alle Stufen — so viel verlangt eine Rechnung
@@ -235,40 +87,6 @@ export function mahnspesenBefund(
   };
 }
 
-/**
- * Was eine Mahnung an Kosten verlangt — je nachdem, an wen sie geht.
- *
- * FIRMEN- UND PRIVATKUNDEN GETRENNT, weil das Gesetz sie trennt. Gegenüber
- * einem Verbraucher sind Mahnkosten nur zu ersetzen, soweit sie angemessen
- * und zweckmässig sind (§ 1333 Abs 2 ABGB); eine hohe Pauschale je Brief hält
- * dort oft nicht. Zwischen Unternehmern steht dem Betrieb ab dem Verzug eine
- * Pauschale von 40 € zu (§ 458 UGB), die die Mahnkosten bis zu dieser Höhe
- * abdeckt — deshalb ENTWEDER die Pauschale ODER die Spesen je Stufe, nicht
- * beides. Unternehmer ist, wie bei den Verzugszinsen, wer eine UID hat.
- *
- * OHNE EIGENE SÄTZE FÜR PRIVATKUNDEN gelten die bisherigen: ein Betrieb, der
- * seine Spesen vor der Trennung eingetragen hat, verrechnet unverändert
- * weiter, bis er etwas anderes einträgt.
- *
- * Die Pauschale steht ab der Mahnung, nicht auf der Zahlungserinnerung — aus
- * demselben Grund wie die Zinsen.
- */
-export function mahnkosten(
-  stufe: Mahnstufe,
-  saetze: MahnkostenSaetze | undefined,
-  unternehmer: boolean,
-): { spesen: number; pauschale: number } {
-  if (unternehmer && saetze?.pauschale458) {
-    /*
-      EINMAL JE RECHNUNG (G3): die Pauschale steht auf der Mahnung (Stufe 2).
-      Die letzte Mahnung forderte sie bisher ein zweites Mal — seit die
-      Schreiben frühere Kosten mitführen, stünde sie sonst doppelt da.
-    */
-    return { spesen: 0, pauschale: stufe === 2 ? PAUSCHALE_458 : 0 };
-  }
-  const liste = unternehmer ? saetze?.mahnspesen : (saetze?.mahnspesenVerbraucher ?? saetze?.mahnspesen);
-  return { spesen: spesenFuer(stufe, liste), pauschale: 0 };
-}
 
 /**
  * Was eine Rechnung höchstens an Mahnkosten fordert, wenn sie alle drei
@@ -331,8 +149,6 @@ export function mahnforderungRechnen(o: {
   };
 }
 
-/** Vorschlag für die neue Frist: eine Woche. Änderbar in der Oberfläche. */
-export const FRIST_TAGE = 7;
 
 /** Verzugszinsen gegenüber Verbrauchern, % im Jahr (§ 1000 Abs 1 ABGB). */
 export const ZINS_VERBRAUCHER = 4;

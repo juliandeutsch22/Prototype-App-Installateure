@@ -931,8 +931,7 @@ Aus den vier Befunden der Nacharbeit (Stand §111).
   Auslöser und ohne Prüfung der Fremdschlüssel, sonst kostet es neben dem
   Bestand über eine Minute. Ohne diesen Zugang leert es wie bisher, samt
   Messbestand, und sagt es.
-- **Budget B3, noch offen** (nicht gebaut in dieser Nacharbeit; keine Grenze,
-  sondern Arbeit, die aussteht):
+- **Budget B3** — in der Nacharbeit zuerst offen gelassen, danach gebaut:
   - *Anforderungen „Laufend“* — **erledigt** (Nacharbeit, Teil 1):
     `anforderungen_laufend` gibt je Gruppe Zahl und gezeigte Seite, gefiltert
     wie von der Startseite verlangt, dazu Baustellen der Auswahl und die Zahl
@@ -946,13 +945,12 @@ Aus den vier Befunden der Nacharbeit (Stand §111).
     Auswahl im Formular — **Grenze (fachlich):** sie wächst mit dem einen
     Betrieb, nicht mit dem Bestand, und Senklot ist für Betriebe bis etwa 30
     Mitarbeiter gedacht (Auftraggeber, 20.10.2026).
-  - *Offene Rechnungen der Startseite* (198 Köpfe): Mahnlauf, „überfällig,
-    nicht mahnbar“, Rücklass und die Summen werten jede offene Forderung nach
-    den Regeln in `features/invoices` aus (`mahnlauf`, `zahlstand`) — dieselben,
-    die Rechnungen und Mahnlauf nutzen. Die Menge wächst mit den unbezahlten
-    Rechnungen, nicht mit den Jahren. Nächster Schritt, ohne eine zweite
-    Fassung der Regeln: die Regeln nach `shared/` und die Auswertung in eine
-    Datenbankfunktion, die Zahlen und die ersten Zeilen gibt.
+  - *Offene Rechnungen der Startseite* — **erledigt** (Nacharbeit, Teil 3):
+    die Regeln (Zahlstand, Rücklass, „darf gemahnt werden“, Mahnkosten,
+    Mahnlauf) stehen in `shared/forderungen.ts`, `src/features/invoices`
+    reicht sie weiter; die Edge Function `startseite-forderungen` wertet mit
+    derselben Fassung aus und schickt Zahlen und die ersten drei je Abschnitt.
+    Keine zweite Fassung in SQL: die Regeln sind keine einfachen Vergleiche.
 - **Lager ohne Rechnung im Browser** (Richtigkeit): kommt die Antwort der
   Datenbank nicht, steht ein Fehler mit „Erneut versuchen“ statt einer eigenen
   Rechnung des Reservierten. Die eigene Rechnung griff bisher nur in diesem

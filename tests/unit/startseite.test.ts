@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { forderungsStand } from '@shared/forderungen';
 import type { AppUser, Freistellung, Invoice, MaterialOrder, Project, Wartung, WorkSheet } from '@/types';
 import { euro } from '@/lib/betrag';
 import { abschnitt, JE_ABSCHNITT, summe } from '@/features/dashboard/start/abschnitte';
@@ -151,7 +152,7 @@ describe('Buchhaltung', () => {
     const r = [rechnung({ id: 'RE-1' }), rechnung({ id: 'RE-2', gemahntAm: '2026-09-28', mahnstufe: 1 })];
     const lauf = mahnlauf(r, HEUTE, undefined);
     const imLauf = new Set(lauf.zeilen.map((z) => z.rechnung.id));
-    const a = ueberfaelligNichtMahnbar(r, lauf, HEUTE);
+    const a = ueberfaelligNichtMahnbar(forderungsStand(r, HEUTE, undefined, 3).ueberfaelligNichtMahnbar, HEUTE);
     for (const z of a?.zeilen ?? []) expect(imLauf.has(z.key.replace('ueber-', ''))).toBe(false);
     expect((a?.anzahl ?? 0) + lauf.zeilen.length).toBe(2);
   });
@@ -191,11 +192,11 @@ describe('Buchhaltung', () => {
 
   it('zeigt Offen, Überfällig und Bezahlt im Monat (M24) — „Nicht verrechnet“ steht unter Zu erledigen (E22)', () => {
     const s = startseite({
-      unbezahlt: [
+      forderungen: forderungsStand([
         rechnung({ id: 'RE-1', totalBrutto: 200, dueDate: '2026-10-14' }),
         rechnung({ id: 'RE-2', totalBrutto: 300, dueDate: '2026-10-20' }),
         rechnung({ id: 'RE-3', totalBrutto: 150, dueDate: '2026-09-15' }),
-      ],
+      ], HEUTE, undefined, 3),
       unverrechnet: offen(schein('s1', 40), schein('s2', 3)),
       bezahltImMonat: { summe: 1234.5, anzahl: 4 },
     }, umfeld());
@@ -216,7 +217,7 @@ describe('Buchhaltung', () => {
   });
 
   it('Gegenprobe: ohne Überfälliges kein Rot — und ohne Recht auf Rechnungen keine Geldkennzahl (M24)', () => {
-    const daten = { unbezahlt: [rechnung({ id: 'RE-1', dueDate: '2026-10-14' })], bezahltImMonat: { summe: 0, anzahl: 0 } };
+    const daten = { forderungen: forderungsStand([rechnung({ id: 'RE-1', dueDate: '2026-10-14' })], HEUTE, undefined, 3), bezahltImMonat: { summe: 0, anzahl: 0 } };
     const ueber = startseite(daten, umfeld()).kennzahlen.find((k) => k.key === 'ueberfaellig');
     expect(ueber).toMatchObject({ wert: euro(0), zusatz: 'keine Rechnung' });
     expect(ueber?.ton).toBeUndefined();
@@ -231,7 +232,7 @@ describe('Buchhaltung', () => {
     „€ 0,00“ eine leere Arbeitsliste ist oder ein Rücklass, der noch zählt.
   */
   it('markiert leere Arbeitszahlen als leer — Bezahlt im Monat nie (E22)', () => {
-    const s = startseite({ unbezahlt: [], unverrechnet: offen(), bezahltImMonat: { summe: 0, anzahl: 0 } }, umfeld());
+    const s = startseite({ forderungen: forderungsStand([], HEUTE, undefined, 3), unverrechnet: offen(), bezahltImMonat: { summe: 0, anzahl: 0 } }, umfeld());
     const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
     expect(nach.get('offen')?.leer).toBe(true);
     expect(nach.get('ueberfaellig')?.leer).toBe(true);
@@ -241,7 +242,7 @@ describe('Buchhaltung', () => {
 
   it('Gegenprobe: was offen oder überfällig ist, bleibt stehen (E22)', () => {
     const s = startseite({
-      unbezahlt: [rechnung({ id: 'RE-1', totalBrutto: 200, dueDate: '2026-10-14' })],
+      forderungen: forderungsStand([rechnung({ id: 'RE-1', totalBrutto: 200, dueDate: '2026-10-14' })], HEUTE, undefined, 3),
       unverrechnet: offen(schein('s1', 3)),
     }, umfeld());
     const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
@@ -251,10 +252,10 @@ describe('Buchhaltung', () => {
 
   it('Gegenprobe: ein überfälliger Rücklass-Rest hält „Überfällig“ in der Zeile (E22)', () => {
     const s = startseite({
-      unbezahlt: [rechnung({
+      forderungen: forderungsStand([rechnung({
         id: 'RE-4', totalBrutto: 1200, dueDate: '2026-09-15',
         ruecklassArt: 'haft', ruecklassProzent: 5, ruecklassBetrag: 60, ruecklassBis: '2029-09-01',
-      })],
+      })], HEUTE, undefined, 3),
     }, umfeld());
     expect(s.kennzahlen.find((k) => k.key === 'ueberfaellig')?.leer).toBe(false);
   });
@@ -296,10 +297,10 @@ describe('Buchhaltung', () => {
   // Rücklass (05.10.2026): der nicht fällige Teil einer überfälligen Rechnung bleibt offen.
   it('ein noch nicht fälliger Rücklass zählt unter „Offen“, samt seiner Rechnung', () => {
     const s = startseite({
-      unbezahlt: [rechnung({
+      forderungen: forderungsStand([rechnung({
         id: 'RE-4', totalBrutto: 1200, dueDate: '2026-09-15',
         ruecklassArt: 'haft', ruecklassProzent: 5, ruecklassBetrag: 60, ruecklassBis: '2029-09-01',
-      })],
+      })], HEUTE, undefined, 3),
     }, umfeld());
     const nach = new Map(s.kennzahlen.map((k) => [k.key, k]));
     expect(nach.get('ueberfaellig')).toMatchObject({ wert: euro(1140), zusatz: '1 Rechnung' });
@@ -546,8 +547,8 @@ describe('Geschäftsführung und Administrator', () => {
     const viel = {
       basiszinsFehltAb: '2026-07-01',
       fehlendeTage: ['2026-09-28'],
-      unbezahlt: [{ id: 'RE-1', invoiceNumber: 'RE-1', customerName: 'K', paymentStatus: 'Offen', totalBrutto: 100,
-        invoiceDate: '2026-07-01', dueDate: '2026-07-15', mahnstufe: 0 } as Invoice & { id: string }],
+      forderungen: forderungsStand([{ id: 'RE-1', invoiceNumber: 'RE-1', customerName: 'K', paymentStatus: 'Offen', totalBrutto: 100,
+        invoiceDate: '2026-07-01', dueDate: '2026-07-15', mahnstufe: 0 } as Invoice & { id: string }], HEUTE, undefined, 3),
     };
 
     it('sperren sie jede Rechnung: ganz vorn unter „Dringend“, in Rot, mit allem, was fehlt', () => {

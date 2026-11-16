@@ -44,6 +44,9 @@ vi.mock('@/lib/db/zeitkorrekturen', () => ({
 const scheineUnverrechnetStand = vi.fn<(bis: string) => Promise<{ anzahl: number; alt: number; aeltester: string | null }>>(
   async () => ({ anzahl: 0, alt: 0, aeltester: null }),
 );
+vi.mock('@/lib/db/forderungen', () => ({
+  startseiteForderungen: vi.fn(async () => ({ mahnungen: { anzahl: 0, zeilen: [] }, ueberfaelligNichtMahnbar: { anzahl: 0, zeilen: [] }, ruecklassBald: { anzahl: 0, summe: 0, zeilen: [] }, kennzahlen: { offenSumme: 0, offenAnzahl: 0, faelligSumme: 0, ueberAnzahl: 0, aeltesteFaellig: null } })),
+}));
 vi.mock('@/lib/db/invoices', () => ({
   listUnpaidInvoiceKoepfe: vi.fn(async () => []),
   listInvoicesByIds: vi.fn(async () => []),

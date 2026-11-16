@@ -79,6 +79,9 @@ export type Zugriffsart = keyof typeof FRISTEN;
  * Datenbank verlangt außerdem, dass jede `stable`-Funktion, die die App
  * aufruft, hier steht, damit keine neue still ohne Frist bleibt.
  */
+/** Edge Functions, die nur lesen — geprüft in `tests/unit/netzFristEdge.test.ts` (kein schreibender Aufruf im Quelltext). */
+export const LESENDE_EDGE_FUNCTIONS: ReadonlySet<string> = new Set(['startseite-forderungen']);
+
 export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'anforderungen_laufend',
   'angebot_links_neu_angenommen',
@@ -94,8 +97,8 @@ export const LESENDE_FUNKTIONEN: ReadonlySet<string> = new Set([
   'baustelle_abschluss_lage',
   'baustelle_materialstand',
   'baustelle_verwendung',
-  'baustellen_einsatzlage',
   'baustellen_budget_lage',
+  'baustellen_einsatzlage',
   'baustellen_liste',
   'baustellen_ohne_einsatz',
   'baustellen_stunden',
@@ -212,6 +215,17 @@ export function zugriffsart(adresse: string, methode: string): Zugriffsart | nul
     return 'lesen';
   }
   if (pfad.includes('/rest/v1/') || pfad.includes('/storage/v1/')) return lesend ? 'lesen' : null;
+  /*
+    EINE EDGE FUNCTION, DIE NUR LIEST (Durchsicht 15.11.2026): die Startseite
+    holt ihre offenen Forderungen über `startseite-forderungen` statt über die
+    Datenbank direkt. Die Function liest nur (mit dem Token der Person) und
+    darf deshalb wie jede lesende Abfrage abbrechen — sonst hinge die
+    Startseite auf einer toten Verbindung, wo sie bisher eine Frist hatte.
+  */
+  if (pfad.includes('/functions/v1/') && m === 'POST') {
+    const name = pfad.slice(pfad.indexOf('/functions/v1/') + '/functions/v1/'.length);
+    return LESENDE_EDGE_FUNCTIONS.has(name) ? 'lesen' : null;
+  }
   return null;
 }
 

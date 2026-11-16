@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { forderungsStand } from '@shared/forderungen';
 import { istUeberfaellig, mahnbar, offenerRuecklass, ruecklassFaelligAm, zahlstand } from '@/features/invoices/zahlstand';
 import { darfMahnen } from '@/features/invoices/mahnung';
 import { mahnlauf } from '@/features/invoices/mahnlauf';
@@ -92,7 +93,7 @@ describe('Startseite', () => {
     const bald = rechnung({ bezahltBetrag: 11400, paymentStatus: 'Teilbezahlt', ruecklassBis: '2026-10-20' });
     const spaeter = rechnung({ id: 'r2', bezahltBetrag: 11400, paymentStatus: 'Teilbezahlt', ruecklassBis: '2026-11-20' });
     expect(ruecklaesseBald([bald, spaeter], HEUTE).map((r) => r.id)).toEqual(['r1']);
-    expect(ruecklassWirdFaellig([bald], HEUTE)?.zeilen[0]).toMatchObject({
+    expect(ruecklassWirdFaellig(forderungsStand([bald], HEUTE, undefined, 3).ruecklassBald)?.zeilen[0]).toMatchObject({
       detail: expect.stringContaining('Haftrücklass'),
       status: { text: 'fällig 20.10.', ton: 'warn' },
     });
@@ -120,7 +121,7 @@ describe('Abgelöst durch Bankgarantie (10.10.2026)', () => {
   it('eine Ablöse in den nächsten 30 Tagen steht auf der Startseite — mit ihrem Tag', () => {
     const r = rechnung({ ...bezahlt, ruecklassGarantieAm: '2026-10-20' });
     expect(ruecklaesseBald([r], HEUTE).map((x) => x.id)).toEqual(['r1']);
-    expect(ruecklassWirdFaellig([r], HEUTE)?.zeilen[0].status).toEqual({ text: 'fällig 20.10.', ton: 'warn' });
+    expect(ruecklassWirdFaellig(forderungsStand([r], HEUTE, undefined, 3).ruecklassBald)?.zeilen[0].status).toEqual({ text: 'fällig 20.10.', ton: 'warn' });
   });
 
   it('Gegenprobe: ohne Ablöse der vereinbarte Tag — der Rücklass ist nicht zu mahnen', () => {

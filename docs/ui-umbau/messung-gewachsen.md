@@ -92,11 +92,9 @@ Datenmengen hängen davon nicht ab.
 | Anforderungen | bereit 3,8 s · 365 KB · 47 KB · material_orders 560 in 6 Anfragen | bereit 3,8 s · 335 KB · 17 KB · material_orders 160 in 4 Anfragen |
 | übrige Seiten | 4,0–6,3 s | 3,4–5,0 s (an ihnen nichts geändert — der Unterschied ist die Last daneben) |
 
-**Noch über dem Budget** (nicht in dieser Nacharbeit gebaut, benannt in
-`docs/grenzen-durchsicht-2026-10-24.md`): Anforderungen „Laufend“ (der
-Arbeitsstand, 160 offene), Baustellen (die jüngsten 300 und alle laufenden,
-720), die offenen Rechnungen der Startseite (198) sowie die übrigen Seiten der
-Liste unten, die nicht Teil dieses Auftrags waren.
+Zunächst offen gelassen und danach gebaut (Teile 1–3 unten): Anforderungen
+„Laufend“, Baustellen und die offenen Rechnungen der Startseite. Die übrigen
+Seiten der Liste unten waren nicht Teil dieses Auftrags.
 
 **Nacharbeit, Teil 1 — Anforderungen „Laufend“** (`20261118032000_anforderungen_laufend.sql`):
 je Gruppe Zahl und die gezeigten 20 aus der Datenbank, gefiltert wie von der
@@ -110,6 +108,18 @@ Baustellen, Schriftfeld und Budgetstand ebenso; ohne Filter fehlen ältere
 laufende Baustellen nicht mehr hinter den jüngsten 300. Gemessen (ein Lauf):
 projects 720 → keine Antwort über 50 Zeilen außer der Belegschaft (51 Konten,
 siehe Grenzen), 421 → 380 KB, bereit 4,3 → 4,4 s.
+
+**Nacharbeit, Teil 3 — offene Rechnungen der Startseite**: die Regeln stehen
+in `shared/forderungen.ts`; die Edge Function `startseite-forderungen` rechnet
+mit ihnen über alle offenen Köpfe und schickt Zahlen und je Abschnitt drei
+Zeilen (rund 1,5 KB statt 198 Köpfen). Gemessen (ein Lauf, Rechner zu der
+Zeit merklich langsamer — FCP 2,3 statt 1,8 s): keine Antwort der Datenbank
+über 50 Zeilen außer `projects` (120, die laufenden Baustellen für Budget,
+Einsatzplanung und „ohne Projektleiter“ — nicht Teil dieses Auftrags),
+424 → 403 KB, bereit 4,7 → 5,3 s (alle Seiten in diesem Lauf 5–15 % langsamer).
+
+**Noch über dem Budget** auf den Seiten dieses Auftrags danach: die
+Belegschaft auf der Baustellenseite (51 Konten, Grenze: Betriebsgröße).
 
 <!-- messung-monteur:anfang (erzeugt von scripts/ui-umbau/messung.mjs) -->
 Gemessen am 15.11.2026 · 3 Läufe je Seite, Median · Handy 390 × 844, langsames 4G (150 ms, 1,6 Mbit/s), CPU ×4, erster Besuch ohne Zwischenspeicher · ausgeliefert wie draussen (HTTP/2, gepackt, `auslieferung.mjs`) · angemeldet als Monteur (`monteur2`) des Testbetriebs `ui-testbestand`.
