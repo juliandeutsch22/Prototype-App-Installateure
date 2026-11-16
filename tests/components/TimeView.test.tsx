@@ -1377,6 +1377,28 @@ describe('Zeiterfassung am Handy (C6, E90)', () => {
     expect(await screen.findByRole('dialog', { name: 'Eintrag löschen?' })).toBeInTheDocument();
   });
 
+  /*
+    DASSELBE AM HANDY (16.11.2026): die kompakte Zeile (U7) trug Kunde und
+    Baustelle nur sichtbar unter dem Knopf — die Vorlesehilfe hörte „Di, 01.09.
+    · 07:00–10:00 bearbeiten“ zweimal. Gegenprobe: ohne die verborgene Angabe
+    im Knopf findet die Prüfung keinen der beiden (rot).
+  */
+  it('am Handy: Kunde und Baustelle im Namen der Zeile, die sichtbare Angabe darunter stumm', async () => {
+    alsHandy();
+    eintraege = [
+      eintrag({ id: 'a', date: '2026-09-01', startTime: '07:00', endTime: '10:00', customerName: 'CT Bau GmbH', projectNumber: 'PR-2026-0189' }),
+      eintrag({ id: 'b', date: '2026-09-01', startTime: '10:00', endTime: '12:00', customerName: 'CT Bau GmbH', projectNumber: 'PR-2026-0193' }),
+    ];
+    zeige();
+    expect(await screen.findAllByRole('button', { name: /CT Bau GmbH PR-2026-0189 bearbeiten$/ })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /CT Bau GmbH PR-2026-0193 bearbeiten$/ })).toHaveLength(1);
+    // Sichtbar bleibt die Nummer grau unter dem Zeitraum (G3), für die Vorlesehilfe nicht doppelt.
+    for (const n of screen.getAllByText(/^PR-2026-01(89|93)$/)) {
+      expect(n).toHaveClass('zeile-nr');
+      expect(n.closest('[aria-hidden="true"]')).not.toBeNull();
+    }
+  });
+
   it('ist die Zeiterfassung ausgeschaltet, sagt es die Seite — ohne „Neuer Eintrag“', async () => {
     alsHandy();
     const vorher = authWert.company;

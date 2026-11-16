@@ -671,6 +671,16 @@ export default function TimeView() {
           */
           <>
             <span>{datumKurz(e.date)}{timeLabel && ` · ${timeLabel}`}</span>
+            {/*
+              KUNDE UND BAUSTELLE IM NAMEN DER ZEILE, wie ab dem Tablet (G3):
+              sichtbar stehen sie darunter, ausserhalb des Knopfs — die
+              Vorlesehilfe hörte am Handy nur „Mo, 16.11. · 07:00–16:00
+              bearbeiten“ und konnte drei Buchungen eines Tages nicht
+              unterscheiden. Die sichtbare Zeile darunter ist dafür stumm.
+            */}
+            {(e.customerName || e.projectNumber) && (
+              <span className="sr-only">{e.customerName && ` · ${e.customerName}`}{e.projectNumber && ` ${e.projectNumber}`}</span>
+            )}
             {bearbeitbar && <span className="sr-only"> bearbeiten</span>}
           </>
         ) : (
@@ -696,7 +706,7 @@ export default function TimeView() {
         wischen={kompakt && darfLoeschen(e) ? [{ text: 'Löschen', name: `${datumAT(e.date)} löschen`, gefahr: true, onClick: () => setToDelete(e) }] : undefined}
         subtitle={kompakt ? (
           (e.customerName || e.projectNumber) ? (
-            <span className="zeit-kurz-baustelle">
+            <span className="zeit-kurz-baustelle" aria-hidden="true">
               {e.status !== 'Anwesend' && <span className="zeit-schraffur schraffur" aria-hidden="true" />}
               {e.customerName && <span className="zeit-kurz-name">{e.customerName}</span>}
               {e.projectNumber && <> <span className="zeile-nr">{e.projectNumber}</span></>}
