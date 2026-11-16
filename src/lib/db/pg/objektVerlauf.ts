@@ -24,7 +24,9 @@ export type ObjektVerlaufArt =
   | 'angelegt' | 'geaendert' | 'geloescht'
   | 'gemahnt' | 'ausgefuehrt' | 'konto_umgestellt' | 'urlaubsanspruch_angepasst' | 'urlaubsanspruch_entfernt'
   // K7: eine zweite Leitung hat den zweiten Faktor zurückgesetzt.
-  | 'zweiter_faktor_zurueckgesetzt';
+  | 'zweiter_faktor_zurueckgesetzt'
+  // F16: Rechnung oder Angebot per Mail — gesendet, gescheitert oder (noch) ohne Rückmeldung.
+  | 'per_mail_versendet' | 'mailversand_gescheitert' | 'mailversand_laeuft';
 
 export interface ObjektVerlaufZeile {
   /** `journal` oder die Quelle eines vorhandenen Verlaufs (`mahnung`, …). */

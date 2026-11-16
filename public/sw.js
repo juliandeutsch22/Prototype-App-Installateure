@@ -340,7 +340,12 @@ let angestosseneWechsel = 0;
  * und nichts in der App kann sich mehr melden — die Seite bleibt weiß.
  */
 function huellenBausteine(html) {
-  return [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((m) => m[1]);
+  /*
+    JEDER NUR EINMAL (L10, 17.11.2026): das Stylesheet steht seit L10 zweimal
+    im Kopf (vorab geladen und als Stylesheet), die Schriften als Vorab-Links
+    dazu. Doppelt genannt, holte das Vorhalten es zweimal zugleich.
+  */
+  return [...new Set([...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map((m) => m[1]))];
 }
 
 /** Liegt alles, womit diese Hülle startet, im Speicher? */

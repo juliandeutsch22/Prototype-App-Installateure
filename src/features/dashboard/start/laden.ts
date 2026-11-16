@@ -36,7 +36,7 @@ import { materialdeckung } from '@/lib/db/materialdeckung';
 import { deckungJeEinsatz } from '@/features/assignments/materialDeckung';
 import { lagerKnapp, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
-import { listGarantienEndenIn, listUnpaidInvoiceKoepfe, listInvoicesByIds, scheineUnverrechnet, type GarantieRechnung } from '@/lib/db/invoices';
+import { listGarantienEndenIn, listUnpaidInvoiceKoepfe, listInvoicesByIds, scheineUnverrechnetStand, type GarantieRechnung } from '@/lib/db/invoices';
 import { listZahlungenImZeitraum } from '@/lib/db/zahlungen';
 import { listOwnWorkSheetsSince, scheineNeu, zaehleVerworfeneScheine } from '@/lib/db/workSheets';
 import { zaehleVerworfeneAngebote } from '@/lib/db/quotes';
@@ -67,7 +67,7 @@ import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
 import { einsatzZeit } from '@/features/assignments/einsatzZeit';
 import { montagDer, wocheAb } from '@/features/assignments/wochenplan';
 import { offeneNachtraege, NACHTRAG_TAGE, type OffenerNachtrag } from '@/features/worksheets/zeitNachtrag';
-import { unverrechnetZeilen, unverrechneteStundenZeilen } from '@/features/worksheets/unverrechnet';
+import { auffaelligBis, unverrechneteStundenZeilen } from '@/features/worksheets/unverrechnet';
 import { mahnlauf, type Mahnlauf } from '@/features/invoices/mahnlauf';
 import { basiszinsVerlauf, halbjahresbeginn } from '@/features/invoices/mahnung';
 import { VORLAUF_TAGE } from '@/features/maintenance/wartungsplan';
@@ -81,7 +81,7 @@ import {
   type TagesBaustelle,
   type FehlenZeile,
   type TeamLuecke,
-  type UnverrechneteZeile,
+  type UnverrechneteScheine,
   type OffeneStundenZeile,
   type ZahlungHeute,
   type LehrzeitEndeZeile,
@@ -166,7 +166,8 @@ export interface StartDaten {
   /** Bankgarantien, die bald enden oder gerade geendet haben (seit 10.10.2026). */
   garantien?: (GarantieRechnung & { id: string })[];
   lauf?: Mahnlauf;
-  unverrechnet?: UnverrechneteZeile[];
+  /** Zahl der unverrechneten Scheine über alle, davon über vier Wochen (L22: gezählt in der Datenbank). */
+  unverrechnet?: UnverrechneteScheine;
   /** Regiebaustellen mit unverrechneten Stunden, älteste zuerst (seit 23.10.2026). */
   offeneStunden?: OffeneStundenZeile[];
   zahlungenHeute?: ZahlungHeute[];
@@ -546,8 +547,10 @@ export async function buchhaltung(
     })() : undefined,
     was.scheine ? (async () => {
       out.unverrechnet = await still(async () => {
-        // Über ALLE unterschriebenen Scheine (P3) — dieselbe Antwort wie unter Rechnungen und in der Scheinliste.
-        return unverrechnetZeilen(await scheineUnverrechnet(), heute);
+        // Über ALLE unterschriebenen Scheine (P3), dieselben Regeln wie unter Rechnungen und in der Scheinliste —
+        // gezählt in der Datenbank (L22), denn die Zeile nennt nur Zahl und Alter.
+        const { anzahl, alt } = await scheineUnverrechnetStand(auffaelligBis(heute));
+        return { anzahl, alt };
       }, undefined);
     })() : undefined,
   ]);

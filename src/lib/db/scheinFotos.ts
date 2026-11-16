@@ -12,7 +12,7 @@
  * unterschriebener Schein mehr nachrechnen.
  */
 import type { WorkSheetFoto } from '@/types';
-import { zielMasse, GUETE } from '@/features/worksheets/fotos';
+import { zielMasse, GUETE, MAX_KANTE } from '@/features/worksheets/fotos';
 import * as pg from './pg/scheinFotos';
 
 /**
@@ -29,9 +29,13 @@ import * as pg from './pg/scheinFotos';
  * die Drehung steckt dort nur in den Metadaten, die beim Zeichnen auf ein
  * Canvas verlorengehen.
  */
-export async function komprimiere(datei: Blob): Promise<Blob> {
+/*
+ * `kante` und `guete` nur für andere Verwender (Vorschaubilder im Chat, L4);
+ * der Schein nimmt die Vorgaben — seine Bytes gehen in den Hash am Beleg.
+ */
+export async function komprimiere(datei: Blob, kante = MAX_KANTE, guete = GUETE): Promise<Blob> {
   const bild = await createImageBitmap(datei, { imageOrientation: 'from-image' });
-  const { breite, hoehe } = zielMasse(bild.width, bild.height);
+  const { breite, hoehe } = zielMasse(bild.width, bild.height, kante);
   const flaeche = document.createElement('canvas');
   flaeche.width = breite;
   flaeche.height = hoehe;
@@ -41,7 +45,7 @@ export async function komprimiere(datei: Blob): Promise<Blob> {
   bild.close();
 
   const klein = await new Promise<Blob | null>((fertig) =>
-    flaeche.toBlob(fertig, 'image/jpeg', GUETE),
+    flaeche.toBlob(fertig, 'image/jpeg', guete),
   );
   if (!klein) throw new Error('Das Bild lässt sich auf diesem Gerät nicht verkleinern.');
   /*

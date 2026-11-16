@@ -57,6 +57,12 @@ function anwenden(d: Darstellung): void {
   if (w === 'dunkel') document.documentElement.setAttribute('data-theme', 'dark');
   else document.documentElement.removeAttribute('data-theme');
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', STATUSBALKEN[w]);
+  /*
+    Der Grund am <html> folgt mit (L10): `index.html` setzt dort die helle
+    Papierfarbe, bevor ein Stylesheet da ist. Sonst schiene sie dunkel am
+    Telefon beim Überziehen über den Rand.
+  */
+  document.documentElement.style.backgroundColor = STATUSBALKEN[w];
 }
 
 /** Beim Start, vor dem ersten Zeichnen — sonst blitzt die helle Fläche auf. */

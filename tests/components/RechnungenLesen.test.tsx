@@ -16,7 +16,7 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
 let zeilen: unknown[] = [];
 vi.mock('@/lib/db/invoices', () => ({
-  subscribeRecentInvoices: (_c: string, _m: number, cb: (r: unknown[]) => void) => {
+  subscribeRecentInvoiceKoepfe: (_c: string, _m: number, cb: (r: unknown[]) => void) => {
     cb(zeilen);
     return () => {};
   },

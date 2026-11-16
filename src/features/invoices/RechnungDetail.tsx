@@ -62,8 +62,19 @@ export default function RechnungDetail({
   mahnungen = [],
   onMahnungLaden,
   verlauf,
+  belegLaedt = false,
+  belegFehler = false,
+  onBelegErneut,
 }: {
   inv: Invoice | null;
+  /**
+   * Positionen und Abdeckung kommen erst beim Öffnen (L6). Solange sie
+   * laden, steht das da — eine leere Rechnung wäre eine falsche Aussage.
+   */
+  belegLaedt?: boolean;
+  /** Der Beleg kam nicht — mit „Erneut versuchen“. */
+  belegFehler?: boolean;
+  onBelegErneut?: () => void;
   onClose: () => void;
   aktionen: RechnungAktion[];
   /** Die gespeicherten Mahnungen dieser Rechnung (seit 10.10.2026), älteste zuerst. */
@@ -152,6 +163,20 @@ export default function RechnungDetail({
             {zeile('Bestellnummer des Kunden', inv.bestellnummer)}
           </dl>
         </section>
+
+        {(belegLaedt || belegFehler) && (
+          <section className="rechnung-lesegruppe" aria-label="Leistungen" aria-busy={belegLaedt}>
+            <h3 className="rechnung-lesetitel">Leistungen</h3>
+            {belegLaedt ? (
+              <p className="text-sm text-ink-muted">Leistungen werden geladen …</p>
+            ) : (
+              <p className="text-sm text-ink-muted">
+                Die Leistungen konnten nicht geladen werden — ohne sie gibt es hier kein PDF und keine Handlung.{' '}
+                {onBelegErneut && <Button variant="secondary" onClick={onBelegErneut}>Erneut versuchen</Button>}
+              </p>
+            )}
+          </section>
+        )}
 
         {inv.positions && inv.positions.length > 0 && (
           <section className="rechnung-lesegruppe" aria-label="Leistungen">

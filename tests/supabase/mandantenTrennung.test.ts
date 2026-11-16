@@ -80,6 +80,10 @@ const ZUSATZ: Record<string, (betrieb: string) => Record<string, unknown>> = {
   zeitbuchung_feldwerte: () => ({ typ: 'text', wert: '"Prüfung"' }),
   // M10/B09: eine Runde braucht weder Baustelle noch Paar (Prüfregel über die Art).
   nachrichten_kanaele: () => ({ art: 'runde' }),
+  // F13: die Kennung einer Bankbewegung ist eine Prüfsumme (64 Hex), je Betrieb eindeutig.
+  // F16: ein bis drei Empfänger und die Prüfsumme des Anhangs haben eine Form; gelesen wie die Rechnung.
+  beleg_versand: () => ({ art: 'rechnung', an: '{kunde@mt.test}', anhang_sha256: 'a'.repeat(64) }),
+  bank_buchungen: () => ({ kennung: Array.from(crypto.getRandomValues(new Uint8Array(32)), (x) => x.toString(16).padStart(2, '0')).join('') }),
 };
 
 /*
@@ -117,7 +121,11 @@ const LOHN_UND_RECHNUNG = ['arbeitszeit_begruendungen', 'freistellungen', 'gebur
   'invoices', 'krankmeldungen', 'mahnungen', 'time_entries', 'urlaubsanspruch_anpassungen', 'vacations', 'zahlungseingaenge',
   'zeitbuchung_verlauf', 'zeitkonto_anfang',
   // M06b: die Werte der freien Zeitfelder — wer die Buchung liest.
-  'zeitbuchung_feldwerte', 'zeitsitzungen', 'zeitkorrekturen'];
+  'zeitbuchung_feldwerte', 'zeitsitzungen', 'zeitkorrekturen',
+  // F13: verbuchte Bankbewegungen lesen wie die Zahlungseingänge.
+  'bank_buchungen',
+  // F16: der Mailversand einer Rechnung liest wie die Rechnung (der eines Angebots wie das Angebot, `belegMail.test.ts`).
+  'beleg_versand'];
 /**
  * Kunden, Lager, Anforderungen, Pläne, UID-Prüfungen und der Auftragseingang
  * (M02b: wer Kunden liest, liest Eingänge): das Büro und die Leitung.
@@ -128,7 +136,9 @@ const BUERO = ['auftragseingaenge', 'customers', 'lagerbewegungen', 'material_or
   // M02c: Liegenschaften, Tops und Beteiligte lesen wie Kunden — das Büro und die Leitung.
   'liegenschaft_beteiligte', 'liegenschaft_tops', 'liegenschaften',
   // M3 (Welle 2): der Verbrauch am Schein — wer Scheine prüft und verrechnet.
-  'schein_verbrauch'];
+  'schein_verbrauch',
+  // F14: die Zähllisten der Inventur lesen wie das Bewegungsprotokoll.
+  'inventur_zeilen', 'inventuren'];
 /** Einkaufspreise, Preislisten, Kostensätze, Katalogdateien, Kontoumstellungen, Systemläufe: nur die Spitze. */
 const SPITZE = ['betrieb_kostensaetze', 'datanorm_laeufe', 'datanorm_zeilen', 'konto_umstellungen', 'material_einkaufspreise',
   'material_prices', 'rabattsaetze', 'system_laeufe',
@@ -456,6 +466,21 @@ const OHNE_EIGENE_PRUEFUNG: Record<string, string> = {
   'public.rechtstexte_aktuell()':
     'liefert Impressum, Datenschutzerklärung und Betreiberangaben in der geltenden Fassung — öffentliche Texte, '
     + 'die jeder lesen muss (§ 5 ECG, Art. 13 DSGVO); nie einen Entwurf, nichts aus einem Betrieb',
+  // G12: liest nur über `naechste_nummern`, die Anmeldung und Betrieb des Aufrufers prüft (`app.angemeldet`, `app.arbeitsbetrieb`).
+  'public.naechste_nummern_vorschau()':
+    'gibt die Zeilen von `public.naechste_nummern(jahr)` mit dem Jahr in Wien zurück; dort steht die Prüfung '
+    + '(angemeldet und einem Betrieb zugeordnet, sonst keine Zeile)',
+  // F9: Betriebsmitglied und Kundenrecht prüft `app.kunden_zusammenfuehren_pruefen`, bevor gelesen wird.
+  'public.kunden_zusammenfuehren_vorschau(p_bleibt uuid, p_geht uuid)':
+    'ruft zuerst `app.kunden_zusammenfuehren_pruefen` (beide Kunden im Betrieb des Aufrufers, `app.betriebsmitglied`, '
+    + '`app.darf_kunden_pflegen`) und erst danach die Lage',
+  // F14: Betrieb und Rolle prüft `app.inventur_recht` (`app.betriebsmitglied`, Verwaltung oder Führung) als ersten Schritt.
+  'public.inventur_artikel_hinzufuegen(p_inventur uuid, p_material uuid)':
+    'prüft über `app.inventur_recht` (Betriebsmitglied der Zählliste, Verwaltung oder Führung), bevor etwas geschieht',
+  'public.inventur_verwerfen(p_inventur uuid)':
+    'prüft über `app.inventur_recht` (Betriebsmitglied der Zählliste, Verwaltung oder Führung), bevor etwas geschieht',
+  'public.inventur_vorschau(p_inventur uuid)':
+    'prüft über `app.inventur_recht` (Betriebsmitglied der Zählliste, Verwaltung oder Führung), bevor gelesen wird',
 };
 /*
   Welle 2 (15.11.2026): `verrechnung_betrieb` (Scheine, P3), `arbeitszeit_person`

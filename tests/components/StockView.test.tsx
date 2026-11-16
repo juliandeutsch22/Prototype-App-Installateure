@@ -144,6 +144,16 @@ vi.mock('@/features/materials/OffeneLieferantenartikel', () => ({
   default: () => <div>Offene Lieferantenartikel (Inhalt)</div>,
 }));
 
+// F14: die Zähllisten im Reiter „Inventur“ — die Liste selbst prüft `ZaehllisteView.test.tsx`.
+vi.mock('@/lib/db/inventur', () => ({
+  inventurListen: vi.fn(async () => [{
+    id: 'i1', ort: 'h', ortName: 'Hauptlager', bezeichnung: 'Jahresinventur', stichtag: null, zustand: 'offen',
+    angelegtAm: Date.parse('2026-11-17T08:00:00Z'), angelegtVonName: 'Vera', gebuchtAm: null, gebuchtVonName: null,
+    artikel: 10, gezaehlt: 3, abweichend: 0,
+  }]),
+  inventurAnlegen: vi.fn(),
+}));
+
 function zeige(adresse = '/lager') {
   return render(
     <MemoryRouter initialEntries={[adresse]}>
@@ -1178,5 +1188,27 @@ describe('Kommissionsware aus dem Lager nehmen (M6)', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Kommissionsware aus dem Lager nehmen …' }));
     expect(await screen.findByText('Kein Artikel kam nur als Kommissionsware ins Lager.')).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { name: 'Kommissionsware aus dem Lager nehmen?' })).toBeNull();
+  });
+});
+
+/* F14 (Durchsicht 15.11.2026): Inventur als Zählliste je Ort. */
+describe('Lager — Reiter „Inventur“ (F14)', () => {
+  it('zeigt die offenen Zähllisten mit ihrem Fortschritt; der Reiter steht in der Adresse', async () => {
+    zeige('/lager?reiter=inventur');
+    expect(await screen.findByText('Hauptlager · Jahresinventur')).toBeInTheDocument();
+    expect(screen.getByText('3 von 10 gezählt')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Neue Zählliste' })).toBeInTheDocument();
+  });
+
+  it('der Reiter ist von „Bestand“ aus erreichbar', async () => {
+    zeige();
+    await userEvent.click(within(await screen.findByRole('group', { name: 'Bereich' })).getByRole('button', { name: /Inventur/ }));
+    expect(screen.getByTestId('adresse').textContent).toBe('/lager?reiter=inventur');
+  });
+
+  it('bleibt gleich: die Einzelinventur im ⋯ der Seite', async () => {
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /^Weitere Aktionen für Lager/ }));
+    expect(screen.getByRole('menuitem', { name: 'Inventur …' })).toBeInTheDocument();
   });
 });

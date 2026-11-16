@@ -3,7 +3,6 @@ src/lib/db/assignments.ts#listAssignmentsForDate: (companyId: string, date: stri
 src/lib/db/assignments.ts#listAssignmentsForUserInRange: (companyId: string, uid: string, from: string, to: string) => Promise<WithId<Assignment>[]>
 src/lib/db/assignments.ts#listUpcomingAssignments: (companyId: string, uid: string, from: string, max?: number) => Promise<WithId<Assignment>[]>
 src/lib/db/assignments.ts#saveAssignments: (companyId: string, date: string, projectNumber: string, rows: AssignmentInput[], grundlage?: PaarGrundlage) => Promise<void>
-src/lib/db/assignments.ts#subscribeAssignmentsForMonth: (companyId: string, year: number, month: number, cb: (rows: WithId<Assignment>[]) => void, onError: (e: Error) => void) => () => void
 src/lib/db/assignments.ts#subscribeAssignmentsInRange: (companyId: string, from: string, to: string, cb: (rows: WithId<Assignment>[]) => void, onError: (e: Error) => void) => () => void
 src/lib/db/benutzerVorgaben.ts#DEFAULT_VACATION_DAYS: 25
 src/lib/db/benutzerVorgaben.ts#DEFAULT_WEEKLY_HOURS: 40
@@ -37,7 +36,6 @@ src/lib/db/invoices.ts#mahnungFesthalten: (id: string, daten: { stufe: number; g
 src/lib/db/invoices.ts#nextInvoiceNumber: (existing: (Pick<Invoice, "invoiceNumber"> & Partial<Pick<Invoice, "stornoNummer">>)[], praefix?: string) => string
 src/lib/db/invoices.ts#reactivateInvoice: (inv: WithId<Invoice>) => Promise<void>
 src/lib/db/invoices.ts#schlussrechnungenOhneAbzug: () => Promise<SchlussOhneAbzug[]>
-src/lib/db/invoices.ts#subscribeRecentInvoices: (companyId: string, max: number, cb: (rows: WithId<Invoice>[]) => void, onError: (e: Error) => void, geaendert?: () => void) => () => void
 src/lib/db/invoices.ts#updateInvoiceStatus: (id: string, paymentStatus: pg.SetzbarerStand) => Promise<void>
 src/lib/db/laeufe.ts#ausleitungJetzt: () => Promise<pg.AusleitungsBilanz>
 src/lib/db/laeufe.ts#ladeLauf: <A extends LaufArt>(companyId: string, art: A) => Promise<Lauf<A> | undefined>
@@ -97,7 +95,7 @@ src/lib/db/quotes.ts#updateQuote: (id: string, data: pg.AngebotAenderung) => Pro
 src/lib/db/scheinFotos.ts#fotoAdresse: (pfad: string) => Promise<string>
 src/lib/db/scheinFotos.ts#fotoEntfernen: (pfad: string) => Promise<void>
 src/lib/db/scheinFotos.ts#fotoHochladen: (companyId: string, scheinId: string, daten: Blob, geraetZeit: number) => Promise<WorkSheetFoto>
-src/lib/db/scheinFotos.ts#komprimiere: (datei: Blob) => Promise<Blob>
+src/lib/db/scheinFotos.ts#komprimiere: (datei: Blob, kante?: number, guete?: number) => Promise<Blob>
 src/lib/db/timeEntries.ts#DuplicateEntryError: typeof DuplicateEntryError
 src/lib/db/timeEntries.ts#createTimeEntry: (companyId: string, entry: NewTimeEntry) => Promise<string>
 src/lib/db/timeEntries.ts#createTimeEntryOhneEmpfang: (companyId: string, entry: NewTimeEntry) => Promise<WriteOutcome>

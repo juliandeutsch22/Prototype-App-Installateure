@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { schluessel as speicherSchluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import Adressfilter from '@/components/Adressfilter';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -19,7 +20,8 @@ import WartungVerlauf from './WartungVerlauf';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
 import { listProjectsByNumbers, listRecentProjects } from '@/lib/db/projects';
-import { belegNummer, hoechsteLfdImJahr, praefixeVon } from '@/lib/praefixe';
+import { praefixeVon } from '@/lib/praefixe';
+import { useBaustellenVorschlag } from '@/features/projects/useBaustellenVorschlag';
 import { isGF } from '@/lib/permissions';
 import { todayStr } from '@/lib/time';
 import { useModul } from '@/lib/useModule';
@@ -140,6 +142,8 @@ interface Einplanung {
   nummer: string;
   /** Der Vorschlag, wie er ins Feld kam — bleibt er stehen, vergibt der Zähler. */
   vorschlag: string;
+  /** Ohne Verbindung gerechnet (Jahr vom Gerät) — dann nur ein Beispiel. */
+  beispiel: boolean;
 }
 
 /**
@@ -197,10 +201,30 @@ export default function WartungenView() {
   const vorsaetze = praefixeVon(company);
   const toast = useToast();
   const navigate = useNavigate();
-  const [wartungen, setWartungen] = useState<WithId<Wartung>[]>([]);
-  const [loading, setLoading] = useState(true);
+  /*
+    SUCHE IN DER ADRESSE, GEMERKTER STAND (L8, 17.11.2026) — das Muster der
+    Baustellen: zurück aus einer Akte steht die Liste sofort so da, wie sie
+    verlassen wurde; frisch geholt wird im Hintergrund.
+  */
+  const [adresse, setAdresse] = useSearchParams();
+  const { anfang: gemerkt, merken } = useGemerkt<{ wartungen: WithId<Wartung>[]; nummern: string[] }>(
+    user ? speicherSchluessel('wartungsliste', user) : null,
+  );
+  /** Der erste Lauf mit gemerktem Stand lädt im Hintergrund, ohne Platzhalter. */
+  const stillLaden = useRef(gemerkt?.wartungen !== undefined);
+  const [wartungen, setWartungen] = useState<WithId<Wartung>[]>(() => gemerkt?.wartungen ?? []);
+  const [loading, setLoading] = useState(() => gemerkt?.wartungen === undefined);
   const [error, setError] = useState<string | null>(null);
-  const [suche, setSuche] = useState('');
+  const [suche, setSucheFeld] = useState(() => adresse.get('suche') ?? '');
+  const setSuche = (text: string) => {
+    setSucheFeld(text);
+    setAdresse((alt) => {
+      const p = new URLSearchParams(alt);
+      if (text.trim()) p.set('suche', text);
+      else p.delete('suche');
+      return p;
+    }, { replace: true });
+  };
   const [form, setForm] = useState<NewWartung>(LEER);
   const [bearbeitet, setBearbeitet] = useState<WithId<Wartung> | null>(null);
   const [formOffen, setFormOffen] = useState(false);
@@ -223,7 +247,9 @@ export default function WartungenView() {
     der teuerste Fehler dieser Kette, weil Zeiten, Scheine und Rechnungen an
     der Nummer hängen und nicht an der Dokument-ID.
   */
-  const [nummern, setNummern] = useState<string[]>([]);
+  const [nummern, setNummern] = useState<string[]>(() => gemerkt?.nummern ?? []);
+  // Das Jahr vom Server, wie die Vergabe (Befund aus G12); ohne Verbindung das des Geräts.
+  const baustellenVorschlag = useBaustellenVorschlag(nummern, vorsaetze.baustelle);
   /*
     Wie weit der Bestand geladen ist. Vorher stand hier die Voreinstellung der
     Abfrage — fünfhundert —, und ein Betrieb mit mehr Vereinbarungen verlor
@@ -236,15 +262,16 @@ export default function WartungenView() {
   const darfAendern = user ? isGF(user.role) : false;
   const heute = todayStr();
   /** „Fällig, ohne Baustelle“ aus der Adresse — von der Startseite (Nachtest 01.10.2026). */
-  const [adresse, setAdresse] = useSearchParams();
   const nurOhneBaustelle = adresse.get('filter') === 'faellig-ohne-baustelle';
   const ansicht: Ansicht = adresse.get('ansicht') === 'alle' ? 'alle' : 'anstehend';
   function ansichtWaehlen(neu: Ansicht) {
     // Den Filter von der Startseite lässt die Wahl stehen; „Alle zeigen“ nimmt ihn weg.
-    const p = new URLSearchParams(adresse);
-    if (neu === 'anstehend') p.delete('ansicht');
-    else p.set('ansicht', neu);
-    setAdresse(p, { replace: true });
+    setAdresse((alt) => {
+      const p = new URLSearchParams(alt);
+      if (neu === 'anstehend') p.delete('ansicht');
+      else p.set('ansicht', neu);
+      return p;
+    }, { replace: true });
   }
   /** Welche Vereinbarung im Seitenfenster steht — die Kennung, damit nach dem Neuladen der frische Stand gilt. */
   const [einzelheitenId, setEinzelheitenId] = useState<string | null>(null);
@@ -296,7 +323,8 @@ export default function WartungenView() {
   useEffect(() => {
     if (!companyId) return;
     let weg = false;
-    setLoading(true);
+    if (stillLaden.current) stillLaden.current = false;
+    else setLoading(true);
     void (async () => {
       try {
         const [w, p] = await Promise.all([
@@ -313,6 +341,8 @@ export default function WartungenView() {
         setWartungen(w);
         setNummern(p.map((x) => x.projectNumber));
         setError(null);
+        // Gemerkt nur die erste Seite — „weitere laden“ beginnt beim nächsten Besuch wieder oben.
+        if (grenze === WARTUNGEN_JE_SEITE) merken({ wartungen: w, nummern: p.map((x) => x.projectNumber) });
       } catch (e) {
         if (!weg) setError((e as Error).message);
       } finally {
@@ -322,11 +352,13 @@ export default function WartungenView() {
     return () => {
       weg = true;
     };
-  }, [companyId, grenze]);
+  }, [companyId, grenze, merken]);
 
   const neuLaden = async () => {
     if (!companyId) return;
-    setWartungen(await listWartungen(companyId, grenze));
+    const w = await listWartungen(companyId, grenze);
+    setWartungen(w);
+    if (grenze === WARTUNGEN_JE_SEITE) merken({ wartungen: w });
   };
 
   /*
@@ -669,12 +701,8 @@ export default function WartungenView() {
     });
 
   const einplanenFragen = (w: WithId<Wartung>) => {
-    const vorschlag = belegNummer(
-      vorsaetze.baustelle,
-      new Date().getFullYear(),
-      hoechsteLfdImJahr(nummern, new Date().getFullYear()) + 1,
-    );
-    setEinplanung({ wartung: w, nummer: vorschlag, vorschlag });
+    const { vorschlag, vomServer } = baustellenVorschlag;
+    setEinplanung({ wartung: w, nummer: vorschlag, vorschlag, beispiel: !vomServer });
   };
 
   /*
@@ -1206,7 +1234,9 @@ export default function WartungenView() {
               gespeichert wird, und dabei wird sie noch einmal geprüft.
             */}
             <p className="flex flex-wrap items-center text-sm text-ink-muted">
-              Vorgeschlagen nach dem Schema des Betriebs — änderbar.
+              {!einplanung.beispiel || einplanung.nummer !== einplanung.vorschlag
+                ? 'Vorgeschlagen nach dem Schema des Betriebs — änderbar.'
+                : 'Beispiel nach dem Schema des Betriebs, ohne Verbindung zum Server (Jahr vom Gerät) — die Nummer vergibt der Server beim Anlegen.'}
               <InfoHint about="die neue Baustelle">
                 Die Baustelle entsteht mit Kunde, Standort und der Anlage in der Beschreibung;
                 einzuteilen ist sie danach im Einsatzplan. Die Abrechnungsart bleibt offen: was

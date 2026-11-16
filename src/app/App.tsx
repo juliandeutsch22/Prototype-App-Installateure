@@ -62,6 +62,7 @@ const TimeView = ansicht('/time', () => import('@/features/time/TimeView'));
 const OrderView = ansicht('/material', () => import('@/features/orders/OrderView'));
 const AdminOrdersView = ansicht('/anforderungen', () => import('@/features/orders/AdminOrdersView'));
 const StockView = ansicht('/lager', () => import('@/features/orders/StockView'));
+const ZaehllisteView = ansicht('/lager', () => import('@/features/orders/ZaehllisteView'));
 const AdminProjectsView = ansicht('/admin-projects', () => import('@/features/projects/AdminProjectsView'));
 const BaustellenakteView = ansicht('/admin-projects', () => import('@/features/projects/BaustellenakteView'));
 const CustomersView = ansicht('/customers', () => import('@/features/customers/CustomersView'));
@@ -86,6 +87,7 @@ const AssignmentsView = ansicht('/assignments', () => import('@/features/assignm
 const MyScheduleView = ansicht('/my-schedule', () => import('@/features/assignments/MyScheduleView'));
 const WochenplanView = ansicht(['/assignments', '/my-schedule'], () => import('@/features/assignments/WochenplanView'));
 const RechnungenSeite = ansicht('/invoices', () => import('@/features/invoices/RechnungenSeite'));
+const KontoauszugView = ansicht('/invoices', () => import('@/features/invoices/KontoauszugView'));
 const AccountingView = ansicht('/accounting', () => import('@/features/accounting/AccountingView'));
 const UserMgmtView = ansicht('/user-mgmt', () => import('@/features/users/UserMgmtView'));
 const BenutzerakteView = ansicht('/user-mgmt', () => import('@/features/users/BenutzerakteView'));
@@ -397,6 +399,8 @@ function AppRoutes() {
         element={<RequireNav path="/anforderungen"><AdminOrdersView /></RequireNav>}
       />
       <Route path="/lager" element={<RequireNav path="/lager"><StockView /></RequireNav>} />
+      {/* F14: eine Zählliste — wer das Lager sieht, sieht auch sie (`path="/lager"`). */}
+      <Route path="/lager/inventur/:id" element={<RequireNav path="/lager"><ZaehllisteView /></RequireNav>} />
       {/*
         Die Unterreiter-Adressen bleiben als Weiterleitung bestehen: sie
         stehen in Lesezeichen und in den Meldungen, die schon verschickt
@@ -616,6 +620,21 @@ function AppRoutes() {
 
       {/* Buchhaltung */}
       <Route path="/invoices" element={<RequireNav path="/invoices"><RechnungenSeite /></RequireNav>} />
+      {/*
+        DER KONTOAUSZUG (F13) unter derselben Prüfung wie die Rechnungen —
+        dazu nur, wer Zahlungen erfasst: die Projektleitung liest Rechnungen,
+        verbucht aber nichts (die Datenbank weist sie ebenso ab).
+      */}
+      <Route
+        path="/invoices/kontoauszug"
+        element={
+          <RequireNav path="/invoices">
+            <RequireRole roles={['Buchhaltung', 'Geschäftsführung', 'Administrator']}>
+              <KontoauszugView />
+            </RequireRole>
+          </RequireNav>
+        }
+      />
       <Route
         path="/accounting"
         element={<RequireNav path="/accounting"><AccountingView /></RequireNav>}

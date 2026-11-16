@@ -12,7 +12,8 @@ import {
   listOwnEntriesInRange,
   stundenDerBaustellen,
   deleteTimeEntry,
-  subscribeUrlaubstage,
+  beobachteUrlaubstage,
+  type Urlaubstag,
 } from '@/lib/db/timeEntries';
 import { listFeldwerte } from '@/lib/db/zeitfelder';
 import { offeneAngaben, werteJeBuchung } from '@/lib/zeitfelder';
@@ -164,7 +165,13 @@ export default function AccountingView() {
   /** Für welche Baustellennummern `gesamtFach` gilt; `null` = noch für keine. */
   const [fachFuer, setFachFuer] = useState<string | null>(() => anfang?.fach?.fuer ?? null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [belegschaftFehler, setError] = useState<string | null>(null);
+  /*
+    DER FEHLER DER BUCHUNGEN FÜR SICH (Z10): kommt die Live-Liste wieder,
+    nimmt sie ihn zurück — ohne einen Fehler der Belegschaft mitzunehmen.
+  */
+  const [eintraegeFehler, setEintraegeFehler] = useState<string | null>(null);
+  const error = belegschaftFehler ?? eintraegeFehler;
   /** Ein Nebenladevorgang ist ausgefallen — die Auswertung steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
@@ -362,10 +369,11 @@ export default function AccountingView() {
       ladenBis,
       (rows) => {
         setEntries(rows);
+        setEintraegeFehler(null);
         setLoading(false);
       },
       (e) => {
-        setError(e.message);
+        setEintraegeFehler(e.message);
         setLoading(false);
       },
     );
@@ -418,7 +426,13 @@ export default function AccountingView() {
     rechnen), mindestens aber ab Jahresbeginn (für „Urlaub im Jahr“). Erst
     mit der Belegschaft, sonst begänne die Abfrage zweimal.
   */
-  const [urlaubAlle, setUrlaubAlle] = useState<WithId<TimeEntry>[]>([]);
+  /*
+    JE PERSON DIE TAGE, NICHT DIE GANZEN BUCHUNGEN (L5): gelesen werden hier
+    nur Person und Tag. Vorher kamen alle Urlaubsbuchungen seit dem
+    frühesten Start als ganze Zeilen — bei 50 Personen und zehn Jahren
+    9.795 Zeilen, 8,2 MB; jetzt 127 KB.
+  */
+  const [urlaubAlle, setUrlaubAlle] = useState<Urlaubstag[]>([]);
   /** Für welchen Zeitraum `urlaubAlle` steht (oder scheiterte); `null` = noch für keinen. */
   const [urlaubFuer, setUrlaubFuer] = useState<string | null>(null);
   /*
@@ -438,7 +452,7 @@ export default function AccountingView() {
 
   useEffect(() => {
     if (!user || !belegschaftDa) return;
-    return subscribeUrlaubstage(
+    return beobachteUrlaubstage(
       user.companyId,
       urlaubVon,
       `${year}-12-31`,
@@ -461,7 +475,7 @@ export default function AccountingView() {
 
   /** Je Person die Urlaubstage: des Jahres (für „Urlaub im Jahr“) und seit dem frühesten Start (der Verlauf). */
   const urlaubJePerson = useMemo(() => {
-    const m = new Map<string, { jahr: WithId<TimeEntry>[]; verlauf: WithId<TimeEntry>[] }>();
+    const m = new Map<string, { jahr: Urlaubstag[]; verlauf: Urlaubstag[] }>();
     for (const e of urlaubAlle) {
       const p = m.get(e.userId) ?? { jahr: [], verlauf: [] };
       if (e.date.startsWith(String(year))) p.jahr.push(e);
@@ -628,8 +642,9 @@ export default function AccountingView() {
           ohneSoll,
           monthEntries,
           vorlauf: ihre.filter((e) => e.date >= wochenbeginn && e.date < erster),
-          // Vom Jahr zählt hier nur der Urlaub (`yearlyUrlaubDays`) — die übrigen Buchungen des Jahres braucht die Rechnung nicht.
-          stats: calcMonthStats(u, monthEntries, urlaub?.jahr ?? [], year, month, halbeTage, {
+          // Vom Jahr zählt hier nur der Urlaub (`yearlyUrlaubDays`) — die übrigen Buchungen des Jahres braucht die Rechnung nicht,
+          // und von ihm nur Status und Tag: mehr trägt ein Urlaubstag nicht (L5).
+          stats: calcMonthStats(u, monthEntries, (urlaub?.jahr ?? []) as TimeEntry[], year, month, halbeTage, {
             verlauf: (urlaub?.verlauf ?? []).map((e) => ({ von: e.date, tage: tagesAnteil(e.date, halbeTage) })),
             regel: urlaubsRegel,
             anpassungen: anpassungen.filter((a) => a.userId === u.uid),

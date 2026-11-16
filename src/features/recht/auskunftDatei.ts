@@ -27,6 +27,10 @@ export const SOFORT_GELOESCHT: Record<string, string> = {
   passwort_anfragen: 'Bitten um ein neues Passwort',
   // K9 (N5): die Umstellungen des Kontos zwischen E-Mail und Benutzername — und bei dem, der umstellte, sein Name daran.
   kontoumstellungen: 'Umstellungen der Anmeldung (E-Mail / Benutzername)',
+  // F13: verbuchte Bankbewegungen bleiben (Wiederholungssperre), nur ohne ihren Namen.
+  bank_buchungen: 'Ihr Name an verbuchten Bewegungen eines Kontoauszugs',
+  // F16: der Versand bleibt im Verlauf des Belegs, nur ohne ihren Namen.
+  beleg_versand: 'Ihr Name an Rechnungen, Mahnungen und Angeboten per Mail',
   startseite: 'Eingerichtete Startseite',
   fehlerprotokoll: 'Einträge im Fehlerprotokoll',
   einsaetze: 'Einsätze',
@@ -40,11 +44,15 @@ export const SOFORT_GELOESCHT: Record<string, string> = {
   nachrichten_teilnehmer: 'Teilnahmen an Gesprächen',
   // E77: Reaktionen gehen mit der Person — auf eigene wie auf fremde Nachrichten.
   nachricht_reaktionen: 'Reaktionen auf Nachrichten',
+  // F14: Name und Kennung an Zählungen in offenen Zähllisten; gebuchte Inventurprotokolle bleiben aufbewahrt.
+  offene_zaehllisten: 'Zählungen in offenen Zähllisten der Inventur',
   geburtsdatum: 'Geburtsdatum',
   wartungen: 'Wartungen',
   kontaktdaten: 'Kontaktdaten (Ansprechpartner, Telefon, E-Mail, Notizen)',
   // M02a: nicht gelöscht, aber beendet — wer gelöscht werden will, löst keine Baustelle mehr aus.
   annahme_links: 'Offene Annahme-Links (werden widerrufen)',
+  // F16: Zeitpunkt, Beleg und Betreff bleiben neben dem aufbewahrten Beleg, die Adressen gehen.
+  mailversand_adressen: 'Empfängeradressen von Rechnungen, Mahnungen und Angeboten per Mail',
   // M02b: übernommene bleiben bei ihrer Baustelle bzw. ihrem Angebot, ohne Kontaktdaten.
   auftragseingaenge: 'Offene und abgelehnte Auftragseingänge',
   // M02c: an welchen Liegenschaften er beteiligt war — samt den Werten im Änderungsverlauf.

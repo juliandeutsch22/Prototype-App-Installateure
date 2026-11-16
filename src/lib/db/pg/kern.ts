@@ -39,6 +39,9 @@ export const NACHFASSEN_MS = 1200;
  */
 export const BUENDELN_MS = 50;
 
+/** Abstände, in denen eine Live-Liste ein gescheitertes Laden wiederholt (Z10). */
+export const WIEDERHOLEN_MS = [2000, 5000, 15000, 30000, 60000];
+
 /**
  * Der Client, mit dem diese Schicht arbeitet.
  *
@@ -101,6 +104,17 @@ export interface Abfrage {
    * verlieren — und genau dort sitzt das Risiko.
    */
   oder?: string | null;
+  /**
+   * DIE SUCHE ÜBER DEN INDEX (Befund 1 zu L3, Durchsicht 15.11.2026): statt
+   * `or(spalte.ilike.…)` die Funktion `suche_<tabelle>`, die die Treffer über
+   * den Trigramm-Index findet und die Zeilen mit der Leseregel des Aufrufers
+   * liefert. Mit Zeilenschutz wertet Postgres `ilike` nie über einen Index
+   * aus — jede Suche lief als Durchlauf über die Tabelle aller Betriebe.
+   * `begriff` sucht `%begriff%` in den Spalten (leer = keine Suche, alle
+   * Zeilen wie ohne `oder`), `muster` fertige Muster in der ersten Spalte.
+   * Alles andere (Bedingungen, Reihenfolge, Grenze, Zählung) wie gewohnt.
+   */
+  suche?: { spalten: string[]; begriff?: string; muster?: string[] };
   /**
    * Welche Spalten (PostgREST-`select`), ohne Angabe alle. Für Listen, die
    * schwere Spalten nicht brauchen — etwa die Unterschriftsbilder der
@@ -197,6 +211,26 @@ function zweitschluessel(tabelle: string): string[] {
   // deshalb seitenweise, und dafür braucht es diesen Schlüssel.
   if (tabelle === 'lagerbestaende') return ['lagerort_id', 'material_id'];
   return ['id'];
+}
+
+/**
+ * Die Spalten einer Suche über `suche_<tabelle>` — mit allem, wonach sortiert wird.
+ *
+ * PostgREST sortiert das Ergebnis einer FUNKTION nur nach Spalten, die es auch
+ * ausgibt: `select=id&order=created_at` scheitert mit „column … does not
+ * exist“, bei einer Tabelle nicht. So brach die Suche nach Angebotsnummer ab
+ * (Integration Welle 3, `sucheNummern.test.ts`). Die zusätzlichen Spalten
+ * stehen danach in der Zeile — ein Feld mehr, das niemand liest.
+ */
+export function spaltenFuerSuche(abfrage: Pick<Abfrage, 'spalten' | 'sortiere'>, tabelle: string): string | undefined {
+  const spalten = abfrage.spalten;
+  if (!spalten || spalten.trim() === '*') return spalten;
+  const da = new Set(spalten.split(',').map((t) => t.trim()));
+  const noetig = [
+    ...(abfrage.sortiere ? [alsSpalteSicher(abfrage.sortiere.feld)] : []),
+    ...zweitschluessel(tabelle),
+  ].filter((t) => !da.has(t));
+  return noetig.length ? `${spalten},${[...new Set(noetig)].join(',')}` : spalten;
 }
 
 /** Feldnamen kommen aus dem Quelltext, nie aus Eingaben — trotzdem geprüft. */
@@ -318,6 +352,19 @@ export async function zaehlen(
   return count ?? 0;
 }
 
+/**
+ * Die Argumente für `suche_<tabelle>` — oder `null`, wenn nichts gesucht
+ * wird (leerer Begriff, keine Muster): dann gilt die Tabelle selbst, wie
+ * bisher ohne `oder`.
+ */
+export function mitSuche(abfrage: Abfrage): { p_spalten: string[]; p_begriff: string | null; p_muster: string[] | null } | null {
+  const s = abfrage.suche;
+  if (!s) return null;
+  if (s.muster) return s.muster.length > 0 ? { p_spalten: s.spalten, p_begriff: null, p_muster: s.muster } : null;
+  const begriff = (s.begriff ?? '').trim();
+  return begriff ? { p_spalten: s.spalten, p_begriff: begriff, p_muster: null } : null;
+}
+
 /** Abfrage innerhalb eines Mandanten. */
 export async function abfragen<T>(
   tabelle: string,
@@ -365,13 +412,17 @@ export async function abfragen<T>(
   const c = derClient(client);
   const gesamt: Record<string, unknown>[] = [];
 
+  const suche = mitSuche(abfrage);
+  const sucheSpalten = suche ? spaltenFuerSuche(abfrage, tabelle) : undefined;
   /** Eine Seite holen; auf Wunsch mit der Gesamtzahl der passenden Zeilen. */
   const seite = async (von: number, anzahl: number, zaehlen: boolean) => {
-    const bauer = anwenden(
-      (zaehlen
+    const quelle = suche
+      ? c.rpc(`suche_${tabelle}`, suche, zaehlen ? { count: 'exact' } : undefined).select(sucheSpalten ?? '*')
+      : zaehlen
         ? c.from(tabelle).select(abfrage.spalten ?? '*', { count: 'exact' })
-        : c.from(tabelle).select(abfrage.spalten ?? '*')
-      ).eq('company_id', companyId) as unknown as Filterbar,
+        : c.from(tabelle).select(abfrage.spalten ?? '*');
+    const bauer = anwenden(
+      quelle.eq('company_id', companyId) as unknown as Filterbar,
       // `grenze` wird HIER nicht mitgegeben: sie steckt schon in `anzahl`,
       // und ein `limit` neben einem `range` liefert deren Schnittmenge —
       // also beim zweiten Durchgang nichts mehr.
@@ -880,11 +931,52 @@ export function abonnieren<T>(
       puffer.length = 0;
       bereit = true;
       bestandGilt = true;
+      gelungen();
       melden();
     } catch (e) {
       bereit = true;
       onError(e as Error);
+      nachFehler = true;
+      erneutVersuchen();
     }
+  };
+
+  /*
+    OHNE NETZ BLEIBT DER LETZTE STAND STEHEN (Z10, 17.11.2026).
+
+    Nachgestellt: die Liste stand, das Nachfassen nach dem Aufbau des Kanals
+    fiel ins Funkloch — und kam als Ladefehler bei der Ansicht an, die ihre
+    Liste daraufhin durch „Das hat nicht geklappt — Failed to fetch“
+    ersetzte. Kam das Netz zurück und hatte sich nichts geändert, gab es kein
+    neues Bild, und der Fehler blieb stehen.
+
+    Jetzt, für alle Live-Listen: ein gescheiterter ABGLEICH meldet nichts —
+    der Bestand gilt weiter; dass die Verbindung fehlt, sagt `liveVerbindung`.
+    Gescheitertes wird mit wachsendem Abstand wiederholt, auch wenn der Kanal
+    nie abriss (nur die Abfragen kamen nicht durch). Gelingt es nach einem
+    Fehler, gibt es ein Bild, auch ohne Änderung — damit eine Ansicht, die
+    einen Ladefehler zeigte, ihn zurücknehmen kann.
+  */
+  let wiederholung: ReturnType<typeof setTimeout> | undefined;
+  let fehlversuche = 0;
+  /** Ein Fehler steht (gemeldet oder still) — der nächste Erfolg zeichnet in jedem Fall. */
+  let nachFehler = false;
+  const erneutVersuchen = () => {
+    if (abgemeldet || wiederholung) return;
+    const ms = WIEDERHOLEN_MS[Math.min(fehlversuche, WIEDERHOLEN_MS.length - 1)];
+    fehlversuche += 1;
+    wiederholung = setTimeout(() => {
+      wiederholung = undefined;
+      if (!abgemeldet) void abgleichen();
+    }, ms);
+  };
+  const gelungen = () => {
+    fehlversuche = 0;
+    if (wiederholung) clearTimeout(wiederholung);
+    wiederholung = undefined;
+    const warFehler = nachFehler;
+    nachFehler = false;
+    return warFehler;
   };
 
   /**
@@ -949,11 +1041,13 @@ export function abonnieren<T>(
       for (const n of puffer) anwendenAenderung(n);
       puffer.length = 0;
       bereit = true;
-      // Nichts geändert: kein neues Bild — die Seiten zeichneten sonst umsonst.
-      if (geaendert) melden();
-    } catch (e) {
+      // Nichts geändert: kein neues Bild — die Seiten zeichneten sonst umsonst. Außer nach einem Fehler (Z10).
+      if (gelungen() || geaendert) melden();
+    } catch {
+      // Der Bestand gilt weiter (Z10): nichts melden, später noch einmal.
       bereit = true;
-      onError(e as Error);
+      nachFehler = true;
+      erneutVersuchen();
     }
   };
 
@@ -1094,6 +1188,7 @@ export function abonnieren<T>(
     abgemeldet = true;
     if (nachfassen) clearTimeout(nachfassen);
     if (meldenGeplant) clearTimeout(meldenGeplant);
+    if (wiederholung) clearTimeout(wiederholung);
     stoppKanal();
   };
 }

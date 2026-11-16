@@ -1,70 +1,49 @@
 /**
- * Was ein Suchbegriff anrichten kann, bevor er die Datenbank erreicht.
+ * Was ein Suchbegriff anrichten kann, bevor er die Datenbank erreicht — und
+ * wann überhaupt gesucht wird.
  *
- * Die Syntax von PostgREST ist eine ZEICHENKETTE: Bedingungen durch Kommas
- * getrennt, Gruppen in Klammern. Ein Kundenname wie „Huber, Franz" zerreisst
- * sie — gemessen gegen den laufenden Stapel. Das ist der gutmütige Ausgang;
- * der andere ist ein Begriff, der den Baum nicht zerreisst, sondern UMBAUT.
+ * Seit der Nacharbeit zu L3 geht jede Suche über eine Datenbankfunktion
+ * (`suche_<tabelle>`, `katalog_suchen`); die `or(…ilike…)`-Bedingung für
+ * PostgREST gibt es nicht mehr, und mit ihr nicht das Entschärfen für deren
+ * Syntax. Geblieben: die Jokerzeichen in fertigen Mustern und die Regel, dass
+ * ein leerer Begriff keine Suche ist.
  */
 import { describe, it, expect } from 'vitest';
-import { ilikeMuster, alsOderWert, oderUeberSpalten } from '@/lib/db/pg/suche';
+import { ohneJoker } from '@/lib/db/pg/suche';
+import { mitSuche } from '@/lib/db/pg/kern';
 
 describe('Jokerzeichen gehören dem Benutzer, nicht der Abfrage', () => {
   it('ein Prozentzeichen wird gesucht, nicht als „alles“ gelesen', () => {
-    // Wer „50%" tippt, meint das Zeichen. Ohne Entschärfung fände er jeden
-    // Namen, in dem irgendwo „50" vorkommt.
-    expect(ilikeMuster('50%')).toBe('%50\\%%');
+    // Wer „50%" tippt, meint das Zeichen.
+    expect(ohneJoker('50%')).toBe('50\\%');
   });
 
   it('ein Unterstrich steht für sich und nicht für „ein Zeichen“', () => {
-    expect(ilikeMuster('A_B')).toBe('%A\\_B%');
-  });
-
-  it('ein Rückstrich wird zuerst verdoppelt', () => {
-    /*
-      DIE REIHENFOLGE ZÄHLT. Erst die Joker zu entschärfen und dann die
-      Rückstriche verdoppelte genau die Rückstriche wieder, die der erste
-      Durchgang gerade gesetzt hat — aus `\\%` würde `\\\\%`, und das Prozent
-      wäre wieder ein Joker.
-    */
-    expect(ilikeMuster('a\\b')).toBe('%a\\\\b%');
-    expect(ilikeMuster('a\\%b')).toBe('%a\\\\\\%b%');
+    expect(ohneJoker('A_B')).toBe('A\\_B');
+    expect(ohneJoker('a\\b')).toBe('a\\\\b');
+    expect(ohneJoker('a\\%b')).toBe('a\\\\\\%b');
   });
 });
 
-describe('Der Wert kommt in Anführungszeichen', () => {
-  it('ein Komma zerreisst den Filterbaum sonst', () => {
-    expect(alsOderWert('%Huber, Franz%')).toBe('"%Huber, Franz%"');
+describe('Wann gesucht wird (`mitSuche`)', () => {
+  it('über die Spalten mit dem beschnittenen Begriff', () => {
+    expect(mitSuche({ suche: { spalten: ['name', 'address'], begriff: '  Huber, Franz  ' } }))
+      .toEqual({ p_spalten: ['name', 'address'], p_begriff: 'Huber, Franz', p_muster: null });
   });
 
-  it('ein Anführungszeichen im Namen wird entschärft', () => {
-    // Sonst endete der Wert dort, und der Rest des Namens wäre Syntax.
-    expect(alsOderWert('%O"Brien%')).toBe('"%O\\"Brien%"');
-  });
-
-  it('und ein Rückstrich ebenso', () => {
-    expect(alsOderWert('%a\\b%')).toBe('"%a\\\\b%"');
-  });
-});
-
-describe('Die Bedingung über mehrere Spalten', () => {
-  it('setzt jede Spalte gegen dasselbe Muster', () => {
-    expect(oderUeberSpalten(['name', 'address'], 'Huber'))
-      .toBe('name.ilike."%Huber%",address.ilike."%Huber%"');
-  });
-
-  it('ein leerer Begriff ist keine Bedingung, sondern keine', () => {
+  it('ein leerer Begriff ist keine Suche, sondern keine — die Tabelle selbst', () => {
     /*
-      „Nichts gesucht" heisst „alles zeigen" — und das ist eine ANDERE
-      Abfrage, keine mit einem Muster, das zufällig auf alles passt. Käme hier
-      `%%` zurück, liefe jede Listenansicht ohne Suchbegriff über einen
-      Mustervergleich statt über den Index.
+      „Nichts gesucht" heisst „alles zeigen" — eine ANDERE Abfrage, keine mit
+      einem Muster, das zufällig auf alles passt.
     */
-    expect(oderUeberSpalten(['name'], '')).toBeNull();
-    expect(oderUeberSpalten(['name'], '   ')).toBeNull();
+    expect(mitSuche({ suche: { spalten: ['name'], begriff: '' } })).toBeNull();
+    expect(mitSuche({ suche: { spalten: ['name'], begriff: '   ' } })).toBeNull();
+    expect(mitSuche({})).toBeNull();
   });
 
-  it('und ein Begriff mit Leerzeichen außen wird beschnitten', () => {
-    expect(oderUeberSpalten(['name'], '  Huber  ')).toBe('name.ilike."%Huber%"');
+  it('fertige Muster gehen unverändert mit, keine Muster heißt keine Suche', () => {
+    expect(mitSuche({ suche: { spalten: ['name'], muster: ['Huber%Franz'] } }))
+      .toEqual({ p_spalten: ['name'], p_begriff: null, p_muster: ['Huber%Franz'] });
+    expect(mitSuche({ suche: { spalten: ['name'], muster: [] } })).toBeNull();
   });
 });

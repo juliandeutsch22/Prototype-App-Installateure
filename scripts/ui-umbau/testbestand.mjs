@@ -10,6 +10,7 @@
  * Wartungen und 3.000 Urlaubs- und Abwesenheitsanträge.
  *
  *   node scripts/ui-umbau/testbestand.mjs
+ *   TESTBESTAND_GEWACHSEN=1 node scripts/ui-umbau/testbestand.mjs --neu   (gewachsener Betrieb, siehe unten)
  *
  * MIT `TESTBESTAND_FAKTOR=3` ein Betrieb, der in denselben fünf Jahren
  * dreimal so groß ist: dreimal so viele Leute im Außendienst, Kunden,
@@ -44,6 +45,7 @@
  * etwas zu überschreiben. Gelöscht wird nichts.
  */
 import pg from 'pg';
+import { pathToFileURL } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 
 const API = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321';
@@ -54,8 +56,19 @@ const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 export const BETRIEB = 'ui-testbestand';
 export const PASSWORT = 'Testbestand-2026!';
+/*
+  GEWACHSENER BETRIEB (`TESTBESTAND_GEWACHSEN=1`, L11, 17.11.2026): was der
+  Grundbestand nicht kennt und deshalb nie gemessen wurde (Analyse
+  15.11.2026, B1, B2) — wie `tools/testbestand/gewachsenerBetrieb.ts`:
+  50 Leute (Faktor 2), Eintritte über zehn Jahre in je einem anderen Monat,
+  die meisten mit kurzem Freitag (Tagessoll Mo–Do 8,5, Fr 4,5), jeder zehnte
+  in Teilzeit an vier Tagen, Buchungen seit dem Eintritt bis zu zehn Jahre
+  zurück (zwei je Tag, das Soll des Tages). Ohne den Schalter bleibt der
+  Bestand Zeile für Zeile wie bisher.
+*/
+const GEWACHSEN = process.env.TESTBESTAND_GEWACHSEN === '1';
 /** Wie viel größer der Betrieb ist als der Grundbestand — ganzzahlig, 1 bis 5. */
-const F = Number(process.env.TESTBESTAND_FAKTOR ?? 1);
+const F = Number(process.env.TESTBESTAND_FAKTOR ?? (GEWACHSEN ? 2 : 1));
 if (!Number.isInteger(F) || F < 1 || F > 5) throw new Error(`TESTBESTAND_FAKTOR muss eine ganze Zahl von 1 bis 5 sein, nicht ${process.env.TESTBESTAND_FAKTOR}`);
 /** Eine Menge des Grundbestands, auf den Faktor hochgerechnet. */
 const n = (x) => x * F;
@@ -85,6 +98,25 @@ nurLokal(DB, 'SUPABASE_DB_URL');
  * Die Belegschaft: 25 Personen, alle Rollen, drei Lehrlinge, einer davon
  * unter 18. `anmeldung` ist das Konto, mit dem man sich in der App anmeldet.
  */
+/**
+ * Eintritt und Arbeitszeit der i-ten Person. Im Grundbestand für alle gleich
+ * (wie bisher); im gewachsenen Bestand wie im Generator verteilt.
+ */
+function arbeitszeitVon(i) {
+  if (!GEWACHSEN) return { eintritt: '2021-10-01', wochenstunden: 38.5, arbeitstage: [1, 2, 3, 4, 5], tagessoll: null };
+  const personen = 14 + 25 * (F - 1) + 11;
+  const ein = new Date(`${Number(HEUTE.slice(0, 4)) - 10}${HEUTE.slice(4, 7)}-01T00:00:00Z`);
+  ein.setUTCMonth(ein.getUTCMonth() + Math.floor((i * 120) / personen));
+  ein.setUTCDate(1 + ((i * 7) % 27));
+  const teilzeit = i % 10 === 7;
+  return {
+    eintritt: ein.toISOString().slice(0, 10),
+    wochenstunden: teilzeit ? 30 : 38.5,
+    arbeitstage: teilzeit ? [1, 2, 3, 4] : [1, 2, 3, 4, 5],
+    tagessoll: !teilzeit && i % 5 !== 3 ? { 1: 8.5, 2: 8.5, 3: 8.5, 4: 8.5, 5: 4.5 } : null,
+  };
+}
+
 export const BELEGSCHAFT = [
   { kurz: 'gf', name: 'Gerda Geschäftsführerin', role: 'Geschäftsführung' },
   { kurz: 'admin', name: 'Adam Administrator', role: 'Administrator' },
@@ -104,7 +136,7 @@ export const BELEGSCHAFT = [
   { kurz: 'lehrling1', name: 'Lena Lehrling (U18)', role: 'Mitarbeiter', einstufung: 'lehrling', lehrbeginn: '2025-09-01', geburtsdatum: '2009-05-14' },
   { kurz: 'lehrling2', name: 'Luca Lehrling', role: 'Mitarbeiter', einstufung: 'lehrling', lehrbeginn: '2024-09-01', geburtsdatum: '2006-03-02' },
   { kurz: 'lehrling3', name: 'Lukas Lehrling', role: 'Mitarbeiter', einstufung: 'lehrling', lehrbeginn: '2023-09-01', geburtsdatum: '2005-11-20' },
-].map((p) => ({ ...p, email: `${p.kurz}@${BETRIEB}.test` }));
+].map((p, i) => ({ ...p, email: `${p.kurz}@${BETRIEB}.test`, ...arbeitszeitVon(i) }));
 
 /**
  * `--neu`: entfernt NUR den Testbetrieb `ui-testbestand` (Zeilen mit seiner
@@ -188,10 +220,12 @@ async function main() {
     ids.push(uid);
     await db.query(`
       insert into public.users (id, company_id, name, email, role, active, weekly_target_hours, yearly_vacation_days,
-        app_start_date, eintritt, kunden_pflegen, katalog_einspielen, rechnungen_lesen, einstufung, lehrbeginn, lehrzeit_monate)
-      values ($1, $2, $3, $4, $5, true, 38.5, 25, '2021-10-01', '2021-10-01', $6, $7, $8, $9, $10, $11)`,
+        app_start_date, eintritt, kunden_pflegen, katalog_einspielen, rechnungen_lesen, einstufung, lehrbeginn, lehrzeit_monate,
+        work_days, tagessoll)
+      values ($1, $2, $3, $4, $5, true, $12, 25, $13, $13, $6, $7, $8, $9, $10, $11, $14, $15)`,
     [uid, BETRIEB, p.name, p.email, p.role, !!p.kundenPflegen, !!p.katalogEinspielen, !!p.rechnungenLesen,
-      p.einstufung ?? null, p.lehrbeginn ?? null, p.lehrbeginn ? 36 : null]);
+      p.einstufung ?? null, p.lehrbeginn ?? null, p.lehrbeginn ? 36 : null,
+      p.wochenstunden, p.eintritt, p.arbeitstage, p.tagessoll ? JSON.stringify(p.tagessoll) : null]);
     if (p.geburtsdatum) {
       await db.query('insert into public.geburtsdaten (user_id, company_id, geburtsdatum) values ($1, $2, $3)', [uid, BETRIEB, p.geburtsdatum]);
     }
@@ -201,9 +235,10 @@ async function main() {
   const leitung = BELEGSCHAFT.map((p, i) => ({ ...p, id: ids[i] })).filter((p) => p.role === 'Projektleiter');
 
   // Personen als Tabelle, damit die Massen-Inserts sie per Index ziehen können.
-  await db.query('create temp table tb_person (nr int primary key, id uuid, name text)');
+  await db.query('create temp table tb_person (nr int primary key, id uuid, name text, eintritt date, arbeitstage int[], tagessoll jsonb, wochenstunden numeric)');
   for (const [i, p] of aussendienst.entries()) {
-    await db.query('insert into tb_person values ($1, $2, $3)', [i, p.id, p.name]);
+    await db.query('insert into tb_person (nr, id, name, eintritt, arbeitstage, tagessoll, wochenstunden) values ($1, $2, $3, $4, $5, $6, $7)',
+      [i, p.id, p.name, p.eintritt, p.arbeitstage, p.tagessoll ? JSON.stringify(p.tagessoll) : null, p.wochenstunden]);
   }
   const P = aussendienst.length;
 
@@ -277,6 +312,35 @@ async function main() {
     join tb_baustelle b on b.nr = case when t.tag >= $2::date - 30 then ${n(2960)} + g % ${n(40)} else (g * 7) % ${n(2940)} end`, [BETRIEB, HEUTE]);
 
   /* ---------------- Zeitbuchungen ---------------- */
+  if (GEWACHSEN) {
+    /*
+      Seit dem Eintritt, höchstens zehn Jahre: je Arbeitstag der Person zwei
+      Buchungen — vormittags bis vier Stunden, nach einer halben Stunde der
+      Rest des Tagessolls (kurzer Freitag: 4,5 Stunden). Feiertage bleiben
+      wie im Grundbestand unberücksichtigt.
+    */
+    await sql('Zeitbuchungen (gewachsen)', `
+      with tage as (
+        select d::date as tag, extract(isodow from d)::int as wt
+        from generate_series($2::date - 1, $2::date - 3653, interval '-1 day') d
+      ), soll as (
+        select p.id, p.name, p.nr, t.tag,
+          round(60 * coalesce((p.tagessoll ->> t.wt::text)::numeric, p.wochenstunden / cardinality(p.arbeitstage)))::int as min
+        from tb_person p join tage t on t.tag >= p.eintritt and t.wt = any(p.arbeitstage)
+      )
+      insert into public.time_entries (id, company_id, user_id, user_name, date, status, start_time, end_time, break_duration,
+        hours, customer_name, project_number, project_id, source, is_billed, created_at)
+      select gen_random_uuid(), $1, s.id, s.name, s.tag, 'Anwesend',
+        time '07:00' + case when h = 0 then interval '0' else interval '270 minutes' end,
+        time '07:00' + case when h = 0 then least(s.min, 240) * interval '1 minute' else (270 + s.min - 240) * interval '1 minute' end,
+        0, round(case when h = 0 then least(s.min, 240) else s.min - 240 end / 60.0, 2),
+        b.customer_name, b.project_number, b.id, 'manual', s.tag < $2::date - 60, s.tag + time '18:00'
+      from soll s
+      cross join generate_series(0, 1) h
+      join tb_baustelle b on b.nr = case when s.tag >= $2::date - 30 then ${n(2960)} + (s.nr + h) % ${n(40)}
+                                         else (extract(doy from s.tag)::int * 3 + s.nr + h) % ${n(2940)} end
+      where h = 0 or s.min > 240`, [BETRIEB, HEUTE]);
+  } else {
   // 150.000: je Person und Werktag sechs aufeinanderfolgende Buchungen à 80 min, ohne Überschneidung.
   await sql('Zeitbuchungen', `
     with tage as (
@@ -297,6 +361,7 @@ async function main() {
     join tb_baustelle b on b.nr = case when t.tag >= $2::date - 30 then ${n(2960)} + (p.nr + s) % ${n(40)} else (t.nr * 3 + p.nr + s) % ${n(2940)} end
     where t.nr <= ceil(${n(150000)}.0 / (6 * ${P}))
     limit ${n(150000)}`, [BETRIEB, HEUTE]);
+  }
 
   /* ---------------- Scheine ---------------- */
   await sql('Scheine', `
@@ -450,7 +515,14 @@ async function main() {
   await db.end();
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+/*
+  NUR, WENN DAS SKRIPT SELBST AUFGERUFEN WIRD (17.11.2026). Es führt
+  `BETRIEB`, `PASSWORT` und `BELEGSCHAFT` als Exporte — wer sie nur lesen
+  wollte und die Datei einband, legte bis hierher den ganzen Bestand an.
+*/
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

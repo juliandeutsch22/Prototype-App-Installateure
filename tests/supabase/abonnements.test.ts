@@ -133,7 +133,6 @@ async function bleibtDraussen<T>(
   }
 }
 
-const MONAT = { jahr: 2026, monat: 4 }; // Mai — `month` ist nullbasiert
 const IM_MONAT = '2026-05-04';
 const AUSSERHALB = '2026-08-03';
 
@@ -267,19 +266,6 @@ describe('Jede Änderung, die dazugehört, kommt an', () => {
     expect(ergebnis.ok).toBe(true);
   }, 30_000);
 
-  it('die Einteilung eines Monats', async () => {
-    clientEinreichen(chef.client);
-    const ergebnis = await meldetDurch<WithId<unknown>[]>(
-      (melde, fehler) => einsaetze.subscribeAssignmentsForMonth(
-        BETRIEB, MONAT.jahr, MONAT.monat, melde, fehler),
-      async () => { await einsaetze.saveAssignments(BETRIEB, IM_MONAT, 'B-700', [{
-        date: IM_MONAT, projectNumber: 'B-700', userId: anton.uid, userName: 'Anton',
-      }]); },
-      (rows) => rows.some((r) => (r as { projectNumber?: string }).projectNumber === 'B-700'),
-    );
-    expect(ergebnis.ok).toBe(true);
-  }, 30_000);
-
   it('die Einteilung eines Zeitraums', async () => {
     clientEinreichen(chef.client);
     const ergebnis = await meldetDurch<WithId<unknown>[]>(
@@ -304,23 +290,39 @@ describe('Jede Änderung, die dazugehört, kommt an', () => {
     expect(ergebnis.ok).toBe(true);
   }, 30_000);
 
-  it('die jüngsten Rechnungen', async () => {
-    const buch = await konto(BETRIEB, 'Buchhaltung', 'buch2');
+  it('die jüngsten Rechnungen als Köpfe (L6)', async () => {
+    const buch = await konto(BETRIEB, 'Buchhaltung', 'buch-koepfe');
     clientEinreichen(buch.client);
     const jahr = new Date().getFullYear();
     const ergebnis = await meldetDurch<WithId<unknown>[]>(
-      (melde, fehler) => rechnungen.subscribeRecentInvoices(BETRIEB, 50, melde, fehler),
+      (melde, fehler) => rechnungen.subscribeRecentInvoiceKoepfe(BETRIEB, 50, melde, fehler),
       async () => { await rechnungen.createInvoice(BETRIEB, {
-        invoiceNumber: `RE-${jahr}-7777`, projectNumber: 'B-700', customerName: 'Huber',
+        invoiceNumber: `RE-${jahr}-7778`, projectNumber: 'B-700', customerName: 'Huber',
         address: 'Hauptplatz 1, 8200 Gleisdorf',
         invoiceDate: '2026-05-31', leistungVon: '2026-05-31', leistungBis: '2026-05-31', dueDate: '2026-06-14',
         totalNetto: 100, totalVat: 20, totalBrutto: 120, paymentStatus: 'Offen',
         positions: [{ label: 'Arbeit', qty: 1, unit: 'h', unitPrice: 100, netto: 100 }],
       }); },
-      (rows) => rows.some((r) => (r as { invoiceNumber?: string }).invoiceNumber === `RE-${jahr}-7777`),
+      // Der Kopf kommt — ohne Positionen und ohne Leistungsnachweis.
+      (rows) => rows.some((r) => {
+        const k = r as { invoiceNumber?: string; positions?: unknown; leistungsnachweis?: unknown };
+        return k.invoiceNumber === `RE-${jahr}-7778` && k.positions === undefined && k.leistungsnachweis === undefined;
+      }),
     );
     expect(ergebnis.ok).toBe(true);
   }, 60_000);
+
+  it('die Zählung der Baustellen je Tag (L9)', async () => {
+    clientEinreichen(chef.client);
+    const ergebnis = await meldetDurch<Map<string, number>>(
+      (melde, fehler) => einsaetze.beobachteEinsatzTage(BETRIEB, '2026-09-01', '2026-09-30', melde, fehler),
+      async () => { await einsaetze.saveAssignments(BETRIEB, '2026-09-15', 'B-705', [{
+        date: '2026-09-15', projectNumber: 'B-705', userId: anton.uid, userName: 'Anton',
+      }]); },
+      (tage) => tage.get('2026-09-15') === 1,
+    );
+    expect(ergebnis.ok).toBe(true);
+  }, 30_000);
 
   it('die eigenen Einstellungen', async () => {
     clientEinreichen(berta.client);
@@ -336,31 +338,24 @@ describe('Jede Änderung, die dazugehört, kommt an', () => {
 });
 
 describe('Was nicht dazugehört, kommt nicht an', () => {
-  it('die Urlaubstage: ein Urlaubstag kommt an, eine Anwesenheit nicht', async () => {
-    /*
-      Die Mitarbeiterübersicht holt seit 18.10.2026 nur noch die Urlaubstage
-      über den Monat hinaus (`subscribeUrlaubstage`) — gefiltert wird im Kanal
-      nur nach dem Betrieb, der Status prüft der Client an der eingehenden
-      Zeile. Eine Anwesenheit im selben Zeitraum darf nicht hineinrutschen.
-    */
-    const buch = await konto(BETRIEB, 'Buchhaltung', 'buch-urlaub');
+  it('die Urlaubstage je Person (L5): ein Urlaubstag kommt an, eine Anwesenheit nicht', async () => {
+    const buch = await konto(BETRIEB, 'Buchhaltung', 'buch-urlaub-je');
     clientEinreichen(buch.client);
-    const e = await bleibtDraussen<WithId<unknown>[]>(
-      (melde, fehler) => zeiten.subscribeUrlaubstage(BETRIEB, '2026-07-01', '2026-07-31', melde, fehler),
+    const e = await bleibtDraussen<Array<{ date: string; userId: string }>>(
+      (melde, fehler) => zeiten.beobachteUrlaubstage(BETRIEB, '2026-08-01', '2026-08-31', melde, fehler),
       {
         ausloesen: async () => { await admin.from('time_entries').insert(buchung(
-          { ...berta, betrieb: BETRIEB } as Konto, '2026-07-13', { travel_time: 97 })); },
-        erkennen: (rows) => rows.some((r) => (r as { travelTime?: number }).travelTime === 97),
+          { ...berta, betrieb: BETRIEB } as Konto, '2026-08-11')); },
+        erkennen: (tage) => tage.some((t) => t.date === '2026-08-11'),
       },
       {
         ausloesen: async () => {
           const { error } = await admin.from('time_entries').insert(buchung(
-            { ...berta, betrieb: BETRIEB } as Konto, '2026-07-14',
+            { ...berta, betrieb: BETRIEB } as Konto, '2026-08-12',
             { status: 'Urlaub', start_time: null, end_time: null, break_duration: 0 }));
           if (error) throw new Error(error.message);
         },
-        erkennen: (rows) => rows.some((r) => (r as { date?: string; status?: string }).date === '2026-07-14'
-          && (r as { status?: string }).status === 'Urlaub'),
+        erkennen: (tage) => tage.some((t) => t.date === '2026-08-12' && t.userId === berta.uid),
       },
     );
     expect(e).toEqual({ falschDa: false, richtigDa: true });
@@ -619,7 +614,8 @@ describe('Der Wächter über dieses Prüfnetz', () => {
     const PG = resolve(process.cwd(), 'src/lib/db/pg');
     const namen: string[] = [];
     for (const d of readdirSync(PG).filter((f) => f.endsWith('.ts'))) {
-      const muster = /export function (subscribe\w+)/g;
+      // Auch `beobachte…` (L5, L9): ein Abo unter anderem Namen ist trotzdem eines.
+      const muster = /export function ((?:subscribe|beobachte)\w+)/g;
       let t: RegExpExecArray | null;
       const text = readFileSync(resolve(PG, d), 'utf8');
       while ((t = muster.exec(text))) namen.push(t[1]);

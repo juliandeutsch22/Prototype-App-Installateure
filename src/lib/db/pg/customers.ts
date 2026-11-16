@@ -8,7 +8,7 @@ import type { Customer, Project, UidPruefung } from '@/types';
 import { KUNDEN_GRENZE } from '@/lib/listengrenzen';
 import { abfragen, anlegen, aendern, loeschen, derClient, zaehlen, type Bedingung, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
-import { alsOderWert, oderUeberSpalten, ohneJoker } from './suche';
+import { ohneJoker } from './suche';
 
 const KUNDEN = 'customers';
 const BAUSTELLEN = 'projects';
@@ -37,8 +37,8 @@ export async function listCustomersByIds(companyId: string, ids: string[]) {
   });
 }
 
-/** So viele Namen je Anfrage — die `or`-Bedingung steht in der Adresse. */
-const NAMEN_JE_ANFRAGE = 20;
+/** So viele Namen je Anfrage — `suche_customers` nimmt höchstens 200 Muster. */
+const NAMEN_JE_ANFRAGE = 100;
 
 /**
  * DIE KUNDEN ZU GENANNTEN NAMEN (Ladezeit, 19.10.2026) — für Rechnungen und
@@ -63,9 +63,8 @@ export async function kundenNachNamen(companyId: string, namen: readonly string[
   for (let i = 0; i < muster.length; i += NAMEN_JE_ANFRAGE) teile.push(muster.slice(i, i + NAMEN_JE_ANFRAGE));
   const treffer = await Promise.all(
     teile.map((teil) =>
-      abfragen<Customer>(KUNDEN, companyId, {
-        oder: teil.map((m) => `name.ilike.${alsOderWert(m)}`).join(','),
-      }),
+      // Über `suche_customers` (Befund 1 zu L3): je Muster über den Index.
+      abfragen<Customer>(KUNDEN, companyId, { suche: { spalten: ['name'], muster: teil } }),
     ),
   );
   return [...new Map(treffer.flat().map((k) => [k.id, k])).values()];
@@ -295,7 +294,7 @@ export function searchCustomers(
   companyId: string, begriff: string, max = KUNDEN_GRENZE,
 ): Promise<WithId<Customer>[]> {
   return abfragen<Customer>(KUNDEN, companyId, {
-    oder: oderUeberSpalten(SUCHSPALTEN, begriff),
+    suche: { spalten: SUCHSPALTEN, begriff },
     sortiere: { feld: 'name' },
     grenze: max,
   });
@@ -325,13 +324,13 @@ const ADRESSE_PRUEFEN: Bedingung[] = [{ art: 'gleich', feld: 'angabenPruefen', w
 */
 export function kundenOhneKundenart(companyId: string, max = KUNDEN_GRENZE, begriff = ''): Promise<WithId<Customer>[]> {
   return abfragen<Customer>(KUNDEN, companyId, {
-    wo: OHNE_KUNDENART, oder: oderUeberSpalten(SUCHSPALTEN, begriff), sortiere: { feld: 'name' }, grenze: max,
+    wo: OHNE_KUNDENART, suche: { spalten: SUCHSPALTEN, begriff }, sortiere: { feld: 'name' }, grenze: max,
   });
 }
 
 export function kundenAdressePruefen(companyId: string, max = KUNDEN_GRENZE, begriff = ''): Promise<WithId<Customer>[]> {
   return abfragen<Customer>(KUNDEN, companyId, {
-    wo: ADRESSE_PRUEFEN, oder: oderUeberSpalten(SUCHSPALTEN, begriff), sortiere: { feld: 'name' }, grenze: max,
+    wo: ADRESSE_PRUEFEN, suche: { spalten: SUCHSPALTEN, begriff }, sortiere: { feld: 'name' }, grenze: max,
   });
 }
 
@@ -390,4 +389,108 @@ export async function uidBeiViesPruefen(customerId: string): Promise<{ pruefung:
   const d = data as { pruefung: Record<string, unknown>; hinweis?: string };
   const u = zeileAlsObjekt<WithId<UidPruefung>>('uid_pruefungen', d.pruefung);
   return { pruefung: { ...u, id: String(u.id) }, ...(d.hinweis ? { hinweis: d.hinweis } : {}) };
+}
+
+/** Was beim Zusammenführen mit der Kennung der Dublette wandert (F9) — je Bereich die Zahl. */
+export interface KundenZahlen {
+  baustellen: number;
+  angebote: number;
+  rechnungen: number;
+  scheine: number;
+  wartungen: number;
+  termine: number;
+  eingaenge: number;
+  beteiligungen: number;
+  uidPruefungen: number;
+  verlauf: number;
+  /** Beteiligungen, die der bleibende Kunde schon genauso hat — sie werden zusammengelegt. */
+  beteiligungenDoppelt: number;
+}
+
+/** Belege ohne Kundenbezug mit dem Namen der Dublette (Altdaten) — wandern mit, wenn der Name eindeutig ist. */
+export interface KundenUeberNamen {
+  baustellen: number;
+  angebote: number;
+  rechnungen: number;
+  scheine: number;
+  wartungen: number;
+}
+
+export interface ZusammenfuehrenVorschau {
+  bleibt: WithId<Customer>;
+  geht: WithId<Customer>;
+  zahlen: KundenZahlen;
+  ueberNamen: KundenUeberNamen;
+  /** Trägt kein dritter Kunde den Namen der Dublette? Sonst bleiben ihre Altbelege, wie sie sind. */
+  nameEindeutig: boolean;
+  /** Der Stand der Vorschau — geht mit dem Zusammenführen zurück (Schreibbefehls-Vertrag). */
+  stand: string;
+}
+
+/** Die Stammfelder, die das Zusammenführen kennt — und ob sie von der Dublette kommen. */
+export type Stammfeld =
+  | 'name' | 'anschrift' | 'contact_name' | 'contact_phone' | 'email' | 'vat_id'
+  | 'kundennummer' | 'kundenart' | 'lieferantennummer' | 'notes';
+export type StammfeldHerkunft = 'bleibt' | 'geht' | 'beide';
+
+export type ZusammenfuehrenErgebnis =
+  | { art: 'zusammengefuehrt'; kunde: string; name: string }
+  | { art: 'veraltet'; vorschau: ZusammenfuehrenVorschau };
+
+const zahl = (w: unknown) => Number(w ?? 0);
+
+function alsVorschau(d: Record<string, unknown>): ZusammenfuehrenVorschau {
+  const z = (d.zahlen ?? {}) as Record<string, unknown>;
+  const n = (d.ueber_namen ?? {}) as Record<string, unknown>;
+  const kunde = (r: unknown) => {
+    const k = zeileAlsObjekt<WithId<Customer>>(KUNDEN, r as Record<string, unknown>);
+    return { ...k, id: String(k.id) };
+  };
+  return {
+    bleibt: kunde(d.bleibt),
+    geht: kunde(d.geht),
+    zahlen: {
+      baustellen: zahl(z.baustellen), angebote: zahl(z.angebote), rechnungen: zahl(z.rechnungen),
+      scheine: zahl(z.scheine), wartungen: zahl(z.wartungen), termine: zahl(z.termine),
+      eingaenge: zahl(z.eingaenge), beteiligungen: zahl(z.beteiligungen),
+      uidPruefungen: zahl(z.uid_pruefungen), verlauf: zahl(z.verlauf),
+      beteiligungenDoppelt: zahl(z.beteiligungen_doppelt),
+    },
+    ueberNamen: {
+      baustellen: zahl(n.baustellen), angebote: zahl(n.angebote), rechnungen: zahl(n.rechnungen),
+      scheine: zahl(n.scheine), wartungen: zahl(n.wartungen),
+    },
+    nameEindeutig: d.name_eindeutig !== false,
+    stand: String(d.stand ?? ''),
+  };
+}
+
+/** Was beim Zusammenführen wohin wandert — ohne etwas zu ändern (F9). */
+export async function kundenZusammenfuehrenVorschau(bleibt: string, geht: string): Promise<ZusammenfuehrenVorschau> {
+  const { data, error } = await derClient().rpc('kunden_zusammenfuehren_vorschau', { p_bleibt: bleibt, p_geht: geht });
+  if (error) throw new Error(error.message);
+  return alsVorschau(data as Record<string, unknown>);
+}
+
+/**
+ * Zwei Kunden zusammenführen (F9) — in einer Transaktion der Datenbank.
+ *
+ * NACH DEM SCHREIBBEFEHLS-VERTRAG: der Stand der Vorschau geht mit. Hat sich
+ * seither etwas geändert (ein neuer Beleg, eine Änderung an einem der
+ * beiden), führt die Datenbank nichts zusammen und gibt die neue Vorschau
+ * zurück — gefragt wird dann mit dem, was jetzt gilt.
+ */
+export async function kundenZusammenfuehren(
+  bleibt: string,
+  geht: string,
+  felder: Partial<Record<Stammfeld, StammfeldHerkunft>>,
+  stand: string,
+): Promise<ZusammenfuehrenErgebnis> {
+  const { data, error } = await derClient().rpc('kunden_zusammenfuehren', {
+    p_bleibt: bleibt, p_geht: geht, p_felder: felder, p_stand: stand,
+  });
+  if (error) throw new Error(error.message);
+  const d = data as Record<string, unknown>;
+  if (d.art === 'veraltet') return { art: 'veraltet', vorschau: alsVorschau(d.vorschau as Record<string, unknown>) };
+  return { art: 'zusammengefuehrt', kunde: String(d.kunde), name: String(d.name ?? '') };
 }

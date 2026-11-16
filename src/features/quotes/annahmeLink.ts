@@ -43,9 +43,12 @@ function tagPlus(tag: string, n: number): string {
 }
 
 /**
- * „Per Mail-Programm senden“ — bis der Versand aus der App kommt (M14) ein
- * `mailto:` wie bei der Bestellung beim Lieferanten. Kurz genug für jedes
- * Mailprogramm: der Link ist 80 Zeichen, der Text eine Handvoll Zeilen.
+ * „Per Mail-Programm senden“ — ein `mailto:` wie bei der Bestellung beim
+ * Lieferanten. Seit F16 geht der Link auch mit dem PDF aus der App
+ * („Mit PDF aus der App senden“); dieser Weg bleibt für den, der lieber aus
+ * dem eigenen Postfach schreibt oder solange der Versand nicht eingerichtet
+ * ist. Kurz genug für jedes Mailprogramm: der Link ist 80 Zeichen, der Text
+ * eine Handvoll Zeilen.
  */
 export function annahmeMail(o: {
   an?: string;

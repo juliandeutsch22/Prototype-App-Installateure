@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { schluessel as speicherSchluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import BottomSheet from '@/components/BottomSheet';
 import InfoHint from '@/components/InfoHint';
 import { Listenleiste, MehrAnzeigen, Segmente } from '@/components/LotBausteine';
@@ -40,6 +41,7 @@ import { uidSperrt } from '@/lib/uid';
 import { grundAus } from '@/lib/fehlerGrund';
 import { angabenZuPruefen, mailFehler, plzFehler } from '@/lib/adresse';
 import { gleichnamigeKunden, rueckfrageText, schluessel } from './gleichnamig';
+import { akteVorbereiten } from '@/lib/akteVorbereiten';
 
 const LEER: NewCustomer = {
   name: '',
@@ -85,11 +87,37 @@ const JE_GRUPPE = 20;
 const AUSWAHL = ['alle', 'pruefen', 'ohne-art'] as const;
 type Auswahl = (typeof AUSWAHL)[number];
 
+/** Was beim zweiten Besuch sofort dasteht (L8): die Liste zu Auswahl und Suche, und die Zahlen an den Reitern. */
+interface KundenStand {
+  kunden: WithId<Customer>[];
+  listeFuer: string | null;
+  ohneSuche: number;
+  zuPruefen: { adressePruefen: number; ohneKundenart: number };
+}
+
 export default function CustomersView() {
   const { user } = useAuth();
   const toast = useToast();
-  const [kunden, setKunden] = useState<WithId<Customer>[]>([]);
-  const [loading, setLoading] = useState(true);
+  /*
+    SUCHE, AUSWAHL UND GEMERKTER STAND (L8, 17.11.2026) — das Muster der
+    Baustellen. Wer aus einer Akte zurückkommt, fand die Liste leer und mit
+    Platzhaltern vor, das Suchfeld gelöscht. Jetzt stehen Suche und Auswahl in
+    der Adresse, und die Liste, die zu ihnen geladen war, steht sofort da;
+    frisch geholt wird im Hintergrund.
+  */
+  const [suchparameter, setSuchparameter] = useSearchParams();
+  const sucheInAdresse = suchparameter.get('suche') ?? '';
+  const auswahlInAdresse = suchparameter.get('auswahl');
+  const auswahl: Auswahl = (AUSWAHL as readonly string[]).includes(auswahlInAdresse ?? '')
+    ? (auswahlInAdresse as Auswahl)
+    : 'alle';
+  const { anfang: gemerkt, merken } = useGemerkt<KundenStand>(
+    user ? speicherSchluessel('kundenliste', user, auswahl, sucheInAdresse.trim()) : null,
+  );
+  /** Der erste Lauf mit gemerktem Stand lädt im Hintergrund, ohne Platzhalter. */
+  const stillLaden = useRef(gemerkt?.kunden !== undefined);
+  const [kunden, setKunden] = useState<WithId<Customer>[]>(() => gemerkt?.kunden ?? []);
+  const [loading, setLoading] = useState(() => gemerkt?.kunden === undefined);
   const [error, setError] = useState<string | null>(null);
   /*
     DER FEHLER DER LISTE GEHÖRT AN DIE LISTE. Er teilte sich `error` mit dem
@@ -98,7 +126,16 @@ export default function CustomersView() {
     vierhundert Kunden eine falsche und erschreckende Auskunft.
   */
   const [listenFehler, setListenFehler] = useState<string | null>(null);
-  const [suche, setSuche] = useState('');
+  const [suche, setSucheFeld] = useState(sucheInAdresse);
+  const setSuche = (q: string) => {
+    setSucheFeld(q);
+    setSuchparameter((alt) => {
+      const neu = new URLSearchParams(alt);
+      if (q.trim()) neu.set('suche', q);
+      else neu.delete('suche');
+      return neu;
+    }, { replace: true });
+  };
   const [form, setForm] = useState<NewCustomer>(LEER);
   const [bearbeitet, setBearbeitet] = useState<WithId<Customer> | null>(null);
   /*
@@ -173,18 +210,14 @@ export default function CustomersView() {
     beliebiger Reihenfolge zurück. Dreihundert Millisekunden sind die Pause,
     nach der jemand aufgehört hat zu tippen.
   */
-  const [begriff, setBegriff] = useState('');
+  // Aus der Adresse sofort gesucht — wer zurückkommt, wartet nicht auf die Tipp-Pause.
+  const [begriff, setBegriff] = useState(sucheInAdresse);
   /*
     WELCHE KUNDEN: alle, nur die mit zu prüfender Anschrift (M12) oder nur
     die ohne Kundenart (Runde 3, M10). Bis zum Umbau zwei Kästchen, die
     einander ausschalteten — also schon immer eine Auswahl aus dreien, jetzt
     als Segmente und in der Adresse (Protokoll 7.5).
   */
-  const [suchparameter, setSuchparameter] = useSearchParams();
-  const auswahlInAdresse = suchparameter.get('auswahl');
-  const auswahl: Auswahl = (AUSWAHL as readonly string[]).includes(auswahlInAdresse ?? '')
-    ? (auswahlInAdresse as Auswahl)
-    : 'alle';
   const setAuswahl = (wert: Auswahl) => {
     const neu = new URLSearchParams(suchparameter);
     if (wert === 'alle') neu.delete('auswahl');
@@ -193,9 +226,9 @@ export default function CustomersView() {
   };
   const nurPruefen = auswahl === 'pruefen';
   const nurOhneArt = auswahl === 'ohne-art';
-  const [ohneSuche, setOhneSuche] = useState(0);
+  const [ohneSuche, setOhneSuche] = useState(() => gemerkt?.ohneSuche ?? 0);
   /** Wofür die geladene Liste steht: der Suchbegriff der Alle-Liste, sonst null (Auswahl „prüfen“). */
-  const [listeFuer, setListeFuer] = useState<string | null>(null);
+  const [listeFuer, setListeFuer] = useState<string | null>(() => gemerkt?.listeFuer ?? null);
   /** Wie viele Zeilen gezeigt sind — höchstens 20, dann „und N weitere“ (Regel 4). */
   const [gezeigt, setGezeigt] = useState(JE_GRUPPE);
   // Eine neue Suche oder Auswahl beginnt wieder oben.
@@ -208,7 +241,8 @@ export default function CustomersView() {
   const laden = useMemo(
     () => async () => {
       if (!user) return;
-      setLoading(true);
+      if (stillLaden.current) stillLaden.current = false;
+      else setLoading(true);
       setListenFehler(null);
       try {
         // Alle drei Listen blättern und suchen gleich (11.11.2026, siehe `kundenAdressePruefen`).
@@ -219,6 +253,10 @@ export default function CustomersView() {
             : await searchCustomers(user.companyId, begriff, grenze);
         setKunden(treffer);
         setListeFuer(nurPruefen || nurOhneArt ? null : begriff.trim());
+        // Gemerkt nur die erste Seite zu Auswahl und Suche — „weitere laden“ beginnt beim nächsten Besuch wieder oben.
+        if (grenze === KUNDEN_JE_SEITE && begriff === suche) {
+          merken({ kunden: treffer, listeFuer: nurPruefen || nurOhneArt ? null : begriff.trim(), ...(begriff.trim() ? {} : { ohneSuche: treffer.length }) });
+        }
         /*
           WIE VIELE OHNE SUCHE DA WAREN — getrennt gemerkt.
 
@@ -234,6 +272,7 @@ export default function CustomersView() {
         setLoading(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `suche` und `merken` entscheiden nur, ob gemerkt wird; ein Tastendruck lädt nicht neu
     [user, grenze, begriff, nurPruefen, nurOhneArt],
   );
 
@@ -248,15 +287,17 @@ export default function CustomersView() {
     Fehler bleibt der Reiter ohne Zahl statt mit einer Null, die niemand
     geprüft hat.
   */
-  const [zuPruefen, setZuPruefen] = useState<{ adressePruefen: number; ohneKundenart: number } | undefined>();
+  const [zuPruefen, setZuPruefen] = useState<{ adressePruefen: number; ohneKundenart: number } | undefined>(() => gemerkt?.zuPruefen);
   const zuPruefenZaehlen = useCallback(async () => {
     if (!user) return;
     try {
-      setZuPruefen(await kundenZuPruefenAnzahl(user.companyId));
+      const zahlen = await kundenZuPruefenAnzahl(user.companyId);
+      setZuPruefen(zahlen);
+      merken({ zuPruefen: zahlen });
     } catch {
       setZuPruefen(undefined);
     }
-  }, [user]);
+  }, [user, merken]);
   useEffect(() => {
     void zuPruefenZaehlen();
   }, [zuPruefenZaehlen]);
@@ -588,6 +629,8 @@ export default function CustomersView() {
                       bis zum Umbau ein eigener Verweis „Akte“ rechts.
                     */
                     to={`/customers/${k.id}`}
+                    // Berührt: Baustein und Kopf der Akte vorab — der Kopf aus dieser Zeile, ohne Anfrage (L12).
+                    vorbereiten={user ? () => akteVorbereiten(`/customers/${k.id}`, { schluessel: speicherSchluessel('kundenakte', user, k.id), daten: { kunde: k } }) : undefined}
                     /*
                       ZEILEN GLEICH GEBAUT (Design-Entwurf, Punkt 3): Name fett,
                       Kundennummer grau daneben, eine Detailzeile, was zu prüfen

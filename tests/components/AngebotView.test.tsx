@@ -88,6 +88,16 @@ vi.mock('@/lib/db/aussteller', () => ({
 }));
 vi.mock('@/features/quotes/angebotPdf', () => ({
   downloadAngebotPdf: (o: unknown) => pdf(o),
+  angebotPdfBlob: (o: unknown) => pdfBlob(o),
+}));
+/* F16: per Mail — welches Angebot (Datum!) als PDF hinausgeht und was gesendet wird. */
+const pdfBlob = vi.fn<(o: unknown) => Promise<Blob>>(async () => new Blob(['%PDF-1.4'], { type: 'application/pdf' }));
+const belegPerMail = vi.fn<(a: unknown) => Promise<object>>(async () => ({ versand: 'v1', an: ['amt@neudorf.at'], kopie: 'office@perl.at', angebotVersendet: true }));
+vi.mock('@/lib/db/belegMail', () => ({
+  BelegMailNichtEingerichtet: class extends Error {},
+  belegMailStand: vi.fn(async () => ({ eingerichtet: true, absender: 'office@senklot.at' })),
+  belegPerMail: (a: unknown) => belegPerMail(a),
+  listBelegVersand: vi.fn(async () => []),
 }));
 /*
   Die Annahme-Links (M02a) prüft `AngebotLink.test.tsx`; hier hat das Angebot
@@ -122,7 +132,7 @@ const authWert = {
     companyId: 'perl',
     docId: 'chef',
   },
-  company: { id: 'perl', name: 'Perl Installationen' } as { id: string; name: string; modules?: Record<string, boolean> },
+  company: { id: 'perl', name: 'Perl Installationen' } as { id: string; name: string; modules?: Record<string, boolean>; belegMailAntwort?: string },
   loading: false,
   error: null,
   signIn: vi.fn(),
@@ -179,6 +189,41 @@ beforeEach(() => {
   ausEingang = null;
   getEingangZu.mockClear();
   authWert.company = { id: 'perl', name: 'Perl Installationen' };
+});
+
+/* PER MAIL (F16): der Knopf am Schritt, A12 auch hier, und was hinausgeht. */
+describe('Angebot per Mail (F16)', () => {
+  it('Entwurf mit zurückliegendem Datum: erst das Datum auf heute, dann das PDF mit dem neuen Datum, dann senden', async () => {
+    const nutzer = userEvent.setup();
+    authWert.company = { id: 'perl', name: 'Perl Installationen', belegMailAntwort: 'office@perl.at' };
+    angebot = { ...ANGEBOT, status: 'Entwurf', quoteDate: '2026-09-01', validUntil: '2026-10-01' };
+    pdfBlob.mockClear();
+    belegPerMail.mockClear();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Per Mail senden' }));
+    const fenster = await screen.findByRole('dialog', { name: 'Angebot per Mail' });
+    expect(within(fenster).getByRole('checkbox', { name: /Angebotsdatum auf heute setzen \(statt 01\.09\.2026\)/ })).toBeChecked();
+    // Beim Kunden steht keine Adresse — sie wird eingetragen.
+    await nutzer.type(within(fenster).getByRole('textbox', { name: /^An/ }), 'amt@neudorf.at');
+    await nutzer.click(await within(fenster).findByRole('button', { name: 'Senden' }));
+    await waitFor(() => expect(belegPerMail).toHaveBeenCalled());
+    const heute = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Vienna' }).format(new Date());
+    expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, expect.objectContaining({ quoteDate: heute }));
+    expect(updateQuote.mock.invocationCallOrder[0]).toBeLessThan(pdfBlob.mock.invocationCallOrder[0]);
+    expect((pdfBlob.mock.calls[0][0] as { quote: { quoteDate: string } }).quote.quoteDate).toBe(heute);
+    expect(belegPerMail.mock.calls[0][0]).toMatchObject({ art: 'angebot', beleg: ANGEBOT.id, an: ['amt@neudorf.at'] });
+  });
+
+  it('Gegenprobe: im Einblick und für ein leeres Angebot gibt es den Knopf nicht', async () => {
+    angebot = { ...ANGEBOT, status: 'Entwurf', positions: [] };
+    const { unmount } = zeige();
+    expect(await screen.findByText(/Noch ohne Position/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Per Mail senden' })).toBeNull();
+    unmount();
+    angebot = { ...ANGEBOT, status: 'Versendet' };
+    zeige();
+    expect(await screen.findByRole('button', { name: 'Per Mail senden' })).toBeInTheDocument();
+  });
 });
 
 /* AUS EINGANG (M02b): woher das Angebot kam — mit Weg zum Eingang. */
@@ -596,8 +641,8 @@ describe('Die Akte auf der Linie „Lot“', () => {
     angebot = { ...ANGEBOT, status: 'Angenommen', projectNumber: 'B-2026-0007' };
     zeige();
     await nutzer.click(await screen.findByRole('button', { name: /^Weitere Aktionen für Angebot AN-2026-0007/ }));
-    // Seit A1 (Durchsicht 15.11.2026) mit dem Rückweg aus der Annahme.
-    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Annahme zurücknehmen', 'Als Kopie anlegen']);
+    // Seit A1 (Durchsicht 15.11.2026) mit dem Rückweg aus der Annahme; seit F16 geht es auf Wunsch noch einmal per Mail.
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Annahme zurücknehmen', 'Per Mail senden …', 'Als Kopie anlegen']);
   });
 
   it('führt mit der Sprungleiste zu den Abschnitten der Akte', async () => {

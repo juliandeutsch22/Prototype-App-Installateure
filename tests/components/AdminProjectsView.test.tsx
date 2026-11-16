@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Customer, Project } from '@/types';
 import type { BaustellenStunden } from '@/lib/db/timeEntries';
@@ -128,6 +128,15 @@ vi.mock('@/lib/db/projects', () => ({
 
 /* „Ohne Einsatz“ aus der Datenbank (P8, `baustellen_ohne_einsatz`) — dieselbe Antwort wie der Zähler der Startseite. */
 const ohneEinsatz = vi.fn<(heute: string) => Promise<{ projectNumber: string; zuletzt?: string }[]>>(async () => []);
+/*
+  DIE NÄCHSTE NUMMER VOM SERVER (Befund aus G12). Ohne Angabe scheitert die
+  Abfrage — wie ohne Verbindung; dann gilt der bisherige Vorschlag mit dem
+  Jahr des Geräts. Einzelne Prüfungen liefern ein abweichendes Serverjahr.
+*/
+const naechsteNummernImJahr = vi.fn<() => Promise<{ jahr: number; rechnung: number; angebot: number; baustelle: number }>>(
+  async () => { throw new Error('offline'); },
+);
+vi.mock('@/lib/db/company', () => ({ naechsteNummernImJahr: () => naechsteNummernImJahr() }));
 vi.mock('@/lib/db/assignments', () => ({ baustellenOhneEinsatz: (heute: string) => ohneEinsatz(heute) }));
 
 vi.mock('@/lib/db/users', () => ({
@@ -185,6 +194,8 @@ async function formOeffnen() {
 }
 
 beforeEach(() => {
+  naechsteNummernImJahr.mockReset();
+  naechsteNummernImJahr.mockRejectedValue(new Error('offline'));
   loeschFehler = null;
   verwendungen = [LEER];
   abschlussLage = OFFEN_NICHTS;
@@ -1503,5 +1514,81 @@ describe('Neu für diesen Kunden (V3)', () => {
     zeige('/admin-projects?neu=fuer&kunde=k1');
     expect(await screen.findByRole('button', { name: 'Anderen Kunden wählen' })).toBeInTheDocument();
     expect(screen.getAllByText('Familie Huber').length).toBeGreaterThan(0);
+  });
+});
+
+/*
+  NACHARBEIT L8 (17.11.2026): die Suche der Baustellen steht in der Adresse
+  wie bei Kunden, Angeboten und Wartungen; der Rückweg aus der Akte nimmt sie
+  mit. GEGENPROBE (Erwartung): vorher sind die ersten beiden Fälle rot.
+*/
+describe('Baustellen: Suche in der Adresse', () => {
+  function MitAdresse({ adresse }: { adresse: string }) {
+    return (
+      <MemoryRouter initialEntries={[adresse]}>
+        <ToastProvider>
+          <AdminProjectsView />
+          <AdresseZeigen />
+        </ToastProvider>
+      </MemoryRouter>
+    );
+  }
+  function AdresseZeigen() {
+    const ort = useLocation();
+    return <output data-testid="adresse">{ort.search}</output>;
+  }
+  beforeEach(() => {
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: 'B-2026-0001', customerName: 'Familie Huber', status: 'Aktiv' } as Project & { id: string },
+    ];
+  });
+
+  it('getippt steht sie in der Adresse', async () => {
+    render(<MitAdresse adresse="/admin-projects" />);
+    await userEvent.type(await screen.findByLabelText('Suche'), 'Hub');
+    expect(screen.getByTestId('adresse').textContent).toBe('?suche=Hub');
+  });
+
+  it('aus der Adresse steht sie im Feld', async () => {
+    render(<MitAdresse adresse="/admin-projects?suche=Huber" />);
+    expect(await screen.findByLabelText('Suche')).toHaveValue('Huber');
+  });
+
+  it('bleibt gleich: ein Tiefenlink sucht und zeigt „Alle“ — weitertippen behält „Alle“', async () => {
+    render(<MitAdresse adresse="/admin-projects?baustelle=B-2026-0001" />);
+    const feld = await screen.findByLabelText('Suche');
+    expect(feld).toHaveValue('B-2026-0001');
+    await userEvent.type(feld, '1');
+    const p = new URLSearchParams(screen.getByTestId('adresse').textContent!);
+    expect(p.get('stand')).toBe('alle');
+    expect(p.get('suche')).toBe('B-2026-00011');
+    expect(p.has('baustelle')).toBe(false);
+  });
+});
+
+/* Befund aus G12 (Durchsicht 15.11.2026): der Vorschlag nimmt das Jahr, in dem der Server vergibt. */
+describe('Nummernvorschlag mit dem Jahr vom Server', () => {
+  it('schlägt Jahr und nächste Zahl des Servers vor — nicht das Jahr des Geräts', async () => {
+    // Gerät: 2026 (fester Tag oben). Server: 2031, der Zähler stünde bei 7.
+    naechsteNummernImJahr.mockResolvedValue({ jahr: 2031, rechnung: 1001, angebot: 1, baustelle: 7 });
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: 'B-2026-0004', customerName: 'Familie Huber', customerId: 'k1', status: 'Aktiv' } as Project & { id: string },
+    ];
+    zeige();
+    await formOeffnen();
+    const feld = (await screen.findByLabelText('Projektnummer')) as HTMLInputElement;
+    await waitFor(() => expect(feld.value).toBe('B-2031-0007'));
+    expect(screen.queryByText(/Beispiel ohne Verbindung/)).toBeNull();
+  });
+
+  it('bleibt gleich ohne Verbindung: Jahr des Geräts, Nummer aus der Liste — als Beispiel gekennzeichnet', async () => {
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: 'B-2026-0004', customerName: 'Familie Huber', customerId: 'k1', status: 'Aktiv' } as Project & { id: string },
+    ];
+    zeige();
+    await formOeffnen();
+    const feld = (await screen.findByLabelText('Projektnummer')) as HTMLInputElement;
+    await waitFor(() => expect(feld.value).toBe('B-2026-0005'));
+    expect(screen.getByText(/Beispiel ohne Verbindung zum Server \(Jahr vom Gerät\)/)).toBeInTheDocument();
   });
 });

@@ -5,14 +5,26 @@ import { canAccess, navForRole, unterseitenFuer, zusatzrechte } from './navigati
 import { istOben, useFokusFalle } from '@/components/fokusFalle';
 import { ImFenster } from '@/components/imFenster';
 import { useHintergrundSperre } from '@/components/hintergrundSperre';
-import { searchCustomers } from '@/lib/db/customers';
-import { searchProjects } from '@/lib/db/projects';
-import { rechnungenNachNummer } from '@/lib/db/invoices';
-import { angeboteNachNummer } from '@/lib/db/quotes';
 import { listUsers } from '@/lib/db/users';
-import { sucheKatalog } from '@/lib/db/materials';
 import { datumAT } from '@/lib/datum';
 import { kontoAnzeige } from '@shared/benutzername';
+
+/*
+  DIE SUCHE DER BEREICHE KOMMT ERST MIT DEM FENSTER (L7, 17.11.2026). Fest
+  eingebunden zog sie Kunden, Baustellen, Rechnungen, Angebote und Katalog
+  in den Einstieg — und jede Änderung an einem dieser Bereiche benannte mit
+  der Hülle fast jeden Baustein der App um. Geholt wird sie, sobald das
+  Fenster aufgeht, also vor dem ersten Tippen.
+*/
+let suchModulVersprechen: Promise<typeof import('./suchfensterSuche')> | null = null;
+function suchModul() {
+  suchModulVersprechen ??= import('./suchfensterSuche').catch((e: unknown) => {
+    // Gescheitert (kein Netz): der nächste Versuch holt neu.
+    suchModulVersprechen = null;
+    throw e;
+  });
+  return suchModulVersprechen;
+}
 import type { AppUser } from '@/types';
 
 /**
@@ -122,6 +134,11 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
     jedem Tastendruck zu fragen hiesse fünf Anfragen für „Huber“, und die
     Antwort auf „H“ käme womöglich als letzte und überschriebe die richtige.
   */
+  // Mit dem Fenster die Suche holen — vor dem ersten Tippen.
+  useEffect(() => {
+    if (offen) void suchModul().catch(() => undefined);
+  }, [offen]);
+
   useEffect(() => {
     if (!offen || !user) return;
     const b = begriff.trim();
@@ -134,14 +151,14 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
     const uhr = setTimeout(() => {
       setLaedt(true);
       const kunden = canAccess(user.role, '/customers', company?.modules, zusatz)
-        ? searchCustomers(user.companyId, b, HOECHSTENS).then((ks) =>
+        ? suchModul().then((m) => m.searchCustomers(user.companyId, b, HOECHSTENS)).then((ks) =>
             ks.map<Treffer>((k) => ({
               schluessel: `k-${k.id}`, gruppe: 'Kunden', text: k.name, neben: k.ort ?? undefined, ziel: `/customers/${k.id}`,
             })))
         : Promise.resolve([]);
       const darf = (pfad: string) => canAccess(user.role, pfad, company?.modules, zusatz);
       const baustellen = darf('/admin-projects')
-        ? searchProjects(user.companyId, b, HOECHSTENS).then((ps) =>
+        ? suchModul().then((m) => m.searchProjects(user.companyId, b, HOECHSTENS)).then((ps) =>
             ps.map<Treffer>((p) => {
               const kunde = p.customerName?.trim() ?? '';
               const name = p.bezeichnung?.trim() ?? '';
@@ -159,7 +176,7 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
       */
       const nurLesen = user.role === 'Projektleiter';
       const rechnungen = darf('/invoices')
-        ? rechnungenNachNummer(user.companyId, b, HOECHSTENS).then((rs) =>
+        ? suchModul().then((m) => m.rechnungenNachNummer(user.companyId, b, HOECHSTENS)).then((rs) =>
             rs.map<Treffer>((r) => {
               const storno = !!r.stornoNummer && r.stornoNummer.toLocaleLowerCase('de-AT').includes(b.toLocaleLowerCase('de-AT'));
               return {
@@ -174,7 +191,7 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
             }))
         : Promise.resolve([]);
       const angebote = darf('/quotes')
-        ? angeboteNachNummer(user.companyId, b, HOECHSTENS).then((qs) =>
+        ? suchModul().then((m) => m.angeboteNachNummer(user.companyId, b, HOECHSTENS)).then((qs) =>
             qs.map<Treffer>((q) => ({
               schluessel: `a-${q.id}`, gruppe: 'Angebote', text: q.customerName || q.quoteNumber,
               zweite: q.status, neben: q.quoteNumber, nummer: true, ziel: `/quotes/${q.id}`,
@@ -205,7 +222,7 @@ export default function Suchfenster({ offen, onSchliessen }: { offen: boolean; o
       */
       const artikelZiel = darf('/lager') ? '/lager?reiter=katalog&suche=' : darf('/material') ? '/material?suche=' : null;
       const artikel = artikelZiel
-        ? sucheKatalog(user.companyId, b, HOECHSTENS).then((ms) =>
+        ? suchModul().then((m) => m.sucheKatalog(user.companyId, b, HOECHSTENS)).then((ms) =>
             ms.map<Treffer>((m) => ({
               schluessel: `m-${m.id}`, gruppe: 'Artikel', text: m.name, zweite: m.category || undefined,
               neben: m.articleNumber || undefined,

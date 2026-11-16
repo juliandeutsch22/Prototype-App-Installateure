@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { schluessel as speicherSchluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { canAccess } from '@/app/navigation';
@@ -30,7 +31,8 @@ import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/S
 import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
 import { naechsterSchritt } from '@/features/projects/naechsterSchritt';
 import { fassungsHinweis } from './fassungen';
-import { downloadAngebotPdf } from './angebotPdf';
+import { angebotPdfBlob, downloadAngebotPdf } from './angebotPdf';
+import BelegMailDialog from '@/features/belegMail/BelegMailDialog';
 import { STAND, standWort } from './stand';
 import { verwerfenFrage, VERWORFEN_MELDUNG, WIEDERHERGESTELLT_MELDUNG } from './verwerfen';
 import { datumAufHeute, hatPosition, leerNichtAnnehmen, statusFrage, type StatusFrage } from './statusFrage';
@@ -75,8 +77,20 @@ export default function AngebotView() {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const [angebot, setAngebot] = useState<Teil<WithId<Quote> | null>>(LAEDT);
-  const [kunde, setKunde] = useState<Teil<WithId<Customer> | null>>(LAEDT);
+  /*
+    GEMERKT (L8, 17.11.2026): beim zweiten Besuch — oder nach dem Berühren
+    der Zeile in der Angebotsliste (L12) — stehen Angebot und Kunde sofort
+    da; frisch geholt wird im Hintergrund. Annehmen, Versenden und Verwerfen
+    prüft die Datenbank am aktuellen Stand.
+  */
+  const { anfang: gemerkt, merken } = useGemerkt<{ angebot: WithId<Quote> | null; kunde: WithId<Customer> | null }>(
+    user && id ? speicherSchluessel('angebotsakte', user, id) : null,
+  );
+  const vorab = useRef(new Set(Object.keys(gemerkt ?? {})));
+  const [angebot, setAngebot] = useState<Teil<WithId<Quote> | null>>(() =>
+    gemerkt && 'angebot' in gemerkt ? { zustand: 'bereit', daten: gemerkt.angebot ?? null } : LAEDT);
+  const [kunde, setKunde] = useState<Teil<WithId<Customer> | null>>(() =>
+    gemerkt && 'kunde' in gemerkt ? { zustand: 'bereit', daten: gemerkt.kunde ?? null } : LAEDT);
   const [versuch, setVersuch] = useState(0);
   const [busy, setBusy] = useState(false);
   const [pdfLaeuft, setPdfLaeuft] = useState(false);
@@ -107,6 +121,14 @@ export default function AngebotView() {
   const [links, setLinks] = useState<Teil<AngebotLink[]>>(LAEDT);
   const [linksVersuch, setLinksVersuch] = useState(0);
   const [linkDialog, setLinkDialog] = useState(false);
+  /**
+   * PER MAIL (F16): offen mit dem Annahme-Link, wenn er eben entstand (der
+   * Schlüssel steht nur in diesem Moment im Klartext da). `nachLink`: der Link
+   * hat den Entwurf schon versendet und das Datum geregelt.
+   */
+  const [mail, setMail] = useState<{ link?: string; nachLink?: boolean } | null>(null);
+  /** A12 auch beim Mailversand: ein zurückliegendes Angebotsdatum auf heute (vorgewählt). */
+  const [mailDatumHeute, setMailDatumHeute] = useState(true);
   const onlineAnnahme = useModul('angebote.online_annahme');
   const liegenschaftenAn = useModul('kunden.liegenschaften');
 
@@ -120,11 +142,13 @@ export default function AngebotView() {
   useEffect(() => {
     if (!companyId || !id) return;
     let weg = false;
-    setAngebot(LAEDT);
+    if (!vorab.current.delete('angebot')) setAngebot(LAEDT);
     void (async () => {
       try {
         const q = await getQuote(companyId, id);
-        if (!weg) setAngebot({ zustand: 'bereit', daten: q });
+        if (weg) return;
+        setAngebot((alt) => (alt.zustand === 'bereit' && JSON.stringify(alt.daten) === JSON.stringify(q) ? alt : { zustand: 'bereit', daten: q }));
+        merken({ angebot: q });
       } catch {
         if (!weg) setAngebot({ zustand: 'fehler' });
       }
@@ -132,7 +156,7 @@ export default function AngebotView() {
     return () => {
       weg = true;
     };
-  }, [companyId, id, versuch]);
+  }, [companyId, id, versuch, merken]);
 
   /* Der Eingang lädt für sich (M02b): scheitert er, fehlt nur der Verweis. */
   useEffect(() => {
@@ -228,11 +252,13 @@ export default function AngebotView() {
       return;
     }
     let weg = false;
-    setKunde(LAEDT);
+    if (!vorab.current.delete('kunde')) setKunde(LAEDT);
     void (async () => {
       try {
         const treffer = await listCustomersByIds(companyId, [kundenId]);
-        if (!weg) setKunde({ zustand: 'bereit', daten: treffer[0] ?? null });
+        if (weg) return;
+        setKunde({ zustand: 'bereit', daten: treffer[0] ?? null });
+        merken({ kunde: treffer[0] ?? null });
       } catch {
         if (!weg) setKunde({ zustand: 'fehler' });
       }
@@ -240,7 +266,7 @@ export default function AngebotView() {
     return () => {
       weg = true;
     };
-  }, [companyId, kundenId, angebot.zustand, versuch]);
+  }, [companyId, kundenId, angebot.zustand, versuch, merken]);
 
   const ruecknahmeProjekt = ruecknahme && angebot.zustand === 'bereit' ? angebot.daten?.projectId ?? null : null;
   const ruecknahmeNummer = angebot.zustand === 'bereit' ? angebot.daten?.projectNumber ?? '' : '';
@@ -474,6 +500,19 @@ export default function AngebotView() {
           Annahme-Link
         </Button>
       )}
+      {/*
+        PER MAIL (F16): das PDF gleich an den Kunden — ein Entwurf ist danach
+        versendet. Nicht im Supporteinblick (die Datenbank weist ihn ab).
+      */}
+      {offen && hatPosition(q) && !einblick && (
+        <Button
+          variant="secondary"
+          disabled={kunde.zustand !== 'bereit'}
+          onClick={() => { setMailDatumHeute(true); setMail({}); }}
+        >
+          Per Mail senden
+        </Button>
+      )}
       {/* A5: ein leeres Angebot geht nicht hinaus — weder als versendet noch über den Link. */}
       {offen && !hatPosition(q) && (
         <span className="text-sm text-ink-muted">Noch ohne Position — versenden und verlinken geht erst mit einer.</span>
@@ -702,6 +741,10 @@ export default function AngebotView() {
         ...(q.status === 'Angenommen'
           ? [{ label: 'Annahme zurücknehmen', onSelect: () => { setRuecknahmeGrund(''); setRuecknahme(true); } }]
           : []),
+        // F16: auch ein angenommenes Angebot geht auf Wunsch noch einmal als Kopie hinaus.
+        ...(q.status === 'Angenommen' && !einblick && kunde.zustand === 'bereit'
+          ? [{ label: 'Per Mail senden …', onSelect: () => setMail({}) }]
+          : []),
         // Dasselbe ohne Verweis — etwa als Vorlage für einen ähnlichen Auftrag (M17).
         { label: 'Als Kopie anlegen', onSelect: () => navigate(`/quotes?kopie=${q.id}`) },
         // Nicht rot: es landet im Papierkorb und lässt sich zurückholen (M01d).
@@ -814,8 +857,53 @@ export default function AngebotView() {
             setLinkDialog(false);
             if (erzeugt) setVersuch((v) => v + 1);
           }}
+          // F16: gleich mit dem Link per Mail — neu geladen wird erst, wenn auch das Mailfenster zu ist.
+          onMailSenden={kunde.zustand === 'bereit' ? (adresse) => {
+            setLinkDialog(false);
+            setMail({ link: adresse, nachLink: true });
+          } : undefined}
         />
       )}
+
+      {mail && company && kunde.zustand === 'bereit' && (() => {
+        const neuesDatum = !mail.nachLink && q.status === 'Entwurf' && mailDatumHeute ? datumAufHeute(q, todayStr()) : null;
+        const gilt = neuesDatum ? { ...q, ...neuesDatum } : q;
+        return (
+          <BelegMailDialog
+            key={q.id}
+            open
+            art="angebot"
+            belegId={q.id}
+            kundenEmail={kunde.daten?.email || undefined}
+            werte={{
+              nummer: q.quoteNumber,
+              kunde: q.customerName,
+              betrag: euro(q.totalBrutto),
+              gueltig_bis: datumAT(gilt.validUntil),
+              link: mail.link,
+            }}
+            pdfErzeugen={async () => {
+              if (neuesDatum) await updateQuote(q.id, neuesDatum);
+              // Ein Entwurf mit den heutigen Firmendaten — der Versand hält genau diese fest.
+              return angebotPdfBlob({ company: await belegFirma(company, gilt.ausstellerStand), quote: gilt, kunde: kunde.daten });
+            }}
+            pdfLaden={() => void pdf(gilt)}
+            zusatz={!mail.nachLink && q.status === 'Entwurf' && q.quoteDate && datumAufHeute(q, todayStr()) ? (
+              <label className="flex min-h-touch items-center gap-2 text-sm text-ink">
+                <input type="checkbox" className="checkbox" checked={mailDatumHeute} onChange={(e) => setMailDatumHeute(e.target.checked)} />
+                Angebotsdatum auf heute setzen (statt {datumAT(q.quoteDate)}) — die Bindefrist rückt mit
+              </label>
+            ) : undefined}
+            onClose={(gesendet) => {
+              setMail(null);
+              if (gesendet || mail.nachLink) {
+                setVersuch((v) => v + 1);
+                setLinksVersuch((v) => v + 1);
+              }
+            }}
+          />
+        );
+      })()}
 
       {/* Erst fragen, dann anlegen (Launch-Check, M8) — wie in der Liste. */}
       <ConfirmDialog

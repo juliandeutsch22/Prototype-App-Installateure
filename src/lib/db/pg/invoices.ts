@@ -14,9 +14,9 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Invoice, InvoiceDiscount, Mahnung, MahnungInhalt, RechnungsKopf, WorkSheet } from '@/types';
-import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, SEITE, type WithId } from './kern';
+import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
-import { oderUeberSpalten } from './suche';
+import { KOPF_SPALTEN } from './rechnungSpalten';
 import { PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { RechnungsAntwortUnklar } from '@/lib/rechnungsAntwort';
 
@@ -54,6 +54,7 @@ const ABDECKUNGSARTEN = [
   // Seit M2: die eingeladene Rüstlistenposition (`20261116060000_material_verrechnet_je_ausgabe.sql`).
   ['ruest_position', 'linkedRuestPositionen'],
 ] as const;
+
 
 interface Abdeckungszeile {
   invoiceId: string;
@@ -165,6 +166,7 @@ function unbezahlteKoepfe(companyId: string) {
       denen schon einmal jemand nachgefragt hat.
     */
     wo: [{ art: 'in', feld: 'paymentStatus', werte: ['Offen', 'Überfällig', 'Teilbezahlt'] }],
+    spalten: KOPF_SPALTEN,
   });
 }
 
@@ -180,16 +182,15 @@ export async function listUnpaidInvoiceKoepfe(companyId: string): Promise<WithId
 }
 
 /**
- * Die jüngsten Rechnungen, live — mit ausdrücklicher Obergrenze.
+ * Die jüngsten Rechnungen, live, mit ausdrücklicher Obergrenze — nur die
+ * KÖPFE (L6), für die Liste der Rechnungsverwaltung und die Leseliste der
+ * Projektleitung. Positionen, Abdeckung und Leistungsnachweis holt erst, wer
+ * eine Rechnung öffnet (`listInvoicesByIds`). Bis 17.11.2026 kamen sie für
+ * jede Rechnung der Liste mit, bei jedem Besuch und jeder Live-Meldung
+ * (`subscribeRecentInvoices`, entfernt: nichts nutzte es mehr).
  *
- * EIGENES ABONNEMENT STATT `abonnieren`: eine Rechnung besteht aus drei
- * Tabellen, der allgemeine Weg meldet aber einzelne Zeilen einer einzigen.
- * Beobachtet wird deshalb der KOPF, und bei jeder Meldung wird die Liste neu
- * zusammengesetzt.
- *
- * Das trägt, weil Positionen und Abdeckung sich nach dem Anlegen nicht mehr
- * ändern — die Richtlinien lassen an `invoice_lines` weder ein Ändern noch
- * ein Löschen zu. Jede Bewegung an einer Rechnung berührt also ihren Kopf.
+ * EIGENES ABONNEMENT STATT `abonnieren`: beobachtet wird der Kopf, und bei
+ * jeder Meldung wird die Liste neu geholt.
  *
  * `geaendert` meldet, dass sich an IRGENDEINER Rechnung des Betriebs etwas
  * getan hat — auch an einer, die zu alt für diese Liste ist — und nach
@@ -197,10 +198,29 @@ export async function listUnpaidInvoiceKoepfe(companyId: string): Promise<WithId
  * beim ersten Aufbau: da lädt die Ansicht ohnehin. Damit hält die Ansicht
  * ihre offenen Forderungen aktuell (seit 11.10.2026).
  */
-export function subscribeRecentInvoices(
+export function subscribeRecentInvoiceKoepfe(
   companyId: string,
   max: number,
-  cb: (rows: WithId<Invoice>[]) => void,
+  cb: (rows: WithId<RechnungsKopf>[]) => void,
+  onError: (e: Error) => void,
+  client?: SupabaseClient,
+  geaendert?: () => void,
+): () => void {
+  return jungeRechnungenHalten(
+    companyId,
+    async (c) => (await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+      sortiere: { feld: 'createdAt', absteigend: true },
+      grenze: max,
+      spalten: KOPF_SPALTEN,
+    }, c)).map(kopfAlsRechnung),
+    cb, onError, client, geaendert,
+  );
+}
+
+function jungeRechnungenHalten<R>(
+  companyId: string,
+  laden: (c: SupabaseClient) => Promise<R[]>,
+  cb: (rows: R[]) => void,
   onError: (e: Error) => void,
   client?: SupabaseClient,
   geaendert?: () => void,
@@ -212,13 +232,7 @@ export function subscribeRecentInvoices(
   let nochmal = false;
   let nachfassen: ReturnType<typeof setTimeout> | undefined;
 
-  const holen = async (): Promise<WithId<Invoice>[]> => {
-    const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
-      sortiere: { feld: 'createdAt', absteigend: true },
-      grenze: max,
-    }, c);
-    return zusammensetzen(koepfe, companyId, c);
-  };
+  const holen = (): Promise<R[]> => laden(c);
 
   // Meldungen werden zusammengefasst, nicht gestapelt: liefen zwei
   // Nachladungen nebeneinander, könnte die ältere als letzte zurückkommen
@@ -514,26 +528,62 @@ export interface UnverrechneterSchein {
   abrechnung: WorkSheet['abrechnung'];
 }
 
+type UnverrechnetZeile = { id: string; project_number: string; customer_name: string; datum: string; abrechnung: WorkSheet['abrechnung'] };
+
+const alsUnverrechnet = (z: UnverrechnetZeile): UnverrechneterSchein => ({
+  id: z.id, projectNumber: z.project_number, customerName: z.customer_name, datum: z.datum, abrechnung: z.abrechnung,
+});
+
+/*
+  „NICHT VERRECHNET“ SO KNAPP, WIE DIE ANSICHT ES BRAUCHT (L22, Messung gegen
+  den gewachsenen Bestand). Bis hierher holte jede Ansicht ALLE unverrechneten
+  Scheine — in Seiten zu 500, eine nach der anderen, und jede Seite rechnete
+  den Kern neu. Bei 9.888 Scheinen waren das 20 Anfragen und gut 8 s, bevor
+  Startseite und Rechnungen standen. Jetzt fragt jede Ansicht, was sie zeigt:
+  die Startseite die Zahl, Rechnungen je Baustelle eine Zeile, die
+  Scheinliste eine Seite. Die Regeln stehen weiter in EINEM Kern
+  (`app.scheine_verrechnet_kern`).
+*/
+
+/** Zahl der unverrechneten Scheine, davon bis `altBis` (einschließlich), und der älteste Tag. */
+export interface UnverrechnetStand {
+  anzahl: number;
+  alt: number;
+  aeltester: string | null;
+}
+
+/** Der Stand über ALLE unterschriebenen Scheine (`scheine_unverrechnet_stand`) — eine Zeile. */
+export async function scheineUnverrechnetStand(altBis: string): Promise<UnverrechnetStand> {
+  const { data, error } = await derClient().rpc('scheine_unverrechnet_stand', { p_alt_bis: altBis });
+  if (error) throw new Error(error.message);
+  const z = ((data ?? []) as { anzahl: number; alt: number; aeltester: string | null }[])[0];
+  return { anzahl: Number(z?.anzahl ?? 0), alt: Number(z?.alt ?? 0), aeltester: z?.aeltester ?? null };
+}
+
+/** Eine Baustelle mit unverrechneten Scheinen: ihr ältester Schein vertritt sie, dazu ihre Zahl. */
+export interface UnverrechneteBaustelle extends UnverrechneterSchein {
+  anzahl: number;
+}
+
 /**
- * ALLE UNVERRECHNETEN SCHEINE DES BETRIEBS, älteste zuerst (P3,
- * `scheine_unverrechnet`). Zähler, Liste und Vier-Wochen-Schwelle kommen
- * überall aus dieser einen Antwort. Seitenweise, weil auch die Antwort einer
- * Funktion bei 1.000 Zeilen endet — eine Obergrenze wäre genau die Lücke,
- * die P3 schließt.
+ * Je Baustelle eine Zeile (`scheine_unverrechnet_baustellen`) — in EINER
+ * Antwort, auch über 1.000 Baustellen: die Datenbank gibt sie als einen Wert.
  */
-export async function scheineUnverrechnet(seite = SEITE): Promise<UnverrechneterSchein[]> {
-  type Zeile = { id: string; project_number: string; customer_name: string; datum: string; abrechnung: WorkSheet['abrechnung'] };
-  const alle: Zeile[] = [];
-  for (let ab = 0; ; ab += seite) {
-    const { data, error } = await derClient().rpc('scheine_unverrechnet').range(ab, ab + seite - 1);
-    if (error) throw new Error(error.message);
-    const teil = (data ?? []) as Zeile[];
-    alle.push(...teil);
-    if (teil.length < seite) break;
-  }
-  return alle.map((z) => ({
-    id: z.id, projectNumber: z.project_number, customerName: z.customer_name, datum: z.datum, abrechnung: z.abrechnung,
-  }));
+export async function scheineUnverrechnetJeBaustelle(): Promise<UnverrechneteBaustelle[]> {
+  const { data, error } = await derClient().rpc('scheine_unverrechnet_baustellen');
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as (UnverrechnetZeile & { anzahl: number })[])
+    .map((z) => ({ ...alsUnverrechnet(z), anzahl: Number(z.anzahl) || 0 }));
+}
+
+/**
+ * Eine Seite der unverrechneten Scheine, älteste zuerst (`scheine_unverrechnet`)
+ * — für die Scheinliste, die blättert, statt alles zu holen.
+ */
+export async function scheineUnverrechnetSeite(ab: number, anzahl: number): Promise<UnverrechneterSchein[]> {
+  const { data, error } = await derClient().rpc('scheine_unverrechnet').range(ab, ab + anzahl - 1);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as UnverrechnetZeile[]).map(alsUnverrechnet);
 }
 
 /** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */
@@ -553,10 +603,9 @@ export async function sucheRechnungen(
   max = RECHNUNG_TREFFER,
 ): Promise<WithId<Invoice>[]> {
   // Auch nach der Nummer einer Stornorechnung: sie steht an der stornierten Rechnung.
-  const oder = oderUeberSpalten(['invoice_number', 'storno_nummer', 'customer_name', 'project_number'], begriff);
-  if (!oder) return [];
+  if (!begriff.trim()) return [];
   const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
-    oder,
+    suche: { spalten: ['invoice_number', 'storno_nummer', 'customer_name', 'project_number'], begriff },
     sortiere: { feld: 'invoiceDate', absteigend: true },
     grenze: max,
   });
@@ -585,10 +634,9 @@ export async function rechnungenNachNummer(
   begriff: string,
   max: number,
 ): Promise<RechnungsTreffer[]> {
-  const oder = oderUeberSpalten(['invoice_number', 'storno_nummer'], begriff);
-  if (!oder) return [];
+  if (!begriff.trim()) return [];
   return abfragen<RechnungsTreffer>(RECHNUNGEN, companyId, {
-    oder,
+    suche: { spalten: ['invoice_number', 'storno_nummer'], begriff },
     spalten: 'id,invoice_number,storno_nummer,customer_name,project_number,invoice_date',
     sortiere: { feld: 'invoiceDate', absteigend: true },
     grenze: max,

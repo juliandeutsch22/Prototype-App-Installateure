@@ -2,7 +2,8 @@ import TimerEinstellungen from './TimerEinstellungen';
 import MonatsabschlussEinstellung from './MonatsabschlussEinstellung';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { updateCompany, naechsteNummern, rechnungsvorgabenSpeichern, type NaechsteNummern } from '@/lib/db/company';
+import { updateCompany, naechsteNummernImJahr, rechnungsvorgabenSpeichern, type NaechsteNummernImJahr } from '@/lib/db/company';
+import BelegMailEinstellungen from './BelegMailEinstellungen';
 import { kostensaetze } from '@/lib/db/kosten';
 import { STUFEN, satzName, stufeLeerHeisst, type Stufe } from '@/lib/einstufung';
 import { verkaufspreiseVorschlagen } from '@/lib/db/materials';
@@ -162,7 +163,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     PR-2026-0003 existierte. `null` heisst: noch nicht geladen oder nicht
     ladbar; dann steht nur das Format da, ausdrücklich als Beispiel.
   */
-  const [naechste, setNaechste] = useState<NaechsteNummern | null>(null);
+  const [naechste, setNaechste] = useState<NaechsteNummernImJahr | null>(null);
 
   /*
     JE KARTE NUR IHRE WERTE ÜBERNEHMEN (P10): nach dem Speichern einer Karte
@@ -224,7 +225,12 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   useEffect(() => {
     if (teil !== 'nummern' || !darfGenehmigerSetzen) return;
     let weg = false;
-    naechsteNummern(new Date().getFullYear())
+    /*
+      DAS JAHR VOM SERVER (Durchsicht 15.11.2026, G12): vergeben wird im
+      laufenden Jahr in Wien; ein Gerät mit falscher Uhr zeigte hier sonst
+      eine Nummer aus einem Kreis, den es nicht gibt.
+    */
+    naechsteNummernImJahr()
       .then((n) => !weg && setNaechste(n))
       .catch(() => !weg && setNaechste(null));
     return () => {
@@ -691,6 +697,9 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           </div>
         </form>
       )}
+
+      {/* F16: Antwortadresse und Vorlagen für Rechnungen, Mahnungen und Angebote per Mail — die Leitung pflegt sie. */}
+      {teil === 'rechnung' && <BelegMailEinstellungen bearbeiten={darfGenehmigerSetzen} />}
 
       {teil === 'saetze' && (
       <form onSubmit={submit} className="space-y-6">
@@ -1192,7 +1201,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 */}
                 <p className="text-sm text-ink-muted">
                   {naechste
-                    ? `Nächste: ${belegNummer(vorsaetze[schluessel], new Date().getFullYear(), naechste[schluessel])}`
+                    ? `Nächste: ${belegNummer(vorsaetze[schluessel], naechste.jahr, naechste[schluessel])}`
                     : `z. B. ${belegNummer(vorsaetze[schluessel], new Date().getFullYear(), ab)}`}
                 </p>
               </div>
@@ -1219,7 +1228,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           <p className="mt-4 text-sm text-ink-muted">
             Großbuchstaben, Ziffern, Bindestrich, höchstens {PRAEFIX_MAX} Zeichen. Leer heißt
             „kein Vorsatz“ — dann zählt der Kreis als
-            <span> {belegNummer('', new Date().getFullYear(), 1001)}</span>.
+            <span> {belegNummer('', naechste?.jahr ?? new Date().getFullYear(), 1001)}</span>.
           </p>
 
           <div className="fuss-aktionen mt-4">

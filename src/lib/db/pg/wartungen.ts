@@ -10,7 +10,6 @@
 import type { Wartung, WartungAusfuehrung } from '@/types';
 import { naechsterTermin } from '@/features/maintenance/wartungsplan';
 import { abfragen, anlegen, aendern, derClient, loeschen, type WithId } from './kern';
-import { oderUeberSpalten } from './suche';
 
 const WARTUNGEN = 'wartungen';
 const AUSFUEHRUNGEN = 'wartung_ausfuehrungen';
@@ -212,7 +211,7 @@ export function searchWartungen(
   companyId: string, begriff: string, max = 500,
 ): Promise<WithId<Wartung>[]> {
   return abfragen<Wartung>(WARTUNGEN, companyId, {
-    oder: oderUeberSpalten(['customer_name', 'anlage', 'address'], begriff),
+    suche: { spalten: ['customer_name', 'anlage', 'address'], begriff },
     sortiere: { feld: 'faelligAm' },
     grenze: max,
   });

@@ -5,9 +5,9 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { nachtzeitVon } from '@/lib/lohnregeln';
 import {
-  subscribeRecentInvoices,
+  subscribeRecentInvoiceKoepfe,
   listInvoicesInRange,
-  listUnpaidInvoices,
+  listUnpaidInvoiceKoepfe,
   nextInvoiceNumber,
   isInvoiceNumberTaken,
   invoiceSeqOf,
@@ -22,8 +22,8 @@ import {
   mahnungFesthalten,
   listMahnungenZurRechnung,
   sucheRechnungen,
-  scheineUnverrechnet,
-  type UnverrechneterSchein,
+  scheineUnverrechnetJeBaustelle,
+  type UnverrechneteBaustelle,
   RECHNUNG_TREFFER,
   listInvoicesByIds,
   rechnungVersuchKlaeren,
@@ -106,7 +106,7 @@ import { listBasiszinssaetze, type ZentralerBasiszinssatz } from '@/lib/db/basis
 import { discountLabel, istPreiszeile, positionsRabattText, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtDauer, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { Invoice, LeistungsnachweisZeile, Mahnung, Project, RechnungsArt, TimeEntry, WorkSheet, Zahlungseingang } from '@/types';
+import type { Invoice, LeistungsnachweisZeile, Mahnung, Project, RechnungsArt, RechnungsKopf, TimeEntry, WorkSheet, Zahlungseingang } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -116,9 +116,11 @@ import WachsendesTextfeld from '@/components/WachsendesTextfeld';
 import StatusBadge from '@/components/StatusBadge';
 import { Marke, Warnung } from '@/components/Badge';
 import RechnungDetail, { type MahnungZeile, type RechnungAktion } from './RechnungDetail';
+import { mitBeleg } from './mitBeleg';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import { verlaufSichtbar } from '@/features/verlauf/verlaufSichtbar';
-import { mahnungPdfLaden, rechnungPdfLaden } from './belegeLaden';
+import { mahnungPdfBlob, mahnungPdfLaden, rechnungPdfBlob, rechnungPdfLaden } from './belegeLaden';
+import BelegMailDialog from '@/features/belegMail/BelegMailDialog';
 import BankgarantieDialog from './BankgarantieDialog';
 import EbInterfaceDialog from './EbInterfaceDialog';
 import {
@@ -135,6 +137,7 @@ import ZahlFeld, { ZahlWertFeld, ZahlZelle } from '@/components/ZahlFeld';
 import { leseZahl, unlesbareZahlIn, zahlAlsText, zahlOder } from '@/lib/zahl';
 import { letzteMahnforderung, mahnkostenVorschlag } from './mahnung';
 import PageHeader from '@/components/PageHeader';
+import RechnungenMenue from './RechnungenMenue';
 import { Masslinie } from '@/components/Planlinie';
 import { praefixeVon } from '@/lib/praefixe';
 import { darfKundenPflegen, isGF, isTopLevel } from '@/lib/permissions';
@@ -201,7 +204,7 @@ export default function InvoicesView() {
   // Die Vorsätze des Betriebs — `RE-` stand hier bisher fest im Code.
   const vorsaetze = praefixeVon(company);
   const toast = useToast();
-  const [invoices, setInvoices] = useState<WithId<Invoice>[]>([]);
+  const [invoices, setInvoices] = useState<WithId<RechnungsKopf>[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -236,11 +239,12 @@ export default function InvoicesView() {
   /** Die letzte Anzahlung entstand ohne angenommenes Angebot — Betrag von Hand. */
   const [anzahlungOhneAngebot, setAnzahlungOhneAngebot] = useState(false);
   /*
-    DIE UNVERRECHNETEN SCHEINE DES BETRIEBS (P3) — nur der Kopf, über alle,
-    älteste zuerst. Einmal geladen, nicht abonniert: die Antwort ändert sich
-    im Takt von Tagen, nicht von Sekunden. `null`: noch nicht da.
+    DIE UNVERRECHNETEN SCHEINE DES BETRIEBS (P3) — über alle, je Baustelle
+    der älteste mit der Zahl (L22): die Karte zeigt eine Zeile je Baustelle,
+    mehr braucht sie nicht. Einmal geladen, nicht abonniert: die Antwort
+    ändert sich im Takt von Tagen, nicht von Sekunden. `null`: noch nicht da.
   */
-  const [unverrechnetDB, setUnverrechnetDB] = useState<UnverrechneterSchein[] | null>(null);
+  const [unverrechnetDB, setUnverrechnetDB] = useState<UnverrechneteBaustelle[] | null>(null);
   const [abdeckungFehler, setAbdeckungFehler] = useState(false);
   /*
     DIE SCHEINE DER BAUSTELLE IN DER VORSCHAU, für den Abgleich der Stunden
@@ -269,7 +273,7 @@ export default function InvoicesView() {
     ältesten fallen als erste heraus. Eine Mahnliste, die die älteste
     Forderung übersieht, ist schlimmer als keine.
   */
-  const [offeneRechnungen, setOffeneRechnungen] = useState<WithId<Invoice>[]>([]);
+  const [offeneRechnungen, setOffeneRechnungen] = useState<WithId<RechnungsKopf>[]>([]);
   /** Kamen die offenen Forderungen nicht? Dann darf keine Karte so tun, als wüsste sie Bescheid. */
   const [forderungenFehler, setForderungenFehler] = useState(false);
   /*
@@ -305,7 +309,7 @@ export default function InvoicesView() {
     `mahnen` die Rechnung ohnehin frisch.
   */
   const offeneAbruf = useRef({ gestartet: 0, angewandt: 0, laeuft: false, nochmal: false });
-  const offeneAnwenden = useCallback((nr: number, rows: WithId<Invoice>[]) => {
+  const offeneAnwenden = useCallback((nr: number, rows: WithId<RechnungsKopf>[]) => {
     if (nr <= offeneAbruf.current.angewandt) return;
     offeneAbruf.current.angewandt = nr;
     setOffeneRechnungen(rows);
@@ -324,7 +328,7 @@ export default function InvoicesView() {
         a.nochmal = false;
         const nr = ++a.gestartet;
         try {
-          offeneAnwenden(nr, await listUnpaidInvoices(user.companyId));
+          offeneAnwenden(nr, await listUnpaidInvoiceKoepfe(user.companyId));
         } catch {
           // Bleibt der letzte Stand (siehe oben).
         }
@@ -475,6 +479,10 @@ export default function InvoicesView() {
   const [garantieFuer, setGarantieFuer] = useState<(Invoice & { id: string }) | null>(null);
   // Die E-Rechnung (ebInterface) — zur Rechnung oder zu ihrer Stornorechnung.
   const [eRechnungFuer, setERechnungFuer] = useState<{ inv: WithId<Invoice>; storno: boolean } | null>(null);
+  /** Die Rechnung, die gerade per Mail hinausgeht (F16). */
+  const [mailFuer, setMailFuer] = useState<WithId<Invoice> | null>(null);
+  /** Die gespeicherte Mahnung, die gerade per Mail hinausgeht — mit ihrer Rechnung (F16, Nacharbeit). */
+  const [mahnMail, setMahnMail] = useState<{ inv: WithId<Invoice>; m: Mahnung } | null>(null);
   const [zahlungen, setZahlungen] = useState<WithId<Zahlungseingang>[] | null>(null);
   const [zDatum, setZDatum] = useState(todayStr());
   const [zBetrag, setZBetrag] = useState('');
@@ -653,8 +661,35 @@ export default function InvoicesView() {
    * würde.
    */
   const [suggestedNumber, setSuggestedNumber] = useState('');
-  /** Die Rechnung, deren Detailansicht offen ist (M19). */
-  const [detailFuer, setDetailFuer] = useState<WithId<Invoice> | null>(null);
+  /**
+   * Die Rechnung, deren Detailansicht offen ist (M19) — aus der Liste nur
+   * ihr Kopf (L6).
+   */
+  const [detailFuer, setDetailFuer] = useState<WithId<RechnungsKopf> | null>(null);
+  /**
+   * DER BELEG DER OFFENEN RECHNUNG (L6, Durchsicht 15.11.2026): Positionen,
+   * Abdeckung und festgehaltener Leistungsnachweis, geholt beim Öffnen.
+   * Vorher kamen sie für jede Rechnung der Liste und jede offene mit — bei
+   * 300 offenen Rechnungen 2,4 MB in vierzehn Anfragen, bei jedem Besuch
+   * und jeder Live-Meldung. Sie ändern sich nach dem Ausstellen nicht
+   * (`invoice_lines` und `invoice_coverage` lassen kein Ändern zu); der Kopf
+   * kommt weiter aus der Liste, mit dem Stand von jetzt.
+   */
+  const [beleg, setBeleg] = useState<{ fuer: string; inv: WithId<Invoice> | null; fehler: boolean } | null>(null);
+  const [belegVersuch, setBelegVersuch] = useState(0);
+  const belegId = detailFuer?.id ?? null;
+  useEffect(() => {
+    if (!user || !belegId) {
+      setBeleg(null);
+      return;
+    }
+    let weg = false;
+    setBeleg(null);
+    listInvoicesByIds(user.companyId, [belegId])
+      .then(([inv]) => { if (!weg) setBeleg({ fuer: belegId, inv: inv ?? null, fehler: !inv }); })
+      .catch(() => { if (!weg) setBeleg({ fuer: belegId, inv: null, fehler: true }); });
+    return () => { weg = true; };
+  }, [user, belegId, belegVersuch]);
   /** Die gespeicherten Mahnungen der offenen Rechnung — für „erneut laden“. */
   const [detailMahnungen, setDetailMahnungen] = useState<{ fuer: string; liste: WithId<Mahnung>[] } | null>(null);
   /**
@@ -802,7 +837,7 @@ export default function InvoicesView() {
       angeboten, statt einen Stapel ohne Konten zu versprechen.
     */
     buchungskonten(user.companyId).then(setKonten).catch(() => setNebenFehler('Der Kontenrahmen'));
-    const unsub = subscribeRecentInvoices(
+    const unsub = subscribeRecentInvoiceKoepfe(
       user.companyId,
       grenze,
       (rows) => {
@@ -880,7 +915,7 @@ export default function InvoicesView() {
       „Zusatzangabe". Für die SCHEINE stimmt das; für die Forderungen nicht.
     */
     const nr = ++offeneAbruf.current.gestartet;
-    listUnpaidInvoices(user.companyId)
+    listUnpaidInvoiceKoepfe(user.companyId)
       .then((rows) => {
         if (!weg) offeneAnwenden(nr, rows);
       })
@@ -896,11 +931,13 @@ export default function InvoicesView() {
   }, [user, nurLesen, offeneAnwenden]);
 
   /*
-    DIE UNVERRECHNETEN SCHEINE ÜBER ALLE (P3, `scheine_unverrechnet`).
-    Vorher die 60 jüngsten, dazu die Abdeckung — ein älterer Schein fiel
-    heraus, bevor er „über 4 Wochen“ alt werden konnte. Kommt die Antwort
-    nicht, bleibt die Karte weg und eine Zeile sagt warum: eine leere Liste
-    hieße „alles verrechnet“. Ohne Zugriff auf die Verrechnung (nur lesen)
+    DIE UNVERRECHNETEN SCHEINE ÜBER ALLE (P3), je Baustelle zusammengefasst
+    (L22, `scheine_unverrechnet_baustellen`): bis zur Messung gegen den
+    gewachsenen Bestand kam jeder Schein einzeln, in 20 Seiten nacheinander —
+    gut 8 s, bevor die Seite stand. Vorher die 60 jüngsten, dazu die
+    Abdeckung — ein älterer Schein fiel heraus, bevor er „über 4 Wochen“ alt
+    werden konnte. Kommt die Antwort nicht, bleibt die Karte weg und eine
+    Zeile sagt warum: eine leere Liste hieße „alles verrechnet“. Ohne Zugriff auf die Verrechnung (nur lesen)
     wird nicht gefragt.
 
     NEU GEHOLT WIE DIE STUNDEN (`stundenStand`): nach jeder angelegten oder
@@ -912,7 +949,7 @@ export default function InvoicesView() {
   useEffect(() => {
     if (!user || nurLesen) return;
     let weg = false;
-    scheineUnverrechnet()
+    scheineUnverrechnetJeBaustelle()
       .then((rows) => {
         if (weg) return;
         setUnverrechnetDB(rows);
@@ -2672,14 +2709,25 @@ export default function InvoicesView() {
       await shareOrDownloadPdf(blob, mahnungDateiname(inv, stufe));
 
       // Festgehalten wird, was die Mahnung an Kosten verlangt — Spesen oder Pauschale.
-      await mahnungFesthalten(inv.id, {
+      const mahnungId = await mahnungFesthalten(inv.id, {
         stufe, gemahntAm: heute, frist, spesen: inhalt.kosten, inhalt,
       });
       // Das Abzeichen im Menü zählt mit: diese Rechnung ist bis zum Ablauf
       // der neuen Frist keine fällige Mahnung mehr. Ebenso der Mahnlauf.
       void postenNeuLaden();
       offeneNeuLaden();
-      toast.success(`${TEXTE[stufe].titel} erzeugt`);
+      /*
+        PER MAIL GLEICH DANACH (F16, Nacharbeit): Stufe und `gemahnt_am` hat
+        das Festhalten eben gesetzt — genau wie bisher. Die Mail schickt
+        dieses gespeicherte Schreiben, sie mahnt nicht ein zweites Mal.
+      */
+      const erzeugt: Mahnung = {
+        id: mahnungId, companyId: inv.companyId, invoiceId: inv.id, stufe, datum: heute, frist, spesen: inhalt.kosten, inhalt,
+      };
+      toast.success(`${TEXTE[stufe].titel} erzeugt`, einblick ? undefined : {
+        label: 'Per Mail senden',
+        onClick: () => setMahnMail({ inv, m: erzeugt }),
+      });
       setMahnFuer(null);
     } catch (err) {
       /*
@@ -2718,6 +2766,27 @@ export default function InvoicesView() {
     return () => { weg = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- detailMahnKey trägt Rechnung und Stand
   }, [user?.companyId, detailMahnKey]);
+
+  /**
+   * Die jüngste Mahnung der Rechnung per Mail (F16, Nacharbeit) — frisch
+   * gelesen: nur sie lässt die Datenbank hinaus, eine ältere Stufe nach einer
+   * neueren nähme die Mahnung zurück.
+   */
+  async function mahnungMailOeffnen(inv: WithId<Invoice>) {
+    if (!user) return;
+    try {
+      const liste = await listMahnungenZurRechnung(user.companyId, inv.id);
+      const juengste = [...liste].sort((x, y) => y.stufe - x.stufe || y.datum.localeCompare(x.datum)
+        || (y.angelegtAm ?? 0) - (x.angelegtAm ?? 0))[0];
+      if (!juengste) {
+        toast.error(`Zu ${inv.invoiceNumber} ist keine Mahnung gespeichert.`);
+        return;
+      }
+      setMahnMail({ inv, m: juengste });
+    } catch (err) {
+      toast.error(grundAus(err, 'Die Mahnungen der Rechnung ließen sich nicht laden.'));
+    }
+  }
 
   /** Eine gespeicherte Mahnung erneut als PDF — genau das Schreiben von damals. */
   async function mahnungErneutLaden(id: string) {
@@ -3375,6 +3444,17 @@ export default function InvoicesView() {
         ? [{ label: `${TEXTE[naechsteStufe(inv)!].titel} erzeugen`, onSelect: ausDemFenster(() => mahnenOeffnen(inv)) }]
         : []),
       /*
+        DIE LETZTE MAHNUNG PER MAIL (F16, Nacharbeit) — für eine gemahnte,
+        noch offene Rechnung. Gemahnt ist sie schon mit dem Erzeugen; die
+        Mail schickt das gespeicherte Schreiben. Nicht im Supporteinblick.
+      */
+      ...((inv.mahnstufe ?? 0) > 0 && inv.paymentStatus !== 'Storniert' && stand.rest > 0 && !einblick
+        ? [{
+            label: `${TEXTE[Math.min(inv.mahnstufe ?? 1, 3) as 1 | 2 | 3].titel} per Mail senden …`,
+            onSelect: ausDemFenster(() => void mahnungMailOeffnen(inv)),
+          }]
+        : []),
+      /*
         DIE BANKGARANTIE (seit 10.10.2026): nur, wo ein Rücklass offen ist —
         oder schon abgelöst wurde, dann zum Ändern oder Zurücknehmen.
       */
@@ -3385,6 +3465,14 @@ export default function InvoicesView() {
           }]
         : []),
       pdf,
+      /*
+        PER MAIL (F16) neben dem PDF: derselbe Beleg, gleich beim Kunden. Nicht
+        nach einem Storno (eine stornierte Forderung geht nicht mehr hinaus)
+        und nicht im Supporteinblick (die Mail ist eine Erklärung des Betriebs).
+      */
+      ...(inv.paymentStatus !== 'Storniert' && !einblick
+        ? [{ label: 'Per Mail senden …', onSelect: ausDemFenster(() => setMailFuer(inv)) }]
+        : []),
       ...eRechnung,
       ...(inv.paymentStatus !== 'Storniert'
         ? [
@@ -3507,6 +3595,11 @@ export default function InvoicesView() {
           ? 'Eine Zeile antippen öffnet die Rechnung mit Positionen, Summen und Zahlstand. „Bezahlt im Monat“ zählt die Zahlungseingänge seit dem Monatsersten, ohne Skonto.'
           : 'Eine Zeile antippen öffnet die Rechnung — dort stehen Zahlung erfassen, Mahnen, PDF und Storno. „Bezahlt im Monat“ zählt die Zahlungseingänge seit dem Monatsersten, ohne Skonto.'}
         action={nurLesen ? undefined : <Button onClick={erstellenOeffnen}>Neue Rechnung</Button>}
+        /*
+          DER KONTOAUSZUG (F13) im ⋯ der Seite: eine seltene Seitenaktion (einmal
+          je Auszug), nicht die Hauptaktion. Die Projektleitung liest nur.
+        */
+        mehr={nurLesen ? undefined : <RechnungenMenue />}
         /*
           DIE KENNZAHLEN SIND ANTIPPBAR (Linie „Lot“, Regel 4): eine Zahl, hinter
           der Arbeit steht, ohne Weg dorthin, lässt einen suchen. Sie setzen den
@@ -3672,11 +3765,12 @@ export default function InvoicesView() {
             zeile={(baustelle) => {
               const nummer = baustelle.projectNumber;
               const scheine = baustelle.scheine;
-              const scheinText = scheine.length === 0
+              // Gezählt aus der Datenbank (L22): je Gruppe steht nur der älteste Schein hier.
+              const scheinText = baustelle.anzahlScheine === 0
                 ? null
-                : scheine.length === 1
+                : baustelle.anzahlScheine === 1
                   ? `Schein vom ${datumAT(scheine[0].datum)}`
-                  : `${scheine.length} Scheine seit ${datumAT(baustelle.aeltesterSchein ?? scheine[0].datum)}`;
+                  : `${baustelle.anzahlScheine} Scheine seit ${datumAT(baustelle.aeltesterSchein ?? scheine[0].datum)}`;
               const stundenText = baustelle.stunden
                 ? `${fmtDauer(baustelle.stunden.minuten)} gebucht seit ${datumAT(baustelle.stunden.aeltester)}`
                 : null;
@@ -5884,15 +5978,29 @@ export default function InvoicesView() {
         Handlungen da. Gesucht wird in allem, was die Seite gerade kennt.
       */}
       {(() => {
-        const inv = detailFuer
+        const kopf = detailFuer
           ? [...invoices, ...(serverTreffer ?? []), ...(zahlSicht?.zeilen ?? []), ...offeneRechnungen]
             .find((i) => i.id === detailFuer.id) ?? detailFuer
+          : null;
+        /*
+          Der Kopf von jetzt über dem Beleg vom Öffnen: Positionen, Abdeckung
+          und Nachweis aus `beleg`, alles andere (Zahlstand, Mahnstufe, Storno)
+          aus der Liste. Erst mit dem Beleg gibt es Handlungen — PDF, E-Rechnung,
+          Stornorechnung und Ersatz brauchen ihn, und keine darf mit einer
+          Rechnung über nichts arbeiten.
+        */
+        const geladen = kopf && beleg?.fuer === kopf.id ? beleg : null;
+        const inv: WithId<Invoice> | null = kopf
+          ? geladen?.inv ? mitBeleg(kopf, geladen.inv) : (kopf as WithId<Invoice>)
           : null;
         return (
           <RechnungDetail
             inv={inv}
+            belegLaedt={!!kopf && !geladen}
+            belegFehler={!!geladen?.fehler}
+            onBelegErneut={() => setBelegVersuch((n) => n + 1)}
             onClose={() => setDetailFuer(null)}
-            aktionen={inv ? rechnungAktionen(inv) : []}
+            aktionen={inv && geladen?.inv ? rechnungAktionen(inv) : []}
             mahnungen={inv && detailMahnungen?.fuer === inv.id
               ? detailMahnungen.liste.map((m): MahnungZeile => ({
                   id: m.id, titel: TEXTE[m.stufe as Mahnstufe]?.titel ?? 'Mahnung', datum: m.datum, frist: m.frist,
@@ -5914,6 +6022,47 @@ export default function InvoicesView() {
         darfKundenPflegen={!!user && darfKundenPflegen(user)}
         onClose={() => setERechnungFuer(null)}
       />
+      {mailFuer && company && (
+        <BelegMailDialog
+          key={mailFuer.id}
+          open
+          art="rechnung"
+          belegId={mailFuer.id}
+          kundenEmail={kundeZu((mailFuer as WithId<Invoice> & { customerId?: string }).customerId, mailFuer.customerName)?.email || undefined}
+          werte={{
+            nummer: mailFuer.invoiceNumber,
+            kunde: mailFuer.customerName,
+            // Was der Kunde zahlen soll: die Forderung dieses Belegs (bei Schlussrechnung nach Abzug).
+            betrag: euro(mailFuer.totalBrutto),
+            faellig: datumAT(mailFuer.dueDate),
+            baustelle: mailFuer.projectNumber,
+          }}
+          pdfErzeugen={() => rechnungPdfBlob(company, mailFuer)}
+          pdfLaden={() => void redownload(mailFuer)}
+          onClose={() => setMailFuer(null)}
+        />
+      )}
+      {mahnMail && company && (
+        <BelegMailDialog
+          key={mahnMail.m.id}
+          open
+          art="mahnung"
+          belegId={mahnMail.m.id}
+          kundenEmail={kundeZu((mahnMail.inv as WithId<Invoice> & { customerId?: string }).customerId, mahnMail.inv.customerName)?.email || undefined}
+          werte={{
+            nummer: mahnMail.inv.invoiceNumber,
+            kunde: mahnMail.inv.customerName,
+            titel: TEXTE[mahnMail.m.inhalt.stufe].titel,
+            mahnstufe: mahnMail.m.inhalt.stufe,
+            // Was das Schreiben als offen nennt — der Stand am Mahntag, wie im PDF.
+            offen: euro(mahnMail.m.inhalt.offen),
+            frist: datumAT(mahnMail.m.frist),
+          }}
+          pdfErzeugen={() => mahnungPdfBlob(company, mahnMail.m)}
+          pdfLaden={() => void mahnungPdfLaden(company, mahnMail.m).catch((err) => toast.error(grundAus(err, 'Die Mahnung konnte nicht geladen werden.')))}
+          onClose={() => setMahnMail(null)}
+        />
+      )}
       <ConfirmDialog
         open={!!zahlungFuer}
         title={zahlungFuer ? `Zahlungen — ${zahlungFuer.invoiceNumber}` : 'Zahlungen'}

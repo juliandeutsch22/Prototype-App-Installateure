@@ -66,6 +66,76 @@ describe('Zeilenschutz', () => {
     expect(mitRecht.map((r) => `${r.table_name}:${r.privilege_type}`)).toEqual([]);
   });
 
+  /*
+    DASSELBE FÜR ANGEMELDETE KONTEN, beschränkt auf die drei Rechte, über die
+    der Zeilenschutz nicht entscheidet (`20261117035000_authenticated_ohne_truncate.sql`).
+    TRUNCATE leert eine Tabelle für ALLE Betriebe, ohne eine einzige Regel
+    zu fragen; TRIGGER hängt eigenen Code an fremde Zeilen; REFERENCES
+    verrät über einen Fremdschlüssel, welche Kennungen es gibt. Über
+    PostgREST ist keines erreichbar — es geht, wie bei `anon`, um die
+    Reichweite eines künftigen Fehlers. Lesen und Schreiben entscheidet der
+    Zeilenschutz; das prüft hier niemand.
+  */
+  const OHNE_ZEILENSCHUTZ = `
+      select table_name, privilege_type from information_schema.role_table_grants
+       where table_schema = 'public' and grantee = 'authenticated'
+         and privilege_type in ('TRUNCATE', 'TRIGGER', 'REFERENCES')
+       order by 1, 2`;
+
+  it('gibt angemeldeten Konten auf KEINER Tabelle TRUNCATE, TRIGGER oder REFERENCES', async () => {
+    const mitRecht = await zeilen<{ table_name: string; privilege_type: string }>(OHNE_ZEILENSCHUTZ);
+    expect(mitRecht.map((r) => `${r.table_name}:${r.privilege_type}`)).toEqual([]);
+  });
+
+  /*
+    MAINTAIN (ab Postgres 17): erlaubt LOCK TABLE — eine Sperre hält die
+    Tabelle für alle Betriebe an, ohne dass der Zeilenschutz gefragt wird.
+    `information_schema` führt das Recht nicht; gefragt wird deshalb
+    `has_table_privilege` je Tabelle und Sicht. Unter 17 gibt es das Recht
+    nicht, und die Prüfung hat nichts zu prüfen.
+  */
+  const MIT_MAINTAIN = `
+      select c.relname as table_name from pg_class c join pg_namespace n on n.oid = c.relnamespace
+       where n.nspname = 'public' and c.relkind in ('r', 'v', 'm', 'p', 'f')
+         and has_table_privilege('authenticated', c.oid, 'MAINTAIN')
+       order by 1`;
+  const kenntMaintain = async () =>
+    Number((await zeilen<{ v: string }>(`select current_setting('server_version_num') as v`))[0].v) >= 170000;
+
+  it('gibt angemeldeten Konten auf KEINER Tabelle MAINTAIN (LOCK TABLE ohne Zeilenschutz)', async () => {
+    if (!(await kenntMaintain())) return;
+    expect((await zeilen<{ table_name: string }>(MIT_MAINTAIN)).map((r) => r.table_name)).toEqual([]);
+  });
+
+  it('Gegenprobe MAINTAIN: eine neue Tabelle bekommt es nicht — und ein von Hand vergebenes fiele auf', async () => {
+    if (!(await kenntMaintain())) return;
+    await db.query('begin');
+    try {
+      await db.query('create table public.probe_ohne_maintain (id uuid primary key)');
+      expect((await zeilen<{ table_name: string }>(MIT_MAINTAIN)).map((r) => r.table_name)).not.toContain('probe_ohne_maintain');
+      await db.query('grant maintain on public.probe_ohne_maintain to authenticated');
+      expect((await zeilen<{ table_name: string }>(MIT_MAINTAIN)).map((r) => r.table_name)).toContain('probe_ohne_maintain');
+    } finally {
+      await db.query('rollback');
+    }
+  });
+
+  it('Gegenprobe: eine neue Tabelle bekommt die drei Rechte nicht mehr — und eine von Hand vergebene fiele auf', async () => {
+    await db.query('begin');
+    try {
+      // Die Vorgabe: was als `postgres` neu entsteht, trägt sie nicht (mehr).
+      await db.query('create table public.probe_ohne_truncate (id uuid primary key)');
+      const neu = await zeilen<{ table_name: string }>(OHNE_ZEILENSCHUTZ);
+      expect(neu.filter((r) => r.table_name === 'probe_ohne_truncate')).toEqual([]);
+      // Der Wächter selbst: wer sie von Hand wieder vergibt, wird gefunden.
+      await db.query('grant truncate on public.probe_ohne_truncate to authenticated');
+      const vergeben = await zeilen<{ table_name: string; privilege_type: string }>(OHNE_ZEILENSCHUTZ);
+      expect(vergeben.map((r) => `${r.table_name}:${r.privilege_type}`)).toContain('probe_ohne_truncate:TRUNCATE');
+    } finally {
+      await db.query('rollback');
+    }
+  });
+
   it('prüft in JEDER Richtlinie auf einer Betriebstabelle auch wirklich den Betrieb', async () => {
     // Eingeschalteter Zeilenschutz ohne Betriebsprüfung wäre eine Tür mit
     // Schloss und ohne Riegel: die Richtlinie greift, erlaubt aber allen alles.
@@ -344,6 +414,24 @@ describe('Interne Hilfsfunktionen', () => {
       'app.wartung_bezug_mit_tag()',
       // A14: angenommen wird nur mit Position.
       'app.angebot_annahme_pruefen()',
+      // F9: Wächterliste, Lage und Prüfung des Zusammenführens — nur die öffentlichen Funktionen rufen sie.
+      'app.kundenbezug_tabellen()',
+      'app.kundenbezug_unbekannt()',
+      'app.kunden_zusammenfuehren_lage(uuid, uuid)',
+      'app.kunden_zusammenfuehren_pruefen(uuid, uuid)',
+      // F14: Recht, Soll zu einem Zeitpunkt und Lage einer Zählliste — nur die Inventurfunktionen rufen sie.
+      'app.inventur_recht(text)',
+      'app.inventur_soll(boolean, uuid, uuid, timestamp with time zone)',
+      'app.inventur_lage(uuid)',
+      // L13: der Zwischenspeicher des Zeitkontos — Füllen, Lesen und Auslöser nur über `zeitkonto_salden` und pg_cron.
+      'app.zeitkonto_rechenstand()',
+      'app.zeitkonto_sperre(text)',
+      'app.zeitkonto_stand_buchung()',
+      'app.zeitkonto_stand_leeren()',
+      'app.zeitkonto_stand_person()',
+      'app.zeitkonto_stand_betrieb()',
+      'app.zeitkonto_zwischenstand_fuellen(text)',
+      'app.zeitkonto_monate_gemerkt(uuid[], date, date)',
       // Was nur die Function mit dem Dienstschlüssel ruft.
       'public.angebot_link_abruf(text)',
       'public.angebot_link_annehmen(text, text, text, boolean)',

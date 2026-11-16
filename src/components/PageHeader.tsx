@@ -5,6 +5,7 @@ import { Modulskizze, Stempel, type SkizzenMotiv } from './Planlinie';
 import { UnterreiterAnmeldung, UnterreiterLeiste } from './unterreiterLeiste';
 import { gruppeVon } from '@/app/navigation';
 import { wortfugen } from '@/lib/wortfugen';
+import { mitListenAdresse } from '@/lib/listenAdresse';
 import { useKopfTitel } from './KopfTitel';
 
 /*
@@ -135,7 +136,7 @@ export default function PageHeader({
     <div className="plankopf">
       <div className="seitenkopf">
         {zurueck ? (
-          <p className="seitenkopf-ort"><Link to={zurueck.to} className="seitenkopf-zurueck">← {zurueck.text}</Link></p>
+          <p className="seitenkopf-ort"><Link to={mitListenAdresse(zurueck.to)} className="seitenkopf-zurueck">← {zurueck.text}</Link></p>
         ) : ort ? <p className="seitenkopf-ort">{ort}</p> : imRouter ? <OrtAusDemMenue /> : null}
         <div className="seitenkopf-zeile">
           <div className="plankopf-titel">

@@ -34,6 +34,9 @@ const vite = (await import(/* @vite-ignore */ configPfad)) as {
   default: { plugins: Plugin[] };
   auslieferungsKopfzeilen: (k: typeof konfig) => Record<string, string>;
   vorschauKopfzeilen: (k: typeof konfig, adresse: string | undefined) => Record<string, string>;
+  eingebetteteSkripte: (html: string) => string[];
+  skriptHash: (text: string) => string;
+  skripteOhneHash: (html: string, k: typeof konfig) => string[];
 };
 const { auslieferungsKopfzeilen, vorschauKopfzeilen } = vite;
 const viteConfig = vite.default;
@@ -77,9 +80,16 @@ describe('Auslieferung (firebase.json)', () => {
     expect(r['frame-ancestors']).toEqual(["'none'"]);
   });
 
-  it('erlaubt kein eingebettetes Skript, kein eval und keine fremde Skriptquelle außer dem Push-Dienst', () => {
+  /*
+    BEWUSST ANGEPASST (L10, Nacharbeit 17.11.2026): ein eingebettetes Skript
+    ist erlaubt — genau eines, über seinen Hash (die Darstellung vor dem
+    ersten Bild in `index.html`). Weiter kein `'unsafe-inline'`, kein eval,
+    keine fremde Quelle außer dem Push-Dienst.
+  */
+  it('erlaubt kein beliebiges eingebettetes Skript, kein eval und keine fremde Skriptquelle außer dem Push-Dienst', () => {
     const r = anweisungen(kopf['Content-Security-Policy']);
-    expect(r['script-src']).toEqual(["'self'", 'https://www.gstatic.com']);
+    const html = readFileSync(join(wurzel, 'index.html'), 'utf8');
+    expect(r['script-src']).toEqual(["'self'", ...vite.eingebetteteSkripte(html).map(vite.skriptHash), 'https://www.gstatic.com']);
     expect(r['script-src']).not.toContain("'unsafe-inline'");
     expect(r['script-src']).not.toContain("'unsafe-eval'");
   });
@@ -108,11 +118,21 @@ describe('Auslieferung (firebase.json)', () => {
     for (const herkunft of geladen) expect(erlaubt).toContain(herkunft);
   });
 
-  it('die Startseite hat kein eingebettetes Skript — sonst meldete die Regel jeden Aufruf', () => {
+  /*
+    BEWUSST ANGEPASST (L10, Nacharbeit): vorher „kein eingebettetes Skript“.
+    Jetzt trägt jedes eingebettete Skript der Startseite seinen Hash in der
+    Regel — sonst sperrte sie es live, und der dunkle Grund vor dem ersten
+    Bild fiele still aus. Ein geändertes Skript ohne neuen Hash ist rot.
+  */
+  it('jedes eingebettete Skript der Startseite ist über seinen Hash erlaubt', () => {
     const html = readFileSync(join(wurzel, 'index.html'), 'utf8');
-    const skripte = [...html.matchAll(/<script\b([^>]*)>/g)].map((m) => m[1]);
-    expect(skripte.length).toBeGreaterThan(0);
-    for (const attr of skripte) expect(attr).toMatch(/\bsrc=/);
+    expect(vite.eingebetteteSkripte(html)).toHaveLength(1);
+    expect(vite.skripteOhneHash(html, konfig)).toEqual([]);
+  });
+
+  it('Gegenprobe: ein geändertes Skript ohne neuen Hash fällt auf', () => {
+    const html = readFileSync(join(wurzel, 'index.html'), 'utf8').replace("'#211f1c'", "'#222222'");
+    expect(vite.skripteOhneHash(html, konfig)).toHaveLength(1);
   });
 
   it('die Regeln für den Zwischenspeicher bleiben, wie sie waren', () => {

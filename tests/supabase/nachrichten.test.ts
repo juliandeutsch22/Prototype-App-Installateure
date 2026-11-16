@@ -298,6 +298,55 @@ describe('Anhänge', () => {
     expect(verlauf.find((z) => z.id === n)).toMatchObject({ text: null, anhaenge: [] });
   });
 
+  /*
+    L4: das Vorschaubild gehört zum Anhang — lesbar für die Teilnehmer, nicht
+    überschreibbar, geht beim Löschen mit. Ohne `vorschau` (ältere Fassungen)
+    oder mit einem Vorschaubild, das nicht oben liegt, geht die Nachricht
+    trotzdem hinaus.
+  */
+  it('Vorschaubild: im Verlauf, lesbar, nicht überschreibbar, geht mit dem Anhang (L4)', async () => {
+    const kanal = await rpc<string>(monteur, 'nachrichten_kanal_direkt', { p_mit: kollege.uid });
+    const n = crypto.randomUUID();
+    const a = crypto.randomUUID();
+    const v = crypto.randomUUID();
+    const ohne = crypto.randomUUID();
+    expect((await hochladen(monteur, 'nachrichten-privat', kanal, n, a)).error).toBeNull();
+    expect((await hochladen(monteur, 'nachrichten-privat', kanal, n, v, 'klein')).error).toBeNull();
+    expect((await hochladen(monteur, 'nachrichten-privat', kanal, n, ohne)).error).toBeNull();
+    await rpc(monteur, 'nachricht_senden', {
+      p_id: n, p_kanal: kanal, p_text: 'Foto',
+      // Das zweite nennt ein Vorschaubild, das es nicht gibt: die Nachricht geht ohne.
+      p_anhaenge: [{ id: a, name: 'foto.jpg', vorschau: v }, { id: ohne, name: 'plan.png', vorschau: crypto.randomUUID() }],
+    });
+    const verlauf = await rpc<Zeile[]>(kollege, 'nachrichten_verlauf', { p_kanal: kanal });
+    const anhaenge = verlauf.find((z) => z.id === n)!.anhaenge as Zeile[];
+    const vorschau = `nachrichten/${A}/${kanal}/${n}/${v}`;
+    expect(anhaenge.map((x) => x.vorschau)).toEqual([vorschau, null]);
+    expect((await kollege.client.storage.from('nachrichten-privat').download(vorschau)).error, 'Teilnehmer liest').toBeNull();
+    expect((await dritter.client.storage.from('nachrichten-privat').download(vorschau)).error, 'fremder Betrieb nicht').not.toBeNull();
+    expect((await hochladen(monteur, 'nachrichten-privat', kanal, n, v, 'getauscht')).error, 'gesendetes Vorschaubild').not.toBeNull();
+
+    await rpc(monteur, 'nachricht_loeschen', { p_id: n });
+    expect((await kollege.client.storage.from('nachrichten-privat').download(vorschau)).error, 'ab sofort unerreichbar').not.toBeNull();
+    await aufraeumenLassen();
+    expect(await objektDa('nachrichten-privat', vorschau)).toBe(false);
+  });
+
+  it('Gegenprobe L4: ein untergeschobenes Vorschaubild wird nicht übernommen und bleibt unlesbar', async () => {
+    const kanal = await rpc<string>(monteur, 'nachrichten_kanal_direkt', { p_mit: kollege.uid });
+    const n = crypto.randomUUID();
+    const a = crypto.randomUUID();
+    const v = crypto.randomUUID();
+    expect((await hochladen(monteur, 'nachrichten-privat', kanal, n, a)).error).toBeNull();
+    // Der Kollege legt ein „Vorschaubild“ in den Ordner der Nachricht des Monteurs.
+    expect((await hochladen(kollege, 'nachrichten-privat', kanal, n, v, 'untergeschoben')).error).toBeNull();
+    await rpc(monteur, 'nachricht_senden', { p_id: n, p_kanal: kanal, p_text: null, p_anhaenge: [{ id: a, name: 'foto.jpg', vorschau: v }] });
+    const verlauf = await rpc<Zeile[]>(kollege, 'nachrichten_verlauf', { p_kanal: kanal });
+    expect((verlauf.find((z) => z.id === n)!.anhaenge as Zeile[])[0].vorschau).toBeNull();
+    const fremd = `nachrichten/${A}/${kanal}/${n}/${v}`;
+    expect((await monteur.client.storage.from('nachrichten-privat').download(fremd)).error).not.toBeNull();
+  });
+
   it('Bearbeiten nur die eigene; angezeigt als bearbeitet', async () => {
     const kanal = await rpc<string>(monteur, 'nachrichten_kanal_direkt', { p_mit: kollege.uid });
     const { id } = await senden(monteur, kanal, 'Tippfeler');

@@ -43,16 +43,6 @@ export function listAssignmentsInRange(
   return pg.listAssignmentsInRange(companyId, from, to, max);
 }
 
-export function subscribeAssignmentsForMonth(
-  companyId: string,
-  year: number,
-  month: number,
-  cb: (rows: WithId<Assignment>[]) => void,
-  onError: (e: Error) => void,
-): () => void {
-  return pg.subscribeAssignmentsForMonth(companyId, year, month, cb, onError);
-}
-
 export function subscribeAssignmentsInRange(
   companyId: string,
   from: string,
@@ -61,6 +51,17 @@ export function subscribeAssignmentsInRange(
   onError: (e: Error) => void,
 ): () => void {
   return pg.subscribeAssignmentsInRange(companyId, from, to, cb, onError);
+}
+
+/** Wie viele Baustellen je Tag geplant sind, live — siehe `pg.beobachteEinsatzTage` (L9). */
+export function beobachteEinsatzTage(
+  companyId: string,
+  von: string,
+  bis: string,
+  cb: (tage: Map<string, number>) => void,
+  onError: (e: Error) => void,
+): () => void {
+  return pg.beobachteEinsatzTage(companyId, von, bis, cb, onError);
 }
 
 export function saveAssignments(

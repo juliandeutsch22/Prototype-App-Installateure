@@ -165,15 +165,24 @@ const verrechnungGeholt = vi.fn(async () => aufRechnung);
   Seit P3 fragt die Liste `scheine_unverrechnet` (über alle Scheine) — hier
   aus dem geladenen Bestand und `aufRechnung` nachgebildet, älteste zuerst,
   wie die Datenbank antwortet; die Zeilen dazu holt `listWorkSheetsByIds`.
+  Seit L22 zählt die Datenbank (`scheine_unverrechnet_stand`) und die Liste
+  blättert (`range`); beides hier aus derselben Nachbildung.
 */
+const alleUnverrechnet = async () => {
+  const verrechnet = await verrechnungGeholt();
+  return [...geladen, ...nurInDerDatenbank]
+    .filter((x) => x.status === 'Unterschrieben' && !verrechnet.includes(x.id))
+    .sort((a, b) => a.datum.localeCompare(b.datum) || a.id.localeCompare(b.id))
+    .map((x) => ({ id: x.id, projectNumber: x.projectNumber, customerName: x.customerName, datum: x.datum, abrechnung: x.abrechnung }));
+};
+const seiteGeholt = vi.fn(async (ab: number, anzahl: number) => (await alleUnverrechnet()).slice(ab, ab + anzahl));
 vi.mock('@/lib/db/invoices', () => ({
-  scheineUnverrechnet: async () => {
-    const verrechnet = await verrechnungGeholt();
-    return [...geladen, ...nurInDerDatenbank]
-      .filter((x) => x.status === 'Unterschrieben' && !verrechnet.includes(x.id))
-      .sort((a, b) => a.datum.localeCompare(b.datum) || a.id.localeCompare(b.id))
-      .map((x) => ({ id: x.id, projectNumber: x.projectNumber, customerName: x.customerName, datum: x.datum, abrechnung: x.abrechnung }));
+  scheineUnverrechnetSeite: (ab: number, anzahl: number) => seiteGeholt(ab, anzahl),
+  scheineUnverrechnetStand: async (altBis: string) => {
+    const alle = await alleUnverrechnet();
+    return { anzahl: alle.length, alt: alle.filter((x) => x.datum <= altBis).length, aeltester: alle[0]?.datum ?? null };
   },
+  scheineAufRechnung: async (_c: string, ids: string[]) => (await verrechnungGeholt()).filter((id) => ids.includes(id)),
 }));
 
 /** Die Firmendaten der Ausstellung (seit 24.10.2026): mit Stand die von damals. */
@@ -1343,6 +1352,59 @@ describe('Ansicht und Seitenfenster', () => {
     expect(await screen.findByRole('heading', { name: /Nicht verrechnet/ })).toHaveTextContent('2 Nicht verrechnet');
     const alt = screen.getByText('Familie Vergessen');
     expect(alt.compareDocumentPosition(screen.getByText('Familie Neu')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  /*
+    L22 (Messung gegen den gewachsenen Bestand): die Liste holte zu ALLEN
+    unverrechneten Kennungen jeden ganzen Schein — bei 9.888 Scheinen 511
+    Anfragen und 51 s. Jetzt zählt die Datenbank, geholt werden die
+    ältesten, die die Gruppe zeigt, und „weitere anzeigen“ holt nach.
+    Gegenprobe: mit dem Stand davor stehen alle 25 sofort da, und
+    `scheineUnverrechnetSeite` wird nie gefragt.
+  */
+  const fuenfundzwanzig = () => Array.from({ length: 25 }, (_, i) =>
+    unterschrieben(`k${String(i).padStart(2, '0')}`, `2026-09-${String(i + 1).padStart(2, '0')}`, `Familie K${String(i).padStart(2, '0')}`));
+
+  it('L22: holt nur die ältesten, die die Gruppe zeigt — die Zahl über alle, „weitere“ holt nach', async () => {
+    authWert.user.role = 'Buchhaltung';
+    seiteGeholt.mockClear();
+    geladen = [scheine[0]];
+    nurInDerDatenbank = fuenfundzwanzig();
+    const nutzer = userEvent.setup();
+    zeichne();
+    expect(await screen.findByRole('heading', { name: /Nicht verrechnet/ })).toHaveTextContent('25 Nicht verrechnet');
+    expect(await screen.findByText('Familie K19')).toBeInTheDocument();
+    expect(screen.queryByText('Familie K20')).not.toBeInTheDocument();
+    // Die erste Seite — auch wenn die Liste nach dem Laden der jüngsten noch einmal fragt.
+    expect(seiteGeholt.mock.calls.length).toBeGreaterThan(0);
+    expect(seiteGeholt.mock.calls.every(([ab, n]) => ab === 0 && n === 20)).toBe(true);
+
+    seiteGeholt.mockClear();
+    await nutzer.click(screen.getByRole('button', { name: 'und 5 weitere anzeigen' }));
+    expect(await screen.findByText('Familie K24')).toBeInTheDocument();
+    expect(seiteGeholt.mock.calls).toEqual([[20, 50]]);
+    expect(screen.queryByRole('button', { name: /weitere anzeigen/ })).not.toBeInTheDocument();
+  });
+
+  it('L22, bleibt gleich: unter dem Filter aus der Adresse dieselbe Zahl, und ein Treffer vom Server zählt, auch wenn er noch nicht geholt ist', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [scheine[0]];
+    nurInDerDatenbank = fuenfundzwanzig();
+    const verrechnet = unterschrieben('r1', '2026-09-30', 'Familie Verrechnet');
+    nurInDerDatenbank.push(verrechnet);
+    aufRechnung = ['r1'];
+    const nutzer = userEvent.setup();
+    zeichne('/worksheets?filter=nicht-verrechnet');
+    expect(await screen.findByRole('heading', { name: 'Nicht verrechnet (25)' })).toBeInTheDocument();
+    expect(await screen.findByText('Familie K00')).toBeInTheDocument();
+    expect(screen.queryByText('Familie K24')).not.toBeInTheDocument();
+
+    // K24 ist der jüngste — nicht auf der ersten Seite; der verrechnete fällt heraus.
+    serverTreffer = [nurInDerDatenbank[24], verrechnet];
+    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'Familie');
+    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+    expect(await screen.findByText('Familie K24')).toBeInTheDocument();
+    expect(screen.queryByText('Familie Verrechnet')).not.toBeInTheDocument();
   });
 
   /*

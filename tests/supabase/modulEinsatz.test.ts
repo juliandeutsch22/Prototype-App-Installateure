@@ -82,18 +82,18 @@ describe('Der ganze Monat, auch ein kurzer', () => {
     clientEinreichen(planer.client);
     await einsaetze.saveAssignments(BETRIEB, TAG_SEPT, BAU, [zeile(anton)]);
 
-    const staende: WithId<unknown>[][] = [];
+    // Seit L9 zählt der Kalender die Baustellen je Tag über den ganzen Monat (`einsatz_tage`).
+    const staende: Map<string, number>[] = [];
     const fehler: Error[] = [];
-    // Monat ist 0-basiert: 8 ist der September.
-    const stopp = einsaetze.subscribeAssignmentsForMonth(
-      BETRIEB, 2026, 8,
-      (rows) => staende.push(rows as WithId<unknown>[]),
+    const stopp = einsaetze.beobachteEinsatzTage(
+      BETRIEB, '2026-09-01', '2026-09-30',
+      (tage) => staende.push(tage),
       (e) => fehler.push(e),
     );
     try {
       await warteKurz();
       expect(fehler).toEqual([]);
-      expect(letzter(staende)).toHaveLength(1);
+      expect(letzter(staende).get(TAG_SEPT)).toBe(1);
     } finally {
       stopp();
       await leeren(TAG_SEPT);
@@ -110,17 +110,17 @@ describe('Der ganze Monat, auch ein kurzer', () => {
     clientEinreichen(planer.client);
     await einsaetze.saveAssignments(BETRIEB, TAG_FEB, BAU, [zeile(anton)]);
 
-    const staende: WithId<unknown>[][] = [];
+    const staende: Map<string, number>[] = [];
     const fehler: Error[] = [];
-    const stopp = einsaetze.subscribeAssignmentsForMonth(
-      BETRIEB, 2026, 1,
-      (rows) => staende.push(rows as WithId<unknown>[]),
+    const stopp = einsaetze.beobachteEinsatzTage(
+      BETRIEB, '2026-02-01', '2026-02-28',
+      (tage) => staende.push(tage),
       (e) => fehler.push(e),
     );
     try {
       await warteKurz();
       expect(fehler).toEqual([]);
-      expect(letzter(staende)).toHaveLength(1);
+      expect(letzter(staende).get(TAG_FEB)).toBe(1);
     } finally {
       stopp();
       await leeren(TAG_FEB);

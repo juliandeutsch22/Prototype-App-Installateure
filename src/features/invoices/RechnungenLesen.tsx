@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { useAdressSuche } from '@/lib/useAdressSuche';
-import { subscribeRecentInvoices } from '@/lib/db/invoices';
+import { subscribeRecentInvoiceKoepfe } from '@/lib/db/invoices';
 import type { WithId } from '@/lib/db/core';
-import type { Invoice } from '@/types';
+import type { RechnungsKopf } from '@/types';
 import Card from '@/components/Card';
 import PageHeader from '@/components/PageHeader';
 import { ListRow } from '@/components/ListRow';
@@ -33,7 +33,7 @@ import { BEREICHE, imArbeitsstand, rechnungsGruppen, RechnungsGruppe, type Berei
  */
 export default function RechnungenLesen() {
   const { user } = useAuth();
-  const [zeilen, setZeilen] = useState<WithId<Invoice>[] | null>(null);
+  const [zeilen, setZeilen] = useState<WithId<RechnungsKopf>[] | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   // Die Ansicht steht in der Adresse wie bei der Rechnungsverwaltung (Regel 5).
   const [parameter, setParameter] = useSearchParams();
@@ -53,10 +53,14 @@ export default function RechnungenLesen() {
   const betrieb = user?.companyId;
   useEffect(() => {
     if (!betrieb) return;
-    return subscribeRecentInvoices(
+    return subscribeRecentInvoiceKoepfe(
       betrieb,
       200,
-      (r) => setZeilen(r),
+      (r) => {
+        setZeilen(r);
+        // Ein früherer Ladefehler gilt nicht mehr, sobald die Liste wieder da ist (Z10).
+        setFehler(null);
+      },
       () => setFehler('Die Rechnungen konnten nicht geladen werden.'),
     );
   }, [betrieb]);
@@ -70,7 +74,7 @@ export default function RechnungenLesen() {
     );
   }, [zeilen, bereich, suche]);
 
-  const zeile = (r: WithId<Invoice>) => {
+  const zeile = (r: WithId<RechnungsKopf>) => {
     const offen = Math.max(0, (r.totalBrutto ?? 0) - (r.bezahltBetrag ?? 0));
     return (
       <ListRow

@@ -6,7 +6,7 @@
  * der Datenbank, und eine Regel in zwei Fassungen läuft auseinander.
  */
 import type { TimeEntry } from '@/types';
-import { abfragen, abonnieren, anlegenMitKennung, aendern as kernAendern, loeschen as kernLoeschen, derClient, SEITE, type WithId } from './kern';
+import { abfragen, abonnieren, anlegenMitKennung, aendern as kernAendern, loeschen as kernLoeschen, derClient, kanalHalten, SEITE, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 
 import {
@@ -92,29 +92,72 @@ export function listUrlaubstage(companyId: string, from: string, to: string) {
   });
 }
 
+/** Ein Urlaubstag, wie die Mitarbeiterübersicht ihn liest: Person und Tag. */
+export type Urlaubstag = WithId<Pick<TimeEntry, 'companyId' | 'userId' | 'date' | 'status'>>;
+
 /**
- * Dieselben Urlaubstage als Live-Liste — für die Mitarbeiterübersicht.
+ * DIE URLAUBSTAGE JE PERSON, live — für Resturlaub und „Urlaub im Jahr“ der
+ * Mitarbeiterübersicht (L5, `urlaubstage_je_person`).
  *
- * Dort zählen „Urlaub im Jahr“ und der Resturlaub die Urlaubstage über den
- * gezeigten Monat hinaus. Bis 18.10.2026 lud die Seite dafür jede Buchung des
- * Jahres (im Testbestand 35.100 Zeilen, 22 MB); jetzt nur die Urlaubstage,
- * und wer einen bucht oder storniert, sieht es hier gleich.
+ * Vorher hielt die Seite jede Urlaubsbuchung seit dem frühesten Saldo-Start
+ * als ganze Zeile live (`subscribeUrlaubstage`): bei 50 Personen und zehn
+ * Jahren 9.795 Zeilen, 8,2 MB in zwanzig Seiten — gelesen wurden Person und
+ * Tag. Jetzt eine Zeile je Person mit der Liste der Tage (127 KB). Neu
+ * gezählt wird, wenn sich eine Urlaubsbuchung ändert — gebündelt, höchstens
+ * einmal je Sekunde; ein Löschen meldet keinen Status und zählt deshalb immer.
  */
-export function subscribeUrlaubstage(
+export function beobachteUrlaubstage(
   companyId: string,
-  from: string,
-  to: string,
-  cb: (rows: WithId<TimeEntry>[]) => void,
+  von: string,
+  bis: string,
+  cb: (tage: Urlaubstag[]) => void,
   onError: (e: Error) => void,
-) {
-  return abonnieren<TimeEntry>(ZEITEN, companyId, cb, onError, {
-    wo: [
-      { art: 'gleich', feld: 'status', wert: 'Urlaub' },
-      { art: 'ab', feld: 'date', wert: from },
-      { art: 'bis', feld: 'date', wert: to },
-    ],
-    sortiere: { feld: 'date' },
+): () => void {
+  let weg = false;
+  let lauf = 0;
+  let geplant: ReturnType<typeof setTimeout> | undefined;
+  const holen = async () => {
+    const meiner = ++lauf;
+    try {
+      const personen: Array<{ user_id: string; tage: string[] | null }> = [];
+      for (let ab = 0; ; ab += SEITE) {
+        const { data, error } = await derClient().rpc('urlaubstage_je_person', { p_von: von, p_bis: bis }).range(ab, ab + SEITE - 1);
+        if (error) throw new Error(error.message);
+        const teil = (data ?? []) as Array<{ user_id: string; tage: string[] | null }>;
+        personen.push(...teil);
+        if (teil.length < SEITE) break;
+      }
+      // Eine ältere Antwort darf eine neuere nicht überschreiben.
+      if (weg || meiner !== lauf) return;
+      cb(personen.flatMap((p) => (p.tage ?? []).map((date, i): Urlaubstag => ({
+        id: `urlaub:${p.user_id}:${date}:${i}`, companyId, userId: p.user_id, date, status: 'Urlaub',
+      }))));
+    } catch (e) {
+      if (!weg && meiner === lauf) onError(e instanceof Error ? e : new Error(String(e)));
+    }
+  };
+  const bald = () => {
+    if (geplant) return;
+    geplant = setTimeout(() => {
+      geplant = undefined;
+      void holen();
+    }, 1000);
+  };
+  void holen();
+  const stopp = kanalHalten({
+    tabelle: ZEITEN,
+    filter: `company_id=eq.${companyId}`,
+    beiAenderung: (n) => {
+      if (n.eventType === 'DELETE' || n.new?.status === 'Urlaub' || n.old?.status === 'Urlaub') bald();
+    },
+    beiBereit: bald,
+    client: derClient(),
   });
+  return () => {
+    weg = true;
+    if (geplant) clearTimeout(geplant);
+    stopp();
+  };
 }
 
 export function listEntriesInRange(companyId: string, from: string, to: string) {

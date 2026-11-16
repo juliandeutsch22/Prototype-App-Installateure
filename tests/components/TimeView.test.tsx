@@ -67,6 +67,8 @@ let fensterHalten = false;
 /** Hält den Saldo aus der Datenbank zurück, bis der Test ihn freigibt (aus diesen Buchungen gerechnet). */
 let seitHalten: Promise<(TimeEntry & { id: string })[]> | null = null;
 let schnappschussSenden: ((rows: (TimeEntry & { id: string })[]) => void) | null = null;
+/** Der Fehlerweg des Live-Abos (Z10). */
+let fehlerSenden: ((e: Error) => void) | null = null;
 
 vi.mock('@/lib/db/timeEntries', () => ({
   subscribeOwnEntriesInRange: (
@@ -75,9 +77,11 @@ vi.mock('@/lib/db/timeEntries', () => ({
     von: string,
     bis: string,
     cb: (rows: (TimeEntry & { id: string })[]) => void,
+    onError?: (e: Error) => void,
   ) => {
     abo(von, bis);
     schnappschussSenden = cb;
+    fehlerSenden = onError ?? null;
     if (!fensterHalten) cb(eintraege);
     return () => undefined;
   },
@@ -259,6 +263,7 @@ beforeEach(() => {
   abschluesse = [];
   authWert.company = { id: 'perl', name: 'Perl Installationen' };
   schnappschussSenden = null;
+  fehlerSenden = null;
   seitHalten = null;
   fensterHalten = false;
   abo.mockClear();
@@ -1439,5 +1444,24 @@ describe('Zeiterfassung — abgeschlossener Monat (Durchsicht 15.11.2026, Z6)', 
     abschluesse = [...abschluesse, { monat: '2026-08', aktion: 'geoeffnet', grund: 'Nachtrag', vonName: 'Büro', am: '2026-09-01T08:00:00Z' }];
     zeige();
     await waitFor(() => expect(within(zeile('31.08.2026')).getByRole('button', { name: /löschen/ })).toBeInTheDocument());
+  });
+});
+
+/*
+  Z10 (Prüflauf 15.11.2026): „Meine Einträge“ blieb nach einem Ladefehler
+  ohne Netz bei „Das hat nicht geklappt“, auch als die Liste wieder kam.
+  GEGENPROBE (Erwartung): ohne das Zurücknehmen im Rückruf rot.
+*/
+describe('Zeiterfassung — nach einem Ladefehler (Z10)', () => {
+  it('kommt die Liste wieder, verschwindet der Fehler', async () => {
+    fensterHalten = true;
+    eintraege = [eintrag({ id: 'a', date: '2026-08-31' })];
+    zeige();
+    await waitFor(() => expect(fehlerSenden).not.toBeNull());
+    act(() => fehlerSenden!(new Error('Failed to fetch')));
+    expect(await screen.findByText('Das hat nicht geklappt')).toBeInTheDocument();
+    act(() => schnappschussSenden!(eintraege));
+    await waitFor(() => expect(screen.queryByText('Das hat nicht geklappt')).toBeNull());
+    expect(await screen.findByText('31.08.2026')).toBeInTheDocument();
   });
 });

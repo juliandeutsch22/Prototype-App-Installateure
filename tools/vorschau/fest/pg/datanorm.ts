@@ -13,4 +13,4 @@ export const zeilenSchicken = async () => undefined;
 export const BLOCK = 500;
 export const UEBERNAHME_BLOCK = 100;
 export const laufVerwerfen = async () => undefined;
-export const preisspruenge = async () => [];
+export const preisspruenge = async () => ({ gesamt: 0, schwelle: 0, zeilen: [] });

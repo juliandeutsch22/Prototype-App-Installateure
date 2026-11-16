@@ -216,7 +216,7 @@ const offeneRechnungen: { wert: unknown[] } = { wert: [] };
 vi.mock('@/lib/db/invoices', () => ({
   listUnpaidInvoiceKoepfe: vi.fn(async () => offeneRechnungen.wert),
   listInvoicesByIds: vi.fn(async () => []),
-  scheineUnverrechnet: vi.fn(async () => []),
+  scheineUnverrechnetStand: vi.fn(async () => ({ anzahl: 0, alt: 0, aeltester: null })),
 }));
 vi.mock('@/lib/db/zahlungen', () => ({ listZahlungenImZeitraum: vi.fn(async () => []) }));
 vi.mock('@/lib/db/workSheets', () => ({

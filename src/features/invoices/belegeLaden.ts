@@ -12,17 +12,32 @@ import { druckAngaben } from './nachdruck';
   die so dasteht, wie der Benutzer sie lesen soll.
 */
 
-/** Die Rechnung erneut als PDF. */
-export async function rechnungPdfLaden(company: Company, inv: Invoice): Promise<void> {
+/** Was jeder Nachdruck braucht: Positionen und die Firmendaten von damals. */
+async function rechnungDruck(company: Company, inv: Invoice) {
   if (!inv.positions?.length) throw new Error('Für diese Rechnung sind keine Positionen gespeichert.');
-  const { downloadInvoicePdf } = await import('./pdf');
   let firma: Company;
   try {
     firma = await belegFirma(company, inv.ausstellerStand);
   } catch (err) {
     throw new Error(grundAus(err, 'Die Firmendaten dieser Rechnung konnten nicht geladen werden.'));
   }
-  downloadInvoicePdf(druckAngaben(firma, inv));
+  return druckAngaben(firma, inv);
+}
+
+/** Die Rechnung erneut als PDF. */
+export async function rechnungPdfLaden(company: Company, inv: Invoice): Promise<void> {
+  const [{ downloadInvoicePdf }, angaben] = await Promise.all([import('./pdf'), rechnungDruck(company, inv)]);
+  downloadInvoicePdf(angaben);
+}
+
+/**
+ * Dieselbe Rechnung als Datei für den Mailversand (F16) — derselbe Nachdruck
+ * wie „PDF laden“, nur nicht heruntergeladen: was der Kunde per Mail bekommt,
+ * ist genau das, was das Büro sich lädt.
+ */
+export async function rechnungPdfBlob(company: Company, inv: Invoice): Promise<Blob> {
+  const [{ generateInvoicePdf }, angaben] = await Promise.all([import('./pdf'), rechnungDruck(company, inv)]);
+  return generateInvoicePdf(angaben).output('blob');
 }
 
 /** Eine gespeicherte Mahnung erneut als PDF — genau das Schreiben von damals. */
@@ -37,6 +52,13 @@ export async function mahnungPdfLaden(company: Company, m: Mahnung): Promise<voi
   } catch (err) {
     throw new Error(grundAus(err, 'Die Mahnung konnte nicht geladen werden.'));
   }
+}
+
+/** Dieselbe gespeicherte Mahnung als Datei für den Mailversand (F16) — genau das Schreiben von damals. */
+export async function mahnungPdfBlob(company: Company, m: Mahnung): Promise<Blob> {
+  const { istMahnungInhalt, mahnungPdfAusInhalt } = await import('./mahnungPdf');
+  if (!istMahnungInhalt(m.inhalt)) throw new Error('Der gespeicherte Inhalt dieser Mahnung ist nicht lesbar.');
+  return mahnungPdfAusInhalt(await belegFirma(company, m.ausstellerStand), m.inhalt);
 }
 
 /**

@@ -361,8 +361,46 @@ function aenderungsZeilen(z: ObjektVerlaufZeile, k: VerlaufKontext): string[] {
   }
   // Eine Spalte, die die Liste (noch) nicht kennt, verschwindet nicht.
   for (const spalte of Object.keys(z.aenderungen)) {
-    if (!bekannt.has(spalte)) zeilen.push(`Angabe „${spalte}“ geändert`);
+    if (!bekannt.has(spalte) && spalte !== ZUSAMMENGEFUEHRT) zeilen.push(`Angabe „${spalte}“ geändert`);
   }
+  return zeilen;
+}
+
+/**
+ * DER EINTRAG DES ZUSAMMENFÜHRENS (F9) am bleibenden Kunden: keine Spalte,
+ * sondern der Vorgang — wer hierher zusammengeführt wurde und was mitkam
+ * (`kunden_zusammenfuehren`). Die geänderten Stammfelder stehen im Eintrag
+ * daneben, wie bei jeder Änderung.
+ */
+const ZUSAMMENGEFUEHRT = 'zusammengefuehrt';
+const MITGEKOMMEN: [string, string, string][] = [
+  ['baustellen', 'Baustelle', 'Baustellen'],
+  ['angebote', 'Angebot', 'Angebote'],
+  ['rechnungen', 'Rechnung', 'Rechnungen'],
+  ['scheine', 'Handwerksschein', 'Handwerksscheine'],
+  ['wartungen', 'Wartung', 'Wartungen'],
+  ['termine', 'Termin', 'Termine'],
+  ['eingaenge', 'Auftragseingang', 'Auftragseingänge'],
+  ['beteiligungen', 'Beteiligung', 'Beteiligungen'],
+];
+
+function zusammenfuehrungsZeilen(w: unknown): string[] {
+  const z = (w ?? {}) as { alt?: Record<string, unknown>; neu?: Record<string, unknown>; entfernt?: boolean };
+  if (z.entfernt) return ['Angaben mit den Kundendaten gelöscht'];
+  const alt = z.alt ?? {};
+  const zeilen = [
+    `Hierher zusammengeführt: ${leer(alt.name) ? 'ein Kunde' : `„${String(alt.name)}“`}${
+      leer(alt.kundennummer) ? '' : ` (Nr. ${String(alt.kundennummer)})`}`,
+  ];
+  if (!leer(alt.anschrift)) zeilen.push(`Dessen Anschrift ${String(alt.anschrift)}`);
+  if (!leer(alt.uid)) zeilen.push(`Dessen UID-Nummer ${String(alt.uid)}`);
+  const zahlen = ((z.neu ?? {}).zahlen ?? {}) as Record<string, unknown>;
+  const namen = ((z.neu ?? {}).ueber_namen ?? {}) as Record<string, unknown>;
+  const teile = MITGEKOMMEN
+    .map(([k, eins, mehr]) => [Number(zahlen[k] ?? 0) + Number(namen[k] ?? 0), eins, mehr] as const)
+    .filter(([n]) => n > 0)
+    .map(([n, eins, mehr]) => `${n} ${n === 1 ? eins : mehr}`);
+  if (teile.length > 0) zeilen.push(`Mitgekommen: ${teile.join(', ')}`);
   return zeilen;
 }
 
@@ -386,6 +424,24 @@ function quellenEintrag(z: ObjektVerlaufZeile): { titel: string; zeilen: string[
     case 'zweiter_faktor_zurueckgesetzt':
       if (!leer(a.grund)) zeilen.push(`Grund: ${String(a.grund)}`);
       return { titel: 'Zweiter Faktor zurückgesetzt', zeilen };
+    // F16: Rechnung oder Angebot per Mail — an wen, mit welchem Anhang, und was daraus wurde.
+    case 'per_mail_versendet':
+    case 'mailversand_gescheitert':
+    case 'mailversand_laeuft': {
+      const an = Array.isArray(a.an) ? (a.an as string[]).join(', ') : '';
+      if (an) zeilen.push(`An ${an}${leer(a.kopie) ? '' : `, Kopie an ${String(a.kopie)}`}`);
+      if (!leer(a.betreff)) zeilen.push(`Betreff: ${String(a.betreff)}`);
+      if (!leer(a.anhang)) zeilen.push(`Anhang: ${String(a.anhang)}${a.mit_link === true ? ' · mit Annahme-Link' : ''}`);
+      if (z.art === 'mailversand_gescheitert' && !leer(a.fehler)) zeilen.push(`Grund: ${String(a.fehler)}`);
+      // Im Verlauf der Rechnung steht auch ihre Mahnung — der Titel sagt, welcher Beleg hinausging.
+      const mahnung = a.beleg_art === 'mahnung';
+      return {
+        titel: z.art === 'per_mail_versendet' ? (mahnung ? 'Mahnung per Mail versendet' : 'Per Mail versendet')
+          : z.art === 'mailversand_gescheitert' ? (mahnung ? 'Mailversand der Mahnung gescheitert' : 'Mailversand gescheitert')
+            : mahnung ? 'Mailversand der Mahnung ohne Rückmeldung' : 'Mailversand ohne Rückmeldung',
+        zeilen,
+      };
+    }
     case 'urlaubsanspruch_angepasst':
     case 'urlaubsanspruch_entfernt': {
       const tage = Number(a.tage);
@@ -405,7 +461,10 @@ function quellenEintrag(z: ObjektVerlaufZeile): { titel: string; zeilen: string[
 export function verlaufEintrag(z: ObjektVerlaufZeile, k: VerlaufKontext = {}): VerlaufEintrag {
   let titel: string;
   let zeilen: string[];
-  if (z.art === 'angelegt' || z.art === 'geaendert' || z.art === 'geloescht') {
+  if (z.objektart === 'kunde' && z.art === 'geaendert' && ZUSAMMENGEFUEHRT in z.aenderungen) {
+    titel = 'Kunden zusammengeführt';
+    zeilen = zusammenfuehrungsZeilen(z.aenderungen[ZUSAMMENGEFUEHRT]);
+  } else if (z.art === 'angelegt' || z.art === 'geaendert' || z.art === 'geloescht') {
     const unter = UNTER[z.objektart];
     titel = (unter ?? ART)[z.art];
     zeilen = z.art === 'geaendert' ? aenderungsZeilen(z, k) : [];

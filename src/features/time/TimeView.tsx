@@ -246,6 +246,8 @@ export default function TimeView() {
       bis,
       (rows) => {
         setEntries(rows);
+        // Ein früherer Ladefehler gilt nicht mehr, sobald die Liste wieder da ist (Z10).
+        setError(null);
         setLoading(false);
       },
       (e) => {

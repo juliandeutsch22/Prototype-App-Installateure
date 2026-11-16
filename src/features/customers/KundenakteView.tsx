@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { schluessel as speicherSchluessel, useGemerkt } from '@/lib/zwischenspeicher';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { useUngespeichertWarnung } from '@/lib/ungespeichert';
@@ -57,6 +58,7 @@ import KundenartUidFelder from '@/components/KundenartUidFelder';
 import { uidNormalisieren, uidSperrt } from '@/lib/uid';
 import UidVies from './UidVies';
 import KundenRechnungFenster from './KundenRechnungFenster';
+import KundenZusammenfuehren from './KundenZusammenfuehren';
 import useUidVies from './useUidVies';
 import ObjektVerlauf from '@/features/verlauf/ObjektVerlauf';
 import KundenLiegenschaften from '@/features/liegenschaften/KundenLiegenschaften';
@@ -102,6 +104,28 @@ const BAUSTELLEN_JE_SEITE = 100;
 
 const LAEDT = { zustand: 'laedt' } as const;
 
+/**
+ * WAS DIE AKTE SICH MERKT (L8, 17.11.2026): Kopf und Bereiche, die beim
+ * nächsten Besuch sofort dastehen und im Hintergrund frisch geholt werden.
+ * Die Rechnungen nicht — dort wird mit Geld gehandelt, aus einem alten Stand
+ * träfe es eine inzwischen bezahlte Rechnung (Regel aus Stand 16.3). Den Kopf
+ * legt auch das Berühren der Zeile in der Kundenliste hier ab (L12).
+ */
+export interface KundenakteStand {
+  kunde: WithId<Customer> | null;
+  baustellen: WithId<Project>[];
+  baustellenZahl: number | null;
+  namensgleich: WithId<Project>[];
+  angebote: WithId<Quote>[];
+  wartungen: WithId<Wartung>[];
+  eingaenge: Auftragseingang[];
+}
+
+/** Gemerkt heißt: bereit — mit diesem Stand. */
+function ausGemerkt<T>(stand: Partial<KundenakteStand> | undefined, teil: keyof KundenakteStand): Teil<T> {
+  return stand && teil in stand ? { zustand: 'bereit', daten: stand[teil] as T } : LAEDT;
+}
+
 export default function KundenakteView() {
   const { id } = useParams<{ id: string }>();
   const { user, company, einblick } = useAuth();
@@ -112,20 +136,23 @@ export default function KundenakteView() {
   const rechnungenAn = useModul('rechnungen');
   const einsatzAn = useModul('einsatzplanung');
 
-  const [kunde, setKunde] = useState<Teil<WithId<Customer> | null>>(LAEDT);
-  const [baustellen, setBaustellen] = useState<Teil<WithId<Project>[]>>(LAEDT);
+  const { anfang: gemerkt, merken } = useGemerkt<KundenakteStand>(user && id ? speicherSchluessel('kundenakte', user, id) : null);
+  /** Was gemerkt dastand: der erste Lauf seines Ladens zeigt keinen Platzhalter. */
+  const vorab = useRef(new Set(Object.keys(gemerkt ?? {})));
+  const [kunde, setKunde] = useState<Teil<WithId<Customer> | null>>(() => ausGemerkt(gemerkt, 'kunde'));
+  const [baustellen, setBaustellen] = useState<Teil<WithId<Project>[]>>(() => ausGemerkt(gemerkt, 'baustellen'));
   const [baustellenGrenze, setBaustellenGrenze] = useState(BAUSTELLEN_JE_SEITE);
-  const [baustellenZahl, setBaustellenZahl] = useState<number | null>(null);
-  const [namensgleich, setNamensgleich] = useState<WithId<Project>[]>([]);
-  const [angebote, setAngebote] = useState<Teil<WithId<Quote>[]>>(LAEDT);
+  const [baustellenZahl, setBaustellenZahl] = useState<number | null>(() => gemerkt?.baustellenZahl ?? null);
+  const [namensgleich, setNamensgleich] = useState<WithId<Project>[]>(() => gemerkt?.namensgleich ?? []);
+  const [angebote, setAngebote] = useState<Teil<WithId<Quote>[]>>(() => ausGemerkt(gemerkt, 'angebote'));
   const [rechnungen, setRechnungen] = useState<Teil<WithId<Invoice>[]>>(LAEDT);
   /** Alle Rechnungen zeigen — sonst die jüngsten fünf; die Akte soll lesbar bleiben. */
   const [alleRechnungen, setAlleRechnungen] = useState(false);
   /** Die Rechnung im Fenster der Akte — als Kennung: nach dem Neuladen zeigt es den frischen Stand. */
   const [offeneRechnung, setOffeneRechnung] = useState<string | null>(null);
-  const [wartungen, setWartungen] = useState<Teil<WithId<Wartung>[]>>(LAEDT);
+  const [wartungen, setWartungen] = useState<Teil<WithId<Wartung>[]>>(() => ausGemerkt(gemerkt, 'wartungen'));
   /** Seine Auftragseingänge (M02b), der jüngste zuerst. */
-  const [eingaenge, setEingaenge] = useState<Teil<Auftragseingang[]>>(LAEDT);
+  const [eingaenge, setEingaenge] = useState<Teil<Auftragseingang[]>>(() => ausGemerkt(gemerkt, 'eingaenge'));
   const [zuordnenLaeuft, setZuordnenLaeuft] = useState<string | null>(null);
   const [versuch, setVersuch] = useState(0);
 
@@ -136,6 +163,8 @@ export default function KundenakteView() {
   const [bearbeitet, setBearbeitet] = useState(false);
   /** Der Stundennachweis über alle Baustellen des Kunden (F12). */
   const [nachweisOffen, setNachweisOffen] = useState(false);
+  /** Mit einem doppelt angelegten Kunden zusammenführen (F9). */
+  const [zusammenfuehrenOffen, setZusammenfuehrenOffen] = useState(false);
   const [terminStand, setTerminStand] = useState<AktenTerminStand>({ termine: null, fehler: false });
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
   /** Runde 6, M6: was an PLZ oder E-Mail nicht stimmt — die Rückfrage „Trotzdem speichern“. */
@@ -165,11 +194,15 @@ export default function KundenakteView() {
   useEffect(() => {
     if (!companyId || !id) return;
     let weg = false;
-    setKunde(LAEDT);
+    if (!vorab.current.delete('kunde')) setKunde(LAEDT);
     void (async () => {
       try {
         const treffer = await listCustomersByIds(companyId, [id]);
-        if (!weg) setKunde({ zustand: 'bereit', daten: treffer[0] ?? null });
+        if (weg) return;
+        const neu = treffer[0] ?? null;
+        // Unverändert bleibt es derselbe Stand — ein offener Entwurf wird nicht neu gesetzt.
+        setKunde((alt) => (alt.zustand === 'bereit' && JSON.stringify(alt.daten) === JSON.stringify(neu) ? alt : { zustand: 'bereit', daten: neu }));
+        merken({ kunde: neu });
       } catch {
         if (!weg) setKunde({ zustand: 'fehler' });
       }
@@ -177,20 +210,24 @@ export default function KundenakteView() {
     return () => {
       weg = true;
     };
-  }, [companyId, id, versuch]);
+  }, [companyId, id, versuch, merken]);
 
   /* Die Eingänge laden für sich — wie die übrigen Bereiche. */
   useEffect(() => {
     if (!companyId || !id || !eingaengeSichtbar) return;
     let weg = false;
-    setEingaenge(LAEDT);
+    if (!vorab.current.delete('eingaenge')) setEingaenge(LAEDT);
     listEingaengeDesKunden(companyId, id, EINGAENGE_HOECHSTENS)
-      .then((l) => !weg && setEingaenge({ zustand: 'bereit', daten: l }))
+      .then((l) => {
+        if (weg) return;
+        setEingaenge({ zustand: 'bereit', daten: l });
+        merken({ eingaenge: l });
+      })
       .catch(() => !weg && setEingaenge({ zustand: 'fehler' }));
     return () => {
       weg = true;
     };
-  }, [companyId, id, eingaengeSichtbar, versuch]);
+  }, [companyId, id, eingaengeSichtbar, versuch, merken]);
 
   /*
     Die drei Bereiche laden GETRENNT. Ein Ausfall bei den Angeboten darf die
@@ -276,6 +313,7 @@ export default function KundenakteView() {
         setBaustellen({ zustand: 'bereit', daten: zugeordnet });
         setBaustellenZahl(zahl);
         setNamensgleich(offen);
+        if (baustellenGrenze === BAUSTELLEN_JE_SEITE) merken({ baustellen: zugeordnet, baustellenZahl: zahl, namensgleich: offen });
       } catch {
         if (!weg) setBaustellen({ zustand: 'fehler' });
       }
@@ -283,7 +321,7 @@ export default function KundenakteView() {
     return () => {
       weg = true;
     };
-  }, [companyId, id, kundeName, versuch, baustellenGrenze]);
+  }, [companyId, id, kundeName, versuch, baustellenGrenze, merken]);
 
   /*
     DIE ANGEBOTE HINGEN AM NAMEN UND MUSSTEN AN DER KENNUNG HÄNGEN.
@@ -304,12 +342,16 @@ export default function KundenakteView() {
     if (!companyId || !id || !angeboteAn || !darfAngebote) return;
     let weg = false;
     listQuotesForCustomer(companyId, id, ANGEBOTE_HOECHSTENS)
-      .then((q) => !weg && setAngebote({ zustand: 'bereit', daten: q }))
+      .then((q) => {
+        if (weg) return;
+        setAngebote({ zustand: 'bereit', daten: q });
+        merken({ angebote: q });
+      })
       .catch(() => !weg && setAngebote({ zustand: 'fehler' }));
     return () => {
       weg = true;
     };
-  }, [companyId, id, angeboteAn, darfAngebote, versuch]);
+  }, [companyId, id, angeboteAn, darfAngebote, versuch, merken]);
 
   /*
     DIE RECHNUNGEN DES KUNDEN — über die Kundenkennung und seine Baustellen,
@@ -335,12 +377,16 @@ export default function KundenakteView() {
     if (!companyId || !id || !wartungAn) return;
     let weg = false;
     listWartungenForCustomer(companyId, id)
-      .then((w) => !weg && setWartungen({ zustand: 'bereit', daten: w }))
+      .then((w) => {
+        if (weg) return;
+        setWartungen({ zustand: 'bereit', daten: w });
+        merken({ wartungen: w });
+      })
       .catch(() => !weg && setWartungen({ zustand: 'fehler' }));
     return () => {
       weg = true;
     };
-  }, [companyId, id, wartungAn, versuch]);
+  }, [companyId, id, wartungAn, versuch, merken]);
 
   if (!user) return null;
 
@@ -694,9 +740,26 @@ export default function KundenakteView() {
             ...(!einblick ? neuFuer : []),
             ...(user && canEditTime(user.role) && !einblick && baustellen.zustand === 'bereit' && baustellen.daten.length > 0
               ? [{ label: 'Stundennachweis', onSelect: () => setNachweisOffen(true) }] : []),
+            // F9: eine Dublette mit Belegen — wer Kunden pflegt, führt sie hier zusammen.
+            ...(darfAendern && !einblick
+              ? [{ label: 'Mit anderem Kunden zusammenführen …', onSelect: () => setZusammenfuehrenOffen(true) }] : []),
           ];
           return eintraege.length ? <RowMenu about={`Kunde ${k.name}`} items={eintraege} /> : undefined;
         })()} />
+      {zusammenfuehrenOffen && companyId && (
+        <KundenZusammenfuehren
+          companyId={companyId}
+          kunde={k}
+          onSchliessen={() => setZusammenfuehrenOffen(false)}
+          onFertig={(bleibt, name) => {
+            setZusammenfuehrenOffen(false);
+            toast.success(`Kunden zusammengeführt: ${name}`);
+            // Blieb der Kunde dieser Akte, lädt sie neu; sonst gibt es diese Akte nicht mehr.
+            if (bleibt === k.id) setVersuch((n) => n + 1);
+            else navigate(`/customers/${bleibt}`);
+          }}
+        />
+      )}
       {nachweisOffen && baustellen.zustand === 'bereit' && (
         <StundennachweisDialog
           offen

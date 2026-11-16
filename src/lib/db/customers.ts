@@ -129,3 +129,22 @@ export function listUidPruefungen(companyId: string, customerId: string): Promis
 export function uidBeiViesPruefen(customerId: string): Promise<{ pruefung: UidPruefung; hinweis?: string }> {
   return pg.uidBeiViesPruefen(customerId);
 }
+
+export type {
+  KundenZahlen, KundenUeberNamen, ZusammenfuehrenVorschau, Stammfeld, StammfeldHerkunft, ZusammenfuehrenErgebnis,
+} from './pg/customers';
+
+/** Was beim Zusammenführen zweier Kunden wohin wandert (F9) — ändert nichts. */
+export function kundenZusammenfuehrenVorschau(bleibt: string, geht: string): Promise<pg.ZusammenfuehrenVorschau> {
+  return pg.kundenZusammenfuehrenVorschau(bleibt, geht);
+}
+
+/** Zwei Kunden zusammenführen (F9) — alles oder nichts, mit dem Stand der Vorschau. */
+export function kundenZusammenfuehren(
+  bleibt: string,
+  geht: string,
+  felder: Partial<Record<pg.Stammfeld, pg.StammfeldHerkunft>>,
+  stand: string,
+): Promise<pg.ZusammenfuehrenErgebnis> {
+  return pg.kundenZusammenfuehren(bleibt, geht, felder, stand);
+}

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import KnopfLink from '@/components/KnopfLink';
 import { einsaetzeDerBaustelle } from '@/lib/db/assignments';
 import type { Assignment } from '@/types';
@@ -117,7 +117,18 @@ export default function BaustellenakteView() {
   const eingaengeSichtbar = user ? canAccess(user.role, '/eingaenge', company?.modules) : false;
   const [ausEingang, setAusEingang] = useState<{ id: string; nummer: string } | null>(null);
 
-  const [baustelle, setBaustelle] = useState<Teil<WithId<Project> | null>>(LAEDT);
+  /*
+    DER KOPF, GEMERKT (L12, 17.11.2026): beim zweiten Besuch und nach dem
+    Berühren der Zeile in der Baustellenliste steht die Baustelle sofort da;
+    frisch geholt wird im Hintergrund. Ist der neue Stand gleich, bleibt der
+    alte (ein offener Entwurf wird nicht neu gesetzt).
+  */
+  const { anfang: akteGemerkt, merken: akteMerken } = useGemerkt<{ baustelle: WithId<Project> | null }>(
+    user && id ? schluessel('baustellenakte', user, id) : null,
+  );
+  const vorab = useRef(akteGemerkt !== undefined && 'baustelle' in akteGemerkt);
+  const [baustelle, setBaustelle] = useState<Teil<WithId<Project> | null>>(() =>
+    akteGemerkt && 'baustelle' in akteGemerkt ? { zustand: 'bereit', daten: akteGemerkt.baustelle ?? null } : LAEDT);
   /*
     DIE BELEGSCHAFT, gemerkt für den nächsten Besuch (Stufe 3) — derselbe
     Schlüssel wie Baustellenliste und „Tag planen“. Bis sie da ist (oder ihr
@@ -165,11 +176,15 @@ export default function BaustellenakteView() {
   useEffect(() => {
     if (!companyId || !id) return;
     let weg = false;
-    setBaustelle(LAEDT);
+    if (vorab.current) vorab.current = false;
+    else setBaustelle(LAEDT);
     void (async () => {
       try {
         const treffer = await listProjectsByIds(companyId, [id]);
-        if (!weg) setBaustelle({ zustand: 'bereit', daten: treffer[0] ?? null });
+        if (weg) return;
+        const neu = treffer[0] ?? null;
+        setBaustelle((alt) => (alt.zustand === 'bereit' && JSON.stringify(alt.daten) === JSON.stringify(neu) ? alt : { zustand: 'bereit', daten: neu }));
+        akteMerken({ baustelle: neu });
       } catch {
         if (!weg) setBaustelle({ zustand: 'fehler' });
       }
@@ -177,7 +192,7 @@ export default function BaustellenakteView() {
     return () => {
       weg = true;
     };
-  }, [companyId, id, versuch]);
+  }, [companyId, id, versuch, akteMerken]);
 
   /*
     DIE BELEGSCHAFT BRAUCHEN AUCH DIE, DIE NUR LESEN.

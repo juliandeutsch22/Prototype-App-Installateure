@@ -17,7 +17,17 @@
  * steht „Entwicklung" da, statt dass die App an einem fehlenden Bezeichner
  * scheitert.
  */
-declare const __FASSUNG__: string | undefined;
+/*
+ * GESETZT VOM EINSTIEG, NICHT HIER EINGEBAUT (L7, 17.11.2026). Der Wert
+ * trägt die Uhrzeit des Baus und ist damit bei jedem Bau ein anderer. Stand
+ * er in diesem Modul, änderte sich mit jedem Bau der gemeinsame Baustein —
+ * und mit ihm jeder Baustein, der ihn einbindet: gemessen 182 von 230, auch
+ * ohne eine einzige geänderte Zeile. `src/main.tsx` (der Einstieg, den
+ * niemand einbindet) setzt ihn vor allem anderen; gelesen wird er erst beim
+ * Zeichnen oder bei einem Fehler, über die lebendige Bindung des Exports.
+ */
+export let FASSUNG = 'Entwicklung';
 
-export const FASSUNG: string =
-  typeof __FASSUNG__ === 'string' && __FASSUNG__ !== '' ? __FASSUNG__ : 'Entwicklung';
+export function fassungSetzen(wert: string | undefined): void {
+  if (typeof wert === 'string' && wert !== '') FASSUNG = wert;
+}

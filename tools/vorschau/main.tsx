@@ -8,6 +8,7 @@ import '@fontsource/ibm-plex-mono/latin-400.css';
 import '@fontsource/ibm-plex-mono/latin-500.css';
 import '@/index.css';
 import { darstellungAnwenden } from '@/lib/darstellung';
+import { fassungSetzen } from '@/lib/fassung';
 import { vorladenAbschalten } from '@/lib/ansichten';
 import App from '@/app/App';
 import { ToastProvider } from '@/components/Toast';
@@ -19,6 +20,9 @@ import { ToastProvider } from '@/components/Toast';
  */
 const pfad = new URLSearchParams(location.search).get('pfad') ?? '/';
 
+// Wie in src/main.tsx: die Fassung setzt der Einstieg.
+declare const __FASSUNG__: string | undefined;
+fassungSetzen(typeof __FASSUNG__ === 'string' ? __FASSUNG__ : undefined);
 // Wie in src/main.tsx: hell, ausser dieses Gerät hat dunkel gewählt.
 darstellungAnwenden();
 // Jede Seite wird hier frisch geladen; Vorladen holte jedes Mal alle Ansichten.

@@ -29,7 +29,14 @@ function baukasten(): unknown {
 const zaehlen = vi.fn(async () => 0);
 const rpc = vi.fn(async () => ({ data: null as unknown, error: null as { message: string } | null }));
 vi.mock('@/lib/db/pg/kern', () => ({
-  derClient: () => ({ from: (t: string) => { aufrufe.push(['from', t]); return baukasten(); }, rpc }),
+  derClient: () => ({
+    from: (t: string) => { aufrufe.push(['from', t]); return baukasten(); },
+    // Die Suche (Befund 1 zu L3) ist eine Funktion, die sich wie eine Tabelle weiterbauen lässt.
+    rpc: (name: string, args: unknown) => {
+      if (name === 'suche_auftragseingaenge') { aufrufe.push(['rpc', name, args]); return baukasten(); }
+      return (rpc as unknown as (n: string, a: unknown) => unknown)(name, args);
+    },
+  }),
   zaehlen: (...a: unknown[]) => zaehlen(...(a as [])),
   abfragen: vi.fn(async () => []),
   anlegen: vi.fn(async () => 'neu'),
@@ -82,12 +89,15 @@ describe('listEingaenge', () => {
     }
   });
 
-  it('die Suche über Nummer, Kunde, Ort, Anliegen und Nummer des Auftraggebers — entschärft', async () => {
-    await listEingaenge('perl', { stand: 'offen', suche: 'Huber, 50%' });
-    const muster = '"%Huber, 50\\\\%%"';
-    expect(schritte('or')).toEqual([[
-      `and(or(nummer.ilike.${muster},kunde_name.ilike.${muster},ort.ilike.${muster},anliegen.ilike.${muster},auftraggeber_nummer.ilike.${muster}))`,
-    ]]);
+  it('die Suche über Nummer, Kunde, Ort, Anliegen und Nummer des Auftraggebers — über den Index (`suche_auftragseingaenge`)', async () => {
+    await listEingaenge('perl', { stand: 'offen', suche: '  Huber, 50%  ' });
+    // Der Begriff geht roh mit, entschärft wird in der Datenbank; keine `or`-Bedingung mehr.
+    expect(schritte('rpc')).toEqual([['suche_auftragseingaenge', {
+      p_spalten: ['nummer', 'kunde_name', 'ort', 'anliegen', 'auftraggeber_nummer'], p_begriff: 'Huber, 50%', p_muster: null,
+    }]]);
+    expect(schritte('from')).toEqual([]);
+    expect(schritte('eq')).toEqual([['company_id', 'perl'], ['stand', 'offen']]);
+    expect(schritte('or')).toEqual([]);
   });
 
   it('die nächste Seite beginnt hinter der letzten Zeile — in der Reihenfolge des Stands', async () => {
@@ -108,9 +118,9 @@ describe('listEingaenge', () => {
 
     aufrufe = [];
     await listEingaenge('perl', { stand: 'abgelehnt', nach: eins.weiter, suche: 'x' });
+    expect(schritte('rpc').map((r) => r[0])).toEqual(['suche_auftragseingaenge']);
     expect(schritte('or')).toEqual([[
-      `and(or(nummer.ilike."%x%",kunde_name.ilike."%x%",ort.ilike."%x%",anliegen.ilike."%x%",auftraggeber_nummer.ilike."%x%"),`
-      + `or(eingegangen_am.lt.${am},and(eingegangen_am.eq.${am},id.gt.${id})))`,
+      `and(or(eingegangen_am.lt.${am},and(eingegangen_am.eq.${am},id.gt.${id})))`,
     ]]);
   });
 

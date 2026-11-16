@@ -36,14 +36,15 @@ export function listUnpaidInvoiceKoepfe(companyId: string): Promise<WithId<Rechn
   return pg.listUnpaidInvoiceKoepfe(companyId);
 }
 
-export function subscribeRecentInvoices(
+/** Die jüngsten Rechnungen, live, nur die Köpfe — siehe `pg.subscribeRecentInvoiceKoepfe` (L6). */
+export function subscribeRecentInvoiceKoepfe(
   companyId: string,
   max: number,
-  cb: (rows: WithId<Invoice>[]) => void,
+  cb: (rows: WithId<RechnungsKopf>[]) => void,
   onError: (e: Error) => void,
   geaendert?: () => void,
 ): () => void {
-  return pg.subscribeRecentInvoices(companyId, max, cb, onError, undefined, geaendert);
+  return pg.subscribeRecentInvoiceKoepfe(companyId, max, cb, onError, undefined, geaendert);
 }
 
 export function listInvoicesInRange(
@@ -88,11 +89,21 @@ export function scheineAufRechnung(companyId: string, scheinIds: string[]): Prom
   return pg.scheineAufRechnung(companyId, scheinIds);
 }
 
-export type { UnverrechneterSchein } from './pg/invoices';
+export type { UnverrechneterSchein, UnverrechnetStand, UnverrechneteBaustelle } from './pg/invoices';
 
-/** Alle unterschriebenen, unverrechneten Scheine des Betriebs, älteste zuerst — siehe `pg.scheineUnverrechnet`. */
-export function scheineUnverrechnet() {
-  return pg.scheineUnverrechnet();
+/** Zahl der unverrechneten Scheine und wie viele bis `altBis` — siehe `pg.scheineUnverrechnetStand`. */
+export function scheineUnverrechnetStand(altBis: string) {
+  return pg.scheineUnverrechnetStand(altBis);
+}
+
+/** Die unverrechneten Scheine je Baustelle, vertreten durch den ältesten — siehe `pg.scheineUnverrechnetJeBaustelle`. */
+export function scheineUnverrechnetJeBaustelle() {
+  return pg.scheineUnverrechnetJeBaustelle();
+}
+
+/** Eine Seite der unverrechneten Scheine, älteste zuerst — siehe `pg.scheineUnverrechnetSeite`. */
+export function scheineUnverrechnetSeite(ab: number, anzahl: number) {
+  return pg.scheineUnverrechnetSeite(ab, anzahl);
 }
 
 export const RECHNUNG_TREFFER = pg.RECHNUNG_TREFFER;

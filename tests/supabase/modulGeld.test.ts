@@ -13,7 +13,7 @@ import * as rechnungen from '@/lib/db/pg/invoices';
 import * as zahlungen from '@/lib/db/pg/zahlungen';
 import * as angebote from '@/lib/db/pg/quotes';
 import { clientEinreichen, NACHFASSEN_MS, type WithId } from '@/lib/db/pg/kern';
-import type { Invoice } from '@/types';
+import type { Invoice, RechnungsKopf } from '@/types';
 
 const BETRIEB = 'geld-a';
 const JAHR = new Date().getFullYear();
@@ -495,9 +495,10 @@ describe('Rechnungen lesen', () => {
     expect(rows[0].positions).toHaveLength(2);
   });
 
-  it('das Abonnement meldet eine neue Rechnung samt Positionen', async () => {
-    const staende: WithId<Invoice>[][] = [];
-    const stopp = rechnungen.subscribeRecentInvoices(
+  // Die Liste trägt seit L6 nur Köpfe; die Positionen holt das Öffnen (`listInvoicesByIds`).
+  it('das Abonnement meldet eine neue Rechnung, ihre Positionen kommen beim Öffnen', async () => {
+    const staende: WithId<RechnungsKopf>[][] = [];
+    const stopp = rechnungen.subscribeRecentInvoiceKoepfe(
       BETRIEB, 50, (rows) => staende.push(rows), (e) => { throw e; },
     );
     try {
@@ -510,7 +511,9 @@ describe('Rechnungen lesen', () => {
       for (let i = 0; i < 40 && staende.length === vorher; i += 1) await warte(100);
       expect(staende.length).toBeGreaterThan(vorher);
       const neu = letzter(staende).find((r) => r.invoiceNumber === `RE-${JAHR}-1004`);
-      expect(neu!.positions).toHaveLength(2);
+      expect((neu as { positions?: unknown }).positions).toBeUndefined();
+      const [ganz] = await rechnungen.listInvoicesByIds(BETRIEB, [neu!.id]);
+      expect(ganz.positions).toHaveLength(2);
     } finally {
       stopp();
     }
@@ -531,8 +534,8 @@ describe('Rechnungen lesen', () => {
       invoiceNumber: `RE-${JAHR}-1006`, invoiceDate: '2026-04-17',
     }));
     let meldungen = 0;
-    let liste: WithId<Invoice>[] = [];
-    const stopp = rechnungen.subscribeRecentInvoices(
+    let liste: WithId<RechnungsKopf>[] = [];
+    const stopp = rechnungen.subscribeRecentInvoiceKoepfe(
       BETRIEB, 1, (rows) => { liste = rows; }, (e) => { throw e; }, undefined, () => { meldungen += 1; },
     );
     try {

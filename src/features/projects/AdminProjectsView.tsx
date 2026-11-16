@@ -47,7 +47,8 @@ import { Zustand } from '@/components/Badge';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import PageHeader from '@/components/PageHeader';
 import RowMenu from '@/components/RowMenu';
-import { praefixeVon, belegNummer, hoechsteLfdImJahr } from '@/lib/praefixe';
+import { praefixeVon } from '@/lib/praefixe';
+import { useBaustellenVorschlag } from './useBaustellenVorschlag';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, TextareaField, FormGrid, Pflichthinweis, CheckboxField } from '@/components/Field';
@@ -64,6 +65,7 @@ import { stammdatenFehler, stundenbudgetAus } from './baustellenEntwurf';
 import LiegenschaftAuswahl from '@/features/liegenschaften/LiegenschaftAuswahl';
 import LiegenschaftVorschlaege from '@/features/liegenschaften/LiegenschaftVorschlaege';
 import type { Customer, Liegenschaft } from '@/types';
+import { akteVorbereiten } from '@/lib/akteVorbereiten';
 
 const empty = {
   projectNumber: '',
@@ -286,7 +288,27 @@ export default function AdminProjectsView() {
     neu.set('stand', wert);
     setSuchparameter(neu, { replace: true });
   };
-  const [suche, setSuche] = useState(gesuchteBaustelle);
+  /*
+    DIE SUCHE STEHT IN DER ADRESSE (`?suche=`, wie bei Kunden, Angeboten und
+    Wartungen): wer aus einer Akte zurückkommt, findet sie wieder — der
+    Rückweg im Seitenkopf nimmt die Abfrage mit (`lib/listenAdresse.ts`).
+    Ein Tiefenlink (`?baustelle=`) gilt als erste Suche; wer weitertippt,
+    behält die Ansicht, die der Tiefenlink gesetzt hat.
+  */
+  const [suche, setSucheFeld] = useState(() => gesuchteBaustelle || (suchparameter.get('suche') ?? ''));
+  const setSuche = (q: string) => {
+    setSucheFeld(q);
+    setSuchparameter((alt) => {
+      const neu = new URLSearchParams(alt);
+      if (neu.has('baustelle')) {
+        if (!neu.has('stand')) neu.set('stand', filter);
+        neu.delete('baustelle');
+      }
+      if (q.trim()) neu.set('suche', q);
+      else neu.delete('suche');
+      return neu;
+    }, { replace: true });
+  };
   /** Wie viele Zeilen je Statusgruppe gezeigt sind; ohne Eintrag `JE_GRUPPE`. */
   const [gezeigt, setGezeigt] = useState<Record<string, number>>({});
   /*
@@ -485,15 +507,10 @@ export default function AdminProjectsView() {
    * anlegt; verbindlich wird die Nummer erst beim Speichern.
    */
   const vorsaetze = praefixeVon(company);
-  const nummernVorschlag = useMemo(
-    () =>
-      belegNummer(
-        vorsaetze.baustelle,
-        new Date().getFullYear(),
-        hoechsteLfdImJahr(projects.map((p) => p.projectNumber), new Date().getFullYear()) + 1,
-      ),
-    [projects, vorsaetze.baustelle],
-  );
+  // Das Jahr vom Server, wie die Vergabe (Befund aus G12); ohne Verbindung das des Geräts.
+  const projektNummern = useMemo(() => projects.map((p) => p.projectNumber), [projects]);
+  const { vorschlag: nummernVorschlag, vomServer: vorschlagVomServer } =
+    useBaustellenVorschlag(projektNummern, vorsaetze.baustelle);
 
   /*
     DER VORSCHLAG GEHÖRT IN DEN ZUSTAND, NICHT IN DIE ANZEIGE.
@@ -788,6 +805,16 @@ export default function AdminProjectsView() {
           required
           pflicht
         />
+        {/*
+          OHNE VERBINDUNG IST DER VORSCHLAG NUR EIN BEISPIEL: Jahr und Zahl kommen
+          dann vom Gerät. Bleibt er stehen, vergibt der Server beim Speichern
+          ohnehin die verbindliche Nummer.
+        */}
+        {!vorschlagVomServer && form.projectNumber === nummernVorschlag && (
+          <p className="-mt-2 text-sm text-ink-muted">
+            Beispiel ohne Verbindung zum Server (Jahr vom Gerät) — die Nummer vergibt der Server beim Speichern.
+          </p>
+        )}
         {/*
           Kunde AUSWÄHLEN statt tippen.
           Vorher war das ein freies Textfeld, und zwei Schreibweisen
@@ -1103,6 +1130,8 @@ export default function AdminProjectsView() {
                           lässt sich verlinken und kommt zurück, wohin man war.
                         */
                         to={`/admin-projects/${p.id}`}
+                        // Berührt: Baustein und Kopf der Akte vorab — der Kopf aus dieser Zeile, ohne Anfrage (L12).
+                        vorbereiten={user ? () => akteVorbereiten(`/admin-projects/${p.id}`, { schluessel: schluessel('baustellenakte', user, p.id), daten: { baustelle: p } }) : undefined}
                         /*
                           ZEILEN GLEICH GEBAUT (Design-Entwurf, Punkt 3): Name fett,
                           Nummer grau daneben, eine Detailzeile, rechts Zustand und

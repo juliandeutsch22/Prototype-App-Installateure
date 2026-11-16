@@ -11,7 +11,6 @@ import type { MaterialOrder } from '@/types';
 import type { Ausgabe } from '@/features/invoices/ausgegebenesMaterial';
 import { abfragen, abonnieren, anlegenMitKennung, loeschen, derClient, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
-import { oderUeberSpalten } from './suche';
 
 import { anlegenOhneEmpfang as fachAnlegen } from './ohneEmpfang';
 
@@ -106,10 +105,9 @@ export function sucheAnforderungen(
   begriff: string,
   max = ANFORDERUNG_TREFFER,
 ): Promise<WithId<MaterialOrder>[]> {
-  const oder = oderUeberSpalten(['material_name', 'user_name', 'project_number', 'note'], begriff);
-  if (!oder) return Promise.resolve([]);
+  if (!begriff.trim()) return Promise.resolve([]);
   return abfragen<MaterialOrder>(ANFORDERUNGEN, companyId, {
-    oder,
+    suche: { spalten: ['material_name', 'user_name', 'project_number', 'note'], begriff },
     sortiere: { feld: 'createdAt', absteigend: true },
     grenze: max,
   });

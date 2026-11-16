@@ -38,6 +38,13 @@ export function naechsteNummern(jahr: number): Promise<pg.NaechsteNummern> {
   return pg.naechsteNummern(jahr);
 }
 
+export type { NaechsteNummernImJahr } from './pg/company';
+
+/** Dasselbe mit dem Jahr, in dem der Server vergibt (G12) — für die Vorschau. */
+export function naechsteNummernImJahr(): Promise<pg.NaechsteNummernImJahr> {
+  return pg.naechsteNummernImJahr();
+}
+
 export type { Rechnungsvorgaben } from './pg/company';
 
 /** Nur die Rechnungsvorgaben speichern — darf auch die Buchhaltung (Testbericht H10). */

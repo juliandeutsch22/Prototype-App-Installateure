@@ -8,7 +8,6 @@ import type { Project } from '@/types';
 import { PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { BAUSTELLEN_AUSWAHL_GRENZE } from '@/lib/listengrenzen';
 import { abfragen, abonnieren, anlegen, aendern, derClient, loeschen, type WithId } from './kern';
-import { oderUeberSpalten } from './suche';
 
 const BAUSTELLEN = 'projects';
 
@@ -213,9 +212,7 @@ export function searchProjects(
   companyId: string, begriff: string, max = 300,
 ): Promise<WithId<Project>[]> {
   return abfragen<Project>(BAUSTELLEN, companyId, {
-    oder: oderUeberSpalten(
-      ['project_number', 'customer_name', 'bezeichnung', 'address'], begriff,
-    ),
+    suche: { spalten: ['project_number', 'customer_name', 'bezeichnung', 'address'], begriff },
     sortiere: { feld: 'projectNumber', absteigend: true },
     grenze: max,
   });
